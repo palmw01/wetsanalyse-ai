@@ -23,7 +23,7 @@ dependencies = [
 # Beide worden lazy geïmporteerd, zodat de tests zonder deze (zwaardere) dependencies draaien.
 llm = ["litellm>=1.89.0", "mcp>=1.2"]
 dev = [
-    "pytest>=9.1.0",
+    "pytest>=9.1.1",
     "pytest-asyncio>=0.23",
     "pytest-httpx>=0.30",
     # In-memory SQLite-backend voor de unit-tests (portable SQL → ook Postgres in productie).
