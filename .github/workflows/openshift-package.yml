@@ -73,7 +73,7 @@ jobs:
           echo "name=${NAME}" >> "$GITHUB_OUTPUT"
 
       - name: Sla de bundel op als workflow-artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         env:
           FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         with:
