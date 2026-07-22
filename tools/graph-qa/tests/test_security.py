@@ -38,3 +38,13 @@ def test_cors_credentials_niet_bij_wildcard():
     # De main-module leidt hieruit allow_credentials=False af (wildcard).
     # Bij een expliciete origin mag het wél.
     assert Settings(cors_origins=["https://x.nl"]).cors_origins == ["https://x.nl"]
+
+
+def test_cors_wildcard_ook_in_gemengde_lijst():
+    # M1: "*" naast een expliciete origin telt óók als wildcard → credentials uit. Anders reflecteert
+    # Starlette elke origin mét credentials (de omzeiling die de guard juist moet dichten).
+    from api import main
+
+    assert main._has_wildcard_origin(["*"]) is True
+    assert main._has_wildcard_origin(["*", "https://x.nl"]) is True
+    assert main._has_wildcard_origin(["https://x.nl"]) is False

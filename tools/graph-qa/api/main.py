@@ -70,7 +70,13 @@ observability.instrument_fastapi(app)
 
 # CORS met credentials mag niet samen met "*" (browsers weigeren die combinatie én
 # het is te ruim). Alleen credentials toestaan bij een expliciete origin-lijst.
-_wildcard = settings.cors_origins == ["*"]
+def _has_wildcard_origin(origins: list[str]) -> bool:
+    """True zodra "*" ergens in de origin-lijst staat — óók naast expliciete origins. Starlette
+    reflecteert dan élke origin, dus credentials mogen dan niet aan (anders is de guard te omzeilen)."""
+    return any(o == "*" for o in origins)
+
+
+_wildcard = _has_wildcard_origin(settings.cors_origins)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,

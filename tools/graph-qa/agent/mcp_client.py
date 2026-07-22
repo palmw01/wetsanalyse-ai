@@ -171,14 +171,18 @@ class MCPClient:
         return result.get("tools", [])
 
     def call_tool(self, name: str, arguments: dict[str, Any]) -> Any:
-        self._reject_updates(arguments)
         result = self._rpc("tools/call", {"name": name, "arguments": arguments})
         if result is None:
             return []
         return result.get("content", [])
 
     def sparql(self, query: str) -> str:
-        """Voer een read-only SPARQL-query uit via de MCP-sparql-tool."""
+        """Voer een read-only SPARQL-query uit via de MCP-sparql-tool.
+
+        De read-only guard hoort hier — op de SPARQL-string — en niet in het generieke `call_tool`:
+        anders zou hij ook de natuurlijke-taal-query van `similarity_search` scannen en die onterecht
+        weigeren zodra ze met een verb begint of iets als 'delete where' bevat."""
+        self._reject_updates({"query": query})
         content = self.call_tool(
             self._sparql_tool,
             {"query": query, "repositoryId": self._repository_id},
