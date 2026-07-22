@@ -62,6 +62,8 @@ async def _lifespan(_app: FastAPI):
     # require_graph() blijft als tweede net bestaan.
     settings.require_graph()
     yield
+    # App-shutdown: OTel-buffers flushen zodat de laatste spans/metrics niet verloren gaan.
+    observability.shutdown()
 
 
 app = FastAPI(title="Graph QA Agent", version="0.2.0", lifespan=_lifespan)
@@ -89,12 +91,36 @@ _bearer = HTTPBearer(auto_error=False)
 
 # Per-IP sliding-window rate-limit (per proces).
 _hits: dict[str, deque[float]] = {}
+_MAX_TRACKED_IPS = 10_000  # bovengrens; boven deze grens vervallen buckets opruimen (geen geheugenlek)
+
+
+def _client_ip(request: Request) -> str:
+    # Achter een reverse proxy is request.client.host het proxy-IP → één globale bucket. Met
+    # trust_proxy nemen we de eerste X-Forwarded-For-hop (de echte client). Standaard uit, zodat een
+    # gespooft header de limiet niet omzeilt.
+    if settings.trust_proxy:
+        xff = request.headers.get("x-forwarded-for", "")
+        first = xff.split(",")[0].strip()
+        if first:
+            return first
+    return request.client.host if request.client else "onbekend"
+
+
+def _prune_hits(now: float, window: float) -> None:
+    # Voorkom onbegrensde groei van _hits: gooi buckets weg waarvan de laatste hit buiten het venster
+    # ligt (volledig verlopen). Alleen als de dict te groot wordt, zodat het pad normaal goedkoop blijft.
+    if len(_hits) <= _MAX_TRACKED_IPS:
+        return
+    verlopen = [k for k, b in _hits.items() if not b or b[-1] <= now - window]
+    for k in verlopen:
+        _hits.pop(k, None)
 
 
 def _rate_limit(request: Request) -> None:
-    ip = request.client.host if request.client else "onbekend"
+    ip = _client_ip(request)
     now = time.monotonic()
     window = settings.rate_window_seconds
+    _prune_hits(now, window)
     bucket = _hits.setdefault(ip, deque())
     while bucket and bucket[0] <= now - window:
         bucket.popleft()

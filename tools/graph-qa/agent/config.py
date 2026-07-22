@@ -46,14 +46,14 @@ class Settings(BaseModel):
     # sessie). Char-budget; 0 = uit. Ruim genoeg dat de huidige vraag + tool-resultaten altijd passen.
     max_history_chars: int = 40000
 
-    # Geheugen
-    memory_db_path: str | None = None
-
     # API-laag
     qa_api_token: str | None = None
     cors_origins: list[str] = ["*"]
     rate_limit: int = 60          # verzoeken per venster (per proces, per IP)
     rate_window_seconds: float = 60.0
+    # Achter een reverse proxy: de eerste X-Forwarded-For-hop als client-IP nemen voor de rate-limit.
+    # Standaard uit (peer-IP), zodat een gespooft header de limiet niet omzeilt tenzij bewust aangezet.
+    trust_proxy: bool = False
 
     # Orkestrator
     enable_planning: bool = True      # lichte plan-node vóór de agent (plan→retrieve→reason→verify)
@@ -97,10 +97,11 @@ class Settings(BaseModel):
             "enable_decomposition": e.get("ENABLE_DECOMPOSITION"),
             "max_subquestions": e.get("MAX_SUBQUESTIONS"),
             "sub_max_turns": e.get("SUB_MAX_TURNS"),
-            "memory_db_path": e.get("MEMORY_DB_PATH"),
             "qa_api_token": _read_secret(e, "QA_API_TOKEN"),
             "cors_origins": cors or None,
             "rate_limit": e.get("QA_RATE_LIMIT"),
+            "rate_window_seconds": e.get("QA_RATE_WINDOW_SECONDS"),
+            "trust_proxy": e.get("TRUST_PROXY"),
             "otel_endpoint": e.get("OTEL_EXPORTER_OTLP_ENDPOINT"),
             "otel_service_name": e.get("OTEL_SERVICE_NAME"),
             "log_format": e.get("LOG_FORMAT"),

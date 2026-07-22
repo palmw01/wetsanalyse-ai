@@ -62,7 +62,6 @@ class MCPClient:
         self,
         url: str | None = None,
         token: str | None = None,
-        timeout: float = 30.0,
         repository_id: str | None = None,
         sparql_tool: str = "sparql_query",
         similarity_index: str = "",
@@ -70,7 +69,6 @@ class MCPClient:
         self.url = (url or os.environ["GRAPHDB_MCP_URL"]).rstrip("/")
         token = token or os.environ["GRAPHDB_TOKEN"]
         self._auth_header = f"Bearer {token}"
-        self._timeout = timeout
         self._repository_id = repository_id or os.environ.get("GRAPHDB_REPOSITORY_ID", "inning")
         self._sparql_tool = sparql_tool
         self._similarity_index = similarity_index

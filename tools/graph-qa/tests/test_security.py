@@ -48,3 +48,19 @@ def test_cors_wildcard_ook_in_gemengde_lijst():
     assert main._has_wildcard_origin(["*"]) is True
     assert main._has_wildcard_origin(["*", "https://x.nl"]) is True
     assert main._has_wildcard_origin(["https://x.nl"]) is False
+
+
+def test_client_ip_eert_xff_alleen_met_trust_proxy(monkeypatch):
+    # L4: standaard peer-IP (geen spoof-omzeiling); met trust_proxy de eerste X-Forwarded-For-hop.
+    from types import SimpleNamespace
+
+    from api import main
+
+    req = SimpleNamespace(
+        headers={"x-forwarded-for": "1.2.3.4, 10.0.0.1"},
+        client=SimpleNamespace(host="10.0.0.1"),
+    )
+    monkeypatch.setattr(main, "settings", SimpleNamespace(trust_proxy=False))
+    assert main._client_ip(req) == "10.0.0.1"
+    monkeypatch.setattr(main, "settings", SimpleNamespace(trust_proxy=True))
+    assert main._client_ip(req) == "1.2.3.4"

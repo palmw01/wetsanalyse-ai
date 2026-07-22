@@ -585,7 +585,8 @@ def build_graph(settings: Settings, llm: LLMPort, graph: GraphPort) -> StateGrap
             antwoord = ""
             for _turn in range(settings.sub_max_turns):
                 with llm.stream(
-                    model=model, max_tokens=4096, system=system, tools=schemas, messages=_schoon_messages(msgs),
+                    model=model, max_tokens=4096, system=system, tools=schemas,
+                    messages=_trim_messages(_schoon_messages(msgs), settings.max_history_chars),
                 ) as stream:
                     first = True
                     for delta in stream.text_deltas:
