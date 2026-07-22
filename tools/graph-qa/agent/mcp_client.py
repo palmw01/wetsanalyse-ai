@@ -214,7 +214,12 @@ class MCPClient:
                 )
 
     def close(self) -> None:
-        self._client.close()
+        # Idempotent en best-effort: bij een SSE-client-disconnect kan `close()` samenvallen met een
+        # nog lopende call in een executor-thread; laat het sluiten daar niet op stuklopen.
+        try:
+            self._client.close()
+        except Exception:  # noqa: BLE001 — sluiten mag nooit de afhandeling breken
+            pass
 
     def __enter__(self) -> "MCPClient":
         return self

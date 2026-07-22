@@ -107,8 +107,9 @@ class Settings(BaseModel):
             "log_level": e.get("LOG_LEVEL"),
             "checkpoint_db_path": e.get("CHECKPOINT_DB_PATH"),
         }
-        # None weglaten zodat de veld-defaults van kracht blijven
-        return cls(**{k: v for k, v in raw.items() if v is not None})
+        # None én lege string weglaten zodat de veld-defaults van kracht blijven (een gezet-maar-leeg
+        # MAX_TURNS="" e.d. zou anders bij pydantic-coercie de import laten crashen i.p.v. de default te nemen)
+        return cls(**{k: v for k, v in raw.items() if v is not None and v != ""})
 
     def require_llm(self) -> None:
         if not self.azure_foundry_api_key or not self.azure_foundry_base_url:
