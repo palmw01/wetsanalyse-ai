@@ -4,11 +4,15 @@ FastAPI-backend voor de graph-qa agent.
 Endpoint: POST /v1/chat
   - Request: {"question": "..."}
   - Response: SSE-stream van JSON-events
-    {"type": "token", "content": "..."}
+    {"type": "status", "message": "..."}     # stap-labels (specialist/tools/deelvraag)
+    {"type": "reason", "content": "..."}     # denkproces-narratie (live), gescheiden van het antwoord
+    {"type": "token", "content": "..."}      # het eindantwoord
     {"type": "sources", "sources": [...]}
     {"type": "grounding", "grounded": bool, "unsupported": [...]}
     {"type": "done"}
     {"type": "error", "message": "..."}
+    (annotatie-route emit daarnaast {"type":"doel",...}, {"type":"element",...} — het element draagt
+     een Critic-`aandacht` (groen|geel|rood) + `critic`-motivatie — en één {"type":"ontbrekend","items":[...]})
 
 Authenticatie: optionele Bearer-token via env QA_API_TOKEN (timing-safe vergeleken).
 Als QA_API_TOKEN niet gezet is, is het endpoint open (voor lokale dev).
@@ -31,19 +35,18 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
+from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import BaseModel, Field
 from sse_starlette.sse import EventSourceResponse
 
 load_dotenv()  # laad .env als die naast de server staat
 
 from agent import observability  # noqa: E402
 from agent.agent import answer_stream  # noqa: E402
-from agent.annotatie import annoteer_stream  # noqa: E402
+from agent.agent_common import run_sync  # noqa: E402
 from agent.config import Settings  # noqa: E402
-from agent.models import AnnoteerRequest, ChatRequest  # noqa: E402
+from agent.models import ArtikelResult, ChatRequest  # noqa: E402
 
 logger = logging.getLogger("graph_qa.chat")
 
@@ -59,6 +62,8 @@ async def _lifespan(_app: FastAPI):
     # require_graph() blijft als tweede net bestaan.
     settings.require_graph()
     yield
+    # App-shutdown: OTel-buffers flushen zodat de laatste spans/metrics niet verloren gaan.
+    observability.shutdown()
 
 
 app = FastAPI(title="Graph QA Agent", version="0.2.0", lifespan=_lifespan)
@@ -67,7 +72,13 @@ observability.instrument_fastapi(app)
 
 # CORS met credentials mag niet samen met "*" (browsers weigeren die combinatie én
 # het is te ruim). Alleen credentials toestaan bij een expliciete origin-lijst.
-_wildcard = settings.cors_origins == ["*"]
+def _has_wildcard_origin(origins: list[str]) -> bool:
+    """True zodra "*" ergens in de origin-lijst staat — óók naast expliciete origins. Starlette
+    reflecteert dan élke origin, dus credentials mogen dan niet aan (anders is de guard te omzeilen)."""
+    return any(o == "*" for o in origins)
+
+
+_wildcard = _has_wildcard_origin(settings.cors_origins)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -80,12 +91,36 @@ _bearer = HTTPBearer(auto_error=False)
 
 # Per-IP sliding-window rate-limit (per proces).
 _hits: dict[str, deque[float]] = {}
+_MAX_TRACKED_IPS = 10_000  # bovengrens; boven deze grens vervallen buckets opruimen (geen geheugenlek)
+
+
+def _client_ip(request: Request) -> str:
+    # Achter een reverse proxy is request.client.host het proxy-IP → één globale bucket. Met
+    # trust_proxy nemen we de eerste X-Forwarded-For-hop (de echte client). Standaard uit, zodat een
+    # gespooft header de limiet niet omzeilt.
+    if settings.trust_proxy:
+        xff = request.headers.get("x-forwarded-for", "")
+        first = xff.split(",")[0].strip()
+        if first:
+            return first
+    return request.client.host if request.client else "onbekend"
+
+
+def _prune_hits(now: float, window: float) -> None:
+    # Voorkom onbegrensde groei van _hits: gooi buckets weg waarvan de laatste hit buiten het venster
+    # ligt (volledig verlopen). Alleen als de dict te groot wordt, zodat het pad normaal goedkoop blijft.
+    if len(_hits) <= _MAX_TRACKED_IPS:
+        return
+    verlopen = [k for k, b in _hits.items() if not b or b[-1] <= now - window]
+    for k in verlopen:
+        _hits.pop(k, None)
 
 
 def _rate_limit(request: Request) -> None:
-    ip = request.client.host if request.client else "onbekend"
+    ip = _client_ip(request)
     now = time.monotonic()
     window = settings.rate_window_seconds
+    _prune_hits(now, window)
     bucket = _hits.setdefault(ip, deque())
     while bucket and bucket[0] <= now - window:
         bucket.popleft()
@@ -137,104 +172,26 @@ async def chat(
     return EventSourceResponse(event_generator())
 
 
-@app.post("/v1/annoteer")
-async def annoteer(
-    request: AnnoteerRequest,
+@app.get("/v1/artikel", response_model=ArtikelResult)
+async def artikel(
+    bwb_id: str,
+    artikel: str,
+    lid: str | None = None,
     _rl: None = Depends(_rate_limit),
     _auth: None = Depends(_check_auth),
-) -> EventSourceResponse:
-    """Stream de door de agent voorgestelde JAS-annotatie-elementen voor een artikel (SSE)."""
-    logger.info(
-        "annoteer ontvangen",
-        extra={
-            "categorie": "functioneel",
-            "annotatie_bwb_id": request.bwb_id,
-            "annotatie_artikel": request.artikel,
-        },
-    )
+) -> ArtikelResult:
+    """Artikeltekst uit de graaf voor het workbench-documentpaneel (weergave == annotatie-corpus).
+    Met `lid` beperk je de tekst tot dat ene lid."""
+    from agent.adapters.graphdb_graph import make_graph
+    from agent.artikel import haal_artikel_sync
 
-    async def event_generator() -> AsyncIterator[dict]:
-        async for event in annoteer_stream(request.bwb_id, request.artikel, request.lid):
-            yield {"data": json.dumps(event, ensure_ascii=False)}
-
-    return EventSourceResponse(event_generator())
-
-
-# ---- chat-webhook: de kennisgraaf-agent achter de webapp-chatbel --------------------------------
-# De Wetsanalyse-API-chatproxy stuurt {action, sessionId, chatInput} (+ optioneel header
-# X-Chat-Secret) en verwacht één JSON {output: "..."} terug. Dit endpoint spreekt dat contract,
-# draait de agent en mapt sessionId → conversation_id (durabel geheugen). Bewust geen per-IP
-# rate-limit: alle webapp-gebruikers komen achter één API-bron-IP binnen. Het secret is optioneel
-# (X-Chat-Secret / body.secret) — de service draait intern-only, dus zonder QA_API_TOKEN is 'ie open.
-
-class ChatWebhookIn(BaseModel):
-    chatInput: str = Field(max_length=8000)
-    sessionId: str = Field("web", max_length=200)
-    secret: str | None = None
-    action: str | None = None  # genegeerd (compat: de proxy stuurt "sendMessage")
-
-
-def _check_chat_secret(body_secret: str | None, header_secret: str | None) -> None:
-    expected = settings.qa_api_token
-    if not expected:
-        return  # geen secret geconfigureerd → open (intern-only)
-    provided = header_secret or body_secret or ""
-    if not secrets.compare_digest(provided, expected):
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Ongeldig of ontbrekend chat-secret")
-
-
-@app.post("/v1/chat-webhook")
-async def chat_webhook(
-    body: ChatWebhookIn,
-    x_chat_secret: str | None = Header(default=None, alias="X-Chat-Secret"),
-) -> dict[str, str]:
-    _check_chat_secret(body.secret, x_chat_secret)
-    question = (body.chatInput or "").strip()
-    if not question:
-        return {"output": ""}
-
-    # AVG: alleen metadata (sessie-id + lengtes + grounded), nooit de vraag/antwoord-inhoud.
-    _log = {
-        "categorie": "functioneel",
-        "chat_session_id": body.sessionId or "web",
-        "chat_vraag_lengte": len(question),
-    }
-    logger.info("chat-webhook ontvangen", extra=_log)
-
-    parts: list[str] = []
-    sources: list[dict] = []
-    grounded: bool | None = None
-    error: str | None = None
-    async for event in answer_stream(question, body.sessionId or "web"):
-        t = event.get("type")
-        if t == "token":
-            parts.append(event["content"])
-        elif t == "sources":
-            sources = event["sources"]
-        elif t == "grounding":
-            grounded = event.get("grounded")
-        elif t == "error":
-            error = event["message"]
-
-    answer = "".join(parts).strip()
-    if not answer:
-        logger.warning("chat-webhook fout", extra={**_log, "chat_fout": error or "geen antwoord"})
-        return {"output": f"Er ging iets mis: {error}" if error else "Geen antwoord."}
-    logger.info(
-        "chat-webhook klaar",
-        extra={
-            **_log,
-            "chat_antwoord_lengte": len(answer),
-            "chat_bron_aantal": len(sources),
-            "grounded": grounded,
-        },
-    )
-    if sources:
-        lijst = "\n".join(
-            f"- [{s.get('label') or s.get('uri')}]({s.get('uri')})" for s in sources[:20]
-        )
-        answer = f"{answer}\n\n**Bronnen:**\n{lijst}"
-    return {"output": answer}
+    graph = make_graph(settings)
+    try:
+        await run_sync(graph.initialize)
+        data = await run_sync(haal_artikel_sync, bwb_id, artikel, graph, lid)
+    finally:
+        graph.close()
+    return ArtikelResult.model_validate(data)
 
 
 def run() -> None:

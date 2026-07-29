@@ -39,11 +39,15 @@ import type {
   WetStructuur,
 } from "./types";
 import type {
+  AgentDoel,
   AnnotatieDocument,
   AuditRecord,
   BeslissingInvoer,
+  Bron,
   DocumentCreate,
   DocumentSamenvatting,
+  GraafArtikel,
+  OntbrekendItem,
   VoorstelElement,
 } from "./types";
 import { pathSegment } from "./url";
@@ -63,72 +67,6 @@ export async function parseError(res: Response): Promise<ApiError> {
 async function json<T>(res: Response): Promise<T> {
   if (!res.ok) throw await parseError(res);
   return (await res.json()) as T;
-}
-
-/** Stuur een vraag naar de kennisgraaf-assistent (BFF → API → n8n-agent). Het antwoord komt als
- *  SSE-stream binnen (heartbeats tijdens het wachten, dan één data:-event) zodat een lang antwoord
- *  niet tegen de proxytimeout loopt. De sessionId houdt de gesprekscontext vast. */
-export async function sendChat(
-  chatInput: string,
-  sessionId: string,
-  signal?: AbortSignal,
-): Promise<string> {
-  const res = await fetch("/api/chat", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chatInput, sessionId }),
-    signal,
-  });
-  if (!res.ok) throw await parseError(res); // 403/400/429 komen als JSON-fout terug
-  if (!res.body) throw { status: 0, detail: "Geen antwoordstroom." } as ApiError;
-
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  // De API stuurt vandaag één data:-frame, maar we lezen bewust dóór tot het stream-einde en houden
-  // het laatste antwoord vast — zo pakt een toekomstige multi-event-stream niet stil alleen het
-  // eerste frame. Een error-frame breekt wél meteen af.
-  let antwoord = "";
-  try {
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      // sse-starlette (graph-qa) scheidt frames met \r\n; strip de CR zodat indexOf("\n\n") de
-      // frame-grens vindt (robuust over chunk-grenzen — een losse \r blijft nooit hangen).
-      buffer += decoder.decode(value, { stream: true }).replace(/\r/g, "");
-      let scheiding: number;
-      while ((scheiding = buffer.indexOf("\n\n")) !== -1) {
-        const frame = buffer.slice(0, scheiding);
-        buffer = buffer.slice(scheiding + 2);
-        let event = "message";
-        let data = "";
-        for (const regel of frame.split("\n")) {
-          if (regel.startsWith(":")) continue; // heartbeat-commentaar
-          if (regel.startsWith("event:")) event = regel.slice(6).trim();
-          else if (regel.startsWith("data:")) data += regel.slice(5).trim();
-        }
-        if (event === "error") {
-          throw { status: 502, detail: veiligJson(data)?.detail ?? "Er ging iets mis." } as ApiError;
-        }
-        if (data) antwoord = veiligJson(data)?.answer ?? antwoord;
-      }
-    }
-  } finally {
-    reader.cancel().catch(() => {});
-  }
-  return antwoord;
-}
-
-/** Of de chat-host bereikbaar is (voedt het status-stipje op de chatbel). Booleans; nooit throwen —
- *  een fout telt als "niet gezond". */
-export async function getChatHealth(): Promise<{ enabled: boolean; healthy: boolean }> {
-  try {
-    const res = await fetch("/api/chat/health", { cache: "no-store" });
-    if (!res.ok) return { enabled: false, healthy: false };
-    return (await res.json()) as { enabled: boolean; healthy: boolean };
-  } catch {
-    return { enabled: false, healthy: false };
-  }
 }
 
 function veiligJson(s: string): { answer?: string; detail?: string } | null {
@@ -517,33 +455,40 @@ export async function haalAudit(slug: string): Promise<AuditRecord[]> {
   );
 }
 
-/** Stream de door de agent voorgestelde JAS-elementen (BFF → graph-qa, SSE). Roept `onElement` per
- *  voorstel; geeft de tellingen terug op `done`. `onStatus` is optioneel (voortgangsregels). */
-export async function annoteerStream(
-  bwbId: string,
-  artikel: string,
-  handlers: { onStatus?: (m: string) => void; onElement: (el: VoorstelElement) => void },
+/** Stuur een vrije prompt naar de unified agent (BFF → graph-qa /v1/chat, SSE). De supervisor kiest
+ *  per beurt `antwoord` (streamt tekst-`token`s + `sources`) of `annotatie` (`doel` + `element`).
+ *  `conversationId` houdt het gespreksgeheugen vast (thread_id). */
+export async function annoteerAgentStream(
+  prompt: string,
+  handlers: {
+    onStatus?: (m: string) => void;
+    onReason?: (t: string) => void;
+    onToken?: (t: string) => void;
+    onSources?: (bronnen: Bron[]) => void;
+    onDoel?: (doel: AgentDoel) => void;
+    onElement?: (el: VoorstelElement) => void;
+    onOntbrekend?: (items: OntbrekendItem[]) => void;
+  },
+  conversationId?: string,
   signal?: AbortSignal,
-): Promise<{ aantal: number; verworpen: number }> {
-  const res = await fetch("/api/annotatie/annoteer", {
+): Promise<void> {
+  const res = await fetch("/api/annotatie/agent", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ bwb_id: bwbId, artikel }),
+    body: JSON.stringify({ question: prompt, conversation_id: conversationId }),
     signal,
   });
   if (!res.ok) throw await parseError(res);
-  if (!res.body) throw { status: 0, detail: "Geen annotatiestroom." } as ApiError;
+  if (!res.body) throw { status: 0, detail: "Geen agentstroom." } as ApiError;
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
-  let resultaat = { aantal: 0, verworpen: 0 };
   try {
     for (;;) {
       const { done, value } = await reader.read();
       if (done) break;
-      // sse-starlette (graph-qa) scheidt frames met \r\n; strip de CR zodat indexOf("\n\n") de
-      // frame-grens vindt (robuust over chunk-grenzen — een losse \r blijft nooit hangen).
+      // sse-starlette scheidt met \r\n; strip de CR zodat indexOf("\n\n") de frame-grens vindt.
       buffer += decoder.decode(value, { stream: true }).replace(/\r/g, "");
       let scheiding: number;
       while ((scheiding = buffer.indexOf("\n\n")) !== -1) {
@@ -556,17 +501,39 @@ export async function annoteerStream(
         }
         if (!data) continue;
         const ev = veiligJson(data) as
-          | { type: string; message?: string; element?: VoorstelElement; aantal?: number; verworpen?: number }
+          | {
+              type: string;
+              message?: string;
+              content?: string;
+              doel?: AgentDoel;
+              element?: VoorstelElement;
+              items?: OntbrekendItem[];
+              sources?: Bron[];
+            }
           | null;
         if (!ev) continue;
         if (ev.type === "status") handlers.onStatus?.(ev.message ?? "");
-        else if (ev.type === "element" && ev.element) handlers.onElement(ev.element);
-        else if (ev.type === "done") resultaat = { aantal: ev.aantal ?? 0, verworpen: ev.verworpen ?? 0 };
-        else if (ev.type === "error") throw { status: 502, detail: ev.message ?? "Annotatie mislukt." } as ApiError;
+        else if (ev.type === "reason") handlers.onReason?.(ev.content ?? "");
+        else if (ev.type === "token") handlers.onToken?.(ev.content ?? "");
+        else if (ev.type === "sources" && ev.sources) handlers.onSources?.(ev.sources);
+        else if (ev.type === "doel" && ev.doel) handlers.onDoel?.(ev.doel);
+        else if (ev.type === "element" && ev.element) handlers.onElement?.(ev.element);
+        else if (ev.type === "ontbrekend") handlers.onOntbrekend?.(ev.items ?? []);
+        else if (ev.type === "error") throw { status: 502, detail: ev.message ?? "Agent mislukt." } as ApiError;
       }
     }
   } finally {
     reader.cancel().catch(() => {});
   }
-  return resultaat;
 }
+
+/** Artikeltekst uit de graaf (voedt het workbench-documentpaneel; één bron met de annotatie-corpus).
+ *  Met `lid` beperk je de tekst tot dat ene lid. */
+export async function haalArtikelGraaf(bwbId: string, artikel: string, lid?: string): Promise<GraafArtikel> {
+  const q = `bwb_id=${encodeURIComponent(bwbId)}&artikel=${encodeURIComponent(artikel)}${
+    lid ? `&lid=${encodeURIComponent(lid)}` : ""
+  }`;
+  const res = await fetch(`/api/annotatie/artikel?${q}`, { cache: "no-store" });
+  return json<GraafArtikel>(res);
+}
+

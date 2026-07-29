@@ -12,12 +12,17 @@ De registry levert twee dingen aan de loop:
 """
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from typing import Any
+
+import httpx
 
 from ..graph import queries, schema
 from ..mcp_client import MCPError
 from ..ports import GraphPort
+
+logger = logging.getLogger("graph_qa.tools")
 
 Handler = Callable[[GraphPort, dict[str, Any]], str]
 
@@ -48,6 +53,10 @@ def _h_get_artikel(g: GraphPort, a: dict[str, Any]) -> str:
 
 def _h_get_lid(g: GraphPort, a: dict[str, Any]) -> str:
     return g.sparql(queries.get_lid(a["bwb_id"], a["artikel"], a["lid"]))
+
+
+def _h_get_bepaling(g: GraphPort, a: dict[str, Any]) -> str:
+    return g.sparql(queries.get_bepaling(a["bwb_id"], a["nummer"]))
 
 
 def _h_list_regelingen(g: GraphPort, a: dict[str, Any]) -> str:
@@ -88,7 +97,12 @@ def _h_semantic_search(g: GraphPort, a: dict[str, Any], settings: Any) -> str:
             "Semantisch zoeken is nog niet geconfigureerd (geen similarity-index). "
             "Gebruik search_wetgeving voor tekstueel zoeken."
         )
-    return g.semantic_search(a["query"], a.get("limit", 10))
+    try:
+        limit = int(a.get("limit", 10))
+    except (TypeError, ValueError):
+        limit = 10
+    limit = max(1, min(50, limit))  # clamp zoals search_wetgeving (kosten/DoS begrenzen)
+    return g.semantic_search(a["query"], limit)
 
 
 # ------------------------------------------------------------------
@@ -146,6 +160,19 @@ TOOLS: list[dict[str, Any]] = [
             ["bwb_id", "artikel", "lid"],
         ),
         "handler": _h_get_lid,
+    },
+    {
+        "name": "get_bepaling",
+        "description": (
+            "Haal een bepaling op via haar NUMMER binnen een regeling — werkt voor artikelen ('9', "
+            "'25', '22a') én voor beleidsregels/circulaires met decimale nummers zoals '9.1' (bv. de "
+            "Leidraad Invordering 2008), waar get_artikel/get_lid niet passen."
+        ),
+        "input_schema": _obj(
+            {"bwb_id": _BWB, "nummer": {"type": "string", "description": "Bepaling-nummer, bijv. '9.1' of '22a'."}},
+            ["bwb_id", "nummer"],
+        ),
+        "handler": _h_get_bepaling,
     },
     {
         "name": "list_regelingen",
@@ -244,4 +271,13 @@ def dispatch(name: str, graph: GraphPort, args: dict[str, Any] | None, settings:
             return tool["handler"](graph, args or {}, settings)
         return tool["handler"](graph, args or {})
     except (ValueError, MCPError, KeyError) as exc:
+        # Verwachte fouten (ongeldig argument, MCP-fout, ontbrekende sleutel): als tekst teruggeven.
+        return f"Fout bij tool '{name}': {exc}"
+    except httpx.HTTPError as exc:
+        # Transport-/statusfout naar de graaf (timeout, connection-reset): NIET de hele beurt breken —
+        # geef 'm als tool-resultaat terug zodat de agent kan herstellen/rapporteren.
+        logger.warning("tool '%s' netwerkfout naar de graaf", name, exc_info=True)
+        return f"Fout bij tool '{name}': de kennisgraaf was tijdelijk onbereikbaar ({type(exc).__name__})."
+    except Exception as exc:  # noqa: BLE001 — vangnet: nooit de agent-beurt laten crashen op een tool
+        logger.error("tool '%s' onverwachte fout", name, exc_info=True)
         return f"Fout bij tool '{name}': {exc}"

@@ -85,10 +85,12 @@ compileert de graaf en levert het SSE-event-contract.
 
 ### API-laag (`api/main.py`)
 
-`GET /health`, `POST /v1/chat` (SSE) en `POST /v1/chat-webhook` (niet-streamend `{output}`, verzamelt
-de tokens + hangt een bronnenlijst eronder). De **lifespan** doet fail-fast `settings.require_graph()`
-bij boot. Beveiliging: CORS-credentials nooit samen met `*`, per-IP rate-limit (dependency, geen
-middleware — anders buffert de SSE), timing-safe token-check.
+`GET /health`, `POST /v1/chat` (SSE; body `{question, conversation_id?}`) en `GET /v1/artikel`
+(artikeltekst uit de graaf voor het documentpaneel van de werkplek; query `bwb_id`/`artikel`/`lid?`).
+De **lifespan** doet fail-fast `settings.require_graph()` bij boot en flush't de OTel-buffers bij
+shutdown (`observability.shutdown()`). Beveiliging: CORS-credentials nooit samen met `*` (elke `"*"`
+in de origin-lijst telt als wildcard), per-IP rate-limit (dependency, geen middleware — anders buffert
+de SSE), timing-safe token-check.
 
 ## Kern-invarianten (niet breken)
 
@@ -100,8 +102,14 @@ middleware — anders buffert de SSE), timing-safe token-check.
 - **Geen vrije SPARQL voor het model.** Nieuwe retrieval = een **getypeerde tool** in `tools/` met een
   bouwer in `graph/queries.py`. `raw_sparql` blijft de afgeschermde ontsnapping.
 - **DI, geen globale clients.** Afhankelijkheden achter een poort + adapter, zodat ze faken te zijn.
-- **SSE-event-contract.** De event-types (`status`/`token`/`sources`/`grounding`/`done`/`error`) zijn
-  het contract met de consumenten; wijzig ze bewust en gelijktijdig.
+- **SSE-event-contract.** De event-types (`status`/`reason`/`token`/`sources`/`grounding`/`done`/`error`,
+  plus `doel`/`element`/`ontbrekend` van de annotatie-worker — alles over `POST /v1/chat`) zijn het
+  contract met de consumenten (de werkplek); wijzig ze
+  bewust en gelijktijdig. **`reason` = het denkproces** (tool-narratie, live gestreamd); **`token` = alléén
+  het eindantwoord** — hou die twee gescheiden zodat de werkplek ze los kan tonen. De annotatie-keten is
+  `annoteer → critic → advance`: `annoteer_node` grondt de voorstellen (state), `critic_node` zet per
+  element een **aandacht**-niveau (groen|geel|rood) + `critic`-motivatie, emit de `element`-events en één
+  `ontbrekend`-event (waarschijnlijk ontbrekende JAS-klassen). De Critic mag de annotatie nooit breken.
 - **Onderwerp-afbakening & injectie.** De agent antwoordt alleen over de wetgeving in de graaf en
   behandelt graaftekst als data. Verzwak `SYSTEM_PROMPT`/`_ROUTER_SYSTEM` hierin niet zonder reden.
 
@@ -119,18 +127,21 @@ cd tools/graph-qa && .venv/bin/python eval/run_eval.py --offline
   met `response([text_block(...), tool_block(...)], stop_reason)`.
 - **Lifespan in tests:** de meeste tests gebruiken een **bare** `TestClient(main.app)` — die draait de
   lifespan **niet**, dus de startup-tokencheck stoort ze niet. Wil je de startup zelf testen, gebruik
-  `with TestClient(main.app):` (zie `tests/test_chat_webhook.py`).
+  `with TestClient(main.app):` (de context-manager draait de lifespan wél).
 - `make_settings` zet `checkpoint_db_path=None` (in-memory) om db-files te vermijden.
 
 ## Deployment & integratie
 
-- **CI:** `.github/workflows/graph-qa-docker-publish.yml` (test → build → GHCR → Portainer-redeploy).
-  De deploy-stap is gated op repo-var `PORTAINER_GRAPH_QA_STACK_ID` en gebruikt `AZURE_FOUNDRY_BASE_URL`
-  (repo-var, mét `/anthropic`) — verplicht, anders faalt de compose-guard.
+- **CI:** `.github/workflows/graph-qa-docker-publish.yml` (test → build → GHCR → **Portainer-redeploy
+  én Azure Container App-update**). De Portainer-stap is gated op repo-var `PORTAINER_GRAPH_QA_STACK_ID`;
+  de Azure-stap draait op `master` als de `AZURE_*`-secrets gezet zijn. Beide gebruiken
+  `AZURE_FOUNDRY_BASE_URL` (repo-var, mét `/anthropic`) — verplicht, anders faalt de compose-guard.
 - **Secrets** zijn host-bestanden die via `*_FILE`-env worden ingelezen (`config._read_secret`); een
   named volume houdt de checkpointer-db durabel. Zie `deploy/README.md`.
-- **Chat-integratie:** de API-chatproxy stuurt `{action, sessionId, chatInput}` (+ `X-Chat-Secret`) en
-  verwacht `{output}`; `sessionId` wordt het `conversation_id` (geheugen-continuïteit).
+- **Werkplek-integratie:** de werkplek (frontend `/workbench`) belt `POST /v1/chat` **rechtstreeks**
+  via een SSE-BFF-route (`{question, conversation_id}`); `conversation_id` geeft geheugen-continuïteit.
+  Het documentpaneel haalt artikeltekst op via `GET /v1/artikel`. De persistente review-state loopt
+  niet hierlangs maar via de wetsanalyse-API (`/v1/annotatie/*`).
 
 ## Aandachtspunten
 
@@ -138,3 +149,9 @@ cd tools/graph-qa && .venv/bin/python eval/run_eval.py --offline
   dan degradeert de tool naar `search_wetgeving`. Achtergrond: `docs/embeddings-runbook.md`.
 - De GraphDB-REST staat open + writable zonder auth — de read-only guard in `mcp_client.py` is een
   tweede net, geen slot. Openstaand punt (achter auth zetten).
+- **SSE-client-disconnect:** de LangGraph-nodes zijn synchroon en draaien in de default-executor; een
+  `run_in_executor`-future is niet annuleerbaar. Valt de client midden in de stream weg, dan loopt een
+  in-flight LLM-call (timeout 120s) of MCP-call in de achtergrondthread nog dóór tot hij klaar is —
+  ook al is de generator al gecancelt en heeft `finally: graph.close()` de httpx-client gesloten.
+  `MCPClient.close()` is daarom best-effort (idempotent, slikt fouten) zodat het sluiten niet stukloopt
+  op een nog lopende call. Volledige annulering vergt async-nodes; bewust niet gedaan.

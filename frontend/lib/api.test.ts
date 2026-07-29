@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { annoteerStream, isApiError, parseError } from "./api";
+import { annoteerAgentStream, isApiError, parseError } from "./api";
 
 describe("parseError", () => {
   it("haalt een string-detail uit de JSON-body", async () => {
@@ -50,30 +50,46 @@ function sseResponse(frames: string[]): Response {
   return new Response(stream, { status: 200, headers: { "Content-Type": "text/event-stream" } });
 }
 
-describe("annoteerStream", () => {
+describe("annoteerAgentStream", () => {
   afterEach(() => vi.restoreAllMocks());
 
-  // Regressie: graph-qa's EventSourceResponse (sse-starlette) scheidt frames met \r\n\r\n. De parser
-  // moet die grens vinden — anders blijft de stream onverwerkt en levert de workbench 0 elementen.
-  it("verwerkt met \\r\\n\\r\\n gescheiden frames (sse-starlette)", async () => {
-    const element = { klasse: "Rechtssubject", tekst: "de werkgever" };
+  it("splitst token/sources/doel/element-frames (incl. \\r\\n) naar de juiste handlers", async () => {
+    const element = { klasse: "Rechtssubject", tekst: "de ontvanger" };
     const frames = [
-      `data: ${JSON.stringify({ type: "status", message: "bezig" })}\r\n\r\n`,
+      `data: ${JSON.stringify({ type: "status", message: "Graaf bevragen: get_artikel" })}\r\n\r\n`,
+      `data: ${JSON.stringify({ type: "reason", content: "Ik zoek dit op." })}\r\n\r\n`,
+      `data: ${JSON.stringify({ type: "token", content: "Antwoord " })}\r\n\r\n`,
+      `data: ${JSON.stringify({ type: "token", content: "hier." })}\r\n\r\n`,
+      `data: ${JSON.stringify({ type: "sources", sources: [{ label: "IW art. 9", uri: "x" }] })}\r\n\r\n`,
+      `data: ${JSON.stringify({ type: "doel", doel: { bwbId: "BWBR0004770", artikel: "9", lid: "1" } })}\r\n\r\n`,
       `data: ${JSON.stringify({ type: "element", element })}\r\n\r\n`,
-      `data: ${JSON.stringify({ type: "done", aantal: 1, verworpen: 0 })}\r\n\r\n`,
+      `data: ${JSON.stringify({ type: "ontbrekend", items: [{ klasse: "Rechtsfeit", reden: "handeling" }] })}\r\n\r\n`,
+      `data: ${JSON.stringify({ type: "done" })}\r\n\r\n`,
     ];
     vi.stubGlobal("fetch", vi.fn(async () => sseResponse(frames)));
 
+    let tekst = "";
+    let denk = "";
+    let doel: unknown = null;
     const elementen: unknown[] = [];
-    const status: string[] = [];
-    const res = await annoteerStream("BWBR0004770", "9", {
-      onStatus: (m) => status.push(m),
-      onElement: (el) => elementen.push(el),
+    let ontbrekend: unknown[] = [];
+    let bronnen: unknown[] = [];
+    await annoteerAgentStream("annoteer artikel 9 lid 1 IW", {
+      onStatus: (m) => (denk += `[${m}]`),
+      onReason: (t) => (denk += t),
+      onToken: (t) => (tekst += t),
+      onSources: (b) => (bronnen = b),
+      onDoel: (d) => (doel = d),
+      onElement: (e) => elementen.push(e),
+      onOntbrekend: (items) => (ontbrekend = items),
     });
 
+    expect(tekst).toBe("Antwoord hier."); // token = alléén het eindantwoord
+    expect(denk).toBe("[Graaf bevragen: get_artikel]Ik zoek dit op."); // status + reason = denkproces
+    expect(bronnen).toEqual([{ label: "IW art. 9", uri: "x" }]);
+    expect(doel).toEqual({ bwbId: "BWBR0004770", artikel: "9", lid: "1" });
     expect(elementen).toEqual([element]);
-    expect(status).toEqual(["bezig"]);
-    expect(res).toEqual({ aantal: 1, verworpen: 0 });
+    expect(ontbrekend).toEqual([{ klasse: "Rechtsfeit", reden: "handeling" }]);
   });
 });
 

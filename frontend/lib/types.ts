@@ -652,18 +652,11 @@ export interface LoginVerifyResult {
 
 export interface AppSettings {
   capture_llm_calls: boolean;
-  // Kennisgraaf-chatbot. Het secret verlaat de server nooit — alleen of het gezet is.
-  chat_enabled: boolean;
-  chat_webhook_url: string;
-  chat_secret_set: boolean;
 }
 
 /** Partiële update van de runtime-instellingen (alleen meegestuurde velden wijzigen). */
 export interface SettingsUpdate {
   capture_llm_calls?: boolean;
-  chat_enabled?: boolean;
-  chat_webhook_url?: string;
-  chat_secret?: string; // write-only; leeg = ongewijzigd
 }
 
 export interface LlmCall {
@@ -729,6 +722,7 @@ export interface AnnotatieElement {
   lifecycle: Lifecycle;
   alternatieven: Alternatief[];
   aandacht?: Aandacht | null;
+  critic?: string;
   diff: Record<string, { voor: unknown; na: unknown }>;
   beslissingen: Beslissing[];
 }
@@ -787,7 +781,35 @@ export interface BeslissingInvoer {
   wijziging?: Wijziging | null;
 }
 
-/** Eén voorgesteld element uit de graph-qa `/v1/annoteer`-SSE (nog niet gepersisteerd). */
+// --- Unified agent + artikeltekst uit de graaf (graph-qa) --------------------
+
+/** Het doel dat de ophaal-agent heeft opgehaald (uit het `doel`-SSE-event), incl. de opgehaalde tekst
+ *  zodat het documentpaneel precies dát toont (ook beleidsregels/divisies zoals '9.1'). */
+export interface AgentDoel {
+  bwbId: string;
+  artikel: string;
+  lid: string;
+  nummer?: string;
+  citeertitel?: string;
+  leden_teksten?: { lid: string; tekst: string }[];
+}
+
+/** Een bron onder een agent-antwoord (uit het `sources`-SSE-event). */
+export interface Bron {
+  label: string;
+  uri: string;
+}
+
+/** Artikeltekst uit de graaf (weergave == annotatie-corpus). */
+export interface GraafArtikel {
+  bwbId: string;
+  artikel: string;
+  citeertitel: string;
+  opschrift: string;
+  leden_teksten: { lid: string; tekst: string }[];
+}
+
+/** Eén voorgesteld element uit de graph-qa annotatie-SSE (nog niet gepersisteerd). */
 export interface VoorstelElement {
   klasse: string;
   tekst: string;
@@ -797,4 +819,12 @@ export interface VoorstelElement {
   span?: number[] | null;
   alternatieven: Alternatief[];
   grounded: boolean;
+  aandacht?: Aandacht;   // Critic-oordeel (groen|geel|rood); afwezig = geen Critic-pas
+  critic?: string;       // korte Critic-motivatie
+}
+
+/** Een door de Critic vermoed ontbrekend JAS-element (suggestief; geen span/bron). */
+export interface OntbrekendItem {
+  klasse: string;
+  reden: string;
 }

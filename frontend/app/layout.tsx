@@ -2,10 +2,9 @@ import type { Metadata, Viewport } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { auth } from "@/auth";
-import { ChatAssistent } from "@/components/ChatAssistent";
 import { Providers } from "@/components/Providers";
+import { SiteFooter } from "@/components/SiteFooter";
 import { SiteNav } from "@/components/SiteNav";
-import { getChatEnabled } from "@/lib/server";
 import { sans, mono } from "./fonts";
 import "./globals.css";
 
@@ -35,8 +34,6 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
-  // Bel alleen tonen voor ingelogde gebruikers én als een beheerder de chat heeft aangezet.
-  const chatEnabled = session ? await getChatEnabled() : false;
   return (
     <html lang="nl" className={`${sans.variable} ${mono.variable}`}>
       <body className="min-h-screen">
@@ -83,14 +80,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </div>
         </header>
         <main className="mx-auto max-w-6xl px-6 py-10">{children}</main>
-        <footer className="mx-auto max-w-6xl px-6 pb-10 pt-4 text-xs text-faint">
-          <span className="font-medium text-muted">Belastingdienst</span> · Methode Wetsanalyse
-          (Ausems, Bulles &amp; Lokin) · Juridisch Analyseschema · brongetrouw herleidbaar naar
-          artikel, lid en bronreferentie.
-        </footer>
-        {/* Kennisgraaf-assistent (zwevende chatbel) — ingelogd én door beheer aangezet.
-            De userid koppelt het gespreksgeheugen aan de gebruiker (niet aan de browser). */}
-        {chatEnabled && <ChatAssistent sessionId={session?.user?.userid} />}
+        <SiteFooter />
         </Providers>
       </body>
     </html>

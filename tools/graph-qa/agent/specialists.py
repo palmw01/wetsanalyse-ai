@@ -11,11 +11,34 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .annotatie_prompt import annotatie_systeemprompt
+
 
 @dataclass(frozen=True)
 class Specialist:
     system: str
     tools: frozenset[str] | None  # None = alle tools
+
+
+# De OPHAAL-agent: vindt en haalt de EXACTE bepaling op die geannoteerd moet worden. Geen annotatie —
+# alleen retrieval + een doel-JSON. Overschrijft bewust de QA-antwoordinstructies uit SYSTEM_PROMPT.
+_RETRIEVAL_SYSTEM = (
+    "LET OP — je BEANTWOORDT deze vraag niet en je annoteert niet. Je enige taak is de EXACTE wettelijke "
+    "bepaling OPHALEN die de gebruiker wil laten annoteren, zodat een volgende stap die kan analyseren.\n"
+    "WERKWIJZE:\n"
+    "- Bepaal om welke regeling + bepaling het gaat. Ken je de bwbId nog niet, zoek die met "
+    "search_wetgeving/semantic_search.\n"
+    "- Haal de tekst van precies die bepaling op:\n"
+    "  • gewone wet met leden en een lid is genoemd → get_lid(bwb_id, artikel, lid);\n"
+    "  • heel artikel → get_artikel(bwb_id, artikel);\n"
+    "  • beleidsregel/circulaire of een DECIMAAL nummer zoals '9.1' (bv. de Leidraad Invordering 2008), "
+    "of als get_lid/get_artikel niets geven → get_bepaling(bwb_id, nummer) met dat nummer "
+    "(bv. '9.1', '22a'). Let op: 'artikel 9 lid 1' van een beleidsregel bedoelt vaak bepaling '9.1'.\n"
+    "- Je MOET eindigen met een geslaagde get_lid/get_artikel/get_bepaling-call die de tekst teruggaf.\n"
+    "Geef daarna UITSLUITEND deze JSON terug (geen proza):\n"
+    '{"bwbId": "<BWBR…>", "nummer": "<het opgehaalde nummer, bv. 9.1>", "artikel": "<artikelnr of leeg>", '
+    '"lid": "<lidnummer of leeg>", "citeertitel": "<naam van de regeling>"}'
+)
 
 
 SPECIALISTS: dict[str, Specialist] = {
@@ -42,6 +65,16 @@ SPECIALISTS: dict[str, Specialist] = {
         }),
     ),
     "algemeen": Specialist(system="", tools=None),
+    # De OPHAAL-agent voor de annotatie-flow: dezelfde volledige retrieval-kist als Lex + get_bepaling,
+    # zodat hij de EXACTE bepaling vindt (ook beleidsregels/circulaires met decimale nummers zoals "9.1").
+    # Hij annoteert NIET; hij levert alleen het doel (JSON). De annoteer-stap doet daarna de JAS-analyse.
+    "retrieval": Specialist(
+        system=_RETRIEVAL_SYSTEM,
+        tools=frozenset({
+            "search_wetgeving", "semantic_search", "get_context", "get_artikel", "get_lid",
+            "get_bepaling", "get_regeling_info", "resolve_begrip", "follow_verwijzingen",
+        }),
+    ),
 }
 
 DEFAULT = "algemeen"

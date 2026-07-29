@@ -13,12 +13,6 @@ class ChatRequest(BaseModel):
     conversation_id: str | None = None  # stuur mee voor gespreksgeheugen
 
 
-class AnnoteerRequest(BaseModel):
-    bwb_id: str
-    artikel: str
-    lid: str | None = None
-
-
 class Source(BaseModel):
     label: str
     uri: str
@@ -26,11 +20,6 @@ class Source(BaseModel):
     iri: str | None = None
     jci: str | None = None
     origin_tool: str | None = None
-
-
-class ChatResponse(BaseModel):
-    answer: str
-    sources: list[Source]
 
 
 # SSE-events
@@ -84,3 +73,30 @@ class AnnotatieVoorstel(BaseModel):
     span: list[int] | None = None      # [start, end] in de (genormaliseerde) artikeltekst
     grounded: bool = False
     vindplaats: str = ""               # bwbId/artikel/lid/jci-notatie
+    aandacht: str = ""                 # "" | groen | geel | rood — gezet door de Critic-node
+    critic: str = ""                   # korte Critic-motivatie bij het aandacht-niveau
+
+
+class OntbrekendItem(BaseModel):
+    """Een door de Critic vermoed ontbrekend element: een JAS-klasse die waarschijnlijk óók in de tekst
+    zit maar niet is gemarkeerd. Suggestief (geen span/bron) — de jurist beoordeelt."""
+
+    klasse: str
+    reden: str = ""
+
+
+# --- Artikeltekst uit de graaf (workbench-documentpaneel) ---------------------
+
+class LidTekst(BaseModel):
+    lid: str = ""
+    tekst: str = ""
+
+
+class ArtikelResult(BaseModel):
+    """Artikeltekst uit de graaf voor het workbench-documentpaneel (weergave == annotatie-corpus)."""
+
+    bwbId: str
+    artikel: str
+    citeertitel: str = ""
+    opschrift: str = ""
+    leden_teksten: list[LidTekst] = []
