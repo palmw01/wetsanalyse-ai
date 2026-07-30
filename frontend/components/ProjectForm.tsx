@@ -233,6 +233,8 @@ export function ProjectForm() {
               placeholder={"belastingplichtige; degene die aangifte moet doen\nbijdrage-inkomen"}
             />
             <input
+              id="begrippenlijst-bestand"
+              name="begrippenlijst-bestand"
               type="file"
               accept=".json,.csv,.txt"
               className="block w-full text-sm text-muted file:mr-3 file:rounded-md file:border file:border-line file:bg-paper file:px-3 file:py-1.5 file:text-sm file:text-ink"
@@ -262,6 +264,8 @@ export function ProjectForm() {
 
         <label className="flex items-start gap-3 rounded-lg border border-line bg-paper/60 p-3">
           <input
+            id="review"
+            name="review"
             type="checkbox"
             checked={review}
             onChange={(e) => setReview(e.target.checked)}

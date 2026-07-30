@@ -73,6 +73,8 @@ export function LoginClient() {
       {fout && <Melding type="fout">{fout}</Melding>}
       <Field label="Gebruikersnaam" required>
         <Input
+          id="userid"
+          name="userid"
           type="text"
           autoComplete="username"
           autoCapitalize="none"
@@ -83,6 +85,8 @@ export function LoginClient() {
       </Field>
       <Field label="Wachtwoord" required>
         <Input
+          id="password"
+          name="password"
           type="password"
           autoComplete="current-password"
           required
@@ -93,6 +97,8 @@ export function LoginClient() {
 
       <label className="flex items-start gap-2 text-sm text-ink">
         <input
+          id="onthouden"
+          name="onthouden"
           type="checkbox"
           className="mt-0.5 h-4 w-4 accent-lint"
           checked={onthouden}

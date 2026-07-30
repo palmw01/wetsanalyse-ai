@@ -240,6 +240,8 @@ export function ProjectenLijstClient({ initieel }: { initieel: JobSummary[] }) {
                     <th className="w-10 px-4 py-3">
                       {paginaSelecteerbaar.length > 0 && (
                         <input
+                          id="selecteer-alle"
+                          name="selecteer-alle"
                           type="checkbox"
                           className="h-4 w-4 accent-accent"
                           aria-label="Selecteer alle analyses op deze pagina"
@@ -266,6 +268,8 @@ export function ProjectenLijstClient({ initieel }: { initieel: JobSummary[] }) {
                     >
                       <td className="w-10 px-4 py-3">
                         <input
+                          id={`selecteer-${p.id}`}
+                          name={`selecteer-${p.id}`}
                           type="checkbox"
                           className="h-4 w-4 accent-accent"
                           aria-label={`Selecteer ${p.naam || p.id}`}
