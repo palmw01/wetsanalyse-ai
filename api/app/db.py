@@ -158,6 +158,33 @@ api_tokens = Table(
     Column("last_used", _DT, nullable=True),
 )
 
+# --- Berichtensysteem -----------------------------------------------------------
+# Release notes en aankondigingen: beheerders schrijven berichten (draft → gepubliceerd);
+# analisten lezen ze via het panel in de navigatie. Leesbewijzen zijn user+bericht pairs.
+berichten = Table(
+    "berichten",
+    metadata,
+    Column("id",              Integer, primary_key=True, autoincrement=True),
+    Column("titel",           Text, nullable=False, default=""),
+    Column("inhoud",          Text, nullable=False, default=""),
+    Column("type",            String(16), nullable=False, default="info"),
+    Column("versie",          String(32), nullable=True),
+    Column("gepubliceerd",    Boolean, nullable=False, default=False),
+    Column("aangemaakt_door", String(128), nullable=False, default=""),
+    Column("created",         _DT, nullable=False),
+    Column("updated",         _DT, nullable=False),
+    Index("ix_berichten_gepubliceerd_created", "gepubliceerd", "created"),
+)
+
+bericht_leesbewijzen = Table(
+    "bericht_leesbewijzen",
+    metadata,
+    Column("bericht_id", Integer, nullable=False),
+    Column("userid",     String(64), nullable=False),
+    Column("gelezen_op", _DT, nullable=False),
+    PrimaryKeyConstraint("bericht_id", "userid"),
+)
+
 # Generieke runtime-config (key/value) — beheerbaar via /v1/admin/settings + /beheer. Eerste
 # sleutel: `capture_llm_calls` (bool). Bewust een aparte, kleine tabel zodat een toggle de hot
 # projects-rij niet raakt en latere instellingen er zonder migratie bij kunnen.
