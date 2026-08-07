@@ -10,7 +10,9 @@ GET  /v1/berichten                    — lijst gepubliceerde berichten (max 20,
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Response, status
+import asyncio
+
+from fastapi import APIRouter, Depends, Query, Response, status
 from pydantic import BaseModel
 
 from .. import berichten as svc
@@ -28,6 +30,13 @@ router = APIRouter(
 
 class OngelezenAantalOut(BaseModel):
     aantal: int
+
+
+class BerichtenPaginaOut(BaseModel):
+    items: list[BerichtOut]
+    totaal: int
+    pagina: int
+    per_pagina: int
 
 
 class BerichtOut(BaseModel):
@@ -72,7 +81,20 @@ async def post_lees_alles(userid: str = Depends(huidige_userid)):
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.get("", response_model=list[BerichtOut])
-async def get_berichten(userid: str = Depends(huidige_userid)):
-    rows = await svc.list_berichten(userid)
-    return [_to_out(r) for r in rows]
+@router.get("", response_model=BerichtenPaginaOut)
+async def get_berichten(
+    userid: str = Depends(huidige_userid),
+    pagina: int = Query(default=1, ge=1),
+    per_pagina: int = Query(default=20, ge=1, le=100),
+):
+    offset = (pagina - 1) * per_pagina
+    rows, totaal = await asyncio.gather(
+        svc.list_berichten(userid, offset=offset, limit=per_pagina),
+        svc.list_berichten_totaal(userid),
+    )
+    return BerichtenPaginaOut(
+        items=[_to_out(r) for r in rows],
+        totaal=totaal,
+        pagina=pagina,
+        per_pagina=per_pagina,
+    )

@@ -236,10 +236,12 @@ async def test_analist_ziet_gepubliceerd_bericht(client):
         json={"gepubliceerd": True},
     )
 
-    # Analist haalt lijst op.
+    # Analist haalt lijst op (envelope-formaat met items/totaal/pagina/per_pagina).
     r = await client.get("/v1/berichten", headers={"X-User-Id": userid})
     assert r.status_code == 200
-    ids = [b["id"] for b in r.json()]
+    body = r.json()
+    assert "items" in body and "totaal" in body
+    ids = [b["id"] for b in body["items"]]
     assert bericht_id in ids
 
 

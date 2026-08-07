@@ -855,6 +855,13 @@ export interface OngelezenAantalOut {
   aantal: number;
 }
 
+export interface BerichtenPaginaOut {
+  items: BerichtOut[];
+  totaal: number;
+  pagina: number;
+  per_pagina: number;
+}
+
 export interface BerichtAanmakenIn {
   titel: string;
   inhoud: string;

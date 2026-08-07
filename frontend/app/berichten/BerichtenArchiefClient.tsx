@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { listBerichten, markeerAllesGelezen } from "@/lib/api";
-import type { BerichtOut, BerichtType } from "@/lib/types";
+import { listBerichtenPagina } from "@/lib/api";
+import type { BerichtenPaginaOut, BerichtType } from "@/lib/types";
 import { BerichtBadge } from "@/components/ui/BerichtBadge";
 import { Tag } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Markdown } from "@/components/werkplek/Markdown";
+import { Pagination } from "@/components/Pagination";
 
-function BerichtArchiefItem({ bericht }: { bericht: BerichtOut }) {
+function BerichtArchiefItem({ bericht }: { bericht: BerichtenPaginaOut["items"][number] }) {
   const datum = new Date(bericht.gepubliceerd_op ?? bericht.created).toLocaleDateString("nl-NL", {
     day: "numeric",
     month: "long",
@@ -31,20 +32,19 @@ function BerichtArchiefItem({ bericht }: { bericht: BerichtOut }) {
 }
 
 export function BerichtenArchiefClient() {
-  const [berichten, setBerichten] = useState<BerichtOut[] | null>(null);
+  const [pagina, setPagina] = useState(1);
+  const [data, setData] = useState<BerichtenPaginaOut | null>(null);
+  const [laden, setLaden] = useState(true);
 
   useEffect(() => {
-    listBerichten()
-      .then((items) => {
-        setBerichten(items);
-        if (items.some((b) => !b.gelezen)) {
-          void markeerAllesGelezen().catch(() => {});
-        }
-      })
-      .catch(() => setBerichten([]));
-  }, []);
+    setLaden(true);
+    listBerichtenPagina(pagina)
+      .then(setData)
+      .catch(() => setData({ items: [], totaal: 0, pagina, per_pagina: 20 }))
+      .finally(() => setLaden(false));
+  }, [pagina]);
 
-  if (berichten === null) {
+  if (laden) {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map((i) => (
@@ -58,15 +58,27 @@ export function BerichtenArchiefClient() {
     );
   }
 
-  if (berichten.length === 0) {
+  if (!data || data.items.length === 0) {
     return <p className="text-sm text-muted">Nog geen berichten.</p>;
   }
 
+  const totalPages = Math.ceil(data.totaal / data.per_pagina);
+
   return (
     <div className="space-y-4">
-      {berichten.map((b) => (
+      {data.items.map((b) => (
         <BerichtArchiefItem key={b.id} bericht={b} />
       ))}
+      <Pagination
+        page={pagina}
+        totalPages={totalPages}
+        total={data.totaal}
+        pageSize={data.per_pagina}
+        onPage={(p) => {
+          setPagina(p);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
+      />
     </div>
   );
 }
