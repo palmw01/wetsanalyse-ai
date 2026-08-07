@@ -23,6 +23,7 @@ class BerichtError(ValueError):
 
 def _row_to_dict(row, *, gelezen: bool | None = None) -> dict:
     m = dict(row)
+    gp_op = m.get("gepubliceerd_op")
     result = {
         "id":              m["id"],
         "titel":           m["titel"],
@@ -30,6 +31,7 @@ def _row_to_dict(row, *, gelezen: bool | None = None) -> dict:
         "type":            m["type"],
         "versie":          m.get("versie"),
         "gepubliceerd":    bool(m["gepubliceerd"]),
+        "gepubliceerd_op": db.aware(gp_op) if gp_op else None,
         "aangemaakt_door": m["aangemaakt_door"],
         "created":         db.aware(m["created"]),
         "updated":         db.aware(m["updated"]),
@@ -176,7 +178,11 @@ async def set_gepubliceerd(bericht_id: int, gepubliceerd: bool) -> dict:
         result = await conn.execute(
             update(db.berichten)
             .where(db.berichten.c.id == bericht_id)
-            .values(gepubliceerd=gepubliceerd, updated=nu)
+            .values(
+                gepubliceerd=gepubliceerd,
+                gepubliceerd_op=nu if gepubliceerd else None,
+                updated=nu,
+            )
             .returning(*db.berichten.c)
         )
         row = result.mappings().first()

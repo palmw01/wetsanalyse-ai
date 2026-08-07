@@ -107,6 +107,11 @@ export function SiteNav() {
         </button>
       </nav>
 
+      {/* Mobiel: bell (aparte instantie naast hamburger) */}
+      <span className="sm:hidden">
+        <BerichtenPanel />
+      </span>
+
       {/* Mobiel: hamburger-toggle */}
       <button
         type="button"

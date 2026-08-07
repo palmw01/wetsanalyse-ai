@@ -230,6 +230,25 @@ const TOOLS: ToolDef[] = [
     input: S({ id: z.number().int().positive() }),
     run: (a) => apiFetch("PATCH", `/v1/admin/berichten/${a.id as number}/publicatie`, { gepubliceerd: true }),
   },
+  {
+    name: "list_berichten_admin",
+    description: "Lijst alle berichten (incl. concepten). Handig om bestaande id's op te zoeken voor publiceer_bericht of update_bericht.",
+    input: S({}),
+    run: () => apiFetch("GET", "/v1/admin/berichten"),
+  },
+  {
+    name: "update_bericht",
+    description: "Pas de inhoud van een bestaand bericht aan (ook al gepubliceerd). Roep eerst list_berichten_admin aan om de huidige waarden te zien — PUT vervangt alle velden.",
+    input: S({
+      id:     z.number().int().positive(),
+      titel:  z.string().max(256).describe("Beschrijft wat er veranderd is, max ~60 tekens."),
+      inhoud: z.string().max(10000).describe("Max 2 zinnen — wat is er veranderd en wat betekent dat voor de gebruiker. Markdown toegestaan."),
+      type:   z.enum(["update", "waarschuwing", "info", "kritiek"]),
+      versie: z.string().max(32).optional().describe("Optioneel, bv. 'v1.3.0' of '2026-08'."),
+    }),
+    run: ({ id, ...body }) =>
+      apiFetch("PUT", `/v1/admin/berichten/${id as number}`, body),
+  },
 ];
 
 // ── Server ────────────────────────────────────────────────────────────────────

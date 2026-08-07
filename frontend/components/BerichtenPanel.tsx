@@ -21,7 +21,7 @@ const TYPE_BALK: Record<BerichtType, string> = {
 };
 
 function BerichtItem({ bericht }: { bericht: BerichtOut }) {
-  const datum = new Date(bericht.created).toLocaleDateString("nl-NL", {
+  const datum = new Date(bericht.gepubliceerd_op ?? bericht.created).toLocaleDateString("nl-NL", {
     day: "numeric",
     month: "long",
     year: "numeric",

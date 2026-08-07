@@ -841,6 +841,7 @@ export interface BerichtOut {
   type: BerichtType;
   versie: string | null;
   gepubliceerd: boolean;
+  gepubliceerd_op: string | null;
   gelezen: boolean;
   aangemaakt_door: string;
   created: string;
