@@ -38,19 +38,20 @@ export function BerichtenArchiefClient() {
   const [fout, setFout] = useState<string | null>(null);
 
   useEffect(() => {
+    let stale = false;
     setLaden(true);
     setFout(null);
     listBerichtenPagina(pagina)
       .then((result) => {
+        if (stale) return;
         setData(result);
-        if (pagina === 1) {
-          markeerAllesGelezen().catch(() => {});
-        }
+        if (pagina === 1) markeerAllesGelezen().catch(() => {});
       })
       .catch((err) => {
-        setFout(isApiError(err) ? err.detail : "Kan berichten niet laden.");
+        if (!stale) setFout(isApiError(err) ? err.detail : "Kan berichten niet laden.");
       })
-      .finally(() => setLaden(false));
+      .finally(() => { if (!stale) setLaden(false); });
+    return () => { stale = true; };
   }, [pagina]);
 
   if (laden) {

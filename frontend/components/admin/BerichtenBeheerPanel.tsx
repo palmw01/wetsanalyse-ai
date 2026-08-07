@@ -75,7 +75,7 @@ export function BerichtenBeheerPanel() {
         <BerichtEditor
           bericht={editBericht}
           onCancel={() => setEditBericht(false)}
-          onDone={() => { setEditBericht(false); void laad(); }}
+          onDone={() => { setEditBericht(false); setToonLijst(true); void laad(); }}
         />
       </Section>
     );
