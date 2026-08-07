@@ -560,7 +560,7 @@ export async function haalArtikelGraaf(bwbId: string, artikel: string, lid?: str
 // --- Berichtensysteem (analist) ----------------------------------------------
 
 export async function listBerichten(): Promise<BerichtOut[]> {
-  const data = await json<BerichtenPaginaOut>(await fetch("/api/berichten", { cache: "no-store" }));
+  const data = await json<BerichtenPaginaOut>(await fetch("/api/berichten?ongelezen=true", { cache: "no-store" }));
   return data.items;
 }
 

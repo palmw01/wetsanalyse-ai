@@ -78,10 +78,10 @@ export function BerichtenPanel() {
   const onOpen = useCallback(async () => {
     setLaden(true);
     try {
+      // listBerichten gebruikt ?ongelezen=true — server filtert al.
       const items = await listBerichten();
-      const ongelezens = items.filter((b) => !b.gelezen);
-      setBerichten(ongelezens);
-      if (ongelezens.length > 0) {
+      setBerichten(items);
+      if (items.length > 0) {
         await markeerAllesGelezen().catch(() => {});
         setOngelezen(0);
       }

@@ -46,7 +46,12 @@ def _user_created_subq(userid: str):
     return select(u.c.created).where(u.c.userid == userid).scalar_subquery()
 
 
-async def list_berichten(userid: str, offset: int = 0, limit: int = 20) -> list[dict]:
+async def list_berichten(
+    userid: str,
+    offset: int = 0,
+    limit: int = 20,
+    ongelezen_only: bool = False,
+) -> list[dict]:
     """Gepubliceerde berichten voor een analist, met gelezen-vlag, nieuwste eerst."""
     b = db.berichten
     lb = db.bericht_leesbewijzen
@@ -61,6 +66,8 @@ async def list_berichten(userid: str, offset: int = 0, limit: int = 20) -> list[
         .offset(offset)
         .limit(limit)
     )
+    if ongelezen_only:
+        stmt = stmt.where(lb.c.userid.is_(None))
     async with db.get_engine().connect() as conn:
         rows = (await conn.execute(stmt)).mappings().all()
     return [_row_to_dict(r, gelezen=bool(r["gelezen"])) for r in rows]

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { listBerichtenPagina } from "@/lib/api";
+import { isApiError, listBerichtenPagina, markeerAllesGelezen } from "@/lib/api";
 import type { BerichtenPaginaOut, BerichtType } from "@/lib/types";
 import { BerichtBadge } from "@/components/ui/BerichtBadge";
 import { Tag } from "@/components/ui/Badge";
@@ -35,12 +35,21 @@ export function BerichtenArchiefClient() {
   const [pagina, setPagina] = useState(1);
   const [data, setData] = useState<BerichtenPaginaOut | null>(null);
   const [laden, setLaden] = useState(true);
+  const [fout, setFout] = useState<string | null>(null);
 
   useEffect(() => {
     setLaden(true);
+    setFout(null);
     listBerichtenPagina(pagina)
-      .then(setData)
-      .catch(() => setData({ items: [], totaal: 0, pagina, per_pagina: 20 }))
+      .then((result) => {
+        setData(result);
+        if (pagina === 1) {
+          markeerAllesGelezen().catch(() => {});
+        }
+      })
+      .catch((err) => {
+        setFout(isApiError(err) ? err.detail : "Kan berichten niet laden.");
+      })
       .finally(() => setLaden(false));
   }, [pagina]);
 
@@ -56,6 +65,10 @@ export function BerichtenArchiefClient() {
         ))}
       </div>
     );
+  }
+
+  if (fout) {
+    return <p className="text-sm text-fout">{fout}</p>;
   }
 
   if (!data || data.items.length === 0) {

@@ -5,7 +5,7 @@ die de BFF uit de ingelogde sessie zet — de identiteit komt zo nooit uit brows
 
 GET  /v1/berichten/ongelezen-aantal   — aantal ongelezen gepubliceerde berichten
 POST /v1/berichten/lees-alles         — markeer alle gepubliceerde berichten als gelezen
-GET  /v1/berichten                    — lijst gepubliceerde berichten (max 20, met gelezen-vlag)
+GET  /v1/berichten                    — gepubliceerde berichten met paginering en gelezen-vlag
 """
 
 from __future__ import annotations
@@ -32,13 +32,6 @@ class OngelezenAantalOut(BaseModel):
     aantal: int
 
 
-class BerichtenPaginaOut(BaseModel):
-    items: list[BerichtOut]
-    totaal: int
-    pagina: int
-    per_pagina: int
-
-
 class BerichtOut(BaseModel):
     id: int
     titel: str
@@ -46,13 +39,21 @@ class BerichtOut(BaseModel):
     type: str
     versie: str | None = None
     gepubliceerd: bool
+    gepubliceerd_op: str | None = None
     gelezen: bool = False
-    aangemaakt_door: str = ""
     created: str = ""
     updated: str = ""
 
 
+class BerichtenPaginaOut(BaseModel):
+    items: list[BerichtOut]
+    totaal: int
+    pagina: int
+    per_pagina: int
+
+
 def _to_out(row: dict) -> BerichtOut:
+    gp_op = row.get("gepubliceerd_op")
     return BerichtOut(
         id=row["id"],
         titel=row["titel"],
@@ -60,8 +61,8 @@ def _to_out(row: dict) -> BerichtOut:
         type=row["type"],
         versie=row.get("versie"),
         gepubliceerd=row["gepubliceerd"],
+        gepubliceerd_op=gp_op.isoformat() if gp_op else None,
         gelezen=bool(row.get("gelezen", False)),
-        aangemaakt_door=row.get("aangemaakt_door", ""),
         created=row["created"].isoformat() if row.get("created") else "",
         updated=row["updated"].isoformat() if row.get("updated") else "",
     )
@@ -86,10 +87,11 @@ async def get_berichten(
     userid: str = Depends(huidige_userid),
     pagina: int = Query(default=1, ge=1),
     per_pagina: int = Query(default=20, ge=1, le=100),
+    ongelezen: bool = Query(default=False),
 ):
     offset = (pagina - 1) * per_pagina
     rows, totaal = await asyncio.gather(
-        svc.list_berichten(userid, offset=offset, limit=per_pagina),
+        svc.list_berichten(userid, offset=offset, limit=per_pagina, ongelezen_only=ongelezen),
         svc.list_berichten_totaal(userid),
     )
     return BerichtenPaginaOut(
