@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   getOngelezenAantal,
   listBerichten,
@@ -58,7 +58,6 @@ export function BerichtenPanel() {
   const [ongelezen, setOngelezen] = useState(0);
   const [berichten, setBerichten] = useState<BerichtOut[] | null>(null);
   const [laden, setLaden] = useState(false);
-  const heeftGemarkeerdRef = useRef(false);
 
   const laadAantal = useCallback(async () => {
     try {
@@ -77,14 +76,12 @@ export function BerichtenPanel() {
 
   const onOpen = useCallback(async () => {
     setLaden(true);
-    heeftGemarkeerdRef.current = false;
     try {
       const items = await listBerichten();
       setBerichten(items);
       if (items.some((b) => !b.gelezen)) {
         await markeerAllesGelezen().catch(() => {});
         setOngelezen(0);
-        heeftGemarkeerdRef.current = true;
         setBerichten(items.map((b) => ({ ...b, gelezen: true })));
       }
     } catch {

@@ -21,6 +21,7 @@ async def db():
 @pytest.fixture
 async def client(monkeypatch):
     """ASGI-client met cliënt- én admin-auth, geen netwerk."""
+    monkeypatch.setenv("DATABASE_URL", "sqlite+aiosqlite://")
     monkeypatch.setenv("WETSANALYSE_ADMIN_TOKENS", "adm:admin-token")
     monkeypatch.setenv("WETSANALYSE_AUTH_REQUIRED", "0")
 
@@ -46,6 +47,23 @@ _ADM = {"Authorization": "Bearer admin-token"}
 _CLI = {}  # auth_required=0 → elk verzoek zonder token wordt doorgelaten als client
 
 
+async def _insert_user(db, userid: str, email: str | None = None) -> None:
+    """Hulpfunctie: voeg een user-rij in (nodig voor de new-user guard in berichten-queries)."""
+    from sqlalchemy import insert
+    from app.db import utcnow
+
+    async with db.get_engine().begin() as conn:
+        await conn.execute(insert(db.users).values(
+            userid=userid,
+            email=email or f"{userid}@test.nl",
+            password_hash="x",
+            role="analist",
+            active=True,
+            created=utcnow(),
+            updated=utcnow(),
+        ))
+
+
 # --- service: basis CRUD -------------------------------------------------------
 
 async def test_maak_en_lijst(db):
@@ -63,6 +81,9 @@ async def test_maak_en_lijst(db):
 async def test_publiceer_en_zichtbaar_voor_analist(db):
     from app import berichten as svc
 
+    # User vóór bericht aanmaken (new-user guard: berichten.created >= users.created).
+    await _insert_user(db, "user1")
+
     row = await svc.maak_bericht("Update", "Iets nieuws.", "update", "v1.0", "adm")
     bericht_id = row["id"]
 
@@ -78,16 +99,9 @@ async def test_publiceer_en_zichtbaar_voor_analist(db):
 
 async def test_ongelezen_aantal_basis(db):
     from app import berichten as svc
-    from app import db as _db
-    from sqlalchemy import insert
-    from app.db import utcnow
 
-    # Maak een user-rij aan (nodig voor de created-subquery in ongelezen_aantal).
-    async with _db.get_engine().begin() as conn:
-        await conn.execute(insert(_db.users).values(
-            userid="u1", email="u1@test.nl", password_hash="x",
-            role="analist", active=True, created=utcnow(), updated=utcnow(),
-        ))
+    # User vóór bericht aanmaken (new-user guard).
+    await _insert_user(db, "u1")
 
     assert await svc.ongelezen_aantal("u1") == 0
 
@@ -103,6 +117,9 @@ async def test_ongelezen_aantal_basis(db):
 async def test_markeer_alles_gelezen_is_idempotent(db):
     from app import berichten as svc
 
+    # User vóór bericht aanmaken (new-user guard).
+    await _insert_user(db, "u1")
+
     row = await svc.maak_bericht("B", "T", "info", None, "adm")
     await svc.set_gepubliceerd(row["id"], True)
 
@@ -114,7 +131,10 @@ async def test_markeer_alles_gelezen_is_idempotent(db):
 async def test_verwijder_cascade_leesbewijzen(db):
     from app import berichten as svc
     from app import db as _db
-    from sqlalchemy import select
+    from sqlalchemy import func, select
+
+    # User vóór bericht aanmaken (new-user guard).
+    await _insert_user(db, "u1")
 
     row = await svc.maak_bericht("B", "T", "info", None, "adm")
     await svc.set_gepubliceerd(row["id"], True)
@@ -123,20 +143,20 @@ async def test_verwijder_cascade_leesbewijzen(db):
     # Leesbewijs bestaat.
     async with _db.get_engine().connect() as conn:
         cnt = await conn.scalar(
-            select(_db.bericht_leesbewijzen)
+            select(func.count()).select_from(_db.bericht_leesbewijzen)
             .where(_db.bericht_leesbewijzen.c.bericht_id == row["id"])
         )
-    assert cnt is not None
+    assert cnt == 1
 
     await svc.verwijder_bericht(row["id"])
 
     # Leesbewijs is mee verwijderd.
     async with _db.get_engine().connect() as conn:
         cnt2 = await conn.scalar(
-            select(_db.bericht_leesbewijzen)
+            select(func.count()).select_from(_db.bericht_leesbewijzen)
             .where(_db.bericht_leesbewijzen.c.bericht_id == row["id"])
         )
-    assert cnt2 is None
+    assert cnt2 == 0
 
 
 async def test_verwijder_onbekend_gooit_error(db):
@@ -144,6 +164,22 @@ async def test_verwijder_onbekend_gooit_error(db):
 
     with pytest.raises(svc.BerichtError):
         await svc.verwijder_bericht(9999)
+
+
+async def test_nieuwe_user_ziet_geen_historische_berichten(db):
+    """New-user guard: berichten aangemaakt vóór de user-account worden niet getoond."""
+    from app import berichten as svc
+
+    # Bericht VÓÓR de user aanmaken — mag daarna niet zichtbaar zijn.
+    row = await svc.maak_bericht("Oud", "Historisch.", "info", None, "adm")
+    await svc.set_gepubliceerd(row["id"], True)
+
+    # User pas daarna aanmelden.
+    await _insert_user(db, "nieuw")
+
+    berichten = await svc.list_berichten("nieuw")
+    assert all(b["id"] != row["id"] for b in berichten)
+    assert await svc.ongelezen_aantal("nieuw") == 0
 
 
 # --- router: autorisatie -------------------------------------------------------
@@ -172,7 +208,21 @@ async def test_admin_maak_en_publiceer(client):
     assert r.json()["gepubliceerd"] is True
 
 
+async def test_admin_weigert_ongeldig_type(client):
+    r = await client.post(
+        "/v1/admin/berichten",
+        headers=_ADM,
+        json={"titel": "T", "inhoud": "I.", "type": "hack"},
+    )
+    assert r.status_code == 422
+
+
 async def test_analist_ziet_gepubliceerd_bericht(client):
+    # Uniek userid zodat herhaalde runs geen 409 geven als de DB toestand deelt.
+    userid = "analist-ziet-bericht"
+    # User vóór bericht aanmaken (new-user guard).
+    await client.post("/v1/admin/users", headers=_ADM, json={"userid": userid, "email": f"{userid}@test.nl"})
+
     # Maak + publiceer via admin.
     r = await client.post(
         "/v1/admin/berichten",
@@ -187,7 +237,45 @@ async def test_analist_ziet_gepubliceerd_bericht(client):
     )
 
     # Analist haalt lijst op.
-    r = await client.get("/v1/berichten", headers={"X-User-Id": "u1"})
+    r = await client.get("/v1/berichten", headers={"X-User-Id": userid})
     assert r.status_code == 200
     ids = [b["id"] for b in r.json()]
     assert bericht_id in ids
+
+
+async def test_ongelezen_aantal_route_basis(client):
+    """Route retourneert 0 voor een gebruiker zonder berichten."""
+    r = await client.get("/v1/berichten/ongelezen-aantal", headers={"X-User-Id": "u1"})
+    assert r.status_code == 200
+    assert r.json()["aantal"] == 0
+
+
+async def test_lees_alles_route(client):
+    """Volledige flow: bericht aanmaken, publiceren, ongelezen tellen, alles markeren."""
+    userid = "lees-alles-user"
+    # User vóór bericht aanmaken.
+    await client.post("/v1/admin/users", headers=_ADM, json={"userid": userid, "email": f"{userid}@test.nl"})
+
+    r = await client.post(
+        "/v1/admin/berichten", headers=_ADM,
+        json={"titel": "T", "inhoud": "I.", "type": "info"},
+    )
+    await client.patch(
+        f"/v1/admin/berichten/{r.json()['id']}/publicatie",
+        headers=_ADM, json={"gepubliceerd": True},
+    )
+
+    r = await client.get("/v1/berichten/ongelezen-aantal", headers={"X-User-Id": userid})
+    assert r.json()["aantal"] == 1
+
+    r = await client.post("/v1/berichten/lees-alles", headers={"X-User-Id": userid})
+    assert r.status_code == 204
+
+    r = await client.get("/v1/berichten/ongelezen-aantal", headers={"X-User-Id": userid})
+    assert r.json()["aantal"] == 0
+
+
+async def test_ongelezen_route_vereist_user_id(client):
+    """Zonder X-User-Id header → 401 (huidige_userid dependency)."""
+    r = await client.get("/v1/berichten/ongelezen-aantal")
+    assert r.status_code == 401

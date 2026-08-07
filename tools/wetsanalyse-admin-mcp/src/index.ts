@@ -168,12 +168,9 @@ const TOOLS: ToolDef[] = [
   },
   {
     name: "set_settings",
-    description: "Werk runtime-instellingen bij (partieel). chat_secret is write-only.",
+    description: "Werk runtime-instellingen bij. Momenteel ondersteund: capture_llm_calls (bool).",
     input: S({
       capture_llm_calls: z.boolean().optional(),
-      chat_enabled: z.boolean().optional(),
-      chat_webhook_url: z.string().optional(),
-      chat_secret: z.string().optional(),
     }),
     run: (body) => apiFetch("PUT", "/v1/admin/settings", body),
   },

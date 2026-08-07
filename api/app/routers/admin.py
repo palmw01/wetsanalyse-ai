@@ -21,6 +21,7 @@ POST   /v1/admin/wetten/{bwbId}/resolve   — stel de officiële citeertitel voo
 from __future__ import annotations
 
 import logging
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from pydantic import BaseModel, Field
@@ -472,7 +473,7 @@ class AdminBerichtOut(BaseModel):
 class BerichtAanmakenIn(BaseModel):
     titel: str = Field(max_length=256)
     inhoud: str = Field(max_length=10000)
-    type: str = Field(default="info", max_length=16)
+    type: Literal["info", "update", "waarschuwing", "kritiek"] = "info"
     versie: str | None = Field(default=None, max_length=32)
 
 

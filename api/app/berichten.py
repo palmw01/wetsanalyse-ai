@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from sqlalchemy import delete, func, insert, select, text, update
+from sqlalchemy import delete, func, insert, literal, select, update
 
 from . import db
 
@@ -43,10 +43,14 @@ async def list_berichten(userid: str) -> list[dict]:
     """Gepubliceerde berichten voor een analist, met gelezen-vlag, nieuwste eerst (max 20)."""
     b = db.berichten
     lb = db.bericht_leesbewijzen
+    u = db.users
     stmt = (
         select(b, lb.c.userid.isnot(None).label("gelezen"))
         .outerjoin(lb, (lb.c.bericht_id == b.c.id) & (lb.c.userid == userid))
         .where(b.c.gepubliceerd.is_(True))
+        # Alleen berichten ná aanmaken van de user-account — nieuw aangemelde users
+        # zien geen historische berichten (consistent met ongelezen_aantal).
+        .where(b.c.created >= select(u.c.created).where(u.c.userid == userid).scalar_subquery())
         .order_by(b.c.created.desc())
         .limit(20)
     )
@@ -81,13 +85,17 @@ async def markeer_alles_gelezen(userid: str) -> None:
     """Zet leesbewijzen voor alle nog-ongelezen gepubliceerde berichten van deze user."""
     b = db.berichten
     lb = db.bericht_leesbewijzen
+    u = db.users
     nu = db.utcnow()
     # Eén portable INSERT ... SELECT ... WHERE NOT EXISTS — werkt op Postgres én SQLite
     # zonder try/except IntegrityError (dat breekt Postgres-transacties in aborted state).
+    # literal() ipv text(f"...") zodat userid/nu geparametriseerd zijn (geen SQL-injectie).
     stmt = insert(lb).from_select(
         ["bericht_id", "userid", "gelezen_op"],
-        select(b.c.id, text(f"'{userid}'"), text(f"'{nu.isoformat()}'"))
+        select(b.c.id, literal(userid).label("userid"), literal(nu).label("gelezen_op"))
         .where(b.c.gepubliceerd.is_(True))
+        # Dezelfde new-user guard als list_berichten en ongelezen_aantal.
+        .where(b.c.created >= select(u.c.created).where(u.c.userid == userid).scalar_subquery())
         .where(
             ~select(lb.c.bericht_id)
             .where(lb.c.bericht_id == b.c.id)
