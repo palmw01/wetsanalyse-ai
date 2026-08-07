@@ -92,7 +92,7 @@ async def get_berichten(
     offset = (pagina - 1) * per_pagina
     rows, totaal = await asyncio.gather(
         svc.list_berichten(userid, offset=offset, limit=per_pagina, ongelezen_only=ongelezen),
-        svc.list_berichten_totaal(userid),
+        svc.list_berichten_totaal(userid, ongelezen_only=ongelezen),
     )
     return BerichtenPaginaOut(
         items=[_to_out(r) for r in rows],

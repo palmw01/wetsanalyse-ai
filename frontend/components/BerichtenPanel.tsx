@@ -84,6 +84,7 @@ export function BerichtenPanel() {
       if (items.length > 0) {
         await markeerAllesGelezen().catch(() => {});
         setOngelezen(0);
+        setBerichten(items.map((b) => ({ ...b, gelezen: true })));
       }
     } catch {
       // Panel tonen wat er al staat bij een fout.

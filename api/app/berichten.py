@@ -73,15 +73,21 @@ async def list_berichten(
     return [_row_to_dict(r, gelezen=bool(r["gelezen"])) for r in rows]
 
 
-async def list_berichten_totaal(userid: str) -> int:
+async def list_berichten_totaal(userid: str, ongelezen_only: bool = False) -> int:
     """Totaal aantal gepubliceerde berichten zichtbaar voor deze analist."""
     b = db.berichten
+    lb = db.bericht_leesbewijzen
     stmt = (
         select(func.count())
         .select_from(b)
         .where(b.c.gepubliceerd.is_(True))
         .where(b.c.created >= _user_created_subq(userid))
     )
+    if ongelezen_only:
+        stmt = (
+            stmt.outerjoin(lb, (lb.c.bericht_id == b.c.id) & (lb.c.userid == userid))
+            .where(lb.c.userid.is_(None))
+        )
     async with db.get_engine().connect() as conn:
         result = await conn.scalar(stmt)
     return int(result or 0)
