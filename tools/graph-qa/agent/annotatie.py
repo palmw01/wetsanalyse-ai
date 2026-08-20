@@ -15,7 +15,7 @@ from typing import Any, NamedTuple
 
 from .jas_klassen import GELDIGE_JAS_KLASSEN
 from .models import (
-    AnnotatieAlternatief, AnnotatieVoorstel, CriticOordeel, OntbrekendItem, VerworpenFragment,
+    Anker, AnnotatieAlternatief, AnnotatieVoorstel, CriticOordeel, OntbrekendItem, VerworpenFragment,
 )
 
 logger = logging.getLogger("graph_qa.annotatie")
@@ -24,6 +24,98 @@ _AANDACHT = {"groen", "geel", "rood"}
 _ACTIES = {"behoud", "vervang", "verwijder"}
 
 _WS = re.compile(r"\s+")
+
+# --- Anker-helpers ---------------------------------------------------------------
+#
+# De offsets slaan op de *originele* brontekst (vóór normalisatie), zodat de UI
+# exact het juiste teken kan markeren. De hash is FNV-1a 32-bit — identiek aan
+# `bronHash()` in `frontend/lib/selectie.ts`, zodat de UI kan detecteren of de
+# brontekst verschoven is na een herimport.
+
+_CONTEXT_LENGTE = 48   # tekens context vóór/na het fragment — gelijk aan frontend CONTEXT_LENGTE
+_FNV_PRIME = 0x01000193
+_FNV_OFFSET = 0x811C9DC5
+
+
+def _fnv1a_32(tekst: str) -> str:
+    """FNV-1a 32-bit hash als hex-string. Identiek aan bronHash() in selectie.ts."""
+    h = _FNV_OFFSET
+    for ch in tekst:
+        for byte in ch.encode("utf-8"):
+            h ^= byte
+            h = (h * _FNV_PRIME) & 0xFFFFFFFF
+    return format(h, "08x")
+
+
+def _maak_anker(corpus: str, start: int, eind: int, lid: str = "") -> Anker:
+    """Bouw het Anker voor een fragment op positie [start, eind) in `corpus`.
+
+    De offsets zijn op de originele (niet-genormaliseerde) brontekst. De context
+    (voor/na) bewaart 48 tekens zodat de UI het juiste voorkomen van een herhaald
+    fragment kan kiezen als de offsets na een herimport zijn verschoven.
+    """
+    return Anker(
+        lid=lid,
+        start=start,
+        eind=eind,
+        voor=corpus[max(0, start - _CONTEXT_LENGTE): start],
+        na=corpus[eind: eind + _CONTEXT_LENGTE],
+        bron_hash=_fnv1a_32(corpus),
+    )
+
+
+def _zoek_in_origineel(corpus: str, norm_corpus: str, norm_frag: str) -> tuple[int, int]:
+    """Geef (start, eind) in de originele `corpus` voor een genormaliseerd fragment.
+
+    `_normaliseer` collapst witruimte. Daardoor wijken de tekenposities in `norm_corpus`
+    af van die in `corpus`. We zoeken het fragment in de genormaliseerde tekst, mappen
+    de start-positie terug naar de originele tekst door te tellen hoeveel originele tekens
+    overeenkomen vóór elk genormaliseerd teken.
+
+    Algoritme: bouw een mapping van norm-index → orig-index. Dat is O(n) en eenvoudig
+    aantoonbaar correct. Bij een niet-gevonden fragment geeft de aanroeper (-1, -1).
+    """
+    # Snelle mapping: norm_idx -> orig_idx voor elk niet-witruimte karakter
+    mapping: list[int] = []
+    in_ws = False
+    for orig_idx, ch in enumerate(corpus):
+        if ch in (" ", "\t", "\n", "\r"):
+            if not in_ws:
+                # De genormaliseerde tekst heeft hier één spatie
+                mapping.append(orig_idx)
+                in_ws = True
+        else:
+            mapping.append(orig_idx)
+            in_ws = False
+
+    norm_start = norm_corpus.find(norm_frag)
+    if norm_start < 0 or norm_start >= len(mapping):
+        return (-1, -1)
+
+    orig_start = mapping[norm_start]
+    # Eind: orig_start + lengte van het fragment in de originele tekst.
+    # We lopen over de originele tekst vanaf orig_start en tellen totdat we
+    # len(norm_frag) genormaliseerde tekens hebben gezien.
+    norm_len = len(norm_frag)
+    gezien = 0
+    orig_eind = orig_start
+    in_ws2 = False
+    for orig_idx in range(orig_start, len(corpus)):
+        ch = corpus[orig_idx]
+        if ch in (" ", "\t", "\n", "\r"):
+            if not in_ws2:
+                gezien += 1
+                in_ws2 = True
+        else:
+            gezien += 1
+            in_ws2 = False
+        if gezien >= norm_len:
+            orig_eind = orig_idx + 1
+            break
+    else:
+        orig_eind = len(corpus)
+
+    return (orig_start, orig_eind)
 
 
 def _normaliseer(s: str) -> str:
@@ -441,6 +533,12 @@ def _verwerk(
             _voeg_alternatief_toe(eerste, klasse, str(e.get("toelichting", "")).strip())
             continue
         vindplaats = f"{bwb_id} art. {artikel}" + (f" lid {lid}" if lid else "")
+        # Bereken de anker-offsets op de originele brontekst. De genormaliseerde positie is al
+        # bekend (idx in norm_corpus); we mappen die terug naar de originele tekst zodat de UI
+        # exact de juiste tekens kan markeren — ook als de brontekst meerdere witruimte-varianten
+        # bevat die _normaliseer samentrekt.
+        orig_start, orig_eind = _zoek_in_origineel(corpus, norm_corpus, norm_frag)
+        anker = _maak_anker(corpus, orig_start, orig_eind, lid) if orig_start >= 0 else None
         # Een id uit een eerdere ronde behouden (herziening van een bestaand element); anders een
         # nieuw id. Zo blijft de koppeling met de Critic én met de api-elementen intact — maar
         # alléén voor een id dat het model ook echt is aangeboden.
@@ -457,6 +555,7 @@ def _verwerk(
             alternatieven=alts,
             grounded=True,
             vindplaats=vindplaats,
+            anker=anker,
         )
         gezien[sleutel] = voorstel
         voorstellen.append(voorstel)
