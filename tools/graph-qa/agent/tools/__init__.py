@@ -21,6 +21,7 @@ import httpx
 from ..graph import queries, schema
 from ..mcp_client import MCPError
 from ..ports import GraphPort
+from .jas_tools import JAS_TOOL_NAMEN, JAS_TOOLS  # noqa: F401 — re-exporteerd voor orchestrator
 
 logger = logging.getLogger("graph_qa.tools")
 
@@ -250,7 +251,7 @@ TOOLS: list[dict[str, Any]] = [
     },
 ]
 
-_BY_NAME: dict[str, dict[str, Any]] = {t["name"]: t for t in TOOLS}
+_BY_NAME: dict[str, dict[str, Any]] = {t["name"]: t for t in TOOLS + JAS_TOOLS}
 
 
 def anthropic_schemas(only: set[str] | frozenset[str] | None = None) -> list[dict[str, Any]]:
