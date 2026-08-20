@@ -80,6 +80,7 @@ async def run_annotatie_case(
     een expliciet `verworpen`-event uitzendt.
     """
     elementen: list[dict[str, Any]] = []
+    verworpen: list[dict[str, Any]] = []
     corpus = ""
     antwoord: list[str] = []
     error: str | None = None
@@ -88,6 +89,8 @@ async def run_annotatie_case(
         soort = ev.get("type")
         if soort == "element":
             elementen.append(ev["element"])
+        elif soort == "verworpen":
+            verworpen.extend(ev.get("items") or [])
         elif soort == "doel":
             leden = (ev.get("doel") or {}).get("leden_teksten") or []
             corpus = "\n\n".join(ld.get("tekst", "") for ld in leden)
@@ -96,7 +99,7 @@ async def run_annotatie_case(
         elif soort == "error":
             error = ev["message"]
 
-    return score_annotatie(case, elementen, corpus, "".join(antwoord), error)
+    return score_annotatie(case, elementen, corpus, "".join(antwoord), error, verworpen=verworpen)
 
 
 async def run_annotatie_suite(
@@ -196,8 +199,8 @@ Kandidaten (V1: = elementen)
 Verworpen
   Per 100 voorstellen         {_gem(vw_vals):.1f}
 {"─" * 44}
-Notitie: verworpen_p100 is 0 in V1 (geen SSE-event).
-Zinvol na fase 2A (expliciet verworpen-event).""")
+Notitie: verworpen_p100 is 0 als er geen verworpen fragmenten zijn.
+Alleen niet-nul als het model een niet-letterlijk of ongeldig fragment voorstel.""")
 
     return ok == n
 

@@ -1328,6 +1328,14 @@ def build_graph(
                 }})
         writer({"type": "ontbrekend", "items": ontbrekend})
 
+        # Verworpen fragmenten (niet-letterlijke of ongeldige-klasse citaten) — apart event
+        # zodat de eval-harnas verworpen_per_100 kan meten. De werkplek negeert dit event;
+        # voor eval is het de enige manier om het hallucinatie-aandeel te kwantificeren
+        # zonder in de interne state te kijken.
+        verworpen_frags = state.get("verworpen_fragmenten") or []
+        if verworpen_frags:
+            writer({"type": "verworpen", "items": verworpen_frags})
+
         eigen = [v for v in voorstellen if v.get("van_jurist")]
         voorstellen = [v for v in voorstellen if not v.get("van_jurist")]
         plek = f"artikel {aanduiding}" + (f" lid {doel['lid']}" if doel.get("lid") else "")
