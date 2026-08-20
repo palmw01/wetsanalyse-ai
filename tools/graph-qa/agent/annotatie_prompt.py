@@ -7,7 +7,7 @@ bron). De agent markeert JAS-elementen in een aangeleverde artikeltekst en geeft
 """
 from __future__ import annotations
 
-from .jas_klassen import JAS_KLASSEN, JAS_KLASSEN_VOLGORDE
+from .jas_klassen import JAS_KLASSEN, JAS_KLASSEN_VOLGORDE, REGELS, RegelType
 
 
 def _klassen_referentie() -> str:
@@ -22,15 +22,36 @@ def _klassen_referentie() -> str:
     return "\n".join(regels)
 
 
+def _prioriteitsregels_tekst() -> str:
+    """Genereer de prioriteitsregel-instructie programmatisch uit REGELS.
+
+    Eén definitie (REGELS in jas_klassen.py) voedt zowel deze prompt als de
+    deterministisch validator. Zo kan de tekst nooit driften ten opzichte van de
+    daadwerkelijk toegepaste regel.
+    """
+    regels = [r for r in REGELS if r.type == RegelType.PRIORITEIT]
+    if not regels:
+        return ""
+    delen = []
+    for r in regels:
+        prio_dict = dict(r.priority)
+        winnaar = max(prio_dict, key=lambda k: prio_dict[k])
+        verliezers = [k for k in r.applies_to if k != winnaar]
+        verliezers_str = " of ".join(verliezers)
+        delen.append(f"Bij samenloop van {winnaar} en {verliezers_str}: kies {winnaar} ({r.id}).")
+    return " ".join(delen)
+
+
 def annotatie_systeemprompt() -> str:
     klassen = ", ".join(JAS_KLASSEN_VOLGORDE)
+    prioriteitsregels = _prioriteitsregels_tekst()
     return f"""Je bent een annotator die Nederlandse wetteksten analyseert volgens het Juridisch Analyseschema (JAS). Je markeert de juridische elementen in een aangeleverd artikel en classificeert elk in precies één van de dertien JAS-klassen.
 
 DE DERTIEN JAS-KLASSEN (gebruik exact deze namen, verzin geen andere):
 {_klassen_referentie()}
 
 WERKWIJZE
-- Markeer de betekenisdragende formuleringen in de aangeleverde artikeltekst en classificeer elke in de meest specifieke passende JAS-klasse. Bij een tijds- of plaatsaanduiding die ook variabele/parameter zou kunnen zijn: kies de tijds-/plaatsaanduiding.
+- Markeer de betekenisdragende formuleringen in de aangeleverde artikeltekst en classificeer elke in de meest specifieke passende JAS-klasse.{(' ' + prioriteitsregels) if prioriteitsregels else ''}
 - BRONGETROUW: het veld `tekst` is een LETTERLIJK, aaneengesloten fragment uit de aangeleverde artikeltekst — exact overgenomen (zelfde woorden, leestekens en volgorde). Verzin niets, parafraseer niet, vul niets aan. Kun je een element niet met een letterlijk fragment onderbouwen, neem het dan niet op.
 - Geef bij twijfel tussen klassen `alternatieven`: de andere kandidaat-klasse(n) met een korte motivatie. Forceer geen zekerheid die er niet is.
 - `lid`: het lidnummer waarin het fragment staat (bijv. "1"); leeg als het niet aan een lid te koppelen is.

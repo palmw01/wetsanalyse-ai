@@ -13,7 +13,7 @@ import uuid
 from collections.abc import Iterator
 from typing import Any, NamedTuple
 
-from .jas_klassen import GELDIGE_JAS_KLASSEN
+from .jas_klassen import GELDIGE_JAS_KLASSEN, REGELS, RegelType
 from .models import (
     Anker, AnnotatieAlternatief, AnnotatieVoorstel, CriticOordeel, OntbrekendItem, VerworpenFragment,
 )
@@ -121,6 +121,80 @@ def _zoek_in_origineel(corpus: str, norm_corpus: str, norm_frag: str) -> tuple[i
 def _normaliseer(s: str) -> str:
     """Collapse witruimte, zodat een fragment ondanks layout-verschillen matcht."""
     return _WS.sub(" ", s or "").strip()
+
+
+# --- Prioriteitsvalidator ---------------------------------------------------
+#
+# Deterministisch: geen LLM-call. Controleert of de toegewezen klasse al dan
+# niet de hoogste prioriteit heeft volgens REGELS. Bij een lagere-prioriteits-
+# klasse wordt de klasse gecorrigeerd en de verplaatste klasse als alternatief
+# bewaard. Eén bron van waarheid (REGELS in jas_klassen.py) voedt zowel de
+# prompt (_prioriteitsregels_tekst) als deze code.
+
+def _prioriteitsrang(klasse: str) -> dict[str, int]:
+    """Geef een dict {klasse: rang} voor alle PRIORITEIT-regels waarbij `klasse` betrokken is."""
+    rang: dict[str, int] = {}
+    for regel in REGELS:
+        if regel.type != RegelType.PRIORITEIT:
+            continue
+        if klasse not in regel.applies_to:
+            continue
+        prio = dict(regel.priority)
+        for k, r in prio.items():
+            if k not in rang or rang[k] < r:
+                rang[k] = r
+    return rang
+
+
+def _pas_prioriteitsregels_toe(
+    klasse: str, alternatieven: list[Any]
+) -> tuple[str, list[Any]]:
+    """Corrigeer `klasse` als een alternatief hogere prioriteit heeft.
+
+    Geeft (definitieve_klasse, bijgewerkte_alternatieven) terug. Als de klasse al de
+    hoogste prioriteit heeft, of als er geen prioriteitsregel van toepassing is, blijft
+    alles ongewijzigd.
+
+    Voorbeeld: klasse=Variabele, alternatief=[Tijdsaanduiding]
+    → Tijdsaanduiding wint (rang 100 > 50)
+    → klasse=Tijdsaanduiding, alternatieven=[...Variabele...]
+    """
+    rang = _prioriteitsrang(klasse)
+    if not rang:
+        return klasse, alternatieven
+
+    eigen_rang = rang.get(klasse, 0)
+    winnaar_klasse = klasse
+    winnaar_rang = eigen_rang
+
+    for alt in (alternatieven or []):
+        alt_klasse = str(alt.klasse if hasattr(alt, "klasse") else alt.get("klasse", "")).strip()
+        alt_rang = rang.get(alt_klasse, 0)
+        if alt_rang > winnaar_rang:
+            winnaar_rang = alt_rang
+            winnaar_klasse = alt_klasse
+
+    if winnaar_klasse == klasse:
+        return klasse, alternatieven
+
+    # Wissel: voeg de oude klasse toe als alternatief (als die er nog niet in zit)
+    nieuwe_alts = list(alternatieven or [])
+    oud_als_alt_klassen = {
+        str(a.klasse if hasattr(a, "klasse") else a.get("klasse", "")).strip()
+        for a in nieuwe_alts
+    }
+    if klasse not in oud_als_alt_klassen:
+        from .models import AnnotatieAlternatief as _AA
+        nieuwe_alts.insert(0, _AA(
+            klasse=klasse,
+            motivatie=f"Lagere prioriteit dan {winnaar_klasse} (JAS-prioriteitsregel).",
+        ))
+    # Verwijder de winnaar uit de alternatieven (hij wordt de hoofdklasse)
+    nieuwe_alts = [
+        a for a in nieuwe_alts
+        if str(a.klasse if hasattr(a, "klasse") else a.get("klasse", "")).strip() != winnaar_klasse
+    ]
+    return winnaar_klasse, nieuwe_alts
 
 
 def komt_letterlijk_voor(corpus: str, fragment: str) -> bool:
@@ -522,6 +596,10 @@ def _verwerk(
             for a in e.get("alternatieven", [])
             if isinstance(a, dict) and str(a.get("klasse", "")).strip() in GELDIGE_JAS_KLASSEN
         ]
+        # Prioriteitsvalidatie (deterministisch, geen LLM): corrigeer de klasse als een
+        # alternatief hogere JAS-prioriteit heeft (bv. Tijdsaanduiding > Variabele).
+        # Eén bron van waarheid: REGELS in jas_klassen.py — geen aparte prompt-proza nodig.
+        klasse, alts = _pas_prioriteitsregels_toe(klasse, alts)
         # Twee keer hetzelfde fragment in één ronde: het model herhaalt zich. De eerste telt —
         # die draagt eventueel het id uit een eerdere ronde, en daaraan hangen de beslissingen.
         # Gaat het om dezelfde span met een ANDERE klasse, dan is dat geen herhaling maar twijfel:

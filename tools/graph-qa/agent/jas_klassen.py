@@ -183,3 +183,86 @@ JAS_KLASSEN: tuple[JasKlasse, ...] = (
 # Canonieke weergave-volgorde + naamlijst (drift-guard: gelijk aan validation.JAS_KLASSEN_VOLGORDE).
 JAS_KLASSEN_VOLGORDE: tuple[str, ...] = tuple(k.naam for k in JAS_KLASSEN)
 GELDIGE_JAS_KLASSEN: frozenset[str] = frozenset(JAS_KLASSEN_VOLGORDE)
+
+
+# ---------------------------------------------------------------------------
+# JAS-regels — machineleesbare annotatie-regels naast de klasse-specificaties
+#
+# Eén definitie voedt prompts, deterministisch validators en toekomstige tools.
+# Nieuwe regels toevoegen hier; nooit dezelfde logica op drie plekken herhalen.
+# ---------------------------------------------------------------------------
+
+from dataclasses import dataclass as _dc
+from enum import Enum as _Enum
+
+
+class RegelType(_Enum):
+    """Categorieën van JAS-regels. Uitbreidbaar zonder bestaande code te breken."""
+    PRIORITEIT  = "priority"      # hogere klasse prevaleert bij samenloop
+    CONFLICT    = "conflict"      # twee klassen sluiten elkaar uit
+    EXCLUSIE    = "exclusion"     # klasse is niet van toepassing onder een conditie
+    SPAN        = "span"          # eisen aan de afbakening van het fragment
+    CONSISTENTIE = "consistency"  # structurele samenhang-eis (bv. subject bij betrekking)
+
+
+@_dc(frozen=True)
+class JASRule:
+    """Eén machineleesbare JAS-annotatieregel.
+
+    `id`          — unieke identificator, formaat JAS-<TYPE>-<NNN>
+    `type`        — zie RegelType
+    `applies_to`  — klassen waarop de regel van toepassing is
+    `description` — mensleesbare toelichting (voor prompts en documentatie)
+    `priority`    — alleen voor RegelType.PRIORITEIT: dict van klasse → rang (hoger = wint).
+                    Ontbrekende klassen krijgen impliciet rang 0.
+    """
+    id: str
+    type: RegelType
+    applies_to: tuple[str, ...]
+    description: str
+    priority: tuple[tuple[str, int], ...] = ()   # tuple van (klasse, rang) — hashable
+
+
+def _prio(klassen_met_rang: dict[str, int]) -> tuple[tuple[str, int], ...]:
+    """Helperfunctie: zet een dict om naar een hashbare tuple voor JASRule.priority."""
+    return tuple(sorted(klassen_met_rang.items()))
+
+
+REGELS: tuple[JASRule, ...] = (
+    JASRule(
+        id="JAS-PRIORITY-001",
+        type=RegelType.PRIORITEIT,
+        applies_to=(
+            "Tijdsaanduiding",
+            "Variabele en variabelewaarde",
+            "Parameter en parameterwaarde",
+        ),
+        description=(
+            "Indien een formulering zowel als tijdsaanduiding als variabele of parameter kan worden "
+            "geclassificeerd, prevaleert tijdsaanduiding als de meest specifieke klasse."
+        ),
+        priority=_prio({
+            "Tijdsaanduiding": 100,
+            "Variabele en variabelewaarde": 50,
+            "Parameter en parameterwaarde": 50,
+        }),
+    ),
+    JASRule(
+        id="JAS-PRIORITY-002",
+        type=RegelType.PRIORITEIT,
+        applies_to=(
+            "Plaatsaanduiding",
+            "Variabele en variabelewaarde",
+            "Parameter en parameterwaarde",
+        ),
+        description=(
+            "Indien een formulering zowel als plaatsaanduiding als variabele of parameter kan worden "
+            "geclassificeerd, prevaleert plaatsaanduiding als de meest specifieke klasse."
+        ),
+        priority=_prio({
+            "Plaatsaanduiding": 100,
+            "Variabele en variabelewaarde": 50,
+            "Parameter en parameterwaarde": 50,
+        }),
+    ),
+)
