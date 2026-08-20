@@ -73,6 +73,93 @@ def annotatie_userprompt(bwb_id: str, artikel: str, artikeltekst: str, lid: str 
     )
 
 
+# ---------------------------------------------------------------------------
+# Fase 2A — kandidaat-generatie-prompts (span zonder klasse)
+#
+# De kandidaat-generator zoekt uitsluitend tekstspans die mogelijk een
+# JAS-element zijn, ZONDER finale classificatie. Doel: hogere recall op
+# span-niveau, aparte meting van kandidaat-recall vs. classificatie-accuracy.
+# ---------------------------------------------------------------------------
+
+def kandidaten_systeemprompt() -> str:
+    """Systeemprompt voor de kandidaat-generator (fase 2A).
+
+    Vraagt uitsluitend spans + korte reden — geen JAS-klasse. De classificatie
+    gebeurt in een aparte stap (annoteer_klasseer_node) met de volledige
+    klasse-specificatie. Zo zijn span-recall en klasse-accuracy onafhankelijk
+    meetbaar.
+    """
+    return """Je bent een tekstanalyst die Nederlandse wetteksten voorbereidt voor JAS-annotatie.
+
+TAAK
+Identificeer alle tekstfragmenten in de aangeleverde artikeltekst die mogelijk een juridisch relevant element zijn: partijen, voorwerpen, relaties, handelingen, voorwaarden, tijds- en plaatsaanduidingen, waarden, delegaties, definities en rekenregels.
+
+REGELS
+- Geef uitsluitend LETTERLIJKE, aaneengesloten fragmenten uit de tekst. Verzin niets; parafraseer niet.
+- Liever iets te ruim dan iets te missen — de classificatiestap filtert verder.
+- Geef PER fragment een korte reden waarom het mogelijk juridisch relevant is (één zin).
+- Geen JAS-klasse bepalen: dat doet een volgende stap.
+
+UITVOER — geef UITSLUITEND geldige JSON, zonder omliggende tekst of code-fences:
+{"kandidaten": [
+  {"span": "<letterlijk fragment>", "lid": "<lidnummer of leeg>", "reden": "<één zin>"}
+]}"""
+
+
+def kandidaten_userprompt(bwb_id: str, artikel: str, artikeltekst: str, lid: str | None = None) -> str:
+    plek = f"artikel {artikel}" + (f" lid {lid}" if lid else "")
+    scope = f" Beperk je tot lid {lid}." if lid else ""
+    return (
+        f"Regeling {bwb_id}, {plek}. Identificeer de mogelijke juridische elementen in onderstaande "
+        f"tekst.{scope}\n\n--- ARTIKELTEKST ---\n{artikeltekst}\n--- EINDE ARTIKELTEKST ---"
+    )
+
+
+def klasseer_systeemprompt() -> str:
+    """Systeemprompt voor de classificatie-stap (fase 2A).
+
+    Krijgt de gefilterde kandidaten uit de kandidaat-generator en bepaalt per
+    span de JAS-klasse. Ruimer dan de gecombineerde prompt: de kandidaten zijn
+    al gefilterd, dus de focus ligt volledig op klasse-toewijzing en twijfel.
+    """
+    klassen = ", ".join(JAS_KLASSEN_VOLGORDE)
+    prioriteitsregels = _prioriteitsregels_tekst()
+    return f"""Je bent een JAS-classificator. Je krijgt een lijst met tekstfragmenten (kandidaten) uit een Nederlandse wettekst en bepaalt voor elk fragment de meest passende JAS-klasse.
+
+DE DERTIEN JAS-KLASSEN (gebruik exact deze namen):
+{_klassen_referentie()}
+
+WERKWIJZE
+- Classificeer elk aangeleverd fragment in precies één JAS-klasse.{(' ' + prioriteitsregels) if prioriteitsregels else ''}
+- BRONGETROUW: het veld `tekst` MOET exact overeenkomen met het aangeleverde `span` — kopieer het letterlijk.
+- Geef bij twijfel `alternatieven` met een korte motivatie per alternatieve klasse.
+- `toelichting`: één beknopte zin waarom deze klasse past (herleidbaar naar de herken-vraag).
+- Laat een kandidaat weg als hij bij nader inzien geen JAS-element is (leeg `tekst`-veld is niet toegestaan).
+
+UITVOER — geef UITSLUITEND geldige JSON, zonder omliggende tekst of code-fences:
+{{"elementen": [
+  {{"klasse": "<een van: {klassen}>", "tekst": "<letterlijk fragment>", "lid": "<lidnummer of leeg>", "toelichting": "<één zin>", "alternatieven": [{{"klasse": "<klasse>", "motivatie": "<korte reden>"}}]}}
+]}}
+`alternatieven` mag een lege lijst zijn. Neem geen enkel element op waarvan `tekst` niet letterlijk in de brontekst staat."""
+
+
+def klasseer_userprompt(
+    bwb_id: str, artikel: str, artikeltekst: str,
+    kandidaten: list[dict], lid: str | None = None,
+) -> str:
+    """User-prompt voor de classificatie-stap: brontekst + gefilterde kandidaten."""
+    plek = f"artikel {artikel}" + (f" lid {lid}" if lid else "")
+    kand_regels = "\n".join(
+        f"- span: \"{k.get('span', k.get('tekst', ''))}\"  (lid: {k.get('lid', '') or 'onbekend'})"
+        for k in kandidaten
+    )
+    return (
+        f"Regeling {bwb_id}, {plek}. Classificeer de onderstaande kandidaatfragmenten.\n\n"
+        f"--- ARTIKELTEKST ---\n{artikeltekst}\n--- EINDE ARTIKELTEKST ---\n\n"
+        f"--- KANDIDATEN ---\n{kand_regels}\n--- EINDE KANDIDATEN ---"
+    )
+
+
 def critic_systeemprompt() -> str:
     klassen = ", ".join(JAS_KLASSEN_VOLGORDE)
     return f"""Je bent een kritische reviewer (Critic) die JAS-annotatievoorstellen controleert VÓÓRDAT een jurist ze beoordeelt. Je maakt de annotaties zelf NIET; je beoordeelt de kwaliteit ervan en signaleert waar de jurist extra op moet letten.

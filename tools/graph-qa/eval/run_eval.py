@@ -81,6 +81,7 @@ async def run_annotatie_case(
     """
     elementen: list[dict[str, Any]] = []
     verworpen: list[dict[str, Any]] = []
+    kandidaten: list[dict[str, Any]] = []
     corpus = ""
     antwoord: list[str] = []
     error: str | None = None
@@ -91,6 +92,9 @@ async def run_annotatie_case(
             elementen.append(ev["element"])
         elif soort == "verworpen":
             verworpen.extend(ev.get("items") or [])
+        elif soort == "kandidaten_v2a":
+            # fase 2A: gefilterde kandidaten vóór classificatie — voor candidate_recall meting
+            kandidaten.extend(ev.get("items") or [])
         elif soort == "doel":
             leden = (ev.get("doel") or {}).get("leden_teksten") or []
             corpus = "\n\n".join(ld.get("tekst", "") for ld in leden)
@@ -99,7 +103,13 @@ async def run_annotatie_case(
         elif soort == "error":
             error = ev["message"]
 
-    return score_annotatie(case, elementen, corpus, "".join(antwoord), error, verworpen=verworpen)
+    # In V1 (geen kandidaatgenerator) zijn kandidaten leeg; score_annotatie gebruikt
+    # dan de definitieve elementen als proxy voor candidate_recall.
+    return score_annotatie(
+        case, elementen, corpus, "".join(antwoord), error,
+        verworpen=verworpen,
+        kandidaten=kandidaten if kandidaten else None,
+    )
 
 
 async def run_annotatie_suite(

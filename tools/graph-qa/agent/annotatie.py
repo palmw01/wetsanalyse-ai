@@ -209,6 +209,79 @@ def komt_letterlijk_voor(corpus: str, fragment: str) -> bool:
     return bool(norm) and _normaliseer(corpus).find(norm) >= 0
 
 
+# ---------------------------------------------------------------------------
+# Fase 2A — kandidaat-parsing en filtering
+# ---------------------------------------------------------------------------
+
+def parse_kandidaten(llm_text: str) -> list[dict]:
+    """Parse de JSON-output van de kandidaat-generator.
+
+    Verwacht {"kandidaten": [{"span": "...", "lid": "...", "reden": "..."}]}.
+    Robuust tegen proza/afkapping: fast-path hele JSON, fallback op
+    gebalanceerde {}-objecten die `span` of `tekst` bevatten.
+    """
+    raw = (llm_text or "").strip().strip("`")
+    if raw.lower().startswith("json"):
+        raw = raw[4:]
+    s, e = raw.find("{"), raw.rfind("}")
+    if s != -1 and e > s:
+        try:
+            data = json.loads(raw[s: e + 1])
+            if isinstance(data, dict) and isinstance(data.get("kandidaten"), list):
+                return [
+                    k for k in data["kandidaten"]
+                    if isinstance(k, dict) and (k.get("span") or k.get("tekst"))
+                ]
+        except json.JSONDecodeError:
+            pass
+    # Fallback: gebalanceerde objecten die span of tekst bevatten
+    gered = []
+    for obj in _balanced_objecten(raw):
+        try:
+            d = json.loads(obj)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(d, dict) and (d.get("span") or d.get("tekst")):
+            gered.append(d)
+    return gered
+
+
+_MIN_KANDIDAAT_LENGTE = 2   # tekens — te korte spans zijn bijna nooit een JAS-element
+
+
+def filter_kandidaten(kandidaten: list[dict], corpus: str) -> list[dict]:
+    """Filter de kandidatenlijst deterministisch (geen LLM).
+
+    Stappen:
+    1. Verwijder spans korter dan _MIN_KANDIDAAT_LENGTE tekens.
+    2. Verwijder spans die niet letterlijk in de corpus staan.
+    3. Normaliseer het span-veld (strip witruimte).
+    4. Dedupliceer op genormaliseerde span + lid (eerste wins).
+    5. Overlappende spans: behoud beide als ze inhoudelijk verschillen.
+       Alleen identieke deelverzamelingen (contained + zelfde reden) worden
+       samengevoegd — de classificator beslist over grensgevallen.
+
+    De juridische keuze (welke overlappende span is het element?) blijft bij
+    de classificator, niet bij deze filter. Zie plan V3 §2A.
+    """
+    norm_corpus = _normaliseer(corpus)
+    gezien: dict[tuple[str, str], dict] = {}
+    resultaat = []
+    for k in kandidaten:
+        span = _normaliseer(k.get("span") or k.get("tekst") or "")
+        if len(span) < _MIN_KANDIDAAT_LENGTE:
+            continue
+        if norm_corpus.find(span) < 0:
+            continue
+        lid = (k.get("lid") or "").strip()
+        sleutel = (span.lower(), lid)
+        if sleutel in gezien:
+            continue
+        gezien[sleutel] = k
+        resultaat.append({**k, "span": span, "lid": lid})
+    return resultaat
+
+
 def sleutel_van(tekst: str, lid: str) -> tuple[str, str]:
     """Identiteit van een markering los van zijn id: fragment + lid.
 

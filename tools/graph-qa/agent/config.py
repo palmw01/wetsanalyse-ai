@@ -100,6 +100,12 @@ class Settings(BaseModel):
     max_subquestions: int = 5         # cap op het aantal deelvragen (kosten/latency begrenzen)
     sub_max_turns: int = 8            # agent⇄tools-beurten per deelvraag (los van max_turns)
 
+    # Fase 2A: kandidaat/filter/classificatie-splitsing.
+    # Uit (default) = V1 gecombineerde annotatie-aanpak (één call, bewezen keten).
+    # Aan = twee aparte calls: kandidaatgeneratie + classificatie.
+    # Zet aan na een baseline-eval; schakel terug als de score daalt.
+    enable_kandidaat_splitsing: bool = False
+
     # Correctie na de Critic: **0 = uit**, **> 0 = aan**.
     #
     # LET OP — deze knop telt géén rondes meer, ondanks zijn naam. De keten ligt vast:
@@ -163,6 +169,7 @@ class Settings(BaseModel):
             "enable_decomposition": e.get("ENABLE_DECOMPOSITION"),
             "max_subquestions": e.get("MAX_SUBQUESTIONS"),
             "sub_max_turns": e.get("SUB_MAX_TURNS"),
+            "enable_kandidaat_splitsing": e.get("ENABLE_KANDIDAAT_SPLITSING"),
             "critic_max_rondes": e.get("CRITIC_MAX_RONDES"),
             "grounding_correct": e.get("GROUNDING_CORRECT"),
             "prompt_caching": e.get("PROMPT_CACHING"),
