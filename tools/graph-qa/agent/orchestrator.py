@@ -969,7 +969,10 @@ def build_graph(
         """
         writer = get_stream_writer()
         doel = _bepaal_doel(state)
-        corpus = state.get("corpus") or ""
+        # Gebruik het in state gecachede corpus; als dat leeg is haal het gericht op
+        # (zelfde strategie als annoteer_node — zonder dit zou een direct-naar-annoteer
+        # route met leeg corpus altijd een lege kandidatenlijst opleveren).
+        corpus = state.get("corpus") or _corpus_voor_doel(doel, graph, state.get("source_trace", []))
         if not corpus.strip():
             return {"kandidaten_v2a": []}
 
@@ -1050,6 +1053,7 @@ def build_graph(
             )
             writer({"type": "token", "content": leeg})
             return {"answer": leeg, "voorstellen": [], "verworpen_fragmenten": [],
+                    "corpus": corpus,
                     "messages": [{"role": "assistant", "content": leeg}]}
 
         meegestuurd = [
@@ -1069,6 +1073,9 @@ def build_graph(
         return {
             "voorstellen": [v.model_dump() for v in voorstellen] + eigen,
             "verworpen_fragmenten": [x.model_dump() for x in verworpen],
+            # Critic en herziening lezen corpus via _corpus(state); zonder dit veld vallen
+            # zij terug op de trace-reconstructie over meerdere bepalingen.
+            "corpus": corpus,
             "answer": "",
         }
 
@@ -1819,7 +1826,10 @@ def build_graph(
         add("emit", emit_node)
         add("advance", advance_node)
         add("afwijzen", afwijs_node)
-        entrymap = {"agent": "agent", "annoteer": "annoteer", "decompose": "decompose",
+        # Bij splitsing is de eerste annoteer-node `annoteer_kandidaten`; anders `annoteer`.
+        # Alle conditional-edges die "annoteer" als doel teruggeven moeten naar diezelfde node.
+        _annoteer_entry = "annoteer_kandidaten" if settings.enable_kandidaat_splitsing else "annoteer"
+        entrymap = {"agent": "agent", "annoteer": _annoteer_entry, "decompose": "decompose",
                     "afwijzen": "afwijzen"}
         g.add_edge(START, "supervisor")
         g.add_edge("afwijzen", END)
@@ -1831,12 +1841,11 @@ def build_graph(
         g.add_edge("resynth", "synthesize")
         g.add_conditional_edges(
             "agent", route_after_agent,
-            {"tools": "tools", "verify": "verify", "annoteer": "annoteer"},
+            {"tools": "tools", "verify": "verify", "annoteer": _annoteer_entry},
         )
         g.add_edge("tools", "agent")
         g.add_edge("finalize", "advance")
         if settings.enable_kandidaat_splitsing:
-            g.add_edge("annoteer", "annoteer_kandidaten")
             g.add_edge("annoteer_kandidaten", "annoteer_klasseer")
             g.add_edge("annoteer_klasseer", "critic")
         else:
@@ -1872,20 +1881,21 @@ def build_graph(
         add("emit", emit_node)
         add("advance", advance_node)
         add("afwijzen", afwijs_node)
+        # Bij splitsing is de eerste annoteer-node `annoteer_kandidaten`; anders `annoteer`.
+        _annoteer_entry = "annoteer_kandidaten" if settings.enable_kandidaat_splitsing else "annoteer"
         g.add_edge(START, "supervisor")
         g.add_conditional_edges("supervisor", _entry_node,
-                                {"agent": "agent", "annoteer": "annoteer", "afwijzen": "afwijzen"})
+                                {"agent": "agent", "annoteer": _annoteer_entry, "afwijzen": "afwijzen"})
         g.add_edge("afwijzen", END)
         g.add_conditional_edges(
             "agent", route_after_agent,
-            {"tools": "tools", "verify": "verify", "annoteer": "annoteer"},
+            {"tools": "tools", "verify": "verify", "annoteer": _annoteer_entry},
         )
         g.add_edge("tools", "agent")
         g.add_conditional_edges("verify", route_after_verify, {"correct": "correct", "finalize": "finalize"})
         g.add_edge("correct", "agent")
         g.add_edge("finalize", "advance")
         if settings.enable_kandidaat_splitsing:
-            g.add_edge("annoteer", "annoteer_kandidaten")
             g.add_edge("annoteer_kandidaten", "annoteer_klasseer")
             g.add_edge("annoteer_klasseer", "critic")
         else:
@@ -1900,7 +1910,7 @@ def build_graph(
         g.add_edge("herzie", "critic")
         g.add_edge("emit", "advance")
         g.add_conditional_edges("advance", route_after_advance,
-                                {"agent": "agent", "annoteer": "annoteer",
+                                {"agent": "agent", "annoteer": _annoteer_entry,
                                  "afwijzen": "afwijzen", "einde": END})
         return g
 
