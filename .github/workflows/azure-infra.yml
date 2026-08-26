@@ -10,6 +10,8 @@
 #   afbreken  verwijdert de hele resource group. Vereist dat je de naam ter bevestiging intypt.
 #   opruimen  verwijdert wat er in de groep staat maar NIET bij deze straat hoort (bicep ruimt zelf
 #             niets op). Toont eerst wat het zou doen; verwijdert pas als je de groepsnaam intypt.
+#   telemetrie vraagt de Log Analytics-workspace of er de laatste 24 uur traces/requests binnenkwamen.
+#             Read-only; de controle of de OTel-keten van deze straat écht werkt.
 #   inventaris leest wat er in de subscription staat en schrijft het naar de samenvatting. Puur
 #             read-only (alleen `list`/`show`); bedoeld om te kunnen controleren wát er draait en
 #             wat het kost, zonder lokale az-installatie — de service principal leeft alleen hier.
@@ -38,7 +40,7 @@ on:
       actie:
         description: "Wat doen"
         type: choice
-        options: [wat-if, deploy, afbreken, opruimen, vul-graaf, inventaris]
+        options: [wat-if, deploy, afbreken, opruimen, vul-graaf, inventaris, telemetrie]
         default: wat-if
       bevestig_resource_group:
         description: "Voor 'afbreken' en 'opruimen': typ de resource group ter bevestiging"
@@ -399,6 +401,44 @@ jobs:
             done <<< "$wezen"
           done
           echo "Klaar."
+
+      # Komt er telemetrie binnen? De apps sturen OTLP naar de collector van deze straat, die naar
+      # Application Insights schrijft — dat is een keten van drie schakels die allemaal stil kunnen
+      # falen. Deze query is het enige echte bewijs dat hij werkt.
+      - name: Telemetrie controleren
+        if: ${{ inputs.actie == 'telemetrie' }}
+        run: |
+          set -euo pipefail
+          ws=$(az monitor log-analytics workspace show -g "$RESOURCE_GROUP" -n "log-$APP_NAME" \
+                 --query customerId -o tsv)
+          echo "Workspace: log-$APP_NAME ($ws)"
+          echo ""
+
+          vraag() {  # $1 = kop, $2 = KQL
+            echo "── $1 ──"
+            az monitor log-analytics query -w "$ws" --analytics-query "$2" -o table 2>&1 | head -20
+            echo ""
+          }
+
+          vraag "Telemetrie per type (24 uur)" \
+            "union isfuzzy=true AppRequests, AppDependencies, AppTraces, AppExceptions
+             | where TimeGenerated > ago(24h)
+             | summarize aantal=count() by Type
+             | order by aantal desc"
+
+          vraag "Requests per dienst (24 uur)" \
+            "AppRequests
+             | where TimeGenerated > ago(24h)
+             | summarize aantal=count(), p95_ms=percentile(DurationMs, 95) by AppRoleName
+             | order by aantal desc"
+
+          # De keten frontend → api → graph-qa onder één trace-id: het hele punt van deze opzet.
+          vraag "Trace-ids over meerdere diensten (24 uur)" \
+            "AppRequests
+             | where TimeGenerated > ago(24h)
+             | summarize diensten=dcount(AppRoleName), namen=make_set(AppRoleName) by OperationId
+             | where diensten > 1
+             | top 5 by diensten desc"
 
       - name: Graaf vullen (import-job)
         if: ${{ inputs.actie == 'vul-graaf' || inputs.actie == 'deploy' }}
