@@ -140,24 +140,66 @@ jobs:
             echo "Licentie geplaatst ($(wc -c < "$RUNNER_TEMP/graphdb.license") bytes)."
           fi
 
+      # Wat draait er nu? Die image-refs geven we mee aan de deployment, zodat een INFRA-wijziging
+      # de images met rust laat. Zonder dit vallen de bicep-defaults (`:latest`) terug op hun plek en
+      # gooit een infra-deploy de digest-pins weg die de publish-workflows er net op zetten — dan
+      # weet je achteraf niet meer wélk image er draait. Bestaat een app nog niet (verse straat), dan
+      # blijft de variabele leeg en pakt de bicep gewoon zijn default.
+      - name: Draaiende images uitlezen
+        if: ${{ inputs.actie == 'wat-if' || inputs.actie == 'deploy' }}
+        id: images
+        run: |
+          set -euo pipefail
+          VRAAG='properties.template.containers[0].image'
+          app_image() {   # $1 = suffix van de container app
+            az containerapp show -n "$APP_NAME-$1" -g "$RESOURCE_GROUP" --query "$VRAAG" -o tsv 2>/dev/null || true
+          }
+          job_image() {   # $1 = suffix van de container apps JOB
+            az containerapp job show -n "$APP_NAME-$1" -g "$RESOURCE_GROUP" --query "$VRAAG" -o tsv 2>/dev/null || true
+          }
+          {
+            echo "api=$(app_image api)"
+            echo "frontend=$(app_image frontend)"
+            echo "graph_qa=$(app_image graph-qa)"
+            echo "bwb_import=$(job_image bwb-import)"
+          } | tee -a "$GITHUB_OUTPUT"
+
       - name: Template valideren (what-if)
         if: ${{ inputs.actie == 'wat-if' }}
+        env:
+          IMG_API: ${{ steps.images.outputs.api }}
+          IMG_FRONTEND: ${{ steps.images.outputs.frontend }}
+          IMG_GRAPH_QA: ${{ steps.images.outputs.graph_qa }}
+          IMG_BWB_IMPORT: ${{ steps.images.outputs.bwb_import }}
         run: |
           set -euo pipefail
           args=(--llm-api-base "$LLM_API_BASE" --llm-model "$LLM_MODEL"
                 --resource-group "$RESOURCE_GROUP" --location "$AZURE_LOCATION"
                 --app-name "$APP_NAME" --what-if)
           [ -f "$RUNNER_TEMP/graphdb.license" ] && args+=(--license-file "$RUNNER_TEMP/graphdb.license")
+          [ -n "${IMG_API:-}" ]        && args+=(--api-image "$IMG_API")
+          [ -n "${IMG_FRONTEND:-}" ]   && args+=(--frontend-image "$IMG_FRONTEND")
+          [ -n "${IMG_GRAPH_QA:-}" ]   && args+=(--graph-qa-image "$IMG_GRAPH_QA")
+          [ -n "${IMG_BWB_IMPORT:-}" ] && args+=(--bwb-import-image "$IMG_BWB_IMPORT")
           python3 deploy/azure/gen-deploy.py "$AZURE_AI_KEY" "${args[@]}"
 
       - name: Uitrollen
         if: ${{ inputs.actie == 'deploy' }}
+        env:
+          IMG_API: ${{ steps.images.outputs.api }}
+          IMG_FRONTEND: ${{ steps.images.outputs.frontend }}
+          IMG_GRAPH_QA: ${{ steps.images.outputs.graph_qa }}
+          IMG_BWB_IMPORT: ${{ steps.images.outputs.bwb_import }}
         run: |
           set -euo pipefail
           args=(--llm-api-base "$LLM_API_BASE" --llm-model "$LLM_MODEL"
                 --resource-group "$RESOURCE_GROUP" --location "$AZURE_LOCATION"
                 --app-name "$APP_NAME" --run)
           [ -f "$RUNNER_TEMP/graphdb.license" ] && args+=(--license-file "$RUNNER_TEMP/graphdb.license")
+          [ -n "${IMG_API:-}" ]        && args+=(--api-image "$IMG_API")
+          [ -n "${IMG_FRONTEND:-}" ]   && args+=(--frontend-image "$IMG_FRONTEND")
+          [ -n "${IMG_GRAPH_QA:-}" ]   && args+=(--graph-qa-image "$IMG_GRAPH_QA")
+          [ -n "${IMG_BWB_IMPORT:-}" ] && args+=(--bwb-import-image "$IMG_BWB_IMPORT")
           python3 deploy/azure/gen-deploy.py "$AZURE_AI_KEY" "${args[@]}"
 
       - name: Inventaris (read-only)

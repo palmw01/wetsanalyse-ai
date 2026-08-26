@@ -52,6 +52,13 @@ def main() -> None:
     p.add_argument("--location", default="westeurope")
     p.add_argument("--app-name", default="wetsanalyse")
     p.add_argument("--db-server-name", default=None)
+    # Image-refs. Meegeven houdt een infra-deploy IMAGE-NEUTRAAL: zonder deze vlaggen vallen de
+    # bicep-defaults (`:latest`) terug op hun plek en zet een infra-deploy de digest-pins van de
+    # publish-workflows overboord. Infra en image horen losse assen te zijn.
+    p.add_argument("--api-image", default=None)
+    p.add_argument("--frontend-image", default=None)
+    p.add_argument("--graph-qa-image", default=None)
+    p.add_argument("--bwb-import-image", default=None)
     p.add_argument("--params-file", default=str(DEFAULT_PARAMS))
     p.add_argument("--what-if", action="store_true",
                    help="Toon wat de deployment zou wijzigen; maak niets aan.")
@@ -108,6 +115,16 @@ def main() -> None:
             "graphdbLicenseBase64": {"value": licentie_b64},
         },
     }
+
+    # Alleen meesturen wat is opgegeven; een ontbrekende vlag laat de bicep-default staan.
+    for vlag, param in (
+        (args.api_image, "apiImage"),
+        (args.frontend_image, "frontendImage"),
+        (args.graph_qa_image, "graphQaImage"),
+        (args.bwb_import_image, "bwbImportImage"),
+    ):
+        if vlag:
+            params["parameters"][param] = {"value": vlag}
 
     params_path = Path(args.params_file)
     params_path.write_text(json.dumps(params, indent=2, ensure_ascii=False), encoding="utf-8")
