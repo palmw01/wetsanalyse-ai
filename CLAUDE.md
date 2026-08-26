@@ -137,10 +137,15 @@ Alle draaiende onderdelen (API, frontend, graph-qa) zijn **geïnstrumenteerd, ni
 ze emitteren gestructureerde JSON-logs (één gedeelde vorm, bv. `frontend/lib/logger.ts`)
 en kunnen OpenTelemetry (traces/metrics/logs) naar een **configureerbaar OTLP-endpoint** sturen
 (`OTEL_EXPORTER_OTLP_ENDPOINT`; leeg = alleen logs, nul overhead). Eén trace-id verbindt de keten
-frontend → API → graph-qa — mits **`NEXT_OTEL_FETCH_DISABLED=1`** op de frontend staat. Next.js
-instrumenteert `fetch` anders zelf en zet dan géén traceparent op de uitgaande request, waarna de
-keten stil uiteenvalt in losse traces per dienst (zichtbaar doordat elke span
-`ParentId == OperationId` heeft). Zie `frontend/instrumentation.ts`.
+frontend → API → graph-qa — **behalve dat dat op dit moment niet werkt.** Gemeten op acceptatie
+(26 aug 2026): de frontend neemt een binnenkomende `traceparent` correct over en nest zijn eigen
+spans goed, maar de api registreert dezelfde aanroep als een nieuwe root (`ParentId == OperationId`).
+`NEXT_OTEL_FETCH_DISABLED=1` staat inmiddels op de frontend — de Next.js-documentatie wijst die vlag
+aan wanneer je een eigen fetch-instrumentatie gebruikt — maar dat lost het niet op. De volgende stap
+is vaststellen of de header de api überhaupt bereikt. Zie `frontend/instrumentation.ts`.
+
+Let op dat dit **stil** faalt: telemetrie komt gewoon binnen, alleen het verband tussen de diensten
+ontbreekt.
 
 **Waar dat endpoint heen wijst verschilt per omgeving, en dat is opzet — de monitoring hoort bij de
 omgeving die hij bewaakt.** Op **Azure** (acceptatie en productie) staat per straat een stateless

@@ -13,11 +13,27 @@ de omgeving die hij bewaakt.**
 | **dev** (docker-host) | de compose-stack uit `deploy/observability/`: OTel-Collector + Tempo + Loki + Prometheus + Alloy | Grafana, met de twee dashboards uit deze map |
 | **acceptatie / productie** (Azure) | een stateless OTel-collector per straat → **Application Insights**, workspace-based op de Log Analytics van die straat | de Azure-portal: end-to-end transacties, Application Map, KQL over `requests`/`traces` |
 
-**De keten hangt aan één vlag.** `NEXT_OTEL_FETCH_DISABLED=1` moet op de frontend staan, anders
-instrumenteert Next.js `fetch` zelf en zet het géén traceparent op de uitgaande request — dan
-verschijnt elke dienst met eigen, losse traces. Dat faalt stil: je ziet wél telemetrie, alleen geen
-verband. Controleer het door een request met een eigen `traceparent`-header te sturen en te kijken
-of alle diensten onder dat trace-id verschijnen.
+**De keten werkt op dit moment niet — open punt.** Elke dienst levert telemetrie, maar ze delen
+geen trace-id: de api registreert een aanroep van de frontend als nieuwe root. Dat faalt stil, want
+je ziet wél data.
+
+Zo controleer je het: stuur een request met een eigen `traceparent`-header en kijk of alle diensten
+onder dat trace-id verschijnen.
+
+```
+curl -H "traceparent: 00-<32 hex>-<16 hex>-01" https://<frontend>/api/health
+```
+
+```kusto
+union AppRequests, AppDependencies
+| where OperationId == "<32 hex>"
+| project TimeGenerated, AppRoleName, Name, Id, ParentId
+```
+
+Stand: de frontend neemt de header correct over en nest zijn eigen spans goed;
+`NEXT_OTEL_FETCH_DISABLED=1` staat erop (de Next.js-documentatie wijst die vlag aan bij een eigen
+fetch-instrumentatie) maar verandert niets. De volgende stap is vaststellen of de header de api
+überhaupt bereikt.
 
 De Grafana-dashboards in deze map horen dus **bij dev**. Ze draaien op PromQL/LogQL/TraceQL en zijn
 niet naar Azure overgezet; daar is Application Insights de ingang. Elke span uit een Azure-straat
