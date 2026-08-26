@@ -145,6 +145,57 @@ jobs:
       # gooit een infra-deploy de digest-pins weg die de publish-workflows er net op zetten — dan
       # weet je achteraf niet meer wélk image er draait. Bestaat een app nog niet (verse straat), dan
       # blijft de variabele leeg en pakt de bicep gewoon zijn default.
+      # De secrets van een DRAAIENDE omgeving overnemen. Zonder dit genereert gen-deploy.py bij elke
+      # run verse waarden, en dan is een infra-deploy op een bestaande straat destructief: naast
+      # vervallen sessies en roterende tokens gaat `llm-config-secret` mee — de Fernet-sleutel
+      # waarmee de api de API-keys van modelprofielen én de 2FA-secrets van gebruikers versleutelt.
+      # Roteert die, dan is dat materiaal onherstelbaar onleesbaar.
+      #
+      # Voorrang: een GitHub environment-secret wint, anders wat er in Azure draait, anders (verse
+      # straat) laat gen-deploy.py het zelf genereren.
+      - name: Bestaande secrets overnemen
+        if: ${{ inputs.actie == 'wat-if' || inputs.actie == 'deploy' }}
+        env:
+          GH_LLM_CONFIG_SECRET: ${{ secrets.WA_LLM_CONFIG_SECRET }}
+          GH_AUTH_SECRET: ${{ secrets.WA_AUTH_SECRET }}
+          GH_DB_ADMIN_PASSWORD: ${{ secrets.WA_DB_ADMIN_PASSWORD }}
+          GH_API_TOKEN: ${{ secrets.WA_API_TOKEN }}
+          GH_ADMIN_TOKEN: ${{ secrets.WA_ADMIN_TOKEN }}
+          GH_QA_API_TOKEN: ${{ secrets.WA_QA_API_TOKEN }}
+          GH_GRAPHDB_TOKEN: ${{ secrets.WA_GRAPHDB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          uit_azure() {  # $1 = app-suffix, $2 = secretnaam
+            az containerapp secret show -n "$APP_NAME-$1" -g "$RESOURCE_GROUP" \
+              --secret-name "$2" --query value -o tsv 2>/dev/null || true
+          }
+
+          # $1 = naam van de WA_-var, $2 = waarde uit GitHub, $3 = waarde uit Azure.
+          bewaar() {
+            if [ -n "$2" ]; then waarde="$2"; bron="GitHub"; else waarde="$3"; bron="Azure"; fi
+            [ -n "$waarde" ] || { echo "  $1: niet gevonden — wordt gegenereerd"; return; }
+            echo "::add-mask::$waarde"
+            echo "$1=$waarde" >> "$GITHUB_ENV"
+            echo "  $1: overgenomen uit $bron"
+          }
+
+          bewaar WA_LLM_CONFIG_SECRET "${GH_LLM_CONFIG_SECRET:-}" "$(uit_azure api llm-config-secret)"
+          bewaar WA_AUTH_SECRET       "${GH_AUTH_SECRET:-}"       "$(uit_azure frontend auth-secret)"
+          bewaar WA_API_TOKEN         "${GH_API_TOKEN:-}"         "$(uit_azure frontend api-token)"
+          bewaar WA_ADMIN_TOKEN       "${GH_ADMIN_TOKEN:-}"       "$(uit_azure frontend admin-api-token)"
+          bewaar WA_QA_API_TOKEN      "${GH_QA_API_TOKEN:-}"      "$(uit_azure graph-qa qa-api-token)"
+          bewaar WA_GRAPHDB_TOKEN     "${GH_GRAPHDB_TOKEN:-}"     "$(uit_azure graph-qa graphdb-token)"
+
+          # Het databasewachtwoord staat niet als eigen secret maar in de connectiestring:
+          #   postgresql+asyncpg://wetsanalyse:<wachtwoord>@host:5432/...
+          db_url=$(uit_azure api database-url)
+          db_pass=""
+          if [ -n "$db_url" ]; then
+            db_pass=$(printf '%s' "$db_url" | sed -n 's#^[^:]*://[^:]*:\([^@]*\)@.*#\1#p')
+          fi
+          bewaar WA_DB_ADMIN_PASSWORD "${GH_DB_ADMIN_PASSWORD:-}" "$db_pass"
+
       - name: Draaiende images uitlezen
         if: ${{ inputs.actie == 'wat-if' || inputs.actie == 'deploy' }}
         id: images
