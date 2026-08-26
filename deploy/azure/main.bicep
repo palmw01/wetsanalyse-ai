@@ -762,6 +762,15 @@ resource frontendApp 'Microsoft.App/containerApps@2024-03-01' = {
             // Insights. Leeg laten = uit; dat was de stand tot nu toe.
             { name: 'OTEL_EXPORTER_OTLP_ENDPOINT', value: collectorEndpoint }
             { name: 'OTEL_SERVICE_NAME', value: 'wetsanalyse-frontend' }
+            // Next.js instrumenteert `fetch` zélf en maakt daar een span voor, maar injecteert geen
+            // W3C-traceparent. Daardoor begon elke aanroep naar de api een NIEUWE trace: gemeten op
+            // acceptatie kwamen de twee /health-calls op precies dezelfde milliseconde aan als de
+            // frontend-spans, maar met `ParentId == OperationId` — allemaal roots.
+            //
+            // Deze vlag zet die eigen instrumentatie uit (de Next.js-documentatie noemt hem
+            // expliciet "when you want to use a custom fetch instrumentation library"), waarna de
+            // undici-instrumentatie van @vercel/otel het overneemt — en díe injecteert de header wel.
+            { name: 'NEXT_OTEL_FETCH_DISABLED', value: '1' }
             // De straat staat op elke span, zodat acceptatie en productie in dezelfde workspace
             // uit elkaar te houden zijn.
             { name: 'OTEL_RESOURCE_ATTRIBUTES', value: 'deployment.environment=${appName}' }
