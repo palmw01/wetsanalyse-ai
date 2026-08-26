@@ -300,6 +300,10 @@ jobs:
           az postgres flexible-server list --query "[].{server:name, versie:version, sku:sku.name}" -o tsv 2>/dev/null || true
           echo "--- log analytics ---"
           az monitor log-analytics workspace list --query "[].{workspace:name, retentieDagen:retentionInDays}" -o tsv 2>/dev/null || true
+          echo "--- container apps environments ---"
+          az containerapp env list --query "[].{env:name, rg:resourceGroup}" -o tsv 2>/dev/null || true
+          echo "--- alle resources in $RESOURCE_GROUP ---"
+          az resource list -g "$RESOURCE_GROUP" --query "sort_by([].{naam:name, type:type}, &naam)" -o tsv 2>/dev/null || true
 
       # Ook ná een deploy, en niet alleen op verzoek: GraphDB is bewust niet-persistent, dus een
       # verse of opnieuw uitgerolde stack heeft een LEGE graaf. Dat handmatig laten was precies de
