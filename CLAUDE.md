@@ -165,10 +165,18 @@ importer, api, graph-qa, frontend) in een eigen resource group:
 > service principal daar Contributor op geven.
 
 De vier `*-docker-publish.yml`-workflows bouwen naar GHCR (pip-audit/npm-audit vooraf, Trivy-gate
-achteraf) en hebben daarna een aparte **`deploy`-job**. Die kiest zijn GitHub-environment op de
-trigger — `master` → `acceptatie`, tag → `productie` — en haalt daar de credentials, de resource
-group en de `APP_NAME` uit. Er is dus geen omgevingsnaam meer hardgecodeerd, en de menselijke poort
-vóór productie zit in de environment en niet in een workflow-conditie.
+achteraf) en hebben daarna een aparte **`deploy`-job** naar acceptatie; ze luisteren niet op tags.
+Productie loopt via **`promote.yml`**: dat bouwt niets, maar neemt de digests over die op acceptatie
+draaien — een herbouw van dezelfde broncode levert nog altijd een ander artefact op. Het toetst
+daarbij het OCI-label `org.opencontainers.image.revision` tegen de commit achter de tag, zodat er
+niets anders uitrolt dan de tag belooft. De credentials, resource group en `APP_NAME` komen uit de
+GitHub-environment; de menselijke poort vóór productie zit daar ook, en niet in een
+workflow-conditie.
+
+**De applicatie-secrets roteren niet bij een infra-deploy.** `azure-infra.yml` neemt ze over —
+GitHub environment-secret (`WA_*`) → wat er in Azure draait → anders vers genereren. Dat is geen
+netheid maar noodzaak: `llm-config-secret` is de Fernet-sleutel waarmee de api de API-keys van
+modelprofielen én de 2FA-secrets van gebruikers versleutelt.
 
 Twee dingen die die job bewust doet en die je niet moet weghalen: hij **faalt** bij een ontbrekend
 secret (dat was eerder een `if` die de stap oversloeg en de run groen liet), en hij **wacht tot de

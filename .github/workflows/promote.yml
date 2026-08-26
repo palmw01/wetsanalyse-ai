@@ -1,0 +1,163 @@
+# Promoveren naar productie: acceptatie → productie, zonder opnieuw te bouwen.
+#
+# Een tag opnieuw laten bouwen levert een ANDER image-artefact op dan er op acceptatie is getest —
+# dezelfde broncode, maar een verse build met verse basis-images en verse dependency-resolutie. Deze
+# workflow neemt daarom de digests over die op acceptatie DRAAIEN, en controleert dat die horen bij
+# de commit die je hebt getagd.
+#
+# De publish-workflows luisteren daarom niet meer op tags; die bouwen alleen nog voor acceptatie.
+
+name: promote
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+concurrency:
+  group: promote
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    # De required reviewer op deze environment is de poort vóór productie.
+    environment: productie
+    env:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      # De bron: de acceptatiestraat. Bewust hardgecodeerd als repo-var en niet uit de
+      # productie-environment, want dit is de énige plek die over de grens van twee straten kijkt.
+      ACC_RG: ${{ vars.ACCEPTATIE_RESOURCE_GROUP || 'rg-wetsanalyse' }}
+      ACC_APP: ${{ vars.ACCEPTATIE_APP_NAME || 'wetsanalyse' }}
+      # Het doel komt wél uit de environment van deze job.
+      PRD_RG: ${{ vars.AZURE_RESOURCE_GROUP }}
+      PRD_APP: ${{ vars.APP_NAME }}
+
+    steps:
+      - name: Preflight (credentials en omgevingsvars aanwezig?)
+        run: |
+          set -euo pipefail
+          for v in AZURE_CLIENT_ID AZURE_CLIENT_SECRET AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID \
+                   ACC_RG ACC_APP PRD_RG PRD_APP; do
+            [ -n "${!v:-}" ] || { echo "::error::ontbrekende secret/var: $v (zie deploy/azure/README.md)"; exit 1; }
+          done
+
+      - name: Inloggen bij Azure
+        run: |
+          set -euo pipefail
+          az login --service-principal \
+            --username "$AZURE_CLIENT_ID" \
+            --password "$AZURE_CLIENT_SECRET" \
+            --tenant "$AZURE_TENANT_ID" >/dev/null
+          az account set --subscription "$AZURE_SUBSCRIPTION_ID"
+
+      - name: Log in bij GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Wat draait er op acceptatie, en hoort dat bij DEZE tag? De publish-workflows zetten via
+      # docker/metadata-action het OCI-label `org.opencontainers.image.revision` op elk image. Komt
+      # dat niet overeen met de commit achter de tag, dan zou je iets anders uitrollen dan de tag
+      # belooft — en dat is precies wat een release onbetrouwbaar maakt.
+      - name: Digests van acceptatie ophalen en tegen de tag toetsen
+        id: digests
+        run: |
+          set -euo pipefail
+          VERWACHT="${{ github.sha }}"
+          echo "Tag $GITHUB_REF_NAME wijst naar commit $VERWACHT"
+          afwijking=0
+
+          controleer() {  # $1 = variabelenaam, $2 = app-suffix, $3 = 'app' of 'job'
+            if [ "$3" = job ]; then
+              image=$(az containerapp job show -n "$ACC_APP-$2" -g "$ACC_RG" \
+                        --query "properties.template.containers[0].image" -o tsv)
+            else
+              image=$(az containerapp show -n "$ACC_APP-$2" -g "$ACC_RG" \
+                        --query "properties.template.containers[0].image" -o tsv)
+            fi
+            if [ -z "$image" ]; then
+              echo "::error::geen image gevonden voor $ACC_APP-$2 op acceptatie"; afwijking=1; return
+            fi
+            revisie=$(docker buildx imagetools inspect "$image" --format '{{ index .Image.Config.Labels "org.opencontainers.image.revision" }}' 2>/dev/null || echo "")
+            if [ "$revisie" != "$VERWACHT" ]; then
+              echo "::error::$2 draait op acceptatie een image van commit '${revisie:-onbekend}', niet van de getagde commit $VERWACHT. Merge de tag-commit eerst naar master en laat acceptatie bijwerken."
+              afwijking=1
+              return
+            fi
+            echo "  $2: $image ✓"
+            echo "$1=$image" >> "$GITHUB_OUTPUT"
+          }
+
+          controleer api        api        app
+          controleer frontend   frontend   app
+          controleer graph_qa   graph-qa   app
+          controleer bwb_import bwb-import job
+
+          [ "$afwijking" -eq 0 ] || { echo "::error::promotie afgebroken"; exit 1; }
+
+      - name: Uitrollen naar productie
+        env:
+          IMG_API: ${{ steps.digests.outputs.api }}
+          IMG_FRONTEND: ${{ steps.digests.outputs.frontend }}
+          IMG_GRAPH_QA: ${{ steps.digests.outputs.graph_qa }}
+          IMG_BWB_IMPORT: ${{ steps.digests.outputs.bwb_import }}
+        run: |
+          set -euo pipefail
+          az containerapp update     -n "$PRD_APP-api"        -g "$PRD_RG" --image "$IMG_API"        --output none
+          az containerapp update     -n "$PRD_APP-frontend"   -g "$PRD_RG" --image "$IMG_FRONTEND"   --output none
+          az containerapp update     -n "$PRD_APP-graph-qa"   -g "$PRD_RG" --image "$IMG_GRAPH_QA"   --output none
+          az containerapp job update -n "$PRD_APP-bwb-import" -g "$PRD_RG" --image "$IMG_BWB_IMPORT" --output none
+
+      # Dezelfde gate als in de publish-workflows: `update` keert terug zodra de revisie is
+      # AANGEMAAKT, niet zodra hij draait.
+      - name: Wachten tot de nieuwe revisies draaien
+        run: |
+          set -euo pipefail
+          wacht() {
+            rev=$(az containerapp show -n "$PRD_APP-$1" -g "$PRD_RG" --query "properties.latestRevisionName" -o tsv)
+            echo "$1 → $rev"
+            for _ in $(seq 1 30); do
+              st=$(az containerapp revision show -n "$PRD_APP-$1" -g "$PRD_RG" --revision "$rev" \
+                     --query "properties.runningState" -o tsv 2>/dev/null || echo Unknown)
+              case "$st" in
+                Running|RunningAtMaxScale) echo "  draait."; return 0 ;;
+                Failed|Degraded) echo "::error::revisie $rev kwam niet gezond op ($st)"; return 1 ;;
+              esac
+              sleep 10
+            done
+            echo "::error::revisie $rev werd niet Running binnen 5 minuten"; return 1
+          }
+          wacht api
+          wacht frontend
+          wacht graph-qa
+
+      - name: Samenvatting
+        if: always()
+        run: |
+          {
+            echo "## Promotie naar productie"
+            echo ""
+            echo "Tag: \`$GITHUB_REF_NAME\` (commit \`${{ github.sha }}\`)"
+            echo ""
+            echo "Overgenomen van acceptatie (\`$ACC_RG\`) naar productie (\`$PRD_RG\`):"
+            echo ""
+            echo '```'
+            echo "api        ${{ steps.digests.outputs.api }}"
+            echo "frontend   ${{ steps.digests.outputs.frontend }}"
+            echo "graph-qa   ${{ steps.digests.outputs.graph_qa }}"
+            echo "bwb-import ${{ steps.digests.outputs.bwb_import }}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Afmelden bij Azure
+        if: always()
+        run: az logout || true

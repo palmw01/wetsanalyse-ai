@@ -64,6 +64,24 @@ uit volgen (`${appName}-api`, `cae-${appName}`, `log-${appName}`, …).
   Wil je gescheiden credentials — aan te raden zodra productie echte gegevens draagt — zet ze dan
   als environment-secret; die overschrijft de repo-variant.
 
+#### De applicatie-secrets roteren niet
+
+Los van de Azure-credentials draagt de stack zijn eigen secrets: de sessiesleutel, de api-/admin-/
+qa-tokens, het databasewachtwoord en `llm-config-secret`. Dat laatste is de **Fernet-sleutel**
+waarmee de api de API-keys van modelprofielen én de 2FA-secrets van gebruikers versleutelt; roteert
+die, dan is dat materiaal onherstelbaar onleesbaar.
+
+`azure-infra.yml` bepaalt ze per deploy in deze volgorde:
+
+1. een **GitHub environment-secret** met die naam (`WA_LLM_CONFIG_SECRET`, `WA_AUTH_SECRET`,
+   `WA_DB_ADMIN_PASSWORD`, `WA_API_TOKEN`, `WA_ADMIN_TOKEN`, `WA_QA_API_TOKEN`,
+   `WA_GRAPHDB_TOKEN`) — zet deze als je ze bewust wilt beheren of roteren;
+2. anders de waarde die **nu in Azure draait**, uitgelezen uit de container apps;
+3. anders **vers gegenereerd** — het geval van een nieuwe straat.
+
+Daardoor is een infra-deploy op een draaiende omgeving veilig. De toets daarop: `wat-if` mag geen
+`~ secret`-regels tonen voor de api-, frontend- en graph-qa-apps.
+
 Op `productie` staat een **required reviewer** en een deployment-policy die alleen tags `v*`
 toelaat; op `acceptatie` alleen de branch `master`. Die poort hoort in de environment te zitten en
 niet in een workflow-conditie die je per ongeluk wegcommit.
@@ -79,9 +97,20 @@ tot de nieuwe revisie daadwerkelijk `Running` is; `az containerapp update` keert
 zodra de revisie is *aangemaakt*, dus een container die bij het starten crasht bleef anders
 onopgemerkt.
 
-Let op bij een tag: die bouwt het image opnieuw uit de broncode van die tag, dus productie krijgt
-een ander image-artefact dan acceptatie heeft getest. Wil je dat uitsluiten, dan is de nette variant
-dat productie de digest overneemt die op acceptatie draait.
+### Productie: promoveren, niet herbouwen
+
+Een tag `v*` start **`promote.yml`**. Die bouwt niets: hij leest de digests die op *acceptatie*
+draaien en zet díe op productie. Zo krijgt productie exact het artefact dat getest is — een
+herbouw van dezelfde broncode levert nog altijd een ander image op (verse basis-images, verse
+dependency-resolutie).
+
+Vóór hij iets uitrolt, controleert hij per component het OCI-label
+`org.opencontainers.image.revision` van het draaiende image tegen de commit achter de tag. Hoort het
+er niet bij, dan faalt de promotie met een melding in plaats van iets anders uit te rollen dan de
+tag belooft. Praktisch: tag een commit die al op `master` staat en waarvan acceptatie de uitrol
+heeft afgerond.
+
+De publish-workflows luisteren daarom **niet** op tags — die bouwen alleen voor acceptatie.
 
 ### Infra: handmatig
 

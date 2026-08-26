@@ -7,7 +7,6 @@ name: frontend-docker-publish
 on:
   push:
     branches: [master]
-    tags: ["v*"]
     paths:
       - "frontend/**"
       - "!frontend/**/*.md"
@@ -123,18 +122,18 @@ jobs:
 
   # ── Uitrollen naar Azure ──────────────────────────────────────────────────────
   #
-  # master → acceptatie, tag `v*` → productie. De GitHub-environment levert de credentials en de
-  # RG/APP_NAME van die straat, en draagt bij productie de required reviewer: die menselijke poort
-  # hoort in de omgeving te zitten, niet in een workflow-conditie die je per ongeluk wegcommit.
+  # Master rolt uit naar ACCEPTATIE. Productie loopt via `promote.yml`, dat de digest overneemt die
+  # hier op acceptatie is beland in plaats van hem opnieuw te bouwen — anders krijgt productie een
+  # ander artefact dan er getest is.
   #
-  # Een aparte job en niet een stap in build-and-push, zodat de goedkeuring precies op de uitrol
-  # valt en de build gewoon doorloopt. Infra-wijzigingen (bicep) gaan via azure-infra.yml — hier
-  # alleen de image-refresh.
+  # De GitHub-environment levert de credentials en de RG/APP_NAME. Een aparte job en niet een stap
+  # in build-and-push, zodat de uitrol los staat van de build. Infra-wijzigingen (bicep) gaan via
+  # azure-infra.yml — hier alleen de image-refresh.
   deploy:
     needs: build-and-push
-    if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
-    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'productie' || 'acceptatie' }}
+    environment: acceptatie
     env:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
