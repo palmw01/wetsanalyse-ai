@@ -47,9 +47,8 @@ uit volgen (`${appName}-api`, `cae-${appName}`, `log-${appName}`, …).
 
 > **Productie bestaat nog niet.** De service principal is Contributor op `rg-wetsanalyse` en verder
 > niets; `az group create` op een nieuwe groep geeft `AuthorizationFailed` op
-> `Microsoft.Resources/subscriptions/resourcegroups/write`. Eerste stap voor de productiestraat:
-> iemand met Owner-rechten maakt `rg-wetsanalyse-prd` aan en geeft de service principal daar
-> Contributor op. Daarna volstaat `azure-infra` → `productie` → `deploy`.
+> `Microsoft.Resources/subscriptions/resourcegroups/write`. De CI kan die groep dus niet zelf
+> aanmaken — zie *De productiestraat aanzetten* hieronder.
 
 **Inrichten gebeurt per GitHub-environment** (Settings → Environments). Wat waar hoort:
 
@@ -111,6 +110,31 @@ tag belooft. Praktisch: tag een commit die al op `master` staat en waarvan accep
 heeft afgerond.
 
 De publish-workflows luisteren daarom **niet** op tags — die bouwen alleen voor acceptatie.
+
+### De productiestraat aanzetten
+
+Eenmalig, door iemand met **Owner** op de subscription (portal of az). De CI kan dit niet zelf: de
+service principal mag geen resource groups aanmaken en geen rollen toekennen.
+
+```bash
+# 1. De resource group.
+az group create -n rg-wetsanalyse-prd -l northeurope
+
+# 2. De service principal er Contributor op maken. Het object-id hoort bij de AZURE_CLIENT_ID
+#    die in de GitHub-secrets staat; vraag het op in plaats van het over te typen:
+SP_ID=$(az ad sp show --id "<AZURE_CLIENT_ID>" --query id -o tsv)
+SUB=$(az account show --query id -o tsv)
+az role assignment create --assignee-object-id "$SP_ID" --assignee-principal-type ServicePrincipal \
+    --role Contributor --scope "/subscriptions/$SUB/resourceGroups/rg-wetsanalyse-prd"
+```
+
+Daarna doet de CI de rest:
+
+1. `azure-infra` → `productie` → `wat-if` — alles hoort `+` te zijn (een verse omgeving).
+2. `azure-infra` → `productie` → `deploy` — rolt uit en vult daarna de graaf. Verse straat, dus
+   verse secrets: dat is hier juist goed.
+3. Open de frontend-URL uit de samenvatting op `/setup` en maak de eerste beheerder aan.
+4. Vanaf dan gaat elke release via een tag `v*` → `promote.yml`.
 
 ### Infra: handmatig
 
