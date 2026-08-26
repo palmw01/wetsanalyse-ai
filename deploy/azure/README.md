@@ -43,12 +43,25 @@ uit volgen (`${appName}-api`, `cae-${appName}`, `log-${appName}`, …).
 | straat | rolt uit bij | resource group | `appName` |
 |---|---|---|---|
 | acceptatie | elke merge naar `master` | `rg-wetsanalyse` | `wetsanalyse` |
-| productie | een tag `v*` | `rg-wetsanalyse-prd` | `wetsanalyse-prd` |
+| productie | een tag `v*` | `rg-wetsanalyse` | `wetsanalyse-prd` |
 
-> **Productie bestaat nog niet.** De service principal is Contributor op `rg-wetsanalyse` en verder
-> niets; `az group create` op een nieuwe groep geeft `AuthorizationFailed` op
-> `Microsoft.Resources/subscriptions/resourcegroups/write`. De CI kan die groep dus niet zelf
-> aanmaken — zie *De productiestraat aanzetten* hieronder.
+**Beide straten delen één resource group.** Dat is geen ontwerpvoorkeur maar een gevolg van de
+rechten: de service principal is Contributor op `rg-wetsanalyse` en mag geen resource groups
+aanmaken (`az group create` → `AuthorizationFailed` op
+`Microsoft.Resources/subscriptions/resourcegroups/write`). Binnen de groep kan hij alles, en omdat
+`main.bicep` volledig op `appName` is geparametriseerd, staat een tweede complete omgeving er
+gewoon naast: `cae-wetsanalyse-prd`, `wetsanalyse-prd-api`, `wetsanalyse-prd-db`, enzovoort.
+
+Wat je daarvoor inlevert, en waar je op moet letten:
+
+- **Geen RBAC-scheiding.** Wie bij acceptatie mag, mag bij productie.
+- **`afbreken` haalt béide straten weg** — die actie verwijdert de hele groep. Hij toont daarom
+  eerst wat erin staat.
+- **Kosten scheiden gaat via tags.** Elke resource draagt `straat: <appName>`; filter daarop in
+  Cost analysis.
+- **`opruimen` kent alle straten** (repo-vars `ACCEPTATIE_APP_NAME` en `PRODUCTIE_APP_NAME`).
+  Voeg je ooit een derde straat toe, zet die dan óók in die lijst — anders ruimt de actie hem op als
+  wees.
 
 **Inrichten gebeurt per GitHub-environment** (Settings → Environments). Wat waar hoort:
 
@@ -113,28 +126,17 @@ De publish-workflows luisteren daarom **niet** op tags — die bouwen alleen voo
 
 ### De productiestraat aanzetten
 
-Eenmalig, door iemand met **Owner** op de subscription (portal of az). De CI kan dit niet zelf: de
-service principal mag geen resource groups aanmaken en geen rollen toekennen.
+Er is geen Owner-recht voor nodig; alles gebeurt binnen de bestaande resource group.
 
-```bash
-# 1. De resource group.
-az group create -n rg-wetsanalyse-prd -l northeurope
-
-# 2. De service principal er Contributor op maken. Het object-id hoort bij de AZURE_CLIENT_ID
-#    die in de GitHub-secrets staat; vraag het op in plaats van het over te typen:
-SP_ID=$(az ad sp show --id "<AZURE_CLIENT_ID>" --query id -o tsv)
-SUB=$(az account show --query id -o tsv)
-az role assignment create --assignee-object-id "$SP_ID" --assignee-principal-type ServicePrincipal \
-    --role Contributor --scope "/subscriptions/$SUB/resourceGroups/rg-wetsanalyse-prd"
-```
-
-Daarna doet de CI de rest:
-
-1. `azure-infra` → `productie` → `wat-if` — alles hoort `+` te zijn (een verse omgeving).
-2. `azure-infra` → `productie` → `deploy` — rolt uit en vult daarna de graaf. Verse straat, dus
-   verse secrets: dat is hier juist goed.
-3. Open de frontend-URL uit de samenvatting op `/setup` en maak de eerste beheerder aan.
-4. Vanaf dan gaat elke release via een tag `v*` → `promote.yml`.
+1. Environment `productie` (Settings → Environments): `AZURE_RESOURCE_GROUP=rg-wetsanalyse`,
+   `APP_NAME=wetsanalyse-prd`. De required reviewer en de tag-policy `v*` staan er al op.
+2. `azure-infra` → `productie` → `wat-if`. Verwacht **uitsluitend `+`-regels** voor
+   `wetsanalyse-prd-*` en `cae-wetsanalyse-prd`. Zie je een `~` op een bestaande
+   `wetsanalyse-*`-resource, stop dan: het is dezelfde groep, en dan raakt de deploy acceptatie.
+3. `azure-infra` → `productie` → `deploy`. Verse straat, dus verse secrets — hier juist goed. De
+   import-job vult daarna automatisch de graaf.
+4. Open de frontend-URL uit de samenvatting op `/setup` en maak de eerste beheerder aan.
+5. Vanaf dan gaat elke release via een tag `v*` → `promote.yml`.
 
 ### Infra: handmatig
 

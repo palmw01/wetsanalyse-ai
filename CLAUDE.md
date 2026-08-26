@@ -154,15 +154,17 @@ uitleg (env-vars, logschema, AVG-redactie, dashboard/alerting) staat in **`docs/
 **Azure is de uitrolplek.** Twee straten, elk een zelfstandige omgeving (eigen PostgreSQL, GraphDB,
 importer, api, graph-qa, frontend) in een eigen resource group:
 
-| straat | wanneer | resource group / `appName` | poort ervoor |
+| straat | wanneer | `appName` | poort ervoor |
 |---|---|---|---|
-| **acceptatie** | elke merge naar `master` | `rg-wetsanalyse` / `wetsanalyse` | geen — automatisch |
-| **productie** | een tag `v*` | `rg-wetsanalyse-prd` / `wetsanalyse-prd` | required reviewer op de GitHub-environment |
+| **acceptatie** | elke merge naar `master` | `wetsanalyse` | geen — automatisch |
+| **productie** | een tag `v*` | `wetsanalyse-prd` | required reviewer op de GitHub-environment |
 
-> **Productie bestaat nog niet.** De service principal heeft alleen rechten binnen `rg-wetsanalyse`
-> en mag geen resource group aanmaken (`AuthorizationFailed` op `resourcegroups/write`). Voordat de
-> productiestraat kan draaien, moet iemand met Owner-rechten `rg-wetsanalyse-prd` aanmaken en de
-> service principal daar Contributor op geven.
+**Beide straten staan in dezelfde resource group `rg-wetsanalyse`.** De service principal is
+Contributor op die groep en mag er geen tweede aanmaken, dus scheiden gebeurt via `appName` — de
+bicep is daar volledig op geparametriseerd. Gevolgen om te kennen: geen RBAC-scheiding tussen de
+straten, `afbreken` haalt ze allebei weg, en kosten scheid je via de tag `straat: <appName>` die op
+elke resource staat. De `opruimen`-actie kent beide straten via de repo-vars `ACCEPTATIE_APP_NAME`
+en `PRODUCTIE_APP_NAME` — een derde straat hoort daar ook in, anders ruimt hij die op als wees.
 
 De vier `*-docker-publish.yml`-workflows bouwen naar GHCR (pip-audit/npm-audit vooraf, Trivy-gate
 achteraf) en hebben daarna een aparte **`deploy`-job** naar acceptatie; ze luisteren niet op tags.

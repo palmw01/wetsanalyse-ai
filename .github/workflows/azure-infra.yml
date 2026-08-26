@@ -61,6 +61,10 @@ jobs:
     env:
       RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
       APP_NAME: ${{ vars.APP_NAME }}
+      # Repo-vars (niet per environment): `opruimen` moet álle straten kennen om te weten wat wees
+      # is. Zie de stap "Weesresources opruimen".
+      ACCEPTATIE_APP_NAME: ${{ vars.ACCEPTATIE_APP_NAME || 'wetsanalyse' }}
+      PRODUCTIE_APP_NAME: ${{ vars.PRODUCTIE_APP_NAME || 'wetsanalyse-prd' }}
       AZURE_LOCATION: ${{ vars.AZURE_LOCATION || 'northeurope' }}
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -121,6 +125,15 @@ jobs:
             echo "Resource group '$RESOURCE_GROUP' bestaat niet — niets te doen."
             exit 0
           fi
+
+          # Acceptatie en productie delen deze groep, dus dit haalt BEIDE straten weg. Toon eerst
+          # wat er sneuvelt: de bevestiging is alleen de groepsnaam, en die typ je zo. Zonder dit
+          # overzicht denk je één omgeving af te breken en gooi je er twee weg.
+          echo "In '$RESOURCE_GROUP' staat nu:"
+          az resource list -g "$RESOURCE_GROUP" --query "sort_by([].[name, type], &[0])" -o tsv | sed 's/^/  /'
+          echo ""
+          echo "::warning::Dit verwijdert de HELE groep — alle straten die erin staan, met hun databases."
+          echo ""
           echo "Verwijderen van '$RESOURCE_GROUP' (draait door op de achtergrond in Azure)…"
           az group delete --name "$RESOURCE_GROUP" --yes --no-wait
           echo "Opdracht gegeven. Controleer in de portal wanneer het klaar is."
@@ -324,16 +337,26 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Wat de bicep voor deze straat aanmaakt (zie deploy/azure/main.bicep).
-          hoort_erbij="cae-$APP_NAME log-$APP_NAME $APP_NAME-api $APP_NAME-frontend
-                       $APP_NAME-graph-qa $APP_NAME-graphdb $APP_NAME-bwb-import $APP_NAME-db"
+          # ALLE straten beschermen, niet alleen de gekozen. Acceptatie en productie delen één
+          # resource group (de service principal mag er geen tweede aanmaken), dus zou "alles wat
+          # niet bij ÉÉN straat hoort" betekenen dat opruimen op acceptatie de complete
+          # productieomgeving weggooit — database incluis.
+          straten="$ACCEPTATIE_APP_NAME $PRODUCTIE_APP_NAME"
+
+          # Wat de bicep per straat aanmaakt (zie deploy/azure/main.bicep).
+          hoort_erbij=""
+          for s in $straten; do
+            [ -n "$s" ] || continue
+            hoort_erbij="$hoort_erbij cae-$s log-$s $s-api $s-frontend $s-graph-qa $s-graphdb $s-bwb-import $s-db"
+          done
 
           is_van_ons() {
             for n in $hoort_erbij; do [ "$1" = "$n" ] && return 0; done
             return 1
           }
 
-          echo "Straat: $APP_NAME in $RESOURCE_GROUP"
+          echo "Beschermde straten: $straten"
+          echo "Resource group: $RESOURCE_GROUP"
           echo ""
           wezen=""
           while IFS=$'\t' read -r naam type; do

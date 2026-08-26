@@ -97,9 +97,16 @@ param qaApiToken string
 // Draagt zowel de api-tabellen als de LangGraph-checkpointer van graph-qa (aparte tabellen, geen
 // botsing). Burstable B1ms is de goedkoopste tier die volstaat; de server kan niet naar nul schalen
 // — stop hem als de omgeving een tijd niet gebruikt wordt (zie README).
+// Acceptatie en productie delen één resource group — de service principal mag er geen tweede
+// aanmaken. Daarmee is een tag de enige manier om in de portal te zien wat wélke straat kost.
+var straatTags = {
+  straat: appName
+}
+
 resource pgServer 'Microsoft.DBforPostgreSQL/flexibleServers@2023-06-01-preview' = {
   name: dbServerName
   location: location
+  tags: straatTags
   sku: {
     name: 'Standard_B1ms'
     tier: 'Burstable'
@@ -154,6 +161,7 @@ resource pgDatabase 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2023-06
 resource logs 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: 'log-${appName}'
   location: location
+  tags: straatTags
   properties: {
     sku: {
       name: 'PerGB2018'
@@ -165,6 +173,7 @@ resource logs 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
 resource cae 'Microsoft.App/managedEnvironments@2024-03-01' = {
   name: 'cae-${appName}'
   location: location
+  tags: straatTags
   properties: {
     appLogsConfiguration: {
       destination: 'log-analytics'
@@ -197,6 +206,7 @@ var heeftLicentie = !empty(graphdbLicenseBase64)
 resource graphdbApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: '${appName}-graphdb'
   location: location
+  tags: straatTags
   properties: {
     managedEnvironmentId: cae.id
     configuration: {
@@ -293,6 +303,7 @@ var graphdbInternalUrl = 'https://${graphdbApp.properties.configuration.ingress.
 resource bwbImportJob 'Microsoft.App/jobs@2024-03-01' = {
   name: '${appName}-bwb-import'
   location: location
+  tags: straatTags
   properties: {
     environmentId: cae.id
     // Wekelijks herimporteren, net als de zelfgehoste importer. De import is per wet idempotent
@@ -348,6 +359,7 @@ var checkpointDbUrl = 'postgresql://wetsanalyse:${dbAdminPassword}@${pgServer.pr
 resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: '${appName}-api'
   location: location
+  tags: straatTags
   dependsOn: [pgDatabase]
   properties: {
     managedEnvironmentId: cae.id
@@ -450,6 +462,7 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
 resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: '${appName}-graph-qa'
   location: location
+  tags: straatTags
   dependsOn: [pgDatabase]
   properties: {
     managedEnvironmentId: cae.id
@@ -547,6 +560,7 @@ var frontendPublicUrl = 'https://${appName}-frontend.${cae.properties.defaultDom
 resource frontendApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: '${appName}-frontend'
   location: location
+  tags: straatTags
   properties: {
     managedEnvironmentId: cae.id
     configuration: {
