@@ -23,6 +23,8 @@ interface Props {
   /** Mobiel: staat de off-canvas drawer open, en hoe sluit hij. */
   drawerOpen?: boolean;
   onDrawerSluit?: () => void;
+  /** Start de rondleiding opnieuw (alleen de werkplek geeft dit mee). */
+  onRondleiding?: () => void;
 }
 
 /** De gesprekssidebar met alles eromheen: laden, hernoemen, verwijderen, en de mobiele drawer.
@@ -33,7 +35,7 @@ interface Props {
  *  lokale state, op het overzicht navigeert hij terug naar de werkplek. */
 export function AppSidebar({
   activeId, onNieuw, onOpen, onVerwijderd, onFout, onLijst, verversSignaal = 0,
-  drawerOpen = false, onDrawerSluit,
+  drawerOpen = false, onDrawerSluit, onRondleiding,
 }: Props) {
   const [gesprekken, setGesprekken] = useState<GesprekSamenvatting[]>([]);
   const [laden, setLaden] = useState(true);
@@ -90,12 +92,13 @@ export function AppSidebar({
       onVerwijder={verwijder}
       laden={laden}
       onSluit={extra?.onSluit}
+      onRondleiding={onRondleiding}
     />
   );
 
   return (
     <>
-      <aside className="hidden w-[17rem] shrink-0 border-r border-line lg:block">{inhoud()}</aside>
+      <aside data-tour="sidebar" className="hidden w-[17rem] shrink-0 border-r border-line lg:block">{inhoud()}</aside>
 
       {/* Mobiele off-canvas drawer. Via `Dialog` en niet als eigen constructie: die draagt de
           focus-trap, Escape en de backdrop. */}
