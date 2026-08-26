@@ -2,6 +2,7 @@
 // Eén bron: dezelfde tekst die de annotatie-agent als corpus gebruikt. Token gaat server-side mee.
 
 import { graphQaAuthHeader, graphQaBaseUrl } from "@/lib/config";
+import { metTrace } from "@/app/api/_lib/trace";
 import { logger } from "@/lib/logger";
 import { geenSessie, sessionUserId } from "@/app/api/_lib/session";
 
@@ -22,7 +23,7 @@ export async function GET(req: Request) {
     // Eigen timeout: deze route loopt buiten `proxy()` om, en de graaf kan traag zijn zonder te
     // weigeren. Zonder dit blijft het artefact in "Openen…" staan.
     const upstream = await fetch(url, {
-      headers: { ...graphQaAuthHeader() },
+      headers: metTrace({ ...graphQaAuthHeader() }),
       cache: "no-store",
       signal: AbortSignal.timeout(30_000),
     });

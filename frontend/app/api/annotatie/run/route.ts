@@ -5,6 +5,7 @@
 // meekijken (`[id]/events`) en stoppen (`[id]/cancel`) zijn losse handelingen.
 
 import { proxy } from "@/app/api/_lib/proxy";
+import { metTrace } from "@/app/api/_lib/trace";
 import { graphQaAuthHeader, graphQaBaseUrl } from "@/lib/config";
 import { logger } from "@/lib/logger";
 import { geenSessie, sessionUserId } from "@/app/api/_lib/session";
@@ -49,7 +50,7 @@ export async function POST(req: Request) {
     // dat was precies de oude fout. Alleen een eigen timeout op het starten zelf.
     const upstream = await fetch(`${graphQaBaseUrl()}/v1/runs`, {
       method: "POST",
-      headers: { ...graphQaAuthHeader(), "X-User-Id": userid, "Content-Type": "application/json" },
+      headers: metTrace({ ...graphQaAuthHeader(), "X-User-Id": userid, "Content-Type": "application/json" }),
       body,
       cache: "no-store",
       signal: AbortSignal.timeout(START_TIMEOUT_MS),
@@ -81,7 +82,7 @@ export async function GET(req: Request) {
       {
         // Zonder deze header zou een gespreks-id — dat gewoon in de URL van de werkplek staat —
         // genoeg zijn om andermans lopende vraag en antwoord te lezen.
-        headers: { ...graphQaAuthHeader(), "X-User-Id": userid },
+        headers: metTrace({ ...graphQaAuthHeader(), "X-User-Id": userid }),
         cache: "no-store",
         signal: AbortSignal.timeout(10_000),
       },

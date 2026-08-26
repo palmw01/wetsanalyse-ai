@@ -1,4 +1,5 @@
 import { proxy } from "@/app/api/_lib/proxy";
+import { metTrace } from "@/app/api/_lib/trace";
 import { geenSessie, sessionUserId } from "@/app/api/_lib/session";
 import { graphQaAuthHeader, graphQaBaseUrl } from "@/lib/config";
 import { logger } from "@/lib/logger";
@@ -18,7 +19,7 @@ async function wisAgentGeheugen(id: string, userid: string): Promise<void> {
       // De identiteit gaat mee, net als op de run-routes: deze delete stopt ook een lopende beurt,
       // en graph-qa weigert dat voor een run van iemand anders. De api heeft het eigenaarschap dan
       // al vastgesteld — dit is het tweede net, niet het eerste.
-      headers: { ...graphQaAuthHeader(), "X-User-Id": userid },
+      headers: metTrace({ ...graphQaAuthHeader(), "X-User-Id": userid }),
       cache: "no-store",
     });
   } catch (err) {
