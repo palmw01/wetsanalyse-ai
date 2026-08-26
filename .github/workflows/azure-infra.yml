@@ -140,11 +140,6 @@ jobs:
             echo "Licentie geplaatst ($(wc -c < "$RUNNER_TEMP/graphdb.license") bytes)."
           fi
 
-      # Wat draait er nu? Die image-refs geven we mee aan de deployment, zodat een INFRA-wijziging
-      # de images met rust laat. Zonder dit vallen de bicep-defaults (`:latest`) terug op hun plek en
-      # gooit een infra-deploy de digest-pins weg die de publish-workflows er net op zetten — dan
-      # weet je achteraf niet meer wélk image er draait. Bestaat een app nog niet (verse straat), dan
-      # blijft de variabele leeg en pakt de bicep gewoon zijn default.
       # De secrets van een DRAAIENDE omgeving overnemen. Zonder dit genereert gen-deploy.py bij elke
       # run verse waarden, en dan is een infra-deploy op een bestaande straat destructief: naast
       # vervallen sessies en roterende tokens gaat `llm-config-secret` mee — de Fernet-sleutel
@@ -196,6 +191,11 @@ jobs:
           fi
           bewaar WA_DB_ADMIN_PASSWORD "${GH_DB_ADMIN_PASSWORD:-}" "$db_pass"
 
+      # Wat draait er nu? Die image-refs geven we mee aan de deployment, zodat een INFRA-wijziging
+      # de images met rust laat. Zonder dit vallen de bicep-defaults (`:latest`) terug op hun plek en
+      # gooit een infra-deploy de digest-pins weg die de publish-workflows er net op zetten — dan
+      # weet je achteraf niet meer wélk image er draait. Bestaat een app nog niet (verse straat), dan
+      # blijft de variabele leeg en pakt de bicep gewoon zijn default.
       - name: Draaiende images uitlezen
         if: ${{ inputs.actie == 'wat-if' || inputs.actie == 'deploy' }}
         id: images
