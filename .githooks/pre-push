@@ -71,7 +71,11 @@ raakt "frontend/" && {
   draai "frontend · typecheck" frontend npm run typecheck --silent
 }
 raakt "tools/graph-qa/"   && draai "graph-qa"   tools/graph-qa   uv run --frozen pytest -q -x
-raakt "tools/bwb-import/" && draai "bwb-import" tools/bwb-import uv run pytest -q -x
+# bwb-import draait op pip + requirements.txt, niet op een uv-project: zonder `python -m`
+# staat de map niet op sys.path en is `app` niet te importeren. `--with-requirements` bouwt
+# de omgeving die er lokaal niet is.
+raakt "tools/bwb-import/" && draai "bwb-import" tools/bwb-import \
+  uv run --with-requirements requirements.txt python -m pytest -q -x
 raakt "api/"              && draai "api"        api              uv run pytest -q -x
 
 if [ -n "$mislukt" ]; then
