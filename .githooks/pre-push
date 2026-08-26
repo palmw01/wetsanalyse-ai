@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+#
+# Draait de testpoort van de onderdelen die je pusht — vóór de push, niet drie minuten later in een
+# CI-log. Dit is de snelle laag; de harde poort is de `poort`-check op de pull request (die geldt ook
+# als iemand deze hook niet heeft geactiveerd of `--no-verify` gebruikt).
+#
+# Activeren (eenmalig per kloon):
+#     git config core.hooksPath .githooks
+#
+# Overslaan als je echt moet:
+#     SKIP_HOOK=1 git push        (of `git push --no-verify`)
+#
+# Alleen wat je raakt wordt gedraaid, en dat is geen luxe: de api-suite doet 172 tests in ruim twee
+# minuten. `-x` stopt bij de eerste fout, zodat een kapotte push snel faalt in plaats van de volle
+# duur uit te zitten.
+set -uo pipefail
+
+if [ -n "${SKIP_HOOK:-}" ]; then
+  echo "pre-push: overgeslagen (SKIP_HOOK)."
+  exit 0
+fi
+
+WORTEL="$(git rev-parse --show-toplevel)"
+cd "$WORTEL" || exit 1
+
+LEEG="0000000000000000000000000000000000000000"
+
+# Git geeft op stdin één regel per ref: <local_ref> <local_sha> <remote_ref> <remote_sha>.
+# Daaruit bepalen we wat er nieuw is ten opzichte van wat de remote al heeft.
+paden=""
+while read -r local_ref local_sha _remote_ref remote_sha; do
+  # Een branch verwijderen: er valt niets te testen.
+  [ "$local_sha" = "$LEEG" ] && continue
+
+  # Tags dragen geen eigen wijzigingen; die zijn al als commit getest toen ze gepusht werden.
+  case "$local_ref" in refs/tags/*) continue ;; esac
+
+  if [ "$remote_sha" = "$LEEG" ]; then
+    # Nieuwe branch: vergelijk met het punt waar hij van master afsplitste. Kent de kloon geen
+    # master, dan valt hij terug op de laatste commit — beter iets te veel draaien dan te weinig.
+    basis="$(git merge-base "$local_sha" origin/master 2>/dev/null \
+             || git merge-base "$local_sha" master 2>/dev/null \
+             || echo "$local_sha^")"
+  else
+    basis="$remote_sha"
+  fi
+
+  paden="$paden$(git diff --name-only "$basis" "$local_sha" 2>/dev/null)"$'\n'
+done
+
+[ -n "${paden//[[:space:]]/}" ] || { echo "pre-push: niets te testen."; exit 0; }
+
+raakt() { echo "$paden" | grep -q "^$1"; }
+
+mislukt=""
+draai() {  # $1 = label, $2 = map, rest = commando
+  local label="$1" map="$2"; shift 2
+  echo ""
+  echo "─── $label ───"
+  if ( cd "$map" && "$@" ); then
+    echo "✓ $label"
+  else
+    echo "✗ $label"
+    mislukt="$mislukt $label"
+  fi
+}
+
+raakt "frontend/" && {
+  draai "frontend · tests"     frontend npm test --silent -- --run
+  draai "frontend · lint"      frontend npm run lint --silent
+  draai "frontend · typecheck" frontend npm run typecheck --silent
+}
+raakt "tools/graph-qa/"   && draai "graph-qa"   tools/graph-qa   uv run --frozen pytest -q -x
+raakt "tools/bwb-import/" && draai "bwb-import" tools/bwb-import uv run pytest -q -x
+raakt "api/"              && draai "api"        api              uv run pytest -q -x
+
+if [ -n "$mislukt" ]; then
+  echo ""
+  echo "pre-push GEBLOKKEERD —$mislukt"
+  echo "Repareer het, of push bewust door met: SKIP_HOOK=1 git push"
+  exit 1
+fi
+
+echo ""
+echo "pre-push: alles groen."
+exit 0

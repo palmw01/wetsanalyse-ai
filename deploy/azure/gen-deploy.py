@@ -35,6 +35,22 @@ TEMPLATE = Path(__file__).parent / "main.bicep"
 DEFAULT_PARAMS = Path(__file__).parent / "params.json"
 
 
+def _secret(env: str, maak):
+    """Neem het secret uit de omgeving over, of genereer een verse als het er niet is.
+
+    Dit is wat een infra-deploy op een DRAAIENDE omgeving ongevaarlijk maakt. Zonder deze
+    overname kreeg elke deploy verse waarden, en dat is niet alleen "opnieuw inloggen":
+    `WA_LLM_CONFIG_SECRET` is de Fernet-sleutel waarmee de api de API-keys van modelprofielen én de
+    2FA-secrets van gebruikers versleutelt. Roteert die, dan is dat versleutelde materiaal
+    onherstelbaar onleesbaar.
+
+    Bewust via de OMGEVING en niet via een `--vlag`: argumenten staan in de process list van de
+    machine waar dit draait. Voor een verse straat blijft de env-var leeg en genereren we gewoon,
+    zoals altijd.
+    """
+    return os.environ.get(env) or maak()
+
+
 def main() -> None:
     p = argparse.ArgumentParser(
         description=__doc__,
@@ -81,16 +97,17 @@ def main() -> None:
         print("! Geen --license-file: de graaf komt read-only op en de import-job zal falen.",
               file=sys.stderr)
 
-    tok_frontend = secrets.token_hex(24)
-    tok_admin = secrets.token_hex(24)
-    tok_qa = secrets.token_hex(24)      # frontend ↔ graph-qa (QA_API_TOKEN)
+    tok_frontend = _secret("WA_API_TOKEN", lambda: secrets.token_hex(24))
+    tok_admin = _secret("WA_ADMIN_TOKEN", lambda: secrets.token_hex(24))
+    tok_qa = _secret("WA_QA_API_TOKEN", lambda: secrets.token_hex(24))   # frontend ↔ graph-qa
     # graph-qa eist fail-closed een GRAPHDB_TOKEN (require_graph). Binnen deze omgeving is de graaf
     # alleen intern bereikbaar en draait GraphDB zonder eigen security, dus dit token is daar geen
     # slot — het wordt wel meegestuurd. Zelf genereren is beter dan het token van de zelfgehoste opzet hierheen kopiëren.
-    tok_graphdb = secrets.token_hex(24)
-    db_pass = secrets.token_hex(24)
-    fernet = base64.urlsafe_b64encode(os.urandom(32)).decode()
-    auth = base64.b64encode(os.urandom(32)).decode()
+    tok_graphdb = _secret("WA_GRAPHDB_TOKEN", lambda: secrets.token_hex(24))
+    db_pass = _secret("WA_DB_ADMIN_PASSWORD", lambda: secrets.token_hex(24))
+    fernet = _secret("WA_LLM_CONFIG_SECRET",
+                     lambda: base64.urlsafe_b64encode(os.urandom(32)).decode())
+    auth = _secret("WA_AUTH_SECRET", lambda: base64.b64encode(os.urandom(32)).decode())
     db_server = args.db_server_name or f"{args.app_name}-db"
 
     params: dict = {

@@ -8,6 +8,8 @@
 #             de template tegen je echte subscription te valideren (quota, regio, rechten).
 #   deploy    rolt de stack daadwerkelijk uit (10-15 min; PostgreSQL is de trage stap).
 #   afbreken  verwijdert de hele resource group. Vereist dat je de naam ter bevestiging intypt.
+#   opruimen  verwijdert wat er in de groep staat maar NIET bij deze straat hoort (bicep ruimt zelf
+#             niets op). Toont eerst wat het zou doen; verwijdert pas als je de groepsnaam intypt.
 #   inventaris leest wat er in de subscription staat en schrijft het naar de samenvatting. Puur
 #             read-only (alleen `list`/`show`); bedoeld om te kunnen controleren wát er draait en
 #             wat het kost, zonder lokale az-installatie — de service principal leeft alleen hier.
@@ -36,10 +38,10 @@ on:
       actie:
         description: "Wat doen"
         type: choice
-        options: [wat-if, deploy, afbreken, vul-graaf, inventaris]
+        options: [wat-if, deploy, afbreken, opruimen, vul-graaf, inventaris]
         default: wat-if
       bevestig_resource_group:
-        description: "Alleen voor 'afbreken': typ de resource group ter bevestiging"
+        description: "Voor 'afbreken' en 'opruimen': typ de resource group ter bevestiging"
         type: string
         default: ""
 
@@ -59,6 +61,10 @@ jobs:
     env:
       RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
       APP_NAME: ${{ vars.APP_NAME }}
+      # Repo-vars (niet per environment): `opruimen` moet álle straten kennen om te weten wat wees
+      # is. Zie de stap "Weesresources opruimen".
+      ACCEPTATIE_APP_NAME: ${{ vars.ACCEPTATIE_APP_NAME || 'wetsanalyse' }}
+      PRODUCTIE_APP_NAME: ${{ vars.PRODUCTIE_APP_NAME || 'wetsanalyse-prd' }}
       AZURE_LOCATION: ${{ vars.AZURE_LOCATION || 'northeurope' }}
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -119,6 +125,15 @@ jobs:
             echo "Resource group '$RESOURCE_GROUP' bestaat niet — niets te doen."
             exit 0
           fi
+
+          # Acceptatie en productie delen deze groep, dus dit haalt BEIDE straten weg. Toon eerst
+          # wat er sneuvelt: de bevestiging is alleen de groepsnaam, en die typ je zo. Zonder dit
+          # overzicht denk je één omgeving af te breken en gooi je er twee weg.
+          echo "In '$RESOURCE_GROUP' staat nu:"
+          az resource list -g "$RESOURCE_GROUP" --query "sort_by([].[name, type], &[0])" -o tsv | sed 's/^/  /'
+          echo ""
+          echo "::warning::Dit verwijdert de HELE groep — alle straten die erin staan, met hun databases."
+          echo ""
           echo "Verwijderen van '$RESOURCE_GROUP' (draait door op de achtergrond in Azure)…"
           az group delete --name "$RESOURCE_GROUP" --yes --no-wait
           echo "Opdracht gegeven. Controleer in de portal wanneer het klaar is."
@@ -139,6 +154,57 @@ jobs:
             printf '%s' "$GRAPHDB_LICENSE_B64" | base64 -d > "$RUNNER_TEMP/graphdb.license"
             echo "Licentie geplaatst ($(wc -c < "$RUNNER_TEMP/graphdb.license") bytes)."
           fi
+
+      # De secrets van een DRAAIENDE omgeving overnemen. Zonder dit genereert gen-deploy.py bij elke
+      # run verse waarden, en dan is een infra-deploy op een bestaande straat destructief: naast
+      # vervallen sessies en roterende tokens gaat `llm-config-secret` mee — de Fernet-sleutel
+      # waarmee de api de API-keys van modelprofielen én de 2FA-secrets van gebruikers versleutelt.
+      # Roteert die, dan is dat materiaal onherstelbaar onleesbaar.
+      #
+      # Voorrang: een GitHub environment-secret wint, anders wat er in Azure draait, anders (verse
+      # straat) laat gen-deploy.py het zelf genereren.
+      - name: Bestaande secrets overnemen
+        if: ${{ inputs.actie == 'wat-if' || inputs.actie == 'deploy' }}
+        env:
+          GH_LLM_CONFIG_SECRET: ${{ secrets.WA_LLM_CONFIG_SECRET }}
+          GH_AUTH_SECRET: ${{ secrets.WA_AUTH_SECRET }}
+          GH_DB_ADMIN_PASSWORD: ${{ secrets.WA_DB_ADMIN_PASSWORD }}
+          GH_API_TOKEN: ${{ secrets.WA_API_TOKEN }}
+          GH_ADMIN_TOKEN: ${{ secrets.WA_ADMIN_TOKEN }}
+          GH_QA_API_TOKEN: ${{ secrets.WA_QA_API_TOKEN }}
+          GH_GRAPHDB_TOKEN: ${{ secrets.WA_GRAPHDB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          uit_azure() {  # $1 = app-suffix, $2 = secretnaam
+            az containerapp secret show -n "$APP_NAME-$1" -g "$RESOURCE_GROUP" \
+              --secret-name "$2" --query value -o tsv 2>/dev/null || true
+          }
+
+          # $1 = naam van de WA_-var, $2 = waarde uit GitHub, $3 = waarde uit Azure.
+          bewaar() {
+            if [ -n "$2" ]; then waarde="$2"; bron="GitHub"; else waarde="$3"; bron="Azure"; fi
+            [ -n "$waarde" ] || { echo "  $1: niet gevonden — wordt gegenereerd"; return; }
+            echo "::add-mask::$waarde"
+            echo "$1=$waarde" >> "$GITHUB_ENV"
+            echo "  $1: overgenomen uit $bron"
+          }
+
+          bewaar WA_LLM_CONFIG_SECRET "${GH_LLM_CONFIG_SECRET:-}" "$(uit_azure api llm-config-secret)"
+          bewaar WA_AUTH_SECRET       "${GH_AUTH_SECRET:-}"       "$(uit_azure frontend auth-secret)"
+          bewaar WA_API_TOKEN         "${GH_API_TOKEN:-}"         "$(uit_azure frontend api-token)"
+          bewaar WA_ADMIN_TOKEN       "${GH_ADMIN_TOKEN:-}"       "$(uit_azure frontend admin-api-token)"
+          bewaar WA_QA_API_TOKEN      "${GH_QA_API_TOKEN:-}"      "$(uit_azure graph-qa qa-api-token)"
+          bewaar WA_GRAPHDB_TOKEN     "${GH_GRAPHDB_TOKEN:-}"     "$(uit_azure graph-qa graphdb-token)"
+
+          # Het databasewachtwoord staat niet als eigen secret maar in de connectiestring:
+          #   postgresql+asyncpg://wetsanalyse:<wachtwoord>@host:5432/...
+          db_url=$(uit_azure api database-url)
+          db_pass=""
+          if [ -n "$db_url" ]; then
+            db_pass=$(printf '%s' "$db_url" | sed -n 's#^[^:]*://[^:]*:\([^@]*\)@.*#\1#p')
+          fi
+          bewaar WA_DB_ADMIN_PASSWORD "${GH_DB_ADMIN_PASSWORD:-}" "$db_pass"
 
       # Wat draait er nu? Die image-refs geven we mee aan de deployment, zodat een INFRA-wijziging
       # de images met rust laat. Zonder dit vallen de bicep-defaults (`:latest`) terug op hun plek en
@@ -232,6 +298,11 @@ jobs:
             echo '```'
             az postgres flexible-server list --query "[].{server:name, rg:resourceGroup, versie:version, sku:sku.name, opslagGB:storage.storageSizeGB}" -o table 2>/dev/null || echo "(geen of geen rechten)"
             echo '```'
+            echo ""
+            echo "### Log Analytics"
+            echo '```'
+            az monitor log-analytics workspace list --query "[].{workspace:name, rg:resourceGroup, retentieDagen:retentionInDays}" -o table 2>/dev/null || echo "(geen of geen rechten)"
+            echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           # Ook naar stdout: de step summary is niet via de API terug te lezen, de runlog wel.
           echo "--- container apps ---"
@@ -242,10 +313,92 @@ jobs:
           az containerapp job list --query "[].{job:name, trigger:properties.configuration.triggerType}" -o tsv
           echo "--- postgres ---"
           az postgres flexible-server list --query "[].{server:name, versie:version, sku:sku.name}" -o tsv 2>/dev/null || true
+          echo "--- log analytics ---"
+          az monitor log-analytics workspace list --query "[].{workspace:name, retentieDagen:retentionInDays}" -o tsv 2>/dev/null || true
+          echo "--- container apps environments ---"
+          az containerapp env list --query "[].{env:name, rg:resourceGroup}" -o tsv 2>/dev/null || true
+          echo "--- alle resources in $RESOURCE_GROUP ---"
+          az resource list -g "$RESOURCE_GROUP" --query "sort_by([].{naam:name, type:type}, &naam)" -o tsv 2>/dev/null || true
 
       # Ook ná een deploy, en niet alleen op verzoek: GraphDB is bewust niet-persistent, dus een
       # verse of opnieuw uitgerolde stack heeft een LEGE graaf. Dat handmatig laten was precies de
       # stap die je vergeet, en dan staat er een omgeving die nergens antwoord op geeft.
+      # Alles in de resource group dat NIET bij deze straat hoort, weghalen. Bicep draait in
+      # incremental mode: het verwijdert nooit iets dat niet in de template staat, dus resources van
+      # een oudere opzet blijven onzichtbaar doordraaien — met hun kosten. Zo bleven na het
+      # verwijderen van de wettenbank-MCP (aug 2026) de mcp-apps staan, en een hele tweede
+      # `-acc`-omgeving met eigen database ernaast.
+      #
+      # De lijst hieronder ís de template: wat de bicep aanmaakt, hoort te blijven. De rest is wees.
+      # Zonder bevestiging toont deze stap alleen wat hij zóu doen — typ de resource group in
+      # `bevestig_resource_group` om echt te verwijderen.
+      - name: Weesresources opruimen
+        if: ${{ inputs.actie == 'opruimen' }}
+        run: |
+          set -euo pipefail
+
+          # ALLE straten beschermen, niet alleen de gekozen. Acceptatie en productie delen één
+          # resource group (de service principal mag er geen tweede aanmaken), dus zou "alles wat
+          # niet bij ÉÉN straat hoort" betekenen dat opruimen op acceptatie de complete
+          # productieomgeving weggooit — database incluis.
+          straten="$ACCEPTATIE_APP_NAME $PRODUCTIE_APP_NAME"
+
+          # Wat de bicep per straat aanmaakt (zie deploy/azure/main.bicep).
+          hoort_erbij=""
+          for s in $straten; do
+            [ -n "$s" ] || continue
+            hoort_erbij="$hoort_erbij cae-$s log-$s $s-api $s-frontend $s-graph-qa $s-graphdb $s-bwb-import $s-db"
+          done
+
+          is_van_ons() {
+            for n in $hoort_erbij; do [ "$1" = "$n" ] && return 0; done
+            return 1
+          }
+
+          echo "Beschermde straten: $straten"
+          echo "Resource group: $RESOURCE_GROUP"
+          echo ""
+          wezen=""
+          while IFS=$'\t' read -r naam type; do
+            [ -n "$naam" ] || continue
+            if is_van_ons "$naam"; then
+              echo "  houden   $naam ($type)"
+            else
+              echo "  OPRUIMEN $naam ($type)"
+              wezen="$wezen$naam:$type"$'\n'
+            fi
+          done < <(az resource list -g "$RESOURCE_GROUP" --query "sort_by([].[name, type], &[0])" -o tsv)
+
+          if [ -z "$wezen" ]; then
+            echo ""; echo "Niets op te ruimen — de groep bevat alleen wat bij de straat hoort."
+            exit 0
+          fi
+
+          if [ "${{ inputs.bevestig_resource_group }}" != "$RESOURCE_GROUP" ]; then
+            echo ""
+            echo "::warning::Alleen getoond. Typ '$RESOURCE_GROUP' in het bevestigingsveld om deze resources te verwijderen."
+            exit 0
+          fi
+
+          # Volgorde is dwingend: apps en jobs hangen aan hun managed environment, dus die kan pas
+          # weg als hij leeg is.
+          echo ""; echo "Verwijderen…"
+          for fase in "Microsoft.App/containerApps" "Microsoft.App/jobs" \
+                      "Microsoft.App/managedEnvironments" "";
+          do
+            while IFS=: read -r naam type; do
+              [ -n "$naam" ] || continue
+              if [ -n "$fase" ]; then
+                [ "$type" = "$fase" ] || continue
+              else
+                case "$type" in Microsoft.App/*) continue ;; esac
+              fi
+              echo "  - $naam ($type)"
+              az resource delete -g "$RESOURCE_GROUP" -n "$naam" --resource-type "$type" --output none
+            done <<< "$wezen"
+          done
+          echo "Klaar."
+
       - name: Graaf vullen (import-job)
         if: ${{ inputs.actie == 'vul-graaf' || inputs.actie == 'deploy' }}
         run: |

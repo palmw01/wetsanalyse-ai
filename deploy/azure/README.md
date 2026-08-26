@@ -43,13 +43,25 @@ uit volgen (`${appName}-api`, `cae-${appName}`, `log-${appName}`, …).
 | straat | rolt uit bij | resource group | `appName` |
 |---|---|---|---|
 | acceptatie | elke merge naar `master` | `rg-wetsanalyse` | `wetsanalyse` |
-| productie | een tag `v*` | `rg-wetsanalyse-prd` | `wetsanalyse-prd` |
+| productie | een tag `v*` | `rg-wetsanalyse` | `wetsanalyse-prd` |
 
-> **Productie bestaat nog niet.** De service principal is Contributor op `rg-wetsanalyse` en verder
-> niets; `az group create` op een nieuwe groep geeft `AuthorizationFailed` op
-> `Microsoft.Resources/subscriptions/resourcegroups/write`. Eerste stap voor de productiestraat:
-> iemand met Owner-rechten maakt `rg-wetsanalyse-prd` aan en geeft de service principal daar
-> Contributor op. Daarna volstaat `azure-infra` → `productie` → `deploy`.
+**Beide straten delen één resource group.** Dat is geen ontwerpvoorkeur maar een gevolg van de
+rechten: de service principal is Contributor op `rg-wetsanalyse` en mag geen resource groups
+aanmaken (`az group create` → `AuthorizationFailed` op
+`Microsoft.Resources/subscriptions/resourcegroups/write`). Binnen de groep kan hij alles, en omdat
+`main.bicep` volledig op `appName` is geparametriseerd, staat een tweede complete omgeving er
+gewoon naast: `cae-wetsanalyse-prd`, `wetsanalyse-prd-api`, `wetsanalyse-prd-db`, enzovoort.
+
+Wat je daarvoor inlevert, en waar je op moet letten:
+
+- **Geen RBAC-scheiding.** Wie bij acceptatie mag, mag bij productie.
+- **`afbreken` haalt béide straten weg** — die actie verwijdert de hele groep. Hij toont daarom
+  eerst wat erin staat.
+- **Kosten scheiden gaat via tags.** Elke resource draagt `straat: <appName>`; filter daarop in
+  Cost analysis.
+- **`opruimen` kent alle straten** (repo-vars `ACCEPTATIE_APP_NAME` en `PRODUCTIE_APP_NAME`).
+  Voeg je ooit een derde straat toe, zet die dan óók in die lijst — anders ruimt de actie hem op als
+  wees.
 
 **Inrichten gebeurt per GitHub-environment** (Settings → Environments). Wat waar hoort:
 
@@ -63,6 +75,24 @@ uit volgen (`${appName}-api`, `cae-${appName}`, `log-${appName}`, …).
   beide straten dezelfde service principal en AI-key gebruiken, volstaan de bestaande repo-secrets.
   Wil je gescheiden credentials — aan te raden zodra productie echte gegevens draagt — zet ze dan
   als environment-secret; die overschrijft de repo-variant.
+
+#### De applicatie-secrets roteren niet
+
+Los van de Azure-credentials draagt de stack zijn eigen secrets: de sessiesleutel, de api-/admin-/
+qa-tokens, het databasewachtwoord en `llm-config-secret`. Dat laatste is de **Fernet-sleutel**
+waarmee de api de API-keys van modelprofielen én de 2FA-secrets van gebruikers versleutelt; roteert
+die, dan is dat materiaal onherstelbaar onleesbaar.
+
+`azure-infra.yml` bepaalt ze per deploy in deze volgorde:
+
+1. een **GitHub environment-secret** met die naam (`WA_LLM_CONFIG_SECRET`, `WA_AUTH_SECRET`,
+   `WA_DB_ADMIN_PASSWORD`, `WA_API_TOKEN`, `WA_ADMIN_TOKEN`, `WA_QA_API_TOKEN`,
+   `WA_GRAPHDB_TOKEN`) — zet deze als je ze bewust wilt beheren of roteren;
+2. anders de waarde die **nu in Azure draait**, uitgelezen uit de container apps;
+3. anders **vers gegenereerd** — het geval van een nieuwe straat.
+
+Daardoor is een infra-deploy op een draaiende omgeving veilig. De toets daarop: `wat-if` mag geen
+`~ secret`-regels tonen voor de api-, frontend- en graph-qa-apps.
 
 Op `productie` staat een **required reviewer** en een deployment-policy die alleen tags `v*`
 toelaat; op `acceptatie` alleen de branch `master`. Die poort hoort in de environment te zitten en
@@ -79,9 +109,34 @@ tot de nieuwe revisie daadwerkelijk `Running` is; `az containerapp update` keert
 zodra de revisie is *aangemaakt*, dus een container die bij het starten crasht bleef anders
 onopgemerkt.
 
-Let op bij een tag: die bouwt het image opnieuw uit de broncode van die tag, dus productie krijgt
-een ander image-artefact dan acceptatie heeft getest. Wil je dat uitsluiten, dan is de nette variant
-dat productie de digest overneemt die op acceptatie draait.
+### Productie: promoveren, niet herbouwen
+
+Een tag `v*` start **`promote.yml`**. Die bouwt niets: hij leest de digests die op *acceptatie*
+draaien en zet díe op productie. Zo krijgt productie exact het artefact dat getest is — een
+herbouw van dezelfde broncode levert nog altijd een ander image op (verse basis-images, verse
+dependency-resolutie).
+
+Vóór hij iets uitrolt, controleert hij per component het OCI-label
+`org.opencontainers.image.revision` van het draaiende image tegen de commit achter de tag. Hoort het
+er niet bij, dan faalt de promotie met een melding in plaats van iets anders uit te rollen dan de
+tag belooft. Praktisch: tag een commit die al op `master` staat en waarvan acceptatie de uitrol
+heeft afgerond.
+
+De publish-workflows luisteren daarom **niet** op tags — die bouwen alleen voor acceptatie.
+
+### De productiestraat aanzetten
+
+Er is geen Owner-recht voor nodig; alles gebeurt binnen de bestaande resource group.
+
+1. Environment `productie` (Settings → Environments): `AZURE_RESOURCE_GROUP=rg-wetsanalyse`,
+   `APP_NAME=wetsanalyse-prd`. De required reviewer en de tag-policy `v*` staan er al op.
+2. `azure-infra` → `productie` → `wat-if`. Verwacht **uitsluitend `+`-regels** voor
+   `wetsanalyse-prd-*` en `cae-wetsanalyse-prd`. Zie je een `~` op een bestaande
+   `wetsanalyse-*`-resource, stop dan: het is dezelfde groep, en dan raakt de deploy acceptatie.
+3. `azure-infra` → `productie` → `deploy`. Verse straat, dus verse secrets — hier juist goed. De
+   import-job vult daarna automatisch de graaf.
+4. Open de frontend-URL uit de samenvatting op `/setup` en maak de eerste beheerder aan.
+5. Vanaf dan gaat elke release via een tag `v*` → `promote.yml`.
 
 ### Infra: handmatig
 
@@ -92,11 +147,28 @@ Actions → **azure-infra** → *Run workflow*, met een keuze voor de straat en 
 | `wat-if` *(default)* | Azure toont welke resources zouden ontstaan of wijzigen. Maakt niets aan — de enige manier om de template tegen je echte subscription te toetsen (quota, regio, rechten). |
 | `deploy` | rolt de stack uit (10-15 min; PostgreSQL is de trage stap) en start daarna meteen de import-job, want de graaf komt leeg op. |
 | `afbreken` | verwijdert de hele resource group. Vraagt om de naam ter bevestiging. |
+| `opruimen` | verwijdert wat er in de groep staat maar niet bij deze straat hoort. Toont eerst wat het zou doen; verwijdert pas als je de groepsnaam intypt. |
 | `vul-graaf` | start de import-job en wacht hem af. |
 | `inventaris` | read-only overzicht van wat er in de subscription draait. |
 
 Dit is de enige workflow die resources aanmaakt, wijzigt of verwijdert. Vandaar `wat-if` als
 default: een deploy raakt GraphDB, en die is niet-persistent.
+
+### Wat de bicep niet opruimt
+
+Bicep draait in **incremental mode**: het maakt aan en werkt bij, maar verwijdert nooit iets dat
+niet (meer) in de template staat. Haal je een component uit `main.bicep`, dan blijft de draaiende
+resource gewoon bestaan — onzichtbaar zolang je alleen naar de template kijkt, en met zijn kosten.
+
+Dat is hier echt gebeurd. Bij het verwijderen van de wettenbank-MCP (commit `9e34b75`, augustus
+2026) verdween de `mcpApp`-resource uit de bicep, maar bleven de draaiende mcp-apps staan; daarnaast
+stond er een complete tweede omgeving (`wetsanalyse-acc-*`) met een eigen PostgreSQL-server, alle
+replicas op `minReplicas: 1` en dus doorlopend aan.
+
+`azure-infra` → `opruimen` lost dat op: het neemt de bicep als waarheid en zet alles wat daar niet
+in staat op de lijst. Zonder bevestiging toont het alleen wat het zou doen — draai het zo eerst, en
+typ pas daarna de groepsnaam. De verwijdervolgorde is dwingend: container apps en jobs hangen aan
+hun managed environment, dus dat kan pas weg als het leeg is.
 
 ### Met de hand
 

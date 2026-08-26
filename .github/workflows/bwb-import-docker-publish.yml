@@ -7,7 +7,6 @@ name: bwb-import-docker-publish
 on:
   push:
     branches: [master]
-    tags: ["v*"]
     paths:
       - "tools/bwb-import/**"
       - "!tools/bwb-import/**/*.md"
@@ -107,15 +106,14 @@ jobs:
 
   # ── Uitrollen naar Azure ──────────────────────────────────────────────────────
   #
-  # master → acceptatie, tag `v*` → productie; zie de gelijknamige job in de andere
-  # publish-workflows. Dit is een Container Apps JOB en geen app: er is dus geen revisie om af te
-  # wachten. De job zelf wordt niet gestart — de volgende geplande of handmatige run pakt de nieuwe
-  # image op.
+  # Master rolt uit naar ACCEPTATIE; productie loopt via `promote.yml`. Dit is een Container Apps
+  # JOB en geen app: er is dus geen revisie om af te wachten. De job zelf wordt niet gestart — de
+  # volgende geplande of handmatige run pakt de nieuwe image op.
   deploy:
     needs: build-and-push
-    if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
-    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'productie' || 'acceptatie' }}
+    environment: acceptatie
     env:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}

@@ -1,0 +1,120 @@
+# De testpoort vóór master: draait op elke pull request de suites van de onderdelen die de PR raakt.
+#
+# Dit is de HARDE poort. De pre-push hook (`.githooks/pre-push`) doet hetzelfde lokaal en is er voor
+# de snelheid, maar hij moet per kloon geactiveerd worden en is te omzeilen met `--no-verify` — deze
+# workflow geldt voor iedereen.
+#
+# Waarom één workflow en niet een `pull_request`-trigger op de vier publish-workflows: een verplichte
+# status check die door een `paths`-filter niet draait, laat een PR voorgoed op "expected" staan.
+# Deze workflow heeft daarom GEEN paths-filter. Hij draait altijd, bepaalt zelf wat geraakt is, en
+# levert één check om verplicht te stellen: `poort`.
+
+name: poort
+
+on:
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: poort-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  poort:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Bepalen wat deze PR raakt
+        id: raakt
+        run: |
+          set -euo pipefail
+          basis=$(git merge-base "origin/${{ github.base_ref }}" HEAD)
+          gewijzigd=$(git diff --name-only "$basis" HEAD)
+          echo "Gewijzigd ten opzichte van ${{ github.base_ref }}:"
+          echo "$gewijzigd" | sed 's/^/  /'
+
+          # Documentatie triggert geen suite; dat spiegelt de `!**/*.md`-negaties in de
+          # publish-workflows.
+          code=$(echo "$gewijzigd" | grep -v '\.md$' || true)
+
+          heeft() { echo "$code" | grep -q "^$1" && echo true || echo false; }
+          {
+            echo "frontend=$(heeft 'frontend/')"
+            echo "graph_qa=$(heeft 'tools/graph-qa/')"
+            echo "bwb_import=$(heeft 'tools/bwb-import/')"
+            echo "api=$(heeft 'api/')"
+          } | tee -a "$GITHUB_OUTPUT"
+
+      # ── frontend ────────────────────────────────────────────────────────────
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+        if: steps.raakt.outputs.frontend == 'true'
+        with:
+          node-version: "26"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: frontend — installeren
+        if: steps.raakt.outputs.frontend == 'true'
+        working-directory: frontend
+        run: npm ci
+      - name: frontend — tests
+        if: steps.raakt.outputs.frontend == 'true'
+        working-directory: frontend
+        run: npm run test
+      - name: frontend — lint
+        if: steps.raakt.outputs.frontend == 'true'
+        working-directory: frontend
+        run: npm run lint
+      - name: frontend — typecheck
+        if: steps.raakt.outputs.frontend == 'true'
+        working-directory: frontend
+        run: npm run typecheck
+
+      # ── Python-onderdelen ───────────────────────────────────────────────────
+      - name: uv installeren
+        if: steps.raakt.outputs.api == 'true' || steps.raakt.outputs.graph_qa == 'true'
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
+
+      - name: graph-qa — tests
+        if: steps.raakt.outputs.graph_qa == 'true'
+        working-directory: tools/graph-qa
+        run: |
+          uv sync --extra dev
+          uv run pytest -q
+
+      - name: api — tests
+        if: steps.raakt.outputs.api == 'true'
+        working-directory: api
+        run: |
+          uv sync --extra dev
+          uv run pytest -q
+
+      # bwb-import draait op pip + requirements.txt, niet op uv — zie zijn publish-workflow.
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        if: steps.raakt.outputs.bwb_import == 'true'
+      - name: bwb-import — tests
+        if: steps.raakt.outputs.bwb_import == 'true'
+        working-directory: tools/bwb-import
+        run: |
+          pip install -r requirements.txt
+          python -m pytest -q
+
+      - name: Samenvatting
+        if: always()
+        run: |
+          {
+            echo "## Poort"
+            echo ""
+            echo "| onderdeel | gedraaid |"
+            echo "|---|---|"
+            echo "| frontend   | ${{ steps.raakt.outputs.frontend }} |"
+            echo "| graph-qa   | ${{ steps.raakt.outputs.graph_qa }} |"
+            echo "| bwb-import | ${{ steps.raakt.outputs.bwb_import }} |"
+            echo "| api        | ${{ steps.raakt.outputs.api }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
