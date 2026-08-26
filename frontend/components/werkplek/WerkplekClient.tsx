@@ -51,21 +51,14 @@ import { useBreedScherm } from "@/lib/useBreedScherm";
 import { ChevronOmlaag, Cirkel, Waarschuwing } from "@/components/ui/Icoon";
 import { jasStyle } from "@/lib/jas";
 import { bronHref } from "@/lib/url";
+import type { ThreadItem } from "@/lib/threadItem";
+import {
+  pasDemoBeslissingToe, voegDemoElementToe, wisDemoElement, zetDemoStatus, type DemoScene,
+} from "@/lib/rondleidingDemo";
 
-type Item =
-  | { id: string; type: "user"; tekst: string; over?: string }
-  | { id: string; type: "antwoord"; tekst: string; denk?: string; bronnen?: Bron[];
-      // De brongetrouwheidstoets van déze beurt. Live; hij reist niet mee in het berichtcontract,
-      // maar de statusregel ervan staat wél in `denk` en blijft dus na herladen terug te vinden.
-      grounding?: AgentGrounding }
-  // `denk` = de tijdlijn van het samenspel (supervisor → ophaal → annoteerder ⇄ Critic). Die werd
-  // eerder weggegooid zodra de beurt een annotatie bleek; juist bij een annotatie wil je achteraf
-  // kunnen zien hoe hij tot stand kwam.
-  // `titel` komt uit het bericht zelf (`annotatie_titel`), niet uit het document: er is geen foreign
-  // key, dus na het verwijderen van het document is dit het enige dat de kaart nog kan benoemen.
-  | { id: string; type: "annotatie"; slug: string; titel?: string; ontbrekend?: OntbrekendItem[]; denk?: string }
-  // De vraag noemde een onderwerp: de agent vond bepalingen, de jurist kiest er één.
-  | { id: string; type: "kandidaten"; tekst: string; kandidaten: AgentKandidaat[] };
+// De thread-items staan in `lib/threadItem.ts`, zodat de rondleiding er een voorbeeldbeurt
+// mee kan opbouwen zonder dit component te importeren.
+type Item = ThreadItem;
 
 /** Wat er zojuist is vastgelegd, in één zin voor de schermlezer. */
 function beslissingMelding(req: BeslissingInvoer): string {
@@ -110,15 +103,29 @@ interface Props {
   onGewijzigd: () => void;
   /** Annotatie die bij binnenkomst open moet staan (deep-link vanuit het annotatie-overzicht). */
   beginArtefact?: string;
+  /** De voorbeeldscène van de rondleiding. Is die gezet, dan draait dit venster als demo: de thread
+   *  komt uit de scène, de invoer staat stil en elke mutatie blijft in dit geheugen — er gaat geen
+   *  enkel verzoek naar de api. De rondleiding krijgt hiervoor een eigen mount (zie `WorkbenchShell`),
+   *  zodat het echte gesprek onaangeroerd blijft en na afloop gewoon weer uit de api komt. */
+  demo?: DemoScene;
+  /** Meldt de rondleiding dat er in de demo iets beslist is, en of het artefact openstaat. */
+  onDemoBeslissing?: () => void;
+  onDemoArtefact?: (open: boolean) => void;
+  /** Verhoog dit om het voorbeeldartefact te openen. De rondleiding laat de gebruiker eerst zelf op
+   *  de kaart klikken en springt pas bij als dat uitblijft. */
+  demoOpenSignaal?: number;
+  /** Start de rondleiding vanuit de lege staat — precies het moment waarop iemand hem nodig heeft. */
+  onRondleiding?: () => void;
 }
 
 export function WerkplekClient({
-  initialGesprekId, onGesprekAangemaakt, onGewijzigd, beginArtefact,
+  initialGesprekId, onGesprekAangemaakt, onGewijzigd, beginArtefact, demo, onDemoBeslissing,
+  onDemoArtefact, demoOpenSignaal = 0, onRondleiding,
 }: Props) {
   const [gesprekId, setGesprekId] = useState<string | null>(initialGesprekId);
-  const [items, setItems] = useState<Item[]>([]);
-  const [docs, setDocs] = useState<Record<string, AnnotatieDocument>>({});
-  const [infos, setInfos] = useState<Record<string, GraafArtikel>>({});
+  const [items, setItems] = useState<Item[]>(demo?.items ?? []);
+  const [docs, setDocs] = useState<Record<string, AnnotatieDocument>>(demo?.docs ?? {});
+  const [infos, setInfos] = useState<Record<string, GraafArtikel>>(demo?.infos ?? {});
   // Slugs waarvan de api 404 gaf: het document bestaat niet meer. Dat is een tóéstand, geen fout —
   // opnieuw proberen kan per definitie niet lukken. Apart van `docs` omdat "nog niet geladen" en
   // "bestaat niet meer" twee verschillende dingen zijn.
@@ -284,6 +291,19 @@ export function WerkplekClient({
     }
   }
 
+  useEffect(() => {
+    if (!demo || demoOpenSignaal === 0) return;
+    const slug = Object.keys(demo.docs)[0];
+    if (slug) void openArtefact(slug);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demoOpenSignaal]);
+
+  // De rondleiding wacht met haar reviewstappen tot het paneel er echt is.
+  useEffect(() => {
+    onDemoArtefact?.(Boolean(artefactSlug));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [artefactSlug]);
+
   /** Deep-link `/workbench?annotatie=<slug>`: het artefact één keer openen bij binnenkomst.
    *  De ref voorkomt dat het paneel weer opengaat nadat de jurist het zelf heeft gesloten. */
   const deepLinkGeopend = useRef(false);
@@ -295,6 +315,15 @@ export function WerkplekClient({
   }, [beginArtefact]);
 
   async function openArtefact(slug: string) {
+    // In de rondleiding staan document én artikeltekst al in het geheugen. Zonder deze grens hangt
+    // de demo alsnog aan de api en de graaf — en juist die kunnen plat liggen op het moment dat een
+    // nieuwe gebruiker binnenkomt.
+    if (demo) {
+      setArtefactFout(null);
+      setArtefactWeg(null);
+      setArtefactSlug(slug);
+      return;
+    }
     setArtefactFout(null);
     // Al bekend als verwijderd: niet nog een keer proberen — er valt niets op te halen.
     if (verwijderd[slug]) {
@@ -337,6 +366,9 @@ export function WerkplekClient({
 
   /** @param doel de bepaling, als die al vaststaat (zie `startRun`). */
   async function verstuur(vast?: string, doel?: AgentDoelInvoer) {
+    // In de rondleiding is dit venster een voorbeeld: er gaat niets naar de agent. De invoerbalk is
+    // ook uitgeschakeld, dit is het vangnet voor Enter en de voorbeeldknoppen.
+    if (demo) return;
     const prompt = (vast ?? invoer).trim();
     if (!prompt || bezigRef.current) return;
     bezigRef.current = true;
@@ -739,6 +771,15 @@ export function WerkplekClient({
     invoer: { klasse: string; tekst: string; lid: string; toelichting: string; anker: Anker },
   ) {
     const oud = new Set((docs[slug]?.elementen ?? []).map((e) => e.id));
+    if (demo) {
+      const doc = docs[slug];
+      if (!doc) return;
+      const { doc: bijDemo, id } = voegDemoElementToe(doc, invoer);
+      setDocs((m) => ({ ...m, [slug]: bijDemo }));
+      setMelding(`Gemarkeerd als ${invoer.klasse}.`);
+      setActiefId(id);
+      return;
+    }
     const bij = await voegElementToe(slug, invoer);
     setDocs((m) => ({ ...m, [slug]: bij }));
     setMelding(`Gemarkeerd als ${invoer.klasse}.`);
@@ -752,11 +793,11 @@ export function WerkplekClient({
    *  auditspoor laat zien dát er een voorstel was. Was hij actief, dan valt de focus terug op de
    *  hele tekst — anders wijst `actiefId` naar een element dat niet meer bestaat. */
   async function wisEigenMarkering(slug: string, elementId: string) {
-    await verwijderElement(slug, elementId);
+    if (!demo) await verwijderElement(slug, elementId);
     setDocs((m) => {
       const doc = m[slug];
       if (!doc) return m;
-      return { ...m, [slug]: { ...doc, elementen: doc.elementen.filter((e) => e.id !== elementId) } };
+      return { ...m, [slug]: wisDemoElement(doc, elementId) };
     });
     setActiefId((huidig) => (huidig === elementId ? undefined : huidig));
     setMelding("Markering gewist.");
@@ -764,12 +805,23 @@ export function WerkplekClient({
 
   /** Afronden of heropenen. Gooit door naar het paneel, dat de fout bij de knop toont. */
   async function status(slug: string, nieuweStatus: "geaccordeerd" | "in_review") {
+    if (demo) {
+      setDocs((m) => (m[slug] ? { ...m, [slug]: zetDemoStatus(m[slug], nieuweStatus) } : m));
+      setMelding(nieuweStatus === "geaccordeerd" ? "Annotatie afgerond." : "Annotatie heropend.");
+      return;
+    }
     const bij = await zetDocumentStatus(slug, nieuweStatus);
     setDocs((m) => ({ ...m, [slug]: bij }));
     setMelding(nieuweStatus === "geaccordeerd" ? "Annotatie afgerond." : "Annotatie heropend.");
   }
 
   async function beslissing(slug: string, elementId: string, req: BeslissingInvoer) {
+    if (demo) {
+      setDocs((m) => (m[slug] ? { ...m, [slug]: pasDemoBeslissingToe(m[slug], elementId, req) } : m));
+      setMelding(beslissingMelding(req));
+      onDemoBeslissing?.();
+      return;
+    }
     try {
       const bij = await beslis(slug, elementId, req);
       setDocs((m) => ({ ...m, [slug]: bij }));
@@ -924,7 +976,7 @@ export function WerkplekClient({
         </div>
       )}
       {/* Thread — enige scrollende gebied; berichten in een gecentreerde leeskolom */}
-      <div ref={lijstRef} onScroll={onThreadScroll} className="min-h-0 flex-1 overflow-y-auto">
+      <div data-tour="thread" ref={lijstRef} onScroll={onThreadScroll} className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto max-w-3xl space-y-6 px-4 py-8">
           {/* Lex stelt zich hier kort voor. Dit is de KORTE variant van het IDENTITEIT-blok in
               tools/graph-qa/agent/prompts.py — dezelfde kadering (hulpmiddel, de jurist beslist),
@@ -942,6 +994,17 @@ export function WerkplekClient({
               <p className="mx-auto mt-3 max-w-md text-sm text-faint">
                 Stel een vraag over de wet- en regelgeving, of vraag een annotatie volgens het JAS.
               </p>
+              {onRondleiding && (
+                <div className="mt-5">
+                  <button
+                    type="button"
+                    onClick={onRondleiding}
+                    className="focus-ring rounded-full border border-lint/30 bg-lint/5 px-4 py-2 text-sm font-medium text-lint transition-colors hover:bg-lint/10"
+                  >
+                    Laat me de werkplek zien
+                  </button>
+                </div>
+              )}
               <div className="mt-6 flex flex-wrap justify-center gap-2">
                 {VOORBEELDEN.map((v) => (
                   <button
@@ -1080,14 +1143,21 @@ export function WerkplekClient({
               </span>
             </div>
           )}
-          <div className="flex items-end gap-2 rounded-bubbel border border-line bg-white px-2 py-1.5 shadow-zacht transition-shadow focus-within:border-lint focus-within:shadow-kaart">
+          <div data-tour="invoer" className="flex items-end gap-2 rounded-bubbel border border-line bg-white px-2 py-1.5 shadow-zacht transition-shadow focus-within:border-lint focus-within:shadow-kaart">
             <textarea
               ref={taRef}
               value={invoer}
               onChange={(e) => setInvoer(e.target.value)}
               onKeyDown={opToets}
               rows={1}
-              placeholder={vraagOver ? "Wat wil je weten over deze markering?" : "Stel een vraag of vraag een annotatie…"}
+              disabled={Boolean(demo)}
+              placeholder={
+                demo
+                  ? "Tijdens de rondleiding staat het invoerveld stil"
+                  : vraagOver
+                    ? "Wat wil je weten over deze markering?"
+                    : "Stel een vraag of vraag een annotatie…"
+              }
               className="max-h-[200px] flex-1 resize-none bg-transparent px-2 py-2 text-sm text-ink placeholder:text-faint focus:outline-none"
             />
             {/* Tijdens het antwoorden is dit de stopknop: hetzelfde plekje, andere betekenis — je hoeft
@@ -1095,7 +1165,7 @@ export function WerkplekClient({
             <button
               type="button"
               onClick={() => (bezig ? void stop() : void verstuur())}
-              disabled={(!bezig && !invoer.trim()) || stopt}
+              disabled={Boolean(demo) || (!bezig && !invoer.trim()) || stopt}
               aria-label={bezig ? (stopt ? "Bezig met stoppen" : "Stoppen") : "Versturen"}
               title={stopt ? "De agent rondt zijn huidige stap nog af" : undefined}
               className="focus-ring mb-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-paper transition-colors hover:bg-accent-soft disabled:cursor-not-allowed disabled:opacity-40"
@@ -1119,7 +1189,9 @@ export function WerkplekClient({
             </button>
           </div>
           <p className="mt-2 text-center text-xs text-faint">
-            De agent bevraagt de kennisgraaf — controleer altijd de bron.
+            {demo
+              ? "Dit is een voorbeeld voor de rondleiding — er gaat niets naar de agent."
+              : "De agent bevraagt de kennisgraaf — controleer altijd de bron."}
           </p>
         </div>
       </div>
@@ -1191,6 +1263,7 @@ function AnnotatieChip({
   return (
     <button
       type="button"
+      data-tour="chip"
       onClick={onOpen}
       className="flex w-full items-center gap-3 rounded-kaart border border-line bg-surface px-4 py-3 text-left shadow-zacht transition-all hover:-translate-y-0.5 hover:border-lint/40 hover:shadow-kaart focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lint"
     >
@@ -1352,7 +1425,7 @@ function DenkProces({
   const open = keuze ?? actief;
 
   return (
-    <div className="mb-2">
+    <div data-tour="denkproces" className="mb-2">
       <button
         type="button"
         onClick={() => setKeuze(!open)}
@@ -1390,6 +1463,7 @@ function Brongetrouwheid({ grounding }: { grounding: AgentGrounding }) {
   const onbepaald = grounding.niveau === "onbepaald";
   return (
     <div
+      data-tour="grounding"
       className={`mt-2 flex items-start gap-2 rounded-kaart border px-3 py-2 text-xs ${
         onbepaald
           ? "border-line bg-surface text-muted"
@@ -1423,7 +1497,7 @@ function Brongetrouwheid({ grounding }: { grounding: AgentGrounding }) {
 function Bronnen({ bronnen }: { bronnen: Bron[] }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="mt-2">
+    <div data-tour="bronnen" className="mt-2">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}

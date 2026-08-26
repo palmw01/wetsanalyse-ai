@@ -137,6 +137,25 @@ class AnnotatieAlternatief(BaseModel):
     motivatie: str = ""
 
 
+class Anker(BaseModel):
+    """Exacte positie van een fragment in de samengevoegde brontekst.
+
+    Spiegelt `Anker` in `api/app/annotatie_contracts.py` (zelfde veldnamen, zelfde semantiek).
+    De offsets slaan op de samengevoegde brontekst die het documentpaneel toont — bij een
+    per-lid-annotatie is dat alleen die lid-tekst. `bron_hash` is een FNV-1a 32-bit vingerafdruk;
+    de UI gebruikt hem om te detecteren of de brontekst verschoven is na een herimport.
+    De context-velden (`voor`/`na`) maken het mogelijk het juiste voorkomen van een herhaald
+    fragment te kiezen als de offsets verouderd zijn.
+    """
+
+    lid: str = ""
+    start: int = 0
+    eind: int = 0
+    voor: str = ""        # tot 48 tekens originele tekst vóór het fragment
+    na: str = ""          # tot 48 tekens originele tekst erna
+    bron_hash: str = ""   # FNV-1a 32-bit hash van de brontekst, als hex-string
+
+
 class CriticRonde(BaseModel):
     """Wat de Critic in één pas van dit element vond, en wat hij ermee wilde.
 
@@ -191,6 +210,7 @@ class AnnotatieVoorstel(BaseModel):
     alternatieven: list[AnnotatieAlternatief] = []
     grounded: bool = False
     vindplaats: str = ""               # bwbId/artikel/lid/jci-notatie
+    anker: Anker | None = None         # exacte positie in de brontekst; None tot _verwerk() het vult
     aandacht: str = ""                 # "" | groen | geel | rood — gezet door de Critic-node
     critic: str = ""                   # korte Critic-motivatie bij het aandacht-niveau
     critic_rondes: list[CriticRonde] = []   # het heen-en-weer per ronde; leeg tot de eerste Critic-pas

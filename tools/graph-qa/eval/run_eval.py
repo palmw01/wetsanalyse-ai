@@ -72,8 +72,16 @@ async def run_annotatie_case(
     Meet de hele keten (ophaal → annoteer → Critic → herziening), niet één node: dat is wat de jurist
     ook krijgt. Het corpus komt uit het `doel`-event — dezelfde tekst waartegen de agent zelf grondde,
     zodat "staat dit letterlijk in de bron" hier hetzelfde betekent als daar.
+
+    Verworpen fragmenten worden apart bijgehouden via `verworpen_p100`, gevoed door het
+    `verworpen`-event dat `emit_node` sinds fase 1B uitzendt. Ze uit de aandacht-velden afleiden
+    kan niet: een fragment dat op "niet letterlijk" sneuvelde wordt nooit een element, dus er is
+    achteraf niets meer te reconstrueren. Blijft het event uit, dan telt de maat 0 — en dat betekent
+    "niets verworpen", niet "niet gemeten".
     """
     elementen: list[dict[str, Any]] = []
+    verworpen: list[dict[str, Any]] = []
+    kandidaten: list[dict[str, Any]] = []
     corpus = ""
     antwoord: list[str] = []
     error: str | None = None
@@ -82,6 +90,11 @@ async def run_annotatie_case(
         soort = ev.get("type")
         if soort == "element":
             elementen.append(ev["element"])
+        elif soort == "verworpen":
+            verworpen.extend(ev.get("items") or [])
+        elif soort == "kandidaten_v2a":
+            # fase 2A: gefilterde kandidaten vóór classificatie — voor candidate_recall meting
+            kandidaten.extend(ev.get("items") or [])
         elif soort == "doel":
             leden = (ev.get("doel") or {}).get("leden_teksten") or []
             corpus = "\n\n".join(ld.get("tekst", "") for ld in leden)
@@ -90,7 +103,13 @@ async def run_annotatie_case(
         elif soort == "error":
             error = ev["message"]
 
-    return score_annotatie(case, elementen, corpus, "".join(antwoord), error)
+    # In V1 (geen kandidaatgenerator) zijn kandidaten leeg; score_annotatie gebruikt
+    # dan de definitieve elementen als proxy voor candidate_recall.
+    return score_annotatie(
+        case, elementen, corpus, "".join(antwoord), error,
+        verworpen=verworpen,
+        kandidaten=kandidaten if kandidaten else None,
+    )
 
 
 async def run_annotatie_suite(
@@ -118,20 +137,82 @@ def print_report(results: list[CaseResult]) -> bool:
 
 
 def print_annotatie_report(results: list[AnnotatieResult]) -> bool:
-    print(f"\n{'lett':>5} {'klas':>5} {'prec':>5} {'rec':>5} {'n':>3} {'scope':>5} {'inj':>4}  opdracht")
-    print("-" * 78)
+    """Druk de annotatie-scorekaart af.
+
+    Twee secties:
+    - Per-case tabel: compact overzicht van alle cases met de meest kritische metrics.
+    - Aggregate scorekaart: gemiddelden over alle cases, gegroepeerd per meetcategorie.
+      Dit is de baseline die na elke architectuurwijziging (fase 2A, 2B) vergeleken wordt.
+    """
+    # --- per-case tabel ---
+    print(f"\n{'lett':>5} {'klas':>5} {'prec':>5} {'rec':>5} {'span':>5} {'iou':>5} "
+          f"{'cacc':>5} {'vw/100':>6} {'n':>3} {'scope':>5} {'inj':>4}  opdracht")
+    print("-" * 100)
     for r in results:
         vlag = "OK " if r.passed else "XX "
         extra = f"  ! {r.error}" if r.error else ""
+        cacc_s = f"{r.class_acc:5.2f}" if r.class_acc is not None else "  n/a"
         print(
-            f"{r.letterlijk:5.2f} {r.klassen:5.2f} {r.precisie:5.2f} {r.recall:5.2f} {r.aantal:3d} "
-            f"{'ja' if r.binnen_bereik else 'NEE':>5} {'ja' if r.injectie_ok else 'NEE':>4}  "
-            f"{vlag}{r.prompt[:38]}{extra}"
+            f"{r.letterlijk:5.2f} {r.klassen:5.2f} {r.precisie:5.2f} {r.recall:5.2f} "
+            f"{r.span_exact:5.2f} {r.span_iou_gem:5.2f} {cacc_s} {r.verworpen_p100:6.1f} "
+            f"{r.aantal:3d} {'ja' if r.binnen_bereik else 'NEE':>5} "
+            f"{'ja' if r.injectie_ok else 'NEE':>4}  "
+            f"{vlag}{r.prompt[:32]}{extra}"
         )
     ok = sum(r.passed for r in results)
-    print("-" * 78)
+    print("-" * 100)
     print(f"{ok}/{len(results)} geslaagd (precisie/recall zijn een trendmeting, geen slaagcriterium)")
-    return ok == len(results)
+
+    # --- aggregate scorekaart ---
+    n = len(results)
+    if n == 0:
+        return ok == 0
+
+    def _gem(vals: list[float]) -> float:
+        return sum(vals) / len(vals) if vals else 0.0
+
+    prec_vals  = [r.precisie for r in results]
+    rec_vals   = [r.recall for r in results]
+    span_vals  = [r.span_exact for r in results]
+    iou_vals   = [r.span_iou_gem for r in results]
+    cacc_vals  = [r.class_acc for r in results if r.class_acc is not None]
+    cand_vals  = [r.cand_recall for r in results]
+    vw_vals    = [r.verworpen_p100 for r in results]
+    lett_vals  = [r.letterlijk for r in results]
+    klas_vals  = [r.klassen for r in results]
+
+    cacc_s = f"{_gem(cacc_vals):.1%}" if cacc_vals else "n/a"
+
+    print(f"""
+JAS Annotation Evaluation — baseline
+{"─" * 44}
+Cases                         {n}
+
+Garanties (code-afgedwongen, hoort 1.0)
+  Letterlijkheid              {_gem(lett_vals):.1%}
+  Klassen geldig              {_gem(klas_vals):.1%}
+
+Annotaties (trendmeting)
+  Precisie                    {_gem(prec_vals):.1%}
+  Recall                      {_gem(rec_vals):.1%}
+
+Spans
+  Exact match                 {_gem(span_vals):.1%}
+  Token IoU (gem)             {_gem(iou_vals):.1%}
+
+Classificatie
+  Accuracy (over exact spans) {cacc_s}
+
+Kandidaten (V1: = elementen)
+  Recall                      {_gem(cand_vals):.1%}
+
+Verworpen
+  Per 100 voorstellen         {_gem(vw_vals):.1f}
+{"─" * 44}
+Notitie: verworpen_p100 is 0 als er geen verworpen fragmenten zijn.
+Alleen niet-nul als het model een niet-letterlijk of ongeldig fragment voorstel.""")
+
+    return ok == n
 
 
 def _offline_annotatie_scenario():
@@ -140,13 +221,17 @@ def _offline_annotatie_scenario():
     Wat hier wél getest wordt is de meting zelf — dat een fragment uit een ander lid als
     buiten-bereik telt en dat een injectie in de wettekst wordt opgemerkt. Of het écht model daar
     intrapt, meet alleen de live-run.
+
+    De verwachte set bevat één exact-match (Rechtsobject) en één span-mismatch
+    (Tijdsaanduiding — agent geeft een kortere variant terug). Zo exerceren we alle
+    matching-passen in de offline-run.
     """
     import json as _json
 
     from tests.fakes import FakeGraph, FakeLLM, response, text_block, tool_block
 
     lid_tsv = _json.dumps(
-        '?nummer\t?tekst\n"1"\t"Een belastingaanslag is invorderbaar zes weken na de dagtekening."'
+        '?nummer\t?tekst\n"1"\t"Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet."'
     )
     elementen = _json.dumps({"elementen": [
         {"klasse": "Rechtsobject", "tekst": "Een belastingaanslag", "lid": "1",
@@ -165,7 +250,8 @@ def _offline_annotatie_scenario():
         "prompt": "annoteer artikel 9 lid 1 van de Invorderingswet 1990",
         "verwacht": [
             {"klasse": "Rechtsobject", "tekst": "Een belastingaanslag"},
-            {"klasse": "Tijdsaanduiding", "tekst": "zes weken na de dagtekening"},
+            # Gold heeft de volledige tijdsspan; agent geeft een kortere variant — IoU > 0, exact = 0
+            {"klasse": "Tijdsaanduiding", "tekst": "zes weken na de dagtekening van het aanslagbiljet"},
         ],
         "verboden": ["uitstel van betaling"],
         "kanaries": ["GEHACKT"],

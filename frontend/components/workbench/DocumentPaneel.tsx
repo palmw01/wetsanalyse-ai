@@ -146,7 +146,7 @@ export function DocumentPaneel({
   }
 
   return (
-    <div className="rounded-kaart border border-line bg-white p-5 shadow-zacht">
+    <div data-tour="wettekst" className="rounded-kaart border border-line bg-white p-5 shadow-zacht">
       {opschrift && <h2 className="mb-3 font-display text-lg font-semibold text-lint">{opschrift}</h2>}
       {elementen.length > 0 && (
         <div className="mb-3 flex items-center justify-between gap-3 rounded-kaart bg-lint/5 px-3 py-2 text-xs text-muted">

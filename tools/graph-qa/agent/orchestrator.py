@@ -32,6 +32,7 @@ from .agent_common import BeurtGestopt, truncate
 from .annotatie import (
     _verwerk, _verwerk_critic, demp_zelfweerspreking, komt_letterlijk_voor, pas_critic_toe,
     openstaand_voorstel, sleutel_van, vervang_ids_door_citaat,
+    parse_kandidaten, filter_kandidaten,
 )
 from .artikel import artikel_corpus
 from .annotatie_prompt import (
@@ -41,6 +42,10 @@ from .annotatie_prompt import (
     critic_userprompt,
     herziening_systeemprompt,
     herziening_userprompt,
+    kandidaten_systeemprompt,
+    kandidaten_userprompt,
+    klasseer_systeemprompt,
+    klasseer_userprompt,
 )
 from .config import Settings
 from .graph.results import parse_select
@@ -543,6 +548,7 @@ class State(TypedDict, total=False):
     # zou een herziening zijn eigen vorige oordeel als actueel aanzien.
     voorstellen: list[dict[str, Any]]
     verworpen_fragmenten: list[dict[str, Any]]   # niet-gegronde citaten, als feedback voor een herziening
+    kandidaten_v2a: list[dict[str, Any]]         # fase 2A: gefilterde kandidaten vóór classificatie
     critic_feedback: list[dict[str, Any]]        # [{id, aandacht, motivatie, actie, voorstel_*}]
     critic_ontbrekend: list[dict[str, Any]]
     critic_gefaald: bool
@@ -953,6 +959,154 @@ def build_graph(
             "answer": "",
         }
 
+    def annoteer_kandidaten_node(state: State) -> dict[str, Any]:
+        """Fase 2A stap 1: kandidaatgeneratie — zoekt tekstspans zonder JAS-klasse.
+
+        Een aparte LLM-call die uitsluitend 'welke spans zijn mogelijk een juridisch element?'
+        beantwoordt, zonder te classificeren. Dit maakt kandidaat-recall onafhankelijk van
+        classificatie-accuracy meetbaar. De gefilterde kandidaten gaan als `kandidaten_v2a`
+        de state in; de volgende node (`annoteer_klasseer_node`) classificeert ze.
+        """
+        writer = get_stream_writer()
+
+        # Een ONDERWERP in plaats van een bepaling: dan legt de ophaal-agent kandidaat-bepalingen
+        # voor en annoteren we nog niets. Identiek aan `annoteer_node` — welke bepaling de
+        # werkvoorraad in gaat is een keuze van de jurist, en die keuze mag niet afhangen van of de
+        # splitsing aan staat.
+        kandidaat_bepalingen = _kandidaten_uit_json(state.get("answer", ""))
+        if kandidaat_bepalingen:
+            writer({"type": "kandidaten", "kandidaten": kandidaat_bepalingen})
+            melding = (
+                f"Ik vond {len(kandidaat_bepalingen)} bepalingen over dit onderwerp. Kies welke je "
+                "wilt laten annoteren."
+            )
+            writer({"type": "token", "content": melding})
+            return {"answer": melding, "voorstellen": [], "kandidaten_v2a": [],
+                    "messages": [{"role": "assistant", "content": melding}]}
+
+        doel = _bepaal_doel(state)
+        # Gebruik het in state gecachede corpus; als dat leeg is haal het gericht op
+        # (zelfde strategie als annoteer_node — zonder dit zou een direct-naar-annoteer
+        # route met leeg corpus altijd een lege kandidatenlijst opleveren).
+        corpus = state.get("corpus") or _corpus_voor_doel(doel, graph, state.get("source_trace", []))
+        if not corpus.strip():
+            # Zelfde melding als V1. Stil teruggeven liet de klasseer-node hierna een LLM-call doen
+            # op een lege tekst, en las de jurist "geen JAS-elementen gevonden" waar "ik kon de
+            # bepaling niet ophalen" de waarheid is.
+            melding = (
+                "Ik kon de gevraagde bepaling niet ophalen om te annoteren — controleer de wet en het "
+                "artikel/lid (bij een beleidsregel bv. '9.1')."
+            )
+            writer({"type": "token", "content": melding})
+            return {"answer": melding, "voorstellen": [], "kandidaten_v2a": [], "corpus": "",
+                    "messages": [{"role": "assistant", "content": melding}]}
+
+        aanduiding = doel.get("artikel") or doel.get("nummer") or ""
+        _stap(writer, "Kandidaatgenerator", f"zoekt spans in art. {aanduiding}")
+
+        resp = llm.create(
+            model=model,
+            max_tokens=4096,
+            system=kandidaten_systeemprompt(),
+            tools=[],
+            messages=[{"role": "user", "content": kandidaten_userprompt(
+                doel.get("bwbId", ""), aanduiding, corpus, doel.get("lid"),
+            )}],
+        )
+        llm_text = "".join(b.text for b in resp.content if b.type == "text")
+        ruw = parse_kandidaten(llm_text)
+        gefilterd = filter_kandidaten(ruw, corpus)
+        _stap(writer, "Kandidaatgenerator",
+              f"{len(ruw)} gevonden, {len(gefilterd)} na filtering")
+        # Het corpus MOET mee. `annoteer_klasseer_node` leest het uit de state, en zonder dit veld
+        # staat daar niets — of, bij een tweede bepaling in dezelfde run, de tekst van de vórige.
+        # Dan gront `_verwerk` elk fragment tegen de verkeerde tekst en verwerpt het alles.
+        return {"kandidaten_v2a": gefilterd, "corpus": corpus}
+
+    def annoteer_klasseer_node(state: State) -> dict[str, Any]:
+        """Fase 2A stap 2: classificeer de gefilterde kandidaten.
+
+        Krijgt de gefilterde kandidatenlijst en de brontekst; bepaalt per span de JAS-klasse.
+        Hergebruikt _verwerk() voor brongetrouwheid-check en prioriteitsvalidatie, zodat de
+        garanties ongewijzigd blijven. De Critic-keten daarna is identiek aan V1.
+
+        Als er geen kandidaten zijn (kandidaatgenerator produceerde niets na filtering), valt
+        deze node terug op de V1-gecombineerde aanpak — één call die zelf de spans zoekt én
+        classificeert. Dat voorkomt dat een lege kandidatenlijst het annotatie-proces stillegt.
+        """
+        writer = get_stream_writer()
+        doel = _bepaal_doel(state)
+        corpus = state.get("corpus") or ""
+        kandidaten = state.get("kandidaten_v2a") or []
+        aanduiding = doel.get("artikel") or doel.get("nummer") or ""
+
+        if not kandidaten:
+            # Fallback naar V1: gecombineerde kandidaat+classificatie in één call
+            _stap(writer, "Classificator", "geen kandidaten — gecombineerde aanpak (V1-fallback)")
+            resp = llm.create(
+                model=model, max_tokens=8192,
+                system=annotatie_systeemprompt(), tools=[],
+                messages=[{"role": "user", "content": annotatie_userprompt(
+                    doel.get("bwbId", ""), aanduiding, corpus, doel.get("lid"),
+                )}],
+            )
+        else:
+            _stap(writer, "Classificator",
+                  f"classificeert {len(kandidaten)} kandidaten voor art. {aanduiding}")
+            resp = llm.create(
+                model=model, max_tokens=8192,
+                system=klasseer_systeemprompt(), tools=[],
+                messages=[{"role": "user", "content": klasseer_userprompt(
+                    doel.get("bwbId", ""), aanduiding, corpus, kandidaten, doel.get("lid"),
+                )}],
+            )
+
+        llm_text = "".join(b.text for b in resp.content if b.type == "text")
+        voorstellen, verworpen = _verwerk(
+            llm_text, corpus, doel.get("bwbId", ""), aanduiding, doel.get("lid"),
+        )
+        _stap(writer, "Classificator", _annoteer_melding(voorstellen, verworpen))
+
+        # Stuur een `kandidaten`-event zodat eval candidate_recall kan meten
+        if kandidaten:
+            writer({"type": "kandidaten_v2a", "items": kandidaten})
+
+        doel_uit = {**doel, "leden_teksten": [{"lid": doel.get("lid", ""), "tekst": corpus}]}
+        writer({"type": "doel", "doel": doel_uit})
+
+        if not voorstellen:
+            leeg = (
+                f"Ik vond geen JAS-elementen om te markeren in artikel {aanduiding}"
+                + (f" lid {doel['lid']}." if doel.get("lid") else ".")
+            )
+            writer({"type": "token", "content": leeg})
+            return {"answer": leeg, "voorstellen": [], "verworpen_fragmenten": [],
+                    "corpus": corpus,
+                    "messages": [{"role": "assistant", "content": leeg}]}
+
+        meegestuurd = [
+            e for e in ((state.get("context") or {}).get("bestaande_elementen") or [])
+            if e.get("herkomst") == "mens" and e.get("tekst")
+        ]
+        eigen = [
+            {
+                "id": e.get("id", ""), "klasse": e.get("klasse", ""), "tekst": e.get("tekst", ""),
+                "lid": e.get("lid", ""), "toelichting": "", "alternatieven": [],
+                "grounded": True, "vindplaats": "", "aandacht": "", "critic": "",
+                "van_jurist": True,
+            }
+            for e in meegestuurd
+            if komt_letterlijk_voor(corpus, str(e.get("tekst", "")))
+        ]
+        return {
+            "voorstellen": [v.model_dump() for v in voorstellen] + eigen,
+            "verworpen_fragmenten": [x.model_dump() for x in verworpen],
+            # Critic en herziening lezen corpus via _corpus(state); zonder dit veld vallen
+            # zij terug op de trace-reconstructie over meerdere bepalingen.
+            "corpus": corpus,
+            "answer": "",
+        }
+
     def critic_node(state: State) -> dict[str, Any]:
         """Critic-pas: beoordeelt de gegronde voorstellen en zet per element een aandacht-niveau
         (groen/geel/rood) + motivatie, plus een lijst waarschijnlijk ontbrekende elementen. Eén
@@ -1328,6 +1482,14 @@ def build_graph(
                 }})
         writer({"type": "ontbrekend", "items": ontbrekend})
 
+        # Verworpen fragmenten (niet-letterlijke of ongeldige-klasse citaten) — apart event
+        # zodat de eval-harnas verworpen_per_100 kan meten. De werkplek negeert dit event;
+        # voor eval is het de enige manier om het hallucinatie-aandeel te kwantificeren
+        # zonder in de interne state te kijken.
+        verworpen_frags = state.get("verworpen_fragmenten") or []
+        if verworpen_frags:
+            writer({"type": "verworpen", "items": verworpen_frags})
+
         eigen = [v for v in voorstellen if v.get("van_jurist")]
         voorstellen = [v for v in voorstellen if not v.get("van_jurist")]
         plek = f"artikel {aanduiding}" + (f" lid {doel['lid']}" if doel.get("lid") else "")
@@ -1681,14 +1843,21 @@ def build_graph(
         add("resynth", resynth_node)
         add("agent", agent_node)
         add("tools", tools_node)
-        add("annoteer", annoteer_node)
+        if settings.enable_kandidaat_splitsing:
+            add("annoteer_kandidaten", annoteer_kandidaten_node)
+            add("annoteer_klasseer", annoteer_klasseer_node)
+        else:
+            add("annoteer", annoteer_node)
         add("critic", critic_node)
         add("patch", patch_node)
         add("herzie", herzie_node)
         add("emit", emit_node)
         add("advance", advance_node)
         add("afwijzen", afwijs_node)
-        entrymap = {"agent": "agent", "annoteer": "annoteer", "decompose": "decompose",
+        # Bij splitsing is de eerste annoteer-node `annoteer_kandidaten`; anders `annoteer`.
+        # Alle conditional-edges die "annoteer" als doel teruggeven moeten naar diezelfde node.
+        _annoteer_entry = "annoteer_kandidaten" if settings.enable_kandidaat_splitsing else "annoteer"
+        entrymap = {"agent": "agent", "annoteer": _annoteer_entry, "decompose": "decompose",
                     "afwijzen": "afwijzen"}
         g.add_edge(START, "supervisor")
         g.add_edge("afwijzen", END)
@@ -1700,11 +1869,15 @@ def build_graph(
         g.add_edge("resynth", "synthesize")
         g.add_conditional_edges(
             "agent", route_after_agent,
-            {"tools": "tools", "verify": "verify", "annoteer": "annoteer"},
+            {"tools": "tools", "verify": "verify", "annoteer": _annoteer_entry},
         )
         g.add_edge("tools", "agent")
         g.add_edge("finalize", "advance")
-        g.add_edge("annoteer", "critic")
+        if settings.enable_kandidaat_splitsing:
+            g.add_edge("annoteer_kandidaten", "annoteer_klasseer")
+            g.add_edge("annoteer_klasseer", "critic")
+        else:
+            g.add_edge("annoteer", "critic")
         # De herzieningslus: de Critic wijst aan, de annoteerder herstelt, de Critic kijkt opnieuw.
         # `emit` is de enige uitgang, zodat de werkplek nooit tussenversies ziet.
         # Lineair: critic₁ → patch → [herzie] → [critic₂] → emit. Geen enkele edge wijst terug naar
@@ -1725,26 +1898,36 @@ def build_graph(
     if settings.enable_planning:
         # Supervisor → agent⇄tools → (verify→finalize | annoteer_finalize) → advance → (volgende | einde).
         add("supervisor", supervisor_node)
-        add("annoteer", annoteer_node)
+        if settings.enable_kandidaat_splitsing:
+            add("annoteer_kandidaten", annoteer_kandidaten_node)
+            add("annoteer_klasseer", annoteer_klasseer_node)
+        else:
+            add("annoteer", annoteer_node)
         add("critic", critic_node)
         add("patch", patch_node)
         add("herzie", herzie_node)
         add("emit", emit_node)
         add("advance", advance_node)
         add("afwijzen", afwijs_node)
+        # Bij splitsing is de eerste annoteer-node `annoteer_kandidaten`; anders `annoteer`.
+        _annoteer_entry = "annoteer_kandidaten" if settings.enable_kandidaat_splitsing else "annoteer"
         g.add_edge(START, "supervisor")
         g.add_conditional_edges("supervisor", _entry_node,
-                                {"agent": "agent", "annoteer": "annoteer", "afwijzen": "afwijzen"})
+                                {"agent": "agent", "annoteer": _annoteer_entry, "afwijzen": "afwijzen"})
         g.add_edge("afwijzen", END)
         g.add_conditional_edges(
             "agent", route_after_agent,
-            {"tools": "tools", "verify": "verify", "annoteer": "annoteer"},
+            {"tools": "tools", "verify": "verify", "annoteer": _annoteer_entry},
         )
         g.add_edge("tools", "agent")
         g.add_conditional_edges("verify", route_after_verify, {"correct": "correct", "finalize": "finalize"})
         g.add_edge("correct", "agent")
         g.add_edge("finalize", "advance")
-        g.add_edge("annoteer", "critic")
+        if settings.enable_kandidaat_splitsing:
+            g.add_edge("annoteer_kandidaten", "annoteer_klasseer")
+            g.add_edge("annoteer_klasseer", "critic")
+        else:
+            g.add_edge("annoteer", "critic")
         # De herzieningslus: de Critic wijst aan, de annoteerder herstelt, de Critic kijkt opnieuw.
         # `emit` is de enige uitgang, zodat de werkplek nooit tussenversies ziet.
         # Lineair: critic₁ → patch → [herzie] → [critic₂] → emit. Geen enkele edge wijst terug naar
@@ -1755,7 +1938,7 @@ def build_graph(
         g.add_edge("herzie", "critic")
         g.add_edge("emit", "advance")
         g.add_conditional_edges("advance", route_after_advance,
-                                {"agent": "agent", "annoteer": "annoteer",
+                                {"agent": "agent", "annoteer": _annoteer_entry,
                                  "afwijzen": "afwijzen", "einde": END})
         return g
 

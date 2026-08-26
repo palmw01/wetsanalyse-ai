@@ -25,6 +25,7 @@ export function MobieleTopbar({
     <div className="flex shrink-0 items-center gap-2 border-b border-line px-3 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] lg:hidden">
       <button
         type="button"
+        data-tour="sidebar-mobiel"
         onClick={onOpenSidebar}
         aria-label="Menu openen"
         className="focus-ring inline-flex items-center justify-center rounded-lg border border-line p-2 text-lint transition-colors hover:bg-surface"

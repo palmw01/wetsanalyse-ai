@@ -13,9 +13,9 @@ import uuid
 from collections.abc import Iterator
 from typing import Any, NamedTuple
 
-from .jas_klassen import GELDIGE_JAS_KLASSEN
+from .jas_klassen import GELDIGE_JAS_KLASSEN, REGELS, RegelType
 from .models import (
-    AnnotatieAlternatief, AnnotatieVoorstel, CriticOordeel, OntbrekendItem, VerworpenFragment,
+    Anker, AnnotatieAlternatief, AnnotatieVoorstel, CriticOordeel, OntbrekendItem, VerworpenFragment,
 )
 
 logger = logging.getLogger("graph_qa.annotatie")
@@ -25,10 +25,176 @@ _ACTIES = {"behoud", "vervang", "verwijder"}
 
 _WS = re.compile(r"\s+")
 
+# --- Anker-helpers ---------------------------------------------------------------
+#
+# De offsets slaan op de *originele* brontekst (vóór normalisatie), zodat de UI
+# exact het juiste teken kan markeren. De hash is FNV-1a 32-bit — identiek aan
+# `bronHash()` in `frontend/lib/selectie.ts`, zodat de UI kan detecteren of de
+# brontekst verschoven is na een herimport.
+
+_CONTEXT_LENGTE = 48   # tekens context vóór/na het fragment — gelijk aan frontend CONTEXT_LENGTE
+_FNV_PRIME = 0x01000193
+_FNV_OFFSET = 0x811C9DC5
+
+
+def _fnv1a_32(tekst: str) -> str:
+    """FNV-1a 32-bit hash als hex-string. Identiek aan bronHash() in selectie.ts."""
+    h = _FNV_OFFSET
+    for ch in tekst:
+        for byte in ch.encode("utf-8"):
+            h ^= byte
+            h = (h * _FNV_PRIME) & 0xFFFFFFFF
+    return format(h, "08x")
+
+
+def _maak_anker(corpus: str, start: int, eind: int, lid: str = "") -> Anker:
+    """Bouw het Anker voor een fragment op positie [start, eind) in `corpus`.
+
+    De offsets zijn op de originele (niet-genormaliseerde) brontekst. De context
+    (voor/na) bewaart 48 tekens zodat de UI het juiste voorkomen van een herhaald
+    fragment kan kiezen als de offsets na een herimport zijn verschoven.
+    """
+    return Anker(
+        lid=lid,
+        start=start,
+        eind=eind,
+        voor=corpus[max(0, start - _CONTEXT_LENGTE): start],
+        na=corpus[eind: eind + _CONTEXT_LENGTE],
+        bron_hash=_fnv1a_32(corpus),
+    )
+
+
+def _zoek_in_origineel(corpus: str, norm_corpus: str, norm_frag: str) -> tuple[int, int]:
+    """Geef (start, eind) in de originele `corpus` voor een genormaliseerd fragment.
+
+    `_normaliseer` collapst witruimte. Daardoor wijken de tekenposities in `norm_corpus`
+    af van die in `corpus`. We zoeken het fragment in de genormaliseerde tekst, mappen
+    de start-positie terug naar de originele tekst door te tellen hoeveel originele tekens
+    overeenkomen vóór elk genormaliseerd teken.
+
+    Algoritme: bouw een mapping van norm-index → orig-index. Dat is O(n) en eenvoudig
+    aantoonbaar correct. Bij een niet-gevonden fragment geeft de aanroeper (-1, -1).
+    """
+    # Snelle mapping: norm_idx -> orig_idx voor elk niet-witruimte karakter
+    mapping: list[int] = []
+    in_ws = False
+    for orig_idx, ch in enumerate(corpus):
+        if ch in (" ", "\t", "\n", "\r"):
+            if not in_ws:
+                # De genormaliseerde tekst heeft hier één spatie
+                mapping.append(orig_idx)
+                in_ws = True
+        else:
+            mapping.append(orig_idx)
+            in_ws = False
+
+    norm_start = norm_corpus.find(norm_frag)
+    if norm_start < 0 or norm_start >= len(mapping):
+        return (-1, -1)
+
+    orig_start = mapping[norm_start]
+    # Eind: orig_start + lengte van het fragment in de originele tekst.
+    # We lopen over de originele tekst vanaf orig_start en tellen totdat we
+    # len(norm_frag) genormaliseerde tekens hebben gezien.
+    norm_len = len(norm_frag)
+    gezien = 0
+    orig_eind = orig_start
+    in_ws2 = False
+    for orig_idx in range(orig_start, len(corpus)):
+        ch = corpus[orig_idx]
+        if ch in (" ", "\t", "\n", "\r"):
+            if not in_ws2:
+                gezien += 1
+                in_ws2 = True
+        else:
+            gezien += 1
+            in_ws2 = False
+        if gezien >= norm_len:
+            orig_eind = orig_idx + 1
+            break
+    else:
+        orig_eind = len(corpus)
+
+    return (orig_start, orig_eind)
+
 
 def _normaliseer(s: str) -> str:
     """Collapse witruimte, zodat een fragment ondanks layout-verschillen matcht."""
     return _WS.sub(" ", s or "").strip()
+
+
+# --- Prioriteitsvalidator ---------------------------------------------------
+#
+# Deterministisch: geen LLM-call. Controleert of de toegewezen klasse al dan
+# niet de hoogste prioriteit heeft volgens REGELS. Bij een lagere-prioriteits-
+# klasse wordt de klasse gecorrigeerd en de verplaatste klasse als alternatief
+# bewaard. Eén bron van waarheid (REGELS in jas_klassen.py) voedt zowel de
+# prompt (_prioriteitsregels_tekst) als deze code.
+
+def _prioriteitsrang(klasse: str) -> dict[str, int]:
+    """Geef een dict {klasse: rang} voor alle PRIORITEIT-regels waarbij `klasse` betrokken is."""
+    rang: dict[str, int] = {}
+    for regel in REGELS:
+        if regel.type != RegelType.PRIORITEIT:
+            continue
+        if klasse not in regel.applies_to:
+            continue
+        prio = dict(regel.priority)
+        for k, r in prio.items():
+            if k not in rang or rang[k] < r:
+                rang[k] = r
+    return rang
+
+
+def _pas_prioriteitsregels_toe(
+    klasse: str, alternatieven: list[Any]
+) -> tuple[str, list[Any]]:
+    """Corrigeer `klasse` als een alternatief hogere prioriteit heeft.
+
+    Geeft (definitieve_klasse, bijgewerkte_alternatieven) terug. Als de klasse al de
+    hoogste prioriteit heeft, of als er geen prioriteitsregel van toepassing is, blijft
+    alles ongewijzigd.
+
+    Voorbeeld: klasse=Variabele, alternatief=[Tijdsaanduiding]
+    → Tijdsaanduiding wint (rang 100 > 50)
+    → klasse=Tijdsaanduiding, alternatieven=[...Variabele...]
+    """
+    rang = _prioriteitsrang(klasse)
+    if not rang:
+        return klasse, alternatieven
+
+    eigen_rang = rang.get(klasse, 0)
+    winnaar_klasse = klasse
+    winnaar_rang = eigen_rang
+
+    for alt in (alternatieven or []):
+        alt_klasse = str(alt.klasse if hasattr(alt, "klasse") else alt.get("klasse", "")).strip()
+        alt_rang = rang.get(alt_klasse, 0)
+        if alt_rang > winnaar_rang:
+            winnaar_rang = alt_rang
+            winnaar_klasse = alt_klasse
+
+    if winnaar_klasse == klasse:
+        return klasse, alternatieven
+
+    # Wissel: voeg de oude klasse toe als alternatief (als die er nog niet in zit)
+    nieuwe_alts = list(alternatieven or [])
+    oud_als_alt_klassen = {
+        str(a.klasse if hasattr(a, "klasse") else a.get("klasse", "")).strip()
+        for a in nieuwe_alts
+    }
+    if klasse not in oud_als_alt_klassen:
+        from .models import AnnotatieAlternatief as _AA
+        nieuwe_alts.insert(0, _AA(
+            klasse=klasse,
+            motivatie=f"Lagere prioriteit dan {winnaar_klasse} (JAS-prioriteitsregel).",
+        ))
+    # Verwijder de winnaar uit de alternatieven (hij wordt de hoofdklasse)
+    nieuwe_alts = [
+        a for a in nieuwe_alts
+        if str(a.klasse if hasattr(a, "klasse") else a.get("klasse", "")).strip() != winnaar_klasse
+    ]
+    return winnaar_klasse, nieuwe_alts
 
 
 def komt_letterlijk_voor(corpus: str, fragment: str) -> bool:
@@ -41,6 +207,79 @@ def komt_letterlijk_voor(corpus: str, fragment: str) -> bool:
     """
     norm = _normaliseer(fragment)
     return bool(norm) and _normaliseer(corpus).find(norm) >= 0
+
+
+# ---------------------------------------------------------------------------
+# Fase 2A — kandidaat-parsing en filtering
+# ---------------------------------------------------------------------------
+
+def parse_kandidaten(llm_text: str) -> list[dict]:
+    """Parse de JSON-output van de kandidaat-generator.
+
+    Verwacht {"kandidaten": [{"span": "...", "lid": "...", "reden": "..."}]}.
+    Robuust tegen proza/afkapping: fast-path hele JSON, fallback op
+    gebalanceerde {}-objecten die `span` of `tekst` bevatten.
+    """
+    raw = (llm_text or "").strip().strip("`")
+    if raw.lower().startswith("json"):
+        raw = raw[4:]
+    s, e = raw.find("{"), raw.rfind("}")
+    if s != -1 and e > s:
+        try:
+            data = json.loads(raw[s: e + 1])
+            if isinstance(data, dict) and isinstance(data.get("kandidaten"), list):
+                return [
+                    k for k in data["kandidaten"]
+                    if isinstance(k, dict) and (k.get("span") or k.get("tekst"))
+                ]
+        except json.JSONDecodeError:
+            pass
+    # Fallback: gebalanceerde objecten die span of tekst bevatten
+    gered = []
+    for obj in _balanced_objecten(raw):
+        try:
+            d = json.loads(obj)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(d, dict) and (d.get("span") or d.get("tekst")):
+            gered.append(d)
+    return gered
+
+
+_MIN_KANDIDAAT_LENGTE = 2   # tekens — te korte spans zijn bijna nooit een JAS-element
+
+
+def filter_kandidaten(kandidaten: list[dict], corpus: str) -> list[dict]:
+    """Filter de kandidatenlijst deterministisch (geen LLM).
+
+    Stappen:
+    1. Verwijder spans korter dan _MIN_KANDIDAAT_LENGTE tekens.
+    2. Verwijder spans die niet letterlijk in de corpus staan.
+    3. Normaliseer het span-veld (strip witruimte).
+    4. Dedupliceer op genormaliseerde span + lid (eerste wins).
+    5. Overlappende spans: behoud beide als ze inhoudelijk verschillen.
+       Alleen identieke deelverzamelingen (contained + zelfde reden) worden
+       samengevoegd — de classificator beslist over grensgevallen.
+
+    De juridische keuze (welke overlappende span is het element?) blijft bij
+    de classificator, niet bij deze filter. Zie plan V3 §2A.
+    """
+    norm_corpus = _normaliseer(corpus)
+    gezien: dict[tuple[str, str], dict] = {}
+    resultaat = []
+    for k in kandidaten:
+        span = _normaliseer(k.get("span") or k.get("tekst") or "")
+        if len(span) < _MIN_KANDIDAAT_LENGTE:
+            continue
+        if norm_corpus.find(span) < 0:
+            continue
+        lid = (k.get("lid") or "").strip()
+        sleutel = (span.lower(), lid)
+        if sleutel in gezien:
+            continue
+        gezien[sleutel] = k
+        resultaat.append({**k, "span": span, "lid": lid})
+    return resultaat
 
 
 def sleutel_van(tekst: str, lid: str) -> tuple[str, str]:
@@ -430,6 +669,10 @@ def _verwerk(
             for a in e.get("alternatieven", [])
             if isinstance(a, dict) and str(a.get("klasse", "")).strip() in GELDIGE_JAS_KLASSEN
         ]
+        # Prioriteitsvalidatie (deterministisch, geen LLM): corrigeer de klasse als een
+        # alternatief hogere JAS-prioriteit heeft (bv. Tijdsaanduiding > Variabele).
+        # Eén bron van waarheid: REGELS in jas_klassen.py — geen aparte prompt-proza nodig.
+        klasse, alts = _pas_prioriteitsregels_toe(klasse, alts)
         # Twee keer hetzelfde fragment in één ronde: het model herhaalt zich. De eerste telt —
         # die draagt eventueel het id uit een eerdere ronde, en daaraan hangen de beslissingen.
         # Gaat het om dezelfde span met een ANDERE klasse, dan is dat geen herhaling maar twijfel:
@@ -441,6 +684,12 @@ def _verwerk(
             _voeg_alternatief_toe(eerste, klasse, str(e.get("toelichting", "")).strip())
             continue
         vindplaats = f"{bwb_id} art. {artikel}" + (f" lid {lid}" if lid else "")
+        # Bereken de anker-offsets op de originele brontekst. De genormaliseerde positie is al
+        # bekend (idx in norm_corpus); we mappen die terug naar de originele tekst zodat de UI
+        # exact de juiste tekens kan markeren — ook als de brontekst meerdere witruimte-varianten
+        # bevat die _normaliseer samentrekt.
+        orig_start, orig_eind = _zoek_in_origineel(corpus, norm_corpus, norm_frag)
+        anker = _maak_anker(corpus, orig_start, orig_eind, lid) if orig_start >= 0 else None
         # Een id uit een eerdere ronde behouden (herziening van een bestaand element); anders een
         # nieuw id. Zo blijft de koppeling met de Critic én met de api-elementen intact — maar
         # alléén voor een id dat het model ook echt is aangeboden.
@@ -457,6 +706,7 @@ def _verwerk(
             alternatieven=alts,
             grounded=True,
             vindplaats=vindplaats,
+            anker=anker,
         )
         gezien[sleutel] = voorstel
         voorstellen.append(voorstel)

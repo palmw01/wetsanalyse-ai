@@ -329,7 +329,7 @@ export function ArtefactInhoud({
               </button>
             )}
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div data-tour="artefact-acties" className="flex flex-wrap items-center justify-end gap-2">
             <span className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${DOCUMENT_STATUS_STYLE[doc.status]}`}>
               {DOCUMENT_STATUS_LABEL[doc.status]}
             </span>
@@ -358,7 +358,7 @@ export function ArtefactInhoud({
             onSelectie={onEigenMarkering && !vergrendeld ? setSelectie : undefined}
           />
           {onEigenMarkering && !vergrendeld && (
-            <p className="mt-2 text-xs text-faint">
+            <p data-tour="wettekst-tip" className="mt-2 text-xs text-faint">
               Tip: selecteer een stuk tekst om het zelf te markeren — of klik eerst een markering aan
               en selecteer opnieuw om die in te korten of uit te breiden.
             </p>

@@ -31,6 +31,9 @@ interface Props {
   laden?: boolean;
   /** Alleen mobiel: sluitknop voor de drawer. */
   onSluit?: () => void;
+  /** Start de rondleiding opnieuw. Weglaten verbergt het menu-item — op schermen zonder werkplek
+   *  valt er niets rond te leiden. */
+  onRondleiding?: () => void;
 }
 
 /** De linker-sidebar van de werkplek: bovenin het Belastingdienst-logo, daaronder de chatgeschiedenis,
@@ -44,6 +47,7 @@ export function GesprekSidebar({
   onVerwijder,
   laden,
   onSluit,
+  onRondleiding,
 }: Props) {
   const { data: session } = useSession();
   const pad = usePathname();
@@ -155,7 +159,7 @@ export function GesprekSidebar({
       </div>
 
       {/* Instellingen + gebruiker (onderin) */}
-      <div ref={menuRef} className="relative border-t border-line px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
+      <div data-tour="gebruikersmenu" ref={menuRef} className="relative border-t border-line px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
         {menuOpen && (
           <div className="absolute inset-x-3 bottom-full mb-1 overflow-hidden rounded-kaart border border-line bg-paper shadow-kaart">
             <Link
@@ -173,6 +177,19 @@ export function GesprekSidebar({
               >
                 Beheer
               </Link>
+            )}
+            {onRondleiding && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onSluit?.();
+                  onRondleiding();
+                }}
+                className="block w-full px-3 py-2.5 text-left text-sm text-ink transition-colors hover:bg-surface"
+              >
+                Rondleiding
+              </button>
             )}
             <button
               type="button"

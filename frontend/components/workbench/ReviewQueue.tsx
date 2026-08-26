@@ -172,6 +172,7 @@ function DecisionCard({
   onVraag,
   docVergrendeld,
   toonLid,
+  eerste,
 }: {
   el: AnnotatieElement;
   actief: boolean;
@@ -196,6 +197,9 @@ function DecisionCard({
   /** Beslaat het document meer dan één lid? Zo niet, dan staat het lid al in de kop van het artefact
    *  en herhaalt elke kaart dezelfde mededeling. */
   toonLid?: boolean;
+  /** De bovenste kaart in de lijst. De rondleiding hangt haar uitleg hieraan op; die moet één
+   *  voorspelbaar element aanwijzen, niet elf tegelijk. */
+  eerste?: boolean;
 }) {
   const [notitie, setNotitie] = useState(false);
   const palet = open === "klasse";
@@ -272,6 +276,7 @@ function DecisionCard({
   return (
     <div
       ref={kaartRef}
+      data-tour={eerste ? "review-kaart" : undefined}
       onClick={onKies}
       className={`rounded-kaart border border-line border-l-4 bg-paper p-3 shadow-zacht transition ${
         beslist ? "opacity-75" : aandacht ? `${aandacht.rand} ${aandacht.tint}` : "border-l-line"
@@ -334,6 +339,7 @@ function DecisionCard({
         {/* `ml-auto` duwt de acties op mobiel naar rechts op dezelfde regel als de aandacht-badge;
             op `sm:` doet de flex-verdeling dat al. */}
         <span
+          data-tour={eerste ? "review-acties" : undefined}
           className="order-2 ml-auto flex shrink-0 items-center gap-1 sm:order-3 sm:ml-0"
           onClick={(e) => e.stopPropagation()}
         >
@@ -679,7 +685,7 @@ export function ReviewQueue({
   return (
     <div className="space-y-2.5">
       {/* Voortgang: hoeveel van de N elementen zijn beoordeeld, met een dunne balk. */}
-      <div className="rounded-kaart border border-line bg-surface px-3 py-2.5 shadow-zacht">
+      <div data-tour="review-kop" className="rounded-kaart border border-line bg-surface px-3 py-2.5 shadow-zacht">
         <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
           <span className="text-xs font-medium text-ink">
             Review — {beslist}/{totaal} beoordeeld
@@ -744,9 +750,10 @@ export function ReviewQueue({
         </p>
       )}
 
-      {getoond.map((el) => (
+      {getoond.map((el, i) => (
         <DecisionCard
           key={el.id}
+          eerste={i === 0}
           el={el}
           actief={el.id === actiefId}
           zwevend={zwevendeIds?.has(el.id)}

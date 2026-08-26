@@ -1,9 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 
 import { AppSidebar } from "@/components/werkplek/AppSidebar";
+import { Rondleiding } from "@/components/rondleiding/Rondleiding";
+import { leesStand, moetStarten } from "@/lib/rondleiding";
+import { maakDemoScene, type DemoScene } from "@/lib/rondleidingDemo";
 import { MobieleTopbar } from "@/components/werkplek/MobieleTopbar";
 import { WerkplekClient } from "@/components/werkplek/WerkplekClient";
 import type { GesprekSamenvatting } from "@/lib/types";
@@ -31,6 +35,32 @@ export function WorkbenchShell({
   // te blijven: zonder melding is "de nieuwe naam staat er niet" niet te onderscheiden van "de naam
   // is niet aangeslagen", en blijft een gesprek na een bevestigde verwijdering gewoon staan.
   const [fout, setFout] = useState<string | null>(null);
+  // De rondleiding draait op een eigen mount van het chatvenster met een voorbeeldscène erin. Zo
+  // hoeft het echte gesprek niets van de demo te weten: bij het afsluiten verdwijnt deze mount en
+  // hydrateert de gewone werkplek zichzelf weer uit de api.
+  const [demo, setDemo] = useState<DemoScene | null>(null);
+  const [demoArtefact, setDemoArtefact] = useState(false);
+  const [demoBeslissingen, setDemoBeslissingen] = useState(0);
+  const [demoOpenSignaal, setDemoOpenSignaal] = useState(0);
+  const { data: session } = useSession();
+  const isBeheerder = session?.user?.role === "beheerder";
+
+  function startRondleiding() {
+    setDemoArtefact(false);
+    setDemoBeslissingen(0);
+    setDemoOpenSignaal(0);
+    setDemo(maakDemoScene());
+  }
+
+  // Eerste bezoek aan de werkplek: de rondleiding biedt zichzelf aan. Bewust hier en niet in een
+  // effect verderop — dit is het enige scherm waar hij iets kan aanwijzen.
+  useEffect(() => {
+    // Bewust in een effect en niet in een lazy initializer: `localStorage` bestaat niet tijdens de
+    // server-render, dus zou de server "geen rondleiding" renderen en de client wél — een
+    // hydratatieverschil. Eén keer bij binnenkomst is precies wat hier moet gebeuren.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (moetStarten(leesStand())) startRondleiding();
+  }, []);
 
   function nieuwGesprek() {
     setActiveId(null);
@@ -93,6 +123,8 @@ export function WorkbenchShell({
         verversSignaal={verversSignaal}
         drawerOpen={drawerOpen}
         onDrawerSluit={() => setDrawerOpen(false)}
+        onRondleiding={startRondleiding}
+        demoGesprekken={demo?.gesprekken}
       />
 
       {/* Rechterkolom: mobiele topbar + chatvenster */}
@@ -114,15 +146,39 @@ export function WorkbenchShell({
           }
         />
 
-        <WerkplekClient
-          key={mountKey}
-          initialGesprekId={activeId}
-          beginArtefact={beginArtefact}
-          onGesprekAangemaakt={gesprekAangemaakt}
-          onGewijzigd={() => setVerversSignaal((n) => n + 1)}
+        {demo ? (
+          <WerkplekClient
+            key="rondleiding"
+            demo={demo}
+            initialGesprekId={null}
+            onGesprekAangemaakt={() => {}}
+            onGewijzigd={() => {}}
+            demoOpenSignaal={demoOpenSignaal}
+            onDemoArtefact={setDemoArtefact}
+            onDemoBeslissing={() => setDemoBeslissingen((n) => n + 1)}
+          />
+        ) : (
+          <WerkplekClient
+            key={mountKey}
+            initialGesprekId={activeId}
+            beginArtefact={beginArtefact}
+            onGesprekAangemaakt={gesprekAangemaakt}
+            onGewijzigd={() => setVerversSignaal((n) => n + 1)}
+            onRondleiding={startRondleiding}
+          />
+        )}
+      </div>
+      </div>
+
+      {demo && (
+        <Rondleiding
+          isBeheerder={isBeheerder}
+          artefactOpen={demoArtefact}
+          beslissingen={demoBeslissingen}
+          onOpenArtefact={() => setDemoOpenSignaal((n) => n + 1)}
+          onKlaar={() => setDemo(null)}
         />
-      </div>
-      </div>
+      )}
     </div>
   );
 }

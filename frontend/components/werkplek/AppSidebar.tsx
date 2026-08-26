@@ -23,6 +23,13 @@ interface Props {
   /** Mobiel: staat de off-canvas drawer open, en hoe sluit hij. */
   drawerOpen?: boolean;
   onDrawerSluit?: () => void;
+  /** Start de rondleiding opnieuw (alleen de werkplek geeft dit mee). */
+  onRondleiding?: () => void;
+  /** De voorbeeldlijst van de rondleiding. Is die gezet, dan draait de sidebar als demo: de lijst
+   *  komt hiervandaan en hernoemen/verwijderen blijven in dit geheugen — er gaat geen enkel verzoek
+   *  naar de api. Zonder dit hing de rondleiding af van wat er in het account staat, en dat is bij
+   *  een nieuwe gebruiker niets. */
+  demoGesprekken?: GesprekSamenvatting[];
 }
 
 /** De gesprekssidebar met alles eromheen: laden, hernoemen, verwijderen, en de mobiele drawer.
@@ -33,12 +40,16 @@ interface Props {
  *  lokale state, op het overzicht navigeert hij terug naar de werkplek. */
 export function AppSidebar({
   activeId, onNieuw, onOpen, onVerwijderd, onFout, onLijst, verversSignaal = 0,
-  drawerOpen = false, onDrawerSluit,
+  drawerOpen = false, onDrawerSluit, onRondleiding, demoGesprekken,
 }: Props) {
-  const [gesprekken, setGesprekken] = useState<GesprekSamenvatting[]>([]);
-  const [laden, setLaden] = useState(true);
+  const [gesprekken, setGesprekken] = useState<GesprekSamenvatting[]>(demoGesprekken ?? []);
+  const [laden, setLaden] = useState(!demoGesprekken);
+  const demo = Boolean(demoGesprekken);
 
   const verversLijst = useCallback(() => {
+    // In de rondleiding is deze lijst een voorbeeld; ophalen zou hem overschrijven met de (vaak
+    // lege) echte lijst.
+    if (demo) return;
     lijstGesprekken()
       .then((lijst) => {
         setGesprekken(lijst);
@@ -49,13 +60,26 @@ export function AppSidebar({
     // `onLijst` bewust buiten de deps: het is vaak een inline callback en zou de fetch anders bij
     // elke render opnieuw laten lopen.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [demo]);
 
   useEffect(() => {
     verversLijst();
   }, [verversLijst, verversSignaal]);
 
+  // De rondleiding kan tussentijds starten of stoppen. Dat bijstellen hoort in de render en niet in
+  // een effect: anders rendert de sidebar eerst één frame met de vórige lijst — bij het starten dus
+  // met de (vaak lege) echte lijst waar de rondleiding juist omheen werkt.
+  const [vorigeDemo, setVorigeDemo] = useState(demoGesprekken);
+  if (demoGesprekken !== vorigeDemo) {
+    setVorigeDemo(demoGesprekken);
+    if (demoGesprekken) setGesprekken(demoGesprekken);
+  }
+
   async function hernoem(id: string, titel: string) {
+    if (demo) {
+      setGesprekken((lijst) => lijst.map((g) => (g.id === id ? { ...g, titel } : g)));
+      return;
+    }
     try {
       await hernoemGesprek(id, titel);
       verversLijst();
@@ -67,6 +91,10 @@ export function AppSidebar({
   /** De bevestiging zit in de knop zelf (`BevestigKnop`, twee klikken) — hetzelfde gebaar als in het
    *  artefact; geen `window.confirm` midden in een app met een eigen vormtaal. */
   async function verwijder(id: string) {
+    if (demo) {
+      setGesprekken((lijst) => lijst.filter((g) => g.id !== id));
+      return;
+    }
     try {
       await verwijderGesprek(id);
       // Meteen uit de lijst halen en dáárna pas verversen: de DELETE is al geslaagd, dus wachten op
@@ -90,12 +118,13 @@ export function AppSidebar({
       onVerwijder={verwijder}
       laden={laden}
       onSluit={extra?.onSluit}
+      onRondleiding={onRondleiding}
     />
   );
 
   return (
     <>
-      <aside className="hidden w-[17rem] shrink-0 border-r border-line lg:block">{inhoud()}</aside>
+      <aside data-tour="sidebar" className="hidden w-[17rem] shrink-0 border-r border-line lg:block">{inhoud()}</aside>
 
       {/* Mobiele off-canvas drawer. Via `Dialog` en niet als eigen constructie: die draagt de
           focus-trap, Escape en de backdrop. */}

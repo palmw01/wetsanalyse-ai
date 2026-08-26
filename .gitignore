@@ -46,3 +46,7 @@ api/_data/
 # volledige import, en de bron is de wettenbank, niet git.
 tools/bwb-import/data/
 api/spike_act2.json
+
+# Lokale sqlite van de API bij een smoke-test (`api/CLAUDE.md`: sqlite-override). Wegwerpdata van
+# één machine — de echte opslag is Postgres.
+api/*.db
