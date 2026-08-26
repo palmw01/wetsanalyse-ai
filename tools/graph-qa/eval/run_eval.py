@@ -73,11 +73,11 @@ async def run_annotatie_case(
     ook krijgt. Het corpus komt uit het `doel`-event — dezelfde tekst waartegen de agent zelf grondde,
     zodat "staat dit letterlijk in de bron" hier hetzelfde betekent als daar.
 
-    Verworpen fragmenten worden apart bijgehouden via `verworpen_p100`. Die zijn in de huidige
-    keten niet als SSE-event beschikbaar (ze leven intern in de state), dus we leiden het getal
-    af uit de aandacht-velden: elementen met een Critic-ronde die "niet_letterlijk" noemt zijn
-    achteraf niet meer te reconstrueren. Als workaround: verworpen-telling is 0 totdat fase 2A
-    een expliciet `verworpen`-event uitzendt.
+    Verworpen fragmenten worden apart bijgehouden via `verworpen_p100`, gevoed door het
+    `verworpen`-event dat `emit_node` sinds fase 1B uitzendt. Ze uit de aandacht-velden afleiden
+    kan niet: een fragment dat op "niet letterlijk" sneuvelde wordt nooit een element, dus er is
+    achteraf niets meer te reconstrueren. Blijft het event uit, dan telt de maat 0 — en dat betekent
+    "niets verworpen", niet "niet gemeten".
     """
     elementen: list[dict[str, Any]] = []
     verworpen: list[dict[str, Any]] = []

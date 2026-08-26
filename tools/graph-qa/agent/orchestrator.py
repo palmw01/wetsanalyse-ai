@@ -968,13 +968,38 @@ def build_graph(
         de state in; de volgende node (`annoteer_klasseer_node`) classificeert ze.
         """
         writer = get_stream_writer()
+
+        # Een ONDERWERP in plaats van een bepaling: dan legt de ophaal-agent kandidaat-bepalingen
+        # voor en annoteren we nog niets. Identiek aan `annoteer_node` — welke bepaling de
+        # werkvoorraad in gaat is een keuze van de jurist, en die keuze mag niet afhangen van of de
+        # splitsing aan staat.
+        kandidaat_bepalingen = _kandidaten_uit_json(state.get("answer", ""))
+        if kandidaat_bepalingen:
+            writer({"type": "kandidaten", "kandidaten": kandidaat_bepalingen})
+            melding = (
+                f"Ik vond {len(kandidaat_bepalingen)} bepalingen over dit onderwerp. Kies welke je "
+                "wilt laten annoteren."
+            )
+            writer({"type": "token", "content": melding})
+            return {"answer": melding, "voorstellen": [], "kandidaten_v2a": [],
+                    "messages": [{"role": "assistant", "content": melding}]}
+
         doel = _bepaal_doel(state)
         # Gebruik het in state gecachede corpus; als dat leeg is haal het gericht op
         # (zelfde strategie als annoteer_node — zonder dit zou een direct-naar-annoteer
         # route met leeg corpus altijd een lege kandidatenlijst opleveren).
         corpus = state.get("corpus") or _corpus_voor_doel(doel, graph, state.get("source_trace", []))
         if not corpus.strip():
-            return {"kandidaten_v2a": []}
+            # Zelfde melding als V1. Stil teruggeven liet de klasseer-node hierna een LLM-call doen
+            # op een lege tekst, en las de jurist "geen JAS-elementen gevonden" waar "ik kon de
+            # bepaling niet ophalen" de waarheid is.
+            melding = (
+                "Ik kon de gevraagde bepaling niet ophalen om te annoteren — controleer de wet en het "
+                "artikel/lid (bij een beleidsregel bv. '9.1')."
+            )
+            writer({"type": "token", "content": melding})
+            return {"answer": melding, "voorstellen": [], "kandidaten_v2a": [], "corpus": "",
+                    "messages": [{"role": "assistant", "content": melding}]}
 
         aanduiding = doel.get("artikel") or doel.get("nummer") or ""
         _stap(writer, "Kandidaatgenerator", f"zoekt spans in art. {aanduiding}")
@@ -993,7 +1018,10 @@ def build_graph(
         gefilterd = filter_kandidaten(ruw, corpus)
         _stap(writer, "Kandidaatgenerator",
               f"{len(ruw)} gevonden, {len(gefilterd)} na filtering")
-        return {"kandidaten_v2a": gefilterd}
+        # Het corpus MOET mee. `annoteer_klasseer_node` leest het uit de state, en zonder dit veld
+        # staat daar niets — of, bij een tweede bepaling in dezelfde run, de tekst van de vórige.
+        # Dan gront `_verwerk` elk fragment tegen de verkeerde tekst en verwerpt het alles.
+        return {"kandidaten_v2a": gefilterd, "corpus": corpus}
 
     def annoteer_klasseer_node(state: State) -> dict[str, Any]:
         """Fase 2A stap 2: classificeer de gefilterde kandidaten.

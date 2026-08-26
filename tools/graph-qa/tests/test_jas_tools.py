@@ -99,3 +99,18 @@ class TestJasToolsRegistratie:
         result = dispatch("jas_klasse_opvragen", FakeGraph(result=""), {"naam": "Rechtsfeit"})
         data = json.loads(result)
         assert data["naam"] == "Rechtsfeit"
+
+    def test_opvraagbaar_maar_niet_standaard_aangeboden(self):
+        """Opt-in: wie erom vraagt krijgt ze, de QA-agent krijgt ze niet ongevraagd.
+
+        Ze stonden alleen in `_BY_NAME`, dus `only=JAS_TOOL_NAMEN` — precies de aanroep die de
+        module-docstring voorschrijft — gaf een lege lijst: uitvoerbaar, maar onaanroepbaar voor het
+        model, want een tool die niet in de schema's staat bestaat voor hem niet.
+        """
+        from agent.tools import JAS_TOOL_NAMEN, anthropic_schemas
+
+        gevraagd = {t["name"] for t in anthropic_schemas(only=JAS_TOOL_NAMEN)}
+        assert gevraagd == set(JAS_TOOL_NAMEN)
+
+        standaard = {t["name"] for t in anthropic_schemas()}
+        assert not (standaard & set(JAS_TOOL_NAMEN))

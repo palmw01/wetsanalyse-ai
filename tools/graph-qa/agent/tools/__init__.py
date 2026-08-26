@@ -255,10 +255,18 @@ _BY_NAME: dict[str, dict[str, Any]] = {t["name"]: t for t in TOOLS + JAS_TOOLS}
 
 
 def anthropic_schemas(only: set[str] | frozenset[str] | None = None) -> list[dict[str, Any]]:
-    """Model-facing tool-schema's; filter op een toegestane set (None = alle)."""
+    """Model-facing tool-schema's; filter op een toegestane set (None = alle).
+
+    De JAS-kennistools zijn **opt-in**: ze doen alleen mee als `only` ze bij naam noemt. Ze stonden
+    alleen in `_BY_NAME` — uitvoerbaar via `dispatch`, maar nooit aangeboden aan het model, zodat
+    `anthropic_schemas(only=JAS_TOOL_NAMEN)` een lege lijst gaf. Ze bij `only=None` meeleveren zou
+    het andere uiterste zijn: dan krijgt de QA-agent er twee tools bij die hij niet nodig heeft,
+    terwijl ze voor de klasseer-agent bedoeld zijn.
+    """
+    beschikbaar = TOOLS if only is None else TOOLS + JAS_TOOLS
     return [
         {"name": t["name"], "description": t["description"], "input_schema": t["input_schema"]}
-        for t in TOOLS
+        for t in beschikbaar
         if only is None or t["name"] in only
     ]
 

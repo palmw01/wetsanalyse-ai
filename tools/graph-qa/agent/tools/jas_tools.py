@@ -18,6 +18,15 @@ Integratie in anthropic_schemas():
     De twee tools zijn opgenomen in JAS_TOOLS — een aparte lijst zodat de
     orchestrator ze alleen aan de klasseer-agent geeft, niet aan de QA-agent.
     Gebruik `anthropic_schemas(only=JAS_TOOL_NAMEN)` om ze te selecteren.
+
+STAND: aangeboden kan, aangeroepen nog niet.
+    `anthropic_schemas` kent ze inmiddels (ze stonden alleen in `_BY_NAME`, dus
+    `only=JAS_TOOL_NAMEN` gaf een lege lijst) en `dispatch` voert ze uit. Maar de
+    node die ze zou gebruiken — `annoteer_klasseer_node` — doet een pure
+    `llm.create(tools=[])` zonder agent-lus, dus in de draaiende keten roept nog
+    niemand ze aan. Dat aanzetten is het eigenlijke 2B-experiment (klasse-dump uit
+    de systeemprompt halen en het model laten opvragen) en hoort met een eval
+    ernaast te gebeuren, niet als stille bijvangst.
 """
 from __future__ import annotations
 
