@@ -2,21 +2,13 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { klemHorizontaal } from "@/lib/popover";
-import type { Stap } from "@/lib/rondleiding";
+import { plaatsBubbel, type Afmeting, type Stap, type Vak } from "@/lib/rondleiding";
 
-/** Ruimte tussen het aangewezen element en de bubbel. */
-const MARGE = 12;
 /** Hoe ver de spotlight om het element heen valt. */
 const SPOT_MARGE = 6;
 const BUBBEL_BREEDTE = 340;
-
-interface Vak {
-  top: number;
-  left: number;
-  breedte: number;
-  hoogte: number;
-}
+/** Waar we vanuit gaan zolang de bubbel nog niet gemeten is (eerste frame van een stap). */
+const BUBBEL_HOOGTE_SCHATTING = 220;
 
 function vakVan(el: Element): Vak {
   const r = el.getBoundingClientRect();
@@ -47,18 +39,33 @@ export function TourBubbel({
   stap, nummer, totaal, doel, gedaan, onVorige, onVolgende, onSluit,
 }: Props) {
   const [vak, setVak] = useState<Vak | null>(null);
+  // De eigen afmeting van de bubbel. Zonder die te meten valt niet te bepalen of hij ergens
+  // *past* — en dat is precies wat er misging: "de kant met de meeste ruimte" kan nog altijd te
+  // weinig ruimte zijn, waarna de bubbel half onder de schermrand hing.
+  const [bubbel, setBubbel] = useState<Afmeting>({
+    breedte: BUBBEL_BREEDTE, hoogte: BUBBEL_HOOGTE_SCHATTING,
+  });
+  const [viewport, setViewport] = useState<Afmeting>({ breedte: 1024, hoogte: 768 });
   const bubbelRef = useRef<HTMLDivElement>(null);
   const kopRef = useRef<HTMLParagraphElement>(null);
 
   // Meebewegen met de pagina. Het artefact en de reviewlijst hebben hun eigen scrollers, dus
   // luisteren op `window` is niet genoeg: een scroll in een binnenpaneel bubbelt alleen in de
   // capture-fase omhoog. Vandaar `capture: true`.
+  //
+  // In dezelfde slag meten we de bubbel en de viewport: die drie horen bij elkaar, want samen
+  // bepalen ze de plaatsing. Ook zonder doel loopt dit effect — de bubbel kan dan nog steeds van
+  // maat veranderen, en de viewport hoort na een draai van het toestel te kloppen.
   useLayoutEffect(() => {
-    if (!doel) return;
     let frame = 0;
     const meet = () => {
       cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => setVak(vakVan(doel)));
+      frame = requestAnimationFrame(() => {
+        setVak(doel ? vakVan(doel) : null);
+        setViewport({ breedte: window.innerWidth, hoogte: window.innerHeight });
+        const r = bubbelRef.current?.getBoundingClientRect();
+        if (r && r.height > 0) setBubbel({ breedte: r.width, hoogte: r.height });
+      });
     };
     meet();
     window.addEventListener("resize", meet);
@@ -68,6 +75,7 @@ export function TourBubbel({
       window.removeEventListener("resize", meet);
       window.removeEventListener("scroll", meet, { capture: true });
     };
+    // `stap.id` hoort erbij: een andere tekst is een andere bubbelhoogte.
   }, [doel, stap.id]);
 
   // De focus hoort bij elke stap in de bubbel te landen, anders staat hij nog op de knop van de
@@ -81,50 +89,42 @@ export function TourBubbel({
   // effect hierboven geen state hoeft te wissen.
   const actiefVak = doel ? vak : null;
 
-  const vw = typeof window === "undefined" ? 1024 : window.innerWidth;
-  const vh = typeof window === "undefined" ? 768 : window.innerHeight;
+  const plaatsing = plaatsBubbel(actiefVak, bubbel, viewport);
 
-  // Verticaal kiezen we de kant met de meeste ruimte; horizontaal klemmen we met dezelfde functie
-  // die de popovers gebruiken, zodat de bubbel nooit half buiten beeld hangt.
-  let stijl: React.CSSProperties;
-  if (!actiefVak) {
-    // Dezelfde breedtegrens als de aangehaakte tak: zonder die grens is een bubbel van 340px op een
-    // telefoon breder dan het scherm, en dan staat hij wel in het midden maar steekt hij er links en
-    // rechts uit.
-    stijl = {
-      top: "50%",
-      left: "50%",
-      transform: "translate(-50%, -50%)",
-      width: BUBBEL_BREEDTE,
-      maxWidth: "calc(100vw - 1.5rem)",
-    };
-  } else {
-    const onder = vh - (actiefVak.top + actiefVak.hoogte);
-    const naarBeneden = onder > actiefVak.top;
-    const links = actiefVak.left + actiefVak.breedte / 2 - BUBBEL_BREEDTE / 2;
-    const dx = klemHorizontaal({ left: links, breedte: BUBBEL_BREEDTE }, vw);
-    stijl = {
-      top: naarBeneden ? actiefVak.top + actiefVak.hoogte + MARGE : undefined,
-      bottom: naarBeneden ? undefined : vh - actiefVak.top + MARGE,
-      left: links + dx,
-      width: BUBBEL_BREEDTE,
-      maxWidth: "calc(100vw - 1.5rem)",
-    };
-  }
+  // In `midden`-modus wijst de bubbel niets aan — dus hoort er ook geen spotlight omheen. Dat is
+  // precies het geval bij het gespreksvenster en de sidebar: die vullen bijna het hele scherm, en
+  // een uitsparing eromheen licht het halve beeld op in plaats van iets aan te wijzen.
+  const spotVak = plaatsing.modus === "midden" ? null : actiefVak;
+
+  const stijl: React.CSSProperties =
+    plaatsing.modus === "midden"
+      ? {
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          width: BUBBEL_BREEDTE,
+          maxWidth: "calc(100vw - 1.5rem)",
+        }
+      : {
+          top: plaatsing.top,
+          left: plaatsing.left,
+          width: BUBBEL_BREEDTE,
+          maxWidth: "calc(100vw - 1.5rem)",
+        };
 
   return (
     <>
       {/* De dimlaag. `pointer-events-none` is essentieel: in stap "Jij beslist" klikt de gebruiker
           op een knop die híéronder ligt. */}
       <div className="pointer-events-none fixed inset-0 z-[60]" aria-hidden>
-        {actiefVak ? (
+        {spotVak ? (
           <div
             className="absolute rounded-kaart transition-all duration-150 motion-reduce:transition-none"
             style={{
-              top: actiefVak.top - SPOT_MARGE,
-              left: actiefVak.left - SPOT_MARGE,
-              width: actiefVak.breedte + SPOT_MARGE * 2,
-              height: actiefVak.hoogte + SPOT_MARGE * 2,
+              top: spotVak.top - SPOT_MARGE,
+              left: spotVak.left - SPOT_MARGE,
+              width: spotVak.breedte + SPOT_MARGE * 2,
+              height: spotVak.hoogte + SPOT_MARGE * 2,
               boxShadow: "0 0 0 9999px rgba(26, 26, 26, 0.55)",
               outline: "2px solid rgb(var(--lint))",
               outlineOffset: "2px",

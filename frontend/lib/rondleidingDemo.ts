@@ -18,7 +18,7 @@ import { maakAnker } from "./selectie";
 import type { ThreadItem } from "./threadItem";
 import type {
   Aandacht, AnnotatieDocument, AnnotatieElement, AgentRun, Anker, BeslissingInvoer,
-  GraafArtikel, Lifecycle,
+  GesprekSamenvatting, GraafArtikel, Lifecycle,
 } from "./types";
 
 /** De slug van het voorbeelddocument. Begint met `demo-` zodat hij nooit met een echte slug botst. */
@@ -232,11 +232,32 @@ export function maakDemoItems(): ThreadItem[] {
   ];
 }
 
+/** De gesprekkenlijst die de sidebar tijdens de rondleiding toont.
+ *
+ *  Die lijst komt normaal uit de api, en bij een nieuwe gebruiker is hij dus leeg — precies de
+ *  gebruiker die de rondleiding krijgt. De stap "Je werk terugvinden" wees dan naar een lege kolom
+ *  terwijl de tekst zegt dat je gesprekken er staan. De rondleiding hoort niet af te hangen van wat
+ *  er toevallig in het account staat, net zomin als de thread dat doet. */
+function maakDemoGesprekken(): GesprekSamenvatting[] {
+  // Vaste tijdstippen, aflopend: een demo die "3 minuten geleden" zegt omdat hij nu gestart wordt,
+  // suggereert werk dat de gebruiker nooit gedaan heeft.
+  return [
+    { id: "demo-gesprek-1", titel: `${DEMO_LABEL} — Invorderingswet 1990, artikel 9`,
+      aantal_berichten: 4, updated: "2026-03-17T10:12:00Z" },
+    { id: "demo-gesprek-2", titel: `${DEMO_LABEL} — Wat betekent 'belastingschuldige'?`,
+      aantal_berichten: 2, updated: "2026-03-16T15:40:00Z" },
+    { id: "demo-gesprek-3", titel: `${DEMO_LABEL} — Termijnen bij uitstel van betaling`,
+      aantal_berichten: 6, updated: "2026-03-14T09:05:00Z" },
+  ];
+}
+
 /** Alles wat de werkplek nodig heeft om de voorbeeldscène te tonen. */
 export interface DemoScene {
   items: ThreadItem[];
   docs: Record<string, AnnotatieDocument>;
   infos: Record<string, GraafArtikel>;
+  /** De sidebar draait tijdens de rondleiding op deze lijst in plaats van op die uit de api. */
+  gesprekken: GesprekSamenvatting[];
 }
 
 export function maakDemoScene(): DemoScene {
@@ -244,6 +265,7 @@ export function maakDemoScene(): DemoScene {
     items: maakDemoItems(),
     docs: { [DEMO_SLUG]: maakDemoDocument() },
     infos: { [DEMO_SLUG]: DEMO_ARTIKEL },
+    gesprekken: maakDemoGesprekken(),
   };
 }
 

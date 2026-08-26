@@ -222,6 +222,89 @@ export function vraagtArtefact(stappen: Stap[], index: number): boolean {
   return Boolean(stappen[index]?.artefactOpen);
 }
 
+// --- waar komt de bubbel te staan ------------------------------------------------------------
+//
+// Hier en niet in het component, om dezelfde reden als de rest van dit bestand: vitest draait
+// zonder DOM, en dit is precies het soort rekenwerk dat je wilt kunnen natellen zonder browser.
+
+/** Ruimte tussen het aangewezen element en de bubbel, en tussen de bubbel en de schermrand. */
+export const BUBBEL_MARGE = 12;
+
+/** Een gemeten rechthoek in viewport-coördinaten. */
+export interface Vak {
+  top: number;
+  left: number;
+  breedte: number;
+  hoogte: number;
+}
+
+export interface Afmeting {
+  breedte: number;
+  hoogte: number;
+}
+
+/** Waar de bubbel terechtkomt. `midden` betekent: niet aanwijzen maar centreren — dan hoort er
+ *  ook geen spotlight omheen. */
+export type Plaatsing =
+  | { modus: "midden" }
+  | { modus: "onder" | "boven" | "links" | "rechts"; top: number; left: number };
+
+/** Houd een waarde binnen [onder, boven]. Bij een te krappe ruimte wint de ondergrens: liever
+ *  tegen de bovenrand aan dan eronderuit gezakt. */
+function klem(waarde: number, onder: number, boven: number): number {
+  return Math.max(onder, Math.min(waarde, boven));
+}
+
+/** Domineert dit element het scherm? Dan is "ernaast wijzen" geen zinnige plaatsing meer: er ís
+ *  geen naast. Het gespreksvenster en de sidebar vullen bijna de hele hoogte, en een spotlight
+ *  eromheen licht het halve scherm op in plaats van iets aan te wijzen. */
+export function domineert(vak: Vak, viewport: Afmeting): boolean {
+  const hoogHalf = vak.hoogte > viewport.hoogte * 0.6;
+  const grootVlak = vak.breedte * vak.hoogte > viewport.breedte * viewport.hoogte * 0.5;
+  return hoogHalf || grootVlak;
+}
+
+/** Kies een plek voor de bubbel bij het aangewezen vak.
+ *
+ *  De volgorde is: onder, boven, rechts, links, en anders het midden. Doorslaggevend is of de
+ *  bubbel er **past** — niet welke kant het meeste ruimte heeft. Dat laatste was de oude regel, en
+ *  daardoor belandde de bubbel bij een schermvullend element buiten beeld: "meer ruimte" kan nog
+ *  altijd te weinig zijn. Wat er ook uitkomt, de bubbel blijft binnen het scherm. */
+export function plaatsBubbel(vak: Vak | null, bubbel: Afmeting, viewport: Afmeting): Plaatsing {
+  if (!vak || domineert(vak, viewport)) return { modus: "midden" };
+
+  const m = BUBBEL_MARGE;
+  const onderRand = vak.top + vak.hoogte;
+  const rechterRand = vak.left + vak.breedte;
+
+  // Horizontaal uitgelijnd op het midden van het element, verticaal idem — in beide gevallen
+  // geklemd, zodat een element aan de rand de bubbel niet mee naar buiten trekt.
+  const linksGecentreerd = klem(
+    vak.left + vak.breedte / 2 - bubbel.breedte / 2,
+    m,
+    Math.max(m, viewport.breedte - bubbel.breedte - m),
+  );
+  const topGecentreerd = klem(
+    vak.top + vak.hoogte / 2 - bubbel.hoogte / 2,
+    m,
+    Math.max(m, viewport.hoogte - bubbel.hoogte - m),
+  );
+
+  if (viewport.hoogte - onderRand >= bubbel.hoogte + 2 * m) {
+    return { modus: "onder", top: onderRand + m, left: linksGecentreerd };
+  }
+  if (vak.top >= bubbel.hoogte + 2 * m) {
+    return { modus: "boven", top: vak.top - m - bubbel.hoogte, left: linksGecentreerd };
+  }
+  if (viewport.breedte - rechterRand >= bubbel.breedte + 2 * m) {
+    return { modus: "rechts", top: topGecentreerd, left: rechterRand + m };
+  }
+  if (vak.left >= bubbel.breedte + 2 * m) {
+    return { modus: "links", top: topGecentreerd, left: vak.left - m - bubbel.breedte };
+  }
+  return { modus: "midden" };
+}
+
 // --- browser-opslag (dun laagje om de pure functies heen) -------------------------------------
 
 const SLEUTEL = "wa_rondleiding";

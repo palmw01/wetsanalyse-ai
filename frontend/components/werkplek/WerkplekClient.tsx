@@ -315,6 +315,15 @@ export function WerkplekClient({
   }, [beginArtefact]);
 
   async function openArtefact(slug: string) {
+    // In de rondleiding staan document én artikeltekst al in het geheugen. Zonder deze grens hangt
+    // de demo alsnog aan de api en de graaf — en juist die kunnen plat liggen op het moment dat een
+    // nieuwe gebruiker binnenkomt.
+    if (demo) {
+      setArtefactFout(null);
+      setArtefactWeg(null);
+      setArtefactSlug(slug);
+      return;
+    }
     setArtefactFout(null);
     // Al bekend als verwijderd: niet nog een keer proberen — er valt niets op te halen.
     if (verwijderd[slug]) {

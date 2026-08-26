@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Dialog } from "@/components/ui/Dialog";
 import { TourBubbel } from "@/components/rondleiding/TourBubbel";
 import {
-  hervatIndex, RONDLEIDING_VERSIE, schrijfStand, zichtbareStappen, type Stap,
+  domineert, hervatIndex, RONDLEIDING_VERSIE, schrijfStand, zichtbareStappen, type Stap,
 } from "@/lib/rondleiding";
 
 /** Waar de rondleiding thuishoort. Buiten dit pad wijst hij niets aan, dus dan pauzeert hij. */
@@ -105,10 +105,18 @@ export function Rondleiding({ isBeheerder, artefactOpen, onOpenArtefact, onKlaar
         document.querySelector(`[data-tour="${stap.anker}"]`);
       if (el) {
         setDoel(el);
-        el.scrollIntoView({
-          block: "center",
-          behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
-        });
+        // Een element dat het scherm domineert wordt niet aangewezen maar gecentreerd getoond
+        // (zie `plaatsBubbel`), en dan is scrollen zinloos: `block: "center"` kan iets dat groter
+        // is dan de viewport nergens centreren, en op een scroll-container als de thread verschuift
+        // het de pagina eromheen in plaats van de inhoud.
+        const r = el.getBoundingClientRect();
+        const vak = { top: r.top, left: r.left, breedte: r.width, hoogte: r.height };
+        if (!domineert(vak, { breedte: window.innerWidth, hoogte: window.innerHeight })) {
+          el.scrollIntoView({
+            block: "center",
+            behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+          });
+        }
         return;
       }
       // Nog even geduld: het artefact schuift in, de lijst rendert. Lukt het daarna niet, dan valt

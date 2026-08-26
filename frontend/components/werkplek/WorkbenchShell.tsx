@@ -124,6 +124,7 @@ export function WorkbenchShell({
         drawerOpen={drawerOpen}
         onDrawerSluit={() => setDrawerOpen(false)}
         onRondleiding={startRondleiding}
+        demoGesprekken={demo?.gesprekken}
       />
 
       {/* Rechterkolom: mobiele topbar + chatvenster */}

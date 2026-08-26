@@ -4,8 +4,8 @@ import { globSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import {
-  hervatIndex, indexVan, LEGE_STAND, moetStarten, RONDLEIDING_VERSIE, STAPPEN, vraagtArtefact,
-  zichtbareStappen,
+  BUBBEL_MARGE, domineert, hervatIndex, indexVan, LEGE_STAND, moetStarten, plaatsBubbel,
+  RONDLEIDING_VERSIE, STAPPEN, vraagtArtefact, zichtbareStappen, type Vak,
 } from "./rondleiding";
 import {
   DEMO_SLUG, demoBron, maakDemoDocument, maakDemoScene, pasDemoBeslissingToe,
@@ -127,6 +127,16 @@ describe("de voorbeeldscène", () => {
     expect(scene.docs[DEMO_SLUG].citeertitel).toContain("VOORBEELD");
     const chip = scene.items.find((i) => i.type === "annotatie");
     expect(chip!.type === "annotatie" && chip!.titel).toContain("VOORBEELD");
+    // Ook de sidebar-lijst: die staat naast de echte gesprekken van de gebruiker.
+    for (const g of scene.gesprekken) expect(g.titel).toContain("VOORBEELD");
+  });
+
+  it("levert een gevulde gesprekkenlijst voor de sidebar", () => {
+    // De stap "Je werk terugvinden" wijst de sidebar aan. Die haalt zijn lijst normaal bij de api,
+    // en bij een nieuwe gebruiker — precies wie de rondleiding krijgt — is die leeg.
+    const scene = maakDemoScene();
+    expect(scene.gesprekken.length).toBeGreaterThan(0);
+    expect(new Set(scene.gesprekken.map((g) => g.id)).size).toBe(scene.gesprekken.length);
   });
 
   it("bouwt elke keer een schone lei", () => {
@@ -177,6 +187,90 @@ describe("de demo-mutaties", () => {
     const doc = maakDemoDocument();
     expect(zetDemoStatus(doc, "geaccordeerd").status).toBe("geaccordeerd");
     expect(zetDemoStatus(zetDemoStatus(doc, "geaccordeerd"), "in_review").status).toBe("in_review");
+  });
+});
+
+describe("waar de bubbel komt te staan", () => {
+  const SCHERM = { breedte: 1440, hoogte: 900 };
+  const TELEFOON = { breedte: 390, hoogte: 844 };
+  const BUBBEL = { breedte: 340, hoogte: 220 };
+
+  /** Ligt de bubbel volledig binnen het scherm? Dat is de eis waar het eerder op misging. */
+  function binnenBeeld(
+    plaatsing: ReturnType<typeof plaatsBubbel>,
+    bubbel = BUBBEL,
+    scherm = SCHERM,
+  ): boolean {
+    if (plaatsing.modus === "midden") return true;
+    return (
+      plaatsing.top >= 0 &&
+      plaatsing.left >= 0 &&
+      plaatsing.top + bubbel.hoogte <= scherm.hoogte &&
+      plaatsing.left + bubbel.breedte <= scherm.breedte
+    );
+  }
+
+  it("centreert als er geen element is", () => {
+    expect(plaatsBubbel(null, BUBBEL, SCHERM)).toEqual({ modus: "midden" });
+  });
+
+  it("centreert bij het gespreksvenster in plaats van het aan te wijzen", () => {
+    // De thread is de scroll-container tussen topbar en invoerveld: bijna de volle hoogte. Hier
+    // ging het mis — "de kant met de meeste ruimte" leverde een bubbel onder de schermrand.
+    const thread: Vak = { top: 56, left: 288, breedte: 1152, hoogte: 770 };
+    expect(plaatsBubbel(thread, BUBBEL, SCHERM)).toEqual({ modus: "midden" });
+  });
+
+  it("centreert bij de sidebar over de volle hoogte", () => {
+    const sidebar: Vak = { top: 0, left: 0, breedte: 272, hoogte: 900 };
+    expect(plaatsBubbel(sidebar, BUBBEL, SCHERM)).toEqual({ modus: "midden" });
+  });
+
+  it("hangt onder een element dat bovenin staat", () => {
+    const kop: Vak = { top: 80, left: 400, breedte: 300, hoogte: 40 };
+    const p = plaatsBubbel(kop, BUBBEL, SCHERM);
+    expect(p.modus).toBe("onder");
+    if (p.modus !== "midden") expect(p.top).toBe(80 + 40 + BUBBEL_MARGE);
+    expect(binnenBeeld(p)).toBe(true);
+  });
+
+  it("hangt boven een element dat onderin staat", () => {
+    // Het invoerveld: onderaan het scherm, dus onder past de bubbel niet meer.
+    const invoer: Vak = { top: 800, left: 400, breedte: 600, hoogte: 60 };
+    const p = plaatsBubbel(invoer, BUBBEL, SCHERM);
+    expect(p.modus).toBe("boven");
+    if (p.modus !== "midden") expect(p.top + BUBBEL.hoogte).toBe(800 - BUBBEL_MARGE);
+    expect(binnenBeeld(p)).toBe(true);
+  });
+
+  it("wijkt naar opzij als er boven noch onder ruimte is", () => {
+    // Een hoge kolom links: boven en onder blijft 200px over, te weinig voor een bubbel van 220.
+    // Het scherm domineren doet hij niet, dus wijkt de bubbel naar rechts uit.
+    const band: Vak = { top: 200, left: 20, breedte: 500, hoogte: 500 };
+    const p = plaatsBubbel(band, BUBBEL, SCHERM);
+    expect(p.modus).toBe("rechts");
+    expect(binnenBeeld(p)).toBe(true);
+  });
+
+  it("trekt een element aan de rand niet mee naar buiten", () => {
+    // Een knop helemaal rechts: de bubbel zou uitgelijnd op het midden buiten beeld beginnen.
+    const knop: Vak = { top: 100, left: 1380, breedte: 50, hoogte: 32 };
+    const p = plaatsBubbel(knop, BUBBEL, SCHERM);
+    expect(binnenBeeld(p)).toBe(true);
+  });
+
+  it("houdt de bubbel op een telefoon binnen beeld", () => {
+    const kaart: Vak = { top: 300, left: 12, breedte: 366, hoogte: 120 };
+    const p = plaatsBubbel(kaart, BUBBEL, TELEFOON);
+    expect(binnenBeeld(p, BUBBEL, TELEFOON)).toBe(true);
+  });
+
+  it("herkent een element dat het scherm domineert", () => {
+    // Op de hoogte alleen (een smalle kolom over de volle hoogte, zoals de sidebar) …
+    expect(domineert({ top: 0, left: 0, breedte: 200, hoogte: 700 }, SCHERM)).toBe(true);
+    // … en op het oppervlak alleen (breed en niet eens zo hoog).
+    expect(domineert({ top: 0, left: 0, breedte: 1400, hoogte: 500 }, SCHERM)).toBe(true);
+    expect(domineert({ top: 100, left: 100, breedte: 300, hoogte: 40 }, SCHERM)).toBe(false);
   });
 });
 
