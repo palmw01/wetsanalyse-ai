@@ -137,15 +137,13 @@ Alle draaiende onderdelen (API, frontend, graph-qa) zijn **geïnstrumenteerd, ni
 ze emitteren gestructureerde JSON-logs (één gedeelde vorm, bv. `frontend/lib/logger.ts`)
 en kunnen OpenTelemetry (traces/metrics/logs) naar een **configureerbaar OTLP-endpoint** sturen
 (`OTEL_EXPORTER_OTLP_ENDPOINT`; leeg = alleen logs, nul overhead). Eén trace-id verbindt de keten
-frontend → API → graph-qa — **behalve dat dat op dit moment niet werkt.** Gemeten op acceptatie
-(26 aug 2026): de frontend neemt een binnenkomende `traceparent` correct over en nest zijn eigen
-spans goed, maar de api registreert dezelfde aanroep als een nieuwe root (`ParentId == OperationId`).
-`NEXT_OTEL_FETCH_DISABLED=1` staat inmiddels op de frontend — de Next.js-documentatie wijst die vlag
-aan wanneer je een eigen fetch-instrumentatie gebruikt — maar dat lost het niet op. De volgende stap
-is vaststellen of de header de api überhaupt bereikt. Zie `frontend/instrumentation.ts`.
+frontend → API → graph-qa, geverifieerd op acceptatie (26 aug 2026).
 
-Let op dat dit **stil** faalt: telemetrie komt gewoon binnen, alleen het verband tussen de diensten
-ontbreekt.
+Dat gaat niet vanzelf: `@vercel/otel` maakt wél spans voor uitgaande `fetch`, maar zet géén
+`traceparent` op de request. De BFF injecteert hem daarom zelf — `frontend/app/api/_lib/trace.ts`, op
+elke fetch naar een upstream. Voeg je een BFF-route toe die zelf fetcht, gebruik dan `metTrace()`;
+laat je het weg, dan faalt het **stil**: telemetrie komt gewoon binnen, alleen het verband tussen de
+diensten ontbreekt. Zie `docs/observability.md` voor de controle-meting.
 
 **Waar dat endpoint heen wijst verschilt per omgeving, en dat is opzet — de monitoring hoort bij de
 omgeving die hij bewaakt.** Op **Azure** (acceptatie en productie) staat per straat een stateless

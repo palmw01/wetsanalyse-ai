@@ -1,19 +1,20 @@
 // Next.js instrumentation-hook: registreert OpenTelemetry (traces + metrics) via @vercel/otel.
 // Gated op OTEL_EXPORTER_OTLP_ENDPOINT — zonder endpoint gebeurt er niets (geen overhead, geen
 // dependency-lading). @vercel/otel instrumenteert automatisch de route handlers én uitgaande
-// `fetch` (injecteert W3C-traceparent), zodat één trace de keten frontend → API → graph-qa omspant.
+// `fetch`, zodat de spans binnen de frontend correct nesten.
 //
-// LET OP — die belofte over de keten klopt op dit moment NIET, en dat faalt stil.
+// LET OP — @vercel/otel injecteert die traceparent NIET op uitgaande fetch. Gemeten met een
+// echo-server achter `API_BASE_URL` (26 aug 2026): de upstream kreeg `traceparent=None`, terwijl er
+// in Application Insights wél nette uitgaande spans stonden. Een span is geen propagatie, en het
+// verschil faalt stil: je ziet telemetrie, alleen elke dienst in zijn eigen trace.
 //
-// Gemeten op acceptatie (26 aug 2026) met een eigen `traceparent`-header: deze kant doet het goed —
-// de binnenkomende header wordt overgenomen en de spans nesten correct (`GET /api/health` →
-// `executing api route` → de uitgaande fetch). Maar de api registreert diezelfde aanroep als een
-// nieuwe root: in Application Insights heeft elke span daar `ParentId == OperationId`.
+// De BFF injecteert de header daarom zelf, expliciet, op elke fetch naar een upstream — zie
+// `app/api/_lib/trace.ts`. Haal dat niet weg omdat de instrumentatie het "zou moeten doen".
 //
-// `NEXT_OTEL_FETCH_DISABLED=1` staat inmiddels op de frontend (Azure: `deploy/azure/main.bicep`,
-// docker-host: `deploy/dev/docker-compose.yml`). De Next.js-documentatie wijst die vlag aan wanneer
-// je een eigen fetch-instrumentatie gebruikt, en @vercel/otel brengt er een mee — maar het lost het
-// niet op. Openstaand: vaststellen of de traceparent de api überhaupt bereikt.
+// `NEXT_OTEL_FETCH_DISABLED=1` staat op de frontend (Azure: `deploy/azure/main.bicep`, docker-host:
+// `deploy/dev/docker-compose.yml`). Dat was een eerdere poging tot een fix en heeft niets opgelost;
+// het staat er nog omdat de Next.js-documentatie de vlag aanwijst wanneer je een eigen
+// fetch-instrumentatie gebruikt — wat nu letterlijk het geval is.
 //
 // Draait alleen in de nodejs-runtime (niet edge/middleware). Leest endpoint/protocol/service-name
 // uit de standaard OTEL_*-env-vars.

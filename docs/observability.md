@@ -13,11 +13,13 @@ de omgeving die hij bewaakt.**
 | **dev** (docker-host) | de compose-stack uit `deploy/observability/`: OTel-Collector + Tempo + Loki + Prometheus + Alloy | Grafana, met de twee dashboards uit deze map |
 | **acceptatie / productie** (Azure) | een stateless OTel-collector per straat → **Application Insights**, workspace-based op de Log Analytics van die straat | de Azure-portal: end-to-end transacties, Application Map, KQL over `requests`/`traces` |
 
-**De keten werkt op dit moment niet — open punt.** Elke dienst levert telemetrie, maar ze delen
-geen trace-id: de api registreert een aanroep van de frontend als nieuwe root. Dat faalt stil, want
-je ziet wél data.
+**De keten deelt één trace-id** — frontend → api → PostgreSQL onder dezelfde `OperationId`,
+geverifieerd op acceptatie (26 aug 2026). Dat gaat niet vanzelf: `@vercel/otel` maakt wél spans voor
+uitgaande `fetch`, maar zet géén `traceparent` op de request. De BFF injecteert hem daarom zelf
+(`frontend/app/api/_lib/trace.ts`, op elke fetch naar een upstream).
 
-Zo controleer je het: stuur een request met een eigen `traceparent`-header en kijk of alle diensten
+Controleer het na een wijziging aan de BFF-routes, want het faalt stil: je ziet gewoon telemetrie,
+alleen elke dienst in zijn eigen trace. Zo doe je dat: stuur een request met een eigen `traceparent`-header en kijk of alle diensten
 onder dat trace-id verschijnen.
 
 ```
