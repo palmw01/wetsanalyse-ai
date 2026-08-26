@@ -1,0 +1,142 @@
+# Terugrollen: een straat terugzetten op een eerdere revisie.
+#
+# Azure bewaart de revisiehistorie van elke container app, dus de vorige versie staat er nog — er is
+# geen extra opslag of registry-actie voor nodig. Deze workflow leest die historie uit en zet de
+# gekozen revisie terug.
+#
+# Zonder `revisie` toont hij alleen wat er te kiezen valt. Dat is met opzet: bij een storing wil je
+# eerst zien wélke revisies er zijn en welke image eronder zit, en pas daarna kiezen.
+
+name: rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      omgeving:
+        description: "Welke straat"
+        type: choice
+        options: [productie, acceptatie]
+        default: productie
+      app:
+        description: "Welke app"
+        type: choice
+        options: [api, frontend, graph-qa]
+        default: frontend
+      revisie:
+        description: "Revisienaam om terug te zetten (leeg = alleen tonen wat er is)"
+        type: string
+        default: ""
+
+concurrency:
+  group: rollback-${{ inputs.omgeving }}
+  cancel-in-progress: false
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    # Dezelfde poort als een uitrol: terugrollen is net zo goed een productiewijziging.
+    environment: ${{ inputs.omgeving }}
+    env:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      RG: ${{ vars.AZURE_RESOURCE_GROUP }}
+      APP_NAME: ${{ vars.APP_NAME }}
+
+    steps:
+      - name: Preflight (credentials en omgevingsvars aanwezig?)
+        run: |
+          set -euo pipefail
+          for v in AZURE_CLIENT_ID AZURE_CLIENT_SECRET AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID RG APP_NAME; do
+            [ -n "${!v:-}" ] || { echo "::error::ontbrekende secret/var: $v (zie deploy/azure/README.md)"; exit 1; }
+          done
+
+      - name: Inloggen bij Azure
+        run: |
+          set -euo pipefail
+          az login --service-principal \
+            --username "$AZURE_CLIENT_ID" \
+            --password "$AZURE_CLIENT_SECRET" \
+            --tenant "$AZURE_TENANT_ID" >/dev/null
+          az account set --subscription "$AZURE_SUBSCRIPTION_ID"
+
+      - name: Revisies tonen
+        env:
+          APP: ${{ inputs.app }}
+        run: |
+          set -euo pipefail
+          naam="$APP_NAME-$APP"
+          echo "Revisies van $naam (nieuwste eerst):"
+          az containerapp revision list -n "$naam" -g "$RG" \
+            --query "reverse(sort_by([].{revisie:name, actief:properties.active, staat:properties.runningState, verkeer:properties.trafficWeight, aangemaakt:properties.createdTime, image:properties.template.containers[0].image}, &aangemaakt))" \
+            -o table | head -15
+
+      - name: Terugzetten
+        if: ${{ inputs.revisie != '' }}
+        env:
+          APP: ${{ inputs.app }}
+          REVISIE: ${{ inputs.revisie }}
+        run: |
+          set -euo pipefail
+          naam="$APP_NAME-$APP"
+
+          # Bestaat de revisie? Een typefout hoort te falen vóór we iets verzetten, niet erna.
+          image=$(az containerapp revision show -n "$naam" -g "$RG" --revision "$REVISIE" \
+                    --query "properties.template.containers[0].image" -o tsv 2>/dev/null || true)
+          [ -n "$image" ] || { echo "::error::revisie '$REVISIE' bestaat niet op $naam"; exit 1; }
+
+          echo "Terugzetten van $naam naar $REVISIE"
+          echo "  image: $image"
+
+          # De app draait in Single-revision-modus: een image-swap maakt een nieuwe revisie met het
+          # oude image. Dat is bewust geen `revision activate` — dan zou de app in
+          # multiple-revision-modus moeten staan, en dat is een ander (blijvend) gedrag dan wat de
+          # bicep beschrijft. Zo blijft de template de waarheid.
+          az containerapp update -n "$naam" -g "$RG" --image "$image" --output none
+
+      - name: Wachten tot de teruggezette revisie draait
+        if: ${{ inputs.revisie != '' }}
+        env:
+          APP: ${{ inputs.app }}
+        run: |
+          set -euo pipefail
+          naam="$APP_NAME-$APP"
+          rev=$(az containerapp show -n "$naam" -g "$RG" --query "properties.latestRevisionName" -o tsv)
+          echo "Nieuwe revisie: $rev"
+          for _ in $(seq 1 30); do
+            st=$(az containerapp revision show -n "$naam" -g "$RG" --revision "$rev" \
+                   --query "properties.runningState" -o tsv 2>/dev/null || echo Unknown)
+            echo "  $st"
+            case "$st" in
+              Running|RunningAtMaxScale) echo "$rev draait."; exit 0 ;;
+              Failed|Degraded) echo "::error::revisie $rev kwam niet gezond op ($st)"; exit 1 ;;
+            esac
+            sleep 10
+          done
+          echo "::error::revisie $rev werd niet Running binnen 5 minuten"; exit 1
+
+      - name: Samenvatting
+        if: always()
+        env:
+          APP: ${{ inputs.app }}
+        run: |
+          {
+            echo "## Rollback — ${{ inputs.omgeving }} / $APP_NAME-$APP"
+            echo ""
+            if [ -n "${{ inputs.revisie }}" ]; then
+              echo "Teruggezet op de image van revisie \`${{ inputs.revisie }}\`."
+              echo ""
+              echo "Let op: de code op \`master\` en de tag \`release/prd\` wijzen hier níét mee terug."
+              echo "Een volgende uitrol brengt de nieuwere versie gewoon weer binnen — repareer dus"
+              echo "de oorzaak, of draai de betreffende commit terug."
+            else
+              echo "Alleen getoond. Vul \`revisie\` om er een terug te zetten."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Afmelden bij Azure
+        if: always()
+        run: az logout || true

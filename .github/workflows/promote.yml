@@ -22,7 +22,7 @@ jobs:
   promote:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write   # om `release/prd` te verzetten na een geslaagde promotie
       packages: read
     # De required reviewer op deze environment is de poort vóór productie.
     environment: productie
@@ -56,6 +56,10 @@ jobs:
             --password "$AZURE_CLIENT_SECRET" \
             --tenant "$AZURE_TENANT_ID" >/dev/null
           az account set --subscription "$AZURE_SUBSCRIPTION_ID"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
 
       - name: Log in bij GHCR
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
@@ -140,6 +144,18 @@ jobs:
           wacht frontend
           wacht graph-qa
 
+      # Wat draait er in productie? Die vraag is nu met git te beantwoorden in plaats van met de
+      # portal. De tag blijft het onveranderlijke ijkpunt; deze branch is de aanwijzer die meebeweegt.
+      #
+      # Pas ná de health-gate: een branch die naar een revisie wijst die niet opkwam, liegt.
+      - name: release/prd verzetten
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git push --force origin "${{ github.sha }}:refs/heads/release/prd"
+          echo "release/prd wijst nu naar ${{ github.sha }} (tag $GITHUB_REF_NAME)"
+
       - name: Samenvatting
         if: always()
         run: |
@@ -156,6 +172,8 @@ jobs:
             echo "graph-qa   ${{ steps.digests.outputs.graph_qa }}"
             echo "bwb-import ${{ steps.digests.outputs.bwb_import }}"
             echo '```'
+            echo ""
+            echo "\`release/prd\` wijst nu naar deze commit — \`git log release/prd\` toont wat er draait."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Afmelden bij Azure
