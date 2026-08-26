@@ -72,6 +72,9 @@ jobs:
       ACCEPTATIE_APP_NAME: ${{ vars.ACCEPTATIE_APP_NAME || 'wetsanalyse' }}
       PRODUCTIE_APP_NAME: ${{ vars.PRODUCTIE_APP_NAME || 'wetsanalyse-prd' }}
       AZURE_LOCATION: ${{ vars.AZURE_LOCATION || 'northeurope' }}
+      # Per straat: acceptatie mag koud starten en een week bewaren, productie niet.
+      BACKUP_RETENTION_DAYS: ${{ vars.BACKUP_RETENTION_DAYS || '7' }}
+      MIN_REPLICAS_APPS: ${{ vars.MIN_REPLICAS_APPS || '0' }}
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
@@ -247,7 +250,9 @@ jobs:
           set -euo pipefail
           args=(--llm-api-base "$LLM_API_BASE" --llm-model "$LLM_MODEL"
                 --resource-group "$RESOURCE_GROUP" --location "$AZURE_LOCATION"
-                --app-name "$APP_NAME" --what-if)
+                --app-name "$APP_NAME" --what-if
+                --backup-retention-days "${BACKUP_RETENTION_DAYS:-7}"
+                --min-replicas-apps "${MIN_REPLICAS_APPS:-0}")
           [ -f "$RUNNER_TEMP/graphdb.license" ] && args+=(--license-file "$RUNNER_TEMP/graphdb.license")
           [ -n "${IMG_API:-}" ]        && args+=(--api-image "$IMG_API")
           [ -n "${IMG_FRONTEND:-}" ]   && args+=(--frontend-image "$IMG_FRONTEND")
@@ -266,7 +271,9 @@ jobs:
           set -euo pipefail
           args=(--llm-api-base "$LLM_API_BASE" --llm-model "$LLM_MODEL"
                 --resource-group "$RESOURCE_GROUP" --location "$AZURE_LOCATION"
-                --app-name "$APP_NAME" --run)
+                --app-name "$APP_NAME" --run
+                --backup-retention-days "${BACKUP_RETENTION_DAYS:-7}"
+                --min-replicas-apps "${MIN_REPLICAS_APPS:-0}")
           [ -f "$RUNNER_TEMP/graphdb.license" ] && args+=(--license-file "$RUNNER_TEMP/graphdb.license")
           [ -n "${IMG_API:-}" ]        && args+=(--api-image "$IMG_API")
           [ -n "${IMG_FRONTEND:-}" ]   && args+=(--frontend-image "$IMG_FRONTEND")
