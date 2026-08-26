@@ -2,6 +2,7 @@
 // Azure Container Apps-stack voor Wetsanalyse — een ZELFSTANDIGE omgeving:
 //
 //   PostgreSQL Flexible Server · GraphDB · BWB-import (job) · API · graph-qa · Frontend
+//   + Log Analytics, Application Insights en een OTel-collector (de monitoring van deze straat)
 //
 // Deze stack praat NIET met de docker-host: hij brengt zijn eigen kennisgraaf mee. Dat scheelt een
 // publieke ingang naar het thuisnetwerk, en maakt de omgeving los aan- en uitzetbaar.
@@ -28,6 +29,7 @@ param graphQaImage string = 'ghcr.io/palmw01/graph-qa:latest'
 param frontendImage string = 'ghcr.io/palmw01/wetsanalyse-frontend:latest'
 param bwbImportImage string = 'ghcr.io/palmw01/bwb-import:latest'
 param graphdbImage string = 'ontotext/graphdb:11.4.0'
+param otelCollectorImage string = 'otel/opentelemetry-collector-contrib:0.119.0'
 
 // ── LLM-configuratie ─────────────────────────────────────────────────────────
 @description('LLM-modelnaam (bijv. claude-sonnet-4-6).')
@@ -156,8 +158,8 @@ resource pgDatabase 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2023-06
 // van buiten het LAN niet bereikbaar, dus die kan deze omgeving niet bedienen; een Log Analytics
 // workspace per straat is wat het hier doorzoekbaar maakt.
 //
-// PerGB2018 met 30 dagen retentie: de goedkoopste zinnige stand. Traces/metrics blijven uit
-// (`OTEL_EXPORTER_OTLP_ENDPOINT` is leeg = alleen logs, nul overhead) — dat is een aparte afweging.
+// PerGB2018 met 30 dagen retentie: de goedkoopste zinnige stand. Traces en metrics komen erbij via
+// Application Insights hieronder, dat op dezelfde workspace schrijft.
 resource logs 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: 'log-${appName}'
   location: location
@@ -167,6 +169,27 @@ resource logs 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
       name: 'PerGB2018'
     }
     retentionInDays: 30
+  }
+}
+
+// Application Insights, workspace-based op de workspace hierboven. Daarmee staan logs, traces en
+// metrics in ÉÉN workspace en zijn ze samen te bevragen — een request in `requests` is te koppelen
+// aan de logregels van dezelfde beurt.
+//
+// Dit is wat de keten frontend → api → graph-qa onder één trace-id zichtbaar maakt. Zonder dit
+// bestaat die correlatie wel in de code (elke dienst propageert traceparent) maar nergens in beeld.
+resource insights 'Microsoft.Insights/components@2020-02-02' = {
+  name: 'appi-${appName}'
+  location: location
+  tags: straatTags
+  kind: 'web'
+  properties: {
+    Application_Type: 'web'
+    WorkspaceResourceId: logs.id
+    // De portal-ingang volstaat; de apps praten via de collector, niet via een SDK-key.
+    IngestionMode: 'LogAnalytics'
+    publicNetworkAccessForIngestion: 'Enabled'
+    publicNetworkAccessForQuery: 'Enabled'
   }
 }
 
@@ -184,6 +207,109 @@ resource cae 'Microsoft.App/managedEnvironments@2024-03-01' = {
     }
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 2b. OTel-collector — de brug naar Application Insights
+// ─────────────────────────────────────────────────────────────────────────────
+// Application Insights kent geen OTLP-ingest. De twee wegen erheen zijn een collector ertussen, of
+// de Azure Monitor OTel-distro ín de apps. Dat laatste is een codewijziging in drie diensten én
+// vendor-lock op precies de plek waar het ontwerp provider-neutraal wil zijn: de apps kennen alleen
+// een configureerbaar OTLP-endpoint, en leeg = uit.
+//
+// Deze collector is STATELESS: geen opslag, geen state, een herstart kost niets. Hij schaalt naar
+// nul als er geen verkeer is en komt op zodra een app iets stuurt.
+var collectorConfig = '''
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+processors:
+  batch:
+    timeout: 5s
+  # Zonder cap kan een piek in de app de collector opblazen.
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 80
+    spike_limit_percentage: 20
+
+exporters:
+  azuremonitor:
+    connection_string: "${AZMON_CONNECTION_STRING}"
+
+service:
+  telemetry:
+    logs:
+      level: warn
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [azuremonitor]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [azuremonitor]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [azuremonitor]
+'''
+
+resource collectorApp 'Microsoft.App/containerApps@2024-03-01' = {
+  name: '${appName}-otel-collector'
+  location: location
+  tags: straatTags
+  properties: {
+    environmentId: cae.id
+    configuration: {
+      // Intern-only: alleen de apps in deze omgeving sturen erheen.
+      ingress: {
+        external: false
+        targetPort: 4318
+        transport: 'auto'
+        additionalPortMappings: [
+          { external: false, targetPort: 4317, exposedPort: 4317 }
+        ]
+      }
+      secrets: [
+        { name: 'azmon-connection-string', value: insights.properties.ConnectionString }
+        { name: 'collector-config', value: collectorConfig }
+      ]
+    }
+    template: {
+      containers: [
+        {
+          name: 'otel-collector'
+          image: otelCollectorImage
+          resources: {
+            cpu: json('0.25')
+            memory: '0.5Gi'
+          }
+          env: [
+            { name: 'AZMON_CONNECTION_STRING', secretRef: 'azmon-connection-string' }
+            { name: 'COLLECTOR_CONFIG', secretRef: 'collector-config' }
+          ]
+          // Container Apps kennen geen configmounts, dus de config komt als secret binnen en wordt
+          // hier weggeschreven voordat de collector start.
+          command: ['/bin/sh', '-c']
+          args: [
+            'printf \'%s\' "$COLLECTOR_CONFIG" > /tmp/collector.yaml && /otelcol-contrib --config=/tmp/collector.yaml'
+          ]
+        }
+      ]
+      scale: {
+        minReplicas: 0
+        maxReplicas: 2
+      }
+    }
+  }
+}
+
+var collectorEndpoint = 'http://${collectorApp.name}'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 3. GraphDB — de kennisgraaf (intern)
@@ -409,6 +535,13 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
             }
           ]
           env: [
+            // Telemetrie naar de collector in deze omgeving, die het doorschrijft naar Application
+            // Insights. Leeg laten = uit; dat was de stand tot nu toe.
+            { name: 'OTEL_EXPORTER_OTLP_ENDPOINT', value: collectorEndpoint }
+            { name: 'OTEL_SERVICE_NAME', value: 'wetsanalyse-api' }
+            // De straat staat op elke span, zodat acceptatie en productie in dezelfde workspace
+            // uit elkaar te houden zijn.
+            { name: 'OTEL_RESOURCE_ATTRIBUTES', value: 'deployment.environment=${appName}' }
             { name: 'LLM_PROVIDER', value: llmProvider }
             { name: 'LLM_MODEL', value: llmModel }
             { name: 'LLM_API_BASE', value: llmApiBase }
@@ -507,6 +640,13 @@ resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
             }
           ]
           env: [
+            // Telemetrie naar de collector in deze omgeving, die het doorschrijft naar Application
+            // Insights. Leeg laten = uit; dat was de stand tot nu toe.
+            { name: 'OTEL_EXPORTER_OTLP_ENDPOINT', value: collectorEndpoint }
+            { name: 'OTEL_SERVICE_NAME', value: 'graph-qa' }
+            // De straat staat op elke span, zodat acceptatie en productie in dezelfde workspace
+            // uit elkaar te houden zijn.
+            { name: 'OTEL_RESOURCE_ATTRIBUTES', value: 'deployment.environment=${appName}' }
             // graph-qa gebruikt de Anthropic-SDK → de base-URL draagt het `/anthropic`-segment
             // (i.t.t. de api/LiteLLM die kale LLM_API_BASE gebruikt).
             { name: 'AZURE_FOUNDRY_BASE_URL', value: '${llmApiBase}/anthropic' }
@@ -605,6 +745,13 @@ resource frontendApp 'Microsoft.App/containerApps@2024-03-01' = {
             }
           ]
           env: [
+            // Telemetrie naar de collector in deze omgeving, die het doorschrijft naar Application
+            // Insights. Leeg laten = uit; dat was de stand tot nu toe.
+            { name: 'OTEL_EXPORTER_OTLP_ENDPOINT', value: collectorEndpoint }
+            { name: 'OTEL_SERVICE_NAME', value: 'wetsanalyse-frontend' }
+            // De straat staat op elke span, zodat acceptatie en productie in dezelfde workspace
+            // uit elkaar te houden zijn.
+            { name: 'OTEL_RESOURCE_ATTRIBUTES', value: 'deployment.environment=${appName}' }
             { name: 'NODE_ENV', value: 'production' }
             { name: 'API_BASE_URL', value: apiInternalUrl }
             { name: 'GRAPH_QA_URL', value: graphQaInternalUrl }
