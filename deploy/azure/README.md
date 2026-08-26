@@ -150,6 +150,21 @@ Er is geen Owner-recht voor nodig; alles gebeurt binnen de bestaande resource gr
 4. Open de frontend-URL uit de samenvatting op `/setup` en maak de eerste beheerder aan.
 5. Vanaf dan gaat elke release via een tag `v*` → `promote.yml`.
 
+### Als er iets misgaat
+
+1. **Wat draait er?** `git log release/prd -1` toont de commit die in productie staat; `azure-infra`
+   → `inventaris` toont de images en revisies.
+2. **Wat zegt de telemetrie?** `azure-infra` → `telemetrie` (per straat). Zonder `query` krijg je de
+   standaardset: wat er binnenkwam, requests per dienst met p95, en trace-ids die over meerdere
+   diensten lopen. Met `query` stel je je eigen KQL-vraag — read-only.
+3. **Terugrollen.** `rollback` → kies straat en app, laat `revisie` leeg om te zien wat er is, en
+   draai hem daarna nog eens met de revisie die je wilt terugzetten. Achter dezelfde reviewer als een
+   uitrol.
+
+Let op wat terugrollen **niet** doet: `master`, de tag en `release/prd` bewegen niet mee. Een
+volgende uitrol brengt de nieuwere versie gewoon weer binnen — repareer dus de oorzaak, of draai de
+betreffende commit terug.
+
 ### Infra: handmatig
 
 Actions → **azure-infra** → *Run workflow*, met een keuze voor de straat en de actie:

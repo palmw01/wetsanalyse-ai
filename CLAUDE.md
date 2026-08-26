@@ -137,7 +137,10 @@ Alle draaiende onderdelen (API, frontend, graph-qa) zijn **geïnstrumenteerd, ni
 ze emitteren gestructureerde JSON-logs (één gedeelde vorm, bv. `frontend/lib/logger.ts`)
 en kunnen OpenTelemetry (traces/metrics/logs) naar een **configureerbaar OTLP-endpoint** sturen
 (`OTEL_EXPORTER_OTLP_ENDPOINT`; leeg = alleen logs, nul overhead). Eén trace-id verbindt de keten
-frontend → API → graph-qa.
+frontend → API → graph-qa — mits **`NEXT_OTEL_FETCH_DISABLED=1`** op de frontend staat. Next.js
+instrumenteert `fetch` anders zelf en zet dan géén traceparent op de uitgaande request, waarna de
+keten stil uiteenvalt in losse traces per dienst (zichtbaar doordat elke span
+`ParentId == OperationId` heeft). Zie `frontend/instrumentation.ts`.
 
 **Waar dat endpoint heen wijst verschilt per omgeving, en dat is opzet — de monitoring hoort bij de
 omgeving die hij bewaakt.** Op **Azure** (acceptatie en productie) staat per straat een stateless
