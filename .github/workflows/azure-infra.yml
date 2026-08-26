@@ -347,7 +347,8 @@ jobs:
           hoort_erbij=""
           for s in $straten; do
             [ -n "$s" ] || continue
-            hoort_erbij="$hoort_erbij cae-$s log-$s $s-api $s-frontend $s-graph-qa $s-graphdb $s-bwb-import $s-db"
+            hoort_erbij="$hoort_erbij cae-$s log-$s appi-$s $s-api $s-frontend $s-graph-qa"
+            hoort_erbij="$hoort_erbij $s-graphdb $s-bwb-import $s-otel-collector $s-db"
           done
 
           is_van_ons() {
