@@ -53,6 +53,16 @@ param bwbIds array = [
   'BWBR0024096'
 ]
 
+@description('Hoeveel dagen back-ups van PostgreSQL bewaard blijven. Acceptatie heeft genoeg aan een week; voor productie is dit het enige vangnet onder de annotaties, en die zijn — anders dan de graaf — niet te reproduceren.')
+@minValue(7)
+@maxValue(35)
+param backupRetentionDays int = 7
+
+@description('Ondergrens voor api en graph-qa. 0 laat ze naar nul schalen (goedkoop, maar de eerste aanroep na een stille periode wacht op een koude start); 1 houdt ze warm. Acceptatie 0, productie 1.')
+@minValue(0)
+@maxValue(3)
+param minReplicasApps int = 0
+
 @description('Java-heap voor GraphDB. Moet passen binnen het geheugen van de container-app.')
 param graphdbHeap string = '2g'
 
@@ -122,7 +132,7 @@ resource pgServer 'Microsoft.DBforPostgreSQL/flexibleServers@2023-06-01-preview'
       autoGrow: 'Enabled'
     }
     backup: {
-      backupRetentionDays: 7
+      backupRetentionDays: backupRetentionDays
       geoRedundantBackup: 'Disabled'
     }
     highAvailability: {
@@ -577,7 +587,7 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
         }
       ]
       scale: {
-        minReplicas: 0
+        minReplicas: minReplicasApps
         maxReplicas: 3
       }
     }
@@ -683,7 +693,7 @@ resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
         }
       ]
       scale: {
-        minReplicas: 0
+        minReplicas: minReplicasApps
         maxReplicas: 2
       }
     }

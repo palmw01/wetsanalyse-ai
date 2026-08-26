@@ -71,6 +71,9 @@ def main() -> None:
     # Image-refs. Meegeven houdt een infra-deploy IMAGE-NEUTRAAL: zonder deze vlaggen vallen de
     # bicep-defaults (`:latest`) terug op hun plek en zet een infra-deploy de digest-pins van de
     # publish-workflows overboord. Infra en image horen losse assen te zijn.
+    # Per straat verschillend: acceptatie mag koud en kort bewaren, productie niet.
+    p.add_argument("--backup-retention-days", type=int, default=None)
+    p.add_argument("--min-replicas-apps", type=int, default=None)
     p.add_argument("--api-image", default=None)
     p.add_argument("--frontend-image", default=None)
     p.add_argument("--graph-qa-image", default=None)
@@ -135,12 +138,16 @@ def main() -> None:
 
     # Alleen meesturen wat is opgegeven; een ontbrekende vlag laat de bicep-default staan.
     for vlag, param in (
+        (args.backup_retention_days, "backupRetentionDays"),
+        (args.min_replicas_apps, "minReplicasApps"),
         (args.api_image, "apiImage"),
         (args.frontend_image, "frontendImage"),
         (args.graph_qa_image, "graphQaImage"),
         (args.bwb_import_image, "bwbImportImage"),
     ):
-        if vlag:
+        # Expliciet tegen None vergelijken: `if vlag:` zou 0 wegfilteren, en 0 is voor
+        # `minReplicasApps` juist een geldige (en de meest gebruikte) waarde.
+        if vlag is not None:
             params["parameters"][param] = {"value": vlag}
 
     params_path = Path(args.params_file)
