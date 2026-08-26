@@ -3,13 +3,17 @@
 // dependency-lading). @vercel/otel instrumenteert automatisch de route handlers én uitgaande
 // `fetch` (injecteert W3C-traceparent), zodat één trace de keten frontend → API → graph-qa omspant.
 //
-// LET OP — dat laatste werkt alleen met `NEXT_OTEL_FETCH_DISABLED=1` in de omgeving. Next.js
-// instrumenteert `fetch` namelijk óók zelf: dat levert wél een span op, maar géén traceparent op de
-// uitgaande request. De keten viel daardoor stil uiteen in losse traces per dienst — zichtbaar
-// doordat elke span in Application Insights `ParentId == OperationId` had. De vlag zet die eigen
-// instrumentatie uit zodat de undici-instrumentatie van @vercel/otel het overneemt; die injecteert
-// de header wel. Op Azure staat de vlag in `deploy/azure/main.bicep`, op de docker-host in
-// `deploy/dev/docker-compose.yml`.
+// LET OP — die belofte over de keten klopt op dit moment NIET, en dat faalt stil.
+//
+// Gemeten op acceptatie (26 aug 2026) met een eigen `traceparent`-header: deze kant doet het goed —
+// de binnenkomende header wordt overgenomen en de spans nesten correct (`GET /api/health` →
+// `executing api route` → de uitgaande fetch). Maar de api registreert diezelfde aanroep als een
+// nieuwe root: in Application Insights heeft elke span daar `ParentId == OperationId`.
+//
+// `NEXT_OTEL_FETCH_DISABLED=1` staat inmiddels op de frontend (Azure: `deploy/azure/main.bicep`,
+// docker-host: `deploy/dev/docker-compose.yml`). De Next.js-documentatie wijst die vlag aan wanneer
+// je een eigen fetch-instrumentatie gebruikt, en @vercel/otel brengt er een mee — maar het lost het
+// niet op. Openstaand: vaststellen of de traceparent de api überhaupt bereikt.
 //
 // Draait alleen in de nodejs-runtime (niet edge/middleware). Leest endpoint/protocol/service-name
 // uit de standaard OTEL_*-env-vars.
