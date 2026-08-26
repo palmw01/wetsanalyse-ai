@@ -42,6 +42,10 @@ on:
         type: choice
         options: [wat-if, deploy, afbreken, opruimen, vul-graaf, inventaris, telemetrie]
         default: wat-if
+      query:
+        description: "Alleen voor 'telemetrie': een eigen KQL-query (leeg = de standaardset)"
+        type: string
+        default: ""
       bevestig_resource_group:
         description: "Voor 'afbreken' en 'opruimen': typ de resource group ter bevestiging"
         type: string
@@ -419,6 +423,14 @@ jobs:
             az monitor log-analytics query -w "$ws" --analytics-query "$2" -o table 2>&1 | head -20
             echo ""
           }
+
+          # Een eigen query wint: diagnose vraagt telkens iets anders, en een PR per vraag is geen
+          # werkbare manier om een keten uit te pluizen. Read-only — `az monitor log-analytics query`
+          # kan alleen lezen.
+          if [ -n "${{ inputs.query }}" ]; then
+            vraag "Eigen query" "${{ inputs.query }}"
+            exit 0
+          fi
 
           vraag "Telemetrie per type (24 uur)" \
             "union isfuzzy=true AppRequests, AppDependencies, AppTraces, AppExceptions
