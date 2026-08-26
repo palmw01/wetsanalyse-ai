@@ -137,8 +137,18 @@ Alle draaiende onderdelen (API, frontend, graph-qa) zijn **geïnstrumenteerd, ni
 ze emitteren gestructureerde JSON-logs (één gedeelde vorm, bv. `frontend/lib/logger.ts`)
 en kunnen OpenTelemetry (traces/metrics/logs) naar een **configureerbaar OTLP-endpoint** sturen
 (`OTEL_EXPORTER_OTLP_ENDPOINT`; leeg = alleen logs, nul overhead). Eén trace-id verbindt de keten
-frontend → API → graph-qa. De **verzamelstack staat in `deploy/observability/`** en draait op de
-docker-host (stack `observability`): OTel-Collector (met
+frontend → API → graph-qa.
+
+**Waar dat endpoint heen wijst verschilt per omgeving, en dat is opzet — de monitoring hoort bij de
+omgeving die hij bewaakt.** Op **Azure** (acceptatie en productie) staat per straat een stateless
+OTel-collector die doorschrijft naar **Application Insights**, workspace-based op dezelfde Log
+Analytics waar de stdout-logs landen; kijken doe je in de portal (Transaction search, Application
+map). Elke span draagt `deployment.environment=<appName>`. Application Insights kent geen
+OTLP-ingest — vandaar die collector, en niet de Azure-distro in de apps: die zou drie diensten
+vendor-locken op de plek waar het ontwerp juist provider-neutraal is.
+
+Op de **docker-host** (dev) staat de volledige verzamelstack in `deploy/observability/` (stack
+`observability`): OTel-Collector (met
 **spanmetrics/servicegraph-connectors** die topologie-edges uit de traces afleiden) + Tempo + Loki +
 Prometheus, plus **Alloy** dat stdout-logs naar Loki shipt en **Grafana zelf** (grafana.example; de
 datasources komen als file-provisioning uit de stack en zijn in de UI dus read-only). Twee
@@ -146,8 +156,10 @@ kant-en-klare dashboards (`grafana-dashboard-wetsanalyse.json` = trends;
 `grafana-dashboard-topologie.json` = *"systeemtopologie"*: de live keten die oplicht op basis van de
 trace-servicegraph) en **alerting** (`alerting/`; 3 regels die het default notification-beleid van je
 Grafana volgen — géén eigen contactpunt). Deployen via
-`.github/workflows/deploy-observability.yml`, dashboards via `provision-grafana.sh`. De volledige
-uitleg (env-vars, logschema, AVG-redactie, dashboard/alerting) staat in **`docs/observability.md`**.
+`.github/workflows/deploy-observability.yml`, dashboards via `provision-grafana.sh`. **Die
+dashboards horen bij dev**: ze draaien op PromQL/LogQL/TraceQL en bedienen de Azure-straten niet —
+die Grafana is van buiten het LAN onbereikbaar. De volledige uitleg (env-vars, logschema,
+AVG-redactie, dashboard/alerting) staat in **`docs/observability.md`**.
 
 ## Uitrollen
 

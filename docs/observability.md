@@ -1,11 +1,21 @@
 # Observability — logging, traces & metrics
 
 Dit project is **geïnstrumenteerd, niet bemeterd**: elke component emitteert gestructureerde logs én
-kan OpenTelemetry (traces/metrics/logs) naar een **configureerbaar OTLP-endpoint** sturen. Een
-**optionele verzamelstack** (OTel-Collector + Tempo + Loki + Prometheus, plus Alloy voor de
-stdout-logs, mét dashboard en alerting) staat kant-en-klaar in **`deploy/observability/`** — géén eigen
-Grafana; die koppel je aan je bestaande. Je zet 'm aan via één env-var. Zonder endpoint draait alles
-ongewijzigd met alléén gestructureerde JSON-logging (nul overhead, geen gedragsverandering).
+kan OpenTelemetry (traces/metrics/logs) naar een **configureerbaar OTLP-endpoint** sturen. Zonder
+endpoint draait alles ongewijzigd met alléén gestructureerde JSON-logging (nul overhead, geen
+gedragsverandering).
+
+**Waar dat endpoint naartoe wijst, verschilt per omgeving — en dat is opzet: de monitoring hoort bij
+de omgeving die hij bewaakt.**
+
+| omgeving | verzamelpunt | waar kijk je |
+|---|---|---|
+| **dev** (docker-host) | de compose-stack uit `deploy/observability/`: OTel-Collector + Tempo + Loki + Prometheus + Alloy | Grafana, met de twee dashboards uit deze map |
+| **acceptatie / productie** (Azure) | een stateless OTel-collector per straat → **Application Insights**, workspace-based op de Log Analytics van die straat | de Azure-portal: end-to-end transacties, Application Map, KQL over `requests`/`traces` |
+
+De Grafana-dashboards in deze map horen dus **bij dev**. Ze draaien op PromQL/LogQL/TraceQL en zijn
+niet naar Azure overgezet; daar is Application Insights de ingang. Elke span uit een Azure-straat
+draagt `deployment.environment=<appName>`, zodat acceptatie en productie uit elkaar te houden zijn.
 
 ## Wat is geïnstrumenteerd
 

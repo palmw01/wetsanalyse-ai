@@ -15,8 +15,20 @@ beide naar nul schalen, dus dit zijn vaste kosten — zie *Kosten drukken* onder
 | API | Container App | intern |
 | graph-qa | Container App | intern |
 | Frontend | Container App | **publiek HTTPS** |
+| OTel-collector | Container App (stateless) | intern |
+| Log Analytics + Application Insights | Azure Monitor | portal |
 
 Alleen de frontend heeft een publiek adres. De rest praat binnen de Container Apps Environment.
+
+**Monitoring zit in de straat zelf.** De apps sturen OTLP naar de collector van hun eigen straat;
+die schrijft door naar Application Insights, workspace-based op dezelfde Log Analytics waar de
+stdout-logs al landen. Daarmee staan logs, traces en metrics bij elkaar en is de keten
+frontend → api → graph-qa onder één trace-id te volgen. Kijken doe je in de portal: *Application
+Insights → Transaction search* of *Application map*. Elke span draagt
+`deployment.environment=<appName>`, dus acceptatie en productie zijn te scheiden.
+
+De Grafana-stack in `deploy/observability/` hoort bij **dev** op de docker-host en bedient de
+Azure-straten niet — die is van buiten het LAN onbereikbaar.
 
 ## Vooraf: de GraphDB-licentie
 
