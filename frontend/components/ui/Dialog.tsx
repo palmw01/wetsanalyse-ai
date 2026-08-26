@@ -28,9 +28,13 @@ const PANEEL_CLASS: Record<DialogVariant, string> = {
   // Hoogte volgt de inhoud, met een plafond zodat lange tekst binnen het scherm blijft (de body
   // scrollt dan). Op een telefoon een bottom-sheet die meegroeit in plaats van 94% van het scherm
   // te claimen voor een formulier met drie velden.
+  //
+  // `h-fit` en niet `h-auto`: het centreren gebeurt met `inset-0` + `m-auto`, en die truc verdeelt
+  // de overgebleven ruimte alleen als het paneel een bepaalbare hoogte heeft. Met `h-auto` — en
+  // zeker met `bottom-auto` erbij — valt er niets te verdelen en plakt het venster tegen de bovenrand.
   compact:
     "absolute inset-x-0 bottom-0 max-h-[85dvh] flex flex-col rounded-t-vorm bg-paper shadow-kaart outline-none animate-rise " +
-    "sm:inset-0 sm:bottom-auto sm:m-auto sm:h-auto sm:max-h-[85vh] sm:w-[min(34rem,92vw)] sm:rounded-vorm",
+    "sm:inset-0 sm:m-auto sm:h-fit sm:max-h-[85vh] sm:w-[min(34rem,92vw)] sm:rounded-vorm",
   side:
     "absolute inset-x-0 bottom-0 top-[8%] flex flex-col rounded-t-vorm bg-paper shadow-kaart outline-none animate-rise " +
     "sm:inset-y-0 sm:right-0 sm:left-auto sm:top-0 sm:w-[min(46rem,92vw)] sm:rounded-none sm:rounded-l-vorm",

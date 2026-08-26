@@ -88,7 +88,16 @@ export function TourBubbel({
   // die de popovers gebruiken, zodat de bubbel nooit half buiten beeld hangt.
   let stijl: React.CSSProperties;
   if (!actiefVak) {
-    stijl = { top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: BUBBEL_BREEDTE };
+    // Dezelfde breedtegrens als de aangehaakte tak: zonder die grens is een bubbel van 340px op een
+    // telefoon breder dan het scherm, en dan staat hij wel in het midden maar steekt hij er links en
+    // rechts uit.
+    stijl = {
+      top: "50%",
+      left: "50%",
+      transform: "translate(-50%, -50%)",
+      width: BUBBEL_BREEDTE,
+      maxWidth: "calc(100vw - 1.5rem)",
+    };
   } else {
     const onder = vh - (actiefVak.top + actiefVak.hoogte);
     const naarBeneden = onder > actiefVak.top;
