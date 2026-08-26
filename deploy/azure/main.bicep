@@ -238,7 +238,7 @@ processors:
 
 exporters:
   azuremonitor:
-    connection_string: "${AZMON_CONNECTION_STRING}"
+    connection_string: "${env:AZMON_CONNECTION_STRING}"
 
 service:
   telemetry:
@@ -293,16 +293,19 @@ resource collectorApp 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'AZMON_CONNECTION_STRING', secretRef: 'azmon-connection-string' }
             { name: 'COLLECTOR_CONFIG', secretRef: 'collector-config' }
           ]
-          // Container Apps kennen geen configmounts, dus de config komt als secret binnen en wordt
-          // hier weggeschreven voordat de collector start.
-          command: ['/bin/sh', '-c']
-          args: [
-            'printf \'%s\' "$COLLECTOR_CONFIG" > /tmp/collector.yaml && /otelcol-contrib --config=/tmp/collector.yaml'
-          ]
+          // Container Apps kennen geen configmounts. De collector leest zijn config rechtstreeks uit
+          // een omgevingsvariabele met `--config=env:` — geen tussenbestand, en geen shell nodig:
+          // dit image heeft er geen (`/bin/sh` bestaat niet), dus een `command: ['/bin/sh', …]`
+          // laat de container stil falen vóór de eerste logregel.
+          args: ['--config=env:COLLECTOR_CONFIG']
         }
       ]
       scale: {
-        minReplicas: 0
+        // Bewust NIET naar nul. Een exporter probeert één keer en geeft het op: met scale-to-zero
+        // valt de eerste export in de koude start van de container, en die spans zijn dan weg —
+        // precies de telemetrie waarmee je zou merken dat er iets aan de hand is. Dit is met 0.25
+        // vCPU de goedkoopste container in de stack; hem laten draaien is het waard.
+        minReplicas: 1
         maxReplicas: 2
       }
     }
