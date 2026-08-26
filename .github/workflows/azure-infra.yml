@@ -283,6 +283,11 @@ jobs:
             echo '```'
             az postgres flexible-server list --query "[].{server:name, rg:resourceGroup, versie:version, sku:sku.name, opslagGB:storage.storageSizeGB}" -o table 2>/dev/null || echo "(geen of geen rechten)"
             echo '```'
+            echo ""
+            echo "### Log Analytics"
+            echo '```'
+            az monitor log-analytics workspace list --query "[].{workspace:name, rg:resourceGroup, retentieDagen:retentionInDays}" -o table 2>/dev/null || echo "(geen of geen rechten)"
+            echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           # Ook naar stdout: de step summary is niet via de API terug te lezen, de runlog wel.
           echo "--- container apps ---"
@@ -293,6 +298,8 @@ jobs:
           az containerapp job list --query "[].{job:name, trigger:properties.configuration.triggerType}" -o tsv
           echo "--- postgres ---"
           az postgres flexible-server list --query "[].{server:name, versie:version, sku:sku.name}" -o tsv 2>/dev/null || true
+          echo "--- log analytics ---"
+          az monitor log-analytics workspace list --query "[].{workspace:name, retentieDagen:retentionInDays}" -o tsv 2>/dev/null || true
 
       # Ook ná een deploy, en niet alleen op verzoek: GraphDB is bewust niet-persistent, dus een
       # verse of opnieuw uitgerolde stack heeft een LEGE graaf. Dat handmatig laten was precies de
