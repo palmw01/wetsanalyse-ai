@@ -432,6 +432,22 @@ jobs:
              | summarize aantal=count(), p95_ms=percentile(DurationMs, 95) by AppRoleName
              | order by aantal desc"
 
+          # Komt er niets binnen, dan zit de fout in een van de drie schakels. Deze twee queries
+          # wijzen aan welke: de collector die niet opkomt of zijn config niet slikt, of een app die
+          # zijn exporter niet aan de praat krijgt.
+          vraag "Collector-logs (2 uur)" \
+            "ContainerAppConsoleLogs
+             | where TimeGenerated > ago(2h) and ContainerAppName endswith 'otel-collector'
+             | project TimeGenerated, Log
+             | top 15 by TimeGenerated desc"
+
+          vraag "OTel-meldingen uit de apps (2 uur)" \
+            "ContainerAppConsoleLogs
+             | where TimeGenerated > ago(2h)
+             | where Log has_any ('otel', 'OTLP', 'opentelemetry', 'exporter')
+             | project TimeGenerated, ContainerAppName, Log
+             | top 15 by TimeGenerated desc"
+
           # De keten frontend → api → graph-qa onder één trace-id: het hele punt van deze opzet.
           vraag "Trace-ids over meerdere diensten (24 uur)" \
             "AppRequests
