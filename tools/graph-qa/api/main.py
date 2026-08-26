@@ -25,22 +25,33 @@ Beveiliging: CORS staat credentials alleen toe bij een expliciete origin-lijst
 
 Observability: gestructureerde JSON-logs + gated OpenTelemetry (agent/observability.py),
 zodat graph-qa in de frontend→API→MCP-trace valt.
+
+httpx2.alias_httpx(): de anthropic-SDK draait sinds 1.x op httpx2 (de onderhouden fork van httpx),
+maar onze OpenTelemetry-instrumentatie patcht `httpx`. Zonder deze alias blijft die instrumentatie
+gewoon werken en verdwijnen de LLM-calls STIL uit de traces — geen fout, alleen een gat. De alias
+laat `import httpx` in het hele proces naar httpx2 wijzen en moet dus draaien vóórdat iets anders
+httpx of httpcore importeert; vandaar de plek bovenaan en de E402-uitzonderingen daaronder.
 """
 from __future__ import annotations
 
-import json
-import logging
-import secrets
-import time
-from collections import deque
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+# MOET vóór elke andere import staan — zie de noot onderaan de docstring hierboven.
+import httpx2
 
-from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException, Request, status
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sse_starlette.sse import EventSourceResponse
+httpx2.alias_httpx()
+
+import json  # noqa: E402
+import logging  # noqa: E402
+import secrets  # noqa: E402
+import time  # noqa: E402
+from collections import deque  # noqa: E402
+from collections.abc import AsyncIterator  # noqa: E402
+from contextlib import asynccontextmanager  # noqa: E402
+
+from dotenv import load_dotenv  # noqa: E402
+from fastapi import Depends, FastAPI, HTTPException, Request, status  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer  # noqa: E402
+from sse_starlette.sse import EventSourceResponse  # noqa: E402
 
 load_dotenv()  # laad .env als die naast de server staat
 

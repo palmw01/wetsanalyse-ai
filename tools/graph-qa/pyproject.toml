@@ -4,10 +4,16 @@ version = "0.1.0"
 description = "Juridische vraagbeantwoording via GraphDB-graaf (MCP)"
 requires-python = ">=3.11"
 dependencies = [
-    "anthropic>=0.40.0",
+    "anthropic>=1,<2",
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.30.0",
     "httpx>=0.27.0",
+    # De SDK draait sinds anthropic 1.x op httpx2 (de onderhouden fork van httpx, van de
+    # oorspronkelijke auteur, uitgegeven door Pydantic: github.com/pydantic/httpx2). Hij komt
+    # transitief mee, maar `api/main.py` importeert hem rechtstreeks voor `alias_httpx()` — en wat je
+    # importeert hoor je te declareren. `httpx` blijft staan: mcp_client en wetsanalyse_api praten er
+    # met de graaf en de api mee, buiten de SDK om.
+    "httpx2>=2.0",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",
     "sse-starlette>=2.1.0",
@@ -49,3 +55,6 @@ packages = ["agent", "api"]
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+# `-p` laadt de plugin vóór de collectie, en dat is precies wat nodig is: `alias_httpx()` moet
+# draaien voordat welke module dan ook httpx importeert. Zie tests/_alias_httpx.py.
+addopts = "-p tests._alias_httpx"
