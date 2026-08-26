@@ -42,8 +42,14 @@ uit volgen (`${appName}-api`, `cae-${appName}`, `log-${appName}`, …).
 
 | straat | rolt uit bij | resource group | `appName` |
 |---|---|---|---|
-| acceptatie | elke merge naar `master` | `rg-wetsanalyse-acc` | `wetsanalyse-acc` |
+| acceptatie | elke merge naar `master` | `rg-wetsanalyse` | `wetsanalyse` |
 | productie | een tag `v*` | `rg-wetsanalyse-prd` | `wetsanalyse-prd` |
+
+> **Productie bestaat nog niet.** De service principal is Contributor op `rg-wetsanalyse` en verder
+> niets; `az group create` op een nieuwe groep geeft `AuthorizationFailed` op
+> `Microsoft.Resources/subscriptions/resourcegroups/write`. Eerste stap voor de productiestraat:
+> iemand met Owner-rechten maakt `rg-wetsanalyse-prd` aan en geeft de service principal daar
+> Contributor op. Daarna volstaat `azure-infra` → `productie` → `deploy`.
 
 **Inrichten gebeurt per GitHub-environment** (Settings → Environments). Wat waar hoort:
 

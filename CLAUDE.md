@@ -156,8 +156,13 @@ importer, api, graph-qa, frontend) in een eigen resource group:
 
 | straat | wanneer | resource group / `appName` | poort ervoor |
 |---|---|---|---|
-| **acceptatie** | elke merge naar `master` | `rg-wetsanalyse-acc` / `wetsanalyse-acc` | geen — automatisch |
+| **acceptatie** | elke merge naar `master` | `rg-wetsanalyse` / `wetsanalyse` | geen — automatisch |
 | **productie** | een tag `v*` | `rg-wetsanalyse-prd` / `wetsanalyse-prd` | required reviewer op de GitHub-environment |
+
+> **Productie bestaat nog niet.** De service principal heeft alleen rechten binnen `rg-wetsanalyse`
+> en mag geen resource group aanmaken (`AuthorizationFailed` op `resourcegroups/write`). Voordat de
+> productiestraat kan draaien, moet iemand met Owner-rechten `rg-wetsanalyse-prd` aanmaken en de
+> service principal daar Contributor op geven.
 
 De vier `*-docker-publish.yml`-workflows bouwen naar GHCR (pip-audit/npm-audit vooraf, Trivy-gate
 achteraf) en hebben daarna een aparte **`deploy`-job**. Die kiest zijn GitHub-environment op de
