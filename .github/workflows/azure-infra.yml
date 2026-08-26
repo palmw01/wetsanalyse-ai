@@ -8,6 +8,8 @@
 #             de template tegen je echte subscription te valideren (quota, regio, rechten).
 #   deploy    rolt de stack daadwerkelijk uit (10-15 min; PostgreSQL is de trage stap).
 #   afbreken  verwijdert de hele resource group. Vereist dat je de naam ter bevestiging intypt.
+#   opruimen  verwijdert wat er in de groep staat maar NIET bij deze straat hoort (bicep ruimt zelf
+#             niets op). Toont eerst wat het zou doen; verwijdert pas als je de groepsnaam intypt.
 #   inventaris leest wat er in de subscription staat en schrijft het naar de samenvatting. Puur
 #             read-only (alleen `list`/`show`); bedoeld om te kunnen controleren wát er draait en
 #             wat het kost, zonder lokale az-installatie — de service principal leeft alleen hier.
@@ -36,10 +38,10 @@ on:
       actie:
         description: "Wat doen"
         type: choice
-        options: [wat-if, deploy, afbreken, vul-graaf, inventaris]
+        options: [wat-if, deploy, afbreken, opruimen, vul-graaf, inventaris]
         default: wat-if
       bevestig_resource_group:
-        description: "Alleen voor 'afbreken': typ de resource group ter bevestiging"
+        description: "Voor 'afbreken' en 'opruimen': typ de resource group ter bevestiging"
         type: string
         default: ""
 
@@ -308,6 +310,72 @@ jobs:
       # Ook ná een deploy, en niet alleen op verzoek: GraphDB is bewust niet-persistent, dus een
       # verse of opnieuw uitgerolde stack heeft een LEGE graaf. Dat handmatig laten was precies de
       # stap die je vergeet, en dan staat er een omgeving die nergens antwoord op geeft.
+      # Alles in de resource group dat NIET bij deze straat hoort, weghalen. Bicep draait in
+      # incremental mode: het verwijdert nooit iets dat niet in de template staat, dus resources van
+      # een oudere opzet blijven onzichtbaar doordraaien — met hun kosten. Zo bleven na het
+      # verwijderen van de wettenbank-MCP (aug 2026) de mcp-apps staan, en een hele tweede
+      # `-acc`-omgeving met eigen database ernaast.
+      #
+      # De lijst hieronder ís de template: wat de bicep aanmaakt, hoort te blijven. De rest is wees.
+      # Zonder bevestiging toont deze stap alleen wat hij zóu doen — typ de resource group in
+      # `bevestig_resource_group` om echt te verwijderen.
+      - name: Weesresources opruimen
+        if: ${{ inputs.actie == 'opruimen' }}
+        run: |
+          set -euo pipefail
+
+          # Wat de bicep voor deze straat aanmaakt (zie deploy/azure/main.bicep).
+          hoort_erbij="cae-$APP_NAME log-$APP_NAME $APP_NAME-api $APP_NAME-frontend
+                       $APP_NAME-graph-qa $APP_NAME-graphdb $APP_NAME-bwb-import $APP_NAME-db"
+
+          is_van_ons() {
+            for n in $hoort_erbij; do [ "$1" = "$n" ] && return 0; done
+            return 1
+          }
+
+          echo "Straat: $APP_NAME in $RESOURCE_GROUP"
+          echo ""
+          wezen=""
+          while IFS=$'\t' read -r naam type; do
+            [ -n "$naam" ] || continue
+            if is_van_ons "$naam"; then
+              echo "  houden   $naam ($type)"
+            else
+              echo "  OPRUIMEN $naam ($type)"
+              wezen="$wezen$naam:$type"$'\n'
+            fi
+          done < <(az resource list -g "$RESOURCE_GROUP" --query "sort_by([].[name, type], &[0])" -o tsv)
+
+          if [ -z "$wezen" ]; then
+            echo ""; echo "Niets op te ruimen — de groep bevat alleen wat bij de straat hoort."
+            exit 0
+          fi
+
+          if [ "${{ inputs.bevestig_resource_group }}" != "$RESOURCE_GROUP" ]; then
+            echo ""
+            echo "::warning::Alleen getoond. Typ '$RESOURCE_GROUP' in het bevestigingsveld om deze resources te verwijderen."
+            exit 0
+          fi
+
+          # Volgorde is dwingend: apps en jobs hangen aan hun managed environment, dus die kan pas
+          # weg als hij leeg is.
+          echo ""; echo "Verwijderen…"
+          for fase in "Microsoft.App/containerApps" "Microsoft.App/jobs" \
+                      "Microsoft.App/managedEnvironments" "";
+          do
+            while IFS=: read -r naam type; do
+              [ -n "$naam" ] || continue
+              if [ -n "$fase" ]; then
+                [ "$type" = "$fase" ] || continue
+              else
+                case "$type" in Microsoft.App/*) continue ;; esac
+              fi
+              echo "  - $naam ($type)"
+              az resource delete -g "$RESOURCE_GROUP" -n "$naam" --resource-type "$type" --output none
+            done <<< "$wezen"
+          done
+          echo "Klaar."
+
       - name: Graaf vullen (import-job)
         if: ${{ inputs.actie == 'vul-graaf' || inputs.actie == 'deploy' }}
         run: |
