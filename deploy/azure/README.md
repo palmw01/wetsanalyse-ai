@@ -145,11 +145,28 @@ Actions → **azure-infra** → *Run workflow*, met een keuze voor de straat en 
 | `wat-if` *(default)* | Azure toont welke resources zouden ontstaan of wijzigen. Maakt niets aan — de enige manier om de template tegen je echte subscription te toetsen (quota, regio, rechten). |
 | `deploy` | rolt de stack uit (10-15 min; PostgreSQL is de trage stap) en start daarna meteen de import-job, want de graaf komt leeg op. |
 | `afbreken` | verwijdert de hele resource group. Vraagt om de naam ter bevestiging. |
+| `opruimen` | verwijdert wat er in de groep staat maar niet bij deze straat hoort. Toont eerst wat het zou doen; verwijdert pas als je de groepsnaam intypt. |
 | `vul-graaf` | start de import-job en wacht hem af. |
 | `inventaris` | read-only overzicht van wat er in de subscription draait. |
 
 Dit is de enige workflow die resources aanmaakt, wijzigt of verwijdert. Vandaar `wat-if` als
 default: een deploy raakt GraphDB, en die is niet-persistent.
+
+### Wat de bicep niet opruimt
+
+Bicep draait in **incremental mode**: het maakt aan en werkt bij, maar verwijdert nooit iets dat
+niet (meer) in de template staat. Haal je een component uit `main.bicep`, dan blijft de draaiende
+resource gewoon bestaan — onzichtbaar zolang je alleen naar de template kijkt, en met zijn kosten.
+
+Dat is hier echt gebeurd. Bij het verwijderen van de wettenbank-MCP (commit `9e34b75`, augustus
+2026) verdween de `mcpApp`-resource uit de bicep, maar bleven de draaiende mcp-apps staan; daarnaast
+stond er een complete tweede omgeving (`wetsanalyse-acc-*`) met een eigen PostgreSQL-server, alle
+replicas op `minReplicas: 1` en dus doorlopend aan.
+
+`azure-infra` → `opruimen` lost dat op: het neemt de bicep als waarheid en zet alles wat daar niet
+in staat op de lijst. Zonder bevestiging toont het alleen wat het zou doen — draai het zo eerst, en
+typ pas daarna de groepsnaam. De verwijdervolgorde is dwingend: container apps en jobs hangen aan
+hun managed environment, dus dat kan pas weg als het leeg is.
 
 ### Met de hand
 
