@@ -9,6 +9,7 @@
 //     alleen zichzelf los. De run merkt er niets van — dat is de hele omkering.
 
 import { graphQaAuthHeader, graphQaBaseUrl } from "@/lib/config";
+import { metTrace } from "@/app/api/_lib/trace";
 import { logger } from "@/lib/logger";
 import { geenSessie, sessionUserId } from "@/app/api/_lib/session";
 
@@ -27,7 +28,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     upstream = await fetch(url, {
       // De identiteit gaat mee: graph-qa geeft 404 op andermans run. Zonder deze header zou het
       // run-id zelf de enige beveiliging zijn — een capability in plaats van autorisatie.
-      headers: { ...graphQaAuthHeader(), "X-User-Id": userid, Accept: "text/event-stream" },
+      headers: metTrace({ ...graphQaAuthHeader(), "X-User-Id": userid, Accept: "text/event-stream" }),
       cache: "no-store",
     });
   } catch (err) {

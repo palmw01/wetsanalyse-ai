@@ -6,6 +6,7 @@
 // eindigt pas op de eerstvolgende grens. Dit is een verzoek, geen feit.
 
 import { graphQaAuthHeader, graphQaBaseUrl } from "@/lib/config";
+import { metTrace } from "@/app/api/_lib/trace";
 import { logger } from "@/lib/logger";
 import { geenSessie, sessionUserId } from "@/app/api/_lib/session";
 
@@ -22,7 +23,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       {
         method: "POST",
         // Alleen je eigen beurt stoppen: graph-qa toetst deze header.
-        headers: { ...graphQaAuthHeader(), "X-User-Id": userid },
+        headers: metTrace({ ...graphQaAuthHeader(), "X-User-Id": userid }),
         cache: "no-store",
         signal: AbortSignal.timeout(10_000),
       },
