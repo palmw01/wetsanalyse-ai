@@ -14,6 +14,7 @@ on: pull_request
 permissions:
   contents: write
   pull-requests: write
+  actions: write        # nodig om de publish-workflows te dispatchen na een auto-merge
 
 jobs:
   auto-merge:
@@ -39,3 +40,50 @@ jobs:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh pr merge --auto --squash "$PR_URL"
+
+  # ── Na de merge: de publish-workflows alsnog aftrappen ────────────────────────
+  #
+  # Een push die door `GITHUB_TOKEN` wordt veroorzaakt start GÉÉN workflow-runs. De auto-merge
+  # hierboven mergt met dat token, dus de `on: push`-publish-workflows bleven stil — en dan staat de
+  # wijziging wél op master maar draait hij nergens. Dat is niet theoretisch: op 25 aug 2026 landden
+  # drie dependabot-commits op master en draaide er die dag geen enkele push-workflow, ook niet voor
+  # #335 dat álle vier de publish-workflowbestanden raakte (elk staat in zijn eigen `paths:`).
+  #
+  # `workflow_dispatch` via de API is expliciet uitgezonderd van die beperking, dus dit werkt zonder
+  # PAT. Dat is de reden om het zo te doen: een persoonlijk token zou een veel bredere bevoegdheid
+  # de CI in trekken om precies hetzelfde te bereiken.
+  publish-na-merge:
+    if: |
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.base.ref == 'master'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
+        with:
+          fetch-depth: 0
+
+      # Welke componenten raakte deze PR? Dezelfde paden als de `paths:`-filters van de
+      # publish-workflows, inclusief het workflowbestand zelf — een bump van een action daarin
+      # hoort net zo goed een rebuild op te leveren.
+      - name: Dispatch de geraakte publish-workflows
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          set -euo pipefail
+          gewijzigd=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+          echo "Gewijzigde bestanden:"; echo "$gewijzigd" | sed 's/^/  /'
+
+          dispatch() {  # $1 = padprefix, $2 = workflowbestand
+            if echo "$gewijzigd" | grep -qE "^($1|\.github/workflows/$2)"; then
+              echo "→ $2"
+              gh workflow run "$2" --ref master
+            fi
+          }
+
+          dispatch "api/"                api-docker-publish.yml
+          dispatch "frontend/"           frontend-docker-publish.yml
+          dispatch "tools/graph-qa/"     graph-qa-docker-publish.yml
+          dispatch "tools/bwb-import/"   bwb-import-docker-publish.yml

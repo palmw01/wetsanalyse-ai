@@ -1,8 +1,11 @@
-# Wetsanalyse op Azure — standby-omgeving
+# Wetsanalyse op Azure — acceptatie en productie
 
-Een **zelfstandige** kopie van het platform op Azure Container Apps: eigen kennisgraaf, eigen
-database, geen verbinding met de docker-host. Bedoeld om **klaar te staan**, niet om te draaien —
-zolang je niets deployt, kost deze map niets.
+Azure draagt het platform: **acceptatie** (elke merge naar `master`) en **productie** (een tag `v*`).
+Elke straat is een **zelfstandige** omgeving op Azure Container Apps met eigen kennisgraaf en eigen
+database, zonder verbinding met de docker-host. Die host draagt alleen nog de dev-omgeving.
+
+Beide straten draaien doorlopend. PostgreSQL (B1ms) en GraphDB (`minReplicas: 1`) kunnen geen van
+beide naar nul schalen, dus dit zijn vaste kosten — zie *Kosten drukken* onderaan.
 
 | Component | Type | Bereikbaar |
 |---|---|---|
@@ -31,29 +34,69 @@ Zonder `--license-file` slaagt de deployment wél; je houdt dan een lege, read-o
 
 ## Deployen
 
-### Via GitHub Actions (aanbevolen)
+### Twee straten
 
-Actions → **azure-infra** → *Run workflow*, met drie keuzes:
+Azure is de uitrolplek, met een **acceptatie**- en een **productiestraat**. Elke straat is een
+zelfstandige omgeving in een eigen resource group, met een eigen `appName` waar alle resourcenamen
+uit volgen (`${appName}-api`, `cae-${appName}`, `log-${appName}`, …).
+
+| straat | rolt uit bij | resource group | `appName` |
+|---|---|---|---|
+| acceptatie | elke merge naar `master` | `rg-wetsanalyse-acc` | `wetsanalyse-acc` |
+| productie | een tag `v*` | `rg-wetsanalyse-prd` | `wetsanalyse-prd` |
+
+**Inrichten gebeurt per GitHub-environment** (Settings → Environments). Wat waar hoort:
+
+- **vars, per environment** — `AZURE_RESOURCE_GROUP`, `APP_NAME`, `LLM_API_BASE`, optioneel
+  `LLM_MODEL` en `AZURE_LOCATION`. Deze *moeten* per straat gezet zijn; ze hebben geen default meer,
+  zodat een niet-ingerichte straat faalt in plaats van stilletjes op de verkeerde resource group uit
+  te komen.
+- **secrets** — `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`,
+  `AZURE_CLIENT_SECRET`, `AZURE_AI_KEY`, `GRAPHDB_LICENSE_B64` (de licentie als
+  `base64 -w0 graphdb.license`). Een job met een environment **erft de repo-secrets**, dus zolang
+  beide straten dezelfde service principal en AI-key gebruiken, volstaan de bestaande repo-secrets.
+  Wil je gescheiden credentials — aan te raden zodra productie echte gegevens draagt — zet ze dan
+  als environment-secret; die overschrijft de repo-variant.
+
+Op `productie` staat een **required reviewer** en een deployment-policy die alleen tags `v*`
+toelaat; op `acceptatie` alleen de branch `master`. Die poort hoort in de environment te zitten en
+niet in een workflow-conditie die je per ongeluk wegcommit.
+
+De workflows falen bewust als een van deze secrets of vars ontbreekt. Eerder was dat een `if` die de
+deploy-stap oversloeg — dan was de run groen terwijl er niets was uitgerold.
+
+### Image-swap: automatisch
+
+De vier `*-docker-publish.yml`-workflows bouwen naar GHCR en hebben daarna een `deploy`-job die de
+container app op de juiste straat naar de nieuwe **digest** zet (niet naar een tag). Die job wacht
+tot de nieuwe revisie daadwerkelijk `Running` is; `az containerapp update` keert namelijk al terug
+zodra de revisie is *aangemaakt*, dus een container die bij het starten crasht bleef anders
+onopgemerkt.
+
+Let op bij een tag: die bouwt het image opnieuw uit de broncode van die tag, dus productie krijgt
+een ander image-artefact dan acceptatie heeft getest. Wil je dat uitsluiten, dan is de nette variant
+dat productie de digest overneemt die op acceptatie draait.
+
+### Infra: handmatig
+
+Actions → **azure-infra** → *Run workflow*, met een keuze voor de straat en de actie:
 
 | actie | wat het doet |
 |---|---|
 | `wat-if` *(default)* | Azure toont welke resources zouden ontstaan of wijzigen. Maakt niets aan — de enige manier om de template tegen je echte subscription te toetsen (quota, regio, rechten). |
-| `deploy` | rolt de stack uit. De samenvatting aan het eind bevat de webapp-URL en de vervolgstappen. |
+| `deploy` | rolt de stack uit (10-15 min; PostgreSQL is de trage stap) en start daarna meteen de import-job, want de graaf komt leeg op. |
 | `afbreken` | verwijdert de hele resource group. Vraagt om de naam ter bevestiging. |
+| `vul-graaf` | start de import-job en wacht hem af. |
+| `inventaris` | read-only overzicht van wat er in de subscription draait. |
 
-Benodigde repo-secrets: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`,
-`AZURE_CLIENT_SECRET`, `AZURE_AI_KEY` en `GRAPHDB_LICENSE_B64` (de licentie als
-`base64 -w0 graphdb.license`). Repo-vars: `LLM_API_BASE`, optioneel `LLM_MODEL`,
-`AZURE_RESOURCE_GROUP` en `AZURE_LOCATION`.
-
-De publish-workflows raken Azure **niet** aan — die zouden bij elke master-push naar een lege
-resource group praten. Een image-update is hier dus een nieuwe `deploy`.
+Dit is de enige workflow die resources aanmaakt, wijzigt of verwijdert. Vandaar `wat-if` als
+default: een deploy raakt GraphDB, en die is niet-persistent.
 
 ### Met de hand
 
 ```bash
 az login
-az group create --name rg-wetsanalyse --location westeurope
+az group create --name rg-wetsanalyse-test --location westeurope
 
 # 1. Kijk eerst wat er zou gebeuren (maakt niets aan)
 python3 deploy/azure/gen-deploy.py "<azure-ai-key>" \
@@ -72,16 +115,18 @@ Daarna twee handelingen:
 
 ```bash
 # de graaf vullen (~20s voor zeven regelingen)
-az containerapp job start -n wetsanalyse-bwb-import -g rg-wetsanalyse
+az containerapp job start -n <appName>-bwb-import -g <resource-group>
 
 # de eerste beheerder aanmaken
 open "<frontendUrl>/setup"     # frontendUrl staat in de deployment-output
 ```
 
-Het script genereert bij elke run **verse** tokens en wachtwoorden. Op een draaiende omgeving
-betekent opnieuw deployen dus dat sessies vervallen en de admin-tokens wijzigen. Voor een omgeving
-die je aan- en uitzet is dat prima; wil je ze stabiel houden, bewaar dan het parameterbestand
-(`--params-file`) buiten de repo en hergebruik het.
+> **Deze weg is voor een wegwerpomgeving, niet voor acceptatie of productie.** Het script genereert
+> bij elke run **verse** tokens en een vers databasewachtwoord; op een draaiende omgeving betekent
+> opnieuw deployen dus dat sessies vervallen en de admin-tokens wijzigen. Voor acc en prd loopt de
+> weg via `azure-infra.yml`, dat de waarden uit de environment-secrets haalt en ze daarmee stabiel
+> houdt. Wil je met de hand tóch een bestaande omgeving bijwerken, bewaar dan het parameterbestand
+> (`--params-file`) buiten de repo en hergebruik het.
 
 ## De graaf is bewust vluchtig
 
