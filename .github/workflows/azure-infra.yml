@@ -28,6 +28,11 @@ name: azure-infra
 on:
   workflow_dispatch:
     inputs:
+      omgeving:
+        description: "Welke straat"
+        type: choice
+        options: [acceptatie, productie]
+        default: acceptatie
       actie:
         description: "Wat doen"
         type: choice
@@ -38,20 +43,23 @@ on:
         type: string
         default: ""
 
+# Per straat serialiseren: aan acceptatie werken hoeft niet te wachten op productie.
 concurrency:
-  group: azure-infra
+  group: azure-infra-${{ inputs.omgeving }}
   cancel-in-progress: false
-
-env:
-  RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP || 'rg-wetsanalyse' }}
-  AZURE_LOCATION: ${{ vars.AZURE_LOCATION || 'northeurope' }}
 
 jobs:
   azure:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    # De environment levert de credentials, de resource group en de appName van déze straat — en
+    # draagt bij productie de required reviewer.
+    environment: ${{ inputs.omgeving }}
     env:
+      RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      APP_NAME: ${{ vars.APP_NAME }}
+      AZURE_LOCATION: ${{ vars.AZURE_LOCATION || 'northeurope' }}
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
@@ -69,6 +77,12 @@ jobs:
           set -euo pipefail
           for v in AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID AZURE_CLIENT_SECRET; do
             [ -n "${!v:-}" ] || { echo "::error::ontbrekende secret: $v"; exit 1; }
+          done
+          # RESOURCE_GROUP en APP_NAME komen uit de environment-vars en hebben geen default meer:
+          # een straat die niet is ingericht, hoort te falen in plaats van stilletjes op de
+          # verkeerde resource group uit te komen.
+          for v in RESOURCE_GROUP APP_NAME; do
+            [ -n "${!v:-}" ] || { echo "::error::ontbrekende var: $v in environment '${{ inputs.omgeving }}' (zie deploy/azure/README.md)"; exit 1; }
           done
 
           if [ "${{ inputs.actie }}" = "afbreken" ]; then
@@ -126,22 +140,66 @@ jobs:
             echo "Licentie geplaatst ($(wc -c < "$RUNNER_TEMP/graphdb.license") bytes)."
           fi
 
+      # Wat draait er nu? Die image-refs geven we mee aan de deployment, zodat een INFRA-wijziging
+      # de images met rust laat. Zonder dit vallen de bicep-defaults (`:latest`) terug op hun plek en
+      # gooit een infra-deploy de digest-pins weg die de publish-workflows er net op zetten — dan
+      # weet je achteraf niet meer wélk image er draait. Bestaat een app nog niet (verse straat), dan
+      # blijft de variabele leeg en pakt de bicep gewoon zijn default.
+      - name: Draaiende images uitlezen
+        if: ${{ inputs.actie == 'wat-if' || inputs.actie == 'deploy' }}
+        id: images
+        run: |
+          set -euo pipefail
+          VRAAG='properties.template.containers[0].image'
+          app_image() {   # $1 = suffix van de container app
+            az containerapp show -n "$APP_NAME-$1" -g "$RESOURCE_GROUP" --query "$VRAAG" -o tsv 2>/dev/null || true
+          }
+          job_image() {   # $1 = suffix van de container apps JOB
+            az containerapp job show -n "$APP_NAME-$1" -g "$RESOURCE_GROUP" --query "$VRAAG" -o tsv 2>/dev/null || true
+          }
+          {
+            echo "api=$(app_image api)"
+            echo "frontend=$(app_image frontend)"
+            echo "graph_qa=$(app_image graph-qa)"
+            echo "bwb_import=$(job_image bwb-import)"
+          } | tee -a "$GITHUB_OUTPUT"
+
       - name: Template valideren (what-if)
         if: ${{ inputs.actie == 'wat-if' }}
+        env:
+          IMG_API: ${{ steps.images.outputs.api }}
+          IMG_FRONTEND: ${{ steps.images.outputs.frontend }}
+          IMG_GRAPH_QA: ${{ steps.images.outputs.graph_qa }}
+          IMG_BWB_IMPORT: ${{ steps.images.outputs.bwb_import }}
         run: |
           set -euo pipefail
           args=(--llm-api-base "$LLM_API_BASE" --llm-model "$LLM_MODEL"
-                --resource-group "$RESOURCE_GROUP" --location "$AZURE_LOCATION" --what-if)
+                --resource-group "$RESOURCE_GROUP" --location "$AZURE_LOCATION"
+                --app-name "$APP_NAME" --what-if)
           [ -f "$RUNNER_TEMP/graphdb.license" ] && args+=(--license-file "$RUNNER_TEMP/graphdb.license")
+          [ -n "${IMG_API:-}" ]        && args+=(--api-image "$IMG_API")
+          [ -n "${IMG_FRONTEND:-}" ]   && args+=(--frontend-image "$IMG_FRONTEND")
+          [ -n "${IMG_GRAPH_QA:-}" ]   && args+=(--graph-qa-image "$IMG_GRAPH_QA")
+          [ -n "${IMG_BWB_IMPORT:-}" ] && args+=(--bwb-import-image "$IMG_BWB_IMPORT")
           python3 deploy/azure/gen-deploy.py "$AZURE_AI_KEY" "${args[@]}"
 
       - name: Uitrollen
         if: ${{ inputs.actie == 'deploy' }}
+        env:
+          IMG_API: ${{ steps.images.outputs.api }}
+          IMG_FRONTEND: ${{ steps.images.outputs.frontend }}
+          IMG_GRAPH_QA: ${{ steps.images.outputs.graph_qa }}
+          IMG_BWB_IMPORT: ${{ steps.images.outputs.bwb_import }}
         run: |
           set -euo pipefail
           args=(--llm-api-base "$LLM_API_BASE" --llm-model "$LLM_MODEL"
-                --resource-group "$RESOURCE_GROUP" --location "$AZURE_LOCATION" --run)
+                --resource-group "$RESOURCE_GROUP" --location "$AZURE_LOCATION"
+                --app-name "$APP_NAME" --run)
           [ -f "$RUNNER_TEMP/graphdb.license" ] && args+=(--license-file "$RUNNER_TEMP/graphdb.license")
+          [ -n "${IMG_API:-}" ]        && args+=(--api-image "$IMG_API")
+          [ -n "${IMG_FRONTEND:-}" ]   && args+=(--frontend-image "$IMG_FRONTEND")
+          [ -n "${IMG_GRAPH_QA:-}" ]   && args+=(--graph-qa-image "$IMG_GRAPH_QA")
+          [ -n "${IMG_BWB_IMPORT:-}" ] && args+=(--bwb-import-image "$IMG_BWB_IMPORT")
           python3 deploy/azure/gen-deploy.py "$AZURE_AI_KEY" "${args[@]}"
 
       - name: Inventaris (read-only)
@@ -185,11 +243,14 @@ jobs:
           echo "--- postgres ---"
           az postgres flexible-server list --query "[].{server:name, versie:version, sku:sku.name}" -o tsv 2>/dev/null || true
 
+      # Ook ná een deploy, en niet alleen op verzoek: GraphDB is bewust niet-persistent, dus een
+      # verse of opnieuw uitgerolde stack heeft een LEGE graaf. Dat handmatig laten was precies de
+      # stap die je vergeet, en dan staat er een omgeving die nergens antwoord op geeft.
       - name: Graaf vullen (import-job)
-        if: ${{ inputs.actie == 'vul-graaf' }}
+        if: ${{ inputs.actie == 'vul-graaf' || inputs.actie == 'deploy' }}
         run: |
           set -euo pipefail
-          JOB=wetsanalyse-bwb-import
+          JOB="$APP_NAME-bwb-import"
           az containerapp job start -n "$JOB" -g "$RESOURCE_GROUP" --output none
           # De job draait asynchroon: pak de nieuwste execution en wacht hem af. Zonder dit wachten
           # meldt de workflow succes terwijl de import nog loopt of al gefaald is.
@@ -232,7 +293,7 @@ jobs:
             echo "### Nog te doen"
             echo '1. Vul de graaf (duurt ~20s):'
             echo '   ```'
-            echo "   az containerapp job start -n wetsanalyse-bwb-import -g $RESOURCE_GROUP"
+            echo "   az containerapp job start -n $APP_NAME-bwb-import -g $RESOURCE_GROUP"
             echo '   ```'
             echo "2. Maak de eerste beheerder aan op \`$url/setup\`."
             echo ""

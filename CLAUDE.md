@@ -151,42 +151,53 @@ uitleg (env-vars, logschema, AVG-redactie, dashboard/alerting) staat in **`docs/
 
 ## Uitrollen
 
-**Dev** — één vaste, gedeelde omgeving op **https://dev.wetsanalyse.example** met een eigen database,
-naast de graaf en de observability-stack op dezelfde docker-host. Handmatig: Actions → *dev-deploy* →
-*Run workflow* → kies de branch; `destroy: true` breekt stack, database en proxyhost weer af.
-Workflow `.github/workflows/dev-deploy.yml` + stack `deploy/dev/docker-compose.yml`; setup en de
-volgorde-afhankelijkheden (graaf en observability eerst, want hun netwerken zijn extern) staan in
-**`deploy/dev/README.md`**.
+**Azure is de uitrolplek.** Twee straten, elk een zelfstandige omgeving (eigen PostgreSQL, GraphDB,
+importer, api, graph-qa, frontend) in een eigen resource group:
 
-**De graaf** — `.github/workflows/deploy-graaf.yml` rolt de graphdb-stack en de importer in de juiste
-volgorde uit (GraphDB eerst: die maakt het netwerk `graphdb_default` waar de rest op joint).
+| straat | wanneer | resource group / `appName` | poort ervoor |
+|---|---|---|---|
+| **acceptatie** | elke merge naar `master` | `rg-wetsanalyse` / `wetsanalyse` | geen — automatisch |
+| **productie** | een tag `v*` | `rg-wetsanalyse-prd` / `wetsanalyse-prd` | required reviewer op de GitHub-environment |
 
-**Productie** — vijf losse Portainer-stacks met een **volgorde-afhankelijkheid via de netwerken**:
+> **Productie bestaat nog niet.** De service principal heeft alleen rechten binnen `rg-wetsanalyse`
+> en mag geen resource group aanmaken (`AuthorizationFailed` op `resourcegroups/write`). Voordat de
+> productiestraat kan draaien, moet iemand met Owner-rechten `rg-wetsanalyse-prd` aanmaken en de
+> service principal daar Contributor op geven.
 
-| # | stack | maakt | joint op | hostpoort |
-|---|---|---|---|---|
-| 1 | `deploy/postgres/` | `wetsanalyse_internal` | — | nee |
-| 2 | `deploy/graphdb/` | `graphdb_default` | — | 7200 + 8004 |
-| 3 | `deploy/observability/` | `observability_default` | — | 3001 (Grafana) |
-| 4 | `api/`, `tools/graph-qa/` | — | de netwerken hierboven | api 8081; graph-qa geen |
-| 5 | `frontend/` | — | `wetsanalyse_internal` + observability | 8080 |
+De vier `*-docker-publish.yml`-workflows bouwen naar GHCR (pip-audit/npm-audit vooraf, Trivy-gate
+achteraf) en hebben daarna een aparte **`deploy`-job**. Die kiest zijn GitHub-environment op de
+trigger — `master` → `acceptatie`, tag → `productie` — en haalt daar de credentials, de resource
+group en de `APP_NAME` uit. Er is dus geen omgevingsnaam meer hardgecodeerd, en de menselijke poort
+vóór productie zit in de environment en niet in een workflow-conditie.
 
-De eerste drie maken de netwerken; deployt een latere stack eerder, dan faalt hij op een ontbrekend
-extern netwerk. **nginx-proxy-manager draait op een andere host** en deelt dus geen docker-netwerk:
-wie publiek moet zijn publiceert een hostpoort en NPM forwardt naar `<docker-host-ip>:<poort>`.
-graph-qa is bewust intern-only.
+Twee dingen die die job bewust doet en die je niet moet weghalen: hij **faalt** bij een ontbrekend
+secret (dat was eerder een `if` die de stap oversloeg en de run groen liet), en hij **wacht tot de
+nieuwe revisie draait** (`az containerapp update` keert al terug zodra de revisie is aangemaakt, dus
+een crashende container bleef anders onopgemerkt).
 
-**Images** — `{api,frontend,graph-qa,bwb-import}-docker-publish.yml` bouwen bij een push naar master
-naar GHCR, met pip-audit/npm-audit vooraf en een Trivy-gate achteraf. Bij master doen ze
-aansluitend een `az containerapp update` (of `az containerapp job update` bij bwb-import) op de
-Azure-omgeving — image-swap, geen infra-wijziging. Op de Portainer-productie is uitrollen wél een
-aparte, expliciete stap.
+**Infra blijft handmatig.** `azure-infra.yml` (bicep) is de enige die resources aanmaakt, wijzigt of
+verwijdert: kies de straat + `wat-if` (valideert, maakt niets aan), `deploy`, `afbreken`,
+`vul-graaf` of `inventaris`. `wat-if` is de default omdat een deploy GraphDB raakt. Zie
+`deploy/azure/README.md` — let vooral op de GraphDB-licentie, zonder welke de graaf read-only opkomt.
 
-**Azure** — `deploy/azure/` is de tweede uitrolplek van de stack, mét eigen GraphDB en importer.
-`azure-infra.yml` is handmatig (bicep-wijzigingen raken GraphDB en die is niet-persistent) en kent
-`wat-if` (valideert, maakt niets aan), `deploy` en `afbreken`. Image-refreshes komen automatisch
-uit de publish-workflows. Zie `deploy/azure/README.md` — let vooral op de GraphDB-licentie, zonder
-welke de graaf read-only opkomt.
+**De graaf op Azure is niet-persistent, en vult zichzelf.** GraphDB gebruikt memory-mapped files en
+kan daarom geen netwerkschijf gebruiken; de graaf is echter volledig reproduceerbaar uit
+overheid.nl. Daarom start `azure-infra.yml` de import-job automatisch na elke `deploy`, en draait
+diezelfde job wekelijks via een cron-trigger in de bicep. Let op: de similarity-index
+(`bwb_similarity`) overleeft een herstart evenmin, en tot hij herbouwd is degradeert
+`semantic_search` naar `search_wetgeving`.
+
+**Logs** landen in een Log Analytics workspace per straat (`log-${appName}`, aan de container-apps-
+omgeving gekoppeld). Traces/metrics staan uit: `OTEL_EXPORTER_OTLP_ENDPOINT` is leeg, en de
+Grafana-stack hieronder is van buiten het LAN niet bereikbaar.
+
+**Dev draait op de docker-host en is géén weg naar "echt".** Eén vaste, gedeelde omgeving met een
+eigen database, naast de graaf en de observability-stack op diezelfde host. Handmatig: Actions →
+*dev-deploy* → *Run workflow* → kies de branch; `destroy: true` breekt stack, database en proxyhost
+weer af. Workflow `.github/workflows/dev-deploy.yml` + stack `deploy/dev/docker-compose.yml`; setup
+en de volgorde-afhankelijkheden (graaf en observability eerst, want hun netwerken zijn extern) staan
+in **`deploy/dev/README.md`**. `deploy-graaf.yml` en `deploy-observability.yml` bedienen die
+omgeving; ze raken Azure niet.
 
 ## Referentiedocumentatie
 

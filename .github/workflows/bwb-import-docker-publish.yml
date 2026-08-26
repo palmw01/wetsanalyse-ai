@@ -42,11 +42,8 @@ jobs:
       contents: read
       packages: write
       security-events: write
-    env:
-      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -108,21 +105,48 @@ jobs:
           severity: CRITICAL
           exit-code: "1"
 
-      # Auto-deploy: image-swap op de bestaande import-job in Azure. Infra-wijzigingen (bicep)
-      # gaan bewust via de handmatige azure-infra-workflow — hier alleen de image-refresh.
-      # De job zelf wordt niet gestart; volgende geplande/handmatige run pakt de nieuwe image.
-      - name: Azure Container App Job update (bwb-import)
-        if: ${{ github.ref == 'refs/heads/master' && env.AZURE_CLIENT_ID != '' && env.AZURE_CLIENT_SECRET != '' }}
-        env:
-          IMAGE_DIGEST_REF: ${{ env.IMAGE }}@${{ steps.build.outputs.digest }}
-          RG: ${{ vars.AZURE_RESOURCE_GROUP || 'rg-wetsanalyse' }}
+  # ── Uitrollen naar Azure ──────────────────────────────────────────────────────
+  #
+  # master → acceptatie, tag `v*` → productie; zie de gelijknamige job in de andere
+  # publish-workflows. Dit is een Container Apps JOB en geen app: er is dus geen revisie om af te
+  # wachten. De job zelf wordt niet gestart — de volgende geplande of handmatige run pakt de nieuwe
+  # image op.
+  deploy:
+    needs: build-and-push
+    if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'productie' || 'acceptatie' }}
+    env:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      RG: ${{ vars.AZURE_RESOURCE_GROUP }}
+      APP: ${{ vars.APP_NAME }}
+    steps:
+      - name: Preflight (credentials en omgevingsvars aanwezig?)
         run: |
+          set -euo pipefail
+          for v in AZURE_CLIENT_ID AZURE_CLIENT_SECRET AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID RG APP; do
+            [ -n "${!v:-}" ] || { echo "::error::ontbrekende secret/var: $v (zie deploy/azure/README.md)"; exit 1; }
+          done
+
+      - name: Azure Container App Job update (bwb-import)
+        env:
+          IMAGE_DIGEST_REF: ${{ env.IMAGE }}@${{ needs.build-and-push.outputs.digest }}
+        run: |
+          set -euo pipefail
           az login --service-principal \
             --username "$AZURE_CLIENT_ID" \
             --password "$AZURE_CLIENT_SECRET" \
             --tenant "$AZURE_TENANT_ID"
           az account set --subscription "$AZURE_SUBSCRIPTION_ID"
           az containerapp job update \
-            --name wetsanalyse-bwb-import \
+            --name "$APP-bwb-import" \
             --resource-group "$RG" \
-            --image "$IMAGE_DIGEST_REF"
+            --image "$IMAGE_DIGEST_REF" \
+            --output none
+
+      - name: Afmelden bij Azure
+        if: always()
+        run: az logout || true

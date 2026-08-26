@@ -51,11 +51,8 @@ jobs:
       contents: read
       packages: write
       security-events: write
-    env:
-      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -126,20 +123,73 @@ jobs:
           severity: CRITICAL
           exit-code: "1"
 
-      # Auto-deploy: image-swap op de bestaande container app in Azure. Infra-wijzigingen (bicep)
-      # gaan bewust via de handmatige azure-infra-workflow — hier alleen de image-refresh.
-      - name: Azure Container App update (api)
-        if: ${{ github.ref == 'refs/heads/master' && env.AZURE_CLIENT_ID != '' && env.AZURE_CLIENT_SECRET != '' }}
-        env:
-          IMAGE_DIGEST_REF: ${{ env.IMAGE }}@${{ steps.build.outputs.digest }}
-          RG: ${{ vars.AZURE_RESOURCE_GROUP || 'rg-wetsanalyse' }}
+  # ── Uitrollen naar Azure ──────────────────────────────────────────────────────
+  #
+  # master → acceptatie, tag `v*` → productie. De GitHub-environment levert de credentials en de
+  # RG/APP_NAME van die straat, en draagt bij productie de required reviewer: die menselijke poort
+  # hoort in de omgeving te zitten, niet in een workflow-conditie die je per ongeluk wegcommit.
+  #
+  # Een aparte job en niet een stap in build-and-push, zodat de goedkeuring precies op de uitrol
+  # valt en de build gewoon doorloopt. Infra-wijzigingen (bicep) gaan via azure-infra.yml — hier
+  # alleen de image-refresh.
+  deploy:
+    needs: build-and-push
+    if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'productie' || 'acceptatie' }}
+    env:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      RG: ${{ vars.AZURE_RESOURCE_GROUP }}
+      APP: ${{ vars.APP_NAME }}
+    steps:
+      # Ontbreekt er een secret, dan hoort dat te FALEN. Dit stond eerder als `if: … &&
+      # env.AZURE_CLIENT_ID != ''` op de stap zelf: een verlopen secret betekende dan een
+      # overgeslagen stap en een groene run — je zag niet dat er niets was uitgerold.
+      - name: Preflight (credentials en omgevingsvars aanwezig?)
         run: |
+          set -euo pipefail
+          for v in AZURE_CLIENT_ID AZURE_CLIENT_SECRET AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID RG APP; do
+            [ -n "${!v:-}" ] || { echo "::error::ontbrekende secret/var: $v (zie deploy/azure/README.md)"; exit 1; }
+          done
+
+      - name: Azure Container App update (api)
+        env:
+          IMAGE_DIGEST_REF: ${{ env.IMAGE }}@${{ needs.build-and-push.outputs.digest }}
+        run: |
+          set -euo pipefail
           az login --service-principal \
             --username "$AZURE_CLIENT_ID" \
             --password "$AZURE_CLIENT_SECRET" \
             --tenant "$AZURE_TENANT_ID"
           az account set --subscription "$AZURE_SUBSCRIPTION_ID"
           az containerapp update \
-            --name wetsanalyse-api \
+            --name "$APP-api" \
             --resource-group "$RG" \
-            --image "$IMAGE_DIGEST_REF"
+            --image "$IMAGE_DIGEST_REF" \
+            --output none
+
+      # `az containerapp update` keert terug zodra de revisie is AANGEMAAKT. Crasht de container bij
+      # het starten, dan bleef de workflow groen en dacht je dat je had uitgerold.
+      - name: Wachten tot de nieuwe revisie draait
+        run: |
+          set -euo pipefail
+          rev=$(az containerapp show -n "$APP-api" -g "$RG" --query "properties.latestRevisionName" -o tsv)
+          echo "Nieuwe revisie: $rev"
+          for _ in $(seq 1 30); do
+            st=$(az containerapp revision show -n "$APP-api" -g "$RG" --revision "$rev" \
+                   --query "properties.runningState" -o tsv 2>/dev/null || echo Unknown)
+            echo "  $st"
+            case "$st" in
+              Running|RunningAtMaxScale) echo "$rev draait."; exit 0 ;;
+              Failed|Degraded) echo "::error::revisie $rev kwam niet gezond op ($st)"; exit 1 ;;
+            esac
+            sleep 10
+          done
+          echo "::error::revisie $rev werd niet Running binnen 5 minuten"; exit 1
+
+      - name: Afmelden bij Azure
+        if: always()
+        run: az logout || true

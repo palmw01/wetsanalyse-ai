@@ -143,10 +143,37 @@ resource pgDatabase 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2023-06
 // ─────────────────────────────────────────────────────────────────────────────
 // 2. Container Apps Environment
 // ─────────────────────────────────────────────────────────────────────────────
+// De logs moeten ergens landen. Zonder `appLogsConfiguration` bewaart Azure de stdout van de
+// containers NIET — en dat is precies waar api, frontend en graph-qa hun gestructureerde JSON-logs
+// heen schrijven. De observability-stack (Grafana/Tempo/Loki) draait alleen op de docker-host en is
+// van buiten het LAN niet bereikbaar, dus die kan deze omgeving niet bedienen; een Log Analytics
+// workspace per straat is wat het hier doorzoekbaar maakt.
+//
+// PerGB2018 met 30 dagen retentie: de goedkoopste zinnige stand. Traces/metrics blijven uit
+// (`OTEL_EXPORTER_OTLP_ENDPOINT` is leeg = alleen logs, nul overhead) — dat is een aparte afweging.
+resource logs 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+  name: 'log-${appName}'
+  location: location
+  properties: {
+    sku: {
+      name: 'PerGB2018'
+    }
+    retentionInDays: 30
+  }
+}
+
 resource cae 'Microsoft.App/managedEnvironments@2024-03-01' = {
   name: 'cae-${appName}'
   location: location
-  properties: {}
+  properties: {
+    appLogsConfiguration: {
+      destination: 'log-analytics'
+      logAnalyticsConfiguration: {
+        customerId: logs.properties.customerId
+        sharedKey: logs.listKeys().primarySharedKey
+      }
+    }
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -268,11 +295,16 @@ resource bwbImportJob 'Microsoft.App/jobs@2024-03-01' = {
   location: location
   properties: {
     environmentId: cae.id
+    // Wekelijks herimporteren, net als de zelfgehoste importer. De import is per wet idempotent
+    // (named-graph PUT), dus dit is veilig — en het is wat de graaf bijhoudt zonder dat er een
+    // deploy voor nodig is. `azure-infra.yml` start hem daarnaast direct na elke deploy, want
+    // GraphDB is niet-persistent en komt dus leeg op.
     configuration: {
-      triggerType: 'Manual'
+      triggerType: 'Schedule'
       replicaTimeout: 3600
       replicaRetryLimit: 1
-      manualTriggerConfig: {
+      scheduleTriggerConfig: {
+        cronExpression: '0 3 * * 1'   // maandag 03:00 UTC
         parallelism: 1
         replicaCompletionCount: 1
       }
