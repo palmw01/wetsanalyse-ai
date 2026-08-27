@@ -283,7 +283,7 @@
         "type": "prometheus",
         "uid": "wa-prometheus"
       },
-      "description": "Aandeel 5xx-serverfouten t.o.v. alle API-responses (voortschrijdend interval).",
+      "description": "Aandeel 5xx-serverfouten t.o.v. alle API-responses (voortschrijdend interval). De teller houdt `or vector(0)`, zodat gezond verkeer zonder fouten netjes 0% toont in plaats van 'No data' — zonder die val geeft `sum()` over een niet-bestaande 5xx-serie een lege vector. De noemer heeft bewust géén ondergrens: `clamp_min` op een rate maakt de ratio te laag zodra het verkeer onder 1 req/s ligt. Leeg betekent dus: geen verkeer in dit interval.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -338,7 +338,7 @@
             "uid": "wa-prometheus"
           },
           "editorMode": "code",
-          "expr": "(sum(rate(http_server_duration_milliseconds_count{exported_job=\"wetsanalyse-api\", http_status_code=~\"5..\"}[$__rate_interval])) or vector(0)) / clamp_min(sum(rate(http_server_duration_milliseconds_count{exported_job=\"wetsanalyse-api\"}[$__rate_interval])) or vector(0), 1)",
+          "expr": "(sum(rate(http_server_duration_milliseconds_count{exported_job=\"wetsanalyse-api\", http_status_code=~\"5..\"}[$__rate_interval])) or vector(0)) / sum(rate(http_server_duration_milliseconds_count{exported_job=\"wetsanalyse-api\"}[$__rate_interval]))",
           "instant": true,
           "range": false,
           "refId": "A"
@@ -365,7 +365,7 @@
         "type": "loki",
         "uid": "wa-loki"
       },
-      "description": "Aantal API-logregels per interval, uitgesplitst naar niveau (info/warn/error).",
+      "description": "Aantal API-logregels per interval, uitgesplitst naar niveau. Splitst bewust op `detected_level` en niet op `niveau`: de API-logs komen via OTLP binnen (severity uit de LoggingHandler) en Alloy promoveert `niveau` van de stdout-loggers naar datzelfde label (alloy-config.alloy). `| json` werkt hier dus niet — de velden zitten als structured metadata bij de regel, niet als JSON erin.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -515,17 +515,9 @@
             "type": "tempo",
             "uid": "wa-tempo"
           },
-          "filters": [
-            {
-              "id": "service-name",
-              "operator": "=",
-              "scope": "resource",
-              "tag": "service.name"
-            }
-          ],
           "limit": 20,
-          "query": "{}",
-          "queryType": "traceqlSearch",
+          "query": "{ resource.service.name =~ \"wetsanalyse-.*\" }",
+          "queryType": "traceql",
           "refId": "A",
           "tableType": "traces"
         }

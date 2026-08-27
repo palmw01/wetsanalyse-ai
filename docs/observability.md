@@ -52,7 +52,7 @@ PromQL/LogQL/TraceQL — die twee sets delen geen query-taal en zijn dus niet ui
 |-----------|---------|--------|---------|
 | **API** (`api/`, FastAPI) | JSON-`dictConfig`, request-id-middleware, access-log | FastAPI-requests, DB | http-server-latency, request-count/foutrate (auto) |
 | **Frontend** (`frontend/`, Next.js) | server-side JSON naar stdout in de BFF-lagen | `@vercel/otel`: route handlers + uitgaande `fetch` (traceparent) | request-count/latency (auto) |
-| **graph-qa** (`tools/graph-qa/`) | gestructureerde JSON-logs | `/v1/chat` (SSE) + GraphDB-MCP-calls | http-server-latency (auto) |
+| **graph-qa** (`tools/graph-qa/`) | gestructureerde JSON-logs | `/v1/runs` (de weg van de werkplek) en `/v1/chat` + GraphDB-MCP-calls | http-server-latency (auto) |
 
 De **GraphDB-kennisgraaf en de externe diensten** (overheid.nl-bronnen, de LLM-provider) draaien buiten
 deze repo en zijn niet geïnstrumenteerd; ze verschijnen in de traces als virtuele peer-node (zie de
@@ -60,7 +60,7 @@ service-graph-connector) i.p.v. als eigen span.
 
 ## Correlatie
 
-Eén **trace-id** verbindt de keten: `frontend → API → PostgreSQL` en `frontend → graph-qa` (chat, SSE). OTel propageert automatisch via de W3C-`traceparent`-header op
+Eén **trace-id** verbindt de keten: `frontend → API → PostgreSQL` en `frontend → graph-qa` (`/v1/runs`, SSE; `/v1/chat` is de niet-webapp-weg). OTel propageert automatisch via de W3C-`traceparent`-header op
 uitgaande `fetch`/httpx-calls. Elke logregel draagt `trace_id`/`span_id` zodra er een span actief is,
 plus (in de API) een `request_id` per inkomend verzoek (`X-Request-Id`, gegenereerd of overgenomen en
 in de response geëchood).
@@ -172,7 +172,7 @@ eerlijker en eenduidiger.
 ## Verifiëren
 
 - **No-op-gating**: start zonder endpoint → alles draait, alleen JSON-logs.
-- **Trace-correlatie**: de werkplek-chat loopt frontend → graph-qa (SSE); login/beheer loopt
+- **Trace-correlatie**: de werkplek loopt frontend → graph-qa (`/v1/runs`, SSE); login/beheer loopt
   frontend → API → PostgreSQL — één trace deelt de `trace_id`.
 - **Geen lek**: `grep` de logoutput op `bearer`/`secret`/de chat-`secret`-waarde → leeg.
 
@@ -187,7 +187,27 @@ De OTLP→Prometheus-export voegt unit-/type-suffixen toe; onthoud dit bij het b
   **`client`**/**`server`**/`connection_type`) en `traces_spanmetrics_calls_total`/`_duration_*`
   (labels **`service_name`**/**`span_name`**). Leeg tot de collector met de connectors draait én er
   traces zijn.
-- Services onderscheiden via het label **`exported_job`** (`wetsanalyse-api`/`wetsanalyse-frontend`/…).
+- Services onderscheiden via het label **`exported_job`** — `wetsanalyse-api`, `wetsanalyse-frontend`,
+  `wetsanalyse-graph-qa`. Alle drie dragen hetzelfde prefix, zodat een filter als
+  `{service_name=~"wetsanalyse-.*"}` de hele keten vangt. Dat was niet altijd zo: graph-qa heette tot
+  27 aug 2026 kaal `graph-qa` en viel daardoor stil buiten de ketenbrede panelen.
 - **Loki**: de OTLP-logs dragen de velden als **structured metadata** (`detected_level`, `trace_id`,
   `categorie`), niet als JSON in de regel — filter dus op die labels, niet met `| json`. De
   Loki-datasource heeft een derived field `trace_id` → Tempo voor de doorklik.
+
+> **graph-qa is op Azure meestal onzichtbaar, en dat klopt.** Hij draait daar met `minReplicas: 0`
+> (`deploy/azure/main.bicep`), dus buiten gebruik zijn er nul replica's: geen liveness-probes, geen
+> requests, geen telemetrie. Een grijze tegel of een leeg paneel betekent hier "er wordt niet
+> gewerkt", niet "de meting is stuk" — in een etmaal zijn 9 à 16 requests normaal. Reken er ook op
+> dat de eerste vraag na stilte een koude start bevat; die telt mee in de p95, naast de LLM-tijd van
+> de run zelf. Op dev geldt dit niet: daar draait de container gewoon door (docker-compose).
+
+> **Houdbaarheid: deze namen zijn de pre-1.0 OTel-conventie.** `http_server_duration_milliseconds`
+> en de attributen `http_target`/`http_status_code` heten in de stabiele HTTP-semconv
+> `http.server.request.duration` (in **seconden**), `http_route` en `http_response_status_code`. Bij
+> een SDK- of collector-upgrade die de nieuwe conventie aanzet, verdwijnen niet alleen drie panelen
+> van `grafana-dashboard-wetsanalyse.json` naar "No data" — ook twee van de drie alertregels
+> (`alerting/alert-rules.json`, de 5xx-regel en de latency-regel) vallen dan stil. Een blind alarm
+> meldt zichzelf niet, dus loop bij zo'n upgrade beide bestanden na. Wie de overgang geleidelijk wil
+> doen, kan tijdelijk `OTEL_SEMCONV_STABILITY_OPT_IN=http/dup` zetten: dan emitteert de SDK beide
+> namen naast elkaar.

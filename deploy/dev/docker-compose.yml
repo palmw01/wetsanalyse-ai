@@ -75,7 +75,7 @@ services:
       GRAPHDB_TOKEN:          ${GRAPHDB_TOKEN:?zet GRAPHDB_TOKEN}
       GRAPHDB_REPOSITORY_ID:  inning
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_ENDPOINT:-http://otel-collector:4318}
-      OTEL_SERVICE_NAME:      graph-qa
+      OTEL_SERVICE_NAME:      wetsanalyse-graph-qa
       QA_API_TOKEN:           ${QA_API_TOKEN:?zet QA_API_TOKEN}
       # Hier legt graph-qa de uitkomst van een beurt vast. Zonder deze twee blijft de werkplek dat
       # doen — en dan kost een gesloten tabblad nog steeds het werk.

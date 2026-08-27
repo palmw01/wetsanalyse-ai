@@ -656,7 +656,7 @@ resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
             // Telemetrie naar de collector in deze omgeving, die het doorschrijft naar Application
             // Insights. Leeg laten = uit; dat was de stand tot nu toe.
             { name: 'OTEL_EXPORTER_OTLP_ENDPOINT', value: collectorEndpoint }
-            { name: 'OTEL_SERVICE_NAME', value: 'graph-qa' }
+            { name: 'OTEL_SERVICE_NAME', value: 'wetsanalyse-graph-qa' }
             // De straat staat op elke span, zodat acceptatie en productie in dezelfde workspace
             // uit elkaar te houden zijn.
             { name: 'OTEL_RESOURCE_ATTRIBUTES', value: 'deployment.environment=${appName}' }

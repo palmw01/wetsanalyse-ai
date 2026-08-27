@@ -114,11 +114,11 @@ var datasourcesMetWorkspaces = replace(datasourcesYaml, '__WS_PRD__', wsPrd)
 // datasource-variabele zou dat ook doen, maar dan moet de workspace-id per query alsnog meebewegen.
 var sjabloon = loadTextContent('grafana/dashboard-keten.json')
 
-var dashAcc = replace(replace(replace(replace(
-  sjabloon, '__SLUG__', 'acceptatie'), '__STRAAT__', 'acceptatie'), '__DSUID__', 'azmon-acceptatie'), '__WORKSPACE__', wsAcc)
+var dashAcc = replace(replace(replace(replace(replace(
+  sjabloon, '__SLUG__', 'acceptatie'), '__STRAAT__', 'acceptatie'), '__DSUID__', 'azmon-acceptatie'), '__WORKSPACE__', wsAcc), '__APPNAME__', acceptatieAppName)
 
-var dashPrd = replace(replace(replace(replace(
-  sjabloon, '__SLUG__', 'productie'), '__STRAAT__', 'productie'), '__DSUID__', 'azmon-productie'), '__WORKSPACE__', wsPrd)
+var dashPrd = replace(replace(replace(replace(replace(
+  sjabloon, '__SLUG__', 'productie'), '__STRAAT__', 'productie'), '__DSUID__', 'azmon-productie'), '__WORKSPACE__', wsPrd), '__APPNAME__', productieAppName)
 
 var dashboardProviderYaml = '''
 apiVersion: 1
