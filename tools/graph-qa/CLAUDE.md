@@ -481,7 +481,7 @@ Drie dingen die je verder moet kennen voordat je hieraan werkt:
 ## Tests & eval
 
 ```bash
-# vanaf de projectroot (write-guard); commando's zelf draaien in tools/graph-qa
+# commando's draaien in tools/graph-qa
 cd tools/graph-qa && uv run --extra dev pytest -q
 cd tools/graph-qa && uv run --extra dev pytest tests/test_orchestrator.py -q
 cd tools/graph-qa && .venv/bin/python eval/run_eval.py --offline               # QA-harnas, gescript

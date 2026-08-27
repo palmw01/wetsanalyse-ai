@@ -30,7 +30,7 @@ npm run build      # → dist/ (gecommit, zodat `node dist/index.js` zonder buil
 1. **Genereer een token** in de webapp: `/beheer` → **API-tokens** → *Token genereren* (label bijv.
    `claude-admin-mcp`). Het volledige token wordt **één keer** getoond — kopieer het.
 2. **Zet het token** als env-var voor Claude Code. In `.claude/settings.local.json` (gitignored,
-   machine-lokaal — dezelfde plek als `WETTENBANK_TOKEN`):
+   machine-lokaal, dus het reist niet mee naar een andere kloon):
 
    ```json
    "env": {
