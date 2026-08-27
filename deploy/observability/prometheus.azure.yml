@@ -1,0 +1,29 @@
+# Prometheus scrape-config — Azure Container Apps variant.
+# Gebruik naast prometheus.yml; overschrijft die NIET.
+#
+# Vervang ${CAE_DNS_SUFFIX} vóór upload naar de obs-configs Azure Files share.
+# De waarde vind je via:
+#   az containerapp env show -n cae-wetsanalyse -g <rg> --query properties.defaultDomain -o tsv
+#
+# Verwacht patroon: <env-id>.<region>.azurecontainerapps.io
+# Voorbeeld: abc123def456.westeurope.azurecontainerapps.io
+#
+# Gebruik ook de bicep-output collectorOtlpHttpUrl voor OTEL_EXPORTER_OTLP_ENDPOINT in de apps.
+
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+scrape_configs:
+  # OTel-collector Prometheus-exporter (RED-metrics + servicegraph-metrics)
+  - job_name: otel-collector
+    static_configs:
+      - targets:
+          - "wetsanalyse-obs-collector.internal.${CAE_DNS_SUFFIX}:8889"
+
+  # TODO(bevestig): voeg hier app-eigen /metrics-endpoints toe als die beschikbaar komen.
+  # Voorbeeld:
+  # - job_name: wetsanalyse-api
+  #   static_configs:
+  #     - targets: ["wetsanalyse-api.internal.${CAE_DNS_SUFFIX}:3000"]
+  #   metrics_path: /metrics

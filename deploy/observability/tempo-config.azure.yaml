@@ -1,0 +1,40 @@
+# Tempo — Azure Blob Storage backend.
+# Gebruik naast tempo.yaml; overschrijft die NIET.
+#
+# Vereisten:
+#   - Container app heeft system-assigned managed identity
+#   - Identity heeft Storage Blob Data Contributor op het storage account
+#   - Env-var STORAGE_ACCOUNT_NAME is gezet (via bicep)
+#   - Blob container: tempo-traces
+#   - Azure Files share tempo-wal gemount op /var/tempo/wal
+
+server:
+  http_listen_port: 3200
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+ingester:
+  max_block_duration: 5m
+
+compactor:
+  compaction:
+    block_retention: 168h   # 7 dagen; pas aan naar smaak (was 48u in homelab)
+
+storage:
+  trace:
+    backend: azure
+    azure:
+      # STORAGE_ACCOUNT_NAME wordt door de container app als env-var geïnjecteerd.
+      storage_account_name: ${STORAGE_ACCOUNT_NAME}
+      container_name: tempo-traces
+      use_managed_identity: true
+      # TODO(bevestig): endpoint voor Azure Government: blob.core.usgovcloudapi.net
+    wal:
+      path: /var/tempo/wal   # op Azure Files (persistent)

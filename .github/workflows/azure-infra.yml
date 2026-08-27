@@ -91,6 +91,11 @@ jobs:
       GRAPHDB_LICENSE_B64: ${{ secrets.GRAPHDB_LICENSE_B64 }}
       LLM_API_BASE: ${{ vars.LLM_API_BASE }}
       LLM_MODEL: ${{ vars.LLM_MODEL || 'claude-sonnet-4-6' }}
+      # Observability (optioneel — stel ENABLE_OBSERVABILITY=true in als GitHub var om te activeren)
+      ENABLE_OBSERVABILITY: ${{ vars.ENABLE_OBSERVABILITY }}
+      GRAFANA_ENTRA_CLIENT_ID: ${{ secrets.GRAFANA_ENTRA_CLIENT_ID }}
+      GRAFANA_ENTRA_CLIENT_SECRET: ${{ secrets.GRAFANA_ENTRA_CLIENT_SECRET }}
+      GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -276,6 +281,14 @@ jobs:
           IMG_BWB_IMPORT: ${{ steps.images.outputs.bwb_import }}
         run: |
           set -euo pipefail
+          OBS_FLAGS=()
+          if [ "${ENABLE_OBSERVABILITY:-}" = "true" ]; then
+            OBS_FLAGS+=(--enable-observability
+              --grafana-admin-password "$GRAFANA_ADMIN_PASSWORD"
+              --grafana-entra-client-id "$GRAFANA_ENTRA_CLIENT_ID"
+              --grafana-tenant-id "$AZURE_TENANT_ID"
+              --grafana-entra-client-secret "$GRAFANA_ENTRA_CLIENT_SECRET")
+          fi
           args=(--llm-api-base "$LLM_API_BASE" --llm-model "$LLM_MODEL"
                 --resource-group "$RESOURCE_GROUP" --location "$AZURE_LOCATION"
                 --app-name "$APP_NAME" --what-if
@@ -286,7 +299,7 @@ jobs:
           [ -n "${IMG_FRONTEND:-}" ]   && args+=(--frontend-image "$IMG_FRONTEND")
           [ -n "${IMG_GRAPH_QA:-}" ]   && args+=(--graph-qa-image "$IMG_GRAPH_QA")
           [ -n "${IMG_BWB_IMPORT:-}" ] && args+=(--bwb-import-image "$IMG_BWB_IMPORT")
-          python3 deploy/azure/gen-deploy.py "$AZURE_AI_KEY" "${args[@]}"
+          python3 deploy/azure/gen-deploy.py "$AZURE_AI_KEY" "${args[@]}" "${OBS_FLAGS[@]}"
 
       - name: Uitrollen
         if: ${{ inputs.actie == 'deploy' }}
@@ -297,6 +310,14 @@ jobs:
           IMG_BWB_IMPORT: ${{ steps.images.outputs.bwb_import }}
         run: |
           set -euo pipefail
+          OBS_FLAGS=()
+          if [ "${ENABLE_OBSERVABILITY:-}" = "true" ]; then
+            OBS_FLAGS+=(--enable-observability
+              --grafana-admin-password "$GRAFANA_ADMIN_PASSWORD"
+              --grafana-entra-client-id "$GRAFANA_ENTRA_CLIENT_ID"
+              --grafana-tenant-id "$AZURE_TENANT_ID"
+              --grafana-entra-client-secret "$GRAFANA_ENTRA_CLIENT_SECRET")
+          fi
           args=(--llm-api-base "$LLM_API_BASE" --llm-model "$LLM_MODEL"
                 --resource-group "$RESOURCE_GROUP" --location "$AZURE_LOCATION"
                 --app-name "$APP_NAME" --run
@@ -307,7 +328,36 @@ jobs:
           [ -n "${IMG_FRONTEND:-}" ]   && args+=(--frontend-image "$IMG_FRONTEND")
           [ -n "${IMG_GRAPH_QA:-}" ]   && args+=(--graph-qa-image "$IMG_GRAPH_QA")
           [ -n "${IMG_BWB_IMPORT:-}" ] && args+=(--bwb-import-image "$IMG_BWB_IMPORT")
-          python3 deploy/azure/gen-deploy.py "$AZURE_AI_KEY" "${args[@]}"
+          python3 deploy/azure/gen-deploy.py "$AZURE_AI_KEY" "${args[@]}" "${OBS_FLAGS[@]}"
+
+      - name: Upload observability configs naar Azure Files
+        if: ${{ inputs.actie == 'deploy' && env.ENABLE_OBSERVABILITY == 'true' }}
+        run: |
+          set -euo pipefail
+          # Haal storage account naam op uit deployment-output.
+          STORAGE_ACCOUNT=$(az deployment group show \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "$APP_NAME-infra" \
+            --query "properties.outputs.observabilityStorageAccount.value" \
+            --output tsv 2>/dev/null || echo "")
+          if [ -z "$STORAGE_ACCOUNT" ]; then
+            echo "::warning::observabilityStorageAccount output leeg — configs niet geüpload (eerste deploy?)."
+            exit 0
+          fi
+          # Haal de storage account key op (service principal heeft Contributor → kan keys lezen).
+          ACCOUNT_KEY=$(az storage account keys list \
+            --account-name "$STORAGE_ACCOUNT" \
+            --resource-group "$RESOURCE_GROUP" \
+            --query "[0].value" \
+            --output tsv)
+          # Upload alle *.azure.yaml / *.azure.yml config-bestanden naar de obs-configs share.
+          az storage file upload-batch \
+            --account-name "$STORAGE_ACCOUNT" \
+            --account-key "$ACCOUNT_KEY" \
+            --destination "obs-configs" \
+            --source "deploy/observability" \
+            --pattern "*azure*"
+          echo "Observability-configs geüpload naar $STORAGE_ACCOUNT/obs-configs."
 
       - name: Grafana uitrollen
         if: ${{ inputs.actie == 'grafana' }}

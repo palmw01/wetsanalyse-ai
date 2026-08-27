@@ -64,6 +64,16 @@ def main() -> None:
     p.add_argument("--license-file", default=os.environ.get("GRAPHDB_LICENSE_FILE"),
                    help="Pad naar graphdb.license. Zonder licentie komt de graaf read-only op en "
                         "faalt de import-job — GraphDB 11 staat schrijven alleen met licentie toe.")
+    p.add_argument("--enable-observability", action="store_true",
+                   help="Activeer de optionele observability-module (Grafana e.a.). OTel-collector draait altijd.")
+    p.add_argument("--grafana-entra-client-id", default=os.environ.get("GRAFANA_ENTRA_CLIENT_ID", ""),
+                   help="Azure AD App Registration client ID voor Grafana SSO. Vereist als --enable-observability.")
+    p.add_argument("--grafana-tenant-id", default=os.environ.get("AZURE_TENANT_ID", ""),
+                   help="Azure AD Tenant ID voor Grafana OIDC (default: AZURE_TENANT_ID env).")
+    p.add_argument("--grafana-entra-client-secret", default=os.environ.get("GRAFANA_ENTRA_CLIENT_SECRET", ""),
+                   help="Azure AD client secret voor Grafana SSO. Vereist als --enable-observability.")
+    p.add_argument("--grafana-admin-password", default=os.environ.get("GRAFANA_ADMIN_PASSWORD", ""),
+                   help="Grafana admin-wachtwoord (initieel). Vereist als --enable-observability.")
     p.add_argument("--resource-group", default="rg-wetsanalyse")
     p.add_argument("--location", default="westeurope")
     p.add_argument("--app-name", default="wetsanalyse")
@@ -139,6 +149,11 @@ def main() -> None:
             "qaApiToken": {"value": tok_qa},
             "graphQaApiToken": {"value": tok_qa_api},
             "graphdbLicenseBase64": {"value": licentie_b64},
+            "enableObservability":      {"value": args.enable_observability},
+            "grafanaEntraClientId":     {"value": args.grafana_entra_client_id},
+            "grafanaTenantId":          {"value": args.grafana_tenant_id},
+            "grafanaEntraClientSecret": {"value": args.grafana_entra_client_secret},
+            "grafanaAdminPassword":     {"value": args.grafana_admin_password},
         },
     }
 

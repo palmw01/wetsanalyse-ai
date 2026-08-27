@@ -107,6 +107,24 @@ param qaApiToken string
 @description('Bearer-token waarmee graph-qa naar de wetsanalyse-API schrijft. Eigen client in `apiTokens`, zodat het auditspoor laat zien wie er schreef.')
 param graphQaApiToken string
 
+// ── Observability (optioneel) ─────────────────────────────────────────────────
+@description('Schakel de self-hosted observability-stack in (OTel Collector, Prometheus, Loki, Tempo, Grafana). Default false — bestaande deploys worden niet geraakt.')
+param enableObservability bool = false
+
+@description('Grafana Entra ID App Registration client ID. Vereist als enableObservability = true.')
+param grafanaEntraClientId string = ''
+
+@description('Azure AD Tenant ID voor Grafana OIDC. Leeg = Entra-auth uitgeschakeld.')
+param grafanaTenantId string = ''
+
+@secure()
+@description('Grafana Entra ID client secret. Vereist als enableObservability = true.')
+param grafanaEntraClientSecret string = ''
+
+@secure()
+@description('Grafana admin-wachtwoord (initieel). Vereist als enableObservability = true.')
+param grafanaAdminPassword string = ''
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. PostgreSQL Flexible Server
 // ─────────────────────────────────────────────────────────────────────────────
@@ -219,6 +237,22 @@ resource cae 'Microsoft.App/managedEnvironments@2024-03-01' = {
         sharedKey: logs.listKeys().primarySharedKey
       }
     }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Observability-module (optioneel — alleen als enableObservability = true)
+// ─────────────────────────────────────────────────────────────────────────────
+module observability './observability.bicep' = if (enableObservability) {
+  name: 'observability'
+  params: {
+    location: location
+    appName: appName
+    caeName: cae.name
+    grafanaEntraClientId: grafanaEntraClientId
+    grafanaTenantId: grafanaTenantId
+    grafanaEntraClientSecret: grafanaEntraClientSecret
+    grafanaAdminPassword: grafanaAdminPassword
   }
 }
 
@@ -846,3 +880,7 @@ output graphQaInternalFqdn string = graphQaApp.properties.configuration.ingress.
 output graphdbInternalFqdn string = graphdbApp.properties.configuration.ingress.fqdn
 output importJobName string = bwbImportJob.name
 output dbServerFqdn string = pgServer.properties.fullyQualifiedDomainName
+
+// Observability-outputs (leeg als enableObservability = false)
+output observabilityStorageAccount string = enableObservability ? observability.outputs.storageAccountName : ''
+output grafanaUrl                  string = enableObservability ? observability.outputs.grafanaUrl : ''
