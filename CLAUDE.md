@@ -198,9 +198,15 @@ netheid maar noodzaak: `llm-config-secret` is de Fernet-sleutel waarmee de api d
 modelprofielen én de 2FA-secrets van gebruikers versleutelt.
 
 Twee dingen die die job bewust doet en die je niet moet weghalen: hij **faalt** bij een ontbrekend
-secret (dat was eerder een `if` die de stap oversloeg en de run groen liet), en hij **wacht tot de
-nieuwe revisie draait** (`az containerapp update` keert al terug zodra de revisie is aangemaakt, dus
-een crashende container bleef anders onopgemerkt).
+secret (dat was eerder een `if` die de stap oversloeg en de run groen liet), en hij **wacht na het
+uitrollen tot elke app een gezonde revisie draait**. Dat laatste is nodig omdat
+`az deployment group create` al terugkeert zodra de revisie is *aangemaakt*, niet zodra hij draait —
+een container die bij het starten crasht bleef anders onopgemerkt en de run gewoon groen. `ScaledToZero`
+telt daarbij als gezond: api en graph-qa staan op `minReplicas: 0` en zijn na een deploy zonder
+verkeer terecht ingeschaald.
+
+Diezelfde gate zit in de publish-workflows en in `promote.yml`; tot 27 aug 2026 ontbrak hij juist in
+de infra-deploy, terwijl deze tekst hem al beschreef.
 
 **Infra blijft handmatig.** `azure-infra.yml` (bicep) is de enige die resources aanmaakt, wijzigt of
 verwijdert: kies de straat + `wat-if` (valideert, maakt niets aan), `deploy`, `afbreken`,

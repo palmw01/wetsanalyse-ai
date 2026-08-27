@@ -157,10 +157,13 @@ staat, staat er structureel — herken het voordat je gaat zoeken.
 
 **Verreweg het meeste is OTLP-export, niet je applicatie.** Regels als `Failed to export span/logs/
 metrics batch — HTTPConnectionPool(host='…-otel-collector', port=80): Connection refused` waren 353
-van de 355 meldingen op acceptatie en 52 van de 56 op productie. Oorzaak is een kip-en-ei: de
-collector draait met `minReplicas: 0` en komt op zodra een app iets stuurt — maar juist díe eerste
-zending vindt nog geen replica. Ze komen daarom in **bursts rond een deploy** (305 in het uur van de
-eerste uitrol, daarna 18, 20, 4) en zijn ertussenin afwezig.
+van de 355 meldingen op acceptatie en 52 van de 56 op productie. Ze komen in **bursts rond een
+deploy** (305 in het uur van de eerste uitrol, daarna 18, 20, 4) en zijn ertussenin afwezig.
+
+Dat tijdstip is de aanwijzing: bij een deploy wordt de collector zélf opnieuw uitgerold, en tijdens
+die wissel verliezen de draaiende apps kortstondig hun exportdoel. Het is nadrukkelijk **niet**
+scale-to-zero — de collector staat bewust op `minReplicas: 1` (zie `main.bicep`, met de motivering
+dat een exporter het na één poging opgeeft). Die verklaring stond hier eerst wél, en was fout.
 
 Dat patroon is het signaal, niet het niveau. De SDK buffert en probeert opnieuw, dus je verliest
 hooguit de eerste seconden telemetrie na een deploy. **Een burst na een uitrol is normaal; een
