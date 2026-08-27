@@ -245,7 +245,8 @@ frontend/             Next.js-webapp
   app/api/              de BFF; _lib/proxy.ts en _lib/trace.ts zijn gedeeld
   lib/                  de rekenkern – hier staat de testbare logica
 tools/graph-qa/       de agent (Lex)
-  agent/orchestrator.py de LangGraph-graaf: alle nodes en routers
+  agent/orchestrator.py bouwt de LangGraph-graaf (de nodes staan in agent/nodes/)
+  agent/nodes/          de nodes per keten: annotatie, antwoord, supervisie, decompositie
   agent/supervisor.py   workerkeuze + specialistkeuze, met harde allowlist
   agent/annotatie.py    annotatiedomein; pas_critic_toe voert correcties uit
   agent/grounding.py    de brongetrouwheidscontrole
