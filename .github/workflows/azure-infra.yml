@@ -189,6 +189,7 @@ jobs:
           GH_API_TOKEN: ${{ secrets.WA_API_TOKEN }}
           GH_ADMIN_TOKEN: ${{ secrets.WA_ADMIN_TOKEN }}
           GH_QA_API_TOKEN: ${{ secrets.WA_QA_API_TOKEN }}
+          GH_GRAPH_QA_API_TOKEN: ${{ secrets.WA_GRAPH_QA_API_TOKEN }}
           GH_GRAPHDB_TOKEN: ${{ secrets.WA_GRAPHDB_TOKEN }}
         run: |
           set -euo pipefail
@@ -212,6 +213,10 @@ jobs:
           bewaar WA_API_TOKEN         "${GH_API_TOKEN:-}"         "$(uit_azure frontend api-token)"
           bewaar WA_ADMIN_TOKEN       "${GH_ADMIN_TOKEN:-}"       "$(uit_azure frontend admin-api-token)"
           bewaar WA_QA_API_TOKEN      "${GH_QA_API_TOKEN:-}"      "$(uit_azure graph-qa qa-api-token)"
+          # Het token waarmee graph-qa NAAR de api schrijft. Roteert dit, dan valt het schrijfpad
+          # stil tot de api-app ook zijn nieuwe tokenlijst heeft — beide krijgen hem in dezelfde
+          # deploy, maar overnemen is alsnog netter dan elke keer verversen.
+          bewaar WA_GRAPH_QA_API_TOKEN "${GH_GRAPH_QA_API_TOKEN:-}" "$(uit_azure graph-qa wetsanalyse-api-token)"
           bewaar WA_GRAPHDB_TOKEN     "${GH_GRAPHDB_TOKEN:-}"     "$(uit_azure graph-qa graphdb-token)"
 
           # Het databasewachtwoord staat niet als eigen secret maar in de connectiestring:

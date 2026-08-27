@@ -103,6 +103,10 @@ param graphdbToken string
 @description('Bearer-token dat de frontend gebruikt om graph-qa aan te roepen (= graph-qa QA_API_TOKEN).')
 param qaApiToken string
 
+@secure()
+@description('Bearer-token waarmee graph-qa naar de wetsanalyse-API schrijft. Eigen client in `apiTokens`, zodat het auditspoor laat zien wie er schreef.')
+param graphQaApiToken string
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. PostgreSQL Flexible Server
 // ─────────────────────────────────────────────────────────────────────────────
@@ -622,6 +626,7 @@ resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
         { name: 'llm-api-key', value: llmApiKey }
         { name: 'graphdb-token', value: graphdbToken }
         { name: 'qa-api-token', value: qaApiToken }
+        { name: 'wetsanalyse-api-token', value: graphQaApiToken }
         { name: 'checkpoint-db-url', value: checkpointDbUrl }
       ]
     }
@@ -634,6 +639,7 @@ resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
             { secretRef: 'llm-api-key', path: 'llm_api_key' }
             { secretRef: 'graphdb-token', path: 'graphdb_token' }
             { secretRef: 'qa-api-token', path: 'qa_api_token' }
+            { secretRef: 'wetsanalyse-api-token', path: 'wetsanalyse_api_token' }
             { secretRef: 'checkpoint-db-url', path: 'checkpoint_db_url' }
           ]
         }
@@ -669,6 +675,12 @@ resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'GRAPHDB_TOKEN_FILE', value: '/run/secrets/graphdb_token' }
             { name: 'GRAPHDB_REPOSITORY_ID', value: 'inning' }
             { name: 'QA_API_TOKEN_FILE', value: '/run/secrets/qa_api_token' }
+            // Zonder deze twee is `legt_zelf_vast` false en legt de agent de uitkomst van een
+            // annotatiebeurt NIET vast — de werkplek toont dan netjes markeringen die nergens
+            // landen. Dat was tussen 19 aug (commit 98eef5a, één schrijfpad) en 27 aug 2026 het
+            // geval op Azure: die commit richtte dev in maar raakte deze bicep niet.
+            { name: 'WETSANALYSE_API_URL', value: apiInternalUrl }
+            { name: 'WETSANALYSE_API_TOKEN_FILE', value: '/run/secrets/wetsanalyse_api_token' }
             { name: 'SIMILARITY_INDEX', value: 'bwb_similarity' }
             // Uit: dan draait de pure agentische lus. Met decompositie ligt er een vast recept
             // overheen waarin solve_node een eigen agent-lus nabouwt — een tweede implementatie
