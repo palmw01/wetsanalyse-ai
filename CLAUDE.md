@@ -232,11 +232,19 @@ op acceptatie.
 
 `docs/` bevat de methodische onderbouwing (niet code):
 
-- `docs/wetsanalyse/` — het bronmateriaal van de methode: `handleiding.pages.md`,
-  `leidraad.pages.md`, `wetsanalyse-boek.md`, `WetsTaal.md`, de JAS-tabel `wa-table.png` en
-  `wetsanalyse-rijk/` (hoofdstukken over JAS en het kader). Raadpleeg deze bij inhoudelijke vragen
-  over de methode; de skill-`references/` zijn de operationele samenvatting daarvan.
+- `docs/wetsanalyse/` — het bronmateriaal van de methode: `WetsTaal.md`, de JAS-tabel
+  `wa-table.png` en `wetsanalyse-rijk/` (hoofdstukken over JAS en het kader, van BZK onder de
+  W3C-licentie — zie `wetsanalyse-rijk/BRON.md`). Raadpleeg deze bij inhoudelijke vragen over de
+  methode; de skill-`references/` zijn de operationele samenvatting daarvan.
+
+  **Lokaal-only, bewust niet in de repo:** `wetsanalyse-boek.md` (het boek van Boom uitgevers) en
+  `handleiding.pages.md`/`leidraad.pages.md` (readers van het Expertisecentrum BRM, "bestemd voor
+  gebruik binnen de Belastingdienst"). Deze repo is publiek; dat materiaal is van derden en hoort
+  er niet in. Ze stonden er van 13 t/m 27 aug 2026 wél in, doordat de `.gitignore`-regel één
+  mapniveau te hoog stond en dus nooit greep. Heb je ze lokaal, dan werken ze gewoon; controleer
+  na een wijziging aan die regels altijd met `git check-ignore -v`.
 - `docs/regelspraak/` — de RegelSpraak-specificaties (PDF), voor de latere formaliseringsfase.
+  Ook lokaal-only (gitignored), dus afwezig in een verse kloon.
 - `docs/wetsanalyse-workbench/` — het plan achter de werkplek + de JAS-annotatie-ontologie.
 - `docs/kennisbank/PLAN.md` — het gefaseerde plan voor een **tweede corpus** naast de wetsgraaf
   (beleidsstukken en handleidingen die Lex samen met de wettekst mag bevragen). Nog niet gebouwd;

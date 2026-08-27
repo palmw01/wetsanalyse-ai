@@ -25,8 +25,13 @@ skills-lock.json
 .claude/skills/skill-creator/
 .claude/skills/*-workspace/
 
-# Lokaal-only: omgezette markdown van het Wetsanalyse-boek (Boom, auteursrecht — niet in de repo)
-docs/wetsanalyse-boek.md
+# Lokaal-only: bronmateriaal van derden dat niet in een publieke repo hoort.
+# Het boek (Boom uitgevers, auteursrecht) en de interne readers van het Expertisecentrum BRM
+# ("Bestemd voor gebruik binnen de Belastingdienst"). Let op het pad: dit stond eerder als
+# `docs/wetsanalyse-boek.md` — één mapniveau te hoog, dus de regel greep nooit en het boek
+# stond twee weken in de publieke repo. Wijzig je dit, controleer dan met `git check-ignore -v`.
+docs/wetsanalyse/wetsanalyse-boek.md
+docs/wetsanalyse/*.pages.md
 
 # Bron-PDF van de WetsTaal-handreiking (omgezet naar docs/WetsTaal.md)
 docs/WetsTaal.pdf
