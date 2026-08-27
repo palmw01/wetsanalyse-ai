@@ -45,6 +45,52 @@ def _is_plain_user(m: dict[str, Any]) -> bool:
     return m.get("role") == "user" and not _is_tool_result_user(m)
 
 
+# Wat er van een oud tool-resultaat overblijft als het budget knelt. Ruim genoeg om te zien wát er
+# gevonden is (de eerste treffers, de kop van een SELECT), te krap om het venster te domineren.
+_TOOLRESULT_KRIMP = 800
+_KRIMP_NOOT = "\n[… ingekort: ouder tool-resultaat, vraag het opnieuw op als je het nodig hebt]"
+
+
+def _krimp_oude_toolresultaten(messages: list[dict[str, Any]], max_chars: int) -> list[dict[str, Any]]:
+    """Kort de inhoud van oudere tool-resultaten in zodat het gesprek zelf langer meegaat.
+
+    Zonder dit weegt één SPARQL-dump van 8000 tekens even zwaar als twintig beurten proza: het
+    venster schuift dan op tool-ruis in plaats van op inhoud, en juist de vroege vraagstelling —
+    waar de annotatie over gaat — valt er als eerste uit.
+
+    De blokken zélf blijven staan; alleen hun tekst wordt afgekapt. Weggooien zou een `tool_use`
+    zonder `tool_result` achterlaten en dat weigert Anthropic. De recentste beurten blijven
+    ongemoeid: daar werkt het model nu mee. Past alles binnen budget, dan gebeurt er niets.
+    """
+    if sum(_msg_lengte(m) for m in messages) <= max_chars:
+        return messages
+
+    # Het recente deel dat we met rust laten: het achterste venster binnen de helft van het budget.
+    beschermd = len(messages)
+    ruimte = max_chars // 2
+    for i in range(len(messages) - 1, -1, -1):
+        ruimte -= _msg_lengte(messages[i])
+        if ruimte < 0:
+            break
+        beschermd = i
+
+    uit: list[dict[str, Any]] = []
+    for i, m in enumerate(messages):
+        c = m.get("content")
+        if i >= beschermd or not isinstance(c, list):
+            uit.append(m)
+            continue
+        nieuw_blokken = []
+        for blok in c:
+            if (isinstance(blok, dict) and blok.get("type") == "tool_result"
+                    and isinstance(blok.get("content"), str)
+                    and len(blok["content"]) > _TOOLRESULT_KRIMP):
+                blok = {**blok, "content": blok["content"][:_TOOLRESULT_KRIMP] + _KRIMP_NOOT}
+            nieuw_blokken.append(blok)
+        uit.append({**m, "content": nieuw_blokken})
+    return uit
+
+
 def _trim_messages(messages: list[dict[str, Any]], max_chars: int) -> list[dict[str, Any]]:
     """Beperk de historie die naar de LLM gaat tot een char-budget, met behoud van de
     tool_use/tool_result-integriteit (Anthropic weigert een orphan tool_result).
@@ -56,6 +102,7 @@ def _trim_messages(messages: list[dict[str, Any]], max_chars: int) -> list[dict[
     """
     if max_chars <= 0 or not messages:
         return messages
+    messages = _krimp_oude_toolresultaten(messages, max_chars)
     total = 0
     start = 0
     for i in range(len(messages) - 1, -1, -1):

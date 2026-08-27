@@ -92,18 +92,40 @@ def _h_raw_sparql(g: GraphPort, a: dict[str, Any]) -> str:
     return g.sparql(a["query"])
 
 
+# Twee verschillende oorzaken, voor het model dezelfde uitweg. Het onderscheid is er voor de mens
+# die de logs leest: niets ingesteld is een configuratiekwestie, een ontbrekende index is de normale
+# toestand na een herstart van de niet-persistente graaf.
+_NIET_GECONFIGUREERD = (
+    "Semantisch zoeken is nog niet geconfigureerd (geen similarity-index). "
+    "Gebruik search_wetgeving voor tekstueel zoeken."
+)
+_INDEX_ONBRUIKBAAR = (
+    "Semantisch zoeken is nu niet beschikbaar (de similarity-index bestaat niet). "
+    "Gebruik search_wetgeving voor tekstueel zoeken."
+)
+
+
 def _h_semantic_search(g: GraphPort, a: dict[str, Any], settings: Any) -> str:
     if settings is None or not getattr(settings, "similarity_index", ""):
-        return (
-            "Semantisch zoeken is nog niet geconfigureerd (geen similarity-index). "
-            "Gebruik search_wetgeving voor tekstueel zoeken."
-        )
+        return _NIET_GECONFIGUREERD
     try:
         limit = int(a.get("limit", 10))
     except (TypeError, ValueError):
         limit = 10
     limit = max(1, min(50, limit))  # clamp zoals search_wetgeving (kosten/DoS begrenzen)
-    return g.semantic_search(a["query"], limit)
+    try:
+        return g.semantic_search(a["query"], limit)
+    except MCPError as exc:
+        # De index staat geconfigureerd maar bestaat niet in de graaf. Dat is de normale toestand
+        # ná een herstart: de GraphDB-opslag is niet-persistent, en de similarity-index wordt niet
+        # door de import-job herbouwd. Het model kan hier prima omheen (tekstueel zoeken werkt),
+        # maar een beheerder moet het wél weten — vandaar de waarschuwing in de log naast de
+        # terugvalmelding. Zonder dit zag je alleen een cryptische toolfout in de trace.
+        logger.warning(
+            "similarity-index niet bruikbaar; semantic_search valt terug op tekstueel zoeken",
+            extra={"index": getattr(settings, "similarity_index", ""), "fout": str(exc)[:200]},
+        )
+        return _INDEX_ONBRUIKBAAR
 
 
 # ------------------------------------------------------------------
