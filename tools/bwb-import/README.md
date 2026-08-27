@@ -213,7 +213,8 @@ hij als container-app-job — starten met `azure-infra` → actie `vul-graaf`, o
 
 ## Deployment
 
-De service draait als container op de **docker-host** van Proxmox, stack `bwb-import`
-(zie `deploy/azure/main.bicep`). Het image `ghcr.io/palmw01/bwb-import` wordt door
+De importer draait op Azure als **container-app-job** met een wekelijkse cron-trigger
+(zie `deploy/azure/main.bicep`). Hij vult de graaf ook automatisch na elke infra-deploy,
+want de GraphDB-opslag daar is niet-persistent. Het image `ghcr.io/palmw01/bwb-import` wordt door
 `.github/workflows/bwb-import-docker-publish.yml` gebouwd en gepusht bij een push
 naar `master` die `tools/bwb-import/**` raakt.

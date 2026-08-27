@@ -26,10 +26,15 @@ Alle endpoints zijn client-gescopet en versioneerd onder `/v1`.
 | Methode | Pad | Wat het doet |
 |---------|-----|--------------|
 | `POST` | `/v1/annotatie/documenten` | Annotatie-document aanmaken |
+| `GET` | `/v1/annotatie/documenten` | Lijst met werkvoorraad: `te_beoordelen`, `per_aandacht`, `per_klasse`, `laatste_model`, `citeertitel` |
 | `GET` `DELETE` | `/v1/annotatie/documenten/{slug}` | Document ophalen / verwijderen |
-| `PUT` | `/v1/annotatie/documenten/{slug}/elementen` | Door de agent voorgestelde JAS-elementen opslaan |
-| `POST` | `/v1/annotatie/documenten/{slug}/elementen/{id}/beslissing` | Human-decision (approve/edit/reject/comment) |
-| `GET` | `/v1/annotatie/documenten/{slug}/audit` | Append-only auditlog van het document |
+| `PUT` | `/v1/annotatie/documenten/{slug}/elementen` | Door de agent voorgestelde JAS-elementen opslaan (MERGE; optioneel `If-Match` → 412) |
+| `POST` | `/v1/annotatie/documenten/{slug}/elementen` | Eigen markering van de jurist toevoegen |
+| `DELETE` | `/v1/annotatie/documenten/{slug}/elementen/{id}` | Eigen markering verwijderen |
+| `POST` | `/v1/annotatie/documenten/{slug}/elementen/{id}/beslissing` | Human-decision (approve/edit/reject/comment/heropen) |
+| `POST` | `/v1/annotatie/documenten/{slug}/status` | Afronden (`geaccordeerd`) of heropenen (`in_review`) |
+| `POST` | `/v1/annotatie/documenten/{slug}/export` | Export als `?formaat=pdf\|csv\|json` |
+| `GET` | `/v1/annotatie/documenten/{slug}/audit` | Append-only auditlog van het document (gepagineerd) |
 
 **Keuzelijsten (client-auth, geen geheimen):**
 
@@ -37,7 +42,7 @@ Alle endpoints zijn client-gescopet en versioneerd onder `/v1`.
 |---------|-----|--------------|
 | `GET` | `/v1/profiles` | Keuzelijst modelprofielen (alleen naam + default) |
 | `GET` | `/health` | Liveness check |
-| `GET` | `/ready` | Readiness check (booleans: auth, LLM, MCP, database geconfigureerd) |
+| `GET` | `/ready` | Readiness check (booleans: `auth_geconfigureerd`, `llm_model_gezet`, `database_geconfigureerd`) |
 
 **Admin-endpoints (LLM-/catalogus-/gebruikersbeheer) achter een apart admin-token, onder `/v1/admin`:**
 
