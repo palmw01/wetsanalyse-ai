@@ -19,11 +19,10 @@ from __future__ import annotations
 
 import functools
 import logging
-import operator
 import re
 from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import Annotated, Any, TypedDict
+from typing import Any
 
 from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
@@ -35,6 +34,24 @@ from .annotatie import (
     parse_kandidaten, filter_kandidaten,
 )
 from .artikel import artikel_corpus
+from .berichten import (  # noqa: F401 – re-export: tests en node-modules importeren ze hiervandaan
+    MAX_HISTORIE_CHARS,
+    _msg_lengte,
+    _parse_final,
+    _schoon_messages,
+    _snoei_historie,
+    _trim_messages,
+    _voeg_toe_en_snoei,
+)
+from .narratie import (  # noqa: F401 – re-export, zie hierboven
+    _annoteer_melding,
+    _critic_melding,
+    _grounding_melding,
+    _herzien_melding,
+    _stap,
+    _toolregel,
+)
+from .state import State
 from .annotatie_prompt import (
     annotatie_systeemprompt,
     annotatie_userprompt,
@@ -128,129 +145,6 @@ def _kandidaten_uit_json(text: str) -> list[dict[str, str]]:
 def _ontbrekend_sleutel(item: dict[str, Any]) -> str:
     """Identiteit van een gemeld gemist element: klasse + het genoemde fragment."""
     return f"{str(item.get('klasse', '')).strip()}|{' '.join(str(item.get('tekst', '')).split()).lower()}"
-
-
-def _stap(writer: Any, actor: str, bericht: str) -> None:
-    """Meld één stap in de keten: `Actor · wat er gebeurde`.
-
-    Bestaat om het idioom af te dwingen. Zonder deze helper verzint elke node zijn eigen vorm – zo
-    stonden er "Opgesplitst in 3 deelvragen." en "Annoteerder · 4 gegrond" naast elkaar, en waren er
-    twee verschillende teksten voor dezelfde graafbevraging.
-    """
-    writer({"type": "status", "message": f"{actor} · {bericht}"})
-
-
-def _toolregel(call: dict[str, Any]) -> str:
-    """`get_lid(BWBR0004770, art. 9, lid 1)` – de tool mét waar hij naar kijkt.
-
-    Alleen de tool-naam zei te weinig: bij drie opeenvolgende `get_lid`-aanroepen zag je niet dat het
-    om verschillende bepalingen ging.
-    """
-    inp = call.get("input") or {}
-    delen = [str(inp[k]).strip() for k in ("bwb_id", "artikel", "nummer", "lid", "query", "term")
-             if str(inp.get(k, "")).strip()]
-    return f"{call.get('name', '?')}({', '.join(truncate(d, 60) for d in delen)})" if delen else str(call.get("name", "?"))
-
-
-def _annoteer_melding(voorstellen: list[Any], verworpen: list[Any]) -> str:
-    """Wat de annoteerder opleverde, inclusief wat er sneuvelde en waarom."""
-    regel = f"{len(voorstellen) + len(verworpen)} fragmenten, {len(voorstellen)} gegrond"
-    if not verworpen:
-        return regel
-    per_reden: dict[str, int] = {}
-    for v in verworpen:
-        reden = getattr(v, "reden", "") or "onbekend"
-        per_reden[reden] = per_reden.get(reden, 0) + 1
-    uitleg = {"niet_letterlijk": "niet letterlijk", "ongeldige_klasse": "ongeldige klasse"}
-    details = ", ".join(f"{n}× {uitleg.get(r, r)}" for r, n in per_reden.items())
-    return f"{regel} – {len(verworpen)} verworpen ({details})"
-
-
-def _critic_melding(
-    oordelen: dict[str, Any],
-    ontbrekend: list[Any],
-    nieuw: int | None = None,
-    gedempt: int = 0,
-) -> str:
-    """Tellingen per aandacht-niveau; de oordelen zelf staan al op de reviewkaarten."""
-    telling: dict[str, int] = {}
-    for o in oordelen.values():
-        niveau = getattr(o, "aandacht", "") or "geen oordeel"
-        telling[niveau] = telling.get(niveau, 0) + 1
-    # Een gedempt oordeel staat als geel op de kaart. Het hier als rood tellen zou de tijdlijn iets
-    # anders laten zeggen dan de jurist ziet – precies het soort verschil waarmee je deze keten
-    # beoordeelt.
-    if gedempt:
-        telling["rood"] = max(0, telling.get("rood", 0) - gedempt)
-        telling["geel"] = telling.get("geel", 0) + gedempt
-        if not telling["rood"]:
-            telling.pop("rood", None)
-    volgorde = ["rood", "geel", "groen", "geen oordeel"]
-    delen = [f"{telling[n]} {n}" for n in volgorde if telling.get(n)]
-    regel = ", ".join(delen) if delen else "geen oordelen"
-    if gedempt:
-        woord = "oordeel" if gedempt == 1 else "oordelen"
-        regel += f" · {gedempt} {woord} over een eigen correctie: als twijfel voorgelegd"
-    if ontbrekend:
-        regel += f" · {len(ontbrekend)} mogelijk gemist"
-        # Onderscheid maken tussen "hij ziet iets nieuws" en "hij herhaalt zichzelf" is precies wat
-        # je wilt kunnen zien in de tijdlijn.
-        if nieuw is not None and nieuw < len(ontbrekend):
-            regel += f" ({nieuw} nieuw)" if nieuw else " (niets nieuws)"
-    return regel
-
-
-def _grounding_melding(report: Any) -> str:
-    """Wat de brongetrouwheidstoets opleverde – inclusief het geval dat er niets te toetsen viel.
-
-    De controle kijkt naar twee dingen die los van elkaar staan: **vindplaatsen** (BWB-id's en IRI's
-    in het antwoord) en **citaten** (tekst tussen aanhalingstekens). De melding hoort te zeggen wat
-    er daadwerkelijk is nagelopen.
-
-    Dat ging mis bij een antwoord dat artikelen in gewone taal noemt – "artikel 2 lid 1 onderdeel m"
-    zonder BWB-id. Nul vindplaatsen dus, maar wél twee citaten, en die klopten allebei. De tijdlijn
-    meldde toen "0 verwijzingen onderbouwd": precies de misleidende regel die de "niets te
-    controleren"-tak hierboven had moeten voorkomen, maar die vangt alleen het geval waarin er
-    helemaal niets was.
-    """
-    if report.niveau == "onbepaald":
-        return "brongetrouwheid: geen vindplaats of citaat genoemd – niets te controleren"
-
-    delen: list[str] = []
-    if report.unsupported:
-        delen.append(f"{len(report.unsupported)} verwijzing(en) niet uit de graaf")
-    if report.niet_letterlijk:
-        delen.append(f"{len(report.niet_letterlijk)} citaat(en) niet letterlijk teruggevonden")
-    if delen:
-        return "brongetrouwheid: " + ", ".join(delen)
-
-    # Alles klopte. Zeg dan wát er klopte, en tel alleen mee wat er ook echt was.
-    aantal_citaten = int(getattr(report, "citaten", 0) or 0)
-    goed: list[str] = []
-    if report.cited:
-        goed.append(f"{len(report.cited)} " + ("verwijzingen" if len(report.cited) > 1 else "verwijzing"))
-    if aantal_citaten:
-        goed.append(f"{aantal_citaten} " + ("citaten" if aantal_citaten > 1 else "citaat"))
-    return f"brongetrouwheid: {' en '.join(goed)} gecontroleerd"
-
-
-def _herzien_melding(voor: list[dict[str, Any]], na: list[dict[str, Any]]) -> str:
-    """Wat de annoteerder met de kritiek deed. Dít is het samenspel: aangepast versus behouden."""
-    oud = {v.get("id"): v for v in voor}
-    aangepast = sum(
-        1 for v in na
-        if v.get("id") in oud
-        and any(oud[v["id"]].get(k) != v.get(k) for k in ("klasse", "tekst", "lid"))
-    )
-    ongewijzigd = sum(1 for v in na if v.get("id") in oud) - aangepast
-    toegevoegd = sum(1 for v in na if v.get("id") not in oud)
-    verdwenen = sum(1 for v in voor if v.get("id") not in {x.get("id") for x in na})
-    delen = [f"{aangepast} aangepast", f"{ongewijzigd} ongewijzigd"]
-    if toegevoegd:
-        delen.append(f"{toegevoegd} toegevoegd")
-    if verdwenen:
-        delen.append(f"{verdwenen} verwijderd")
-    return ", ".join(delen)
 
 
 def _doel_uit_toolcalls(messages: list[dict[str, Any]]) -> dict[str, str]:
@@ -372,197 +266,6 @@ _SYNTHESE_SYSTEM = (
     "Antwoord bondig en goed gestructureerd; adresseer elk onderdeel van de oorspronkelijke vraag."
 )
 
-
-def _parse_final(final: Any) -> tuple[list[dict[str, Any]], list[str]]:
-    """Splits een Anthropic-response in (tool_uses, text_parts)."""
-    tool_uses: list[dict[str, Any]] = []
-    text_parts: list[str] = []
-    for block in final.content:
-        if block.type == "text":
-            text_parts.append(block.text)
-        elif block.type == "tool_use":
-            tool_uses.append({"id": block.id, "name": block.name, "input": block.input})
-    return tool_uses, text_parts
-
-
-def _msg_lengte(m: dict[str, Any]) -> int:
-    c = m.get("content")
-    if isinstance(c, str):
-        return len(c)
-    if isinstance(c, list):
-        return sum(len(str(b)) for b in c)
-    return 0
-
-
-def _is_tool_result_user(m: dict[str, Any]) -> bool:
-    """Een user-message dat (alleen) tool_result-blokken draagt – orphan als z'n tool_use is weggevallen."""
-    c = m.get("content")
-    return (
-        m.get("role") == "user"
-        and isinstance(c, list)
-        and any(isinstance(b, dict) and b.get("type") == "tool_result" for b in c)
-    )
-
-
-def _is_plain_user(m: dict[str, Any]) -> bool:
-    """Een 'platte' user-beurt (de vraag/correctie) – géén tool_result-drager. Zo'n bericht is een
-    geldig venster-begin: alles erna is een compleet assistant→tool_result-verloop."""
-    return m.get("role") == "user" and not _is_tool_result_user(m)
-
-
-def _trim_messages(messages: list[dict[str, Any]], max_chars: int) -> list[dict[str, Any]]:
-    """Beperk de historie die naar de LLM gaat tot een char-budget, met behoud van de
-    tool_use/tool_result-integriteit (Anthropic weigert een orphan tool_result).
-
-    Neem het achterste venster binnen budget en breid het begin zo nodig terug uit tot een platte
-    user-beurt, zodat elk tool_result zijn tool_use behoudt (Anthropic weigert een orphan). Omdat
-    messages[0] altijd een platte user-vraag is, termineert dat en is het resultaat nooit leeg;
-    correctheid gaat daarbij boven het strikte char-budget. `max_chars<=0` → ongewijzigd.
-    """
-    if max_chars <= 0 or not messages:
-        return messages
-    total = 0
-    start = 0
-    for i in range(len(messages) - 1, -1, -1):
-        total += _msg_lengte(messages[i])
-        start = i
-        if total >= max_chars:
-            break
-    # Loop terug over losgeknipte assistant/tool_result-berichten tot een geldig venster-begin
-    # (een platte user-beurt), zodat er geen orphan tool_result vooraan blijft staan.
-    while start > 0 and not _is_plain_user(messages[start]):
-        start -= 1
-    return messages[start:]
-
-
-# Bovengrens op wat er in de CHECKPOINTER blijft staan. `max_history_chars` begrenst alleen wat er
-# per beurt naar het model gaat; de opgeslagen historie groeide onbeperkt door, inclusief elk
-# tool-resultaat van 8000 tekens. Bij een lang gesprek betekent dat een steeds tragere en dikkere
-# checkpoint-write bij élke stap van de graaf.
-#
-# Ruim boven het prompt-budget gekozen (een veelvoud), zodat het snoeien nooit het venster raakt dat
-# de LLM tóch al krijgt: dit is een opslagrem, geen tweede contextrem.
-# Vaste grens, want een LangGraph-reducer is een pure functie zonder toegang tot `Settings`. Ruim
-# vier keer het default prompt-budget (`max_history_chars`, 40k). Zet iemand dat budget hoger dan de
-# helft hiervan, dan waarschuwt `Settings.controleer_historie_grens()` bij boot – dan zou de
-# opslagrem binnen het promptvenster gaan knippen, en dat is precies wat hij niet moet doen.
-MAX_HISTORIE_CHARS = 160_000
-
-
-def _snoei_historie(messages: list[dict[str, Any]], max_chars: int) -> list[dict[str, Any]]:
-    """Houd de bewaarde historie onder een bovengrens, en knip alleen op een veilige grens.
-
-    "Veilig" is een plátte user-beurt (`_is_plain_user`): begint de historie met een los
-    tool_result, dan mist dat blok zijn tool_use en weigert Anthropic de hele request. Vinden we geen
-    veilige grens binnen het budget, dan snoeien we níét – een te grote historie is hinderlijk, een
-    kapotte is fataal.
-    """
-    if max_chars <= 0 or not messages:
-        return messages
-    totaal = sum(_msg_lengte(m) for m in messages)
-    if totaal <= max_chars:
-        return messages
-    # Zoek van achter naar voren de eerste platte user-beurt die het geheel binnen budget brengt.
-    opgeteld = 0
-    for i in range(len(messages) - 1, -1, -1):
-        opgeteld += _msg_lengte(messages[i])
-        if opgeteld >= max_chars:
-            for j in range(i, len(messages)):
-                if _is_plain_user(messages[j]):
-                    return messages[j:]
-            return messages
-    return messages
-
-
-def _voeg_toe_en_snoei(
-    bestaand: list[dict[str, Any]], nieuw: list[dict[str, Any]]
-) -> list[dict[str, Any]]:
-    """State-reducer voor `messages`: append (zoals `operator.add`) plus een opslagrem."""
-    return _snoei_historie(list(bestaand) + list(nieuw), MAX_HISTORIE_CHARS)
-
-
-def _schoon_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Strip lege tekstblokken (Anthropic weigert {"type":"text","text":""} – Claude stuurt die soms
-    mee náást een tool_use; via het gespreksgeheugen komen ze terug). Berichten waarvan de content
-    daardoor leeg wordt, slaan we over; tool_use/tool_result en string-content blijven ongemoeid."""
-    schoon: list[dict[str, Any]] = []
-    for m in messages:
-        c = m.get("content")
-        if isinstance(c, list):
-            nieuw = [
-                b
-                for b in c
-                if not (isinstance(b, dict) and b.get("type") == "text" and not str(b.get("text", "")).strip())
-            ]
-            if nieuw:
-                schoon.append({**m, "content": nieuw})
-        else:
-            schoon.append(m)
-    return schoon
-
-
-class State(TypedDict, total=False):
-    question: str
-    # Episodisch geheugen, gepersisteerd door de checkpointer. De reducer voegt toe én snoeit: zonder
-    # dat groeide de bewaarde historie onbeperkt door (inclusief elk tool-resultaat van 8000 tekens),
-    # en werd elke checkpoint-write in een lang gesprek trager en dikker. Snoeien gebeurt alleen op
-    # een platte user-beurt – een losgeknipt tool_result zou de volgende beurt laten crashen.
-    messages: Annotated[list[dict[str, Any]], _voeg_toe_en_snoei]
-    entities_seen: Annotated[list[str], operator.add]            # semantisch/entiteit-tier
-    specialist: str
-    plan: str
-    worker_plan: list[str]   # geordende worker-keten (specialist-namen) die de supervisor koos
-    afwijzen: bool           # supervisor plaatste de vraag buiten de scope → geen worker draait
-    worker_idx: int          # index van de huidige worker in worker_plan
-    source_trace: list[tuple[str, str]]
-    answer: str
-    grounded: bool
-    cited: int
-    unsupported: list[str]
-    niet_letterlijk: list[str]   # als citaat gepresenteerd, maar niet letterlijk in de trace
-    grounding_niveau: str        # gegrond | onbepaald | ongegrond
-    sources: list[dict[str, Any]]
-    pending_tools: list[dict[str, Any]]
-    turns: int
-    corrected: bool
-    # Decompositie (multi-hop): deelvragen + per-deelvraag bevindingen (last-value-wins;
-    # solve_node zet ze in één keer). De per-deelvraag agent⇄tools-loop draait lokaal in solve_node.
-    sub_questions: list[str]
-    sub_findings: list[dict[str, str]]
-    # Het doel dat de AANROEPER meegaf ({bwbId, artikel, lid?, citeertitel?}). Weet de werkplek de
-    # bepaling al – een open document, een item uit de werkvoorraad, een gekozen kandidaat – dan
-    # hoeft niemand hem meer te zoeken: de supervisor doet geen LLM-call en de ophaal-agent draait
-    # helemaal niet. Dat scheelt niet alleen calls; het verwijdert de gevaarlijkste faalmodus uit
-    # die route, want een ophaal-agent die de verkeerde bepaling kiest levert werk op dat
-    # brongetrouw én verkeerd is.
-    opgegeven_doel: dict[str, str]
-    # De tekst waarop deze annotatiebeurt draait: gericht opgehaald door annoteer_node (zie
-    # `_corpus_voor_doel`) en daarna hergebruikt door de Critic en de herziening, zodat alle drie
-    # over exact dezelfde bepaling oordelen én er maar één ophaalactie nodig is.
-    corpus: str
-    # Annotatie: de gegronde voorstellen (als dicts) die annoteer_node maakt; critic_node scoort ze
-    # met een aandacht-niveau en emit ze dán pas als `element`-events.
-    #
-    # Alle annotatie-velden zijn last-value-wins (géén operator.add-reducer): elke node levert de
-    # volledige lijst. Met een append-reducer zou de Critic-feedback over rondes heen stapelen en
-    # zou een herziening zijn eigen vorige oordeel als actueel aanzien.
-    voorstellen: list[dict[str, Any]]
-    verworpen_fragmenten: list[dict[str, Any]]   # niet-gegronde citaten, als feedback voor een herziening
-    kandidaten_v2a: list[dict[str, Any]]         # fase 2A: gefilterde kandidaten vóór classificatie
-    critic_feedback: list[dict[str, Any]]        # [{id, aandacht, motivatie, actie, voorstel_*}]
-    critic_ontbrekend: list[dict[str, Any]]
-    critic_gefaald: bool
-    critic_ronde: int                            # welke Critic-pas: 1 = oordeel, 2 = eindbeoordeling
-    # Convergentie. Zonder deze drie draait de lus altijd tot de rondelimiet: de Critic bedenkt elke
-    # ronde opnieuw wat er "mist", dus er is altijd een reden om door te gaan.
-    nieuw_ontbrekend: list[dict[str, Any]]       # gemist én nog niet eerder gemeld – alleen dit is werk
-    gemeld_ontbrekend: list[str]                 # sleutels van alles wat al ooit gemeld is
-    patch_toegepast: int                         # hoeveel Critic-aanwijzingen de patcher uitvoerde
-    stop_reden: str                              # waaróm de lus eindigde; komt in de tijdlijn
-    # Wat de werkplek meestuurt over de bepaling/markering die in beeld staat. `modus == "advies"`
-    # betekent: een vraag bij een bestaande annotatie, die niets mag wijzigen.
-    modus: str
-    context: dict[str, Any]
 
 
 def build_graph(
