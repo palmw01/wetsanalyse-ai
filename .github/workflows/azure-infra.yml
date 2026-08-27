@@ -15,6 +15,9 @@
 #   inventaris leest wat er in de subscription staat en schrijft het naar de samenvatting. Puur
 #             read-only (alleen `list`/`show`); bedoeld om te kunnen controleren wát er draait en
 #             wat het kost, zonder lokale az-installatie — de service principal leeft alleen hier.
+#   grafana   rolt ALLEEN de Grafana-app uit (deploy/azure/grafana.bicep) in de gekozen straat.
+#             Apart van `deploy` omdat die GraphDB raakt: een dashboardwijziging hoort geen
+#             infra-deploy te vragen. Grafana leest beide straten, dus één exemplaar volstaat.
 #   vul-graaf start de import-job en wacht hem af. Apart van `deploy`, want importeren schrijft naar
 #             de graaf en hoort een expliciete keuze te blijven — en na een herstart van de
 #             graphdb-app (die geen persistente opslag heeft) is dit de enige manier om de graaf
@@ -40,7 +43,7 @@ on:
       actie:
         description: "Wat doen"
         type: choice
-        options: [wat-if, deploy, afbreken, opruimen, vul-graaf, inventaris, telemetrie]
+        options: [wat-if, deploy, afbreken, opruimen, vul-graaf, inventaris, telemetrie, grafana]
         default: wat-if
       query:
         description: "Alleen voor 'telemetrie': een eigen KQL-query (leeg = de standaardset)"
@@ -108,7 +111,12 @@ jobs:
             exit 0
           fi
 
-          # Alleen voor wat-if/deploy: zonder deze twee komt de stack niet werkend op.
+          # Alleen voor wat-if/deploy: zonder deze twee komt de stack niet werkend op. De
+          # read-only acties en `grafana` raken de applicatiestack niet en hebben ze niet nodig.
+          case "${{ inputs.actie }}" in
+            wat-if|deploy) ;;
+            *) exit 0 ;;
+          esac
           for v in AZURE_AI_KEY LLM_API_BASE; do
             [ -n "${!v:-}" ] || { echo "::error::ontbrekende secret/var: $v"; exit 1; }
           done
@@ -281,6 +289,73 @@ jobs:
           [ -n "${IMG_BWB_IMPORT:-}" ] && args+=(--bwb-import-image "$IMG_BWB_IMPORT")
           python3 deploy/azure/gen-deploy.py "$AZURE_AI_KEY" "${args[@]}"
 
+      - name: Grafana uitrollen
+        if: ${{ inputs.actie == 'grafana' }}
+        env:
+          GH_GRAFANA_PASSWORD: ${{ secrets.WA_GRAFANA_ADMIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          # Zelfde ladder als de applicatie-secrets: GitHub wint, anders overnemen wat er draait,
+          # anders vers genereren. Overnemen is hier geen netheid maar noodzaak — bij elke deploy een
+          # nieuw wachtwoord zetten betekent dat niemand meer binnenkomt met wat hij had opgeslagen.
+          wachtwoord="${GH_GRAFANA_PASSWORD:-}"
+          bron="GitHub"
+          if [ -z "$wachtwoord" ]; then
+            wachtwoord=$(az containerapp secret show -n "$APP_NAME-grafana" -g "$RESOURCE_GROUP" \
+                           --secret-name admin-password --query value -o tsv 2>/dev/null || true)
+            bron="Azure"
+          fi
+          if [ -z "$wachtwoord" ]; then
+            wachtwoord=$(python3 -c "import secrets; print(secrets.token_urlsafe(24))")
+            bron="vers gegenereerd"
+          fi
+          echo "::add-mask::$wachtwoord"
+          echo "Admin-wachtwoord: $bron"
+
+          az deployment group create \
+            --resource-group "$RESOURCE_GROUP" \
+            --template-file deploy/azure/grafana.bicep \
+            --parameters \
+              appName="$APP_NAME" \
+              acceptatieAppName="$ACCEPTATIE_APP_NAME" \
+              productieAppName="$PRODUCTIE_APP_NAME" \
+              azureTenantId="$AZURE_TENANT_ID" \
+              azureClientId="$AZURE_CLIENT_ID" \
+              azureSubscriptionId="$AZURE_SUBSCRIPTION_ID" \
+              azureClientSecret="$AZURE_CLIENT_SECRET" \
+              grafanaAdminPassword="$wachtwoord" \
+            --query "properties.outputs.grafanaUrl.value" -o tsv > "$RUNNER_TEMP/grafana-url"
+
+          url=$(cat "$RUNNER_TEMP/grafana-url")
+          echo "Grafana: $url"
+
+          # `az deployment group create` keert terug zodra de revisie is aangemaakt, niet zodra hij
+          # draait — dezelfde valkuil als bij de app-deploys. Hier komt daar de scale-to-nul bij: de
+          # eerste aanroep wekt hem, dus een 200 is pas na die koude start te verwachten.
+          for _ in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$url/api/health" || echo 000)
+            [ "$code" = "200" ] && { echo "Grafana antwoordt (200)."; break; }
+            echo "  wacht… ($code)"
+            sleep 10
+          done
+
+          {
+            echo "## Grafana"
+            echo ""
+            echo "- URL: <$url>"
+            echo "- Inloggen: gebruiker \`admin\`, wachtwoord $bron."
+            if [ "$bron" != "GitHub" ]; then
+              echo "- Wachtwoord opvragen:"
+              echo "  \`\`\`"
+              echo "  az containerapp secret show -n $APP_NAME-grafana -g $RESOURCE_GROUP --secret-name admin-password --query value -o tsv"
+              echo "  \`\`\`"
+              echo "  Zet hem als environment-secret \`WA_GRAFANA_ADMIN_PASSWORD\` om hem vast te leggen."
+            fi
+            echo "- Twee dashboards in de map *Wetsanalyse*: één per straat. Ze komen uit"
+            echo "  \`deploy/azure/grafana/dashboard-keten.json\` en zijn in de UI read-only."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Inventaris (read-only)
         if: ${{ inputs.actie == 'inventaris' }}
         run: |
@@ -362,6 +437,9 @@ jobs:
             [ -n "$s" ] || continue
             hoort_erbij="$hoort_erbij cae-$s log-$s appi-$s $s-api $s-frontend $s-graph-qa"
             hoort_erbij="$hoort_erbij $s-graphdb $s-bwb-import $s-otel-collector $s-db"
+            # Grafana staat in één straat maar kijkt naar beide (deploy/azure/grafana.bicep). Hij
+            # hoort hier per straat in de lijst, anders ziet `opruimen` hem als wees en gooit hem weg.
+            hoort_erbij="$hoort_erbij $s-grafana"
           done
 
           is_van_ons() {

@@ -32,14 +32,19 @@ union AppRequests, AppDependencies
 | project TimeGenerated, AppRoleName, Name, Id, ParentId
 ```
 
-Stand: de frontend neemt de header correct over en nest zijn eigen spans goed;
-`NEXT_OTEL_FETCH_DISABLED=1` staat erop (de Next.js-documentatie wijst die vlag aan bij een eigen
-fetch-instrumentatie) maar verandert niets. De volgende stap is vaststellen of de header de api
-überhaupt bereikt.
+Geslaagd = de api verschijnt in die lijst met een `ParentId` die naar een frontend-span wijst.
+Zo is het op 26 aug 2026 op beide straten vastgesteld; in productie kwam er zelfs een trace langs die
+frontend, api én graph-qa omspande.
 
-De Grafana-dashboards in deze map horen dus **bij dev**. Ze draaien op PromQL/LogQL/TraceQL en zijn
-niet naar Azure overgezet; daar is Application Insights de ingang. Elke span uit een Azure-straat
-draagt `deployment.environment=<appName>`, zodat acceptatie en productie uit elkaar te houden zijn.
+`NEXT_OTEL_FETCH_DISABLED=1` staat op de frontend. Dat was een eerdere poging tot een fix en loste
+niets op; het klopt nu pas echt, want er ís een eigen fetch-instrumentatie (`metTrace()`).
+
+**Grafana draait op Azure** (`deploy/azure/grafana.bicep`, uitrollen met `azure-infra` → actie
+`grafana`): één exemplaar met een datasource per straat, en per straat een dashboard in de map
+*Wetsanalyse*. Elke span draagt daarnaast `deployment.environment=<appName>`, zodat acceptatie en
+productie ook binnen één workspace te scheiden zijn. De Azure-dashboards staan in
+`deploy/azure/grafana/`; de dashboards in `deploy/observability/` horen **bij dev** en draaien op
+PromQL/LogQL/TraceQL — die twee sets delen geen query-taal en zijn dus niet uitwisselbaar.
 
 ## Wat is geïnstrumenteerd
 
