@@ -117,9 +117,16 @@ die, dan is dat materiaal onherstelbaar onleesbaar.
 
 1. een **GitHub environment-secret** met die naam (`WA_LLM_CONFIG_SECRET`, `WA_AUTH_SECRET`,
    `WA_DB_ADMIN_PASSWORD`, `WA_API_TOKEN`, `WA_ADMIN_TOKEN`, `WA_QA_API_TOKEN`,
-   `WA_GRAPHDB_TOKEN`) — zet deze als je ze bewust wilt beheren of roteren;
+   `WA_GRAPH_QA_API_TOKEN`, `WA_GRAPHDB_TOKEN`) — zet deze als je ze bewust wilt beheren of roteren;
 2. anders de waarde die **nu in Azure draait**, uitgelezen uit de container apps;
 3. anders **vers gegenereerd** — het geval van een nieuwe straat.
+
+> **Twee tokens rond graph-qa, in tegengestelde richting.** `WA_QA_API_TOKEN` is waarmee de
+> *frontend* graph-qa aanroept (diens eigen `QA_API_TOKEN`). `WA_GRAPH_QA_API_TOKEN` is waarmee
+> *graph-qa naar de api schrijft* om de uitkomst van een annotatiebeurt vast te leggen; het staat als
+> eigen client `graph-qa:` in `apiTokens`, zodat het auditspoor laat zien wie er schreef. Ontbreekt
+> dat tweede token, dan draait een annotatie gewoon door maar landt de uitkomst nergens — de
+> werkplek meldt dan "deze agent heeft geen verbinding met de wetsanalyse-API".
 
 Daardoor is een infra-deploy op een draaiende omgeving veilig. De toets daarop: `wat-if` mag geen
 `~ secret`-regels tonen voor de api-, frontend- en graph-qa-apps.

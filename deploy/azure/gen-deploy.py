@@ -103,6 +103,11 @@ def main() -> None:
     tok_frontend = _secret("WA_API_TOKEN", lambda: secrets.token_hex(24))
     tok_admin = _secret("WA_ADMIN_TOKEN", lambda: secrets.token_hex(24))
     tok_qa = _secret("WA_QA_API_TOKEN", lambda: secrets.token_hex(24))   # frontend ↔ graph-qa
+    # graph-qa ↔ api: een EIGEN client-token, niet dat van de frontend. De api doet per-client
+    # bearer-auth, dus een eigen token laat het auditspoor zien wie er schreef — en intrekken raakt
+    # dan alleen de agent. Zonder dit kan graph-qa de uitkomst van een beurt niet vastleggen; zie
+    # `legt_zelf_vast` in tools/graph-qa/agent/config.py.
+    tok_qa_api = _secret("WA_GRAPH_QA_API_TOKEN", lambda: secrets.token_hex(24))
     # graph-qa eist fail-closed een GRAPHDB_TOKEN (require_graph). Binnen deze omgeving is de graaf
     # alleen intern bereikbaar en draait GraphDB zonder eigen security, dus dit token is daar geen
     # slot — het wordt wel meegestuurd. Zelf genereren is beter dan het token van de zelfgehoste opzet hierheen kopiëren.
@@ -124,7 +129,7 @@ def main() -> None:
             "llmApiBase": {"value": args.llm_api_base},
             "llmApiKey": {"value": args.azure_ai_key},
             "llmConfigSecret": {"value": fernet},
-            "apiTokens": {"value": f"frontend:{tok_frontend}"},
+            "apiTokens": {"value": f"frontend:{tok_frontend},graph-qa:{tok_qa_api}"},
             "adminTokens": {"value": f"admin:{tok_admin}"},
             "authSecret": {"value": auth},
             "frontendApiToken": {"value": tok_frontend},
@@ -132,6 +137,7 @@ def main() -> None:
             "dbAdminPassword": {"value": db_pass},
             "graphdbToken": {"value": tok_graphdb},
             "qaApiToken": {"value": tok_qa},
+            "graphQaApiToken": {"value": tok_qa_api},
             "graphdbLicenseBase64": {"value": licentie_b64},
         },
     }
