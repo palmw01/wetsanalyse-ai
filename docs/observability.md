@@ -191,3 +191,13 @@ De OTLP→Prometheus-export voegt unit-/type-suffixen toe; onthoud dit bij het b
 - **Loki**: de OTLP-logs dragen de velden als **structured metadata** (`detected_level`, `trace_id`,
   `categorie`), niet als JSON in de regel — filter dus op die labels, niet met `| json`. De
   Loki-datasource heeft een derived field `trace_id` → Tempo voor de doorklik.
+
+> **Houdbaarheid: deze namen zijn de pre-1.0 OTel-conventie.** `http_server_duration_milliseconds`
+> en de attributen `http_target`/`http_status_code` heten in de stabiele HTTP-semconv
+> `http.server.request.duration` (in **seconden**), `http_route` en `http_response_status_code`. Bij
+> een SDK- of collector-upgrade die de nieuwe conventie aanzet, verdwijnen niet alleen drie panelen
+> van `grafana-dashboard-wetsanalyse.json` naar "No data" — ook twee van de drie alertregels
+> (`alerting/alert-rules.json`, de 5xx-regel en de latency-regel) vallen dan stil. Een blind alarm
+> meldt zichzelf niet, dus loop bij zo'n upgrade beide bestanden na. Wie de overgang geleidelijk wil
+> doen, kan tijdelijk `OTEL_SEMCONV_STABILITY_OPT_IN=http/dup` zetten: dan emitteert de SDK beide
+> namen naast elkaar.
