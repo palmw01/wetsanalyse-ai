@@ -399,9 +399,6 @@ interpretatieruimte kent).
 > gewoon binnen, alleen het verband tussen de diensten ontbreekt. Hetzelfde geldt voor
 > query-parameters — een proxyroute die een parameter laat vallen, laat een filter stil mislukken.
 
-De write-guard hook (`.claude/settings.json`) blokkeert schrijven naar gereviewde analyse-rondes.
-Hij is **cwd-relatief**: draai bewerkingen vanaf de projectroot of met absolute paden.
-
 **Uitrollen.** Azure is het enige uitrolpad, in twee straten. Een merge naar `master` rolt uit naar
 **acceptatie** — dat is tevens de proeftuin, want een dev-omgeving bestaat niet. Productie gaat via
 een tag `v*`: `promote.yml` bouwt niets, maar neemt de digests over die op acceptatie draaien, en
@@ -446,7 +443,6 @@ toetst of die bij de getagde commit horen. Infra blijft handmatig via `azure-inf
 Eerlijk over wat er nog niet is:
 
 - **Alleen activiteit 2.** Begrippen, afleidingsregels en RegelSpraak zijn niet gebouwd.
-- **De skill draait niet end-to-end** — de wettenbank-MCP uit stap 1 bestaat niet meer.
 - **De graaf op Azure is niet-persistent.** GraphDB gebruikt memory-mapped files en kan geen
   netwerkschijf gebruiken. Hij is volledig reproduceerbaar uit overheid.nl en vult zichzelf na een
   deploy, maar de similarity-index overleeft een herstart evenmin.
