@@ -188,3 +188,40 @@ async def test_gedeactiveerde_gebruiker_verliest_toegang(client):
 
     assert (await client.get(f"{BASIS}/{gid}", headers=B)).status_code == 401
     assert (await client.get(BASIS, headers=B)).status_code == 401
+
+
+# ── run_id: de database dwingt af dat één beurt één bericht oplevert ─────────────────────────────
+
+async def test_hetzelfde_run_id_levert_nooit_een_tweede_bericht(client):
+    """Twee tabbladen kunnen op dezelfde run meekijken en de api draait op meerdere replica's. De
+    check-then-insert dekt het normale geval goedkoop; de partiële unieke index dekt de race."""
+    from app.gesprek_contracts import BerichtInvoer, Gesprek, Rol
+    from app.gesprek_store import GesprekStore
+
+    store = GesprekStore()
+    await store.maak_gesprek(Gesprek(id="g-run", user_id="gebruiker-a", titel="t"))
+
+    eerste = await store.voeg_bericht_toe("g-run", BerichtInvoer(
+        rol=Rol.assistant, tekst="het antwoord", run_id="run-abc"))
+    tweede = await store.voeg_bericht_toe("g-run", BerichtInvoer(
+        rol=Rol.assistant, tekst="hetzelfde antwoord nog eens", run_id="run-abc"))
+
+    assert tweede.id == eerste.id, "een tweede schrijver hoort het bestaande bericht terug te krijgen"
+
+    gesprek = await store.laad_gesprek("g-run")
+    assert len([b for b in gesprek.berichten if b.run_id == "run-abc"]) == 1
+
+
+async def test_berichten_zonder_run_id_blijven_naast_elkaar_bestaan(client):
+    """De index is partieel: alleen niet-lege run_ids zijn uniek. Vragen van de gebruiker dragen er
+    geen, en die mogen er zoveel zijn als je wilt."""
+    from app.gesprek_contracts import BerichtInvoer, Gesprek, Rol
+    from app.gesprek_store import GesprekStore
+
+    store = GesprekStore()
+    await store.maak_gesprek(Gesprek(id="g-leeg", user_id="gebruiker-a", titel="t"))
+    for i in range(3):
+        await store.voeg_bericht_toe("g-leeg", BerichtInvoer(rol=Rol.user, tekst=f"vraag {i}"))
+
+    gesprek = await store.laad_gesprek("g-leeg")
+    assert len(gesprek.berichten) == 3

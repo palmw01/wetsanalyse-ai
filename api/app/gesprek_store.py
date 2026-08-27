@@ -9,6 +9,7 @@ uit Python (`db.utcnow`) zodat de queries portable blijven (SQLite-tests).
 from __future__ import annotations
 
 from sqlalchemy import delete, func, insert, select, update
+from sqlalchemy.exc import IntegrityError
 
 from . import db
 from .gesprek_contracts import Bericht, BerichtInvoer, Gesprek, GesprekSamenvatting
@@ -133,9 +134,10 @@ class GesprekStore:
         insert. Er is géén unieke index: `reconcile_schema` voegt op bestaande tabellen alleen
         kolommen toe, en de index op (gesprek_id, id) maakt deze check goedkoop.
 
-        Let op de aanname: dit werkt omdat er per run feitelijk één schrijver tegelijk is. Komt er
-        ooit een tweede API-replica die gelijktijdig dezelfde run afrondt, dan is check-then-insert
-        niet meer genoeg en moet er een unieke constraint bij.
+        De check blijft staan omdat hij het normale geval goedkoop afhandelt (en het bestaande
+        bericht kan teruggeven), maar hij is niet meer de enige bescherming: `run_id` is een eigen
+        kolom met een partiële unieke index. Verliest een tweede schrijver de race, dan botst hij op
+        de database en lezen we alsnog het bericht dat er inmiddels staat.
         """
         now = db.utcnow()
         async with db.get_engine().begin() as conn:
@@ -143,12 +145,27 @@ class GesprekStore:
                 bestaand = await self._bericht_van_run(conn, gesprek_id, inv.run_id)
                 if bestaand is not None:
                     return bestaand
-            result = await conn.execute(insert(db.gesprek_berichten).values(
-                gesprek_id=gesprek_id,
-                rol=inv.rol.value,
-                inhoud=_inhoud(inv),
-                created=now,
-            ))
+            try:
+                # In een SAVEPOINT: op Postgres aborteert een IntegrityError de hele transactie,
+                # waarna de herstelquery hieronder óók zou falen ("current transaction is aborted").
+                # Op SQLite valt dat niet op — precies het soort verschil dat pas in productie
+                # opduikt.
+                async with conn.begin_nested():
+                    result = await conn.execute(insert(db.gesprek_berichten).values(
+                        gesprek_id=gesprek_id,
+                        rol=inv.rol.value,
+                        inhoud=_inhoud(inv),
+                        run_id=inv.run_id or "",
+                        created=now,
+                    ))
+            except IntegrityError:
+                # De unieke index sloeg toe: een andere schrijver was ons net voor met dezelfde run.
+                # Dat is precies de race die de check hierboven niet kan dichten; het antwoord is
+                # hetzelfde als daar — geef terug wat er staat.
+                bestaand = await self._bericht_van_run(conn, gesprek_id, inv.run_id)
+                if bestaand is not None:
+                    return bestaand
+                raise
             # Bump het gesprek zodat de sidebar-sortering (updated desc) meeloopt.
             await conn.execute(
                 update(db.gesprekken)
