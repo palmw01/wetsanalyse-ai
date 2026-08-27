@@ -365,7 +365,7 @@
         "type": "loki",
         "uid": "wa-loki"
       },
-      "description": "Aantal API-logregels per interval, uitgesplitst naar niveau (info/warn/error).",
+      "description": "Aantal API-logregels per interval, uitgesplitst naar niveau. Splitst bewust op `detected_level` en niet op `niveau`: de API-logs komen via OTLP binnen (severity uit de LoggingHandler) en Alloy promoveert `niveau` van de stdout-loggers naar datzelfde label (alloy-config.alloy). `| json` werkt hier dus niet — de velden zitten als structured metadata bij de regel, niet als JSON erin.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -515,17 +515,9 @@
             "type": "tempo",
             "uid": "wa-tempo"
           },
-          "filters": [
-            {
-              "id": "service-name",
-              "operator": "=",
-              "scope": "resource",
-              "tag": "service.name"
-            }
-          ],
           "limit": 20,
-          "query": "{}",
-          "queryType": "traceqlSearch",
+          "query": "{ resource.service.name =~ \"wetsanalyse-.*\" }",
+          "queryType": "traceql",
           "refId": "A",
           "tableType": "traces"
         }
