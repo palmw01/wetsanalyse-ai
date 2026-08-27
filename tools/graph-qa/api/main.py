@@ -61,16 +61,31 @@ from agent.beurt import voer_beurt_uit  # noqa: E402
 from agent.agent_common import run_sync  # noqa: E402
 from agent.config import Settings  # noqa: E402
 from agent.models import ArtikelResult, ChatRequest, RunStart  # noqa: E402
-from agent.runs import Run, RunBestaatAl, RunRegister  # noqa: E402
+from agent.runstore import Run, RunBestaatAl, RunStore  # noqa: E402
+from agent.runstore.geheugen import GeheugenStore  # noqa: E402
 
 logger = logging.getLogger("graph_qa.chat")
 
-# Het run-register: een beurt leeft hier, niet in de HTTP-request van één tabblad. Zie agent/runs.py
-# voor de aannames (één proces, herstart wist het register, alleen de run-taak schrijft).
-runs = RunRegister()
-
 settings = Settings.from_env()
 observability.setup(settings)  # logging + gated OTel, vóór de app draait
+
+
+def _maak_runstore(s: Settings) -> RunStore:
+    """Gedeeld als er een database is, anders in dit proces.
+
+    Dezelfde voorrangsregel als de checkpointer (`agent/agent.py:_checkpointer_ctx`), en om dezelfde
+    reden: graph-qa mag op Azure naar twee replica's schalen. Zonder gedeelde store landt een
+    aanhaker dan op het verkeerde proces en lijkt zijn beurt verdwenen.
+    """
+    if s.checkpoint_db_url:
+        from agent.runstore.postgres import PostgresStore
+
+        return PostgresStore(s.checkpoint_db_url)
+    return GeheugenStore()
+
+
+# Een beurt leeft hier, niet in de HTTP-request van één tabblad.
+runs: RunStore = _maak_runstore(settings)
 
 @asynccontextmanager
 async def _lifespan(_app: FastAPI):
@@ -84,7 +99,17 @@ async def _lifespan(_app: FastAPI):
     # draagt zelf de user_id waarnamens er geschreven wordt.
     settings.require_api()
     settings.controleer_historie_grens()
+    # De gedeelde store maakt zijn tabellen zelf aan (idempotent, zoals de checkpointer). De
+    # geheugenvariant heeft geen setup en slaat dit over.
+    voorbereiden = getattr(runs, "setup", None)
+    if voorbereiden is not None:
+        await voorbereiden()
+        logger.info("run-store gereed", extra={"categorie": "technisch",
+                                               "soort": type(runs).__name__})
     yield
+    afsluiten = getattr(runs, "sluit", None)
+    if afsluiten is not None:
+        await afsluiten()
     # App-shutdown: OTel-buffers flushen zodat de laatste spans/metrics niet verloren gaan.
     observability.shutdown()
 

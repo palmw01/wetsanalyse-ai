@@ -12,6 +12,7 @@ import functools
 import pytest
 
 from agent.runs import RunBestaatAl, RunRegister
+from agent.runstore.geheugen import GeheugenStore
 
 
 def asyncio_test(fn):
@@ -279,3 +280,24 @@ async def test_volgen_sluit_ook_als_de_run_afrondt_tijdens_het_wachten():
         geleverd = [e async for e in register.volg(run, vanaf=0)]
 
     assert [e["type"] for e in geleverd] == ["token", "done"]
+
+
+# ── welke store kiest de app? ────────────────────────────────────────────────────────────────────
+
+def test_zonder_database_blijft_het_register_in_dit_proces():
+    """De geheugenvariant is de default: lokaal draaien en de testsuite hebben geen Postgres."""
+    from api.main import _maak_runstore
+    from tests.fakes import make_settings
+
+    assert isinstance(_maak_runstore(make_settings(checkpoint_db_url="")), GeheugenStore)
+
+
+def test_met_een_database_worden_de_runs_gedeeld():
+    """Op Azure staat graph-qa op maxReplicas 2; dan moet de store gedeeld zijn, anders landt een
+    aanhaker op de verkeerde replica en lijkt zijn beurt verdwenen."""
+    from agent.runstore.postgres import PostgresStore
+    from api.main import _maak_runstore
+    from tests.fakes import make_settings
+
+    store = _maak_runstore(make_settings(checkpoint_db_url="postgresql://x/y"))
+    assert isinstance(store, PostgresStore)

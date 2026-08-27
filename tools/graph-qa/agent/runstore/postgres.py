@@ -38,7 +38,12 @@ from . import MAX_EVENTS, VLUCHTIGE_TYPES, Run, RunBestaatAl
 
 logger = logging.getLogger("graph_qa.runs")
 
-# Hoe vaak een lopende run zijn hartslag bijwerkt.
+# Hoe vaak de polstaak draait: hij leest het stopverzoek én houdt de hartslag bij. Kort genoeg dat
+# een stopverzoek van een andere replica snel aankomt (de gebruiker wacht erop), en de graaf leest de
+# vlag verder gratis — `stop_check` blijft een simpele attribuutlezing.
+POLS_S = 2.0
+# Hoe vaak de hartslag naar de database gaat. Een veelvoud van POLS_S: een write per twee seconden
+# per lopende run is zonde voor iets dat pas na een minuut betekenis krijgt.
 HARTSLAG_S = 10.0
 # Hoe lang een run zonder hartslag nog als levend telt. Ruim boven HARTSLAG_S, want een node die een
 # trage LLM-call doet mag geen vals alarm geven — de hartslag loopt als aparte taak door.
@@ -223,7 +228,7 @@ class PostgresStore:
         return run
 
     async def _draai(self, run: Run, maak_stroom: Callable[[Run], AsyncIterator[dict[str, Any]]]) -> None:
-        hart = asyncio.create_task(self._hartslag(run))
+        hart = asyncio.create_task(self._pols(run))
         try:
             async for event in maak_stroom(run):
                 await self._voeg_toe(run, event)
@@ -245,15 +250,34 @@ class PostgresStore:
             self._taken.pop(run.run_id, None)
         await self._rond_af(run, status)
 
-    async def _hartslag(self, run: Run) -> None:
-        """Zolang deze run hier draait, laat hij van zich horen."""
+    async def _pols(self, run: Run) -> None:
+        """Twee dingen die allebei van buiten dit proces komen of moeten gaan.
+
+        **Het stopverzoek lezen.** De graaf vraagt per node `stop_check()`, en dat is een synchrone
+        aanroep vanuit een threadpool — daar kan geen query doorheen. Deze taak leest de vlag dus
+        vóór hem uit en zet hem op de Run; `stop_check` blijft een attribuutlezing. Zo bereikt een
+        cancel die op de ándere replica binnenkwam alsnog de draaiende beurt.
+
+        **De hartslag schrijven.** Minder vaak dan de pols: hij krijgt pas na een minuut betekenis.
+        """
+        sinds_hartslag = 0.0
         while True:
-            await asyncio.sleep(HARTSLAG_S)
+            await asyncio.sleep(POLS_S)
+            sinds_hartslag += POLS_S
             with contextlib.suppress(Exception):
                 async with self.pool.connection() as conn:
-                    await conn.execute(
-                        "UPDATE agent_runs SET hartslag = now() WHERE run_id = %s", (run.run_id,)
-                    )
+                    if sinds_hartslag >= HARTSLAG_S:
+                        cur = await conn.execute(
+                            "UPDATE agent_runs SET hartslag = now() WHERE run_id = %s "
+                            "RETURNING stop_verzocht", (run.run_id,))
+                        sinds_hartslag = 0.0
+                    else:
+                        cur = await conn.execute(
+                            "SELECT stop_verzocht FROM agent_runs WHERE run_id = %s", (run.run_id,))
+                    rij = await cur.fetchone()
+                if rij and rij["stop_verzocht"]:
+                    run.stop_gevraagd = True
+                    return  # de graaf ziet de vlag; verder polsen heeft geen zin
 
     async def _rond_af(self, run: Run, status: str) -> None:
         run.status = status
