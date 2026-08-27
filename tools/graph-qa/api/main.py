@@ -252,11 +252,11 @@ async def verwijder_conversation(
     # weet is van wie de run op dit gesprek is; dat is genoeg om te weigeren dat iemand met een
     # vreemd gespreks-id andermans lopende beurt afkapt. Zonder deze regel was de eigenaarscontrole
     # op `/v1/runs/{id}/cancel` langs deze route te omzeilen.
-    lopend = runs.actief_voor(conversation_id)
+    lopend = await runs.actief_voor(conversation_id)
     if lopend is not None and gebruiker and lopend.user_id and lopend.user_id != gebruiker:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Onbekend gesprek")
     if lopend is not None and lopend.loopt:
-        runs.vraag_stop(lopend)
+        await runs.vraag_stop(lopend)
         logger.info(
             "run gestopt: gesprek verwijderd",
             extra={"categorie": "functioneel", "run_id": lopend.run_id,
@@ -346,7 +346,7 @@ async def start_run(
     dezelfde checkpointer-thread. De aanroeper hoort dan aan te haken bij het meegegeven run_id.
     """
     try:
-        run = runs.start(
+        run = await runs.start(
             conversation_id=request.conversation_id or "",
             vraag=request.question or "",
             maak_stroom=_stroom_voor(request, gebruiker),
@@ -382,7 +382,7 @@ async def run_events(
     remount mag nooit op de limiet stuklopen. Losraken van deze stream laat de run ongemoeid – dat
     is het hele punt.
     """
-    run = runs.get(run_id, user_id=gebruiker)
+    run = await runs.get(run_id, user_id=gebruiker)
     if run is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Onbekende run")
 
@@ -403,10 +403,10 @@ async def stop_run(
 
     De nodes zijn synchroon, dus een lopende LLM-call maakt zichzelf af; de run eindigt op de
     eerstvolgende grens. Wie hier 'gestopt' uit leest, leest een intentie."""
-    run = runs.get(run_id, user_id=gebruiker)
+    run = await runs.get(run_id, user_id=gebruiker)
     if run is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Onbekende run")
-    runs.vraag_stop(run)
+    await runs.vraag_stop(run)
     return RunStart(**run.samenvatting())
 
 
@@ -420,7 +420,7 @@ async def actieve_run(
 
     Dit is wat de werkplek bij binnenkomst vraagt. Ook een net afgeronde run telt mee: kom je terug
     binnen de bewaartermijn, dan hoor je de uitkomst alsnog te zien."""
-    run = runs.actief_voor(conversation_id, user_id=gebruiker)
+    run = await runs.actief_voor(conversation_id, user_id=gebruiker)
     return RunStart(**run.samenvatting()) if run else None
 
 

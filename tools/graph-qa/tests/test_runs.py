@@ -47,7 +47,7 @@ async def test_run_overleeft_het_sluiten_van_de_eventstroom():
     """De kern: één kijker haakt af, de run loopt door en maakt zijn werk af."""
     register = RunRegister()
     events = [{"type": "token", "content": str(i)} for i in range(5)] + [{"type": "done"}]
-    run = register.start(conversation_id="g1", vraag="vraag?", maak_stroom=_stroom(events, vertraag=0.01))
+    run = await register.start(conversation_id="g1", vraag="vraag?", maak_stroom=_stroom(events, vertraag=0.01))
 
     # Kijk één event mee en loop dan weg – precies wat een remount doet.
     stroom = register.volg(run)
@@ -65,7 +65,7 @@ async def test_run_overleeft_het_sluiten_van_de_eventstroom():
 async def test_aanhaken_vanaf_seq_levert_precies_het_gemiste():
     register = RunRegister()
     events = [{"type": "token", "content": c} for c in "abcd"] + [{"type": "done"}]
-    run = register.start(conversation_id="g1", vraag="v", maak_stroom=_stroom(events))
+    run = await register.start(conversation_id="g1", vraag="v", maak_stroom=_stroom(events))
     await _wacht_af(run)
 
     vanaf_twee = [e async for e in register.volg(run, vanaf=2)]
@@ -80,7 +80,7 @@ async def test_twee_kijkers_zien_dezelfde_volgorde():
     één keer kunt leegdrinken."""
     register = RunRegister()
     events = [{"type": "token", "content": c} for c in "xyz"] + [{"type": "done"}]
-    run = register.start(conversation_id="g1", vraag="v", maak_stroom=_stroom(events, vertraag=0.01))
+    run = await register.start(conversation_id="g1", vraag="v", maak_stroom=_stroom(events, vertraag=0.01))
 
     beide = await asyncio.gather(_verzamel(register, run), _verzamel(register, run))
     assert beide[0] == beide[1]
@@ -92,15 +92,15 @@ async def test_tweede_run_op_hetzelfde_gesprek_wordt_geweigerd():
     """Twee lussen op één thread_id zouden door elkaar in de checkpointer schrijven."""
     register = RunRegister()
     traag = _stroom([{"type": "token", "content": "x"}, {"type": "done"}], vertraag=0.05)
-    eerste = register.start(conversation_id="g1", vraag="v", maak_stroom=traag)
+    eerste = await register.start(conversation_id="g1", vraag="v", maak_stroom=traag)
 
     with pytest.raises(RunBestaatAl) as fout:
-        register.start(conversation_id="g1", vraag="v2", maak_stroom=traag)
+        await register.start(conversation_id="g1", vraag="v2", maak_stroom=traag)
     assert fout.value.run_id == eerste.run_id  # zodat de client kan aanhaken i.p.v. falen
 
     await _wacht_af(eerste)
     # Is hij klaar, dan mag er weer een nieuwe beurt op hetzelfde gesprek.
-    tweede = register.start(conversation_id="g1", vraag="v2", maak_stroom=_stroom([{"type": "done"}]))
+    tweede = await register.start(conversation_id="g1", vraag="v2", maak_stroom=_stroom([{"type": "done"}]))
     await _wacht_af(tweede)
     assert tweede.run_id != eerste.run_id
 
@@ -109,8 +109,8 @@ async def test_tweede_run_op_hetzelfde_gesprek_wordt_geweigerd():
 async def test_een_ander_gesprek_mag_wel_tegelijk():
     register = RunRegister()
     traag = _stroom([{"type": "done"}], vertraag=0.05)
-    a = register.start(conversation_id="g1", vraag="v", maak_stroom=traag)
-    b = register.start(conversation_id="g2", vraag="v", maak_stroom=traag)
+    a = await register.start(conversation_id="g1", vraag="v", maak_stroom=traag)
+    b = await register.start(conversation_id="g2", vraag="v", maak_stroom=traag)
     assert a.run_id != b.run_id
     await asyncio.gather(_wacht_af(a), _wacht_af(b))
 
@@ -125,7 +125,7 @@ async def test_cappen_gooit_narratie_weg_maar_nooit_betekenis():
         + [{"type": "token", "content": str(i)} for i in range(20)]
         + [{"type": "element", "element": {"id": "e1"}}, {"type": "done"}]
     )
-    run = register.start(conversation_id="g1", vraag="v", maak_stroom=_stroom(events))
+    run = await register.start(conversation_id="g1", vraag="v", maak_stroom=_stroom(events))
     await _wacht_af(run)
 
     types = [e["type"] for e in run.events]
@@ -140,7 +140,7 @@ async def test_gat_wordt_benoemd_bij_aanhaken():
     compleet lijkt maar het niet is."""
     register = RunRegister(max_events=3)
     events = [{"type": "token", "content": str(i)} for i in range(10)] + [{"type": "done"}]
-    run = register.start(conversation_id="g1", vraag="v", maak_stroom=_stroom(events))
+    run = await register.start(conversation_id="g1", vraag="v", maak_stroom=_stroom(events))
     await _wacht_af(run)
 
     geleverd = [e async for e in register.volg(run, vanaf=0)]
@@ -163,9 +163,9 @@ async def test_stoppen_is_een_verzoek_geen_annulering():
             await asyncio.sleep(0.01)
             yield {"type": "token", "content": str(i)}
 
-    run = register.start(conversation_id="g1", vraag="v", maak_stroom=maak)
+    run = await register.start(conversation_id="g1", vraag="v", maak_stroom=maak)
     await asyncio.sleep(0.03)
-    register.vraag_stop(run)
+    await register.vraag_stop(run)
     await _wacht_af(run)
 
     assert run.status == "gestopt"
@@ -175,12 +175,12 @@ async def test_stoppen_is_een_verzoek_geen_annulering():
 @asyncio_test
 async def test_actieve_run_is_wat_de_werkplek_bij_binnenkomst_vraagt():
     register = RunRegister()
-    assert register.actief_voor("g1") is None
+    assert await register.actief_voor("g1") is None
 
-    run = register.start(conversation_id="g1", vraag="Annoteer artikel 9", maak_stroom=_stroom([{"type": "done"}]))
+    run = await register.start(conversation_id="g1", vraag="Annoteer artikel 9", maak_stroom=_stroom([{"type": "done"}]))
     await _wacht_af(run)
 
-    gevonden = register.actief_voor("g1")
+    gevonden = await register.actief_voor("g1")
     assert gevonden is not None
     # De vraag reist mee: anders ziet een vers tabblad tokens zonder user-bubbel erboven.
     assert gevonden.samenvatting()["vraag"] == "Annoteer artikel 9"
@@ -189,10 +189,10 @@ async def test_actieve_run_is_wat_de_werkplek_bij_binnenkomst_vraagt():
 @asyncio_test
 async def test_afgeronde_run_verdwijnt_na_de_bewaartermijn():
     register = RunRegister(bewaar_s=0.0)
-    run = register.start(conversation_id="g1", vraag="v", maak_stroom=_stroom([{"type": "done"}]))
+    run = await register.start(conversation_id="g1", vraag="v", maak_stroom=_stroom([{"type": "done"}]))
     await _wacht_af(run)
     await asyncio.sleep(0.01)
-    assert register.get(run.run_id) is None
+    assert await register.get(run.run_id) is None
 
 
 @asyncio_test
@@ -203,7 +203,7 @@ async def test_fout_in_de_stroom_wordt_een_error_event():
         yield {"type": "token", "content": "half"}
         raise RuntimeError("kapot")
 
-    run = register.start(conversation_id="g1", vraag="v", maak_stroom=stuk)
+    run = await register.start(conversation_id="g1", vraag="v", maak_stroom=stuk)
     await _wacht_af(run)
     assert run.status == "mislukt"
     assert run.events[-1]["type"] == "error"
@@ -230,7 +230,7 @@ async def test_seq_is_identiteit_geen_positie():
         {"type": "token", "content": "c"},
         {"type": "done"},
     ]
-    run = register.start(conversation_id="g1", vraag="v", maak_stroom=_stroom(events))
+    run = await register.start(conversation_id="g1", vraag="v", maak_stroom=_stroom(events))
     await _wacht_af(run)
 
     # Het doel is bewaard gebleven en draagt nog steeds zijn oorspronkelijke nummer.
@@ -257,7 +257,7 @@ async def test_volgen_sluit_ook_als_de_run_afrondt_tijdens_het_wachten():
     de run af te ronden op het moment dat de kijker de lock probeert te pakken.
     """
     register = RunRegister()
-    run = register.start(conversation_id="g1", vraag="v", maak_stroom=_stroom([]))
+    run = await register.start(conversation_id="g1", vraag="v", maak_stroom=_stroom([]))
     await asyncio.sleep(0)
     run.status = "loopt"           # doe alsof hij nog loopt; wij bepalen wanneer hij eindigt
     run.eind_op = None
