@@ -449,8 +449,9 @@ Eerlijk over wat er nog niet is:
   deploy, maar de similarity-index overleeft een herstart evenmin.
 - **Geen migratietool.** Bij het starten worden ontbrekende tabellen en kolommen additief
   bijgewerkt; kolommen hernoemen of typen wijzigen gaat zo niet.
-- **De agent draait in één proces.** Het run-register zit in het geheugen – geen `--workers`. Meer
-  dan één replica vereist een gedeelde checkpointer (`CHECKPOINT_DB_URL`).
+- **Een agent-beurt overleeft geen herstart van zijn replica.** De runs zijn sinds kort gedeeld
+  (PostgreSQL), dus meelezen, de 409 en stoppen werken over replica's heen; de draaiende taak zelf
+  niet, want de nodes zijn synchroon en er is geen resume-pad.
 - **Annotatieruns variëren sterk** tussen draaibeurten over dezelfde bepaling. Trek geen conclusie
   uit één run.
 - **De JAS-kennistools** bestaan in de code maar worden in de draaiende keten niet aangeroepen.
