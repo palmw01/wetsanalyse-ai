@@ -6,7 +6,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 
 class BestaandElement(BaseModel):
@@ -64,6 +64,29 @@ class ChatRequest(BaseModel):
     # wijzigen (die route emit simpelweg geen doel/element-events).
     modus: Literal["auto", "advies"] = "auto"
     context: ChatContext | None = None
+
+    @model_validator(mode="after")
+    def _advies_heeft_een_onderwerp(self) -> "ChatRequest":
+        """Een adviesvraag zonder context is geen adviesvraag.
+
+        Elk veld van ChatContext heeft een lege default, dus een leeg of half gevuld blok kwam er
+        stilzwijgend doorheen: `_advies_context` bouwde er een kop-zonder-inhoud van en het model
+        antwoordde over "de markering" zonder te weten welke. Dat is precies het soort fout dat
+        niemand ziet — er komt gewoon een vaag antwoord uit.
+
+        De eis is bewust laag: een fragment óf een bepaling. De werkplek stuurt beide (zie
+        `vraagContextVan` in frontend/lib/annotatie.ts), dus dit vangt een programmeerfout of een
+        andere client, niet normaal gebruik.
+        """
+        if self.modus != "advies":
+            return self
+        c = self.context
+        if c is None or not (c.fragment.strip() or c.bwbId.strip()):
+            raise ValueError(
+                "modus 'advies' vraagt een context met minimaal een fragment of een bwbId; "
+                "zonder onderwerp is er niets om over te adviseren"
+            )
+        return self
 
 
 class RunStart(BaseModel):

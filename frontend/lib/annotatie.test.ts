@@ -387,6 +387,14 @@ describe("vraagContextVan", () => {
     });
   });
 
+  it("levert altijd een onderwerp: de agent weigert een adviesvraag zonder", () => {
+    // graph-qa valideert dit sinds kort (ChatRequest._advies_heeft_een_onderwerp): modus "advies"
+    // zonder fragment én zonder bwbId is een 422. Deze test bewaakt dat de werkplek daar niet
+    // tegenaan loopt — anders is een stille fout een luide geworden zonder dat iemand het merkte.
+    const ctx = vraagContextVan("abc", doc, info, el("e1", { tekst: "aanslag" }));
+    expect(ctx.fragment || ctx.bwbId).toBeTruthy();
+  });
+
   it("valt terug op het lid van het document als het element er geen heeft", () => {
     // Bij een artikel zonder leden staat het lid alleen op het document; zonder terugval zou de
     // agent de verkeerde (of geen) bepaling voor zich krijgen.
