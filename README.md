@@ -477,14 +477,27 @@ Eerlijk over wat er nog niet is:
 
 ## Licentie & herkomst
 
-Voor de broncode is in deze repository **geen licentie vastgelegd** — er is geen `LICENSE`-bestand.
-Zonder licentie gelden de standaard auteursrechten en is hergebruik door derden niet toegestaan.
+Copyright © 2026 Willard Palm
 
-- **De wettekst** komt van de publieke diensten van overheid.nl (SRU + BWB-repository). Geen
-  API-sleutel nodig; de data is CC-0.
-- **De methode Wetsanalyse en het JAS** komen uit de Rijksoverheid-publicatie in
-  [`docs/wetsanalyse/wetsanalyse-rijk/`](docs/wetsanalyse/wetsanalyse-rijk/BRON.md).
-- **GraphDB** vereist een eigen licentie; zonder licentiebestand komt de database read-only op.
+*Licensed under the EUPL* — de broncode staat onder de **European Union Public Licence v1.2**, de
+licentie die de EU en de Rijksoverheid voor overheidssoftware aanhouden. De volledige tekst staat in
+[`LICENSE`](LICENSE); de officiële Nederlandse versie, juridisch gelijkwaardig, in
+[`LICENSE.nl`](LICENSE.nl).
+
+Niet alles in deze repository is van ons, en die delen vallen buiten de EUPL:
+
+| Onderdeel | Voorwaarden |
+|---|---|
+| [`docs/wetsanalyse/wetsanalyse-rijk/`](docs/wetsanalyse/wetsanalyse-rijk/BRON.md) | De methode en het JAS, van het ministerie van BZK, onder de **W3C Software and Document License** — zie de [`LICENSE`](docs/wetsanalyse/wetsanalyse-rijk/LICENSE) in die map. |
+| `docs/wetsanalyse/WetsTaal.md` | De WetsTaal-handreiking (Belastingdienst / PNA Group), publiek gepubliceerd. |
+| `frontend/public/belastingdienst-logo.svg` | Beeldmerk van de Belastingdienst. Merkrecht; geen onderdeel van de licentie en niet vrij herbruikbaar. |
+| De wettekst in de graaf | Van overheid.nl (SRU + BWB-repository), **CC-0**. Geen API-sleutel nodig. |
+| GraphDB | Vereist een eigen licentie van Ontotext; zonder licentiebestand komt de database read-only op. |
+
+Het boek *Wetsanalyse* (Boom uitgevers) en de readers van het Expertisecentrum BRM zijn **geen
+onderdeel van deze repository** — dat is materiaal van derden dat niet publiek verspreid hoort te
+worden. Wie ze rechtmatig heeft, kan ze lokaal in `docs/wetsanalyse/` plaatsen; `.gitignore` houdt
+ze buiten git.
 
 ## Verder lezen
 
