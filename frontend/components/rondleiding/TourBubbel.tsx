@@ -159,13 +159,20 @@ export function TourBubbel({
   return (
     <>
       {/* De dimlaag: losse rechthoeken die kliks opvangen, met een gat waar de stap om een
-          handeling vraagt. Zie `maskRechthoeken` voor waarom dit geen box-shadow meer is. */}
-      <div className="fixed inset-0 z-[60]" aria-hidden>
+          handeling vraagt. Zie `maskRechthoeken` voor waarom dit geen box-shadow meer is.
+
+          De container staat op `pointer-events-none` en alleen de rechthoeken zelf vangen. Zonder
+          dat is het gat een illusie: de container dekt het hele scherm, dus een klik "in het gat"
+          landt nog steeds op hém en bereikt de knop eronder nooit. */}
+      <div className="pointer-events-none fixed inset-0 z-[60]" aria-hidden>
         {maskRechthoeken(gat, viewport).map((v, i) => (
+          // Bewust zónder transitie: een animerende rechthoek wordt ook geanimeerd geraakt door de
+          // muis, dus tijdens die 150 ms zou hij de knop nog afdekken. De rand hieronder beweegt wel
+          // mee; die vangt niets.
           <div
             key={i}
             onClick={() => setPulse(true)}
-            className="absolute bg-ink/55 transition-all duration-150 motion-reduce:transition-none"
+            className="pointer-events-auto absolute bg-ink/55"
             style={{ top: v.top, left: v.left, width: v.breedte, height: v.hoogte }}
           />
         ))}
