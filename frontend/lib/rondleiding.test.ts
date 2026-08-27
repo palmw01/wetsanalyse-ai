@@ -260,6 +260,32 @@ describe("waar de bubbel komt te staan", () => {
     expect(binnenBeeld(p)).toBe(true);
   });
 
+  it("houdt de eerder gekozen kant vast als die nog past", () => {
+    // Een reviewkaart die krimpt of opschuift: beide kanten passen, dus de vaste volgorde zou naar
+    // "onder" springen terwijl de bubbel al bovenaan stond. Middenin een handeling is dat een sprong
+    // zonder aanleiding.
+    const kaart: Vak = { top: 500, left: 400, breedte: 400, hoogte: 100 };
+    expect(plaatsBubbel(kaart, BUBBEL, SCHERM).modus).toBe("onder");
+
+    const met = plaatsBubbel(kaart, BUBBEL, SCHERM, "boven");
+    expect(met.modus).toBe("boven");
+    expect(binnenBeeld(met)).toBe(true);
+  });
+
+  it("houdt die kant ook vast als het element gaat domineren", () => {
+    // Het palet kan de kaart over de 60%-grens duwen. Terugvallen op het scherm-midden leest als
+    // een sprong; de gebruiker heeft de bubbel net nog naast het element zien staan.
+    const groot: Vak = { top: 40, left: 40, breedte: 300, hoogte: 800 };
+    expect(plaatsBubbel(groot, BUBBEL, SCHERM).modus).toBe("midden");
+    expect(plaatsBubbel(groot, BUBBEL, SCHERM, "rechts").modus).toBe("rechts");
+  });
+
+  it("valt terug op de vaste volgorde als de vastgehouden kant niet meer past", () => {
+    const onderin: Vak = { top: 800, left: 400, breedte: 600, hoogte: 60 };
+    // "onder" past hier niet meer – dan telt de gewone volgorde weer.
+    expect(plaatsBubbel(onderin, BUBBEL, SCHERM, "onder").modus).toBe("boven");
+  });
+
   it("houdt de bubbel op een telefoon binnen beeld", () => {
     const kaart: Vak = { top: 300, left: 12, breedte: 366, hoogte: 120 };
     const p = plaatsBubbel(kaart, BUBBEL, TELEFOON);

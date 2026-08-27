@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import {
-  klikGat, maskRechthoeken, plaatsBubbel, type Afmeting, type Stap, type Vak,
+  klikGat, maskRechthoeken, plaatsBubbel, type Afmeting, type Plaatsing, type Stap, type Vak,
 } from "@/lib/rondleiding";
 
 /** Hoe ver de spotlight om het element heen valt. */
@@ -53,13 +53,13 @@ export function TourBubbel({
   stap, nummer, totaal, doel, gedaan, onVorige, onVolgende, onSluit,
 }: Props) {
   const [vak, setVak] = useState<Vak | null>(null);
-  // De eigen afmeting van de bubbel. Zonder die te meten valt niet te bepalen of hij ergens
-  // *past* – en dat is precies wat er misging: "de kant met de meeste ruimte" kan nog altijd te
-  // weinig ruimte zijn, waarna de bubbel half onder de schermrand hing.
-  const [bubbel, setBubbel] = useState<Afmeting>({
-    breedte: BUBBEL_BREEDTE, hoogte: BUBBEL_HOOGTE_SCHATTING,
-  });
   const [viewport, setViewport] = useState<Afmeting>({ breedte: 1024, hoogte: 768 });
+  const [plaatsing, setPlaatsing] = useState<Plaatsing>({ modus: "midden" });
+  // De kant die deze stap eerder koos. Het aangewezen element kan tijdens de stap groeien – het
+  // klassepalet, de verwerp-chips, de kaart die uitklapt bij selectie – en zonder dit geheugen koos
+  // `plaatsBubbel` opnieuw, waarna de bubbel middenin je handeling van kant wisselde of naar het
+  // scherm-midden sprong. Hij mag meeschuiven, niet verspringen.
+  const vorigeKant = useRef<Plaatsing["modus"] | null>(null);
   const bubbelRef = useRef<HTMLDivElement>(null);
   const kopRef = useRef<HTMLParagraphElement>(null);
   // Korte nadruk na een klik op de dimlaag: "je moet hier zijn".
@@ -74,13 +74,28 @@ export function TourBubbel({
   // maat veranderen, en de viewport hoort na een draai van het toestel te kloppen.
   useLayoutEffect(() => {
     let frame = 0;
+    // Een nieuwe stap of een nieuw element begint blanco: de vastgehouden kant hoorde bij de vorige.
+    vorigeKant.current = null;
     const meet = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        setVak(doel ? vakVan(doel) : null);
-        setViewport({ breedte: window.innerWidth, hoogte: window.innerHeight });
+        const scherm = { breedte: window.innerWidth, hoogte: window.innerHeight };
+        // De eigen afmeting van de bubbel. Zonder die te meten valt niet te bepalen of hij ergens
+        // *past* – en dat is precies wat er misging: "de kant met de meeste ruimte" kan nog altijd
+        // te weinig ruimte zijn, waarna de bubbel half onder de schermrand hing.
         const r = bubbelRef.current?.getBoundingClientRect();
-        if (r && r.height > 0) setBubbel({ breedte: r.width, hoogte: r.height });
+        const eigen: Afmeting =
+          r && r.height > 0
+            ? { breedte: r.width, hoogte: r.height }
+            : { breedte: BUBBEL_BREEDTE, hoogte: BUBBEL_HOOGTE_SCHATTING };
+        const gemeten = doel ? vakVan(doel) : null;
+        // Meten en plaatsen in één slag: de plaatsing hangt van alle drie de metingen af, en de
+        // vastgehouden kant hoort maar op één plek bijgewerkt te worden.
+        const plek = plaatsBubbel(gemeten, eigen, scherm, vorigeKant.current ?? undefined);
+        if (plek.modus !== "midden") vorigeKant.current = plek.modus;
+        setVak(gemeten);
+        setViewport(scherm);
+        setPlaatsing(plek);
       });
     };
     meet();
@@ -123,12 +138,12 @@ export function TourBubbel({
   // effect hierboven geen state hoeft te wissen.
   const actiefVak = doel ? vak : null;
 
-  const plaatsing = plaatsBubbel(actiefVak, bubbel, viewport);
-
-  // In `midden`-modus wijst de bubbel niets aan – dus hoort er ook geen spotlight omheen. Dat is
-  // precies het geval bij het gespreksvenster en de sidebar: die vullen bijna het hele scherm, en
-  // een uitsparing eromheen licht het halve beeld op in plaats van iets aan te wijzen.
-  const spotVak = plaatsing.modus === "midden" ? null : actiefVak;
+  // De rand hangt aan het élement, niet aan de plaatsing van de bubbel — dezelfde scheiding als bij
+  // het gat hieronder. Hing hij aan `plaatsing.modus === "midden"`, dan verdween hij precies bij het
+  // gespreksvenster en de sidebar: die vullen bijna het scherm, dus de bubbel centreert, en dan
+  // openden de eerste twee stappen van de rondleiding met een kaart die niets aanwees. Juist daar
+  // gáát de stap over dat hele gebied, en dan hoort de rand er omheen te staan.
+  const spotVak = actiefVak;
 
   // Waar de dimlaag een gat laat. Alleen in een stap die om een handeling vraagt: daar moet je op de
   // échte knop kunnen klikken. In alle andere stappen dekt de laag alles af, want daar is elke klik

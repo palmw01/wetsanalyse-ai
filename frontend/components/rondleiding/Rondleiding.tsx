@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Dialog } from "@/components/ui/Dialog";
+import type { BeslissingType } from "@/lib/types";
 import { TourBubbel } from "@/components/rondleiding/TourBubbel";
 import {
   artefactActie, domineert, hervatIndex, RONDLEIDING_VERSIE, schrijfStand, zichtbareStappen,
@@ -16,11 +17,19 @@ const THUIS = "/workbench";
 /** Hoe lang de rondleiding wacht tot de gebruiker in stap "De annotatie openen" zelf klikt. */
 const WACHT_OP_KLIK_MS = 6000;
 
-/** Wat de rondleiding aan de werkplek meldt als de gebruiker een handeling uitvoerde die een
- *  interactieve stap verwachtte. Losse export zodat de werkplek hem kan aanroepen zonder de motor
- *  te kennen. */
-export const INTERACTIE_BEVESTIGING: Record<string, string> = {
-  akkoord: "Beoordeeld. De volgende die aandacht vraagt staat al klaar.",
+/** Wat de bubbel bevestigt na een handeling in een interactieve stap – per soort beslissing.
+ *
+ *  Eerder stond hier één regel, gekoppeld aan `stap.interactie`. De stap nodigt echter tot méér uit
+ *  dan akkoord geven, en elke beslissing in de demo loopt langs dezelfde teller: koos je een andere
+ *  klasse, dan bevestigde de rondleiding "Beoordeeld … staat al klaar" terwijl er niets was
+ *  goedgekeurd en er niets doorsprong. Losse export zodat de werkplek hem kan aanroepen zonder de
+ *  motor te kennen. */
+export const INTERACTIE_BEVESTIGING: Record<BeslissingType, string> = {
+  approve: "Beoordeeld. De volgende die aandacht vraagt staat al klaar.",
+  edit: "Aangepast. Wat jij wijzigt komt zo in het auditspoor terecht.",
+  reject: "Verworpen. Het voorstel blijft zichtbaar, met jouw reden erbij.",
+  comment: "Opmerking vastgelegd bij deze markering.",
+  heropen: "Heropend. De markering staat weer in de review.",
 };
 
 export type TourFase = "welkom" | "stappen" | "slot";
@@ -42,12 +51,14 @@ interface Props {
   /** Loopt op bij elke beslissing in de voorbeeldannotatie. De interactieve stap wacht daarop en
    *  bevestigt de handeling in plaats van hem stil te laten gebeuren. */
   beslissingen: number;
+  /** Wát er als laatste beslist is – de bevestiging hoort te passen bij de handeling. */
+  laatsteBeslissing: BeslissingType | null;
 }
 
 /** De motor van de rondleiding: welke stap staat er, waar hangt hij aan, en wat onderbreekt hem. */
 export function Rondleiding({
   isBeheerder, artefactOpen, onOpenArtefact, onSluitArtefact, onKlaar, beslissingen,
-  onAchtergrondSlot,
+  laatsteBeslissing, onAchtergrondSlot,
 }: Props) {
   const stappen = zichtbareStappen(isBeheerder);
   const [fase, setFase] = useState<TourFase>("welkom");
@@ -70,9 +81,9 @@ export function Rondleiding({
   useEffect(() => {
     if (!stap?.interactie) return;
     if (beslissingen > beslissingenBijStart.current) {
-      setGedaan(INTERACTIE_BEVESTIGING[stap.interactie]);
+      setGedaan(INTERACTIE_BEVESTIGING[laatsteBeslissing ?? "approve"]);
     }
-  }, [beslissingen, stap?.interactie]);
+  }, [beslissingen, laatsteBeslissing, stap?.interactie]);
 
   // Het slot volgt de stap. Bij afsluiten of unmounten gaat het er hoe dan ook af: een werkplek die
   // inert blijft staan is erger dan een rondleiding die te vroeg loslaat.

@@ -10,7 +10,7 @@ import { leesStand, moetStarten } from "@/lib/rondleiding";
 import { maakDemoScene, type DemoScene } from "@/lib/rondleidingDemo";
 import { MobieleTopbar } from "@/components/werkplek/MobieleTopbar";
 import { WerkplekClient } from "@/components/werkplek/WerkplekClient";
-import type { GesprekSamenvatting } from "@/lib/types";
+import type { BeslissingType, GesprekSamenvatting } from "@/lib/types";
 
 /** De volledige werkplek-app: links de sidebar (logo → chatgeschiedenis → instellingen/gebruiker),
  *  rechts het chatvenster. `activeId` stuurt de highlight; `mountKey` bepaalt wanneer het chatvenster
@@ -41,6 +41,7 @@ export function WorkbenchShell({
   const [demo, setDemo] = useState<DemoScene | null>(null);
   const [demoArtefact, setDemoArtefact] = useState(false);
   const [demoBeslissingen, setDemoBeslissingen] = useState(0);
+  const [laatsteBeslissing, setLaatsteBeslissing] = useState<BeslissingType | null>(null);
   // Staat de werkplek op slot? De rondleiding bepaalt dat per stap: in een stap die om een handeling
   // vraagt moet de knop eronder juist bereikbaar blijven.
   const [achtergrondSlot, setAchtergrondSlot] = useState(false);
@@ -52,6 +53,7 @@ export function WorkbenchShell({
   function startRondleiding() {
     setDemoArtefact(false);
     setDemoBeslissingen(0);
+    setLaatsteBeslissing(null);
     setDemoOpenSignaal(0);
     setDemo(maakDemoScene());
   }
@@ -163,7 +165,10 @@ export function WorkbenchShell({
             demoOpenSignaal={demoOpenSignaal}
             demoSluitSignaal={demoSluitSignaal}
             onDemoArtefact={setDemoArtefact}
-            onDemoBeslissing={() => setDemoBeslissingen((n) => n + 1)}
+            onDemoBeslissing={(type) => {
+              setDemoBeslissingen((n) => n + 1);
+              setLaatsteBeslissing(type);
+            }}
           />
         ) : (
           <WerkplekClient
@@ -184,6 +189,7 @@ export function WorkbenchShell({
           isBeheerder={isBeheerder}
           artefactOpen={demoArtefact}
           beslissingen={demoBeslissingen}
+          laatsteBeslissing={laatsteBeslissing}
           onOpenArtefact={() => setDemoOpenSignaal((n) => n + 1)}
           onSluitArtefact={() => setDemoSluitSignaal((n) => n + 1)}
           onKlaar={() => setDemo(null)}

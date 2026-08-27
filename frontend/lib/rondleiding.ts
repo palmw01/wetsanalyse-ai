@@ -278,9 +278,20 @@ export function domineert(vak: Vak, viewport: Afmeting): boolean {
  *  De volgorde is: onder, boven, rechts, links, en anders het midden. Doorslaggevend is of de
  *  bubbel er **past** – niet welke kant het meeste ruimte heeft. Dat laatste was de oude regel, en
  *  daardoor belandde de bubbel bij een schermvullend element buiten beeld: "meer ruimte" kan nog
- *  altijd te weinig zijn. Wat er ook uitkomt, de bubbel blijft binnen het scherm. */
-export function plaatsBubbel(vak: Vak | null, bubbel: Afmeting, viewport: Afmeting): Plaatsing {
-  if (!vak || domineert(vak, viewport)) return { modus: "midden" };
+ *  altijd te weinig zijn. Wat er ook uitkomt, de bubbel blijft binnen het scherm.
+ *
+ *  `voorkeur` is de kant die hij bij de vórige meting koos. Past die nog, dan wint hij van de vaste
+ *  volgorde – en dan telt `domineert` ook niet meer. Zonder dat sprong de bubbel middenin een
+ *  handeling van kant: het klassepalet maakt de reviewkaart in één klap hoger, en dan is er ineens
+ *  geen ruimte meer onder het element (of gaat het element domineren) en stond de bubbel opeens
+ *  gecentreerd. Een uitklapper mag de bubbel verschuiven, niet verplaatsen. */
+export function plaatsBubbel(
+  vak: Vak | null,
+  bubbel: Afmeting,
+  viewport: Afmeting,
+  voorkeur?: Plaatsing["modus"],
+): Plaatsing {
+  if (!vak) return { modus: "midden" };
 
   const m = BUBBEL_MARGE;
   const onderRand = vak.top + vak.hoogte;
@@ -299,17 +310,32 @@ export function plaatsBubbel(vak: Vak | null, bubbel: Afmeting, viewport: Afmeti
     Math.max(m, viewport.hoogte - bubbel.hoogte - m),
   );
 
-  if (viewport.hoogte - onderRand >= bubbel.hoogte + 2 * m) {
-    return { modus: "onder", top: onderRand + m, left: linksGecentreerd };
-  }
-  if (vak.top >= bubbel.hoogte + 2 * m) {
-    return { modus: "boven", top: vak.top - m - bubbel.hoogte, left: linksGecentreerd };
-  }
-  if (viewport.breedte - rechterRand >= bubbel.breedte + 2 * m) {
-    return { modus: "rechts", top: topGecentreerd, left: rechterRand + m };
-  }
-  if (vak.left >= bubbel.breedte + 2 * m) {
-    return { modus: "links", top: topGecentreerd, left: vak.left - m - bubbel.breedte };
+  /** Past de bubbel aan deze kant? Zo ja, waar komt hij dan te staan. */
+  const kandidaat = (modus: Plaatsing["modus"]): Plaatsing | null => {
+    if (modus === "onder" && viewport.hoogte - onderRand >= bubbel.hoogte + 2 * m) {
+      return { modus, top: onderRand + m, left: linksGecentreerd };
+    }
+    if (modus === "boven" && vak.top >= bubbel.hoogte + 2 * m) {
+      return { modus, top: vak.top - m - bubbel.hoogte, left: linksGecentreerd };
+    }
+    if (modus === "rechts" && viewport.breedte - rechterRand >= bubbel.breedte + 2 * m) {
+      return { modus, top: topGecentreerd, left: rechterRand + m };
+    }
+    if (modus === "links" && vak.left >= bubbel.breedte + 2 * m) {
+      return { modus, top: topGecentreerd, left: vak.left - m - bubbel.breedte };
+    }
+    return null;
+  };
+
+  // De kant van de vorige meting krijgt voorrang, ook boven `domineert`: die kant is al eens gekozen
+  // toen het element nog klein was, en de gebruiker heeft de bubbel dáár zien staan.
+  const vastgehouden = voorkeur ? kandidaat(voorkeur) : null;
+  if (vastgehouden) return vastgehouden;
+
+  if (domineert(vak, viewport)) return { modus: "midden" };
+  for (const modus of ["onder", "boven", "rechts", "links"] as const) {
+    const plek = kandidaat(modus);
+    if (plek) return plek;
   }
   return { modus: "midden" };
 }

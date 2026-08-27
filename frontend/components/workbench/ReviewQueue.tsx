@@ -172,7 +172,7 @@ function DecisionCard({
   onVraag,
   docVergrendeld,
   toonLid,
-  eerste,
+  tourAnker,
 }: {
   el: AnnotatieElement;
   actief: boolean;
@@ -197,9 +197,12 @@ function DecisionCard({
   /** Beslaat het document meer dan één lid? Zo niet, dan staat het lid al in de kop van het artefact
    *  en herhaalt elke kaart dezelfde mededeling. */
   toonLid?: boolean;
-  /** De bovenste kaart in de lijst. De rondleiding hangt haar uitleg hieraan op; die moet één
-   *  voorspelbaar element aanwijzen, niet elf tegelijk. */
-  eerste?: boolean;
+  /** Draagt deze kaart het anker van de rondleiding? Dat is de geselecteerde kaart, en zolang er
+   *  niets geselecteerd is de bovenste – de rondleiding moet één element aanwijzen, niet elf. Het
+   *  volgt de selectie omdat het gat in de dimlaag eraan hangt: bleef het op de bovenste staan, dan
+   *  bracht `j`/`k` je naar een kaart die door de dimlaag werd afgedekt, en was daar niets meer te
+   *  doen. */
+  tourAnker?: boolean;
 }) {
   const [notitie, setNotitie] = useState(false);
   const palet = open === "klasse";
@@ -276,7 +279,7 @@ function DecisionCard({
   return (
     <div
       ref={kaartRef}
-      data-tour={eerste ? "review-kaart" : undefined}
+      data-tour={tourAnker ? "review-kaart" : undefined}
       onClick={onKies}
       className={`rounded-kaart border border-line border-l-4 bg-paper p-3 shadow-zacht transition ${
         beslist ? "opacity-75" : aandacht ? `${aandacht.rand} ${aandacht.tint}` : "border-l-line"
@@ -680,6 +683,9 @@ export function ReviewQueue({
   const zwevend = zwevendeIds?.size ?? 0;
   const perc = totaal ? Math.round((beslist / totaal) * 100) : 0;
   const afgerond = totaal > 0 && beslist === totaal;
+  // Welke kaart draagt het anker van de rondleiding: de geselecteerde, of de bovenste zolang er niets
+  // geselecteerd is. Zie `tourAnker` op de kaart.
+  const ankerId = getoond.some((el) => el.id === actiefId) ? actiefId : getoond[0]?.id;
 
   return (
     <div className="space-y-2.5">
@@ -752,7 +758,7 @@ export function ReviewQueue({
       {getoond.map((el, i) => (
         <DecisionCard
           key={el.id}
-          eerste={i === 0}
+          tourAnker={el.id === ankerId}
           el={el}
           actief={el.id === actiefId}
           zwevend={zwevendeIds?.has(el.id)}
