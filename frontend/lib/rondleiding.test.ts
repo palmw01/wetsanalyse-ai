@@ -420,3 +420,32 @@ describe("het gat in de dimlaag", () => {
     expect(klikGat(interactief, vak, 14)).not.toBeNull();
   });
 });
+
+describe("de dimlaag laat het gat echt door", () => {
+  // De valkuil die dit koste: de rechthoeken kloppen (zie hierboven), maar ze zitten in een
+  // schermvullende container. Staat die niet op `pointer-events-none`, dan is het gat een illusie —
+  // een klik "in het gat" landt op de container en bereikt de knop eronder nooit. Dat is precies
+  // wat er misging, en het is niet zichtbaar in een test op de rechthoeken zelf.
+  const bubbel = readFileSync(
+    new URL("../components/rondleiding/TourBubbel.tsx", import.meta.url).pathname,
+    "utf-8",
+  );
+
+  it("laat de container van de dimlaag niets vangen", () => {
+    expect(bubbel).toMatch(/pointer-events-none[^"]*fixed inset-0 z-\[60\]/);
+  });
+
+  it("laat de losse dimvlakken wél vangen", () => {
+    expect(bubbel).toContain("pointer-events-auto absolute bg-ink/55");
+  });
+
+  it("houdt de rand om het element doorlaatbaar", () => {
+    // Die ligt over het gat heen; zou hij vangen, dan was de knop alsnog onbereikbaar.
+    expect(bubbel).toMatch(/pointer-events-none absolute rounded-kaart/);
+  });
+
+  it("animeert de dimvlakken niet", () => {
+    // Een vlak dat 150 ms lang naar zijn nieuwe plek beweegt, dekt in die tijd nog de oude af.
+    expect(bubbel).not.toMatch(/pointer-events-auto absolute bg-ink\/55 transition/);
+  });
+});
