@@ -548,17 +548,21 @@ jobs:
           # Komt er niets binnen, dan zit de fout in een van de drie schakels. Deze twee queries
           # wijzen aan welke: de collector die niet opkomt of zijn config niet slikt, of een app die
           # zijn exporter niet aan de praat krijgt.
+          # Let op de tabelnaam: de console-logs landen in ContainerAppConsoleLogs_CL (kolommen
+          # ContainerAppName_s/Log_s). De tabel zonder _CL bestaat óók en is altijd leeg — een
+          # diagnosevraag die daar kijkt meldt dus rustig "niets gevonden" terwijl er 12k regels
+          # staan. Zie PR #355.
           vraag "Collector-logs (2 uur)" \
-            "ContainerAppConsoleLogs
-             | where TimeGenerated > ago(2h) and ContainerAppName endswith 'otel-collector'
-             | project TimeGenerated, Log
+            "ContainerAppConsoleLogs_CL
+             | where TimeGenerated > ago(2h) and ContainerAppName_s endswith 'otel-collector'
+             | project TimeGenerated, Log_s
              | top 15 by TimeGenerated desc"
 
           vraag "OTel-meldingen uit de apps (2 uur)" \
-            "ContainerAppConsoleLogs
+            "ContainerAppConsoleLogs_CL
              | where TimeGenerated > ago(2h)
-             | where Log has_any ('otel', 'OTLP', 'opentelemetry', 'exporter')
-             | project TimeGenerated, ContainerAppName, Log
+             | where Log_s has_any ('otel', 'OTLP', 'opentelemetry', 'exporter')
+             | project TimeGenerated, ContainerAppName_s, Log_s
              | top 15 by TimeGenerated desc"
 
           # De keten frontend → api → graph-qa onder één trace-id: het hele punt van deze opzet.
