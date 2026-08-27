@@ -67,7 +67,7 @@ flowchart TB
 | **graph-qa (Lex)** | [`tools/graph-qa/`](tools/graph-qa/README.md) | De agent. Eén LangGraph-graaf met een supervisor die kiest tussen een antwoord-worker en een annotatie-worker. Praat via MCP met GraphDB. |
 | **bwb-import** | [`tools/bwb-import/`](tools/bwb-import/README.md) | ETL van overheid.nl naar RDF. Draait op Azure als cron-job, wekelijks. |
 | **kennisgraaf** | [`deploy/azure/`](deploy/azure/README.md) | GraphDB 11.4, repository `inning`, met de sinds 11.2 ingebouwde MCP-server op `/mcp`. |
-| **de skill** | [`.claude/skills/wetsanalyse/`](.claude/skills/wetsanalyse/SKILL.md) | De methode als uitvoerbare werkstroom, plus de **canonieke JAS-klassenlijst** die de API op runtime inleest. |
+| **de skill** | [`.claude/skills/wetsanalyse/`](.claude/skills/wetsanalyse/SKILL.md) | De JAS-methode als inhoudelijke bron: de dertien klassen en het volg-beleid voor verwijzingen. Documentatie, geen code. |
 
 De naam **Lex** is wat de gebruiker ziet; de code, het image en de env-variabelen heten overal
 `graph-qa`.
@@ -87,9 +87,10 @@ De naam **Lex** is wat de gebruiker ziet; de code, het image en de env-variabele
 
 ### De dertien JAS-klassen
 
-Canonieke bron: [`scripts/validate_analyse.py`](.claude/skills/wetsanalyse/scripts/validate_analyse.py)
-(`JAS_KLASSEN_VOLGORDE`). De API laadt dit script op runtime in, daarom kopieert `api/Dockerfile` de
-skill mee. Wijzig de lijst hier en nergens anders.
+Canonieke bron: [`api/app/jas_klassen.py`](api/app/jas_klassen.py) (`JAS_KLASSEN_VOLGORDE`).
+Twee andere plekken dragen dezelfde waarden — `frontend/lib/jas.ts`, omdat een browser geen Python
+leest, en `tools/graph-qa/agent/jas_klassen.py` — allebei met een drift-test erop. Wijzig je de
+lijst, wijzig hem dan overal; de tests wijzen je erop.
 
 `Rechtssubject` · `Rechtsobject` · `Rechtsbetrekking` · `Rechtsfeit` · `Voorwaarde` ·
 `Afleidingsregel` · `Variabele en variabelewaarde` · `Parameter en parameterwaarde` · `Operator` ·
@@ -231,24 +232,14 @@ Een supervisor kiest per vraag één specialist: `definitie` (begrippen opzoeken
 en samenhang) of `algemeen` (alle tools). De specialist bevraagt de graaf, waarna grounding het
 antwoord toetst en de bronnen uit de tool-trace worden verzameld.
 
-### Een analyse buiten de webapp
-
-De [wetsanalyse-skill](.claude/skills/wetsanalyse/SKILL.md) beschrijft de volledige methodische
-werkstroom met een human-in-the-loop reviewlus (`review_server.py`, poort 3118) en een
-rapportviewer (`rapport_server.py`, poort 3119). Het rapport wordt **gegenereerd, niet overgetypt**.
-
-> [!CAUTION]
-> Deze werkstroom draait op dit moment niet end-to-end: stap 1 haalt wettekst op via een
-> wettenbank-MCP die niet meer bestaat. De `references/` blijven de gezaghebbende uitwerking van de
-> methode; het draaiende platform gebruikt de kennisgraaf als tekstbron.
-
 ## Projectstructuur
 
 ```
 api/                  FastAPI-backend
   app/routers/          annotatie · admin · auth · gesprekken · berichten · feedback · catalog
   app/db.py             SQLAlchemy Core-tabellen (geen ORM-klassen, geen Alembic)
-  app/validation.py     laadt de JAS-klassen uit de skill op runtime
+  app/jas_klassen.py    de dertien JAS-klassen (canonieke bron)
+  app/validation.py     klassevalidatie voor het annotatiedomein
 frontend/             Next.js-webapp
   app/workbench/        de werkplek
   app/api/              de BFF; _lib/proxy.ts en _lib/trace.ts zijn gedeeld
@@ -264,7 +255,7 @@ tools/bwb-import/     ETL overheid.nl → RDF
   app/rdf_vocab.py      IRI-schema en namespaces
   app/graphdb_writer.py named graphs, FTS-connector, WTI-verrijking
   schemas/              de officiële XSD's (gecommit, gaan mee in de image)
-.claude/skills/wetsanalyse/   de methode + de canonieke JAS-klassenlijst
+.claude/skills/wetsanalyse/   de JAS-methode als documentatie
 deploy/azure/         main.bicep — de volledige stack
 docs/                 methodische onderbouwing en plannen
 ```
@@ -396,7 +387,7 @@ interpretatieruimte kent).
 
 | Ik wil… | Kijk in |
 |---|---|
-| een JAS-klasse wijzigen | `.claude/skills/wetsanalyse/scripts/validate_analyse.py` — en nergens anders |
+| een JAS-klasse wijzigen | `api/app/jas_klassen.py`, plus `frontend/lib/jas.ts` en `tools/graph-qa/agent/jas_klassen.py` (drift-tests bewaken het) |
 | een endpoint toevoegen | `api/app/routers/` **en** de bijbehorende BFF-route in `frontend/app/api/` |
 | iets aan het agentgedrag veranderen | `tools/graph-qa/agent/orchestrator.py` + de prompts ernaast |
 | de RDF-modellering uitbreiden | `tools/bwb-import/app/rdf_vocab.py` + `app/ontology.py` (drift-test bewaakt beide) |
@@ -433,11 +424,6 @@ toetst of die bij de getagde commit horen. Infra blijft handmatig via `azure-inf
 | Port 3000 al in gebruik | API en frontend willen allebei 3000. Draai de webapp met `-p 3001`. |
 | Trage of afgebroken LLM-calls | `WETSANALYSE_LLM_TIMEOUT_S` staat standaard op 300 seconden. |
 
-Loopt de agent inhoudelijk uit de rails — verzonnen tekst, een niet-bestaande klasse, een
-niet-convergerende reviewlus — dan is
-[`harness-diagnose.md`](.claude/skills/wetsanalyse/references/harness-diagnose.md) de ingang: die
-diagnosticeert via Context, Tools, Loop en Governance in plaats van het model te verdenken.
-
 ## Security & privacy
 
 - **Drie auth-lagen.** Gebruikers loggen in op de webapp (Auth.js, bcrypt, optionele TOTP). De BFF
@@ -470,7 +456,6 @@ Eerlijk over wat er nog niet is:
   dan één replica vereist een gedeelde checkpointer (`CHECKPOINT_DB_URL`).
 - **Annotatieruns variëren sterk** tussen draaibeurten over dezelfde bepaling. Trek geen conclusie
   uit één run.
-- **Geen voorbeelddata.** `analyses/` staat niet in de repo; die map ontstaat pas bij gebruik.
 - **De JAS-kennistools** bestaan in de code maar worden in de draaiende keten niet aangeroepen.
 - **Eén LLM-provider.** Anthropic via Azure AI Foundry; alternatieven vergen een nieuwe adapter.
 - `docs/regelspraak/` is lokaal werkmateriaal en zit **niet** in de repository.
@@ -507,6 +492,5 @@ ze buiten git.
 | [`docs/wetsanalyse-workbench/PLAN.md`](docs/wetsanalyse-workbench/PLAN.md) | Het plan achter de werkplek |
 | [`docs/wetsanalyse-workbench/jas-annotatie-ontologie.md`](docs/wetsanalyse-workbench/jas-annotatie-ontologie.md) | De annotatielaag in RDF (nog niet gebouwd) |
 | [`docs/kennisbank/PLAN.md`](docs/kennisbank/PLAN.md) | Een tweede corpus naast de wetsgraaf — lees dit vóór je aan retrieval werkt |
-| [`review-checkpoints.md`](.claude/skills/wetsanalyse/references/review-checkpoints.md) | Het datacontract van `analyse.json` en de reviewlus |
 | [`verwijzingen-volgen.md`](.claude/skills/wetsanalyse/references/verwijzingen-volgen.md) | Wanneer een verwijzing wel of niet gevolgd wordt |
 | [`tools/wetsanalyse-admin-mcp/`](tools/wetsanalyse-admin-mcp/README.md) | De admin-API als MCP-tools |

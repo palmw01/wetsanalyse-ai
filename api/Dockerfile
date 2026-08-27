@@ -52,11 +52,9 @@ WORKDIR /app/api
 # De gebouwde virtualenv uit de builder (bevat alle runtime-dependencies).
 COPY --from=builder /app/api/.venv /app/api/.venv
 
-# Applicatiecode + de gedeelde wetsanalyse-skill-kennis (references/scripts). `validation.py` laadt
-# op import-tijd `validate_analyse` uit die skill voor de canonieke JAS-klassenlijst, dus de skill
-# moet mee in de image.
+# Applicatiecode. De canonieke JAS-klassenlijst zit in `app/jas_klassen.py` en niet meer in de
+# wetsanalyse-skill, dus het image hoeft die skill niet langer mee te dragen.
 COPY api /app/api
-COPY .claude/skills/wetsanalyse /app/.claude/skills/wetsanalyse
 
 # Build-herkomst, door CI meegegeven → leesbaar voor de service op /health (deploy-pariteit).
 ARG GIT_SHA=""

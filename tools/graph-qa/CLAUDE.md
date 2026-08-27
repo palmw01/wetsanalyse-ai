@@ -3,11 +3,6 @@
 Werkgids bij het aanpassen van deze agent. Het *wat* en *hoe start ik het* staat in `README.md`; dit
 bestand beschrijft *hoe de code in elkaar zit* en welke eigenschappen je niet mag breken.
 
-> **Write-guard:** de repo-hook `.claude/skills/wetsanalyse/scripts/write_guard.py` wordt
-> **relatief aan je shell-cwd**
-> aangeroepen. Blijf met je shell op de **projectroot** (`wetsanalyse-ai/`) of gebruik absolute paden;
-> na een `cd tools/graph-qa` faalt elke Write/Edit met "can't open file …/graph-qa/.claude/…".
-
 ## In één zin
 
 Een retrieval-augmented QA-dienst die vragen over de invorderings-/belastingwetgeving in een
