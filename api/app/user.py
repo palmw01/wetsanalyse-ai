@@ -2,7 +2,7 @@
 
 De API is de identiteitsbron van de webapp: hier leven de accounts, het wachtwoord-hash en het
 (optionele) TOTP-secret. De frontend (Auth.js) houdt alleen de browsersessie. Het wachtwoord-hash
-en het versleutelde TOTP-secret verlaten de server nooit via de API — responses tonen alleen
+en het versleutelde TOTP-secret verlaten de server nooit via de API – responses tonen alleen
 afgeleide booleans (`totp_enabled`, `active`).
 """
 

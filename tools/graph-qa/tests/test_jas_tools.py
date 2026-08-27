@@ -1,4 +1,4 @@
-"""Fase 2B — unit-tests voor de JAS-kennistools."""
+"""Fase 2B – unit-tests voor de JAS-kennistools."""
 from __future__ import annotations
 
 import json
@@ -88,7 +88,7 @@ class TestJasToolsRegistratie:
     def test_handler_aanroepbaar(self):
         """Handlers zijn aanroepbaar via dispatch-interface (graph=None, args=dict)."""
         for tool in JAS_TOOLS:
-            # Minimale args — onbekende klasse mag geen crash geven
+            # Minimale args – onbekende klasse mag geen crash geven
             args = {k: "test" for k in tool["input_schema"]["required"]}
             result = tool["handler"](None, args)
             assert isinstance(result, str)
@@ -103,8 +103,8 @@ class TestJasToolsRegistratie:
     def test_opvraagbaar_maar_niet_standaard_aangeboden(self):
         """Opt-in: wie erom vraagt krijgt ze, de QA-agent krijgt ze niet ongevraagd.
 
-        Ze stonden alleen in `_BY_NAME`, dus `only=JAS_TOOL_NAMEN` — precies de aanroep die de
-        module-docstring voorschrijft — gaf een lege lijst: uitvoerbaar, maar onaanroepbaar voor het
+        Ze stonden alleen in `_BY_NAME`, dus `only=JAS_TOOL_NAMEN` – precies de aanroep die de
+        module-docstring voorschrijft – gaf een lege lijst: uitvoerbaar, maar onaanroepbaar voor het
         model, want een tool die niet in de schema's staat bestaat voor hem niet.
         """
         from agent.tools import JAS_TOOL_NAMEN, anthropic_schemas

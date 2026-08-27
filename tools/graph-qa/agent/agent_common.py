@@ -9,7 +9,7 @@ class BeurtGestopt(Exception):
 
     Bewust een exception en géén `task.cancel()`. De nodes zijn synchroon en draaien in de
     default-executor: een `run_in_executor`-future is niet annuleerbaar, en de MCP-verbinding wordt
-    in een `finally` gesloten — die onder een nog draaiende thread wegtrekken breekt hem. Dit stopt
+    in een `finally` gesloten – die onder een nog draaiende thread wegtrekken breekt hem. Dit stopt
     dus netjes op een nodegrens, met een consistente checkpointer-state.
 
     Gevolg voor de gebruiker: stoppen kost tijd, want de lopende stap (een LLM- of MCP-call) maakt

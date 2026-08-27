@@ -1,12 +1,12 @@
 // Welke beurt had dit gesprek nog lopen toen je wegging?
 //
-// Een run leeft in het geheugen van graph-qa. Een deploy of herstart wist dat register — en dan is
+// Een run leeft in het geheugen van graph-qa. Een deploy of herstart wist dat register – en dan is
 // een client die terugkomt met een run-id dat niemand meer kent nergens meer aan te haken. Zonder
 // dit spoor zie je dan niets: geen antwoord, geen melding, alleen een gesprek dat halverwege
 // ophoudt. Mét dit spoor kan de werkplek zeggen wát er gebeurd is.
 //
 // Bewust `localStorage` en niet `sessionStorage`: een herlaadbeurt in een nieuw tabblad moet het
-// óók weten. En bewust alleen het id — de inhoud van een beurt hoort in de api, niet in de browser.
+// óók weten. En bewust alleen het id – de inhoud van een beurt hoort in de api, niet in de browser.
 //
 // De logica staat hier als pure functies omdat vitest node-env draait zonder DOM (zie
 // `lib/selectie.ts`); het component doet alleen de opslag-aanroepen.
@@ -27,10 +27,10 @@ export function vergeetRun(huidig: LopendeRuns, gesprekId: string): LopendeRuns 
 
 /** Wat is er met de vorige beurt van dit gesprek gebeurd?
  *
- *  - `"geen"` — er stond niets open.
- *  - `"afgerond"` — de beurt is netjes vastgelegd; het bericht staat in de geschiedenis. Alleen het
+ *  - `"geen"` – er stond niets open.
+ *  - `"afgerond"` – de beurt is netjes vastgelegd; het bericht staat in de geschiedenis. Alleen het
  *    spoor opruimen, geen mededeling: de gebruiker ziet het antwoord gewoon staan.
- *  - `"verdwenen"` — er is geen run meer én geen bericht. Dan is het register weg (herstart) en
+ *  - `"verdwenen"` – er is geen run meer én geen bericht. Dan is het register weg (herstart) en
  *    hoort dat gezegd te worden, in plaats van een beurt die stilzwijgend nooit afkwam.
  *
  *  De controle op het bericht is wat dit betrouwbaar maakt: een run die afliep terwijl niemand keek
@@ -47,24 +47,24 @@ export function standVanVorigeRun(
 
 /** Wat doe je als de eventstroom van een lopende beurt met een fout eindigt?
  *
- *  - `"negeren"` — er is niets te doen: wíj koppelden zelf los (unmount, van gesprek wisselen), of
+ *  - `"negeren"` – er is niets te doen: wíj koppelden zelf los (unmount, van gesprek wisselen), of
  *    het venster is weg. De run draait door bij de agent.
- *  - `"opnieuw"` — de verbinding viel weg. Ook dan draait de run door: hij leeft bij de agent, niet
+ *  - `"opnieuw"` – de verbinding viel weg. Ook dan draait de run door: hij leeft bij de agent, niet
  *    in dit tabblad. Opnieuw aanhaken vanaf `seq 0` speelt de eventlog terug, dus je mist niets.
- *  - `"melden"` — de fout is `definitief`: opnieuw aanhaken kan per definitie niet slagen. Nu pas
+ *  - `"melden"` – de fout is `definitief`: opnieuw aanhaken kan per definitie niet slagen. Nu pas
  *    een foutmelding.
  *
  *  Waarom dit een eigen regel is: de werkplek toonde bij elke andere fout dan een `AbortError`
- *  meteen "Er ging iets mis". Bij een deploy — de frontend-container wordt vervangen — betekende dat
+ *  meteen "Er ging iets mis". Bij een deploy – de frontend-container wordt vervangen – betekende dat
  *  een beurt die als mislukt in beeld kwam terwijl hij op dat moment gewoon doorliep en even later
  *  slaagde, mét een opgeslagen bericht bij de api. De client hoorde daar niet over te oordelen.
  *
  *  Er is geen pogingen-cap meer. Die was er ("één poging, anders een molen"), maar hij loste het
- *  verkeerde probleem op: een onderbreking die langer duurde dan die ene poging — een herstart van
- *  graph-qa, een netwerkdip — kwam als definitieve fout in beeld terwijl de beurt gewoon doorliep,
+ *  verkeerde probleem op: een onderbreking die langer duurde dan die ene poging – een herstart van
+ *  graph-qa, een netwerkdip – kwam als definitieve fout in beeld terwijl de beurt gewoon doorliep,
  *  en alleen een herlaadbeurt bracht hem terug. Doorproberen is geen molen zolang het zichtbaar is
  *  (de banner staat er) en de wachttijd oploopt (zie `herstelWachttijd`); wat het wél moest zijn is
- *  begrensd op fouten waar herhalen kans maakt — vandaar `definitief`.
+ *  begrensd op fouten waar herhalen kans maakt – vandaar `definitief`.
  */
 export function naEenGebrokenStream(
   zelfAfgebroken: boolean,
@@ -79,7 +79,7 @@ export function naEenGebrokenStream(
  *
  *  - een fout die de agent zélf stuurde (`error`-event): de beurt is inhoudelijk mislukt, de
  *    eventlog opnieuw afspelen levert dezelfde fout op.
- *  - 401/403: de sessie deugt niet meer. 404: de run bestaat niet meer — het register is leeg na een
+ *  - 401/403: de sessie deugt niet meer. 404: de run bestaat niet meer – het register is leeg na een
  *    herstart, en aanhaken op een run die niemand kent lukt nooit meer.
  *
  *  Al het andere (netwerkfout zonder status, 502/503/504 van de BFF, een stilgevallen stroom) is
@@ -117,16 +117,16 @@ export function schrijfLopendeRuns(runs: LopendeRuns): void {
   try {
     window.localStorage.setItem(SLEUTEL, JSON.stringify(runs));
   } catch {
-    /* opslag niet beschikbaar — dan missen we hoogstens de melding */
+    /* opslag niet beschikbaar – dan missen we hoogstens de melding */
   }
 }
 
 /** Wacht `ms`, maar laat je wekken zodra er reden is om het eerder te proberen.
  *
  *  Twee wekkers, allebei een sterk signaal dat het zin heeft:
- *  - `online` — het netwerk is terug. De volle backoff uitzitten terwijl de verbinding er alweer is,
+ *  - `online` – het netwerk is terug. De volle backoff uitzitten terwijl de verbinding er alweer is,
  *    is precies wat "hij herstelt niet" voelt.
- *  - het tabblad wordt zichtbaar — de gebruiker kijkt weer, en een achtergrondtabblad krijgt zijn
+ *  - het tabblad wordt zichtbaar – de gebruiker kijkt weer, en een achtergrondtabblad krijgt zijn
  *    timers van de browser toch al geknepen.
  *
  *  Geeft `false` terug als het venster ondertussen verdween; de aanroeper hoort dan niet opnieuw

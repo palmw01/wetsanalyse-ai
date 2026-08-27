@@ -3,19 +3,19 @@ Het run-register: een beurt is een object van de server, geen HTTP-request.
 
 Waarom dit bestaat. De werkplek hing een lopende beurt aan de SSE-verbinding van één tabblad: van
 gesprek wisselen, naar een andere pagina navigeren of herladen sloot die verbinding en daarmee de
-beurt. Het werk stopte daar niet eens van — de LangGraph-nodes zijn synchroon, dus een lopende
-LLM-call draait door in de executor — het resultaat werd alleen weggegooid. We betaalden de rekening
+beurt. Het werk stopte daar niet eens van – de LangGraph-nodes zijn synchroon, dus een lopende
+LLM-call draait door in de executor – het resultaat werd alleen weggegooid. We betaalden de rekening
 en gooiden het antwoord weg.
 
 Hier wordt dat omgedraaid, naar het model van Claude: de **run** draait als achtergrondtaak en houdt
 zijn eigen event-log bij; een client *kijkt* mee en kan opnieuw aanhaken. Losraken is dus geen
-annuleren — stoppen is een aparte, expliciete handeling (`vraag_stop`).
+annuleren – stoppen is een aparte, expliciete handeling (`vraag_stop`).
 
 Aannames die je moet kennen voordat je dit uitbreidt:
 
 - **Eén proces, één replica.** graph-qa draait als één uvicorn-proces zonder `--workers`; het
   register leeft in het geheugen. Komt er ooit een tweede replica, dan moet dit naar een gedeelde
-  store — een aanhaker die op de verkeerde instantie landt vindt de run anders niet.
+  store – een aanhaker die op de verkeerde instantie landt vindt de run anders niet.
 - **Een herstart wist het register.** Dat is bewust: hervatten-vanaf-checkpoint vraagt async nodes en
   een resume-pad dat de agent vandaag niet heeft. Een client die met een onbekend run_id terugkomt
   hoort te horen dát de run weg is, niet eeuwig te blijven wachten.
@@ -43,7 +43,7 @@ MAX_EVENTS = 4000
 BEWAAR_NA_AFLOOP_S = 600.0
 
 # Welke events bij het cappen mogen sneuvelen. Narratie is volume; betekenis is `doel`, `element`,
-# `run`, `ontbrekend`, `sources`, `grounding`, `kandidaten`, `done` en `error` — die blijven staan,
+# `run`, `ontbrekend`, `sources`, `grounding`, `kandidaten`, `done` en `error` – die blijven staan,
 # anders levert opnieuw aanhaken een verminkt resultaat op zonder dat iemand het merkt.
 VLUCHTIGE_TYPES = frozenset({"token", "reason", "status"})
 
@@ -77,8 +77,8 @@ class Run:
     status: str = "loopt"          # loopt | klaar | gestopt | mislukt
     # Elk event draagt zijn EIGEN `seq`, toegekend bij het toevoegen. Eerder werd het volgnummer
     # afgeleid uit de positie in deze lijst (`index = cursor - weggevallen`), en dat klopt alleen als
-    # precies de eerste N events verdwijnen. `_cap` snoeit echter selectief — het gooit narratie weg
-    # waar die ook staat — dus schoof na het snoeien alles op: een `doel`-event dat seq 0 had kwam
+    # precies de eerste N events verdwijnen. `_cap` snoeit echter selectief – het gooit narratie weg
+    # waar die ook staat – dus schoof na het snoeien alles op: een `doel`-event dat seq 0 had kwam
     # terug als seq 1, en een client die opnieuw aanhaakte kreeg juist de betekenisvolle events
     # dubbel. Nu is een seq een identiteit, geen positie.
     events: list[dict[str, Any]] = field(default_factory=list)
@@ -127,7 +127,7 @@ class RunRegister:
     def get(self, run_id: str, *, user_id: str | None = None) -> Run | None:
         """De run, of niets als hij niet van deze gebruiker is.
 
-        `user_id=None` slaat de controle over — alleen voor intern gebruik, nooit vanaf een
+        `user_id=None` slaat de controle over – alleen voor intern gebruik, nooit vanaf een
         request. Een run van iemand anders levert `None` en dus een 404: precies zoals de api
         andermans document behandelt, zodat het bestaan niet lekt.
         """
@@ -141,7 +141,7 @@ class RunRegister:
 
     def actief_voor(self, conversation_id: str, *, user_id: str | None = None) -> Run | None:
         """De lopende run van dit gesprek, of de laatst afgeronde die nog binnen de bewaartermijn
-        valt — beide zijn een geldige reden om aan te haken."""
+        valt – beide zijn een geldige reden om aan te haken."""
         self._ruim_op()
         kandidaten = [
             r for r in self._runs.values()
@@ -216,7 +216,7 @@ class RunRegister:
             run._wakker.notify_all()
 
     def _cap(self, run: Run) -> None:
-        """Snoei de log als hij te lang wordt — maar gooi alleen narratie weg.
+        """Snoei de log als hij te lang wordt – maar gooi alleen narratie weg.
 
         Een generieke ringbuffer zou bij een lange beurt precies het begin van het antwoord
         opeten, en dan ziet een late aanhaker een tekst die klopt noch compleet is.
@@ -241,7 +241,7 @@ class RunRegister:
 
         De nodes zijn synchroon en de MCP-verbinding wordt in een `finally` gesloten; die onder een
         nog draaiende executor-thread wegtrekken is vragen om kapotte verbindingen. De run stopt dus
-        op de eerstvolgende grens waar de driver de vlag leest — dat kan tientallen seconden duren,
+        op de eerstvolgende grens waar de driver de vlag leest – dat kan tientallen seconden duren,
         en de UI hoort dat niet weg te moffelen.
         """
         run.stop_gevraagd = True
@@ -251,7 +251,7 @@ class RunRegister:
     async def volg(self, run: Run, vanaf: int = 0) -> AsyncIterator[dict[str, Any]]:
         """Lever de events vanaf `vanaf` en volg daarna live mee.
 
-        Elke abonnee houdt zijn eigen cursor en wacht op een `Condition` — geen `asyncio.Queue`,
+        Elke abonnee houdt zijn eigen cursor en wacht op een `Condition` – geen `asyncio.Queue`,
         want die kun je maar één keer leegdrinken en er kunnen meerdere tabbladen meekijken.
         Losraken van deze generator laat de run ongemoeid.
 
@@ -261,7 +261,7 @@ class RunRegister:
           narratie weg waar die ook staat, dus "de eerste N zijn weg" was een verkeerde aanname:
           daarmee schoven de nummers op en kreeg een aanhaker betekenisvolle events dubbel.
         - **De toestandscontrole hoort onder de lock.** Stond ze erbuiten, dan kon de run afronden
-          tussen `if not run.loopt` en het wachten — de `notify_all` was dan al geweest en de kijker
+          tussen `if not run.loopt` en het wachten – de `notify_all` was dan al geweest en de kijker
           bleef hangen op een run die klaar was, met een SSE-stream die nooit sloot.
         """
         cursor = vanaf

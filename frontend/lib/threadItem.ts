@@ -2,7 +2,7 @@
 //
 // Dit type stond in `WerkplekClient` zelf. Het staat nu hier omdat de rondleiding een voorbeeldbeurt
 // moet kunnen opbouwen (`lib/rondleidingDemo.ts`) zonder dat `lib/` een component hoeft te
-// importeren — dezelfde reden waarom de rest van de rekenkern in `lib/` woont.
+// importeren – dezelfde reden waarom de rest van de rekenkern in `lib/` woont.
 
 import type { AgentGrounding, AgentKandidaat, Bron, OntbrekendItem } from "./types";
 

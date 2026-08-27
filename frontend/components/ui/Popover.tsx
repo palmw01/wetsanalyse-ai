@@ -10,16 +10,16 @@ interface PopoverProps {
   className?: string;
   /** Toegankelijke naam voor het paneel (role="dialog"). */
   ariaLabel?: string;
-  /** Aangeroepen vlak vóór het paneel sluit (Escape, outside-click, of toggle) — zodat de
+  /** Aangeroepen vlak vóór het paneel sluit (Escape, outside-click, of toggle) – zodat de
    * aanroeper zelf de focus kan terugzetten op de trigger. Popover kent de trigger zelf niet. */
   onClose?: () => void;
   /** Volledige positionering van het paneel (plaatsing én richting), relatief aan de wrapper.
    * Default `right-0 top-full mt-1`: onder de trigger, naar links uitklappend. De aanroeper bepaalt
-   * dit zelf omdat alleen die weet hoeveel ruimte er is — in een smalle kolom is `inset-x-3 top-full`
+   * dit zelf omdat alleen die weet hoeveel ruimte er is – in een smalle kolom is `inset-x-3 top-full`
    * (volle kolombreedte) juist, en boven aan een scherm `bottom-full mb-1` (omhoog uitklappend). */
   positie?: string;
   /** Klassen van de wrapper om trigger + paneel. Default `relative`, zodat het paneel aan de
-   * trigger hangt. Zet dit op `static` als een parent het ankerpunt moet zijn — bijvoorbeeld om
+   * trigger hangt. Zet dit op `static` als een parent het ankerpunt moet zijn – bijvoorbeeld om
    * het paneel de volle breedte van een kolom te laten volgen in plaats van die van de knop. */
   containerClassName?: string;
 }
@@ -60,7 +60,7 @@ export function Popover({ trigger, children, className = "", ariaLabel, onClose,
     };
     // Bewust alleen `open` als dependency: `close` leest onClose/setOpen via closure en hoeft
     // niet opnieuw gebonden te worden bij elke render van de aanroeper (onClose is vaak een
-    // inline callback, dus een andere referentie per render — dat zou de listeners onnodig
+    // inline callback, dus een andere referentie per render – dat zou de listeners onnodig
     // laten flapperen zolang het paneel open staat).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);

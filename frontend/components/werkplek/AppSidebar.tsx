@@ -12,11 +12,11 @@ interface Props {
   activeId: string | null;
   onNieuw: () => void;
   onOpen: (id: string) => void;
-  /** Het actieve gesprek is zojuist verwijderd — de aanroeper beslist wat er dan gebeurt. */
+  /** Het actieve gesprek is zojuist verwijderd – de aanroeper beslist wat er dan gebeurt. */
   onVerwijderd?: (id: string) => void;
   /** Hapering bij hernoemen/verwijderen. Wie de sidebar plaatst, bepaalt waar de melding landt. */
   onFout?: (melding: string) => void;
-  /** De lijst zoals hij nu is — bv. om er een schermtitel uit af te leiden. */
+  /** De lijst zoals hij nu is – bv. om er een schermtitel uit af te leiden. */
   onLijst?: (gesprekken: GesprekSamenvatting[]) => void;
   /** Verhoog dit getal om de lijst opnieuw op te halen (bv. nadat een beurt een gesprek aanmaakte). */
   verversSignaal?: number;
@@ -26,7 +26,7 @@ interface Props {
   /** Start de rondleiding opnieuw (alleen de werkplek geeft dit mee). */
   onRondleiding?: () => void;
   /** De voorbeeldlijst van de rondleiding. Is die gezet, dan draait de sidebar als demo: de lijst
-   *  komt hiervandaan en hernoemen/verwijderen blijven in dit geheugen — er gaat geen enkel verzoek
+   *  komt hiervandaan en hernoemen/verwijderen blijven in dit geheugen – er gaat geen enkel verzoek
    *  naar de api. Zonder dit hing de rondleiding af van wat er in het account staat, en dat is bij
    *  een nieuwe gebruiker niets. */
   demoGesprekken?: GesprekSamenvatting[];
@@ -35,7 +35,7 @@ interface Props {
 /** De gesprekssidebar met alles eromheen: laden, hernoemen, verwijderen, en de mobiele drawer.
  *
  *  Gedeeld door de werkplek en het annotatie-overzicht, zodat je bij het wisselen niet "uit de app"
- *  stapt — dat is wat Claude's artifacts-tab ook doet: de sidebar blijft, alleen het hoofdgebied
+ *  stapt – dat is wat Claude's artifacts-tab ook doet: de sidebar blijft, alleen het hoofdgebied
  *  verandert. De handlers verschillen wél per scherm: in de werkplek wisselt een klik van gesprek in
  *  lokale state, op het overzicht navigeert hij terug naar de werkplek. */
 export function AppSidebar({
@@ -67,7 +67,7 @@ export function AppSidebar({
   }, [verversLijst, verversSignaal]);
 
   // De rondleiding kan tussentijds starten of stoppen. Dat bijstellen hoort in de render en niet in
-  // een effect: anders rendert de sidebar eerst één frame met de vórige lijst — bij het starten dus
+  // een effect: anders rendert de sidebar eerst één frame met de vórige lijst – bij het starten dus
   // met de (vaak lege) echte lijst waar de rondleiding juist omheen werkt.
   const [vorigeDemo, setVorigeDemo] = useState(demoGesprekken);
   if (demoGesprekken !== vorigeDemo) {
@@ -88,7 +88,7 @@ export function AppSidebar({
     }
   }
 
-  /** De bevestiging zit in de knop zelf (`BevestigKnop`, twee klikken) — hetzelfde gebaar als in het
+  /** De bevestiging zit in de knop zelf (`BevestigKnop`, twee klikken) – hetzelfde gebaar als in het
    *  artefact; geen `window.confirm` midden in een app met een eigen vormtaal. */
   async function verwijder(id: string) {
     if (demo) {
@@ -98,7 +98,7 @@ export function AppSidebar({
     try {
       await verwijderGesprek(id);
       // Meteen uit de lijst halen en dáárna pas verversen: de DELETE is al geslaagd, dus wachten op
-      // een round trip laat de rij onnodig staan — en het verwijderde gesprek is meestal het gesprek
+      // een round trip laat de rij onnodig staan – en het verwijderde gesprek is meestal het gesprek
       // dat je open hebt.
       setGesprekken((lijst) => lijst.filter((g) => g.id !== id));
       onVerwijderd?.(id);

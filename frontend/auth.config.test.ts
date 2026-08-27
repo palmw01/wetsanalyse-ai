@@ -209,7 +209,7 @@ describe("PoC-disclaimer-gate", () => {
 describe("rol-gate op /api/admin", () => {
   it("geeft een analist een 403 in JSON, geen omleiding naar HTML", async () => {
     // `fetch` volgt een redirect en krijgt dan de homepage met status 200 terug, waarna `res.json()`
-    // struikelt op een parsefout — de UI toonde dus een onbegrijpelijke melding in plaats van
+    // struikelt op een parsefout – de UI toonde dus een onbegrijpelijke melding in plaats van
     // "Alleen voor beheerders".
     const res = await authorized({
       auth: sessie,

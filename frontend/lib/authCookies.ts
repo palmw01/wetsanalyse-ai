@@ -15,7 +15,7 @@ const prod = process.env.NODE_ENV === "production";
 export const LOGIN_TICKET_COOKIE = prod ? "__Secure-wa-login-ticket" : "wa-login-ticket";
 export const TRUSTED_DEVICE_COOKIE = prod ? "__Secure-wa-trusted-device" : "wa-trusted-device";
 
-const TICKET_MAX_AGE = 5 * 60; // 5 min — mag niet langer leven dan het login-ticket zelf (API-TTL)
+const TICKET_MAX_AGE = 5 * 60; // 5 min – mag niet langer leven dan het login-ticket zelf (API-TTL)
 const TRUSTED_MAX_AGE = 30 * 24 * 60 * 60; // 30 dagen
 
 const base = { httpOnly: true, sameSite: "lax" as const, secure: prod, path: "/" };

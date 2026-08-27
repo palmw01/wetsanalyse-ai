@@ -332,8 +332,8 @@ class ToestandParser:
 
         Sluit meta-data en voetnoten uit. Voor een artikel met leden wordt de
         tekst die in leden staat overgeslagen (die hoort bij het lid), zodat er
-        geen dubbeling ontstaat. Tabellen (CALS) worden — buiten de alinea's om
-        — als leesbare rijen ná de lopende tekst toegevoegd.
+        geen dubbeling ontstaat. Tabellen (CALS) worden – buiten de alinea's om
+        – als leesbare rijen ná de lopende tekst toegevoegd.
         """
 
         # Onderdeel-tekst (al binnen <li>) hoort bij het onderdeel-node, niet bij

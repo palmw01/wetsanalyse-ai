@@ -13,8 +13,8 @@ Endpoint: POST /v1/chat
     {"type": "error", "message": "..."}
     (annotatie-route emit daarnaast {"type":"doel",...}, één {"type":"run","run":{...}} met de
      herkomst van de beurt (model/provider/agent_versie/critic_rondes/stop_reden) vóór de elementen,
-     {"type":"element",...} — het element draagt een Critic-`aandacht` (groen|geel|rood) +
-     `critic`-motivatie — en één {"type":"ontbrekend","items":[...]})
+     {"type":"element",...} – het element draagt een Critic-`aandacht` (groen|geel|rood) +
+     `critic`-motivatie – en één {"type":"ontbrekend","items":[...]})
 
 Authenticatie: optionele Bearer-token via env QA_API_TOKEN (timing-safe vergeleken).
 Als QA_API_TOKEN niet gezet is, is het endpoint open (voor lokale dev).
@@ -28,13 +28,13 @@ zodat graph-qa in de frontend→API→MCP-trace valt.
 
 httpx2.alias_httpx(): de anthropic-SDK draait sinds 1.x op httpx2 (de onderhouden fork van httpx),
 maar onze OpenTelemetry-instrumentatie patcht `httpx`. Zonder deze alias blijft die instrumentatie
-gewoon werken en verdwijnen de LLM-calls STIL uit de traces — geen fout, alleen een gat. De alias
+gewoon werken en verdwijnen de LLM-calls STIL uit de traces – geen fout, alleen een gat. De alias
 laat `import httpx` in het hele proces naar httpx2 wijzen en moet dus draaien vóórdat iets anders
 httpx of httpcore importeert; vandaar de plek bovenaan en de E402-uitzonderingen daaronder.
 """
 from __future__ import annotations
 
-# MOET vóór elke andere import staan — zie de noot onderaan de docstring hierboven.
+# MOET vóór elke andere import staan – zie de noot onderaan de docstring hierboven.
 import httpx2
 
 httpx2.alias_httpx()
@@ -75,7 +75,7 @@ observability.setup(settings)  # logging + gated OTel, vóór de app draait
 @asynccontextmanager
 async def _lifespan(_app: FastAPI):
     # Fail-fast bij boot: GRAPHDB_TOKEN is niet-optioneel. Zonder token zou graph-qa anders
-    # 'gezond' opstarten en pas per chatvraag falen — én tegen de open+writable graaf mag er
+    # 'gezond' opstarten en pas per chatvraag falen – én tegen de open+writable graaf mag er
     # nooit tokenloos verkeer lopen. Ontbreekt de token, dan weigert de service te starten
     # (uvicorn stopt → container ongezond/herstart-loop, i.p.v. stil kapot). De per-request
     # require_graph() blijft als tweede net bestaan.
@@ -96,7 +96,7 @@ observability.instrument_fastapi(app)
 # CORS met credentials mag niet samen met "*" (browsers weigeren die combinatie én
 # het is te ruim). Alleen credentials toestaan bij een expliciete origin-lijst.
 def _has_wildcard_origin(origins: list[str]) -> bool:
-    """True zodra "*" ergens in de origin-lijst staat — óók naast expliciete origins. Starlette
+    """True zodra "*" ergens in de origin-lijst staat – óók naast expliciete origins. Starlette
     reflecteert dan élke origin, dus credentials mogen dan niet aan (anders is de guard te omzeilen)."""
     return any(o == "*" for o in origins)
 
@@ -132,7 +132,7 @@ def _client_ip(request: Request) -> str:
 def _limiet_sleutel(request: Request) -> str:
     """Waarop de rate-limit telt: bij voorkeur de gebruiker, anders het IP.
 
-    graph-qa is intern-only en al zijn verkeer komt van één container — de frontend-BFF. Op het IP
+    graph-qa is intern-only en al zijn verkeer komt van één container – de frontend-BFF. Op het IP
     tellen betekende daarom één gedeelde emmer van `rate_limit` verzoeken per minuut voor álle
     juristen samen, zodat de één een 429 kreeg door de activiteit van de ander. `X-User-Id` komt uit
     de sessie (de BFF zet hem, nooit de browser), dus hij is hier net zo betrouwbaar als het peer-IP
@@ -172,8 +172,8 @@ def _aanroeper(request: Request) -> str:
     """Namens wie dit verzoek komt (`X-User-Id`, gezet door de BFF uit de sessie).
 
     Twee lagen, net als bij de api: het bearer-token zegt WELKE dienst er belt, deze header namens
-    WIE. Zonder dit onderscheid is een run een capability — wie het id kent leest mee en kan hem
-    stoppen — terwijl de rest van het platform alles per gebruiker scopet."""
+    WIE. Zonder dit onderscheid is een run een capability – wie het id kent leest mee en kan hem
+    stoppen – terwijl de rest van het platform alles per gebruiker scopet."""
     return request.headers.get("x-user-id", "")
 
 
@@ -204,7 +204,7 @@ async def chat(
     """Eén beurt, gekoppeld aan déze verbinding. Voor de werkplek is `/v1/runs` de weg (zie hieronder).
 
     **Dit endpoint kent geen eigenaar.** Het `conversation_id` uit de body is de thread_id van de
-    checkpointer, en graph-qa kan niet weten van wie dat gesprek is — die administratie zit in de
+    checkpointer, en graph-qa kan niet weten van wie dat gesprek is – die administratie zit in de
     wetsanalyse-api. Een aanroeper die hier een vreemd gespreks-id instuurt, krijgt dus de historie
     van dat gesprek in de context van zijn eigen vraag. De frontend-route die dat pad gebruikte is
     daarom verwijderd; `POST /v1/runs` verifieert het eigenaarschap wél (via de BFF, bij de api) en
@@ -244,10 +244,10 @@ async def verwijder_conversation(
     checkpointer-DB achterblijft (privacy).
 
     Loopt er nog een beurt voor dit gesprek, dan stopt die hier ook. Zonder dat draait de agent
-    minutenlang door voor een gesprek dat niet meer bestaat — en probeert hij aan het eind te
+    minutenlang door voor een gesprek dat niet meer bestaat – en probeert hij aan het eind te
     schrijven in iets wat is weggegooid. Wat er al geannoteerd was blijft wél bestaan: een
     annotatiedocument staat los van zijn gesprek (zie /annotaties)."""
-    # Tweede net op de eigenaar. graph-qa kán niet weten van wie een gesprek is — die administratie
+    # Tweede net op de eigenaar. graph-qa kán niet weten van wie een gesprek is – die administratie
     # zit in de wetsanalyse-api, en de BFF vraagt het daar ook op voordat hij hier belt. Wat hij wél
     # weet is van wie de run op dit gesprek is; dat is genoeg om te weigeren dat iemand met een
     # vreemd gespreks-id andermans lopende beurt afkapt. Zonder deze regel was de eigenaarscontrole
@@ -303,7 +303,7 @@ async def artikel(
 # --- Runs: de beurt is van de server ---------------------------------------------------------
 #
 # `POST /v1/chat` hierboven koppelt de beurt aan de verbinding: valt de client weg, dan sneuvelt de
-# stream. Deze drie endpoints draaien dat om — starten, meekijken en stoppen zijn losse handelingen,
+# stream. Deze drie endpoints draaien dat om – starten, meekijken en stoppen zijn losse handelingen,
 # zodat wegklikken, van gesprek wisselen of herladen een lopend antwoord niet meer doodt.
 
 
@@ -313,14 +313,14 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
     Die driver doet wat de werkplek vroeger ná de stream deed: verzamelen wat er binnenkomt en de
     uitkomst vastleggen (document, elementen, chatbericht). Daarmee hangt een beurt niet meer af van
     een browser die blijft kijken. Is er geen api geconfigureerd, dan is hij een doorgeefluik en
-    blijft de werkplek verantwoordelijk — het oude gedrag."""
+    blijft de werkplek verantwoordelijk – het oude gedrag."""
     def maak(run: Run) -> AsyncIterator[dict]:
         return voer_beurt_uit(
             answer_stream(
                 request.question, request.conversation_id,
                 modus=request.modus, context=request.context, doel=request.doel,
                 # Stoppen loopt via deze vlag: de graaf betreedt dan geen nieuwe node meer. Bewust
-                # geen taak-annulering — de nodes zijn synchroon en de MCP-verbinding wordt in een
+                # geen taak-annulering – de nodes zijn synchroon en de MCP-verbinding wordt in een
                 # `finally` gesloten.
                 stop_check=lambda: run.stop_gevraagd,
             ),
@@ -341,7 +341,7 @@ async def start_run(
 ) -> RunStart:
     """Start een beurt als achtergrondtaak en geef het run_id terug.
 
-    409 als er al een run voor dit gesprek loopt — dat is geen nettigheid maar bescherming:
+    409 als er al een run voor dit gesprek loopt – dat is geen nettigheid maar bescherming:
     `thread_id == conversation_id`, dus twee gelijktijdige lussen schrijven door elkaar heen in
     dezelfde checkpointer-thread. De aanroeper hoort dan aan te haken bij het meegegeven run_id.
     """
@@ -379,7 +379,7 @@ async def run_events(
     """Kijk mee met een run: eerst wat je miste (vanaf `vanaf`), dan live.
 
     Bewust **geen** rate-limit: al het verkeer komt van één container-IP, en opnieuw aanhaken na een
-    remount mag nooit op de limiet stuklopen. Losraken van deze stream laat de run ongemoeid — dat
+    remount mag nooit op de limiet stuklopen. Losraken van deze stream laat de run ongemoeid – dat
     is het hele punt.
     """
     run = runs.get(run_id, user_id=gebruiker)

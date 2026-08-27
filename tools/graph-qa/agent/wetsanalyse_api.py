@@ -2,7 +2,7 @@
 Client naar de wetsanalyse-API: hier legt graph-qa de uitkomst van een beurt vast.
 
 Waarom deze richting bestaat. Tot nu toe schreef de **browser** het resultaat weg, ná afloop van de
-stream. Dat betekende: wie zijn tabblad sloot voordat de agent klaar was, verloor het werk — ook als
+stream. Dat betekende: wie zijn tabblad sloot voordat de agent klaar was, verloor het werk – ook als
 de agent zijn beurt keurig had afgemaakt. Bij een annotatie is dat 60 tot 90 seconden werk. Met deze
 client hoeft er aan het eind niemand meer te kijken.
 
@@ -16,7 +16,7 @@ Drie dingen om te weten:
 - **Idempotent waar het telt.** Het `run_id` reist mee met de chatbeurt; de API weigert een tweede
   bericht met datzelfde id. Zo levert opnieuw proberen geen dubbel antwoord op.
 - **Falen mag de beurt niet opeten.** Kan er niet geschreven worden, dan is dat een fout in het log
-  en een `error`-event richting de werkplek — nooit een stilzwijgend verlies.
+  en een `error`-event richting de werkplek – nooit een stilzwijgend verlies.
 """
 from __future__ import annotations
 
@@ -36,7 +36,7 @@ TIMEOUT = httpx.Timeout(connect=5.0, read=30.0, write=30.0, pool=5.0)
 
 #: Velden waar de agent en de api een ándere opvatting van "geen waarde" hebben: de agent gebruikt de
 #: lege string (`aandacht: str = ""`), de api een enum met `None` (`Aandacht | None`). Zo'n lege
-#: string is voor de api geen geldige waarde maar een 422 — en omdat de PUT alles-of-niets is, sleurt
+#: string is voor de api geen geldige waarde maar een 422 – en omdat de PUT alles-of-niets is, sleurt
 #: één zo'n veld de complete annotatie mee. Dat is op dev gebeurd: agent klaar en gegrond, jurist een
 #: leeg document.
 #:
@@ -65,7 +65,7 @@ class WetsanalyseApiFout(Exception):
 
 
 class GesprekVerdwenen(WetsanalyseApiFout):
-    """Het gesprek bestaat niet meer — meestal omdat de jurist het verwijderde terwijl de beurt liep.
+    """Het gesprek bestaat niet meer – meestal omdat de jurist het verwijderde terwijl de beurt liep.
 
     Geen storing, maar een gevolg van een bewuste handeling. De api weigert terecht: erin schrijven
     zou een verwijderd gesprek half laten herrijzen. De aanroeper hoort hier stil te eindigen in
@@ -141,7 +141,7 @@ class WetsanalyseApi:
         run: dict[str, Any] | None,
     ) -> dict[str, Any]:
         """De uitkomst van deze agent-ronde. De api merget op id/tekst+lid en bevriest wat de jurist
-        al beoordeeld heeft — die semantiek zit daar, niet hier."""
+        al beoordeeld heeft – die semantiek zit daar, niet hier."""
         self.verworpen = 0
         payload: dict[str, Any] = {
             "elementen": [naar_contract(e) for e in elementen],
@@ -154,7 +154,7 @@ class WetsanalyseApi:
             payload["run"] = {k: v for k, v in run.items() if not (k == "tijd" and v is None)}
         uit = await self._put(f"/v1/annotatie/documenten/{slug}/elementen", payload)
         # De api laat een element dat zijn schema niet haalt vallen in plaats van de hele ronde te
-        # weigeren — beter, maar daarmee wordt een lúíde fout een stille. Daarom telt hij ze in
+        # weigeren – beter, maar daarmee wordt een lúíde fout een stille. Daarom telt hij ze in
         # `X-Verworpen` en zeggen wij het tegen de jurist.
         self.verworpen = int(self._laatste_headers.get("X-Verworpen", 0) or 0)
         return uit

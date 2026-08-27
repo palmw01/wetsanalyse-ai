@@ -18,7 +18,7 @@ from .config import get_settings
 
 
 class SecretsCryptoError(RuntimeError):
-    """Versleutelen/ontsleutelen kan niet — meestal: master key niet (juist) geconfigureerd."""
+    """Versleutelen/ontsleutelen kan niet – meestal: master key niet (juist) geconfigureerd."""
 
 
 @lru_cache
@@ -68,7 +68,7 @@ def decrypt(token: str) -> str:
 
 def decrypt_ttl(token: str, ttl: int) -> str | None:
     """Ontsleutel een Fernet-token dat maximaal `ttl` seconden oud mag zijn (Fernet stempelt zelf
-    een timestamp). Geeft None bij een ongeldig, gemanipuleerd of verlopen token — bedoeld voor
+    een timestamp). Geeft None bij een ongeldig, gemanipuleerd of verlopen token – bedoeld voor
     kortlevende auth-tokens (login-ticket, trusted-device) i.p.v. een exception. Zonder master key
     ook None (fail-closed: geen token te vertrouwen)."""
     f = _fernet()

@@ -1,17 +1,17 @@
 """
 De gesprekken-resource (gemount onder /v1/gesprekken): de persistente chatgeschiedenis van de werkplek.
 
-**Per-gebruiker gescopet** — anders dan het client-gescopete annotatie-domein. De identiteit komt uit
+**Per-gebruiker gescopet** – anders dan het client-gescopete annotatie-domein. De identiteit komt uit
 de vertrouwde `X-User-Id`-header die de BFF uit de ingelogde sessie zet (`huidige_userid`, hergebruikt
 uit de auth-router); de router zit achter de client-bearer (`require_client`), zoals de auth-router.
 404 (niet 403) bij andermans gesprek, zodat het bestaan niet lekt.
 
-POST   /v1/gesprekken                       — nieuw gesprek
-GET    /v1/gesprekken?limit=&offset=        — eigen gesprekken (samenvatting, nieuwste eerst)
-GET    /v1/gesprekken/{id}                  — volledig gesprek (met berichten)
-POST   /v1/gesprekken/{id}/berichten        — bericht toevoegen
-PATCH  /v1/gesprekken/{id}                  — titel wijzigen
-DELETE /v1/gesprekken/{id}                  — verwijder eigen gesprek
+POST   /v1/gesprekken                       – nieuw gesprek
+GET    /v1/gesprekken?limit=&offset=        – eigen gesprekken (samenvatting, nieuwste eerst)
+GET    /v1/gesprekken/{id}                  – volledig gesprek (met berichten)
+POST   /v1/gesprekken/{id}/berichten        – bericht toevoegen
+PATCH  /v1/gesprekken/{id}                  – titel wijzigen
+DELETE /v1/gesprekken/{id}                  – verwijder eigen gesprek
 """
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ router = APIRouter(prefix="/gesprekken", tags=["gesprekken"], dependencies=[Depe
 
 
 async def _gesprek_or_404(store: GesprekStore, gesprek_id: str, user_id: str) -> Gesprek:
-    """Laadt het gesprek en dwingt eigenaarschap af. 404 (niet 403) bij mismatch — lekt niet."""
+    """Laadt het gesprek en dwingt eigenaarschap af. 404 (niet 403) bij mismatch – lekt niet."""
     gesprek = await store.laad_gesprek(gesprek_id)
     if gesprek is None or gesprek.user_id != user_id:
         raise HTTPException(status_code=404, detail=f"Onbekend gesprek: {gesprek_id}")

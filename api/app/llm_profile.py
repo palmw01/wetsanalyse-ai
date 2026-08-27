@@ -6,7 +6,7 @@ naam (governance: geen vrije model-string); het gekozen profiel stuurt het feite
 aan (zie app/profiles.py → app/engine/orchestrator.py).
 
 De API-key staat versleuteld in `enc_api_key` (Fernet, zie secrets_crypto). De plaintext-key
-verlaat de server nooit via de API — admin-responses tonen alleen `api_key_set: bool`.
+verlaat de server nooit via de API – admin-responses tonen alleen `api_key_set: bool`.
 """
 
 from __future__ import annotations

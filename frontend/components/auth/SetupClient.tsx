@@ -36,7 +36,7 @@ export function SetupClient() {
         const body = await res.json().catch(() => null);
         setFout(
           res.status === 409
-            ? "Registratie is al gesloten — er bestaat al een account."
+            ? "Registratie is al gesloten – er bestaat al een account."
             : `Aanmaken mislukt${body?.detail ? `: ${body.detail}` : ""}.`,
         );
         return;
@@ -48,7 +48,7 @@ export function SetupClient() {
       window.location.href = login?.error ? "/login" : "/";
     } catch {
       // Zie LoginClient: een transportfout is geen antwoord en viel dus buiten alle afhandeling.
-      setFout("Aanmaken lukt nu niet — de dienst is niet bereikbaar. Probeer het zo opnieuw.");
+      setFout("Aanmaken lukt nu niet – de dienst is niet bereikbaar. Probeer het zo opnieuw.");
     } finally {
       setBezig(false);
     }

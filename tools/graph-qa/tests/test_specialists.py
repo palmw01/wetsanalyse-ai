@@ -47,7 +47,7 @@ def test_definitie_beperkt_toolset():
 def test_definitie_prompt_wijst_naar_artikel_1_en_2_en_de_onderdelen():
     """Twee terugkerende omwegen die de prompt nu afsnijdt.
 
-    De agent probeerde eerst artikel 1, vond daar niets en ging pas daarna naar artikel 2 — een
+    De agent probeerde eerst artikel 1, vond daar niets en ging pas daarna naar artikel 2 – een
     extra ronde per definitievraag. En hij citeerde de vindplaats van het lid terwijl hij een
     onderdeel aanhaalde, waardoor de verwijzing op 25 definities uitkwam in plaats van op één.
     """

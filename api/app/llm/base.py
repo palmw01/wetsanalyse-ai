@@ -16,7 +16,7 @@ _FENCE = re.compile(r"^\s*```(?:json)?\s*|\s*```\s*$", re.IGNORECASE)
 
 @dataclass
 class LlmConfig:
-    """Resolved configuratie voor één LLM-call — afgeleid uit een modelprofiel (of env-fallback).
+    """Resolved configuratie voor één LLM-call – afgeleid uit een modelprofiel (of env-fallback).
 
     Maakt de adapter onafhankelijk van Settings: per analyse kan een ander profiel (en dus een
     andere `LlmConfig`) gelden, runtime-beheerbaar via de admin-UI.
@@ -29,7 +29,7 @@ class LlmConfig:
     api_version: str | None = None
     output_strategy: str = "prompt_and_parse"
     temperature: float = 0.0
-    # Wandklok-timeout per call in seconden (0 = uit) — doorgegeven aan de provider-call.
+    # Wandklok-timeout per call in seconden (0 = uit) – doorgegeven aan de provider-call.
     timeout: float = 0.0
     # Harde cap op prompt-tokens (0 = auto-afleiden uit het model; onbekend → geen limiet).
     max_prompt_tokens: int = 0

@@ -1,4 +1,4 @@
-"""Robuuste JAS-JSON-parser (_parse_elementen) — de grounding-helper die de annoteer-stap gebruikt."""
+"""Robuuste JAS-JSON-parser (_parse_elementen) – de grounding-helper die de annoteer-stap gebruikt."""
 from __future__ import annotations
 
 import json
@@ -110,7 +110,7 @@ def test_verwijderen_mag_alleen_bij_rood():
 
 
 def test_vervangen_zonder_voorstel_is_geen_instructie():
-    """'Vervang dit' zonder te zeggen waardoor is een klacht, geen opdracht — dan behouden."""
+    """'Vervang dit' zonder te zeggen waardoor is een klacht, geen opdracht – dan behouden."""
     txt = '{"oordelen": [{"id": "a", "aandacht": "rood", "motivatie": "niet goed", "actie": "vervang"}]}'
     oordelen, _ = _verwerk_critic(txt, ["a"])
     assert oordelen["a"].actie == "behoud"
@@ -157,13 +157,13 @@ def test_het_eerste_voorkomen_wint_want_dat_draagt_het_id():
 
 
 def test_zelfde_fragment_in_een_andere_klasse_wordt_een_alternatief():
-    """Twijfel tussen twee klassen op hetzelfde fragment is legitiem — maar één markering.
+    """Twijfel tussen twee klassen op hetzelfde fragment is legitiem – maar één markering.
 
     Dit stond eerder omgekeerd (twee losse voorstellen), doordat de ontdubbelsleutel de klasse
     meetelde. Die sleutel liep daarmee uit de pas met de api, die bewust op tekst + lid matcht: een
     herziening die alleen herclassificeerde werd daar een tweede element naast het origineel, en de
     jurist zag dezelfde span twee keer met tegenstrijdige klassen. Eén klasse per element, de tweede
-    lezing als alternatief — zie `tests/test_ontdubbelsleutel.py` voor de volledige regel.
+    lezing als alternatief – zie `tests/test_ontdubbelsleutel.py` voor de volledige regel.
     """
     voorstellen, _ = _verwerk(_json([
         {"klasse": "Rechtssubject", "tekst": "De ontvanger", "lid": "1"},
@@ -177,7 +177,7 @@ def test_zelfde_fragment_in_een_andere_klasse_wordt_een_alternatief():
 # --- Een id uit het model is geen vrijbrief -------------------------------------------------------
 
 def test_herziening_negeert_een_id_dat_niet_is_aangeboden():
-    """Een verwisseld of verzonnen id zou anders een ánder element overschrijven — met de
+    """Een verwisseld of verzonnen id zou anders een ánder element overschrijven – met de
     beslissingen van de jurist en het auditspoor die eraan hangen."""
     corpus = "De ontvanger verleent uitstel van betaling."
     llm = json.dumps({"elementen": [

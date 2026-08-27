@@ -40,7 +40,7 @@ export function BerichtenArchiefClient() {
   useEffect(() => {
     let stale = false;
     // Bewust synchroon: bij een paginawissel moet de laadindicator meteen aan, vóór de fetch.
-    // Dat kost één extra render — de regel waarschuwt daarvoor, hier is het de bedoeling.
+    // Dat kost één extra render – de regel waarschuwt daarvoor, hier is het de bedoeling.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLaden(true);
     setFout(null);

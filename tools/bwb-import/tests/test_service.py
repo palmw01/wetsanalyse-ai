@@ -1,6 +1,6 @@
 """Tests voor de FastAPI-service: legacy-vorm, batch, fouten, API-key.
 
-``run_import``/``run_imports`` worden gemonkeypatcht — geen netwerk/GraphDB.
+``run_import``/``run_imports`` worden gemonkeypatcht – geen netwerk/GraphDB.
 """
 
 from __future__ import annotations

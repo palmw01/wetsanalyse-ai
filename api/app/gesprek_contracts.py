@@ -25,9 +25,9 @@ class Bericht(BaseModel):
     verwijzing naar een annotatie-document (`annotatie_slug` + de Critic-`ontbrekend`-suggesties).
 
     `annotatie_titel` is het leesbare label van dat document op het moment van de beurt ("Wet IB 2001
-    — art. 3.1 lid 2"). Het bericht beschrijft zichzelf dus: wordt het document later verwijderd, dan
+    – art. 3.1 lid 2"). Het bericht beschrijft zichzelf dus: wordt het document later verwijderd, dan
     blijft het gesprek leesbaar in plaats van terug te vallen op een naamloze verwijzing. Oudere
-    berichten hebben het veld niet en leveren "" — dat is geen fout, maar een lege terugval."""
+    berichten hebben het veld niet en leveren "" – dat is geen fout, maar een lege terugval."""
 
     id: int | None = None
     rol: Rol

@@ -30,7 +30,7 @@ export function FeedbackLijstClient() {
       setData(result);
       if (p === 1) {
         // Nieuwste item staat vooraan (created.desc()); markeer pas ná het tonen en tot dat
-        // moment — niet tot "nu" — zodat feedback die tussen laden en markeren binnenkomt
+        // moment – niet tot "nu" – zodat feedback die tussen laden en markeren binnenkomt
         // niet ten onrechte als gezien telt (was: twee gelijktijdige requests met dat risico).
         const tot = result.items[0]?.created;
         void markeerFeedbackGezien(tot).catch(() => { /* stil falen */ });
@@ -41,7 +41,7 @@ export function FeedbackLijstClient() {
   }, []);
 
   useEffect(() => {
-    // De setState zit ín de async callback, dus pas ná het await — geen synchrone cascading
+    // De setState zit ín de async callback, dus pas ná het await – geen synchrone cascading
     // render. De regel kan daar niet doorheen kijken.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void laad(1);

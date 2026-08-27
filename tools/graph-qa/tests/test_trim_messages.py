@@ -93,7 +93,7 @@ def test_venster_zonder_platte_user_wordt_teruguitgebreid():
 # --- De opslagrem: wat er in de checkpointer blijft staan ----------------------------------------
 #
 # `max_history_chars` begrenst wat er per beurt naar het model gaat; zonder een tweede rem groeide
-# de BEWAARDE historie onbeperkt door — inclusief elk tool-resultaat van 8000 tekens. Elke
+# de BEWAARDE historie onbeperkt door – inclusief elk tool-resultaat van 8000 tekens. Elke
 # checkpoint-write in een lang gesprek werd daar trager en dikker van.
 
 def test_korte_historie_blijft_ongemoeid():

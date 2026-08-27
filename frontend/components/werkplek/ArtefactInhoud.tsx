@@ -31,7 +31,7 @@ export interface ArtefactInhoudProps {
     klasse: string; tekst: string; lid: string; toelichting: string;
     anker: ReturnType<typeof maakAnker>;
   }) => Promise<void>;
-  /** Eigen markering wissen. Een agent-voorstel verwérp je — dat gaat via `onBeslissing`. */
+  /** Eigen markering wissen. Een agent-voorstel verwérp je – dat gaat via `onBeslissing`. */
   onWisEigenMarkering?: (elementId: string) => Promise<void>;
   /** Zet een vraag over een element klaar in het centrale chatvenster. Bestaat alleen in de
    *  werkplek; op de eigen pagina van een annotatie is er geen chat om iets in klaar te zetten. */
@@ -48,18 +48,18 @@ export interface ArtefactInhoudProps {
  *
  *  Bewust los van zijn schil, zoals `DisclaimerClient` en `InstellingenInhoud` dat al doen: in de
  *  werkplek zit hij in een `Dialog` (`ArtefactPaneel`), op `/annotaties/<slug>` in een gewone
- *  pagina. Eén inhoud, twee schillen — anders gaan de twee weergaven uit elkaar lopen. */
+ *  pagina. Eén inhoud, twee schillen – anders gaan de twee weergaven uit elkaar lopen. */
 export function ArtefactInhoud({
   doc, info, ontbrekend, actiefId, onKies, onBeslissing, onEigenMarkering,
   onWisEigenMarkering, onVraag, onStatus, onSluiten,
 }: ArtefactInhoudProps) {
-  const opschrift = `${info.citeertitel || doc.bwbId} — artikel ${info.artikel}${doc.lid ? ` lid ${doc.lid}` : ""}`;
+  const opschrift = `${info.citeertitel || doc.bwbId} – artikel ${info.artikel}${doc.lid ? ` lid ${doc.lid}` : ""}`;
   // Eén keer per artikel opbouwen, niet per render: de regels zijn de identiteit waarop het
   // documentpaneel zijn eigen `useMemo`'s hangt, dus een verse array per render zette die uit.
   const regels = useMemo(() => regelsVan(info), [info]);
   const bron = useMemo(() => bronVan(regels), [regels]);
 
-  // Eén lus, twee antwoorden — beide uit dezelfde `vindPositie` als de weergave, dus ze kloppen
+  // Eén lus, twee antwoorden – beide uit dezelfde `vindPositie` als de weergave, dus ze kloppen
   // altijd met wat je ziet:
   //  • welke markeringen niet (meer) in de wettekst te vinden zijn (die vielen stilzwijgend weg);
   //  • waar elke markering staat, als sorteersleutel binnen een JAS-klasse.
@@ -97,7 +97,7 @@ export function ArtefactInhoud({
       ? actief
       : undefined;
 
-  // De getoonde volgorde: sorteren op de VOLLEDIGE lijst, dan pas filteren — zo verandert een
+  // De getoonde volgorde: sorteren op de VOLLEDIGE lijst, dan pas filteren – zo verandert een
   // filterwissel de onderlinge volgorde niet. Hier berekend en niet in de lijst, zodat het toetsenbord
   // gegarandeerd dezelfde volgorde doorloopt als je ziet en de positiekaart maar op één plek bestaat.
   const getoond = useMemo(
@@ -116,7 +116,7 @@ export function ArtefactInhoud({
   }, []);
 
   /** Escape pelt één laag af in plaats van meteen alles te sluiten: eerst de selectie in de tekst,
-   *  dan de open bedieningsrij, dan het gekozen element — en pas als er niets meer openstaat gaat
+   *  dan de open bedieningsrij, dan het gekozen element – en pas als er niets meer openstaat gaat
    *  het paneel dicht (in de dialoogschil; op een eigen pagina is er niets te sluiten en stopt het
    *  afpellen daar).
    *
@@ -131,11 +131,11 @@ export function ArtefactInhoud({
   }, [selectie, open, actiefId, onKies, onSluiten, sluitSelectie]);
 
   /** Een afgerond document is bevroren. De api weigert elke mutatie met een 409; hier leggen we de
-   *  bediening stil zodat de jurist die fout nooit tegenkomt — een knop die alleen nog een
+   *  bediening stil zodat de jurist die fout nooit tegenkomt – een knop die alleen nog een
    *  foutmelding oplevert is erger dan geen knop. Heropenen staat in de kop en is één klik. */
   const vergrendeld = isDocumentVergrendeld(doc);
 
-  /** Afronden of heropenen. De fout landt in dezelfde melding als de beslissingen — de jurist hoeft
+  /** Afronden of heropenen. De fout landt in dezelfde melding als de beslissingen – de jurist hoeft
    *  niet op twee plekken te kijken. */
   async function zetStatus(status: "geaccordeerd" | "in_review") {
     if (!onStatus) return;
@@ -151,7 +151,7 @@ export function ArtefactInhoud({
   }
 
   /** Sneltoetsen. Bewust inactief zodra de focus in een invoerveld staat: anders keur je iets goed
-   *  door "a" te typen in een toelichting. Escape werkt altijd — dat is de uitweg. */
+   *  door "a" te typen in een toelichting. Escape werkt altijd – dat is de uitweg. */
   useEffect(() => {
     function opToets(e: KeyboardEvent) {
       const doel = e.target as HTMLElement | null;
@@ -186,7 +186,7 @@ export function ArtefactInhoud({
       if (!actiefEl) return;
 
       // Ook het slot op dít element telt: anders opent `x` een redenen-rij die alleen nog een 409
-      // kan opleveren. De sneltoets doet precies wat de knop doet — of hij doet niets.
+      // kan opleveren. De sneltoets doet precies wat de knop doet – of hij doet niets.
       if (vergrendeld || isVergrendeld(actiefEl)) return;
 
       if (e.key === "a") {
@@ -264,7 +264,7 @@ export function ArtefactInhoud({
 
   /** Zelf markeren, of een ontbrekend element toevoegen: beide lopen hierlangs zodat een mislukking
    *  in de melding van het paneel landt. De ontbrekend-lijst kreeg eerder `onEigenMarkering`
-   *  rechtstreeks doorgegeven en faalde daardoor stil — de klik leek genegeerd te worden. */
+   *  rechtstreeks doorgegeven en faalde daardoor stil – de klik leek genegeerd te worden. */
   async function markeer(invoer: {
     klasse: string; tekst: string; lid: string; toelichting: string; anker: ReturnType<typeof maakAnker>;
   }): Promise<void> {
@@ -272,7 +272,7 @@ export function ArtefactInhoud({
     setFout(null);
     try {
       // Heeft de bepaling geen genummerde leden, dan valt het lid terug op de afbakening van het
-      // document zelf — beter dat dan een leeg veld op een document dat wél over één lid gaat.
+      // document zelf – beter dat dan een leeg veld op een document dat wél over één lid gaat.
       await onEigenMarkering({ ...invoer, lid: invoer.lid || doc.lid || "" });
       sluitSelectie();
     } catch (e) {
@@ -300,7 +300,7 @@ export function ArtefactInhoud({
         {/* Kop in twee vaste regels: titel + sluitknop, daaronder de acties.
 
             Het kruisje hoort altijd rechtsboven te staan, op dezelfde plek als in het
-            instellingenvenster en de gesprekkendrawer — sluiten is de uitweg, en die zoek je op één
+            instellingenvenster en de gesprekkendrawer – sluiten is de uitweg, en die zoek je op één
             plek. In één wrappende rij verhuisde het mee met de knoppen zodra de ruimte krap werd, en
             dan stond het op een telefoon ineens onder de titel tussen Exporteren en Afronden.
 
@@ -318,7 +318,7 @@ export function ArtefactInhoud({
                 onClick={onSluiten}
                 aria-label="Sluiten"
                 // `-mr-1` haalt de optische ruimte van het icoon weg, zodat het kruisje uitlijnt met
-                // de rechterkantlijn van de kop — hetzelfde als in `InstellingenDialog`.
+                // de rechterkantlijn van de kop – hetzelfde als in `InstellingenDialog`.
                 className="focus-ring -mr-1 shrink-0 rounded-kaart p-1.5 text-muted transition-colors hover:bg-surface hover:text-ink"
               >
                 {/* Zelfde icoon en lijndikte als in het instellingenvenster: één kruisje in de app,
@@ -340,7 +340,7 @@ export function ArtefactInhoud({
         </div>
 
         {/* Twee zones met een EIGEN scroll. Eén gedeelde scroller liet de wettekst uit beeld lopen
-            zodra je verderop in de lijst kwam — precies de context die je nodig hebt om te oordelen. */}
+            zodra je verderop in de lijst kwam – precies de context die je nodig hebt om te oordelen. */}
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 pt-4">
           <div className="max-h-[45%] overflow-y-auto pb-3">
           <DocumentPaneel
@@ -359,7 +359,7 @@ export function ArtefactInhoud({
           />
           {onEigenMarkering && !vergrendeld && (
             <p data-tour="wettekst-tip" className="mt-2 text-xs text-faint">
-              Tip: selecteer een stuk tekst om het zelf te markeren — of klik eerst een markering aan
+              Tip: selecteer een stuk tekst om het zelf te markeren – of klik eerst een markering aan
               en selecteer opnieuw om die in te korten of uit te breiden.
             </p>
           )}
@@ -372,7 +372,7 @@ export function ArtefactInhoud({
           )}
 
           {/* Zonder deze regel lijkt een afgeronde annotatie kapot: de knoppen zijn weg en er staat
-              niets over waarom. Neutraal van toon — afgerond zijn is de bedoeling, geen fout. */}
+              niets over waarom. Neutraal van toon – afgerond zijn is de bedoeling, geen fout. */}
           {vergrendeld && (
             <div className="py-2">
               <Melding type="uitleg" compact>

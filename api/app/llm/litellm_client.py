@@ -59,7 +59,7 @@ class LiteLLMClient:
             mx = info.get("max_input_tokens") if info else None
             if mx:
                 return int(mx * 0.95)
-        except Exception:  # noqa: BLE001 — onbekend model/uitval → geen limiet afdwingen
+        except Exception:  # noqa: BLE001 – onbekend model/uitval → geen limiet afdwingen
             pass
         return None
 
@@ -152,7 +152,7 @@ class LiteLLMClient:
                         data = parse_json_strict(tekst)
                     except json.JSONDecodeError as e:
                         raise LLMError(f"Geen geldige JSON na reparatie: {e}") from e
-        except Exception as e:  # noqa: BLE001 — vertaal een provider-context-overflow naar een duidelijke fout
+        except Exception as e:  # noqa: BLE001 – vertaal een provider-context-overflow naar een duidelijke fout
             if type(e).__name__ == "ContextWindowExceededError":
                 raise PromptTooLargeError(
                     f"Context window overschreden voor model {self.c.model}; verklein het werkgebied "
@@ -176,5 +176,5 @@ class LiteLLMClient:
 
 
 def build_llm_client(config: LlmConfig):
-    """Factory — nu LiteLLM; uitbreidbaar naar andere adapters zonder de caller te raken."""
+    """Factory – nu LiteLLM; uitbreidbaar naar andere adapters zonder de caller te raken."""
     return LiteLLMClient(config)

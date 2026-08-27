@@ -1,4 +1,4 @@
-"""Canonieke JAS-klassenlijst — de enige bron voor de klassevalidatie in het annotatiedomein.
+"""Canonieke JAS-klassenlijst – de enige bron voor de klassevalidatie in het annotatiedomein.
 
 De waarden komen uit `jas_klassen.py`; het annotatiedomein (`routers/annotatie.py`) valideert de
 klasse van een voorgesteld element hiertegen en de export gebruikt de volgorde en de labelkleuren.

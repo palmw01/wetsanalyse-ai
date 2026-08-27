@@ -12,7 +12,7 @@ import { veiligPad } from "@/lib/url";
 //
 // `onSluiten` onderscheidt de twee schillen. Als dialoog (vanuit de werkplek) hoort de afsluitknop
 // hetzelfde te doen als het kruisje: één stap terug in de historie. Er stond een link naar `/`, en
-// dat sluit een intercepting-route-modal juist NIET — het modal-slot houdt zijn toestand vast bij een
+// dat sluit een intercepting-route-modal juist NIET – het modal-slot houdt zijn toestand vast bij een
 // soft navigation, en `/` leidt ook nog door naar `/workbench`. Je hield de popup én kreeg er een
 // history-entry bij, waarna het kruisje (`router.back()`) je terugbracht náár de voorwaarden.
 export function DisclaimerClient({
@@ -63,7 +63,7 @@ export function DisclaimerClient({
       <Melding type="waarschuwing" titel="Geen garantie op een eindproduct">
         <p className="mt-1 text-sm">
           Wat je hier ziet is een tussenstand. De uiteindelijke toepassing kan er
-          <strong> heel anders uitzien</strong> — of er komt nooit een eindproduct.
+          <strong> heel anders uitzien</strong> – of er komt nooit een eindproduct.
         </p>
       </Melding>
 
@@ -79,7 +79,7 @@ export function DisclaimerClient({
         )
       ) : (
         <Button type="button" onClick={onAkkoord} disabled={bezig} className="w-full sm:w-auto">
-          {bezig ? "Bezig…" : "Begrepen — doorgaan"}
+          {bezig ? "Bezig…" : "Begrepen – doorgaan"}
         </Button>
       )}
     </div>

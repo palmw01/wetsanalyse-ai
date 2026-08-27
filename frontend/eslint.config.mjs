@@ -10,7 +10,7 @@ const config = [
     rules: {
       // Nieuw in de Next 16-config (react-hooks-plugin). Vlagt het gangbare, door React
       // toegestane patroon "setState binnen een sync-/fetch-effect" (loading-flags,
-      // index-resets) dat onder Next 15 groen was. Advies, geen correctheidsfout — op `warn`
+      // index-resets) dat onder Next 15 groen was. Advies, geen correctheidsfout – op `warn`
       // gezet zodat de bump gedrag-neutraal blijft; een eventuele refactor is los werk.
       "react-hooks/set-state-in-effect": "warn",
     },

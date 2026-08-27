@@ -9,7 +9,7 @@ const WORTEL = join(__dirname, "..");
 const lees = (p: string) => readFileSync(join(WORTEL, p), "utf8");
 
 /** Is dit bestand een client component? Kijkt naar de *directive* op de eerste zinvolle regel, niet
- *  naar de tekst ergens in het bestand — anders telt een toelichting die "use client" noemt al mee. */
+ *  naar de tekst ergens in het bestand – anders telt een toelichting die "use client" noemt al mee. */
 function isClientComponent(src: string): boolean {
   const eerste = src.split("\n").find((r) => r.trim() !== "");
   return /^["']use client["'];?$/.test((eerste ?? "").trim());
@@ -48,7 +48,7 @@ describe("isAdminTab", () => {
   // De rolgate in auth.config.ts is één prefix-check op /instellingen/beheer. Een admin-tab die
   // buiten dat pad gaat wonen, is dus onbewaakt: de tabkolom verbergt hem wel voor een analist,
   // maar de directe URL komt er ongehinderd door. Daarom hier de koppeling zelf bewaken in plaats
-  // van een lijstje tabnamen — die veroudert bij elke nieuwe tab.
+  // van een lijstje tabnamen – die veroudert bij elke nieuwe tab.
   it("elke admin-tab staat onder beheer/ (anders valt de rolgate weg)", () => {
     for (const tab of INSTELLINGEN_TABS) {
       expect(tab.admin, `tab '${tab.key}' (pad '${tab.pad}')`).toBe(tab.pad.startsWith("beheer/"));

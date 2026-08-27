@@ -7,7 +7,7 @@
 # Dat "aantal" is geen gegeven: in de single-revision-modus (de default) deactiveert Azure de oude
 # revisie bij elke image-swap en ruimt hem daarna op. Daarom zet `main.bicep` expliciet
 # `maxInactiveRevisions: 5` op api, graph-qa en frontend. Zonder die regel is deze workflow een knop
-# zonder inhoud — gemeten op 27 aug 2026 stond er van elke app nog precies één revisie, terwijl de
+# zonder inhoud – gemeten op 27 aug 2026 stond er van elke app nog precies één revisie, terwijl de
 # nummering tientallen voorgangers verried. Voeg je een app toe aan de keuzelijst hieronder, zet die
 # regel er dan ook op.
 #
@@ -99,7 +99,7 @@ jobs:
           echo "  image: $image"
 
           # De app draait in Single-revision-modus: een image-swap maakt een nieuwe revisie met het
-          # oude image. Dat is bewust geen `revision activate` — dan zou de app in
+          # oude image. Dat is bewust geen `revision activate` – dan zou de app in
           # multiple-revision-modus moeten staan, en dat is een ander (blijvend) gedrag dan wat de
           # bicep beschrijft. Zo blijft de template de waarheid.
           az containerapp update -n "$naam" -g "$RG" --image "$image" --output none
@@ -131,13 +131,13 @@ jobs:
           APP: ${{ inputs.app }}
         run: |
           {
-            echo "## Rollback — ${{ inputs.omgeving }} / $APP_NAME-$APP"
+            echo "## Rollback – ${{ inputs.omgeving }} / $APP_NAME-$APP"
             echo ""
             if [ -n "${{ inputs.revisie }}" ]; then
               echo "Teruggezet op de image van revisie \`${{ inputs.revisie }}\`."
               echo ""
               echo "Let op: de code op \`master\` en de tag \`release/prd\` wijzen hier níét mee terug."
-              echo "Een volgende uitrol brengt de nieuwere versie gewoon weer binnen — repareer dus"
+              echo "Een volgende uitrol brengt de nieuwere versie gewoon weer binnen – repareer dus"
               echo "de oorzaak, of draai de betreffende commit terug."
             else
               echo "Alleen getoond. Vul \`revisie\` om er een terug te zetten."

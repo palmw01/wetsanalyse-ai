@@ -2,7 +2,7 @@
 
 Die regel bestaat in drie Python-implementaties (de agent, de beurt-driver, de api) plus één in
 TypeScript (`frontend/lib/annotatie.ts:mergeVoorstellen`, met dezelfde tabel in zijn eigen test).
-Ze liepen uiteen op precies één punt — de klasse — en dat leverde dubbele kaarten op zodra een
+Ze liepen uiteen op precies één punt – de klasse – en dat leverde dubbele kaarten op zodra een
 herziening herclassificeerde. Deze test houdt de Python-kant tegen elkaar.
 
 De regel: **match op `id`; is er geen id, dan op genormaliseerde tekst + lid. Nooit op klasse.**
@@ -67,7 +67,7 @@ def test_verwerk_ontdubbelt_identieke_herhaling():
 
 
 def test_verwerk_maakt_van_tweede_klasse_een_alternatief():
-    """Dezelfde span, andere klasse: twijfel, geen tweede element — en niet stil weggegooid."""
+    """Dezelfde span, andere klasse: twijfel, geen tweede element – en niet stil weggegooid."""
     voorstellen, _ = _verwerk(
         _json(
             {"klasse": "Tijdsaanduiding", "tekst": "zes weken na de dagtekening van het aanslagbiljet"},

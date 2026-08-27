@@ -30,8 +30,8 @@ const PANEEL_CLASS: Record<DialogVariant, string> = {
   // te claimen voor een formulier met drie velden.
   //
   // `h-fit` en niet `h-auto`: het centreren gebeurt met `inset-0` + `m-auto`, en die truc verdeelt
-  // de overgebleven ruimte alleen als het paneel een bepaalbare hoogte heeft. Met `h-auto` — en
-  // zeker met `bottom-auto` erbij — valt er niets te verdelen en plakt het venster tegen de bovenrand.
+  // de overgebleven ruimte alleen als het paneel een bepaalbare hoogte heeft. Met `h-auto` – en
+  // zeker met `bottom-auto` erbij – valt er niets te verdelen en plakt het venster tegen de bovenrand.
   compact:
     "absolute inset-x-0 bottom-0 max-h-[85dvh] flex flex-col rounded-t-vorm bg-paper shadow-kaart outline-none animate-rise " +
     "sm:inset-0 sm:m-auto sm:h-fit sm:max-h-[85vh] sm:w-[min(34rem,92vw)] sm:rounded-vorm",
@@ -56,7 +56,7 @@ interface Props {
    *
    *  Een venster met eigen lagen erin (een open bedieningsrij, een popover, een selectie) wil dat
    *  Escape éérst de bovenste laag afpelt. Dat kan het venster niet zelf: beide luisteraars hangen
-   *  aan `window`, en deze staat er als eerste op — een `stopPropagation` van binnenuit komt te laat.
+   *  aan `window`, en deze staat er als eerste op – een `stopPropagation` van binnenuit komt te laat.
    *  Dus geeft de eigenaar zijn eigen afhandeling mee. Achtergrondklik blijft `onSluit`. */
   onEscape?: () => void;
   children: ReactNode;
@@ -73,11 +73,11 @@ interface Props {
  *  **Kies tussen `center` en `compact` op de inhoud, niet op smaak.** `center` houdt een vaste
  *  hoogte aan en is bedoeld voor inhoud die wisselt (het instellingenvenster met zijn tabs, dat
  *  anders bij elke tabwissel van formaat springt). `compact` groeit met zijn inhoud tot een plafond
- *  en is bedoeld voor een formulier of een lap tekst — zet daar `center` op en er staat een halve
+ *  en is bedoeld voor een formulier of een lap tekst – zet daar `center` op en er staat een halve
  *  pagina wit onder de knoppen.
  *
  *  **`kolom` is bewust niet modaal**: geen backdrop, geen `aria-modal`, en géén focus-trap. Het
- *  paneel staat dan náást de chat, en die moet juist bereikbaar blijven — een trap zou je erin
+ *  paneel staat dan náást de chat, en die moet juist bereikbaar blijven – een trap zou je erin
  *  opsluiten. Escape sluit wél, dat is in alle vormen dezelfde uitweg. */
 export function Dialog({ label, variant = "center", wrapperClassName = "", onSluit, onEscape, children }: Props) {
   const paneelRef = useRef<HTMLDivElement>(null);

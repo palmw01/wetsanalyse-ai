@@ -9,8 +9,8 @@ Gebruik:
         [--what-if | --run]
 
 Drie modi:
-    (geen vlag)   genereer params.json en print het az-commando — verandert niets
-    --what-if     laat Azure tonen wat de deployment zou wijzigen — maakt niets aan
+    (geen vlag)   genereer params.json en print het az-commando – verandert niets
+    --what-if     laat Azure tonen wat de deployment zou wijzigen – maakt niets aan
     --run         voer de deployment daadwerkelijk uit
 
 Vereisten:
@@ -63,7 +63,7 @@ def main() -> None:
     p.add_argument("--llm-model", default="claude-sonnet-4-6")
     p.add_argument("--license-file", default=os.environ.get("GRAPHDB_LICENSE_FILE"),
                    help="Pad naar graphdb.license. Zonder licentie komt de graaf read-only op en "
-                        "faalt de import-job — GraphDB 11 staat schrijven alleen met licentie toe.")
+                        "faalt de import-job – GraphDB 11 staat schrijven alleen met licentie toe.")
     p.add_argument("--resource-group", default="rg-wetsanalyse")
     p.add_argument("--location", default="westeurope")
     p.add_argument("--app-name", default="wetsanalyse")
@@ -86,7 +86,7 @@ def main() -> None:
     args = p.parse_args()
 
     if not args.azure_ai_key:
-        p.error("azure_ai_key is vereist — geef het als argument of zet AZURE_AI_KEY in de omgeving.")
+        p.error("azure_ai_key is vereist – geef het als argument of zet AZURE_AI_KEY in de omgeving.")
     if args.what_if and args.run:
         p.error("--what-if en --run sluiten elkaar uit.")
 
@@ -104,13 +104,13 @@ def main() -> None:
     tok_admin = _secret("WA_ADMIN_TOKEN", lambda: secrets.token_hex(24))
     tok_qa = _secret("WA_QA_API_TOKEN", lambda: secrets.token_hex(24))   # frontend ↔ graph-qa
     # graph-qa ↔ api: een EIGEN client-token, niet dat van de frontend. De api doet per-client
-    # bearer-auth, dus een eigen token laat het auditspoor zien wie er schreef — en intrekken raakt
+    # bearer-auth, dus een eigen token laat het auditspoor zien wie er schreef – en intrekken raakt
     # dan alleen de agent. Zonder dit kan graph-qa de uitkomst van een beurt niet vastleggen; zie
     # `legt_zelf_vast` in tools/graph-qa/agent/config.py.
     tok_qa_api = _secret("WA_GRAPH_QA_API_TOKEN", lambda: secrets.token_hex(24))
     # graph-qa eist fail-closed een GRAPHDB_TOKEN (require_graph). Binnen deze omgeving is de graaf
     # alleen intern bereikbaar en draait GraphDB zonder eigen security, dus dit token is daar geen
-    # slot — het wordt wel meegestuurd. Zelf genereren is beter dan het token van de zelfgehoste opzet hierheen kopiëren.
+    # slot – het wordt wel meegestuurd. Zelf genereren is beter dan het token van de zelfgehoste opzet hierheen kopiëren.
     tok_graphdb = _secret("WA_GRAPHDB_TOKEN", lambda: secrets.token_hex(24))
     db_pass = _secret("WA_DB_ADMIN_PASSWORD", lambda: secrets.token_hex(24))
     fernet = _secret("WA_LLM_CONFIG_SECRET",
@@ -160,7 +160,7 @@ def main() -> None:
     params_path.write_text(json.dumps(params, indent=2, ensure_ascii=False), encoding="utf-8")
     params_path.chmod(0o600)
     print(f"✓ Parameterbestand: {params_path}", file=sys.stderr)
-    print("  LET OP: bevat geheimen — verwijder na gebruik.", file=sys.stderr)
+    print("  LET OP: bevat geheimen – verwijder na gebruik.", file=sys.stderr)
 
     verb = "what-if" if args.what_if else "create"
     cmd = [
@@ -191,7 +191,7 @@ def main() -> None:
     print(f"\n✓ {params_path} verwijderd.", file=sys.stderr)
 
     if result.returncode != 0:
-        print("✗ Mislukt — zie de fout hierboven.", file=sys.stderr)
+        print("✗ Mislukt – zie de fout hierboven.", file=sys.stderr)
         sys.exit(result.returncode)
 
     if args.run:

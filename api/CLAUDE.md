@@ -1,6 +1,6 @@
-# CLAUDE.md — wetsanalyse-api
+# CLAUDE.md – wetsanalyse-api
 
-Headless API-backend voor de **Wetsanalyse-werkplek** — een kerncomponent van het agent-platform, een
+Headless API-backend voor de **Wetsanalyse-werkplek** – een kerncomponent van het agent-platform, een
 zelfstandige, Dockeriseerbare dienst die je via HTTP (Postman/Swagger) bevraagt en die de
 [frontend](../frontend) (de werkplek + login + `/beheer`) bedient. Lees ook de projectroot-`CLAUDE.md`.
 
@@ -19,7 +19,7 @@ De API bedient zeven dingen:
    (`annotatie_slug`); de review-state zelf blijft in het annotatie-domein. Die verwijzing heeft
    **geen foreign key**, dus draagt het bericht er zijn eigen leesbare label bij (`annotatie_titel`):
    wordt het document later verwijderd, dan blijft het gesprek leesbaar in plaats van naar een
-   naamloze slug te wijzen. `DELETE` van een annotatie-document raakt de berichten bewust niet — het
+   naamloze slug te wijzen. `DELETE` van een annotatie-document raakt de berichten bewust niet – het
    gesprek is een verslag van wat er gebeurde. Een bericht draagt daarnaast optioneel een `run_id`:
    dat is een **idempotentiesleutel**, want een agent-beurt hangt niet meer aan één browserverbinding
    en er kunnen meerdere tabbladen op dezelfde run meekijken. `voeg_bericht_toe` weigert een tweede
@@ -29,7 +29,7 @@ De API bedient zeven dingen:
    webapp: die legt de uitkomst van een beurt zelf vast en heeft daarvoor een eigen client-id in
    `WETSANALYSE_API_TOKENS` (`graph-qa:<token>`) plus de `X-User-Id` van de jurist. Let op wat dat
    betekent: `client_id` is niet aan `user_id` gebonden, dus dat token kan in elk gebruikersgesprek
-   schrijven — graph-qa blijft daarom intern-only.
+   schrijven – graph-qa blijft daarom intern-only.
 3. **Login + gebruikersbeheer** (`/v1/auth/*` + `/v1/admin/users`): de API is de identiteitsbron van
    de webapp (userid + wachtwoord, rollen, optionele TOTP-2FA).
 4. **LLM-modelprofielbeheer** (`/v1/admin/profiles`).
@@ -47,15 +47,15 @@ De API bedient zeven dingen:
 
 ## Architectuur (app/)
 
-- `config.py` — env-config + projectpaden (PROJECT_ROOT = repo-root).
-- `auth.py` — per-client bearer-tokens (erft het MCP-patroon; fail-closed; constant-tijd).
+- `config.py` – env-config + projectpaden (PROJECT_ROOT = repo-root).
+- `auth.py` – per-client bearer-tokens (erft het MCP-patroon; fail-closed; constant-tijd).
   `require_admin` is een aparte, altijd-verplichte bearer voor `/v1/admin/*` (LLM-/
   gebruikersbeheer). `require_admin` is **async** en accepteert twee bronnen: de statische
   env-admin-tokens (`WETSANALYSE_ADMIN_TOKENS`) én **genereerbare DB-tokens** (`api_tokens.py`,
   beheerd via `/beheer` → API-tokens). Die tokens staan **alleen als sha256-hash** in de
   `api_tokens`-tabel, worden één keer bij aanmaken getoond en zijn intrekbaar; ze voeden o.a. de
   admin-MCP (`tools/wetsanalyse-admin-mcp/`). Env-tokens blijven het bootstrap-pad.
-- `user.py`/`users.py` + `routers/auth.py` — de **login-module**: de API is de identiteitsbron van de
+- `user.py`/`users.py` + `routers/auth.py` – de **login-module**: de API is de identiteitsbron van de
   webapp. Inloggen gaat met de **`userid`** (de primaire sleutel van de `users`-tabel); `email` is een
   verplicht, uniek registratiegegeven (geen inlog-identiteit). Wachtwoord-hash via bcrypt, rollen
   `beheerder`/`analist`, optioneel TOTP-2FA versleuteld met dezelfde Fernet-key als de LLM-keys.
@@ -63,13 +63,13 @@ De API bedient zeven dingen:
   userid), de eenmalige eerste-beheerder-registratie (`/setup`, alleen bij lege tabel) en de
   self-service 2FA/account (`/2fa/*`, `/change-password`, identiteit via de vertrouwde
   `X-User-Id`-header van de BFF). De browsersessie zelf leeft in de frontend, niet hier.
-- `llm_profile.py` — `LlmProfile`-domeinmodel (Pydantic; benoemde modelprofielen in de DB).
-  `profiles.py` — service eroverheen: CRUD, default-beheer, `resolve_config` (profiel → `LlmConfig`,
+- `llm_profile.py` – `LlmProfile`-domeinmodel (Pydantic; benoemde modelprofielen in de DB).
+  `profiles.py` – service eroverheen: CRUD, default-beheer, `resolve_config` (profiel → `LlmConfig`,
   ontsleutelt de key, env-fallback) en `ensure_seeded` (seedt bij eerste start één default-profiel uit
-  de env). `secrets_crypto.py` — Fernet-versleuteling-at-rest van de API-key (master key uit
+  de env). `secrets_crypto.py` – Fernet-versleuteling-at-rest van de API-key (master key uit
   `LLM_CONFIG_SECRET(_FILE)`). De profielen worden beheerd via `/beheer` en gevalideerd met de
   verbindingstest; de QA-agent (graph-qa) heeft een eigen LLM-config en wordt er niet door aangestuurd.
-- `db.py` — async SQLAlchemy-Core laag: engine-beheer + de tabeldefinities (`llm_profiles`,
+- `db.py` – async SQLAlchemy-Core laag: engine-beheer + de tabeldefinities (`llm_profiles`,
   `users`, `api_tokens`, `annotatie_documenten`, `annotatie_audit`, `gesprekken`,
   `gesprek_berichten`). Portable types
   (`JSON`→`JSONB` op Postgres, `JSON` op SQLite-tests), tz-aware datetimes. `create_all` maakt bij de
@@ -77,20 +77,20 @@ De API bedient zeven dingen:
   **ontbrekende kolommen** additief toe (`ALTER TABLE … ADD COLUMN`; nooit droppen/typewijzigen) zodat
   een nieuw gedefinieerde kolom op een bestaande productie-tabel geen handmatige migratie vergt. Een
   type-wijziging/drop is nog steeds een bewuste migratie.
-- `llm/` — `LLMClient`-protocol + LiteLLM-implementatie (provider = config; `complete()` levert JSON
-  conform een schema). `throttle.py` — proces-globale **concurrency-rem** (semafoor) op gelijktijdige
+- `llm/` – `LLMClient`-protocol + LiteLLM-implementatie (provider = config; `complete()` levert JSON
+  conform een schema). `throttle.py` – proces-globale **concurrency-rem** (semafoor) op gelijktijdige
   LLM-calls (`WETSANALYSE_LLM_MAX_CONCURRENCY`); ingesteld in de lifespan. De enige LLM-call in deze
   API is nu de admin-**verbindingstest** (`POST /v1/admin/profiles/{name}/test`).
-- `jas_klassen.py` — de dertien JAS-klassen, hun weergave-volgorde en labelkleuren (canonieke
-  bron; stond eerder in de wetsanalyse-skill). `validation.py` — `GELDIGE_JAS_KLASSEN`,
+- `jas_klassen.py` – de dertien JAS-klassen, hun weergave-volgorde en labelkleuren (canonieke
+  bron; stond eerder in de wetsanalyse-skill). `validation.py` – `GELDIGE_JAS_KLASSEN`,
   `JAS_KLASSEN_VOLGORDE`, `JAS_KLASSE_KLEUREN` en `jas_sorteersleutel` + de
   brongetrouwheid-/schema-helpers. Het annotatiedomein valideert de klasse van een voorgesteld element
   hiertegen.
-- `ratelimit.py` — in-process per-client rate limit (dependency) + `QuotaExceeded`.
-- `annotatie_contracts.py` — Pydantic-modellen + enums (`AnnotatieDocument`, `AnnotatieElement` met
+- `ratelimit.py` – in-process per-client rate limit (dependency) + `QuotaExceeded`.
+- `annotatie_contracts.py` – Pydantic-modellen + enums (`AnnotatieDocument`, `AnnotatieElement` met
   `lifecycle`/`beslissingen`/`alternatieven`/`aandacht`/`diff`, `Beslissing`, `AuditRecord`,
-  `ReviewReason`). `annotatie_store.py` — `AnnotatieStore` (aparte store op dezelfde engine).
-  `routers/annotatie.py` — `/v1/annotatie/*`, per-gebruiker gescopet (`huidige_userid` + `_document_or_404`;
+  `ReviewReason`). `annotatie_store.py` – `AnnotatieStore` (aparte store op dezelfde engine).
+  `routers/annotatie.py` – `/v1/annotatie/*`, per-gebruiker gescopet (`huidige_userid` + `_document_or_404`;
   `require_client` blijft de bearer-poort + audit-herkomst).
   Levenscyclus: document aanmaken → `PUT elementen` (de uitkomst van één agent-ronde) → per element
   een human-decision (approve/edit/reject/comment; edit berekent een `diff`) → `GET audit`.
@@ -101,13 +101,13 @@ De API bedient zeven dingen:
   velden, alleen `lid`, of niets → `anders`); een meegestuurde waarde is hooguit een hint en wordt
   overschreven. Die afleiding stond in de browser, en daarmee stond er een reden in het auditspoor
   die de server aannam maar nooit kon toetsen. Bij een **reject** blijft `review_reason` verplicht
-  (422 zonder): waaróm iets verworpen wordt staat in geen enkele diff — dat weet alleen de jurist.
+  (422 zonder): waaróm iets verworpen wordt staat in geen enkele diff – dat weet alleen de jurist.
 
   **Herkomst: met welk model is geannoteerd.** graph-qa stuurt per beurt een `run`-event
   (model/provider/agent_versie/critic_rondes/stop_reden); de werkplek geeft dat mee in
   `PUT elementen` en de api legt het vast op het document (`runs[]`, eigen JSON-kolom), op elk
   agent-element dat die ronde maakte of herzag (`geproduceerd_door`) én in het auditdetail. Een
-  ronde **zonder** run wist niets — een oudere client mag het spoor niet uitgummen. Documenten van
+  ronde **zonder** run wist niets – een oudere client mag het spoor niet uitgummen. Documenten van
   vóór deze registratie tonen in de export expliciet "onbekend (vóór registratie)".
 
   **Exporteren** (`annotatie_export.py`): `POST /documenten/{slug}/export?formaat=pdf|csv|json`
@@ -116,29 +116,29 @@ De API bedient zeven dingen:
   is draagt de telling "te beoordelen" in de kop. De PDF (reportlab) is de JAS-tabel uit
   `docs/wetsanalyse/wa-table.png`: de klassecel draagt de labelkleur uit
   `validation.JAS_KLASSE_KLEUREN` (canoniek uit de skill; `test_jas_kleuren_drift.py` bewaakt dat
-  `frontend/lib/jas.ts` dezelfde waarden draagt). De **wettekst zit niet in deze api** — de
+  `frontend/lib/jas.ts` dezelfde waarden draagt). De **wettekst zit niet in deze api** – de
   werkplek stuurt de leden mee in de body; ontbreken ze, dan blijft dat blok weg in plaats van dat
   er iets gereconstrueerd wordt.
 
   **Afronden is een expliciete handeling.** `POST /documenten/{slug}/status` zet `geaccordeerd` of
   weer `in_review` (promoveren hoort bij het latere graaf-schrijfpad en kan hier niet). Dat loopt
-  door `muteer_document` — het enige pad met lock én eigenaarscheck; de losse `zet_status` zonder
+  door `muteer_document` – het enige pad met lock én eigenaarscheck; de losse `zet_status` zonder
   die check is daarom weg. Zonder dit endpoint stond elk document eeuwig op `in_review` en liep de
   werkvoorraad van de jurist nooit leeg.
 
-  **Een oordeel vergrendelt — heropenen is een handeling.** `geaccordeerd` betekende eerder niets:
+  **Een oordeel vergrendelt – heropenen is een handeling.** `geaccordeerd` betekende eerder niets:
   er kon daarna nog van alles bij, af en overheen, en een goedgekeurd element kon onbeperkt opnieuw
   beslist worden. Nu zijn er twee sloten, allebei 409 met een leesbare reden:
-  - **Element** — in `human_approved`/`rejected` (`VERGRENDELDE_LIFECYCLES`) weigert `beslissing`
+  - **Element** – in `human_approved`/`rejected` (`VERGRENDELDE_LIFECYCLES`) weigert `beslissing`
     een `edit`/`reject`/`approve`. Alleen `comment` (een kanttekening wijzigt de annotatie niet) en
     het nieuwe **`heropen`** komen erlangs. `heropen` zet het element terug op `critic_checked` (als
     de Critic er al naar keek, anders `voorgesteld`) en landt als eigen regel in `beslissingen` én
-    als `beslissing-heropen` in de audit — een teruggedraaid akkoord hoort zichtbaar te zijn.
+    als `beslissing-heropen` in de audit – een teruggedraaid akkoord hoort zichtbaar te zijn.
     `edited` vergrendelt bewust **niet**: een klasse wijzigen en er daarna een toelichting bij typen
     is één doorlopende handeling. Een **eigen markering** ook niet: die is `human_approved` bij het
-    aanmaken, dus gemaakt in plaats van beoordeeld — het slot beschermt een review-oordeel over een
+    aanmaken, dus gemaakt in plaats van beoordeeld – het slot beschermt een review-oordeel over een
     voorstel van de agent.
-  - **Document** — bij `status = geaccordeerd` weigeren `PUT elementen` (ook een agent-ronde),
+  - **Document** – bij `status = geaccordeerd` weigeren `PUT elementen` (ook een agent-ronde),
     `POST elementen`, `DELETE element` en `beslissing` (`_afgerond`). `POST .../status` is de enige
     uitweg, en dus ook de enige ingang.
 
@@ -149,7 +149,7 @@ De API bedient zeven dingen:
   **De lijst draagt de werkvoorraad.** `GET /documenten` levert per document ook `te_beoordelen`,
   `per_aandacht`, `per_klasse` (de JAS-kleurstrip in de UI), `laatste_model` en een `citeertitel`
   met terugval op `werkgebied`/`bwbId` (`annotatie_export.weergavenaam`). De telling komt uit
-  dezelfde `tel_elementen` als de export — twee tellingen naast elkaar spreken elkaar vroeg of laat
+  dezelfde `tel_elementen` als de export – twee tellingen naast elkaar spreken elkaar vroeg of laat
   tegen, en juist die telling stuurt waar de jurist heen gaat.
 
     **`PUT elementen` is een MERGE, geen vervanging.** De agent kan meerdere rondes draaien
@@ -162,7 +162,7 @@ De API bedient zeven dingen:
 
   **Een edit mag het fragment verplaatsen.** `Wijziging` draagt naast `klasse`/`tekst`/`toelichting`/
   `lid` een optioneel `anker`: kort de jurist een markering in of breidt hij hem uit, dan schuift de
-  plek mee. Verandert de tekst zonder dat er een anker meekomt, dan wordt het oude **gewist** — een
+  plek mee. Verandert de tekst zonder dat er een anker meekomt, dan wordt het oude **gewist** – een
   anker dat over het oude fragment gaat laat de markering na herladen naar een ander voorkomen
   springen. Het anker staat niet in de `diff` (machinerie, geen inhoudelijke wijziging) maar wel als
   `anker_verplaatst` in het auditdetail.
@@ -173,21 +173,21 @@ De API bedient zeven dingen:
 
   **Audit per element.** Naast de ronde-samenvatting (`elementen-voorgesteld`) schrijft elke ronde
   `element-voorgesteld` / `element-herzien` (met diff) / `element-ingetrokken` / `critic-suggestie`,
-  elk mét element-id en inhoud — anders is een ronde achteraf niet te reconstrueren. `GET audit` is
+  elk mét element-id en inhoud – anders is een ronde achteraf niet te reconstrueren. `GET audit` is
   daarom gepagineerd.
-- `routers/admin.py` — **`/v1/admin/*`** achter `require_admin`: modelprofielen-CRUD (write-only
+- `routers/admin.py` – **`/v1/admin/*`** achter `require_admin`: modelprofielen-CRUD (write-only
   API-key, `api_key_set` nooit de key zelf), default zetten, verbinding testen; het gebruikersbeheer
   (`/users` CRUD, de laatste actieve beheerder is beschermd); en de genereerbare API-tokens
   (`/api-tokens`).
-- `routers/catalog.py` — de niet-admin keuzelijst: `GET /v1/profiles` (alleen naam + default).
-- `main.py` — routers + `/health` (liveness) + `/ready` (alleen booleans). De lifespan doet DB-init
+- `routers/catalog.py` – de niet-admin keuzelijst: `GET /v1/profiles` (alleen naam + default).
+- `main.py` – routers + `/health` (liveness) + `/ready` (alleen booleans). De lifespan doet DB-init
   (met bounded connect-retry bij cold start), profiel-seeding en het instellen van de LLM-throttle.
 
 ## Observability
 
 `app/observability.py` configureert **gestructureerde JSON-logging** (mirror van de MCP-logger:
 `ts/niveau/categorie/bericht/…velden`, secret-redactie, `LOG_LEVEL`/`LOG_FORMAT`) plus **OpenTelemetry**
-(traces/metrics/logs), gated op `OTEL_EXPORTER_OTLP_ENDPOINT` — leeg = no-op, alleen logs. `setup()`
+(traces/metrics/logs), gated op `OTEL_EXPORTER_OTLP_ENDPOINT` – leeg = no-op, alleen logs. `setup()`
 draait vroeg in `main.py`; `RequestContextMiddleware` (pure ASGI, veilig voor SSE) zet een
 `X-Request-Id` en logt per request. `get_tracer()`/`get_meter()` geven no-op-shims terug zonder de
 `otel`-extra, dus code mag onvoorwaardelijk spans/metrics maken. Nooit tokens/secrets/prompt-inhoud
@@ -196,7 +196,7 @@ loggen. Zie `docs/observability.md`.
 ## Garanties (niet aan tornen)
 
 - **Per-gebruiker isolatie.** Elk annotatie-document én elk **gesprek** is per-gebruiker gescopet via
-  de vertrouwde `X-User-Id`-header — 404 op andermans slug/id (lekt niet). De dependency is
+  de vertrouwde `X-User-Id`-header – 404 op andermans slug/id (lekt niet). De dependency is
   **`actieve_userid`** (`routers/auth.py`): die controleert bovendien dat het account nog bestaat en
   actief is, met een cache van 30s. `huidige_userid` leest alleen de header en is er voor endpoints
   die hun eigen bewijs vragen (wachtwoord, 2FA-code). Deactiveren/verwijderen bijt meteen doordat de
@@ -206,12 +206,12 @@ loggen. Zie `docs/observability.md`.
   `api_key_set`); het opslaan vereist een geconfigureerde Fernet-master-key.
 - **Append-only auditlog.** Elke annotatie-actie schrijft auditregels; de tijdlijn is `ORDER BY id`.
 - **Eén schrijfpad naar `elementen`.** Alles loopt via `AnnotatieStore.muteer_document` met
-  `with_for_update()`. Er stond hier ook een `vervang_elementen` zónder lock; die is weg — een
+  `with_for_update()`. Er stond hier ook een `vervang_elementen` zónder lock; die is weg – een
   destructief pad dat blijft rondslingeren wordt vroeg of laat gebruikt.
 - **JAS-klassen zijn canoniek.** Een voorgesteld element wordt gevalideerd tegen
-  `validation.GELDIGE_JAS_KLASSEN` — verzin er geen bij.
+  `validation.GELDIGE_JAS_KLASSEN` – verzin er geen bij.
 - **Secrets zijn bestanden.** Alle secrets (admin-tokens, client-tokens, DB-credentials, Fernet-key)
-  staan als bestanden op de host (`*_FILE`-patroon) — nooit als plain env var.
+  staan als bestanden op de host (`*_FILE`-patroon) – nooit als plain env var.
 
 ## Lokaal draaien
 
@@ -223,7 +223,7 @@ Maak `api/secrets/` aan (gitignored) en vul:
 # Vanuit de projectroot:
 mkdir api\secrets
 [IO.File]::WriteAllText("$PWD\api\secrets\api_tokens",       "lokaal:<zelfgekozen-token>")
-# LLM-beheer (admin) — optioneel lokaal:
+# LLM-beheer (admin) – optioneel lokaal:
 [IO.File]::WriteAllText("$PWD\api\secrets\admin_tokens",      "admin:<zelfgekozen-admin-token>")
 [IO.File]::WriteAllText("$PWD\api\secrets\llm_config_secret", "<fernet-key>")
 ```
@@ -252,7 +252,7 @@ uv sync --extra llm --extra dev
 uv run --env-file .env uvicorn app.main:app --reload --port 3000
 ```
 
-`uv run` laadt `.env` **niet** automatisch — de `--env-file .env` vlag is verplicht.
+`uv run` laadt `.env` **niet** automatisch – de `--env-file .env` vlag is verplicht.
 Swagger: `http://localhost:3000/docs` · health: `/health` · ready: `/ready`
 
 Lokaal heb je ook een **PostgreSQL** nodig (de opslag). Snel:
@@ -269,7 +269,7 @@ uv run pytest -q               # unit-tests (fakes; geen netwerk)
 ## Deployment
 
 **Postgres draait als eigen dienst** (Azure PostgreSQL Flexible Server, `deploy/azure/main.bicep`),
-niet in de api-container — zo raakt een image-redeploy de database nooit. De API verbindt met een
+niet in de api-container – zo raakt een image-redeploy de database nooit. De API verbindt met een
 **bounded connect-retry** bij cold start (`main.py` → `_init_db_met_retry`, knoppen
 `WETSANALYSE_DB_CONNECT_RETRIES`/`_BACKOFF`). De host-secrets (incl.
 De databaseverbinding komt als secret uit de bicep (`database-url`).
@@ -285,25 +285,25 @@ bestanden op de host (`*_FILE`-patroon). Build vanaf de **projectroot**:
 ### Secrets
 
 Op Azure beheert de bicep ze: elke waarde staat als container-app-secret en wordt als `*_FILE`-pad of
-env aan de container gegeven. `azure-infra.yml` **roteert ze niet** bij een deploy — de volgorde is
+env aan de container gegeven. `azure-infra.yml` **roteert ze niet** bij een deploy – de volgorde is
 GitHub environment-secret (`WA_*`) → wat er al in Azure draait → anders vers genereren. Dat is geen
 netheid maar noodzaak: `llm-config-secret` is de Fernet-sleutel waarmee de API de API-keys van
 modelprofielen én de 2FA-secrets van gebruikers versleutelt. Genereer je die opnieuw, dan zijn alle
 opgeslagen keys en 2FA-inschrijvingen onleesbaar.
 
 Die job **faalt** bewust bij een ontbrekend secret (dat was eerder een `if` die de stap oversloeg en
-de run groen liet), en hij **wacht tot de nieuwe revisie draait** — `az containerapp update` keert al
+de run groen liet), en hij **wacht tot de nieuwe revisie draait** – `az containerapp update` keert al
 terug zodra de revisie is aangemaakt, dus een crashende container bleef anders onopgemerkt.
 
-Lokaal draaien vraagt geen van deze secrets: zie §*Lokale smoke-test* — sqlite-override plus
+Lokaal draaien vraagt geen van deze secrets: zie §*Lokale smoke-test* – sqlite-override plus
 `--extra llm`.
 
 ### Troubleshooting deploy
 
-- **API-log: kan niet verbinden met de database / `OperationalError`** — controleer de
+- **API-log: kan niet verbinden met de database / `OperationalError`** – controleer de
   `database-url`-secret op de container app en of de PostgreSQL-firewall de container-apps-omgeving
   toelaat.
-- **Revisie komt niet op** — `az containerapp revision list` toont de status; de logs staan in de Log
+- **Revisie komt niet op** – `az containerapp revision list` toont de status; de logs staan in de Log
   Analytics-workspace `log-<appName>`.
 
 ## Misbruik-/kostenbeheersing
@@ -311,7 +311,7 @@ Lokaal draaien vraagt geen van deze secrets: zie §*Lokale smoke-test* — sqlit
 Knoppen via env (0 = uit): `WETSANALYSE_RATE_LIMIT_MAX`/`_WINDOW` (per-client request-rate → 429),
 `WETSANALYSE_ADMIN_TEST_RATE_MAX`/`_WINDOW` (aparte, krappe limiet op
 `POST /v1/admin/profiles/{name}/test` → 429; die doet een betaalde LLM-call achter alleen het
-admin-token — de testfout is gesaniteerd: een vaste melding in de respons, de ruwe provider-fout alleen
+admin-token – de testfout is gesaniteerd: een vaste melding in de respons, de ruwe provider-fout alleen
 in het server-log), `WETSANALYSE_LLM_MAX_CONCURRENCY` (globaal plafond op gelijktijdige LLM-calls) en
 `WETSANALYSE_LLM_TIMEOUT_S` (harde wandklok-timeout per LLM-call). De in-process rate-limiter is
 begrensd (sweep + harde cap op het aantal sleutels, fail-closed) zodat aanvaller-gekozen sleutels via
@@ -323,5 +323,5 @@ de publieke login-route het geheugen niet vol pompen.
   federatie met een externe IdP is nog niet gebouwd.
 - **Herbouw van de bredere agentische analyse-flow.** De agentische **act-2-annotatie draait al** in
   graph-qa (de annotatie-worker: ophaal → annoteer → Critic → advance). Rest: **begrippen (activiteit
-  3)** en de **RegelSpraak-formalisering** — eerder uit de engine/webapp/skill verwijderd om later op
+  3)** en de **RegelSpraak-formalisering** – eerder uit de engine/webapp/skill verwijderd om later op
   agentische basis te herbouwen (buiten deze API).

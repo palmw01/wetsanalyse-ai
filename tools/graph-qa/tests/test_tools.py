@@ -54,7 +54,7 @@ def test_dispatch_vangt_validatiefout_op():
 
 def test_dispatch_vangt_transportfout_op():
     # F1: een httpx-transportfout (timeout/connection-reset) tijdens een tool-call mag de agent-beurt
-    # niet breken — dispatch geeft 'm als tool-resultaat terug zodat de agent kan herstellen.
+    # niet breken – dispatch geeft 'm als tool-resultaat terug zodat de agent kan herstellen.
     import httpx
 
     def _kapot(_q: str) -> str:

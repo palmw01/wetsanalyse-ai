@@ -32,7 +32,7 @@ function Icoon({ type, className }: { type: MeldingType; className: string }) {
         </svg>
       );
     case "waarschuwing":
-      // Gele driehoek met (donker) uitroepteken — wit haalt op #E17000 net geen AA-contrast.
+      // Gele driehoek met (donker) uitroepteken – wit haalt op #E17000 net geen AA-contrast.
       return (
         <svg viewBox="0 0 24 24" aria-hidden="true" className={klasse}>
           <path

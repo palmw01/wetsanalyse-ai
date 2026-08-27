@@ -14,7 +14,7 @@ import type { GesprekSamenvatting } from "@/lib/types";
 
 /** De volledige werkplek-app: links de sidebar (logo → chatgeschiedenis → instellingen/gebruiker),
  *  rechts het chatvenster. `activeId` stuurt de highlight; `mountKey` bepaalt wanneer het chatvenster
- *  vers remount (nieuw/openen) — een gesprek dat tijdens een lopende beurt een id krijgt, remount NIET
+ *  vers remount (nieuw/openen) – een gesprek dat tijdens een lopende beurt een id krijgt, remount NIET
  *  (anders breekt de SSE-stream). Op mobiel wordt de sidebar een off-canvas drawer. */
 export function WorkbenchShell({
   beginGesprekId = null,
@@ -53,10 +53,10 @@ export function WorkbenchShell({
   }
 
   // Eerste bezoek aan de werkplek: de rondleiding biedt zichzelf aan. Bewust hier en niet in een
-  // effect verderop — dit is het enige scherm waar hij iets kan aanwijzen.
+  // effect verderop – dit is het enige scherm waar hij iets kan aanwijzen.
   useEffect(() => {
     // Bewust in een effect en niet in een lazy initializer: `localStorage` bestaat niet tijdens de
-    // server-render, dus zou de server "geen rondleiding" renderen en de client wél — een
+    // server-render, dus zou de server "geen rondleiding" renderen en de client wél – een
     // hydratatieverschil. Eén keer bij binnenkomst is precies wat hier moet gebeuren.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (moetStarten(leesStand())) startRondleiding();
@@ -86,14 +86,14 @@ export function WorkbenchShell({
   return (
     <div className="flex h-full flex-col">
       {/* Waar zit ik? Deze strook hing eerder aan de globale sitekop, en die verborg zichzelf op de
-          werkplek — dus juist waar je de hele dag werkt, zag je hem nooit. Nu staat hij bovenaan de
+          werkplek – dus juist waar je de hele dag werkt, zag je hem nooit. Nu staat hij bovenaan de
           schil. De klik opent de voorwaarden als dialog (intercepting route), zodat je je gesprek
           niet verlaat. */}
       <Link
         href="/disclaimer"
         className="focus-ring block shrink-0 bg-waarschuwing/10 py-1 text-center text-[0.7rem] text-ink transition-colors hover:bg-waarschuwing/20"
       >
-        <span className="font-semibold">Testomgeving — proof of concept.</span>{" "}
+        <span className="font-semibold">Testomgeving – proof of concept.</span>{" "}
         Analyses kunnen verloren gaan. <span className="underline">Lees de voorwaarden</span>
       </Link>
 

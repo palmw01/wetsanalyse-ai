@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 async def _init_db_met_retry() -> None:
     """Verbind met de DB en maak de tabellen aan, met **bounded retry**. Postgres draait als
     aparte stack (geen cross-stack `depends_on`), dus bij een cold start kan de DB nog niet klaar zijn
-    wanneer de API opstart — dan retrye we i.p.v. crash-loopen. Knoppen: `WETSANALYSE_DB_CONNECT_RETRIES`
+    wanneer de API opstart – dan retrye we i.p.v. crash-loopen. Knoppen: `WETSANALYSE_DB_CONNECT_RETRIES`
     (default 30) en `WETSANALYSE_DB_CONNECT_BACKOFF` (seconden, default 2) → ~60s venster."""
     import sqlalchemy.exc
 
@@ -42,10 +42,10 @@ async def _init_db_met_retry() -> None:
             return
         except transient as exc:  # noqa: PERF203
             if poging >= pogingen:
-                logger.error("DB niet bereikbaar na %d pogingen — opgeven", pogingen)
+                logger.error("DB niet bereikbaar na %d pogingen – opgeven", pogingen)
                 raise
             logger.warning(
-                "DB nog niet bereikbaar (poging %d/%d: %s) — %.1fs backoff",
+                "DB nog niet bereikbaar (poging %d/%d: %s) – %.1fs backoff",
                 poging, pogingen, type(exc).__name__, backoff,
             )
             await asyncio.sleep(backoff)
@@ -61,14 +61,14 @@ async def lifespan(app: FastAPI):
     # Async SQLAlchemy-engine + tabellen. In productie zou een migratietool (Alembic) het schema
     # beheren; voor de beproevingsfase volstaat create_all (idempotent: alleen ontbrekende tabellen).
     db.init_engine(settings.database_url)
-    # create_all (idempotent) met bounded retry — vangt een nog-niet-klare DB bij cold start op
+    # create_all (idempotent) met bounded retry – vangt een nog-niet-klare DB bij cold start op
     # (postgres is een aparte stack zonder cross-stack depends_on).
     await _init_db_met_retry()
     try:
         from . import profiles
 
         await profiles.ensure_seeded(settings)
-    except Exception:  # noqa: BLE001 — seeding mag de start nooit blokkeren
+    except Exception:  # noqa: BLE001 – seeding mag de start nooit blokkeren
         logger.exception("Seeden van het default-modelprofiel is mislukt")
     yield
     await db.dispose_engine()
@@ -107,16 +107,16 @@ app.include_router(gesprekken.router, prefix="/v1")
 
 @app.get("/health", tags=["meta"])
 async def health():
-    """Liveness — geen auth, mag niet falen op trage MCP/LLM."""
+    """Liveness – geen auth, mag niet falen op trage MCP/LLM."""
     s = get_settings()
     return {"status": "ok", "version": __version__, "git_sha": s.git_sha, "build_time": s.build_time}
 
 
 @app.get("/ready", tags=["meta"])
 async def ready():
-    """Readiness — configuratie aanwezig? (geen netwerk-call om health niet te koppelen)."""
+    """Readiness – configuratie aanwezig? (geen netwerk-call om health niet te koppelen)."""
     s = get_settings()
-    # Alleen booleans — geen interne URL's/hostnamen lekken aan een ongeauthenticeerd endpoint.
+    # Alleen booleans – geen interne URL's/hostnamen lekken aan een ongeauthenticeerd endpoint.
     return {
         "auth_geconfigureerd": bool(s.client_tokens) or not s.auth_required,
         "llm_model_gezet": bool(s.llm_model),

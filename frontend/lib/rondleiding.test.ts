@@ -29,7 +29,7 @@ describe("de stappenlijst", () => {
   it("opent het artefact pas nadat de stap erover is gegaan", () => {
     const eersteMetArtefact = STAPPEN.findIndex((s) => s.artefactOpen);
     // De stap die het artefact laat openen ("chip") staat er direct vóór en heeft hem zelf nog niet
-    // nodig — anders wijst de rondleiding naar een paneel dat nog dicht is.
+    // nodig – anders wijst de rondleiding naar een paneel dat nog dicht is.
     expect(STAPPEN[eersteMetArtefact - 1].anker).toBe("chip");
     expect(STAPPEN[eersteMetArtefact - 1].artefactOpen).toBeUndefined();
   });
@@ -85,10 +85,10 @@ describe("de voorbeeldscène", () => {
     const bron = demoBron();
     const bezet: { start: number; eind: number }[] = [];
     for (const el of doc.elementen) {
-      expect(el.anker, `${el.klasse} — "${el.tekst}"`).not.toBeNull();
+      expect(el.anker, `${el.klasse} – "${el.tekst}"`).not.toBeNull();
       // Zelfde terugvindweg als het documentpaneel: staat de markering niet, dan zweeft hij.
       const pos = vindPositie(bron, el.tekst, el.anker, bezet);
-      expect(pos, `${el.klasse} — "${el.tekst}"`).toBeGreaterThanOrEqual(0);
+      expect(pos, `${el.klasse} – "${el.tekst}"`).toBeGreaterThanOrEqual(0);
       bezet.push({ start: pos, eind: pos + el.tekst.length });
     }
   });
@@ -133,7 +133,7 @@ describe("de voorbeeldscène", () => {
 
   it("levert een gevulde gesprekkenlijst voor de sidebar", () => {
     // De stap "Je werk terugvinden" wijst de sidebar aan. Die haalt zijn lijst normaal bij de api,
-    // en bij een nieuwe gebruiker — precies wie de rondleiding krijgt — is die leeg.
+    // en bij een nieuwe gebruiker – precies wie de rondleiding krijgt – is die leeg.
     const scene = maakDemoScene();
     expect(scene.gesprekken.length).toBeGreaterThan(0);
     expect(new Set(scene.gesprekken.map((g) => g.id)).size).toBe(scene.gesprekken.length);
@@ -216,7 +216,7 @@ describe("waar de bubbel komt te staan", () => {
 
   it("centreert bij het gespreksvenster in plaats van het aan te wijzen", () => {
     // De thread is de scroll-container tussen topbar en invoerveld: bijna de volle hoogte. Hier
-    // ging het mis — "de kant met de meeste ruimte" leverde een bubbel onder de schermrand.
+    // ging het mis – "de kant met de meeste ruimte" leverde een bubbel onder de schermrand.
     const thread: Vak = { top: 56, left: 288, breedte: 1152, hoogte: 770 };
     expect(plaatsBubbel(thread, BUBBEL, SCHERM)).toEqual({ modus: "midden" });
   });
@@ -276,7 +276,7 @@ describe("waar de bubbel komt te staan", () => {
 
 describe("de ankers bestaan echt", () => {
   // Een stap die naar een `data-tour` wijst dat niemand meer zet, valt stil terug op een
-  // gecentreerde kaart: de rondleiding breekt niet, maar wijst ook niets meer aan — en dat merk je
+  // gecentreerde kaart: de rondleiding breekt niet, maar wijst ook niets meer aan – en dat merk je
   // pas als je hem zelf doorloopt. Vandaar deze koppeling aan de bron.
   const bron = readFileSync(new URL("./rondleiding.test.ts", import.meta.url).pathname, "utf-8");
   const componenten = globSync("components/**/*.tsx").map((p) => readFileSync(p, "utf-8")).join("\n");

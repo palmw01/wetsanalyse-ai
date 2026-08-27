@@ -1,9 +1,9 @@
 """Twee dingen die de jurist rond zijn eigen werk krijgt:
 
-1. **Advies bij twijfel** (`modus="advies"`) — een vraag bij een bestaande annotatie. De supervisor
+1. **Advies bij twijfel** (`modus="advies"`) – een vraag bij een bestaande annotatie. De supervisor
    kiest dan niet zelf maar routeert hard naar de antwoord-worker, zodat een adviesvraag
    *topologisch* geen annotatie kan wijzigen: die route emit simpelweg geen doel/element-events.
-2. **De Critic kijkt mee op eigen markeringen** — als suggestie, nooit als wijziging.
+2. **De Critic kijkt mee op eigen markeringen** – als suggestie, nooit als wijziging.
 """
 from __future__ import annotations
 
@@ -56,7 +56,7 @@ def test_adviesvraag_wijzigt_nooit_een_annotatie():
 
 
 def test_adviesvraag_slaat_de_supervisor_over():
-    """Geen LLM-call voor een keuze die al vaststaat — en geen kans dat hij 'annotatie' kiest."""
+    """Geen LLM-call voor een keuze die al vaststaat – en geen kans dat hij 'annotatie' kiest."""
     llm = FakeLLM([
         response([text_block("Een voorwaarde is een conditie voor een rechtsgevolg.")], "end_turn"),
         response([text_block("gegrond")], "end_turn"),
@@ -123,14 +123,14 @@ def test_de_buren_mogen_ter_ondersteuning_worden_gebruikt():
 
 
 def test_de_buren_gaan_mee_in_de_context_en_niet_uit_het_geheugen():
-    """Anders verschilt hetzelfde antwoord per gesprek — afhankelijk van wat er nog in de historie zat."""
+    """Anders verschilt hetzelfde antwoord per gesprek – afhankelijk van wat er nog in de historie zat."""
     system = _motiveer([
         {"id": "a", "klasse": "Rechtsobject", "tekst": "belastingaanslag", "lid": "1"},
         {"id": "b", "klasse": "Tijdsaanduiding", "tekst": "zes weken", "lid": "1"},
     ])
     assert "ANDERE MARKERINGEN IN DEZE BEPALING" in system
-    assert 'Rechtsobject — "belastingaanslag"' in system
-    assert 'Tijdsaanduiding — "zes weken"' in system
+    assert 'Rechtsobject – "belastingaanslag"' in system
+    assert 'Tijdsaanduiding – "zes weken"' in system
 
 
 def test_zonder_buren_geen_leeg_kopje():
@@ -214,7 +214,7 @@ def test_de_critic_prompt_labelt_eigen_markeringen():
 
 
 def test_een_rood_oordeel_op_eigen_werk_start_geen_herziening():
-    """De agent herschrijft nooit wat de jurist markeerde — ook niet als de Critic het afkeurt."""
+    """De agent herschrijft nooit wat de jurist markeerde – ook niet als de Critic het afkeurt."""
     events, llm = _annotatie_met_eigen_markering([
         {"id": "agent-1", "aandacht": "groen", "motivatie": "helder"},
         {"id": "mens-1", "aandacht": "rood", "motivatie": "onjuist", "actie": "vervang",

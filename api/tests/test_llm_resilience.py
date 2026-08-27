@@ -65,7 +65,7 @@ def test_prompt_guard_laat_klein_door_en_noop_zonder_limiet():
 
 async def test_repair_retry_telt_usage_van_beide_calls(monkeypatch):
     """Faalt de eerste generatie op JSON en herstelt de repareer-retry het, dan telt de
-    LLMResult de tokens van BEIDE calls — de eerste (mislukte) generatie is óók verbruik.
+    LLMResult de tokens van BEIDE calls – de eerste (mislukte) generatie is óók verbruik.
 
     litellm zit in de optionele `llm`-extra en ontbreekt in de CI-testomgeving; de client
     importeert het pas ín complete(), dus een stub-module in sys.modules volstaat en de test

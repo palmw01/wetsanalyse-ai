@@ -71,7 +71,7 @@ jobs:
       # Wat draait er op acceptatie, en hoort dat bij DEZE tag? De publish-workflows zetten via
       # docker/metadata-action het OCI-label `org.opencontainers.image.revision` op elk image. Komt
       # dat niet overeen met de commit achter de tag, dan zou je iets anders uitrollen dan de tag
-      # belooft — en dat is precies wat een release onbetrouwbaar maakt.
+      # belooft – en dat is precies wat een release onbetrouwbaar maakt.
       - name: Digests van acceptatie ophalen en tegen de tag toetsen
         id: digests
         run: |
@@ -173,7 +173,7 @@ jobs:
             echo "bwb-import ${{ steps.digests.outputs.bwb_import }}"
             echo '```'
             echo ""
-            echo "\`release/prd\` wijst nu naar deze commit — \`git log release/prd\` toont wat er draait."
+            echo "\`release/prd\` wijst nu naar deze commit – \`git log release/prd\` toont wat er draait."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Afmelden bij Azure

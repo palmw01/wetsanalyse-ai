@@ -8,7 +8,7 @@ import { exporteerDocument, isApiError, type ExportFormaat } from "@/lib/api";
 interface Props {
   slug: string;
   /** De letterlijke wettekst per lid (rauw, zonder nummer-voorvoegsel); gaat mee zodat het rapport
-   *  de bron naast de tabel kan zetten. De api verzint hem niet — zonder leden blijft dat blok weg. */
+   *  de bron naast de tabel kan zetten. De api verzint hem niet – zonder leden blijft dat blok weg. */
   leden: { lid: string; tekst: string }[];
   onFout: (melding: string) => void;
 }
@@ -19,7 +19,7 @@ const FORMATEN: { formaat: ExportFormaat; label: string; uitleg: string }[] = [
   { formaat: "json", label: "JSON", uitleg: "alles, machineleesbaar" },
 ];
 
-/** Download de annotatie — ook halverwege de review. Bewust geen statusdrempel: een concept
+/** Download de annotatie – ook halverwege de review. Bewust geen statusdrempel: een concept
  *  exporteren is een normale handeling, en het bestand zegt zelf hoeveel er nog te beoordelen is.
  *
  *  Het paneel sluit na een geslaagde download doordat de Popover met een nieuwe `key` remount;
@@ -70,7 +70,7 @@ export function ExportKnop({ slug, leden, onFout }: Props) {
               className="focus-ring flex w-full flex-col items-start gap-0.5 rounded-md px-2.5 py-1.5 text-left transition-colors hover:bg-surface disabled:opacity-60"
             >
               <span className="text-sm font-medium text-ink">
-                {bezig === f.formaat ? `${f.label} — bezig…` : f.label}
+                {bezig === f.formaat ? `${f.label} – bezig…` : f.label}
               </span>
               <span className="text-xs text-muted">{f.uitleg}</span>
             </button>

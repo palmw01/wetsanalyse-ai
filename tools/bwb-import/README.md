@@ -11,9 +11,9 @@ volledige BWB-collectie zonder het datamodel te wijzigen.
 SRU-discovery → toestand-XML downloaden → XSD-validatie → lxml-parse → collect → GraphDB-writer
 ```
 
-1. **Downloader** — ontdekt toestanden via de SRU-zoekdienst en haalt de
+1. **Downloader** – ontdekt toestanden via de SRU-zoekdienst en haalt de
    nieuwste toestand-XML op (met lokale cache in `data/`).
-2. **Parser** — valideert (optioneel) tegen het officiële XSD en parset de
+2. **Parser** – valideert (optioneel) tegen het officiële XSD en parset de
    echte toestand-structuur naar dataclasses. Drie documentsoorten: gewone
    wetten/besluiten (`<wet-besluit>/<wettekst>` met
    hoofdstuk/afdeling/…/artikel/lid), ministeriële regelingen
@@ -22,9 +22,9 @@ SRU-discovery → toestand-XML downloaden → XSD-validatie → lxml-parse → c
    (`<circulaire>/<circulaire-tekst>` met een recursieve
    `<circulaire.divisie>`-boom, bv. de Leidraad Invordering 2008
    `BWBR0024096`); een divisie is tegelijk container én tekstdrager.
-3. **Collect** (`app/collect.py`) — loopt het model één keer door naar een
+3. **Collect** (`app/collect.py`) – loopt het model één keer door naar een
    opslag-agnostische `Batch` (nodes/relaties/verwijzingen + telling).
-4. **Writer** (`app/graphdb_writer.py`) — vertaalt de `Batch` naar RDF-triples;
+4. **Writer** (`app/graphdb_writer.py`) – vertaalt de `Batch` naar RDF-triples;
    elke wet in een eigen named graph. Re-import vervangt die graaf integraal
    (RDF4J Graph Store `PUT`) → idempotent.
 
@@ -37,7 +37,7 @@ prefix `bwb:`).
 
 Waarom een **URN** en geen http-IRI: een domeinnaam in het datamodel bindt de data aan wie dat
 domein toevallig bezit, en verhuizen kost dan een herimport van álles. Dat een URN niet
-dereferenceerbaar is, kost hier niets — elke citeerbare node krijgt een `owl:sameAs` naar
+dereferenceerbaar is, kost hier niets – elke citeerbare node krijgt een `owl:sameAs` naar
 `wetten.overheid.nl`, en dát is de publieke, klikbare vindplaats.
 
 De twee ruimtes zijn bewust **disjunct** (`urn:bwb:` naast `urn:bwb-ns:`, niet `urn:bwb:ns:`):
@@ -97,7 +97,7 @@ waarde niet als segmentgrens leest.
 
 Stabiele sleutels komen uit het XML-attribuut `bwb-ng-variabel-deel`
 (bv. `BWBR0004770/HoofdstukI/Artikel1`), zodat herimports idempotent zijn. De
-ref_key is afgeleid uit de canonieke jci-verwijzing — daardoor ontstaan
+ref_key is afgeleid uit de canonieke jci-verwijzing – daardoor ontstaan
 cross-wet links vanzelf zodra de doelwet ook is geïmporteerd.
 
 > **Migratie**: sinds de citeerbare-identiteit-uitbreiding wijzigen de IRI's
@@ -157,15 +157,15 @@ cp .env.example .env   # vul GRAPHDB_* in (bij anonieme GraphDB volstaan de defa
 |------------------------|-------------------------------|-----------------------------------------------|
 | `GRAPHDB_URL`          | `http://graphdb:7200`         | GraphDB-basis-URL (intern op docker-netwerk)  |
 | `GRAPHDB_REPOSITORY`   | `inning`                      | Doel-repository                               |
-| `GRAPHDB_USER`         | —                             | Optioneel; leeg = anoniem                     |
-| `GRAPHDB_PASSWORD`     | —                             | Optioneel                                     |
+| `GRAPHDB_USER`         | –                             | Optioneel; leeg = anoniem                     |
+| `GRAPHDB_PASSWORD`     | –                             | Optioneel                                     |
 | `GRAPHDB_BASE_IRI`     | `urn:bwb:`       | IRI-namespace voor resources                  |
 | `GRAPHDB_ONTOLOGY_IRI` | `urn:bwb-ns:`    | IRI-namespace voor de ontologie               |
 | `BWB_DEFAULT_ID`       | `BWBR0004770`                 | Standaardregeling                             |
 | `BWB_VALIDATE_XSD`     | `true`                        | XSD-validatie (niet-blokkerend)               |
 | `BWB_DETECT_TEKSTUELE_REFS` | `true`                   | Ongetagde tekstverwijzingen detecteren        |
 | `BWB_IMPORT_WTI`       | `false`                       | WTI-verrijking (titels/rechtsgebieden/grondslagen) |
-| `BWB_SERVICE_API_KEY`  | —                             | Optionele API-key voor de service (`X-API-Key`-header) |
+| `BWB_SERVICE_API_KEY`  | –                             | Optionele API-key voor de service (`X-API-Key`-header) |
 | `BWB_DATA_DIR`         | `data/`                       | Cache-map voor gedownloade XML                |
 | `BWB_SCHEMAS_DIR`      | `schemas/`                    | Map met de officiële XSD's                    |
 | `BWB_SRU_URL`          | `https://zoekservice.overheid.nl/sru/Search` | SRU-zoekdienst (discovery)     |
@@ -208,7 +208,7 @@ Is `BWB_SERVICE_API_KEY` gezet, dan vereist `POST /import` de header
 `X-API-Key: <key>` (anders 401).
 
 De importer publiceert bewust geen poort: importeren is een schrijfactie op de graaf. Op Azure draait
-hij als container-app-job — starten met `azure-infra` → actie `vul-graaf`, of automatisch na elke
+hij als container-app-job – starten met `azure-infra` → actie `vul-graaf`, of automatisch na elke
 `deploy` en wekelijks via de cron-trigger in `deploy/azure/main.bicep`.
 
 ## Deployment

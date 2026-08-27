@@ -2,7 +2,7 @@
 //
 // graph-qa levert per beurt `grounding.niet_letterlijk`: tekst die het antwoord als citaat
 // presenteert maar die niet letterlijk in de opgehaalde wettekst staat. Dat stond alleen in een blok
-// ónder het antwoord — een waarschuwing die je makkelijk overslaat, terwijl je in de tekst zelf naar
+// ónder het antwoord – een waarschuwing die je makkelijk overslaat, terwijl je in de tekst zelf naar
 // een citaat kijkt dat er betrouwbaar uitziet omdat het aanhalingstekens draagt. Juist bij een
 // platform dat om brongetrouwheid draait hoort die twijfel te staan wáár je leest.
 //
@@ -18,7 +18,7 @@ export interface Segment {
 /** Knip `tekst` op in stukken, waarbij elk voorkomen van een passage apart komt te staan.
  *
  *  Matcht letterlijk (geen normalisatie): wijkt de weergave af van wat de controle vergeleek, dan
- *  markeren we liever niets dan het verkeerde stuk — het blok onder het antwoord noemt de passage
+ *  markeren we liever niets dan het verkeerde stuk – het blok onder het antwoord noemt de passage
  *  dan nog steeds. De langste passage wint, zodat een kort fragment dat toevallig in een langer
  *  fragment zit dat langere niet doormidden knipt.
  */
@@ -66,12 +66,12 @@ export interface HastKnoop {
 /** Rehype-plugin die afgekeurde citaten in de gerenderde tekst aanwijst.
  *
  *  De brongetrouwheidscontrole meldde ze alleen in een blok ónder het antwoord, en dat blok slaat
- *  iedereen op den duur over — terwijl je in de tekst zelf naar een passage kijkt die er betrouwbaar
+ *  iedereen op den duur over – terwijl je in de tekst zelf naar een passage kijkt die er betrouwbaar
  *  uitziet omdat er aanhalingstekens omheen staan. Nu staat de twijfel wáár je leest.
  *
  *  Op hast-niveau en niet op de bron-markdown: zo raken we de tekst zelf niet aan (geen ingevoegde
  *  tekens die de gebruiker meekopieert) en blijft de opmaak precies zoals het model hem bedoelde.
- *  Code-blokken slaan we over — daar is een treffer per definitie toeval.
+ *  Code-blokken slaan we over – daar is een treffer per definitie toeval.
  */
 export function markeerPassages(passages: readonly string[]) {
   return () => (boom: HastKnoop) => {

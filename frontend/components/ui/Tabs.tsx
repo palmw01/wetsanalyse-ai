@@ -8,7 +8,7 @@ export interface TabDef {
   label: string;
   content: ReactNode;
   /** Aantal openstaande items; > 0 toont een telbadge achter het label. De tab blijft toegankelijk
-   *  benoemd via `label` — de badge zelf is `aria-hidden` en dus geen ruis voor schermlezers. */
+   *  benoemd via `label` – de badge zelf is `aria-hidden` en dus geen ruis voor schermlezers. */
   badge?: number;
 }
 
@@ -28,7 +28,7 @@ export function Tabs({
   onChange: (key: string) => void;
   /** `vertical` = tabkolom links (instellingen); `horizontal` = onderlijn-indicator (rapport). */
   orientation?: "horizontal" | "vertical";
-  /** Alleen het actieve paneel renderen. Zet dit aan als panelen bij mount data ophalen — anders
+  /** Alleen het actieve paneel renderen. Zet dit aan als panelen bij mount data ophalen – anders
    *  vuurt élk paneel zijn fetch zodra de tabs verschijnen. Uit (default) blijft alles gemount,
    *  wat de print-/PDF-stylesheet nodig heeft. */
   lazy?: boolean;

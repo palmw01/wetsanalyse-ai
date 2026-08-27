@@ -2,9 +2,9 @@
 Contracten voor het annotatie-domein (wetsanalyse-workbench).
 
 Bewust **los** van `contracts.py` (de analyse-job/skill-contracten): dit is een vers, toekomstvast
-domein. Review-klaar ontworpen — velden voor latere fasen (aandacht, diff, alternatieven, lifecycle,
+domein. Review-klaar ontworpen – velden voor latere fasen (aandacht, diff, alternatieven, lifecycle,
 review_reason) zitten er vanaf het begin in. De JAS-klassenamen worden gevalideerd tegen de canonieke
-`validation.GELDIGE_JAS_KLASSEN` (neutrale data, geen skill-werkstroom) — dat gebeurt in de router.
+`validation.GELDIGE_JAS_KLASSEN` (neutrale data, geen skill-werkstroom) – dat gebeurt in de router.
 """
 from __future__ import annotations
 
@@ -58,7 +58,7 @@ class Aandacht(str, Enum):
 
 
 #: Lifecycles waarin het element een eindoordeel van de jurist draagt en dus op slot gaat: wijzigen
-#: kan pas na een expliciete `heropen`-beslissing. `edited` hoort er bewust NIET bij — een klasse
+#: kan pas na een expliciete `heropen`-beslissing. `edited` hoort er bewust NIET bij – een klasse
 #: wijzigen en er daarna een toelichting bij typen moet één doorlopende handeling blijven. Geldt
 #: alleen voor agent-elementen: een eigen markering is `human_approved` bij het aanmaken en is
 #: daarmee gemaakt, niet beoordeeld.
@@ -71,7 +71,7 @@ VERGRENDELDE_LIFECYCLES: frozenset[Lifecycle] = frozenset({
 # --- domein ------------------------------------------------------------------
 
 class AgentRun(BaseModel):
-    """Wie/wat een agent-ronde produceerde — de provenance van een voorstel.
+    """Wie/wat een agent-ronde produceerde – de provenance van een voorstel.
 
     Zonder dit is achteraf niet vast te stellen mét welk model een markering tot stand kwam, en
     dat is precies wat een export moet dragen en wat de latere graaf-promotie als herkomst nodig
@@ -130,7 +130,7 @@ class CriticSuggestie(BaseModel):
     """Critic-oordeel als advies: nooit automatisch toegepast, altijd een klik van de jurist.
 
     Twee bronnen: een oordeel over een markering die de jurist zelf maakte, en een fragmentvoorstel
-    uit de eindbeoordeling van de agent — die komt te laat voor de patcher en zou anders alleen in de
+    uit de eindbeoordeling van de agent – die komt te laat voor de patcher en zou anders alleen in de
     motivatietekst blijven staan."""
 
     aandacht: Aandacht | None = None
@@ -144,8 +144,8 @@ class CriticSuggestie(BaseModel):
 class Anker(BaseModel):
     """Waar een fragment stond toen het werd gemaakt.
 
-    Twee selectors naast elkaar (het W3C-annotatiepatroon): exacte offsets voor precisie — nodig om
-    twee identieke fragmenten in één artikel te onderscheiden — en quote-met-context als de brontekst
+    Twee selectors naast elkaar (het W3C-annotatiepatroon): exacte offsets voor precisie – nodig om
+    twee identieke fragmenten in één artikel te onderscheiden – en quote-met-context als de brontekst
     schuift (herimport, ander lid-bereik). `bron_hash` vertelt of de offsets nog over dezelfde tekst
     gaan. De offsets slaan op de samengevoegde brontekst die het documentpaneel toont.
     """
@@ -168,10 +168,10 @@ class AnnotatieElement(BaseModel):
     toelichting: str = ""
     vindplaats: str = ""
     # `herkomst` is ONVERANDERLIJK: wie het element heeft aangemaakt. `gewijzigd_door` is wie het
-    # daarna inhoudelijk aanpaste. Die twee zijn bewust gescheiden — anders is niet meer te zien of
+    # daarna inhoudelijk aanpaste. Die twee zijn bewust gescheiden – anders is niet meer te zien of
     # een element van de agent kwam zodra de jurist het één keer bijstelt.
-    herkomst: str = "agent"        # agent | mens — aangemaakt door
-    gewijzigd_door: str = ""       # "" | agent | mens — laatst inhoudelijk gewijzigd door
+    herkomst: str = "agent"        # agent | mens – aangemaakt door
+    gewijzigd_door: str = ""       # "" | agent | mens – laatst inhoudelijk gewijzigd door
     lifecycle: Lifecycle = Lifecycle.voorgesteld
     alternatieven: list[Alternatief] = []
     aandacht: Aandacht | None = None
@@ -205,7 +205,7 @@ class AnnotatieDocument(BaseModel):
     user_id: str = ""       # eigenaar (ingelogde gebruiker); de zichtbaarheid gaat hierop
     client_id: str = ""      # bearer-client (herkomst/tenant)
     # De naam van de regeling zoals hij in beeld komt. Apart van `werkgebied`, dat een
-    # kennisdomein hoort te zijn — de werkplek zette de wetnaam daar eerder in.
+    # kennisdomein hoort te zijn – de werkplek zette de wetnaam daar eerder in.
     citeertitel: str = ""
     werkgebied: str = ""
     bwbId: str
@@ -258,8 +258,8 @@ class ElementInvoer(BaseModel):
 
 
 class SuggestieInvoer(BaseModel):
-    """Kanttekening van de Critic: bij een element dat de JURIST maakte, of — als er een concreet
-    voorstel in zit (klasse en/of fragment) — bij een agent-element waarvan de eindbeoordeling nog
+    """Kanttekening van de Critic: bij een element dat de JURIST maakte, of – als er een concreet
+    voorstel in zit (klasse en/of fragment) – bij een agent-element waarvan de eindbeoordeling nog
     iets voorstelt."""
 
     element_id: str
@@ -273,7 +273,7 @@ class ElementenInvoer(BaseModel):
     """De volledige uitkomst van één agent-ronde voor dit document.
 
     **Eén kapot element mag de rest niet meeslepen.** De merge in de handler verwerpt een element met
-    een ongeldige klasse of een leeg fragment al per stuk, met een teller — maar de request-validatie
+    een ongeldige klasse of een leeg fragment al per stuk, met een teller – maar de request-validatie
     ervóór was alles-of-niets, dus een schemafout leverde een 422 op en dan landde er níéts. Twee
     poorten met tegengesteld beleid: dat verschil was de fout, niet de strengheid. Op dev kostte het
     een complete annotatie van vijftien markeringen.
@@ -288,7 +288,7 @@ class ElementenInvoer(BaseModel):
     #: validator hieronder; een client die dit zelf meestuurt, ziet het overschreven worden.
     geweigerd: list[dict] = []
     # Oordelen over MENS-elementen komen hier binnen, niet in `elementen`: die zijn bevroren en
-    # mogen niet als voorstel terugkomen. Ze landen in `critic_suggestie` — advies, geen wijziging.
+    # mogen niet als voorstel terugkomen. Ze landen in `critic_suggestie` – advies, geen wijziging.
     suggesties: list[SuggestieInvoer] = []
     ronde: int = 0
     # De productiegegevens van deze ronde (model/provider/agentversie), zoals graph-qa ze in het
@@ -342,7 +342,7 @@ class Wijziging(BaseModel):
     Het `anker` hoort bij `tekst`: kort de jurist een markering in of breidt hij hem uit, dan schuift
     de plek mee. Blijft het oude anker staan, dan wijzen de offsets naar het oude fragment en springt
     de markering na herladen naar een ander voorkomen. Verandert de tekst zonder dat er een anker
-    meekomt, dan wordt het oude gewist — geen anker is eerlijker dan een anker dat liegt.
+    meekomt, dan wordt het oude gewist – geen anker is eerlijker dan een anker dat liegt.
     """
 
     klasse: str | None = None

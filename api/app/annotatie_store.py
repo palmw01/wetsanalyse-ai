@@ -1,5 +1,5 @@
 """
-AnnotatieStore — persistentie voor het annotatie-domein (los van de analyse-`JobStore`).
+AnnotatieStore – persistentie voor het annotatie-domein (los van de analyse-`JobStore`).
 
 Zelfde SQLAlchemy-Core-stijl als `postgres_store.py` op dezelfde engine (`db.get_engine()`), maar een
 eigen, verse tabelset. Het document draagt de HUIDIGE elementen-staat (JSON); `annotatie_audit` is de
@@ -96,7 +96,7 @@ class AnnotatieStore:
 
         Eén pad met één slot, want twee gelijktijdige schrijvers op dezelfde JSON-kolom overschrijven
         elkaar anders volledig (lost update). Er stond hier eerder ook een `vervang_elementen` zónder
-        lock; die is weg — een destructief pad dat blijft rondslingeren wordt vroeg of laat gebruikt.
+        lock; die is weg – een destructief pad dat blijft rondslingeren wordt vroeg of laat gebruikt.
 
         `muteer` mag een sentinel teruggeven (bv. `GEEN_ELEMENT`) om de mutatie af te breken; die komt
         dan ongewijzigd terug en er wordt niets geschreven. Retourneert verder het bijgewerkte
@@ -142,7 +142,7 @@ class AnnotatieStore:
     ) -> AnnotatieDocument | None | object:
         """Pas een human-decision atomair toe op één element. Dunne wrapper om `muteer_document`.
 
-        `toepassen` krijgt het hele document mee — de vraag óf er beslist mag worden hangt niet
+        `toepassen` krijgt het hele document mee – de vraag óf er beslist mag worden hangt niet
         alleen van het element af maar ook van de documentstatus, en die toets hoort binnen dezelfde
         row-lock als de mutatie. Geeft het een sentinel terug (bv. `CONFLICT`), dan wordt er niets
         geschreven en komt die sentinel ongewijzigd terug.

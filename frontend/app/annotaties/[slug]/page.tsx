@@ -2,7 +2,7 @@ import { AnnotatieDetailClient } from "@/components/annotaties/AnnotatieDetailCl
 
 export const metadata = { title: "Annotatie · Wetsanalyse" };
 
-/** Eén annotatie als eigen pagina — het artefact los van het gesprek, met een deelbare URL. */
+/** Eén annotatie als eigen pagina – het artefact los van het gesprek, met een deelbare URL. */
 export default async function AnnotatiePagina({
   params,
 }: {

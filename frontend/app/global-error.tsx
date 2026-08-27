@@ -7,7 +7,7 @@ import { useEffect } from "react";
 
 import { sans, mono } from "./fonts";
 
-// Kleuren hardcoded op de huisstijl-tokens (uit app/globals.css) — de CSS-variabelen zijn hier
+// Kleuren hardcoded op de huisstijl-tokens (uit app/globals.css) – de CSS-variabelen zijn hier
 // niet gegarandeerd geladen. Fira via next/font (self-hosted, per-route geïnjecteerd; deze
 // boundary kan de root-layout-font niet erven), met system-ui als fail-safe in de stack.
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {

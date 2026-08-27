@@ -18,7 +18,7 @@ function abonneer(opWijziging: () => void): () => void {
  *
  *  Via `useSyncExternalStore` en niet via `useState` + effect: `matchMedia` ís externe state, en zo
  *  leest React de waarde tijdens het renderen in plaats van er één frame achteraan te lopen. Op de
- *  server bestaat `matchMedia` niet — daar is het antwoord `false`. Dat is hier onschuldig: het
+ *  server bestaat `matchMedia` niet – daar is het antwoord `false`. Dat is hier onschuldig: het
  *  artefact opent pas na een interactie, dus de eerste render toont het toch niet.
  */
 export function useBreedScherm(): boolean {

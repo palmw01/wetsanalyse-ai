@@ -1,15 +1,15 @@
 # Auto-merge voor Dependabot-PR's die patch/minor zijn of uit een van onze
 # expliciete groepen komen (zie `.github/dependabot.yml` → `groups.patch-and-minor`).
-# Semver-majors gaan HIER NIET vanzelf door — die verdienen menselijke review.
+# Semver-majors gaan HIER NIET vanzelf door – die verdienen menselijke review.
 #
 # Voorwaarde: Settings → General → "Allow auto-merge" moet AAN staan op de repo. Staat hij UIT,
-# dan parkeert `gh pr merge --auto` de intentie niet maar probeert hij meteen te mergen — en dan
+# dan parkeert `gh pr merge --auto` de intentie niet maar probeert hij meteen te mergen – en dan
 # botst hij op de branch protection van master (`poort` is een required check, met `strict: true`,
 # dus de branch moet ook up-to-date zijn). Het gevolg is een race: verschuift master tussen de
 # groene check en de merge, dan faalt de run met "Base branch was modified. Review and try the
 # merge again." Zo stonden alle mislukte runs van deze workflow erbij; de instelling stond tot
-# 27 aug 2026 uit. Gevaarlijk was het niet — de protection blokkeert een merge zonder groene
-# `poort` — maar wél onbetrouwbaar, en niet wat de code hier bedoelt.
+# 27 aug 2026 uit. Gevaarlijk was het niet – de protection blokkeert een merge zonder groene
+# `poort` – maar wél onbetrouwbaar, en niet wat de code hier bedoelt.
 #
 # Met de instelling AAN doet `--auto` wat er staat: de intentie wordt vastgehouden en GitHub
 # merget zelf zodra de required checks groen zijn en de branch bij is. Dependabot rebaset zijn
@@ -52,7 +52,7 @@ jobs:
   # ── Na de merge: de publish-workflows alsnog aftrappen ────────────────────────
   #
   # Een push die door `GITHUB_TOKEN` wordt veroorzaakt start GÉÉN workflow-runs. De auto-merge
-  # hierboven mergt met dat token, dus de `on: push`-publish-workflows bleven stil — en dan staat de
+  # hierboven mergt met dat token, dus de `on: push`-publish-workflows bleven stil – en dan staat de
   # wijziging wél op master maar draait hij nergens. Dat is niet theoretisch: op 25 aug 2026 landden
   # drie dependabot-commits op master en draaide er die dag geen enkele push-workflow, ook niet voor
   # #335 dat álle vier de publish-workflowbestanden raakte (elk staat in zijn eigen `paths:`).
@@ -72,7 +72,7 @@ jobs:
           fetch-depth: 0
 
       # Welke componenten raakte deze PR? Dezelfde paden als de `paths:`-filters van de
-      # publish-workflows, inclusief het workflowbestand zelf — een bump van een action daarin
+      # publish-workflows, inclusief het workflowbestand zelf – een bump van een action daarin
       # hoort net zo goed een rebuild op te leveren.
       - name: Dispatch de geraakte publish-workflows
         env:

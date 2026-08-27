@@ -1,5 +1,5 @@
 """
-JAS-klassen-referentie — de dertien klassen van het Juridisch Analyseschema.
+JAS-klassen-referentie – de dertien klassen van het Juridisch Analyseschema.
 
 Vers afgeleid uit de brondocumentatie (`docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md`): per klasse een
 omschrijving, een herken-vraag (à la zinsontleding) en de uitdrukkingswijze in wetgeving. Deze
@@ -52,7 +52,7 @@ JAS_KLASSEN: tuple[JasKlasse, ...] = (
         ),
         vraag="Hoe verhouden twee rechtssubjecten zich tot elkaar? Welke relatie hebben zij?",
         uitdrukkingswijze=(
-            "Een of meer werkwoorden — recht: 'kan verzoeken', 'mag wijzigen', 'heeft recht op'; "
+            "Een of meer werkwoorden – recht: 'kan verzoeken', 'mag wijzigen', 'heeft recht op'; "
             "plicht: 'stelt vast', 'moet informeren', 'is verplicht', 'dient te voldoen', 'draagt de last om'."
         ),
     ),
@@ -131,7 +131,7 @@ JAS_KLASSEN: tuple[JasKlasse, ...] = (
     JasKlasse(
         naam="Tijdsaanduiding",
         omschrijving=(
-            "Een omschrijving van een tijdstip of tijdvak — nodig voor de geldigheid van een rechtsbetrekking, "
+            "Een omschrijving van een tijdstip of tijdvak – nodig voor de geldigheid van een rechtsbetrekking, "
             "een tijdsverloop met rechtsgevolg, of als variabele/parameter(waarde). Kies bij twijfel de meest "
             "specifieke klasse (tijdsaanduiding boven variabele/parameter)."
         ),
@@ -186,7 +186,7 @@ GELDIGE_JAS_KLASSEN: frozenset[str] = frozenset(JAS_KLASSEN_VOLGORDE)
 
 
 # ---------------------------------------------------------------------------
-# JAS-regels — machineleesbare annotatie-regels naast de klasse-specificaties
+# JAS-regels – machineleesbare annotatie-regels naast de klasse-specificaties
 #
 # Eén definitie voedt prompts, deterministisch validators en toekomstige tools.
 # Nieuwe regels toevoegen hier; nooit dezelfde logica op drie plekken herhalen.
@@ -209,18 +209,18 @@ class RegelType(_Enum):
 class JASRule:
     """Eén machineleesbare JAS-annotatieregel.
 
-    `id`          — unieke identificator, formaat JAS-<TYPE>-<NNN>
-    `type`        — zie RegelType
-    `applies_to`  — klassen waarop de regel van toepassing is
-    `description` — mensleesbare toelichting (voor prompts en documentatie)
-    `priority`    — alleen voor RegelType.PRIORITEIT: dict van klasse → rang (hoger = wint).
+    `id`          – unieke identificator, formaat JAS-<TYPE>-<NNN>
+    `type`        – zie RegelType
+    `applies_to`  – klassen waarop de regel van toepassing is
+    `description` – mensleesbare toelichting (voor prompts en documentatie)
+    `priority`    – alleen voor RegelType.PRIORITEIT: dict van klasse → rang (hoger = wint).
                     Ontbrekende klassen krijgen impliciet rang 0.
     """
     id: str
     type: RegelType
     applies_to: tuple[str, ...]
     description: str
-    priority: tuple[tuple[str, int], ...] = ()   # tuple van (klasse, rang) — hashable
+    priority: tuple[tuple[str, int], ...] = ()   # tuple van (klasse, rang) – hashable
 
 
 def _prio(klassen_met_rang: dict[str, int]) -> tuple[tuple[str, int], ...]:

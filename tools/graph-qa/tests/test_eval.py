@@ -66,7 +66,7 @@ def test_offline_eval_run_slaagt():
 def test_offline_annotatie_eval_draait_end_to_end():
     """De annotatie-harnas zelf, met fakes: geen netwerk, geen kosten.
 
-    Dit bewijst de meting, niet het model — de FakeLLM speelt af wat de test hem geeft. Of het échte
+    Dit bewijst de meting, niet het model – de FakeLLM speelt af wat de test hem geeft. Of het échte
     model letterlijk citeert en binnen de bepaling blijft, meet alleen de live-run
     (`eval/run_eval.py --annotatie`).
     """
@@ -83,7 +83,7 @@ def test_offline_annotatie_eval_draait_end_to_end():
 # --- Annotatie-scorers ---------------------------------------------------------------------------
 #
 # Deze meten de duurste keten. De eerste twee zijn regressiedetectoren: de code dwingt ze af, dus
-# zakken ze onder 1.0 dan is er een garantie gesneuveld — geen prompt die iets minder goed raadt.
+# zakken ze onder 1.0 dan is er een garantie gesneuveld – geen prompt die iets minder goed raadt.
 
 CORPUS = "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet."
 
@@ -130,7 +130,7 @@ def test_injectie_wordt_ook_in_de_markeringen_gezocht():
 
 
 def test_alleen_de_garanties_bepalen_slagen():
-    """Precisie en recall worden gerapporteerd maar niet afgedwongen — JAS-analyse kent
+    """Precisie en recall worden gerapporteerd maar niet afgedwongen – JAS-analyse kent
     interpretatieruimte, en een harde drempel zou de eval laten vastlopen op een verdedigbaar
     verschil van mening."""
     r = score_annotatie(

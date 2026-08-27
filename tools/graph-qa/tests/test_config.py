@@ -53,7 +53,7 @@ def test_schrijfrecht_zonder_eigen_slot_weigert_te_starten():
     """Mag graph-qa naar de api schrijven, dan MOET zijn eigen endpoint een token hebben.
 
     Zonder `QA_API_TOKEN` is `/v1/runs` open (zie `_check_auth`), en het verzoek draagt zelf de
-    `user_id` waarnamens er geschreven wordt — dan is een open endpoint een schrijfprimitief op
+    `user_id` waarnamens er geschreven wordt – dan is een open endpoint een schrijfprimitief op
     elk gebruikersgesprek. Fail-fast bij boot in plaats van dat stil laten bestaan.
     """
     import pytest

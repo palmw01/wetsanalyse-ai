@@ -1,7 +1,7 @@
 """De supervisor: welke workers draaien er, en wanneer draait er géén.
 
 Twee dingen die eerder ontbraken. De workerlijst werd niet gevalideerd, dus elke naam die het model
-verzon werd stilzwijgend een extra ANTWOORD-worker — dezelfde vraag twee keer beantwoord, dubbele
+verzon werd stilzwijgend een extra ANTWOORD-worker – dezelfde vraag twee keer beantwoord, dubbele
 kosten. En "AFWIJZEN" stond wel in het promptformaat maar werd nergens gelezen: het ging als plan de
 systeemprompt van een specialist in, waarna een tweede modelbeslissing bepaalde wat er gebeurde.
 """
@@ -59,7 +59,7 @@ def test_gewoon_plan_is_geen_afwijzing():
 
 
 def test_afgewezen_vraag_kost_geen_tweede_llm_call():
-    """De hele winst: geen specialist, geen tools, geen graafverkeer — één beleefde melding."""
+    """De hele winst: geen specialist, geen tools, geen graafverkeer – één beleefde melding."""
     llm = FakeLLM([
         response([text_block("WORKERS: antwoord\nSPECIALIST: algemeen\nPLAN: AFWIJZEN")], "end_turn"),
     ])
@@ -113,7 +113,7 @@ def test_prompt_beperkt_afwijzen_tot_niet_wetgeving():
 
     De instructie zei "AFWIJZEN als de vraag niet over de Nederlandse wet- en regelgeving IN DE GRAAF
     gaat", en dat voegde twee dingen samen die uit elkaar horen. Of iets over wetgeving gaat weet de
-    supervisor zonder te kijken; of een bepáálde regeling in de graaf zit juist niet — hij heeft geen
+    supervisor zonder te kijken; of een bepáálde regeling in de graaf zit juist niet – hij heeft geen
     tools. Op dev wees hij daardoor een vraag over "de milieuwet" af, terwijl art. 36 IW 1990 de Wet
     belastingen op milieugrondslag noemt: er was wél iets te vinden.
     """
@@ -125,7 +125,7 @@ def test_prompt_beperkt_afwijzen_tot_niet_wetgeving():
 
 
 def test_afwijsmelding_claimt_niets_over_de_graaf():
-    """De melding mag niet suggereren dat de bepaling is opgezocht — er is niet gekeken."""
+    """De melding mag niet suggereren dat de bepaling is opgezocht – er is niet gekeken."""
     llm = FakeLLM([
         response([text_block("WORKERS: antwoord\nSPECIALIST: algemeen\nPLAN: AFWIJZEN")], "end_turn"),
     ])

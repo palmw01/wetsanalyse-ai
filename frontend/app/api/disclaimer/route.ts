@@ -1,4 +1,4 @@
-// Zet (POST) of wist (DELETE) de disclaimer-sessiecookie. Praat niet met de upstream-API — dit is
+// Zet (POST) of wist (DELETE) de disclaimer-sessiecookie. Praat niet met de upstream-API – dit is
 // puur browserstatus, zie lib/disclaimer.ts voor waarom het geen accountvlag is.
 //
 // DELETE wordt bij het uitloggen aangeroepen (het gebruikersmenu in de sidebar): een

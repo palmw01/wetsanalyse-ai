@@ -2,7 +2,7 @@
 
 De datalaag is bewust **Core** (geen ORM): alle SQL is geïsoleerd in de service-modules
 (profiles/users/api_tokens/annotatie_store), de domeinmodellen blijven plain Pydantic. De
-types zijn portable — `JSON` wordt `JSONB` op PostgreSQL en gewone `JSON` op SQLite, zodat de
+types zijn portable – `JSON` wordt `JSONB` op PostgreSQL en gewone `JSON` op SQLite, zodat de
 unit-tests op een in-memory SQLite draaien en productie op PostgreSQL (CloudNativePG).
 
 De engine wordt lui geïnitialiseerd (lifespan in productie, fixture in tests) zodat de modules
@@ -44,7 +44,7 @@ metadata = MetaData()
 # NB: de analyse-pijplijn en de wet-catalogus zijn verwijderd. De bijbehorende tabellen (`projects`,
 # `rondes`, `llm_calls`, `app_settings`, `wet_catalogus`) worden niet meer gedefinieerd of aangemaakt;
 # op een bestaande productie-DB blijven ze verweesd staan (samen met een eventuele Grafana-view erop)
-# — het daadwerkelijk droppen is een aparte, bewuste migratie, niet iets dat hier stil bij de start gebeurt.
+# – het daadwerkelijk droppen is een aparte, bewuste migratie, niet iets dat hier stil bij de start gebeurt.
 
 llm_profiles = Table(
     "llm_profiles",
@@ -83,7 +83,7 @@ users = Table(
     # Tijdstip waarop een beheerder de feedbacklijst voor het laatst bekeek; NULL = nooit.
     # Declaratief hier (nieuwe DB's via create_all) én idempotent via ALTER in reconcile_schema
     # (bestaande DB's). Zonder deze Column-declaratie crasht elke query die de kolom aanraakt met
-    # AttributeError, ook al bestaat ze in de echte database — SQLAlchemy Core kent haar pas via
+    # AttributeError, ook al bestaat ze in de echte database – SQLAlchemy Core kent haar pas via
     # het Table-object.
     Column("feedback_gezien_op", _DT, nullable=True),
     Column("created", _DT, nullable=False),
@@ -154,7 +154,7 @@ api_tokens = Table(
 
 # --- Annotatie-domein (wetsanalyse-workbench) ---------------------------------
 # Eén rij per bron-document; de elementen (met hun review-levenscyclus + beslissingen) staan als
-# JSON — het document draagt de HUIDIGE staat.
+# JSON – het document draagt de HUIDIGE staat.
 annotatie_documenten = Table(
     "annotatie_documenten",
     metadata,
@@ -197,7 +197,7 @@ annotatie_audit = Table(
 
 # --- Gesprekken-domein (chat-werkruimte) --------------------------------------
 # Persistente chatgeschiedenis van de werkplek. Anders dan het annotatie-domein (client-gescopet,
-# gedeeld) zijn gesprekken **per gebruiker** gescopet via `user_id` — de identiteit die de BFF uit de
+# gedeeld) zijn gesprekken **per gebruiker** gescopet via `user_id` – de identiteit die de BFF uit de
 # ingelogde sessie als vertrouwde `X-User-Id`-header meegeeft (nooit uit browser-input). Eén rij per
 # gesprek; de berichten staan als aparte, geordende rijen (append-only in de praktijk: de UI voegt toe).
 gesprekken = Table(
@@ -283,7 +283,7 @@ def _ontbrekende_kolommen(sync_conn, tabel: Table) -> list[Column]:
 async def reconcile_schema() -> None:
     """Additieve kolom-migratie: voeg kolommen toe die in de tabeldefinitie staan maar in de DB
     ontbreken. `create_all` maakt alleen ontbrekende *tabellen*; zonder deze stap breekt een `SELECT`
-    over een nieuw gedefinieerde kolom op een bestaande productie-tabel. **Alleen toevoegen** — nooit
+    over een nieuw gedefinieerde kolom op een bestaande productie-tabel. **Alleen toevoegen** – nooit
     droppen of typewijzigen (dus dataverlies uitgesloten). Veilig op SQLite én Postgres; draait in de
     lifespan vóór het serveren."""
     engine = get_engine()

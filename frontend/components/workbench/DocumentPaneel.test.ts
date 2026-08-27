@@ -6,12 +6,12 @@ import { maakAnker } from "@/lib/selectie";
 const BRON = "De ontvanger kan uitstel van betaling verlenen aan de belastingschuldige.";
 const HERHAALD = "De ontvanger verleent uitstel. De ontvanger kan dat weigeren.";
 
-/** Alle segmenten samen zijn altijd de hele brontekst — anders raakt er wettekst zoek in beeld. */
+/** Alle segmenten samen zijn altijd de hele brontekst – anders raakt er wettekst zoek in beeld. */
 function heelGebleven(bron: string, segs: { tekst: string }[]) {
   expect(segs.map((s) => s.tekst).join("")).toBe(bron);
 }
 
-describe("segmenteer — alleen de geselecteerde markering", () => {
+describe("segmenteer – alleen de geselecteerde markering", () => {
   const ELEMENTEN = [
     { id: "lang", klasse: "Afleidingsregel", tekst: BRON },
     { id: "kort", klasse: "Rechtsobject", tekst: "uitstel van betaling" },
@@ -62,7 +62,7 @@ describe("segmenteer — alleen de geselecteerde markering", () => {
 
 // --- ankers: welk voorkomen van een herhaald fragment wordt gemarkeerd? -------------------------
 
-describe("segmenteer — ankers", () => {
+describe("segmenteer – ankers", () => {
   function offsetVanMarkering(segs: { tekst: string; klasse?: string }[]) {
     return segs.slice(0, segs.findIndex((s) => s.klasse)).map((s) => s.tekst).join("").length;
   }
@@ -81,7 +81,7 @@ describe("segmenteer — ankers", () => {
     // Het anker komt van een oudere versie van de tekst: de hash klopt niet meer en de offsets
     // wijzen naar de verkeerde plek. De context moet het dan alsnog goed krijgen.
     const oud = "Inleiding. " + HERHAALD;
-    // let op: lastIndexOf — met indexOf(…, 1) pak je in `oud` nog steeds het EERSTE voorkomen,
+    // let op: lastIndexOf – met indexOf(…, 1) pak je in `oud` nog steeds het EERSTE voorkomen,
     // want "Inleiding. " schuift alles 11 tekens op.
     const tweedeOud = oud.lastIndexOf("De ontvanger");
     const verouderd = maakAnker(oud, tweedeOud, tweedeOud + 12);

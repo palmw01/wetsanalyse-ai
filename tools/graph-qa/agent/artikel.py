@@ -17,7 +17,7 @@ logger = logging.getLogger("graph_qa.artikel")
 
 
 class OngeldigeVindplaats(ValueError):
-    """De aanduiding kan geen bepaling zijn — een tikfout, geen lege graaf.
+    """De aanduiding kan geen bepaling zijn – een tikfout, geen lege graaf.
 
     Dit onderscheid bestond niet: één `except ValueError` dekte twee gevallen (de decimale-nummer-
     fallback, die bedoeld is, en echte invoerfouten, die dat niet zijn), waarna het endpoint 200 met
@@ -120,7 +120,7 @@ def haal_artikel_sync(bwb_id: str, artikel: str, graph: GraphPort, lid: str | No
         info = parse_select(graph.sparql(queries.get_regeling_info(bwb_id)))
         if info:
             citeertitel = (info[0].get("citeertitel") or "").strip()
-    except Exception:  # citeertitel is cosmetisch — nooit de artikeltekst blokkeren
+    except Exception:  # citeertitel is cosmetisch – nooit de artikeltekst blokkeren
         logger.warning("citeertitel ophalen mislukt", exc_info=True)
     return {
         "bwbId": bwb_id,

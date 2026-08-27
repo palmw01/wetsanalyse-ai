@@ -90,8 +90,8 @@ function isAfgebroken(e: unknown): boolean {
 // oplopende wachttijd (`herstelWachttijd`) en een banner die zegt wat er aan de hand is. De regel
 // zelf staat in `lib/lopendeRun.ts`; hier staat alleen wat het scherm ermee doet.
 //
-// Dit was eerder één poging na 1,5 seconde. Duurde de onderbreking langer — een herstart van
-// graph-qa is dat al — dan kwam de beurt als mislukt in beeld terwijl hij gewoon doorliep, en
+// Dit was eerder één poging na 1,5 seconde. Duurde de onderbreking langer – een herstart van
+// graph-qa is dat al – dan kwam de beurt als mislukt in beeld terwijl hij gewoon doorliep, en
 // alleen een herlaadbeurt bracht hem terug.
 
 interface Props {
@@ -104,7 +104,7 @@ interface Props {
   /** Annotatie die bij binnenkomst open moet staan (deep-link vanuit het annotatie-overzicht). */
   beginArtefact?: string;
   /** De voorbeeldscène van de rondleiding. Is die gezet, dan draait dit venster als demo: de thread
-   *  komt uit de scène, de invoer staat stil en elke mutatie blijft in dit geheugen — er gaat geen
+   *  komt uit de scène, de invoer staat stil en elke mutatie blijft in dit geheugen – er gaat geen
    *  enkel verzoek naar de api. De rondleiding krijgt hiervoor een eigen mount (zie `WorkbenchShell`),
    *  zodat het echte gesprek onaangeroerd blijft en na afloop gewoon weer uit de api komt. */
   demo?: DemoScene;
@@ -114,7 +114,7 @@ interface Props {
   /** Verhoog dit om het voorbeeldartefact te openen. De rondleiding laat de gebruiker eerst zelf op
    *  de kaart klikken en springt pas bij als dat uitblijft. */
   demoOpenSignaal?: number;
-  /** Start de rondleiding vanuit de lege staat — precies het moment waarop iemand hem nodig heeft. */
+  /** Start de rondleiding vanuit de lege staat – precies het moment waarop iemand hem nodig heeft. */
   onRondleiding?: () => void;
 }
 
@@ -148,7 +148,7 @@ export function WerkplekClient({
   // aanhaken en waarmee de stopknop hem beëindigt.
   const [runId, setRunId] = useState<string | null>(null);
   // Stoppen is gevraagd maar nog niet gebeurd. De agent-nodes zijn synchroon, dus een lopende
-  // LLM-call maakt zichzelf af — dat kan tientallen seconden duren en de knop hoort dat te tonen
+  // LLM-call maakt zichzelf af – dat kan tientallen seconden duren en de knop hoort dat te tonen
   // in plaats van te doen alsof het al klaar is.
   const [stopt, setStopt] = useState(false);
   // Het artefact openen haalt document + wettekst op. Dat mag niet stil gebeuren: zonder deze twee
@@ -163,13 +163,13 @@ export function WerkplekClient({
   // herstart of deploy). Beter dit zeggen dan een gesprek dat halverwege ophoudt zonder uitleg.
   const [runVerdwenen, setRunVerdwenen] = useState(false);
   // De verbinding met de lopende beurt is weg en we haken opnieuw aan. Een tóéstand en geen tekst in
-  // de antwoordbubbel: alleen zo kan de melding vanzelf verdwijnen zodra de stroom weer loopt — wat
+  // de antwoordbubbel: alleen zo kan de melding vanzelf verdwijnen zodra de stroom weer loopt – wat
   // hij eerder niet deed, zodat er niets anders op zat dan herladen.
   const [verbindingWeg, setVerbindingWeg] = useState(false);
   const lijstRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   // Synchrone guard tegen dubbel-verzenden (twee Enters in dezelfde tick): de `bezig`-state komt te laat
-  // — vóór de eerste `await` (maakGesprek) is die nog false, wat twee gesprekken zou aanmaken.
+  // – vóór de eerste `await` (maakGesprek) is die nog false, wat twee gesprekken zou aanmaken.
   const bezigRef = useRef(false);
   // Waarmee een lopende beurt is af te breken. Een annotatie duurt tot ~90 seconden; zonder dit is
   // een verkeerd gestelde vraag anderhalve minuut wachten.
@@ -178,7 +178,7 @@ export function WerkplekClient({
   // omhoogscrollen tijdens het streamen niet telkens wordt teruggetrokken.
   const stickRef = useRef(true);
   // Leeft dit venster nog? De unmount-cleanup aborteert `afbrekenRef`, maar een aanhaakactie die ná
-  // die cleanup zijn controller zet, wordt door niets meer opgeruimd — en laat dan een SSE-stroom
+  // die cleanup zijn controller zet, wordt door niets meer opgeruimd – en laat dan een SSE-stroom
   // open staan voor een scherm dat niemand ziet.
   const levendRef = useRef(true);
   // Past het artefact naast de chat? Dan wordt het een eigen kolom in plaats van een overlay, en
@@ -270,7 +270,7 @@ export function WerkplekClient({
     setItems((xs) => xs.map((x) => (x.id === id ? ({ ...x, ...patch } as Item) : x)));
   }
 
-  /** Haalt het document op en cachet het. Gooit door — de aanroeper bepaalt wat een fout betekent. */
+  /** Haalt het document op en cachet het. Gooit door – de aanroeper bepaalt wat een fout betekent. */
   async function haalEnCache(slug: string): Promise<AnnotatieDocument> {
     const document = await haalDocument(slug);
     setDocs((m) => ({ ...m, [slug]: document }));
@@ -316,7 +316,7 @@ export function WerkplekClient({
 
   async function openArtefact(slug: string) {
     // In de rondleiding staan document én artikeltekst al in het geheugen. Zonder deze grens hangt
-    // de demo alsnog aan de api en de graaf — en juist die kunnen plat liggen op het moment dat een
+    // de demo alsnog aan de api en de graaf – en juist die kunnen plat liggen op het moment dat een
     // nieuwe gebruiker binnenkomt.
     if (demo) {
       setArtefactFout(null);
@@ -325,7 +325,7 @@ export function WerkplekClient({
       return;
     }
     setArtefactFout(null);
-    // Al bekend als verwijderd: niet nog een keer proberen — er valt niets op te halen.
+    // Al bekend als verwijderd: niet nog een keer proberen – er valt niets op te halen.
     if (verwijderd[slug]) {
       setArtefactWeg(slug);
       return;
@@ -341,7 +341,7 @@ export function WerkplekClient({
       setArtefactSlug(slug);
     } catch (e) {
       // Zichtbaar falen: de wettekst komt uit de graaf en die kan plat liggen. Een lege klik laat de
-      // jurist denken dat de knop stuk is. Een verwijderd document is géén falen — dat wordt een
+      // jurist denken dat de knop stuk is. Een verwijderd document is géén falen – dat wordt een
       // tombstone-kaart, geen foutbalk.
       if (isVerwijderd(e)) {
         setVerwijderd((m) => ({ ...m, [slug]: true }));
@@ -352,7 +352,7 @@ export function WerkplekClient({
     }
   }
 
-  /** Persisteer één beurt. Mislukken mag de chat niet blokkeren — maar ook niet stil gebeuren:
+  /** Persisteer één beurt. Mislukken mag de chat niet blokkeren – maar ook niet stil gebeuren:
    *  de beurt staat dan wél in beeld en is na herladen weg. Eén onopvallende melding boven de thread
    *  is genoeg; per beurt een foutregel zou het gesprek onleesbaar maken. */
   async function persisteer(gid: string, rol: "user" | "assistant", velden: Record<string, unknown>) {
@@ -375,16 +375,16 @@ export function WerkplekClient({
     setInvoer("");
 
     // Een vraag bij een markering gaat als ADVIES: dezelfde thread, maar met contextblok en langs de
-    // antwoordroute — die kan topologisch geen annotatie wijzigen.
+    // antwoordroute – die kan topologisch geen annotatie wijzigen.
     const context = vraagOver;
     setVraagOver(null);
     const contextLabel = context ? vraagContextLabel(context.el, docs[context.slug]) : "";
     // Vangnet: het paneel gaat al dicht zodra je "Vraag Lex" aanklikt, maar je kunt het intussen
-    // opnieuw hebben geopend. Dan wint het antwoord — dat wil je zien binnenkomen.
+    // opnieuw hebben geopend. Dan wint het antwoord – dat wil je zien binnenkomen.
     if (context && !breed) setArtefactSlug(undefined);
 
     // Toon de user-bubbel + antwoord-placeholder OPTIMISTISCH, vóór het (bij een nieuw gesprek) awaiten
-    // van maakGesprek — anders "verdwijnt" het bericht tijdens die round-trip.
+    // van maakGesprek – anders "verdwijnt" het bericht tijdens die round-trip.
     const antId = uid();
     // Het id van de user-bubbel vasthouden: moet de beurt worden teruggedraaid (er liep er al een),
     // dan halen we precies déze weg. Filteren op de tekst zou een eerdere, identieke vraag treffen.
@@ -421,12 +421,12 @@ export function WerkplekClient({
     // als een losse vraag zonder onderwerp.
     //
     // Bewust GEAWAIT: de vraag moet vastliggen vóórdat de run begint. De volgorde in de thread is de
-    // autoincrement-id, dus een snelle beurt zou anders vóór zijn eigen vraag kunnen landen — en bij
+    // autoincrement-id, dus een snelle beurt zou anders vóór zijn eigen vraag kunnen landen – en bij
     // het aanhaken na een herlaadbeurt is deze regel de user-bubbel waar het antwoord onder hoort.
     await persisteer(gid, "user", { tekst: contextLabel ? `Bij ${contextLabel}: ${prompt}` : prompt });
 
     // Markeringen die de jurist al maakte gaan mee: de Critic kan er dan een kanttekening bij
-    // zetten. De agent kan niet zelf in het document kijken — dat leeft in de api. Alleen de
+    // zetten. De agent kan niet zelf in het document kijken – dat leeft in de api. Alleen de
     // bepaling die nú open staat: de Critic beoordeelt ze tegen de tekst die hij zelf ophaalt, dus
     // markeringen uit een ander artikel kan hij daar per definitie niet in terugvinden.
     const reedsEigen = eigenMarkeringenVoorContext(artefactSlug ? docs[artefactSlug] : undefined);
@@ -473,7 +473,7 @@ export function WerkplekClient({
   /** Haak aan bij een run en verwerk hem tot het eind: verzamelen wat binnenkomt, en vastleggen wat
    *  eruit komt.
    *
-   *  Eén functie voor twee ingangen — een verse beurt (`verstuur`) en het weer oppakken van een
+   *  Eén functie voor twee ingangen – een verse beurt (`verstuur`) en het weer oppakken van een
    *  beurt die doorliep terwijl je ergens anders keek (`hervatBeurt`). Dat moet dezelfde code zijn,
    *  anders lopen de twee paden uit elkaar op precies het moment dat het ertoe doet.
    */
@@ -502,7 +502,7 @@ export function WerkplekClient({
     let tekst = "";
     let denk = "";
     let bronnen: Bron[] = [];
-    // Heeft de agent de beurt zelf vastgelegd? Dan schrijft de werkplek niets meer weg — anders
+    // Heeft de agent de beurt zelf vastgelegd? Dan schrijft de werkplek niets meer weg – anders
     // stond alles er twee keer. Blijft dit leeg, dan doet de client het zoals vroeger; zo werkt een
     // graph-qa zonder api-koppeling gewoon door.
     let opgeslagen: { annotatie_slug: string; run_id: string } | null = null;
@@ -511,7 +511,7 @@ export function WerkplekClient({
     // die daarvóór begint raakt zijn eigen beheerser kwijt.
     let verbroken = false;
     // Kwam er iets over déze verbinding binnen? Zo ja, dan telt een volgende breuk als een verse
-    // onderbreking en begint de wachttijd weer onderaan — anders zou een lange beurt met twee losse
+    // onderbreking en begint de wachttijd weer onderaan – anders zou een lange beurt met twee losse
     // dips in de hoogste backoff blijven hangen.
     let ontving = false;
     try {
@@ -574,14 +574,14 @@ export function WerkplekClient({
 
       // Kandidaten EERST: dit is een keuzelijst in de thread, geen uitkomst die is vastgelegd.
       // Stond deze tak onder de `opgeslagen`-check, dan sneed die hem af zodra graph-qa zelf ging
-      // wegschrijven — en verdween de keuzelijst stilzwijgend uit beeld.
+      // wegschrijven – en verdween de keuzelijst stilzwijgend uit beeld.
       if (kandidaten.length) {
         setItems((xs) =>
           xs.map((x) => (x.id === antId ? { id: antId, type: "kandidaten", tekst, kandidaten } : x)),
         );
         // Alleen de tekst overleeft een herlaadbeurt: de kandidaten zitten niet in het
         // berichtcontract van de api. Beter een leesbare opsomming dan "ik vond 5 bepalingen".
-        // Heeft de agent de beurt al vastgelegd, dan schrijft de client niets meer — anders stond
+        // Heeft de agent de beurt al vastgelegd, dan schrijft de client niets meer – anders stond
         // de opsomming er twee keer.
         if (!opgeslagen) {
           void persisteer(gid, "assistant", { tekst: kandidatenAlsTekst(tekst, kandidaten), denk, run_id: id });
@@ -590,7 +590,7 @@ export function WerkplekClient({
         return;
       }
 
-      // De agent heeft het vastgelegd. Nu alleen nog tonen wat er staat — de api is de bron.
+      // De agent heeft het vastgelegd. Nu alleen nog tonen wat er staat – de api is de bron.
       if (opgeslagen) {
         await toonVastgelegdeBeurt(opgeslagen, { antId, ontbrekend, denk });
         onGewijzigd();
@@ -604,7 +604,7 @@ export function WerkplekClient({
         // als storing.
         //
         // De werkplek schreef het hier vroeger zelf weg. Dat was een tweede, volledige
-        // implementatie van dezelfde handeling — mét eigen artikelophaling en eigen titelopbouw —
+        // implementatie van dezelfde handeling – mét eigen artikelophaling en eigen titelopbouw —
         // en welke van de twee liep hing af van de aan/afwezigheid van één SSE-event. Bij een
         // gedeeltelijk falen leverde dat een tweede document op. Eén schrijver, en die is de agent.
         const melding =
@@ -621,7 +621,7 @@ export function WerkplekClient({
       onGewijzigd();
     } catch (e) {
       // Losgekoppeld is géén fout en géén einde: de run draait door bij de agent en wordt opgepakt
-      // zodra dit venster terugkomt. Niets bewaren dus — het definitieve antwoord komt later.
+      // zodra dit venster terugkomt. Niets bewaren dus – het definitieve antwoord komt later.
       // Een wegvallende verbinding is óók geen einde: de beurt is van de server. Zie
       // `naEenGebrokenStream` voor de regel en waarom hij bestaat.
       const besluit = naEenGebrokenStream(
@@ -636,7 +636,7 @@ export function WerkplekClient({
       verbroken = besluit === "opnieuw";
       // Bij een herkansing blijft de bubbel staan zoals hij is: het heraanhaken speelt de eventlog
       // opnieuw af, dus de tekst wordt zo meteen alsnog opgebouwd. Wat er aan de hand is staat in de
-      // banner — die verdwijnt vanzelf zodra er weer iets binnenkomt.
+      // banner – die verdwijnt vanzelf zodra er weer iets binnenkomt.
       setVerbindingWeg(verbroken);
       if (!verbroken) updateItem(antId, { tekst: `**Er ging iets mis.** ${foutTekst(e)}` });
     } finally {
@@ -651,7 +651,7 @@ export function WerkplekClient({
       // Even wachten: valt de verbinding weg doordat de dienst opnieuw opstart, dan is meteen
       // opnieuw proberen gegarandeerd weer mis. De wachttijd loopt op, maar wordt gewekt zodra het
       // netwerk terug is of het tabblad weer in beeld komt. `vanaf: 0` speelt de hele eventlog
-      // terug, dus wat er tijdens de onderbreking gebeurde komt alsnog in beeld — inclusief het
+      // terug, dus wat er tijdens de onderbreking gebeurde komt alsnog in beeld – inclusief het
       // `opgeslagen`-event.
       const doorgaan = await wachtMetWekker(
         herstelWachttijd(herstel), () => levendRef.current,
@@ -678,8 +678,8 @@ export function WerkplekClient({
     if (!uitkomst.annotatie_slug) return; // een gewoon antwoord staat al in beeld
     const doc = await laadDocEnGeef(uitkomst.annotatie_slug);
     if (!doc) {
-      // De annotatie is wél vastgelegd, alleen niet op te halen. Toon de kaart tóch — met de slug
-      // die we hebben — in plaats van een gewoon antwoord waar de jurist niets mee kan; anders is
+      // De annotatie is wél vastgelegd, alleen niet op te halen. Toon de kaart tóch – met de slug
+      // die we hebben – in plaats van een gewoon antwoord waar de jurist niets mee kan; anders is
       // het werk onvindbaar terwijl het gewoon in de api staat.
       setItems((xs) =>
         xs.map((x) =>
@@ -704,7 +704,7 @@ export function WerkplekClient({
     setArtefactSlug(doc.slug);
   }
 
-  /** Als `laadDoc`, maar geeft het document terug — `laadDoc` is de stille achtergrondvariant. */
+  /** Als `laadDoc`, maar geeft het document terug – `laadDoc` is de stille achtergrondvariant. */
   async function laadDocEnGeef(slug: string): Promise<AnnotatieDocument | null> {
     try {
       return await haalEnCache(slug);
@@ -717,7 +717,7 @@ export function WerkplekClient({
   /** Loopt er nog een beurt in dit gesprek? Haak er dan weer op aan.
    *
    *  Dit is de terugweg van de omkering: de run overleefde het wegklikken, dus bij binnenkomst
-   *  hoort hij weer in beeld te komen — inclusief wat je gemist hebt (`vanaf: 0` speelt de eventlog
+   *  hoort hij weer in beeld te komen – inclusief wat je gemist hebt (`vanaf: 0` speelt de eventlog
    *  af). Alleen bij een lópende run: een beurt die klaar is staat al in de gehydrateerde
    *  geschiedenis, en die twee keer tonen is erger dan hem missen.
    */
@@ -725,7 +725,7 @@ export function WerkplekClient({
     if (bezigRef.current) return;
     const lopend = await haalActieveRun(gid);
     // Opnieuw toetsen ná de round-trip: typte de jurist ondertussen een vraag, dan draait die run al
-    // en zouden hier twee lussen naast elkaar komen — met twee placeholders en een `afbrekenRef`
+    // en zouden hier twee lussen naast elkaar komen – met twee placeholders en een `afbrekenRef`
     // die de eerste kwijtraakt.
     if (bezigRef.current) return;
     // Niet kunnen vaststellen is geen "er liep niets": stil laten, anders meld je een afgebroken
@@ -738,7 +738,7 @@ export function WerkplekClient({
       return;
     }
 
-    // Geen lopende run. Stond er wél een open? Dan is het register leeg — een herstart of deploy —
+    // Geen lopende run. Stond er wél een open? Dan is het register leeg – een herstart of deploy —
     // tenzij de beurt gewoon is afgerond en zijn bericht heeft achtergelaten.
     const stand = standVanVorigeRun(leesLopendeRuns()[gid], berichtRunIds);
     if (stand === "verdwenen") setRunVerdwenen(true);
@@ -749,7 +749,7 @@ export function WerkplekClient({
    *
    *  De agent-nodes zijn synchroon: een lopende LLM-call maakt zichzelf af en de run eindigt op de
    *  eerstvolgende grens. Dat kan tientallen seconden duren, dus de knop blijft in de "stopt"-stand
-   *  staan tot het echt zover is — doen alsof het meteen klaar is zou liegen. Wat er tot dan toe
+   *  staan tot het echt zover is – doen alsof het meteen klaar is zou liegen. Wat er tot dan toe
    *  binnenkwam, wordt gewoon vastgelegd zoals bij een normale afloop.
    */
   async function stop() {
@@ -765,7 +765,7 @@ export function WerkplekClient({
   }
 
   /** De jurist markeert zelf een fragment. Gooit door naar het paneel, dat de fout bij de selectie
-   *  toont — daar staat de gebruiker met zijn aandacht, niet onderin de chatthread. */
+   *  toont – daar staat de gebruiker met zijn aandacht, niet onderin de chatthread. */
   async function eigenMarkering(
     slug: string,
     invoer: { klasse: string; tekst: string; lid: string; toelichting: string; anker: Anker },
@@ -791,7 +791,7 @@ export function WerkplekClient({
 
   /** Een eigen markering wissen. Alleen je eigen: een agent-voorstel verwérp je, zodat het
    *  auditspoor laat zien dát er een voorstel was. Was hij actief, dan valt de focus terug op de
-   *  hele tekst — anders wijst `actiefId` naar een element dat niet meer bestaat. */
+   *  hele tekst – anders wijst `actiefId` naar een element dat niet meer bestaat. */
   async function wisEigenMarkering(slug: string, elementId: string) {
     if (!demo) await verwijderElement(slug, elementId);
     setDocs((m) => {
@@ -843,7 +843,7 @@ export function WerkplekClient({
   }
 
   // De laatste annotatie in dit gesprek: die hoort altijd één klik weg te zijn. Verwijderde
-  // documenten slaan we over — anders verdwijnt de balk terwijl er verderop in het gesprek nog een
+  // documenten slaan we over – anders verdwijnt de balk terwijl er verderop in het gesprek nog een
   // annotatie staat die wél bestaat.
   const laatsteAnnotatie = [...items]
     .reverse()
@@ -870,7 +870,7 @@ export function WerkplekClient({
       onStatus={(nieuweStatus) => status(artefactSlug, nieuweStatus)}
       onVraag={(el) => {
         setVraagOver({ slug: artefactSlug, el });
-        // Op een smal scherm ligt het artefact óver de chat, dus stap hier al opzij — niet pas bij
+        // Op een smal scherm ligt het artefact óver de chat, dus stap hier al opzij – niet pas bij
         // het versturen. Anders lijkt "Vraag Lex" niets te doen: de chip met de markering en het
         // invoerveld staan achter het paneel, en je typt in een veld dat je niet ziet.
         if (!breed) setArtefactSlug(undefined);
@@ -900,7 +900,7 @@ export function WerkplekClient({
         >
           <span className="truncate">
             <span className="font-medium text-ink">
-              {docs[laatsteAnnotatie].werkgebied || docs[laatsteAnnotatie].bwbId} — art.{" "}
+              {docs[laatsteAnnotatie].werkgebied || docs[laatsteAnnotatie].bwbId} – art.{" "}
               {docs[laatsteAnnotatie].artikel}
             </span>{" "}
             · {docs[laatsteAnnotatie].elementen.length} elementen
@@ -928,7 +928,7 @@ export function WerkplekClient({
       )}
 
       {/* De verbinding met de lopende beurt is weg. Geen sluitknop: deze melding hóórt vanzelf te
-          verdwijnen zodra de stroom weer loopt — dat is het hele punt. */}
+          verdwijnen zodra de stroom weer loopt – dat is het hele punt. */}
       {verbindingWeg && (
         <div className="shrink-0 px-4 pt-2">
           <Melding type="waarschuwing" compact>
@@ -975,11 +975,11 @@ export function WerkplekClient({
           het herladen.
         </div>
       )}
-      {/* Thread — enige scrollende gebied; berichten in een gecentreerde leeskolom */}
+      {/* Thread – enige scrollende gebied; berichten in een gecentreerde leeskolom */}
       <div data-tour="thread" ref={lijstRef} onScroll={onThreadScroll} className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto max-w-3xl space-y-6 px-4 py-8">
           {/* Lex stelt zich hier kort voor. Dit is de KORTE variant van het IDENTITEIT-blok in
-              tools/graph-qa/agent/prompts.py — dezelfde kadering (hulpmiddel, de jurist beslist),
+              tools/graph-qa/agent/prompts.py – dezelfde kadering (hulpmiddel, de jurist beslist),
               minder woorden. De volledige tekst komt uit de agent zelf zodra iemand ernaar vraagt;
               verander je de een, verander dan de ander mee. Een afzenderloze "Waarmee kan ik
               helpen?" liet de gebruiker niet weten met wát hij te maken had. */}
@@ -1100,7 +1100,7 @@ export function WerkplekClient({
         </button>
       )}
 
-      {/* Invoerbalk — gepind onderaan, gecentreerd, auto-groeiend */}
+      {/* Invoerbalk – gepind onderaan, gecentreerd, auto-groeiend */}
       <div className="shrink-0 bg-paper">
         <div className="mx-auto max-w-3xl px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
           {/* Waar de volgende vraag over gaat. Zichtbaar zolang hij geldt, want anders stel je
@@ -1160,7 +1160,7 @@ export function WerkplekClient({
               }
               className="max-h-[200px] flex-1 resize-none bg-transparent px-2 py-2 text-sm text-ink placeholder:text-faint focus:outline-none"
             />
-            {/* Tijdens het antwoorden is dit de stopknop: hetzelfde plekje, andere betekenis — je hoeft
+            {/* Tijdens het antwoorden is dit de stopknop: hetzelfde plekje, andere betekenis – je hoeft
                 niet te zoeken waar je moet klikken om te onderbreken. */}
             <button
               type="button"
@@ -1190,8 +1190,8 @@ export function WerkplekClient({
           </div>
           <p className="mt-2 text-center text-xs text-faint">
             {demo
-              ? "Dit is een voorbeeld voor de rondleiding — er gaat niets naar de agent."
-              : "De agent bevraagt de kennisgraaf — controleer altijd de bron."}
+              ? "Dit is een voorbeeld voor de rondleiding – er gaat niets naar de agent."
+              : "De agent bevraagt de kennisgraaf – controleer altijd de bron."}
           </p>
         </div>
       </div>
@@ -1230,11 +1230,11 @@ function AnnotatieChip({
   onOpen: () => void;
 }) {
   const label = doc
-    ? `${doc.werkgebied || doc.bwbId} — art. ${doc.artikel}${doc.lid ? ` lid ${doc.lid}` : ""}`
+    ? `${doc.werkgebied || doc.bwbId} – art. ${doc.artikel}${doc.lid ? ` lid ${doc.lid}` : ""}`
     : titel || "Annotatie";
 
   // Een verwijderde annotatie is geen kapotte knop maar een grafsteen: het gesprek blijft leesbaar
-  // (daarom de bewaarde titel), maar er valt niets meer te openen — dus ook geen knop die dat
+  // (daarom de bewaarde titel), maar er valt niets meer te openen – dus ook geen knop die dat
   // suggereert. Wat er nog wél te doen valt is doorlopen naar het overzicht.
   if (verwijderd) {
     return (
@@ -1341,7 +1341,7 @@ function Punten() {
 
 /** Klein avatar links van een antwoord van Lex (zelfde icoonstijl als de AnnotatieChip).
  *  Bewust een machine-icoon en geen monogram of gezicht: Lex heeft een naam om over te kunnen
- *  praten, niet om als collega te lezen — zijn voorstellen zijn voorstellen. */
+ *  praten, niet om als collega te lezen – zijn voorstellen zijn voorstellen. */
 function LexAvatar() {
   return (
     <span
@@ -1376,7 +1376,7 @@ function KopieerKnop({ tekst }: { tekst: string }) {
       setMislukt(false);
     } catch {
       // Het klembord is niet overal beschikbaar (onbeveiligde origin, geweigerde toestemming). Een
-      // klik waar niets van gebeurt leest als een kapotte knop — zeg dus dat het niet lukte.
+      // klik waar niets van gebeurt leest als een kapotte knop – zeg dus dat het niet lukte.
       setMislukt(true);
     }
   }
@@ -1446,17 +1446,17 @@ function DenkProces({
   );
 }
 
-// Inklapbare bronnenlijst — standaard dicht met een teller, want de lijst kan lang zijn.
-/** Wat de brongetrouwheidstoets van dit antwoord vond — alleen als er iets te melden is.
+// Inklapbare bronnenlijst – standaard dicht met een teller, want de lijst kan lang zijn.
+/** Wat de brongetrouwheidstoets van dit antwoord vond – alleen als er iets te melden is.
  *
  *  Bij een schoon resultaat zwijgt dit blok: de bronnenlijst eronder is dan het signaal, en een
  *  groen vinkje bij elk antwoord leert mensen er overheen te kijken. De twee gevallen die er wél
  *  toe doen:
  *
- *  - **onbepaald** — het antwoord noemde geen vindplaats en geen citaat, dus er viel niets te
+ *  - **onbepaald** – het antwoord noemde geen vindplaats en geen citaat, dus er viel niets te
  *    controleren. Dat is nadrukkelijk niet hetzelfde als "gecontroleerd en juist"; die twee vielen
  *    voorheen samen in één bool, en de UI liet ze allebei weg.
- *  - **ongegrond** — er staat een verwijzing in die niet uit de graaf kwam, of een citaat dat niet
+ *  - **ongegrond** – er staat een verwijzing in die niet uit de graaf kwam, of een citaat dat niet
  *    letterlijk in de opgehaalde tekst staat. Dat is precies waar een jurist op afgaat. */
 function Brongetrouwheid({ grounding }: { grounding: AgentGrounding }) {
   if (grounding.niveau === "gegrond") return null;

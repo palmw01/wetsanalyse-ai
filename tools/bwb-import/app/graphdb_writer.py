@@ -55,7 +55,7 @@ def _rdfs_label(entiteit: str, props: dict) -> str:
         if nummer:
             basis = f"{basis} {nummer}"
         titel = props.get("titel")
-        return f"{basis} — {titel}" if titel else basis
+        return f"{basis} – {titel}" if titel else basis
     if entiteit == "Artikel":
         return props.get("label") or (f"Artikel {nummer}" if nummer else "Artikel")
     if entiteit == "Divisie":
@@ -67,7 +67,7 @@ def _rdfs_label(entiteit: str, props: dict) -> str:
     if entiteit == "Bijlage":
         basis = props.get("label") or (f"Bijlage {nummer}" if nummer else "Bijlage")
         titel = props.get("titel")
-        return f"{basis} — {titel}" if titel else basis
+        return f"{basis} – {titel}" if titel else basis
     if entiteit == "Illustratie":
         return props.get("naam") or props.get("alt") or "Illustratie"
     if entiteit == "Ondertekenaar":
@@ -306,7 +306,7 @@ class GraphDbWriter:
         if wet.vast_deel_url:
             g.add((v.wet(wet.bwb_id), v.ns.toestandUrl, URIRef(wet.vast_deel_url)))
 
-        # WTI-verrijking (citeertitels, thesaurustermen, grondslagen) — in
+        # WTI-verrijking (citeertitels, thesaurustermen, grondslagen) – in
         # dezelfde named graph, dus atomair mee-vervangen bij re-import.
         if wti is not None:
             self._wti_verrijking(g, v.wet(wet.bwb_id), wti)

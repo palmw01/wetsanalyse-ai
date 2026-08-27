@@ -57,7 +57,7 @@ describe("maakAnker", () => {
 });
 
 describe("bronHash", () => {
-  it("verschilt zodra de tekst verandert — dat is het hele punt", () => {
+  it("verschilt zodra de tekst verandert – dat is het hele punt", () => {
     expect(bronHash(BRON)).toBe(bronHash(BRON));
     expect(bronHash(BRON)).not.toBe(bronHash(BRON + " "));
   });
@@ -79,7 +79,7 @@ describe("lidUitOffset", () => {
   });
 
   it("geeft het lidnummer terug, niet de plek in de lijst", () => {
-    // Een op één lid afgebakend document levert alléén dat lid — de index is dan 0 en het
+    // Een op één lid afgebakend document levert alléén dat lid – de index is dan 0 en het
     // lidnummer 3. Vroeger kwam hier "1" uit en werd de markering op het verkeerde lid vastgelegd.
     const alleenLid3 = [{ lid: "3", regel: "3. De ontvanger kan uitstel verlenen." }];
     expect(lidUitOffset(alleenLid3, 0)).toBe("3");
@@ -87,7 +87,7 @@ describe("lidUitOffset", () => {
   });
 
   it("kan overweg met een lid dat geen getal is", () => {
-    // Ingevoegde leden heten 2a, 2b … — daar loopt tellen sowieso stuk.
+    // Ingevoegde leden heten 2a, 2b … – daar loopt tellen sowieso stuk.
     const metLetterlid = [
       { lid: "1", regel: "1. Eerste." },
       { lid: "2a", regel: "2a. Ingevoegd." },

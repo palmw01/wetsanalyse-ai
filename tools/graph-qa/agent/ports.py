@@ -34,7 +34,7 @@ class GraphPort(Protocol):
 
 # Het systeemblok van één call. Eén string is het gewone geval; een reeks strings zegt: alles
 # behalve het laatste deel is STABIEL over calls heen, en daar mag de provider een prompt-cache op
-# zetten. De volgorde is dus betekenisdragend — caching is een prefix-match, dus één byte verschil
+# zetten. De volgorde is dus betekenisdragend – caching is een prefix-match, dus één byte verschil
 # vóór het cache-punt maakt de hele cache waardeloos.
 Systeem = str | list[str]
 

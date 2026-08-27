@@ -6,7 +6,7 @@ namespaces (resources vs. ontologie) en levert deterministische IRI's.
 
 De artikel-/divisie-IRI wordt afgeleid van de ``ref_key`` (JuriConnect-sleutel),
 zodat een ``verwijstNaar`` naar een nog niet geïmporteerde wet naar exact
-dezelfde IRI wijst — de doel-IRI krijgt vanzelf inhoud zodra die wet later wordt
+dezelfde IRI wijst – de doel-IRI krijgt vanzelf inhoud zodra die wet later wordt
 geïmporteerd (RDF open-world; geen stub-nodes nodig).
 """
 
@@ -22,7 +22,7 @@ from rdflib import XSD, Literal, Namespace, URIRef
 # De IRI-ruimte van de graaf. Bewust een URN en geen http-IRI: een domeinnaam in het datamodel
 # bindt de data aan wie dat domein toevallig bezit, en verhuizen kost dan een herimport van alles.
 # Een URN heeft die binding niet. Dat hij niet dereferenceerbaar is, kost hier niets: elke
-# citeerbare node krijgt een ``owl:sameAs`` naar ``WETTEN_BASE`` — dát is de publieke vindplaats.
+# citeerbare node krijgt een ``owl:sameAs`` naar ``WETTEN_BASE`` – dát is de publieke vindplaats.
 DEFAULT_BASE_IRI = "urn:bwb:"
 # LET OP: de vocabulaireruimte moet **disjunct** zijn van de documentruimte, niet eronder liggen.
 # Met ``urn:bwb:ns:`` zou elk predicaat als vindplaats worden herkend door de provenance-controle

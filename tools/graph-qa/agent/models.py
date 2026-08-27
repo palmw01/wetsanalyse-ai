@@ -13,7 +13,7 @@ class BestaandElement(BaseModel):
     """Een element dat al in het annotatie-document staat, meegestuurd door de werkplek.
 
     De agent kan niet zelf in het document kijken (dat leeft in de api), dus de werkplek geeft door
-    wat er al ligt. De Critic kan zo ook meekijken op wat de JURIST heeft gemarkeerd — als suggestie,
+    wat er al ligt. De Critic kan zo ook meekijken op wat de JURIST heeft gemarkeerd – als suggestie,
     nooit als wijziging.
     """
 
@@ -141,7 +141,7 @@ class Anker(BaseModel):
     """Exacte positie van een fragment in de samengevoegde brontekst.
 
     Spiegelt `Anker` in `api/app/annotatie_contracts.py` (zelfde veldnamen, zelfde semantiek).
-    De offsets slaan op de samengevoegde brontekst die het documentpaneel toont — bij een
+    De offsets slaan op de samengevoegde brontekst die het documentpaneel toont – bij een
     per-lid-annotatie is dat alleen die lid-tekst. `bron_hash` is een FNV-1a 32-bit vingerafdruk;
     de UI gebruikt hem om te detecteren of de brontekst verschoven is na een herimport.
     De context-velden (`voor`/`na`) maken het mogelijk het juiste voorkomen van een herhaald
@@ -170,7 +170,7 @@ class CriticRonde(BaseModel):
     motivatie: str = ""
     actie: str = "behoud"              # behoud | vervang | verwijder
     # Is de instructie ook uitgevoerd? De patcher (`annotatie.pas_critic_toe`) zet dit. Zonder dit
-    # verschilt "de Critic vroeg erom" niet van "het is ook gebeurd" — en dat verschil moet een
+    # verschilt "de Critic vroeg erom" niet van "het is ook gebeurd" – en dat verschil moet een
     # auditspoor kunnen laten zien.
     toegepast: bool = False
     voorstel_klasse: str = ""
@@ -181,7 +181,7 @@ class AgentRun(BaseModel):
     """De herkomst van één annotatiebeurt: wélk model de voorstellen maakte.
 
     Reist als `run`-event mee naar de werkplek, die het bij de api vastlegt. Zonder deze gegevens
-    is achteraf niet te zeggen waar een markering vandaan komt — precies wat een export moet dragen
+    is achteraf niet te zeggen waar een markering vandaan komt – precies wat een export moet dragen
     en wat de latere promotie naar de graaf als provenance nodig heeft.
     """
 
@@ -211,7 +211,7 @@ class AnnotatieVoorstel(BaseModel):
     grounded: bool = False
     vindplaats: str = ""               # bwbId/artikel/lid/jci-notatie
     anker: Anker | None = None         # exacte positie in de brontekst; None tot _verwerk() het vult
-    aandacht: str = ""                 # "" | groen | geel | rood — gezet door de Critic-node
+    aandacht: str = ""                 # "" | groen | geel | rood – gezet door de Critic-node
     critic: str = ""                   # korte Critic-motivatie bij het aandacht-niveau
     critic_rondes: list[CriticRonde] = []   # het heen-en-weer per ronde; leeg tot de eerste Critic-pas
 
@@ -232,7 +232,7 @@ class CriticOordeel(BaseModel):
 
 class OntbrekendItem(BaseModel):
     """Een door de Critic vermoed ontbrekend element: een JAS-klasse die waarschijnlijk óók in de tekst
-    zit maar niet is gemarkeerd. `tekst` is optioneel — staat er een letterlijk fragment bij, dan kan
+    zit maar niet is gemarkeerd. `tekst` is optioneel – staat er een letterlijk fragment bij, dan kan
     een herzieningsronde het element daadwerkelijk toevoegen in plaats van alleen een klasse te roepen."""
 
     klasse: str

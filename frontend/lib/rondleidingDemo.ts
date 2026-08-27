@@ -27,12 +27,12 @@ export const DEMO_SLUG = "demo-rondleiding-iw1990-art9";
 /** Het label dat overal meereist. Niemand mag de voorbeeldannotatie voor eigen werk aanzien. */
 export const DEMO_LABEL = "VOORBEELD";
 
-/** Artikel 9, leden 1 en 2 van de Invorderingswet 1990 — letterlijk uit de officiële publicatie. */
+/** Artikel 9, leden 1 en 2 van de Invorderingswet 1990 – letterlijk uit de officiële publicatie. */
 export const DEMO_ARTIKEL: GraafArtikel = {
   bwbId: "BWBR0004770",
   artikel: "9",
   citeertitel: "Invorderingswet 1990",
-  opschrift: "Invorderingswet 1990 — artikel 9",
+  opschrift: "Invorderingswet 1990 – artikel 9",
   leden_teksten: [
     { lid: "1", tekst: "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet." },
     {
@@ -57,7 +57,7 @@ const DEMO_RUN: AgentRun = {
 };
 
 /** Eén voorgenomen markering. `voorkomen` telt vanaf 1 en kiest wélke treffer in de brontekst het is
- *  — "invorderbaar" staat er drie keer, en het maakt uit welke je bedoelt. */
+ *  – "invorderbaar" staat er drie keer, en het maakt uit welke je bedoelt. */
 interface DemoSpec {
   fragment: string;
   voorkomen?: number;
@@ -94,7 +94,7 @@ const DEMO_SPECS: DemoSpec[] = [
       klasse: "Operator",
       motivatie: "De formulering verbindt twee bepalingen; dat kan ook als logische uitzondering worden gelezen.",
     },
-    critic: "Uitzonderingsformule — Voorwaarde of Operator is hier een echte interpretatiekeuze.",
+    critic: "Uitzonderingsformule – Voorwaarde of Operator is hier een echte interpretatiekeuze.",
   },
   {
     fragment: "een navorderingsaanslag", klasse: "Rechtsobject", lid: "2", aandacht: "groen",
@@ -224,7 +224,7 @@ export function maakDemoItems(): ThreadItem[] {
       id: "demo-4",
       type: "annotatie",
       slug: DEMO_SLUG,
-      titel: `${DEMO_LABEL} · Invorderingswet 1990 — artikel 9`,
+      titel: `${DEMO_LABEL} · Invorderingswet 1990 – artikel 9`,
       denk:
         "· supervisor koos de annotatie-worker · bepaling opgehaald uit de graaf · " +
         "11 markeringen voorgesteld · Critic las mee (1 ronde) · vastgelegd",
@@ -234,7 +234,7 @@ export function maakDemoItems(): ThreadItem[] {
 
 /** De gesprekkenlijst die de sidebar tijdens de rondleiding toont.
  *
- *  Die lijst komt normaal uit de api, en bij een nieuwe gebruiker is hij dus leeg — precies de
+ *  Die lijst komt normaal uit de api, en bij een nieuwe gebruiker is hij dus leeg – precies de
  *  gebruiker die de rondleiding krijgt. De stap "Je werk terugvinden" wees dan naar een lege kolom
  *  terwijl de tekst zegt dat je gesprekken er staan. De rondleiding hoort niet af te hangen van wat
  *  er toevallig in het account staat, net zomin als de thread dat doet. */
@@ -242,11 +242,11 @@ function maakDemoGesprekken(): GesprekSamenvatting[] {
   // Vaste tijdstippen, aflopend: een demo die "3 minuten geleden" zegt omdat hij nu gestart wordt,
   // suggereert werk dat de gebruiker nooit gedaan heeft.
   return [
-    { id: "demo-gesprek-1", titel: `${DEMO_LABEL} — Invorderingswet 1990, artikel 9`,
+    { id: "demo-gesprek-1", titel: `${DEMO_LABEL} – Invorderingswet 1990, artikel 9`,
       aantal_berichten: 4, updated: "2026-03-17T10:12:00Z" },
-    { id: "demo-gesprek-2", titel: `${DEMO_LABEL} — Wat betekent 'belastingschuldige'?`,
+    { id: "demo-gesprek-2", titel: `${DEMO_LABEL} – Wat betekent 'belastingschuldige'?`,
       aantal_berichten: 2, updated: "2026-03-16T15:40:00Z" },
-    { id: "demo-gesprek-3", titel: `${DEMO_LABEL} — Termijnen bij uitstel van betaling`,
+    { id: "demo-gesprek-3", titel: `${DEMO_LABEL} – Termijnen bij uitstel van betaling`,
       aantal_berichten: 6, updated: "2026-03-14T09:05:00Z" },
   ];
 }

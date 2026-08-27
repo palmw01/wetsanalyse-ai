@@ -31,7 +31,7 @@ interface Props {
   laden?: boolean;
   /** Alleen mobiel: sluitknop voor de drawer. */
   onSluit?: () => void;
-  /** Start de rondleiding opnieuw. Weglaten verbergt het menu-item — op schermen zonder werkplek
+  /** Start de rondleiding opnieuw. Weglaten verbergt het menu-item – op schermen zonder werkplek
    *  valt er niets rond te leiden. */
   onRondleiding?: () => void;
 }
@@ -124,7 +124,7 @@ export function GesprekSidebar({
       </div>
 
       {/* Navigatie, bewust lichter dan de knop erboven: dat is een actie, dit is een plek. De
-          annotaties leven los van de gesprekken — een annotatie overleeft het gesprek waarin hij
+          annotaties leven los van de gesprekken – een annotatie overleeft het gesprek waarin hij
           gemaakt is, en moet dus ook zonder dat gesprek te vinden zijn. */}
       <div className="px-3 pb-1">
         <Link

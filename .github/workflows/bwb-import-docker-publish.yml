@@ -107,7 +107,7 @@ jobs:
   # ── Uitrollen naar Azure ──────────────────────────────────────────────────────
   #
   # Master rolt uit naar ACCEPTATIE; productie loopt via `promote.yml`. Dit is een Container Apps
-  # JOB en geen app: er is dus geen revisie om af te wachten. De job zelf wordt niet gestart — de
+  # JOB en geen app: er is dus geen revisie om af te wachten. De job zelf wordt niet gestart – de
   # volgende geplande of handmatige run pakt de nieuwe image op.
   deploy:
     needs: build-and-push
@@ -140,10 +140,10 @@ jobs:
             --tenant "$AZURE_TENANT_ID"
           az account set --subscription "$AZURE_SUBSCRIPTION_ID"
           # De doel-app moet bestaan. Bij een verse straat is de infra nog niet uitgerold en is er
-          # niets om een image op te swappen — maar het image staat dan wél in GHCR. Rood worden zou
+          # niets om een image op te swappen – maar het image staat dan wél in GHCR. Rood worden zou
           # suggereren dat de build mislukte; dat gebeurde op 20 aug 2026 en kostte onnodig zoekwerk.
           if ! az containerapp job show -n "$APP-bwb-import" -g "$RG" --output none 2>/dev/null; then
-            echo "::warning::container app job $APP-bwb-import bestaat nog niet in $RG — image is gepusht, de swap is overgeslagen. Rol eerst de infra uit (azure-infra -> deploy)."
+            echo "::warning::container app job $APP-bwb-import bestaat nog niet in $RG – image is gepusht, de swap is overgeslagen. Rol eerst de infra uit (azure-infra -> deploy)."
             echo "SWAP_OVERGESLAGEN=1" >> "$GITHUB_ENV"
             exit 0
           fi

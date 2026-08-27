@@ -3,7 +3,7 @@
 // - Bij "totp_required" zet deze route een httpOnly login-ticket-cookie en stuurt de gebruiker
 //   (client-side) door naar /login/2fa; het ticket draagt de al-geverifieerde identiteit, zodat het
 //   wachtwoord daar niet nodig is.
-// Zet géén sessie — dat doet Auth.js (signIn) pas ná een geslaagde check. De API rate-limit't /verify.
+// Zet géén sessie – dat doet Auth.js (signIn) pas ná een geslaagde check. De API rate-limit't /verify.
 import { postAuthVerify } from "@/lib/server";
 import {
   getTrustedDeviceCookie,

@@ -1,4 +1,4 @@
-"""Lichtgewicht misbruik-/kostenbeheersing — in-process, geen extra dependency.
+"""Lichtgewicht misbruik-/kostenbeheersing – in-process, geen extra dependency.
 
 - Per-client sliding-window rate limit op de muterende endpoints (een FastAPI-dependency).
 - `QuotaExceeded` voor beleidsgrenzen die dieper in de engine worden afgedwongen
@@ -25,7 +25,7 @@ _hits: dict[str, deque[float]] = defaultdict(deque)
 # aanvaller-gekozen userids; zonder cap groeit _hits onbegrensd (memory-DoS). Bij het
 # bereiken van de cap worden eerst alle verlopen sleutels geveegd; blijft hij vol, dan
 # weigeren we nieuwe sleutels (fail-closed: een aanvaller kan de limiter niet omzeilen
-# door 'm vol te pompen — bestaande, legitieme sleutels blijven gewoon werken).
+# door 'm vol te pompen – bestaande, legitieme sleutels blijven gewoon werken).
 _MAX_KEYS = 10_000
 
 
@@ -77,7 +77,7 @@ def rate_limited_client(client_id: str = Depends(require_client)) -> str:
 
 # De globale login-rem staat een veelvoud van de per-userid-limiet toe: legitiem verkeer over veel
 # gebruikers moet ruim passen, maar een password-spray over honderden userids (die de per-userid-rem
-# omzeilt) raakt alsnog dit plafond. In-process (per replica), dus defense-in-depth — echte
+# omzeilt) raakt alsnog dit plafond. In-process (per replica), dus defense-in-depth – echte
 # bescherming hoort op de proxy/WAF.
 _LOGIN_GLOBAL_FACTOR = 20
 
@@ -98,7 +98,7 @@ def login_allowed(userid: str) -> bool:
 
 def sensitive_allowed(userid: str) -> bool:
     """Brute-force-rem op de gevoelige, geauthenticeerde self-service-endpoints (2FA aan/uit,
-    wachtwoord wijzigen) — gelijkgetrokken met `/verify`. Zonder deze rem zou een gekaapte sessie
+    wachtwoord wijzigen) – gelijkgetrokken met `/verify`. Zonder deze rem zou een gekaapte sessie
     onbeperkt TOTP-codes of het huidige wachtwoord kunnen raden. Per-userid; hergebruikt de
     muterende-rate-knoppen (`WETSANALYSE_RATE_LIMIT_MAX`/`_WINDOW`); 0 = uit. In-process (per replica)."""
     s = get_settings()

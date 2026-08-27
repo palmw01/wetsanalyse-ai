@@ -21,11 +21,11 @@ const REDENEN: { waarde: ReviewReason; label: string }[] = [
 // buiten de huisstijl.
 //
 // Dit was een rondje van 8px zonder tekst, met de betekenis alleen in een `title`/`aria-label`. Wie
-// de kleurcode niet kent zag dus een stip en verder niets — op een reviewkaart waar juist het oordeel
+// de kleurcode niet kent zag dus een stip en verder niets – op een reviewkaart waar juist het oordeel
 // van de Critic staat. Nu is het een **badge met tekst**, in dezelfde vorm als de documentstatus
 // ("In behandeling", `ArtefactInhoud`): één badgevorm in de hele app.
 //
-// De achtergrond staat op volle sterkte terwijl de kaart eronder dezelfde tint op 40% draagt — dat
+// De achtergrond staat op volle sterkte terwijl de kaart eronder dezelfde tint op 40% draagt – dat
 // verschil plus de rand maakt de badge zichtbaar binnen zijn eigen kleurfamilie.
 const AANDACHT: Record<string, { pill: string; label: string; rand: string; tint: string }> = {
   groen: { pill: "border-aandacht-groen-rand bg-aandacht-groen-bg text-aandacht-groen-tekst", label: "Geen bezwaar", rand: "border-l-aandacht-groen-rand", tint: "bg-aandacht-groen-bg/40" },
@@ -34,18 +34,18 @@ const AANDACHT: Record<string, { pill: string; label: string; rand: string; tint
 };
 
 // Zelfde vorm als de documentstatus-badge in `ArtefactInhoud`; alleen de kleuren verschillen per
-// niveau. Verander je die daar, verander hem dan hier mee — het is bewust één vormtaal.
+// niveau. Verander je die daar, verander hem dan hier mee – het is bewust één vormtaal.
 const AANDACHT_PILL =
   "inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-medium";
 
 // De hoofdactie is lintblauw, net als elke andere primaire knop in de app (`ui/Button.tsx`), en de
 // tweede keuze een outline. Dit was volvlak groen en volvlak hemelblauw: statuskleuren, die naast de
 // gedempte tinten van een reviewkaart schreeuwen. Zo draagt de kaart alleen nog kleur waar die
-// betekenis heeft — het aandacht-rondje, de JAS-badges en de rand.
+// betekenis heeft – het aandacht-rondje, de JAS-badges en de rand.
 const KNOP_PRIMAIR = "bg-accent text-paper hover:bg-accent-soft";
 const KNOP_TWEEDE = "border border-lint bg-paper text-lint hover:bg-surface";
 // Klikdoelen halen minimaal 24x24 CSS-px (WCAG 2.2 AA, 2.5.8) en groeien op aanraakschermen naar
-// 44px — het AAA-niveau (2.5.5) dat NL Design System voor overheidsdiensten aanhoudt.
+// 44px – het AAA-niveau (2.5.5) dat NL Design System voor overheidsdiensten aanhoudt.
 const KNOP_BASIS =
   "focus-ring inline-flex min-h-[24px] items-center rounded-lg px-2.5 py-1.5 text-xs font-medium " +
   "transition coarse:min-h-[44px] disabled:opacity-50";
@@ -75,7 +75,7 @@ function tijdstip(el: AnnotatieElement): string {
 /** Tekstveld dat zichzelf opslaat: Enter/blur bewaart, Escape annuleert.
  *
  *  Leegmaken van een gevulde waarde is óók een wijziging, maar wél een die je met één misklik maakt.
- *  Die vraagt daarom een bevestiging — de enige rem die er is, want er is geen undo. */
+ *  Die vraagt daarom een bevestiging – de enige rem die er is, want er is geen undo. */
 function InlineVeld({
   waarde,
   placeholder,
@@ -180,10 +180,10 @@ function DecisionCard({
   onBeslissing: (req: BeslissingInvoer) => Promise<void>;
   /** Alleen bij een eigen markering: die kun je écht wissen. Weglaten verbergt de wisknop. */
   onVerwijder?: () => Promise<void>;
-  /** Het fragment is niet (meer) letterlijk in de wettekst te vinden — dan valt de markering weg. */
+  /** Het fragment is niet (meer) letterlijk in de wettekst te vinden – dan valt de markering weg. */
   zwevend?: boolean;
   /** Welke bedieningsrij openstaat. Van buitenaf gestuurd zodat het toetsenbord (`c`/`x`) hem ook
-   *  kan openen — en zodat er nooit twee kaarten tegelijk een rij open hebben staan. */
+   *  kan openen – en zodat er nooit twee kaarten tegelijk een rij open hebben staan. */
   open: OpenRij;
   onOpen: (rij: OpenRij) => void;
   /** Goedkeuren. Loopt langs de lijst-eigenaar zodat de knop en de `a`-toets hetzelfde doen —
@@ -219,7 +219,7 @@ function DecisionCard({
   // scherm; zo passen er tien in en blijft de lijst te overzien.
   const uitgeklapt = actief;
 
-  // Klik je een markering in de tekst aan, dan hoort de bijbehorende kaart in beeld te komen — de
+  // Klik je een markering in de tekst aan, dan hoort de bijbehorende kaart in beeld te komen – de
   // tegenhanger van het in beeld scrollen van de markering in `DocumentPaneel`.
   useEffect(() => {
     if (!actief || !kaartRef.current) return;
@@ -253,7 +253,7 @@ function DecisionCard({
    *
    *  De rij hangt aan de actieve kaart (`open={el.id === actiefId ? … : "geen"}`), en de knoppen
    *  stoppen hun klik zodat de kaart-onClick niet ook nog vuurt. Gevolg: op een niet-actieve kaart
-   *  gebeurde er zichtbaar niets — en klapte het palet open op de kaart die wél actief was. Eerst
+   *  gebeurde er zichtbaar niets – en klapte het palet open op de kaart die wél actief was. Eerst
    *  selecteren dus. Alleen als de kaart het nog niet is: `onKies` is een toggle, en op de actieve
    *  kaart zou hij de selectie juist opheffen.
    */
@@ -262,11 +262,11 @@ function DecisionCard({
     onOpen(rij);
   }
 
-  /** Eén wijziging wegschrijven — geen dropdown, geen opslaan-knop.
+  /** Eén wijziging wegschrijven – geen dropdown, geen opslaan-knop.
    *
    *  De `review_reason` gaat niet mee: die leidt de server af uit de diff die hij zelf berekent.
    *  Hij werd hier vroeger meegestuurd, maar een reden die de server niet kan toetsen hoort niet in
-   *  een auditspoor. Bij verwerpen blijft de reden wél een vraag aan de jurist — die informatie
+   *  een auditspoor. Bij verwerpen blijft de reden wél een vraag aan de jurist – die informatie
    *  staat in geen enkele diff.
    */
   async function wijzig(w: Wijziging) {
@@ -300,7 +300,7 @@ function DecisionCard({
               automatisch geel, waardoor een écht aandachtspunt niet meer opviel tussen de
               disambiguaties. Neutraal merkje dus, geen kleur uit de aandacht-as. */}
           {!el.aandacht && el.alternatieven.length > 0 && (
-            <span role="img" title="Twijfel tussen klassen — zie de alternatieven" aria-label="twijfel"
+            <span role="img" title="Twijfel tussen klassen – zie de alternatieven" aria-label="twijfel"
                   className="text-xs text-muted"><Ruit /></span>
           )}
           {/* Het lid alleen als het document méér dan één lid beslaat; anders staat het al in de kop
@@ -309,7 +309,7 @@ function DecisionCard({
         </span>
 
         {/* De klasse ís de knop: klikken opent het palet, klikken op een klasse is de wijziging.
-            Op slot is het geen knop meer maar een badge — géén `disabled` knop, want die leest als
+            Op slot is het geen knop meer maar een badge – géén `disabled` knop, want die leest als
             "tijdelijk kapot" terwijl er niets kapot is; er is alleen eerst iets anders nodig. */}
         {/* `w-full` op mobiel dwingt de wrap: de klasse krijgt zo een eigen regel ónder de meta en de
             acties. Op `sm:` valt dat weg en schuift hij ertussen. */}
@@ -363,7 +363,7 @@ function DecisionCard({
             </button>
           )}
           {/* De weg terug. Zonder deze knop is een akkoord een doodlopende weg: de bediening ligt
-              stil en er is niets dat hem weer aanzet. Tweede keuze qua vorm — heropenen is een
+              stil en er is niets dat hem weer aanzet. Tweede keuze qua vorm – heropenen is een
               correctie, geen hoofdactie. */}
           {elVergrendeld && !docVergrendeld && (
             <button
@@ -410,7 +410,7 @@ function DecisionCard({
       )}
 
       {/* Wissen (eigen markering) of verwerpen (agent-voorstel): hetzelfde gebaar, twee uitkomsten.
-          Wissen is onomkeerbaar — vandaar de tweede klik in plaats van een dialoog. Bij verwerpen is
+          Wissen is onomkeerbaar – vandaar de tweede klik in plaats van een dialoog. Bij verwerpen is
           de reden echte informatie die alleen de mens heeft; die is niet af te leiden. */}
       {wegHalen && !slot && (
         <div className="mt-2 flex flex-wrap items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
@@ -435,7 +435,7 @@ function DecisionCard({
             </button>
           ) : (
             <>
-              <span className="text-[0.7rem] text-muted">Verwerpen — waarom?</span>
+              <span className="text-[0.7rem] text-muted">Verwerpen – waarom?</span>
               {REDENEN.map((r) => (
                 <button
                   key={r.waarde}
@@ -455,10 +455,10 @@ function DecisionCard({
       <p className="mt-2 border-l-2 border-line pl-2.5 text-sm italic text-ink">“{el.tekst}”</p>
 
       {/* Een markering die niet in de tekst te vinden is verdween eerder stilzwijgend uit de
-          weergave. Dan lijkt hij weg terwijl hij er nog is — zeg het gewoon. */}
+          weergave. Dan lijkt hij weg terwijl hij er nog is – zeg het gewoon. */}
       {zwevend && (
         <p className="mt-1.5 flex items-center gap-1 text-xs text-aandacht-geel-tekst">
-          <Waarschuwing /> Niet terug te vinden in de tekst — pas het fragment aan of
+          <Waarschuwing /> Niet terug te vinden in de tekst – pas het fragment aan of
           verwerp de markering.
         </p>
       )}
@@ -491,7 +491,7 @@ function DecisionCard({
               {r.voorstel_klasse ? ` → ${r.voorstel_klasse}` : ""}
               {/* Een voorstel dat is uitgevoerd leest anders dan een voorstel dat bleef liggen. */}
               {r.toegepast ? " · toegepast" : ""}
-              {r.motivatie ? ` — ${r.motivatie}` : ""}
+              {r.motivatie ? ` – ${r.motivatie}` : ""}
             </li>
           ))}
         </ol>
@@ -560,7 +560,7 @@ function DecisionCard({
 
       {uitgeklapt && !slot && el.alternatieven.length > 0 && (
         <div className="mt-1.5 flex flex-wrap items-center gap-1 text-xs text-muted" onClick={(e) => e.stopPropagation()}>
-          <span>Twijfel — klik om te wisselen:</span>
+          <span>Twijfel – klik om te wisselen:</span>
           {el.alternatieven.map((a) => (
             <button
               key={a.klasse}
@@ -576,7 +576,7 @@ function DecisionCard({
       )}
 
       {/* Vragen doe je in het centrale gespreksvenster, niet in een tweede chatje hier. Deze knop zet
-          de vraag daar klaar mét de context van dit element; het antwoord komt in de thread — inclusief
+          de vraag daar klaar mét de context van dit element; het antwoord komt in de thread – inclusief
           bronnen en grounding, die een draadje in de kaart nooit toonde. */}
       {uitgeklapt && onVraag && (
         <button
@@ -650,7 +650,7 @@ export function ReviewQueue({
   docVergrendeld,
   toonLid,
 }: {
-  /** Alle elementen — voor de tellingen in de kop. */
+  /** Alle elementen – voor de tellingen in de kop. */
   elementen: AnnotatieElement[];
   /** De gesorteerde, gefilterde lijst zoals hij getoond wordt. Komt van buiten zodat het toetsenbord
    *  precies dezelfde volgorde doorloopt als je ziet. */
@@ -688,7 +688,7 @@ export function ReviewQueue({
       <div data-tour="review-kop" className="rounded-kaart border border-line bg-surface px-3 py-2.5 shadow-zacht">
         <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
           <span className="text-xs font-medium text-ink">
-            Review — {beslist}/{totaal} beoordeeld
+            Review – {beslist}/{totaal} beoordeeld
           </span>
           {afgerond ? (
             <span className="inline-flex items-center gap-1 rounded-full bg-aandacht-groen-bg px-2 py-0.5 text-[0.65rem] font-semibold text-aandacht-groen-tekst">

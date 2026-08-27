@@ -23,7 +23,7 @@ import time
 import uuid
 from typing import Any
 
-try:  # OTel is optioneel — import guarded zodat graph-qa zonder de otel-extra draait.
+try:  # OTel is optioneel – import guarded zodat graph-qa zonder de otel-extra draait.
     from opentelemetry import metrics as _ot_metrics
     from opentelemetry import trace as _ot_trace
 
@@ -38,7 +38,7 @@ GEHEIME_VELDEN = {"authorization", "token", "bearer", "secret", "password", "api
 # Een stacktrace is diagnostisch goud, maar de exceptie-tékst erin draagt soms inhoud: een MCPError
 # neemt een stukje responsbody mee, een providerfout een fragment van het verzoek. De belofte
 # hierboven is absoluut ("nooit prompt- of chatinhoud"), dus knippen we per regel en op het geheel.
-# Frames blijven daarmee intact — je ziet nog steeds wáár het misging — maar een lange payloadregel
+# Frames blijven daarmee intact – je ziet nog steeds wáár het misging – maar een lange payloadregel
 # wordt afgekapt in plaats van integraal naar Loki te reizen.
 _MAX_TRACE_REGEL = 300
 _MAX_TRACE_REGELS = 40
@@ -74,7 +74,7 @@ def _kort_trace(trace: str) -> str:
     """Kap een stacktrace in op regel- en totaalniveau, met behoud van de frames.
 
     Bewust géén slimme redactie: die zou moeten raden wat inhoud is en wat niet. Afkappen is
-    voorspelbaar — het type, het bestand en het regelnummer passen altijd, de payload niet.
+    voorspelbaar – het type, het bestand en het regelnummer passen altijd, de payload niet.
     """
     regels = [r if len(r) <= _MAX_TRACE_REGEL else r[:_MAX_TRACE_REGEL] + " …[ingekort]"
               for r in (trace or "").splitlines()]
@@ -219,7 +219,7 @@ def shutdown() -> None:
             provider = _get() if _get else None
             if provider is not None and hasattr(provider, "shutdown"):
                 provider.shutdown()  # flush'et de BatchSpanProcessor/MetricReader
-        except Exception:  # noqa: BLE001 — shutdown mag de app-stop nooit breken
+        except Exception:  # noqa: BLE001 – shutdown mag de app-stop nooit breken
             logger.debug("OTel-provider shutdown overgeslagen", exc_info=True)
 
 

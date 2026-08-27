@@ -41,7 +41,7 @@ export interface VerifyOpts {
   remember?: boolean;
 }
 
-/** Lage-niveau POST naar `/v1/auth/verify` — geeft de VOLLEDIGE respons (incl. ticket/trusted_token)
+/** Lage-niveau POST naar `/v1/auth/verify` – geeft de VOLLEDIGE respons (incl. ticket/trusted_token)
  *  zodat de BFF-login-routes de cookies kunnen zetten. Server→server; nooit vanuit een client. */
 export async function postAuthVerify(
   payload: Record<string, unknown>,

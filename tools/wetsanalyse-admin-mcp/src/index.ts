@@ -7,8 +7,8 @@
  * genereerbare API-tokens (read).
  *
  * Config via env (nooit in de repo):
- *   WETSANALYSE_ADMIN_API_URL   — basis-URL van de API, bv. https://api.wetsanalyse.example
- *   WETSANALYSE_ADMIN_TOKEN     — een admin-token (statisch env-token óf een via /beheer gegenereerd token)
+ *   WETSANALYSE_ADMIN_API_URL   – basis-URL van de API, bv. https://api.wetsanalyse.example
+ *   WETSANALYSE_ADMIN_TOKEN     – een admin-token (statisch env-token óf een via /beheer gegenereerd token)
  *
  * Fail-closed: zonder beide env-vars weigert de server te starten. Logs (JSON) gaan naar stderr;
  * het token wordt nooit gelogd. stdout is exclusief voor het MCP-protocol.
@@ -55,7 +55,7 @@ async function apiFetch(method: string, path: string, body?: unknown): Promise<u
   try {
     data = tekst ? JSON.parse(tekst) : null;
   } catch {
-    /* geen JSON — laat de ruwe tekst staan */
+    /* geen JSON – laat de ruwe tekst staan */
   }
   if (!res.ok) {
     const detail =
@@ -81,7 +81,7 @@ interface ToolDef {
 const S = z.object;
 
 const TOOLS: ToolDef[] = [
-  // — modelprofielen —
+  // – modelprofielen —
   {
     name: "list_profiles",
     description: "Lijst de LLM-modelprofielen.",
@@ -131,7 +131,7 @@ const TOOLS: ToolDef[] = [
       return { ok: true };
     },
   },
-  // — gebruikers —
+  // – gebruikers —
   {
     name: "list_users",
     description: "Lijst de login-accounts van de webapp.",
@@ -151,7 +151,7 @@ const TOOLS: ToolDef[] = [
     input: S({ userid: z.string(), role: z.enum(["analist", "beheerder"]).optional(), active: z.boolean().optional() }),
     run: ({ userid, ...body }) => apiFetch("PATCH", `/v1/admin/users/${seg(userid as string)}`, body),
   },
-  // — API-tokens (read) —
+  // – API-tokens (read) —
   {
     name: "list_api_tokens",
     description: "Lijst de genereerbare API-tokens (alleen metadata; nooit het token zelf).",

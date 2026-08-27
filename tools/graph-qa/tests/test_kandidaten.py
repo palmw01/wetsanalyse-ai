@@ -1,8 +1,8 @@
 """Annoteren op ONDERWERP in plaats van op bepaling.
 
 "Annoteer alles over aansprakelijkheid van de bestuurder" wijst geen bepaling aan. De ophaal-agent
-zoekt er dan in de graaf naar en legt kandidaten voor; de jurist kiest. Het alternatief — de agent
-laten gokken welke bepaling bedoeld is — levert een annotatie op een bepaling die niemand vroeg.
+zoekt er dan in de graaf naar en legt kandidaten voor; de jurist kiest. Het alternatief – de agent
+laten gokken welke bepaling bedoeld is – levert een annotatie op een bepaling die niemand vroeg.
 """
 from __future__ import annotations
 
@@ -45,7 +45,7 @@ def test_parser_ontdubbelt_en_begrenst():
 
 
 def test_parser_negeert_onvolledige_kandidaten():
-    """Zonder bwbId + artikel is een kandidaat niet aanklikbaar — dan liever weglaten."""
+    """Zonder bwbId + artikel is een kandidaat niet aanklikbaar – dan liever weglaten."""
     tekst = json.dumps({"kandidaten": [
         {"artikel": "36"}, {"bwbId": "BWBR1"}, "onzin", {"bwbId": "BWBR1", "artikel": "36"},
     ]})

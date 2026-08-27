@@ -1,7 +1,7 @@
 # JAS-annotatie-ontologie (GraphDB-annotatielaag)
 
 De **JAS-annotatielaag** legt de geaccordeerde activiteit-2-markeringen van een analyse als RDF vast in
-GraphDB, zodat ze herbruikbaar worden voor QA (graph-qa) en volgende analyses — de *virtuous loop*.
+GraphDB, zodat ze herbruikbaar worden voor QA (graph-qa) en volgende analyses – de *virtuous loop*.
 Te schrijven door een api-schrijfpad (Fase 2 / WS4, nog niet gebouwd); gelezen door graph-qa's
 tool `get_jas_annotaties`. Bewust **minimaal** en losstaand van de begrippen/SKOS-laag (buiten scope).
 
@@ -34,18 +34,18 @@ herschrijft.
 | `jas:formulering` | literal | ✓ | Het letterlijke citaat uit de leden-tekst (brongetrouw). |
 | `jas:markeringId` | literal | ✓ | Stabiel id binnen de analyse (`m1`, …). |
 | `jas:uitAnalyse` | literal (slug) | ✓ | Herkomst: de analyse die deze annotatie accordeerde. |
-| `jas:bwbId` | literal | ✓ | Regeling-id — herleidbaarheid, ook bij decimale artikelnummers. |
+| `jas:bwbId` | literal | ✓ | Regeling-id – herleidbaarheid, ook bij decimale artikelnummers. |
 | `jas:artikel` | literal | ✓ | Artikelnummer (bv. `9` of `9.1`). |
-| `jas:lid` | literal | — | Lidnummer indien van toepassing. |
-| `jas:vindplaats` | literal | — | Lid-relatieve vindplaats (bv. `lid 2`). |
-| `jas:overBepaling` | IRI | — | Koppeling naar de **bestaande** bepaling-node (`…/artikel/<n>[/lid/<n>]`); alleen bij een kaal (IRI-patroon-)nummer. |
-| `jas:toelichting` | literal | — | Motivatie van de classificatie. |
-| `jas:twijfel` | literal | — | Expliciete twijfel/aanname bij de markering. |
+| `jas:lid` | literal | – | Lidnummer indien van toepassing. |
+| `jas:vindplaats` | literal | – | Lid-relatieve vindplaats (bv. `lid 2`). |
+| `jas:overBepaling` | IRI | – | Koppeling naar de **bestaande** bepaling-node (`…/artikel/<n>[/lid/<n>]`); alleen bij een kaal (IRI-patroon-)nummer. |
+| `jas:toelichting` | literal | – | Motivatie van de classificatie. |
+| `jas:twijfel` | literal | – | Expliciete twijfel/aanname bij de markering. |
 
 > **Herkomst is inmiddels beschikbaar.** Het annotatiedomein legt sinds de export-slag per element
 > vast met welk model het voorstel is gemaakt (`geproduceerd_door`: model/provider/agent_versie/
 > critic_rondes) en per document het volledige `runs[]`-spoor. Bij het bouwen van dit schrijfpad
-> (Fase 4) hoort die provenance mee te gaan — de tabel hierboven kent er nog geen predicaten voor.
+> (Fase 4) hoort die provenance mee te gaan – de tabel hierboven kent er nog geen predicaten voor.
 > De JSON-export (`POST /v1/annotatie/documenten/{slug}/export?formaat=json`) is de superset waaruit
 > die mapping te maken is.
 

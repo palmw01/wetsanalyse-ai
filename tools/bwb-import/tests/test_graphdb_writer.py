@@ -428,12 +428,12 @@ def test_ensure_fts_is_idempotent_bij_actuele_config() -> None:
 
 
 def test_ensure_fts_hermaakt_wanneer_de_config_onleesbaar_is() -> None:
-    """Onleesbare config betekent: we weten niet waarop hij indexeert — dus opnieuw bouwen.
+    """Onleesbare config betekent: we weten niet waarop hij indexeert – dus opnieuw bouwen.
 
     Dit gedrag is er na een echte storing gekomen. Bij de overgang naar de URN-namespace gaf
     listConnectors alleen de connectornaam terug; de code nam toen aan dat de config actueel was
     en liet de connector staan. Die bleef op de oude predicaten indexeren, waarna full-text
-    zoeken stil nul treffers gaf — geen foutmelding, alleen lege antwoorden. Een herindexering
+    zoeken stil nul treffers gaf – geen foutmelding, alleen lege antwoorden. Een herindexering
     van enkele seconden is dat risico niet waard.
     """
     session = _StubSession(rauw="bwb_tekst")

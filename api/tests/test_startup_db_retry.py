@@ -1,6 +1,6 @@
 """De startup DB-connect-retry (`app.main._init_db_met_retry`): bij een nog-niet-klare DB retrye we
 met bounded backoff i.p.v. crash-loopen (postgres draait als aparte stack, geen cross-stack
-depends_on). Geen netwerk/DB — `create_all`/`sleep` worden gemockt."""
+depends_on). Geen netwerk/DB – `create_all`/`sleep` worden gemockt."""
 
 from __future__ import annotations
 

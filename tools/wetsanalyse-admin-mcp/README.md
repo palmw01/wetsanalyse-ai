@@ -2,7 +2,7 @@
 
 Een **stdio-MCP-server** die de bestaande admin-API van de Wetsanalyse-webapp (`/v1/admin/*`) als
 agent-tools ontsluit, zodat een MCP-client (Claude Code) de app kan configureren: modelprofielen,
-gebruikers en de genereerbare API-tokens (read). Het *wrapt* de admin-API — er is geen tweede
+gebruikers en de genereerbare API-tokens (read). Het *wrapt* de admin-API – er is geen tweede
 configuratie-API.
 
 Draait **lokaal** (op jouw machine) wanneer je Claude Code draait en praat over HTTPS met de API met
@@ -14,7 +14,7 @@ het token wordt nooit gelogd.
 `list_profiles`, `get_profile`, `upsert_profile`, `set_default_profile`, `test_profile`,
 `delete_profile`, `list_users`, `create_user`, `patch_user`, `list_api_tokens`.
 
-(Genereren/intrekken van API-tokens zit bewust **niet** in de MCP — dat blijft de `/beheer`-UI, om de
+(Genereren/intrekken van API-tokens zit bewust **niet** in de MCP – dat blijft de `/beheer`-UI, om de
 blast-radius klein te houden.)
 
 ## Bouwen
@@ -28,7 +28,7 @@ npm run build      # → dist/ (gecommit, zodat `node dist/index.js` zonder buil
 ## Activeren (koppelen aan productie)
 
 1. **Genereer een token** in de webapp: `/beheer` → **API-tokens** → *Token genereren* (label bijv.
-   `claude-admin-mcp`). Het volledige token wordt **één keer** getoond — kopieer het.
+   `claude-admin-mcp`). Het volledige token wordt **één keer** getoond – kopieer het.
 2. **Zet het token** als env-var voor Claude Code. In `.claude/settings.local.json` (gitignored,
    machine-lokaal, dus het reist niet mee naar een andere kloon):
 
@@ -51,7 +51,7 @@ npm run build      # → dist/ (gecommit, zodat `node dist/index.js` zonder buil
    modelprofielen te tonen (`list_profiles`).
 
 Roteren = het token intrekken in `/beheer` en een nieuw genereren. Verlies je toegang, dan trek je het
-in — de MCP kan er niets meer mee.
+in – de MCP kan er niets meer mee.
 
 ## Env
 
@@ -67,7 +67,7 @@ Zonder beide weigert de server te starten (fail-closed).
 ## Grafana-MCP (aparte, officiële server)
 
 Voor het inrichten van Grafana (datasources/dashboards/alerting) gebruik je de **officiële**
-`mcp/grafana`-server — geen eigen build, en net als hierboven **machine-lokaal geregistreerd** in
+`mcp/grafana`-server – geen eigen build, en net als hierboven **machine-lokaal geregistreerd** in
 plaats van gecommit. Twee stappen:
 
 1. **Grafana service-account + token**: in Grafana → *Administration → Users and access → Service

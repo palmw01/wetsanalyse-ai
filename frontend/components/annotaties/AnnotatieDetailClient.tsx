@@ -23,7 +23,7 @@ import type {
  *  URL en zonder chat ernaast.
  *
  *  Daarom ontbreken hier twee dingen bewust. `onVraag` (vraag Lex over dit element) heeft geen
- *  chatveld om iets in klaar te zetten — daarvoor is de knop naar de werkplek. En `ontbrekend` hoort
+ *  chatveld om iets in klaar te zetten – daarvoor is de knop naar de werkplek. En `ontbrekend` hoort
  *  bij een chatbeurt, niet bij het document, dus die lijst bestaat hier niet. */
 export function AnnotatieDetailClient({ slug }: { slug: string }) {
   const router = useRouter();
@@ -74,7 +74,7 @@ export function AnnotatieDetailClient({ slug }: { slug: string }) {
   }
 
   async function wisEigenMarkering(elementId: string) {
-    // De DELETE geeft niets terug, dus hier lokaal filteren — anders dan bij de andere twee, die het
+    // De DELETE geeft niets terug, dus hier lokaal filteren – anders dan bij de andere twee, die het
     // hele document terugleveren.
     await verwijderElement(slug, elementId);
     setDoc((d) => (d ? { ...d, elementen: d.elementen.filter((e) => e.id !== elementId) } : d));

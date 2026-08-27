@@ -16,7 +16,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 def _read_secret(env_name: str) -> str | None:
     """Lees een secret uit `${NAME}` of, als `${NAME}_FILE` is gezet, uit dat bestand.
 
-    Het *_FILE-patroon spiegelt de MCP (Docker secret/vault) — secrets niet als plain env.
+    Het *_FILE-patroon spiegelt de MCP (Docker secret/vault) – secrets niet als plain env.
     """
     file_var = os.environ.get(f"{env_name}_FILE")
     if file_var:
@@ -65,7 +65,7 @@ class Settings:
         self.llm_temperature = float(os.environ.get("LLM_TEMPERATURE", "0"))
         # Harde wandklok-timeout per LLM-call (0 = uit). Voorkomt dat een hangende provider-
         # verbinding een worker langer vasthoudt dan bedoeld; spiegelt `mcp_timeout_s`. Een hele
-        # act-2/act-3-ronde kan bij een traag provider-model >2 min duren — 300s i.p.v. 120s
+        # act-2/act-3-ronde kan bij een traag provider-model >2 min duren – 300s i.p.v. 120s
         # voorkomt vals-terminale timeouts. Veilig t.o.v. de lease: de heartbeat ververst die
         # mid-call (zie orchestrator._heartbeat / WETSANALYSE_LEASE_S).
         self.llm_timeout_s = float(os.environ.get("WETSANALYSE_LLM_TIMEOUT_S", "300"))
@@ -118,7 +118,7 @@ class Settings:
         self.rate_limit_max = int(os.environ.get("WETSANALYSE_RATE_LIMIT_MAX", "30"))
         self.rate_limit_window_s = float(os.environ.get("WETSANALYSE_RATE_LIMIT_WINDOW", "60"))
         # Aparte, krappe rate-limit op de admin-verbindingstest: die doet een echte (betaalde)
-        # LLM-call en zit alleen achter het admin-token — een gelekt token mag geen kosten stapelen.
+        # LLM-call en zit alleen achter het admin-token – een gelekt token mag geen kosten stapelen.
         self.admin_test_rate_max = int(os.environ.get("WETSANALYSE_ADMIN_TEST_RATE_MAX", "10"))
         self.admin_test_rate_window_s = float(os.environ.get("WETSANALYSE_ADMIN_TEST_RATE_WINDOW", "60"))
 

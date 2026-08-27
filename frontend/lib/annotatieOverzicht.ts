@@ -1,7 +1,7 @@
 // Sorteren, filteren en groeperen voor het annotatie-overzicht.
 //
 // Bewust een eigen module zonder React: vitest draait node-env zonder DOM (`vitest.config.ts`), dus
-// alleen pure helpers zijn te testen — dezelfde reden waarom `lib/selectie.ts` los staat van het
+// alleen pure helpers zijn te testen – dezelfde reden waarom `lib/selectie.ts` los staat van het
 // documentpaneel. Het component eromheen doet alleen nog weergave.
 
 import type { DocumentSamenvatting } from "./types";
@@ -18,7 +18,7 @@ export function weergaveUitParam(param: string | null | undefined): Weergave {
 }
 
 /** De vindplaats zoals hij in beeld komt: `art. 9 lid 2`. Werkt op zowel een samenvatting als een
- *  volledig document — beide dragen artikel en lid. */
+ *  volledig document – beide dragen artikel en lid. */
 export function vindplaatsLabel(d: { artikel: string; lid: string }): string {
   return `art. ${d.artikel}${d.lid ? ` lid ${d.lid}` : ""}`;
 }

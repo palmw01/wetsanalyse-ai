@@ -3,7 +3,7 @@
 // Next.js (App Router) levert dynamische route-params URL-geëncodeerd aan. Zo'n param dan
 // nóg eens met encodeURIComponent in een upstream-URL coderen verdubbelt gereserveerde
 // tekens: een artikelnummer als 4:86 wordt in de slug `...-art4:86`, de ':' wordt door de
-// browser/Next `%3A`, en een tweede encode maakt daar `%253A` van — waarop de upstream-lookup
+// browser/Next `%3A`, en een tweede encode maakt daar `%253A` van – waarop de upstream-lookup
 // 404't ("Project niet gevonden"). Eerst decoderen en dan precies één keer encoderen maakt de
 // bewerking idempotent: zowel een al-geëncode als een kale waarde levert één, correct
 // geëncodeerd segment op.
@@ -21,7 +21,7 @@ export function pathSegment(value: string): string {
 // geldigheidsdatum (`&g=`) nodig; een jci met alléén `&g=` landt bovenaan de wet i.p.v. op de
 // bepaling. De MCP levert nu alleen `&g=<datum>`, dus vul `&z=<zelfde datum>` aan als die ontbreekt
 // (conform het format dat wetten.overheid.nl in zijn eigen bron-XML gebruikt: `…&z=D&g=D`). Een jci
-// zónder datum (kale kruisverwijzing) laten we ongemoeid — die resolvet naar de actuele versie.
+// zónder datum (kale kruisverwijzing) laten we ongemoeid – die resolvet naar de actuele versie.
 export function normaliseerJci(jci: string): string {
   const g = jci.match(/[?&]g=(\d{4}-\d{2}-\d{2})/);
   if (g && !/[?&]z=/.test(jci)) {
@@ -32,7 +32,7 @@ export function normaliseerJci(jci: string): string {
 
 // De basis van de IRI's in de kennisgraaf (`GRAPHDB_BASE_IRI` in de bwb-importer). Vindplaatsen uit
 // de tool-trace kunnen in die vorm binnenkomen; ze zijn intern en dus niet publiek te openen.
-// Bewaakt door tools/graph-qa/tests/test_namespace_drift.py — deze constante is de enige koppeling
+// Bewaakt door tools/graph-qa/tests/test_namespace_drift.py – deze constante is de enige koppeling
 // met de importer, want client-side code kan de env niet lezen.
 const GRAAF_BASIS = "urn:bwb:";
 // Segmentscheiding: `:` in de URN-ruimte, `/` als de basis ooit weer een http-IRI wordt.
@@ -41,7 +41,7 @@ const BWB_ID = /^BWBR\d+$/;
 
 // Een graaf-IRI naar de publieke vindplaats vertalen. De IRI is systematisch opgebouwd uit
 // sleutel/waarde-paren achter het BWB-id (`urn:bwb:BWBR0004770:artikel:2:lid:1`), dus de omzetting
-// naar een jci is mechanisch — de spiegel van `Vocab.canonieke_url` in de importer.
+// naar een jci is mechanisch – de spiegel van `Vocab.canonieke_url` in de importer.
 //
 // Niet elke IRI hééft een publieke vorm: `:id:…` (niet-citeerbare knoop), `:ref:…` (gehashte
 // terugval), `:begrip:…`, `:graph:…` en `:verwijzing:…` bestaan alleen in de graaf. Daar is geen link

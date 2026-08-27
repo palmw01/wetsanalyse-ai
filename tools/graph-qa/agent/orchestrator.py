@@ -2,7 +2,7 @@
 LangGraph-orkestrator: plan → retrieve → reason → verify → finalize.
 
 LangGraph levert het toestandsgraaf-substraat (nodes, conditionele edges, streaming,
-checkpointing); de domeinlogica blijft die van Fase 1/2 — de nodes roepen de bestaande
+checkpointing); de domeinlogica blijft die van Fase 1/2 – de nodes roepen de bestaande
 LLMPort/GraphPort, de typed tool-registry, provenance en grounding aan. Geen
 langchain-chatmodel: Azure Foundry blijft via AnthropicLLM.
 
@@ -63,7 +63,7 @@ logger = logging.getLogger("graph_qa.orchestrator")
 
 
 def _doel_uit_json(text: str) -> dict[str, str]:
-    """Haal het doel ({bwbId,artikel,lid,nummer}) uit de JSON van de ophaal-agent — plat of onder een
+    """Haal het doel ({bwbId,artikel,lid,nummer}) uit de JSON van de ophaal-agent – plat of onder een
     `doel`-sleutel."""
     import json
 
@@ -85,7 +85,7 @@ def _kandidaten_uit_json(text: str) -> list[dict[str, str]]:
     Vraagt een jurist om een ONDERWERP ("annoteer alles over aansprakelijkheid van de bestuurder"),
     dan is er geen enkele bepaling aan te wijzen. De ophaal-agent zoekt er dan in de graaf naar en
     levert `{"kandidaten": [...]}` in plaats van een `doel`. Welke daarvan de werkvoorraad in gaan is
-    een inhoudelijke keuze van de jurist — dus hier niets raden.
+    een inhoudelijke keuze van de jurist – dus hier niets raden.
     """
     import json
 
@@ -133,7 +133,7 @@ def _ontbrekend_sleutel(item: dict[str, Any]) -> str:
 def _stap(writer: Any, actor: str, bericht: str) -> None:
     """Meld één stap in de keten: `Actor · wat er gebeurde`.
 
-    Bestaat om het idioom af te dwingen. Zonder deze helper verzint elke node zijn eigen vorm — zo
+    Bestaat om het idioom af te dwingen. Zonder deze helper verzint elke node zijn eigen vorm – zo
     stonden er "Opgesplitst in 3 deelvragen." en "Annoteerder · 4 gegrond" naast elkaar, en waren er
     twee verschillende teksten voor dezelfde graafbevraging.
     """
@@ -141,7 +141,7 @@ def _stap(writer: Any, actor: str, bericht: str) -> None:
 
 
 def _toolregel(call: dict[str, Any]) -> str:
-    """`get_lid(BWBR0004770, art. 9, lid 1)` — de tool mét waar hij naar kijkt.
+    """`get_lid(BWBR0004770, art. 9, lid 1)` – de tool mét waar hij naar kijkt.
 
     Alleen de tool-naam zei te weinig: bij drie opeenvolgende `get_lid`-aanroepen zag je niet dat het
     om verschillende bepalingen ging.
@@ -163,7 +163,7 @@ def _annoteer_melding(voorstellen: list[Any], verworpen: list[Any]) -> str:
         per_reden[reden] = per_reden.get(reden, 0) + 1
     uitleg = {"niet_letterlijk": "niet letterlijk", "ongeldige_klasse": "ongeldige klasse"}
     details = ", ".join(f"{n}× {uitleg.get(r, r)}" for r, n in per_reden.items())
-    return f"{regel} — {len(verworpen)} verworpen ({details})"
+    return f"{regel} – {len(verworpen)} verworpen ({details})"
 
 
 def _critic_melding(
@@ -178,7 +178,7 @@ def _critic_melding(
         niveau = getattr(o, "aandacht", "") or "geen oordeel"
         telling[niveau] = telling.get(niveau, 0) + 1
     # Een gedempt oordeel staat als geel op de kaart. Het hier als rood tellen zou de tijdlijn iets
-    # anders laten zeggen dan de jurist ziet — precies het soort verschil waarmee je deze keten
+    # anders laten zeggen dan de jurist ziet – precies het soort verschil waarmee je deze keten
     # beoordeelt.
     if gedempt:
         telling["rood"] = max(0, telling.get("rood", 0) - gedempt)
@@ -201,20 +201,20 @@ def _critic_melding(
 
 
 def _grounding_melding(report: Any) -> str:
-    """Wat de brongetrouwheidstoets opleverde — inclusief het geval dat er niets te toetsen viel.
+    """Wat de brongetrouwheidstoets opleverde – inclusief het geval dat er niets te toetsen viel.
 
     De controle kijkt naar twee dingen die los van elkaar staan: **vindplaatsen** (BWB-id's en IRI's
     in het antwoord) en **citaten** (tekst tussen aanhalingstekens). De melding hoort te zeggen wat
     er daadwerkelijk is nagelopen.
 
-    Dat ging mis bij een antwoord dat artikelen in gewone taal noemt — "artikel 2 lid 1 onderdeel m"
+    Dat ging mis bij een antwoord dat artikelen in gewone taal noemt – "artikel 2 lid 1 onderdeel m"
     zonder BWB-id. Nul vindplaatsen dus, maar wél twee citaten, en die klopten allebei. De tijdlijn
     meldde toen "0 verwijzingen onderbouwd": precies de misleidende regel die de "niets te
     controleren"-tak hierboven had moeten voorkomen, maar die vangt alleen het geval waarin er
     helemaal niets was.
     """
     if report.niveau == "onbepaald":
-        return "brongetrouwheid: geen vindplaats of citaat genoemd — niets te controleren"
+        return "brongetrouwheid: geen vindplaats of citaat genoemd – niets te controleren"
 
     delen: list[str] = []
     if report.unsupported:
@@ -255,7 +255,7 @@ def _herzien_melding(voor: list[dict[str, Any]], na: list[dict[str, Any]]) -> st
 
 def _doel_uit_toolcalls(messages: list[dict[str, Any]]) -> dict[str, str]:
     """Gezaghebbend doel = de LAATSTE fetch-tool-call (get_lid/get_artikel/get_bepaling) die de agent
-    deed — wat hij écht ophaalde. get_bepaling levert een `nummer` (bv. '9.1' voor een divisie); dat
+    deed – wat hij écht ophaalde. get_bepaling levert een `nummer` (bv. '9.1' voor een divisie); dat
     zetten we óók als `artikel`, zodat de weergave het aankan. Leeg als er geen fetch-call was."""
     doel = {"bwbId": "", "artikel": "", "lid": "", "nummer": ""}
     for msg in messages:
@@ -287,7 +287,7 @@ def _bepaal_doel(state: State) -> dict[str, str]:
 
     Gaf de aanroeper zélf een doel mee, dan wint dat van allebei: dan hoefde er niets gezocht te
     worden en is dit precies de bepaling die de jurist aanwees. De andere twee bronnen blijven als
-    aanvulling staan — zo vult een meegegeven `{bwbId, artikel}` zich alsnog met een `citeertitel`
+    aanvulling staan – zo vult een meegegeven `{bwbId, artikel}` zich alsnog met een `citeertitel`
     als die uit de trace komt.
     """
     opgegeven = state.get("opgegeven_doel") or {}
@@ -309,10 +309,10 @@ def _heeft_opgegeven_doel(state: State) -> bool:
 def _corpus_uit_trace(source_trace: list[tuple[str, str]]) -> str:
     """Reconstrueer de opgehaalde artikeltekst uit de get_lid/get_artikel-resultaten in de trace.
 
-    **Terugval, geen eerste keus** — zie `_corpus_voor_doel`. Deze reconstructie plakt álle
+    **Terugval, geen eerste keus** – zie `_corpus_voor_doel`. Deze reconstructie plakt álle
     fetch-resultaten van de beurt aaneen, terwijl het doel de láátste fetch-call is: haalde de
     ophaal-agent eerst het hele artikel op en daarna het gevraagde lid, dan zit de tekst van de
-    andere leden er ook in — en dan keurt de brongetrouwheidscheck een fragment uit lid 2 goed als
+    andere leden er ook in – en dan keurt de brongetrouwheidscheck een fragment uit lid 2 goed als
     markering "in lid 1". Bovendien is elk tool-resultaat afgekapt op 8000 tekens (`truncate`),
     dus bij een lange bepaling ontbreekt hier stilzwijgend het staartstuk.
     """
@@ -330,7 +330,7 @@ def _corpus_uit_trace(source_trace: list[tuple[str, str]]) -> str:
 def _corpus_voor_doel(doel: dict[str, str], graph: GraphPort, source_trace: list[tuple[str, str]]) -> str:
     """De tekst waarop geannoteerd wordt: precies de bepaling uit `doel`, ongekapt.
 
-    Eén gerichte ophaalactie via `artikel.artikel_corpus` — dezelfde functie waarmee `GET /v1/artikel`
+    Eén gerichte ophaalactie via `artikel.artikel_corpus` – dezelfde functie waarmee `GET /v1/artikel`
     het documentpaneel vult. Daarmee is er weer één bron voor wat de jurist ziet en waartegen de
     brongetrouwheid wordt gecheckt, zoals `agent/artikel.py` altijd al beloofde.
 
@@ -339,7 +339,7 @@ def _corpus_voor_doel(doel: dict[str, str], graph: GraphPort, source_trace: list
     betalen hem niet opnieuw.
 
     Levert de graaf niets (of kennen we het doel niet), dan valt dit terug op de trace-reconstructie:
-    liever de tekst die de agent zag dan helemaal geen corpus — dan zou de hele beurt afbreken.
+    liever de tekst die de agent zag dan helemaal geen corpus – dan zou de hele beurt afbreken.
     """
     bwb = (doel.get("bwbId") or "").strip()
     aanduiding = (doel.get("artikel") or doel.get("nummer") or "").strip()
@@ -352,7 +352,7 @@ def _corpus_voor_doel(doel: dict[str, str], graph: GraphPort, source_trace: list
                 "corpus: graaf gaf niets voor het doel; terugval op de tool-trace",
                 extra={"bwb_id": bwb, "aanduiding": aanduiding, "lid": doel.get("lid", "")},
             )
-        except Exception:  # noqa: BLE001 — een mislukte ophaal mag de annotatie niet breken
+        except Exception:  # noqa: BLE001 – een mislukte ophaal mag de annotatie niet breken
             logger.warning("corpus: gericht ophalen mislukt; terugval op de tool-trace", exc_info=True)
     return _corpus_uit_trace(source_trace)
 
@@ -362,12 +362,12 @@ _DECOMPOSE_SYSTEM = (
     "(1., 2., …), in logische volgorde (een deelvraag mag voortbouwen op een eerdere). Splits ALLEEN "
     "als de vraag echt meerdere losse onderdelen heeft; een enkelvoudige vraag geef je als één regel "
     "terug (de vraag zelf). Verzin geen deelvragen die niet in de oorspronkelijke vraag besloten "
-    "liggen. Geen inleiding of uitleg — alleen de genummerde regels."
+    "liggen. Geen inleiding of uitleg – alleen de genummerde regels."
 )
 
 _SYNTHESE_SYSTEM = (
     "Je stelt één samenhangend eindantwoord samen uit de per-deelvraag verzamelde bevindingen. "
-    "Steun UITSLUITEND op die bevindingen — voeg geen nieuwe feiten toe en verzin geen vindplaatsen. "
+    "Steun UITSLUITEND op die bevindingen – voeg geen nieuwe feiten toe en verzin geen vindplaatsen. "
     "Behoud de vindplaatsen (regeling/artikel/lid) letterlijk zoals ze in de bevindingen staan. "
     "Antwoord bondig en goed gestructureerd; adresseer elk onderdeel van de oorspronkelijke vraag."
 )
@@ -395,7 +395,7 @@ def _msg_lengte(m: dict[str, Any]) -> int:
 
 
 def _is_tool_result_user(m: dict[str, Any]) -> bool:
-    """Een user-message dat (alleen) tool_result-blokken draagt — orphan als z'n tool_use is weggevallen."""
+    """Een user-message dat (alleen) tool_result-blokken draagt – orphan als z'n tool_use is weggevallen."""
     c = m.get("content")
     return (
         m.get("role") == "user"
@@ -405,7 +405,7 @@ def _is_tool_result_user(m: dict[str, Any]) -> bool:
 
 
 def _is_plain_user(m: dict[str, Any]) -> bool:
-    """Een 'platte' user-beurt (de vraag/correctie) — géén tool_result-drager. Zo'n bericht is een
+    """Een 'platte' user-beurt (de vraag/correctie) – géén tool_result-drager. Zo'n bericht is een
     geldig venster-begin: alles erna is een compleet assistant→tool_result-verloop."""
     return m.get("role") == "user" and not _is_tool_result_user(m)
 
@@ -444,7 +444,7 @@ def _trim_messages(messages: list[dict[str, Any]], max_chars: int) -> list[dict[
 # de LLM tóch al krijgt: dit is een opslagrem, geen tweede contextrem.
 # Vaste grens, want een LangGraph-reducer is een pure functie zonder toegang tot `Settings`. Ruim
 # vier keer het default prompt-budget (`max_history_chars`, 40k). Zet iemand dat budget hoger dan de
-# helft hiervan, dan waarschuwt `Settings.controleer_historie_grens()` bij boot — dan zou de
+# helft hiervan, dan waarschuwt `Settings.controleer_historie_grens()` bij boot – dan zou de
 # opslagrem binnen het promptvenster gaan knippen, en dat is precies wat hij niet moet doen.
 MAX_HISTORIE_CHARS = 160_000
 
@@ -454,7 +454,7 @@ def _snoei_historie(messages: list[dict[str, Any]], max_chars: int) -> list[dict
 
     "Veilig" is een plátte user-beurt (`_is_plain_user`): begint de historie met een los
     tool_result, dan mist dat blok zijn tool_use en weigert Anthropic de hele request. Vinden we geen
-    veilige grens binnen het budget, dan snoeien we níét — een te grote historie is hinderlijk, een
+    veilige grens binnen het budget, dan snoeien we níét – een te grote historie is hinderlijk, een
     kapotte is fataal.
     """
     if max_chars <= 0 or not messages:
@@ -482,7 +482,7 @@ def _voeg_toe_en_snoei(
 
 
 def _schoon_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Strip lege tekstblokken (Anthropic weigert {"type":"text","text":""} — Claude stuurt die soms
+    """Strip lege tekstblokken (Anthropic weigert {"type":"text","text":""} – Claude stuurt die soms
     mee náást een tool_use; via het gespreksgeheugen komen ze terug). Berichten waarvan de content
     daardoor leeg wordt, slaan we over; tool_use/tool_result en string-content blijven ongemoeid."""
     schoon: list[dict[str, Any]] = []
@@ -506,7 +506,7 @@ class State(TypedDict, total=False):
     # Episodisch geheugen, gepersisteerd door de checkpointer. De reducer voegt toe én snoeit: zonder
     # dat groeide de bewaarde historie onbeperkt door (inclusief elk tool-resultaat van 8000 tekens),
     # en werd elke checkpoint-write in een lang gesprek trager en dikker. Snoeien gebeurt alleen op
-    # een platte user-beurt — een losgeknipt tool_result zou de volgende beurt laten crashen.
+    # een platte user-beurt – een losgeknipt tool_result zou de volgende beurt laten crashen.
     messages: Annotated[list[dict[str, Any]], _voeg_toe_en_snoei]
     entities_seen: Annotated[list[str], operator.add]            # semantisch/entiteit-tier
     specialist: str
@@ -530,7 +530,7 @@ class State(TypedDict, total=False):
     sub_questions: list[str]
     sub_findings: list[dict[str, str]]
     # Het doel dat de AANROEPER meegaf ({bwbId, artikel, lid?, citeertitel?}). Weet de werkplek de
-    # bepaling al — een open document, een item uit de werkvoorraad, een gekozen kandidaat — dan
+    # bepaling al – een open document, een item uit de werkvoorraad, een gekozen kandidaat – dan
     # hoeft niemand hem meer te zoeken: de supervisor doet geen LLM-call en de ophaal-agent draait
     # helemaal niet. Dat scheelt niet alleen calls; het verwijdert de gevaarlijkste faalmodus uit
     # die route, want een ophaal-agent die de verkeerde bepaling kiest levert werk op dat
@@ -555,7 +555,7 @@ class State(TypedDict, total=False):
     critic_ronde: int                            # welke Critic-pas: 1 = oordeel, 2 = eindbeoordeling
     # Convergentie. Zonder deze drie draait de lus altijd tot de rondelimiet: de Critic bedenkt elke
     # ronde opnieuw wat er "mist", dus er is altijd een reden om door te gaan.
-    nieuw_ontbrekend: list[dict[str, Any]]       # gemist én nog niet eerder gemeld — alleen dit is werk
+    nieuw_ontbrekend: list[dict[str, Any]]       # gemist én nog niet eerder gemeld – alleen dit is werk
     gemeld_ontbrekend: list[str]                 # sleutels van alles wat al ooit gemeld is
     patch_toegepast: int                         # hoeveel Critic-aanwijzingen de patcher uitvoerde
     stop_reden: str                              # waaróm de lus eindigde; komt in de tijdlijn
@@ -587,7 +587,7 @@ def build_graph(
             return ""
         lijst = "\n".join(f"- {u}" for u in seen[-12:])
         return (
-            "\n\nGESPREKSCONTEXT — eerder in dit gesprek geraadpleegde bepalingen (alléén als "
+            "\n\nGESPREKSCONTEXT – eerder in dit gesprek geraadpleegde bepalingen (alléén als "
             "aanknopingspunt voor verwijzingen als 'dat artikel'; verifieer elk feit opnieuw via "
             f"de tools):\n{lijst}"
         )
@@ -605,7 +605,7 @@ def build_graph(
             # De aanroeper weet welke bepaling geannoteerd moet worden. Dan is er niets te kiezen en
             # niets te zoeken: geen supervisor-call, en `_entry_node` slaat de ophaal-agent over.
             # Wat de router zou beslissen is hier al bekend, en wat de ophaal-agent zou vinden staat
-            # er al — inclusief de zekerheid dat het de bepaling is die de jurist aanwees.
+            # er al – inclusief de zekerheid dat het de bepaling is die de jurist aanwees.
             doel = state.get("opgegeven_doel") or {}
             aanduiding = doel.get("artikel") or doel.get("nummer") or ""
             _stap(writer, "Lex", f"annoteert de aangewezen bepaling (art. {aanduiding})")
@@ -617,7 +617,7 @@ def build_graph(
         if state.get("modus") == "advies":
             # Een adviesvraag bij een bestaande annotatie: geen LLM-keuze, hard naar de
             # duiding-specialist. Dat is een topologische garantie in plaats van een belofte in een
-            # prompt — de antwoord-route emit geen `doel`/`element`-events, dus advies vragen kán de
+            # prompt – de antwoord-route emit geen `doel`/`element`-events, dus advies vragen kán de
             # annotatie niet wijzigen. Scheelt bovendien een LLM-call.
             _stap(writer, "Lex", "advies bij een bestaande markering")
             return {
@@ -637,7 +637,7 @@ def build_graph(
         if afwijzen:
             # Buiten de scope. Dit hoort hier te eindigen en niet als "AANPAK: AFWIJZEN" de
             # systeemprompt van een specialist in te gaan, waar een tweede modelbeslissing bepaalt
-            # wat er gebeurt — dat kost minstens één extra call en is bovendien geen garantie.
+            # wat er gebeurt – dat kost minstens één extra call en is bovendien geen garantie.
             _stap(writer, "Supervisor", "buiten de wet- en regelgeving in de graaf")
             return {"specialist": "", "plan": plan, "worker_plan": [], "worker_idx": 0,
                     "afwijzen": True}
@@ -650,7 +650,7 @@ def build_graph(
         """Ingang voor de huidige worker: de annotatie-worker draait altijd de agent⇄tools-lus; een
         antwoord-worker gaat in decompositie-modus langs decompose, anders ook langs de agent-lus.
 
-        Wees de vraag afgewezen, dan gaat er geen enkele worker draaien — dat is de hele winst."""
+        Wees de vraag afgewezen, dan gaat er geen enkele worker draaien – dat is de hele winst."""
         if state.get("afwijzen"):
             return "afwijzen"
         if state.get("specialist") == "annotatie":
@@ -685,7 +685,7 @@ def build_graph(
     def _advies_context(state: State) -> str:
         """Contextblok voor een adviesvraag: waar gaat het over, en wat mag de agent niet doen.
 
-        De 'wijzig niets'-instructie is hier een toelichting, geen slot — dat slot is topologisch
+        De 'wijzig niets'-instructie is hier een toelichting, geen slot – dat slot is topologisch
         (deze route emit geen element-events). Het staat er zodat het antwoord de juiste vorm heeft:
         een onderbouwing, geen voorstel voor een nieuwe annotatie.
         """
@@ -710,7 +710,7 @@ def build_graph(
             "duiding; stel geen nieuwe annotatie voor en zeg niet dat je iets hebt gewijzigd.",
         ]
         # Zonder deze afbakening motiveert het model álle markeringen die het in de gesprekshistorie
-        # ziet staan — de annotatiebeurt zit immers in dezelfde thread. Wie één element aanklikt en
+        # ziet staan – de annotatiebeurt zit immers in dezelfde thread. Wie één element aanklikt en
         # "motiveer" vraagt, verwacht één motivering. De laatste zin is de tegenkracht tegen dat
         # geheugen: zonder die toevoeging pakt het model er alsnog zijn eerdere voorstellen bij.
         if c.get("fragment"):
@@ -719,10 +719,10 @@ def build_graph(
                 "",
                 # Niet "ONDERWERP": dat woord gebruikt de basis-systeemprompt al voor de
                 # onderwerp-afbakening van de agent (wel/geen wetgevingsvraag).
-                f'AFBAKENING VAN DEZE VRAAG — het gaat over dit ene fragment: "{c["fragment"]}". '
+                f'AFBAKENING VAN DEZE VRAAG – het gaat over dit ene fragment: "{c["fragment"]}". '
                 "Motiveer alleen dat element.",
                 "Een andere markering uit dezelfde bepaling mag je erbij halen wanneer die NODIG is om "
-                "dit element te onderbouwen — samenhang, afbakening, of het rechtsgevolg waar een "
+                "dit element te onderbouwen – samenhang, afbakening, of het rechtsgevolg waar een "
                 "voorwaarde bij hoort. Houd dat kort en breng het terug naar het onderwerp.",
                 "Geef die andere markeringen GEEN eigen motivering, ook niet als je ze eerder in dit "
                 "gesprek hebt voorgesteld.",
@@ -738,19 +738,19 @@ def build_graph(
                     klasse = str(b.get("klasse", "")).strip()
                     tekst = truncate(str(b.get("tekst", "")).strip(), 200)
                     if klasse and tekst:
-                        regels.append(f'{klasse} — "{tekst}"')
+                        regels.append(f'{klasse} – "{tekst}"')
                 regels.append("--- EINDE ---")
         return "\n".join(regels)
 
     def afwijs_node(state: State) -> dict[str, Any]:
         """De supervisor plaatste de vraag buiten de wetgeving: hier eindigt de beurt.
 
-        Kort en zonder verwijt, met de uitnodiging erbij — een afwijzing die alleen "dat doe ik niet"
+        Kort en zonder verwijt, met de uitnodiging erbij – een afwijzing die alleen "dat doe ik niet"
         zegt laat iemand raden wat dan wel kan. Geen tools, geen bronnen, geen tweede LLM-call.
 
         Deze tekst zegt bewust NIET "staat niet in mijn kennisgraaf". Dit pad is er voor vragen die
         buiten de wetgeving vallen (het weer, programmeren), en dat weet de supervisor zonder te
-        kijken. Of een bepáálde regeling in de graaf zit weet hij juist níét — hij heeft geen tools —
+        kijken. Of een bepáálde regeling in de graaf zit weet hij juist níét – hij heeft geen tools —
         en die vraag hoort dus naar de antwoord-worker, die zoekt en het zelf zegt als hij niets
         vindt. Anders wijst een gok een vraag af waar wel degelijk iets over te vinden was: "de
         milieuwet" leverde een afwijzing op terwijl art. 36 IW 1990 de Wet belastingen op
@@ -763,7 +763,7 @@ def build_graph(
             "— of laat me een artikel annoteren volgens het JAS."
         )
         writer({"type": "token", "content": melding})
-        _stap(writer, "Klaar", "niet beantwoord — buiten de wetgeving")
+        _stap(writer, "Klaar", "niet beantwoord – buiten de wetgeving")
         return {"answer": melding, "messages": [{"role": "assistant", "content": melding}]}
 
     def agent_node(state: State) -> dict[str, Any]:
@@ -780,7 +780,7 @@ def build_graph(
         # Twee delen, en de volgorde is betekenisdragend: het stabiele deel (identiteit +
         # specialist) is bij elke tool-ronde van elke beurt hetzelfde en draagt daarom het
         # prompt-cache-punt; het plan, de geheugen-context en de adviescontext verschillen per
-        # beurt en horen er dus áchter. Caching is een prefix-match — één byte verschil vóór het
+        # beurt en horen er dus áchter. Caching is een prefix-match – één byte verschil vóór het
         # cache-punt maakt de cache waardeloos.
         stabiel = SYSTEM_PROMPT + (f"\n\n{spec.system}" if spec.system else "")
         variabel = ""
@@ -789,12 +789,12 @@ def build_graph(
         variabel += _memory_context(state)
         variabel += _advies_context(state)
 
-        # De annotatie-worker produceert JSON, geen leesbaar antwoord — díe narratie tonen we niet
+        # De annotatie-worker produceert JSON, geen leesbaar antwoord – díe narratie tonen we niet
         # (annoteer_node emit straks een korte samenvatting). De narratie van een gewone worker is de
         # "denkproces"-stroom (reason), niet het antwoord: die scheiden we van het eindantwoord (token).
         stream_naar_denk = state.get("specialist") != "annotatie"
         with llm.stream(
-            # Deze node draait twee verschillende rollen: de OPHAAL-agent (annotatieroute — zoeken
+            # Deze node draait twee verschillende rollen: de OPHAAL-agent (annotatieroute – zoeken
             # en ophalen) en de QA-specialisten (die het antwoord zelf schrijven). Alleen de eerste
             # heeft een eigen modelknop.
             model=model_ophaal if spec_naam == "retrieval" else model,
@@ -843,7 +843,7 @@ def build_graph(
         }
         if not tool_uses:
             # De tool-loze beurt is het eindantwoord: dát is de leesbare `token`-stroom (de annotatie-
-            # route levert JSON, geen antwoord — daar geen token; annoteer_node vat samen).
+            # route levert JSON, geen antwoord – daar geen token; annoteer_node vat samen).
             antwoord = "\n\n".join(p for p in text_parts if p)
             upd["answer"] = antwoord
             if stream_naar_denk and antwoord:
@@ -879,14 +879,14 @@ def build_graph(
                     "messages": [{"role": "assistant", "content": melding}]}
 
         doel = _bepaal_doel(state)
-        # Gericht ophalen op basis van het doel — niet reconstrueren uit de trace. Zie
+        # Gericht ophalen op basis van het doel – niet reconstrueren uit de trace. Zie
         # `_corpus_voor_doel`: die reconstructie mengt bepalingen en is afgekapt op 8000 tekens.
         corpus = _corpus_voor_doel(doel, graph, state.get("source_trace", []))
         aanduiding = doel.get("artikel") or doel.get("nummer") or ""
 
         if not corpus.strip():
             melding = (
-                "Ik kon de gevraagde bepaling niet ophalen om te annoteren — controleer de wet en het "
+                "Ik kon de gevraagde bepaling niet ophalen om te annoteren – controleer de wet en het "
                 "artikel/lid (bij een beleidsregel bv. '9.1')."
             )
             writer({"type": "token", "content": melding})
@@ -926,7 +926,7 @@ def build_graph(
         # herzieningslus en worden nooit gewijzigd. De api weigert dat trouwens ook.
         # Ze moeten wél over DEZE bepaling gaan: een fragment dat niet letterlijk in het opgehaalde
         # corpus staat, kan de Critic niet beoordelen. Zonder deze grens oordeelt hij over een
-        # markering uit een ander artikel die de werkplek meestuurde — en dat leest als een
+        # markering uit een ander artikel die de werkplek meestuurde – en dat leest als een
         # kanttekening op werk dat hier niet ligt.
         meegestuurd = [
             e for e in ((state.get("context") or {}).get("bestaande_elementen") or [])
@@ -960,7 +960,7 @@ def build_graph(
         }
 
     def annoteer_kandidaten_node(state: State) -> dict[str, Any]:
-        """Fase 2A stap 1: kandidaatgeneratie — zoekt tekstspans zonder JAS-klasse.
+        """Fase 2A stap 1: kandidaatgeneratie – zoekt tekstspans zonder JAS-klasse.
 
         Een aparte LLM-call die uitsluitend 'welke spans zijn mogelijk een juridisch element?'
         beantwoordt, zonder te classificeren. Dit maakt kandidaat-recall onafhankelijk van
@@ -970,7 +970,7 @@ def build_graph(
         writer = get_stream_writer()
 
         # Een ONDERWERP in plaats van een bepaling: dan legt de ophaal-agent kandidaat-bepalingen
-        # voor en annoteren we nog niets. Identiek aan `annoteer_node` — welke bepaling de
+        # voor en annoteren we nog niets. Identiek aan `annoteer_node` – welke bepaling de
         # werkvoorraad in gaat is een keuze van de jurist, en die keuze mag niet afhangen van of de
         # splitsing aan staat.
         kandidaat_bepalingen = _kandidaten_uit_json(state.get("answer", ""))
@@ -986,7 +986,7 @@ def build_graph(
 
         doel = _bepaal_doel(state)
         # Gebruik het in state gecachede corpus; als dat leeg is haal het gericht op
-        # (zelfde strategie als annoteer_node — zonder dit zou een direct-naar-annoteer
+        # (zelfde strategie als annoteer_node – zonder dit zou een direct-naar-annoteer
         # route met leeg corpus altijd een lege kandidatenlijst opleveren).
         corpus = state.get("corpus") or _corpus_voor_doel(doel, graph, state.get("source_trace", []))
         if not corpus.strip():
@@ -994,7 +994,7 @@ def build_graph(
             # op een lege tekst, en las de jurist "geen JAS-elementen gevonden" waar "ik kon de
             # bepaling niet ophalen" de waarheid is.
             melding = (
-                "Ik kon de gevraagde bepaling niet ophalen om te annoteren — controleer de wet en het "
+                "Ik kon de gevraagde bepaling niet ophalen om te annoteren – controleer de wet en het "
                 "artikel/lid (bij een beleidsregel bv. '9.1')."
             )
             writer({"type": "token", "content": melding})
@@ -1019,7 +1019,7 @@ def build_graph(
         _stap(writer, "Kandidaatgenerator",
               f"{len(ruw)} gevonden, {len(gefilterd)} na filtering")
         # Het corpus MOET mee. `annoteer_klasseer_node` leest het uit de state, en zonder dit veld
-        # staat daar niets — of, bij een tweede bepaling in dezelfde run, de tekst van de vórige.
+        # staat daar niets – of, bij een tweede bepaling in dezelfde run, de tekst van de vórige.
         # Dan gront `_verwerk` elk fragment tegen de verkeerde tekst en verwerpt het alles.
         return {"kandidaten_v2a": gefilterd, "corpus": corpus}
 
@@ -1031,7 +1031,7 @@ def build_graph(
         garanties ongewijzigd blijven. De Critic-keten daarna is identiek aan V1.
 
         Als er geen kandidaten zijn (kandidaatgenerator produceerde niets na filtering), valt
-        deze node terug op de V1-gecombineerde aanpak — één call die zelf de spans zoekt én
+        deze node terug op de V1-gecombineerde aanpak – één call die zelf de spans zoekt én
         classificeert. Dat voorkomt dat een lege kandidatenlijst het annotatie-proces stillegt.
         """
         writer = get_stream_writer()
@@ -1042,7 +1042,7 @@ def build_graph(
 
         if not kandidaten:
             # Fallback naar V1: gecombineerde kandidaat+classificatie in één call
-            _stap(writer, "Classificator", "geen kandidaten — gecombineerde aanpak (V1-fallback)")
+            _stap(writer, "Classificator", "geen kandidaten – gecombineerde aanpak (V1-fallback)")
             resp = llm.create(
                 model=model, max_tokens=8192,
                 system=annotatie_systeemprompt(), tools=[],
@@ -1140,12 +1140,12 @@ def build_graph(
             )
             crit_text = "".join(b.text for b in resp.content if b.type == "text")
             oordelen, ontbrekend = _verwerk_critic(crit_text, [str(v.get("id", "")) for v in voorstellen])
-        except Exception:  # noqa: BLE001 — Critic mag de annotatie nooit breken
+        except Exception:  # noqa: BLE001 – Critic mag de annotatie nooit breken
             gefaald = True
             logger.warning("critic: beoordeling mislukt; elementen zonder aandacht doorgelaten", exc_info=True)
 
         if gefaald:
-            _stap(writer, "Critic", "overgeslagen (fout) — de voorstellen blijven staan")
+            _stap(writer, "Critic", "overgeslagen (fout) – de voorstellen blijven staan")
             # Laat de voorstellen ONGEMOEID. In een tweede ronde staat er al een oordeel van de
             # eerste pas op; dat overschrijven met lege waarden zou een geslaagde beoordeling
             # ongedaan maken omdat een latere poging mislukte.
@@ -1194,7 +1194,7 @@ def build_graph(
 
         # De eindbeoordeling gaat rechtstreeks naar de jurist; er komt geen patcher meer overheen
         # die haar kan wegen. Dus hier, en alleen hier, dempen we een oordeel dat de eigen
-        # uitgevoerde correctie terugdraait — zie `demp_zelfweerspreking`.
+        # uitgevoerde correctie terugdraait – zie `demp_zelfweerspreking`.
         gedempt = demp_zelfweerspreking(voorstellen) if ronde >= 2 else 0
 
         _stap(writer, "Critic",
@@ -1208,7 +1208,7 @@ def build_graph(
             "critic_ontbrekend": [o.model_dump() for o in ontbrekend],
             "critic_gefaald": gefaald,
             # De teller telt CRITIC-PASSEN (1 = eerste oordeel, 2 = eindbeoordeling na correctie) en
-            # hoort daarom hier thuis. Hij zat in de herziener en telde daar pogingen — een teller die
+            # hoort daarom hier thuis. Hij zat in de herziener en telde daar pogingen – een teller die
             # ergens anders wordt opgehoogd dan waar hij over gaat.
             "critic_ronde": ronde,
             # Wat al ooit is gemeld start geen nieuwe ronde meer. Hier berekend en niet in de route:
@@ -1225,10 +1225,10 @@ def build_graph(
         fragment (welk citaat werd bedoeld?).
 
         Correctie-instructies staan hier NIET meer bij. `vervang` en `verwijder` waren de reden dat de
-        herziener draaide, en die voert de patcher nu uit — exact, zonder call, zonder onderhandeling.
+        herziener draaide, en die voert de patcher nu uit – exact, zonder call, zonder onderhandeling.
 
         Eén definitie, gebruikt door de routering én door de stopreden in `emit_node`. Stonden die los
-        van elkaar, dan meldt de tijdlijn iets anders dan er gebeurde — en dat is precies het signaal
+        van elkaar, dan meldt de tijdlijn iets anders dan er gebeurde – en dat is precies het signaal
         waarmee je deze keten beoordeelt.
         """
         return bool(state.get("nieuw_ontbrekend")) or bool(state.get("verworpen_fragmenten"))
@@ -1237,7 +1237,7 @@ def build_graph(
         """Naar de correctiestap, of naar de jurist?
 
         De keten is lineair: `critic₁ → patch → [herzie] → [critic₂] → emit`. Er valt hier dus niets
-        te kiezen behalve of er nog een correctieronde ís — en of dit al de eindbeoordeling was.
+        te kiezen behalve of er nog een correctieronde ís – en of dit al de eindbeoordeling was.
         Eerder zat hier de ingang van een cyclus (`critic ⇄ herzie`) met vier guards eromheen.
         """
         if settings.critic_max_rondes <= 0:
@@ -1249,7 +1249,7 @@ def build_graph(
         return "patch"
 
     def patch_node(state: State) -> dict[str, Any]:
-        """Voer de correcties van de Critic uit — in code, niet via een tweede taalmodel.
+        """Voer de correcties van de Critic uit – in code, niet via een tweede taalmodel.
 
         Zie `annotatie.pas_critic_toe` voor de regels en waarom ze zo liggen. Deze node kost niets:
         geen LLM-call, geen graafverkeer.
@@ -1271,7 +1271,7 @@ def build_graph(
                              + " als alternatief doorgegeven")
             _stap(writer, "Correctie", ", ".join(delen))
         # Alleen een echte wijziging vraagt om een nieuw oordeel. Een alternatief laat het element
-        # ongemoeid — daar geldt het oordeel van de eerste pas gewoon nog.
+        # ongemoeid – daar geldt het oordeel van de eerste pas gewoon nog.
         #
         # `critic_feedback` wordt teruggebracht tot wat de patcher NIET heeft afgehandeld. Anders
         # krijgt de herziener dezelfde instructies opnieuw voorgelegd: de correcties die hier net
@@ -1287,7 +1287,7 @@ def build_graph(
         """Wat er ná het patchen nog over is.
 
         - **Restant voor het model**: een bijna-goed citaat repareren of een gemeld ontbrekend element
-          toevoegen. Dat is brontekst lezen, geen instructie uitvoeren — dus daar draait de herziener.
+          toevoegen. Dat is brontekst lezen, geen instructie uitvoeren – dus daar draait de herziener.
         - **Alleen gepatcht**: dan volgt de eindbeoordeling, zodat het oordeel op de kaart gaat over
           de versie die de jurist vóór zich krijgt en niet over de versie die net is vervangen.
         - **Niets veranderd**: klaar. Dit is het normale geval en het kost geen enkele extra call.
@@ -1341,25 +1341,25 @@ def build_graph(
                 # twee, dan zou het anders element A overschrijven met de inhoud van B.
                 geldige_ids={str(v.get("id", "")) for v in voorstellen if v.get("id")},
             )
-        except Exception:  # noqa: BLE001 — een mislukte herziening mag de annotatie niet breken
+        except Exception:  # noqa: BLE001 – een mislukte herziening mag de annotatie niet breken
             logger.warning("herziening: mislukt; vorige voorstellen behouden", exc_info=True)
-            _stap(writer, f"Herziening {ronde}", "mislukt — vorige voorstellen behouden")
+            _stap(writer, f"Herziening {ronde}", "mislukt – vorige voorstellen behouden")
             return {"critic_feedback": [], "stop_reden": "herziening mislukt"}
 
         if not herzien:
             logger.warning("herziening: leverde niets gegronds op; vorige voorstellen behouden")
             _stap(writer, f"Herziening {ronde}",
-                  "leverde niets gegronds op — vorige voorstellen behouden")
+                  "leverde niets gegronds op – vorige voorstellen behouden")
             return {"critic_feedback": [], "stop_reden": "geen wijziging meer"}
 
         te_verwijderen = {f.get("id") for f in feedback if f.get("actie") == "verwijder"}
         samengevoegd = {v["id"]: v for v in voorstellen if v.get("id") not in te_verwijderen}
         # Een herziening die een bestaand fragment opnieuw voorstelt ZONDER het id mee te sturen,
-        # krijgt een vers id — en dan staat dezelfde markering er twee keer. Dat viel op dev op:
+        # krijgt een vers id – en dan staat dezelfde markering er twee keer. Dat viel op dev op:
         # "bij zijn in functie treden" tweemaal als Rechtsfeit. Koppel daarom ook op de inhoud.
         # De sleutel telt de klasse NIET mee: een herclassificatie is precies wat een herziening
         # hoort te doen, en met de klasse erin werd zo'n herziening een tweede element naast het
-        # origineel — dezelfde span, twee tegenstrijdige klassen op het reviewscherm.
+        # origineel – dezelfde span, twee tegenstrijdige klassen op het reviewscherm.
         op_inhoud = {
             sleutel_van(v.get("tekst", ""), v.get("lid", "")): v["id"]
             for v in samengevoegd.values()
@@ -1380,7 +1380,7 @@ def build_graph(
                 # Ook de alternatieven blijven: de patcher zet de twijfel van de Critic daar neer, en
                 # het model levert bij een herziening zijn eigen lijstje op. Namen we alleen dat
                 # laatste over, dan wiste een herziening precies de voorkeur die de jurist met één
-                # klik had kunnen overnemen — op dev verdween "Parameter en parameterwaarde" zo uit
+                # klik had kunnen overnemen – op dev verdween "Parameter en parameterwaarde" zo uit
                 # beeld. Samenvoegen op klasse, het bestaande eerst.
                 bestaand = list(vorig.get("alternatieven") or [])
                 gezien_alt = {str(a.get("klasse")) for a in bestaand}
@@ -1389,7 +1389,7 @@ def build_graph(
                     if str(a.get("klasse")) not in gezien_alt
                 ]
             # Een herziening levert verse voorstellen zonder oordeel. Is het element inhoudelijk
-            # ongewijzigd, dan geldt het vorige oordeel nog gewoon — dat weggooien zou een groen
+            # ongewijzigd, dan geldt het vorige oordeel nog gewoon – dat weggooien zou een groen
             # vinkje laten verdwijnen omdat er elders in de tekst iets veranderde. Bij een écht
             # gewijzigd element hoort de aandacht leeg: die versie is nog niet beoordeeld.
             if vorig and all(vorig.get(k) == nieuw_dict.get(k) for k in ("klasse", "tekst", "lid")):
@@ -1423,7 +1423,7 @@ def build_graph(
 
     # Er is geen `route_na_herziening` meer: de herziener gaat altijd door naar de eindbeoordeling
     # (`g.add_edge("herzie", "critic")`). Dat was de terugweg van een cyclus, met
-    # `herziening_wijzigde` als rem — en die cyclus bestaat niet meer.
+    # `herziening_wijzigde` als rem – en die cyclus bestaat niet meer.
 
     def emit_node(state: State) -> dict[str, Any]:
         """De enige plek die annotatie-events uitstuurt: één `run`, `element` per voorstel, één
@@ -1440,7 +1440,7 @@ def build_graph(
         corpus = _corpus(state)
 
         # Vóór de elementen: met welk model deze voorstellen zijn gemaakt. Zonder dit is achteraf
-        # niet meer vast te stellen wat een markering produceerde — de werkplek legt het vast bij
+        # niet meer vast te stellen wat een markering produceerde – de werkplek legt het vast bij
         # de api en de export draagt het als herkomst.
         writer({"type": "run", "run": AgentRun(
             model=model,
@@ -1471,7 +1471,7 @@ def build_graph(
                 met_twijfel += 1
             writer({"type": "element", "element": v})
 
-            # Een voorstel uit de EINDbeoordeling komt door geen enkele stap meer heen — de patcher
+            # Een voorstel uit de EINDbeoordeling komt door geen enkele stap meer heen – de patcher
             # draaide al. Als suggestie ernaast leggen kan wel: dan neemt de jurist het over met één
             # klik, en landt het als zíjn beslissing in het spoor.
             klasse, tekst, waarom = openstaand_voorstel(v, corpus)
@@ -1482,7 +1482,7 @@ def build_graph(
                 }})
         writer({"type": "ontbrekend", "items": ontbrekend})
 
-        # Verworpen fragmenten (niet-letterlijke of ongeldige-klasse citaten) — apart event
+        # Verworpen fragmenten (niet-letterlijke of ongeldige-klasse citaten) – apart event
         # zodat de eval-harnas verworpen_per_100 kan meten. De werkplek negeert dit event;
         # voor eval is het de enige manier om het hallucinatie-aandeel te kwantificeren
         # zonder in de interne state te kijken.
@@ -1547,7 +1547,7 @@ def build_graph(
         writer = get_stream_writer()
         report = check_grounding(state.get("answer", ""), state.get("source_trace", []))
         # Deze controle heeft geen eigen narratie (geen LLM), dus zonder deze regel gebeurt er iets
-        # wezenlijks — de brongetrouwheidstoets — zonder dat de jurist het ziet. De tijdlijn wordt
+        # wezenlijks – de brongetrouwheidstoets – zonder dat de jurist het ziet. De tijdlijn wordt
         # bij de beurt bewaard, dus dit is tegelijk het spoor waarop je achteraf terugvalt.
         _stap(writer, "Controle", _grounding_melding(report))
         return {
@@ -1569,7 +1569,7 @@ def build_graph(
         De controle keurt twee dingen af en die vragen een ándere correctie. Deze node zag alleen
         `unsupported` (verzonnen vindplaatsen) en zweeg over `niet_letterlijk` (tekst die als citaat
         is gepresenteerd maar niet letterlijk in de bron staat). Bij een antwoord dat alléén op dat
-        tweede struikelde — precies wat op dev gebeurde, zeven keer in één antwoord — ging er dus een
+        tweede struikelde – precies wat op dev gebeurde, zeven keer in één antwoord – ging er dus een
         volledige extra LLM-call de deur uit met de instructie "je noemde verwijzing(en) `` die niet
         uit de graaf kwamen": een lege opsomming en een verwijt dat niet klopte.
         """
@@ -1592,7 +1592,7 @@ def build_graph(
                 f"tekst: {passages}. Herstel ze woord voor woord zoals ze in de bron staan, of haal "
                 "de aanhalingstekens weg en geef het in je eigen woorden weer. Weglatingen met (...), "
                 "eigen samenvattingen tussen [ ] en vet of cursief binnen een citaat maken het een "
-                "parafrase — die presenteer je niet als citaat."
+                "parafrase – die presenteer je niet als citaat."
             )
 
         wat = " en ".join(
@@ -1614,7 +1614,7 @@ def build_graph(
         # Vangnet tegen een stil leeg antwoord. Dat kan gebeuren als de agent een lege tekstbeurt
         # levert, of nadat correct_node het antwoord heeft gewist voor een grounding-correctie die
         # daarna niets oplevert. De gebruiker zag dan alleen de bronnen en de frontend-fallback
-        # "(geen antwoord)" — zonder spoor in de logs. Liever een eerlijke melding, en altijd een
+        # "(geen antwoord)" – zonder spoor in de logs. Liever een eerlijke melding, en altijd een
         # logregel zodat het volgende geval terug te vinden is.
         antwoord = state.get("answer", "") or ""
         if not antwoord.strip():
@@ -1696,7 +1696,7 @@ def build_graph(
         De per-beurt narratie stroomt als `reason` (het denkproces), nooit als `token`. Bij ÉÉN
         deelvraag (een simpele vraag) is er geen aparte synthese nodig: de tool-loze eindbeurt ís het
         eindantwoord en wordt als één `token` geëmit (en `answer` gezet), zodat een eenvoudige vraag
-        geen synthese-tax betaalt. Bij MEERDERE deelvragen emit solve géén token — `synthesize_node`
+        geen synthese-tax betaalt. Bij MEERDERE deelvragen emit solve géén token – `synthesize_node`
         streamt dan het eindantwoord. De gedeelde source_trace accumuleert over álle deelvragen zodat
         grounding/provenance ongewijzigd werken.
         """
@@ -1729,7 +1729,7 @@ def build_graph(
                 # de laatste beurt gedwongen een antwoord op wat er is opgehaald.
                 laatste_beurt = _turn == settings.sub_max_turns - 1
                 if laatste_beurt:
-                    _stap(writer, "Deelvraag", "beurtlimiet bereikt — verder met wat is gevonden")
+                    _stap(writer, "Deelvraag", "beurtlimiet bereikt – verder met wat is gevonden")
                 with llm.stream(
                     model=model, max_tokens=4096, system=[base_system, variabel],
                     tools=[] if laatste_beurt else schemas,
@@ -1818,7 +1818,7 @@ def build_graph(
 
         Zo stopt een beurt op een **nodegrens** in plaats van halverwege een LLM-call: de state die
         al gecommit is blijft consistent, en de MCP-verbinding wordt netjes afgesloten. De prijs is
-        dat stoppen tijd kost — de lopende stap maakt zichzelf af."""
+        dat stoppen tijd kost – de lopende stap maakt zichzelf af."""
         @functools.wraps(fn)
         def bewaakt(state: State) -> dict[str, Any]:
             if stop_check is not None and stop_check():

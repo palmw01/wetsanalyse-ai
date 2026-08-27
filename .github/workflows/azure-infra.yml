@@ -1,7 +1,7 @@
-# Azure — de standby-omgeving aan- en uitzetten.
+# Azure – de standby-omgeving aan- en uitzetten.
 #
 # Uitsluitend handmatig: deze omgeving hoort NIET mee te bewegen met pushes naar master. Dat is de
-# hele opzet — zolang niemand deze workflow start, draait er niets en kost het niets.
+# hele opzet – zolang niemand deze workflow start, draait er niets en kost het niets.
 #
 # Drie acties, met `wat-if` als default omdat die niets aanmaakt:
 #   wat-if    Azure toont welke resources zouden ontstaan/wijzigen. Veilig, en de enige manier om
@@ -14,7 +14,7 @@
 #             Read-only; de controle of de OTel-keten van deze straat écht werkt.
 #   inventaris leest wat er in de subscription staat en schrijft het naar de samenvatting. Puur
 #             read-only (alleen `list`/`show`); bedoeld om te kunnen controleren wát er draait en
-#             wat het kost, zonder lokale az-installatie — de service principal leeft alleen hier.
+#             wat het kost, zonder lokale az-installatie – de service principal leeft alleen hier.
 #   grafana   rolt ALLEEN de Grafana-app uit (deploy/azure/grafana.bicep) in de gekozen straat.
 #             Apart van `deploy` omdat die GraphDB raakt: een dashboardwijziging hoort geen
 #             infra-deploy te vragen. Grafana leest beide straten, dus één exemplaar volstaat —
@@ -24,7 +24,7 @@
 #             bevestiging. `opruimen` doet dit niet: daar staat `$s-grafana` voor elke straat op de
 #             beschermde lijst, omdat die actie niet kan weten welk exemplaar het bedoelde is.
 #   vul-graaf start de import-job en wacht hem af. Apart van `deploy`, want importeren schrijft naar
-#             de graaf en hoort een expliciete keuze te blijven — en na een herstart van de
+#             de graaf en hoort een expliciete keuze te blijven – en na een herstart van de
 #             graphdb-app (die geen persistente opslag heeft) is dit de enige manier om de graaf
 #             terug te krijgen zonder een volledige infra-deploy.
 #
@@ -32,7 +32,7 @@
 # staat in de samenvatting aan het eind van de run.
 #
 # De publish-workflows doen een image-swap (`az containerapp update`) op een bestaande app in Azure
-# — die verandert geen infra, dus veilig. Deze workflow (bicep) blijft bewust handmatig: het is de
+# – die verandert geen infra, dus veilig. Deze workflow (bicep) blijft bewust handmatig: het is de
 # enige die resources kan aanmaken/veranderen/verwijderen en GraphDB is niet-persistent.
 
 name: azure-infra
@@ -69,7 +69,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    # De environment levert de credentials, de resource group en de appName van déze straat — en
+    # De environment levert de credentials, de resource group en de appName van déze straat – en
     # draagt bij productie de required reviewer.
     environment: ${{ inputs.omgeving }}
     env:
@@ -136,7 +136,7 @@ jobs:
             [ -n "${!v:-}" ] || { echo "::error::ontbrekende secret/var: $v"; exit 1; }
           done
           if [ -z "${GRAPHDB_LICENSE_B64:-}" ]; then
-            echo "::warning::secrets.GRAPHDB_LICENSE_B64 ontbreekt — GraphDB komt read-only op en de import-job zal falen. Zie deploy/azure/README.md."
+            echo "::warning::secrets.GRAPHDB_LICENSE_B64 ontbreekt – GraphDB komt read-only op en de import-job zal falen. Zie deploy/azure/README.md."
           fi
 
       - name: Inloggen bij Azure
@@ -154,7 +154,7 @@ jobs:
         run: |
           set -euo pipefail
           if ! az group exists --name "$RESOURCE_GROUP" | grep -q true; then
-            echo "Resource group '$RESOURCE_GROUP' bestaat niet — niets te doen."
+            echo "Resource group '$RESOURCE_GROUP' bestaat niet – niets te doen."
             exit 0
           fi
 
@@ -164,7 +164,7 @@ jobs:
           echo "In '$RESOURCE_GROUP' staat nu:"
           az resource list -g "$RESOURCE_GROUP" --query "sort_by([].[name, type], &[0])" -o tsv | sed 's/^/  /'
           echo ""
-          echo "::warning::Dit verwijdert de HELE groep — alle straten die erin staan, met hun databases."
+          echo "::warning::Dit verwijdert de HELE groep – alle straten die erin staan, met hun databases."
           echo ""
           echo "Verwijderen van '$RESOURCE_GROUP' (draait door op de achtergrond in Azure)…"
           az group delete --name "$RESOURCE_GROUP" --yes --no-wait
@@ -189,7 +189,7 @@ jobs:
 
       # De secrets van een DRAAIENDE omgeving overnemen. Zonder dit genereert gen-deploy.py bij elke
       # run verse waarden, en dan is een infra-deploy op een bestaande straat destructief: naast
-      # vervallen sessies en roterende tokens gaat `llm-config-secret` mee — de Fernet-sleutel
+      # vervallen sessies en roterende tokens gaat `llm-config-secret` mee – de Fernet-sleutel
       # waarmee de api de API-keys van modelprofielen én de 2FA-secrets van gebruikers versleutelt.
       # Roteert die, dan is dat materiaal onherstelbaar onleesbaar.
       #
@@ -217,7 +217,7 @@ jobs:
           # $1 = naam van de WA_-var, $2 = waarde uit GitHub, $3 = waarde uit Azure.
           bewaar() {
             if [ -n "$2" ]; then waarde="$2"; bron="GitHub"; else waarde="$3"; bron="Azure"; fi
-            [ -n "$waarde" ] || { echo "  $1: niet gevonden — wordt gegenereerd"; return; }
+            [ -n "$waarde" ] || { echo "  $1: niet gevonden – wordt gegenereerd"; return; }
             echo "::add-mask::$waarde"
             echo "$1=$waarde" >> "$GITHUB_ENV"
             echo "  $1: overgenomen uit $bron"
@@ -229,7 +229,7 @@ jobs:
           bewaar WA_ADMIN_TOKEN       "${GH_ADMIN_TOKEN:-}"       "$(uit_azure frontend admin-api-token)"
           bewaar WA_QA_API_TOKEN      "${GH_QA_API_TOKEN:-}"      "$(uit_azure graph-qa qa-api-token)"
           # Het token waarmee graph-qa NAAR de api schrijft. Roteert dit, dan valt het schrijfpad
-          # stil tot de api-app ook zijn nieuwe tokenlijst heeft — beide krijgen hem in dezelfde
+          # stil tot de api-app ook zijn nieuwe tokenlijst heeft – beide krijgen hem in dezelfde
           # deploy, maar overnemen is alsnog netter dan elke keer verversen.
           bewaar WA_GRAPH_QA_API_TOKEN "${GH_GRAPH_QA_API_TOKEN:-}" "$(uit_azure graph-qa wetsanalyse-api-token)"
           bewaar WA_GRAPHDB_TOKEN     "${GH_GRAPHDB_TOKEN:-}"     "$(uit_azure graph-qa graphdb-token)"
@@ -245,7 +245,7 @@ jobs:
 
       # Wat draait er nu? Die image-refs geven we mee aan de deployment, zodat een INFRA-wijziging
       # de images met rust laat. Zonder dit vallen de bicep-defaults (`:latest`) terug op hun plek en
-      # gooit een infra-deploy de digest-pins weg die de publish-workflows er net op zetten — dan
+      # gooit een infra-deploy de digest-pins weg die de publish-workflows er net op zetten – dan
       # weet je achteraf niet meer wélk image er draait. Bestaat een app nog niet (verse straat), dan
       # blijft de variabele leeg en pakt de bicep gewoon zijn default.
       - name: Draaiende images uitlezen
@@ -310,7 +310,7 @@ jobs:
           python3 deploy/azure/gen-deploy.py "$AZURE_AI_KEY" "${args[@]}"
 
       # `az deployment group create` keert terug zodra de revisie is AANGEMAAKT, niet zodra hij
-      # draait — dezelfde valkuil die de publish-workflows en promote.yml al afvangen. Zonder deze
+      # draait – dezelfde valkuil die de publish-workflows en promote.yml al afvangen. Zonder deze
       # stap werd een infra-deploy groen terwijl een app crashte bij het starten, en dan denk je dat
       # je hebt uitgerold. CLAUDE.md beschreef deze gate al als bestaand; dat klopte niet.
       #
@@ -326,7 +326,7 @@ jobs:
             rev=$(az containerapp show -n "$naam" -g "$RESOURCE_GROUP" \
                     --query "properties.latestRevisionName" -o tsv 2>/dev/null || echo "")
             if [ -z "$rev" ]; then
-              echo "::warning::$naam heeft geen revisie — overgeslagen."
+              echo "::warning::$naam heeft geen revisie – overgeslagen."
               continue
             fi
             echo "$naam → $rev"
@@ -358,7 +358,7 @@ jobs:
           set -euo pipefail
 
           # Zelfde ladder als de applicatie-secrets: GitHub wint, anders overnemen wat er draait,
-          # anders vers genereren. Overnemen is hier geen netheid maar noodzaak — bij elke deploy een
+          # anders vers genereren. Overnemen is hier geen netheid maar noodzaak – bij elke deploy een
           # nieuw wachtwoord zetten betekent dat niemand meer binnenkomt met wat hij had opgeslagen.
           wachtwoord="${GH_GRAFANA_PASSWORD:-}"
           bron="GitHub"
@@ -393,10 +393,10 @@ jobs:
 
           # Secrets zijn in Container Apps NIET revisie-scoped: een gewijzigde waarde levert geen
           # nieuwe revisie op, dus de draaiende container houdt de oude. Dat is precies wat hier
-          # misgaat als je het admin-wachtwoord verandert — het secret staat er dan wél, maar
+          # misgaat als je het admin-wachtwoord verandert – het secret staat er dan wél, maar
           # inloggen blijft 401 geven omdat Grafana nog met het vorige draait. Herstarten is de
           # enige manier waarop hij hem oppikt (en bij een lege database zet Grafana de admin
-          # opnieuw uit de omgeving — er is geen volume, dus dat is elke start).
+          # opnieuw uit de omgeving – er is geen volume, dus dat is elke start).
           rev=$(az containerapp show -n "$APP_NAME-grafana" -g "$RESOURCE_GROUP" \
                   --query "properties.latestRevisionName" -o tsv)
           echo "Revisie herstarten: $rev"
@@ -404,7 +404,7 @@ jobs:
             --revision "$rev" --output none || true
 
           # `az deployment group create` keert terug zodra de revisie is aangemaakt, niet zodra hij
-          # draait — dezelfde valkuil als bij de app-deploys. Hier komt daar de scale-to-nul bij: de
+          # draait – dezelfde valkuil als bij de app-deploys. Hier komt daar de scale-to-nul bij: de
           # eerste aanroep wekt hem, dus een 200 is pas na die koude start te verwachten.
           gezond=0
           for _ in $(seq 1 30); do
@@ -413,7 +413,7 @@ jobs:
             echo "  wacht… ($code)"
             sleep 10
           done
-          # Zonder deze controle liep de stap groen af terwijl Grafana nooit opkwam — dezelfde
+          # Zonder deze controle liep de stap groen af terwijl Grafana nooit opkwam – dezelfde
           # valkuil als `az containerapp update`, dat terugkeert zodra de revisie is aangemaakt.
           [ "$gezond" = "1" ] || { echo "::error::Grafana werd niet gezond binnen 5 minuten"; exit 1; }
 
@@ -490,12 +490,12 @@ jobs:
       # stap die je vergeet, en dan staat er een omgeving die nergens antwoord op geeft.
       # Alles in de resource group dat NIET bij deze straat hoort, weghalen. Bicep draait in
       # incremental mode: het verwijdert nooit iets dat niet in de template staat, dus resources van
-      # een oudere opzet blijven onzichtbaar doordraaien — met hun kosten. Zo bleven na het
+      # een oudere opzet blijven onzichtbaar doordraaien – met hun kosten. Zo bleven na het
       # verwijderen van de wettenbank-MCP (aug 2026) de mcp-apps staan, en een hele tweede
       # `-acc`-omgeving met eigen database ernaast.
       #
       # De lijst hieronder ís de template: wat de bicep aanmaakt, hoort te blijven. De rest is wees.
-      # Zonder bevestiging toont deze stap alleen wat hij zóu doen — typ de resource group in
+      # Zonder bevestiging toont deze stap alleen wat hij zóu doen – typ de resource group in
       # `bevestig_resource_group` om echt te verwijderen.
       - name: Weesresources opruimen
         if: ${{ inputs.actie == 'opruimen' }}
@@ -505,7 +505,7 @@ jobs:
           # ALLE straten beschermen, niet alleen de gekozen. Acceptatie en productie delen één
           # resource group (de service principal mag er geen tweede aanmaken), dus zou "alles wat
           # niet bij ÉÉN straat hoort" betekenen dat opruimen op acceptatie de complete
-          # productieomgeving weggooit — database incluis.
+          # productieomgeving weggooit – database incluis.
           straten="$ACCEPTATIE_APP_NAME $PRODUCTIE_APP_NAME"
 
           # Wat de bicep per straat aanmaakt (zie deploy/azure/main.bicep).
@@ -539,7 +539,7 @@ jobs:
           done < <(az resource list -g "$RESOURCE_GROUP" --query "sort_by([].[name, type], &[0])" -o tsv)
 
           if [ -z "$wezen" ]; then
-            echo ""; echo "Niets op te ruimen — de groep bevat alleen wat bij de straat hoort."
+            echo ""; echo "Niets op te ruimen – de groep bevat alleen wat bij de straat hoort."
             exit 0
           fi
 
@@ -569,7 +569,7 @@ jobs:
           echo "Klaar."
 
       # Komt er telemetrie binnen? De apps sturen OTLP naar de collector van deze straat, die naar
-      # Application Insights schrijft — dat is een keten van drie schakels die allemaal stil kunnen
+      # Application Insights schrijft – dat is een keten van drie schakels die allemaal stil kunnen
       # falen. Deze query is het enige echte bewijs dat hij werkt.
       - name: Telemetrie controleren
         if: ${{ inputs.actie == 'telemetrie' }}
@@ -587,7 +587,7 @@ jobs:
           }
 
           # Een eigen query wint: diagnose vraagt telkens iets anders, en een PR per vraag is geen
-          # werkbare manier om een keten uit te pluizen. Read-only — `az monitor log-analytics query`
+          # werkbare manier om een keten uit te pluizen. Read-only – `az monitor log-analytics query`
           # kan alleen lezen.
           if [ -n "${{ inputs.query }}" ]; then
             vraag "Eigen query" "${{ inputs.query }}"
@@ -610,7 +610,7 @@ jobs:
           # wijzen aan welke: de collector die niet opkomt of zijn config niet slikt, of een app die
           # zijn exporter niet aan de praat krijgt.
           # Let op de tabelnaam: de console-logs landen in ContainerAppConsoleLogs_CL (kolommen
-          # ContainerAppName_s/Log_s). De tabel zonder _CL bestaat óók en is altijd leeg — een
+          # ContainerAppName_s/Log_s). De tabel zonder _CL bestaat óók en is altijd leeg – een
           # diagnosevraag die daar kijkt meldt dus rustig "niets gevonden" terwijl er 12k regels
           # staan. Zie PR #355.
           vraag "Collector-logs (2 uur)" \
@@ -644,7 +644,7 @@ jobs:
           set -euo pipefail
           naam="$APP_NAME-grafana"
           if ! az containerapp show -n "$naam" -g "$RESOURCE_GROUP" --output none 2>/dev/null; then
-            echo "Container app '$naam' bestaat niet in '$RESOURCE_GROUP' — niets te doen."
+            echo "Container app '$naam' bestaat niet in '$RESOURCE_GROUP' – niets te doen."
             exit 0
           fi
 
@@ -658,7 +658,7 @@ jobs:
             fi
           done
           if [ -n "$andere" ]; then
-            echo "De andere straat draait '$andere' — die blijft staan."
+            echo "De andere straat draait '$andere' – die blijft staan."
           else
             echo "::warning::Dit is de LAATSTE Grafana in '$RESOURCE_GROUP'. Na deze actie is er geen dashboard meer; opnieuw uitrollen kan met actie 'grafana'."
           fi
@@ -689,7 +689,7 @@ jobs:
           # Logs zijn hulpmiddel, geen oordeel: niet elke CLI-versie kent dit subcommando.
           az containerapp job logs show -n "$JOB" -g "$RESOURCE_GROUP" \
             --execution "$uitvoering" --tail 60 2>/dev/null || \
-            echo "(logs niet op te halen met deze CLI-versie — zie de portal)"
+            echo "(logs niet op te halen met deze CLI-versie – zie de portal)"
           {
             echo "## Import-job"
             echo ""

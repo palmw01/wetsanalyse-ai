@@ -74,7 +74,7 @@ def test_niet_bestaand_lid_geeft_leeg_geen_bepaling_fallback():
             return REGELING_TSV
         if "heeftLid" in query:  # get_artikel: leden 1, 2, 10
             return ARTIKEL_TSV
-        return BEPALING_TSV      # get_bepaling zou hier tekst geven — mag NIET gebruikt worden
+        return BEPALING_TSV      # get_bepaling zou hier tekst geven – mag NIET gebruikt worden
 
     data = haal_artikel_sync("BWBR0004770", "9", FakeGraph(results=results), lid="5")
     assert data["leden_teksten"] == []
@@ -102,7 +102,7 @@ def test_ongeldig_lidnummer_wordt_herkend():
 
 
 def test_decimaal_nummer_blijft_geldig():
-    """'9.1' is geen artikelnummer maar wél een bepaling-nummer (Leidraad Invordering) — dat mag de
+    """'9.1' is geen artikelnummer maar wél een bepaling-nummer (Leidraad Invordering) – dat mag de
     validatie niet als tikfout wegzetten."""
     haal_artikel_sync("BWBR0024096", "9.1", FakeGraph(result=""))  # geen exception
 

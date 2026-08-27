@@ -17,7 +17,7 @@ interface Props extends Omit<ArtefactInhoudProps, "onSluiten"> {
  *  (selectie → bedieningsrij → gekozen element → sluiten). Zou `Dialog` hem óók afvangen, dan
  *  sprong Escape meteen door alle lagen heen. */
 export function ArtefactPaneel({ variant = "side", onSluit, ...inhoud }: Props) {
-  const opschrift = `${inhoud.info.citeertitel || inhoud.doc.bwbId} — artikel ${inhoud.info.artikel}${
+  const opschrift = `${inhoud.info.citeertitel || inhoud.doc.bwbId} – artikel ${inhoud.info.artikel}${
     inhoud.doc.lid ? ` lid ${inhoud.doc.lid}` : ""
   }`;
   return (

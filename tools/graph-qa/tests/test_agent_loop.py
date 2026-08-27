@@ -19,7 +19,7 @@ def _run(gen):
 def _make():
     # planning uit: test de kern-loop (agent↔tools→verify) zonder extra plan-call. Correctie ook uit:
     # het eindantwoord hieronder is met opzet ongegrond (een verzonnen BWB-id) omdat dat de trace en
-    # de bronnen aantoonbaar maakt — niet omdat deze test over de correctieronde gaat. Met correctie
+    # de bronnen aantoonbaar maakt – niet omdat deze test over de correctieronde gaat. Met correctie
     # aan zou elke test hier een extra modelantwoord moeten meebrengen dat niets toevoegt.
     settings = make_settings(enable_planning=False, grounding_correct=False)
     graph = FakeGraph(result=f"<{ART_IRI}> bwb:citeertitel \"Invorderingswet 1990\" .")
@@ -79,7 +79,7 @@ def test_agentfout_lekt_geen_interne_details():
     """Een mislukte beurt levert een gesaniteerde melding, geen ruwe exception.
 
     De ruwe fout van een LLM- of MCP-aanroep bevat request-details (endpoints, payload-fragmenten).
-    Die horen in het server-log, niet in de browser — de api saniteert de modelprovider-test om
+    Die horen in het server-log, niet in de browser – de api saniteert de modelprovider-test om
     dezelfde reden.
     """
     import asyncio
@@ -118,7 +118,7 @@ def test_stoppen_haalt_de_graaf_van_een_nodegrens():
     """Coöperatief stoppen: de vlag gaat om, de graaf betreedt geen nieuwe node meer.
 
     Bewust geen taak-annulering. De nodes zijn synchroon en de MCP-verbinding wordt in een `finally`
-    gesloten — die onder een draaiende executor-thread wegtrekken breekt hem. Wat je hier ziet is de
+    gesloten – die onder een draaiende executor-thread wegtrekken breekt hem. Wat je hier ziet is de
     prijs én de winst: er komt geen extra LLM-call meer, de graaf sluit netjes af (`graph.closed`),
     en de stroom eindigt met een gewone `done` in plaats van een fout.
     """

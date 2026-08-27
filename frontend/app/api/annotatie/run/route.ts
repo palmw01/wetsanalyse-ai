@@ -21,7 +21,7 @@ export async function POST(req: Request) {
   const userid = await sessionUserId();
   if (!userid) return geenSessie();
 
-  // De identiteit gaat als HEADER mee, niet in de body — één mechanisme voor alle run-routes en
+  // De identiteit gaat als HEADER mee, niet in de body – één mechanisme voor alle run-routes en
   // hetzelfde als de api hanteert. Ze kwam eerder in de body, en toen liepen de twee bronnen bij de
   // eerste eigenaarscontrole meteen uit elkaar.
   const body = await req.text();
@@ -80,7 +80,7 @@ export async function GET(req: Request) {
     const upstream = await fetch(
       `${graphQaBaseUrl()}/v1/conversations/${encodeURIComponent(gesprek)}/run`,
       {
-        // Zonder deze header zou een gespreks-id — dat gewoon in de URL van de werkplek staat —
+        // Zonder deze header zou een gespreks-id – dat gewoon in de URL van de werkplek staat —
         // genoeg zijn om andermans lopende vraag en antwoord te lezen.
         headers: metTrace({ ...graphQaAuthHeader(), "X-User-Id": userid }),
         cache: "no-store",
@@ -95,7 +95,7 @@ export async function GET(req: Request) {
   } catch (err) {
     // Een fout is géén `null`: `null` betekent "er loopt niets", en dat is een uitspraak die we hier
     // juist niet kunnen doen. Gaven we hem toch, dan las de werkplek een timeout als een beurt die
-    // verdwenen was — mét de bijbehorende waarschuwing — terwijl de run gewoon doorliep. De client
+    // verdwenen was – mét de bijbehorende waarschuwing – terwijl de run gewoon doorliep. De client
     // maakt dat onderscheid wél (`haalActieveRun` → `"onbekend"`) en laat het dan stil.
     logger.warn("Run-proxy: actieve run niet op te halen", { fout: (err as Error).message });
     return Response.json({ detail: "Actieve run niet op te halen." }, { status: 502 });

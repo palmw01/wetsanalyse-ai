@@ -1,6 +1,6 @@
-"""Gebruikersfeedback — analist-resource (gemount onder /v1/feedback).
+"""Gebruikersfeedback – analist-resource (gemount onder /v1/feedback).
 
-POST /v1/feedback  — feedback indienen (client-bearer + ingelogde userid)
+POST /v1/feedback  – feedback indienen (client-bearer + ingelogde userid)
 """
 
 from __future__ import annotations

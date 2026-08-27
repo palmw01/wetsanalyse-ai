@@ -55,7 +55,7 @@ class Settings(BaseModel):
     # De rollen in deze keten verschillen sterk in wat ze vragen: de router kiest uit twee workers
     # en drie specialisten binnen 300 tokens, en zijn antwoord wordt daarna toch hard gesaneerd
     # (`parse_supervisor`). De ophaal-agent zoekt een bepaling op met getypeerde tools. Dat is ander
-    # werk dan het JAS-oordeel van de annoteerder en de Critic — en dáár mag je niet op besparen:
+    # werk dan het JAS-oordeel van de annoteerder en de Critic – en dáár mag je niet op besparen:
     # die twee blijven bewust op `llm_model`, zonder eigen knop, zodat niemand ze per ongeluk
     # degradeert. Een goedkopere Critic degradeert precies het oordeel waarvoor hij bestaat.
     #
@@ -77,7 +77,7 @@ class Settings(BaseModel):
     max_history_chars: int = 40000
 
     # De wetsanalyse-API: waar de uitkomst van een beurt wordt vastgelegd. Leeg = niet vastleggen
-    # (dan schrijft de werkplek het weg, zoals vroeger) — zo blijft lokaal draaien zonder api mogelijk.
+    # (dan schrijft de werkplek het weg, zoals vroeger) – zo blijft lokaal draaien zonder api mogelijk.
     wetsanalyse_api_url: str = ""
     wetsanalyse_api_token: str | None = None
 
@@ -108,12 +108,12 @@ class Settings(BaseModel):
 
     # Correctie na de Critic: **0 = uit**, **> 0 = aan**.
     #
-    # LET OP — deze knop telt géén rondes meer, ondanks zijn naam. De keten ligt vast:
+    # LET OP – deze knop telt géén rondes meer, ondanks zijn naam. De keten ligt vast:
     # `annoteer → critic₁ → patch → [herzie] → [critic₂] → emit`, zonder cyclus. Er valt dus niets te
     # begrenzen; er valt alleen te kiezen of de correctiestap er is. De naam en de env-var
     # (`CRITIC_MAX_RONDES`) blijven bestaan zodat een draaiende deployment niet omvalt.
     #
-    # Uit betekent exact het oude `annoteer → critic → emit` — de veiligheidsklep om dit zonder
+    # Uit betekent exact het oude `annoteer → critic → emit` – de veiligheidsklep om dit zonder
     # rollback terug te draaien.
     critic_max_rondes: int = 2
 
@@ -123,7 +123,7 @@ class Settings(BaseModel):
     checkpoint_db_path: str | None = "conversations_checkpoints.db"
 
     # Prompt-caching op het stabiele deel van de systeemprompt (identiteit, JAS-klassen,
-    # specialist). Die blokken zijn groot en gaan per beurt meermaals identiek de deur uit — de
+    # specialist). Die blokken zijn groot en gaan per beurt meermaals identiek de deur uit – de
     # annotatieketen alleen al doet 3 tot 5 calls met dezelfde dertien-klassen-referentie. Uit te
     # zetten met `PROMPT_CACHING=false`; de adapter schakelt zichzelf bovendien uit zodra de
     # provider `cache_control` weigert (het is op Azure AI Foundry een beta-functie).
@@ -135,7 +135,7 @@ class Settings(BaseModel):
     # Stond uit, en daarmee was de groundingcontrole een melding onder het antwoord en verder niets:
     # de jurist las een antwoord waarvan de keten zelf had vastgesteld dat er citaten in stonden die
     # niet in de bron voorkomen. Voor een platform waarvan brongetrouwheid het bestaansrecht is, is
-    # signaleren te weinig zolang herstellen één call kost — en die call komt er alléén als er
+    # signaleren te weinig zolang herstellen één call kost – en die call komt er alléén als er
     # werkelijk iets mis is. `GROUNDING_CORRECT=false` zet hem terug uit.
     grounding_correct: bool = True
     curate_sources: bool = True       # bronnenlijst beperken tot in het antwoord aangehaalde regelingen
@@ -196,7 +196,7 @@ class Settings(BaseModel):
         """Schrijft graph-qa de uitkomst van een beurt zelf weg?
 
         Zo ja, dan is een beurt niet meer afhankelijk van een browser die blijft kijken. Zo nee, dan
-        blijft de werkplek dat doen — en dan is een gesloten tabblad nog steeds werkverlies."""
+        blijft de werkplek dat doen – en dan is een gesloten tabblad nog steeds werkverlies."""
         return bool(self.wetsanalyse_api_url and self.wetsanalyse_api_token)
 
     def model_voor(self, rol: str) -> str:
@@ -228,7 +228,7 @@ class Settings(BaseModel):
 
         `max_history_chars` begrenst wat er per beurt naar het model gaat; de reducer in de
         orkestrator begrenst wat er in de checkpointer blijft staan. Die tweede hoort ruim boven de
-        eerste te liggen — anders snoeit de opslagrem binnen het venster dat de LLM tóch al krijgt,
+        eerste te liggen – anders snoeit de opslagrem binnen het venster dat de LLM tóch al krijgt,
         en verlies je context die je net wilde meegeven.
         """
         import logging

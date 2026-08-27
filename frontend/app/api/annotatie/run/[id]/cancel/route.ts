@@ -2,7 +2,7 @@
 //
 // Stoppen is nu een expliciete handeling in plaats van een dichtvallende socket. Dat onderscheid is
 // het punt: wegklikken laat de beurt doorlopen, alleen deze knop beëindigt hem. Het antwoord is 202
-// en geen 204 — de agent-nodes zijn synchroon, dus een lopende LLM-call maakt zichzelf af en de run
+// en geen 204 – de agent-nodes zijn synchroon, dus een lopende LLM-call maakt zichzelf af en de run
 // eindigt pas op de eerstvolgende grens. Dit is een verzoek, geen feit.
 
 import { graphQaAuthHeader, graphQaBaseUrl } from "@/lib/config";

@@ -5,48 +5,48 @@ tegen de graph-qa-agent (login/beheer lopen via de [Wetsanalyse-API](../api)). D
 `/workbench`.
 
 **De werkplek** (`/workbench`, de *Lex-pagina*): één gespreksvenster met **twee
-werkwijzen** — **vragen** aan **Lex** (de assistent voor wetsanalyse; brongetrouwe Q&A over de
+werkwijzen** – **vragen** aan **Lex** (de assistent voor wetsanalyse; brongetrouwe Q&A over de
 kennisgraaf) en
 **JAS-annotatie** (de agent stelt JAS-elementen voor → de jurist reviewt per element:
 approve/edit/reject/comment). Die pagina praat live met de graph-qa-agent (SSE) en bewaart de
 review-state via de API. De home (`/`) leidt hierheen door.
 
 **Het instellingenvenster** (`/instellingen/*`) opent als dialoog over de werkplek heen en draagt
-account (wachtwoord, 2FA) plus — voor beheerders — het beheer: de modelprofielen die de agent
+account (wachtwoord, 2FA) plus – voor beheerders – het beheer: de modelprofielen die de agent
 aansturen (toevoegen/bewerken/verwijderen, default kiezen, verbinding testen), **gebruikers** en
 **API-tokens**. Het beheer loopt via aparte `/api/admin/*`-routes met een **apart admin-token**
 (zie hieronder). `/beheer` en `/account` blijven als redirect bestaan.
 
-## Architectuur — BFF met server-side token
+## Architectuur – BFF met server-side token
 
 De browser praat **uitsluitend** met de eigen Next.js-origin (`/api/**`). Die Route Handlers
 (de _backend-for-frontend_) proxyen server-side naar de echte API en injecteren het Bearer-token.
 Het token komt dus **nooit** in de browser. Dit lost ook twee dingen op: CORS vervalt (same-origin)
-en Server-Sent Events werken (de native `EventSource` kan geen `Authorization`-header sturen — de
+en Server-Sent Events werken (de native `EventSource` kan geen `Authorization`-header sturen – de
 BFF doet dat server-side en pipet de stream door).
 
 ```
 Browser ──/api/**──► Next.js (BFF, injecteert token) ──/v1/**──► wetsanalyse-api:3000
 ```
 
-## Vormgeving — Rijkshuisstijl (Belastingdienst)
+## Vormgeving – Rijkshuisstijl (Belastingdienst)
 
 De app volgt de **Rijkshuisstijl** in het **Belastingdienst-stijlvak**: lintblauw `#154273` +
 hemelblauw `#007bc7` op een witte achtergrond, een gecentreerde logobalk met het officiële
 Belastingdienst-logo (het lint op de horizontale middenas), en **Fira Sans/Mono** als vrij
 alternatief voor Rijksoverheid Sans, met responsive typografie (100/90/80% op desktop/tablet/mobiel).
 
-Alle design tokens staan centraal — CSS-variabelen in `app/globals.css` → Tailwind in
-`tailwind.config.ts` — en de primitives in `components/ui/` (48px-knoppen/velden, platte cards,
+Alle design tokens staan centraal – CSS-variabelen in `app/globals.css` → Tailwind in
+`tailwind.config.ts` – en de primitives in `components/ui/` (48px-knoppen/velden, platte cards,
 `Vormelement`-signatuur). De **JAS-klassekleuren** (`lib/jas.ts`) zijn de exacte labelkleuren uit
 de officiële JAS-tabel `docs/wetsanalyse/wa-table.png`.
 
-> Kleur en typografie lopen via de tokens — geen losse hex-waarden in componenten. Het officiële
+> Kleur en typografie lopen via de tokens – geen losse hex-waarden in componenten. Het officiële
 > logo-asset (`public/belastingdienst-logo.svg`) blijft ongewijzigd.
 
 ## Lokaal draaien
 
-Vereist een draaiende API (zie [`../api/CLAUDE.md`](../api/CLAUDE.md)) — lokaal of het publieke
+Vereist een draaiende API (zie [`../api/CLAUDE.md`](../api/CLAUDE.md)) – lokaal of het publieke
 domein.
 
 ```bash
@@ -92,15 +92,15 @@ AUTH_SECRET=<openssl rand -base64 32>   # ondertekent de login-sessiecookie (Aut
 | Variabele        | Default                       | Beschrijving                                                |
 | ---------------- | ----------------------------- | ---------------------------------------------------------- |
 | `API_BASE_URL`         | `http://wetsanalyse-api:3000` | Server-side adres van de API (intern in productie).            |
-| `API_TOKEN`            | —                             | Bearer-token (server-side). Komt nooit in de browser.          |
-| `API_TOKEN_FILE`       | —                             | Pad naar secret-bestand met het token (heeft voorrang).        |
-| `ADMIN_API_TOKEN`      | —                             | Admin-bearer voor `/beheer` → `/v1/admin/*` (server-side).     |
-| `ADMIN_API_TOKEN_FILE` | —                             | Pad naar secret-bestand met het admin-token (heeft voorrang).  |
-| `AUTH_SECRET`          | —                             | Ondertekent de Auth.js-sessiecookie/JWT. Verplicht voor login. |
-| `AUTH_URL`             | —                             | Publieke origin (bv. `https://wetsanalyse.example`). **Verplicht achter een reverse proxy** — anders redirecten login/logout naar het interne `0.0.0.0:3000`. |
+| `API_TOKEN`            | –                             | Bearer-token (server-side). Komt nooit in de browser.          |
+| `API_TOKEN_FILE`       | –                             | Pad naar secret-bestand met het token (heeft voorrang).        |
+| `ADMIN_API_TOKEN`      | –                             | Admin-bearer voor `/beheer` → `/v1/admin/*` (server-side).     |
+| `ADMIN_API_TOKEN_FILE` | –                             | Pad naar secret-bestand met het admin-token (heeft voorrang).  |
+| `AUTH_SECRET`          | –                             | Ondertekent de Auth.js-sessiecookie/JWT. Verplicht voor login. |
+| `AUTH_URL`             | –                             | Publieke origin (bv. `https://wetsanalyse.example`). **Verplicht achter een reverse proxy** – anders redirecten login/logout naar het interne `0.0.0.0:3000`. |
 | `GRAPH_QA_URL`         | `http://graph-qa:8080`        | Server-side adres van de graph-qa-agent (werkplek). |
-| `GRAPH_QA_TOKEN`       | —                             | Bearer voor graph-qa (alleen nodig als die achter een token staat). Server-side. |
-| `GRAPH_QA_TOKEN_FILE`  | —                             | Pad naar secret-bestand met het graph-qa-token (heeft voorrang). |
+| `GRAPH_QA_TOKEN`       | –                             | Bearer voor graph-qa (alleen nodig als die achter een token staat). Server-side. |
+| `GRAPH_QA_TOKEN_FILE`  | –                             | Pad naar secret-bestand met het graph-qa-token (heeft voorrang). |
 
 De **werkplek** (`/workbench`) praat met de graph-qa-agent via `GRAPH_QA_URL` (server-side, default
 intern `http://graph-qa:8080`) en optioneel `GRAPH_QA_TOKEN`/`GRAPH_QA_TOKEN_FILE`. De BFF-routes
@@ -127,10 +127,10 @@ Eénmalig op de host (in `SECRETS_DIR`, gedeeld met de API-stack), alle mode 644
 `frontend_api_token` met een tokenwaarde uit de API-tokenlijst, `frontend_admin_token` met een
 tokenwaarde uit de **admin**-tokenlijst (voor de beheertab), en `frontend_auth_secret` voor de
 login-sessie (`openssl rand -base64 32`). De container-entrypoint laadt dat laatste bestand in
-`AUTH_SECRET` (`AUTH_SECRET_FILE=/run/secrets/frontend_auth_secret`), zodat het — net als de andere
-tokens — een bestand blijft en niet als plain env-waarde rondslingert. 2FA hergebruikt de
+`AUTH_SECRET` (`AUTH_SECRET_FILE=/run/secrets/frontend_auth_secret`), zodat het – net als de andere
+tokens – een bestand blijft en niet als plain env-waarde rondslingert. 2FA hergebruikt de
 API-secret `llm_config_secret` (geen extra frontend-bestand). Zet daarnaast de stack-env
-**`AUTH_URL`** op de publieke origin (bv. `https://wetsanalyse.example`) — verplicht achter NPM,
+**`AUTH_URL`** op de publieke origin (bv. `https://wetsanalyse.example`) – verplicht achter NPM,
 anders redirecten login/logout naar het interne `0.0.0.0:3000`. In NPM een Proxy Host
 `wetsanalyse.example` → `<docker-host-ip>:${HOST_PORT}`, met **proxy buffering uit** voor SSE (zie de
 commentaarregels in `docker-compose.yml`).

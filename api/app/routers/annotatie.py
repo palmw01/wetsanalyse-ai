@@ -5,21 +5,21 @@ Vers annotatie-domein: documenten per bron, per element een human-decision (appr
 comment/heropen) en een append-only audit trail. Een beoordeeld element (`human_approved`/`rejected`)
 en een afgerond document (`geaccordeerd`) zijn op slot: wijzigen kan pas na een expliciete
 heropening, en die staat zelf in het spoor. **Per-gebruiker gescopet** via de vertrouwde `X-User-Id`
-(`huidige_userid`, zoals de gesprekken) — 404 (niet 403) bij andermans document, zodat het bestaan niet
+(`huidige_userid`, zoals de gesprekken) – 404 (niet 403) bij andermans document, zodat het bestaan niet
 lekt; de bearer-`client_id` blijft als herkomst in de audit. JAS-klassen worden gevalideerd tegen
 `validation.GELDIGE_JAS_KLASSEN`.
 
-POST   /v1/annotatie/documenten                                  — maak document
-GET    /v1/annotatie/documenten?limit=&offset=                   — eigen documenten (samenvatting)
-GET    /v1/annotatie/documenten/{slug}                           — volledig document
-DELETE /v1/annotatie/documenten/{slug}                           — verwijder eigen document
-PUT    /v1/annotatie/documenten/{slug}/elementen                 — uitkomst van een agent-ronde (merge)
-POST   /v1/annotatie/documenten/{slug}/elementen                 — eigen markering toevoegen (jurist)
-DELETE /v1/annotatie/documenten/{slug}/elementen/{id}            — eigen markering verwijderen
-POST   /v1/annotatie/documenten/{slug}/elementen/{id}/beslissing — human-decision (incl. heropen)
-POST   /v1/annotatie/documenten/{slug}/status                    — afronden / heropenen
-GET    /v1/annotatie/documenten/{slug}/audit                     — append-only tijdlijn
-POST   /v1/annotatie/documenten/{slug}/export?formaat=…          — export (pdf|csv|json)
+POST   /v1/annotatie/documenten                                  – maak document
+GET    /v1/annotatie/documenten?limit=&offset=                   – eigen documenten (samenvatting)
+GET    /v1/annotatie/documenten/{slug}                           – volledig document
+DELETE /v1/annotatie/documenten/{slug}                           – verwijder eigen document
+PUT    /v1/annotatie/documenten/{slug}/elementen                 – uitkomst van een agent-ronde (merge)
+POST   /v1/annotatie/documenten/{slug}/elementen                 – eigen markering toevoegen (jurist)
+DELETE /v1/annotatie/documenten/{slug}/elementen/{id}            – eigen markering verwijderen
+POST   /v1/annotatie/documenten/{slug}/elementen/{id}/beslissing – human-decision (incl. heropen)
+POST   /v1/annotatie/documenten/{slug}/status                    – afronden / heropenen
+GET    /v1/annotatie/documenten/{slug}/audit                     – append-only tijdlijn
+POST   /v1/annotatie/documenten/{slug}/export?formaat=…          – export (pdf|csv|json)
 """
 from __future__ import annotations
 
@@ -62,7 +62,7 @@ NIET_VERGRENDELD = object()
 
 
 def _afgerond(doc: AnnotatieDocument) -> bool:
-    """Een afgerond document is bevroren — voor de jurist én voor een nieuwe agent-ronde.
+    """Een afgerond document is bevroren – voor de jurist én voor een nieuwe agent-ronde.
 
     Zonder deze grens betekende `geaccordeerd` niets: er kon daarna nog van alles bij, af en overheen.
     Heropenen is één klik (`POST .../status`), dus dit is een drempel en geen doodlopende weg.
@@ -72,7 +72,7 @@ def _afgerond(doc: AnnotatieDocument) -> bool:
 
 def _sleutel(tekst: str, lid: str) -> tuple[str, str]:
     """Terugvalsleutel voor clients die (nog) geen element-id meesturen: genormaliseerde tekst + lid.
-    Bewust ZONDER klasse — een herziening mag juist de klasse veranderen en moet dan hetzelfde
+    Bewust ZONDER klasse – een herziening mag juist de klasse veranderen en moet dan hetzelfde
     element treffen, niet een duplicaat maken."""
     return (" ".join(tekst.split()).casefold(), lid or "")
 
@@ -90,12 +90,12 @@ def _reden_uit_diff(diff: dict) -> ReviewReason:
 
     Die afleiding stond in de browser (`frontend/lib/annotatie.ts:redenVoorWijziging`) terwijl de
     server dezelfde diff toch al berekent. De reden in het auditspoor was daarmee een waarde die de
-    server aannam maar nooit kon controleren — in een systeem dat om herleidbaarheid draait hoort
+    server aannam maar nooit kon controleren – in een systeem dat om herleidbaarheid draait hoort
     hij te worden vastgesteld waar het bewijs ligt.
 
     Alleen `lid`, of meer dan één veld tegelijk, valt onder `anders`: geen van de vaste redenen
     dekt dat. Een lege diff komt hier niet: die wordt eerder als no-op afgevangen.
-    Bij een REJECT blijft de reden een vraag aan de mens — die informatie staat niet in een diff.
+    Bij een REJECT blijft de reden een vraag aan de mens – die informatie staat niet in een diff.
     """
     if len(diff) != 1:
         return ReviewReason.anders
@@ -106,7 +106,7 @@ def _is_bevroren(el: AnnotatieElement) -> bool:
     """Mag de agent dit element nog inhoudelijk wijzigen?
 
     Nee zodra de jurist eraan te pas kwam: een eigen element of een element waarover al besloten is.
-    Dat is de kern van 'de mens heeft het laatste woord' — zonder deze regel wist een volgende
+    Dat is de kern van 'de mens heeft het laatste woord' – zonder deze regel wist een volgende
     agent-ronde stilzwijgend een goedkeuring of een handmatige correctie.
     """
     return el.herkomst == "mens" or bool(el.beslissingen)
@@ -133,7 +133,7 @@ def _voeg_critic_toe(el: AnnotatieElement, e: ElementInvoer) -> bool:
     """Zet het Critic-oordeel op een bestaand element. Geeft terug of er iets veranderde.
 
     Mag ook op een bevroren element: dat de Critic er later nog iets van vond is informatie die de
-    jurist wil zien — het raakt zijn besluit niet.
+    jurist wil zien – het raakt zijn besluit niet.
     """
     veranderd = False
     if e.aandacht is not None and (el.aandacht != e.aandacht or el.critic != e.critic):
@@ -148,7 +148,7 @@ def _voeg_critic_toe(el: AnnotatieElement, e: ElementInvoer) -> bool:
 
 
 async def _document_or_404(store: AnnotatieStore, slug: str, user_id: str) -> AnnotatieDocument:
-    """Laadt het document en dwingt eigenaarschap af. 404 (niet 403) bij mismatch — lekt niet.
+    """Laadt het document en dwingt eigenaarschap af. 404 (niet 403) bij mismatch – lekt niet.
     Per-gebruiker gescopet: de eigenaar is de ingelogde gebruiker (`user_id`), niet de bearer-client."""
     doc = await store.laad_document(slug)
     if doc is None or doc.user_id != user_id:
@@ -190,7 +190,7 @@ async def lijst_documenten(
     for d in docs:
         telling = tel_elementen(d.elementen)
         # Het laatst gebruikte model: de runs staan op volgorde van uitvoering, dus de laatste met
-        # een modelnaam is de actuele. Leeg blijft leeg — nooit een model aannemen.
+        # een modelnaam is de actuele. Leeg blijft leeg – nooit een model aannemen.
         laatste = next((r.model for r in reversed(d.runs) if r.model), "")
         uit.append(DocumentSamenvatting(
             slug=d.slug, bwbId=d.bwbId, artikel=d.artikel, lid=d.lid,
@@ -236,12 +236,12 @@ async def zet_elementen(
 
     Bewust een merge en geen vervanging: de agent kan meerdere rondes draaien (annoteerder ⇄ Critic)
     en de jurist werkt in hetzelfde document. Vervangen wiste eerder alle beslissingen, levenscyclus
-    en element-id's — met een auditlog dat daarna naar niet-bestaande id's verwees.
+    en element-id's – met een auditlog dat daarna naar niet-bestaande id's verwees.
 
     Matcht op `id`, met de genormaliseerde tekst als terugval voor clients die nog geen id sturen.
     Elementen waar de jurist aan te pas kwam zijn bevroren (§`_is_bevroren`); die krijgen hooguit een
     nieuw Critic-oordeel. Ongeldige klasse of leeg fragment wordt verworpen (stil, met een teller in
-    de audit — de agent grondt zelf al en dit is het vangnet).
+    de audit – de agent grondt zelf al en dit is het vangnet).
     """
     # Twee soorten "verworpen", één teller: wat het schema niet haalde (afgevangen door
     # `ElementenInvoer._weiger_per_element`, anders was dit een 422 en landde er níéts) en wat de
@@ -316,7 +316,7 @@ async def zet_elementen(
                 el.lifecycle = Lifecycle.critic_checked if el.aandacht is not None else el.lifecycle
 
         # Kanttekeningen bij eigen markeringen. Op een agent-element hoort een kaal oordeel gewoon
-        # in `aandacht` thuis — maar een concreet voorstel uit de eindbeoordeling past daar niet in,
+        # in `aandacht` thuis – maar een concreet voorstel uit de eindbeoordeling past daar niet in,
         # en er komt geen correctiestap meer overheen. Dat mag hier dus wél landen, zodat de jurist
         # het met één klik overneemt in plaats van het met de hand na te doen.
         for s in req.suggesties:
@@ -381,7 +381,7 @@ async def zet_elementen(
     ])
     response.headers["ETag"] = etag_van(doc)
     # De aanroeper (graph-qa) leest dit en waarschuwt de jurist. Zonder dat ruilen we een luide fout
-    # — een leeg document, meteen zichtbaar — in voor een stille: dertien markeringen waarvan
+    # – een leeg document, meteen zichtbaar – in voor een stille: dertien markeringen waarvan
     # niemand weet dat het er vijftien hadden moeten zijn. Een header, want de respons is het
     # document en dat hoort niet met verwerkingsdetails te vervuilen.
     if verworpen:
@@ -401,7 +401,7 @@ async def voeg_element_toe(
     """Eén element dat de JURIST zelf aanmaakt (een tekstselectie in het documentpaneel).
 
     Apart van de PUT, want dat is "de uitkomst van een agent-ronde" en dit is iets anders: het komt
-    er los bij en raakt de rest niet. `herkomst="mens"` en meteen `human_approved` — de mens hoeft
+    er los bij en raakt de rest niet. `herkomst="mens"` en meteen `human_approved` – de mens hoeft
     zijn eigen markering niet nog eens goed te keuren.
     """
     if req.klasse not in GELDIGE_JAS_KLASSEN:
@@ -484,7 +484,7 @@ async def beslis(
     if req.type == BeslissingType.edit:
         # `review_reason` is hier bewust NIET verplicht: de server leidt hem af uit de diff die hij
         # zelf berekent (`_reden_uit_diff`). Een meegestuurde waarde geldt hooguit als hint en
-        # wordt overschreven — anders staat er een reden in het auditspoor die niemand kan toetsen.
+        # wordt overschreven – anders staat er een reden in het auditspoor die niemand kan toetsen.
         if req.wijziging is None:
             raise HTTPException(status_code=422, detail="wijziging is verplicht bij een edit.")
         if req.wijziging.klasse is not None and req.wijziging.klasse not in GELDIGE_JAS_KLASSEN:
@@ -507,7 +507,7 @@ async def beslis(
         """
         if _afgerond(doc):
             return AFGEROND
-        # Een EIGEN markering staat meteen op `human_approved` — je hoeft je eigen markering niet
+        # Een EIGEN markering staat meteen op `human_approved` – je hoeft je eigen markering niet
         # nog eens goed te keuren. Dat is "gemaakt", niet "beoordeeld": vergrendelen zou hem bij het
         # aanmaken al op slot zetten. Het slot beschermt een review-oordeel over een agent-voorstel.
         vergrendeld = el.herkomst != "mens" and el.lifecycle in VERGRENDELDE_LIFECYCLES
@@ -526,7 +526,7 @@ async def beslis(
                     diff[veld] = {"voor": getattr(el, veld), "na": nieuw}
                     setattr(el, veld, nieuw)
             # Het anker hoort bij de tekst en volgt hem dus: meegestuurd anker wint, geen anker bij
-            # een gewijzigd fragment wist het oude. Bewust NIET in de `diff` — dat is machinerie, geen
+            # een gewijzigd fragment wist het oude. Bewust NIET in de `diff` – dat is machinerie, geen
             # inhoudelijke wijziging die de jurist in zijn reviewspoor wil terugzien.
             if "tekst" in diff:
                 el.anker = req.wijziging.anker
@@ -543,7 +543,7 @@ async def beslis(
                 geen_wijziging["ja"] = True
                 return None
             el.lifecycle = Lifecycle.edited
-            # NIET `herkomst` — dat blijft wie het element aanmaakte. Een edit door de jurist maakt
+            # NIET `herkomst` – dat blijft wie het element aanmaakte. Een edit door de jurist maakt
             # er geen mens-element van; anders is later niet meer te zien dat de agent het voorstelde.
             el.gewijzigd_door = "mens"
             el.diff = diff
@@ -564,7 +564,7 @@ async def beslis(
             el.lifecycle = Lifecycle.rejected
         elif req.type == BeslissingType.heropen:
             # Terug naar de stand van vóór het oordeel. Wél `critic_checked` als de Critic er al
-            # naar keek — anders zou heropenen dat oordeel uit beeld poetsen en lijkt het element
+            # naar keek – anders zou heropenen dat oordeel uit beeld poetsen en lijkt het element
             # ongezien. `diff` blijft staan: dat is het spoor van de laatste edit, geen huidige stand.
             el.lifecycle = Lifecycle.critic_checked if el.critic else Lifecycle.voorgesteld
             el.gewijzigd_door = "mens"
@@ -620,12 +620,12 @@ async def zet_status(
     """De annotatie afronden of weer heropenen.
 
     Bewust een expliciete handeling van de jurist en geen afgeleide van "alle elementen beslist":
-    dat laatste is niet hetzelfde als tevreden zijn — er kan nog een ronde van de agent komen, en
+    dat laatste is niet hetzelfde als tevreden zijn – er kan nog een ronde van de agent komen, en
     de "mogelijk ontbrekend"-lijst is dan nog niet gewogen. Heropenen kan altijd; een knop die niet
     terug kan is een knop die niemand durft te gebruiken.
 
     Afgerond is óók bevroren: zolang de status `geaccordeerd` is weigeren alle andere schrijfpaden
-    met een 409 (`_afgerond`). Dit endpoint is dus de enige uitweg — en de enige ingang.
+    met een 409 (`_afgerond`). Dit endpoint is dus de enige uitweg – en de enige ingang.
     """
     telling = None
 
@@ -666,7 +666,7 @@ async def haal_audit(
 class ExportInvoer(BaseModel):
     """Optionele bijlage bij een export: de letterlijke wettekst per lid.
 
-    De api heeft die tekst niet — de graaf is de bron en de werkplek haalt hem al op via
+    De api heeft die tekst niet – de graaf is de bron en de werkplek haalt hem al op via
     graph-qa (`GET /v1/artikel`). Meesturen mag, verzinnen niet: zonder leden blijft het
     wettekst-blok uit het rapport in plaats van dat er iets wordt gereconstrueerd.
     """
@@ -684,7 +684,7 @@ async def exporteer_document(
 ):
     """Het hele document als bestand: de markeringen als tabel plus het volledige spoor.
 
-    Werkt in elke fase — een document dat nog in review is exporteert gewoon, met de telling
+    Werkt in elke fase – een document dat nog in review is exporteert gewoon, met de telling
     "te beoordelen" in de kop, zodat een concept nooit als eindproduct kan worden gelezen.
     """
     doc = await _document_or_404(store, slug, user_id)

@@ -19,7 +19,7 @@ function mappen(pad: string): string[] {
 
 // Next weigert twee verschillend genoemde dynamische segmenten op dezelfde plek
 // ("You cannot use different slug names for the same dynamic path"). De build meldt dat wel, maar
-// pas na een schone cache — bij ons kwam zo'n conflict daardoor pas op de dev-omgeving boven, waar
+// pas na een schone cache – bij ons kwam zo'n conflict daardoor pas op de dev-omgeving boven, waar
 // de hele frontend erdoor omviel. Deze controle kost niets en hangt nergens van af.
 describe("routestructuur", () => {
   it("gebruikt per niveau hoogstens één naam voor een dynamisch segment", () => {

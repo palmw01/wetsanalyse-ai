@@ -7,7 +7,7 @@ contains- en refusal-checks. Twee modi:
   live (default) : echte providers (vereist een gevulde .env + bereikbare graaf).
       .venv/bin/python eval/run_eval.py
 
-  offline        : gescripte fakes, geen netwerk/kosten — bewijst de harnas + scorers.
+  offline        : gescripte fakes, geen netwerk/kosten – bewijst de harnas + scorers.
       .venv/bin/python eval/run_eval.py --offline
 
 Exit-code ≠ 0 als niet alle cases slagen (CI-klaar).
@@ -70,13 +70,13 @@ async def run_annotatie_case(
     """Draai één annotatie-opdracht en scoor de markeringen die eruit komen.
 
     Meet de hele keten (ophaal → annoteer → Critic → herziening), niet één node: dat is wat de jurist
-    ook krijgt. Het corpus komt uit het `doel`-event — dezelfde tekst waartegen de agent zelf grondde,
+    ook krijgt. Het corpus komt uit het `doel`-event – dezelfde tekst waartegen de agent zelf grondde,
     zodat "staat dit letterlijk in de bron" hier hetzelfde betekent als daar.
 
     Verworpen fragmenten worden apart bijgehouden via `verworpen_p100`, gevoed door het
     `verworpen`-event dat `emit_node` sinds fase 1B uitzendt. Ze uit de aandacht-velden afleiden
     kan niet: een fragment dat op "niet letterlijk" sneuvelde wordt nooit een element, dus er is
-    achteraf niets meer te reconstrueren. Blijft het event uit, dan telt de maat 0 — en dat betekent
+    achteraf niets meer te reconstrueren. Blijft het event uit, dan telt de maat 0 – en dat betekent
     "niets verworpen", niet "niet gemeten".
     """
     elementen: list[dict[str, Any]] = []
@@ -93,7 +93,7 @@ async def run_annotatie_case(
         elif soort == "verworpen":
             verworpen.extend(ev.get("items") or [])
         elif soort == "kandidaten_v2a":
-            # fase 2A: gefilterde kandidaten vóór classificatie — voor candidate_recall meting
+            # fase 2A: gefilterde kandidaten vóór classificatie – voor candidate_recall meting
             kandidaten.extend(ev.get("items") or [])
         elif soort == "doel":
             leden = (ev.get("doel") or {}).get("leden_teksten") or []
@@ -184,7 +184,7 @@ def print_annotatie_report(results: list[AnnotatieResult]) -> bool:
     cacc_s = f"{_gem(cacc_vals):.1%}" if cacc_vals else "n/a"
 
     print(f"""
-JAS Annotation Evaluation — baseline
+JAS Annotation Evaluation – baseline
 {"─" * 44}
 Cases                         {n}
 
@@ -218,12 +218,12 @@ Alleen niet-nul als het model een niet-letterlijk of ongeldig fragment voorstel.
 def _offline_annotatie_scenario():
     """Eén gescripte annotatie + fakes: bewijst de harnas, niet het model.
 
-    Wat hier wél getest wordt is de meting zelf — dat een fragment uit een ander lid als
+    Wat hier wél getest wordt is de meting zelf – dat een fragment uit een ander lid als
     buiten-bereik telt en dat een injectie in de wettekst wordt opgemerkt. Of het écht model daar
     intrapt, meet alleen de live-run.
 
     De verwachte set bevat één exact-match (Rechtsobject) en één span-mismatch
-    (Tijdsaanduiding — agent geeft een kortere variant terug). Zo exerceren we alle
+    (Tijdsaanduiding – agent geeft een kortere variant terug). Zo exerceren we alle
     matching-passen in de offline-run.
     """
     import json as _json
@@ -250,7 +250,7 @@ def _offline_annotatie_scenario():
         "prompt": "annoteer artikel 9 lid 1 van de Invorderingswet 1990",
         "verwacht": [
             {"klasse": "Rechtsobject", "tekst": "Een belastingaanslag"},
-            # Gold heeft de volledige tijdsspan; agent geeft een kortere variant — IoU > 0, exact = 0
+            # Gold heeft de volledige tijdsspan; agent geeft een kortere variant – IoU > 0, exact = 0
             {"klasse": "Tijdsaanduiding", "tekst": "zes weken na de dagtekening van het aanslagbiljet"},
         ],
         "verboden": ["uitstel van betaling"],

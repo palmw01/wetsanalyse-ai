@@ -15,7 +15,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-/** Een upstream die de verbinding aanneemt maar nooit antwoordt — precies het geval waar Node's
+/** Een upstream die de verbinding aanneemt maar nooit antwoordt – precies het geval waar Node's
  *  `fetch` uit zichzelf eeuwig op blijft wachten. Rejecten doet hij alleen op het abort-signaal. */
 function hangendeUpstream() {
   return vi.fn((_url: string, init?: RequestInit) => {
@@ -29,7 +29,7 @@ function hangendeUpstream() {
   });
 }
 
-describe("proxy — timeout", () => {
+describe("proxy – timeout", () => {
   it("geeft 504 met een leesbare reden als de upstream niet op tijd antwoordt", async () => {
     vi.stubGlobal("fetch", hangendeUpstream());
 
@@ -51,7 +51,7 @@ describe("proxy — timeout", () => {
     expect(nep.mock.calls[0][1]?.signal).toBeInstanceOf(AbortSignal);
   });
 
-  it("houdt een onbereikbare API op 502 — dat is iets anders dan te traag", async () => {
+  it("houdt een onbereikbare API op 502 – dat is iets anders dan te traag", async () => {
     vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new TypeError("fetch failed"))));
 
     const res = await proxy("/v1/annotatie/documenten");

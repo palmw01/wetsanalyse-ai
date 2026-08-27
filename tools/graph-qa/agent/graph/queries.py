@@ -23,7 +23,7 @@ PREFIX inst: <http://www.ontotext.com/connectors/lucene/instance#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 """
 
-# Eigen IRI-ruimte — filter hierop om owl:sameAs-tweelingen (wetten.overheid.nl)
+# Eigen IRI-ruimte – filter hierop om owl:sameAs-tweelingen (wetten.overheid.nl)
 # buiten tellingen/resultaten te houden.
 NS = BASIS
 
@@ -111,8 +111,8 @@ def list_regelingen() -> str:
 def get_artikel(bwb_id: str, artikel: str) -> str:
     """Artikel met zijn leden, plus de onderdelen die rechtstreeks onder het artikel hangen.
 
-    Die directe onderdelen (`heeftOnderdeel`) zijn er bij artikelen zónder leden — een opsomming
-    a/b/c direct onder het artikel — en ontbraken volledig. Onderdelen die onder een *lid* hangen
+    Die directe onderdelen (`heeftOnderdeel`) zijn er bij artikelen zónder leden – een opsomming
+    a/b/c direct onder het artikel – en ontbraken volledig. Onderdelen die onder een *lid* hangen
     komen bewust niet mee: bij een definitieartikel zijn dat er tientallen en dan kapt de
     8000-tekenslimiet het resultaat af. Daarvoor is `get_lid`, dat ze wél levert.
     """
@@ -139,7 +139,7 @@ def get_lid(bwb_id: str, artikel: str, lid: str) -> str:
     """Lid mét zijn onderdelen.
 
     Zonder de onderdelen is een definitielid nagenoeg leeg: artikel 2, lid 1 IW 1990 heeft als
-    eigen tekst alleen "Deze wet verstaat onder:" — de 25 definities zitten in de onderdelen a t/m
+    eigen tekst alleen "Deze wet verstaat onder:" – de 25 definities zitten in de onderdelen a t/m
     t. De agent ging dat compenseren met een reeks raw_sparql-pogingen (acht beurten voor één
     definitievraag). `bwb:bevat` is vlak opgeslagen, dus dit haalt ook geneste onderdelen op.
     """
@@ -176,7 +176,7 @@ def get_lid(bwb_id: str, artikel: str, lid: str) -> str:
 
 
 def get_bepaling(bwb_id: str, nummer: str) -> str:
-    """Haal een bepaling op via haar `bwb:nummer` binnen de regeling — werkt voor artikelen ("9",
+    """Haal een bepaling op via haar `bwb:nummer` binnen de regeling – werkt voor artikelen ("9",
     "25", "22a") én divisies/decimale nummers ("9.1") van beleidsregels/circulaires (bv. de Leidraad
     Invordering 2008), waar het artikel/lid-IRI-patroon niet opgaat."""
     return PREFIXES + f"""SELECT ?nummer ?tekst ?label ?jci WHERE {{

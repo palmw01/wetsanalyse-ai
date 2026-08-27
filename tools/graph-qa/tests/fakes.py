@@ -68,7 +68,7 @@ class FakeLLM:
 
         De aanroeper mag het systeemblok gesplitst aanleveren (`[stabiel, variabel]`) zodat de echte
         adapter er een prompt-cache-punt tussen kan zetten; wat het model uiteindelijk leest is de
-        aaneenschakeling. Tests vragen naar dát — de splitsing zelf staat in `system_delen`.
+        aaneenschakeling. Tests vragen naar dát – de splitsing zelf staat in `system_delen`.
         """
         systeem = kwargs.get("system")
         if isinstance(systeem, list):

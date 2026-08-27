@@ -1,6 +1,6 @@
 """De correctieketen na de Critic.
 
-`annoteer → critic₁ → patch → [herzie] → [critic₂] → emit` — **lineair, geen cyclus**. De Critic
+`annoteer → critic₁ → patch → [herzie] → [critic₂] → emit` – **lineair, geen cyclus**. De Critic
 wijst aan wát er mis is, *code* voert de eenduidige correcties uit (`annotatie.pas_critic_toe`), en
 het model draait alleen nog voor wat brontekst lezen vraagt: een bijna-goed citaat repareren en een
 gemeld ontbrekend element toevoegen.
@@ -92,7 +92,7 @@ def test_vervang_klasse_wordt_toegepast_bij_rood():
 
 
 def test_vervang_tekst_alleen_als_die_letterlijk_in_de_bron_staat():
-    """Een Critic die parafraseert corrigeert niets — dan zou code een verzinsel vastleggen."""
+    """Een Critic die parafraseert corrigeert niets – dan zou code een verzinsel vastleggen."""
     instructie = {"id": "a", "aandacht": "rood", "actie": "vervang"}  # rood: wordt uitgevoerd
     goed, n_goed, _rest = pas_critic_toe(
         [{"id": "a", "klasse": "Voorwaarde", "tekst": "de schuldenaar"}],
@@ -111,7 +111,7 @@ def test_vervang_tekst_alleen_als_die_letterlijk_in_de_bron_staat():
 
 @pytest.mark.parametrize("aandacht, blijft", [("rood", False), ("geel", True), ("groen", True)])
 def test_verwijderen_alleen_bij_rood(aandacht, blijft):
-    """De enige onomkeerbare handeling in de patcher — die vraagt het zwaarste oordeel."""
+    """De enige onomkeerbare handeling in de patcher – die vraagt het zwaarste oordeel."""
     uit, _, _rest = pas_critic_toe(
         [{"id": "a", "klasse": "Rechtsfeit", "tekst": "De ontvanger"}],
         [{"id": "a", "aandacht": aandacht, "actie": "verwijder"}],
@@ -134,8 +134,8 @@ def test_een_markering_van_de_jurist_blijft_ongemoeid():
 def test_geel_met_een_voorkeur_wordt_een_alternatief():
     """De Critic hoeft zijn voorkeur niet in te slikken, en er verandert niets op een vermoeden.
 
-    De werkplek toont alternatieven als aanklikbare chip ("Twijfel — klik om te wisselen"), dus de
-    jurist neemt hem met één klik over — en dan staat het als zíjn beslissing in het auditspoor.
+    De werkplek toont alternatieven als aanklikbare chip ("Twijfel – klik om te wisselen"), dus de
+    jurist neemt hem met één klik over – en dan staat het als zíjn beslissing in het auditspoor.
     """
     uit, n, _rest = pas_critic_toe(
         # `aandacht`/`critic` staan er al op: critic_node zet ze vóór de patcher draait.
@@ -166,7 +166,7 @@ def test_geel_verandert_nooit_het_fragment_en_gaat_niet_door():
     """Een fragmentwijziging kent geen 'alternatief'-vorm, dus bij twijfel gebeurt er niets.
 
     En de instructie gaat óók niet door naar de herziener: die voerde hem dan alsnog uit. Op dev
-    kortte het model zo twee fragmenten in op een geel advies — een wijziging waar niemand om vroeg
+    kortte het model zo twee fragmenten in op een geel advies – een wijziging waar niemand om vroeg
     en waar geen `toegepast` tegenover staat.
     """
     uit, n, rest = pas_critic_toe(
@@ -182,7 +182,7 @@ def test_geel_verandert_nooit_het_fragment_en_gaat_niet_door():
 
 def test_een_alternatief_overleeft_de_herziening():
     """De herziener levert de hele lijst opnieuw op; zonder samenvoegen wiste dat de voorkeur van de
-    Critic. Op dev verdween "Parameter en parameterwaarde" zo uit beeld — precies het alternatief dat
+    Critic. Op dev verdween "Parameter en parameterwaarde" zo uit beeld – precies het alternatief dat
     de jurist met één klik had kunnen overnemen."""
     llm = FakeLLM([
         *_aanloop(),
@@ -228,7 +228,7 @@ def test_afgehandelde_instructies_gaan_niet_door_naar_de_herziener():
         ],
         CORPUS,
     )
-    # a is uitgevoerd, b is een alternatief geworden — allebei afgehandeld. Alleen c blijft over:
+    # a is uitgevoerd, b is een alternatief geworden – allebei afgehandeld. Alleen c blijft over:
     # daar kan het model de brontekst lezen en het bedoelde fragment opzoeken.
     assert [f["id"] for f in rest] == ["c"]
 
@@ -258,7 +258,7 @@ def test_de_correctie_gebeurt_zonder_herziening():
     """De kern: een `vervang` wordt door code uitgevoerd, niet door een tweede taalmodel.
 
     Vroeger kostte dit een herzieningscall met het volle corpus plus een nieuwe Critic-pas. Nu blijft
-    alleen de eindbeoordeling over — en die gaat over de versie die de jurist te zien krijgt.
+    alleen de eindbeoordeling over – en die gaat over de versie die de jurist te zien krijgt.
     """
     llm = FakeLLM([
         *_aanloop(),
@@ -324,7 +324,7 @@ def test_geel_alleen_is_geen_correctie():
 
 
 def test_een_onuitvoerbaar_voorstel_kost_geen_enkele_call():
-    """Stelt de Critic een fragment voor dat niet in de bron staat, dan gebeurt er niets — en er valt
+    """Stelt de Critic een fragment voor dat niet in de bron staat, dan gebeurt er niets – en er valt
     ook niets te herzien, want er is geen verworpen fragment of gemist element."""
     llm = FakeLLM([
         *_aanloop(),
@@ -339,7 +339,7 @@ def test_een_onuitvoerbaar_voorstel_kost_geen_enkele_call():
 
 
 def test_verworpen_fragment_lokt_nog_steeds_een_herziening_uit():
-    """Een bijna-goed citaat repareren vraagt de brontekst lezen — dat blijft werk voor het model."""
+    """Een bijna-goed citaat repareren vraagt de brontekst lezen – dat blijft werk voor het model."""
     llm = FakeLLM([
         *_aanloop(),
         _annoteer([
@@ -405,14 +405,14 @@ def test_de_keten_is_hard_begrensd():
     assert elementen[0]["klasse"] == "Voorwaarde", "alleen de eerste correctie is uitgevoerd"
     # Het oordeel gaat mee naar de jurist, maar als twijfel: de Critic komt hier terug op een klasse
     # die hij zélf liet aanbrengen, en noemt daarmee drie klassen in twee rondes. Zie
-    # `demp_zelfweerspreking` — eerder stond hier "rood".
+    # `demp_zelfweerspreking` – eerder stond hier "rood".
     assert elementen[0]["aandacht"] == "geel", "het openstaande oordeel gaat mee naar de jurist"
     assert any(a["klasse"] == "Rechtssubject" for a in elementen[0]["alternatieven"])
     assert not any("rondelimiet" in r for r in _statusregels(events))
 
 
 def test_klep_uit_reproduceert_het_oude_gedrag():
-    """`CRITIC_MAX_RONDES=0`: geen patch, geen herziening — exact `annoteer → critic → emit`."""
+    """`CRITIC_MAX_RONDES=0`: geen patch, geen herziening – exact `annoteer → critic → emit`."""
     llm = FakeLLM([
         *_aanloop(),
         _annoteer([_EL]),
@@ -481,7 +481,7 @@ def test_tweede_beurt_in_dezelfde_thread_begint_schoon(tmp_path):
 
 
 def test_elke_statusregel_volgt_hetzelfde_idioom():
-    """`Actor · wat er gebeurde` — één idioom, zodat de tijdlijn te lezen is als een verslag."""
+    """`Actor · wat er gebeurde` – één idioom, zodat de tijdlijn te lezen is als een verslag."""
     llm = FakeLLM([
         *_aanloop(),
         _annoteer([_EL]),
@@ -502,7 +502,7 @@ def test_een_uitgevoerde_correctie_heet_uitgevoerd():
     Op dev gebeurde precies dat: ronde 1 "maak er een Rechtsbetrekking van" werd uitgevoerd, en
     ronde 2 begon met "vorige ronde gemeld maar ongewijzigd" en stelde de omgekeerde wijziging voor.
     De vlag die het geheugenblok las werd namelijk alleen door de herziener gezet, niet door de
-    patcher — dus las de Critic zijn eigen uitgevoerde instructie als genegeerd, en de prompt zegt
+    patcher – dus las de Critic zijn eigen uitgevoerde instructie als genegeerd, en de prompt zegt
     dat genegeerde kritiek een meningsverschil is.
     """
     from agent.annotatie_prompt import _vorige_ronde_blok
@@ -564,11 +564,11 @@ def test_een_toegepaste_klasse_blijft_niet_ook_als_alternatief_staan():
 
 
 def test_een_geel_fragmentvoorstel_heet_afgehandeld():
-    """Geel verandert niets, maar het is wél gemeld — anders herhaalt de Critic het letterlijk.
+    """Geel verandert niets, maar het is wél gemeld – anders herhaalt de Critic het letterlijk.
 
     Op dev deed hij dat bij 'aansprakelijk': ronde 1 en ronde 2 droegen woordelijk hetzelfde gele
     advies. Er was geen klasse in het spoor, dus de alternatief-tak greep niet en de stand viel terug
-    op "ongewijzigd gelaten" — wat de prompt leest als een meningsverschil.
+    op "ongewijzigd gelaten" – wat de prompt leest als een meningsverschil.
     """
     from agent.annotatie_prompt import _vorige_ronde_blok
 
@@ -612,7 +612,7 @@ def test_een_eindoordeel_dat_de_eigen_correctie_terugdraait_wordt_twijfel():
 
     Op dev bracht de Critic 'zijn in het tweede lid bedoelde verplichting' in ronde 1 van
     Rechtsobject naar Rechtsbetrekking (uitgevoerd), en zei in ronde 2 rood dat het toch een
-    Rechtsobject was. Hetzelfde fragment, twee keer gewogen, twee uitkomsten — dat is twijfel.
+    Rechtsobject was. Hetzelfde fragment, twee keer gewogen, twee uitkomsten – dat is twijfel.
     """
     from agent.annotatie import demp_zelfweerspreking
 
@@ -659,7 +659,7 @@ def test_een_id_in_de_motivatie_wordt_het_fragment_waar_het_op_slaat():
     """De motivatie staat één-op-één op de reviewkaart; een hexcode zegt de jurist niets.
 
     Op dev stond in drie van de zestien kaarten een verwijzing als "de Voorwaarde zit eigenlijk in
-    [635074d49a74]" — de Critic gebruikt de ids die hij in zijn prompt krijgt om naar buurelementen
+    [635074d49a74]" – de Critic gebruikt de ids die hij in zijn prompt krijgt om naar buurelementen
     te wijzen.
     """
     from agent.annotatie import vervang_ids_door_citaat
@@ -760,7 +760,7 @@ def test_een_element_zonder_oordeel_levert_niets_op():
 
 
 def test_de_critic_zijn_eigen_aanhalingstekens_winnen():
-    """Anders staat er element ''zo'n fragment'' op de kaart — twee paar quotes om één citaat."""
+    """Anders staat er element ''zo'n fragment'' op de kaart – twee paar quotes om één citaat."""
     from agent.annotatie import vervang_ids_door_citaat
 
     voorstellen = [{"id": "abc123def456", "tekst": "de bestuurder"}]

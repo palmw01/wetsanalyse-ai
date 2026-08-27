@@ -100,7 +100,7 @@ def test_alternatieven_maken_een_element_niet_geel():
 
     Er stond een deterministische regel die alternatieven naar 'geel' bumpte. Gevolg: zo'n element
     kon nooit groen worden, en omdat de annoteerder juist wordt aangemoedigd om bij twijfel
-    alternatieven te noemen, stond uiteindelijk álles "met aandacht" — waarmee die vlag betekenisloos
+    alternatieven te noemen, stond uiteindelijk álles "met aandacht" – waarmee die vlag betekenisloos
     werd. De Critic bepaalt nu de kleur; twijfel telt apart in de samenvatting.
     """
     elementen = json.dumps({"elementen": [
@@ -149,7 +149,7 @@ def test_critic_faalt_stil_elementen_komen_door():
 
 def test_annotatie_laat_leesbaar_spoor_in_geheugen(tmp_path):
     """Na een annotatie-beurt ziet een vervolgvraag (zelfde conversation_id) de gemarkeerde elementen
-    terug in de historie — zodat 'waarom Rechtssubject?' context heeft."""
+    terug in de historie – zodat 'waarom Rechtssubject?' context heeft."""
     settings = make_settings(enable_decomposition=False, checkpoint_db_path=str(tmp_path / "cp.db"))
 
     # Beurt 1: annoteer art. 9 lid 1.
@@ -281,7 +281,7 @@ def test_run_event_draagt_de_herkomst_van_de_beurt():
 # De ophaal-agent mag omwegen nemen (eerst het hele artikel, dan het lid). Het corpus waarop
 # geannoteerd wordt hoort dát niet te weerspiegelen: het is precies de bepaling uit het doel,
 # gericht opgehaald. Werd het uit de tool-trace gereconstrueerd, dan zat de tekst van álle
-# opgehaalde leden erin — en dan keurt de brongetrouwheidscheck een fragment uit lid 2 goed als
+# opgehaalde leden erin – en dan keurt de brongetrouwheidscheck een fragment uit lid 2 goed als
 # markering "in lid 1", mét de vindplaats van lid 1.
 
 # Twee leden in één artikel-resultaat, zoals get_artikel dat teruggeeft.
@@ -297,7 +297,7 @@ TWEE_LEDEN_JSON = json.dumps({
     "elementen": [
         {"klasse": "Rechtsobject", "tekst": "Een belastingaanslag", "lid": "1",
          "toelichting": "waarover", "alternatieven": []},
-        # Staat WEL in het artikel, maar niet in lid 1 — het lid dat geannoteerd wordt.
+        # Staat WEL in het artikel, maar niet in lid 1 – het lid dat geannoteerd wordt.
         {"klasse": "Rechtsbetrekking", "tekst": "kan uitstel van betaling verlenen", "lid": "2",
          "toelichting": "wat", "alternatieven": []},
     ],
@@ -307,7 +307,7 @@ TWEE_LEDEN_JSON = json.dumps({
 def test_corpus_blijft_binnen_het_gevraagde_lid():
     llm = FakeLLM([
         response([text_block("WORKERS: annotatie\nPLAN: annoteer art 9 lid 1")], "end_turn"),
-        # De ophaal-agent haalt het HELE artikel op — een normale omweg.
+        # De ophaal-agent haalt het HELE artikel op – een normale omweg.
         response([tool_block("t1", "get_artikel", {"bwb_id": "BWBR0004770", "artikel": "9"})], "tool_use"),
         response([text_block('{"bwbId":"BWBR0004770","artikel":"9","lid":"1","nummer":"","citeertitel":"IW 1990"}')], "end_turn"),
         response([text_block(TWEE_LEDEN_JSON)], "end_turn"),

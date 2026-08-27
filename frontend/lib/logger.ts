@@ -1,9 +1,9 @@
 // Server-side gestructureerde JSON-logging voor de BFF, gespiegeld aan de MCP-logger
 // (projectbrede JSON-logvorm): één regel JSON per gebeurtenis naar stdout, met
-// `ts/niveau/categorie/bericht/…velden`, secret-redactie en — indien een OTel-span actief is —
+// `ts/niveau/categorie/bericht/…velden`, secret-redactie en – indien een OTel-span actief is —
 // `trace_id`/`span_id`. NOOIT importeren vanuit een Client Component (dit is server-only).
 //
-// AVG/dataminimalisatie: tokens, secrets en verzoek-/antwoordinhoud worden nooit gelogd — alleen
+// AVG/dataminimalisatie: tokens, secrets en verzoek-/antwoordinhoud worden nooit gelogd – alleen
 // metadata (status, duur, lengtes, paden). Faalt nooit hard: logging mag een request niet breken.
 
 import "server-only";

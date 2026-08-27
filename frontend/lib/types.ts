@@ -1,4 +1,4 @@
-// Domeintypes — handmatig afgeleid van het API-contract (api/app/*.py).
+// Domeintypes – handmatig afgeleid van het API-contract (api/app/*.py).
 // Dit bestand is de bron-van-waarheid voor de frontend; zie README (gen:types) voor
 // een optioneel hulpmiddel om ze tegen /openapi.json te controleren.
 
@@ -116,7 +116,7 @@ export interface ApiError {
   retryAfter?: number;
 }
 
-// --- Annotatie-domein (wetsanalyse-workbench) — afgeleid van api/app/annotatie_contracts.py ---
+// --- Annotatie-domein (wetsanalyse-workbench) – afgeleid van api/app/annotatie_contracts.py ---
 
 export type Lifecycle =
   | "voorgesteld" | "critic_checked" | "human_approved" | "edited" | "rejected" | "published" | "reused";
@@ -167,7 +167,7 @@ export interface CriticSuggestie {
 /** De herkomst van één agent-ronde: wélk model de voorstellen maakte.
  *  Komt als `run`-SSE-event uit graph-qa en gaat mee in de PUT naar de api, die het op het
  *  document én op elk element vastlegt. Zonder dit is achteraf niet te zeggen waar een markering
- *  vandaan komt — precies wat de export en de latere graaf-promotie nodig hebben. */
+ *  vandaan komt – precies wat de export en de latere graaf-promotie nodig hebben. */
 export interface AgentRun {
   ronde: number;
   model: string;
@@ -195,7 +195,7 @@ export interface AnnotatieElement {
   lid: string;
   toelichting: string;
   vindplaats: string;
-  /** Wie het element AANMAAKTE (agent | mens) — verandert nooit. */
+  /** Wie het element AANMAAKTE (agent | mens) – verandert nooit. */
   herkomst: string;
   /** Wie het daarna inhoudelijk aanpaste ("" | agent | mens). */
   gewijzigd_door: string;
@@ -273,7 +273,7 @@ export interface Wijziging {
   toelichting?: string | null;
   lid?: string | null;
   // Hoort bij `tekst`: kort de jurist een markering in of breidt hij hem uit, dan schuift de plek
-  // mee. Verandert de tekst zonder anker, dan wist de server het oude — een anker dat over het oude
+  // mee. Verandert de tekst zonder anker, dan wist de server het oude – een anker dat over het oude
   // fragment gaat zou de markering na herladen naar een ander voorkomen laten springen.
   anker?: Anker | null;
 }
@@ -348,7 +348,7 @@ export interface Bron {
  *
  *  `niveau` is de waarde om te tonen, niet `grounded`: **onbepaald** betekent dat het antwoord geen
  *  enkele vindplaats of citaat noemde en er dus niets te controleren viel. Dat als "gecontroleerd"
- *  presenteren zou schijnzekerheid zijn — precies wat dit platform wil vermijden. */
+ *  presenteren zou schijnzekerheid zijn – precies wat dit platform wil vermijden. */
 export interface AgentGrounding {
   niveau: "gegrond" | "onbepaald" | "ongegrond";
   grounded: boolean;
@@ -391,7 +391,7 @@ export interface OntbrekendItem {
   klasse: string;
   reden: string;
   /** Het letterlijke fragment dat gemarkeerd zou moeten worden. Ontbreekt als de Critic het element
-   *  alleen impliciet in de tekst ziet — dan is het niet toe te voegen (elk element moet letterlijk
+   *  alleen impliciet in de tekst ziet – dan is het niet toe te voegen (elk element moet letterlijk
    *  in de wettekst staan) en zegt de UI dat ook. */
   tekst?: string;
 }
@@ -411,7 +411,7 @@ export interface RunStart {
   weggevallen: number;
 }
 
-// --- Gesprekken (chatgeschiedenis) — afgeleid van api/app/gesprek_contracts.py ---
+// --- Gesprekken (chatgeschiedenis) – afgeleid van api/app/gesprek_contracts.py ---
 
 export type Rol = "user" | "assistant";
 
@@ -421,7 +421,7 @@ export type Rol = "user" | "assistant";
  *  `annotatie_titel` is het leesbare label van dat document op het moment van de beurt. Het bericht
  *  beschrijft zichzelf dus: wordt het document later verwijderd, dan blijft er in de thread een
  *  leesbare kaart staan in plaats van een naamloze verwijzing. Berichten van vóór dit veld leveren
- *  `""` — dat is een lege terugval, geen fout. */
+ *  `""` – dat is een lege terugval, geen fout. */
 export interface Bericht {
   id?: number;
   rol: Rol;
@@ -469,7 +469,7 @@ export interface BerichtInvoer {
 
 // --- Berichtensysteem --------------------------------------------------------
 //
-// LET OP — twee soorten "bericht" in deze codebase, met eigen API-domeinen:
+// LET OP – twee soorten "bericht" in deze codebase, met eigen API-domeinen:
 //   • `Bericht` / `BerichtInvoer` hierboven = een **chatbeurt** in de werkplek
 //     (`/v1/gesprekken/{id}/berichten`).
 //   • `BerichtOut` en de rest hieronder = een **release note / aankondiging** die een beheerder

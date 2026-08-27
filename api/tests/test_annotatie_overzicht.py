@@ -1,6 +1,6 @@
 """Het annotatie-overzicht: afronden/heropenen en de verrijkte samenvatting.
 
-Dit is de data waarop de werkvoorraad van de jurist draait — "wat moet ik nog beoordelen". Loopt de
+Dit is de data waarop de werkvoorraad van de jurist draait – "wat moet ik nog beoordelen". Loopt de
 telling uit de pas met het document, dan wijst het overzicht mensen naar het verkeerde werk.
 """
 from __future__ import annotations
@@ -110,7 +110,7 @@ async def test_afronden_en_heropenen(client):
 
 
 async def test_een_afgerond_document_is_bevroren(client):
-    """`geaccordeerd` blokkeerde eerder niets: er kon daarna nog van alles bij, af en overheen — ook
+    """`geaccordeerd` blokkeerde eerder niets: er kon daarna nog van alles bij, af en overheen – ook
     door een nieuwe agent-ronde. Afronden is nu een slot, met heropenen als enige uitweg."""
     slug = await _doc_met_elementen(client)
     await client.post(f"{BASIS}/{slug}/status", json={"status": "geaccordeerd"})

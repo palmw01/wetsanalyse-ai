@@ -28,7 +28,7 @@ skills-lock.json
 # Lokaal-only: bronmateriaal van derden dat niet in een publieke repo hoort.
 # Het boek (Boom uitgevers, auteursrecht) en de interne readers van het Expertisecentrum BRM
 # ("Bestemd voor gebruik binnen de Belastingdienst"). Let op het pad: dit stond eerder als
-# `docs/wetsanalyse-boek.md` — één mapniveau te hoog, dus de regel greep nooit en het boek
+# `docs/wetsanalyse-boek.md` – één mapniveau te hoog, dus de regel greep nooit en het boek
 # stond twee weken in de publieke repo. Wijzig je dit, controleer dan met `git check-ignore -v`.
 docs/wetsanalyse/wetsanalyse-boek.md
 docs/wetsanalyse/*.pages.md
@@ -47,13 +47,13 @@ api/docker-compose.override.yml
 api/_data/
 
 # Door de BWB-importer gedownloade wettekst (XML + WTI). Afgeleide data die de importer
-# zelf bij overheid.nl ophaalt en als cache bewaart; hoort niet in de repo — 47 MB per
+# zelf bij overheid.nl ophaalt en als cache bewaart; hoort niet in de repo – 47 MB per
 # volledige import, en de bron is de wettenbank, niet git.
 tools/bwb-import/data/
 api/spike_act2.json
 
 # Lokale sqlite van de API bij een smoke-test (`api/CLAUDE.md`: sqlite-override). Wegwerpdata van
-# één machine — de echte opslag is Postgres.
+# één machine – de echte opslag is Postgres.
 api/*.db
 
 # bwb-import draait op pip; een uv.lock daar is een artefact van een `uv run` zonder --no-project.

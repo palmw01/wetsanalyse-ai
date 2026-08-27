@@ -81,7 +81,7 @@ describe("markeerPassages", () => {
     expect(alleTekst(boom)).toBe("Gewoon een antwoord.");
   });
 
-  it("slaat code over — een treffer daarin is toeval", () => {
+  it("slaat code over – een treffer daarin is toeval", () => {
     const boom = el("root", el("pre", el("code", tekst("select X from Y"))));
     markeerPassages(["select X"])()(boom);
     expect(gemarkeerd(boom)).toEqual([]);
