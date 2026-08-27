@@ -9,7 +9,7 @@
 // afgeronde annotatie) en dat verhaal lees je alleen als de zinnen bij elkaar staan, niet verspreid
 // over veertien componenten.
 
-export const RONDLEIDING_VERSIE = 1;
+export const RONDLEIDING_VERSIE = 2;
 
 /** Waar in het verhaal een stap hoort. Alleen voor de voortgangsweergave; de volgorde is de lijst. */
 export type Fase = "orientatie" | "opdracht" | "beoordelen" | "afronding";
@@ -39,11 +39,11 @@ export const STAPPEN: Stap[] = [
     fase: "orientatie",
     titel: "Het gespreksvenster",
     tekst:
-      "Alles gebeurt hier, in één gesprek. Je stelt een vraag over wet- en regelgeving, of je vraagt " +
-      "een annotatie – hetzelfde venster, dezelfde manier van vragen.",
+      "Hier speelt alles zich af. Je stelt een vraag over wet- en regelgeving, of je vraagt om een " +
+      "annotatie. Allebei typ je in ditzelfde venster.",
     waarom:
-      "Er is bewust geen wetkiezer en geen formulier. Lex zoekt de bepaling zelf op in de " +
-      "kennisgraaf, zodat je nooit een verkeerd artikelnummer overtypt.",
+      "Je zoekt zelf geen wet op. Lex vindt de bepaling in de kennisgraaf, dus je kunt geen " +
+      "verkeerd artikelnummer overtypen.",
   },
   {
     id: "sidebar",
@@ -52,11 +52,10 @@ export const STAPPEN: Stap[] = [
     fase: "orientatie",
     titel: "Je werk terugvinden",
     tekst:
-      "Hier staan je gesprekken. Nieuw gesprek begint schoon; onder Annotaties staan al je " +
-      "geannoteerde bepalingen, met de nog te beoordelen bovenaan.",
+      "Je gesprekken staan hier. Onder Annotaties vind je alle bepalingen die je hebt laten " +
+      "annoteren, met de onbeoordeelde bovenaan.",
     waarom:
-      "Een annotatie overleeft het gesprek waarin hij gemaakt is. Verwijder je het gesprek, dan " +
-      "blijft het document gewoon vindbaar.",
+      "Een annotatie blijft bestaan als je het gesprek verwijdert. Opruimen kost je dus geen werk.",
   },
   {
     id: "invoerveld",
@@ -64,10 +63,10 @@ export const STAPPEN: Stap[] = [
     fase: "opdracht",
     titel: "Het invoerveld",
     tekst:
-      "Eén veld, twee soorten opdracht. “Wat betekent 'belastingschuldige'?” levert een antwoord met " +
-      "bronnen. “Annoteer artikel 9 van de Invorderingswet 1990” levert een JAS-annotatie om te " +
-      "beoordelen.",
-    waarom: "Je hoeft vooraf niets te kiezen. Lex leidt uit je zin af wat je bedoelt.",
+      "Twee soorten opdracht, één veld. Vraag je “Wat betekent 'belastingschuldige'?”, dan krijg je " +
+      "een antwoord met bronnen. Vraag je “Annoteer artikel 9 van de Invorderingswet 1990”, dan " +
+      "krijg je een JAS-annotatie om te beoordelen.",
+    waarom: "Je kiest vooraf niets. Lex leidt uit je zin af wat je bedoelt.",
   },
   {
     id: "bronnen",
@@ -75,10 +74,9 @@ export const STAPPEN: Stap[] = [
     fase: "opdracht",
     titel: "Een antwoord met bronnen",
     tekst:
-      "Elk antwoord draagt de vindplaatsen waar het op steunt. Klap ze uit en klik door naar de " +
+      "Onder elk antwoord staan de vindplaatsen waarop het steunt. Klap ze uit en klik door naar de " +
       "wettekst op wetten.overheid.nl.",
-    waarom:
-      "Een antwoord zonder vindplaats is voor jouw werk onbruikbaar. Je moet het kunnen nazoeken.",
+    waarom: "Je moet alles kunnen nazoeken. Daarom noemt Lex altijd waar iets vandaan komt.",
   },
   {
     id: "brongetrouwheid",
@@ -86,12 +84,10 @@ export const STAPPEN: Stap[] = [
     fase: "opdracht",
     titel: "Brongetrouwheid",
     tekst:
-      "Dit blok zwijgt als alles klopt, en spreekt alleen als een verwijzing niet uit de graaf komt " +
-      "of een citaat niet letterlijk in de opgehaalde tekst staat. Zo'n citaat wordt in de tekst " +
-      "zelf geel gemarkeerd.",
-    waarom:
-      "Een groen vinkje bij élk antwoord leert je eroverheen kijken. Alleen wat aandacht vraagt, " +
-      "krijgt aandacht.",
+      "Dit blok verschijnt alleen als er iets niet klopt: een verwijzing die niet uit de graaf komt, " +
+      "of een citaat dat niet letterlijk in de opgehaalde tekst staat. Zo'n citaat kleurt geel in " +
+      "de tekst zelf.",
+    waarom: "Zo valt het op als het één keer misgaat.",
   },
   {
     id: "denkproces",
@@ -99,11 +95,11 @@ export const STAPPEN: Stap[] = [
     fase: "opdracht",
     titel: "Een annotatie duurt even",
     tekst:
-      "Een annotatiebeurt duurt 60 tot 90 seconden. Onder “Zo is dit tot stand gekomen” zie je live " +
-      "wat Lex doet: ophalen, markeren, en de eigen tegenlezer langs het resultaat.",
+      "Reken op 60 tot 90 seconden. Onder “Zo is dit tot stand gekomen” volg je live wat Lex doet: " +
+      "de tekst ophalen, markeren, en het resultaat langs de tegenlezer halen.",
     waarom:
-      "De beurt draait bij de server, niet in dit tabblad. Je kunt gerust herladen, van gesprek " +
-      "wisselen of even weglopen – je verliest niets.",
+      "De beurt draait op de server. Je kunt herladen, van gesprek wisselen of even weglopen zonder " +
+      "iets te verliezen.",
   },
   {
     id: "artefact-openen",
@@ -111,9 +107,8 @@ export const STAPPEN: Stap[] = [
     fase: "beoordelen",
     titel: "De annotatie openen",
     tekst:
-      "De uitkomst is geen lap tekst maar een document dat je kunt beoordelen. Klik de kaart aan – " +
-      "op een breed scherm komt hij naast je gesprek te staan, zodat je kunt blijven vragen terwijl " +
-      "je leest.",
+      "De uitkomst is een document dat je kunt beoordelen. Klik de kaart aan. Op een breed scherm " +
+      "komt hij naast je gesprek te staan, zodat je kunt blijven vragen terwijl je leest.",
   },
   {
     id: "wettekst",
@@ -122,11 +117,11 @@ export const STAPPEN: Stap[] = [
     fase: "beoordelen",
     titel: "De wettekst",
     tekst:
-      "Dit is de letterlijke tekst uit de kennisgraaf – niet geparafraseerd, niet gereconstrueerd. " +
-      "Kies je hiernaast een markering, dan licht hier op wáár die staat.",
+      "Dit is de letterlijke tekst uit de kennisgraaf. Kies hiernaast een markering en je ziet " +
+      "meteen waar die staat.",
     waarom:
-      "Elke markering is een stuk van déze tekst, met een anker dat een herimport van de wet " +
-      "overleeft.",
+      "Elke markering wijst een stuk van deze tekst aan. Dat anker blijft kloppen als de wet " +
+      "opnieuw wordt ingelezen.",
   },
   {
     id: "reviewlijst",
@@ -135,12 +130,10 @@ export const STAPPEN: Stap[] = [
     fase: "beoordelen",
     titel: "De reviewlijst",
     tekst:
-      "Hier staan de voorstellen van Lex, in de vaste volgorde van de JAS-tabel. De teller laat zien " +
-      "hoeveel je al beoordeelde; met de filters spring je naar wat nog te beoordelen is of wat " +
-      "aandacht vraagt.",
-    waarom:
-      "De volgorde verandert nooit door te reviewen. Wat je goedkeurt springt niet weg, dus je raakt " +
-      "je plek niet kwijt.",
+      "Hier staan de voorstellen van Lex, in de vaste volgorde van de JAS-tabel. De teller houdt bij " +
+      "hoeveel je al beoordeelde. Met de filters spring je naar wat nog openstaat of wat aandacht " +
+      "vraagt.",
+    waarom: "De volgorde verandert niet terwijl je werkt, dus je raakt je plek nooit kwijt.",
   },
   {
     id: "reviewkaart",
@@ -150,11 +143,10 @@ export const STAPPEN: Stap[] = [
     titel: "Wat een kaart je vertelt",
     tekst:
       "Elke kaart is één markering: het letterlijke fragment, de JAS-klasse in zijn eigen kleur, en " +
-      "een oordeel – Geen bezwaar, Even kijken of Waarschijnlijk fout.",
+      "een oordeel. Dat oordeel luidt Geen bezwaar, Even kijken of Waarschijnlijk fout.",
     waarom:
-      "Dat oordeel is geen zelfvertrouwen van het model, maar komt uit echte signalen: twijfelde Lex " +
-      "tussen twee klassen, of staat het citaat niet stevig in de tekst. Het helpt je prioriteren, " +
-      "het is geen cijfer.",
+      "Het oordeel komt uit concrete signalen, zoals twijfel tussen twee klassen. Gebruik het om te " +
+      "prioriteren.",
   },
   {
     id: "beslissen",
@@ -164,13 +156,13 @@ export const STAPPEN: Stap[] = [
     fase: "beoordelen",
     titel: "Jij beslist",
     tekst:
-      "Probeer het maar: klik op Akkoord. Verder kun je op de klassebadge klikken om te corrigeren, " +
-      "met × een voorstel verwerpen (met reden), of via Vraag Lex een vraag over deze markering in " +
-      "het chatveld klaarzetten. Met het toetsenbord gaat het sneller: j en k door de lijst, a " +
-      "akkoord, x verwerpen, c klasse.",
+      "Probeer het: klik op Akkoord. Je kunt ook op de klassebadge klikken om te corrigeren, een " +
+      "voorstel verwerpen met × (met reden), of via Vraag Lex een vraag over deze markering " +
+      "klaarzetten. Met het toetsenbord gaat het sneller: j en k door de lijst, a voor akkoord, x " +
+      "voor verwerpen, c voor klasse.",
     waarom:
-      "Lex stelt voor, jij beslist. Elke beslissing gaat het auditspoor in – een voorstel verwerp " +
-      "je, mét reden; je wist het niet weg.",
+      "Elke beslissing komt in het auditspoor. Een voorstel dat je verwerpt blijft zichtbaar, met " +
+      "jouw reden erbij.",
   },
   {
     id: "zelf-markeren",
@@ -180,10 +172,8 @@ export const STAPPEN: Stap[] = [
     titel: "Zelf markeren",
     tekst:
       "Miste Lex iets? Selecteer het in de wettekst en kies zelf een klasse. Een bestaande markering " +
-      "in- of uitkorten kan ook: klik hem aan en selecteer opnieuw.",
-    waarom:
-      "Jouw markering wint. Zodra jij iets vastlegt of beslist, laat een volgende ronde van de agent " +
-      "het met rust.",
+      "korter of langer maken kan ook: klik hem aan en selecteer opnieuw.",
+    waarom: "Wat jij vastlegt blijft staan. Een volgende ronde van Lex laat het met rust.",
   },
   {
     id: "afronden",
@@ -192,11 +182,10 @@ export const STAPPEN: Stap[] = [
     fase: "afronding",
     titel: "Afronden en exporteren",
     tekst:
-      "Exporteren geeft je PDF, CSV of JSON – ook halverwege; het bestand zegt zelf hoeveel er nog " +
-      "openstaat. Daarin zit ook het volledige spoor: elke beslissing, en met welk model Lex het " +
-      "voorstel maakte. Afronden zet het document vast; heropenen kan altijd.",
-    waarom:
-      "“Alle kaarten beslist” is niet hetzelfde als “ik ben klaar”. Dat blijft jouw oordeel.",
+      "Exporteren kan altijd, ook halverwege: als PDF, CSV of JSON. Het bestand vermeldt hoeveel er " +
+      "nog openstaat en bevat het volledige spoor, inclusief het model waarmee Lex de voorstellen " +
+      "maakte. Afronden zet het document vast; heropenen kan daarna nog steeds.",
+    waarom: "Alle kaarten beslissen is iets anders dan klaar zijn. Dat oordeel blijft aan jou.",
   },
 ];
 
@@ -303,6 +292,37 @@ export function plaatsBubbel(vak: Vak | null, bubbel: Afmeting, viewport: Afmeti
     return { modus: "links", top: topGecentreerd, left: vak.left - m - bubbel.breedte };
   }
   return { modus: "midden" };
+}
+
+/** De dimlaag als losse rechthoeken, met een gat op `gat`.
+ *
+ *  Waarom niet één vlak met een box-shadow, zoals eerst: een box-shadow tekent wel maar **vangt
+ *  geen kliks**. De laag bestond dus visueel en niet als klikvlak, en daardoor bleef de hele
+ *  werkplek tijdens de rondleiding bedienbaar. Wie op "Nieuw gesprek" klikte, gooide weg waar de
+ *  volgende stap naar wees.
+ *
+ *  Vier rechthoeken lossen dat op én houden de uitzondering mogelijk die er moet zijn: in de stap
+ *  waar je zelf iets doet, blijft precies dat ene element bereikbaar.
+ *
+ *  Zonder `gat` is het één vlak over het hele scherm. Randen worden geklemd op 0, zodat een element
+ *  dat half buiten beeld valt geen negatieve afmetingen oplevert. */
+export function maskRechthoeken(gat: Vak | null, viewport: Afmeting): Vak[] {
+  if (!gat) {
+    return [{ top: 0, left: 0, breedte: viewport.breedte, hoogte: viewport.hoogte }];
+  }
+  const top = Math.max(0, gat.top);
+  const links = Math.max(0, gat.left);
+  const onder = Math.min(viewport.hoogte, gat.top + gat.hoogte);
+  const rechts = Math.min(viewport.breedte, gat.left + gat.breedte);
+
+  const vakken: Vak[] = [
+    { top: 0, left: 0, breedte: viewport.breedte, hoogte: top },
+    { top: onder, left: 0, breedte: viewport.breedte, hoogte: viewport.hoogte - onder },
+    { top, left: 0, breedte: links, hoogte: onder - top },
+    { top, left: rechts, breedte: viewport.breedte - rechts, hoogte: onder - top },
+  ];
+  // Een rand die niets bedekt hoeft er niet te zijn; scheelt vier lege divs in de DOM.
+  return vakken.filter((v) => v.breedte > 0 && v.hoogte > 0);
 }
 
 // --- browser-opslag (dun laagje om de pure functies heen) -------------------------------------

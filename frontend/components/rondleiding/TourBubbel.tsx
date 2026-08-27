@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { plaatsBubbel, type Afmeting, type Stap, type Vak } from "@/lib/rondleiding";
+import { maskRechthoeken, plaatsBubbel, type Afmeting, type Stap, type Vak } from "@/lib/rondleiding";
 
 /** Hoe ver de spotlight om het element heen valt. */
 const SPOT_MARGE = 6;
@@ -31,10 +31,18 @@ interface Props {
 
 /** Eén stap van de rondleiding: een bubbel bij het element, met de rest van het scherm gedimd.
  *
- *  Bewust géén `aria-modal` en géén backdrop die klikken opvangt. De rondleiding wijst de échte
- *  werkplek aan – die moet leesbaar blijven voor een schermlezer, en in de interactieve stap moet je
- *  er zelfs op kunnen klikken. Wat de overlay wél doet is dimmen; het aangewezen element houdt zijn
- *  volle kleur, want bij dit product ís die kleur de uitleg (de JAS-klassen). */
+ *  De dimlaag bestaat uit losse rechthoeken die kliks opvangen (`maskRechthoeken`). Dat moet wel:
+ *  eerst was het één vlak met een box-shadow, en een box-shadow tekent wel maar vangt niets — de
+ *  hele werkplek bleef tijdens de rondleiding bedienbaar, en één klik op "Nieuw gesprek" gooide weg
+ *  waar de volgende stap naar wees.
+ *
+ *  In een stap die om een handeling vraagt blijft er een gat op het aangewezen element, zodat je
+ *  daar wél kunt klikken. Klik je ergens anders, dan pulseert de bubbel: een geblokkeerde klik mag
+ *  niet als een bevroren scherm voelen.
+ *
+ *  Bewust géén `aria-modal`: de rondleiding wijst de échte werkplek aan, en die moet leesbaar
+ *  blijven voor een schermlezer. Het aangewezen element houdt zijn volle kleur, want bij dit product
+ *  ís die kleur de uitleg (de JAS-klassen). */
 export function TourBubbel({
   stap, nummer, totaal, doel, gedaan, onVorige, onVolgende, onSluit,
 }: Props) {
@@ -48,6 +56,8 @@ export function TourBubbel({
   const [viewport, setViewport] = useState<Afmeting>({ breedte: 1024, hoogte: 768 });
   const bubbelRef = useRef<HTMLDivElement>(null);
   const kopRef = useRef<HTMLParagraphElement>(null);
+  // Korte nadruk na een klik op de dimlaag: "je moet hier zijn".
+  const [pulse, setPulse] = useState(false);
 
   // Meebewegen met de pagina. Het artefact en de reviewlijst hebben hun eigen scrollers, dus
   // luisteren op `window` is niet genoeg: een scroll in een binnenpaneel bubbelt alleen in de
@@ -78,6 +88,12 @@ export function TourBubbel({
     // `stap.id` hoort erbij: een andere tekst is een andere bubbelhoogte.
   }, [doel, stap.id]);
 
+  useEffect(() => {
+    if (!pulse) return;
+    const timer = setTimeout(() => setPulse(false), 420);
+    return () => clearTimeout(timer);
+  }, [pulse]);
+
   // De focus hoort bij elke stap in de bubbel te landen, anders staat hij nog op de knop van de
   // vorige stap en leest een schermlezer de nieuwe tekst nooit voor.
   useEffect(() => {
@@ -95,6 +111,18 @@ export function TourBubbel({
   // precies het geval bij het gespreksvenster en de sidebar: die vullen bijna het hele scherm, en
   // een uitsparing eromheen licht het halve beeld op in plaats van iets aan te wijzen.
   const spotVak = plaatsing.modus === "midden" ? null : actiefVak;
+
+  // Waar de dimlaag een gat laat. Alleen in een stap die om een handeling vraagt: daar moet je op de
+  // échte knop kunnen klikken. In alle andere stappen dekt de laag alles af, want daar is elke klik
+  // buiten de bubbel er een die de rondleiding kan slopen.
+  const gat = stap.interactie && spotVak
+    ? {
+        top: spotVak.top - SPOT_MARGE,
+        left: spotVak.left - SPOT_MARGE,
+        breedte: spotVak.breedte + SPOT_MARGE * 2,
+        hoogte: spotVak.hoogte + SPOT_MARGE * 2,
+      }
+    : null;
 
   const stijl: React.CSSProperties =
     plaatsing.modus === "midden"
@@ -114,24 +142,30 @@ export function TourBubbel({
 
   return (
     <>
-      {/* De dimlaag. `pointer-events-none` is essentieel: in stap "Jij beslist" klikt de gebruiker
-          op een knop die híéronder ligt. */}
-      <div className="pointer-events-none fixed inset-0 z-[60]" aria-hidden>
-        {spotVak ? (
+      {/* De dimlaag: losse rechthoeken die kliks opvangen, met een gat waar de stap om een
+          handeling vraagt. Zie `maskRechthoeken` voor waarom dit geen box-shadow meer is. */}
+      <div className="fixed inset-0 z-[60]" aria-hidden>
+        {maskRechthoeken(gat, viewport).map((v, i) => (
           <div
-            className="absolute rounded-kaart transition-all duration-150 motion-reduce:transition-none"
+            key={i}
+            onClick={() => setPulse(true)}
+            className="absolute bg-ink/55 transition-all duration-150 motion-reduce:transition-none"
+            style={{ top: v.top, left: v.left, width: v.breedte, height: v.hoogte }}
+          />
+        ))}
+        {/* De rand om het aangewezen element. Los van de dimlaag, zodat hij het gat niet afdekt. */}
+        {spotVak && (
+          <div
+            className="pointer-events-none absolute rounded-kaart transition-all duration-150 motion-reduce:transition-none"
             style={{
               top: spotVak.top - SPOT_MARGE,
               left: spotVak.left - SPOT_MARGE,
               width: spotVak.breedte + SPOT_MARGE * 2,
               height: spotVak.hoogte + SPOT_MARGE * 2,
-              boxShadow: "0 0 0 9999px rgba(26, 26, 26, 0.55)",
               outline: "2px solid rgb(var(--lint))",
               outlineOffset: "2px",
             }}
           />
-        ) : (
-          <div className="absolute inset-0 bg-ink/55" />
         )}
       </div>
 
@@ -139,7 +173,9 @@ export function TourBubbel({
         ref={bubbelRef}
         role="dialog"
         aria-label={`Rondleiding, stap ${nummer} van ${totaal}: ${stap.titel}`}
-        className="fixed z-[61] rounded-kaart border border-line bg-paper p-4 shadow-kaart animate-rise motion-reduce:animate-none"
+        className={`fixed z-[61] rounded-kaart border bg-paper p-4 shadow-kaart animate-rise transition-[border-color,box-shadow,transform] duration-200 motion-reduce:animate-none motion-reduce:transition-none ${
+          pulse ? "scale-[1.03] border-accent ring-2 ring-accent/40" : "border-line"
+        }`}
         style={stijl}
       >
         <div className="mb-2 flex items-start gap-2">

@@ -41,6 +41,9 @@ export function WorkbenchShell({
   const [demo, setDemo] = useState<DemoScene | null>(null);
   const [demoArtefact, setDemoArtefact] = useState(false);
   const [demoBeslissingen, setDemoBeslissingen] = useState(0);
+  // Staat de werkplek op slot? De rondleiding bepaalt dat per stap: in een stap die om een handeling
+  // vraagt moet de knop eronder juist bereikbaar blijven.
+  const [achtergrondSlot, setAchtergrondSlot] = useState(false);
   const [demoOpenSignaal, setDemoOpenSignaal] = useState(0);
   const { data: session } = useSession();
   const isBeheerder = session?.user?.role === "beheerder";
@@ -110,7 +113,10 @@ export function WorkbenchShell({
         </div>
       )}
 
-      <div className="flex min-h-0 flex-1">
+      {/* Tijdens de rondleiding gaat de werkplek op slot: klikken vangt de dimlaag op, maar zonder
+          `inert` tab je er alsnog naartoe en druk je Enter op "Nieuw gesprek". In de stap die om een
+          handeling vraagt staat het slot uit — daar moet je de knop juist kunnen bereiken. */}
+      <div className="flex min-h-0 flex-1" inert={achtergrondSlot}>
       <AppSidebar
         activeId={activeId}
         onNieuw={nieuwGesprek}
@@ -172,6 +178,7 @@ export function WorkbenchShell({
 
       {demo && (
         <Rondleiding
+          onAchtergrondSlot={setAchtergrondSlot}
           isBeheerder={isBeheerder}
           artefactOpen={demoArtefact}
           beslissingen={demoBeslissingen}
