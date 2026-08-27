@@ -1,7 +1,7 @@
 """Service-laag over genereerbare API-tokens (DB-backed) voor programmatische admin-toegang.
 
 Naast de statische env-admin-tokens (`WETSANALYSE_ADMIN_TOKENS`) kan een beheerder via /beheer een
-API-token **genereren** — bijvoorbeeld voor de admin-MCP. Alleen de **sha256-hash** van het token
+API-token **genereren** – bijvoorbeeld voor de admin-MCP. Alleen de **sha256-hash** van het token
 wordt bewaard (tokens zijn hoog-entropie, dus geen bcrypt nodig); de plaintext wordt één keer bij
 aanmaken teruggegeven en nergens opgeslagen. Intrekken zet `active=False`.
 
@@ -94,7 +94,7 @@ async def _touch_last_used(token_id: str) -> None:
             await conn.execute(
                 update(db.api_tokens).where(db.api_tokens.c.id == token_id).values(last_used=_utcnow())
             )
-    except Exception:  # noqa: BLE001 — puur metadata; stil falen
+    except Exception:  # noqa: BLE001 – puur metadata; stil falen
         pass
 
 
@@ -115,13 +115,13 @@ async def verify(presented: str | None) -> str | None:
                     db.api_tokens.c.active.is_(True),
                 )
             )).mappings().first()
-    except Exception:  # noqa: BLE001 — een DB-hapering mag geen 500 worden; behandel als 'geen match'
+    except Exception:  # noqa: BLE001 – een DB-hapering mag geen 500 worden; behandel als 'geen match'
         return None
     if row is None:
         return None
     admin_id = f"apitoken:{row['label'] or row['id'][:8]}"
     try:
         await _touch_last_used(row["id"])
-    except Exception:  # noqa: BLE001 — dubbele vangnet; de touch is nooit auth-bepalend
+    except Exception:  # noqa: BLE001 – dubbele vangnet; de touch is nooit auth-bepalend
         pass
     return admin_id

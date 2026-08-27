@@ -1,5 +1,5 @@
 // deploy/azure/main.bicep
-// Azure Container Apps-stack voor Wetsanalyse — een ZELFSTANDIGE omgeving:
+// Azure Container Apps-stack voor Wetsanalyse – een ZELFSTANDIGE omgeving:
 //
 //   PostgreSQL Flexible Server · GraphDB · BWB-import (job) · API · graph-qa · Frontend
 //   + Log Analytics, Application Insights en een OTel-collector (de monitoring van deze straat)
@@ -53,7 +53,7 @@ param bwbIds array = [
   'BWBR0024096'
 ]
 
-@description('Hoeveel dagen back-ups van PostgreSQL bewaard blijven. Acceptatie heeft genoeg aan een week; voor productie is dit het enige vangnet onder de annotaties, en die zijn — anders dan de graaf — niet te reproduceren.')
+@description('Hoeveel dagen back-ups van PostgreSQL bewaard blijven. Acceptatie heeft genoeg aan een week; voor productie is dit het enige vangnet onder de annotaties, en die zijn – anders dan de graaf – niet te reproduceren.')
 @minValue(7)
 @maxValue(35)
 param backupRetentionDays int = 7
@@ -67,7 +67,7 @@ param minReplicasApps int = 0
 param graphdbHeap string = '2g'
 
 @secure()
-@description('GraphDB-licentie, base64-gecodeerd (`base64 -w0 graphdb.license`). VERPLICHT voor een bruikbare graaf: GraphDB 11 laat zonder licentie alleen LEZEN toe, dus de import-job faalt met een 500 op het eerste schrijf-verzoek. Leeg laten kan — de omgeving komt dan op met een lege, read-only graaf.')
+@description('GraphDB-licentie, base64-gecodeerd (`base64 -w0 graphdb.license`). VERPLICHT voor een bruikbare graaf: GraphDB 11 laat zonder licentie alleen LEZEN toe, dus de import-job faalt met een 500 op het eerste schrijf-verzoek. Leeg laten kan – de omgeving komt dan op met een lege, read-only graaf.')
 param graphdbLicenseBase64 string = ''
 
 // ── Secrets ───────────────────────────────────────────────────────────────────
@@ -112,8 +112,8 @@ param graphQaApiToken string
 // ─────────────────────────────────────────────────────────────────────────────
 // Draagt zowel de api-tabellen als de LangGraph-checkpointer van graph-qa (aparte tabellen, geen
 // botsing). Burstable B1ms is de goedkoopste tier die volstaat; de server kan niet naar nul schalen
-// — stop hem als de omgeving een tijd niet gebruikt wordt (zie README).
-// Acceptatie en productie delen één resource group — de service principal mag er geen tweede
+// – stop hem als de omgeving een tijd niet gebruikt wordt (zie README).
+// Acceptatie en productie delen één resource group – de service principal mag er geen tweede
 // aanmaken. Daarmee is een tag de enige manier om in de portal te zien wat wélke straat kost.
 var straatTags = {
   straat: appName
@@ -146,14 +146,14 @@ resource pgServer 'Microsoft.DBforPostgreSQL/flexibleServers@2023-06-01-preview'
 }
 
 // `0.0.0.0-0.0.0.0` is niet "geen toegang" maar Azure's speciale regel **sta alle Azure-diensten
-// toe** — en dat is breder dan het klinkt: het geldt voor elke tenant, niet alleen de onze. Wie een
+// toe** – en dat is breder dan het klinkt: het geldt voor elke tenant, niet alleen de onze. Wie een
 // Azure-abonnement heeft kan het netwerkpad naar deze server bereiken; daarna beschermt alleen nog
 // het wachtwoord (dat sterk en gegenereerd is, en niet roteert bij een deploy).
 //
 // Waarom het toch zo staat: fijnmaziger filteren vraagt vaste bron-IP's, en die heeft de
 // container-apps-omgeving niet zolang er geen VNet-integratie is. Wil je dit echt dichtzetten, dan
 // is dat de weg: de omgeving in een subnet, PostgreSQL achter een private endpoint, en deze regel
-// weg. Dat is een forse wijziging met eigen kosten en een deploy die de database raakt — bewust niet
+// weg. Dat is een forse wijziging met eigen kosten en een deploy die de database raakt – bewust niet
 // gedaan, maar hier vastgelegd zodat de afweging vindbaar is.
 resource pgFirewall 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-06-01-preview' = {
   parent: pgServer
@@ -177,7 +177,7 @@ resource pgDatabase 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2023-06
 // 2. Container Apps Environment
 // ─────────────────────────────────────────────────────────────────────────────
 // De logs moeten ergens landen. Zonder `appLogsConfiguration` bewaart Azure de stdout van de
-// containers NIET — en dat is precies waar api, frontend en graph-qa hun gestructureerde JSON-logs
+// containers NIET – en dat is precies waar api, frontend en graph-qa hun gestructureerde JSON-logs
 // heen schrijven. De observability-stack (Grafana/Tempo/Loki) draait alleen op de docker-host en is
 // van buiten het LAN niet bereikbaar, dus die kan deze omgeving niet bedienen; een Log Analytics
 // workspace per straat is wat het hier doorzoekbaar maakt.
@@ -197,7 +197,7 @@ resource logs 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
 }
 
 // Application Insights, workspace-based op de workspace hierboven. Daarmee staan logs, traces en
-// metrics in ÉÉN workspace en zijn ze samen te bevragen — een request in `requests` is te koppelen
+// metrics in ÉÉN workspace en zijn ze samen te bevragen – een request in `requests` is te koppelen
 // aan de logregels van dezelfde beurt.
 //
 // Dit is wat de keten frontend → api → graph-qa onder één trace-id zichtbaar maakt. Zonder dit
@@ -233,7 +233,7 @@ resource cae 'Microsoft.App/managedEnvironments@2024-03-01' = {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 2b. OTel-collector — de brug naar Application Insights
+// 2b. OTel-collector – de brug naar Application Insights
 // ─────────────────────────────────────────────────────────────────────────────
 // Application Insights kent geen OTLP-ingest. De twee wegen erheen zijn een collector ertussen, of
 // de Azure Monitor OTel-distro ín de apps. Dat laatste is een codewijziging in drie diensten én
@@ -318,7 +318,7 @@ resource collectorApp 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'COLLECTOR_CONFIG', secretRef: 'collector-config' }
           ]
           // Container Apps kennen geen configmounts. De collector leest zijn config rechtstreeks uit
-          // een omgevingsvariabele met `--config=env:` — geen tussenbestand, en geen shell nodig:
+          // een omgevingsvariabele met `--config=env:` – geen tussenbestand, en geen shell nodig:
           // dit image heeft er geen (`/bin/sh` bestaat niet), dus een `command: ['/bin/sh', …]`
           // laat de container stil falen vóór de eerste logregel.
           args: ['--config=env:COLLECTOR_CONFIG']
@@ -339,18 +339,18 @@ resource collectorApp 'Microsoft.App/containerApps@2024-03-01' = {
 var collectorEndpoint = 'http://${collectorApp.name}'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 3. GraphDB — de kennisgraaf (intern)
+// 3. GraphDB – de kennisgraaf (intern)
 // ─────────────────────────────────────────────────────────────────────────────
 // GEEN persistente opslag, en dat is een bewuste keuze. GraphDB's opslaglaag gebruikt
 // geheugen-gemapte bestanden en file-locking; op Azure Files levert dat hetzelfde risico als op een
-// NFS-share (traagheid, in het slechtste geval stille indexcorruptie) — precies waarom de graaf op
+// NFS-share (traagheid, in het slechtste geval stille indexcorruptie) – precies waarom de graaf op
 // de zelfgehoste opzet lokale opslag heeft. Een managed disk lost dat op maar kan niet aan een container-app.
 //
 // Dat kan hier, omdat de graaf volledig REPRODUCEERBAAR is: de import-job haalt alle regelingen
 // rechtstreeks bij overheid.nl (~20s). Herstart betekent dus opnieuw importeren, niet dataverlies.
 //
 // Twee gevolgen om te kennen:
-//   • `minReplicas: 1` — schaalt bewust NIET naar nul, want dan is de graaf bij de volgende request
+//   • `minReplicas: 1` – schaalt bewust NIET naar nul, want dan is de graaf bij de volgende request
 //     leeg. Dit is de enige component die doorloopt zolang de omgeving aan staat.
 //   • De similarity-index (`bwb_similarity`, voor semantic_search) overleeft een herstart evenmin
 //     en moet opnieuw gebouwd worden; tot dat moment degradeert de tool naar search_wetgeving.
@@ -458,7 +458,7 @@ resource graphdbApp 'Microsoft.App/containerApps@2024-03-01' = {
 var graphdbInternalUrl = 'https://${graphdbApp.properties.configuration.ingress.fqdn}'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 4. BWB-import — vult de graaf (handmatige job)
+// 4. BWB-import – vult de graaf (handmatige job)
 // ─────────────────────────────────────────────────────────────────────────────
 // Een Job en geen container-app: importeren is een eindige taak. De importer maakt de repository
 // `inning` zelf aan als die ontbreekt (`GraphDbWriter.ensure_constraints`), dus dit is de enige stap
@@ -473,7 +473,7 @@ resource bwbImportJob 'Microsoft.App/jobs@2024-03-01' = {
   properties: {
     environmentId: cae.id
     // Wekelijks herimporteren, net als de zelfgehoste importer. De import is per wet idempotent
-    // (named-graph PUT), dus dit is veilig — en het is wat de graaf bijhoudt zonder dat er een
+    // (named-graph PUT), dus dit is veilig – en het is wat de graaf bijhoudt zonder dat er een
     // deploy voor nodig is. `azure-infra.yml` start hem daarnaast direct na elke deploy, want
     // GraphDB is niet-persistent en komt dus leeg op.
     configuration: {
@@ -628,14 +628,14 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 6. graph-qa Container App (intern) — de agent op de kennisgraaf
+// 6. graph-qa Container App (intern) – de agent op de kennisgraaf
 // ─────────────────────────────────────────────────────────────────────────────
 // Praat met de GraphDB uit deze stack, via de MCP-server die GraphDB >= 11.2 zelf meebrengt op /mcp.
 //
-// LET OP — geen auth-proxy zoals in de zelfgehoste opzet. Daar controleert een nginx het bearer-token en vervangt
+// LET OP – geen auth-proxy zoals in de zelfgehoste opzet. Daar controleert een nginx het bearer-token en vervangt
 // het door het GraphDB-service-account; hier is de graaf alleen binnen de Container Apps
 // Environment bereikbaar (`external: false`) en dat is de grens. `GRAPHDB_TOKEN` blijft gezet omdat
-// de code het fail-closed eist (`require_graph`), maar het is hier GEEN slot — GraphDB draait
+// de code het fail-closed eist (`require_graph`), maar het is hier GEEN slot – GraphDB draait
 // zonder eigen security. Zodra deze omgeving meer dan standby/demo wordt, hoort daar hetzelfde
 // service-account + proxy-patroon als in de zelfgehoste opzet.
 resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
@@ -711,14 +711,14 @@ resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'GRAPHDB_REPOSITORY_ID', value: 'inning' }
             { name: 'QA_API_TOKEN_FILE', value: '/run/secrets/qa_api_token' }
             // Zonder deze twee is `legt_zelf_vast` false en legt de agent de uitkomst van een
-            // annotatiebeurt NIET vast — de werkplek toont dan netjes markeringen die nergens
+            // annotatiebeurt NIET vast – de werkplek toont dan netjes markeringen die nergens
             // landen. Dat was tussen 19 aug (commit 98eef5a, één schrijfpad) en 27 aug 2026 het
             // geval op Azure: die commit richtte dev in maar raakte deze bicep niet.
             { name: 'WETSANALYSE_API_URL', value: apiInternalUrl }
             { name: 'WETSANALYSE_API_TOKEN_FILE', value: '/run/secrets/wetsanalyse_api_token' }
             { name: 'SIMILARITY_INDEX', value: 'bwb_similarity' }
             // Uit: dan draait de pure agentische lus. Met decompositie ligt er een vast recept
-            // overheen waarin solve_node een eigen agent-lus nabouwt — een tweede implementatie
+            // overheen waarin solve_node een eigen agent-lus nabouwt – een tweede implementatie
             // met eigen vangnetten, die uiteen kan lopen met agent_node.
             { name: 'ENABLE_DECOMPOSITION', value: '0' }
             // Gespreksgeheugen in Postgres, NIET op schijf: het filesystem van een container-app is
@@ -739,7 +739,7 @@ resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
             // Zonder Readiness routeert Container Apps verkeer zodra de container start, ook als de
             // app nog niet kan antwoorden. Bij een koude start van deze agent (LangGraph + MCP) is
             // dat tientallen seconden, en dan loopt de werkplek tegen de 10s-timeout van
-            // frontend/app/api/annotatie/run/route.ts — zichtbaar als "Run-proxy: actieve run niet
+            // frontend/app/api/annotatie/run/route.ts – zichtbaar als "Run-proxy: actieve run niet
             // op te halen". `/health` is hier triviaal, dus liveness en readiness toetsen hetzelfde;
             // het punt is niet wát er getoetst wordt maar dát routering wacht tot het proces
             // antwoordt. Een eigen /ready (zie api/app/main.py) zou scherper zijn.
@@ -766,7 +766,7 @@ resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
 // 7. Frontend Container App (publiek HTTPS)
 // ─────────────────────────────────────────────────────────────────────────────
 // Interne API-/graph-qa-FQDN uit de resource (bevat `.internal.`); de externe frontend-URL mág met
-// de hand (extern = `<app>.<defaultDomain>`) — een `.ingress.fqdn`-referentie zou hier een cycle
+// de hand (extern = `<app>.<defaultDomain>`) – een `.ingress.fqdn`-referentie zou hier een cycle
 // geven omdat frontendPublicUrl binnen frontendApp zelf als AUTH_URL wordt gebruikt.
 var apiInternalUrl = 'https://${apiApp.properties.configuration.ingress.fqdn}'
 var graphQaInternalUrl = 'https://${graphQaApp.properties.configuration.ingress.fqdn}'
@@ -833,11 +833,11 @@ resource frontendApp 'Microsoft.App/containerApps@2024-03-01' = {
             // Next.js instrumenteert `fetch` zélf en maakt daar een span voor, maar injecteert geen
             // W3C-traceparent. Daardoor begon elke aanroep naar de api een NIEUWE trace: gemeten op
             // acceptatie kwamen de twee /health-calls op precies dezelfde milliseconde aan als de
-            // frontend-spans, maar met `ParentId == OperationId` — allemaal roots.
+            // frontend-spans, maar met `ParentId == OperationId` – allemaal roots.
             //
             // Deze vlag zet die eigen instrumentatie uit (de Next.js-documentatie noemt hem
             // expliciet "when you want to use a custom fetch instrumentation library"), waarna de
-            // undici-instrumentatie van @vercel/otel het overneemt — en díe injecteert de header wel.
+            // undici-instrumentatie van @vercel/otel het overneemt – en díe injecteert de header wel.
             { name: 'NEXT_OTEL_FETCH_DISABLED', value: '1' }
             // De straat staat op elke span, zodat acceptatie en productie in dezelfde workspace
             // uit elkaar te houden zijn.
@@ -864,7 +864,7 @@ resource frontendApp 'Microsoft.App/containerApps@2024-03-01' = {
             }
             // Zelfde reden als bij graph-qa, al is het risico hier klein: deze app staat op
             // minReplicas 1 en is dus zelden koud. Meegenomen zodat alle drie de apps hetzelfde
-            // patroon volgen — liveness zegt "leeft nog", readiness "stuur maar verkeer".
+            // patroon volgen – liveness zegt "leeft nog", readiness "stuur maar verkeer".
             {
               type: 'Readiness'
               httpGet: { path: '/api/health', port: 3000 }

@@ -21,7 +21,7 @@ import httpx
 from ..graph import queries, schema
 from ..mcp_client import MCPError
 from ..ports import GraphPort
-from .jas_tools import JAS_TOOL_NAMEN, JAS_TOOLS  # noqa: F401 — re-exporteerd voor orchestrator
+from .jas_tools import JAS_TOOL_NAMEN, JAS_TOOLS  # noqa: F401 – re-exporteerd voor orchestrator
 
 logger = logging.getLogger("graph_qa.tools")
 
@@ -165,7 +165,7 @@ TOOLS: list[dict[str, Any]] = [
     {
         "name": "get_bepaling",
         "description": (
-            "Haal een bepaling op via haar NUMMER binnen een regeling — werkt voor artikelen ('9', "
+            "Haal een bepaling op via haar NUMMER binnen een regeling – werkt voor artikelen ('9', "
             "'25', '22a') én voor beleidsregels/circulaires met decimale nummers zoals '9.1' (bv. de "
             "Leidraad Invordering 2008), waar get_artikel/get_lid niet passen."
         ),
@@ -212,7 +212,7 @@ TOOLS: list[dict[str, Any]] = [
         "name": "get_context",
         "description": (
             "GraphRAG: haal een bepaling met haar volledige structurele context in één keer "
-            "op — de bevattende delen (hoofdstuk/afdeling/regeling), de leden, de uitgaande "
+            "op – de bevattende delen (hoofdstuk/afdeling/regeling), de leden, de uitgaande "
             "verwijzingen én wie naar het artikel verwijst. Gebruik dit voor context- en "
             "verwijzingsvragen i.p.v. losse tools te combineren."
         ),
@@ -258,7 +258,7 @@ def anthropic_schemas(only: set[str] | frozenset[str] | None = None) -> list[dic
     """Model-facing tool-schema's; filter op een toegestane set (None = alle).
 
     De JAS-kennistools zijn **opt-in**: ze doen alleen mee als `only` ze bij naam noemt. Ze stonden
-    alleen in `_BY_NAME` — uitvoerbaar via `dispatch`, maar nooit aangeboden aan het model, zodat
+    alleen in `_BY_NAME` – uitvoerbaar via `dispatch`, maar nooit aangeboden aan het model, zodat
     `anthropic_schemas(only=JAS_TOOL_NAMEN)` een lege lijst gaf. Ze bij `only=None` meeleveren zou
     het andere uiterste zijn: dan krijgt de QA-agent er twee tools bij die hij niet nodig heeft,
     terwijl ze voor de klasseer-agent bedoeld zijn.
@@ -287,6 +287,6 @@ def dispatch(name: str, graph: GraphPort, args: dict[str, Any] | None, settings:
         # geef 'm als tool-resultaat terug zodat de agent kan herstellen/rapporteren.
         logger.warning("tool '%s' netwerkfout naar de graaf", name, exc_info=True)
         return f"Fout bij tool '{name}': de kennisgraaf was tijdelijk onbereikbaar ({type(exc).__name__})."
-    except Exception as exc:  # noqa: BLE001 — vangnet: nooit de agent-beurt laten crashen op een tool
+    except Exception as exc:  # noqa: BLE001 – vangnet: nooit de agent-beurt laten crashen op een tool
         logger.error("tool '%s' onverwachte fout", name, exc_info=True)
         return f"Fout bij tool '{name}': {exc}"

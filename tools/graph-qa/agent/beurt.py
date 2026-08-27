@@ -2,7 +2,7 @@
 De beurt-driver: vangt de eventstroom op en legt de uitkomst vast.
 
 Dit is het spiegelbeeld van wat de werkplek vroeger deed. Daar verzamelde `verstuur()` de events in
-closure-variabelen en schreef ná de stream het document, de elementen en het chatbericht weg — met
+closure-variabelen en schreef ná de stream het document, de elementen en het chatbericht weg – met
 als gevolg dat een gesloten tabblad al dat werk kostte. Diezelfde logica staat nu hier, achter de
 run, waar geen browser bij nodig is.
 
@@ -12,7 +12,7 @@ Bewust **buiten** de LangGraph-code: de driver leest alleen de eventstroom van `
 Twee volgorde-eisen die je niet mag omdraaien:
 
 1. **`done` gaat er pas uit als er is weggeschreven.** Anders ziet een client die precies op dat
-   moment herlaadt noch de lopende run, noch het bericht — en dan lijkt de beurt verdampt.
+   moment herlaadt noch de lopende run, noch het bericht – en dan lijkt de beurt verdampt.
 2. **Het document wordt pas aan het eind gemaakt.** `emit_node` is terminaal: vóór dat punt zijn er
    geen elementen. Een document dat al bij het `doel`-event ontstond, zou bij elke afgebroken run als
    leeg skelet in de werkvoorraad blijven staan.
@@ -34,10 +34,10 @@ def _titel(doel: dict[str, Any]) -> str:
     """Het leesbare label van de annotatie, zoals de werkplek het toont.
 
     Reist mee met het bericht zodat de kaart in het gesprek zichzelf kan benoemen als het document
-    later verwijderd wordt — er is geen foreign key die dat afdwingt."""
+    later verwijderd wordt – er is geen foreign key die dat afdwingt."""
     naam = doel.get("citeertitel") or doel.get("bwbId") or ""
     lid = doel.get("lid") or ""
-    return f"{naam} — art. {doel.get('artikel', '')}" + (f" lid {lid}" if lid else "")
+    return f"{naam} – art. {doel.get('artikel', '')}" + (f" lid {lid}" if lid else "")
 
 
 class BeurtSchrijver:
@@ -83,7 +83,7 @@ class BeurtSchrijver:
         en dan wint de laatste versie.
 
         Dezelfde regel als `mergeVoorstellen` in de werkplek en als de merge in de api: eerst op
-        `id`, anders op de canonieke inhoudssleutel (`sleutel_van` — genormaliseerde tekst + lid).
+        `id`, anders op de canonieke inhoudssleutel (`sleutel_van` – genormaliseerde tekst + lid).
         Dat laatste stond hier eerder als rúwe tekst in één tuple mét het id, waardoor een
         witruimteverschil een tweede kaart opleverde en een herziening zonder id nooit matchte.
         """
@@ -136,7 +136,7 @@ async def voer_beurt_uit(
 
     # Is er om stoppen gevraagd, dan is de graaf er zelf op een nodegrens uitgestapt (`stop_check` →
     # `BeurtGestopt`). We breken hier dus NIET af: dan zouden we de generator halverwege dichtgooien
-    # en het lopende werk alsnog weggooien — precies wat we wilden afschaffen. De prijs is dat
+    # en het lopende werk alsnog weggooien – precies wat we wilden afschaffen. De prijs is dat
     # stoppen tijd kost; dat hoort de UI te tonen.
     gestopt = bool(run.stop_gevraagd)
 
@@ -216,8 +216,8 @@ async def _leg_vast(
             if gestopt:
                 # Weggooien wat de agent al schreef is niet wat "stoppen" betekent. Maar beloof ook
                 # geen half resultaat dat er niet is: `emit_node` is terminaal, dus stoppen vóór dat
-                # punt levert écht nul voorstellen op — dan is dat wat er staat.
-                tekst = f"{tekst}\n\n_(gestopt)_" if tekst else "_Gestopt — er waren nog geen voorstellen._"
+                # punt levert écht nul voorstellen op – dan is dat wat er staat.
+                tekst = f"{tekst}\n\n_(gestopt)_" if tekst else "_Gestopt – er waren nog geen voorstellen._"
             bericht |= {
                 "tekst": tekst or "(geen antwoord)",
                 "denk": schrijver.denk,
@@ -235,7 +235,7 @@ async def _leg_vast(
         yield {"type": "opgeslagen", "annotatie_slug": slug, "run_id": run.run_id}
     except GesprekVerdwenen:
         # De jurist verwijderde het gesprek terwijl de beurt liep. Dat is geen fout om over te
-        # klagen — alarm slaan over iemands eigen handeling leert mensen meldingen negeren.
+        # klagen – alarm slaan over iemands eigen handeling leert mensen meldingen negeren.
         #
         # Het annotatiedocument blijft wél staan: annotaties zijn eersteklas objecten die los van
         # hun gesprek bestaan (zie /annotaties), dus dat is bewaard werk, geen wees.
@@ -251,7 +251,7 @@ async def _leg_vast(
         )
         # Zichtbaar falen: de jurist moet weten dat dit werk niet bewaard is, niet later ontdekken
         # dat het gesprek een gat heeft. Wél eerlijk zijn over wat er al staat: "probeer opnieuw" is
-        # een slecht advies als de annotatie er al is — dat levert een tweede document op.
+        # een slecht advies als de annotatie er al is – dat levert een tweede document op.
         if slug and elementen_bewaard:
             yield {
                 "type": "error",
@@ -262,7 +262,7 @@ async def _leg_vast(
             }
         elif slug:
             # Het document bestaat, de markeringen niet. Zeggen dat de annotatie bewaard is, is dan
-            # onwaar — en het advies "niet opnieuw proberen" is precies verkeerd: er valt niets terug
+            # onwaar – en het advies "niet opnieuw proberen" is precies verkeerd: er valt niets terug
             # te vinden. Op dev liep een run hierop stuk en hield de jurist een leeg document over.
             yield {
                 "type": "error",

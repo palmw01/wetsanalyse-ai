@@ -50,7 +50,7 @@ def _user_created_subq(userid: str):
 
 def _zichtbaar_vanaf(b):
     """Moment vanaf wanneer een bericht voor analisten telt: publicatiemoment, of bij een
-    (nog) ongepubliceerd concept het aanmaakmoment — zodat een concept dat vóór iemands
+    (nog) ongepubliceerd concept het aanmaakmoment – zodat een concept dat vóór iemands
     registratie geschreven maar pas ná registratie gepubliceerd is, gewoon zichtbaar wordt."""
     return func.coalesce(b.c.gepubliceerd_op, b.c.created)
 
@@ -68,7 +68,7 @@ async def list_berichten(
         select(b, lb.c.userid.isnot(None).label("gelezen"))
         .outerjoin(lb, (lb.c.bericht_id == b.c.id) & (lb.c.userid == userid))
         .where(b.c.gepubliceerd.is_(True))
-        # Alleen berichten ná aanmaken van de user-account — nieuw aangemelde users
+        # Alleen berichten ná aanmaken van de user-account – nieuw aangemelde users
         # zien geen historische berichten (consistent met ongelezen_aantal).
         .where(_zichtbaar_vanaf(b) >= _user_created_subq(userid))
         .order_by(_zichtbaar_vanaf(b).desc())
@@ -135,7 +135,7 @@ async def markeer_alles_gelezen(userid: str) -> None:
     )
     async with db.get_engine().begin() as conn:
         # Dialect-aware upsert: bij gelijktijdige aanroepen (twee tabbladen, React StrictMode)
-        # kan dezelfde (bericht_id, userid) twee keer geïnsert worden — de PK-constraint vangt
+        # kan dezelfde (bericht_id, userid) twee keer geïnsert worden – de PK-constraint vangt
         # dat nu af i.p.v. een los WHERE NOT EXISTS dat onder concurrency een duplicate-key-
         # fout kan geven (check-then-insert is niet atomair).
         is_pg = conn.engine.url.get_backend_name() == "postgresql"

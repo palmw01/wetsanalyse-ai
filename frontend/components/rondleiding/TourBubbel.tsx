@@ -32,7 +32,7 @@ interface Props {
 /** Eén stap van de rondleiding: een bubbel bij het element, met de rest van het scherm gedimd.
  *
  *  Bewust géén `aria-modal` en géén backdrop die klikken opvangt. De rondleiding wijst de échte
- *  werkplek aan — die moet leesbaar blijven voor een schermlezer, en in de interactieve stap moet je
+ *  werkplek aan – die moet leesbaar blijven voor een schermlezer, en in de interactieve stap moet je
  *  er zelfs op kunnen klikken. Wat de overlay wél doet is dimmen; het aangewezen element houdt zijn
  *  volle kleur, want bij dit product ís die kleur de uitleg (de JAS-klassen). */
 export function TourBubbel({
@@ -40,7 +40,7 @@ export function TourBubbel({
 }: Props) {
   const [vak, setVak] = useState<Vak | null>(null);
   // De eigen afmeting van de bubbel. Zonder die te meten valt niet te bepalen of hij ergens
-  // *past* — en dat is precies wat er misging: "de kant met de meeste ruimte" kan nog altijd te
+  // *past* – en dat is precies wat er misging: "de kant met de meeste ruimte" kan nog altijd te
   // weinig ruimte zijn, waarna de bubbel half onder de schermrand hing.
   const [bubbel, setBubbel] = useState<Afmeting>({
     breedte: BUBBEL_BREEDTE, hoogte: BUBBEL_HOOGTE_SCHATTING,
@@ -54,7 +54,7 @@ export function TourBubbel({
   // capture-fase omhoog. Vandaar `capture: true`.
   //
   // In dezelfde slag meten we de bubbel en de viewport: die drie horen bij elkaar, want samen
-  // bepalen ze de plaatsing. Ook zonder doel loopt dit effect — de bubbel kan dan nog steeds van
+  // bepalen ze de plaatsing. Ook zonder doel loopt dit effect – de bubbel kan dan nog steeds van
   // maat veranderen, en de viewport hoort na een draai van het toestel te kloppen.
   useLayoutEffect(() => {
     let frame = 0;
@@ -91,7 +91,7 @@ export function TourBubbel({
 
   const plaatsing = plaatsBubbel(actiefVak, bubbel, viewport);
 
-  // In `midden`-modus wijst de bubbel niets aan — dus hoort er ook geen spotlight omheen. Dat is
+  // In `midden`-modus wijst de bubbel niets aan – dus hoort er ook geen spotlight omheen. Dat is
   // precies het geval bij het gespreksvenster en de sidebar: die vullen bijna het hele scherm, en
   // een uitsparing eromheen licht het halve beeld op in plaats van iets aan te wijzen.
   const spotVak = plaatsing.modus === "midden" ? null : actiefVak;

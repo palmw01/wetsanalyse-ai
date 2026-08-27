@@ -1,5 +1,5 @@
 // Export van één annotatiedocument (pdf|csv|json). De api bouwt het bestand; deze route stuurt
-// alleen door — inclusief `Content-Disposition`, anders landt de download naamloos in de browser.
+// alleen door – inclusief `Content-Disposition`, anders landt de download naamloos in de browser.
 //
 // De wettekst zit NIET in de api (de graaf is de bron), dus de werkplek stuurt de leden mee in de
 // body. Zonder leden laat het rapport dat blok gewoon weg; niets wordt gereconstrueerd.

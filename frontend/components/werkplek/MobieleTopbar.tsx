@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 /** De balk boven het hoofdgebied op smalle schermen: hamburger → sidebar-drawer, plus waar je bent.
  *
  *  Bestaat omdat `AppSidebar` onder `lg` een `hidden`-kolom is en zijn drawer alleen toont als de
- *  pagina hem opent. De werkplek deed dat wel, `/annotaties` en `/annotaties/[slug]` niet — en daar
+ *  pagina hem opent. De werkplek deed dat wel, `/annotaties` en `/annotaties/[slug]` niet – en daar
  *  was op een half scherm dus géén sidebar en geen enkele manier om er een te krijgen: geen
  *  gesprekken, geen account, geen uitloggen. Eén component voor alle drie de schermen, zodat dat
  *  niet opnieuw uiteen kan lopen.

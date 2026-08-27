@@ -39,7 +39,7 @@ def test_get_lid_levert_de_onderdelen_mee():
 
     Artikel 2 lid 1 IW 1990 heeft als eigen tekst alleen "Deze wet verstaat onder:"; de definities
     (a t/m t, waaronder 'belastingschuldige') zitten in de onderdelen. Kwamen die niet mee, dan ging
-    de agent het met raw_sparql-pogingen compenseren — acht beurten voor één definitievraag.
+    de agent het met raw_sparql-pogingen compenseren – acht beurten voor één definitievraag.
     """
     sparql = q.get_lid("BWBR0004770", "2", "1")
     assert "bwb:bevat" in sparql, "onderdelen moeten worden opgehaald"

@@ -71,7 +71,7 @@ export function BerichtenPanel({ positie, containerClassName }: { positie?: stri
   }, []);
 
   useEffect(() => {
-    // De setState zit ín de async callback, dus pas ná het await — geen synchrone cascading
+    // De setState zit ín de async callback, dus pas ná het await – geen synchrone cascading
     // render. De regel kan daar niet doorheen kijken.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void laadAantal();
@@ -82,7 +82,7 @@ export function BerichtenPanel({ positie, containerClassName }: { positie?: stri
   const onOpen = useCallback(async () => {
     setLaden(true);
     try {
-      // listBerichten gebruikt ?ongelezen=true — server filtert al.
+      // listBerichten gebruikt ?ongelezen=true – server filtert al.
       const items = await listBerichten();
       setBerichten(items);
       if (items.length > 0) {

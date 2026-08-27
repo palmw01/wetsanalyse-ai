@@ -10,7 +10,7 @@ FROM python:3.14-slim@sha256:cea0e6040540fb2b965b6e7fb5ffa00871e632eef63719f0ea5
 COPY --from=ghcr.io/astral-sh/uv:0.11@sha256:ff07b86af50d4d9391d9daf4ff89ce427bc544f9aae87057e69a1cc0aa369946 /uv /bin/uv
 
 # Forceer de systeem-Python van de base-image: dan symlinkt de .venv naar
-# /usr/local/bin/python3.14 — een pad dat óók in de identieke runtime-stage bestaat.
+# /usr/local/bin/python3.14 – een pad dat óók in de identieke runtime-stage bestaat.
 # Zonder dit zou uv een eigen "managed" Python kunnen downloaden en breekt de COPY.
 ENV UV_PYTHON_PREFERENCE=only-system
 
@@ -25,7 +25,7 @@ RUN uv sync --extra llm --extra otel --frozen
 
 # uv laat een gebundelde setuptools 70.3.0 in de .venv achter; Trivy scant die venv
 # (de runtime-pip-bump raakt alleen /usr/local/lib, niet /app/api/.venv). Overschrijf
-# 'm binnen de venv — dekt CVE-2025-47273 (HIGH, Path Traversal) én CVE-2026-59890
+# 'm binnen de venv – dekt CVE-2025-47273 (HIGH, Path Traversal) én CVE-2026-59890
 # (MEDIUM, MANIFEST.in bypass via Unicode-normalisatie).
 RUN uv pip install --python /app/api/.venv/bin/python --no-cache-dir 'setuptools>=83.0.0'
 
@@ -44,7 +44,7 @@ RUN pip install --no-cache-dir --upgrade 'pip>=26.1' 'setuptools>=83.0.0' \
  && rm -f /usr/local/lib/python3.14/site-packages/pip/_vendor/bom.cdx.json
 # ↑ pip 26.x bakt een CycloneDX-SBOM van zijn vendored deps mee (msgpack 1.1.2,
 # setuptools 70.3.0, …). Trivy pikt die op als "third-party SBOM" en rapporteert
-# die versies als kwetsbaar — ook al is de echte image al gepatcht. Verwijderen
+# die versies als kwetsbaar – ook al is de echte image al gepatcht. Verwijderen
 # sluit de valse alerts zonder pip-functionaliteit te breken.
 
 WORKDIR /app/api
@@ -78,6 +78,6 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:3000/health').status==200 else 1)"
 
 # Conservatieve default van één worker. De request-afhandeling is stateless (de opslag is de
-# gedeelde PostgreSQL), dus `--workers >1` en meerdere replica's zijn veilig — verhoog dit gerust
+# gedeelde PostgreSQL), dus `--workers >1` en meerdere replica's zijn veilig – verhoog dit gerust
 # voor horizontaal schalen.
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "3000", "--workers", "1"]

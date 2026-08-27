@@ -155,7 +155,7 @@ def _verify_totp(user: User, code: str) -> bool:
 # Beide zijn Fernet-tokens (hergebruiken de LLM-master-key; 2FA vereist die toch al). Er is GEEN
 # serverstate: het login-ticket draagt de al-geverifieerde userid naar het aparte 2FA-scherm zodat
 # het wachtwoord daar niet nodig is; het trusted-device-token slaat de 2FA-prompt 30 dagen over en
-# is gebonden aan sha256(password_hash + totp_secret_enc) — wijzigt het wachtwoord of gaat 2FA uit,
+# is gebonden aan sha256(password_hash + totp_secret_enc) – wijzigt het wachtwoord of gaat 2FA uit,
 # dan verandert die binding en is het token vanzelf ongeldig (geen revocatielijst nodig).
 
 def maak_login_ticket(userid: str) -> str | None:
@@ -221,7 +221,7 @@ async def verify_credentials(
 ) -> tuple[User | None, str]:
     """Valideer inloggegevens (uitsluitend op userid). Geeft (user, "ok") of (None, reden).
 
-    Reden-codes: "invalid" (onbekend/inactief/verkeerd wachtwoord — bewust niet onderscheiden om
+    Reden-codes: "invalid" (onbekend/inactief/verkeerd wachtwoord – bewust niet onderscheiden om
     niets te lekken) en "totp_required" (wachtwoord klopt, maar 2FA staat aan en de code ontbreekt
     of is onjuist).
 
@@ -295,7 +295,7 @@ async def _insert_user(userid: str, email: str, password: str, *, role: str) -> 
 # --- eenmalige registratie (bootstrap) -----------------------------------------
 
 async def bootstrap_admin(userid: str, email: str, password: str) -> User:
-    """Maak de allereerste beheerder — alleen zolang de tabel leeg is (anders UserError)."""
+    """Maak de allereerste beheerder – alleen zolang de tabel leeg is (anders UserError)."""
     if await _count() > 0:
         raise UserError("Er bestaat al een account; registratie is gesloten.")
     return await _insert_user(userid, email, password, role="beheerder")

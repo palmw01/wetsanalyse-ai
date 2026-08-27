@@ -1,9 +1,9 @@
 """Twee knoppen die de annotatieketen goedkoper én betrouwbaarder maken.
 
-1. **Model per rol** — de router en de ophaal-agent mogen op een ander model draaien dan de
+1. **Model per rol** – de router en de ophaal-agent mogen op een ander model draaien dan de
    annoteerder en de Critic. Die laatste twee vellen het juridische oordeel en houden daarom geen
    eigen knop: er is geen env-var waarmee je ze per ongeluk degradeert.
-2. **Een meegegeven `doel`** — weet de werkplek de bepaling al, dan slaat de beurt de supervisor én
+2. **Een meegegeven `doel`** – weet de werkplek de bepaling al, dan slaat de beurt de supervisor én
    de ophaal-agent over. Dat scheelt calls, maar de echte winst is dat de agent dan niet meer bij
    een ándere bepaling kan uitkomen dan de jurist aanwees.
 """
@@ -16,13 +16,13 @@ from agent.agent import answer_stream
 from agent.config import Settings
 from fakes import FakeGraph, FakeLLM, make_settings, response, text_block, tool_block
 
-#: Antwoord op `get_lid` — wat de ophaal-agent als tool-resultaat terugkrijgt.
+#: Antwoord op `get_lid` – wat de ophaal-agent als tool-resultaat terugkrijgt.
 LID_TSV = json.dumps(
     '?nummer\t?tekst\t?jci\n"1"\t"De ontvanger verleent uitstel van betaling indien de schuldenaar '
     'daarom verzoekt."@nl\t"jci"'
 )
 
-#: Antwoord op `get_artikel` — de vorm die `artikel_corpus` leest bij het GERICHT ophalen. Zonder
+#: Antwoord op `get_artikel` – de vorm die `artikel_corpus` leest bij het GERICHT ophalen. Zonder
 #: ophaal-agent is er geen tool-trace om op terug te vallen, dus loopt het corpus hier langs.
 ARTIKEL_TSV = json.dumps(
     "?tekst\t?jci\t?lid\t?lidnummer\t?lidtekst\t?onderdeel\t?onderdeeltekst\n"
@@ -54,7 +54,7 @@ _GROEN = {"id": "el-a", "aandacht": "groen", "motivatie": "juist"}
 
 
 def _aanloop() -> list:
-    """Supervisor + de twee ophaal-beurten — de weg zonder meegegeven doel."""
+    """Supervisor + de twee ophaal-beurten – de weg zonder meegegeven doel."""
     return [
         response([text_block("WORKERS: annotatie\nPLAN: annoteer art 9 lid 1")], "end_turn"),
         response([tool_block("t1", "get_lid", {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "1"})],

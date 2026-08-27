@@ -6,7 +6,7 @@ import type { TabKey } from "@/lib/instellingen";
 import { InstellingenInhoud } from "./InstellingenInhoud";
 
 /** Het instellingenvenster zoals je het vanuit de werkplek opent: een gecentreerde dialog over de
- *  chat heen. Sluiten gaat met `router.back()` — de intercepting route heeft een history-entry
+ *  chat heen. Sluiten gaat met `router.back()` – de intercepting route heeft een history-entry
  *  toegevoegd, dus daarmee land je terug op de werkplek zonder de pagina te herladen. */
 export function InstellingenDialog({ actief, isBeheerder }: { actief: TabKey; isBeheerder: boolean }) {
   const router = useRouter();

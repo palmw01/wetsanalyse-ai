@@ -419,7 +419,7 @@ async def test_2fa_http_via_header(client):
 
 async def test_gevoelige_endpoints_rate_limited(monkeypatch):
     """De geauthenticeerde 2FA/wachtwoord-endpoints delen de brute-force-rem (`sensitive_allowed`):
-    na de limiet volgt 429 — ook op mislukte pogingen, zodat een gekaapte sessie geen TOTP/wachtwoord
+    na de limiet volgt 429 – ook op mislukte pogingen, zodat een gekaapte sessie geen TOTP/wachtwoord
     kan brute-forcen. Een andere userid heeft zijn eigen bucket."""
     _fresh_settings(
         monkeypatch,

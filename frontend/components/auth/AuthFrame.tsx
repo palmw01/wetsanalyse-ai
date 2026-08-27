@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 /** Het kader voor elk scherm buiten de app-schil: inloggen, 2FA, de eerste beheerder, de
  *  disclaimer-gate en de fout-/laadpagina's.
  *
- *  Eén gecentreerde kaart op een egaal vlak, met het logo erboven — dezelfde vormtaal als de dialogen
+ *  Eén gecentreerde kaart op een egaal vlak, met het logo erboven – dezelfde vormtaal als de dialogen
  *  in de werkplek (`rounded-vorm`, `bg-paper`, `shadow-kaart`). Daarmee is er nog maar één opmaak
  *  buiten de schil, in plaats van de oude documentflow met logobalk, navigatiebalk en footer. Die
  *  navigatie wees bovendien naar plekken die inmiddels ín de schil zitten.
@@ -31,7 +31,7 @@ export function AuthFrame({
             geheel. In de SVG (viewBox 275×125) is het lint 50 breed vanaf x=0, dus het hart ervan zit
             op 25/275 = 9,0909% van de logobreedte. Met `mx-auto` centreer je lint + woordmerk samen
             en staat het blok links van het midden.
-            Vandaar: linkerrand op 50% zetten en dan 9,0909% van de eigen breedte terugschuiven — een
+            Vandaar: linkerrand op 50% zetten en dan 9,0909% van de eigen breedte terugschuiven – een
             percentage, zodat het klopt bij elke rendergrootte. Het logo is op de smalste schermen wat
             kleiner, anders loopt het na die verschuiving buiten de kaart. */}
         <Image

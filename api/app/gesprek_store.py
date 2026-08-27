@@ -1,5 +1,5 @@
 """
-GesprekStore — persistentie voor het gesprekken-domein (chatgeschiedenis van de werkplek).
+GesprekStore – persistentie voor het gesprekken-domein (chatgeschiedenis van de werkplek).
 
 Zelfde SQLAlchemy-Core-stijl als `annotatie_store.py` op dezelfde engine (`db.get_engine()`), met een
 eigen tabelset (`gesprekken` + `gesprek_berichten`). Per-gebruiker gescopet (`user_id`). De berichten

@@ -6,7 +6,7 @@ import { DisclaimerClient } from "@/components/auth/DisclaimerClient";
 import { Dialog } from "@/components/ui/Dialog";
 
 /** De voorwaarden zoals je ze vanuit de werkplek naleest: een dialog over de chat heen, net als de
- *  instellingen. Sluiten met `router.back()` — de intercepting route heeft een history-entry
+ *  instellingen. Sluiten met `router.back()` – de intercepting route heeft een history-entry
  *  toegevoegd, dus je landt terug op precies de plek in je gesprek waar je was.
  *
  *  De blokkerende variant (nog geen akkoord) is de volle pagina `app/disclaimer/page.tsx`: dan stuurt

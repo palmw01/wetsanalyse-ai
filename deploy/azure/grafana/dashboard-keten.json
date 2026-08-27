@@ -1,6 +1,6 @@
 {
   "uid": "wa-keten-__SLUG__",
-  "title": "Wetsanalyse — __STRAAT__",
+  "title": "Wetsanalyse – __STRAAT__",
   "tags": [
     "wetsanalyse",
     "__STRAAT__"
@@ -18,7 +18,7 @@
       "id": 1,
       "type": "stat",
       "title": "Diensten in één trace",
-      "description": "Het aantal traces in dit tijdvenster dat meer dan één dienst omspant. Nul betekent dat de keten uiteen ligt: elke dienst levert dan wél telemetrie, maar niemand deelt een trace-id. Dat faalt stil — je ziet data en denkt dat het goed zit. Zie docs/observability.md.",
+      "description": "Het aantal traces in dit tijdvenster dat meer dan één dienst omspant. Nul betekent dat de keten uiteen ligt: elke dienst levert dan wél telemetrie, maar niemand deelt een trace-id. Dat faalt stil – je ziet data en denkt dat het goed zit. Zie docs/observability.md.",
       "gridPos": {
         "h": 5,
         "w": 6,
@@ -123,13 +123,13 @@
         },
         "overrides": []
       },
-      "description": "Inkomende requests per dienst, zónder health-probes. Container Apps pollt elke replica constant (/health, /ready, /api/health): dat was ~95% van het volume en maakte beide straten identiek — het echte verkeer verdronk erin. 'GET GET' is er ook uit: dat zijn routeloze frontend-spans van @vercel/otel met lege Url. graph-qa ontbreekt zolang er niet mee gewerkt wordt: hij draait met minReplicas=0, dus buiten gebruik zijn er nul replica's en dus geen requests. Dat is stilte, geen storing."
+      "description": "Inkomende requests per dienst, zónder health-probes. Container Apps pollt elke replica constant (/health, /ready, /api/health): dat was ~95% van het volume en maakte beide straten identiek – het echte verkeer verdronk erin. 'GET GET' is er ook uit: dat zijn routeloze frontend-spans van @vercel/otel met lege Url. graph-qa ontbreekt zolang er niet mee gewerkt wordt: hij draait met minReplicas=0, dus buiten gebruik zijn er nul replica's en dus geen requests. Dat is stilte, geen storing."
     },
     {
       "id": 3,
       "type": "timeseries",
       "title": "Foutratio (5xx) per dienst",
-      "description": "Aandeel serverfouten (ResultCode 5xx) t.o.v. alle requests, zónder health-probes (zie 'Requests per dienst'). Bewust niet `Success == false`: Application Insights rekent ook 4xx als niet-succesvol, waardoor een golf 401's of 404's zich als serverstoring zou presenteren. Blijft leeg zolang er niets faalt — dat is de bedoeling.",
+      "description": "Aandeel serverfouten (ResultCode 5xx) t.o.v. alle requests, zónder health-probes (zie 'Requests per dienst'). Bewust niet `Success == false`: Application Insights rekent ook 4xx als niet-succesvol, waardoor een golf 401's of 404's zich als serverstoring zou presenteren. Blijft leeg zolang er niets faalt – dat is de bedoeling.",
       "gridPos": {
         "h": 5,
         "w": 9,
@@ -211,7 +211,7 @@
         },
         "overrides": []
       },
-      "description": "95e-percentiel van de requestduur per dienst, zónder health-probes (die zijn ~2 ms en drukten de p95 kunstmatig omlaag). Let op de logaritmische y-as: een graph-qa-run duurt tienduizenden milliseconden en zou op een lineaire as de api- en frontend-lijnen platdrukken tegen nul — dan lijkt het paneel leeg terwijl er data staat. graph-qa duurt structureel langer dan de andere twee: de eerste vraag na stilte bevat een koude start (minReplicas=0), en daar komt de LLM-tijd van de run zelf bovenop — tienduizenden milliseconden is daar normaal."
+      "description": "95e-percentiel van de requestduur per dienst, zónder health-probes (die zijn ~2 ms en drukten de p95 kunstmatig omlaag). Let op de logaritmische y-as: een graph-qa-run duurt tienduizenden milliseconden en zou op een lineaire as de api- en frontend-lijnen platdrukken tegen nul – dan lijkt het paneel leeg terwijl er data staat. graph-qa duurt structureel langer dan de andere twee: de eerste vraag na stilte bevat een koude start (minReplicas=0), en daar komt de LLM-tijd van de run zelf bovenop – tienduizenden milliseconden is daar normaal."
     },
     {
       "id": 5,
@@ -291,7 +291,7 @@
       "id": 7,
       "type": "table",
       "title": "Foutregels uit de containers",
-      "description": "Fout- en waarschuwingsregels uit de applicatiecontainers. De apps loggen gestructureerde JSON (zie frontend/lib/logger.ts), dus dit filtert op het veld `niveau` in plaats van op tekst. Het schema kent precies vier niveaus — debug|info|warn|error (api/app/observability.py:58, frontend/lib/logger.ts:13); CRITICAL wordt naar `error` gemapt, en 'warning' bestaat niet. Filter dus op 'warn': wat geen JSON is komt alleen mee bij een echte Traceback. Let op de tabelnaam: de console-logs landen in ContainerAppConsoleLogs_CL — de tabel zonder _CL bestaat óók en is altijd leeg.",
+      "description": "Fout- en waarschuwingsregels uit de applicatiecontainers. De apps loggen gestructureerde JSON (zie frontend/lib/logger.ts), dus dit filtert op het veld `niveau` in plaats van op tekst. Het schema kent precies vier niveaus – debug|info|warn|error (api/app/observability.py:58, frontend/lib/logger.ts:13); CRITICAL wordt naar `error` gemapt, en 'warning' bestaat niet. Filter dus op 'warn': wat geen JSON is komt alleen mee bij een echte Traceback. Let op de tabelnaam: de console-logs landen in ContainerAppConsoleLogs_CL – de tabel zonder _CL bestaat óók en is altijd leeg.",
       "gridPos": {
         "h": 7,
         "w": 12,

@@ -1,7 +1,7 @@
 # De testpoort vóór master: draait op elke pull request de suites van de onderdelen die de PR raakt.
 #
 # Dit is de HARDE poort. De pre-push hook (`.githooks/pre-push`) doet hetzelfde lokaal en is er voor
-# de snelheid, maar hij moet per kloon geactiveerd worden en is te omzeilen met `--no-verify` — deze
+# de snelheid, maar hij moet per kloon geactiveerd worden en is te omzeilen met `--no-verify` – deze
 # workflow geldt voor iedereen.
 #
 # Waarom één workflow en niet een `pull_request`-trigger op de vier publish-workflows: een verplichte
@@ -57,19 +57,19 @@ jobs:
           node-version: "26"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - name: frontend — installeren
+      - name: frontend – installeren
         if: steps.raakt.outputs.frontend == 'true'
         working-directory: frontend
         run: npm ci
-      - name: frontend — tests
+      - name: frontend – tests
         if: steps.raakt.outputs.frontend == 'true'
         working-directory: frontend
         run: npm run test
-      - name: frontend — lint
+      - name: frontend – lint
         if: steps.raakt.outputs.frontend == 'true'
         working-directory: frontend
         run: npm run lint
-      - name: frontend — typecheck
+      - name: frontend – typecheck
         if: steps.raakt.outputs.frontend == 'true'
         working-directory: frontend
         run: npm run typecheck
@@ -81,24 +81,24 @@ jobs:
         with:
           enable-cache: true
 
-      - name: graph-qa — tests
+      - name: graph-qa – tests
         if: steps.raakt.outputs.graph_qa == 'true'
         working-directory: tools/graph-qa
         run: |
           uv sync --extra dev
           uv run pytest -q
 
-      - name: api — tests
+      - name: api – tests
         if: steps.raakt.outputs.api == 'true'
         working-directory: api
         run: |
           uv sync --extra dev
           uv run pytest -q
 
-      # bwb-import draait op pip + requirements.txt, niet op uv — zie zijn publish-workflow.
+      # bwb-import draait op pip + requirements.txt, niet op uv – zie zijn publish-workflow.
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         if: steps.raakt.outputs.bwb_import == 'true'
-      - name: bwb-import — tests
+      - name: bwb-import – tests
         if: steps.raakt.outputs.bwb_import == 'true'
         working-directory: tools/bwb-import
         run: |

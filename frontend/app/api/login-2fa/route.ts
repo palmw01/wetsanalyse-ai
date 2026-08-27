@@ -1,5 +1,5 @@
 // Publieke stap B van de login (het aparte /login/2fa-scherm): verifieert de TOTP-code met het
-// login-ticket uit stap A (httpOnly cookie) — het wachtwoord is hier dus niet nodig. Bij "30 dagen
+// login-ticket uit stap A (httpOnly cookie) – het wachtwoord is hier dus niet nodig. Bij "30 dagen
 // onthouden" zet de route een httpOnly trusted-device-cookie. Zet géén sessie; dat doet de
 // daaropvolgende signIn (die het login-ticket server-side in authorize opnieuw gebruikt).
 import { postAuthVerify } from "@/lib/server";
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     // "Dit apparaat 30 dagen onthouden": sla de 2FA-prompt voortaan over op deze browser.
     await setTrustedDeviceCookie(body.trusted_token);
   }
-  // Laat het login-ticket staan — de aansluitende signIn heeft het nog nodig in authorize; het
+  // Laat het login-ticket staan – de aansluitende signIn heeft het nog nodig in authorize; het
   // vervalt vanzelf via zijn korte Fernet-TTL.
 
   return Response.json(

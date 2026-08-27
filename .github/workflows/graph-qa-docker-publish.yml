@@ -107,12 +107,12 @@ jobs:
   # ── Uitrollen naar Azure ──────────────────────────────────────────────────────
   #
   # Master rolt uit naar ACCEPTATIE. Productie loopt via `promote.yml`, dat de digest overneemt die
-  # hier op acceptatie is beland in plaats van hem opnieuw te bouwen — anders krijgt productie een
+  # hier op acceptatie is beland in plaats van hem opnieuw te bouwen – anders krijgt productie een
   # ander artefact dan er getest is.
   #
   # De GitHub-environment levert de credentials en de RG/APP_NAME. Een aparte job en niet een stap
   # in build-and-push, zodat de uitrol los staat van de build. Infra-wijzigingen (bicep) gaan via
-  # azure-infra.yml — hier alleen de image-refresh.
+  # azure-infra.yml – hier alleen de image-refresh.
   deploy:
     needs: build-and-push
     if: github.ref == 'refs/heads/master'
@@ -128,7 +128,7 @@ jobs:
     steps:
       # Ontbreekt er een secret, dan hoort dat te FALEN. Dit stond eerder als `if: … &&
       # env.AZURE_CLIENT_ID != ''` op de stap zelf: een verlopen secret betekende dan een
-      # overgeslagen stap en een groene run — je zag niet dat er niets was uitgerold.
+      # overgeslagen stap en een groene run – je zag niet dat er niets was uitgerold.
       - name: Preflight (credentials en omgevingsvars aanwezig?)
         run: |
           set -euo pipefail
@@ -147,10 +147,10 @@ jobs:
             --tenant "$AZURE_TENANT_ID"
           az account set --subscription "$AZURE_SUBSCRIPTION_ID"
           # De doel-app moet bestaan. Bij een verse straat is de infra nog niet uitgerold en is er
-          # niets om een image op te swappen — maar het image staat dan wél in GHCR. Rood worden zou
+          # niets om een image op te swappen – maar het image staat dan wél in GHCR. Rood worden zou
           # suggereren dat de build mislukte; dat gebeurde op 20 aug 2026 en kostte onnodig zoekwerk.
           if ! az containerapp show -n "$APP-graph-qa" -g "$RG" --output none 2>/dev/null; then
-            echo "::warning::container app $APP-graph-qa bestaat nog niet in $RG — image is gepusht, de swap is overgeslagen. Rol eerst de infra uit (azure-infra -> deploy)."
+            echo "::warning::container app $APP-graph-qa bestaat nog niet in $RG – image is gepusht, de swap is overgeslagen. Rol eerst de infra uit (azure-infra -> deploy)."
             echo "SWAP_OVERGESLAGEN=1" >> "$GITHUB_ENV"
             exit 0
           fi

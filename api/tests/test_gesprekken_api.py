@@ -29,7 +29,7 @@ async def client(monkeypatch):
     await db.create_all()
     await maak_testgebruikers("gebruiker-a", "gebruiker-b")
 
-    # Gesprek van een andere gebruiker — moet voor gebruiker-a onzichtbaar zijn (404).
+    # Gesprek van een andere gebruiker – moet voor gebruiker-a onzichtbaar zijn (404).
     await GesprekStore().maak_gesprek(Gesprek(id="andermans", user_id="gebruiker-b", titel="Van B"))
 
     from app.main import app
@@ -82,16 +82,16 @@ async def test_annotatie_bericht_verwijzing(client):
     gid = await _maak(client)
     r = await client.post(f"{BASIS}/{gid}/berichten", json={
         "rol": "assistant", "tekst": "Ik heb art. 9 geannoteerd.",
-        "annotatie_slug": "doc-abc", "annotatie_titel": "Invorderingswet 1990 — art. 9 lid 1",
+        "annotatie_slug": "doc-abc", "annotatie_titel": "Invorderingswet 1990 – art. 9 lid 1",
         "ontbrekend": [{"klasse": "Voorwaarde"}],
     }, headers=A)
     assert r.status_code == 201
     # Het bericht draagt het label zelf, zodat het gesprek leesbaar blijft als het document later
     # verwijderd wordt (er is geen foreign key die dat afdwingt).
-    assert r.json()["annotatie_titel"] == "Invorderingswet 1990 — art. 9 lid 1"
+    assert r.json()["annotatie_titel"] == "Invorderingswet 1990 – art. 9 lid 1"
     doc = (await client.get(f"{BASIS}/{gid}", headers=A)).json()
     assert doc["berichten"][0]["annotatie_slug"] == "doc-abc"
-    assert doc["berichten"][0]["annotatie_titel"] == "Invorderingswet 1990 — art. 9 lid 1"
+    assert doc["berichten"][0]["annotatie_titel"] == "Invorderingswet 1990 – art. 9 lid 1"
     assert doc["berichten"][0]["ontbrekend"][0]["klasse"] == "Voorwaarde"
 
 
@@ -109,7 +109,7 @@ async def test_annotatie_titel_is_optioneel(client):
 
 async def test_run_id_maakt_de_beurt_idempotent(client):
     """Een agent-run hangt niet meer aan één browserverbinding: er kunnen twee tabbladen meekijken.
-    Die zouden elk hun eigen kopie van hetzelfde antwoord wegschrijven — vandaar de sleutel."""
+    Die zouden elk hun eigen kopie van hetzelfde antwoord wegschrijven – vandaar de sleutel."""
     gid = await _maak(client)
     eerste = await client.post(f"{BASIS}/{gid}/berichten", json={
         "rol": "assistant", "tekst": "Het antwoord.", "run_id": "run-abc",

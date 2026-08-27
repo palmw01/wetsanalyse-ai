@@ -173,7 +173,7 @@ async def test_default_blijft_uniek_na_meerdere_wissels(admin_client):
 
 
 async def test_test_route_lekt_geen_requestdetails(admin_client, monkeypatch):
-    """De verbindingstest geeft een vaste, gesaniteerde melding — geen ruwe provider-fout
+    """De verbindingstest geeft een vaste, gesaniteerde melding – geen ruwe provider-fout
     (die endpoint-URL's/headers/key-fragmenten kan bevatten) en zeker niet de key zelf."""
     await admin_client.put(
         "/v1/admin/profiles/snel", headers=_H, json={"model": "gpt-x", "api_key": "sk-supersecret-123"}

@@ -1,4 +1,4 @@
-"""Fase 0 — unit-tests voor de nieuwe annotatie-scorers.
+"""Fase 0 – unit-tests voor de nieuwe annotatie-scorers.
 
 Dekt:
   - _token_iou            : degenerate + normale gevallen
@@ -65,7 +65,7 @@ class TestTokenIou:
 
 
 # ---------------------------------------------------------------------------
-# _koppel — matching-volgorde
+# _koppel – matching-volgorde
 # ---------------------------------------------------------------------------
 
 class TestKoppel:
@@ -166,7 +166,7 @@ class TestSpanIou:
         assert span_iou(v, g) == 0.0
 
     def test_ongematch_voorstel_draagt_nul_bij(self):
-        """Voorstel zonder gold-partner geeft 0.0 bijdrage — conservatieve schatting."""
+        """Voorstel zonder gold-partner geeft 0.0 bijdrage – conservatieve schatting."""
         v = [_e("de belastingschuldige"), _e("geheel irrelevant")]
         g = [_g("de belastingschuldige")]
         score = span_iou(v, g)
@@ -247,7 +247,7 @@ class TestCandidateRecall:
         assert candidate_recall(kand, gold) == 1.0
 
     def test_partial_span_telt_niet(self):
-        """Partiële overlap is geen hit — exacte span vereist."""
+        """Partiële overlap is geen hit – exacte span vereist."""
         kand = [{"tekst": "de belastingschuldige moet"}]
         gold = [_g("de belastingschuldige")]
         assert candidate_recall(kand, gold) == 0.0

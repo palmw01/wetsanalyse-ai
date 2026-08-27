@@ -1,4 +1,4 @@
-"""PR 2.3: LangGraph-orkestrator — plan→retrieve→reason→verify + streaming."""
+"""PR 2.3: LangGraph-orkestrator – plan→retrieve→reason→verify + streaming."""
 from __future__ import annotations
 
 import asyncio
@@ -89,7 +89,7 @@ def test_max_turns_kapt_af_zonder_orphan_tooluse():
 
 def test_narratie_reason_antwoord_token_gescheiden():
     # Contract: de tool-narratie (het denkproces) stroomt als `reason`, het eindantwoord (de tool-loze
-    # beurt) als `token`. De twee mogen niet vermengen — zo kan de werkplek ze los tonen.
+    # beurt) als `token`. De twee mogen niet vermengen – zo kan de werkplek ze los tonen.
     settings = make_settings(enable_planning=False)
     graph = FakeGraph(result=f"<{ART_IRI}> bwb:tekst 'x' .")
     llm = FakeLLM([
@@ -104,13 +104,13 @@ def test_narratie_reason_antwoord_token_gescheiden():
     token = "".join(e["content"] for e in events if e["type"] == "token")
     assert "Ik zoek nu op." in reason and "Ik zoek nu op." not in token   # narratie → reason, niet in token
     assert token == "De definitie is helder."                             # eindantwoord → token (schoon)
-    # (Het eindantwoord staat óók in reason — de antwoordbeurt streamt als denkproces en de frontend
+    # (Het eindantwoord staat óók in reason – de antwoordbeurt streamt als denkproces en de frontend
     #  klapt dat blok dicht zodra het antwoord landt. Bewuste tradeoff: geen extra call/flikkering.)
 
 
 def test_beurt_narratie_krijgt_alinea_scheiding_in_reason():
     # Regressie: tekst van beurt 1 ("…op.") plakte aan beurt 2 ("…tweede stap.") vast omdat de deltas
-    # met "" werden samengevoegd. Op de beurt-grens hoort nu één alinea-scheiding — in de reason-stroom.
+    # met "" werden samengevoegd. Op de beurt-grens hoort nu één alinea-scheiding – in de reason-stroom.
     settings = make_settings(enable_planning=False)
     graph = FakeGraph(result=f"<{ART_IRI}> bwb:tekst 'x' .")
     llm = FakeLLM([
@@ -248,8 +248,8 @@ def test_correctie_op_een_citaat_dat_niet_letterlijk_is():
     """De correctieronde moet zeggen wat er écht mis is.
 
     Hij keek alleen naar `unsupported` (verzonnen vindplaatsen). Een antwoord dat daarop schoon is
-    maar wél passages tussen aanhalingstekens zet die niet in de bron staan — op dev zeven keer in
-    één antwoord — kreeg dan een volledige extra LLM-call met de instructie "je noemde
+    maar wél passages tussen aanhalingstekens zet die niet in de bron staan – op dev zeven keer in
+    één antwoord – kreeg dan een volledige extra LLM-call met de instructie "je noemde
     verwijzing(en) `` die niet uit de graaf kwamen": een lege opsomming en een verwijt dat niet
     klopte. Het model kan daar niets mee, dus de duurste stap in de keten deed niets.
     """

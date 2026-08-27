@@ -103,7 +103,7 @@ export function BerichtEditor({ bericht, onCancel, onDone }: Props) {
                     className="font-mono text-xs"
                     maxLength={10000}
                     required
-                    placeholder="Max 2 zinnen — wat is er veranderd en wat betekent dat voor de gebruiker."
+                    placeholder="Max 2 zinnen – wat is er veranderd en wat betekent dat voor de gebruiker."
                   />
                 </Field>
               ),

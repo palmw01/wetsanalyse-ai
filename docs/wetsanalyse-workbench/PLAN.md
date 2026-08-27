@@ -1,7 +1,7 @@
-# Wetsanalyse-workbench + annotatie-agent — plan (gefaseerd)
+# Wetsanalyse-workbench + annotatie-agent – plan (gefaseerd)
 
 > **Durable bron van waarheid.** Dit versiebeheerde document is het canonieke plan. Het plan-mode-
-> scratchbestand (`~/.claude/plans/…`) is vluchtig en wordt overschreven — dít bestand niet. Bijwerken?
+> scratchbestand (`~/.claude/plans/…`) is vluchtig en wordt overschreven – dít bestand niet. Bijwerken?
 > Pas dit bestand aan (en commit).
 >
 > Laatst bijgewerkt: 2026-07-20. Status: Deliverable 0 geleverd (architectuur-artifact + deck);
@@ -18,7 +18,7 @@ Concreet:
 - **Agent-gedreven annotatie + menselijke review is het product.** De jurist schrijft in de eindtoestand
   geen annotaties meer from scratch; **handmatig annoteren verdwijnt** als pijler. De enige "handmatige"
   touch die blijft is **corrigeren tijdens de review** (edit). (Een tijdelijk bootstrap-invoerpad mag
-  bestaan om de UI/persistentie te testen, maar is expliciet vergankelijk — geen product-doel.)
+  bestaan om de UI/persistentie te testen, maar is expliciet vergankelijk – geen product-doel.)
 - **Vers, eigen domein.** Niet op de bestaande analyse-job/skill-contracten (`Markering`, de async
   analyse-flow). Hergebruik alleen **neutrale infra** (auth, Postgres) en **kale data** (de JAS-
   klassenamen als naamlijst, de vindplaats-notatie). De agent-intelligentie komt **volledig vers uit de
@@ -26,11 +26,11 @@ Concreet:
 - **Brongetrouwheid heilig.** Elk element herleidbaar naar bwbId + artikel/lid + tekst-span; een
   agent-voorstel is nooit definitief zonder menselijke beslissing.
 - **Conform de agent-architectuur** (graph-qa multi-agent, SSE, getypeerde tools, grounding,
-  observability) — maar de *inhoud* vers.
+  observability) – maar de *inhoud* vers.
 
-## Architectuur — 3 lagen + leerlus
+## Architectuur – 3 lagen + leerlus
 
-- **api = system of record** (hergebruik Postgres, auth/rollen, admin/`/beheer` — puur infra).
+- **api = system of record** (hergebruik Postgres, auth/rollen, admin/`/beheer` – puur infra).
   Bewaart annotatie-documenten, human-decisions, **audit trail**, **lessons-learned**, en bezit het
   **enige, geauthenticeerde graaf-schrijfpad** (latere fase). Een **vers annotatie-domein**, los van de
   analyse-contracten.
@@ -41,7 +41,7 @@ Concreet:
   > aan de HTTP-verbinding hing, brak van gesprek wisselen of herladen een lopend antwoord af, en
   > omdat de brówser het resultaat wegschreef kostte een gesloten tabblad al het werk. graph-qa houdt
   > nu **runs** vast (in-proces register, `agent/runs.py`) en legt de uitkomst zélf vast bij de api
-  > (`agent/beurt.py`). "api = system of record" blijft daarmee overeind — graph-qa bewaart geen
+  > (`agent/beurt.py`). "api = system of record" blijft daarmee overeind – graph-qa bewaart geen
   > eigen kopie, alleen de lopende beurt.
 - **frontend = de review-workbench** (documentpaneel + review-queue + decision-cards + tijdlijn). BFF →
   api voor state, → graph-qa voor de agent.
@@ -50,25 +50,25 @@ Concreet:
 **Leerlus (kern voor kwaliteit + toekomstvast):** human-decisions (edit/reject/comment + lessons)
 worden opgeslagen; de agent haalt via een tool **relevante eerdere beslissingen per JAS-klasse/
 werkgebied op als few-shot-context**. **Leer-vóór-je-begint:** vóór het annoteren doet de agent een
-pre-flight — vergelijkbare artikelen + eerder gemaakte fouten ophalen, benoemen waar hij extra op let,
+pre-flight – vergelijkbare artikelen + eerder gemaakte fouten ophalen, benoemen waar hij extra op let,
 dán annoteren. Approved annotaties verrijken de graaf, die de agent opnieuw voedt.
 
-## Review-workflow — de review-ervaring als product
+## Review-workflow – de review-ervaring als product
 
 Het onderscheidende is een **review-ervaring** als GitHub PR's + VS Code + Figma + Copilot: de AI stelt
-voor, de mens beslist — sneller en consistenter. HITL is een **meertraps workflow**:
+voor, de mens beslist – sneller en consistenter. HITL is een **meertraps workflow**:
 
 `agent-voorstel (met zelfcheck) → Critic-agent → mens → knowledge-check → publiceren`
 
 - **Critic-agent (rol in de multi-agent).** Controleert vóór de jurist: ontbrekend, verkeerde klasse,
   inconsistentie, zwakke bron. Zet per element een aandacht-niveau.
 - **Disambiguatie i.p.v. schijnzekerheid.** Bij twijfel **alternatieven met motivatie**; de jurist kiest.
-- **Missing-elements.** Meldt óók wat waarschijnlijk **ontbreekt** — aan te vinken suggesties.
-- **Element-diff.** Na een edit een veld/tekst-diff (+ − ~) — de correctie-delta die de lessons voedt.
+- **Missing-elements.** Meldt óók wat waarschijnlijk **ontbreekt** – aan te vinken suggesties.
+- **Element-diff.** Na een edit een veld/tekst-diff (+ − ~) – de correctie-delta die de lessons voedt.
 - **Review-queue + tijdlijn.** Reviewpaneel met statustelling; audit als leesbare tijdlijn.
 - **Knowledge-check** vóór publicatie: consistentie tegen graaf + bestaande annotaties (ontdubbeling).
 
-### Kritische kanttekening — "confidence" met zorg
+### Kritische kanttekening – "confidence" met zorg
 Géén rauwe model-confidence (slecht gekalibreerd → schijnprecisie). In plaats daarvan een **aandacht-
 niveau** (🟢/🟡/🔴) afgeleid van **echte signalen** (Critic-flag, aanwezige alternatieven, zwakke
 grounding, patroon-afwijking). Géén ondoorzichtig kwaliteitscijfer → een **dashboard van indicatoren**
@@ -90,11 +90,11 @@ grounding, patroon-afwijking). Géén ondoorzichtig kwaliteitscijfer → een **d
 
 ## Fasering
 
-### Deliverable 0 — Architectuur-artifact (HTML) — GELEVERD
+### Deliverable 0 – Architectuur-artifact (HTML) – GELEVERD
 Visie + architectuur + datamodel + review-workflow + fasering, visueel/deelbaar. Repo-kopie
 architectuur-artifact (claude.ai-Artifact) + graph-qa-deck aangevuld.
 
-### Fase 1 — MVP: dun agent→review-segment (verticaal, alle 3 lagen)
+### Fase 1 – MVP: dun agent→review-segment (verticaal, alle 3 lagen)
 Het eindtoestand-hart in het klein, end-to-end:
 - **api (vers domein):** minimale contracten + tabellen (`AnnotatieDocument`, `AnnotatieElement` met
   `lifecycle`/`beslissingen`, `AuditRecord`) + endpoints (document aanmaken, elementen opslaan,
@@ -103,12 +103,12 @@ Het eindtoestand-hart in het klein, end-to-end:
 - **graph-qa:** nieuwe `annotatie`-specialist, systeemprompt **vers uit de JAS-bron**; tool
   `stel_annotatie_voor` (structureert voorgestelde elementen voor een opgehaald artikel; hergebruikt
   `get_artikel`/`get_lid`/`get_context` voor de tekst). Streamt voorstellen.
-- **frontend:** workbench-scherm — documentpaneel (artikel + gemarkeerde spans) + review-queue met
+- **frontend:** workbench-scherm – documentpaneel (artikel + gemarkeerde spans) + review-queue met
   **decision-cards** (approve/edit/reject/comment) + tijdlijn-audit. BFF → api + → graph-qa.
-- **Verificatie:** end-to-end — artikel ophalen → agent stelt voor → per element beslissen → persist +
+- **Verificatie:** end-to-end – artikel ophalen → agent stelt voor → per element beslissen → persist +
   audit. DI/fakes + een gescript pad + live rooktest.
 
-### Fase 2 — Volledige review-workflow + leerlus
+### Fase 2 – Volledige review-workflow + leerlus
 Critic-agent, disambiguatie (alternatieven), missing-elements, element-diff, aandacht-niveau,
 lessons-learned + pre-flight (leerlus), knowledge-check. `review_reason` verplicht bij edit/reject.
 
@@ -123,11 +123,11 @@ alternatieven** (disambiguatie → edit met `review_reason: verkeerde_klasse` vo
 **Nog open → Increment 4:** lessons-learned + pre-flight (leerlus), knowledge-check vóór publicatie,
 en persistente `mogelijk_ontbrekend` op het document.
 
-### Fase 3 — Diepere JAS (activiteit 3)
+### Fase 3 – Diepere JAS (activiteit 3)
 Van markeren naar **begrippen + afleidingsregels** (vers uit de bron; werkgebied-brede ontdubbeling).
 Zelfde review-workflow + audit.
 
-### Fase 4 — Promoveren naar de graaf
+### Fase 4 – Promoveren naar de graaf
 JAS-annotatie-vocabulaire (ontologie); één geauthenticeerd, idempotent, geaudit schrijfpad in de api
 (adresseert het open+writable-graaf-risico). Daarna bevraagbaar door de QA-agent (virtuous loop).
 

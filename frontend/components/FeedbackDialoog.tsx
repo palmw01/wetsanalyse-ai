@@ -64,7 +64,7 @@ export function FeedbackDialoog({ onSluit }: { onSluit: () => void }) {
     // pagina wit onder de verzendknop.
     <Dialog label="Feedback geven" variant="compact" onSluit={onSluit}>
       {/* Dezelfde kop als het instellingenvenster en de voorwaarden: titel links, kruisje rechts.
-          Hier ontbrak dat kruisje — sluiten kon alleen via Escape, de achtergrond of de knop onderin,
+          Hier ontbrak dat kruisje – sluiten kon alleen via Escape, de achtergrond of de knop onderin,
           en op een telefoon (waar de dialoog het scherm vult) is die rechterbovenhoek nu juist waar
           iedereen als eerste kijkt. */}
       <div className="flex shrink-0 items-center justify-between gap-3 border-b border-line px-5 py-3.5 pt-[max(0.875rem,env(safe-area-inset-top))]">

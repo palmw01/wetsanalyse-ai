@@ -28,11 +28,11 @@ _WS = re.compile(r"\s+")
 # --- Anker-helpers ---------------------------------------------------------------
 #
 # De offsets slaan op de *originele* brontekst (vóór normalisatie), zodat de UI
-# exact het juiste teken kan markeren. De hash is FNV-1a 32-bit — identiek aan
+# exact het juiste teken kan markeren. De hash is FNV-1a 32-bit – identiek aan
 # `bronHash()` in `frontend/lib/selectie.ts`, zodat de UI kan detecteren of de
 # brontekst verschoven is na een herimport.
 
-_CONTEXT_LENGTE = 48   # tekens context vóór/na het fragment — gelijk aan frontend CONTEXT_LENGTE
+_CONTEXT_LENGTE = 48   # tekens context vóór/na het fragment – gelijk aan frontend CONTEXT_LENGTE
 _FNV_PRIME = 0x01000193
 _FNV_OFFSET = 0x811C9DC5
 
@@ -201,7 +201,7 @@ def komt_letterlijk_voor(corpus: str, fragment: str) -> bool:
     """Staat dit fragment letterlijk in de opgehaalde tekst?
 
     Dezelfde eis (en dezelfde normalisatie) waarmee `_verwerk` de voorstellen van het model afkeurt,
-    maar los bruikbaar — bijvoorbeeld voor de markeringen die de jurist meestuurt. Ook die moeten in
+    maar los bruikbaar – bijvoorbeeld voor de markeringen die de jurist meestuurt. Ook die moeten in
     de bepaling staan die is opgehaald: een Critic-oordeel over een fragment dat hij niet voor zich
     heeft is geen oordeel.
     """
@@ -210,7 +210,7 @@ def komt_letterlijk_voor(corpus: str, fragment: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Fase 2A — kandidaat-parsing en filtering
+# Fase 2A – kandidaat-parsing en filtering
 # ---------------------------------------------------------------------------
 
 def parse_kandidaten(llm_text: str) -> list[dict]:
@@ -246,7 +246,7 @@ def parse_kandidaten(llm_text: str) -> list[dict]:
     return gered
 
 
-_MIN_KANDIDAAT_LENGTE = 2   # tekens — te korte spans zijn bijna nooit een JAS-element
+_MIN_KANDIDAAT_LENGTE = 2   # tekens – te korte spans zijn bijna nooit een JAS-element
 
 
 def filter_kandidaten(kandidaten: list[dict], corpus: str) -> list[dict]:
@@ -259,7 +259,7 @@ def filter_kandidaten(kandidaten: list[dict], corpus: str) -> list[dict]:
     4. Dedupliceer op genormaliseerde span + lid (eerste wins).
     5. Overlappende spans: behoud beide als ze inhoudelijk verschillen.
        Alleen identieke deelverzamelingen (contained + zelfde reden) worden
-       samengevoegd — de classificator beslist over grensgevallen.
+       samengevoegd – de classificator beslist over grensgevallen.
 
     De juridische keuze (welke overlappende span is het element?) blijft bij
     de classificator, niet bij deze filter. Zie plan V3 §2A.
@@ -292,7 +292,7 @@ def sleutel_van(tekst: str, lid: str) -> tuple[str, str]:
     **Bewust ZONDER klasse**, gelijk aan de terugval in de api-merge (`routers/annotatie.py:_sleutel`)
     en aan `mergeVoorstellen` in de werkplek: een herziening mág juist de klasse veranderen en moet
     dan hetzelfde element treffen. Stond de klasse er wél in, dan werd een herclassificatie zonder
-    id een tweede element — en zag de jurist dezelfde tekstspan twee keer met tegenstrijdige
+    id een tweede element – en zag de jurist dezelfde tekstspan twee keer met tegenstrijdige
     klassen. Dit is de canonieke regel; wie hem elders nabouwt, bouwt hem hiernaar.
     """
     return (_normaliseer(tekst).lower(), (lid or "").strip())
@@ -316,16 +316,16 @@ def pas_critic_toe(
     """Voer de correcties van de Critic uit.
 
     Geeft terug: (nieuwe voorstellen, telling, **onafgehandelde instructies**). Dat laatste is wat de
-    herziener nog te doen heeft. Zonder die scheiding kreeg hij de volledige feedback opnieuw — ook
+    herziener nog te doen heeft. Zonder die scheiding kreeg hij de volledige feedback opnieuw – ook
     de correcties die hier net waren uitgevoerd, en ook de gele voorkeuren die hier bewust NIET zijn
     uitgevoerd. Dan voert een taalmodel alsnog uit wat we juist aan de jurist wilden voorleggen, en
     dat was op dev meteen zichtbaar: "2 aanwijzingen toegepast" gevolgd door "4 aangepast".
 
-    De Critic leverde altijd al een uitvoerbare instructie — `actie` met `voorstel_klasse` en/of
+    De Critic leverde altijd al een uitvoerbare instructie – `actie` met `voorstel_klasse` en/of
     `voorstel_tekst`. Die ging vervolgens naar een tweede LLM (de herziener) die hem moest lezen,
     uitvoeren, en alle ongemoeide elementen ongewijzigd terugtypen. Dat is werk dat code exact doet
     en een taalmodel bij benadering: het kostte een call met het volle corpus, en het maakte van de
-    keten een onderhandeling tussen twee modellen — met vier guards nodig om te laten stoppen.
+    keten een onderhandeling tussen twee modellen – met vier guards nodig om te laten stoppen.
 
     Wat hier NIET gebeurt, gebeurt nog steeds door het model: een bijna-goed citaat repareren en een
     gemeld ontbrekend element toevoegen. Dat vraagt de brontekst lezen, geen instructie uitvoeren.
@@ -333,7 +333,7 @@ def pas_critic_toe(
     **Het aandacht-niveau bepaalt hoe hard een `vervang` landt.** Bij ROOD is de Critic er zeker van
     dat er iets mis is en wordt de correctie uitgevoerd. Bij GEEL twijfelt hij, en dan wordt een
     voorgestelde klasse een **alternatief** op het element: de werkplek toont die als aanklikbare chip
-    ("Twijfel — klik om te wisselen"), zodat de jurist hem met één klik overneemt en het als zijn eigen
+    ("Twijfel – klik om te wisselen"), zodat de jurist hem met één klik overneemt en het als zijn eigen
     beslissing in het auditspoor landt. Zo hoeft de Critic zijn voorkeur niet in te slikken en wordt
     er ook niets op een vermoeden veranderd.
 
@@ -344,7 +344,7 @@ def pas_critic_toe(
     - **Een voorgesteld fragment moet letterlijk in het corpus staan.** Dezelfde eis als bij een vers
       voorstel (`_verwerk`); een Critic die parafraseert corrigeert niets, hij verzint.
     - **Verwijderen alleen bij rood.** `_verwerk_critic` normaliseert dat al; hier vertrouwen we daar
-      niet blind op — het is de enige onomkeerbare handeling in deze functie.
+      niet blind op – het is de enige onomkeerbare handeling in deze functie.
     """
     op_id = {str(f.get("id", "")): f for f in feedback if f.get("id")}
     uit: list[dict[str, Any]] = []
@@ -369,14 +369,14 @@ def pas_critic_toe(
 
         nieuw = dict(v)
 
-        # GEEL VERANDERT NOOIT IETS. Een voorgestelde klasse wordt een alternatief — de werkplek
+        # GEEL VERANDERT NOOIT IETS. Een voorgestelde klasse wordt een alternatief – de werkplek
         # maakt er een aanklikbare chip van, dus de jurist neemt hem over met één klik en dan staat
         # het als zíjn beslissing in het spoor. Een voorgesteld frágment kent die tussenvorm niet en
         # blijft dus alleen in de motivatie staan; de jurist kan het fragment zelf herselecteren.
         #
         # In beide gevallen is de instructie hier AFGEHANDELD en gaat hij niet door naar de
         # herziener. Deed hij dat wel, dan voerde een taalmodel alsnog uit wat we juist ter
-        # beoordeling wilden voorleggen — op dev kortte hij zo twee fragmenten in op een geel advies.
+        # beoordeling wilden voorleggen – op dev kortte hij zo twee fragmenten in op een geel advies.
         if actie in ("vervang", "verwijder") and not rood:
             if klasse in GELDIGE_JAS_KLASSEN and klasse != nieuw.get("klasse"):
                 alts = list(nieuw.get("alternatieven") or [])
@@ -393,7 +393,7 @@ def pas_critic_toe(
             # Stond die klasse al als alternatief op het element (bijv. omdat hetzelfde fragment in
             # twee klassen was voorgesteld en `_voeg_alternatief_toe` er een alternatief van maakte),
             # dan is hij nu de hoofdklasse. Hem laten staan levert de jurist een chip op die naar de
-            # keuze wijst die er al staat — op dev kregen twee elementen zo een alternatief dat gelijk
+            # keuze wijst die er al staat – op dev kregen twee elementen zo een alternatief dat gelijk
             # was aan hun eigen klasse. Dezelfde invariant die `_voeg_alternatief_toe` bewaakt.
             alts = [a for a in (nieuw.get("alternatieven") or []) if str(a.get("klasse")) != klasse]
             if alts != (nieuw.get("alternatieven") or []):
@@ -420,7 +420,7 @@ def pas_critic_toe(
             nieuw["critic"] = ""
         else:
             # Rood, maar niets uitvoerbaars: het voorgestelde fragment staat niet letterlijk in de
-            # bron, of de klasse was al zo. Dít is wat de herziener nog kan oplossen — hij mag de
+            # bron, of de klasse was al zo. Dít is wat de herziener nog kan oplossen – hij mag de
             # brontekst lezen en het bedoelde fragment opzoeken.
             rest.append(f)
         uit.append(nieuw)
@@ -431,14 +431,14 @@ def pas_critic_toe(
 def demp_zelfweerspreking(voorstellen: list[dict[str, Any]]) -> int:
     """Zwak een eindoordeel af dat de eigen uitgevoerde correctie terugdraait. Geeft het aantal terug.
 
-    De eindbeoordeling gaat rechtstreeks naar de jurist — daar zit geen patcher meer achter die hem
+    De eindbeoordeling gaat rechtstreeks naar de jurist – daar zit geen patcher meer achter die hem
     kan wegen. Komt de Critic daar terug op een klasse die hij zélf in de vorige ronde liet
     aanbrengen, dan levert dat een rode kaart op waarin de agent zichzelf tegenspreekt. Op dev stond
     er zo "dit is een Rechtsobject, geen Rechtsbetrekking" op een element dat hij één ronde eerder
     van Rechtsobject náár Rechtsbetrekking had gebracht.
 
     Dat is geen zekerheid maar twijfel: hetzelfde fragment, twee keer gewogen, twee uitkomsten. Dus
-    behandelen we het als twijfel — de klasse blijft staan, het niveau zakt naar geel en de andere
+    behandelen we het als twijfel – de klasse blijft staan, het niveau zakt naar geel en de andere
     lezing komt als alternatief naast de kaart te liggen. De jurist ziet beide en kiest.
 
     Een eindoordeel over iets ánders (het fragment, overlap, een klasse die de Critic niet zelf heeft
@@ -467,7 +467,7 @@ def demp_zelfweerspreking(voorstellen: list[dict[str, Any]]) -> int:
     return gedempt
 
 
-# De spaties eromheen blijven van de motivatie, niet van de match — anders plakken de woorden
+# De spaties eromheen blijven van de motivatie, niet van de match – anders plakken de woorden
 # aan weerszijden van een vervangen id aan elkaar.
 _ELEMENT_ID = re.compile(r"(?:\[|\()?(?:id\s*=\s*)?\b([0-9a-f]{12})\b(?:\]|\))?")
 
@@ -476,7 +476,7 @@ def vervang_ids_door_citaat(motivatie: str, voorstellen: list[dict[str, Any]]) -
     """Zet interne element-ids in een Critic-motivatie om naar het fragment waar ze op slaan.
 
     De Critic krijgt de ids in zijn prompt omdat hij zijn oordeel eraan moet hangen, en verwijst
-    vervolgens naar buurelementen met diezelfde id — "de Voorwaarde zit eigenlijk in [635074d49a74]".
+    vervolgens naar buurelementen met diezelfde id – "de Voorwaarde zit eigenlijk in [635074d49a74]".
     Die motivatie staat één-op-één op de reviewkaart, dus de jurist las een hexcode. Dat gebeurde op
     dev in drie van de zestien kaarten.
 
@@ -511,7 +511,7 @@ def openstaand_voorstel(voorstel: dict[str, Any], corpus: str) -> tuple[str, str
     naselecteren. Hetzelfde geldt voor een voorgestelde klasse: bij een eerdere ronde maakt de patcher
     daar een alternatief van, maar in de eindronde draait die niet meer.
 
-    Uitvoeren doen we het niet — het oordeel ís het sluitstuk, en er komt geen ronde meer overheen die
+    Uitvoeren doen we het niet – het oordeel ís het sluitstuk, en er komt geen ronde meer overheen die
     er iets van kan vinden. Maar het als aanklikbare suggestie naast de kaart leggen kan wel; dan
     landt het als een beslissing van de jurist. Dezelfde eis als overal: letterlijk in de bron.
     """
@@ -539,7 +539,7 @@ def openstaand_voorstel(voorstel: dict[str, Any], corpus: str) -> tuple[str, str
 def _markeer_toegepast(voorstel: dict[str, Any]) -> None:
     """Zet `toegepast` op de laatste Critic-ronde van dit element.
 
-    Zonder dit verschilt "de Critic vroeg erom" niet van "het is ook gebeurd" — en juist dat verschil
+    Zonder dit verschilt "de Critic vroeg erom" niet van "het is ook gebeurd" – en juist dat verschil
     moet een auditspoor kunnen laten zien.
     """
     rondes = voorstel.get("critic_rondes") or []
@@ -551,7 +551,7 @@ def _balanced_objecten(text: str) -> Iterator[str]:
     """Yield elke gebalanceerde {…}-substring op élk niveau (string-/escape-bewust).
 
     Elementen zitten genest in de wrapper `{"elementen": [ {…}, {…} ]}`, dus we moeten ook geneste
-    objecten opleveren. Een afgekapt (nooit-gesloten) object levert niets op — precies wat we willen.
+    objecten opleveren. Een afgekapt (nooit-gesloten) object levert niets op – precies wat we willen.
     """
     stack: list[int] = []
     in_str = False
@@ -579,7 +579,7 @@ def _parse_elementen(text: str) -> list[dict[str, Any]]:
 
     Fast-path: de hele respons als één JSON-object met `elementen`. Faalt dat (proza eromheen,
     afgekapt op max_tokens, code-fences), dan **salvagen** we de losse gebalanceerde {…}-objecten die
-    op een element lijken (met `klasse` én `tekst`) — zo overleeft een afgekapt of omlijst antwoord
+    op een element lijken (met `klasse` én `tekst`) – zo overleeft een afgekapt of omlijst antwoord
     (het onvolledige laatste object valt weg, de complete blijven) i.p.v. dat álles wegvalt.
     """
     raw = (text or "").strip()
@@ -611,7 +611,7 @@ def _voeg_alternatief_toe(voorstel: AnnotatieVoorstel, klasse: str, motivatie: s
     """Neem een tweede lezing van dezelfde span op als alternatief bij het eerste voorstel.
 
     Doet niets als het dezelfde klasse is (dan is het een echte herhaling) of als de klasse al als
-    alternatief staat — anders groeit de lijst met dubbelen bij elke ronde.
+    alternatief staat – anders groeit de lijst met dubbelen bij elke ronde.
     """
     if klasse == voorstel.klasse or any(a.klasse == klasse for a in voorstel.alternatieven):
         return
@@ -624,12 +624,12 @@ def _verwerk(
 ) -> tuple[list[AnnotatieVoorstel], list[VerworpenFragment]]:
     """Parse de LLM-JSON, valideer klasse + brongetrouwheid, bereken vindplaats.
 
-    Is een `scope_lid` gezet (annotatie tot één lid), dan wint dat voor de vindplaats — elke markering
+    Is een `scope_lid` gezet (annotatie tot één lid), dan wint dat voor de vindplaats – elke markering
     verwijst dan naar dat lid, ook als het model het lid-veld leeg laat.
 
     `geldige_ids` begrenst welke id's het model mag hergebruiken, en wordt door de **herziening**
     meegegeven: daar krijgt het model bestaande voorstellen te zien, en een verwisseld id zou dan
-    element A overschrijven met de inhoud van B — inclusief de beslissingen van de jurist en het
+    element A overschrijven met de inhoud van B – inclusief de beslissingen van de jurist en het
     auditspoor die eraan hangen. Een id buiten de set wordt genegeerd; het voorstel krijgt een vers
     id en komt er dus naast te staan in plaats van iets stuk te maken.
 
@@ -671,13 +671,13 @@ def _verwerk(
         ]
         # Prioriteitsvalidatie (deterministisch, geen LLM): corrigeer de klasse als een
         # alternatief hogere JAS-prioriteit heeft (bv. Tijdsaanduiding > Variabele).
-        # Eén bron van waarheid: REGELS in jas_klassen.py — geen aparte prompt-proza nodig.
+        # Eén bron van waarheid: REGELS in jas_klassen.py – geen aparte prompt-proza nodig.
         klasse, alts = _pas_prioriteitsregels_toe(klasse, alts)
         # Twee keer hetzelfde fragment in één ronde: het model herhaalt zich. De eerste telt —
         # die draagt eventueel het id uit een eerdere ronde, en daaraan hangen de beslissingen.
         # Gaat het om dezelfde span met een ANDERE klasse, dan is dat geen herhaling maar twijfel:
         # de tweede lezing wordt een alternatief op het eerste voorstel in plaats van een tweede
-        # element. Eén klasse per element, de andere lezing zichtbaar — stil weggooien zou precies
+        # element. Eén klasse per element, de andere lezing zichtbaar – stil weggooien zou precies
         # de twijfel verbergen die de jurist moet zien.
         sleutel = sleutel_van(fragment, lid)
         if (eerste := gezien.get(sleutel)) is not None:
@@ -686,12 +686,12 @@ def _verwerk(
         vindplaats = f"{bwb_id} art. {artikel}" + (f" lid {lid}" if lid else "")
         # Bereken de anker-offsets op de originele brontekst. De genormaliseerde positie is al
         # bekend (idx in norm_corpus); we mappen die terug naar de originele tekst zodat de UI
-        # exact de juiste tekens kan markeren — ook als de brontekst meerdere witruimte-varianten
+        # exact de juiste tekens kan markeren – ook als de brontekst meerdere witruimte-varianten
         # bevat die _normaliseer samentrekt.
         orig_start, orig_eind = _zoek_in_origineel(corpus, norm_corpus, norm_frag)
         anker = _maak_anker(corpus, orig_start, orig_eind, lid) if orig_start >= 0 else None
         # Een id uit een eerdere ronde behouden (herziening van een bestaand element); anders een
-        # nieuw id. Zo blijft de koppeling met de Critic én met de api-elementen intact — maar
+        # nieuw id. Zo blijft de koppeling met de Critic én met de api-elementen intact – maar
         # alléén voor een id dat het model ook echt is aangeboden.
         bestaand_id = str(e.get("id", "")).strip()
         if geldige_ids is not None and bestaand_id and bestaand_id not in geldige_ids:
@@ -716,14 +716,14 @@ def _verwerk(
 def _verwerk_critic(llm_text: str, ids: list[str]) -> tuple[dict[str, CriticOordeel], list[OntbrekendItem]]:
     """Parse het Critic-JSON: per element-id een oordeel + een ontbrekend-lijst.
 
-    Koppelt op `id`, met `index` (positie in `ids`) als terugval — een model dat het id-veld vergeet
+    Koppelt op `id`, met `index` (positie in `ids`) als terugval – een model dat het id-veld vergeet
     verliest zo niet stilzwijgend álles. Op positie alleen koppelen kan niet meer: zodra een
     herzieningsronde een element toevoegt of weglaat, schuiven de indices en landt een oordeel op het
     verkeerde element.
 
     Robuust tegen proza/afkapping (fast-path hele-JSON, anders de gebalanceerde {…}-objecten).
     Ongeldige aandacht-waarden, onbekende id's en indices buiten bereik worden genegeerd. Nooit
-    exceptions naar de caller — de Critic mag de annotatie niet breken.
+    exceptions naar de caller – de Critic mag de annotatie niet breken.
     """
     oordelen: dict[str, CriticOordeel] = {}
     ontbrekend: list[OntbrekendItem] = []

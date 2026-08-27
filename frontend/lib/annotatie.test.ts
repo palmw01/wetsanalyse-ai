@@ -54,7 +54,7 @@ describe("mergeVoorstellen", () => {
     expect(uit).toHaveLength(1);
   });
 
-  it("vervangt op id — de laatste ronde wint", () => {
+  it("vervangt op id – de laatste ronde wint", () => {
     const eerst = mergeVoorstellen([], voorstel({ id: "a1", klasse: "Rechtsfeit" }));
     const na = mergeVoorstellen(eerst, voorstel({ id: "a1", klasse: "Voorwaarde", aandacht: "groen" }));
     expect(na).toHaveLength(1);
@@ -76,7 +76,7 @@ describe("mergeVoorstellen", () => {
     expect(na[0].toelichting).toBe("beter");
   });
 
-  it("houdt een herclassificatie op hetzelfde element — de klasse telt niet mee", () => {
+  it("houdt een herclassificatie op hetzelfde element – de klasse telt niet mee", () => {
     // Regressie: telde de klasse mee in de sleutel, dan werd een herziening die alleen
     // herclassificeerde een tweede kaart naast het origineel. Zowel mét id als zonder.
     const metId = mergeVoorstellen(
@@ -109,19 +109,19 @@ describe("kandidaten bij een onderwerp-vraag", () => {
   const k = { bwbId: "BWBR0004770", artikel: "36a", lid: "1", citeertitel: "Invorderingswet 1990" };
 
   it("noemt lid alleen als er een lid is", () => {
-    expect(kandidaatLabel(k)).toBe("Artikel 36a, lid 1 — Invorderingswet 1990");
+    expect(kandidaatLabel(k)).toBe("Artikel 36a, lid 1 – Invorderingswet 1990");
     expect(kandidaatLabel({ bwbId: "BWBR1", artikel: "36" })).toBe("Artikel 36");
   });
 
   it("zet het bwbId in de vervolgopdracht", () => {
-    // Zonder bwbId moet de ophaal-agent opnieuw zoeken op de citeertitel — en kan hij bij een
+    // Zonder bwbId moet de ophaal-agent opnieuw zoeken op de citeertitel – en kan hij bij een
     // andere bepaling uitkomen dan die de jurist aanwees.
     expect(kandidaatPrompt(k)).toContain("BWBR0004770");
     expect(kandidaatPrompt(k)).toContain("artikel 36a lid 1");
   });
 
   it("levert de keuze ook als gestructureerd doel", () => {
-    // Hiermee slaat de agent de supervisor en de ophaal-agent over — en kan hij niet bij een
+    // Hiermee slaat de agent de supervisor en de ophaal-agent over – en kan hij niet bij een
     // andere bepaling uitkomen dan de jurist zojuist aanwees.
     expect(doelVanKandidaat(k)).toEqual({
       bwbId: "BWBR0004770",
@@ -141,7 +141,7 @@ describe("kandidaten bij een onderwerp-vraag", () => {
   it("bewaart de keuze leesbaar voor na een herlaadbeurt", () => {
     const tekst = kandidatenAlsTekst("Ik vond 2 bepalingen.", [k, { bwbId: "BWBR1", artikel: "36" }]);
     expect(tekst.split("\n")).toHaveLength(3);
-    expect(tekst).toContain("- Artikel 36a, lid 1 — Invorderingswet 1990");
+    expect(tekst).toContain("- Artikel 36a, lid 1 – Invorderingswet 1990");
   });
 });
 
@@ -269,7 +269,7 @@ describe("pastInFilter", () => {
     expect(pastInFilter(el("b", { lifecycle: "human_approved" }), "te_beoordelen")).toBe(false);
   });
 
-  it("filtert op aandacht — groen telt niet mee", () => {
+  it("filtert op aandacht – groen telt niet mee", () => {
     expect(pastInFilter(el("r", { aandacht: "rood" }), "aandacht")).toBe(true);
     expect(pastInFilter(el("g", { aandacht: "groen" }), "aandacht")).toBe(false);
     expect(pastInFilter(el("x"), "aandacht")).toBe(false);
@@ -430,12 +430,12 @@ describe("vraagContextLabel", () => {
     const label = vraagContextLabel(el("e1", { klasse: "Voorwaarde", tekst: "indien", lid: "1" }), {
       artikel: "36",
     } as AnnotatieDocument);
-    expect(label).toBe("Voorwaarde — “indien” (art. 36 lid 1)");
+    expect(label).toBe("Voorwaarde – “indien” (art. 36 lid 1)");
   });
 
   it("laat de vindplaats weg als het document onbekend is", () => {
     expect(vraagContextLabel(el("e1", { klasse: "Voorwaarde", tekst: "indien" }))).toBe(
-      "Voorwaarde — “indien”",
+      "Voorwaarde – “indien”",
     );
   });
 });
@@ -520,21 +520,21 @@ describe("annotatieTitel", () => {
 
   it("zet naam en vindplaats samen tot één label", () => {
     expect(annotatieTitel({ ...basis, citeertitel: "Invorderingswet 1990" })).toBe(
-      "Invorderingswet 1990 — art. 9",
+      "Invorderingswet 1990 – art. 9",
     );
   });
 
   it("neemt het lid mee als het document op één lid is afgebakend", () => {
     expect(annotatieTitel({ ...basis, citeertitel: "Invorderingswet 1990", lid: "2" })).toBe(
-      "Invorderingswet 1990 — art. 9 lid 2",
+      "Invorderingswet 1990 – art. 9 lid 2",
     );
   });
 
   it("valt terug op werkgebied en dan op het bwbId, net als de server", () => {
     expect(annotatieTitel({ ...basis, werkgebied: "Uitstel van betaling" })).toBe(
-      "Uitstel van betaling — art. 9",
+      "Uitstel van betaling – art. 9",
     );
-    expect(annotatieTitel(basis)).toBe("BWBR0004770 — art. 9");
+    expect(annotatieTitel(basis)).toBe("BWBR0004770 – art. 9");
   });
 });
 

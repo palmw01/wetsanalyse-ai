@@ -2,7 +2,7 @@
 
 Waarom deze test bestaat. graph-qa en de api hebben elk hun eigen model van hetzelfde object, en ze
 komen alleen samen in één HTTP-call in een ánder proces. Een verschil tussen die twee is daar geen
-typefout maar een 422 — en omdat de PUT alles-of-niets is, verliest de jurist dan de complete
+typefout maar een 422 – en omdat de PUT alles-of-niets is, verliest de jurist dan de complete
 annotatie. Dat is op dev gebeurd met `aandacht`: de agent kent `str = ""`, de api `Aandacht | None`.
 De agent was klaar en gegrond, het document bleef leeg.
 
@@ -35,7 +35,7 @@ OPGEVANGEN = {
     ("AnnotatieVoorstel", "id"),
 }
 
-#: Agent-velden die de api niet kent. Pydantic negeert ze; dat is hier gewenst — het is interne staat
+#: Agent-velden die de api niet kent. Pydantic negeert ze; dat is hier gewenst – het is interne staat
 #: van de agent, geen onderdeel van het annotatie-domein.
 INTERN = {("AnnotatieVoorstel", "grounded")}
 
@@ -51,7 +51,7 @@ def _api_velden(klasse: str) -> dict[str, str]:
     """De veldtypes van één contractklasse, uit de bron gelezen.
 
     Importeren kan niet: `annotatie_contracts` gebruikt relatieve imports en graph-qa heeft de api
-    niet als afhankelijkheid — dat is juist de scheiding die deze test bewaakt.
+    niet als afhankelijkheid – dat is juist de scheiding die deze test bewaakt.
     """
     bron = CONTRACT.read_text()
     blok = re.search(rf"^class {klasse}\(BaseModel\):(.*?)(?=^class |\Z)", bron, re.S | re.M)
@@ -75,7 +75,7 @@ ALIAS = {"AnnotatieAlternatief": "Alternatief"}
 def _vorm(annotatie: object) -> str:
     """De vorm van een type, zonder module-paden: `list[a.b.C]` en `list[C]` zijn hetzelfde.
 
-    Niet splitsen op de laatste punt — dat verminkt `list[...]` tot `C]` en levert vals alarm.
+    Niet splitsen op de laatste punt – dat verminkt `list[...]` tot `C]` en levert vals alarm.
     """
     tekst = str(annotatie).replace("typing.", "").replace("<class '", "").replace("'>", "")
     tekst = re.sub(r"[\w.]*\.(\w+)", r"\1", tekst)

@@ -92,7 +92,7 @@ def run_imports(bwb_ids: list[str], settings: Settings) -> list[ImportResult]:
     """Importeer meerdere regelingen sequentieel met één gedeelde writer.
 
     Per wet idempotent (named-graph PUT); een falende wet breekt de batch
-    niet — de fout komt in het per-wet resultaat terecht.
+    niet – de fout komt in het per-wet resultaat terecht.
     """
     writer = maak_writer(settings)
     prepare(writer)

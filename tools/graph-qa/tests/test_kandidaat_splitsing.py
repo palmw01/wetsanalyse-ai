@@ -4,7 +4,7 @@ Met `enable_kandidaat_splitsing` aan loopt de annotatie via twee LLM-calls in pl
 `annoteer_kandidaten_node` zoekt spans zonder ze te classificeren, `annoteer_klasseer_node` hangt er
 de JAS-klasse aan. Alles daarna (Critic, patch, emit) is ongewijzigd.
 
-Deze route was tot nu toe volledig ongetest — de vlag staat default uit, dus de andere tests liepen
+Deze route was tot nu toe volledig ongetest – de vlag staat default uit, dus de andere tests liepen
 er nooit doorheen. Wat hier vastligt is precies wat er dan misging: het corpus moet van de ene node
 naar de andere komen, een onderwerp mag ook hier niet geannoteerd worden, en een bepaling die niet
 op te halen is hoort dat te zeggen in plaats van "geen elementen gevonden".
@@ -87,7 +87,7 @@ def test_filter_houdt_alleen_wat_letterlijk_in_de_tekst_staat():
     corpus = "De ontvanger verleent uitstel van betaling."
     ruw = parse_kandidaten(json.dumps({"kandidaten": [
         {"span": "De ontvanger", "lid": "1"},
-        {"span": "de curator", "lid": "1"},          # staat er niet — verzonnen span
+        {"span": "de curator", "lid": "1"},          # staat er niet – verzonnen span
         {"span": "x", "lid": "1"},                   # te kort
         {"span": "De ontvanger", "lid": "1"},        # dubbel
     ]}))
@@ -108,7 +108,7 @@ def test_de_gesplitste_route_grondt_tegen_de_opgehaalde_tekst():
     """De kern: `annoteer_kandidaten_node` haalt het corpus op, `annoteer_klasseer_node` gebruikt het.
 
     Gaf de eerste node het corpus niet mee, dan grondde de tweede elk fragment tegen een lege tekst
-    en verwierp hij alles — een annotatie die stilzwijgend niets oplevert.
+    en verwierp hij alles – een annotatie die stilzwijgend niets oplevert.
     """
     events = _annoteer(_volledige_keten())
 

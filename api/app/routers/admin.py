@@ -1,16 +1,16 @@
-"""Admin-resource (gemount onder /v1/admin) — LLM-modelprofielen, gebruikers en genereerbare
+"""Admin-resource (gemount onder /v1/admin) – LLM-modelprofielen, gebruikers en genereerbare
 API-tokens beheren.
 
 Alles achter `require_admin` (aparte admin-bearer, fail-closed). De plaintext-API-key komt
 NOOIT terug in een respons: clients zien alleen `api_key_set`. Het schrijven van een key
 vereist een geconfigureerde master key (LLM_CONFIG_SECRET); ontbreekt die → 400.
 
-PUT    /v1/admin/profiles/{name}          — maak/werk profiel bij (api_key write-only)
-GET    /v1/admin/profiles                 — lijst
-GET    /v1/admin/profiles/{name}          — één profiel
-DELETE /v1/admin/profiles/{name}          — verwijder (niet de default)
-POST   /v1/admin/profiles/{name}/default  — markeer als default
-POST   /v1/admin/profiles/{name}/test     — test de verbinding (kleine LLM-call)
+PUT    /v1/admin/profiles/{name}          – maak/werk profiel bij (api_key write-only)
+GET    /v1/admin/profiles                 – lijst
+GET    /v1/admin/profiles/{name}          – één profiel
+DELETE /v1/admin/profiles/{name}          – verwijder (niet de default)
+POST   /v1/admin/profiles/{name}/default  – markeer als default
+POST   /v1/admin/profiles/{name}/test     – test de verbinding (kleine LLM-call)
 """
 
 from __future__ import annotations
@@ -164,14 +164,14 @@ async def test_profiel(name: str):
         )
     except SecretsCryptoError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:  # noqa: BLE001 — geef een gesaniteerde melding, lek geen requestdetails
+    except Exception as e:  # noqa: BLE001 – geef een gesaniteerde melding, lek geen requestdetails
         # De ruwe provider-exceptie kan endpoint-URL's, headers of (delen van) de key
         # bevatten; die hoort in het server-log, niet in de API-respons.
         logger.warning("Verbindingstest profiel %r mislukt: %s: %s", name, type(e).__name__, e)
         return TestResult(
             ok=False,
             model=cfg.model if cfg else "",
-            detail="Verbinding met de modelprovider mislukt — zie het server-log voor details.",
+            detail="Verbinding met de modelprovider mislukt – zie het server-log voor details.",
         )
     return TestResult(ok=True, model=res.model, tokens_in=res.tokens_in, tokens_out=res.tokens_out)
 
@@ -234,7 +234,7 @@ async def maak_user(body: UserCreateIn):
 @router.patch("/users/{userid}", response_model=UserOut)
 async def wijzig_user(userid: str, body: UserPatchIn):
     try:
-        # Rol + active in één atomaire patch (invariant op de eind-toestand — voorkomt de TOCTOU
+        # Rol + active in één atomaire patch (invariant op de eind-toestand – voorkomt de TOCTOU
         # waarbij twee losse checks de laatste actieve beheerder alsnog laten verdwijnen).
         user = await users.patch_user(userid, role=body.role, active=body.active)
     except users.UserError as e:
@@ -295,7 +295,7 @@ def _token_to_out(t: dict) -> ApiTokenOut:
 
 @router.get("/api-tokens", response_model=list[ApiTokenOut])
 async def lijst_api_tokens():
-    """Overzicht van genereerbare API-tokens — nooit de hash of het volledige token, alleen het prefix."""
+    """Overzicht van genereerbare API-tokens – nooit de hash of het volledige token, alleen het prefix."""
     return [_token_to_out(t) for t in await api_tokens.list_tokens()]
 
 
@@ -373,7 +373,7 @@ async def lijst_berichten(
     pagina: int = Query(default=1, ge=1),
     # Default ruim gehouden (i.t.t. de 20 van de analist-route): tools/wetsanalyse-admin-mcp
     # roept dit endpoint ongepagineerd aan voor de "release notes schrijven"-workflow en
-    # heeft geen offset/limit-parameter om verder te bladeren — een kleinere default zou
+    # heeft geen offset/limit-parameter om verder te bladeren – een kleinere default zou
     # oudere berichten stil onbereikbaar maken voor die tool.
     per_pagina: int = Query(default=100, ge=1, le=500),
 ):

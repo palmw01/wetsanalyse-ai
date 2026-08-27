@@ -11,7 +11,7 @@ import type { AnnotatieElement, OntbrekendItem } from "@/lib/types";
 /** Wat de Critic nog mist, als werkvoorraad in plaats van als mededeling.
  *
  *  De Critic levert deze lijst nadat de herzieningslus is uitgewerkt: het is dus wat de annoteerder
- *  níét heeft opgelost. Meestal omdat er geen letterlijk fragment bij stond — en zonder fragment kan
+ *  níét heeft opgelost. Meestal omdat er geen letterlijk fragment bij stond – en zonder fragment kan
  *  niemand het toevoegen, want elk element moet letterlijk in de wettekst staan.
  *
  *  Staat het fragment er wél bij en is het terug te vinden, dan is toevoegen één klik: het wordt jouw
@@ -19,7 +19,7 @@ import type { AnnotatieElement, OntbrekendItem } from "@/lib/types";
  *
  *  **Er is geen "wegleggen".** Dit is informatie, geen takenlijst: wat je toevoegt verdwijnt vanzelf
  *  uit de openstaande lijst, en waar je het niet mee eens bent laat je staan. Een wegklik-knop
- *  suggereerde een afhandeling die nergens werd vastgelegd — terwijl juist "Lex zag hier een
+ *  suggereerde een afhandeling die nergens werd vastgelegd – terwijl juist "Lex zag hier een
  *  Rechtssubject en ik vind van niet" een interpretatiekeuze is die je in het spoor zou willen
  *  terugvinden. Zolang dat spoor er niet is, is niets vastleggen eerlijker dan doen alsof.
  */
@@ -31,7 +31,7 @@ export function OntbrekendLijst({
   onToevoegen,
 }: {
   items: OntbrekendItem[];
-  /** De samengevoegde artikeltekst — hierin wordt het fragment opgezocht. */
+  /** De samengevoegde artikeltekst – hierin wordt het fragment opgezocht. */
   bron: string;
   /** De regels mét hun lidnummer, voor de lid-toewijzing van een toegevoegd item. */
   regels: LidRegel[];
@@ -53,7 +53,7 @@ export function OntbrekendLijst({
   return (
     <div className="rounded-kaart border border-dashed border-line bg-surface p-3">
       <p className="text-xs font-medium text-muted">
-        Mogelijk ontbrekend — Lex denkt dat dit er ook in zit ({openstaand})
+        Mogelijk ontbrekend – Lex denkt dat dit er ook in zit ({openstaand})
       </p>
 
       <ul className="mt-2 space-y-2">
@@ -64,7 +64,7 @@ export function OntbrekendLijst({
           const toevoegbaar = !!onToevoegen && start >= 0 && !klaar;
 
           return (
-            // Zelfde vorm als een reviewkaart: het gaat om hetzelfde ding — een JAS-klasse met een
+            // Zelfde vorm als een reviewkaart: het gaat om hetzelfde ding – een JAS-klasse met een
             // letterlijk fragment. Alleen de gestippelde rand om het blok markeert dat deze nog niet
             // in het document staan.
             <li key={i} className="rounded-kaart border border-line border-l-4 border-l-line bg-paper p-3">

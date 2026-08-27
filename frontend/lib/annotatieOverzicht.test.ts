@@ -96,7 +96,7 @@ describe("kleurstrip", () => {
     ]);
   });
 
-  it("laat onbekende klassen niet verdwijnen — de strip mag niet liegen", () => {
+  it("laat onbekende klassen niet verdwijnen – de strip mag niet liegen", () => {
     const strip = kleurstrip({ Rechtssubject: 1, Verzonnen: 3 }, JAS_KLASSEN);
     expect(strip.map((s) => s.klasse)).toEqual(["Rechtssubject", "Verzonnen"]);
   });

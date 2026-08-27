@@ -1,4 +1,4 @@
-# WetsTaal 1 — Handreiking (Werkversie)
+# WetsTaal 1 – Handreiking (Werkversie)
 
 > *De syntax en semantiek van de logisch formele, declaratieve en breed begrijpelijke taal.*
 
@@ -12,10 +12,10 @@
 | Vorige versie | https://okubbe.github.io/wetstaal_1_documentatie/v0.0.2 |
 | Redacteur | WetsTaal (WetsTaal) |
 | Auteurs | Sjir Nijssen (PNA Group); Diederik Dulfer (Belastingdienst); Onno Kubbe (Belastingdienst) |
-| Doe mee | GitHub okubbe/wetstaal_1_documentatie — Dien een melding in · Revisiehistorie · Pull requests |
+| Doe mee | GitHub okubbe/wetstaal_1_documentatie – Dien een melding in · Revisiehistorie · Pull requests |
 | Licentie | Creative Commons 0 Public Domain Dedication |
 
-**Samenvatting** — *(in de bron leeg gelaten.)*
+**Samenvatting** – *(in de bron leeg gelaten.)*
 
 ## Status van dit document
 
@@ -128,7 +128,7 @@ de drager van rechten en plichten, en/of
 
 In onderstaand diagram zijn een aantal voorbeelden van rechtssubjecten gegeven die bij veel Nederlanders bekend zijn.
 
-> **Figuur 1 voorbeelden van rechtssubjecten** — *afbeelding niet overgenomen uit de PDF.*
+> **Figuur 1 voorbeelden van rechtssubjecten** – *afbeelding niet overgenomen uit de PDF.*
 
 In bovenstaand diagram is onder meer ook het volgende uitgebeeld:
 
@@ -204,11 +204,11 @@ De voorwaarde op de specialisatie van het rechtssubject voetganger op het trotto
 
 In onderstaand formulier zijn 5 gestructureerde gegevens ingevuld bij een rechtssubject, het vijfde is de bron. Het ter beschikking hebben van het gestructureerde gegeven Bron helpt om met krachtige ondervraagtalen effectief te kunnen werken bij wetgeving en wetsuitvoering.
 
-> **Figuur 2 Invulformulier rechtssubject I** — *afbeelding niet overgenomen uit de PDF.*
+> **Figuur 2 Invulformulier rechtssubject I** – *afbeelding niet overgenomen uit de PDF.*
 
 Het tweede voorbeeld van een rechtssubject dat voorkomt in RVV, art 74, lid is hieronder ingevuld in een invulformulier voor Rechtssubject. Men zou kunnen dat er twee gegevens records zijn gebruikt om de volledig geëxpliciteerde kennis te kunnen borgen van de twee van de drie rechtssubjecten in RVV, art 74, lid 1. Wie is het derde Rechtssubject? Dat staat niet in RVV, art 74, lid 1. Dat heeft het multidisciplinaire team op basis van de patronen van WetsTaal na beraad toegevoegd. En dat is de Staat.
 
-> **Figuur 3 Invulformulier rechtssubject II** — *afbeelding niet overgenomen uit de PDF.*
+> **Figuur 3 Invulformulier rechtssubject II** – *afbeelding niet overgenomen uit de PDF.*
 
 De hierboven ingevulde formulieren laten de 5 gestructureerde gegevens zien van een rechtssubject.
 
@@ -216,7 +216,7 @@ De hierboven ingevulde formulieren laten de 5 gestructureerde gegevens zien van 
 
 Het patroon rond rechtssubject is op grammaticaal niveau en dat is veel abstracter dan het concreet ingevulde formulier voor rechtssubject. Het invulformulier bevat een instantiatie of invulling van het patroon. Het patroon is hieronder weergegeven. Hier is het gestructureerde gegeven voor bron weggelaten evenals de twee optionele mogelijkheden om een korte code of langere naam toe te wijzen. M.a.w. in het meest expliciete geval hebben we te doen met 5 gestructureerde gegevens om een rechtssubject volledig declaratief te beschrijven.
 
-> **Figuur 4 Patroon rechtssubject I** — *afbeelding niet overgenomen uit de PDF.*
+> **Figuur 4 Patroon rechtssubject I** – *afbeelding niet overgenomen uit de PDF.*
 
 ### § 3.7 De samenhang tussen patroon en ingevuld formulier voor rechtssubject
 
@@ -226,7 +226,7 @@ De ervaring heeft ons geleerd dat het nuttig is om de samenhang van het concrete
 
 Ook is nuttig gebleken om rechtswetenschappelijke kennis zowel in tekst als in schemavorm weer te geven. Over het algemeen is schemavorm een meer productieve vorm. Door twee kennisrepresentaties ter beschikking te stellen hebben de professionals in het MDT keuze.
 
-> **Figuur 5 Patroon rechtssubject II** — *afbeelding niet overgenomen uit de PDF.*
+> **Figuur 5 Patroon rechtssubject II** – *afbeelding niet overgenomen uit de PDF.*
 
 Dit patroon kan worden gebruik tijdens het wetgevingsproces om de feiten over rechtssubject compleet te krijgen vanaf het prille begin. In het wetsanalyse proces worden dezelfde patronen gebruikt om de kennis die nogal eens ontbreekt in wetgeving aan te vullen en alsnog aldus volledig geëxpliciteerd te krijgen.
 
@@ -272,7 +272,7 @@ Om in lijn te blijven met de voorbeelden gegeven onder rechtssubject, wordt het 
 
 2. RVV, art. 74, lid 1, onder c, 1e zin.
 
-> **Figuur 6 Rechtsbetrekkingen** — *afbeelding niet overgenomen uit de PDF.*
+> **Figuur 6 Rechtsbetrekkingen** – *afbeelding niet overgenomen uit de PDF.*
 
 De verwoording van het hierboven afgebeelde van het objectieve recht is als volgt:
 
@@ -306,7 +306,7 @@ Als tussentijdse samenvatting kunnen we het volgende zeggen: Een rechtsbetrekkin
 
 Hierboven zijn de 9 eigenschappen van een rechtsbetrekking beschreven. In een schema kan dit bovenstaand tekstueel patroon als volgt worden weergegeven (let op de bron is hieronder niet weergegeven evenals de twee identificatievormen, waarvan er een optioneel is):
 
-> **Figuur 7 Patroon rechtsbetrekking I** — *afbeelding niet overgenomen uit de PDF.*
+> **Figuur 7 Patroon rechtsbetrekking I** – *afbeelding niet overgenomen uit de PDF.*
 
 ### § 4.3 Elke rechtsbetrekking in het objectieve recht krijgt een identificatie toegewezen
 
@@ -390,7 +390,7 @@ In deze rechtsbetrekking geldt als voorwaarde ‘bij rood voetgangerslicht’. E
 
 Laten we nu eens kijken hoe een aantal gestructureerde gegevens betreffende rechtssubjecten en rechtsbetrekkingen samenhangt.
 
-> **Figuur 8 Patroon rechtsbetrekking II** — *afbeelding niet overgenomen uit de PDF.*
+> **Figuur 8 Patroon rechtsbetrekking II** – *afbeelding niet overgenomen uit de PDF.*
 
 De verwoording van bovenstaande gestructureerde gegevens (vier voorbeelden van relaties tussen een rechtssubject en een rechtsbetrekking) is als volgt: (waarbij we de identificatiefeiten niet herhalen.)
 
@@ -488,19 +488,19 @@ Helaas is in art 74 of elders in het RVV nergens informatie te vinden waar we de
 
 TO-DO Overweeg een 4e ondersoort op te nemen, te weten een fatale of na ingebrekestelling rechtsbetrekking.
 
-> **Figuur 9 Invulformulier rechtsbetrekking** — *afbeelding niet overgenomen uit de PDF.*
+> **Figuur 9 Invulformulier rechtsbetrekking** – *afbeelding niet overgenomen uit de PDF.*
 
 ### § 4.12 Het patroon rond rechtsbetrekking
 
 Het patroon rond rechtsbetrekking laat de gestructureerde gegevenstypes zien.
 
-> **Figuur 10 Patroon rechtsbetrekking III** — *afbeelding niet overgenomen uit de PDF.*
+> **Figuur 10 Patroon rechtsbetrekking III** – *afbeelding niet overgenomen uit de PDF.*
 
 ### § 4.13 De samenhang tussen patroon en ingevuld formulier bij rechtsbetrekking
 
 Het patroon van rechtsbetrekking is op het niveau van een grammatica en niet van een concrete uitdrukking die aan de grammatica voldoet. In het formulier is de grammatica aan de linkerkant; de invulling van de uitdrukking aan de rechterkant van het formulier.
 
-> **Figuur 11 Patroon rechtsbetrekking IV** — *afbeelding niet overgenomen uit de PDF.*
+> **Figuur 11 Patroon rechtsbetrekking IV** – *afbeelding niet overgenomen uit de PDF.*
 
 We kunnen de bovengenoemde connecties op grammatica niveau tussen de elementen van het patroon en de linkerkant van het formulier (de regels in het formulier) ook met een gestippelde lijn met aan beide kanten een pijlpunt toelichten, zoals hieronder weergegeven.
 
@@ -754,17 +754,17 @@ Naast onderdelen die als niet normatief gemarkeerd zijn, zijn ook alle diagramme
 
 > De figuren stonden in de PDF als afbeelding en zijn hier niet overgenomen.
 
-1. Figuur 1 — voorbeelden van rechtssubjecten
-2. Figuur 2 — Invulformulier rechtssubject I
-3. Figuur 3 — Invulformulier rechtssubject II
-4. Figuur 4 — Patroon rechtssubject I
-5. Figuur 5 — Patroon rechtssubject II
-6. Figuur 6 — Rechtsbetrekkingen
-7. Figuur 7 — Patroon rechtsbetrekking I
-8. Figuur 8 — Patroon rechtsbetrekking II
-9. Figuur 9 — Invulformulier rechtsbetrekking
-10. Figuur 10 — Patroon rechtsbetrekking III
-11. Figuur 11 — Patroon rechtsbetrekking IV
+1. Figuur 1 – voorbeelden van rechtssubjecten
+2. Figuur 2 – Invulformulier rechtssubject I
+3. Figuur 3 – Invulformulier rechtssubject II
+4. Figuur 4 – Patroon rechtssubject I
+5. Figuur 5 – Patroon rechtssubject II
+6. Figuur 6 – Rechtsbetrekkingen
+7. Figuur 7 – Patroon rechtsbetrekking I
+8. Figuur 8 – Patroon rechtsbetrekking II
+9. Figuur 9 – Invulformulier rechtsbetrekking
+10. Figuur 10 – Patroon rechtsbetrekking III
+11. Figuur 11 – Patroon rechtsbetrekking IV
 
 ## § A. Index
 

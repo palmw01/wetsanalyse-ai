@@ -13,7 +13,7 @@ export const CONTEXT_LENGTE = 48;
 /** Vingerafdruk van de brontekst. Vertelt of de offsets in een anker nog over dezelfde tekst gaan;
  *  na een herimport kan de wettekst immers geschoven zijn.
  *
- *  Geen cryptografische hash nodig — dit beschermt niet tegen manipulatie maar tegen verwarring.
+ *  Geen cryptografische hash nodig – dit beschermt niet tegen manipulatie maar tegen verwarring.
  *  Een 32-bits FNV-1a is daarvoor genoeg en werkt synchroon (SubtleCrypto is async). */
 export function bronHash(bron: string): string {
   let h = 0x811c9dc5;
@@ -35,7 +35,7 @@ export function offsetUit(lengtes: number[], knoopIndex: number, offsetInKnoop: 
 /** Trim witruimte en leestekens aan de randen van een selectie.
  *
  *  Een muisselectie pakt bijna altijd een spatie of punt te veel mee, en dat fragment moet
- *  letterlijk in de wettekst terug te vinden zijn — een meegesleepte punt maakt de markering
+ *  letterlijk in de wettekst terug te vinden zijn – een meegesleepte punt maakt de markering
  *  onnodig broos. Geeft een leeg bereik terug als er niets bruikbaars overblijft. */
 export function snapSelectie(bron: string, start: number, eind: number): { start: number; eind: number } {
   let s = Math.max(0, Math.min(start, bron.length));
@@ -61,7 +61,7 @@ export function maakAnker(bron: string, start: number, eind: number, lid = ""): 
 
 /** Eén regel van de brontekst, met het lidnummer dat erbij hoort.
  *
- *  De regel is de tekst zoals hij in de bron staat — inclusief het "3. "-voorvoegsel — want daar zijn
+ *  De regel is de tekst zoals hij in de bron staat – inclusief het "3. "-voorvoegsel – want daar zijn
  *  de offsets tegen berekend. Het lidnummer staat er los naast, want dat is niet uit de plek in de
  *  lijst af te leiden: zie `lidUitOffset`. */
 export interface LidRegel {
@@ -76,7 +76,7 @@ export interface LidRegel {
  *
  *  Let op het verschil met de plek in de lijst: dit gaf eerder `String(i + 1)` terug, en dat is alleen
  *  bij een compleet artikel met leden 1..n hetzelfde. Bij een op één lid afgebakend document levert de
- *  graaf alléén dat lid — dan is de index 0 en het lidnummer bijvoorbeeld 3 — en bij een ingevoegd lid
+ *  graaf alléén dat lid – dan is de index 0 en het lidnummer bijvoorbeeld 3 – en bij een ingevoegd lid
  *  (2a) lopen ze sowieso uiteen. Het lidnummer belandt in het element, het anker en het auditspoor,
  *  dus een gok is hier geen optie. */
 export function lidUitOffset(regels: LidRegel[], start: number): string {
@@ -93,7 +93,7 @@ export function lidUitOffset(regels: LidRegel[], start: number): string {
  *
  *  Drie stappen, van precies naar tolerant:
  *   1. het anker, als de bron-hash nog klopt en er op die plek echt dat fragment staat;
- *   2. alle voorkomens scoren op hoeveel omringende tekst overeenkomt met `voor`/`na` — zo landt een
+ *   2. alle voorkomens scoren op hoeveel omringende tekst overeenkomt met `voor`/`na` – zo landt een
  *      fragment dat drie keer in het artikel staat toch op de juiste plek, ook na een herimport;
  *   3. het eerste voorkomen dat nog vrij is.
  *

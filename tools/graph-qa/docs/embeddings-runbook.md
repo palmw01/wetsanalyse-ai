@@ -1,4 +1,4 @@
-# Runbook — semantische (vector) retrieval voor de `inning`-graaf
+# Runbook – semantische (vector) retrieval voor de `inning`-graaf
 
 Doel: naast de bestaande Lucene-FTS (`bwb_tekst`) **semantisch zoeken** mogelijk maken,
 zodat de agent bepalingen vindt op *betekenis* (andere woorden dan de wettekst) i.p.v. alleen
@@ -8,7 +8,7 @@ op exacte termen.
 > `bwb_similarity` op `inning`; `semantic_search` gebruikt 'm via de MCP-tool `similarity_search`
 > en is geactiveerd met `SIMILARITY_INDEX=bwb_similarity`. Live geverifieerd (omschrijvende vragen +
 > eval-paraphrase-cases). Route C (Azure-embeddings) blijft de kwaliteits-upgrade wanneer er een
-> embeddings-deployment is. De exact gebruikte index-config staat onder *Route A — uitgevoerd*.
+> embeddings-deployment is. De exact gebruikte index-config staat onder *Route A – uitgevoerd*.
 
 ## Uitgangssituatie (geverifieerd, juli 2026)
 
@@ -25,7 +25,7 @@ op exacte termen.
 
 ## Twee routes
 
-### Route A — GraphDB Similarity-plugin (native, geen externe API) — snelste
+### Route A – GraphDB Similarity-plugin (native, geen externe API) – snelste
 GraphDB traint zélf semantische vectoren over de literals (`bwb:tekst`). Geen embedding-endpoint,
 geen kosten. Kwaliteit is *modest* (corpus-getraind, geen modern taalmodel), maar het werkt direct
 en de MCP-`similarity_search` kan het meteen bevragen.
@@ -35,12 +35,12 @@ en de MCP-`similarity_search` kan het meteen bevragen.
 - Na het bouwen levert `get_similarity_options` de indexnaam; `similarity_search` werkt met
   `{"query": …, "similarityIndex": "<naam>", "connectorType": "similarity", "repositoryId": "inning"}`.
 
-#### Route A — uitgevoerd (`bwb_similarity`)
+#### Route A – uitgevoerd (`bwb_similarity`)
 Aangemaakt via `POST /rest/similarity` (header `X-GraphDB-Repository: inning`), body:
 - `name`: `bwb_similarity`
 - `type`: `text`, `infer`: true, `sameAs`: true
 - `analyzerClass`: `org.apache.lucene.analysis.nl.DutchAnalyzer`
-- `options`: `-trainingcycles 5 -dimension 200`  (SemanticVectors — let op: `-dimension`, niet `-vectorsize`)
+- `options`: `-trainingcycles 5 -dimension 200`  (SemanticVectors – let op: `-dimension`, niet `-vectorsize`)
 - `selectQuery`: `SELECT ?documentID ?documentText { ?documentID bwb:tekst ?documentText
   FILTER(STRSTARTS(STR(?documentID), "urn:bwb:")) }`  (eigen IRI-ruimte → geen sameAs-dubbels)
 - `searchQuery`: de standaard similarity-template (`:searchTerm`/`:documentResult`/`:value`/`:score`).
@@ -50,7 +50,7 @@ tekst: DELETE + POST, of de Workbench-rebuild.
 
 Kies dit als je **nu** semantiek wilt zonder infra. Later te vervangen door Route B.
 
-### Route B — echte embeddings via de ChatGPT-Retrieval-connector (gekozen richting)
+### Route B – echte embeddings via de ChatGPT-Retrieval-connector (gekozen richting)
 Hoogste kwaliteit: gebruik een modern embedding-model (Azure OpenAI `text-embedding-3-large`,
 dezelfde Azure-resource als de LLM) en laat GraphDB de literals daar vectoriseren via de
 **ChatGPT-Retrieval-connector** (die is in de Workbench-connectorlijst al zichtbaar, nog zonder
@@ -59,7 +59,7 @@ instance).
 **Voorbereiding (Azure):**
 1. In de Azure-AI-Foundry/OpenAI-resource een **embeddings-deployment** aanmaken:
    `text-embedding-3-large` (of `-small` voor lagere kosten). Noteer endpoint + deployment-naam + key.
-2. Bepaal de vector-dimensie (3-large = 3072, 3-small = 1536) — die moet matchen met de connector-config.
+2. Bepaal de vector-dimensie (3-large = 3072, 3-small = 1536) – die moet matchen met de connector-config.
 
 **GraphDB-connector aanmaken** (Workbench → **Connectors → ChatGPT Retrieval → New instance**, of via
 de `CREATE`-SPARQL van de connector). Kernvelden:
@@ -68,14 +68,14 @@ de `CREATE`-SPARQL van de connector). Kernvelden:
 - te indexeren velden: `bwb:tekst` (+ optioneel `rdfs:label`), met de node-IRI als id;
 - filter op type (Artikel/Lid/Divisie) om ruis/kosten te beperken.
 
-> De exacte veldnamen verschillen per GraphDB-versie — volg de connector-UI en de GraphDB-docs
+> De exacte veldnamen verschillen per GraphDB-versie – volg de connector-UI en de GraphDB-docs
 > ("ChatGPT Retrieval connector") voor 11.4. Test op een **kleine subset** (één regeling) vóór je
 > de hele graaf vectoriseert i.v.m. embedding-kosten.
 
 **Kosten/omvang:** ~1150 artikelen + ~2350 leden + ~800 divisies ≈ enkele duizenden literals →
 eenmalige embedding-kosten zijn beperkt; alleen bij her-indexeren of nieuwe regelingen komt er bij.
 
-## Graph-qa-kant (LIVE — route A)
+## Graph-qa-kant (LIVE – route A)
 
 De `semantic_search`-tool is **config-gedreven** en geactiveerd:
 - **`SIMILARITY_INDEX=bwb_similarity`** in de env (`Settings.similarity_index`). Leeg = de tool geeft

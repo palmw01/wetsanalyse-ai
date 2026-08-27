@@ -1,6 +1,6 @@
 """Lichte, niet-admin catalogus-endpoints voor de client-UI.
 
-`GET /v1/profiles` geeft alleen de bruikbare profiel-namen + welke de default is — geen provider,
+`GET /v1/profiles` geeft alleen de bruikbare profiel-namen + welke de default is – geen provider,
 model, key of verbruik (dat is admin-only via /v1/admin/profiles). Zo vult de client de
 profiel-dropdown zonder het admin-token, terwijl het beheer admin-only blijft.
 

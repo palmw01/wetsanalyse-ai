@@ -1,5 +1,5 @@
 """
-JAS-kennistools — pure Python-functies over de JAS-specificatie.
+JAS-kennistools – pure Python-functies over de JAS-specificatie.
 
 Fase 2B: de classificatie-agent kan deze functies aanroepen als tool in
 plaats van de volledige klasse-dump in de systeemprompt te ontvangen.
@@ -15,14 +15,14 @@ Gebruik:
     conflict = jas_regels_opvragen("Tijdsaanduiding", "Variabele en variabelewaarde")
 
 Integratie in anthropic_schemas():
-    De twee tools zijn opgenomen in JAS_TOOLS — een aparte lijst zodat de
+    De twee tools zijn opgenomen in JAS_TOOLS – een aparte lijst zodat de
     orchestrator ze alleen aan de klasseer-agent geeft, niet aan de QA-agent.
     Gebruik `anthropic_schemas(only=JAS_TOOL_NAMEN)` om ze te selecteren.
 
 STAND: aangeboden kan, aangeroepen nog niet.
     `anthropic_schemas` kent ze inmiddels (ze stonden alleen in `_BY_NAME`, dus
     `only=JAS_TOOL_NAMEN` gaf een lege lijst) en `dispatch` voert ze uit. Maar de
-    node die ze zou gebruiken — `annoteer_klasseer_node` — doet een pure
+    node die ze zou gebruiken – `annoteer_klasseer_node` – doet een pure
     `llm.create(tools=[])` zonder agent-lus, dus in de draaiende keten roept nog
     niemand ze aan. Dat aanzetten is het eigenlijke 2B-experiment (klasse-dump uit
     de systeemprompt halen en het model laten opvragen) en hoort met een eval
@@ -36,7 +36,7 @@ from typing import Any
 from ..jas_klassen import GELDIGE_JAS_KLASSEN, JAS_KLASSEN, REGELS, RegelType
 
 # ---------------------------------------------------------------------------
-# Handlers (pure functies — geen GraphPort)
+# Handlers (pure functies – geen GraphPort)
 # ---------------------------------------------------------------------------
 
 

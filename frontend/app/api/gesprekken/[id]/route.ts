@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 type Params = { params: Promise<{ id: string }> };
 
 /** Stop de lopende beurt en wis het agent-geheugen (graph-qa checkpointer-thread) van dit gesprek.
- *  Best-effort: een falen mag de UI-delete niet blokkeren — de checkpointer-thread ruimt anders later
+ *  Best-effort: een falen mag de UI-delete niet blokkeren – de checkpointer-thread ruimt anders later
  *  op (of blijft hooguit ongebruikt staan). */
 async function wisAgentGeheugen(id: string, userid: string): Promise<void> {
   try {
@@ -18,7 +18,7 @@ async function wisAgentGeheugen(id: string, userid: string): Promise<void> {
       method: "DELETE",
       // De identiteit gaat mee, net als op de run-routes: deze delete stopt ook een lopende beurt,
       // en graph-qa weigert dat voor een run van iemand anders. De api heeft het eigenaarschap dan
-      // al vastgesteld — dit is het tweede net, niet het eerste.
+      // al vastgesteld – dit is het tweede net, niet het eerste.
       headers: metTrace({ ...graphQaAuthHeader(), "X-User-Id": userid }),
       cache: "no-store",
     });

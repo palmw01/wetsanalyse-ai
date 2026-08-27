@@ -49,7 +49,7 @@ async def test_run_overleeft_het_sluiten_van_de_eventstroom():
     events = [{"type": "token", "content": str(i)} for i in range(5)] + [{"type": "done"}]
     run = register.start(conversation_id="g1", vraag="vraag?", maak_stroom=_stroom(events, vertraag=0.01))
 
-    # Kijk één event mee en loop dan weg — precies wat een remount doet.
+    # Kijk één event mee en loop dan weg – precies wat een remount doet.
     stroom = register.volg(run)
     eerste = await anext(stroom)
     await stroom.aclose()
@@ -118,7 +118,7 @@ async def test_een_ander_gesprek_mag_wel_tegelijk():
 @asyncio_test
 async def test_cappen_gooit_narratie_weg_maar_nooit_betekenis():
     """Een generieke ringbuffer zou het begin van het antwoord opeten. Alleen token/reason/status
-    mogen sneuvelen — een element dat stilzwijgend verdwijnt is een verminkte annotatie."""
+    mogen sneuvelen – een element dat stilzwijgend verdwijnt is een verminkte annotatie."""
     register = RunRegister(max_events=5)
     events = (
         [{"type": "doel", "doel": {"artikel": "9"}}]
@@ -151,7 +151,7 @@ async def test_gat_wordt_benoemd_bij_aanhaken():
 @asyncio_test
 async def test_stoppen_is_een_verzoek_geen_annulering():
     """`vraag_stop` zet een vlag; er wordt niets ge-cancelled. De driver leest hem op zijn eigen
-    grens — dat is waarom stoppen tijd mag kosten."""
+    grens – dat is waarom stoppen tijd mag kosten."""
     register = RunRegister()
     gezien: list[bool] = []
 
@@ -218,7 +218,7 @@ async def test_seq_is_identiteit_geen_positie():
     Het volgnummer werd afgeleid uit de positie in de lijst (`cursor - weggevallen`), en dat klopt
     alleen als precies de eerste N events verdwijnen. `_cap` haalt narratie weg wáár die ook staat,
     dus schoof alles op: het `doel`-event dat seq 0 had kwam terug als seq 1. Een kijker die seq 0 al
-    had gezien en vanaf 1 aanhaakte, kreeg dat doel daardoor nóg een keer — precies de betekenisvolle
+    had gezien en vanaf 1 aanhaakte, kreeg dat doel daardoor nóg een keer – precies de betekenisvolle
     events die het snoeien wilde beschermen.
     """
     register = RunRegister(max_events=4)
@@ -237,7 +237,7 @@ async def test_seq_is_identiteit_geen_positie():
     doel = next(e for e in run.events if e["type"] == "doel")
     assert doel["seq"] == 0
 
-    # De kijker had seq 0 al; wat hij nu krijgt begint erná — geen tweede doel.
+    # De kijker had seq 0 al; wat hij nu krijgt begint erná – geen tweede doel.
     vervolg = [e async for e in register.volg(run, vanaf=1)]
     assert not any(e["type"] == "doel" for e in vervolg)
     # Wat er tussenuit is gesnoeid wordt wél gemeld.

@@ -7,7 +7,7 @@ description: >-
   inhoudelijke methodebeschrijving; het draaiende platform voert de analyse uit in de
   werkplek. Gebruik deze skill zodra de gebruiker een
   wetsartikel of regeling juridisch wil analyseren, structureren, ontleden of
-  "wetsanalyse" wil doen — ook bij vragen als "classificeer dit artikel", "welke
+  "wetsanalyse" wil doen – ook bij vragen als "classificeer dit artikel", "welke
   rechtssubjecten/rechtsbetrekkingen/voorwaarden zitten hierin",
   "ontleed deze bepaling juridisch", of wanneer een
   bepaling brongetrouw en uitlegbaar moet worden vastgelegd voor uitvoering
@@ -19,7 +19,7 @@ description: >-
 
 > **Scope.** Deze skill dekt op dit moment **activiteit 2** (markeren + classificeren in
 > JAS-klassen). Activiteit 3 (begrippen + afleidingsregels) en de RegelSpraak-vervolgstap zijn
-> uit scope — die worden later op een agentische basis opnieuw opgebouwd.
+> uit scope – die worden later op een agentische basis opnieuw opgebouwd.
 
 ## Wat dit is en waarom het zo werkt
 
@@ -27,19 +27,19 @@ Wetsanalyse is een gestructureerde methode om de betekenis van wetgeving explici
 traceerbaar en uitlegbaar te maken, zodat besluiten in de uitvoering te verantwoorden
 zijn. Deze skill voert de analytische kern uit:
 
-- **Activiteit 2 — juridische structuur zichtbaar maken**: relevante wetsformuleringen
+- **Activiteit 2 – juridische structuur zichtbaar maken**: relevante wetsformuleringen
   *markeren* (2a) en elke markering een *klasse* uit het Juridisch Analyseschema (JAS)
   geven (2b).
 
 **De analyse-eenheid is het *werkgebied* (kennisdomein), niet één artikel.** Een werkgebied
-is een afbakening rond een hoofdvraag die zich over **meerdere bronnen** uitstrekt — leden,
+is een afbakening rond een hoofdvraag die zich over **meerdere bronnen** uitstrekt – leden,
 artikelen, hoofdstukken, en zelfs meerdere regelingen (bv. een wet + de gedelegeerde
 regeling). Eén *bron* is één `(bwbId, artikel, lid?)`-eenheid ("tekstdeel"). Activiteit 2
 doe je per bron (markeren/classificeren). Een werkgebied met één bron is het triviale geval.
 
 **Deze skill beschrijft de methode, niet een uitvoerbare werkstroom.** Het platform doet de
 analyse: de kennisgraaf levert de wettekst, de agent stelt markeringen voor en de jurist
-beoordeelt ze in de werkplek. Werk je hier buitenom, dan gelden dezelfde eisen — werk met
+beoordeelt ze in de werkplek. Werk je hier buitenom, dan gelden dezelfde eisen – werk met
 letterlijk opgehaalde wettekst en laat een mens het resultaat beoordelen.
 
 **Dit is een hulpmiddel, geen vervanger van de analist.** De methode draait om het
@@ -61,7 +61,7 @@ aan de bron. Daarom:
   uniek** (`m1..` voor markeringen, `v1..` voor verwijzingen).
 - **Gebruik uitsluitend de dertien JAS-klassen** hieronder. Verzin geen eigen klassen.
 
-## Stap 1 — Verwijzingen inventariseren en volgen
+## Stap 1 – Verwijzingen inventariseren en volgen
 
 Wetsformuleringen verwijzen naar andere bepalingen die de betekenis bepalen: het
 definitieartikel, andere leden ("in afwijking van het eerste lid"), schakelbepalingen ("van
@@ -81,14 +81,14 @@ volgens de beleidstabel, met een **diepte-cap van 1** en een **relevantie-gate**
 op als het de focus-bepaling betekenis geeft). Delegaties zijn *bounded*: identificeren +
 betekenis verwerken, volledige sub-analyse signaleren als validatiepunt.
 
-`verwijzingen` is een **aparte as** náást de markeringen — uitgaande pointers, geen tweede
+`verwijzingen` is een **aparte as** náást de markeringen – uitgaande pointers, geen tweede
 registratie van JAS-klassen.
 
 **Houd deze stap licht** (inventariseren + gericht ophalen, niet al classificeren). De
 volledige werkwijze, beleidstabel en grenzen staan in `references/verwijzingen-volgen.md`.
 De verwijzing-inventaris hoort bij wat de analist beoordeelt, zodat hij de scope kan bijsturen.
 
-## Stap 2 — Activiteit 2: markeren en classificeren
+## Stap 2 – Activiteit 2: markeren en classificeren
 
 Doorloop de bronnen één voor één ("pak eerstvolgende tekstdeel uit het werkgebied"). Lees
 per bron de tekst lid voor lid. Identificeer samenhangende formuleringen (2a) en ken elk een
@@ -97,7 +97,7 @@ elke markering het `bron_id` van haar bron en een werkgebied-breed uniek id.
 
 **Werkset-discipline bij veel bronnen.** De tekst van één bron is fors (~5–50 KB);
 houd de hoofdcontext klein. Bij een werkgebied met meerdere bronnen: overweeg activiteit 2
-**per bron via een sub-agent** te draaien — de sub-agent markeert de volledige wettekst van
+**per bron via een sub-agent** te draaien – de sub-agent markeert de volledige wettekst van
 één bron en meldt alléén de markeringen + verwijzingen terug (niet de leden-tekst), zodat de
 brontekst van afgeronde bronnen niet in de hoofdcontext blijft hangen terwijl je de volgende
 bron doet. Laad de `references/` één keer; herhaal ze niet per bron.

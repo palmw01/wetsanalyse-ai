@@ -4,7 +4,7 @@ Analisten en beheerders sturen feedback vanuit de webapp; beheerders lezen de in
 feedback via /v1/admin/feedback. Elke rij is onwijzigbaar (append-only).
 
 Bewust cross-tenant: net als users/profielen/wetcatalogus is de admin-laag hier NIET
-per-client gescoped — een beheerder ziet feedback van alle clients. `client_id` wordt
+per-client gescoped – een beheerder ziet feedback van alle clients. `client_id` wordt
 getoond zodat dat voor de beheerder transparant is, niet om toegang te beperken.
 """
 

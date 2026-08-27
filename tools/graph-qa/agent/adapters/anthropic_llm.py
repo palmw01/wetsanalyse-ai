@@ -53,7 +53,7 @@ class AnthropicLLM:
 
         Wat dit oplevert: de annotatieketen doet 3 tot 5 calls per beurt waarin telkens dezelfde
         dertien-klassen-referentie zit, en de antwoordroute herhaalt de systeemprompt bij élke
-        tool-ronde. Dat is precies het profiel waarvoor caching bestaat — groot, stabiel, en per
+        tool-ronde. Dat is precies het profiel waarvoor caching bestaat – groot, stabiel, en per
         beurt meermaals identiek.
         """
         aan = self._caching if caching is None else caching
@@ -79,7 +79,7 @@ class AnthropicLLM:
         """Weigerde de provider het cache-punt? Zet caching uit en meld het één keer.
 
         Prompt-caching is op Azure AI Foundry een beta-functie. Zou hij `cache_control` niet
-        accepteren, dan faalt zónder deze terugval élke LLM-call — en daarmee de hele agent. De prijs
+        accepteren, dan faalt zónder deze terugval élke LLM-call – en daarmee de hele agent. De prijs
         van caching mag nooit "de dienst ligt plat" zijn.
         """
         if not self._caching or "cache_control" not in str(exc):
@@ -123,7 +123,7 @@ class AnthropicLLM:
         messages: list[dict[str, Any]],
     ) -> "_AnthropicStream":
         # Bij streamen valt een weigering pas bij het openen van de stream (daar gaat de call de
-        # deur uit), dus de terugval zit in `_AnthropicStream.__enter__` — met deze fabriek als
+        # deur uit), dus de terugval zit in `_AnthropicStream.__enter__` – met deze fabriek als
         # tweede poging.
         def open_stream(*, caching: bool):
             return self._client.messages.stream(

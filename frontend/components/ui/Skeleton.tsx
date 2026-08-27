@@ -6,7 +6,7 @@ export function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`animate-pulse rounded bg-line/60 ${className}`} aria-hidden="true" />;
 }
 
-/** Een platte kaart gevuld met enkele skelet-regels — de standaard laad-placeholder voor een blok. */
+/** Een platte kaart gevuld met enkele skelet-regels – de standaard laad-placeholder voor een blok. */
 export function SkeletonCard({ regels = 3, className = "" }: { regels?: number; className?: string }) {
   return (
     <div className={`rounded-button border border-line bg-surface p-6 ${className}`}>

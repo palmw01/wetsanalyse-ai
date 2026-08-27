@@ -6,7 +6,7 @@ import { isDisclaimerGeaccepteerd } from "@/lib/authCookies";
 export const metadata = { title: "Testomgeving · Wetsanalyse" };
 
 /** De BLOKKERENDE variant: hierheen stuurt de edge-gate je vóórdat je de app in mag. Een gate is een
- *  pagina — er is nog niets om overheen te leggen — en hij draagt daarom hetzelfde kader als het
+ *  pagina – er is nog niets om overheen te leggen – en hij draagt daarom hetzelfde kader als het
  *  inlogscherm waar je net vandaan komt.
  *
  *  Ben je al akkoord en klik je de teststrip in de werkplek aan, dan onderschept

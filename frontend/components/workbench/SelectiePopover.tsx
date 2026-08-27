@@ -22,13 +22,13 @@ export interface SelectieDoel {
  *  Bewust géén hergebruik van `components/ui/Popover`: die ankert aan een wrapper-element, terwijl
  *  dit aan een muispositie hangt. Escape/klik-buiten volgen wel hetzelfde patroon.
  *
- *  De markering krijgt meteen `human_approved` — je eigen keuze hoef je niet nog eens goed te
- *  keuren — dus hier staat de klasse vast. Vandaar de volle lijst zonder voorsortering: een
+ *  De markering krijgt meteen `human_approved` – je eigen keuze hoef je niet nog eens goed te
+ *  keuren – dus hier staat de klasse vast. Vandaar de volle lijst zonder voorsortering: een
  *  "meest waarschijnlijke" bovenaan zou een suggestie zijn die op dit moment niet hoort.
  *
  *  Raakt de selectie de markering die je net had aangeklikt, dan staat bovenaan het aanpassen van
  *  díe markering: inkorten of uitbreiden is de meest voorkomende correctie en hoort één klik te
- *  kosten. Bewust wél een klik en niet automatisch — een selectie die je maakte om te lezen mag
+ *  kosten. Bewust wél een klik en niet automatisch – een selectie die je maakte om te lezen mag
  *  nooit stilzwijgend een annotatie wijzigen, zeker niet zonder undo. */
 export function SelectiePopover({
   doel,
@@ -77,12 +77,12 @@ export function SelectiePopover({
     }
   }
 
-  // Binnen beeld houden — horizontaal én verticaal. De hoogte meten we ná de eerste render: hij
+  // Binnen beeld houden – horizontaal én verticaal. De hoogte meten we ná de eerste render: hij
   // hangt af van het aantal klassen, van de aanpasbaar-strook en van de tekstgrootte van de
   // gebruiker, dus een vaste aanname klopt precies wanneer het misgaat. `useLayoutEffect` doet dat
   // vóór de paint, zodat je hem niet ziet verspringen.
   // 320px, behalve op een scherm dat dat niet heeft: dan de volle breedte min de marges. Zonder die
-  // klem stak de popover op een smalle telefoon (≤ 336px, iPhone SE) rechts buiten beeld — de
+  // klem stak de popover op een smalle telefoon (≤ 336px, iPhone SE) rechts buiten beeld – de
   // horizontale plaatsing kan een te breed paneel immers nergens meer kwijt.
   const schermbreedte = globalThis.innerWidth || 1024;
   const BREEDTE = Math.min(320, schermbreedte - 16);

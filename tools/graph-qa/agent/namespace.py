@@ -1,11 +1,11 @@
 """
-De IRI-ruimte van de kennisgraaf — één bron van waarheid binnen graph-qa.
+De IRI-ruimte van de kennisgraaf – één bron van waarheid binnen graph-qa.
 
 Waarom deze module bestaat. De basis-IRI wordt door de **importer** bepaald
 (`tools/bwb-import/app/rdf_vocab.py`), maar hij werd hier op drie plekken los
 overgetypt: als SPARQL-prefix, als filterwaarde en als regex in de
 provenance-herkenning. Drie kopieën van dezelfde string die niets van elkaar
-weten, is drie kansen om stil uit elkaar te lopen — en het gevolg is niet een
+weten, is drie kansen om stil uit elkaar te lopen – en het gevolg is niet een
 foutmelding maar een leeg antwoord: de filters matchen dan simpelweg niets.
 
 De waarde is een eigenschap van de **data in de graaf**, niet van een sessie.
@@ -23,7 +23,7 @@ import re
 #: Documentruimte: de IRI's van regelingen, artikelen en leden.
 BASIS = os.getenv("GRAPHDB_BASE_IRI") or "urn:bwb:"
 
-#: Vocabulaireruimte: de predicaten en klassen. Bewust géén vindplaatsen — zie provenance.
+#: Vocabulaireruimte: de predicaten en klassen. Bewust géén vindplaatsen – zie provenance.
 ONTOLOGIE = os.getenv("GRAPHDB_ONTOLOGY_IRI") or "urn:bwb-ns:"
 
 

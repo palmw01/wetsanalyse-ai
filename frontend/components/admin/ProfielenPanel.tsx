@@ -116,7 +116,7 @@ export function ProfielenPanel() {
                       className="mt-3 text-xs"
                     >
                       {test.ok
-                        ? `Verbinding OK — model ${test.model} (${test.tokens_in + test.tokens_out} tokens).`
+                        ? `Verbinding OK – model ${test.model} (${test.tokens_in + test.tokens_out} tokens).`
                         : `Test mislukt: ${test.detail}`}
                     </Melding>
                   )}

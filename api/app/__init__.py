@@ -1,4 +1,4 @@
-"""Wetsanalyse API — headless backend voor de werkplek.
+"""Wetsanalyse API – headless backend voor de werkplek.
 
 Bedient het JAS-annotatiedomein, de chatgeschiedenis, login/gebruikersbeheer en het
 LLM-modelprofielbeheer. De agent die de annotaties voorstelt is een aparte dienst

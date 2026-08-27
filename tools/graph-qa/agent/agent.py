@@ -64,7 +64,7 @@ def _checkpointer_ctx(settings: Settings):
 
 
 def _foutmelding(exc: Exception) -> str:
-    """Wat de jurist te zien krijgt als een beurt sneuvelt — per soort fout iets anders.
+    """Wat de jurist te zien krijgt als een beurt sneuvelt – per soort fout iets anders.
 
     De provider-uitzonderingen worden op naam herkend in plaats van geïmporteerd: de anthropic-SDK
     is een optionele extra (`--extra llm`), en deze module hoort ook te draaien in een omgeving die
@@ -73,9 +73,9 @@ def _foutmelding(exc: Exception) -> str:
     soort = type(exc).__name__
     if soort == "RateLimitError":
         return ("De modelprovider is momenteel overbelast. Probeer het over een halve minuut "
-                "opnieuw — je vraag is niet verloren, hij is alleen niet uitgevoerd.")
+                "opnieuw – je vraag is niet verloren, hij is alleen niet uitgevoerd.")
     if soort in ("BadRequestError", "UnprocessableEntityError"):
-        return ("Deze beurt paste niet binnen de grenzen van het model — meestal is het gesprek te "
+        return ("Deze beurt paste niet binnen de grenzen van het model – meestal is het gesprek te "
                 "lang geworden. Begin een nieuw gesprek of stel de vraag gerichter.")
     if soort in ("APIConnectionError", "APITimeoutError"):
         return ("Ik kon de modelprovider niet bereiken. Probeer het zo opnieuw; blijft het "
@@ -87,7 +87,7 @@ def _foutmelding(exc: Exception) -> str:
 def _recursielimiet(settings: Settings) -> int:
     """Hoeveel LangGraph-stappen één beurt hoogstens mag zetten.
 
-    Dit was `max_turns * 2 + 10` — een formule van vóór de annotatieketen, die alleen de
+    Dit was `max_turns * 2 + 10` – een formule van vóór de annotatieketen, die alleen de
     agent⇄tools-lus telde. Met de default (20 beurten) kwam één annotatie-worker die zijn
     beurtlimiet vol gebruikt al op ~49 van de 50 stappen, en een keten van twee workers ging er
     zeker overheen. De uitkomst was bovendien onleesbaar: `GraphRecursionError` viel in de generieke
@@ -97,7 +97,7 @@ def _recursielimiet(settings: Settings) -> int:
     vaste nodes eromheen (supervisor/annoteer/critic/emit/advance ≈ 6) plus de correctieketen, maal
     het maximum aantal workers (`supervisor._MAX_WORKERS`), met marge.
 
-    Die correctieketen is een **vast** aantal stappen — `patch → herzie → critic` — en niet meer een
+    Die correctieketen is een **vast** aantal stappen – `patch → herzie → critic` – en niet meer een
     lus die met `critic_max_rondes` meeschaalt. De instelling zegt alleen nog of hij aanstaat.
 
     Dit is een vangnet, geen kostenknop: de echte begrenzing is `max_turns`.
@@ -111,7 +111,7 @@ def _recursielimiet(settings: Settings) -> int:
 async def delete_conversation(conversation_id: str, *, settings: Settings | None = None) -> None:
     """Wis het volledige agent-geheugen (checkpointer-thread) van één gesprek. Idempotent: een
     onbekende `conversation_id` is geen fout. Aangeroepen als de werkplek een gesprek verwijdert, zodat
-    de inhoud niet in de checkpointer-DB achterblijft (privacy — parallel aan de API-berichten-delete)."""
+    de inhoud niet in de checkpointer-DB achterblijft (privacy – parallel aan de API-berichten-delete)."""
     settings = settings or Settings.from_env()
     async with _checkpointer_ctx(settings) as saver:
         # Zorg dat de checkpoint-tabellen bestaan (SQLite maakt ze anders pas bij de eerste write →
@@ -120,7 +120,7 @@ async def delete_conversation(conversation_id: str, *, settings: Settings | None
         if setup is not None:
             try:
                 await setup()
-            except Exception:  # noqa: BLE001 — MemorySaver e.d. hebben geen tabellen
+            except Exception:  # noqa: BLE001 – MemorySaver e.d. hebben geen tabellen
                 pass
         await saver.adelete_thread(conversation_id)
 
@@ -180,7 +180,7 @@ async def answer_stream(
         "messages": [{"role": "user", "content": question}],
         "modus": modus,
         "context": context.model_dump() if hasattr(context, "model_dump") else (context or {}),
-        # Het doel dat de aanroeper meegaf — MOET mee in de reset, net als de annotatievelden
+        # Het doel dat de aanroeper meegaf – MOET mee in de reset, net als de annotatievelden
         # hieronder: bleef het staan, dan annoteert de vólgende vraag in dezelfde thread opnieuw
         # de vorige bepaling zonder dat iemand daarom vroeg.
         "opgegeven_doel": doel.model_dump() if hasattr(doel, "model_dump") else (doel or {}),
@@ -191,13 +191,13 @@ async def answer_stream(
         "sub_questions": [],
         "sub_findings": [],
         # Een afwijzing geldt de vráág, niet het gesprek. Bleef deze vlag staan, dan werd elke
-        # volgende beurt in dezelfde thread ook afgewezen — dezelfde soort fout als een blijvende
+        # volgende beurt in dezelfde thread ook afgewezen – dezelfde soort fout als een blijvende
         # `critic_ronde` hieronder.
         "afwijzen": False,
         # Annotatie-velden: MOETEN mee in de reset. De checkpointer bewaart de state per thread, dus
         # zonder dit begint een tweede beurt met `critic_ronde` van de vorige annotatie en wordt de
         # herzieningslus overgeslagen. Het corpus hoort daar ook bij: zonder reset annoteert een
-        # tweede vraag in hetzelfde gesprek tegen de tekst van de vórige bepaling — precies de
+        # tweede vraag in hetzelfde gesprek tegen de tekst van de vórige bepaling – precies de
         # verwisseling die de gerichte ophaal moet uitsluiten.
         "corpus": "",
         "voorstellen": [],
@@ -256,11 +256,11 @@ async def answer_stream(
         )
         yield {
             "type": "error",
-            "message": "Deze beurt werd te lang en is afgebroken. Stel de vraag gerichter — "
+            "message": "Deze beurt werd te lang en is afgebroken. Stel de vraag gerichter – "
                        "bijvoorbeeld met een specifiek artikel of lid.",
         }
     except Exception as exc:
-        # Gesaniteerde melding naar de client, volledige fout alleen in het log — zoals de api dat
+        # Gesaniteerde melding naar de client, volledige fout alleen in het log – zoals de api dat
         # bij de modelprovider-test doet. De ruwe exception van een LLM- of MCP-fout bevat
         # request-details (endpoints, payload-fragmenten) die niet in de browser thuishoren.
         #

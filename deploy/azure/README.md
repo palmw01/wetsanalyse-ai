@@ -1,17 +1,17 @@
-# Wetsanalyse op Azure — acceptatie en productie
+# Wetsanalyse op Azure – acceptatie en productie
 
 Azure draagt het platform: **acceptatie** (elke merge naar `master`) en **productie** (een tag `v*`).
 Elke straat is een **zelfstandige** omgeving op Azure Container Apps met eigen kennisgraaf en eigen
 database, zonder verbinding met de docker-host. Die host draagt alleen nog de dev-omgeving.
 
 Beide straten draaien doorlopend. PostgreSQL (B1ms) en GraphDB (`minReplicas: 1`) kunnen geen van
-beide naar nul schalen, dus dit zijn vaste kosten — zie *Kosten drukken* onderaan.
+beide naar nul schalen, dus dit zijn vaste kosten – zie *Kosten drukken* onderaan.
 
 | Component | Type | Bereikbaar |
 |---|---|---|
 | PostgreSQL | Flexible Server (B1ms) | intern |
 | GraphDB | Container App | intern |
-| BWB-import | Container Apps **Job** (handmatig) | — |
+| BWB-import | Container Apps **Job** (handmatig) | – |
 | API | Container App | intern |
 | graph-qa | Container App | intern |
 | Frontend | Container App | **publiek HTTPS** |
@@ -28,8 +28,8 @@ Insights → Transaction search* of *Application map*. Elke span draagt
 `deployment.environment=<appName>`, dus acceptatie en productie zijn te scheiden.
 
 **Grafana draait hier ook**, als container app naast de straten: `azure-infra` → actie `grafana`
-(template `grafana.bicep`, dashboards in `grafana/`). Eén exemplaar bedient beide straten — een
-datasource en een dashboard per straat — en is bereikbaar zonder portaltoegang. Apart van `deploy`
+(template `grafana.bicep`, dashboards in `grafana/`). Eén exemplaar bedient beide straten – een
+datasource en een dashboard per straat – en is bereikbaar zonder portaltoegang. Apart van `deploy`
 gehouden, want een dashboardwijziging hoort geen infra-deploy te vragen die GraphDB raakt.
 
 Drie dingen om te weten:
@@ -40,27 +40,27 @@ Drie dingen om te weten:
   het dan in `grafana/dashboard-keten.json`.
 - **Hij draagt de service-principal-credentials** als datasource-auth, want een managed identity
   vereist een role assignment en die mag de SP niet maken. Grafana staat extern; het admin-wachtwoord
-  is dus de enige poort. Leg hem vast als environment-secret `WA_GRAFANA_ADMIN_PASSWORD` — anders
+  is dus de enige poort. Leg hem vast als environment-secret `WA_GRAFANA_ADMIN_PASSWORD` – anders
   wordt er bij de eerste uitrol een gegenereerd, en dat moet je daarna uit de app-secret opvissen.
 - **Schaalt naar nul.** De eerste paginalading wekt hem; dat kost een koude start van enkele seconden.
 
 Rol Grafana in **één** straat uit: dat exemplaar leest beide workspaces via een datasource per
-straat. Een tweede uitrol in de andere straat maakt een tweede, overbodige app aan — die wordt door
+straat. Een tweede uitrol in de andere straat maakt een tweede, overbodige app aan – die wordt door
 `opruimen` níét als wees herkend, want `$s-grafana` staat voor beide straten op de beschermde lijst.
 Daar is de actie **`grafana-afbreken`** voor: kies de straat waarvan het exemplaar weg mag en typ de
 groepsnaam ter bevestiging. Hij waarschuwt als je daarmee de laatste Grafana weghaalt, en de
-dashboards zijn niets waard om te bewaren — die komen as-code uit `deploy/azure/grafana/`.
+dashboards zijn niets waard om te bewaren – die komen as-code uit `deploy/azure/grafana/`.
 
 ## Vooraf: de GraphDB-licentie
 
 **Zonder licentie is deze omgeving niet bruikbaar.** GraphDB 11 laat zonder licentiebestand alleen
 *lezen* toe; het eerste schrijf-verzoek van de import-job krijgt een `500 No license was set`. Op de
 docker-host zit die licentie in de persistente datadirectory (`/opt/graphdb/home/work/graphdb.license`)
-en valt hij niet op — een verse instantie heeft hem niet.
+en valt hij niet op – een verse instantie heeft hem niet.
 
 Geef het bestand mee met `--license-file`; het script codeert het naar base64 en zet het als secret
 in de deployment, waarna een init-container het op zijn plek schrijft. Controleer eerst of je
-licentievoorwaarden een tweede, gelijktijdig draaiende instantie toestaan — dat is een vraag aan
+licentievoorwaarden een tweede, gelijktijdig draaiende instantie toestaan – dat is een vraag aan
 Ontotext, niet aan deze README.
 
 Zonder `--license-file` slaagt de deployment wél; je houdt dan een lege, read-only graaf.
@@ -88,25 +88,25 @@ gewoon naast: `cae-wetsanalyse-prd`, `wetsanalyse-prd-api`, `wetsanalyse-prd-db`
 Wat je daarvoor inlevert, en waar je op moet letten:
 
 - **Geen RBAC-scheiding.** Wie bij acceptatie mag, mag bij productie.
-- **`afbreken` haalt béide straten weg** — die actie verwijdert de hele groep. Hij toont daarom
+- **`afbreken` haalt béide straten weg** – die actie verwijdert de hele groep. Hij toont daarom
   eerst wat erin staat.
 - **Kosten scheiden gaat via tags.** Elke resource draagt `straat: <appName>`; filter daarop in
   Cost analysis.
 - **`opruimen` kent alle straten** (repo-vars `ACCEPTATIE_APP_NAME` en `PRODUCTIE_APP_NAME`).
-  Voeg je ooit een derde straat toe, zet die dan óók in die lijst — anders ruimt de actie hem op als
+  Voeg je ooit een derde straat toe, zet die dan óók in die lijst – anders ruimt de actie hem op als
   wees.
 
 **Inrichten gebeurt per GitHub-environment** (Settings → Environments). Wat waar hoort:
 
-- **vars, per environment** — `AZURE_RESOURCE_GROUP`, `APP_NAME`, `LLM_API_BASE`, optioneel
+- **vars, per environment** – `AZURE_RESOURCE_GROUP`, `APP_NAME`, `LLM_API_BASE`, optioneel
   `LLM_MODEL` en `AZURE_LOCATION`. Deze *moeten* per straat gezet zijn; ze hebben geen default meer,
   zodat een niet-ingerichte straat faalt in plaats van stilletjes op de verkeerde resource group uit
   te komen.
-- **secrets** — `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`,
+- **secrets** – `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`,
   `AZURE_CLIENT_SECRET`, `AZURE_AI_KEY`, `GRAPHDB_LICENSE_B64` (de licentie als
   `base64 -w0 graphdb.license`). Een job met een environment **erft de repo-secrets**, dus zolang
   beide straten dezelfde service principal en AI-key gebruiken, volstaan de bestaande repo-secrets.
-  Wil je gescheiden credentials — aan te raden zodra productie echte gegevens draagt — zet ze dan
+  Wil je gescheiden credentials – aan te raden zodra productie echte gegevens draagt – zet ze dan
   als environment-secret; die overschrijft de repo-variant.
 
 #### De applicatie-secrets roteren niet
@@ -120,15 +120,15 @@ die, dan is dat materiaal onherstelbaar onleesbaar.
 
 1. een **GitHub environment-secret** met die naam (`WA_LLM_CONFIG_SECRET`, `WA_AUTH_SECRET`,
    `WA_DB_ADMIN_PASSWORD`, `WA_API_TOKEN`, `WA_ADMIN_TOKEN`, `WA_QA_API_TOKEN`,
-   `WA_GRAPH_QA_API_TOKEN`, `WA_GRAPHDB_TOKEN`) — zet deze als je ze bewust wilt beheren of roteren;
+   `WA_GRAPH_QA_API_TOKEN`, `WA_GRAPHDB_TOKEN`) – zet deze als je ze bewust wilt beheren of roteren;
 2. anders de waarde die **nu in Azure draait**, uitgelezen uit de container apps;
-3. anders **vers gegenereerd** — het geval van een nieuwe straat.
+3. anders **vers gegenereerd** – het geval van een nieuwe straat.
 
 > **Twee tokens rond graph-qa, in tegengestelde richting.** `WA_QA_API_TOKEN` is waarmee de
 > *frontend* graph-qa aanroept (diens eigen `QA_API_TOKEN`). `WA_GRAPH_QA_API_TOKEN` is waarmee
 > *graph-qa naar de api schrijft* om de uitkomst van een annotatiebeurt vast te leggen; het staat als
 > eigen client `graph-qa:` in `apiTokens`, zodat het auditspoor laat zien wie er schreef. Ontbreekt
-> dat tweede token, dan draait een annotatie gewoon door maar landt de uitkomst nergens — de
+> dat tweede token, dan draait een annotatie gewoon door maar landt de uitkomst nergens – de
 > werkplek meldt dan "deze agent heeft geen verbinding met de wetsanalyse-API".
 
 Daardoor is een infra-deploy op een draaiende omgeving veilig. De toets daarop: `wat-if` mag geen
@@ -139,7 +139,7 @@ toelaat; op `acceptatie` alleen de branch `master`. Die poort hoort in de enviro
 niet in een workflow-conditie die je per ongeluk wegcommit.
 
 De workflows falen bewust als een van deze secrets of vars ontbreekt. Eerder was dat een `if` die de
-deploy-stap oversloeg — dan was de run groen terwijl er niets was uitgerold.
+deploy-stap oversloeg – dan was de run groen terwijl er niets was uitgerold.
 
 ### Image-swap: automatisch
 
@@ -152,7 +152,7 @@ onopgemerkt.
 ### Productie: promoveren, niet herbouwen
 
 Een tag `v*` start **`promote.yml`**. Die bouwt niets: hij leest de digests die op *acceptatie*
-draaien en zet díe op productie. Zo krijgt productie exact het artefact dat getest is — een
+draaien en zet díe op productie. Zo krijgt productie exact het artefact dat getest is – een
 herbouw van dezelfde broncode levert nog altijd een ander image op (verse basis-images, verse
 dependency-resolutie).
 
@@ -162,7 +162,7 @@ er niet bij, dan faalt de promotie met een melding in plaats van iets anders uit
 tag belooft. Praktisch: tag een commit die al op `master` staat en waarvan acceptatie de uitrol
 heeft afgerond.
 
-De publish-workflows luisteren daarom **niet** op tags — die bouwen alleen voor acceptatie.
+De publish-workflows luisteren daarom **niet** op tags – die bouwen alleen voor acceptatie.
 
 ### De productiestraat aanzetten
 
@@ -173,7 +173,7 @@ Er is geen Owner-recht voor nodig; alles gebeurt binnen de bestaande resource gr
 2. `azure-infra` → `productie` → `wat-if`. Verwacht **uitsluitend `+`-regels** voor
    `wetsanalyse-prd-*` en `cae-wetsanalyse-prd`. Zie je een `~` op een bestaande
    `wetsanalyse-*`-resource, stop dan: het is dezelfde groep, en dan raakt de deploy acceptatie.
-3. `azure-infra` → `productie` → `deploy`. Verse straat, dus verse secrets — hier juist goed. De
+3. `azure-infra` → `productie` → `deploy`. Verse straat, dus verse secrets – hier juist goed. De
    import-job vult daarna automatisch de graaf.
 4. Open de frontend-URL uit de samenvatting op `/setup` en maak de eerste beheerder aan.
 5. Vanaf dan gaat elke release via een tag `v*` → `promote.yml`.
@@ -184,13 +184,13 @@ Er is geen Owner-recht voor nodig; alles gebeurt binnen de bestaande resource gr
    → `inventaris` toont de images en revisies.
 2. **Wat zegt de telemetrie?** `azure-infra` → `telemetrie` (per straat). Zonder `query` krijg je de
    standaardset: wat er binnenkwam, requests per dienst met p95, en trace-ids die over meerdere
-   diensten lopen. Met `query` stel je je eigen KQL-vraag — read-only.
+   diensten lopen. Met `query` stel je je eigen KQL-vraag – read-only.
 3. **Terugrollen.** `rollback` → kies straat en app, laat `revisie` leeg om te zien wat er is, en
    draai hem daarna nog eens met de revisie die je wilt terugzetten. Achter dezelfde reviewer als een
    uitrol.
 
 Let op wat terugrollen **niet** doet: `master`, de tag en `release/prd` bewegen niet mee. Een
-volgende uitrol brengt de nieuwere versie gewoon weer binnen — repareer dus de oorzaak, of draai de
+volgende uitrol brengt de nieuwere versie gewoon weer binnen – repareer dus de oorzaak, of draai de
 betreffende commit terug.
 
 ### Infra: handmatig
@@ -199,7 +199,7 @@ Actions → **azure-infra** → *Run workflow*, met een keuze voor de straat en 
 
 | actie | wat het doet |
 |---|---|
-| `wat-if` *(default)* | Azure toont welke resources zouden ontstaan of wijzigen. Maakt niets aan — de enige manier om de template tegen je echte subscription te toetsen (quota, regio, rechten). |
+| `wat-if` *(default)* | Azure toont welke resources zouden ontstaan of wijzigen. Maakt niets aan – de enige manier om de template tegen je echte subscription te toetsen (quota, regio, rechten). |
 | `deploy` | rolt de stack uit (10-15 min; PostgreSQL is de trage stap) en start daarna meteen de import-job, want de graaf komt leeg op. |
 | `afbreken` | verwijdert de hele resource group. Vraagt om de naam ter bevestiging. |
 | `opruimen` | verwijdert wat er in de groep staat maar niet bij deze straat hoort. Toont eerst wat het zou doen; verwijdert pas als je de groepsnaam intypt. |
@@ -215,7 +215,7 @@ default: een deploy raakt GraphDB, en die is niet-persistent.
 
 Bicep draait in **incremental mode**: het maakt aan en werkt bij, maar verwijdert nooit iets dat
 niet (meer) in de template staat. Haal je een component uit `main.bicep`, dan blijft de draaiende
-resource gewoon bestaan — onzichtbaar zolang je alleen naar de template kijkt, en met zijn kosten.
+resource gewoon bestaan – onzichtbaar zolang je alleen naar de template kijkt, en met zijn kosten.
 
 Dat is hier echt gebeurd. Bij het verwijderen van de wettenbank-MCP (commit `9e34b75`, augustus
 2026) verdween de `mcpApp`-resource uit de bicep, maar bleven de draaiende mcp-apps staan; daarnaast
@@ -223,7 +223,7 @@ stond er een complete tweede omgeving (`wetsanalyse-acc-*`) met een eigen Postgr
 replicas op `minReplicas: 1` en dus doorlopend aan.
 
 `azure-infra` → `opruimen` lost dat op: het neemt de bicep als waarheid en zet alles wat daar niet
-in staat op de lijst. Zonder bevestiging toont het alleen wat het zou doen — draai het zo eerst, en
+in staat op de lijst. Zonder bevestiging toont het alleen wat het zou doen – draai het zo eerst, en
 typ pas daarna de groepsnaam. De verwijdervolgorde is dwingend: container apps en jobs hangen aan
 hun managed environment, dus dat kan pas weg als het leeg is.
 
@@ -273,18 +273,18 @@ een container-app kan krijgen. Een managed disk zou het oplossen maar vraagt een
 Dat kan hier, omdat de graaf **reproduceerbaar** is: de import-job haalt alle regelingen rechtstreeks
 bij overheid.nl. Gevolgen:
 
-- De graphdb-app schaalt **niet naar nul** (`minReplicas: 1`) — anders is de graaf bij de volgende
+- De graphdb-app schaalt **niet naar nul** (`minReplicas: 1`) – anders is de graaf bij de volgende
   request leeg. Dit is de component die doorloopt zolang de omgeving aan staat.
 - Na elke herstart van die app moet de import-job opnieuw draaien.
 - De similarity-index `bwb_similarity` (voor `semantic_search`) overleeft een herstart evenmin en
   moet opnieuw gebouwd worden; tot dat moment valt de tool terug op `search_wetgeving`.
 
-## Beveiliging — hoe dit afwijkt van de zelfgehoste opzet
+## Beveiliging – hoe dit afwijkt van de zelfgehoste opzet
 
 Zelfgehost draait GraphDB met eigen security en zit er een auth-proxy voor die het bearer-token van
 graph-qa controleert en vervangt door een service-account. **Hier niet**: de graaf is alleen binnen
 de Container Apps Environment bereikbaar (`external: false`), en dat is de grens. `GRAPHDB_TOKEN`
-wordt wel gezet — de code eist het fail-closed — maar het is hier geen slot.
+wordt wel gezet – de code eist het fail-closed – maar het is hier geen slot.
 
 Voor een standby-/demo-omgeving is dat verdedigbaar. Wordt dit ooit een productieomgeving, dan hoort
 hetzelfde service-account + proxy-patroon als in de zelfgehoste opzet erbij.
@@ -294,7 +294,7 @@ nooit platte env-vars.
 
 ## Kosten drukken
 
-- **Uit**: `az group delete -n rg-wetsanalyse` — de omgeving is in een kwartier terug te zetten.
+- **Uit**: `az group delete -n rg-wetsanalyse` – de omgeving is in een kwartier terug te zetten.
 - **Pauze**: `az postgres flexible-server stop -n wetsanalyse-db -g rg-wetsanalyse` plus de
   graphdb-app op nul replica's. Api, graph-qa en frontend schalen zelf terug (frontend houdt één
   replica: een cold start laat Auth.js-redirects timeouten).

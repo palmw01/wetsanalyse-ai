@@ -44,7 +44,7 @@ export function plaatsPopover(
  *
  *  Voor popovers die met CSS aan hun trigger hangen (`components/ui/Popover`): die weten niet waar
  *  ze op het scherm staan. Een paneel dat rechts is uitgelijnd op een knop die zelf al rechts staat,
- *  steekt links buiten beeld — op een telefoon las de exportlijst zo als "el in JAS-kleuren, met
+ *  steekt links buiten beeld – op een telefoon las de exportlijst zo als "el in JAS-kleuren, met
  *  wettekst en edig spoor", met de eerste tekens eraf.
  *
  *  Geeft de verschuiving in pixels (0 = het staat goed). Past het paneel helemaal niet, dan wint de

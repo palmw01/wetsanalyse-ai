@@ -17,7 +17,7 @@ import type { DocumentSamenvatting } from "@/lib/types";
 
 /** Het annotatie-overzicht: de annotaties los van de gesprekken waarin ze zijn gemaakt.
  *
- *  Twee weergaven op één lijst. *Te doen* is werkvoorraad — wat vraagt nog aandacht, rood eerst.
+ *  Twee weergaven op één lijst. *Te doen* is werkvoorraad – wat vraagt nog aandacht, rood eerst.
  *  *Alles* is het archief, gegroepeerd per regeling, want juristen zoeken in wetten en niet in
  *  documenten-op-datum. De stand staat in de URL zodat terugbladeren en delen werken. */
 export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave }) {
@@ -48,7 +48,7 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
   function kiesWeergave(nieuw: Weergave) {
     setWeergave(nieuw);
     // `replace`, niet `push`: een wissel tussen twee weergaven van dezelfde lijst is geen stap in de
-    // geschiedenis — anders moet je vijf keer terug om weg te komen.
+    // geschiedenis – anders moet je vijf keer terug om weg te komen.
     router.replace(nieuw === "alles" ? "/annotaties?weergave=alles" : "/annotaties", {
       scroll: false,
     });
@@ -94,7 +94,7 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
 
             <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               {/* Twee knoppen in plaats van een dropdown: bij twee standen is kiezen sneller dan
-                  uitklappen — zelfde afweging als de filters in de reviewlijst. */}
+                  uitklappen – zelfde afweging als de filters in de reviewlijst. */}
               <div role="group" aria-label="Weergave" className="flex gap-1.5">
                 {WEERGAVEN.map((w) => (
                   <button
@@ -147,7 +147,7 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
             ) : getoond.length === 0 ? (
               <p className="rounded-kaart border border-dashed border-line px-3 py-6 text-center text-sm text-muted">
                 {weergave === "te-doen"
-                  ? "Niets meer te beoordelen — alles is afgehandeld."
+                  ? "Niets meer te beoordelen – alles is afgehandeld."
                   : "Geen annotatie die hierop past."}
               </p>
             ) : weergave === "te-doen" ? (

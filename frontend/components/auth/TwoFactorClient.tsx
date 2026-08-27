@@ -24,7 +24,7 @@ export function TwoFactorClient() {
   // opnieuw beginnen.
   useEffect(() => {
     // Browser-only hydratie uit sessionStorage (van stap 1 /login): het effect is hier het
-    // SSR-correcte patroon — een lazy initializer zou een server/client-mismatch geven.
+    // SSR-correcte patroon – een lazy initializer zou een server/client-mismatch geven.
     /* eslint-disable react-hooks/set-state-in-effect */
     setUserid(sessionStorage.getItem("wa_login_userid"));
     setOnthouden(sessionStorage.getItem("wa_login_remember") === "1");
@@ -65,13 +65,13 @@ export function TwoFactorClient() {
       window.location.href = veiligPad(params.get("callbackUrl"), window.location.origin);
     } catch {
       // Zie LoginClient: een transportfout is geen antwoord en viel dus buiten alle afhandeling.
-      setFout("De code kon niet worden gecontroleerd — de dienst is niet bereikbaar. Probeer het zo opnieuw.");
+      setFout("De code kon niet worden gecontroleerd – de dienst is niet bereikbaar. Probeer het zo opnieuw.");
     } finally {
       setBezig(false);
     }
   }
 
-  if (userid === undefined) return null; // nog niet gelezen — geen flits van de foutmelding
+  if (userid === undefined) return null; // nog niet gelezen – geen flits van de foutmelding
 
   if (userid === null) {
     // Geen userid uit stap 1 → rechtstreeks hierheen genavigeerd of sessie verlopen.

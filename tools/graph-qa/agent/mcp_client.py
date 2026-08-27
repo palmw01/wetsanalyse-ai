@@ -5,7 +5,7 @@ Implementeert het MCP Streamable HTTP transport protocol:
   - POST /mcp  voor initialize / tools/list / tools/call
   - Authorization: Bearer *** server stuurt initialize als plain JSON,
 overige calls als SSE (text/event-stream) die direct sluit na het eerste event.
-Gebruik httpx.post() (geen streaming) — de server sluit de verbinding zelf.
+Gebruik httpx.post() (geen streaming) – de server sluit de verbinding zelf.
 
 Eén persistente httpx.Client wordt hergebruikt over alle calls (connection pooling;
 scheelt een TCP+TLS-handshake per tool-aanroep). close() sluit die client af.
@@ -32,11 +32,11 @@ class MCPError(Exception):
 # Allowlist in plaats van blocklist. De vorige opzet zocht naar update-sleutelwoorden, en dat is
 # een spel dat je niet wint: `LOAD`/`CLEAR`/`DROP` werden alleen aan het BEGIN van een regel
 # herkend, dus `PREFIX x: <http://a/> LOAD <http://evil/x.ttl>` liep er zo doorheen. Nu is de vraag
-# omgedraaid — wat overblijft na het strippen van commentaar, PREFIX en BASE moet met een
+# omgedraaid – wat overblijft na het strippen van commentaar, PREFIX en BASE moet met een
 # lees-vorm beginnen. Alles wat daar niet aan voldoet wordt geweigerd, ook wat we nog niet kennen.
 _LEESVORMEN = ("select", "ask", "construct", "describe")
 
-# Commentaar tot regeleinde — maar niet elk '#' begint commentaar: een stringliteral kan er een
+# Commentaar tot regeleinde – maar niet elk '#' begint commentaar: een stringliteral kan er een
 # bevatten ("nr. #3") en vrijwel elke prefix-IRI eindigt erop (<urn:bwb-ns:>). Beide
 # vormen matchen daarom éérst, zodat alleen een echt losstaand '#' als commentaar wordt gestript.
 _STRING_OF_HASH = re.compile(r'"(?:[^"\\]|\\.)*"' r"|'(?:[^'\\]|\\.)*'" r"|<[^>\s]*>" r"|#[^\n]*")
@@ -47,7 +47,7 @@ _DECLARATIE_RE = re.compile(
 
 
 def _query_kern(query: str) -> str:
-    """De query zonder commentaar en zonder PREFIX-/BASE-declaraties — wat er echt wordt uitgevoerd."""
+    """De query zonder commentaar en zonder PREFIX-/BASE-declaraties – wat er echt wordt uitgevoerd."""
     zonder_commentaar = _STRING_OF_HASH.sub(lambda m: "" if m.group(0).startswith("#") else m.group(0), query or "")
     kern = zonder_commentaar.lstrip()
     while True:
@@ -58,7 +58,7 @@ def _query_kern(query: str) -> str:
 
 
 def _looks_like_update(query: str) -> bool:
-    """True voor alles wat geen leesquery is — inclusief een lege of onherkenbare query.
+    """True voor alles wat geen leesquery is – inclusief een lege of onherkenbare query.
 
     Bewust streng: het GraphDB-service-account achter de auth-proxy mág schrijven op de repository,
     dus dit vangnet is in de praktijk wat een schrijf-SPARQL vanuit de agent tegenhoudt. Bij twijfel
@@ -202,7 +202,7 @@ class MCPClient:
     def sparql(self, query: str) -> str:
         """Voer een read-only SPARQL-query uit via de MCP-sparql-tool.
 
-        De read-only guard hoort hier — op de SPARQL-string — en niet in het generieke `call_tool`:
+        De read-only guard hoort hier – op de SPARQL-string – en niet in het generieke `call_tool`:
         anders zou hij ook de natuurlijke-taal-query van `similarity_search` scannen en die onterecht
         weigeren zodra ze met een verb begint of iets als 'delete where' bevat."""
         self._reject_updates({"query": query})
@@ -241,7 +241,7 @@ class MCPClient:
         # nog lopende call in een executor-thread; laat het sluiten daar niet op stuklopen.
         try:
             self._client.close()
-        except Exception:  # noqa: BLE001 — sluiten mag nooit de afhandeling breken
+        except Exception:  # noqa: BLE001 – sluiten mag nooit de afhandeling breken
             pass
 
     def __enter__(self) -> "MCPClient":

@@ -93,7 +93,7 @@ def test_antwoord_zonder_vindplaats_is_onbepaald_niet_gegrond():
     )
     assert report.niveau == "onbepaald"
     assert report.cited == []
-    # De bool blijft doen wat hij deed (er is niets AANGETROFFEN dat niet klopt) — het onderscheid
+    # De bool blijft doen wat hij deed (er is niets AANGETROFFEN dat niet klopt) – het onderscheid
     # zit in het niveau, zodat de weergave er iets anders van kan maken dan groen.
     assert report.grounded is True
 
@@ -165,7 +165,7 @@ def test_rapport_telt_hoeveel_citaten_zijn_nagelopen():
 
 
 def test_melding_noemt_de_citaten_als_er_geen_vindplaats_is():
-    """Het geval dat op dev misging: artikelen in gewone taal, dus nul vindplaatsen — maar wél twee
+    """Het geval dat op dev misging: artikelen in gewone taal, dus nul vindplaatsen – maar wél twee
     citaten die allebei klopten. De tijdlijn meldde toen "0 verwijzingen onderbouwd", wat leest als
     een mislukte controle terwijl er juist iets gecontroleerd én goed bevonden was."""
     from agent.orchestrator import _grounding_melding

@@ -2,7 +2,7 @@
 
 // Route-niveau error boundary: vangt runtime-fouten in Client Components zodat de gebruiker
 // een nette pagina ziet (met opnieuw-proberen) i.p.v. een lege crash. Zelfde kader als de
-// inlog-/disclaimerschermen — een foutpagina is geen reden om in een derde opmaak te belanden.
+// inlog-/disclaimerschermen – een foutpagina is geen reden om in een derde opmaak te belanden.
 
 import { useEffect } from "react";
 import { AuthFrame } from "@/components/auth/AuthFrame";

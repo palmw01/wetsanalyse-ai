@@ -1,4 +1,4 @@
-"""Parse SPARQL Query Results TSV (W3C) — het formaat dat de GraphDB-MCP voor een SELECT teruggeeft.
+"""Parse SPARQL Query Results TSV (W3C) – het formaat dat de GraphDB-MCP voor een SELECT teruggeeft.
 
 De eerste regel bevat de `?var`-namen (tab-gescheiden); elke volgende regel is één resultaatrij met
 tab-gescheiden RDF-termen:
@@ -6,7 +6,7 @@ tab-gescheiden RDF-termen:
   - literals als `"..."`, optioneel met `@taal` of `^^<type>`
   - een lege cel = unbound
 Tabs en newlines bínnen een literal zijn ge-escaped (`\\t`/`\\n`), dus één fysieke regel == één rij.
-We leveren per rij een dict {var: platte-waarde} — voor onze SELECT-queries (leden-teksten,
+We leveren per rij een dict {var: platte-waarde} – voor onze SELECT-queries (leden-teksten,
 regeling-info) is dat voldoende; datatypes/talen worden afgepeld tot de kale waarde.
 """
 from __future__ import annotations

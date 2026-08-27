@@ -13,7 +13,7 @@ describe("plaatsPopover", () => {
 
   it("klapt naar boven als het er onder niet meer past", () => {
     // Selectie onderin een telefoonscherm: onder de selectie is nog 100 px, de popover is 280 hoog.
-    // Dit was de bug — de klasse-lijst viel buiten beeld en `position: fixed` scrolt niet mee.
+    // Dit was de bug – de klasse-lijst viel buiten beeld en `position: fixed` scrolt niet mee.
     const p = plaatsPopover({ midden: 200, boven: 660, onder: 700 }, POPOVER, SCHERM);
     expect(p.boven).toBe(true);
     expect(p.top).toBe(660 - 280 - 8);
@@ -40,7 +40,7 @@ describe("plaatsPopover", () => {
   });
 });
 
-describe("klemHorizontaal — een popover blijft binnen het scherm", () => {
+describe("klemHorizontaal – een popover blijft binnen het scherm", () => {
   it("schuift naar rechts als het paneel links uitsteekt", () => {
     // De exportlijst uit de schermafdruk: 256px breed, rechts uitgelijnd op een knop die zelf al
     // rechts staat, op een scherm van 414px. Linkerrand op -40 → de eerste tekens vielen weg.

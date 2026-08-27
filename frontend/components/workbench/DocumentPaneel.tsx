@@ -26,12 +26,12 @@ interface Segment {
 /** Knip `bron` in segmenten, met hoogstens ÉÉN gemarkeerd: de geselecteerde.
  *
  *  Alles tegelijk kleuren was onleesbaar én onvolledig. Twee markeringen kunnen niet op dezelfde
- *  tekst liggen, dus een markering die binnen een langere valt — een Rechtsobject in een zin die als
- *  geheel een Afleidingsregel is — verdween gewoon uit beeld. Nu is de reviewlijst de ingang en laat
+ *  tekst liggen, dus een markering die binnen een langere valt – een Rechtsobject in een zin die als
+ *  geheel een Afleidingsregel is – verdween gewoon uit beeld. Nu is de reviewlijst de ingang en laat
  *  de tekst zien wáár het gekozen element staat; zonder selectie blijft de tekst schoon.
  *
  *  De positie komt uit `vindPositie`: eerst het anker (exacte offsets), dan de omringende tekst, dan
- *  het eerste voorkomen. Dat houdt twee identieke fragmenten in één artikel uit elkaar — zonder
+ *  het eerste voorkomen. Dat houdt twee identieke fragmenten in één artikel uit elkaar – zonder
  *  anker zou de tweede "De ontvanger" op de eerste landen.
  */
 export function segmenteer(bron: string, elementen: Markeerbaar[], actiefId?: string): Segment[] {
@@ -76,7 +76,7 @@ export function DocumentPaneel({
   const markRef = useRef<HTMLElement>(null);
 
   // Een selectie eindigt niet altijd met een muisklik. Met Shift+pijltjes komt er geen enkel
-  // muisevent langs — dan is zelf markeren met het toetsenbord onmogelijk (WCAG 2.1.1) — en op een
+  // muisevent langs – dan is zelf markeren met het toetsenbord onmogelijk (WCAG 2.1.1) – en op een
   // aanraakscherm laat het verslepen van een selectiegreep geen `mouseup` achter. Beide luisteraars
   // hangen aan het document omdat de vinger of de cursor buiten de alinea kan loslaten;
   // `verwerkSelectie` controleert zelf al of de selectie wél binnen de tekst valt.
@@ -107,7 +107,7 @@ export function DocumentPaneel({
   /** Zet een DOM-selectie om naar offsets in `bron`.
    *
    *  Dit kan omdat de alinea één aaneengesloten reeks span/mark is waarvan de tekstknopen samen
-   *  exact `bron` vormen — dus de lengtes optellen tot de startknoop geeft de absolute positie.
+   *  exact `bron` vormen – dus de lengtes optellen tot de startknoop geeft de absolute positie.
    *  De rekenstap zelf staat in `lib/selectie.ts` en is daar getest; hier blijft alleen de
    *  DOM-wandeling over, die in de node-omgeving van vitest toch niet te testen is. */
   function verwerkSelectie() {
@@ -172,7 +172,7 @@ export function DocumentPaneel({
         </div>
       )}
       {/* Volle breedte, op verzoek van de jurist (19 aug 2026). Hier stond een leeskolom van ~66
-          tekens — de klassieke leesmaat — maar op de losse annotatiepagina begrenst niets anders de
+          tekens – de klassieke leesmaat – maar op de losse annotatiepagina begrenst niets anders de
           breedte, en dan plakt een smalle kolom tegen de linkerrand van een breed scherm alsof er
           harde regelafbrekingen in de wettekst zitten. De afweging is bekend en bewust gemaakt:
           lange regels lezen minder prettig, maar er past meer tekst tegelijk in beeld. Verander dit
@@ -188,8 +188,8 @@ export function DocumentPaneel({
         {segmenten.map((s, i) =>
           s.klasse ? (
             // Nadrukkelijk géén `<button>`: die is inline-block en dus één atomaire box. Zodra de
-            // markering over meer dan één regel liep, groeide hij naar de volle regelbreedte — een
-            // rechthoekig blok tot aan de rechterrand in plaats van een markering om de woorden — en
+            // markering over meer dan één regel liep, groeide hij naar de volle regelbreedte – een
+            // rechthoekig blok tot aan de rechterrand in plaats van een markering om de woorden – en
             // zakte de tekst erna (bij een hele zin: de afsluitende punt) naar de volgende regel.
             // Een `<mark>` is inline en breekt dus gewoon met de tekst mee; `box-decoration-clone`
             // tekent achtergrond, afronding en `px-0.5` opnieuw op elk regelfragment, anders krijgt
@@ -207,8 +207,8 @@ export function DocumentPaneel({
                 e.preventDefault();   // Space scrolt anders de tekst weg onder je vinger vandaan
                 onKies?.(s.id);
               }}
-              aria-label={`${s.klasse}: ${s.tekst}${s.herkomst === "mens" ? " — door jou gemarkeerd" : ""}`}
-              title={s.herkomst === "mens" ? `${s.klasse} — door jou gemarkeerd` : s.klasse}
+              aria-label={`${s.klasse}: ${s.tekst}${s.herkomst === "mens" ? " – door jou gemarkeerd" : ""}`}
+              title={s.herkomst === "mens" ? `${s.klasse} – door jou gemarkeerd` : s.klasse}
               className={`focus-ring box-decoration-clone cursor-pointer rounded px-0.5 ${jasStyle(s.klasse)} ${
                 s.herkomst === "mens" ? "underline decoration-dotted underline-offset-2" : ""
               } ${actiefId && s.id === actiefId ? "ring-2 ring-lint" : ""}`}

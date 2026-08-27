@@ -77,7 +77,7 @@ export function Rondleiding({ isBeheerder, artefactOpen, onOpenArtefact, onKlaar
   /** Onderbreken: de rondleiding verdwijnt, maar onthoudt waar hij was.
    *
    *  Dit is nadrukkelijk iets anders dan overslaan. Wie naar zijn instellingen loopt, heeft de
-   *  rondleiding niet afgewezen — die zou hem alleen niet meer terugkrijgen als we hier `gezien`
+   *  rondleiding niet afgewezen – die zou hem alleen niet meer terugkrijgen als we hier `gezien`
    *  zouden zetten. */
   const onderbreek = useCallback(() => {
     schrijfStand({ versie: RONDLEIDING_VERSIE, gezien: false, gestoptBij: stap?.id });
@@ -120,7 +120,7 @@ export function Rondleiding({ isBeheerder, artefactOpen, onOpenArtefact, onKlaar
         return;
       }
       // Nog even geduld: het artefact schuift in, de lijst rendert. Lukt het daarna niet, dan valt
-      // de stap terug op een gecentreerde kaart — een rondleiding hoort niet te breken omdat één
+      // de stap terug op een gecentreerde kaart – een rondleiding hoort niet te breken omdat één
       // element ontbreekt.
       if (pogingen++ < 20) timer = setTimeout(zoek, 100);
       else setDoel(null);
@@ -130,7 +130,7 @@ export function Rondleiding({ isBeheerder, artefactOpen, onOpenArtefact, onKlaar
   }, [fase, stap, artefactOpen]);
 
   // Stap 7 laat de gebruiker zélf de annotatie openen. Doet hij dat niet, dan opent de rondleiding
-  // hem alsnog — anders loopt hij vast op een handeling die hij misschien niet herkent.
+  // hem alsnog – anders loopt hij vast op een handeling die hij misschien niet herkent.
   useEffect(() => {
     if (fase !== "stappen" || !stap || artefactOpen) return;
     const volgendeVraagtArtefact = stappen[index + 1]?.artefactOpen;
@@ -156,7 +156,7 @@ export function Rondleiding({ isBeheerder, artefactOpen, onOpenArtefact, onKlaar
     [stappen, artefactOpen, onOpenArtefact],
   );
 
-  // Toetsenbordbediening. Pijltjes en Enter sturen de rondleiding, Escape sluit hem — behalve
+  // Toetsenbordbediening. Pijltjes en Enter sturen de rondleiding, Escape sluit hem – behalve
   // terwijl je in een invoerveld staat, want daar betekenen die toetsen iets anders.
   useEffect(() => {
     if (fase !== "stappen") return;
@@ -185,7 +185,7 @@ export function Rondleiding({ isBeheerder, artefactOpen, onOpenArtefact, onKlaar
           <p className="font-display text-lg font-semibold text-lint">Welkom in de werkplek</p>
           <p className="mt-3 text-sm leading-6 text-ink">
             Dit is de plek waar je wetsartikelen laat duiden volgens het JAS. In {stappen.length} korte
-            stappen laat ik zien hoe je van een vraag naar een beoordeelde annotatie komt — je hoeft
+            stappen laat ik zien hoe je van een vraag naar een beoordeelde annotatie komt – je hoeft
             niets in te vullen, ik gebruik een voorbeeld. Ongeveer twee minuten.
           </p>
           <p className="mt-3 text-[0.8125rem] leading-5 text-muted">

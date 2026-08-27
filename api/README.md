@@ -1,6 +1,6 @@
 # wetsanalyse-api
 
-Headless HTTP-backend voor de **Wetsanalyse-werkplek** — een kerncomponent van het agent-platform,
+Headless HTTP-backend voor de **Wetsanalyse-werkplek** – een kerncomponent van het agent-platform,
 onder de [frontend](../frontend). De API bedient het **JAS-annotatiedomein** van de werkplek
 (documenten/elementen/beslissingen + append-only auditlog), het **login-/gebruikersbeheer** (de API is
 de identiteitsbron), het **LLM-modelprofielbeheer**, de **profiel-keuzelijst**, de **berichten** (release notes) en de **gebruikersfeedback**.
@@ -13,9 +13,9 @@ de identiteitsbron), het **LLM-modelprofielbeheer**, de **profiel-keuzelijst**, 
 
 | Onderdeel | Rol |
 |-----------|-----|
-| **graph-qa** | **Lex**, de assistent voor wetsanalyse — beantwoordt vragen, stelt JAS-annotaties voor en levert de wettekst (uit de graaf); de werkplek praat er direct mee. Eigen LLM-config. |
-| **wetsanalyse-api** *(deze map)* | HTTP-harness — annotatiedomein, login, LLM-/gebruikersbeheer, profiel-keuzelijst. |
-| **PostgreSQL** | Opslag — annotatie-documenten + auditlog, modelprofielen, gebruikers, API-tokens. |
+| **graph-qa** | **Lex**, de assistent voor wetsanalyse – beantwoordt vragen, stelt JAS-annotaties voor en levert de wettekst (uit de graaf); de werkplek praat er direct mee. Eigen LLM-config. |
+| **wetsanalyse-api** *(deze map)* | HTTP-harness – annotatiedomein, login, LLM-/gebruikersbeheer, profiel-keuzelijst. |
+| **PostgreSQL** | Opslag – annotatie-documenten + auditlog, modelprofielen, gebruikers, API-tokens. |
 
 ## Endpoints
 
@@ -69,9 +69,9 @@ Alle endpoints zijn client-gescopet en versioneerd onder `/v1`.
 | `GET` | `/v1/auth/setup-status` | Is de users-tabel nog leeg? (dan staat de eenmalige registratie open) |
 | `POST` | `/v1/auth/setup` | Maak de allereerste beheerder (alleen bij lege tabel → anders 409) |
 | `POST` | `/v1/auth/verify` | Valideer **userid** + wachtwoord (+ optionele TOTP) |
-| `GET` | `/v1/auth/me` | Eigen account (rol + 2FA-status) — `X-User-Id`-header |
-| `POST` | `/v1/auth/change-password` | Eigen wachtwoord wijzigen — `X-User-Id`-header |
-| `POST` | `/v1/auth/2fa/{begin,activate,disable}` | Optionele TOTP-2FA, self-service — `X-User-Id`-header |
+| `GET` | `/v1/auth/me` | Eigen account (rol + 2FA-status) – `X-User-Id`-header |
+| `POST` | `/v1/auth/change-password` | Eigen wachtwoord wijzigen – `X-User-Id`-header |
+| `POST` | `/v1/auth/2fa/{begin,activate,disable}` | Optionele TOTP-2FA, self-service – `X-User-Id`-header |
 
 Swagger-UI beschikbaar op `/docs`.
 
@@ -82,7 +82,7 @@ temperatuur, versleutelde API-key), niet in losse env-vars. Beheer ze via de adm
 of het `/beheer`-scherm in de [frontend](../frontend); de verbindingstest (`/test`) valideert een
 profiel met een kleine LLM-call. De env-`LLM_*`-waarden seeden bij de eerste start één default-profiel
 en blijven de fallback-key. (De QA/annotatie-agent `graph-qa` draait als aparte dienst met een eigen
-LLM-config — deze profielen sturen die agent niet aan.)
+LLM-config – deze profielen sturen die agent niet aan.)
 
 ## Snel starten (lokaal)
 
@@ -90,7 +90,7 @@ LLM-config — deze profielen sturen die agent niet aan.)
 # 1. Secrets aanmaken in api\secrets\ (gitignored)
 mkdir api\secrets
 [IO.File]::WriteAllText("$PWD\api\secrets\api_tokens",       "lokaal:<token>")
-# Voor het LLM-beheer (/v1/admin/*) — optioneel lokaal:
+# Voor het LLM-beheer (/v1/admin/*) – optioneel lokaal:
 [IO.File]::WriteAllText("$PWD\api\secrets\admin_tokens",      "admin:<admin-token>")
 # Fernet-master-key (versleutelt API-keys uit de admin-UI); genereer met:
 #   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
@@ -120,13 +120,13 @@ Zet `WETSANALYSE_AUTH_REQUIRED=0` om auth lokaal uit te zetten.
 
 De **admin-endpoints** (`/v1/admin/*`) gebruiken een aparte tokenlijst `WETSANALYSE_ADMIN_TOKENS(_FILE)`
 (zelfde `id:token,...`-vorm) plus intrekbare, genereerbare DB-tokens (`/v1/admin/api-tokens`), en zijn
-**altijd** auth-plichtig — geen `AUTH_REQUIRED`-bypass; zonder admin-tokens geeft alles 401. Het opslaan
+**altijd** auth-plichtig – geen `AUTH_REQUIRED`-bypass; zonder admin-tokens geeft alles 401. Het opslaan
 van een API-key via de admin-UI vereist daarnaast een Fernet-master-key in `LLM_CONFIG_SECRET(_FILE)`.
 
 ## Observability
 
 De API is **geïnstrumenteerd**: gestructureerde JSON-logging (request-id-middleware, secret-redactie)
-plus OpenTelemetry (traces/metrics/logs), gated op **`OTEL_EXPORTER_OTLP_ENDPOINT`** — leeg = no-op,
+plus OpenTelemetry (traces/metrics/logs), gated op **`OTEL_EXPORTER_OTLP_ENDPOINT`** – leeg = no-op,
 alleen logs. Eén trace-id verbindt frontend → API → MCP/graph-qa. Nooit tokens/secrets/prompt-inhoud
 loggen. Zie `app/observability.py` en de projectbrede
 [`docs/observability.md`](../docs/observability.md) (env-vars, logschema, en hoe je de telemetrie

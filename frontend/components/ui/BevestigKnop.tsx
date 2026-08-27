@@ -6,11 +6,11 @@ import { useEffect, useRef, useState } from "react";
  *
  *  Eén idioom voor "weet je het zeker" in de hele app. Het artefact deed dit al zo (× → "Wissen?");
  *  daarbuiten stond een native `window.confirm`, en dat is een systeemvenster in systeemtaal midden
- *  in een applicatie met een eigen vormtaal — bovendien niet te stylen, niet te testen en in sommige
+ *  in een applicatie met een eigen vormtaal – bovendien niet te stylen, niet te testen en in sommige
  *  contexten geblokkeerd.
  *
  *  Scherp gezet ontwapent hij vanzelf: na een paar seconden, bij verlies van focus, of met Escape.
- *  Een knop die scherp blijft staan is een val — precies bij de handelingen waar dat het duurst is.
+ *  Een knop die scherp blijft staan is een val – precies bij de handelingen waar dat het duurst is.
  */
 export function BevestigKnop({
   children,

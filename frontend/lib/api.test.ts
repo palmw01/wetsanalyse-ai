@@ -51,7 +51,7 @@ function sseResponse(frames: string[]): Response {
   return new Response(stream, { status: 200, headers: { "Content-Type": "text/event-stream" } });
 }
 
-describe("verwerkSseStroom — via volgRun", () => {
+describe("verwerkSseStroom – via volgRun", () => {
   afterEach(() => vi.restoreAllMocks());
 
   it("splitst token/sources/doel/element-frames (incl. \\r\\n) naar de juiste handlers", async () => {
@@ -95,7 +95,7 @@ describe("verwerkSseStroom — via volgRun", () => {
 
   it("geeft een waarschuwing door zonder de beurt te laten mislukken", async () => {
     // De api laat een markering die zijn schema niet haalt vallen in plaats van de hele ronde te
-    // weigeren. Dat maakt een luide fout stil, dus meldt de agent het — maar het is geen `error`:
+    // weigeren. Dat maakt een luide fout stil, dus meldt de agent het – maar het is geen `error`:
     // de rest staat er wél en de stream loopt gewoon door tot `done`.
     const frames = [
       `data: ${JSON.stringify({ type: "waarschuwing", message: "2 markeringen niet opgeslagen." })}\r\n\r\n`,
@@ -170,7 +170,7 @@ describe("een stroom die breekt of stilvalt", () => {
   });
 });
 
-describe("volgRun — aanhaken bij een lopende beurt", () => {
+describe("volgRun – aanhaken bij een lopende beurt", () => {
   afterEach(() => vi.restoreAllMocks());
 
   it("meldt het volgnummer terug, zodat aanhaken na een onderbreking op het juiste punt begint", async () => {
@@ -243,17 +243,17 @@ describe("grounding-event", () => {
   });
 });
 
-describe("startRun — er loopt er al een", () => {
+describe("startRun – er loopt er al een", () => {
   afterEach(() => vi.restoreAllMocks());
 
   it("gooit bij 409, mét het id van de lopende run erbij", async () => {
     // Twee gelijktijdige beurten op één gesprek zouden door elkaar heen in het agent-geheugen
-    // schrijven (thread_id == conversation_id) — vandaar dat de server weigert en verwijst.
+    // schrijven (thread_id == conversation_id) – vandaar dat de server weigert en verwijst.
     //
     // Gooien en niet stilzwijgend de bestaande run teruggeven: deze vráág is niet aangenomen. Gaf
     // `startRun` hier gewoon de lopende run terug, dan verscheen het antwoord op de vórige vraag
     // onder de nieuwe, en ging de nieuwe stilzwijgend verloren. De aanroeper kan met `loopendeRun`
-    // alsnog aanhaken — maar dan wél wetend dat er iets anders speelt.
+    // alsnog aanhaken – maar dan wél wetend dat er iets anders speelt.
     vi.stubGlobal("fetch", vi.fn(async () => new Response(
       JSON.stringify({ detail: { reden: "run_loopt_al", run_id: "run-bestaand" } }),
       { status: 409, headers: { "Content-Type": "application/json" } },

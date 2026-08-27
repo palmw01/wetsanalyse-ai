@@ -14,7 +14,7 @@ const PASS_THROUGH_HEADERS = ["retry-after", "location", "content-type", "conten
  *
  *  Node's `fetch` kent geen standaardtimeout: een upstream die de verbinding wél accepteert maar niet
  *  antwoordt, houdt zowel deze request als de browser onbeperkt vast. De UI blijft dan in zijn
- *  laadstand hangen — zonder de foutmelding en de "opnieuw proberen"-knop die er speciaal voor zijn.
+ *  laadstand hangen – zonder de foutmelding en de "opnieuw proberen"-knop die er speciaal voor zijn.
  *  Dertig seconden is ruim voor elke gewone API-call; wie langer nodig heeft (een modeltest doet een
  *  echte LLM-aanroep) zet `timeoutMs` zelf hoger. */
 const STANDAARD_TIMEOUT_MS = 30_000;
@@ -33,7 +33,7 @@ interface ProxyInit {
 
 export async function proxy(path: string, init: ProxyInit = {}): Promise<Response> {
   // Defense-in-depth: de middleware gate't /api/admin al op rol, maar een admin-proxy dwingt de
-  // beheerder-rol hier server-side nóg eens af — één matcher-/callback-regressie opent dan niet
+  // beheerder-rol hier server-side nóg eens af – één matcher-/callback-regressie opent dan niet
   // meteen alle admin-endpoints. Onafhankelijk van, en náást, de middleware.
   if (init.admin) {
     // Dynamische import: houdt de module vrij van de node-only auth-stack (en de unit-test licht);

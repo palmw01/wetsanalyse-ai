@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Draait de testpoort van de onderdelen die je pusht — vóór de push, niet drie minuten later in een
+# Draait de testpoort van de onderdelen die je pusht – vóór de push, niet drie minuten later in een
 # CI-log. Dit is de snelle laag; de harde poort is de `poort`-check op de pull request (die geldt ook
 # als iemand deze hook niet heeft geactiveerd of `--no-verify` gebruikt).
 #
@@ -37,7 +37,7 @@ while read -r local_ref local_sha _remote_ref remote_sha; do
 
   if [ "$remote_sha" = "$LEEG" ]; then
     # Nieuwe branch: vergelijk met het punt waar hij van master afsplitste. Kent de kloon geen
-    # master, dan valt hij terug op de laatste commit — beter iets te veel draaien dan te weinig.
+    # master, dan valt hij terug op de laatste commit – beter iets te veel draaien dan te weinig.
     basis="$(git merge-base "$local_sha" origin/master 2>/dev/null \
              || git merge-base "$local_sha" master 2>/dev/null \
              || echo "$local_sha^")"
@@ -74,7 +74,7 @@ raakt "tools/graph-qa/"   && draai "graph-qa"   tools/graph-qa   uv run --frozen
 # bwb-import draait op pip + requirements.txt, niet op een uv-project: zonder `python -m`
 # staat de map niet op sys.path en is `app` niet te importeren. `--with-requirements` bouwt
 # de omgeving die er lokaal niet is. `--no-project` is nodig omdat uv anders de map als project
-# behandelt en er een lege uv.lock achterlaat — een artefact dat telkens terugkomt en zelfs een
+# behandelt en er een lege uv.lock achterlaat – een artefact dat telkens terugkomt en zelfs een
 # image-build kan triggeren.
 raakt "tools/bwb-import/" && draai "bwb-import" tools/bwb-import \
   uv run --no-project --with-requirements requirements.txt python -m pytest -q -x
@@ -82,7 +82,7 @@ raakt "api/"              && draai "api"        api              uv run pytest -
 
 if [ -n "$mislukt" ]; then
   echo ""
-  echo "pre-push GEBLOKKEERD —$mislukt"
+  echo "pre-push GEBLOKKEERD –$mislukt"
   echo "Repareer het, of push bewust door met: SKIP_HOOK=1 git push"
   exit 1
 fi

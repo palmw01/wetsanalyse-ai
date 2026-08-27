@@ -21,17 +21,17 @@ export function ApiTokensPanel() {
 
   /** Kopiëren mét terugkoppeling. `navigator.clipboard` bestaat niet op een niet-beveiligde origin
    *  en kan geweigerd worden; dat stil laten gebeuren is bij een eenmalig token het slechtste
-   *  antwoord — dan denk je dat je het hebt. */
+   *  antwoord – dan denk je dat je het hebt. */
   async function kopieer(token: string) {
     try {
       await navigator.clipboard.writeText(token);
       setGekopieerd(true);
       setFout(null);
     } catch {
-      setFout("Kopiëren lukt niet in deze browser — selecteer het token hierboven en kopieer het zelf.");
+      setFout("Kopiëren lukt niet in deze browser – selecteer het token hierboven en kopieer het zelf.");
     }
   }
-  // Eenmalig getoond volledig token (na genereren) — daarna niet meer op te vragen.
+  // Eenmalig getoond volledig token (na genereren) – daarna niet meer op te vragen.
   const [nieuw, setNieuw] = useState<{ label: string; token: string } | null>(null);
 
   const laad = useCallback(async () => {
@@ -103,12 +103,12 @@ export function ApiTokensPanel() {
       )}
 
       {nieuw && (
-        <Melding type="waarschuwing" titel="Token — kopieer dit nu" className="mb-3">
+        <Melding type="waarschuwing" titel="Token – kopieer dit nu" className="mb-3">
           <p className="text-sm">
             Voor <span className="font-medium">{nieuw.label || "(geen label)"}</span>:
           </p>
           {/* Selecteerbaar veld i.p.v. alleen een <code>: lukt kopiëren niet (geen beveiligde origin,
-              toestemming geweigerd), dan moet handmatig selecteren altijd nog kunnen — dit token is
+              toestemming geweigerd), dan moet handmatig selecteren altijd nog kunnen – dit token is
               eenmalig. */}
           <input
             readOnly

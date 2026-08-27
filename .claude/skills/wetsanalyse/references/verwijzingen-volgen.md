@@ -16,10 +16,10 @@ brondefinitie vast die de betekenis van de bepaling bepaalt.
 
 ## Twee herkomsten
 
-1. **Getagde verwijzingen** — de graaf levert per lid de verwijzingen (intref/extref) met
+1. **Getagde verwijzingen** – de graaf levert per lid de verwijzingen (intref/extref) met
    doel, label en het BWB-id van de doelregeling. Deze staan óók als inline-link in de
    tekst. Neem ze over.
-2. **Natuurlijke-taalverwijzingen** — verwijzingen zonder XML-tag die de bron niet vangt, bv.
+2. **Natuurlijke-taalverwijzingen** – verwijzingen zonder XML-tag die de bron niet vangt, bv.
    "in afwijking van het eerste lid", "van overeenkomstige toepassing", "de in artikel 5
    bedoelde termijn". Herken die zelf in de letterlijke tekst en noteer ze met `soort:
    "natuurlijk"` (vaak alleen een `doel.label`, geen `target`).
@@ -41,8 +41,8 @@ brondefinitie vast die de betekenis van de bepaling bepaalt.
 | **definitie** | Ophalen; de brondefinitie legt de betekenis van de bepaling vast | 1 | begrip opzoeken / artikel ophalen |
 | **schakel** | Ophalen voor zover het de focus-bepaling betekenis geeft | 1 | artikel ophalen |
 | **delegatie** | *Bounded:* vindplaats + relevante bepaling identificeren, de betekenis verwerken. Wordt de gedelegeerde regeling relevant genoeg, **promoveer haar tot een eigen bron** in het werkgebied (het werkgebied mag groeien); anders signaleer je een volledige JAS-analyse als validatiepunt | 1 (identificatie) | structuur van de regeling |
-| **intra-artikel** | Als relatie vastleggen; de tekst staat al in scope | 0 | — |
-| **informatief** | Signaleren, niet volgen | — | — |
+| **intra-artikel** | Als relatie vastleggen; de tekst staat al in scope | 0 | – |
+| **informatief** | Signaleren, niet volgen | – | – |
 
 ## Grenzen tegen scope-explosie
 
@@ -58,10 +58,10 @@ Omdat alle soorten in beginsel gevolgd worden, gelden twee harde grenzen:
 
 ## Status per verwijzing
 
-- `opgehaald` — gevolgd én de tekst opgehaald (de betekenis is in de analyse verwerkt).
-- `gevolgd` — gevolgd zonder aparte fetch (bv. intra-artikel: de tekst is al in scope).
-- `gesignaleerd` — herkend maar bewust niet gevolgd (informatief of niet-relevant).
-- `buiten-scope-diepte` — buiten de diepte-cap gelaten; kandidaat om als bron toe te voegen.
+- `opgehaald` – gevolgd én de tekst opgehaald (de betekenis is in de analyse verwerkt).
+- `gevolgd` – gevolgd zonder aparte fetch (bv. intra-artikel: de tekst is al in scope).
+- `gesignaleerd` – herkend maar bewust niet gevolgd (informatief of niet-relevant).
+- `buiten-scope-diepte` – buiten de diepte-cap gelaten; kandidaat om als bron toe te voegen.
 
 ## Registreren
 
@@ -71,5 +71,5 @@ functie- en status-waarden, een ingevulde `doel.label`, id-uniciteit over bronne
 koppeling bij een delegatie.
 
 **Houd deze stap licht:** het is inventariseren + gericht ophalen, niet al classificeren in
-JAS-klassen — dat blijft activiteit 2. De verwijzing-inventaris hoort bij het activiteit-2
+JAS-klassen – dat blijft activiteit 2. De verwijzing-inventaris hoort bij het activiteit-2
 review-checkpoint, zodat de analist de scope kan bijsturen.

@@ -1,4 +1,4 @@
-// Edge-veilige Auth.js-config (geen Node-only imports) — gedeeld door de middleware en de volledige
+// Edge-veilige Auth.js-config (geen Node-only imports) – gedeeld door de middleware en de volledige
 // `auth.ts`. De middleware bundelt dit voor de edge-runtime, dus hier géén `lib/server.ts`/
 // `lib/config.ts` (die lezen secrets via node:fs). De providers met hun authorize-logica zitten
 // alleen in `auth.ts`; hier staat de route-gate (`authorized`) en het sessie-/JWT-vormgeven.
@@ -15,7 +15,7 @@ export const SESSIE_LANG = 30 * 24 * 60 * 60; // 30 dagen (onthouden)
 export const SESSIE_KORT = 12 * 60 * 60; // 12 uur (niet onthouden)
 
 // Paden die zonder sessie bereikbaar moeten zijn (login, eenmalige registratie + hun BFF-routes,
-// en de health-check voor Docker/NPM/CI — die mag nooit achter de login vallen).
+// en de health-check voor Docker/NPM/CI – die mag nooit achter de login vallen).
 function isPublic(path: string): boolean {
   return (
     path === "/login" ||

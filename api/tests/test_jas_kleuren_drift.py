@@ -3,7 +3,7 @@
 De canonieke bron is `api/app/jas_klassen.py`, waar de api ze via `validation.py`
 uit leest voor de PDF-export. De werkplek draagt dezelfde waarden als Tailwind-klassen in
 `frontend/lib/jas.ts`, want een browser kan dat Python-bestand niet lezen. Twee kopieën van
-dezelfde kleuren driften zonder toets — vandaar deze test.
+dezelfde kleuren driften zonder toets – vandaar deze test.
 """
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from app.validation import GELDIGE_JAS_KLASSEN, JAS_KLASSE_KLEUREN, JAS_KLASSEN_
 
 JAS_TS = PROJECT_ROOT / "frontend" / "lib" / "jas.ts"
 
-# `Klasse: "bg-[#xxxxxx] text-ink border-[#yyyyyy]"` — met of zonder aanhalingstekens om de sleutel.
+# `Klasse: "bg-[#xxxxxx] text-ink border-[#yyyyyy]"` – met of zonder aanhalingstekens om de sleutel.
 REGEL = re.compile(
     r'^\s*"?([A-Za-z][^":]*?)"?:\s*"bg-\[(#[0-9a-fA-F]{6})\][^"]*border-\[(#[0-9a-fA-F]{6})\]"',
     re.MULTILINE,

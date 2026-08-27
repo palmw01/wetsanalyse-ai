@@ -26,7 +26,7 @@ async def client(monkeypatch):
     await db.create_all()
     await maak_testgebruikers("gebruiker-a", "gebruiker-b")
 
-    # Document van een andere GEBRUIKER — moet voor "gebruiker-a" onzichtbaar zijn (404).
+    # Document van een andere GEBRUIKER – moet voor "gebruiker-a" onzichtbaar zijn (404).
     await AnnotatieStore().maak_document(
         AnnotatieDocument(slug="andermans-doc", user_id="gebruiker-b", client_id="andere-client",
                           bwbId="BWBR3", artikel="1")
@@ -86,7 +86,7 @@ async def test_document_lifecycle_en_audit(client):
     })).json()
     el1_obj = next(e for e in doc["elementen"] if e["id"] == el1)
     assert el1_obj["beslissingen"][-1]["review_reason"] == "interpretatie"
-    # `herkomst` blijft "agent" — dat is WIE HET AANMAAKTE. Een edit door de jurist zet
+    # `herkomst` blijft "agent" – dat is WIE HET AANMAAKTE. Een edit door de jurist zet
     # `gewijzigd_door`; anders was na één correctie niet meer te zien dat de agent het voorstelde.
     assert el1_obj["lifecycle"] == "edited"
     assert el1_obj["herkomst"] == "agent" and el1_obj["gewijzigd_door"] == "mens"
@@ -97,7 +97,7 @@ async def test_document_lifecycle_en_audit(client):
                               json={"type": "reject"})).status_code == 422
 
     # audit is append-only en op volgorde. Naast de ronde-samenvatting staat er per element een
-    # regel MET id en inhoud — zonder dat is achteraf niet te reconstrueren wat een ronde deed.
+    # regel MET id en inhoud – zonder dat is achteraf niet te reconstrueren wat een ronde deed.
     audit = (await client.get(f"{BASIS}/{slug}/audit")).json()
     acties = [a["actie"] for a in audit]
     assert acties[0] == "document-aangemaakt"
@@ -150,7 +150,7 @@ async def test_verwijderen(client):
 
 async def test_beslis_op_element_atomair_behoudt_andere_besluiten(client):
     """De atomaire beslis-write (row-lock) verwerkt één element zónder de andere elementen te
-    overschrijven — geen lost update bij gelijktijdige besluiten. Plus de 404-sentinels."""
+    overschrijven – geen lost update bij gelijktijdige besluiten. Plus de 404-sentinels."""
     from app.annotatie_contracts import Lifecycle
     from app.annotatie_store import GEEN_ELEMENT, AnnotatieStore
 
@@ -186,7 +186,7 @@ async def test_beslis_op_element_atomair_behoudt_andere_besluiten(client):
 # --- de merge: een tweede agent-ronde mag nooit werk van de jurist wissen --------------------
 #
 # Dit was tot voor kort een echte bug: PUT verving de hele elementenlijst met verse uuid's, zodat
-# elke volgende ronde alle beslissingen, levenscyclus en diffs weggooide — en het auditlog naar
+# elke volgende ronde alle beslissingen, levenscyclus en diffs weggooide – en het auditlog naar
 # id's verwees die niet meer bestonden. Er was geen enkele test die twee keer PUT deed.
 
 async def _put(client, slug, elementen, **extra):
@@ -368,7 +368,7 @@ async def test_eigen_markering_verwijderen_kan_agentvoorstel_niet(client):
                       ronde=1)).json()
     agent_id = next(e["id"] for e in doc["elementen"] if e["herkomst"] == "agent")
 
-    # Een agent-voorstel verwerp je (met reden), je verwijdert het niet — anders verdwijnt het
+    # Een agent-voorstel verwerp je (met reden), je verwijdert het niet – anders verdwijnt het
     # spoor dat er een voorstel wás.
     assert (await client.delete(f"{BASIS}/{slug}/elementen/{agent_id}")).status_code == 409
     assert (await client.delete(f"{BASIS}/{slug}/elementen/{eigen_id}")).status_code == 204
@@ -399,7 +399,7 @@ async def test_een_element_dat_het_schema_niet_haalt_sleept_de_rest_niet_mee(cli
 
     De merge verwerpt een ongeldige klasse al per element, met een teller. De request-validatie
     ervóór was alles-of-niets: één schemafout gaf 422 en dan landde er níéts. Op dev kostte dat een
-    complete annotatie van vijftien markeringen — de agent was klaar en gegrond.
+    complete annotatie van vijftien markeringen – de agent was klaar en gegrond.
     """
     slug = await _maak_doc(client)
     r = await client.put(f"{BASIS}/{slug}/elementen", json={
@@ -582,7 +582,7 @@ async def test_een_eigen_wijziging_laat_de_suggestie_openstaan(client):
 # --- het fragment inkorten/uitbreiden: het anker moet meeschuiven -------------------------------
 #
 # Zonder dat wijzen de offsets naar het oude fragment en springt de markering na herladen naar een
-# ander voorkomen — precies wat het anker moest voorkomen.
+# ander voorkomen – precies wat het anker moest voorkomen.
 
 def _anker(start, eind, hash_="v1"):
     return {"lid": "1", "start": start, "eind": eind, "voor": "", "na": "", "bron_hash": hash_}
@@ -655,7 +655,7 @@ async def test_de_audit_meldt_dat_het_anker_verplaatste(client):
 #
 # Hiervóór kon een geaccordeerd element onbeperkt opnieuw beslist worden (approve → edit → reject →
 # approve → …). De frontend verborg alleen de knoppen, maar de klasse-badge en de toelichting
-# schreven stilzwijgend een edit weg — een akkoord betekende dus niets.
+# schreven stilzwijgend een edit weg – een akkoord betekende dus niets.
 
 async def _beslis(client, slug, el_id, **body):
     return await client.post(f"{BASIS}/{slug}/elementen/{el_id}/beslissing", json=body)
@@ -685,7 +685,7 @@ async def test_een_beoordeeld_element_is_op_slot(client, oordeel):
 
 
 async def test_een_opmerking_mag_wel_op_een_vergrendeld_element(client):
-    """Een kanttekening wijzigt de annotatie niet — juist bij iets dat vaststaat wil je die kwijt."""
+    """Een kanttekening wijzigt de annotatie niet – juist bij iets dat vaststaat wil je die kwijt."""
     slug, el = await _een_element(client)
     await _beslis(client, slug, el, type="approve")
 
@@ -709,7 +709,7 @@ async def test_heropenen_geeft_het_element_terug_aan_de_review(client):
                          wijziging={"klasse": "Rechtsfeit"})).json()
     assert doc["elementen"][0]["klasse"] == "Rechtsfeit"
 
-    # En de heropening staat in het spoor — anders is een teruggedraaid akkoord onzichtbaar.
+    # En de heropening staat in het spoor – anders is een teruggedraaid akkoord onzichtbaar.
     assert [b["type"] for b in doc["elementen"][0]["beslissingen"]] == ["approve", "heropen", "edit"]
     acties = [r["actie"] for r in (await client.get(f"{BASIS}/{slug}/audit")).json()]
     assert "beslissing-heropen" in acties
@@ -733,7 +733,7 @@ async def test_heropenen_van_iets_dat_niet_op_slot_staat(client):
 
 
 async def test_een_eigen_markering_gaat_niet_op_slot(client):
-    """Je eigen markering is `human_approved` bij het aanmaken — dat is gemaakt, niet beoordeeld.
+    """Je eigen markering is `human_approved` bij het aanmaken – dat is gemaakt, niet beoordeeld.
     Vergrendelen zou hem meteen op slot zetten, inclusief de wisknop."""
     slug = await _maak_doc(client)
     doc = (await client.post(f"{BASIS}/{slug}/elementen", json={
@@ -761,7 +761,7 @@ async def test_reviewreden_volgt_uit_de_diff(client, wijziging, verwacht):
     """De reden hoort te worden vastgesteld waar het bewijs ligt: bij de diff die de server maakt.
 
     Stond die afleiding in de browser, dan was de reden in het auditspoor een waarde die de server
-    aannam maar nooit kon toetsen — in een systeem dat om herleidbaarheid draait is dat te zwak.
+    aannam maar nooit kon toetsen – in een systeem dat om herleidbaarheid draait is dat te zwak.
     """
     slug, el = await _een_element(client, lid="1", toelichting="eerste")
     doc = (await _beslis(client, slug, el, type="edit", wijziging=wijziging)).json()
@@ -772,7 +772,7 @@ async def test_reviewreden_volgt_uit_de_diff(client, wijziging, verwacht):
 
 
 async def test_een_edit_zonder_echte_wijziging_schrijft_geen_beslissing(client):
-    """Niets veranderd is geen beslissing — ook al antwoordt de server netjes met 200.
+    """Niets veranderd is geen beslissing – ook al antwoordt de server netjes met 200.
 
     Op dev leverde één suggestie die niet zichtbaar werd overgenomen zestien beslissingen op
     hetzelfde element op, waarvan vijftien leeg: de jurist bleef klikken omdat hij niets zag
@@ -794,7 +794,7 @@ async def test_een_edit_zonder_echte_wijziging_schrijft_geen_beslissing(client):
 
 
 async def test_reject_vraagt_de_reden_nog_steeds_aan_de_mens(client):
-    """Waaróm iets verworpen wordt staat in geen enkele diff — dat weet alleen de jurist."""
+    """Waaróm iets verworpen wordt staat in geen enkele diff – dat weet alleen de jurist."""
     slug, el = await _een_element(client, lid="1")
     assert (await _beslis(client, slug, el, type="reject")).status_code == 422
     assert (await _beslis(client, slug, el, type="reject",
@@ -806,7 +806,7 @@ async def test_een_meegestuurd_veld_dat_gelijk_blijft_telt_niet_mee(client):
 
     De UI stuurt bij een klasse-wijziging soms het hele element mee. Woog dat mee, dan werd elke
     klasse-correctie in het auditspoor een vage `anders`. De diff bevat alleen wat écht veranderde,
-    dus dit volgt vanzelf — maar het is de regressie waar de browserversie een eigen test voor had.
+    dus dit volgt vanzelf – maar het is de regressie waar de browserversie een eigen test voor had.
     """
     slug, el = await _een_element(client, lid="1", toelichting="eerste")
     doc = (await _beslis(client, slug, el, type="edit", wijziging={

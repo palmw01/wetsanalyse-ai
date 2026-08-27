@@ -7,7 +7,7 @@ import { JAS_KLASSEN, jasStyle } from "@/lib/jas";
  *
  *  Waar Claude's artifacts een thumbnail tonen, kan hier iets staan dat écht iets zegt: hoe de
  *  markeringen over de dertien klassen verdeeld zijn. Twee documenten naast elkaar zijn zo te
- *  vergelijken zonder ze te openen — voorwaarde-zwaar leest anders dan subject-zwaar.
+ *  vergelijken zonder ze te openen – voorwaarde-zwaar leest anders dan subject-zwaar.
  *
  *  De strip is decoratie voor een schermlezer (de aantallen staan als tekst op de kaart), maar het
  *  `title`-attribuut geeft de verdeling wel bij het aanwijzen. */

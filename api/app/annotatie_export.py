@@ -3,14 +3,14 @@
 Eén canonieke opbouw (`bouw_export`) en drie serialisaties. De opbouw is bewust de superset: hij
 draagt het **volledige spoor** van elk element (alternatieven, Critic-rondes, anker, diff, alle
 beslissingen, het model dat het voorstel maakte) plus het append-only auditlog. De JSON-variant is
-letterlijk die structuur — daarmee is de export tegelijk het contract voor de latere promotie naar
+letterlijk die structuur – daarmee is de export tegelijk het contract voor de latere promotie naar
 de graaf (`docs/wetsanalyse-workbench/jas-annotatie-ontologie.md`).
 
 Twee dingen zijn niet onderhandelbaar:
 
 - **Brongetrouwheid.** De export toont de letterlijke wettekst per lid naast de tabel, zodat een
   markering altijd naast zijn bron te leggen is. Zijn de leden niet meegegeven, dan blijft dat blok
-  weg — nooit een gereconstrueerde tekst.
+  weg – nooit een gereconstrueerde tekst.
 - **Geen schijnzekerheid.** Een document dat nog in review is exporteert gewoon, maar draagt de
   status en de telling "te beoordelen" prominent in de kop. Een element zonder geregistreerd model
   toont `MODEL_ONBEKEND`, niet een lege cel: ontbrekende herkomst is een feit, geen vergissing.
@@ -41,7 +41,7 @@ FORMATEN: dict[str, tuple[str, str]] = {
     "pdf": ("application/pdf", "pdf"),
 }
 
-# Mensleesbare status i.p.v. lifecycle-jargon — dezelfde woorden als de werkplek toont.
+# Mensleesbare status i.p.v. lifecycle-jargon – dezelfde woorden als de werkplek toont.
 STATUS_LABEL = {
     "voorgesteld": "voorstel van Lex",
     "critic_checked": "voorstel van Lex (door Critic gezien)",
@@ -55,7 +55,7 @@ STATUS_LABEL = {
 # Achtergrondtinten voor de aandacht-as, gelijk aan frontend/app/globals.css.
 AANDACHT_KLEUR = {"groen": "#e9f3e1", "geel": "#fbefe2", "rood": "#fbe7e5"}
 
-NEUTRALE_KLEUR = ("#f5f6f8", "#d5d8dd")   # onbekende klasse — mag niet als JAS-kleur lezen
+NEUTRALE_KLEUR = ("#f5f6f8", "#d5d8dd")   # onbekende klasse – mag niet als JAS-kleur lezen
 
 
 # --- exportmodel --------------------------------------------------------------
@@ -102,7 +102,7 @@ class ExportDocumentMeta(BaseModel):
 
 
 class ExportElement(BaseModel):
-    """Eén element met alles wat erover bekend is — niets weggelaten."""
+    """Eén element met alles wat erover bekend is – niets weggelaten."""
 
     volgnummer: int
     id: str
@@ -249,7 +249,7 @@ def weergavenaam(doc: AnnotatieDocument) -> str:
     """De naam waaronder een annotatie in beeld komt.
 
     Terugval op `werkgebied`: vóór het aparte `citeertitel`-veld zette de werkplek de wetnaam daarin
-    (`werkgebied: doel.citeertitel`). Oude documenten zijn zo leesbaar zonder datamigratie — en
+    (`werkgebied: doel.citeertitel`). Oude documenten zijn zo leesbaar zonder datamigratie – en
     zonder te gokken wat er in dat veld stond.
     """
     return doc.citeertitel or doc.werkgebied or doc.bwbId
@@ -381,7 +381,7 @@ def naar_pdf(e: ExportDocument) -> bytes:
 
     def pm(html: str, stijl=st_cel) -> Paragraph:
         """Een regel die ik zelf samenstel en waarin opmaak (`<b>`) bedoeld is. Elke ingevoegde
-        waarde moet dan al door `esc()` zijn gegaan — vandaar de scheiding met `p()`."""
+        waarde moet dan al door `esc()` zijn gegaan – vandaar de scheiding met `p()`."""
         return Paragraph(html, stijl)
 
     def tijdstip(waarde) -> str:
@@ -398,7 +398,7 @@ def naar_pdf(e: ExportDocument) -> bytes:
     verhaal: list = []
 
     # 1. Titelblok
-    verhaal.append(p(f"JAS-annotatie — {bron}", st_titel))
+    verhaal.append(p(f"JAS-annotatie – {bron}", st_titel))
     kop = [esc(d.werkgebied) or "geen werkgebied", f"status: {esc(d.status)}"]
     if t.te_beoordelen:
         kop.append(f"<b>{t.te_beoordelen} van {t.totaal} elementen nog te beoordelen</b>")
@@ -409,7 +409,7 @@ def naar_pdf(e: ExportDocument) -> bytes:
         "Dit rapport bevat voorstellen van een AI-agent die door een jurist zijn beoordeeld. "
         f"Gegenereerd op {e.export.gegenereerd_op:%d-%m-%Y %H:%M} UTC.", st_klein))
 
-    # 2. Metadata — inclusief het model, want dat is de herkomst van elk voorstel.
+    # 2. Metadata – inclusief het model, want dat is de herkomst van elk voorstel.
     verhaal.append(p("Gegevens van de annotatie", st_kop))
     meta: list[tuple[str, str]] = [
         ("Regeling (bwbId)", d.bwbId), ("Artikel", d.artikel), ("Lid", d.lid or "hele artikel"),
@@ -443,7 +443,7 @@ def naar_pdf(e: ExportDocument) -> bytes:
     ]))
     verhaal.append(tab_meta)
 
-    # 3. De letterlijke wettekst — brongetrouwheid: de tabel moet naast zijn bron te leggen zijn.
+    # 3. De letterlijke wettekst – brongetrouwheid: de tabel moet naast zijn bron te leggen zijn.
     if e.leden:
         verhaal.append(p("Wettekst (letterlijk)", st_kop))
         for lid in e.leden:
@@ -482,13 +482,13 @@ def naar_pdf(e: ExportDocument) -> bytes:
     tab.setStyle(TableStyle(stijl))
     verhaal.append(tab)
 
-    # 5. Bijlage A — het volledige spoor per element.
+    # 5. Bijlage A – het volledige spoor per element.
     verhaal.append(PageBreak())
-    verhaal.append(p("Bijlage A — volledig spoor per markering", st_kop))
+    verhaal.append(p("Bijlage A – volledig spoor per markering", st_kop))
     if not e.elementen:
         verhaal.append(p("Geen markeringen.", st))
     for el in e.elementen:
-        blok: list = [p(f"{el.volgnummer}. {el.klasse} — “{el.tekst}”", st_kop3)]
+        blok: list = [p(f"{el.volgnummer}. {el.klasse} – “{el.tekst}”", st_kop3)]
         regels = [
             f"<b>Vindplaats:</b> {esc(el.vindplaats) or '—'}"
             + (f" (lid {esc(el.lid)})" if el.lid else ""),
@@ -504,19 +504,19 @@ def naar_pdf(e: ExportDocument) -> bytes:
                 f"agent {esc(r.agent_versie) or '—'} · {tijdstip(r.tijd)}")
         if el.aandacht or el.critic:
             regels.append(
-                f"<b>Aandacht:</b> {esc(el.aandacht) or '—'} — {esc(el.critic) or 'geen motivatie'}")
+                f"<b>Aandacht:</b> {esc(el.aandacht) or '—'} – {esc(el.critic) or 'geen motivatie'}")
         for a in el.alternatieven:
             regels.append(
-                f"<b>Alternatief:</b> {esc(a.get('klasse'))} — {esc(a.get('motivatie'))}")
+                f"<b>Alternatief:</b> {esc(a.get('klasse'))} – {esc(a.get('motivatie'))}")
         for r_ in el.critic_rondes:
             regels.append(
                 f"<b>Critic ronde {esc(r_.get('ronde'))}:</b> {esc(r_.get('aandacht')) or '—'} · "
-                f"{esc(r_.get('actie'))} — {esc(r_.get('motivatie'))}")
+                f"{esc(r_.get('actie'))} – {esc(r_.get('motivatie'))}")
         if el.critic_suggestie:
             cs = el.critic_suggestie
             regels.append(
                 f"<b>Kanttekening bij eigen markering:</b> {esc(cs.get('aandacht')) or '—'} "
-                f"({esc(cs.get('status'))}) — {esc(cs.get('motivatie'))}")
+                f"({esc(cs.get('status'))}) – {esc(cs.get('motivatie'))}")
         for veld, wz in (el.diff or {}).items():
             regels.append(
                 f"<b>Wijziging {esc(veld)}:</b> “{esc(wz.get('voor'))}” → “{esc(wz.get('na'))}”")
@@ -536,9 +536,9 @@ def naar_pdf(e: ExportDocument) -> bytes:
         blok.append(Spacer(1, 2 * mm))
         verhaal.append(KeepTogether(blok))
 
-    # 6. Bijlage B — het append-only auditlog als tijdlijn.
+    # 6. Bijlage B – het append-only auditlog als tijdlijn.
     verhaal.append(PageBreak())
-    verhaal.append(p("Bijlage B — auditlog", st_kop))
+    verhaal.append(p("Bijlage B – auditlog", st_kop))
     if not e.audit:
         verhaal.append(p("Geen auditregels.", st))
     else:

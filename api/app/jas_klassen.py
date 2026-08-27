@@ -1,4 +1,4 @@
-"""De dertien JAS-klassen — de canonieke bron voor het annotatiedomein.
+"""De dertien JAS-klassen – de canonieke bron voor het annotatiedomein.
 
 Deze lijst stond eerder in een script in de wetsanalyse-skill, dat `validation.py` op import-tijd
 inlaadde. Dat betekende dat het productie-image een Claude-skill
@@ -9,7 +9,7 @@ meer aan vast.
 Twee andere plekken dragen dezelfde waarden en worden door tests bewaakt:
 `frontend/lib/jas.ts` (een browser kan dit bestand niet lezen) via `tests/test_jas_kleuren_drift.py`,
 en `tools/graph-qa/agent/jas_klassen.py` met een eigen drift-test. Wijzig je hier iets, wijzig het
-daar mee — de tests wijzen je erop.
+daar mee – de tests wijzen je erop.
 """
 
 from __future__ import annotations

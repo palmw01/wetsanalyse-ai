@@ -3,16 +3,16 @@ Grounding-/verificatie: controleert of het ANTWOORD herleidbaar is tot de tool-e
 
 Deterministisch, geen extra LLM-call in het live pad. Twee controles naast elkaar:
 
-1. **Vindplaatsen** — elke verwijzing (IRI/jci/BWB-id) in het antwoord moet in de trace voorkomen.
+1. **Vindplaatsen** – elke verwijzing (IRI/jci/BWB-id) in het antwoord moet in de trace voorkomen.
    Bewust op BWB-id-granulariteit: zo vangen we het echte falen (een verzonnen regeling die de graaf
    nooit teruggaf) zónder vals alarm op afwijkende jci-formattering of geparafraseerde IRI's.
-2. **Citaten** — tekst die het antwoord tússen aanhalingstekens zet, moet letterlijk in de
+2. **Citaten** – tekst die het antwoord tússen aanhalingstekens zet, moet letterlijk in de
    opgehaalde tekst staan. De agent belooft letterlijk te citeren en de annotatieketen dwingt dat af
    (`annotatie.komt_letterlijk_voor`); in het antwoordpad ontbrak diezelfde controle, terwijl een
    citaat met één woord verschil precies is waar een jurist op afgaat.
 
 En een derde uitkomst naast gegrond/ongegrond: **onbepaald**. Een antwoord dat géén vindplaats en
-géén citaat noemt, is niet "gegrond" — er valt niets te controleren. Dat als groen tellen is
+géén citaat noemt, is niet "gegrond" – er valt niets te controleren. Dat als groen tellen is
 schijnzekerheid, en juist die wil dit platform bestrijden.
 """
 from __future__ import annotations
@@ -25,7 +25,7 @@ from .models import Source
 from .provenance import _BWB_RE, citations_in, first_bwb
 
 # Citaten in de vormen die een model gebruikt: rechte en typografische dubbele aanhalingstekens.
-# Enkele quotes blijven erbuiten — die staan in Nederlandse lopende tekst te vaak om iets anders
+# Enkele quotes blijven erbuiten – die staan in Nederlandse lopende tekst te vaak om iets anders
 # (een aanhaling binnen een aanhaling, een apostrof) en zouden vals alarm geven.
 _CITAAT_RE = re.compile(r'"([^"\n]{2,400})"' r"|“([^”\n]{2,400})”")
 
@@ -42,12 +42,12 @@ class GroundingReport:
     unsupported: list[str] = field(default_factory=list)
     # Tekst die het antwoord als citaat presenteert maar die niet letterlijk in de trace staat.
     niet_letterlijk: list[str] = field(default_factory=list)
-    # Hoeveel passages er als citaat zijn nagelopen — geslaagd én mislukt. Zonder dit getal is niet te
+    # Hoeveel passages er als citaat zijn nagelopen – geslaagd én mislukt. Zonder dit getal is niet te
     # melden wát er is gecontroleerd: een antwoord dat artikelen in gewone taal noemt ("artikel 2 lid
     # 1 onderdeel m") heeft nul vindplaatsen, en dan las de tijdlijn "0 verwijzingen onderbouwd" —
     # terwijl er twee citaten wél waren getoetst en klopten.
     citaten: int = 0
-    # "gegrond" | "onbepaald" | "ongegrond" — fijner dan de bool, die voor het bestaande
+    # "gegrond" | "onbepaald" | "ongegrond" – fijner dan de bool, die voor het bestaande
     # event-contract blijft bestaan.
     niveau: str = "gegrond"
 
@@ -79,7 +79,7 @@ def check_grounding(answer_text: str, source_trace: list[tuple[str, str]]) -> Gr
             unsupported.append(c)
 
     # Dezelfde eis en dezelfde normalisatie als bij een JAS-markering: witruimte-ongevoelig, verder
-    # letterlijk. Een citaat dat een aanhalingsteken bevat slaan we over — de trace draagt de
+    # letterlijk. Een citaat dat een aanhalingsteken bevat slaan we over – de trace draagt de
     # tool-resultaten rauw (JSON-string-wrapped TSV), dus daar zijn quotes ge-escaped en zou een
     # terecht citaat als afwijking uit de bus komen.
     citaten = _citaten(answer_text)
@@ -91,7 +91,7 @@ def check_grounding(answer_text: str, source_trace: list[tuple[str, str]]) -> Gr
     if unsupported:
         niveau = "ongegrond"
     elif not cited and not citaten:
-        # Niets te controleren. Dat is geen bewijs van juistheid — zeg dat dan ook.
+        # Niets te controleren. Dat is geen bewijs van juistheid – zeg dat dan ook.
         niveau = "onbepaald"
     elif niet_letterlijk:
         niveau = "ongegrond"

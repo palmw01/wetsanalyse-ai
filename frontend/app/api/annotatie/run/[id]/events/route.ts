@@ -6,7 +6,7 @@
 //     wat een kijker afsneed terwijl de run gewoon doorliep. Een kijker mag zo lang blijven kijken
 //     als de run duurt.
 //  2. **De disconnect blijft lokaal.** `req.signal` gaat niet naar boven: wie wegklikt, koppelt
-//     alleen zichzelf los. De run merkt er niets van — dat is de hele omkering.
+//     alleen zichzelf los. De run merkt er niets van – dat is de hele omkering.
 
 import { graphQaAuthHeader, graphQaBaseUrl } from "@/lib/config";
 import { metTrace } from "@/app/api/_lib/trace";
@@ -27,7 +27,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   try {
     upstream = await fetch(url, {
       // De identiteit gaat mee: graph-qa geeft 404 op andermans run. Zonder deze header zou het
-      // run-id zelf de enige beveiliging zijn — een capability in plaats van autorisatie.
+      // run-id zelf de enige beveiliging zijn – een capability in plaats van autorisatie.
       headers: metTrace({ ...graphQaAuthHeader(), "X-User-Id": userid, Accept: "text/event-stream" }),
       cache: "no-store",
     });

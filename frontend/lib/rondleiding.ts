@@ -2,7 +2,7 @@
 // onthoudt van wie hem al gezien heeft.
 //
 // Pure module. Vitest draait hier in node-env zonder DOM (zie `lib/selectie.ts`), dus alles wat te
-// toetsen valt — de volgorde, het filter op rol, het hervatten — staat hier en niet in het component.
+// toetsen valt – de volgorde, het filter op rol, het hervatten – staat hier en niet in het component.
 // Het opslaglaagje onderaan is bewust dun en faalt stil: dit is een hulpmiddel, geen contract.
 //
 // De teksten staan hier óók, en dat is opzet. Ze vormen samen één verhaal (van oriëntatie naar een
@@ -40,7 +40,7 @@ export const STAPPEN: Stap[] = [
     titel: "Het gespreksvenster",
     tekst:
       "Alles gebeurt hier, in één gesprek. Je stelt een vraag over wet- en regelgeving, of je vraagt " +
-      "een annotatie — hetzelfde venster, dezelfde manier van vragen.",
+      "een annotatie – hetzelfde venster, dezelfde manier van vragen.",
     waarom:
       "Er is bewust geen wetkiezer en geen formulier. Lex zoekt de bepaling zelf op in de " +
       "kennisgraaf, zodat je nooit een verkeerd artikelnummer overtypt.",
@@ -103,7 +103,7 @@ export const STAPPEN: Stap[] = [
       "wat Lex doet: ophalen, markeren, en de eigen tegenlezer langs het resultaat.",
     waarom:
       "De beurt draait bij de server, niet in dit tabblad. Je kunt gerust herladen, van gesprek " +
-      "wisselen of even weglopen — je verliest niets.",
+      "wisselen of even weglopen – je verliest niets.",
   },
   {
     id: "artefact-openen",
@@ -111,7 +111,7 @@ export const STAPPEN: Stap[] = [
     fase: "beoordelen",
     titel: "De annotatie openen",
     tekst:
-      "De uitkomst is geen lap tekst maar een document dat je kunt beoordelen. Klik de kaart aan — " +
+      "De uitkomst is geen lap tekst maar een document dat je kunt beoordelen. Klik de kaart aan – " +
       "op een breed scherm komt hij naast je gesprek te staan, zodat je kunt blijven vragen terwijl " +
       "je leest.",
   },
@@ -122,7 +122,7 @@ export const STAPPEN: Stap[] = [
     fase: "beoordelen",
     titel: "De wettekst",
     tekst:
-      "Dit is de letterlijke tekst uit de kennisgraaf — niet geparafraseerd, niet gereconstrueerd. " +
+      "Dit is de letterlijke tekst uit de kennisgraaf – niet geparafraseerd, niet gereconstrueerd. " +
       "Kies je hiernaast een markering, dan licht hier op wáár die staat.",
     waarom:
       "Elke markering is een stuk van déze tekst, met een anker dat een herimport van de wet " +
@@ -150,7 +150,7 @@ export const STAPPEN: Stap[] = [
     titel: "Wat een kaart je vertelt",
     tekst:
       "Elke kaart is één markering: het letterlijke fragment, de JAS-klasse in zijn eigen kleur, en " +
-      "een oordeel — Geen bezwaar, Even kijken of Waarschijnlijk fout.",
+      "een oordeel – Geen bezwaar, Even kijken of Waarschijnlijk fout.",
     waarom:
       "Dat oordeel is geen zelfvertrouwen van het model, maar komt uit echte signalen: twijfelde Lex " +
       "tussen twee klassen, of staat het citaat niet stevig in de tekst. Het helpt je prioriteren, " +
@@ -169,7 +169,7 @@ export const STAPPEN: Stap[] = [
       "het chatveld klaarzetten. Met het toetsenbord gaat het sneller: j en k door de lijst, a " +
       "akkoord, x verwerpen, c klasse.",
     waarom:
-      "Lex stelt voor, jij beslist. Elke beslissing gaat het auditspoor in — een voorstel verwerp " +
+      "Lex stelt voor, jij beslist. Elke beslissing gaat het auditspoor in – een voorstel verwerp " +
       "je, mét reden; je wist het niet weg.",
   },
   {
@@ -192,7 +192,7 @@ export const STAPPEN: Stap[] = [
     fase: "afronding",
     titel: "Afronden en exporteren",
     tekst:
-      "Exporteren geeft je PDF, CSV of JSON — ook halverwege; het bestand zegt zelf hoeveel er nog " +
+      "Exporteren geeft je PDF, CSV of JSON – ook halverwege; het bestand zegt zelf hoeveel er nog " +
       "openstaat. Daarin zit ook het volledige spoor: elke beslissing, en met welk model Lex het " +
       "voorstel maakte. Afronden zet het document vast; heropenen kan altijd.",
     waarom:
@@ -243,7 +243,7 @@ export interface Afmeting {
   hoogte: number;
 }
 
-/** Waar de bubbel terechtkomt. `midden` betekent: niet aanwijzen maar centreren — dan hoort er
+/** Waar de bubbel terechtkomt. `midden` betekent: niet aanwijzen maar centreren – dan hoort er
  *  ook geen spotlight omheen. */
 export type Plaatsing =
   | { modus: "midden" }
@@ -267,7 +267,7 @@ export function domineert(vak: Vak, viewport: Afmeting): boolean {
 /** Kies een plek voor de bubbel bij het aangewezen vak.
  *
  *  De volgorde is: onder, boven, rechts, links, en anders het midden. Doorslaggevend is of de
- *  bubbel er **past** — niet welke kant het meeste ruimte heeft. Dat laatste was de oude regel, en
+ *  bubbel er **past** – niet welke kant het meeste ruimte heeft. Dat laatste was de oude regel, en
  *  daardoor belandde de bubbel bij een schermvullend element buiten beeld: "meer ruimte" kan nog
  *  altijd te weinig zijn. Wat er ook uitkomt, de bubbel blijft binnen het scherm. */
 export function plaatsBubbel(vak: Vak | null, bubbel: Afmeting, viewport: Afmeting): Plaatsing {
@@ -277,7 +277,7 @@ export function plaatsBubbel(vak: Vak | null, bubbel: Afmeting, viewport: Afmeti
   const onderRand = vak.top + vak.hoogte;
   const rechterRand = vak.left + vak.breedte;
 
-  // Horizontaal uitgelijnd op het midden van het element, verticaal idem — in beide gevallen
+  // Horizontaal uitgelijnd op het midden van het element, verticaal idem – in beide gevallen
   // geklemd, zodat een element aan de rand de bubbel niet mee naar buiten trekt.
   const linksGecentreerd = klem(
     vak.left + vak.breedte / 2 - bubbel.breedte / 2,
@@ -320,7 +320,7 @@ export interface Stand {
 export const LEGE_STAND: Stand = { versie: RONDLEIDING_VERSIE, gezien: false };
 
 /** Start de rondleiding vanzelf? Alleen als deze browser hem nooit heeft gezien, en alleen voor de
- *  versie die nu draait — een latere uitbreiding kan zich zo opnieuw aanbieden. */
+ *  versie die nu draait – een latere uitbreiding kan zich zo opnieuw aanbieden. */
 export function moetStarten(stand: Stand): boolean {
   return !stand.gezien || stand.versie < RONDLEIDING_VERSIE;
 }
@@ -345,6 +345,6 @@ export function schrijfStand(stand: Stand): void {
   try {
     window.localStorage.setItem(SLEUTEL, JSON.stringify(stand));
   } catch {
-    /* opslag niet beschikbaar — dan start de rondleiding een volgende keer opnieuw */
+    /* opslag niet beschikbaar – dan start de rondleiding een volgende keer opnieuw */
   }
 }

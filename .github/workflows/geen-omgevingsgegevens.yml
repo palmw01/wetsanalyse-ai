@@ -1,6 +1,6 @@
 # Deze repo is publiek. Hostnamen, interne IP's en machinenamen van de omgeving waar hij draait
 # horen er dus niet in: ze vertellen aan iedereen wat er waar staat, terwijl de code er niets aan
-# heeft — alle omgevingswaarden komen uit repo-variabelen en secrets.
+# heeft – alle omgevingswaarden komen uit repo-variabelen en secrets.
 #
 # Ze zijn er één keer helemaal uitgehaald. Deze guard bestaat om te voorkomen dat ze via een
 # copy-paste uit een terminal weer terugsluipen; dat is precies hoe ze er de eerste keer in kwamen.

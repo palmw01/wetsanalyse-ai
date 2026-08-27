@@ -10,7 +10,7 @@ dependencies = [
     "httpx>=0.27.0",
     # De SDK draait sinds anthropic 1.x op httpx2 (de onderhouden fork van httpx, van de
     # oorspronkelijke auteur, uitgegeven door Pydantic: github.com/pydantic/httpx2). Hij komt
-    # transitief mee, maar `api/main.py` importeert hem rechtstreeks voor `alias_httpx()` — en wat je
+    # transitief mee, maar `api/main.py` importeert hem rechtstreeks voor `alias_httpx()` – en wat je
     # importeert hoor je te declareren. `httpx` blijft staan: mcp_client en wetsanalyse_api praten er
     # met de graaf en de api mee, buiten de SDK om.
     "httpx2>=2.0",
@@ -20,12 +20,12 @@ dependencies = [
     "langgraph>=1.2",
     "langgraph-checkpoint-sqlite>=3.1",
     # Postgres-checkpointer (gedeelde, horizontaal-veilige geheugenopslag; actief zodra
-    # CHECKPOINT_DB_URL gezet is — anders blijft de SQLite-default van kracht).
+    # CHECKPOINT_DB_URL gezet is – anders blijft de SQLite-default van kracht).
     "langgraph-checkpoint-postgres>=3.0",
     "psycopg[binary]>=3.2",
 ]
 # NB: Settings gebruikt bewust een gewone pydantic BaseModel (agent/config.py),
-# niet pydantic-settings — geen extra runtime-dependency nodig.
+# niet pydantic-settings – geen extra runtime-dependency nodig.
 
 [project.optional-dependencies]
 dev = [
@@ -48,7 +48,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 # De code leeft in agent/ + api/ (geen `graph_qa/`-map), dus hatchling expliciet vertellen
-# welke packages in de wheel horen — anders faalt `uv sync` (kan geen files bepalen).
+# welke packages in de wheel horen – anders faalt `uv sync` (kan geen files bepalen).
 [tool.hatch.build.targets.wheel]
 packages = ["agent", "api"]
 

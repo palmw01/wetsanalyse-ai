@@ -2,18 +2,18 @@
 
 Twee lagen, allebei fail-open (mogen de app nooit killen):
 
-1. **Gestructureerde logging** — één JSON-regel per gebeurtenis naar stdout, gespiegeld aan de
+1. **Gestructureerde logging** – één JSON-regel per gebeurtenis naar stdout, gespiegeld aan de
    projectbrede JSON-logger: velden `ts` (UTC-ISO), `niveau`, `categorie`
-   (`functioneel|audit|security`), `bericht`, plus vrije velden en — indien een OTel-span actief is —
+   (`functioneel|audit|security`), `bericht`, plus vrije velden en – indien een OTel-span actief is —
    `trace_id`/`span_id`. Geheime velden worden geredacteerd (defence-in-depth). Werkt **zonder**
    dat `opentelemetry` geïnstalleerd is.
 
-2. **OpenTelemetry** (traces + metrics + logs) — alleen actief als `OTEL_EXPORTER_OTLP_ENDPOINT`
+2. **OpenTelemetry** (traces + metrics + logs) – alleen actief als `OTEL_EXPORTER_OTLP_ENDPOINT`
    gezet is én de `otel`-extra geïnstalleerd. Anders volledig no-op: `get_tracer()`/`get_meter()`
    geven veilige no-op-objecten terug, zodat de rest van de app onvoorwaardelijk spans/metrics mag
    aanmaken.
 
-Normenkader (gelijk aan de MCP): BIO2 / NEN-EN-ISO/IEC 27002:2022 — 8.15 Logging, 8.16 Monitoring
+Normenkader (gelijk aan de MCP): BIO2 / NEN-EN-ISO/IEC 27002:2022 – 8.15 Logging, 8.16 Monitoring
 (auth/security apart herkenbaar via `categorie`), 8.17 Clock synchronisation (UTC/ISO-8601).
 AVG/dataminimalisatie: tokens, secrets en prompt-/chatinhoud worden nooit gelogd.
 """

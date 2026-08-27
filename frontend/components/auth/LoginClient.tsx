@@ -58,7 +58,7 @@ export function LoginClient() {
       }
       // Harde navigatie (niet router.push): de bestemming kan door de disclaimer-gate in
       // auth.config.ts naar /disclaimer omgeleid worden. Een router.push (soft navigation)
-      // gecombineerd met een middleware-redirect laat de Next.js-router in de war achter — de
+      // gecombineerd met een middleware-redirect laat de Next.js-router in de war achter – de
       // pagina laadt dan wel, maar eigen client-side navigatie (knoppen, links) erop reageert
       // niet meer tot een handmatige refresh. Een window.location-navigatie doorloopt de
       // redirect zoals een normale paginalaad (en dat is precies wat een refresh ook doet).
@@ -66,9 +66,9 @@ export function LoginClient() {
     } catch {
       // Een uitzondering, geen antwoord: API onbereikbaar, DNS-fout, verbinding weggevallen. Zonder
       // deze tak sprong de knop terug van "Bezig met inloggen…" naar "Inloggen" en leek er niets
-      // gebeurd — precies het moment waarop niemand aan de infrastructuur denkt en dus zijn
+      // gebeurd – precies het moment waarop niemand aan de infrastructuur denkt en dus zijn
       // wachtwoord opnieuw gaat typen.
-      setFout("Inloggen lukt nu niet — de dienst is niet bereikbaar. Probeer het zo opnieuw.");
+      setFout("Inloggen lukt nu niet – de dienst is niet bereikbaar. Probeer het zo opnieuw.");
     } finally {
       setBezig(false);
     }

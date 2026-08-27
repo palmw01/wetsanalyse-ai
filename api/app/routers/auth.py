@@ -1,19 +1,19 @@
-"""Auth-resource (gemount onder /v1/auth) — login-verificatie, eenmalige registratie en 2FA.
+"""Auth-resource (gemount onder /v1/auth) – login-verificatie, eenmalige registratie en 2FA.
 
 De **enige client is de frontend-BFF**: deze endpoints zitten achter de bestaande client-bearer
 (`require_client`). De BFF (Auth.js) verifieert hier inloggegevens en zet voor de self-service
-2FA-/account-endpoints een **vertrouwde `X-User-Id`-header** uit de ingelogde sessie — die identiteit
+2FA-/account-endpoints een **vertrouwde `X-User-Id`-header** uit de ingelogde sessie – die identiteit
 komt dus nooit uit browser-input. Inloggen gaat uitsluitend met de **userid**; `email` is een
 verplicht, uniek registratiegegeven. De API blijft de identiteitsbron; de BFF houdt alleen de sessie.
 
-GET  /v1/auth/setup-status        — is er nog geen account? (dan staat de registratie open)
-POST /v1/auth/setup               — maak de allereerste beheerder (alleen bij lege tabel → anders 409)
-POST /v1/auth/verify              — valideer userid + wachtwoord (+ optionele TOTP)
-GET  /v1/auth/me                  — eigen account (rol + of 2FA aanstaat) — X-User-Id
-POST /v1/auth/change-password     — eigen wachtwoord wijzigen (huidig → nieuw) — X-User-Id
-POST /v1/auth/2fa/begin           — start 2FA-koppeling, geeft de otpauth-URI — X-User-Id
-POST /v1/auth/2fa/activate        — bevestig 2FA met één geldige code — X-User-Id
-POST /v1/auth/2fa/disable         — schakel 2FA uit — X-User-Id
+GET  /v1/auth/setup-status        – is er nog geen account? (dan staat de registratie open)
+POST /v1/auth/setup               – maak de allereerste beheerder (alleen bij lege tabel → anders 409)
+POST /v1/auth/verify              – valideer userid + wachtwoord (+ optionele TOTP)
+GET  /v1/auth/me                  – eigen account (rol + of 2FA aanstaat) – X-User-Id
+POST /v1/auth/change-password     – eigen wachtwoord wijzigen (huidig → nieuw) – X-User-Id
+POST /v1/auth/2fa/begin           – start 2FA-koppeling, geeft de otpauth-URI – X-User-Id
+POST /v1/auth/2fa/activate        – bevestig 2FA met één geldige code – X-User-Id
+POST /v1/auth/2fa/disable         – schakel 2FA uit – X-User-Id
 """
 
 from __future__ import annotations
@@ -125,7 +125,7 @@ async def actieve_userid(userid: str = Depends(huidige_userid)) -> str:
     """De ingelogde gebruiker, mits het account nog bestaat en actief is.
 
     Zonder deze check houdt een gedeactiveerde gebruiker toegang tot zijn documenten en gesprekken
-    zolang de BFF de header blijft sturen — de api had daar geen eigen slot op, terwijl `/v1/auth/me`
+    zolang de BFF de header blijft sturen – de api had daar geen eigen slot op, terwijl `/v1/auth/me`
     en het admin-pad dat wél hebben.
     """
     nu = monotonic()
@@ -151,7 +151,7 @@ async def huidige_beheerder(userid: str = Depends(huidige_userid)) -> str:
     beheerder is. Nodig voor endpoints die per-beheerder state bijhouden (bv. `feedback_gezien_op`).
 
     Bewust op `huidige_userid` en niet op `actieve_userid`: elke afwijzing is hier **403**, of het
-    account nu ontbreekt, inactief is of geen beheerder — een 401 op "bestaat niet" tegenover 403 op
+    account nu ontbreekt, inactief is of geen beheerder – een 401 op "bestaat niet" tegenover 403 op
     "geen beheerder" zou dit endpoint tot user-enumeratie-orakel maken.
     """
     user = await users.get_user(userid)

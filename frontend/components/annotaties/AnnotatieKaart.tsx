@@ -8,7 +8,7 @@ import { DOCUMENT_STATUS_LABEL, DOCUMENT_STATUS_STYLE } from "@/lib/annotatie";
 import { naamVan, vindplaatsLabel } from "@/lib/annotatieOverzicht";
 import type { DocumentSamenvatting } from "@/lib/types";
 
-/** "3 dagen geleden" — genoeg om te zien wat blijft liggen, zonder valse precisie. */
+/** "3 dagen geleden" – genoeg om te zien wat blijft liggen, zonder valse precisie. */
 function geleden(iso?: string | null): string {
   if (!iso) return "onbekend";
   const ms = Date.now() - Date.parse(iso);

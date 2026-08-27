@@ -110,8 +110,8 @@ class Divisie:
 
     Anders dan een wettekst-structuurdeel is een divisie tegelijk *container*
     (geneste subdivisies) én *tekstdrager* (eigen alinea's). Ze draagt eigen
-    provenance-attributen en verwijzingen en doet daarmee — net als een
-    :class:`Artikel` — mee in het citatienetwerk (MERGE op ``ref_key``).
+    provenance-attributen en verwijzingen en doet daarmee – net als een
+    :class:`Artikel` – mee in het citatienetwerk (MERGE op ``ref_key``).
     """
 
     id: str
@@ -140,7 +140,7 @@ class Bijlage:
 
     Net als een :class:`Divisie` is een bijlage tegelijk *container* (kan eigen
     artikelen en onderdelen bevatten) én *tekstdrager* (eigen alinea's). Ze draagt
-    provenance-attributen en doet — via ``ref_key`` — mee in het citatienetwerk.
+    provenance-attributen en doet – via ``ref_key`` – mee in het citatienetwerk.
     """
 
     id: str

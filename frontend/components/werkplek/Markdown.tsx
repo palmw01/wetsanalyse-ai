@@ -11,7 +11,7 @@ import { markeerPassages } from "@/lib/markering";
  *  **Gememoïseerd op de tekst.** Tijdens het streamen wordt de hele thread bij elke token opnieuw
  *  gerenderd; zonder dit parseerde react-markdown élk afgerond antwoord in het gesprek dan opnieuw,
  *  en groeiden de kosten mee met de lengte van het gesprek. Het lópende antwoord verandert wél per
- *  token en wordt dus nog steeds opnieuw geparseerd — dat schaalt met de lengte van dat ene antwoord
+ *  token en wordt dus nog steeds opnieuw geparseerd – dat schaalt met de lengte van dat ene antwoord
  *  en is de prijs voor opmaak die meteen goed staat. */
 export const TEKST_CLASS =
   "break-words text-[0.9375rem] leading-relaxed text-ink [overflow-wrap:anywhere]";
@@ -19,7 +19,7 @@ export const TEKST_CLASS =
 /** Het antwoord zoals het binnenkomt: platte tekst, dezelfde typografie als de opgemaakte versie.
  *
  *  Tijdens het streamen zou markdown bij élke token de hele tot dan toe ontvangen tekst opnieuw
- *  parseren — kosten die kwadratisch groeien met de lengte van het antwoord. De prijs is dat de
+ *  parseren – kosten die kwadratisch groeien met de lengte van het antwoord. De prijs is dat de
  *  opmaak (lijstjes, vet) pas verschijnt als de beurt klaar is; door dezelfde klassen te gebruiken
  *  blijft dat bij lopende tekst onzichtbaar en verspringt alleen wat écht opmaak heeft. */
 export function StreamendeTekst({ tekst }: { tekst: string }) {
@@ -59,7 +59,7 @@ export const Markdown = memo(function Markdown({
           h3: ({ children }) => <p className="font-semibold">{children}</p>,
           strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
           // Alleen gezet door `markeerPassages`: een citaat dat de controle afkeurde. Geel is hier
-          // de aandacht-tint uit de huisstijl — dezelfde betekenis als op een reviewkaart: kijk hier
+          // de aandacht-tint uit de huisstijl – dezelfde betekenis als op een reviewkaart: kijk hier
           // even naar. De stippellijn draagt het signaal óók zonder kleur, en de sr-only tekst zegt
           // het voor wie het niet ziet; kleur alleen zou het voor een deel van de lezers wegvallen.
           mark: ({ children, title }) => (

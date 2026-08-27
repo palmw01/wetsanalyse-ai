@@ -1,8 +1,8 @@
 """Export van een annotatiedocument (pdf/csv/json) + de registratie van de productie-metadata.
 
 Twee dingen worden hier bewaakt die makkelijk stil wegvallen: dat de export het VOLLEDIGE spoor
-draagt (beslissingen, Critic-rondes, anker, diff, model) en dat de herkomst van een voorstel — met
-welk model het gemaakt is — blijft staan zodra hij één keer geregistreerd is.
+draagt (beslissingen, Critic-rondes, anker, diff, model) en dat de herkomst van een voorstel – met
+welk model het gemaakt is – blijft staan zodra hij één keer geregistreerd is.
 """
 from __future__ import annotations
 
@@ -87,7 +87,7 @@ async def test_run_wordt_geregistreerd_op_document_element_en_audit(client):
     agent = {e["id"]: e for e in doc["elementen"] if e["herkomst"] == "agent"}
     assert agent["m2"]["geproduceerd_door"]["model"] == "claude-sonnet-4-6"
     assert agent["m2"]["geproduceerd_door"]["agent_versie"] == "0.4.0"
-    # De eigen markering van de jurist heeft geen model — die is niet geproduceerd.
+    # De eigen markering van de jurist heeft geen model – die is niet geproduceerd.
     mens = next(e for e in doc["elementen"] if e["herkomst"] == "mens")
     assert mens["geproduceerd_door"] is None
 
@@ -154,7 +154,7 @@ async def test_export_csv_is_excel_leesbaar(client):
     slug = await _document_met_spoor(client)
     r = await client.post(f"{BASIS}/{slug}/export?formaat=csv")
     assert r.status_code == 200
-    assert r.content.startswith(b"\xef\xbb\xbf"), "BOM ontbreekt — Excel verminkt dan de diacritieken"
+    assert r.content.startswith(b"\xef\xbb\xbf"), "BOM ontbreekt – Excel verminkt dan de diacritieken"
 
     tekst = r.content.decode("utf-8-sig")
     assert "# modellen;claude-sonnet-4-6" in tekst
@@ -202,7 +202,7 @@ async def test_document_zonder_run_toont_model_als_onbekend(client):
 async def test_pdf_verdraagt_tekens_die_op_opmaak_lijken(client):
     """Wettekst en modeluitvoer mogen `<` en `&` bevatten; reportlab leest een alinea als markup.
 
-    Eén zo'n teken zonder escape breekt het hele document — en dat is precies het soort fout dat
+    Eén zo'n teken zonder escape breekt het hele document – en dat is precies het soort fout dat
     pas bij een echte wettekst opvalt.
     """
     slug = (await client.post(BASIS, json={"bwbId": "BWBR1", "artikel": "1"})).json()["slug"]
@@ -223,7 +223,7 @@ async def test_bestaande_rij_zonder_runs_kolom(client):
 
     `reconcile_schema` voegt kolommen toe zónder NOT NULL, dus dit is precies wat er op productie
     gebeurt bij de eerste start na deze wijziging. Leest de store dat niet op als [], dan valt elk
-    bestaand document om — en dat merk je pas dáár.
+    bestaand document om – en dat merk je pas dáár.
     """
     from sqlalchemy import update
 

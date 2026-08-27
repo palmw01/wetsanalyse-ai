@@ -52,12 +52,12 @@ DE DERTIEN JAS-KLASSEN (gebruik exact deze namen, verzin geen andere):
 
 WERKWIJZE
 - Markeer de betekenisdragende formuleringen in de aangeleverde artikeltekst en classificeer elke in de meest specifieke passende JAS-klasse.{(' ' + prioriteitsregels) if prioriteitsregels else ''}
-- BRONGETROUW: het veld `tekst` is een LETTERLIJK, aaneengesloten fragment uit de aangeleverde artikeltekst — exact overgenomen (zelfde woorden, leestekens en volgorde). Verzin niets, parafraseer niet, vul niets aan. Kun je een element niet met een letterlijk fragment onderbouwen, neem het dan niet op.
+- BRONGETROUW: het veld `tekst` is een LETTERLIJK, aaneengesloten fragment uit de aangeleverde artikeltekst – exact overgenomen (zelfde woorden, leestekens en volgorde). Verzin niets, parafraseer niet, vul niets aan. Kun je een element niet met een letterlijk fragment onderbouwen, neem het dan niet op.
 - Geef bij twijfel tussen klassen `alternatieven`: de andere kandidaat-klasse(n) met een korte motivatie. Forceer geen zekerheid die er niet is.
 - `lid`: het lidnummer waarin het fragment staat (bijv. "1"); leeg als het niet aan een lid te koppelen is.
 - `toelichting`: één beknopte zin waarom deze klasse past (herleidbaar naar de herken-vraag).
 
-UITVOER — geef UITSLUITEND geldige JSON terug, zonder omliggende tekst of code-fences, in deze vorm:
+UITVOER – geef UITSLUITEND geldige JSON terug, zonder omliggende tekst of code-fences, in deze vorm:
 {{"elementen": [
   {{"klasse": "<een van: {klassen}>", "tekst": "<letterlijk fragment>", "lid": "<lidnummer of leeg>", "toelichting": "<één zin>", "alternatieven": [{{"klasse": "<klasse>", "motivatie": "<korte reden>"}}]}}
 ]}}
@@ -74,7 +74,7 @@ def annotatie_userprompt(bwb_id: str, artikel: str, artikeltekst: str, lid: str 
 
 
 # ---------------------------------------------------------------------------
-# Fase 2A — kandidaat-generatie-prompts (span zonder klasse)
+# Fase 2A – kandidaat-generatie-prompts (span zonder klasse)
 #
 # De kandidaat-generator zoekt uitsluitend tekstspans die mogelijk een
 # JAS-element zijn, ZONDER finale classificatie. Doel: hogere recall op
@@ -84,7 +84,7 @@ def annotatie_userprompt(bwb_id: str, artikel: str, artikeltekst: str, lid: str 
 def kandidaten_systeemprompt() -> str:
     """Systeemprompt voor de kandidaat-generator (fase 2A).
 
-    Vraagt uitsluitend spans + korte reden — geen JAS-klasse. De classificatie
+    Vraagt uitsluitend spans + korte reden – geen JAS-klasse. De classificatie
     gebeurt in een aparte stap (annoteer_klasseer_node) met de volledige
     klasse-specificatie. Zo zijn span-recall en klasse-accuracy onafhankelijk
     meetbaar.
@@ -96,11 +96,11 @@ Identificeer alle tekstfragmenten in de aangeleverde artikeltekst die mogelijk e
 
 REGELS
 - Geef uitsluitend LETTERLIJKE, aaneengesloten fragmenten uit de tekst. Verzin niets; parafraseer niet.
-- Liever iets te ruim dan iets te missen — de classificatiestap filtert verder.
+- Liever iets te ruim dan iets te missen – de classificatiestap filtert verder.
 - Geef PER fragment een korte reden waarom het mogelijk juridisch relevant is (één zin).
 - Geen JAS-klasse bepalen: dat doet een volgende stap.
 
-UITVOER — geef UITSLUITEND geldige JSON, zonder omliggende tekst of code-fences:
+UITVOER – geef UITSLUITEND geldige JSON, zonder omliggende tekst of code-fences:
 {"kandidaten": [
   {"span": "<letterlijk fragment>", "lid": "<lidnummer of leeg>", "reden": "<één zin>"}
 ]}"""
@@ -131,12 +131,12 @@ DE DERTIEN JAS-KLASSEN (gebruik exact deze namen):
 
 WERKWIJZE
 - Classificeer elk aangeleverd fragment in precies één JAS-klasse.{(' ' + prioriteitsregels) if prioriteitsregels else ''}
-- BRONGETROUW: het veld `tekst` MOET exact overeenkomen met het aangeleverde `span` — kopieer het letterlijk.
+- BRONGETROUW: het veld `tekst` MOET exact overeenkomen met het aangeleverde `span` – kopieer het letterlijk.
 - Geef bij twijfel `alternatieven` met een korte motivatie per alternatieve klasse.
 - `toelichting`: één beknopte zin waarom deze klasse past (herleidbaar naar de herken-vraag).
 - Laat een kandidaat weg als hij bij nader inzien geen JAS-element is (leeg `tekst`-veld is niet toegestaan).
 
-UITVOER — geef UITSLUITEND geldige JSON, zonder omliggende tekst of code-fences:
+UITVOER – geef UITSLUITEND geldige JSON, zonder omliggende tekst of code-fences:
 {{"elementen": [
   {{"klasse": "<een van: {klassen}>", "tekst": "<letterlijk fragment>", "lid": "<lidnummer of leeg>", "toelichting": "<één zin>", "alternatieven": [{{"klasse": "<klasse>", "motivatie": "<korte reden>"}}]}}
 ]}}
@@ -172,36 +172,36 @@ WAAR JE OP LET (per voorgesteld element):
 - Zwak of onvolledig gemarkeerd fragment (te lang/te kort, verkeerde grens).
 - Echte twijfel tussen klassen (dan hoort er disambiguatie te zijn).
 
-AANDACHT-NIVEAU per element — géén verzonnen zekerheidscijfer, maar een oordeel op bovenstaande signalen:
+AANDACHT-NIVEAU per element – géén verzonnen zekerheidscijfer, maar een oordeel op bovenstaande signalen:
 - "groen": klasse en fragment zijn helder en juist; geen bezwaar.
-- "geel": twijfel of een aandachtspunt — jurist moet even kijken (bv. plausibel alternatief, grensgeval).
-- "rood": waarschijnlijk fout — verkeerde klasse of niet-onderbouwd fragment.
+- "geel": twijfel of een aandachtspunt – jurist moet even kijken (bv. plausibel alternatief, grensgeval).
+- "rood": waarschijnlijk fout – verkeerde klasse of niet-onderbouwd fragment.
 
 HET NIVEAU ZEGT HOE ZEKER JE BENT; DE ACTIE ZEGT WAT ERMEE MOET. Dat zijn twee verschillende dingen en
-je vult ze allebei in. Denk je aan een betere klasse, noem die dan — óók bij "geel". Een oordeel als
+je vult ze allebei in. Denk je aan een betere klasse, noem die dan – óók bij "geel". Een oordeel als
 "het zou ook een Voorwaarde kunnen zijn" zonder `voorstel_klasse` laat de jurist met precies dezelfde
 vraag zitten als waarmee hij begon.
 
 ONTBREKEND: benoem JAS-klassen die waarschijnlijk óók in de tekst voorkomen maar niet zijn gemarkeerd.
-- Geef ALTIJD het `tekst`-veld met het LETTERLIJKE fragment uit de artikeltekst dat gemarkeerd zou moeten worden — woord voor woord, zonder aanhalingstekens eromheen. Zonder fragment kan niemand er iets mee: de annotator kan het niet toevoegen (elk element moet letterlijk te vinden zijn) en de jurist moet het zelf gaan zoeken.
+- Geef ALTIJD het `tekst`-veld met het LETTERLIJKE fragment uit de artikeltekst dat gemarkeerd zou moeten worden – woord voor woord, zonder aanhalingstekens eromheen. Zonder fragment kan niemand er iets mee: de annotator kan het niet toevoegen (elk element moet letterlijk te vinden zijn) en de jurist moet het zelf gaan zoeken.
 - Lukt dat echt niet omdat het element alleen impliciet aanwezig is (bv. een subject dat de tekst niet noemt), laat `tekst` dan leeg en begin de `reden` met "impliciet:". Zeg dus dát je het niet kunt aanwijzen in plaats van het te omschrijven alsof het er staat.
 - Verzin niets buiten de aangeleverde tekst.
 
-ACTIE per element — niet alleen wát er mis is, maar wat ermee moet gebeuren:
+ACTIE per element – niet alleen wát er mis is, maar wat ermee moet gebeuren:
 - "behoud": je hebt geen betere klasse of afbakening in gedachten. Gebruik dit als je alleen iets wilt
-  signaleren waar de jurist zelf over moet oordelen — niet als verlegenheidskeuze omdat je twijfelt.
+  signaleren waar de jurist zelf over moet oordelen – niet als verlegenheidskeuze omdat je twijfelt.
 - "vervang": er is een betere klasse en/of een beter begrensd fragment. Geef die dan ook op in
   `voorstel_klasse` en/of `voorstel_tekst`; een `voorstel_tekst` MOET letterlijk in de artikeltekst staan.
 - "verwijder": dit hoort helemaal geen JAS-element te zijn. Alleen bij "rood".
 
-WAT ER MET JE VOORSTEL GEBEURT — dat hangt af van het niveau, dus kies dat zorgvuldig:
+WAT ER MET JE VOORSTEL GEBEURT – dat hangt af van het niveau, dus kies dat zorgvuldig:
 - "rood" + "vervang" → de correctie wordt DIRECT UITGEVOERD. Er komt geen tweede beoordelaar meer
   tussen. Kies rood alleen als je er zeker van bent dat het huidige voorstel fout is.
 - "geel" + "vervang" → je voorkeur wordt NIET uitgevoerd, maar als alternatief aan de jurist getoond;
   die neemt hem met één klik over. Dit is de plek voor "ik denk dat het beter Voorwaarde kan zijn,
-  maar oordeel zelf" — en dus geen reden om je voorstel voor je te houden.
+  maar oordeel zelf" – en dus geen reden om je voorstel voor je te houden.
 
-UITVOER — geef UITSLUITEND geldige JSON terug, zonder omliggende tekst of code-fences, in deze vorm:
+UITVOER – geef UITSLUITEND geldige JSON terug, zonder omliggende tekst of code-fences, in deze vorm:
 {{"oordelen": [
   {{"id": "<het id van het element>", "aandacht": "<groen|geel|rood>", "motivatie": "<één korte zin>",
     "actie": "<behoud|vervang|verwijder>", "voorstel_klasse": "<optioneel, een van de dertien>",
@@ -211,21 +211,21 @@ UITVOER — geef UITSLUITEND geldige JSON terug, zonder omliggende tekst of code
 ]}}
 Geef voor ELK aangeleverd element precies één oordeel, met het `id` zoals het is aangeleverd. `ontbrekend` mag leeg zijn.
 
-De MOTIVATIE leest een jurist letterlijk op zijn reviewkaart. Schrijf hem dus voor die jurist: geen ids (ook niet tussen haakjes) — verwijs naar een ander element met zijn fragment tussen aanhalingstekens. En schrijf niet óver de beoordeling ("herhaal niet", "jurist hoeft dit niet opnieuw te bekijken"); schrijf wat er aan de hand is.
+De MOTIVATIE leest een jurist letterlijk op zijn reviewkaart. Schrijf hem dus voor die jurist: geen ids (ook niet tussen haakjes) – verwijs naar een ander element met zijn fragment tussen aanhalingstekens. En schrijf niet óver de beoordeling ("herhaal niet", "jurist hoeft dit niet opnieuw te bekijken"); schrijf wat er aan de hand is.
 
 NIET DE EERSTE RONDE? Dan staat er onder de voorstellen wat je vórige ronde vond en wat de annotator daarmee heeft gedaan.
 - Is een punt opgelost? Zeg dat: `aandacht: "groen"`, `actie: "behoud"`. Dat is een uitkomst, geen zwakte.
-- Heeft de annotator jouw voorstel bewust laten liggen? Dan is dat een gemotiveerd meningsverschil. Herhaal het niet — zet het hooguit op "geel" zodat de jurist het ziet, en ga verder.
+- Heeft de annotator jouw voorstel bewust laten liggen? Dan is dat een gemotiveerd meningsverschil. Herhaal het niet – zet het hooguit op "geel" zodat de jurist het ziet, en ga verder.
 - Herhaal geen punten die je al maakte, en meld bij ONTBREKEND alleen elementen die je nog niet eerder hebt genoemd. Is er niets meer over? Zeg dat met groene oordelen en een lege `ontbrekend`.
 
 ELEMENTEN GEMARKEERD MET "DOOR DE JURIST" heeft een mens zelf aangebracht. Beoordeel ze net zo eerlijk, maar weet dat je oordeel daar een SUGGESTIE is die de jurist naast zich neer mag leggen: gebruik `actie: "behoud"` tenzij je echt denkt dat er iets mis is, en formuleer de motivatie als een vraag of overweging, niet als een correctie."""
 
 
 def _stand_van(voorstel: dict, laatste_ronde: dict) -> str:
-    """Wat er met je vorige oordeel is gebeurd — in de bewoording die klopt.
+    """Wat er met je vorige oordeel is gebeurd – in de bewoording die klopt.
 
     Dit stond op één regel ("aangepast" of "ongewijzigd gelaten"), en die vlag zette alleen de
-    herziener. Een correctie die de patcher uitvoerde kwam dus binnen als "ongewijzigd gelaten" — en
+    herziener. Een correctie die de patcher uitvoerde kwam dus binnen als "ongewijzigd gelaten" – en
     omdat de prompt dat leest als een gemotiveerd meningsverschil, escaleerde de Critic. Op dev
     draaide hij daardoor zijn eigen oordeel terug: ronde 1 "maak er Rechtsbetrekking van" (uitgevoerd),
     ronde 2 "dit is geen Rechtsbetrekking maar een Rechtsobject".
@@ -233,18 +233,18 @@ def _stand_van(voorstel: dict, laatste_ronde: dict) -> str:
     Alles hier is afgeleid uit het spoor zelf; er is geen extra state voor nodig.
     """
     if laatste_ronde.get("toegepast"):
-        return "UITGEVOERD zoals je vroeg — dit is de nieuwe versie, beoordeel die"
+        return "UITGEVOERD zoals je vroeg – dit is de nieuwe versie, beoordeel die"
     voorstel_klasse = str(laatste_ronde.get("voorstel_klasse", "")).strip()
     if voorstel_klasse and any(
         str(a.get("klasse")) == voorstel_klasse for a in (voorstel.get("alternatieven") or [])
     ):
-        return "als ALTERNATIEF aan de jurist voorgelegd — die kiest; herhaal het niet"
+        return "als ALTERNATIEF aan de jurist voorgelegd – die kiest; herhaal het niet"
     # Geel verandert nooit iets (zie `pas_critic_toe`), maar het is wél afgehandeld: de motivatie
     # staat als kanttekening op de kaart van de jurist. Zonder deze regel viel een geel voorstel dat
-    # géén klasse noemde — dus een fragmentvoorstel — terug op "ongewijzigd gelaten", en herhaalde de
+    # géén klasse noemde – dus een fragmentvoorstel – terug op "ongewijzigd gelaten", en herhaalde de
     # Critic zijn advies woord voor woord in ronde 2. Dat gebeurde op dev bij 'aansprakelijk'.
     if str(laatste_ronde.get("aandacht", "")) == "geel" and laatste_ronde.get("actie") != "behoud":
-        return "als kanttekening aan de jurist gemeld — die weegt het; herhaal het niet"
+        return "als kanttekening aan de jurist gemeld – die weegt het; herhaal het niet"
     if voorstel.get("aangepast_na_kritiek"):
         return "de annotator heeft dit AANGEPAST"
     return "ongewijzigd gelaten"
@@ -291,7 +291,7 @@ def critic_userprompt(
         # respons, dan is er nog een terugval. Zie `_verwerk_critic`.
         eigen_id = v.get("id", "") or f"pos-{i}"
         # Markeringen van de jurist krijgen een label: de Critic mag er iets van vinden, maar zijn
-        # oordeel wordt daar een SUGGESTIE — de mens heeft het laatste woord.
+        # oordeel wordt daar een SUGGESTIE – de mens heeft het laatste woord.
         merk = " | DOOR DE JURIST" if v.get("van_jurist") else ""
         regels.append(
             f'[{i}] id={eigen_id} | klasse={v.get("klasse", "")} | tekst="{v.get("tekst", "")}"{alt_tekst}{merk}'
@@ -313,7 +313,7 @@ def herziening_systeemprompt() -> str:
 DE DERTIEN JAS-KLASSEN (gebruik exact deze namen, verzin geen andere):
 {_klassen_referentie()}
 
-BRONGETROUWHEID — elk `tekst`-veld moet een LETTERLIJK aaneengesloten fragment uit de artikeltekst zijn. Niet parafraseren, niet samenvatten, geen woorden toevoegen of weglaten. Een fragment dat niet letterlijk voorkomt wordt verworpen.
+BRONGETROUWHEID – elk `tekst`-veld moet een LETTERLIJK aaneengesloten fragment uit de artikeltekst zijn. Niet parafraseren, niet samenvatten, geen woorden toevoegen of weglaten. Een fragment dat niet letterlijk voorkomt wordt verworpen.
 
 HOE JE HERZIET:
 - Behoud het `id` van een bestaand element dat je aanpast. Zonder dat id raakt het werk van de jurist aan dit element verloren.
@@ -322,7 +322,7 @@ HOE JE HERZIET:
 - Is er een element gemeld als ontbrekend? Voeg het toe met een letterlijk fragment, en laat `id` leeg.
 - Fragmenten die eerder zijn verworpen omdat ze niet letterlijk in de tekst staan: zoek het bedoelde fragment op en markeer dát, of laat het element weg.
 
-UITVOER — geef UITSLUITEND geldige JSON terug, zonder omliggende tekst of code-fences:
+UITVOER – geef UITSLUITEND geldige JSON terug, zonder omliggende tekst of code-fences:
 {{"elementen": [
   {{"id": "<het bestaande id, of leeg bij een nieuw element>",
     "klasse": "<een van de dertien>",

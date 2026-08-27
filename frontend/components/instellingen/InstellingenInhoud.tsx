@@ -52,10 +52,10 @@ export function InstellingenInhoud({ actief, isBeheerder, vervangHistorie = fals
     }
   }, [isBeheerder]);
 
-  // Bij het openen, en opnieuw zodra je de feedbacktab verlaat — dat paneel markeert bij openen als
+  // Bij het openen, en opnieuw zodra je de feedbacktab verlaat – dat paneel markeert bij openen als
   // gezien, dus de teller die we bij het laden ophaalden klopt daarna niet meer.
   useEffect(() => {
-    // De setState zit ín de async callback, dus pas ná het await — geen synchrone cascading
+    // De setState zit ín de async callback, dus pas ná het await – geen synchrone cascading
     // render. De regel kan daar niet doorheen kijken.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (actief !== "feedback") void laadFeedbackTeller();

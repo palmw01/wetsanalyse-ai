@@ -134,7 +134,7 @@ async def test_annotatiebeurt_maakt_document_en_elementen(api):
     _, bericht = api.berichten[0]
     assert bericht["annotatie_slug"] == "slug-1"
     # Het label reist mee zodat de kaart zichzelf kan benoemen als het document later weg is.
-    assert bericht["annotatie_titel"] == "Invorderingswet 1990 — art. 9 lid 1"
+    assert bericht["annotatie_titel"] == "Invorderingswet 1990 – art. 9 lid 1"
     assert bericht["ontbrekend"] == [{"klasse": "Rechtsfeit"}]
 
     opgeslagen = [e for e in uit if e["type"] == "opgeslagen"][0]
@@ -183,7 +183,7 @@ async def test_zonder_elementen_geen_leeg_document(api):
 
 @asyncio_test
 async def test_mislukte_elementen_beloven_geen_bewaarde_annotatie(monkeypatch):
-    """Het document bestaat dan wel, de markeringen niet — dat is iets anders dan "bewaard".
+    """Het document bestaat dan wel, de markeringen niet – dat is iets anders dan "bewaard".
 
     Op dev liep een run hierop stuk (422 op de PUT) en las de jurist dat de annotatie bewaard was en
     dat opnieuw proberen een tweede zou opleveren. Er viel niets terug te vinden: het document was
@@ -205,7 +205,7 @@ async def test_mislukte_elementen_beloven_geen_bewaarde_annotatie(monkeypatch):
 
 @asyncio_test
 async def test_verworpen_markeringen_worden_gemeld(monkeypatch):
-    """De api laat een kapot element vallen in plaats van de ronde te weigeren — dat maakt een luide
+    """De api laat een kapot element vallen in plaats van de ronde te weigeren – dat maakt een luide
     fout stil. Zonder deze melding ziet de jurist dertien markeringen zonder te weten dat het er
     vijftien hadden moeten zijn."""
     nep = NepApi()
@@ -273,7 +273,7 @@ async def test_stoppen_vóór_de_voorstellen_belooft_niets(api):
         run=_run(stop=True),
     )
     _, bericht = api.berichten[0]
-    assert bericht["tekst"] == "_Gestopt — er waren nog geen voorstellen._"
+    assert bericht["tekst"] == "_Gestopt – er waren nog geen voorstellen._"
     assert api.documenten == []
 
 
@@ -329,7 +329,7 @@ async def test_half_vastgelegde_annotatie_zegt_wat_er_wel_staat(monkeypatch):
     assert "annotatie is bewaard" in fout["message"].lower()
     assert fout["annotatie_slug"] == "slug-1", "zodat de client er meteen heen kan wijzen"
     assert "opnieuw" not in fout["message"] or "tweede annotatie" in fout["message"]
-    # Het document en de elementen zijn wél geschreven — dat is precies waarom de melding anders is.
+    # Het document en de elementen zijn wél geschreven – dat is precies waarom de melding anders is.
     assert nep.documenten and nep.element_puts
 
 
@@ -352,7 +352,7 @@ async def test_verwijderd_gesprek_is_geen_storing(monkeypatch):
     vervolgens een foutmelding over zijn eigen handeling.
 
     De api weigert terecht (erin schrijven zou een verwijderd gesprek half laten herrijzen), maar
-    dat is geen storing om alarm over te slaan — dat leert mensen meldingen negeren. Het
+    dat is geen storing om alarm over te slaan – dat leert mensen meldingen negeren. Het
     annotatiedocument blijft wél bestaan: annotaties staan los van hun gesprek.
     """
     nep = NepApi(faalt="verdwenen")

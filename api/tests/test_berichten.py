@@ -37,7 +37,7 @@ async def client(monkeypatch):
 
     # De gescopete endpoints lopen via `actieve_userid`: die eist dat het account bestaat en actief
     # is, dus een verzonnen X-User-Id geeft 401. Zet de userids die deze tests sturen als echte
-    # accounts neer ("bestaat-niet" bewust niet — die hoort juist te falen).
+    # accounts neer ("bestaat-niet" bewust niet – die hoort juist te falen).
     from conftest import maak_testgebruikers
     await maak_testgebruikers("user1", "user2", "irrelevant")
 
@@ -175,7 +175,7 @@ async def test_nieuwe_user_ziet_geen_historische_berichten(db):
     """New-user guard: berichten aangemaakt vóór de user-account worden niet getoond."""
     from app import berichten as svc
 
-    # Bericht VÓÓR de user aanmaken — mag daarna niet zichtbaar zijn.
+    # Bericht VÓÓR de user aanmaken – mag daarna niet zichtbaar zijn.
     row = await svc.maak_bericht("Oud", "Historisch.", "info", None, "adm")
     await svc.set_gepubliceerd(row["id"], True)
 
@@ -189,7 +189,7 @@ async def test_nieuwe_user_ziet_geen_historische_berichten(db):
 
 async def test_concept_voor_registratie_publicatie_erna_is_zichtbaar(db):
     """R1: een concept geschreven vóór de user-registratie, maar pas ná registratie
-    gepubliceerd, moet wél zichtbaar zijn — de zichtbaarheid volgt het publicatiemoment,
+    gepubliceerd, moet wél zichtbaar zijn – de zichtbaarheid volgt het publicatiemoment,
     niet het aanmaakmoment van het concept."""
     from app import berichten as svc
 
@@ -232,7 +232,7 @@ async def test_markeer_alles_gelezen_concurrent(db):
 
 
 async def test_verwijder_bericht_onbekend_doet_geen_wijziging(db):
-    """verwijder_bericht op een onbekend id doet geen enkele write vóór de 404 — geen
+    """verwijder_bericht op een onbekend id doet geen enkele write vóór de 404 – geen
     no-op-commit meer (was: de leesbewijzen-delete committede alsnog). Bewijs: een
     bestaand bericht blijft byte-voor-byte ongewijzigd na een faalpoging op een ander id."""
     from app import berichten as svc

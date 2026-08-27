@@ -1,7 +1,7 @@
 [project]
 name = "wetsanalyse-api"
 version = "0.1.0"
-description = "Deployable API-backend voor de Wetsanalyse (JAS) — orchestreert de skill headless."
+description = "Deployable API-backend voor de Wetsanalyse (JAS) – orchestreert de skill headless."
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.141.1",

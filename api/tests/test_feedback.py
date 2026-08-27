@@ -23,12 +23,12 @@ async def client(monkeypatch):
     db.init_engine("sqlite+aiosqlite://")
     await db.create_all()
     # feedback_gezien_op op users bestaat alleen ná reconcile_schema (idempotente ALTER TABLE,
-    # net als in productie via de lifespan) — create_all() alleen volstaat niet voor die kolom.
+    # net als in productie via de lifespan) – create_all() alleen volstaat niet voor die kolom.
     await db.reconcile_schema()
 
     # De gescopete endpoints lopen via `actieve_userid`: die eist dat het account bestaat en actief
     # is, dus een verzonnen X-User-Id geeft 401. Zet de userids die deze tests sturen als echte
-    # accounts neer ("bestaat-niet" bewust niet — die hoort juist te falen).
+    # accounts neer ("bestaat-niet" bewust niet – die hoort juist te falen).
     from conftest import maak_testgebruikers
     await maak_testgebruikers("user1")
 
@@ -221,7 +221,7 @@ async def test_markeer_gezien_onafhankelijk_per_beheerder(client):
 
 async def test_feedback_gezien_routes_vereisen_beheerder(client):
     """R12: een analist (geldige sessie, geen beheerder) krijgt 403 op de twee routes die
-    huidige_beheerder gebruiken — voorheen kon elke X-User-Id hier terecht."""
+    huidige_beheerder gebruiken – voorheen kon elke X-User-Id hier terecht."""
     r = await client.post(
         "/v1/admin/users", headers=_ADM,
         json={"userid": "gewone-analist", "email": "ga@test.nl", "role": "analist"},

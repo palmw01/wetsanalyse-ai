@@ -81,7 +81,7 @@ export function isApiError(e: unknown): e is ApiError {
  *
  *  Let op waaróm dit bestaat: een `ApiError` is een object-literal, géén `Error`-instantie. Een
  *  handler die `e instanceof Error ? e.message : "<generiek>"` schrijft, valt dus bij *elke*
- *  api-fout terug op de generieke tekst — en dan wordt "een agent-voorstel verwerp je" (409)
+ *  api-fout terug op de generieke tekst – en dan wordt "een agent-voorstel verwerp je" (409)
  *  onzichtbaar achter "de markering is niet gewist". Gebruik deze helper, niet `instanceof`.
  */
 export function foutTekst(e: unknown, terugval = "Er ging iets mis."): string {
@@ -178,7 +178,7 @@ export async function revokeApiToken(id: string): Promise<void> {
 
 // --- Login (pre-check vóór de Auth.js-sessie) -------------------------------
 
-/** Stap A — pre-check: kloppen userid+wachtwoord, en is 2FA vereist? Een vertrouwd apparaat (cookie)
+/** Stap A – pre-check: kloppen userid+wachtwoord, en is 2FA vereist? Een vertrouwd apparaat (cookie)
  *  levert direct code "ok". Zet zelf geen sessie. */
 export async function loginVerify(
   userid: string,
@@ -195,7 +195,7 @@ export async function loginVerify(
   return (await res.json()) as LoginVerifyResult;
 }
 
-/** Stap B — verifieer de 2FA-code op het aparte /login/2fa-scherm via het login-ticket (httpOnly
+/** Stap B – verifieer de 2FA-code op het aparte /login/2fa-scherm via het login-ticket (httpOnly
  *  cookie). `remember` zet de trusted-device-cookie (30 dagen). Zet zelf geen sessie. */
 export async function login2fa(
   userid: string,
@@ -289,8 +289,8 @@ export async function verwijderDocument(slug: string): Promise<void> {
 
 // `maakDocument` en `zetElementen` stonden hier: de browser legde de uitkomst van een agent-beurt
 // zelf vast als het `opgeslagen`-event uitbleef. Dat was een tweede implementatie naast
-// `agent/beurt.py`, en welke van de twee liep hing af van één SSE-event. Eén schrijver nu — de
-// agent — dus de browser heeft die twee routes niet meer nodig. Zet ze niet terug: een eigen
+// `agent/beurt.py`, en welke van de twee liep hing af van één SSE-event. Eén schrijver nu – de
+// agent – dus de browser heeft die twee routes niet meer nodig. Zet ze niet terug: een eigen
 // annotatie voeg je toe met `voegElementToe`, dat is een andere handeling.
 
 /** Voeg een EIGEN markering toe (tekstselectie van de jurist). Aparte route van `zetElementen`:
@@ -378,14 +378,14 @@ export async function verwijderGesprek(id: string): Promise<void> {
 }
 
 /** De callbacks waarmee een beurt binnenkomt. Gedeeld door het starten van een run (`startRun`) en
- *  het aanhaken bij een lopende (`volgRun`) — één contract, twee ingangen. */
+ *  het aanhaken bij een lopende (`volgRun`) – één contract, twee ingangen. */
 export type AgentHandlers = {
     onStatus?: (m: string) => void;
     onReason?: (t: string) => void;
     onToken?: (t: string) => void;
     onSources?: (bronnen: Bron[]) => void;
     /** De brongetrouwheidstoets op dit antwoord. Kwam altijd al binnen als `grounding`-event, maar
-     *  werd nergens uitgelezen — dus een niet-onderbouwde verwijzing bleef onzichtbaar. */
+     *  werd nergens uitgelezen – dus een niet-onderbouwde verwijzing bleef onzichtbaar. */
     onGrounding?: (g: AgentGrounding) => void;
     onDoel?: (doel: AgentDoel) => void;
     onElement?: (el: VoorstelElement) => void;
@@ -400,7 +400,7 @@ export type AgentHandlers = {
    *  weer aan op precies het juiste punt in plaats van vanaf het begin. */
   onSeq?: (seq: number) => void;
   /** Levensteken: er kwam een event over deze verbinding binnen. Geen inhoud, alleen het feit dát
-   *  de stroom loopt — daarop haalt de werkplek de "verbinding weg"-melding weg en zet ze de
+   *  de stroom loopt – daarop haalt de werkplek de "verbinding weg"-melding weg en zet ze de
    *  herstelteller terug. Zonder dit zou een geslaagd heraanhaken pas zichtbaar zijn aan het eind. */
   onLeeft?: () => void;
   /** Er zijn events weggevallen (de eventlog van de run is gecapt). Toon een gat in plaats van te
@@ -409,7 +409,7 @@ export type AgentHandlers = {
   /** De agent heeft de uitkomst zelf vastgelegd (bericht + eventueel annotatiedocument). Komt vlak
    *  vóór het einde. Blijft hij uit, dan schrijft de werkplek zelf weg, zoals vroeger. */
   onOpgeslagen?: (uitkomst: { annotatie_slug: string; run_id: string }) => void;
-  /** De beurt slaagde, maar niet alles is bewaard — bv. een markering die de api niet accepteerde.
+  /** De beurt slaagde, maar niet alles is bewaard – bv. een markering die de api niet accepteerde.
    *  Geen fout (het meeste staat er wél), maar de jurist hoort te weten dat er iets ontbreekt. */
   onWaarschuwing?: (bericht: string) => void;
 };
@@ -417,16 +417,16 @@ export type AgentHandlers = {
 // --- Runs: de beurt is van de server -----------------------------------------
 //
 // De run draait bij graph-qa en de browser kijkt mee. Wegklikken, van gesprek wisselen of herladen
-// koppelt alleen de kijker los — stoppen doe je met `stopRun`.
+// koppelt alleen de kijker los – stoppen doe je met `stopRun`.
 //
 // Hier stond ook `annoteerAgentStream`: één POST naar `/api/annotatie/agent` die de beurt aan de
 // verbinding van dat ene tabblad hing. Die is weg, en niet alleen omdat de run-route hem overbodig
 // maakte. Hij stuurde het `conversation_id` uit de browser ongewijzigd door naar graph-qa, waar het
-// de thread_id van het agent-geheugen is — zónder te controleren of dat gesprek van deze gebruiker
+// de thread_id van het agent-geheugen is – zónder te controleren of dat gesprek van deze gebruiker
 // was. Met een gespreks-id van iemand anders (die staat gewoon in de URL van de werkplek) las je zo
 // diens gesprekshistorie terug. `startRun` hieronder verifieert het eigenaarschap wél, bij de api.
 
-/** Start een beurt. Geeft de run terug, of — als er al een run voor dit gesprek loopt — de
+/** Start een beurt. Geeft de run terug, of – als er al een run voor dit gesprek loopt – de
  *  bestaande, zodat de aanroeper daarop aanhaakt in plaats van een tweede te starten.
  *
  *  Die tweede zou niet alleen verwarrend zijn: `conversation_id` is ook de thread_id van het
@@ -451,7 +451,7 @@ export async function startRun(
   });
   if (res.status === 409) {
     // Er loopt al een beurt op dit gesprek. Dat is geen storing, maar deze vraag is óók niet
-    // aangenomen — en dat mag de aanroeper niet verwarren met "hij loopt". Gaf `startRun` hier de
+    // aangenomen – en dat mag de aanroeper niet verwarren met "hij loopt". Gaf `startRun` hier de
     // bestaande run terug, dan verscheen het antwoord op de vórige vraag onder de nieuwe, en ging
     // de nieuwe vraag stilzwijgend verloren.
     const fout = await parseError(res);
@@ -467,7 +467,7 @@ export interface RunLooptAlFout extends ApiError {
 }
 
 /** Een fout die de agent zélf over de stroom stuurde (`error`-event), en niet een verbinding die
- *  brak. Het verschil is niet uit de status af te lezen — beide zijn 502 — en het bepaalt wél of
+ *  brak. Het verschil is niet uit de status af te lezen – beide zijn 502 – en het bepaalt wél of
  *  opnieuw aanhaken zin heeft. Zie `definitieveStroomfout` in `lib/lopendeRun.ts`. */
 export interface AgentFout extends ApiError {
   agentFout?: true;
@@ -477,10 +477,10 @@ export interface AgentFout extends ApiError {
  *
  *  sse-starlette stuurt elke ~15 seconden een `:`-heartbeat, dus drie gemiste hartslagen is een
  *  veilige ondergrens. Zonder deze bewaking blijft `reader.read()` eeuwig hangen op een halfopen
- *  socket — geen fout, geen einde, en een werkplek die tot in het oneindige "bezig" toont. */
+ *  socket – geen fout, geen einde, en een werkplek die tot in het oneindige "bezig" toont. */
 const STROOM_STILTE_MS = 45_000;
 
-/** Vist het actieve run_id uit een 409-detail. Levert niets op bij een onverwachte vorm — dan is
+/** Vist het actieve run_id uit een 409-detail. Levert niets op bij een onverwachte vorm – dan is
  *  het gewoon een fout en hoort hij als fout behandeld te worden. */
 function runIdUitDetail(detail: string): string | null {
   try {
@@ -515,11 +515,11 @@ export async function stopRun(runId: string): Promise<void> {
 
 /** Loopt er nog een beurt in dit gesprek? Dit vraagt de werkplek bij binnenkomst, zodat een beurt
  *  die tijdens het wegklikken doorliep weer in beeld komt. Faalt stil: geen run kunnen vinden mag de
- *  werkplek niet blokkeren — dan zie je gewoon de gehydrateerde geschiedenis. */
+ *  werkplek niet blokkeren – dan zie je gewoon de gehydrateerde geschiedenis. */
 export async function haalActieveRun(gesprekId: string): Promise<RunStart | null | "onbekend"> {
   // Drie uitkomsten, en het verschil telt: `null` betekent "er loopt niets", `"onbekend"` betekent
   // "ik kon het niet vaststellen". Die twee op één hoop gooien leverde een melding op dat je beurt
-  // was afgebroken zodra het netwerk één keer hikte — terwijl hij gewoon doorliep.
+  // was afgebroken zodra het netwerk één keer hikte – terwijl hij gewoon doorliep.
   try {
     const res = await fetch(`/api/annotatie/run?gesprek=${encodeURIComponent(gesprekId)}`, {
       cache: "no-store",
@@ -659,11 +659,11 @@ export async function zetDocumentStatus(
 /** Exportformaten van een annotatiedocument. */
 export type ExportFormaat = "pdf" | "csv" | "json";
 
-/** Download het annotatiedocument als bestand — ook als de review nog loopt.
+/** Download het annotatiedocument als bestand – ook als de review nog loopt.
  *
  *  De leden gaan mee zodat het rapport de letterlijke wettekst naast de tabel kan zetten
  *  (brongetrouwheid); ontbreken ze, dan laat de api dat blok weg in plaats van iets te
- *  reconstrueren. De bestandsnaam komt uit `Content-Disposition` — de server bepaalt hem, zodat
+ *  reconstrueren. De bestandsnaam komt uit `Content-Disposition` – de server bepaalt hem, zodat
  *  hij overal gelijk is.
  */
 export async function exporteerDocument(

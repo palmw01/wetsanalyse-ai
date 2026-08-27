@@ -61,7 +61,7 @@ export function ProfileEditor({ profile, onDone, onCancel }: Props) {
     <Card className="p-6">
       <form onSubmit={onSubmit} className="space-y-5">
         <h3 className="font-display text-lg font-semibold text-lint">
-          {nieuw ? "Nieuw profiel" : `Profiel bewerken — ${profile?.name}`}
+          {nieuw ? "Nieuw profiel" : `Profiel bewerken – ${profile?.name}`}
         </h3>
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -103,7 +103,7 @@ export function ProfileEditor({ profile, onDone, onCancel }: Props) {
           </Field>
           <Field
             label="API-key"
-            hint={profile?.api_key_set ? "ingesteld — leeg laten = ongewijzigd" : "write-only"}
+            hint={profile?.api_key_set ? "ingesteld – leeg laten = ongewijzigd" : "write-only"}
           >
             <Input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder={profile?.api_key_set ? "••••••••" : "sk-…"} autoComplete="new-password" />
           </Field>

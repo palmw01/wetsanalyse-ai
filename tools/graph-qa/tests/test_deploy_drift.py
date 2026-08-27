@@ -10,7 +10,7 @@ en meldde pas aan het eind dat er niets was vastgelegd.
 Dat is precies het faalgedrag waar geen compiler tegen beschermt. De agent leest
 env-namen, de bicep schrijft ze, en die twee leven in verschillende talen. Zelfde
 idioom als `test_namespace_drift.py`: de deploy-bestanden worden als **tekst**
-gelezen, niet uitgevoerd — we toetsen dat de namen op elkaar aansluiten, niet wat
+gelezen, niet uitgevoerd – we toetsen dat de namen op elkaar aansluiten, niet wat
 er in een draaiende omgeving staat.
 """
 from __future__ import annotations
@@ -32,10 +32,10 @@ VEREIST = ("WETSANALYSE_API_URL", "WETSANALYSE_API_TOKEN")
 def test_bicep_zet_het_schrijfpad_voor_graph_qa() -> None:
     tekst = BICEP.read_text(encoding="utf-8")
     for naam in VEREIST:
-        # `<NAAM>` of `<NAAM>_FILE` — `_read_secret` accepteert allebei.
+        # `<NAAM>` of `<NAAM>_FILE` – `_read_secret` accepteert allebei.
         assert re.search(rf"'{naam}(_FILE)?'", tekst), (
             f"{naam} ontbreekt in main.bicep. Zonder deze env-var is `legt_zelf_vast` false en "
-            f"legt graph-qa de uitkomst van een annotatiebeurt niet vast — zichtbaar pas aan het "
+            f"legt graph-qa de uitkomst van een annotatiebeurt niet vast – zichtbaar pas aan het "
             f"eind van een beurt, als foutmelding aan de gebruiker."
         )
 

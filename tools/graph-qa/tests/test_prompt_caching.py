@@ -2,7 +2,7 @@
 
 Caching is een **prefix-match**: de provider hasht de prompt tot aan het cache-punt, dus alles
 ervóór moet byte-voor-byte gelijk zijn tussen calls. Daarom levert de orkestrator het systeemblok
-gesplitst aan — identiteit en specialist (stabiel) vóór plan en geheugen-context (per beurt anders).
+gesplitst aan – identiteit en specialist (stabiel) vóór plan en geheugen-context (per beurt anders).
 Zet je die volgorde om, dan is de cache stil waardeloos: geen fout, alleen de volle rekening.
 """
 from __future__ import annotations
@@ -30,7 +30,7 @@ def test_stabiel_deel_krijgt_het_cache_punt():
     blokken = _adapter()._system([LANG, "plan van deze beurt"])
     assert blokken[0]["cache_control"] == {"type": "ephemeral"}
     assert blokken[0]["text"] == LANG
-    # Het variabele deel staat eráchter en draagt géén cache-punt — anders schrijft elke beurt een
+    # Het variabele deel staat eráchter en draagt géén cache-punt – anders schrijft elke beurt een
     # eigen cache-entry die niemand ooit leest.
     assert blokken[1]["text"] == "plan van deze beurt"
     assert "cache_control" not in blokken[1]
@@ -49,7 +49,7 @@ def test_caching_uit_levert_een_kale_string():
 
 def test_provider_die_cache_control_weigert_zet_caching_uit():
     """Caching is op Azure AI Foundry beta. Zou de provider het blok weigeren, dan faalt zónder deze
-    terugval élke LLM-call — de prijs van caching mag nooit 'de dienst ligt plat' zijn."""
+    terugval élke LLM-call – de prijs van caching mag nooit 'de dienst ligt plat' zijn."""
     llm = _adapter()
     fout = anthropic.BadRequestError(
         message="unexpected field cache_control",

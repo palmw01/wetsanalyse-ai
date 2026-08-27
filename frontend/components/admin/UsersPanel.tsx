@@ -53,7 +53,7 @@ export function UsersPanel() {
   async function onAanmaken(e: React.FormEvent) {
     e.preventDefault();
     // Zonder deze guard levert een dubbelklik een tweede aanroep op die op een duplicaat stukloopt,
-    // met een foutmelding náást het net getoonde tijdelijke wachtwoord — verwarrend op precies het
+    // met een foutmelding náást het net getoonde tijdelijke wachtwoord – verwarrend op precies het
     // moment dat je dat wachtwoord moet overnemen.
     if (bezig) return;
     setBezig(true);
@@ -118,7 +118,7 @@ export function UsersPanel() {
       )}
 
       {tijdelijk && (
-        <Melding type="waarschuwing" titel="Tijdelijk wachtwoord — noteer dit nu" className="mb-3">
+        <Melding type="waarschuwing" titel="Tijdelijk wachtwoord – noteer dit nu" className="mb-3">
           <p className="text-sm">
             Voor <span className="font-medium">{tijdelijk.userid}</span>:{" "}
             <code className="rounded bg-paper px-1.5 py-0.5 font-mono text-sm">{tijdelijk.wachtwoord}</code>

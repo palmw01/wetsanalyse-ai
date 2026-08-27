@@ -5,8 +5,8 @@
 # attestatie-graaf, zodat een behouden image of z'n provenance niet breekt.
 #
 # Twee triggers:
-#   * workflow_run  — draait automatisch ná elke geslaagde image-build (echte opruiming).
-#   * workflow_dispatch — handmatig; standaard dry-run (toont alleen wat zou worden verwijderd).
+#   * workflow_run  – draait automatisch ná elke geslaagde image-build (echte opruiming).
+#   * workflow_dispatch – handmatig; standaard dry-run (toont alleen wat zou worden verwijderd).
 #                          Zet de input `dry_run` op false om de eenmalige opschoning echt uit
 #                          te voeren.
 

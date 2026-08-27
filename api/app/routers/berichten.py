@@ -1,11 +1,11 @@
-"""Berichtensysteem — analist-resource (gemount onder /v1/berichten).
+"""Berichtensysteem – analist-resource (gemount onder /v1/berichten).
 
 Alle endpoints vereisen een geldig client-bearer-token (`require_client`) én een `X-User-Id`-header
-die de BFF uit de ingelogde sessie zet — de identiteit komt zo nooit uit browser-input.
+die de BFF uit de ingelogde sessie zet – de identiteit komt zo nooit uit browser-input.
 
-GET  /v1/berichten/ongelezen-aantal   — aantal ongelezen gepubliceerde berichten
-POST /v1/berichten/lees-alles         — markeer alle gepubliceerde berichten als gelezen
-GET  /v1/berichten                    — gepubliceerde berichten met paginering en gelezen-vlag
+GET  /v1/berichten/ongelezen-aantal   – aantal ongelezen gepubliceerde berichten
+POST /v1/berichten/lees-alles         – markeer alle gepubliceerde berichten als gelezen
+GET  /v1/berichten                    – gepubliceerde berichten met paginering en gelezen-vlag
 """
 
 from __future__ import annotations
