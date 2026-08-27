@@ -507,6 +507,12 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
   properties: {
     managedEnvironmentId: cae.id
     configuration: {
+      // Bewaar een handvol inactieve revisies, anders is `rollback.yml` een knop zonder inhoud:
+      // in de single-revision-modus (de default) deactiveert Azure de oude revisie bij elke
+      // image-swap en ruimt hem daarna op. Gemeten op 27 aug 2026: alle drie de apps hadden nog
+      // precies één revisie, terwijl de nummering (41/57/75) tientallen voorgangers verried.
+      // Inactieve revisies draaien niet en kosten dus geen replicas.
+      maxInactiveRevisions: 5
       ingress: {
         external: false
         targetPort: 3000
@@ -617,6 +623,12 @@ resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
   properties: {
     managedEnvironmentId: cae.id
     configuration: {
+      // Bewaar een handvol inactieve revisies, anders is `rollback.yml` een knop zonder inhoud:
+      // in de single-revision-modus (de default) deactiveert Azure de oude revisie bij elke
+      // image-swap en ruimt hem daarna op. Gemeten op 27 aug 2026: alle drie de apps hadden nog
+      // precies één revisie, terwijl de nummering (41/57/75) tientallen voorgangers verried.
+      // Inactieve revisies draaien niet en kosten dus geen replicas.
+      maxInactiveRevisions: 5
       ingress: {
         external: false
         targetPort: 8080
@@ -729,6 +741,12 @@ resource frontendApp 'Microsoft.App/containerApps@2024-03-01' = {
   properties: {
     managedEnvironmentId: cae.id
     configuration: {
+      // Bewaar een handvol inactieve revisies, anders is `rollback.yml` een knop zonder inhoud:
+      // in de single-revision-modus (de default) deactiveert Azure de oude revisie bij elke
+      // image-swap en ruimt hem daarna op. Gemeten op 27 aug 2026: alle drie de apps hadden nog
+      // precies één revisie, terwijl de nummering (41/57/75) tientallen voorgangers verried.
+      // Inactieve revisies draaien niet en kosten dus geen replicas.
+      maxInactiveRevisions: 5
       ingress: {
         external: true
         targetPort: 3000

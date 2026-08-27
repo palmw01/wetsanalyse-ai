@@ -1,8 +1,15 @@
 # Terugrollen: een straat terugzetten op een eerdere revisie.
 #
-# Azure bewaart de revisiehistorie van elke container app, dus de vorige versie staat er nog — er is
-# geen extra opslag of registry-actie voor nodig. Deze workflow leest die historie uit en zet de
-# gekozen revisie terug.
+# Azure bewaart een aantal inactieve revisies per container app, dus de vorige versie staat er nog —
+# er is geen extra opslag of registry-actie voor nodig. Deze workflow leest die historie uit en zet
+# de gekozen revisie terug.
+#
+# Dat "aantal" is geen gegeven: in de single-revision-modus (de default) deactiveert Azure de oude
+# revisie bij elke image-swap en ruimt hem daarna op. Daarom zet `main.bicep` expliciet
+# `maxInactiveRevisions: 5` op api, graph-qa en frontend. Zonder die regel is deze workflow een knop
+# zonder inhoud — gemeten op 27 aug 2026 stond er van elke app nog precies één revisie, terwijl de
+# nummering tientallen voorgangers verried. Voeg je een app toe aan de keuzelijst hieronder, zet die
+# regel er dan ook op.
 #
 # Zonder `revisie` toont hij alleen wat er te kiezen valt. Dat is met opzet: bij een storing wil je
 # eerst zien wélke revisies er zijn en welke image eronder zit, en pas daarna kiezen.
