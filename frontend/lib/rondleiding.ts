@@ -150,16 +150,21 @@ export const STAPPEN: Stap[] = [
   },
   {
     id: "beslissen",
-    anker: "review-acties",
+    // Hetzelfde anker als de vorige stap, en dat is geen kopieerfout: die beschrijft de kaart, deze
+    // de handeling. Het gat in de dimlaag hangt aan dit anker (`klikGat`), en het moet de héle kaart
+    // vrijgeven. Wees hier alleen de knoprij aan, dan viel er precies één ding te doen: die rij
+    // stopt de klik (`ReviewQueue`), dus er raakte niets geselecteerd, en zonder selectie doen j, k,
+    // a, x en c niets (`ArtefactInhoud`) en liggen de klassebadge en × buiten het gat. Een stap die
+    // vijf handelingen noemt en er één toelaat, leert de verkeerde les.
+    anker: "review-kaart",
     artefactOpen: true,
     interactie: "akkoord",
     fase: "beoordelen",
     titel: "Jij beslist",
     tekst:
-      "Probeer het: klik op Akkoord. Je kunt ook op de klassebadge klikken om te corrigeren, een " +
-      "voorstel verwerpen met × (met reden), of via Vraag Lex een vraag over deze markering " +
-      "klaarzetten. Met het toetsenbord gaat het sneller: j en k door de lijst, a voor akkoord, x " +
-      "voor verwerpen, c voor klasse.",
+      "Probeer het: klik de kaart aan en dan op Akkoord. Je kunt ook op de klassebadge klikken om te " +
+      "corrigeren, of een voorstel verwerpen met × (met reden). Met het toetsenbord gaat het " +
+      "sneller: j en k door de lijst, a voor akkoord, x voor verwerpen, c voor klasse.",
     waarom:
       "Elke beslissing komt in het auditspoor. Een voorstel dat je verwerpt blijft zichtbaar, met " +
       "jouw reden erbij.",

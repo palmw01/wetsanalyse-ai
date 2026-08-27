@@ -339,7 +339,6 @@ function DecisionCard({
         {/* `ml-auto` duwt de acties op mobiel naar rechts op dezelfde regel als de aandacht-badge;
             op `sm:` doet de flex-verdeling dat al. */}
         <span
-          data-tour={eerste ? "review-acties" : undefined}
           className="order-2 ml-auto flex shrink-0 items-center gap-1 sm:order-3 sm:ml-0"
           onClick={(e) => e.stopPropagation()}
         >
