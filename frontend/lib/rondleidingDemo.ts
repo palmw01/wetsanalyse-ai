@@ -199,6 +199,10 @@ export function maakDemoItems(): ThreadItem[] {
     {
       id: "demo-2",
       type: "antwoord",
+      // Let op de spelling: "te wiens **name**". De wet zegt "te wiens naam" (artikel 2, eerste lid,
+      // onderdeel k). Dat is geen typfout maar de misser die het blok hieronder aanwijst – herstel
+      // je hem, dan meldt de rondleiding een citaatfout die er niet meer is, en faalt er niets dat
+      // je erop wijst.
       tekst:
         "De Invorderingswet 1990 verstaat onder **belastingschuldige** degene te wiens name de " +
         "belastingaanslag is gesteld (artikel 2, eerste lid, onderdeel k). Het begrip bepaalt wie de " +
