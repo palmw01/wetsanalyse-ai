@@ -32,13 +32,18 @@ interface Props {
   onOpenArtefact: () => void;
   /** De rondleiding is voorbij: demo opruimen en de gewone werkplek terugzetten. */
   onKlaar: () => void;
+  /** Meldt of de werkplek eronder op slot moet. Aan tijdens de gewone stappen, uit zodra de stap om
+   *  een handeling vraagt — dan moet de knop eronder juist bereikbaar zijn, ook met het toetsenbord. */
+  onAchtergrondSlot: (slot: boolean) => void;
   /** Loopt op bij elke beslissing in de voorbeeldannotatie. De interactieve stap wacht daarop en
    *  bevestigt de handeling in plaats van hem stil te laten gebeuren. */
   beslissingen: number;
 }
 
 /** De motor van de rondleiding: welke stap staat er, waar hangt hij aan, en wat onderbreekt hem. */
-export function Rondleiding({ isBeheerder, artefactOpen, onOpenArtefact, onKlaar, beslissingen }: Props) {
+export function Rondleiding({
+  isBeheerder, artefactOpen, onOpenArtefact, onKlaar, beslissingen, onAchtergrondSlot,
+}: Props) {
   const stappen = zichtbareStappen(isBeheerder);
   const [fase, setFase] = useState<TourFase>("welkom");
   const [index, setIndex] = useState(0);
@@ -63,6 +68,19 @@ export function Rondleiding({ isBeheerder, artefactOpen, onOpenArtefact, onKlaar
       setGedaan(INTERACTIE_BEVESTIGING[stap.interactie]);
     }
   }, [beslissingen, stap?.interactie]);
+
+  // Het slot volgt de stap. Bij afsluiten of unmounten gaat het er hoe dan ook af: een werkplek die
+  // inert blijft staan is erger dan een rondleiding die te vroeg loslaat.
+  //
+  // In de interactieve stap staat het slot uit, want daar moet de Akkoord-knop bereikbaar zijn —
+  // ook met het toetsenbord. De dimlaag houdt de muis daar tegen (op het gat na), maar tabben naar
+  // de achtergrond kan er wél. Dat is een bewuste rest: `inert` geldt voor een hele boom, en de
+  // ene knop die door moet zit er middenin. De stap nodigt uit tot klikken en noemt de sneltoets,
+  // dus in de praktijk komt niemand daar tabbend langs.
+  useEffect(() => {
+    onAchtergrondSlot(fase === "stappen" && !stap?.interactie);
+    return () => onAchtergrondSlot(false);
+  }, [fase, stap?.interactie, onAchtergrondSlot]);
 
   /** Afsluiten: onthouden dát hij gezien is, en de werkplek teruggeven. */
   const sluit = useCallback(
@@ -184,9 +202,9 @@ export function Rondleiding({ isBeheerder, artefactOpen, onOpenArtefact, onKlaar
         <div className="p-6">
           <p className="font-display text-lg font-semibold text-lint">Welkom in de werkplek</p>
           <p className="mt-3 text-sm leading-6 text-ink">
-            Dit is de plek waar je wetsartikelen laat duiden volgens het JAS. In {stappen.length} korte
-            stappen laat ik zien hoe je van een vraag naar een beoordeelde annotatie komt – je hoeft
-            niets in te vullen, ik gebruik een voorbeeld. Ongeveer twee minuten.
+            Hier laat je wetsartikelen duiden volgens het JAS. Ik loop met je langs de werkstroom, van
+            vraag tot beoordeelde annotatie. Je hoeft niets in te vullen: ik gebruik een voorbeeld.
+            In {stappen.length} stappen, ongeveer twee minuten.
           </p>
           <p className="mt-3 text-[0.8125rem] leading-5 text-muted">
             Let op: dit is een testomgeving. Analyses kunnen verloren gaan.
@@ -197,7 +215,7 @@ export function Rondleiding({ isBeheerder, artefactOpen, onOpenArtefact, onKlaar
               onClick={() => sluit(false)}
               className="focus-ring min-h-[40px] rounded-button border border-line px-4 text-sm text-ink transition-colors hover:bg-surface coarse:min-h-[48px]"
             >
-              Later, niet nu
+              Nu even niet
             </button>
             <button
               type="button"
@@ -225,8 +243,8 @@ export function Rondleiding({ isBeheerder, artefactOpen, onOpenArtefact, onKlaar
             beoordeelt → afronden en exporteren.
           </p>
           <p className="mt-3 text-[0.8125rem] leading-5 text-muted">
-            Je annotaties staan onder <span className="font-medium text-ink">Annotaties</span> in de
-            zijbalk. Deze rondleiding start je opnieuw via je naam linksonder.
+            Je annotaties vind je terug onder <span className="font-medium text-ink">Annotaties</span> in
+            de zijbalk. Deze rondleiding start je opnieuw via je naam linksonder.
             {isBeheerder && (
               <> Daar vind je als beheerder ook <span className="font-medium text-ink">Beheer</span>,
               voor modelprofielen en gebruikers.</>

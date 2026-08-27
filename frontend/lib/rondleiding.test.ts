@@ -4,8 +4,8 @@ import { globSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import {
-  BUBBEL_MARGE, domineert, hervatIndex, indexVan, LEGE_STAND, moetStarten, plaatsBubbel,
-  RONDLEIDING_VERSIE, STAPPEN, vraagtArtefact, zichtbareStappen, type Vak,
+  BUBBEL_MARGE, domineert, hervatIndex, indexVan, LEGE_STAND, maskRechthoeken, moetStarten,
+  plaatsBubbel, RONDLEIDING_VERSIE, STAPPEN, vraagtArtefact, zichtbareStappen, type Vak,
 } from "./rondleiding";
 import {
   DEMO_SLUG, demoBron, maakDemoDocument, maakDemoScene, pasDemoBeslissingToe,
@@ -298,5 +298,57 @@ describe("de ankers bestaan echt", () => {
 
   it("valt niet voor een anker dat nergens staat", () => {
     expect(gezet("dit-anker-bestaat-niet")).toBe(false);
+  });
+});
+
+describe("de dimlaag", () => {
+  const viewport = { breedte: 1000, hoogte: 800 };
+
+  /** Dekken de rechthoeken samen dit punt af? */
+  function bedekt(vakken: Vak[], x: number, y: number): boolean {
+    return vakken.some(
+      (v) => x >= v.left && x < v.left + v.breedte && y >= v.top && y < v.top + v.hoogte,
+    );
+  }
+
+  it("dekt het hele scherm af als er geen gat is", () => {
+    // De normale stap: je hoort nergens te kunnen klikken behalve in de bubbel.
+    const vakken = maskRechthoeken(null, viewport);
+    expect(bedekt(vakken, 0, 0)).toBe(true);
+    expect(bedekt(vakken, 500, 400)).toBe(true);
+    expect(bedekt(vakken, 999, 799)).toBe(true);
+  });
+
+  it("laat het gat vrij en dekt de rest af", () => {
+    // De interactieve stap: alleen de knop waar de rondleiding om vraagt mag door.
+    const gat = { top: 300, left: 400, breedte: 120, hoogte: 40 };
+    const vakken = maskRechthoeken(gat, viewport);
+
+    expect(bedekt(vakken, 460, 320)).toBe(false); // midden in het gat
+    expect(bedekt(vakken, 460, 299)).toBe(true); // net erboven
+    expect(bedekt(vakken, 460, 341)).toBe(true); // net eronder
+    expect(bedekt(vakken, 399, 320)).toBe(true); // net links
+    expect(bedekt(vakken, 521, 320)).toBe(true); // net rechts
+    expect(bedekt(vakken, 0, 0)).toBe(true);
+    expect(bedekt(vakken, 999, 799)).toBe(true);
+  });
+
+  it("levert geen negatieve afmetingen bij een gat tegen de rand", () => {
+    // Een element dat half buiten beeld valt (na scrollen) mag geen kapotte divs opleveren.
+    for (const gat of [
+      { top: -50, left: -20, breedte: 200, hoogte: 100 },
+      { top: 780, left: 960, breedte: 200, hoogte: 100 },
+    ]) {
+      for (const v of maskRechthoeken(gat, viewport)) {
+        expect(v.breedte).toBeGreaterThan(0);
+        expect(v.hoogte).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("laat lege randen weg", () => {
+    // Een gat over de volle breedte heeft geen linker- en rechterrand nodig.
+    const vakken = maskRechthoeken({ top: 300, left: 0, breedte: 1000, hoogte: 40 }, viewport);
+    expect(vakken).toHaveLength(2);
   });
 });
