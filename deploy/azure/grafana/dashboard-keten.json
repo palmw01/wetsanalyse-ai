@@ -108,7 +108,7 @@
             ],
             "dashboardTime": true,
             "timeColumn": "TimeGenerated",
-            "query": "AppRequests\n| summarize aantal=count() by bin(TimeGenerated, 5m), AppRoleName\n| order by TimeGenerated asc"
+            "query": "AppRequests\n| summarize aantal=count() by bin(TimeGenerated, $__interval), AppRoleName\n| order by TimeGenerated asc"
           }
         }
       ],
@@ -128,7 +128,7 @@
       "id": 3,
       "type": "timeseries",
       "title": "Foutratio (5xx) per dienst",
-      "description": "Aandeel mislukte requests. Blijft leeg zolang er niets faalt — dat is de bedoeling.",
+      "description": "Aandeel serverfouten (ResultCode 5xx) t.o.v. alle requests. Bewust niet `Success == false`: Application Insights rekent ook 4xx als niet-succesvol, waardoor een golf 401's of 404's zich als serverstoring zou presenteren. Blijft leeg zolang er niets faalt — dat is de bedoeling.",
       "gridPos": {
         "h": 5,
         "w": 9,
@@ -149,7 +149,7 @@
             ],
             "dashboardTime": true,
             "timeColumn": "TimeGenerated",
-            "query": "AppRequests\n| summarize totaal=count(), fout=countif(Success == false) by bin(TimeGenerated, 5m), AppRoleName\n| extend ratio = todouble(fout) / todouble(totaal)\n| project TimeGenerated, AppRoleName, ratio\n| order by TimeGenerated asc"
+            "query": "AppRequests\n| summarize totaal=count(), fout=countif(toint(ResultCode) >= 500) by bin(TimeGenerated, $__interval), AppRoleName\n| extend ratio = todouble(fout) / todouble(totaal)\n| project TimeGenerated, AppRoleName, ratio\n| order by TimeGenerated asc"
           }
         }
       ],
@@ -191,7 +191,7 @@
             ],
             "dashboardTime": true,
             "timeColumn": "TimeGenerated",
-            "query": "AppRequests\n| summarize p95=percentile(DurationMs, 95) by bin(TimeGenerated, 5m), AppRoleName\n| order by TimeGenerated asc"
+            "query": "AppRequests\n| summarize p95=percentile(DurationMs, 95) by bin(TimeGenerated, $__interval), AppRoleName\n| order by TimeGenerated asc"
           }
         }
       ],
@@ -306,7 +306,7 @@
             ],
             "dashboardTime": true,
             "timeColumn": "TimeGenerated",
-            "query": "ContainerAppConsoleLogs_CL\n| where ContainerAppName_s has_any ('-api', '-frontend', '-graph-qa', '-bwb-import')\n| extend j = parse_json(Log_s)\n| extend niveau = tolower(tostring(j.niveau))\n| where niveau in ('error', 'warn') or (isempty(niveau) and Log_s contains_cs 'Traceback')\n| project TimeGenerated, dienst = ContainerAppName_s, niveau = iff(isempty(niveau), 'raw', niveau),\n          bericht = iff(isempty(tostring(j.bericht)), substring(Log_s, 0, 300), tostring(j.bericht)),\n          trace = tostring(j.trace_id)\n| order by TimeGenerated desc\n| take 30"
+            "query": "ContainerAppConsoleLogs_CL\n| where ContainerAppName_s in ('__APPNAME__-api', '__APPNAME__-frontend', '__APPNAME__-graph-qa', '__APPNAME__-bwb-import')\n| extend j = parse_json(Log_s)\n| extend niveau = tolower(tostring(j.niveau))\n| where niveau in ('error', 'warn') or (isempty(niveau) and Log_s contains_cs 'Traceback')\n| project TimeGenerated, dienst = ContainerAppName_s, niveau = iff(isempty(niveau), 'raw', niveau),\n          bericht = iff(isempty(tostring(j.bericht)), substring(Log_s, 0, 300), tostring(j.bericht)),\n          trace = tostring(j.trace_id)\n| order by TimeGenerated desc\n| take 30"
           }
         }
       ],
