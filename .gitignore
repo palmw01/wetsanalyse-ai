@@ -50,3 +50,6 @@ api/spike_act2.json
 # Lokale sqlite van de API bij een smoke-test (`api/CLAUDE.md`: sqlite-override). Wegwerpdata van
 # één machine — de echte opslag is Postgres.
 api/*.db
+
+# bwb-import draait op pip; een uv.lock daar is een artefact van een `uv run` zonder --no-project.
+tools/bwb-import/uv.lock
