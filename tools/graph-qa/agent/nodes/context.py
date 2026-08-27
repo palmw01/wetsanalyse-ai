@@ -36,3 +36,4 @@ class Bouw:
     # dat elke node ze zelf samenstelt.
     memory_context: Callable[[State], str]
     corpus: Callable[[State], str]
+    advies_context: Callable[[State], str]
