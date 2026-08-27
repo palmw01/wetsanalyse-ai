@@ -150,6 +150,46 @@ Drie valkuilen, alle drie een keer ingelopen:
   onophoudelijk; dat was ~95% van alle requests, waardoor beide straten op vrijwel hetzelfde getal
   uitkwamen en het echte verkeer erin verdronk. De dashboardqueries filteren ze daarom expliciet weg.
 
+### Wat je in de errorlog aantreft, en wat het betekent
+
+Gemeten op 27 aug 2026 over 24 uur, beide straten: **geen enkele echte applicatiefout**. Wat er wél
+staat, staat er structureel — herken het voordat je gaat zoeken.
+
+**Verreweg het meeste is OTLP-export, niet je applicatie.** Regels als `Failed to export span/logs/
+metrics batch — HTTPConnectionPool(host='…-otel-collector', port=80): Connection refused` waren 353
+van de 355 meldingen op acceptatie en 52 van de 56 op productie. Oorzaak is een kip-en-ei: de
+collector draait met `minReplicas: 0` en komt op zodra een app iets stuurt — maar juist díe eerste
+zending vindt nog geen replica. Ze komen daarom in **bursts rond een deploy** (305 in het uur van de
+eerste uitrol, daarna 18, 20, 4) en zijn ertussenin afwezig.
+
+Dat patroon is het signaal, niet het niveau. De SDK buffert en probeert opnieuw, dus je verliest
+hooguit de eerste seconden telemetrie na een deploy. **Een burst na een uitrol is normaal; een
+continue stroom is dat niet** — dán is de collector echt weg en is je observability stuk. Ze landen
+als `error` omdat de OTel-SDK dat niveau kiest; dat is bewust zo gelaten, want een `warn` zou het
+onderscheid tussen burst en stroom net zo min maken.
+
+**`Run-proxy: actieve run niet op te halen`** (frontend, een enkele keer per dag) is een koude start
+van graph-qa tegen de 10-secondentimeout van `frontend/app/api/annotatie/run/route.ts`. De gebruiker
+merkt er niets van: de route geeft bewust géén `null` terug — dat zou "er loopt niets" betekenen,
+een uitspraak die je hier niet kunt doen — en de client leest het als "onbekend" en zwijgt. Die
+timeout niet verhogen: dan wacht de gebruiker een halve minuut op hetzelfde antwoord.
+
+Zoek je dus een echte fout, sluit deze twee uit:
+
+```kql
+ContainerAppConsoleLogs_CL
+| where TimeGenerated > ago(24h)
+| extend j = parse_json(Log_s)
+| extend niveau = tolower(tostring(j.niveau))
+| where niveau in ('error', 'warn')
+| where not(Log_s has_any ('otel-collector', 'exporting', 'export'))
+| project TimeGenerated, ContainerAppName_s, niveau, bericht = tostring(j.bericht)
+| order by TimeGenerated desc
+```
+
+Let op de vorm van dat filter: `has` matcht op **termen**, dus `'export'` vangt `exporting` niet —
+vandaar dat beide in de lijst staan. Precies daarop liep de eerste versie van deze query mis.
+
 > **graph-qa is meestal onzichtbaar, en dat klopt.** Hij draait met `minReplicas: 0`
 > (`deploy/azure/main.bicep`), dus buiten gebruik zijn er nul replica's: geen liveness-probes, geen
 > requests, geen telemetrie. Een leeg paneel betekent hier "er wordt niet gewerkt", niet "de meting is
