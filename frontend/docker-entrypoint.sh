@@ -1,6 +1,6 @@
 #!/bin/sh
 # Laadt AUTH_SECRET (Auth.js) uit een secret-bestand zodat het geheim — net als de andere tokens —
-# een BESTAND op de host blijft i.p.v. een plain env in Portainer. Auth.js zelf kent geen
+# een BESTAND blijft i.p.v. een plain env-waarde. Auth.js zelf kent geen
 # *_FILE-patroon, dus we exporteren het hier vóór de server start; zo zien zowel de route handlers
 # als de edge-middleware (binnen hetzelfde Node-proces) process.env.AUTH_SECRET.
 set -e

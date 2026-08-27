@@ -81,6 +81,7 @@ plaats van gecommit. Twee stappen:
      -- docker run --rm -i -e GRAFANA_URL -e GRAFANA_SERVICE_ACCOUNT_TOKEN mcp/grafana -t stdio
    ```
 
-3. `claude mcp list` → `grafana` verbonden. De observability-stack is al gebouwd in
-   `deploy/observability/` (Collector + Tempo/Loki/Prometheus + Alloy, dashboard, alerting); via de
-   MCP beheer je de datasources, het dashboard en de alertregels. Zie `docs/observability.md`.
+3. `claude mcp list` → `grafana` verbonden. Grafana draait als container app naast de Azure-straten
+   (`deploy/azure/grafana.bicep`); via de MCP bekijk je de datasources en het keten-dashboard. Let op
+   dat de provisioning as-code gaat: wijzigingen horen in `deploy/azure/grafana/`, niet in de UI —
+   de app heeft geen persistente opslag. Zie `docs/observability.md`.

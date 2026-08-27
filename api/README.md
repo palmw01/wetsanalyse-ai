@@ -105,7 +105,7 @@ uv run --env-file .env uvicorn app.main:app --reload --port 3000
 
 Zet `DATABASE_URL=postgresql+asyncpg://wetsanalyse:wetsanalyse@localhost:5432/wetsanalyse` in `.env`;
 de tabellen worden bij de start aangemaakt. Zie `CLAUDE.md` voor de volledige opstapinstructies, Azure
-AI Foundry-config en productie-deployment via Docker/Portainer.
+AI Foundry-config en de uitrol naar Azure Container Apps.
 
 ## Authenticatie
 
@@ -124,5 +124,5 @@ De API is **geïnstrumenteerd**: gestructureerde JSON-logging (request-id-middle
 plus OpenTelemetry (traces/metrics/logs), gated op **`OTEL_EXPORTER_OTLP_ENDPOINT`** — leeg = no-op,
 alleen logs. Eén trace-id verbindt frontend → API → MCP/graph-qa. Nooit tokens/secrets/prompt-inhoud
 loggen. Zie `app/observability.py` en de projectbrede
-[`docs/observability.md`](../docs/observability.md) (env-vars, logschema, en de optionele
-Grafana-stack in `deploy/observability/`).
+[`docs/observability.md`](../docs/observability.md) (env-vars, logschema, en hoe je de telemetrie
+op Azure bevraagt).

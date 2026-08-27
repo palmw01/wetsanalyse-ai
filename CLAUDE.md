@@ -8,7 +8,7 @@ Een **agent-platform** voor **Wetsanalyse**: het gestructureerd, brongetrouw en 
 van Nederlandse wet- en regelgeving volgens de methode Wetsanalyse (Ausems, Bulles & Lokin) en het
 Juridisch Analyseschema (JAS). De kern is een gedeployde dienst — de **wetsanalyse-API**, de
 **webapp met de werkplek** en de eigen **QA/annotatie-agent (`tools/graph-qa/`, **Lex**)** op de
-**BWB-kennisgraaf** — die als Portainer-stacks op een docker-host draait. De graaf wordt gevuld
+**BWB-kennisgraaf** — die als container apps op Azure draait. De graaf wordt gevuld
 door de **BWB-importer** (`tools/bwb-import/`), die de wettekst rechtstreeks bij overheid.nl ophaalt.
 
 Brongetrouwheid is niet onderhandelbaar: werk alleen met letterlijk opgehaalde wettekst, citeer
@@ -59,12 +59,14 @@ plaats van schijnzekerheid.
    RDF naar GraphDB, repository `inning`. Met `BWB_IMPORT_WTI=true` komt de WTI-verrijking mee:
    verantwoordelijke organisatie, wetsfamilie, grondslagen, rechtsgebieden, citeertitels. Per wet
    **idempotent** (named-graph `PUT`), dus herimporteren is veilig. Image
-   `ghcr.io/palmw01/bwb-import`; stack `deploy/bwb-import/` met een wekelijkse herimport.
-5. **De kennisgraaf zelf** (`deploy/graphdb/`) — GraphDB 11.4 met de repository `inning`, plus een
+   `ghcr.io/palmw01/bwb-import`; draait op Azure als container-app-job met een wekelijkse cron-trigger
+   (`deploy/azure/main.bicep`).
+5. **De kennisgraaf zelf** (`deploy/azure/main.bicep`) — GraphDB 11.4 met de repository `inning`, plus een
    nginx'je dat het bearer-token controleert en het GraphDB-service-account injecteert. **GraphDB
    ≥ 11.2 heeft de MCP-server ingebouwd** op `/mcp`, dus er is geen aparte MCP-container.
-   GraphDB-security staat aan. Data lokaal op de docker-host (`/var/lib/graphdb/home`); dagelijkse RDF-dump die
-   meelift in de host-back-up.
+   GraphDB-security staat aan. De opslag is **niet-persistent** (memory-mapped files kunnen geen
+   netwerkschijf gebruiken), maar de graaf is volledig reproduceerbaar uit overheid.nl — zie
+   §*Uitrollen*.
 6. **`.claude/skills/wetsanalyse/`** — de inhoudelijke skill: de operationele uitwerking van de
    JAS-methode (de dertien klassen, het volg-beleid voor verwijzingen, de reviewcontracten) plus de
    scripts eromheen. Zie §*De wetsanalyse-skill*.
@@ -153,26 +155,16 @@ map). Elke span draagt `deployment.environment=<appName>`. Application Insights 
 OTLP-ingest — vandaar die collector, en niet de Azure-distro in de apps: die zou drie diensten
 vendor-locken op de plek waar het ontwerp juist provider-neutraal is.
 
-**Grafana draait op beide plekken, maar het zijn twee verschillende dingen.** Op Azure staat hij als
-container app naast de straten (`deploy/azure/grafana.bicep`, uitrollen met `azure-infra` → actie
-`grafana`): één exemplaar met een datasource én een dashboard per straat, bereikbaar zonder
+**Grafana staat als container app naast de straten** (`deploy/azure/grafana.bicep`, uitrollen met
+`azure-infra` → actie `grafana`): één exemplaar met een datasource én een dashboard per straat, bereikbaar zonder
 portaltoegang, zonder persistente opslag (alles komt as-code uit `deploy/azure/grafana/`). Hij draagt
 de SP-credentials als datasource-auth — een managed identity kan niet, want dat vraagt een role
 assignment.
 
-Op de **docker-host** (dev) staat de volledige verzamelstack in `deploy/observability/` (stack
-`observability`): OTel-Collector (met
-**spanmetrics/servicegraph-connectors** die topologie-edges uit de traces afleiden) + Tempo + Loki +
-Prometheus, plus **Alloy** dat stdout-logs naar Loki shipt en **Grafana zelf** (grafana.example; de
-datasources komen als file-provisioning uit de stack en zijn in de UI dus read-only). Twee
-kant-en-klare dashboards (`grafana-dashboard-wetsanalyse.json` = trends;
-`grafana-dashboard-topologie.json` = *"systeemtopologie"*: de live keten die oplicht op basis van de
-trace-servicegraph) en **alerting** (`alerting/`; 3 regels die het default notification-beleid van je
-Grafana volgen — géén eigen contactpunt). Deployen via
-`.github/workflows/deploy-observability.yml`, dashboards via `provision-grafana.sh`. **Die
-dashboards horen bij dev**: ze draaien op PromQL/LogQL/TraceQL en bedienen de Azure-straten niet —
-die Grafana is van buiten het LAN onbereikbaar. De volledige uitleg (env-vars, logschema,
-AVG-redactie, dashboard/alerting) staat in **`docs/observability.md`**.
+Draai de actie in **één** straat: die ene Grafana leest beide workspaces, dus een tweede exemplaar
+is dubbelop. Het dashboard `deploy/azure/grafana/dashboard-keten.json` is één sjabloon dat per straat
+wordt ingevuld (`__STRAAT__`, `__WORKSPACE__`, `__DSUID__`, `__APPNAME__`). De volledige uitleg
+(env-vars, logschema, AVG-redactie) staat in **`docs/observability.md`**.
 
 ## Uitrollen
 
@@ -223,16 +215,12 @@ diezelfde job wekelijks via een cron-trigger in de bicep. Let op: de similarity-
 `semantic_search` naar `search_wetgeving`.
 
 **Logs** landen in een Log Analytics workspace per straat (`log-${appName}`, aan de container-apps-
-omgeving gekoppeld). Traces/metrics staan uit: `OTEL_EXPORTER_OTLP_ENDPOINT` is leeg, en de
-Grafana-stack hieronder is van buiten het LAN niet bereikbaar.
+omgeving gekoppeld). Traces/metrics staan uit: `OTEL_EXPORTER_OTLP_ENDPOINT` is leeg.
 
-**Dev draait op de docker-host en is géén weg naar "echt".** Eén vaste, gedeelde omgeving met een
-eigen database, naast de graaf en de observability-stack op diezelfde host. Handmatig: Actions →
-*dev-deploy* → *Run workflow* → kies de branch; `destroy: true` breekt stack, database en proxyhost
-weer af. Workflow `.github/workflows/dev-deploy.yml` + stack `deploy/dev/docker-compose.yml`; setup
-en de volgorde-afhankelijkheden (graaf en observability eerst, want hun netwerken zijn extern) staan
-in **`deploy/dev/README.md`**. `deploy-graaf.yml` en `deploy-observability.yml` bedienen die
-omgeving; ze raken Azure niet.
+**Er is geen dev-omgeving meer.** De docker-host-opstelling (Portainer-stacks voor dev, graaf,
+importer en observability) is op 27 aug 2026 opgeheven; Azure is sindsdien het enige uitrolpad en
+**acceptatie vervult de rol van dev**. Wie een wijziging wil proberen, merget naar `master` en kijkt
+op acceptatie.
 
 ## Referentiedocumentatie
 

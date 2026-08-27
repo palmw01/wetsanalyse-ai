@@ -174,5 +174,5 @@ organisatie-/geldigheidsmetadata, met stabiele BWB-IRI's en jci-vindplaatsen.
 ## Verder lezen
 
 - **`CLAUDE.md`** — werkgids bij het aanpassen van de code (architectuur, invarianten, valkuilen).
-- `deploy/README.md` — containerimage, secrets als bestanden, Portainer-stack en CI.
+- `deploy/azure/README.md` — containerimage, secrets en de uitrol naar de straten.
 - `docs/embeddings-runbook.md` — de GraphDB-similarity-index achter `semantic_search`.

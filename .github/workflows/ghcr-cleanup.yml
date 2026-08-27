@@ -45,9 +45,9 @@ jobs:
         with:
           package: wetsanalyse-api
           keep-n-tagged: 5
-          # latest nooit verwijderen; `dev` is de levende dev-omgeving (dev-deploy.yml) — die zou de
-          # retentie anders onder de draaiende dev-stack vandaan halen.
-          exclude-tags: latest,dev
+          # latest nooit verwijderen. De `dev`-tag was beschermd zolang de dev-stack draaide; die
+          # omgeving is op 27 aug 2026 opgeheven, dus dev-images vallen nu gewoon onder de retentie.
+          exclude-tags: latest
           delete-untagged: true
           validate: true
           dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
@@ -58,9 +58,9 @@ jobs:
         with:
           package: wetsanalyse-frontend
           keep-n-tagged: 5
-          # latest nooit verwijderen; `dev` is de levende dev-omgeving (dev-deploy.yml) — die zou de
-          # retentie anders onder de draaiende dev-stack vandaan halen.
-          exclude-tags: latest,dev
+          # latest nooit verwijderen. De `dev`-tag was beschermd zolang de dev-stack draaide; die
+          # omgeving is op 27 aug 2026 opgeheven, dus dev-images vallen nu gewoon onder de retentie.
+          exclude-tags: latest
           delete-untagged: true
           validate: true
           dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
@@ -71,9 +71,9 @@ jobs:
         with:
           package: graph-qa
           keep-n-tagged: 5
-          # latest nooit verwijderen; `dev` is de levende dev-omgeving (dev-deploy.yml) — die zou de
-          # retentie anders onder de draaiende dev-stack vandaan halen.
-          exclude-tags: latest,dev
+          # latest nooit verwijderen. De `dev`-tag was beschermd zolang de dev-stack draaide; die
+          # omgeving is op 27 aug 2026 opgeheven, dus dev-images vallen nu gewoon onder de retentie.
+          exclude-tags: latest
           delete-untagged: true
           validate: true
           dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
@@ -84,9 +84,9 @@ jobs:
         with:
           package: bwb-import
           keep-n-tagged: 5
-          # latest nooit verwijderen; `dev` is de levende dev-omgeving (dev-deploy.yml) — die zou de
-          # retentie anders onder de draaiende dev-stack vandaan halen.
-          exclude-tags: latest,dev
+          # latest nooit verwijderen. De `dev`-tag was beschermd zolang de dev-stack draaide; die
+          # omgeving is op 27 aug 2026 opgeheven, dus dev-images vallen nu gewoon onder de retentie.
+          exclude-tags: latest
           delete-untagged: true
           validate: true
           dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}

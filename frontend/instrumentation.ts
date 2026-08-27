@@ -12,7 +12,7 @@
 // `app/api/_lib/trace.ts`. Haal dat niet weg omdat de instrumentatie het "zou moeten doen".
 //
 // `NEXT_OTEL_FETCH_DISABLED=1` staat op de frontend (Azure: `deploy/azure/main.bicep`, docker-host:
-// `deploy/dev/docker-compose.yml`). Dat was een eerdere poging tot een fix en heeft niets opgelost;
+// de compose-/app-config). Dat was een eerdere poging tot een fix en heeft niets opgelost;
 // het staat er nog omdat de Next.js-documentatie de vlag aanwijst wanneer je een eigen
 // fetch-instrumentatie gebruikt — wat nu letterlijk het geval is.
 //

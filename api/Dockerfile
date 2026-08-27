@@ -1,6 +1,6 @@
 # Build-context = projectroot (de API leest de skill-references/scripts via PROJECT_ROOT).
 # Bouwen vanaf de root:  docker build -f api/Dockerfile -t wetsanalyse-api .
-# CI (api-docker-publish.yml) pusht de image naar GHCR; Portainer pullt :latest.
+# CI (api-docker-publish.yml) pusht de image naar GHCR en swapt hem op de acceptatie-container-app.
 
 # ── Builder ───────────────────────────────────────────────────────────────────
 # uv leeft alléén in deze stage: het bouwt de .venv en blijft daarna buiten de

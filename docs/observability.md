@@ -5,13 +5,12 @@ kan OpenTelemetry (traces/metrics/logs) naar een **configureerbaar OTLP-endpoint
 endpoint draait alles ongewijzigd met alléén gestructureerde JSON-logging (nul overhead, geen
 gedragsverandering).
 
-**Waar dat endpoint naartoe wijst, verschilt per omgeving — en dat is opzet: de monitoring hoort bij
-de omgeving die hij bewaakt.**
+**De monitoring hoort bij de omgeving die hij bewaakt.** Sinds de dev-omgeving is opgeheven
+(27 aug 2026) is dat er nog één:
 
 | omgeving | verzamelpunt | waar kijk je |
 |---|---|---|
-| **dev** (docker-host) | de compose-stack uit `deploy/observability/`: OTel-Collector + Tempo + Loki + Prometheus + Alloy | Grafana, met de twee dashboards uit deze map |
-| **acceptatie / productie** (Azure) | een stateless OTel-collector per straat → **Application Insights**, workspace-based op de Log Analytics van die straat | de Azure-portal: end-to-end transacties, Application Map, KQL over `requests`/`traces` |
+| **acceptatie / productie** (Azure) | een stateless OTel-collector per straat → **Application Insights**, workspace-based op de Log Analytics van die straat | de Azure-portal (end-to-end transacties, Application Map, KQL) of Grafana |
 
 **De keten deelt één trace-id** — frontend → api → PostgreSQL onder dezelfde `OperationId`,
 geverifieerd op acceptatie (26 aug 2026). Dat gaat niet vanzelf: `@vercel/otel` maakt wél spans voor
@@ -42,9 +41,9 @@ niets op; het klopt nu pas echt, want er ís een eigen fetch-instrumentatie (`me
 **Grafana draait op Azure** (`deploy/azure/grafana.bicep`, uitrollen met `azure-infra` → actie
 `grafana`): één exemplaar met een datasource per straat, en per straat een dashboard in de map
 *Wetsanalyse*. Elke span draagt daarnaast `deployment.environment=<appName>`, zodat acceptatie en
-productie ook binnen één workspace te scheiden zijn. De Azure-dashboards staan in
-`deploy/azure/grafana/`; de dashboards in `deploy/observability/` horen **bij dev** en draaien op
-PromQL/LogQL/TraceQL — die twee sets delen geen query-taal en zijn dus niet uitwisselbaar.
+productie ook binnen één workspace te scheiden zijn. De dashboards staan als
+sjabloon in `deploy/azure/grafana/` en worden per straat ingevuld. Draai de `grafana`-actie in **één**
+straat: dat ene exemplaar leest beide workspaces.
 
 ## Wat is geïnstrumenteerd
 
@@ -93,72 +92,21 @@ LOG_LEVEL=info
 LOG_FORMAT=json                                          # API: 'text' is prettiger lokaal
 ```
 
-De env-vars staan al in de drie `docker-compose.yml`'s, de `.env.example`'s en (voor Azure) in
-`main.bicep` (param `otelEndpoint`). In de **API-image** is de `otel`-extra meegebouwd
+De env-vars staan in de `.env.example`'s en (voor Azure) in `main.bicep` (param `otelEndpoint`). In de **API-image** is de `otel`-extra meegebouwd
 (`uv sync --extra otel`); lokaal draai je met `uv sync --extra otel`.
 
-> **Let op bij Portainer + CI-deploy:** een stack-update via de Portainer-API **vervangt** de
-> volledige stack-env door wat de deploy-payload meestuurt — een handmatig in Portainer gezette
-> `OTEL_EXPORTER_OTLP_ENDPOINT` overleeft de eerstvolgende redeploy dus niet. Daarom geven de drie
-> publish-workflows (`api`/`frontend`-`-publish.yml`) het endpoint expliciet mee in de
-> `jq`-payload, default `http://otel-collector:4318` (override via repo-var
-> `vars.OTEL_EXPORTER_OTLP_ENDPOINT`). Laat die regel staan — zonder het endpoint valt de
-> compose-default terug op leeg en zet een deploy de hele observability stil (alleen de
-> Alloy→Loki-stdout-logs blijven dan nog lopen).
+## Grafana
 
-## Grafana koppelen
+Grafana draait als container app naast de straten (`deploy/azure/grafana.bicep`), uit te rollen met
+`azure-infra` → actie `grafana`. Draai die in **één** straat: dat exemplaar leest beide workspaces via
+een datasource per straat, en krijgt per straat een dashboard in de map *Wetsanalyse*. Alles komt
+as-code uit `deploy/azure/grafana/`; er is geen persistente opslag, dus wijzig dashboards daar en niet
+in de UI.
 
-Er is **geen app-wijziging** nodig — de instrumentatie stuurt standaard-OTLP; Grafana koppelen is
-puur een ops-stap. Twee gangbare paden:
-
-### a) Grafana Cloud (managed)
-
-Grafana Cloud heeft een eigen OTLP-gateway — geen eigen collector nodig. Zet per service:
-
-```bash
-OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp-gateway-<zone>.grafana.net/otlp
-OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
-OTEL_EXPORTER_OTLP_HEADERS=Authorization=Basic <base64(instanceID:token)>
-```
-
-Traces → Tempo, logs → Loki, metrics → Prometheus/Mimir landen dan in je Grafana-Cloud-stack.
-(De frontend gebruikt `@vercel/otel`, dat dezelfde OTEL_*-env-vars leest.)
-
-### b) Self-hosted (homelab/Portainer) — koppelen aan een bestaande Grafana
-
-Er staat een **kant-en-klare optionele backends-stack** in
-[`../deploy/observability/`](../deploy/observability/): **OTel-Collector + Tempo + Loki +
-Prometheus** (géén eigen Grafana — die koppel je aan je bestaande) op het gedeelde
-`observability_default`-netwerk (de stack maakt het zelf aan; de dev-stack joint erop). De collector ontvangt OTLP op 4317/4318 (intern) en routeert traces →
-Tempo, logs → Loki, metrics → Prometheus. Wijs daarna elke app-stack naar
-`http://otel-collector:4318` en voeg Tempo/Loki/Prometheus als datasources toe aan je bestaande
-Grafana. Volledige stappen: [`deploy/observability/README.md`](../deploy/observability/README.md).
-
-De stack bevat bovendien:
-
-- **Alloy** — scrapet de container-stdout van de **frontend** (die niet via OTLP logt) en pusht
-  die naar Loki (`service_name` = containernaam, `niveau` → label `detected_level`, `trace_id`/
-  `categorie` als structured metadata). De API blijft via OTLP loggen, dus geen dubbeling.
-  Read-only `docker.sock`-mount. Config: `alloy-config.alloy`.
-- **Service-graph/spanmetrics-connectors** — de collector leidt uit de traces ook RED-metrics per
-  service (`traces_spanmetrics_*`) en topologie-edges (`traces_service_graph_request_total`) af. Die
-  gaan de metrics-pipeline in (→ Prometheus op `:8889`) en voeden het Node Graph-panel + de live
-  systeemtopologie. Niet-geïnstrumenteerde afhankelijkheden (LLM, overheid.nl, Postgres)
-  verschijnen als virtuele peer-node. Configuratie: `connectors:` in `otel-collector-config.yaml`.
-- **Dashboards** (map "Wetsanalyse") — `grafana-dashboard-wetsanalyse.json` (*"observability"*:
-  HTTP-verkeer, scrape-health, logs, traces) én
-  `grafana-dashboard-topologie.json` (*"systeemtopologie"*: de live keten die oplicht in een
-  Canvas-plaat, de automatische Node Graph, en een trace-waterfall + logs om één executie te volgen).
-  Importeren via de UI, `provision-grafana.sh` (beide) of `POST /api/dashboards/db`.
-- **Alerting** — `alerting/` (3 regels: HTTP 5xx, latency p95, telemetrie-backend down) met een
-  idempotent `apply.sh`. De regels dragen **géén eigen contactpunt** en volgen het default
-  notification-beleid van je Grafana — richt daar de gewenste ontvanger in.
-
-Wie liever een all-in-één demo-image draait (inclusief Grafana) kan `grafana/otel-lgtm` gebruiken;
-deze repo mikt op koppeling aan een bestaande Grafana.
-
-Lokaal snel proberen: draai een collector met een debug-exporter (bijv. `otel-tui` of `otelcol` met
-de `debug`-exporter) op `localhost:4318` en zet het endpoint op alle vier de componenten.
+Het dashboard is één sjabloon (`dashboard-keten.json`) met placeholders die de bicep per straat
+invult: `__STRAAT__`, `__SLUG__`, `__DSUID__`, `__WORKSPACE__` en `__APPNAME__`. Voeg je een
+placeholder toe, vul hem dan in **beide** `replace()`-ketens (`dashAcc` en `dashPrd`) — anders staat
+de letterlijke tekst in de query van één straat.
 
 ## Waarom het endpoint env-config is (en niet in /beheer)
 
@@ -176,38 +124,42 @@ eerlijker en eenduidiger.
   frontend → API → PostgreSQL — één trace deelt de `trace_id`.
 - **Geen lek**: `grep` de logoutput op `bearer`/`secret`/de chat-`secret`-waarde → leeg.
 
-### Metric- en labelnamen (zoals ze in Prometheus/Loki landen)
+### Waar de telemetrie landt, en hoe je hem bevraagt
 
-De OTLP→Prometheus-export voegt unit-/type-suffixen toe; onthoud dit bij het bouwen van queries:
+Alles komt via de collector in **Application Insights** terecht, workspace-based op de Log Analytics
+van die straat. Je bevraagt hem met KQL, in de portal of via `azure-infra` → actie `telemetrie`
+(read-only; het `query`-veld accepteert een eigen KQL-query, en dat is de manier om een dashboardquery
+te toetsen zonder portaltoegang).
 
-- Auto-HTTP: `http_server_duration_milliseconds_*` (labels `http_method`/`http_status_code`/`http_target`).
-  Let op: `http_client_*` draagt **géén** host/target-label — per-bestemming-edges komen uit de
-  service-graph, niet uit `http_client`.
-- Uit de connectors: `traces_service_graph_request_total`/`_server_seconds`/`_failed_total` (labels
-  **`client`**/**`server`**/`connection_type`) en `traces_spanmetrics_calls_total`/`_duration_*`
-  (labels **`service_name`**/**`span_name`**). Leeg tot de collector met de connectors draait én er
-  traces zijn.
-- Services onderscheiden via het label **`exported_job`** — `wetsanalyse-api`, `wetsanalyse-frontend`,
-  `wetsanalyse-graph-qa`. Alle drie dragen hetzelfde prefix, zodat een filter als
-  `{service_name=~"wetsanalyse-.*"}` de hele keten vangt. Dat was niet altijd zo: graph-qa heette tot
-  27 aug 2026 kaal `graph-qa` en viel daardoor stil buiten de ketenbrede panelen.
-- **Loki**: de OTLP-logs dragen de velden als **structured metadata** (`detected_level`, `trace_id`,
-  `categorie`), niet als JSON in de regel — filter dus op die labels, niet met `| json`. De
-  Loki-datasource heeft een derived field `trace_id` → Tempo voor de doorklik.
+De tabellen: `AppRequests` (inkomende requests), `AppDependencies` (uitgaande calls), `AppTraces`
+(logregels) en `AppExceptions`. Diensten onderscheid je via **`AppRoleName`** — `wetsanalyse-api`,
+`wetsanalyse-frontend`, `wetsanalyse-graph-qa`. Alle drie dragen hetzelfde prefix, zodat één filter de
+hele keten vangt; dat was niet altijd zo, want graph-qa heette tot 27 aug 2026 kaal `graph-qa` en viel
+daardoor stil buiten ketenbrede queries. Elke span draagt daarnaast
+`deployment.environment=<appName>`.
 
-> **graph-qa is op Azure meestal onzichtbaar, en dat klopt.** Hij draait daar met `minReplicas: 0`
+Drie valkuilen, alle drie een keer ingelopen:
+
+- **De console-logs staan in `ContainerAppConsoleLogs_CL`**, met de kolommen `ContainerAppName_s` en
+  `Log_s`. De tabel zónder `_CL` bestaat óók en is **altijd leeg** — een query daarop geeft netjes nul
+  rijen in plaats van een fout, en is dus niet te onderscheiden van "er is niets aan de hand".
+- **`Success == false` is niet hetzelfde als 5xx.** Application Insights rekent ook 4xx als
+  niet-succesvol, dus een golf 401's presenteert zich als serverstoring. Wil je echte serverfouten,
+  filter dan op `toint(ResultCode) >= 500`.
+- **Health-probes domineren het volume.** Container Apps pollt `/health`, `/ready` en `/api/health`
+  onophoudelijk; dat was ~95% van alle requests, waardoor beide straten op vrijwel hetzelfde getal
+  uitkwamen en het echte verkeer erin verdronk. De dashboardqueries filteren ze daarom expliciet weg.
+
+> **graph-qa is meestal onzichtbaar, en dat klopt.** Hij draait met `minReplicas: 0`
 > (`deploy/azure/main.bicep`), dus buiten gebruik zijn er nul replica's: geen liveness-probes, geen
-> requests, geen telemetrie. Een grijze tegel of een leeg paneel betekent hier "er wordt niet
-> gewerkt", niet "de meting is stuk" — in een etmaal zijn 9 à 16 requests normaal. Reken er ook op
-> dat de eerste vraag na stilte een koude start bevat; die telt mee in de p95, naast de LLM-tijd van
-> de run zelf. Op dev geldt dit niet: daar draait de container gewoon door (docker-compose).
+> requests, geen telemetrie. Een leeg paneel betekent hier "er wordt niet gewerkt", niet "de meting is
+> stuk" — in een etmaal zijn 9 à 16 requests normaal. De eerste vraag na stilte bevat bovendien een
+> koude start; die telt mee in de p95, naast de LLM-tijd van de run zelf.
 
-> **Houdbaarheid: deze namen zijn de pre-1.0 OTel-conventie.** `http_server_duration_milliseconds`
-> en de attributen `http_target`/`http_status_code` heten in de stabiele HTTP-semconv
-> `http.server.request.duration` (in **seconden**), `http_route` en `http_response_status_code`. Bij
-> een SDK- of collector-upgrade die de nieuwe conventie aanzet, verdwijnen niet alleen drie panelen
-> van `grafana-dashboard-wetsanalyse.json` naar "No data" — ook twee van de drie alertregels
-> (`alerting/alert-rules.json`, de 5xx-regel en de latency-regel) vallen dan stil. Een blind alarm
-> meldt zichzelf niet, dus loop bij zo'n upgrade beide bestanden na. Wie de overgang geleidelijk wil
-> doen, kan tijdelijk `OTEL_SEMCONV_STABILITY_OPT_IN=http/dup` zetten: dan emitteert de SDK beide
-> namen naast elkaar.
+> **Houdbaarheid: de attributen zijn de pre-1.0 OTel-conventie.** `http_target`/`http_status_code`
+> heten in de stabiele HTTP-semconv `http_route` en `http_response_status_code`, en de
+> server-duurmetriek gaat van milliseconden naar `http.server.request.duration` in **seconden**. Bij
+> een SDK- of collector-upgrade die de nieuwe conventie aanzet, verandert dus wat er binnenkomt — loop
+> bij zo'n upgrade de queries in `deploy/azure/grafana/` na. Wie de overgang geleidelijk wil doen, kan
+> tijdelijk `OTEL_SEMCONV_STABILITY_OPT_IN=http/dup` zetten: dan emitteert de SDK beide namen naast
+> elkaar.
