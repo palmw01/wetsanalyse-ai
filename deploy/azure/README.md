@@ -27,8 +27,26 @@ frontend → api → graph-qa onder één trace-id te volgen. Kijken doe je in d
 Insights → Transaction search* of *Application map*. Elke span draagt
 `deployment.environment=<appName>`, dus acceptatie en productie zijn te scheiden.
 
+**Grafana draait hier ook**, als container app naast de straten: `azure-infra` → actie `grafana`
+(template `grafana.bicep`, dashboards in `grafana/`). Eén exemplaar bedient beide straten — een
+datasource en een dashboard per straat — en is bereikbaar zonder portaltoegang. Apart van `deploy`
+gehouden, want een dashboardwijziging hoort geen infra-deploy te vragen die GraphDB raakt.
+
+Drie dingen om te weten:
+
+- **Geen persistente opslag.** Datasources en dashboards komen als file-provisioning uit deze repo en
+  zijn in de UI read-only; een herstart brengt ze ongewijzigd terug. Wat je wél verliest is handwerk
+  in de UI (zelfgemaakte dashboards, extra gebruikers, voorkeuren). Wil je een paneel bewaren, zet
+  het dan in `grafana/dashboard-keten.json`.
+- **Hij draagt de service-principal-credentials** als datasource-auth, want een managed identity
+  vereist een role assignment en die mag de SP niet maken. Grafana staat extern; het admin-wachtwoord
+  is dus de enige poort. Leg hem vast als environment-secret `WA_GRAFANA_ADMIN_PASSWORD` — anders
+  wordt er bij de eerste uitrol een gegenereerd, en dat moet je daarna uit de app-secret opvissen.
+- **Schaalt naar nul.** De eerste paginalading wekt hem; dat kost een koude start van enkele seconden.
+
 De Grafana-stack in `deploy/observability/` hoort bij **dev** op de docker-host en bedient de
-Azure-straten niet — die is van buiten het LAN onbereikbaar.
+Azure-straten niet — die is van buiten het LAN onbereikbaar. De dashboards van die twee zijn niet
+uitwisselbaar: dev draait op PromQL/LogQL/TraceQL, Azure op KQL.
 
 ## Vooraf: de GraphDB-licentie
 
@@ -177,6 +195,8 @@ Actions → **azure-infra** → *Run workflow*, met een keuze voor de straat en 
 | `opruimen` | verwijdert wat er in de groep staat maar niet bij deze straat hoort. Toont eerst wat het zou doen; verwijdert pas als je de groepsnaam intypt. |
 | `vul-graaf` | start de import-job en wacht hem af. |
 | `inventaris` | read-only overzicht van wat er in de subscription draait. |
+| `telemetrie` | vraagt de Log Analytics-workspace of er telemetrie binnenkomt; met een eigen `query` je eigen KQL. Read-only. |
+| `grafana` | rolt alleen de Grafana-app uit (`grafana.bicep`). Raakt de applicatiestack niet. |
 
 Dit is de enige workflow die resources aanmaakt, wijzigt of verwijdert. Vandaar `wat-if` als
 default: een deploy raakt GraphDB, en die is niet-persistent.

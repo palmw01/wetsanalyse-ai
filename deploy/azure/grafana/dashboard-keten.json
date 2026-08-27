@@ -1,0 +1,166 @@
+{
+  "uid": "wa-keten-__SLUG__",
+  "title": "Wetsanalyse — __STRAAT__",
+  "tags": ["wetsanalyse", "__STRAAT__"],
+  "timezone": "Europe/Amsterdam",
+  "editable": false,
+  "schemaVersion": 39,
+  "refresh": "5m",
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Diensten in één trace",
+      "description": "Het aantal traces in dit tijdvenster dat meer dan één dienst omspant. Nul betekent dat de keten uiteen ligt: elke dienst levert dan wél telemetrie, maar niemand deelt een trace-id. Dat faalt stil — je ziet data en denkt dat het goed zit. Zie docs/observability.md.",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "__DSUID__" },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "azureLogAnalytics": {
+            "resources": ["__WORKSPACE__"],
+            "dashboardTime": true,
+            "timeColumn": "TimeGenerated",
+            "query": "AppRequests\n| summarize diensten=dcount(AppRoleName) by OperationId\n| where diensten > 1\n| count"
+          }
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] },
+          "mappings": [ { "type": "special", "options": { "match": "null", "result": { "text": "0", "index": 0 } } } ]
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Requests per dienst",
+      "gridPos": { "h": 5, "w": 9, "x": 6, "y": 0 },
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "__DSUID__" },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "azureLogAnalytics": {
+            "resources": ["__WORKSPACE__"],
+            "dashboardTime": true,
+            "timeColumn": "TimeGenerated",
+            "query": "AppRequests\n| summarize aantal=count() by bin(TimeGenerated, 5m), AppRoleName\n| order by TimeGenerated asc"
+          }
+        }
+      ],
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10 } }, "overrides": [] }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Foutratio (5xx) per dienst",
+      "description": "Aandeel mislukte requests. Blijft leeg zolang er niets faalt — dat is de bedoeling.",
+      "gridPos": { "h": 5, "w": 9, "x": 15, "y": 0 },
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "__DSUID__" },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "azureLogAnalytics": {
+            "resources": ["__WORKSPACE__"],
+            "dashboardTime": true,
+            "timeColumn": "TimeGenerated",
+            "query": "AppRequests\n| summarize totaal=count(), fout=countif(Success == false) by bin(TimeGenerated, 5m), AppRoleName\n| extend ratio = todouble(fout) / todouble(totaal)\n| project TimeGenerated, AppRoleName, ratio\n| order by TimeGenerated asc"
+          }
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10 } }, "overrides": [] }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Duur p95 per dienst",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 5 },
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "__DSUID__" },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "azureLogAnalytics": {
+            "resources": ["__WORKSPACE__"],
+            "dashboardTime": true,
+            "timeColumn": "TimeGenerated",
+            "query": "AppRequests\n| summarize p95=percentile(DurationMs, 95) by bin(TimeGenerated, 5m), AppRoleName\n| order by TimeGenerated asc"
+          }
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms", "custom": { "drawStyle": "line", "lineWidth": 1 } }, "overrides": [] }
+    },
+    {
+      "id": 5,
+      "type": "table",
+      "title": "Ketens over meerdere diensten",
+      "description": "De laatste traces die meer dan één dienst raken, met welke diensten dat waren. Dit is dezelfde meting waarmee de trace-keten op 26 aug 2026 is geverifieerd.",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 5 },
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "__DSUID__" },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "azureLogAnalytics": {
+            "resources": ["__WORKSPACE__"],
+            "dashboardTime": true,
+            "timeColumn": "TimeGenerated",
+            "query": "AppRequests\n| summarize diensten=dcount(AppRoleName), namen=make_set(AppRoleName), begin=min(TimeGenerated) by OperationId\n| where diensten > 1\n| project begin, diensten, namen, OperationId\n| order by begin desc\n| take 20"
+          }
+        }
+      ],
+      "options": { "showHeader": true },
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "Uitzonderingen",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 11 },
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "__DSUID__" },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "azureLogAnalytics": {
+            "resources": ["__WORKSPACE__"],
+            "dashboardTime": true,
+            "timeColumn": "TimeGenerated",
+            "query": "AppExceptions\n| project TimeGenerated, AppRoleName, ExceptionType, OuterMessage, OperationId\n| order by TimeGenerated desc\n| take 30"
+          }
+        }
+      ],
+      "options": { "showHeader": true },
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Foutregels uit de containers",
+      "description": "stdout van de container apps, gefilterd op fout-achtige regels. De apps loggen gestructureerd JSON (zie frontend/lib/logger.ts).",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 11 },
+      "datasource": { "type": "grafana-azure-monitor-datasource", "uid": "__DSUID__" },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "azureLogAnalytics": {
+            "resources": ["__WORKSPACE__"],
+            "dashboardTime": true,
+            "timeColumn": "TimeGenerated",
+            "query": "ContainerAppConsoleLogs\n| where Log has_any ('ERROR', 'error', 'Traceback', 'CRITICAL')\n| project TimeGenerated, ContainerAppName, Log\n| order by TimeGenerated desc\n| take 30"
+          }
+        }
+      ],
+      "options": { "showHeader": true },
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    }
+  ]
+}

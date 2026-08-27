@@ -153,6 +153,13 @@ map). Elke span draagt `deployment.environment=<appName>`. Application Insights 
 OTLP-ingest — vandaar die collector, en niet de Azure-distro in de apps: die zou drie diensten
 vendor-locken op de plek waar het ontwerp juist provider-neutraal is.
 
+**Grafana draait op beide plekken, maar het zijn twee verschillende dingen.** Op Azure staat hij als
+container app naast de straten (`deploy/azure/grafana.bicep`, uitrollen met `azure-infra` → actie
+`grafana`): één exemplaar met een datasource én een dashboard per straat, bereikbaar zonder
+portaltoegang, zonder persistente opslag (alles komt as-code uit `deploy/azure/grafana/`). Hij draagt
+de SP-credentials als datasource-auth — een managed identity kan niet, want dat vraagt een role
+assignment.
+
 Op de **docker-host** (dev) staat de volledige verzamelstack in `deploy/observability/` (stack
 `observability`): OTel-Collector (met
 **spanmetrics/servicegraph-connectors** die topologie-edges uit de traces afleiden) + Tempo + Loki +
