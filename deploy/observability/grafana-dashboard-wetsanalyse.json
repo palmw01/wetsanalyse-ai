@@ -283,7 +283,7 @@
         "type": "prometheus",
         "uid": "wa-prometheus"
       },
-      "description": "Aandeel 5xx-serverfouten t.o.v. alle API-responses (voortschrijdend interval). Leeg = geen verkeer in het interval; de deling wordt bewust niet afgevangen, want een ondergrens op de noemer maakt de ratio te laag juist bij weinig verkeer.",
+      "description": "Aandeel 5xx-serverfouten t.o.v. alle API-responses (voortschrijdend interval). De teller houdt `or vector(0)`, zodat gezond verkeer zonder fouten netjes 0% toont in plaats van 'No data' — zonder die val geeft `sum()` over een niet-bestaande 5xx-serie een lege vector. De noemer heeft bewust géén ondergrens: `clamp_min` op een rate maakt de ratio te laag zodra het verkeer onder 1 req/s ligt. Leeg betekent dus: geen verkeer in dit interval.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -338,7 +338,7 @@
             "uid": "wa-prometheus"
           },
           "editorMode": "code",
-          "expr": "sum(rate(http_server_duration_milliseconds_count{exported_job=\"wetsanalyse-api\", http_status_code=~\"5..\"}[$__rate_interval])) / sum(rate(http_server_duration_milliseconds_count{exported_job=\"wetsanalyse-api\"}[$__rate_interval]))",
+          "expr": "(sum(rate(http_server_duration_milliseconds_count{exported_job=\"wetsanalyse-api\", http_status_code=~\"5..\"}[$__rate_interval])) or vector(0)) / sum(rate(http_server_duration_milliseconds_count{exported_job=\"wetsanalyse-api\"}[$__rate_interval]))",
           "instant": true,
           "range": false,
           "refId": "A"
