@@ -123,7 +123,7 @@
         },
         "overrides": []
       },
-      "description": "Inkomende requests per dienst, zónder health-probes. Container Apps pollt elke replica constant (/health, /ready, /api/health): dat was ~95% van het volume en maakte beide straten identiek — het echte verkeer verdronk erin. 'GET GET' is er ook uit: dat zijn routeloze frontend-spans van @vercel/otel met lege Url."
+      "description": "Inkomende requests per dienst, zónder health-probes. Container Apps pollt elke replica constant (/health, /ready, /api/health): dat was ~95% van het volume en maakte beide straten identiek — het echte verkeer verdronk erin. 'GET GET' is er ook uit: dat zijn routeloze frontend-spans van @vercel/otel met lege Url. graph-qa ontbreekt zolang er niet mee gewerkt wordt: hij draait met minReplicas=0, dus buiten gebruik zijn er nul replica's en dus geen requests. Dat is stilte, geen storing."
     },
     {
       "id": 3,
@@ -211,7 +211,7 @@
         },
         "overrides": []
       },
-      "description": "95e-percentiel van de requestduur per dienst, zónder health-probes (die zijn ~2 ms en drukten de p95 kunstmatig omlaag). Let op de logaritmische y-as: een graph-qa-run duurt tienduizenden milliseconden en zou op een lineaire as de api- en frontend-lijnen platdrukken tegen nul — dan lijkt het paneel leeg terwijl er data staat."
+      "description": "95e-percentiel van de requestduur per dienst, zónder health-probes (die zijn ~2 ms en drukten de p95 kunstmatig omlaag). Let op de logaritmische y-as: een graph-qa-run duurt tienduizenden milliseconden en zou op een lineaire as de api- en frontend-lijnen platdrukken tegen nul — dan lijkt het paneel leeg terwijl er data staat. graph-qa duurt structureel langer dan de andere twee: de eerste vraag na stilte bevat een koude start (minReplicas=0), en daar komt de LLM-tijd van de run zelf bovenop — tienduizenden milliseconden is daar normaal."
     },
     {
       "id": 5,
