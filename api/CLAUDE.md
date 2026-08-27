@@ -81,8 +81,9 @@ De API bedient zeven dingen:
   conform een schema). `throttle.py` — proces-globale **concurrency-rem** (semafoor) op gelijktijdige
   LLM-calls (`WETSANALYSE_LLM_MAX_CONCURRENCY`); ingesteld in de lifespan. De enige LLM-call in deze
   API is nu de admin-**verbindingstest** (`POST /v1/admin/profiles/{name}/test`).
-- `validation.py` — `GELDIGE_JAS_KLASSEN`, `JAS_KLASSEN_VOLGORDE`, `JAS_KLASSE_KLEUREN` en
-  `jas_sorteersleutel` (canonieke bron uit de skill-`scripts`) + de
+- `jas_klassen.py` — de dertien JAS-klassen, hun weergave-volgorde en labelkleuren (canonieke
+  bron; stond eerder in de wetsanalyse-skill). `validation.py` — `GELDIGE_JAS_KLASSEN`,
+  `JAS_KLASSEN_VOLGORDE`, `JAS_KLASSE_KLEUREN` en `jas_sorteersleutel` + de
   brongetrouwheid-/schema-helpers. Het annotatiedomein valideert de klasse van een voorgesteld element
   hiertegen.
 - `ratelimit.py` — in-process per-client rate limit (dependency) + `QuotaExceeded`.
@@ -279,8 +280,7 @@ ingress-wijziging. De dienst is
 **horizontaal veilig** te schalen (stateless request-afhandeling; de opslag is de gedeelde DB). De
 containers draaien **non-root** en **PostgreSQL draait met authenticatie**. Alle secrets staan als
 bestanden op de host (`*_FILE`-patroon). Build vanaf de **projectroot**:
-`docker build -f api/Dockerfile -t wetsanalyse-api .` (de image heeft de skill-`scripts` nodig voor
-de canonieke JAS-klassenlijst — `validation.py` laadt `validate_analyse.py` op runtime in).
+`docker build -f api/Dockerfile -t wetsanalyse-api .`.
 
 ### Secrets
 

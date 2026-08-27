@@ -1,12 +1,12 @@
-# Verwijzingen inventariseren en volgen (stap 1b)
+# Verwijzingen inventariseren en volgen
 
 Wetsformuleringen verwijzen voortdurend naar andere bepalingen: naar het definitieartikel
 vooraan ("in deze wet wordt verstaan onder…"), naar andere leden ("in afwijking van het
 eerste lid"), naar schakelbepalingen ("van overeenkomstige toepassing"), en naar
 gedelegeerde regelingen (amvb / ministeriële regeling). Die verwijzingen bepalen mede de
 *betekenis* en *werking* van de bepaling die je analyseert. Deze stap maakt ze expliciet,
-volgt de relevante, en legt ze traceerbaar vast als `verwijzingen`-array **op de bron** in
-`analyse.json` (elke verwijzing draagt het `bron_id` van haar bron).
+volgt de relevante, en legt ze traceerbaar vast als `verwijzingen`-array **op de bron**
+(elke verwijzing draagt het `bron_id` van haar bron).
 
 `verwijzingen` is een **aparte as** náást de markeringen: het zijn uitgaande pointers van de
 bepaling, géén tweede plek om JAS-klassen te registreren. Een delegatie blijft óók een
@@ -16,10 +16,10 @@ brondefinitie vast die de betekenis van de bepaling bepaalt.
 
 ## Twee herkomsten
 
-1. **Getagde verwijzingen** — `wettenbank_artikel` geeft per lid een `verwijzingen`-array
-   (intref/extref) met `target`, `label`, `bwbIdDoel` en `extern`. Deze staan óók als
-   inline-Markdown-link in de `tekst`. Neem ze over.
-2. **Natuurlijke-taalverwijzingen** — verwijzingen zonder XML-tag die de MCP niet vangt, bv.
+1. **Getagde verwijzingen** — de graaf levert per lid de verwijzingen (intref/extref) met
+   doel, label en het BWB-id van de doelregeling. Deze staan óók als inline-link in de
+   tekst. Neem ze over.
+2. **Natuurlijke-taalverwijzingen** — verwijzingen zonder XML-tag die de bron niet vangt, bv.
    "in afwijking van het eerste lid", "van overeenkomstige toepassing", "de in artikel 5
    bedoelde termijn". Herken die zelf in de letterlijke tekst en noteer ze met `soort:
    "natuurlijk"` (vaak alleen een `doel.label`, geen `target`).
@@ -38,9 +38,9 @@ brondefinitie vast die de betekenis van de bepaling bepaalt.
 
 | Functie | Default actie | Diepte | Tool |
 | --- | --- | --- | --- |
-| **definitie** | Ophalen; de brondefinitie legt de betekenis van de bepaling vast | 1 | `wettenbank_zoekterm` / `wettenbank_artikel` |
-| **schakel** | Ophalen voor zover het de focus-bepaling betekenis geeft | 1 | `wettenbank_artikel` |
-| **delegatie** | *Bounded:* vindplaats + relevante bepaling identificeren, de betekenis verwerken. Wordt de gedelegeerde regeling relevant genoeg, **promoveer haar tot een eigen bron** in het werkgebied (het werkgebied mag groeien); anders signaleer je een volledige JAS-analyse als validatiepunt | 1 (identificatie) | `wettenbank_structuur` |
+| **definitie** | Ophalen; de brondefinitie legt de betekenis van de bepaling vast | 1 | begrip opzoeken / artikel ophalen |
+| **schakel** | Ophalen voor zover het de focus-bepaling betekenis geeft | 1 | artikel ophalen |
+| **delegatie** | *Bounded:* vindplaats + relevante bepaling identificeren, de betekenis verwerken. Wordt de gedelegeerde regeling relevant genoeg, **promoveer haar tot een eigen bron** in het werkgebied (het werkgebied mag groeien); anders signaleer je een volledige JAS-analyse als validatiepunt | 1 (identificatie) | structuur van de regeling |
 | **intra-artikel** | Als relatie vastleggen; de tekst staat al in scope | 0 | — |
 | **informatief** | Signaleren, niet volgen | — | — |
 
@@ -65,12 +65,11 @@ Omdat alle soorten in beginsel gevolgd worden, gelden twee harde grenzen:
 
 ## Registreren
 
-Schrijf de verwijzingen als `verwijzingen`-array **op de betreffende bron** in
-`werk/activiteit-2/ronde-{N}/analyse.json` (zie het schema in
-`references/review-checkpoints.md`), met **werkgebied-breed stabiele id's** (`v1`, `v2`, …) en
-het `bron_id` van de bron. `validate_analyse.py` controleert de structuur (functie/status-enums,
-`doel.label`, id-uniciteit over bronnen, en de delegatie-koppeling).
+Schrijf de verwijzingen als `verwijzingen`-array **op de betreffende bron**, met
+**werkgebied-breed stabiele id's** (`v1`, `v2`, …) en het `bron_id` van de bron. Let op de
+functie- en status-waarden, een ingevulde `doel.label`, id-uniciteit over bronnen, en de
+koppeling bij een delegatie.
 
-**Houd stap 1b licht:** het is inventariseren + gericht ophalen, niet al classificeren in
+**Houd deze stap licht:** het is inventariseren + gericht ophalen, niet al classificeren in
 JAS-klassen — dat blijft activiteit 2. De verwijzing-inventaris hoort bij het activiteit-2
 review-checkpoint, zodat de analist de scope kan bijsturen.

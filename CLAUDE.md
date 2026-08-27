@@ -80,13 +80,6 @@ plaats van schijnzekerheid.
 Dit is een verzameling losse onderdelen, geen monorepo met één buildsysteem. Het bindmiddel
 zijn **projectrelatieve paden**, zodat de map portabel is tussen machines/OS'en:
 
-- `.claude/settings.json` → **gedeeld en gecommit**: bevat een `PreToolUse`-hook die
-  `.claude/skills/wetsanalyse/scripts/write_guard.py` aanroept bij elke Write/Edit-tool. De guard
-  blokkeert schrijven naar `analyses/**/werk/**/feedback.json` (uitsluitend de review-server schrijft
-  dat) en het overschrijven van een `analyse.json` in `werk/` zodra de ronde **voltooid** is — d.w.z.
-  zodra `feedback.json` in de ronde-map bestaat (gereviewde rondes zijn immutabel; correcties vóór de
-  review mogen wél). De hook is **cwd-relatief**: draai Write/Edit vanaf de projectroot of met
-  absolute paden.
 - `.claude/settings.local.json` → een **machine-lokale** allowlist plus de tokens (o.a.
   `WETSANALYSE_ADMIN_TOKEN`). Dit bestand is **gitignored**, dus het reist niet mee: een andere machine/analist bouwt z'n eigen lijst opnieuw op
   via de permissieprompts. De allowlist is bewust krap en portabel — de grants gebruiken wildcards
@@ -103,35 +96,27 @@ Sessie-MCP-gezondheid vanuit de projectroot: `claude mcp list`.
 
 ## De wetsanalyse-skill
 
-`.claude/skills/wetsanalyse/SKILL.md` is de gezaghebbende beschrijving. Twee dingen om te weten:
+`.claude/skills/wetsanalyse/SKILL.md` beschrijft de JAS-methode: de scope (activiteit 2), het
+onderscheid werkgebied/bron, de dertien klassen en het volg-beleid voor verwijzingen. Twee dingen om
+te weten:
 
-**De skill is de canonieke inhoudsbron.** `scripts/validate_analyse.py` bevat de dertien JAS-klassen
-in hun canonieke weergave-volgorde, en de API laadt dat script **op runtime** in
-(`api/app/validation.py` → `GELDIGE_JAS_KLASSEN`; daarom kopieert `api/Dockerfile` de skill mee).
-Wijzig je de klassenlijst, dan wijzig je hem hier — niet op een tweede plek. `tools/graph-qa/` heeft
-een eigen kopie met een drift-guard-test ertegen.
+**Het is documentatie, geen code.** De skill draagt de methode; het platform voert hem uit. De
+kennisgraaf levert de wettekst, de agent stelt markeringen voor en de jurist beoordeelt ze in de
+werkplek. Er zit geen uitvoerbare werkstroom meer in de skill — de reviewlus, de rapportbouw en de
+write-guard-hook die daarbij hoorden zijn op 27 aug 2026 verwijderd, samen met de dode
+wettenbank-MCP-stap die ze voedde.
 
-**De interactieve werkstroom heeft geen tekstbron.** Stap 1 haalde wettekst op via een
-wettenbank-MCP die niet meer bestaat; de skill kan dus niet end-to-end draaien. De inhoudelijke
-`references/` blijven wel de operationele uitwerking van de methode:
+**De canonieke klassenlijst staat in de api**, niet meer hier: `api/app/jas_klassen.py`. Die stond
+eerder in een skill-script dat de api op runtime inlaadde, waardoor het productie-image een
+Claude-skill moest meedragen om te kunnen starten. `frontend/lib/jas.ts` en
+`tools/graph-qa/agent/jas_klassen.py` dragen dezelfde waarden, elk met een drift-test erop.
+
+De inhoudelijke `references/` blijven de operationele uitwerking van de methode:
 
 - `references/jas-klassen-referentie.md` — de dertien JAS-klassen. Verzin er geen bij.
 - `references/verwijzingen-volgen.md` — het volg-beleid voor cross-referenties: functies,
   diepte-cap 1 + relevantie-gate, bounded delegaties. Een gevolgde delegatie/definitie kan
   promoveren tot een eigen bron in het werkgebied.
-- `references/review-checkpoints.md` — het datacontract van `analyse.json`/`rapport.json`
-  (werkgebied + bronnen) en de human-in-the-loop reviewlus: schrijf een ronde, valideer mechanisch,
-  toon hem via `scripts/review_server.py` (poort 3118), verwerk `feedback.json`, herhaal tot de
-  analist akkoord is (cap: 6 rondes). Nooit zelf doorgaan zonder bevestiging.
-- `references/harness-diagnose.md` — de ingang bij onbetrouwbare output (verzonnen tekst,
-  niet-bestaande klasse, overgeslagen review, niet-convergerende lus). Diagnosticeert via vier
-  hendels (Context, Tools, Loop, Governance) in plaats van het model te verdenken.
-
-Een analyse landt in `analyses/<werkgebied>/`: per **werkgebied** (een kennisdomein met **meerdere
-bronnen** — een bron = `bwbId`+`artikel`+`lid?`, niet één artikel) het eindrapport plus de
-`werk/`-tussenbestanden. Het rapport wordt **gegenereerd, niet overgetypt**:
-`scripts/build_rapport_json.py` combineert de gevalideerde rondes tot één `rapport.json`, en
-`scripts/rapport_server.py` (poort 3119) toont die met een knop om Markdown weg te schrijven.
 
 ## Observability
 

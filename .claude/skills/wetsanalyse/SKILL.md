@@ -3,16 +3,15 @@ name: wetsanalyse
 description: >-
   Voert Wetsanalyse uit op Nederlandse wet- en regelgeving volgens de methode
   Wetsanalyse (Ausems, Bulles & Lokin) en het Juridisch Analyseschema (JAS):
-  activiteit 2 (wetsformuleringen markeren en classificeren in JAS-klassen), met een
-  traceerbaar rapport.json-analyserapport (gepresenteerd via een HTML-viewer; Markdown als
-  export) als resultaat. Gebruik deze skill zodra de gebruiker een
+  activiteit 2 (wetsformuleringen markeren en classificeren in JAS-klassen). Dit is de
+  inhoudelijke methodebeschrijving; het draaiende platform voert de analyse uit in de
+  werkplek. Gebruik deze skill zodra de gebruiker een
   wetsartikel of regeling juridisch wil analyseren, structureren, ontleden of
   "wetsanalyse" wil doen — ook bij vragen als "classificeer dit artikel", "welke
   rechtssubjecten/rechtsbetrekkingen/voorwaarden zitten hierin",
   "ontleed deze bepaling juridisch", of wanneer een
   bepaling brongetrouw en uitlegbaar moet worden vastgelegd voor uitvoering
-  (bijvoorbeeld bij de Belastingdienst). Haalt de wettekst zelf op via de
-  wettenbank-MCP. Trigger ook bij twijfel: dit is de aangewezen werkwijze voor het
+  (bijvoorbeeld bij de Belastingdienst). Trigger ook bij twijfel: dit is de aangewezen werkwijze voor het
   gestructureerd duiden van de betekenis van wetgeving.
 ---
 
@@ -38,13 +37,10 @@ artikelen, hoofdstukken, en zelfs meerdere regelingen (bv. een wet + de gedelege
 regeling). Eén *bron* is één `(bwbId, artikel, lid?)`-eenheid ("tekstdeel"). Activiteit 2
 doe je per bron (markeren/classificeren). Een werkgebied met één bron is het triviale geval.
 
-Het resultaat is één traceerbaar `rapport.json`-werkgebied-analyserapport, gepresenteerd via
-een HTML-viewer; Markdown is als export beschikbaar.
-
-Na activiteit 2 pauzeert de skill voor een **review-checkpoint**: de
-analist valideert de tussenresultaten in een lokale reviewpagina en geeft per onderdeel of
-in het algemeen feedback, die je verwerkt voordat je verdergaat (zie stap 2b en
-`references/review-checkpoints.md`).
+**Deze skill beschrijft de methode, niet een uitvoerbare werkstroom.** Het platform doet de
+analyse: de kennisgraaf levert de wettekst, de agent stelt markeringen voor en de jurist
+beoordeelt ze in de werkplek. Werk je hier buitenom, dan gelden dezelfde eisen — werk met
+letterlijk opgehaalde wettekst en laat een mens het resultaat beoordelen.
 
 **Dit is een hulpmiddel, geen vervanger van de analist.** De methode draait om het
 *expliciet maken van interpretatiekeuzes* zodat juristen, informatieanalisten en
@@ -61,40 +57,11 @@ aan de bron. Daarom:
 - **Werk alleen met de letterlijke, opgehaalde wettekst.** Verzin nooit tekst, leden of
   artikelnummers. Citeer formuleringen letterlijk.
 - **Houd alles herleidbaar.** Elke markering verwijst naar haar bron (`bron_id`) + lid en,
-  waar beschikbaar, de `bronreferentie` (jci-link) uit de MCP. Id's zijn **werkgebied-breed
+  waar beschikbaar, de `bronreferentie` (jci-link). Id's zijn **werkgebied-breed
   uniek** (`m1..` voor markeringen, `v1..` voor verwijzingen).
 - **Gebruik uitsluitend de dertien JAS-klassen** hieronder. Verzin geen eigen klassen.
 
-## Stap 1 — Bepaal het werkgebied en haal de wettekst op
-
-Bepaal eerst het **werkgebied**: de hoofdvraag + de set **bronnen** die daarvoor relevant
-zijn. De gebruiker geeft soms één artikel, soms een hoofdvraag waarvoor je zelf de relevante
-bronnen verzamelt (meerdere artikelen/leden, eventueel over meerdere regelingen). Leg de
-afbakening **traceerbaar** vast (welke hoofdstukken/artikelen overwogen, wat in/uit scope is
-en waarom) — dit voedt het `werkgebied.scoping`-veld. Het werkgebied **mag groeien** tijdens
-de analyse: kom je een relevante definitie of gedelegeerde regeling tegen, voeg die dan als
-bron toe ("breiden we het werkgebied uit").
-
-Haal de actuele tekst zelf op; laat de gebruiker niet plakken tenzij de MCP onbeschikbaar is.
-Per bron, aanbevolen volgorde:
-
-1. `wettenbank_zoek` (op `titel`, evt. `rechtsgebied`/`ministerie`) → bepaal het **BWB-id**.
-2. `wettenbank_structuur` (met `bwbId`) → controleer het juiste artikelnummer en het pad
-   in de wet. Doe dit ook om aangrenzende/definitie-artikelen te vinden die de betekenis
-   bepalen (zie hieronder) — kandidaat-bronnen voor het werkgebied.
-3. `wettenbank_artikel` (`bwbId` + `artikel`, evt. `lid`) → haal per bron de letterlijke
-   tekst, `leden`, `pad` en `bronreferentie` op. Geef elke bron een stabiel `bron_id`
-   (`br1`, `br2`, …) en een leesbaar `label` (bv. "Zvw art. 43 lid 2").
-
-Gebruik `wettenbank_zoekterm` om binnen een wet te vinden waar een begrip nog meer
-voorkomt, of om **brondefinities** op te sporen (een gedefinieerde term staat vaak in een
-apart definitieartikel vooraan de wet — haal dat artikel erbij, want het bepaalt de
-betekenis van de bepaling die je analyseert).
-
-Als de MCP niet beschikbaar is, zeg dat eerlijk en werk verder met door de gebruiker
-aangeleverde tekst, met dezelfde brongetrouwheid.
-
-## Stap 1b — Verwijzingen inventariseren en volgen
+## Stap 1 — Verwijzingen inventariseren en volgen
 
 Wetsformuleringen verwijzen naar andere bepalingen die de betekenis bepalen: het
 definitieartikel, andere leden ("in afwijking van het eerste lid"), schakelbepalingen ("van
@@ -106,8 +73,8 @@ Wordt een gevolgde definitie of gedelegeerde regeling zelf zo relevant dat je ha
 markeren/classificeren, **promoveer haar dan tot een eigen bron** in het werkgebied (het
 werkgebied mag groeien) in plaats van haar enkel als verwijzing te noteren.
 
-Bron: `wettenbank_artikel` geeft per lid een `verwijzingen`-array (getagde intref/extref,
-óók als inline-link in de tekst); natuurlijke-taalverwijzingen ("het eerste lid") herken je
+De graaf levert per lid de getagde verwijzingen (intref/extref, óók als inline-link in de
+tekst); natuurlijke-taalverwijzingen ("het eerste lid") herken je
 zelf en noteer je met `soort: "natuurlijk"`. Classificeer elke verwijzing naar **functie**
 (definitie / schakel / delegatie / intra-artikel / informatief) en bepaal het **scope-besluit**
 volgens de beleidstabel, met een **diepte-cap van 1** en een **relevantie-gate** (volg alleen
@@ -118,9 +85,8 @@ betekenis verwerken, volledige sub-analyse signaleren als validatiepunt.
 registratie van JAS-klassen.
 
 **Houd deze stap licht** (inventariseren + gericht ophalen, niet al classificeren). De
-volledige werkwijze, beleidstabel en grenzen staan in `references/verwijzingen-volgen.md`;
-het schema in `references/review-checkpoints.md`. De verwijzing-inventaris hoort bij het
-activiteit-2 review-checkpoint, zodat de analist de scope kan bijsturen.
+volledige werkwijze, beleidstabel en grenzen staan in `references/verwijzingen-volgen.md`.
+De verwijzing-inventaris hoort bij wat de analist beoordeelt, zodat hij de scope kan bijsturen.
 
 ## Stap 2 — Activiteit 2: markeren en classificeren
 
@@ -129,13 +95,12 @@ per bron de tekst lid voor lid. Identificeer samenhangende formuleringen (2a) en
 JAS-klasse toe (2b). Werk fijnmazig: een lid bevat vrijwel altijd meerdere markeringen. Geef
 elke markering het `bron_id` van haar bron en een werkgebied-breed uniek id.
 
-**Werkset-discipline bij veel bronnen.** Elke `wettenbank_artikel`-respons is fors (~5–50 KB);
+**Werkset-discipline bij veel bronnen.** De tekst van één bron is fors (~5–50 KB);
 houd de hoofdcontext klein. Bij een werkgebied met meerdere bronnen: overweeg activiteit 2
 **per bron via een sub-agent** te draaien — de sub-agent markeert de volledige wettekst van
 één bron en meldt alléén de markeringen + verwijzingen terug (niet de leden-tekst), zodat de
 brontekst van afgeronde bronnen niet in de hoofdcontext blijft hangen terwijl je de volgende
-bron doet. Laad de `references/` één keer; herhaal ze niet per bron. Zie
-`references/harness-diagnose.md` → Context (context-druk bij veel bronnen).
+bron doet. Laad de `references/` één keer; herhaal ze niet per bron.
 
 Gebruik per klasse de **herkenningsvraag** als grammaticale ontleedvraag op de tekst. Dit
 is de compacte checklist; voor de volledige omschrijving, herkenningsvragen en
@@ -166,114 +131,12 @@ Vuistregels bij het classificeren:
   (amvb → ministeriële regeling). Noteer dat: de gedelegeerde regeling hoort tot het
   werkgebied en moet later apart geanalyseerd worden.
 - **Twijfel je tussen twee klassen?** Kies de best passende, noteer het alternatief in de
-  toelichting, en neem het op bij de aandachtspunten (stap 4). Forceer niets.
+  toelichting, en benoem het als aandachtspunt bij de oplevering. Forceer niets.
 
 Vat daarna kort samen hoe de klassen *samenhangen* rond de centrale klassen
 (rechtsbetrekking en rechtsfeit): wie is rechthebbende, wie plichthebbende, welk
 rechtsobject, onder welke voorwaarden. Dit is de "structuur" die activiteit 2 zichtbaar
 maakt.
-
-## Stap 2b — Review-checkpoint na activiteit 2
-
-Wetsanalyse is multidisciplinair werk: de analist (jurist/informatieanalist) hoort de
-markeringen en classificaties te valideren vóórdat je betekenis gaat vaststellen. Dit is
-een **iteratieve lus**: je verwerkt feedback en toont het herziene resultaat opnieuw, tot
-de analist akkoord is zonder opmerkingen. Zo kan de analist controleren of zijn correcties
-geland zijn. Lees `references/review-checkpoints.md` voor het datacontract; in het kort,
-met `N` = rondenummer (start op 1):
-
-Schrijf alle output van deze analyse in één analysemap onder `analyses/`. Noem die map naar
-het **werkgebied** (kebab-case van de naam, bijv. `iab-zorgverzekeringswet`); val bij gebrek
-aan een naam terug op de eerste bron (`<bwbid>-art<nr>[-lidN]`). De `werk/`-paden hieronder
-zijn relatief aan die analysemap.
-
-1. Schrijf het tussenresultaat naar `werk/activiteit-2/ronde-{N}/analyse.json`: het
-   `werkgebied`-object + een `bronnen`-array, per bron de `leden`-tekst, `markeringen` en
-   `verwijzingen` (met **stabiele, werkgebied-brede id's**), volgens het schema in de
-   referentie. Overschrijf eerdere rondes niet; houd id's gelijk aan de vorige ronde.
-1b. Voer de pre-check uit op de zojuist geschreven analyse.json:
-   `python "<skill>/scripts/validate_analyse.py" --input werk/activiteit-2/ronde-{N}/analyse.json --activiteit 2`
-   - Exit 2 (fouten): herstel de gemelde fouten vóórdat je de server start.
-     Bij `WETSANALYSE_NO_REVIEW=1`: log de fouten maar blokkeer niet — ga door.
-   - Exit 1 (waarschuwingen): ga door; toon de waarschuwingen als context bij de review.
-   - Exit 0: ga direct door.
-2. Start de review-server in de achtergrond. Ronde 1:
-   `python "<skill>/scripts/review_server.py" --input werk/activiteit-2/ronde-1/analyse.json --activiteit 2 --feedback-out werk/activiteit-2/ronde-1/feedback.json --ronde 1`
-   Ronde 2+: voeg `--ronde {N}` en `--vorige werk/activiteit-2/ronde-{N-1}` toe, zodat de
-   analist per item zijn vorige feedback en de vorige versie ziet.
-3. Geef de analist de URL (`http://localhost:3118`) en **rond je beurt af**: vraag de
-   analist de review te bekijken, per item of in het algemeen desgewenst feedback te geven,
-   en op de **verstuurknop** te klikken (zonder feedback telt dat als akkoord). Ga niet zelf verder.
-4. Zodra de analist bevestigt dat die klaar is: lees `werk/activiteit-2/ronde-{N}/feedback.json`.
-   - Bij `akkoord` **zonder** items en **zonder** algemene feedback: stop de server, de lus
-     is klaar — ga door naar het rapport (stap 4).
-   - Anders: verwerk **elke** per-item-correctie en de algemene feedback (herclassificeren,
-     toelichting bijstellen, markeringen toevoegen/verwijderen), stop de server, verhoog `N`
-     en ga terug naar stap 1. Noteer per ronde wat je wijzigde voor de reviewlog.
-5. **Veiligheidscap:** stop na maximaal 6 rondes, ook als er nog feedback is; meld dit en
-   neem de resterende punten op bij de aandachtspunten voor validatie.
-
-Sla deze hele lus alleen over als `WETSANALYSE_NO_REVIEW=1` in de omgeving staat (alleen
-voor geautomatiseerde tests): schrijf dan één keer `ronde-1/analyse.json` en noteer in het
-rapport dat de reviews zijn overgeslagen.
-
-## Stap 4 — Rapport opstellen
-
-Het rapport bestaat uit een `rapport.json` (primaire bron) die via een lokale HTML-viewer
-wordt getoond. De Markdown-versie is beschikbaar als downloadknop in die viewer. Volg
-onderstaande stappen precies; type niets over uit de analyse.json's.
-
-**Stap 4a — Bouw rapport.json (zonder vrije tekstvelden)**
-
-```bash
-python "<skill>/scripts/build_rapport_json.py" \
-  --werk <werkmap> \
-  --out  <analysemap>/rapport.json
-```
-
-Het script kiest automatisch de hoogste activiteit-2-ronde en bouwt daaruit één
-`rapport.json`. De twee vrije tekstvelden (reviewlog act. 2, aandachtspunten) zijn nog leeg;
-het script meldt hoeveel er ontbreken. Heeft de hoogste ronde geen schoon `akkoord` in
-`feedback.json`, dan waarschuwt het script (niet-blokkerend): controleer of de review-lus echt
-is afgerond.
-
-**Stap 4b — Genereer de vrije tekstvelden**
-
-Schrijf op basis van de feedback.json's en de `twijfel`-velden in de markeringen:
-
-1. **Reviewlog activiteit 2** — wat is per ronde gewijzigd op grond van de feedback?
-   Bij 1 ronde direct akkoord: `"1 ronde — direct akkoord, geen wijzigingen."`.
-   Was de review overgeslagen via `WETSANALYSE_NO_REVIEW=1`: noteer dat expliciet.
-2. **Aandachtspunten voor multidisciplinaire validatie** — gestructureerde synthese
-   van de interpretatiekeuzes, open normen, openstaande delegaties, aannames en wat
-   buiten scope valt. Gebruik de `twijfel`-velden in de markeringen als bronmateriaal. Dit is
-   geen bijzaak — het is wat de analyse bruikbaar en eerlijk maakt als hulpmiddel.
-
-**Stap 4c — Voeg de vrije tekstvelden in**
-
-```bash
-python "<skill>/scripts/build_rapport_json.py" \
-  --werk <werkmap> \
-  --out  <analysemap>/rapport.json \
-  --reviewlog-act2  "<tekst uit stap 4b>" \
-  --aandachtspunten "<tekst uit stap 4b>"
-```
-
-**Stap 4d — Start de rapport-viewer**
-
-```bash
-python "<skill>/scripts/rapport_server.py" \
-  --input <analysemap>/rapport.json
-```
-
-Voeg `--no-browser` toe als `WETSANALYSE_NO_REVIEW=1` in de omgeving staat.
-
-Geef de analist de URL (`http://localhost:3119`) en **pauzeer**: vraag de analist het
-rapport te bekijken, eventueel de §3-velden bij te stellen en op **Opslaan** te klikken,
-en de Markdown te downloaden via **Download Markdown**. Ga niet zelf door tot de analist
-bevestigt. De analist stopt de server zelf via Ctrl+C in de terminal.
-
-Na bevestiging van de analist is het rapport gereed.
 
 ## Kwaliteitscheck voordat je oplevert
 
@@ -283,17 +146,5 @@ Na bevestiging van de analist is het rapport gereed.
 - Zijn de uitgaande verwijzingen geïnventariseerd, geclassificeerd naar functie en gevolgd
   volgens beleid (diepte-cap + relevantie-gate)?
 - Zijn interpretatiekeuzes en twijfel expliciet benoemd in plaats van weggepoetst?
-- Is het iteratieve review-checkpoint doorlopen tot de analist akkoord was zonder
-  opmerkingen (of bewust overgeslagen via `WETSANALYSE_NO_REVIEW`), en is de feedback per
-  ronde verwerkt en in de reviewlog vastgelegd?
+- Heeft een mens het resultaat beoordeeld voordat het als vastgesteld geldt?
 - Klopt de letterlijke wettekst met de bron (geen parafrase als citaat)?
-
-## Diagnose bij falen
-
-Dit gaat **niet** over gewone review-feedback: feedback die niet meteen "akkoord" is, is het
-normale proces — verwerk die in de volgende ronde (stap 2b). Maar gaat het om
-*onbetrouwbaarheid of storing* — verzonnen wettekst, een niet-bestaande JAS-klasse, een
-overgeslagen reviewstop, een MCP die niets teruggeeft, of een lus die niet convergeert —
-verdenk dan niet het model maar de harness eromheen. Loop de vier hendels langs: Context
-(wat zag het model?), Tools (wat kon het doen?), Loop (hoe bewoog het?) en Governance (wat
-hield het in toom?). Gebruik de symptoom→hendel-tabel in `references/harness-diagnose.md`.

@@ -13,12 +13,6 @@ from pathlib import Path
 # api/app/config.py -> api/app -> api -> <projectroot>
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-# De canonieke JAS-klassenlijst leeft in het skill-script `validate_analyse.py`; `validation.py`
-# laadt dat script op runtime in, zodat er één bron van waarheid is (zie api/Dockerfile).
-SKILL_DIR = PROJECT_ROOT / ".claude" / "skills" / "wetsanalyse"
-SKILL_SCRIPTS = SKILL_DIR / "scripts"
-
-
 def _read_secret(env_name: str) -> str | None:
     """Lees een secret uit `${NAME}` of, als `${NAME}_FILE` is gezet, uit dat bestand.
 

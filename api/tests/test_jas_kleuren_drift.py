@@ -1,6 +1,6 @@
 """Drift-guard: de JAS-labelkleuren staan op twee plekken en moeten identiek blijven.
 
-De canonieke bron is het skill-script (`validate_analyse.py`), waar de api ze via `validation.py`
+De canonieke bron is `api/app/jas_klassen.py`, waar de api ze via `validation.py`
 uit leest voor de PDF-export. De werkplek draagt dezelfde waarden als Tailwind-klassen in
 `frontend/lib/jas.ts`, want een browser kan dat Python-bestand niet lezen. Twee kopieën van
 dezelfde kleuren driften zonder toets — vandaar deze test.
@@ -38,6 +38,6 @@ def test_frontend_draagt_dezelfde_kleuren():
     fe = _kleuren_uit_frontend()
     canoniek = {k: (bg.lower(), rand.lower()) for k, (bg, rand) in JAS_KLASSE_KLEUREN.items()}
     assert fe == canoniek, (
-        "frontend/lib/jas.ts wijkt af van de canonieke kleuren in de skill "
-        "(.claude/skills/wetsanalyse/scripts/validate_analyse.py)"
+        "frontend/lib/jas.ts wijkt af van de canonieke kleuren in de api "
+        "(api/app/jas_klassen.py)"
     )
