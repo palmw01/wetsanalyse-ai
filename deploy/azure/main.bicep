@@ -145,6 +145,16 @@ resource pgServer 'Microsoft.DBforPostgreSQL/flexibleServers@2023-06-01-preview'
   }
 }
 
+// `0.0.0.0-0.0.0.0` is niet "geen toegang" maar Azure's speciale regel **sta alle Azure-diensten
+// toe** — en dat is breder dan het klinkt: het geldt voor elke tenant, niet alleen de onze. Wie een
+// Azure-abonnement heeft kan het netwerkpad naar deze server bereiken; daarna beschermt alleen nog
+// het wachtwoord (dat sterk en gegenereerd is, en niet roteert bij een deploy).
+//
+// Waarom het toch zo staat: fijnmaziger filteren vraagt vaste bron-IP's, en die heeft de
+// container-apps-omgeving niet zolang er geen VNet-integratie is. Wil je dit echt dichtzetten, dan
+// is dat de weg: de omgeving in een subnet, PostgreSQL achter een private endpoint, en deze regel
+// weg. Dat is een forse wijziging met eigen kosten en een deploy die de database raakt — bewust niet
+// gedaan, maar hier vastgelegd zodat de afweging vindbaar is.
 resource pgFirewall 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-06-01-preview' = {
   parent: pgServer
   name: 'AllowAllAzureServices'
@@ -420,6 +430,19 @@ resource graphdbApp 'Microsoft.App/containerApps@2024-03-01' = {
               periodSeconds: 15
               timeoutSeconds: 10
               failureThreshold: 10
+            }
+            // Zonder Liveness blijft een vastgelopen GraphDB draaien zolang hij de poort openhoudt.
+            // Dat weegt hier zwaarder dan elders: dit is de enige component met minReplicas én
+            // maxReplicas op 1, dus er is geen tweede replica die het overneemt. Ruim afgesteld —
+            // GraphDB start traag (de Readiness wacht al 30s) en een te scherpe liveness zou hem
+            // tijdens het opkomen doodslaan.
+            {
+              type: 'Liveness'
+              httpGet: { path: '/rest/repositories', port: 7200 }
+              initialDelaySeconds: 120
+              periodSeconds: 30
+              timeoutSeconds: 10
+              failureThreshold: 5
             }
           ]
         }
@@ -713,6 +736,21 @@ resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
               timeoutSeconds: 5
               failureThreshold: 3
             }
+            // Zonder Readiness routeert Container Apps verkeer zodra de container start, ook als de
+            // app nog niet kan antwoorden. Bij een koude start van deze agent (LangGraph + MCP) is
+            // dat tientallen seconden, en dan loopt de werkplek tegen de 10s-timeout van
+            // frontend/app/api/annotatie/run/route.ts — zichtbaar als "Run-proxy: actieve run niet
+            // op te halen". `/health` is hier triviaal, dus liveness en readiness toetsen hetzelfde;
+            // het punt is niet wát er getoetst wordt maar dát routering wacht tot het proces
+            // antwoordt. Een eigen /ready (zie api/app/main.py) zou scherper zijn.
+            {
+              type: 'Readiness'
+              httpGet: { path: '/health', port: 8080 }
+              initialDelaySeconds: 5
+              periodSeconds: 5
+              timeoutSeconds: 5
+              failureThreshold: 6
+            }
           ]
         }
       ]
@@ -823,6 +861,17 @@ resource frontendApp 'Microsoft.App/containerApps@2024-03-01' = {
               periodSeconds: 30
               timeoutSeconds: 5
               failureThreshold: 3
+            }
+            // Zelfde reden als bij graph-qa, al is het risico hier klein: deze app staat op
+            // minReplicas 1 en is dus zelden koud. Meegenomen zodat alle drie de apps hetzelfde
+            // patroon volgen — liveness zegt "leeft nog", readiness "stuur maar verkeer".
+            {
+              type: 'Readiness'
+              httpGet: { path: '/api/health', port: 3000 }
+              initialDelaySeconds: 5
+              periodSeconds: 5
+              timeoutSeconds: 5
+              failureThreshold: 6
             }
           ]
         }

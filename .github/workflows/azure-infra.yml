@@ -309,6 +309,47 @@ jobs:
           [ -n "${IMG_BWB_IMPORT:-}" ] && args+=(--bwb-import-image "$IMG_BWB_IMPORT")
           python3 deploy/azure/gen-deploy.py "$AZURE_AI_KEY" "${args[@]}"
 
+      # `az deployment group create` keert terug zodra de revisie is AANGEMAAKT, niet zodra hij
+      # draait — dezelfde valkuil die de publish-workflows en promote.yml al afvangen. Zonder deze
+      # stap werd een infra-deploy groen terwijl een app crashte bij het starten, en dan denk je dat
+      # je hebt uitgerold. CLAUDE.md beschreef deze gate al als bestaand; dat klopte niet.
+      #
+      # De collector en de import-job vallen buiten de lus: een job kent geen revisies, en de
+      # collector heeft geen probe waar dit iets over zegt.
+      - name: Wachten tot de nieuwe revisies draaien
+        if: ${{ inputs.actie == 'deploy' }}
+        run: |
+          set -euo pipefail
+          fout=0
+          for app in api graph-qa frontend graphdb; do
+            naam="$APP_NAME-$app"
+            rev=$(az containerapp show -n "$naam" -g "$RESOURCE_GROUP" \
+                    --query "properties.latestRevisionName" -o tsv 2>/dev/null || echo "")
+            if [ -z "$rev" ]; then
+              echo "::warning::$naam heeft geen revisie — overgeslagen."
+              continue
+            fi
+            echo "$naam → $rev"
+            gezond=""
+            for _ in $(seq 1 30); do
+              st=$(az containerapp revision show -n "$naam" -g "$RESOURCE_GROUP" --revision "$rev" \
+                     --query "properties.runningState" -o tsv 2>/dev/null || echo Unknown)
+              case "$st" in
+                # ScaledToZero is gezond: de app staat op minReplicas 0 en er is nog geen verkeer.
+                Running|RunningAtMaxScale|ScaledToZero) gezond="$st"; break ;;
+                Failed|Degraded) echo "::error::$naam: revisie $rev kwam niet gezond op ($st)"; fout=1; break ;;
+              esac
+              sleep 10
+            done
+            if [ -n "$gezond" ]; then
+              echo "  $gezond"
+            elif [ "$fout" -eq 0 ]; then
+              echo "::error::$naam: revisie $rev werd niet gezond binnen 5 minuten"; fout=1
+            fi
+          done
+          [ "$fout" -eq 0 ] || exit 1
+          echo "Alle apps draaien."
+
       - name: Grafana uitrollen
         if: ${{ inputs.actie == 'grafana' }}
         env:
