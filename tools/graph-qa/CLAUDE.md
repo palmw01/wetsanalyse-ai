@@ -22,7 +22,33 @@ geheel, niet elke node. In de code, het image, de stack en de env-vars blijft al
 De code leeft in `agent/` en `api/`; er is bewust **geen** `graph_qa/`-package (`pyproject.toml`
 benoemt daarom expliciet welke packages in de wheel horen – anders faalt `uv sync`).
 
-### De uitvoeringsketen (`agent/orchestrator.py`)
+### De uitvoeringsketen (`agent/orchestrator.py` + `agent/nodes/`)
+
+`orchestrator.py` bouwt de graaf; de nodes zelf staan per keten in `agent/nodes/`:
+
+| Module | Wat erin zit |
+|---|---|
+| `nodes/annotatie.py` | annoteren, Critic, patch, herzien, emit |
+| `nodes/antwoord.py` | agent ⇄ tools, verify, correct, finalize |
+| `nodes/supervisie.py` | supervisor, entry-router, advance, afwijzen |
+| `nodes/decompositie.py` | decompose, solve, synthesize, resynth |
+| `nodes/context.py` | `Bouw` — wat een node buiten zijn state om nodig heeft |
+
+De nodes waren geneste functies in `build_graph` (ruim 1300 regels, 32 closures). Ze zijn nu gewone
+functies met `(b: Bouw, state)`, waarbij `Bouw` draagt wat ze eerder uit de omringende scope
+trokken: de drie poorten, de stopvlag, de drie modelnamen en de contexthelpers. `build_graph` bindt
+dat object met `functools.partial`. **Roept een node een andere aan, geef `b` dan expliciet door** —
+dat is de enige valkuil van dit patroon en de suite wijst hem aan.
+
+De vorm van de graaf ligt vast in `tests/test_graafopbouw.py`: nodes en edges per configuratietak.
+Wijzig je de routering, dan faalt die test — dat hoort, maar het moet dan een bewuste wijziging zijn
+en geen bijvangst. De annotatieketen wordt door één helper (`annotatieketen()`) gelegd, want die is
+in elke tak identiek; de antwoordketen staat per tak apart, omdat die echt verschilt
+(`verify → resynth` bij decompositie, `verify → correct` bij planning).
+
+Ondersteunend, op agent-niveau omdat meerdere ketens ze delen: `agent/state.py` (de State),
+`agent/berichten.py` (het venster naar de LLM), `agent/narratie.py` (de statusregels) en
+`agent/doel.py` (waar gaat deze beurt over, en welke tekst hoort erbij).
 
 Het hart is een LangGraph `StateGraph`. Een **supervisor** kiest per opdracht een worker-keten:
 
