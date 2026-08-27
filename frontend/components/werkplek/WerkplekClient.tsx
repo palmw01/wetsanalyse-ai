@@ -33,6 +33,7 @@ import type {
   AgentRun,
   AnnotatieDocument,
   BeslissingInvoer,
+  BeslissingType,
   Bron,
   GraafArtikel,
   OntbrekendItem,
@@ -108,8 +109,9 @@ interface Props {
    *  enkel verzoek naar de api. De rondleiding krijgt hiervoor een eigen mount (zie `WorkbenchShell`),
    *  zodat het echte gesprek onaangeroerd blijft en na afloop gewoon weer uit de api komt. */
   demo?: DemoScene;
-  /** Meldt de rondleiding dat er in de demo iets beslist is, en of het artefact openstaat. */
-  onDemoBeslissing?: () => void;
+  /** Meldt de rondleiding dat er in de demo iets beslist is, en wát – de bevestiging in de bubbel
+   *  hoort te passen bij de handeling. Daarnaast: of het artefact openstaat. */
+  onDemoBeslissing?: (type: BeslissingType) => void;
   onDemoArtefact?: (open: boolean) => void;
   /** Verhoog dit om het voorbeeldartefact te openen. De rondleiding laat de gebruiker eerst zelf op
    *  de kaart klikken en springt pas bij als dat uitblijft. */
@@ -833,7 +835,7 @@ export function WerkplekClient({
     if (demo) {
       setDocs((m) => (m[slug] ? { ...m, [slug]: pasDemoBeslissingToe(m[slug], elementId, req) } : m));
       setMelding(beslissingMelding(req));
-      onDemoBeslissing?.();
+      onDemoBeslissing?.(req.type);
       return;
     }
     try {
@@ -882,7 +884,11 @@ export function WerkplekClient({
       onEigenMarkering={(invoer) => eigenMarkering(artefactSlug, invoer)}
       onWisEigenMarkering={(elementId) => wisEigenMarkering(artefactSlug, elementId)}
       onStatus={(nieuweStatus) => status(artefactSlug, nieuweStatus)}
-      onVraag={(el) => {
+      // In de rondleiding bestaat *Vraag Lex* niet, om dezelfde reden als op `/annotaties/[slug]`:
+      // er is geen bruikbaar chatveld om iets in klaar te zetten – het invoerveld staat daar stil.
+      // De knop deed er wél iets: hij sloot op een smal scherm het artefact, waarna de rondleiding
+      // haar anker kwijt was en het paneel er zes seconden later vanzelf weer in ploft.
+      onVraag={demo ? undefined : (el) => {
         setVraagOver({ slug: artefactSlug, el });
         // Op een smal scherm ligt het artefact óver de chat, dus stap hier al opzij – niet pas bij
         // het versturen. Anders lijkt "Vraag Lex" niets te doen: de chip met de markering en het
