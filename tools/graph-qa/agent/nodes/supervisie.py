@@ -103,7 +103,7 @@ def advance_node(b: Bouw, state: State) -> dict[str, Any]:
 def route_after_advance(b: Bouw, state: State) -> str:
     plan = state.get("worker_plan") or []
     if state.get("worker_idx", 0) < len(plan):
-        return _entry_node(state)
+        return _entry_node(b, state)
     return "einde"
 
 
