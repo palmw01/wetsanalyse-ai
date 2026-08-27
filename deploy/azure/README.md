@@ -47,6 +47,9 @@ Drie dingen om te weten:
 Rol Grafana in **één** straat uit: dat exemplaar leest beide workspaces via een datasource per
 straat. Een tweede uitrol in de andere straat maakt een tweede, overbodige app aan — die wordt door
 `opruimen` níét als wees herkend, want `$s-grafana` staat voor beide straten op de beschermde lijst.
+Daar is de actie **`grafana-afbreken`** voor: kies de straat waarvan het exemplaar weg mag en typ de
+groepsnaam ter bevestiging. Hij waarschuwt als je daarmee de laatste Grafana weghaalt, en de
+dashboards zijn niets waard om te bewaren — die komen as-code uit `deploy/azure/grafana/`.
 
 ## Vooraf: de GraphDB-licentie
 

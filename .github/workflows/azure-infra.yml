@@ -17,7 +17,12 @@
 #             wat het kost, zonder lokale az-installatie — de service principal leeft alleen hier.
 #   grafana   rolt ALLEEN de Grafana-app uit (deploy/azure/grafana.bicep) in de gekozen straat.
 #             Apart van `deploy` omdat die GraphDB raakt: een dashboardwijziging hoort geen
-#             infra-deploy te vragen. Grafana leest beide straten, dus één exemplaar volstaat.
+#             infra-deploy te vragen. Grafana leest beide straten, dus één exemplaar volstaat —
+#             draai dit dus in ÉÉN straat. Doe je het in allebei, dan krijg je twee apps die
+#             hetzelfde tonen; `grafana-afbreken` ruimt de overtollige op.
+#   grafana-afbreken  verwijdert de Grafana-app van de gekozen straat. Vereist de groepsnaam ter
+#             bevestiging. `opruimen` doet dit niet: daar staat `$s-grafana` voor elke straat op de
+#             beschermde lijst, omdat die actie niet kan weten welk exemplaar het bedoelde is.
 #   vul-graaf start de import-job en wacht hem af. Apart van `deploy`, want importeren schrijft naar
 #             de graaf en hoort een expliciete keuze te blijven — en na een herstart van de
 #             graphdb-app (die geen persistente opslag heeft) is dit de enige manier om de graaf
@@ -43,7 +48,7 @@ on:
       actie:
         description: "Wat doen"
         type: choice
-        options: [wat-if, deploy, afbreken, opruimen, vul-graaf, inventaris, telemetrie, grafana]
+        options: [wat-if, deploy, afbreken, opruimen, vul-graaf, inventaris, telemetrie, grafana, grafana-afbreken]
         default: wat-if
       query:
         description: "Alleen voor 'telemetrie': een eigen KQL-query (leeg = de standaardset)"
@@ -106,6 +111,16 @@ jobs:
           if [ "${{ inputs.actie }}" = "afbreken" ]; then
             if [ "${{ inputs.bevestig_resource_group }}" != "$RESOURCE_GROUP" ]; then
               echo "::error::Afbreken verwijdert de hele resource group '$RESOURCE_GROUP'. Typ die naam in het bevestigingsveld."
+              exit 1
+            fi
+            exit 0
+          fi
+
+          # Grafana weghalen is klein maar onomkeerbaar (de app is weg tot je hem opnieuw uitrolt),
+          # dus dezelfde bevestiging als bij `afbreken`.
+          if [ "${{ inputs.actie }}" = "grafana-afbreken" ]; then
+            if [ "${{ inputs.bevestig_resource_group }}" != "$RESOURCE_GROUP" ]; then
+              echo "::error::Dit verwijdert de container app '$APP_NAME-grafana'. Typ '$RESOURCE_GROUP' in het bevestigingsveld."
               exit 1
             fi
             exit 0
@@ -577,6 +592,39 @@ jobs:
              | summarize diensten=dcount(AppRoleName), namen=make_set(AppRoleName) by OperationId
              | where diensten > 1
              | top 5 by diensten desc"
+
+      # Eén Grafana leest beide straten (zie `grafana`), dus een tweede exemplaar is dubbelop —
+      # en `opruimen` haalt hem niet weg: daar staat `$s-grafana` voor ELKE straat op de beschermde
+      # lijst, juist omdat die actie niet kan weten in welke straat hij hoort. Vandaar deze actie:
+      # jij kiest de straat, en daarmee welk exemplaar sneuvelt.
+      - name: Grafana afbreken
+        if: ${{ inputs.actie == 'grafana-afbreken' }}
+        run: |
+          set -euo pipefail
+          naam="$APP_NAME-grafana"
+          if ! az containerapp show -n "$naam" -g "$RESOURCE_GROUP" --output none 2>/dev/null; then
+            echo "Container app '$naam' bestaat niet in '$RESOURCE_GROUP' — niets te doen."
+            exit 0
+          fi
+
+          # Draait de andere straat er nog een? Zo niet, dan haal je hiermee de laatste Grafana weg
+          # en kun je nergens meer kijken. Dat mag, maar niet per ongeluk.
+          andere=""
+          for kandidaat in "$ACCEPTATIE_APP_NAME" "$PRODUCTIE_APP_NAME"; do
+            [ -n "$kandidaat" ] && [ "$kandidaat" != "$APP_NAME" ] || continue
+            if az containerapp show -n "$kandidaat-grafana" -g "$RESOURCE_GROUP" --output none 2>/dev/null; then
+              andere="$kandidaat-grafana"
+            fi
+          done
+          if [ -n "$andere" ]; then
+            echo "De andere straat draait '$andere' — die blijft staan."
+          else
+            echo "::warning::Dit is de LAATSTE Grafana in '$RESOURCE_GROUP'. Na deze actie is er geen dashboard meer; opnieuw uitrollen kan met actie 'grafana'."
+          fi
+
+          echo "Verwijderen van '$naam'…"
+          az containerapp delete -n "$naam" -g "$RESOURCE_GROUP" --yes --output none
+          echo "Weg. De dashboards komen as-code uit deploy/azure/grafana/, dus er is niets verloren."
 
       - name: Graaf vullen (import-job)
         if: ${{ inputs.actie == 'vul-graaf' || inputs.actie == 'deploy' }}
