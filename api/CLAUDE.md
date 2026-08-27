@@ -267,68 +267,44 @@ uv run pytest -q               # unit-tests (fakes; geen netwerk)
 
 ## Deployment
 
-**Postgres draait in productie als APARTE stack** (`deploy/postgres/`), niet in de api-stack — zo
-recreate een api-image-redeploy de DB nooit. De API verbindt cross-stack op `postgres:5432` met een
+**Postgres draait als eigen dienst** (Azure PostgreSQL Flexible Server, `deploy/azure/main.bicep`),
+niet in de api-container — zo raakt een image-redeploy de database nooit. De API verbindt met een
 **bounded connect-retry** bij cold start (`main.py` → `_init_db_met_retry`, knoppen
 `WETSANALYSE_DB_CONNECT_RETRIES`/`_BACKOFF`). De host-secrets (incl.
-`postgres_user`/`postgres_password`/`database_url`) zijn gedeeld via `SECRETS_DIR`. Die stack maakt
-óók het gedeelde netwerk `wetsanalyse_internal` waar deze stack op joint — deploy hem dus eerst; zie
-`deploy/postgres/README.md`.
+De databaseverbinding komt als secret uit de bicep (`database-url`).
 
-Docker-image + Portainer-stack (`docker-compose.yml`). De stack publiceert een hostpoort
-(`HOST_PORT`, default 8081) omdat NPM op een andere host draait en geen docker-netwerk deelt; die
-poort is alleen nodig als de API van buiten bereikbaar moet zijn (bv. voor de admin-MCP op
-`api.wetsanalyse.example`). De frontend praat server→server over het interne netwerk. De dienst is
+Op Azure draait de API als container app met **interne** ingress; de frontend praat er server→server
+mee. Wil je hem van buiten bereiken (bv. voor de admin-MCP), dan vraagt dat een expliciete
+ingress-wijziging. De dienst is
 **horizontaal veilig** te schalen (stateless request-afhandeling; de opslag is de gedeelde DB). De
 containers draaien **non-root** en **PostgreSQL draait met authenticatie**. Alle secrets staan als
 bestanden op de host (`*_FILE`-patroon). Build vanaf de **projectroot**:
 `docker build -f api/Dockerfile -t wetsanalyse-api .` (de image heeft de skill-`scripts` nodig voor
 de canonieke JAS-klassenlijst — `validation.py` laadt `validate_analyse.py` op runtime in).
 
-### Secrets op de host (eenmalig, vóór de eerste stack-start)
+### Secrets
 
-De stack mount één host-map op `/run/secrets` in zowel de **api**- als de **postgres**-container. Het
-pad komt uit de **GitHub Actions repo-variabele `SECRETS_DIR`**; de CI geeft die door aan Portainer.
-Zet `SECRETS_DIR` exact op je host-pad, bijvoorbeeld `/var/lib/wetsanalyse-api/secrets`.
+Op Azure beheert de bicep ze: elke waarde staat als container-app-secret en wordt als `*_FILE`-pad of
+env aan de container gegeven. `azure-infra.yml` **roteert ze niet** bij een deploy — de volgorde is
+GitHub environment-secret (`WA_*`) → wat er al in Azure draait → anders vers genereren. Dat is geen
+netheid maar noodzaak: `llm-config-secret` is de Fernet-sleutel waarmee de API de API-keys van
+modelprofielen én de 2FA-secrets van gebruikers versleutelt. Genereer je die opnieuw, dan zijn alle
+opgeslagen keys en 2FA-inschrijvingen onleesbaar.
 
-Bestanden op de **host zelf** (niet via een laptop-mount):
+Die job **faalt** bewust bij een ontbrekend secret (dat was eerder een `if` die de stap oversloeg en
+de run groen liet), en hij **wacht tot de nieuwe revisie draait** — `az containerapp update` keert al
+terug zodra de revisie is aangemaakt, dus een crashende container bleef anders onopgemerkt.
 
-```bash
-SECRETS_DIR=/volume1/docker/wetsanalyse-api/secrets
-sudo mkdir -p "$SECRETS_DIR"
-
-echo -n "<llm-api-key>"      | sudo tee "$SECRETS_DIR/llm_api_key"      > /dev/null  # verbindingstest/seed
-echo -n "id1:tok1,id2:tok2"  | sudo tee "$SECRETS_DIR/api_tokens"        > /dev/null
-
-# Admin-laag: aparte admin-tokens + Fernet-master-key voor key-versleuteling.
-echo -n "admin:adm-tok"      | sudo tee "$SECRETS_DIR/admin_tokens"      > /dev/null
-python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())" \
-    | sudo tee "$SECRETS_DIR/llm_config_secret" > /dev/null
-
-# PostgreSQL-auth: credentials + de connection string die de API gebruikt.
-PG_USER=wetsanalyse
-PG_PASS="$(openssl rand -hex 24)"
-echo -n "$PG_USER" | sudo tee "$SECRETS_DIR/postgres_user" > /dev/null
-echo -n "$PG_PASS" | sudo tee "$SECRETS_DIR/postgres_password" > /dev/null
-echo -n "postgresql+asyncpg://$PG_USER:$PG_PASS@postgres:5432/wetsanalyse" \
-    | sudo tee "$SECRETS_DIR/database_url" > /dev/null
-
-# De containers draaien non-root (postgres uid 999, api uid 10001). Gebruik 644 (NIET 600).
-sudo chmod 755 "$SECRETS_DIR"
-sudo chmod 644 "$SECRETS_DIR"/*
-```
-
-**Postgres-volume.** De postgres-image initialiseert de user/db alleen bij een *lege* data-dir. Wil je
-verse credentials, verwijder het volume; wil je bestaande data behouden, laat de credentials (en de
-`database_url`-secret) ongewijzigd.
+Lokaal draaien vraagt geen van deze secrets: zie §*Lokale smoke-test* — sqlite-override plus
+`--extra llm`.
 
 ### Troubleshooting deploy
 
-- **API-log: kan niet verbinden met `localhost:5432` / `OperationalError`** — de `database_url`-secret
-  werd niet gelezen (`/run/secrets` wijst naar de verkeerde map) → check `vars.SECRETS_DIR` en
-  `docker inspect wetsanalyse-api --format '{{json .Mounts}}'`.
-- **Postgres-log: `/run/secrets/postgres_password: Permission denied`, container `unhealthy`** —
-  secret-bestanden niet leesbaar voor uid 999/10001 → `sudo chmod 644` op de host.
+- **API-log: kan niet verbinden met de database / `OperationalError`** — controleer de
+  `database-url`-secret op de container app en of de PostgreSQL-firewall de container-apps-omgeving
+  toelaat.
+- **Revisie komt niet op** — `az containerapp revision list` toont de status; de logs staan in de Log
+  Analytics-workspace `log-<appName>`.
 
 ## Misbruik-/kostenbeheersing
 

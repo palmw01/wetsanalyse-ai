@@ -112,26 +112,23 @@ intern `http://graph-qa:8080`) en optioneel `GRAPH_QA_TOKEN`/`GRAPH_QA_TOKEN_FIL
 De BFF is geïnstrumenteerd via `@vercel/otel` (`instrumentation.ts`): auto-tracing van route handlers
 + uitgaande `fetch` met traceparent-propagatie, gated op `OTEL_EXPORTER_OTLP_ENDPOINT` (leeg = uit).
 `lib/logger.ts` is de server-only gestructureerde JSON-logger. Zie `CLAUDE.md` §Observability en de
-projectbrede [`../docs/observability.md`](../docs/observability.md) (incl. de optionele Grafana-stack
-in `deploy/observability/`, die frontend-stdout-logs via Alloy naar Loki shipt).
+projectbrede [`../docs/observability.md`](../docs/observability.md).
 
 ## Docker / deployment
 
-Multi-stage `Dockerfile` (standalone, non-root) + `docker-compose.yml` voor de Portainer-stack
-achter Nginx Proxy Manager, identiek aan de API-stijl. CI:
-`.github/workflows/frontend-docker-publish.yml` (test → build → GHCR → Trivy). De workflow
-publiceert alleen het image; de stack-update is een aparte stap.
+Multi-stage `Dockerfile` (standalone, non-root). CI:
+`.github/workflows/frontend-docker-publish.yml` (test → build → GHCR → Trivy), met daarna een
+`deploy`-job die het image naar acceptatie swapt.
 
-De stack joint op `wetsanalyse_internal` (van `deploy/postgres/`) en `observability_default`, en
-**publiceert een hostpoort** (`HOST_PORT`, default 8080): NPM draait op een andere host en deelt geen
-docker-netwerk, dus proxyen op containernaam kan niet.
+Op Azure draait de frontend als container app met externe ingress; hij praat server→server met de
+API en met graph-qa, die allebei intern-only zijn.
 
 Eénmalig op de host (in `SECRETS_DIR`, gedeeld met de API-stack), alle mode 644:
 `frontend_api_token` met een tokenwaarde uit de API-tokenlijst, `frontend_admin_token` met een
 tokenwaarde uit de **admin**-tokenlijst (voor de beheertab), en `frontend_auth_secret` voor de
 login-sessie (`openssl rand -base64 32`). De container-entrypoint laadt dat laatste bestand in
 `AUTH_SECRET` (`AUTH_SECRET_FILE=/run/secrets/frontend_auth_secret`), zodat het — net als de andere
-tokens — een bestand blijft en niet als plain env in Portainer staat. 2FA hergebruikt de
+tokens — een bestand blijft en niet als plain env-waarde rondslingert. 2FA hergebruikt de
 API-secret `llm_config_secret` (geen extra frontend-bestand). Zet daarnaast de stack-env
 **`AUTH_URL`** op de publieke origin (bv. `https://wetsanalyse.example`) — verplicht achter NPM,
 anders redirecten login/logout naar het interne `0.0.0.0:3000`. In NPM een Proxy Host

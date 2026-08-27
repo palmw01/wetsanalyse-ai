@@ -207,13 +207,13 @@ onderdelen en relaties); de exit-code is 1 zodra één wet faalt.
 Is `BWB_SERVICE_API_KEY` gezet, dan vereist `POST /import` de header
 `X-API-Key: <key>` (anders 401).
 
-De service publiceert bewust geen hostpoort: importeren is een schrijfactie op de
-graaf. Aanroepen gebeurt van binnen het docker-netwerk `graphdb_default`, bv. met
-`docker exec bwb-import python3 -c "…"` — zie `deploy/bwb-import/README.md`.
+De importer publiceert bewust geen poort: importeren is een schrijfactie op de graaf. Op Azure draait
+hij als container-app-job — starten met `azure-infra` → actie `vul-graaf`, of automatisch na elke
+`deploy` en wekelijks via de cron-trigger in `deploy/azure/main.bicep`.
 
 ## Deployment
 
 De service draait als container op de **docker-host** van Proxmox, stack `bwb-import`
-(zie `deploy/bwb-import/`). Het image `ghcr.io/palmw01/bwb-import` wordt door
+(zie `deploy/azure/main.bicep`). Het image `ghcr.io/palmw01/bwb-import` wordt door
 `.github/workflows/bwb-import-docker-publish.yml` gebouwd en gepusht bij een push
 naar `master` die `tools/bwb-import/**` raakt.

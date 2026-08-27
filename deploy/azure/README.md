@@ -44,9 +44,9 @@ Drie dingen om te weten:
   wordt er bij de eerste uitrol een gegenereerd, en dat moet je daarna uit de app-secret opvissen.
 - **Schaalt naar nul.** De eerste paginalading wekt hem; dat kost een koude start van enkele seconden.
 
-De Grafana-stack in `deploy/observability/` hoort bij **dev** op de docker-host en bedient de
-Azure-straten niet — die is van buiten het LAN onbereikbaar. De dashboards van die twee zijn niet
-uitwisselbaar: dev draait op PromQL/LogQL/TraceQL, Azure op KQL.
+Rol Grafana in **één** straat uit: dat exemplaar leest beide workspaces via een datasource per
+straat. Een tweede uitrol in de andere straat maakt een tweede, overbodige app aan — die wordt door
+`opruimen` níét als wees herkend, want `$s-grafana` staat voor beide straten op de beschermde lijst.
 
 ## Vooraf: de GraphDB-licentie
 

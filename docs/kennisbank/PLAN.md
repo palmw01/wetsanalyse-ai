@@ -78,10 +78,10 @@ beheeractie te zijn (niet iets wat stil scheeft).
 - **`frontend/`** — beheertab *Kennisbank* (`components/admin/KennisPanel.tsx`): uploaden, lijst met
   versie/datum/status, intrekken, opnieuw indexeren. In de werkplek: de bronnenlijst onder een antwoord
   splitst in **Wet- en regelgeving** en **Beleid en handleidingen**, met versie en pagina per bron.
-- **`deploy/postgres/`** — image naar `pgvector/pgvector:pg16` + `CREATE EXTENSION vector`. De
-  bestaande `reconcile_schema()` voegt ontbrekende kolommen additief toe; een **extensie** en een
-  `vector`-kolomtype zijn dat niet, dus dit is een bewuste, eenmalige migratiestap met de
-  volgorde-afhankelijkheid die de postgres-stack al kent.
+- **De database** (Azure PostgreSQL Flexible Server, `deploy/azure/main.bicep`) — de `vector`-extensie
+  aanzetten. De bestaande `reconcile_schema()` voegt ontbrekende kolommen additief toe; een
+  **extensie** en een `vector`-kolomtype zijn dat niet, dus dit is een bewuste, eenmalige
+  migratiestap.
 
 ## Agents en tools
 
