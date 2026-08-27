@@ -23,6 +23,9 @@ dependencies = [
     # CHECKPOINT_DB_URL gezet is – anders blijft de SQLite-default van kracht).
     "langgraph-checkpoint-postgres>=3.0",
     "psycopg[binary]>=3.2",
+    # Kwam mee via langgraph-checkpoint-postgres; de gedeelde run-store hangt er direct van
+    # af, dus hij hoort hier expliciet te staan.
+    "psycopg-pool>=3.2",
 ]
 # NB: Settings gebruikt bewust een gewone pydantic BaseModel (agent/config.py),
 # niet pydantic-settings – geen extra runtime-dependency nodig.
@@ -58,3 +61,6 @@ testpaths = ["tests"]
 # `-p` laadt de plugin vóór de collectie, en dat is precies wat nodig is: `alias_httpx()` moet
 # draaien voordat welke module dan ook httpx importeert. Zie tests/_alias_httpx.py.
 addopts = "-p tests._alias_httpx"
+# Tests die een echte PostgreSQL nodig hebben (de gedeelde run-store). Standaard overgeslagen; ze
+# slaan zichzelf over zonder RUNSTORE_TEST_DSN. Draaien met `-m integration`.
+markers = ["integration: vereist een echte PostgreSQL (RUNSTORE_TEST_DSN)"]
