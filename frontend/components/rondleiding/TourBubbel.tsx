@@ -2,10 +2,16 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { maskRechthoeken, plaatsBubbel, type Afmeting, type Stap, type Vak } from "@/lib/rondleiding";
+import {
+  klikGat, maskRechthoeken, plaatsBubbel, type Afmeting, type Stap, type Vak,
+} from "@/lib/rondleiding";
 
 /** Hoe ver de spotlight om het element heen valt. */
 const SPOT_MARGE = 6;
+/** Hoe ver het klikbare gat om het element heen valt, in een stap die om een handeling vraagt.
+ *  Ruimer dan de spotlight: het gat mag best iets over de rand vallen, maar een meting die een paar
+ *  pixels achterloopt mag nooit de knop afdekken waar de rondleiding juist om vraagt. */
+const GAT_MARGE = 14;
 const BUBBEL_BREEDTE = 340;
 /** Waar we vanuit gaan zolang de bubbel nog niet gemeten is (eerste frame van een stap). */
 const BUBBEL_HOOGTE_SCHATTING = 220;
@@ -80,8 +86,20 @@ export function TourBubbel({
     meet();
     window.addEventListener("resize", meet);
     window.addEventListener("scroll", meet, { capture: true, passive: true });
+
+    // Het aangewezen element kan zélf van maat veranderen, zonder scroll of resize. Dat gebeurt
+    // precies in de stap die om een handeling vraagt: klik je op Akkoord, dan verdwijnt die knop en
+    // komt Heropenen ervoor in de plaats, en de actierij krimpt. Zonder deze waarneming bleef de
+    // spotlight op de oude maat staan en dekte het gat in de dimlaag de knop af — je kon er daarna
+    // niet meer op klikken.
+    const observer = new ResizeObserver(meet);
+    if (doel) observer.observe(doel);
+    // De bubbel ook: een langere tekst maakt hem hoger, en dat verplaatst hem.
+    if (bubbelRef.current) observer.observe(bubbelRef.current);
+
     return () => {
       cancelAnimationFrame(frame);
+      observer.disconnect();
       window.removeEventListener("resize", meet);
       window.removeEventListener("scroll", meet, { capture: true });
     };
@@ -115,14 +133,12 @@ export function TourBubbel({
   // Waar de dimlaag een gat laat. Alleen in een stap die om een handeling vraagt: daar moet je op de
   // échte knop kunnen klikken. In alle andere stappen dekt de laag alles af, want daar is elke klik
   // buiten de bubbel er een die de rondleiding kan slopen.
-  const gat = stap.interactie && spotVak
-    ? {
-        top: spotVak.top - SPOT_MARGE,
-        left: spotVak.left - SPOT_MARGE,
-        breedte: spotVak.breedte + SPOT_MARGE * 2,
-        hoogte: spotVak.hoogte + SPOT_MARGE * 2,
-      }
-    : null;
+  //
+  // Let op dat dit aan `actiefVak` hangt en niet aan `spotVak`. Die tweede is null zodra de bubbel
+  // gecentreerd staat (te weinig ruimte ernaast), en dan verdween het gat terwijl het element er
+  // gewoon was — je kon de knop dan niet meer indrukken. Waar de bubbel staat en of de knop
+  // bereikbaar is, zijn twee verschillende vragen.
+  const gat = klikGat(stap, actiefVak, GAT_MARGE);
 
   const stijl: React.CSSProperties =
     plaatsing.modus === "midden"

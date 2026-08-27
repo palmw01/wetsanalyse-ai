@@ -114,13 +114,17 @@ interface Props {
   /** Verhoog dit om het voorbeeldartefact te openen. De rondleiding laat de gebruiker eerst zelf op
    *  de kaart klikken en springt pas bij als dat uitblijft. */
   demoOpenSignaal?: number;
+  /** Verhoog dit om het voorbeeldartefact te sluiten. De rondleiding doet dat als je terugloopt naar
+   *  een stap die het paneel niet nodig heeft: die stappen wijzen naar de thread, en met het paneel
+   *  ervoor is daar niets van te zien. */
+  demoSluitSignaal?: number;
   /** Start de rondleiding vanuit de lege staat – precies het moment waarop iemand hem nodig heeft. */
   onRondleiding?: () => void;
 }
 
 export function WerkplekClient({
   initialGesprekId, onGesprekAangemaakt, onGewijzigd, beginArtefact, demo, onDemoBeslissing,
-  onDemoArtefact, demoOpenSignaal = 0, onRondleiding,
+  onDemoArtefact, demoOpenSignaal = 0, demoSluitSignaal = 0, onRondleiding,
 }: Props) {
   const [gesprekId, setGesprekId] = useState<string | null>(initialGesprekId);
   const [items, setItems] = useState<Item[]>(demo?.items ?? []);
@@ -297,6 +301,16 @@ export function WerkplekClient({
     if (slug) void openArtefact(slug);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [demoOpenSignaal]);
+
+  useEffect(() => {
+    if (!demo || demoSluitSignaal === 0) return;
+    // Een teller die als signaal dient: de rondleiding leeft in een ander component en kan dit
+    // paneel niet rechtstreeks sluiten. Spiegelt het openen hierboven; de setState is hier het doel
+    // van het effect, geen afgeleide state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setArtefactSlug(undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demoSluitSignaal]);
 
   // De rondleiding wacht met haar reviewstappen tot het paneel er echt is.
   useEffect(() => {
