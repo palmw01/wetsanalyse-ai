@@ -211,6 +211,21 @@ export function vraagtArtefact(stappen: Stap[], index: number): boolean {
   return Boolean(stappen[index]?.artefactOpen);
 }
 
+/** Wat er met het artefactpaneel moet gebeuren om bij `naar` te passen.
+ *
+ *  Het paneel hoort bij de stap, in beide richtingen. Alleen openen was niet genoeg: liep je terug
+ *  naar een stap die de thread aanwijst, dan bleef het artefact ervoor staan en wees de bubbel naar
+ *  iets wat je niet kon zien. */
+export function artefactActie(
+  paneelOpen: boolean,
+  naar: Stap | undefined,
+): "openen" | "sluiten" | null {
+  const nodig = Boolean(naar?.artefactOpen);
+  if (nodig && !paneelOpen) return "openen";
+  if (!nodig && paneelOpen) return "sluiten";
+  return null;
+}
+
 // --- waar komt de bubbel te staan ------------------------------------------------------------
 //
 // Hier en niet in het component, om dezelfde reden als de rest van dit bestand: vitest draait
@@ -292,6 +307,28 @@ export function plaatsBubbel(vak: Vak | null, bubbel: Afmeting, viewport: Afmeti
     return { modus: "links", top: topGecentreerd, left: vak.left - m - bubbel.breedte };
   }
   return { modus: "midden" };
+}
+
+/** Waar de dimlaag een gat laat, zodat de gebruiker de aangewezen knop kan indrukken.
+ *
+ *  Alleen in een stap die om een handeling vraagt. In alle andere stappen dekt de laag alles af,
+ *  want daar is elke klik buiten de bubbel er een die de rondleiding kan slopen.
+ *
+ *  Dit hangt bewust aan het gemeten vak en niet aan de plaatsing van de bubbel. Die twee werden
+ *  eerder door elkaar gehaald: stond de bubbel gecentreerd (te weinig ruimte ernaast), dan verdween
+ *  het gat terwijl het element er gewoon was, en kon je de knop niet meer indrukken. Waar de bubbel
+ *  staat en of de knop bereikbaar is, zijn verschillende vragen.
+ *
+ *  De marge is ruimer dan die van de spotlight: het gat mag over de rand vallen, maar een meting die
+ *  een paar pixels achterloopt mag nooit de knop afdekken. */
+export function klikGat(stap: Stap, vak: Vak | null, marge: number): Vak | null {
+  if (!stap.interactie || !vak) return null;
+  return {
+    top: vak.top - marge,
+    left: vak.left - marge,
+    breedte: vak.breedte + marge * 2,
+    hoogte: vak.hoogte + marge * 2,
+  };
 }
 
 /** De dimlaag als losse rechthoeken, met een gat op `gat`.

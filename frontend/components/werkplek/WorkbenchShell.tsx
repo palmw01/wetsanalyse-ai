@@ -45,6 +45,7 @@ export function WorkbenchShell({
   // vraagt moet de knop eronder juist bereikbaar blijven.
   const [achtergrondSlot, setAchtergrondSlot] = useState(false);
   const [demoOpenSignaal, setDemoOpenSignaal] = useState(0);
+  const [demoSluitSignaal, setDemoSluitSignaal] = useState(0);
   const { data: session } = useSession();
   const isBeheerder = session?.user?.role === "beheerder";
 
@@ -160,6 +161,7 @@ export function WorkbenchShell({
             onGesprekAangemaakt={() => {}}
             onGewijzigd={() => {}}
             demoOpenSignaal={demoOpenSignaal}
+            demoSluitSignaal={demoSluitSignaal}
             onDemoArtefact={setDemoArtefact}
             onDemoBeslissing={() => setDemoBeslissingen((n) => n + 1)}
           />
@@ -183,6 +185,7 @@ export function WorkbenchShell({
           artefactOpen={demoArtefact}
           beslissingen={demoBeslissingen}
           onOpenArtefact={() => setDemoOpenSignaal((n) => n + 1)}
+          onSluitArtefact={() => setDemoSluitSignaal((n) => n + 1)}
           onKlaar={() => setDemo(null)}
         />
       )}

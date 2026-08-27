@@ -4,7 +4,8 @@ import { globSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import {
-  BUBBEL_MARGE, domineert, hervatIndex, indexVan, LEGE_STAND, maskRechthoeken, moetStarten,
+  artefactActie, BUBBEL_MARGE, domineert, hervatIndex, indexVan, klikGat, LEGE_STAND,
+  maskRechthoeken, moetStarten,
   plaatsBubbel, RONDLEIDING_VERSIE, STAPPEN, vraagtArtefact, zichtbareStappen, type Vak,
 } from "./rondleiding";
 import {
@@ -350,5 +351,72 @@ describe("de dimlaag", () => {
     // Een gat over de volle breedte heeft geen linker- en rechterrand nodig.
     const vakken = maskRechthoeken({ top: 300, left: 0, breedte: 1000, hoogte: 40 }, viewport);
     expect(vakken).toHaveLength(2);
+  });
+});
+
+describe("het artefactpaneel volgt de stap", () => {
+  const metPaneel = STAPPEN.find((s) => s.artefactOpen)!;
+  const zonderPaneel = STAPPEN.find((s) => !s.artefactOpen)!;
+
+  it("opent het paneel voor een stap die het nodig heeft", () => {
+    expect(artefactActie(false, metPaneel)).toBe("openen");
+  });
+
+  it("sluit het paneel bij teruglopen naar een stap zonder paneel", () => {
+    // De bug: alleen openen was geregeld. Wie terugliep hield het artefact voor de thread staan,
+    // en de bubbel wees naar iets wat niet te zien was.
+    expect(artefactActie(true, zonderPaneel)).toBe("sluiten");
+  });
+
+  it("laat het paneel met rust als het al goed staat", () => {
+    expect(artefactActie(true, metPaneel)).toBeNull();
+    expect(artefactActie(false, zonderPaneel)).toBeNull();
+  });
+
+  it("sluit het paneel als er geen stap meer is", () => {
+    // Voorbij de laatste stap: dan hoort de werkplek weer schoon te zijn.
+    expect(artefactActie(true, undefined)).toBe("sluiten");
+    expect(artefactActie(false, undefined)).toBeNull();
+  });
+
+  it("regelt de overgang rond de openen-stap in beide richtingen", () => {
+    // Stap 7 gaat over het openen zelf en heeft het paneel dus nog niet nodig; de stap erna wel.
+    const i = STAPPEN.findIndex((s) => s.id === "artefact-openen");
+    expect(artefactActie(true, STAPPEN[i])).toBe("sluiten"); // terug vanaf de wettekst
+    expect(artefactActie(false, STAPPEN[i + 1])).toBe("openen"); // vooruit naar de wettekst
+  });
+});
+
+describe("het gat in de dimlaag", () => {
+  const vak: Vak = { top: 400, left: 700, breedte: 90, hoogte: 32 };
+  const interactief = STAPPEN.find((s) => s.interactie)!;
+  const gewoon = STAPPEN.find((s) => !s.interactie)!;
+
+  it("laat een gat vallen in de stap die om een handeling vraagt", () => {
+    const gat = klikGat(interactief, vak, 14);
+    expect(gat).toEqual({ top: 386, left: 686, breedte: 118, hoogte: 60 });
+  });
+
+  it("laat geen gat vallen in een gewone stap", () => {
+    // Daar is elke klik buiten de bubbel er een die de rondleiding kan slopen.
+    expect(klikGat(gewoon, vak, 14)).toBeNull();
+  });
+
+  it("laat geen gat vallen zonder gemeten element", () => {
+    expect(klikGat(interactief, null, 14)).toBeNull();
+  });
+
+  it("hangt niet af van waar de bubbel terechtkomt", () => {
+    // De bug die dit veroorzaakte: het gat hing aan het vak dat óók de spotlight stuurt, en dat is
+    // null zodra de bubbel gecentreerd staat. Dan verdween het gat terwijl het element er gewoon
+    // was, en kon je de knop niet meer indrukken.
+    const bubbelStaatGecentreerd = plaatsBubbel(
+      { top: 0, left: 0, breedte: 1000, hoogte: 700 },
+      { breedte: 340, hoogte: 220 },
+      { breedte: 1000, hoogte: 800 },
+    );
+    expect(bubbelStaatGecentreerd.modus).toBe("midden");
+    // En tóch is de knop bereikbaar:
+    expect(klikGat(interactief, vak, 14)).not.toBeNull();
   });
 });

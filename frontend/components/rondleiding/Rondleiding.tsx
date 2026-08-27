@@ -6,7 +6,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Dialog } from "@/components/ui/Dialog";
 import { TourBubbel } from "@/components/rondleiding/TourBubbel";
 import {
-  domineert, hervatIndex, RONDLEIDING_VERSIE, schrijfStand, zichtbareStappen, type Stap,
+  artefactActie, domineert, hervatIndex, RONDLEIDING_VERSIE, schrijfStand, zichtbareStappen,
+  type Stap,
 } from "@/lib/rondleiding";
 
 /** Waar de rondleiding thuishoort. Buiten dit pad wijst hij niets aan, dus dan pauzeert hij. */
@@ -30,6 +31,9 @@ interface Props {
   artefactOpen: boolean;
   /** Het voorbeeldartefact openen (stap 7 doet dat als de gebruiker niet zelf klikt). */
   onOpenArtefact: () => void;
+  /** Het voorbeeldartefact sluiten. Nodig bij teruglopen: de stappen vóór de review wijzen naar de
+   *  thread, en met het paneel ervoor is daar niets van te zien. */
+  onSluitArtefact: () => void;
   /** De rondleiding is voorbij: demo opruimen en de gewone werkplek terugzetten. */
   onKlaar: () => void;
   /** Meldt of de werkplek eronder op slot moet. Aan tijdens de gewone stappen, uit zodra de stap om
@@ -42,7 +46,8 @@ interface Props {
 
 /** De motor van de rondleiding: welke stap staat er, waar hangt hij aan, en wat onderbreekt hem. */
 export function Rondleiding({
-  isBeheerder, artefactOpen, onOpenArtefact, onKlaar, beslissingen, onAchtergrondSlot,
+  isBeheerder, artefactOpen, onOpenArtefact, onSluitArtefact, onKlaar, beslissingen,
+  onAchtergrondSlot,
 }: Props) {
   const stappen = zichtbareStappen(isBeheerder);
   const [fase, setFase] = useState<TourFase>("welkom");
@@ -165,13 +170,14 @@ export function Rondleiding({
         return;
       }
       const doelStap = stappen[Math.max(0, nieuw)];
-      // Vooruit naar een reviewstap terwijl het paneel dicht is: eerst openen.
-      if (doelStap?.artefactOpen && !artefactOpen) onOpenArtefact();
+      const actie = artefactActie(artefactOpen, doelStap);
+      if (actie === "openen") onOpenArtefact();
+      else if (actie === "sluiten") onSluitArtefact();
       setGedaan(undefined);
       setIndex(Math.max(0, nieuw));
       schrijfStand({ versie: RONDLEIDING_VERSIE, gezien: false, gestoptBij: doelStap?.id });
     },
-    [stappen, artefactOpen, onOpenArtefact],
+    [stappen, artefactOpen, onOpenArtefact, onSluitArtefact],
   );
 
   // Toetsenbordbediening. Pijltjes en Enter sturen de rondleiding, Escape sluit hem – behalve
