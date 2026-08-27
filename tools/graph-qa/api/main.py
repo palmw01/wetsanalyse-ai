@@ -61,16 +61,31 @@ from agent.beurt import voer_beurt_uit  # noqa: E402
 from agent.agent_common import run_sync  # noqa: E402
 from agent.config import Settings  # noqa: E402
 from agent.models import ArtikelResult, ChatRequest, RunStart  # noqa: E402
-from agent.runs import Run, RunBestaatAl, RunRegister  # noqa: E402
+from agent.runstore import Run, RunBestaatAl, RunStore  # noqa: E402
+from agent.runstore.geheugen import GeheugenStore  # noqa: E402
 
 logger = logging.getLogger("graph_qa.chat")
 
-# Het run-register: een beurt leeft hier, niet in de HTTP-request van één tabblad. Zie agent/runs.py
-# voor de aannames (één proces, herstart wist het register, alleen de run-taak schrijft).
-runs = RunRegister()
-
 settings = Settings.from_env()
 observability.setup(settings)  # logging + gated OTel, vóór de app draait
+
+
+def _maak_runstore(s: Settings) -> RunStore:
+    """Gedeeld als er een database is, anders in dit proces.
+
+    Dezelfde voorrangsregel als de checkpointer (`agent/agent.py:_checkpointer_ctx`), en om dezelfde
+    reden: graph-qa mag op Azure naar twee replica's schalen. Zonder gedeelde store landt een
+    aanhaker dan op het verkeerde proces en lijkt zijn beurt verdwenen.
+    """
+    if s.checkpoint_db_url:
+        from agent.runstore.postgres import PostgresStore
+
+        return PostgresStore(s.checkpoint_db_url)
+    return GeheugenStore()
+
+
+# Een beurt leeft hier, niet in de HTTP-request van één tabblad.
+runs: RunStore = _maak_runstore(settings)
 
 @asynccontextmanager
 async def _lifespan(_app: FastAPI):
@@ -84,7 +99,17 @@ async def _lifespan(_app: FastAPI):
     # draagt zelf de user_id waarnamens er geschreven wordt.
     settings.require_api()
     settings.controleer_historie_grens()
+    # De gedeelde store maakt zijn tabellen zelf aan (idempotent, zoals de checkpointer). De
+    # geheugenvariant heeft geen setup en slaat dit over.
+    voorbereiden = getattr(runs, "setup", None)
+    if voorbereiden is not None:
+        await voorbereiden()
+        logger.info("run-store gereed", extra={"categorie": "technisch",
+                                               "soort": type(runs).__name__})
     yield
+    afsluiten = getattr(runs, "sluit", None)
+    if afsluiten is not None:
+        await afsluiten()
     # App-shutdown: OTel-buffers flushen zodat de laatste spans/metrics niet verloren gaan.
     observability.shutdown()
 
@@ -252,11 +277,11 @@ async def verwijder_conversation(
     # weet is van wie de run op dit gesprek is; dat is genoeg om te weigeren dat iemand met een
     # vreemd gespreks-id andermans lopende beurt afkapt. Zonder deze regel was de eigenaarscontrole
     # op `/v1/runs/{id}/cancel` langs deze route te omzeilen.
-    lopend = runs.actief_voor(conversation_id)
+    lopend = await runs.actief_voor(conversation_id)
     if lopend is not None and gebruiker and lopend.user_id and lopend.user_id != gebruiker:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Onbekend gesprek")
     if lopend is not None and lopend.loopt:
-        runs.vraag_stop(lopend)
+        await runs.vraag_stop(lopend)
         logger.info(
             "run gestopt: gesprek verwijderd",
             extra={"categorie": "functioneel", "run_id": lopend.run_id,
@@ -346,7 +371,7 @@ async def start_run(
     dezelfde checkpointer-thread. De aanroeper hoort dan aan te haken bij het meegegeven run_id.
     """
     try:
-        run = runs.start(
+        run = await runs.start(
             conversation_id=request.conversation_id or "",
             vraag=request.question or "",
             maak_stroom=_stroom_voor(request, gebruiker),
@@ -382,7 +407,7 @@ async def run_events(
     remount mag nooit op de limiet stuklopen. Losraken van deze stream laat de run ongemoeid – dat
     is het hele punt.
     """
-    run = runs.get(run_id, user_id=gebruiker)
+    run = await runs.get(run_id, user_id=gebruiker)
     if run is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Onbekende run")
 
@@ -403,10 +428,10 @@ async def stop_run(
 
     De nodes zijn synchroon, dus een lopende LLM-call maakt zichzelf af; de run eindigt op de
     eerstvolgende grens. Wie hier 'gestopt' uit leest, leest een intentie."""
-    run = runs.get(run_id, user_id=gebruiker)
+    run = await runs.get(run_id, user_id=gebruiker)
     if run is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Onbekende run")
-    runs.vraag_stop(run)
+    await runs.vraag_stop(run)
     return RunStart(**run.samenvatting())
 
 
@@ -420,7 +445,7 @@ async def actieve_run(
 
     Dit is wat de werkplek bij binnenkomst vraagt. Ook een net afgeronde run telt mee: kom je terug
     binnen de bewaartermijn, dan hoor je de uitkomst alsnog te zien."""
-    run = runs.actief_voor(conversation_id, user_id=gebruiker)
+    run = await runs.actief_voor(conversation_id, user_id=gebruiker)
     return RunStart(**run.samenvatting()) if run else None
 
 

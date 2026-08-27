@@ -207,11 +207,30 @@ Vier dingen om niet te breken:
   dat stoppen tijd kost, want de lopende stap maakt zichzelf af – en omdat `emit_node` terminaal is,
   levert stoppen dáárvóór écht nul voorstellen op. Het bericht zegt dat dan ook zo.
 
-Het register is **in-proces** (één uvicorn-proces zonder `--workers`). Een herstart wist het: dat is
-bewust – hervatten-vanaf-checkpoint vraagt async nodes, en `agent/agent.py` reset bij elke beurt de
-werkvelden. Komt er ooit een tweede replica, dan moet dit naar een gedeelde store. De werkplek maakt
-dat zichtbaar in plaats van te blijven hangen: hij onthoudt lokaal welk run-id er liep en meldt na
-een herstart dat de beurt is afgebroken (`frontend/lib/lopendeRun.ts`).
+**Waar het register leeft, hangt af van de configuratie** (`agent/runstore/`, gekozen in
+`api/main.py:_maak_runstore`, zelfde voorrangsregel als de checkpointer):
+
+| Store | Wanneer | Eigenschap |
+|---|---|---|
+| `GeheugenStore` | geen `CHECKPOINT_DB_URL` | dit proces; lokaal draaien en de tests |
+| `PostgresStore` | met een database (dus op Azure) | gedeeld tussen replica's |
+
+De gedeelde variant is er omdat graph-qa op `maxReplicas: 2` staat. Zonder deze zou een aanhaker op
+de andere replica een 404 krijgen, de 409-bescherming een lopende run missen en een stopverzoek op
+het verkeerde proces landen. Drie dingen om te kennen als je eraan werkt:
+
+- **De 409 is een unieke index**, geen check-then-insert — tussen twee replica's is dat de enige
+  vorm die standhoudt.
+- **Stoppen loopt via een vlag in de database.** De polstaak leest hem elke 2 s en zet hem op de
+  Run; `stop_check()` blijft daardoor een synchrone attribuutlezing, en dat moet ook: de graaf
+  vraagt het per node vanuit een threadpool.
+- **Een hartslag maakt verweesde runs zichtbaar.** Valt een replica om, dan bleef zijn run eeuwig
+  "loopt" zeggen; nu leest hij na een minuut als `mislukt`.
+
+**Een run overleeft nog steeds geen herstart** — de nodes zijn synchroon en er is geen resume-pad.
+Maar de state ligt nu in Postgres, dus dát is waar zoiets op gebouwd kan worden. De werkplek maakt
+het intussen zichtbaar in plaats van te blijven hangen: hij onthoudt lokaal welk run-id er liep en
+meldt na een herstart dat de beurt is afgebroken (`frontend/lib/lopendeRun.ts`).
 
 > **Testen:** gebruik `with TestClient(app)` (zie `tests/test_run_endpoints.py`). Zonder de `with`
 > breekt de harnas per request zijn event loop af en sneuvelt de achtergrondtaak – dan meet je de

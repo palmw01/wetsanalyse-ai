@@ -24,6 +24,19 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    # De gedeelde run-store van graph-qa praat met PostgreSQL. Zonder database slaan die tests
+    # zichzelf over — en tests die alleen lokaal draaien, verrotten. Een service-container kost hier
+    # een paar seconden en houdt ze eerlijk.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -84,6 +97,9 @@ jobs:
       - name: graph-qa – tests
         if: steps.raakt.outputs.graph_qa == 'true'
         working-directory: tools/graph-qa
+        env:
+          # Zet de integratietests van de gedeelde run-store aan; zonder deze slaan ze zichzelf over.
+          RUNSTORE_TEST_DSN: postgresql://test:test@localhost:5432/test
         run: |
           uv sync --extra dev
           uv run pytest -q

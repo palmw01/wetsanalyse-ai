@@ -220,8 +220,21 @@ gesprek_berichten = Table(
     Column("gesprek_id", String(64), nullable=False),
     Column("rol", String(16), nullable=False, default="user"),
     Column("inhoud", _JSON, nullable=False, default=dict),
+    # De idempotentiesleutel van een agent-beurt. Stond eerder alleen in `inhoud`; als eigen kolom
+    # kan de database afdwingen dat één run maar één bericht oplevert. Leeg voor berichten die niet
+    # uit een run komen (de vraag van de gebruiker), vandaar de partiële index hieronder.
+    Column("run_id", String(64), nullable=False, server_default="", default=""),
     Column("created", _DT, nullable=False),
     Index("ix_gesprek_berichten_gesprek", "gesprek_id", "id"),
+    # Twee tabbladen kunnen op dezelfde run meekijken en de api draait op maxReplicas 3: een
+    # check-then-insert dekt die race niet. Partieel, want lege run_ids zijn er veel.
+    Index(
+        "ux_gesprek_berichten_run",
+        "run_id",
+        unique=True,
+        sqlite_where=text("run_id <> ''"),
+        postgresql_where=text("run_id <> ''"),
+    ),
 )
 
 
@@ -296,7 +309,39 @@ async def reconcile_schema() -> None:
                     f"ALTER TABLE {preparer.format_table(tabel)} "
                     f"ADD COLUMN {preparer.format_column(col)} {coltype}"
                 )
+                # De server_default hoort mee: zonder DEFAULT krijgen bestaande rijen NULL, en dan
+                # klopt niets wat op die kolom filtert. Een partiële index op `<> ''` sluit NULL
+                # bijvoorbeeld stil uit (NULL <> '' is NULL, niet TRUE) en beschermt dan niets.
+                if col.server_default is not None:
+                    standaard = col.server_default.arg
+                    ddl += f" DEFAULT {standaard!r}" if isinstance(standaard, str) else f" DEFAULT {standaard}"
                 await conn.execute(text(ddl))
+                await _na_kolom(conn, tabel, col)
+        # Indexen komen niet uit `create_all` op een bestaande tabel; ze zijn idempotent aan te
+        # maken en dat is precies wat een unieke constraint op een bestaande productietabel nodig
+        # heeft.
+        for tabel in metadata.tables.values():
+            for index in tabel.indexes:
+                await conn.run_sync(lambda sync_conn, ix=index: ix.create(sync_conn, checkfirst=True))
+
+
+async def _na_kolom(conn, tabel, col) -> None:
+    """Vul een net toegevoegde kolom waar de waarde al ergens anders stond.
+
+    `run_id` leefde in de JSON-kolom `inhoud`. Zonder deze backfill zou de unieke index alleen
+    nieuwe rijen beschermen, en zouden bestaande dubbelen onopgemerkt blijven bestaan.
+    """
+    if tabel.name != "gesprek_berichten" or col.name != "run_id":
+        return
+    dialect = conn.engine.dialect.name
+    if dialect == "postgresql":
+        haal = "COALESCE(inhoud->>'run_id', '')"
+    else:  # sqlite
+        haal = "COALESCE(json_extract(inhoud, '$.run_id'), '')"
+    # Bestaande rijen hebben NULL (de DEFAULT geldt alleen voor nieuwe rijen op sommige versies);
+    # allebei de gevallen meenemen.
+    await conn.execute(text(
+        f"UPDATE gesprek_berichten SET run_id = {haal} WHERE run_id IS NULL OR run_id = ''"))
 
 
 def aware(dt: datetime | None) -> datetime | None:

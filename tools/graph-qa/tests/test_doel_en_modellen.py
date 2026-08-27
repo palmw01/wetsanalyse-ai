@@ -165,3 +165,41 @@ def test_zonder_doel_verandert_er_niets():
     ))
     assert len(llm.calls) == 5
     assert [e["element"]["id"] for e in events if e["type"] == "element"] == ["el-a"]
+
+
+# ── adviesvragen hebben een onderwerp nodig ──────────────────────────────────────────────────────
+
+def test_een_adviesvraag_zonder_context_wordt_geweigerd():
+    """Zonder onderwerp bouwt _advies_context een kop zonder inhoud en antwoordt het model over
+    "de markering" zonder te weten welke — een vaag antwoord in plaats van een fout."""
+    import pytest
+    from pydantic import ValidationError
+
+    from agent.models import ChatRequest
+
+    with pytest.raises(ValidationError) as fout:
+        ChatRequest(question="Waarom deze klasse?", modus="advies")
+    assert "fragment" in str(fout.value)
+
+
+def test_een_fragment_is_genoeg_voor_een_adviesvraag():
+    from agent.models import ChatContext, ChatRequest
+
+    r = ChatRequest(question="Waarom?", modus="advies",
+                    context=ChatContext(fragment="de ontvanger kan aansprakelijk stellen"))
+    assert r.modus == "advies"
+
+
+def test_een_bepaling_is_ook_genoeg():
+    from agent.models import ChatContext, ChatRequest
+
+    r = ChatRequest(question="Waarom?", modus="advies",
+                    context=ChatContext(bwbId="BWBR0004770", artikel="36"))
+    assert r.context.bwbId == "BWBR0004770"
+
+
+def test_een_gewone_vraag_heeft_geen_context_nodig():
+    """De eis geldt alleen voor modus 'advies'; een normale vraag mag kaal binnenkomen."""
+    from agent.models import ChatRequest
+
+    assert ChatRequest(question="Wat regelt artikel 36?").context is None
