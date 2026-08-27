@@ -1830,6 +1830,41 @@ def build_graph(
         """Registreer een node, altijd met de stopbewaking eromheen."""
         g.add_node(naam, stopbaar(fn))
 
+    def annotatieketen() -> str:
+        """Registreer de annotatie-worker en zijn edges; geeft de naam van de ingang terug.
+
+        Lineair: annoteer → critic₁ → patch → [herzie → critic₂] → emit, met `emit` als enige
+        uitgang zodat de werkplek nooit tussenversies ziet. Geen enkele edge wijst terug naar een
+        eerdere stap, dus er is geen cyclus om te laten convergeren.
+
+        Dit blok stond identiek in de decompositie- en de planning-tak. De antwoordketen verschilt
+        wél echt tussen die twee (`verify → resynth` versus `verify → correct`), dus die blijft per
+        tak apart staan; alleen wat aantoonbaar hetzelfde was is hier samengebracht.
+        """
+        if settings.enable_kandidaat_splitsing:
+            add("annoteer_kandidaten", annoteer_kandidaten_node)
+            add("annoteer_klasseer", annoteer_klasseer_node)
+            entry = "annoteer_kandidaten"
+        else:
+            add("annoteer", annoteer_node)
+            entry = "annoteer"
+        add("critic", critic_node)
+        add("patch", patch_node)
+        add("herzie", herzie_node)
+        add("emit", emit_node)
+
+        if settings.enable_kandidaat_splitsing:
+            g.add_edge("annoteer_kandidaten", "annoteer_klasseer")
+            g.add_edge("annoteer_klasseer", "critic")
+        else:
+            g.add_edge("annoteer", "critic")
+        g.add_conditional_edges("critic", route_na_critic, {"patch": "patch", "emit": "emit"})
+        g.add_conditional_edges("patch", route_na_patch,
+                                {"herzie": "herzie", "critic": "critic", "emit": "emit"})
+        g.add_edge("herzie", "critic")
+        g.add_edge("emit", "advance")
+        return entry
+
     add("verify", verify_node)
     add("finalize", finalize_node)
 
@@ -1843,20 +1878,11 @@ def build_graph(
         add("resynth", resynth_node)
         add("agent", agent_node)
         add("tools", tools_node)
-        if settings.enable_kandidaat_splitsing:
-            add("annoteer_kandidaten", annoteer_kandidaten_node)
-            add("annoteer_klasseer", annoteer_klasseer_node)
-        else:
-            add("annoteer", annoteer_node)
-        add("critic", critic_node)
-        add("patch", patch_node)
-        add("herzie", herzie_node)
-        add("emit", emit_node)
         add("advance", advance_node)
         add("afwijzen", afwijs_node)
-        # Bij splitsing is de eerste annoteer-node `annoteer_kandidaten`; anders `annoteer`.
-        # Alle conditional-edges die "annoteer" als doel teruggeven moeten naar diezelfde node.
-        _annoteer_entry = "annoteer_kandidaten" if settings.enable_kandidaat_splitsing else "annoteer"
+        # Alle conditional-edges die "annoteer" als doel teruggeven moeten naar de ingang van de
+        # keten; bij splitsing is dat `annoteer_kandidaten`.
+        _annoteer_entry = annotatieketen()
         entrymap = {"agent": "agent", "annoteer": _annoteer_entry, "decompose": "decompose",
                     "afwijzen": "afwijzen"}
         g.add_edge(START, "supervisor")
@@ -1873,20 +1899,6 @@ def build_graph(
         )
         g.add_edge("tools", "agent")
         g.add_edge("finalize", "advance")
-        if settings.enable_kandidaat_splitsing:
-            g.add_edge("annoteer_kandidaten", "annoteer_klasseer")
-            g.add_edge("annoteer_klasseer", "critic")
-        else:
-            g.add_edge("annoteer", "critic")
-        # De herzieningslus: de Critic wijst aan, de annoteerder herstelt, de Critic kijkt opnieuw.
-        # `emit` is de enige uitgang, zodat de werkplek nooit tussenversies ziet.
-        # Lineair: critic₁ → patch → [herzie] → [critic₂] → emit. Geen enkele edge wijst terug naar
-        # een eerdere stap, dus er is geen cyclus meer om te laten convergeren.
-        g.add_conditional_edges("critic", route_na_critic, {"patch": "patch", "emit": "emit"})
-        g.add_conditional_edges("patch", route_na_patch,
-                                {"herzie": "herzie", "critic": "critic", "emit": "emit"})
-        g.add_edge("herzie", "critic")
-        g.add_edge("emit", "advance")
         g.add_conditional_edges("advance", route_after_advance, {**entrymap, "einde": END})
         return g
 
@@ -1898,19 +1910,9 @@ def build_graph(
     if settings.enable_planning:
         # Supervisor → agent⇄tools → (verify→finalize | annoteer_finalize) → advance → (volgende | einde).
         add("supervisor", supervisor_node)
-        if settings.enable_kandidaat_splitsing:
-            add("annoteer_kandidaten", annoteer_kandidaten_node)
-            add("annoteer_klasseer", annoteer_klasseer_node)
-        else:
-            add("annoteer", annoteer_node)
-        add("critic", critic_node)
-        add("patch", patch_node)
-        add("herzie", herzie_node)
-        add("emit", emit_node)
         add("advance", advance_node)
         add("afwijzen", afwijs_node)
-        # Bij splitsing is de eerste annoteer-node `annoteer_kandidaten`; anders `annoteer`.
-        _annoteer_entry = "annoteer_kandidaten" if settings.enable_kandidaat_splitsing else "annoteer"
+        _annoteer_entry = annotatieketen()
         g.add_edge(START, "supervisor")
         g.add_conditional_edges("supervisor", _entry_node,
                                 {"agent": "agent", "annoteer": _annoteer_entry, "afwijzen": "afwijzen"})
@@ -1923,20 +1925,6 @@ def build_graph(
         g.add_conditional_edges("verify", route_after_verify, {"correct": "correct", "finalize": "finalize"})
         g.add_edge("correct", "agent")
         g.add_edge("finalize", "advance")
-        if settings.enable_kandidaat_splitsing:
-            g.add_edge("annoteer_kandidaten", "annoteer_klasseer")
-            g.add_edge("annoteer_klasseer", "critic")
-        else:
-            g.add_edge("annoteer", "critic")
-        # De herzieningslus: de Critic wijst aan, de annoteerder herstelt, de Critic kijkt opnieuw.
-        # `emit` is de enige uitgang, zodat de werkplek nooit tussenversies ziet.
-        # Lineair: critic₁ → patch → [herzie] → [critic₂] → emit. Geen enkele edge wijst terug naar
-        # een eerdere stap, dus er is geen cyclus meer om te laten convergeren.
-        g.add_conditional_edges("critic", route_na_critic, {"patch": "patch", "emit": "emit"})
-        g.add_conditional_edges("patch", route_na_patch,
-                                {"herzie": "herzie", "critic": "critic", "emit": "emit"})
-        g.add_edge("herzie", "critic")
-        g.add_edge("emit", "advance")
         g.add_conditional_edges("advance", route_after_advance,
                                 {"agent": "agent", "annoteer": _annoteer_entry,
                                  "afwijzen": "afwijzen", "einde": END})
