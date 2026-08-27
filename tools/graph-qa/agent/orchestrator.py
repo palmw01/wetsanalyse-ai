@@ -32,7 +32,16 @@ from .annotatie import (
     openstaand_voorstel, sleutel_van, vervang_ids_door_citaat,
     parse_kandidaten, filter_kandidaten,
 )
-from .artikel import artikel_corpus
+from .doel import (  # noqa: F401 – re-export: tests importeren _kandidaten_uit_json hiervandaan
+    _bepaal_doel,
+    _corpus_uit_trace,
+    _corpus_voor_doel,
+    _doel_uit_json,
+    _doel_uit_toolcalls,
+    _heeft_opgegeven_doel,
+    _kandidaten_uit_json,
+    _ontbrekend_sleutel,
+)
 from .nodes.antwoord import (
     agent_node,
     correct_node,
@@ -43,6 +52,13 @@ from .nodes.antwoord import (
     verify_node,
 )
 from .nodes.context import Bouw
+from .nodes.supervisie import (
+    _entry_node,
+    advance_node,
+    afwijs_node,
+    route_after_advance,
+    supervisor_node,
+)
 from .nodes.decompositie import (
     decompose_node,
     resynth_node,
@@ -81,184 +97,11 @@ from .annotatie_prompt import (
     klasseer_userprompt,
 )
 from .config import Settings
-from .graph.results import parse_select
 from .models import AgentRun
 from .ports import GraphPort, LLMPort
-from .supervisor import SUPERVISOR_SYSTEM, parse_supervisor
 
 logger = logging.getLogger("graph_qa.orchestrator")
 
-
-def _doel_uit_json(text: str) -> dict[str, str]:
-    """Haal het doel ({bwbId,artikel,lid,nummer}) uit de JSON van de ophaal-agent – plat of onder een
-    `doel`-sleutel."""
-    import json
-
-    s, e = text.find("{"), text.rfind("}")
-    if s != -1 and e > s:
-        try:
-            data = json.loads(text[s : e + 1])
-            if isinstance(data, dict):
-                d = data.get("doel") if isinstance(data.get("doel"), dict) else data
-                return {k: str(d.get(k, "")).strip() for k in ("bwbId", "artikel", "lid", "nummer", "citeertitel")}
-        except json.JSONDecodeError:
-            pass
-    return {"bwbId": "", "artikel": "", "lid": "", "nummer": "", "citeertitel": ""}
-
-
-def _kandidaten_uit_json(text: str) -> list[dict[str, str]]:
-    """Haal de kandidaat-bepalingen uit de JSON van de ophaal-agent.
-
-    Vraagt een jurist om een ONDERWERP ("annoteer alles over aansprakelijkheid van de bestuurder"),
-    dan is er geen enkele bepaling aan te wijzen. De ophaal-agent zoekt er dan in de graaf naar en
-    levert `{"kandidaten": [...]}` in plaats van een `doel`. Welke daarvan de werkvoorraad in gaan is
-    een inhoudelijke keuze van de jurist – dus hier niets raden.
-    """
-    import json
-
-    s, e = text.find("{"), text.rfind("}")
-    if s == -1 or e <= s:
-        return []
-    try:
-        data = json.loads(text[s : e + 1])
-    except json.JSONDecodeError:
-        return []
-    rij = data.get("kandidaten") if isinstance(data, dict) else None
-    if not isinstance(rij, list):
-        return []
-
-    uit: list[dict[str, str]] = []
-    gezien: set[tuple[str, str, str]] = set()
-    for k in rij:
-        if not isinstance(k, dict):
-            continue
-        kandidaat = {
-            veld: str(k.get(veld, "")).strip()
-            for veld in ("bwbId", "artikel", "lid", "citeertitel", "fragment")
-        }
-        if not (kandidaat["bwbId"] and kandidaat["artikel"]):
-            continue
-        sleutel = (kandidaat["bwbId"], kandidaat["artikel"], kandidaat["lid"])
-        if sleutel in gezien:
-            continue
-        gezien.add(sleutel)
-        uit.append(kandidaat)
-    return uit[:8]
-
-
-# --- meldingen over het samenspel -----------------------------------------------------------------
-#
-# De annotatieketen doet er 60-90 seconden over en stuurde daarin geen enkel event: de jurist keek
-# naar een leeg scherm en zag het heen-en-weer tussen annoteerder en Critic niet. Deze regels vullen
-# dat gat. Ze zijn pure functies zodat de bewoording te testen is zonder een hele graaf te draaien.
-
-def _ontbrekend_sleutel(item: dict[str, Any]) -> str:
-    """Identiteit van een gemeld gemist element: klasse + het genoemde fragment."""
-    return f"{str(item.get('klasse', '')).strip()}|{' '.join(str(item.get('tekst', '')).split()).lower()}"
-
-
-def _doel_uit_toolcalls(messages: list[dict[str, Any]]) -> dict[str, str]:
-    """Gezaghebbend doel = de LAATSTE fetch-tool-call (get_lid/get_artikel/get_bepaling) die de agent
-    deed – wat hij écht ophaalde. get_bepaling levert een `nummer` (bv. '9.1' voor een divisie); dat
-    zetten we óók als `artikel`, zodat de weergave het aankan. Leeg als er geen fetch-call was."""
-    doel = {"bwbId": "", "artikel": "", "lid": "", "nummer": ""}
-    for msg in messages:
-        if msg.get("role") != "assistant":
-            continue
-        content = msg.get("content")
-        if not isinstance(content, list):
-            continue
-        for blok in content:
-            if not (isinstance(blok, dict) and blok.get("type") == "tool_use"):
-                continue
-            naam = blok.get("name")
-            inp = blok.get("input") or {}
-            if naam in ("get_lid", "get_artikel"):
-                doel = {
-                    "bwbId": str(inp.get("bwb_id", "")).strip(),
-                    "artikel": str(inp.get("artikel", "")).strip(),
-                    "lid": str(inp.get("lid", "")).strip(),
-                    "nummer": "",
-                }
-            elif naam == "get_bepaling":
-                nummer = str(inp.get("nummer", "")).strip()
-                doel = {"bwbId": str(inp.get("bwb_id", "")).strip(), "artikel": nummer, "lid": "", "nummer": nummer}
-    return doel
-
-
-def _bepaal_doel(state: State) -> dict[str, str]:
-    """Combineer: neem de tool-call als bron (gezaghebbend) en vul lege velden aan uit de JSON.
-
-    Gaf de aanroeper zélf een doel mee, dan wint dat van allebei: dan hoefde er niets gezocht te
-    worden en is dit precies de bepaling die de jurist aanwees. De andere twee bronnen blijven als
-    aanvulling staan – zo vult een meegegeven `{bwbId, artikel}` zich alsnog met een `citeertitel`
-    als die uit de trace komt.
-    """
-    opgegeven = state.get("opgegeven_doel") or {}
-    uit_tool = _doel_uit_toolcalls(state.get("messages", []))
-    uit_json = _doel_uit_json(state.get("answer", ""))
-    return {
-        k: str(opgegeven.get(k, "") or "").strip() or uit_tool.get(k, "") or uit_json.get(k, "")
-        for k in ("bwbId", "artikel", "lid", "nummer", "citeertitel")
-    }
-
-
-def _heeft_opgegeven_doel(state: State) -> bool:
-    """Kunnen we meteen annoteren? Alleen met bwbId én een aanduiding is het doel compleet."""
-    doel = state.get("opgegeven_doel") or {}
-    return bool(str(doel.get("bwbId", "")).strip()
-                and (str(doel.get("artikel", "")).strip() or str(doel.get("nummer", "")).strip()))
-
-
-def _corpus_uit_trace(source_trace: list[tuple[str, str]]) -> str:
-    """Reconstrueer de opgehaalde artikeltekst uit de get_lid/get_artikel-resultaten in de trace.
-
-    **Terugval, geen eerste keus** – zie `_corpus_voor_doel`. Deze reconstructie plakt álle
-    fetch-resultaten van de beurt aaneen, terwijl het doel de láátste fetch-call is: haalde de
-    ophaal-agent eerst het hele artikel op en daarna het gevraagde lid, dan zit de tekst van de
-    andere leden er ook in – en dan keurt de brongetrouwheidscheck een fragment uit lid 2 goed als
-    markering "in lid 1". Bovendien is elk tool-resultaat afgekapt op 8000 tekens (`truncate`),
-    dus bij een lange bepaling ontbreekt hier stilzwijgend het staartstuk.
-    """
-    delen: list[str] = []
-    for naam, resultaat in source_trace:
-        if naam not in ("get_lid", "get_artikel", "get_bepaling"):
-            continue
-        for r in parse_select(resultaat):
-            tekst = (r.get("lidtekst") or r.get("tekst") or "").strip()
-            if tekst:
-                delen.append(tekst)
-    return "\n\n".join(delen)
-
-
-def _corpus_voor_doel(doel: dict[str, str], graph: GraphPort, source_trace: list[tuple[str, str]]) -> str:
-    """De tekst waarop geannoteerd wordt: precies de bepaling uit `doel`, ongekapt.
-
-    Eén gerichte ophaalactie via `artikel.artikel_corpus` – dezelfde functie waarmee `GET /v1/artikel`
-    het documentpaneel vult. Daarmee is er weer één bron voor wat de jurist ziet en waartegen de
-    brongetrouwheid wordt gecheckt, zoals `agent/artikel.py` altijd al beloofde.
-
-    Kost één extra SPARQL-call per annotatiebeurt. Dat is de prijs voor een corpus dat niet afhangt
-    van hoeveel omwegen de ophaal-agent nam; het resultaat gaat in de state, dus Critic en herziening
-    betalen hem niet opnieuw.
-
-    Levert de graaf niets (of kennen we het doel niet), dan valt dit terug op de trace-reconstructie:
-    liever de tekst die de agent zag dan helemaal geen corpus – dan zou de hele beurt afbreken.
-    """
-    bwb = (doel.get("bwbId") or "").strip()
-    aanduiding = (doel.get("artikel") or doel.get("nummer") or "").strip()
-    if bwb and aanduiding:
-        try:
-            corpus = artikel_corpus(bwb, aanduiding, graph, (doel.get("lid") or "").strip() or None)
-            if corpus.strip():
-                return corpus
-            logger.info(
-                "corpus: graaf gaf niets voor het doel; terugval op de tool-trace",
-                extra={"bwb_id": bwb, "aanduiding": aanduiding, "lid": doel.get("lid", "")},
-            )
-        except Exception:  # noqa: BLE001 – een mislukte ophaal mag de annotatie niet breken
-            logger.warning("corpus: gericht ophalen mislukt; terugval op de tool-trace", exc_info=True)
-    return _corpus_uit_trace(source_trace)
 
 
 def build_graph(
@@ -292,91 +135,6 @@ def build_graph(
         """De tekst van deze annotatiebeurt. `annoteer_node` haalde hem gericht op en zette hem in de
         state; de terugval is er voor een state van vóór dit veld (een hervatte thread)."""
         return state.get("corpus") or _corpus_uit_trace(state.get("source_trace", []))
-
-    def supervisor_node(state: State) -> dict[str, Any]:
-        """Bepaalt de worker-keten (antwoord/annotatie) voor deze vraag; zet de eerste worker actief."""
-        writer = get_stream_writer()
-
-        if _heeft_opgegeven_doel(state):
-            # De aanroeper weet welke bepaling geannoteerd moet worden. Dan is er niets te kiezen en
-            # niets te zoeken: geen supervisor-call, en `_entry_node` slaat de ophaal-agent over.
-            # Wat de router zou beslissen is hier al bekend, en wat de ophaal-agent zou vinden staat
-            # er al – inclusief de zekerheid dat het de bepaling is die de jurist aanwees.
-            doel = state.get("opgegeven_doel") or {}
-            aanduiding = doel.get("artikel") or doel.get("nummer") or ""
-            _stap(writer, "Lex", f"annoteert de aangewezen bepaling (art. {aanduiding})")
-            return {
-                "specialist": "annotatie", "worker_plan": ["annotatie"], "worker_idx": 0,
-                "plan": "annotatie van een aangewezen bepaling", "afwijzen": False,
-            }
-
-        if state.get("modus") == "advies":
-            # Een adviesvraag bij een bestaande annotatie: geen LLM-keuze, hard naar de
-            # duiding-specialist. Dat is een topologische garantie in plaats van een belofte in een
-            # prompt – de antwoord-route emit geen `doel`/`element`-events, dus advies vragen kán de
-            # annotatie niet wijzigen. Scheelt bovendien een LLM-call.
-            _stap(writer, "Lex", "advies bij een bestaande markering")
-            return {
-                "specialist": "duiding", "worker_plan": ["duiding"], "worker_idx": 0,
-                "plan": "adviesvraag bij een bestaande annotatie",
-            }
-
-        resp = llm.create(
-            model=model_router,
-            max_tokens=300,
-            system=SUPERVISOR_SYSTEM + _memory_context(state),
-            tools=[],
-            messages=[{"role": "user", "content": state["question"]}],
-        )
-        text = "".join(b.text for b in resp.content if b.type == "text")
-        worker_plan, plan, afwijzen = parse_supervisor(text)
-        if afwijzen:
-            # Buiten de scope. Dit hoort hier te eindigen en niet als "AANPAK: AFWIJZEN" de
-            # systeemprompt van een specialist in te gaan, waar een tweede modelbeslissing bepaalt
-            # wat er gebeurt – dat kost minstens één extra call en is bovendien geen garantie.
-            _stap(writer, "Supervisor", "buiten de wet- en regelgeving in de graaf")
-            return {"specialist": "", "plan": plan, "worker_plan": [], "worker_idx": 0,
-                    "afwijzen": True}
-        eerste = worker_plan[0]
-        _stap(writer, "Supervisor", f"kiest de {eerste}-worker · {plan[:80]}")
-        return {"specialist": eerste, "plan": plan, "worker_plan": worker_plan, "worker_idx": 0,
-                "afwijzen": False}
-
-    def _entry_node(state: State) -> str:
-        """Ingang voor de huidige worker: de annotatie-worker draait altijd de agent⇄tools-lus; een
-        antwoord-worker gaat in decompositie-modus langs decompose, anders ook langs de agent-lus.
-
-        Wees de vraag afgewezen, dan gaat er geen enkele worker draaien – dat is de hele winst."""
-        if state.get("afwijzen"):
-            return "afwijzen"
-        if state.get("specialist") == "annotatie":
-            # Doel al bekend → recht naar de annoteerder; de agent⇄tools-lus zou alleen opzoeken
-            # wat de aanroeper al meestuurde. `annoteer_node` haalt het corpus zelf gericht op.
-            return "annoteer" if _heeft_opgegeven_doel(state) else "agent"
-        return "decompose" if settings.enable_decomposition else "agent"
-
-    def advance_node(state: State) -> dict[str, Any]:
-        """Ga naar de volgende worker in de keten; reset de per-worker werkvelden."""
-        idx = state.get("worker_idx", 0) + 1
-        plan = state.get("worker_plan") or []
-        upd: dict[str, Any] = {"worker_idx": idx}
-        if idx < len(plan):
-            upd.update({
-                "specialist": plan[idx], "turns": 0, "corrected": False, "answer": "",
-                # Ook de annotatie-velden: een volgende worker begint schoon, anders zou een
-                # tweede annotatie in dezelfde beurt op de rondeteller van de eerste doorbouwen.
-                "voorstellen": [], "verworpen_fragmenten": [], "critic_feedback": [],
-                "critic_ontbrekend": [], "critic_gefaald": False, "critic_ronde": 0,
-                "nieuw_ontbrekend": [], "gemeld_ontbrekend": [], "patch_toegepast": 0,
-                "stop_reden": "",
-            })
-        return upd
-
-    def route_after_advance(state: State) -> str:
-        plan = state.get("worker_plan") or []
-        if state.get("worker_idx", 0) < len(plan):
-            return _entry_node(state)
-        return "einde"
 
     def _advies_context(state: State) -> str:
         """Contextblok voor een adviesvraag: waar gaat het over, en wat mag de agent niet doen.
@@ -447,30 +205,6 @@ def build_graph(
         model=model, model_router=model_router, model_ophaal=model_ophaal,
         memory_context=_memory_context, corpus=_corpus, advies_context=_advies_context,
     )
-
-    def afwijs_node(state: State) -> dict[str, Any]:
-        """De supervisor plaatste de vraag buiten de wetgeving: hier eindigt de beurt.
-
-        Kort en zonder verwijt, met de uitnodiging erbij – een afwijzing die alleen "dat doe ik niet"
-        zegt laat iemand raden wat dan wel kan. Geen tools, geen bronnen, geen tweede LLM-call.
-
-        Deze tekst zegt bewust NIET "staat niet in mijn kennisgraaf". Dit pad is er voor vragen die
-        buiten de wetgeving vallen (het weer, programmeren), en dat weet de supervisor zonder te
-        kijken. Of een bepáálde regeling in de graaf zit weet hij juist níét – hij heeft geen tools —
-        en die vraag hoort dus naar de antwoord-worker, die zoekt en het zelf zegt als hij niets
-        vindt. Anders wijst een gok een vraag af waar wel degelijk iets over te vinden was: "de
-        milieuwet" leverde een afwijzing op terwijl art. 36 IW 1990 de Wet belastingen op
-        milieugrondslag noemt.
-        """
-        writer = get_stream_writer()
-        melding = (
-            "Deze vraag gaat niet over Nederlandse wet- en regelgeving, dus daar kan ik je niet mee "
-            "helpen. Vraag me gerust naar een bepaling, een begrip of de samenhang tussen artikelen "
-            "— of laat me een artikel annoteren volgens het JAS."
-        )
-        writer({"type": "token", "content": melding})
-        _stap(writer, "Klaar", "niet beantwoord – buiten de wetgeving")
-        return {"answer": melding, "messages": [{"role": "assistant", "content": melding}]}
 
     def annoteer_node(state: State) -> dict[str, Any]:
         """Aparte annoteer-stap: de ophaal-agent heeft de bepaling opgehaald (in de source_trace).
@@ -1202,15 +936,15 @@ def build_graph(
     if settings.enable_decomposition:
         # Supervisor → (annotatie: agent⇄tools→annoteer_finalize | antwoord: decompose→solve→…→
         # finalize) → advance → (volgende worker | einde).
-        add("supervisor", supervisor_node)
+        add("supervisor", functools.partial(supervisor_node, b))
         add("decompose", functools.partial(decompose_node, b))
         add("solve", functools.partial(solve_node, b))
         add("synthesize", functools.partial(synthesize_node, b))
         add("resynth", functools.partial(resynth_node, b))
         add("agent", functools.partial(agent_node, b))
         add("tools", functools.partial(tools_node, b))
-        add("advance", advance_node)
-        add("afwijzen", afwijs_node)
+        add("advance", functools.partial(advance_node, b))
+        add("afwijzen", functools.partial(afwijs_node, b))
         # Alle conditional-edges die "annoteer" als doel teruggeven moeten naar de ingang van de
         # keten; bij splitsing is dat `annoteer_kandidaten`.
         _annoteer_entry = annotatieketen()
@@ -1218,7 +952,7 @@ def build_graph(
                     "afwijzen": "afwijzen"}
         g.add_edge(START, "supervisor")
         g.add_edge("afwijzen", END)
-        g.add_conditional_edges("supervisor", _entry_node, entrymap)
+        g.add_conditional_edges("supervisor", functools.partial(_entry_node, b), entrymap)
         g.add_edge("decompose", "solve")
         g.add_conditional_edges("solve", functools.partial(route_after_solve, b), {"verify": "verify", "synthesize": "synthesize"})
         g.add_edge("synthesize", "verify")
@@ -1230,7 +964,7 @@ def build_graph(
         )
         g.add_edge("tools", "agent")
         g.add_edge("finalize", "advance")
-        g.add_conditional_edges("advance", route_after_advance, {**entrymap, "einde": END})
+        g.add_conditional_edges("advance", functools.partial(route_after_advance, b), {**entrymap, "einde": END})
         return g
 
     # Één-loop-stroom.
@@ -1240,12 +974,12 @@ def build_graph(
 
     if settings.enable_planning:
         # Supervisor → agent⇄tools → (verify→finalize | annoteer_finalize) → advance → (volgende | einde).
-        add("supervisor", supervisor_node)
-        add("advance", advance_node)
-        add("afwijzen", afwijs_node)
+        add("supervisor", functools.partial(supervisor_node, b))
+        add("advance", functools.partial(advance_node, b))
+        add("afwijzen", functools.partial(afwijs_node, b))
         _annoteer_entry = annotatieketen()
         g.add_edge(START, "supervisor")
-        g.add_conditional_edges("supervisor", _entry_node,
+        g.add_conditional_edges("supervisor", functools.partial(_entry_node, b),
                                 {"agent": "agent", "annoteer": _annoteer_entry, "afwijzen": "afwijzen"})
         g.add_edge("afwijzen", END)
         g.add_conditional_edges(
@@ -1256,7 +990,7 @@ def build_graph(
         g.add_conditional_edges("verify", functools.partial(route_after_verify, b), {"correct": "correct", "finalize": "finalize"})
         g.add_edge("correct", "agent")
         g.add_edge("finalize", "advance")
-        g.add_conditional_edges("advance", route_after_advance,
+        g.add_conditional_edges("advance", functools.partial(route_after_advance, b),
                                 {"agent": "agent", "annoteer": _annoteer_entry,
                                  "afwijzen": "afwijzen", "einde": END})
         return g
