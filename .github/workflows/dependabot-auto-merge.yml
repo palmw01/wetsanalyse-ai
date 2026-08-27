@@ -2,10 +2,18 @@
 # expliciete groepen komen (zie `.github/dependabot.yml` → `groups.patch-and-minor`).
 # Semver-majors gaan HIER NIET vanzelf door — die verdienen menselijke review.
 #
-# Voorwaarde: Settings → General → "Allow auto-merge" moet AAN staan op de repo,
-# anders faalt `gh pr merge --auto` met "auto-merge is not allowed for this repository".
-# Verder wordt de PR pas werkelijk gemerged als de required checks groen zijn — de
-# `--auto`-flag zet enkel de intentie klaar.
+# Voorwaarde: Settings → General → "Allow auto-merge" moet AAN staan op de repo. Staat hij UIT,
+# dan parkeert `gh pr merge --auto` de intentie niet maar probeert hij meteen te mergen — en dan
+# botst hij op de branch protection van master (`poort` is een required check, met `strict: true`,
+# dus de branch moet ook up-to-date zijn). Het gevolg is een race: verschuift master tussen de
+# groene check en de merge, dan faalt de run met "Base branch was modified. Review and try the
+# merge again." Zo stonden alle mislukte runs van deze workflow erbij; de instelling stond tot
+# 27 aug 2026 uit. Gevaarlijk was het niet — de protection blokkeert een merge zonder groene
+# `poort` — maar wél onbetrouwbaar, en niet wat de code hier bedoelt.
+#
+# Met de instelling AAN doet `--auto` wat er staat: de intentie wordt vastgehouden en GitHub
+# merget zelf zodra de required checks groen zijn en de branch bij is. Dependabot rebaset zijn
+# eigen branch, dus die tweede voorwaarde lost zichzelf op.
 
 name: Dependabot auto-merge
 
