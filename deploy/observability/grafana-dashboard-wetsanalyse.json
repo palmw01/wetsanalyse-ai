@@ -283,7 +283,7 @@
         "type": "prometheus",
         "uid": "wa-prometheus"
       },
-      "description": "Aandeel 5xx-serverfouten t.o.v. alle API-responses (voortschrijdend interval).",
+      "description": "Aandeel 5xx-serverfouten t.o.v. alle API-responses (voortschrijdend interval). Leeg = geen verkeer in het interval; de deling wordt bewust niet afgevangen, want een ondergrens op de noemer maakt de ratio te laag juist bij weinig verkeer.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -338,7 +338,7 @@
             "uid": "wa-prometheus"
           },
           "editorMode": "code",
-          "expr": "(sum(rate(http_server_duration_milliseconds_count{exported_job=\"wetsanalyse-api\", http_status_code=~\"5..\"}[$__rate_interval])) or vector(0)) / clamp_min(sum(rate(http_server_duration_milliseconds_count{exported_job=\"wetsanalyse-api\"}[$__rate_interval])) or vector(0), 1)",
+          "expr": "sum(rate(http_server_duration_milliseconds_count{exported_job=\"wetsanalyse-api\", http_status_code=~\"5..\"}[$__rate_interval])) / sum(rate(http_server_duration_milliseconds_count{exported_job=\"wetsanalyse-api\"}[$__rate_interval]))",
           "instant": true,
           "range": false,
           "refId": "A"
