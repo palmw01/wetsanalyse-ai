@@ -139,6 +139,14 @@ jobs:
             --password "$AZURE_CLIENT_SECRET" \
             --tenant "$AZURE_TENANT_ID"
           az account set --subscription "$AZURE_SUBSCRIPTION_ID"
+          # De doel-app moet bestaan. Bij een verse straat is de infra nog niet uitgerold en is er
+          # niets om een image op te swappen — maar het image staat dan wél in GHCR. Rood worden zou
+          # suggereren dat de build mislukte; dat gebeurde op 20 aug 2026 en kostte onnodig zoekwerk.
+          if ! az containerapp job show -n "$APP-bwb-import" -g "$RG" --output none 2>/dev/null; then
+            echo "::warning::container app job $APP-bwb-import bestaat nog niet in $RG — image is gepusht, de swap is overgeslagen. Rol eerst de infra uit (azure-infra -> deploy)."
+            echo "SWAP_OVERGESLAGEN=1" >> "$GITHUB_ENV"
+            exit 0
+          fi
           az containerapp job update \
             --name "$APP-bwb-import" \
             --resource-group "$RG" \
