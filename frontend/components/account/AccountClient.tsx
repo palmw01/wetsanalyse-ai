@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import QRCode from "qrcode";
 import { Vinkje } from "@/components/ui/Icoon";
 import { Button } from "@/components/ui/Button";
 import { SettingGroup, SettingList, SettingRow } from "@/components/ui/SettingRow";
@@ -54,6 +53,9 @@ export function AccountClient() {
     setBezig(true);
     try {
       const { otpauth_uri } = await begin2fa();
+      // qrcode wordt alleen hier gebruikt, bij het activeren van 2FA. Statisch importeren zette
+      // de hele encoder in de bundel van iedereen die zijn account opent.
+      const { default: QRCode } = await import("qrcode");
       const qr = await QRCode.toDataURL(otpauth_uri, { margin: 1, width: 200 });
       setKoppeling({ uri: otpauth_uri, qr });
       setCode("");

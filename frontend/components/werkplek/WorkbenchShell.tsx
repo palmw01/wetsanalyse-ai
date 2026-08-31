@@ -1,16 +1,25 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 
 import { AppSidebar } from "@/components/werkplek/AppSidebar";
-import { Rondleiding } from "@/components/rondleiding/Rondleiding";
 import { leesStand, moetStarten } from "@/lib/rondleiding";
 import { maakDemoScene, type DemoScene } from "@/lib/rondleidingDemo";
 import { MobieleTopbar } from "@/components/werkplek/MobieleTopbar";
 import { WerkplekClient } from "@/components/werkplek/WerkplekClient";
 import type { BeslissingType, GesprekSamenvatting } from "@/lib/types";
+
+// De rondleiding rendert alleen bij `demo` – eerste bezoek of een expliciete klik. Statisch
+// geïmporteerd zat hij (met TourBubbel) toch in de bundel van iedereen die de werkplek opent,
+// terwijl de terugkerende gebruiker hem nooit ziet. `moetStarten`/`leesStand` blijven wél eager:
+// die bepalen hierboven of er überhaupt iets te laden valt.
+const Rondleiding = dynamic(
+  () => import("@/components/rondleiding/Rondleiding").then((m) => m.Rondleiding),
+  { ssr: false },
+);
 
 /** De volledige werkplek-app: links de sidebar (logo → chatgeschiedenis → instellingen/gebruiker),
  *  rechts het chatvenster. `activeId` stuurt de highlight; `mountKey` bepaalt wanneer het chatvenster
