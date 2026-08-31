@@ -10,9 +10,7 @@ import type {
   AnnotatieElement,
   GraafArtikel,
   DocumentStatus,
-  ReviewReason,
   VoorstelElement,
-  Wijziging,
 } from "./types";
 
 // Presentatie-helpers voor de annotatie-workbench (statuslabels/kleuren).

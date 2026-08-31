@@ -16,7 +16,6 @@ import {
   haalArtikelGraaf,
   haalDocument,
   haalGesprek,
-  isApiError,
   maakGesprek,
   voegBerichtToe,
   verwijderElement,
@@ -30,7 +29,6 @@ import type {
   AgentGrounding,
   AgentDoelInvoer,
   AgentKandidaat,
-  AgentRun,
   AnnotatieDocument,
   BeslissingInvoer,
   BeslissingType,
@@ -512,9 +510,6 @@ export function WerkplekClient({
     const ontbrekend: OntbrekendItem[] = [];
     const suggesties: { element_id: string; aandacht: string; motivatie: string }[] = [];
     let kandidaten: AgentKandidaat[] = [];
-    // De herkomst van deze beurt (welk model), zodat de api kan vastleggen waar de voorstellen
-    // vandaan komen. Blijft null bij een agent die het `run`-event nog niet stuurt.
-    let run: AgentRun | null = null;
     let tekst = "";
     let denk = "";
     let bronnen: Bron[] = [];
@@ -560,7 +555,6 @@ export function WerkplekClient({
           onGrounding: (g) => updateItem(antId, { grounding: g }),
           onDoel: (d) => (doelRef.d = d),
           onElement: (e) => (els = mergeVoorstellen(els, e)),
-          onRun: (r) => (run = r),
           onOntbrekend: (xs) => ontbrekend.push(...xs),
           onSuggestie: (s) => suggesties.push(s),
           onKandidaten: (k) => (kandidaten = k),

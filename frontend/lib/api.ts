@@ -36,7 +36,6 @@ import type {
   BerichtPublicatieIn,
   BeslissingInvoer,
   Bron,
-  DocumentCreate,
   DocumentSamenvatting,
   Gesprek,
   GesprekSamenvatting,

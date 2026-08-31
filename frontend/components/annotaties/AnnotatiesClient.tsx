@@ -10,7 +10,7 @@ import { Melding } from "@/components/ui/Melding";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { isApiError, lijstDocumenten, verwijderDocument } from "@/lib/api";
 import {
-  WEERGAVEN, groepeerPerRegeling, isTeDoen, sorteerTeDoen, weergaveUitParam, zoek,
+  WEERGAVEN, groepeerPerRegeling, isTeDoen, sorteerTeDoen, zoek,
   type Weergave,
 } from "@/lib/annotatieOverzicht";
 import type { DocumentSamenvatting } from "@/lib/types";
