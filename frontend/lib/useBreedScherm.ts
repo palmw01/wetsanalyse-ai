@@ -5,8 +5,13 @@ import { useSyncExternalStore } from "react";
 /** Vanaf welke breedte het artefact naast de chat past in plaats van eroverheen.
  *
  *  Onder deze grens blijft er na de gesprekssidebar (17rem) en het artefact te weinig chat over om
- *  nog bruikbaar te zijn; dan is de inschuivende sheet beter. Gelijk aan Tailwinds `xl`. */
-const BREED = "(min-width: 1280px)";
+ *  nog bruikbaar te zijn; dan is de inschuivende sheet beter. Gelijk aan Tailwinds `xl`.
+ *
+ *  Geëxporteerd omdat de rondleiding op deze grens moet reageren: het artefact wisselt hier van
+ *  `Dialog`-variant en wordt daarmee een nieuwe DOM-boom, dus de aangewezen elementen zijn andere
+ *  knopen dan een tel eerder. Eén plek voor het getal – twee bestanden die het los opschrijven lopen
+ *  vroeg of laat uit elkaar. */
+export const BREED = "(min-width: 1280px)";
 
 function abonneer(opWijziging: () => void): () => void {
   const mq = window.matchMedia(BREED);

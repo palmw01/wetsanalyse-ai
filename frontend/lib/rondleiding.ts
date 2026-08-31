@@ -239,6 +239,11 @@ export function artefactActie(
 /** Ruimte tussen het aangewezen element en de bubbel, en tussen de bubbel en de schermrand. */
 export const BUBBEL_MARGE = 12;
 
+/** Onder deze breedte is de gesprekssidebar een drawer en gelden de `ankerSmal`-varianten.
+ *  Gelijk aan Tailwinds `lg`; naast `BREED` uit `useBreedScherm` de tweede grens waarop de
+ *  rondleiding zijn doel opnieuw moet kiezen. */
+export const SMAL = "(max-width: 1023px)";
+
 /** Een gemeten rechthoek in viewport-coördinaten. */
 export interface Vak {
   top: number;
@@ -286,16 +291,27 @@ export function domineert(vak: Vak, viewport: Afmeting): boolean {
  *  geen ruimte meer onder het element (of gaat het element domineren) en stond de bubbel opeens
  *  gecentreerd. Een uitklapper mag de bubbel verschuiven, niet verplaatsen. */
 export function plaatsBubbel(
-  vak: Vak | null,
+  gemeten: Vak | null,
   bubbel: Afmeting,
   viewport: Afmeting,
   voorkeur?: Plaatsing["modus"],
 ): Plaatsing {
+  if (!gemeten) return { modus: "midden" };
+  // Rekenen op wat er in beeld staat: een element dat half uit zijn scroller hangt levert anders een
+  // rand ver buiten het scherm, en daar werd de bubbel dan tegenaan gezet. Is er niets van te zien,
+  // dan valt er ook niets aan te wijzen.
+  const vak = zichtbaarDeel(gemeten, viewport);
   if (!vak) return { modus: "midden" };
 
   const m = BUBBEL_MARGE;
   const onderRand = vak.top + vak.hoogte;
   const rechterRand = vak.left + vak.breedte;
+  /** Houd een plek binnen het scherm. De fit-toetsen hieronder gaan uit van een vak dat in beeld
+   *  staat; deze klem maakt de belofte in de docstring waar, wat er ook in gemeten wordt. */
+  const binnen = (top: number, left: number): { top: number; left: number } => ({
+    top: klem(top, m, Math.max(m, viewport.hoogte - bubbel.hoogte - m)),
+    left: klem(left, m, Math.max(m, viewport.breedte - bubbel.breedte - m)),
+  });
 
   // Horizontaal uitgelijnd op het midden van het element, verticaal idem – in beide gevallen
   // geklemd, zodat een element aan de rand de bubbel niet mee naar buiten trekt.
@@ -313,16 +329,16 @@ export function plaatsBubbel(
   /** Past de bubbel aan deze kant? Zo ja, waar komt hij dan te staan. */
   const kandidaat = (modus: Plaatsing["modus"]): Plaatsing | null => {
     if (modus === "onder" && viewport.hoogte - onderRand >= bubbel.hoogte + 2 * m) {
-      return { modus, top: onderRand + m, left: linksGecentreerd };
+      return { modus, ...binnen(onderRand + m, linksGecentreerd) };
     }
     if (modus === "boven" && vak.top >= bubbel.hoogte + 2 * m) {
-      return { modus, top: vak.top - m - bubbel.hoogte, left: linksGecentreerd };
+      return { modus, ...binnen(vak.top - m - bubbel.hoogte, linksGecentreerd) };
     }
     if (modus === "rechts" && viewport.breedte - rechterRand >= bubbel.breedte + 2 * m) {
-      return { modus, top: topGecentreerd, left: rechterRand + m };
+      return { modus, ...binnen(topGecentreerd, rechterRand + m) };
     }
     if (modus === "links" && vak.left >= bubbel.breedte + 2 * m) {
-      return { modus, top: topGecentreerd, left: vak.left - m - bubbel.breedte };
+      return { modus, ...binnen(topGecentreerd, vak.left - m - bubbel.breedte) };
     }
     return null;
   };
@@ -354,12 +370,55 @@ export function plaatsBubbel(
  *  een paar pixels achterloopt mag nooit de knop afdekken. */
 export function klikGat(stap: Stap, vak: Vak | null, marge: number): Vak | null {
   if (!stap.interactie || !vak) return null;
+  return uitsnede(vak, marge);
+}
+
+/** Het vak plus een marge eromheen: de uitsparing die de dimlaag openlaat.
+ *
+ *  Los van `klikGat`, want er zijn twee verschillende vragen. **Zien** doe je het aangewezen element
+ *  in élke stap – gedimd wijst het niets aan, dan zie je alleen een rand om iets grijs. **Bedienen**
+ *  mag alleen in de stap die om een handeling vraagt; daarbuiten legt `TourBubbel` een onzichtbare
+ *  vanger over ditzelfde vak. */
+export function uitsnede(vak: Vak, marge: number): Vak {
   return {
     top: vak.top - marge,
     left: vak.left - marge,
     breedte: vak.breedte + marge * 2,
     hoogte: vak.hoogte + marge * 2,
   };
+}
+
+/** Het gemeten vak van een element, in viewport-coördinaten.
+ *
+ *  De enige plek in deze module die de DOM aanraakt, en bewust hier: zowel de bubbel als de motor van
+ *  de rondleiding meten elementen, en dat hoort één omzetting te zijn. De functie wordt in de tests
+ *  niet aangeroepen – die draaien zonder DOM. */
+export function vakVan(el: Element): Vak {
+  const r = el.getBoundingClientRect();
+  return { top: r.top, left: r.left, breedte: r.width, hoogte: r.height };
+}
+
+/** Stelt dit vak iets voor? Een element dat `display: none` is (de zijbalk onder `lg`, de mobiele
+ *  hamburger erboven) levert een rechthoek van 0×0 op, en dáár een bubbel bij zetten wijst niets aan:
+ *  je krijgt een gecentreerde kaart met een vierkantje van een paar pixels in de hoek van het scherm.
+ *  De rondleiding kiest zijn anker hierop, zodat een breekpuntwissel het doel meeneemt. */
+export function heeftOmvang(vak: Vak | null): boolean {
+  return Boolean(vak && vak.breedte > 0 && vak.hoogte > 0);
+}
+
+/** Het deel van `vak` dat werkelijk in beeld staat; `null` als er niets van te zien is.
+ *
+ *  `getBoundingClientRect` geeft het **ongeclipte** vak, ook als het element binnen een scroller
+ *  hangt en er maar een strook van zichtbaar is. Een reviewkaart die uitklapt tot 600px in een
+ *  scroller van 400px levert dus een vak dat tot ver onder de schermrand doorloopt, en de bubbel
+ *  werd daar netjes onder gehangen – buiten beeld. Plaatsen doe je bij wat de gebruiker ziet. */
+export function zichtbaarDeel(vak: Vak, viewport: Afmeting): Vak | null {
+  const top = Math.max(0, vak.top);
+  const links = Math.max(0, vak.left);
+  const onder = Math.min(viewport.hoogte, vak.top + vak.hoogte);
+  const rechts = Math.min(viewport.breedte, vak.left + vak.breedte);
+  if (onder <= top || rechts <= links) return null;
+  return { top, left: links, breedte: rechts - links, hoogte: onder - top };
 }
 
 /** De dimlaag als losse rechthoeken, met een gat op `gat`.
