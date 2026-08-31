@@ -89,8 +89,69 @@ describe("verwerkSseStroom – via volgRun", () => {
     expect(denk).toBe("[Graaf bevragen: get_artikel]Ik zoek dit op."); // status + reason = denkproces
     expect(bronnen).toEqual([{ label: "IW art. 9", uri: "x" }]);
     expect(doel).toEqual({ bwbId: "BWBR0004770", artikel: "9", lid: "1" });
-    expect(elementen).toEqual([element]);
+    // Het schema vult de velden aan die de agent wegliet. Dat is geen kosmetiek: `VoorstelElement`
+    // eist ze, dus vóór de validatie kreeg de UI een object dat niet aan zijn eigen type voldeed.
+    expect(elementen).toEqual([
+      { ...element, lid: "", toelichting: "", vindplaats: "", alternatieven: [], grounded: false },
+    ]);
     expect(ontbrekend).toEqual([{ klasse: "Rechtsfeit", reden: "handeling" }]);
+  });
+
+  it("slaat een misvormd event over en laat de rest van de beurt doorlopen", async () => {
+    // De regel achter agentEvents.ts: één frame dat zijn vorm niet haalt kost de jurist niet zijn
+    // hele antwoord. Hier mist het element zijn `tekst` (zonder letterlijk fragment valt er niets
+    // brongetrouws te tonen) en draagt het doel geen bwbId — beide horen te verdwijnen, terwijl de
+    // tokens ervoor en erna gewoon aankomen.
+    const stil = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const frames = [
+      `data: ${JSON.stringify({ type: "token", content: "voor " })}\r\n\r\n`,
+      `data: ${JSON.stringify({ type: "element", element: { klasse: "Rechtssubject" } })}\r\n\r\n`,
+      `data: ${JSON.stringify({ type: "doel", doel: { artikel: "9" } })}\r\n\r\n`,
+      `data: ${JSON.stringify({ type: "token", content: "na" })}\r\n\r\n`,
+      `data: ${JSON.stringify({ type: "done" })}\r\n\r\n`,
+    ];
+    vi.stubGlobal("fetch", vi.fn(async () => sseResponse(frames)));
+
+    let tekst = "";
+    const elementen: unknown[] = [];
+    let doel: unknown = null;
+    await volgRun("run-1", {
+      onToken: (t) => (tekst += t),
+      onElement: (e) => elementen.push(e),
+      onDoel: (d) => (doel = d),
+    });
+
+    expect(tekst).toBe("voor na"); // de stroom liep door
+    expect(elementen).toEqual([]);
+    expect(doel).toBeNull();
+    expect(stil).toHaveBeenCalledTimes(2);
+    // De waarschuwing benoemt wél wát er sneuvelde, maar draagt geen wettekst mee.
+    expect(stil.mock.calls[0]?.[0]).toContain("element");
+  });
+
+  it("vult ontbrekende velden van een element aan in plaats van ze door te laten", async () => {
+    // VoorstelElement eist lid/toelichting/vindplaats/alternatieven/grounded. Een agent die ze
+    // weglaat leverde vóór de validatie een object op dat niet aan zijn eigen type voldeed.
+    const frames = [
+      `data: ${JSON.stringify({ type: "element", element: { klasse: "Rechtsfeit", tekst: "betaalt" } })}\r\n\r\n`,
+      `data: ${JSON.stringify({ type: "done" })}\r\n\r\n`,
+    ];
+    vi.stubGlobal("fetch", vi.fn(async () => sseResponse(frames)));
+
+    const elementen: unknown[] = [];
+    await volgRun("run-1", { onElement: (e) => elementen.push(e) });
+
+    expect(elementen).toEqual([
+      {
+        klasse: "Rechtsfeit",
+        tekst: "betaalt",
+        lid: "",
+        toelichting: "",
+        vindplaats: "",
+        alternatieven: [],
+        grounded: false,
+      },
+    ]);
   });
 
   it("geeft een waarschuwing door zonder de beurt te laten mislukken", async () => {
@@ -263,6 +324,20 @@ describe("startRun – er loopt er al een", () => {
       status: 409,
       loopendeRun: "run-bestaand",
     });
+  });
+
+  it("weigert een run-antwoord dat zijn vorm niet haalt", async () => {
+    // De run_id stuurt alles wat erna komt: aanhaken, stoppen, het idempotent wegschrijven van de
+    // uitkomst. Een antwoord zonder bruikbare run_id doorlaten levert een beurt op die nergens meer
+    // te vinden is — beter meteen als storing tonen.
+    const stil = vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(
+      JSON.stringify({ conversation_id: "gesprek-1", status: "loopt" }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    )));
+
+    await expect(startRun("een vraag", "gesprek-1")).rejects.toMatchObject({ status: 502 });
+    expect(stil).toHaveBeenCalled();
   });
 
   it("laat een echte fout wél een fout zijn", async () => {
