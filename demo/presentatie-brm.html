@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lex — wetsanalyse met de kennisgraaf</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4/dist/reset.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4/dist/reveal.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4/dist/theme/white.css" />
+  <style>
+    :root {
+      --lint: #154273;
+      --lint-light: #e8eff7;
+      --lint-mid: #3a6ea8;
+      --text: #1a1a1a;
+      --muted: #5a6a7a;
+      --border: #dce5ef;
+    }
+
+    .reveal {
+      font-family: 'Fira Sans', sans-serif;
+      font-size: 28px;
+      color: var(--text);
+    }
+
+    .reveal h1, .reveal h2, .reveal h3 {
+      font-family: 'Fira Sans', sans-serif;
+      font-weight: 600;
+      color: var(--lint);
+      text-transform: none;
+      letter-spacing: -0.01em;
+      line-height: 1.2;
+    }
+
+    .reveal h1 { font-size: 2em; }
+    .reveal h2 { font-size: 1.4em; margin-bottom: 0.6em; }
+    .reveal h3 { font-size: 1em; color: var(--lint-mid); margin-bottom: 0.4em; }
+
+    .reveal ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .reveal ul li {
+      padding: 0.35em 0 0.35em 1.4em;
+      position: relative;
+      font-size: 0.85em;
+      line-height: 1.5;
+    }
+    .reveal ul li::before {
+      content: '—';
+      position: absolute;
+      left: 0;
+      color: var(--lint);
+      font-weight: 600;
+    }
+
+    .reveal .slides section {
+      text-align: left;
+      padding: 0 2em;
+    }
+
+    /* Titeldia */
+    .slide-title {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      height: 100%;
+    }
+    .slide-title .pretitle {
+      font-size: 0.55em;
+      font-weight: 600;
+      color: var(--lint);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 0.8em;
+    }
+    .slide-title h1 {
+      font-size: 2em;
+      margin: 0 0 0.3em 0;
+      line-height: 1.15;
+    }
+    .slide-title .subtitle {
+      font-size: 0.75em;
+      color: var(--muted);
+      margin-bottom: 2em;
+      line-height: 1.5;
+    }
+    .slide-title .footer {
+      font-size: 0.5em;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      padding-top: 0.8em;
+    }
+    .lint-bar {
+      width: 48px;
+      height: 4px;
+      background: var(--lint);
+      border-radius: 2px;
+      margin-bottom: 1em;
+    }
+
+    /* JAS kleurstrip */
+    .jas-strip {
+      display: flex;
+      gap: 4px;
+      margin: 1.2em 0 0.5em 0;
+      flex-wrap: nowrap;
+    }
+    .jas-chip {
+      flex: 1;
+      min-width: 0;
+      height: 8px;
+      border-radius: 4px;
+    }
+    .jas-labels {
+      display: flex;
+      gap: 4px;
+      flex-wrap: nowrap;
+    }
+    .jas-label {
+      flex: 1;
+      min-width: 0;
+      font-size: 0.28em;
+      color: var(--muted);
+      text-align: center;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: clip;
+      line-height: 1.3;
+    }
+
+    /* Platform diagram */
+    .platform-diagram {
+      width: 100%;
+      margin: 1em 0;
+    }
+
+    /* Drie stappen */
+    .stappen {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1em;
+      margin-top: 0.8em;
+    }
+    .stap {
+      background: var(--lint-light);
+      border-radius: 8px;
+      padding: 1em;
+      border-top: 3px solid var(--lint);
+    }
+    .stap h3 {
+      font-size: 0.7em;
+      margin-bottom: 0.5em;
+      color: var(--lint);
+    }
+    .stap p {
+      font-size: 0.6em;
+      line-height: 1.55;
+      margin: 0;
+      color: var(--text);
+    }
+
+    /* Brongetrouwheid */
+    .jci-box {
+      background: #f4f7fb;
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--lint);
+      border-radius: 4px;
+      padding: 0.7em 1em;
+      font-family: 'Fira Sans', monospace;
+      font-size: 0.6em;
+      color: var(--lint);
+      margin: 1em 0;
+      line-height: 1.6;
+    }
+
+    /* Critic kaartjes */
+    .critic-kaarten {
+      display: flex;
+      flex-direction: column;
+      gap: 0.7em;
+      margin-top: 0.8em;
+    }
+    .critic-kaart {
+      display: flex;
+      align-items: flex-start;
+      gap: 0;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #fafcff;
+      border: 1px solid var(--border);
+    }
+    .critic-kaart .balk {
+      width: 6px;
+      min-height: 100%;
+      flex-shrink: 0;
+    }
+    .critic-kaart .inhoud {
+      padding: 0.6em 0.9em;
+    }
+    .critic-kaart .inhoud strong {
+      font-size: 0.7em;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 0.2em;
+    }
+    .critic-kaart .inhoud p {
+      font-size: 0.6em;
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* Demo afsluiting */
+    .demo-klaar {
+      font-size: 1.6em;
+      font-weight: 600;
+      color: var(--lint);
+      margin: 0.6em 0 0.4em 0;
+      line-height: 1.2;
+    }
+    .demo-bullets {
+      margin: 0.5em 0 1.5em 0;
+    }
+    .demo-warning {
+      font-size: 0.48em;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      padding-top: 0.8em;
+      margin-top: 1em;
+    }
+
+    /* Verborgen demo-stap dia's */
+    .demo-stap-header {
+      font-size: 0.55em;
+      font-weight: 600;
+      color: var(--lint);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 0.4em;
+    }
+    .demo-stap h2 { font-size: 1.2em; }
+    .demo-commando {
+      background: var(--lint);
+      color: #fff;
+      border-radius: 6px;
+      padding: 0.5em 0.9em;
+      font-size: 0.65em;
+      margin: 0.8em 0;
+      font-style: italic;
+      line-height: 1.5;
+    }
+    .demo-stap ul li { font-size: 0.72em; }
+
+    /* Paginanummer */
+    .reveal .slide-number {
+      font-family: 'Fira Sans', sans-serif;
+      font-size: 14px;
+      color: var(--muted);
+      background: transparent;
+    }
+  </style>
+</head>
+<body>
+<div class="reveal">
+  <div class="slides">
+
+    <!-- ────────────────────────────────────────────
+         DIA 1 — Titeldia
+    ──────────────────────────────────────────── -->
+    <section>
+      <div class="slide-title">
+        <div class="lint-bar"></div>
+        <div class="pretitle">Business Rules Management · Demo</div>
+        <h1>Lex — wetsanalyse<br/>met de kennisgraaf</h1>
+        <div class="subtitle">
+          Een hulpmiddel voor gestructureerde,<br/>
+          brongetrouwe JAS-annotatie
+        </div>
+        <div class="footer">Belastingdienst &nbsp;·&nbsp; BRM-team &nbsp;·&nbsp; [datum]</div>
+      </div>
+      <aside class="notes">
+        Welkom. Vandaag laat ik jullie Lex zien — een platform dat we bouwen om de stap van wet naar
+        uitvoerbare bedrijfsregel te ondersteunen. We doen dat via het Juridisch Analyseschema. In
+        de eerste tien minuten loop ik door de achtergrond, daarna gaan we live de werkplek in.
+      </aside>
+    </section>
+
+    <!-- ────────────────────────────────────────────
+         DIA 2 — Het startpunt
+    ──────────────────────────────────────────── -->
+    <section>
+      <h2>BRM begint bij de wet</h2>
+      <ul>
+        <li>Van wet naar uitvoerbare regel: de wettekst is het vertrekpunt — niet een samenvatting ervan</li>
+        <li>Handmatig JAS-annoteren kost tijd: één artikel met vijf leden kan tientallen markeringen bevatten</li>
+        <li>De koppeling naar de bron raakt snel los: wélke versie van de wettekst? wélk lid precies?</li>
+        <li>Doel van dit platform: die koppeling automatisch en controleerbaar houden</li>
+      </ul>
+      <aside class="notes">
+        Jullie weten dit — ik zeg het toch even hardop. De uitdaging is niet het lezen van de wet,
+        maar het systematisch en herleidbaar vastleggen van wat er staat. JAS geeft daar de structuur
+        voor, maar het invulwerk is intensief. Hier helpt Lex bij.
+      </aside>
+    </section>
+
+    <!-- ────────────────────────────────────────────
+         DIA 3 — De wetsanalyse-methode
+    ──────────────────────────────────────────── -->
+    <section>
+      <h2>Zes activiteiten van Wetsanalyse</h2>
+      <p style="font-size:0.65em; color:var(--muted); margin-bottom:0.9em; line-height:1.4;">
+        Wetsanalyse werkt iteratief — activiteiten lopen in de praktijk in elkaar over.
+      </p>
+      <div style="display:grid; grid-template-columns:repeat(6,1fr); gap:0.5em; margin-bottom:0.8em;">
+
+        <!-- A1 -->
+        <div style="border-radius:7px; border:1.5px solid var(--border); padding:0.65em 0.5em; background:#fafcff; opacity:0.5;">
+          <div style="font-size:0.42em; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); margin-bottom:0.35em;">Act. 1</div>
+          <div style="font-size:0.62em; font-weight:600; color:var(--text); line-height:1.3; margin-bottom:0.3em;">Werkgebied bepalen</div>
+          <div style="font-size:0.5em; color:var(--muted); line-height:1.4;">Scope en relevante bronnen vaststellen</div>
+        </div>
+
+        <!-- A2 — ONDERSTEUND -->
+        <div style="border-radius:7px; border:2px solid var(--lint); padding:0.65em 0.5em; background:var(--lint-light);">
+          <div style="font-size:0.42em; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:var(--lint); margin-bottom:0.35em;">Act. 2</div>
+          <div style="font-size:0.62em; font-weight:600; color:var(--lint); line-height:1.3; margin-bottom:0.3em;">Juridische structuur zichtbaar maken</div>
+          <div style="font-size:0.5em; color:var(--text); line-height:1.4; margin-bottom:0.45em;">Formuleringen markeren en JAS-klasse toekennen</div>
+          <div style="display:inline-block; background:var(--lint); color:#fff; border-radius:3px; font-size:0.42em; font-weight:600; padding:0.18em 0.5em; letter-spacing:0.04em; white-space:nowrap;">
+            Lex ondersteunt dit
+          </div>
+        </div>
+
+        <!-- A3 -->
+        <div style="border-radius:7px; border:1.5px solid var(--border); padding:0.65em 0.5em; background:#fafcff; opacity:0.5;">
+          <div style="font-size:0.42em; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); margin-bottom:0.35em;">Act. 3</div>
+          <div style="font-size:0.62em; font-weight:600; color:var(--text); line-height:1.3; margin-bottom:0.3em;">Betekenis vaststellen</div>
+          <div style="font-size:0.5em; color:var(--muted); line-height:1.4;">Begrippen, definities en afleidingsregels</div>
+        </div>
+
+        <!-- A4 -->
+        <div style="border-radius:7px; border:1.5px solid var(--border); padding:0.65em 0.5em; background:#fafcff; opacity:0.5;">
+          <div style="font-size:0.42em; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); margin-bottom:0.35em;">Act. 4</div>
+          <div style="font-size:0.62em; font-weight:600; color:var(--text); line-height:1.3; margin-bottom:0.3em;">Analyse­resultaten valideren</div>
+          <div style="font-size:0.5em; color:var(--muted); line-height:1.4;">Juistheid en volledigheid toetsen met voorbeelden</div>
+        </div>
+
+        <!-- A5 -->
+        <div style="border-radius:7px; border:1.5px solid var(--border); padding:0.65em 0.5em; background:#fafcff; opacity:0.5;">
+          <div style="font-size:0.42em; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); margin-bottom:0.35em;">Act. 5</div>
+          <div style="font-size:0.62em; font-weight:600; color:var(--text); line-height:1.3; margin-bottom:0.3em;">Ontbrekende beleidsregels signaleren</div>
+          <div style="font-size:0.5em; color:var(--muted); line-height:1.4;">Leemten in uitvoeringsbeleid in kaart brengen</div>
+        </div>
+
+        <!-- A6 -->
+        <div style="border-radius:7px; border:1.5px solid var(--border); padding:0.65em 0.5em; background:#fafcff; opacity:0.5;">
+          <div style="font-size:0.42em; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); margin-bottom:0.35em;">Act. 6</div>
+          <div style="font-size:0.62em; font-weight:600; color:var(--text); line-height:1.3; margin-bottom:0.3em;">Kennismodel opstellen</div>
+          <div style="font-size:0.5em; color:var(--muted); line-height:1.4;">Gegevens-, regel- en procesmodel samenbrengen</div>
+        </div>
+
+      </div>
+      <p style="font-size:0.55em; color:var(--muted); line-height:1.5; border-top:1px solid var(--border); padding-top:0.6em;">
+        Activiteiten 3–6 doe je nu zelf. Activiteit 1 ook — Lex helpt daarbij wel bij het zoeken van
+        relevante bronnen en het volgen van verwijzingen. De volgende stap is activiteit 2 agentisch uitbreiden
+        naar activiteit 3.
+      </p>
+      <aside class="notes">
+        Dit zijn de zes activiteiten zoals beschreven in de Handleiding Wetsanalyse in de Praktijk
+        (Expertisecentrum BRM, 2023). Ze lopen in de praktijk iteratief — je gaat niet netjes van
+        1 naar 6. Lex ondersteunt activiteit 2: het markeren en classificeren in JAS-klassen.
+        Dat is de kern zonder welke activiteit 3 en verder niet goed kunnen starten.
+        Activiteiten 3 t/m 6 staan op de roadmap.
+      </aside>
+    </section>
+
+    <!-- ────────────────────────────────────────────
+         DIA 4 — JAS in één zin (was dia 3)
+    ──────────────────────────────────────────── -->
+    <section>
+      <h2>Het Juridisch Analyseschema in één zin</h2>
+      <p style="font-size:0.8em; line-height:1.55; margin-bottom:1em;">
+        JAS verdeelt de wettekst in <strong>13 klassen</strong> — van rechtssubject
+        tot delegatiebevoegdheid — zodat elke zin terug te vinden is als een
+        benoemd, gestructureerd element.
+      </p>
+      <div class="jas-strip">
+        <div class="jas-chip" style="background:#d8eaf7;"></div>
+        <div class="jas-chip" style="background:#b2c3e3;"></div>
+        <div class="jas-chip" style="background:#90a2d0;"></div>
+        <div class="jas-chip" style="background:#bad8f1;"></div>
+        <div class="jas-chip" style="background:#b7d8cd;"></div>
+        <div class="jas-chip" style="background:#d47479;"></div>
+        <div class="jas-chip" style="background:#f5dc5e;"></div>
+        <div class="jas-chip" style="background:#e6b8bb;"></div>
+        <div class="jas-chip" style="background:#d7e8e2;"></div>
+        <div class="jas-chip" style="background:#cbb8d6;"></div>
+        <div class="jas-chip" style="background:#e6d3e5;"></div>
+        <div class="jas-chip" style="background:#b0b1b2;"></div>
+        <div class="jas-chip" style="background:#edefef; border:1px solid #ccc;"></div>
+      </div>
+      <div class="jas-labels">
+        <div class="jas-label">Rechts­subject</div>
+        <div class="jas-label">Rechts­object</div>
+        <div class="jas-label">Rechts­betrekking</div>
+        <div class="jas-label">Rechts­feit</div>
+        <div class="jas-label">Voor­waarde</div>
+        <div class="jas-label">Afleiding</div>
+        <div class="jas-label">Variabele</div>
+        <div class="jas-label">Parameter</div>
+        <div class="jas-label">Operator</div>
+        <div class="jas-label">Tijds­aanduiding</div>
+        <div class="jas-label">Plaats­aanduiding</div>
+        <div class="jas-label">Delegatie</div>
+        <div class="jas-label">Bron­definitie</div>
+      </div>
+      <p style="font-size:0.62em; color:var(--muted); margin-top:1.2em; font-weight:600;">
+        De jurist beslist — de AI stelt voor.
+      </p>
+      <aside class="notes">
+        Jullie kennen deze klassen. Ik laat de strip zien zodat straks in de demo duidelijk is
+        hoe elke markering in de werkplek een kleur krijgt die bij zijn klasse hoort. De volgorde
+        is canoniek: rechtssubject → rechtsobject → … → brondefinitie. Die volgorde bepaalt ook
+        de volgorde van de review-kaarten.
+      </aside>
+    </section>
+
+    <!-- ────────────────────────────────────────────
+         DIA 4 — Het platform
+    ──────────────────────────────────────────── -->
+    <section>
+      <h2>Drie lagen, één werkstroom</h2>
+      <svg class="platform-diagram" viewBox="0 0 760 160" xmlns="http://www.w3.org/2000/svg"
+           aria-label="Stroomdiagram: Kennisgraaf naar Lex naar Werkplek naar Jurist">
+        <!-- blokken -->
+        <rect x="10"  y="30" width="155" height="68" rx="6" fill="#e8eff7" stroke="#154273" stroke-width="1.5"/>
+        <rect x="210" y="30" width="155" height="68" rx="6" fill="#e8eff7" stroke="#154273" stroke-width="1.5"/>
+        <rect x="410" y="30" width="155" height="68" rx="6" fill="#e8eff7" stroke="#154273" stroke-width="1.5"/>
+        <rect x="610" y="30" width="140" height="68" rx="6" fill="#154273"/>
+        <!-- labels in blokken -->
+        <text x="88"  y="60" text-anchor="middle" font-family="Fira Sans,sans-serif" font-weight="600" font-size="13" fill="#154273">Kennisgraaf</text>
+        <text x="88"  y="76" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="11" fill="#3a6ea8">(BWB)</text>
+        <text x="288" y="60" text-anchor="middle" font-family="Fira Sans,sans-serif" font-weight="600" font-size="13" fill="#154273">Lex</text>
+        <text x="288" y="76" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="11" fill="#3a6ea8">(AI-agent)</text>
+        <text x="488" y="60" text-anchor="middle" font-family="Fira Sans,sans-serif" font-weight="600" font-size="13" fill="#154273">Werkplek</text>
+        <text x="488" y="76" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="11" fill="#3a6ea8">(browser)</text>
+        <text x="680" y="60" text-anchor="middle" font-family="Fira Sans,sans-serif" font-weight="600" font-size="13" fill="#ffffff">Jurist</text>
+        <text x="680" y="76" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="11" fill="#b8d0e8">(beslisser)</text>
+        <!-- pijlen -->
+        <path d="M165 64 L207 64" stroke="#154273" stroke-width="2" marker-end="url(#arrow)"/>
+        <path d="M365 64 L407 64" stroke="#154273" stroke-width="2" marker-end="url(#arrow)"/>
+        <path d="M565 64 L607 64" stroke="#154273" stroke-width="2" marker-end="url(#arrow)"/>
+        <defs>
+          <marker id="arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+            <polygon points="0 0, 7 3.5, 0 7" fill="#154273"/>
+          </marker>
+        </defs>
+        <!-- subteksten onder blokken -->
+        <text x="88"  y="118" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="9.5" fill="#5a6a7a">Wettekst van overheid.nl</text>
+        <text x="88"  y="130" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="9.5" fill="#5a6a7a">opgeslagen als RDF-graaf</text>
+        <text x="288" y="118" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="9.5" fill="#5a6a7a">Beantwoordt vragen,</text>
+        <text x="288" y="130" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="9.5" fill="#5a6a7a">stelt JAS-markeringen voor</text>
+        <text x="488" y="118" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="9.5" fill="#5a6a7a">Chat + annotatie-review</text>
+        <text x="488" y="130" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="9.5" fill="#5a6a7a">in één scherm</text>
+        <text x="680" y="118" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="9.5" fill="#5a6a7a">Akkoord · Verwerpen</text>
+        <text x="680" y="130" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="9.5" fill="#5a6a7a">Export PDF/CSV/JSON</text>
+      </svg>
+      <aside class="notes">
+        De kennisgraaf bevat de letterlijke wettekst rechtstreeks van overheid.nl — geen kopieën,
+        geen parafrasen. Lex bevraagt die graaf met gerichte tools en fundeert elk antwoord op
+        wat er werkelijk staat. De werkplek is de browser-interface: chat en annotatie-review
+        in één scherm. De jurist is altijd de eindverantwoordelijke.
+      </aside>
+    </section>
+
+    <!-- ────────────────────────────────────────────
+         DIA 5 — De drie stappen
+    ──────────────────────────────────────────── -->
+    <section>
+      <h2>Van vraag tot beoordeelde annotatie</h2>
+      <div class="stappen">
+        <div class="stap">
+          <h3>1 · Stel een vraag</h3>
+          <p>Typ een juridische vraag in de werkplek. Lex zoekt in de graaf, haalt het relevante artikel op en antwoordt met een letterlijk citaat en een bronverwijzing.</p>
+        </div>
+        <div class="stap">
+          <h3>2 · Ontvang een annotatie</h3>
+          <p>Vraag een JAS-annotatie voor een specifiek artikel. Lex haalt de exacte wettekst op, stelt markeringen voor in alle van toepassing zijnde klassen en laat de Critic elk element controleren.</p>
+        </div>
+        <div class="stap">
+          <h3>3 · Beoordeel en beslis</h3>
+          <p>Elk voorstel verschijnt als een kaart: aandachtsniveau, klassenaam, fragment, toelichting. Jij drukt op Akkoord of Verwerpen. Wat jij beslist staat in het audittrail, met tijdstip en naam.</p>
+        </div>
+      </div>
+      <aside class="notes">
+        Dit is de kernwerkstroom. Stap 1 en 2 zijn veelal gecombineerd — je vraagt annoteer artikel X
+        en Lex doet de rest. Stap 3 is altijd menselijk: het platform forceert een beslissing,
+        het slaat niets op zonder dat de jurist er iets mee gedaan heeft.
+      </aside>
+    </section>
+
+    <!-- ────────────────────────────────────────────
+         DIA 6 — Brongetrouwheid
+    ──────────────────────────────────────────── -->
+    <section>
+      <h2>Geen fragment zonder bron</h2>
+      <ul>
+        <li>Elk JAS-element bevat het <strong>letterlijke tekstfragment</strong> uit de opgehaalde wettekst</li>
+        <li>Een algoritme — geen tweede AI-aanroep — controleert: staat dit citaat écht in de tekst die uit de graaf is gehaald?</li>
+        <li>Als het er niet in staat, markeert de werkplek het en legt Lex uit waarom</li>
+        <li>Elk element is herleidbaar naar een <strong>jci-uri</strong>: de officiële verwijzing naar artikel + lid + BWB-identificatie</li>
+      </ul>
+      <div class="jci-box">
+        jci1.31:c:BWBR0004770&amp;artikel=36&amp;lid=4<br/>
+        Invorderingswet 1990, art. 36 lid 4
+      </div>
+      <aside class="notes">
+        Dit is de eigenschap die Lex onderscheidt van een gewone chatbot. De grounding-check is
+        deterministisch — geen taal­model, maar stringvergelijking. Als een citaat er zelfs maar
+        één karakter van afwijkt, geeft de werkplek een waarschuwing. In de demo zie je hoe dat
+        eruitziet met een opzettelijk iets-afwijkend citaat in de rondleiding.
+      </aside>
+    </section>
+
+    <!-- ────────────────────────────────────────────
+         DIA 7 — De Critic
+    ──────────────────────────────────────────── -->
+    <section>
+      <h2>Jij beslist — de AI controleert zichzelf</h2>
+      <div class="critic-kaarten">
+        <div class="critic-kaart">
+          <div class="balk" style="background:#4caf50;"></div>
+          <div class="inhoud">
+            <strong>Geen bezwaar</strong>
+            <p>Klasse, fragment en afbakening kloppen. Snel door met Akkoord — of de pijltoets.</p>
+          </div>
+        </div>
+        <div class="critic-kaart">
+          <div class="balk" style="background:#f59e0b;"></div>
+          <div class="inhoud">
+            <strong>Even kijken</strong>
+            <p>De Critic twijfelt — Voorwaarde of Afleidingsregel? De kaart toont een alternatief als klikbare chip. Jij kiest; je keuze staat in het audittrail.</p>
+          </div>
+        </div>
+        <div class="critic-kaart">
+          <div class="balk" style="background:#ef4444;"></div>
+          <div class="inhoud">
+            <strong>Waarschijnlijk fout</strong>
+            <p>De Critic heeft de correctie al doorgevoerd in code — geen tweede AI-aanroep. Wat er stond en waarom het is aangepast, is zichtbaar in de kaart.</p>
+          </div>
+        </div>
+      </div>
+      <p style="font-size:0.58em; color:var(--muted); margin-top:0.9em; font-style:italic;">
+        Het model doet wat zeker is automatisch. Wat twijfelachtig is, legt het voor.
+      </p>
+      <aside class="notes">
+        Dit ontwerp is bewust. Rode correcties lopen via code — geen extra taalmodel dat misschien
+        weer iets anders bedenkt. Gele twijfels worden keuzes van de jurist, vastgelegd in het
+        audittrail. Zo weet je achteraf altijd wie wat heeft beslist en waarom.
+      </aside>
+    </section>
+
+    <!-- ────────────────────────────────────────────
+         DIA 8 — Over naar de demo
+    ──────────────────────────────────────────── -->
+    <section>
+      <h2>Laten we het zien</h2>
+      <ul class="demo-bullets">
+        <li>Een vraag stellen en het antwoord met bronvermelding bekijken</li>
+        <li>Artikel 36 lid 4 Invorderingswet 1990 laten annoteren</li>
+        <li>De review doorlopen: akkoord geven, een alternatief kiezen, Lex iets vragen</li>
+      </ul>
+      <div class="demo-klaar">De werkplek staat klaar.</div>
+      <div class="demo-warning">
+        Acceptatie-omgeving &nbsp;·&nbsp; let op: analyses kunnen verloren gaan
+      </div>
+      <aside class="notes">
+        Schakel nu over naar de browser met de werkplek. Begin met de rondleiding zodat iedereen
+        de interface een keer voorbij heeft zien komen, daarna gaan we live.
+      </aside>
+    </section>
+
+    <!-- ════════════════════════════════════════════
+         VERBORGEN DEMO-STAP DIA'S (niet zichtbaar
+         in normale weergave; alleen speaker notes)
+    ════════════════════════════════════════════ -->
+
+    <section data-visibility="hidden">
+      <div class="demo-stap-header">Demo · Stap 1</div>
+      <h2>Rondleiding starten</h2>
+      <p style="font-size:0.7em;">Klik "Laat me de werkplek zien" op het lege gespreksvenster.</p>
+      <ul>
+        <li>Loop de 13 stappen door via de pijltoets of de knop in de bubbel</li>
+        <li>Wijs aan: gespreksvenster → sidebar → invoerveld → bronnen → brongetrouwheid</li>
+        <li>Bij stap 11 (Jij beslist): echt op Akkoord klikken — dit is een gat in de dimdimlaag</li>
+        <li>Sluit de rondleiding na stap 13 met "Aan de slag"</li>
+      </ul>
+      <aside class="notes">Stap 1 van 6 demo-stappen.</aside>
+    </section>
+
+    <section data-visibility="hidden">
+      <div class="demo-stap-header">Demo · Stap 2</div>
+      <h2>Vraag stellen</h2>
+      <p style="font-size:0.7em;">Typ in het invoerveld:</p>
+      <div class="demo-commando">Binnen welke termijn is een naheffingsaanslag invorderbaar?</div>
+      <ul>
+        <li>Wacht tot het antwoord volledig is (~10 seconden)</li>
+        <li>Wijs aan: het denkproces-blok (inklapbaar), de bronnen-collapsible</li>
+        <li>Klik de bron open om de jci-uri te tonen</li>
+        <li>Wijs de brongetrouwheid-indicatie aan (groen = gegrond)</li>
+      </ul>
+      <aside class="notes">Stap 2 van 6 demo-stappen.</aside>
+    </section>
+
+    <section data-visibility="hidden">
+      <div class="demo-stap-header">Demo · Stap 3</div>
+      <h2>Annotatie aanvragen</h2>
+      <p style="font-size:0.7em;">Typ in het invoerveld:</p>
+      <div class="demo-commando">annoteer artikel 36 lid 4 van de Invorderingswet 1990</div>
+      <ul>
+        <li>Wacht ~60-90 seconden — dit is normaal</li>
+        <li>Wijs aan: de annotatie-chip die in de chat verschijnt</li>
+        <li>Het ArtefactPaneel opent automatisch aan de rechterkant</li>
+        <li>Toon het denkproces-logje: "supervisor koos de annotatie-worker · Critic las mee"</li>
+      </ul>
+      <aside class="notes">Stap 3 van 6 demo-stappen.</aside>
+    </section>
+
+    <section data-visibility="hidden">
+      <div class="demo-stap-header">Demo · Stap 4</div>
+      <h2>Review doorlopen</h2>
+      <ul>
+        <li>Filter op "Met aandacht" in de reviewlijst — wijs de drie niveaus aan</li>
+        <li>Selecteer een gele kaart, wijs het alternatief aan als klikbare chip, klik het</li>
+        <li>Druk <kbd>a</kbd> om een kaart te accorderen — kaart wordt grijs, selectie springt door</li>
+        <li>Open een kaart-footer: toon "voorstel van Lex · [tijdstip]" — dit is het audittrail</li>
+        <li>Optioneel: toon de klasse-palette via de klasse-badge (toets <kbd>c</kbd>)</li>
+      </ul>
+      <aside class="notes">Stap 4 van 6 demo-stappen.</aside>
+    </section>
+
+    <section data-visibility="hidden">
+      <div class="demo-stap-header">Demo · Stap 5</div>
+      <h2>Vraag Lex iets over een markering</h2>
+      <p style="font-size:0.7em;">Selecteer een gele kaart → klik "Vraag Lex". Typ dan:</p>
+      <div class="demo-commando">Waarom is dit een Voorwaarde en niet een Afleidingsregel?</div>
+      <ul>
+        <li>Wijs aan: de chip boven het invoerveld (het fragment staat erin)</li>
+        <li>Lex antwoordt in de chat — de annotatie verandert niet</li>
+        <li>Dit laat zien dat advies en annotatie strikt gescheiden zijn</li>
+      </ul>
+      <aside class="notes">Stap 5 van 6 demo-stappen.</aside>
+    </section>
+
+    <section data-visibility="hidden">
+      <div class="demo-stap-header">Demo · Stap 6</div>
+      <h2>Exporteren</h2>
+      <ul>
+        <li>Klik "Exporteren → JSON" rechtsboven in het artefactpaneel</li>
+        <li>Open het gedownloade bestand in een teksteditor of browser</li>
+        <li>Wijs aan: het audittrail per element (beslissingen + tijdstip)</li>
+        <li>Wijs aan: de <code>agent_run</code>-velden (modelnaam, provider, Critic-rondes)</li>
+        <li>Sluit af: "Wat hebben jullie vragen?"</li>
+      </ul>
+      <aside class="notes">Stap 6 van 6. Na export: open vragen, eventueel live beantwoorden in de werkplek.</aside>
+    </section>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@4/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@4/plugin/notes/notes.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    slideNumber: 'c/t',
+    showSlideNumber: 'speaker',
+    transition: 'fade',
+    transitionSpeed: 'fast',
+    controls: true,
+    progress: false,
+    center: false,
+    plugins: [ RevealNotes ],
+    width: 1280,
+    height: 720,
+    margin: 0.06,
+  });
+</script>
+</body>
+</html>
