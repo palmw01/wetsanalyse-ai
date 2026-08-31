@@ -15,7 +15,7 @@ gedragsverandering).
 **De keten deelt één trace-id** – frontend → api → PostgreSQL onder dezelfde `OperationId`,
 geverifieerd op acceptatie (26 aug 2026). Dat gaat niet vanzelf: `@vercel/otel` maakt wél spans voor
 uitgaande `fetch`, maar zet géén `traceparent` op de request. De BFF injecteert hem daarom zelf
-(`frontend/app/api/_lib/trace.ts`, op elke fetch naar een upstream).
+(`frontend/lib/trace.ts`, op elke fetch naar een upstream — de BFF-routes én `lib/server.ts`).
 
 Controleer het na een wijziging aan de BFF-routes, want het faalt stil: je ziet gewoon telemetrie,
 alleen elke dienst in zijn eigen trace. Zo doe je dat: stuur een request met een eigen `traceparent`-header en kijk of alle diensten

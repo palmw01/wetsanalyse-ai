@@ -5,7 +5,7 @@
 // meekijken (`[id]/events`) en stoppen (`[id]/cancel`) zijn losse handelingen.
 
 import { proxy } from "@/app/api/_lib/proxy";
-import { metTrace } from "@/app/api/_lib/trace";
+import { metTrace } from "@/lib/trace";
 import { graphQaAuthHeader, graphQaBaseUrl } from "@/lib/config";
 import { logger } from "@/lib/logger";
 import { geenSessie, sessionUserId } from "@/app/api/_lib/session";

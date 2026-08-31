@@ -3,7 +3,7 @@
 // Retry-After / Location headers), zodat de client correcte foutafhandeling houdt.
 
 import { adminAuthHeader, apiBaseUrl, authHeader } from "@/lib/config";
-import { metTrace } from "@/app/api/_lib/trace";
+import { metTrace } from "@/lib/trace";
 import { logger } from "@/lib/logger";
 
 // `content-disposition` hoort erbij zodra een endpoint een bestand teruggeeft (de export):

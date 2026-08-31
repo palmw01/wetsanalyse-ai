@@ -634,7 +634,7 @@ agent-voorstel verwérp je, zodat het auditspoor laat zien dát er een voorstel 
 `OTEL_EXPORTER_OTLP_ENDPOINT`; auto-tracing van route handlers + uitgaande `fetch`). De
 **traceparent-propagatie doet `@vercel/otel` níét** – het maakt spans voor een uitgaande fetch, maar
 zet geen header op de request, en de keten viel daardoor stil uiteen in losse traces per dienst.
-`app/api/_lib/trace.ts` injecteert hem expliciet: **elke fetch naar een upstream loopt door
+`lib/trace.ts` injecteert hem expliciet: **elke fetch naar een upstream loopt door
 `metTrace()`**, ook de routes die hun eigen fetch doen in plaats van `proxy()`. Zonder OTel is het
 een no-op. `lib/logger.ts` is de
 **server-only** gestructureerde JSON-logger (mirror van de MCP-logger: secret-redactie, `LOG_LEVEL`,

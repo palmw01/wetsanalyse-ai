@@ -127,7 +127,7 @@ en kunnen OpenTelemetry (traces/metrics/logs) naar een **configureerbaar OTLP-en
 frontend → API → graph-qa, geverifieerd op acceptatie (26 aug 2026).
 
 Dat gaat niet vanzelf: `@vercel/otel` maakt wél spans voor uitgaande `fetch`, maar zet géén
-`traceparent` op de request. De BFF injecteert hem daarom zelf – `frontend/app/api/_lib/trace.ts`, op
+`traceparent` op de request. De frontend injecteert hem daarom zelf – `frontend/lib/trace.ts`, op
 elke fetch naar een upstream. Voeg je een BFF-route toe die zelf fetcht, gebruik dan `metTrace()`;
 laat je het weg, dan faalt het **stil**: telemetrie komt gewoon binnen, alleen het verband tussen de
 diensten ontbreekt. Zie `docs/observability.md` voor de controle-meting.

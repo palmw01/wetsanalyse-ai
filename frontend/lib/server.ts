@@ -1,14 +1,19 @@
 // Server-side helpers voor Server Components: praten rechtstreeks (server→server) met de API,
 // zodat de initiële render geen extra self-fetch via de BFF-route nodig heeft. Het token komt
 // uit lib/config (server-only). NOOIT importeren vanuit een Client Component.
+//
+// Elke fetch hier loopt door `metTrace()`, net als de BFF-routes: zonder die header start een
+// Server-Component-render of een auth-herverificatie een lósse trace, en breekt de keten
+// frontend → API → graph-qa precies op de plek waar hij begint.
 
 import "server-only";
 import { apiBaseUrl, authHeader } from "./config";
 import { logger } from "./logger";
+import { metTrace } from "./trace";
 
 async function serverGet<T>(path: string): Promise<T> {
   const res = await fetch(`${apiBaseUrl()}${path}`, {
-    headers: { ...authHeader() },
+    headers: metTrace({ ...authHeader() }),
     cache: "no-store",
     signal: AbortSignal.timeout(10_000),
   });
@@ -48,7 +53,7 @@ export async function postAuthVerify(
 ): Promise<{ status: number; body: VerifyResult }> {
   const res = await fetch(`${apiBaseUrl()}/v1/auth/verify`, {
     method: "POST",
-    headers: { ...authHeader(), "Content-Type": "application/json" },
+    headers: metTrace({ ...authHeader(), "Content-Type": "application/json" }),
     body: JSON.stringify(payload),
     cache: "no-store",
   });
@@ -90,7 +95,7 @@ export type AccountStatus =
 export async function getAccountStatus(userid: string): Promise<AccountStatus> {
   try {
     const res = await fetch(`${apiBaseUrl()}/v1/auth/me`, {
-      headers: { ...authHeader(), "X-User-Id": userid },
+      headers: metTrace({ ...authHeader(), "X-User-Id": userid }),
       cache: "no-store",
     });
     if (res.status === 401) return { status: "ingetrokken" };
