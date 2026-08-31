@@ -65,8 +65,13 @@ De **harde scheidingslijn**: alles met een token is server-only.
   `app/instellingen/[[...tab]]/page.tsx` als volle pagina, en `app/@modal/(.)instellingen/…` als
   intercepting route die hem als dialoog over de werkplek heen opent. `app/beheer` en `app/account`
   blijven bestaan als redirect naar de bijbehorende tab.
-- `components/` – presentatie. `components/werkplek/` + `components/workbench/` = de chat-werkruimte
-  (zie §*Werkplek*). `components/admin/` levert de beheertabs (achter het admin-token):
+- `components/` – presentatie. `components/werkplek/` = de hele chat-werkruimte (zie §*Werkplek*):
+  de schil en het gesprek (sidebar, thread, artefactpaneel) én het annotatiegereedschap dát in dat
+  paneel staat (`DocumentPaneel`, `ReviewQueue`, `SelectiePopover`, `OntbrekendLijst`, `ExportKnop`).
+  Die tweede groep stond tot 31 aug 2026 in een eigen `components/workbench/`; één map, want de
+  grens liep door één bestand (`ArtefactInhoud.tsx`, de enige importeur) en kostte elke lezer een
+  vraag zonder nut.
+  `components/admin/` levert de beheertabs (achter het admin-token):
   **`ProfielenPanel`** met de modelprofiel-editor (`ProfileEditor`), **`UsersPanel`**
   (gebruikersbeheer), **`ApiTokensPanel`**, **`BerichtenBeheerPanel`** (+ `BerichtEditor`) en
   **`FeedbackLijstClient`**. `components/berichten/` heeft het leesbare archief. `components/account/` + `components/auth/` dragen de login/2fa/setup-flow.
@@ -117,7 +122,7 @@ Bovenaan de shell staat de klikbare **testomgeving-strook**. De shell is twee ko
   id krijgt (anders breekt de stream). De graph-qa `conversationId` (thread_id) = het `gesprekId`.
 - De **annotatie-review** is een **artefact**: een annotatie-beurt toont een compacte chip in de thread
   die het **`ArtefactPaneel`** opent – een van rechts inschuivend paneel (mobiel bottom-sheet) met de
-  annotatie-sub-UI uit `components/workbench/`: **`DocumentPaneel`** highlight de **letterlijke**
+  annotatie-sub-UI in `components/werkplek/`: **`DocumentPaneel`** highlight de **letterlijke**
   fragmenten (`segmenteer` + `lib/jas.ts:jasStyle`; substring-terugvinden) en **`ReviewQueue`** de
   decision-cards (aandacht-as 🟢🟡🔴, voortgangsteller; edit/reject vragen een `review_reason`).
 - **Drie backends, frontend orkestreert:** de **chatgeschiedenis via de api** – BFF
@@ -437,7 +442,7 @@ herschrijf je niet – en het zou bestaande dangling rijen toch niet oplossen. Z
 beoordelen · Openen`) zodra het paneel dicht is; de chip in de thread scrolt immers weg. Verwijderde
 documenten slaat die balk over.
 
-**"Mogelijk ontbrekend" is werkvoorraad, geen mededeling** (`components/workbench/OntbrekendLijst.tsx`).
+**"Mogelijk ontbrekend" is werkvoorraad, geen mededeling** (`components/werkplek/OntbrekendLijst.tsx`).
 Staat er een letterlijk fragment bij dat in de tekst voorkomt → *Toevoegen als \<klasse\>*, één klik,
 met anker. Anders zegt het kaartje waaróm het niet kan (geen fragment aangewezen, of het fragment
 staat niet letterlijk in de tekst). Toegevoegde items tonen "✓ inmiddels gemarkeerd" en tellen niet
@@ -564,7 +569,7 @@ Bij **verwerpen** blijft de reden een vraag aan de jurist; die informatie staat 
 
 ### De annotatie exporteren
 
-Een knop *Exporteren* in de kop van het artefact (`components/workbench/ExportKnop.tsx`) biedt
+Een knop *Exporteren* in de kop van het artefact (`components/werkplek/ExportKnop.tsx`) biedt
 **PDF / CSV / JSON**. Drie dingen om te kennen:
 
 - **Ook halverwege.** Geen statusdrempel: een concept exporteren is een normale handeling, en het
@@ -634,7 +639,7 @@ agent-voorstel verwérp je, zodat het auditspoor laat zien dát er een voorstel 
 `OTEL_EXPORTER_OTLP_ENDPOINT`; auto-tracing van route handlers + uitgaande `fetch`). De
 **traceparent-propagatie doet `@vercel/otel` níét** – het maakt spans voor een uitgaande fetch, maar
 zet geen header op de request, en de keten viel daardoor stil uiteen in losse traces per dienst.
-`app/api/_lib/trace.ts` injecteert hem expliciet: **elke fetch naar een upstream loopt door
+`lib/trace.ts` injecteert hem expliciet: **elke fetch naar een upstream loopt door
 `metTrace()`**, ook de routes die hun eigen fetch doen in plaats van `proxy()`. Zonder OTel is het
 een no-op. `lib/logger.ts` is de
 **server-only** gestructureerde JSON-logger (mirror van de MCP-logger: secret-redactie, `LOG_LEVEL`,

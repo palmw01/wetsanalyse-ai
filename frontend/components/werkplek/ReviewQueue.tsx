@@ -755,7 +755,7 @@ export function ReviewQueue({
         </p>
       )}
 
-      {getoond.map((el, i) => (
+      {getoond.map((el) => (
         <DecisionCard
           key={el.id}
           tourAnker={el.id === ankerId}

@@ -1,6 +1,17 @@
 // Client-side fetch-helpers. Praten UITSLUITEND met de eigen Next.js-origin (/api/**);
 // de BFF-laag injecteert het token server-side. Hier dus geen Authorization-header.
 
+import {
+  geldig,
+  parseBronnen,
+  parseDoel,
+  parseElement,
+  parseKandidaten,
+  parseOntbrekend,
+  parseRun,
+  parseRunStart,
+  parseSuggestie,
+} from "./agentEvents";
 import type {
   ApiError,
   ApiTokenCreated,
@@ -27,7 +38,6 @@ import type {
   AgentRun,
   Anker,
   AnnotatieDocument,
-  AuditRecord,
   Bericht,
   BerichtAanmakenIn,
   BerichtenPaginaOut,
@@ -36,7 +46,6 @@ import type {
   BerichtPublicatieIn,
   BeslissingInvoer,
   Bron,
-  DocumentCreate,
   DocumentSamenvatting,
   Gesprek,
   GesprekSamenvatting,
@@ -65,7 +74,9 @@ async function json<T>(res: Response): Promise<T> {
   return (await res.json()) as T;
 }
 
-function veiligJson(s: string): { answer?: string; detail?: string } | null {
+/** JSON.parse dat `null` teruggeeft in plaats van te gooien. Bewust `unknown`: wat er binnenkomt
+ *  staat niet vast, en dat is precies waarom de aanroeper het langs een schema haalt. */
+function veiligJson(s: string): unknown {
   try {
     return JSON.parse(s);
   } catch {
@@ -329,12 +340,6 @@ export async function beslis(
   return json<AnnotatieDocument>(res);
 }
 
-export async function haalAudit(slug: string): Promise<AuditRecord[]> {
-  return json<AuditRecord[]>(
-    await fetch(`/api/annotatie/documenten/${pathSegment(slug)}/audit`, { cache: "no-store" }),
-  );
-}
-
 // --- Gesprekken (chatgeschiedenis; per-gebruiker via de BFF-X-User-Id) ------
 
 export async function lijstGesprekken(): Promise<GesprekSamenvatting[]> {
@@ -457,7 +462,9 @@ export async function startRun(
     const fout = await parseError(res);
     throw { ...fout, loopendeRun: runIdUitDetail(fout.detail) ?? undefined } as RunLooptAlFout;
   }
-  return json<RunStart>(res);
+  const start = geldig(parseRunStart, await json<unknown>(res), "runs");
+  if (!start) throw { status: 502, detail: "De agent gaf een onbegrijpelijk antwoord." } as ApiError;
+  return start;
 }
 
 /** Een 409 van `startRun`: er loopt al een beurt op dit gesprek. `loopendeRun` wijst hem aan, zodat
@@ -525,7 +532,10 @@ export async function haalActieveRun(gesprekId: string): Promise<RunStart | null
       cache: "no-store",
     });
     if (!res.ok) return "onbekend";
-    return (await res.json()) as RunStart | null;
+    // Geen lopende run is een geldig antwoord (null); alleen een niet-lege body moet kloppen.
+    const body = (await res.json()) as unknown;
+    if (body === null) return null;
+    return geldig(parseRunStart, body, "actieve run") ?? null;
   } catch {
     return "onbekend";
   }
@@ -569,18 +579,21 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
           if (regel.startsWith("data:")) data += regel.slice(5).trim();
         }
         if (!data) continue;
+        // Alleen de envelop is hier bekend. De gestructureerde payloads blijven `unknown` tot
+        // een schema ze heeft goedgekeurd — anders zou één `as` ze als geldige inhoud de UI in
+        // laten lopen.
         const ev = veiligJson(data) as
           | {
-              type: string;
+              type?: unknown;
               message?: string;
               content?: string;
-              doel?: AgentDoel;
-              element?: VoorstelElement;
-              run?: AgentRun;
-              items?: OntbrekendItem[];
-              sources?: Bron[];
-              suggestie?: { element_id: string; aandacht: string; motivatie: string };
-              kandidaten?: AgentKandidaat[];
+              doel?: unknown;
+              element?: unknown;
+              run?: unknown;
+              items?: unknown;
+              sources?: unknown;
+              suggestie?: unknown;
+              kandidaten?: unknown;
               seq?: number;
               weggevallen?: number;
               annotatie_slug?: string;
@@ -602,7 +615,10 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
         else if (ev.type === "status") handlers.onStatus?.(ev.message ?? "");
         else if (ev.type === "reason") handlers.onReason?.(ev.content ?? "");
         else if (ev.type === "token") handlers.onToken?.(ev.content ?? "");
-        else if (ev.type === "sources" && ev.sources) handlers.onSources?.(ev.sources);
+        else if (ev.type === "sources" && ev.sources) {
+          const bronnen = geldig(parseBronnen, ev.sources, "sources");
+          if (bronnen) handlers.onSources?.(bronnen);
+        }
         else if (ev.type === "grounding")
           handlers.onGrounding?.({
             niveau: ev.niveau ?? (ev.grounded === false ? "ongegrond" : "gegrond"),
@@ -611,12 +627,30 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
             unsupported: ev.unsupported ?? [],
             niet_letterlijk: ev.niet_letterlijk ?? [],
           });
-        else if (ev.type === "doel" && ev.doel) handlers.onDoel?.(ev.doel);
-        else if (ev.type === "element" && ev.element) handlers.onElement?.(ev.element);
-        else if (ev.type === "run" && ev.run) handlers.onRun?.(ev.run);
-        else if (ev.type === "ontbrekend") handlers.onOntbrekend?.(ev.items ?? []);
-        else if (ev.type === "suggestie" && ev.suggestie) handlers.onSuggestie?.(ev.suggestie);
-        else if (ev.type === "kandidaten") handlers.onKandidaten?.(ev.kandidaten ?? []);
+        else if (ev.type === "doel" && ev.doel) {
+          const doel = geldig(parseDoel, ev.doel, "doel");
+          if (doel) handlers.onDoel?.(doel);
+        }
+        else if (ev.type === "element" && ev.element) {
+          const element = geldig(parseElement, ev.element, "element");
+          if (element) handlers.onElement?.(element);
+        }
+        else if (ev.type === "run" && ev.run) {
+          const run = geldig(parseRun, ev.run, "run");
+          if (run) handlers.onRun?.(run);
+        }
+        else if (ev.type === "ontbrekend") {
+          const items = geldig(parseOntbrekend, ev.items ?? [], "ontbrekend");
+          if (items) handlers.onOntbrekend?.(items);
+        }
+        else if (ev.type === "suggestie" && ev.suggestie) {
+          const suggestie = geldig(parseSuggestie, ev.suggestie, "suggestie");
+          if (suggestie) handlers.onSuggestie?.(suggestie);
+        }
+        else if (ev.type === "kandidaten") {
+          const kandidaten = geldig(parseKandidaten, ev.kandidaten ?? [], "kandidaten");
+          if (kandidaten) handlers.onKandidaten?.(kandidaten);
+        }
         else if (ev.type === "opgeslagen")
           handlers.onOpgeslagen?.({ annotatie_slug: ev.annotatie_slug ?? "", run_id: ev.run_id ?? "" });
         else if (ev.type === "waarschuwing") handlers.onWaarschuwing?.(ev.message ?? "");

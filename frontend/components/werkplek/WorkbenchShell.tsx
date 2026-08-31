@@ -1,16 +1,26 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 
 import { AppSidebar } from "@/components/werkplek/AppSidebar";
-import { Rondleiding } from "@/components/rondleiding/Rondleiding";
+import { SkipLink, HOOFDINHOUD_ID } from "@/components/ui/SkipLink";
 import { leesStand, moetStarten } from "@/lib/rondleiding";
 import { maakDemoScene, type DemoScene } from "@/lib/rondleidingDemo";
 import { MobieleTopbar } from "@/components/werkplek/MobieleTopbar";
 import { WerkplekClient } from "@/components/werkplek/WerkplekClient";
 import type { BeslissingType, GesprekSamenvatting } from "@/lib/types";
+
+// De rondleiding rendert alleen bij `demo` – eerste bezoek of een expliciete klik. Statisch
+// geïmporteerd zat hij (met TourBubbel) toch in de bundel van iedereen die de werkplek opent,
+// terwijl de terugkerende gebruiker hem nooit ziet. `moetStarten`/`leesStand` blijven wél eager:
+// die bepalen hierboven of er überhaupt iets te laden valt.
+const Rondleiding = dynamic(
+  () => import("@/components/rondleiding/Rondleiding").then((m) => m.Rondleiding),
+  { ssr: false },
+);
 
 /** De volledige werkplek-app: links de sidebar (logo → chatgeschiedenis → instellingen/gebruiker),
  *  rechts het chatvenster. `activeId` stuurt de highlight; `mountKey` bepaalt wanneer het chatvenster
@@ -90,7 +100,8 @@ export function WorkbenchShell({
   const actieveTitel = gesprekken.find((g) => g.id === activeId)?.titel || "Nieuw gesprek";
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="relative flex h-full flex-col">
+      <SkipLink />
       {/* Waar zit ik? Deze strook hing eerder aan de globale sitekop, en die verborg zichzelf op de
           werkplek – dus juist waar je de hele dag werkt, zag je hem nooit. Nu staat hij bovenaan de
           schil. De klik opent de voorwaarden als dialog (intercepting route), zodat je je gesprek
@@ -136,8 +147,9 @@ export function WorkbenchShell({
         demoGesprekken={demo?.gesprekken}
       />
 
-      {/* Rechterkolom: mobiele topbar + chatvenster */}
-      <div className="flex min-w-0 flex-1 flex-col">
+      {/* Rechterkolom: mobiele topbar + chatvenster. `tabIndex={-1}` zodat de skip-link de focus
+          hier echt neer kan zetten – zonder dat springt alleen de scrollpositie. */}
+      <div id={HOOFDINHOUD_ID} tabIndex={-1} className="flex min-w-0 flex-1 flex-col">
         <MobieleTopbar
           titel={actieveTitel}
           onOpenSidebar={() => setDrawerOpen(true)}

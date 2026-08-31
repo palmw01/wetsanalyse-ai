@@ -193,7 +193,7 @@ export function maakDemoDocument(): AnnotatieDocument {
 }
 
 /** De twee beurten die in de thread staan: een vraag met bronnen, en de annotatie met zijn tijdlijn. */
-export function maakDemoItems(): ThreadItem[] {
+function maakDemoItems(): ThreadItem[] {
   return [
     { id: "demo-1", type: "user", tekst: "Wat betekent het begrip 'belastingschuldige'?" },
     {

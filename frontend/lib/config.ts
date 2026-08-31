@@ -11,7 +11,7 @@ export function apiBaseUrl(): string {
 }
 
 /** Bearer-token uit API_TOKEN_FILE (voorrang) of API_TOKEN. Gecached na eerste lees. */
-export function apiToken(): string {
+function apiToken(): string {
   if (cachedToken !== null) return cachedToken;
   const file = process.env.API_TOKEN_FILE;
   if (file) {
@@ -32,7 +32,7 @@ export function authHeader(): Record<string, string> {
 }
 
 /** Apart admin-bearer-token (voor /v1/admin/*) uit ADMIN_API_TOKEN_FILE (voorrang) of ADMIN_API_TOKEN. */
-export function adminToken(): string {
+function adminToken(): string {
   if (cachedAdminToken !== null) return cachedAdminToken;
   const file = process.env.ADMIN_API_TOKEN_FILE;
   if (file) {
@@ -63,7 +63,7 @@ export function graphQaBaseUrl(): string {
 }
 
 /** graph-qa-token uit GRAPH_QA_TOKEN_FILE (voorrang) of GRAPH_QA_TOKEN. Gecached na eerste lees. */
-export function graphQaToken(): string {
+function graphQaToken(): string {
   if (cachedGraphQaToken !== null) return cachedGraphQaToken;
   const file = process.env.GRAPH_QA_TOKEN_FILE;
   if (file) {

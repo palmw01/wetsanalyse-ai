@@ -6,7 +6,7 @@
 // eindigt pas op de eerstvolgende grens. Dit is een verzoek, geen feit.
 
 import { graphQaAuthHeader, graphQaBaseUrl } from "@/lib/config";
-import { metTrace } from "@/app/api/_lib/trace";
+import { metTrace } from "@/lib/trace";
 import { logger } from "@/lib/logger";
 import { geenSessie, sessionUserId } from "@/app/api/_lib/session";
 

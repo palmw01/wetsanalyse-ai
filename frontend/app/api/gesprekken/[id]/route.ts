@@ -1,5 +1,5 @@
 import { proxy } from "@/app/api/_lib/proxy";
-import { metTrace } from "@/app/api/_lib/trace";
+import { metTrace } from "@/lib/trace";
 import { geenSessie, sessionUserId } from "@/app/api/_lib/session";
 import { graphQaAuthHeader, graphQaBaseUrl } from "@/lib/config";
 import { logger } from "@/lib/logger";

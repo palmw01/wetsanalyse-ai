@@ -10,9 +10,7 @@ import type {
   AnnotatieElement,
   GraafArtikel,
   DocumentStatus,
-  ReviewReason,
   VoorstelElement,
-  Wijziging,
 } from "./types";
 
 // Presentatie-helpers voor de annotatie-workbench (statuslabels/kleuren).
@@ -177,7 +175,7 @@ export function alGemarkeerd(elementen: AnnotatieElement[], klasse: string, frag
  *  expliciete heropening (`type: "heropen"`). Bewust NIET hetzelfde begrip als `isBeslist`, dat de
  *  filters en de telling stuurt: `edited` telt wel als beslist maar blijft bewerkbaar, want een
  *  klasse wijzigen en er daarna een toelichting bij typen is één doorlopende handeling. */
-export const VERGRENDELDE_LIFECYCLES = ["human_approved", "rejected"];
+const VERGRENDELDE_LIFECYCLES = ["human_approved", "rejected"];
 
 export function isVergrendeld(el: AnnotatieElement): boolean {
   // Je eigen markering staat meteen op `human_approved` – je hoeft hem niet nog eens goed te keuren.

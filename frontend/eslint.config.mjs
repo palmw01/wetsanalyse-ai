@@ -10,9 +10,12 @@ const config = [
     rules: {
       // Nieuw in de Next 16-config (react-hooks-plugin). Vlagt het gangbare, door React
       // toegestane patroon "setState binnen een sync-/fetch-effect" (loading-flags,
-      // index-resets) dat onder Next 15 groen was. Advies, geen correctheidsfout – op `warn`
-      // gezet zodat de bump gedrag-neutraal blijft; een eventuele refactor is los werk.
-      "react-hooks/set-state-in-effect": "warn",
+      // index-resets) dat onder Next 15 groen was. Stond eerst op `warn` zodat de bump
+      // gedrag-neutraal bleef; inmiddels is elk van de tien voorkomens beoordeeld en voorzien
+      // van een eigen `eslint-disable-next-line` met motivatie, dus `warn` ving niets meer.
+      // Op `error` moet een níeuw geval eerst worden bekeken in plaats van in de ruis te
+      // verdwijnen; de bestaande disables blijven gewoon werken.
+      "react-hooks/set-state-in-effect": "error",
     },
   },
   {

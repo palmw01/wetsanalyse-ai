@@ -25,7 +25,7 @@ const WACHT_OP_KLIK_MS = 6000;
  *  klasse, dan bevestigde de rondleiding "Beoordeeld … staat al klaar" terwijl er niets was
  *  goedgekeurd en er niets doorsprong. Losse export zodat de werkplek hem kan aanroepen zonder de
  *  motor te kennen. */
-export const INTERACTIE_BEVESTIGING: Record<BeslissingType, string> = {
+const INTERACTIE_BEVESTIGING: Record<BeslissingType, string> = {
   approve: "Beoordeeld. De volgende die aandacht vraagt staat al klaar.",
   edit: "Aangepast. Wat jij wijzigt komt zo in het auditspoor terecht.",
   reject: "Verworpen. Het voorstel blijft zichtbaar, met jouw reden erbij.",

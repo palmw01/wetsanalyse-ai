@@ -16,7 +16,6 @@ import {
   haalArtikelGraaf,
   haalDocument,
   haalGesprek,
-  isApiError,
   maakGesprek,
   voegBerichtToe,
   verwijderElement,
@@ -30,7 +29,6 @@ import type {
   AgentGrounding,
   AgentDoelInvoer,
   AgentKandidaat,
-  AgentRun,
   AnnotatieDocument,
   BeslissingInvoer,
   BeslissingType,
@@ -301,6 +299,9 @@ export function WerkplekClient({
     if (!demo || demoOpenSignaal === 0) return;
     const slug = Object.keys(demo.docs)[0];
     if (slug) void openArtefact(slug);
+    // Alleen op de teller reageren: `demo` en `openArtefact` horen hier niet in de dependencies,
+    // want dan opent het paneel opnieuw zodra een van beide een nieuwe referentie krijgt — terwijl
+    // de rondleiding juist één keer om dit signaal vraagt.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [demoOpenSignaal]);
 
@@ -317,6 +318,9 @@ export function WerkplekClient({
   // De rondleiding wacht met haar reviewstappen tot het paneel er echt is.
   useEffect(() => {
     onDemoArtefact?.(Boolean(artefactSlug));
+    // Alleen bij een echte wisseling van het paneel melden. `onDemoArtefact` is een inline callback
+    // van de rondleiding en dus elke render een andere referentie; in de dependencies zou dit
+    // effect bij iedere render opnieuw vuren.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [artefactSlug]);
 
@@ -512,9 +516,6 @@ export function WerkplekClient({
     const ontbrekend: OntbrekendItem[] = [];
     const suggesties: { element_id: string; aandacht: string; motivatie: string }[] = [];
     let kandidaten: AgentKandidaat[] = [];
-    // De herkomst van deze beurt (welk model), zodat de api kan vastleggen waar de voorstellen
-    // vandaan komen. Blijft null bij een agent die het `run`-event nog niet stuurt.
-    let run: AgentRun | null = null;
     let tekst = "";
     let denk = "";
     let bronnen: Bron[] = [];
@@ -560,7 +561,6 @@ export function WerkplekClient({
           onGrounding: (g) => updateItem(antId, { grounding: g }),
           onDoel: (d) => (doelRef.d = d),
           onElement: (e) => (els = mergeVoorstellen(els, e)),
-          onRun: (r) => (run = r),
           onOntbrekend: (xs) => ontbrekend.push(...xs),
           onSuggestie: (s) => suggesties.push(s),
           onKandidaten: (k) => (kandidaten = k),

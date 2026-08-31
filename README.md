@@ -242,7 +242,7 @@ api/                  FastAPI-backend
   app/validation.py     klassevalidatie voor het annotatiedomein
 frontend/             Next.js-webapp
   app/workbench/        de werkplek
-  app/api/              de BFF; _lib/proxy.ts en _lib/trace.ts zijn gedeeld
+  app/api/              de BFF; _lib/proxy.ts is gedeeld (metTrace staat in lib/trace.ts)
   lib/                  de rekenkern – hier staat de testbare logica
 tools/graph-qa/       de agent (Lex)
   agent/orchestrator.py bouwt de LangGraph-graaf (de nodes staan in agent/nodes/)
@@ -396,7 +396,7 @@ interpretatieruimte kent).
 
 > [!WARNING]
 > Voeg je een BFF-route toe die zelf fetcht, gebruik dan `metTrace()` uit
-> `frontend/app/api/_lib/trace.ts`. Laat je het weg, dan faalt het **stil**: de telemetrie komt
+> `frontend/lib/trace.ts`. Laat je het weg, dan faalt het **stil**: de telemetrie komt
 > gewoon binnen, alleen het verband tussen de diensten ontbreekt. Hetzelfde geldt voor
 > query-parameters – een proxyroute die een parameter laat vallen, laat een filter stil mislukken.
 

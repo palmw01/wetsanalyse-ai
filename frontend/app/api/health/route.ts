@@ -1,7 +1,7 @@
 // Lokale liveness voor de Docker HEALTHCHECK. Test óók of de upstream-API bereikbaar is,
 // maar faalt niet hard daarop – de frontend zelf leeft zolang dit antwoordt.
 
-import { metTrace } from "@/app/api/_lib/trace";
+import { metTrace } from "@/lib/trace";
 import { apiBaseUrl } from "@/lib/config";
 
 export const dynamic = "force-dynamic";

@@ -2,7 +2,7 @@
 // Eén bron: dezelfde tekst die de annotatie-agent als corpus gebruikt. Token gaat server-side mee.
 
 import { graphQaAuthHeader, graphQaBaseUrl } from "@/lib/config";
-import { metTrace } from "@/app/api/_lib/trace";
+import { metTrace } from "@/lib/trace";
 import { logger } from "@/lib/logger";
 import { geenSessie, sessionUserId } from "@/app/api/_lib/session";
 

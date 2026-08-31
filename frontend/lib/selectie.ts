@@ -8,7 +8,7 @@
 import type { Anker } from "./types";
 
 /** Hoeveel tekens context aan weerszijden in het anker wordt bewaard. */
-export const CONTEXT_LENGTE = 48;
+const CONTEXT_LENGTE = 48;
 
 /** Vingerafdruk van de brontekst. Vertelt of de offsets in een anker nog over dezelfde tekst gaan;
  *  na een herimport kan de wettekst immers geschoven zijn.

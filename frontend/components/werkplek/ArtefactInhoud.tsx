@@ -5,11 +5,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { foutTekst } from "@/lib/api";
 
 import { Melding } from "@/components/ui/Melding";
-import { DocumentPaneel } from "@/components/workbench/DocumentPaneel";
-import { ExportKnop } from "@/components/workbench/ExportKnop";
-import { OntbrekendLijst } from "@/components/workbench/OntbrekendLijst";
-import { ReviewQueue, type OpenRij } from "@/components/workbench/ReviewQueue";
-import { SelectiePopover, type SelectieDoel } from "@/components/workbench/SelectiePopover";
+import { DocumentPaneel } from "@/components/werkplek/DocumentPaneel";
+import { ExportKnop } from "@/components/werkplek/ExportKnop";
+import { OntbrekendLijst } from "@/components/werkplek/OntbrekendLijst";
+import { ReviewQueue, type OpenRij } from "@/components/werkplek/ReviewQueue";
+import { SelectiePopover, type SelectieDoel } from "@/components/werkplek/SelectiePopover";
 import {
   DOCUMENT_STATUS_LABEL, DOCUMENT_STATUS_STYLE, bronVan, isDocumentVergrendeld, isVergrendeld,
   overlaptSelectie, pastInFilter, regelsVan, sorteerReview, volgendeElement, type ReviewFilter,
