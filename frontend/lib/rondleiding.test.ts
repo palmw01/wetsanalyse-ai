@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   artefactActie, BUBBEL_MARGE, domineert, hervatIndex, indexVan, klikGat, LEGE_STAND,
-  maskRechthoeken, moetStarten,
+  maskRechthoeken, moetStarten, uitsnede, zichtbaarDeel,
   plaatsBubbel, RONDLEIDING_VERSIE, STAPPEN, vraagtArtefact, zichtbareStappen, type Vak,
 } from "./rondleiding";
 import {
@@ -286,6 +286,26 @@ describe("waar de bubbel komt te staan", () => {
     expect(plaatsBubbel(onderin, BUBBEL, SCHERM, "onder").modus).toBe("boven");
   });
 
+  it("rekent op het zichtbare deel van een element dat uit zijn scroller hangt", () => {
+    // Een reviewkaart die uitklapt tot ver onder de schermrand. `getBoundingClientRect` geeft het
+    // ongeclipte vak, dus zonder bijsnijden zou de bubbel eronder gehangen worden – buiten beeld.
+    const uitgeklapt: Vak = { top: 700, left: 900, breedte: 400, hoogte: 600 };
+    const p = plaatsBubbel(uitgeklapt, BUBBEL, SCHERM);
+    expect(binnenBeeld(p)).toBe(true);
+  });
+
+  it("houdt de bubbel binnen beeld bij een element dat naar boven is weggescrold", () => {
+    const weg: Vak = { top: -300, left: 900, breedte: 400, hoogte: 120 };
+    const p = plaatsBubbel(weg, BUBBEL, SCHERM);
+    expect(binnenBeeld(p)).toBe(true);
+  });
+
+  it("centreert als er van het element niets meer in beeld staat", () => {
+    // Helemaal onder de viewport weggescrold: er valt niets aan te wijzen.
+    const buiten: Vak = { top: 1200, left: 900, breedte: 400, hoogte: 120 };
+    expect(plaatsBubbel(buiten, BUBBEL, SCHERM)).toEqual({ modus: "midden" });
+  });
+
   it("houdt de bubbel op een telefoon binnen beeld", () => {
     const kaart: Vak = { top: 300, left: 12, breedte: 366, hoogte: 120 };
     const p = plaatsBubbel(kaart, BUBBEL, TELEFOON);
@@ -371,6 +391,25 @@ describe("de dimlaag", () => {
         expect(v.hoogte).toBeGreaterThan(0);
       }
     }
+  });
+
+  it("snijdt een element bij op wat ervan in beeld staat", () => {
+    // De uitsnede voor de dimlaag hangt hieraan: een kaart die half uit haar scroller hangt hoort
+    // geen gat op te leveren dat tot ver buiten het scherm doorloopt.
+    expect(zichtbaarDeel({ top: -40, left: 100, breedte: 200, hoogte: 140 }, viewport)).toEqual({
+      top: 0, left: 100, breedte: 200, hoogte: 100,
+    });
+    expect(zichtbaarDeel({ top: 700, left: 100, breedte: 200, hoogte: 400 }, viewport)).toEqual({
+      top: 700, left: 100, breedte: 200, hoogte: 100,
+    });
+    // Volledig weggescrold: er is niets aan te wijzen.
+    expect(zichtbaarDeel({ top: 900, left: 100, breedte: 200, hoogte: 50 }, viewport)).toBeNull();
+  });
+
+  it("legt de uitsnede rond het element, met marge", () => {
+    expect(uitsnede({ top: 100, left: 200, breedte: 50, hoogte: 20 }, 10)).toEqual({
+      top: 90, left: 190, breedte: 70, hoogte: 40,
+    });
   });
 
   it("laat lege randen weg", () => {

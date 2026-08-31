@@ -131,12 +131,17 @@ export function Rondleiding({
     if (fase !== "stappen" || !stap) return;
     let pogingen = 0;
     let timer: ReturnType<typeof setTimeout>;
-    const zoek = () => {
+    /** Het element dat dit anker nú draagt. */
+    const vind = () => {
       const smal = window.matchMedia("(max-width: 1023px)").matches;
       const sleutel = smal && stap.ankerSmal ? stap.ankerSmal : stap.anker;
-      const el =
+      return (
         document.querySelector(`[data-tour="${sleutel}"]`) ??
-        document.querySelector(`[data-tour="${stap.anker}"]`);
+        document.querySelector(`[data-tour="${stap.anker}"]`)
+      );
+    };
+    const zoek = () => {
+      const el = vind();
       if (el) {
         setDoel(el);
         // Een element dat het scherm domineert wordt niet aangewezen maar gecentreerd getoond
@@ -160,7 +165,23 @@ export function Rondleiding({
       else setDoel(null);
     };
     zoek();
-    return () => clearTimeout(timer);
+
+    // Een anker kan van element wisselen zonder dat er een stap verandert: in de reviewlijst
+    // verhuist `data-tour="review-kaart"` mee met de selectie. Bleef de bubbel aan de oude kaart
+    // hangen, dan wees hij naar iets dat intussen uit de lijst was weggescrold. Bewust zonder
+    // scrollen – dat hoort bij een stapwissel, niet bij elke wijziging in de DOM.
+    const kijker = new MutationObserver(() => {
+      const el = vind();
+      // Alleen een gevonden element telt: tijdens een re-render kan het anker heel even nergens
+      // staan, en dan is "geen doel" een verkeerde conclusie.
+      if (el) setDoel(el);
+    });
+    kijker.observe(document.body, { attributes: true, subtree: true, attributeFilter: ["data-tour"] });
+
+    return () => {
+      clearTimeout(timer);
+      kijker.disconnect();
+    };
   }, [fase, stap, artefactOpen]);
 
   // Stap 7 laat de gebruiker zélf de annotatie openen. Doet hij dat niet, dan opent de rondleiding

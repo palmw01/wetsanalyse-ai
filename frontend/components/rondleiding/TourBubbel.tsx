@@ -3,7 +3,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import {
-  klikGat, maskRechthoeken, plaatsBubbel, type Afmeting, type Plaatsing, type Stap, type Vak,
+  klikGat, maskRechthoeken, plaatsBubbel, uitsnede, zichtbaarDeel,
+  type Afmeting, type Plaatsing, type Stap, type Vak,
 } from "@/lib/rondleiding";
 
 /** Hoe ver de spotlight om het element heen valt. */
@@ -96,6 +97,21 @@ export function TourBubbel({
         setVak(gemeten);
         setViewport(scherm);
         setPlaatsing(plek);
+
+        // In een stap die om een handeling vraagt hoort het element héél in beeld te staan. Het
+        // klassepalet maakt de reviewkaart in één klap honderden pixels hoger, en de reviewlijst
+        // scrolt alleen mee als de selectie verspringt – opende het palet op de kaart die al
+        // geselecteerd was, dan stonden de klassen onder de schermrand. `nearest` doet niets zodra
+        // het element past, dus dit blijft niet heen en weer scrollen.
+        if (doel && stap.interactie && gemeten) {
+          const heel = gemeten.top >= 0 && gemeten.top + gemeten.hoogte <= scherm.hoogte;
+          if (!heel) {
+            doel.scrollIntoView({
+              block: "nearest",
+              behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+            });
+          }
+        }
       });
     };
     meet();
@@ -119,7 +135,7 @@ export function TourBubbel({
       window.removeEventListener("scroll", meet, { capture: true });
     };
     // `stap.id` hoort erbij: een andere tekst is een andere bubbelhoogte.
-  }, [doel, stap.id]);
+  }, [doel, stap.id, stap.interactie]);
 
   useEffect(() => {
     if (!pulse) return;
@@ -153,7 +169,13 @@ export function TourBubbel({
   // gecentreerd staat (te weinig ruimte ernaast), en dan verdween het gat terwijl het element er
   // gewoon was — je kon de knop dan niet meer indrukken. Waar de bubbel staat en of de knop
   // bereikbaar is, zijn twee verschillende vragen.
-  const gat = klikGat(stap, actiefVak, GAT_MARGE);
+  // Wat de dimlaag openlaat. Dat is er in élke stap: gedimd wijst het aangewezen element niets aan –
+  // dan staat er een rand om iets grijs. Bedienen mag alleen waar de stap erom vraagt; buiten die
+  // stap ligt er een onzichtbare vanger overheen (hieronder), zodat een klik nog steeds niet bij de
+  // werkplek komt maar de bubbel laat pulseren.
+  const zichtbaar = actiefVak ? zichtbaarDeel(actiefVak, viewport) : null;
+  const gat = zichtbaar ? uitsnede(zichtbaar, GAT_MARGE) : null;
+  const bedienbaar = Boolean(klikGat(stap, actiefVak, GAT_MARGE));
 
   const stijl: React.CSSProperties =
     plaatsing.modus === "midden"
@@ -191,6 +213,16 @@ export function TourBubbel({
             style={{ top: v.top, left: v.left, width: v.breedte, height: v.hoogte }}
           />
         ))}
+        {/* Buiten een interactieve stap dekt deze onzichtbare laag het gat af: je ziet het element
+            onverminderd, maar een klik komt er niet doorheen – die pulseert de bubbel, net als op de
+            dimlaag zelf. Bewust zonder achtergrond en zonder transitie (zie hierboven). */}
+        {gat && !bedienbaar && (
+          <div
+            onClick={() => setPulse(true)}
+            className="pointer-events-auto absolute"
+            style={{ top: gat.top, left: gat.left, width: gat.breedte, height: gat.hoogte }}
+          />
+        )}
         {/* De rand om het aangewezen element. Los van de dimlaag, zodat hij het gat niet afdekt. */}
         {spotVak && (
           <div
