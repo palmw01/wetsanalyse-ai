@@ -28,10 +28,6 @@ export async function getLoginTicketCookie(): Promise<string | undefined> {
   return (await cookies()).get(LOGIN_TICKET_COOKIE)?.value;
 }
 
-export async function clearLoginTicketCookie(): Promise<void> {
-  (await cookies()).set(LOGIN_TICKET_COOKIE, "", { ...base, maxAge: 0 });
-}
-
 export async function setTrustedDeviceCookie(token: string): Promise<void> {
   (await cookies()).set(TRUSTED_DEVICE_COOKIE, token, { ...base, maxAge: TRUSTED_MAX_AGE });
 }

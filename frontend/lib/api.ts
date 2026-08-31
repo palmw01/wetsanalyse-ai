@@ -27,7 +27,6 @@ import type {
   AgentRun,
   Anker,
   AnnotatieDocument,
-  AuditRecord,
   Bericht,
   BerichtAanmakenIn,
   BerichtenPaginaOut,
@@ -326,12 +325,6 @@ export async function beslis(
     { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(req) },
   );
   return json<AnnotatieDocument>(res);
-}
-
-export async function haalAudit(slug: string): Promise<AuditRecord[]> {
-  return json<AuditRecord[]>(
-    await fetch(`/api/annotatie/documenten/${pathSegment(slug)}/audit`, { cache: "no-store" }),
-  );
 }
 
 // --- Gesprekken (chatgeschiedenis; per-gebruiker via de BFF-X-User-Id) ------

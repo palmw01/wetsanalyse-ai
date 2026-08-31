@@ -43,10 +43,6 @@ export function jasStyle(klasse: string): string {
   return KLASSE_STYLE[klasse?.trim()] ?? NEUTRAAL;
 }
 
-export function isBekendeKlasse(klasse: string): boolean {
-  return klasse?.trim() in KLASSE_STYLE;
-}
-
 /** Sorteersleutel voor presentatie: index in de canonieke wa-table-volgorde;
  *  onbekende klassen achteraan. Gebruik met een stabiele sort. */
 export function jasVolgorde(klasse: string): number {
