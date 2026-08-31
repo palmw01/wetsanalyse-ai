@@ -60,7 +60,7 @@ export function sorteerTeDoen(docs: DocumentSamenvatting[]): DocumentSamenvattin
 }
 
 /** Alles-volgorde binnen een regeling: op artikel (numeriek, want '10' hoort ná '2') en dan lid. */
-export function sorteerBinnenRegeling(docs: DocumentSamenvatting[]): DocumentSamenvatting[] {
+function sorteerBinnenRegeling(docs: DocumentSamenvatting[]): DocumentSamenvatting[] {
   return [...docs].sort(
     (a, b) => nummer(a.artikel) - nummer(b.artikel) || nummer(a.lid) - nummer(b.lid),
   );

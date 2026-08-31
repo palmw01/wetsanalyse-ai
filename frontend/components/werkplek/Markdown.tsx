@@ -13,7 +13,7 @@ import { markeerPassages } from "@/lib/markering";
  *  en groeiden de kosten mee met de lengte van het gesprek. Het lópende antwoord verandert wél per
  *  token en wordt dus nog steeds opnieuw geparseerd – dat schaalt met de lengte van dat ene antwoord
  *  en is de prijs voor opmaak die meteen goed staat. */
-export const TEKST_CLASS =
+const TEKST_CLASS =
   "break-words text-[0.9375rem] leading-relaxed text-ink [overflow-wrap:anywhere]";
 
 /** Het antwoord zoals het binnenkomt: platte tekst, dezelfde typografie als de opgemaakte versie.
