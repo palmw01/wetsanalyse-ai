@@ -66,7 +66,13 @@ De **harde scheidingslijn**: alles met een token is server-only.
   intercepting route die hem als dialoog over de werkplek heen opent. `app/beheer` en `app/account`
   blijven bestaan als redirect naar de bijbehorende tab.
 - `components/` – presentatie. `components/werkplek/` + `components/workbench/` = de chat-werkruimte
-  (zie §*Werkplek*). `components/admin/` levert de beheertabs (achter het admin-token):
+  (zie §*Werkplek*). **Twee mappen, één werkruimte, en dat is opzet:** `werkplek/` is de schil en
+  het gesprek (sidebar, thread, artefactpaneel), `workbench/` is het annotatiegereedschap dát in
+  dat paneel staat (documentpaneel, reviewrij, selectiepopover, export). De grens loopt langs
+  `components/werkplek/ArtefactInhoud.tsx`: dat is het enige bestand dat uit `workbench/`
+  importeert, en alle vijf componenten daar worden gebruikt. Er is dus **geen** oude en nieuwe
+  variant om op te ruimen — samenvoegen raakt veel imports en levert niets op.
+  `components/admin/` levert de beheertabs (achter het admin-token):
   **`ProfielenPanel`** met de modelprofiel-editor (`ProfileEditor`), **`UsersPanel`**
   (gebruikersbeheer), **`ApiTokensPanel`**, **`BerichtenBeheerPanel`** (+ `BerichtEditor`) en
   **`FeedbackLijstClient`**. `components/berichten/` heeft het leesbare archief. `components/account/` + `components/auth/` dragen de login/2fa/setup-flow.
