@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import {
-  klikGat, maskRechthoeken, plaatsBubbel, uitsnede, zichtbaarDeel,
+  klikGat, maskRechthoeken, plaatsBubbel, uitsnede, vakVan, zichtbaarDeel,
   type Afmeting, type Plaatsing, type Stap, type Vak,
 } from "@/lib/rondleiding";
 
@@ -16,11 +16,6 @@ const GAT_MARGE = 14;
 const BUBBEL_BREEDTE = 340;
 /** Waar we vanuit gaan zolang de bubbel nog niet gemeten is (eerste frame van een stap). */
 const BUBBEL_HOOGTE_SCHATTING = 220;
-
-function vakVan(el: Element): Vak {
-  const r = el.getBoundingClientRect();
-  return { top: r.top, left: r.left, breedte: r.width, hoogte: r.height };
-}
 
 interface Props {
   stap: Stap;
@@ -154,26 +149,22 @@ export function TourBubbel({
   // effect hierboven geen state hoeft te wissen.
   const actiefVak = doel ? vak : null;
 
-  // De rand hangt aan het élement, niet aan de plaatsing van de bubbel — dezelfde scheiding als bij
-  // het gat hieronder. Hing hij aan `plaatsing.modus === "midden"`, dan verdween hij precies bij het
-  // gespreksvenster en de sidebar: die vullen bijna het scherm, dus de bubbel centreert, en dan
-  // openden de eerste twee stappen van de rondleiding met een kaart die niets aanwees. Juist daar
-  // gáát de stap over dat hele gebied, en dan hoort de rand er omheen te staan.
-  const spotVak = actiefVak;
+  // Wat er van het aangewezen element in beeld staat. Rand én gat komen hieruit, zodat ze niet uit
+  // elkaar kunnen lopen: is er niets te zien – een element dat `display: none` is na een
+  // breekpuntwissel, of dat uit zijn scroller is gescrold – dan wijst de rondleiding niets aan in
+  // plaats van een vierkantje van een paar pixels in de hoek van het scherm te tekenen.
+  const zichtbaar = actiefVak ? zichtbaarDeel(actiefVak, viewport) : null;
 
-  // Waar de dimlaag een gat laat. Alleen in een stap die om een handeling vraagt: daar moet je op de
-  // échte knop kunnen klikken. In alle andere stappen dekt de laag alles af, want daar is elke klik
-  // buiten de bubbel er een die de rondleiding kan slopen.
-  //
-  // Let op dat dit aan `actiefVak` hangt en niet aan `spotVak`. Die tweede is null zodra de bubbel
-  // gecentreerd staat (te weinig ruimte ernaast), en dan verdween het gat terwijl het element er
-  // gewoon was — je kon de knop dan niet meer indrukken. Waar de bubbel staat en of de knop
-  // bereikbaar is, zijn twee verschillende vragen.
+  // De rand hangt aan het élement, niet aan de plaatsing van de bubbel. Hing hij aan
+  // `plaatsing.modus === "midden"`, dan verdween hij precies bij het gespreksvenster en de sidebar:
+  // die vullen bijna het scherm, dus de bubbel centreert, en dan openden de eerste twee stappen van
+  // de rondleiding met een kaart die niets aanwees. Juist daar gáát de stap over dat hele gebied.
+  const spotVak = zichtbaar;
+
   // Wat de dimlaag openlaat. Dat is er in élke stap: gedimd wijst het aangewezen element niets aan –
   // dan staat er een rand om iets grijs. Bedienen mag alleen waar de stap erom vraagt; buiten die
   // stap ligt er een onzichtbare vanger overheen (hieronder), zodat een klik nog steeds niet bij de
-  // werkplek komt maar de bubbel laat pulseren.
-  const zichtbaar = actiefVak ? zichtbaarDeel(actiefVak, viewport) : null;
+  // werkplek komt maar de bubbel wel laat pulseren.
   const gat = zichtbaar ? uitsnede(zichtbaar, GAT_MARGE) : null;
   const bedienbaar = Boolean(klikGat(stap, actiefVak, GAT_MARGE));
 

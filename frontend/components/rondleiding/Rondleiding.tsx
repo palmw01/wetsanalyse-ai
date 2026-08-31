@@ -7,9 +7,10 @@ import { Dialog } from "@/components/ui/Dialog";
 import type { BeslissingType } from "@/lib/types";
 import { TourBubbel } from "@/components/rondleiding/TourBubbel";
 import {
-  artefactActie, domineert, hervatIndex, RONDLEIDING_VERSIE, schrijfStand, zichtbareStappen,
-  type Stap,
+  artefactActie, domineert, heeftOmvang, hervatIndex, RONDLEIDING_VERSIE, schrijfStand, SMAL,
+  vakVan, zichtbareStappen, type Stap,
 } from "@/lib/rondleiding";
+import { BREED } from "@/lib/useBreedScherm";
 
 /** Waar de rondleiding thuishoort. Buiten dit pad wijst hij niets aan, dus dan pauzeert hij. */
 const THUIS = "/workbench";
@@ -131,14 +132,19 @@ export function Rondleiding({
     if (fase !== "stappen" || !stap) return;
     let pogingen = 0;
     let timer: ReturnType<typeof setTimeout>;
-    /** Het element dat dit anker nú draagt. */
+    /** Het element dat dit anker nú draagt.
+     *
+     *  De keuze gaat op zichtbaarheid en niet op de mediaquery alleen. Beide varianten staan altijd
+     *  in de DOM – de zijbalk is onder `lg` `display: none`, de mobiele hamburger erboven – en een
+     *  breekpuntwissel tijdens een stap liet de bubbel anders aan de verborgen variant hangen. De
+     *  mediaquery bepaalt alleen nog wie er eerst aan de beurt is. */
     const vind = () => {
-      const smal = window.matchMedia("(max-width: 1023px)").matches;
-      const sleutel = smal && stap.ankerSmal ? stap.ankerSmal : stap.anker;
-      return (
-        document.querySelector(`[data-tour="${sleutel}"]`) ??
-        document.querySelector(`[data-tour="${stap.anker}"]`)
-      );
+      const smal = window.matchMedia(SMAL).matches;
+      const sleutels = smal && stap.ankerSmal ? [stap.ankerSmal, stap.anker] : [stap.anker];
+      const gevonden = sleutels
+        .map((s) => document.querySelector(`[data-tour="${s}"]`))
+        .filter((el): el is Element => el !== null);
+      return gevonden.find((el) => heeftOmvang(vakVan(el))) ?? gevonden[0] ?? null;
     };
     const zoek = () => {
       const el = vind();
@@ -148,8 +154,7 @@ export function Rondleiding({
         // (zie `plaatsBubbel`), en dan is scrollen zinloos: `block: "center"` kan iets dat groter
         // is dan de viewport nergens centreren, en op een scroll-container als de thread verschuift
         // het de pagina eromheen in plaats van de inhoud.
-        const r = el.getBoundingClientRect();
-        const vak = { top: r.top, left: r.left, breedte: r.width, hoogte: r.height };
+        const vak = vakVan(el);
         if (!domineert(vak, { breedte: window.innerWidth, hoogte: window.innerHeight })) {
           el.scrollIntoView({
             block: "center",
@@ -166,21 +171,50 @@ export function Rondleiding({
     };
     zoek();
 
-    // Een anker kan van element wisselen zonder dat er een stap verandert: in de reviewlijst
-    // verhuist `data-tour="review-kaart"` mee met de selectie. Bleef de bubbel aan de oude kaart
-    // hangen, dan wees hij naar iets dat intussen uit de lijst was weggescrold. Bewust zonder
-    // scrollen – dat hoort bij een stapwissel, niet bij elke wijziging in de DOM.
-    const kijker = new MutationObserver(() => {
-      const el = vind();
-      // Alleen een gevonden element telt: tijdens een re-render kan het anker heel even nergens
-      // staan, en dan is "geen doel" een verkeerde conclusie.
-      if (el) setDoel(el);
+    /** Opnieuw opzoeken zonder te scrollen: de layout is niet veranderd, alleen wélk element het
+     *  anker draagt. Alleen een gevonden element telt – tijdens een re-render kan het anker heel even
+     *  nergens staan, en dan is "geen doel" een verkeerde conclusie. */
+    let hervindFrame = 0;
+    const hervind = () => {
+      cancelAnimationFrame(hervindFrame);
+      hervindFrame = requestAnimationFrame(() => {
+        const el = vind();
+        if (el) setDoel(el);
+      });
+    };
+
+    // Twee soorten wijzigingen, twee reacties.
+    //
+    // Een anker kan van element wisselen zonder dat er een stap verandert: in de reviewlijst verhuist
+    // `data-tour="review-kaart"` mee met de selectie (een attribuutwissel), en op 1280px bouwt het
+    // artefact zichzelf opnieuw op in een andere tak van de boom (`childList`) – dan zijn wettekst,
+    // reviewlijst en kaart allemaal nieuwe knopen. Zonder dit bleef de bubbel aan een losgekoppelde
+    // node hangen tot de volgende stap.
+    const kijker = new MutationObserver(hervind);
+    kijker.observe(document.body, {
+      childList: true,
+      attributes: true,
+      subtree: true,
+      attributeFilter: ["data-tour"],
     });
-    kijker.observe(document.body, { attributes: true, subtree: true, attributeFilter: ["data-tour"] });
+
+    // Een breekpuntwissel is wél een nieuwe layout: dan hoort het element ook weer in beeld gebracht
+    // te worden, want `wettekst-tip` en `review-kop` zitten in geneste scrollers. Slepen aan de
+    // vensterrand doet dat bewust niet – dat zou de hele tijd scrollen terwijl je nog bezig bent.
+    const grenzen = [window.matchMedia(SMAL), window.matchMedia(BREED)];
+    const opGrens = () => {
+      pogingen = 0;
+      zoek();
+    };
+    for (const mq of grenzen) mq.addEventListener("change", opGrens);
+    window.addEventListener("resize", hervind);
 
     return () => {
       clearTimeout(timer);
+      cancelAnimationFrame(hervindFrame);
       kijker.disconnect();
+      for (const mq of grenzen) mq.removeEventListener("change", opGrens);
+      window.removeEventListener("resize", hervind);
     };
   }, [fase, stap, artefactOpen]);
 

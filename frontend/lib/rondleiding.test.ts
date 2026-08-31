@@ -4,7 +4,7 @@ import { globSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import {
-  artefactActie, BUBBEL_MARGE, domineert, hervatIndex, indexVan, klikGat, LEGE_STAND,
+  artefactActie, BUBBEL_MARGE, domineert, heeftOmvang, hervatIndex, indexVan, klikGat, LEGE_STAND,
   maskRechthoeken, moetStarten, uitsnede, zichtbaarDeel,
   plaatsBubbel, RONDLEIDING_VERSIE, STAPPEN, vraagtArtefact, zichtbareStappen, type Vak,
 } from "./rondleiding";
@@ -404,6 +404,15 @@ describe("de dimlaag", () => {
     });
     // Volledig weggescrold: er is niets aan te wijzen.
     expect(zichtbaarDeel({ top: 900, left: 100, breedte: 200, hoogte: 50 }, viewport)).toBeNull();
+  });
+
+  it("herkent een element zonder omvang", () => {
+    // Een `display: none`-element (de zijbalk onder `lg`, de hamburger erboven) meet 0×0. Daar hoort
+    // de rondleiding niets aan te hangen: dan wijst hij een punt in de hoek van het scherm aan.
+    expect(heeftOmvang(null)).toBe(false);
+    expect(heeftOmvang({ top: 0, left: 0, breedte: 0, hoogte: 0 })).toBe(false);
+    expect(heeftOmvang({ top: 0, left: 0, breedte: 272, hoogte: 0 })).toBe(false);
+    expect(heeftOmvang({ top: 10, left: 10, breedte: 40, hoogte: 24 })).toBe(true);
   });
 
   it("legt de uitsnede rond het element, met marge", () => {

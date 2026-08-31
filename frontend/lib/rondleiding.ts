@@ -239,6 +239,11 @@ export function artefactActie(
 /** Ruimte tussen het aangewezen element en de bubbel, en tussen de bubbel en de schermrand. */
 export const BUBBEL_MARGE = 12;
 
+/** Onder deze breedte is de gesprekssidebar een drawer en gelden de `ankerSmal`-varianten.
+ *  Gelijk aan Tailwinds `lg`; naast `BREED` uit `useBreedScherm` de tweede grens waarop de
+ *  rondleiding zijn doel opnieuw moet kiezen. */
+export const SMAL = "(max-width: 1023px)";
+
 /** Een gemeten rechthoek in viewport-coördinaten. */
 export interface Vak {
   top: number;
@@ -381,6 +386,24 @@ export function uitsnede(vak: Vak, marge: number): Vak {
     breedte: vak.breedte + marge * 2,
     hoogte: vak.hoogte + marge * 2,
   };
+}
+
+/** Het gemeten vak van een element, in viewport-coördinaten.
+ *
+ *  De enige plek in deze module die de DOM aanraakt, en bewust hier: zowel de bubbel als de motor van
+ *  de rondleiding meten elementen, en dat hoort één omzetting te zijn. De functie wordt in de tests
+ *  niet aangeroepen – die draaien zonder DOM. */
+export function vakVan(el: Element): Vak {
+  const r = el.getBoundingClientRect();
+  return { top: r.top, left: r.left, breedte: r.width, hoogte: r.height };
+}
+
+/** Stelt dit vak iets voor? Een element dat `display: none` is (de zijbalk onder `lg`, de mobiele
+ *  hamburger erboven) levert een rechthoek van 0×0 op, en dáár een bubbel bij zetten wijst niets aan:
+ *  je krijgt een gecentreerde kaart met een vierkantje van een paar pixels in de hoek van het scherm.
+ *  De rondleiding kiest zijn anker hierop, zodat een breekpuntwissel het doel meeneemt. */
+export function heeftOmvang(vak: Vak | null): boolean {
+  return Boolean(vak && vak.breedte > 0 && vak.hoogte > 0);
 }
 
 /** Het deel van `vak` dat werkelijk in beeld staat; `null` als er niets van te zien is.
