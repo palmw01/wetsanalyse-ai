@@ -8,6 +8,7 @@ import { AppSidebar } from "@/components/werkplek/AppSidebar";
 import { MobieleTopbar } from "@/components/werkplek/MobieleTopbar";
 import { Melding } from "@/components/ui/Melding";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { SkipLink, HOOFDINHOUD_ID } from "@/components/ui/SkipLink";
 import { isApiError, lijstDocumenten, verwijderDocument } from "@/lib/api";
 import {
   WEERGAVEN, groepeerPerRegeling, isTeDoen, sorteerTeDoen, zoek,
@@ -70,7 +71,8 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
   const aantalTeDoen = alles.filter(isTeDoen).length;
 
   return (
-    <div className="flex h-screen h-[100dvh] flex-col overflow-hidden bg-surface">
+    <div className="relative flex h-screen h-[100dvh] flex-col overflow-hidden bg-surface">
+      <SkipLink />
       <div className="flex min-h-0 flex-1">
         <AppSidebar
           activeId={null}
@@ -83,7 +85,7 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
 
         <div className="flex min-w-0 flex-1 flex-col">
         <MobieleTopbar titel="Annotaties" onOpenSidebar={() => setDrawerOpen(true)} />
-        <main className="min-w-0 flex-1 overflow-y-auto">
+        <main id={HOOFDINHOUD_ID} tabIndex={-1} className="min-w-0 flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-5xl px-5 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
             <header className="mb-5">
               <h1 className="font-display text-lg font-semibold text-lint">Annotaties</h1>

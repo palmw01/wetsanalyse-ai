@@ -10,6 +10,7 @@ import { ArtefactInhoud } from "@/components/werkplek/ArtefactInhoud";
 import { ChevronOmlaag } from "@/components/ui/Icoon";
 import { Melding } from "@/components/ui/Melding";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { SkipLink, HOOFDINHOUD_ID } from "@/components/ui/SkipLink";
 import {
   beslis, haalArtikelGraaf, haalDocument, isApiError, verwijderElement, voegElementToe,
   zetDocumentStatus,
@@ -90,7 +91,8 @@ export function AnnotatieDetailClient({ slug }: { slug: string }) {
   const titel = doc ? annotatieTitel(doc) : "Annotatie";
 
   return (
-    <div className="flex h-screen h-[100dvh] flex-col overflow-hidden bg-surface">
+    <div className="relative flex h-screen h-[100dvh] flex-col overflow-hidden bg-surface">
+      <SkipLink />
       <div className="flex min-h-0 flex-1">
         <AppSidebar
           activeId={null}
@@ -101,7 +103,7 @@ export function AnnotatieDetailClient({ slug }: { slug: string }) {
           onDrawerSluit={() => setDrawerOpen(false)}
         />
 
-        <main className="flex min-w-0 flex-1 flex-col bg-paper">
+        <main id={HOOFDINHOUD_ID} tabIndex={-1} className="flex min-w-0 flex-1 flex-col bg-paper">
           <MobieleTopbar titel={titel} onOpenSidebar={() => setDrawerOpen(true)} />
           {/* Zelfde afweging als de kop van het artefact hieronder: wrappen in plaats van de titel
               laten wegdrukken door een knop die niet mag krimpen. */}

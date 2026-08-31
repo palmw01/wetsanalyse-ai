@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 
 import { AppSidebar } from "@/components/werkplek/AppSidebar";
+import { SkipLink, HOOFDINHOUD_ID } from "@/components/ui/SkipLink";
 import { leesStand, moetStarten } from "@/lib/rondleiding";
 import { maakDemoScene, type DemoScene } from "@/lib/rondleidingDemo";
 import { MobieleTopbar } from "@/components/werkplek/MobieleTopbar";
@@ -99,7 +100,8 @@ export function WorkbenchShell({
   const actieveTitel = gesprekken.find((g) => g.id === activeId)?.titel || "Nieuw gesprek";
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="relative flex h-full flex-col">
+      <SkipLink />
       {/* Waar zit ik? Deze strook hing eerder aan de globale sitekop, en die verborg zichzelf op de
           werkplek – dus juist waar je de hele dag werkt, zag je hem nooit. Nu staat hij bovenaan de
           schil. De klik opent de voorwaarden als dialog (intercepting route), zodat je je gesprek
@@ -145,8 +147,9 @@ export function WorkbenchShell({
         demoGesprekken={demo?.gesprekken}
       />
 
-      {/* Rechterkolom: mobiele topbar + chatvenster */}
-      <div className="flex min-w-0 flex-1 flex-col">
+      {/* Rechterkolom: mobiele topbar + chatvenster. `tabIndex={-1}` zodat de skip-link de focus
+          hier echt neer kan zetten – zonder dat springt alleen de scrollpositie. */}
+      <div id={HOOFDINHOUD_ID} tabIndex={-1} className="flex min-w-0 flex-1 flex-col">
         <MobieleTopbar
           titel={actieveTitel}
           onOpenSidebar={() => setDrawerOpen(true)}
