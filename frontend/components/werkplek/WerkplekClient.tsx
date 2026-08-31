@@ -299,6 +299,9 @@ export function WerkplekClient({
     if (!demo || demoOpenSignaal === 0) return;
     const slug = Object.keys(demo.docs)[0];
     if (slug) void openArtefact(slug);
+    // Alleen op de teller reageren: `demo` en `openArtefact` horen hier niet in de dependencies,
+    // want dan opent het paneel opnieuw zodra een van beide een nieuwe referentie krijgt — terwijl
+    // de rondleiding juist één keer om dit signaal vraagt.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [demoOpenSignaal]);
 
@@ -315,6 +318,9 @@ export function WerkplekClient({
   // De rondleiding wacht met haar reviewstappen tot het paneel er echt is.
   useEffect(() => {
     onDemoArtefact?.(Boolean(artefactSlug));
+    // Alleen bij een echte wisseling van het paneel melden. `onDemoArtefact` is een inline callback
+    // van de rondleiding en dus elke render een andere referentie; in de dependencies zou dit
+    // effect bij iedere render opnieuw vuren.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [artefactSlug]);
 
