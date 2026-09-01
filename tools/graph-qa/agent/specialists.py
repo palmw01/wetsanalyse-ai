@@ -59,7 +59,8 @@ SPECIALISTS: dict[str, Specialist] = {
             "Begripsbepalingen staan doorgaans in artikel 1 of 2 van een regeling; haal die beide "
             "in één beurt op in plaats van na elkaar. Het definitie-artikel zelf bevat vaak alleen "
             "de aanhef ('Deze wet verstaat onder:') – de definities zitten in de onderdelen van het "
-            "lid, die get_lid meelevert. Citeer de vindplaats van het ONDERDEEL (…&o=k), niet die "
+            "lid, die get_lid meelevert (sinds de heeftOnderdeel-fix van 1 sep 2026; daarvóór kwamen ze "
+            "er niet uit). Citeer de vindplaats van het ONDERDEEL (…&o=k), niet die "
             "van het hele lid."
         ),
         tools=frozenset({
