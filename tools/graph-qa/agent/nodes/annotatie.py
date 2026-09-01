@@ -84,7 +84,7 @@ def annoteer_node(b: Bouw, state: State) -> dict[str, Any]:
     resp = b.llm.create(
         model=b.model,
         max_tokens=8192,
-        system=annotatie_systeemprompt(),
+        system=annotatie_systeemprompt(b.settings.annotatie_prompt_kort),
         tools=[],
         messages=[{"role": "user", "content": annotatie_userprompt(doel.get("bwbId", ""), aanduiding, corpus, doel.get("lid", ""))}],
     )
@@ -231,7 +231,7 @@ def annoteer_klasseer_node(b: Bouw, state: State) -> dict[str, Any]:
         _stap(writer, "Classificator", "geen kandidaten – gecombineerde aanpak (V1-fallback)")
         resp = b.llm.create(
             model=b.model, max_tokens=8192,
-            system=annotatie_systeemprompt(), tools=[],
+            system=annotatie_systeemprompt(b.settings.annotatie_prompt_kort), tools=[],
             messages=[{"role": "user", "content": annotatie_userprompt(
                 doel.get("bwbId", ""), aanduiding, corpus, doel.get("lid"),
             )}],
@@ -241,7 +241,7 @@ def annoteer_klasseer_node(b: Bouw, state: State) -> dict[str, Any]:
               f"classificeert {len(kandidaten)} kandidaten voor art. {aanduiding}")
         resp = b.llm.create(
             model=b.model, max_tokens=8192,
-            system=klasseer_systeemprompt(), tools=[],
+            system=klasseer_systeemprompt(b.settings.annotatie_prompt_kort), tools=[],
             messages=[{"role": "user", "content": klasseer_userprompt(
                 doel.get("bwbId", ""), aanduiding, corpus, kandidaten, doel.get("lid"),
             )}],
@@ -318,7 +318,7 @@ def critic_node(b: Bouw, state: State) -> dict[str, Any]:
         resp = b.llm.create(
             model=b.model,
             max_tokens=2048,
-            system=critic_systeemprompt(),
+            system=critic_systeemprompt(b.settings.annotatie_prompt_kort),
             tools=[],
             messages=[{"role": "user", "content": critic_userprompt(
                 voorstellen, corpus, list(state.get("gemeld_ontbrekend") or []),
@@ -511,7 +511,7 @@ def herzie_node(b: Bouw, state: State) -> dict[str, Any]:
         resp = b.llm.create(
             model=b.model,
             max_tokens=8192,
-            system=herziening_systeemprompt(),
+            system=herziening_systeemprompt(b.settings.annotatie_prompt_kort),
             tools=[],
             messages=[{"role": "user", "content": herziening_userprompt(
                 voorstellen, feedback,

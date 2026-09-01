@@ -574,6 +574,18 @@ puur omdat er één anker per bepaling was. Het rapport rekent precisie/recall d
 cases mét ankers – cases met `verwacht: []` kregen gratis (1.0, 1.0) en trokken het gemiddelde
 omhoog zonder iets te meten.
 
+**De promptlengte is meetbaar, niet aangenomen.** `ANNOTATIE_PROMPT_KORT=true` laat
+`_klassen_referentie` alleen de eerste zin per veld renderen: een annoteerprompt van ~8,6k tekens in
+plaats van ~17,4k. Dat is bewust binnen een procent van de 8503 tekens die de prompt had vóór 1 sep
+2026, toen de volle brontekst uit de skill erin kwam. Die verdubbeling gebeurde op de redenering dat
+de bron rijker was dan wat erin stond — een redenering, geen meting.
+
+De eval-job draait daarom **beide varianten in één uitvoering** (`vol` en `kort`, elk drie runs; zie
+`deploy/azure/main.bicep`). Dat is geen gemak maar methode: dezelfde graafstand, hetzelfde model,
+dezelfde dag. Een vergelijking over twee deploys heen haalt die drie door elkaar met het effect dat
+je wilt meten. Zet de knop niet aan in productie — korter is niet beter, dat is juist wat gemeten
+wordt.
+
 **Ankers komen uit `eval/bronteksten.json`, niet uit het hoofd.** Dat bestand draagt de letterlijke
 lid-tekst zoals `tools/bwb-import` die in de graaf zet – dezelfde tekst waartegen de live-eval
 scoort. `tests/test_golden_annotatie.py` bewaakt dat elk anker daar letterlijk in voorkomt, dat de

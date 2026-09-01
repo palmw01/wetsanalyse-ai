@@ -784,11 +784,21 @@ resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
 // Handmatige trigger, geen schedule: elke run kost LLM-tokens. Draaien via `azure-infra.yml`
 // (actie `eval`) of `az containerapp job start -n ${appName}-eval -g <rg>`.
 //
-// DRIE RUNS PER UITVOERING, en dat is de kern van de meting. JAS-annotatie kent
-// interpretatieruimte en dezelfde bepaling levert tussen runs sterk verschillende uitkomsten op
-// (geel varieerde 38–77%). Eén run is daarom geen meting maar een anekdote; drie runs geven een
-// bandbreedte. De loop gaat door na een mislukte run en meldt aan het eind of er één faalde —
-// anders verlies je de twee runs die wél slaagden.
+// DRIE RUNS PER VARIANT, en dat is de kern van de meting. JAS-annotatie kent interpretatieruimte
+// en dezelfde bepaling levert tussen runs sterk verschillende uitkomsten op (geel varieerde
+// 38–77%). Eén run is daarom geen meting maar een anekdote; drie runs geven een bandbreedte. De
+// loop gaat door na een mislukte run en meldt aan het eind of er één faalde — anders verlies je de
+// runs die wél slaagden.
+//
+// TWEE VARIANTEN, in één uitvoering. `vol` is de volle klassenreferentie uit de skill (~14,5k
+// tekens); `kort` is dezelfde referentie tot de eerste zin per veld (~5,6k), even groot als de
+// verkorte referentie die tot 1 sep 2026 in de prompt stond. Op 1 sep is die prompt verdubbeld op
+// de redenering dat de bron rijker is dan wat erin stond — niet op een meting. Dit beantwoordt die
+// vraag met cijfers.
+//
+// Beide varianten in dezelfde uitvoering draaien is geen gemak maar methode: dezelfde graafstand,
+// hetzelfde model, dezelfde dag. Een vergelijking over twee deploys heen zou die drie door elkaar
+// halen met het effect dat je wilt meten.
 resource evalJob 'Microsoft.App/jobs@2024-03-01' = {
   name: '${appName}-eval'
   location: location
@@ -797,8 +807,9 @@ resource evalJob 'Microsoft.App/jobs@2024-03-01' = {
     environmentId: cae.id
     configuration: {
       triggerType: 'Manual'
-      // Drie runs × acht cases × een annotatieketen van 60–90 s ≈ 30 min; een uur geeft lucht.
-      replicaTimeout: 3600
+      // Zes runs (twee varianten × drie) × acht cases × een annotatieketen van 60–90 s ≈ 60 min;
+      // twee uur geeft lucht.
+      replicaTimeout: 7200
       replicaRetryLimit: 0   // opnieuw proberen zou de meting vervuilen, niet redden
       manualTriggerConfig: {
         parallelism: 1
@@ -834,7 +845,7 @@ resource evalJob 'Microsoft.App/jobs@2024-03-01' = {
           ]
           command: ['sh', '-c']
           args: [
-            'rc=0; for i in 1 2 3; do echo "=== EVAL-RUN $i VAN 3 ==="; python eval/run_eval.py --annotatie || rc=1; done; echo "=== KLAAR (rc=$rc) ==="; exit $rc'
+            'rc=0; for v in vol kort; do for i in 1 2 3; do echo "=== VARIANT $v · RUN $i VAN 3 ==="; ANNOTATIE_PROMPT_KORT=$( [ "$v" = kort ] && echo true || echo false ) python eval/run_eval.py --annotatie || rc=1; done; done; echo "=== KLAAR (rc=$rc) ==="; exit $rc'
           ]
           env: [
             { name: 'AZURE_FOUNDRY_BASE_URL', value: '${llmApiBase}/anthropic' }
