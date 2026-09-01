@@ -534,6 +534,25 @@ cd tools/graph-qa && .venv/bin/python eval/run_eval.py --annotatie --offline   #
 cd tools/graph-qa && .venv/bin/python eval/run_eval.py --annotatie             # live (kost geld)
 ```
 
+**De live-varianten draaien niet zomaar op je eigen machine.** `run_eval.py` draait de agent
+in-proces (`answer_stream` met `Settings.from_env()`) en heeft dus een **directe** graafverbinding
+nodig — het praat níét met een gedeployde graph-qa. GraphDB staat op Azure als `external: false` en
+is alleen binnen de container-apps-omgeving bereikbaar, dus vanaf buiten is er geen graaf om tegen
+te meten. Lokaal draaien vraagt een eigen GraphDB met een geïmporteerde wet; de dev-omgeving die
+dat bood is op 27 aug 2026 opgeheven.
+
+Meten tegen de échte graaf gaat daarom via de **eval-job** in de omgeving zelf:
+`azure-infra.yml` → actie **`eval`** (per straat). Die draait `--annotatie` **drie keer** en zet
+het rapport in de workflow-samenvatting. Waarom drie: JAS-analyse kent interpretatieruimte en
+dezelfde bepaling levert tussen runs sterk verschillende uitkomsten op (geel varieerde 38–77%),
+dus één run is een anekdote. Lees precisie/recall en span-IoU als bandbreedte; de *garanties* horen
+wél op 100%.
+
+De job draagt bewust **geen** `WETSANALYSE_API_URL`/`_TOKEN` en geen `CHECKPOINT_DB_URL`: met die
+eerste twee zou `legt_zelf_vast` aan staan en elke eval-run als annotatiedocument in de
+werkvoorraad van een jurist landen, en met de derde zouden de eval-gesprekken in de gedeelde
+thread-store belanden. Een meting mag de gemeten toestand niet veranderen — zet ze er niet bij.
+
 **Twee gouden sets.** `golden.jsonl` meet antwoorden (citaat-faithfulness, bron-recall, refusal);
 `golden_annotatie.jsonl` meet de annotatieketen, die daarvóór alleen door unit-tests gedekt was – en
 die meten mechaniek, geen gedrag. De annotatie-scorers splitsen in twee soorten:

@@ -12,6 +12,7 @@ beide naar nul schalen, dus dit zijn vaste kosten – zie *Kosten drukken* onder
 | PostgreSQL | Flexible Server (B1ms) | intern |
 | GraphDB | Container App | intern |
 | BWB-import | Container Apps **Job** (handmatig) | – |
+| Eval | Container Apps **Job** (handmatig) | – |
 | API | Container App | intern |
 | graph-qa | Container App | intern |
 | Frontend | Container App | **publiek HTTPS** |
@@ -204,6 +205,7 @@ Actions → **azure-infra** → *Run workflow*, met een keuze voor de straat en 
 | `afbreken` | verwijdert de hele resource group. Vraagt om de naam ter bevestiging. |
 | `opruimen` | verwijdert wat er in de groep staat maar niet bij deze straat hoort. Toont eerst wat het zou doen; verwijdert pas als je de groepsnaam intypt. |
 | `vul-graaf` | start de import-job en wacht hem af. |
+| `eval` | draait de eval-job: **drie** metingen van de annotatieketen tegen de graaf van deze straat, met het rapport in de workflow-samenvatting. Kost LLM-tokens en duurt ~30 min. Vereist een eerdere `deploy` (die maakt de job aan). |
 | `inventaris` | read-only overzicht van wat er in de subscription draait. |
 | `telemetrie` | vraagt de Log Analytics-workspace of er telemetrie binnenkomt; met een eigen `query` je eigen KQL. Read-only. |
 | `grafana` | rolt alleen de Grafana-app uit (`grafana.bicep`). Raakt de applicatiestack niet. |

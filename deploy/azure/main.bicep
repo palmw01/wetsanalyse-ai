@@ -763,6 +763,99 @@ resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 6b. Eval-job – meet de annotatieketen tegen de échte graaf (handmatig)
+// ─────────────────────────────────────────────────────────────────────────────
+// Waarom dit hier moet draaien en niet op een ontwikkelmachine: GraphDB staat op `external: false`
+// en is dus alleen bínnen deze omgeving bereikbaar. `eval/run_eval.py --annotatie` draait de agent
+// in-proces en heeft een directe graafverbinding nodig, dus een job in dezelfde omgeving is de
+// enige plek waar de keten tegen echte wettekst te meten valt.
+//
+// Handmatige trigger, geen schedule: elke run kost LLM-tokens. Draaien via `azure-infra.yml`
+// (actie `eval`) of `az containerapp job start -n ${appName}-eval -g <rg>`.
+//
+// DRIE RUNS PER UITVOERING, en dat is de kern van de meting. JAS-annotatie kent
+// interpretatieruimte en dezelfde bepaling levert tussen runs sterk verschillende uitkomsten op
+// (geel varieerde 38–77%). Eén run is daarom geen meting maar een anekdote; drie runs geven een
+// bandbreedte. De loop gaat door na een mislukte run en meldt aan het eind of er één faalde —
+// anders verlies je de twee runs die wél slaagden.
+resource evalJob 'Microsoft.App/jobs@2024-03-01' = {
+  name: '${appName}-eval'
+  location: location
+  tags: straatTags
+  properties: {
+    environmentId: cae.id
+    configuration: {
+      triggerType: 'Manual'
+      // Drie runs × acht cases × een annotatieketen van 60–90 s ≈ 30 min; een uur geeft lucht.
+      replicaTimeout: 3600
+      replicaRetryLimit: 0   // opnieuw proberen zou de meting vervuilen, niet redden
+      manualTriggerConfig: {
+        parallelism: 1
+        replicaCompletionCount: 1
+      }
+      // Een job draagt zijn eigen secrets; hij kan niet bij die van de graph-qa-app.
+      secrets: [
+        { name: 'llm-api-key', value: llmApiKey }
+        { name: 'graphdb-token', value: graphdbToken }
+      ]
+    }
+    template: {
+      volumes: [
+        {
+          name: 'eval-secrets'
+          storageType: 'Secret'
+          secrets: [
+            { secretRef: 'llm-api-key', path: 'llm_api_key' }
+            { secretRef: 'graphdb-token', path: 'graphdb_token' }
+          ]
+        }
+      ]
+      containers: [
+        {
+          name: 'eval'
+          image: graphQaImage
+          resources: {
+            cpu: json('0.5')
+            memory: '1Gi'
+          }
+          volumeMounts: [
+            { volumeName: 'eval-secrets', mountPath: '/run/secrets' }
+          ]
+          command: ['sh', '-c']
+          args: [
+            'rc=0; for i in 1 2 3; do echo "=== EVAL-RUN $i VAN 3 ==="; python eval/run_eval.py --annotatie || rc=1; done; echo "=== KLAAR (rc=$rc) ==="; exit $rc'
+          ]
+          env: [
+            { name: 'AZURE_FOUNDRY_BASE_URL', value: '${llmApiBase}/anthropic' }
+            { name: 'AZURE_FOUNDRY_API_KEY_FILE', value: '/run/secrets/llm_api_key' }
+            { name: 'LLM_MODEL', value: llmModel }
+            { name: 'GRAPHDB_MCP_URL', value: '${graphdbInternalUrl}/mcp' }
+            { name: 'GRAPHDB_TOKEN_FILE', value: '/run/secrets/graphdb_token' }
+            { name: 'GRAPHDB_REPOSITORY_ID', value: 'inning' }
+            { name: 'SIMILARITY_INDEX', value: 'bwb_similarity' }
+            { name: 'HOME', value: '/tmp' }
+            // Traceerbaar in dezelfde Application Insights als de rest, maar onder een eigen naam:
+            // een eval-run is geen gebruikersverkeer en moet de latency-grafieken niet vervuilen.
+            { name: 'OTEL_EXPORTER_OTLP_ENDPOINT', value: collectorEndpoint }
+            { name: 'OTEL_SERVICE_NAME', value: 'wetsanalyse-eval' }
+            { name: 'OTEL_RESOURCE_ATTRIBUTES', value: 'deployment.environment=${appName}' }
+            // BEWUST NIET GEZET, en dat is een veiligheidsmaatregel, geen vergetelheid:
+            //
+            // WETSANALYSE_API_URL/_TOKEN – zonder die twee is `legt_zelf_vast` false en schrijft de
+            // agent niets weg. Zou de job ze wél dragen, dan landt elke eval-run als annotatie-
+            // document in de werkvoorraad van een jurist. Een meting mag de gemeten toestand niet
+            // veranderen.
+            //
+            // CHECKPOINT_DB_URL – zonder deze valt de checkpointer terug op in-memory, dus de
+            // eval-gesprekken komen niet in de gedeelde thread-store van de gebruikers terecht.
+          ]
+        }
+      ]
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 7. Frontend Container App (publiek HTTPS)
 // ─────────────────────────────────────────────────────────────────────────────
 // Interne API-/graph-qa-FQDN uit de resource (bevat `.internal.`); de externe frontend-URL mág met
