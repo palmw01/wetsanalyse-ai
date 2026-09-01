@@ -85,3 +85,27 @@ def test_het_documentpaneel_krijgt_dezelfde_tekst():
         f'{ld["lid"]}. {ld["tekst"]}' if ld["lid"] else ld["tekst"] for ld in leden
     )
     assert uit_leden == artikel_corpus("BWBR0004770", "2", FakeGraph(result=CORPUS_TSV))
+
+
+# Het artikel/lid-pad heeft zijn eigen lus (`_vouw_onderdelen_in`), dus de nesting moet daar apart
+# bewezen worden — bij #402 greep de fix eerst alleen op het bepaling-pad.
+L = "urn:bwb:X:artikel:2:lid:1"
+NEST_TSV = (
+    "?tekst\t?jci\t?lid\t?lidnummer\t?lidtekst\t?o\t?ouder\t?onummer\t?otekst\n"
+    f'""\t""\t"{L}"\t"1"\t"Deze wet verstaat onder:"\t"{L}%2FOpsomming_1%2FOnderdeel._2"\t"{L}"\t"aa."\t""\n'
+    f'""\t""\t"{L}"\t"1"\t"Deze wet verstaat onder:"\t"{L}%2FOnderdeel1"\t"{L}%2FOpsomming_1%2FOnderdeel._2"\t"1°."\t"het eerste genest onderdeel;"\n'
+    f'""\t""\t"{L}"\t"1"\t"Deze wet verstaat onder:"\t"{L}%2FOpsomming_1%2FOnderdeel._1"\t"{L}"\t"a."\t"rijksbelastingen: als bedoeld in artikel 1;"\n'
+    f'""\t""\t"{L}"\t"1"\t"Deze wet verstaat onder:"\t"{L}%2FOpsomming_1%2FOnderdeel._3"\t"{L}"\t"b."\t"belastingrente: de rente;"\n'
+)
+
+
+def test_genest_onderdeel_staat_onder_zijn_ouder_en_niet_vooraan():
+    """`1°.` hangt onder `aa.`; zijn IRI sorteert vóór die van zijn ooms.
+
+    Met alleen stringsortering (`%2FOnderdeel1` < `%2FOpsomming_1%2F…`) komt hij bovenaan te staan.
+    Alleen de `ouder`-kolom zet hem op zijn plek: ná `aa.` en vóór `b.`.
+    """
+    corpus = artikel_corpus("BWBR0004770", "2", FakeGraph(result=NEST_TSV))
+    assert corpus.startswith("1. Deze wet verstaat onder:")
+    assert [r.split(" ", 1)[0] for r in corpus.split("\n")[1:]] == ["a.", "1°.", "b."]
+    assert corpus.index("a. rijksbelastingen") < corpus.index("1°. het eerste") < corpus.index("b. belastingrente")

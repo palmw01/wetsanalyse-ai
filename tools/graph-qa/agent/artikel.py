@@ -83,7 +83,7 @@ def _bepaling_fallback(bwb_id: str, artikel: str, graph: GraphPort) -> list[dict
     regels = [tekst.strip()] if tekst.strip() else []
     # Documentvolgorde, om dezelfde reden als bij `_vouw_onderdelen_in`: `get_bepaling_corpus`
     # sorteert met `ORDER BY ?o` op de IRI als string, en dat is niet de volgorde van de wet.
-    for r in sorted(rows, key=lambda r: _onderdeelsleutel(str(r.get("o") or ""))):
+    for r in _boomvolgorde(rows):
         onderdeel = _onderdeelregel(r)
         if onderdeel and onderdeel not in regels:
             regels.append(onderdeel)
@@ -114,6 +114,57 @@ def _controleer_vindplaats(bwb_id: str, artikel: str, lid: str | None) -> None:
             raise OngeldigeVindplaats(str(exc)) from exc
 
 
+def _boomvolgorde(rijen: list[dict]) -> list[dict]:
+    """Zet onderdeel-rijen in documentvolgorde met behulp van de ouder-kindrelatie uit de graaf.
+
+    Waarom niet (alleen) op de IRI sorteren. `heeftOnderdeel` ís de boom; die uit een string
+    reconstrueren werkt alleen zolang het id toevallig het volledige documentpad draagt. Bij
+    bepaling 26.1.9 van de Leidraad ging dat mis: de zestien directe onderdelen kwamen na #402
+    keurig op volgorde, maar de acht geneste (`a.`–`h.` onder onderdeel 8) bleven vooraan staan
+    omdat hun IRI in de graaf vóór die van hun ooms sorteert. Dan lezen ze als zelfstandige
+    weigeringsgronden in plaats van als uitwerking van één grond — een verschil in juridische
+    strekking, niet in opmaak.
+
+    Broers en zussen worden onderling wél op hun IRI geordend (`_onderdeelsleutel`): die delen per
+    definitie hun hele pad op het laatste segment na, dus daar is het cijfer betrouwbaar, ongeacht
+    codering of prefix.
+
+    Ontbreekt `?ouder` — een oudere graafstand, of een corpus dat niet uit deze query komt — dan
+    valt hij terug op de vlakke sortering van #402. Geen verbetering, maar ook geen regressie.
+    """
+    met_ouder = [r for r in rijen if (r.get("ouder") or "").strip()]
+    if not met_ouder:
+        return sorted(rijen, key=lambda r: _onderdeelsleutel(str(r.get("o") or "")))
+
+    kinderen: dict[str, list[dict]] = {}
+    for r in rijen:
+        kinderen.setdefault(str(r.get("ouder") or ""), []).append(r)
+    for lijst in kinderen.values():
+        lijst.sort(key=lambda r: _onderdeelsleutel(str(r.get("o") or "")))
+
+    # Wortels: ouders die zelf geen onderdeel in deze verzameling zijn (het lid of de bepaling).
+    eigen = {str(r.get("o") or "") for r in rijen}
+    wortels = sorted(k for k in kinderen if k not in eigen)
+
+    uit: list[dict] = []
+    gezien: set[str] = set()
+
+    def loop(ouder: str) -> None:
+        for r in kinderen.get(ouder, []):
+            sleutel = str(r.get("o") or "")
+            if sleutel in gezien:      # een cyclus mag het corpus nooit laten vastlopen
+                continue
+            gezien.add(sleutel)
+            uit.append(r)
+            loop(sleutel)
+
+    for wortel in wortels:
+        loop(wortel)
+    # Wat de boom niet bereikte (losse rijen, ontbrekende edge) hoort er nog steeds bij te staan.
+    uit.extend(r for r in rijen if str(r.get("o") or "") not in gezien)
+    return uit
+
+
 def _vouw_onderdelen_in(rows: list[dict]) -> list[dict]:
     """Eén regel per lid, met zijn onderdelen eronder.
 
@@ -137,7 +188,7 @@ def _vouw_onderdelen_in(rows: list[dict]) -> list[dict]:
     # `_onderdeelsleutel`). Zonder dit las bepaling 26.1.9 in de werkplek met de subonderdelen
     # a.–h. vóór de opsomming waar ze onder hangen — en dan zijn het geen uitwerking meer van één
     # weigeringsgrond maar zelfstandige gronden. Dat verandert de juridische strekking.
-    rows = sorted(rows, key=lambda r: _onderdeelsleutel(str(r.get("o") or "")))
+    rows = _boomvolgorde(rows)
     for r in rows:
         onderdeel = _onderdeelregel(r)
         lidnummer = (r.get("lidnummer") or "").strip()
