@@ -93,12 +93,17 @@ def test_geen_anker_begint_met_een_nummerprefix():
     geneste nummering ("1°. ").
     """
     def is_prefix(tekst: str) -> bool:
-        """Een lijstmarkering is kort en eindigt op een punt: "1.", "a.", "aa.", "1°.".
+        """Een lijstmarkering is kort: "1.", "a.", "aa.", "1°." – of een kaal opsommingsteken "–".
 
         Op de punt toetsen is wat dit onderscheidt van een gewoon woord: "Een belastingaanslag" en
         "de ontvanger" beginnen ook met een kort woord, maar zonder punt.
         """
         kop = tekst.split(" ", 1)[0]
+        # Een opsommingsteken zonder punt: zo nummert de Leidraad Invordering haar onderdelen
+        # ("– de gevraagde gegevens …"). De guard keek alleen naar een afsluitende punt en liet
+        # die vorm door.
+        if kop in {"–", "—", "-", "•", "*"}:
+            return True
         if not kop.endswith(".") or len(kop) > 4:
             return False
         romp = kop.rstrip(".").rstrip("°")

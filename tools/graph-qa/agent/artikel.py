@@ -44,13 +44,31 @@ def _match_lid(lidnummer: str, lid: str) -> bool:
 
 def _bepaling_fallback(bwb_id: str, artikel: str, graph: GraphPort) -> list[dict]:
     """Beleidsregels/circulaires (decimale nummers zoals '9.1') gaan niet via het artikel/lid-IRI-
-    patroon; haal ze dan op via `bwb:nummer` (get_bepaling)."""
+    patroon; haal ze dan op via `bwb:nummer`.
+
+    Mét de onderdelen, om dezelfde reden als bij een lid: bij zo'n bepaling zit de inhoud er vaak
+    ín. Bepaling 26.1.9 van de Leidraad Invordering 2008 heeft 221 tekens eigen tekst ("Er wordt
+    geen kwijtschelding verleend als:") en 16 onderdelen met 6128 tekens — 96% van de bepaling. In
+    de hele Leidraad geldt dat voor 153 van de 800 bepalingen, samen goed voor 99.329 tekens die
+    hiervóór uit het corpus vielen. Wie zo'n bepaling annoteerde, markeerde de aankondiging en miste
+    de opsomming — en bij een voorwaardenlijst is dat precies de inhoud.
+
+    Geen lidnummer: een bepaling heeft er geen, en `regelsVan` in de frontend rendert een lege `lid`
+    zonder voorvoegsel.
+    """
     try:
-        rows = parse_select(graph.sparql(queries.get_bepaling(bwb_id, artikel)))
+        rows = parse_select(graph.sparql(queries.get_bepaling_corpus(bwb_id, artikel)))
     except ValueError:
         return []
     tekst = next((r.get("tekst") for r in rows if (r.get("tekst") or "").strip()), "")
-    return [{"lid": "", "tekst": tekst.strip()}] if tekst.strip() else []
+    # Géén vroege uitstap op lege tekst: zes bepalingen in de Leidraad hebben alleen onderdelen
+    # (14.2.4, 14.2a, 25.4.6, 73.3a.2, …). Die waren daardoor niet te openen en niet te annoteren.
+    regels = [tekst.strip()] if tekst.strip() else []
+    for r in rows:
+        onderdeel = _onderdeelregel(r)
+        if onderdeel and onderdeel not in regels:
+            regels.append(onderdeel)
+    return [{"lid": "", "tekst": "\n".join(regels)}] if regels else []
 
 
 def _controleer_vindplaats(bwb_id: str, artikel: str, lid: str | None) -> None:
