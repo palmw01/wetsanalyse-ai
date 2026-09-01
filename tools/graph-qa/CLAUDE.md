@@ -575,7 +575,7 @@ instructies erin). Dat vraagt om vervuiling van de graaf; de eigenschap staat we
 ## Aandachtspunten
 
 - `semantic_search` vereist een bestaande GraphDB-similarity-index (`SIMILARITY_INDEX`); ontbreekt die,
-  dan degradeert de tool naar `search_wetgeving`. Achtergrond: `docs/embeddings-runbook.md`.
+  dan degradeert de tool naar `search_wetgeving`.
 - GraphDB draait met security aan en de agent komt er alleen via de auth-proxy in. De read-only
   guard in `mcp_client.py` (`_reject_updates`) blijft een tweede net: het service-account mág
   schrijven op `inning`, dus de guard is wat een schrijf-SPARQL vanuit de agent tegenhoudt.
