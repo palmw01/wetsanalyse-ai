@@ -24,6 +24,8 @@ _AANDACHT = {"groen", "geel", "rood"}
 _ACTIES = {"behoud", "vervang", "verwijder"}
 
 _WS = re.compile(r"\s+")
+# Het lidnummer waarmee `artikel._leden_en_corpus` elk lid in het corpus voorafgaat ("1. ", "9a. ").
+_LIDPREFIX = re.compile(r"^(\d+[a-z]*)\. ")
 
 # --- Anker-helpers ---------------------------------------------------------------
 #
@@ -64,7 +66,45 @@ def _maak_anker(corpus: str, start: int, eind: int, lid: str = "") -> Anker:
     )
 
 
-def _zoek_in_origineel(corpus: str, norm_corpus: str, norm_frag: str) -> tuple[int, int]:
+def _lid_segmenten(corpus: str) -> list[tuple[str, int, int]]:
+    """Splits het corpus terug in (lidnummer, start, eind) per lid.
+
+    Dit is exact en geen heuristiek: `artikel._leden_en_corpus` bouwt het corpus door de leden
+    samen te voegen met "\\n\\n" en er `"{lid}. "` voor te zetten, terwijl de onderdelen binnen
+    een lid met een enkele "\\n" aan elkaar hangen. Splitsen op "\\n\\n" levert dus precies de
+    leden op, en het lidnummer staat vooraan het segment.
+
+    Heeft een segment geen lidprefix (een bepaling, of een artikel zonder genummerde leden), dan
+    krijgt het lid `""`. Een corpus van één zo'n segment maakt de lid-scoping vanzelf een no-op.
+    """
+    segmenten: list[tuple[str, int, int]] = []
+    positie = 0
+    for stuk in corpus.split("\n\n"):
+        m = _LIDPREFIX.match(stuk)
+        segmenten.append((m.group(1) if m else "", positie, positie + len(stuk)))
+        positie += len(stuk) + 2
+    return segmenten
+
+
+def _segment_van(segmenten: list[tuple[str, int, int]], lid: str) -> tuple[int, int] | None:
+    """Het (start, eind)-venster van `lid`, of None als het corpus dat lid niet draagt."""
+    for nummer, start, eind in segmenten:
+        if nummer == lid:
+            return (start, eind)
+    return None
+
+
+def _lid_op(segmenten: list[tuple[str, int, int]], offset: int) -> str:
+    """Het lidnummer waarin `offset` valt ("" als het corpus geen genummerde leden heeft)."""
+    for nummer, start, eind in segmenten:
+        if start <= offset < eind:
+            return nummer
+    return ""
+
+
+def _zoek_in_origineel(
+    corpus: str, norm_corpus: str, norm_frag: str, binnen: tuple[int, int] | None = None,
+) -> tuple[int, int]:
     """Geef (start, eind) in de originele `corpus` voor een genormaliseerd fragment.
 
     `_normaliseer` collapst witruimte. Daardoor wijken de tekenposities in `norm_corpus`
@@ -74,6 +114,12 @@ def _zoek_in_origineel(corpus: str, norm_corpus: str, norm_frag: str) -> tuple[i
 
     Algoritme: bouw een mapping van norm-index → orig-index. Dat is O(n) en eenvoudig
     aantoonbaar correct. Bij een niet-gevonden fragment geeft de aanroeper (-1, -1).
+
+    Met `binnen` (start, eind) in *originele* coördinaten telt alleen een voorkomen dat daar
+    begint. Zo blijft een kort fragment binnen het lid waar het element over gaat: "derde" komt
+    negen keer voor in artikel 6 Uitvoeringsregeling Awir, en zonder venster wint altijd het
+    eerste — het rangtelwoord in "artikel 25, derde lid" in lid 1, niet het rechtssubject in lid 2.
+    Zonder `binnen` is het gedrag ongewijzigd.
     """
     # Snelle mapping: norm_idx -> orig_idx voor elk niet-witruimte karakter
     mapping: list[int] = []
@@ -89,6 +135,12 @@ def _zoek_in_origineel(corpus: str, norm_corpus: str, norm_frag: str) -> tuple[i
             in_ws = False
 
     norm_start = norm_corpus.find(norm_frag)
+    if binnen is not None:
+        # Loop de voorkomens langs tot er één in het venster begint. Wie hier het venster op
+        # norm-coördinaten zou omrekenen, dupliceert de mapping; die hebben we al.
+        vanaf, tot = binnen
+        while norm_start >= 0 and norm_start < len(mapping) and not (vanaf <= mapping[norm_start] < tot):
+            norm_start = norm_corpus.find(norm_frag, norm_start + 1)
     if norm_start < 0 or norm_start >= len(mapping):
         return (-1, -1)
 
@@ -644,6 +696,8 @@ def _verwerk(
     goed citaat is met de aanwijzing "dit staat niet letterlijk in de tekst" prima te repareren.
     """
     norm_corpus = _normaliseer(corpus)
+    segmenten = _lid_segmenten(corpus)
+    genummerd = any(nummer for nummer, _, _ in segmenten)
     voorstellen: list[AnnotatieVoorstel] = []
     verworpen: list[VerworpenFragment] = []
     rauw = _parse_elementen(llm_text)
@@ -683,13 +737,41 @@ def _verwerk(
         if (eerste := gezien.get(sleutel)) is not None:
             _voeg_alternatief_toe(eerste, klasse, str(e.get("toelichting", "")).strip())
             continue
-        vindplaats = f"{bwb_id} art. {artikel}" + (f" lid {lid}" if lid else "")
         # Bereken de anker-offsets op de originele brontekst. De genormaliseerde positie is al
         # bekend (idx in norm_corpus); we mappen die terug naar de originele tekst zodat de UI
         # exact de juiste tekens kan markeren – ook als de brontekst meerdere witruimte-varianten
         # bevat die _normaliseer samentrekt.
-        orig_start, orig_eind = _zoek_in_origineel(corpus, norm_corpus, norm_frag)
+        #
+        # Zoek binnen het lid waar het element zelf over gaat. Het lid en de positie gaan over
+        # hetzelfde ding; ze los van elkaar bepalen laat ze uit elkaar lopen, en dan wijst de
+        # werkplek een ander stuk wet aan dan de vindplaats belooft. Live gebeurd op artikel 6
+        # Uitvoeringsregeling Awir: "derde" (lid 2) landde op het rangtelwoord in lid 1.
+        venster = _segment_van(segmenten, lid) if (lid and genummerd) else None
+        orig_start, orig_eind = (
+            _zoek_in_origineel(corpus, norm_corpus, norm_frag, venster) if venster else (-1, -1)
+        )
+        if orig_start < 0 and lid and genummerd:
+            # Het fragment staat niet in het lid dat het model noemt – de claim klopt dus niet.
+            # Dan wint het anker: behoud de markering (de tekst is brongetrouw, dat is globaal
+            # vastgesteld) en zet het lid op waar hij werkelijk landt. Een element met een lid en
+            # een anker die elkaar tegenspreken mag er niet uit komen.
+            orig_start, orig_eind = _zoek_in_origineel(corpus, norm_corpus, norm_frag)
+            gevonden_lid = _lid_op(segmenten, orig_start) if orig_start >= 0 else lid
+            logger.info(
+                "annotatie: lid gecorrigeerd naar de plek van het anker",
+                extra={"beweerd_lid": lid[:8], "anker_lid": gevonden_lid[:8]},
+            )
+            lid = gevonden_lid
+            sleutel = sleutel_van(fragment, lid)
+            if (eerste := gezien.get(sleutel)) is not None:
+                _voeg_alternatief_toe(eerste, klasse, str(e.get("toelichting", "")).strip())
+                continue
+        elif orig_start < 0:
+            # Geen lid om op te scopen (bepaling, artikel zonder leden, of een corpus uit de
+            # tool-trace): zoeken zoals altijd, over het hele corpus.
+            orig_start, orig_eind = _zoek_in_origineel(corpus, norm_corpus, norm_frag)
         anker = _maak_anker(corpus, orig_start, orig_eind, lid) if orig_start >= 0 else None
+        vindplaats = f"{bwb_id} art. {artikel}" + (f" lid {lid}" if lid else "")
         # Een id uit een eerdere ronde behouden (herziening van een bestaand element); anders een
         # nieuw id. Zo blijft de koppeling met de Critic én met de api-elementen intact – maar
         # alléén voor een id dat het model ook echt is aangeboden.

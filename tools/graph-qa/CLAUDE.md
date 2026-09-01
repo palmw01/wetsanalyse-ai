@@ -491,6 +491,22 @@ Drie dingen die je verder moet kennen voordat je hieraan werkt:
   fetch-resultaten van de beurt aaneen (haalde de ophaal-agent eerst het hele artikel en daarna het
   lid, dan zit lid 2 er ook in) en elk resultaat is afgekapt op 8000 tekens. `_corpus_uit_trace` is
   alleen nog de terugval als de graaf niets geeft.
+- **Het lid en het anker zijn één beslissing.** `_verwerk` zoekt een fragment binnen het lid dat het
+  element zelf noemt (`_lid_segmenten` splitst het corpus op `"\n\n"` – exact, want zo bouwt
+  `_leden_en_corpus` hem op; onderdelen hangen met een enkele `"\n"`). Staat het er niet, dan wint
+  het anker en wordt het lid gecorrigeerd naar waar het landt; verwerpen zou letterlijke wettekst
+  weggooien wegens een verkeerde lid-claim. Beide bepalen langs eigen weg – het lid van het model,
+  de positie als het eerste voorkomen in het hele corpus – liet ze uit elkaar lopen: bij artikel 6
+  Uitvoeringsregeling Awir kregen 2 van de 43 markeringen een anker in een ander lid dan hun
+  vindplaats beloofde, en "derde" landde op het rangtelwoord in "artikel 25, derde lid" in plaats
+  van op het rechtssubject. Dat bijt alleen bij een corpus van meerdere leden; met een `scope_lid`
+  is er één segment.
+
+  Wat dit **niet** oplost: scoping versmalt, maar maakt niet uniek – zeven van de negen meervoudige
+  fragmenten in die annotatie blijven ook binnen hun eigen lid meervoudig. Onderdeel-granulariteit
+  vraagt een `onderdeel`-veld in het promptcontract. `tests/test_anker_lid.py` legt beide vast: de
+  garantie én de grens. De **eval kan dit niet meten** – de scorers vergelijken spans op tekst,
+  nooit op positie.
 - **`GRAPHDB_TOKEN` is verplicht.** Afgedwongen bij startup (lifespan) én per request (`make_graph →
   require_graph`). Het token is de sleutel voor de auth-proxy, die hem vervangt door het
   GraphDB-service-account; de agent kent die credentials zelf niet. Maak dit niet optioneel.
@@ -623,6 +639,12 @@ klassenaam bestaat mét de juiste hoofdletters (`_paar` doet géén `.lower()` o
 geen anker met het lidnummer begint (het corpus plakt `"{lid}. "` ervóór). Zonder die guard zakt een
 overgetypt fragment stilzwijgend weg als "de agent vond het niet" – precisie en recall zitten
 immers niet in `passed`.
+
+Eén case (`BWBR0019237/6`) annoteert een **heel artikel** in plaats van één lid. Alle andere scopen
+op één lid of één bepaling, waardoor het pad met een corpus van meerdere leden nergens gedekt was —
+en dat is precies waar het lid en de ankerpositie uit elkaar konden lopen. De case bewaakt niet die
+positie (de scorers kennen alleen tekst) maar dat de lid-scoping geen markeringen laat sneuvelen:
+valt er iets weg, dan zakt de recall op deze case.
 
 Wat nog **niet** gemeten wordt: injectie via **graafdata** (een lidtekst of ankertekst met
 instructies erin). Dat vraagt om vervuiling van de graaf; de eigenschap staat wel in `SYSTEM_PROMPT`
