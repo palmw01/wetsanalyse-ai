@@ -11,7 +11,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from .artikel import artikel_corpus
+from .artikel import OngeldigeVindplaats, artikel_corpus
+from .graph import queries
 from .graph.results import parse_select
 from .ports import GraphPort
 from .state import State
@@ -87,10 +88,39 @@ def _ontbrekend_sleutel(item: dict[str, Any]) -> str:
     return f"{str(item.get('klasse', '')).strip()}|{' '.join(str(item.get('tekst', '')).split()).lower()}"
 
 
+def _is_vindplaats(aanduiding: str) -> bool:
+    """Kan dit een bepaling aanduiden ('9', '22a', '9.1')?
+
+    Waarom dit filter bestaat. `_doel_uit_toolcalls` leest de INPUT van een fetch-call, niet het
+    resultaat — en `dispatch` vangt een ongeldige aanduiding als tekst op in plaats van te crashen,
+    dus de beurt loopt gewoon door. Een mislukte call bepaalde daardoor alsnog het doel. In
+    productie leverde dat op 1 sep 2026 een annotatie op onder de vindplaats
+    `artikel:6:lid:1:o:c` — een IRI-achtervoegsel dat de agent had geprobeerd als bepalingnummer —
+    en dat document was per definitie niet te openen.
+
+    Bewust dezelfde bouwers als `artikel._controleer_vindplaats`: de kennis over geldige vormen
+    hoort op één plek, en een tweede validator hier zou daarvan wegdrijven.
+    """
+    if not aanduiding:
+        return False
+    for bouwer in (queries._art, queries._nummer_vrij):
+        try:
+            bouwer(aanduiding)
+            return True
+        except ValueError:
+            continue
+    return False
+
+
 def _doel_uit_toolcalls(messages: list[dict[str, Any]]) -> dict[str, str]:
-    """Gezaghebbend doel = de LAATSTE fetch-tool-call (get_lid/get_artikel/get_bepaling) die de agent
-    deed – wat hij écht ophaalde. get_bepaling levert een `nummer` (bv. '9.1' voor een divisie); dat
-    zetten we óók als `artikel`, zodat de weergave het aankan. Leeg als er geen fetch-call was."""
+    """Gezaghebbend doel = de laatste fetch-tool-call (get_lid/get_artikel/get_bepaling) met een
+    GELDIGE aanduiding – wat de agent écht kán hebben opgehaald. get_bepaling levert een `nummer`
+    (bv. '9.1' voor een divisie); dat zetten we óók als `artikel`, zodat de weergave het aankan.
+    Leeg als er geen bruikbare fetch-call was.
+
+    De geldigheidscontrole (`_is_vindplaats`) is er omdat we hier de INPUT van de call lezen en niet
+    het resultaat: een call die faalde staat er net zo goed in. Zonder dat filter wint de laatste
+    póging in plaats van de laatste geslaagde ophaal."""
     doel = {"bwbId": "", "artikel": "", "lid": "", "nummer": ""}
     for msg in messages:
         if msg.get("role") != "assistant":
@@ -104,14 +134,19 @@ def _doel_uit_toolcalls(messages: list[dict[str, Any]]) -> dict[str, str]:
             naam = blok.get("name")
             inp = blok.get("input") or {}
             if naam in ("get_lid", "get_artikel"):
+                artikel = str(inp.get("artikel", "")).strip()
+                if not _is_vindplaats(artikel):
+                    continue  # mislukte call – laat het vorige, geldige doel staan
                 doel = {
                     "bwbId": str(inp.get("bwb_id", "")).strip(),
-                    "artikel": str(inp.get("artikel", "")).strip(),
+                    "artikel": artikel,
                     "lid": str(inp.get("lid", "")).strip(),
                     "nummer": "",
                 }
             elif naam == "get_bepaling":
                 nummer = str(inp.get("nummer", "")).strip()
+                if not _is_vindplaats(nummer):
+                    continue
                 doel = {"bwbId": str(inp.get("bwb_id", "")).strip(), "artikel": nummer, "lid": "", "nummer": nummer}
     return doel
 
@@ -173,7 +208,11 @@ def _corpus_voor_doel(doel: dict[str, str], graph: GraphPort, source_trace: list
     betalen hem niet opnieuw.
 
     Levert de graaf niets (of kennen we het doel niet), dan valt dit terug op de trace-reconstructie:
-    liever de tekst die de agent zag dan helemaal geen corpus – dan zou de hele beurt afbreken.
+    liever de tekst die de agent zag dan helemaal geen corpus.
+
+    Eén uitzondering: is de aanduiding zélf ongeldig, dan gaat `OngeldigeVindplaats` door naar de
+    aanroeper. Terugvallen zou daar een annotatie opleveren onder een vindplaats die niet te openen
+    is; `annoteer_node` maakt er een leesbare melding van en stopt de beurt.
     """
     bwb = (doel.get("bwbId") or "").strip()
     aanduiding = (doel.get("artikel") or doel.get("nummer") or "").strip()
@@ -186,6 +225,16 @@ def _corpus_voor_doel(doel: dict[str, str], graph: GraphPort, source_trace: list
                 "corpus: graaf gaf niets voor het doel; terugval op de tool-trace",
                 extra={"bwb_id": bwb, "aanduiding": aanduiding, "lid": doel.get("lid", "")},
             )
+        except OngeldigeVindplaats:
+            # GEEN terugval. Een ongeldige vindplaats is geen ophaalprobleem maar een kapot doel, en
+            # terugvallen levert dan een annotatie op onder een aanduiding die nooit te openen is —
+            # precies wat er op 1 sep 2026 in productie gebeurde. Beter een beurt die eerlijk faalt
+            # dan 26 markeringen die de jurist niet kan bekijken.
+            logger.warning(
+                "corpus: het doel is geen geldige vindplaats; de beurt breekt af",
+                extra={"bwb_id": bwb, "aanduiding": aanduiding, "lid": doel.get("lid", "")},
+            )
+            raise
         except Exception:  # noqa: BLE001 – een mislukte ophaal mag de annotatie niet breken
             logger.warning("corpus: gericht ophalen mislukt; terugval op de tool-trace", exc_info=True)
     return _corpus_uit_trace(source_trace)

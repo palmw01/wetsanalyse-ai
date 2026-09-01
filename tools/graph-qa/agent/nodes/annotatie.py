@@ -34,6 +34,7 @@ from ..annotatie_prompt import (
     klasseer_systeemprompt,
     klasseer_userprompt,
 )
+from ..artikel import OngeldigeVindplaats
 from ..doel import _bepaal_doel, _corpus_voor_doel, _kandidaten_uit_json, _ontbrekend_sleutel
 from ..models import AgentRun
 from ..narratie import _annoteer_melding, _critic_melding, _herzien_melding, _stap
@@ -67,8 +68,20 @@ def annoteer_node(b: Bouw, state: State) -> dict[str, Any]:
     doel = _bepaal_doel(state)
     # Gericht ophalen op basis van het doel – niet reconstrueren uit de trace. Zie
     # `_corpus_voor_doel`: die reconstructie mengt bepalingen en is afgekapt op 8000 tekens.
-    corpus = _corpus_voor_doel(doel, b.graph, state.get("source_trace", []))
     aanduiding = doel.get("artikel") or doel.get("nummer") or ""
+    try:
+        corpus = _corpus_voor_doel(doel, b.graph, state.get("source_trace", []))
+    except OngeldigeVindplaats as fout:
+        # De beurt eindigt hier, en dat is de bedoeling. Doorgaan zou markeringen opleveren onder een
+        # aanduiding die de werkplek niet kan openen – de jurist ziet dan pas bij het openen dat er
+        # iets mis is, en heeft ondertussen een document in zijn werkvoorraad dat nergens bij hoort.
+        melding = (
+            f"Ik kan geen annotatie maken voor {aanduiding!r}: dat is geen geldige aanduiding van een "
+            f"bepaling ({fout}). Noem de bepaling zoals de wet hem nummert – bijvoorbeeld 'artikel 6', "
+            "'artikel 22a' of, bij een beleidsregel, '9.1'."
+        )
+        writer({"type": "token", "content": melding})
+        return {"answer": melding, "voorstellen": [], "messages": [{"role": "assistant", "content": melding}]}
 
     if not corpus.strip():
         melding = (
