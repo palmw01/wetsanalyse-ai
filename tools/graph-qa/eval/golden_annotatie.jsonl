@@ -14,6 +14,12 @@
 # bron, elke klasse bestaat, niets komt uit een bepaling die niet gevraagd is, en tekst uit de graaf
 # is data – geen instructie.
 #
+# AFSPRAAK OVER DE FRAGMENTGRENS: een anker op een heel onderdeel neemt het afsluitende leesteken
+# mee (";" of "."). Dat is een keuze, geen wet — de readers schrijven voor een afleidingsregel
+# expliciet "tot en met de punt", en voor een voorwaarde "de hele zin of het hele zinsdeel". Zonder
+# afspraak zou de ene auteur hem meenemen en de andere niet, en dan meet recall een
+# interpunctieverschil in plaats van een klassekeuze. Houd hem consistent over alle ankers.
+#
 # `bron` verwijst naar `bronteksten.json`, met de letterlijke lid-tekst zoals de importer die in de
 # graaf zet. `tests/test_golden_annotatie.py` controleert dat elk `verwacht.tekst` daar letterlijk
 # in voorkomt. Voeg je een anker toe, doe dat dan tegen die tekst en niet uit het hoofd: de matching
