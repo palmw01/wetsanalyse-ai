@@ -99,7 +99,8 @@ lijst, wijzig hem dan overal; de tests wijzen je erop.
 
 De volgorde is de weergavevolgorde uit de officiële JAS-tabel; de klassekleuren zijn daaruit
 gesampled en worden door een drift-test tussen backend en frontend bewaakt. Uitleg per klasse:
-[`jas-klassen-referentie.md`](.claude/skills/wetsanalyse/references/jas-klassen-referentie.md).
+[`jas-klassen-referentie.md`](.claude/skills/wetsanalyse/references/jas-klassen-referentie.md) –
+dat bestand is tegelijk de bron waaruit de klassetekst van de annotatie-agent wordt gegenereerd.
 
 ### Grounding
 
@@ -490,5 +491,8 @@ ze buiten git.
 | [`docs/wetsanalyse-workbench/PLAN.md`](docs/wetsanalyse-workbench/PLAN.md) | Het plan achter de werkplek |
 | [`docs/wetsanalyse-workbench/jas-annotatie-ontologie.md`](docs/wetsanalyse-workbench/jas-annotatie-ontologie.md) | De annotatielaag in RDF (nog niet gebouwd) |
 | [`docs/kennisbank/PLAN.md`](docs/kennisbank/PLAN.md) | Een tweede corpus naast de wetsgraaf – lees dit vóór je aan retrieval werkt |
+| [`docs/README.md`](docs/README.md) | Wegwijzer door `docs/`: bron van derden, specificatie, plan of runbook |
+| [`.claude/skills/wetsanalyse/`](.claude/skills/wetsanalyse/SKILL.md) | De annoteerinstructie voor activiteit 2 – en de bron van de klassetekst in de code |
+| [`markeren-fragmentgrenzen.md`](.claude/skills/wetsanalyse/references/markeren-fragmentgrenzen.md) | Waar een markering begint en eindigt |
 | [`verwijzingen-volgen.md`](.claude/skills/wetsanalyse/references/verwijzingen-volgen.md) | Wanneer een verwijzing wel of niet gevolgd wordt |
 | [`tools/wetsanalyse-admin-mcp/`](tools/wetsanalyse-admin-mcp/README.md) | De admin-API als MCP-tools |

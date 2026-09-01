@@ -50,10 +50,10 @@ Omdat alle soorten in beginsel gevolgd worden, gelden twee harde grenzen:
 
 - **Diepte-cap = 1.** Volg verwijzingen één niveau vanaf de focus-bepaling. Een verwijzing
   *ván* een verwezen artikel volg je niet automatisch verder: noteer haar met status
-  `buiten-scope-diepte`. De analist kan in het checkpoint vragen dieper te gaan.
+  `buiten-scope-diepte`. De jurist kan vragen alsnog dieper te gaan.
 - **Relevantie-gate.** Haal een verwijzing alleen daadwerkelijk op als ze de *betekenis of
   werking van de focus-bepaling* raakt. Louter informatieve verwijzingen krijgen status
-  `gesignaleerd`. Elke gevolgde verwijzing is bovendien een extra, trage `overheid.nl`-call —
+  `gesignaleerd`. Elke gevolgde verwijzing is bovendien een extra bevraging van de kennisgraaf —
   houd het gericht.
 
 ## Status per verwijzing
@@ -71,5 +71,14 @@ functie- en status-waarden, een ingevulde `doel.label`, id-uniciteit over bronne
 koppeling bij een delegatie.
 
 **Houd deze stap licht:** het is inventariseren + gericht ophalen, niet al classificeren in
-JAS-klassen – dat blijft activiteit 2. De verwijzing-inventaris hoort bij het activiteit-2
-review-checkpoint, zodat de analist de scope kan bijsturen.
+JAS-klassen – dat blijft activiteit 2. De verwijzing-inventaris is er zodat de jurist de scope van
+het werkgebied kan bijsturen.
+
+---
+
+**Waar dit wel en niet geldt.** Dit beleid hoort bij het afbakenen van een **werkgebied** over
+meerdere bronnen. De annotatiestroom in de werkplek annoteert één opgehaalde bepaling en volgt
+zelf geen verwijzingen; wat je hier leest is dus geen stap in die keten. Twee dingen blijven wél
+gelden bij het annoteren van één bepaling: een **delegatiebevoegdheid** markeer je als klasse (zie
+`jas-klassen-referentie.md` §12), en een **brondefinitie** waarnaar de bepaling verwijst staat vaak
+in de moederwet en niet in de gedelegeerde regeling (§13).

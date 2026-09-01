@@ -1,9 +1,20 @@
 """
 Prompt-bouw voor de annotatie-agent.
 
-De systeemprompt wordt opgebouwd uit de JAS-klassen-referentie (`agent/jas_klassen.py`, vers uit de
-bron). De agent markeert JAS-elementen in een aangeleverde artikeltekst en geeft ze **gestructureerd**
-(JSON) terug. Brongetrouwheid is heilig: alléén letterlijke fragmenten uit de tekst.
+De systeemprompt wordt opgebouwd uit de JAS-klassen-referentie (`agent/jas_klassen.py`). De agent
+markeert JAS-elementen in een aangeleverde artikeltekst en geeft ze **gestructureerd** (JSON)
+terug. Brongetrouwheid is heilig: alléén letterlijke fragmenten uit de tekst.
+
+WAAR DE METHODETEKST VANDAAN KOMT. `agent/jas_klassen.py` is **afgeleid**, geen bron: het
+JAS_KLASSEN-blok wordt gegenereerd uit
+`.claude/skills/wetsanalyse/references/jas-klassen-referentie.md` door
+`scripts/genereer_jas_klassen.py`, bewaakt door `tests/test_methode_drift.py`. Wil je het gedrag
+van de annotator bijsturen — een klasse scherper omschrijven, een herkenningsvraag toevoegen — doe
+dat dan in de markdown en draai het script. Bewerk je de Python, dan faalt de drift-test.
+
+Dat betekent ook: **de lengte van deze prompt is een redactionele keuze, geen codekeuze.** De
+referentie draagt de volledige bronvelden (~4200 tokens voor dertien klassen); korter maken doe je
+door de markdown in te korten, niet door hier te knippen.
 """
 from __future__ import annotations
 
