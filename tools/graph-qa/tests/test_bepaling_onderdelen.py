@@ -118,3 +118,48 @@ def test_lexicale_volgorde_wordt_niet_overgenomen():
     corpus = artikel_corpus("BWBR0024096", "26.1.9", FakeGraph(result=VERHASPELD))
     assert not corpus.split("\n")[1].startswith("a."), "de rijvolgorde van de graaf is overgenomen"
     assert corpus.index("het aan de belastingschuldige kan worden toegerekend") < corpus.index("gemeentelijke sociale dienst")
+
+
+# Het geval dat met stringsortering onmogelijk goed te krijgen is: het geneste kind heeft een IRI
+# die vóór die van zijn ooms sorteert ("...Tekst/Onderdeela" mist de "Opsomming_1"-tussenstap), maar
+# de heeftOnderdeel-edge klopt. Zo stond het live in de graaf bij 26.1.9.
+B = "urn:bwb:BWBR0024096:id:BWBR0024096%2F…%2FCirculaire.divisie26.1.9"
+KOP_OUDER = "?nummer\t?tekst\t?jci\t?o\t?ouder\t?onummer\t?otekst\n"
+NEST = KOP_OUDER + (
+    f'"26.1.9"\t"Er wordt geen kwijtschelding verleend als:"\t""'
+    f'\t"{B}%2FTekst%2FOpsomming_1%2FOnderdeel._8"\t"{B}"\t"–"\t"het aan de belastingschuldige kan worden toegerekend. Daarvan is sprake als:"\n'
+    f'"26.1.9"\t"Er wordt geen kwijtschelding verleend als:"\t""'
+    f'\t"{B}%2FTekst%2FOnderdeela"\t"{B}%2FTekst%2FOpsomming_1%2FOnderdeel._8"\t"a."\t"het aan opzet is te wijten;"\n'
+    f'"26.1.9"\t"Er wordt geen kwijtschelding verleend als:"\t""'
+    f'\t"{B}%2FTekst%2FOnderdeelh"\t"{B}%2FTekst%2FOpsomming_1%2FOnderdeel._8"\t"h."\t"een negatieve voorlopige aanslag;"\n'
+    f'"26.1.9"\t"Er wordt geen kwijtschelding verleend als:"\t""'
+    f'\t"{B}%2FTekst%2FOpsomming_1%2FOnderdeel._9"\t"{B}"\t"–"\t"de belastingschuldige in surseance;"\n'
+)
+
+
+def test_geneste_onderdelen_staan_onder_hun_ouder():
+    """De volgorde komt uit de boom, niet uit de IRI-string.
+
+    Live op 26.1.9: na #402 stonden de zestien directe onderdelen goed, maar de acht geneste
+    a.–h. bleven vooraan omdat hun IRI vóór die van hun ooms sorteert. Dan lezen ze als
+    zelfstandige weigeringsgronden in plaats van als uitwerking van één grond.
+
+    Deze rijen kunnen met stringsortering per definitie niet goed komen: `%2FTekst%2FOnderdeela`
+    sorteert vóór `%2FTekst%2FOpsomming_1%2F…`. Alleen de `ouder`-kolom kan het oplossen.
+    """
+    corpus = artikel_corpus("BWBR0024096", "26.1.9", FakeGraph(result=NEST))
+    regels = corpus.split("\n")
+    assert regels[0].startswith("Er wordt geen kwijtschelding")
+    assert [r.split(" ", 1)[0] for r in regels[1:]] == ["–", "a.", "h.", "–"]
+    assert corpus.index("het aan de belastingschuldige") < corpus.index("a. het aan opzet") \
+        < corpus.index("h. een negatieve") < corpus.index("– de belastingschuldige in surseance")
+
+
+def test_zonder_ouder_valt_hij_terug_op_de_vlakke_sortering():
+    """Een graafstand zonder `?ouder` mag niet breken; hij levert dan het gedrag van #402."""
+    rijen = NEST.strip().split("\n")[1:]                       # kop eraf
+    zonder = KOP + "".join(
+        "\t".join(k for j, k in enumerate(r.split("\t")) if j != 4) + "\n" for r in rijen
+    )
+    corpus = artikel_corpus("BWBR0024096", "26.1.9", FakeGraph(result=zonder))
+    assert "het aan de belastingschuldige" in corpus and "a. het aan opzet" in corpus

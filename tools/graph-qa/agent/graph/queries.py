@@ -157,7 +157,7 @@ def get_artikel_corpus(bwb_id: str, artikel: str) -> str:
     'aa.'.
     """
     iri = artikel_iri(bwb_id, artikel)
-    return PREFIXES + f"""SELECT ?tekst ?jci ?lid ?lidnummer ?lidtekst ?o ?onummer ?otekst WHERE {{
+    return PREFIXES + f"""SELECT ?tekst ?jci ?lid ?lidnummer ?lidtekst ?o ?ouder ?onummer ?otekst WHERE {{
   OPTIONAL {{ <{iri}> bwb:tekst ?tekst }}
   OPTIONAL {{ <{iri}> bwb:jci ?jci }}
   OPTIONAL {{
@@ -169,12 +169,14 @@ def get_artikel_corpus(bwb_id: str, artikel: str) -> str:
       OPTIONAL {{
         ?lid bwb:heeftOnderdeel+ ?o .
         FILTER(STRSTARTS(STR(?o), "{NS}"))
+        OPTIONAL {{ ?ouder bwb:heeftOnderdeel ?o }}
         OPTIONAL {{ ?o bwb:nummer ?onummer }}
         OPTIONAL {{ ?o bwb:tekst ?otekst }}
       }}
     }} UNION {{
       <{iri}> bwb:heeftOnderdeel+ ?o .
       FILTER(STRSTARTS(STR(?o), "{NS}"))
+      OPTIONAL {{ ?ouder bwb:heeftOnderdeel ?o }}
       OPTIONAL {{ ?o bwb:nummer ?onummer }}
       OPTIONAL {{ ?o bwb:tekst ?otekst }}
     }}
@@ -273,7 +275,7 @@ def get_bepaling_corpus(bwb_id: str, nummer: str) -> str:
     """
     lit = _lit(_nummer_vrij(nummer))
     scope = f"{NS}{_bwb(bwb_id)}"
-    return PREFIXES + f"""SELECT ?nummer ?tekst ?jci ?o ?onummer ?otekst WHERE {{
+    return PREFIXES + f"""SELECT ?nummer ?tekst ?jci ?o ?ouder ?onummer ?otekst WHERE {{
   {{ SELECT DISTINCT ?node ?tekst WHERE {{
       ?node bwb:nummer {lit} .
       FILTER(STRSTARTS(STR(?node), "{scope}"))
@@ -286,6 +288,7 @@ def get_bepaling_corpus(bwb_id: str, nummer: str) -> str:
   OPTIONAL {{
     ?node bwb:heeftOnderdeel+ ?o .
     FILTER(STRSTARTS(STR(?o), "{scope}"))
+    OPTIONAL {{ ?ouder bwb:heeftOnderdeel ?o }}
     OPTIONAL {{ ?o bwb:nummer ?onummer }}
     OPTIONAL {{ ?o bwb:tekst ?otekst }}
   }}

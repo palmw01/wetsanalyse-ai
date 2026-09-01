@@ -639,19 +639,22 @@ eis was in de query, en waren dus niet te openen en niet te annoteren.
 Let bij die bepalingen op de nummering: de Leidraad gebruikt een en-dash (`–`) als opsommingsteken,
 geen `a.` of `1°.`. Het corpus neemt dat over zoals de bron het geeft.
 
-**De onderdelen worden in Python op documentvolgorde gezet**, niet door de SPARQL. Het onderdeel-id
-komt uit `bwb-ng-variabel-deel` en codeert het volledige documentpad
-(`…/Opsomming_1/Onderdeel._8/Onderdeela`), dus de volgorde zít in de data — maar `get_bepaling_corpus`
-sorteert met `ORDER BY ?o` op de IRI als *string* en `get_artikel_corpus` sorteert helemaal niet.
-`artikel._onderdeelsleutel` leest cijferreeksen als getal; nagemeten op 26.1.9 reproduceert dat de
-documentvolgorde exact en lexicaal niet. Dit is dezelfde les als `_lidsleutel` voor leden draagt,
-één niveau dieper.
+**De onderdeelvolgorde komt uit de boom, niet uit de IRI.** `heeftOnderdeel` ís de ouder-kindrelatie;
+die uit een string reconstrueren werkt alleen zolang het id toevallig het volledige documentpad
+draagt. De corpusqueries leveren daarom `?ouder` mee en `artikel._boomvolgorde` loopt de boom
+diepte-eerst af. Broers en zussen worden onderling wél op hun IRI geordend
+(`_onderdeelsleutel`, cijferreeksen als getal): die delen per definitie hun hele pad op het laatste
+segment na. Ontbreekt `?ouder`, dan valt hij terug op de vlakke sortering — geen regressie.
 
-Waarom dat ertoe doet: zonder die sortering las bepaling 26.1.9 in de werkplek met de subonderdelen
-`a.`–`h.` vóór de weigeringsgrond waar ze onder hangen. Dan zijn het geen uitwerking meer van één
-grond maar zelfstandige gronden — een verschil in juridische strekking, niet in opmaak. Een subdivisie hangt aan
-`heeftDivisie`, niet aan `heeftOnderdeel` — die hoort dus níet in het corpus van haar ouder, anders
-trek je een heel hoofdstuk in één bepaling.
+Dit is drie keer misgegaan op dezelfde plek: `ORDER BY ?lid` was lexicaal (opgelost met
+`_lidsleutel`), `ORDER BY ?o` ook (`_onderdeelsleutel`), en daarna bleven de geneste onderdelen
+alsnog verkeerd staan omdat hun IRI in de graaf vóór die van hun ooms sorteert. Bij bepaling 26.1.9
+stonden `a.`–`h.` daardoor vóór de weigeringsgrond waar ze onder hangen — dan lezen ze als
+zelfstandige gronden in plaats van als uitwerking van één grond. Een verschil in juridische
+strekking, niet in opmaak.
+
+De IRI-vorm van geneste onderdelen wijkt af van wat de parser aanmaakt; dat is nooit verklaard. Na
+deze aanpak doet het er voor de volgorde niet meer toe.
 
 **De promptlengte is meetbaar, niet aangenomen.** `ANNOTATIE_PROMPT_KORT=true` laat
 `_klassen_referentie` alleen de eerste zin per veld renderen: een annoteerprompt van ~8,6k tekens in
