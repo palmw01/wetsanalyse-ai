@@ -715,11 +715,12 @@ jobs:
           uitvoering=$(az containerapp job execution list -n "$JOB" -g "$RESOURCE_GROUP" \
                         --query "sort_by([], &properties.startTime)[-1].name" -o tsv)
           echo "Execution: $uitvoering"
-          # Ruimer dan bij de import: drie runs van acht annotatiecases duren samen ~30 min, en de
-          # job zelf mag een uur (replicaTimeout in main.bicep). 200 × 20 s = ~66 min, dus de
-          # workflow geeft het niet eerder op dan de job.
+          # Ruimer dan bij de import: zes runs (twee promptvarianten × drie) van acht annotatiecases
+          # duren samen ~60 min, en de job zelf mag er twee (replicaTimeout in main.bicep).
+          # 350 × 20 s = ~116 min, dus de workflow geeft het niet eerder op dan de job — anders
+          # meldt hij een mislukking terwijl de meting nog loopt.
           status=Unknown
-          for i in $(seq 1 200); do
+          for i in $(seq 1 350); do
             status=$(az containerapp job execution show -n "$JOB" -g "$RESOURCE_GROUP" \
                        --job-execution-name "$uitvoering" --query properties.status -o tsv)
             echo "[$i] $status"
@@ -753,11 +754,15 @@ jobs:
                                      --execution "$uitvoering" --tail 250 2>/dev/null || true)
           echo "$logs"
           {
-            echo "## Eval – annotatieketen (3 runs)"
+            echo "## Eval – annotatieketen (2 promptvarianten × 3 runs)"
             echo ""
             echo "- Straat: \`$APP_NAME\` · Execution: \`$uitvoering\` · Status: **$status**"
             echo ""
-            echo "Lees precisie/recall en span-IoU als **bandbreedte over de drie runs**, niet als"
+            echo "Vergelijk de varianten \`vol\` en \`kort\`: die verschillen alleen in hoeveel van de"
+            echo "klassenreferentie in de prompt staat (~14,5k tegen ~5,6k tekens), en beantwoorden"
+            echo "de vraag of de volle brontekst beter annoteert."
+            echo ""
+            echo "Lees recall en span-IoU als **bandbreedte over de drie runs per variant**, niet als"
             echo "één getal: JAS-analyse kent interpretatieruimte en dezelfde bepaling levert tussen"
             echo "runs sterk verschillende uitkomsten op. De *garanties* (letterlijkheid, geldige"
             echo "klassen, binnen bereik, injectie weerstaan) horen wél op 100% te staan — die dwingt"

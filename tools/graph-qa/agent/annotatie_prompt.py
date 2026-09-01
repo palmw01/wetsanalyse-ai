@@ -18,17 +18,34 @@ door de markdown in te korten, niet door hier te knippen.
 """
 from __future__ import annotations
 
+import re
+
 from .jas_klassen import JAS_KLASSEN, JAS_KLASSEN_VOLGORDE, REGELS, RegelType
 
 
-def _klassen_referentie() -> str:
+def _eerste_zin(tekst: str) -> str:
+    """De eerste volzin, of de hele tekst als er geen zinseinde in staat."""
+    m = re.match(r"(.+?[.!?])(\s|$)", tekst.strip(), re.S)
+    return m.group(1).strip() if m else tekst.strip()
+
+
+def _klassen_referentie(kort: bool = False) -> str:
+    """De dertien klassen voor in de prompt.
+
+    Met `kort=True` alleen de eerste zin per veld: ~5,6k tekens in plaats van ~14,5k. Dat is geen
+    productie-instelling maar een MEETKNOP (`ANNOTATIE_PROMPT_KORT`, zie Settings) — bewust even
+    groot als de verkorte referentie die tot 1 sep 2026 in de prompt stond, zodat de eval-job beide
+    varianten naast elkaar kan draaien. Zonder die vergelijking is "de volle brontekst is beter"
+    een aanname en geen bevinding.
+    """
+    kies = _eerste_zin if kort else (lambda s: s)
     regels = []
     for k in JAS_KLASSEN:
         regels.append(
             f"- {k.naam}\n"
-            f"    omschrijving: {k.omschrijving}\n"
-            f"    herken-vraag: {k.vraag}\n"
-            f"    uitdrukkingswijze: {k.uitdrukkingswijze}"
+            f"    omschrijving: {kies(k.omschrijving)}\n"
+            f"    herken-vraag: {kies(k.vraag)}\n"
+            f"    uitdrukkingswijze: {kies(k.uitdrukkingswijze)}"
         )
     return "\n".join(regels)
 
@@ -53,13 +70,13 @@ def _prioriteitsregels_tekst() -> str:
     return " ".join(delen)
 
 
-def annotatie_systeemprompt() -> str:
+def annotatie_systeemprompt(kort: bool = False) -> str:
     klassen = ", ".join(JAS_KLASSEN_VOLGORDE)
     prioriteitsregels = _prioriteitsregels_tekst()
     return f"""Je bent een annotator die Nederlandse wetteksten analyseert volgens het Juridisch Analyseschema (JAS). Je markeert de juridische elementen in een aangeleverd artikel en classificeert elk in precies één van de dertien JAS-klassen.
 
 DE DERTIEN JAS-KLASSEN (gebruik exact deze namen, verzin geen andere):
-{_klassen_referentie()}
+{_klassen_referentie(kort)}
 
 WERKWIJZE
 - Markeer de betekenisdragende formuleringen in de aangeleverde artikeltekst en classificeer elke in de meest specifieke passende JAS-klasse.{(' ' + prioriteitsregels) if prioriteitsregels else ''}
@@ -126,7 +143,7 @@ def kandidaten_userprompt(bwb_id: str, artikel: str, artikeltekst: str, lid: str
     )
 
 
-def klasseer_systeemprompt() -> str:
+def klasseer_systeemprompt(kort: bool = False) -> str:
     """Systeemprompt voor de classificatie-stap (fase 2A).
 
     Krijgt de gefilterde kandidaten uit de kandidaat-generator en bepaalt per
@@ -138,7 +155,7 @@ def klasseer_systeemprompt() -> str:
     return f"""Je bent een JAS-classificator. Je krijgt een lijst met tekstfragmenten (kandidaten) uit een Nederlandse wettekst en bepaalt voor elk fragment de meest passende JAS-klasse.
 
 DE DERTIEN JAS-KLASSEN (gebruik exact deze namen):
-{_klassen_referentie()}
+{_klassen_referentie(kort)}
 
 WERKWIJZE
 - Classificeer elk aangeleverd fragment in precies één JAS-klasse.{(' ' + prioriteitsregels) if prioriteitsregels else ''}
@@ -171,12 +188,12 @@ def klasseer_userprompt(
     )
 
 
-def critic_systeemprompt() -> str:
+def critic_systeemprompt(kort: bool = False) -> str:
     klassen = ", ".join(JAS_KLASSEN_VOLGORDE)
     return f"""Je bent een kritische reviewer (Critic) die JAS-annotatievoorstellen controleert VÓÓRDAT een jurist ze beoordeelt. Je maakt de annotaties zelf NIET; je beoordeelt de kwaliteit ervan en signaleert waar de jurist extra op moet letten.
 
 DE DERTIEN JAS-KLASSEN (gebruik exact deze namen, verzin geen andere):
-{_klassen_referentie()}
+{_klassen_referentie(kort)}
 
 WAAR JE OP LET (per voorgesteld element):
 - Verkeerde of te grove klasse (past een andere JAS-klasse beter?).
@@ -317,12 +334,12 @@ def critic_userprompt(
     )
 
 
-def herziening_systeemprompt() -> str:
+def herziening_systeemprompt(kort: bool = False) -> str:
     """Systeemprompt voor de herzieningsronde: dezelfde JAS-regels, maar nu corrigerend."""
     return f"""Je bent dezelfde JAS-annotator als daarvoor, maar nu HERZIE je je eigen eerdere uitkomst op basis van de opmerkingen van een reviewer (de Critic).
 
 DE DERTIEN JAS-KLASSEN (gebruik exact deze namen, verzin geen andere):
-{_klassen_referentie()}
+{_klassen_referentie(kort)}
 
 BRONGETROUWHEID – elk `tekst`-veld moet een LETTERLIJK aaneengesloten fragment uit de artikeltekst zijn. Niet parafraseren, niet samenvatten, geen woorden toevoegen of weglaten. Een fragment dat niet letterlijk voorkomt wordt verworpen.
 

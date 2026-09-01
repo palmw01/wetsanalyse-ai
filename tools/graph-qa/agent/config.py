@@ -129,6 +129,14 @@ class Settings(BaseModel):
     # provider `cache_control` weigert (het is op Azure AI Foundry een beta-functie).
     prompt_caching: bool = True
 
+    # MEETKNOP, geen productie-instelling. Aan (`ANNOTATIE_PROMPT_KORT=true`) rendert de
+    # klassenreferentie alleen de EERSTE ZIN van omschrijving, herken-vraag en uitdrukkingswijze:
+    # ~5,6k tekens in plaats van ~14,5k. Dat is bewust even groot als de verkorte referentie die tot
+    # 1 sep 2026 in de prompt stond (5564 tekens), zodat de eval-job beide varianten naast elkaar
+    # kan draaien en de vraag "helpt de volle brontekst?" met cijfers te beantwoorden is.
+    # Laat hem uit tenzij je meet; korter is niet beter, dat is juist wat gemeten moet worden.
+    annotatie_prompt_kort: bool = False
+
     # Grounding
     # Bij een ongegrond antwoord één corrigerende her-vraag (`correct_node`), hoogstens één keer.
     #
@@ -173,6 +181,7 @@ class Settings(BaseModel):
             "critic_max_rondes": e.get("CRITIC_MAX_RONDES"),
             "grounding_correct": e.get("GROUNDING_CORRECT"),
             "prompt_caching": e.get("PROMPT_CACHING"),
+            "annotatie_prompt_kort": e.get("ANNOTATIE_PROMPT_KORT"),
             "wetsanalyse_api_url": e.get("WETSANALYSE_API_URL"),
             "wetsanalyse_api_token": _read_secret(e, "WETSANALYSE_API_TOKEN"),
             "qa_api_token": _read_secret(e, "QA_API_TOKEN"),
