@@ -551,10 +551,16 @@ def herzie_node(b: Bouw, state: State) -> dict[str, Any]:
             # twee, dan zou het anders element A overschrijven met de inhoud van B.
             geldige_ids={str(v.get("id", "")) for v in voorstellen if v.get("id")},
         )
-    except Exception:  # noqa: BLE001 – een mislukte herziening mag de annotatie niet breken
-        logger.warning("herziening: mislukt; vorige voorstellen behouden", exc_info=True)
-        _stap(writer, f"Herziening {ronde}", "mislukt – vorige voorstellen behouden")
-        return {"critic_feedback": [], "stop_reden": "herziening mislukt"}
+    except Exception as fout:  # noqa: BLE001 – een mislukte herziening mag de annotatie niet breken
+        # De sóórt fout mee, nooit het bericht: daar kan prompt- of brontekst in zitten. Zonder dit
+        # stond er alleen "herziening mislukt" en was een timeout niet te scheiden van een
+        # providerfout of een parsefout — precies de blindheid waarmee de afgekapte Critic maanden
+        # onopgemerkt bleef. Live gezien op 1 sep 2026 bij bepaling 26.1.9 (76 elementen).
+        soort = type(fout).__name__
+        logger.warning("herziening: mislukt; vorige voorstellen behouden",
+                       extra={"foutsoort": soort}, exc_info=True)
+        _stap(writer, f"Herziening {ronde}", f"mislukt ({soort}) – vorige voorstellen behouden")
+        return {"critic_feedback": [], "stop_reden": f"herziening mislukt ({soort})"}
 
     if not herzien:
         logger.warning("herziening: leverde niets gegronds op; vorige voorstellen behouden")

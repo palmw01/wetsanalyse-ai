@@ -800,3 +800,39 @@ def test_zonder_ingediend_blijft_de_regel_ongewijzigd():
 
     oordelen = {"a": type("O", (), {"aandacht": "rood"})()}
     assert _critic_melding(oordelen, []) == "1 rood"
+
+
+def test_een_mislukte_herziening_meldt_de_soort_fout():
+    """Live gezien op 1 sep 2026 bij bepaling 26.1.9: `stop_reden: "herziening mislukt"`.
+
+    Dat zei niet wát er misging. Een timeout, een providerfout en een parsefout leverden alle drie
+    dezelfde regel op, en daarmee was de oorzaak alleen uit de logs te halen — precies de blindheid
+    waarmee de afgekapte Critic maanden onopgemerkt bleef. Het bericht zelf gaat bewust NIET mee:
+    daar kan prompt- of brontekst in zitten.
+
+    De herziening wordt uitgelokt met een verworpen fragment (zoals
+    `test_verworpen_fragment_lokt_nog_steeds_een_herziening_uit`), waarna de call omvalt.
+    """
+    class OmvallendeLLM(FakeLLM):
+        def create(self, **kw):
+            if self.index >= 5:                     # de herziening is de zesde call
+                raise TimeoutError("upstream timed out na 120s")
+            return super().create(**kw)
+
+    llm = OmvallendeLLM([
+        *_aanloop(),
+        _annoteer([
+            {"id": "el-a", "klasse": "Rechtssubject", "tekst": "De ontvanger", "lid": "1"},
+            {"id": "el-b", "klasse": "Voorwaarde", "tekst": "als de schuldenaar dat vraagt", "lid": "1"},
+        ]),
+        _critic([{"id": "el-a", "aandacht": "groen", "motivatie": "helder"}]),
+    ])
+    elementen, events = _annoteer_uitkomst(llm)
+
+    (run,) = [e["run"] for e in events if e["type"] == "run"]
+    assert run["stop_reden"] == "herziening mislukt (TimeoutError)"
+    regels = _statusregels(events)
+    assert any("TimeoutError" in r for r in regels), regels
+    assert not any("upstream timed out" in r for r in regels), "het bericht mag niet lekken"
+    # Faalgedrag: nooit minder dan we al hadden.
+    assert "De ontvanger" in {e["tekst"] for e in elementen}
