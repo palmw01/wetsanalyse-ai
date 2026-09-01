@@ -55,10 +55,25 @@ jobs:
           # publish-workflows.
           code=$(echo "$gewijzigd" | grep -v '\.md$' || true)
 
+          # Uitzondering: de wetsanalyse-skill is géén documentatie maar een BUILD-INPUT van
+          # graph-qa. `agent/jas_klassen.py` wordt eruit gegenereerd
+          # (scripts/genereer_jas_klassen.py) en `tests/test_methode_drift.py` bewaakt dat.
+          #
+          # Zonder deze regel valt die guard precies weg in het geval waarvoor hij bestaat: wie
+          # alleen de methodetekst bijstelt levert een PR met uitsluitend .md-bestanden, `code`
+          # is dan leeg, graph_qa wordt false, en de PR mergt groen terwijl de gegenereerde
+          # Python achterloopt op de markdown.
+          skill=$(echo "$gewijzigd" | grep '^\.claude/skills/wetsanalyse/' || true)
+
           heeft() { echo "$code" | grep -q "^$1" && echo true || echo false; }
+          graph_qa=$(heeft 'tools/graph-qa/')
+          if [ -n "$skill" ]; then
+            echo "Skill-wijziging gezien: graph-qa-tests draaien voor de methode-drift-guard."
+            graph_qa=true
+          fi
           {
             echo "frontend=$(heeft 'frontend/')"
-            echo "graph_qa=$(heeft 'tools/graph-qa/')"
+            echo "graph_qa=$graph_qa"
             echo "bwb_import=$(heeft 'tools/bwb-import/')"
             echo "api=$(heeft 'api/')"
           } | tee -a "$GITHUB_OUTPUT"
