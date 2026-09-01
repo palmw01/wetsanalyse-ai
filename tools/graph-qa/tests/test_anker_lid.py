@@ -180,3 +180,41 @@ def test_bepaling_zonder_lidnummers_wordt_niet_gescoped():
     (v,) = voorstellen
     assert v.anker is not None
     assert corpus[v.anker.start:v.anker.eind].startswith("er sprake is van")
+
+
+def test_het_anker_verhuist_mee_als_de_critic_het_fragment_vervangt():
+    """Live gemeten op 1 sep 2026 in bepaling 26.1.9 van de Leidraad.
+
+    De Critic gaf `vervang` met `voorstel_tekst: "en"` en de patcher voerde dat uit — maar alleen op
+    het `tekst`-veld. Het anker bleef 83 tekens beslaan ("naar waarheid is ingevuld en de
+    belastingschuldige redelijkerwijs niet kon voorzien"), dus de werkplek arceerde die hele zin
+    voor een element dat "en" heet. `bron_hash` klopte, dus `vindPositie` gebruikte die offsets
+    rechtstreeks: geen zelfcorrectie.
+    """
+    from agent.annotatie import pas_critic_toe
+
+    lang = "die meerderjarig en handelingsbekwaam is"
+    voorstellen = [{
+        "id": "x1", "klasse": "Voorwaarde", "tekst": lang, "lid": "2",
+        "anker": {"lid": "2", "start": CORPUS.index(lang),
+                  "eind": CORPUS.index(lang) + len(lang), "voor": "", "na": "", "bron_hash": ""},
+    }]
+    feedback = [{"id": "x1", "aandacht": "rood", "actie": "vervang",
+                 "voorstel_tekst": "en", "motivatie": "de operator is 'en'"}]
+    nieuw, telling, _ = pas_critic_toe(voorstellen, feedback, CORPUS)
+
+    (v,) = nieuw
+    assert telling.toegepast == 1
+    assert v["tekst"] == "en"
+    anker = v["anker"]
+    assert anker is not None, "het anker mag niet verdwijnen als het fragment vindbaar is"
+    assert CORPUS[anker["start"]:anker["eind"]] == "en", "anker en tekst spreken elkaar tegen"
+    assert anker["eind"] - anker["start"] == 2, "het oude, lange anker staat er nog"
+    assert CORPUS[anker["start"] - 1] == " " and not CORPUS[anker["eind"]].isalpha()
+
+
+def test_een_onvindbaar_vervangfragment_laat_geen_fout_anker_achter():
+    """Liever geen anker dan een verkeerd anker: een ontbrekend anker is zichtbaar in de werkplek."""
+    from agent.annotatie import _anker_voor
+
+    assert _anker_voor(CORPUS, "dit staat er niet in", "2") is None
