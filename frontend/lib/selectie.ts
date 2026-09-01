@@ -14,11 +14,19 @@ const CONTEXT_LENGTE = 48;
  *  na een herimport kan de wettekst immers geschoven zijn.
  *
  *  Geen cryptografische hash nodig – dit beschermt niet tegen manipulatie maar tegen verwarring.
- *  Een 32-bits FNV-1a is daarvoor genoeg en werkt synchroon (SubtleCrypto is async). */
+ *  Een 32-bits FNV-1a is daarvoor genoeg en werkt synchroon (SubtleCrypto is async).
+ *
+ *  HASH OVER UTF-8-BYTES, niet over UTF-16-code-units. Dat moet, want de ankers worden aan de
+ *  serverkant gemaakt (`agent/annotatie.py:_fnv1a_32`) en die hasht bytes. Deze functie deed dat
+ *  eerder per `charCodeAt`, wat voor ASCII toevallig hetzelfde oplevert maar voor alles daarbuiten
+ *  niet: "onderdeel 1° met graden" gaf 19625595 in Python en 8ad507f3 hier. Gevolg was dat
+ *  `vindPositie` bij zo'n bepaling nooit de exacte offsets kon gebruiken en altijd terugviel op
+ *  contextmatching – stil, en juist bij wetteksten met een graden- of een typografisch teken.
+ *  `bronHash.vectoren.json` bewaakt dat beide kanten hetzelfde blijven doen. */
 export function bronHash(bron: string): string {
   let h = 0x811c9dc5;
-  for (let i = 0; i < bron.length; i++) {
-    h ^= bron.charCodeAt(i);
+  for (const byte of new TextEncoder().encode(bron)) {
+    h ^= byte;
     h = Math.imul(h, 0x01000193) >>> 0;
   }
   return h.toString(16).padStart(8, "0");
