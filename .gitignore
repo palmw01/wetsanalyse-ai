@@ -27,16 +27,23 @@ skills-lock.json
 
 # Lokaal-only: bronmateriaal van derden dat niet in een publieke repo hoort.
 # Het boek (Boom uitgevers, auteursrecht) en de interne readers van het Expertisecentrum BRM
-# ("Bestemd voor gebruik binnen de Belastingdienst"). Let op het pad: dit stond eerder als
-# `docs/wetsanalyse-boek.md` – één mapniveau te hoog, dus de regel greep nooit en het boek
-# stond twee weken in de publieke repo. Wijzig je dit, controleer dan met `git check-ignore -v`.
-docs/wetsanalyse/wetsanalyse-boek.md
-docs/wetsanalyse/*.pages.md
+# ("Bestemd voor gebruik binnen de Belastingdienst").
+#
+# De regels staan bewust op `docs/**` en niet op één submap. Twee keer is het misgegaan doordat
+# een pad te specifiek was: eerst stond het boek als `docs/wetsanalyse-boek.md` (één niveau te
+# hoog, dus de regel greep nooit en het boek stond twee weken in de publieke repo), daarna
+# belandden dezelfde readers als PDF in `docs/kennisbank/`, waar `docs/wetsanalyse/*.pages.md`
+# ze niet dekte. Een map kiezen is geen bescherming; de vorm van het materiaal wel.
+#
+# Alle PDF's onder docs/ zijn daarom standaard genegeerd: het is er zonder uitzondering
+# bronmateriaal van derden (readers, het boek, de RegelSpraak- en WetsTaal-specificaties). Moet
+# er ooit een PDF wél mee, voeg dan een expliciete `!`-uitzondering toe en verantwoord die.
+# Wijzig je hier iets, controleer dan met `git check-ignore -v <pad>`.
+docs/**/*.pdf
+docs/**/wetsanalyse-boek.md
+docs/**/*.pages.md
 
-# Bron-PDF van de WetsTaal-handreiking (omgezet naar docs/WetsTaal.md)
-docs/WetsTaal.pdf
-
-# Lokaal-only: Regelspraak-werkmateriaal (niet in de repo)
+# Lokaal-only: Regelspraak-werkmateriaal (niet in de repo; valt ook al onder docs/**/*.pdf)
 docs/regelspraak/
 
 # Secrets en runtime-data van de API (.env.example blijft wél gecommit als template)
