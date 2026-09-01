@@ -48,7 +48,7 @@ on:
       actie:
         description: "Wat doen"
         type: choice
-        options: [wat-if, deploy, afbreken, opruimen, vul-graaf, inventaris, telemetrie, grafana, grafana-afbreken]
+        options: [wat-if, deploy, afbreken, opruimen, vul-graaf, eval, inventaris, telemetrie, grafana, grafana-afbreken]
         default: wat-if
       query:
         description: "Alleen voor 'telemetrie': een eigen KQL-query (leeg = de standaardset)"
@@ -698,6 +698,61 @@ jobs:
             [ "$status" = "Succeeded" ] && echo "- De graaf staat in \`urn:bwb:\`; controleer een vraag in de webapp."
           } >> "$GITHUB_STEP_SUMMARY"
           [ "$status" = "Succeeded" ] || { echo "::error::import-job eindigde als $status"; exit 1; }
+
+      - name: Eval draaien (annotatieketen meten)
+        if: ${{ inputs.actie == 'eval' }}
+        run: |
+          set -euo pipefail
+          JOB="$APP_NAME-eval"
+          # De job wordt door de bicep aangemaakt, dus hij bestaat pas na een `deploy`. Zonder deze
+          # controle faalt `job start` met een Azure-foutmelding die niet vertelt wat je moet doen.
+          if ! az containerapp job show -n "$JOB" -g "$RESOURCE_GROUP" --output none 2>/dev/null; then
+            echo "::error::De job '$JOB' bestaat niet in '$RESOURCE_GROUP'. Draai eerst deze workflow met actie 'deploy'; die maakt hem aan."
+            exit 1
+          fi
+          echo "Start $JOB – drie eval-runs tegen de graaf van deze straat. Dit kost LLM-tokens."
+          az containerapp job start -n "$JOB" -g "$RESOURCE_GROUP" --output none
+          uitvoering=$(az containerapp job execution list -n "$JOB" -g "$RESOURCE_GROUP" \
+                        --query "sort_by([], &properties.startTime)[-1].name" -o tsv)
+          echo "Execution: $uitvoering"
+          # Ruimer dan bij de import: drie runs van acht annotatiecases duren samen ~30 min, en de
+          # job zelf mag een uur (replicaTimeout in main.bicep). 200 × 20 s = ~66 min, dus de
+          # workflow geeft het niet eerder op dan de job.
+          status=Unknown
+          for i in $(seq 1 200); do
+            status=$(az containerapp job execution show -n "$JOB" -g "$RESOURCE_GROUP" \
+                       --job-execution-name "$uitvoering" --query properties.status -o tsv)
+            echo "[$i] $status"
+            case "$status" in Succeeded|Failed|Cancelled|Degraded) break ;; esac
+            sleep 20
+          done
+          # De uitkomst ís de log: drie rapporten met precisie/recall, span-IoU en letterlijkheid.
+          # Ruim genoeg tail om alle drie mee te krijgen (~25 regels per rapport).
+          logs=$(az containerapp job logs show -n "$JOB" -g "$RESOURCE_GROUP" \
+                   --execution "$uitvoering" --tail 250 2>/dev/null || true)
+          echo "$logs"
+          {
+            echo "## Eval – annotatieketen (3 runs)"
+            echo ""
+            echo "- Straat: \`$APP_NAME\` · Execution: \`$uitvoering\` · Status: **$status**"
+            echo ""
+            echo "Lees precisie/recall en span-IoU als **bandbreedte over de drie runs**, niet als"
+            echo "één getal: JAS-analyse kent interpretatieruimte en dezelfde bepaling levert tussen"
+            echo "runs sterk verschillende uitkomsten op. De *garanties* (letterlijkheid, geldige"
+            echo "klassen, binnen bereik, injectie weerstaan) horen wél op 100% te staan — die dwingt"
+            echo "de code af, dus een lagere waarde is een gesneuvelde garantie en geen tegenvaller."
+            echo ""
+            if [ -n "$logs" ]; then
+              echo '```'
+              echo "$logs"
+              echo '```'
+            else
+              echo "_(logs niet op te halen met deze CLI-versie – zie de portal)_"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          # Exitcode 1 uit de job betekent dat één van de drie runs een garantie miste. Dat is een
+          # bevinding om naar te kijken, geen kapotte workflow — maar wel iets dat rood hoort te zijn.
+          [ "$status" = "Succeeded" ] || { echo "::error::eval-job eindigde als $status – zie het rapport hierboven"; exit 1; }
 
       - name: Samenvatting
         if: ${{ always() && inputs.actie == 'deploy' }}

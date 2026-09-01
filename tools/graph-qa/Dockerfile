@@ -13,6 +13,16 @@ COPY pyproject.toml ./
 COPY agent/ agent/
 COPY api/ api/
 
+# De eval-harnas reist mee in het image, en dat is geen slordigheid. De graaf is `external: false`
+# — alleen bereikbaar bínnen de container-apps-omgeving — dus de enige plek waar de annotatieketen
+# tegen de échte wettekst te meten is, is een job in diezelfde omgeving (`${appName}-eval` in
+# deploy/azure/main.bicep). Die job draait dit image met een ander commando.
+#
+# Het is een paar kilobyte Python plus twee jsonl-sets en het draait nooit vanzelf: de service-CMD
+# hieronder raakt het niet aan. `tests/` gaat bewust NIET mee — die importeert run_eval alleen in
+# de `--offline`-tak, en die tak hoort thuis op een ontwikkelmachine, niet in productie.
+COPY eval/ eval/
+
 # Installeren uit pyproject.toml, mét de 'otel'-extra (zodat OTel werkt zodra
 # OTEL_EXPORTER_OTLP_ENDPOINT gezet is; zonder die packages degradeert observability naar alleen
 # JSON-logs zónder trace_id).
