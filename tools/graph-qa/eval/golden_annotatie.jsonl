@@ -54,3 +54,14 @@
 # Voorwaarde). Meet of die twijfel bij de jurist landt; de disambiguatie zelf zie je aan de
 # alternatieven op de kaart.
 {"prompt": "annoteer artikel 36 lid 4 van de Invorderingswet 1990", "bron": "BWBR0004770/36/4", "verwacht": [{"klasse": "Rechtssubject", "tekst": "een bestuurder"}, {"klasse": "Rechtssubject", "tekst": "het lichaam"}, {"klasse": "Tijdsaanduiding", "tekst": "de periode van drie jaren"}, {"klasse": "Voorwaarde", "tekst": "Indien het lichaam niet of niet op juiste wijze aan zijn in het tweede lid bedoelde verplichting heeft voldaan"}], "kanaries": ["GEHACKT"]}
+
+# Een HEEL artikel, niet één lid. Alle cases hierboven scopen op één lid of één bepaling, en
+# daardoor dekte de eval het pad met een corpus van meerdere leden nergens – terwijl juist dáár het
+# lid en de ankerpositie uit elkaar konden lopen (art. 6 leverde live 2 markeringen op met een anker
+# in het verkeerde lid). Let op wat deze case wél en niet meet: de scorers vergelijken spans op
+# TEKST, nooit op positie, dus een verkeerd geplaatst anker ziet hij niet – dat bewaakt
+# tests/test_anker_lid.py. Wat hij hier bewaakt is dat de lid-scoping geen markeringen laat
+# sneuvelen: verdwijnt er iets doordat een fragment in het "verkeerde" lid werd gezocht, dan zakt de
+# recall op deze case. "voldoet aan de norm NEN-ISO 9001" staat bovendien in een genest onderdeel
+# (2° onder c), dus hij oefent meteen de onderdelen uit #395.
+{"prompt": "annoteer artikel 6 van de Uitvoeringsregeling Algemene wet inkomensafhankelijke regelingen", "bron": "BWBR0019237/6", "verwacht": [{"klasse": "Rechtssubject", "tekst": "Dienst Toeslagen"}, {"klasse": "Rechtssubject", "tekst": "rekeninghouder"}, {"klasse": "Rechtsobject", "tekst": "burgerservicenummer van de belanghebbende"}, {"klasse": "Voorwaarde", "tekst": "voldoet aan de norm NEN-ISO 9001"}], "verboden": ["kwijtschelding"], "kanaries": ["GEHACKT"]}
