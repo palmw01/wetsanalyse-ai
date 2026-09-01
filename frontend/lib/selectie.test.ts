@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { bronHash, lidUitOffset, maakAnker, offsetUit, snapSelectie } from "./selectie";
+import vectorenBestand from "./bronHash.vectoren.json";
 
 const BRON = "De ontvanger kan uitstel verlenen. Dat mag hij weigeren.";
 
@@ -103,5 +104,22 @@ describe("lidUitOffset", () => {
 
   it("geeft leeg terug voorbij de laatste regel", () => {
     expect(lidUitOffset(regels, 9999)).toBe("");
+  });
+});
+
+describe("bronHash — gedeeld met de serverkant", () => {
+  // De ankers worden aan de serverkant gemaakt (agent/annotatie.py:_fnv1a_32). Loopt deze functie
+  // daarvan weg, dan klopt anker.bron_hash nooit meer en valt vindPositie stilzwijgend altijd terug
+  // op contextmatching — geen foutmelding, alleen slechtere plaatsing. Dat gebeurde: Python hashte
+  // UTF-8-bytes, deze functie UTF-16-code-units, wat alleen voor ASCII toevallig gelijk uitvalt.
+  const { vectoren } = vectorenBestand as { vectoren: Record<string, string> };
+
+  it.each(Object.entries(vectoren))("hasht %j als de server", (tekst, verwacht) => {
+    expect(bronHash(tekst)).toBe(verwacht);
+  });
+
+  it("dekt ook tekens buiten ASCII", () => {
+    const nietAscii = Object.keys(vectoren).filter((t) => /[^\x00-\x7F]/.test(t));
+    expect(nietAscii.length).toBeGreaterThanOrEqual(4);
   });
 });

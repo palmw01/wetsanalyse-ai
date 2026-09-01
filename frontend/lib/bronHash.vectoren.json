@@ -1,0 +1,14 @@
+{
+  "_waarom": "Gedeelde testvectoren voor de ankerhash. Python (agent/annotatie.py:_fnv1a_32) en TypeScript (frontend/lib/selectie.ts:bronHash) moeten identiek hashen, anders klopt anker.bron_hash nooit en valt vindPositie altijd terug op contextmatching. Dat ging mis op niet-ASCII: Python hashte UTF-8-bytes, JS UTF-16-code-units. Beide kanten toetsen tegen dit bestand; wijzig het niet met de hand.",
+  "vectoren": {
+    "": "811c9dc5",
+    "gewone ascii tekst": "db555962",
+    "1. Een belastingaanslag is invorderbaar.": "8ff21b63",
+    "onderdeel 1° met graden": "19625595",
+    "scheiding ⏐ teken": "3666ade5",
+    "typografisch ‘aanhalingsteken’": "9cdae30c",
+    "é gecombineerd": "2b3594b7",
+    "é voorgecomponeerd": "d4e91ba7",
+    "emoji 😀 buiten het BMP": "bb3341cb"
+  }
+}

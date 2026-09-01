@@ -213,3 +213,32 @@ def test_zonder_geldige_ids_blijft_het_oude_gedrag():
     voorstellen, _ = _verwerk(llm, corpus, "BWBR0004770", "9", "1")
 
     assert voorstellen[0].id == "el-a"
+
+
+def test_ankerhash_is_gelijk_aan_de_frontend():
+    """De ankerhash moet aan beide kanten hetzelfde opleveren, ook buiten ASCII.
+
+    Waarom deze guard er is. `anker.bron_hash` wordt hier gemaakt en in de browser vergeleken
+    (`frontend/lib/selectie.ts:bronHash`). Kloppen ze niet, dan faalt de exacte-offsetstap in
+    `vindPositie` altijd en valt de weergave stil terug op contextmatching — geen foutmelding, alleen
+    markeringen die net verkeerd kunnen landen. Dat was het geval: hier werd over UTF-8-BYTES gehasht
+    en daar over UTF-16-CODE-UNITS, wat alleen voor ASCII toevallig gelijk uitvalt. Nederlandse
+    wettekst heeft '°' in geneste onderdelen en typografische aanhalingstekens, dus het speelde.
+
+    De vectoren staan in één bestand dat beide kanten lezen; `selectie.test.ts` toetst dezelfde lijst.
+    """
+    import json
+    from pathlib import Path
+
+    from agent.annotatie import _fnv1a_32
+
+    pad = Path(__file__).resolve().parents[3] / "frontend" / "lib" / "bronHash.vectoren.json"
+    assert pad.exists(), f"gedeelde hashvectoren ontbreken: {pad}"
+    vectoren = json.loads(pad.read_text(encoding="utf-8"))["vectoren"]
+    assert len(vectoren) >= 5
+
+    afwijkend = {t: (v, _fnv1a_32(t)) for t, v in vectoren.items() if _fnv1a_32(t) != v}
+    assert not afwijkend, "hash wijkt af van de gedeelde vectoren: " + repr(afwijkend)
+
+    niet_ascii = [t for t in vectoren if any(ord(c) > 127 for c in t)]
+    assert len(niet_ascii) >= 4, "de vectoren moeten juist het niet-ASCII-geval dekken"
