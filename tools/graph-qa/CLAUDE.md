@@ -585,11 +585,24 @@ Gevolg dat je moet kennen bij het lezen van oude annotaties: een definitielid st
 als kale aanhef in het corpus ("Deze wet verstaat onder:"), zonder de definities. Wat daarop is
 geannoteerd, is op een lege zin geannoteerd.
 
-**Twee queries, met opzet.** `get_artikel` voedt de gelijknamige tool en blijft zónder lid-onderdelen
-— tool-resultaten gaan door `truncate` (8000 tekens) en een definitieartikel zou juist zijn laatste
-definities verliezen. `get_artikel_corpus` voedt het annotatiecorpus en `GET /v1/artikel`, gaat niet
-door `truncate`, en draagt de onderdelen wél. Hergebruik de `?onderdelen`-cel van `get_lid` daar
-niet voor: die bakt de jci in de tekst, en dan zou een markering een jci-fragment kunnen citeren.
+**Tool-queries en corpus-queries zijn gescheiden, met opzet.** `get_artikel` en `get_bepaling`
+voeden de gelijknamige tools en blijven zónder onderdelen — tool-resultaten gaan door `truncate`
+(8000 tekens) en een definitieartikel of een voorwaardenlijst zou juist zijn staart verliezen.
+`get_artikel_corpus` en `get_bepaling_corpus` voeden het annotatiecorpus en `GET /v1/artikel`, gaan
+niet door `truncate`, en dragen de onderdelen wél. Hergebruik de `?onderdelen`-cel van `get_lid`
+daar niet voor: die bakt de jci in de tekst, en dan zou een markering een jci-fragment citeren.
+
+**Het bepaling-pad (decimale nummers) is een eigen tak.** Beleidsregels als de Leidraad Invordering
+2008 hebben divisies in plaats van artikelen met leden; `artikel_iri` weigert een punt, dus
+`_leden_en_corpus` valt terug op `_bepaling_fallback`. Ook daar zit de inhoud vaak in de onderdelen:
+153 van de 800 Leidraad-bepalingen hebben er, samen 99.329 tekens tegen 87.255 tekens eigen tekst.
+Zes bepalingen hebben zelfs alléén onderdelen — die gaven niets terug zolang `bwb:tekst` een harde
+eis was in de query, en waren dus niet te openen en niet te annoteren.
+
+Let bij die bepalingen op de nummering: de Leidraad gebruikt een en-dash (`–`) als opsommingsteken,
+geen `a.` of `1°.`. Het corpus neemt dat over zoals de bron het geeft. Een subdivisie hangt aan
+`heeftDivisie`, niet aan `heeftOnderdeel` — die hoort dus níet in het corpus van haar ouder, anders
+trek je een heel hoofdstuk in één bepaling.
 
 **De promptlengte is meetbaar, niet aangenomen.** `ANNOTATIE_PROMPT_KORT=true` laat
 `_klassen_referentie` alleen de eerste zin per veld renderen: een annoteerprompt van ~8,6k tekens in

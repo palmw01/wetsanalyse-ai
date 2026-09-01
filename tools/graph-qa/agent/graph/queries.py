@@ -246,6 +246,52 @@ def get_bepaling(bwb_id: str, nummer: str) -> str:
 }} LIMIT 5"""
 
 
+def get_bepaling_corpus(bwb_id: str, nummer: str) -> str:
+    """Een bepaling mét haar onderdelen – de corpusvariant van `get_bepaling`.
+
+    Waarom naast en niet in `get_bepaling`: die voedt óók de gelijknamige tool, en tool-resultaten
+    gaan door `truncate` (8000 tekens). Bepaling 26.1.9 van de Leidraad heeft 221 tekens eigen tekst
+    en 16 onderdelen met 6128 tekens; in de tool zouden juist de laatste voorwaarden wegvallen.
+    Dezelfde afweging als bij `get_artikel` / `get_artikel_corpus`.
+
+    Een divisie hangt aan haar onderdelen met hetzelfde `heeftOnderdeel` als een lid
+    (`bwb-import/app/collect.py:_divisies` roept dezelfde `_onderdelen` aan), en net zo recursief –
+    vandaar het pad `+`.
+
+    EERST ÉÉN NODE KIEZEN, dan pas de onderdelen. `get_bepaling` matcht op `bwb:nummer` en houdt
+    `LIMIT 5` aan omdat een nummer binnen een regeling meer dan één node kan raken. Met één rij per
+    onderdeel zou zo'n limiet de opsomming afkappen – precies de fout die deze query moet oplossen.
+    De subquery met `LIMIT 1` maakt de keuze eenmalig, waarna het aantal rijen alleen nog van het
+    aantal onderdelen afhangt.
+
+    `bwb:tekst` is hier OPTIONEEL, anders dan in `get_bepaling`. Zes bepalingen in de Leidraad
+    hebben geen eigen tekst maar wél onderdelen (14.2.4, 14.2a, 25.4.6, 73.3a.2, …); met tekst als
+    harde eis gaf de query niets terug en waren die bepalingen niet te openen en niet te annoteren.
+    De `FILTER(BOUND(...))` eist daarom inhoud in de een óf de ander, en de `ORDER BY` geeft
+    voorrang aan een node mét eigen tekst — een nummer kan binnen een regeling meer dan één node
+    raken, en dan wil je de inhoudelijke.
+    """
+    lit = _lit(_nummer_vrij(nummer))
+    scope = f"{NS}{_bwb(bwb_id)}"
+    return PREFIXES + f"""SELECT ?nummer ?tekst ?jci ?o ?onummer ?otekst WHERE {{
+  {{ SELECT DISTINCT ?node ?tekst WHERE {{
+      ?node bwb:nummer {lit} .
+      FILTER(STRSTARTS(STR(?node), "{scope}"))
+      OPTIONAL {{ ?node bwb:tekst ?tekst }}
+      OPTIONAL {{ ?node bwb:heeftOnderdeel ?enig }}
+      FILTER(BOUND(?tekst) || BOUND(?enig))
+    }} ORDER BY DESC(BOUND(?tekst)) LIMIT 1 }}
+  BIND({lit} AS ?nummer)
+  OPTIONAL {{ ?node bwb:jci ?jci }}
+  OPTIONAL {{
+    ?node bwb:heeftOnderdeel+ ?o .
+    FILTER(STRSTARTS(STR(?o), "{scope}"))
+    OPTIONAL {{ ?o bwb:nummer ?onummer }}
+    OPTIONAL {{ ?o bwb:tekst ?otekst }}
+  }}
+}} ORDER BY ?o"""
+
+
 def get_regeling_info(bwb_id: str) -> str:
     iri = regeling_iri(bwb_id)
     return PREFIXES + f"""SELECT ?citeertitel ?opschrift ?afkorting ?soort
