@@ -1,5 +1,10 @@
-// De dertien JAS-klassen (zie references/jas-klassen-referentie.md) met een vaste,
-// onderscheidende badge-kleur per klasse. Onbekende klassen vallen terug op "neutraal".
+// De dertien JAS-klassen met een vaste, onderscheidende badge-kleur per klasse. Onbekende klassen
+// vallen terug op "neutraal".
+//
+// De inhoudelijke duiding van de klassen staat in de wetsanalyse-skill
+// (.claude/skills/wetsanalyse/references/jas-klassen-referentie.md); een browser kan die niet
+// lezen, dus hier staan alleen de namen en de kleuren. De namen worden bewaakt door
+// api/tests/test_jas_kleuren_drift.py.
 
 export const JAS_KLASSEN = [
   "Rechtssubject",

@@ -1,13 +1,22 @@
 """
 JAS-klassen-referentie – de dertien klassen van het Juridisch Analyseschema.
 
-Vers afgeleid uit de brondocumentatie (`docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md`): per klasse een
-omschrijving, een herken-vraag (à la zinsontleding) en de uitdrukkingswijze in wetgeving. Deze
-referentie voedt de annotatie-prompt (`agent/annotatie_prompt.py`).
+Per klasse een omschrijving, een herken-vraag (à la zinsontleding) en de uitdrukkingswijze in
+wetgeving. Deze referentie voedt de annotatie-prompt (`agent/annotatie_prompt.py`).
 
-De klasse-*namen* zijn de canonieke JAS-namen (dezelfde weergave-volgorde als `docs/wetsanalyse/wa-table.png`),
-zodat annotaties niet driften t.o.v. de rest van het systeem. Alléén de namen zijn gedeeld; de
-inhoudelijke duiding hieronder komt vers uit de bron, niet uit de skill-prompts.
+HET BLOK HIERONDER IS GEGENEREERD, geen handwerk. Bron is de wetsanalyse-skill
+(`.claude/skills/wetsanalyse/references/jas-klassen-referentie.md`), die op zijn beurt letterlijk
+verwijst naar `docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md`. Bijwerken doe je in die markdown,
+gevolgd door `scripts/genereer_jas_klassen.py`; `tests/test_methode_drift.py` faalt als dat
+vergeten is.
+
+Waarom die kant op en niet andersom: de duiding stond eerder op twee plekken en liep ongemerkt uit
+elkaar — de skill was op zeven plekken armer dan zijn eigen bron. Nu is er één plek om te
+bewerken, en die is leesbaar.
+
+De klasse-*namen* zijn de canonieke JAS-namen (dezelfde weergave-volgorde als
+`docs/wetsanalyse/wa-table.png`) en worden apart bewaakt tegen `api/app/jas_klassen.py` en
+`frontend/lib/jas.ts`.
 """
 from __future__ import annotations
 
@@ -22,163 +31,297 @@ class JasKlasse:
     uitdrukkingswijze: str
 
 
+# --- BEGIN GEGENEREERD uit de wetsanalyse-skill (scripts/genereer_jas_klassen.py) ---
+# Niet met de hand bijwerken: bewerk
+# .claude/skills/wetsanalyse/references/jas-klassen-referentie.md en draai
+# scripts/genereer_jas_klassen.py. De volledige bronvelden staan daar, met
+# regelverwijzingen naar docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md.
 JAS_KLASSEN: tuple[JasKlasse, ...] = (
     JasKlasse(
         naam="Rechtssubject",
-        omschrijving="De drager van rechten en plichten; een partij in een rechtsbetrekking.",
-        vraag="Wie heeft het recht? Wie heeft de plicht? Van wie is een rechtsobject?",
+        omschrijving=(
+            "Een rechtssubject is de drager van rechten en plichten. Het is een partij in een "
+            "rechtsbetrekking."
+        ),
+        vraag=(
+            "Wie heeft het recht? Wie heeft de plicht? Van wie is een rechtsobject? Bij wie hoort een waarde?"
+        ),
         uitdrukkingswijze=(
-            "Een zelfstandig naamwoord voor een persoon of entiteit, of een (persoonlijk, onbepaald, "
-            "betrekkelijk) voornaamwoord zoals 'hij', 'zij', 'iemand', 'een ieder', 'degene'."
+            "Te herkennen aan een zelfstandig naamwoord waarmee een persoon of andere entiteit wordt "
+            "beschreven, of aan een persoonlijk voornaamwoord zoals ‘hij’, ‘zij’ en soms ook ‘het’. Maar ook "
+            "een onbepaald of betrekkelijk voornaamwoord kan wijzen op een rechtssubject, bijvoorbeeld "
+            "‘iemand’, ‘een ieder’ of ‘degene’."
         ),
     ),
     JasKlasse(
         naam="Rechtsobject",
         omschrijving=(
-            "Het voorwerp van een rechtsbetrekking en/of rechtsfeit; fysiek (auto, huis) of niet-fysiek "
-            "(medische zorg)."
+            "Een rechtsobject is het voorwerp van een rechtsbetrekking en/of rechtsfeit. Een rechtsobject kan "
+            "zowel een fysieke (bijvoorbeeld een personenauto of een huis) als een niet-fysieke "
+            "verschijningsvorm (bijvoorbeeld medische zorg) hebben."
         ),
-        vraag="Wat is het voorwerp van een recht of plicht? Waarvan is het subject eigenaar/houder?",
+        vraag=(
+            "Wat is het voorwerp van een recht of plicht? Waar is het rechtssubject eigenaar of houder van? "
+            "Waar heeft een waarde betrekking op? Waarover is iets verschuldigd?"
+        ),
         uitdrukkingswijze=(
-            "Een zelfstandig naamwoord voor het voorwerp van een recht/plicht (een studie, een woning), "
-            "of een aanwijzend/betrekkelijk voornaamwoord zoals 'dat', 'hetgeen', 'welk(e)'."
+            "Te herkennen aan een zelfstandig naamwoord waarmee het voorwerp van een recht of plicht wordt "
+            "omschreven, bijvoorbeeld een studie, een woning of een dienstbetrekking. Ook een aanwijzend of "
+            "betrekkelijk voornaamwoord kan wijzen op een rechtsobject, bijvoorbeeld ‘dat’, ‘hetgeen’ en "
+            "‘welk(e)’."
         ),
     ),
     JasKlasse(
         naam="Rechtsbetrekking",
         omschrijving=(
-            "Een juridische relatie tussen twee rechtssubjecten: de een heeft een plicht, de ander het "
-            "bijbehorende recht."
+            "Een rechtsbetrekking is een juridische relatie tussen twee rechtssubjecten en beschrijft een "
+            "specifieke juridische toestand tussen deze rechtssubjecten. Een van deze rechtssubjecten heeft "
+            "een plicht en de ander het bijbehorend recht. De algemene juridische toestand van een "
+            "rechtssubject is de verzameling van alle specifieke rechtsbetrekkingen waarin dit rechtssubject "
+            "als rechthebbende of plichthebbende partij optreedt."
         ),
-        vraag="Hoe verhouden twee rechtssubjecten zich tot elkaar? Welke relatie hebben zij?",
+        vraag=(
+            "Hoe verhouden twee rechtssubjecten zich tot elkaar? Welke relatie(s) hebben twee rechtssubjecten "
+            "met elkaar?"
+        ),
         uitdrukkingswijze=(
-            "Een of meer werkwoorden – recht: 'kan verzoeken', 'mag wijzigen', 'heeft recht op'; "
-            "plicht: 'stelt vast', 'moet informeren', 'is verplicht', 'dient te voldoen', 'draagt de last om'."
+            "Te herkennen aan een of meer werkwoorden, langs twee herkenningsroutes: hoofdwerkwoord met "
+            "hulpwerkwoord — bij een recht: ‘kan verzoeken’, ‘mag wijzigen’; bij een plicht: ‘stelt vast’, "
+            "‘mag niet inhalen’, ‘is verplicht informatie te verstrekken’, ‘moet informeren’, ‘dient te "
+            "voldoen’. samengesteld werkwoord — bij een recht: ‘heeft recht op’, ‘heeft aanspraak op’; bij "
+            "een plicht: ‘heeft de plicht om’, ‘draagt de last om’."
         ),
     ),
     JasKlasse(
         naam="Rechtsfeit",
         omschrijving=(
-            "Een handeling, gebeurtenis of tijdsverloop die een wijziging in de juridische toestand "
-            "teweegbrengt (een rechtsbetrekking creëert, wijzigt of beëindigt)."
+            "Een rechtsfeit is een handeling of gebeurtenis die, of tijdsverloop dat een wijziging in de "
+            "juridische toestand teweegbrengt. Aan een rechtsfeit zijn dus rechtsgevolgen verbonden die een "
+            "rechtsbetrekking creëren, wijzigen of beëindigen."
         ),
-        vraag="Welke gebeurtenis, handeling of welk tijdsverloop heeft gevolgen voor de rechtsbetrekking?",
+        vraag=(
+            "Wat is de gebeurtenis of handeling die, of het tijdsverloop dat gevolgen heeft voor de "
+            "rechtsbetrekking?"
+        ),
         uitdrukkingswijze=(
-            "Een actieve werkwoordsvorm, vaak met een zelfstandig naamwoord: 'indienen van een "
-            "bezwaarschrift', 'toekennen van een subsidie', 'horen van belanghebbende'."
+            "Te herkennen aan een actieve werkwoordsvorm, al dan niet in combinatie met een zelfstandig "
+            "naamwoord, zoals ‘indienen van een bezwaarschrift’, ‘toekennen van een subsidie’, ‘horen van "
+            "belanghebbende’ of ‘kenbaar maken van elektronische bereikbaarheid’."
         ),
     ),
     JasKlasse(
         naam="Voorwaarde",
         omschrijving=(
-            "Een conditie die beschrijft aan welke omstandigheid voldaan moet zijn voor een rechtsgevolg. "
-            "Kan enkelvoudig of samengesteld zijn (cumulatief EN / alternatief OF)."
+            "Een voorwaarde is een conditie die beschrijft aan welke omstandigheid voldaan moet zijn voor het "
+            "intreden van een rechtsgevolg. Een voorwaarde kan ook betrekking hebben op een rechtssubject of "
+            "op een waarde die bij een rechtsobject of bij een afleidingsregel hoort. Een voorwaarde bevat "
+            "vaste elementen, die in de logica operanden en operatoren worden genoemd. Operanden kunnen "
+            "rechtssubjecten of rechtsobjecten, eigenschappen van rechtssubjecten of rechtsobjecten, "
+            "berekeningen of waarden zijn. Een operator is de beschrijving van een vergelijking die in de "
+            "voorwaarde voorkomt, zoals ‘groter dan’, ‘kleiner dan’ en ‘gelijk aan’."
         ),
-        vraag="Welke eis wordt gesteld aan een subject, object, rechtsbetrekking of rechtsfeit?",
+        vraag=(
+            "Welke eisen worden gesteld aan een rechtssubject, een rechtsobject, een rechtsbetrekking of een "
+            "rechtsfeit? Onder welke omstandigheden geldt een waarde bij een rechtsobject?"
+        ),
         uitdrukkingswijze=(
-            "Een voorwaardelijke bijzin, meestal ingeleid door 'indien', 'als', 'tenzij', 'mits', 'met "
-            "dien verstande dat', 'met uitzondering van'; soms een bijwoord zoals 'schriftelijk'."
+            "Te herkennen aan een voorwaardelijke bijzin, in de meeste gevallen ingeleid door een voegwoord "
+            "zoals ‘indien’, ‘als’, ‘tenzij’, ‘mits’ of een combinatie van woorden, zoals ‘met dien verstande "
+            "dat’ of ‘met uitzondering van’. Ook kan een voorwaarde afgeleid worden uit een bijwoord bij een "
+            "werkwoord, zoals ‘schriftelijk’ of ‘elektronisch’. Voorwaarden kunnen enkelvoudig of "
+            "samengesteld zijn: een samengestelde voorwaarde bestaat uit verschillende eisen die alle vervuld "
+            "moeten zijn (cumulatief) of waarvan er één vervuld moet zijn (alternatief)."
         ),
     ),
     JasKlasse(
         naam="Afleidingsregel",
         omschrijving=(
-            "Een regel die nieuwe feiten of waarden afleidt uit bestaande (beslisregel: ja/nee; rekenregel: "
-            "een bedrag/duur). De vastgestelde variabele is de uitvoervariabele; de gebruikte de invoer."
+            "Een afleidingsregel is een regel die nieuwe feiten of waarden creëert met behulp van bestaande "
+            "feiten of waarden. Te denken valt aan regels die bepalen of een recht bestaat (een beslisregel), "
+            "of die de hoogte en duur van een recht bepalen (een rekenregel). De variabele die vastgesteld "
+            "wordt door de afleidingsregels, noemen we uitvoervariabele. Bij een rekenregel is dit de "
+            "uitkomst van de rekensom; bij een beslisregel een conclusie als ja/nee of waar/onwaar. De "
+            "variabelen die gebruikt worden voor de vaststelling, noemen we invoervariabelen. Als sprake is "
+            "van vaste getallen of waarden in een afleidingsregel die over een periode gelijk zijn voor alle "
+            "rechtssubjecten en rechtsobjecten, noemen we deze parameters. Afleidingsregels worden ook "
+            "gebruikt om te bepalen of een rechtssubject of rechtsobject tot een bepaalde doelgroep behoort; "
+            "het gaat dan om het afleiden van specialisaties van rechtssubjecten en rechtsobjecten op basis "
+            "van bepaalde kenmerken."
         ),
-        vraag="Hoe wordt een variabele berekend of afgeleid? Hoe wordt een specifiek subject/object bepaald?",
+        vraag=(
+            "Hoe wordt een variabele berekend of afgeleid? Hoe wordt een specifiek rechtssubject of "
+            "rechtsobject bepaald?"
+        ),
         uitdrukkingswijze=(
-            "Woorden die op berekening/afleiding duiden: 'is verminderd met', 'bedraagt vermeerderd met', "
-            "'wordt gesteld op', 'is het gezamenlijke bedrag van', of eenvoudigweg 'en'."
+            "Te herkennen aan woorden die duiden op een berekening of afleiding, zoals ‘is (…) verminderd "
+            "met’, ‘bedraagt (…) vermeerderd met’, ‘wordt gesteld op’ of ‘is het gezamenlijke bedrag van’, "
+            "maar ook eenvoudigweg ‘en’."
         ),
     ),
     JasKlasse(
         naam="Variabele en variabelewaarde",
         omschrijving=(
-            "Een variabele is een kenmerk van een subject/object/rechtsbetrekking/rechtsfeit dat per "
-            "instantie kan verschillen; een variabelewaarde is de waarde die die variabele kan hebben."
+            "Een variabele is een kenmerk van een rechtssubject, rechtsobject, rechtsbetrekking of rechtsfeit "
+            "dat voor verschillende instanties daarvan (dus voor specifieke personen, zaken, relaties, "
+            "handelingen of gebeurtenissen in de werkelijkheid) een andere waarde kan hebben. Een "
+            "variabelewaarde geeft de waarde aan die een bepaalde variabele kan hebben. De wijze waarop een "
+            "variabelewaarde is omschreven in wetgeving kan een beperking in de mogelijke waarden voor een "
+            "variabele inhouden, of een voorwaarde aan een variabele stellen."
         ),
-        vraag="Welk kenmerk/eigenschap wordt genoemd? Welke waarde (bedrag, duur, hoogte) hoort erbij?",
+        vraag=(
+            "Wat zijn de specifieke kenmerken van een rechtsobject, rechtssubject, rechtsbetrekking of "
+            "rechtsfeit? Welke eigenschappen worden genoemd? Welke waarde heeft een rechtsobject? Hoe lang of "
+            "hoe hoog is een rechtsobject? En voor de waarde: welk bedrag, welke duur of welke hoogte hoort "
+            "bij deze variabele?"
+        ),
         uitdrukkingswijze=(
-            "Een getal of datum, een tekst (bv. 'naam van de werkgever'), een enumeratiewaarde (limitatieve "
-            "opsomming) of een booleaanse waarde (ja/nee)."
+            "vier varianten: getal of datum — een concreet bedrag, een concrete datum, een concrete tijdsduur "
+            "of een andere numerieke waarde; tekst — bijvoorbeeld de variabele ‘naam van een werkgever’; "
+            "enumeratiewaarde — een limitatieve opsomming van de mogelijke waarden, in getallen of tekst; "
+            "booleaanse waarde — een bijzondere enumeratiewaarde met twee waarden, ‘ja’ (waar) of ‘nee’ "
+            "(onwaar); bijvoorbeeld de variabele ‘geregistreerd in het donorregister’."
         ),
     ),
     JasKlasse(
         naam="Parameter en parameterwaarde",
         omschrijving=(
-            "Een parameter is een waarde die gelijk is voor alle subjecten/objecten (een constante), meestal "
-            "voor een periode; de parameterwaarde is de concrete waarde in die periode."
+            "Een parameter is een beschrijving van een waarde die gelijk is voor alle rechtssubjecten, "
+            "rechtsobjecten, rechtsbetrekkingen en rechtsfeiten. Vanwege de stabiele waarde wordt een "
+            "parameter ook wel constante genoemd. Parameters worden gebruikt in afleidingsregels en "
+            "voorwaarden. In de regel geldt een parameter voor een bepaalde periode, bijvoorbeeld een "
+            "kalenderjaar, maar hij kan ook voor een onbepaalde duur gelden (bijvoorbeeld voor de hele "
+            "geldigheidsduur van de wettelijke regel). De waarde die een parameter in de desbetreffende "
+            "periode heeft, is een parameterwaarde. De parameter is dus de omschrijving van de waarde, en de "
+            "parameterwaarde is de concrete waarde die daaraan is toegekend."
         ),
-        vraag="Is er een waarde die gedurende een periode een vaste hoogte heeft voor iedereen?",
+        vraag=(
+            "Is sprake van een waarde die gedurende een periode een vaste hoogte heeft voor alle "
+            "rechtssubjecten en rechtsobjecten?"
+        ),
         uitdrukkingswijze=(
-            "Een tarief, (drempel)bedrag, maximum/minimum of vrijstelling; de waarde als bedrag, percentage "
-            "of datum, geldig over een periode."
+            "Een parameter is te herkennen aan een beschrijving van een waarde, bijvoorbeeld van een tarief, "
+            "een (drempel)bedrag (eventueel met een maximum of een minimum) of een vrijstelling. Een "
+            "parameterwaarde is te herkennen aan bijvoorbeeld een bedrag in geld, een percentage of een "
+            "datum."
         ),
     ),
     JasKlasse(
         naam="Operator",
         omschrijving=(
-            "Een woord, woordcombinatie of teken dat een rekenkundige bewerking, vergelijking, gelijkstelling "
-            "of logische verbinding tussen waarden/voorwaarden uitdrukt."
+            "Een operator is een woord, een combinatie van woorden of een teken dat een rekenkundige "
+            "bewerking, een samengestelde voorwaarde, een gelijkstelling of een vergelijking van twee waarden "
+            "of berekeningen uitdrukt. Een operator beschrijft hoe verschillende elementen van een "
+            "berekening, voorwaarde of samengestelde voorwaarde met elkaar verbonden worden om tot een "
+            "resultaat te leiden. Drie typen: rekenkundige operatoren — voeren een bewerking uit, zoals "
+            "optellen, aftrekken, vermenigvuldigen; vergelijkingsoperatoren — vergelijken variabelen met "
+            "elkaar of een variabele met een parameter; logische operatoren — bepalen bij samengestelde "
+            "voorwaarden of aan (ten minste) één voorwaarde moet worden voldaan (OF, disjunctie, alternatief) "
+            "of aan alle (EN, conjunctie, cumulatief); ook kan er sprake zijn van een voorwaarde waaraan niet "
+            "voldaan mag zijn (NIET, negatie)."
         ),
-        vraag="Hoe worden variabelen/parameters verbonden in een berekening? In welke verhouding staan voorwaarden?",
+        vraag=(
+            "Hoe worden variabelen of parameters verbonden in een berekening? In welke verhouding staan "
+            "voorwaarden tot elkaar? Welke vergelijking wordt in een voorwaarde gemaakt?"
+        ),
         uitdrukkingswijze=(
-            "Rekenkundig: 'de som van', 'vermeerderd/verminderd met', 'percentage van'. Vergelijking: 'groter "
-            "dan', 'kleiner dan', 'is gelijk aan'. Logisch: 'en', 'of', 'niet', 'ten minste'."
+            "rekenkundig: ‘het gezamenlijke bedrag van’, ‘de som van’, ‘vermeerderd met’, ‘verminderd met’, "
+            "‘percentage van’; vergelijking: ‘groter dan’, ‘kleiner dan’, ‘meer bedraagt dan’, ‘is gelijk "
+            "aan’; logisch: ‘en’, ‘of’, ‘niet’, ‘ten minste’."
         ),
     ),
     JasKlasse(
         naam="Tijdsaanduiding",
         omschrijving=(
-            "Een omschrijving van een tijdstip of tijdvak – nodig voor de geldigheid van een rechtsbetrekking, "
-            "een tijdsverloop met rechtsgevolg, of als variabele/parameter(waarde). Kies bij twijfel de meest "
-            "specifieke klasse (tijdsaanduiding boven variabele/parameter)."
+            "Een tijdsaanduiding is een omschrijving van een tijdstip of tijdvak. Een tijdsaanduiding is "
+            "nodig om de geldigheid van een rechtsbetrekking te duiden, om een tijdsverloop met rechtsgevolg "
+            "uit te drukken of als variabele bij een specifiek rechtssubject of rechtsobject. Ook kan een "
+            "tijdsaanduiding (met name een tijdstip) een parameterwaarde zijn — een voorbeeld is een "
+            "peildatum die wordt vergeleken met een andere datum (als variabele) in een voorwaarde. De "
+            "tijdsaanduiding is als aparte klasse opgenomen, hoewel deze ook beschouwd zou kunnen worden als "
+            "een verduidelijking van de klassen variabele of parameter. Gelet op het belang van de "
+            "tijdsaanduiding voor het bepalen van de duur van een rechtsbetrekking of het tijdstip van een "
+            "tijdsverloop met rechtsgevolgen, is tijdsaanduiding als aparte klasse opgenomen."
         ),
-        vraag="Wanneer, op welk moment? Sinds/tot wanneer, vanaf/tot welk moment?",
+        vraag="Wanneer, op welk moment? Sinds wanneer of tot wanneer, vanaf welk moment of tot welk moment?",
         uitdrukkingswijze=(
-            "Een concrete datum ('1 september 2009') of omschrijving ('de eerste maandag van de maand'); "
-            "tijdvakken met 'jaar', 'maand', 'week', 'dag' of specialisaties zoals 'kalenderjaar'."
+            "Te herkennen aan een concrete datum (bijvoorbeeld 1 september 2009), of aan een omschrijving die "
+            "een datum beschrijft (de eerste maandag van de maand). Tijdvakken zijn vaak te herkennen aan "
+            "woorden die een periode duiden, zoals jaar, maand, week en dag, of specialisaties daarvan zoals "
+            "kalenderjaar."
         ),
     ),
     JasKlasse(
         naam="Plaatsaanduiding",
         omschrijving=(
-            "Een plaats of gebied waarop wetgeving betrekking heeft; bepaalt het toepassingsbereik. Kies bij "
-            "twijfel de meest specifieke klasse (plaatsaanduiding boven variabele/parameter)."
+            "Een plaatsaanduiding is een plaats of een gebied waar bepaalde wetgeving betrekking op heeft. "
+            "Zij bepaalt het toepassingsbereik van de regels voor rechtssubjecten, rechtsobjecten, "
+            "rechtsbetrekkingen of rechtsfeiten. De meeste wetgeving geldt voor heel Nederland en heeft "
+            "daarom geen expliciete plaatsaanduiding. Zodra het werkingsgebied beperkter of ruimer moet zijn, "
+            "wordt in wetgeving wel een expliciete plaatsaanduiding opgenomen."
         ),
         vraag="Waar (voor welk gebied of welke plaats) geldt de wettelijke regel (niet)?",
         uitdrukkingswijze=(
-            "Een algemene gebiedsbeschrijving ('een lidstaat van de EU') of een specifieke naam ('de gemeente "
-            "Amsterdam', 'Nederland')."
+            "Uitgedrukt met een algemene beschrijving van het gebied (een lidstaat van de EU) of met de naam "
+            "van een specifiek gebied (de gemeente Amsterdam, de provincie Limburg, Nederland, Zwitserland)."
         ),
     ),
     JasKlasse(
         naam="Delegatiebevoegdheid en delegatie-invulling",
         omschrijving=(
-            "Een delegatiebevoegdheid maakt mogelijk of schrijft voor dat nadere regels worden gesteld over een "
-            "rechtsbetrekking/rechtsfeit/afleidingsregel; de delegatie-invulling is de lagere regeling die dat "
-            "invult. Verplicht of facultatief; subdelegatie mogelijk bij 'bij of krachtens'."
+            "Een delegatiebevoegdheid maakt het mogelijk of schrijft voor dat (nadere) regels worden gesteld "
+            "over een rechtsbetrekking, rechtsfeit of afleidingsregel. Met delegatie-invulling duiden we de "
+            "regeling of het regelingsonderdeel aan waarin de delegatiebevoegdheid is gebruikt. Een "
+            "delegatiebevoegdheid wordt altijd aan een specifiek rechtssubject toegekend: de regering (bij "
+            "een amvb, vastgesteld door de Koning) of een minister (bij een ministeriële regeling). De "
+            "delegatie kan verplicht of facultatief zijn. Vaak is subdelegatie mogelijk: bepalingen in een "
+            "amvb kunnen verder worden uitgewerkt in een ministeriële regeling. Vier dingen die de bron hier "
+            "expliciet maakt en die je bij het annoteren nodig hebt: 1. Delegaties bepalen het werkgebied. "
+            "\"Het herkennen van delegatiebevoegdheden is vooral van belang voor het bepalen van het "
+            "werkgebied van de Wetsanalyse. Als de delegatiebevoegdheid daadwerkelijk is gebruikt, moet de op "
+            "grond daarvan vastgestelde gedelegeerde regelgeving in het werkgebied worden betrokken.\" 2. De "
+            "delegerende wet wijst nooit naar de invulling. \"De delegerende wet bevat logischerwijs geen "
+            "concrete verwijzingen naar de delegatie-invulling. Die is immers op het moment van voorbereiden "
+            "van die wet nog niet vastgesteld.\" Zoek een delegatie-invulling dus niet in de moederwet. 3. "
+            "wetten.nl-metadata is onvolledig. De wetsinformatie bij een artikel \"is echter niet altijd "
+            "volledig. Afstemming met wetgevingsjuristen om het werkgebied compleet te maken is daarom van "
+            "belang.\" Dat geldt ook voor de verwijzingen die de kennisgraaf uit die bron overneemt. 4. Een "
+            "delegatie-invulling is niet lexicaal te herkennen. \"In de delegatie-invulling wordt niet met "
+            "standaard uitdrukkingswijzen gewerkt\" (H2:127). Je vindt hem alleen via de relatie met de "
+            "grondslag, niet via signaalwoorden."
         ),
-        vraag="Geeft een artikel de opdracht om (nadere) regels te stellen? Verwijst een lagere regeling terug?",
+        vraag=(
+            "Geeft een wetsartikel de opdracht om (nadere) regels te stellen? Verwijst een bepaling in een "
+            "gedelegeerde regeling naar een artikel in de bovenliggende wet?"
+        ),
         uitdrukkingswijze=(
-            "Verplicht: 'bij (of krachtens) algemene maatregel van bestuur / bij ministeriële regeling worden "
-            "regels gesteld'. Facultatief: 'kunnen regels worden gesteld'."
+            "Verplichte delegatie: ‘bij (of krachtens) algemene maatregel van bestuur / bij ministeriële "
+            "regeling worden regels gesteld (…)’. Facultatieve bevoegdheid: ‘kunnen regels worden gesteld’. "
+            "Bij ‘bij of krachtens’ kan subdelegatie plaatsvinden."
         ),
     ),
     JasKlasse(
         naam="Brondefinitie",
         omschrijving=(
-            "Een begripsomschrijving die expliciet in de wetgeving is opgenomen en een in de wet gebruikte term "
-            "eenduidig definieert. Te onderscheiden van de analyse-begrippen die pas bij de Wetsanalyse ontstaan."
+            "Een brondefinitie is een begripsomschrijving die expliciet is opgenomen in de wetgeving en een "
+            "eenduidige betekenis geeft aan een in de wetgeving (veel) gebruikte term. Brondefinities staan "
+            "in de regel in een of meer artikelen aan het begin van een wet of gedelegeerde regeling. Als in "
+            "de wet een term is gedefinieerd, wordt deze definitie standaard hergebruikt in de daarop "
+            "gebaseerde gedelegeerde regelingen. De definities worden in de gedelegeerde regeling niet "
+            "opnieuw opgenomen. \"Brondefinities moeten worden onderscheiden van de begrippen en "
+            "begripsomschrijvingen die bij de Wetsanalyse worden gemaakt voor geclassificeerde formuleringen "
+            "in de wetgeving. Deze begrippen hebben geen directe wettelijke bron, maar zijn nodig om "
+            "formuleringen uniek te kunnen aanduiden.\""
         ),
         vraag="Is deze term uitdrukkelijk omschreven in de wetgeving?",
         uitdrukkingswijze=(
-            "Een definitieartikel (vaak aan het begin van een regeling) met een aanhef en onderdelen, bij "
-            "voorkeur alfabetisch; soms geldend voor een specifiek hoofdstuk of artikel."
+            "Een artikel met brondefinities bestaat in de regel uit een aanhef en verschillende onderdelen, "
+            "bij voorkeur in alfabetische volgorde. Vaak staat dit artikel aan het begin van de regeling, "
+            "maar er kunnen ook brondefinities zijn die voor een specifiek onderdeel gelden — een hoofdstuk, "
+            "paragraaf of zelfs één artikel."
         ),
     ),
 )
+# --- EINDE GEGENEREERD ---
 
 # Canonieke weergave-volgorde + naamlijst (drift-guard: gelijk aan validation.JAS_KLASSEN_VOLGORDE).
 JAS_KLASSEN_VOLGORDE: tuple[str, ...] = tuple(k.naam for k in JAS_KLASSEN)

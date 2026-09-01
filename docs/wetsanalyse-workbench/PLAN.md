@@ -4,8 +4,16 @@
 > scratchbestand (`~/.claude/plans/…`) is vluchtig en wordt overschreven – dít bestand niet. Bijwerken?
 > Pas dit bestand aan (en commit).
 >
-> Laatst bijgewerkt: 2026-07-20. Status: Deliverable 0 geleverd (architectuur-artifact + deck);
-> koers geherijkt (agent-gedreven, vers domein); MVP-bouw volgt.
+> Laatst bijgewerkt: 2026-09-01. Status: Deliverable 0 en **Fase 1 zijn geleverd**, en het
+> grootste deel van **Fase 2** ook — het annotatiedomein draait in de api
+> (`app/annotatie_contracts.py`, `annotatie_store.py`, `annotatie_export.py`,
+> `routers/annotatie.py`), de annotatieketen met Critic in graph-qa
+> (`agent/nodes/annotatie.py`) en de werkplek in de frontend. Open binnen Fase 2: de leerlus
+> (lessons-learned, pre-flight, knowledge-check). **Fase 3 en 4 zijn niet begonnen.**
+>
+> Let op bij het lezen: dit bestand is plan én changelog geworden. Onder de fasen staan
+> "Bijgesteld"- en "Deels geleverd"-kaders uit latere rondes; die zijn actueler dan de
+> planregels erboven.
 
 ## Leidend principe
 

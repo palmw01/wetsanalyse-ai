@@ -147,7 +147,7 @@ uv run --extra dev pytest -q                    # tests
 | `GRAPHDB_TOKEN` *(verplicht)* | Bearer-token voor de GraphDB-MCP. Ook als `GRAPHDB_TOKEN_FILE` (bestandspad, voor container-secrets). |
 | `GRAPHDB_MCP_URL` | MCP-endpoint van de graaf. |
 | `GRAPHDB_REPOSITORY_ID` | Repository (default `inning`). |
-| `SIMILARITY_INDEX` | Naam van de GraphDB-similarity-index voor `semantic_search`. Leeg → die tool degradeert naar `search_wetgeving`. Zie `docs/embeddings-runbook.md`. |
+| `SIMILARITY_INDEX` | Naam van de GraphDB-similarity-index voor `semantic_search`. Leeg → die tool degradeert naar `search_wetgeving`. |
 | `AZURE_FOUNDRY_API_KEY` *(verplicht)* | Azure-AI-Foundry-key (of `_FILE`). |
 | `AZURE_FOUNDRY_BASE_URL` *(verplicht)* | Foundry-endpoint **met** `/anthropic`-suffix. |
 | `LLM_MODEL` | Modelnaam (default `claude-sonnet-4-6`). Draagt de annoteerder, de Critic en de QA-specialisten – die hebben bewust géén eigen knop. |
@@ -175,4 +175,3 @@ organisatie-/geldigheidsmetadata, met stabiele BWB-IRI's en jci-vindplaatsen.
 
 - **`CLAUDE.md`** – werkgids bij het aanpassen van de code (architectuur, invarianten, valkuilen).
 - `deploy/azure/README.md` – containerimage, secrets en de uitrol naar de straten.
-- `docs/embeddings-runbook.md` – de GraphDB-similarity-index achter `semantic_search`.

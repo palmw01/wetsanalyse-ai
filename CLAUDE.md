@@ -106,17 +106,30 @@ werkplek. Er zit geen uitvoerbare werkstroom meer in de skill – de reviewlus, 
 write-guard-hook die daarbij hoorden zijn op 27 aug 2026 verwijderd, samen met de dode
 wettenbank-MCP-stap die ze voedde.
 
-**De canonieke klassenlijst staat in de api**, niet meer hier: `api/app/jas_klassen.py`. Die stond
-eerder in een skill-script dat de api op runtime inlaadde, waardoor het productie-image een
-Claude-skill moest meedragen om te kunnen starten. `frontend/lib/jas.ts` en
-`tools/graph-qa/agent/jas_klassen.py` dragen dezelfde waarden, elk met een drift-test erop.
+**Namen in de api, duiding in de skill.** De canonieke klasse-*namen* (en hun kleuren en volgorde)
+staan in `api/app/jas_klassen.py`; `frontend/lib/jas.ts` draagt dezelfde waarden met een drift-test
+erop. Ze stonden eerder in een skill-script dat de api op runtime inlaadde, waardoor het
+productie-image een Claude-skill moest meedragen om te kunnen starten.
 
-De inhoudelijke `references/` blijven de operationele uitwerking van de methode:
+De **inhoudelijke duiding** – omschrijving, herkenningsvraag en uitdrukkingswijze per klasse – komt
+sinds 1 sep 2026 uit de skill. `tools/graph-qa/agent/jas_klassen.py` is daarvan **afgeleid**: het
+JAS_KLASSEN-blok wordt gegenereerd door `tools/graph-qa/scripts/genereer_jas_klassen.py` en
+bewaakt door `tests/test_methode_drift.py`. Wil je het gedrag van de annotator bijsturen, bewerk
+dan de markdown en draai het script; bewerk je de Python, dan faalt de test. Dat maakt de lengte
+van de annotatieprompt een redactionele keuze in de skill in plaats van een codekeuze.
 
-- `references/jas-klassen-referentie.md` – de dertien JAS-klassen. Verzin er geen bij.
+De `references/` zijn de operationele uitwerking van de methode:
+
+- `references/jas-klassen-referentie.md` – de dertien JAS-klassen, volledig uit
+  `docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md` met regelverwijzingen. **Dit is de bron voor de
+  code.** Verzin er geen klassen bij.
+- `references/markeren-fragmentgrenzen.md` – hoe je markeert: fragmentgrenzen per klasse,
+  overlappende markeringen, opsommingen, verwijzende voornaamwoorden, homoniemen, en wat je juist
+  niet markeert. Afgeleid uit het boek en de BRM-readers, in eigen woorden – dat materiaal is van
+  derden en mag niet letterlijk in deze publieke repo.
 - `references/verwijzingen-volgen.md` – het volg-beleid voor cross-referenties: functies,
-  diepte-cap 1 + relevantie-gate, bounded delegaties. Een gevolgde delegatie/definitie kan
-  promoveren tot een eigen bron in het werkgebied.
+  diepte-cap 1 + relevantie-gate, bounded delegaties. Hoort bij het afbakenen van een werkgebied
+  over meerdere bronnen; de annotatiestroom in de werkplek volgt zelf geen verwijzingen.
 
 ## Observability
 
@@ -215,19 +228,28 @@ op acceptatie.
 
 ## Referentiedocumentatie
 
-`docs/` bevat de methodische onderbouwing (niet code):
+`docs/` bevat de methodische onderbouwing (niet code). **`docs/README.md` is de wegwijzer** – het
+legt uit welk bestand bron van derden is, welke specificatie met de code mee moet bewegen en welk
+plan mag verouderen.
 
 - `docs/wetsanalyse/` – het bronmateriaal van de methode: `WetsTaal.md`, de JAS-tabel
   `wa-table.png` en `wetsanalyse-rijk/` (hoofdstukken over JAS en het kader, van BZK onder de
-  W3C-licentie – zie `wetsanalyse-rijk/BRON.md`). Raadpleeg deze bij inhoudelijke vragen over de
-  methode; de skill-`references/` zijn de operationele samenvatting daarvan.
+  W3C-licentie – zie `wetsanalyse-rijk/BRON.md`). `H2-JAS.md` is de gezaghebbende klassenindeling;
+  `references/jas-klassen-referentie.md` in de skill is daarvan de operationele uitwerking, mét
+  regelverwijzingen terug naar deze bron.
 
   **Lokaal-only, bewust niet in de repo:** `wetsanalyse-boek.md` (het boek van Boom uitgevers) en
   `handleiding.pages.md`/`leidraad.pages.md` (readers van het Expertisecentrum BRM, "bestemd voor
   gebruik binnen de Belastingdienst"). Deze repo is publiek; dat materiaal is van derden en hoort
-  er niet in. Ze stonden er van 13 t/m 27 aug 2026 wél in, doordat de `.gitignore`-regel één
-  mapniveau te hoog stond en dus nooit greep. Heb je ze lokaal, dan werken ze gewoon; controleer
-  na een wijziging aan die regels altijd met `git check-ignore -v`.
+  er niet in.
+
+  Dat is twee keer misgegaan met een té specifiek pad: eerst stond het boek als
+  `docs/wetsanalyse-boek.md`, één mapniveau te hoog, waardoor het van 13 t/m 27 aug 2026 in de
+  publieke repo stond; daarna belandden dezelfde readers als PDF in `docs/kennisbank/`, waar de
+  regel `docs/wetsanalyse/*.pages.md` ze niet dekte (gedicht op 1 sep 2026). De regels staan nu op
+  de **vorm** in plaats van op één map – álle PDF's onder `docs/` zijn genegeerd. Heb je het
+  materiaal lokaal, dan werkt het gewoon; controleer na een wijziging aan die regels altijd met
+  `git check-ignore -v <pad>`.
 - `docs/regelspraak/` – de RegelSpraak-specificaties (PDF), voor de latere formaliseringsfase.
   Ook lokaal-only (gitignored), dus afwezig in een verse kloon.
 - `docs/wetsanalyse-workbench/` – het plan achter de werkplek + de JAS-annotatie-ontologie.

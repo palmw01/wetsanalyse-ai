@@ -21,6 +21,13 @@ Deze map valt daarmee **buiten** de EUPL-1.2 waaronder de rest van dit project s
 
 ## Wijzigingen ten opzichte van de bron
 
-De bestanden zijn **ongewijzigd** overgenomen, op één punt na: dit `BRON.md` is toegevoegd en
-bestaat niet in de bronrepo. De inhoudelijke documenten (`abstract.md`, `H1-Inleiding.md`,
-`H2-JAS.md`, `H3-Kader.md`, `README.md` en `media/`) zijn niet aangepast.
+De inhoudelijke documenten (`abstract.md`, `H1-Inleiding.md`, `H2-JAS.md`, `H3-Kader.md` en
+`media/`) zijn **ongewijzigd** overgenomen. Twee afwijkingen, hier vastgelegd omdat de licentie
+vermelding van wijzigingen verlangt:
+
+1. Dit `BRON.md` is toegevoegd; het bestaat niet in de bronrepo.
+2. De `README.md` van de bronrepo is **niet overgenomen** (1 sep 2026). Dat bestand bevat de
+   ReSpec-template-instructie van Logius — hoe je met `config.js` en GitHub Actions een HTML- en
+   PDF-versie publiceert. Het gaat over het publicatiegereedschap van de bronrepo en niet over
+   Wetsanalyse, en op deze plek was het misleidend: wie de `README.md` van een map opent, verwacht
+   een inleiding op die map. De inhoudelijke bestanden zijn er niet door geraakt.
