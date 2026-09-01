@@ -121,6 +121,47 @@ jobs:
           print("ok - elk python-image ruimt de vendored pip-SBOM op")
           PYEOF
 
+      # Eén scanbeleid voor alle vier de images. Scheefgroei is hier het echte risico: de
+      # pip-SBOM-fix stond in twee van de drie Dockerfiles, en precies dat gat hield drie
+      # alerts zeven weken open. Deze controle bewaakt dat de poorten gelijk staan én dat ze
+      # op HIGH falen — CRITICAL-only liet die alerts nooit een build rood maken.
+      - name: Trivy-poorten – één beleid, en niet slapper dan HIGH
+        run: |
+          python3 - <<'PYEOF'
+          import pathlib, sys, yaml
+
+          def gates(spec):
+              """De Trivy-stappen die als poort werken: een trivy-action met een exit-code."""
+              for job in (spec.get("jobs") or {}).values():
+                  for stap in job.get("steps") or []:
+                      if "trivy-action" in str(stap.get("uses", "")) and stap.get("with", {}).get("exit-code"):
+                          yield stap["with"]
+
+          gevonden, fout = {}, []
+          for pad in sorted(pathlib.Path(".github/workflows").glob("*-docker-publish.yml")):
+              spec = yaml.safe_load(pad.read_text(encoding="utf-8")) or {}
+              poorten = list(gates(spec))
+              if not poorten:
+                  fout.append(f"{pad.name}: publiceert een image maar heeft geen Trivy-poort (exit-code)")
+                  continue
+              for w in poorten:
+                  gevonden[pad.name] = (str(w.get("severity", "")), str(w.get("ignore-unfixed", "")))
+
+          # Eén beleid voor alle componenten: scheefgroei is hier het echte risico. De pip-SBOM-fix stond
+          # in twee van de drie Dockerfiles en daardoor bleven drie alerts zeven weken open staan.
+          if len(set(gevonden.values())) > 1:
+              fout.append("de Trivy-poorten lopen uiteen: "
+                          + "; ".join(f"{k} -> severity={v[0]!r} ignore-unfixed={v[1]!r}"
+                                      for k, v in sorted(gevonden.items())))
+          for naam, (sev, _) in sorted(gevonden.items()):
+              if "HIGH" not in sev:
+                  fout.append(f"{naam}: poort faalt niet op HIGH (severity={sev!r})")
+
+          if fout:
+              print("\n".join("  " + r for r in fout)); sys.exit(1)
+          print(f"ok - {len(gevonden)} Trivy-poorten, één beleid: {sorted(set(gevonden.values()))[0]}")
+          PYEOF
+
       - name: Bepalen wat deze PR raakt
         id: raakt
         run: |
