@@ -401,6 +401,10 @@ class AnnotatieResult:
     class_acc: float | None = None  # klasse-accuracy over exact-span-matches; None = geen data
     cand_recall: float = 1.0        # candidate recall (= span_recall in V1; zinvol na fase 2A)
     verworpen_p100: float = 0.0     # verworpen per 100 ingediende voorstellen
+    # Hoeveel ankers deze case had. Nul betekent: precisie en recall zeggen hier niets – zonder
+    # verwachtingen geeft `precisie_en_recall` gratis (1.0, 1.0), en die vrije punten hoorden niet
+    # in het gemiddelde thuis (zie print_annotatie_report).
+    ankers: int = 0
     error: str | None = None
     passed: bool = field(init=False)
 
@@ -449,5 +453,6 @@ def score_annotatie(
         class_acc=classification_accuracy(elementen, verwacht),
         cand_recall=candidate_recall(_kandidaten, verwacht),
         verworpen_p100=verworpen_per_100(elementen, _verworpen),
+        ankers=len(verwacht),
         error=error,
     )

@@ -1,0 +1,15 @@
+{
+  "_herkomst": {
+    "bron": "Invorderingswet 1990 (BWBR0004770), toestand geldig vanaf 2026-07-01",
+    "opgehaald_via": "tools/bwb-import (BwbDownloader + ToestandParser) op 2026-09-01",
+    "let_op": "Wettekst is vrij van auteursrecht (art. 11 Aw). Dit is exact de tekst die de importer in de graaf zet en waartegen de live-eval scoort; overtypen of herformuleren maakt de gouden set stil ongeldig."
+  },
+  "bepalingen": {
+    "BWBR0004770/9/1": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+    "BWBR0004770/19/1": "Een derde op wie de belastingschuldige een vordering heeft of uit een reeds bestaande rechtsverhouding rechtstreeks zal verkrijgen, is op vordering van de ontvanger gehouden de belastingaanslagen van de belastingschuldige te betalen voor zover een en ander vatbaar is voor beslag. Voor zover één en ander niet vatbaar is voor beslag is de derde op vordering van de ontvanger verplicht ten hoogste een tiende gedeelte daarvan aan te wenden voor betaling van de belastingaanslagen van de belastingschuldige.",
+    "BWBR0004770/25/1": "De ontvanger kan onder door hem te stellen voorwaarden aan een belastingschuldige voor een bepaalde tijd bij beschikking uitstel van betaling verlenen. Gedurende het uitstel vangt de dwanginvordering niet aan, dan wel wordt deze geschorst.",
+    "BWBR0004770/36/1": "Hoofdelijk aansprakelijk is voor de loonbelasting, de omzetbelasting, de accijns, de verbruiksbelastingen van alcoholvrije dranken en van pruimtabak en snuiftabak, de in artikel 1 van de Wet belastingen op milieugrondslag genoemde belastingen en de kansspelbelasting verschuldigd door een rechtspersoonlijkheid bezittend lichaam in de zin van de Algemene wet inzake rijksbelastingen dat volledig rechtsbevoegd is, voor zover het aan de heffing van vennootschapsbelasting is onderworpen: ieder van de bestuurders overeenkomstig het bepaalde in de volgende leden.",
+    "BWBR0004770/36/4": "Indien het lichaam niet of niet op juiste wijze aan zijn in het tweede lid bedoelde verplichting heeft voldaan, is een bestuurder op de voet van het bepaalde in het derde lid aansprakelijk, met dien verstande dat wordt vermoed dat de niet betaling aan hem is te wijten en dat de periode van drie jaren wordt geacht in te gaan op het tijdstip waarop het lichaam in gebreke is. Tot de weerlegging van het vermoeden wordt slechts toegelaten de bestuurder die aannemelijk maakt dat het niet aan hem is te wijten dat het lichaam niet aan zijn in het tweede lid bedoelde verplichting heeft voldaan.",
+    "BWBR0004770/2/1": "Deze wet verstaat onder:"
+  }
+}

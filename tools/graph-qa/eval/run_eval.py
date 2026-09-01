@@ -171,8 +171,12 @@ def print_annotatie_report(results: list[AnnotatieResult]) -> bool:
     def _gem(vals: list[float]) -> float:
         return sum(vals) / len(vals) if vals else 0.0
 
-    prec_vals  = [r.precisie for r in results]
-    rec_vals   = [r.recall for r in results]
+    # Alleen cases mét ankers tellen mee voor precisie en recall. Zonder verwachtingen geeft
+    # `precisie_en_recall` gratis (1.0, 1.0) (scoring.py:172), en drie van de acht cases hebben dat
+    # bewust – die trokken het gemiddelde omhoog zonder iets te meten.
+    met_ankers = [r for r in results if r.ankers > 0]
+    prec_vals  = [r.precisie for r in met_ankers]
+    rec_vals   = [r.recall for r in met_ankers]
     span_vals  = [r.span_exact for r in results]
     iou_vals   = [r.span_iou_gem for r in results]
     cacc_vals  = [r.class_acc for r in results if r.class_acc is not None]
@@ -192,9 +196,9 @@ Garanties (code-afgedwongen, hoort 1.0)
   Letterlijkheid              {_gem(lett_vals):.1%}
   Klassen geldig              {_gem(klas_vals):.1%}
 
-Annotaties (trendmeting)
-  Precisie                    {_gem(prec_vals):.1%}
-  Recall                      {_gem(rec_vals):.1%}
+Ankers (trendmeting, over {len(met_ankers)} van {n} cases)
+  Recall                      {_gem(rec_vals):.1%}   <- de bruikbare maat
+  Precisie                    {_gem(prec_vals):.1%}   <- begrensd door het aantal ankers
 
 Spans
   Exact match                 {_gem(span_vals):.1%}
@@ -209,7 +213,10 @@ Kandidaten (V1: = elementen)
 Verworpen
   Per 100 voorstellen         {_gem(vw_vals):.1f}
 {"─" * 44}
-Notitie: verworpen_p100 is 0 als er geen verworpen fragmenten zijn.
+Notitie: dit is een ANKERSET, geen examenmodel. Recall zegt hoeveel van de vastgelegde ankers de
+agent vond. Precisie deelt door alles wat hij voorstelde – terecht meer dan er ankers zijn – en is
+dus geen kwaliteitsoordeel; gebruik hem alleen om versies onderling te vergelijken.
+verworpen_p100 is 0 als er geen verworpen fragmenten zijn.
 Alleen niet-nul als het model een niet-letterlijk of ongeldig fragment voorstel.""")
 
     return ok == n
