@@ -726,10 +726,31 @@ jobs:
             case "$status" in Succeeded|Failed|Cancelled|Degraded) break ;; esac
             sleep 20
           done
-          # De uitkomst ís de log: drie rapporten met precisie/recall, span-IoU en letterlijkheid.
-          # Ruim genoeg tail om alle drie mee te krijgen (~25 regels per rapport).
-          logs=$(az containerapp job logs show -n "$JOB" -g "$RESOURCE_GROUP" \
-                   --execution "$uitvoering" --tail 250 2>/dev/null || true)
+          # De uitkomst ÍS de log: drie rapporten met precisie/recall, span-IoU en letterlijkheid.
+          # `az containerapp job logs show` gaf hier niets terug (stil, want `|| true`), dus we halen
+          # ze uit Log Analytics. Let op de kolom: bij een JOB is `ContainerAppName_s` LEEG en staat
+          # alleen `ContainerName_s` gevuld — filteren op de app-naam levert nul rijen op, en dat
+          # leest als "geen logs" in plaats van "verkeerd gefilterd".
+          ws=$(az monitor log-analytics workspace show -g "$RESOURCE_GROUP" -n "log-$APP_NAME" \
+                 --query customerId -o tsv 2>/dev/null || true)
+          logs=""
+          if [ -n "$ws" ]; then
+            # Ingestie loopt een minuut of twee achter op de container; even geduld voor we het
+            # opgeven, anders rapporteren we een lege meting terwijl de regels onderweg zijn.
+            for poging in 1 2 3 4; do
+              logs=$(az monitor log-analytics query -w "$ws" --analytics-query \
+                "ContainerAppConsoleLogs_CL
+                 | where TimeGenerated > ago(2h) and ContainerName_s == 'eval'
+                 | order by TimeGenerated asc
+                 | project Log_s" \
+                -o tsv 2>/dev/null || true)
+              [ -n "$logs" ] && break
+              echo "(logs nog niet in Log Analytics – poging $poging)"
+              sleep 30
+            done
+          fi
+          [ -n "$logs" ] || logs=$(az containerapp job logs show -n "$JOB" -g "$RESOURCE_GROUP" \
+                                     --execution "$uitvoering" --tail 250 2>/dev/null || true)
           echo "$logs"
           {
             echo "## Eval – annotatieketen (3 runs)"

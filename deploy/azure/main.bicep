@@ -845,6 +845,15 @@ resource evalJob 'Microsoft.App/jobs@2024-03-01' = {
             { name: 'GRAPHDB_REPOSITORY_ID', value: 'inning' }
             { name: 'SIMILARITY_INDEX', value: 'bwb_similarity' }
             { name: 'HOME', value: '/tmp' }
+            // Moet gezet zijn, en moet naar /tmp wijzen. `Settings.checkpoint_db_path` heeft een
+            // RELATIEVE default (`conversations_checkpoints.db`), dus zonder deze regel probeert de
+            // agent een SQLite-bestand in de workdir `/app` te maken — en die is voor appuser
+            // alleen lees-/uitvoerbaar (`chmod a+rX` in de Dockerfile). De eerste eval-run viel
+            // daarop om met een aiosqlite-fout in `_checkpointer_ctx`.
+            //
+            // Bewust /tmp en niet de gedeelde Postgres: het geheugen van een eval-run hoort bij die
+            // run en verdwijnt met de container. Zet hier dus géén CHECKPOINT_DB_URL neer.
+            { name: 'CHECKPOINT_DB_PATH', value: '/tmp/eval-checkpoints.db' }
             // Traceerbaar in dezelfde Application Insights als de rest, maar onder een eigen naam:
             // een eval-run is geen gebruikersverkeer en moet de latency-grafieken niet vervuilen.
             { name: 'OTEL_EXPORTER_OTLP_ENDPOINT', value: collectorEndpoint }
@@ -857,8 +866,10 @@ resource evalJob 'Microsoft.App/jobs@2024-03-01' = {
             // document in de werkvoorraad van een jurist. Een meting mag de gemeten toestand niet
             // veranderen.
             //
-            // CHECKPOINT_DB_URL – zonder deze valt de checkpointer terug op in-memory, dus de
-            // eval-gesprekken komen niet in de gedeelde thread-store van de gebruikers terecht.
+            // CHECKPOINT_DB_URL – die wijst naar de gedeelde Postgres waar de gesprekken van de
+            // juristen in staan; eval-gesprekken horen daar niet tussen. Let op: weglaten geeft
+            // GEEN in-memory checkpointer (dat dacht ik eerst) maar de SQLite-terugval — vandaar
+            // de expliciete CHECKPOINT_DB_PATH hierboven.
           ]
         }
       ]
