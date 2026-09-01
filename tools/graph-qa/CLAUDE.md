@@ -362,6 +362,20 @@ weg: ze bestonden alleen om een cyclus te laten stoppen die er niet meer is.
 - **Twijfel is geen aandacht.** Alternatieven forceren geen "geel" meer (die regel maakte elk
   gedisambigueerd element permanent geel, waardoor de vlag betekenisloos werd). De Critic bepaalt de
   kleur; `emit_node` telt twijfel apart in de samenvatting.
+- **Elke rol die per element schrijft, krijgt hetzelfde tokenbudget** (`max_tokens=8192`). De
+  Critic stond tot 1 sep 2026 als enige op 2048 — het krapste van de keten, terwijl hij per element
+  de meeste tekst produceert. Zijn antwoord werd afgekapt, `_verwerk_critic` redde met
+  `_balanced_objecten` wat er compleet in stond en de rest verdween. Live gemeten plafond: 27
+  markeringen → 15 beoordeeld, 48 → 22, 72 → 29, 82 → 24. Vlak, dus een tokengrens en geen keuze
+  van het model. De guard in `poort` bewaakt dat geen per-element-rol krapper staat dan de
+  annoteerder.
+
+  **En afkapping is nooit stil.** `critic_node` leest `stop_reason`; is die `max_tokens`, dan zegt
+  de tijdlijn dat. `_critic_melding` krijgt bovendien het ingediende totaal mee en meldt het
+  verschil (`… · 58 zonder oordeel`) — de `"geen oordeel"`-bak telde alleen wat de Critic terúggaf,
+  dus wat hij niet noemde kwam nergens voor. Dat is de reden dat de tijdlijn "beoordeelt 82
+  markeringen" kon zeggen terwijl er 20 oordelen waren.
+
 - **`emit_node` is de enige plek die annotatie-events uitstuurt.** Zou de Critic dat doen, dan zag de
   werkplek elke tussenversie van de lus voorbijkomen.
 - **Elke beurt meldt zijn herkomst.** `emit_node` stuurt vóór de elementen één `run`-event

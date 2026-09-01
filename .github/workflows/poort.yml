@@ -162,6 +162,46 @@ jobs:
           print(f"ok - {len(gevonden)} Trivy-poorten, één beleid: {sorted(set(gevonden.values()))[0]}")
           PYEOF
 
+      # Een rol die per element uitvoer produceert en een krapper tokenbudget krijgt dan de
+      # annoteerder, wordt afgekapt zonder dat iemand het ziet. De Critic stond zo maanden
+      # op 2048 terwijl de rest 8192 had: van 82 markeringen kregen er 58 stil geen oordeel,
+      # en de tijdlijn meldde "beoordeelt 82 markeringen".
+      - name: Annotatieketen – geen rol met een krapper tokenbudget
+        run: |
+          python3 - <<'PYEOF'
+          import ast, pathlib, sys
+
+          PAD = pathlib.Path("tools/graph-qa/agent/nodes/annotatie.py")
+          # Rollen die per element uitvoer produceren: hun budget schaalt mee met het aantal markeringen.
+          # `annoteer_kandidaten_node` staat er bewust niet in — die levert korte spans, geen motivaties.
+          PER_ELEMENT = ("annoteer_node", "critic_node", "herzie_node", "annoteer_klasseer_node")
+
+          boom = ast.parse(PAD.read_text(encoding="utf-8"))
+          budget: dict[str, int] = {}
+          for knoop in boom.body:
+              if not isinstance(knoop, ast.FunctionDef) or knoop.name not in PER_ELEMENT:
+                  continue
+              for sub in ast.walk(knoop):
+                  if isinstance(sub, ast.keyword) and sub.arg == "max_tokens" and isinstance(sub.value, ast.Constant):
+                      budget[knoop.name] = min(budget.get(knoop.name, 10**9), int(sub.value.value))
+
+          ontbreekt = [n for n in PER_ELEMENT if n not in budget]
+          if ontbreekt:
+              print("  geen max_tokens gevonden voor: " + ", ".join(ontbreekt)); sys.exit(1)
+
+          ijk = budget["annoteer_node"]
+          te_krap = {n: b for n, b in budget.items() if b < ijk}
+          if te_krap:
+              for n, b in sorted(te_krap.items()):
+                  print(f"  {n}: max_tokens={b}, krapper dan annoteer_node ({ijk})")
+              print("\n  Een rol die per element uitvoer produceert en een krapper budget krijgt, wordt")
+              print("  afgekapt zonder dat iemand het ziet. De Critic stond tot 1 sep 2026 als enige op")
+              print("  2048 terwijl de rest 8192 had: van 82 markeringen kregen er 58 stil geen oordeel.")
+              sys.exit(1)
+          print(f"ok - elke per-element-rol op minstens max_tokens={ijk}: "
+                + ", ".join(f"{n}={b}" for n, b in sorted(budget.items())))
+          PYEOF
+
       - name: Bepalen wat deze PR raakt
         id: raakt
         run: |
