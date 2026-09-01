@@ -58,25 +58,76 @@ def test_anker_ligt_in_het_lid_dat_het_element_noemt():
     assert CORPUS[derde.anker.start:derde.anker.eind] == "derde"
 
 
-def test_scoping_versmalt_maar_maakt_niet_uniek():
-    """De grens van deze fix, vastgelegd zodat niemand hem voor méér aanziet dan hij is.
+def test_zonder_onderdeel_blijft_een_kort_fragment_ambigu():
+    """Lid-scoping garandeert het juiste lid, niet het juiste voorkomen bínnen dat lid.
 
-    Lid-scoping garandeert het juiste lid, niet het juiste voorkomen bínnen dat lid. Van de negen
-    meervoudige fragmenten in deze annotatie blijven er zeven ook binnen hun eigen lid meervoudig.
-    "derde" is er één van: lid 2 opent met dezelfde verwijzing als lid 1 ("artikel 25, derde lid"),
-    dus het anker landt op het rangtelwoord in plaats van op het rechtssubject in onderdeel c.
-
-    Dat vraagt onderdeel-granulariteit – een `onderdeel`-veld in het promptcontract – en is een
-    eigen afweging. Verandert dit gedrag, dan is dat winst en hoort deze test mee te bewegen.
+    Lid 2 opent met dezelfde verwijzing als lid 1 ("artikel 25, derde lid"), dus zonder verdere
+    aanwijzing landt "derde" op het rangtelwoord in plaats van op het rechtssubject in onderdeel c.
+    De volgende test laat zien dat een `onderdeel` dat wél oplost.
     """
     voorstellen, _ = _verwerk(ELEMENTEN, CORPUS, "BWBR0019237", "6")
     derde = _per_klasse(voorstellen)["derde"]
     assert derde.anker.start != 43, "dit is het voorkomen in lid 1 – dat moet gerepareerd zijn"
-    assert CORPUS[derde.anker.start:derde.anker.eind] == "derde"
     assert _lid_van_offset(derde.anker.start) == "2"
-    assert CORPUS.count("derde", *_lid_segmenten(CORPUS)[1][1:]) == 3, (
-        "de restambiguïteit binnen lid 2 – de reden dat deze test een grens vastlegt"
-    )
+    assert CORPUS[derde.anker.start:derde.anker.eind] == "derde"
+    lid2 = _lid_segmenten(CORPUS)[1]
+    assert CORPUS.count("derde", *lid2[1:]) == 3, "de restambiguïteit binnen lid 2"
+
+
+def test_het_onderdeel_wijst_het_juiste_voorkomen_aan():
+    """Het model noemt het onderdeel al in zijn prozatoelichting ("in onderdeel c"); dit is het
+    veld waarin het terechtkomt. Met die aanwijzing landt "derde" op het rechtssubject."""
+    llm = '{"elementen": [{"klasse": "Rechtssubject", "tekst": "derde", "lid": "2", "onderdeel": "c"}]}'
+    (v,) = _verwerk(llm, CORPUS, "BWBR0019237", "6")[0]
+    assert CORPUS[v.anker.start:v.anker.eind] == "derde"
+    assert CORPUS[v.anker.start - 11:v.anker.start] == "c. van een ", "het rechtssubject in onderdeel c"
+
+
+def test_onderdeelnummer_mag_geschreven_worden_zoals_het_model_wil():
+    """"c", "c." en "onderdeel c" wijzen naar hetzelfde onderdeel."""
+    plekken = set()
+    for geschreven in ("c", "c.", "onderdeel c", "C."):
+        llm = ('{"elementen": [{"klasse": "Rechtssubject", "tekst": "derde", "lid": "2",'
+               f' "onderdeel": "{geschreven}"}}]}}')
+        (v,) = _verwerk(llm, CORPUS, "BWBR0019237", "6")[0]
+        plekken.add(v.anker.start)
+    assert len(plekken) == 1, f"verschillende schrijfwijzen gaven verschillende ankers: {plekken}"
+
+
+def test_een_onbekend_onderdeel_verliest_niets_en_raakt_het_lid_niet():
+    """Een fout onderdeel is een fijnere claim dan het lid; die mag het lid niet omgooien."""
+    llm = '{"elementen": [{"klasse": "Rechtssubject", "tekst": "gemeente", "lid": "2", "onderdeel": "z"}]}'
+    voorstellen, verworpen = _verwerk(llm, CORPUS, "BWBR0019237", "6")
+    assert not verworpen
+    (v,) = voorstellen
+    assert v.lid == "2"
+    assert _lid_van_offset(v.anker.start) == "2"
+
+
+def test_een_kort_fragment_landt_niet_middenin_een_woord():
+    """De Operator "en" komt 59x voor in lid 2; het eerste voorkomen zit in "Als gevallen".
+
+    Live op 1 sep 2026 ankerde die markering op offset 799 – de lettergreep, niet het voegwoord.
+    """
+    llm = '{"elementen": [{"klasse": "Operator", "tekst": "en", "lid": "2"}]}'
+    (v,) = _verwerk(llm, CORPUS, "BWBR0019237", "6")[0]
+    assert CORPUS[v.anker.start:v.anker.eind] == "en"
+    assert CORPUS[v.anker.start - 1] == " ", "links van het voegwoord hoort witruimte te staan"
+    assert not CORPUS[v.anker.eind].isalpha(), "rechts van het voegwoord hoort geen letter te staan"
+
+
+def test_de_woordgrens_is_een_voorkeur_geen_eis():
+    """Komt een fragment alleen middenin een woord voor, dan blijft de markering staan.
+
+    Brongetrouwe tekst weggooien omdat de plaatsbepaling niet scherp te krijgen is, zou erger zijn
+    dan een minder scherpe plaatsbepaling – dezelfde afweging als bij het lid.
+    """
+    corpus = "1. De belastingschuldige betaalt."
+    llm = '{"elementen": [{"klasse": "Rechtsobject", "tekst": "schuld", "lid": "1"}]}'
+    voorstellen, verworpen = _verwerk(llm, corpus, "BWBR0004770", "9")
+    assert not verworpen
+    (v,) = voorstellen
+    assert corpus[v.anker.start:v.anker.eind] == "schuld"
 
 
 def test_geen_enkel_anker_spreekt_zijn_eigen_lid_tegen():
