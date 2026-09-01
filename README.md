@@ -357,12 +357,12 @@ git config core.hooksPath .githooks     # eenmalig per kloon; SKIP_HOOK=1 omzeil
 
 | Onderdeel | Commando | Omvang |
 |---|---|---|
-| `api/` | `uv run pytest -q` | 172 tests; SQLite in-memory, geen netwerk |
-| `tools/graph-qa/` | `uv run --extra dev pytest -q` | 443 tests |
+| `api/` | `uv run pytest -q` | 174 tests; SQLite in-memory, geen netwerk |
+| `tools/graph-qa/` | `uv run --extra dev pytest -q` | 540 tests |
 | `tools/bwb-import/` | `.venv/bin/python -m pytest` | 80 tests |
-| `frontend/` | `npm test && npm run lint && npm run typecheck` | 275 tests in 20 bestanden (vitest) |
+| `frontend/` | `npm test && npm run lint && npm run typecheck` | 315 tests in 20 bestanden (vitest) |
 
-Samen 970 tests; alle vier de suites draaien zonder netwerk of draaiende diensten.
+Samen 1109 tests; alle vier de suites draaien zonder netwerk of draaiende diensten.
 
 **Wat er níét getest wordt.** De frontend draait vitest in een node-omgeving zonder DOM: er zijn geen
 componenttests en geen Playwright. Daarom staat de rekenkern in `frontend/lib/` – wat daar niet
@@ -436,7 +436,7 @@ toetst of die bij de getagde commit horen. Infra blijft handmatig via `azure-inf
 - **De repo is publiek.** Een CI-guard (`geen-omgevingsgegevens`) blokkeert hostnamen, interne IP's
   en machinenamen. Neem die dus niet op in code of documentatie.
 - **Kwetsbaarhedenbeheer.** `pip-audit` en `npm audit` draaien vóór elke image-build, Trivy erna met
-  een gate op CRITICAL. Dependabot draait wekelijks.
+  een gate op HIGH en CRITICAL. Dependabot draait wekelijks.
 - `POST /v1/chat` op de agent kent **geen eigenaarscontrole** en is niet bedoeld voor de webapp;
   daarvoor bestaat `/v1/runs`.
 
