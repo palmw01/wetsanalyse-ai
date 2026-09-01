@@ -50,8 +50,20 @@ def _critic_melding(
     ontbrekend: list[Any],
     nieuw: int | None = None,
     gedempt: int = 0,
+    ingediend: int | None = None,
+    afgekapt: bool = False,
 ) -> str:
-    """Tellingen per aandacht-niveau; de oordelen zelf staan al op de reviewkaarten."""
+    """Tellingen per aandacht-niveau; de oordelen zelf staan al op de reviewkaarten.
+
+    `ingediend` is het aantal markeringen dat de Critic vóórgelegd kreeg. Het verschil met het
+    aantal oordelen hoort in de regel: de `"geen oordeel"`-bak hieronder telt alleen elementen die
+    de Critic terúggaf, dus wat hij helemaal niet noemde kwam nergens voor. Bij bepaling 26.1.9
+    meldde de tijdlijn "beoordeelt 82 markeringen" gevolgd door 20 oordelen, en dat driekwart geen
+    oordeel had kreeg de jurist alleen te zien door de reviewkaarten één voor één na te lopen.
+
+    `afgekapt` (stop_reason == max_tokens) zegt wáárom er oordelen ontbreken. Zonder dat blijft het
+    gissen tussen een tokengrens, een onbekend element-id en een model dat niets te melden had.
+    """
     telling: dict[str, int] = {}
     for o in oordelen.values():
         niveau = getattr(o, "aandacht", "") or "geen oordeel"
@@ -70,6 +82,13 @@ def _critic_melding(
     if gedempt:
         woord = "oordeel" if gedempt == 1 else "oordelen"
         regel += f" · {gedempt} {woord} over een eigen correctie: als twijfel voorgelegd"
+    if ingediend is not None and ingediend > len(oordelen):
+        zonder = ingediend - len(oordelen)
+        regel += f" · {zonder} zonder oordeel"
+        if afgekapt:
+            regel += " (afgekapt op de tokenlimiet)"
+    elif afgekapt:
+        regel += " · afgekapt op de tokenlimiet"
     if ontbrekend:
         regel += f" · {len(ontbrekend)} mogelijk gemist"
         # Onderscheid maken tussen "hij ziet iets nieuws" en "hij herhaalt zichzelf" is precies wat

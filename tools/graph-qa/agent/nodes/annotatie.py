@@ -327,10 +327,17 @@ def critic_node(b: Bouw, state: State) -> dict[str, Any]:
     oordelen: dict[str, Any] = {}
     ontbrekend: list[Any] = []
     gefaald = False
+    afgekapt = False
     try:
         resp = b.llm.create(
             model=b.model,
-            max_tokens=2048,
+            # Gelijk aan de annoteerder en de herziener. Stond tot 1 sep 2026 op 2048 – het krapste
+            # budget van de hele keten, terwijl de Critic per element de meeste tekst produceert
+            # (motivaties tot 400 tekens). Het antwoord werd afgekapt, `_verwerk_critic` redde met
+            # `_balanced_objecten` de complete objecten die er nog in stonden en de rest verdween.
+            # Live gemeten plafond: 27 elementen -> 15 beoordeeld, 48 -> 22, 72 -> 29, 82 -> 24.
+            # Vlak, dus een tokengrens en geen keuze van het model.
+            max_tokens=8192,
             system=critic_systeemprompt(b.settings.annotatie_prompt_kort),
             tools=[],
             messages=[{"role": "user", "content": critic_userprompt(
@@ -338,6 +345,9 @@ def critic_node(b: Bouw, state: State) -> dict[str, Any]:
             )}],
         )
         crit_text = "".join(b.text for b in resp.content if b.type == "text")
+        # Afkapping mag nooit stil zijn: dan lijkt een halve beoordeling een hele. Verschuift het
+        # budget de grens niet ver genoeg, dan zie je dat hier in plaats van pas in een export.
+        afgekapt = getattr(resp, "stop_reason", "") == "max_tokens"
         oordelen, ontbrekend = _verwerk_critic(crit_text, [str(v.get("id", "")) for v in voorstellen])
     except Exception:  # noqa: BLE001 – Critic mag de annotatie nooit breken
         gefaald = True
@@ -397,7 +407,8 @@ def critic_node(b: Bouw, state: State) -> dict[str, Any]:
     gedempt = demp_zelfweerspreking(voorstellen) if ronde >= 2 else 0
 
     _stap(writer, "Critic",
-          _critic_melding(oordelen, ontbrekend, len(nieuw_ontbrekend), gedempt))
+          _critic_melding(oordelen, ontbrekend, len(nieuw_ontbrekend), gedempt,
+                          ingediend=len(voorstellen), afgekapt=afgekapt))
 
     # `voorstellen` expliciet teruggeven: eerder werkten de aandacht-velden alleen door omdat het
     # dezelfde dict-objecten waren. Dat is fragiel zodra er meerdere rondes over de state lopen.
