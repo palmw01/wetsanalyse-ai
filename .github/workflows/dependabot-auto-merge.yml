@@ -17,7 +17,18 @@
 
 name: Dependabot auto-merge
 
-on: pull_request
+# `types` staat er expliciet omdat de default het NIET dekt: zonder deze regel luistert
+# `pull_request` alleen op [opened, synchronize, reopened]. `closed` zit daar niet bij, en dat is
+# precies het moment waarop `merged == true` waar kan zijn — dus de `publish-na-merge`-job hieronder
+# kon per definitie nooit vuren. Hij stond sinds 25 aug 2026 in dit bestand om een probleem op te
+# lossen dat hij daardoor nooit heeft geraakt: op 1 sep 2026 landden vier dependabot-PR's op master
+# zonder dat er één image werd gebouwd, en de job rapporteerde alle vier keer `skipped`.
+#
+# Dat is de valkuil van deze fout: een overgeslagen job kleurt de run niet rood. De workflow zag er
+# vier keer groen uit terwijl acceptatie oude code met een nieuwe lockfile draaide.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
 
 permissions:
   contents: write
@@ -26,7 +37,11 @@ permissions:
 
 jobs:
   auto-merge:
-    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    # `action != 'closed'` hoort bij de `types` hierboven: nu `closed` meedoet zou deze job
+    # `gh pr merge --auto` aanroepen op een PR die al gemerged of gesloten is, en daarop faalt hij.
+    if: |
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.action != 'closed'
     runs-on: ubuntu-latest
     steps:
       - name: Dependabot metadata
