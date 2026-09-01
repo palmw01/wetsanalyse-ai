@@ -767,3 +767,36 @@ def test_de_critic_zijn_eigen_aanhalingstekens_winnen():
     assert vervang_ids_door_citaat("zie 'abc123def456'", voorstellen) == "zie 'de bestuurder'"
     assert vervang_ids_door_citaat("zie '[abc123def456]'", voorstellen) == "zie 'de bestuurder'"
     assert vervang_ids_door_citaat("zie [abc123def456]", voorstellen) == "zie 'de bestuurder'"
+
+
+def test_critic_meldt_hoeveel_markeringen_geen_oordeel_kregen():
+    """Live gemeten op bepaling 26.1.9: "beoordeelt 82 markeringen", daarna 20 oordelen.
+
+    De `"geen oordeel"`-bak telt alleen elementen die de Critic terúggaf; wat hij helemaal niet
+    noemde kwam nergens voor. De jurist zag pas dat driekwart ongezien was door de reviewkaarten
+    één voor één na te lopen.
+    """
+    from agent.narratie import _critic_melding
+
+    oordelen = {f"id{i}": type("O", (), {"aandacht": "groen"})() for i in range(20)}
+    regel = _critic_melding(oordelen, [], ingediend=82)
+    assert "20 groen" in regel
+    assert "62 zonder oordeel" in regel
+
+
+def test_critic_meldt_waarom_er_oordelen_ontbreken():
+    """Afkapping op de tokenlimiet mag nooit stil zijn: anders lijkt een halve beoordeling een hele."""
+    from agent.narratie import _critic_melding
+
+    oordelen = {f"id{i}": type("O", (), {"aandacht": "groen"})() for i in range(20)}
+    regel = _critic_melding(oordelen, [], ingediend=82, afgekapt=True)
+    assert "62 zonder oordeel" in regel
+    assert "afgekapt op de tokenlimiet" in regel
+
+
+def test_zonder_ingediend_blijft_de_regel_ongewijzigd():
+    """Terugval: een aanroeper die het totaal niet meegeeft krijgt exact de oude tekst."""
+    from agent.narratie import _critic_melding
+
+    oordelen = {"a": type("O", (), {"aandacht": "rood"})()}
+    assert _critic_melding(oordelen, []) == "1 rood"
