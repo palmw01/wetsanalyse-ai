@@ -516,6 +516,12 @@ Drie dingen die je verder moet kennen voordat je hieraan werkt:
   onderdeel valt terug op het lid en corrigeert het lid **niet**: dat is een grovere claim en kan
   best kloppen.
 
+  **Eén functie rekent dit uit**: `_lokaliseer`. Zij bedient `_verwerk` (verse voorstellen) én
+  `pas_critic_toe` (een door de Critic vervangen fragment). Die tweede werkte zijn anker eerder
+  helemaal niet bij — de patcher verving alleen `tekst` — waardoor er op 1 sep 2026 live een
+  Operator "en" stond met een anker van 83 tekens eromheen. Lukt het lokaliseren niet, dan is het
+  anker `None`: een ontbrekend anker is zichtbaar in de werkplek, een fout anker niet.
+
   Wat dit **niet** oplost: zes van de acht meervoudige fragmenten in die annotatie landen nog
   steeds op het eerste voorkomen binnen hun onderdeel — daar meestal het enige, maar niet
   aantoonbaar ("belanghebbende" staat 2x in onderdeel f). Verder scherpstellen vraagt dat het model
@@ -631,7 +637,19 @@ Zes bepalingen hebben zelfs alléén onderdelen — die gaven niets terug zolang
 eis was in de query, en waren dus niet te openen en niet te annoteren.
 
 Let bij die bepalingen op de nummering: de Leidraad gebruikt een en-dash (`–`) als opsommingsteken,
-geen `a.` of `1°.`. Het corpus neemt dat over zoals de bron het geeft. Een subdivisie hangt aan
+geen `a.` of `1°.`. Het corpus neemt dat over zoals de bron het geeft.
+
+**De onderdelen worden in Python op documentvolgorde gezet**, niet door de SPARQL. Het onderdeel-id
+komt uit `bwb-ng-variabel-deel` en codeert het volledige documentpad
+(`…/Opsomming_1/Onderdeel._8/Onderdeela`), dus de volgorde zít in de data — maar `get_bepaling_corpus`
+sorteert met `ORDER BY ?o` op de IRI als *string* en `get_artikel_corpus` sorteert helemaal niet.
+`artikel._onderdeelsleutel` leest cijferreeksen als getal; nagemeten op 26.1.9 reproduceert dat de
+documentvolgorde exact en lexicaal niet. Dit is dezelfde les als `_lidsleutel` voor leden draagt,
+één niveau dieper.
+
+Waarom dat ertoe doet: zonder die sortering las bepaling 26.1.9 in de werkplek met de subonderdelen
+`a.`–`h.` vóór de weigeringsgrond waar ze onder hangen. Dan zijn het geen uitwerking meer van één
+grond maar zelfstandige gronden — een verschil in juridische strekking, niet in opmaak. Een subdivisie hangt aan
 `heeftDivisie`, niet aan `heeftOnderdeel` — die hoort dus níet in het corpus van haar ouder, anders
 trek je een heel hoofdstuk in één bepaling.
 

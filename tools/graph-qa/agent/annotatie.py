@@ -153,6 +153,52 @@ def _op_woordgrenzen(tekst: str, start: int, lengte: int) -> bool:
     return True
 
 
+def _lokaliseer(
+    corpus: str, norm_corpus: str, norm_frag: str, lid: str = "", onderdeel: str = "",
+) -> tuple[int, int, str]:
+    """Waar staat dit fragment? Geeft (start, eind, lid) — of (-1, -1, lid) als het er niet staat.
+
+    De ladder is **onderdeel → lid → hele corpus**, elke trede met de woordgrens-voorkeur uit
+    `_zoek_in_origineel`. Het onderdeel is de fijnste aanwijzing die het model geeft; hij wordt niet
+    opgeslagen, want de offsets pinnen de plek daarna exact.
+
+    Staat het fragment niet in het geclaimde lid, dan klopt die claim niet en wint het anker: het
+    teruggegeven lid is dat van de plek waar het fragment werkelijk landt. Een element met een lid
+    en een anker die elkaar tegenspreken mag er niet uit komen.
+
+    Deze functie is bewust de **enige** plek die dit uitrekent. Zij bedient `_verwerk` (verse
+    voorstellen) én `pas_critic_toe` (een door de Critic vervangen fragment). Die tweede kreeg zijn
+    anker eerder helemaal niet bijgewerkt: op 1 sep 2026 stond in een live annotatie een Operator
+    "en" met een anker van 83 tekens eromheen, omdat de patcher alleen `tekst` verving.
+    """
+    segmenten = _lid_segmenten(corpus)
+    genummerd = any(nummer for nummer, _, _ in segmenten)
+    venster = _segment_van(segmenten, lid) if (lid and genummerd) else None
+
+    start, eind = (-1, -1)
+    if venster and (nummer := _onderdeel_nummer(onderdeel)):
+        fijner = _segment_van(_onderdeel_segmenten(corpus, venster), nummer)
+        if fijner:
+            start, eind = _zoek_in_origineel(corpus, norm_corpus, norm_frag, fijner)
+    if start < 0 and venster:
+        # Geen (bruikbaar) onderdeel: terug naar het lid. Een fout onderdeel mag nooit het lid
+        # corrigeren – dat is een grovere claim en kan best kloppen.
+        start, eind = _zoek_in_origineel(corpus, norm_corpus, norm_frag, venster)
+    if start >= 0:
+        return (start, eind, lid)
+
+    start, eind = _zoek_in_origineel(corpus, norm_corpus, norm_frag)
+    if start >= 0 and lid and genummerd:
+        gevonden = _lid_op(segmenten, start)
+        if gevonden != lid:
+            logger.info(
+                "annotatie: lid gecorrigeerd naar de plek van het anker",
+                extra={"beweerd_lid": lid[:8], "anker_lid": gevonden[:8]},
+            )
+        return (start, eind, gevonden)
+    return (start, eind, lid)
+
+
 def _zoek_in_origineel(
     corpus: str, norm_corpus: str, norm_frag: str, binnen: tuple[int, int] | None = None,
 ) -> tuple[int, int]:
@@ -422,6 +468,17 @@ class PatchTelling(NamedTuple):
         return bool(self.toegepast or self.alternatief)
 
 
+def _anker_voor(corpus: str, fragment: str, lid: str = "") -> dict[str, Any] | None:
+    """Het anker voor een fragment, als dict (de voorstellen in de state zijn gedumpt).
+
+    Geen `onderdeel`: dat veld wordt bewust niet opgeslagen, dus die trede van de ladder valt hier
+    weg. Lukt het lokaliseren niet, dan is het antwoord `None` — een ontbrekend anker is zichtbaar
+    in de werkplek, een fout anker niet.
+    """
+    start, eind, _ = _lokaliseer(corpus, _normaliseer(corpus), _normaliseer(fragment), lid)
+    return _maak_anker(corpus, start, eind, lid).model_dump() if start >= 0 else None
+
+
 def pas_critic_toe(
     voorstellen: list[dict[str, Any]],
     feedback: list[dict[str, Any]],
@@ -522,6 +579,10 @@ def pas_critic_toe(
             and komt_letterlijk_voor(corpus, tekst)
         ):
             nieuw["tekst"] = tekst
+            # Het anker moet mee. Zonder dit bleef het op de vórige, langere span staan: op
+            # 1 sep 2026 stond er live een Operator "en" met een anker van 83 tekens eromheen,
+            # en omdat `bron_hash` klopt gebruikt de werkplek die offsets rechtstreeks.
+            nieuw["anker"] = _anker_voor(corpus, tekst, str(nieuw.get("lid") or ""))
             gewijzigd = True
 
         if gewijzigd:
@@ -808,38 +869,16 @@ def _verwerk(
         # hetzelfde ding; ze los van elkaar bepalen laat ze uit elkaar lopen, en dan wijst de
         # werkplek een ander stuk wet aan dan de vindplaats belooft. Live gebeurd op artikel 6
         # Uitvoeringsregeling Awir: "derde" (lid 2) landde op het rangtelwoord in lid 1.
-        # De ladder is onderdeel → lid → hele corpus. Het onderdeel is de fijnste aanwijzing die
-        # het model geeft; hij wordt niet opgeslagen, want de offsets pinnen de plek daarna exact.
-        venster = _segment_van(segmenten, lid) if (lid and genummerd) else None
-        orig_start, orig_eind = (-1, -1)
-        if venster and (onderdeel := _onderdeel_nummer(str(e.get("onderdeel", "")))):
-            fijner = _segment_van(_onderdeel_segmenten(corpus, venster), onderdeel)
-            if fijner:
-                orig_start, orig_eind = _zoek_in_origineel(corpus, norm_corpus, norm_frag, fijner)
-        if orig_start < 0 and venster:
-            # Geen (bruikbaar) onderdeel: terug naar het lid. Een fout onderdeel mag nooit het lid
-            # corrigeren – dat is een grovere claim en kan best kloppen.
-            orig_start, orig_eind = _zoek_in_origineel(corpus, norm_corpus, norm_frag, venster)
-        if orig_start < 0 and lid and genummerd:
-            # Het fragment staat niet in het lid dat het model noemt – de claim klopt dus niet.
-            # Dan wint het anker: behoud de markering (de tekst is brongetrouw, dat is globaal
-            # vastgesteld) en zet het lid op waar hij werkelijk landt. Een element met een lid en
-            # een anker die elkaar tegenspreken mag er niet uit komen.
-            orig_start, orig_eind = _zoek_in_origineel(corpus, norm_corpus, norm_frag)
-            gevonden_lid = _lid_op(segmenten, orig_start) if orig_start >= 0 else lid
-            logger.info(
-                "annotatie: lid gecorrigeerd naar de plek van het anker",
-                extra={"beweerd_lid": lid[:8], "anker_lid": gevonden_lid[:8]},
-            )
+        orig_start, orig_eind, gevonden_lid = _lokaliseer(
+            corpus, norm_corpus, norm_frag, lid, str(e.get("onderdeel", "")),
+        )
+        if gevonden_lid != lid:
+            # Het lid is gecorrigeerd naar de plek van het anker; de ontdubbelsleutel verandert mee.
             lid = gevonden_lid
             sleutel = sleutel_van(fragment, lid)
             if (eerste := gezien.get(sleutel)) is not None:
                 _voeg_alternatief_toe(eerste, klasse, str(e.get("toelichting", "")).strip())
                 continue
-        elif orig_start < 0:
-            # Geen lid om op te scopen (bepaling, artikel zonder leden, of een corpus uit de
-            # tool-trace): zoeken zoals altijd, over het hele corpus.
-            orig_start, orig_eind = _zoek_in_origineel(corpus, norm_corpus, norm_frag)
         anker = _maak_anker(corpus, orig_start, orig_eind, lid) if orig_start >= 0 else None
         vindplaats = f"{bwb_id} art. {artikel}" + (f" lid {lid}" if lid else "")
         # Een id uit een eerdere ronde behouden (herziening van een bestaand element); anders een

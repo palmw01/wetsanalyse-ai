@@ -34,6 +34,23 @@ def _lidsleutel(lid: str) -> tuple[int, str]:
     return (int(m.group()) if m else 10**9, lid or "")
 
 
+def _onderdeelsleutel(iri: str) -> list[tuple[int, str]]:
+    """Documentvolgorde uit het onderdeel-IRI, cijferreeksen als getal.
+
+    Dezelfde les als bij `_lidsleutel`, één niveau dieper en nooit toegepast. Het onderdeel-id komt
+    uit `bwb-ng-variabel-deel` en codeert het volledige documentpad
+    (".../Opsomming_1/Onderdeel._8/Onderdeela"), dus de volgorde zít in de data — alleen lexicaal
+    sorteren haalt hem eruit als 1, 10, 11, 12, 13, 2, 3, … Nagemeten op Leidraad-bepaling 26.1.9:
+    lexicaal reproduceert de documentvolgorde niet, natuurlijk sorteren exact.
+
+    Waarom hier en niet in de SPARQL: `get_bepaling_corpus` heeft een `ORDER BY ?o` die op de IRI
+    als string sorteert, en `get_artikel_corpus` heeft er helemaal geen. In Python sorteren maakt
+    het corpus onafhankelijk van wat GraphDB teruggeeft.
+    """
+    return [(int(deel), "") if deel.isdigit() else (-1, deel)
+            for deel in re.split(r"(\d+)", iri or "") if deel]
+
+
 def _match_lid(lidnummer: str, lid: str) -> bool:
     """Vergelijk lidnummers robuust ('1' == '01'); valt terug op string-gelijkheid."""
     a, b = _lidsleutel(lidnummer), _lidsleutel(lid)
@@ -64,7 +81,9 @@ def _bepaling_fallback(bwb_id: str, artikel: str, graph: GraphPort) -> list[dict
     # Géén vroege uitstap op lege tekst: zes bepalingen in de Leidraad hebben alleen onderdelen
     # (14.2.4, 14.2a, 25.4.6, 73.3a.2, …). Die waren daardoor niet te openen en niet te annoteren.
     regels = [tekst.strip()] if tekst.strip() else []
-    for r in rows:
+    # Documentvolgorde, om dezelfde reden als bij `_vouw_onderdelen_in`: `get_bepaling_corpus`
+    # sorteert met `ORDER BY ?o` op de IRI als string, en dat is niet de volgorde van de wet.
+    for r in sorted(rows, key=lambda r: _onderdeelsleutel(str(r.get("o") or ""))):
         onderdeel = _onderdeelregel(r)
         if onderdeel and onderdeel not in regels:
             regels.append(onderdeel)
@@ -114,6 +133,11 @@ def _vouw_onderdelen_in(rows: list[dict]) -> list[dict]:
     """
     per_lid: dict[str, dict] = {}
     losse_onderdelen: list[str] = []
+    # Documentvolgorde afdwingen: de graaf levert de onderdelen niet op volgorde (zie
+    # `_onderdeelsleutel`). Zonder dit las bepaling 26.1.9 in de werkplek met de subonderdelen
+    # a.–h. vóór de opsomming waar ze onder hangen — en dan zijn het geen uitwerking meer van één
+    # weigeringsgrond maar zelfstandige gronden. Dat verandert de juridische strekking.
+    rows = sorted(rows, key=lambda r: _onderdeelsleutel(str(r.get("o") or "")))
     for r in rows:
         onderdeel = _onderdeelregel(r)
         lidnummer = (r.get("lidnummer") or "").strip()
