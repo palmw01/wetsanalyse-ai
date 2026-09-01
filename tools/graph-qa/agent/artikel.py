@@ -77,21 +77,67 @@ def _controleer_vindplaats(bwb_id: str, artikel: str, lid: str | None) -> None:
             raise OngeldigeVindplaats(str(exc)) from exc
 
 
+def _vouw_onderdelen_in(rows: list[dict]) -> list[dict]:
+    """Eén regel per lid, met zijn onderdelen eronder.
+
+    De query levert één rij per (lid, onderdeel); hier worden die weer één tekst. Onderdelen komen
+    op een eigen regel achter hun nummer ("a. rijksbelastingen: …"), zonder inspringing — witruimte
+    wordt deel van het corpus en dus van elke fragmentgrens, en een markering die met spaties begint
+    is niet meer terug te vinden.
+
+    Waarom dit erin moet: bij een definitieartikel ís het lid alleen de aanhef. Artikel 2, lid 1 IW
+    1990 heeft als eigen tekst "Deze wet verstaat onder:" en 21 definities in de onderdelen. Zonder
+    die onderdelen annoteert de agent een lege zin — en dat is precies waar hij op 1 sep 2026 op
+    vastliep toen een jurist erom vroeg.
+
+    Onderdelen zónder tekst worden overgeslagen: 'aa.' is in de Invorderingswet een lege container
+    voor de geneste subonderdelen eronder, en zou anders als kale regel in de wettekst staan die de
+    jurist leest.
+    """
+    per_lid: dict[str, dict] = {}
+    losse_onderdelen: list[str] = []
+    for r in rows:
+        onderdeel = _onderdeelregel(r)
+        lidnummer = (r.get("lidnummer") or "").strip()
+        lidtekst = (r.get("lidtekst") or "").strip()
+        if not lidtekst:
+            # Een onderdeel dat rechtstreeks onder het artikel hangt (opsomming zonder leden).
+            if onderdeel:
+                losse_onderdelen.append(onderdeel)
+            continue
+        bestaand = per_lid.setdefault(lidnummer, {"lid": lidnummer, "tekst": lidtekst, "delen": []})
+        if onderdeel and onderdeel not in bestaand["delen"]:
+            bestaand["delen"].append(onderdeel)
+
+    leden = [
+        {"lid": ld["lid"], "tekst": "\n".join([ld["tekst"], *ld["delen"]])}
+        for ld in per_lid.values()
+    ]
+    if losse_onderdelen and not leden:
+        leden = [{"lid": "", "tekst": "\n".join(losse_onderdelen)}]
+    return leden
+
+
+def _onderdeelregel(rij: dict) -> str:
+    """"a." + tekst → "a. rijksbelastingen: …"; leeg als het onderdeel geen eigen tekst heeft."""
+    tekst = (rij.get("otekst") or "").strip()
+    if not tekst:
+        return ""
+    nummer = (rij.get("onummer") or "").strip()
+    return f"{nummer} {tekst}".strip()
+
+
 def _leden_en_corpus(bwb_id: str, artikel: str, graph: GraphPort, lid: str | None = None) -> tuple[list[dict], str]:
     """(leden_teksten, corpus) uit de graaf. Corpus = de leden samengevoegd ('N. tekst'),
     of de artikeltekst zelf als er geen genummerde leden zijn. Met `lid` scope je tot dat ene lid.
     Voor decimale/divisie-nummers valt het terug op get_bepaling (bv. Leidraad '9.1')."""
     _controleer_vindplaats(bwb_id, artikel, lid)
     try:
-        rows = parse_select(graph.sparql(queries.get_artikel(bwb_id, artikel)))
+        rows = parse_select(graph.sparql(queries.get_artikel_corpus(bwb_id, artikel)))
     except ValueError:
         rows = []  # bv. artikel "9.1" wordt door get_artikel geweigerd → straks de bepaling-fallback
     art_tekst = next((r["tekst"] for r in rows if r.get("tekst")), "")
-    leden: list[dict] = []
-    for r in rows:
-        tekst = (r.get("lidtekst") or "").strip()
-        if tekst:
-            leden.append({"lid": (r.get("lidnummer") or "").strip(), "tekst": tekst})
+    leden = _vouw_onderdelen_in(rows)
     leden.sort(key=lambda ld: _lidsleutel(ld["lid"]))
     lid_gevraagd = bool(lid and str(lid).strip())
     if lid_gevraagd:

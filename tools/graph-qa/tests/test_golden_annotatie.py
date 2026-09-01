@@ -84,16 +84,32 @@ def test_elke_klasse_bestaat_met_exacte_casing():
     assert not fout, "onbekende of verkeerd gespelde JAS-klassen:\n  " + "\n  ".join(fout)
 
 
-def test_geen_anker_begint_met_het_lidnummer():
-    """Het annotatiecorpus plakt `"{lid}. "` vóór de tekst (`agent/artikel.py:105`). Een anker dat
-    daarmee begint staat wél in het corpus maar niet in de lid-tekst, en dan meet de guard hierboven
-    iets anders dan de eval."""
+def test_geen_anker_begint_met_een_nummerprefix():
+    """Het corpus plakt `"{lid}. "` vóór een lid en `"{nummer} "` vóór een onderdeel.
+
+    Een anker dat met zo'n prefix begint staat wél in het corpus maar niet in de bepalingtekst zelf,
+    en dan meet de guard hierboven iets anders dan de eval. Sinds de onderdelen in het corpus zitten
+    gaat het niet meer alleen om cijfers ("1. ") maar ook om lijstletters ("a. ", "aa. ") en om
+    geneste nummering ("1°. ").
+    """
+    def is_prefix(tekst: str) -> bool:
+        """Een lijstmarkering is kort en eindigt op een punt: "1.", "a.", "aa.", "1°.".
+
+        Op de punt toetsen is wat dit onderscheidt van een gewoon woord: "Een belastingaanslag" en
+        "de ontvanger" beginnen ook met een kort woord, maar zonder punt.
+        """
+        kop = tekst.split(" ", 1)[0]
+        if not kop.endswith(".") or len(kop) > 4:
+            return False
+        romp = kop.rstrip(".").rstrip("°")
+        return bool(romp) and (romp.isdigit() or romp.isalpha())
+
     fout = [
         f"{c['prompt'][:40]}… → {el['tekst'][:40]!r}"
         for c in _cases() for el in c.get("verwacht", [])
-        if el["tekst"][:3].strip().rstrip(".").isdigit()
+        if is_prefix(el["tekst"])
     ]
-    assert not fout, "ankers die met een lidnummer beginnen:\n  " + "\n  ".join(fout)
+    assert not fout, "ankers die met een lid- of onderdeelnummer beginnen:\n  " + "\n  ".join(fout)
 
 
 def test_ankers_zijn_onderling_onderscheidend():

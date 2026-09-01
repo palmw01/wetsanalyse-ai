@@ -574,6 +574,23 @@ puur omdat er één anker per bepaling was. Het rapport rekent precisie/recall d
 cases mét ankers – cases met `verwacht: []` kregen gratis (1.0, 1.0) en trokken het gemiddelde
 omhoog zonder iets te meten.
 
+**Onderdelen hangen aan `heeftOnderdeel`, niet aan `bevat`.** Dat laatste predicaat bestaat niet in
+deze graaf — de importer schrijft `HEEFT_ONDERDEEL` (`bwb-import/app/collect.py:356`), wat via
+`rdf_vocab._camel` `bwb:heeftOnderdeel` wordt. `get_lid` bevroeg tot 1 sep 2026 `bwb:bevat` en
+leverde daardoor **nooit** een onderdeel; de test ernaar las alleen de querytekst
+(`"bwb:bevat" in sparql`) en zag dat niet. Het is bovendien een boom, geen vlakke lijst: `aa.` hangt
+onder het lid en `1°` onder `aa.`, vandaar het pad `heeftOnderdeel+`.
+
+Gevolg dat je moet kennen bij het lezen van oude annotaties: een definitielid stond tot die datum
+als kale aanhef in het corpus ("Deze wet verstaat onder:"), zonder de definities. Wat daarop is
+geannoteerd, is op een lege zin geannoteerd.
+
+**Twee queries, met opzet.** `get_artikel` voedt de gelijknamige tool en blijft zónder lid-onderdelen
+— tool-resultaten gaan door `truncate` (8000 tekens) en een definitieartikel zou juist zijn laatste
+definities verliezen. `get_artikel_corpus` voedt het annotatiecorpus en `GET /v1/artikel`, gaat niet
+door `truncate`, en draagt de onderdelen wél. Hergebruik de `?onderdelen`-cel van `get_lid` daar
+niet voor: die bakt de jci in de tekst, en dan zou een markering een jci-fragment kunnen citeren.
+
 **De promptlengte is meetbaar, niet aangenomen.** `ANNOTATIE_PROMPT_KORT=true` laat
 `_klassen_referentie` alleen de eerste zin per veld renderen: een annoteerprompt van ~8,6k tekens in
 plaats van ~17,4k. Dat is bewust binnen een procent van de 8503 tekens die de prompt had vóór 1 sep

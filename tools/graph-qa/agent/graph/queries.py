@@ -135,13 +135,71 @@ def get_artikel(bwb_id: str, artikel: str) -> str:
 }} ORDER BY ?lid ?o"""
 
 
+def get_artikel_corpus(bwb_id: str, artikel: str) -> str:
+    """Artikel met leden én onderdelen – de bron voor het annotatiecorpus en het documentpaneel.
+
+    Waarom naast `get_artikel` en niet erin. `get_artikel` voedt óók de gelijknamige tool, en
+    tool-resultaten gaan door `truncate` (8000 tekens). Bij een definitieartikel met 25 onderdelen
+    kapt dat juist de laatste definities af — dat was destijds de reden om lid-onderdelen daar weg
+    te laten, en die reden geldt nog. Het corpus gaat níet door `truncate`, dus hier kan het wel.
+
+    Waarom niet de `?onderdelen`-cel van `get_lid` hergebruiken: die bakt de jci in de tekst
+    (`"a. … [jci…]"`) zodat de agent per onderdeel een vindplaats kan citeren. Nuttig voor een
+    antwoord, onbruikbaar als corpus — een markering die zo'n regel citeert zou een jci-fragment
+    bevatten en dan liegt de letterlijkheidscontrole.
+
+    Eén rij per (lid, onderdeel). De UNION scheidt twee gevallen die elkaar uitsluiten: onderdelen
+    onder een lid, en onderdelen rechtstreeks onder het artikel (een opsomming bij een artikel
+    zónder leden). Met twee losse OPTIONALs zou dat het cartesisch product opleveren en herhaalde
+    elke lidtekst zich per onderdeel.
+
+    `heeftOnderdeel+` omdat de importer een boom schrijft: 'aa.' hangt onder het lid, '1°' onder
+    'aa.'.
+    """
+    iri = artikel_iri(bwb_id, artikel)
+    return PREFIXES + f"""SELECT ?tekst ?jci ?lid ?lidnummer ?lidtekst ?o ?onummer ?otekst WHERE {{
+  OPTIONAL {{ <{iri}> bwb:tekst ?tekst }}
+  OPTIONAL {{ <{iri}> bwb:jci ?jci }}
+  OPTIONAL {{
+    {{
+      <{iri}> bwb:heeftLid ?lid .
+      FILTER(STRSTARTS(STR(?lid), "{NS}"))
+      OPTIONAL {{ ?lid bwb:nummer ?lidnummer }}
+      OPTIONAL {{ ?lid bwb:tekst ?lidtekst }}
+      OPTIONAL {{
+        ?lid bwb:heeftOnderdeel+ ?o .
+        FILTER(STRSTARTS(STR(?o), "{NS}"))
+        OPTIONAL {{ ?o bwb:nummer ?onummer }}
+        OPTIONAL {{ ?o bwb:tekst ?otekst }}
+      }}
+    }} UNION {{
+      <{iri}> bwb:heeftOnderdeel+ ?o .
+      FILTER(STRSTARTS(STR(?o), "{NS}"))
+      OPTIONAL {{ ?o bwb:nummer ?onummer }}
+      OPTIONAL {{ ?o bwb:tekst ?otekst }}
+    }}
+  }}
+}} ORDER BY ?lid ?o"""
+
+
 def get_lid(bwb_id: str, artikel: str, lid: str) -> str:
     """Lid mét zijn onderdelen.
 
     Zonder de onderdelen is een definitielid nagenoeg leeg: artikel 2, lid 1 IW 1990 heeft als
     eigen tekst alleen "Deze wet verstaat onder:" – de 25 definities zitten in de onderdelen a t/m
     t. De agent ging dat compenseren met een reeks raw_sparql-pogingen (acht beurten voor één
-    definitievraag). `bwb:bevat` is vlak opgeslagen, dus dit haalt ook geneste onderdelen op.
+    definitievraag).
+
+    LET OP HET PREDICAAT. Dit stond op `bwb:bevat` met de toelichting "vlak opgeslagen, dus dit
+    haalt ook geneste onderdelen op". Dat predicaat bestaat niet: de importer schrijft
+    `HEEFT_ONDERDEEL` (`bwb-import/app/collect.py:356`), wat via `rdf_vocab._camel` het predicaat
+    `bwb:heeftOnderdeel` wordt, en de ontologie kent geen `bevat` – ook niet af te leiden, want de
+    ruleset kan alleen materialiseren wat gedeclareerd is. De subquery matchte dus nooit iets en
+    deze tool heeft nooit één onderdeel geleverd; `tests/test_queries.py` toetste alleen de
+    querytekst, niet of er data terugkwam.
+
+    En het is géén vlakke opslag maar een boom: `collect.py:361` roept zichzelf recursief aan voor
+    `subonderdelen`, dus 'aa.' hangt onder het lid en '1°' onder 'aa.'. Vandaar het pad `+`.
     """
     iri = lid_iri(bwb_id, artikel, lid)
     # De onderdelen in één cel (GROUP_CONCAT) i.p.v. één rij per onderdeel: anders herhaalt de
@@ -154,7 +212,7 @@ def get_lid(bwb_id: str, artikel: str, lid: str) -> str:
   OPTIONAL {{ <{iri}> bwb:jci ?jci }}
   OPTIONAL {{
     {{ SELECT ?regel WHERE {{
-        <{iri}> bwb:bevat ?o .
+        <{iri}> bwb:heeftOnderdeel+ ?o .
         FILTER(STRSTARTS(STR(?o), "{NS}"))
         OPTIONAL {{ ?o bwb:nummer ?on }}
         OPTIONAL {{ ?o bwb:tekst ?ot }}

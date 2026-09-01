@@ -42,7 +42,13 @@ def test_get_lid_levert_de_onderdelen_mee():
     de agent het met raw_sparql-pogingen compenseren – acht beurten voor één definitievraag.
     """
     sparql = q.get_lid("BWBR0004770", "2", "1")
-    assert "bwb:bevat" in sparql, "onderdelen moeten worden opgehaald"
+    # Het predicaat moet bestaan in de graaf. Dit stond op `bwb:bevat`, en dat schrijft de importer
+    # nergens (hij schrijft HEEFT_ONDERDEEL → `bwb:heeftOnderdeel`), dus de subquery matchte nooit
+    # iets en deze tool leverde nooit één onderdeel. Dat kon blijven bestaan omdat deze test alleen
+    # de querytékst las: "staat het woord erin" is geen bewijs dat er data uitkomt. De echte guard
+    # daarvoor is `tests/test_artikel_onderdelen.py`, dat een graafantwoord naspeelt.
+    assert "bwb:heeftOnderdeel+" in sparql, "onderdelen hangen aan heeftOnderdeel, en genest"
+    assert "bwb:bevat" not in sparql, "bwb:bevat bestaat niet in deze graaf"
     assert "GROUP_CONCAT" in sparql, "gebundeld, anders herhaalt de lidtekst per onderdeel"
     assert "ORDER BY ?o" in sparql, "volgorde a, b, c, … moet vastliggen"
     assert "bwb:jci ?oj" in sparql, "elk onderdeel krijgt zijn eigen vindplaats"
