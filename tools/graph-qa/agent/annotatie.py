@@ -26,6 +26,9 @@ _ACTIES = {"behoud", "vervang", "verwijder"}
 _WS = re.compile(r"\s+")
 # Het lidnummer waarmee `artikel._leden_en_corpus` elk lid in het corpus voorafgaat ("1. ", "9a. ").
 _LIDPREFIX = re.compile(r"^(\d+[a-z]*)\. ")
+# Een woordteken: waar een fragment niet middenin mag landen. Inclusief accenten, want een match
+# vlak vóór de "ë" van "beëindiging" is net zo goed een half woord.
+_WOORDTEKEN = re.compile(r"[0-9A-Za-zÀ-ÖØ-öø-ÿ]")
 
 # --- Anker-helpers ---------------------------------------------------------------
 #
@@ -94,12 +97,60 @@ def _segment_van(segmenten: list[tuple[str, int, int]], lid: str) -> tuple[int, 
     return None
 
 
+def _onderdeel_nummer(waarde: str) -> str:
+    """Normaliseer een onderdeelnummer zodat "c", "c." en "onderdeel c" hetzelfde zijn.
+
+    De afsluitende punt gaat eraf, de `°` blijft staan: zonder dat vallen een hypothetisch "1." en
+    het geneste "1°." samen, en dan wijst het anker naar het verkeerde niveau.
+    """
+    kop = waarde.strip().lower().removeprefix("onderdeel").strip()
+    return kop.rstrip(".")
+
+
+def _onderdeel_segmenten(corpus: str, venster: tuple[int, int]) -> list[tuple[str, int, int]]:
+    """Splits één lidsegment in (onderdeelnummer, start, eind) per regel.
+
+    Net zo exact als `_lid_segmenten`: `artikel._vouw_onderdelen_in` zet elk onderdeel op een eigen
+    regel achter zijn nummer ("a. rijksbelastingen: …"), met de lidtekst als eerste regel. Die
+    eerste regel is de aanhef en krijgt nummer `""`.
+    """
+    vanaf, tot = venster
+    rijen: list[tuple[str, int, int]] = []
+    positie = vanaf
+    for i, regel in enumerate(corpus[vanaf:tot].split("\n")):
+        nummer = "" if i == 0 else _onderdeel_nummer(regel.split(" ", 1)[0])
+        rijen.append((nummer, positie, positie + len(regel)))
+        positie += len(regel) + 1
+    return rijen
+
+
 def _lid_op(segmenten: list[tuple[str, int, int]], offset: int) -> str:
     """Het lidnummer waarin `offset` valt ("" als het corpus geen genummerde leden heeft)."""
     for nummer, start, eind in segmenten:
         if start <= offset < eind:
             return nummer
     return ""
+
+
+def _op_woordgrenzen(tekst: str, start: int, lengte: int) -> bool:
+    """Staat `tekst[start:start+lengte]` op woordgrenzen?
+
+    De eis geldt per zijde en alleen waar het fragment zélf een woordteken heeft: een fragment dat
+    met een leesteken begint ("– de gevraagde gegevens…") heeft aan die kant niets te bewijzen.
+
+    Waarom dit nodig is: de Operator "en" komt 59x voor in lid 2 van artikel 6 Uitvoeringsregeling
+    Awir, en het eerste voorkomen zit in "Als gevallen als bedoeld" — een lettergreep, geen
+    voegwoord. Het anker wees daar op 1 sep 2026 live naar.
+
+    Genormaliseerde en originele tekst mogen door elkaar: `_normaliseer` collapst witruimte maar
+    verwijdert nooit letters, dus of twee woordtekens aan elkaar grenzen is in beide gelijk.
+    """
+    eind = start + lengte
+    if _WOORDTEKEN.match(tekst[start]) and start > 0 and _WOORDTEKEN.match(tekst[start - 1]):
+        return False
+    if _WOORDTEKEN.match(tekst[eind - 1]) and eind < len(tekst) and _WOORDTEKEN.match(tekst[eind]):
+        return False
+    return True
 
 
 def _zoek_in_origineel(
@@ -119,7 +170,10 @@ def _zoek_in_origineel(
     begint. Zo blijft een kort fragment binnen het lid waar het element over gaat: "derde" komt
     negen keer voor in artikel 6 Uitvoeringsregeling Awir, en zonder venster wint altijd het
     eerste — het rangtelwoord in "artikel 25, derde lid" in lid 1, niet het rechtssubject in lid 2.
-    Zonder `binnen` is het gedrag ongewijzigd.
+    Zonder `binnen` is het gedrag ongewijzigd, op de woordgrens-voorkeur na (`_op_woordgrenzen`):
+    die geldt altijd, maar als geen enkel voorkomen eraan voldoet wint alsnog het eerste. Een
+    brongetrouw fragment kwijtraken omdat de plaatsbepaling niet lukt is erger dan een minder
+    scherpe plaatsbepaling — dezelfde afweging als bij het lid.
     """
     # Snelle mapping: norm_idx -> orig_idx voor elk niet-witruimte karakter
     mapping: list[int] = []
@@ -134,17 +188,25 @@ def _zoek_in_origineel(
             mapping.append(orig_idx)
             in_ws = False
 
-    norm_start = norm_corpus.find(norm_frag)
-    if binnen is not None:
-        # Loop de voorkomens langs tot er één in het venster begint. Wie hier het venster op
-        # norm-coördinaten zou omrekenen, dupliceert de mapping; die hebben we al.
-        vanaf, tot = binnen
-        while norm_start >= 0 and norm_start < len(mapping) and not (vanaf <= mapping[norm_start] < tot):
-            norm_start = norm_corpus.find(norm_frag, norm_start + 1)
-    if norm_start < 0 or norm_start >= len(mapping):
+    # Loop de voorkomens langs en kies de beste. Twee criteria, in deze volgorde:
+    #   1. het voorkomen begint in `binnen` (harde eis wanneer een venster is meegegeven);
+    #   2. het staat op woordgrenzen (voorkeur — zie hieronder).
+    # Wie het venster op norm-coördinaten zou omrekenen, dupliceert de mapping; die hebben we al.
+    vanaf, tot = binnen if binnen is not None else (0, len(corpus))
+    norm_start, keus = norm_corpus.find(norm_frag), -1
+    while 0 <= norm_start < len(mapping):
+        if vanaf <= mapping[norm_start] < tot:
+            if _op_woordgrenzen(norm_corpus, norm_start, len(norm_frag)):
+                keus = norm_start
+                break
+            if keus < 0:
+                keus = norm_start  # onthoud het eerste, als terugval
+        norm_start = norm_corpus.find(norm_frag, norm_start + 1)
+    if keus < 0:
         return (-1, -1)
 
-    orig_start = mapping[norm_start]
+    orig_start = mapping[keus]
+    norm_start = keus
     # Eind: orig_start + lengte van het fragment in de originele tekst.
     # We lopen over de originele tekst vanaf orig_start en tellen totdat we
     # len(norm_frag) genormaliseerde tekens hebben gezien.
@@ -746,10 +808,18 @@ def _verwerk(
         # hetzelfde ding; ze los van elkaar bepalen laat ze uit elkaar lopen, en dan wijst de
         # werkplek een ander stuk wet aan dan de vindplaats belooft. Live gebeurd op artikel 6
         # Uitvoeringsregeling Awir: "derde" (lid 2) landde op het rangtelwoord in lid 1.
+        # De ladder is onderdeel → lid → hele corpus. Het onderdeel is de fijnste aanwijzing die
+        # het model geeft; hij wordt niet opgeslagen, want de offsets pinnen de plek daarna exact.
         venster = _segment_van(segmenten, lid) if (lid and genummerd) else None
-        orig_start, orig_eind = (
-            _zoek_in_origineel(corpus, norm_corpus, norm_frag, venster) if venster else (-1, -1)
-        )
+        orig_start, orig_eind = (-1, -1)
+        if venster and (onderdeel := _onderdeel_nummer(str(e.get("onderdeel", "")))):
+            fijner = _segment_van(_onderdeel_segmenten(corpus, venster), onderdeel)
+            if fijner:
+                orig_start, orig_eind = _zoek_in_origineel(corpus, norm_corpus, norm_frag, fijner)
+        if orig_start < 0 and venster:
+            # Geen (bruikbaar) onderdeel: terug naar het lid. Een fout onderdeel mag nooit het lid
+            # corrigeren – dat is een grovere claim en kan best kloppen.
+            orig_start, orig_eind = _zoek_in_origineel(corpus, norm_corpus, norm_frag, venster)
         if orig_start < 0 and lid and genummerd:
             # Het fragment staat niet in het lid dat het model noemt – de claim klopt dus niet.
             # Dan wint het anker: behoud de markering (de tekst is brongetrouw, dat is globaal

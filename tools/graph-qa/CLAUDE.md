@@ -502,11 +502,26 @@ Drie dingen die je verder moet kennen voordat je hieraan werkt:
   van op het rechtssubject. Dat bijt alleen bij een corpus van meerdere leden; met een `scope_lid`
   is er één segment.
 
-  Wat dit **niet** oplost: scoping versmalt, maar maakt niet uniek – zeven van de negen meervoudige
-  fragmenten in die annotatie blijven ook binnen hun eigen lid meervoudig. Onderdeel-granulariteit
-  vraagt een `onderdeel`-veld in het promptcontract. `tests/test_anker_lid.py` legt beide vast: de
-  garantie én de grens. De **eval kan dit niet meten** – de scorers vergelijken spans op tekst,
-  nooit op positie.
+  De zoekladder is **onderdeel → lid → hele corpus**, en elke trede kiest bij voorkeur een
+  voorkomen dat op **woordgrenzen** staat. Dat laatste is geen finesse: de Operator "en" komt 59x
+  voor in lid 2 en het eerste voorkomen zit in "Als gevall**en** als bedoeld" — een lettergreep.
+  Het is een voorkeur en geen eis: staat een fragment nergens op woordgrenzen, dan wint alsnog het
+  eerste voorkomen. Brongetrouwe tekst weggooien omdat de plaatsbepaling niet scherp te krijgen is,
+  zou erger zijn dan een minder scherpe plaatsbepaling.
+
+  **Het `onderdeel` komt uit de prompt en wordt niet opgeslagen.** Het model noemde het al in zijn
+  prozatoelichting ("in onderdeel c"); sinds 1 sep 2026 is er een veld voor. Het stuurt alleen het
+  zoeken — de offsets in het `Anker` pinnen de plek daarna exact, dus opslaan zou dezelfde
+  informatie dubbel dragen en het api-contract raken zonder dat iemand er iets aan heeft. Een fout
+  onderdeel valt terug op het lid en corrigeert het lid **niet**: dat is een grovere claim en kan
+  best kloppen.
+
+  Wat dit **niet** oplost: zes van de acht meervoudige fragmenten in die annotatie landen nog
+  steeds op het eerste voorkomen binnen hun onderdeel — daar meestal het enige, maar niet
+  aantoonbaar ("belanghebbende" staat 2x in onderdeel f). Verder scherpstellen vraagt dat het model
+  langere, zelf-onderscheidende fragmenten kiest: een prompt- en methodekwestie, geen zoekkwestie.
+  `tests/test_anker_lid.py` legt de garanties én de grenzen vast. De **eval kan dit niet meten** –
+  de scorers vergelijken spans op tekst, nooit op positie.
 - **`GRAPHDB_TOKEN` is verplicht.** Afgedwongen bij startup (lifespan) én per request (`make_graph →
   require_graph`). Het token is de sleutel voor de auth-proxy, die hem vervangt door het
   GraphDB-service-account; de agent kent die credentials zelf niet. Maak dit niet optioneel.

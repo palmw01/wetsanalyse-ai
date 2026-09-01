@@ -87,9 +87,10 @@ WERKWIJZE
 
 UITVOER – geef UITSLUITEND geldige JSON terug, zonder omliggende tekst of code-fences, in deze vorm:
 {{"elementen": [
-  {{"klasse": "<een van: {klassen}>", "tekst": "<letterlijk fragment>", "lid": "<lidnummer of leeg>", "toelichting": "<één zin>", "alternatieven": [{{"klasse": "<klasse>", "motivatie": "<korte reden>"}}]}}
+  {{"klasse": "<een van: {klassen}>", "tekst": "<letterlijk fragment>", "lid": "<lidnummer of leeg>", "onderdeel": "<onderdeelnummer of leeg>", "toelichting": "<één zin>", "alternatieven": [{{"klasse": "<klasse>", "motivatie": "<korte reden>"}}]}}
 ]}}
-`alternatieven` mag een lege lijst zijn. Neem geen enkel element op waarvan `tekst` niet letterlijk in de aangeleverde artikeltekst voorkomt."""
+`alternatieven` mag een lege lijst zijn. Neem geen enkel element op waarvan `tekst` niet letterlijk in de aangeleverde artikeltekst voorkomt.
+`onderdeel` is het nummer van het opsommingsonderdeel waarin het fragment staat, precies zoals de tekst het schrijft (`a`, `f`, `1°`); laat het leeg als het fragment in de aanhef van het lid staat. Dat veld bepaalt wáár in de tekst de markering wordt geplaatst: een kort fragment als "derde" komt in meerdere onderdelen voor, en zonder deze aanwijzing landt de markering op het eerste voorkomen."""
 
 
 def annotatie_userprompt(bwb_id: str, artikel: str, artikeltekst: str, lid: str | None = None) -> str:
@@ -166,9 +167,10 @@ WERKWIJZE
 
 UITVOER – geef UITSLUITEND geldige JSON, zonder omliggende tekst of code-fences:
 {{"elementen": [
-  {{"klasse": "<een van: {klassen}>", "tekst": "<letterlijk fragment>", "lid": "<lidnummer of leeg>", "toelichting": "<één zin>", "alternatieven": [{{"klasse": "<klasse>", "motivatie": "<korte reden>"}}]}}
+  {{"klasse": "<een van: {klassen}>", "tekst": "<letterlijk fragment>", "lid": "<lidnummer of leeg>", "onderdeel": "<onderdeelnummer of leeg>", "toelichting": "<één zin>", "alternatieven": [{{"klasse": "<klasse>", "motivatie": "<korte reden>"}}]}}
 ]}}
-`alternatieven` mag een lege lijst zijn. Neem geen enkel element op waarvan `tekst` niet letterlijk in de brontekst staat."""
+`alternatieven` mag een lege lijst zijn. Neem geen enkel element op waarvan `tekst` niet letterlijk in de brontekst staat.
+`onderdeel` is het nummer van het opsommingsonderdeel waarin het fragment staat, precies zoals de tekst het schrijft (`a`, `f`, `1°`); laat het leeg als het fragment in de aanhef van het lid staat. Dat veld bepaalt wáár in de tekst de markering wordt geplaatst: een kort fragment als "derde" komt in meerdere onderdelen voor, en zonder deze aanwijzing landt de markering op het eerste voorkomen."""
 
 
 def klasseer_userprompt(
