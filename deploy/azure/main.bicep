@@ -436,13 +436,24 @@ resource graphdbApp 'Microsoft.App/containerApps@2024-03-01' = {
             // maxReplicas op 1, dus er is geen tweede replica die het overneemt. Ruim afgesteld —
             // GraphDB start traag (de Readiness wacht al 30s) en een te scherpe liveness zou hem
             // tijdens het opkomen doodslaan.
+            //
+            // LET OP: `initialDelaySeconds` mag bij Container Apps hoogstens 60 zijn; hoger wordt
+            // geweigerd met `ContainerAppProbeInitialDelaySecondsOutOfRange`. Dat is een
+            // preflight-controle van de resource provider en `what-if` voert hem NIET uit — een
+            // groene what-if bewijst hier dus niets. Deze waarde stond op 120 en maakte de template
+            // vanaf 27 aug 2026 onuitrolbaar; het viel niemand op omdat infra handmatig is en er
+            // sindsdien geen deploy meer was.
+            //
+            // De bedoelde speling blijft gelijk: die is initialDelay + failureThreshold × period,
+            // dus 120 + 5×30 = 270 s werd 60 + 7×30 = 270 s. Verlaag `failureThreshold` niet zonder
+            // te bedenken dat je daarmee de opstarttijd van GraphDB inkort.
             {
               type: 'Liveness'
               httpGet: { path: '/rest/repositories', port: 7200 }
-              initialDelaySeconds: 120
+              initialDelaySeconds: 60
               periodSeconds: 30
               timeoutSeconds: 10
-              failureThreshold: 5
+              failureThreshold: 7
             }
           ]
         }

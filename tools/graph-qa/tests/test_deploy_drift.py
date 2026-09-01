@@ -51,3 +51,30 @@ def test_api_tokenlijst_kent_graph_qa_als_eigen_client() -> None:
         f"bij de api en landt een annotatie alsnog nergens. Een eigen token per client houdt "
         f"bovendien het auditspoor eerlijk."
     )
+
+
+def test_probes_blijven_binnen_de_azure_limiet() -> None:
+    """`initialDelaySeconds` mag bij Container Apps hoogstens 60 zijn.
+
+    Waarom dit een test verdient: hoger wordt geweigerd met
+    `ContainerAppProbeInitialDelaySecondsOutOfRange`, maar dat is een preflight-controle van de
+    resource provider en `az deployment group what-if` voert die NIET uit. Een groene what-if
+    bewijst hier dus niets — de fout valt pas bij een echte deploy.
+
+    Dat is precies wat er gebeurde: op 27 aug 2026 kreeg de graphdb-liveness 120 s mee (commit
+    185996d), en omdat infra handmatig is en er daarna geen deploy meer was, stond de template vijf
+    dagen onuitrolbaar in master zonder dat iemand het merkte. De eerstvolgende deploy liep erop
+    vast. Deze test kost niets en verplaatst die ontdekking naar de pull request.
+    """
+    tekst = BICEP.read_text(encoding="utf-8")
+    te_hoog = [
+        (nr, int(m.group(1)))
+        for nr, regel in enumerate(tekst.splitlines(), 1)
+        if (m := re.search(r"initialDelaySeconds:\s*(\d+)", regel)) and int(m.group(1)) > 60
+    ]
+    assert not te_hoog, (
+        "initialDelaySeconds > 60 wordt door Azure geweigerd (what-if merkt het niet): "
+        + ", ".join(f"main.bicep:{nr} = {v}" for nr, v in te_hoog)
+        + ". Wil je meer speling? Verhoog failureThreshold – de totale marge is "
+          "initialDelay + failureThreshold × periodSeconds."
+    )
