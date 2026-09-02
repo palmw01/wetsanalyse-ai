@@ -307,7 +307,7 @@ def _prioriteitsrang(klasse: str) -> dict[str, int]:
 
 
 def _pas_prioriteitsregels_toe(
-    klasse: str, alternatieven: list[Any]
+    klasse: str, alternatieven: list[Any], als_dict: bool = False
 ) -> tuple[str, list[Any]]:
     """Corrigeer `klasse` als een alternatief hogere prioriteit heeft.
 
@@ -318,6 +318,10 @@ def _pas_prioriteitsregels_toe(
     Voorbeeld: klasse=Variabele, alternatief=[Tijdsaanduiding]
     → Tijdsaanduiding wint (rang 100 > 50)
     → klasse=Tijdsaanduiding, alternatieven=[...Variabele...]
+
+    `als_dict` bepaalt de vorm van een NIEUW alternatief. Het annoteerderpad (`_verwerk`) werkt met
+    `AnnotatieAlternatief`, de patcher (`pas_critic_toe`) met kale dicts; een dataclass tussen de
+    dicts schuiven levert daar verderop een TypeError op.
     """
     rang = _prioriteitsrang(klasse)
     if not rang:
@@ -344,11 +348,12 @@ def _pas_prioriteitsregels_toe(
         for a in nieuwe_alts
     }
     if klasse not in oud_als_alt_klassen:
-        from .models import AnnotatieAlternatief as _AA
-        nieuwe_alts.insert(0, _AA(
-            klasse=klasse,
-            motivatie=f"Lagere prioriteit dan {winnaar_klasse} (JAS-prioriteitsregel).",
-        ))
+        motivatie = f"Lagere prioriteit dan {winnaar_klasse} (JAS-prioriteitsregel)."
+        if als_dict:
+            nieuwe_alts.insert(0, {"klasse": klasse, "motivatie": motivatie})
+        else:
+            from .models import AnnotatieAlternatief as _AA
+            nieuwe_alts.insert(0, _AA(klasse=klasse, motivatie=motivatie))
     # Verwijder de winnaar uit de alternatieven (hij wordt de hoofdklasse)
     nieuwe_alts = [
         a for a in nieuwe_alts
@@ -559,7 +564,29 @@ def pas_critic_toe(
             continue
 
         gewijzigd = False
+        # Gaat een voorgestelde klasse tegen een PRIORITEITSREGEL van de methode in, dan wint de
+        # regel. Rood is de tak die DIRECT wordt uitgevoerd – er staat geen tweede beoordelaar meer
+        # achter – en de Critic kende deze regels tot 1 sep 2026 niet eens uit zijn prompt. De toets
+        # vraagt de validator zélf wat er van dit paar overblijft: één bron van waarheid in
+        # `jas_klassen.REGELS`, geen tweede vergelijking die daarvan kan gaan driften.
+        prio_weigert = False
         if actie == "vervang" and rood and klasse in GELDIGE_JAS_KLASSEN and klasse != nieuw.get("klasse"):
+            gekozen, _ = _pas_prioriteitsregels_toe(
+                klasse, [{"klasse": str(nieuw.get("klasse", ""))}], als_dict=True
+            )
+            prio_weigert = gekozen != klasse
+
+        if prio_weigert:
+            # De klasse blijft staan, maar de lezing van de Critic gaat niet verloren: hij komt als
+            # alternatief naast de kaart, net als bij geel. De jurist ziet beide en beslist. De
+            # instructie is hiermee AFGEHANDELD – doorsturen naar de herziener zou een taalmodel
+            # alsnog laten uitvoeren wat de methode net afwees.
+            alts = list(nieuw.get("alternatieven") or [])
+            if not any(str(a.get("klasse")) == klasse for a in alts):
+                alts.append({"klasse": klasse, "motivatie": str(f.get("motivatie", "")).strip()})
+                nieuw["alternatieven"] = alts
+                alternatief += 1
+        elif actie == "vervang" and rood and klasse in GELDIGE_JAS_KLASSEN and klasse != nieuw.get("klasse"):
             nieuw["klasse"] = klasse
             # Stond die klasse al als alternatief op het element (bijv. omdat hetzelfde fragment in
             # twee klassen was voorgesteld en `_voeg_alternatief_toe` er een alternatief van maakte),
@@ -593,13 +620,39 @@ def pas_critic_toe(
             # Critic-pas over het gecorrigeerde resultaat (zie `route_na_patch`).
             nieuw["aandacht"] = ""
             nieuw["critic"] = ""
-        else:
+        elif not prio_weigert:
             # Rood, maar niets uitvoerbaars: het voorgestelde fragment staat niet letterlijk in de
             # bron, of de klasse was al zo. Dít is wat de herziener nog kan oplossen – hij mag de
             # brontekst lezen en het bedoelde fragment opzoeken.
+            #
+            # Een door de PRIORITEITSREGEL geweigerde klasse hoort hier NIET bij: die is afgehandeld,
+            # en doorsturen zou de herziener alsnog laten uitvoeren wat de methode net afwees.
             rest.append(f)
         uit.append(nieuw)
 
+    # De prioriteitsregels van de METHODE gelden ook hier, niet alleen op de annoteerder-uitkomst
+    # (`_verwerk`). Zonder deze pas verloor JAS-PRIORITY-001 van een Critic die de regel niet in zijn
+    # prompt had: een correct toegewezen Tijdsaanduiding kon met rood+vervang direct naar Variabele
+    # worden gezet, en daar staat geen tweede beoordelaar meer achter.
+    #
+    # Dit is geen schending van "GEEL VERANDERT NOOIT IETS" hierboven. Dat principe houdt een tweede
+    # TAALMODEL tegen dat stil uitvoert wat aan de jurist voorgelegd moest worden. Dit is methode, geen
+    # oordeel: de regel is deterministisch, hij kijkt alleen naar klasse + alternatieven en niet naar
+    # wie ze aandroeg, en de weggedrukte klasse blijft als alternatief op de kaart staan. Zou hij hier
+    # niet draaien, dan kreeg hetzelfde eindresultaat twee verschillende uitkomsten al naar gelang de
+    # annoteerder of de Critic het alternatief had aangebracht.
+    for v in uit:
+        # Wat de jurist zelf markeerde blijft ongemoeid – dezelfde grens als hierboven.
+        if v.get("van_jurist"):
+            continue
+        klasse, alts = _pas_prioriteitsregels_toe(
+            str(v.get("klasse", "")), list(v.get("alternatieven") or []), als_dict=True
+        )
+        if klasse != v.get("klasse"):
+            v["klasse"] = klasse
+            v["alternatieven"] = alts
+    # De telling blijft ongemoeid: PatchTelling rapporteert wat de CRITIC deed, en een methode-regel
+    # is geen Critic-actie. Op het annoteerderpad is dezelfde validator net zo stil.
     return uit, PatchTelling(toegepast=toegepast, alternatief=alternatief), rest
 
 

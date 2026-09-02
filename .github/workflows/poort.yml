@@ -202,6 +202,48 @@ jobs:
                 + ", ".join(f"{n}={b}" for n, b in sorted(budget.items())))
           PYEOF
 
+      - name: Annotatieprompts – wie de klassen krijgt, krijgt ook de prioriteitsregels
+        run: |
+          python3 - <<'PYEOF'
+          import ast, pathlib, sys
+
+          PAD = pathlib.Path("tools/graph-qa/agent/annotatie_prompt.py")
+          boom = ast.parse(PAD.read_text(encoding="utf-8"))
+
+          # Zelf-selecterend: wie `_klassen_referentie(` in zijn prompt zet, laat een model een
+          # JAS-klasse KIEZEN, en dan hoort hij de regels te kennen die die keuze binden. Geen
+          # handmatige rollenlijst die kan verouderen — `kandidaten_systeemprompt` markeert spans
+          # zonder te classificeren en valt er daarom vanzelf buiten.
+          mist = []
+          for knoop in boom.body:
+              if not isinstance(knoop, ast.FunctionDef):
+                  continue
+              namen = {
+                  sub.func.id for sub in ast.walk(knoop)
+                  if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Name)
+              }
+              if "_klassen_referentie" in namen and "_prioriteitsregels_tekst" not in namen:
+                  mist.append(knoop.name)
+
+          if mist:
+              for naam in mist:
+                  print(f"  {naam}: krijgt de dertien klassen, maar niet de prioriteitsregels")
+              print()
+              print("  Een rol die een JAS-klasse mag kiezen zonder JAS-PRIORITY-001/002 te kennen, kan een")
+              print("  correct toegepaste methode-regel als fout aanmerken. Bij de Critic viel dat samen met")
+              print("  een gat in de handhaving: rood+vervang wordt DIRECT uitgevoerd, en tot 1 sep 2026 liep")
+              print("  `pas_critic_toe` de validator niet. Voeg `_prioriteitsregels_tekst()` toe aan de prompt.")
+              sys.exit(1)
+
+          gedekt = [
+              k.name for k in boom.body
+              if isinstance(k, ast.FunctionDef) and "_klassen_referentie" in {
+                  s.func.id for s in ast.walk(k) if isinstance(s, ast.Call) and isinstance(s.func, ast.Name)
+              }
+          ]
+          print("ok - elke classificerende prompt kent de prioriteitsregels: " + ", ".join(sorted(gedekt)))
+          PYEOF
+
       - name: Bepalen wat deze PR raakt
         id: raakt
         run: |
