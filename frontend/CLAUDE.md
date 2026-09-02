@@ -470,6 +470,17 @@ Eén uitzondering, en die is principieel: tekst die als **inhoud** wordt opgesla
 die als chatbericht de geschiedenis in gaat, `WerkplekClient`) kan geen component dragen. Daar staat
 geen icoon maar een woord.
 
+**"Niet beoordeeld" is geen "geen bezwaar".** De Critic hoort over elk agent-voorstel een oordeel te
+vellen, maar hij slaat er soms één over — live gezien op 2 sep 2026: 1 van de 32 markeringen bij
+art. 2 lid 1 IW 1990 kwam binnen met een lege `aandacht` en zonder `critic_rondes`. De kaart toonde
+dan géén badge, en daarmee is die niet te onderscheiden van een element waar niets op aan te merken
+viel. `isNietBeoordeeld` (`lib/annotatie.ts`) geeft zo'n element een eigen, neutrale badge. Dezelfde
+redenering als bij grounding, waar `onbepaald` bewust naast `gegrond` staat: niets gecontroleerd als
+goedkeuring tellen levert precies de schijnzekerheid op die dit platform wil vermijden. Een
+markering van de **jurist** valt erbuiten — die beoordeelt de Critic niet, zijn oordeel daarover komt
+als `critic_suggestie` binnen. De agent meldt het aantal ook in de tijdlijn (`· N zonder oordeel`),
+maar die staat ingeklapt.
+
 **De aandacht-as zegt wat hij bedoelt.** Het oordeel van de Critic staat op de reviewkaart als
 **badge met tekst** – *Geen bezwaar* / *Even kijken* / *Waarschijnlijk fout* – in dezelfde vorm als de
 documentstatus-badge (`AANDACHT_PILL` in `ReviewQueue.tsx` naast `DOCUMENT_STATUS_STYLE`): één
