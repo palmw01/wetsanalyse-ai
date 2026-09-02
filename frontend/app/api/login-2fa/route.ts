@@ -36,8 +36,8 @@ export async function POST(req: Request) {
   // Laat het login-ticket staan – de aansluitende signIn heeft het nog nodig in authorize; het
   // vervalt vanzelf via zijn korte Fernet-TTL.
 
-  return Response.json(
-    { ok: body.ok, code: body.code, userid: userid ?? "" },
-    { status: status === 429 ? 429 : 200 },
-  );
+  // De status gaat ongewijzigd mee (BFF-regel): een afgewezen code is bij de API een 200 met
+  // `ok: false`, dus een 5xx hier is een storing – en die mag de client niet als "verkeerde code"
+  // tonen. De 401 hierboven (ticket verlopen) blijft wat hij is.
+  return Response.json({ ok: body.ok, code: body.code, userid: userid ?? "" }, { status });
 }
