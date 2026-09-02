@@ -74,6 +74,11 @@ def main() -> None:
     # Per straat verschillend: acceptatie mag koud en kort bewaren, productie niet.
     p.add_argument("--backup-retention-days", type=int, default=None)
     p.add_argument("--min-replicas-apps", type=int, default=None)
+    # `default=None` en niet de gewone store_true-default (False): de lus hieronder stuurt alleen
+    # mee wat niet None is, zodat een weggelaten vlag de bicep-default laat staan. Met False zou de
+    # parameter áltijd meegaan en zou de bicep-default nooit gelden.
+    p.add_argument("--api-extern", action="store_true", default=None,
+                   help="Api-ingress publiek maken (alleen acceptatie; zie main.bicep:apiExtern).")
     p.add_argument("--api-image", default=None)
     p.add_argument("--frontend-image", default=None)
     p.add_argument("--graph-qa-image", default=None)
@@ -146,6 +151,7 @@ def main() -> None:
     for vlag, param in (
         (args.backup_retention_days, "backupRetentionDays"),
         (args.min_replicas_apps, "minReplicasApps"),
+        (args.api_extern, "apiExtern"),
         (args.api_image, "apiImage"),
         (args.frontend_image, "frontendImage"),
         (args.graph_qa_image, "graphQaImage"),

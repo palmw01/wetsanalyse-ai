@@ -317,9 +317,26 @@ niet in de api-container – zo raakt een image-redeploy de database nooit. De A
 `WETSANALYSE_DB_CONNECT_RETRIES`/`_BACKOFF`). De host-secrets (incl.
 De databaseverbinding komt als secret uit de bicep (`database-url`).
 
-Op Azure draait de API als container app met **interne** ingress; de frontend praat er server→server
-mee. Wil je hem van buiten bereiken (bv. voor de admin-MCP), dan vraagt dat een expliciete
-ingress-wijziging. De dienst is
+Op Azure draait de API als container app; de frontend praat er server→server mee. De ingress
+verschilt **per straat** (`apiExtern` in `deploy/azure/main.bicep`, default `false`):
+
+- **productie** — intern, alleen bereikbaar vanuit de container-apps-omgeving.
+- **acceptatie** — publiek, zodat de admin-MCP (`tools/wetsanalyse-admin-mcp/`) bij `/v1/admin/*` kan.
+
+> Die ingress zit **vóór de hele app**, niet alleen voor `/v1/admin`. Publiek betekent dus ook
+> `/v1/annotatie`, `/v1/gesprekken` en `/v1/auth`, en daarmee verschuift een vertrouwensgrens: de
+> identiteit komt uit de header **`X-User-Id`** omdat die "nooit uit browser-input komt" — de BFF
+> zet hem server-side. Publiek houdt die aanname geen stand; wie een client-token heeft, kiest zijn
+> eigen `X-User-Id`. Op acceptatie is dat een bewuste afweging (daar staan geen reviewbeslissingen
+> van juristen); op productie niet, en een guard in `poort` bewaakt dat de default `false` blijft en
+> dat `--api-extern` alleen achter de acceptatie-conditie staat.
+>
+> Let op wat er nog meer verandert: `apiInternalUrl` is afgeleid van `ingress.fqdn`, en die wordt bij
+> een publieke ingress `<app>.<domein>` in plaats van `<app>.internal.<domein>`. Frontend en graph-qa
+> pakken dat automatisch op, maar hun verkeer loopt dan via het publieke endpoint. Zou dit ooit naar
+> productie gaan, laat die twee dan eerst op de app-naam praten in plaats van op de FQDN.
+
+De dienst is
 **horizontaal veilig** te schalen (stateless request-afhandeling; de opslag is de gedeelde DB). De
 containers draaien **non-root** en **PostgreSQL draait met authenticatie**. Alle secrets staan als
 bestanden op de host (`*_FILE`-patroon). Build vanaf de **projectroot**:

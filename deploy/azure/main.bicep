@@ -63,6 +63,9 @@ param backupRetentionDays int = 7
 @maxValue(3)
 param minReplicasApps int = 0
 
+@description('Api-ingress publiek bereikbaar? Alleen acceptatie, zodat de admin-MCP (tools/wetsanalyse-admin-mcp) erbij kan; de default false houdt productie dicht.')
+param apiExtern bool = false
+
 @description('Java-heap voor GraphDB. Moet passen binnen het geheugen van de container-app.')
 param graphdbHeap string = '2g'
 
@@ -527,7 +530,7 @@ resource bwbImportJob 'Microsoft.App/jobs@2024-03-01' = {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 5. API Container App (intern)
+// 5. API Container App (intern; op acceptatie publiek – zie `apiExtern`)
 // ─────────────────────────────────────────────────────────────────────────────
 var dbUrl = 'postgresql+asyncpg://wetsanalyse:${dbAdminPassword}@${pgServer.properties.fullyQualifiedDomainName}:5432/wetsanalyse?ssl=require'
 // psycopg-scheme voor de LangGraph-checkpointer van graph-qa (geen +asyncpg, andere driver).
@@ -547,8 +550,18 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
       // precies één revisie, terwijl de nummering (41/57/75) tientallen voorgangers verried.
       // Inactieve revisies draaien niet en kosten dus geen replicas.
       maxInactiveRevisions: 5
+      // DE INGRESS ZIT VÓÓR DE HELE APP, niet alleen voor /v1/admin. Met `apiExtern` worden ook
+      // /v1/annotatie, /v1/gesprekken, /v1/auth, /v1/berichten en /v1/feedback publiek bereikbaar,
+      // en daarmee verschuift een vertrouwensgrens: de api leest de identiteit uit de header
+      // `X-User-Id` omdat die "nooit uit browser-input komt" – hij wordt server-side door de BFF
+      // gezet. Publiek houdt die aanname geen stand; wie een client-token uit `apiTokens` heeft,
+      // kiest zijn eigen X-User-Id en leest of schrijft in elk gesprek en annotatiedocument.
+      //
+      // Daarom staat de default op false en zet alleen de acceptatie-tak van `azure-infra.yml` hem
+      // aan (`--api-extern` in gen-deploy.py). Op acceptatie staan geen reviewbeslissingen van
+      // juristen; op productie wel, en die straat blijft dicht. Een guard in `poort` bewaakt beide.
       ingress: {
-        external: false
+        external: apiExtern
         targetPort: 3000
         transport: 'auto'
       }
