@@ -69,6 +69,34 @@ export interface TempPassword {
   temp_password: string;
 }
 
+// --- Zelfregistratie: aanvragen (admin) ---------------------------------------
+
+/** Een aanvraag voor toegang. Dit is nog géén account: pas bij goedkeuring ontstaat er een
+ *  gebruiker, met de userid die de beheerder bevestigt of corrigeert. */
+export interface RegistratieOut {
+  id: number;
+  voornaam: string;
+  achternaam: string;
+  email: string;
+  userid_voorstel: string;
+  status: "aangevraagd" | "goedgekeurd" | "afgewezen";
+  reden: string | null;
+  userid: string | null;
+  besloten_door: string | null;
+  besloten_op: string | null;
+  created: string;
+  updated: string;
+}
+
+/** Uitkomst per aanvraag bij bulk-goedkeuring: best-effort, dus een botsende userid blokkeert de
+ *  rest niet. */
+export interface RegistratieBulkRegel {
+  id: number;
+  ok: boolean;
+  userid: string;
+  fout: string;
+}
+
 // --- Genereerbare API-tokens (admin) ------------------------------------------
 
 export interface ApiTokenOut {

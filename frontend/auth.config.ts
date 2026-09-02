@@ -14,7 +14,8 @@ export type Role = "beheerder" | "analist";
 export const SESSIE_LANG = 30 * 24 * 60 * 60; // 30 dagen (onthouden)
 export const SESSIE_KORT = 12 * 60 * 60; // 12 uur (niet onthouden)
 
-// Paden die zonder sessie bereikbaar moeten zijn (login, eenmalige registratie + hun BFF-routes,
+// Paden die zonder sessie bereikbaar moeten zijn (login, eenmalige registratie, zelfregistratie
+// + hun BFF-routes,
 // en de health-check voor Docker/NPM/CI – die mag nooit achter de login vallen).
 function isPublic(path: string): boolean {
   return (
@@ -22,6 +23,9 @@ function isPublic(path: string): boolean {
     path === "/login/2fa" ||
     path === "/setup" ||
     path === "/api/setup" ||
+    // Zelfregistratie: het aanvraagformulier moet zonder sessie bereikbaar zijn – dat is het punt.
+    path === "/registreren" ||
+    path === "/api/registreren" ||
     path === "/api/login-verify" ||
     path === "/api/login-2fa" ||
     path === "/api/health" ||

@@ -90,6 +90,38 @@ users = Table(
     Column("updated", _DT, nullable=False),
 )
 
+# --- Zelfregistratie ------------------------------------------------------------
+# Aanvragen voor een account. Een bezoeker vult naam, e-mail en een zelfgekozen wachtwoord in; het
+# systeem leidt een userid af. Pas als een beheerder goedkeurt ontstaat er een rij in `users` – tot
+# die tijd is dit geen account en kan er niet mee worden ingelogd. Het wachtwoord-hash staat hier al
+# (bcrypt), zodat de goedgekeurde gebruiker meteen met zijn eigen wachtwoord kan inloggen en er geen
+# tijdelijk wachtwoord hoeft te worden rondgestuurd.
+#
+# `email` is uniek: één aanvraag per adres, ook na afwijzing. De beheerder kan een afgehandelde
+# aanvraag verwijderen om het adres weer vrij te geven.
+registratie_aanvragen = Table(
+    "registratie_aanvragen",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("voornaam", String(120), nullable=False, default=""),
+    Column("achternaam", String(120), nullable=False, default=""),
+    Column("email", String(320), nullable=False, unique=True),
+    # Het afgeleide voorstel; de beheerder mag er bij het goedkeuren van afwijken.
+    Column("userid_voorstel", String(64), nullable=False, default=""),
+    Column("password_hash", Text, nullable=False, default=""),
+    # aangevraagd | goedgekeurd | afgewezen
+    Column("status", String(16), nullable=False, default="aangevraagd"),
+    # Afwijsreden – intern (auditspoor voor de beheerder), niet bedoeld voor de aanvrager.
+    Column("reden", Text, nullable=True),
+    # De uiteindelijk toegekende userid; pas gevuld bij goedkeuring.
+    Column("userid", String(64), nullable=True),
+    Column("besloten_door", String(64), nullable=True),
+    Column("besloten_op", _DT, nullable=True),
+    Column("created", _DT, nullable=False),
+    Column("updated", _DT, nullable=False),
+    Index("ix_registratie_status_created", "status", "created"),
+)
+
 # --- Berichtensysteem -----------------------------------------------------------
 # Release notes en aankondigingen: beheerders schrijven berichten (concept → gepubliceerd),
 # analisten lezen ze. Leesbewijzen zijn (bericht, user)-paren.

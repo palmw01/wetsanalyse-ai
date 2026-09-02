@@ -27,7 +27,8 @@ plaats van schijnzekerheid.
 1. **`api/`** – headless FastAPI-backend (PostgreSQL-opslag, per-client bearer-auth) voor de werkplek.
    Bedient het **annotatie-domein** (`/v1/annotatie/*`: documenten/elementen/beslissingen +
    append-only auditlog), de **chatgeschiedenis** (`/v1/gesprekken/*`), het
-   **login-/gebruikersbeheer** (de API is de identiteitsbron van de webapp), het
+   **login-/gebruikersbeheer** (de API is de identiteitsbron van de webapp, inclusief
+   zelfregistratie-aanvragen die een beheerder goedkeurt), het
    **LLM-modelprofielbeheer** (`/v1/admin/*`; de env-`LLM_*`-waarden seeden alleen het eerste
    default-profiel) en de **profiel-keuzelijst** (`/v1/profiles`). Annotatie-documenten en gesprekken
    zijn **per gebruiker gescopet**. Eigen `CLAUDE.md` + `README.md`.
@@ -35,10 +36,12 @@ plaats van schijnzekerheid.
    *Lex-pagina*): één chat-achtig gespreksvenster voor **vragen én JAS-annotatie**, live tegen
    graph-qa (SSE); de home leidt daarheen door. Account, beheer en instellingen openen als
    **dialoog over de werkplek heen** (`/instellingen/*`, intercepting routes) in plaats van als eigen
-   pagina's; de beheertab (modelprofielen, gebruikers, API-tokens) zit achter een apart admin-token.
+   pagina's; de beheertab (modelprofielen, gebruikers, aanvragen, API-tokens) zit achter een apart
+   admin-token.
    De hele webapp zit achter een **login met userid + wachtwoord** (Auth.js; e-mail verplicht/uniek
    maar geen inlog-identiteit; de API is de identiteitsbron; rollen `beheerder`/`analist`; eenmalige
-   eerste-beheerder-registratie via `/setup`; optionele TOTP-2FA). De UI volgt de **Rijkshuisstijl**
+   eerste-beheerder-registratie via `/setup`; **zelfregistratie** via `/registreren`, die een beheerder
+   goedkeurt voor er een account ontstaat; optionele TOTP-2FA). De UI volgt de **Rijkshuisstijl**
    (Belastingdienst-stijlvak: lintblauw, Fira-fonts, het officiële Belastingdienst-logo en
    JAS-klassekleuren uit `docs/wetsanalyse/wa-table.png`). Eigen `CLAUDE.md` + `README.md`.
 3. **`tools/graph-qa/`** – de eigen **QA/annotatie-agent**, **Lex** (de naam die de gebruiker ziet; de

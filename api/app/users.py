@@ -215,6 +215,22 @@ async def valideer_trusted_device(token: str | None) -> str | None:
     return user.userid
 
 
+async def _aanvraag_status(userid: str, password: str) -> str:
+    """Reden-code voor een inlogpoging op een userid die (nog) geen account is.
+
+    Wie via het portaal toegang heeft aangevraagd kreeg zijn voorgestelde userid te zien. Probeert
+    hij daarmee in te loggen, dan is "onbekende gebruiker" onbehulpzaam. We vertellen de status
+    daarom – maar **alleen bij het juiste wachtwoord**, zodat dit geen middel wordt om te ontdekken
+    welke aanvragen er liggen.
+    """
+    from . import registraties  # lokaal: registraties importeert deze module
+
+    aanvraag = await registraties.openstaand_voor_userid(userid)
+    if aanvraag is None or not verify_password(password, aanvraag.password_hash):
+        return "invalid"
+    return "aanvraag_afgewezen" if aanvraag.status == "afgewezen" else "aanvraag_open"
+
+
 async def verify_credentials(
     userid: str, password: str, totp: str | None = None,
     *, ticket: str | None = None, trusted_token: str | None = None,
@@ -222,8 +238,9 @@ async def verify_credentials(
     """Valideer inloggegevens (uitsluitend op userid). Geeft (user, "ok") of (None, reden).
 
     Reden-codes: "invalid" (onbekend/inactief/verkeerd wachtwoord – bewust niet onderscheiden om
-    niets te lekken) en "totp_required" (wachtwoord klopt, maar 2FA staat aan en de code ontbreekt
-    of is onjuist).
+    niets te lekken), "totp_required" (wachtwoord klopt, maar 2FA staat aan en de code ontbreekt
+    of is onjuist) en "aanvraag_open"/"aanvraag_afgewezen" (er is nog geen account, maar wel een
+    zelfregistratie-aanvraag met dit voorgestelde userid – zie `_aanvraag_status`).
 
     Twee alternatieve bewijzen naast het wachtwoord:
     - `ticket`: een geldig login-ticket voor deze userid telt als wachtwoord-bewijs (voor het aparte
@@ -237,6 +254,8 @@ async def verify_credentials(
         if not ticket_ok:
             # Constant-tijd: betaal de bcrypt-kost ook bij een onbekende/inactieve user.
             verify_password(password, _DUMMY_HASH)
+        if user is None:
+            return None, await _aanvraag_status(userid, password)
         return None, "invalid"
     if not ticket_ok and not verify_password(password, user.password_hash):
         return None, "invalid"
@@ -264,7 +283,13 @@ def _valideer_email(email: str) -> str:
     return norm
 
 
-async def _insert_user(userid: str, email: str, password: str, *, role: str) -> User:
+async def insert_user_met_hash(userid: str, email: str, password_hash: str, *, role: str) -> User:
+    """Maak een account met een AL berekende bcrypt-hash.
+
+    Bestaat voor de goedkeuring van een zelfregistratie: de aanvrager koos zijn wachtwoord bij de
+    aanvraag, dus de hash ligt er al en er hoeft geen tijdelijk wachtwoord te worden rondgestuurd.
+    `_insert_user` is de gewone weg (hasht zelf) en loopt hier doorheen.
+    """
     if role not in ROLLEN:
         raise UserError(f"Onbekende rol: {role!r}")
     norm_id = _valideer_userid(userid)
@@ -277,7 +302,7 @@ async def _insert_user(userid: str, email: str, password: str, *, role: str) -> 
         raise UserError(f"E-mailadres bestaat al: {norm_email}")
     now = _utcnow()
     user = User(
-        userid=norm_id, email=norm_email, password_hash=hash_password(password),
+        userid=norm_id, email=norm_email, password_hash=password_hash,
         role=role, created=now, updated=now,
     )
     try:
@@ -290,6 +315,10 @@ async def _insert_user(userid: str, email: str, password: str, *, role: str) -> 
     except Exception as e:  # IntegrityError op dubbele userid/email (race)
         raise UserError("Userid of e-mailadres bestaat al.") from e
     return user
+
+
+async def _insert_user(userid: str, email: str, password: str, *, role: str) -> User:
+    return await insert_user_met_hash(userid, email, hash_password(password), role=role)
 
 
 # --- eenmalige registratie (bootstrap) -----------------------------------------

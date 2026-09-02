@@ -9,9 +9,10 @@ import { BerichtenBeheerPanel } from "@/components/admin/BerichtenBeheerPanel";
 import { FeedbackLijstClient } from "@/components/admin/FeedbackLijstClient";
 import { BerichtenArchiefClient } from "@/components/berichten/BerichtenArchiefClient";
 import { ProfielenPanel } from "@/components/admin/ProfielenPanel";
+import { RegistratiesPanel } from "@/components/admin/RegistratiesPanel";
 import { UsersPanel } from "@/components/admin/UsersPanel";
 import { Tabs, type TabDef } from "@/components/ui/Tabs";
-import { getOngelezenFeedbackAantal } from "@/lib/api";
+import { getOngelezenFeedbackAantal, listRegistraties } from "@/lib/api";
 import { INSTELLINGEN_TABS, padVanTab, type TabKey } from "@/lib/instellingen";
 
 const PANEEL: Record<TabKey, React.ReactNode> = {
@@ -19,6 +20,7 @@ const PANEEL: Record<TabKey, React.ReactNode> = {
   beveiliging: <AccountClient />,
   modelprofielen: <ProfielenPanel />,
   gebruikers: <UsersPanel />,
+  registraties: <RegistratiesPanel />,
   "api-tokens": <ApiTokensPanel />,
   berichten: <BerichtenArchiefClient />,
   berichtenbeheer: <BerichtenBeheerPanel />,
@@ -39,6 +41,7 @@ interface Props {
 export function InstellingenInhoud({ actief, isBeheerder, vervangHistorie = false }: Props) {
   const router = useRouter();
   const [ongelezenFeedback, setOngelezenFeedback] = useState(0);
+  const [openAanvragen, setOpenAanvragen] = useState(0);
   const zichtbaar = INSTELLINGEN_TABS.filter((t) => !t.admin || isBeheerder);
 
   // Ongelezen-teller voor de feedbacktab. Alleen voor beheerders (het endpoint eist die rol) en
@@ -51,6 +54,23 @@ export function InstellingenInhoud({ actief, isBeheerder, vervangHistorie = fals
       /* badge blijft staan zoals hij was */
     }
   }, [isBeheerder]);
+
+  // Openstaande aanvragen voor de badge op de aanvragen-tab. Zelfde vorm als hierboven: alleen voor
+  // beheerders en stil falend – de badge is een hint, geen blokkade.
+  const laadAanvraagTeller = useCallback(async () => {
+    if (!isBeheerder) return;
+    try {
+      setOpenAanvragen((await listRegistraties("aangevraagd")).length);
+    } catch {
+      /* badge blijft staan zoals hij was */
+    }
+  }, [isBeheerder]);
+
+  // Bij het openen, en opnieuw zodra je de aanvragen-tab verlaat: daar zijn ze net beoordeeld.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (actief !== "registraties") void laadAanvraagTeller();
+  }, [actief, laadAanvraagTeller]);
 
   // Bij het openen, en opnieuw zodra je de feedbacktab verlaat – dat paneel markeert bij openen als
   // gezien, dus de teller die we bij het laden ophaalden klopt daarna niet meer.
@@ -65,7 +85,12 @@ export function InstellingenInhoud({ actief, isBeheerder, vervangHistorie = fals
     key: t.key,
     label: t.label,
     content: PANEEL[t.key],
-    badge: t.key === "feedback" ? ongelezenFeedback : undefined,
+    badge:
+      t.key === "feedback"
+        ? ongelezenFeedback
+        : t.key === "registraties"
+          ? openAanvragen
+          : undefined,
   }));
 
   return (

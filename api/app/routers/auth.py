@@ -8,6 +8,7 @@ verplicht, uniek registratiegegeven. De API blijft de identiteitsbron; de BFF ho
 
 GET  /v1/auth/setup-status        – is er nog geen account? (dan staat de registratie open)
 POST /v1/auth/setup               – maak de allereerste beheerder (alleen bij lege tabel → anders 409)
+POST /v1/auth/registratie         – vraag toegang aan (zelfregistratie; wacht op goedkeuring)
 POST /v1/auth/verify              – valideer userid + wachtwoord (+ optionele TOTP)
 GET  /v1/auth/me                  – eigen account (rol + of 2FA aanstaat) – X-User-Id
 POST /v1/auth/change-password     – eigen wachtwoord wijzigen (huidig → nieuw) – X-User-Id
@@ -18,16 +19,19 @@ POST /v1/auth/2fa/disable         – schakel 2FA uit – X-User-Id
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from time import monotonic
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel, Field
 
-from .. import ratelimit, users
+from .. import ratelimit, registraties, users
 from ..auth import require_client
 from ..config import get_settings
 from ..secrets_crypto import SecretsCryptoError, crypto_beschikbaar
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"], dependencies=[Depends(require_client)])
 
@@ -42,6 +46,20 @@ class SetupIn(BaseModel):
     userid: str = Field(max_length=64)
     email: str = Field(max_length=320)
     password: str = Field(min_length=8, max_length=512)
+
+
+class RegistratieIn(BaseModel):
+    voornaam: str = Field(max_length=120)
+    achternaam: str = Field(max_length=120)
+    email: str = Field(max_length=320)
+    password: str = Field(min_length=8, max_length=512)
+
+
+class RegistratieAangevraagd(BaseModel):
+    """Wat de aanvrager terugkrijgt: zijn toegewezen userid, zodat hij weet waarmee hij straks
+    inlogt. De aanvraag zelf (status, besluit) is verder alleen voor beheerders zichtbaar."""
+    userid: str
+    status: str = "aangevraagd"
 
 
 class VerifyIn(BaseModel):
@@ -62,7 +80,8 @@ class VerifyResult(BaseModel):
     authorize()-flow zonder exception-afhandeling de reden kan lezen. `ticket`/`trusted_token`
     gaan server→server naar de BFF, die ze als httpOnly cookies zet (nooit naar de browser-JS)."""
     ok: bool
-    code: str = ""  # "" | "invalid" | "totp_required"
+    # "" | "invalid" | "totp_required" | "aanvraag_open" | "aanvraag_afgewezen"
+    code: str = ""
     userid: str = ""
     email: str = ""
     role: str = ""
@@ -175,6 +194,34 @@ async def setup(body: SetupIn):
         # Tabel niet meer leeg, of ongeldige invoer → registratie gesloten/ongeldig.
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     return MeOut(userid=user.userid, email=user.email, role=user.role, totp_enabled=user.totp_enabled)
+
+
+@router.post(
+    "/registratie", response_model=RegistratieAangevraagd, status_code=status.HTTP_201_CREATED
+)
+async def registratie(body: RegistratieIn):
+    """Zelfregistratie: leg een aanvraag vast die een beheerder nog moet goedkeuren.
+
+    Dit maakt géén account – tot de goedkeuring bestaat er niets om mee in te loggen. Eigen,
+    krappe rate limit: het formulier is publiek (de BFF-route staat buiten de sessie-gate).
+    """
+    if not ratelimit.registratie_allowed(body.email):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Te veel aanvragen; probeer later opnieuw.",
+        )
+    try:
+        aanvraag = await registraties.maak_aanvraag(
+            body.voornaam, body.achternaam, body.email, body.password
+        )
+    except users.UserError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+    logger.info(
+        "registratie aangevraagd",
+        extra={"categorie": "security", "actie": "registratie_aangevraagd",
+               "userid": aanvraag.userid_voorstel},
+    )
+    return RegistratieAangevraagd(userid=aanvraag.userid_voorstel, status=aanvraag.status)
 
 
 @router.post("/verify", response_model=VerifyResult)

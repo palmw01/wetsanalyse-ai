@@ -20,6 +20,8 @@ import type {
   LlmProfileOut,
   LoginVerifyResult,
   MeAccount,
+  RegistratieBulkRegel,
+  RegistratieOut,
   Role,
   TempPassword,
   TestResult,
@@ -163,6 +165,54 @@ export async function resetUserPassword(userid: string): Promise<TempPassword> {
 
 export async function deleteUser(userid: string): Promise<void> {
   const res = await fetch(`/api/admin/users/${encodeURIComponent(userid)}`, { method: "DELETE" });
+  if (!res.ok) throw await parseError(res);
+}
+
+// --- Admin: zelfregistratie-aanvragen ---------------------------------------
+
+export async function listRegistraties(status?: string): Promise<RegistratieOut[]> {
+  const q = status ? `?status=${encodeURIComponent(status)}` : "";
+  const res = await fetch(`/api/admin/registraties${q}`, { cache: "no-store" });
+  return json<RegistratieOut[]>(res);
+}
+
+/** Goedkeuren maakt het account aan. `userid` leeg = het voorstel overnemen. */
+export async function approveRegistratie(
+  id: number,
+  body: { userid?: string; role: Role },
+): Promise<UserOut> {
+  const res = await fetch(`/api/admin/registraties/${id}/goedkeuren`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return json<UserOut>(res);
+}
+
+export async function rejectRegistratie(id: number, reden: string): Promise<void> {
+  const res = await fetch(`/api/admin/registraties/${id}/afwijzen`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reden }),
+  });
+  if (!res.ok) throw await parseError(res);
+}
+
+export async function approveRegistraties(
+  ids: number[],
+  role: Role,
+): Promise<RegistratieBulkRegel[]> {
+  const res = await fetch("/api/admin/registraties/goedkeuren", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids, role }),
+  });
+  return json<RegistratieBulkRegel[]>(res);
+}
+
+/** Verwijderen is de enige manier om het e-mailadres weer vrij te geven. */
+export async function deleteRegistratie(id: number): Promise<void> {
+  const res = await fetch(`/api/admin/registraties/${id}`, { method: "DELETE" });
   if (!res.ok) throw await parseError(res);
 }
 

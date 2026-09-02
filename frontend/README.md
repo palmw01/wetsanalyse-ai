@@ -71,7 +71,8 @@ AUTH_SECRET=<openssl rand -base64 32>   # ondertekent de login-sessiecookie (Aut
 > `/setup` om eenmalig de eerste **beheerder** aan te maken (userid + e-mail + wachtwoord); daarna
 > sluit die route. Verdere gebruikers (rol `analist` of `beheerder`) voeg je toe via `/beheer` →
 > **Gebruikers** (ze krijgen een eenmalig tijdelijk wachtwoord en zetten zelf hun wachtwoord op
-> `/account`). 2FA (TOTP) is optioneel en zet je zelf aan via `/account`. Voor 2FA moet
+> `/account`). Ze kunnen zich ook **zelf aanmelden** op `/registreren`; die aanvraag wacht op
+> goedkeuring in `/beheer` → **Aanvragen** en levert pas dán een account op. 2FA (TOTP) is optioneel en zet je zelf aan via `/account`. Voor 2FA moet
 > `LLM_CONFIG_SECRET` op de **API** gezet zijn (de TOTP-secrets worden ermee versleuteld).
 
 > Draait de lokale API óók op poort 3000? Start de frontend dan op een andere poort:
@@ -138,7 +139,8 @@ commentaarregels in `docker-compose.yml`).
 > **Toegang.** De hele webapp zit achter een login met **userid + wachtwoord** (Auth.js);
 > niet-ingelogde bezoekers landen op `/login`. De beheertabs (LLM-beheer + gebruikersbeheer) zijn
 > bovendien rol-afgeschermd tot **beheerders**. Een losse NPM Access List is dus niet meer nodig;
-> de eerste beheerder maak je eenmalig via `/setup`.
+> de eerste beheerder maak je eenmalig via `/setup`. Alleen `/login`, `/setup` en
+> `/registreren` (het aanvraagformulier) staan zonder sessie open.
 
 ## Types up-to-date houden (optioneel)
 

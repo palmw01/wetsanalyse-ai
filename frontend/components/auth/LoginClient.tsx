@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/Button";
@@ -16,11 +17,14 @@ export function LoginClient() {
   const [password, setPassword] = useState("");
   const [onthouden, setOnthouden] = useState(false);
   const [fout, setFout] = useState<string | null>(null);
+  // Een openstaande aanvraag is geen fout maar een stand van zaken; die krijgt een uitleg-melding.
+  const [aanvraag, setAanvraag] = useState<string | null>(null);
   const [bezig, setBezig] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setFout(null);
+    setAanvraag(null);
     setBezig(true);
     try {
       // Pre-check: kloppen de gegevens, en is 2FA nodig? (zet zelf nog geen sessie)
@@ -38,6 +42,18 @@ export function LoginClient() {
         sessionStorage.setItem("wa_login_remember", onthouden ? "1" : "0");
         const cb = params.get("callbackUrl");
         router.push(cb ? `/login/2fa?callbackUrl=${encodeURIComponent(cb)}` : "/login/2fa");
+        return;
+      }
+      if (check.code === "aanvraag_open") {
+        // Zelfregistratie: gegevens kloppen, maar er is nog geen account. "Onjuiste gebruikersnaam"
+        // zou hier onwaar én onbehulpzaam zijn.
+        setAanvraag(
+          "Je aanvraag wacht nog op goedkeuring door een beheerder. Probeer het later opnieuw.",
+        );
+        return;
+      }
+      if (check.code === "aanvraag_afgewezen") {
+        setFout("Je aanvraag voor toegang is afgewezen. Neem contact op met een beheerder.");
         return;
       }
       if (!check.ok) {
@@ -77,6 +93,7 @@ export function LoginClient() {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       {fout && <Melding type="fout">{fout}</Melding>}
+      {aanvraag && <Melding type="uitleg">{aanvraag}</Melding>}
       <Field label="Gebruikersnaam" required>
         <Input
           type="text"
@@ -115,6 +132,13 @@ export function LoginClient() {
       <Button type="submit" disabled={bezig} className="w-full">
         {bezig ? "Bezig met inloggen…" : "Inloggen"}
       </Button>
+
+      <p className="text-center text-sm text-muted">
+        Nog geen account?{" "}
+        <Link href="/registreren" className="text-lint underline">
+          Toegang aanvragen
+        </Link>
+      </p>
     </form>
   );
 }
