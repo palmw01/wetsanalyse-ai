@@ -149,6 +149,9 @@ export function WerkplekClient({
   const [invoer, setInvoer] = useState("");
   // Niet-blokkerende melding als het opslaan van een beurt faalt (de chat loopt door).
   const [bewaarFout, setBewaarFout] = useState<string | null>(null);
+  // De vraag is geweigerd omdat het tokenbudget op is. Apart van `bewaarFout`: die zegt dat het
+  // gesprek niet bewaard wordt, en dat is hier onwaar – er is alleen niets verstuurd.
+  const [budgetGeweigerd, setBudgetGeweigerd] = useState(false);
   const [bezig, setBezig] = useState(false);
   const [actiefId, setActiefId] = useState<string | undefined>();
   const [artefactSlug, setArtefactSlug] = useState<string | undefined>();
@@ -438,6 +441,7 @@ export function WerkplekClient({
     // behalve een herlaadbeurt, en bleef dus staan terwijl je alweer een vraag stelde.
     setRunVerdwenen(false);
     setVerbindingWeg(false);
+    setBudgetGeweigerd(false);
 
     // Zorg voor een gesprek-id (maak er bij de eerste beurt één aan; titel = de vraag, afgekapt).
     let gid = gesprekId;
@@ -494,6 +498,20 @@ export function WerkplekClient({
         const hervatId = uid();
         setItems((xs) => [...xs, { id: hervatId, type: "antwoord", tekst: "" }]);
         await volgBeurt({ runId: lopend, gid, antId: hervatId, vanaf: 0 });
+        return;
+      }
+      // Het tokenbudget is op. Net als bij een lopende beurt hierboven: deze vraag is NIET
+      // aangenomen, dus geen mislukte antwoordbubbel laten staan maar de vraag teruggeven. En de
+      // verbruiksstand meteen ophalen – dit pad komt nooit bij `volgBeurt`, dus zonder deze
+      // aanroep blijven de strook en de dichte invoerbalk tot een minuut achterlopen. Precies
+      // daardoor kón deze vraag überhaupt nog verstuurd worden.
+      if ((e as { budgetOp?: true }).budgetOp) {
+        setItems((xs) => xs.filter((x) => x.id !== antId && x.id !== vraagId));
+        setInvoer(prompt);
+        setBudgetGeweigerd(true);
+        onBeurtKlaar?.();
+        setBezig(false);
+        bezigRef.current = false;
         return;
       }
       updateItem(antId, { tekst: `**Er ging iets mis.** ${foutTekst(e)}` });
@@ -975,6 +993,17 @@ export function WerkplekClient({
           <Melding type="waarschuwing" compact>
             De verbinding met Lex is weggevallen. Je vraag loopt gewoon door bij de agent; ik probeer
             opnieuw te verbinden…
+          </Melding>
+        </div>
+      )}
+
+      {/* De vraag is geweigerd omdat het budget op is. Kort houden: wanneer het weer kan staat al in
+          de strook bovenaan het scherm én onder de invoerbalk – dezelfde datum drie keer noemen
+          leest als een storing. Geen sluitknop: hij verdwijnt zodra je een vraag verstuurt. */}
+      {budgetGeweigerd && (
+        <div className="shrink-0 px-4 pt-2">
+          <Melding type="waarschuwing" compact>
+            Je vraag is niet verstuurd: je tokenbudget is op. Je vraag staat weer in het invoerveld.
           </Melding>
         </div>
       )}

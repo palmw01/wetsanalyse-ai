@@ -304,6 +304,79 @@ describe("grounding-event", () => {
   });
 });
 
+describe("parseError – gestructureerde fouten", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("toont het melding-veld in plaats van de ruwe JSON", async () => {
+    // Anders leest de gebruiker letterlijk {"reden":"budget_op","melding":...} in zijn chat. Dat
+    // gebeurde live op acceptatie bij de eerste blokkade.
+    const res = new Response(
+      JSON.stringify({
+        detail: { reden: "budget_op", melding: "Je tokenbudget voor deze periode is op.", reset_op: "2026-09-09T20:28:27Z" },
+      }),
+      { status: 429, headers: { "Content-Type": "application/json" } },
+    );
+    const fout = await parseError(res);
+    expect(fout.detail).toBe("Je tokenbudget voor deze periode is op.");
+    expect(fout.reden).toBe("budget_op");
+    expect(fout.data?.reset_op).toBe("2026-09-09T20:28:27Z");
+  });
+
+  it("valt terug op de JSON als er geen melding in zit", async () => {
+    // Een fout zonder leesbare tekst mag niet stilzwijgend onzichtbaar worden.
+    const res = new Response(JSON.stringify({ detail: { reden: "iets_anders", code: 7 } }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+    const fout = await parseError(res);
+    expect(fout.detail).toContain("iets_anders");
+    expect(fout.reden).toBe("iets_anders");
+  });
+
+  it("laat een gewone string-detail met rust", async () => {
+    const res = new Response(JSON.stringify({ detail: "Alleen voor beheerders." }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
+    const fout = await parseError(res);
+    expect(fout.detail).toBe("Alleen voor beheerders.");
+    expect(fout.reden).toBeUndefined();
+    expect(fout.data).toBeUndefined();
+  });
+});
+
+describe("startRun – tokenbudget op", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("gooit bij 429 + budget_op een herkenbare fout", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(
+      JSON.stringify({
+        detail: { reden: "budget_op", melding: "Je tokenbudget voor deze periode is op.", reset_op: "2026-09-09T20:28:27Z" },
+      }),
+      { status: 429, headers: { "Content-Type": "application/json" } },
+    )));
+
+    await expect(startRun("een vraag", "gesprek-1")).rejects.toMatchObject({
+      status: 429,
+      budgetOp: true,
+      detail: "Je tokenbudget voor deze periode is op.",
+    });
+  });
+
+  it("laat een gewone rate-limit een gewone fout blijven", async () => {
+    // De agent heeft ook een verzoek-rate-limit. Die betekent "zo nog eens proberen", niet "je
+    // budget is op" – en mag dus niet de invoer dichtzetten.
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(
+      JSON.stringify({ detail: "Te veel verzoeken; probeer later opnieuw." }),
+      { status: 429, headers: { "Content-Type": "application/json" } },
+    )));
+
+    const fout = await startRun("een vraag", "gesprek-1").catch((e) => e);
+    expect(fout.status).toBe(429);
+    expect(fout.budgetOp).toBeUndefined();
+  });
+});
+
 describe("startRun – er loopt er al een", () => {
   afterEach(() => vi.restoreAllMocks());
 

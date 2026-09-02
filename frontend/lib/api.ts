@@ -64,14 +64,28 @@ import { pathSegment } from "./url";
 
 export async function parseError(res: Response): Promise<ApiError> {
   let detail = res.statusText;
+  let reden: string | undefined;
+  let data: Record<string, unknown> | undefined;
   try {
     const body = await res.json();
-    if (body?.detail) detail = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail);
+    if (typeof body?.detail === "string") {
+      detail = body.detail;
+    } else if (body?.detail && typeof body.detail === "object") {
+      // Een gestructureerde fout (`{reden, melding, …}`). Het `melding`-veld bestaat juist om
+      // getoond te worden; die eruit halen scheelt dat er rauwe JSON in beeld komt. Zonder melding
+      // blijft de JSON de terugval – een fout zonder leesbare tekst mag niet onzichtbaar worden.
+      data = body.detail as Record<string, unknown>;
+      reden = typeof data.reden === "string" ? data.reden : undefined;
+      detail =
+        typeof data.melding === "string" && data.melding.trim()
+          ? data.melding
+          : JSON.stringify(body.detail);
+    }
   } catch {
     /* geen JSON-body */
   }
   const ra = res.headers.get("Retry-After");
-  return { status: res.status, detail, retryAfter: ra ? Number(ra) : undefined };
+  return { status: res.status, detail, reden, data, retryAfter: ra ? Number(ra) : undefined };
 }
 
 async function json<T>(res: Response): Promise<T> {
@@ -557,7 +571,19 @@ export async function startRun(
     // bestaande run terug, dan verscheen het antwoord op de vórige vraag onder de nieuwe, en ging
     // de nieuwe vraag stilzwijgend verloren.
     const fout = await parseError(res);
-    throw { ...fout, loopendeRun: runIdUitDetail(fout.detail) ?? undefined } as RunLooptAlFout;
+    const lopend = fout.data?.run_id;
+    throw {
+      ...fout,
+      loopendeRun: typeof lopend === "string" ? lopend : undefined,
+    } as RunLooptAlFout;
+  }
+  if (res.status === 429) {
+    // Twee soorten 429 met een heel verschillende betekenis: het tokenbudget is op (wachten tot de
+    // reset, de invoer gaat dicht), of de gewone verzoek-rate-limit van de agent (zo nog eens
+    // proberen). Alleen de eerste krijgt een eigen afhandeling; de tweede blijft een gewone fout.
+    const fout = await parseError(res);
+    if (fout.reden === "budget_op") throw { ...fout, budgetOp: true } as RunBudgetOpFout;
+    throw fout;
   }
   const start = geldig(parseRunStart, await json<unknown>(res), "runs");
   if (!start) throw { status: 502, detail: "De agent gaf een onbegrijpelijk antwoord." } as ApiError;
@@ -568,6 +594,13 @@ export async function startRun(
  *  de werkplek kan aanbieden om daarop aan te haken in plaats van de vraag te verliezen. */
 export interface RunLooptAlFout extends ApiError {
   loopendeRun?: string;
+}
+
+/** Een 429 van `startRun` omdat het tokenbudget op is. De vraag is NIET aangenomen; de werkplek
+ *  zet hem terug in het invoerveld en ververst de verbruiksstand, zodat de strook en de dichte
+ *  invoerbalk meteen kloppen in plaats van pas bij het volgende minuut-interval. */
+export interface RunBudgetOpFout extends ApiError {
+  budgetOp?: true;
 }
 
 /** Een fout die de agent zélf over de stroom stuurde (`error`-event), en niet een verbinding die
@@ -583,17 +616,6 @@ export interface AgentFout extends ApiError {
  *  veilige ondergrens. Zonder deze bewaking blijft `reader.read()` eeuwig hangen op een halfopen
  *  socket – geen fout, geen einde, en een werkplek die tot in het oneindige "bezig" toont. */
 const STROOM_STILTE_MS = 45_000;
-
-/** Vist het actieve run_id uit een 409-detail. Levert niets op bij een onverwachte vorm – dan is
- *  het gewoon een fout en hoort hij als fout behandeld te worden. */
-function runIdUitDetail(detail: string): string | null {
-  try {
-    const ontleed = JSON.parse(detail) as { run_id?: unknown };
-    return typeof ontleed?.run_id === "string" ? ontleed.run_id : null;
-  } catch {
-    return null;
-  }
-}
 
 /** Haak aan bij een run en volg hem vanaf `vanaf`. Loskoppelen (abort) laat de run doorlopen —
  *  dat is het hele verschil met de oude stream. */
