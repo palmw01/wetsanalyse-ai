@@ -28,6 +28,7 @@ from datetime import datetime, timezone
 from pydantic import BaseModel, Field
 
 from .annotatie_contracts import AgentRun, AnnotatieDocument, AnnotatieElement, AuditRecord
+from .wetstructuur import ontleed
 from .validation import JAS_KLASSE_KLEUREN, JAS_TEKSTKLEUR, jas_sorteersleutel
 
 EXPORT_VERSIE = "1"
@@ -369,6 +370,24 @@ def naar_pdf(e: ExportDocument) -> bytes:
     st_wet = ParagraphStyle("wa-wet", parent=st, fontSize=8.5, leading=12,
                             leftIndent=4 * mm, spaceAfter=1.5 * mm)
 
+    _wetstijlen: dict[int, ParagraphStyle] = {}
+
+    def _wetstijl(basis: ParagraphStyle, niveau: int) -> ParagraphStyle:
+        """De wettekststijl voor één nestingniveau, met een HANGEND nummer.
+
+        `firstLineIndent` negatief zet het nummer in de marge en laat de rest van de alinea op één
+        lijn uitkomen — zoals de wet zelf is opgemaakt. Stijlen worden hergebruikt: reportlab
+        registreert ze op naam en een dubbele naam is een fout.
+        """
+        if niveau not in _wetstijlen:
+            _wetstijlen[niveau] = ParagraphStyle(
+                f"wa-wet-{niveau}", parent=basis,
+                leftIndent=basis.leftIndent + niveau * 6 * mm + (5 * mm if niveau else 0),
+                firstLineIndent=-5 * mm if niveau else 0,
+                spaceAfter=(1.0 if niveau else 1.5) * mm,
+            )
+        return _wetstijlen[niveau]
+
     def esc(tekst) -> str:
         """Wettekst en modeluitvoer mogen `<` en `&` bevatten; reportlab leest een alinea als
         mini-markup. Zonder deze escape breekt één citaat met een `<` het hele document."""
@@ -444,11 +463,34 @@ def naar_pdf(e: ExportDocument) -> bytes:
     verhaal.append(tab_meta)
 
     # 3. De letterlijke wettekst – brongetrouwheid: de tabel moet naast zijn bron te leggen zijn.
+    #
+    # Per ONDERDEEL een eigen alinea, met inspringing naar nestingniveau. Tot 2 sep 2026 ging elk lid
+    # als één alinea naar buiten, en reportlab vouwt witruimte samen: de `\n` tussen de onderdelen
+    # verdween, waardoor a./b./c. als lopende tekst aan elkaar plakten. Erger dan in de webapp, waar
+    # `whitespace-pre-wrap` de regeleindes tenminste liet staan.
+    #
+    # De structuurherkenning is dezelfde als die van de werkplek (`app/wetstructuur.py`, met gedeelde
+    # vectoren); zo staat een onderdeel in de PDF op dezelfde marge als in beeld. De tekst zelf
+    # verandert geen teken — de weergave verplaatst hem, meer niet.
     if e.leden:
         verhaal.append(p("Wettekst (letterlijk)", st_kop))
         for lid in e.leden:
-            label = f"<b>Lid {esc(lid.lid)}.</b> " if lid.lid else ""
-            verhaal.append(pm(label + esc(lid.tekst), st_wet))
+            for i, regel in enumerate(lid.tekst.split("\n")):
+                if not regel.strip():
+                    continue
+                o = ontleed(regel)
+                # Het lidvoorvoegsel heeft dezelfde vorm als een onderdeelnummer ("1."); alleen hier
+                # is te weten dat het om het lid gaat, namelijk bij de eerste regel van dit lid.
+                is_lidkop = i == 0 and bool(lid.lid) and regel.lstrip().startswith(f"{lid.lid}.")
+                if is_lidkop:
+                    o = ontleed(regel.lstrip()[len(lid.lid) + 1:])
+                    kop = f"<b>Lid {esc(lid.lid)}.</b> "
+                    niveau = 0
+                else:
+                    kop = f"<b>{esc(o.nummer)}</b> " if o.nummer else ""
+                    niveau = o.niveau
+                term = f"<b>{esc(o.term)}</b>: " if o.term else ""
+                verhaal.append(pm(kop + term + esc(o.tekst), _wetstijl(st_wet, niveau)))
 
     # 4. De hoofdtabel, in de kleuren van de JAS-tabel.
     verhaal.append(p("Markeringen", st_kop))

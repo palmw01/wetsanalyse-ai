@@ -1,0 +1,141 @@
+{
+  "_waarom": "Gedeelde testvectoren voor het ontleden van één regel wettekst. TypeScript (frontend/lib/wetstructuur.ts) voedt het documentpaneel, Python (api/app/wetstructuur.py) de PDF-export; ze moeten dezelfde regel hetzelfde ontleden, anders staat een onderdeel in de PDF op een andere marge dan in de werkplek en gaat de jurist twijfelen aan de bron in plaats van aan de opmaak. Zelfde patroon als bronHash.vectoren.json, dat er kwam nadat Python en JS uiteenliepen. Beide suites toetsen tegen dit bestand; wijzig het niet met de hand zonder beide kanten mee te nemen.",
+  "_velden": {
+    "nummer": "het onderdeelnummer zoals het in de wet staat, inclusief punt; leeg als de regel er geen heeft",
+    "term": "de gedefinieerde term vóór de dubbele punt, alleen vlak ná een nummer; anders leeg",
+    "tekst": "de rest van de regel, ná nummer en term",
+    "niveau": "0 = aanhef of lopende tekst, 1 = letter- of streepje-onderdeel, 2 = genest (graden)"
+  },
+  "vectoren": [
+    {
+      "_geval": "aanhef van een definitielid",
+      "regel": "Deze wet verstaat onder:",
+      "uit": { "nummer": "", "term": "", "tekst": "Deze wet verstaat onder:", "niveau": 0 }
+    },
+    {
+      "_geval": "letteronderdeel met definitieterm",
+      "regel": "a. rijksbelastingen: belastingen als bedoeld in artikel 1 van de Algemene wet inzake rijksbelastingen;",
+      "uit": {
+        "nummer": "a.",
+        "term": "rijksbelastingen",
+        "tekst": "belastingen als bedoeld in artikel 1 van de Algemene wet inzake rijksbelastingen;",
+        "niveau": 1
+      }
+    },
+    {
+      "_geval": "genest graden-onderdeel",
+      "regel": "1°. Koninkrijk: Koninkrijk der Nederlanden;",
+      "uit": { "nummer": "1°.", "term": "Koninkrijk", "tekst": "Koninkrijk der Nederlanden;", "niveau": 2 }
+    },
+    {
+      "_geval": "dubbelletter-onderdeel (aa. staat tussen a. en b., niet dieper)",
+      "regel": "aa. de BES eilanden: Bonaire, Sint Eustatius en Saba;",
+      "uit": {
+        "nummer": "aa.",
+        "term": "de BES eilanden",
+        "tekst": "Bonaire, Sint Eustatius en Saba;",
+        "niveau": 1
+      }
+    },
+    {
+      "_geval": "streepje-opsomming uit de Leidraad (en-dash)",
+      "regel": "– de gevraagde gegevens voor de beoordeling van het verzoek niet zijn verstrekt;",
+      "uit": {
+        "nummer": "–",
+        "term": "",
+        "tekst": "de gevraagde gegevens voor de beoordeling van het verzoek niet zijn verstrekt;",
+        "niveau": 1
+      }
+    },
+    {
+      "_geval": "VALKUIL: een en-dash MIDDEN in een zin is een gedachtestreepje, geen opsomming",
+      "regel": "de belastingschuldige de in dat verband gevraagde opheldering niet – of niet volledig – heeft gegeven;",
+      "uit": {
+        "nummer": "",
+        "term": "",
+        "tekst": "de belastingschuldige de in dat verband gevraagde opheldering niet – of niet volledig – heeft gegeven;",
+        "niveau": 0
+      }
+    },
+    {
+      "_geval": "VALKUIL: een dubbele punt in gewone tekst is geen definitieterm",
+      "regel": "Hoofdelijk aansprakelijk is voor de loonbelasting: ieder van de bestuurders.",
+      "uit": {
+        "nummer": "",
+        "term": "",
+        "tekst": "Hoofdelijk aansprakelijk is voor de loonbelasting: ieder van de bestuurders.",
+        "niveau": 0
+      }
+    },
+    {
+      "_geval": "VALKUIL: een dubbele punt verderop in een onderdeel is ook geen term",
+      "regel": "b. van huurtoeslag op de bankrekening van een toegelaten instelling, als bedoeld in artikel 19 van de Woningwet: dat geldt hier;",
+      "uit": {
+        "nummer": "b.",
+        "term": "",
+        "tekst": "van huurtoeslag op de bankrekening van een toegelaten instelling, als bedoeld in artikel 19 van de Woningwet: dat geldt hier;",
+        "niveau": 1
+      }
+    },
+    {
+      "_geval": "onderdeel zonder definitieterm",
+      "regel": "c. van zorgtoeslag op de bankrekening van een zorgverzekeraar;",
+      "uit": {
+        "nummer": "c.",
+        "term": "",
+        "tekst": "van zorgtoeslag op de bankrekening van een zorgverzekeraar;",
+        "niveau": 1
+      }
+    },
+    {
+      "_geval": "lopende tekst zonder onderdelen (art. 9 lid 1 IW 1990)",
+      "regel": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+      "uit": {
+        "nummer": "",
+        "term": "",
+        "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+        "niveau": 0
+      }
+    },
+    {
+      "_geval": "VALKUIL: 'a.' als afkorting midden in een zin telt niet",
+      "regel": "Voor de toepassing van dit artikel wordt a. buiten beschouwing gelaten.",
+      "uit": {
+        "nummer": "",
+        "term": "",
+        "tekst": "Voor de toepassing van dit artikel wordt a. buiten beschouwing gelaten.",
+        "niveau": 0
+      }
+    },
+    {
+      "_geval": "VALKUIL: een zin die met een hoofdletterwoord begint is geen onderdeel",
+      "regel": "De ontvanger kan uitstel van betaling verlenen.",
+      "uit": {
+        "nummer": "",
+        "term": "",
+        "tekst": "De ontvanger kan uitstel van betaling verlenen.",
+        "niveau": 0
+      }
+    },
+    {
+      "_geval": "een leeg regelnummer zonder tekst erachter (lege container, zoals aa. in art. 2 IW)",
+      "regel": "aa.",
+      "uit": { "nummer": "aa.", "term": "", "tekst": "", "niveau": 1 }
+    },
+    {
+      "_geval": "lege regel",
+      "regel": "",
+      "uit": { "nummer": "", "term": "", "tekst": "", "niveau": 0 }
+    },
+    {
+      "_geval": "genummerd onderdeel met cijfer en punt (geen graden) – niveau 1, niet 2",
+      "regel": "1. de ontvanger stelt de termijn vast;",
+      "uit": { "nummer": "1.", "term": "", "tekst": "de ontvanger stelt de termijn vast;", "niveau": 1 }
+    },
+    {
+      "_geval": "em-dash als opsommingsteken (sommige regelingen gebruiken die)",
+      "regel": "— het bedrag van de aanslag;",
+      "uit": { "nummer": "—", "term": "", "tekst": "het bedrag van de aanslag;", "niveau": 1 }
+    }
+  ]
+}

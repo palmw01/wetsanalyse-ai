@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { segmenteer } from "./DocumentPaneel";
+import { segmenteer, segmentenVanBlok } from "./DocumentPaneel";
+import { blokkenVan } from "@/lib/wetstructuur";
 import { maakAnker } from "@/lib/selectie";
 
 const BRON = "De ontvanger kan uitstel van betaling verlenen aan de belastingschuldige.";
@@ -97,5 +98,57 @@ describe("segmenteer – ankers", () => {
       { id: "a", klasse: "Rechtssubject", tekst: "De ontvanger" },
     ], "a");
     expect(offsetVanMarkering(segs)).toBe(0);
+  });
+});
+
+describe("segmentenVanBlok – een markering knippen op de blokgrens", () => {
+  // De blokken zoals `blokkenVan` ze levert voor één lid met twee onderdelen.
+  const REGELS = [{ lid: "1", regel: "1. De aanhef luidt:\na. het eerste onderdeel;\nb. het tweede;" }];
+  const BRON_B = REGELS[0].regel;
+  const blokken = blokkenVan(REGELS);
+
+  function markering(fragment: string, klasse = "Voorwaarde", id = "m") {
+    const start = BRON_B.indexOf(fragment);
+    return { start, eind: start + fragment.length, klasse, id };
+  }
+
+  it("laat een blok zonder markering ongemoeid", () => {
+    expect(segmentenVanBlok(blokken[0], null)).toEqual([{ tekst: "1. De aanhef luidt:" }]);
+  });
+
+  it("markeert binnen één blok en houdt de rest van dat blok heel", () => {
+    const segs = segmentenVanBlok(blokken[1], markering("eerste onderdeel"));
+    expect(segs.map((s) => s.tekst).join("")).toBe(blokken[1].regel);
+    expect(segs.filter((s) => s.klasse)).toHaveLength(1);
+    expect(segs.find((s) => s.klasse)?.tekst).toBe("eerste onderdeel");
+  });
+
+  it("knipt een markering die twee blokken overspant in twee stukken", () => {
+    // Een <mark> kan niet over twee blokken heen – die zijn aparte DOM-elementen. Zonder knippen
+    // zou de markering in het tweede blok verdwijnen.
+    const m = markering("luidt:\na. het eerste");
+    const eerste = segmentenVanBlok(blokken[0], m).filter((s) => s.klasse);
+    const tweede = segmentenVanBlok(blokken[1], m).filter((s) => s.klasse);
+    expect(eerste).toHaveLength(1);
+    expect(tweede).toHaveLength(1);
+    expect(eerste[0].tekst).toBe("luidt:");
+    expect(tweede[0].tekst).toBe("a. het eerste");
+    // Beide stukken dragen dezelfde klasse en hetzelfde id – anders reageren ze los op een klik.
+    expect([eerste[0].id, tweede[0].id]).toEqual(["m", "m"]);
+    expect([eerste[0].klasse, tweede[0].klasse]).toEqual(["Voorwaarde", "Voorwaarde"]);
+  });
+
+  it("raakt een blok dat buiten de markering valt niet aan", () => {
+    const m = markering("eerste onderdeel");
+    expect(segmentenVanBlok(blokken[2], m).some((s) => s.klasse)).toBe(false);
+    expect(segmentenVanBlok(blokken[0], m).some((s) => s.klasse)).toBe(false);
+  });
+
+  it("houdt elk blok in zijn geheel, ongeacht de markering", () => {
+    // Zelfde eis als `heelGebleven` hierboven, nu per blok: er mag geen wettekst zoekraken.
+    const m = markering("aanhef luidt:\na. het");
+    for (const b of blokken) {
+      expect(segmentenVanBlok(b, m).map((s) => s.tekst).join("")).toBe(b.regel);
+    }
   });
 });

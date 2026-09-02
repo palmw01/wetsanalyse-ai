@@ -606,9 +606,27 @@ De jurist kan in `DocumentPaneel` tekst selecteren en die zelf markeren. Zes din
   ruimt de DOM-selectie op als het de popover sluit (`sluitSelectie`), anders klapt die bij de
   volgende tik meteen weer open.
 - **De rekenkern staat in `lib/selectie.ts`**, niet in het component: vitest draait node-env zonder
-  DOM, dus alleen zo is die logica te testen. Het component doet enkel de `TreeWalker`-wandeling en
-  geeft knooplengtes door aan `offsetUit`. Dat werkt doordat de alinea één aaneengesloten reeks
-  `span`/`mark` is waarvan de tekstknopen samen exact de bron vormen.
+  DOM, dus alleen zo is die logica te testen. Het component doet enkel de `TreeWalker`-wandeling
+  (`offsetVanGrens`) en geeft knooplengtes door aan `offsetInBlok`.
+- **De tekst staat in BLOKKEN, en elk blok draagt `data-offset`.** Tot 2 sep 2026 stond alles in één
+  `<p>` met `whitespace-pre-wrap` en telde `offsetUit` de lengte van *alle* tekstknopen op. Daaruit
+  volgde een ongeschreven eis — de tekstknopen moesten samen exact de bron vormen — en die zette de
+  weergave vast: leden en onderdelen op dezelfde marge, want elk scheidingsteken dat je weglaat
+  verschuift stil elke zelfgemaakte markering. Bij art. 2 lid 1 IW 1990 lazen de geneste `1°.`–`4°.`
+  daardoor als zelfstandige onderdelen in plaats van als uitwerking van de `a.` waar ze onder hangen.
+  Nu draagt elk blok zijn startpositie en telt `offsetVanGrens` alleen binnen dát blok. **Haal
+  `data-offset` niet weg** — dan landt elke markering op de verkeerde tekst, en dat gebeurt stil.
+- **Een markering wordt op de blokgrens geknipt** (`segmentenVanBlok`). Een `<mark>` kan niet over
+  twee blokken heen; loopt een markering van de aanhef door tot in een onderdeel, dan worden het twee
+  `<mark>`s met dezelfde klasse en hetzelfde id, optisch verbonden door `box-decoration-clone`.
+- **De structuur komt uit `lib/wetstructuur.ts`** (`ontleed` + `blokkenVan`). Het nestingniveau is
+  **afgeleid uit de nummervorm**, geen waarheid: de echte nesting zit in de graaf (`?ouder`) maar
+  reist niet mee, want `GET /v1/artikel` levert `leden_teksten` als `{lid, tekst}[]`. Bij een
+  regeling waar `1°.` wél bovenaan staat springt het ten onrechte in — een scheve marge, nooit een
+  scheve markering. Let op de valkuil die `blokkenVan` afvangt: het lidvoorvoegsel `"1. "` heeft
+  exact de vorm van een onderdeelnummer, en alleen daar is te weten dat het om het lid gaat.
+  Dezelfde parser staat in `api/app/wetstructuur.py` voor de PDF; `wetstructuur.vectoren.json`
+  bewaakt dat ze niet uiteenlopen, net als `bronHash.vectoren.json`.
 - **De brontekst is een lijst `LidRegel`, geen lijst strings** (`regelsVan`/`bronVan` in
   `lib/annotatie.ts`). Het lidnummer reist naast de regel mee omdat het **niet uit de volgorde is af
   te leiden**: bij een op één lid afgebakend document levert de graaf alléén dat lid – index 0, lid 3 —
