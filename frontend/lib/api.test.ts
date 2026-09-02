@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { isApiError, parseError, startRun, volgRun } from "./api";
+import { isApiError, login2fa, loginVerify, parseError, startRun, volgRun } from "./api";
 import type { AgentGrounding } from "./types";
 
 describe("parseError", () => {
@@ -357,5 +357,45 @@ describe("isApiError", () => {
     expect(isApiError(new Error("boom"))).toBe(false);
     expect(isApiError(null)).toBe(false);
     expect(isApiError("tekst")).toBe(false);
+  });
+});
+
+// Een storing mag nooit als "verkeerd wachtwoord" bij de gebruiker aankomen: dat is precies het
+// moment waarop iemand aan zijn geheugen gaat twijfelen in plaats van aan de infrastructuur. De
+// API wijst een login af met een 200 + `ok: false`, dus alleen een 5xx is hier een storing.
+describe("loginVerify / login2fa – storing vs. afwijzing", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  function antwoord(body: unknown, status: number): Response {
+    return new Response(JSON.stringify(body), {
+      status,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  it("laat een gewone afwijzing ongemoeid (200 met ok:false)", async () => {
+    const body = { ok: false, code: "invalid", userid: "", email: "", role: "" };
+    vi.stubGlobal("fetch", vi.fn(async () => antwoord(body, 200)));
+    await expect(loginVerify("jan", "fout")).resolves.toMatchObject({ ok: false, code: "invalid" });
+  });
+
+  it("houdt 429 een rate-limit, geen storing", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => antwoord({ detail: "te druk" }, 429)));
+    await expect(loginVerify("jan", "x")).resolves.toMatchObject({ code: "rate" });
+  });
+
+  it("gooit bij een 504 (API antwoordde niet op tijd)", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => antwoord({ detail: "niet op tijd" }, 504)));
+    await expect(loginVerify("jan", "goed")).rejects.toMatchObject({ status: 504 });
+  });
+
+  it("gooit bij een 502 (API onbereikbaar)", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => antwoord({ detail: "onbereikbaar" }, 502)));
+    await expect(login2fa("jan", "123456", false)).rejects.toMatchObject({ status: 502 });
+  });
+
+  it("laat de 401 van de 2FA-route een afwijzing (ticket verlopen), geen storing", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => antwoord({ ok: false, code: "invalid" }, 401)));
+    await expect(login2fa("jan", "123456", false)).resolves.toMatchObject({ code: "invalid" });
   });
 });

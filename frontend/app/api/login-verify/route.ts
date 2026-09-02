@@ -29,8 +29,11 @@ export async function POST(req: Request) {
   }
 
   // Naar de client alleen het niet-gevoelige deel; ticket/trusted_token blijven in de httpOnly cookie.
+  // De status gaat ongewijzigd mee (BFF-regel): een afgewezen login is bij de API een 200 met
+  // `ok: false`, dus élke andere status is een storing – en die mag de client niet als "verkeerd
+  // wachtwoord" tonen.
   return Response.json(
     { ok: body.ok, code: body.code, userid: userid ?? "", email: body.email, role: body.role },
-    { status: status === 429 ? 429 : 200 },
+    { status },
   );
 }

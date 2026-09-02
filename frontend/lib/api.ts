@@ -200,6 +200,11 @@ export async function loginVerify(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ userid, password }),
   });
+  // Een 5xx is een storing, geen oordeel over de inloggegevens: gooien, zodat de aanroeper zijn
+  // "dienst niet bereikbaar"-melding toont. Zonder die worp werd een platte API hier stilzwijgend
+  // "invalid" – en las de gebruiker dat zijn wachtwoord fout was. De API wijst een login af met een
+  // 200 + `ok: false`, dus daar raakt dit niet aan.
+  if (res.status >= 500) throw await parseError(res);
   if (!res.ok && res.status !== 200) {
     return { ok: false, code: res.status === 429 ? "rate" : "invalid", userid: "", email: "", role: "" };
   }
@@ -218,6 +223,9 @@ export async function login2fa(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ userid, totp, remember }),
   });
+  // Zie `loginVerify`: alleen een 5xx is een storing. De 401 van deze route (login-ticket verlopen)
+  // blijft een gewone afwijzing – die hoort je terug naar stap A te sturen, niet naar een storing.
+  if (res.status >= 500) throw await parseError(res);
   if (!res.ok && res.status !== 200) {
     return { ok: false, code: res.status === 429 ? "rate" : "invalid", userid: "", email: "", role: "" };
   }

@@ -11,11 +11,21 @@ import { apiBaseUrl, authHeader } from "./config";
 import { logger } from "./logger";
 import { metTrace } from "./trace";
 
+/** Wachttijd voor de gewone server-fetches. Node's `fetch` kent geen standaardtimeout: een API die
+ *  de verbinding wél accepteert maar niet antwoordt, laat de aanroep onbeperkt hangen – en daarmee de
+ *  `auth()` eraan, en dus de hele render. Dezelfde reden als `STANDAARD_TIMEOUT_MS` in de BFF-proxy. */
+const SERVER_TIMEOUT_MS = 10_000;
+
+/** Ruimer voor de login: de api schaalt naar nul replica's, dus de eerste poging na een stille
+ *  periode betaalt een koude start. Een login die daarop afknapt is erger dan een login die even
+ *  duurt. Gelijk aan de default van de BFF-proxy. */
+const AUTH_VERIFY_TIMEOUT_MS = 30_000;
+
 async function serverGet<T>(path: string): Promise<T> {
   const res = await fetch(`${apiBaseUrl()}${path}`, {
     headers: metTrace({ ...authHeader() }),
     cache: "no-store",
-    signal: AbortSignal.timeout(10_000),
+    signal: AbortSignal.timeout(SERVER_TIMEOUT_MS),
   });
   if (!res.ok) {
     logger.warn("Server-fetch niet-ok", { http_path: path, http_status: res.status });
@@ -30,7 +40,7 @@ async function serverGet<T>(path: string): Promise<T> {
 
 export interface VerifyResult {
   ok: boolean;
-  code: string; // "" | "invalid" | "totp_required" | "rate"
+  code: string; // "" | "invalid" | "totp_required" | "rate" | "onbereikbaar"
   userid: string;
   email: string;
   role: "beheerder" | "analist" | "";
@@ -47,16 +57,36 @@ export interface VerifyOpts {
 }
 
 /** Lage-niveau POST naar `/v1/auth/verify` – geeft de VOLLEDIGE respons (incl. ticket/trusted_token)
- *  zodat de BFF-login-routes de cookies kunnen zetten. Server→server; nooit vanuit een client. */
+ *  zodat de BFF-login-routes de cookies kunnen zetten. Server→server; nooit vanuit een client.
+ *
+ *  Een transportfout wordt hier – net als de 429 hieronder – een gestructureerd antwoord in plaats
+ *  van een throw, met de status die `proxy()` er ook aan geeft: 504 als de API niet op tijd
+ *  antwoordde, 502 als hij onbereikbaar was. De login-routes geven die status door, zodat de client
+ *  een storing kan onderscheiden van een afgewezen wachtwoord. */
 export async function postAuthVerify(
   payload: Record<string, unknown>,
 ): Promise<{ status: number; body: VerifyResult }> {
-  const res = await fetch(`${apiBaseUrl()}/v1/auth/verify`, {
-    method: "POST",
-    headers: metTrace({ ...authHeader(), "Content-Type": "application/json" }),
-    body: JSON.stringify(payload),
-    cache: "no-store",
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${apiBaseUrl()}/v1/auth/verify`, {
+      method: "POST",
+      headers: metTrace({ ...authHeader(), "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+      cache: "no-store",
+      signal: AbortSignal.timeout(AUTH_VERIFY_TIMEOUT_MS),
+    });
+  } catch (err) {
+    const verlopen = (err as Error).name === "TimeoutError";
+    logger.error(verlopen ? "Auth-verify: API antwoordde niet op tijd" : "Auth-verify: API onbereikbaar", {
+      http_path: "/v1/auth/verify",
+      fout: (err as Error).message,
+      timeout_ms: verlopen ? AUTH_VERIFY_TIMEOUT_MS : undefined,
+    });
+    return {
+      status: verlopen ? 504 : 502,
+      body: { ok: false, code: "onbereikbaar", userid: "", email: "", role: "" },
+    };
+  }
   if (res.status === 429) {
     return { status: 429, body: { ok: false, code: "rate", userid: "", email: "", role: "" } };
   }
@@ -97,6 +127,9 @@ export async function getAccountStatus(userid: string): Promise<AccountStatus> {
     const res = await fetch(`${apiBaseUrl()}/v1/auth/me`, {
       headers: metTrace({ ...authHeader(), "X-User-Id": userid }),
       cache: "no-store",
+      // Zonder deze grens houdt een hangende API elke `auth()` vast – en daarmee elke render. De
+      // catch hieronder maakt er "onbekend" van: de sessie blijft staan, de herverificatie schuift op.
+      signal: AbortSignal.timeout(SERVER_TIMEOUT_MS),
     });
     if (res.status === 401) return { status: "ingetrokken" };
     if (!res.ok) return { status: "onbekend" };
