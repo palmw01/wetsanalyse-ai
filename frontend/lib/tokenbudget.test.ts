@@ -11,6 +11,16 @@ import {
 } from "./tokenbudget";
 import type { Verbruiksstand } from "./types";
 
+/** Een tijdstip op de LOKALE kalenderdag van de draaiende machine.
+ *
+ *  De helpers rekenen in kalenderdagen ("reset vandaag/morgen"), en dat is per definitie lokaal.
+ *  Een vaste UTC-string in een test hangt daardoor van de tijdzone af: `2026-09-06T23:00Z` valt in
+ *  UTC op 6 september en in Amsterdam op 7 september. Die test slaagde lokaal en zakte op CI.
+ */
+function lokaal(dag: number, uur = 12): string {
+  return new Date(2026, 8, dag, uur, 0, 0).toISOString();
+}
+
 function stand(over: Partial<Verbruiksstand> = {}): Verbruiksstand {
   return {
     userid: "palmw01",
@@ -18,7 +28,7 @@ function stand(over: Partial<Verbruiksstand> = {}): Verbruiksstand {
     budget: 500_000,
     percentage: 50,
     resterend: 250_000,
-    reset_op: "2026-09-09T12:00:00+00:00",
+    reset_op: lokaal(9),
     waarschuwing: false,
     geblokkeerd: false,
     actief: true,
@@ -48,12 +58,9 @@ describe("tokensKort", () => {
 });
 
 describe("resetdatum", () => {
-  it("schrijft de datum voluit", () => {
-    // Bewust op de vorm testen en niet op één string: de tijdzone van de draaiende machine bepaalt
-    // het uur, en de weekdag hoort er hoe dan ook bij te staan.
-    const tekst = resetdatum("2026-09-09T12:00:00+00:00");
-    expect(tekst).toMatch(/9 september om \d{2}:\d{2}$/);
-    expect(tekst).toMatch(/^woensdag/);
+  it("schrijft de datum voluit, met weekdag", () => {
+    const tekst = resetdatum(lokaal(9));
+    expect(tekst).toBe("woensdag 9 september om 12:00");
   });
 
   it("geeft niets terug bij een onleesbare datum", () => {
@@ -62,32 +69,33 @@ describe("resetdatum", () => {
 });
 
 describe("dagenTotReset", () => {
-  const nu = new Date("2026-09-06T12:00:00+00:00");
+  const nu = new Date(lokaal(6));
 
-  it("rondt naar boven af – een halve dag is nog een dag", () => {
-    expect(dagenTotReset("2026-09-09T12:00:00+00:00", nu)).toBe(3);
-    expect(dagenTotReset("2026-09-06T23:00:00+00:00", nu)).toBe(1);
+  it("telt kalenderdagen", () => {
+    expect(dagenTotReset(lokaal(9), nu)).toBe(3);
+  });
+
+  it("noemt later vandaag nog vandaag, niet morgen", () => {
+    // Op 24-uursblokken afronden zou hier 1 geven ("morgen"), terwijl de teller vanavond al reset.
+    expect(dagenTotReset(lokaal(6, 23), nu)).toBe(0);
+    expect(dagenTotReset(lokaal(7, 1), nu)).toBe(1);
   });
 
   it("wordt nooit negatief", () => {
-    expect(dagenTotReset("2026-09-01T12:00:00+00:00", nu)).toBe(0);
+    expect(dagenTotReset(lokaal(1), nu)).toBe(0);
   });
 });
 
 describe("verbruikSamenvatting", () => {
-  const nu = new Date("2026-09-06T12:00:00+00:00");
+  const nu = new Date(lokaal(6));
 
   it("noemt het percentage en wanneer het reset", () => {
     expect(verbruikSamenvatting(stand(), nu)).toBe("50% gebruikt · reset over 3 dagen");
   });
 
   it("schrijft vandaag en morgen uit in plaats van in dagen te tellen", () => {
-    expect(verbruikSamenvatting(stand({ reset_op: "2026-09-06T13:00:00+00:00" }), nu)).toContain(
-      "reset vandaag",
-    );
-    expect(verbruikSamenvatting(stand({ reset_op: "2026-09-07T11:00:00+00:00" }), nu)).toContain(
-      "reset morgen",
-    );
+    expect(verbruikSamenvatting(stand({ reset_op: lokaal(6, 23) }), nu)).toContain("reset vandaag");
+    expect(verbruikSamenvatting(stand({ reset_op: lokaal(7, 11) }), nu)).toContain("reset morgen");
   });
 });
 
