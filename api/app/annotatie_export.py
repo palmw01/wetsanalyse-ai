@@ -478,15 +478,22 @@ def naar_pdf(e: ExportDocument) -> bytes:
             for i, regel in enumerate(lid.tekst.split("\n")):
                 if not regel.strip():
                     continue
-                o = ontleed(regel)
-                # Het lidvoorvoegsel heeft dezelfde vorm als een onderdeelnummer ("1."); alleen hier
-                # is te weten dat het om het lid gaat, namelijk bij de eerste regel van dit lid.
-                is_lidkop = i == 0 and bool(lid.lid) and regel.lstrip().startswith(f"{lid.lid}.")
-                if is_lidkop:
-                    o = ontleed(regel.lstrip()[len(lid.lid) + 1:])
+                # DE EERSTE REGEL VAN EEN LID IS DE AANHEF, ongeacht hoe hij eruitziet. Het
+                # lidnummer komt uit `lid.lid` en niet uit de tekst: de werkplek stuurt de leden
+                # hierheen zoals de graaf ze levert — "Deze wet verstaat onder:", zónder voorvoegsel —
+                # terwijl `regelsVan` in de frontend er wél "1. " voor zet omdat de ankers daarmee
+                # rekenen. Die asymmetrie kostte op 2 sep 2026 de "Lid 1."-kop in de PDF: de detectie
+                # ging uit van een voorvoegsel dat er niet was.
+                if i == 0 and lid.lid:
+                    # Draagt de tekst het voorvoegsel tóch, dan gaat het eraf — anders staat het dubbel.
+                    kaal = regel.lstrip()
+                    if kaal.startswith(f"{lid.lid}."):
+                        kaal = kaal[len(lid.lid) + 1:]
+                    o = ontleed(kaal)
                     kop = f"<b>Lid {esc(lid.lid)}.</b> "
                     niveau = 0
                 else:
+                    o = ontleed(regel)
                     kop = f"<b>{esc(o.nummer)}</b> " if o.nummer else ""
                     niveau = o.niveau
                 term = f"<b>{esc(o.term)}</b>: " if o.term else ""
