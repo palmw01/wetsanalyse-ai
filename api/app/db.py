@@ -97,8 +97,9 @@ users = Table(
 # (bcrypt), zodat de goedgekeurde gebruiker meteen met zijn eigen wachtwoord kan inloggen en er geen
 # tijdelijk wachtwoord hoeft te worden rondgestuurd.
 #
-# `email` is uniek: één aanvraag per adres, ook na afwijzing. De beheerder kan een afgehandelde
-# aanvraag verwijderen om het adres weer vrij te geven.
+# `email` is uniek: één openstaande aanvraag per adres. Afwijzen VERWIJDERT de rij (adres en
+# volgnummer meteen weer vrij); een goedgekeurde aanvraag blijft staan als spoor en is met de hand
+# op te ruimen.
 registratie_aanvragen = Table(
     "registratie_aanvragen",
     metadata,
@@ -109,9 +110,10 @@ registratie_aanvragen = Table(
     # Het afgeleide voorstel; de beheerder mag er bij het goedkeuren van afwijken.
     Column("userid_voorstel", String(64), nullable=False, default=""),
     Column("password_hash", Text, nullable=False, default=""),
-    # aangevraagd | goedgekeurd | afgewezen
+    # aangevraagd | goedgekeurd (een afgewezen aanvraag wordt verwijderd, niet afgestempeld)
     Column("status", String(16), nullable=False, default="aangevraagd"),
-    # Afwijsreden – intern (auditspoor voor de beheerder), niet bedoeld voor de aanvrager.
+    # Ongebruikt sinds afwijzen de rij verwijdert; blijft staan omdat `reconcile_schema` bewust
+    # nooit kolommen dropt (dat is een aparte, bewuste migratie).
     Column("reden", Text, nullable=True),
     # De uiteindelijk toegekende userid; pas gevuld bij goedkeuring.
     Column("userid", String(64), nullable=True),

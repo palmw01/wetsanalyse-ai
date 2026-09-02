@@ -123,10 +123,12 @@ async def test_userid_wijkt_uit_voor_bestaand_account(db):
 
 
 async def test_afgewezen_aanvraag_geeft_volgnummer_vrij(db):
+    """Afwijzen verwijdert de rij, dus palmw01 is meteen weer beschikbaar."""
     from app import registraties
 
     eerste = await registraties.maak_aanvraag("Willard", "Palm", "a@example.com", "geheim123")
     await registraties.wijs_af(eerste.id, reden="test")
+    assert await registraties.get(eerste.id) is None
     tweede = await registraties.maak_aanvraag("Wendy", "Palmer", "b@example.com", "geheim123")
     assert tweede.userid_voorstel == "palmw01"
 
@@ -237,7 +239,7 @@ async def test_tweemaal_goedkeuren_geeft_409(client):
     )).status_code == 409
 
 
-async def test_afwijzen_met_reden(client):
+async def test_afwijzen_verwijdert_de_aanvraag(client):
     await client.post("/v1/auth/registratie", json=_aanvraag())
     aanvraag_id = (await client.get("/v1/admin/registraties", headers=_ADMIN)).json()[0]["id"]
 
@@ -247,9 +249,33 @@ async def test_afwijzen_met_reden(client):
     )
     assert r.status_code == 204
 
-    rij = (await client.get("/v1/admin/registraties", headers=_ADMIN)).json()[0]
-    assert rij["status"] == "afgewezen" and rij["reden"] == "geen testgebruiker"
+    # Geen rij meer – ook niet met een afgestempelde status – en geen account.
+    assert (await client.get("/v1/admin/registraties", headers=_ADMIN)).json() == []
     assert (await client.get("/v1/admin/users", headers=_ADMIN)).json() == []
+
+
+async def test_afwijzen_geeft_het_emailadres_meteen_vrij(client):
+    """De kern van het verwijderen: dezelfde persoon kan het opnieuw proberen zonder tussenkomst."""
+    await client.post("/v1/auth/registratie", json=_aanvraag())
+    aanvraag_id = (await client.get("/v1/admin/registraties", headers=_ADMIN)).json()[0]["id"]
+    await client.post(f"/v1/admin/registraties/{aanvraag_id}/afwijzen", json={}, headers=_ADMIN)
+
+    r = await client.post("/v1/auth/registratie", json=_aanvraag())
+    assert r.status_code == 201
+    # En ook het volgnummer is vrij: geen palmw02 voor een tweede poging van dezelfde persoon.
+    assert r.json()["userid"] == "palmw01"
+
+
+async def test_tweemaal_afwijzen_geeft_409(client):
+    await client.post("/v1/auth/registratie", json=_aanvraag())
+    aanvraag_id = (await client.get("/v1/admin/registraties", headers=_ADMIN)).json()[0]["id"]
+
+    assert (await client.post(
+        f"/v1/admin/registraties/{aanvraag_id}/afwijzen", json={}, headers=_ADMIN
+    )).status_code == 204
+    assert (await client.post(
+        f"/v1/admin/registraties/{aanvraag_id}/afwijzen", json={}, headers=_ADMIN
+    )).status_code == 409
 
 
 async def test_bulk_goedkeuren_is_best_effort(client):
@@ -270,16 +296,22 @@ async def test_bulk_goedkeuren_is_best_effort(client):
     assert {x["userid"] for x in regels if x["ok"]} == {"palmw01", "palmw02"}
 
 
-async def test_verwijderen_geeft_emailadres_vrij(client):
+async def test_goedgekeurde_aanvraag_opruimen(client):
+    """Een goedgekeurde aanvraag blijft als spoor staan; verwijderen is een aparte handeling.
+
+    Het e-mailadres komt daarmee niet vrij – dat hoort nu bij een echt account.
+    """
     await client.post("/v1/auth/registratie", json=_aanvraag())
     aanvraag_id = (await client.get("/v1/admin/registraties", headers=_ADMIN)).json()[0]["id"]
-    await client.post(f"/v1/admin/registraties/{aanvraag_id}/afwijzen", json={}, headers=_ADMIN)
+    await client.post(f"/v1/admin/registraties/{aanvraag_id}/goedkeuren", json={}, headers=_ADMIN)
 
-    assert (await client.post("/v1/auth/registratie", json=_aanvraag())).status_code == 409
+    assert (await client.get("/v1/admin/registraties", headers=_ADMIN)).json()[0]["status"] == (
+        "goedgekeurd"
+    )
     assert (await client.delete(
         f"/v1/admin/registraties/{aanvraag_id}", headers=_ADMIN
     )).status_code == 204
-    assert (await client.post("/v1/auth/registratie", json=_aanvraag())).status_code == 201
+    assert (await client.get("/v1/admin/registraties", headers=_ADMIN)).json() == []
 
 
 async def test_admin_endpoints_vereisen_token(client):
@@ -297,13 +329,14 @@ async def test_inloggen_toont_openstaande_aanvraag(client):
     assert r.json()["ok"] is False and r.json()["code"] == "aanvraag_open"
 
 
-async def test_inloggen_toont_afwijzing(client):
+async def test_inloggen_na_afwijzing_is_gewoon_invalid(client):
+    """Met de rij verdwijnt ook de melding: er is niets meer om naar te verwijzen."""
     await client.post("/v1/auth/registratie", json=_aanvraag())
     aanvraag_id = (await client.get("/v1/admin/registraties", headers=_ADMIN)).json()[0]["id"]
     await client.post(f"/v1/admin/registraties/{aanvraag_id}/afwijzen", json={}, headers=_ADMIN)
 
     r = await client.post("/v1/auth/verify", json={"userid": "palmw01", "password": "geheim123"})
-    assert r.json()["ok"] is False and r.json()["code"] == "aanvraag_afgewezen"
+    assert r.json()["ok"] is False and r.json()["code"] == "invalid"
 
 
 async def test_verkeerd_wachtwoord_lekt_de_aanvraag_niet(client):

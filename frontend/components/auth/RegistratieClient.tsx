@@ -88,11 +88,7 @@ export function RegistratieClient() {
           onChange={(e) => setVoornaam(e.target.value)}
         />
       </Field>
-      <Field
-        label="Achternaam"
-        hint="Je gebruikersnaam wordt hieruit afgeleid, bijvoorbeeld palmw01."
-        required
-      >
+      <Field label="Achternaam" required>
         <Input
           type="text"
           autoComplete="family-name"

@@ -38,10 +38,13 @@ De API bedient zeven dingen:
    valt er niets mee in te loggen. De userid wordt afgeleid uit de naam (vier letters achternaam +
    eerste letter voornaam + volgnummer, `palmw01`) en is bij het goedkeuren corrigeerbaar; de
    bcrypt-hash gaat ongewijzigd over naar het account (`users.insert_user_met_hash`), zodat er geen
-   tijdelijk wachtwoord hoeft te worden rondgestuurd. Er gaat **geen e-mail** uit: de aanvrager hoort
-   de status bij een inlogpoging, via de `code` van `/verify` (`aanvraag_open`/`aanvraag_afgewezen`) –
-   en alleen bij het **juiste wachtwoord**, want anders wordt dat een oracle waarmee je kunt
-   uitvragen wie er een aanvraag heeft liggen.
+   tijdelijk wachtwoord hoeft te worden rondgestuurd. **Afwijzen verwijdert de rij** – het
+   e-mailadres en het volgnummer zijn daarmee meteen weer vrij en de beheerder hoeft er geen tweede
+   handeling voor te doen; wat overblijft is de regel in het security-log. Er gaat **geen e-mail**
+   uit: zolang een aanvraag openstaat hoort de aanvrager dat bij een inlogpoging, via de `code`
+   `aanvraag_open` van `/verify` – en alleen bij het **juiste wachtwoord**, want anders wordt dat een
+   oracle waarmee je kunt uitvragen wie er een aanvraag heeft liggen. Na een afwijzing bestaat die
+   melding niet meer: er is niets om naar te verwijzen, dus dat wordt weer een gewone `invalid`.
 4. **LLM-modelprofielbeheer** (`/v1/admin/profiles`).
 5. De **profiel-keuzelijst** voor de UI (`/v1/profiles`).
 6. **Berichten** (`/v1/berichten/*` + `/v1/admin/berichten/*`): release notes die beheerders

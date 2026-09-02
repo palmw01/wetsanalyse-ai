@@ -13,9 +13,9 @@ POST   /v1/admin/profiles/{name}/default  – markeer als default
 POST   /v1/admin/profiles/{name}/test     – test de verbinding (kleine LLM-call)
 GET    /v1/admin/registraties             – zelfregistratie-aanvragen (optioneel ?status=)
 POST   /v1/admin/registraties/{id}/goedkeuren  – maak het account aan
-POST   /v1/admin/registraties/{id}/afwijzen    – wijs af (met reden)
+POST   /v1/admin/registraties/{id}/afwijzen    – wijs af (verwijdert de aanvraag)
 POST   /v1/admin/registraties/goedkeuren       – meerdere tegelijk goedkeuren
-DELETE /v1/admin/registraties/{id}             – aanvraag weg (geeft het e-mailadres vrij)
+DELETE /v1/admin/registraties/{id}             – ruim een goedgekeurde aanvraag op uit het archief
 """
 
 from __future__ import annotations
@@ -280,7 +280,9 @@ async def verwijder_user(userid: str):
 #
 # Het aanvraagformulier staat publiek open (`POST /v1/auth/registratie`); hier beslist de beheerder.
 # Een goedkeuring maakt pas dán het account, met de userid die de beheerder bevestigt of corrigeert
-# en het wachtwoord dat de aanvrager zelf koos. Het wachtwoord-hash komt nergens in deze responses.
+# en het wachtwoord dat de aanvrager zelf koos. Een afwijzing VERWIJDERT de aanvraag, zodat het
+# e-mailadres en het volgnummer meteen weer vrij zijn; wat ervan overblijft is de security-logregel.
+# Het wachtwoord-hash komt nergens in deze responses.
 
 class RegistratieOut(BaseModel):
     id: int
@@ -304,6 +306,7 @@ class RegistratieGoedkeurIn(BaseModel):
 
 
 class RegistratieAfwijzenIn(BaseModel):
+    """De reden gaat naar het security-log, niet naar de database – de rij verdwijnt immers."""
     reden: str = Field(default="", max_length=2000)
 
 
@@ -362,14 +365,17 @@ async def keur_registratie_goed(
 async def wijs_registratie_af(
     aanvraag_id: int, body: RegistratieAfwijzenIn, admin_id: str = Depends(require_admin)
 ):
+    """Wijs af en verwijder de aanvraag; het e-mailadres en het volgnummer komen meteen vrij."""
     try:
-        await registraties.wijs_af(aanvraag_id, reden=body.reden, actor=admin_id)
+        aanvraag = await registraties.wijs_af(aanvraag_id, reden=body.reden, actor=admin_id)
     except users.UserError as e:
         raise HTTPException(status_code=409, detail=str(e))
+    # De rij bestaat hierna niet meer, dus dit log ís het spoor: wie het was en waarom.
     logger.info(
-        "registratie afgewezen",
+        "registratie afgewezen en verwijderd",
         extra={"categorie": "security", "actie": "registratie_afgewezen",
-               "aanvraag_id": aanvraag_id, "door": admin_id},
+               "aanvraag_id": aanvraag_id, "userid": aanvraag.userid_voorstel,
+               "reden": aanvraag.reden or "", "door": admin_id},
     )
 
 
@@ -397,7 +403,7 @@ async def keur_registraties_goed(
 
 @router.delete("/registraties/{aanvraag_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def verwijder_registratie(aanvraag_id: int, admin_id: str = Depends(require_admin)):
-    """Haal een aanvraag weg – de enige manier om het e-mailadres weer vrij te geven."""
+    """Ruim een goedgekeurde aanvraag op uit het archief (afwijzen verwijdert zelf al)."""
     try:
         await registraties.verwijder(aanvraag_id)
     except users.UserError as e:

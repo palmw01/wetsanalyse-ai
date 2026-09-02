@@ -32,7 +32,7 @@ export function RegistratiesPanel() {
   const [fout, setFout] = useState<string | null>(null);
   const [melding, setMelding] = useState<string | null>(null);
   const [bezig, setBezig] = useState(false);
-  const [toonAfgehandeld, setToonAfgehandeld] = useState(false);
+  const [toonGoedgekeurd, setToonGoedgekeurd] = useState(false);
   // Per aanvraag de (eventueel gecorrigeerde) userid en de rol die de beheerder wil toekennen.
   const [keuze, setKeuze] = useState<Record<number, { userid: string; role: Role }>>({});
   const [geselecteerd, setGeselecteerd] = useState<Set<number>>(new Set());
@@ -40,7 +40,7 @@ export function RegistratiesPanel() {
   const laad = useCallback(async () => {
     setFout(null);
     try {
-      const rijen = await listRegistraties(toonAfgehandeld ? undefined : "aangevraagd");
+      const rijen = await listRegistraties(toonGoedgekeurd ? undefined : "aangevraagd");
       setAanvragen(rijen);
       // De voorstellen als startwaarde in de formuliervelden; wat de beheerder al typte blijft staan.
       setKeuze((vorig) => {
@@ -55,7 +55,7 @@ export function RegistratiesPanel() {
       setFout(isApiError(e) ? `${e.detail} (${e.status})` : (e as Error).message);
       setAanvragen([]);
     }
-  }, [toonAfgehandeld]);
+  }, [toonGoedgekeurd]);
 
   useEffect(() => {
     // Data-load bij mount en bij het wisselen van filter: setState gebeurt async ná de fetch.
@@ -151,7 +151,7 @@ export function RegistratiesPanel() {
     <SettingGroup
       titel="Aanvragen"
       count={open.length}
-      omschrijving="Wie toegang heeft aangevraagd via het registratieformulier. Goedkeuren maakt het account aan; de aanvrager logt in met het wachtwoord dat hij zelf koos."
+      omschrijving="Wie toegang heeft aangevraagd via het registratieformulier. Goedkeuren maakt het account aan; de aanvrager logt in met het wachtwoord dat hij zelf koos. Afwijzen verwijdert de aanvraag, zodat het e-mailadres weer vrij is."
     >
       {fout && (
         <Melding type="fout" className="mb-3">
@@ -169,10 +169,10 @@ export function RegistratiesPanel() {
           <input
             type="checkbox"
             className="h-4 w-4 accent-lint"
-            checked={toonAfgehandeld}
-            onChange={(e) => setToonAfgehandeld(e.target.checked)}
+            checked={toonGoedgekeurd}
+            onChange={(e) => setToonGoedgekeurd(e.target.checked)}
           />
-          Ook afgehandelde aanvragen tonen
+          Ook goedgekeurde aanvragen tonen
         </label>
         <Button
           size="sm"
@@ -189,7 +189,7 @@ export function RegistratiesPanel() {
         <p className="text-sm text-muted">Laden…</p>
       ) : aanvragen.length === 0 ? (
         <p className="text-sm text-muted">
-          {toonAfgehandeld ? "Nog geen aanvragen." : "Geen openstaande aanvragen."}
+          {toonGoedgekeurd ? "Nog geen aanvragen." : "Geen openstaande aanvragen."}
         </p>
       ) : (
         <div className="space-y-3">
@@ -220,9 +220,6 @@ export function RegistratiesPanel() {
                   <p className="mt-2 text-sm text-muted">
                     Account <span className="font-mono">{r.userid}</span> aangemaakt.
                   </p>
-                )}
-                {r.status === "afgewezen" && r.reden && (
-                  <p className="mt-2 text-sm text-muted">Reden: {r.reden}</p>
                 )}
 
                 {openstaand && (
@@ -259,11 +256,11 @@ export function RegistratiesPanel() {
                   <ButtonRow align="start" className="mt-3">
                     <BevestigKnop
                       onBevestig={() => onVerwijderen(r)}
-                      bevestigTekst={`Aanvraag van ${r.email} verwijderen?`}
+                      bevestigTekst={`Uit de lijst halen? (het account blijft bestaan)`}
                       className="focus-ring inline-flex min-h-[40px] shrink-0 items-center justify-center rounded-field border border-fout px-3 text-sm font-medium text-fout transition coarse:min-h-[48px]"
                       bevestigClassName="bg-fout text-paper"
                     >
-                      Verwijderen
+                      Uit de lijst halen
                     </BevestigKnop>
                   </ButtonRow>
                 )}
@@ -276,8 +273,10 @@ export function RegistratiesPanel() {
   );
 }
 
-/** Afwijzen in twee stappen: eerst een redenveld openklappen, dan bevestigen. De reden is intern
- *  (auditspoor) – de aanvrager krijgt hem niet te zien, want er gaat geen e-mail uit. */
+/** Afwijzen in twee stappen: eerst een redenveld openklappen, dan bevestigen. Afwijzen VERWIJDERT
+ *  de aanvraag – het e-mailadres en het volgnummer komen meteen weer vrij. De reden gaat daarom
+ *  alleen naar het security-log, niet naar de aanvrager (er gaat geen e-mail uit) en ook niet naar
+ *  een rij die je later nog terugziet. */
 function AfwijzenKnop({ onAfwijzen }: { onAfwijzen: (reden: string) => void }) {
   const [open, setOpen] = useState(false);
   const [reden, setReden] = useState("");
@@ -292,7 +291,7 @@ function AfwijzenKnop({ onAfwijzen }: { onAfwijzen: (reden: string) => void }) {
   return (
     <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-end">
       <div className="min-w-[14rem] flex-1">
-        <Field label="Reden" hint="alleen voor beheerders zichtbaar">
+        <Field label="Reden" hint="komt alleen in het logboek">
           <Input
             type="text"
             autoFocus
@@ -311,7 +310,7 @@ function AfwijzenKnop({ onAfwijzen }: { onAfwijzen: (reden: string) => void }) {
             onAfwijzen(reden);
           }}
         >
-          Afwijzen bevestigen
+          Afwijzen en verwijderen
         </Button>
         <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
           Annuleren

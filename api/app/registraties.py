@@ -6,6 +6,10 @@ als een beheerder goedkeurt ontstaat er een rij in `users`, met het wachtwoord d
 zelf koos. Zo hoeft de beheerder geen userid te verzinnen en geen tijdelijk wachtwoord door te
 geven.
 
+Afwijzen **verwijdert** de aanvraag in plaats van hem af te stempelen: het e-mailadres en het
+volgnummer komen zo meteen weer vrij, en de beheerder hoeft er geen tweede handeling voor te doen.
+Wat er van de afwijzing overblijft is de regel in het security-log.
+
 Het wachtwoord-hash leeft in deze laag en verlaat de API nooit; `RegistratieOut` in de router toont
 het niet.
 """
@@ -64,14 +68,17 @@ def leid_userid_af(voornaam: str, achternaam: str, volgnummer: int = 1) -> str:
 
 
 async def _userid_bezet(userid: str) -> bool:
-    """Bezet zodra een account óf een nog niet afgewezen aanvraag hem claimt."""
+    """Bezet zodra een account óf een aanvraag hem claimt.
+
+    Er is geen statusfilter nodig: een afgewezen aanvraag wordt verwijderd, dus elke rij die er nog
+    staat houdt zijn volgnummer terecht vast.
+    """
     if await get_user(userid) is not None:
         return True
     async with db.get_engine().connect() as conn:
         n = (await conn.execute(
             select(func.count()).select_from(db.registratie_aanvragen).where(
                 db.registratie_aanvragen.c.userid_voorstel == userid,
-                db.registratie_aanvragen.c.status != "afgewezen",
             )
         )).scalar() or 0
     return n > 0
@@ -147,16 +154,17 @@ async def aantal_open() -> int:
 
 
 async def openstaand_voor_userid(userid: str) -> Registratie | None:
-    """De niet-goedgekeurde aanvraag die deze userid voorstelt, als die er is.
+    """De nog niet beoordeelde aanvraag die deze userid voorstelt, als die er is.
 
     Voedt de statusmelding bij het inloggen: wie zijn voorgestelde userid al kreeg te zien en
-    probeert in te loggen, hoort dat zijn aanvraag nog loopt of is afgewezen.
+    probeert in te loggen, hoort dat zijn aanvraag nog op goedkeuring wacht. Voor een afgewezen
+    aanvraag bestaat die melding niet meer – de rij is dan weg.
     """
     async with db.get_engine().connect() as conn:
         row = (await conn.execute(
             select(db.registratie_aanvragen).where(
                 db.registratie_aanvragen.c.userid_voorstel == _norm_userid(userid),
-                db.registratie_aanvragen.c.status != "goedgekeurd",
+                db.registratie_aanvragen.c.status == "aangevraagd",
             ).order_by(db.registratie_aanvragen.c.created.desc())
         )).mappings().first()
     return _row_to_registratie(row) if row is not None else None
@@ -252,25 +260,28 @@ async def keur_goed(
 
 
 async def wijs_af(aanvraag_id: int, *, reden: str = "", actor: str = "") -> Registratie:
+    """Wijs af én verwijder de aanvraag, zodat e-mailadres en volgnummer meteen weer vrij zijn.
+
+    Er blijft dus geen rij achter met een afgewezen-status. Het spoor van de afwijzing – wie, wat,
+    waarom – gaat naar het security-log; de router schrijft dat met de teruggegeven `Registratie`.
+    """
     aanvraag = await _open_aanvraag(aanvraag_id)
-    now = _utcnow()
     async with db.get_engine().begin() as conn:
-        await conn.execute(update(db.registratie_aanvragen).where(
-            db.registratie_aanvragen.c.id == aanvraag_id
-        ).values(
-            status="afgewezen", reden=(reden or "").strip() or None,
-            besloten_door=actor, besloten_op=now, updated=now,
-        ))
-    aanvraag.status = "afgewezen"
+        await conn.execute(
+            delete(db.registratie_aanvragen).where(db.registratie_aanvragen.c.id == aanvraag_id)
+        )
     aanvraag.reden = (reden or "").strip() or None
     aanvraag.besloten_door = actor
-    aanvraag.besloten_op = now
-    aanvraag.updated = now
+    aanvraag.besloten_op = _utcnow()
     return aanvraag
 
 
 async def verwijder(aanvraag_id: int) -> None:
-    """Haal de aanvraag weg – de enige manier om een e-mailadres weer vrij te geven."""
+    """Ruim een afgehandelde (goedgekeurde) aanvraag op uit het archief.
+
+    Afwijzen verwijdert zelf al; dit is er voor de rijen die als spoor van een goedkeuring blijven
+    staan.
+    """
     async with db.get_engine().begin() as conn:
         res = await conn.execute(
             delete(db.registratie_aanvragen).where(db.registratie_aanvragen.c.id == aanvraag_id)

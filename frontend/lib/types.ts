@@ -79,7 +79,8 @@ export interface RegistratieOut {
   achternaam: string;
   email: string;
   userid_voorstel: string;
-  status: "aangevraagd" | "goedgekeurd" | "afgewezen";
+  // "afgewezen" bestaat niet: afwijzen verwijdert de aanvraag.
+  status: "aangevraagd" | "goedgekeurd";
   reden: string | null;
   userid: string | null;
   besloten_door: string | null;
