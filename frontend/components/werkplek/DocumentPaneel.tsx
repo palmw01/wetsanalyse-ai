@@ -22,6 +22,8 @@ interface Segment {
   klasse?: string;
   id?: string;
   herkomst?: string;
+  /** Opmaak van dit stuk wettekst: het onderdeelnummer of de gedefinieerde term. */
+  nadruk?: "nummer" | "term";
 }
 
 /** Knip `bron` in segmenten, met hoogstens ÉÉN gemarkeerd: de geselecteerde.
@@ -62,34 +64,48 @@ export function markeringVan(
   return { start, eind: start + fragment.length, klasse: el.klasse, id: el.id, herkomst: el.herkomst };
 }
 
-/** De segmenten van één blok: de doorsnede van de markering met het bereik van dit blok.
+/** De segmenten van één blok: de tekst van dit blok, geknipt op alles wat er anders uitziet.
  *
- *  Een `<mark>` kan niet over twee blokken heen — die zijn nu aparte elementen in de DOM. Loopt een
- *  markering van de aanhef door tot in een onderdeel, dan wordt hij dus in stukken geknipt, één per
- *  blok, met dezelfde klasse en hetzelfde id. `box-decoration-clone` laat ze optisch doorlopen.
+ *  ÉÉN BRON VAN TEKST. De weergave mag nummer en term niet zelf opnieuw samenstellen naast deze
+ *  segmenten — dan staat de tekst dubbel in de DOM én lopen de offsets mis, want `offsetVanGrens`
+ *  telt de tekstknopen binnen het blok op. Die fout zat er op 2 sep 2026 in en was niet te zien in
+ *  de losse tests van `blokkenVan` en deze functie; alleen hun combinatie brak. Vandaar de test die
+ *  eist dat de segmenten samen exact `blok.regel` vormen.
  *
- *  De offsets zijn absoluut (in de bron); dit rekent ze om naar posities binnen `blok.regel`.
+ *  Geknipt wordt op twee soorten grenzen tegelijk: de markering (waar de jurist naar kijkt) en de
+ *  opmaak (nummer, term). Een `<mark>` kan bovendien niet over twee blokken heen — die zijn aparte
+ *  elementen — dus een markering die van de aanhef doorloopt tot in een onderdeel wordt hier per
+ *  blok afgekapt, met dezelfde klasse en hetzelfde id; `box-decoration-clone` laat ze doorlopen.
  */
 export function segmentenVanBlok(
-  blok: { offset: number; regel: string },
+  blok: { offset: number; regel: string; nummerEind: number; termStart: number; termEind: number },
   markering: { start: number; eind: number; klasse: string; id?: string; herkomst?: string } | null,
 ): Segment[] {
-  const eindeBlok = blok.offset + blok.regel.length;
-  if (!markering || markering.eind <= blok.offset || markering.start >= eindeBlok) {
-    return [{ tekst: blok.regel }];
+  const n = blok.regel.length;
+  const eindeBlok = blok.offset + n;
+  const raakt = markering && markering.eind > blok.offset && markering.start < eindeBlok;
+  const mVan = raakt ? Math.max(markering!.start - blok.offset, 0) : -1;
+  const mTot = raakt ? Math.min(markering!.eind - blok.offset, n) : -1;
+
+  const grenzen = [0, n, blok.nummerEind, blok.termStart, blok.termEind, mVan, mTot]
+    .filter((g) => g >= 0 && g <= n)
+    .sort((a, b) => a - b);
+
+  const uit: Segment[] = [];
+  for (let i = 0; i < grenzen.length - 1; i++) {
+    const [van, tot] = [grenzen[i], grenzen[i + 1]];
+    if (van === tot) continue;   // dubbele grenzen (nummer eindigt waar de term begint)
+    const seg: Segment = { tekst: blok.regel.slice(van, tot) };
+    if (blok.nummerEind > 0 && tot <= blok.nummerEind) seg.nadruk = "nummer";
+    else if (blok.termStart >= 0 && van >= blok.termStart && tot <= blok.termEind) seg.nadruk = "term";
+    if (raakt && van >= mVan && tot <= mTot) {
+      seg.klasse = markering!.klasse;
+      seg.id = markering!.id;
+      seg.herkomst = markering!.herkomst;
+    }
+    uit.push(seg);
   }
-  const van = Math.max(markering.start, blok.offset) - blok.offset;
-  const tot = Math.min(markering.eind, eindeBlok) - blok.offset;
-  return [
-    ...(van > 0 ? [{ tekst: blok.regel.slice(0, van) }] : []),
-    {
-      tekst: blok.regel.slice(van, tot),
-      klasse: markering.klasse,
-      id: markering.id,
-      herkomst: markering.herkomst,
-    },
-    ...(tot < blok.regel.length ? [{ tekst: blok.regel.slice(tot) }] : []),
-  ];
+  return uit.length ? uit : [{ tekst: blok.regel }];
 }
 
 /** De absolute offset in de bron van één grens van een DOM-selectie.
@@ -97,6 +113,9 @@ export function segmentenVanBlok(
  *  Zoekt het blok waar de knoop in zit (`[data-offset]`), telt de tekstknopen binnen dát blok op tot
  *  aan de grens, en telt de startpositie van het blok erbij. `-1` als de grens buiten elk blok valt —
  *  dan is er niets zinnigs te zeggen over de positie en markeren we liever niet.
+ *
+ *  Dit werkt alleen zolang de tekstknopen binnen een blok samen exact `blok.regel` zijn. Daarom mag
+ *  de weergave geen tekst toevoegen naast `segmentenVanBlok`; zie de waarschuwing daar.
  *
  *  De DOM-wandeling staat hier omdat vitest in node-env geen DOM heeft; de rekenstap zelf is
  *  `offsetInBlok` in `lib/selectie.ts` en is daar getest.
@@ -123,6 +142,14 @@ function offsetVanGrens(houder: HTMLElement, knoop: Node, offsetInKnoop: number)
 /** Inspringing per nestingniveau. Niveau 0 (lidkop/lopende tekst) staat op de marge; elk niveau
  *  dieper schuift een vaste stap op, met een hangend nummer ervoor. */
 const INSPRING = ["pl-0", "pl-7", "pl-14"] as const;
+
+/** Opmaak per soort tekst. Het onderdeelnummer krijgt de lintkleur, de gedefinieerde term
+ *  halfvet – zo is in een definitieartikel in één oogopslag te zien wát er gedefinieerd wordt. */
+const NADRUK = {
+  nummer: "font-semibold text-lint",
+  term: "font-semibold text-ink",
+  geen: "",
+} as const;
 
 export function DocumentPaneel({
   opschrift,
@@ -271,23 +298,10 @@ export function DocumentPaneel({
               blok.eersteVanLid && bi > 0 ? "mt-4" : blok.niveau > 0 ? "mt-1" : "mt-2"
             } ${blok.nummer ? "relative" : ""}`}
           >
-            {blok.nummer && (
-              // Hangend: het nummer staat in de marge, de tekst erna lijnt op één marge uit. Bewust
-              // NIET via `::before` met CSS-content – het nummer is wettekst en hoort selecteerbaar
-              // te zijn, en het telt mee in de offsets van dit blok.
-              <span
-                className={`inline-block ${blok.niveau === 0 ? "font-semibold text-lint" : "w-7 text-lint"}`}
-              >
-                {blok.nummer}
-              </span>
-            )}
-            {blok.nummer && " "}
-            {blok.term && (
-              <>
-                <span className="font-semibold text-ink">{blok.term}</span>
-                {": "}
-              </>
-            )}
+            {/* ALLEEN deze segmenten – nummer en term worden hier NIET apart gerenderd. Ze zitten
+                in de segmenten en dragen daar hun opmaak via `nadruk`. Zet er niets naast: dan
+                staat de tekst dubbel in de DOM en telt `offsetVanGrens` te veel op, waarna elke
+                zelfgemaakte markering op de verkeerde plek landt. Dat ging op 2 sep 2026 mis. */}
             {segmentenVanBlok(blok, markering).map((s, i) =>
               s.klasse ? (
                 // Nadrukkelijk géén `<button>`: die is inline-block en dus één atomaire box. Zodra de
@@ -329,7 +343,9 @@ export function DocumentPaneel({
                   {s.tekst}
                 </mark>
               ) : (
-                <span key={i}>{s.tekst}</span>
+                <span key={i} className={NADRUK[s.nadruk ?? "geen"]}>
+                  {s.tekst}
+                </span>
               ),
             )}
           </div>

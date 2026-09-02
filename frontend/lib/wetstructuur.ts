@@ -106,6 +106,12 @@ export interface Blok extends Onderdeel {
   lid: string;
   /** Eerste blok van een lid? Dan hoort er ruimte boven en draagt het het lidnummer. */
   eersteVanLid: boolean;
+  /** Posities BINNEN `regel` van het nummer en de term, voor opmaak zonder de tekst te herschrijven.
+   *  `-1` als het deel er niet is. De weergave knipt hierop; zij mag de tekst niet zelf opnieuw
+   *  samenstellen, want dan staat hij dubbel in de DOM en lopen de offsets mis. */
+  nummerEind: number;
+  termStart: number;
+  termEind: number;
 }
 
 /** Deel de brontekst op in blokken, in dezelfde volgorde en met dezelfde tekst.
@@ -135,12 +141,24 @@ export function blokkenVan(regels: { lid: string; regel: string }[]): Blok[] {
       const ontleed_ = isLidkop
         ? { ...ontleed(stuk.slice(r.lid.length + 1)), nummer: `${r.lid}.`, niveau: 0 }
         : ontleed(stuk);
+      // De posities opzoeken in plaats van optellen: `ontleed` trimt, dus de lengtes van nummer,
+      // term en tekst tellen niet op tot de regel. Zoeken op de letterlijke deelstring kan wél,
+      // want beide komen ongewijzigd uit deze regel.
+      const nummerEind = ontleed_.nummer
+        ? stuk.indexOf(ontleed_.nummer) + ontleed_.nummer.length
+        : -1;
+      const termStart = ontleed_.term
+        ? stuk.indexOf(ontleed_.term, Math.max(nummerEind, 0))
+        : -1;
       blokken.push({
         ...ontleed_,
         offset: offset + binnen,
         regel: stuk,
         lid: r.lid,
         eersteVanLid: i === 0,
+        nummerEind,
+        termStart,
+        termEind: termStart >= 0 ? termStart + ontleed_.term.length : -1,
       });
       binnen += stuk.length + 1;   // +1 voor de "\n" die we net weggesplitst hebben
     });
