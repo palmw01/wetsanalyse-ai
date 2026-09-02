@@ -836,3 +836,40 @@ def test_een_mislukte_herziening_meldt_de_soort_fout():
     assert not any("upstream timed out" in r for r in regels), "het bericht mag niet lekken"
     # Faalgedrag: nooit minder dan we al hadden.
     assert "De ontvanger" in {e["tekst"] for e in elementen}
+
+
+# --- "zonder oordeel" heeft twee oorzaken, en die zijn niet hetzelfde ---------------------------
+
+def test_een_onleesbaar_niveau_gaat_niet_meer_stil_verloren():
+    """De Critic gaf een oordeel; wij konden het niveau niet lezen en gooiden het weg.
+
+    Dat is iets anders dan "de Critic sloeg het element over". Het eerste is onze fout en
+    repareerbaar, het tweede is modelgedrag. Tot 2 sep 2026 was het verschil nergens af te lezen:
+    beide leverden een element zonder aandacht op, en de melding zei alleen "N zonder oordeel".
+    """
+    from agent.annotatie import _verwerk_critic
+
+    txt = json.dumps({"oordelen": [
+        {"id": "a", "aandacht": "groen", "motivatie": "prima"},
+        {"id": "b", "aandacht": "neutraal", "motivatie": "twijfelgeval"},   # bestaat niet
+        {"id": "c", "motivatie": "vergat het niveau"},                       # ontbreekt
+    ]})
+    oordelen, _ontbrekend, onleesbaar = _verwerk_critic(txt, ["a", "b", "c"])
+
+    # De twee onleesbare oordelen tellen niet mee, maar ze zijn nu wél bekend.
+    assert set(oordelen) == {"a"}
+    assert sorted(onleesbaar) == ["(leeg)", "neutraal"]
+
+
+def test_de_tijdlijn_scheidt_overgeslagen_van_onleesbaar():
+    from agent.narratie import _critic_melding
+
+    oordelen = {"a": type("O", (), {"aandacht": "groen"})()}
+    # Drie ingediend, één oordeel: twee zonder. Eén daarvan had een onleesbaar niveau.
+    regel = _critic_melding(oordelen, [], ingediend=3, onleesbaar=["neutraal"])
+    assert "2 zonder oordeel" in regel
+    assert "onleesbaar niveau" in regel and "neutraal" in regel
+
+    # Zonder onleesbare niveaus blijft de regel zoals hij was.
+    kaal = _critic_melding(oordelen, [], ingediend=3)
+    assert "2 zonder oordeel" in kaal and "onleesbaar" not in kaal

@@ -348,7 +348,8 @@ def critic_node(b: Bouw, state: State) -> dict[str, Any]:
         # Afkapping mag nooit stil zijn: dan lijkt een halve beoordeling een hele. Verschuift het
         # budget de grens niet ver genoeg, dan zie je dat hier in plaats van pas in een export.
         afgekapt = getattr(resp, "stop_reason", "") == "max_tokens"
-        oordelen, ontbrekend = _verwerk_critic(crit_text, [str(v.get("id", "")) for v in voorstellen])
+        oordelen, ontbrekend, onleesbaar = _verwerk_critic(
+            crit_text, [str(v.get("id", "")) for v in voorstellen])
     except Exception:  # noqa: BLE001 – Critic mag de annotatie nooit breken
         gefaald = True
         logger.warning("critic: beoordeling mislukt; elementen zonder aandacht doorgelaten", exc_info=True)
@@ -408,7 +409,7 @@ def critic_node(b: Bouw, state: State) -> dict[str, Any]:
 
     _stap(writer, "Critic",
           _critic_melding(oordelen, ontbrekend, len(nieuw_ontbrekend), gedempt,
-                          ingediend=len(voorstellen), afgekapt=afgekapt))
+                          ingediend=len(voorstellen), afgekapt=afgekapt, onleesbaar=onleesbaar))
 
     # `voorstellen` expliciet teruggeven: eerder werkten de aandacht-velden alleen door omdat het
     # dezelfde dict-objecten waren. Dat is fragiel zodra er meerdere rondes over de state lopen.

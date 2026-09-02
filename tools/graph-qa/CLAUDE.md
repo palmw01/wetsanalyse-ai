@@ -391,6 +391,15 @@ weg: ze bestonden alleen om een cyclus te laten stoppen die er niet meer is.
   van het model. De guard in `poort` bewaakt dat geen per-element-rol krapper staat dan de
   annoteerder.
 
+  **"Zonder oordeel" heeft twee oorzaken, en die zijn niet hetzelfde.** De Critic kan een element
+  overslaan (modelgedrag), of hij geeft wél een oordeel waarvan wij het niveau niet kunnen lezen —
+  een `aandacht` die niet groen/geel/rood is, of die ontbreekt. Dat tweede gooide `_verwerk_critic`
+  stil weg, motivatie en instructie incluis, en dan komt het element bij de jurist alsof de Critic
+  er nooit naar keek. Het verschil is wezenlijk: het eerste valt niet te repareren, het tweede wel.
+  `_verwerk_critic` geeft die onleesbare waarden nu als derde retourwaarde terug en de tijdlijn
+  noemt ze (`· 2 zonder oordeel (waarvan 1 met een onleesbaar niveau: neutraal)`). Het niveau wordt
+  **niet** aangevuld met een gok — een verzonnen "geel" is een oordeel dat het model niet gaf.
+
   **En afkapping is nooit stil.** `critic_node` leest `stop_reason`; is die `max_tokens`, dan zegt
   de tijdlijn dat. `_critic_melding` krijgt bovendien het ingediende totaal mee en meldt het
   verschil (`… · 58 zonder oordeel`) — de `"geen oordeel"`-bak telde alleen wat de Critic terúggaf,

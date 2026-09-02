@@ -79,7 +79,7 @@ def test_verwerk_geeft_verworpen_fragmenten_terug_met_reden():
 
 def test_critic_koppelt_op_id():
     txt = '{"oordelen": [{"id": "abc123", "aandacht": "rood", "motivatie": "fout", "actie": "verwijder"}]}'
-    oordelen, _ = _verwerk_critic(txt, ["abc123", "def456"])
+    oordelen, _, _ = _verwerk_critic(txt, ["abc123", "def456"])
     assert set(oordelen) == {"abc123"}
     assert oordelen["abc123"].actie == "verwijder"
 
@@ -87,7 +87,7 @@ def test_critic_koppelt_op_id():
 def test_critic_valt_terug_op_index_als_het_id_ontbreekt():
     """Een model dat het id-veld vergeet mag niet stilzwijgend álle oordelen verliezen."""
     txt = '{"oordelen": [{"index": 1, "aandacht": "geel", "motivatie": "twijfel"}]}'
-    oordelen, _ = _verwerk_critic(txt, ["abc123", "def456"])
+    oordelen, _, _ = _verwerk_critic(txt, ["abc123", "def456"])
     assert set(oordelen) == {"def456"}
 
 
@@ -97,7 +97,7 @@ def test_critic_negeert_onbekende_ids_en_ongeldige_aandacht():
         '{"id": "bestaat-niet", "aandacht": "rood", "motivatie": "x"},'
         '{"id": "abc123", "aandacht": "paars", "motivatie": "x"}]}'
     )
-    oordelen, _ = _verwerk_critic(txt, ["abc123"])
+    oordelen, _, _ = _verwerk_critic(txt, ["abc123"])
     assert oordelen == {}
 
 
@@ -105,21 +105,21 @@ def test_verwijderen_mag_alleen_bij_rood():
     """Weggooien is de zwaarste ingreep; bij twijfel wordt het hooguit een vervanging."""
     txt = ('{"oordelen": [{"id": "a", "aandacht": "geel", "motivatie": "hm", "actie": "verwijder",'
            ' "voorstel_klasse": "Voorwaarde"}]}')
-    oordelen, _ = _verwerk_critic(txt, ["a"])
+    oordelen, _, _ = _verwerk_critic(txt, ["a"])
     assert oordelen["a"].actie == "vervang"
 
 
 def test_vervangen_zonder_voorstel_is_geen_instructie():
     """'Vervang dit' zonder te zeggen waardoor is een klacht, geen opdracht – dan behouden."""
     txt = '{"oordelen": [{"id": "a", "aandacht": "rood", "motivatie": "niet goed", "actie": "vervang"}]}'
-    oordelen, _ = _verwerk_critic(txt, ["a"])
+    oordelen, _, _ = _verwerk_critic(txt, ["a"])
     assert oordelen["a"].actie == "behoud"
 
 
 def test_critic_negeert_een_verzonnen_voorstel_klasse():
     txt = ('{"oordelen": [{"id": "a", "aandacht": "rood", "motivatie": "x", "actie": "vervang",'
            ' "voorstel_klasse": "Onzin", "voorstel_tekst": "De ontvanger"}]}')
-    oordelen, _ = _verwerk_critic(txt, ["a"])
+    oordelen, _, _ = _verwerk_critic(txt, ["a"])
     assert oordelen["a"].voorstel_klasse == ""
     assert oordelen["a"].voorstel_tekst == "De ontvanger"
 
@@ -127,7 +127,7 @@ def test_critic_negeert_een_verzonnen_voorstel_klasse():
 def test_ontbrekend_neemt_een_letterlijk_fragment_mee():
     txt = ('{"oordelen": [], "ontbrekend": [{"klasse": "Voorwaarde", "reden": "conditie",'
            ' "tekst": "indien de belastingschuldige in gebreke is"}]}')
-    _, ontbrekend = _verwerk_critic(txt, [])
+    _, ontbrekend, _ = _verwerk_critic(txt, [])
     assert ontbrekend[0].tekst == "indien de belastingschuldige in gebreke is"
 
 
