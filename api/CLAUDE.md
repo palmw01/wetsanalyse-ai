@@ -31,7 +31,17 @@ De API bedient zeven dingen:
    betekent: `client_id` is niet aan `user_id` gebonden, dus dat token kan in elk gebruikersgesprek
    schrijven – graph-qa blijft daarom intern-only.
 3. **Login + gebruikersbeheer** (`/v1/auth/*` + `/v1/admin/users`): de API is de identiteitsbron van
-   de webapp (userid + wachtwoord, rollen, optionele TOTP-2FA).
+   de webapp (userid + wachtwoord, rollen, optionele TOTP-2FA). Daaronder valt ook de
+   **zelfregistratie** (`registraties.py`, `POST /v1/auth/registratie` + `/v1/admin/registraties/*`):
+   een aanvraag met naam, e-mail en een zelfgekozen wachtwoord, die een beheerder goedkeurt of
+   afwijst. Een aanvraag is **geen account** – tot de goedkeuring bestaat er geen rij in `users` en
+   valt er niets mee in te loggen. De userid wordt afgeleid uit de naam (vier letters achternaam +
+   eerste letter voornaam + volgnummer, `palmw01`) en is bij het goedkeuren corrigeerbaar; de
+   bcrypt-hash gaat ongewijzigd over naar het account (`users.insert_user_met_hash`), zodat er geen
+   tijdelijk wachtwoord hoeft te worden rondgestuurd. Er gaat **geen e-mail** uit: de aanvrager hoort
+   de status bij een inlogpoging, via de `code` van `/verify` (`aanvraag_open`/`aanvraag_afgewezen`) –
+   en alleen bij het **juiste wachtwoord**, want anders wordt dat een oracle waarmee je kunt
+   uitvragen wie er een aanvraag heeft liggen.
 4. **LLM-modelprofielbeheer** (`/v1/admin/profiles`).
 5. De **profiel-keuzelijst** voor de UI (`/v1/profiles`).
 6. **Berichten** (`/v1/berichten/*` + `/v1/admin/berichten/*`): release notes die beheerders
@@ -70,8 +80,8 @@ De API bedient zeven dingen:
   `LLM_CONFIG_SECRET(_FILE)`). De profielen worden beheerd via `/beheer` en gevalideerd met de
   verbindingstest; de QA-agent (graph-qa) heeft een eigen LLM-config en wordt er niet door aangestuurd.
 - `db.py` – async SQLAlchemy-Core laag: engine-beheer + de tabeldefinities (`llm_profiles`,
-  `users`, `api_tokens`, `annotatie_documenten`, `annotatie_audit`, `gesprekken`,
-  `gesprek_berichten`). Portable types
+  `users`, `registratie_aanvragen`, `api_tokens`, `annotatie_documenten`, `annotatie_audit`,
+  `gesprekken`, `gesprek_berichten`). Portable types
   (`JSON`→`JSONB` op Postgres, `JSON` op SQLite-tests), tz-aware datetimes. `create_all` maakt bij de
   start **ontbrekende tabellen** idempotent aan; `reconcile_schema()` (ook in de lifespan) voegt daarna
   **ontbrekende kolommen** additief toe (`ALTER TABLE … ADD COLUMN`; nooit droppen/typewijzigen) zodat

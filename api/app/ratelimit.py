@@ -107,6 +107,26 @@ def sensitive_allowed(userid: str) -> bool:
     return _allow(f"sensitive:{userid.strip().lower()}", s.rate_limit_max, s.rate_limit_window_s)
 
 
+# Zelfregistratie is een publiek (onauth) formulier: krapper dan de login-rem, want een legitieme
+# bezoeker vraagt één keer toegang aan. Per e-mailadres tegen herhaald indienen, en een globale
+# teller tegen een spervuur van adressen. In-process (per replica) – defense-in-depth naast de proxy.
+_REGISTRATIE_PER_EMAIL = 3
+_REGISTRATIE_GLOBAAL = 30
+
+
+def registratie_allowed(email: str) -> bool:
+    """Rem op het aanvraagformulier: per e-mailadres én globaal. Hergebruikt het venster van de
+    muterende-rate-knop (`WETSANALYSE_RATE_LIMIT_WINDOW`); `_MAX = 0` zet de rem uit."""
+    s = get_settings()
+    if s.rate_limit_max <= 0:
+        return True
+    per_email = _allow(
+        f"registratie:{email.strip().lower()}", _REGISTRATIE_PER_EMAIL, s.rate_limit_window_s
+    )
+    globaal = _allow("registratie:__global__", _REGISTRATIE_GLOBAAL, s.rate_limit_window_s)
+    return per_email and globaal
+
+
 def rate_limited_admin_test(admin_id: str = Depends(require_admin)) -> str:
     """Als require_admin, maar met een krappe rate limit op de verbindingstest (betaalde LLM-call)."""
     s = get_settings()

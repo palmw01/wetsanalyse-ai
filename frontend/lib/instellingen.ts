@@ -11,6 +11,7 @@ export const INSTELLINGEN_TABS = [
   { key: "berichten", pad: "berichten", label: "Berichten", admin: false },
   { key: "modelprofielen", pad: "beheer/modelprofielen", label: "Modelprofielen", admin: true },
   { key: "gebruikers", pad: "beheer/gebruikers", label: "Gebruikers", admin: true },
+  { key: "registraties", pad: "beheer/registraties", label: "Aanvragen", admin: true },
   { key: "api-tokens", pad: "beheer/api-tokens", label: "API-tokens", admin: true },
   { key: "berichtenbeheer", pad: "beheer/berichten", label: "Berichten beheren", admin: true },
   { key: "feedback", pad: "beheer/feedback", label: "Feedback", admin: true },

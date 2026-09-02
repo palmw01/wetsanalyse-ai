@@ -206,6 +206,38 @@ describe("PoC-disclaimer-gate", () => {
   });
 });
 
+describe("publieke paden (zelfregistratie)", () => {
+  // Het aanvraagformulier moet zónder sessie bereikbaar zijn – dat is het hele punt. Zonder deze
+  // vrijstelling stuurt de sessie-gate een bezoeker naar /login, waar hij nu juist geen account
+  // voor heeft.
+  it("laat een bezoeker zonder sessie op /registreren", async () => {
+    const res = await authorized({
+      auth: null,
+      request: fakeRequest("GET", "https://app.example/registreren"),
+    });
+    expect(res).toBe(true);
+  });
+
+  it("laat een POST zonder sessie naar /api/registreren toe (met eigen Origin)", async () => {
+    const res = await authorized({
+      auth: null,
+      request: fakeRequest("POST", "https://app.example/api/registreren", {
+        origin: "https://app.example",
+        host: "app.example",
+      }),
+    });
+    expect(res).toBe(true);
+  });
+
+  it("stuurt een bezoeker zonder sessie op een gewone pagina nog steeds naar login", async () => {
+    const res = await authorized({
+      auth: null,
+      request: fakeRequest("GET", "https://app.example/workbench"),
+    });
+    expect(res).not.toBe(true);
+  });
+});
+
 describe("rol-gate op /api/admin", () => {
   it("geeft een analist een 403 in JSON, geen omleiding naar HTML", async () => {
     // `fetch` volgt een redirect en krijgt dan de homepage met status 200 terug, waarna `res.json()`
@@ -227,6 +259,20 @@ describe("rol-gate op /api/admin", () => {
     });
     expect((res as Response).status).toBe(302);
     expect((res as Response).headers.get("location")).toBe("https://app.example/");
+  });
+
+  it("weert een analist van de aanvragen-tab en de bijbehorende BFF-route", async () => {
+    const pagina = await authorized({
+      auth: sessie,
+      request: fakeRequest("GET", "https://app.example/instellingen/beheer/registraties"),
+    });
+    expect((pagina as Response).status).toBe(302);
+
+    const bff = await authorized({
+      auth: sessie,
+      request: fakeRequest("GET", "https://app.example/api/admin/registraties"),
+    });
+    expect((bff as Response).status).toBe(403);
   });
 
   it("laat een beheerder gewoon door op de admin-BFF", async () => {

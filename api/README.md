@@ -61,6 +61,11 @@ Alle endpoints zijn client-gescopet en versioneerd onder `/v1`.
 | `GET` | `/v1/admin/api-tokens` | Lijst genereerbare API-tokens (nooit de hash/het volledige token) |
 | `POST` | `/v1/admin/api-tokens` | Maak een API-token (eenmalig teruggegeven) |
 | `DELETE` | `/v1/admin/api-tokens/{id}` | Trek een API-token in |
+| `GET` | `/v1/admin/registraties` | Zelfregistratie-aanvragen (optioneel `?status=aangevraagd`) |
+| `POST` | `/v1/admin/registraties/{id}/goedkeuren` | Maak het account aan (userid corrigeerbaar, rol kiesbaar) |
+| `POST` | `/v1/admin/registraties/{id}/afwijzen` | Wijs af, met interne reden |
+| `POST` | `/v1/admin/registraties/goedkeuren` | Meerdere tegelijk goedkeuren (best-effort) |
+| `DELETE` | `/v1/admin/registraties/{id}` | Verwijder de aanvraag (geeft het e-mailadres vrij) |
 
 **Login-endpoints (de webapp-BFF is de enige client; achter het client-token), onder `/v1/auth`:**
 
@@ -68,6 +73,7 @@ Alle endpoints zijn client-gescopet en versioneerd onder `/v1`.
 |---------|-----|--------------|
 | `GET` | `/v1/auth/setup-status` | Is de users-tabel nog leeg? (dan staat de eenmalige registratie open) |
 | `POST` | `/v1/auth/setup` | Maak de allereerste beheerder (alleen bij lege tabel → anders 409) |
+| `POST` | `/v1/auth/registratie` | **Zelfregistratie**: vraag toegang aan (eigen rate limit; maakt géén account) |
 | `POST` | `/v1/auth/verify` | Valideer **userid** + wachtwoord (+ optionele TOTP) |
 | `GET` | `/v1/auth/me` | Eigen account (rol + 2FA-status) – `X-User-Id`-header |
 | `POST` | `/v1/auth/change-password` | Eigen wachtwoord wijzigen – `X-User-Id`-header |

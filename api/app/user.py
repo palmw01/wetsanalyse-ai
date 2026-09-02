@@ -35,3 +35,32 @@ class User(BaseModel):
 
     created: datetime = Field(default_factory=_utcnow)
     updated: datetime = Field(default_factory=_utcnow)
+
+
+# De drie statussen van een zelfregistratie-aanvraag.
+REGISTRATIE_STATUSSEN = ("aangevraagd", "goedgekeurd", "afgewezen")
+
+
+class Registratie(BaseModel):
+    """Een aanvraag voor een account, in afwachting van (of na) het besluit van een beheerder.
+
+    Dit is nadrukkelijk géén account: zolang de status `aangevraagd` is bestaat er geen rij in
+    `users` en kan er niet mee worden ingelogd. Het wachtwoord-hash ligt hier al klaar zodat de
+    goedgekeurde gebruiker meteen met zijn eigen wachtwoord kan inloggen.
+    """
+
+    id: int = 0
+    voornaam: str = ""
+    achternaam: str = ""
+    email: str = ""
+    userid_voorstel: str = ""
+    password_hash: str = ""
+    status: str = "aangevraagd"
+    reden: str | None = None
+    # De uiteindelijk toegekende userid; pas gevuld bij goedkeuring.
+    userid: str | None = None
+    besloten_door: str | None = None
+    besloten_op: datetime | None = None
+
+    created: datetime = Field(default_factory=_utcnow)
+    updated: datetime = Field(default_factory=_utcnow)

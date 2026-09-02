@@ -710,11 +710,23 @@ tokens/secrets/inhoud loggen. In de vitest-node-omgeving wordt `server-only` ges
   **`analist`** (de rest) – afgedwongen in de `authorized`-callback (edge) én server-side in
   `app/instellingen/[[...tab]]/page.tsx` (`isAdminTab(actief) && !isBeheerder` → redirect). De eerste keer (lege users-tabel) maakt `/setup` eenmalig de eerste
   beheerder; daarna sluit die route. **Gebruikersbeheer** zit in de beheertab (`UsersPanel`, achter het
-  admin-token). **2FA (TOTP)** is optioneel en self-service in de accounttab; verdere gebruikers maakt
+  admin-token).
+
+  **Zelfregistratie** loopt ernaast: `/registreren` (publiek, `RegistratieClient` → `/api/registreren`)
+  legt een *aanvraag* vast, geen account. De API leidt de userid af uit voor- en achternaam
+  (`palmw01`) en bewaart de bcrypt-hash van het zelfgekozen wachtwoord; pas als een beheerder
+  goedkeurt in de tab **Aanvragen** (`RegistratiesPanel`) ontstaat de gebruiker — met dat wachtwoord,
+  dus er gaat geen tijdelijk wachtwoord rond. Er is bewust **geen e-mail**: wie inlogt terwijl zijn
+  aanvraag nog loopt, krijgt dat te horen via de `code` uit `/verify` (`aanvraag_open` /
+  `aanvraag_afgewezen`), die `LoginClient` naast `totp_required` afhandelt. Die status komt alleen bij
+  het **juiste wachtwoord** terug — anders is het een middel om te ontdekken wie er een aanvraag heeft
+  liggen. **2FA (TOTP)** is optioneel en self-service in de accounttab; verdere gebruikers maakt
   een beheerder aan met een eenmalig tijdelijk wachtwoord. De account/2fa-BFF-routes zetten de
   ingelogde identiteit als vertrouwde `X-User-Id`-header (uit de sessie, nooit uit browser-input).
   Let op: Auth.js' eigen routes leven onder `/api/auth/*` – daar geen eigen BFF-route bijzetten
-  (de eenmalige-registratie-proxy staat daarom op `/api/setup`).
+  (de eenmalige-registratie-proxy staat daarom op `/api/setup`, de zelfregistratie op
+  `/api/registreren`). Beide staan in `isPublic()` in `auth.config.ts`; vergeet je dat, dan stuurt de
+  sessie-gate een bezoeker zonder account naar `/login` — precies het scherm waar hij niets kan.
 - **Sessie-revocatie + CSRF defense-in-depth.** De sessie is rollend met een **per-login duur**:
   `session.maxAge` = 30 dagen (`SESSIE_LANG`, de cookie-/bovengrens) + `updateAge` = 1 dag in
   `auth.config.ts`, maar de custom `jwt.encode` in `auth.ts` zet de effectieve JWT-`exp` op

@@ -19,6 +19,7 @@ describe("tabUitPad", () => {
   it("leest de tab uit de padsegmenten", () => {
     expect(tabUitPad(["account"])).toBe("account");
     expect(tabUitPad(["beheer", "gebruikers"])).toBe("gebruikers");
+    expect(tabUitPad(["beheer", "registraties"])).toBe("registraties");
   });
 
   it("valt terug op account bij leeg of onbekend", () => {
@@ -40,7 +41,14 @@ describe("isAdminTab", () => {
     expect(isAdminTab("account")).toBe(false);
     expect(isAdminTab("beveiliging")).toBe(false);
     expect(isAdminTab("berichten")).toBe(false);
-    for (const t of ["modelprofielen", "gebruikers", "api-tokens", "berichtenbeheer", "feedback"] as const) {
+    for (const t of [
+      "modelprofielen",
+      "gebruikers",
+      "registraties",
+      "api-tokens",
+      "berichtenbeheer",
+      "feedback",
+    ] as const) {
       expect(isAdminTab(t)).toBe(true);
     }
   });

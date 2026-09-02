@@ -11,6 +11,11 @@ GET    /v1/admin/profiles/{name}          – één profiel
 DELETE /v1/admin/profiles/{name}          – verwijder (niet de default)
 POST   /v1/admin/profiles/{name}/default  – markeer als default
 POST   /v1/admin/profiles/{name}/test     – test de verbinding (kleine LLM-call)
+GET    /v1/admin/registraties             – zelfregistratie-aanvragen (optioneel ?status=)
+POST   /v1/admin/registraties/{id}/goedkeuren  – maak het account aan
+POST   /v1/admin/registraties/{id}/afwijzen    – wijs af (met reden)
+POST   /v1/admin/registraties/goedkeuren       – meerdere tegelijk goedkeuren
+DELETE /v1/admin/registraties/{id}             – aanvraag weg (geeft het e-mailadres vrij)
 """
 
 from __future__ import annotations
@@ -23,7 +28,14 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from pydantic import BaseModel, Field
 
-from .. import api_tokens, berichten as berichten_svc, feedback as feedback_svc, profiles, users
+from .. import (
+    api_tokens,
+    berichten as berichten_svc,
+    feedback as feedback_svc,
+    profiles,
+    registraties,
+    users,
+)
 from ..auth import require_admin
 from ..llm.litellm_client import build_llm_client
 from ..llm_profile import LlmProfile
@@ -262,6 +274,139 @@ async def verwijder_user(userid: str):
     except users.UserError as e:
         raise HTTPException(status_code=409, detail=str(e))
     vergeet_actief(userid)
+
+
+# --- zelfregistratie: aanvragen beoordelen -------------------------------------
+#
+# Het aanvraagformulier staat publiek open (`POST /v1/auth/registratie`); hier beslist de beheerder.
+# Een goedkeuring maakt pas dán het account, met de userid die de beheerder bevestigt of corrigeert
+# en het wachtwoord dat de aanvrager zelf koos. Het wachtwoord-hash komt nergens in deze responses.
+
+class RegistratieOut(BaseModel):
+    id: int
+    voornaam: str
+    achternaam: str
+    email: str
+    userid_voorstel: str
+    status: str
+    reden: str | None = None
+    userid: str | None = None
+    besloten_door: str | None = None
+    besloten_op: str | None = None
+    created: str = ""
+    updated: str = ""
+
+
+class RegistratieGoedkeurIn(BaseModel):
+    # Leeg/afwezig = het voorstel overnemen.
+    userid: str | None = Field(default=None, max_length=64)
+    role: str = Field(default="analist", max_length=16)
+
+
+class RegistratieAfwijzenIn(BaseModel):
+    reden: str = Field(default="", max_length=2000)
+
+
+class RegistratieBulkIn(BaseModel):
+    ids: list[int] = Field(default_factory=list, max_length=200)
+    role: str = Field(default="analist", max_length=16)
+
+
+class RegistratieBulkRegel(BaseModel):
+    """Uitkomst per aanvraag. Bulk is best-effort: één botsende userid mag de rest niet blokkeren."""
+    id: int
+    ok: bool
+    userid: str = ""
+    fout: str = ""
+
+
+def _registratie_to_out(r) -> RegistratieOut:
+    return RegistratieOut(
+        id=r.id, voornaam=r.voornaam, achternaam=r.achternaam, email=r.email,
+        userid_voorstel=r.userid_voorstel, status=r.status, reden=r.reden, userid=r.userid,
+        besloten_door=r.besloten_door,
+        besloten_op=r.besloten_op.isoformat() if r.besloten_op else None,
+        created=r.created.isoformat(), updated=r.updated.isoformat(),
+    )
+
+
+@router.get("/registraties", response_model=list[RegistratieOut])
+async def lijst_registraties(status_filter: str | None = Query(default=None, alias="status")):
+    try:
+        rijen = await registraties.lijst(status_filter)
+    except users.UserError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return [_registratie_to_out(r) for r in rijen]
+
+
+@router.post("/registraties/{aanvraag_id}/goedkeuren", response_model=UserOut)
+async def keur_registratie_goed(
+    aanvraag_id: int, body: RegistratieGoedkeurIn, admin_id: str = Depends(require_admin)
+):
+    try:
+        user = await registraties.keur_goed(
+            aanvraag_id, userid=body.userid, role=body.role, actor=admin_id
+        )
+    except users.UserError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    logger.info(
+        "registratie goedgekeurd",
+        extra={"categorie": "security", "actie": "registratie_goedgekeurd",
+               "aanvraag_id": aanvraag_id, "userid": user.userid, "rol": user.role,
+               "door": admin_id},
+    )
+    return _user_to_out(user)
+
+
+@router.post("/registraties/{aanvraag_id}/afwijzen", status_code=status.HTTP_204_NO_CONTENT)
+async def wijs_registratie_af(
+    aanvraag_id: int, body: RegistratieAfwijzenIn, admin_id: str = Depends(require_admin)
+):
+    try:
+        await registraties.wijs_af(aanvraag_id, reden=body.reden, actor=admin_id)
+    except users.UserError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    logger.info(
+        "registratie afgewezen",
+        extra={"categorie": "security", "actie": "registratie_afgewezen",
+               "aanvraag_id": aanvraag_id, "door": admin_id},
+    )
+
+
+@router.post("/registraties/goedkeuren", response_model=list[RegistratieBulkRegel])
+async def keur_registraties_goed(
+    body: RegistratieBulkIn, admin_id: str = Depends(require_admin)
+):
+    """Meerdere aanvragen achter elkaar goedkeuren met het voorgestelde userid en één rol."""
+    regels: list[RegistratieBulkRegel] = []
+    for aanvraag_id in body.ids:
+        try:
+            user = await registraties.keur_goed(aanvraag_id, role=body.role, actor=admin_id)
+        except users.UserError as e:
+            regels.append(RegistratieBulkRegel(id=aanvraag_id, ok=False, fout=str(e)))
+            continue
+        regels.append(RegistratieBulkRegel(id=aanvraag_id, ok=True, userid=user.userid))
+    logger.info(
+        "registraties in bulk beoordeeld",
+        extra={"categorie": "security", "actie": "registratie_goedgekeurd_bulk",
+               "aantal": len(regels), "geslaagd": sum(1 for r in regels if r.ok),
+               "door": admin_id},
+    )
+    return regels
+
+
+@router.delete("/registraties/{aanvraag_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def verwijder_registratie(aanvraag_id: int, admin_id: str = Depends(require_admin)):
+    """Haal een aanvraag weg – de enige manier om het e-mailadres weer vrij te geven."""
+    try:
+        await registraties.verwijder(aanvraag_id)
+    except users.UserError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    logger.info(
+        "registratie verwijderd",
+        extra={"categorie": "security", "actie": "registratie_verwijderd",
+               "aanvraag_id": aanvraag_id, "door": admin_id},
+    )
 
 
 # --- genereerbare API-tokens ---------------------------------------------------
