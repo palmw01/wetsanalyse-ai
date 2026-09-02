@@ -1,4 +1,4 @@
-import { readdirSync, statSync } from "node:fs";
+import { existsSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -38,5 +38,29 @@ describe("routestructuur", () => {
       .map(([ouder, namen]) => `${ouder.replace(APP, "app")}: ${[...namen].join(" vs ")}`);
 
     expect(botsingen).toEqual([]);
+  });
+
+  // Een niveau met een parallel slot (@modal) heeft méér branches dan alleen dat slot: het impliciete
+  // `children`-slot hoort er ook bij. Kan de router een branch niet matchen – de dialog staat open en
+  // de bewaarde pagina-entry is uit de client-router-cache verlopen – dan valt hij terug op
+  // `default.tsx`. Ontbreekt die, dan blijft het slot leeg. Voor `children` betekende dat een witte
+  // pagina onder de instellingen-dialog: de dialog bleef staan, de werkplek eronder verdween. De
+  // build meldt dit niet; het valt pas op als je een tijdje in zo'n dialog werkt.
+  it("geeft elk slot – ook `children` – een default naast een parallel slot", () => {
+    const ontbreekt: string[] = [];
+    for (const map of [APP, ...mappen(APP)]) {
+      const slots = readdirSync(map).filter(
+        (naam) => naam.startsWith("@") && statSync(join(map, naam)).isDirectory(),
+      );
+      if (slots.length === 0) continue;
+      // De map zelf draagt het `children`-slot, elke `@slot` het zijne.
+      for (const tak of [map, ...slots.map((naam) => join(map, naam))]) {
+        if (!existsSync(join(tak, "default.tsx"))) {
+          ontbreekt.push(`${tak.replace(APP, "app")}/default.tsx`);
+        }
+      }
+    }
+
+    expect(ontbreekt).toEqual([]);
   });
 });
