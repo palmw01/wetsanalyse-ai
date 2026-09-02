@@ -853,12 +853,34 @@ def test_een_onleesbaar_niveau_gaat_niet_meer_stil_verloren():
         {"id": "a", "aandacht": "groen", "motivatie": "prima"},
         {"id": "b", "aandacht": "neutraal", "motivatie": "twijfelgeval"},   # bestaat niet
         {"id": "c", "motivatie": "vergat het niveau"},                       # ontbreekt
+        {"id": "d", "aandacht": "paars"},                                    # niets te redden
     ]})
-    oordelen, _ontbrekend, onleesbaar = _verwerk_critic(txt, ["a", "b", "c"])
+    oordelen, _ontbrekend, onleesbaar = _verwerk_critic(txt, ["a", "b", "c", "d"])
 
-    # De twee onleesbare oordelen tellen niet mee, maar ze zijn nu wél bekend.
-    assert set(oordelen) == {"a"}
-    assert sorted(onleesbaar) == ["(leeg)", "neutraal"]
+    # b en c hadden een onleesbaar niveau maar wél een opmerking: die blijft nu behouden, met een
+    # leeg niveau. d had niets te zeggen en verdwijnt zoals altijd.
+    assert set(oordelen) == {"a", "b", "c"}
+    assert oordelen["b"].aandacht == "" and oordelen["b"].motivatie == "twijfelgeval"
+    assert oordelen["c"].aandacht == "" and oordelen["c"].motivatie == "vergat het niveau"
+    # Alle drie de onleesbare niveaus tellen mee in de tijdlijn, ook die zonder motivatie.
+    assert sorted(onleesbaar) == ["(leeg)", "neutraal", "paars"]
+
+
+def test_een_actie_zonder_niveau_wordt_voorgelegd_en_niet_uitgevoerd():
+    """De veiligheidsgrens: zonder rood niveau valt een `vervang` in de gele tak van de patcher.
+
+    Dat is precies de bedoeling — er is geen oordeel over de zekerheid, dus er wordt niets
+    doorgevoerd; de voorgestelde klasse komt als alternatief bij de jurist te liggen.
+    """
+    uit, n, _rest = pas_critic_toe(
+        [{"id": "a", "klasse": "Rechtsfeit", "tekst": "De ontvanger"}],
+        [{"id": "a", "aandacht": "", "actie": "vervang", "voorstel_klasse": "Rechtssubject",
+          "motivatie": "twijfel"}],
+        CORPUS,
+    )
+    assert uit[0]["klasse"] == "Rechtsfeit"          # niet uitgevoerd
+    assert n.toegepast == 0 and n.alternatief == 1   # wel voorgelegd
+    assert [a["klasse"] for a in uit[0]["alternatieven"]] == ["Rechtssubject"]
 
 
 def test_de_tijdlijn_scheidt_overgeslagen_van_onleesbaar():

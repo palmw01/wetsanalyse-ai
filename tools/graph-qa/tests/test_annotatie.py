@@ -95,10 +95,24 @@ def test_critic_negeert_onbekende_ids_en_ongeldige_aandacht():
     txt = (
         '{"oordelen": ['
         '{"id": "bestaat-niet", "aandacht": "rood", "motivatie": "x"},'
-        '{"id": "abc123", "aandacht": "paars", "motivatie": "x"}]}'
+        '{"id": "abc123", "aandacht": "paars"}]}'
     )
     oordelen, _, _ = _verwerk_critic(txt, ["abc123"])
     assert oordelen == {}
+
+
+def test_een_ongeldig_niveau_mag_de_motivatie_niet_meeslepen():
+    """Sinds 2 sep 2026: een niveau dat we niet kunnen lezen betekent niet dat er niets gezegd is.
+
+    Gemeten in een echte run — de Critic gaf een oordeel met een leeg `aandacht`-veld en een gevulde
+    motivatie, en dat gooiden we in zijn geheel weg. Het element stond daarna bij de jurist alsof de
+    Critic er nooit naar had gekeken. Het niveau blijft leeg (niets verzinnen), de opmerking niet.
+    """
+    txt = '{"oordelen": [{"id": "a", "aandacht": "", "motivatie": "hier klopt iets niet"}]}'
+    oordelen, _, onleesbaar = _verwerk_critic(txt, ["a"])
+    assert oordelen["a"].aandacht == ""
+    assert oordelen["a"].motivatie == "hier klopt iets niet"
+    assert onleesbaar == ["(leeg)"]   # blijft meetellen in de tijdlijn
 
 
 def test_verwijderen_mag_alleen_bij_rood():

@@ -396,9 +396,18 @@ weg: ze bestonden alleen om een cyclus te laten stoppen die er niet meer is.
   een `aandacht` die niet groen/geel/rood is, of die ontbreekt. Dat tweede gooide `_verwerk_critic`
   stil weg, motivatie en instructie incluis, en dan komt het element bij de jurist alsof de Critic
   er nooit naar keek. Het verschil is wezenlijk: het eerste valt niet te repareren, het tweede wel.
-  `_verwerk_critic` geeft die onleesbare waarden nu als derde retourwaarde terug en de tijdlijn
-  noemt ze (`· 2 zonder oordeel (waarvan 1 met een onleesbaar niveau: neutraal)`). Het niveau wordt
-  **niet** aangevuld met een gok — een verzonnen "geel" is een oordeel dat het model niet gaf.
+  `_verwerk_critic` geeft die onleesbare waarden als derde retourwaarde terug en de tijdlijn noemt
+  ze (`· 2 zonder oordeel (waarvan 1 met een onleesbaar niveau: neutraal)`). Die meting wees op
+  2 sep 2026 uit dat het model in ronde 1 een oordeel gaf met een leeg `aandacht`-veld en een
+  gevulde motivatie, en dat wij dat weggooiden.
+
+  **Een onleesbaar niveau sleept de motivatie niet meer mee.** Is er een opmerking, dan wordt het
+  oordeel bewaard met een leeg niveau; zonder opmerking valt er niets te redden en verdwijnt het
+  zoals voorheen. Het niveau wordt **niet** aangevuld met een gok — een verzonnen "geel" is een
+  oordeel dat het model niet gaf. Het blijft dus leeg, en dat valt overal goed: `_critic_melding`
+  telt het als `"geen oordeel"`, de api houdt het element op `voorgesteld` (de lifecycle hangt aan
+  `aandacht`), de kaart toont *Niet beoordeeld* mét de opmerking, en een meegegeven `actie` valt
+  zonder rood niveau in de gele tak van `pas_critic_toe`: voorgelegd, niet uitgevoerd.
 
   **En afkapping is nooit stil.** `critic_node` leest `stop_reason`; is die `max_tokens`, dan zegt
   de tijdlijn dat. `_critic_melding` krijgt bovendien het ingediende totaal mee en meldt het
