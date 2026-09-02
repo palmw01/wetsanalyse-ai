@@ -382,3 +382,23 @@ export function annotatieTitel(doc: {
 export function isVerwijderd(e: unknown): boolean {
   return isApiError(e) && e.status === 404;
 }
+
+/** Melding als dit document over meer dan één brontekstversie gaat, anders `""`.
+ *
+ *  De api leidt `bronversies` af uit de `bron_hash` van elk anker. Staan er twee in, dan is de
+ *  wettekst geschoven sinds de eerste markering – de importer draait wekelijks – en wijzen de
+ *  offsets van de oudere markeringen naar tekst die er niet meer zo staat. In het documentpaneel
+ *  springt zo'n markering dan naar een ander voorkomen of verdwijnt hij, en dat gebeurt stil.
+ *
+ *  Bewust geen blokkade: de jurist heeft niets fout gedaan en zijn werk hoort niet weg te vallen om
+ *  een gewijzigde bron. Wel iets wat hij moet weten voordat hij een markering goedkeurt.
+ */
+export function bronversieMelding(doc: { bronversies?: string[] }): string {
+  const n = doc.bronversies?.length ?? 0;
+  if (n < 2) return "";
+  return (
+    `Let op: deze annotatie gaat over ${n} versies van de wettekst. ` +
+    `De wet is opnieuw ingelezen sinds de eerste markering; oudere markeringen kunnen op de ` +
+    `verkeerde plek staan. Controleer ze in het documentpaneel voordat je ze goedkeurt.`
+  );
+}

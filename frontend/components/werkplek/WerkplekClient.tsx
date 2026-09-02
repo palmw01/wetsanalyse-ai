@@ -38,7 +38,8 @@ import type {
   VoorstelElement,
 } from "@/lib/types";
 import {
-  annotatieTitel, BESLIST_LIFECYCLES, eigenMarkeringenVoorContext, isVerwijderd, kandidaatLabel,
+  annotatieTitel, BESLIST_LIFECYCLES, bronversieMelding, eigenMarkeringenVoorContext,
+  isVerwijderd, kandidaatLabel,
   doelVanKandidaat, kandidaatPrompt, kandidatenAlsTekst, mergeVoorstellen, vraagContextLabel,
   vraagContextVan, vraagSuggesties,
 } from "@/lib/annotatie";
@@ -278,6 +279,12 @@ export function WerkplekClient({
   async function haalEnCache(slug: string): Promise<AnnotatieDocument> {
     const document = await haalDocument(slug);
     setDocs((m) => ({ ...m, [slug]: document }));
+    // Gaat dit document over meer dan één brontekstversie, dan is de wet opnieuw ingelezen sinds de
+    // eerste markering en kunnen oudere markeringen op de verkeerde plek staan. Hier en niet op het
+    // schrijfpad: het document komt langs élke weg hierdoorheen, ook bij een eigen markering die
+    // niet langs graph-qa gaat.
+    const conflict = bronversieMelding(document);
+    if (conflict) setMelding(conflict);
     return document;
   }
 

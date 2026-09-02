@@ -81,6 +81,19 @@ interface ToolDef {
 const S = z.object;
 
 const TOOLS: ToolDef[] = [
+  // – annotatiekwaliteit —
+  {
+    name: "annotatie_statistiek",
+    description:
+      "Wat juristen met de voorstellen van de agent deden, over alle documenten heen: goedgekeurd/" +
+      "aangepast/afgewezen per JAS-klasse en per model, de klasse-verschuivingen die juristen " +
+      "aanbrachten, en hoe vaak een Critic-oordeel samenviel met een correctie. Lees de cijfers als " +
+      "tellingen: zolang er weinig gereviewd is zeggen percentages weinig.",
+    input: S({ limit: z.number().int().min(1).max(5000).optional() }),
+    run: (a) =>
+      apiFetch("GET", `/v1/admin/annotatie-statistiek${a.limit ? `?limit=${a.limit}` : ""}`),
+  },
+
   // – modelprofielen —
   {
     name: "list_profiles",

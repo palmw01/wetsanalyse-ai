@@ -29,6 +29,8 @@ from ..llm.litellm_client import build_llm_client
 from ..llm_profile import LlmProfile
 from ..ratelimit import rate_limited_admin_test
 from ..secrets_crypto import SecretsCryptoError, crypto_beschikbaar
+from ..annotatie_statistiek import ReviewStatistiek, rapport
+from ..deps import get_annotatie_store
 from .auth import huidige_beheerder, vergeet_actief
 
 logger = logging.getLogger(__name__)
@@ -487,3 +489,19 @@ async def get_feedback(offset: int = Query(0, ge=0), limit: int = Query(50, ge=1
         for row in rows
     ]
     return FeedbackAdminPaginaOut(items=items, totaal=totaal)
+
+
+@router.get("/annotatie-statistiek", response_model=ReviewStatistiek)
+async def get_annotatie_statistiek(limit: int = Query(1000, ge=1, le=5000)):
+    """Wat juristen met de voorstellen van de agent deden, over alle documenten heen.
+
+    **Achter het admin-token, en dat is geen nalatigheid maar de reden dat het hier staat.**
+    Annotatiedocumenten zijn per gebruiker gescopet; een endpoint in het annotatiedomein zou elke
+    analist alleen zijn eigen handvol cijfers geven — nuttig als terugkoppeling, waardeloos als
+    meting van de agent.
+
+    Aggregeren gebeurt in Python en niet in SQL: `elementen` staat als JSON-kolom, en de suite draait
+    op SQLite terwijl productie Postgres is — een JSON-`GROUP BY` breekt op één van de twee.
+    """
+    docs = await get_annotatie_store().alle_documenten(limit)
+    return rapport(docs)

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  bronversieMelding,
   bronVan,
   eigenMarkeringenVoorContext,
   documentStatusLabel,
@@ -592,5 +593,23 @@ describe("vraagSuggesties", () => {
     }));
     expect(vragen).toHaveLength(3);
     expect(new Set(vragen).size).toBe(3);
+  });
+});
+
+describe("bronversieMelding", () => {
+  it("zwijgt bij één brontekstversie", () => {
+    expect(bronversieMelding({ bronversies: ["a1b2c3d4"] })).toBe("");
+  });
+
+  it("zwijgt als het veld ontbreekt (oudere api-respons)", () => {
+    expect(bronversieMelding({})).toBe("");
+  });
+
+  it("waarschuwt zodra er twee versies in het document zitten", () => {
+    // De wet is opnieuw ingelezen sinds de eerste markering; de offsets van de oudere markeringen
+    // wijzen dan naar tekst die verschoven is, en dat gebeurt zonder dat iemand het merkt.
+    const melding = bronversieMelding({ bronversies: ["a1b2c3d4", "e5f6a7b8"] });
+    expect(melding).toContain("2 versies");
+    expect(melding).toContain("documentpaneel");
   });
 });

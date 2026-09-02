@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import datetime
 from enum import Enum
 
-from pydantic import BaseModel, Field, ValidationError, model_validator
+from pydantic import BaseModel, Field, ValidationError, computed_field, model_validator
 
 from .db import utcnow
 
@@ -148,6 +148,14 @@ class Anker(BaseModel):
     twee identieke fragmenten in één artikel te onderscheiden – en quote-met-context als de brontekst
     schuift (herimport, ander lid-bereik). `bron_hash` vertelt of de offsets nog over dezelfde tekst
     gaan. De offsets slaan op de samengevoegde brontekst die het documentpaneel toont.
+
+    De hash is FNV-1a 32-bit over de UTF-8-bytes – geen cryptografische hash, want dit beschermt
+    niet tegen manipulatie maar tegen verwarring. Twee implementaties berekenen hem (`bronHash` in
+    `frontend/lib/selectie.ts`, `_fnv1a_32` in `tools/graph-qa/agent/annotatie.py`), bewaakt door
+    gedeelde testvectoren. Dit commentaar zei tot 2 sep 2026 "sha256, ingekort"; dat klopte niet.
+
+    De offsets moeten het fragment exact omspannen (`eind - start == len(tekst)`): beide bouwers
+    maken het anker als een slice van de brontekst. `annotatie_validatie` dwingt dat af.
     """
 
     lid: str = ""
@@ -155,7 +163,7 @@ class Anker(BaseModel):
     eind: int = 0
     voor: str = ""        # tot 48 tekens context vóór het fragment
     na: str = ""          # tot 48 tekens context erna
-    bron_hash: str = ""   # sha256 van de brontekst, ingekort
+    bron_hash: str = ""   # FNV-1a 32-bit over de UTF-8-bytes van de brontekst, als hex
 
 
 class AnnotatieElement(BaseModel):
@@ -216,6 +224,24 @@ class AnnotatieDocument(BaseModel):
     runs: list[AgentRun] = []   # het productiespoor: elke agent-ronde die aan dit document werkte
     created: datetime | None = None
     updated: datetime | None = None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def bronversies(self) -> list[str]:
+        """De brontekstversies waar de ankers van dit document over gaan.
+
+        Eén waarde is normaal. Méér betekent dat er sinds de eerste markering opnieuw is
+        geïmporteerd, of dat er elementen uit een andere bepaling in zijn beland – en dan wijzen de
+        offsets van de oudere elementen naar tekst die verschoven is.
+
+        **Afgeleid en niet opgeslagen**, met opzet: de store dumpt `elementen` en `runs` apart, dus
+        dit landt nooit in de database en er is geen kolom of migratie voor nodig. Het is ook geen
+        gebeurtenis maar een toestand – het document komt bij élke schrijfactie terug, dus dit is de
+        plek waar zowel graph-qa als de werkplek het ziet. Een responseheader zou dat niet doen: die
+        wordt maar door één van de twee gelezen.
+        """
+        from .annotatie_validatie import bronversies as _bronversies
+        return _bronversies(self.elementen)
 
 
 class AuditRecord(BaseModel):

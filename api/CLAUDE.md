@@ -179,6 +179,18 @@ De API bedient zeven dingen:
   API-key, `api_key_set` nooit de key zelf), default zetten, verbinding testen; het gebruikersbeheer
   (`/users` CRUD, de laatste actieve beheerder is beschermd); en de genereerbare API-tokens
   (`/api-tokens`).
+- `annotatie_statistiek.py` – **wat juristen met de voorstellen deden**, over documenten heen:
+  goedgekeurd/aangepast/afgewezen per JAS-klasse en per model, de klasse-verschuivingen die juristen
+  aanbrachten, en of een Critic-oordeel samenviel met een correctie. Die data lag er al (`Beslissing`
+  met de server-afgeleide `review_reason`, `geproduceerd_door` per element, `critic_rondes`) maar had
+  geen consument. Geen tweede telling naast `annotatie_export.tel_elementen` – dat blijft "één
+  waarheid" voor de export en de werkvoorraadlijst – maar een aanvulling die over documenten heen
+  kijkt. Twee ingangen op dezelfde functie: `GET /v1/admin/annotatie-statistiek` (database, achter
+  het admin-token omdat documenten per gebruiker gescopet zijn en een analist anders alleen zijn
+  eigen cijfers ziet) en `scripts/statistiek.py` over een JSON-export (werkt zónder databasetoegang,
+  en dat is vandaag de enige plek waar reviewbeslissingen van een echte werkplek te vinden zijn).
+  Aggregeren gebeurt in Python: `elementen` is een JSON-kolom en de suite draait op SQLite terwijl
+  productie Postgres is.
 - `routers/catalog.py` – de niet-admin keuzelijst: `GET /v1/profiles` (alleen naam + default).
 - `main.py` – routers + `/health` (liveness) + `/ready` (alleen booleans). De lifespan doet DB-init
   (met bounded connect-retry bij cold start), profiel-seeding en het instellen van de LLM-throttle.
@@ -210,6 +222,28 @@ loggen. Zie `docs/observability.md`.
   destructief pad dat blijft rondslingeren wordt vroeg of laat gebruikt.
 - **JAS-klassen zijn canoniek.** Een voorgesteld element wordt gevalideerd tegen
   `validation.GELDIGE_JAS_KLASSEN` – verzin er geen bij.
+- **De api toetst zelf wat hij vastlegt** (`annotatie_validatie.py`). Tot 2 sep 2026 keek hij alleen
+  naar de klasse en een leeg fragment; al het overige leunde op graph-qa of de werkplek. Dat is een
+  trust boundary op de verkeerde plek – de api is de laatste partij die iets kan tegenhouden. Wat
+  hier NIET gebeurt is de juridische interpretatie overdoen: de wettekst zit in GraphDB en daar
+  praat de api niet mee, dus of een fragment letterlijk in de bron staat blijft aan graph-qa. Wat
+  hier wél kan is de **interne samenhang**: `eind - start == len(tekst)` (een anker dat zijn eigen
+  fragment niet dekt is kapot, ongeacht welke wet erachter zit), geldige offsets, en een anker dat
+  niet in een ander lid wijst dan het element claimt. Dat laatste vangt de Operator `"en"` met een
+  anker van 83 tekens die op 1 sep 2026 live stond.
+
+  **Een ontbrekend anker blijft toegestaan** – `_anker_voor` in de agent geeft bewust `None` als
+  lokaliseren niet lukt, want een ontbrekend anker is zichtbaar en een fout anker niet.
+
+  **Geschoven is iets anders dan kapot.** `AnnotatieDocument.bronversies` (afgeleid, niet
+  opgeslagen) telt de verschillende `anker.bron_hash`-waarden. Meer dan één betekent dat het
+  document over twee brontekstversies gaat – na een herimport, of doordat er elementen uit een
+  andere bepaling in belandden. Dat wordt **gemarkeerd, niet verworpen**: de importer draait
+  wekelijks en overheid.nl verandert, dus dat is geen fout van de indiener. Er gaat wel een
+  auditregel `bronversie-conflict` in, en de werkplek waarschuwt de jurist
+  (`frontend/lib/annotatie.bronversieMelding`). Bewust een veld op het document en geen header: het
+  schrijfpad heeft twee consumenten en de frontend leest `X-Verworpen` niet – die weg loopt via
+  graph-qa's `waarschuwing`-event, en een eigen markering gaat daar niet langs.
 - **Secrets zijn bestanden.** Alle secrets (admin-tokens, client-tokens, DB-credentials, Fernet-key)
   staan als bestanden op de host (`*_FILE`-patroon) – nooit als plain env var.
 

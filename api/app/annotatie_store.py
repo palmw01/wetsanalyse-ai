@@ -83,6 +83,21 @@ class AnnotatieStore:
             )).all()
         return [_naar_document(r) for r in rows]
 
+    async def alle_documenten(self, limit: int = 1000) -> list[AnnotatieDocument]:
+        """Álle documenten, over gebruikers heen — uitsluitend voor de admin-statistiek.
+
+        Bewust een aparte methode en niet een `user_id=None` op `lijst_documenten`: die functie is de
+        per-gebruiker gescopete lijst en dat is een garantie van dit domein. Een optionele parameter
+        die de scoping uitzet is precies het soort ding dat later per ongeluk wordt meegegeven.
+        """
+        async with db.get_engine().connect() as conn:
+            rows = (await conn.execute(
+                select(db.annotatie_documenten)
+                .order_by(db.annotatie_documenten.c.updated.desc())
+                .limit(limit)
+            )).all()
+        return [_naar_document(r) for r in rows]
+
     async def muteer_document(
         self,
         slug: str,
