@@ -185,8 +185,15 @@ export interface LoginVerifyResult {
 
 export interface ApiError {
   status: number;
+  /** De leesbare reden. Bij een gestructureerde fout is dit het `melding`-veld eruit; alleen als
+   *  dat ontbreekt valt hij terug op de ruwe JSON. */
   detail: string;
   retryAfter?: number;
+  /** `detail.reden` bij een gestructureerde fout: "budget_op", "run_loopt_al", … */
+  reden?: string;
+  /** Het volledige `detail`-object, zodat de aanroeper er losse velden uit kan lezen zonder de
+   *  string opnieuw te parsen. */
+  data?: Record<string, unknown>;
 }
 
 // --- Annotatie-domein (wetsanalyse-workbench) – afgeleid van api/app/annotatie_contracts.py ---
