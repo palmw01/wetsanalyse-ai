@@ -226,6 +226,13 @@ export interface AnnotatieDocument {
   elementen: AnnotatieElement[];
   /** Het productiespoor: elke agent-ronde die aan dit document werkte. */
   runs: AgentRun[];
+  /** De brontekstversies waar de ankers van dit document over gaan (`anker.bron_hash`).
+   *
+   *  Eén waarde is normaal. Méér betekent dat er opnieuw is geïmporteerd terwijl er al geannoteerd
+   *  was, en dan wijzen de offsets van de oudere markeringen naar tekst die verschoven is – de
+   *  markering springt dan naar een ander voorkomen of verdwijnt. Door de api afgeleid en niet
+   *  opgeslagen; oudere responses kennen het veld niet, vandaar optioneel. */
+  bronversies?: string[];
   created?: string | null;
   updated?: string | null;
 }

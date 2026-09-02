@@ -8,8 +8,14 @@ klasse van een voorgesteld element hiertegen en de export gebruikt de volgorde e
 > staat daarom in `jas_klassen.py`.
 
 > De vroegere brongetrouwheid-/schema-checks van de (verwijderde) `/v1/projects`-analyse-pijplijn
-> stonden hier ook; die zijn weg. Brongetrouwheid wordt nu afgedwongen in graph-qa (grounding) en de
-> frontend (`segmenteer`), niet server-side in de api.
+> stonden hier ook; die zijn weg. **Of een fragment letterlijk in de wettekst staat** wordt
+> afgedwongen in graph-qa (grounding) en de frontend (`segmenteer`) – de api heeft de wettekst niet,
+> die zit in GraphDB.
+>
+> Dat betekende tot 2 sep 2026 dat de api álles op zijn beloop liet behalve de klasse hierboven, en
+> dat is een trust boundary op de verkeerde plek: de api is de partij die vastlegt. Wat hij zonder de
+> graaf wél kan toetsen – de samenhang tussen een fragment en zijn anker – staat nu in
+> `annotatie_validatie.py`.
 """
 
 from __future__ import annotations

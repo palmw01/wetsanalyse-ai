@@ -63,7 +63,7 @@ async def _document_met_spoor(client) -> str:
              "aandacht": "geel", "critic": "let op de afbakening",
              "critic_rondes": [{"ronde": 1, "aandacht": "geel", "motivatie": "te ruim", "actie": "behoud"}],
              "alternatieven": [{"klasse": "Rechtsobject", "motivatie": "kan ook"}],
-             "anker": {"lid": "2", "start": 4, "eind": 24, "bron_hash": "abc123"}},
+             "anker": {"lid": "2", "start": 4, "eind": 25, "bron_hash": "abc123"}},
             {"id": "m2", "klasse": "Voorwaarde", "tekst": "indien de aanslag is opgelegd", "lid": "2"},
         ],
     })

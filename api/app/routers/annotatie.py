@@ -46,6 +46,7 @@ from ..annotatie_store import CONFLICT, GEEN_ELEMENT, AnnotatieStore, etag_van
 from ..auth import require_client
 from ..db import utcnow
 from ..deps import get_annotatie_store
+from ..annotatie_validatie import bronversies, controleer_element
 from ..validation import GELDIGE_JAS_KLASSEN
 from .auth import actieve_userid
 
@@ -59,6 +60,7 @@ _INHOUD_VELDEN = ("klasse", "tekst", "lid", "toelichting", "vindplaats")
 AFGEROND = object()
 VERGRENDELD = object()
 NIET_VERGRENDELD = object()
+ONGELDIGE_WIJZIGING = object()
 
 
 def _afgerond(doc: AnnotatieDocument) -> bool:
@@ -247,6 +249,9 @@ async def zet_elementen(
     # `ElementenInvoer._weiger_per_element`, anders was dit een 422 en landde er níéts) en wat de
     # merge hieronder afwijst op klasse of leeg fragment. Voor de jurist is dat hetzelfde feit.
     verworpen = len(req.geweigerd)
+    # Wát er sneuvelde, niet alleen hoevéél – zelfde motief als `req.geweigerd` hieronder: een teller
+    # vertelt de jurist dat er iets weg is, dit vertelt hem wat, zodat hij het zelf kan markeren.
+    afgekeurd: list[dict] = []
     regels: list[tuple] = []
 
     def merge(doc: AnnotatieDocument):
@@ -263,8 +268,13 @@ async def zet_elementen(
         gezien: set[str] = set()
 
         for e in req.elementen:
-            if e.klasse not in GELDIGE_JAS_KLASSEN or not e.tekst.strip():
+            # Eén poort voor alle invarianten die de api zelf kan toetsen: de klasse en het lege
+            # fragment die hier altijd al stonden, plús de samenhang tussen het fragment en zijn
+            # anker. Dat laatste was tot 2 sep 2026 nergens gecontroleerd – zie
+            # `annotatie_validatie` voor de Operator "en" met 83 tekens anker die daardoor live stond.
+            if (reden := controleer_element(e)):
                 verworpen += 1
+                afgekeurd.append({"tekst": e.tekst[:120], "klasse": e.klasse, "reden": reden})
                 continue
 
             el = op_id.get(e.id) if e.id else None
@@ -357,6 +367,15 @@ async def zet_elementen(
         raise HTTPException(status_code=409, detail="Deze annotatie is afgerond. Heropen hem om te wijzigen.")
 
     doc: AnnotatieDocument = uitkomst  # type: ignore[assignment]
+    # Gaat dit document nu over meer dan één brontekstversie, dan is er opnieuw geïmporteerd terwijl
+    # er al geannoteerd was (of er zijn elementen uit een andere bepaling in beland) en wijzen de
+    # offsets van de oudere elementen naar tekst die verschoven is. Bewust GEEN verwerping: de
+    # importer draait wekelijks en overheid.nl verandert, dus dat is geen fout van de indiener. Wel
+    # een auditregel, want het spoor moet het moment vasthouden – het afgeleide veld op het document
+    # zegt alleen dát het zo is, niet sinds wanneer.
+    versies = doc.bronversies
+    if len(versies) > 1:
+        regels.append(("bronversie-conflict", None, {"ronde": req.ronde, "bronversies": versies}))
     telling = {a: sum(1 for r in regels if r[0] == a) for a in
                ("element-voorgesteld", "element-herzien", "element-ingetrokken", "critic-suggestie")}
     await store.schrijf_auditregels(slug, client_id, user_id, [
@@ -367,6 +386,7 @@ async def zet_elementen(
             # Wát er sneuvelde, niet alleen hoevéél. Een teller vertelt de jurist dat er iets weg is;
             # dit vertelt hem wat, zodat hij het zelf kan markeren.
             **({"geweigerd": req.geweigerd} if req.geweigerd else {}),
+            **({"afgekeurd": afgekeurd} if afgekeurd else {}),
             "nieuw": telling["element-voorgesteld"], "herzien": telling["element-herzien"],
             "ingetrokken": telling["element-ingetrokken"], "suggesties": telling["critic-suggestie"],
             # De onwijzigbare vastlegging van de herkomst: het document draagt de huidige staat,
@@ -389,6 +409,18 @@ async def zet_elementen(
     return doc
 
 
+# Voor de jurist leesbaar, want deze komen in de werkplek terecht. De sleutels zelf
+# (`annotatie_validatie.controleer_element`) zijn voor het auditspoor.
+_MENS_AFKEURING = {
+    "ongeldige_klasse": "Onbekende JAS-klasse.",
+    "leeg_fragment": "Een markering heeft een tekstfragment nodig.",
+    "anker_offsets_ongeldig": "De selectie heeft geen geldige positie in de tekst.",
+    "anker_dekt_fragment_niet": "De selectie komt niet overeen met de gemarkeerde tekst. "
+                                "Probeer opnieuw te selecteren.",
+    "anker_lid_wijkt_af": "De selectie ligt in een ander lid dan de markering aangeeft.",
+}
+
+
 @router.post("/documenten/{slug}/elementen", status_code=status.HTTP_201_CREATED,
              response_model=AnnotatieDocument)
 async def voeg_element_toe(
@@ -404,10 +436,13 @@ async def voeg_element_toe(
     er los bij en raakt de rest niet. `herkomst="mens"` en meteen `human_approved` – de mens hoeft
     zijn eigen markering niet nog eens goed te keuren.
     """
-    if req.klasse not in GELDIGE_JAS_KLASSEN:
-        raise HTTPException(status_code=422, detail=f"Onbekende JAS-klasse: {req.klasse}")
-    if not req.tekst.strip():
-        raise HTTPException(status_code=422, detail="Een markering heeft een tekstfragment nodig.")
+    # Dezelfde invarianten als bij de PUT, maar een ANDER antwoord: daar sleept één kapot element de
+    # rest niet mee (verwerpen + tellen), hier is er maar één element en is de indiener een mens die
+    # meteen moet horen dat zijn selectie niet klopt. Stil laten landen zou hem een markering geven
+    # die in het documentpaneel de verkeerde tekst oplicht.
+    if (reden := controleer_element(req)):
+        raise HTTPException(status_code=422, detail=_MENS_AFKEURING.get(
+            reden, f"Deze markering kan niet worden vastgelegd ({reden})."))
 
     element_id = uuid.uuid4().hex[:12]
 
@@ -497,6 +532,7 @@ async def beslis(
     anker_verplaatst: dict = {}
     geen_wijziging: dict[str, bool] = {}
     reden_holder: dict[str, ReviewReason | None] = {"reden": req.review_reason}
+    afkeuring: dict[str, str] = {}
 
     def toepassen(doc: AnnotatieDocument, el: AnnotatieElement):
         """Muteert het element in-place binnen de atomaire store-transactie (row-lock).
@@ -542,6 +578,13 @@ async def beslis(
             if not diff:
                 geen_wijziging["ja"] = True
                 return None
+            # De edit is nu toegepast op het element; dáárna pas toetsen, want de invarianten gaan
+            # over de uitkomst en niet over de losse velden. Kort de jurist een fragment in zonder
+            # dat zijn anker meeschuift, dan wijst het naar meer tekst dan hij markeerde – precies
+            # het defect dat de patcher aan de agentkant maakte.
+            if (reden := controleer_element(el)):
+                afkeuring["reden"] = reden
+                return ONGELDIGE_WIJZIGING
             el.lifecycle = Lifecycle.edited
             # NIET `herkomst` – dat blijft wie het element aanmaakte. Een edit door de jurist maakt
             # er geen mens-element van; anders is later niet meer te zien dat de agent het voorstelde.
@@ -588,6 +631,9 @@ async def beslis(
             status_code=409,
             detail="Dit element is al beoordeeld. Heropen het om het te wijzigen.",
         )
+    if resultaat is ONGELDIGE_WIJZIGING:
+        raise HTTPException(status_code=422, detail=_MENS_AFKEURING.get(
+            afkeuring.get("reden", ""), "Deze wijziging kan niet worden vastgelegd."))
     if resultaat is NIET_VERGRENDELD:
         raise HTTPException(
             status_code=409,
