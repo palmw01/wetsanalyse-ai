@@ -110,6 +110,15 @@ De API bedient zeven dingen:
   ronde **zonder** run wist niets – een oudere client mag het spoor niet uitgummen. Documenten van
   vóór deze registratie tonen in de export expliciet "onbekend (vóór registratie)".
 
+  **De wettekst in de PDF volgt de structuur van de wet** (`wetstructuur.py`). Elk lid ging tot
+  2 sep 2026 als één reportlab-`Paragraph` naar buiten, en die vouwt witruimte samen: de `\n` tussen
+  de onderdelen verdween en a./b./c. plakten aan elkaar als lopende tekst. Nu krijgt elk onderdeel
+  een eigen alinea met inspringing naar nestingniveau en een hangend nummer. Dezelfde parser draait
+  in de werkplek (`frontend/lib/wetstructuur.ts`), met gedeelde vectoren in
+  `frontend/lib/wetstructuur.vectoren.json` — anders staat een onderdeel in de PDF op een andere
+  marge dan in beeld en gaat de jurist twijfelen aan de bron in plaats van aan de opmaak. Het
+  niveau is afgeleid uit de nummervorm; de tekst zelf verandert geen teken.
+
   **Exporteren** (`annotatie_export.py`): `POST /documenten/{slug}/export?formaat=pdf|csv|json`
   bouwt één canonieke `ExportDocument` (document + telling + elementen mét volledig spoor + het
   hele auditlog) en serialiseert die drie keer. Werkt in elke fase; een document dat nog in review

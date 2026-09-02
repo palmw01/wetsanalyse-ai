@@ -33,11 +33,35 @@ export function bronHash(bron: string): string {
 }
 
 /** Absolute offset in de brontekst uit (index van de tekstknoop, offset daarbinnen).
- *  `lengtes` is de lengte van elke tekstknoop in documentvolgorde. */
+ *  `lengtes` is de lengte van elke tekstknoop in documentvolgorde.
+ *
+ *  Dit werkt alleen als de tekstknopen samen EXACT de brontekst vormen. Die eis lag tot 2 sep 2026
+ *  ongeschreven op het documentpaneel en zette de weergave vast: elke blokstructuur die een
+ *  scheidingsteken weglaat, verschuift stil elke markering die de jurist zelf maakt. Gebruik voor
+ *  gestructureerde weergave `offsetInBlok`. */
 export function offsetUit(lengtes: number[], knoopIndex: number, offsetInKnoop: number): number {
   let totaal = 0;
   for (let i = 0; i < knoopIndex && i < lengtes.length; i++) totaal += lengtes[i];
   return totaal + offsetInKnoop;
+}
+
+/** Absolute offset binnen één blok dat op `blokOffset` in de brontekst begint.
+ *
+ *  Hiermee is de weergave los van de offsets: het paneel toont leden en onderdelen als aparte
+ *  blokken met hun eigen inspringing, en elk blok draagt zijn startpositie als `data-offset`. De
+ *  tekstknopen hóéven dan niet meer samen de hele brontekst te vormen — alleen binnen een blok moet
+ *  het kloppen, en dat is precies wat de blokinhoud is.
+ *
+ *  De scheidingstekens (`\n` tussen onderdelen, `\n\n` tussen leden) verdwijnen daarmee uit de DOM.
+ *  Dat mag: ze dragen geen betekenis meer voor de positiebepaling, alleen nog voor de brontekst zelf.
+ */
+export function offsetInBlok(
+  lengtes: number[],
+  knoopIndex: number,
+  offsetInKnoop: number,
+  blokOffset: number,
+): number {
+  return blokOffset + offsetUit(lengtes, knoopIndex, offsetInKnoop);
 }
 
 /** Trim witruimte en leestekens aan de randen van een selectie.
