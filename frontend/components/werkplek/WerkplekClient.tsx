@@ -410,6 +410,10 @@ export function WerkplekClient({
     // In de rondleiding is dit venster een voorbeeld: er gaat niets naar de agent. De invoerbalk is
     // ook uitgeschakeld, dit is het vangnet voor Enter en de voorbeeldknoppen.
     if (demo) return;
+    // Budget op: geen enkele weg naar een nieuwe beurt. De knoppen zijn ook uitgeschakeld, maar dat
+    // is de zichtbare helft — dit is de sluitende. De eerste versie schermde alleen de verzendknop
+    // af, en toen bleven de voorbeeldvragen, de kandidatenlijst en het beginscherm gewoon open.
+    if (geblokkeerd) return;
     const prompt = (vast ?? invoer).trim();
     if (!prompt || bezigRef.current) return;
     bezigRef.current = true;
@@ -506,8 +510,10 @@ export function WerkplekClient({
       // aanroep blijven de strook en de dichte invoerbalk tot een minuut achterlopen. Precies
       // daardoor kón deze vraag überhaupt nog verstuurd worden.
       if ((e as { budgetOp?: true }).budgetOp) {
-        setItems((xs) => xs.filter((x) => x.id !== antId && x.id !== vraagId));
-        setInvoer(prompt);
+        // Alleen de lege ANTWOORDbubbel weg; de vraag blijft staan. Die is namelijk al opgeslagen –
+        // `persisteer(…, "user", …)` draait vóór `startRun` – dus hem uit beeld halen zou hem bij
+        // een herlaadbeurt gewoon laten terugkomen. Wat je ziet klopt zo met wat er bewaard is.
+        setItems((xs) => xs.filter((x) => x.id !== antId));
         setBudgetGeweigerd(true);
         onBeurtKlaar?.();
         setBezig(false);
@@ -999,11 +1005,11 @@ export function WerkplekClient({
 
       {/* De vraag is geweigerd omdat het budget op is. Kort houden: wanneer het weer kan staat al in
           de strook bovenaan het scherm én onder de invoerbalk – dezelfde datum drie keer noemen
-          leest als een storing. Geen sluitknop: hij verdwijnt zodra je een vraag verstuurt. */}
+          leest als een storing. Geen sluitknop: hij verdwijnt zodra je weer een vraag verstuurt. */}
       {budgetGeweigerd && (
         <div className="shrink-0 px-4 pt-2">
           <Melding type="waarschuwing" compact>
-            Je vraag is niet verstuurd: je tokenbudget is op. Je vraag staat weer in het invoerveld.
+            Je vraag is niet verstuurd: je tokenbudget is op.
           </Melding>
         </div>
       )}
@@ -1080,8 +1086,10 @@ export function WerkplekClient({
                   <button
                     key={v}
                     type="button"
+                    disabled={geblokkeerd}
+                    title={geblokkeerd ? "Je tokenbudget is op" : undefined}
                     onClick={() => void verstuur(v)}
-                    className="rounded-bubbel border border-line bg-paper px-4 py-2.5 text-left text-sm text-lint shadow-zacht transition-all hover:-translate-y-0.5 hover:border-lint/40 hover:shadow-kaart focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lint"
+                    className="rounded-bubbel border border-line bg-paper px-4 py-2.5 text-left text-sm text-lint shadow-zacht transition-all hover:-translate-y-0.5 hover:border-lint/40 hover:shadow-kaart disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:border-line disabled:hover:shadow-zacht focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lint"
                   >
                     {v}
                   </button>
@@ -1135,7 +1143,7 @@ export function WerkplekClient({
                   {item.tekst && <Markdown tekst={item.tekst} />}
                   <KandidatenKeuze
                     kandidaten={item.kandidaten}
-                    bezig={bezig}
+                    uitgeschakeld={bezig || geblokkeerd}
                     onKies={(k) => void verstuur(kandidaatPrompt(k), doelVanKandidaat(k))}
                   />
                 </div>
@@ -1185,8 +1193,10 @@ export function WerkplekClient({
                 <button
                   key={vraag}
                   type="button"
+                  disabled={geblokkeerd}
+                  title={geblokkeerd ? "Je tokenbudget is op" : undefined}
                   onClick={() => void verstuur(vraag)}
-                  className="focus-ring inline-flex min-h-[24px] items-center rounded-full border border-line bg-paper px-2.5 py-1 text-xs text-muted transition hover:border-lint hover:text-ink coarse:min-h-[44px]"
+                  className="focus-ring inline-flex min-h-[24px] items-center rounded-full border border-line bg-paper px-2.5 py-1 text-xs text-muted transition hover:border-lint hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-line disabled:hover:text-muted coarse:min-h-[44px]"
                 >
                   {vraag}
                 </button>
@@ -1370,11 +1380,13 @@ function AnnotatieChip({
  */
 function KandidatenKeuze({
   kandidaten,
-  bezig,
+  uitgeschakeld,
   onKies,
 }: {
   kandidaten: AgentKandidaat[];
-  bezig: boolean;
+  /** Er loopt al een beurt, of het tokenbudget is op. De keuzes blijven zichtbaar – wat de agent
+   *  voorstelde hoort leesbaar te blijven – maar zijn dan niet aan te klikken. */
+  uitgeschakeld: boolean;
   onKies: (k: AgentKandidaat) => void;
 }) {
   return (
@@ -1383,7 +1395,7 @@ function KandidatenKeuze({
         <li key={`${k.bwbId}|${k.artikel}|${k.lid ?? ""}`}>
           <button
             type="button"
-            disabled={bezig}
+            disabled={uitgeschakeld}
             onClick={() => onKies(k)}
             className="flex w-full items-center gap-3 rounded-kaart border border-line bg-surface px-4 py-3 text-left shadow-zacht transition-all hover:-translate-y-0.5 hover:border-lint/40 hover:shadow-kaart disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lint"
           >
