@@ -167,7 +167,8 @@ De eerste keer maak je via `/setup` eenmalig de eerste beheerder aan. Daarna kom
 twee manieren bij: een beheerder maakt er zelf een aan via de beheertab, of iemand vraagt toegang aan
 via `/registreren` en een beheerder keurt die aanvraag goed (beheertab → **Aanvragen**). Zo'n aanvraag
 is geen account: pas bij goedkeuring ontstaat de gebruiker, met de userid die het systeem afleidt uit
-de naam (`palmw01`) en het wachtwoord dat de aanvrager zelf koos.
+de naam (`palmw01`) en het wachtwoord dat de aanvrager zelf koos. Wijs je af, dan verdwijnt de
+aanvraag meteen uit de database, zodat het e-mailadres en het volgnummer weer vrij zijn.
 
 ### 3 · De agent (optioneel)
 

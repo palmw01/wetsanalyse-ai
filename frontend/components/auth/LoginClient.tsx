@@ -52,10 +52,6 @@ export function LoginClient() {
         );
         return;
       }
-      if (check.code === "aanvraag_afgewezen") {
-        setFout("Je aanvraag voor toegang is afgewezen. Neem contact op met een beheerder.");
-        return;
-      }
       if (!check.ok) {
         setFout("Onjuiste gebruikersnaam of wachtwoord.");
         return;

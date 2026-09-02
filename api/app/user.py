@@ -37,8 +37,9 @@ class User(BaseModel):
     updated: datetime = Field(default_factory=_utcnow)
 
 
-# De drie statussen van een zelfregistratie-aanvraag.
-REGISTRATIE_STATUSSEN = ("aangevraagd", "goedgekeurd", "afgewezen")
+# De twee statussen die een zelfregistratie-aanvraag kan hebben. "afgewezen" staat er bewust NIET
+# bij: afwijzen verwijdert de rij, zodat het e-mailadres en het volgnummer meteen weer vrij zijn.
+REGISTRATIE_STATUSSEN = ("aangevraagd", "goedgekeurd")
 
 
 class Registratie(BaseModel):
@@ -56,6 +57,7 @@ class Registratie(BaseModel):
     userid_voorstel: str = ""
     password_hash: str = ""
     status: str = "aangevraagd"
+    # Afwijsreden: gaat naar het security-log, niet naar de database – de rij verdwijnt immers.
     reden: str | None = None
     # De uiteindelijk toegekende userid; pas gevuld bij goedkeuring.
     userid: str | None = None

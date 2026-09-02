@@ -716,11 +716,13 @@ tokens/secrets/inhoud loggen. In de vitest-node-omgeving wordt `server-only` ges
   legt een *aanvraag* vast, geen account. De API leidt de userid af uit voor- en achternaam
   (`palmw01`) en bewaart de bcrypt-hash van het zelfgekozen wachtwoord; pas als een beheerder
   goedkeurt in de tab **Aanvragen** (`RegistratiesPanel`) ontstaat de gebruiker — met dat wachtwoord,
-  dus er gaat geen tijdelijk wachtwoord rond. Er is bewust **geen e-mail**: wie inlogt terwijl zijn
-  aanvraag nog loopt, krijgt dat te horen via de `code` uit `/verify` (`aanvraag_open` /
-  `aanvraag_afgewezen`), die `LoginClient` naast `totp_required` afhandelt. Die status komt alleen bij
-  het **juiste wachtwoord** terug — anders is het een middel om te ontdekken wie er een aanvraag heeft
-  liggen. **2FA (TOTP)** is optioneel en self-service in de accounttab; verdere gebruikers maakt
+  dus er gaat geen tijdelijk wachtwoord rond. **Afwijzen verwijdert de aanvraag**, zodat het
+  e-mailadres en het volgnummer meteen weer vrij zijn; de knop zegt dat ook ("Afwijzen en
+  verwijderen"). Er is bewust **geen e-mail**: wie inlogt terwijl zijn aanvraag nog loopt, krijgt dat
+  te horen via de `code` `aanvraag_open` uit `/verify`, die `LoginClient` naast `totp_required`
+  afhandelt. Die status komt alleen bij het **juiste wachtwoord** terug — anders is het een middel om
+  te ontdekken wie er een aanvraag heeft liggen. Na een afwijzing valt die melding weg (de rij is er
+  niet meer) en ziet de aanvrager weer de gewone inlogfout. **2FA (TOTP)** is optioneel en self-service in de accounttab; verdere gebruikers maakt
   een beheerder aan met een eenmalig tijdelijk wachtwoord. De account/2fa-BFF-routes zetten de
   ingelogde identiteit als vertrouwde `X-User-Id`-header (uit de sessie, nooit uit browser-input).
   Let op: Auth.js' eigen routes leven onder `/api/auth/*` – daar geen eigen BFF-route bijzetten

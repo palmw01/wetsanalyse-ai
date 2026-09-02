@@ -219,16 +219,19 @@ async def _aanvraag_status(userid: str, password: str) -> str:
     """Reden-code voor een inlogpoging op een userid die (nog) geen account is.
 
     Wie via het portaal toegang heeft aangevraagd kreeg zijn voorgestelde userid te zien. Probeert
-    hij daarmee in te loggen, dan is "onbekende gebruiker" onbehulpzaam. We vertellen de status
-    daarom – maar **alleen bij het juiste wachtwoord**, zodat dit geen middel wordt om te ontdekken
-    welke aanvragen er liggen.
+    hij daarmee in te loggen, dan is "onbekende gebruiker" onbehulpzaam. We vertellen dat de
+    aanvraag nog loopt – maar **alleen bij het juiste wachtwoord**, zodat dit geen middel wordt om
+    te ontdekken welke aanvragen er liggen.
+
+    Voor een afgewezen aanvraag is er niets te melden: die is verwijderd, dus dit pad geeft dan
+    gewoon "invalid".
     """
     from . import registraties  # lokaal: registraties importeert deze module
 
     aanvraag = await registraties.openstaand_voor_userid(userid)
     if aanvraag is None or not verify_password(password, aanvraag.password_hash):
         return "invalid"
-    return "aanvraag_afgewezen" if aanvraag.status == "afgewezen" else "aanvraag_open"
+    return "aanvraag_open"
 
 
 async def verify_credentials(
@@ -239,7 +242,7 @@ async def verify_credentials(
 
     Reden-codes: "invalid" (onbekend/inactief/verkeerd wachtwoord – bewust niet onderscheiden om
     niets te lekken), "totp_required" (wachtwoord klopt, maar 2FA staat aan en de code ontbreekt
-    of is onjuist) en "aanvraag_open"/"aanvraag_afgewezen" (er is nog geen account, maar wel een
+    of is onjuist) en "aanvraag_open" (er is nog geen account, maar wel een openstaande
     zelfregistratie-aanvraag met dit voorgestelde userid – zie `_aanvraag_status`).
 
     Twee alternatieve bewijzen naast het wachtwoord:

@@ -80,7 +80,7 @@ class VerifyResult(BaseModel):
     authorize()-flow zonder exception-afhandeling de reden kan lezen. `ticket`/`trusted_token`
     gaan server→server naar de BFF, die ze als httpOnly cookies zet (nooit naar de browser-JS)."""
     ok: bool
-    # "" | "invalid" | "totp_required" | "aanvraag_open" | "aanvraag_afgewezen"
+    # "" | "invalid" | "totp_required" | "aanvraag_open"
     code: str = ""
     userid: str = ""
     email: str = ""
