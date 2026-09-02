@@ -52,6 +52,7 @@ def _critic_melding(
     gedempt: int = 0,
     ingediend: int | None = None,
     afgekapt: bool = False,
+    onleesbaar: list[str] | None = None,
 ) -> str:
     """Tellingen per aandacht-niveau; de oordelen zelf staan al op de reviewkaarten.
 
@@ -87,6 +88,13 @@ def _critic_melding(
         regel += f" · {zonder} zonder oordeel"
         if afgekapt:
             regel += " (afgekapt op de tokenlimiet)"
+        # "Zonder oordeel" heeft twee heel verschillende oorzaken en de jurist kan ze niet uit
+        # elkaar houden: de Critic sloeg het element over (modelgedrag), of hij gaf wél een oordeel
+        # maar wij konden het niveau niet lezen en gooiden het weg (onze fout, en repareerbaar).
+        # Sinds 2 sep 2026 zegt de regel welke van de twee het was.
+        if onleesbaar:
+            vormen = ", ".join(sorted(set(onleesbaar))[:3])
+            regel += f" (waarvan {len(onleesbaar)} met een onleesbaar niveau: {vormen})"
     elif afgekapt:
         regel += " · afgekapt op de tokenlimiet"
     if ontbrekend:

@@ -957,7 +957,9 @@ def _verwerk(
     return voorstellen, verworpen
 
 
-def _verwerk_critic(llm_text: str, ids: list[str]) -> tuple[dict[str, CriticOordeel], list[OntbrekendItem]]:
+def _verwerk_critic(
+    llm_text: str, ids: list[str]
+) -> tuple[dict[str, CriticOordeel], list[OntbrekendItem], list[str]]:
     """Parse het Critic-JSON: per element-id een oordeel + een ontbrekend-lijst.
 
     Koppelt op `id`, met `index` (positie in `ids`) als terugval – een model dat het id-veld vergeet
@@ -966,12 +968,17 @@ def _verwerk_critic(llm_text: str, ids: list[str]) -> tuple[dict[str, CriticOord
     verkeerde element.
 
     Robuust tegen proza/afkapping (fast-path hele-JSON, anders de gebalanceerde {…}-objecten).
-    Ongeldige aandacht-waarden, onbekende id's en indices buiten bereik worden genegeerd. Nooit
-    exceptions naar de caller – de Critic mag de annotatie niet breken.
+    Onbekende id's en indices buiten bereik worden genegeerd. Een oordeel met een ONLEESBAAR
+    niveau wordt ook overgeslagen, maar niet meer stil: de derde retourwaarde geeft die waarden
+    terug zodat de tijdlijn ze kan melden. Nooit exceptions naar de caller – de Critic mag de
+    annotatie niet breken.
     """
     oordelen: dict[str, CriticOordeel] = {}
     ontbrekend: list[OntbrekendItem] = []
     geldige_ids = set(ids)
+    #: Aandacht-waarden die we niet konden lezen. Zie de plek waar hij gevuld wordt: dit scheidt
+    #: "de Critic sloeg het element over" van "wij gooiden zijn oordeel weg".
+    onleesbaar: list[str] = []
 
     data: dict[str, Any] | None = None
     raw = (llm_text or "").strip()
@@ -1019,6 +1026,21 @@ def _verwerk_critic(llm_text: str, ids: list[str]) -> tuple[dict[str, CriticOord
 
         aandacht = str(o.get("aandacht", "")).strip().lower()
         if aandacht not in _AANDACHT:
+            # HIER GING EEN OORDEEL STIL VERLOREN. Een oordeel zonder leesbaar niveau werd
+            # weggegooid — inclusief de motivatie en de instructie — en het element kwam bij de
+            # jurist alsof de Critic er nooit naar had gekeken. Dat zijn twee verschillende dingen:
+            # "niet beoordeeld" is modelgedrag waar niets aan te doen valt, "wij konden zijn oordeel
+            # niet lezen" is onze fout. Op 2 sep 2026 viel er in twee opeenvolgende runs op art. 2
+            # lid 1 IW 1990 telkens precies één element buiten de boot; welke van de twee het was,
+            # viel nergens af te lezen.
+            #
+            # Het niveau NIET aanvullen met een gok: een verzonnen "geel" is een oordeel dat het
+            # model niet gaf, en dat is precies de schijnzekerheid die dit platform vermijdt. Wel de
+            # motivatie bewaren — die is inhoud — en meetellen zodat het zichtbaar wordt.
+            onleesbaar.append(str(o.get("aandacht", "")).strip() or "(leeg)")
+            logger.info("critic: oordeel zonder leesbaar niveau",
+                        extra={"aandacht": str(o.get("aandacht", ""))[:20],
+                               "element_id": element_id[:40]})
             continue
 
         actie = str(o.get("actie", "behoud")).strip().lower()
@@ -1053,4 +1075,4 @@ def _verwerk_critic(llm_text: str, ids: list[str]) -> tuple[dict[str, CriticOord
                 tekst=str(o.get("tekst", "")).strip(),
             ))
 
-    return oordelen, ontbrekend
+    return oordelen, ontbrekend, onleesbaar
