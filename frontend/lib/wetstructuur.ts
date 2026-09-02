@@ -73,28 +73,42 @@ export function ontleed(regel: string): Onderdeel {
   return leeg;
 }
 
-/** De definitieterm afsplitsen: alleen vlak ná een nummer, en alleen als hij kort genoeg is.
+/** De definitieterm afsplitsen: alleen vlak ná een nummer, en alleen als het er echt één is.
  *
- *  Een dubbele punt staat ook in gewone volzinnen ("…voor de loonbelasting: ieder van de
- *  bestuurders"), dus zonder grens zou de halve bepaling vet worden. De term in een definitieartikel
- *  is een begrip van een paar woorden; alles daarboven is een zin en geen term.
+ *  Een dubbele punt staat ook in gewone volzinnen, dus er is een onderscheid nodig. Dat liep eerst
+ *  via een grens van vier woorden, en dat was de verkeerde maatstaf: officiële begrippen zijn vaak
+ *  lang. "Gedelegeerde Verordening Douanewetboek van de Unie" (6 woorden) en de reeks bij
+ *  onderdeel l van art. 2 IW 1990 (8 woorden) vielen daardoor af — bij d, e en l bleef alleen de
+ *  letter over. Zo gemeld op 2 sep 2026.
+ *
+ *  Twee signalen die wél uit de wetstaal volgen:
+ *
+ *  1. EEN DEFINITIE LEGT MEER UIT DAN DE TERM LANG IS. Beslaat het stuk vóór de dubbele punt meer
+ *     dan de helft van de regel, dan is het geen term maar een zin die toevallig zo eindigt.
+ *  2. "BEDOELD IN" MARKEERT EEN VERWIJZING, en die hoort bij de definitie en niet bij de term.
+ *     Staat hij er vóór de dubbele punt, dan zit die punt achter een bijzin.
+ *
+ *  Samen scheiden ze alle twintig onderdelen van art. 2 IW 1990 correct van de valkuilen; zie
+ *  `wetstructuur.vectoren.json`.
  */
 function _metTerm(rest: string, nummer: string, niveau: number): Onderdeel {
   const tekst = rest.trim();
   const dubbelePunt = tekst.indexOf(":");
   if (dubbelePunt > 0) {
     const kandidaat = tekst.slice(0, dubbelePunt).trim();
-    if (kandidaat && kandidaat.split(/\s+/).length <= MAX_TERM_WOORDEN) {
+    const beknopt = dubbelePunt / tekst.length < MAX_TERM_AANDEEL;
+    if (kandidaat && beknopt && !VERWIJZING.test(kandidaat)) {
       return { nummer, term: kandidaat, tekst: tekst.slice(dubbelePunt + 1).trim(), niveau };
     }
   }
   return { nummer, term: "", tekst, niveau };
 }
 
-/** Een gedefinieerd begrip is kort ("de BES eilanden", "belastingrente en revisierente"); een
- *  volzin die toevallig een dubbele punt bevat is dat niet. Vier woorden is de grens die de
- *  definities in art. 2 IW 1990 wél pakt en de volzinnen daaromheen niet. */
-const MAX_TERM_WOORDEN = 4;
+/** Hoeveel van de regel de term hoogstens mag beslaan – zie `_metTerm`. */
+const MAX_TERM_AANDEEL = 0.5;
+
+/** De verwijzingsformule uit de wetstaal ("als bedoeld in artikel 19 van de Woningwet"). */
+const VERWIJZING = /\bbedoeld in\b/i;
 
 /** Eén blok in de weergave: een lid-aanhef of een onderdeel, mét zijn plek in de brontekst. */
 export interface Blok extends Onderdeel {

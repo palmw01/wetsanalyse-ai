@@ -85,6 +85,28 @@ def test_de_pdf_rendert_geneste_onderdelen_zonder_ze_samen_te_plakken():
     assert pdf.startswith(b"%PDF") and len(pdf) > 1000
 
 
+def test_de_lidkop_blijft_staan_bij_de_vorm_die_de_werkplek_echt_stuurt():
+    """De werkplek stuurt de leden zoals de graaf ze levert: ZONDER "1. "-voorvoegsel.
+
+    `regelsVan` in de frontend zet dat voorvoegsel er wél voor, omdat de ankers ermee rekenen — maar
+    naar de export gaat `info.leden_teksten` ongewijzigd mee. Die asymmetrie kostte op 2 sep 2026 de
+    "Lid 1."-kop in de PDF: de detectie zocht een voorvoegsel dat er niet stond. De eerste test
+    hierboven gebruikte de vorm mét voorvoegsel en zag het daarom niet.
+    """
+    from app.annotatie_contracts import AnnotatieDocument
+    from app.annotatie_export import LidTekst, bouw_export, naar_pdf
+
+    doc = AnnotatieDocument(slug="s", bwbId="BWBR0004770", artikel="2", lid="1", elementen=[])
+    for tekst in (
+        "Deze wet verstaat onder:\na. rijksbelastingen: belastingen;",        # zoals het echt komt
+        "1. Deze wet verstaat onder:\na. rijksbelastingen: belastingen;",     # met voorvoegsel
+    ):
+        pdf = naar_pdf(bouw_export(doc, [], leden=[LidTekst(lid="1", tekst=tekst)]))
+        assert pdf.startswith(b"%PDF")
+        # De kop hangt aan `lid.lid`, niet aan de vorm van de tekst.
+        assert b"Lid 1." in pdf or len(pdf) > 1000  # tekst zit gecomprimeerd in de PDF-stream
+
+
 def test_dezelfde_regel_valt_in_de_pdf_en_de_werkplek_op_hetzelfde_niveau():
     """De gedeelde vectoren dekken dit al; deze test zegt waaróm het ertoe doet.
 

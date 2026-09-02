@@ -35,9 +35,13 @@ _NUMMER = re.compile(r"^([a-z]{1,3}|\d{1,3})\.(?=\s|$)")
 #: `1°.` `2°` – graden, in de BWB-conventie een niveau dieper dan de letters eromheen.
 _GRADEN = re.compile(r"^(\d{1,3}°)\.?(?=\s|$)")
 
-#: Een gedefinieerd begrip is kort ("de BES eilanden"); een volzin die toevallig een dubbele punt
-#: bevat is dat niet. Vier woorden pakt de definities in art. 2 IW 1990 wél en de volzinnen niet.
-MAX_TERM_WOORDEN = 4
+#: Hoeveel van de regel de term hoogstens mag beslaan. Een definitie legt méér uit dan de term lang
+#: is; beslaat het stuk vóór de dubbele punt meer dan de helft, dan is het een zin en geen term.
+MAX_TERM_AANDEEL = 0.5
+
+#: De verwijzingsformule uit de wetstaal ("als bedoeld in artikel 19 van de Woningwet"). Staat die
+#: vóór de dubbele punt, dan zit die punt achter een bijzin en is er geen definitieterm.
+_VERWIJZING = re.compile(r"\bbedoeld in\b", re.I)
 
 
 @dataclass(frozen=True)
@@ -81,15 +85,20 @@ def ontleed(regel: str) -> Onderdeel:
 
 
 def _met_term(rest: str, nummer: str, niveau: int) -> Onderdeel:
-    """De definitieterm afsplitsen: alleen vlak ná een nummer, en alleen als hij kort genoeg is.
+    """De definitieterm afsplitsen: alleen vlak ná een nummer, en alleen als het er echt één is.
 
-    Een dubbele punt staat ook in gewone volzinnen ("…voor de loonbelasting: ieder van de
-    bestuurders"), dus zonder grens zou de halve bepaling vet worden.
+    Dit liep eerst via een grens van vier woorden, en dat was de verkeerde maatstaf: officiële
+    begrippen zijn vaak lang. "Gedelegeerde Verordening Douanewetboek van de Unie" (6 woorden) viel
+    daardoor af, en bij de onderdelen d, e en l van art. 2 IW 1990 bleef alleen de letter over.
+
+    Twee signalen die wél uit de wetstaal volgen: een definitie legt méér uit dan de term lang is,
+    en "bedoeld in" markeert een verwijzing die bij de definitie hoort en niet bij de term.
     """
     tekst = rest.strip()
     punt = tekst.find(":")
     if punt > 0:
         kandidaat = tekst[:punt].strip()
-        if kandidaat and len(kandidaat.split()) <= MAX_TERM_WOORDEN:
+        beknopt = punt / len(tekst) < MAX_TERM_AANDEEL
+        if kandidaat and beknopt and not _VERWIJZING.search(kandidaat):
             return Onderdeel(nummer=nummer, term=kandidaat, tekst=tekst[punt + 1:].strip(), niveau=niveau)
     return Onderdeel(nummer=nummer, tekst=tekst, niveau=niveau)
