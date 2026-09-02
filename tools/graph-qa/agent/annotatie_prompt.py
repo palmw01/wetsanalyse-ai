@@ -192,10 +192,18 @@ def klasseer_userprompt(
 
 def critic_systeemprompt(kort: bool = False) -> str:
     klassen = ", ".join(JAS_KLASSEN_VOLGORDE)
+    prioriteitsregels = _prioriteitsregels_tekst()
+    prioriteitsblok = (
+        f"\n\nPRIORITEITSREGELS VAN DE METHODE – deze gaan vóór jouw oordeel. {prioriteitsregels} "
+        "Een element dat zo\u2019n regel volgt is dus GOED, ook als de andere klasse op zichzelf ook zou "
+        "passen: markeer dat niet als fout. En stel nooit een `voorstel_klasse` voor die tegen een van "
+        "deze regels ingaat – die wordt niet uitgevoerd."
+        if prioriteitsregels else ""
+    )
     return f"""Je bent een kritische reviewer (Critic) die JAS-annotatievoorstellen controleert VÓÓRDAT een jurist ze beoordeelt. Je maakt de annotaties zelf NIET; je beoordeelt de kwaliteit ervan en signaleert waar de jurist extra op moet letten.
 
 DE DERTIEN JAS-KLASSEN (gebruik exact deze namen, verzin geen andere):
-{_klassen_referentie(kort)}
+{_klassen_referentie(kort)}{prioriteitsblok}
 
 WAAR JE OP LET (per voorgesteld element):
 - Verkeerde of te grove klasse (past een andere JAS-klasse beter?).
@@ -338,10 +346,16 @@ def critic_userprompt(
 
 def herziening_systeemprompt(kort: bool = False) -> str:
     """Systeemprompt voor de herzieningsronde: dezelfde JAS-regels, maar nu corrigerend."""
+    prioriteitsregels = _prioriteitsregels_tekst()
+    prioriteitsblok = (
+        f"\n\nPRIORITEITSREGELS VAN DE METHODE – deze gaan vóór een opmerking van de reviewer. "
+        f"{prioriteitsregels} Vraagt hij het tegenovergestelde, volg dan de regel."
+        if prioriteitsregels else ""
+    )
     return f"""Je bent dezelfde JAS-annotator als daarvoor, maar nu HERZIE je je eigen eerdere uitkomst op basis van de opmerkingen van een reviewer (de Critic).
 
 DE DERTIEN JAS-KLASSEN (gebruik exact deze namen, verzin geen andere):
-{_klassen_referentie(kort)}
+{_klassen_referentie(kort)}{prioriteitsblok}
 
 BRONGETROUWHEID – elk `tekst`-veld moet een LETTERLIJK aaneengesloten fragment uit de artikeltekst zijn. Niet parafraseren, niet samenvatten, geen woorden toevoegen of weglaten. Een fragment dat niet letterlijk voorkomt wordt verworpen.
 

@@ -310,6 +310,12 @@ weg: ze bestonden alleen om een cyclus te laten stoppen die er niet meer is.
   - **rood + vervang** → uitvoeren. Klasse vervangen, fragment vervangen (*alleen* als het letterlijk
     in het corpus staat, dezelfde eis als bij een vers voorstel), of verwijderen. Het element krijgt
     dan een lege `aandacht` en `critic₂` velt er een nieuw oordeel over.
+
+    **Behalve als de vervanging tegen een PRIORITEITSREGEL van de methode ingaat.** Dan blijft de
+    klasse staan en wordt de lezing van de Critic een alternatief, net als bij geel; de instructie
+    is daarmee afgehandeld en gaat niet door naar de herziener. Rood is de tak zonder tweede
+    beoordelaar, en de Critic kende JAS-PRIORITY-001/002 tot 1 sep 2026 niet eens uit zijn prompt –
+    een correct toegepaste Tijdsaanduiding kon dus met één rood oordeel Variabele worden.
   - **geel verandert nooit iets.** Een voorgestelde klasse wordt een **alternatief** op het element;
     de werkplek toont die als aanklikbare chip ("Twijfel – klik om te wisselen"), dus de jurist neemt
     hem met één klik over en het landt als zíjn beslissing in het auditspoor. Een voorgesteld
@@ -317,6 +323,14 @@ weg: ze bestonden alleen om een cyclus te laten stoppen die er niet meer is.
     instructie **afgehandeld** en gaat hij niet door naar de herziener – deed hij dat wel, dan voerde
     een taalmodel alsnog uit wat ter beoordeling zou worden voorgelegd (op dev kortte hij zo twee
     fragmenten in op een geel advies). Niets veranderd, dus ook geen herbeoordeling.
+
+    Eén uitzondering, en die komt niet van een model: de **prioriteitsvalidator** loopt na afloop
+    over álle voorstellen. Stelt de Critic geel + `Tijdsaanduiding` voor op een `Variabele`, dan
+    wordt dat alsnog de klasse – niet omdat hij het vroeg, maar omdat de methode het voorschrijft.
+    Precies wat er was gebeurd als de annoteerder datzelfde paar had opgeleverd; zonder deze pas
+    hing de uitkomst af van wie het alternatief aandroeg. "Geel verandert nooit iets" houdt een
+    tweede **taalmodel** tegen, en dit is deterministische methode die de andere lezing bovendien
+    als alternatief laat staan. Een markering van de jurist blijft ook hier ongemoeid.
 
   **De herziening bewaart de alternatieven.** Zij levert de hele elementenlijst opnieuw op en
   `_verwerk` bouwt daaruit verse voorstellen; nam de merge alleen dát lijstje over, dan wiste een
@@ -328,6 +342,13 @@ weg: ze bestonden alleen om een cyclus te laten stoppen die er niet meer is.
   begon. Nooit op een markering van de jurist: dat oordeel is een suggestie. Elke *uitgevoerde*
   correctie zet `toegepast: true` op de laatste `critic_rondes`-regel, want "de Critic vroeg erom" is
   iets anders dan "het is ook gebeurd".
+- **Prioriteitsregels gelden voor élke rol die classificeert.** `_prioriteitsregels_tekst()`
+  genereert de instructie uit `jas_klassen.REGELS` en zit in de prompt van de annoteerder, de
+  klasseerder, de Critic én de herziener; `_pas_prioriteitsregels_toe()` dwingt hem daarna
+  deterministisch af, in `_verwerk` (verse en herziene voorstellen) én in `pas_critic_toe`. Eén
+  bron van waarheid voor allebei, zodat prompt en handhaving niet uit elkaar kunnen lopen. De guard
+  in `poort` eist dat elke prompt die `_klassen_referentie` toont ook de regels toont – wie de
+  dertien klassen krijgt, mag kiezen, en hoort de regels te kennen die die keuze binden.
 - **Wat de herziener nog doet**: een bijna-goed citaat repareren (`verworpen_fragmenten`) en een
   gemeld ontbrekend element toevoegen. Dat vraagt de brontekst lezen, geen instructie uitvoeren.
   `_open_werk` is precies die twee; correctie-instructies staan er niet meer bij.
