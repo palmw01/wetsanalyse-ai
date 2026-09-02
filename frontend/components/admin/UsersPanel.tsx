@@ -10,15 +10,19 @@ import { Field, Input, Select } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
 import { BevestigKnop } from "@/components/ui/BevestigKnop";
 import { Tag } from "@/components/ui/Badge";
+import { BudgetBeleidBlok } from "@/components/admin/BudgetBeleidBlok";
+import { Meter } from "@/components/ui/Meter";
 import {
   createUser,
   deleteUser,
   isApiError,
   listUsers,
+  listVerbruik,
   patchUser,
   resetUserPassword,
 } from "@/lib/api";
-import type { Role, UserOut } from "@/lib/types";
+import { tokensKort } from "@/lib/tokenbudget";
+import type { Role, UserOut, VerbruikRegel } from "@/lib/types";
 
 export function UsersPanel() {
   const [users, setUsers] = useState<UserOut[] | null>(null);
@@ -29,6 +33,8 @@ export function UsersPanel() {
   const [nieuwRol, setNieuwRol] = useState<Role>("analist");
   // Eenmalig getoond tijdelijk wachtwoord (na aanmaken of resetten).
   const [tijdelijk, setTijdelijk] = useState<{ userid: string; wachtwoord: string } | null>(null);
+  // Stand per gebruiker, apart opgehaald: één query voor iedereen in plaats van één per rij.
+  const [verbruik, setVerbruik] = useState<Record<string, VerbruikRegel>>({});
 
   const laad = useCallback(async () => {
     setFout(null);
@@ -37,6 +43,12 @@ export function UsersPanel() {
     } catch (e) {
       setFout(isApiError(e) ? `${e.detail} (${e.status})` : (e as Error).message);
       setUsers([]);
+    }
+    try {
+      const regels = await listVerbruik();
+      setVerbruik(Object.fromEntries(regels.map((r) => [r.userid, r])));
+    } catch {
+      /* Stil: de meters zijn aanvullend, de gebruikerslijst moet hoe dan ook bruikbaar blijven. */
     }
   }, []);
 
@@ -90,6 +102,19 @@ export function UsersPanel() {
     }
   }
 
+  async function onBudget(u: UserOut, waarde: string) {
+    const leeg = waarde.trim() === "";
+    try {
+      await patchUser(
+        u.userid,
+        leeg ? { token_budget_wissen: true } : { token_budget: Math.max(0, Number(waarde) || 0) },
+      );
+      await laad();
+    } catch (e) {
+      melden(e);
+    }
+  }
+
   async function onReset(u: UserOut) {
     try {
       const res = await resetUserPassword(u.userid);
@@ -133,6 +158,8 @@ export function UsersPanel() {
           </ButtonRow>
         </Melding>
       )}
+
+      <BudgetBeleidBlok onGewijzigd={() => void laad()} />
 
       <form onSubmit={onAanmaken} className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
         <Field label="Gebruikersnaam">
@@ -185,7 +212,48 @@ export function UsersPanel() {
                     gedeactiveerd
                   </span>
                 )}
+                {verbruik[u.userid]?.geblokkeerd && (
+                  <span className="inline-flex items-center rounded-full border border-fout/40 bg-fout/10 px-2.5 py-0.5 text-xs font-medium text-fout">
+                    budget op
+                  </span>
+                )}
               </div>
+
+              {/* Verbruik + een afwijkend budget. Leeg laten = volg het systeembeleid; het veld
+                  slaat op bij verlaten, zoals de andere acties hier direct doorwerken. */}
+              {verbruik[u.userid] && (
+                <div className="mt-3 flex flex-wrap items-end gap-3">
+                  <div className="min-w-[12rem] flex-1">
+                    <div className="flex items-baseline justify-between gap-2 text-xs text-muted">
+                      <span>
+                        {tokensKort(verbruik[u.userid].gebruikt)} van{" "}
+                        {tokensKort(verbruik[u.userid].budget)} tokens
+                      </span>
+                      <span>{verbruik[u.userid].percentage}%</span>
+                    </div>
+                    <Meter
+                      percentage={verbruik[u.userid].percentage}
+                      label={`Tokenverbruik van ${u.userid}`}
+                      toon="verbruik"
+                      className="mt-1"
+                    />
+                  </div>
+                  <Field label="Eigen budget" hint="leeg = standaard">
+                    <Input
+                      type="number"
+                      min={0}
+                      step={1000}
+                      defaultValue={u.token_budget ?? ""}
+                      onBlur={(e) => {
+                        const nieuw = e.target.value.trim();
+                        const huidig = u.token_budget === null ? "" : String(u.token_budget);
+                        if (nieuw !== huidig) void onBudget(u, nieuw);
+                      }}
+                    />
+                  </Field>
+                </div>
+              )}
+
               <ButtonRow align="start" className="mt-3">
                 <Button
                   size="sm"

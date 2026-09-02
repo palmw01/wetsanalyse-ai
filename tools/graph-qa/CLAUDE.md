@@ -268,6 +268,26 @@ Vier regels die je niet mag omdraaien:
 Geen api geconfigureerd (`Settings.legt_zelf_vast` is False), dan is de driver een doorgeefluik en
 blijft de werkplek verantwoordelijk – zo werkt lokaal draaien zonder api gewoon door.
 
+**Het tokenverbruik reist mee, maar niet als event.** De Anthropic-SDK geeft bij elk antwoord een
+`usage`-blok terug; `AnthropicLLM` telt dat op in een `Verbruiksmeter` (`agent/models.py`, met een
+lock omdat de nodes synchroon zijn en takken parallel kunnen draaien). De aanroeper maakt die meter
+en geeft hem aan **beide** kanten mee – `answer_stream(..., meter=…)` en
+`voer_beurt_uit(..., meter=…)` – waarna de driver hem in een `finally` bij de api boekt
+(`POST /v1/verbruik`, idempotent op `run_id`).
+
+Dat het géén SSE-event is, is de kern: de foutpaden van `answer_stream` yielden geen verbruik meer,
+en juist dán zijn de tokens wél op. Boeken in een `finally` vangt de beurt die mislukt of wordt
+gestopt. Een mislukte boeking is stil (log, geen `error`-event): het werk staat er, en een melding
+over de boekhouding zegt de jurist niets.
+
+De **pre-check** zit als dependency op `POST /v1/runs` (`_budget_check`), naast `_rate_limit` en om
+dezelfde reden geen middleware: die buffert de SSE. Hij vraagt het aan de api, want die is de
+autoriteit – deze dienst draait op `maxReplicas: 2` en houdt zijn eigen remmen in procesgeheugen,
+dus een budget dat hier zou leven telt per replica. **Fail-open**: is de api onbereikbaar, dan gaat
+de beurt door. En een lopende beurt wordt nooit afgekapt; raakt het budget halverwege op, dan maakt
+die beurt af – een halve annotatie is erger dan een kleine overschrijding. `/v1/chat` krijgt geen
+check: dat endpoint draagt bewust geen identiteit.
+
 **De contractgrens ligt in `wetsanalyse_api.naar_contract`.** Wij en de api hebben elk een eigen model
 van hetzelfde object, met een andere opvatting van "geen waarde": hier `aandacht: str = ""`, daar
 `Aandacht | None`. Dat verschil is geen typefout maar een 422 op de PUT – en dat kostte op dev een

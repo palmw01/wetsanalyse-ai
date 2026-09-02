@@ -729,6 +729,25 @@ tokens/secrets/inhoud loggen. In de vitest-node-omgeving wordt `server-only` ges
   (de eenmalige-registratie-proxy staat daarom op `/api/setup`, de zelfregistratie op
   `/api/registreren`). Beide staan in `isPublic()` in `auth.config.ts`; vergeet je dat, dan stuurt de
   sessie-gate een bezoeker zonder account naar `/login` — precies het scherm waar hij niets kan.
+- **Tokenbudget zichtbaar en begrenzend.** De verbruiksstand komt van de api
+  (`/api/account/verbruik` → `/v1/verbruik`) en wordt op één plek opgehaald – `WorkbenchShell` –
+  zodat de drie plekken die hem tonen niet uit elkaar kunnen lopen: de **meterregel** in het
+  gebruikersblok van `GesprekSidebar`, de **strook** bovenin de werkplek, en de **blokkade** van de
+  invoerbalk in `WerkplekClient`. Verversen gebeurt event-gedreven ná elke beurt (`onBeurtKlaar`)
+  met een interval van 60s als vangnet, naar het model van de ongelezen-badge in `BerichtenPanel`.
+
+  Twee dingen die bewust zo zijn. **De strook wordt uit de serverstand afgeleid**, niet uit een
+  eerder gezette clientvlag – dat is precies de klacht over Claude's "Approaching usage limit"
+  (issues #51550/#51016): een banner die blijft hangen als hij niet meer geldt. Wegklikken duurt één
+  sessie; bij 100% kan het niet, want dan is het geen waarschuwing meer maar de reden dat de invoer
+  dicht is. En **de drempel komt van de server** (`stand.waarschuwing`), niet uit een berekening in
+  de browser: `WAARSCHUWINGSDREMPEL` in `lib/tokenbudget.ts` en `METER_WAARSCHUWING` in `ui/Meter`
+  bestaan alleen voor de meterkleur en moeten dezelfde waarde houden als de api.
+
+  De gebruiker ziet het volledige beeld in de niet-admin tab **Verbruik** (`VerbruikPanel`); de
+  beheerder stelt het beleid in bovenaan de tab **Gebruikers** (`BudgetBeleidBlok`) en geeft daar per
+  gebruiker een afwijkend budget. Bij Gebruikers en niet bij Modelprofielen: een budget is een
+  eigenschap van *wie* er werkt, niet van het model.
 - **Sessie-revocatie + CSRF defense-in-depth.** De sessie is rollend met een **per-login duur**:
   `session.maxAge` = 30 dagen (`SESSIE_LANG`, de cookie-/bovengrens) + `updateAge` = 1 dag in
   `auth.config.ts`, maar de custom `jwt.encode` in `auth.ts` zet de effectieve JWT-`exp` op

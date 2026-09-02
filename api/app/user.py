@@ -29,6 +29,8 @@ class User(BaseModel):
     totp_secret_enc: str | None = None
     totp_enabled: bool = False
     active: bool = True
+    # Afwijkend tokenbudget per venster; None = volg het systeembrede `budget_beleid`.
+    token_budget: int | None = None
     # Sessie-epoch: JWT-sessies met een inlogmoment vóór deze tijd zijn ongeldig (revocatie bij
     # wachtwoordwijziging/-reset). None ⇒ nooit gewijzigd → geen revocatie.
     sessions_valid_from: datetime | None = None

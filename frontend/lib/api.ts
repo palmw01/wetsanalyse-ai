@@ -19,6 +19,7 @@ import type {
   LlmProfileIn,
   LlmProfileOut,
   LoginVerifyResult,
+  BudgetBeleid,
   MeAccount,
   RegistratieBulkRegel,
   RegistratieOut,
@@ -28,6 +29,8 @@ import type {
   TotpBegin,
   UserCreated,
   UserOut,
+  VerbruikRegel,
+  Verbruiksstand,
 } from "./types";
 import type {
   AdminBerichtenPaginaOut,
@@ -149,7 +152,12 @@ export async function createUser(userid: string, email: string, role: Role): Pro
   return json<UserCreated>(res);
 }
 
-export async function patchUser(userid: string, body: { role?: Role; active?: boolean }): Promise<UserOut> {
+export async function patchUser(
+  userid: string,
+  // `token_budget_wissen` bestaat omdat `token_budget: null` anders twee dingen zou betekenen:
+  // niet meegestuurd, of bewust terug naar het beleid.
+  body: { role?: Role; active?: boolean; token_budget?: number; token_budget_wissen?: boolean },
+): Promise<UserOut> {
   const res = await fetch(`/api/admin/users/${encodeURIComponent(userid)}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -166,6 +174,37 @@ export async function resetUserPassword(userid: string): Promise<TempPassword> {
 export async function deleteUser(userid: string): Promise<void> {
   const res = await fetch(`/api/admin/users/${encodeURIComponent(userid)}`, { method: "DELETE" });
   if (!res.ok) throw await parseError(res);
+}
+
+// --- Tokenbudget ------------------------------------------------------------
+
+/** De eigen stand. Stil falen is hier NIET gepast: de aanroeper beslist wat hij toont. */
+export async function getVerbruik(): Promise<Verbruiksstand> {
+  const res = await fetch("/api/account/verbruik", { cache: "no-store" });
+  return json<Verbruiksstand>(res);
+}
+
+export async function getBudgetBeleid(): Promise<BudgetBeleid> {
+  const res = await fetch("/api/admin/budget", { cache: "no-store" });
+  return json<BudgetBeleid>(res);
+}
+
+export async function zetBudgetBeleid(body: {
+  tokens: number;
+  periode_dagen: number;
+  actief: boolean;
+}): Promise<BudgetBeleid> {
+  const res = await fetch("/api/admin/budget", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return json<BudgetBeleid>(res);
+}
+
+export async function listVerbruik(): Promise<VerbruikRegel[]> {
+  const res = await fetch("/api/admin/verbruik", { cache: "no-store" });
+  return json<VerbruikRegel[]>(res);
 }
 
 // --- Admin: zelfregistratie-aanvragen ---------------------------------------

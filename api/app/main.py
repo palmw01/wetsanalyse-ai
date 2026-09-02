@@ -14,7 +14,16 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from . import __version__, db, observability
 from .config import get_settings
-from .routers import admin, annotatie, auth, berichten, catalog, feedback, gesprekken
+from .routers import (
+    admin,
+    annotatie,
+    auth,
+    berichten,
+    catalog,
+    feedback,
+    gesprekken,
+    verbruik,
+)
 
 # Configureer logging + OpenTelemetry vóór iets anders logt (idempotent; OTel is no-op zonder endpoint).
 observability.setup(get_settings())
@@ -70,6 +79,14 @@ async def lifespan(app: FastAPI):
         await profiles.ensure_seeded(settings)
     except Exception:  # noqa: BLE001 – seeding mag de start nooit blokkeren
         logger.exception("Seeden van het default-modelprofiel is mislukt")
+    try:
+        from . import verbruik
+
+        # Zet bij de allereerste start het budgetbeleid uit de env. Daarna is de tabel de waarheid;
+        # het anker dat hier wordt gezet bepaalt vanaf welk moment de vensters lopen.
+        await verbruik.ensure_seeded(settings)
+    except Exception:  # noqa: BLE001 – seeding mag de start nooit blokkeren
+        logger.exception("Seeden van het budgetbeleid is mislukt")
     yield
     await db.dispose_engine()
 
@@ -103,6 +120,7 @@ app.include_router(annotatie.router, prefix="/v1")
 app.include_router(berichten.router, prefix="/v1")
 app.include_router(feedback.router, prefix="/v1")
 app.include_router(gesprekken.router, prefix="/v1")
+app.include_router(verbruik.router, prefix="/v1")
 
 
 @app.get("/health", tags=["meta"])

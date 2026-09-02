@@ -135,9 +135,17 @@ _ACTIEF_TTL_S = 30.0
 _actief_cache: dict[str, tuple[float, bool]] = {}
 
 
-def vergeet_actief(userid: str) -> None:
-    """Cache-invalidatie na een statuswijziging (deactiveren, verwijderen, rolwijziging)."""
-    _actief_cache.pop(userid, None)
+def vergeet_actief(userid: str | None = None) -> None:
+    """Cache-invalidatie na een statuswijziging (deactiveren, verwijderen, rolwijziging).
+
+    Zonder argument wordt de hele cache geleegd. Dat is er voor tests: de cache is module-globaal
+    en leeft dus over suites heen, waardoor een gebruiker die in de ene suite niet bestond in de
+    volgende als "onbekend" bleef hangen (401 op een geldige aanroep). Vergelijk `ratelimit.reset()`.
+    """
+    if userid is None:
+        _actief_cache.clear()
+    else:
+        _actief_cache.pop(userid, None)
 
 
 async def actieve_userid(userid: str = Depends(huidige_userid)) -> str:

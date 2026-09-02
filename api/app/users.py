@@ -64,6 +64,7 @@ def _row_to_user(row) -> User:
         totp_secret_enc=m["totp_secret_enc"],
         totp_enabled=m["totp_enabled"],
         active=m["active"],
+        token_budget=m.get("token_budget"),
         sessions_valid_from=db.aware(m["sessions_valid_from"]),
         created=db.aware(m["created"]),
         updated=db.aware(m["updated"]),
@@ -372,20 +373,34 @@ async def set_active(userid: str, active: bool) -> User:
     return user
 
 
-async def patch_user(userid: str, *, role: str | None = None, active: bool | None = None) -> User:
+async def patch_user(
+    userid: str, *, role: str | None = None, active: bool | None = None,
+    token_budget: int | None = None, token_budget_wissen: bool = False,
+) -> User:
     """Combineer een rol- en/of active-wijziging in ÉÉN transactie, met de 'laatste actieve
     beheerder'-invariant getoetst op de EIND-toestand. Zo kan een gelijktijdige rol+active-patch
     (of twee parallelle patches) de laatste beheerder niet via twee losse checks laten verdwijnen
     (TOCTOU). Op Postgres serialiseert een advisory xact-lock de check+write; op SQLite (tests) zijn
-    writes al geserialiseerd."""
+    writes al geserialiseerd.
+
+    `token_budget` zet een afwijkend budget; `token_budget_wissen=True` zet het terug op NULL (volg
+    het systeembeleid). Die tweede vlag is nodig omdat `None` anders twee dingen zou betekenen:
+    "niet meegestuurd" en "wissen".
+    """
     if role is not None and role not in ROLLEN:
         raise UserError(f"Onbekende rol: {role!r}")
+    if token_budget is not None and token_budget < 0:
+        raise UserError("Een tokenbudget kan niet negatief zijn.")
     user = await _require_user(userid)
     waarden: dict = {}
     if role is not None:
         waarden["role"] = role
     if active is not None:
         waarden["active"] = active
+    if token_budget_wissen:
+        waarden["token_budget"] = None
+    elif token_budget is not None:
+        waarden["token_budget"] = token_budget
     if not waarden:
         return user
     nieuw_role = role if role is not None else user.role
@@ -408,6 +423,8 @@ async def patch_user(userid: str, *, role: str | None = None, active: bool | Non
                 raise UserError("Kan de laatste actieve beheerder niet degraderen of deactiveren.")
         await conn.execute(update(db.users).where(db.users.c.userid == userid).values(**waarden))
     user.role, user.active = nieuw_role, nieuw_active
+    if "token_budget" in waarden:
+        user.token_budget = waarden["token_budget"]
     return user
 
 

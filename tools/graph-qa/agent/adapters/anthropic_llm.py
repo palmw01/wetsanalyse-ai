@@ -12,6 +12,7 @@ from typing import Any
 import anthropic
 
 from ..config import Settings
+from ..models import Verbruiksmeter
 from ..ports import Systeem
 
 logger = logging.getLogger("graph_qa.llm")
@@ -35,6 +36,9 @@ class AnthropicLLM:
     def __init__(self, settings: Settings) -> None:
         settings.require_llm()
         self._caching = settings.prompt_caching
+        # Eén meter per adapter, en de adapter wordt per beurt gebouwd – dus deze telt precies één
+        # beurt op. `answer_stream` leest hem aan het eind uit en meldt het verbruik aan de api.
+        self.meter = Verbruiksmeter()
         self._client = anthropic.Anthropic(
             api_key=settings.azure_foundry_api_key,
             base_url=settings.azure_foundry_base_url.rstrip("/"),
@@ -101,17 +105,19 @@ class AnthropicLLM:
         messages: list[dict[str, Any]],
     ) -> Any:
         try:
-            return self._client.messages.create(
+            resp = self._client.messages.create(
                 model=model, max_tokens=max_tokens, system=self._system(system),
                 tools=tools, messages=messages,
             )
         except anthropic.BadRequestError as exc:
             if not self._zonder_caching(exc):
                 raise
-            return self._client.messages.create(
+            resp = self._client.messages.create(
                 model=model, max_tokens=max_tokens, system=self._system(system),
                 tools=tools, messages=messages,
             )
+        self.meter.tel_response(resp)
+        return resp
 
     def stream(
         self,
@@ -134,17 +140,20 @@ class AnthropicLLM:
 
         return _AnthropicStream(
             open_stream(caching=self._caching), opnieuw=open_stream, terugval=self._zonder_caching,
+            meter=self.meter,
         )
 
 
 class _AnthropicStream:
     """Dunne wrapper om de Anthropic MessageStream (LLMStream-protocol)."""
 
-    def __init__(self, manager: Any, opnieuw: Any = None, terugval: Any = None) -> None:
+    def __init__(self, manager: Any, opnieuw: Any = None, terugval: Any = None,
+                 meter: Any = None) -> None:
         self._manager = manager
         self._stream: Any = None
         self._opnieuw = opnieuw          # zelfde call, maar zonder cache-punt
         self._terugval = terugval        # beslist of de fout over caching ging
+        self._meter = meter              # telt het verbruik van deze beurt op
 
     def __enter__(self) -> "_AnthropicStream":
         try:
@@ -164,4 +173,13 @@ class _AnthropicStream:
         return self._stream.text_stream
 
     def final_message(self) -> Any:
-        return self._stream.get_final_message()
+        """Het volledige antwoord. Hier komt ook het `usage`-blok van een streamende call binnen.
+
+        `get_final_message()` is idempotent aan de SDK-kant, maar de meter is dat niet: twee keer
+        aanroepen zou dubbel tellen. De aanroeper doet dit één keer per stream (zie `antwoord.py`
+        en `decompositie.py`); mocht dat ooit veranderen, dan hoort de ontdubbeling hier.
+        """
+        resp = self._stream.get_final_message()
+        if self._meter is not None:
+            self._meter.tel_response(resp)
+        return resp

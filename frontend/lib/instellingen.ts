@@ -8,6 +8,7 @@
 export const INSTELLINGEN_TABS = [
   { key: "account", pad: "account", label: "Account", admin: false },
   { key: "beveiliging", pad: "beveiliging", label: "Beveiliging", admin: false },
+  { key: "verbruik", pad: "verbruik", label: "Verbruik", admin: false },
   { key: "berichten", pad: "berichten", label: "Berichten", admin: false },
   { key: "modelprofielen", pad: "beheer/modelprofielen", label: "Modelprofielen", admin: true },
   { key: "gebruikers", pad: "beheer/gebruikers", label: "Gebruikers", admin: true },

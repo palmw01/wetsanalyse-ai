@@ -60,9 +60,10 @@ from agent.agent import answer_stream, delete_conversation  # noqa: E402
 from agent.beurt import voer_beurt_uit  # noqa: E402
 from agent.agent_common import run_sync  # noqa: E402
 from agent.config import Settings  # noqa: E402
-from agent.models import ArtikelResult, ChatRequest, RunStart  # noqa: E402
+from agent.models import ArtikelResult, ChatRequest, RunStart, Verbruiksmeter  # noqa: E402
 from agent.runstore import Run, RunBestaatAl, RunStore  # noqa: E402
 from agent.runstore.geheugen import GeheugenStore  # noqa: E402
+from agent.wetsanalyse_api import WetsanalyseApi  # noqa: E402
 
 logger = logging.getLogger("graph_qa.chat")
 
@@ -340,6 +341,10 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
     een browser die blijft kijken. Is er geen api geconfigureerd, dan is hij een doorgeefluik en
     blijft de werkplek verantwoordelijk – het oude gedrag."""
     def maak(run: Run) -> AsyncIterator[dict]:
+        # Eén meter per beurt, hier gemaakt zodat beide kanten hem kennen: de agent telt erin, de
+        # beurt-driver boekt hem daarna bij de api. Dat werkt ook als de beurt op een fout of een
+        # stopverzoek eindigt – die tokens zijn dan wél verbruikt.
+        meter = Verbruiksmeter()
         return voer_beurt_uit(
             answer_stream(
                 request.question, request.conversation_id,
@@ -348,13 +353,47 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
                 # geen taak-annulering – de nodes zijn synchroon en de MCP-verbinding wordt in een
                 # `finally` gesloten.
                 stop_check=lambda: run.stop_gevraagd,
+                meter=meter,
             ),
             settings=settings,
             run=run,
             gesprek_id=request.conversation_id or "",
             user_id=gebruiker,
+            meter=meter,
         )
     return maak
+
+
+async def _budget_check(gebruiker: str = Depends(_aanroeper)) -> None:
+    """Weiger een nieuwe beurt als het tokenbudget van deze gebruiker op is.
+
+    Een dependency en geen middleware, om dezelfde reden als `_rate_limit`: middleware buffert de
+    SSE. De api is hier de autoriteit – deze dienst draait met meerdere replica's en houdt zijn
+    eigen remmen in het procesgeheugen, dus een budget dat hier zou leven telt per replica.
+
+    Fail-open: is de api niet bereikbaar, dan gaat de beurt door (zie `budget_toegestaan`). Een
+    haperende boekhouding hoort het werk niet stil te leggen.
+
+    Een lopende beurt wordt nooit afgekapt: dit is een poort vooraf. Raakt het budget halverwege op,
+    dan maakt die beurt af – een halve annotatie is erger dan een kleine overschrijding.
+    """
+    if not (settings.legt_zelf_vast and gebruiker):
+        return
+    api = WetsanalyseApi(settings, gebruiker)
+    try:
+        toegestaan, stand = await api.budget_toegestaan()
+    finally:
+        await api.aclose()
+    if toegestaan:
+        return
+    raise HTTPException(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        detail={
+            "reden": "budget_op",
+            "melding": "Je tokenbudget voor deze periode is op.",
+            "reset_op": stand.get("reset_op", ""),
+        },
+    )
 
 
 @app.post("/v1/runs", status_code=status.HTTP_201_CREATED)
@@ -363,6 +402,7 @@ async def start_run(
     gebruiker: str = Depends(_aanroeper),
     _rl: None = Depends(_rate_limit),
     _auth: None = Depends(_check_auth),
+    _budget: None = Depends(_budget_check),
 ) -> RunStart:
     """Start een beurt als achtergrondtaak en geef het run_id terug.
 

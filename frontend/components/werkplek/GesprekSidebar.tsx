@@ -9,8 +9,10 @@ import { signOut, useSession } from "next-auth/react";
 import { BerichtenPanel } from "@/components/BerichtenPanel";
 import { FeedbackDialoog } from "@/components/FeedbackDialoog";
 import { GesprekLijst } from "@/components/werkplek/GesprekLijst";
+import { Meter } from "@/components/ui/Meter";
 import { wisDisclaimer } from "@/lib/api";
-import type { GesprekSamenvatting } from "@/lib/types";
+import { verbruikSamenvatting } from "@/lib/tokenbudget";
+import type { GesprekSamenvatting, Verbruiksstand } from "@/lib/types";
 
 /** Wis het disclaimer-akkoord en log dan pas uit: zonder dat overleeft de sessiecookie een logout
  *  binnen dezelfde browsersessie en ziet de volgende gebruiker op een gedeelde machine de
@@ -34,6 +36,9 @@ interface Props {
   /** Start de rondleiding opnieuw. Weglaten verbergt het menu-item – op schermen zonder werkplek
    *  valt er niets rond te leiden. */
   onRondleiding?: () => void;
+  /** De eigen verbruiksstand. `null` = nog niet geladen of niet beschikbaar; dan blijft de regel weg
+   *  in plaats van een nul te tonen die niets betekent. */
+  verbruik?: Verbruiksstand | null;
 }
 
 /** De linker-sidebar van de werkplek: bovenin het Belastingdienst-logo, daaronder de chatgeschiedenis,
@@ -48,6 +53,7 @@ export function GesprekSidebar({
   laden,
   onSluit,
   onRondleiding,
+  verbruik = null,
 }: Props) {
   const { data: session } = useSession();
   const pad = usePathname();
@@ -169,6 +175,13 @@ export function GesprekSidebar({
             >
               Account &amp; instellingen
             </Link>
+            <Link
+              href="/instellingen/verbruik"
+              className="block px-3 py-2.5 text-sm text-ink transition-colors hover:bg-surface"
+              onClick={() => setMenuOpen(false)}
+            >
+              Mijn verbruik
+            </Link>
             {isBeheerder && (
               <Link
                 href="/instellingen/beheer/modelprofielen"
@@ -221,9 +234,27 @@ export function GesprekSidebar({
           </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-sm font-medium text-ink">{naam || "Gebruiker"}</span>
-            <span className="block truncate text-[0.65rem] text-faint">
-              {isBeheerder ? "Beheerder" : "Analist"} · instellingen
-            </span>
+            {/* De verbruiksregel vervangt de rol-regel zodra de stand bekend is: twee regels erbij
+                zouden het blok laten groeien, en waar je staat is het bruikbaarste van de twee.
+                Zonder actieve begrenzing blijft het bij de rol – een meter zonder grens zegt niets. */}
+            {verbruik && verbruik.actief ? (
+              <>
+                <span className="block truncate text-[0.65rem] text-faint">
+                  {verbruikSamenvatting(verbruik)}
+                </span>
+                <Meter
+                  percentage={verbruik.percentage}
+                  label="Tokenverbruik deze periode"
+                  toon="verbruik"
+                  dun
+                  className="mt-1"
+                />
+              </>
+            ) : (
+              <span className="block truncate text-[0.65rem] text-faint">
+                {isBeheerder ? "Beheerder" : "Analist"} · instellingen
+              </span>
+            )}
           </span>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0 text-muted" aria-hidden>
             <path d="m6 9 6 6 6-6" />

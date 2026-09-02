@@ -16,6 +16,9 @@ POST   /v1/admin/registraties/{id}/goedkeuren  – maak het account aan
 POST   /v1/admin/registraties/{id}/afwijzen    – wijs af (verwijdert de aanvraag)
 POST   /v1/admin/registraties/goedkeuren       – meerdere tegelijk goedkeuren
 DELETE /v1/admin/registraties/{id}             – ruim een goedgekeurde aanvraag op uit het archief
+GET    /v1/admin/budget                   – het tokenbudget-beleid
+PUT    /v1/admin/budget                   – beleid wijzigen (budget, resetperiode, aan/uit)
+GET    /v1/admin/verbruik                 – stand per gebruiker, zwaarste eerst
 """
 
 from __future__ import annotations
@@ -35,6 +38,7 @@ from .. import (
     profiles,
     registraties,
     users,
+    verbruik as verbruik_svc,
 )
 from ..auth import require_admin
 from ..llm.litellm_client import build_llm_client
@@ -164,7 +168,7 @@ async def maak_default(name: str):
     response_model=TestResult,
     dependencies=[Depends(rate_limited_admin_test)],
 )
-async def test_profiel(name: str):
+async def test_profiel(name: str, admin_id: str = Depends(require_admin)):
     if await profiles.get_profile(name) is None:
         raise HTTPException(status_code=404, detail=f"Onbekend profiel: {name}")
     cfg = None
@@ -187,6 +191,14 @@ async def test_profiel(name: str):
             model=cfg.model if cfg else "",
             detail="Verbinding met de modelprovider mislukt – zie het server-log voor details.",
         )
+    # De test doet een echte, betaalde LLM-call. Die hoort in de boekhouding, ook al is hij klein:
+    # anders klopt het totaal niet met wat de provider factureert. Hij staat op de admin-identiteit
+    # (het tokenlabel), niet op een gebruiker – niemands persoonlijke budget gaat eraan op.
+    await verbruik_svc.boek(
+        admin_id, bron="verbindingstest", model=res.model,
+        invoer=res.tokens_in, uitvoer=res.tokens_out,
+        cache_lees=res.cache_read_in, cache_schrijf=res.cache_write_in,
+    )
     return TestResult(ok=True, model=res.model, tokens_in=res.tokens_in, tokens_out=res.tokens_out)
 
 
@@ -198,6 +210,8 @@ class UserOut(BaseModel):
     role: str
     totp_enabled: bool
     active: bool
+    # Afwijkend tokenbudget; None = volg het systeembrede beleid.
+    token_budget: int | None = None
     created: str = ""
     updated: str = ""
 
@@ -211,6 +225,11 @@ class UserCreateIn(BaseModel):
 class UserPatchIn(BaseModel):
     role: str | None = Field(default=None, max_length=16)
     active: bool | None = None
+    # Afwijkend tokenbudget. Weglaten = ongewijzigd; expliciet `null` = terug naar de standaard.
+    # Dat onderscheid vraagt een sentinel, want None betekent hier twee dingen – zie `wijzig_user`.
+    token_budget: int | None = Field(default=None, ge=0)
+    # Zet dit op true om `token_budget` te wissen (terug naar het beleid).
+    token_budget_wissen: bool = False
 
 
 class UserCreated(UserOut):
@@ -226,6 +245,7 @@ class TempPassword(BaseModel):
 def _user_to_out(u) -> UserOut:
     return UserOut(
         userid=u.userid, email=u.email, role=u.role, totp_enabled=u.totp_enabled, active=u.active,
+        token_budget=u.token_budget,
         created=u.created.isoformat(), updated=u.updated.isoformat(),
     )
 
@@ -250,7 +270,10 @@ async def wijzig_user(userid: str, body: UserPatchIn):
     try:
         # Rol + active in één atomaire patch (invariant op de eind-toestand – voorkomt de TOCTOU
         # waarbij twee losse checks de laatste actieve beheerder alsnog laten verdwijnen).
-        user = await users.patch_user(userid, role=body.role, active=body.active)
+        user = await users.patch_user(
+            userid, role=body.role, active=body.active,
+            token_budget=body.token_budget, token_budget_wissen=body.token_budget_wissen,
+        )
     except users.UserError as e:
         raise HTTPException(status_code=409, detail=str(e))
     # Deactiveren moet meteen bijten, niet pas als de actief-cache verloopt.
@@ -274,6 +297,83 @@ async def verwijder_user(userid: str):
     except users.UserError as e:
         raise HTTPException(status_code=409, detail=str(e))
     vergeet_actief(userid)
+
+
+# --- tokenbudget ---------------------------------------------------------------
+#
+# Het beleid staat in de database en niet in de env, zodat een limiet aanpassen geen redeploy
+# vraagt. Het `anker` bepaalt vanaf welk moment de vensters lopen: verschuiven verplaatst ieders
+# resetdatum in één klap, dus dat kan alleen expliciet.
+
+class BudgetOut(BaseModel):
+    tokens: int
+    periode_dagen: int
+    anker: str
+    actief: bool
+    updated_by: str = ""
+    updated: str = ""
+    # Afgeleid, puur voor de UI: wanneer het huidige venster afloopt.
+    reset_op: str = ""
+
+
+class BudgetIn(BaseModel):
+    tokens: int = Field(ge=0)
+    periode_dagen: int = Field(ge=1, le=365)
+    actief: bool = True
+    # Alleen meesturen om de vensters te herankeren; weglaten laat het anker staan.
+    anker: datetime | None = None
+
+
+class VerbruikRegel(BaseModel):
+    """De stand van één gebruiker, voor het beheeroverzicht."""
+    userid: str
+    gebruikt: int
+    budget: int
+    percentage: int
+    eigen_budget: bool
+    geblokkeerd: bool
+
+
+def _budget_to_out(b) -> BudgetOut:
+    return BudgetOut(
+        tokens=b.tokens, periode_dagen=b.periode_dagen, anker=b.anker.isoformat(),
+        actief=b.actief, updated_by=b.updated_by, updated=b.updated.isoformat(),
+        reset_op=verbruik_svc.venster_einde(b).isoformat(),
+    )
+
+
+@router.get("/budget", response_model=BudgetOut)
+async def lees_budget():
+    return _budget_to_out(await verbruik_svc.get_beleid())
+
+
+@router.put("/budget", response_model=BudgetOut)
+async def zet_budget(body: BudgetIn, admin_id: str = Depends(require_admin)):
+    try:
+        beleid = await verbruik_svc.zet_beleid(
+            tokens=body.tokens, periode_dagen=body.periode_dagen, actief=body.actief,
+            anker=body.anker, actor=admin_id,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    logger.info(
+        "budgetbeleid gewijzigd",
+        extra={"categorie": "security", "actie": "budget_gewijzigd", "tokens": body.tokens,
+               "periode_dagen": body.periode_dagen, "actief": body.actief, "door": admin_id},
+    )
+    return _budget_to_out(beleid)
+
+
+@router.get("/verbruik", response_model=list[VerbruikRegel])
+async def lijst_verbruik():
+    """Alle gebruikers met hun stand, de zwaarste verbruiker eerst."""
+    return [
+        VerbruikRegel(
+            userid=s.userid, gebruikt=s.gebruikt, budget=s.budget, percentage=s.percentage,
+            eigen_budget=s.eigen_budget, geblokkeerd=s.geblokkeerd,
+        )
+        for s in await verbruik_svc.standen()
+    ]
 
 
 # --- zelfregistratie: aanvragen beoordelen -------------------------------------

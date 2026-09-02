@@ -3,8 +3,9 @@ Pydantic-modellen voor request/response van de graph-qa API.
 """
 from __future__ import annotations
 
+import threading
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, model_validator
 
@@ -289,3 +290,51 @@ class ArtikelResult(BaseModel):
     citeertitel: str = ""
     opschrift: str = ""
     leden_teksten: list[LidTekst] = []
+
+
+class Verbruiksmeter:
+    """Telt het tokenverbruik van één beurt op, over alle LLM-calls heen.
+
+    De Anthropic-SDK geeft bij elk antwoord een `usage`-blok terug; tot nu toe werd dat weggegooid.
+    Deze meter vangt het op, zodat de api kan boeken hoeveel een gebruiker verbruikte.
+
+    Er is één instantie per beurt (de adapter wordt per beurt gebouwd), en hij telt op met een
+    lock: de graph-nodes zijn synchroon en LangGraph kan takken parallel draaien, dus twee calls
+    kunnen tegelijk terugkomen.
+
+    Wat waar staat: `invoer` is bij Anthropic de NIET-gecachte rest; het volle promptvolume is
+    invoer + cache_lees + cache_schrijf. Alle vier gaan apart naar de api, die beslist hoe ze wegen.
+    """
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self.invoer = 0
+        self.uitvoer = 0
+        self.cache_lees = 0
+        self.cache_schrijf = 0
+        self.calls = 0
+
+    def tel_response(self, resp: Any) -> None:
+        """Neem het `usage`-blok van één antwoord op. Zonder usage (of bij een fake) telt het niets."""
+        u = getattr(resp, "usage", None)
+        if u is None:
+            return
+        with self._lock:
+            self.calls += 1
+            self.invoer += int(getattr(u, "input_tokens", 0) or 0)
+            self.uitvoer += int(getattr(u, "output_tokens", 0) or 0)
+            self.cache_lees += int(getattr(u, "cache_read_input_tokens", 0) or 0)
+            self.cache_schrijf += int(getattr(u, "cache_creation_input_tokens", 0) or 0)
+
+    @property
+    def totaal(self) -> int:
+        return self.invoer + self.uitvoer + self.cache_lees + self.cache_schrijf
+
+    def als_dict(self) -> dict[str, int]:
+        return {
+            "invoer": self.invoer,
+            "uitvoer": self.uitvoer,
+            "cache_lees": self.cache_lees,
+            "cache_schrijf": self.cache_schrijf,
+            "calls": self.calls,
+        }

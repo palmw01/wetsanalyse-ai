@@ -6,7 +6,7 @@ zelfstandige, Dockeriseerbare dienst die je via HTTP (Postman/Swagger) bevraagt 
 
 ## Scope: wat deze API nog doet
 
-De API bedient zeven dingen:
+De API bedient acht dingen:
 
 1. **Het JAS-annotatiedomein van de werkplek** (`/v1/annotatie/*`): documenten/elementen/beslissingen
    + append-only auditlog + **export** (pdf/csv/json). De agent stelt voor, de mens beslist; de API bewaart de review-state.
@@ -49,7 +49,21 @@ De API bedient zeven dingen:
 5. De **profiel-keuzelijst** voor de UI (`/v1/profiles`).
 6. **Berichten** (`/v1/berichten/*` + `/v1/admin/berichten/*`): release notes die beheerders
    publiceren en analisten lezen, met leesbewijzen per (bericht, user).
-7. **Gebruikersfeedback** (`/v1/feedback` + `/v1/admin/feedback/*`): onwijzigbare meldingen uit de
+7. **Tokenbudget** (`/v1/verbruik/*` + `/v1/admin/budget`): hoeveel LLM-tokens een gebruiker
+   verbruikt en of hij nog een beurt mag starten. **Verbruik is een journaal, de stand is een som** –
+   er wordt nergens een teller opgeslagen en nooit iets gereset. `token_verbruik` krijgt één rij per
+   LLM-call; de stand van nu is `sum(...) WHERE userid = ? AND tijdstip >= venster_start`, en dat
+   vensterbegin wordt uit het `anker` in `budget_beleid` gerekend. Daaruit volgen drie dingen die een
+   teller niet heeft: **een gesprek of document verwijderen raakt het verbruik niet** (`userid` is de
+   enige harde sleutel; `gesprek_id`/`run_id` zijn losse metadata zónder foreign key, want
+   `gesprek_store.verwijder_gesprek` en `annotatie_store.verwijder_document` ruimen hun eigen rijen
+   hard op), **de reset vraagt geen cronjob** (er is geen periodieke taak die kan mislukken of dubbel
+   draaien), en **elk getal is navraagbaar tot op de call**. Wat meetelt is het volle promptvolume –
+   invoer + uitvoer + cache_lees + cache_schrijf – dus caching verlaagt de factuur maar niet het
+   budget; de vier getallen staan apart zodat een gewogen variant een rekenregel is en geen migratie.
+   Het beleid (budget, resetperiode, aan/uit) staat in de database en niet in de env, want een limiet
+   aanpassen mag geen redeploy vragen; de env-waarden seeden alleen de eerste rij.
+8. **Gebruikersfeedback** (`/v1/feedback` + `/v1/admin/feedback/*`): onwijzigbare meldingen uit de
    webapp. Elke beheerder heeft een eigen `feedback_gezien_op`, dus de ongelezen-teller is niet
    gedeeld. De admin-endpoints die per-beheerder state schrijven lopen via `huidige_beheerder` —
    defense-in-depth naast de admin-bearer, die immers een token-label levert en geen `userid`.
@@ -83,8 +97,8 @@ De API bedient zeven dingen:
   `LLM_CONFIG_SECRET(_FILE)`). De profielen worden beheerd via `/beheer` en gevalideerd met de
   verbindingstest; de QA-agent (graph-qa) heeft een eigen LLM-config en wordt er niet door aangestuurd.
 - `db.py` – async SQLAlchemy-Core laag: engine-beheer + de tabeldefinities (`llm_profiles`,
-  `users`, `registratie_aanvragen`, `api_tokens`, `annotatie_documenten`, `annotatie_audit`,
-  `gesprekken`, `gesprek_berichten`). Portable types
+  `users`, `registratie_aanvragen`, `token_verbruik`, `budget_beleid`, `api_tokens`,
+  `annotatie_documenten`, `annotatie_audit`, `gesprekken`, `gesprek_berichten`). Portable types
   (`JSON`→`JSONB` op Postgres, `JSON` op SQLite-tests), tz-aware datetimes. `create_all` maakt bij de
   start **ontbrekende tabellen** idempotent aan; `reconcile_schema()` (ook in de lifespan) voegt daarna
   **ontbrekende kolommen** additief toe (`ALTER TABLE … ADD COLUMN`; nooit droppen/typewijzigen) zodat
