@@ -286,6 +286,14 @@ jobs:
           [ -n "${IMG_FRONTEND:-}" ]   && args+=(--frontend-image "$IMG_FRONTEND")
           [ -n "${IMG_GRAPH_QA:-}" ]   && args+=(--graph-qa-image "$IMG_GRAPH_QA")
           [ -n "${IMG_BWB_IMPORT:-}" ] && args+=(--bwb-import-image "$IMG_BWB_IMPORT")
+          # ALLEEN ACCEPTATIE krijgt een publieke api-ingress, zodat de admin-MCP erbij kan. Die
+          # ingress zit vóór de hele app – niet alleen voor /v1/admin – dus productie, waar de
+          # annotaties van juristen staan, blijft dicht. Zie `apiExtern` in main.bicep.
+          #
+          # Deze regel staat in BEIDE takken (wat-if én uitrollen): stond hij alleen bij het
+          # uitrollen, dan valideert `wat-if` een andere template dan er wordt uitgerold, en dat is
+          # precies de zekerheid waarvoor die actie de default is.
+          [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--api-extern)
           python3 deploy/azure/gen-deploy.py "$AZURE_AI_KEY" "${args[@]}"
 
       - name: Uitrollen
@@ -307,6 +315,14 @@ jobs:
           [ -n "${IMG_FRONTEND:-}" ]   && args+=(--frontend-image "$IMG_FRONTEND")
           [ -n "${IMG_GRAPH_QA:-}" ]   && args+=(--graph-qa-image "$IMG_GRAPH_QA")
           [ -n "${IMG_BWB_IMPORT:-}" ] && args+=(--bwb-import-image "$IMG_BWB_IMPORT")
+          # ALLEEN ACCEPTATIE krijgt een publieke api-ingress, zodat de admin-MCP erbij kan. Die
+          # ingress zit vóór de hele app – niet alleen voor /v1/admin – dus productie, waar de
+          # annotaties van juristen staan, blijft dicht. Zie `apiExtern` in main.bicep.
+          #
+          # Deze regel staat in BEIDE takken (wat-if én uitrollen): stond hij alleen bij het
+          # uitrollen, dan valideert `wat-if` een andere template dan er wordt uitgerold, en dat is
+          # precies de zekerheid waarvoor die actie de default is.
+          [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--api-extern)
           python3 deploy/azure/gen-deploy.py "$AZURE_AI_KEY" "${args[@]}"
 
       # `az deployment group create` keert terug zodra de revisie is AANGEMAAKT, niet zodra hij

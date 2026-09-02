@@ -244,6 +244,55 @@ jobs:
           print("ok - elke classificerende prompt kent de prioriteitsregels: " + ", ".join(sorted(gedekt)))
           PYEOF
 
+      - name: Api-ingress – publiek alleen op acceptatie
+        run: |
+          python3 - <<'PYEOF'
+          import pathlib, re, sys
+
+          BICEP = pathlib.Path("deploy/azure/main.bicep")
+          FLOW = pathlib.Path(".github/workflows/azure-infra.yml")
+          fout = []
+
+          # 1. De veilige waarde is de DEFAULT. Wie niets meegeeft houdt een dichte api; alleen een
+          #    expliciete vlag wijkt af. Staat de default op true, dan is elke straat open zodra
+          #    iemand de bicep los uitrolt.
+          bicep = BICEP.read_text(encoding="utf-8")
+          m = re.search(r"^param apiExtern bool = (\w+)$", bicep, re.M)
+          if not m:
+              fout.append("main.bicep: `param apiExtern bool = …` niet gevonden")
+          elif m.group(1) != "false":
+              fout.append(f"main.bicep: apiExtern heeft default `{m.group(1)}`, moet `false` zijn")
+
+          # 2. De API-ingress moet de parameter gebruiken. Een hardgecodeerde `external: true` daar
+          #    zou de straat-conditie hieronder betekenisloos maken. Alleen het api-resourceblok
+          #    kijken: de frontend hoort juist wél publiek te zijn.
+          api_blok = bicep.split("resource apiApp ", 1)[-1].split("\nresource ", 1)[0]
+          if not re.search(r"external:\s*apiExtern", api_blok):
+              fout.append("main.bicep: de api-ingress gebruikt `apiExtern` niet")
+          if re.search(r"external:\s*true", api_blok):
+              fout.append("main.bicep: hardgecodeerde `external: true` op de api – gebruik de parameter")
+
+          # 3. Elke `--api-extern` in de workflow staat achter een acceptatie-conditie. Valt die
+          #    conditie weg, dan zet de eerstvolgende productie-deploy de api daar publiek — en dat
+          #    is precies het soort verschil dat niemand opmerkt tot het misgaat.
+          for regel in FLOW.read_text(encoding="utf-8").splitlines():
+              if "--api-extern" not in regel or regel.strip().startswith("#"):
+                  continue
+              if "acceptatie" not in regel:
+                  fout.append(f"azure-infra.yml: `--api-extern` zonder acceptatie-conditie: {regel.strip()}")
+
+          if fout:
+              for f in fout:
+                  print(f"  {f}")
+              print()
+              print("  De api-ingress zit VÓÓR de hele app: publiek betekent ook /v1/annotatie,")
+              print("  /v1/gesprekken en /v1/auth, en daarmee verschuift de X-User-Id-vertrouwensgrens.")
+              print("  Op acceptatie is dat een bewuste keuze; op productie staan de annotaties van")
+              print("  juristen. Zie het comment bij de ingress in main.bicep.")
+              sys.exit(1)
+          print("ok - apiExtern staat default op false en wordt alleen op acceptatie gezet")
+          PYEOF
+
       - name: Bepalen wat deze PR raakt
         id: raakt
         run: |

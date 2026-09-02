@@ -47,6 +47,18 @@ npm run build      # → dist/ (gecommit, zodat `node dist/index.js` zonder buil
    ```
 
    en zet `WETSANALYSE_ADMIN_API_URL` in dezelfde `env`-sectie als het token hierboven.
+
+   **Welke URL?** De api van **acceptatie** heeft sinds 2 sep 2026 een publieke ingress juist
+   hiervoor (`apiExtern` in `deploy/azure/main.bicep`); productie blijft intern en is dus niet te
+   koppelen — gebruik daar `/beheer` in de webapp. De FQDN haal je op met:
+
+   ```bash
+   az containerapp show -n wetsanalyse-api -g rg-wetsanalyse \
+     --query properties.configuration.ingress.fqdn -o tsv
+   ```
+
+   Draai je lokaal een api, dan volstaat `http://localhost:3000` — dat toont wel je eigen database
+   en niet die van Azure.
 3. **Verifieer**: `claude mcp list` → `wetsanalyse-admin` verbonden. Vraag Claude bijv. de
    modelprofielen te tonen (`list_profiles`).
 
