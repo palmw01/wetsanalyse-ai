@@ -2,7 +2,7 @@
   "_waarom": "Gedeelde testvectoren voor het ontleden van één regel wettekst. TypeScript (frontend/lib/wetstructuur.ts) voedt het documentpaneel, Python (api/app/wetstructuur.py) de PDF-export; ze moeten dezelfde regel hetzelfde ontleden, anders staat een onderdeel in de PDF op een andere marge dan in de werkplek en gaat de jurist twijfelen aan de bron in plaats van aan de opmaak. Zelfde patroon als bronHash.vectoren.json, dat er kwam nadat Python en JS uiteenliepen. Beide suites toetsen tegen dit bestand; wijzig het niet met de hand zonder beide kanten mee te nemen.",
   "_velden": {
     "nummer": "het onderdeelnummer zoals het in de wet staat, inclusief punt; leeg als de regel er geen heeft",
-    "term": "de gedefinieerde term vóór de dubbele punt, alleen vlak ná een nummer; anders leeg",
+    "term": "de gedefinieerde term vóór de dubbele punt, alleen vlak ná een nummer; leeg als het stuk ervóór meer dan de helft van de regel beslaat of een 'bedoeld in'-verwijzing bevat — dan is het een zin",
     "tekst": "de rest van de regel, ná nummer en term",
     "niveau": "0 = aanhef of lopende tekst, 1 = letter- of streepje-onderdeel, 2 = genest (graden)"
   },
@@ -10,7 +10,12 @@
     {
       "_geval": "aanhef van een definitielid",
       "regel": "Deze wet verstaat onder:",
-      "uit": { "nummer": "", "term": "", "tekst": "Deze wet verstaat onder:", "niveau": 0 }
+      "uit": {
+        "nummer": "",
+        "term": "",
+        "tekst": "Deze wet verstaat onder:",
+        "niveau": 0
+      }
     },
     {
       "_geval": "letteronderdeel met definitieterm",
@@ -25,7 +30,12 @@
     {
       "_geval": "genest graden-onderdeel",
       "regel": "1°. Koninkrijk: Koninkrijk der Nederlanden;",
-      "uit": { "nummer": "1°.", "term": "Koninkrijk", "tekst": "Koninkrijk der Nederlanden;", "niveau": 2 }
+      "uit": {
+        "nummer": "1°.",
+        "term": "Koninkrijk",
+        "tekst": "Koninkrijk der Nederlanden;",
+        "niveau": 2
+      }
     },
     {
       "_geval": "dubbelletter-onderdeel (aa. staat tussen a. en b., niet dieper)",
@@ -68,7 +78,7 @@
       }
     },
     {
-      "_geval": "VALKUIL: een dubbele punt verderop in een onderdeel is ook geen term",
+      "_geval": "VALKUIL: dubbele punt achter een 'als bedoeld in'-bijzin is geen definitieterm",
       "regel": "b. van huurtoeslag op de bankrekening van een toegelaten instelling, als bedoeld in artikel 19 van de Woningwet: dat geldt hier;",
       "uit": {
         "nummer": "b.",
@@ -120,22 +130,82 @@
     {
       "_geval": "een leeg regelnummer zonder tekst erachter (lege container, zoals aa. in art. 2 IW)",
       "regel": "aa.",
-      "uit": { "nummer": "aa.", "term": "", "tekst": "", "niveau": 1 }
+      "uit": {
+        "nummer": "aa.",
+        "term": "",
+        "tekst": "",
+        "niveau": 1
+      }
     },
     {
       "_geval": "lege regel",
       "regel": "",
-      "uit": { "nummer": "", "term": "", "tekst": "", "niveau": 0 }
+      "uit": {
+        "nummer": "",
+        "term": "",
+        "tekst": "",
+        "niveau": 0
+      }
     },
     {
       "_geval": "genummerd onderdeel met cijfer en punt (geen graden) – niveau 1, niet 2",
       "regel": "1. de ontvanger stelt de termijn vast;",
-      "uit": { "nummer": "1.", "term": "", "tekst": "de ontvanger stelt de termijn vast;", "niveau": 1 }
+      "uit": {
+        "nummer": "1.",
+        "term": "",
+        "tekst": "de ontvanger stelt de termijn vast;",
+        "niveau": 1
+      }
     },
     {
       "_geval": "em-dash als opsommingsteken (sommige regelingen gebruiken die)",
       "regel": "— het bedrag van de aanslag;",
-      "uit": { "nummer": "—", "term": "", "tekst": "het bedrag van de aanslag;", "niveau": 1 }
+      "uit": {
+        "nummer": "—",
+        "term": "",
+        "tekst": "het bedrag van de aanslag;",
+        "niveau": 1
+      }
+    },
+    {
+      "_geval": "lange officiële term (onderdeel d, art. 2 IW 1990) – gemeld 2 sep 2026: hier bleef alleen 'd.' over",
+      "regel": "d. Gedelegeerde Verordening Douanewetboek van de Unie: Gedelegeerde Verordening (EU) 2015/2446 van de Commissie van 28 juli 2015 tot aanvulling van Verordening (EU) nr. 952/2013;",
+      "uit": {
+        "nummer": "d.",
+        "term": "Gedelegeerde Verordening Douanewetboek van de Unie",
+        "tekst": "Gedelegeerde Verordening (EU) 2015/2446 van de Commissie van 28 juli 2015 tot aanvulling van Verordening (EU) nr. 952/2013;",
+        "niveau": 1
+      }
+    },
+    {
+      "_geval": "lange officiële term (onderdeel e, art. 2 IW 1990)",
+      "regel": "e. Uitvoeringsverordening Douanewetboek van de Unie: Uitvoeringsverordening (EU) 2015/2447 van de Commissie van 24 november 2015;",
+      "uit": {
+        "nummer": "e.",
+        "term": "Uitvoeringsverordening Douanewetboek van de Unie",
+        "tekst": "Uitvoeringsverordening (EU) 2015/2447 van de Commissie van 24 november 2015;",
+        "niveau": 1
+      }
+    },
+    {
+      "_geval": "reeks begrippen als één term (onderdeel l, art. 2 IW 1990) – 99 tekens, en tóch een term",
+      "regel": "l. werknemer, artiest, beroepssporter, buitenlands gezelschap, dienstbetrekking en inhoudingsplichtige: de werknemer, de artiest, de beroepssporter, het buitenlandse gezelschap, de dienstbetrekking en de inhoudingsplichtige in de zin van de Wet op de loonbelasting 1964;",
+      "uit": {
+        "nummer": "l.",
+        "term": "werknemer, artiest, beroepssporter, buitenlands gezelschap, dienstbetrekking en inhoudingsplichtige",
+        "tekst": "de werknemer, de artiest, de beroepssporter, het buitenlandse gezelschap, de dienstbetrekking en de inhoudingsplichtige in de zin van de Wet op de loonbelasting 1964;",
+        "niveau": 1
+      }
+    },
+    {
+      "_geval": "VALKUIL: een term die de halve regel beslaat is een zin, geen term",
+      "regel": "a. de ontvanger stelt na afloop van de termijn en na overleg met de belastingschuldige vast: het bedrag;",
+      "uit": {
+        "nummer": "a.",
+        "term": "",
+        "tekst": "de ontvanger stelt na afloop van de termijn en na overleg met de belastingschuldige vast: het bedrag;",
+        "niveau": 1
+      }
     }
   ]
 }
