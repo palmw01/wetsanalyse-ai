@@ -24,6 +24,7 @@ from langgraph.errors import GraphRecursionError
 
 from .agent_common import BeurtGestopt, run_sync
 from .config import Settings
+from .models import Verbruiksmeter
 from .observability import get_tracer
 from .ports import GraphPort, LLMPort
 
@@ -136,6 +137,7 @@ async def answer_stream(
     llm: LLMPort | None = None,
     graph: GraphPort | None = None,
     stop_check: Callable[[], bool] | None = None,
+    meter: Verbruiksmeter | None = None,
 ) -> AsyncIterator[dict[str, Any]]:
     """
     Async generator die SSE-events yield:
@@ -158,6 +160,11 @@ async def answer_stream(
             from .adapters.anthropic_llm import AnthropicLLM
 
             llm = AnthropicLLM(settings)
+            # De aanroeper kan een eigen meter meegeven; die leest het verbruik ná afloop uit, ook
+            # als deze beurt met een fout of een stopverzoek eindigt. Een SSE-event zou dat niet
+            # halen: de foutpaden yielden geen verbruik meer, en de tokens zijn dan wél op.
+            if meter is not None:
+                llm.meter = meter
         await run_sync(graph.initialize)
     except Exception as exc:
         logger.warning("MCP-verbinding mislukt", exc_info=True)

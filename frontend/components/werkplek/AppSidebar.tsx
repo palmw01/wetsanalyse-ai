@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Dialog } from "@/components/ui/Dialog";
 import { GesprekSidebar } from "@/components/werkplek/GesprekSidebar";
 import { hernoemGesprek, lijstGesprekken, verwijderGesprek } from "@/lib/api";
-import type { GesprekSamenvatting } from "@/lib/types";
+import type { GesprekSamenvatting, Verbruiksstand } from "@/lib/types";
 
 interface Props {
   /** Welk gesprek is actief (highlight). `null` op schermen buiten de chat. */
@@ -30,6 +30,8 @@ interface Props {
    *  naar de api. Zonder dit hing de rondleiding af van wat er in het account staat, en dat is bij
    *  een nieuwe gebruiker niets. */
   demoGesprekken?: GesprekSamenvatting[];
+  /** Eigen verbruiksstand, doorgegeven aan het gebruikersblok onderin. */
+  verbruik?: Verbruiksstand | null;
 }
 
 /** De gesprekssidebar met alles eromheen: laden, hernoemen, verwijderen, en de mobiele drawer.
@@ -40,7 +42,7 @@ interface Props {
  *  lokale state, op het overzicht navigeert hij terug naar de werkplek. */
 export function AppSidebar({
   activeId, onNieuw, onOpen, onVerwijderd, onFout, onLijst, verversSignaal = 0,
-  drawerOpen = false, onDrawerSluit, onRondleiding, demoGesprekken,
+  drawerOpen = false, onDrawerSluit, onRondleiding, demoGesprekken, verbruik = null,
 }: Props) {
   const [gesprekken, setGesprekken] = useState<GesprekSamenvatting[]>(demoGesprekken ?? []);
   const [laden, setLaden] = useState(!demoGesprekken);
@@ -119,6 +121,7 @@ export function AppSidebar({
       laden={laden}
       onSluit={extra?.onSluit}
       onRondleiding={onRondleiding}
+      verbruik={verbruik}
     />
   );
 

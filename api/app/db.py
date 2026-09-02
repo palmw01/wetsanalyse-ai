@@ -80,6 +80,10 @@ users = Table(
     # Sessie-epoch: JWT-sessies met een `loginAt` vóór deze tijd zijn ongeldig (revocatie bij
     # wachtwoordwijziging/-reset). NULL = nooit gewijzigd → geen revocatie.
     Column("sessions_valid_from", _DT, nullable=True),
+    # Afwijkend tokenbudget voor deze gebruiker; NULL = volg `budget_beleid.tokens`. Additief
+    # toegevoegd, dus `reconcile_schema` zet hem op een bestaande tabel bij (geen migratie) – zie de
+    # toelichting bij `feedback_gezien_op` hieronder voor waarom de Column-declaratie ook dan nodig is.
+    Column("token_budget", Integer, nullable=True),
     # Tijdstip waarop een beheerder de feedbacklijst voor het laatst bekeek; NULL = nooit.
     # Declaratief hier (nieuwe DB's via create_all) én idempotent via ALTER in reconcile_schema
     # (bestaande DB's). Zonder deze Column-declaratie crasht elke query die de kolom aanraakt met
@@ -226,6 +230,62 @@ annotatie_audit = Table(
     Column("detail", _JSON, nullable=True),
     Column("tijdstip", _DT, nullable=False),
     Index("ix_annotatie_audit_doc_id", "document_slug", "id"),
+)
+
+
+# --- Tokenbudget --------------------------------------------------------------
+# Verbruik is een JOURNAAL, geen teller. Eén rij per LLM-call; de stand van nu is een som over het
+# huidige venster. Dat heeft drie eigenschappen die een teller niet heeft:
+#
+#   1. Een verwijderd gesprek raakt het verbruik niet. `gesprek_store.verwijder_gesprek` gooit de
+#      berichten hard weg en `annotatie_store.verwijder_document` neemt zelfs de auditregels mee;
+#      daarom is `userid` hier de enige harde sleutel en zijn `gesprek_id`/`run_id` losse metadata
+#      ZONDER foreign key. Wat er verbruikt is, is verbruikt – ook als het werk eruit gaat.
+#   2. De reset vraagt geen cronjob: het vensterbegin wordt uit het anker gerekend (zie
+#      `verbruik.venster_start`), dus er is geen periodieke handeling die kan mislukken of dubbel
+#      draaien.
+#   3. Elk getal is herleidbaar: "waar zijn mijn tokens heen" is een SELECT.
+#
+# Alleen inserts; nooit update/delete. De tijdlijn = ORDER BY id.
+token_verbruik = Table(
+    "token_verbruik",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("userid", String(64), nullable=False),
+    # "agent" (een beurt van Lex) | "verbindingstest" (de admin-LLM-call)
+    Column("bron", String(32), nullable=False, default=""),
+    Column("model", String(128), nullable=False, default=""),
+    # Bij Anthropic is `invoer` de NIET-gecachte rest: het volle promptvolume is
+    # invoer + cache_lees + cache_schrijf. Alle vier apart bewaard, zodat een latere weging
+    # (een cache-read kost ~0,1×) een rekenregel is en geen migratie.
+    Column("invoer", Integer, nullable=False, default=0),
+    Column("uitvoer", Integer, nullable=False, default=0),
+    Column("cache_lees", Integer, nullable=False, default=0),
+    Column("cache_schrijf", Integer, nullable=False, default=0),
+    # Herkomst, puur als leesbare context. Geen foreign key – zie punt 1 hierboven.
+    Column("gesprek_id", String(64), nullable=True),
+    Column("run_id", String(64), nullable=True),
+    Column("tijdstip", _DT, nullable=False),
+    Index("ix_token_verbruik_user_tijd", "userid", "tijdstip"),
+)
+
+# Het budgetbeleid: één rij (id=1). Een tabel en geen env-knop, omdat de beheerder dit zonder
+# redeploy moet kunnen wijzigen; de env levert alleen de beginwaarde bij de allereerste start
+# (`verbruik.ensure_seeded`, hetzelfde patroon als bij de modelprofielen).
+budget_beleid = Table(
+    "budget_beleid",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    # Standaardbudget per venster; een gebruiker kan een eigen `users.token_budget` hebben.
+    Column("tokens", Integer, nullable=False, default=500_000),
+    Column("periode_dagen", Integer, nullable=False, default=7),
+    # Vast startmoment. Alle vensters worden hiervandaan geteld, dus iedereen reset tegelijk en de
+    # resetdatum is vooraf te noemen. Verschuif dit niet zonder reden: het verspringt ieders venster.
+    Column("anker", _DT, nullable=False),
+    # Uit = meten maar niet begrenzen (er wordt nog steeds geboekt).
+    Column("actief", Boolean, nullable=False, default=True),
+    Column("updated_by", String(128), nullable=False, default=""),
+    Column("updated", _DT, nullable=False),
 )
 
 

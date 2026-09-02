@@ -22,6 +22,7 @@ import {
   zetDocumentStatus,
   voegElementToe,
 } from "@/lib/api";
+import { resetdatum } from "@/lib/tokenbudget";
 import type {
   Anker,
   AnnotatieElement,
@@ -35,6 +36,7 @@ import type {
   Bron,
   GraafArtikel,
   OntbrekendItem,
+  Verbruiksstand,
   VoorstelElement,
 } from "@/lib/types";
 import {
@@ -119,6 +121,11 @@ interface Props {
    *  een stap die het paneel niet nodig heeft: die stappen wijzen naar de thread, en met het paneel
    *  ervoor is daar niets van te zien. */
   demoSluitSignaal?: number;
+  /** De eigen verbruiksstand: bij een vol budget gaat de invoer dicht. `null` = onbekend, en dan
+   *  blijft alles gewoon werken – een meter die niet laadt mag het werk niet stilleggen. */
+  verbruik?: Verbruiksstand | null;
+  /** Roept terug zodra een beurt is afgerond, zodat de stand meteen ververst. */
+  onBeurtKlaar?: () => void;
   /** Start de rondleiding vanuit de lege staat – precies het moment waarop iemand hem nodig heeft. */
   onRondleiding?: () => void;
 }
@@ -126,7 +133,11 @@ interface Props {
 export function WerkplekClient({
   initialGesprekId, onGesprekAangemaakt, onGewijzigd, beginArtefact, demo, onDemoBeslissing,
   onDemoArtefact, demoOpenSignaal = 0, demoSluitSignaal = 0, onRondleiding,
+  verbruik = null, onBeurtKlaar,
 }: Props) {
+  // Budget op? Dan gaat de invoer dicht. Alleen bij een actieve begrenzing – staat die uit, dan is
+  // `geblokkeerd` per definitie false en verandert er niets.
+  const geblokkeerd = Boolean(verbruik?.actief && verbruik.geblokkeerd);
   const [gesprekId, setGesprekId] = useState<string | null>(initialGesprekId);
   const [items, setItems] = useState<Item[]>(demo?.items ?? []);
   const [docs, setDocs] = useState<Record<string, AnnotatieDocument>>(demo?.docs ?? {});
@@ -668,6 +679,9 @@ export function WerkplekClient({
       setStopt(false);
       setBezig(false);
       bezigRef.current = false;
+      // De beurt is klaar (geslaagd of niet): het verbruik is hoe dan ook opgelopen, dus de meter
+      // hoort nu bij te zijn en niet pas bij het volgende minuut-interval.
+      onBeurtKlaar?.();
     }
 
     if (verbroken && levendRef.current) {
@@ -1177,13 +1191,15 @@ export function WerkplekClient({
               onChange={(e) => setInvoer(e.target.value)}
               onKeyDown={opToets}
               rows={1}
-              disabled={Boolean(demo)}
+              disabled={Boolean(demo) || geblokkeerd}
               placeholder={
                 demo
                   ? "Tijdens de rondleiding staat het invoerveld stil"
-                  : vraagOver
-                    ? "Wat wil je weten over deze markering?"
-                    : "Stel een vraag of vraag een annotatie…"
+                  : geblokkeerd
+                    ? "Je tokenbudget is op"
+                    : vraagOver
+                      ? "Wat wil je weten over deze markering?"
+                      : "Stel een vraag of vraag een annotatie…"
               }
               className="max-h-[200px] flex-1 resize-none bg-transparent px-2 py-2 text-sm text-ink placeholder:text-faint focus:outline-none"
             />
@@ -1192,7 +1208,7 @@ export function WerkplekClient({
             <button
               type="button"
               onClick={() => (bezig ? void stop() : void verstuur())}
-              disabled={Boolean(demo) || (!bezig && !invoer.trim()) || stopt}
+              disabled={Boolean(demo) || geblokkeerd || (!bezig && !invoer.trim()) || stopt}
               aria-label={bezig ? (stopt ? "Bezig met stoppen" : "Stoppen") : "Versturen"}
               title={stopt ? "De agent rondt zijn huidige stap nog af" : undefined}
               className="focus-ring mb-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-paper transition-colors hover:bg-accent-soft disabled:cursor-not-allowed disabled:opacity-40"
@@ -1218,7 +1234,9 @@ export function WerkplekClient({
           <p className="mt-2 text-center text-xs text-faint">
             {demo
               ? "Dit is een voorbeeld voor de rondleiding – er gaat niets naar de agent."
-              : "De agent bevraagt de kennisgraaf – controleer altijd de bron."}
+              : geblokkeerd && verbruik
+                ? `Je tokenbudget is op. Je kunt weer verder op ${resetdatum(verbruik.reset_op)}.`
+                : "De agent bevraagt de kennisgraaf – controleer altijd de bron."}
           </p>
         </div>
       </div>

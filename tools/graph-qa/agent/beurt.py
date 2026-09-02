@@ -25,6 +25,7 @@ from typing import Any
 
 from .annotatie import sleutel_van
 from .config import Settings
+from .models import Verbruiksmeter
 from .wetsanalyse_api import GesprekVerdwenen, WetsanalyseApi, WetsanalyseApiFout
 
 logger = logging.getLogger("graph_qa.beurt")
@@ -116,6 +117,7 @@ async def voer_beurt_uit(
     run,
     gesprek_id: str,
     user_id: str,
+    meter: Verbruiksmeter | None = None,
 ) -> AsyncIterator[dict[str, Any]]:
     """Draai één beurt: stuur de events door, en leg aan het eind de uitkomst vast.
 
@@ -127,12 +129,20 @@ async def voer_beurt_uit(
     weg. Zwijgen zou nu betekenen dat een annotatie van anderhalve minuut spoorloos verdwijnt.
     """
     schrijver = BeurtSchrijver()
-    async for event in stroom:
-        if event.get("type") == "done":
-            # Vasthouden: `done` is voor de client het teken dat de beurt vastligt.
-            break
-        schrijver.verwerk(event)
-        yield event
+    try:
+        async for event in stroom:
+            if event.get("type") == "done":
+                # Vasthouden: `done` is voor de client het teken dat de beurt vastligt.
+                break
+            schrijver.verwerk(event)
+            yield event
+    finally:
+        # Het verbruik boeken gebeurt óók als de beurt op een fout eindigde of werd gestopt: die
+        # tokens zijn wel degelijk verbruikt. Vandaar een `finally` en geen plek verderop in het
+        # geslaagde pad.
+        await _boek_verbruik(
+            meter, settings=settings, run=run, gesprek_id=gesprek_id, user_id=user_id,
+        )
 
     # Is er om stoppen gevraagd, dan is de graaf er zelf op een nodegrens uitgestapt (`stop_check` →
     # `BeurtGestopt`). We breken hier dus NIET af: dan zouden we de generator halverwege dichtgooien
@@ -157,6 +167,42 @@ async def voer_beurt_uit(
                         "met de wetsanalyse-API."),
         }
     yield {"type": "done"}
+
+
+async def _boek_verbruik(
+    meter: Verbruiksmeter | None,
+    *,
+    settings: Settings,
+    run,
+    gesprek_id: str,
+    user_id: str,
+) -> None:
+    """Meld het tokenverbruik van deze beurt aan de api (best-effort).
+
+    Stil falen is hier de juiste keuze: de beurt is klaar en het werk staat er. Een hapering in de
+    boekhouding mag geen foutmelding opleveren die de jurist niets zegt – het log draagt het.
+    """
+    if meter is None or meter.totaal <= 0:
+        return
+    if not (settings.legt_zelf_vast and user_id):
+        return
+    try:
+        api = WetsanalyseApi(settings, user_id)
+        try:
+            await api.boek_verbruik(
+                meter.als_dict(),
+                model=settings.llm_model,
+                gesprek_id=gesprek_id,
+                run_id=getattr(run, "run_id", "") or "",
+            )
+        finally:
+            await api.aclose()
+    except Exception:  # noqa: BLE001 – boekhouding mag de beurt niet laten mislukken
+        logger.warning(
+            "verbruik niet geboekt",
+            extra={"categorie": "functioneel", "run_id": getattr(run, "run_id", "")},
+            exc_info=True,
+        )
 
 
 async def _leg_vast(

@@ -164,3 +164,39 @@ class WetsanalyseApi:
     async def voeg_bericht_toe(self, gesprek_id: str, bericht: dict[str, Any]) -> dict[str, Any]:
         """De assistent-beurt in de chatgeschiedenis. `run_id` in de payload maakt dit idempotent."""
         return await self._post(f"/v1/gesprekken/{gesprek_id}/berichten", bericht)
+
+    async def boek_verbruik(
+        self, verbruik: dict[str, int], *, model: str = "", gesprek_id: str = "", run_id: str = "",
+    ) -> dict[str, Any]:
+        """Meld het tokenverbruik van deze beurt. Idempotent op `run_id` aan de api-kant.
+
+        De api is de boekhouder, niet graph-qa: hier draaien meerdere replica's met eigen
+        procesgeheugen, dus een teller die hier zou leven telt per replica.
+        """
+        return await self._post("/v1/verbruik", {
+            "bron": "agent",
+            "model": model,
+            "invoer": verbruik.get("invoer", 0),
+            "uitvoer": verbruik.get("uitvoer", 0),
+            "cache_lees": verbruik.get("cache_lees", 0),
+            "cache_schrijf": verbruik.get("cache_schrijf", 0),
+            "gesprek_id": gesprek_id,
+            "run_id": run_id,
+        })
+
+    async def budget_toegestaan(self) -> tuple[bool, dict[str, Any]]:
+        """Mag deze gebruiker een beurt starten? Geeft (toegestaan, stand).
+
+        **Fail-open**: kan de api niet antwoorden, dan gaat de beurt door. Een haperende
+        boekhouding mag het werk niet stilleggen; het verbruik wordt daarna gewoon geboekt.
+        """
+        try:
+            antwoord = await self._client.get(
+                f"{self._basis}/v1/verbruik/controle", headers=self._headers,
+            )
+            antwoord.raise_for_status()
+            data = antwoord.json()
+        except Exception:  # noqa: BLE001 – zie de fail-open hierboven
+            logger.warning("budgetcontrole niet beschikbaar; beurt gaat door", exc_info=True)
+            return True, {}
+        return bool(data.get("toegestaan", True)), data.get("stand") or {}

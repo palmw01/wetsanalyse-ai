@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { isNietBeoordeeld, isBeslist, isVergrendeld, type ReviewFilter } from "@/lib/annotatie";
 import { ChevronOmlaag, Ruit, Vinkje, Waarschuwing } from "@/components/ui/Icoon";
+import { Meter } from "@/components/ui/Meter";
 import { JAS_KLASSEN, jasStyle } from "@/lib/jas";
 import type { AnnotatieElement, BeslissingInvoer, ReviewReason, Wijziging } from "@/lib/types";
 
@@ -726,9 +727,7 @@ export function ReviewQueue({
             </span>
           )}
         </div>
-        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-line/60" role="progressbar" aria-valuenow={perc} aria-valuemin={0} aria-valuemax={100}>
-          <div className={`h-full rounded-full transition-all ${afgerond ? "bg-succes" : "bg-lint"}`} style={{ width: `${perc}%` }} />
-        </div>
+        <Meter percentage={perc} label="Voortgang review" afgerond={afgerond} className="mt-2" />
 
         {/* Drie knoppen in plaats van een dropdown: bij drie standen is kiezen sneller dan uitklappen. */}
         <div className="mt-2.5 flex flex-wrap gap-1" role="group" aria-label="Filter de reviewlijst">

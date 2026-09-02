@@ -216,6 +216,8 @@ async def test_test_route_rate_limited(admin_client, monkeypatch):
         async def complete(self, *a, **kw):
             class R:
                 model, tokens_in, tokens_out = "gpt-x", 1, 1
+                # De route boekt het verbruik van de test; die leest ook de cache-tellers.
+                cache_read_in = cache_write_in = 0
             return R()
 
     monkeypatch.setattr("app.routers.admin.build_llm_client", lambda cfg: OkClient())

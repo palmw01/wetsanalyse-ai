@@ -55,6 +55,8 @@ export interface UserOut {
   role: Role;
   totp_enabled: boolean;
   active: boolean;
+  /** Afwijkend tokenbudget; null = volg het systeembrede beleid. */
+  token_budget: number | null;
   created: string;
   updated: string;
 }
@@ -67,6 +69,48 @@ export interface UserCreated extends UserOut {
 export interface TempPassword {
   userid: string;
   temp_password: string;
+}
+
+// --- Tokenbudget ---------------------------------------------------------------
+
+/** Waar een gebruiker staat in het huidige venster. Komt van de api; niets hiervan wordt in de
+ *  browser berekend – anders kan de meter iets anders zeggen dan de blokkade doet. */
+export interface Verbruiksstand {
+  userid: string;
+  gebruikt: number;
+  budget: number;
+  /** Gekapt op 100; `gebruikt` is dat niet. */
+  percentage: number;
+  resterend: number;
+  /** ISO-8601: wanneer de teller weer op nul staat. */
+  reset_op: string;
+  waarschuwing: boolean;
+  geblokkeerd: boolean;
+  /** False = de begrenzing staat uit; er wordt wel gemeten. */
+  actief: boolean;
+  eigen_budget: boolean;
+}
+
+/** Het systeembrede beleid (beheer). */
+export interface BudgetBeleid {
+  tokens: number;
+  periode_dagen: number;
+  anker: string;
+  actief: boolean;
+  updated_by: string;
+  updated: string;
+  /** Afgeleid: einde van het huidige venster. */
+  reset_op: string;
+}
+
+/** Eén regel in het beheeroverzicht. */
+export interface VerbruikRegel {
+  userid: string;
+  gebruikt: number;
+  budget: number;
+  percentage: number;
+  eigen_budget: boolean;
+  geblokkeerd: boolean;
 }
 
 // --- Zelfregistratie: aanvragen (admin) ---------------------------------------

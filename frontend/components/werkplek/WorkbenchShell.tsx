@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 
 import { AppSidebar } from "@/components/werkplek/AppSidebar";
@@ -11,7 +11,9 @@ import { leesStand, moetStarten } from "@/lib/rondleiding";
 import { maakDemoScene, type DemoScene } from "@/lib/rondleidingDemo";
 import { MobieleTopbar } from "@/components/werkplek/MobieleTopbar";
 import { WerkplekClient } from "@/components/werkplek/WerkplekClient";
-import type { BeslissingType, GesprekSamenvatting } from "@/lib/types";
+import { getVerbruik } from "@/lib/api";
+import { resetdatum, tokensKort } from "@/lib/tokenbudget";
+import type { BeslissingType, GesprekSamenvatting, Verbruiksstand } from "@/lib/types";
 
 // De rondleiding rendert alleen bij `demo` – eerste bezoek of een expliciete klik. Statisch
 // geïmporteerd zat hij (met TourBubbel) toch in de bundel van iedereen die de werkplek opent,
@@ -59,6 +61,27 @@ export function WorkbenchShell({
   const [demoSluitSignaal, setDemoSluitSignaal] = useState(0);
   const { data: session } = useSession();
   const isBeheerder = session?.user?.role === "beheerder";
+  // De verbruiksstand: voedt de meterregel in de sidebar, de waarschuwingsstrook en de blokkade van
+  // de invoerbalk. Eén bron voor die drie, zodat ze niet uit elkaar kunnen lopen.
+  const [verbruik, setVerbruik] = useState<Verbruiksstand | null>(null);
+  const [strookGesloten, setStrookGesloten] = useState(false);
+
+  const laadVerbruik = useCallback(async () => {
+    try {
+      setVerbruik(await getVerbruik());
+    } catch {
+      /* Stil: de meter is een hulpmiddel, geen blokkade van het scherm. */
+    }
+  }, []);
+
+  useEffect(() => {
+    // Bij binnenkomst, en daarna elke minuut als vangnet. De echte verversing is event-gedreven
+    // (na een beurt, hieronder) – dit interval vangt alleen het geval dat er elders is verbruikt.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void laadVerbruik();
+    const id = setInterval(() => void laadVerbruik(), 60_000);
+    return () => clearInterval(id);
+  }, [laadVerbruik]);
 
   function startRondleiding() {
     setDemoArtefact(false);
@@ -114,6 +137,35 @@ export function WorkbenchShell({
         Analyses kunnen verloren gaan. <span className="underline">Lees de voorwaarden</span>
       </Link>
 
+      {/* Tokenbudget: één strook die twee standen kent. Hij wordt uit de SERVERSTAND afgeleid en
+          niet uit een eerder gezette vlag, zodat hij niet kan blijven hangen als hij niet meer
+          geldt – de klacht die mensen over Claude's "Approaching usage limit" hebben. Om diezelfde
+          reden noemt hij het percentage én de resetdatum, in plaats van alleen dat er "een" limiet
+          nadert. Wegklikken geldt voor deze sessie; bij 100% kan het niet, want dan is het geen
+          waarschuwing meer maar de reden dat de invoer dicht is. */}
+      {verbruik?.actief && verbruik.geblokkeerd && (
+        <div role="status" className="shrink-0 border-b border-fout/30 bg-fout/10 px-4 py-2 text-center text-[0.8125rem] text-fout">
+          <span className="font-semibold">Je tokenbudget is op.</span>{" "}
+          Je kunt geen nieuwe vragen stellen tot {resetdatum(verbruik.reset_op)}.{" "}
+          <Link href="/instellingen/verbruik" className="focus-ring rounded font-medium underline underline-offset-2">
+            Bekijk je verbruik
+          </Link>
+        </div>
+      )}
+      {verbruik?.actief && !verbruik.geblokkeerd && verbruik.waarschuwing && !strookGesloten && (
+        <div role="status" className="shrink-0 border-b border-waarschuwing/30 bg-waarschuwing/10 px-4 py-2 text-center text-[0.8125rem] text-aandacht-geel-tekst">
+          <span className="font-semibold">{verbruik.percentage}% van je tokenbudget gebruikt.</span>{" "}
+          Nog {tokensKort(verbruik.resterend)} tokens tot {resetdatum(verbruik.reset_op)}.{" "}
+          <button
+            type="button"
+            onClick={() => setStrookGesloten(true)}
+            className="focus-ring rounded font-medium underline underline-offset-2"
+          >
+            Sluiten
+          </button>
+        </div>
+      )}
+
       {fout && (
         <div role="status" className="shrink-0 border-b border-fout/30 bg-fout/10 px-4 py-2 text-center text-[0.8125rem] text-fout">
           {fout}{" "}
@@ -145,6 +197,7 @@ export function WorkbenchShell({
         onDrawerSluit={() => setDrawerOpen(false)}
         onRondleiding={startRondleiding}
         demoGesprekken={demo?.gesprekken}
+        verbruik={verbruik}
       />
 
       {/* Rechterkolom: mobiele topbar + chatvenster. `tabIndex={-1}` zodat de skip-link de focus
@@ -190,6 +243,10 @@ export function WorkbenchShell({
             onGesprekAangemaakt={gesprekAangemaakt}
             onGewijzigd={() => setVerversSignaal((n) => n + 1)}
             onRondleiding={startRondleiding}
+            verbruik={verbruik}
+            // Na een beurt is de stand net veranderd; wachten op het minuut-interval zou de meter
+            // achter laten lopen op precies het moment dat de gebruiker ernaar kijkt.
+            onBeurtKlaar={() => void laadVerbruik()}
           />
         )}
       </div>

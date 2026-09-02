@@ -33,6 +33,8 @@ describe("padVanTab", () => {
   it("is het omgekeerde van tabUitPad", () => {
     expect(padVanTab("gebruikers")).toBe("/instellingen/beheer/gebruikers");
     expect(padVanTab("account")).toBe("/instellingen/account");
+    // Verbruik is bewust GEEN beheer-tab: de analist moet zijn eigen stand kunnen zien.
+    expect(padVanTab("verbruik")).toBe("/instellingen/verbruik");
   });
 });
 
@@ -41,6 +43,7 @@ describe("isAdminTab", () => {
     expect(isAdminTab("account")).toBe(false);
     expect(isAdminTab("beveiliging")).toBe(false);
     expect(isAdminTab("berichten")).toBe(false);
+    expect(isAdminTab("verbruik")).toBe(false);
     for (const t of [
       "modelprofielen",
       "gebruikers",

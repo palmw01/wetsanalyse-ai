@@ -66,6 +66,9 @@ Alle endpoints zijn client-gescopet en versioneerd onder `/v1`.
 | `POST` | `/v1/admin/registraties/{id}/afwijzen` | Wijs af: **verwijdert** de aanvraag (adres + volgnummer weer vrij); de reden gaat naar het security-log |
 | `POST` | `/v1/admin/registraties/goedkeuren` | Meerdere tegelijk goedkeuren (best-effort) |
 | `DELETE` | `/v1/admin/registraties/{id}` | Ruim een goedgekeurde aanvraag op uit het archief |
+| `GET` | `/v1/admin/budget` | Het tokenbudget-beleid (budget, resetperiode, aan/uit) |
+| `PUT` | `/v1/admin/budget` | Beleid wijzigen |
+| `GET` | `/v1/admin/verbruik` | Stand per gebruiker, zwaarste verbruiker eerst |
 
 **Login-endpoints (de webapp-BFF is de enige client; achter het client-token), onder `/v1/auth`:**
 
@@ -78,6 +81,14 @@ Alle endpoints zijn client-gescopet en versioneerd onder `/v1`.
 | `GET` | `/v1/auth/me` | Eigen account (rol + 2FA-status) – `X-User-Id`-header |
 | `POST` | `/v1/auth/change-password` | Eigen wachtwoord wijzigen – `X-User-Id`-header |
 | `POST` | `/v1/auth/2fa/{begin,activate,disable}` | Optionele TOTP-2FA, self-service – `X-User-Id`-header |
+
+**Tokenbudget (client-token + `X-User-Id`), onder `/v1/verbruik`:**
+
+| Methode | Pad | Wat het doet |
+|---------|-----|--------------|
+| `GET` | `/v1/verbruik` | De eigen stand: percentage, resterend, resetdatum, waarschuwing, blokkade |
+| `GET` | `/v1/verbruik/controle` | Mag deze gebruiker een beurt starten? (pre-check van graph-qa) |
+| `POST` | `/v1/verbruik` | Boek het verbruik van een afgeronde beurt (idempotent op `run_id`) |
 
 Swagger-UI beschikbaar op `/docs`.
 
