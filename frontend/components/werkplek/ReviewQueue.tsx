@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { isBeslist, isVergrendeld, type ReviewFilter } from "@/lib/annotatie";
+import { isNietBeoordeeld, isBeslist, isVergrendeld, type ReviewFilter } from "@/lib/annotatie";
 import { ChevronOmlaag, Ruit, Vinkje, Waarschuwing } from "@/components/ui/Icoon";
 import { JAS_KLASSEN, jasStyle } from "@/lib/jas";
 import type { AnnotatieElement, BeslissingInvoer, ReviewReason, Wijziging } from "@/lib/types";
@@ -31,6 +31,22 @@ const AANDACHT: Record<string, { pill: string; label: string; rand: string; tint
   groen: { pill: "border-aandacht-groen-rand bg-aandacht-groen-bg text-aandacht-groen-tekst", label: "Geen bezwaar", rand: "border-l-aandacht-groen-rand", tint: "bg-aandacht-groen-bg/40" },
   geel: { pill: "border-aandacht-geel-rand bg-aandacht-geel-bg text-aandacht-geel-tekst", label: "Even kijken", rand: "border-l-aandacht-geel-rand", tint: "bg-aandacht-geel-bg/40" },
   rood: { pill: "border-aandacht-rood-rand bg-aandacht-rood-bg text-aandacht-rood-tekst", label: "Waarschijnlijk fout", rand: "border-l-aandacht-rood-rand", tint: "bg-aandacht-rood-bg/40" },
+};
+
+// NIET BEOORDEELD IS GEEN "GEEN BEZWAAR". De Critic hoort over elk voorstel een oordeel te vellen,
+// maar hij slaat er soms één over — live gezien op 2 sep 2026: 1 van de 32 markeringen bij art. 2
+// lid 1 IW 1990 kwam met een lege `aandacht` en zonder `critic_rondes` binnen. Zonder badge ziet die
+// kaart eruit als elke andere, en dan leest de jurist "de Critic had niets aan te merken" waar
+// "de Critic heeft er niet naar gekeken" staat.
+//
+// Dezelfde redenering als bij grounding, waar `onbepaald` bewust naast `gegrond` bestaat: dat als
+// goedkeuring tellen levert precies de schijnzekerheid op die dit platform wil vermijden. Neutraal
+// van kleur, want er is geen bezwaar geconstateerd — alleen niets gecontroleerd.
+const NIET_BEOORDEELD = {
+  pill: "border-line bg-surface text-muted",
+  label: "Niet beoordeeld",
+  rand: "border-l-line",
+  tint: "",
 };
 
 // Zelfde vorm als de documentstatus-badge in `ArtefactInhoud`; alleen de kleuren verschillen per
@@ -216,7 +232,7 @@ function DecisionCard({
   // uitschakelt, `elVergrendeld` is wat de Heropenen-knop tevoorschijn haalt.
   const elVergrendeld = isVergrendeld(el);
   const slot = elVergrendeld || !!docVergrendeld;
-  const aandacht = el.aandacht ? AANDACHT[el.aandacht] : null;
+  const aandacht = el.aandacht ? AANDACHT[el.aandacht] : isNietBeoordeeld(el) ? NIET_BEOORDEELD : null;
   const eigen = el.herkomst === "mens";
   // Alleen de kaart waaraan je werkt toont zijn details. Alles altijd tonen kostte drie kaarten per
   // scherm; zo passen er tien in en blijft de lijst te overzien.
@@ -294,7 +310,7 @@ function DecisionCard({
       <div className="flex flex-wrap items-center gap-1.5 sm:flex-nowrap sm:items-start sm:gap-2">
         {/* `min-w-0`: zonder dit rekt een brede klassenaam deze kant alsnog op. */}
         <span className="order-1 flex min-w-0 flex-wrap items-center gap-1.5">
-          {el.aandacht && aandacht && (
+          {aandacht && (
             <span className={`${AANDACHT_PILL} ${aandacht.pill}`} title={el.critic || undefined}>
               {aandacht.label}
             </span>

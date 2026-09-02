@@ -402,3 +402,23 @@ export function bronversieMelding(doc: { bronversies?: string[] }): string {
     `verkeerde plek staan. Controleer ze in het documentpaneel voordat je ze goedkeurt.`
   );
 }
+
+/** Moet dit element als "niet beoordeeld" worden getoond?
+ *
+ *  De Critic hoort over elk agent-voorstel een oordeel te vellen, maar hij slaat er soms één over.
+ *  Live gezien op 2 sep 2026: 1 van de 32 markeringen bij art. 2 lid 1 IW 1990 kwam binnen met een
+ *  lege `aandacht` en zonder `critic_rondes`. Zonder eigen badge ziet die kaart eruit als elke
+ *  andere, en dan leest de jurist "de Critic had niets aan te merken" waar "de Critic heeft er niet
+ *  naar gekeken" staat.
+ *
+ *  Dezelfde redenering als bij grounding, waar `onbepaald` bewust naast `gegrond` bestaat: niets
+ *  gecontroleerd als goedkeuring tellen levert precies de schijnzekerheid op die dit platform wil
+ *  vermijden.
+ *
+ *  Een markering van de JURIST valt erbuiten: die beoordeelt de Critic niet — zijn oordeel daarover
+ *  komt als `critic_suggestie` binnen — dus daar zou het label de normale gang van zaken als een
+ *  tekortkoming laten lezen.
+ */
+export function isNietBeoordeeld(el: { aandacht?: string | null; herkomst?: string }): boolean {
+  return !el.aandacht && el.herkomst !== "mens";
+}
