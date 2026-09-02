@@ -1025,6 +1025,25 @@ def _verwerk_critic(
             element_id = ids[idx]
 
         aandacht = str(o.get("aandacht", "")).strip().lower()
+        motivatie = str(o.get("motivatie", "")).strip()
+        if aandacht not in _AANDACHT and motivatie:
+            # EEN OORDEEL ZONDER NIVEAU, MAAR MÉT EEN OPMERKING. Gemeten op 2 sep 2026 in ronde 1
+            # van een annotatie op art. 2 lid 1 IW 1990: één oordeel kwam binnen met een leeg
+            # `aandacht`-veld en een gevulde motivatie. Dat gooiden we in zijn geheel weg, waarna het
+            # element bij de jurist stond alsof de Critic er nooit naar had gekeken — terwijl hij er
+            # wel degelijk iets over te zeggen had.
+            #
+            # Het niveau wordt NIET aangevuld met een gok: een verzonnen "geel" is een oordeel dat
+            # het model niet gaf, en dat is precies de schijnzekerheid die dit platform vermijdt.
+            # Het blijft dus leeg — `_critic_melding` telt dat als "geen oordeel", de api houdt het
+            # element op `voorgesteld` en de kaart toont *Niet beoordeeld* — maar de motivatie komt
+            # nu wél bij de jurist terecht. Een meegegeven `actie` valt zonder rood niveau in de
+            # gele tak van `pas_critic_toe`: voorgelegd, niet uitgevoerd. Dat is de veilige kant.
+            onleesbaar.append(str(o.get("aandacht", "")).strip() or "(leeg)")
+            logger.info("critic: oordeel zonder niveau, motivatie behouden",
+                        extra={"element_id": element_id[:40]})
+            oordelen[element_id] = CriticOordeel(aandacht="", motivatie=motivatie)
+            continue
         if aandacht not in _AANDACHT:
             # HIER GING EEN OORDEEL STIL VERLOREN. Een oordeel zonder leesbaar niveau werd
             # weggegooid — inclusief de motivatie en de instructie — en het element kwam bij de
@@ -1060,7 +1079,7 @@ def _verwerk_critic(
 
         oordelen[element_id] = CriticOordeel(
             aandacht=aandacht,
-            motivatie=str(o.get("motivatie", "")).strip(),
+            motivatie=motivatie,
             actie=actie,
             voorstel_klasse=voorstel_klasse,
             voorstel_tekst=voorstel_tekst,
