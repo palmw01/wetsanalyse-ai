@@ -275,13 +275,13 @@
     <section>
       <div class="slide-title">
         <div class="lint-bar"></div>
-        <div class="pretitle">Business Rules Management · Demo</div>
+        <div class="pretitle">Wetsanalyse · Demo</div>
         <h1>Lex — wetsanalyse<br/>met de kennisgraaf</h1>
         <div class="subtitle">
           Een hulpmiddel voor gestructureerde,<br/>
           brongetrouwe JAS-annotatie
         </div>
-        <div class="footer">Belastingdienst &nbsp;·&nbsp; BRM-team &nbsp;·&nbsp; [datum]</div>
+        <div class="footer">[datum]</div>
       </div>
       <aside class="notes">
         Welkom. Vandaag laat ik jullie Lex zien — een platform dat we bouwen om de stap van wet naar
@@ -294,17 +294,20 @@
          DIA 2 — Het startpunt
     ──────────────────────────────────────────── -->
     <section>
-      <h2>BRM begint bij de wet</h2>
+      <h2>Uitvoering begint bij de wet</h2>
       <ul>
-        <li>Van wet naar uitvoerbare regel: de wettekst is het vertrekpunt — niet een samenvatting ervan</li>
+        <li>Overheden nemen miljoenen beslissingen per jaar op basis van automatisch toegepaste regels — die regels moeten aantoonbaar kloppen met de wet</li>
         <li>Handmatig JAS-annoteren kost tijd: één artikel met vijf leden kan tientallen markeringen bevatten</li>
         <li>De koppeling naar de bron raakt snel los: wélke versie van de wettekst? wélk lid precies?</li>
         <li>Doel van dit platform: die koppeling automatisch en controleerbaar houden</li>
       </ul>
       <aside class="notes">
-        Jullie weten dit — ik zeg het toch even hardop. De uitdaging is niet het lezen van de wet,
-        maar het systematisch en herleidbaar vastleggen van wat er staat. JAS geeft daar de structuur
-        voor, maar het invulwerk is intensief. Hier helpt Lex bij.
+        Dit platform is onderdeel van een proef die onderzoekt of AI het wetsanalyseproces kan
+        versnellen zonder de menselijke beoordeling te vervangen. Twee onderzoeksvragen: (1)
+        ondersteuning bij JAS-annotatie — dat is dit platform; (2) ondersteuning bij de vertaling
+        naar uitvoerbare bedrijfsregels — dat staat op de roadmap. De uitdaging is niet het lezen
+        van de wet, maar het systematisch en herleidbaar vastleggen van wat er staat. JAS geeft
+        de structuur; Lex helpt bij het invulwerk.
       </aside>
     </section>
 
@@ -371,7 +374,7 @@
       </p>
       <aside class="notes">
         Dit zijn de zes activiteiten zoals beschreven in de Handleiding Wetsanalyse in de Praktijk
-        (Expertisecentrum BRM, 2023). Ze lopen in de praktijk iteratief — je gaat niet netjes van
+        (methode Wetsanalyse — Ausems, Bulles &amp; Lokin). Ze lopen in de praktijk iteratief — je gaat niet netjes van
         1 naar 6. Lex ondersteunt activiteit 2: het markeren en classificeren in JAS-klassen.
         Dat is de kern zonder welke activiteit 3 en verder niet goed kunnen starten.
         Activiteiten 3 t/m 6 staan op de roadmap.
@@ -515,8 +518,8 @@
         <li>Elk element is herleidbaar naar een <strong>jci-uri</strong>: de officiële verwijzing naar artikel + lid + BWB-identificatie</li>
       </ul>
       <div class="jci-box">
-        jci1.31:c:BWBR0004770&amp;artikel=36&amp;lid=4<br/>
-        Invorderingswet 1990, art. 36 lid 4
+        jci1.31:c:[BWB-id]&amp;artikel=[n]&amp;lid=[n]<br/>
+        [Naam wet], art. [n] lid [n]
       </div>
       <aside class="notes">
         Dit is de eigenschap die Lex onderscheidt van een gewone chatbot. De grounding-check is
@@ -565,13 +568,49 @@
     </section>
 
     <!-- ────────────────────────────────────────────
-         DIA 8 — Over naar de demo
+         DIA 8 — Stand van zaken
+    ──────────────────────────────────────────── -->
+    <section>
+      <h2>Wat werkt al — wat komt er aan</h2>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.2em; margin-top:0.8em;">
+
+        <div style="border-radius:8px; border-top:3px solid var(--lint); background:var(--lint-light); padding:1em;">
+          <div style="font-size:0.65em; font-weight:600; color:var(--lint); margin-bottom:0.7em; text-transform:uppercase; letter-spacing:0.06em;">Gerealiseerd</div>
+          <ul style="margin:0; padding:0;">
+            <li>Kennisgraaf: officiële wettekst van overheid.nl</li>
+            <li>Brongetrouwe antwoorden op juridische vragen</li>
+            <li>JAS-annotatie + Critic-controle (activiteit 2)</li>
+            <li>Audit trail en export (JSON, CSV, PDF)</li>
+          </ul>
+        </div>
+
+        <div style="border-radius:8px; border-top:3px solid var(--border); background:#fafcff; padding:1em;">
+          <div style="font-size:0.65em; font-weight:600; color:var(--muted); margin-bottom:0.7em; text-transform:uppercase; letter-spacing:0.06em;">Op de roadmap</div>
+          <ul style="margin:0; padding:0;">
+            <li style="color:var(--muted);">Begripsvorming en definities (activiteit 3)</li>
+            <li style="color:var(--muted);">Valideren en beleidsleemten signaleren (act. 4–5)</li>
+            <li style="color:var(--muted);">Vertaling naar uitvoerbare bedrijfsregels</li>
+            <li style="color:var(--muted);">Beleidsstukken naast wettekst doorzoekbaar</li>
+          </ul>
+        </div>
+
+      </div>
+      <aside class="notes">
+        De gerealiseerde items zijn aantoonbaar aanwezig in de code. Een gouden testset en een
+        methode-drift-test bewaken automatisch de kwaliteit van elke nieuwe versie. De roadmap
+        volgt de zes activiteiten van Wetsanalyse: activiteit 2 is gereed, 3 t/m 6 komen stapsgewijs.
+        Vertaling naar bedrijfsregels (RegelSpraak) is de tweede onderzoeksvraag uit de proef.
+      </aside>
+    </section>
+
+    <!-- ────────────────────────────────────────────
+         DIA 9 — Over naar de demo
     ──────────────────────────────────────────── -->
     <section>
       <h2>Laten we het zien</h2>
       <ul class="demo-bullets">
         <li>Een vraag stellen en het antwoord met bronvermelding bekijken</li>
-        <li>Artikel 36 lid 4 Invorderingswet 1990 laten annoteren</li>
+        <li>[Artikel naar keuze] laten annoteren</li>
         <li>De review doorlopen: akkoord geven, een alternatief kiezen, Lex iets vragen</li>
       </ul>
       <div class="demo-klaar">De werkplek staat klaar.</div>
@@ -606,7 +645,7 @@
       <div class="demo-stap-header">Demo · Stap 2</div>
       <h2>Vraag stellen</h2>
       <p style="font-size:0.7em;">Typ in het invoerveld:</p>
-      <div class="demo-commando">Binnen welke termijn is een naheffingsaanslag invorderbaar?</div>
+      <div class="demo-commando">[Uw juridische vraag over het gekozen artikel]</div>
       <ul>
         <li>Wacht tot het antwoord volledig is (~10 seconden)</li>
         <li>Wijs aan: het denkproces-blok (inklapbaar), de bronnen-collapsible</li>
@@ -620,7 +659,7 @@
       <div class="demo-stap-header">Demo · Stap 3</div>
       <h2>Annotatie aanvragen</h2>
       <p style="font-size:0.7em;">Typ in het invoerveld:</p>
-      <div class="demo-commando">annoteer artikel 36 lid 4 van de Invorderingswet 1990</div>
+      <div class="demo-commando">annoteer [artikel] [lid] van de [wet]</div>
       <ul>
         <li>Wacht ~60-90 seconden — dit is normaal</li>
         <li>Wijs aan: de annotatie-chip die in de chat verschijnt</li>

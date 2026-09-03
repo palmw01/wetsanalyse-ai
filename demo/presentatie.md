@@ -1,4 +1,4 @@
-# Prompt: genereer een HTML-presentatie over Wetsanalyse-AI (demo BRM-team)
+# Prompt: genereer een HTML-presentatie over Wetsanalyse-AI (algemene demo)
 
 Kopieer de volledige tekst hieronder en plak hem in een nieuw Claude-gesprek.
 
@@ -12,10 +12,9 @@ Geen externe afbeeldingen of bestanden — alleen CDN-links (reveal.js, Fira San
 
 ### Doelgroep en context
 
-Het publiek is het **Business Rules Management-team van de Belastingdienst**: juridisch en
-analytisch opgeleide mensen die wetten omzetten naar uitvoerbare bedrijfsregels. Ze kennen
-de term JAS (Juridisch Analyseschema) en weten wat rechtssubjecten en rechtsbetrekkingen zijn,
-maar hebben het platform nog nooit gezien.
+Het publiek bestaat uit juridisch en analytisch opgeleide mensen die werken aan de vertaling
+van wet naar uitvoerbare regel. Ze kennen de term JAS (Juridisch Analyseschema) en weten wat
+rechtssubjecten en rechtsbetrekkingen zijn, maar hebben het platform nog nooit gezien.
 
 De sessie duurt **45-60 minuten**: ~10 min presentatie (de dia's), ~35 min live demo in de
 webapplicatie, ~10 min vragen.
@@ -63,7 +62,7 @@ webapplicatie, ~10 min vragen.
 
 **Titel:** Lex — wetsanalyse met de kennisgraaf
 **Ondertitel:** Een hulpmiddel voor gestructureerde, brongetrouwe JAS-annotatie
-**Voettekst:** Belastingdienst · BRM-team · demo [datum]
+**Voettekst:** [datum]
 
 _(Laat de gebruiker [datum] handmatig invullen.)_
 
@@ -71,11 +70,11 @@ _(Laat de gebruiker [datum] handmatig invullen.)_
 
 #### Dia 2 — Het startpunt
 
-**Koptekst:** BRM begint bij de wet
+**Koptekst:** Uitvoering begint bij de wet
 
 **Kernboodschap (opsomming, max 4 punten):**
 
-- Van wet naar uitvoerbare regel: de wet is het vertrekpunt, niet een samenvatting ervan
+- Overheden nemen miljoenen beslissingen per jaar op basis van automatisch toegepaste regels — die regels moeten aantoonbaar kloppen met de wet
 - Handmatig JAS-annoteren kost tijd: een artikel met vijf leden kan tientallen markeringen bevatten
 - De koppeling naar de bron raakt snel los: welke wettekstversie? welk lid precies?
 - Doel van dit platform: die koppeling automatisch en controleerbaar houden
@@ -105,7 +104,7 @@ lintblauwe koptekst, badge "Lex ondersteunt dit"). De overige vijf zijn gedempt 
 Activiteiten 3–6 doe je nu zelf. Activiteit 1 ook — Lex helpt daarbij wel bij het zoeken van relevante
 bronnen en het volgen van verwijzingen. De volgende stap is activiteit 2 agentisch uitbreiden naar activiteit 3.
 
-*Bron: Handleiding Wetsanalyse in de Praktijk, Expertisecentrum BRM, Belastingdienst, versie 1.0 (2023).*
+*Bron: Handleiding Wetsanalyse in de Praktijk (methode Wetsanalyse — Ausems, Bulles & Lokin).*
 
 ---
 
@@ -148,14 +147,14 @@ Korte toelichting per blok (klein, onder het blok):
 **Drie blokken naast elkaar (ieder met een koptekst + twee zinnen):**
 
 **1 · Stel een vraag**
-Typ een juridische vraag in de werkplek: "Binnen welke termijn is een naheffingsaanslag
-invorderbaar?" Lex zoekt in de graaf, haalt artikel 9 Invorderingswet 1990 op en antwoordt met
-een letterlijk citaat en een bronverwijzing.
+Typ een juridische vraag in de werkplek: "[Uw juridische vraag over het gekozen artikel]."
+Lex zoekt in de graaf, haalt het relevante artikel op en antwoordt met een letterlijk citaat
+en een bronverwijzing.
 
 **2 · Ontvang een annotatie**
-Vraag een JAS-annotatie: "annoteer artikel 36 lid 4 van de Invorderingswet 1990." Lex haalt de
-exacte wettekst op, stelt markeringen voor in alle van toepassing zijnde JAS-klassen, en laat de
-Critic elk element controleren.
+Vraag een JAS-annotatie: "annoteer [artikel] [lid] van de [wet]." Lex haalt de exacte wettekst
+op, stelt markeringen voor in alle van toepassing zijnde JAS-klassen, en laat de Critic elk
+element controleren.
 
 **3 · Beoordeel en beslis**
 Elk voorstel verschijnt als een kaart: aandachtsniveau (groen/geel/rood), klassenaam,
@@ -179,8 +178,8 @@ audittrail, met tijdstip en naam.
 
 **Voorbeeld (als code-blok of gekleurd tekstvak):**
 ```
-jci1.31:c:BWBR0004770&artikel=36&lid=4
-Invorderingswet 1990, art. 36 lid 4
+jci1.31:c:[BWB-id]&artikel=[n]&lid=[n]
+[Naam wet], art. [n] lid [n]
 ```
 
 ---
@@ -206,13 +205,38 @@ Wat er stond en waarom het is aangepast, is zichtbaar in de kaart.
 
 ---
 
+#### Dia 8b — Stand van zaken *(nieuw)*
+
+**Koptekst:** Wat werkt al — wat komt er aan
+
+**Visueel:** twee kolommen naast elkaar (50/50). Linkerkolom: lintblauwe border-top + lichtblauwe
+achtergrond, koptekst "Gerealiseerd". Rechterkolom: grijze border-top + witte achtergrond,
+koptekst "Op de roadmap" (gedempt).
+
+**Gerealiseerd (linkerkolom, vier bullets):**
+- Kennisgraaf: officiële wettekst van overheid.nl
+- Brongetrouwe antwoorden op juridische vragen
+- JAS-annotatie + Critic-controle (activiteit 2)
+- Audit trail en export (JSON, CSV, PDF)
+
+**Op de roadmap (rechterkolom, vier bullets, gedempt):**
+- Begripsvorming en definities (activiteit 3)
+- Valideren en beleidsleemten signaleren (act. 4–5)
+- Vertaling naar uitvoerbare bedrijfsregels
+- Beleidsstukken naast wettekst doorzoekbaar
+
+*Speaker notes: de roadmap volgt de zes activiteiten van Wetsanalyse — activiteit 2 is gereed,
+3 t/m 6 komen stapsgewijs. Vertaling naar bedrijfsregels is de tweede onderzoeksvraag van de proef.*
+
+---
+
 #### Dia 9 — Over naar de demo
 
 **Koptekst:** Laten we het zien
 
 **Drie bullets (wat we in de demo gaan doen):**
 - Een vraag stellen en het antwoord met bronvermelding bekijken
-- Artikel 36 lid 4 Invorderingswet 1990 laten annoteren
+- [Artikel naar keuze] laten annoteren
 - De review doorlopen: akkoord geven, een alternatief kiezen, Lex iets vragen
 
 **Grote lintblauwe tekst centraal:** "De werkplek staat klaar."
@@ -235,14 +259,14 @@ klikken) → zelf markeren → afronden.
 
 **Stap 2 — Vraag stellen**
 Typ in het invoerveld:
-> Binnen welke termijn is een naheffingsaanslag invorderbaar?
+> [Uw juridische vraag over het gekozen artikel]
 
 Wacht tot het antwoord volledig is. Wijs aan: het denkproces-blok (inklapbaar), de
 bronnen-collapsible, de brongetrouwheid-indicatie. Klik de bron open om de jci-uri te tonen.
 
 **Stap 3 — Annotatie aanvragen**
 Typ:
-> annoteer artikel 36 lid 4 van de Invorderingswet 1990
+> annoteer [artikel] [lid] van de [wet]
 
 Wacht ~60-90 seconden. Wijs aan: de annotatie-chip die verschijnt, het automatisch openen
 van het ArtefactPaneel, het denkproces-logje ("supervisor koos de annotatie-worker · Critic
@@ -275,6 +299,6 @@ provider, Critic-rondes).
 - Google Fonts voor Fira Sans (400, 600)
 - Geen externe afbeeldingen; gebruik SVG inline voor het stroomdiagram op dia 4
 - Speaker notes zichtbaar via `S`-toets (standaard reveal.js)
-- Sla het bestand op als `presentatie-brm.html`
+- Sla het bestand op als `presentatie.html`
 
 ## ── EINDE PROMPT ──
