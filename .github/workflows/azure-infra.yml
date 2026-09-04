@@ -23,6 +23,10 @@
 #   grafana-afbreken  verwijdert de Grafana-app van de gekozen straat. Vereist de groepsnaam ter
 #             bevestiging. `opruimen` doet dit niet: daar staat `$s-grafana` voor elke straat op de
 #             beschermde lijst, omdat die actie niet kan weten welk exemplaar het bedoelde is.
+#   mcp-proxy-afbreken  verwijdert de externe GraphDB-MCP-proxy (`<straat>-graphdb-proxy`). Vereist
+#             de groepsnaam ter bevestiging. Nodig als aparte actie omdat de invoer `graphdb_proxy`
+#             weer op false zetten hem NIET weghaalt: een bicep-deploy in incremental mode verwijdert
+#             niets. Zie de noot bij `3b` in main.bicep voor wat die proxy is en waarom hij bestaat.
 #   vul-graaf start de import-job en wacht hem af. Apart van `deploy`, want importeren schrijft naar
 #             de graaf en hoort een expliciete keuze te blijven – en na een herstart van de
 #             graphdb-app (die geen persistente opslag heeft) is dit de enige manier om de graaf
@@ -48,12 +52,16 @@ on:
       actie:
         description: "Wat doen"
         type: choice
-        options: [wat-if, deploy, afbreken, opruimen, vul-graaf, eval, inventaris, telemetrie, grafana, grafana-afbreken]
+        options: [wat-if, deploy, afbreken, opruimen, vul-graaf, eval, inventaris, telemetrie, grafana, grafana-afbreken, mcp-proxy-afbreken]
         default: wat-if
       query:
         description: "Alleen voor 'telemetrie': een eigen KQL-query (leeg = de standaardset)"
         type: string
         default: ""
+      graphdb_proxy:
+        description: "Alleen bij 'deploy'/'wat-if' op acceptatie: de externe GraphDB-MCP-proxy uitrollen (vereist het secret WA_GRAPHDB_PROXY_TOKEN)"
+        type: boolean
+        default: false
       bevestig_resource_group:
         description: "Voor 'afbreken' en 'opruimen': typ de resource group ter bevestiging"
         type: string
@@ -121,6 +129,16 @@ jobs:
           if [ "${{ inputs.actie }}" = "grafana-afbreken" ]; then
             if [ "${{ inputs.bevestig_resource_group }}" != "$RESOURCE_GROUP" ]; then
               echo "::error::Dit verwijdert de container app '$APP_NAME-grafana'. Typ '$RESOURCE_GROUP' in het bevestigingsveld."
+              exit 1
+            fi
+            exit 0
+          fi
+
+          # Idem voor de MCP-proxy: klein, maar het is de externe deur naar de graaf en die zet je
+          # niet per ongeluk dicht terwijl je hem nodig hebt.
+          if [ "${{ inputs.actie }}" = "mcp-proxy-afbreken" ]; then
+            if [ "${{ inputs.bevestig_resource_group }}" != "$RESOURCE_GROUP" ]; then
+              echo "::error::Dit verwijdert de container app '$APP_NAME-graphdb-proxy'. Typ '$RESOURCE_GROUP' in het bevestigingsveld."
               exit 1
             fi
             exit 0
@@ -206,6 +224,7 @@ jobs:
           GH_QA_API_TOKEN: ${{ secrets.WA_QA_API_TOKEN }}
           GH_GRAPH_QA_API_TOKEN: ${{ secrets.WA_GRAPH_QA_API_TOKEN }}
           GH_GRAPHDB_TOKEN: ${{ secrets.WA_GRAPHDB_TOKEN }}
+          GH_GRAPHDB_PROXY_TOKEN: ${{ secrets.WA_GRAPHDB_PROXY_TOKEN }}
         run: |
           set -euo pipefail
 
@@ -233,6 +252,18 @@ jobs:
           # deploy, maar overnemen is alsnog netter dan elke keer verversen.
           bewaar WA_GRAPH_QA_API_TOKEN "${GH_GRAPH_QA_API_TOKEN:-}" "$(uit_azure graph-qa wetsanalyse-api-token)"
           bewaar WA_GRAPHDB_TOKEN     "${GH_GRAPHDB_TOKEN:-}"     "$(uit_azure graph-qa graphdb-token)"
+          # Het token van de externe MCP-proxy. Dit is het ENIGE token dat een mens moet kennen –
+          # het gaat in de MCP-config van een werkstation – dus gen-deploy.py genereert het niet:
+          # zet het als environment-secret WA_GRAPHDB_PROXY_TOKEN. De overname uit Azure staat er
+          # zodat een deploy de proxy niet stilletjes van zijn token berooft. Net als bij het
+          # databasewachtwoord hieronder staat de waarde niet als eigen secret in Azure maar in een
+          # grotere string – hier de nginx-config, in de regel `"Bearer <token>"  1;`.
+          proxy_conf=$(uit_azure graphdb-proxy proxy-config)
+          proxy_tok=""
+          if [ -n "$proxy_conf" ]; then
+            proxy_tok=$(printf '%s' "$proxy_conf" | sed -n 's/.*"Bearer \([^"]*\)".*/\1/p' | head -1)
+          fi
+          bewaar WA_GRAPHDB_PROXY_TOKEN "${GH_GRAPHDB_PROXY_TOKEN:-}" "$proxy_tok"
 
           # Het databasewachtwoord staat niet als eigen secret maar in de connectiestring:
           #   postgresql+asyncpg://wetsanalyse:<wachtwoord>@host:5432/...
@@ -294,6 +325,9 @@ jobs:
           # uitrollen, dan valideert `wat-if` een andere template dan er wordt uitgerold, en dat is
           # precies de zekerheid waarvoor die actie de default is.
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--api-extern)
+          # De GraphDB-MCP-proxy: standaard NIET, en net als de api-ingress alleen op acceptatie.
+          # GraphDB zelf blijft altijd intern – deze vlag zet er een nginx met tokencontrole naast.
+          [ "${{ inputs.omgeving }}" = "acceptatie" ] && [ "${{ inputs.graphdb_proxy }}" = "true" ] && args+=(--graphdb-proxy-extern)
           python3 deploy/azure/gen-deploy.py "$AZURE_AI_KEY" "${args[@]}"
 
       - name: Uitrollen
@@ -323,6 +357,9 @@ jobs:
           # uitrollen, dan valideert `wat-if` een andere template dan er wordt uitgerold, en dat is
           # precies de zekerheid waarvoor die actie de default is.
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--api-extern)
+          # De GraphDB-MCP-proxy: standaard NIET, en net als de api-ingress alleen op acceptatie.
+          # GraphDB zelf blijft altijd intern – deze vlag zet er een nginx met tokencontrole naast.
+          [ "${{ inputs.omgeving }}" = "acceptatie" ] && [ "${{ inputs.graphdb_proxy }}" = "true" ] && args+=(--graphdb-proxy-extern)
           python3 deploy/azure/gen-deploy.py "$AZURE_AI_KEY" "${args[@]}"
 
       # `az deployment group create` keert terug zodra de revisie is AANGEMAAKT, niet zodra hij
@@ -337,7 +374,11 @@ jobs:
         run: |
           set -euo pipefail
           fout=0
-          for app in api graph-qa frontend graphdb; do
+          apps="api graph-qa frontend graphdb"
+          # De proxy staat er alleen als hij is meegevraagd; anders zou de lus over een app struikelen
+          # die met opzet niet bestaat.
+          [ "${{ inputs.graphdb_proxy }}" = "true" ] && apps="$apps graphdb-proxy"
+          for app in $apps; do
             naam="$APP_NAME-$app"
             rev=$(az containerapp show -n "$naam" -g "$RESOURCE_GROUP" \
                     --query "properties.latestRevisionName" -o tsv 2>/dev/null || echo "")
@@ -530,6 +571,9 @@ jobs:
             [ -n "$s" ] || continue
             hoort_erbij="$hoort_erbij cae-$s log-$s appi-$s $s-api $s-frontend $s-graph-qa"
             hoort_erbij="$hoort_erbij $s-graphdb $s-bwb-import $s-otel-collector $s-db"
+            # De MCP-proxy is optioneel en staat er meestal niet – maar als hij er staat, is dat een
+            # bewuste keuze. Zonder deze regel zou `opruimen` hem als wees weggooien.
+            hoort_erbij="$hoort_erbij $s-graphdb-proxy"
             # Grafana staat in één straat maar kijkt naar beide (deploy/azure/grafana.bicep). Hij
             # hoort hier per straat in de lijst, anders ziet `opruimen` hem als wees en gooit hem weg.
             hoort_erbij="$hoort_erbij $s-grafana"
@@ -683,6 +727,29 @@ jobs:
           az containerapp delete -n "$naam" -g "$RESOURCE_GROUP" --yes --output none
           echo "Weg. De dashboards komen as-code uit deploy/azure/grafana/, dus er is niets verloren."
 
+      # De tegenhanger van `graphdb_proxy: true`. Nodig omdat een bicep-deploy in incremental mode
+      # NIETS weghaalt: de vlag weer uitzetten laat de proxy gewoon draaien, hij verdwijnt er niet
+      # mee. En `opruimen` beschermt hem juist (hij staat op de hoort_erbij-lijst), want die actie
+      # kan niet weten of hij bedoeld is. Dus: een eigen, expliciete deur naar buiten.
+      - name: MCP-proxy afbreken
+        if: ${{ inputs.actie == 'mcp-proxy-afbreken' }}
+        run: |
+          set -euo pipefail
+          naam="$APP_NAME-graphdb-proxy"
+          if ! az containerapp show -n "$naam" -g "$RESOURCE_GROUP" --output none 2>/dev/null; then
+            echo "Container app '$naam' bestaat niet in '$RESOURCE_GROUP' – niets te doen."
+            exit 0
+          fi
+          echo "Verwijderen van '$naam'…"
+          az containerapp delete -n "$naam" -g "$RESOURCE_GROUP" --yes --output none
+          echo "Weg. De graaf zelf is niet geraakt – die stond en staat intern."
+          {
+            echo "## MCP-proxy afgebroken"
+            echo ""
+            echo "\`$naam\` is verwijderd. De graaf is weer alleen intern bereikbaar."
+            echo "Vergeet de MCP-registratie op je werkstation niet: \`claude mcp remove graphdb\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Graaf vullen (import-job)
         if: ${{ inputs.actie == 'vul-graaf' || inputs.actie == 'deploy' }}
         run: |
@@ -802,10 +869,16 @@ jobs:
           set -euo pipefail
           url=$(az deployment group show -g "$RESOURCE_GROUP" -n wetsanalyse-infra \
                   --query properties.outputs.frontendUrl.value -o tsv 2>/dev/null || echo "")
+          # Leeg als de proxy niet is uitgerold. Hier tonen is de enige manier om de URL te weten te
+          # komen zonder portaltoegang; het token staat er bewust NIET bij – dat kent alleen wie het
+          # environment-secret heeft gezet.
+          proxy_url=$(az deployment group show -g "$RESOURCE_GROUP" -n wetsanalyse-infra \
+                  --query properties.outputs.graphdbProxyUrl.value -o tsv 2>/dev/null || echo "")
           {
             echo "## Azure-omgeving uitgerold"
             echo ""
             [ -n "$url" ] && echo "- Webapp: $url"
+            [ -n "$proxy_url" ] && echo "- GraphDB-MCP (bearer-token vereist): $proxy_url/mcp"
             echo "- Resource group: \`$RESOURCE_GROUP\` ($AZURE_LOCATION)"
             echo ""
             echo "### Nog te doen"

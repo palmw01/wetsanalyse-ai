@@ -67,12 +67,27 @@ plaats van schijnzekerheid.
    **idempotent** (named-graph `PUT`), dus herimporteren is veilig. Image
    `ghcr.io/palmw01/bwb-import`; draait op Azure als container-app-job met een wekelijkse cron-trigger
    (`deploy/azure/main.bicep`).
-5. **De kennisgraaf zelf** (`deploy/azure/main.bicep`) – GraphDB 11.4 met de repository `inning`, plus een
-   nginx'je dat het bearer-token controleert en het GraphDB-service-account injecteert. **GraphDB
-   ≥ 11.2 heeft de MCP-server ingebouwd** op `/mcp`, dus er is geen aparte MCP-container.
-   GraphDB-security staat aan. De opslag is **niet-persistent** (memory-mapped files kunnen geen
+5. **De kennisgraaf zelf** (`deploy/azure/main.bicep`) – GraphDB 11.4 met de repository `inning`.
+   **GraphDB ≥ 11.2 heeft de MCP-server ingebouwd** op `/mcp`, dus er is geen aparte MCP-container.
+   De opslag is **niet-persistent** (memory-mapped files kunnen geen
    netwerkschijf gebruiken), maar de graaf is volledig reproduceerbaar uit overheid.nl – zie
    §*Uitrollen*.
+
+   **GraphDB draait op Azure zonder eigen security, en de netwerkgrens is de enige beveiliging:**
+   `external: false`, alleen bereikbaar binnen de Container Apps Environment. Het `GRAPHDB_TOKEN` dat
+   graph-qa meestuurt is daar geen slot – GraphDB negeert het – en `bwb-import` schrijft zonder
+   credentials. Zijn ingress openzetten levert dus een onbeveiligd, schrijfbaar SPARQL-endpoint plus
+   de Workbench op internet. (Deze tekst beschreef tot 4 sep 2026 een nginx met tokencontrole en
+   GraphDB-security die aan zou staan; dat was de zelfgehoste opzet, niet Azure.)
+
+   Wie de graaf van búiten wil bevragen – met een MCP-client zoals Claude Code, langs dezelfde weg
+   als Lex – zet de **MCP-proxy** aan: `azure-infra` → straat `acceptatie`, `graphdb_proxy: true`.
+   Dat rolt `<straat>-graphdb-proxy` uit, een nginx die uitsluitend `/mcp` doorlaat en een
+   bearer-token afdwingt (`WA_GRAPHDB_PROXY_TOKEN`, een environment-secret dat je zelf zet omdat je
+   de waarde moet kennen). GraphDB zelf blijft intern; een guard in `poort.yml` bewaakt dat.
+   Weghalen doe je met de actie `mcp-proxy-afbreken` – de vlag weer uitzetten is niet genoeg, want
+   een bicep-deploy verwijdert niets. De registratie van die MCP-server hoort **machine-lokaal**
+   (`claude mcp add`), niet in de repo: die is publiek.
 6. **`.claude/skills/wetsanalyse/`** – de inhoudelijke skill: de operationele uitwerking van de
    JAS-methode (de dertien klassen, het volg-beleid voor verwijzingen, de reviewcontracten) plus de
    scripts eromheen. Zie §*De wetsanalyse-skill*.

@@ -66,6 +66,9 @@ param minReplicasApps int = 0
 @description('Api-ingress publiek bereikbaar? Alleen acceptatie, zodat de admin-MCP (tools/wetsanalyse-admin-mcp) erbij kan; de default false houdt productie dicht.')
 param apiExtern bool = false
 
+@description('Rolt de externe MCP-proxy vóór GraphDB uit, zodat een MCP-client van buiten de graaf kan bevragen. Alleen acceptatie; default false. GraphDB zelf blijft altijd intern – deze parameter raakt die ingress niet.')
+param graphdbProxyExtern bool = false
+
 @description('Java-heap voor GraphDB. Moet passen binnen het geheugen van de container-app.')
 param graphdbHeap string = '2g'
 
@@ -101,6 +104,10 @@ param dbAdminPassword string
 @secure()
 @description('Bearer-token waarmee graph-qa de GraphDB-MCP aanroept. Zie de noot bij graphQaApp: binnen deze omgeving is dit geen slot, de code eist het wel.')
 param graphdbToken string
+
+@secure()
+@description('Bearer-token voor de EXTERNE GraphDB-MCP-proxy. Staat bewust los van graphdbToken: dat laatste is intern en wordt door GraphDB genegeerd, dit is het enige echte slot op de proxy en moet apart in te trekken zijn. Leeg = de proxy wordt niet uitgerold, ook niet met graphdbProxyExtern.')
+param graphdbProxyToken string = ''
 
 @secure()
 @description('Bearer-token dat de frontend gebruikt om graph-qa aan te roepen (= graph-qa QA_API_TOKEN).')
@@ -470,6 +477,140 @@ resource graphdbApp 'Microsoft.App/containerApps@2024-03-01' = {
 }
 
 var graphdbInternalUrl = 'https://${graphdbApp.properties.configuration.ingress.fqdn}'
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 3b. GraphDB-MCP-proxy – de ENIGE weg naar de graaf van buiten (optioneel, acceptatie)
+// ─────────────────────────────────────────────────────────────────────────────
+// Waarom een aparte app en niet gewoon `external: true` op GraphDB: GraphDB draait hier zonder eigen
+// security (zie de noot bij graphQaApp). Zijn ingress openzetten levert een onbeveiligd, SCHRIJFBAAR
+// SPARQL-endpoint plus de Workbench op internet – de netwerkgrens ís de beveiliging. Deze nginx zet
+// er een echte grens omheen en laat GraphDB zelf ongemoeid, dus geen enkele interne client
+// (graph-qa, de eval-job, bwb-import) verandert en de graaf hoeft niet te herstarten.
+//
+// Wat hij doorlaat: uitsluitend `/mcp`, en alleen met het juiste bearer-token. Geen `/rest`, geen
+// Workbench, geen SPARQL-endpoint. Het token is een EXACTE match op de hele Authorization-header;
+// geen regex, want daar win je dit spel niet mee.
+//
+// Wat hij NIET afdwingt: read-only. Wie door de deur komt heeft dezelfde rechten als Lex, want een
+// SPARQL-body is op nginx-niveau niet betrouwbaar te keuren (de allowlist in
+// tools/graph-qa/agent/mcp_client.py beschermt alleen graph-qa zelf). Dat is te dragen omdat dit
+// alleen op acceptatie aan gaat, het token apart intrekbaar is, en de graaf volledig
+// reproduceerbaar is uit overheid.nl (`vul-graaf`). Wil je harder, dan hoort daar GraphDB-security
+// met een read-only account bij – dat raakt bwb-import én graph-qa en is een eigen traject.
+var graphdbProxyAan = graphdbProxyExtern && !empty(graphdbProxyToken)
+
+// Placeholders in plaats van interpolatie: een Bicep multi-line string (''') doet GEEN `${}`, en
+// een nginx-config staat vol `$variabelen` die je daar juist met rust wilt laten. Zelfde aanpak als
+// de Grafana-dashboards in deploy/azure/grafana/, die met `__STRAAT__` en `__DSUID__` werken.
+var graphdbProxyConfigSjabloon = '''
+map $http_authorization $mag_erdoor {
+  default                     0;
+  "Bearer __TOKEN__"          1;
+}
+
+server {
+  listen 8080;
+
+  # Alles wat geen /mcp is bestaat hier niet: de Workbench en de REST-API blijven binnen.
+  location / {
+    return 404;
+  }
+
+  location /mcp {
+    if ($mag_erdoor = 0) {
+      return 401;
+    }
+
+    # Het interne adres binnen de Container Apps Environment – hetzelfde patroon als
+    # `collectorEndpoint` hierboven. De ingress van GraphDB luistert op 80 en stuurt door naar 7200.
+    proxy_pass http://__GRAPHDB__;
+
+    # MCP Streamable HTTP antwoordt met text/event-stream. Zonder deze vier regels houdt nginx het
+    # antwoord vast tot de stream sluit, en dan lijkt elke tool-aanroep te hangen.
+    proxy_http_version 1.1;
+    proxy_buffering off;
+    proxy_set_header Connection "";
+    proxy_read_timeout 300s;
+
+    # GEEN `proxy_set_header Host $host`. De router van Container Apps kiest de doel-app op de
+    # Host-header; met de externe hostname erin stuurt hij de aanroep terug naar deze proxy en
+    # loopt hij rond. De default van proxy_pass (de upstream-naam) is precies wat hier moet staan.
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
+'''
+
+var graphdbProxyConfig = replace(
+  replace(graphdbProxyConfigSjabloon, '__GRAPHDB__', '${appName}-graphdb'),
+  '__TOKEN__',
+  graphdbProxyToken
+)
+
+resource graphdbProxyApp 'Microsoft.App/containerApps@2024-03-01' = if (graphdbProxyAan) {
+  name: '${appName}-graphdb-proxy'
+  location: location
+  tags: straatTags
+  // Expliciet, want de upstream staat als string in de nginx-config en niet als resource-referentie
+  // – bicep leidt hier dus geen volgorde uit af. nginx WEIGERT te starten als de naam in `proxy_pass`
+  // bij het opstarten niet resolvet ("host not found in upstream"), dus op een verse straat zou de
+  // proxy in een crashloop komen tot GraphDB er is.
+  dependsOn: [
+    graphdbApp
+  ]
+  properties: {
+    environmentId: cae.id
+    configuration: {
+      ingress: {
+        external: true
+        targetPort: 8080
+        transport: 'auto'
+        allowInsecure: false
+      }
+      secrets: [
+        // De linter ziet een gewone string en niet meer dat het token eronder `@secure()` is – die
+        // markering overleeft de `replace()` niet. De waarde komt wél uit graphdbProxyToken, staat
+        // nergens in een output en een container-app-secret is niet terug te lezen in de portal.
+        #disable-next-line use-secure-value-for-secure-inputs
+        { name: 'proxy-config', value: graphdbProxyConfig }
+      ]
+    }
+    template: {
+      // Container Apps kennen geen configmounts, maar een secret-volume schrijft de string wél als
+      // bestand – hetzelfde patroon als de GraphDB-licentie hierboven. nginx laadt alles in
+      // /etc/nginx/conf.d/*.conf; de mount verbergt de default.conf die het image daar zelf
+      // neerzet, dus deze config is het enige dat er staat.
+      volumes: [
+        {
+          name: 'proxy-config'
+          storageType: 'Secret'
+          secrets: [
+            { secretRef: 'proxy-config', path: 'default.conf' }
+          ]
+        }
+      ]
+      containers: [
+        {
+          name: 'nginx'
+          image: 'nginx:1.27-alpine'
+          resources: {
+            cpu: json('0.25')
+            memory: '0.5Gi'
+          }
+          volumeMounts: [
+            { volumeName: 'proxy-config', mountPath: '/etc/nginx/conf.d' }
+          ]
+        }
+      ]
+      scale: {
+        // Naar nul: dit is gereedschap voor een mens aan een toetsenbord, geen dienst waar iets van
+        // afhangt. De koude start kost de eerste aanroep een paar seconden.
+        minReplicas: 0
+        maxReplicas: 1
+      }
+    }
+  }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 4. BWB-import – vult de graaf (handmatige job)
@@ -1032,5 +1173,8 @@ output frontendUrl string = 'https://${frontendApp.properties.configuration.ingr
 output apiInternalFqdn string = apiApp.properties.configuration.ingress.fqdn
 output graphQaInternalFqdn string = graphQaApp.properties.configuration.ingress.fqdn
 output graphdbInternalFqdn string = graphdbApp.properties.configuration.ingress.fqdn
+// Leeg als de proxy niet is uitgerold. Met de hand opgebouwd in plaats van via `.ingress.fqdn`,
+// want een resource achter een `if` mag je niet onvoorwaardelijk uitlezen.
+output graphdbProxyUrl string = graphdbProxyAan ? 'https://${appName}-graphdb-proxy.${cae.properties.defaultDomain}' : ''
 output importJobName string = bwbImportJob.name
 output dbServerFqdn string = pgServer.properties.fullyQualifiedDomainName
