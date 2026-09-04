@@ -290,6 +290,10 @@ class ArtikelResult(BaseModel):
     citeertitel: str = ""
     opschrift: str = ""
     leden_teksten: list[LidTekst] = []
+    # Knooptype uit de graaf: "Artikel" of "Divisie". Stuurt alleen de bewoording van de vindplaats
+    # in de werkplek — een divisie van een beleidsregel is geen artikel en heeft geen leden. Moet
+    # hier staan omdat `response_model` alles wegfiltert wat niet in dit model is verklaard.
+    soort: str = ""
 
 
 class Verbruiksmeter:

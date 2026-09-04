@@ -19,8 +19,9 @@ from langgraph.config import get_stream_writer
 
 from ..agent_common import truncate
 from ..annotatie import (
-    _verwerk, _verwerk_critic, demp_zelfweerspreking, filter_kandidaten, komt_letterlijk_voor,
-    openstaand_voorstel, parse_kandidaten, pas_critic_toe, sleutel_van, vervang_ids_door_citaat,
+    _verwerk, _verwerk_critic, aanduiding_in_woorden, demp_zelfweerspreking, filter_kandidaten,
+    komt_letterlijk_voor, openstaand_voorstel, parse_kandidaten, pas_critic_toe, sleutel_van,
+    vervang_ids_door_citaat,
 )
 from ..annotatie_prompt import (
     annotatie_systeemprompt,
@@ -70,7 +71,7 @@ def annoteer_node(b: Bouw, state: State) -> dict[str, Any]:
     # `_corpus_voor_doel`: die reconstructie mengt bepalingen en is afgekapt op 8000 tekens.
     aanduiding = doel.get("artikel") or doel.get("nummer") or ""
     try:
-        corpus = _corpus_voor_doel(doel, b.graph, state.get("source_trace", []))
+        corpus, soort = _corpus_voor_doel(doel, b.graph, state.get("source_trace", []))
     except OngeldigeVindplaats as fout:
         # De beurt eindigt hier, en dat is de bedoeling. Doorgaan zou markeringen opleveren onder een
         # aanduiding die de werkplek niet kan openen – de jurist ziet dan pas bij het openen dat er
@@ -91,7 +92,7 @@ def annoteer_node(b: Bouw, state: State) -> dict[str, Any]:
         writer({"type": "token", "content": melding})
         return {"answer": melding, "voorstellen": [], "messages": [{"role": "assistant", "content": melding}]}
 
-    plek = f"art. {aanduiding}" + (f" lid {doel['lid']}" if doel.get("lid") else "")
+    plek = aanduiding_in_woorden(aanduiding, doel.get("lid", ""), soort)
     _stap(writer, "Annoteerder", f"leest {plek} ({len(corpus)} tekens)")
 
     resp = b.llm.create(
@@ -106,7 +107,7 @@ def annoteer_node(b: Bouw, state: State) -> dict[str, Any]:
     # te overschrijven, dus een id uit het model is hooguit een raar id. De strengheid hoort in
     # de herziening, waar een verwisseld id wél een bestaande markering raakt.
     voorstellen, verworpen = _verwerk(
-        llm_text, corpus, doel.get("bwbId", ""), aanduiding, doel.get("lid", ""),
+        llm_text, corpus, doel.get("bwbId", ""), aanduiding, doel.get("lid", ""), soort=soort,
     )
     _stap(writer, "Annoteerder", _annoteer_melding(voorstellen, verworpen))
 
@@ -187,7 +188,7 @@ def annoteer_kandidaten_node(b: Bouw, state: State) -> dict[str, Any]:
     # Gebruik het in state gecachede corpus; als dat leeg is haal het gericht op
     # (zelfde strategie als annoteer_node – zonder dit zou een direct-naar-annoteer
     # route met leeg corpus altijd een lege kandidatenlijst opleveren).
-    corpus = state.get("corpus") or _corpus_voor_doel(doel, b.graph, state.get("source_trace", []))
+    corpus = state.get("corpus") or _corpus_voor_doel(doel, b.graph, state.get("source_trace", []))[0]
     if not corpus.strip():
         # Zelfde melding als V1. Stil teruggeven liet de klasseer-node hierna een LLM-call doen
         # op een lege tekst, en las de jurist "geen JAS-elementen gevonden" waar "ik kon de
