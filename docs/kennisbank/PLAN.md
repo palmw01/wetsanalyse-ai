@@ -121,7 +121,7 @@ Dat is precies waarom de tool-route de juiste eerste stap is:
   juiste plek; die moet toch al de tweede referentievorm leren (D5). Een tweede beoordelaar erbij zou
   dezelfde controle op een andere plek herhalen.
 
-De toolset is wél gelaagd, net als bij de graaf (die dertien tools heeft omdat retrieval gelaagd is —
+De toolset is wél gelaagd, net als bij de graaf (die negentien tools heeft omdat retrieval gelaagd is —
 zoeken, ophalen, context, verwijzingen):
 
 | Tool | Doet | Parallel in de graaf |

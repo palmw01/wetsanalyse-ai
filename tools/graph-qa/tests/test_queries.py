@@ -80,20 +80,34 @@ def test_count_by_type():
 
 
 def test_context_subgraaf_dekt_alle_relaties():
+    """De inbedding loopt over de ECHTE bevat-predicaten, niet over `bwb:bevat`.
+
+    Deze test eiste tot 4 sep 2026 `"bwb:bevat" in sparql` – en dat predicaat bestaat niet. De tak
+    "4-bevat-door" matchte dus nooit iets: de tool die "context" heet leverde alles behálve de
+    structurele inbedding, en de test bevestigde de bug in plaats van hem te vangen. Precies wat er
+    bij `get_lid` gebeurde. `tests/test_predicaat_dekking.py` vangt deze klasse fout nu breed.
+    """
     sparql = q.context("BWBR0004770", "9")
     # node zelf + structuur + leden + uit-/ingaande verwijzingen in één query
     assert "<urn:bwb:BWBR0004770:artikel:9>" in sparql
-    assert "bwb:bevat" in sparql
+    assert "bwb:bevat" not in sparql, "bwb:bevat bestaat niet in deze graaf"
+    assert "bwb:heeftHoofdstuk" in sparql and "bwb:heeftAfdeling" in sparql
     assert "bwb:heeftLid" in sparql
     assert "bwb:heeftVerwijzing" in sparql
     assert "bwb:verwijzingDoor" in sparql
+    assert "bwb:verwijstNaar" in sparql, "inkomende verwijzingen op bepalingniveau"
+    assert "bwb:volgtOp" in sparql, "de buren in het document"
     assert "UNION" in sparql
 
 
 def test_context_lid_gebruikt_lid_iri_maar_verwijzingdoor_op_artikel():
     sparql = q.context("BWBR0004770", "9", "1")
     assert ":artikel:9:lid:1>" in sparql          # node = het lid
-    assert "<urn:bwb:BWBR0004770:artikel:9> bwb:verwijzingDoor" in sparql  # incoming op artikel
+    # `verwijzingDoor` legt de redactie op ARTIKELniveau, dus die tak draait op ?art – en ?art is
+    # bij een lid expliciet het artikel, niet de node. Sinds `node_patroon` is dat een BIND en geen
+    # ingebakken IRI meer, want een divisie heeft geen artikel-IRI.
+    assert "BIND(<urn:bwb:BWBR0004770:artikel:9> AS ?art)" in sparql
+    assert "?art bwb:verwijzingDoor" in sparql
 
 
 def test_resolve_begrip_escapet_term():

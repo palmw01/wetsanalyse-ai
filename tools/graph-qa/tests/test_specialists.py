@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 
+from agent import tools
 from agent.agent import answer_stream
 from fakes import FakeGraph, FakeLLM, make_settings, response, text_block
 
@@ -65,7 +66,7 @@ def test_onbekende_route_valt_terug_op_algemeen():
         response([text_block("Antwoord.")], "end_turn"),
     ])
     _run(answer_stream("vraag", settings=make_settings(), llm=llm, graph=FakeGraph(result="")))
-    assert len(_agent_tools(llm)) == 13  # alle tools
+    assert len(_agent_tools(llm)) == len(tools.TOOLS)  # alle tools
 
 
 def test_planning_uit_is_algemeen_alle_tools():
@@ -73,4 +74,4 @@ def test_planning_uit_is_algemeen_alle_tools():
     _run(answer_stream("vraag", settings=make_settings(enable_planning=False),
                        llm=llm, graph=FakeGraph(result="")))
     # geen router → llm.calls[0] is de agent-stream-call
-    assert len({t["name"] for t in llm.calls[0]["tools"]}) == 13
+    assert len({t["name"] for t in llm.calls[0]["tools"]}) == len(tools.TOOLS)

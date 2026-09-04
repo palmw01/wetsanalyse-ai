@@ -121,6 +121,23 @@ waarde niet als segmentgrens leest.
   dezelfde IRI (open-world: geen stub-nodes; de doel-IRI krijgt inhoud zodra
   die wet volgt). Verwijzingen naar hele hoofdstukken/titeldelen/afdelingen/
   wetten blijven dus behouden.
+
+  **Een structuurdeel draagt het volledige pad in zijn sleutel**
+  (`{bwb}#hoofdstuk=VI#afdeling=1`, `jci_node_ref_key`), en dat is geen netheid. Tot 4 sep 2026
+  werd alleen het laatste jci-segment aangehouden, waardoor élke "Afdeling 1" van een regeling op
+  dezelfde node landde: 16 van de 93 afdelingen en 5 van de 27 paragrafen in de graaf hadden meer
+  dan één ouder, met hun titels en artikelen op één hoop. Bij de Invorderingswet was `afdeling:1`
+  tegelijk *Aansprakelijkheid* (hoofdstuk VI) en *Verhaalsrechten* (hoofdstuk IV).
+
+  Een verwijzing schrijft dat pad vaak niet mee (ongeveer de helft van de afdelingsverwijzingen);
+  een resolve-pas in `collect.py` koppelt die alsnog aan de juiste node zolang het nummer binnen de
+  regeling uniek is. Is het dat niet, dan blijft de verwijzing een open stub — bij een écht ambigue
+  verwijzing is dat eerlijker dan een gok. Artikel-, lid- en onderdeelsleutels zijn ongemoeid: die
+  zijn binnen een regeling al uniek, en daar hangen de annotaties aan.
+- **Het fallback-label van een verwijsdoel staat op `bwb:doelLabel`**, niet op `rdfs:label`. Elke
+  wet zit in een eigen named graph, dus een fallback op `rdfs:label` komt náást het échte label te
+  staan zodra de doelwet óók wordt geïmporteerd — en dan verdubbelt elke query die een label
+  ophaalt haar rijen. Lezers gebruiken `COALESCE(rdfs:label, bwb:doelLabel)`.
 - **Verwijzingen** met eigenschappen: een `bwb:Verwijzing`-tussenresource
   (`bwb:naar/soort/doc/doelLid/doelSoort/doelPad/ankerTekst/verwijzingId`)
   naast de directe `bwb:verwijstNaar`-edge. Ongetagde tekstverwijzingen
@@ -138,6 +155,11 @@ cross-wet links vanzelf zodra de doelwet ook is geïmporteerd.
 > **Migratie**: sinds de citeerbare-identiteit-uitbreiding wijzigen de IRI's
 > van structuurdelen, leden en onderdelen. Eén her-import per wet volstaat
 > (de named graph wordt integraal vervangen).
+>
+> Datzelfde geldt voor de padsleutel en `bwb:doelLabel` hierboven (4 sep 2026): de IRI's van
+> hoofdstukken, titeldelen, afdelingen en paragrafen veranderen, artikelen en leden niet. De
+> import-job draait automatisch na een deploy en wekelijks, dus er is geen migratiestap — maar tot
+> die herimport draait, meet `eval/retrieval_smoke.py` in graph-qa nog de oude toestand.
 
 ## Full-text search (Lucene)
 

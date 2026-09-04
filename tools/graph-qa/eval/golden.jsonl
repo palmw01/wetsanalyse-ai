@@ -18,3 +18,8 @@
 # de Wet belastingen op milieugrondslag, dus er is zelfs iets aangrenzends te vinden. `should_refuse`
 # staat daarom op false: er horen bronnen te komen, ook als het antwoord "dat staat er niet in" is.
 {"question": "wat is bekend over het milieu in de milieuwet?", "should_refuse": false}
+{"question": "Welke bepalingen verwijzen naar artikel 36 van de Invorderingswet 1990?", "expected_sources": ["BWBR0004770"], "expected_contains": ["artikel"], "should_refuse": false}
+{"question": "Waar definieert de Invorderingswet 1990 het begrip belastingschuldige?", "expected_sources": ["BWBR0004770"], "expected_contains": ["artikel 2"], "should_refuse": false}
+{"question": "Op welke wettelijke grondslag berust de Leidraad Invordering 2008?", "expected_sources": ["BWBR0024096"], "expected_contains": ["Invorderingswet"], "should_refuse": false}
+{"question": "Welke hoofdstukken heeft de Invorderingswet 1990?", "expected_sources": ["BWBR0004770"], "expected_contains": ["hoofdstuk"], "should_refuse": false}
+{"question": "Sinds wanneer geldt de huidige tekst van artikel 36 van de Invorderingswet 1990?", "expected_sources": ["BWBR0004770"], "should_refuse": false}

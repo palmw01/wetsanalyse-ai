@@ -12,7 +12,7 @@ from typing import Any
 
 from langgraph.config import get_stream_writer
 
-from ..agent_common import truncate
+from ..agent_common import kap_toolresultaat
 from ..berichten import _parse_final, _schoon_messages, _trim_messages
 from ..narratie import _stap, _toolregel
 from ..prompts import SYSTEM_PROMPT
@@ -128,7 +128,7 @@ def solve_node(b: Bouw, state: State) -> dict[str, Any]:
             _stap(writer, "Graaf bevragen", ", ".join(_toolregel(t) for t in tool_uses))
             results = []
             for tu in tool_uses:
-                result_text = truncate(dispatch(tu["name"], b.graph, tu["input"], b.settings))
+                result_text = kap_toolresultaat(dispatch(tu["name"], b.graph, tu["input"], b.settings))
                 trace.append((tu["name"], result_text))
                 results.append({"type": "tool_result", "tool_use_id": tu["id"], "content": result_text})
             msgs.append({"role": "user", "content": results})

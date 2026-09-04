@@ -958,6 +958,11 @@ resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
 // Handmatige trigger, geen schedule: elke run kost LLM-tokens. Draaien via `azure-infra.yml`
 // (actie `eval`) of `az containerapp job start -n ${appName}-eval -g <rg>`.
 //
+// De job begint met de **retrieval-smoke**: die raakt elke graaftool één keer en kost geen enkele
+// LLM-token. Hij staat vooraan omdat een lege graaftool de annotatiemeting erna zinloos maakt —
+// je meet dan een keten die op onvolledige wettekst werkt, zonder dat het rapport dat verraadt.
+// Precies wat er gebeurde toen `get_lid` op het niet-bestaande `bwb:bevat` stond.
+//
 // DRIE RUNS PER VARIANT, en dat is de kern van de meting. JAS-annotatie kent interpretatieruimte
 // en dezelfde bepaling levert tussen runs sterk verschillende uitkomsten op (geel varieerde
 // 38–77%). Eén run is daarom geen meting maar een anekdote; drie runs geven een bandbreedte. De
@@ -1019,7 +1024,7 @@ resource evalJob 'Microsoft.App/jobs@2024-03-01' = {
           ]
           command: ['sh', '-c']
           args: [
-            'rc=0; for v in vol kort; do for i in 1 2 3; do echo "=== VARIANT $v · RUN $i VAN 3 ==="; ANNOTATIE_PROMPT_KORT=$( [ "$v" = kort ] && echo true || echo false ) python eval/run_eval.py --annotatie || rc=1; done; done; echo "=== KLAAR (rc=$rc) ==="; exit $rc'
+            'rc=0; echo "=== RETRIEVAL-SMOKE ==="; python eval/run_eval.py --retrieval-smoke || rc=1; for v in vol kort; do for i in 1 2 3; do echo "=== VARIANT $v · RUN $i VAN 3 ==="; ANNOTATIE_PROMPT_KORT=$( [ "$v" = kort ] && echo true || echo false ) python eval/run_eval.py --annotatie || rc=1; done; done; echo "=== KLAAR (rc=$rc) ==="; exit $rc'
           ]
           env: [
             { name: 'AZURE_FOUNDRY_BASE_URL', value: '${llmApiBase}/anthropic' }

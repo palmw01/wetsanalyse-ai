@@ -269,6 +269,16 @@ _DATA_PROPS: dict[str, tuple[str, str, tuple[URIRef, ...], URIRef | None]] = {
         (),
         None,
     ),
+    "doelLabel": (
+        "doel-label",
+        "Leesbare naam voor een verwijsdoel dat (nog) niet is geïmporteerd. Bewust GEEN "
+        "rdfs:label: elke wet staat in een eigen named graph, dus een fallback-label op "
+        "rdfs:label komt naast het echte label van dat tekstdeel te staan zodra die wet wél "
+        "wordt geïmporteerd — en dan levert elke query die een label ophaalt dubbele rijen. "
+        "Lees dit als COALESCE(rdfs:label, bwb:doelLabel).",
+        (),
+        None,
+    ),
     "naam": ("naam", "Naam (bestandsnaam van een illustratie of naam van een persoon).", (), None),
     "formaat": ("formaat", "Bestandsformaat van een illustratie (bv. png).", (), None),
     "breedte": ("breedte", "Breedte van een illustratie (bv. 1417px).", (), None),

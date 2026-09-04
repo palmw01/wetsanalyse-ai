@@ -300,7 +300,19 @@ def main() -> None:
     ap.add_argument("--golden", type=Path, default=GOLDEN, help="pad naar de golden set (jsonl)")
     ap.add_argument("--annotatie", action="store_true",
                     help="draai de annotatie-set (JAS-markeringen) in plaats van de QA-set")
+    ap.add_argument("--retrieval-smoke", action="store_true",
+                    help="raak elke graaftool één keer tegen de ECHTE graaf en meld lege uitkomsten")
     args = ap.parse_args()
+
+    if args.retrieval_smoke:
+        # Bewust geen --offline-variant: een fake-graaf geeft altijd antwoord, en dan meet je de
+        # fake. Dit is de enige controle in het harnas die over de graafinhoud gaat.
+        from eval.retrieval_smoke import draai, rapporteer
+
+        _laad_env()
+        uitkomsten, geslaagd = draai(Settings.from_env())
+        rapporteer(uitkomsten, geslaagd)
+        sys.exit(0 if geslaagd else 1)
 
     if args.annotatie:
         if args.offline:

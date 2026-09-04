@@ -33,6 +33,7 @@ from app.references import (
     detect_textual_references,
     jci_doel,
     jci_doel_ref_key,
+    jci_node_ref_key,
     jci_to_ref_key,
 )
 
@@ -122,12 +123,69 @@ class _Collector:
         self._divisies(wet.divisies, wet.bwb_id, "Regeling")
         self._bijlagen(wet.bijlagen, wet.bwb_id, "Regeling")
         self._ondertekenaars(wet.ondertekenaars, wet.bwb_id)
+        self._koppel_structuurverwijzingen()
 
-    def _structuur(self, deel: Structuurdeel, ouder_id: str, ouder_ent: str) -> None:
+    # Structuursoorten waarvan de node-sleutel het volledige pad draagt maar een verwijzing vaak
+    # niet. Artikel/lid/onderdeel staan er niet bij: die sleutels zijn aan beide kanten gelijk.
+    _STRUCTUURSOORTEN = ("hoofdstuk", "titeldeel", "afdeling", "paragraaf")
+
+    def _koppel_structuurverwijzingen(self) -> None:
+        """Laat een verwijzing naar "afdeling 1" alsnog op de juiste node uitkomen.
+
+        Sinds de node-sleutel het volledige pad draagt (`jci_node_ref_key`) is
+        `{bwb}#hoofdstuk=VI#afdeling=1` de identiteit, terwijl een verwijzing vaak alleen
+        `{bwb}#afdeling=1` schrijft. Gemeten in de graaf van 4 sep 2026: van de 80
+        afdelingsverwijzingen droeg ongeveer de helft het hoofdstuk niet mee.
+
+        Zonder deze pas zouden die verwijzingen na de fix allemaal naar een lege stub wijzen — een
+        collisie ingeruild voor een breuk, wat geen verbetering is. Daarom: bestaat de sleutel niet
+        als node in deze wet, zoek dan de node waarvan de sleutel op hetzelfde `#soort=waarde`
+        eindigt. Precies één treffer → koppelen. Nul of meer dan één → laten staan.
+
+        **Meer dan één treffer is juist het geval waar het misging** (afdeling 1 in twee
+        hoofdstukken). Daar is de verwijzing zelf ambigu, en dan is een open stub eerlijker dan een
+        gok: de graaf is open-world, een doel zonder inhoud is een bekend en zichtbaar gat. Een
+        verkeerde koppeling is dat niet.
+
+        Alleen binnen de eigen wet: een verwijzing naar een andere regeling kan hier niet worden
+        opgelost (die zit in een eigen named graph) en blijft een stub, zoals altijd.
+        """
+        sleutels = [
+            props["ref_key"]
+            for entiteit in ("Hoofdstuk", "Titeldeel", "Afdeling", "Paragraaf")
+            for props in self.batch.nodes.get(entiteit, [])
+            if props.get("ref_key")
+        ]
+        bekend = set(sleutels)
+        for rij in self.batch.verwijzingen:
+            soort = rij.get("doel_soort")
+            to_key = rij.get("to")
+            if soort not in self._STRUCTUURSOORTEN or not to_key or to_key in bekend:
+                continue
+            if rij.get("to_bwb") != self._bwb:
+                continue
+            staart = to_key[len(self._bwb):]  # "#afdeling=1"
+            kandidaten = [k for k in sleutels if k.endswith(staart)]
+            if len(kandidaten) == 1:
+                rij["to"] = kandidaten[0]
+
+    def _structuur(
+        self,
+        deel: Structuurdeel,
+        ouder_id: str,
+        ouder_ent: str,
+        ouder_ref_key: str | None = None,
+    ) -> None:
         entiteit = STRUCT_LABEL[deel.soort]
-        ref_key = jci_doel_ref_key(deel.jci)[0]
+        # `jci_node_ref_key` en niet `jci_doel_ref_key`: die tweede houdt alleen het laatste
+        # structuursegment aan, waardoor elke "Afdeling 1" van een regeling op dezelfde IRI landde.
+        # Zie de docstring daar voor de meting; kort: 16 van de 93 afdelingen waren samengevallen.
+        ref_key = jci_node_ref_key(deel.jci)[0]
         if ref_key is None and deel.nummer:
-            ref_key = f"{self._bwb}#{deel.soort}={deel.nummer}"
+            # Geen jci van de redactie. Bouw de sleutel dan op het pad van de ouder, om precies
+            # dezelfde reden: zonder dat is "paragraaf 1" van elk hoofdstuk dezelfde node.
+            basis = ouder_ref_key if ouder_ref_key else self._bwb
+            ref_key = f"{basis}#{deel.soort}={deel.nummer}"
         self.batch.node(
             entiteit,
             {
@@ -146,7 +204,7 @@ class _Collector:
         setattr(self.summary, teller, getattr(self.summary, teller) + 1)
 
         for sub in deel.subdelen:
-            self._structuur(sub, deel.id, entiteit)
+            self._structuur(sub, deel.id, entiteit, ref_key)
         self._artikelen(deel.artikelen, deel.id, entiteit)
 
     def _artikelen(self, artikelen: list[Artikel], ouder_id: str, ouder_ent: str) -> None:

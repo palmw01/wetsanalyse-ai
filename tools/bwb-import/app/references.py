@@ -72,6 +72,54 @@ def jci_to_ref_key(doc: str | None) -> str | None:
     return f"{bwb}#artikel={artikel}"
 
 
+def jci_structuurpad(doc: str | None) -> list[tuple[str, str]]:
+    """Alle structuursegmenten van een jci, in volgorde: ``[("hoofdstuk","VIII"),("afdeling","2")]``."""
+    return list(_JCI_STRUCTUUR.findall(doc)) if doc else []
+
+
+def jci_node_ref_key(doc: str | None) -> tuple[str | None, str | None]:
+    """De identiteitssleutel van een STRUCTUURNODE – met het volledige pad.
+
+    Verschil met :func:`jci_doel_ref_key`, en waarom dat verschil er moet zijn.
+
+    Die functie houdt van een structuurdoel alleen het **laatste** segment aan, dus
+    ``&hoofdstuk=VIII&afdeling=1`` wordt ``{bwb}#afdeling=1``. Voor een *verwijzing* is dat
+    verdedigbaar — je verwijst naar "afdeling 1" en niet naar het pad ernaartoe — maar als
+    **identiteit** van een node is het fout: elke "Afdeling 1" van elke regeling landt dan op
+    dezelfde IRI.
+
+    Dat gebeurde ook. Live gemeten op 4 sep 2026: 16 van de 93 afdelingen en 5 van de 27 paragrafen
+    hadden meer dan één ouder. ``urn:bwb:BWBR0002320:afdeling:1`` droeg vier afdelingen ineen —
+    *Bezwaar*, *Overtredingen*, *Strafbare feiten* en *Vertegenwoordiging buiten rechte* — met vier
+    titels, vier ouders en de artikelen van alle vier op één hoop. Bij de Invorderingswet was
+    ``afdeling:1`` tegelijk *Aansprakelijkheid* (hoofdstuk VI) en *Verhaalsrechten* (hoofdstuk IV).
+
+    Gevolg voor de lezer van de graaf: een verkeerde inhoudsopgave, artikelen die aan de verkeerde
+    afdeling hangen, en een artikel dat in twee hoofdstukken tegelijk lijkt te zitten.
+
+    Het pad is altijd beschikbaar: alle 93 afdelingsnodes dragen een jci die het meevoert. Regelingen
+    met hiërarchische nummering (de Awb: ``afdeling=10.2.1``) hebben géén hoofdstuk-segment en houden
+    dus precies dezelfde sleutel als voorheen — daar was ook geen collisie.
+
+    Artikel-, lid- en onderdeelsleutels blijven ongemoeid: die zijn binnen een regeling al uniek.
+    """
+    if not doc:
+        return (None, None)
+    bwb_match = _JCI_BWB.search(doc)
+    if not bwb_match:
+        return (None, None)
+    bwb = bwb_match.group(1)
+    if _JCI_ARTIKEL.search(doc):
+        # Een artikel (of lid/onderdeel) heeft zijn eigen unieke sleutel; het structuurpad
+        # ernaartoe hoort daar niet in, anders verandert elke artikel-IRI in de graaf.
+        return jci_doel_ref_key(doc)
+    segmenten = jci_structuurpad(doc)
+    if not segmenten:
+        return (bwb, "wet")
+    pad = "".join(f"#{naam}={waarde}" for naam, waarde in segmenten)
+    return (f"{bwb}{pad}", segmenten[-1][0])
+
+
 def jci_doel_ref_key(doc: str | None) -> tuple[str | None, str | None]:
     """Ontleed een jci-doc tot ``(ref_key, doel_soort)`` op élk niveau.
 

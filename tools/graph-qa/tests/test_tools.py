@@ -7,7 +7,8 @@ from fakes import FakeGraph, make_settings
 
 EXPECTED = {
     "search_wetgeving", "semantic_search", "get_artikel", "get_lid", "get_bepaling", "list_regelingen",
-    "get_regeling_info", "follow_verwijzingen", "referenced_by", "get_context",
+    "get_regeling_info", "follow_verwijzingen", "verwijst_naar_deze", "referenced_by",
+    "inhoudsopgave", "zoek_definitie", "grondslagen", "geldigheid", "bijlagen", "get_context",
     "resolve_begrip", "graph_schema", "raw_sparql",
 }
 
@@ -22,7 +23,7 @@ def test_schemas_compleet_en_welgevormd():
 
 
 def test_anthropic_schemas_filter():
-    assert len(tools.anthropic_schemas()) == 13
+    assert len(tools.anthropic_schemas()) == len(EXPECTED)
     subset = tools.anthropic_schemas(only={"get_artikel", "search_wetgeving"})
     assert {t["name"] for t in subset} == {"get_artikel", "search_wetgeving"}
 
@@ -77,7 +78,8 @@ def test_dispatch_get_context():
     out = tools.dispatch("get_context", g, {"bwb_id": "BWBR0004770", "artikel": "9"})
     assert out == "subgraaf"
     q = g.queries[0]
-    assert "verwijzingDoor" in q and "heeftVerwijzing" in q and "bwb:bevat" in q
+    assert "verwijzingDoor" in q and "heeftVerwijzing" in q
+    assert "bwb:bevat" not in q and "bwb:heeftHoofdstuk" in q
 
 
 def test_semantic_search_zonder_index_degradeert():

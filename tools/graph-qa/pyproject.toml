@@ -33,6 +33,11 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=8",
+    # Alleen om SPARQL te PARSEREN in `tests/test_sparql_syntax.py` – rdflib praat hier nooit met
+    # een graaf. De query-bouwers zetten SPARQL met f-strings in elkaar, en een tikfout daarin
+    # kost een tool-foutmelding uit de graaf i.p.v. een rode test. Dev-only, dus hij zit niet in
+    # het image.
+    "rdflib>=7",
 ]
 # OpenTelemetry (traces/metrics/logs). Alleen nodig als OTEL_EXPORTER_OTLP_ENDPOINT gezet is;
 # zonder de extra of zonder endpoint draait observability als no-op (alleen JSON-logs).

@@ -130,11 +130,47 @@ veilig**, verplicht bij >1 replica) → **`CHECKPOINT_DB_PATH`** → `AsyncSqlit
 
 ### Toollaag & queries
 
-- **`tools/__init__.py`** – `TOOLS` (13 declaraties met JSON-schema + handler), `anthropic_schemas(only=)`
+- **`tools/__init__.py`** – `TOOLS` (19 declaraties met JSON-schema + handler), `anthropic_schemas(only=)`
   (model-facing subset) en `dispatch()` (voert de handler uit; vangt `ValueError`/`MCPError`/`KeyError`
   als tekst i.p.v. te crashen). Een tool met `needs_settings` krijgt `settings` mee (bv. `semantic_search`).
 - **`graph/queries.py`** – de SPARQL-bouwers (o.a. `context()` = de GraphRAG-UNION). **`graph/schema.py`** —
-  schema-introspectie met cache.
+  schema-introspectie met cache (TTL 1 uur; de import-job draait wekelijks en de container leeft langer).
+
+**Retrieval: lees dit vóór je een graaftool toevoegt of wijzigt.** De faalmodus die deze regels
+bestrijden is telkens dezelfde — **stille onvolledigheid**: geen foutmelding, geen leeg resultaat,
+gewoon een antwoord dat minder weet dan de graaf. Alle punten hieronder zijn live tegen de graaf
+gemeten (4 sep 2026), niet uit de code afgeleid.
+
+- **Elke bepaling loopt via `queries.node_patroon`**, nooit rechtstreeks via `artikel_iri`. Die
+  weigert een punt, en daardoor werkte géén van `follow_verwijzingen`/`referenced_by`/`get_context`
+  op de ~800 divisies van de Leidraad Invordering. De resolver kent beide vormen; de tools nemen
+  daarom zowel `artikel` als `nummer` aan (`_aanduiding`).
+- **`bwb:bevat` bestaat niet.** De importer schrijft per niveau een eigen `heeft…`-predicaat; de
+  alternatie staat als `queries.BEVAT`. Dat predicaat zat in `get_lid` (tot 1 sep 2026) én in de
+  `4-bevat-door`-tak van `context()` (tot 4 sep 2026, altijd leeg). `tests/test_predicaat_dekking.py`
+  toetst nu elke `bwb:`-term statisch tegen `tools/bwb-import/app/ontology.py`.
+- **De zoekvelden zijn een contract met de importer.** `queries.FTS_VELDEN`/`FTS_TYPES` moeten
+  gelijk zijn aan de connector-config in `bwb-import/app/graphdb_writer.py`; een veldnaam die niet
+  in de index staat geeft **nul treffers zonder foutmelding**. `tests/test_fts_velden.py` bewaakt het.
+- **Een tool landt pas als hij is toegewezen én uitgelegd.** `tests/test_toolverdeling.py` weigert
+  een weestool (in geen enkele specialist-set), een rolnaam die niet meer bestaat (die wordt door
+  `anthropic_schemas(only=)` stil genegeerd), een beschrijving die niet zegt wát er terugkomt, en
+  een tool zonder controle in `eval/retrieval_smoke.py`.
+- **Te véél rijen is net zo fout als te weinig.** `?node a ?type` matcht ook de gematerialiseerde
+  superklassen (`Citeerbaar`, `eli:LegalResource`), dus bind `?soort` altijd met
+  `FILTER(?t IN (…CONCRETE_TYPES…))`; en meerwaardige properties in losse OPTIONALs
+  vermenigvuldigen elkaar (`get_regeling_info` gaf zes rijen voor één wet). Gebruik `GROUP_CONCAT`,
+  zoals `get_lid` voor zijn onderdelen doet. Beide klassen fout leveren gewoon rijen op en glippen
+  door élke leegte-controle heen — vandaar `min_rijen`/`max_rijen` in de smoke en de
+  kardinaliteitsguard in `tests/test_predicaat_dekking.py`.
+- **Verwijzingen hangen aan het LID, niet aan het artikel** (1386 tegen 431, live gemeten).
+  `follow_verwijzingen` en `context()` volgen daarom `(heeftLid|heeftOnderdeel)+` mee en melden in
+  `?vanuit` waar de verwijzing vandaan komt. Zonder dat meldt de tool "geen verwijzingen" op een
+  artikel dat er vijf heeft.
+- **Het fallback-label van een verwijsdoel staat op `bwb:doelLabel`, niet op `rdfs:label`.** Lees het
+  als `COALESCE(rdfs:label, bwb:doelLabel)`: een geïmporteerd doel houdt zijn eigen naam, een stub
+  blijft leesbaar. Op `rdfs:label` kwam de fallback náást het echte label te staan (aparte named
+  graphs per wet) en verdubbelde elke label-query haar rijen.
 
 ### Brongetrouwheid (`provenance.py` + `grounding.py`)
 
@@ -605,7 +641,9 @@ Drie dingen die je verder moet kennen voordat je hieraan werkt:
   require_graph`). Het token is de sleutel voor de auth-proxy, die hem vervangt door het
   GraphDB-service-account; de agent kent die credentials zelf niet. Maak dit niet optioneel.
 - **Geen vrije SPARQL voor het model.** Nieuwe retrieval = een **getypeerde tool** in `tools/` met een
-  bouwer in `graph/queries.py`. `raw_sparql` blijft de afgeschermde ontsnapping.
+  bouwer in `graph/queries.py`. `raw_sparql` blijft de afgeschermde ontsnapping — en `graph_schema`
+  levert het vocabulaire (klassen, relaties, eigenschappen mét toelichting) plus de IRI-patronen,
+  zodat die ontsnapping niet op geraden predicaatnamen hoeft te draaien.
 - **DI, geen globale clients.** Afhankelijkheden achter een poort + adapter, zodat ze faken te zijn.
 - **SSE-event-contract.** De event-types zijn het contract met de consumenten (de werkplek); wijzig
   ze bewust en gelijktijdig, en over beide wegen gelijk (`/v1/chat` én de run-events).
@@ -642,7 +680,13 @@ cd tools/graph-qa && uv run --extra dev pytest tests/test_orchestrator.py -q
 cd tools/graph-qa && .venv/bin/python eval/run_eval.py --offline               # QA-harnas, gescript
 cd tools/graph-qa && .venv/bin/python eval/run_eval.py --annotatie --offline   # annotatie-harnas
 cd tools/graph-qa && .venv/bin/python eval/run_eval.py --annotatie             # live (kost geld)
+cd tools/graph-qa && .venv/bin/python eval/run_eval.py --retrieval-smoke      # live, alleen de graaf
 ```
+
+**De retrieval-smoke heeft bewust géén offline-variant.** Hij raakt elke graaftool één keer tegen de
+échte graaf en meldt een lege uitkomst waar data hoort te staan — precies wat een `FakeGraph` niet
+kan meten, want die antwoordt altijd. Het is de enige controle in het harnas die over de graaf*inhoud*
+gaat; de unit-tests bewijzen alleen dat de bouwer wordt aangeroepen.
 
 **De live-varianten draaien niet zomaar op je eigen machine.** `run_eval.py` draait de agent
 in-proces (`answer_stream` met `Settings.from_env()`) en heeft dus een **directe** graafverbinding
