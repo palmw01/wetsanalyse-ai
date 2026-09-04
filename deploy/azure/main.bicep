@@ -53,6 +53,9 @@ param bwbIds array = [
   'BWBR0024096'
 ]
 
+@description('Ondergrens voor de tekstdekking van de import (graaf/bron). Zakt een regeling eronder, dan eindigt de import-job met exitcode 2 en wordt hij rood — de graaf is dan wél volledig geschreven, want de named-graph PUT gaat vooraf aan de meting. Zet op 0 om de controle uit te zetten; dat is de ontsnapping voor een regeling die legitiem lager meet. Let op: de job heeft replicaRetryLimit 1, dus een dip wordt eerst nog één keer volledig opnieuw geprobeerd.')
+param minDekking string = '0.995'
+
 @description('Hoeveel dagen back-ups van PostgreSQL bewaard blijven. Acceptatie heeft genoeg aan een week; voor productie is dit het enige vangnet onder de annotaties, en die zijn – anders dan de graaf – niet te reproduceren.')
 @minValue(7)
 @maxValue(35)
@@ -678,6 +681,7 @@ resource bwbImportJob 'Microsoft.App/jobs@2024-03-01' = {
             { name: 'BWB_VALIDATE_XSD', value: 'true' }
             { name: 'BWB_IMPORT_WTI', value: 'true' }
             { name: 'BWB_DETECT_TEKSTUELE_REFS', value: 'true' }
+            { name: 'BWB_MIN_DEKKING', value: minDekking }
             { name: 'HOME', value: '/tmp' }
           ]
         }

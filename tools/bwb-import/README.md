@@ -85,6 +85,24 @@ waarde niet als segmentgrens leest.
   bron naast de `bwb:tekst`-literals in de graaf en toont de uitkomst in het import-overzicht.
   `tests/test_dekking.py` bewaakt hem offline op de fixtures. Dit bestaat omdat elf
   Leidraad-artikelen (10.052 tekens) stil ontbraken: geen fout, geen lege node, geen waarschuwing.
+- **En het cijfer bijt** (`BWB_MIN_DEKKING`, default 0,995): zakt een regeling eronder, dan eindigt
+  de import met **exitcode 2** en wordt de container-app-job rood — net als de `vul-graaf`-workflow,
+  die alleen `Succeeded` accepteert. Exitcode **1** blijft voorbehouden aan een import die niet
+  geschreven kon worden; dat onderscheid bestaat zodat je in het logboek van een gefaalde job niet
+  hoeft te zoeken welk van de twee het was.
+
+  Drie dingen om te kennen. **Een 2 kost geen data**: `write_wet` doet de named-graph PUT vóórdat er
+  iets te meten valt, dus de graaf is na een "gefaalde" run precies zo compleet als hij zonder deze
+  controle geweest zou zijn. **De job probeert het eerst nog een keer**: `replicaRetryLimit: 1`
+  betekent dat een dip een volledige tweede import uitlokt voordat de execution `Failed` wordt —
+  verspilling, want de meting is deterministisch, maar die limiet verlagen zou echte tijdelijke
+  fouten hun tweede kans afnemen. En **een onleesbare waarde zet de controle niet uit**: `_as_float`
+  valt terug op de default met een waarschuwing, want stilzwijgend op 0 vallen door een tikfout is
+  het ene faalgedrag dat een drempel niet mag hebben.
+
+  Blijkt een dip legitiem — een regeling die nu eenmaal lager meet — verlaag dan `minDekking` in
+  `deploy/azure/main.bicep`; 0 zet de controle helemaal uit. Dat is een bewuste, zichtbare keuze in
+  plaats van een stille.
 - **Predicaten**: `bwb:heeftHoofdstuk/…/heeftArtikel/heeftLid/heeftOnderdeel/
   heeftDivisie/heeftBijlage`, `bwb:bevatIllustratie`, `bwb:ondertekendDoor`,
   `bwb:volgtOp`, `bwb:verwijstNaar`; properties als

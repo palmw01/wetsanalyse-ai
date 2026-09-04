@@ -12,7 +12,7 @@ import logging
 import sys
 
 from app.config import Settings
-from app.dekking import bron_tekens
+from app.dekking import Dekking, bron_tekens
 from app.downloader import BwbDownloader
 from app.graphdb_writer import GraphDbWriter
 from app.models import ImportResult, ImportSummary, ToestandRef
@@ -140,7 +140,46 @@ def _print_overzicht(summary: ImportSummary) -> None:
     print()
 
 
+def _dekkingsrapport(resultaten: list[ImportResult], drempel: float) -> list[Dekking]:
+    """De regelingen die onder de drempel zakken, met een geconsolideerd overzicht op stdout.
+
+    Waarom over álle regelingen heen en niet per wet: `_print_overzicht` toont de dekking al per
+    import, maar bij zeven regelingen wil je in één blok zien wélke zakt en met hoeveel tekens. Een
+    cijfer dat je moet opsporen tussen zeven overzichten is precies het probleem dat deze drempel
+    oplost.
+
+    Resultaten zonder meting (`bron_tekens == 0`) tellen niet mee. De meting zit in `run_import` in
+    een `try` — ze mag de import nooit breken — en een mislukte meting is geen bewijs van een gat.
+    """
+    gemeten = [
+        Dekking(
+            bwb_id=r.overzicht.bwb_id,
+            bron_tekens=r.overzicht.bron_tekens,
+            graaf_tekens=r.overzicht.graaf_tekens,
+        )
+        for r in resultaten
+        if r.ok and r.overzicht and r.overzicht.bron_tekens > 0
+    ]
+    tekort = [d for d in gemeten if d.verhouding < drempel]
+    if tekort:
+        print(f"\n=== Tekstdekking onder de drempel ({drempel:.1%}) ===")
+        for dekking in gemeten:
+            merk = "  ZAKT" if dekking in tekort else "  ok  "
+            print(f"{merk}  {dekking.regel()}")
+        print()
+    return tekort
+
+
 def main(argv: list[str] | None = None) -> int:
+    """Importeer de opgegeven regelingen. Exitcodes: 0 = goed, 1 = een import mislukte,
+    2 = de tekstdekking zakte onder `BWB_MIN_DEKKING`.
+
+    Die twee foutcodes staan los van elkaar omdat ze om iets anders vragen. Een 1 betekent dat er
+    een wet níét geschreven is; een 2 betekent dat alles geschreven is maar dat er tekst ontbreekt
+    ten opzichte van de bron — de graaf is dan even compleet als hij zonder deze controle geweest
+    zou zijn, want `write_wet` schrijft de named graph vóórdat er iets te meten valt. Een 2 is dus
+    een signaal, geen dataverlies.
+    """
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
     )
@@ -165,7 +204,18 @@ def main(argv: list[str] | None = None) -> int:
         else:
             logger.error("Import mislukt voor %s: %s", resultaat.bwb_id, resultaat.fout)
 
-    return 0 if all(r.ok for r in resultaten) else 1
+    if not all(r.ok for r in resultaten):
+        return 1
+    # Pas ná alle imports: de batch moet doorlopen zodat één dip de andere regelingen niet
+    # tegenhoudt, en op dit punt staat de graaf toch al volledig geschreven.
+    if settings.min_dekking > 0 and _dekkingsrapport(resultaten, settings.min_dekking):
+        logger.error(
+            "Tekstdekking onder de drempel (%.1f%%). De graaf is geschreven, maar er ontbreekt "
+            "tekst ten opzichte van de bron-XML.",
+            settings.min_dekking * 100,
+        )
+        return 2
+    return 0
 
 
 if __name__ == "__main__":
