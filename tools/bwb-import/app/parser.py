@@ -180,6 +180,17 @@ class ToestandParser:
         bevatten; onderdelen (``<lijst>/<li>``) en verwijzingen komen uit die
         ``./tekst``. Verwijzingen binnen onderdelen worden op divisie-niveau
         uitgesloten (die horen bij het onderdeel-node) om dubbeling te vermijden.
+
+        Een divisie kan daarnaast eigen ``<artikel>``-kinderen hebben – het XSD
+        (``class.circulaire-tekst``) staat die naast ``circulaire.divisie`` en ``tekst`` toe, en de
+        Leidraad Invordering 2008 gebruikt het ook: tien artikelen onder ``/Circulaire.divisie22bis``
+        en één onder ``/Circulaire.divisie79``. Die vielen hiervóór stilzwijgend weg (10.052 tekens).
+        Ze staan bùiten ``./tekst``, dus de tekst-, verwijzings- en onderdeelscopes hierboven raken
+        ze niet en er ontstaat geen dubbeling.
+
+        Subdivisies en artikelen worden in **documentvolgorde** gelezen, niet in twee losse passes:
+        ``volgtOp`` wordt per soort geketend, en een divisie die beide bevat zou anders een
+        volgorde krijgen die niet die van de bron is.
         """
         kop = element.find("kop")
         tekst_el = element.find("tekst")
@@ -207,8 +218,12 @@ class ToestandParser:
                 element, base="./tekst//illustratie", extra_excl=" and not(ancestor::li)"
             ),
         )
-        for sub in element.iterfind("circulaire.divisie"):
-            divisie.subdivisies.append(self._parse_divisie(sub, bwb_id))
+        for child in element:
+            tag = child.tag if isinstance(child.tag, str) else ""
+            if tag == "circulaire.divisie":
+                divisie.subdivisies.append(self._parse_divisie(child, bwb_id))
+            elif tag == "artikel":
+                divisie.artikelen.append(self._parse_artikel(child, bwb_id))
         return divisie
 
     def _parse_bijlage(self, element: etree._Element, bwb_id: str) -> Bijlage:

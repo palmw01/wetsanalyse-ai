@@ -139,6 +139,16 @@ _OBJECT_PROPS: dict[str, tuple[str, str, tuple[URIRef, ...], str | None]] = {
         (),
         None,
     ),
+    "bronUrl": (
+        "bron-URL",
+        "Vindplaats van dit tekstdeel in de gepubliceerde toestand op wetten.overheid.nl "
+        "(anker-URL, afgeleid uit het documentpad). GEEN JuriConnect-identiteit: de meeste "
+        "circulaire-divisies krijgen van de BWB-redactie geen eigen jci, en er zelf een verzinnen "
+        "landt stil op de hele regeling. Gebruik owl:sameAs of bwb:jci als je een citeerbare, "
+        "versie-onafhankelijke sleutel nodig hebt.",
+        (),
+        None,
+    ),
     "heeftGrondslag": (
         "heeft grondslag",
         "Regeling waarop deze regeling (mede) is gebaseerd (uit de WTI).",

@@ -46,6 +46,35 @@
             <jcis><jci verwijzing="jci1.3:c:BWBR0099999&amp;artikel=1"/></jcis>
           </meta-data>
         </circulaire.divisie>
+        <!-- Divisie 2 mengt subdivisies en een eigen <artikel>, in die volgorde: de vorm van
+             /Circulaire.divisie79 in de Leidraad. De subdivisies hebben bewust GEEN eigen jci –
+             dat is het #id=-fallbackpad, dat in de echte bron verreweg het vaakst voorkomt. -->
+        <circulaire.divisie bwb-ng-variabel-deel="/Circulaire.divisie2" label="Artikel 2"
+            inwerking="2020-01-01" bron="Stcrt.2020-1" effect="nieuwe-regeling" status="goed">
+          <kop><label>Artikel</label><nr>2</nr><titel>Gemengde divisie</titel></kop>
+          <tekst><al>Dit artikel beschrijft het beleid over:</al></tekst>
+          <circulaire.divisie bwb-ng-variabel-deel="/Circulaire.divisie2/Circulaire.divisie2.1"
+              label="2.1">
+            <kop><nr>2.1</nr><titel>Eerste subdivisie</titel></kop>
+            <tekst><al>Tekst van subdivisie 2.1.</al></tekst>
+          </circulaire.divisie>
+          <artikel bwb-ng-variabel-deel="/Circulaire.divisie2/Artikel2bis.1" label="Artikel 2bis.1"
+              inwerking="2020-01-01" status="goed">
+            <kop><label>Artikel</label><nr>2bis.1</nr></kop>
+            <lid bwb-ng-variabel-deel="/Circulaire.divisie2/Artikel2bis.1/Lid1">
+              <lidnr>1</lidnr>
+              <al>Het eerste lid van het artikel in de divisie.</al>
+            </lid>
+            <meta-data>
+              <jcis><jci verwijzing="jci1.3:c:BWBR0099999&amp;artikel=2&amp;artikel=2bis.1"/></jcis>
+            </meta-data>
+          </artikel>
+          <circulaire.divisie bwb-ng-variabel-deel="/Circulaire.divisie2/Circulaire.divisie2.2"
+              label="2.2">
+            <kop><nr>2.2</nr><titel>Tweede subdivisie</titel></kop>
+            <tekst><al>Tekst van subdivisie 2.2.</al></tekst>
+          </circulaire.divisie>
+        </circulaire.divisie>
       </circulaire-tekst>
     </circulaire>
   </wetgeving>

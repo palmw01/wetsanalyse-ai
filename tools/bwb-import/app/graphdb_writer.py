@@ -290,6 +290,12 @@ class GraphDbWriter:
                     canoniek = v.canonieke_url(ref_key)
                     if canoniek is not None:
                         g.add((iri, OWL.sameAs, canoniek))
+                    # Vindplaats – ook waar er géén jci is. Op élke citeerbare node, ook die mét
+                    # jci: zou hij alleen bij de jci-lozen staan, dan wordt zijn aanwezigheid zelf
+                    # een signaal ("deze heeft geen jci") waarop consumenten gaan redeneren.
+                    bron = v.bron_url(ref_key, wet.geldig_vanaf)
+                    if bron is not None:
+                        g.add((iri, v.ns.bronUrl, bron))
                 g.add((iri, RDFS.label, Literal(_rdfs_label(entiteit, row), lang="nl")))
                 for key, value in row.items():
                     if v.skip_prop(key) or value is None:
@@ -511,6 +517,8 @@ class GraphDbWriter:
     def write_wet(self, wet: Wet, wti: WtiInfo | None = None) -> ImportSummary:
         """Bouw de graaf en vervang de named graph van deze wet in GraphDB."""
         graph, summary = self.build_graph(wet, wti=wti)
+        # Gratis meting: de graaf staat hier toch al in het geheugen. Zie `app/dekking.py`.
+        summary.graaf_tekens = sum(len(str(o)) for o in graph.objects(None, self._vocab.ns.tekst))
         self._put_graph(self._vocab.graph(wet.bwb_id), graph)
         logger.info("Wet %s naar GraphDB geschreven: %s", wet.bwb_id, summary.as_dict())
         return summary

@@ -12,7 +12,7 @@ import json
 from dataclasses import replace
 from pathlib import Path
 
-from rdflib import RDF, RDFS, XSD, Literal
+from rdflib import OWL, RDF, RDFS, URIRef, XSD, Literal
 
 from app.graphdb_writer import GraphDbWriter, _fts_connector_config
 from app.models import (
@@ -243,6 +243,71 @@ def test_circulaire_divisies_en_cross_ref() -> None:
     # Cross-refs komen exact op de doelwet-artikel-IRI uit (determinisme).
     assert (top, V.ns.verwijstNaar, V.by_ref_key("BWBR0004770#artikel=4")) in g
     assert (sub, V.ns.verwijstNaar, V.by_ref_key("BWBR0004770#artikel=19")) in g
+
+
+def test_divisie_met_eigen_artikelen() -> None:
+    """Een divisie kan eigen artikelen dragen; die hangen met ``heeftArtikel``, net als bij een
+    bijlage. Zonder deze tak vielen elf Leidraad-artikelen (10.052 tekens) uit de graaf."""
+    wet = _kleine_circulaire()
+    artikel = Artikel(
+        id="C#d1#a2bis.1",
+        nummer="2bis.1",
+        label="Artikel 2bis.1",
+        tekst="artikeltekst in een divisie",
+        jci="jci1.3:c:BWBR0099999&artikel=2&artikel=2bis.1",
+    )
+    wet.divisies[0].artikelen.append(artikel)
+
+    g, summary = _writer().build_graph(wet)
+    assert summary.artikelen == 1
+    top = V.by_ref_key("BWBR0099999#artikel=1")
+    art = V.by_ref_key("BWBR0099999#artikel=2bis.1")
+    assert (top, V.ns.heeftArtikel, art) in g
+    assert (art, RDF.type, V.klasse("Artikel")) in g
+    assert (art, V.ns.tekst, Literal("artikeltekst in een divisie", lang="nl")) in g
+
+
+def test_bron_url_ook_zonder_jci() -> None:
+    """Elke citeerbare node krijgt een werkende vindplaats, ook waar de bron geen jci toekent.
+
+    Een jci verzinnen mag niet: `&artikel=25.1` resolvet op wetten.overheid.nl stil naar de hele
+    regeling in plaats van naar de bepaling. De anker-URL uit het documentpad werkt wél – de vier
+    ankers hieronder zijn tegen de live HTML van de toestandspagina geverifieerd.
+    """
+    zonder_jci = Divisie(
+        id="BWBR0024096/Circulaire.divisie25/Circulaire.divisie25.1",
+        nummer="25.1",
+        label="25.1",
+        titel="Algemene uitgangspunten",
+        tekst="tekst",
+    )
+    wet = replace(
+        _kleine_circulaire(),
+        bwb_id="BWBR0024096",
+        geldig_vanaf="2026-07-01",
+        divisies=[zonder_jci],
+    )
+    g, _ = _writer().build_graph(wet)
+
+    iri = V.by_ref_key("BWBR0024096#id=BWBR0024096/Circulaire.divisie25/Circulaire.divisie25.1")
+    verwacht = URIRef(
+        "https://wetten.overheid.nl/BWBR0024096/2026-07-01"
+        "#Circulaire.divisie25_Circulaire.divisie25.1"
+    )
+    assert (iri, V.ns.bronUrl, verwacht) in g
+    # Geen identiteitsclaim: zonder bron-jci mag er geen owl:sameAs staan, en al helemaal geen
+    # verzonnen jci-URL. Dat is de regressietest op de schijnzekerheid.
+    assert not list(g.objects(iri, OWL.sameAs))
+
+
+def test_bron_url_naast_sameas_bij_echte_jci() -> None:
+    """Mét een bron-jci staan beide er: sameAs is de identiteit, bronUrl de vindplaats."""
+    wet = replace(_kleine_circulaire(), geldig_vanaf="2026-07-01")
+    g, _ = _writer().build_graph(wet)
+    top = V.by_ref_key("BWBR0099999#artikel=1")
+    jci_url = URIRef("https://wetten.overheid.nl/jci1.3:c:BWBR0099999&artikel=1")
+    assert (top, OWL.sameAs, jci_url) in g
+    assert (top, V.ns.bronUrl, jci_url) in g
 
 
 def _regeling_met_soort(soort: str) -> Wet:

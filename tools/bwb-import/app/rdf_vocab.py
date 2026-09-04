@@ -136,6 +136,46 @@ class Vocab:
             delen.append(f"&{sleutel}={quote(waarde, safe=':.')}")
         return URIRef(f"{WETTEN_BASE}jci1.3:c:{bwb}{''.join(delen)}")
 
+    def bron_url(self, ref_key: str, geldig_vanaf: str | None) -> URIRef | None:
+        """Werkende deep link naar wetten.overheid.nl – **geen** JuriConnect-identiteit.
+
+        `canonieke_url` levert alleen iets op voor een ref_key met een `#artikel=`-vorm, en die
+        vorm heeft maar 113 van de 800 Leidraad-bepalingen: de BWB-redactie kent lang niet elke
+        divisie een eigen `<jci>` toe (102/102 op het topniveau, 10/306 één niveau dieper, 1/389
+        daaronder). Voor de rest bleef er geen enkele vindplaats over.
+
+        Zélf een jci afleiden is geen optie, en dat is getest: `&artikel=19.1.8` (die de redactie wél
+        toekende) redirect naar het juiste anker, maar `&artikel=25.1`, `&artikel=26.1.9` en
+        `&artikel=14.2.4` landen op `/BWBR0024096/2026-07-01` **zonder** anker – stil op de hele
+        regeling. Een verzonnen jci ziet er geldig uit en wijst naar de verkeerde tekst; dat is
+        precies de schijnzekerheid die dit platform niet mag produceren.
+
+        De ankervorm werkt wél. Het `bwb-ng-variabel-deel`-pad dat al in de ref_key zit ís het
+        anker op de toestandspagina, op het scheidingsteken na::
+
+            BWBR0024096#id=BWBR0024096/Circulaire.divisie25/Circulaire.divisie25.1
+            -> https://wetten.overheid.nl/BWBR0024096/2026-07-01#Circulaire.divisie25_Circulaire.divisie25.1
+
+        Geverifieerd tegen de live HTML van de toestandspagina: die `id`-attributen bestaan.
+
+        Een ref_key met een echte jci houdt zijn jci-URL – die redirect zelf naar hetzelfde anker,
+        en dan blijft de canonieke vorm de vindplaats. Zonder `geldig_vanaf` is er geen
+        toestandspagina om naar te wijzen en levert dit `None`.
+        """
+        canoniek = self.canonieke_url(ref_key)
+        if canoniek is not None:
+            return canoniek
+        bwb, _, rest = ref_key.partition("#")
+        sleutel, _, waarde = rest.partition("=")
+        if sleutel != "id" or not waarde or not geldig_vanaf:
+            return None
+        # Het eerste padsegment is het BWB-nummer zelf; het anker begint daarna.
+        segmenten = [deel for deel in waarde.split("/") if deel][1:]
+        if not segmenten:
+            return None
+        anker = "_".join(segmenten)
+        return URIRef(f"{WETTEN_BASE}{bwb}/{geldig_vanaf}#{quote(anker, safe='._')}")
+
     def by_id(self, bwb_id: str, xml_id: str) -> URIRef:
         """IRI voor een niet-citeerbare node (hoofdstuk/afdeling/lid/onderdeel …)."""
         return self._iri(bwb_id, "id", xml_id)
