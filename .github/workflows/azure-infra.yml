@@ -513,7 +513,7 @@ jobs:
             echo ""
             echo "### Jobs"
             echo '```'
-            az containerapp job list --query "[].{job:name, rg:resourceGroup, trigger:properties.configuration.triggerType}" -o table
+            az containerapp job list --query "[].{job:name, rg:resourceGroup, trigger:properties.configuration.triggerType, image:properties.template.containers[0].image}" -o table
             echo '```'
             echo ""
             echo "### PostgreSQL"
@@ -532,7 +532,11 @@ jobs:
             --query "sort_by([].{app:name, extern:properties.configuration.ingress.external, minRepl:properties.template.scale.minReplicas, image:properties.template.containers[0].image}, &app)" \
             -o tsv
           echo "--- jobs ---"
-          az containerapp job list --query "[].{job:name, trigger:properties.configuration.triggerType}" -o tsv
+          # Mét het image: een job draait pas nieuwe code na een `job update`, en zonder de digest
+          # is achteraf niet vast te stellen welke versie een uitvoering had. Dat viel op toen de
+          # importer een dekkingsdrempel kreeg en de vraag "draaide die al mee?" onbeantwoordbaar
+          # bleek — de apps toonden hun digest wel, de jobs niet.
+          az containerapp job list --query "[].{job:name, trigger:properties.configuration.triggerType, image:properties.template.containers[0].image}" -o tsv
           echo "--- postgres ---"
           az postgres flexible-server list --query "[].{server:name, versie:version, sku:sku.name}" -o tsv 2>/dev/null || true
           echo "--- log analytics ---"
