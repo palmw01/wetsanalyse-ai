@@ -150,6 +150,18 @@ tot de nieuwe revisie daadwerkelijk `Running` is; `az containerapp update` keert
 zodra de revisie is *aangemaakt*, dus een container die bij het starten crasht bleef anders
 onopgemerkt.
 
+**Een job lift niet vanzelf mee.** Zo'n `deploy`-job werkt de container **app** bij; een container
+app **job** krijgt alleen een nieuw image als de workflow er expliciet een `az containerapp job
+update` voor doet, of bij een bicep-deploy (`azure-infra` → `deploy`). Er zijn twee jobs, en beide
+worden inmiddels expliciet bijgewerkt: `bwb-import` door zijn eigen publish-workflow, en `eval` door
+die van graph-qa — de eval-job draait namelijk hetzelfde image als de graph-qa-app, want de bicep
+zet één `graphQaImage` op allebei.
+
+Dat laatste is er pas op 4 sep 2026 bij gekomen, nadat de eval-job maandenlang op het image van de
+laatste infra-deploy bleef hangen: hij mat een oudere agent dan er live stond, en niets in het
+eval-rapport verraadt dat. Controleer het met `azure-infra` → `inventaris`; die toont sindsdien het
+image per job, en `wetsanalyse-eval` hoort dezelfde digest te tonen als `wetsanalyse-graph-qa`.
+
 ### Productie: promoveren, niet herbouwen
 
 Een tag `v*` start **`promote.yml`**. Die bouwt niets: hij leest de digests die op *acceptatie*
@@ -164,6 +176,28 @@ tag belooft. Praktisch: tag een commit die al op `master` staat en waarvan accep
 heeft afgerond.
 
 De publish-workflows luisteren daarom **niet** op tags – die bouwen alleen voor acceptatie.
+
+De guard dekt vier targets: de apps `api`, `frontend` en `graph-qa`, plus de job `bwb-import`. De
+eval-job zit er bewust niet in: die bestaat alleen op acceptatie.
+
+#### Runbook: een release klaarzetten
+
+De guard eist dat álle vier de images de revisie van de getagde commit dragen. De publish-workflows
+zijn padgefilterd, dus een merge bouwt alleen wat veranderde — en een component dat al een tijd
+onveranderd is (bijvoorbeeld `api/`) heeft dan géén image bij die commit. Tag je zonder meer, dan
+faalt de promotie op precies dat punt.
+
+1. Kies de commit op `master` die je wilt uitbrengen.
+2. Draai **alle vier** de `*-docker-publish.yml`-workflows met `workflow_dispatch` op die commit.
+   Elke run rolt ook naar acceptatie uit: inhoudelijk identiek, maar met een nieuw digest, want een
+   herbouw van dezelfde broncode levert een ander artefact op.
+3. Controleer met `azure-infra` → `inventaris` dat acceptatie die vier digests draait.
+4. Tag en push. `promote.yml` draait en wacht op de required reviewer.
+5. **Vul daarna de graaf van productie.** Promotie geeft productie het nieuwe bwb-import-image, maar
+   een `job update` start geen uitvoering — de graaf blijft staan zoals hij was tot de wekelijkse
+   cron of een handmatige run. Draai `azure-infra` → omgeving `productie` → actie `vul-graaf` en
+   controleer daarna de dekking. Deze stap is op 4 sep 2026 op acceptatie vergeten en kostte een
+   halve middag zoeken naar een graaf die "niet bijgewerkt" leek.
 
 ### De productiestraat aanzetten
 

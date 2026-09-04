@@ -180,6 +180,31 @@ jobs:
           done
           echo "::error::revisie $rev werd niet Running binnen 5 minuten"; exit 1
 
+      # De eval-job draait hetzelfde image als de app, maar liftte er niet mee: `az containerapp
+      # update` raakt alleen de container app, en de bicep zet `graphQaImage` op beide. Daardoor
+      # bleef de eval-job hangen op het image van de laatste infra-deploy en mat hij een oudere
+      # agent dan er live stond — zonder dat het rapport dat verraadt. Gevonden op 4 sep 2026 met
+      # een `inventaris`, die sinds #427 het image per job toont: app 4bcfb51b, eval 5fc897f1.
+      #
+      # Ná de gezondheidscontrole hierboven, zodat de eval nooit naar een image wijst waarvan net
+      # is gebleken dat het niet opkomt. Geen wachtlus: een job heeft geen revisie die "draait" —
+      # hij pakt dit image bij zijn volgende start.
+      - name: Azure Container App Job update (eval)
+        env:
+          IMAGE_DIGEST_REF: ${{ env.IMAGE }}@${{ needs.build-and-push.outputs.digest }}
+        run: |
+          set -euo pipefail
+          if ! az containerapp job show -n "$APP-eval" -g "$RG" --output none 2>/dev/null; then
+            echo "::warning::container app job $APP-eval bestaat nog niet in $RG – de eval-job is overgeslagen. Rol eerst de infra uit (azure-infra -> deploy)."
+            exit 0
+          fi
+          az containerapp job update \
+            --name "$APP-eval" \
+            --resource-group "$RG" \
+            --image "$IMAGE_DIGEST_REF" \
+            --output none
+          echo "eval-job wijst nu naar $IMAGE_DIGEST_REF"
+
       - name: Afmelden bij Azure
         if: always()
         run: az logout || true
