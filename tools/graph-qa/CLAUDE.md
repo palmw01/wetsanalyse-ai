@@ -658,6 +658,14 @@ dezelfde bepaling levert tussen runs sterk verschillende uitkomsten op (geel var
 dus één run is een anekdote. Lees precisie/recall en span-IoU als bandbreedte; de *garanties* horen
 wél op 100%.
 
+**De eval-job draait hetzelfde image als de graph-qa-app**, dus een eval-rapport gaat over de code
+die op dát moment is uitgerold — niet over je werkkopie. De bicep zet één `graphQaImage` op allebei,
+maar de publish-workflow werkte lang alleen de app bij; de job bleef dan hangen op het image van de
+laatste infra-deploy en mat een oudere agent, zonder dat het rapport dat verraadt. Sinds 4 sep 2026
+doet `graph-qa-docker-publish.yml` ook een `job update` op de eval-job. Controleren kan met
+`azure-infra` → `inventaris`: `wetsanalyse-eval` hoort dezelfde digest te tonen als
+`wetsanalyse-graph-qa`.
+
 De job draagt bewust **geen** `WETSANALYSE_API_URL`/`_TOKEN` en geen `CHECKPOINT_DB_URL`: met die
 eerste twee zou `legt_zelf_vast` aan staan en elke eval-run als annotatiedocument in de
 werkvoorraad van een jurist landen, en met de derde zouden de eval-gesprekken in de gedeelde
