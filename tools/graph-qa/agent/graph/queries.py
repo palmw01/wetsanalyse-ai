@@ -31,7 +31,13 @@ _BWB_RE = re.compile(r"^BWBR\d+$")
 _ART_RE = re.compile(r"^[0-9]+[a-z]*$", re.IGNORECASE)
 _NUM_RE = re.compile(r"^[0-9]+[a-z]*$", re.IGNORECASE)
 # Vrij bepaling-nummer: staat decimale (divisie-)vormen en letters toe: "9", "9.1", "22a", "22bis".
-_NUMMER_VRIJ_RE = re.compile(r"^[0-9]+(\.[0-9]+)*[a-z]*$", re.IGNORECASE)
+#
+# Letters mogen op ELK segment staan, niet alleen op het laatste. De oudere vorm
+# `^[0-9]+(\.[0-9]+)*[a-z]*$` eiste dat elk segment ná de eerste punt puur numeriek was, en wees
+# daarmee 52 bestaande Leidraad-bepalingen af: "7a.1", "22bis.1", "73.3a.2", "25.3a.1", "44a.2" …
+# Die gaven geen "niets gevonden" maar een 400 OngeldigeVindplaats – een tikfout-melding voor een
+# bepaling die gewoon bestaat. Een puur alfabetisch segment ("14.4.5.a", "25.2.2.a") komt ook voor.
+_NUMMER_VRIJ_RE = re.compile(r"^[0-9]+[a-z]*(\.(?:[0-9]+[a-z]*|[a-z]+))*$", re.IGNORECASE)
 
 
 def _bwb(value: str) -> str:
@@ -58,7 +64,9 @@ def _num(value: str) -> str:
 def _nummer_vrij(value: str) -> str:
     v = str(value).strip()
     if not _NUMMER_VRIJ_RE.match(v):
-        raise ValueError(f"Ongeldig bepaling-nummer: {value!r} (verwacht bv. '9', '9.1', '22a').")
+        raise ValueError(
+            f"Ongeldig bepaling-nummer: {value!r} (verwacht bv. '9', '9.1', '22a', '73.3a.2')."
+        )
     return v
 
 
@@ -155,11 +163,20 @@ def get_artikel_corpus(bwb_id: str, artikel: str) -> str:
 
     `heeftOnderdeel+` omdat de importer een boom schrijft: 'aa.' hangt onder het lid, '1°' onder
     'aa.'.
+
+    De derde tak (`?sub`) is er voor een aanduiding met een héél getal die bij een beleidsregel op
+    een container uitkomt. `artikel_iri("BWBR0024096", "25")` bestaat namelijk wél – de Leidraad
+    geeft haar top-divisies een `:artikel:`-IRI – dus deze query levert rijen, `leden` is niet leeg
+    en `_bepaling_fallback` springt juist níet aan. Zonder deze tak was het resultaat een
+    inhoudsopgave van acht streepjes met een 200 eronder. Zie `get_bepaling_corpus` voor de rest
+    van de redenering; het decimale pad (`25.1.1`) loopt daar langs.
     """
     iri = artikel_iri(bwb_id, artikel)
-    return PREFIXES + f"""SELECT ?tekst ?jci ?lid ?lidnummer ?lidtekst ?o ?ouder ?onummer ?otekst WHERE {{
+    return PREFIXES + f"""SELECT ?tekst ?jci ?soort ?lid ?lidnummer ?lidtekst ?sub ?subnummer ?subtekst
+       ?o ?ouder ?onummer ?otekst WHERE {{
   OPTIONAL {{ <{iri}> bwb:tekst ?tekst }}
   OPTIONAL {{ <{iri}> bwb:jci ?jci }}
+  OPTIONAL {{ <{iri}> a ?soort . FILTER(?soort IN (bwb:Artikel, bwb:Divisie)) }}
   OPTIONAL {{
     {{
       <{iri}> bwb:heeftLid ?lid .
@@ -179,9 +196,21 @@ def get_artikel_corpus(bwb_id: str, artikel: str) -> str:
       OPTIONAL {{ ?ouder bwb:heeftOnderdeel ?o }}
       OPTIONAL {{ ?o bwb:nummer ?onummer }}
       OPTIONAL {{ ?o bwb:tekst ?otekst }}
+    }} UNION {{
+      <{iri}> (bwb:heeftDivisie|bwb:heeftArtikel)+ ?sub .
+      FILTER(STRSTARTS(STR(?sub), "{NS}"))
+      OPTIONAL {{ ?sub bwb:nummer ?subnummer }}
+      OPTIONAL {{ ?sub bwb:tekst ?subtekst }}
+      OPTIONAL {{
+        ?sub bwb:heeftOnderdeel+ ?o .
+        FILTER(STRSTARTS(STR(?o), "{NS}"))
+        OPTIONAL {{ ?ouder bwb:heeftOnderdeel ?o }}
+        OPTIONAL {{ ?o bwb:nummer ?onummer }}
+        OPTIONAL {{ ?o bwb:tekst ?otekst }}
+      }}
     }}
   }}
-}} ORDER BY ?lid ?o"""
+}} ORDER BY ?lid ?sub ?o"""
 
 
 def get_lid(bwb_id: str, artikel: str, lid: str) -> str:
@@ -272,27 +301,59 @@ def get_bepaling_corpus(bwb_id: str, nummer: str) -> str:
     De `FILTER(BOUND(...))` eist daarom inhoud in de een óf de ander, en de `ORDER BY` geeft
     voorrang aan een node mét eigen tekst — een nummer kan binnen een regeling meer dan één node
     raken, en dan wil je de inhoudelijke.
+
+    **De `?sub`-tak: een bepaling kan een container zijn.** De importer schrijft voor een circulaire
+    twee bomen: `heeftDivisie` voor divisie→subdivisie en `heeftOnderdeel` voor de opsomming ván één
+    divisie. Alleen `heeftOnderdeel+` volgen levert bij een container dus de inhoudsopgave en niets
+    meer: bepaling 25 van de Leidraad heeft 76 tekens eigen tekst en acht opsommingsstreepjes,
+    terwijl er 81 subdivisies met 43.622 tekens onder hangen. Geen fout, geen 404 — stil onvolledig,
+    en dat is precies het gevaarlijke geval.
+
+    `heeftArtikel` zit in hetzelfde pad omdat een divisie eigen artikelen kan dragen (elf in de
+    Leidraad, onder 22bis en 79). Het pad is transitief en gaat níet één niveau: bepaling 25 heeft
+    negen directe subdivisies met samen nul tekens eigen tekst — de inhoud zit pas een laag dieper.
+    Lege tussenlagen leveren gewoon geen corpusregel op.
+
+    `ORDER BY ?sub ?o` groepeert de rijen per subbepaling; de eigen onderdelen van de node zelf
+    (`?sub` ongebonden) komen eerst. De echte volgorde legt `artikel._boomvolgorde` op.
     """
     lit = _lit(_nummer_vrij(nummer))
     scope = f"{NS}{_bwb(bwb_id)}"
-    return PREFIXES + f"""SELECT ?nummer ?tekst ?jci ?o ?ouder ?onummer ?otekst WHERE {{
+    return PREFIXES + f"""SELECT ?nummer ?tekst ?jci ?soort ?sub ?subnummer ?subtekst
+       ?o ?ouder ?onummer ?otekst WHERE {{
   {{ SELECT DISTINCT ?node ?tekst WHERE {{
       ?node bwb:nummer {lit} .
       FILTER(STRSTARTS(STR(?node), "{scope}"))
       OPTIONAL {{ ?node bwb:tekst ?tekst }}
       OPTIONAL {{ ?node bwb:heeftOnderdeel ?enig }}
-      FILTER(BOUND(?tekst) || BOUND(?enig))
+      OPTIONAL {{ ?node bwb:heeftDivisie|bwb:heeftArtikel ?enigkind }}
+      FILTER(BOUND(?tekst) || BOUND(?enig) || BOUND(?enigkind))
     }} ORDER BY DESC(BOUND(?tekst)) LIMIT 1 }}
   BIND({lit} AS ?nummer)
   OPTIONAL {{ ?node bwb:jci ?jci }}
+  OPTIONAL {{ ?node a ?soort . FILTER(?soort IN (bwb:Artikel, bwb:Divisie)) }}
   OPTIONAL {{
-    ?node bwb:heeftOnderdeel+ ?o .
-    FILTER(STRSTARTS(STR(?o), "{scope}"))
-    OPTIONAL {{ ?ouder bwb:heeftOnderdeel ?o }}
-    OPTIONAL {{ ?o bwb:nummer ?onummer }}
-    OPTIONAL {{ ?o bwb:tekst ?otekst }}
+    {{
+      ?node bwb:heeftOnderdeel+ ?o .
+      FILTER(STRSTARTS(STR(?o), "{scope}"))
+      OPTIONAL {{ ?ouder bwb:heeftOnderdeel ?o }}
+      OPTIONAL {{ ?o bwb:nummer ?onummer }}
+      OPTIONAL {{ ?o bwb:tekst ?otekst }}
+    }} UNION {{
+      ?node (bwb:heeftDivisie|bwb:heeftArtikel)+ ?sub .
+      FILTER(STRSTARTS(STR(?sub), "{scope}"))
+      OPTIONAL {{ ?sub bwb:nummer ?subnummer }}
+      OPTIONAL {{ ?sub bwb:tekst ?subtekst }}
+      OPTIONAL {{
+        ?sub bwb:heeftOnderdeel+ ?o .
+        FILTER(STRSTARTS(STR(?o), "{scope}"))
+        OPTIONAL {{ ?ouder bwb:heeftOnderdeel ?o }}
+        OPTIONAL {{ ?o bwb:nummer ?onummer }}
+        OPTIONAL {{ ?o bwb:tekst ?otekst }}
+      }}
+    }}
   }}
-}} ORDER BY ?o"""
+}} ORDER BY ?sub ?o"""
 
 
 def get_regeling_info(bwb_id: str) -> str:

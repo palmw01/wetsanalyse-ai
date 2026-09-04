@@ -17,9 +17,14 @@ export function weergaveUitParam(param: string | null | undefined): Weergave {
   return param === "alles" ? "alles" : "te-doen";
 }
 
-/** De vindplaats zoals hij in beeld komt: `art. 9 lid 2`. Werkt op zowel een samenvatting als een
- *  volledig document – beide dragen artikel en lid. */
-export function vindplaatsLabel(d: { artikel: string; lid: string }): string {
+/** De vindplaats zoals hij in beeld komt: `art. 9 lid 2`, of `bepaling 25.1` bij een beleidsregel.
+ *  Werkt op zowel een samenvatting als een volledig document – beide dragen artikel en lid.
+ *
+ *  Het `soort` komt uit de graaf (via `GET /v1/artikel`) en wordt niet uit het nummer geraden: een
+ *  heel getal als "25" is bij de Invorderingswet een artikel en bij de Leidraad een divisie. Zonder
+ *  soort blijft het "art.", wat het bij de zes wet-achtige regelingen ook is. */
+export function vindplaatsLabel(d: { artikel: string; lid: string; soort?: string }): string {
+  if (d.soort === "Divisie") return `bepaling ${d.artikel}${d.lid ? `, ${d.lid}` : ""}`;
   return `art. ${d.artikel}${d.lid ? ` lid ${d.lid}` : ""}`;
 }
 
@@ -62,13 +67,39 @@ export function sorteerTeDoen(docs: DocumentSamenvatting[]): DocumentSamenvattin
 /** Alles-volgorde binnen een regeling: op artikel (numeriek, want '10' hoort ná '2') en dan lid. */
 function sorteerBinnenRegeling(docs: DocumentSamenvatting[]): DocumentSamenvatting[] {
   return [...docs].sort(
-    (a, b) => nummer(a.artikel) - nummer(b.artikel) || nummer(a.lid) - nummer(b.lid),
+    (a, b) => vergelijkNummer(a.artikel, b.artikel) || vergelijkNummer(a.lid, b.lid),
   );
 }
 
-function nummer(waarde: string): number {
-  const m = /\d+/.exec(waarde ?? "");
-  return m ? Number(m[0]) : Number.MAX_SAFE_INTEGER;
+/** Sorteersleutel per punt-gescheiden segment: [[25],[1],[1]] voor "25.1.1".
+ *
+ * Alleen het eerste cijferblok lezen gaf voor een beleidsregel overal dezelfde sleutel: alle
+ * bepalingen "25.x.y" van de Leidraad sorteerden als 25 en stonden daarmee in willekeurige
+ * volgorde in de werkvoorraad. Per segment komt 25.2 vóór 25.10 en valt 73.3a tussen 73.3 en 73.4.
+ * Dit is dezelfde regel als `_lidsleutel` in graph-qa. */
+function sleutel(waarde: string): [number, string][] {
+  const tekst = (waarde ?? "").trim();
+  if (!tekst) return [[Number.MAX_SAFE_INTEGER, ""]];
+  const delen = tekst.split(".");
+  const uit: [number, string][] = [];
+  for (const deel of delen) {
+    const m = /^(\d*)([a-z]*)$/i.exec(deel);
+    if (!m || !deel) return [[Number.MAX_SAFE_INTEGER, tekst]];
+    uit.push([m[1] ? Number(m[1]) : Number.MAX_SAFE_INTEGER, m[2].toLowerCase()]);
+  }
+  return uit;
+}
+
+function vergelijkNummer(a: string, b: string): number {
+  const x = sleutel(a);
+  const y = sleutel(b);
+  for (let i = 0; i < Math.max(x.length, y.length); i++) {
+    const [xn, xs] = x[i] ?? [-1, ""];
+    const [yn, ys] = y[i] ?? [-1, ""];
+    if (xn !== yn) return xn - yn;
+    if (xs !== ys) return xs < ys ? -1 : 1;
+  }
+  return 0;
 }
 
 export interface Regeling {

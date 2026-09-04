@@ -11,7 +11,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from .artikel import OngeldigeVindplaats, artikel_corpus
+from .artikel import OngeldigeVindplaats, corpus_en_soort
 from .graph import queries
 from .graph.results import parse_select
 from .ports import GraphPort
@@ -196,7 +196,9 @@ def _corpus_uit_trace(source_trace: list[tuple[str, str]]) -> str:
     return "\n\n".join(delen)
 
 
-def _corpus_voor_doel(doel: dict[str, str], graph: GraphPort, source_trace: list[tuple[str, str]]) -> str:
+def _corpus_voor_doel(
+    doel: dict[str, str], graph: GraphPort, source_trace: list[tuple[str, str]]
+) -> tuple[str, str]:
     """De tekst waarop geannoteerd wordt: precies de bepaling uit `doel`, ongekapt.
 
     Eén gerichte ophaalactie via `artikel.artikel_corpus` – dezelfde functie waarmee `GET /v1/artikel`
@@ -213,14 +215,20 @@ def _corpus_voor_doel(doel: dict[str, str], graph: GraphPort, source_trace: list
     Eén uitzondering: is de aanduiding zélf ongeldig, dan gaat `OngeldigeVindplaats` door naar de
     aanroeper. Terugvallen zou daar een annotatie opleveren onder een vindplaats die niet te openen
     is; `annoteer_node` maakt er een leesbare melding van en stopt de beurt.
+
+    Geeft naast het corpus het **knooptype** terug ("Artikel"/"Divisie", leeg bij de trace-terugval),
+    zodat de vindplaats in de juiste woorden komt te staan: een divisie van een beleidsregel is geen
+    artikel met leden.
     """
     bwb = (doel.get("bwbId") or "").strip()
     aanduiding = (doel.get("artikel") or doel.get("nummer") or "").strip()
     if bwb and aanduiding:
         try:
-            corpus = artikel_corpus(bwb, aanduiding, graph, (doel.get("lid") or "").strip() or None)
+            corpus, soort = corpus_en_soort(
+                bwb, aanduiding, graph, (doel.get("lid") or "").strip() or None
+            )
             if corpus.strip():
-                return corpus
+                return corpus, soort
             logger.info(
                 "corpus: graaf gaf niets voor het doel; terugval op de tool-trace",
                 extra={"bwb_id": bwb, "aanduiding": aanduiding, "lid": doel.get("lid", "")},
@@ -237,4 +245,4 @@ def _corpus_voor_doel(doel: dict[str, str], graph: GraphPort, source_trace: list
             raise
         except Exception:  # noqa: BLE001 – een mislukte ophaal mag de annotatie niet breken
             logger.warning("corpus: gericht ophalen mislukt; terugval op de tool-trace", exc_info=True)
-    return _corpus_uit_trace(source_trace)
+    return _corpus_uit_trace(source_trace), ""

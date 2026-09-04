@@ -21,7 +21,10 @@ SRU-discovery → toestand-XML downloaden → XSD-validatie → lxml-parse → c
    Invorderingswet 1990 `BWBR0004766`) én circulaires/beleidsregels
    (`<circulaire>/<circulaire-tekst>` met een recursieve
    `<circulaire.divisie>`-boom, bv. de Leidraad Invordering 2008
-   `BWBR0024096`); een divisie is tegelijk container én tekstdrager.
+   `BWBR0024096`); een divisie is tegelijk container én tekstdrager, en kan naast subdivisies
+   en onderdelen ook **eigen `<artikel>`-kinderen** hebben — het XSD staat dat toe en de
+   Leidraad gebruikt het (tien onder `/Circulaire.divisie22bis`, één onder
+   `/Circulaire.divisie79`). Ze worden in documentvolgorde met de subdivisies meegelezen.
 3. **Collect** (`app/collect.py`) – loopt het model één keer door naar een
    opslag-agnostische `Batch` (nodes/relaties/verwijzingen + telling).
 4. **Writer** (`app/graphdb_writer.py`) – vertaalt de `Batch` naar RDF-triples;
@@ -68,6 +71,20 @@ waarde niet als segmentgrens leest.
   `https://wetten.overheid.nl/{bwb_id}` resp. de jci-resolver-URL; de
   geïmporteerde toestand staat als `bwb:toestandUrl`. Wil je sameAs-expansie
   in een query uitzetten: `FROM onto:disable-sameAs`.
+- **Vindplaats vs. identiteit**: `owl:sameAs` bestaat alleen waar de bron een échte jci geeft, en
+  dat is lang niet overal — van de 800 Leidraad-divisies hebben er 113 een eigen `<jci>` (102/102
+  op het topniveau, 10/306 één laag dieper, 1/389 daaronder). Voor de rest is er `bwb:bronUrl`: de
+  anker-URL op de toestandspagina, afgeleid uit het `bwb-ng-variabel-deel`-pad
+  (`…/BWBR0024096/2026-07-01#Circulaire.divisie25_Circulaire.divisie25.1`). Elke citeerbare node
+  krijgt hem, ook die mét jci — anders wordt zijn aanwezigheid zélf een signaal.
+  **Verzin nooit een jci.** Getest tegen wetten.overheid.nl: `&artikel=19.1.8` (door de redactie
+  toegekend) redirect naar het juiste anker, maar `&artikel=25.1` en `&artikel=26.1.9` landen
+  zonder anker op de hele regeling. Zo'n verzonnen verwijzing ziet er geldig uit en wijst naar de
+  verkeerde tekst.
+- **Dekking is een cijfer, geen oordeel** (`app/dekking.py`): de import legt de `<al>`-tekens in de
+  bron naast de `bwb:tekst`-literals in de graaf en toont de uitkomst in het import-overzicht.
+  `tests/test_dekking.py` bewaakt hem offline op de fixtures. Dit bestaat omdat elf
+  Leidraad-artikelen (10.052 tekens) stil ontbraken: geen fout, geen lege node, geen waarschuwing.
 - **Predicaten**: `bwb:heeftHoofdstuk/…/heeftArtikel/heeftLid/heeftOnderdeel/
   heeftDivisie/heeftBijlage`, `bwb:bevatIllustratie`, `bwb:ondertekendDoor`,
   `bwb:volgtOp`, `bwb:verwijstNaar`; properties als

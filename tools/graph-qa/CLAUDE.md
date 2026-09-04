@@ -709,6 +709,45 @@ daar niet voor: die bakt de jci in de tekst, en dan zou een markering een jci-fr
 Zes bepalingen hebben zelfs alléén onderdelen — die gaven niets terug zolang `bwb:tekst` een harde
 eis was in de query, en waren dus niet te openen en niet te annoteren.
 
+**Een bepaling kan een CONTAINER zijn, en dat gaat langs twee verschillende queries.** De importer
+schrijft voor een circulaire twee bomen: `heeftDivisie` (divisie→subdivisie, en `heeftArtikel` voor
+een divisie met eigen artikelen) naast `heeftOnderdeel` (de opsomming ván één divisie). Alleen
+`heeftOnderdeel+` volgen leverde bij bepaling 25 van de Leidraad 76 tekens eigen tekst plus acht
+opsommingsstreepjes — een inhoudsopgave — terwijl er 81 subdivisies met 43.622 tekens onder hangen.
+Geen fout en geen 404: `GET /v1/artikel` gaf 200, en wie dat annoteerde markeerde een inhoudsopgave.
+
+Let op dat een **heel getal** een ánder pad neemt dan een decimaal nummer: de Leidraad geeft haar
+top-divisies een `:artikel:`-IRI, dus `urn:bwb:BWBR0024096:artikel:25` bestáát, `get_artikel_corpus`
+levert rijen en `_bepaling_fallback` springt juist níet aan. Beide corpusqueries dragen daarom een
+`?sub`-tak met `(bwb:heeftDivisie|bwb:heeftArtikel)+`. Het pad is transitief en niet één niveau: de
+negen directe subdivisies van bepaling 25 hebben samen nul tekens eigen tekst, de inhoud zit een
+laag dieper. Lege tussenlagen leveren geen corpusregel op.
+
+**Subdivisies worden leden-rijen**, geen aparte structuur (`_vouw_subbepalingen_in`). Daarmee blijft
+alles wat op die vorm gebouwd is werken: het corpus dat op `"\n\n"` in segmenten valt,
+`_lid_segmenten` en het anker, het lid-filter, en `regelsVan` in de werkplek. Drie dingen moesten
+daarvoor mee, en zonder één ervan faalt het stil:
+
+- `_LIDPREFIX` leest nu ook `"25.1. "`; deed hij dat niet, dan kreeg elk segment lid `""` en viel de
+  lid-scoping terug op het hele corpus — precies wat "het lid en het anker zijn één beslissing"
+  verbiedt.
+- `_lidsleutel` sorteert per punt-segment. Op alleen het eerste cijferblok kregen "25.1" t/m "25.12"
+  dezelfde sleutel en was de volgorde willekeurig; `_match_lid` vergelijkt om dezelfde reden de
+  volle sleutel, anders matcht een filter op `25.1` ook `25.2`.
+- `_controleer_vindplaats` accepteert een subbepaling-nummer als `lid`. Strikt op `_num` toetsen gaf
+  een 400 OngeldigeVindplaats op een segment dat gewoon bestaat. `lid_iri` blijft wél strikt.
+
+**`_NUMMER_VRIJ_RE` staat letters op elk segment toe.** De oudere vorm eiste dat elk segment ná de
+eerste punt puur numeriek was en wees daarmee 52 bestaande Leidraad-bepalingen af — "7a.1",
+"22bis.1", "73.3a.2", "14.4.5.a". Dat waren geen "niets gevonden"-meldingen maar 400-tikfouten op
+bepalingen die er zijn.
+
+**Een divisie is geen artikel, en dat moet de vindplaats ook zeggen.** `aanduiding_in_woorden` maakt
+"art. 9 lid 1" of "bepaling 25, 25.1" op grond van het knooptype, dat de corpusqueries als `?soort`
+meeleveren (geen extra SPARQL-call). Raad het niet uit het nummer: "25" is bij de Invorderingswet
+een artikel en bij de Leidraad een divisie. Onbekend soort valt terug op "art.". `ArtikelResult`
+draagt `soort` expliciet — een `response_model` filtert weg wat er niet in staat.
+
 Let bij die bepalingen op de nummering: de Leidraad gebruikt een en-dash (`–`) als opsommingsteken,
 geen `a.` of `1°.`. Het corpus neemt dat over zoals de bron het geeft.
 

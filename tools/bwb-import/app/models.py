@@ -129,6 +129,10 @@ class Divisie:
     verwijzingen: list[Verwijzing] = field(default_factory=list)
     onderdelen: list[Onderdeel] = field(default_factory=list)
     subdivisies: list[Divisie] = field(default_factory=list)
+    # Een divisie kan – net als een :class:`Bijlage` – eigen artikelen bevatten; het XSD staat
+    # `<artikel>` toe als kind van `circulaire.divisie`. In de Leidraad Invordering 2008 gebeurt dat
+    # bij `/Circulaire.divisie22bis` (tien stuks) en `/Circulaire.divisie79` (één).
+    artikelen: list[Artikel] = field(default_factory=list)
     voetnoten: list[str] = field(default_factory=list)
     illustraties: list[Illustratie] = field(default_factory=list)
 
@@ -278,6 +282,11 @@ class ImportSummary:
     illustraties: int = 0
     ondertekenaars: int = 0
     relaties: int = 0
+    # Dekking: tekstomvang in de bron-XML tegenover wat er in de graaf belandt. Nul = niet gemeten.
+    # Zonder dit cijfer is "de graaf is volledig" een oordeel; elf Leidraad-artikelen (10.052
+    # tekens) konden daardoor anderhalve maand stil ontbreken.
+    bron_tekens: int = 0
+    graaf_tekens: int = 0
 
     def as_dict(self) -> dict[str, int | str]:
         return {
@@ -295,4 +304,8 @@ class ImportSummary:
             "illustraties": self.illustraties,
             "ondertekenaars": self.ondertekenaars,
             "relaties": self.relaties,
+            # Dekking hoort in het logboek van de import, niet alleen op het scherm: zo is achteraf
+            # te zien wannéér er tekst begon te ontbreken.
+            "bron_tekens": self.bron_tekens,
+            "graaf_tekens": self.graaf_tekens,
         }

@@ -120,3 +120,34 @@ describe("vindplaats", () => {
     expect(vindplaatsLabel(doc({ lid: "2" }))).toBe("art. 9 lid 2");
   });
 });
+
+describe("decimale bepalingnummers", () => {
+  it("sorteert subbepalingen per segment, niet op het eerste cijferblok", () => {
+    // Alleen het eerste cijferblok lezen gaf alle "25.x.y" dezelfde sleutel (25), waardoor de
+    // volgorde in de werkvoorraad van een beleidsregel willekeurig was.
+    const groep = groepeerPerRegeling([
+      doc({ slug: "a", artikel: "25.10" }),
+      doc({ slug: "b", artikel: "25.2" }),
+      doc({ slug: "c", artikel: "25.1.1" }),
+      doc({ slug: "d", artikel: "3" }),
+    ])[0];
+    expect(groep.documenten.map((d) => d.artikel)).toEqual(["3", "25.1.1", "25.2", "25.10"]);
+  });
+
+  it("zet een letter-segment op zijn plaats tussen de cijfers", () => {
+    const groep = groepeerPerRegeling([
+      doc({ slug: "a", artikel: "73.4" }),
+      doc({ slug: "b", artikel: "73.3a" }),
+      doc({ slug: "c", artikel: "73.3" }),
+    ])[0];
+    expect(groep.documenten.map((d) => d.artikel)).toEqual(["73.3", "73.3a", "73.4"]);
+  });
+
+  it("noemt een divisie een bepaling en geen artikel met leden", () => {
+    expect(vindplaatsLabel({ artikel: "9", lid: "2" })).toBe("art. 9 lid 2");
+    expect(vindplaatsLabel({ artikel: "25", lid: "", soort: "Divisie" })).toBe("bepaling 25");
+    expect(vindplaatsLabel({ artikel: "25", lid: "25.1", soort: "Divisie" })).toBe(
+      "bepaling 25, 25.1",
+    );
+  });
+});

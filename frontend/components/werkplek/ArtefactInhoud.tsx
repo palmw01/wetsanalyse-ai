@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { vindplaatsLabel } from "@/lib/annotatieOverzicht";
 import { foutTekst } from "@/lib/api";
 
 import { Melding } from "@/components/ui/Melding";
@@ -53,7 +54,14 @@ export function ArtefactInhoud({
   doc, info, ontbrekend, actiefId, onKies, onBeslissing, onEigenMarkering,
   onWisEigenMarkering, onVraag, onStatus, onSluiten,
 }: ArtefactInhoudProps) {
-  const opschrift = `${info.citeertitel || doc.bwbId} – artikel ${info.artikel}${doc.lid ? ` lid ${doc.lid}` : ""}`;
+  // Eén bron voor de bewoording: `vindplaatsLabel` weet uit het graaf-`soort` of dit een artikel
+  // met leden is of een bepaling van een beleidsregel. Hier raden op puntjes in het nummer zou bij
+  // de Invorderingswet en de Leidraad verschillend moeten uitpakken voor hetzelfde nummer "25".
+  const opschrift = `${info.citeertitel || doc.bwbId} – ${vindplaatsLabel({
+    artikel: info.artikel,
+    lid: doc.lid,
+    soort: info.soort,
+  })}`;
   // Eén keer per artikel opbouwen, niet per render: de regels zijn de identiteit waarop het
   // documentpaneel zijn eigen `useMemo`'s hangt, dus een verse array per render zette die uit.
   const regels = useMemo(() => regelsVan(info), [info]);

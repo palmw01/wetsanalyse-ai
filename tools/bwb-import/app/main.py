@@ -12,6 +12,7 @@ import logging
 import sys
 
 from app.config import Settings
+from app.dekking import bron_tekens
 from app.downloader import BwbDownloader
 from app.graphdb_writer import GraphDbWriter
 from app.models import ImportResult, ImportSummary, ToestandRef
@@ -70,6 +71,10 @@ def run_import(
 
     wti = _laad_wti(downloader, toestand) if settings.import_wti else None
     summary = writer.write_wet(wet, wti=wti)
+    try:
+        summary.bron_tekens = bron_tekens(xml_path)
+    except Exception:  # noqa: BLE001 - een meting mag de import nooit breken
+        logger.warning("Dekkingsmeting overgeslagen voor %s", bwb_id, exc_info=True)
 
     logger.info("Import voltooid voor %s", bwb_id)
     return summary
@@ -121,6 +126,13 @@ def _print_overzicht(summary: ImportSummary) -> None:
         ("Onderdelen", summary.onderdelen),
         ("Relaties", summary.relaties),
     ]
+    if summary.bron_tekens:
+        dekking = summary.graaf_tekens / summary.bron_tekens
+        mist = max(0, summary.bron_tekens - summary.graaf_tekens)
+        regels.append(
+            ("Tekstdekking", f"{dekking:.1%} ({summary.graaf_tekens}/{summary.bron_tekens})"
+             + (f" – MIST {mist} tekens" if mist else ""))
+        )
     breedte = max(len(label) for label, _ in regels)
     print("\n=== Import-overzicht ===")
     for label, waarde in regels:

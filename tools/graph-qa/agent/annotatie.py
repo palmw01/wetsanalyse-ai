@@ -25,7 +25,13 @@ _ACTIES = {"behoud", "vervang", "verwijder"}
 
 _WS = re.compile(r"\s+")
 # Het lidnummer waarmee `artikel._leden_en_corpus` elk lid in het corpus voorafgaat ("1. ", "9a. ").
-_LIDPREFIX = re.compile(r"^(\d+[a-z]*)\. ")
+#
+# Ook de decimale vorm van een beleidsregel ("25.1. ", "73.3a.2. "), want bij de Leidraad zijn de
+# corpussegmenten subdivisies in plaats van leden. Zonder dat kreeg elk segment lid "" terug, viel
+# de lid-scoping van `_lokaliseer` terug op het hele corpus, en liepen lid en anker uit elkaar –
+# precies wat "het lid en het anker zijn één beslissing" moet voorkomen. Het achterste `\.` blijft
+# gevolgd door een spatie, zodat "25.1" in "25.1.1. tekst" niet als heel nummer wordt gelezen.
+_LIDPREFIX = re.compile(r"^(\d+[a-z]*(?:\.(?:\d+[a-z]*|[a-z]+))*)\. ")
 # Een woordteken: waar een fragment niet middenin mag landen. Inclusief accenten, want een match
 # vlak vóór de "ë" van "beëindiging" is net zo goed een half woord.
 _WOORDTEKEN = re.compile(r"[0-9A-Za-zÀ-ÖØ-öø-ÿ]")
@@ -846,9 +852,27 @@ def _voeg_alternatief_toe(voorstel: AnnotatieVoorstel, klasse: str, motivatie: s
     voorstel.alternatieven.append(AnnotatieAlternatief(klasse=klasse, motivatie=motivatie))
 
 
+def aanduiding_in_woorden(aanduiding: str, lid: str = "", soort: str = "") -> str:
+    """"art. 9 lid 1" of "bepaling 25.1" – hoe je deze vindplaats in proza noemt.
+
+    Een `Divisie` van een beleidsregel is geen artikel en heeft geen leden: "art. 25.1 lid 2" is een
+    vindplaats die niet bestaat. De Leidraad labelt haar top-divisies zelf wél "Artikel 25", maar de
+    subdivisies eronder niet, en "bepaling" dekt beide zonder iets te beweren wat niet klopt. Het is
+    ook de term die de code al gebruikt (`get_bepaling`, `_bepaling_fallback`, `OngeldigeVindplaats`).
+
+    Onbekend soort valt terug op "art.": dat is wat er stond, en bij de zes wet-achtige regelingen –
+    veruit het meeste verkeer – is het gewoon juist.
+    """
+    nummer = str(aanduiding).strip()
+    scope = str(lid or "").strip()
+    if soort == "Divisie":
+        return f"bepaling {nummer}" + (f", {scope}" if scope else "")
+    return f"art. {nummer}" + (f" lid {scope}" if scope else "")
+
+
 def _verwerk(
     llm_text: str, corpus: str, bwb_id: str, artikel: str, scope_lid: str | None = None,
-    geldige_ids: set[str] | None = None,
+    geldige_ids: set[str] | None = None, soort: str = "",
 ) -> tuple[list[AnnotatieVoorstel], list[VerworpenFragment]]:
     """Parse de LLM-JSON, valideer klasse + brongetrouwheid, bereken vindplaats.
 
@@ -933,7 +957,7 @@ def _verwerk(
                 _voeg_alternatief_toe(eerste, klasse, str(e.get("toelichting", "")).strip())
                 continue
         anker = _maak_anker(corpus, orig_start, orig_eind, lid) if orig_start >= 0 else None
-        vindplaats = f"{bwb_id} art. {artikel}" + (f" lid {lid}" if lid else "")
+        vindplaats = f"{bwb_id} {aanduiding_in_woorden(artikel, lid, soort)}"
         # Een id uit een eerdere ronde behouden (herziening van een bestaand element); anders een
         # nieuw id. Zo blijft de koppeling met de Critic én met de api-elementen intact – maar
         # alléén voor een id dat het model ook echt is aangeboden.

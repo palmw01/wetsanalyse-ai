@@ -149,7 +149,7 @@ def test_circulaire_divisie_structuur(sample_circulaire_xml: Path) -> None:
     # Circulaire heeft geen wettekst-structuurdelen/artikelen maar een divisie-boom.
     assert wet.soort == "circulaire"
     assert not wet.structuurdelen and not wet.losse_artikelen
-    assert len(wet.divisies) == 1
+    assert len(wet.divisies) == 2
     top = wet.divisies[0]
     assert top.nummer == "1"
     assert top.label == "Artikel 1"
@@ -173,6 +173,32 @@ def test_circulaire_verwijzingen_en_onderdelen(sample_circulaire_xml: Path) -> N
     assert len(top.onderdelen) == 1
     assert top.onderdelen[0].nummer == "a."
     assert any(v.doc == "jci1.3:c:BWBR0002320&artikel=1" for v in top.onderdelen[0].verwijzingen)
+
+
+def test_circulaire_divisie_met_eigen_artikelen(sample_circulaire_xml: Path) -> None:
+    """Een divisie mag eigen ``<artikel>``-kinderen hebben; die vielen eerder stilzwijgend weg.
+
+    Het XSD staat ze toe naast ``circulaire.divisie`` en ``tekst``, en de Leidraad Invordering 2008
+    gebruikt het: tien artikelen onder ``/Circulaire.divisie22bis`` en één onder
+    ``/Circulaire.divisie79``, samen 10.052 tekens die niet in de graaf terechtkwamen.
+    """
+    divisie = _parse(sample_circulaire_xml).divisies[1]
+    assert divisie.nummer == "2"
+    assert [a.nummer for a in divisie.artikelen] == ["2bis.1"]
+    artikel = divisie.artikelen[0]
+    assert [lid.nummer for lid in artikel.leden] == ["1"]
+    assert "eerste lid van het artikel" in artikel.leden[0].tekst
+    # Geen dubbeltelling: de scopes van de divisie hangen aan ./tekst, en <artikel> is daar een
+    # broer van – geen kind. De artikeltekst hoort dus niet in de divisietekst.
+    assert "eerste lid van het artikel" not in divisie.tekst
+    assert divisie.tekst == "Dit artikel beschrijft het beleid over:"
+
+
+def test_circulaire_divisie_zonder_eigen_jci(sample_circulaire_xml: Path) -> None:
+    """Het ``#id=``-fallbackpad: de meeste subdivisies krijgen van de redactie geen eigen jci."""
+    divisie = _parse(sample_circulaire_xml).divisies[1]
+    assert [sub.nummer for sub in divisie.subdivisies] == ["2.1", "2.2"]
+    assert all(sub.jci is None for sub in divisie.subdivisies)
 
 
 # ------------------------------------------------- ministeriële regelingen

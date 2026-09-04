@@ -216,6 +216,8 @@ class _Collector:
             self._illustraties("Divisie", divisie.id, divisie.illustraties)
             self._onderdelen(divisie.onderdelen, divisie.id, "Divisie", ref_key)
             self._divisies(divisie.subdivisies, divisie.id, "Divisie")
+            # Een divisie kan eigen artikelen bevatten (aparte Artikel-nodes), net als een bijlage.
+            self._artikelen(divisie.artikelen, divisie.id, "Divisie")
 
     def _bijlagen(self, bijlagen: list[Bijlage], ouder_id: str, ouder_ent: str) -> None:
         vorige_bijlage: str | None = None
