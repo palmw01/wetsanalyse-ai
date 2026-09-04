@@ -331,7 +331,16 @@ jobs:
           if "graphdbProxyExtern && !empty(graphdbProxyToken)" not in bicep:
               fout.append("main.bicep: de proxy hangt niet aan `graphdbProxyExtern && !empty(graphdbProxyToken)`")
 
-          # 4. Elke `--graphdb-proxy-extern` in de workflow staat achter een acceptatie-conditie.
+          # 4. De nginx-config zit in een SECRET, en secrets zijn in Container Apps niet
+          #    revisie-scoped: zonder een revisionSuffix die met de config meebeweegt levert een
+          #    configwijziging geen nieuwe revisie op en blijft de oude container draaien. Dat kostte
+          #    een mislukte uitrol waarbij de fix wél in Azure stond maar niet werd opgepikt.
+          proxy_blok = bicep.split("resource graphdbProxyApp ", 1)[-1].split("\nresource ", 1)[0]
+          if "uniqueString(graphdbProxyConfig)" not in proxy_blok:
+              fout.append("main.bicep: de proxy heeft geen revisionSuffix uit de config-hash – "
+                          "een configwijziging rolt dan niet uit")
+
+          # 5. Elke `--graphdb-proxy-extern` in de workflow staat achter een acceptatie-conditie.
           for regel in FLOW.read_text(encoding="utf-8").splitlines():
               if "--graphdb-proxy-extern" not in regel or regel.strip().startswith("#"):
                   continue
