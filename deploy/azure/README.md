@@ -291,6 +291,39 @@ wordt wel gezet – de code eist het fail-closed – maar het is hier geen slot.
 Voor een standby-/demo-omgeving is dat verdedigbaar. Wordt dit ooit een productieomgeving, dan hoort
 hetzelfde service-account + proxy-patroon als in de zelfgehoste opzet erbij.
 
+### De graaf van buiten bevragen (MCP-proxy)
+
+Omdat de netwerkgrens de enige beveiliging is, mag GraphDB's eigen ingress **nooit** extern. Wil je
+de graaf toch met een MCP-client bevragen – Claude Code, langs dezelfde weg als Lex – zet dan de
+proxy aan:
+
+1. Zet op de GitHub-environment `acceptatie` het secret **`WA_GRAPHDB_PROXY_TOKEN`** (bijv.
+   `openssl rand -hex 24`). Zelf zetten, want je moet de waarde kennen: hij gaat in de MCP-config van
+   je werkstation, en een GitHub-secret kun je niet teruglezen. `gen-deploy.py` genereert hem daarom
+   bewust niet en faalt hard als hij ontbreekt.
+2. Draai `azure-infra` → straat `acceptatie`, actie `deploy`, **`graphdb_proxy: true`**. De
+   samenvatting van de run toont de URL.
+3. Registreer de server machine-lokaal – **niet** in de repo, die is publiek:
+   ```bash
+   claude mcp add --transport http graphdb <url>/mcp \
+     --header "Authorization: Bearer <token>"
+   ```
+
+Wat de proxy is: een nginx (`<straat>-graphdb-proxy`) die uitsluitend `/mcp` doorlaat, alleen met het
+juiste bearer-token, en al het andere met 404 afwijst – geen Workbench, geen REST-API, geen
+SPARQL-endpoint. GraphDB zelf blijft `external: false` en wordt niet aangeraakt, dus de graaf
+herstart niet en hoeft niet opnieuw geïmporteerd te worden. Hij schaalt naar nul.
+
+Wat de proxy **niet** doet: read-only afdwingen. Wie erdoor komt heeft dezelfde rechten als Lex – een
+SPARQL-body is op nginx-niveau niet betrouwbaar te keuren. Dat is te dragen omdat dit alleen op
+acceptatie aan gaat, het token apart intrekbaar is en de graaf reproduceerbaar is uit overheid.nl.
+Wil je harder, dan hoort daar GraphDB-security met een read-only account bij; dat raakt `bwb-import`
+én graph-qa en is een eigen traject.
+
+Weer dicht: actie **`mcp-proxy-afbreken`** (met de resource group ter bevestiging). `graphdb_proxy`
+weer op `false` zetten is **niet** genoeg – een bicep-deploy in incremental mode verwijdert niets, en
+`opruimen` beschermt de proxy juist omdat die actie niet kan weten of hij bedoeld is.
+
 Verder ongewijzigd: alle applicatie-secrets zijn **bestanden** (`*_FILE`-patroon via secret-volumes),
 nooit platte env-vars.
 

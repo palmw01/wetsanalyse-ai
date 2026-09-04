@@ -79,6 +79,9 @@ def main() -> None:
     # parameter áltijd meegaan en zou de bicep-default nooit gelden.
     p.add_argument("--api-extern", action="store_true", default=None,
                    help="Api-ingress publiek maken (alleen acceptatie; zie main.bicep:apiExtern).")
+    p.add_argument("--graphdb-proxy-extern", action="store_true", default=None,
+                   help="De externe GraphDB-MCP-proxy uitrollen (alleen acceptatie; zie "
+                        "main.bicep:graphdbProxyExtern). Vereist WA_GRAPHDB_PROXY_TOKEN.")
     p.add_argument("--api-image", default=None)
     p.add_argument("--frontend-image", default=None)
     p.add_argument("--graph-qa-image", default=None)
@@ -117,6 +120,13 @@ def main() -> None:
     # alleen intern bereikbaar en draait GraphDB zonder eigen security, dus dit token is daar geen
     # slot – het wordt wel meegestuurd. Zelf genereren is beter dan het token van de zelfgehoste opzet hierheen kopiëren.
     tok_graphdb = _secret("WA_GRAPHDB_TOKEN", lambda: secrets.token_hex(24))
+    # Het token voor de EXTERNE MCP-proxy wordt bewust NIET gegenereerd. Anders dan de tokens
+    # hierboven moet een mens deze waarde kennen – hij gaat in de MCP-configuratie van een
+    # werkstation – en een GitHub-secret kun je niet teruglezen. Dus: zelf zetten, of geen proxy.
+    tok_graphdb_proxy = os.environ.get("WA_GRAPHDB_PROXY_TOKEN", "")
+    if args.graphdb_proxy_extern and not tok_graphdb_proxy:
+        p.error("--graphdb-proxy-extern vereist WA_GRAPHDB_PROXY_TOKEN in de omgeving; "
+                "zonder token zou de proxy stil worden overgeslagen en denk je dat hij draait.")
     db_pass = _secret("WA_DB_ADMIN_PASSWORD", lambda: secrets.token_hex(24))
     fernet = _secret("WA_LLM_CONFIG_SECRET",
                      lambda: base64.urlsafe_b64encode(os.urandom(32)).decode())
@@ -141,6 +151,7 @@ def main() -> None:
             "frontendAdminToken": {"value": tok_admin},
             "dbAdminPassword": {"value": db_pass},
             "graphdbToken": {"value": tok_graphdb},
+            "graphdbProxyToken": {"value": tok_graphdb_proxy},
             "qaApiToken": {"value": tok_qa},
             "graphQaApiToken": {"value": tok_qa_api},
             "graphdbLicenseBase64": {"value": licentie_b64},
@@ -152,6 +163,7 @@ def main() -> None:
         (args.backup_retention_days, "backupRetentionDays"),
         (args.min_replicas_apps, "minReplicasApps"),
         (args.api_extern, "apiExtern"),
+        (args.graphdb_proxy_extern, "graphdbProxyExtern"),
         (args.api_image, "apiImage"),
         (args.frontend_image, "frontendImage"),
         (args.graph_qa_image, "graphQaImage"),

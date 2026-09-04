@@ -293,6 +293,63 @@ jobs:
           print("ok - apiExtern staat default op false en wordt alleen op acceptatie gezet")
           PYEOF
 
+      - name: GraphDB blijft intern – de proxy alleen op acceptatie
+        run: |
+          python3 - <<'PYEOF'
+          import pathlib, re, sys
+
+          BICEP = pathlib.Path("deploy/azure/main.bicep")
+          FLOW = pathlib.Path(".github/workflows/azure-infra.yml")
+          fout = []
+
+          # Commentaar eruit vóór we zoeken: deze bicep LEGT UIT waarom `external: true` op GraphDB
+          # verkeerd is, en zonder deze filter zou de guard over zijn eigen waarschuwing struikelen.
+          def zonder_commentaar(tekst: str) -> str:
+              return "\n".join(r for r in tekst.splitlines() if not r.lstrip().startswith("//"))
+
+          bicep = zonder_commentaar(BICEP.read_text(encoding="utf-8"))
+
+          # 1. De veilige waarde is de DEFAULT: wie niets meegeeft rolt geen externe deur uit.
+          m = re.search(r"^param graphdbProxyExtern bool = (\w+)$", bicep, re.M)
+          if not m:
+              fout.append("main.bicep: `param graphdbProxyExtern bool = …` niet gevonden")
+          elif m.group(1) != "false":
+              fout.append(f"main.bicep: graphdbProxyExtern heeft default `{m.group(1)}`, moet `false` zijn")
+
+          # 2. GraphDB zelf blijft ALTIJD intern. Dit is de kern: de graaf draait zonder eigen
+          #    security, dus zijn ingress openzetten levert een onbeveiligd, schrijfbaar
+          #    SPARQL-endpoint op internet. De proxy ernaast is de enige toegestane weg naar buiten.
+          graphdb_blok = bicep.split("resource graphdbApp ", 1)[-1].split("\nresource ", 1)[0]
+          if not re.search(r"external:\s*false", graphdb_blok):
+              fout.append("main.bicep: de graphdb-ingress staat niet op `external: false`")
+          if re.search(r"external:\s*(true|graphdb)", graphdb_blok):
+              fout.append("main.bicep: de graphdb-ingress is extern gemaakt – dat mag niet, gebruik de proxy")
+
+          # 3. De proxy draait alleen mét token. Zonder die conditie zou een deploy zonder secret een
+          #    nginx opleveren die iedereen doorlaat: `"Bearer "` matcht dan een lege header niet,
+          #    maar op zo'n toeval wil je een publieke deur niet laten rusten.
+          if "graphdbProxyExtern && !empty(graphdbProxyToken)" not in bicep:
+              fout.append("main.bicep: de proxy hangt niet aan `graphdbProxyExtern && !empty(graphdbProxyToken)`")
+
+          # 4. Elke `--graphdb-proxy-extern` in de workflow staat achter een acceptatie-conditie.
+          for regel in FLOW.read_text(encoding="utf-8").splitlines():
+              if "--graphdb-proxy-extern" not in regel or regel.strip().startswith("#"):
+                  continue
+              if "acceptatie" not in regel:
+                  fout.append(f"azure-infra.yml: `--graphdb-proxy-extern` zonder acceptatie-conditie: {regel.strip()}")
+
+          if fout:
+              for f in fout:
+                  print(f"  {f}")
+              print()
+              print("  GraphDB draait op Azure ZONDER eigen security: de netwerkgrens is de enige")
+              print("  beveiliging. Extern bereikbaar hoort alleen de nginx-proxy te zijn, die een")
+              print("  bearer-token afdwingt en niets anders dan /mcp doorlaat. Zie sectie 3b in")
+              print("  main.bicep.")
+              sys.exit(1)
+          print("ok - graphdb blijft intern; de proxy staat default uit en alleen op acceptatie")
+          PYEOF
+
       - name: Bepalen wat deze PR raakt
         id: raakt
         run: |
