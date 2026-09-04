@@ -664,3 +664,33 @@ def test_verwijzing_zonder_hoofdstuk_komt_toch_op_de_juiste_afdeling_uit() -> No
     assert (bron, V.ns.verwijstNaar, doel) in g
     # En niet naar de padloze stub.
     assert (bron, V.ns.verwijstNaar, V.by_ref_key("BWBR0000001#afdeling=2")) not in g
+
+
+def test_verwijzing_met_pad_in_de_jci_matcht_rechtstreeks() -> None:
+    """Draagt de verwijzing zélf het structuurpad, dan hoeft er niets geraden te worden.
+
+    Dit ging in de eerste opzet mis: het doel werd met de PLATTE sleutel gebouwd
+    (`jci_doel_ref_key`, alleen het laatste segment) terwijl het pad gewoon in de `doc` stond.
+    `_koppel_structuurverwijzingen` moest daarna kiezen tussen tien "afdeling 2"-kandidaten en
+    weigerde dat terecht — 45 verwijzingen belandden zo op een lege stub, met de informatie om het
+    goed te doen binnen handbereik.
+
+    De ambigue verwijzing (zónder pad) blijft het geval waarvoor die pas bestaat; deze test bewaakt
+    dat hij er voor een ondubbelzinnige verwijzing niet aan te pas komt.
+    """
+    wet = _wet_met_twee_keer_afdeling_1()
+    wet.structuurdelen[1].subdelen[0].artikelen[0].verwijzingen = [
+        Verwijzing(
+            soort=VerwijzingSoort.INTERN,
+            tekst="afdeling 1 van hoofdstuk IV",
+            doel_bwb_id="BWBR0000001",
+            doc="jci1.3:c:BWBR0000001&hoofdstuk=IV&afdeling=1",
+        )
+    ]
+    g, _ = _writer().build_graph(wet)
+
+    bron = V.by_ref_key("BWBR0000001#artikel=36")
+    assert (bron, V.ns.verwijstNaar, V.by_ref_key("BWBR0000001#hoofdstuk=IV#afdeling=1")) in g
+    # Niet naar de afdeling 1 van het ándere hoofdstuk, en niet naar een padloze stub.
+    assert (bron, V.ns.verwijstNaar, V.by_ref_key("BWBR0000001#hoofdstuk=VI#afdeling=1")) not in g
+    assert (bron, V.ns.verwijstNaar, V.by_ref_key("BWBR0000001#afdeling=1")) not in g

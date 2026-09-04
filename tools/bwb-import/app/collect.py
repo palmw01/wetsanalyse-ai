@@ -133,9 +133,11 @@ class _Collector:
         """Laat een verwijzing naar "afdeling 1" alsnog op de juiste node uitkomen.
 
         Sinds de node-sleutel het volledige pad draagt (`jci_node_ref_key`) is
-        `{bwb}#hoofdstuk=VI#afdeling=1` de identiteit, terwijl een verwijzing vaak alleen
-        `{bwb}#afdeling=1` schrijft. Gemeten in de graaf van 4 sep 2026: van de 80
-        afdelingsverwijzingen droeg ongeveer de helft het hoofdstuk niet mee.
+        `{bwb}#hoofdstuk=VI#afdeling=1` de identiteit. Draagt de jci van de verwijzing dat pad ook,
+        dan matcht ze rechtstreeks — dat is de hoofdweg, en deze pas komt er niet aan te pas.
+
+        Deze pas is de TERUGVAL voor de verwijzingen die het pad niet meeschrijven; gemeten in de
+        graaf van 4 sep 2026 deed ongeveer de helft van de 80 afdelingsverwijzingen dat niet.
 
         Zonder deze pas zouden die verwijzingen na de fix allemaal naar een lege stub wijzen — een
         collisie ingeruild voor een breuk, wat geen verbetering is. Daarom: bestaat de sleutel niet
@@ -434,7 +436,16 @@ class _Collector:
         artikelnummers: set[str] = set()
 
         for verwijzing in refs:
-            to_key, doel_soort = jci_doel_ref_key(verwijzing.doc)
+            # `jci_node_ref_key` en niet `jci_doel_ref_key`: draagt de jci van de verwijzing het
+            # volledige structuurpad (`&hoofdstuk=VIII&afdeling=2`), dan is dat exact de sleutel van
+            # de doelnode en hoeft er niets geraden te worden. Voor artikel-, lid- en
+            # onderdeeldoelen delegeert de functie naar `jci_doel_ref_key`, dus daar verandert niets.
+            #
+            # Dit was aanvankelijk NIET zo, en dat kostte 45 verwijzingen: het pad stond gewoon in
+            # de `doc` van de verwijzing, maar het doel werd met de platte sleutel gebouwd waarna
+            # `_koppel_structuurverwijzingen` moest gokken tussen tien "afdeling 2"-kandidaten — en
+            # terecht weigerde. De informatie was er; ze werd alleen weggegooid.
+            to_key, doel_soort = jci_node_ref_key(verwijzing.doc)
             to_bwb, to_art, to_lid = jci_doel(verwijzing.doc)
             if to_key is None:
                 # Zonder jci: val terug op het doel-pad (bwb-ng-variabel-deel);
