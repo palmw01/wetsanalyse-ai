@@ -582,6 +582,16 @@ resource graphdbProxyApp 'Microsoft.App/containerApps@2024-03-01' = if (graphdbP
       ]
     }
     template: {
+      // Secrets zijn in Container Apps NIET revisie-scoped: een gewijzigde secret-waarde levert
+      // geen nieuwe revisie op, en de draaiende container houdt de oude. Hier zit de hele
+      // nginx-config in een secret, dus zonder deze suffix rolt een configwijziging simpelweg niet
+      // uit — dat is precies wat er bij de tweede uitrol gebeurde: de fix zat in het secret, maar
+      // dezelfde (gefaalde) revisie bleef staan. Met de hash van de config in de suffix dwingt elke
+      // wijziging — ook een tokenrotatie — een nieuwe revisie af.
+      //
+      // De hash lekt niets bruikbaars: uniqueString is niet omkeerbaar, en wie hem in Azure kan
+      // zien, kan het secret zelf toch al lezen.
+      revisionSuffix: 'c${substring(uniqueString(graphdbProxyConfig), 0, 8)}'
       // Container Apps kennen geen configmounts, maar een secret-volume schrijft de string wél als
       // bestand – hetzelfde patroon als de GraphDB-licentie hierboven. nginx laadt alles in
       // /etc/nginx/conf.d/*.conf; de mount verbergt de default.conf die het image daar zelf
