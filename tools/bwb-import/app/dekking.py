@@ -34,6 +34,16 @@ _NIET_MEETELLEN = ("lijst", "table", "meta-data", "opmerkingen-inhoud", "noot")
 
 _WS = re.compile(r"\s+")
 
+# Ondergrens waaronder een import als onvolledig geldt. Eén bron: `Settings.min_dekking` neemt hem
+# als default en de tests toetsen ertegen.
+#
+# Waarom 0,995 en niet 1,0. Gemeten verhouding graaf/bron na de herimport van 4 sep 2026: Awr
+# 1,00005 · Uitv.reg. IW 1,0201 · IW 1,0001 · Awb 1,0442 · Awir 1,00003 · Uitv.reg. Awir 1,00006 ·
+# Leidraad 1,00027. De krapste marge is 1,00003, dus een halve procent speling volstaat ruim. Bóven
+# 1,0 komt doordat bijlagen buiten de bronmeting (`//wettekst`) vallen: méér in de graaf dan hier
+# geteld mag, minder niet. Ter ijking: de Leidraad stond op 98,4% toen er elf artikelen ontbraken.
+STANDAARD_DREMPEL = 0.995
+
 
 @dataclass(frozen=True)
 class Dekking:

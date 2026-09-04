@@ -15,13 +15,13 @@ from pathlib import Path
 import pytest
 from lxml import etree
 
-from app.dekking import _tekst_zonder, bron_tekens, meet
+from app.dekking import STANDAARD_DREMPEL, _tekst_zonder, bron_tekens, meet
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
-# Een regeling mag méér tekst in de graaf hebben dan deze bronmeting telt (bijlagen vallen buiten
-# `//wettekst`), maar nooit minder. De drempel staat vlak onder 1.0 voor witruimte-afronding.
-DREMPEL = 0.995
+# Dezelfde drempel als de import-job hanteert; de motivering staat bij `STANDAARD_DREMPEL`. Hem hier
+# opnieuw opschrijven zou betekenen dat de test en de productiecode uit elkaar kunnen lopen.
+DREMPEL = STANDAARD_DREMPEL
 
 
 @pytest.mark.parametrize(

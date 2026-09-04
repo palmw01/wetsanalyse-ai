@@ -6,13 +6,17 @@ configuratie-object dat expliciet wordt doorgegeven aan de componenten.
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
 
 from dotenv import load_dotenv
 
+from .dekking import STANDAARD_DREMPEL
 from .rdf_vocab import DEFAULT_BASE_IRI, DEFAULT_ONTOLOGY_IRI
+
+logger = logging.getLogger(__name__)
 
 # Wortel van het project (bwb-import/), onafhankelijk van de werkdirectory.
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -26,6 +30,24 @@ def _as_bool(value: str | None, *, default: bool) -> bool:
     if value is None:
         return default
     return value.strip().lower() in {"1", "true", "ja", "yes", "on"}
+
+
+def _as_float(value: str | None, *, default: float) -> float:
+    """Getal uit de omgeving; onleesbaar valt terug op de default MET een waarschuwing.
+
+    Die waarschuwing is het punt. Stilzwijgend op 0 vallen zou een controle uitzetten door een
+    tikfout in de bicep — het enige faalgedrag dat een drempel niet mag hebben, want dan denk je
+    dat je bewaakt wordt terwijl er niets meet.
+    """
+    if value is None or not value.strip():
+        return default
+    try:
+        return float(value.strip())
+    except ValueError:
+        logger.warning(
+            "Onleesbare numerieke instelling %r; val terug op %s", value, default
+        )
+        return default
 
 
 @dataclass(frozen=True, slots=True)
@@ -47,6 +69,10 @@ class Settings:
     graphdb_password: str | None
     graphdb_base_iri: str
     graphdb_ontology_iri: str
+    # Ondergrens voor de tekstdekking (graaf/bron). Onder deze waarde eindigt de import met een
+    # foutcode, zodat een dip zich meldt in plaats van in de logs te blijven staan. 0 = uit — de
+    # ontsnapping voor een regeling die legitiem lager meet.
+    min_dekking: float = STANDAARD_DREMPEL
 
     @classmethod
     def from_env(cls, *, env_file: Path | None = None) -> Settings:
@@ -73,4 +99,5 @@ class Settings:
             graphdb_password=os.getenv("GRAPHDB_PASSWORD") or None,
             graphdb_base_iri=os.getenv("GRAPHDB_BASE_IRI", DEFAULT_BASE_IRI),
             graphdb_ontology_iri=os.getenv("GRAPHDB_ONTOLOGY_IRI", DEFAULT_ONTOLOGY_IRI),
+            min_dekking=_as_float(os.getenv("BWB_MIN_DEKKING"), default=STANDAARD_DREMPEL),
         )
