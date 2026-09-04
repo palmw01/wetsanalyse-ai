@@ -453,6 +453,10 @@ export interface GraafArtikel {
   citeertitel: string;
   opschrift: string;
   leden_teksten: { lid: string; tekst: string }[];
+  /** Knooptype uit de graaf: "Artikel" of "Divisie". Stuurt alleen de bewoording van de
+   *  vindplaats — een divisie van een beleidsregel is geen artikel en heeft geen leden.
+   *  Optioneel: een oudere graph-qa stuurt het niet mee, en dan geldt de terugval "artikel". */
+  soort?: string;
 }
 
 /** Eén voorgesteld element uit de graph-qa annotatie-SSE (nog niet gepersisteerd). */
