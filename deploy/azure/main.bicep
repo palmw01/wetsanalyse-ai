@@ -503,6 +503,12 @@ var graphdbProxyAan = graphdbProxyExtern && !empty(graphdbProxyToken)
 // een nginx-config staat vol `$variabelen` die je daar juist met rust wilt laten. Zelfde aanpak als
 // de Grafana-dashboards in deploy/azure/grafana/, die met `__STRAAT__` en `__DSUID__` werken.
 var graphdbProxyConfigSjabloon = '''
+# De sleutel van de map hieronder is de HELE Authorization-header ("Bearer " + het token, samen
+# ruim 50 tekens) en past niet in nginx' standaard hash-bucket van 64 bytes. Zonder deze regel
+# weigert nginx te starten met "could not build map_hash" – en dat is precies wat er bij de eerste
+# uitrol gebeurde: lokaal getest met een kort voorbeeldtoken, in Azure met een echte van 48 hex.
+map_hash_bucket_size 256;
+
 map $http_authorization $mag_erdoor {
   default                     0;
   "Bearer __TOKEN__"          1;
