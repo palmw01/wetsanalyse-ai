@@ -335,9 +335,20 @@ class GraphDbWriter:
             doel = v.by_ref_key(row["to"])
             # Extern doel (andere, nog niet geïmporteerde wet): geef het een leesbaar
             # label zodat het in de viewers niet als kaal nummer/IRI verschijnt.
+            #
+            # NIET op rdfs:label, en dat is een geleerde les. De guard hieronder houdt alleen
+            # binnen DEZE import stand: elke wet staat in een eigen named graph, dus schreef de
+            # import van de Leidraad een fallback-label op `…IW:artikel:36` — een node die in de
+            # graaf van de Invorderingswet zijn échte label al draagt. In de union stonden er
+            # daarna twee ("Artikel 36" én "art. 36 (BWBR0004770)"), en elke query die een label
+            # ophaalt verdubbelde daarmee haar rijen. Live gemeten op 4 sep 2026.
+            #
+            # Een eigen predicaat kan niet botsen. Lees het aan de queryzijde als
+            # COALESCE(rdfs:label, bwb:doelLabel): een geïmporteerde node houdt zijn echte naam,
+            # een stub blijft leesbaar.
             label = _doel_label(row) if doel not in node_iris else None
             if label:
-                g.add((doel, RDFS.label, Literal(label, lang="nl")))
+                g.add((doel, v.ns.doelLabel, Literal(label, lang="nl")))
             g.add((bron, v.ns.verwijstNaar, doel))
             vw = v.verwijzing(bron, doel, row["soort"])
             g.add((bron, v.ns.heeftVerwijzing, vw))

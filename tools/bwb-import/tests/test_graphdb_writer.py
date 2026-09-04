@@ -190,9 +190,13 @@ def test_rdfs_labels() -> None:
     assert (V.wet("BWBR0000001"), RDFS.label, Literal("Testwet", lang="nl")) in g
     art1 = V.by_ref_key("BWBR0000001#artikel=1")
     assert (art1, RDFS.label, Literal("Artikel 1", lang="nl")) in g
-    # Extern verwijs-doel krijgt een leesbaar fallback-label.
+    # Extern verwijs-doel krijgt een leesbaar fallback-label — op `bwb:doelLabel`, NIET op
+    # rdfs:label. Elke wet staat in een eigen named graph, dus een fallback op rdfs:label komt
+    # naast het echte label te staan zodra die wet ook wordt geïmporteerd, en dan verdubbelt elke
+    # query die een label ophaalt haar rijen. Lees het als COALESCE(rdfs:label, bwb:doelLabel).
     doel = V.by_ref_key("BWBR0005537#artikel=3:40")
-    assert (doel, RDFS.label, Literal("art. 3:40 (BWBR0005537)", lang="nl")) in g
+    assert (doel, V.ns.doelLabel, Literal("art. 3:40 (BWBR0005537)", lang="nl")) in g
+    assert (doel, RDFS.label, None) not in g
 
 
 def test_datums_zijn_xsd_date() -> None:
@@ -349,9 +353,9 @@ def test_hele_structuur_verwijzingen_niet_gedropt() -> None:
     assert (lid2, V.ns.verwijstNaar, V.by_ref_key("BWBR0005537#afdeling=10.2.1")) in g
     # Hele-wet-doel: de wet-IRI zelf.
     assert (None, V.ns.verwijstNaar, V.wet("BWBR0002471")) in g
-    # Fallback-label voor het externe structuurdoel.
+    # Fallback-label voor het externe structuurdoel (op bwb:doelLabel, zie test_rdfs_labels).
     doel = V.by_ref_key("BWBR0005537#hoofdstuk=6")
-    assert (doel, RDFS.label, Literal("hoofdstuk 6 (BWBR0005537)", lang="nl")) in g
+    assert (doel, V.ns.doelLabel, Literal("hoofdstuk 6 (BWBR0005537)", lang="nl")) in g
 
 
 def test_onderdeel_heeft_ref_key_iri() -> None:
@@ -549,3 +553,114 @@ def test_ondertekenaar_iri_valt_over_wetten_samen() -> None:
     verwacht = V.entiteit("ondertekenaar", "De Minister van Justitie, E. M. H. Hirsch Ballin")
     assert ondertekenaars[0] == verwacht
     assert (V.wet("BWBR0005537"), V.ns.ondertekendDoor, verwacht) in g
+
+
+# ---------------------------------------------------------------------------
+# Structuurcollisie: twee keer "afdeling 1" in verschillende hoofdstukken
+# ---------------------------------------------------------------------------
+
+def _wet_met_twee_keer_afdeling_1() -> Wet:
+    """De vorm die de collisie veroorzaakte, nagebouwd uit de Invorderingswet.
+
+    Daar was `urn:bwb:BWBR0004770:afdeling:1` tegelijk *Aansprakelijkheid* (hoofdstuk VI) en
+    *Verhaalsrechten* (hoofdstuk IV): één node met drie labels, twee titels, twee ouders en de
+    artikelen van beide afdelingen op één hoop.
+    """
+    def _afdeling(hoofdstuk: str, titel: str, artikelnr: str) -> Structuurdeel:
+        return Structuurdeel(
+            id=f"W#h{hoofdstuk}#a1",
+            soort="afdeling",
+            nummer="1",
+            label="Afdeling 1",
+            titel=titel,
+            jci=f"jci1.3:c:BWBR0000001&hoofdstuk={hoofdstuk}&afdeling=1",
+            artikelen=[
+                Artikel(
+                    id=f"W#art{artikelnr}",
+                    nummer=artikelnr,
+                    label=f"Artikel {artikelnr}",
+                    tekst="x",
+                    jci=f"jci1.3:c:BWBR0000001&hoofdstuk={hoofdstuk}&afdeling=1&artikel={artikelnr}",
+                )
+            ],
+        )
+
+    return Wet(
+        bwb_id="BWBR0000001",
+        citeertitel="Testwet",
+        opschrift="Wet test",
+        soort="wet",
+        structuurdelen=[
+            Structuurdeel(
+                id="W#hIV", soort="hoofdstuk", nummer="IV", label="Hoofdstuk IV",
+                titel="Bijzondere bepalingen",
+                jci="jci1.3:c:BWBR0000001&hoofdstuk=IV",
+                subdelen=[_afdeling("IV", "Verhaalsrechten", "10")],
+            ),
+            Structuurdeel(
+                id="W#hVI", soort="hoofdstuk", nummer="VI", label="Hoofdstuk VI",
+                titel="Aansprakelijkheid",
+                jci="jci1.3:c:BWBR0000001&hoofdstuk=VI",
+                subdelen=[_afdeling("VI", "Aansprakelijkheid", "36")],
+            ),
+        ],
+    )
+
+
+def test_gelijk_genummerde_afdelingen_blijven_gescheiden() -> None:
+    """Zonder het pad in de sleutel vielen ze samen — met alle gevolgen van dien.
+
+    De harde assertie is niet "er zijn twee nodes" maar **"geen structuurdeel heeft twee ouders"**:
+    dat is precies wat er in de graaf te meten viel (16 van de 93 afdelingen) en wat een verkeerde
+    inhoudsopgave oplevert.
+    """
+    g, _ = _writer().build_graph(_wet_met_twee_keer_afdeling_1())
+
+    afd_iv = V.by_ref_key("BWBR0000001#hoofdstuk=IV#afdeling=1")
+    afd_vi = V.by_ref_key("BWBR0000001#hoofdstuk=VI#afdeling=1")
+    assert afd_iv != afd_vi
+    assert (V.by_ref_key("BWBR0000001#hoofdstuk=IV"), V.ns.heeftAfdeling, afd_iv) in g
+    assert (V.by_ref_key("BWBR0000001#hoofdstuk=VI"), V.ns.heeftAfdeling, afd_vi) in g
+
+    # Elke afdeling houdt haar eigen titel en haar eigen artikel.
+    assert (afd_iv, V.ns.titel, Literal("Verhaalsrechten", lang="nl")) in g
+    assert (afd_vi, V.ns.titel, Literal("Aansprakelijkheid", lang="nl")) in g
+    assert (afd_vi, V.ns.heeftArtikel, V.by_ref_key("BWBR0000001#artikel=36")) in g
+    assert (afd_vi, V.ns.heeftArtikel, V.by_ref_key("BWBR0000001#artikel=10")) not in g
+
+    # De eigenschap die in de graaf gemeten kan worden: één ouder per structuurdeel.
+    for afdeling in (afd_iv, afd_vi):
+        ouders = set(g.subjects(V.ns.heeftAfdeling, afdeling))
+        assert len(ouders) == 1, f"{afdeling} heeft {len(ouders)} ouders"
+
+
+def test_verwijzing_zonder_hoofdstuk_komt_toch_op_de_juiste_afdeling_uit() -> None:
+    """De keerzijde van het pad in de sleutel, en waarom er een resolve-pas is.
+
+    Een verwijzing schrijft vaak alleen `&afdeling=10.2.1` zonder het hoofdstuk erbij; in de graaf
+    droeg ongeveer de helft van de 80 afdelingsverwijzingen het pad niet mee. Zonder deze pas zouden
+    die na de sleutelwijziging allemaal naar een lege stub wijzen — een collisie ingeruild voor een
+    breuk.
+
+    Is de verwijzing wél ambigu (twee afdelingen met hetzelfde nummer), dan blijft ze bewust
+    onopgelost: een open stub is eerlijker dan een gok.
+    """
+    wet = _wet_met_twee_keer_afdeling_1()
+    # Eén afdeling hernummeren, zodat "afdeling 2" uniek is en de pas hem kan koppelen.
+    wet.structuurdelen[0].subdelen[0].nummer = "2"
+    wet.structuurdelen[0].subdelen[0].jci = "jci1.3:c:BWBR0000001&hoofdstuk=IV&afdeling=2"
+    wet.structuurdelen[1].subdelen[0].artikelen[0].verwijzingen = [
+        Verwijzing(
+            soort=VerwijzingSoort.INTERN,
+            tekst="afdeling 2",
+            doel_bwb_id="BWBR0000001",
+            doc="jci1.3:c:BWBR0000001&afdeling=2",
+        )
+    ]
+    g, _ = _writer().build_graph(wet)
+
+    bron = V.by_ref_key("BWBR0000001#artikel=36")
+    doel = V.by_ref_key("BWBR0000001#hoofdstuk=IV#afdeling=2")
+    assert (bron, V.ns.verwijstNaar, doel) in g
+    # En niet naar de padloze stub.
+    assert (bron, V.ns.verwijstNaar, V.by_ref_key("BWBR0000001#afdeling=2")) not in g

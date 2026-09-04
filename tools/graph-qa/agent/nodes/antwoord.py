@@ -11,7 +11,7 @@ from typing import Any
 
 from langgraph.config import get_stream_writer
 
-from ..agent_common import truncate
+from ..agent_common import kap_toolresultaat
 from ..berichten import _parse_final, _schoon_messages, _trim_messages
 from ..grounding import check_grounding, curate_sources
 from ..narratie import _grounding_melding, _stap, _toolregel
@@ -125,7 +125,7 @@ def tools_node(b: Bouw, state: State) -> dict[str, Any]:
     trace = list(state.get("source_trace", []))
     results = []
     for tu in pending:
-        result_text = truncate(dispatch(tu["name"], b.graph, tu["input"], b.settings))
+        result_text = kap_toolresultaat(dispatch(tu["name"], b.graph, tu["input"], b.settings))
         trace.append((tu["name"], result_text))
         results.append({"type": "tool_result", "tool_use_id": tu["id"], "content": result_text})
     return {

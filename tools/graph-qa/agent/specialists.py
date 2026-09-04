@@ -27,7 +27,8 @@ _RETRIEVAL_SYSTEM = (
     "bepaling OPHALEN die de gebruiker wil laten annoteren, zodat een volgende stap die kan analyseren.\n"
     "WERKWIJZE:\n"
     "- Bepaal om welke regeling + bepaling het gaat. Ken je de bwbId nog niet, zoek die met "
-    "search_wetgeving/semantic_search.\n"
+    "search_wetgeving/semantic_search; met veld='citeertitel' vind je een regeling op naam. "
+    "Weet je de regeling maar niet welk artikel, gebruik dan inhoudsopgave.\n"
     "- Haal de tekst van precies die bepaling op:\n"
     "  • gewone wet met leden en een lid is genoemd → get_lid(bwb_id, artikel, lid);\n"
     "  • heel artikel → get_artikel(bwb_id, artikel);\n"
@@ -54,28 +55,46 @@ SPECIALISTS: dict[str, Specialist] = {
     "definitie": Specialist(
         system=(
             "Je bent de DEFINITIE-specialist. Je herleidt en verklaart juridische begrippen. "
-            "Begin bij resolve_begrip en de definitieartikelen; citeer de brondefinitie letterlijk "
-            "met vindplaats en benoem of het een wettelijke definitie of interpretatie is.\n"
+            "Citeer de brondefinitie letterlijk met vindplaats en benoem of het een wettelijke "
+            "definitie of een interpretatie is.\n"
+            "BEGIN BIJ zoek_definitie: die vindt het tekstdeel waar de wet het begrip zélf "
+            "definieert, mét jci en citeertitel. Pas als dat niets geeft: resolve_begrip (de "
+            "SKOS-thesaurus – redactionele trefwoorden, géén wettelijke definitie) of "
+            "search_wetgeving met veld='definieertBegrip'.\n"
             "Begripsbepalingen staan doorgaans in artikel 1 of 2 van een regeling; haal die beide "
             "in één beurt op in plaats van na elkaar. Het definitie-artikel zelf bevat vaak alleen "
             "de aanhef ('Deze wet verstaat onder:') – de definities zitten in de onderdelen van het "
             "lid, die get_lid meelevert (sinds de heeftOnderdeel-fix van 1 sep 2026; daarvóór kwamen ze "
             "er niet uit). Citeer de vindplaats van het ONDERDEEL (…&o=k), niet die "
-            "van het hele lid."
+            "van het hele lid.\n"
+            "Wil de gebruiker weten hoe het begrip wordt toegepast, gebruik dan verwijst_naar_deze "
+            "op de definitiebepaling: dat toont welke artikelen eraan refereren."
         ),
         tools=frozenset({
-            "resolve_begrip", "search_wetgeving", "semantic_search",
-            "get_artikel", "get_lid", "graph_schema", "raw_sparql",
+            "zoek_definitie", "resolve_begrip", "search_wetgeving", "semantic_search",
+            "get_artikel", "get_lid", "verwijst_naar_deze", "graph_schema", "raw_sparql",
         }),
     ),
     "duiding": Specialist(
         system=(
             "Je bent de DUIDINGS-specialist. Je legt de betekenis, structuur en samenhang van een "
-            "bepaling uit. Gebruik get_context voor de bepaling met haar structuur en verwijzingen, "
-            "en follow_verwijzingen/referenced_by om kruisverwijzingen te volgen."
+            "bepaling uit.\n"
+            "- get_context: de bepaling met haar inbedding, leden en verwijzingen in één call – "
+            "begin daar;\n"
+            "- follow_verwijzingen (waarheen) en verwijst_naar_deze (wie citeert dit) om "
+            "kruisverwijzingen in beide richtingen te volgen; referenced_by geeft alleen de "
+            "regelingen, dus grofmaziger;\n"
+            "- inhoudsopgave om te zien waar de bepaling in de opbouw van de regeling staat – de "
+            "plaats in een hoofdstuk kleurt de uitleg;\n"
+            "- grondslagen bij delegatie: waarop berust deze bepaling, en welke regeling berust "
+            "op haar;\n"
+            "- geldigheid als de vraag over een peildatum, een versie of terugwerkende kracht gaat, "
+            "of als je wilt melden op welke toestand je uitleg berust."
         ),
         tools=frozenset({
-            "get_context", "get_artikel", "get_lid", "follow_verwijzingen", "referenced_by",
+            "get_context", "get_artikel", "get_lid", "get_bepaling", "follow_verwijzingen",
+            "verwijst_naar_deze", "referenced_by", "inhoudsopgave", "grondslagen", "geldigheid",
+            "bijlagen", "list_regelingen", "get_regeling_info",
             "search_wetgeving", "semantic_search", "graph_schema", "raw_sparql",
         }),
     ),
@@ -87,7 +106,12 @@ SPECIALISTS: dict[str, Specialist] = {
         system=_RETRIEVAL_SYSTEM,
         tools=frozenset({
             "search_wetgeving", "semantic_search", "get_context", "get_artikel", "get_lid",
-            "get_bepaling", "get_regeling_info", "resolve_begrip", "follow_verwijzingen",
+            "get_bepaling", "get_regeling_info", "list_regelingen", "resolve_begrip",
+            "follow_verwijzingen",
+            # `inhoudsopgave` hoort hier omdat een bepaling AANWIJZEN iets anders is dan zoeken:
+            # "het artikel over bestuurdersaansprakelijkheid in hoofdstuk VI" is een structuurvraag.
+            # `grondslagen`/`geldigheid` juist NIET – die duiden, en deze rol duidt niet.
+            "inhoudsopgave",
         }),
     ),
 }

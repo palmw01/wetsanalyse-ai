@@ -57,25 +57,41 @@ de tools (`agent/specialists.py`):
 
 | Specialist | Waarvoor | Kern-tools |
 |---|---|---|
-| `definitie` | Begrippen en definities herleiden en letterlijk citeren. | `resolve_begrip`, `get_artikel`/`get_lid`, `search_wetgeving`/`semantic_search` |
-| `duiding` | Betekenis, structuur en samenhang van een bepaling; kruisverwijzingen volgen. | `get_context`, `follow_verwijzingen`, `referenced_by`, `get_artikel`/`get_lid` |
+| `definitie` | Begrippen en definities herleiden en letterlijk citeren. | `zoek_definitie`, `resolve_begrip`, `get_artikel`/`get_lid`, `verwijst_naar_deze` |
+| `duiding` | Betekenis, structuur en samenhang van een bepaling; kruisverwijzingen volgen. | `get_context`, `follow_verwijzingen`, `verwijst_naar_deze`, `inhoudsopgave`, `grondslagen`, `geldigheid` |
 | `algemeen` | Overige juridische vragen. | Alle tools |
+
+De ophaal-agent van de annotatieketen (`retrieval`) krijgt bewust géén `grondslagen`/`geldigheid`:
+die rol wijst een bepaling **aan**, hij duidt haar niet. Toolbereik is hier gedragssturing.
 
 ### De toollaag (retrieval)
 
-Het model krijgt **geen** vrije SPARQL, maar een set van dertien getypeerde tools; alleen
+Het model krijgt **geen** vrije SPARQL, maar een set van negentien getypeerde tools; alleen
 `raw_sparql` is een afgeschermd laatste redmiddel:
 
-- **Zoeken** – `search_wetgeving` (full-text/Lucene, exacte termen) en `semantic_search` (op betekenis,
-  via een GraphDB-similarity-index; te combineren als hybride zoekstap).
+- **Zoeken** – `search_wetgeving` (full-text/Lucene; veldgericht op één van de negen geïndexeerde
+  velden, te beperken tot één regeling of knooptype, met paginatie) en `semantic_search` (op
+  betekenis, via een GraphDB-similarity-index; te combineren als hybride zoekstap).
 - **Ophalen** – `get_artikel`, `get_lid`, `get_bepaling`.
-- **Regelingen** – `list_regelingen`, `get_regeling_info` (soort, geldigheid, uitgevende organisatie).
-- **Verwijzingen** – `follow_verwijzingen` (uitgaand), `referenced_by` (inkomend).
-- **Context (GraphRAG)** – `get_context`: een bepaling mét haar bevattende delen, leden en
-  verwijzingen in één query.
-- **Begrippen** – `resolve_begrip` (SKOS-thesaurus).
-- **Introspectie** – `graph_schema` (live omvang van de graaf).
+- **Structuur** – `inhoudsopgave`: welke hoofdstukken, afdelingen, artikelen of divisies er zijn en
+  waarin ze zitten — de kaart die je nodig hebt om een werkgebied af te bakenen.
+- **Regelingen** – `list_regelingen`, `get_regeling_info` (soort, geldigheid, organisatie, en de
+  WTI-velden: afkorting, eerstverantwoordelijke, dossier, toestand-URL), `bijlagen`.
+- **Verwijzingen** – `follow_verwijzingen` (uitgaand, mét label/jci/citeertitel van het doel),
+  `verwijst_naar_deze` (inkomend op **bepalingniveau**) en `referenced_by` (inkomend, alleen de
+  regelingen — grofmaziger, uit de WTI).
+- **Context (GraphRAG)** – `get_context`: een bepaling mét haar bevattende delen (twee niveaus),
+  leden, verwijzingen in beide richtingen en de buren in het document, in één query.
+- **Begrippen** – `zoek_definitie` (waar de wet het begrip zélf definieert) en `resolve_begrip`
+  (de SKOS-thesaurus; redactionele trefwoorden, géén wettelijke definitie).
+- **Herkomst en tijd** – `grondslagen` (waarop berust dit, wat berust hierop — de delegatieketen)
+  en `geldigheid` (inwerkingtreding, terugwerkende kracht, wijzigingsbron, welke toestand).
+- **Introspectie** – `graph_schema` (live omvang, het vocabulaire uit de T-Box en de IRI-patronen).
 - **Laatste redmiddel** – `raw_sparql` (read-only SELECT/CONSTRUCT/DESCRIBE).
+
+De artikel-tools werken óók op de divisies van een beleidsregel (`nummer: "25.1"`), en niet alleen
+op artikelnummers. Waarom dat lang niet zo was en welke guards dat soort stille gaten nu afvangen,
+staat in `CLAUDE.md` (§*Toollaag & queries*).
 
 ### Brongetrouwheid, expliciet gemaakt
 

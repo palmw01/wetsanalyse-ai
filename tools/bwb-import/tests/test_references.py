@@ -10,6 +10,7 @@ from app.references import (
     extract_references,
     jci_doel,
     jci_doel_ref_key,
+    jci_node_ref_key,
     jci_to_ref_key,
 )
 
@@ -146,3 +147,57 @@ def test_meta_data_verwijzingen_genegeerd() -> None:
     """
     element = etree.fromstring(xml)
     assert extract_references(element, eigen_bwb_id="BWBR0004770") == []
+
+
+def test_node_ref_key_draagt_het_volledige_structuurpad() -> None:
+    """De identiteit van een structuurdeel is het PAD, niet het laatste segment.
+
+    `jci_doel_ref_key` houdt alleen het laatste segment aan, en dat is voor een verwijzing prima
+    ("ik verwijs naar afdeling 1") maar fataal als identiteit: dan is elke "Afdeling 1" van een
+    regeling dezelfde node. Dat gebeurde ook — gemeten in de graaf op 4 sep 2026 hadden 16 van de
+    93 afdelingen en 5 van de 27 paragrafen meer dan één ouder, met hun titels en artikelen op één
+    hoop.
+    """
+    assert jci_node_ref_key("jci1.3:c:BWBR0002320&hoofdstuk=VIII&afdeling=1&z=2026-04-11") == (
+        "BWBR0002320#hoofdstuk=VIII#afdeling=1",
+        "afdeling",
+    )
+    # Twee afdelingen "1" in verschillende hoofdstukken zijn nu verschillende nodes.
+    assert jci_node_ref_key("jci1.3:c:BWBR0004770&hoofdstuk=IV&afdeling=1")[0] != jci_node_ref_key(
+        "jci1.3:c:BWBR0004770&hoofdstuk=VI&afdeling=1"
+    )[0]
+
+
+def test_node_ref_key_laat_hierarchische_nummering_ongemoeid() -> None:
+    """De Awb nummert haar afdelingen al hiërarchisch (10.2.1) en heeft geen hoofdstuk-segment.
+
+    Daar was ook geen collisie, en de sleutel moet dus exact gelijk blijven — anders verandert de
+    IRI van 69 afdelingen zonder dat er iets mee mis was.
+    """
+    assert jci_node_ref_key("jci1.3:c:BWBR0005537&afdeling=10.2.1") == (
+        "BWBR0005537#afdeling=10.2.1",
+        "afdeling",
+    )
+    assert jci_node_ref_key("jci1.3:c:BWBR0005537&afdeling=10.2.1") == jci_doel_ref_key(
+        "jci1.3:c:BWBR0005537&afdeling=10.2.1"
+    )
+
+
+def test_node_ref_key_raakt_artikelen_niet() -> None:
+    """Artikel-, lid- en onderdeelsleutels zijn binnen een regeling al uniek.
+
+    Zou het pad daar ook in komen, dan verandert élke artikel-IRI in de graaf — inclusief die
+    waaraan de annotaties van juristen hangen.
+    """
+    for doc in (
+        "jci1.3:c:BWBR0004770&hoofdstuk=VI&afdeling=1&artikel=36",
+        "jci1.3:c:BWBR0004770&hoofdstuk=VI&afdeling=1&artikel=36&lid=2",
+        "jci1.3:c:BWBR0004770&hoofdstuk=I&artikel=2&lid=1&o=aa&o=1",
+    ):
+        assert jci_node_ref_key(doc) == jci_doel_ref_key(doc)
+
+
+def test_node_ref_key_zonder_structuur_is_de_wet() -> None:
+    assert jci_node_ref_key("jci1.3:c:BWBR0028093") == ("BWBR0028093", "wet")
+    assert jci_node_ref_key(None) == (None, None)
+    assert jci_node_ref_key("geen-jci") == (None, None)
