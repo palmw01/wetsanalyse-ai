@@ -746,6 +746,15 @@ def context(bwb_id: str, artikel: str, lid: str | None = None) -> str:
     FILTER(STRSTARTS(STR(?l), "{NS}")) OPTIONAL {{ ?l bwb:nummer ?a }} OPTIONAL {{ ?l bwb:tekst ?b }} }}
   UNION {{ BIND("6-verwijst-naar" AS ?relatie) ?node bwb:heeftVerwijzing ?v .
     OPTIONAL {{ ?v bwb:ankerTekst ?a }} OPTIONAL {{ ?v bwb:naar ?b }} }}
+  # Verwijzingen hangen overwegend aan het LID, niet aan het artikel (1386 tegen 431, live
+  # gemeten). Keek deze tak alleen naar de node zelf, dan meldde `get_context` op artikel 36 IW
+  # nul verwijzingen terwijl er vijf zijn — precies de blinde vlek die `follow_verwijzingen` al
+  # had. Een aparte relatie-naam houdt zichtbaar dat ze uit een onderliggend lid komen; wélk lid
+  # vertelt `follow_verwijzingen` met zijn ?vanuit-kolom.
+  UNION {{ BIND("6-verwijst-naar-uit-lid" AS ?relatie)
+    ?node (bwb:heeftLid|bwb:heeftOnderdeel)+ ?deel . ?deel bwb:heeftVerwijzing ?v2 .
+    FILTER(STRSTARTS(STR(?deel), "{NS}"))
+    OPTIONAL {{ ?v2 bwb:ankerTekst ?a }} OPTIONAL {{ ?v2 bwb:naar ?b }} }}
   UNION {{ BIND("7-verwezen-door" AS ?relatie) ?art bwb:verwijzingDoor ?r .
     FILTER(STRSTARTS(STR(?r), "{NS}")) OPTIONAL {{ ?r bwb:citeertitel ?a }} BIND(STR(?r) AS ?b) }}
   UNION {{ BIND("8-verwezen-door-bepaling" AS ?relatie) ?bron bwb:verwijstNaar ?node .

@@ -97,6 +97,9 @@ def test_context_subgraaf_dekt_alle_relaties():
     assert "bwb:verwijzingDoor" in sparql
     assert "bwb:verwijstNaar" in sparql, "inkomende verwijzingen op bepalingniveau"
     assert "bwb:volgtOp" in sparql, "de buren in het document"
+    assert "6-verwijst-naar-uit-lid" in sparql, (
+        "verwijzingen hangen aan het lid; alleen de node zelf bevragen meldt er nul"
+    )
     assert "UNION" in sparql
 
 
