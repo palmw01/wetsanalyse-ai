@@ -138,34 +138,24 @@ visueel ankerpunt. De titeldia heeft een lege, ruime opzet — geen bullets.
 
 ---
 
-#### Dia 2 — Het startpunt
+#### Dia 2 — Het startpunt — Uitvoering begint bij de wet
 
 **Koptekst:** Uitvoering begint bij de wet
 
-**Kernboodschap (opsomming, 4 punten):**
+**Visueel — geen opsomming.** Deze dia is een keten in beeld: één openingsregel, drie
+knelpuntkaarten met een rode bovenrand, één gevolgkaart, en daaronder een lintblauwe band met het
+antwoord. Dezelfde vorm als de potentiedia (kaarten → band), zodat "probleem → antwoord" twee keer
+hetzelfde ritme krijgt.
 
-- Bij Inning komen IW, Leidraad Invordering, URIW en IIB samen — bij elke wetswijziging moeten behandelaars snel weten wat er precies verandert en hoe de stukken samenhangen
-- Handmatig JAS-annoteren kost tijd: één artikel met vijf leden kan tientallen markeringen bevatten
-- De koppeling naar de bron raakt snel los: welke versie van de wettekst? welk lid precies?
-- Doel van dit platform: die koppeling automatisch en controleerbaar houden
+- **openingsregel:** elke invorderingsbeslissing steunt op de wet — en bij elke wetswijziging moet
+  elke geraakte bepaling opnieuw worden gelezen
+- **drie knelpunten:** *vraagt specialistische kennis* · *kost tijd* · *wisselt per persoon*
+- **het gevolg:** de bron schuift weg — welke versie gold, en welk lid precies?
+- **de band:** markeert op de actuele wettekst · elk fragment herleidbaar tot artikel, lid en
+  vindplaats · de jurist beslist en blijft eindverantwoordelijk
 
----
-
-#### Dia 2b — Wat levert het op (concrete casus)
-
-**Koptekst:** Wat levert het op
-
-Eén vraag, één antwoord, één vindplaats — drie rijen onder elkaar:
-
-1. **De vraag** — "Wanneer is een belastingaanslag invorderbaar?" (*gewoon getypt, in je eigen woorden*)
-2. **Lex zoekt** — vindt de bepaling en haalt de letterlijke tekst op (*artikel 9, eerste lid, IW 1990*)
-3. **Het antwoord** — het citaat met een lintblauwe streep ervoor, en daaronder de jci op een
-   **eigen regel** (inline loopt hij achter het citaat aan en breekt hij halverwege af)
-
-Kernzin: **"Dit citaat is niet geschreven maar opgezocht — en de vindplaats komt mee."**
-
-Neem de zin letterlijk over uit `tools/graph-qa/eval/bronteksten.json`; dat is dezelfde bron
-waartegen de eval scoort.
+De uitgeschreven versie (wetsanalyse maakt de juridische structuur expliciet, grondstof voor
+uitvoerbare regels) hoort in de speaker notes, niet op de dia.
 
 ---
 
@@ -200,7 +190,7 @@ uitbreiden naar activiteit 3.
 
 ---
 
-#### Dia 4 — JAS in één zin
+#### Dia 4 — Het Juridisch Analyseschema in één zin
 
 **Koptekst:** Het Juridisch Analyseschema in één zin
 
@@ -218,11 +208,29 @@ In het invorderingsdomein zijn dit bijvoorbeeld: rechtssubject = "de ontvanger",
 
 ---
 
-#### Dia 4b — Dezelfde zin, als structuur
+#### Dia 5 — Eerst de bepaling, letterlijk (de casus)
+
+**Koptekst:** Wat levert het op
+
+Eén vraag, één antwoord, één vindplaats — drie rijen onder elkaar:
+
+1. **De vraag** — "Wanneer is een belastingaanslag invorderbaar?" (*gewoon getypt, in je eigen woorden*)
+2. **Lex zoekt** — vindt de bepaling en haalt de letterlijke tekst op (*artikel 9, eerste lid, IW 1990*)
+3. **Het antwoord** — het citaat met een lintblauwe streep ervoor, en daaronder de jci op een
+   **eigen regel** (inline loopt hij achter het citaat aan en breekt hij halverwege af)
+
+Kernzin: **"Dit citaat is niet geschreven maar opgezocht — en de vindplaats komt mee."**
+
+Neem de zin letterlijk over uit `tools/graph-qa/eval/bronteksten.json`; dat is dezelfde bron
+waartegen de eval scoort.
+
+---
+
+#### Dia 6 — Dezelfde zin, als structuur
 
 **Koptekst:** Dezelfde zin, als structuur
 
-Dezelfde zin als op dia 2b, nu met de markeringen eroverheen — in de **officiële klassekleuren uit
+Dezelfde zin als op dia 5, nu met de markeringen eroverheen — in de **officiële klassekleuren uit
 `api/app/jas_klassen.py`**, dus dezelfde die de werkplek gebruikt:
 
 | fragment | klasse | vulling / rand |
@@ -239,7 +247,52 @@ De drie markeringen zijn de ankers uit `eval/golden_annotatie.jsonl` — geen il
 
 ---
 
-#### Dia 5 — Het platform
+#### Dia 7 — Jij beslist — de Critic
+
+**Koptekst:** Jij beslist — de AI controleert zichzelf
+
+**Drie niveaus als gekleurde kaartjes** (`border-radius: var(--r-kaart)`, `border: 1px solid var(--line)`,
+gekleurde balk van 6px links):
+
+🟢 **Geen bezwaar** (linkerbalk `#4caf50`, bg `rgba(57,135,12,0.06)`)
+Het element klopt: klasse, fragment en afbakening zijn correct. Snel door met Akkoord — of de pijltoets.
+
+🟡 **Even kijken** (linkerbalk `#f59e0b`, bg `rgba(225,112,0,0.06)`)
+De Critic twijfelt — Voorwaarde of Afleidingsregel? De kaart toont een alternatief als klikbare
+chip. Jij kiest; je keuze staat in het audittrail.
+
+🔴 **Waarschijnlijk fout** (linkerbalk `#ef4444`, bg `rgba(213,43,30,0.06)`)
+De Critic heeft de correctie al doorgevoerd in de code (niet door een tweede AI-aanroep). Wat er
+stond en waarom het is aangepast, is zichtbaar in de kaart.
+
+**Ondertekst:** "Het model doet wat zeker is automatisch. Wat twijfelachtig is, legt het voor."
+
+---
+
+#### Dia 8 — Brongetrouwheid
+
+**Koptekst:** Geen fragment zonder bron
+
+**Kernboodschap (opsomming):**
+
+- Elk JAS-element bevat het **letterlijke tekstfragment** uit de opgehaalde wettekst
+- Een algoritme — geen tweede AI-aanroep — controleert: staat dit citaat écht in de tekst die uit de graaf is gehaald?
+- Als het er niet in staat, markeert de werkplek het en legt Lex uit waarom
+- Elk element is herleidbaar naar een **jci-uri**: de officiële verwijzing naar artikel + lid + BWB-identificatie
+
+**Voorbeeld (als codeblok of gekleurd tekstvak):**
+```
+jci1.31:c:BWBR0004770&artikel=36&lid=4
+Invorderingswet 1990, art. 36 lid 4
+```
+
+Stijl van het tekstvak: `background: var(--surface)`, `border: 1px solid var(--line)`,
+`border-left: 3px solid var(--lint)`, `border-radius: var(--r-badge)`,
+`font-family: Fira Mono`, `color: var(--lint)`.
+
+---
+
+#### Dia 9 — Drie lagen, één werkstroom
 
 **Koptekst:** Drie lagen, één werkstroom
 
@@ -260,7 +313,7 @@ pijlen, witte tekst in het Jurist-blok (donker gevuld). Subteksten in `--faint`.
 
 ---
 
-#### Dia 5b — Waar staat wat (architectuur)
+#### Dia 10 — Waar staat wat (architectuur)
 
 **Koptekst:** Waar staat wat
 
@@ -292,7 +345,25 @@ Baseer de onderdelen op `deploy/azure/main.bicep`; noem niets wat daar niet in s
 
 ---
 
-#### Dia 5c — Wat Lex mag opvragen (de gereedschapskist)
+#### Dia 11 — Hoe werkt Lex van binnen
+
+**Koptekst:** Hoe werkt Lex van binnen
+
+**Visueel:** zeven genummerde stappen onder elkaar, elk met een badge die zegt wíé de stap doet:
+Supervisor (AI) · Ophalen (AI + graaf) · Annoteerder/Antwoorder (AI · op de tekst) ·
+Grounding (Code) · Critic (AI) · Patch (Code) · Werkplek (Jurist).
+
+Kernzin eronder: **"Eén stap haalt de tekst op. Alles daarna werkt op díe tekst — en kost
+hoogstens vier AI-aanroepen per annotatie."**
+
+Die badges zijn geen sfeer maar een controleerbare bewering: in de code krijgt precies één
+aanroep gereedschap mee (`agent/nodes/antwoord.py`, `anthropic_schemas(only=spec.tools)`); de
+supervisor, de annoteerder, de Critic en de herziener draaien alle vier met `tools=[]`. Loop dat
+na vóór je de badges wijzigt.
+
+---
+
+#### Dia 12 — Wat Lex mag opvragen
 
 **Koptekst:** Wat Lex mag opvragen
 
@@ -311,76 +382,7 @@ Neem de namen en aantallen letterlijk over uit `tools/graph-qa/agent/tools/__ini
 
 ---
 
-#### Dia 6 — De drie stappen
-
-**Koptekst:** Van vraag tot beoordeelde annotatie
-
-**Drie blokken naast elkaar** (`border-radius: var(--r-kaart)`, `border-top: 3px solid var(--lint)`,
-`background: var(--lint-light)`, padding `1em`):
-
-**1 · Stel een vraag**
-Typ een juridische vraag in de werkplek: "Wanneer is een bestuurder persoonlijk aansprakelijk
-voor de belastingschuld van zijn vennootschap?" Lex zoekt in de graaf, haalt het relevante artikel
-op en antwoordt met een letterlijk citaat en een bronverwijzing.
-
-**2 · Ontvang een annotatie**
-Vraag een JAS-annotatie voor een specifiek artikel. Lex haalt de exacte wettekst op, stelt
-markeringen voor in alle van toepassing zijnde JAS-klassen en laat de Critic elk element
-controleren.
-
-**3 · Beoordeel en beslis**
-Elk voorstel verschijnt als een kaart: aandachtsniveau (groen/geel/rood), klassenaam,
-fragment, toelichting. Jij drukt op Akkoord of Verwerpen. Wat jij beslist staat in het
-audittrail, met tijdstip en naam.
-
----
-
-#### Dia 7 — Brongetrouwheid
-
-**Koptekst:** Geen fragment zonder bron
-
-**Kernboodschap (opsomming):**
-
-- Elk JAS-element bevat het **letterlijke tekstfragment** uit de opgehaalde wettekst
-- Een algoritme — geen tweede AI-aanroep — controleert: staat dit citaat écht in de tekst die uit de graaf is gehaald?
-- Als het er niet in staat, markeert de werkplek het en legt Lex uit waarom
-- Elk element is herleidbaar naar een **jci-uri**: de officiële verwijzing naar artikel + lid + BWB-identificatie
-
-**Voorbeeld (als codeblok of gekleurd tekstvak):**
-```
-jci1.31:c:BWBR0004770&artikel=36&lid=4
-Invorderingswet 1990, art. 36 lid 4
-```
-
-Stijl van het tekstvak: `background: var(--surface)`, `border: 1px solid var(--line)`,
-`border-left: 3px solid var(--lint)`, `border-radius: var(--r-badge)`,
-`font-family: Fira Mono`, `color: var(--lint)`.
-
----
-
-#### Dia 8 — De Critic
-
-**Koptekst:** Jij beslist — de AI controleert zichzelf
-
-**Drie niveaus als gekleurde kaartjes** (`border-radius: var(--r-kaart)`, `border: 1px solid var(--line)`,
-gekleurde balk van 6px links):
-
-🟢 **Geen bezwaar** (linkerbalk `#4caf50`, bg `rgba(57,135,12,0.06)`)
-Het element klopt: klasse, fragment en afbakening zijn correct. Snel door met Akkoord — of de pijltoets.
-
-🟡 **Even kijken** (linkerbalk `#f59e0b`, bg `rgba(225,112,0,0.06)`)
-De Critic twijfelt — Voorwaarde of Afleidingsregel? De kaart toont een alternatief als klikbare
-chip. Jij kiest; je keuze staat in het audittrail.
-
-🔴 **Waarschijnlijk fout** (linkerbalk `#ef4444`, bg `rgba(213,43,30,0.06)`)
-De Critic heeft de correctie al doorgevoerd in de code (niet door een tweede AI-aanroep). Wat er
-stond en waarom het is aangepast, is zichtbaar in de kaart.
-
-**Ondertekst:** "Het model doet wat zeker is automatisch. Wat twijfelachtig is, legt het voor."
-
----
-
-#### Dia 8b — Waarmee is dit gebouwd
+#### Dia 13 — Waarmee is dit gebouwd
 
 **Koptekst:** Waarmee is dit gebouwd
 
@@ -403,7 +405,7 @@ Leid de onderdelen af uit de `pyproject.toml`/`package.json` van elk onderdeel e
 
 ---
 
-#### Dia 9 — Waar we nu staan
+#### Dia 14 — Waar we nu staan
 
 **Koptekst:** Wat werkt al — wat komt er aan
 
@@ -425,17 +427,18 @@ Leid de onderdelen af uit de `pyproject.toml`/`package.json` van elk onderdeel e
 
 ---
 
-#### Dia 9b — Waar dit heen kan
+#### Dia 15 — Waar dit heen kan
 
 **Koptekst:** Waar dit heen kan
 
 Vier kaarten, elk met een eerlijke statusregel eronder (*Werkt vandaag* / *Plan ligt er, nog niet
 gebouwd* / *Gemeten, zie hieronder*):
 
-- **Kennis op één plek** — beleidsstukken en handleidingen als tweede bron naast de wet
-- **Voor medewerkers, niet voor specialisten** — accounts, rollen, tweestapsaanmelding,
-  verbruiksgrens per medewerker
-- **Samen aan dezelfde bepaling** — een tweede lezing wordt een alternatief, geen overschrijving
+- **Eén plek om te vragen** — vandaag de wet in gewone woorden met de vindplaats erbij;
+  beleidsstukken en handleidingen kunnen er als tweede bron naast
+- **Structuur die je opnieuw gebruikt** — een geannoteerde bepaling als grondstof: uitvoerbare
+  regels, impact van een wetswijziging, terugvinden waar een termijn staat
+- **Werk dat blijft staan** — één corpus dat aangroeit in plaats van losse documenten
 - **De graaf groeit met zichzelf mee** — elke nieuwe regeling legt zijn verbindingen vanzelf
 
 Daaronder een lintblauwe balk met de **gemeten** cijfers: 7 regelingen / 1.162 artikelen · 192
@@ -452,7 +455,7 @@ worden. Dezelfde regel geldt voor de statusdia: "nog niet" in plaats van "op de 
 
 ---
 
-#### Dia 10 — Over naar de demo
+#### Dia 16 — Over naar de demo
 
 **Koptekst:** Laten we het zien
 
@@ -516,12 +519,24 @@ provider, Critic-rondes).
 
 ---
 
+### Verhaallijn en taalgebruik
+
+De dia's lopen in zeven blokken in elkaar over: *waarom (2) → wat is het (3-4) → wat doet Lex
+ermee (5-7) → waarom je het kunt vertrouwen (8) → hoe het werkt (9-13) → waar we staan (14-15) →
+demo (16)*. Elke overgang moet te benoemen zijn; waar de sprong groot is staat een brugzin in de
+`.kernzin`-vorm. Vertel hetzelfde niet twee keer: de casus op dia 5-7 lát zien wat een abstracte
+"van vraag tot annotatie"-dia zou samenvatten, dus die dia bestaat niet.
+
+**Schrijf elke afkorting voluit bij het eerste gebruik** — Juridisch Analyseschema (JAS),
+Basiswettenbestand, Invorderingswet 1990, tweestapsaanmelding. Productnamen op de
+technologiedia (RDF, SPARQL, MCP, CLI, GHCR) blijven zoals ze heten.
+
 ### Technische vereisten voor de HTML
 
 - Eén `.html`-bestand, klaar om lokaal te openen (geen server nodig)
 - reveal.js 4.x via CDN (`https://cdn.jsdelivr.net/npm/reveal.js@4/`)
 - Google Fonts: Fira Sans (400, 600) + Fira Mono (400)
-- Geen externe afbeeldingen; gebruik SVG inline voor het stroomdiagram op dia 5
+- Geen externe afbeeldingen; gebruik SVG inline voor het stroomdiagram op dia 10
 - Speaker notes zichtbaar via `S`-toets (standaard reveal.js)
 - reveal.js-opties: `transition: 'fade'`, `transitionSpeed: 'fast'`, `center: false`,
   `width: 1280`, `height: 720`, `margin: 0.04`, `progress: false`,

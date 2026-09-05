@@ -681,6 +681,53 @@
        0.9em van 0.42em geeft de bedoelde ~0.38em. Zelfde valkuil als bij .laag-waarvoor. */
     .pot-nu { font-size: 0.9em; color: var(--faint); display: block; margin-top: 0.4em; font-style: italic; }
 
+    /* Probleemdia: drie knelpunten → één gevolg → de lintblauwe band met het antwoord.
+       Dezelfde visuele grammatica als .pot-kaart/.groei op de potentiedia, zodat
+       "probleem → antwoord" twee keer hetzelfde ritme heeft. */
+    .knelpunten {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 0.5em;
+      margin-top: 0.55em;
+    }
+    .knel {
+      border-radius: var(--r-kaart);
+      border: 1.5px solid var(--line);
+      border-top: 3px solid #c4442d;
+      background: var(--paper);
+      padding: 0.55em 0.7em;
+    }
+    .knel-kop { font-size: 0.48em; font-weight: 600; color: var(--ink); display: block; }
+    .knel-tekst { font-size: 0.4em; color: var(--muted); line-height: 1.45; display: block; margin-top: 0.2em; }
+    .gevolg {
+      margin-top: 0.5em;
+      border-radius: var(--r-kaart);
+      border: 1.5px solid var(--line);
+      background: #faf3f1;
+      padding: 0.55em 0.75em;
+      font-size: 0.44em;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .gevolg strong { color: var(--ink); font-weight: 600; }
+    .antwoordband {
+      margin-top: 0.55em;
+      border-radius: var(--r-kaart);
+      background: var(--lint);
+      padding: 0.7em 0.85em;
+      color: #fff;
+    }
+    .antwoord-kop { font-size: 0.52em; font-weight: 600; display: block; }
+    .antwoord-lijst {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.35em 0.9em;
+      margin-top: 0.4em;
+      font-size: 0.4em;
+      color: #cfe0f0;
+      line-height: 1.45;
+    }
+
     .groei {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -728,7 +775,7 @@
         <h1>Lex — wetsanalyse<br/>met de kennisgraaf</h1>
         <div class="ondertitel">
           Een hulpmiddel voor gestructureerde,<br/>
-          brongetrouwe JAS-annotatie
+          brongetrouwe annotatie volgens het Juridisch Analyseschema (JAS)
         </div>
         <div class="voettekst">Belastingdienst &nbsp;·&nbsp; Cluster Inning &nbsp;·&nbsp; <span id="datum-vandaag">vandaag</span></div>
       </div>
@@ -743,57 +790,51 @@
     ────────────────────────────────────────────── -->
     <section>
       <h2>Uitvoering begint bij de wet</h2>
-      <ul>
-        <li>Wet- en regelgeving is de basis voor elke invorderingsbeslissing, maar een wetswijziging vraagt dat elke betrokken bepaling opnieuw geanalyseerd en geannoteerd wordt</li>
-        <li>JAS-annotatie maakt de juridische structuur van die tekst expliciet: wie heeft welke rechten en plichten, onder welke voorwaarden? Dat is de grondstof voor uitvoerbare regels en aantoonbaar correcte beslissingen</li>
-        <li>Handmatig annoteren vraagt diepgaande JAS-kennis, is tijdrovend en leidt bij wisselende medewerkers tot inconsistente resultaten</li>
-        <li>Bovendien raakt de koppeling naar de bron snel los: welke versie gold op het moment van de beslissing? welk lid precies?</li>
-        <li>Lex pakt dit aan: automatisch markeren op de actuele wettekst, controleerbaar herleidbaar naar de exacte bron, met de jurist als eindverantwoordelijke</li>
-      </ul>
+      <p class="kernzin" style="margin-top:0.2em;">Elke invorderingsbeslissing steunt op de wet —
+        en bij elke wetswijziging moet elke geraakte bepaling opnieuw worden gelezen.</p>
+
+      <div class="knelpunten">
+        <div class="knel">
+          <span class="knel-kop">Vraagt specialistische kennis</span>
+          <span class="knel-tekst">Met de hand annoteren volgens het Juridisch Analyseschema
+            kunnen maar weinig mensen.</span>
+        </div>
+        <div class="knel">
+          <span class="knel-kop">Kost tijd</span>
+          <span class="knel-tekst">Bepaling voor bepaling, lid voor lid — en de wet wacht niet
+            op de analyse.</span>
+        </div>
+        <div class="knel">
+          <span class="knel-kop">Wisselt per persoon</span>
+          <span class="knel-tekst">Twee analisten, twee uitkomsten. Er is geen gedeelde maat om
+            dat verschil te zien.</span>
+        </div>
+      </div>
+
+      <div class="gevolg">
+        En daaronder schuift de bron weg: <strong>welke versie gold op het moment van de
+        beslissing, en welk lid precies?</strong> Zonder dat antwoord is een beslissing niet
+        aantoonbaar juist.
+      </div>
+
+      <div class="antwoordband">
+        <span class="antwoord-kop">Wat Lex daaraan doet</span>
+        <div class="antwoord-lijst">
+          <div>Markeert automatisch op de actuele wettekst</div>
+          <div>Elk fragment herleidbaar tot artikel, lid en vindplaats</div>
+          <div>De jurist beslist en blijft eindverantwoordelijk</div>
+        </div>
+      </div>
       <aside class="notes">
         Dit platform onderzoekt of AI het wetsanalyseproces kan versnellen zonder kwaliteitsverlies.
         De eerste onderzoeksvraag, ondersteuning bij JAS-annotatie, is dit platform. De
         behandelfunctionaris beslist en is eindverantwoordelijk; Lex ondersteunt.
-      </aside>
-    </section>
 
-
-    <!-- ──────────────────────────────────────────────
-         DIA 2b — Wat levert het op (casus)
-         Zin en vindplaats letterlijk uit tools/graph-qa/eval/bronteksten.json
-    ────────────────────────────────────────────── -->
-    <section>
-      <h2>Wat levert het op</h2>
-      <div class="casus">
-        <div class="casus-rij">
-          <span class="casus-wie">De vraag</span>
-          <span class="casus-wat">“Wanneer is een belastingaanslag invorderbaar?”
-            <em>gewoon getypt, in je eigen woorden</em></span>
-        </div>
-        <div class="casus-rij">
-          <span class="casus-wie">Lex zoekt</span>
-          <span class="casus-wat">Vindt de bepaling in de kennisgraaf en haalt de letterlijke tekst op.
-            <em>artikel 9, eerste lid, Invorderingswet 1990</em></span>
-        </div>
-        <div class="casus-rij bron">
-          <span class="casus-wie">Het antwoord</span>
-          <span>
-            <span class="casus-citaat">“Een belastingaanslag is invorderbaar zes weken na de
-              dagtekening van het aanslagbiljet.”</span>
-            <span class="casus-jci">jci1.3:c:BWBR0004770&amp;artikel=9&amp;lid=1</span>
-          </span>
-        </div>
-      </div>
-      <p class="kernzin">Dit citaat is niet geschreven maar opgezocht — en de vindplaats komt mee.</p>
-      <aside class="notes">
-        Eén vraag, één antwoord, één vindplaats. Dit is wat een behandelfunctionaris ermee doet, en
-        het is meteen het verschil met een gewone chatbot: het citaat is letterlijk uit de graaf
-        gehaald, niet door het model geformuleerd. Kan Lex het niet vinden, dan zegt hij dat — hij
-        vult niets aan uit algemene kennis.
-
-        Deze zin komt uit de gouden testset waarmee we elke versie meten, dus wat hier staat is
-        precies wat het platform moet opleveren. We komen er straks op terug: dezelfde zin, dan als
-        juridische structuur.
+        De uitgeschreven versie van deze dia: wetsanalyse maakt de juridische structuur van de
+        tekst expliciet — wie heeft welke rechten en plichten, onder welke voorwaarden. Dat is de
+        grondstof voor uitvoerbare regels én voor aantoonbaar correcte beslissingen. Handmatig
+        annoteren vraagt diepgaande kennis van het analyseschema, is tijdrovend en levert bij
+        wisselende medewerkers inconsistente resultaten op.
       </aside>
     </section>
 
@@ -894,13 +935,56 @@
         In het invorderingsdomein: rechtssubject = <em>"de ontvanger"</em>,
         rechtsfeit = <em>"aanmaning verstuurd"</em>.
       </p>
-      <p style="font-size:0.62em; color:var(--lint); margin-top:0.5em; font-weight:600;">
-        De jurist beslist — de AI stelt voor.
-      </p>
+      <p class="kernzin">De jurist beslist — de AI stelt voor. Zo ziet dat eruit op één bepaling.</p>
       <aside class="notes">
         De volgorde van de strip is canoniek: rechtssubject → brondefinitie. Die volgorde bepaalt
         ook de volgorde van de review-kaarten in de werkplek. Bij Inning zijn dit herkenbare
         begrippen — de ontvanger, de aanmaning, het dwangbevel zijn stuk voor stuk JAS-elementen.
+      </aside>
+    </section>
+
+
+    <!-- ──────────────────────────────────────────────
+         DIA 2b — Wat levert het op (casus)
+         Zin en vindplaats letterlijk uit tools/graph-qa/eval/bronteksten.json
+    ────────────────────────────────────────────── -->
+    <section>
+      <h2>Eerst de bepaling, letterlijk</h2>
+      <div class="casus">
+        <div class="casus-rij">
+          <span class="casus-wie">De vraag</span>
+          <span class="casus-wat">“Wanneer is een belastingaanslag invorderbaar?”
+            <em>gewoon getypt, in je eigen woorden</em></span>
+        </div>
+        <div class="casus-rij">
+          <span class="casus-wie">Lex zoekt</span>
+          <span class="casus-wat">Vindt de bepaling in de kennisgraaf en haalt de letterlijke tekst op.
+            <em>artikel 9, eerste lid, Invorderingswet 1990</em></span>
+        </div>
+        <div class="casus-rij bron">
+          <span class="casus-wie">Het antwoord</span>
+          <span>
+            <span class="casus-citaat">“Een belastingaanslag is invorderbaar zes weken na de
+              dagtekening van het aanslagbiljet.”</span>
+            <span class="casus-jci">jci1.3:c:BWBR0004770&amp;artikel=9&amp;lid=1</span>
+          </span>
+        </div>
+      </div>
+      <p class="kernzin">Dit citaat is niet geschreven maar opgezocht — en de vindplaats komt mee.</p>
+      <aside class="notes">
+        In de praktijk lopen vraag en ophalen in elkaar over — je vraagt "annoteer artikel X" en
+        Lex doet de rest. Wat daarna volgt is altijd menselijk: het platform forceert een
+        beslissing, en niets wordt opgeslagen zonder dat de behandelfunctionaris er iets mee
+        gedaan heeft.
+
+        Eén vraag, één antwoord, één vindplaats. Dit is wat een behandelfunctionaris ermee doet, en
+        het is meteen het verschil met een gewone chatbot: het citaat is letterlijk uit de graaf
+        gehaald, niet door het model geformuleerd. Kan Lex het niet vinden, dan zegt hij dat — hij
+        vult niets aan uit algemene kennis.
+
+        Deze zin komt uit de gouden testset waarmee we elke versie meten, dus wat hier staat is
+        precies wat het platform moet opleveren. We komen er straks op terug: dezelfde zin, dan als
+        juridische structuur.
       </aside>
     </section>
 
@@ -952,6 +1036,108 @@
     </section>
 
     <!-- ──────────────────────────────────────────────
+         DIA 8 — De Critic
+    ────────────────────────────────────────────── -->
+    <section>
+      <h2>Jij beslist — de AI wijst aan waar je moet kijken</h2>
+      <div class="critic-lijst">
+        <div class="critic-kaart" style="background:rgba(57,135,12,0.06);">
+          <div class="critic-balk" style="background:#4caf50;"></div>
+          <div class="critic-inhoud">
+            <strong>Geen signaal</strong>
+            <p>De Critic vond niets mis met klasse, fragment en afbakening. Dat is geen goedkeuring:
+               jij beoordeelt hem, net als de andere. Het aandachtsniveau zegt wáár je scherper moet
+               kijken, niet waar je kunt overslaan.</p>
+          </div>
+        </div>
+        <div class="critic-kaart" style="background:rgba(225,112,0,0.06);">
+          <div class="critic-balk" style="background:#f59e0b;"></div>
+          <div class="critic-inhoud">
+            <strong>Even kijken</strong>
+            <p>De Critic twijfelt — Voorwaarde of Afleidingsregel? De kaart toont een alternatief als klikbare chip. Jij kiest; je keuze staat in het audittrail.</p>
+          </div>
+        </div>
+        <div class="critic-kaart" style="background:rgba(213,43,30,0.06);">
+          <div class="critic-balk" style="background:#ef4444;"></div>
+          <div class="critic-inhoud">
+            <strong>Waarschijnlijk fout</strong>
+            <p>De Critic heeft de correctie al doorgevoerd in de code — geen tweede AI-aanroep. Wat er stond en waarom het is aangepast, is zichtbaar in de kaart.</p>
+          </div>
+        </div>
+      </div>
+      <p style="font-size:0.56em; color:var(--muted); margin-top:0.8em; font-style:italic;">
+        Het model doet wat zeker is automatisch. Wat twijfelachtig is, legt het voor.
+      </p>
+      <aside class="notes">
+        Rode correcties lopen via code — geen extra taalmodel dat misschien iets anders bedenkt.
+        Gele twijfels worden keuzes van de behandelfunctionaris, vastgelegd in het audittrail.
+        Zo weet je achteraf altijd wie wat heeft beslist en waarom — relevant bij bezwaar en beroep.
+      </aside>
+    </section>
+
+    <!-- ──────────────────────────────────────────────
+         DIA 7 — Brongetrouwheid
+    ────────────────────────────────────────────── -->
+    <section>
+      <h2>Geen fragment zonder bron</h2>
+      <svg class="beeld" viewBox="0 0 960 230" xmlns="http://www.w3.org/2000/svg"
+           aria-label="Verificatie: een voorstel wordt letterlijk opgezocht in de wettekst; gevonden gaat naar de jurist, niet gevonden wordt verworpen">
+        <defs>
+          <marker id="v-pijl" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+            <polygon points="0 0, 8 4, 0 8" fill="#154273"/>
+          </marker>
+          <marker id="v-rood" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+            <polygon points="0 0, 8 4, 0 8" fill="#d52b1e"/>
+          </marker>
+          <marker id="v-groen" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+            <polygon points="0 0, 8 4, 0 8" fill="#39870c"/>
+          </marker>
+        </defs>
+
+        <rect x="8" y="82" width="196" height="62" rx="12" fill="#e8eff7" stroke="#154273" stroke-width="1.5"/>
+        <text x="106" y="106" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="13" font-weight="600" fill="#154273">Voorstel van Lex</text>
+        <text x="106" y="122" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#4a5a6e">een stuk tekst + een klasse</text>
+        <path d="M204 113 L252 113" stroke="#154273" stroke-width="2" marker-end="url(#v-pijl)"/>
+
+        <rect x="254" y="70" width="238" height="86" rx="12" fill="#154273"/>
+        <text x="373" y="96" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="13" font-weight="600" fill="#ffffff">Letterlijk opzoeken</text>
+        <text x="373" y="113" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#b8d0e8">staat dit teken voor teken</text>
+        <text x="373" y="127" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#b8d0e8">in de opgehaalde wettekst?</text>
+        <text x="373" y="145" text-anchor="middle" font-family="Fira Mono,monospace" font-size="9" fill="#8fb4d8">code — geen AI, geen interpretatie</text>
+
+        <path d="M492 96 L560 60 L604 60" stroke="#39870c" stroke-width="2" fill="none" marker-end="url(#v-groen)"/>
+        <text x="530" y="66" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" font-weight="600" fill="#39870c">gevonden</text>
+        <path d="M492 130 L560 176 L604 176" stroke="#d52b1e" stroke-width="2" fill="none" marker-end="url(#v-rood)"/>
+        <text x="534" y="196" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" font-weight="600" fill="#d52b1e">niet gevonden</text>
+
+        <rect x="606" y="30" width="264" height="60" rx="12" fill="#ffffff" stroke="#39870c" stroke-width="1.8"/>
+        <text x="738" y="54" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="12.5" font-weight="600" fill="#39870c">Naar de jurist</text>
+        <text x="738" y="70" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#4a5a6e">mét vindplaats: wet, artikel, lid</text>
+
+        <rect x="606" y="146" width="264" height="60" rx="12" fill="#ffffff" stroke="#d52b1e" stroke-width="1.8" stroke-dasharray="5 4"/>
+        <text x="738" y="170" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="12.5" font-weight="600" fill="#d52b1e">Verworpen</text>
+        <text x="738" y="186" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#4a5a6e">bereikt niemand — ook u niet</text>
+
+        <text x="886" y="118" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#6b7685">bij antwoorden</text>
+        <text x="886" y="132" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#6b7685">dezelfde controle</text>
+        <text x="886" y="146" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#6b7685">op citaat én bron</text>
+      </svg>
+      <div class="jci-box">
+        jci1.31:c:BWBR0004770&amp;artikel=36&amp;lid=4<br/>
+        Invorderingswet 1990, art. 36 lid 4
+      </div>
+      <p style="font-size:0.56em; color:var(--lint); font-weight:600; margin-top:0.4em;">
+        Geen fragment bereikt de jurist zonder letterlijke verankering in de wet.
+      </p>
+      <aside class="notes">
+        Dit is de eigenschap die Lex onderscheidt van een gewone chatbot. Beide grounding-checks
+        zijn deterministisch: string-matching, geen taalmodel. Bij annotaties werkt het
+        element-voor-element; bij antwoorden op het niveau van BWB-id's en citaten. In de demo
+        zie je de gegrond-indicatie en hoe de jci-uri terugwijst naar de exacte bepaling.
+      </aside>
+    </section>
+
+    <!-- ──────────────────────────────────────────────
          DIA 5 — Het platform
     ────────────────────────────────────────────── -->
     <section>
@@ -965,7 +1151,7 @@
         <rect x="610" y="30" width="140" height="68" rx="14" fill="#154273"/>
         <!-- labels -->
         <text x="88"  y="60" text-anchor="middle" font-family="Fira Sans,sans-serif" font-weight="600" font-size="13" fill="#154273">Kennisgraaf</text>
-        <text x="88"  y="76" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="11" fill="#3a6ea8">(BWB)</text>
+        <text x="88"  y="76" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="11" fill="#3a6ea8">(Basiswettenbestand)</text>
         <text x="288" y="60" text-anchor="middle" font-family="Fira Sans,sans-serif" font-weight="600" font-size="13" fill="#154273">Lex</text>
         <text x="288" y="76" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="11" fill="#3a6ea8">(AI-agent)</text>
         <text x="488" y="60" text-anchor="middle" font-family="Fira Sans,sans-serif" font-weight="600" font-size="13" fill="#154273">Werkplek</text>
@@ -1125,15 +1311,15 @@
         </div>
         <div class="keten-stap">
           <span class="keten-nr">2</span>
-          <span class="keten-naam">Worker</span>
-          <span class="badge-lex">AI + tools</span>
-          <span class="keten-omsch">Haalt de wettekst op uit de kennisgraaf via tools.</span>
+          <span class="keten-naam">Ophalen</span>
+          <span class="badge-lex">AI + graaf</span>
+          <span class="keten-omsch">De enige stap die de kennisgraaf bevraagt — en alleen via de gereedschapskist.</span>
         </div>
         <div class="keten-stap">
           <span class="keten-nr">3</span>
           <span class="keten-naam">Annoteerder / Antwoorder</span>
-          <span class="badge-lex">AI</span>
-          <span class="keten-omsch">Stelt JAS-markeringen voor of beantwoordt de vraag.</span>
+          <span class="badge-lex">AI &middot; op de tekst</span>
+          <span class="keten-omsch">Werkt op de opgehaalde tekst: stelt markeringen voor of beantwoordt de vraag.</span>
         </div>
         <div class="keten-stap">
           <span class="keten-nr">4</span>
@@ -1161,13 +1347,17 @@
         </div>
       </div>
       <p style="font-size:0.52em; color:var(--muted); margin-top:0.65em; font-style:italic;">
-        Een annotatie kost maximaal 4 AI-aanroepen. Alles daartussenin is code.
+        Eén stap haalt de tekst op. Alles daarna werkt op díe tekst — en kost hoogstens
+        vier AI-aanroepen per annotatie.
       </p>
       <aside class="notes">
         De sleutel: wat de Critic rood markeert, voert code uit, geen tweede LLM. Zo is elke
         correctie deterministisch en controleerbaar. De grounding-check na stap 3 betekent dat
         een hallucinerend fragment de jurist nooit bereikt. Max. 4 LLM-calls voor een volledige
         annotatie; een schone annotatie kost er 2 (annoteerder + Critic ronde 1).
+        In de code krijgt precies één aanroep gereedschap mee (<code>antwoord.py</code>); de
+        supervisor, de annoteerder, de Critic en de herziener draaien alle vier met
+        <code>tools=[]</code>. Het model kan dus niet zelf gaan rondkijken in de graaf.
       </aside>
     </section>
 
@@ -1233,168 +1423,6 @@
 
         Vragen die hierop kunnen komen: "kan hij dan alles zien?" — hij ziet alleen de wetgeving
         die in de graaf zit, en niets uit ons interne netwerk.
-      </aside>
-    </section>
-
-    <!-- ──────────────────────────────────────────────
-         DIA 6 — Drie stappen
-    ────────────────────────────────────────────── -->
-    <section>
-      <h2>Van vraag tot beoordeelde annotatie</h2>
-      <svg class="beeld" viewBox="0 0 960 200" xmlns="http://www.w3.org/2000/svg"
-           aria-label="Drie stappen: vraag stellen, annotatie ontvangen, beoordelen en beslissen">
-        <defs>
-          <marker id="s-pijl" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-            <polygon points="0 0, 8 4, 0 8" fill="#154273"/>
-          </marker>
-        </defs>
-
-        <!-- 1 -->
-        <rect x="10" y="26" width="286" height="150" rx="14" fill="#ffffff" stroke="#154273" stroke-width="1.5"/>
-        <circle cx="46" cy="60" r="17" fill="#e8eff7" stroke="#154273" stroke-width="1.5"/>
-        <text x="46" y="66" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="15" font-weight="600" fill="#154273">1</text>
-        <text x="76" y="58" font-family="Fira Sans,sans-serif" font-size="14" font-weight="600" fill="#154273">Stel je vraag</text>
-        <text x="76" y="74" font-family="Fira Sans,sans-serif" font-size="10.5" fill="#6b7685">in gewone woorden</text>
-        <rect x="30" y="94" width="246" height="30" rx="8" fill="#f5f6f8" stroke="#d1d6dd"/>
-        <text x="42" y="113" font-family="Fira Mono,monospace" font-size="10" fill="#4a5a6e">annoteer artikel 36 lid 4 IW 1990</text>
-        <text x="30" y="146" font-family="Fira Sans,sans-serif" font-size="10.5" fill="#4a5a6e">Lex zoekt de bepaling op in de kennisgraaf</text>
-        <text x="30" y="162" font-family="Fira Sans,sans-serif" font-size="10.5" fill="#4a5a6e">en haalt de letterlijke tekst op.</text>
-        <path d="M298 101 L326 101" stroke="#154273" stroke-width="2" marker-end="url(#s-pijl)"/>
-
-        <!-- 2 -->
-        <rect x="332" y="26" width="286" height="150" rx="14" fill="#ffffff" stroke="#154273" stroke-width="1.5"/>
-        <circle cx="368" cy="60" r="17" fill="#e8eff7" stroke="#154273" stroke-width="1.5"/>
-        <text x="368" y="66" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="15" font-weight="600" fill="#154273">2</text>
-        <text x="398" y="58" font-family="Fira Sans,sans-serif" font-size="14" font-weight="600" fill="#154273">Ontvang voorstellen</text>
-        <text x="398" y="74" font-family="Fira Sans,sans-serif" font-size="10.5" fill="#6b7685">per markering één kaart</text>
-        <rect x="352" y="94" width="246" height="18" rx="5" fill="#e8f4e0" stroke="#39870c"/>
-        <text x="362" y="107" font-family="Fira Sans,sans-serif" font-size="10" fill="#2e6b09">Rechtssubject — de bestuurder</text>
-        <rect x="352" y="116" width="246" height="18" rx="5" fill="#fdf0e0" stroke="#e17000"/>
-        <text x="362" y="129" font-family="Fira Sans,sans-serif" font-size="10" fill="#a35200">Voorwaarde — twijfel, alternatief</text>
-        <rect x="352" y="138" width="246" height="18" rx="5" fill="#fbe6e4" stroke="#d52b1e"/>
-        <text x="362" y="151" font-family="Fira Sans,sans-serif" font-size="10" fill="#9e2016">Rood — Critic corrigeerde dit</text>
-        <text x="352" y="170" font-family="Fira Sans,sans-serif" font-size="10" fill="#6b7685">groen · geel · rood = hoeveel aandacht nodig is</text>
-        <path d="M620 101 L648 101" stroke="#154273" stroke-width="2" marker-end="url(#s-pijl)"/>
-
-        <!-- 3 -->
-        <rect x="654" y="26" width="296" height="150" rx="14" fill="#154273"/>
-        <circle cx="690" cy="60" r="17" fill="#ffffff" fill-opacity="0.15" stroke="#ffffff" stroke-width="1.5"/>
-        <text x="690" y="66" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="15" font-weight="600" fill="#ffffff">3</text>
-        <text x="720" y="58" font-family="Fira Sans,sans-serif" font-size="14" font-weight="600" fill="#ffffff">Jij beslist</text>
-        <text x="720" y="74" font-family="Fira Sans,sans-serif" font-size="10.5" fill="#b8d0e8">niets gaat door zonder jou</text>
-        <rect x="674" y="94" width="122" height="30" rx="7" fill="#ffffff"/>
-        <text x="735" y="113" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="11.5" font-weight="600" fill="#39870c">Akkoord</text>
-        <rect x="806" y="94" width="122" height="30" rx="7" fill="#ffffff"/>
-        <text x="867" y="113" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="11.5" font-weight="600" fill="#d52b1e">Verwerpen</text>
-        <text x="674" y="146" font-family="Fira Sans,sans-serif" font-size="10.5" fill="#b8d0e8">Elke beslissing komt met naam en tijdstip</text>
-        <text x="674" y="162" font-family="Fira Sans,sans-serif" font-size="10.5" fill="#b8d0e8">in het auditspoor.</text>
-      </svg>
-      <aside class="notes">
-        Stappen 1 en 2 zijn in de praktijk gecombineerd — je vraagt "annoteer artikel X" en Lex
-        doet de rest. Stap 3 is altijd menselijk: het platform forceert een beslissing, niets
-        wordt opgeslagen zonder dat de behandelfunctionaris er iets mee gedaan heeft.
-      </aside>
-    </section>
-
-    <!-- ──────────────────────────────────────────────
-         DIA 7 — Brongetrouwheid
-    ────────────────────────────────────────────── -->
-    <section>
-      <h2>Geen fragment zonder bron</h2>
-      <svg class="beeld" viewBox="0 0 960 230" xmlns="http://www.w3.org/2000/svg"
-           aria-label="Verificatie: een voorstel wordt letterlijk opgezocht in de wettekst; gevonden gaat naar de jurist, niet gevonden wordt verworpen">
-        <defs>
-          <marker id="v-pijl" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-            <polygon points="0 0, 8 4, 0 8" fill="#154273"/>
-          </marker>
-          <marker id="v-rood" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-            <polygon points="0 0, 8 4, 0 8" fill="#d52b1e"/>
-          </marker>
-          <marker id="v-groen" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-            <polygon points="0 0, 8 4, 0 8" fill="#39870c"/>
-          </marker>
-        </defs>
-
-        <rect x="8" y="82" width="196" height="62" rx="12" fill="#e8eff7" stroke="#154273" stroke-width="1.5"/>
-        <text x="106" y="106" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="13" font-weight="600" fill="#154273">Voorstel van Lex</text>
-        <text x="106" y="122" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#4a5a6e">een stuk tekst + een klasse</text>
-        <path d="M204 113 L252 113" stroke="#154273" stroke-width="2" marker-end="url(#v-pijl)"/>
-
-        <rect x="254" y="70" width="238" height="86" rx="12" fill="#154273"/>
-        <text x="373" y="96" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="13" font-weight="600" fill="#ffffff">Letterlijk opzoeken</text>
-        <text x="373" y="113" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#b8d0e8">staat dit teken voor teken</text>
-        <text x="373" y="127" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#b8d0e8">in de opgehaalde wettekst?</text>
-        <text x="373" y="145" text-anchor="middle" font-family="Fira Mono,monospace" font-size="9" fill="#8fb4d8">code — geen AI, geen interpretatie</text>
-
-        <path d="M492 96 L560 60 L604 60" stroke="#39870c" stroke-width="2" fill="none" marker-end="url(#v-groen)"/>
-        <text x="530" y="66" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" font-weight="600" fill="#39870c">gevonden</text>
-        <path d="M492 130 L560 176 L604 176" stroke="#d52b1e" stroke-width="2" fill="none" marker-end="url(#v-rood)"/>
-        <text x="534" y="196" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" font-weight="600" fill="#d52b1e">niet gevonden</text>
-
-        <rect x="606" y="30" width="264" height="60" rx="12" fill="#ffffff" stroke="#39870c" stroke-width="1.8"/>
-        <text x="738" y="54" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="12.5" font-weight="600" fill="#39870c">Naar de jurist</text>
-        <text x="738" y="70" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#4a5a6e">mét vindplaats: wet, artikel, lid</text>
-
-        <rect x="606" y="146" width="264" height="60" rx="12" fill="#ffffff" stroke="#d52b1e" stroke-width="1.8" stroke-dasharray="5 4"/>
-        <text x="738" y="170" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="12.5" font-weight="600" fill="#d52b1e">Verworpen</text>
-        <text x="738" y="186" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#4a5a6e">bereikt niemand — ook u niet</text>
-
-        <text x="886" y="118" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#6b7685">bij antwoorden</text>
-        <text x="886" y="132" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#6b7685">dezelfde controle</text>
-        <text x="886" y="146" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#6b7685">op citaat én bron</text>
-      </svg>
-      <div class="jci-box">
-        jci1.31:c:BWBR0004770&amp;artikel=36&amp;lid=4<br/>
-        Invorderingswet 1990, art. 36 lid 4
-      </div>
-      <p style="font-size:0.56em; color:var(--lint); font-weight:600; margin-top:0.4em;">
-        Geen fragment bereikt de jurist zonder letterlijke verankering in de wet.
-      </p>
-      <aside class="notes">
-        Dit is de eigenschap die Lex onderscheidt van een gewone chatbot. Beide grounding-checks
-        zijn deterministisch: string-matching, geen taalmodel. Bij annotaties werkt het
-        element-voor-element; bij antwoorden op het niveau van BWB-id's en citaten. In de demo
-        zie je de gegrond-indicatie en hoe de jci-uri terugwijst naar de exacte bepaling.
-      </aside>
-    </section>
-
-    <!-- ──────────────────────────────────────────────
-         DIA 8 — De Critic
-    ────────────────────────────────────────────── -->
-    <section>
-      <h2>Jij beslist — de AI wijst aan waar je moet kijken</h2>
-      <div class="critic-lijst">
-        <div class="critic-kaart" style="background:rgba(57,135,12,0.06);">
-          <div class="critic-balk" style="background:#4caf50;"></div>
-          <div class="critic-inhoud">
-            <strong>Geen signaal</strong>
-            <p>De Critic vond niets mis met klasse, fragment en afbakening. Dat is geen goedkeuring:
-               jij beoordeelt hem, net als de andere. Het aandachtsniveau zegt wáár je scherper moet
-               kijken, niet waar je kunt overslaan.</p>
-          </div>
-        </div>
-        <div class="critic-kaart" style="background:rgba(225,112,0,0.06);">
-          <div class="critic-balk" style="background:#f59e0b;"></div>
-          <div class="critic-inhoud">
-            <strong>Even kijken</strong>
-            <p>De Critic twijfelt — Voorwaarde of Afleidingsregel? De kaart toont een alternatief als klikbare chip. Jij kiest; je keuze staat in het audittrail.</p>
-          </div>
-        </div>
-        <div class="critic-kaart" style="background:rgba(213,43,30,0.06);">
-          <div class="critic-balk" style="background:#ef4444;"></div>
-          <div class="critic-inhoud">
-            <strong>Waarschijnlijk fout</strong>
-            <p>De Critic heeft de correctie al doorgevoerd in de code — geen tweede AI-aanroep. Wat er stond en waarom het is aangepast, is zichtbaar in de kaart.</p>
-          </div>
-        </div>
-      </div>
-      <p style="font-size:0.56em; color:var(--muted); margin-top:0.8em; font-style:italic;">
-        Het model doet wat zeker is automatisch. Wat twijfelachtig is, legt het voor.
-      </p>
-      <aside class="notes">
-        Rode correcties lopen via code — geen extra taalmodel dat misschien iets anders bedenkt.
-        Gele twijfels worden keuzes van de behandelfunctionaris, vastgelegd in het audittrail.
-        Zo weet je achteraf altijd wie wat heeft beslist en waarom — relevant bij bezwaar en beroep.
       </aside>
     </section>
 
@@ -1494,7 +1522,7 @@
             <li>Kennisgraaf, wekelijks bijgewerkt vanaf overheid.nl</li>
             <li>Brongetrouwe antwoorden en JAS-markeringen met Critic-controle</li>
             <li>Review, auditspoor en export (JSON, CSV, PDF)</li>
-            <li>Toegangsbeheer: rollen, 2FA, tokenbudget per analist</li>
+            <li>Toegangsbeheer: rollen, tweestapsaanmelding, verbruiksgrens per analist</li>
           </ul>
         </div>
         <div class="svz-roadmap">
@@ -1530,22 +1558,24 @@
       <h2>Waar dit heen kan</h2>
       <div class="potentie">
         <div class="pot-kaart">
-          <span class="pot-kop">Kennis op één plek</span>
-          <span class="pot-tekst">Wetgeving is één soort kennis. Beleidsstukken, handleidingen en
-            interne notities kunnen er als tweede bron naast — dezelfde vraag, één antwoord.
-            <span class="pot-nu">Plan ligt er, nog niet gebouwd.</span></span>
+          <span class="pot-kop">Eén plek om te vragen</span>
+          <span class="pot-tekst">Vandaag de wet, in gewone woorden gevraagd en met de vindplaats
+            erbij. Beleidsstukken, handleidingen en interne notities kunnen er als tweede bron
+            naast — dan blijft het één vraag en één antwoord in plaats van vier zoektochten.
+            <span class="pot-nu">Wet werkt vandaag; de tweede bron is ontworpen.</span></span>
         </div>
         <div class="pot-kaart">
-          <span class="pot-kop">Voor medewerkers, niet voor specialisten</span>
-          <span class="pot-tekst">Vragen stellen in gewone woorden, met de bron erbij. Accounts,
-            rollen, tweestapsaanmelding en een verbruiksgrens per medewerker zitten er al in.
-            <span class="pot-nu">Werkt vandaag.</span></span>
+          <span class="pot-kop">Structuur die je opnieuw gebruikt</span>
+          <span class="pot-tekst">Een geannoteerde bepaling is geen document maar grondstof:
+            de opstap naar uitvoerbare regels, het antwoord op "welke bepalingen raakt deze
+            wetswijziging", en de weg terug naar waar een termijn of voorwaarde precies staat.
+            <span class="pot-nu">De structuur ligt er; de toepassingen komen erop.</span></span>
         </div>
         <div class="pot-kaart">
-          <span class="pot-kop">Samen aan dezelfde bepaling</span>
-          <span class="pot-tekst">Jurist, uitvoeringsdeskundige en analist werken aan hetzelfde
-            stuk. Een tweede lezing wordt een alternatief naast het eerste, geen overschrijving —
-            en elke beslissing draagt een naam en een tijdstip.
+          <span class="pot-kop">Werk dat blijft staan</span>
+          <span class="pot-tekst">Wat één keer is geanalyseerd, blijft beschikbaar en groeit aan.
+            Een tweede lezing komt ernáást in plaats van eroverheen, dus een team bouwt aan één
+            corpus in plaats van aan losse documenten in losse mappen.
             <span class="pot-nu">Werkt vandaag.</span></span>
         </div>
         <div class="pot-kaart">
@@ -1591,6 +1621,10 @@
         Wat dit betekent voor de volgorde: eerst bronnen toevoegen, dan pas nieuwe activiteiten.
         Zonder bronnen valt er weinig te valideren, en elke extra regeling maakt de analyses die er
         al liggen waardevoller.
+
+        Als iemand naar de randvoorwaarden vraagt: accounts, rollen, tweestapsaanmelding en een
+        verbruiksgrens per medewerker zitten er al in. Dat is geen verkoopargument maar de reden
+        dat kaart 1 vandaag al kan.
       </aside>
     </section>
 
@@ -1697,7 +1731,7 @@
       <aside class="notes">Stap 6 van 6. Na export: open vragen, eventueel live beantwoorden in de werkplek.</aside>
     </section>
 
-  </div>
+</div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/reveal.js@4/dist/reveal.js"></script>
