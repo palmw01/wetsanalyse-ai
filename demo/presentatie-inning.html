@@ -4,6 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Lex — wetsanalyse met de kennisgraaf · Cluster Inning</title>
+  <!-- Hetzelfde beeldmerk als de webapp (frontend/public/favicon-32.png), inline als data-URI.
+       Bewust niet als bestandsverwijzing: deze presentatie hoort één zelfstandig .html te blijven
+       dat je kunt doorsturen en lokaal openen — een relatief pad naar de frontend breekt dat. -->
+  <link rel="icon" type="image/png" sizes="32x32" href="data:image/png;base64,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" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;600&family=Fira+Mono:wght@400&display=swap" rel="stylesheet" />
@@ -53,6 +57,15 @@
     }
 
     /* ── Slides als app-kaarten ────────────────────── */
+    /* box-sizing staat in deze deck op `content-box` (reveal 4 zet het niet voor ons). Daardoor
+       kwam de horizontale padding van 2 x 2,2rem BOVENOP de 1280 px die reveal aan een dia geeft:
+       de kaart werd 1350 px en stak dus 70 px buiten het scherm. Op smalle vensters is dat goed
+       zichtbaar — de rechterkolom viel weg. Met border-box valt de padding binnen de dia. */
+    .reveal .slides section,
+    .reveal .slides section * {
+      box-sizing: border-box;
+    }
+
     .reveal .slides section {
       background: var(--paper);
       border: 1px solid var(--line);
@@ -186,7 +199,7 @@
     /* ── Activiteiten-raster ───────────────────────── */
     .activiteiten {
       display: grid;
-      grid-template-columns: repeat(6, 1fr);
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
       gap: 0.45em;
       margin-bottom: 0.7em;
     }
@@ -429,6 +442,177 @@
       padding: 0.2em 0.6em;
       white-space: nowrap;
     }
+    /* ── Herbruikbare beeldbouwstenen ──────────────── */
+    /* Elke nieuwe SVG schaalt mee met de dia in plaats van een vaste breedte te houden; dat is de
+       basis van de responsiviteit hieronder. Zelfde aanpak als .platform-diagram al gebruikte. */
+    .beeld {
+      display: block;
+      width: 100%;
+      height: auto;
+      margin: 0.5em 0 0.35em;
+    }
+
+    .legenda {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.9em;
+      justify-content: center;
+      font-size: 0.44em;
+      color: var(--muted);
+      margin-top: 0.15em;
+    }
+    .legenda span { display: inline-flex; align-items: center; gap: 0.35em; }
+    .legenda i {
+      width: 0.75em; height: 0.75em; border-radius: 3px;
+      border: 1px solid var(--lint); display: inline-block;
+    }
+    .legenda i.ai     { background: var(--lint); }
+    .legenda i.code   { background: var(--lint-mid); }
+    .legenda i.opslag { background: var(--lint-light); }
+
+    /* Kernzin onder een beeld – de conclusie in één regel. */
+    .kernzin {
+      font-size: 0.55em;
+      color: var(--lint);
+      font-weight: 600;
+      text-align: center;
+      margin-top: 0.35em;
+    }
+
+    /* ── Gereedschapskist ──────────────────────────── */
+    .kist {
+      display: grid;
+      /* 260px geeft op een dia van 1280 precies vier kolommen, dus 4 x 2 voor de acht clusters.
+         Met een kleinere minmax vielen er zeven op de eerste rij en bleef de achtste alleen. */
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 0.5em;
+      margin-top: 0.5em;
+    }
+    .kist-groep {
+      border: 1.5px solid var(--line);
+      border-radius: var(--r-kaart);
+      background: var(--surface);
+      padding: 0.5em 0.55em;
+    }
+    .kist-kop {
+      font-size: 0.45em;
+      font-weight: 600;
+      color: var(--lint);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.3em;
+    }
+    .kist-tool {
+      font-family: 'Fira Mono', monospace;
+      font-size: 0.38em;
+      color: var(--muted);
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: var(--r-badge);
+      padding: 0.12em 0.35em;
+      display: inline-block;
+      margin: 0.1em 0.1em 0 0;
+      white-space: nowrap;
+    }
+    .kist-tool.laatste { border-style: dashed; color: var(--faint); }
+
+    /* Wie welk gereedschap krijgt – één strook, geen tabel. */
+    .rollen {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 0.5em;
+      margin-top: 0.55em;
+    }
+    .rol {
+      border-radius: var(--r-kaart);
+      border: 1.5px solid var(--lint-light);
+      background: var(--lint-light);
+      padding: 0.45em 0.6em;
+      display: flex;
+      align-items: baseline;
+      gap: 0.5em;
+    }
+    .rol-tekst { display: flex; flex-direction: column; line-height: 1.3; }
+    .rol-naam { font-size: 0.5em; font-weight: 600; color: var(--lint); }
+    .rol-aantal {
+      font-size: 0.72em; font-weight: 600; color: var(--lint);
+      font-variant-numeric: tabular-nums;
+    }
+    .rol-omsch { font-size: 0.4em; color: var(--muted); line-height: 1.4; }
+
+    /* ── Bouwstenen-stapel (waarmee gebouwd) ───────── */
+    .stapel { display: grid; gap: 0.4em; margin-top: 0.5em; }
+    .laag {
+      display: grid;
+      grid-template-columns: 8.5em 1fr;
+      align-items: center;
+      gap: 0.7em;
+      border-radius: var(--r-kaart);
+      border: 1.5px solid var(--line);
+      background: var(--paper);
+      padding: 0.4em 0.6em;
+    }
+    .laag-naam { font-size: 0.5em; font-weight: 600; color: var(--lint); }
+    /* Let op: dit element zit IN .laag-naam (0.5em), dus em stapelt. 0.38em leverde
+       0.19em op — onleesbaar klein. 0.76em van 0.5em geeft de bedoelde 0.38em. */
+    .laag-waarvoor { font-size: 0.76em; color: var(--faint); display: block; font-weight: 400; line-height: 1.35; }
+    .laag-tegels { display: flex; flex-wrap: wrap; gap: 0.3em; }
+    .tegel {
+      font-size: 0.42em;
+      color: var(--lint);
+      background: var(--lint-light);
+      border-radius: var(--r-badge);
+      padding: 0.18em 0.5em;
+      white-space: nowrap;
+    }
+    .tegel.accent { background: var(--lint); color: #fff; }
+
+    /* ── Voortgang over de zes activiteiten ────────── */
+    .voortgang {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+      gap: 0.4em;
+      margin-top: 0.5em;
+    }
+    .vg-blok {
+      border-radius: var(--r-kaart);
+      border: 1.5px solid var(--line);
+      padding: 0.5em 0.45em;
+      text-align: center;
+      background: var(--surface);
+    }
+    .vg-blok.klaar { background: var(--lint); border-color: var(--lint); }
+    .vg-blok.klaar .vg-nr, .vg-blok.klaar .vg-naam { color: #fff; }
+    .vg-blok.klaar .vg-status { color: #b8d0e8; }
+    .vg-nr { font-size: 0.42em; color: var(--faint); font-weight: 600; }
+    .vg-naam { font-size: 0.45em; color: var(--lint); font-weight: 600; display: block; }
+    .vg-status { font-size: 0.36em; color: var(--faint); display: block; margin-top: 0.15em; }
+
+    /* ── Responsief ────────────────────────────────── */
+    /* Tot nu toe stond hier niets: de deck vertrouwde volledig op het schalen van reveal.js vanuit
+       1280x720. Dat werkt op een beamer, maar op een laptop in een deelscherm of op een telefoon
+       wordt alles onleesbaar klein. De rasters vallen daarom terug naar één kolom en de basis
+       wordt kleiner; de SVG's schalen al mee via .beeld. */
+    @media (max-width: 900px) {
+      .reveal { font-size: 26px; }
+      .activiteiten,
+      .kist,
+      .rollen,
+      .voortgang { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+      .svz-grid { grid-template-columns: 1fr; }
+      .laag { grid-template-columns: 1fr; gap: 0.25em; }
+      /* Dia's die op een smal scherm niet meer passen mogen scrollen in plaats van afkappen. */
+      .reveal .slides section { overflow-y: auto; }
+    }
+    @media (max-width: 600px) {
+      .reveal { font-size: 22px; }
+      .activiteiten,
+      .kist,
+      .rollen,
+      .voortgang { grid-template-columns: 1fr; }
+      .legenda { font-size: 0.5em; }
+    }
+
   </style>
 </head>
 <body>
@@ -447,7 +631,7 @@
           Een hulpmiddel voor gestructureerde,<br/>
           brongetrouwe JAS-annotatie
         </div>
-        <div class="voettekst">Belastingdienst &nbsp;·&nbsp; Cluster Inning &nbsp;·&nbsp; [datum]</div>
+        <div class="voettekst">Belastingdienst &nbsp;·&nbsp; Cluster Inning &nbsp;·&nbsp; <span id="datum-vandaag">vandaag</span></div>
       </div>
       <aside class="notes">
         Welkom. Vandaag laat ik jullie Lex zien — een platform dat het wetsanalyseproces
@@ -629,6 +813,118 @@
       </aside>
     </section>
 
+
+    <!-- ──────────────────────────────────────────────
+         DIA 5c — Architectuur (afgeleid uit deploy/azure/main.bicep)
+    ────────────────────────────────────────────── -->
+    <section>
+      <h2>Waar staat wat</h2>
+      <svg class="beeld" viewBox="0 0 980 430" xmlns="http://www.w3.org/2000/svg"
+           aria-label="Architectuur: van overheid.nl via de importer en de kennisgraaf naar Lex, de API en de werkplek">
+        <defs>
+          <marker id="pijl" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+            <polygon points="0 0, 8 4, 0 8" fill="#154273"/>
+          </marker>
+          <marker id="pijl2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+            <polygon points="0 0, 8 4, 0 8" fill="#3a6ea8"/>
+          </marker>
+        </defs>
+
+        <!-- omhullend kader: de Azure-omgeving -->
+        <rect x="8" y="52" width="740" height="366" rx="18" fill="none" stroke="#3a6ea8"
+              stroke-width="1.5" stroke-dasharray="6 4"/>
+        <!-- Rechts uitgelijnd: links kruist de pijl van overheid.nl naar de importer dit label. -->
+        <text x="736" y="72" text-anchor="end" font-family="Fira Sans,sans-serif" font-size="12" font-weight="600" fill="#3a6ea8">
+          Azure Container Apps — twee gescheiden straten: acceptatie en productie
+        </text>
+
+        <!-- bron -->
+        <rect x="34" y="10" width="180" height="34" rx="10" fill="#ffffff" stroke="#154273" stroke-width="1.5"/>
+        <text x="124" y="26" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="12.5" font-weight="600" fill="#154273">overheid.nl</text>
+        <text x="124" y="38" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#6b7685">de officiële wettekst</text>
+        <path d="M124 44 L124 84" stroke="#154273" stroke-width="2" marker-end="url(#pijl)"/>
+
+        <!-- importer -->
+        <rect x="34" y="86" width="180" height="48" rx="10" fill="#3a6ea8"/>
+        <text x="124" y="106" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="12.5" font-weight="600" fill="#ffffff">BWB-importer</text>
+        <text x="124" y="120" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#d6e4f2">haalt de wet op — elke week</text>
+        <path d="M214 110 L268 110" stroke="#154273" stroke-width="2" marker-end="url(#pijl)"/>
+
+        <!-- kennisgraaf -->
+        <rect x="270" y="80" width="230" height="60" rx="10" fill="#e8eff7" stroke="#154273" stroke-width="1.5"/>
+        <text x="385" y="102" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="13" font-weight="600" fill="#154273">Kennisgraaf · GraphDB</text>
+        <text x="385" y="116" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#4a5a6e">de wet als doorzoekbaar netwerk</text>
+        <text x="385" y="130" text-anchor="middle" font-family="Fira Mono,monospace" font-size="9" fill="#6b7685">RDF · SPARQL · zoekindex</text>
+        <path d="M385 140 L385 178" stroke="#154273" stroke-width="2" marker-end="url(#pijl)"/>
+        <text x="393" y="163" font-family="Fira Sans,sans-serif" font-size="9.5" fill="#6b7685">19 vaste gereedschappen</text>
+
+        <!-- Lex -->
+        <rect x="270" y="180" width="230" height="62" rx="10" fill="#154273"/>
+        <text x="385" y="203" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="13" font-weight="600" fill="#ffffff">Lex</text>
+        <text x="385" y="217" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#b8d0e8">zoekt op, stelt markeringen voor</text>
+        <text x="385" y="232" text-anchor="middle" font-family="Fira Mono,monospace" font-size="9" fill="#8fb4d8">graph-qa · LangGraph</text>
+
+        <!-- taalmodel -->
+        <rect x="34" y="180" width="180" height="62" rx="10" fill="#ffffff" stroke="#154273" stroke-width="1.5"/>
+        <text x="124" y="203" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="12.5" font-weight="600" fill="#154273">Claude</text>
+        <text x="124" y="217" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#6b7685">het taalmodel dat redeneert</text>
+        <text x="124" y="232" text-anchor="middle" font-family="Fira Mono,monospace" font-size="9" fill="#6b7685">via Azure AI Foundry</text>
+        <path d="M214 205 L266 205" stroke="#3a6ea8" stroke-width="2" marker-end="url(#pijl2)"/>
+        <path d="M266 222 L216 222" stroke="#3a6ea8" stroke-width="2" marker-end="url(#pijl2)"/>
+
+        <!-- API -->
+        <rect x="546" y="180" width="184" height="62" rx="10" fill="#e8eff7" stroke="#154273" stroke-width="1.5"/>
+        <text x="638" y="203" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="12.5" font-weight="600" fill="#154273">API · PostgreSQL</text>
+        <text x="638" y="217" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#4a5a6e">bewaart wat de jurist beslist</text>
+        <text x="638" y="232" text-anchor="middle" font-family="Fira Mono,monospace" font-size="9" fill="#6b7685">auditspoor · accounts</text>
+        <path d="M500 211 L542 211" stroke="#154273" stroke-width="2" marker-end="url(#pijl)"/>
+
+        <!-- werkplek -->
+        <rect x="270" y="284" width="230" height="60" rx="10" fill="#ffffff" stroke="#154273" stroke-width="1.5"/>
+        <text x="385" y="306" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="13" font-weight="600" fill="#154273">Werkplek</text>
+        <text x="385" y="320" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#4a5a6e">chat en review in één scherm</text>
+        <text x="385" y="334" text-anchor="middle" font-family="Fira Mono,monospace" font-size="9" fill="#6b7685">Next.js in de browser</text>
+        <path d="M385 242 L385 280" stroke="#154273" stroke-width="2" marker-end="url(#pijl)"/>
+        <!-- fill="none" is hier geen detail: een pad met een knik wordt door SVG standaard ZWART
+             gevuld, en dat leverde een grote zwarte driehoek midden in het diagram op. -->
+        <path d="M638 242 L638 314 L504 314" fill="none" stroke="#154273" stroke-width="2" marker-end="url(#pijl)"/>
+
+        <!-- jurist -->
+        <rect x="270" y="372" width="230" height="42" rx="10" fill="#154273"/>
+        <text x="385" y="390" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="12.5" font-weight="600" fill="#ffffff">De jurist beslist</text>
+        <text x="385" y="404" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#b8d0e8">akkoord · verwerpen · exporteren</text>
+        <path d="M385 344 L385 368" stroke="#154273" stroke-width="2" marker-end="url(#pijl)"/>
+
+        <!-- waarnemen -->
+        <rect x="770" y="80" width="200" height="264" rx="14" fill="#f5f6f8" stroke="#d1d6dd" stroke-width="1.5"/>
+        <text x="870" y="104" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="12.5" font-weight="600" fill="#154273">Meekijken</text>
+        <text x="870" y="120" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#6b7685">elke stap is terug te zien</text>
+        <rect x="790" y="140" width="160" height="34" rx="8" fill="#ffffff" stroke="#d1d6dd"/>
+        <text x="870" y="161" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10.5" fill="#4a5a6e">OpenTelemetry</text>
+        <rect x="790" y="184" width="160" height="34" rx="8" fill="#ffffff" stroke="#d1d6dd"/>
+        <text x="870" y="205" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10.5" fill="#4a5a6e">Application Insights</text>
+        <rect x="790" y="228" width="160" height="34" rx="8" fill="#ffffff" stroke="#d1d6dd"/>
+        <text x="870" y="249" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10.5" fill="#4a5a6e">Log Analytics</text>
+        <rect x="790" y="272" width="160" height="34" rx="8" fill="#ffffff" stroke="#d1d6dd"/>
+        <text x="870" y="293" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10.5" fill="#4a5a6e">Grafana</text>
+        <path d="M746 211 L786 211" stroke="#6b7685" stroke-width="1.5" stroke-dasharray="4 3"/>
+      </svg>
+      <div class="legenda">
+        <span><i class="ai"></i> AI-onderdeel</span>
+        <span><i class="code"></i> code die wij schreven</span>
+        <span><i class="opslag"></i> opslag</span>
+      </div>
+      <p class="kernzin">De wettekst komt rechtstreeks van overheid.nl — er zit geen kopie tussen.</p>
+      <aside class="notes">
+        Van boven naar beneden is de weg die de wettekst aflegt. De importer haalt hem wekelijks op
+        bij overheid.nl en zet hem in de kennisgraaf; Lex bevraagt die graaf en laat het taalmodel
+        alleen redeneren over wat hij daar vindt. De API bewaart wat de jurist beslist — dat is de
+        enige plek waar iets wordt vastgelegd. Rechts: elke stap is achteraf terug te zien.
+        Twee straten betekent dat er een acceptatie-omgeving naast productie draait; wat we
+        vandaag laten zien is acceptatie.
+      </aside>
+    </section>
+
     <!-- ──────────────────────────────────────────────
          DIA 5b — Hoe werkt Lex van binnen
     ────────────────────────────────────────────── -->
@@ -689,25 +985,124 @@
       </aside>
     </section>
 
+
+    <!-- ──────────────────────────────────────────────
+         DIA 5d — De gereedschapskist
+         Namen en aantallen uit tools/graph-qa/agent/tools/__init__.py + agent/specialists.py
+    ────────────────────────────────────────────── -->
+    <section>
+      <h2>Wat Lex mag opvragen</h2>
+      <div class="kist">
+        <div class="kist-groep">
+          <div class="kist-kop">Zoeken</div>
+          <span class="kist-tool">search_wetgeving</span><span class="kist-tool">semantic_search</span>
+        </div>
+        <div class="kist-groep">
+          <div class="kist-kop">Tekst ophalen</div>
+          <span class="kist-tool">get_artikel</span><span class="kist-tool">get_lid</span><span class="kist-tool">get_bepaling</span>
+        </div>
+        <div class="kist-groep">
+          <div class="kist-kop">Structuur</div>
+          <span class="kist-tool">inhoudsopgave</span><span class="kist-tool">get_context</span>
+        </div>
+        <div class="kist-groep">
+          <div class="kist-kop">Verwijzingen</div>
+          <span class="kist-tool">follow_verwijzingen</span><span class="kist-tool">verwijst_naar_deze</span><span class="kist-tool">referenced_by</span>
+        </div>
+        <div class="kist-groep">
+          <div class="kist-kop">Begrippen</div>
+          <span class="kist-tool">zoek_definitie</span><span class="kist-tool">resolve_begrip</span>
+        </div>
+        <div class="kist-groep">
+          <div class="kist-kop">Herkomst &amp; tijd</div>
+          <span class="kist-tool">grondslagen</span><span class="kist-tool">geldigheid</span>
+        </div>
+        <div class="kist-groep">
+          <div class="kist-kop">Regelingen</div>
+          <span class="kist-tool">list_regelingen</span><span class="kist-tool">get_regeling_info</span><span class="kist-tool">bijlagen</span>
+        </div>
+        <div class="kist-groep">
+          <div class="kist-kop">Verkennen</div>
+          <span class="kist-tool">graph_schema</span><span class="kist-tool laatste">raw_sparql</span>
+        </div>
+      </div>
+
+      <div class="rollen">
+        <div class="rol"><span class="rol-aantal">11</span><span class="rol-tekst"><span class="rol-naam">Ophalen</span><span class="rol-omsch">vindt de juiste bepaling</span></span></div>
+        <div class="rol"><span class="rol-aantal">9</span><span class="rol-tekst"><span class="rol-naam">Begrippen</span><span class="rol-omsch">herleidt definities</span></span></div>
+        <div class="rol"><span class="rol-aantal">17</span><span class="rol-tekst"><span class="rol-naam">Duiding</span><span class="rol-omsch">legt samenhang uit</span></span></div>
+        <div class="rol"><span class="rol-aantal">19</span><span class="rol-tekst"><span class="rol-naam">Algemeen</span><span class="rol-omsch">de hele kist</span></span></div>
+      </div>
+
+      <p class="kernzin">Lex zoekt niet vrij in de database — hij kiest uit gereedschap dat wij bouwden en testten.</p>
+      <aside class="notes">
+        Negentien gereedschappen, gegroepeerd naar waar ze voor dienen. Het punt voor de zaal is
+        niet de lijst maar de begrenzing: het model schrijft geen eigen databasevragen. Elke vraag
+        aan de kennisgraaf is er één die wij hebben voorzien, in code hebben vastgelegd en met
+        tests bewaken — dus reproduceerbaar en controleerbaar.
+
+        De vier rollen krijgen elk een deel van de kist: de ophaalstap mag zoeken maar niet duiden,
+        de begrippenrol begint bij de definitiebron. `raw_sparql` staat er gestippeld bij: dat is
+        het laatste redmiddel als geen enkel gereedschap past, en het is read-only.
+
+        Vragen die hierop kunnen komen: "kan hij dan alles zien?" — hij ziet alleen de wetgeving
+        die in de graaf zit, en niets uit ons interne netwerk.
+      </aside>
+    </section>
+
     <!-- ──────────────────────────────────────────────
          DIA 6 — Drie stappen
     ────────────────────────────────────────────── -->
     <section>
       <h2>Van vraag tot beoordeelde annotatie</h2>
-      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.9em; margin-top:0.7em;">
-        <div class="kaart">
-          <h3>1 · Stel een vraag</h3>
-          <p>Typ een juridische vraag: "Wanneer is een bestuurder persoonlijk aansprakelijk voor de belastingschuld van zijn vennootschap?" Lex haalt het relevante artikel op en antwoordt met een letterlijk citaat en een bronverwijzing.</p>
-        </div>
-        <div class="kaart">
-          <h3>2 · Ontvang een annotatie</h3>
-          <p>Vraag een JAS-annotatie voor een specifiek artikel. Lex haalt de exacte wettekst op, stelt markeringen voor in alle van toepassing zijnde JAS-klassen en laat de Critic elk element controleren.</p>
-        </div>
-        <div class="kaart">
-          <h3>3 · Beoordeel en beslis</h3>
-          <p>Elk voorstel verschijnt als een kaart: aandachtsniveau, klassenaam, fragment, toelichting. Jij drukt op Akkoord of Verwerpen. Wat jij beslist staat in het audittrail, met tijdstip en naam.</p>
-        </div>
-      </div>
+      <svg class="beeld" viewBox="0 0 960 200" xmlns="http://www.w3.org/2000/svg"
+           aria-label="Drie stappen: vraag stellen, annotatie ontvangen, beoordelen en beslissen">
+        <defs>
+          <marker id="s-pijl" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+            <polygon points="0 0, 8 4, 0 8" fill="#154273"/>
+          </marker>
+        </defs>
+
+        <!-- 1 -->
+        <rect x="10" y="26" width="286" height="150" rx="14" fill="#ffffff" stroke="#154273" stroke-width="1.5"/>
+        <circle cx="46" cy="60" r="17" fill="#e8eff7" stroke="#154273" stroke-width="1.5"/>
+        <text x="46" y="66" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="15" font-weight="600" fill="#154273">1</text>
+        <text x="76" y="58" font-family="Fira Sans,sans-serif" font-size="14" font-weight="600" fill="#154273">Stel je vraag</text>
+        <text x="76" y="74" font-family="Fira Sans,sans-serif" font-size="10.5" fill="#6b7685">in gewone woorden</text>
+        <rect x="30" y="94" width="246" height="30" rx="8" fill="#f5f6f8" stroke="#d1d6dd"/>
+        <text x="42" y="113" font-family="Fira Mono,monospace" font-size="10" fill="#4a5a6e">annoteer artikel 36 lid 4 IW 1990</text>
+        <text x="30" y="146" font-family="Fira Sans,sans-serif" font-size="10.5" fill="#4a5a6e">Lex zoekt de bepaling op in de kennisgraaf</text>
+        <text x="30" y="162" font-family="Fira Sans,sans-serif" font-size="10.5" fill="#4a5a6e">en haalt de letterlijke tekst op.</text>
+        <path d="M298 101 L326 101" stroke="#154273" stroke-width="2" marker-end="url(#s-pijl)"/>
+
+        <!-- 2 -->
+        <rect x="332" y="26" width="286" height="150" rx="14" fill="#ffffff" stroke="#154273" stroke-width="1.5"/>
+        <circle cx="368" cy="60" r="17" fill="#e8eff7" stroke="#154273" stroke-width="1.5"/>
+        <text x="368" y="66" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="15" font-weight="600" fill="#154273">2</text>
+        <text x="398" y="58" font-family="Fira Sans,sans-serif" font-size="14" font-weight="600" fill="#154273">Ontvang voorstellen</text>
+        <text x="398" y="74" font-family="Fira Sans,sans-serif" font-size="10.5" fill="#6b7685">per markering één kaart</text>
+        <rect x="352" y="94" width="246" height="18" rx="5" fill="#e8f4e0" stroke="#39870c"/>
+        <text x="362" y="107" font-family="Fira Sans,sans-serif" font-size="10" fill="#2e6b09">Rechtssubject — de bestuurder</text>
+        <rect x="352" y="116" width="246" height="18" rx="5" fill="#fdf0e0" stroke="#e17000"/>
+        <text x="362" y="129" font-family="Fira Sans,sans-serif" font-size="10" fill="#a35200">Voorwaarde — twijfel, alternatief</text>
+        <rect x="352" y="138" width="246" height="18" rx="5" fill="#fbe6e4" stroke="#d52b1e"/>
+        <text x="362" y="151" font-family="Fira Sans,sans-serif" font-size="10" fill="#9e2016">Rood — Critic corrigeerde dit</text>
+        <text x="352" y="170" font-family="Fira Sans,sans-serif" font-size="10" fill="#6b7685">groen · geel · rood = hoeveel aandacht nodig is</text>
+        <path d="M620 101 L648 101" stroke="#154273" stroke-width="2" marker-end="url(#s-pijl)"/>
+
+        <!-- 3 -->
+        <rect x="654" y="26" width="296" height="150" rx="14" fill="#154273"/>
+        <circle cx="690" cy="60" r="17" fill="#ffffff" fill-opacity="0.15" stroke="#ffffff" stroke-width="1.5"/>
+        <text x="690" y="66" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="15" font-weight="600" fill="#ffffff">3</text>
+        <text x="720" y="58" font-family="Fira Sans,sans-serif" font-size="14" font-weight="600" fill="#ffffff">Jij beslist</text>
+        <text x="720" y="74" font-family="Fira Sans,sans-serif" font-size="10.5" fill="#b8d0e8">niets gaat door zonder jou</text>
+        <rect x="674" y="94" width="122" height="30" rx="7" fill="#ffffff"/>
+        <text x="735" y="113" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="11.5" font-weight="600" fill="#39870c">Akkoord</text>
+        <rect x="806" y="94" width="122" height="30" rx="7" fill="#ffffff"/>
+        <text x="867" y="113" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="11.5" font-weight="600" fill="#d52b1e">Verwerpen</text>
+        <text x="674" y="146" font-family="Fira Sans,sans-serif" font-size="10.5" fill="#b8d0e8">Elke beslissing komt met naam en tijdstip</text>
+        <text x="674" y="162" font-family="Fira Sans,sans-serif" font-size="10.5" fill="#b8d0e8">in het auditspoor.</text>
+      </svg>
       <aside class="notes">
         Stappen 1 en 2 zijn in de praktijk gecombineerd — je vraagt "annoteer artikel X" en Lex
         doet de rest. Stap 3 is altijd menselijk: het platform forceert een beslissing, niets
@@ -720,25 +1115,48 @@
     ────────────────────────────────────────────── -->
     <section>
       <h2>Geen fragment zonder bron</h2>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.9em; margin-top:0.6em;">
-        <div class="kaart">
-          <h3>Bij annotaties — element voor element</h3>
-          <ul>
-            <li>Elk tekstfragment wordt letterlijk opgezocht in de opgehaalde wettekst</li>
-            <li>Staat het er niet in: het element wordt verworpen en nooit getoond</li>
-            <li>Geen LLM, geen interpretatie: string-matching op het opgehaalde corpus</li>
-          </ul>
-        </div>
-        <div class="kaart">
-          <h3>Bij antwoorden — bron voor bron</h3>
-          <ul>
-            <li>Aangehaalde wetten (BWB-id's) worden gecontroleerd via de tool-trace</li>
-            <li>Letterlijke citaten (5+ woorden) worden eveneens gecheckt</li>
-            <li>Bij een mismatch: één correctieronde door de agent zelf</li>
-            <li>Indicatie in de werkplek: gegrond / ongegrond / onbepaald</li>
-          </ul>
-        </div>
-      </div>
+      <svg class="beeld" viewBox="0 0 960 230" xmlns="http://www.w3.org/2000/svg"
+           aria-label="Verificatie: een voorstel wordt letterlijk opgezocht in de wettekst; gevonden gaat naar de jurist, niet gevonden wordt verworpen">
+        <defs>
+          <marker id="v-pijl" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+            <polygon points="0 0, 8 4, 0 8" fill="#154273"/>
+          </marker>
+          <marker id="v-rood" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+            <polygon points="0 0, 8 4, 0 8" fill="#d52b1e"/>
+          </marker>
+          <marker id="v-groen" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+            <polygon points="0 0, 8 4, 0 8" fill="#39870c"/>
+          </marker>
+        </defs>
+
+        <rect x="8" y="82" width="196" height="62" rx="12" fill="#e8eff7" stroke="#154273" stroke-width="1.5"/>
+        <text x="106" y="106" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="13" font-weight="600" fill="#154273">Voorstel van Lex</text>
+        <text x="106" y="122" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#4a5a6e">een stuk tekst + een klasse</text>
+        <path d="M204 113 L252 113" stroke="#154273" stroke-width="2" marker-end="url(#v-pijl)"/>
+
+        <rect x="254" y="70" width="238" height="86" rx="12" fill="#154273"/>
+        <text x="373" y="96" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="13" font-weight="600" fill="#ffffff">Letterlijk opzoeken</text>
+        <text x="373" y="113" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#b8d0e8">staat dit teken voor teken</text>
+        <text x="373" y="127" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#b8d0e8">in de opgehaalde wettekst?</text>
+        <text x="373" y="145" text-anchor="middle" font-family="Fira Mono,monospace" font-size="9" fill="#8fb4d8">code — geen AI, geen interpretatie</text>
+
+        <path d="M492 96 L560 60 L604 60" stroke="#39870c" stroke-width="2" fill="none" marker-end="url(#v-groen)"/>
+        <text x="530" y="66" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" font-weight="600" fill="#39870c">gevonden</text>
+        <path d="M492 130 L560 176 L604 176" stroke="#d52b1e" stroke-width="2" fill="none" marker-end="url(#v-rood)"/>
+        <text x="534" y="196" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" font-weight="600" fill="#d52b1e">niet gevonden</text>
+
+        <rect x="606" y="30" width="264" height="60" rx="12" fill="#ffffff" stroke="#39870c" stroke-width="1.8"/>
+        <text x="738" y="54" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="12.5" font-weight="600" fill="#39870c">Naar de jurist</text>
+        <text x="738" y="70" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#4a5a6e">mét vindplaats: wet, artikel, lid</text>
+
+        <rect x="606" y="146" width="264" height="60" rx="12" fill="#ffffff" stroke="#d52b1e" stroke-width="1.8" stroke-dasharray="5 4"/>
+        <text x="738" y="170" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="12.5" font-weight="600" fill="#d52b1e">Verworpen</text>
+        <text x="738" y="186" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#4a5a6e">bereikt niemand — ook u niet</text>
+
+        <text x="886" y="118" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#6b7685">bij antwoorden</text>
+        <text x="886" y="132" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#6b7685">dezelfde controle</text>
+        <text x="886" y="146" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#6b7685">op citaat én bron</text>
+      </svg>
       <div class="jci-box">
         jci1.31:c:BWBR0004770&amp;artikel=36&amp;lid=4<br/>
         Invorderingswet 1990, art. 36 lid 4
@@ -792,30 +1210,112 @@
       </aside>
     </section>
 
+
+    <!-- ──────────────────────────────────────────────
+         DIA 8b — Waarmee is dit gebouwd
+         Afgeleid uit de pyproject.toml/package.json van elk onderdeel en deploy/azure/*.bicep
+    ────────────────────────────────────────────── -->
+    <section>
+      <h2>Waarmee is dit gebouwd</h2>
+      <div class="stapel">
+        <div class="laag">
+          <span class="laag-naam">Bouwen<span class="laag-waarvoor">de code zelf schrijven en herzien</span></span>
+          <span class="laag-tegels">
+            <span class="tegel accent">Claude Code (CLI)</span>
+            <span class="tegel">eigen skills</span>
+            <span class="tegel">MCP naar de kennisgraaf</span>
+            <span class="tegel">GitHub</span>
+          </span>
+        </div>
+        <div class="laag">
+          <span class="laag-naam">Redeneren<span class="laag-waarvoor">het taalmodel achter Lex</span></span>
+          <span class="laag-tegels">
+            <span class="tegel accent">Claude</span>
+            <span class="tegel">Azure AI Foundry</span>
+          </span>
+        </div>
+        <div class="laag">
+          <span class="laag-naam">Kennis<span class="laag-waarvoor">de wet opslaan en doorzoekbaar maken</span></span>
+          <span class="laag-tegels">
+            <span class="tegel accent">GraphDB 11.4</span>
+            <span class="tegel">RDF / SPARQL</span>
+            <span class="tegel">Lucene-zoekindex</span>
+            <span class="tegel">rdflib + lxml</span>
+          </span>
+        </div>
+        <div class="laag">
+          <span class="laag-naam">Diensten<span class="laag-waarvoor">de agent, de opslag en het scherm</span></span>
+          <span class="laag-tegels">
+            <span class="tegel">Python · FastAPI</span>
+            <span class="tegel">LangGraph</span>
+            <span class="tegel">Next.js · React</span>
+            <span class="tegel">Auth.js</span>
+            <span class="tegel">PostgreSQL</span>
+          </span>
+        </div>
+        <div class="laag">
+          <span class="laag-naam">Uitrollen<span class="laag-waarvoor">van laptop naar draaiende omgeving</span></span>
+          <span class="laag-tegels">
+            <span class="tegel">Azure Container Apps</span>
+            <span class="tegel">GitHub Actions</span>
+            <span class="tegel">Docker · GHCR</span>
+            <span class="tegel">Trivy-scan</span>
+          </span>
+        </div>
+        <div class="laag">
+          <span class="laag-naam">Meekijken<span class="laag-waarvoor">zien wat er gebeurde, ook achteraf</span></span>
+          <span class="laag-tegels">
+            <span class="tegel">OpenTelemetry</span>
+            <span class="tegel">Application Insights</span>
+            <span class="tegel">Grafana</span>
+          </span>
+        </div>
+      </div>
+      <p class="kernzin">Standaardonderdelen, geen eigen bouwsels — behalve de wetsanalyse zelf.</p>
+      <aside class="notes">
+        Bewust met bestaande, ondersteunde bouwstenen: dat maakt het overdraagbaar en beheersbaar.
+        Het enige echt eigen deel is de wetsanalyse-logica — de JAS-klassen, de Critic, de
+        brongetrouwheidscontrole.
+
+        Claude Code staat bovenaan omdat het de bouwassistent is waarmee deze code is geschreven;
+        via MCP kan diezelfde assistent de kennisgraaf rechtstreeks bevragen, wat het testen
+        aanzienlijk versnelt.
+
+        Azure AI Foundry betekent dat het taalmodel binnen onze eigen Azure-omgeving draait — geen
+        gegevens naar een publieke chatdienst.
+      </aside>
+    </section>
+
     <!-- ──────────────────────────────────────────────
          DIA 9 — Stand van zaken
     ────────────────────────────────────────────── -->
     <section>
       <h2>Wat werkt al — wat komt er aan</h2>
+      <div class="voortgang">
+        <div class="vg-blok"><span class="vg-nr">Act. 1</span><span class="vg-naam">Werkgebied</span><span class="vg-status">handmatig</span></div>
+        <div class="vg-blok klaar"><span class="vg-nr">Act. 2</span><span class="vg-naam">Structuur zichtbaar</span><span class="vg-status">werkt — met Critic</span></div>
+        <div class="vg-blok"><span class="vg-nr">Act. 3</span><span class="vg-naam">Betekenis</span><span class="vg-status">op de roadmap</span></div>
+        <div class="vg-blok"><span class="vg-nr">Act. 4</span><span class="vg-naam">Valideren</span><span class="vg-status">op de roadmap</span></div>
+        <div class="vg-blok"><span class="vg-nr">Act. 5</span><span class="vg-naam">Leemten</span><span class="vg-status">op de roadmap</span></div>
+        <div class="vg-blok"><span class="vg-nr">Act. 6</span><span class="vg-naam">Kennismodel</span><span class="vg-status">op de roadmap</span></div>
+      </div>
       <div class="svz-grid">
         <div class="svz-gerealiseerd">
-          <div class="svz-label">Gerealiseerd</div>
+          <div class="svz-label">Rond activiteit 2 is dit af</div>
           <ul>
-            <li>Kennisgraaf: officiële wet- en regelgeving van overheid.nl (wekelijks bijgehouden)</li>
-            <li>Brongetrouwe antwoorden op juridische vragen, grounded op de graaf</li>
-            <li>JAS-annotatie (activiteit 2) + automatische Critic-controle per element</li>
-            <li>Volledig review-werkproces: accorderen, verwerpen, alternatieven kiezen</li>
-            <li>Audit trail per element + export (JSON, CSV, PDF)</li>
-            <li>Gebruikers- en toegangsbeheer: rollen, 2FA, tokenbudget per analist</li>
+            <li>Kennisgraaf, wekelijks bijgewerkt vanaf overheid.nl</li>
+            <li>Brongetrouwe antwoorden en JAS-markeringen met Critic-controle</li>
+            <li>Review, auditspoor en export (JSON, CSV, PDF)</li>
+            <li>Toegangsbeheer: rollen, 2FA, tokenbudget per analist</li>
           </ul>
         </div>
         <div class="svz-roadmap">
-          <div class="svz-label">Op de roadmap</div>
+          <div class="svz-label">Daarna</div>
           <ul>
-            <li>Begripsvorming en definities (activiteit 3)</li>
-            <li>Valideren en beleidsleemten signaleren (act. 4–5)</li>
-            <li>Vertaling naar uitvoerbare bedrijfsregels</li>
-            <li>Intern corpus (handleidingen, beleidsnotities) doorzoekbaar</li>
+            <li>Begrippen en definities (act. 3)</li>
+            <li>Valideren en leemten signaleren (act. 4–5)</li>
+            <li>Vertaling naar uitvoerbare bedrijfsregels (act. 6)</li>
+            <li>Interne handleidingen en beleidsnotities doorzoekbaar</li>
           </ul>
         </div>
       </div>
@@ -936,6 +1436,15 @@
 <script src="https://cdn.jsdelivr.net/npm/reveal.js@4/dist/reveal.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/reveal.js@4/plugin/notes/notes.js"></script>
 <script>
+  // De datum op de titeldia is altijd die van vandaag. Hier stond een letterlijke [datum]-
+  // placeholder, en die wordt vergeten: dan opent de presentatie met de datum van de vorige keer,
+  // of erger, met "[datum]" in beeld. De browser weet welke dag het is — laat hem het invullen.
+  // Terugval op de tekst in de HTML als er iets misgaat; nooit een lege regel tonen.
+  try {
+    document.getElementById('datum-vandaag').textContent =
+      new Date().toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
+  } catch (e) { /* de deck moet ook zonder de datum gewoon werken */ }
+
   Reveal.initialize({
     hash: true,
     slideNumber: 'c/t',
@@ -949,6 +1458,10 @@
     width: 1280,
     height: 720,
     margin: 0.02,
+    // Zonder deze twee klemt reveal.js het schalen dicht rond 1x en wordt de deck op een
+    // smal scherm onleesbaar; de media queries hierboven doen de rest.
+    minScale: 0.2,
+    maxScale: 1.5,
   });
 </script>
 </body>

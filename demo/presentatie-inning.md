@@ -126,9 +126,12 @@ JAS-strips: `8px` hoog, `border-radius: 4px`, aaneengesloten rij met `gap: 4px`.
 
 **Titel:** Lex — wetsanalyse met de kennisgraaf
 **Ondertitel:** Een hulpmiddel voor gestructureerde, brongetrouwe JAS-annotatie
-**Voettekst:** Belastingdienst · Cluster Inning · [datum]
+**Voettekst:** Belastingdienst · Cluster Inning · *(datum van vandaag)*
 
-_(Laat de gebruiker [datum] handmatig invullen.)_
+_De datum wordt **dynamisch** ingevuld: zet er een `<span id="datum-vandaag">` neer en vul die
+bij het laden met `new Date().toLocaleDateString('nl-NL', { day: 'numeric', month: 'long',
+year: 'numeric' })`. Nooit een vaste datum in het bestand — die is bij de volgende demo
+verouderd, en een vergeten placeholder komt als "[datum]" in beeld._
 
 Boven de koptekst: een korte lintblauwe balk (48px breed, 4px hoog, `border-radius: 2px`) als
 visueel ankerpunt. De titeldia heeft een lege, ruime opzet — geen bullets.
@@ -218,6 +221,57 @@ pijlen, witte tekst in het Jurist-blok (donker gevuld). Subteksten in `--faint`.
 
 ---
 
+#### Dia 5b — Waar staat wat (architectuur)
+
+**Koptekst:** Waar staat wat
+
+**Visueel:** één inline SVG met de gegevensstroom van boven naar beneden. Elk blok draagt **twee
+regels**: de technische naam én één regel gewone taal — dat is wat de dia leesbaar houdt voor zowel
+een technisch als een niet-technisch publiek.
+
+```
+overheid.nl  ──►  BWB-importer (wekelijks)
+                       │
+                  Kennisgraaf · GraphDB      RDF · SPARQL · zoekindex
+                       │  (19 vaste gereedschappen)
+      Claude  ◄──►  Lex (graph-qa, LangGraph)  ──►  API · PostgreSQL
+ (Azure AI Foundry)                                  auditspoor · accounts
+                       │                                   │
+                  Werkplek (Next.js)  ◄────────────────────┘
+                       │
+                  De jurist beslist
+```
+
+Rechts een aparte kolom **Meekijken**: OpenTelemetry, Application Insights, Log Analytics, Grafana.
+Om het geheel een gestippeld kader: *Azure Container Apps — twee gescheiden straten (acceptatie,
+productie)*.
+
+Onder het diagram een legenda (AI-onderdeel / code die wij schreven / opslag) en de kernzin:
+**"De wettekst komt rechtstreeks van overheid.nl — er zit geen kopie tussen."**
+
+Baseer de onderdelen op `deploy/azure/main.bicep`; noem niets wat daar niet in staat.
+
+---
+
+#### Dia 5c — Wat Lex mag opvragen (de gereedschapskist)
+
+**Koptekst:** Wat Lex mag opvragen
+
+**Visueel:** géén opsomming van namen, maar acht clusters als tegels, met de toolnamen in
+`Fira Mono` als kleine chips. Clusters: Zoeken · Tekst ophalen · Structuur · Verwijzingen ·
+Begrippen · Herkomst & tijd · Regelingen · Verkennen. `raw_sparql` gestippeld: laatste redmiddel.
+
+Daaronder een strook met de vier rollen en hoeveel gereedschap elk krijgt:
+Ophalen 11 · Begrippen 9 · Duiding 17 · Algemeen 19.
+
+Kernzin: **"Lex zoekt niet vrij in de database — hij kiest uit gereedschap dat wij bouwden en
+testten."**
+
+Neem de namen en aantallen letterlijk over uit `tools/graph-qa/agent/tools/__init__.py` en
+`agent/specialists.py`; verzin er niets bij.
+
+---
+
 #### Dia 6 — De drie stappen
 
 **Koptekst:** Van vraag tot beoordeelde annotatie
@@ -284,6 +338,29 @@ De Critic heeft de correctie al doorgevoerd in de code (niet door een tweede AI-
 stond en waarom het is aangepast, is zichtbaar in de kaart.
 
 **Ondertekst:** "Het model doet wat zeker is automatisch. Wat twijfelachtig is, legt het voor."
+
+---
+
+#### Dia 8b — Waarmee is dit gebouwd
+
+**Koptekst:** Waarmee is dit gebouwd
+
+**Visueel:** een gelaagde stapel van zes rijen; per rij de laagnaam met één regel "waarvoor", en
+daarnaast de onderdelen als tegels. Geen externe logo's — alleen tekst-tegels in lintblauw.
+
+- **Bouwen** — de code zelf schrijven en herzien: Claude Code (CLI), eigen skills, MCP naar de
+  kennisgraaf, GitHub
+- **Redeneren** — het taalmodel achter Lex: Claude via Azure AI Foundry
+- **Kennis** — de wet opslaan en doorzoekbaar maken: GraphDB 11.4, RDF/SPARQL, Lucene, rdflib + lxml
+- **Diensten** — de agent, de opslag en het scherm: Python/FastAPI, LangGraph, Next.js/React,
+  Auth.js, PostgreSQL
+- **Uitrollen** — Azure Container Apps, GitHub Actions, Docker/GHCR, Trivy
+- **Meekijken** — OpenTelemetry, Application Insights, Grafana
+
+Kernzin: **"Standaardonderdelen, geen eigen bouwsels — behalve de wetsanalyse zelf."**
+
+Leid de onderdelen af uit de `pyproject.toml`/`package.json` van elk onderdeel en uit
+`deploy/azure/*.bicep`.
 
 ---
 
@@ -383,6 +460,14 @@ provider, Critic-rondes).
 - reveal.js-opties: `transition: 'fade'`, `transitionSpeed: 'fast'`, `center: false`,
   `width: 1280`, `height: 720`, `margin: 0.04`, `progress: false`,
   `slideNumber: 'c/t'`, `showSlideNumber: 'speaker'`
+- **Responsief:** media queries op ~900 px en ~600 px (rasters naar één kolom, kleinere basis,
+  `overflow-y:auto` op dia's die anders afkappen), `minScale: 0.2` en `maxScale: 1.5` in
+  `Reveal.initialize`, en rasters als `repeat(auto-fit, minmax(…))` in plaats van een vast
+  kolomaantal. Elke SVG krijgt `viewBox` + `width:100%; height:auto`.
+- **Favicon:** hetzelfde beeldmerk als de webapp (`frontend/public/favicon-32.png`), inline als
+  data-URI zodat het bestand zelfstandig blijft
+- Gebruik visualisaties in plaats van tekstlijsten waar dat kan; bullet-lijsten alleen als een
+  beeld niets toevoegt
 - Sla het bestand op als `presentatie-inning.html`
 
 ## ── EINDE PROMPT ──
