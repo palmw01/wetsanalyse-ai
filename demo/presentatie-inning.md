@@ -126,9 +126,12 @@ JAS-strips: `8px` hoog, `border-radius: 4px`, aaneengesloten rij met `gap: 4px`.
 
 **Titel:** Lex — wetsanalyse met de kennisgraaf
 **Ondertitel:** Een hulpmiddel voor gestructureerde, brongetrouwe JAS-annotatie
-**Voettekst:** Belastingdienst · Cluster Inning · [datum]
+**Voettekst:** Belastingdienst · Cluster Inning · *(datum van vandaag)*
 
-_(Laat de gebruiker [datum] handmatig invullen.)_
+_De datum wordt **dynamisch** ingevuld: zet er een `<span id="datum-vandaag">` neer en vul die
+bij het laden met `new Date().toLocaleDateString('nl-NL', { day: 'numeric', month: 'long',
+year: 'numeric' })`. Nooit een vaste datum in het bestand — die is bij de volgende demo
+verouderd, en een vergeten placeholder komt als "[datum]" in beeld._
 
 Boven de koptekst: een korte lintblauwe balk (48px breed, 4px hoog, `border-radius: 2px`) als
 visueel ankerpunt. De titeldia heeft een lege, ruime opzet — geen bullets.
