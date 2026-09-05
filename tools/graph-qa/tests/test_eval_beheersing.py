@@ -145,6 +145,24 @@ def test_nul_elementen_zonder_ankers_blijft_goed():
 
 # --- de smoke wacht op een bruikbare graaf ------------------------------------
 
+def _graaf(*beurten):
+    """Een graaf die de meegegeven antwoorden op volgorde teruggeeft; een Exception vliegt eruit."""
+    stroom = iter(beurten)
+
+    class Graaf:
+        def sparql(self, q):
+            v = next(stroom)
+            if isinstance(v, Exception):
+                raise v
+            return v
+
+    return Graaf()
+
+
+def _regelingen(n: int) -> str:
+    return '?regeling\n' + '\n'.join(f'<urn:bwb:R{i}>' for i in range(n))
+
+
 def test_smoke_wacht_tot_de_graaf_gevuld_is(monkeypatch):
     """Antwoorden is niet genoeg: tijdens een import ontbreken er wetten.
 
@@ -153,21 +171,47 @@ def test_smoke_wacht_tot_de_graaf_gevuld_is(monkeypatch):
     """
     from eval import retrieval_smoke as sm
 
-    beurten = iter([
-        RuntimeError("MCP HTTP 400"),          # graaf herstart
-        '?regeling\n<urn:bwb:A>\n',            # antwoordt, maar pas 1 regeling
-        '?regeling\n' + '\n'.join(f'<urn:bwb:R{i}>' for i in range(6)),   # gevuld
-    ])
+    monkeypatch.setattr(sm.time, "sleep", lambda s: None)
+    graaf = _graaf(
+        RuntimeError("MCP HTTP 400"),   # graaf herstart
+        _regelingen(1),                 # antwoordt, maar pas 1 regeling
+        _regelingen(6),                 # gevuld
+        _regelingen(6),                 # ... en nog steeds even vol: nu pas gereed
+    )
+    assert sm._wacht_op_graaf(graaf, seconden=60) == ""
 
-    class Graaf:
-        def sparql(self, q):
-            v = next(beurten)
-            if isinstance(v, Exception):
-                raise v
-            return v
+
+def test_smoke_wacht_op_een_STABIEL_aantal_regelingen(monkeypatch):
+    """Eén volle peiling is niet genoeg als de import nog aan het schrijven is.
+
+    Op 5 sep 2026 startte de eval terwijl de importjob de graaf herschreef. Het aantal regelingen
+    loopt dan op, en de drempel van vijf wordt gehaald terwijl er nog twee wetten ontbreken — de
+    smoke zou een halve graaf meten en de gaten als defecten melden. Pas twee peilingen met
+    hetzelfde aantal tellen als gereed.
+    """
+    from eval import retrieval_smoke as sm
 
     monkeypatch.setattr(sm.time, "sleep", lambda s: None)
-    assert sm._wacht_op_graaf(Graaf(), seconden=60) == ""
+
+    class Vullend:
+        """Haalt elke peiling de drempel, maar het aantal blijft oplopen: de import schrijft nog."""
+
+        def __init__(self):
+            self.n = 4
+
+        def sparql(self, q):
+            self.n += 1
+            return _regelingen(self.n)
+
+    reden = sm._wacht_op_graaf(Vullend(), seconden=0.001)
+    assert "niet gereed" in reden and "vult nog" in reden
+
+
+def test_smoke_wachttijd_is_per_omgeving_te_zetten():
+    """De ruimte om te wachten hoort niet in een codewijziging te zitten."""
+    from eval import retrieval_smoke as sm
+
+    assert sm.GEREED_SECONDEN >= 600, "te krap na een deploy: 180s bleek niet genoeg"
 
 
 def test_smoke_meldt_niet_gemeten_in_plaats_van_21_defecten(monkeypatch, capsys):
