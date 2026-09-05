@@ -110,3 +110,82 @@ def test_voortgang_wordt_per_case_gemeld(monkeypatch, capsys):
     uit = capsys.readouterr().out
     assert "[1/1]" in uit and "BWBR0004770/9/1" in uit and "markeringen" in uit
     assert "suite klaar" in uit and "tokens" in uit
+
+
+# --- nul elementen is geen succes ---------------------------------------------
+
+def _case_met_ankers():
+    return {
+        "prompt": "annoteer artikel 5:2 lid 1 van de Algemene wet bestuursrecht",
+        "bron": "BWBR0005537/5:2/1",
+        "verwacht": [{"klasse": "Brondefinitie", "tekst": "bestuurlijke sanctie"}],
+        "kanaries": [],
+    }
+
+
+def test_nul_elementen_bij_een_case_met_ankers_zakt():
+    """De stille fout van 5 sep 2026: twee cases leverden niets op en telden als geslaagd.
+
+    Alle garanties zijn immers triviaal waar over een lege lijst — letterlijkheid 1.0, klassen 1.0.
+    De bepaling bleek onbereikbaar (artikelnummer met een dubbele punt) en de beurt brak af, maar
+    het rapport zei "10/10 geslaagd". Dezelfde regel als bij grounding: niets te controleren is
+    geen goedkeuring.
+    """
+    r = score_annotatie(_case_met_ankers(), [], "In deze wet wordt verstaan onder:", "", None)
+    assert r.aantal == 0
+    assert r.passed is False
+
+
+def test_nul_elementen_zonder_ankers_blijft_goed():
+    """De injectie- en pad-guards hébben geen ankers; daar is niets vinden juist de bedoeling."""
+    r = score_annotatie(_case(), [], "", "", None)
+    assert r.ankers == 0
+    assert r.passed is True
+
+
+# --- de smoke wacht op een bruikbare graaf ------------------------------------
+
+def test_smoke_wacht_tot_de_graaf_gevuld_is(monkeypatch):
+    """Antwoorden is niet genoeg: tijdens een import ontbreken er wetten.
+
+    De import vervangt per wet een named graph (PUT), dus GraphDB antwoordt prima terwijl de graaf
+    halverwege is. Een smoke die dán meet, meldt lege uitkomsten als defecten.
+    """
+    from eval import retrieval_smoke as sm
+
+    beurten = iter([
+        RuntimeError("MCP HTTP 400"),          # graaf herstart
+        '?regeling\n<urn:bwb:A>\n',            # antwoordt, maar pas 1 regeling
+        '?regeling\n' + '\n'.join(f'<urn:bwb:R{i}>' for i in range(6)),   # gevuld
+    ])
+
+    class Graaf:
+        def sparql(self, q):
+            v = next(beurten)
+            if isinstance(v, Exception):
+                raise v
+            return v
+
+    monkeypatch.setattr(sm.time, "sleep", lambda s: None)
+    assert sm._wacht_op_graaf(Graaf(), seconden=60) == ""
+
+
+def test_smoke_meldt_niet_gemeten_in_plaats_van_21_defecten(monkeypatch, capsys):
+    """Het gedrag dat op 5 sep 2026 ontbrak: zestien valse defecten in plaats van één melding."""
+    from eval import retrieval_smoke as sm
+
+    class Kapot:
+        def sparql(self, q): raise RuntimeError("MCP HTTP 400")
+        def close(self): pass
+
+    monkeypatch.setattr(sm, "make_graph", lambda s: Kapot())
+    monkeypatch.setattr(sm.time, "sleep", lambda s: None)
+    # Zonder dit wacht `draai` de volle drie minuten uit.
+    monkeypatch.setattr(sm, "GEREED_SECONDEN", 0.2)
+    uitkomsten, geslaagd = sm.draai(settings=None)
+
+    assert geslaagd is False
+    assert len(uitkomsten) == 1 and uitkomsten[0]["niet_gemeten"] is True
+    sm.rapporteer(uitkomsten, geslaagd)
+    uit = capsys.readouterr().out
+    assert "NIET GEMETEN" in uit and "vlak na een `deploy`" in uit
