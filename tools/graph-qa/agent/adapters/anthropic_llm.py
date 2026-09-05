@@ -43,7 +43,12 @@ class AnthropicLLM:
             api_key=settings.azure_foundry_api_key,
             base_url=settings.azure_foundry_base_url.rstrip("/"),
             default_query={"api-version": "2025-04-15"},
-            timeout=120.0,
+            # Beide expliciet: samen bepalen ze hoe lang één mislukte call kost, en dat product is
+            # wat de eval-job van 5 sep 2026 over zijn tijdsbudget duwde (120 s x 3 pogingen per
+            # call, bij een provider die `overloaded_error` gaf). De SDK doet zelf exponentiële
+            # backoff tussen de pogingen; dat willen we houden, alleen niet zó lang.
+            timeout=settings.llm_timeout_seconds,
+            max_retries=settings.llm_max_retries,
         )
 
     def _system(self, system: Systeem, *, caching: bool | None = None) -> Any:

@@ -696,8 +696,9 @@ te meten. Lokaal draaien vraagt een eigen GraphDB met een geïmporteerde wet; de
 dat bood is op 27 aug 2026 opgeheven.
 
 Meten tegen de échte graaf gaat daarom via de **eval-job** in de omgeving zelf:
-`azure-infra.yml` → actie **`eval`** (per straat). Die draait `--annotatie` **drie keer** en zet
-het rapport in de workflow-samenvatting. Waarom drie: JAS-analyse kent interpretatieruimte en
+`azure-infra.yml` → actie **`eval`** (per straat). Die draait de retrieval-smoke en daarna
+`--annotatie` **drie keer**, en zet het rapport in de workflow-samenvatting. Waarom drie:
+JAS-analyse kent interpretatieruimte en
 dezelfde bepaling levert tussen runs sterk verschillende uitkomsten op (geel varieerde 38–77%),
 dus één run is een anekdote. Lees precisie/recall en span-IoU als bandbreedte; de *garanties* horen
 wél op 100%.
@@ -826,11 +827,43 @@ plaats van ~17,4k. Dat is bewust binnen een procent van de 8503 tekens die de pr
 2026, toen de volle brontekst uit de skill erin kwam. Die verdubbeling gebeurde op de redenering dat
 de bron rijker was dan wat erin stond — een redenering, geen meting.
 
-De eval-job draait daarom **beide varianten in één uitvoering** (`vol` en `kort`, elk drie runs; zie
-`deploy/azure/main.bicep`). Dat is geen gemak maar methode: dezelfde graafstand, hetzelfde model,
-dezelfde dag. Een vergelijking over twee deploys heen haalt die drie door elkaar met het effect dat
-je wilt meten. Zet de knop niet aan in productie — korter is niet beter, dat is juist wat gemeten
-wordt.
+Die vergelijking hoort in **één uitvoering**: dezelfde graafstand, hetzelfde model, dezelfde dag.
+Een vergelijking over twee deploys heen haalt die drie door elkaar met het effect dat je wilt meten.
+
+**Maar hij zit sinds 5 sep 2026 niet meer in de standaard eval-job.** Twee varianten × drie runs is
+zes suites, en dat was de factor twee die de run over zijn tijdsbudget duwde toen de provider
+`overloaded_error` gaf. De job draait nu **drie runs van één variant**; wil je de promptlengte
+meten, zet dan `ANNOTATIE_PROMPT_KORT` op de job en draai `eval` twee keer achter elkaar — binnen
+dezelfde deploy, dus de drie voorwaarden blijven overeind. Zet de knop niet aan in productie:
+korter is niet beter, dat is juist wat gemeten wordt.
+
+**De cases zijn geselecteerd op signaal per teken, niet op aantal.** Het corpus van de set ging op
+5 sep 2026 van 16.521 naar 3.349 tekens (−80%) terwijl de klassedekking van 6 naar 12 van de 13
+JAS-klassen groeide. De kosten worden namelijk gedreven door corpusomvang: meer tekst geeft meer
+markeringen, en de Critic beoordeelt er per stuk één — bij 40 markeringen liep hij tegen zijn
+`max_tokens` aan, een stille foutbron.
+
+Twee dure cases zijn vervangen door een compacte tweeling op hetzelfde pad, gevonden door de graaf
+te bevragen op korte bepalingen met veel verschillende JAS-signalen:
+`BWBR0004770/2/1` (4.727 tk, 25 definities) → `BWBR0005537/5:2/1` (526 tk, 3 definities), en
+`BWBR0019237/6` (3.381 tk) → `BWBR0004770/36a` (1.129 tk, vier leden). Nieuw zijn onder meer
+`BWBR0005537/4:17/2` — *"De dwangsom bedraagt de eerste veertien dagen € 23 per dag …"* — dat in
+139 tekens een Afleidingsregel, drie Parameters, een Variabele, een Tijdsaanduiding én een Operator
+draagt. Alleen Rechtsfeit heeft nog geen anker.
+
+**De suite bewaakt zichzelf** (`SUITE_MINUTEN`/`SUITE_TOKENS` in `eval/run_eval.py`): bij
+overschrijding worden de resterende cases overgeslagen en volgt er een onvolledig maar leesbaar
+rapport, in plaats van dat de job-timeout de meting afkapt. Elke case meldt zijn voortgang
+(`[3/10] … · 12 markeringen · 38s · 9,1k tokens`) zodat een lopende run te volgen is; `python -u`
+in de job is daarvoor voorwaarde, want gebufferde uitvoer geeft tientallen logregels dezelfde
+tijdstempel en dan is hun volgorde in Log Analytics willekeurig.
+
+**Een storing is geen kwaliteitsregressie.** Een case die sneuvelt op een overbelaste provider of
+een bereikt budget heet **niet gemeten** en telt niet mee in geslaagd/gezakt; het rapport noemt ze
+apart en de exitcode kijkt alleen naar de gemeten cases. Zijn ze allemaal ongemeten, dan is groen
+ook geen eerlijk antwoord en wordt de run rood. Het `error`-event draagt daarvoor sinds die datum
+`soort` (de exception-naam) naast de gesaniteerde melding: die melding is voor de jurist en zegt
+bewust niets technisch, waardoor een `overloaded_error` eerder als een inhoudelijke fout las.
 
 **Ankers komen uit `eval/bronteksten.json`, niet uit het hoofd.** Dat bestand draagt de letterlijke
 lid-tekst zoals `tools/bwb-import` die in de graaf zet – dezelfde tekst waartegen de live-eval

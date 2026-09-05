@@ -18,6 +18,7 @@ import argparse
 import asyncio
 import json
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +26,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from agent.agent import answer_stream  # noqa: E402
 from agent.config import Settings  # noqa: E402
+from agent.models import Verbruiksmeter  # noqa: E402
 from eval.scoring import AnnotatieResult, CaseResult, score_annotatie, score_case  # noqa: E402
 
 GOLDEN = Path(__file__).parent / "golden.jsonl"
@@ -65,7 +67,7 @@ async def run_suite(cases: list[dict[str, Any]], *, settings: Settings, llm=None
 
 
 async def run_annotatie_case(
-    case: dict[str, Any], *, settings: Settings, llm=None, graph=None
+    case: dict[str, Any], *, settings: Settings, llm=None, graph=None, meter=None
 ) -> AnnotatieResult:
     """Draai één annotatie-opdracht en scoor de markeringen die eruit komen.
 
@@ -85,8 +87,11 @@ async def run_annotatie_case(
     corpus = ""
     antwoord: list[str] = []
     error: str | None = None
+    fout_soort: str | None = None
 
-    async for ev in answer_stream(case["prompt"], settings=settings, llm=llm, graph=graph):
+    async for ev in answer_stream(
+        case["prompt"], settings=settings, llm=llm, graph=graph, meter=meter
+    ):
         soort = ev.get("type")
         if soort == "element":
             elementen.append(ev["element"])
@@ -102,6 +107,9 @@ async def run_annotatie_case(
             antwoord.append(ev.get("content", ""))
         elif soort == "error":
             error = ev["message"]
+            # De exception-naam, niet de gesaniteerde melding: alleen daarmee is een overbelaste
+            # provider te onderscheiden van een inhoudelijke fout (zie scoring.is_infrastructuurfout).
+            fout_soort = ev.get("soort")
 
     # In V1 (geen kandidaatgenerator) zijn kandidaten leeg; score_annotatie gebruikt
     # dan de definitieve elementen als proxy voor candidate_recall.
@@ -109,13 +117,75 @@ async def run_annotatie_case(
         case, elementen, corpus, "".join(antwoord), error,
         verworpen=verworpen,
         kandidaten=kandidaten if kandidaten else None,
+        fout_soort=fout_soort,
     )
 
 
+# Vangrails voor één suite. Ze zijn er niet om zuinig te zijn maar om een meting te laten eindigen
+# met een leesbaar rapport in plaats van door een job-timeout te worden afgekapt. Op 5 sep 2026 liep
+# de eval twee uur (provider overbelast, elke call in zijn timeout) en werd hij gekapt; van de zes
+# suites waren er vier af en het begin van de log was toen al uit het venster verdwenen.
+#
+# Overschrijden is géén "gezakt": de gemeten cases houden hun uitkomst en de rest heet `overgeslagen`.
+SUITE_MINUTEN = 20.0
+SUITE_TOKENS = 1_500_000
+
+
+def _kort(n: int) -> str:
+    return f"{n / 1000:.1f}k" if n >= 1000 else str(n)
+
+
 async def run_annotatie_suite(
-    cases: list[dict[str, Any]], *, settings: Settings, llm=None, graph=None
+    cases: list[dict[str, Any]],
+    *,
+    settings: Settings,
+    llm=None,
+    graph=None,
+    minuten: float = SUITE_MINUTEN,
+    tokens: int = SUITE_TOKENS,
+    stil: bool = False,
 ) -> list[AnnotatieResult]:
-    return [await run_annotatie_case(c, settings=settings, llm=llm, graph=graph) for c in cases]
+    """Draai de cases op volgorde, met voortgang naar stdout en een tijd-/tokenplafond.
+
+    **De voortgangsregel is functioneel, geen versiering.** De job draait in een container en de
+    enige manier om te zien wáár een run is, is de log — die tot nu toe pas aan het eind iets
+    zei. Eén geflushte regel per case maakt een vastlopende run herkenbaar terwijl hij loopt.
+
+    Het budget wordt ná elke case getoetst, niet tijdens: een halve annotatie afbreken levert een
+    onbruikbare meting op, en de winst zit toch in het niet-starten van de volgende.
+    """
+    resultaten: list[AnnotatieResult] = []
+    meter = Verbruiksmeter()
+    begin = time.monotonic()
+
+    def melden(regel: str) -> None:
+        if not stil:
+            print(regel, flush=True)  # flush: anders komt de log pas aan het eind vrij
+
+    for i, case in enumerate(cases, 1):
+        verstreken = (time.monotonic() - begin) / 60
+        if i > 1 and (verstreken >= minuten or meter.totaal >= tokens):
+            reden = "tijdbudget" if verstreken >= minuten else "tokenbudget"
+            melden(f"[{i}/{len(cases)}] {reden} bereikt na {verstreken:.1f} min / "
+                   f"{_kort(meter.totaal)} tokens – rest overgeslagen")
+            for rest in cases[i - 1:]:
+                resultaten.append(score_annotatie(
+                    rest, [], "", "", f"overgeslagen: {reden} bereikt", fout_soort="Budget"))
+            break
+
+        t0 = time.monotonic()
+        voor = meter.totaal
+        r = await run_annotatie_case(case, settings=settings, llm=llm, graph=graph, meter=meter)
+        resultaten.append(r)
+        vlag = "niet gemeten" if r.niet_gemeten else ("ok" if r.passed else "GEZAKT")
+        melden(f"[{i}/{len(cases)}] {case.get('bron') or 'guard':22} "
+               f"{r.aantal:3} markeringen · {time.monotonic() - t0:5.1f}s · "
+               f"{_kort(meter.totaal - voor):>7} tokens · {vlag}"
+               + (f" · {r.error[:60]}" if r.error else ""))
+
+    melden(f"— suite klaar: {(time.monotonic() - begin) / 60:.1f} min · "
+           f"{_kort(meter.totaal)} tokens · {meter.calls} calls")
+    return resultaten
 
 
 def print_report(results: list[CaseResult]) -> bool:
@@ -149,7 +219,7 @@ def print_annotatie_report(results: list[AnnotatieResult]) -> bool:
           f"{'cacc':>5} {'vw/100':>6} {'n':>3} {'scope':>5} {'inj':>4}  opdracht")
     print("-" * 100)
     for r in results:
-        vlag = "OK " if r.passed else "XX "
+        vlag = "-- " if r.niet_gemeten else ("OK " if r.passed else "XX ")
         extra = f"  ! {r.error}" if r.error else ""
         cacc_s = f"{r.class_acc:5.2f}" if r.class_acc is not None else "  n/a"
         print(
@@ -160,8 +230,18 @@ def print_annotatie_report(results: list[AnnotatieResult]) -> bool:
             f"{vlag}{r.prompt[:32]}{extra}"
         )
     ok = sum(r.passed for r in results)
+    ongemeten = [r for r in results if r.niet_gemeten]
+    gemeten = len(results) - len(ongemeten)
     print("-" * 100)
-    print(f"{ok}/{len(results)} geslaagd (precisie/recall zijn een trendmeting, geen slaagcriterium)")
+    # Drie bakken, geen twee. Een case die op een overbelaste provider sneuvelt is NIET gezakt: er
+    # is niets gemeten. Op 5 sep 2026 las zo'n storing als "9/10 geslaagd" — een kwaliteitsoordeel
+    # dat nergens op sloeg. De noemer is daarom het aantal gemeten cases.
+    print(f"{ok}/{gemeten} geslaagd van de gemeten cases "
+          f"(precisie/recall zijn een trendmeting, geen slaagcriterium)")
+    if ongemeten:
+        print(f"{len(ongemeten)} niet gemeten – geen oordeel over de analyse:")
+        for r in ongemeten:
+            print(f"    · {r.prompt[:52]:52} {r.fout_soort or '?'}: {(r.error or '')[:60]}")
 
     # --- aggregate scorekaart ---
     n = len(results)
@@ -219,7 +299,15 @@ dus geen kwaliteitsoordeel; gebruik hem alleen om versies onderling te vergelijk
 verworpen_p100 is 0 als er geen verworpen fragmenten zijn.
 Alleen niet-nul als het model een niet-letterlijk of ongeldig fragment voorstel.""")
 
-    return ok == n
+    # De exitcode gaat over de ANALYSE, niet over de dag. Cases die niet gemeten konden worden
+    # (provider overbelast, budget bereikt) tellen niet mee: anders maakt een storing de run rood en
+    # is niet meer te zien of er iets met de agent mis is. Zijn ALLE cases ongemeten, dan is er niets
+    # gemeten en is groen ook geen eerlijk antwoord.
+    gemeten = [r for r in results if not r.niet_gemeten]
+    if not gemeten:
+        print("\nGEEN ENKELE CASE GEMETEN – dit is geen uitspraak over de kwaliteit.")
+        return False
+    return all(r.passed for r in gemeten)
 
 
 def _offline_annotatie_scenario():

@@ -798,14 +798,19 @@ jobs:
             exit 1
           fi
           echo "Start $JOB – drie eval-runs tegen de graaf van deze straat. Dit kost LLM-tokens."
+          # De starttijd vastleggen VOOR de start: het logvenster hieronder wordt hierop geankerd.
+          # Met `ago(2h)` viel het begin van een lange run buiten het venster — op 5 sep 2026 ging
+          # zo de complete retrieval-smoke verloren, juist het deel dat geen tokens kost.
+          gestart=$(date -u -d '2 minutes ago' +%Y-%m-%dT%H:%M:%SZ)
           az containerapp job start -n "$JOB" -g "$RESOURCE_GROUP" --output none
           uitvoering=$(az containerapp job execution list -n "$JOB" -g "$RESOURCE_GROUP" \
                         --query "sort_by([], &properties.startTime)[-1].name" -o tsv)
-          echo "Execution: $uitvoering"
-          # Ruimer dan bij de import: zes runs (twee promptvarianten × drie) van acht annotatiecases
-          # duren samen ~60 min, en de job zelf mag er twee (replicaTimeout in main.bicep).
-          # 350 × 20 s = ~116 min, dus de workflow geeft het niet eerder op dan de job — anders
-          # meldt hij een mislukking terwijl de meting nog loopt.
+          echo "Execution: $uitvoering (logvenster vanaf $gestart)"
+          # Drie runs van tien compacte cases; de suite bewaakt zelf een tijd- en tokenplafond
+          # (`SUITE_MINUTEN`/`SUITE_TOKENS` in eval/run_eval.py) en levert liever een onvolledig
+          # rapport dan door te lopen tot de job wordt afgekapt. 350 × 20 s = ~116 min blijft staan
+          # als bovengrens: de workflow mag het niet eerder opgeven dan de job zelf, anders meldt
+          # hij een mislukking terwijl de meting nog loopt.
           status=Unknown
           for i in $(seq 1 350); do
             status=$(az containerapp job execution show -n "$JOB" -g "$RESOURCE_GROUP" \
@@ -826,9 +831,18 @@ jobs:
             # Ingestie loopt een minuut of twee achter op de container; even geduld voor we het
             # opgeven, anders rapporteren we een lege meting terwijl de regels onderweg zijn.
             for poging in 1 2 3 4; do
+              # Twee dingen die op 5 sep 2026 misgingen en hier zijn gerepareerd:
+              #
+              # 1. `ago(2h)` sneed het begin van de run af zodra die zelf twee uur duurde. Het
+              #    venster hangt nu aan de starttijd van déze uitvoering.
+              # 2. De regels liepen door elkaar. De oorzaak zat niet in Kusto maar in de bron:
+              #    Python bufferde zijn stdout en dumpte het rapport in één keer, waardoor
+              #    tientallen regels dezelfde tijdstempel kregen — en binnen één tijdstempel is de
+              #    volgorde willekeurig. Opgelost met `python -u` in de job (zie main.bicep); hier
+              #    volstaat daarom een gewone chronologische sortering.
               logs=$(az monitor log-analytics query -w "$ws" --analytics-query \
                 "ContainerAppConsoleLogs_CL
-                 | where TimeGenerated > ago(2h) and ContainerName_s == 'eval'
+                 | where TimeGenerated >= datetime('$gestart') and ContainerName_s == 'eval'
                  | order by TimeGenerated asc
                  | project Log_s" \
                 -o tsv 2>/dev/null || true)

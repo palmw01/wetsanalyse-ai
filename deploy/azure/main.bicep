@@ -958,6 +958,20 @@ resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
 // Handmatige trigger, geen schedule: elke run kost LLM-tokens. Draaien via `azure-infra.yml`
 // (actie `eval`) of `az containerapp job start -n ${appName}-eval -g <rg>`.
 //
+// DRIE runs van één promptvariant, niet zes van twee. De vol/kort-vergelijking was een tweede
+// meting die meeliftte op de eerste, en juist die factor twee duwde de run van 5 sep 2026 over de
+// twee uur (de provider gaf toen `overloaded_error`, waardoor elke call in zijn timeout liep). Ze
+// is nu een eigen actie, `eval-promptvarianten`, zodat de standaardmeting binnen haar tijd blijft
+// en de vergelijking nog steeds in één uitvoering gebeurt wanneer je hem stelt.
+//
+// Drie runs blijven het minimum: JAS-analyse kent interpretatieruimte en één run is een anekdote.
+//
+// `python -u` is geen detail. Zonder unbuffered stdout houdt Python zijn uitvoer vast en dumpt hij
+// het hele rapport in één keer; tientallen regels krijgen dan dezelfde tijdstempel in Log Analytics
+// en `order by TimeGenerated` levert ze in willekeurige volgorde terug. Precies dat maakte het
+// rapport van 5 sep 2026 onleesbaar — de cijfers waren niet meer aan een run toe te wijzen. Met -u
+// verschijnt elke regel zodra hij ontstaat, en de voortgang is bovendien live te volgen.
+//
 // De job begint met de **retrieval-smoke**: die raakt elke graaftool één keer en kost geen enkele
 // LLM-token. Hij staat vooraan omdat een lege graaftool de annotatiemeting erna zinloos maakt —
 // je meet dan een keten die op onvolledige wettekst werkt, zonder dat het rapport dat verraadt.
@@ -1024,7 +1038,7 @@ resource evalJob 'Microsoft.App/jobs@2024-03-01' = {
           ]
           command: ['sh', '-c']
           args: [
-            'rc=0; echo "=== RETRIEVAL-SMOKE ==="; python eval/run_eval.py --retrieval-smoke || rc=1; for v in vol kort; do for i in 1 2 3; do echo "=== VARIANT $v · RUN $i VAN 3 ==="; ANNOTATIE_PROMPT_KORT=$( [ "$v" = kort ] && echo true || echo false ) python eval/run_eval.py --annotatie || rc=1; done; done; echo "=== KLAAR (rc=$rc) ==="; exit $rc'
+            'rc=0; echo "=== RETRIEVAL-SMOKE ==="; python -u eval/run_eval.py --retrieval-smoke || rc=1; for i in 1 2 3; do echo "=== RUN $i VAN 3 ==="; python -u eval/run_eval.py --annotatie || rc=1; done; echo "=== KLAAR (rc=$rc) ==="; exit $rc'
           ]
           env: [
             { name: 'AZURE_FOUNDRY_BASE_URL', value: '${llmApiBase}/anthropic' }
@@ -1034,6 +1048,11 @@ resource evalJob 'Microsoft.App/jobs@2024-03-01' = {
             { name: 'GRAPHDB_TOKEN_FILE', value: '/run/secrets/graphdb_token' }
             { name: 'GRAPHDB_REPOSITORY_ID', value: 'inning' }
             { name: 'SIMILARITY_INDEX', value: 'bwb_similarity' }
+            // Korter wachten dan de werkplek (120 s). Een jurist die zit te wachten heeft baat bij
+            // doorwachten; een meting die tien cases achter elkaar draait niet. Op 5 sep 2026 gaf
+            // de provider `overloaded_error` en kostte elke call 120 s x 3 pogingen — dat is wat de
+            // run over de twee uur duwde. De suite kapt zichzelf nu bovendien af op tijd/tokens.
+            { name: 'LLM_TIMEOUT_SECONDS', value: '45' }
             { name: 'HOME', value: '/tmp' }
             // Moet gezet zijn, en moet naar /tmp wijzen. `Settings.checkpoint_db_path` heeft een
             // RELATIEVE default (`conversations_checkpoints.db`), dus zonder deze regel probeert de
