@@ -129,6 +129,21 @@ class Settings(BaseModel):
     # provider `cache_control` weigert (het is op Azure AI Foundry een beta-functie).
     prompt_caching: bool = True
 
+    # Hoe lang de adapter op één LLM-call wacht, en hoe vaak hij het opnieuw probeert.
+    #
+    # Waarom dit een knop is. Op 5 sep 2026 was de provider overbelast (`overloaded_error`) en liep
+    # de eval-job twee uur voordat hij werd afgekapt: elke call wachtte 120 s en de SDK probeerde
+    # het daarna nog twee keer. Voor een jurist die zit te wachten is lang doorwachten juist goed —
+    # een traag antwoord is beter dan geen antwoord — maar voor een meting die zes suites achter
+    # elkaar draait is het fataal. Vandaar dezelfde code met twee instellingen: de werkplek houdt
+    # 120 s, de eval-job zet `LLM_TIMEOUT_SECONDS=45`.
+    #
+    # `max_retries` stond nergens en viel dus terug op de SDK-default (2). Dat is prima, maar het
+    # hoort expliciet te staan: dit getal vermenigvuldigt zich met de timeout tot de tijd die één
+    # mislukte call kost, en dat is precies wat er misging.
+    llm_timeout_seconds: float = 120.0
+    llm_max_retries: int = 2
+
     # MEETKNOP, geen productie-instelling. Aan (`ANNOTATIE_PROMPT_KORT=true`) rendert de
     # klassenreferentie alleen de EERSTE ZIN van omschrijving, herken-vraag en uitdrukkingswijze:
     # ~5,6k tekens in plaats van ~14,5k. Dat is bewust even groot als de verkorte referentie die tot
@@ -181,6 +196,8 @@ class Settings(BaseModel):
             "critic_max_rondes": e.get("CRITIC_MAX_RONDES"),
             "grounding_correct": e.get("GROUNDING_CORRECT"),
             "prompt_caching": e.get("PROMPT_CACHING"),
+            "llm_timeout_seconds": e.get("LLM_TIMEOUT_SECONDS"),
+            "llm_max_retries": e.get("LLM_MAX_RETRIES"),
             "annotatie_prompt_kort": e.get("ANNOTATIE_PROMPT_KORT"),
             "wetsanalyse_api_url": e.get("WETSANALYSE_API_URL"),
             "wetsanalyse_api_token": _read_secret(e, "WETSANALYSE_API_TOKEN"),

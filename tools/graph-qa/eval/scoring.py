@@ -406,12 +406,22 @@ class AnnotatieResult:
     # in het gemiddelde thuis (zie print_annotatie_report).
     ankers: int = 0
     error: str | None = None
+    fout_soort: str | None = None
+    # Sneuvelde deze case op de infrastructuur (provider overbelast, timeout) in plaats van op de
+    # analyse? Dan telt hij niet mee in geslaagd/gezakt — zie `is_infrastructuurfout`.
+    niet_gemeten: bool = field(init=False, default=False)
     passed: bool = field(init=False)
 
     def __post_init__(self) -> None:
         # Alleen de garanties zijn een slaag/zak-criterium. Precisie en recall worden gerapporteerd
         # maar niet afgedwongen: JAS-analyse kent interpretatieruimte, en een harde drempel zou de
         # eval laten vastlopen op een verdedigbaar verschil van mening.
+        # "Niet gemeten" heeft twee oorzaken en allebei zeggen ze niets over de analyse: de
+        # provider lag eruit, of de suite raakte haar tijd-/tokenbudget op vóór deze case aan de
+        # beurt was. Alleen een fout ín de analyse hoort als gezakt te tellen.
+        self.niet_gemeten = (
+            self.fout_soort == "Budget" or is_infrastructuurfout(self.error, self.fout_soort)
+        )
         self.passed = (
             self.error is None
             and self.letterlijk >= 1.0
@@ -421,6 +431,52 @@ class AnnotatieResult:
         )
 
 
+# Foutmeldingen die op de INFRASTRUCTUUR wijzen en niet op de analyse. Een case die hierop sneuvelt
+# is *niet gemeten*; hem als gezakt tellen maakt van een storing een kwaliteitsregressie.
+#
+# Dat is op 5 sep 2026 letterlijk gebeurd: de provider gaf `overloaded_error`, één case eindigde op
+# 9/10 en dat las in het rapport als een inhoudelijke fout. Het verschil is wezenlijk — bij een
+# gezakte case is er iets mis met de agent, bij een niet-gemeten case met de dag.
+_INFRA_SIGNALEN = (
+    "overloaded",
+    "modelprovider is momenteel overbelast",
+    "kon de modelprovider niet bereiken",
+    "apitimeouterror",
+    "apiconnectionerror",
+    "apistatuserror",
+    "timed out",
+    "timeout",
+    "read operation",
+    "internalservererror",
+    "503",
+    "529",
+)
+
+
+# Exception-namen van de provider-SDK. Deze zijn betrouwbaarder dan de melding: `answer_stream`
+# saniteert die bewust voor de jurist, waardoor een `overloaded_error` als "Er ging iets mis bij het
+# beantwoorden" aankwam — niet te onderscheiden van een inhoudelijke fout. Sinds 5 sep 2026 draagt
+# het `error`-event daarom ook `soort` (de exception-naam).
+_INFRA_SOORTEN = (
+    "APIStatusError", "APITimeoutError", "APIConnectionError", "RateLimitError",
+    "InternalServerError", "ServiceUnavailableError", "ReadTimeout", "ConnectError",
+)
+
+
+def is_infrastructuurfout(bericht: str | None, soort: str | None = None) -> bool:
+    """Wijst deze fout op de provider/het netwerk in plaats van op de analyse?
+
+    `soort` is de exception-naam uit het `error`-event en is de betrouwbare bron; de melding blijft
+    als terugval voor oudere events en voor fouten die het harnas zelf formuleert.
+    """
+    if soort and soort in _INFRA_SOORTEN:
+        return True
+    if not bericht:
+        return False
+    laag = bericht.lower()
+    return any(sig in laag for sig in _INFRA_SIGNALEN)
+
+
 def score_annotatie(
     case: dict[str, Any],
     elementen: list[dict[str, Any]],
@@ -428,6 +484,7 @@ def score_annotatie(
     antwoord: str = "",
     error: str | None = None,
     geldige_klassen: set[str] | None = None,
+    fout_soort: str | None = None,
     verworpen: list[dict[str, Any]] | None = None,
     kandidaten: list[dict[str, Any]] | None = None,
 ) -> AnnotatieResult:
@@ -455,4 +512,5 @@ def score_annotatie(
         verworpen_p100=verworpen_per_100(elementen, _verworpen),
         ankers=len(verwacht),
         error=error,
+        fout_soort=fout_soort,
     )
