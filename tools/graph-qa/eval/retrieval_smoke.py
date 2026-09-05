@@ -20,6 +20,7 @@ de omgeving zelf (`azure-infra` → actie `eval`), niet op een werkplek.
 from __future__ import annotations
 
 import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -114,8 +115,59 @@ def _rijen(resultaat: str) -> int:
         return -1
 
 
+# Hoe lang de smoke wacht tot de graaf bruikbaar is, en hoeveel regelingen hij dan verwacht.
+# Zie `_wacht_op_graaf` voor het waarom.
+GEREED_SECONDEN = 180.0
+GEREED_REGELINGEN = 5
+
+
+def _wacht_op_graaf(graph: Any, seconden: float | None = None) -> str:
+    """Wacht tot de graaf antwoordt én gevuld is. Geeft "" terug als dat lukt, anders de reden.
+
+    Waarom dit er is. Op 5 sep 2026 werd de eval 49 seconden na een `deploy` gestart, en een deploy
+    start automatisch de importjob. GraphDB was de graaf aan het herschrijven; de smoke draait
+    vooraan en liep daar precies in. Zestien van de 21 controles faalden met `HTTP 400` van de
+    MCP-server — óók `list_regelingen`, een query van vier regels die niemand had aangeraakt.
+    Minuten later deden de annotatieruns hun werk tegen diezelfde graaf.
+
+    Het rapport meldde dus zestien defecten die er niet waren. Dat is precies wat een controle niet
+    mag doen: wie vals alarm slaat wordt genegeerd, en dan bewaakt hij niets meer.
+
+    **Antwoorden is niet genoeg — hij moet ook gevuld zijn.** De import vervangt per wet een named
+    graph (`PUT`), dus tijdens een import antwoordt GraphDB prima terwijl er wetten ontbreken. Een
+    smoke die dán meet, meet een halve graaf en meldt lege uitkomsten als defecten.
+    """
+    # De default op AANROEPtijd lezen, niet in de signatuur: anders staat de waarde bij het
+    # importeren vast en heeft een test die hem verkort geen effect (die liep dan drie minuten).
+    seconden = GEREED_SECONDEN if seconden is None else seconden
+    begin = time.monotonic()
+    wacht = 5.0
+    laatste = "geen antwoord"
+    while time.monotonic() - begin < seconden:
+        try:
+            rijen = parse_select(graph.sparql(queries.list_regelingen()))
+            if len(rijen) >= GEREED_REGELINGEN:
+                return ""
+            laatste = f"graaf antwoordt maar bevat pas {len(rijen)} regelingen"
+        except Exception as exc:  # noqa: BLE001 – elke fout is hier "nog niet gereed"
+            laatste = f"{type(exc).__name__}: {str(exc)[:120]}"
+        time.sleep(wacht)
+        wacht = min(wacht * 1.5, 20.0)
+    return f"graaf niet gereed na {int(seconden)}s ({laatste})"
+
+
 def draai(settings: Settings) -> tuple[list[dict[str, Any]], bool]:
     graph = make_graph(settings)
+    reden = _wacht_op_graaf(graph)
+    if reden:
+        # Eén regel, geen 21 valse defecten. Niet gemeten is iets anders dan gezakt.
+        graph.close()
+        return ([{
+            "tool": "graaf-gereed", "args": {}, "rijen": -1, "hard": True, "ok": False,
+            "fout": "", "reden": reden, "niet_gemeten": True,
+            "toelichting": "de smoke is niet uitgevoerd — draai `eval` niet vlak na een `deploy`, "
+                           "de importjob is dan nog bezig",
+        }], False)
     uitkomsten: list[dict[str, Any]] = []
     geslaagd = True
     try:
@@ -190,6 +242,10 @@ def _structuurintegriteit(graph: Any) -> dict[str, Any]:
 
 def rapporteer(uitkomsten: list[dict[str, Any]], geslaagd: bool) -> None:
     print("\n=== RETRIEVAL-SMOKE (elke graaftool één keer tegen de echte graaf) ===\n")
+    if len(uitkomsten) == 1 and uitkomsten[0].get("niet_gemeten"):
+        u = uitkomsten[0]
+        print(f"NIET GEMETEN — {u['reden']}\n  {u['toelichting']}")
+        return
     print(f"{'':2} {'tool':22} {'rijen':>6}  argumenten")
     for u in uitkomsten:
         vlag = "ok" if u["ok"] else "XX"

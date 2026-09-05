@@ -239,7 +239,7 @@ Actions → **azure-infra** → *Run workflow*, met een keuze voor de straat en 
 | `afbreken` | verwijdert de hele resource group. Vraagt om de naam ter bevestiging. |
 | `opruimen` | verwijdert wat er in de groep staat maar niet bij deze straat hoort. Toont eerst wat het zou doen; verwijdert pas als je de groepsnaam intypt. |
 | `vul-graaf` | start de import-job en wacht hem af. |
-| `eval` | draait de eval-job: **drie** metingen van de annotatieketen tegen de graaf van deze straat, met het rapport in de workflow-samenvatting. Kost LLM-tokens en duurt ~30 min. Vereist een eerdere `deploy` (die maakt de job aan). |
+| `eval` | draait de eval-job: eerst de retrieval-smoke (gratis), daarna **drie** metingen van de annotatieketen, met het rapport in de workflow-samenvatting. Kost LLM-tokens en duurt ~40 min. Vereist een eerdere `deploy` (die maakt de job aan). **Niet vlak na een `deploy` draaien**: die start de importjob, en zolang die loopt herschrijft GraphDB de graaf. De smoke wacht daar zelf op — op 5 sep 2026 deed hij dat nog niet en meldde hij zestien defecten die er niet waren — maar dat kost minuten wachttijd die niemand hoeft te betalen. |
 | `inventaris` | read-only overzicht van wat er in de subscription draait. |
 | `telemetrie` | vraagt de Log Analytics-workspace of er telemetrie binnenkomt; met een eigen `query` je eigen KQL. Read-only. |
 | `grafana` | rolt alleen de Grafana-app uit (`grafana.bicep`). Raakt de applicatiestack niet. |

@@ -798,6 +798,9 @@ jobs:
             exit 1
           fi
           echo "Start $JOB – drie eval-runs tegen de graaf van deze straat. Dit kost LLM-tokens."
+          echo "::notice::Draai 'eval' NIET vlak na een 'deploy': die start de importjob, en zolang"
+          echo "::notice::die loopt herschrijft GraphDB de graaf. De smoke wacht daar zelf op, maar"
+          echo "::notice::dat kost minuten wachttijd die niemand hoeft te betalen."
           # De starttijd vastleggen VOOR de start: het logvenster hieronder wordt hierop geankerd.
           # Met `ago(2h)` viel het begin van een lange run buiten het venster — op 5 sep 2026 ging
           # zo de complete retrieval-smoke verloren, juist het deel dat geen tokens kost.

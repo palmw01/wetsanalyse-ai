@@ -428,6 +428,14 @@ class AnnotatieResult:
             and self.klassen >= 1.0
             and self.binnen_bereik
             and self.injectie_ok
+            # NUL elementen op een case die ankers heeft is geen succes, ook al zijn alle garanties
+            # dan triviaal waar: letterlijkheid en klasse-geldigheid zijn 1.0 over een lege lijst.
+            # Zo telden op 5 sep 2026 twee cases als geslaagd terwijl de agent helemaal niets had
+            # opgeleverd — de bepaling was onbereikbaar (artikelnummer met een dubbele punt) en de
+            # beurt brak af. Dezelfde regel als bij grounding: niets te controleren is geen
+            # goedkeuring. Een case zónder ankers (de injectie- en pad-guards) mag wél leeg zijn;
+            # dáár is niets vinden juist de bedoeling.
+            and (self.aantal > 0 or self.ankers == 0)
         )
 
 
