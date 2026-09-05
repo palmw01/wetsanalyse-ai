@@ -2156,6 +2156,28 @@
     {t:"taalmodel", v:"large language model, LLM", u:"Een programma dat op grote hoeveelheden tekst is getraind en daardoor taal begrijpt en produceert. Het weet niets zeker en bewaart niets — daarom wordt alles nagerekend tegen de bron."},
     {t:"Trivy", u:"De controle die de gebouwde pakketten nakijkt op bekende kwetsbaarheden voordat ze worden uitgerold."},
     {t:"werkplek", u:"Het scherm in de browser waar je vragen stelt en voorstellen beoordeelt. Chat en review zitten er in één venster."},
+    // De negentien gereedschappen van de gereedschapskist-dia. Ze staan letterlijk op een dia,
+    // dus horen ze hier; `v` draagt de leesbare naam. Afgeleid van de beschrijvingen in
+    // tools/graph-qa/agent/tools/__init__.py — wijzigt daar een tool, werk hem hier ook bij.
+    {t:"bijlagen", v:"de bijlagen van een regeling", u:"Geeft de lijst met bijlagen van een regeling, of de inhoud van één bijlage zoals een tarieftabel of een model."},
+    {t:"follow_verwijzingen", v:"waar verwijst dit naar", u:"Geeft de verwijzingen die vanuit een bepaling vertrekken, met de woorden waarmee ze verwijst en waar ze uitkomt."},
+    {t:"geldigheid", v:"sinds wanneer geldt deze tekst", u:"Geeft de inwerkingtreding, de terugwerkende kracht en de wijziging waar deze tekst vandaan komt. Daarmee is te bepalen welke versie gold op het moment van een beslissing."},
+    {t:"get_artikel", v:"haal een artikel op", u:"Geeft de tekst van één artikel met al zijn leden, en de vindplaats erbij."},
+    {t:"get_bepaling", v:"haal een bepaling op via haar nummer", u:"Werkt ook voor beleidsregels en circulaires met nummers als 9.1, waar artikel en lid niet passen."},
+    {t:"get_context", v:"een bepaling met haar hele buurt", u:"Haalt in één keer de bepaling op plus het hoofdstuk waarin ze staat, haar leden, haar verwijzingen, wie naar haar verwijst en de vorige en volgende bepaling."},
+    {t:"get_lid", v:"haal een lid op", u:"Geeft de tekst van één lid met de onderdelen die eronder hangen, elk met een eigen vindplaats. Dit is de juiste ingang bij een definitielid, waar de definities in de onderdelen staan."},
+    {t:"get_regeling_info", v:"gegevens over een regeling", u:"Geeft de citeertitel, het opschrift, de soort, de geldigheid en de uitgevende organisatie van één regeling."},
+    {t:"graph_schema", v:"wat zit er in de graaf", u:"Geeft de omvang van de kennisgraaf: hoeveel er van elk soort in zit en welke regelingen erin staan."},
+    {t:"grondslagen", v:"waarop berust deze regeling", u:"Geeft de delegatieketen: op welke wet een regeling berust, en welke regelingen op dit tekstdeel berusten."},
+    {t:"inhoudsopgave", v:"de structuur van een regeling", u:"Geeft de hoofdstukken, afdelingen, paragrafen en artikelen van een regeling en hoe die in elkaar zitten. Handig om een werkgebied af te bakenen vóór je gaat zoeken."},
+    {t:"list_regelingen", v:"welke regelingen zitten erin", u:"Geeft alle regelingen die in de kennisgraaf staan, met hun citeertitel en soort."},
+    {t:"raw_sparql", v:"zelf een vraag stellen aan de graaf", u:"Het laatste redmiddel als geen enkel ander gereedschap volstaat: een eigen zoekvraag in de vraagtaal van de graaf. Alleen lezen — wijzigen wordt geweigerd."},
+    {t:"referenced_by", v:"welke regelingen verwijzen hiernaar", u:"Geeft een grofmazig overzicht op het niveau van hele regelingen. Voor de citerende bepaling zelf is verwijst_naar_deze de juiste ingang."},
+    {t:"resolve_begrip", v:"zoek een begrip in de begrippenlijst", u:"Zoekt een juridisch begrip op naam en geeft de verwante begrippen terug."},
+    {t:"search_wetgeving", v:"zoek in de wettekst", u:"Zoekt op woorden in alle wetteksten, zoals een zoekmachine. Gebruik je als de vindplaats nog niet bekend is."},
+    {t:"semantic_search", v:"zoek op betekenis", u:"Zoekt op betekenis in plaats van op exacte woorden, zodat de omschrijving van een situatie ook de juiste bepaling vindt. Bedoeld naast het gewone zoeken, niet in plaats daarvan."},
+    {t:"verwijst_naar_deze", v:"wie verwijst hiernaar", u:"Geeft de bepalingen die naar deze bepaling verwijzen, met de tekst waarmee ze dat doen. Fijnmaziger dan referenced_by, dat alleen hele regelingen noemt."},
+    {t:"zoek_definitie", v:"waar wordt dit begrip gedefinieerd", u:"Zoekt op de begrippen die de wet zélf definieert en geeft het definiërende tekstdeel met vindplaats terug."},
     {t:"Wetsanalyse", u:"De methode om wet- en regelgeving gestructureerd en herleidbaar te duiden, in zes activiteiten. Dit platform ondersteunt activiteit 2: markeren en classificeren."},
   ];
 
@@ -2226,6 +2248,16 @@
       leeg.hidden = treffers > 0;
     }
     zoek.addEventListener('input', filter);
+
+    // Hoogstens één term tegelijk open: klap de vorige dicht zodra er een opengaat.
+    // `toggle` bubbelt niet, dus luisteren in de capture-fase — anders bereikt het de lijst nooit.
+    lijst.addEventListener('toggle', (e) => {
+      const d = e.target;
+      if (!(d instanceof HTMLDetailsElement) || !d.open) return;
+      for (const ander of lijst.querySelectorAll('details[open]')) {
+        if (ander !== d) ander.open = false;
+      }
+    }, true);
 
     // Typen in het zoekveld mag niet door de dia's bladeren. Reveal negeert toetsen in
     // een invoerveld al, maar dat is zijn keuze en niet de onze — dus hier ook afvangen.

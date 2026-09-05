@@ -599,7 +599,12 @@ dia's** maar ernaast, op verzoek van de kijker: een knop rechtsboven opent een z
 zoekveld en daaronder alle termen alfabetisch; klik op een term en de uitleg klapt open.
 
 - **Neem elke term op die op een zichtbare dia voorkomt** — ook de productnamen van de
-  technologiedia (Trivy, GHCR, rdflib). Wat iemand op een dia ziet, moet hij kunnen opzoeken.
+  technologiedia (Trivy, GHCR, rdflib) én de negentien gereedschapsnamen van de
+  gereedschapskist-dia. Wat iemand op een dia ziet, moet hij kunnen opzoeken; bij de
+  gereedschappen draagt het cursieve veld de leesbare naam (`get_lid` — *haal een lid op*), en de
+  uitleg volgt de beschrijvingen in `tools/graph-qa/agent/tools/__init__.py`.
+- **Hoogstens één term tegelijk uitgeklapt**: gaat er een open, dan sluit de vorige. `toggle`
+  bubbelt niet, dus luister in de capture-fase op de lijst.
 - **Hoogstens twee zinnen per term, zonder jargon in de uitleg**, en beschrijf wat het ding in
   *dit* platform doet in plaats van wat de leverancier ervan zegt.
 - **Bij elke afkorting staat de voluit-vorm erbij**, cursief boven de uitleg.
