@@ -14,6 +14,7 @@ from pathlib import Path
 
 from rdflib import OWL, RDF, RDFS, URIRef, XSD, Literal
 
+from app.collect import collect, structuurindex
 from app.graphdb_writer import GraphDbWriter, _fts_connector_config
 from app.models import (
     Artikel,
@@ -694,3 +695,112 @@ def test_verwijzing_met_pad_in_de_jci_matcht_rechtstreeks() -> None:
     # Niet naar de afdeling 1 van het ándere hoofdstuk, en niet naar een padloze stub.
     assert (bron, V.ns.verwijstNaar, V.by_ref_key("BWBR0000001#hoofdstuk=VI#afdeling=1")) not in g
     assert (bron, V.ns.verwijstNaar, V.by_ref_key("BWBR0000001#afdeling=1")) not in g
+
+
+# ---------------------------------------------------------------------------
+# Cross-wet: een verwijzing die haar doel onvolledig aanduidt
+# ---------------------------------------------------------------------------
+
+def _wet_met_titeldeel(bwb_id: str = "BWBR0000002") -> Wet:
+    """Een doelwet waarvan het titeldeel onder een hoofdstuk hangt.
+
+    De jci van de node draagt het volledige pad (`&hoofdstuk=5&titeldeel=5.1`), zoals de BWB-bron
+    dat doet; een verwijzing ernaartoe schrijft vaak alleen `&titeldeel=5.1`.
+    """
+    return Wet(
+        bwb_id=bwb_id,
+        citeertitel="Doelwet",
+        opschrift="Doelwet",
+        soort="wet",
+        structuurdelen=[
+            Structuurdeel(
+                id="D#h5", soort="hoofdstuk", nummer="5", label="Hoofdstuk 5", titel="Rechtsgang",
+                jci=f"jci1.3:c:{bwb_id}&hoofdstuk=5",
+                subdelen=[
+                    Structuurdeel(
+                        id="D#h5#t5.1", soort="titeldeel", nummer="5.1", label="Titeldeel 5.1",
+                        titel="Bezwaar en beroep",
+                        jci=f"jci1.3:c:{bwb_id}&hoofdstuk=5&titeldeel=5.1",
+                    )
+                ],
+            )
+        ],
+    )
+
+
+def _wet_die_verwijst(doel_bwb: str = "BWBR0000002") -> Wet:
+    """Een citerende wet met precies de verwijzing die vandaag op een lege node uitkomt."""
+    return Wet(
+        bwb_id="BWBR0000001",
+        citeertitel="Bronwet",
+        opschrift="Bronwet",
+        soort="wet",
+        losse_artikelen=[
+            Artikel(
+                id="B#art1", nummer="1", label="Artikel 1", tekst="x",
+                jci="jci1.3:c:BWBR0000001&artikel=1",
+                verwijzingen=[
+                    Verwijzing(
+                        soort=VerwijzingSoort.EXTERN,
+                        tekst="titeldeel 5.1 van de Doelwet",
+                        doel_bwb_id=doel_bwb,
+                        doc=f"jci1.3:c:{doel_bwb}&titeldeel=5.1",
+                    )
+                ],
+            )
+        ],
+    )
+
+
+def test_cross_wet_verwijzing_zonder_pad_komt_op_de_juiste_node_uit() -> None:
+    """Het geval dat per definitie niet op te lossen was tijdens één wet-import.
+
+    De bron schrijft `&titeldeel=5.1`, de doelnode heet `#hoofdstuk=5#titeldeel=5.1`. Los je dat op
+    tijdens de import van de CITERENDE wet, dan is de doelwet nog niet gezien en blijft de
+    verwijzing op een lege node staan — 26 keer, live gemeten na de collisie-fix.
+
+    De structuurindex wordt daarom over álle wetten van de run gebouwd, vóórdat er geschreven wordt.
+    """
+    doel_batch, _ = collect(_wet_met_titeldeel())
+    bron_batch, bron_summary = collect(_wet_die_verwijst())
+    index = structuurindex([doel_batch, bron_batch])
+
+    g, _ = _writer().build_graph(
+        _wet_die_verwijst(), verzameld=(bron_batch, bron_summary), structuurindex=index
+    )
+
+    bron = V.by_ref_key("BWBR0000001#artikel=1")
+    assert (bron, V.ns.verwijstNaar, V.by_ref_key("BWBR0000002#hoofdstuk=5#titeldeel=5.1")) in g
+    # En niet meer op de padloze stub.
+    assert (bron, V.ns.verwijstNaar, V.by_ref_key("BWBR0000002#titeldeel=5.1")) not in g
+
+
+def test_zonder_de_doelwet_blijft_het_een_open_stub() -> None:
+    """Staat de doelwet niet in de run, dan is er niets om naar te wijzen — en dat is correct.
+
+    Open-world: de doel-IRI krijgt inhoud zodra die wet wél wordt geïmporteerd. Een gok zou hier
+    een verwijzing naar de verkeerde bepaling opleveren.
+    """
+    bron_batch, bron_summary = collect(_wet_die_verwijst())
+    index = structuurindex([bron_batch])
+
+    g, _ = _writer().build_graph(
+        _wet_die_verwijst(), verzameld=(bron_batch, bron_summary), structuurindex=index
+    )
+    bron = V.by_ref_key("BWBR0000001#artikel=1")
+    assert (bron, V.ns.verwijstNaar, V.by_ref_key("BWBR0000002#titeldeel=5.1")) in g
+
+
+def test_een_echt_ambigue_verwijzing_blijft_onopgelost() -> None:
+    """Twee gelijk genummerde afdelingen in de doelwet: de index neemt het nummer niet op.
+
+    Dit is de guard tegen het terugsluipen van de collisie via een omweg. De verwijzing is hier
+    zélf ambigu; een keuze maken zou schijnzekerheid zijn en precies de fout herhalen die de
+    padsleutel net heeft opgeheven.
+    """
+    doel_batch, _ = collect(_wet_met_twee_keer_afdeling_1())
+    index = structuurindex([doel_batch])
+    assert "BWBR0000001#afdeling=1" not in index
+    # En de index blijft hier zelfs helemaal leeg: de hoofdstukken dragen géén pad in hun sleutel
+    # (`{bwb}#hoofdstuk=IV` ís de padloze vorm), dus daar valt niets op te lossen.
+    assert index == {}

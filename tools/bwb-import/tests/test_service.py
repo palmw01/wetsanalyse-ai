@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import pytest
+from types import SimpleNamespace
 from fastapi.testclient import TestClient
 
 import app.service as service
@@ -100,19 +101,55 @@ def test_api_key_vereist_indien_geconfigureerd(monkeypatch: pytest.MonkeyPatch) 
         assert resp.status_code == 200
 
 
-def test_run_imports_loopt_door_na_fout(monkeypatch: pytest.MonkeyPatch) -> None:
-    """De batch-runner vangt per wet exceptions en gaat verder."""
+def _nep_fasen(monkeypatch, *, stuk_bij_verzamelen=(), stuk_bij_schrijven=()):
+    """Vervang de twee fasen van `run_imports` door fakes, zonder netwerk of GraphDB."""
     import app.main as main_module
+    from app.collect import Batch
 
     monkeypatch.setattr(main_module, "maak_writer", lambda settings: object())
     monkeypatch.setattr(main_module, "prepare", lambda writer: None)
 
-    def nep_import(bwb_id, settings, writer=None):
-        if bwb_id == "SLECHT":
-            raise RuntimeError("kapot")
-        return _summary(bwb_id)
+    def nep_verzamel(bwb_id, settings):
+        if bwb_id in stuk_bij_verzamelen:
+            raise RuntimeError("kapot bij verzamelen")
+        return SimpleNamespace(
+            wet=SimpleNamespace(bwb_id=bwb_id), wti=None, batch=Batch(),
+            summary=_summary(bwb_id), xml_path=None,
+        )
 
-    monkeypatch.setattr(main_module, "run_import", nep_import)
+    def nep_schrijf(item, writer, index):
+        if item.wet.bwb_id in stuk_bij_schrijven:
+            raise RuntimeError("kapot bij schrijven")
+        return item.summary
+
+    monkeypatch.setattr(main_module, "_verzamel", nep_verzamel)
+    monkeypatch.setattr(main_module, "_schrijf", nep_schrijf)
+    return main_module
+
+
+def test_run_imports_loopt_door_na_fout_bij_schrijven(monkeypatch: pytest.MonkeyPatch) -> None:
+    """De batch-runner vangt per wet exceptions en gaat verder."""
+    main_module = _nep_fasen(monkeypatch, stuk_bij_schrijven={"SLECHT"})
     resultaten = main_module.run_imports(["GOED", "SLECHT", "OOK_GOED"], settings=None)
     assert [r.ok for r in resultaten] == [True, False, True]
-    assert resultaten[1].fout == "kapot"
+    assert resultaten[1].fout == "kapot bij schrijven"
+
+
+def test_run_imports_loopt_door_na_fout_bij_verzamelen(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Sinds de fasesplitsing kan een wet ook in fase 1 sneuvelen (download/XSD/parse).
+
+    Die valt dan uit de structuurindex, en de rest van de batch hoort gewoon door te lopen — met
+    dezelfde per-wet-foutrapportage als voorheen. Zonder deze test zou een fout in de nieuwe fase
+    de hele run kunnen meeslepen zonder dat iets dat opmerkt.
+    """
+    main_module = _nep_fasen(monkeypatch, stuk_bij_verzamelen={"SLECHT"})
+    resultaten = main_module.run_imports(["GOED", "SLECHT", "OOK_GOED"], settings=None)
+    assert [r.ok for r in resultaten] == [True, False, True]
+    assert resultaten[1].fout == "kapot bij verzamelen"
+
+
+def test_run_imports_houdt_de_opgegeven_volgorde_aan(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Fase 2 loopt over de geslaagde verzamelingen; het overzicht volgt de invoervolgorde."""
+    main_module = _nep_fasen(monkeypatch, stuk_bij_verzamelen={"B"})
+    resultaten = main_module.run_imports(["A", "B", "C"], settings=None)
+    assert [r.bwb_id for r in resultaten] == ["A", "B", "C"]

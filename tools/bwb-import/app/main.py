@@ -10,12 +10,15 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+from dataclasses import dataclass
+from pathlib import Path
 
+from app.collect import Batch, collect, structuurindex
 from app.config import Settings
 from app.dekking import Dekking, bron_tekens
 from app.downloader import BwbDownloader
 from app.graphdb_writer import GraphDbWriter
-from app.models import ImportResult, ImportSummary, ToestandRef
+from app.models import ImportResult, ImportSummary, ToestandRef, Wet
 from app.parser import ToestandParser
 from app.rdf_vocab import Vocab
 from app.wti_parser import WtiInfo, WtiParser
@@ -48,6 +51,11 @@ def run_import(
 
     Zonder meegegeven ``writer`` (losse aanroep) worden de waarborgen
     (:func:`prepare`) eerst uitgevoerd; in een batch gebeurt dat één keer.
+
+    De structuurindex bevat hier alleen déze wet — een verwijzing naar een structuurdeel van een
+    ándere regeling blijft dus een open stub. Dat is geen tekortkoming van deze functie maar de
+    grens van één import: die kennis bestaat pas als de doelwet is gezien. `run_imports` haalt alle
+    wetten in één run binnen en heeft die grens niet.
     """
     logger.info("Start import voor %s (doel: GraphDB %s)", bwb_id, settings.graphdb_repository)
 
@@ -55,6 +63,12 @@ def run_import(
         writer = maak_writer(settings)
         prepare(writer)
 
+    item = _verzamel(bwb_id, settings)
+    return _schrijf(item, writer, structuurindex([item.batch]))
+
+
+def _haal_en_parse(bwb_id: str, settings: Settings) -> tuple[Wet, WtiInfo | None, Path]:
+    """Download de laatste toestand, valideer tegen het XSD en parse hem tot een ``Wet``."""
     downloader = BwbDownloader(settings)
     toestand = downloader.latest_toestand(bwb_id)
     xml_path = downloader.download_toestand(bwb_id, toestand)
@@ -70,14 +84,7 @@ def run_import(
     wet.geldig_tot = toestand.geldig_tot
 
     wti = _laad_wti(downloader, toestand) if settings.import_wti else None
-    summary = writer.write_wet(wet, wti=wti)
-    try:
-        summary.bron_tekens = bron_tekens(xml_path)
-    except Exception:  # noqa: BLE001 - een meting mag de import nooit breken
-        logger.warning("Dekkingsmeting overgeslagen voor %s", bwb_id, exc_info=True)
-
-    logger.info("Import voltooid voor %s", bwb_id)
-    return summary
+    return wet, wti, xml_path
 
 
 def _laad_wti(downloader: BwbDownloader, toestand: ToestandRef) -> WtiInfo | None:
@@ -94,23 +101,105 @@ def _laad_wti(downloader: BwbDownloader, toestand: ToestandRef) -> WtiInfo | Non
 
 
 def run_imports(bwb_ids: list[str], settings: Settings) -> list[ImportResult]:
-    """Importeer meerdere regelingen sequentieel met één gedeelde writer.
+    """Importeer meerdere regelingen met één gedeelde writer: eerst verzamelen, dan schrijven.
 
-    Per wet idempotent (named-graph PUT); een falende wet breekt de batch
-    niet – de fout komt in het per-wet resultaat terecht.
+    **Waarom twee fasen en niet één lus.** Een verwijzing duidt haar doel vaak onvolledig aan — de
+    bron schrijft `jci1.3:c:BWBR0005537&titeldeel=5.1` zonder het hoofdstuk, terwijl dat titeldeel
+    sinds de collisie-fix `{bwb}#hoofdstuk=5#titeldeel=5.1` heet. Los je dat op tijdens de import
+    van de *citerende* wet, dan kan het per definitie niet voor een doel in een ándere wet: die is
+    dan nog niet gezien. Zo landden 26 verwijzingen die daarvoor gewoon werkten op een lege node.
+
+    Dat was geen echt informatiegat. Alle wetten komen in één run binnen; de kennis bestond, alleen
+    op het verkeerde moment. Fase 1 verzamelt daarom álle wetten (parsen gebeurt nog steeds één keer
+    per wet, dus de dure XSD-validatie wordt niet verdubbeld), fase 2 bouwt daaruit één
+    structuurindex en schrijft de named graphs. Geheugen is geen bezwaar: alle wettekst samen is
+    ~1,4 MB en de job draait op 2 GiB.
+
+    Dit vervangt de eerdere reparatie die per wet naar een sleutel zocht die op `#afdeling=1`
+    eindigde. Zo'n staartmatch is een gok zodra er meerdere kandidaten zijn; de index beslist dat
+    één keer, expliciet, en laat een écht ambigue verwijzing bewust onopgelost.
+
+    Per wet idempotent (named-graph PUT); een falende wet breekt de batch niet – de fout komt in het
+    per-wet resultaat terecht, in welke fase hij ook optreedt.
     """
     writer = maak_writer(settings)
     prepare(writer)
 
-    resultaten: list[ImportResult] = []
+    # Fase 1 – verzamelen. Een wet die hier sneuvelt (download, XSD, parse) ontbreekt simpelweg in
+    # de index; de rest van de batch gaat gewoon door.
+    verzameld: list[_Verzameld] = []
+    mislukt: dict[str, str] = {}
     for bwb_id in bwb_ids:
         try:
-            summary = run_import(bwb_id, settings, writer=writer)
-            resultaten.append(ImportResult(bwb_id=bwb_id, ok=True, overzicht=summary))
+            verzameld.append(_verzamel(bwb_id, settings))
         except Exception as exc:  # noqa: BLE001 - batch loopt door, fout per wet
-            logger.error("Import mislukt voor %s: %s", bwb_id, exc)
-            resultaten.append(ImportResult(bwb_id=bwb_id, ok=False, fout=str(exc)))
+            logger.error("Verzamelen mislukt voor %s: %s", bwb_id, exc)
+            mislukt[bwb_id] = str(exc)
+
+    index = structuurindex(v.batch for v in verzameld)
+    logger.info(
+        "Structuurindex: %d ondubbelzinnige padloze sleutels over %d wetten",
+        len(index), len(verzameld),
+    )
+
+    # Fase 2 – schrijven, met de index van álle wetten bij de hand.
+    geschreven: dict[str, ImportSummary] = {}
+    for item in verzameld:
+        try:
+            geschreven[item.wet.bwb_id] = _schrijf(item, writer, index)
+        except Exception as exc:  # noqa: BLE001 - batch loopt door, fout per wet
+            logger.error("Schrijven mislukt voor %s: %s", item.wet.bwb_id, exc)
+            mislukt[item.wet.bwb_id] = str(exc)
+
+    # De volgorde van `bwb_ids` aanhouden: het overzicht leest zoals de gebruiker het opgaf.
+    resultaten: list[ImportResult] = []
+    for bwb_id in bwb_ids:
+        if bwb_id in geschreven:
+            resultaten.append(ImportResult(bwb_id=bwb_id, ok=True, overzicht=geschreven[bwb_id]))
+        else:
+            resultaten.append(
+                ImportResult(bwb_id=bwb_id, ok=False, fout=mislukt.get(bwb_id, "onbekende fout"))
+            )
     return resultaten
+
+
+@dataclass(frozen=True)
+class _Verzameld:
+    """Wat fase 1 per wet oplevert en fase 2 nodig heeft."""
+
+    wet: Wet
+    wti: WtiInfo | None
+    batch: Batch
+    summary: ImportSummary
+    xml_path: Path
+
+
+def _verzamel(bwb_id: str, settings: Settings) -> _Verzameld:
+    """Downloaden, valideren, parsen en verzamelen – alles behalve schrijven."""
+    logger.info("Verzamelen voor %s", bwb_id)
+    wet, wti, xml_path = _haal_en_parse(bwb_id, settings)
+    batch, summary = collect(wet, tekstuele_refs=settings.detect_tekstuele_refs)
+    return _Verzameld(wet=wet, wti=wti, batch=batch, summary=summary, xml_path=xml_path)
+
+
+def _schrijf(item: _Verzameld, writer: GraphDbWriter, index: dict[str, str]) -> ImportSummary:
+    """Schrijf één verzamelde wet weg, met de structuurindex van de hele batch."""
+    summary = writer.write_wet(
+        item.wet,
+        wti=item.wti,
+        verzameld=(item.batch, item.summary),
+        structuurindex=index,
+    )
+    _meet_dekking(summary, item.xml_path, item.wet.bwb_id)
+    logger.info("Import voltooid voor %s", item.wet.bwb_id)
+    return summary
+
+
+def _meet_dekking(summary: ImportSummary, xml_path: Path, bwb_id: str) -> None:
+    try:
+        summary.bron_tekens = bron_tekens(xml_path)
+    except Exception:  # noqa: BLE001 - een meting mag de import nooit breken
+        logger.warning("Dekkingsmeting overgeslagen voor %s", bwb_id, exc_info=True)
 
 
 def _print_overzicht(summary: ImportSummary) -> None:

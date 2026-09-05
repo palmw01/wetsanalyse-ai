@@ -29,13 +29,24 @@ def nep_import(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(main_module, "prepare", lambda writer: None)
 
     def stel_in(dekkingen: dict[str, tuple[int, int]], stuk: set[str] | None = None) -> None:
-        def _import(bwb_id, settings, writer=None):
+        # De naad zit sinds de fasesplitsing op `_verzamel`/`_schrijf` in plaats van op
+        # `run_import`: `run_imports` verzamelt eerst álle wetten en schrijft daarna pas, zodat een
+        # verwijzing naar een structuurdeel van een andere wet in dezelfde run oplosbaar is.
+        from types import SimpleNamespace
+
+        from app.collect import Batch
+
+        def _verzamel(bwb_id, settings):
             if stuk and bwb_id in stuk:
                 raise RuntimeError("kapot")
             bron, graaf = dekkingen[bwb_id]
-            return _summary(bwb_id, bron=bron, graaf=graaf)
+            return SimpleNamespace(
+                wet=SimpleNamespace(bwb_id=bwb_id), wti=None, batch=Batch(),
+                summary=_summary(bwb_id, bron=bron, graaf=graaf), xml_path=None,
+            )
 
-        monkeypatch.setattr(main_module, "run_import", _import)
+        monkeypatch.setattr(main_module, "_verzamel", _verzamel)
+        monkeypatch.setattr(main_module, "_schrijf", lambda item, writer, index: item.summary)
 
     return stel_in
 
