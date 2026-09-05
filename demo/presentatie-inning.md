@@ -365,7 +365,31 @@ na vóór je de badges wijzigt.
 
 ---
 
-#### Dia 12 — Wat Lex mag opvragen
+#### Dia 12 — Waar Lex zijn methode vandaan haalt
+
+**Koptekst:** Waar Lex zijn methode vandaan haalt
+
+**Visueel:** een horizontale stroom in inline SVG, in de stijl van de brongetrouwheids- en de
+architectuurdia: *De methode als tekst* → *Eén script* → *De instructie aan het model*. Daaronder
+de vier onderdelen van die tekst als tegels (de methode voor activiteit 2 · de dertien klassen ·
+fragmentgrenzen · wanneer je een verwijzing volgt), en een lintblauwe band met de bewaking.
+
+Kernzin: **"De methode is geen code. Een jurist bewerkt tekst; de machine volgt."**
+
+Dit is het antwoord op "hoe weet dat ding wat een Voorwaarde is": niet uit algemene kennis van het
+taalmodel, maar uit een methodebeschrijving die in de repository staat. Wie het gedrag van de
+annotator wil bijsturen bewerkt die tekst; er komt geen programmeur aan te pas. De bewaking is een
+drift-test die faalt zodra de gegenereerde code met de hand is bijgewerkt of de methodetekst is
+gewijzigd zonder opnieuw te genereren.
+
+Elke bewering hier komt uit de code en moet daar opnieuw worden nagekeken vóór je hem gebruikt:
+`tools/graph-qa/scripts/genereer_jas_klassen.py` (de generator), `tests/test_methode_drift.py`
+(de bewaking) en `agent/annotatie_prompt.py` (hoeveel methodetekst er per annotatie meegaat).
+Noem geen padnamen op de dia — die horen in de speaker notes.
+
+---
+
+#### Dia 13 — Wat Lex mag opvragen
 
 **Koptekst:** Wat Lex mag opvragen
 
@@ -384,7 +408,7 @@ Neem de namen en aantallen letterlijk over uit `tools/graph-qa/agent/tools/__ini
 
 ---
 
-#### Dia 13 — Waarmee is dit gebouwd
+#### Dia 14 — Waarmee is dit gebouwd
 
 **Koptekst:** Waarmee is dit gebouwd
 
@@ -407,7 +431,7 @@ Leid de onderdelen af uit de `pyproject.toml`/`package.json` van elk onderdeel e
 
 ---
 
-#### Dia 14 — Waar we nu staan
+#### Dia 15 — Waar we nu staan
 
 **Koptekst:** Wat werkt al — wat komt er aan
 
@@ -429,7 +453,34 @@ Leid de onderdelen af uit de `pyproject.toml`/`package.json` van elk onderdeel e
 
 ---
 
-#### Dia 15 — Waar dit heen kan
+#### Dia 16 — Elke beoordeling scherpt de methode
+
+**Koptekst:** Elke beoordeling scherpt de methode
+
+**Visueel:** vijf genummerde stappen met een wie-badge (dezelfde vorm als *Hoe werkt Lex van
+binnen*): jurist beslist → vastgelegd met reden → patroon zichtbaar → methodetekst bijstellen →
+opnieuw meten. Daaronder de gemeten stand in vier cijfers, op papier in plaats van in een
+lintblauwe band — de potentiedia erna sluit al met een gevulde band af.
+
+Kernzin: **"Lex werkt op het niveau dat de methodetekst hem geeft — en dat niveau is bij te
+stellen."**
+
+Waar dit over gaat: elke correctie van een jurist is meetdata, en die wordt al gecategoriseerd
+vastgelegd (verkeerde klasse, bron gemist, interpretatie — de server leidt de categorie af uit het
+verschil tussen voorstel en eindresultaat). De statistiek telt daarop de verschuivingen per klasse
+en per modelversie. Zeg er eerlijk bij dat het scherm dat die tellingen toont er nog niet is.
+
+**Twee dingen die je niet mag laten versloffen.** Er wordt niet bijgetraind: wat beter wordt is de
+methodetekst, en dat is mensenwerk. En de ankercijfers zijn een trendmeting, geen rapportcijfer —
+zet de nuance ("een ankerset, geen examen") op de dia zelf, niet alleen in de notes.
+
+Bronnen om de beweringen tegen te leggen: `api/app/annotatie_statistiek.py`,
+`api/app/annotatie_contracts.py` (de zes redenen), `api/app/routers/annotatie.py::_reden_uit_diff`
+en het rapport van de laatste eval-run. Meet de cijfers opnieuw vóór elke uitlevering.
+
+---
+
+#### Dia 17 — Waar dit heen kan
 
 **Koptekst:** Waar dit heen kan
 
@@ -457,7 +508,7 @@ worden. Dezelfde regel geldt voor de statusdia: "nog niet" in plaats van "op de 
 
 ---
 
-#### Dia 16 — Over naar de demo
+#### Dia 18 — Over naar de demo
 
 **Koptekst:** Laten we het zien
 
@@ -524,8 +575,8 @@ provider, Critic-rondes).
 ### Verhaallijn en taalgebruik
 
 De dia's lopen in zeven blokken in elkaar over: *waarom (2) → wat is het (3-4) → wat doet Lex
-ermee (5-7) → waarom je het kunt vertrouwen (8) → hoe het werkt (9-13) → waar we staan (14-15) →
-demo (16)*. Elke overgang moet te benoemen zijn; waar de sprong groot is staat een brugzin in de
+ermee (5-7) → waarom je het kunt vertrouwen (8) → hoe het werkt (9-14) → waar we staan en hoe het
+beter wordt (15-17) → demo (18)*. Elke overgang moet te benoemen zijn; waar de sprong groot is staat een brugzin in de
 `.kernzin`-vorm. Vertel hetzelfde niet twee keer: de casus op dia 5-7 lát zien wat een abstracte
 "van vraag tot annotatie"-dia zou samenvatten, dus die dia bestaat niet.
 

@@ -725,6 +725,22 @@
       line-height: 1.45;
     }
 
+    /* Gemeten stand op de terugkoppel-dia. Zelfde vorm als .groei, maar op papier:
+       de potentiedia erna sluit af met de lintblauwe .groei-band, en twee gevulde
+       banden achter elkaar vechten om dezelfde aandacht. */
+    .meting {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 0.5em 0.9em;
+      margin-top: 0.5em;
+      border-radius: var(--r-kaart);
+      border: 1.5px solid var(--line);
+      background: var(--paper);
+      padding: 0.65em 0.8em;
+    }
+    .meting-getal { font-size: 0.78em; font-weight: 600; color: var(--lint); line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .meting-wat { font-size: 0.4em; color: var(--muted); display: block; margin-top: 0.2em; line-height: 1.4; }
+
     .groei {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -1352,6 +1368,70 @@
         <code>tools=[]</code>. Het model kan dus niet zelf gaan rondkijken in de graaf.
       </aside>
     </section>
+      <section>
+      <h2>Waar Lex zijn methode vandaan haalt</h2>
+      <svg class="beeld" viewBox="0 0 960 152" xmlns="http://www.w3.org/2000/svg"
+           aria-label="De methode staat als tekst in de repository; één script genereert daaruit de instructie die het model bij elke annotatie krijgt">
+        <defs>
+          <marker id="m-pijl" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+            <polygon points="0 0, 8 4, 0 8" fill="#154273"/>
+          </marker>
+        </defs>
+
+        <rect x="8" y="26" width="300" height="94" rx="12" fill="#e8eff7" stroke="#154273" stroke-width="1.5"/>
+        <text x="158" y="56" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="13.5" font-weight="600" fill="#154273">De methode als tekst</text>
+        <text x="158" y="76" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10.5" fill="#4a5a6e">gewone documenten, geen programmacode</text>
+        <text x="158" y="94" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10.5" fill="#4a5a6e">een jurist bewerkt ze</text>
+
+        <path d="M308 73 L356 73" stroke="#154273" stroke-width="2" fill="none" marker-end="url(#m-pijl)"/>
+
+        <rect x="358" y="36" width="210" height="74" rx="12" fill="#154273"/>
+        <text x="463" y="66" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="13" font-weight="600" fill="#ffffff">Eén script</text>
+        <text x="463" y="84" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#b8d0e8">zet de tekst om in code</text>
+        <text x="463" y="99" text-anchor="middle" font-family="Fira Mono,monospace" font-size="9" fill="#8fb4d8">geen tussenkomst, geen AI</text>
+
+        <path d="M568 73 L616 73" stroke="#154273" stroke-width="2" fill="none" marker-end="url(#m-pijl)"/>
+
+        <rect x="618" y="26" width="334" height="94" rx="12" fill="#ffffff" stroke="#154273" stroke-width="1.8"/>
+        <text x="785" y="56" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="13.5" font-weight="600" fill="#154273">De instructie aan het model</text>
+        <text x="785" y="76" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10.5" fill="#4a5a6e">bij elke annotatie opnieuw meegegeven</text>
+        <text x="785" y="94" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10.5" fill="#4a5a6e">ruim 14.000 tekens methodetekst</text>
+      </svg>
+
+      <div class="vereisten-kop" style="margin-top:0.3em;">Wat er in die tekst staat</div>
+      <div class="laag-tegels" style="margin-top:0.35em;">
+        <span class="tegel">De methode, activiteit 2: markeren en classificeren</span>
+        <span class="tegel">De dertien klassen, elk met omschrijving en herkenningsvraag</span>
+        <span class="tegel">Fragmentgrenzen: waar begint en eindigt een markering</span>
+        <span class="tegel">Wanneer je een verwijzing volgt</span>
+      </div>
+
+      <div class="antwoordband">
+        <span class="antwoord-kop">Dit kan niet uit de pas lopen</span>
+        <div class="antwoord-lijst" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+          <div>Wijzigt de methodetekst, dan moet de code opnieuw worden afgeleid</div>
+          <div>Gebeurt dat niet, dan faalt de testsuite — en er gaat niets naar productie</div>
+        </div>
+      </div>
+
+      <p class="kernzin">De methode is geen code. Een jurist bewerkt tekst; de machine volgt.</p>
+      <aside class="notes">
+        Dit is het antwoord op "hoe weet dat ding wat een Voorwaarde is". Niet uit algemene kennis
+        van het taalmodel, maar uit een methodebeschrijving die in de repository staat en die
+        herleidbaar is tot de JAS-bron van BZK. Wie het gedrag van de annotator wil bijsturen —
+        een klasse scherper omschrijven, een herkenningsvraag toevoegen — bewerkt die tekst; er
+        komt geen programmeur aan te pas.
+
+        De bewaking is een drift-test in de testsuite: hij faalt zodra iemand de gegenereerde code
+        met de hand bijwerkt óf de methodetekst wijzigt zonder opnieuw te genereren. Zo kan de
+        methode op papier nooit iets anders zeggen dan wat het model te zien krijgt.
+
+        Twee dingen die je alleen hoeft te zeggen als ernaar gevraagd wordt. De methodetekst reist
+        niet als bestand mee in de draaiende dienst: het omzetten gebeurt tijdens het bouwen.
+        En hoeveel van die tekst in de instructie belandt is een redactionele keuze — er is een
+        verkorte variant om te kunnen meten of de volle tekst daadwerkelijk beter werkt.
+      </aside>
+      </section>
 
 
     <!-- ──────────────────────────────────────────────
@@ -1539,6 +1619,85 @@
         niet via wetten.overheid.nl beschikbaar zijn — de officiële wet- en regelgeving is al in de graaf.
       </aside>
     </section>
+      <section>
+      <h2>Elke beoordeling scherpt de methode</h2>
+      <div class="keten">
+        <div class="keten-stap">
+          <span class="keten-nr">1</span>
+          <span class="keten-naam">Jurist beslist</span>
+          <span class="badge-jurist">Jurist</span>
+          <span class="keten-omsch">Akkoord, een alternatief kiezen of verwerpen — in de werkplek.</span>
+        </div>
+        <div class="keten-stap">
+          <span class="keten-nr">2</span>
+          <span class="keten-naam">Vastgelegd met reden</span>
+          <span class="badge-code">Code</span>
+          <span class="keten-omsch">De reden volgt uit wat er feitelijk veranderde: verkeerde klasse, bron gemist, interpretatie.</span>
+        </div>
+        <div class="keten-stap">
+          <span class="keten-nr">3</span>
+          <span class="keten-naam">Patroon zichtbaar</span>
+          <span class="badge-code">Code</span>
+          <span class="keten-omsch">Per klasse en per versie geteld, inclusief de verschuivingen: “Voorwaarde&nbsp;→&nbsp;Rechtsfeit, 7×”.</span>
+        </div>
+        <div class="keten-stap">
+          <span class="keten-nr">4</span>
+          <span class="keten-naam">Methodetekst bijstellen</span>
+          <span class="badge-jurist">Jurist</span>
+          <span class="keten-omsch">Een omschrijving of herkenningsvraag scherper; het script maakt er de instructie van.</span>
+        </div>
+        <div class="keten-stap">
+          <span class="keten-nr">5</span>
+          <span class="keten-naam">Opnieuw meten</span>
+          <span class="badge-code">Meting</span>
+          <span class="keten-omsch">Dezelfde tien bepalingen, drie keer gedraaid: werd het er beter van?</span>
+        </div>
+      </div>
+      <p style="font-size:0.4em; color:var(--faint); font-style:italic; margin-top:0.45em;">
+        Vastleggen en tellen draaien; een scherm dat die tellingen toont is er nog niet.
+      </p>
+
+      <div class="meting">
+        <div>
+          <span class="meting-getal">100%</span>
+          <span class="meting-wat">van de voorgestelde fragmenten staat letterlijk in de wet</span>
+        </div>
+        <div>
+          <span class="meting-getal">100%</span>
+          <span class="meting-wat">draagt een geldige JAS-klasse — nul verworpen fragmenten</span>
+        </div>
+        <div>
+          <span class="meting-getal">55–64%</span>
+          <span class="meting-wat">van de vastgelegde ankers wordt teruggevonden, over drie runs</span>
+        </div>
+        <div>
+          <span class="meting-getal">10</span>
+          <span class="meting-wat">bepalingen in de vaste meetset — een ankerset, geen examen: de
+            ankers zijn wat wij vastlegden, niet alles wat juist zou zijn</span>
+        </div>
+      </div>
+
+      <p class="kernzin">Lex werkt op het niveau dat de methodetekst hem geeft — en dat niveau is bij te stellen.</p>
+      <aside class="notes">
+        Hier zit de waarde van reviewen die je niet meteen ziet: elke correctie is meetdata. Niet
+        als vrije tekst maar gecategoriseerd, en de categorie leidt de server zelf af uit het
+        verschil tussen voorstel en eindresultaat — dus die is toetsbaar en niet aangenomen.
+
+        Belangrijke nuance als het gesprek die kant op gaat: het model leert hier niets uit
+        zichzelf. Er wordt niet bijgetraind. Wat beter wordt is de methodetekst die het model
+        aanstuurt, en dat is mensenwerk — een vakinhoudelijke beslissing, geen technische.
+
+        Over de cijfers: dit is een ankerset, geen examenmodel. De 55–64% zegt hoeveel van de door
+        ons vastgelegde ankers de agent terugvond, gemeten over acht van de tien bepalingen (twee
+        dragen geen ankers). Het getal is bedoeld om versies met elkaar te vergelijken, niet als
+        rapportcijfer. De 100%-en zijn wél harde garanties: die worden in code afgedwongen.
+
+        Wat je hier mondeling bij kunt zeggen: hoe meer bepalingen er beoordeeld worden, hoe
+        scherper de methodetekst kan worden — en dat is precies waar vakinhoudelijke mensen het
+        verschil maken. Naast de review zelf zit er ook een feedbackknop in de webapp voor
+        opmerkingen die niet aan één markering hangen.
+      </aside>
+      </section>
 
 
     <!-- ──────────────────────────────────────────────
