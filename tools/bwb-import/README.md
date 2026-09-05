@@ -129,11 +129,23 @@ waarde niet als segmentgrens leest.
   dan één ouder, met hun titels en artikelen op één hoop. Bij de Invorderingswet was `afdeling:1`
   tegelijk *Aansprakelijkheid* (hoofdstuk VI) en *Verhaalsrechten* (hoofdstuk IV).
 
-  Een verwijzing schrijft dat pad vaak niet mee (ongeveer de helft van de afdelingsverwijzingen);
-  een resolve-pas in `collect.py` koppelt die alsnog aan de juiste node zolang het nummer binnen de
-  regeling uniek is. Is het dat niet, dan blijft de verwijzing een open stub — bij een écht ambigue
-  verwijzing is dat eerlijker dan een gok. Artikel-, lid- en onderdeelsleutels zijn ongemoeid: die
-  zijn binnen een regeling al uniek, en daar hangen de annotaties aan.
+  Een verwijzing schrijft dat pad vaak niet mee (ongeveer de helft van de afdelingsverwijzingen).
+  Daarom **verzamelt de batch-import eerst alle wetten en schrijft hij pas daarna**
+  (`run_imports`): uit alle verzamelde wetten samen komt één `structuurindex` — padloze sleutel →
+  volledige ref_key, en alleen als dat nummer binnen die regeling ondubbelzinnig is — waarmee
+  `koppel_structuurverwijzingen` de doelen met een exacte lookup rechtzet.
+
+  Die volgorde is het hele punt. Los je een verwijzing op tijdens de import van de *citerende* wet,
+  dan kan dat per definitie niet voor een doel in een ándere wet: die is dan nog niet gezien. Zo
+  landden 26 verwijzingen die daarvóór gewoon werkten op een lege node. De kennis bestond wél — alle
+  wetten komen in één run binnen — alleen op het verkeerde moment.
+
+  Is het nummer binnen de doelwet niet ondubbelzinnig, dan blijft de verwijzing een open stub; bij
+  een écht ambigue verwijzing is dat eerlijker dan een gok. Hetzelfde geldt voor een doel in een wet
+  die niet in de run zit: open-world, de IRI krijgt inhoud zodra die wet volgt.
+
+  Artikel-, lid- en onderdeelsleutels zijn ongemoeid: die zijn binnen een regeling al uniek, en daar
+  hangen de annotaties aan.
 - **Het fallback-label van een verwijsdoel staat op `bwb:doelLabel`**, niet op `rdfs:label`. Elke
   wet zit in een eigen named graph, dus een fallback op `rdfs:label` komt náást het échte label te
   staan zodra de doelwet óók wordt geïmporteerd — en dan verdubbelt elke query die een label

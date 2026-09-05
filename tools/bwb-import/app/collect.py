@@ -15,6 +15,7 @@ dichtstbijzijnde voorouder mét ref_key (onderdeel -> lid -> artikel).
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 
 from app.models import (
@@ -123,53 +124,6 @@ class _Collector:
         self._divisies(wet.divisies, wet.bwb_id, "Regeling")
         self._bijlagen(wet.bijlagen, wet.bwb_id, "Regeling")
         self._ondertekenaars(wet.ondertekenaars, wet.bwb_id)
-        self._koppel_structuurverwijzingen()
-
-    # Structuursoorten waarvan de node-sleutel het volledige pad draagt maar een verwijzing vaak
-    # niet. Artikel/lid/onderdeel staan er niet bij: die sleutels zijn aan beide kanten gelijk.
-    _STRUCTUURSOORTEN = ("hoofdstuk", "titeldeel", "afdeling", "paragraaf")
-
-    def _koppel_structuurverwijzingen(self) -> None:
-        """Laat een verwijzing naar "afdeling 1" alsnog op de juiste node uitkomen.
-
-        Sinds de node-sleutel het volledige pad draagt (`jci_node_ref_key`) is
-        `{bwb}#hoofdstuk=VI#afdeling=1` de identiteit. Draagt de jci van de verwijzing dat pad ook,
-        dan matcht ze rechtstreeks — dat is de hoofdweg, en deze pas komt er niet aan te pas.
-
-        Deze pas is de TERUGVAL voor de verwijzingen die het pad niet meeschrijven; gemeten in de
-        graaf van 4 sep 2026 deed ongeveer de helft van de 80 afdelingsverwijzingen dat niet.
-
-        Zonder deze pas zouden die verwijzingen na de fix allemaal naar een lege stub wijzen — een
-        collisie ingeruild voor een breuk, wat geen verbetering is. Daarom: bestaat de sleutel niet
-        als node in deze wet, zoek dan de node waarvan de sleutel op hetzelfde `#soort=waarde`
-        eindigt. Precies één treffer → koppelen. Nul of meer dan één → laten staan.
-
-        **Meer dan één treffer is juist het geval waar het misging** (afdeling 1 in twee
-        hoofdstukken). Daar is de verwijzing zelf ambigu, en dan is een open stub eerlijker dan een
-        gok: de graaf is open-world, een doel zonder inhoud is een bekend en zichtbaar gat. Een
-        verkeerde koppeling is dat niet.
-
-        Alleen binnen de eigen wet: een verwijzing naar een andere regeling kan hier niet worden
-        opgelost (die zit in een eigen named graph) en blijft een stub, zoals altijd.
-        """
-        sleutels = [
-            props["ref_key"]
-            for entiteit in ("Hoofdstuk", "Titeldeel", "Afdeling", "Paragraaf")
-            for props in self.batch.nodes.get(entiteit, [])
-            if props.get("ref_key")
-        ]
-        bekend = set(sleutels)
-        for rij in self.batch.verwijzingen:
-            soort = rij.get("doel_soort")
-            to_key = rij.get("to")
-            if soort not in self._STRUCTUURSOORTEN or not to_key or to_key in bekend:
-                continue
-            if rij.get("to_bwb") != self._bwb:
-                continue
-            staart = to_key[len(self._bwb):]  # "#afdeling=1"
-            kandidaten = [k for k in sleutels if k.endswith(staart)]
-            if len(kandidaten) == 1:
-                rij["to"] = kandidaten[0]
 
     def _structuur(
         self,
@@ -517,6 +471,67 @@ def _doel_nummer(to_key: str, doel_soort: str | None, to_art: str | None) -> str
     if doel_soort in STRUCT_LABEL:
         return to_key.rpartition("=")[2]
     return None
+
+
+# Structuursoorten waarvan de NODE-sleutel het volledige pad draagt terwijl een verwijzing vaak
+# alleen het laatste segment schrijft. Artikel/lid/onderdeel staan er niet bij: die sleutels zijn
+# aan beide kanten gelijk.
+_STRUCTUURSOORTEN = ("hoofdstuk", "titeldeel", "afdeling", "paragraaf")
+
+_STRUCTUURENTITEITEN = ("Hoofdstuk", "Titeldeel", "Afdeling", "Paragraaf")
+
+
+def structuurindex(batches: Iterable[Batch]) -> dict[str, str]:
+    """Padloze sleutel -> volledige ref_key, over ALLE wetten van deze import heen.
+
+    Waarom dit over de hele batch gaat en niet per wet. Een verwijzing duidt haar doel vaak
+    onvolledig aan: de bron schrijft `jci1.3:c:BWBR0005537&titeldeel=5.1`, zonder het hoofdstuk,
+    terwijl de node sinds de collisie-fix `{bwb}#hoofdstuk=5#titeldeel=5.1` heet. Binnen de eigen
+    wet viel dat nog te repareren, maar juist **cross-wet** niet: importeer je de Invorderingswet,
+    dan zit de structuur van de Awb niet in díe batch.
+
+    Dat was geen echte onbekende — `run_imports` haalt alle wetten in één run binnen. De informatie
+    bestond dus wel, alleen op het verkeerde moment: we schreven de citerende wet weg vóórdat de
+    doelwet was gezien. Verzamelen vóór schrijven haalt die volgorde-afhankelijkheid weg.
+
+    **Alleen ondubbelzinnige nummers komen erin.** Heeft een wet twee keer "afdeling 1" (het geval
+    dat de hele collisie veroorzaakte), dan is de onvolledige verwijzing zelf ambigu en hoort ze
+    onopgelost te blijven: een open stub is een zichtbaar gat, een gok is schijnzekerheid.
+    """
+    kandidaten: dict[str, set[str]] = {}
+    for batch in batches:
+        for entiteit in _STRUCTUURENTITEITEN:
+            for props in batch.nodes.get(entiteit, []):
+                ref_key, nummer, soort = props.get("ref_key"), props.get("nummer"), props.get("soort")
+                if not ref_key or not nummer or not soort:
+                    continue
+                bwb, _, _rest = ref_key.partition("#")
+                padloos = f"{bwb}#{soort}={nummer}"
+                if padloos == ref_key:
+                    continue  # sleutel draagt al geen pad; er valt niets op te lossen
+                kandidaten.setdefault(padloos, set()).add(ref_key)
+    return {k: next(iter(v)) for k, v in kandidaten.items() if len(v) == 1}
+
+
+def koppel_structuurverwijzingen(batch: Batch, index: dict[str, str]) -> int:
+    """Laat onvolledig aangeduide structuurverwijzingen op de juiste node uitkomen.
+
+    Een **exacte lookup**, geen staartmatch: de index bepaalt of het nummer ondubbelzinnig is, en
+    doet dat één keer voor alle wetten samen. De vorige opzet zocht per wet naar een sleutel die op
+    `#afdeling=1` eindigde — dat werkte binnen één wet en principieel niet daarbuiten.
+
+    Geeft terug hoeveel verwijzingen zijn gekoppeld (voor de logregel).
+    """
+    gekoppeld = 0
+    for rij in batch.verwijzingen:
+        to_key = rij.get("to")
+        if rij.get("doel_soort") not in _STRUCTUURSOORTEN or not to_key:
+            continue
+        volledig = index.get(to_key)
+        if volledig and volledig != to_key:
+            rij["to"] = volledig
+            gekoppeld += 1
+    return gekoppeld
 
 
 def collect(wet: Wet, *, tekstuele_refs: bool = True) -> tuple[Batch, ImportSummary]:

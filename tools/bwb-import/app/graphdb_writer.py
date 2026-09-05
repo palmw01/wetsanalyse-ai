@@ -18,7 +18,12 @@ import logging
 import requests
 from rdflib import OWL, RDF, RDFS, Graph, Literal, Namespace, URIRef
 
-from app.collect import collect
+from app.collect import (
+    Batch,
+    collect,
+    koppel_structuurverwijzingen,
+    structuurindex as structuurindex_van,
+)
 from app.models import ImportSummary, Wet
 from app.ontology import build_ontology
 from app.rdf_vocab import Vocab
@@ -244,9 +249,28 @@ class GraphDbWriter:
         logger.info("GraphDB-repository %s aangemaakt", self._repo)
 
     # ------------------------------------------------------------------ schrijven
-    def build_graph(self, wet: Wet, wti: WtiInfo | None = None) -> tuple[Graph, ImportSummary]:
-        """Bouw de RDF-graaf voor één wet uit de gedeelde ``Batch`` (geen HTTP)."""
-        batch, summary = collect(wet, tekstuele_refs=self._tekstuele_refs)
+    def build_graph(
+        self,
+        wet: Wet,
+        wti: WtiInfo | None = None,
+        *,
+        verzameld: tuple[Batch, ImportSummary] | None = None,
+        structuurindex: dict[str, str] | None = None,
+    ) -> tuple[Graph, ImportSummary]:
+        """Bouw de RDF-graaf voor één wet uit de gedeelde ``Batch`` (geen HTTP).
+
+        `verzameld` laat de aanroeper een al verzamelde batch meegeven. Dat is wat de batch-import
+        doet: die verzamelt éérst alle wetten, bouwt daaruit de `structuurindex` en schrijft pas
+        daarna — zodat een verwijzing naar een structuurdeel van een ándere wet in dezelfde run
+        alsnog op de juiste node uitkomt. Zonder die volgorde is dat onmogelijk, want tijdens de
+        import van de citerende wet is de doelwet nog niet gezien.
+
+        Zonder `verzameld` verzamelt hij zelf en werkt alles als voorheen (één wet, losse aanroep).
+        """
+        batch, summary = verzameld if verzameld is not None else collect(
+            wet, tekstuele_refs=self._tekstuele_refs
+        )
+        koppel_structuurverwijzingen(batch, structuurindex or structuurindex_van([batch]))
         v = self._vocab
         g = Graph()
         g.bind("bwb", v.ns)
@@ -525,9 +549,18 @@ class GraphDbWriter:
         g.add((iri, RDFS.label, Literal(label, lang="nl")))
         return iri
 
-    def write_wet(self, wet: Wet, wti: WtiInfo | None = None) -> ImportSummary:
+    def write_wet(
+        self,
+        wet: Wet,
+        wti: WtiInfo | None = None,
+        *,
+        verzameld: tuple[Batch, ImportSummary] | None = None,
+        structuurindex: dict[str, str] | None = None,
+    ) -> ImportSummary:
         """Bouw de graaf en vervang de named graph van deze wet in GraphDB."""
-        graph, summary = self.build_graph(wet, wti=wti)
+        graph, summary = self.build_graph(
+            wet, wti=wti, verzameld=verzameld, structuurindex=structuurindex
+        )
         # Gratis meting: de graaf staat hier toch al in het geheugen. Zie `app/dekking.py`.
         summary.graaf_tekens = sum(len(str(o)) for o in graph.objects(None, self._vocab.ns.tekst))
         self._put_graph(self._vocab.graph(wet.bwb_id), graph)
