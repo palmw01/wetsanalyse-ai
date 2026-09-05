@@ -681,35 +681,32 @@
        0.9em van 0.42em geeft de bedoelde ~0.38em. Zelfde valkuil als bij .laag-waarvoor. */
     .pot-nu { font-size: 0.9em; color: var(--faint); display: block; margin-top: 0.4em; font-style: italic; }
 
-    /* Probleemdia: drie knelpunten → één gevolg → de lintblauwe band met het antwoord.
-       Dezelfde visuele grammatica als .pot-kaart/.groei op de potentiedia, zodat
-       "probleem → antwoord" twee keer hetzelfde ritme heeft. */
-    .knelpunten {
+    /* Openingsdia: wat de analyse vraagt → de lintblauwe band met waarbij Lex ondersteunt.
+       Dezelfde visuele grammatica als .pot-kaart/.groei op de potentiedia.
+       Bewust géén rode accenten: dit zijn eigenschappen van het werk, geen tekortkomingen. */
+    .vereisten {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
       gap: 0.5em;
-      margin-top: 0.55em;
+      margin-top: 0.6em;
     }
-    .knel {
+    .eis {
       border-radius: var(--r-kaart);
       border: 1.5px solid var(--line);
-      border-top: 3px solid #c4442d;
+      border-top: 3px solid var(--lint);
       background: var(--paper);
       padding: 0.55em 0.7em;
     }
-    .knel-kop { font-size: 0.48em; font-weight: 600; color: var(--ink); display: block; }
-    .knel-tekst { font-size: 0.4em; color: var(--muted); line-height: 1.45; display: block; margin-top: 0.2em; }
-    .gevolg {
-      margin-top: 0.5em;
-      border-radius: var(--r-kaart);
-      border: 1.5px solid var(--line);
-      background: #faf3f1;
-      padding: 0.55em 0.75em;
+    .eis-kop { font-size: 0.48em; font-weight: 600; color: var(--ink); display: block; }
+    .eis-tekst { font-size: 0.4em; color: var(--muted); line-height: 1.45; display: block; margin-top: 0.2em; }
+    .vereisten-kop {
       font-size: 0.44em;
-      color: var(--muted);
-      line-height: 1.5;
+      font-weight: 600;
+      color: var(--faint);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-top: 0.7em;
     }
-    .gevolg strong { color: var(--ink); font-weight: 600; }
     .antwoordband {
       margin-top: 0.55em;
       border-radius: var(--r-kaart);
@@ -791,50 +788,45 @@
     <section>
       <h2>Uitvoering begint bij de wet</h2>
       <p class="kernzin" style="margin-top:0.2em;">Elke invorderingsbeslissing steunt op de wet —
-        en bij elke wetswijziging moet elke geraakte bepaling opnieuw worden gelezen.</p>
+        en de wet staat niet stil.</p>
 
-      <div class="knelpunten">
-        <div class="knel">
-          <span class="knel-kop">Vraagt specialistische kennis</span>
-          <span class="knel-tekst">Met de hand annoteren volgens het Juridisch Analyseschema
-            kunnen maar weinig mensen.</span>
+      <div class="vereisten-kop">Wat de analyse vraagt</div>
+      <div class="vereisten">
+        <div class="eis">
+          <span class="eis-kop">Veel tekst, continu in beweging</span>
+          <span class="eis-tekst">De wet verandert, en elke wijziging raakt bepalingen die al
+            geanalyseerd zijn.</span>
         </div>
-        <div class="knel">
-          <span class="knel-kop">Kost tijd</span>
-          <span class="knel-tekst">Bepaling voor bepaling, lid voor lid — en de wet wacht niet
-            op de analyse.</span>
+        <div class="eis">
+          <span class="eis-kop">Precisie tot op lidniveau</span>
+          <span class="eis-tekst">Een markering is pas bruikbaar met artikel, lid en versie
+            erbij — anders is niet terug te vinden waar hij vandaan komt.</span>
         </div>
-        <div class="knel">
-          <span class="knel-kop">Wisselt per persoon</span>
-          <span class="knel-tekst">Twee analisten, twee uitkomsten. Er is geen gedeelde maat om
-            dat verschil te zien.</span>
+        <div class="eis">
+          <span class="eis-kop">Vergelijkbare uitkomsten</span>
+          <span class="eis-tekst">De methode geeft een gedeelde taal. Die moet consequent worden
+            toegepast om analyses naast elkaar te kunnen leggen.</span>
         </div>
-      </div>
-
-      <div class="gevolg">
-        En daaronder schuift de bron weg: <strong>welke versie gold op het moment van de
-        beslissing, en welk lid precies?</strong> Zonder dat antwoord is een beslissing niet
-        aantoonbaar juist.
       </div>
 
       <div class="antwoordband">
-        <span class="antwoord-kop">Wat Lex daaraan doet</span>
+        <span class="antwoord-kop">Waarbij Lex ondersteunt</span>
         <div class="antwoord-lijst">
-          <div>Markeert automatisch op de actuele wettekst</div>
-          <div>Elk fragment herleidbaar tot artikel, lid en vindplaats</div>
-          <div>De jurist beslist en blijft eindverantwoordelijk</div>
+          <div>Doet het opzoek- en voorbereidingswerk op de actuele wettekst</div>
+          <div>Houdt elk fragment aan de bron — artikel, lid, vindplaats</div>
+          <div>Legt voorstellen voor; het oordeel blijft bij de jurist</div>
         </div>
       </div>
       <aside class="notes">
-        Dit platform onderzoekt of AI het wetsanalyseproces kan versnellen zonder kwaliteitsverlies.
+        Dit platform onderzoekt of AI het wetsanalyseproces kan ondersteunen zonder kwaliteitsverlies.
         De eerste onderzoeksvraag, ondersteuning bij JAS-annotatie, is dit platform. De
         behandelfunctionaris beslist en is eindverantwoordelijk; Lex ondersteunt.
 
-        De uitgeschreven versie van deze dia: wetsanalyse maakt de juridische structuur van de
-        tekst expliciet — wie heeft welke rechten en plichten, onder welke voorwaarden. Dat is de
-        grondstof voor uitvoerbare regels én voor aantoonbaar correcte beslissingen. Handmatig
-        annoteren vraagt diepgaande kennis van het analyseschema, is tijdrovend en levert bij
-        wisselende medewerkers inconsistente resultaten op.
+        Waar deze dia over gaat: wetsanalyse maakt de juridische structuur van de tekst
+        expliciet — wie heeft welke rechten en plichten, onder welke voorwaarden. Dat is de
+        grondstof voor uitvoerbare regels én voor aantoonbaar correcte beslissingen. De drie
+        kaarten beschrijven wat dat werk vraagt, niet wat er nu aan zou schorten: Lex doet het
+        opzoek- en voorbereidingswerk; het vakinhoudelijke oordeel blijft waar het hoort.
       </aside>
     </section>
 
@@ -1039,7 +1031,7 @@
          DIA 8 — De Critic
     ────────────────────────────────────────────── -->
     <section>
-      <h2>Jij beslist — de AI wijst aan waar je moet kijken</h2>
+      <h2>Jij beslist — de AI geeft aan waar hij zelf twijfelt</h2>
       <div class="critic-lijst">
         <div class="critic-kaart" style="background:rgba(57,135,12,0.06);">
           <div class="critic-balk" style="background:#4caf50;"></div>
@@ -1066,7 +1058,7 @@
         </div>
       </div>
       <p style="font-size:0.56em; color:var(--muted); margin-top:0.8em; font-style:italic;">
-        Het model doet wat zeker is automatisch. Wat twijfelachtig is, legt het voor.
+        Wat het model zeker weet, corrigeert het zelf; bij twijfel legt het de keuze voor.
       </p>
       <aside class="notes">
         Rode correcties lopen via code — geen extra taalmodel dat misschien iets anders bedenkt.
@@ -1116,7 +1108,7 @@
 
         <rect x="606" y="146" width="264" height="60" rx="12" fill="#ffffff" stroke="#d52b1e" stroke-width="1.8" stroke-dasharray="5 4"/>
         <text x="738" y="170" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="12.5" font-weight="600" fill="#d52b1e">Verworpen</text>
-        <text x="738" y="186" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#4a5a6e">bereikt niemand — ook u niet</text>
+        <text x="738" y="186" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#4a5a6e">bereikt niemand — ook jou niet</text>
 
         <text x="886" y="118" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#6b7685">bij antwoorden</text>
         <text x="886" y="132" text-anchor="middle" font-family="Fira Sans,sans-serif" font-size="10" fill="#6b7685">dezelfde controle</text>
@@ -1522,7 +1514,7 @@
             <li>Kennisgraaf, wekelijks bijgewerkt vanaf overheid.nl</li>
             <li>Brongetrouwe antwoorden en JAS-markeringen met Critic-controle</li>
             <li>Review, auditspoor en export (JSON, CSV, PDF)</li>
-            <li>Toegangsbeheer: rollen, tweestapsaanmelding, verbruiksgrens per analist</li>
+            <li>Toegangsbeheer: rollen, tweestapsaanmelding, verbruiksgrens per account</li>
           </ul>
         </div>
         <div class="svz-roadmap">
@@ -1561,7 +1553,7 @@
           <span class="pot-kop">Eén plek om te vragen</span>
           <span class="pot-tekst">Vandaag de wet, in gewone woorden gevraagd en met de vindplaats
             erbij. Beleidsstukken, handleidingen en interne notities kunnen er als tweede bron
-            naast — dan blijft het één vraag en één antwoord in plaats van vier zoektochten.
+            naast — dan blijft het één vraag en één antwoord, zonder per bron opnieuw te zoeken.
             <span class="pot-nu">Wet werkt vandaag; de tweede bron is ontworpen.</span></span>
         </div>
         <div class="pot-kaart">
@@ -1575,7 +1567,7 @@
           <span class="pot-kop">Werk dat blijft staan</span>
           <span class="pot-tekst">Wat één keer is geanalyseerd, blijft beschikbaar en groeit aan.
             Een tweede lezing komt ernáást in plaats van eroverheen, dus een team bouwt aan één
-            corpus in plaats van aan losse documenten in losse mappen.
+            corpus waar een team op verder bouwt.
             <span class="pot-nu">Werkt vandaag.</span></span>
         </div>
         <div class="pot-kaart">

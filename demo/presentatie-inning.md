@@ -142,17 +142,19 @@ visueel ankerpunt. De titeldia heeft een lege, ruime opzet — geen bullets.
 
 **Koptekst:** Uitvoering begint bij de wet
 
-**Visueel — geen opsomming.** Deze dia is een keten in beeld: één openingsregel, drie
-knelpuntkaarten met een rode bovenrand, één gevolgkaart, en daaronder een lintblauwe band met het
-antwoord. Dezelfde vorm als de potentiedia (kaarten → band), zodat "probleem → antwoord" twee keer
-hetzelfde ritme krijgt.
+**Visueel — geen opsomming.** Eén openingsregel, dan onder het kopje **"Wat de analyse vraagt"**
+drie kaarten, en daaronder een lintblauwe band. Dezelfde vorm als de potentiedia (kaarten → band),
+zodat de dia's elkaars ritme herhalen. De kaarten hebben een **lintblauwe** bovenrand, geen rode:
+dit zijn eigenschappen van het werk, geen tekortkomingen.
 
-- **openingsregel:** elke invorderingsbeslissing steunt op de wet — en bij elke wetswijziging moet
-  elke geraakte bepaling opnieuw worden gelezen
-- **drie knelpunten:** *vraagt specialistische kennis* · *kost tijd* · *wisselt per persoon*
-- **het gevolg:** de bron schuift weg — welke versie gold, en welk lid precies?
-- **de band:** markeert op de actuele wettekst · elk fragment herleidbaar tot artikel, lid en
-  vindplaats · de jurist beslist en blijft eindverantwoordelijk
+- **openingsregel:** elke invorderingsbeslissing steunt op de wet — en de wet staat niet stil
+- **wat de analyse vraagt:** *veel tekst, continu in beweging* · *precisie tot op lidniveau* ·
+  *vergelijkbare uitkomsten* (de methode geeft een gedeelde taal die consequent moet worden toegepast)
+- **de band, "Waarbij Lex ondersteunt":** doet het opzoek- en voorbereidingswerk · houdt elk
+  fragment aan de bron · legt voorstellen voor, het oordeel blijft bij de jurist
+
+Geen graafcijfers op deze dia — die zijn de clou van de potentiedia en zouden hier bovendien een
+"kijk hoe veel het is"-lading geven.
 
 De uitgeschreven versie (wetsanalyse maakt de juridische structuur expliciet, grondstof voor
 uitvoerbare regels) hoort in de speaker notes, niet op de dia.
@@ -526,6 +528,14 @@ ermee (5-7) → waarom je het kunt vertrouwen (8) → hoe het werkt (9-13) → w
 demo (16)*. Elke overgang moet te benoemen zijn; waar de sprong groot is staat een brugzin in de
 `.kernzin`-vorm. Vertel hetzelfde niet twee keer: de casus op dia 5-7 lát zien wat een abstracte
 "van vraag tot annotatie"-dia zou samenvatten, dus die dia bestaat niet.
+
+**Beschrijf het werk, niet de mensen die het doen.** Geen kaart, kop of speaker note stelt dat
+iets te traag gaat, dat te weinig mensen het kunnen, of dat uitkomsten per persoon verschillen.
+Formuleer een aanleiding als een eigenschap van de materie: de wet verandert; een markering moet
+tot op lid en versie kloppen; analyses moeten naast elkaar te leggen zijn. Lex **ondersteunt bij**
+en **legt voor**; hij lost niets op en neemt niets over. Deze presentatie wordt ook gegeven aan
+vakgroepen wier werk dit raakt — een dia die hun vak als knelpunt neerzet, opent een discussie die
+niet over het platform gaat. Spreek de lezer overal aan met *je/jij*, nooit met *u*.
 
 **Schrijf elke afkorting voluit bij het eerste gebruik** — Juridisch Analyseschema (JAS),
 Basiswettenbestand, Invorderingswet 1990, tweestapsaanmelding. Productnamen op de
