@@ -187,7 +187,11 @@ def _h_semantic_search(g: GraphPort, a: dict[str, Any], settings: Any) -> str:
 # ------------------------------------------------------------------
 
 _BWB = {"type": "string", "description": "BWB-id van de regeling, bijv. 'BWBR0004770'."}
-_ART = {"type": "string", "description": "Artikelnummer, bijv. '9' of '9a'."}
+_ART = {
+    "type": "string",
+    "description": "Artikelnummer, bijv. '9', '22a', of met een dubbele punt zoals '3:40' "
+                   "en '5:2' — die vorm gebruikt de Algemene wet bestuursrecht.",
+}
 # Beleidsregels en circulaires hebben divisies met decimale nummers ('25.1.1') in plaats van
 # artikelen met leden. De verwijzings- en contexttools accepteren daarom beide vormen; wie alleen
 # `artikel` aanbood liet de ~800 bepalingen van de Leidraad Invordering buiten bereik.

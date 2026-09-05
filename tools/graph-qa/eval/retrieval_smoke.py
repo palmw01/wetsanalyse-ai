@@ -74,6 +74,9 @@ CONTROLES: tuple[Controle, ...] = (
              toelichting="acht leden"),
     Controle("get_lid", {"bwb_id": IW, "artikel": "2", "lid": "1"},
              toelichting="definitielid – moet zijn ONDERDELEN meeleveren"),
+    Controle("get_lid", {"bwb_id": AWB, "artikel": "5:2", "lid": "1"},
+             toelichting="artikelnummer MET dubbele punt; 570 van de 572 Awb-artikelen hebben er "
+                         "een, en die waren tot 5 sep 2026 onbereikbaar"),
     Controle("get_bepaling", {"bwb_id": LEIDRAAD, "nummer": "25.1"}, min_rijen=15,
              toelichting="container zonder eigen tekst; moet zijn 15 subdivisies noemen"),
     Controle("get_context", {"bwb_id": IW, "artikel": "36"}, min_rijen=10,

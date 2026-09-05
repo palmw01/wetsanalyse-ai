@@ -12,6 +12,7 @@ Bron van de patronen: de eerdere agent/prompts.py (kennisgraaf-verkenning).
 from __future__ import annotations
 
 import re
+from urllib.parse import quote
 
 from ..namespace import BASIS, ONTOLOGIE, SEP
 
@@ -69,7 +70,18 @@ FTS_VELDEN = (
 )
 
 _BWB_RE = re.compile(r"^BWBR\d+$")
-_ART_RE = re.compile(r"^[0-9]+[a-z]*$", re.IGNORECASE)
+# Artikelnummer: "9", "22a", maar ook "3:40", "5:2", "8:36f".
+#
+# Die tweede vorm gebruikt de Algemene wet bestuursrecht consequent, en zonder de dubbele punt was
+# ze onbereikbaar: `artikel_iri` weigerde een IRI te bouwen, `_controleer_vindplaats` gaf
+# OngeldigeVindplaats, en een annotatiebeurt brak af met "het doel is geen geldige vindplaats".
+# Gemeten in de graaf op 5 sep 2026: **570 van de 572 Awb-artikelen** dragen een dubbele punt —
+# 49% van alle 1162 artikelen. De wet was dus wél geïmporteerd en doorzoekbaar, maar niet op te
+# halen en niet te annoteren; de eval liep erop vast met nul markeringen op twee cases.
+#
+# Aan de IRI-kant hoefde niets: `rdf_vocab._iri` doet `quote(s, safe="")`, dus "5:2" wordt "5%3A2"
+# — precies de vorm die de importer in de graaf zet (`…:artikel:5%3A2:lid:1`).
+_ART_RE = re.compile(r"^[0-9]+[a-z]*(:[0-9]+[a-z]*)*$", re.IGNORECASE)
 _NUM_RE = re.compile(r"^[0-9]+[a-z]*$", re.IGNORECASE)
 # Vrij bepaling-nummer: staat decimale (divisie-)vormen en letters toe: "9", "9.1", "22a", "22bis".
 #
@@ -125,12 +137,27 @@ def regeling_iri(bwb_id: str) -> str:
     return f"{NS}{_bwb(bwb_id)}"
 
 
+def _segment(waarde: str) -> str:
+    """Eén IRI-segment, gecodeerd zoals de importer het schrijft.
+
+    `rdf_vocab._iri` (bwb-import) doet `quote(s, safe="")` per segment; hier werd de IRI met een
+    f-string aaneengeplakt. Voor "9" en "22a" maakt dat niets uit — die bevatten geen teken dat
+    gecodeerd moet worden — maar voor een Awb-artikel als "5:2" liepen de twee uit elkaar: de graaf
+    heeft `…:artikel:5%3A2`, de f-string maakte `…:artikel:5:2`. Dat is een andere node, en dus
+    nul resultaten zonder foutmelding.
+
+    De dubbele punt is bovendien het scheidingsteken van de URN zelf, dus ongecodeerd zou "5:2"
+    als twee segmenten lezen. Coderen is hier geen netheid maar identiteit.
+    """
+    return quote(str(waarde), safe="")
+
+
 def artikel_iri(bwb_id: str, artikel: str) -> str:
-    return f"{NS}{_bwb(bwb_id)}{SEP}artikel{SEP}{_art(artikel)}"
+    return f"{NS}{_bwb(bwb_id)}{SEP}artikel{SEP}{_segment(_art(artikel))}"
 
 
 def lid_iri(bwb_id: str, artikel: str, lid: str) -> str:
-    return f"{artikel_iri(bwb_id, artikel)}{SEP}lid{SEP}{_num(lid)}"
+    return f"{artikel_iri(bwb_id, artikel)}{SEP}lid{SEP}{_segment(_num(lid))}"
 
 
 def is_artikelnummer(aanduiding: str) -> bool:

@@ -130,3 +130,48 @@ def test_ongeldig_bwb_id_wordt_geweigerd(bad):
 def test_ongeldig_artikel_wordt_geweigerd(bad):
     with pytest.raises(ValueError):
         q.get_artikel("BWBR0004770", bad)
+
+
+# ---------------------------------------------------------------------------
+# Artikelnummers met een dubbele punt (Algemene wet bestuursrecht)
+# ---------------------------------------------------------------------------
+
+def test_artikelnummer_met_dubbele_punt_wordt_aanvaard_en_gecodeerd():
+    """De Awb nummert haar artikelen "3:40", "5:2", "8:36f" — en dat is geen randgeval.
+
+    Gemeten in de graaf op 5 sep 2026: 570 van de 572 Awb-artikelen dragen een dubbele punt, oftewel
+    49% van alle 1162 artikelen. `_ART_RE` weigerde die vorm, waardoor de hele wet wel doorzoekbaar
+    was maar niet op te halen en niet te annoteren; twee eval-cases liepen erop vast met nul
+    markeringen.
+
+    De codering is de andere helft van de fix. De importer schrijft elk IRI-segment met
+    `quote(s, safe="")`, dus de graaf heeft `…:artikel:5%3A2`. Deze module plakte de IRI met een
+    f-string aaneen en maakte `…:artikel:5:2` — een andere node, en dus nul resultaten zonder
+    foutmelding. De dubbele punt is bovendien het scheidingsteken van de URN zelf.
+    """
+    assert q.artikel_iri("BWBR0005537", "5:2") == "urn:bwb:BWBR0005537:artikel:5%3A2"
+    assert q.lid_iri("BWBR0005537", "5:2", "1") == "urn:bwb:BWBR0005537:artikel:5%3A2:lid:1"
+    assert q.artikel_iri("BWBR0005537", "8:36f") == "urn:bwb:BWBR0005537:artikel:8%3A36f"
+
+
+def test_gewone_artikelnummers_veranderen_niet():
+    """De codering mag geen enkele bestaande IRI verschuiven – anders wijst alles opeens naast."""
+    assert q.artikel_iri("BWBR0004770", "9") == "urn:bwb:BWBR0004770:artikel:9"
+    assert q.artikel_iri("BWBR0004770", "22a") == "urn:bwb:BWBR0004770:artikel:22a"
+    assert q.lid_iri("BWBR0004770", "9", "1") == "urn:bwb:BWBR0004770:artikel:9:lid:1"
+
+
+def test_de_twee_nummervormen_blijven_gescheiden():
+    """Een decimaal divisienummer is iets anders dan een artikelnummer; ze mogen niet vervagen.
+
+    `25.1` moet het divisie-pad kiezen (nummer-match binnen de regeling), `5:2` het artikel-pad
+    (directe IRI). Zou `_nummer_vrij` de dubbele punt gaan accepteren, dan zou een Awb-artikel via
+    de trage nummer-match lopen en bij ambiguïteit de verkeerde node kunnen raken.
+    """
+    assert q.is_artikelnummer("5:2") is True
+    assert q.is_artikelnummer("25.1") is False
+    with pytest.raises(ValueError):
+        q._nummer_vrij("5:2")
+    for ongeldig in (":", "5:", ":2", "a", "5::2"):
+        with pytest.raises(ValueError):
+            q._art(ongeldig)

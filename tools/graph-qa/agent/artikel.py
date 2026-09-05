@@ -134,7 +134,9 @@ def _controleer_vindplaats(bwb_id: str, artikel: str, lid: str | None) -> None:
         except ValueError:
             continue
     else:
-        raise OngeldigeVindplaats(f"Ongeldige aanduiding: {artikel!r} (verwacht bv. '9', '22a' of '9.1').")
+        raise OngeldigeVindplaats(
+            f"Ongeldige aanduiding: {artikel!r} (verwacht bv. '9', '22a', '3:40' of '9.1')."
+        )
     if lid and str(lid).strip():
         # Een lidnummer ('1', '2a') óf een subbepaling-nummer ('25.1.1'): bij een beleidsregel is
         # het corpussegment een subdivisie, en dan is háár nummer de scope. Strikt op `_num` toetsen
