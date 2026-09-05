@@ -151,6 +151,24 @@ visueel ankerpunt. De titeldia heeft een lege, ruime opzet — geen bullets.
 
 ---
 
+#### Dia 2b — Wat levert het op (concrete casus)
+
+**Koptekst:** Wat levert het op
+
+Eén vraag, één antwoord, één vindplaats — drie rijen onder elkaar:
+
+1. **De vraag** — "Wanneer is een belastingaanslag invorderbaar?" (*gewoon getypt, in je eigen woorden*)
+2. **Lex zoekt** — vindt de bepaling en haalt de letterlijke tekst op (*artikel 9, eerste lid, IW 1990*)
+3. **Het antwoord** — het citaat met een lintblauwe streep ervoor, en daaronder de jci op een
+   **eigen regel** (inline loopt hij achter het citaat aan en breekt hij halverwege af)
+
+Kernzin: **"Dit citaat is niet geschreven maar opgezocht — en de vindplaats komt mee."**
+
+Neem de zin letterlijk over uit `tools/graph-qa/eval/bronteksten.json`; dat is dezelfde bron
+waartegen de eval scoort.
+
+---
+
 #### Dia 3 — Zes activiteiten van Wetsanalyse
 
 **Koptekst:** Zes activiteiten van Wetsanalyse
@@ -197,6 +215,27 @@ hierboven), elk gelabeld met de klassenaam in kleine letters.
 In het invorderingsdomein zijn dit bijvoorbeeld: rechtssubject = "de ontvanger", rechtsfeit = "aanmaning verstuurd".
 
 **Tagline:** "De jurist beslist — de AI stelt voor."
+
+---
+
+#### Dia 4b — Dezelfde zin, als structuur
+
+**Koptekst:** Dezelfde zin, als structuur
+
+Dezelfde zin als op dia 2b, nu met de markeringen eroverheen — in de **officiële klassekleuren uit
+`api/app/jas_klassen.py`**, dus dezelfde die de werkplek gebruikt:
+
+| fragment | klasse | vulling / rand |
+|---|---|---|
+| Een belastingaanslag | Rechtsobject | `#b2c3e3` / `#8a98b1` |
+| is invorderbaar | Rechtsbetrekking | `#90a2d0` / `#707ea2` |
+| zes weken na de dagtekening van het aanslagbiljet | Tijdsaanduiding | `#cbb8d6` / `#9e8fa6` |
+
+Daaronder een legenda met een korte uitleg per klasse, en drie stappen: **Lex stelt voor → Critic
+beoordeelt → jij beslist**. Kernzin: *"Van losse wettekst naar benoemde, doorzoekbare bouwstenen."*
+
+De herhaling van dezelfde zin is opzet: eerst als betrouwbaar antwoord, dan als structuur.
+De drie markeringen zijn de ankers uit `eval/golden_annotatie.jsonl` — geen illustratie.
 
 ---
 
@@ -364,7 +403,7 @@ Leid de onderdelen af uit de `pyproject.toml`/`package.json` van elk onderdeel e
 
 ---
 
-#### Dia 9 — Stand van zaken
+#### Dia 9 — Waar we nu staan
 
 **Koptekst:** Wat werkt al — wat komt er aan
 
@@ -383,6 +422,33 @@ Leid de onderdelen af uit de `pyproject.toml`/`package.json` van elk onderdeel e
 - Valideren en beleidsleemten signaleren (act. 4–5)
 - Vertaling naar uitvoerbare bedrijfsregels
 - Leidraad Invordering en URIW naast IW doorzoekbaar
+
+---
+
+#### Dia 9b — Waar dit heen kan
+
+**Koptekst:** Waar dit heen kan
+
+Vier kaarten, elk met een eerlijke statusregel eronder (*Werkt vandaag* / *Plan ligt er, nog niet
+gebouwd* / *Gemeten, zie hieronder*):
+
+- **Kennis op één plek** — beleidsstukken en handleidingen als tweede bron naast de wet
+- **Voor medewerkers, niet voor specialisten** — accounts, rollen, tweestapsaanmelding,
+  verbruiksgrens per medewerker
+- **Samen aan dezelfde bepaling** — een tweede lezing wordt een alternatief, geen overschrijving
+- **De graaf groeit met zichzelf mee** — elke nieuwe regeling legt zijn verbindingen vanzelf
+
+Daaronder een lintblauwe balk met de **gemeten** cijfers: 7 regelingen / 1.162 artikelen · 192
+regelingen worden genoemd maar ontbreken · 1.198 verwijzingen wachten daarop (ruim een derde van
+3.490) · 201× de Wet inkomstenbelasting 2001, daarna het Wetboek van Burgerlijke Rechtsvordering.
+
+Kernzin: **"Elke wet die erbij komt, maakt de wetten die er al staan bruikbaarder."**
+
+Meet die cijfers opnieuw vóór elke uitlevering en verifieer wetsnamen op wetten.overheid.nl —
+een verzonnen citeertitel op een dia voor de Belastingdienst is precies wat dit platform niet doet.
+
+**Toon:** dit is géén roadmap. Beschrijf wat de opzet mogelijk maakt, niet wat er gebouwd gaat
+worden. Dezelfde regel geldt voor de statusdia: "nog niet" in plaats van "op de roadmap".
 
 ---
 

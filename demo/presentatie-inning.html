@@ -613,6 +613,105 @@
       .legenda { font-size: 0.5em; }
     }
 
+    /* ── Casus: vraag → antwoord → bron ────────────── */
+    .casus { display: grid; gap: 0.5em; margin-top: 0.6em; }
+    .casus-rij {
+      display: grid;
+      grid-template-columns: 7.5em 1fr;
+      align-items: start;
+      gap: 0.8em;
+      border-radius: var(--r-kaart);
+      border: 1.5px solid var(--line);
+      background: var(--paper);
+      padding: 0.55em 0.75em;
+    }
+    .casus-rij.bron { background: var(--lint-light); border-color: var(--lint-light); }
+    .casus-wie { font-size: 0.46em; font-weight: 600; color: var(--lint); text-transform: uppercase; letter-spacing: 0.04em; }
+    .casus-wat { font-size: 0.56em; line-height: 1.5; color: var(--ink); }
+    .casus-wat em { color: var(--muted); font-style: normal; font-size: 0.86em; display: block; margin-top: 0.15em; }
+    .casus-citaat {
+      display: block;
+      font-size: 0.6em; line-height: 1.5; color: var(--ink);
+      border-left: 3px solid var(--lint); padding-left: 0.6em;
+    }
+    /* Eigen regel: inline liep de vindplaats achter het citaat aan en brak halverwege af. */
+    .casus-jci {
+      display: block;
+      font-family: 'Fira Mono', monospace; font-size: 0.4em; color: var(--muted);
+      margin-top: 0.45em; word-break: break-all;
+    }
+
+    /* ── Gemarkeerde wettekst ──────────────────────── */
+    /* De markeringen dekken samen precies de hele zin; daarom staan ze als aaneengesloten spans
+       en niet als losse blokjes. De kleuren komen uit api/app/jas_klassen.py — dezelfde die de
+       werkplek gebruikt, zodat wat hier staat en wat de jurist ziet niet uit elkaar lopen. */
+    .wettekst {
+      font-size: 0.72em;
+      line-height: 2.5;
+      margin: 0.5em 0 0.2em;
+    }
+    .mark {
+      padding: 0.18em 0.3em;
+      border-radius: 4px;
+      border-bottom: 3px solid;
+      white-space: normal;
+    }
+    .mark-legenda { display: flex; flex-wrap: wrap; gap: 0.5em; margin-top: 0.5em; }
+    .mark-legenda span {
+      font-size: 0.42em; padding: 0.2em 0.55em; border-radius: var(--r-badge);
+      border: 1px solid; color: var(--ink);
+    }
+
+    /* ── Potentie: vier bewegingen ─────────────────── */
+    .potentie {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 0.5em;
+      margin-top: 0.5em;
+    }
+    .pot-kaart {
+      border-radius: var(--r-kaart);
+      border: 1.5px solid var(--line);
+      background: var(--paper);
+      padding: 0.6em 0.7em;
+    }
+    .pot-kop { font-size: 0.5em; font-weight: 600; color: var(--lint); display: block; margin-bottom: 0.25em; }
+    .pot-tekst { font-size: 0.42em; color: var(--muted); line-height: 1.45; display: block; }
+    /* 0.38em zou hier 0.16em opleveren: .pot-nu zit ÍN .pot-tekst (0.42em) en em stapelt.
+       0.9em van 0.42em geeft de bedoelde ~0.38em. Zelfde valkuil als bij .laag-waarvoor. */
+    .pot-nu { font-size: 0.9em; color: var(--faint); display: block; margin-top: 0.4em; font-style: italic; }
+
+    .groei {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 0.5em;
+      margin-top: 0.55em;
+      border-radius: var(--r-kaart);
+      background: var(--lint);
+      padding: 0.7em 0.8em;
+    }
+    .groei-getal { font-size: 0.92em; font-weight: 600; color: #fff; line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .groei-wat { font-size: 0.4em; color: #b8d0e8; display: block; margin-top: 0.2em; line-height: 1.4; }
+
+    /* ── Compacte drie-stappen-stroom ──────────────── */
+    /* Eigen component in plaats van .keten hergebruiken: die heeft een vaste vierkolomsindeling
+       met een nummerkolom, en zonder dat nummer schoven naam, badge en tekst door elkaar. */
+    .stappen {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 0.5em;
+      margin-top: 0.6em;
+    }
+    .stap {
+      border-radius: var(--r-kaart);
+      border: 1.5px solid var(--line);
+      background: var(--surface);
+      padding: 0.5em 0.65em;
+    }
+    .stap-kop { display: flex; align-items: center; gap: 0.45em; margin-bottom: 0.2em; }
+    .stap-naam { font-size: 0.5em; font-weight: 600; color: var(--lint); }
+    .stap-tekst { font-size: 0.4em; color: var(--muted); line-height: 1.5; }
+
   </style>
 </head>
 <body>
@@ -658,6 +757,46 @@
       </aside>
     </section>
 
+
+    <!-- ──────────────────────────────────────────────
+         DIA 2b — Wat levert het op (casus)
+         Zin en vindplaats letterlijk uit tools/graph-qa/eval/bronteksten.json
+    ────────────────────────────────────────────── -->
+    <section>
+      <h2>Wat levert het op</h2>
+      <div class="casus">
+        <div class="casus-rij">
+          <span class="casus-wie">De vraag</span>
+          <span class="casus-wat">“Wanneer is een belastingaanslag invorderbaar?”
+            <em>gewoon getypt, in je eigen woorden</em></span>
+        </div>
+        <div class="casus-rij">
+          <span class="casus-wie">Lex zoekt</span>
+          <span class="casus-wat">Vindt de bepaling in de kennisgraaf en haalt de letterlijke tekst op.
+            <em>artikel 9, eerste lid, Invorderingswet 1990</em></span>
+        </div>
+        <div class="casus-rij bron">
+          <span class="casus-wie">Het antwoord</span>
+          <span>
+            <span class="casus-citaat">“Een belastingaanslag is invorderbaar zes weken na de
+              dagtekening van het aanslagbiljet.”</span>
+            <span class="casus-jci">jci1.3:c:BWBR0004770&amp;artikel=9&amp;lid=1</span>
+          </span>
+        </div>
+      </div>
+      <p class="kernzin">Dit citaat is niet geschreven maar opgezocht — en de vindplaats komt mee.</p>
+      <aside class="notes">
+        Eén vraag, één antwoord, één vindplaats. Dit is wat een behandelfunctionaris ermee doet, en
+        het is meteen het verschil met een gewone chatbot: het citaat is letterlijk uit de graaf
+        gehaald, niet door het model geformuleerd. Kan Lex het niet vinden, dan zegt hij dat — hij
+        vult niets aan uit algemene kennis.
+
+        Deze zin komt uit de gouden testset waarmee we elke versie meten, dus wat hier staat is
+        precies wat het platform moet opleveren. We komen er straks op terug: dezelfde zin, dan als
+        juridische structuur.
+      </aside>
+    </section>
+
     <!-- ──────────────────────────────────────────────
          DIA 3 — Zes activiteiten van Wetsanalyse
     ────────────────────────────────────────────── -->
@@ -691,7 +830,7 @@
         <div class="act-blok">
           <div class="act-nr">Act. 5</div>
           <div class="act-naam">Ontbrekende beleids­regels signaleren</div>
-          <div class="act-omsch">Leemten in uitvoeringsbeleid</div>
+          <div class="act-omsch">Waar beleid nog niet in regels is vastgelegd</div>
         </div>
         <div class="act-blok">
           <div class="act-nr">Act. 6</div>
@@ -762,6 +901,53 @@
         De volgorde van de strip is canoniek: rechtssubject → brondefinitie. Die volgorde bepaalt
         ook de volgorde van de review-kaarten in de werkplek. Bij Inning zijn dit herkenbare
         begrippen — de ontvanger, de aanmaning, het dwangbevel zijn stuk voor stuk JAS-elementen.
+      </aside>
+    </section>
+
+
+    <!-- ──────────────────────────────────────────────
+         DIA 4b — Dezelfde zin, gemarkeerd
+         Zin uit eval/bronteksten.json, de drie klassen uit eval/golden_annotatie.jsonl,
+         de kleuren uit api/app/jas_klassen.py — geen illustratie maar de echte uitkomst.
+    ────────────────────────────────────────────── -->
+    <section>
+      <h2>Dezelfde zin, als structuur</h2>
+      <p class="wettekst">
+        <span class="mark" style="background:#b2c3e3; border-color:#8a98b1;">Een belastingaanslag</span>
+        <span class="mark" style="background:#90a2d0; border-color:#707ea2;">is invorderbaar</span>
+        <span class="mark" style="background:#cbb8d6; border-color:#9e8fa6;">zes weken na de dagtekening van het aanslagbiljet</span>.
+      </p>
+      <div class="mark-legenda">
+        <span style="background:#b2c3e3; border-color:#8a98b1;">Rechtsobject — wáár het over gaat</span>
+        <span style="background:#90a2d0; border-color:#707ea2;">Rechtsbetrekking — wat er geldt</span>
+        <span style="background:#cbb8d6; border-color:#9e8fa6;">Tijdsaanduiding — vanaf wanneer</span>
+      </div>
+      <div class="stappen">
+        <div class="stap">
+          <span class="stap-kop"><span class="stap-naam">Lex stelt voor</span><span class="badge-lex">AI</span></span>
+          <span class="stap-tekst">Markeert de fragmenten en kent er een JAS-klasse aan toe.</span>
+        </div>
+        <div class="stap">
+          <span class="stap-kop"><span class="stap-naam">Critic beoordeelt</span><span class="badge-lex">AI</span></span>
+          <span class="stap-tekst">Kijkt elk voorstel na en geeft een aandachtsniveau.</span>
+        </div>
+        <div class="stap">
+          <span class="stap-kop"><span class="stap-naam">Jij beslist</span><span class="badge-jurist">Jurist</span></span>
+          <span class="stap-tekst">Akkoord, alternatief kiezen of verwerpen — met auditspoor.</span>
+        </div>
+      </div>
+      <p class="kernzin">Van losse wettekst naar benoemde, doorzoekbare bouwstenen.</p>
+      <aside class="notes">
+        Bewust dezelfde zin als een paar dia's terug. Eerst zagen jullie hem als antwoord op een
+        vraag; nu als juridische structuur. Twee producten uit één bron.
+
+        Deze drie markeringen zijn geen illustratie: het zijn de ankers uit onze gouden testset voor
+        artikel 9 lid 1, en de kleuren zijn dezelfde die de werkplek gebruikt. Ze dekken hier samen
+        de hele zin — dat is niet altijd zo; bij langere bepalingen blijft er tekst onbemarkeerd, en
+        dat is geen fout maar een keuze van de methode.
+
+        Wat je hiermee kunt: zoeken op structuur in plaats van op woorden. "Geef alle
+        tijdsaanduidingen in de Invorderingswet" wordt een vraag die te beantwoorden is.
       </aside>
     </section>
 
@@ -1176,13 +1362,15 @@
          DIA 8 — De Critic
     ────────────────────────────────────────────── -->
     <section>
-      <h2>Jij beslist — de AI controleert zichzelf</h2>
+      <h2>Jij beslist — de AI wijst aan waar je moet kijken</h2>
       <div class="critic-lijst">
         <div class="critic-kaart" style="background:rgba(57,135,12,0.06);">
           <div class="critic-balk" style="background:#4caf50;"></div>
           <div class="critic-inhoud">
-            <strong>Geen bezwaar</strong>
-            <p>Klasse, fragment en afbakening kloppen. Snel door met Akkoord — of de pijltoets.</p>
+            <strong>Geen signaal</strong>
+            <p>De Critic vond niets mis met klasse, fragment en afbakening. Dat is geen goedkeuring:
+               jij beoordeelt hem, net als de andere. Het aandachtsniveau zegt wáár je scherper moet
+               kijken, niet waar je kunt overslaan.</p>
           </div>
         </div>
         <div class="critic-kaart" style="background:rgba(225,112,0,0.06);">
@@ -1290,14 +1478,14 @@
          DIA 9 — Stand van zaken
     ────────────────────────────────────────────── -->
     <section>
-      <h2>Wat werkt al — wat komt er aan</h2>
+      <h2>Waar we nu staan</h2>
       <div class="voortgang">
         <div class="vg-blok"><span class="vg-nr">Act. 1</span><span class="vg-naam">Werkgebied</span><span class="vg-status">handmatig</span></div>
         <div class="vg-blok klaar"><span class="vg-nr">Act. 2</span><span class="vg-naam">Structuur zichtbaar</span><span class="vg-status">werkt — met Critic</span></div>
-        <div class="vg-blok"><span class="vg-nr">Act. 3</span><span class="vg-naam">Betekenis</span><span class="vg-status">op de roadmap</span></div>
-        <div class="vg-blok"><span class="vg-nr">Act. 4</span><span class="vg-naam">Valideren</span><span class="vg-status">op de roadmap</span></div>
-        <div class="vg-blok"><span class="vg-nr">Act. 5</span><span class="vg-naam">Leemten</span><span class="vg-status">op de roadmap</span></div>
-        <div class="vg-blok"><span class="vg-nr">Act. 6</span><span class="vg-naam">Kennismodel</span><span class="vg-status">op de roadmap</span></div>
+        <div class="vg-blok"><span class="vg-nr">Act. 3</span><span class="vg-naam">Betekenis</span><span class="vg-status">nog niet</span></div>
+        <div class="vg-blok"><span class="vg-nr">Act. 4</span><span class="vg-naam">Valideren</span><span class="vg-status">nog niet</span></div>
+        <div class="vg-blok"><span class="vg-nr">Act. 5</span><span class="vg-naam">Ontbrekend beleid</span><span class="vg-status">nog niet</span></div>
+        <div class="vg-blok"><span class="vg-nr">Act. 6</span><span class="vg-naam">Kennismodel</span><span class="vg-status">nog niet</span></div>
       </div>
       <div class="svz-grid">
         <div class="svz-gerealiseerd">
@@ -1310,20 +1498,99 @@
           </ul>
         </div>
         <div class="svz-roadmap">
-          <div class="svz-label">Daarna</div>
+          <div class="svz-label">Eerst dit</div>
+          <p style="font-size:0.42em; color:var(--muted); margin:0 0 0.4em; line-height:1.45;">
+            Een rijkere graaf maakt elke volgende activiteit waardevoller — zonder bronnen valt er
+            weinig te valideren.
+          </p>
           <ul>
-            <li>Begrippen en definities (act. 3)</li>
-            <li>Valideren en leemten signaleren (act. 4–5)</li>
+            <li><strong>Meer bronnen in de graaf</strong> — eerst meer regelingen, daarna interne
+                handleidingen en beleidsnotities</li>
+            <li>Pas dan: begrippen en definities (act. 3)</li>
+            <li>Valideren en ontbrekend beleid signaleren (act. 4–5)</li>
             <li>Vertaling naar uitvoerbare bedrijfsregels (act. 6)</li>
-            <li>Interne handleidingen en beleidsnotities doorzoekbaar</li>
           </ul>
         </div>
       </div>
       <aside class="notes">
         De gerealiseerde items zijn aantoonbaar aanwezig in de code — geen aannames. Een gouden
         testset en een methode-drift-test bewaken automatisch de kwaliteit van elke nieuwe versie.
-        Het roadmap-item "intern corpus" gaat over interne handleidingen en beleidsnotities die
+        Het item "meer bronnen" gaat over extra regelingen en over interne handleidingen en beleidsnotities die
         niet via wetten.overheid.nl beschikbaar zijn — de officiële wet- en regelgeving is al in de graaf.
+      </aside>
+    </section>
+
+
+    <!-- ──────────────────────────────────────────────
+         DIA 9b — Waar dit heen kan
+         Cijfers gemeten op de acceptatiegraaf (5 sep 2026); citeertitels geverifieerd
+         op wetten.overheid.nl. Geen roadmap: wat de opzet mogelijk maakt.
+    ────────────────────────────────────────────── -->
+    <section>
+      <h2>Waar dit heen kan</h2>
+      <div class="potentie">
+        <div class="pot-kaart">
+          <span class="pot-kop">Kennis op één plek</span>
+          <span class="pot-tekst">Wetgeving is één soort kennis. Beleidsstukken, handleidingen en
+            interne notities kunnen er als tweede bron naast — dezelfde vraag, één antwoord.
+            <span class="pot-nu">Plan ligt er, nog niet gebouwd.</span></span>
+        </div>
+        <div class="pot-kaart">
+          <span class="pot-kop">Voor medewerkers, niet voor specialisten</span>
+          <span class="pot-tekst">Vragen stellen in gewone woorden, met de bron erbij. Accounts,
+            rollen, tweestapsaanmelding en een verbruiksgrens per medewerker zitten er al in.
+            <span class="pot-nu">Werkt vandaag.</span></span>
+        </div>
+        <div class="pot-kaart">
+          <span class="pot-kop">Samen aan dezelfde bepaling</span>
+          <span class="pot-tekst">Jurist, uitvoeringsdeskundige en analist werken aan hetzelfde
+            stuk. Een tweede lezing wordt een alternatief naast het eerste, geen overschrijving —
+            en elke beslissing draagt een naam en een tijdstip.
+            <span class="pot-nu">Werkt vandaag.</span></span>
+        </div>
+        <div class="pot-kaart">
+          <span class="pot-kop">De graaf groeit met zichzelf mee</span>
+          <span class="pot-tekst">De wet verwijst naar de wet. Elke regeling die erbij komt, legt
+            zijn verbindingen met wat er al staat <strong>vanzelf</strong>. Er hoeft niets
+            gekoppeld te worden.
+            <span class="pot-nu">Gemeten, zie hieronder.</span></span>
+        </div>
+      </div>
+
+      <div class="groei">
+        <div>
+          <span class="groei-getal">7</span>
+          <span class="groei-wat">regelingen zitten er nu in — 1.162 artikelen</span>
+        </div>
+        <div>
+          <span class="groei-getal">192</span>
+          <span class="groei-wat">regelingen worden al genoemd maar ontbreken nog</span>
+        </div>
+        <div>
+          <span class="groei-getal">1.198</span>
+          <span class="groei-wat">verwijzingen wachten daarop — ruim een derde van alle 3.490</span>
+        </div>
+        <div>
+          <span class="groei-getal">201×</span>
+          <span class="groei-wat">wordt de Wet inkomstenbelasting 2001 aangehaald — de meest
+            gevraagde ontbrekende wet. Daarna het Wetboek van Burgerlijke Rechtsvordering (107×),
+            met daarin de beslagvrije voet.</span>
+        </div>
+      </div>
+
+      <p class="kernzin">Elke wet die erbij komt, maakt de wetten die er al staan bruikbaarder.</p>
+      <aside class="notes">
+        Dit is geen roadmap maar een eigenschap van de opzet. De graaf is open-world: een verwijzing
+        naar een wet die er nog niet in zit, wijst al naar de juiste plek. Zodra die wet wordt
+        geïmporteerd, is de verbinding er — zonder dat iemand iets koppelt.
+
+        De cijfers zijn gemeten op de acceptatiegraaf; de twee wetsnamen zijn nagekeken op
+        wetten.overheid.nl. Artikel 475d Rechtsvordering gaat over de beslagvrije voet, dus dat is
+        geen willekeurig voorbeeld voor Inning.
+
+        Wat dit betekent voor de volgorde: eerst bronnen toevoegen, dan pas nieuwe activiteiten.
+        Zonder bronnen valt er weinig te valideren, en elke extra regeling maakt de analyses die er
+        al liggen waardevoller.
       </aside>
     </section>
 
