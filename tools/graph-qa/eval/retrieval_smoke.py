@@ -19,6 +19,7 @@ de omgeving zelf (`azure-infra` → actie `eval`), niet op een werkplek.
 """
 from __future__ import annotations
 
+import os
 import sys
 import time
 from dataclasses import dataclass
@@ -117,7 +118,13 @@ def _rijen(resultaat: str) -> int:
 
 # Hoe lang de smoke wacht tot de graaf bruikbaar is, en hoeveel regelingen hij dan verwacht.
 # Zie `_wacht_op_graaf` voor het waarom.
-GEREED_SECONDEN = 180.0
+#
+# 180 seconden was te krap: op 5 sep 2026 gaf GraphDB drie minuten lang HTTP 400 terwijl de
+# importjob de graaf herschreef, en de complete smoke viel uit terwijl de annotatieruns er daarna
+# gewoon tegenaan konden. Wachten kost niets als de graaf al staat (de eerste peiling slaagt dan
+# meteen) en het alternatief is een run die na een uur alsnog rood eindigt. Met
+# EVAL_GRAAF_WACHT_SECONDEN is het per omgeving bij te stellen zonder codewijziging.
+GEREED_SECONDEN = float(os.getenv("EVAL_GRAAF_WACHT_SECONDEN") or 900)
 GEREED_REGELINGEN = 5
 
 
@@ -133,9 +140,16 @@ def _wacht_op_graaf(graph: Any, seconden: float | None = None) -> str:
     Het rapport meldde dus zestien defecten die er niet waren. Dat is precies wat een controle niet
     mag doen: wie vals alarm slaat wordt genegeerd, en dan bewaakt hij niets meer.
 
-    **Antwoorden is niet genoeg — hij moet ook gevuld zijn.** De import vervangt per wet een named
-    graph (`PUT`), dus tijdens een import antwoordt GraphDB prima terwijl er wetten ontbreken. Een
-    smoke die dán meet, meet een halve graaf en meldt lege uitkomsten als defecten.
+    **Antwoorden is niet genoeg — hij moet ook gevuld zijn, en niet meer veranderen.** De import
+    vervangt per wet een named graph (`PUT`), dus tijdens een import antwoordt GraphDB prima terwijl
+    er wetten ontbreken. Een smoke die dán meet, meet een halve graaf en meldt lege uitkomsten als
+    defecten. Daarom telt pas een tweede peiling met hetzelfde aantal als "gereed"; dat kost één
+    wachtronde op een graaf die al staat.
+
+    Wat die stabiliteitseis níét vangt: een herimport over een al gevulde graaf, waar het aantal
+    regelingen de hele tijd op zeven blijft staan terwijl de named graphs één voor één worden
+    vervangen. Daarvoor blijft de waarschuwing in `azure-infra.yml` de eerste verdediging — draai
+    `eval` niet vlak na een `deploy`.
     """
     # De default op AANROEPtijd lezen, niet in de signatuur: anders staat de waarde bij het
     # importeren vast en heeft een test die hem verkort geen effect (die liep dan drie minuten).
@@ -143,14 +157,19 @@ def _wacht_op_graaf(graph: Any, seconden: float | None = None) -> str:
     begin = time.monotonic()
     wacht = 5.0
     laatste = "geen antwoord"
+    vorige: int | None = None
     while time.monotonic() - begin < seconden:
         try:
-            rijen = parse_select(graph.sparql(queries.list_regelingen()))
-            if len(rijen) >= GEREED_REGELINGEN:
+            aantal = len(parse_select(graph.sparql(queries.list_regelingen())))
+            if aantal >= GEREED_REGELINGEN and aantal == vorige:
                 return ""
-            laatste = f"graaf antwoordt maar bevat pas {len(rijen)} regelingen"
+            laatste = (f"graaf antwoordt maar bevat pas {aantal} regelingen"
+                       if aantal < GEREED_REGELINGEN
+                       else f"graaf vult nog ({vorige} -> {aantal} regelingen)")
+            vorige = aantal
         except Exception as exc:  # noqa: BLE001 – elke fout is hier "nog niet gereed"
             laatste = f"{type(exc).__name__}: {str(exc)[:120]}"
+            vorige = None  # na een fout begint het tellen opnieuw
         time.sleep(wacht)
         wacht = min(wacht * 1.5, 20.0)
     return f"graaf niet gereed na {int(seconden)}s ({laatste})"
