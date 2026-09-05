@@ -772,6 +772,166 @@
     .stap-naam { font-size: 0.5em; font-weight: 600; color: var(--lint); }
     .stap-tekst { font-size: 0.4em; color: var(--muted); line-height: 1.5; }
 
+    /* ── Woordenlijst ───────────────────────────────────────────────────────────
+       Knop rechtsboven, zijbalk met zoekveld en alfabetische termen. Vorm overgenomen
+       van de `side`-dialoog van de webapp (frontend/components/ui/Dialog.tsx): rechts
+       inschuivend op een breed scherm, bottom-sheet op een smal.
+
+       ALLES HIER IN px/rem, GEEN em. Dit blok staat buiten .reveal en heeft dus geen
+       geschaalde sectie-fontgrootte om zich aan te relateren; em zou hier iets heel
+       anders betekenen dan op de dia's. */
+    .wl-knop {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      /* Onder de zijbalk, niet erboven: met een hogere z-index bleef de knop over de
+         paneelkop heen liggen. Sluiten gaat via de kruisknop, Escape of de achtergrond. */
+      z-index: 999;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 12px;
+      border: 1.5px solid var(--line);
+      border-radius: var(--r-btn);
+      background: var(--paper);
+      color: var(--lint);
+      font: 600 13px/1 "Fira Sans", system-ui, sans-serif;
+      cursor: pointer;
+      box-shadow: var(--schaduw-zacht);
+    }
+    .wl-knop:hover { border-color: var(--lint); }
+    .wl-knop svg { width: 15px; height: 15px; flex: none; }
+
+    .wl-scherm {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgb(21 66 115 / 0.28);
+    }
+    .wl-scherm[hidden] { display: none; }
+    /* De reset.css van reveal.js zet `details { display: block }` op AUTEURSniveau, en dat
+       wint van de `[hidden] { display: none }` van de browser — een auteursregel gaat altijd
+       vóór de user-agent-stijl, ongeacht specificiteit. Zonder deze regel bleef elke term
+       zichtbaar tijdens het filteren terwijl `hidden` netjes gezet was; alleen de letterkoppen
+       (gewone divs, die de reset niet noemt) verdwenen wél. */
+    .wl-scherm [hidden] { display: none !important; }
+
+    .wl-paneel {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      background: var(--paper);
+      box-shadow: var(--schaduw-kaart);
+      /* Zelfde binnenkomst als in de webapp: 8px omhoog, zacht uitdempend. */
+      animation: wl-rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+      /* smal: bottom-sheet */
+      inset: 8% 0 0 0;
+      border-radius: var(--r-vorm) var(--r-vorm) 0 0;
+    }
+    @media (min-width: 640px) {
+      .wl-paneel {
+        /* breed: eigen kolom rechts, volle hoogte */
+        inset: 0 0 0 auto;
+        width: min(30rem, 92vw);
+        border-radius: var(--r-vorm) 0 0 var(--r-vorm);
+      }
+    }
+    @keyframes wl-rise {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .wl-kop {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px 20px 12px;
+    }
+    .wl-titel { font: 600 17px/1.2 "Fira Sans", system-ui, sans-serif; color: var(--lint); }
+    .wl-sluit {
+      border: none;
+      background: none;
+      color: var(--faint);
+      font-size: 22px;
+      line-height: 1;
+      padding: 4px 8px;
+      border-radius: var(--r-btn);
+      cursor: pointer;
+    }
+    .wl-sluit:hover { color: var(--ink); background: var(--surface); }
+
+    .wl-zoek {
+      margin: 0 20px 10px;
+      padding: 9px 12px;
+      border: 1.5px solid var(--line);
+      border-radius: var(--r-btn);
+      background: var(--paper);
+      color: var(--ink);
+      font: 400 14px/1.4 "Fira Sans", system-ui, sans-serif;
+    }
+    .wl-zoek::placeholder { color: var(--faint); }
+    /* iOS zoomt in op een invoerveld kleiner dan 16px; op aanraakschermen dus 16px. */
+    @media (pointer: coarse) { .wl-zoek { font-size: 16px; } }
+
+    .wl-lijst {
+      flex: 1;
+      overflow-y: auto;
+      /* Houd de scroll binnen het paneel: anders bladert het document eronder mee. */
+      overscroll-behavior: contain;
+      padding: 0 20px 24px;
+    }
+    .wl-letter {
+      position: sticky;
+      top: 0;
+      background: var(--paper);
+      padding: 10px 0 4px;
+      font: 600 12px/1 "Fira Sans", system-ui, sans-serif;
+      letter-spacing: 0.08em;
+      color: var(--faint);
+      border-bottom: 1px solid var(--line);
+    }
+    .wl-term { border-bottom: 1px solid var(--surface-2); }
+    .wl-term > summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 9px 22px 9px 0;
+      position: relative;
+      font: 600 14px/1.4 "Fira Sans", system-ui, sans-serif;
+      color: var(--ink);
+    }
+    .wl-term > summary::-webkit-details-marker { display: none; }
+    .wl-term > summary::after {
+      content: "+";
+      position: absolute;
+      right: 2px;
+      top: 8px;
+      color: var(--lint);
+      font-weight: 400;
+      font-size: 16px;
+    }
+    .wl-term[open] > summary::after { content: "−"; }
+    .wl-term > summary:hover { color: var(--lint); }
+    .wl-voluit { display: block; font: italic 400 12.5px/1.4 "Fira Sans", system-ui, sans-serif; color: var(--muted); margin: -2px 0 6px; }
+    .wl-uitleg { font: 400 13px/1.55 "Fira Sans", system-ui, sans-serif; color: var(--muted); margin: 0 0 12px; }
+    .wl-leeg { font: 400 13px/1.55 "Fira Sans", system-ui, sans-serif; color: var(--faint); padding: 16px 0; }
+
+    /* Eén focusweergave, overgenomen uit de webapp: dik genoeg en contrastrijk op elke
+       ondergrond — witte binnenrand tegen donker, lintblauw eromheen tegen licht. */
+    .wl-knop:focus-visible,
+    .wl-sluit:focus-visible,
+    .wl-zoek:focus-visible,
+    .wl-term > summary:focus-visible {
+      outline: 2px solid var(--lint);
+      outline-offset: 2px;
+      box-shadow: 0 0 0 2px var(--paper);
+    }
+
+    /* Op een telefoon is er geen ruimte voor het woord naast het icoon. */
+    @media (max-width: 600px) { .wl-knop-tekst { display: none; } .wl-knop { padding: 8px; } }
+
+    @media print { .wl-knop, .wl-scherm { display: none !important; } }
+
   </style>
 </head>
 <body>
@@ -1885,6 +2045,25 @@
 </div>
 </div>
 
+<button class="wl-knop" id="wl-knop" type="button" aria-expanded="false" aria-controls="wl-scherm">
+  <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+    <path d="M2 3h12M2 8h12M2 13h7"/>
+  </svg>
+  <span class="wl-knop-tekst">Woordenlijst</span>
+</button>
+
+<div class="wl-scherm" id="wl-scherm" hidden>
+  <div class="wl-paneel" role="dialog" aria-modal="true" aria-label="Woordenlijst">
+    <div class="wl-kop">
+      <span class="wl-titel">Woordenlijst</span>
+      <button class="wl-sluit" id="wl-sluit" type="button" aria-label="Woordenlijst sluiten">&times;</button>
+    </div>
+    <input class="wl-zoek" id="wl-zoek" type="search" placeholder="Zoek een term&hellip;"
+           aria-label="Zoek een term" autocomplete="off" spellcheck="false">
+    <div class="wl-lijst" id="wl-lijst"></div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/reveal.js@4/dist/reveal.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/reveal.js@4/plugin/notes/notes.js"></script>
 <script>
@@ -1915,6 +2094,165 @@
     minScale: 0.2,
     maxScale: 1.5,
   });
+</script>
+<script>
+  /* ── Woordenlijst ─────────────────────────────────────────────────────────────
+     Een term is {t: term, v: voluit (alleen bij een afkorting), u: uitleg}. De uitleg
+     is hoogstens twee zinnen en beschrijft wat het ding in DIT platform doet — niet
+     wat de leverancier ervan zegt. Staat er een woord op een dia dat hier ontbreekt,
+     voeg het dan hier toe; de lijst sorteert en filtert zichzelf. */
+  const WOORDEN = [
+    {t:"aandachtsniveau", u:"Het signaal dat de Critic aan een voorstel hangt: groen, geel of rood. Het zegt waar Lex zelf twijfelt, niet of iets is goedgekeurd."},
+    {t:"acceptatie", u:"De omgeving waarin een nieuwe versie eerst draait, los van het echte werk. Wat je in deze demo ziet, draait daar."},
+    {t:"agent", u:"Een programma dat een taak in stappen uitvoert met behulp van een taalmodel en zelf bepaalt welke gegevens het daarvoor ophaalt. Lex is zo'n agent."},
+    {t:"annotatie", u:"Het resultaat van het markeren: een stuk wettekst met een JAS-klasse eraan en een verwijzing naar de vindplaats. Annoteren is het maken daarvan."},
+    {t:"API", v:"Application Programming Interface", u:"De ingang waarlangs twee programma's rechtstreeks gegevens uitwisselen, zonder scherm ertussen. De werkplek haalt er zijn gegevens vandaan."},
+    {t:"Application Insights", u:"De Azure-dienst waarin de metingen van het platform binnenkomen. Daar kijk je terug wat er tijdens een aanvraag precies gebeurde."},
+    {t:"auditspoor", u:"De onwijzigbare vastlegging van wie wat wanneer besliste. Daarmee is achteraf te tonen hoe een analyse tot stand is gekomen."},
+    {t:"Auth.js", u:"De bouwsteen die het inloggen in de webapplicatie regelt. Hij bewaakt wie er binnen mag en met welke rol."},
+    {t:"Azure", u:"Het cloudplatform van Microsoft waarop dit platform draait. Alle onderdelen staan daar als losse, kleine diensten naast elkaar."},
+    {t:"Azure AI Foundry", u:"De dienst binnen Azure waarlangs het taalmodel wordt aangeroepen. Zo blijft dat verkeer binnen de eigen omgeving."},
+    {t:"brongetrouw", u:"Alleen werken met tekst die letterlijk uit de officiële bron is opgehaald, en elk citaat herleidbaar houden tot artikel en lid. Het model formuleert de wettekst dus nooit zelf."},
+    {t:"BWB", v:"Basiswettenbestand", u:"De officiële verzameling Nederlandse wetteksten van de overheid. De kennisgraaf wordt daar wekelijks uit bijgewerkt."},
+    {t:"BWBR-nummer", u:"Het vaste kenmerk van één regeling in het Basiswettenbestand, bijvoorbeeld BWBR0004770 voor de Invorderingswet 1990. Het verandert niet als de wet wordt gewijzigd."},
+    {t:"CLI", v:"command line interface — opdrachtregel", u:"Een programma dat je met getypte opdrachten bedient in plaats van met knoppen. Bouwgereedschap, niet bedoeld voor eindgebruikers."},
+    {t:"Claude", u:"Het taalmodel van Anthropic dat achter Lex zit. Het redeneert over tekst; het bewaart niets en beslist niets."},
+    {t:"Claude Code", u:"Het opdrachtregelprogramma waarmee dit platform grotendeels is geschreven en herzien. Het is bouwgereedschap en draait niet mee in de dienst."},
+    {t:"Container Apps", u:"De Azure-dienst die de losse onderdelen draait en ze automatisch op- en afschaalt. Zonder verkeer staan ze op nul."},
+    {t:"Critic", u:"De tweede AI-stap, die elk voorstel nakijkt op klasse, fragment en afbakening. Wat zeker fout is corrigeert hij; bij twijfel legt hij de keuze voor aan de jurist."},
+    {t:"CSV", v:"comma-separated values", u:"Een eenvoudig tabelformaat dat elk rekenblad kan openen. Eén van de vormen waarin een afgeronde analyse te exporteren is."},
+    {t:"Docker", u:"De techniek die een programma met alles wat het nodig heeft in één afgesloten pakket stopt, een container genoemd. Daardoor draait het overal hetzelfde."},
+    {t:"FastAPI", u:"Het Python-raamwerk waarmee de API is gebouwd. Het regelt de ingangen en controleert wat er binnenkomt."},
+    {t:"gereedschap", v:"tool", u:"Een vooraf gebouwde opdracht die het taalmodel mag aanroepen, bijvoorbeeld “haal artikel 9 op”. Lex heeft er negentien en kan niets daarbuiten."},
+    {t:"GHCR", v:"GitHub Container Registry", u:"De opslagplaats waar de gebouwde pakketten staan voordat ze naar Azure gaan. Elke versie heeft er een eigen vingerafdruk."},
+    {t:"GitHub Actions", u:"De automatische lopende band die bij elke wijziging test, bouwt en uitrolt. Faalt een test, dan gaat er niets naar buiten."},
+    {t:"Grafana", u:"Het scherm waarop de metingen van het platform als grafieken te zien zijn. Bedoeld voor beheer, niet voor de analist."},
+    {t:"GraphDB", u:"De database waarin de wet als netwerk is opgeslagen. Lex stelt er zijn vragen aan; schrijven doet hij er niet in."},
+    {t:"grounding", u:"De controle die elk voorgesteld fragment letterlijk terugzoekt in de opgehaalde wettekst. Wat niet teken voor teken wordt gevonden, gaat niet door."},
+    {t:"instructie", v:"prompt", u:"De tekst die het taalmodel bij elke opdracht meekrijgt: de methode, de regels en de bepaling zelf. Verandert die tekst, dan verandert het gedrag."},
+    {t:"JAS", v:"Juridisch Analyseschema", u:"De indeling in dertien klassen waarmee je de juridische structuur van een bepaling benoemt, van rechtssubject tot brondefinitie. Het is de kern van de methode Wetsanalyse."},
+    {t:"jci-verwijzing", v:"juriconnect", u:"De standaardmanier om naar een precieze plek in een regeling te verwijzen, tot op het lid. Elke markering draagt er één."},
+    {t:"JSON", v:"JavaScript Object Notation", u:"Een tekstformaat waarin programma's gestructureerde gegevens uitwisselen. Ook één van de exportvormen."},
+    {t:"kennisgraaf", u:"De wet opgeslagen als netwerk van bepalingen en hun onderlinge verwijzingen, in plaats van als losse documenten. Daardoor is doorzoekbaar wat waar staat en wat waarnaar verwijst."},
+    {t:"LangGraph", u:"De bouwsteen die de stappen van Lex in een vaste volgorde zet en bewaakt. Zo ligt vast welke stap wanneer aan de beurt is."},
+    {t:"Log Analytics", u:"De opslag waarin alle meldingen van de draaiende onderdelen terechtkomen. Daar zoek je in als er iets misgaat."},
+    {t:"Lucene-zoekindex", u:"De zoekmachine bovenop de kennisgraaf die op woorden in de wettekst zoekt. Zonder die index zou elke zoekopdracht de hele wet moeten doorlopen."},
+    {t:"lxml", u:"De bouwsteen die de officiële wetbestanden inleest en controleert. Hij bewaakt dat de opgehaalde tekst voldoet aan het formaat van de overheid."},
+    {t:"markering", u:"Een aangewezen stuk tekst in een bepaling, letterlijk overgenomen, met één JAS-klasse eraan. Één lid levert er meestal meerdere op."},
+    {t:"MCP", v:"Model Context Protocol", u:"De afspraak waarmee een taalmodel gereedschap kan aanroepen, bijvoorbeeld om de kennisgraaf te bevragen. Lex komt alleen langs die weg bij de graaf."},
+    {t:"Next.js", u:"Het raamwerk waarin de webapplicatie is gebouwd. Het levert de pagina's die je in de browser ziet."},
+    {t:"OpenTelemetry", u:"De open afspraak waarmee alle onderdelen op dezelfde manier melden wat ze doen. Daardoor is één aanvraag door de hele keten te volgen."},
+    {t:"PDF", v:"portable document format", u:"Het opmaakformaat voor documenten die er overal hetzelfde uitzien. Eén van de exportvormen van een afgeronde analyse."},
+    {t:"PostgreSQL", u:"De database waarin de beslissingen van de jurist, de gesprekken en de accounts worden bewaard. Anders dan de kennisgraaf blijft deze opslag wél staan."},
+    {t:"productie", u:"De echte werkomgeving, waarin het werk van gebruikers staat. Er komt alleen iets in na een uitdrukkelijke goedkeuring."},
+    {t:"Python", u:"De programmeertaal waarin de agent, de importer en de API zijn geschreven."},
+    {t:"RDF", v:"Resource Description Framework", u:"De standaardmanier om gegevens vast te leggen als een netwerk van losse feiten: dit hoort bij dat, dit verwijst naar dat. De wet staat in die vorm in de kennisgraaf."},
+    {t:"rdflib", u:"De bouwsteen die de ingelezen wettekst omzet naar de netwerkvorm van de kennisgraaf."},
+    {t:"React", u:"De bouwsteen waarmee de schermen van de webapplicatie zijn opgebouwd."},
+    {t:"semantisch zoeken", u:"Zoeken op betekenis in plaats van op exacte woorden, zodat “te laat betaald” ook bepalingen over verzuim vindt. Werkt alleen zolang de zoekindex is opgebouwd."},
+    {t:"skill", u:"Een methodebeschrijving in gewone tekst die vastlegt hoe een taak moet worden uitgevoerd. Hier: de wetsanalysemethode waaruit de instructie voor het model wordt afgeleid."},
+    {t:"SPARQL", v:"SPARQL Protocol and RDF Query Language", u:"De vraagtaal waarmee je een kennisgraaf bevraagt, vergelijkbaar met wat SQL voor een gewone database is. Lex schrijft die vragen niet zelf; hij kiest uit vast gereedschap."},
+    {t:"supervisor", u:"De eerste stap van Lex, die bepaalt of het om een vraag of om een annotatie gaat en welke aanpak daarbij hoort."},
+    {t:"taalmodel", v:"large language model, LLM", u:"Een programma dat op grote hoeveelheden tekst is getraind en daardoor taal begrijpt en produceert. Het weet niets zeker en bewaart niets — daarom wordt alles nagerekend tegen de bron."},
+    {t:"Trivy", u:"De controle die de gebouwde pakketten nakijkt op bekende kwetsbaarheden voordat ze worden uitgerold."},
+    {t:"werkplek", u:"Het scherm in de browser waar je vragen stelt en voorstellen beoordeelt. Chat en review zitten er in één venster."},
+    {t:"Wetsanalyse", u:"De methode om wet- en regelgeving gestructureerd en herleidbaar te duiden, in zes activiteiten. Dit platform ondersteunt activiteit 2: markeren en classificeren."},
+  ];
+
+  (function woordenlijst() {
+    const knop   = document.getElementById('wl-knop');
+    const scherm = document.getElementById('wl-scherm');
+    const sluit  = document.getElementById('wl-sluit');
+    const zoek   = document.getElementById('wl-zoek');
+    const lijst  = document.getElementById('wl-lijst');
+    if (!knop || !scherm || !lijst) return;   // de deck moet ook zonder de lijst werken
+
+    const plat = (x) => (x || '').toLocaleLowerCase('nl').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const sorteer = (a, b) => a.t.localeCompare(b.t, 'nl', { sensitivity: 'base' });
+
+    // Eén keer opbouwen: per term een <details>, gegroepeerd onder een letterkop. <details>
+    // levert toetsenbediening en schermlezer-ondersteuning zonder eigen JavaScript.
+    const rijen = [];
+    let letter = '';
+    for (const w of [...WOORDEN].sort(sorteer)) {
+      const l = plat(w.t).charAt(0).toUpperCase();
+      if (l !== letter) {
+        letter = l;
+        const kop = document.createElement('div');
+        kop.className = 'wl-letter';
+        kop.textContent = letter;
+        lijst.appendChild(kop);
+        rijen.push({ kop, termen: [] });
+      }
+      const d = document.createElement('details');
+      d.className = 'wl-term';
+      const s = document.createElement('summary');
+      s.textContent = w.t;
+      d.appendChild(s);
+      if (w.v) {
+        const v = document.createElement('span');
+        v.className = 'wl-voluit';
+        v.textContent = w.v;
+        d.appendChild(v);
+      }
+      const u = document.createElement('p');
+      u.className = 'wl-uitleg';
+      u.textContent = w.u;
+      d.appendChild(u);
+      d.dataset.zoek = plat(w.t + ' ' + (w.v || '') + ' ' + w.u);
+      lijst.appendChild(d);
+      rijen[rijen.length - 1].termen.push(d);
+    }
+
+    const leeg = document.createElement('p');
+    leeg.className = 'wl-leeg';
+    leeg.textContent = 'Geen term gevonden.';
+    leeg.hidden = true;
+    lijst.appendChild(leeg);
+
+    function filter() {
+      const q = plat(zoek.value.trim());
+      let treffers = 0;
+      for (const groep of rijen) {
+        let zichtbaar = 0;
+        for (const d of groep.termen) {
+          const past = !q || d.dataset.zoek.includes(q);
+          d.hidden = !past;
+          if (past) zichtbaar++;
+        }
+        groep.kop.hidden = zichtbaar === 0;
+        treffers += zichtbaar;
+      }
+      leeg.hidden = treffers > 0;
+    }
+    zoek.addEventListener('input', filter);
+
+    // Typen in het zoekveld mag niet door de dia's bladeren. Reveal negeert toetsen in
+    // een invoerveld al, maar dat is zijn keuze en niet de onze — dus hier ook afvangen.
+    scherm.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { doe(false); return; }
+      e.stopPropagation();
+    });
+
+    function doe(open) {
+      scherm.hidden = !open;
+      knop.setAttribute('aria-expanded', String(open));
+      if (open) { zoek.focus(); zoek.select(); } else { knop.focus(); }
+    }
+    knop.addEventListener('click', () => doe(scherm.hidden));
+    sluit.addEventListener('click', () => doe(false));
+    scherm.addEventListener('mousedown', (e) => { if (e.target === scherm) doe(false); });
+
+    // `w` als sneltoets. Reveal.js heeft b/. (pauze), f (volledig scherm), o en Esc
+    // (overzicht), s (spreekscherm) en g (spring naar dia) al bezet; w is vrij.
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'w' || e.metaKey || e.ctrlKey || e.altKey) return;
+      const el = document.activeElement;
+      if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return;
+      e.preventDefault();
+      doe(scherm.hidden);
+    });
+  })();
 </script>
 </body>
 </html>

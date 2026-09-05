@@ -592,6 +592,37 @@ niet over het platform gaat. Spreek de lezer overal aan met *je/jij*, nooit met 
 Basiswettenbestand, Invorderingswet 1990, tweestapsaanmelding. Productnamen op de
 technologiedia (RDF, SPARQL, MCP, CLI, GHCR) blijven zoals ze heten.
 
+### Woordenlijst
+
+Het deck staat vol met woorden die buiten de techniek niemand kent. Die uitleg hoort **niet op de
+dia's** maar ernaast, op verzoek van de kijker: een knop rechtsboven opent een zijbalk met een
+zoekveld en daaronder alle termen alfabetisch; klik op een term en de uitleg klapt open.
+
+- **Neem elke term op die op een zichtbare dia voorkomt** — ook de productnamen van de
+  technologiedia (Trivy, GHCR, rdflib). Wat iemand op een dia ziet, moet hij kunnen opzoeken.
+- **Hoogstens twee zinnen per term, zonder jargon in de uitleg**, en beschrijf wat het ding in
+  *dit* platform doet in plaats van wat de leverancier ervan zegt.
+- **Bij elke afkorting staat de voluit-vorm erbij**, cursief boven de uitleg.
+- Zoeken filtert op term, voluit-vorm én uitleg (zo vindt "container" ook *Docker*), ongevoelig
+  voor hoofdletters en accenten. Lege lettergroepen verdwijnen; bij nul treffers één regel tekst.
+- De dia's zelf blijven ongemoeid: geen klikbare of onderstreepte woorden in de tekst.
+
+**Vormgeving:** overgenomen van de `side`-dialoog van de webapp
+(`frontend/components/ui/Dialog.tsx`) — rechts inschuivend paneel van `min(30rem, 92vw)` op een
+breed scherm, bottom-sheet vanaf 8% van boven op een smal; `var(--r-vorm)`-hoeken, `--schaduw-kaart`
+en dezelfde `rise`-animatie. De focusweergave, `overscroll-behavior: contain` en het 16px-zoekveld
+onder `@media (pointer: coarse)` komen uit `frontend/app/globals.css`.
+
+**Drie dingen die hier stukgaan als je ze vergeet:**
+
+1. Knop en paneel horen **buiten** `<div class="reveal">`, anders schalen ze mee met de dia's — en
+   om dezelfde reden staat alle CSS hier in **px/rem**, nooit in `em`.
+2. De `reset.css` van reveal.js zet `details { display: block }` op auteursniveau, en dat wint van
+   de `[hidden]`-regel van de browser. Zonder een eigen `[hidden] { display: none !important }`
+   blijft elke term zichtbaar tijdens het filteren terwijl `hidden` netjes gezet is.
+3. Reveal.js houdt `b`, `.`, `f`, `o`, `s`, `Esc` en `g` al bezet; gebruik `w` voor de
+   woordenlijst, en vang `keydown` in het paneel af zodat typen niet door de dia's bladert.
+
 ### Technische vereisten voor de HTML
 
 - Eén `.html`-bestand, klaar om lokaal te openen (geen server nodig)
