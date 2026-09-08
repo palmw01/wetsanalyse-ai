@@ -120,6 +120,13 @@ jobs:
           az containerapp update     -n "$PRD_APP-frontend"   -g "$PRD_RG" --image "$IMG_FRONTEND"   --output none
           az containerapp update     -n "$PRD_APP-graph-qa"   -g "$PRD_RG" --image "$IMG_GRAPH_QA"   --output none
           az containerapp job update -n "$PRD_APP-bwb-import" -g "$PRD_RG" --image "$IMG_BWB_IMPORT" --output none
+          # De graafwacht draait hetzelfde importer-image; zonder deze regel blijft productie op de
+          # versie van de laatste infra-deploy staan terwijl de tag iets anders belooft.
+          if az containerapp job show -n "$PRD_APP-graafwacht" -g "$PRD_RG" --output none 2>/dev/null; then
+            az containerapp job update -n "$PRD_APP-graafwacht" -g "$PRD_RG" --image "$IMG_BWB_IMPORT" --output none
+          else
+            echo "::warning::job $PRD_APP-graafwacht bestaat nog niet – rol de infra op productie uit."
+          fi
 
       # Dezelfde gate als in de publish-workflows: `update` keert terug zodra de revisie is
       # AANGEMAAKT, niet zodra hij draait.

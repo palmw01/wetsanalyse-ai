@@ -311,9 +311,21 @@ bij overheid.nl. Gevolgen:
 
 - De graphdb-app schaalt **niet naar nul** (`minReplicas: 1`) – anders is de graaf bij de volgende
   request leeg. Dit is de component die doorloopt zolang de omgeving aan staat.
-- Na elke herstart van die app moet de import-job opnieuw draaien.
-- De similarity-index `bwb_similarity` (voor `semantic_search`) overleeft een herstart evenmin en
-  moet opnieuw gebouwd worden; tot dat moment valt de tool terug op `search_wetgeving`.
+- Na elke herstart van die app moet er opnieuw geïmporteerd worden. Dat gaat sinds 8 sep 2026
+  vanzelf: de job **`<appName>-graafwacht`** draait elk kwartier, peilt met één SPARQL-query of alle
+  regelingen er staan (`--alleen-bij-verlies`) en importeert alléén bij verlies. Op een complete
+  graaf stopt hij binnen een seconde en raakt hij overheid.nl niet aan.
+
+  Daarvóór hing dit aan een `deploy` of aan de weekcron van maandag 03:00 UTC, en dus kon de graaf
+  tot bijna zeven dagen onbruikbaar zijn. Op 8 sep 2026 gebeurde dat: Lex gaf op elke vraag
+  `Repository inning doesn't exist` — een terechte weigering om uit eigen geheugen te citeren, maar
+  niemand zag het en niets herstelde het. Het paneel *Graaf weg* in het Grafana-dashboard maakt het
+  nu zichtbaar. Handmatig forceren blijft `azure-infra` → `vul-graaf`.
+- De similarity-index `bwb_similarity` (voor `semantic_search`) overleeft een herstart evenmin. De
+  importer bouwt hem sinds diezelfde datum zelf terug (`ensure_similarity_index`, net als de
+  FTS-connector); daarvóór deed niets dat en viel `semantic_search` **permanent** en stil terug op
+  `search_wetgeving`. Mislukt de herbouw, dan blijft de import groen — de wettekst staat er dan
+  gewoon — en zegt de importlog waarom.
 
 ## Beveiliging – hoe dit afwijkt van de zelfgehoste opzet
 

@@ -12,10 +12,15 @@ import json
 from dataclasses import replace
 from pathlib import Path
 
-from rdflib import OWL, RDF, RDFS, URIRef, XSD, Literal
+import requests
+from rdflib import OWL, RDF, RDFS, XSD, Literal, URIRef
 
 from app.collect import collect, structuurindex
-from app.graphdb_writer import GraphDbWriter, _fts_connector_config
+from app.graphdb_writer import (
+    GraphDbWriter,
+    _fts_connector_config,
+    _similarity_index_config,
+)
 from app.models import (
     Artikel,
     Divisie,
@@ -804,3 +809,98 @@ def test_een_echt_ambigue_verwijzing_blijft_onopgelost() -> None:
     # En de index blijft hier zelfs helemaal leeg: de hoofdstukken dragen géén pad in hun sleutel
     # (`{bwb}#hoofdstuk=IV` ís de padloze vorm), dus daar valt niets op te lossen.
     assert index == {}
+
+
+# ------------------------------------------------- graafwacht: is de graaf compleet?
+class _GraafStub:
+    """requests.Session-vervanger die de named-graph-SELECT beantwoordt.
+
+    ``graven`` zijn de BWB-id's die als gevulde named graph in de repository staan; ``fout`` laat de
+    SELECT klappen zoals GraphDB doet wanneer de repository niet bestaat.
+    """
+
+    def __init__(self, graven: list[str] | None = None, fout: Exception | None = None) -> None:
+        self._graven = graven or []
+        self._fout = fout
+
+    def post(self, url: str, *, data=None, **_kw) -> _StubResponse:
+        if self._fout is not None:
+            raise self._fout
+        bindings = [{"g": {"value": str(V.graph(b))}} for b in self._graven]
+        return _StubResponse({"results": {"bindings": bindings}})
+
+
+def _graaf_writer(session: _GraafStub) -> GraphDbWriter:
+    return GraphDbWriter(url="http://graphdb:7200", repository="inning", vocab=V, session=session)
+
+
+def test_graaf_is_compleet_bij_alle_regelingen() -> None:
+    session = _GraafStub(graven=["BWBR0004770", "BWBR0005537"])
+    assert _graaf_writer(session).graaf_is_compleet(["BWBR0004770", "BWBR0005537"]) is True
+
+
+def test_graaf_is_incompleet_wanneer_er_een_regeling_ontbreekt() -> None:
+    session = _GraafStub(graven=["BWBR0004770"])
+    assert _graaf_writer(session).graaf_is_compleet(["BWBR0004770", "BWBR0005537"]) is False
+
+
+def test_graaf_is_incompleet_bij_een_lege_graaf() -> None:
+    """De toestand ná een GraphDB-herstart: de repository bestaat, maar er staat niets in."""
+    assert _graaf_writer(_GraafStub(graven=[])).graaf_is_compleet(["BWBR0004770"]) is False
+
+
+def test_ontbrekende_repository_telt_als_incompleet_en_werpt_niet() -> None:
+    """`Repository inning doesn't exist` is precies waarvoor de graafwacht bestaat.
+
+    Een uitzondering hier zou de job rood maken zonder iets te herstellen; de storing van 8 sep 2026
+    liep juist op dit antwoord vast.
+    """
+    session = _GraafStub(fout=requests.HTTPError("404 Repository inning doesn't exist"))
+    assert _graaf_writer(session).graaf_is_compleet(["BWBR0004770"]) is False
+
+
+# ------------------------------------------------- similarity-index
+def test_similarity_config_indexeert_de_eigen_iri_ruimte() -> None:
+    config = _similarity_index_config(V)
+    assert config["name"] == "bwb_similarity"
+    assert config["type"] == "text"
+    assert f"<{V.ns}tekst>" in config["selectQuery"]
+    assert f'STRSTARTS(STR(?documentID), "{V.base}")' in config["selectQuery"]
+    # SemanticVectors kent `-dimension`, niet `-vectorsize`; zie de embeddings-runbook.
+    assert "-dimension" in config["options"] and "-vectorsize" not in config["options"]
+
+
+class _SimilarityStub:
+    """Vervangt de REST-calls van de similarity-plugin."""
+
+    def __init__(self, bestaand: list[str] | None = None, post_fout: Exception | None = None):
+        self.aangemaakt: list[dict] = []
+        self._bestaand = bestaand or []
+        self._post_fout = post_fout
+
+    def get(self, url: str, **_kw) -> _StubResponse:
+        return _StubResponse([{"name": n} for n in self._bestaand])
+
+    def post(self, url: str, *, json=None, **_kw) -> _StubResponse:
+        if self._post_fout is not None:
+            raise self._post_fout
+        self.aangemaakt.append(json)
+        return _StubResponse()
+
+
+def test_similarity_index_wordt_aangemaakt_wanneer_hij_ontbreekt() -> None:
+    session = _SimilarityStub(bestaand=[])
+    _graaf_writer(session).ensure_similarity_index()
+    assert [c["name"] for c in session.aangemaakt] == ["bwb_similarity"]
+
+
+def test_similarity_index_is_idempotent() -> None:
+    session = _SimilarityStub(bestaand=["bwb_similarity"])
+    _graaf_writer(session).ensure_similarity_index()
+    assert session.aangemaakt == []
+
+
+def test_falende_similarity_index_maakt_de_import_niet_rood() -> None:
+    """De wettekst staat dan al in de graaf; alleen semantic_search degradeert."""
+    session = _SimilarityStub(bestaand=[], post_fout=requests.HTTPError("500"))
+    _graaf_writer(session).ensure_similarity_index()  # werpt niet

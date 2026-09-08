@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from lxml import etree
+
 from app.models import Wet
 from app.parser import ToestandParser
 
@@ -125,6 +127,67 @@ def test_definities_uit_nadruk(sample_xml: Path) -> None:
     assert {"rijksbelastingen", "Koninkrijk", "Rijk", "Nederland", "BES eilanden"} <= set(begrippen)
     # Cursieve niet-definities (bv. "Stb." middenin een zin) tellen niet mee.
     assert "Stb." not in begrippen
+
+
+def test_definities_zonder_cursief_uit_de_tekst(sample_xml: Path) -> None:
+    """Ook een definitie die de bron NIET cursiveert telt mee.
+
+    De BWB-bron is daar inconsistent: in ditzelfde lid staat `rijksbelastingen:` wel als
+    `<nadruk type="cur">` en `belastingschuldige:` niet. Daardoor stonden er op 8 sep 2026 nog maar
+    34 definities in de hele graaf en gaf `zoek_definitie("belastingschuldige")` niets terug.
+    """
+    lid1 = _parse(sample_xml).structuurdelen[0].artikelen[1].leden[0]
+    begrippen = [b for o in lid1.onderdelen for b in o.definieert_begrippen]
+
+    assert "belastingschuldige" in begrippen
+    assert "belastingaanslag" in begrippen
+    # De definitie loopt niet door in de omschrijving: alleen de term vóór de dubbele punt.
+    onderdeel_k = next(o for o in lid1.onderdelen if o.nummer.startswith("k"))
+    assert onderdeel_k.definieert_begrippen == ["belastingschuldige"]
+
+
+def test_cursieve_term_telt_maar_een_keer(sample_xml: Path) -> None:
+    """Beide routes vuren op `rijksbelastingen:` (cursief én `term: definitie`); dat mag niet
+    verdubbelen op één onderdeel."""
+    lid1 = _parse(sample_xml).structuurdelen[0].artikelen[1].leden[0]
+    onderdeel_a = next(o for o in lid1.onderdelen if o.nummer.startswith("a."))
+    assert onderdeel_a.definieert_begrippen == ["rijksbelastingen"]
+
+
+def test_verstaat_mede_onder_telt_ook_als_definitielijst(sample_xml: Path) -> None:
+    """Artikel 2 lid 2 IW luidt "Deze wet verstaat MEDE onder:" – een echte begrippenlijst.
+
+    Een aanhef-regex die alleen "verstaat onder" kent laat die vallen; dat is de reden dat `mede`
+    expliciet in `_DEFINITIE_AANHEF` staat.
+    """
+    lid2 = _parse(sample_xml).structuurdelen[0].artikelen[1].leden[1]
+    begrippen = [b for o in lid2.onderdelen for b in o.definieert_begrippen]
+    assert "rijksbelastingen" in begrippen
+
+
+def test_dubbele_punt_zonder_definitie_aanhef_levert_geen_begrip() -> None:
+    """De dubbele punt alléén is geen definitie – dit is de rem op de tekstroute.
+
+    Letterlijk artikel 62 lid 2 IW 1990: dezelfde vorm `term: omschrijving`, maar het lid somt
+    gegevens op in plaats van begrippen te bepalen. Zonder de aanhef-eis zou "met betrekking tot een
+    natuurlijk persoon" als gedefinieerd begrip in de graaf belanden.
+    """
+    lid = etree.fromstring(
+        "<lid><al>Financiële ondernemingen als bedoeld in het eerste lid zijn gehouden aan de "
+        "ontvanger kosteloos de volgende gegevens te verstrekken:</al>"
+        "<lijst><li><li.nr>a.</li.nr>"
+        "<al>met betrekking tot een natuurlijk persoon: de naam, het adres en de "
+        "geboortedatum;</al>"
+        "</li></lijst></lid>"
+    )
+    assert ToestandParser._leidt_definities_in(lid) is False
+
+    onderdeel = lid.xpath("./lijst/li")[0]
+    assert ToestandParser._definities(onderdeel, definitie_context=True) == [
+        "met betrekking tot een natuurlijk persoon"
+    ]
+    # ... maar zonder de context – de werkelijke situatie – blijft het leeg.
+    assert ToestandParser._definities(onderdeel, definitie_context=False) == []
 
 
 def test_noot_niet_in_tekst_maar_als_voetnoot(sample_tabel_xml: Path) -> None:

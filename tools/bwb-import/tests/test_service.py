@@ -5,8 +5,9 @@
 
 from __future__ import annotations
 
-import pytest
 from types import SimpleNamespace
+
+import pytest
 from fastapi.testclient import TestClient
 
 import app.service as service
@@ -106,7 +107,12 @@ def _nep_fasen(monkeypatch, *, stuk_bij_verzamelen=(), stuk_bij_schrijven=()):
     import app.main as main_module
     from app.collect import Batch
 
-    monkeypatch.setattr(main_module, "maak_writer", lambda settings: object())
+    monkeypatch.setattr(
+        main_module,
+        "maak_writer",
+        # Geen kaal object(): `run_imports` waarborgt na afloop de similarity-index.
+        lambda settings: SimpleNamespace(ensure_similarity_index=lambda: None),
+    )
     monkeypatch.setattr(main_module, "prepare", lambda writer: None)
 
     def nep_verzamel(bwb_id, settings):
