@@ -550,10 +550,24 @@ jobs:
           # geïmporteerd?" met de inventaris niet te beantwoorden — die toont alleen de huidige
           # stand. GraphDB heeft geen persistente opslag, dus zijn revisie-historie ís de
           # storingshistorie van de graaf.
-          echo "--- graphdb-revisies (createdTime = het moment dat de graaf leeg opkwam) ---"
+          echo "--- graphdb-revisies ---"
           az containerapp revision list -n "$APP_NAME-graphdb" -g "$RESOURCE_GROUP" \
             --query "reverse(sort_by([].{revisie:name, aangemaakt:properties.createdTime, actief:properties.active, replicas:properties.replicas}, &aangemaakt))" \
             -o tsv 2>/dev/null || true
+          # De REPLICA, niet de revisie, is het signaal dat je zoekt. Een revisie wordt alleen door een
+          # deploy aangemaakt; een container die door de liveness-probe wordt gekild of zelf crasht
+          # herstart bínnen dezelfde revisie — en dan is de graaf leeg terwijl de revisielijst
+          # onveranderd sinds weken dezelfde datum toont. Precies dat gebeurde op 8 sep 2026: revisie
+          # --0000001 stond op 1 sep, en tóch was de repository weg. `restartCount` en de
+          # replica-`createdTime` zijn wat die herstart wél laat zien.
+          echo "--- graphdb-replicas (startTime + restartCount = de werkelijke herstart) ---"
+          rev=$(az containerapp revision list -n "$APP_NAME-graphdb" -g "$RESOURCE_GROUP" \
+            --query "[?properties.active].name | [0]" -o tsv 2>/dev/null || true)
+          if [ -n "${rev:-}" ]; then
+            az containerapp replica list -n "$APP_NAME-graphdb" -g "$RESOURCE_GROUP" --revision "$rev" \
+              --query "[].{replica:name, gestart:properties.createdTime, herstarts:properties.containers[0].restartCount, status:properties.runningState}" \
+              -o tsv 2>/dev/null || true
+          fi
           for j in bwb-import graafwacht; do
             echo "--- uitvoeringen van $APP_NAME-$j (laatste 10) ---"
             az containerapp job execution list -n "$APP_NAME-$j" -g "$RESOURCE_GROUP" \
