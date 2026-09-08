@@ -219,6 +219,19 @@ niets anders uitrolt dan de tag belooft. De credentials, resource group en `APP_
 GitHub-environment; de menselijke poort vóór productie zit daar ook, en niet in een
 workflow-conditie.
 
+**Een merge die uit `GITHUB_TOKEN` voortkomt bouwt niets, en daar staat een wacht voor.** GitHub
+onderdrukt élk event dat door dat token wordt veroorzaakt — dus als `dependabot-auto-merge.yml` de
+auto-merge aanzet en GitHub de PR daarna zelf merget, vuurt er géén `push` en géén
+`pull_request: closed`, en draait er dus geen publish-workflow. Op 8 sep 2026 landden zo vier
+dependency-PR's op master zonder dat er één image werd gebouwd; acceptatie draaide oude code met een
+nieuwe lockfile en niets kleurde rood. Een job die op de merge wacht lost dat niet op (dat was
+`publish-na-merge`, verwijderd), want die wordt door dezelfde regel onderdrukt. **`bouwwacht.yml`**
+meet daarom elk kwartier de toestand in plaats van op een gebeurtenis te wachten: het OCI-label
+`org.opencontainers.image.revision` op `:latest` tegen de commits op master die de paden van die
+component raken — en alleen bij achterstand een `workflow_dispatch`. Hij leest de componenten,
+images en paden uit de publish-workflows zelf, dus een vijfde component wordt vanzelf bewaakt, en
+hij herstart niets waarvan de laatste build op dezelfde commit al mislukte.
+
 **De applicatie-secrets roteren niet bij een infra-deploy.** `azure-infra.yml` neemt ze over —
 GitHub environment-secret (`WA_*`) → wat er in Azure draait → anders vers genereren. Dat is geen
 netheid maar noodzaak: `llm-config-secret` is de Fernet-sleutel waarmee de api de API-keys van

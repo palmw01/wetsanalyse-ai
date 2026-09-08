@@ -13,6 +13,16 @@ on:
       - ".github/workflows/bwb-import-docker-publish.yml"
   workflow_dispatch:
 
+# Twee builds van hetzelfde image tegelijk lopen elkaar in de weg: ze pushen allebei `latest` en
+# `sha-…`, de laatste push ontagt de digest van de eerste, en `ghcr-cleanup` (delete-untagged) ruimt
+# die vervolgens op — waarna de deploy van de eerste run faalt met `MANIFEST_UNKNOWN`. Dat gebeurde
+# op 8 sep 2026 toen een push-build en een handmatige dispatch van dezelfde commit elkaar kruisten.
+# `cancel-in-progress: false` laat de tweede wachten in plaats van racen; afbreken zou een uitrol
+# halverwege kunnen killen.
+concurrency:
+  group: bwb-import-docker-publish
+  cancel-in-progress: false
+
 env:
   IMAGE: ghcr.io/${{ github.repository_owner }}/bwb-import
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"

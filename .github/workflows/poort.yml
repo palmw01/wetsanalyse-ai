@@ -42,44 +42,30 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Een job die op `merged == true` wacht, moet ook op `closed` getriggerd worden — anders
-      # vuurt hij nooit. Dat klinkt vanzelfsprekend en was het niet: `publish-na-merge` in
-      # dependabot-auto-merge.yml stond een week lang op de default-types (geen `closed`) en sloeg
-      # zichzelf elke keer over. Een overgeslagen job kleurt de run niet rood, dus dat viel pas op
-      # toen er vier dependency-PR's op master stonden waarvan geen enkel image was gebouwd.
-      - name: Workflows – een merge-job hoort op `closed` te luisteren
+      # Bouwen ná een auto-merge kán niet aan een event hangen. Deze controle stond hier eerst
+      # andersom: ze eiste dat een job met `merged == true` óók op `closed` luisterde. Dat was de
+      # halve waarheid — de `types` klopten daarna wél, en `publish-na-merge` deed alsnog niets,
+      # want GitHub onderdrukt élk event dat uit `GITHUB_TOKEN` voortkomt, `closed` incluis. Op
+      # 8 sep 2026 landden zo vier dependency-PR's op master zonder dat er één image werd gebouwd.
+      # Het patroon is daarom nu verboden in plaats van gecorrigeerd: wie na een merge iets wil
+      # laten draaien, meet de toestand (zie `bouwwacht.yml`) in plaats van op de merge te wachten.
+      - name: Workflows – geen job die op een auto-merge-event wacht
         run: |
           python3 - <<'PYEOF'
           import pathlib, sys, yaml
 
-          def pr_types(trigger):
-              """De `types` van de pull_request-trigger, of None als er geen pull_request-trigger is.
-
-              `on:` kent drie vormen: een string ("on: pull_request"), een lijst en een mapping. De eerste
-              twee dragen geen `types` en krijgen dus de default — precies de vorm waarin de fout zat.
-              """
-              if isinstance(trigger, str):
-                  return [] if trigger == "pull_request" else None
-              if isinstance(trigger, list):
-                  return [] if "pull_request" in trigger else None
-              if isinstance(trigger, dict):
-                  if "pull_request" not in trigger:
-                      return None
-                  pr = trigger["pull_request"]
-                  return (pr or {}).get("types") or [] if isinstance(pr, dict) else []
-              return None
-
           fout = []
           for pad in sorted(pathlib.Path(".github/workflows").glob("*.yml")):
               spec = yaml.safe_load(pad.read_text(encoding="utf-8")) or {}
-              types = pr_types(spec.get(True, spec.get("on")))   # PyYAML leest `on:` als True
               for naam, job in (spec.get("jobs") or {}).items():
-                  if "merged == true" in str(job.get("if", "")) and "closed" not in (types or []):
-                      fout.append(f"{pad.name}: job `{naam}` wacht op `merged == true`, maar de "
-                                  f"pull_request-trigger dekt `closed` niet (types: {types if types else 'default'})")
+                  if "merged == true" in str(job.get("if", "")):
+                      fout.append(f"{pad.name}: job `{naam}` wacht op `merged == true`. Een merge die "
+                                  f"uit GITHUB_TOKEN voortkomt levert GEEN `closed`- en geen "
+                                  f"`push`-event, dus die job vuurt precies dan niet wanneer je hem "
+                                  f"nodig hebt. Meet de toestand (bouwwacht.yml) in plaats daarvan.")
           if fout:
               print("\n".join("  " + r for r in fout)); sys.exit(1)
-          print("ok - elke merge-job luistert op closed")
+          print("ok - geen job hangt aan een auto-merge-event")
           PYEOF
 
       # pip 26.x bundelt een CycloneDX-SBOM van zijn vendored deps; Trivy leest die als
