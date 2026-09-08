@@ -79,6 +79,23 @@ Alle loggers delen dezelfde vorm (bv. `frontend/lib/logger.ts`):
   **nooit** gelogd – alleen metadata (status, duur, lengtes, ids, paden). Geheime veldnamen worden
   defensief geredacteerd.
 
+### De klik zelf: `bericht: "UI-actie"`
+
+De logs volgden alles vanaf de BFF, maar niet wat eraan voorafging – en juist daar zat een klacht die
+niet te onderzoeken was: *"ik klik verwijderen en er gebeurt niets."* Een klik die nooit een request
+werd, of een call die nog liep toen de gebruiker het opgaf, laat in `proxy()` geen spoor achter.
+
+De browser meldt daarom zelf, via `frontend/lib/uiSpoor.ts` → `POST /api/ui-spoor`: `ui_actie` (uit
+een **gesloten lijst** – een vrije naam zou hier gebruikersinhoud binnenlaten), `ui_uitkomst`
+(`gestart` bij de klik, daarna `gelukt`/`mislukt`/`afgebroken`), `duur_ms` en `http_status`. Een
+`gestart` zonder vervolgregel is het signaal waar het om begonnen was. Er gaat géén identiteit mee de
+log in: het gaat erom *dat* een handeling bleef hangen, niet bij wie. De route weigert alles wat niet
+in dat vormpje past en houdt een rem van 60 meldingen per gebruiker per minuut.
+
+Het paneel *Handelingen die blijven hangen* in `dashboard-keten.json` zet ze naast elkaar; de
+BFF-regels `Gesprek verwijderen` en `Gesprek verwijderen: agent-geheugen` dragen per stap een
+`duur_ms`, zodat een trage stap aanwijsbaar is in plaats van vermoed.
+
 ## Aanzetten
 
 Zet in elke stack (of `.env`) het endpoint van je OTel-Collector; laat 'm leeg om OTel uit te houden.

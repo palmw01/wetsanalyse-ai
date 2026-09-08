@@ -367,6 +367,92 @@
         },
         "overrides": []
       }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Handelingen die blijven hangen",
+      "description": "Klikken op een handeling in de werkplek (verwijderen, hernoemen, een reviewbeslissing), zoals de browser ze zelf meldt via `lib/uiSpoor.ts`. Elke klik stuurt eerst `gestart` en daarna zijn uitkomst; **zonder_afloop** is het verschil, en dat is precies de klacht waarvoor dit paneel bestaat: de gebruiker klikt, er komt geen antwoord, en de knop lijkt niets gedaan te hebben. **traag** telt de geslaagde handelingen die langer dan 3 seconden duurden — op acceptatie staan api en graph-qa op `minReplicas: 0`, dus na stilte kost de eerste klik een koude start. Loopt `zonder_afloop` op, kijk dan naast dit paneel naar de BFF-regels `Gesprek verwijderen` en `Gesprek verwijderen: agent-geheugen`: die dragen per stap een `duur_ms`. Het verschil kan ook een tabblad zijn dat halverwege gesloten werd — één los geval zegt dus niets, een patroon wel.",
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 25
+      },
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "__DSUID__"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "azureLogAnalytics": {
+            "resources": [
+              "__WORKSPACE__"
+            ],
+            "dashboardTime": true,
+            "timeColumn": "TimeGenerated",
+            "query": "ContainerAppConsoleLogs_CL\n| where ContainerAppName_s == '__APPNAME__-frontend'\n| extend j = parse_json(Log_s)\n| where tostring(j.bericht) == 'UI-actie'\n| extend actie = tostring(j.ui_actie), uitkomst = tostring(j.ui_uitkomst), duur = toreal(j.duur_ms)\n| summarize gestart = countif(uitkomst == 'gestart'),\n            gelukt = countif(uitkomst == 'gelukt'),\n            mislukt = countif(uitkomst == 'mislukt'),\n            traag = countif(uitkomst == 'gelukt' and duur > 3000)\n          by bin(TimeGenerated, 15m)\n| extend zonder_afloop = gestart - gelukt - mislukt\n| project TimeGenerated, zonder_afloop, mislukt, traag\n| order by TimeGenerated asc"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "zonder_afloop"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "mislukt"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "traag"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              }
+            ]
+          }
+        ]
+      }
     }
   ]
 }

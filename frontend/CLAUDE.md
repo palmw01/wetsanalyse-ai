@@ -664,6 +664,19 @@ agent-voorstel verwérp je, zodat het auditspoor laat zien dát er een voorstel 
 
 ## Observability
 
+**De klik zelf laat ook een spoor na.** `lib/uiSpoor.ts` → `POST /api/ui-spoor` meldt per handeling
+`gestart` en daarna de uitkomst (`metSpoor(...)` om de call heen). Dat bestaat voor één klacht: *"ik
+klik en er gebeurt niets"* was niet te onderzoeken, want een klik die nooit een request werd laat in
+`proxy()` niets achter. De actienamen staan in een **gesloten lijst** – een vrije naam zou hier
+gebruikersinhoud (een gesprekstitel) de logs in trekken – en de route weigert al het andere. Gebruik
+het spaarzaam: op mutaties die kunnen blijven hangen, niet op elke knop.
+
+**Een knop die een call doet, toont dat ook.** `BevestigKnop` await't `onBevestig`, staat zolang op
+`Bezig…` en is dan uitgeschakeld; `AppSidebar`/`AnnotatiesClient` halen de rij meteen weg en zetten
+hem bij een fout terug. Zonder dat is een trage call niet te onderscheiden van een klik die niet
+aankwam – en dat wás het beeld bij het verwijderen van een gesprek, waar de BFF drie diensten belt
+waarvan twee vanuit een koude start (`minReplicas: 0`).
+
 `instrumentation.ts` registreert OpenTelemetry via `@vercel/otel` (gated op
 `OTEL_EXPORTER_OTLP_ENDPOINT`; auto-tracing van route handlers + uitgaande `fetch`). De
 **traceparent-propagatie doet `@vercel/otel` níét** – het maakt spans voor een uitgaande fetch, maar

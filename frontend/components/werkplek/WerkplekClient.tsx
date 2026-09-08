@@ -23,6 +23,7 @@ import {
   voegElementToe,
 } from "@/lib/api";
 import { resetdatum } from "@/lib/tokenbudget";
+import { metSpoor } from "@/lib/uiSpoor";
 import type {
   Anker,
   AnnotatieElement,
@@ -884,7 +885,7 @@ export function WerkplekClient({
       return;
     }
     try {
-      const bij = await beslis(slug, elementId, req);
+      const bij = await metSpoor("review_beslissing", () => beslis(slug, elementId, req));
       setDocs((m) => ({ ...m, [slug]: bij }));
       setMelding(beslissingMelding(req));
     } catch (e) {
