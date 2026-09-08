@@ -488,9 +488,12 @@ export async function hernoemGesprek(id: string, titel: string): Promise<Gesprek
   return json<Gesprek>(res);
 }
 
+/** Verwijder een gesprek. Een 404 telt als geslaagd: dan is het al weg, en dat is precies wat er
+ *  gevraagd werd. Anders levert een tweede klik – of een tabblad dat hetzelfde gesprek al opruimde –
+ *  de melding "Het gesprek is niet verwijderd" over iets dat wél verwijderd is. */
 export async function verwijderGesprek(id: string): Promise<void> {
   const res = await fetch(`/api/gesprekken/${pathSegment(id)}`, { method: "DELETE" });
-  if (!res.ok) throw await parseError(res);
+  if (!res.ok && res.status !== 404) throw await parseError(res);
 }
 
 /** De callbacks waarmee een beurt binnenkomt. Gedeeld door het starten van een run (`startRun`) en

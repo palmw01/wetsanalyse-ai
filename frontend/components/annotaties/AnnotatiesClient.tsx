@@ -10,6 +10,7 @@ import { Melding } from "@/components/ui/Melding";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { SkipLink, HOOFDINHOUD_ID } from "@/components/ui/SkipLink";
 import { isApiError, lijstDocumenten, verwijderDocument } from "@/lib/api";
+import { metSpoor } from "@/lib/uiSpoor";
 import {
   WEERGAVEN, groepeerPerRegeling, isTeDoen, sorteerTeDoen, zoek,
   type Weergave,
@@ -55,11 +56,15 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
     });
   }
 
+  /** De kaart gaat meteen weg en komt bij een fout terug – zelfde reden als bij het verwijderen van
+   *  een gesprek: wachten op de round trip is niet te onderscheiden van een klik die niet aankwam. */
   async function verwijder(slug: string) {
+    const vorige = docs;
+    setDocs((lijst) => (lijst ?? []).filter((d) => d.slug !== slug));
     try {
-      await verwijderDocument(slug);
-      setDocs((lijst) => (lijst ?? []).filter((d) => d.slug !== slug));
+      await metSpoor("annotatie_verwijderen", () => verwijderDocument(slug));
     } catch (e) {
+      setDocs(vorige);
       setFout(isApiError(e) ? `${e.detail} (${e.status})` : "De annotatie is niet verwijderd.");
     }
   }

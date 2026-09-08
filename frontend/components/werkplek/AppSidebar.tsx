@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Dialog } from "@/components/ui/Dialog";
 import { GesprekSidebar } from "@/components/werkplek/GesprekSidebar";
 import { hernoemGesprek, lijstGesprekken, verwijderGesprek } from "@/lib/api";
+import { metSpoor } from "@/lib/uiSpoor";
 import type { GesprekSamenvatting, Verbruiksstand } from "@/lib/types";
 
 interface Props {
@@ -83,7 +84,7 @@ export function AppSidebar({
       return;
     }
     try {
-      await hernoemGesprek(id, titel);
+      await metSpoor("gesprek_hernoemen", () => hernoemGesprek(id, titel));
       verversLijst();
     } catch {
       onFout?.("De nieuwe naam is niet opgeslagen.");
@@ -91,21 +92,26 @@ export function AppSidebar({
   }
 
   /** De bevestiging zit in de knop zelf (`BevestigKnop`, twee klikken) – hetzelfde gebaar als in het
-   *  artefact; geen `window.confirm` midden in een app met een eigen vormtaal. */
+   *  artefact; geen `window.confirm` midden in een app met een eigen vormtaal.
+   *
+   *  **De rij gaat meteen weg en komt bij een fout terug.** Dat stond andersom: eerst de call, dan
+   *  pas de rij. Die volgorde geeft het voordeel van optimistisch bijwerken juist weg — en de call
+   *  duurt op acceptatie soms lang (de BFF belt drie diensten, waarvan twee vanuit een koude start).
+   *  Tot die terugkwam gebeurde er zichtbaar niets, en dat is niet te onderscheiden van een klik die
+   *  niet is aangekomen. */
   async function verwijder(id: string) {
     if (demo) {
       setGesprekken((lijst) => lijst.filter((g) => g.id !== id));
       return;
     }
+    const vorige = gesprekken;
+    setGesprekken((lijst) => lijst.filter((g) => g.id !== id));
     try {
-      await verwijderGesprek(id);
-      // Meteen uit de lijst halen en dáárna pas verversen: de DELETE is al geslaagd, dus wachten op
-      // een round trip laat de rij onnodig staan – en het verwijderde gesprek is meestal het gesprek
-      // dat je open hebt.
-      setGesprekken((lijst) => lijst.filter((g) => g.id !== id));
+      await metSpoor("gesprek_verwijderen", () => verwijderGesprek(id));
       onVerwijderd?.(id);
       verversLijst();
     } catch {
+      setGesprekken(vorige);
       onFout?.("Het gesprek is niet verwijderd.");
     }
   }
