@@ -12,10 +12,12 @@ van een gefaalde job wil je dat verschil zonder zoeken zien.
 """
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 
 import app.main as main_module
-from app.models import ImportSummary
+from app.models import ImportResult, ImportSummary
 
 
 def _summary(bwb_id: str, *, bron: int, graaf: int) -> ImportSummary:
@@ -25,7 +27,12 @@ def _summary(bwb_id: str, *, bron: int, graaf: int) -> ImportSummary:
 @pytest.fixture
 def nep_import(monkeypatch: pytest.MonkeyPatch):
     """Vervang de echte import door een die alleen de opgegeven dekking teruggeeft."""
-    monkeypatch.setattr(main_module, "maak_writer", lambda settings: object())
+    monkeypatch.setattr(
+        main_module,
+        "maak_writer",
+        # Geen kaal object(): `run_imports` waarborgt na afloop de similarity-index.
+        lambda settings: SimpleNamespace(ensure_similarity_index=lambda: None),
+    )
     monkeypatch.setattr(main_module, "prepare", lambda writer: None)
 
     def stel_in(dekkingen: dict[str, tuple[int, int]], stuk: set[str] | None = None) -> None:
@@ -93,4 +100,62 @@ def test_onleesbare_drempel_zet_de_controle_niet_uit(
 def test_zonder_meting_geen_dekkingsfout(nep_import) -> None:
     """`bron_tekens == 0` betekent dat de meting niet lukte, niet dat er tekst ontbreekt."""
     nep_import({"BWBR0004770": (0, 0)})
+    assert main_module.main(["BWBR0004770"]) == 0
+
+
+# ------------------------------------------------- de graafwacht (--alleen-bij-verlies)
+def _wacht_writer(monkeypatch: pytest.MonkeyPatch, compleet: bool) -> list[list[str]]:
+    """Vervang de writer door één die alleen `graaf_is_compleet` beantwoordt; geeft de peilingen."""
+    gepeild: list[list[str]] = []
+
+    def peil(bwb_ids):
+        gepeild.append(list(bwb_ids))
+        return compleet
+
+    monkeypatch.setattr(
+        main_module, "maak_writer", lambda settings: SimpleNamespace(graaf_is_compleet=peil)
+    )
+    return gepeild
+
+
+def test_graafwacht_importeert_niet_op_een_complete_graaf(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Elk kwartier draaien mag niet elk kwartier overheid.nl bevragen."""
+    gepeild = _wacht_writer(monkeypatch, compleet=True)
+    monkeypatch.setattr(
+        main_module, "run_imports", lambda *a, **k: pytest.fail("er is onnodig geïmporteerd")
+    )
+    assert main_module.main(["BWBR0004770", "BWBR0005537", "--alleen-bij-verlies"]) == 0
+    assert gepeild == [["BWBR0004770", "BWBR0005537"]]
+
+
+def test_graafwacht_importeert_wel_bij_verlies(monkeypatch: pytest.MonkeyPatch) -> None:
+    """De storing van 8 sep 2026: GraphDB herstart leeg, en dan moet hij juist wél aan het werk."""
+    _wacht_writer(monkeypatch, compleet=False)
+    gedraaid: list[list[str]] = []
+
+    def nep_import(bwb_ids, settings):
+        gedraaid.append(list(bwb_ids))
+        return [ImportResult(bwb_id=b, ok=True, overzicht=_summary(b, bron=10, graaf=10))
+                for b in bwb_ids]
+
+    monkeypatch.setattr(main_module, "run_imports", nep_import)
+    assert main_module.main(["BWBR0004770", "--alleen-bij-verlies"]) == 0
+    assert gedraaid == [["BWBR0004770"]]
+
+
+def test_zonder_de_vlag_peilt_hij_niet(monkeypatch: pytest.MonkeyPatch) -> None:
+    """De wekelijkse import haalt de wettekst op ook als de graaf compleet is."""
+    monkeypatch.setattr(
+        main_module,
+        "maak_writer",
+        lambda settings: SimpleNamespace(
+            graaf_is_compleet=lambda ids: pytest.fail("de gewone import hoort niet te peilen")
+        ),
+    )
+    monkeypatch.setattr(
+        main_module,
+        "run_imports",
+        lambda ids, s: [ImportResult(bwb_id=b, ok=True, overzicht=_summary(b, bron=10, graaf=10))
+                        for b in ids],
+    )
     assert main_module.main(["BWBR0004770"]) == 0

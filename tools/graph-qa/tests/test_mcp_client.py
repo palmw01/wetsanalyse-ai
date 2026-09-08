@@ -55,3 +55,102 @@ def test_rpc_2xx_result_ok(monkeypatch):
     )
     monkeypatch.setattr(c._client, "post", lambda *a, **k: resp)
     assert c.call_tool("x", {}) == [{"type": "text", "text": "ok"}]
+
+
+# ---------------------------------------------------- de handshake hoort bij de verbinding
+class _NepServer:
+    """Bootst de GraphDB MCP-server na: zonder geldige sessie geen tools/call.
+
+    Zo doet de echte server het (GraphDB MCP Server 2.0.0): een `tools/call` zonder sessie geeft
+    HTTP 400, en een sessie die hij niet kent HTTP 404 — in beide gevallen met een XML-body, dus
+    de client struikelt al op het ontbreken van JSON.
+    """
+
+    def __init__(self, sessie: str = "s-1") -> None:
+        self.sessie = sessie
+        self.geldig: set[str] = set()
+        self.aanroepen: list[str] = []
+
+    def post(self, url, json=None, headers=None, **_kw):
+        methode = json["method"]
+        self.aanroepen.append(methode)
+        meegestuurd = (headers or {}).get("Mcp-Session-Id")
+
+        if methode == "initialize":
+            self.geldig.add(self.sessie)
+            return SimpleNamespace(
+                status_code=200, headers={"content-type": "application/json",
+                                          "Mcp-Session-Id": self.sessie},
+                json=lambda: {"jsonrpc": "2.0", "id": 1, "result": {"serverInfo": {"name": "nep"}}},
+                text="",
+            )
+        if meegestuurd is None:
+            return SimpleNamespace(status_code=400, headers={"content-type": "application/xml"},
+                                   json=lambda: (_ for _ in ()).throw(ValueError("geen json")),
+                                   text="<McpError><cause/><stackTrace>…")
+        if meegestuurd not in self.geldig:
+            return SimpleNamespace(status_code=404, headers={"content-type": "application/xml"},
+                                   json=lambda: (_ for _ in ()).throw(ValueError("geen json")),
+                                   text="<McpError><cause/><stackTrace>…")
+        return SimpleNamespace(
+            status_code=200, headers={"content-type": "application/json"},
+            json=lambda: {"jsonrpc": "2.0", "id": 1, "result": {"content": [{"text": "ok"}]}},
+            text="",
+        )
+
+
+def _client_met(server: _NepServer) -> MCPClient:
+    c = MCPClient(url="http://x/mcp", token="t", repository_id="inning")
+    c._client = SimpleNamespace(post=server.post, close=lambda: None)  # type: ignore[assignment]
+    return c
+
+
+def test_tools_call_doet_zelf_de_handshake():
+    """De smoke riep `initialize()` niet aan en kreeg daardoor op élke query HTTP 400.
+
+    Twee van de drie `make_graph`-aanroepers deden de handshake, de derde niet — en dat kostte vier
+    eval-runs. Een voorwaarde die elke aanroeper moet onthouden, hoort in de verbinding zelf.
+    """
+    server = _NepServer()
+    uit = _client_met(server).sparql("SELECT (COUNT(*) AS ?n) WHERE { ?s ?p ?o }")
+
+    assert uit == "ok"
+    assert server.aanroepen == ["initialize", "tools/call"]
+
+
+def test_handshake_gebeurt_maar_een_keer():
+    """De sessie wordt hergebruikt; anders kost elke tool-aanroep een extra rondgang."""
+    server = _NepServer()
+    c = _client_met(server)
+    c.sparql("SELECT ?s WHERE { ?s ?p ?o }")
+    c.sparql("SELECT ?s WHERE { ?s ?p ?o }")
+
+    assert server.aanroepen.count("initialize") == 1
+
+
+def test_verlopen_sessie_wordt_een_keer_hersteld():
+    """GraphDB is niet-persistent en komt na een herstart zonder sessies op.
+
+    De client stuurde het oude sessie-id dan eeuwig mee en herstelde nooit.
+    """
+    server = _NepServer()
+    c = _client_met(server)
+    c.sparql("SELECT ?s WHERE { ?s ?p ?o }")
+    server.geldig.clear()          # GraphDB is herstart: de sessie bestaat niet meer
+    server.aanroepen.clear()
+
+    assert c.sparql("SELECT ?s WHERE { ?s ?p ?o }") == "ok"
+    assert server.aanroepen == ["tools/call", "initialize", "tools/call"]
+
+
+def test_sessie_die_ongeldig_blijft_wordt_een_zichtbare_fout():
+    """Hoogstens één herstelpoging: een tweede 404 komt ergens anders vandaan en mag niet in een
+    lus verdwijnen."""
+    class _AltijdWeg(_NepServer):
+        def post(self, url, json=None, headers=None, **_kw):
+            resp = super().post(url, json=json, headers=headers, **_kw)
+            self.geldig.clear()    # elke sessie is meteen weer ongeldig
+            return resp
+
+    with pytest.raises(MCPError, match="blijft ongeldig"):
+        _client_met(_AltijdWeg()).sparql("SELECT ?s WHERE { ?s ?p ?o }")

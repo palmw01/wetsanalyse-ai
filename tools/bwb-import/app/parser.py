@@ -42,6 +42,17 @@ _STRUCTUUR_TAGS = {
 }
 
 
+# Kondigt een lid/artikel een begrippenlijst aan? "Deze wet verstaat onder:", "Deze wet verstaat
+# MEDE onder:" (art. 2 lid 2 IW 1990 – een echte definitiegroep, dus die moet erin), "waar wordt
+# verstaan onder". Zie `ToestandParser._definities` voor waarom dit een harde eis is.
+_DEFINITIE_AANHEF = re.compile(
+    r"\bverstaa[tn]\b[^:]{0,40}\bonder\b|\bwordt\s+verstaan\b", re.IGNORECASE
+)
+# De vorm `term: definitie` binnen zo'n lijst. De term is kort en draagt zelf geen zinsafsluitend
+# leesteken; dat weert opsommingen die toevallig een dubbele punt bevatten.
+_DEFINITIE_TERM = re.compile(r"^([^:;.]{2,60}):\s+\S")
+
+
 class ParseError(RuntimeError):
     """De XML kon niet als geldige toestand worden geïnterpreteerd."""
 
@@ -276,7 +287,9 @@ class ToestandParser:
             verwijzingen=self._verwijzingen_scope(
                 element, bwb_id, extra_excl=" and not(ancestor::lid) and not(ancestor::li)"
             ),
-            onderdelen=self._parse_onderdelen(element, bwb_id),
+            onderdelen=self._parse_onderdelen(
+                element, bwb_id, self._leidt_definities_in(element)
+            ),
             voetnoten=self._noten(element, " and not(ancestor::lid) and not(ancestor::li)"),
             illustraties=self._illustraties(
                 element, extra_excl=" and not(ancestor::lid) and not(ancestor::li)"
@@ -296,22 +309,34 @@ class ToestandParser:
             verwijzingen=self._verwijzingen_scope(
                 element, bwb_id, extra_excl=" and not(ancestor::li)"
             ),
-            onderdelen=self._parse_onderdelen(element, bwb_id),
+            onderdelen=self._parse_onderdelen(
+                element, bwb_id, self._leidt_definities_in(element)
+            ),
             voetnoten=self._noten(element, " and not(ancestor::li)"),
             definieert_begrippen=self._definities(element),
             illustraties=self._illustraties(element, extra_excl=" and not(ancestor::li)"),
         )
 
     # --------------------------------------------------------------- onderdelen
-    def _parse_onderdelen(self, element: etree._Element, bwb_id: str) -> list[Onderdeel]:
-        """Onderdelen uit direct geneste ``<lijst>/<li>`` (recursief)."""
+    def _parse_onderdelen(
+        self, element: etree._Element, bwb_id: str, definitie_context: bool = False
+    ) -> list[Onderdeel]:
+        """Onderdelen uit direct geneste ``<lijst>/<li>`` (recursief).
+
+        `definitie_context` komt van de houder (zie `_leidt_definities_in`) en **erft naar
+        beneden**:
+        de subonderdelen van "aa." (1°–4°: Koninkrijk, Rijk, Nederland, BES eilanden) staan in
+        dezelfde begrippenlijst als hun ouder, maar de aanhef staat alleen bij het lid.
+        """
         onderdelen: list[Onderdeel] = []
         for lijst in element.findall("lijst"):
             for li in lijst.findall("li"):
-                onderdelen.append(self._parse_onderdeel(li, bwb_id))
+                onderdelen.append(self._parse_onderdeel(li, bwb_id, definitie_context))
         return onderdelen
 
-    def _parse_onderdeel(self, li: etree._Element, bwb_id: str) -> Onderdeel:
+    def _parse_onderdeel(
+        self, li: etree._Element, bwb_id: str, definitie_context: bool = False
+    ) -> Onderdeel:
         nr = li.find("li.nr")
         tekst_delen = [_tekst_zonder_noot(node) for node in li.xpath("./al")]
         return Onderdeel(
@@ -320,9 +345,9 @@ class ToestandParser:
             tekst=re.sub(r"\s+", " ", " ".join(tekst_delen)).strip(),
             jci=self._element_jci(li),
             verwijzingen=self._verwijzingen_scope(li, bwb_id, base="./al//*"),
-            subonderdelen=self._parse_onderdelen(li, bwb_id),
+            subonderdelen=self._parse_onderdelen(li, bwb_id, definitie_context),
             voetnoten=[self._noot_tekst(noot) for noot in li.xpath("./al//noot")],
-            definieert_begrippen=self._definities(li),
+            definieert_begrippen=self._definities(li, definitie_context=definitie_context),
             illustraties=self._illustraties(li, base="./al//illustratie"),
         )
 
@@ -491,15 +516,49 @@ class ToestandParser:
         return re.sub(r"\s+", " ", "".join(delen)).strip()
 
     @staticmethod
-    def _definities(element: etree._Element) -> list[str]:
-        """Gedefinieerde begrippen: cursieve termen (``nadruk type="cur"``)
-        die op een dubbele punt eindigen, aan het begin van een definitie."""
+    def _definities(element: etree._Element, *, definitie_context: bool = False) -> list[str]:
+        """Gedefinieerde begrippen, langs twee routes.
+
+        **1. Opmaak** – een cursieve term (``nadruk type="cur"``) die op een dubbele punt eindigt.
+        Precies, maar de bron levert het niet consequent: in artikel 2 lid 1 IW 1990 staat
+        ``rijksbelastingen:`` cursief en ``belastingschuldige:`` niet, in dezelfde opsomming en met
+        dezelfde zinsvorm. Daardoor stonden er 8 sep 2026 nog maar 34 definities in de hele graaf en
+        gaf `zoek_definitie("belastingschuldige")` niets terug — de definitie-specialist moest
+        definitieartikelen raden, precies wat die tool moest wegnemen.
+
+        **2. Tekst** – de vorm ``term: definitie``, maar alléén als de houder (het lid of artikel)
+        definities inleidt; dat zegt `definitie_context`. Die eis is niet optioneel: de dubbele punt
+        alleen betekent niets. Dezelfde wet bevat onderdelen als "met betrekking tot een natuurlijk
+        persoon: de naam, het adres en de geboortedatum;" — zelfde vorm, geen definitie. Gemeten
+        over
+        BWBR0004770 en BWBR0005537 laat de aanhef-eis precies die gevallen vallen.
+
+        Beide routes kunnen op hetzelfde onderdeel vuren (een cursieve term matcht ook het patroon),
+        dus ontdubbelen we met behoud van volgorde.
+        """
         begrippen: list[str] = []
         for term in element.xpath("./al/nadruk[@type='cur']/text()"):
             genormaliseerd = term.strip()
             if genormaliseerd.endswith(":"):
                 begrippen.append(genormaliseerd.rstrip(":").strip())
-        return begrippen
+
+        if definitie_context:
+            for al in element.findall("al"):
+                treffer = _DEFINITIE_TERM.match(ToestandParser._tekst(al))
+                if treffer:
+                    begrippen.append(treffer.group(1).strip())
+
+        return list(dict.fromkeys(begrippen))
+
+    @staticmethod
+    def _leidt_definities_in(element: etree._Element) -> bool:
+        """Kondigt dit lid/artikel in zijn eigen alinea's een begrippenlijst aan?
+
+        Alleen de eigen ``<al>``-kinderen tellen, niet de onderdelen eronder — anders zou één
+        definitie ergens in de opsomming de hele lijst als definitielijst bestempelen.
+        """
+        eigen = " ".join(ToestandParser._tekst(al) for al in element.findall("al"))
+        return bool(_DEFINITIE_AANHEF.search(eigen))
 
     @staticmethod
     def _element_jci(element: etree._Element) -> str | None:
