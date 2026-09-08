@@ -152,6 +152,19 @@ jobs:
             --resource-group "$RG" \
             --image "$IMAGE_DIGEST_REF" \
             --output none
+          # De graafwacht draait hetzelfde image met `--alleen-bij-verlies`. Sla je hem hier over,
+          # dan blijft hij op het image van de laatste infra-deploy hangen en herstelt hij de graaf
+          # met oude importercode – precies de val waar de eval-job in liep (zie graph-qa/CLAUDE.md).
+          # Ontbreekt hij nog, dan is de infra ouder dan deze wijziging: waarschuwen, niet falen.
+          if az containerapp job show -n "$APP-graafwacht" -g "$RG" --output none 2>/dev/null; then
+            az containerapp job update \
+              --name "$APP-graafwacht" \
+              --resource-group "$RG" \
+              --image "$IMAGE_DIGEST_REF" \
+              --output none
+          else
+            echo "::warning::job $APP-graafwacht bestaat nog niet in $RG – rol de infra uit (azure-infra -> deploy)."
+          fi
 
       - name: Afmelden bij Azure
         if: always()

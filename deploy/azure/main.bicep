@@ -365,8 +365,10 @@ var collectorEndpoint = 'http://${collectorApp.name}'
 // Twee gevolgen om te kennen:
 //   • `minReplicas: 1` – schaalt bewust NIET naar nul, want dan is de graaf bij de volgende request
 //     leeg. Dit is de enige component die doorloopt zolang de omgeving aan staat.
-//   • De similarity-index (`bwb_similarity`, voor semantic_search) overleeft een herstart evenmin
-//     en moet opnieuw gebouwd worden; tot dat moment degradeert de tool naar search_wetgeving.
+//   • De similarity-index (`bwb_similarity`, voor semantic_search) overleeft een herstart evenmin.
+//     De importer bouwt hem sinds 8 sep 2026 zelf opnieuw (`ensure_similarity_index`), net als de
+//     FTS-connector; daarvóór deed niets dat en degradeerde de tool stil naar search_wetgeving.
+//   • Herstel van de graaf zelf loopt via de graafwacht-job (4b), niet meer via de hand.
 var heeftLicentie = !empty(graphdbLicenseBase64)
 
 resource graphdbApp 'Microsoft.App/containerApps@2024-03-01' = {
@@ -638,8 +640,9 @@ resource graphdbProxyApp 'Microsoft.App/containerApps@2024-03-01' = if (graphdbP
 // `inning` zelf aan als die ontbreekt (`GraphDbWriter.ensure_constraints`), dus dit is de enige stap
 // tussen een lege GraphDB en een bruikbare graaf.
 //
-// Draaien: `az containerapp job start -n ${appName}-bwb-import -g <rg>`. Doe dat na elke deployment
-// en na elke herstart van de graphdb-app.
+// Draaien: `az containerapp job start -n ${appName}-bwb-import -g <rg>`, of `azure-infra` →
+// `vul-graaf`. Na een herstart van de graphdb-app hoeft dat niet meer met de hand: de graafwacht
+// hieronder (4b) ziet de lege graaf binnen een kwartier en herstelt hem.
 resource bwbImportJob 'Microsoft.App/jobs@2024-03-01' = {
   name: '${appName}-bwb-import'
   location: location
@@ -673,6 +676,75 @@ resource bwbImportJob 'Microsoft.App/jobs@2024-03-01' = {
           // webserver nodig en de exitcode is meteen het resultaat van de import.
           command: ['python', '-m', 'app.main']
           args: bwbIds
+          env: [
+            { name: 'GRAPHDB_URL', value: graphdbInternalUrl }
+            { name: 'GRAPHDB_REPOSITORY', value: 'inning' }
+            { name: 'GRAPHDB_BASE_IRI', value: 'urn:bwb:' }
+            { name: 'GRAPHDB_ONTOLOGY_IRI', value: 'urn:bwb-ns:' }
+            { name: 'BWB_VALIDATE_XSD', value: 'true' }
+            { name: 'BWB_IMPORT_WTI', value: 'true' }
+            { name: 'BWB_DETECT_TEKSTUELE_REFS', value: 'true' }
+            { name: 'BWB_MIN_DEKKING', value: minDekking }
+            { name: 'HOME', value: '/tmp' }
+          ]
+        }
+      ]
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 4b. Graafwacht – herstelt de graaf na een herstart van GraphDB
+// ─────────────────────────────────────────────────────────────────────────────
+// Dezelfde importer, dezelfde env, maar met `--alleen-bij-verlies`: hij doet éérst één SPARQL-
+// peiling en stopt met exitcode 0 zodra alle regelingen als named graph aanwezig zijn. Alleen bij
+// verlies volgt de volledige import. Daarom kan hij elk kwartier draaien zonder overheid.nl elk
+// kwartier te bevragen.
+//
+// WAAROM DIT ER IS. GraphDB komt na een herstart leeg op (zie de noot bij graphdbApp) en de
+// repository `inning` wordt door precies één ding aangemaakt: de importer. Tot 8 sep 2026 gebeurde
+// dat alleen na een deploy en wekelijks via de cron hierboven, dus een onverwachte herstart maakte
+// de graaf tot bijna zeven dagen onbruikbaar. Die ochtend gebeurde dat: Lex gaf op elke vraag
+// `Repository inning doesn't exist` en de gebruiker kon niets doen behalve wachten. De instructie
+// "draai de job na elke herstart van de graphdb-app" hing aan een gebeurtenis die niemand ziet.
+//
+// De wekelijkse job hierboven blijft ongemoeid: die houdt de wéttekst actueel, deze herstelt alleen
+// verlies. Twee jobs, één image.
+//
+// Bekende grens: draait de graafwacht precies terwijl de graaf van nul af aan wordt gevuld, dan ziet
+// hij een onvolledige graaf en start hij een tweede import. Dat is idempotent (named-graph PUT),
+// alleen verspilling. Een herimport over een vólle graaf triggert hem niet — het aantal blijft dan
+// zeven. Dezelfde redenering als in eval/retrieval_smoke.py.
+resource graafwachtJob 'Microsoft.App/jobs@2024-03-01' = {
+  name: '${appName}-graafwacht'
+  location: location
+  tags: straatTags
+  properties: {
+    environmentId: cae.id
+    configuration: {
+      triggerType: 'Schedule'
+      // Ruim genoeg voor een volledige import (die duurt ~20s) als hij er één moet doen.
+      replicaTimeout: 1800
+      // Geen retry: mislukt een poging, dan staat de volgende er over een kwartier al.
+      replicaRetryLimit: 0
+      scheduleTriggerConfig: {
+        cronExpression: '*/15 * * * *'
+        parallelism: 1
+        replicaCompletionCount: 1
+      }
+    }
+    template: {
+      containers: [
+        {
+          name: 'graafwacht'
+          image: bwbImportImage
+          resources: {
+            // Krapper dan de import-job: negen van de tien keer doet hij één SELECT en stopt hij.
+            cpu: json('0.5')
+            memory: '1Gi'
+          }
+          command: ['python', '-m', 'app.main']
+          args: concat(bwbIds, ['--alleen-bij-verlies'])
           env: [
             { name: 'GRAPHDB_URL', value: graphdbInternalUrl }
             { name: 'GRAPHDB_REPOSITORY', value: 'inning' }
