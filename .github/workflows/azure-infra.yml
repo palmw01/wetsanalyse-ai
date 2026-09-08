@@ -545,6 +545,21 @@ jobs:
           az containerapp env list --query "[].{env:name, rg:resourceGroup}" -o tsv 2>/dev/null || true
           echo "--- alle resources in $RESOURCE_GROUP ---"
           az resource list -g "$RESOURCE_GROUP" --query "sort_by([].{naam:name, type:type}, &naam)" -o tsv 2>/dev/null || true
+          # Historie, geen momentopname. Toen de graaf op 8 sep 2026 leeg bleek ("Repository inning
+          # doesn't exist") was de vraag "wanneer is GraphDB herstart, en wanneer is er daarna
+          # geïmporteerd?" met de inventaris niet te beantwoorden — die toont alleen de huidige
+          # stand. GraphDB heeft geen persistente opslag, dus zijn revisie-historie ís de
+          # storingshistorie van de graaf.
+          echo "--- graphdb-revisies (createdTime = het moment dat de graaf leeg opkwam) ---"
+          az containerapp revision list -n "$APP_NAME-graphdb" -g "$RESOURCE_GROUP" \
+            --query "reverse(sort_by([].{revisie:name, aangemaakt:properties.createdTime, actief:properties.active, replicas:properties.replicas}, &aangemaakt))" \
+            -o tsv 2>/dev/null || true
+          for j in bwb-import graafwacht; do
+            echo "--- uitvoeringen van $APP_NAME-$j (laatste 10) ---"
+            az containerapp job execution list -n "$APP_NAME-$j" -g "$RESOURCE_GROUP" \
+              --query "reverse(sort_by([].{uitvoering:name, status:properties.status, gestart:properties.startTime, geeindigd:properties.endTime}, &gestart))[:10]" \
+              -o tsv 2>/dev/null || true
+          done
 
       # Ook ná een deploy, en niet alleen op verzoek: GraphDB is bewust niet-persistent, dus een
       # verse of opnieuw uitgerolde stack heeft een LEGE graaf. Dat handmatig laten was precies de
@@ -575,6 +590,12 @@ jobs:
             [ -n "$s" ] || continue
             hoort_erbij="$hoort_erbij cae-$s log-$s appi-$s $s-api $s-frontend $s-graph-qa"
             hoort_erbij="$hoort_erbij $s-graphdb $s-bwb-import $s-otel-collector $s-db"
+            # De twee overige jobs uit de bicep. `$s-eval` stond hier niet in terwijl hij al bestond
+            # (resource `evalJob`), dus `opruimen` zou hem als wees hebben weggegooid — de meting
+            # verdwijnt dan zonder dat iemand het merkt tot de volgende eval-run. `$s-graafwacht`
+            # herstelt de graaf na een herstart van GraphDB; die weghalen betekent terug naar
+            # handmatig herstel op een gebeurtenis die niemand ziet.
+            hoort_erbij="$hoort_erbij $s-eval $s-graafwacht"
             # De MCP-proxy is optioneel en staat er meestal niet – maar als hij er staat, is dat een
             # bewuste keuze. Zonder deze regel zou `opruimen` hem als wees weggooien.
             hoort_erbij="$hoort_erbij $s-graphdb-proxy"
