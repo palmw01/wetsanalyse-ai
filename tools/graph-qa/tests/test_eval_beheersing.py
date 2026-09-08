@@ -208,10 +208,61 @@ def test_smoke_wacht_op_een_STABIEL_aantal_regelingen(monkeypatch):
 
 
 def test_smoke_wachttijd_is_per_omgeving_te_zetten():
-    """De ruimte om te wachten hoort niet in een codewijziging te zitten."""
+    """De ruimte om te wachten hoort niet in een codewijziging te zitten.
+
+    Ruim, omdat een import na een deploy minuten kan duren. Let op waar deze waarde NIET voor is:
+    hij ging op 5 sep 2026 van 180 naar 900 om een HTTP 400 uit te zitten die aan een herschrijvende
+    import werd toegeschreven. Dat was een ontbrekende MCP-handshake, en die gaat door geen enkele
+    wachttijd over — zie `test_smoke_geeft_op_bij_een_fout_die_blijft_terugkomen`.
+    """
     from eval import retrieval_smoke as sm
 
-    assert sm.GEREED_SECONDEN >= 600, "te krap na een deploy: 180s bleek niet genoeg"
+    assert sm.GEREED_SECONDEN >= 600, "een import na een deploy kan minuten duren"
+
+
+def test_smoke_geeft_op_bij_een_fout_die_blijft_terugkomen(monkeypatch):
+    """Wachten helpt alleen tegen iets dat overgaat.
+
+    Vier eval-runs lang wachtte de smoke het volle budget uit op een HTTP 400 die structureel was
+    (de ontbrekende handshake). Een graaf die vult verandert zijn antwoord; een kapotte verbinding
+    herhaalt zichzelf woordelijk. Bij drie identieke fouten stopt hij dus.
+    """
+    from eval import retrieval_smoke as sm
+
+    monkeypatch.setattr(sm.time, "sleep", lambda s: None)
+
+    class Kapot:
+        def __init__(self):
+            self.pogingen = 0
+
+        def sparql(self, q):
+            self.pogingen += 1
+            raise RuntimeError("Geen geldige JSON van MCP-server (HTTP 400): <McpError>")
+
+    graaf = Kapot()
+    # Bewust kort: `sleep` is uitgezet, dus zónder de rem draait deze lus dit budget in ECHTE tijd
+    # leeg. Waar het om gaat staat in de assertie op `pogingen`, niet in de hoogte van het getal.
+    reden = sm._wacht_op_graaf(graaf, seconden=5)
+
+    assert "wachten helpt hier niet" in reden
+    assert graaf.pogingen == sm._HERHALINGEN_GENOEG, "hij hoort niet dóór te blijven proberen"
+    # De VOLLEDIGE fouttekst, niet afgekapt op 120 tekens zoals voorheen: daar begon de oorzaak.
+    assert "McpError" in reden
+
+
+def test_smoke_blijft_wachten_bij_wisselende_fouten(monkeypatch):
+    """Een graaf die opkomt geeft wisselende fouten; die mag de rem niet laten aanslaan."""
+    from eval import retrieval_smoke as sm
+
+    monkeypatch.setattr(sm.time, "sleep", lambda s: None)
+    graaf = _graaf(
+        RuntimeError("connection refused"),
+        RuntimeError("Repository inning doesn't exist"),
+        RuntimeError("connection reset"),
+        _regelingen(7),
+        _regelingen(7),
+    )
+    assert sm._wacht_op_graaf(graaf, seconden=60) == ""
 
 
 def test_smoke_meldt_niet_gemeten_in_plaats_van_21_defecten(monkeypatch, capsys):

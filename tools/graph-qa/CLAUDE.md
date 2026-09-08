@@ -128,6 +128,15 @@ veilig**, verplicht bij >1 replica) → **`CHECKPOINT_DB_PATH`** → `AsyncSqlit
   `semantic_search()` via `similarity_search`. Eén persistente `httpx.Client`. `_reject_updates`
   weigert SPARQL die op een update lijkt (read-only vangnet).
 
+  **De MCP-handshake is een voorwaarde van de verbinding, geen stap van de aanroeper.** GraphDB MCP
+  Server 2.0.0 weigert zonder sessie élke `tools/call` — ook een kale `SELECT (COUNT(*) …)` — met een
+  HTTP 400 en een XML-stacktrace. `_rpc` doet die handshake daarom zelf bij de eerste aanroep, en
+  herhaalt hem één keer als de server de sessie niet meer kent (HTTP 404). Dat laatste is niet
+  theoretisch: GraphDB draait zonder persistente opslag en komt na een herstart leeg én zonder
+  sessies op. Roep `initialize()` gerust expliciet aan als je vroeg wilt falen — `agent.py` en
+  `api/main.py` doen dat — maar reken er niet op dat iedereen eraan denkt: de retrieval-smoke deed
+  het niet, en dat kostte vier eval-runs (zie §*Tests & eval*).
+
 ### Toollaag & queries
 
 - **`tools/__init__.py`** – `TOOLS` (19 declaraties met JSON-schema + handler), `anthropic_schemas(only=)`
@@ -687,6 +696,16 @@ cd tools/graph-qa && .venv/bin/python eval/run_eval.py --retrieval-smoke      # 
 échte graaf en meldt een lege uitkomst waar data hoort te staan — precies wat een `FakeGraph` niet
 kan meten, want die antwoordt altijd. Het is de enige controle in het harnas die over de graaf*inhoud*
 gaat; de unit-tests bewijzen alleen dat de bouwer wordt aangeroepen.
+
+Dat gat sneed twee kanten op. De smoke sloeg zelf de MCP-handshake over (hij bouwt zijn graaf met
+`make_graph()` en riep `initialize()` niet aan), waarop GraphDB élke aanroep met HTTP 400 weigerde.
+Zijn wachtlus las die 400 als "graaf nog niet gereed" en wachtte het volle budget uit; het rapport
+meldde dan `NIET GEMETEN` en de hele eval-run werd rood terwijl de annotatieketen 10/10 haalde. Dat
+is vier runs lang aan een herschrijvende importjob toegeschreven en met een langere wachttijd
+"opgelost" — 180s, daarna 900s — voor een toestand die door wachten nooit overging. **Een
+`FakeGraph` kan dit principieel niet vangen: die antwoordt zonder handshake gewoon.** De handshake
+zit sinds 8 sep 2026 in `MCPClient` zelf, en `_wacht_op_graaf` stopt nu bij drie identieke fouten in
+plaats van het budget leeg te draaien.
 
 **De live-varianten draaien niet zomaar op je eigen machine.** `run_eval.py` draait de agent
 in-proces (`answer_stream` met `Settings.from_env()`) en heeft dus een **directe** graafverbinding
