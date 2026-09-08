@@ -13,6 +13,7 @@ De registry levert twee dingen aan de loop:
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Callable
 from typing import Any
 
@@ -170,9 +171,12 @@ def _h_semantic_search(g: GraphPort, a: dict[str, Any], settings: Any) -> str:
     try:
         return g.semantic_search(a["query"], limit)
     except MCPError as exc:
-        # De index staat geconfigureerd maar bestaat niet in de graaf. Dat is de normale toestand
-        # ná een herstart: de GraphDB-opslag is niet-persistent, en de similarity-index wordt niet
-        # door de import-job herbouwd. Het model kan hier prima omheen (tekstueel zoeken werkt),
+        # De index staat geconfigureerd maar bestaat niet in de graaf. Dat is de toestand vlak ná
+        # een herstart: de GraphDB-opslag is niet-persistent. De importer bouwt hem sinds 8 sep 2026
+        # zelf opnieuw (`ensure_similarity_index`), dus dit hoort tijdelijk te zijn — bleef het
+        # staan, dan is die herbouw stukgelopen en zegt de importlog waarom. Tot 8 sep 2026 bouwde
+        # niets hem terug en was dit permanent.
+        # Het model kan hier prima omheen (tekstueel zoeken werkt),
         # maar een beheerder moet het wél weten — vandaar de waarschuwing in de log naast de
         # terugvalmelding. Zonder dit zag je alleen een cryptische toolfout in de trace.
         logger.warning(
@@ -301,9 +305,10 @@ TOOLS: list[dict[str, Any]] = [
         "name": "list_regelingen",
         "description": (
             "Alle regelingen die in de kennisgraaf zitten.\n"
-            "GEEFT TERUG: IRI, citeertitel en soort (wet/beleidsregel/circulaire/…) per regeling.\n"
-            "Gebruik dit om te zien wat er beschikbaar is voordat je zoekt, of om een BWB-id "
-            "bij een naam te vinden."
+            "GEEFT TERUG: IRI, citeertitel, soort (wet/beleidsregel/ministeriele-regeling/…) en de "
+            "officiële afkortingen per regeling.\n"
+            "Gebruik dit om te zien wat er beschikbaar is voordat je zoekt, of om een BWB-id bij een "
+            "naam of afkorting te vinden ('Awb', 'Leidr. Inv.') — raad een BWB-id nooit."
         ),
         "input_schema": _obj({}, []),
         "handler": _h_list_regelingen,
@@ -509,6 +514,16 @@ def anthropic_schemas(only: set[str] | frozenset[str] | None = None) -> list[dic
     ]
 
 
+# GraphDB's eigen bewoording wanneer de repository niet bestaat: `Repository inning doesn't exist`.
+# Op de naam matchen kan niet — die staat in de config, niet hier — dus op de vaste vorm eromheen.
+_GRAAF_WEG_RE = re.compile(r"repository\b.{0,80}?\bdoes\s*n['o]?t\s+exist", re.IGNORECASE | re.DOTALL)
+
+
+def _graaf_is_weg(exc: Exception) -> bool:
+    """Zegt deze fout dat de repository zelf ontbreekt (en niet dat de query fout was)?"""
+    return bool(_GRAAF_WEG_RE.search(str(exc)))
+
+
 def dispatch(name: str, graph: GraphPort, args: dict[str, Any] | None, settings: Any = None) -> str:
     tool = _BY_NAME.get(name)
     if tool is None:
@@ -518,6 +533,24 @@ def dispatch(name: str, graph: GraphPort, args: dict[str, Any] | None, settings:
             return tool["handler"](graph, args or {}, settings)
         return tool["handler"](graph, args or {})
     except (ValueError, MCPError, KeyError) as exc:
+        if _graaf_is_weg(exc):
+            # De repository bestaat niet. Niet "tijdelijk onbereikbaar" en geen tikfout in de query:
+            # GraphDB is leeg opgekomen na een herstart (de opslag is niet-persistent) en de graaf
+            # wordt opnieuw geïmporteerd. Op 8 sep 2026 kreeg de jurist hier de kale GraphDB-tekst
+            # `Repository inning doesn't exist` te zien — een correcte weigering om uit eigen
+            # geheugen te citeren, maar zonder enige aanwijzing wat er aan de hand was of hoe lang
+            # het duurt. De graafwacht-job herstelt dit binnen een kwartier.
+            logger.error(
+                "de kennisgraaf is leeg: repository ontbreekt",
+                extra={"graaf_weg": True, "tool": name, "fout": str(exc)[:200]},
+            )
+            return (
+                f"Fout bij tool '{name}': de kennisgraaf is op dit moment niet beschikbaar — de "
+                "repository ontbreekt. Dat gebeurt na een herstart van de graafdatabase; hij wordt "
+                "automatisch opnieuw gevuld en is doorgaans binnen een kwartier terug. Beantwoord "
+                "de vraag NIET uit eigen kennis; meld dit en stel voor het straks opnieuw te "
+                "proberen."
+            )
         # Verwachte fouten (ongeldig argument, MCP-fout, ontbrekende sleutel): als tekst teruggeven.
         return f"Fout bij tool '{name}': {exc}"
     except httpx.HTTPError as exc:

@@ -151,6 +151,13 @@ def run_imports(bwb_ids: list[str], settings: Settings) -> list[ImportResult]:
             logger.error("Schrijven mislukt voor %s: %s", item.wet.bwb_id, exc)
             mislukt[item.wet.bwb_id] = str(exc)
 
+    # Fase 3 – de similarity-index, en pas hier. Anders dan de Lucene-connector (die live meeloopt
+    # met wat er wordt geschreven) is een similarity-index een momentopname: hij wordt bij het
+    # aanmaken getraind over wat er op dát moment staat. In `prepare()` zou hij dus over een lege
+    # graaf worden gebouwd en daarna nooit iets vinden.
+    if geschreven:
+        writer.ensure_similarity_index()
+
     # De volgorde van `bwb_ids` aanhouden: het overzicht leest zoals de gebruiker het opgaf.
     resultaten: list[ImportResult] = []
     for bwb_id in bwb_ids:
@@ -283,8 +290,20 @@ def main(argv: list[str] | None = None) -> int:
         default=[settings.default_bwb_id],
         help=f"BWB-id's van de regelingen (default: {settings.default_bwb_id})",
     )
+    parser.add_argument(
+        "--alleen-bij-verlies",
+        action="store_true",
+        help=(
+            "Peil eerst of de graaf compleet is en importeer alleen als er iets ontbreekt. "
+            "De stand van de graafwacht-job; zie GraphDbWriter.graaf_is_compleet."
+        ),
+    )
     args = parser.parse_args(argv)
     bwb_ids = args.bwb_ids or [settings.default_bwb_id]
+
+    if args.alleen_bij_verlies and maak_writer(settings).graaf_is_compleet(bwb_ids):
+        logger.info("Graaf is compleet; niets te doen (--alleen-bij-verlies).")
+        return 0
 
     resultaten = run_imports(bwb_ids, settings)
     for resultaat in resultaten:

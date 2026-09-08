@@ -41,6 +41,11 @@ dev = [
 ]
 # OpenTelemetry (traces/metrics/logs). Alleen nodig als OTEL_EXPORTER_OTLP_ENDPOINT gezet is;
 # zonder de extra of zonder endpoint draait observability als no-op (alleen JSON-logs).
+# MCP-SDK, alleen nodig om `graph-qa-mcp` te draaien (agent/mcp_server.py). Bewust een extra: de
+# dienst zelf heeft hem niet nodig, dus hij hoort niet in het productie-image.
+mcp = [
+    "mcp>=1.2",
+]
 otel = [
     "opentelemetry-sdk>=1.29.0",
     "opentelemetry-exporter-otlp>=1.29.0",
@@ -50,6 +55,9 @@ otel = [
 
 [project.scripts]
 graph-qa = "api.main:run"
+# Stdio-MCP over de getypeerde toollaag, voor externe agents (zie agent/mcp_server.py). Vraagt de
+# `mcp`-extra; zonder die extra stopt hij met een uitleg in plaats van een stacktrace.
+graph-qa-mcp = "agent.mcp_server:main"
 
 [build-system]
 requires = ["hatchling"]

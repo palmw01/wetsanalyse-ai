@@ -95,6 +95,14 @@ plaats van schijnzekerheid.
 ### Ondersteunende tools
 
 - **`tools/wetsanalyse-admin-mcp/`** – stdio-MCP die de admin-API (`/v1/admin/*`) als tools ontsluit.
+- **`tools/graph-qa/agent/mcp_server.py`** – stdio-MCP (`graph-qa-mcp`, `mcp`-extra) die de
+  **getypeerde toollaag** van graph-qa ontsluit: `tools/list` is `anthropic_schemas()`, `tools/call`
+  is `dispatch()`. Daarmee krijgt een externe agent exact de tools die Lex heeft in plaats van kale
+  SPARQL — en dus ook de opgeloste valkuilen (dubbele punt in een artikelnummer, bepalingen zonder
+  eigen tekst). Registreren hoort machine-lokaal; de URL en het token horen niet in deze repo.
+- **`tools/nl-sbb-begrip/`** – side project: agent-workflow die voor één wettelijk begrip een
+  NL-SBB-definitie opstelt (Markdown + SKOS-Turtle) op basis van de graaf, via die MCP-server.
+  Draait niet mee in de dienst en heeft geen eigen CI.
 
 ## De onderdelen hangen via paden samen
 
@@ -235,9 +243,17 @@ verwijdert: kies de straat + `wat-if` (valideert, maakt niets aan), `deploy`, `a
 **De graaf op Azure is niet-persistent, en vult zichzelf.** GraphDB gebruikt memory-mapped files en
 kan daarom geen netwerkschijf gebruiken; de graaf is echter volledig reproduceerbaar uit
 overheid.nl. Daarom start `azure-infra.yml` de import-job automatisch na elke `deploy`, en draait
-diezelfde job wekelijks via een cron-trigger in de bicep. Let op: de similarity-index
-(`bwb_similarity`) overleeft een herstart evenmin, en tot hij herbouwd is degradeert
-`semantic_search` naar `search_wetgeving`.
+diezelfde job wekelijks via een cron-trigger in de bicep.
+
+**Een onverwachte herstart is daarmee niet gedekt, en dat kostte een storing.** Op 8 sep 2026 kwam
+GraphDB leeg op en gaf Lex op elke vraag `Repository inning doesn't exist`; herstel hing aan de
+volgende deploy of aan maandag 03:00 UTC. Sindsdien draait er naast de weekcron een tweede job,
+**`<appName>-graafwacht`**: elk kwartier één SPARQL-peiling (`--alleen-bij-verlies`), en alleen bij
+verlies een volledige import — dus geen kwartaalbezoek aan overheid.nl. De uitval is nu zichtbaar in
+Grafana (paneel *Graaf weg*, op het logveld `graaf_weg`) en Lex zegt tegen de jurist wat er speelt in
+plaats van de kale GraphDB-tekst door te geven. De similarity-index (`bwb_similarity`) overleeft een
+herstart evenmin; de importer bouwt hem sinds diezelfde datum zelf terug, daarvóór degradeerde
+`semantic_search` permanent en stil naar `search_wetgeving`.
 
 **Logs** landen in een Log Analytics workspace per straat (`log-${appName}`, aan de container-apps-
 omgeving gekoppeld). Traces/metrics staan uit: `OTEL_EXPORTER_OTLP_ENDPOINT` is leeg.

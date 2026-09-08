@@ -119,34 +119,44 @@ def _rijen(resultaat: str) -> int:
 # Hoe lang de smoke wacht tot de graaf bruikbaar is, en hoeveel regelingen hij dan verwacht.
 # Zie `_wacht_op_graaf` voor het waarom.
 #
-# 180 seconden was te krap: op 5 sep 2026 gaf GraphDB drie minuten lang HTTP 400 terwijl de
-# importjob de graaf herschreef, en de complete smoke viel uit terwijl de annotatieruns er daarna
-# gewoon tegenaan konden. Wachten kost niets als de graaf al staat (de eerste peiling slaagt dan
-# meteen) en het alternatief is een run die na een uur alsnog rood eindigt. Met
-# EVAL_GRAAF_WACHT_SECONDEN is het per omgeving bij te stellen zonder codewijziging.
+# Ruim bemeten omdat een import minuten kan duren; wachten kost niets als de graaf al staat, want
+# dan slaagt de eerste peiling meteen. Met EVAL_GRAAF_WACHT_SECONDEN per omgeving bij te stellen.
+#
+# Deze waarde ging op 5 sep 2026 van 180 naar 900 om een HTTP 400 uit te zitten die aan een
+# herschrijvende import werd toegeschreven. Dat was de verkeerde diagnose — het was een ontbrekende
+# MCP-handshake, en die gaat door geen enkele wachttijd over. Zie `_wacht_op_graaf`.
 GEREED_SECONDEN = float(os.getenv("EVAL_GRAAF_WACHT_SECONDEN") or 900)
 GEREED_REGELINGEN = 5
+# Hoe vaak dezelfde fout mag terugkomen voor de lus concludeert dat wachten niet gaat helpen. Drie:
+# genoeg om een eenmalige hik (een herstartende container, een verbroken verbinding) uit te zitten,
+# weinig genoeg om niet het hele budget op te maken aan een fout die structureel is.
+_HERHALINGEN_GENOEG = 3
 
 
 def _wacht_op_graaf(graph: Any, seconden: float | None = None) -> str:
     """Wacht tot de graaf antwoordt én gevuld is. Geeft "" terug als dat lukt, anders de reden.
 
-    Waarom dit er is. Op 5 sep 2026 werd de eval 49 seconden na een `deploy` gestart, en een deploy
-    start automatisch de importjob. GraphDB was de graaf aan het herschrijven; de smoke draait
-    vooraan en liep daar precies in. Zestien van de 21 controles faalden met `HTTP 400` van de
-    MCP-server — óók `list_regelingen`, een query van vier regels die niemand had aangeraakt.
-    Minuten later deden de annotatieruns hun werk tegen diezelfde graaf.
+    Waarom dit er is. Een `deploy` start automatisch de importjob, en tijdens een import antwoordt
+    GraphDB prima terwijl er wetten ontbreken. Een smoke die dán meet, meet een halve graaf en meldt
+    lege uitkomsten als defecten. Dat is precies wat een controle niet mag doen: wie vals alarm slaat
+    wordt genegeerd, en dan bewaakt hij niets meer.
 
-    Het rapport meldde dus zestien defecten die er niet waren. Dat is precies wat een controle niet
-    mag doen: wie vals alarm slaat wordt genegeerd, en dan bewaakt hij niets meer.
+    **Antwoorden is niet genoeg — hij moet ook gevuld zijn, en niet meer veranderen.** Daarom telt
+    pas een tweede peiling met hetzelfde aantal als "gereed"; dat kost één wachtronde op een graaf
+    die al staat.
 
-    **Antwoorden is niet genoeg — hij moet ook gevuld zijn, en niet meer veranderen.** De import
-    vervangt per wet een named graph (`PUT`), dus tijdens een import antwoordt GraphDB prima terwijl
-    er wetten ontbreken. Een smoke die dán meet, meet een halve graaf en meldt lege uitkomsten als
-    defecten. Daarom telt pas een tweede peiling met hetzelfde aantal als "gereed"; dat kost één
-    wachtronde op een graaf die al staat.
+    **Maar wachten helpt alleen tegen iets dat overgaat.** Een graaf die vult verándert zijn antwoord
+    (0 → 3 → 7 regelingen); een kapotte verbinding herhaalt zichzelf woordelijk. Blijft dezelfde fout
+    zich `_HERHALINGEN_GENOEG` keer voordoen, dan stopt hij en zegt hij dat.
 
-    Wat die stabiliteitseis níét vangt: een herimport over een al gevulde graaf, waar het aantal
+    Dat onderscheid ontbrak, en het kostte vier eval-runs. De smoke sloeg de MCP-handshake over —
+    `make_graph()` levert een client, `agent.py` en `api/main.py` riepen `initialize()` aan en deze
+    module niet — waarop GraphDB élke tool-aanroep met HTTP 400 weigerde. Die 400 las de lus als
+    "nog niet gereed", dus wachtte hij eerst 180 en later 900 seconden op een toestand die niet kon
+    intreden, terwijl de graaf gezond was en de annotatieruns er daarna 10/10 op haalden. De
+    handshake zit nu in `MCPClient` zelf; deze rem is er voor de vólgende fout van die soort.
+
+    Wat de stabiliteitseis níét vangt: een herimport over een al gevulde graaf, waar het aantal
     regelingen de hele tijd op zeven blijft staan terwijl de named graphs één voor één worden
     vervangen. Daarvoor blijft de waarschuwing in `azure-infra.yml` de eerste verdediging — draai
     `eval` niet vlak na een `deploy`.
@@ -158,6 +168,7 @@ def _wacht_op_graaf(graph: Any, seconden: float | None = None) -> str:
     wacht = 5.0
     laatste = "geen antwoord"
     vorige: int | None = None
+    zelfde_fout = 0
     while time.monotonic() - begin < seconden:
         try:
             aantal = len(parse_select(graph.sparql(queries.list_regelingen())))
@@ -167,9 +178,18 @@ def _wacht_op_graaf(graph: Any, seconden: float | None = None) -> str:
                        if aantal < GEREED_REGELINGEN
                        else f"graaf vult nog ({vorige} -> {aantal} regelingen)")
             vorige = aantal
-        except Exception as exc:  # noqa: BLE001 – elke fout is hier "nog niet gereed"
-            laatste = f"{type(exc).__name__}: {str(exc)[:120]}"
+            zelfde_fout = 0
+        except Exception as exc:  # noqa: BLE001 – een fout is hier "nog niet gereed", tenzij hij blijft
+            # De VOLLEDIGE tekst, niet afgekapt: de vorige versie sneed op 120 tekens en dat is
+            # precies waar de oorzaak begon. Vier runs lang stond er een stukje XML-stacktrace
+            # zonder de melding erin.
+            nieuw = f"{type(exc).__name__}: {exc}"
+            zelfde_fout = zelfde_fout + 1 if nieuw == laatste else 1
+            laatste = nieuw
             vorige = None  # na een fout begint het tellen opnieuw
+            if zelfde_fout >= _HERHALINGEN_GENOEG:
+                return (f"graaf niet bereikbaar – dezelfde fout {zelfde_fout}x achtereen, wachten "
+                        f"helpt hier niet ({laatste})")
         time.sleep(wacht)
         wacht = min(wacht * 1.5, 20.0)
     return f"graaf niet gereed na {int(seconden)}s ({laatste})"
