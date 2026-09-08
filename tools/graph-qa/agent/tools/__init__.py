@@ -305,9 +305,10 @@ TOOLS: list[dict[str, Any]] = [
         "name": "list_regelingen",
         "description": (
             "Alle regelingen die in de kennisgraaf zitten.\n"
-            "GEEFT TERUG: IRI, citeertitel en soort (wet/beleidsregel/circulaire/…) per regeling.\n"
-            "Gebruik dit om te zien wat er beschikbaar is voordat je zoekt, of om een BWB-id "
-            "bij een naam te vinden."
+            "GEEFT TERUG: IRI, citeertitel, soort (wet/beleidsregel/ministeriele-regeling/…) en de "
+            "officiële afkortingen per regeling.\n"
+            "Gebruik dit om te zien wat er beschikbaar is voordat je zoekt, of om een BWB-id bij een "
+            "naam of afkorting te vinden ('Awb', 'Leidr. Inv.') — raad een BWB-id nooit."
         ),
         "input_schema": _obj({}, []),
         "handler": _h_list_regelingen,

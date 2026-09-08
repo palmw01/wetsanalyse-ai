@@ -124,6 +124,14 @@ veilig**, verplicht bij >1 replica) → **`CHECKPOINT_DB_PATH`** → `AsyncSqlit
   en herhaalt de call zonder; de prijs van caching mag nooit "de dienst ligt plat" zijn. Knop:
   `PROMPT_CACHING=false`.
 - **`adapters/graphdb_graph.py`** – `make_graph(settings)` → `MCPClient`; roept `settings.require_graph()`.
+- **`mcp_server.py`** – de andere kant op: een **stdio-MCP-server over onze eigen toollaag**
+  (`graph-qa-mcp`, vraagt de `mcp`-extra). `tools/list` is `anthropic_schemas()`, `tools/call` is
+  `dispatch()` — een doorgeefluik, geen kopie, dus elke verbetering aan `graph/queries.py` komt
+  vanzelf mee. Hij bestaat omdat een externe agent anders alleen de kale GraphDB-MCP heeft en dus
+  zelf SPARQL schrijft: `tools/nl-sbb-begrip` deed dat en liep in de hele reeks valkuilen die hier
+  al opgelost waren (artikelnummer met dubbele punt, `bwb:tekst` als harde eis, een eigen
+  BWBR-tabel die naar de verkeerde wet wees). `tests/test_mcp_server.py` bewaakt dat hij exact de
+  tools van de agent aanbiedt en niets eigens.
 - **`mcp_client.py`** – synchrone MCP-client (Streamable HTTP): `sparql()` via tool `sparql_query`,
   `semantic_search()` via `similarity_search`. Eén persistente `httpx.Client`. `_reject_updates`
   weigert SPARQL die op een update lijkt (read-only vangnet).

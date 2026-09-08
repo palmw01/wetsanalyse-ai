@@ -95,6 +95,14 @@ plaats van schijnzekerheid.
 ### Ondersteunende tools
 
 - **`tools/wetsanalyse-admin-mcp/`** – stdio-MCP die de admin-API (`/v1/admin/*`) als tools ontsluit.
+- **`tools/graph-qa/agent/mcp_server.py`** – stdio-MCP (`graph-qa-mcp`, `mcp`-extra) die de
+  **getypeerde toollaag** van graph-qa ontsluit: `tools/list` is `anthropic_schemas()`, `tools/call`
+  is `dispatch()`. Daarmee krijgt een externe agent exact de tools die Lex heeft in plaats van kale
+  SPARQL — en dus ook de opgeloste valkuilen (dubbele punt in een artikelnummer, bepalingen zonder
+  eigen tekst). Registreren hoort machine-lokaal; de URL en het token horen niet in deze repo.
+- **`tools/nl-sbb-begrip/`** – side project: agent-workflow die voor één wettelijk begrip een
+  NL-SBB-definitie opstelt (Markdown + SKOS-Turtle) op basis van de graaf, via die MCP-server.
+  Draait niet mee in de dienst en heeft geen eigen CI.
 
 ## De onderdelen hangen via paden samen
 
