@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from agent import tools
 from agent.graph import schema
+from agent.mcp_client import MCPError
 from fakes import FakeGraph, make_settings
 
 EXPECTED = {
@@ -117,3 +118,43 @@ def test_semantic_search_limit_geclampt():
     assert captured["limit"] == 1
     _h_semantic_search(G(), {"query": "x", "limit": "abc"}, s)
     assert captured["limit"] == 10
+
+
+# ------------------------------------------------- de graaf is leeg opgekomen
+def _graaf_zonder_repository() -> FakeGraph:
+    """Een graaf die antwoordt zoals GraphDB doet vlak na een herstart: de repository bestaat niet."""
+    def kapot(_query: str) -> str:
+        raise MCPError("MCP-fout: {'message': \"Repository inning doesn't exist\"}")
+
+    return FakeGraph(results=kapot)
+
+
+def test_ontbrekende_repository_krijgt_een_eigen_melding():
+    """De storing van 8 sep 2026: de jurist kreeg de kale GraphDB-tekst en wist nergens van.
+
+    De weigering om uit eigen kennis te antwoorden blijft — die was juist correct — maar het
+    tool-resultaat zegt nu wát er speelt en dat het vanzelf overgaat.
+    """
+    out = tools.dispatch("list_regelingen", _graaf_zonder_repository(), {})
+    assert "niet beschikbaar" in out
+    assert "herstart" in out
+    assert "NIET uit eigen kennis" in out
+
+
+def test_ontbrekende_repository_wordt_apart_gelogd(caplog):
+    """`graaf_weg` is het veld waarop het Grafana-alarm filtert; zonder dat ziet niemand de uitval."""
+    import logging
+
+    with caplog.at_level(logging.ERROR, logger="graph_qa.tools"):
+        tools.dispatch("list_regelingen", _graaf_zonder_repository(), {})
+    assert [r for r in caplog.records if getattr(r, "graaf_weg", False) is True]
+
+
+def test_een_gewone_mcp_fout_blijft_een_gewone_fout():
+    """Een tikfout in een query mag niet als 'de graaf is weg' lezen — dan is het alarm ruis."""
+    def kapot(_query: str) -> str:
+        raise MCPError("The following IRIs are not used in the data stored in GraphDB")
+
+    out = tools.dispatch("list_regelingen", FakeGraph(results=kapot), {})
+    assert "niet beschikbaar" not in out
+    assert out.startswith("Fout bij tool 'list_regelingen'")

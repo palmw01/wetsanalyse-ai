@@ -269,12 +269,25 @@ def fts(
 
 
 def list_regelingen() -> str:
-    return PREFIXES + f"""SELECT DISTINCT ?regeling ?citeertitel ?soort WHERE {{
+    """Welke regelingen zitten in de graaf? – met hun officiële afkortingen.
+
+    Die afkortingen (`bwb:afkorting`, uit de WTI-verrijking) zijn er zodat een verwijzing als "Awb"
+    of "Leidr. Inv." langs de graaf naar een BWB-id te herleiden is. Zonder dat schrijft een
+    aanroeper zijn eigen afkortingentabel, en die verouderde bij nl-sbb-begrip stil: AWR wees naar
+    BWBR0002405 (moet BWBR0002320) en "Leidraad Inv" naar BWBR0019237 — dat ís de
+    Uitvoeringsregeling Awir. Een fout nummer geeft geen fout maar de tekst van een ándere wet.
+
+    `GROUP_CONCAT` omdat een regeling er meerdere heeft (de Uitvoeringsregeling IW er drie); zonder
+    groeperen zou elke regeling net zo vaak terugkomen als ze afkortingen heeft.
+    """
+    return PREFIXES + f"""SELECT ?regeling ?citeertitel ?soort
+       (GROUP_CONCAT(DISTINCT ?afk; separator=" | ") AS ?afkortingen) WHERE {{
   ?regeling a bwb:Regeling .
   FILTER(STRSTARTS(STR(?regeling), "{NS}"))
   OPTIONAL {{ ?regeling bwb:citeertitel ?citeertitel }}
   OPTIONAL {{ ?regeling bwb:soort ?soort }}
-}} ORDER BY ?citeertitel"""
+  OPTIONAL {{ ?regeling bwb:afkorting ?afk }}
+}} GROUP BY ?regeling ?citeertitel ?soort ORDER BY ?citeertitel"""
 
 
 def get_artikel(bwb_id: str, artikel: str) -> str:

@@ -147,6 +147,52 @@ def _fts_connector_config(vocab: Vocab) -> dict:
     }
 
 
+# Naam van de native GraphDB text-similarity-index (voor graph-qa's `semantic_search`).
+# Moet gelijk zijn aan SIMILARITY_INDEX in deploy/azure/main.bicep.
+_SIMILARITY_NAAM = "bwb_similarity"
+
+# De standaard-searchQuery van de similarity-plugin; alleen de indexnaam is variabel. Geen f-string:
+# de query staat vol accolades die dan allemaal verdubbeld zouden moeten worden.
+_SIMILARITY_SEARCH_QUERY = """\
+PREFIX :<http://www.ontotext.com/graphdb/similarity/>
+PREFIX inst:<http://www.ontotext.com/graphdb/similarity/instance/>
+SELECT ?documentID ?score {
+    ?search a inst:__INDEX__ ;
+        :searchTerm ?searchTerm ;
+        :documentResult ?result .
+    ?result :value ?documentID ;
+        :score ?score .
+}""".replace("__INDEX__", _SIMILARITY_NAAM)
+
+
+def _similarity_index_config(vocab: Vocab) -> dict:
+    """REST-body voor de text-similarity-index over de BWB-tekstliterals.
+
+    Eén-op-één de config die in juli 2026 handmatig is aangemaakt en live geverifieerd; zie
+    `tools/graph-qa/docs/embeddings-runbook.md` (*Route A – uitgevoerd*). Let op `-dimension`:
+    SemanticVectors kent geen `-vectorsize`.
+
+    De STRSTARTS-filter houdt het bij onze eigen IRI-ruimte, zodat `sameAs` geen dubbels
+    binnenhaalt.
+    """
+    return {
+        "name": _SIMILARITY_NAAM,
+        "type": "text",
+        "infer": True,
+        "sameAs": True,
+        "analyzerClass": "org.apache.lucene.analysis.nl.DutchAnalyzer",
+        "options": "-trainingcycles 5 -dimension 200",
+        "selectQuery": (
+            "SELECT ?documentID ?documentText {\n"
+            f"    ?documentID <{vocab.ns}tekst> ?documentText .\n"
+            f'    FILTER(STRSTARTS(STR(?documentID), "{vocab.base}"))\n'
+            "}"
+        ),
+        "searchQuery": _SIMILARITY_SEARCH_QUERY,
+        "stopList": "",
+    }
+
+
 def _config_omvat(gewenst, bestaand) -> bool:
     """Is de gewenste config (recursief) vervat in de bestaande?
 
@@ -395,6 +441,45 @@ class GraphDbWriter:
 
         return g, summary
 
+    def graaf_is_compleet(self, bwb_ids: list[str]) -> bool:
+        """Staat elke gevraagde regeling als gevulde named graph in de repository?
+
+        De goedkope peiling waarop de *graafwacht* draait (`--alleen-bij-verlies`). Eén SELECT, geen
+        download bij overheid.nl: dat is wat hem elk kwartier betaalbaar maakt.
+
+        **Waarom dit bestaat.** GraphDB draait op Azure zonder persistente opslag en komt na een
+        herstart leeg op — geen repository `inning`, geen data. Die repository wordt door precies
+        één ding aangemaakt: deze importer. Tot 8 sep 2026 gebeurde dat alleen na een deploy en
+        wekelijks via cron, dus een onverwachte herstart maakte de graaf tot bijna zeven dagen
+        onbruikbaar. Lex meldde dan eerlijk `Repository inning doesn't exist` en weigerde terecht
+        uit eigen geheugen te citeren, maar niemand zag het en niets herstelde het.
+
+        Elke fout telt als "niet compleet" en niet als crash: een ontbrekende repository geeft een
+        HTTP 404, precies de toestand waarvoor deze controle bedoeld is. Wie hier zou opwerpen dat
+        een netwerkstoring dan een onnodige import uitlokt heeft gelijk — dat kost één import, en
+        het alternatief kost een graaf die leeg blijft.
+        """
+        gewenst = {str(self._vocab.graph(bwb_id)) for bwb_id in bwb_ids}
+        try:
+            bindings = self._select_bindings(
+                "SELECT DISTINCT ?g WHERE { GRAPH ?g { ?s ?p ?o } }"
+            )
+        except (requests.RequestException, ValueError) as exc:
+            logger.warning("graafpeiling mislukt (%s); de graaf geldt als incompleet", exc)
+            return False
+        aanwezig = {b.get("g", {}).get("value", "") for b in bindings}
+        ontbreekt = gewenst - aanwezig
+        if ontbreekt:
+            logger.info(
+                "graaf incompleet: %d van %d regelingen ontbreken (%s)",
+                len(ontbreekt),
+                len(gewenst),
+                ", ".join(sorted(ontbreekt)),
+            )
+            return False
+        logger.info("graaf compleet: alle %d regelingen aanwezig", len(gewenst))
+        return True
+
     def ensure_fts_connector(self) -> None:
         """Waarborg de Lucene-FTS-connector (zelfherstellend, idempotent).
 
@@ -425,12 +510,63 @@ class GraphDbWriter:
         )
         logger.info("FTS-connector %s aangemaakt", _FTS_CONNECTOR_NAAM)
 
-    def _fts_bestaande_config(self) -> dict | None:
-        """Huidige createConnector-config van de connector, of ``None``."""
-        query = (
-            f"SELECT ?createString {{ <{_LUC_INST}{_FTS_CONNECTOR_NAAM}> "
-            f"<{_LUC}listConnectors> ?createString }}"
+    def ensure_similarity_index(self) -> None:
+        """Waarborg de text-similarity-index (zelfherstellend, idempotent, nooit fataal).
+
+        De tegenhanger van :meth:`ensure_fts_connector` voor `semantic_search`. Hij ontbrak, en
+        anders dan bij de FTS-connector viel dat niemand op: de index overleeft een GraphDB-herstart
+        niet, niets bouwde hem opnieuw, en graph-qa laat `semantic_search` dan *stil* terugvallen op
+        `search_wetgeving` (`agent/tools/__init__.py`). Gemeten op 8 sep 2026 bestond hij op
+        acceptatie niet — `get_similarity_options` gaf `{}` terug — terwijl `SIMILARITY_INDEX`
+        gewoon was gezet.
+
+        **Een mislukking is hier geen importfout.** De wettekst staat dan al in de graaf en is
+        volledig bevraagbaar; alleen het semantisch zoeken degradeert. Rood worden zou een geslaagde
+        import weggooien om een hulpindex.
+
+        Wat hij bewust *niet* doet: een bestaande index herbouwen. Een similarity-index is een
+        momentopname, dus na een wekelijkse herimport blijft hij op de vorige wettekst staan. Dat is
+        de goedkope kant van de afweging — herbouwen kost bij elke run een training, terwijl de
+        wettekst zelden verandert. Waar het op aankomt is de lege graaf ná een herstart, en daar
+        bestaat de index niet en wordt hij dus wél gebouwd.
+        """
+        try:
+            if _SIMILARITY_NAAM in self._bestaande_similarity_indexen():
+                logger.info("similarity-index %s bestaat al", _SIMILARITY_NAAM)
+                return
+            resp = self._http.post(
+                f"{self._url}/rest/similarity",
+                json=_similarity_index_config(self._vocab),
+                headers={"X-GraphDB-Repository": self._repo},
+                auth=self._auth,
+                timeout=self._timeout,
+            )
+            resp.raise_for_status()
+            logger.info("similarity-index %s aangemaakt", _SIMILARITY_NAAM)
+        except Exception as exc:  # noqa: BLE001 – een hulpindex mag de import nooit rood maken
+            logger.warning(
+                "similarity-index %s niet aangemaakt (%s); semantic_search valt terug op "
+                "tekstueel zoeken",
+                _SIMILARITY_NAAM,
+                exc,
+            )
+
+    def _bestaande_similarity_indexen(self) -> set[str]:
+        """Namen van de similarity-indexen op deze repository."""
+        resp = self._http.get(
+            f"{self._url}/rest/similarity",
+            headers={"X-GraphDB-Repository": self._repo},
+            auth=self._auth,
+            timeout=self._timeout,
         )
+        resp.raise_for_status()
+        payload = resp.json()
+        # GraphDB geeft een lijst indexen; oudere versies wikkelen 'm in een object.
+        rijen = payload if isinstance(payload, list) else payload.get("indexes", [])
+        return {r.get("name", "") for r in rijen if isinstance(r, dict)}
+
+    def _select_bindings(self, query: str) -> list[dict]:
+        """Voer een SELECT uit op de repository en geef de ruwe bindings terug."""
         resp = self._http.post(
             f"{self._url}/repositories/{self._repo}",
             data={"query": query},
@@ -439,7 +575,15 @@ class GraphDbWriter:
             timeout=self._timeout,
         )
         resp.raise_for_status()
-        bindings = resp.json().get("results", {}).get("bindings", [])
+        return resp.json().get("results", {}).get("bindings", [])
+
+    def _fts_bestaande_config(self) -> dict | None:
+        """Huidige createConnector-config van de connector, of ``None``."""
+        query = (
+            f"SELECT ?createString {{ <{_LUC_INST}{_FTS_CONNECTOR_NAAM}> "
+            f"<{_LUC}listConnectors> ?createString }}"
+        )
+        bindings = self._select_bindings(query)
         if not bindings:
             return None
         raw = bindings[0].get("createString", {}).get("value", "")

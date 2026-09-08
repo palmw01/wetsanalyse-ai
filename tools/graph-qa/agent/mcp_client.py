@@ -18,15 +18,23 @@ serverkant; dit is defense-in-depth zolang het model nog rauwe SPARQL kan sturen
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 from typing import Any
 
 import httpx
 
+logger = logging.getLogger("graph_qa.mcp")
+
 
 class MCPError(Exception):
     pass
+
+
+# Sentinel voor "de server kent deze sessie niet (meer)"; zie `MCPClient._rpc`. Een eigen object en
+# geen None, want None is een geldig JSON-RPC-resultaat (een 202 zonder body).
+_SESSIE_WEG = object()
 
 
 # Allowlist in plaats van blocklist. De vorige opzet zocht naar update-sleutelwoorden, en dat is
@@ -107,6 +115,41 @@ class MCPClient:
     # ------------------------------------------------------------------
 
     def _rpc(self, method: str, params: dict[str, Any] | None = None) -> Any:
+        """Eén JSON-RPC-aanroep, met de MCP-handshake als voorwaarde van de verbinding.
+
+        **De handshake hoort hier en niet bij de aanroeper.** GraphDB MCP Server 2.0.0 weigert
+        zonder sessie élke `tools/call` — ook een kale `SELECT (COUNT(*) …)` — met een HTTP 400 en
+        een XML-stacktrace. `make_graph()` had drie aanroepers: `agent/agent.py` en `api/main.py`
+        riepen `initialize()` aan, `eval/retrieval_smoke.py` niet. Die smoke heeft daardoor nooit
+        iets gemeten: zijn wachtlus las de 400 als "graaf nog niet gereed" en wachtte het volle
+        budget uit, waarna de hele eval-run rood werd terwijl de graaf gezond was en de
+        annotatieketen 10/10 haalde. Een voorwaarde die elke aanroeper moet onthouden, wordt vergeten.
+
+        **En de sessie kan verlopen.** Een sessie-id dat de server niet (meer) kent geeft een 404;
+        de client bleef die dan eeuwig meesturen. Dat is geen theorie: GraphDB draait zonder
+        persistente opslag en komt na een herstart leeg én zonder sessies op. Eén automatische
+        her-handshake vangt dat. Hoogstens één, want een tweede 404 komt ergens anders vandaan en
+        moet zichtbaar zijn in plaats van in een lus verdwijnen.
+        """
+        if method != "initialize" and not self._session_id:
+            self.initialize()
+
+        antwoord = self._post(method, params)
+        if antwoord is not _SESSIE_WEG:
+            return antwoord
+
+        logger.info("MCP-sessie onbekend bij de server; opnieuw initialiseren")
+        self._session_id = None
+        self.initialize()
+        antwoord = self._post(method, params)
+        if antwoord is _SESSIE_WEG:
+            raise MCPError(
+                f"MCP-sessie blijft ongeldig na opnieuw initialiseren (methode {method!r})."
+            )
+        return antwoord
+
+    def _post(self, method: str, params: dict[str, Any] | None = None) -> Any:
+        """De feitelijke POST. Geeft de sentinel `_SESSIE_WEG` terug bij een verlopen sessie."""
         payload: dict[str, Any] = {
             "jsonrpc": "2.0",
             "id": 1,
@@ -129,6 +172,11 @@ class MCPClient:
         sid = resp.headers.get("Mcp-Session-Id")
         if sid:
             self._session_id = sid
+
+        # 404 op een aanroep mét sessie = de server kent hem niet meer. Alleen dán, want zonder
+        # sessie is een 404 gewoon een verkeerde URL en die moet je niet wegpoetsen met een retry.
+        if resp.status_code == 404 and self._session_id and method != "initialize":
+            return _SESSIE_WEG
 
         if resp.status_code == 202:
             return None
