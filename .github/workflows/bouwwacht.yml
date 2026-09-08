@@ -64,7 +64,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python3 - <<'PYEOF'
-          import json, os, pathlib, subprocess, sys, yaml
+          import json, os, pathlib, re, subprocess, sys, yaml
 
           OWNER = os.environ["OWNER"]
           HEAD = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True,
@@ -105,8 +105,13 @@ jobs:
               spec = yaml.safe_load(pad.read_text(encoding="utf-8")) or {}
               trigger = spec.get(True, spec.get("on")) or {}          # PyYAML leest `on:` als True
               paden = ((trigger.get("push") or {}).get("paths")) or []
-              image = (spec.get("env") or {}).get("IMAGE", "").replace(
-                  "${{ github.repository_owner }}", OWNER).strip()
+              # LET OP: GitHub expandeert workflow-expressies (dollar plus dubbele accolade) ook
+              # binnen dit script. Een letterlijke zoekstring is dus al vervangen vóór python hem
+              # ziet, matcht daarna niets, en de wacht denkt dat élk image ontbreekt (zo ging het bij
+              # de eerste versie mis). De regex hieronder houdt die tekens uit elkaar en vervangt
+              # elke expressie in de IMAGE-waarde door de owner.
+              image = re.sub(r"\$\{\{[^}]*\}\}", OWNER,
+                             (spec.get("env") or {}).get("IMAGE", "")).strip()
               if not paden or not image:
                   print(f"::warning::{pad.name}: geen `paths:` of `env.IMAGE` gevonden, overgeslagen")
                   continue
