@@ -528,7 +528,7 @@ def test_een_alternatief_heet_voorgelegd_aan_de_jurist():
     }
     blok = _vorige_ronde_blok([voorstel], [])
     assert "ALTERNATIEF aan de jurist voorgelegd" in blok
-    assert "herhaal het niet" in blok
+    assert "inhoudelijke bezwaar nog bestaat" in blok
 
 
 def test_een_genegeerde_instructie_heet_nog_steeds_genegeerd():

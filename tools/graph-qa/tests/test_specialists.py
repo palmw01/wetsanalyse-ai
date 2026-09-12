@@ -45,19 +45,13 @@ def test_definitie_beperkt_toolset():
     assert "get_context" not in names  # duiding-only tool
 
 
-def test_definitie_prompt_wijst_naar_artikel_1_en_2_en_de_onderdelen():
-    """Twee terugkerende omwegen die de prompt nu afsnijdt.
+def test_definitie_prompt_volgt_bronvindplaats_en_onderdelen():
+    from agent.specialists import get
 
-    De agent probeerde eerst artikel 1, vond daar niets en ging pas daarna naar artikel 2 – een
-    extra ronde per definitievraag. En hij citeerde de vindplaats van het lid terwijl hij een
-    onderdeel aanhaalde, waardoor de verwijzing op 25 definities uitkwam in plaats van op één.
-    """
-    from agent.specialists import SPECIALISTS
-
-    prompt = SPECIALISTS["definitie"].system
-    assert "artikel 1 of 2" in prompt
-    assert "in één beurt" in prompt
-    assert "&o=k" in prompt, "de vindplaats van het onderdeel, niet die van het lid"
+    prompt = get("definitie").system
+    assert "bepaal de vindplaats uit bronresultaten" in prompt
+    assert "Haal de gevonden definitiebepaling op" in prompt
+    assert "&o=k" in prompt
 
 
 def test_onbekende_route_valt_terug_op_algemeen():

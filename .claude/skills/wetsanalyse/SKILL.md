@@ -1,47 +1,66 @@
 ---
 name: wetsanalyse
+metadata:
+  methode_versie: "2.1"
 description: >-
-  Voert Wetsanalyse uit op Nederlandse wet- en regelgeving volgens de methode
-  Wetsanalyse (Ausems, Bulles & Lokin) en het Juridisch Analyseschema (JAS):
-  activiteit 2 (wetsformuleringen markeren en classificeren in JAS-klassen). Dit is de
-  inhoudelijke methodebeschrijving; het draaiende platform voert de analyse uit in de
-  werkplek. Gebruik deze skill zodra de gebruiker een wetsartikel of regeling juridisch
-  wil analyseren, structureren, ontleden of "wetsanalyse" wil doen – ook bij vragen als
-  "classificeer dit artikel", "welke rechtssubjecten/rechtsbetrekkingen/voorwaarden zitten
-  hierin", "ontleed deze bepaling juridisch", of wanneer een bepaling brongetrouw en
-  uitlegbaar moet worden vastgelegd voor uitvoering (bijvoorbeeld bij de Belastingdienst).
-  Trigger ook bij twijfel: dit is de aangewezen werkwijze voor het gestructureerd duiden
-  van de betekenis van wetgeving.
+  Analyseer Nederlandse wet- en regelgeving volgens JAS, met JRM 2-verrijking.
+  Gebruik voor juridisch ontleden, markeren en classificeren van bepalingen en
+  voor een brononderbouwd conceptanalysedossier bij activiteit 2 van Wetsanalyse.
+  Omvat grammatica, verwijzingen, juridische samenhang en scenario-toetsing.
 ---
 
-# Wetsanalyse — activiteit 2: markeren en classificeren
+# Wetsanalyse — JAS met JRM 2-verrijking
 
-Wetsanalyse maakt de betekenis van wetgeving expliciet, traceerbaar en uitlegbaar, zodat besluiten
-in de uitvoering te verantwoorden zijn. Deze skill dekt **activiteit 2**: relevante
-wetsformuleringen *markeren* (2a) en elke markering een *klasse* uit het Juridisch Analyseschema
-geven (2b).
+Lever een controleerbaar concept voor een menselijke analist. Methodeversie: 2.1,
+2026-09-12. De dertien platformlabels blijven behouden; JRM 2 is aanvullende
+semantiek in het dossier, geen vervanging van het annotatiecontract.
 
-**De eenheid van analyse is de formulering, niet het artikel of het lid.** Eén lid levert vrijwel
-altijd meerdere markeringen op.
+## Kies de uitvoervorm
 
-**Dit is een hulpmiddel, geen vervanger van de analist.** Lever een onderbouwd, eerlijk concept:
-classificeer wat helder is, en benoem twijfel, aannames en open normen als zodanig. Een analyse die
-haar eigen onzekerheden benoemt is waardevoller dan een gladde die ze verbergt.
+- **Volledige analyse (standaard):** Markdown-dossier volgens
+  [het sjabloon](assets/analysedossier.md). Lees het
+  [analyseprotocol](references/analyseprotocol.md) en de
+  [kwaliteitsrubriek](references/kwaliteit.md). Volg noodzakelijke officiële bronnen
+  met de beschikbare zoek-/brontools. Ontbrekende toegang is een open punt, geen bewijs.
+- **Alleen markeringen / platformannotatie:** werk uitsluitend binnen de aangeboden
+  brontekst en het bestaande JSON-contract. Lees het
+  [runtimeprotocol](references/annotatieprotocol.md). Geen extern onderzoek suggereren
+  dat niet is uitgevoerd. Gebruik toelichtingen en alternatieven voor lokale twijfel;
+  deze beperkte uitvoervorm levert geen volledig dossier of volledigheidsverklaring.
 
-## Brongetrouwheid is niet onderhandelbaar
+## Traceerbare grondslag
 
-- **Werk alleen met letterlijk opgehaalde wettekst.** Verzin nooit tekst, leden of artikelnummers.
-- **Elk gemarkeerd fragment staat letterlijk in de bron** — teken voor teken, aaneengesloten. Kun
-  je een element niet met een letterlijk fragment onderbouwen, neem het dan niet op als markering;
-  benoem het in de toelichting.
-- **Houd alles herleidbaar**: elke markering verwijst naar artikel + lid en, waar beschikbaar, de
-  `bronreferentie` (jci-uri).
-- **Gebruik uitsluitend de dertien JAS-klassen** hieronder. Verzin geen eigen klassen.
+[Bronnen en beslisregister](references/bronnen.md) verbindt iedere methodestap met
+bron + sectie en onderscheidt eigen projectkeuzes. De lokale originelen en hun hashes
+staan in het gekoppelde manifest. Lees de relevante bronverantwoording bij twijfel of
+wanneer je de methode zelf aanpast.
 
-## De dertien klassen
+## Essentiële werkwijze
 
-De officiële JAS-tabel (`docs/wetsanalyse/wa-table.png`) nummert zestien rijen; onze labelset
-voegt drie paren samen. De korte definities hieronder komen uit die tabel.
+1. Leg opdracht, werkgebied, bronversie en peildatum vast. Ontbreken bepalende gegevens,
+   vraag ze gericht op; werk ondertussen aan de delen die daarvan niet afhangen.
+2. Ontleed structuur en grammatica vóór classificatie. Een grammaticaal onderwerp is
+   niet automatisch de juridische actor. Lees [analyseprotocol](references/analyseprotocol.md).
+3. Bepaal normeenheden, hun hoofdfunctie en samenhang; markeer betekenisdragende
+   fragmenten volgens [fragmentgrenzen](references/markeren-fragmentgrenzen.md).
+4. Onderzoek noodzakelijke context volgens [verwijzingen volgen](references/verwijzingen-volgen.md).
+   Scheid wetstekst, interpretatie, beleid en hypothetische scenariofeiten.
+5. Classificeer met de onderstaande labels en [klassenreferentie](references/jas-klassen-referentie.md).
+   Onderbouw alternatieven; vul impliciete partijen nooit als letterlijk citaat in.
+6. Verbind elementen en scenario's volgens [JRM-verrijking](references/jrm-verrijking.md).
+7. Controleer dekking en onderbouwing. Lever open punten met concrete reviewvragen op.
+   Alleen een mens kan de status 'vastgesteld' verlenen.
+
+Elk citaat is letterlijk, aaneengesloten en herleidbaar tot bron + artikel + lid/onderdeel
++ voorkomen. Herformuleringen staan afzonderlijk. Meerdere markeringen mogen overlappen
+als zij verschillende juridische functies dragen. Een taxonomie is geen algemene
+voorrangsregel: uitsluitend tijd/plaats boven variabele/parameter bij dezelfde functie.
+
+## Platformlabels
+
+Signaalwoorden zijn zoekhulp, geen beslisregels. De klasse volgt uit de juridische
+functie in context. De oorspronkelijke zestien tabelrijen zijn in dit platform tot
+dertien labels samengevoegd; het onderscheid binnen de drie paren blijft inhoudelijk bestaan.
 
 | Klasse | Wat het is | Herken aan |
 | --- | --- | --- |
@@ -59,96 +78,22 @@ voegt drie paren samen. De korte definities hieronder komen uit die tabel.
 | **Delegatiebevoegdheid en delegatie-invulling** | Bevoegdheid om in lagere regelgeving nadere regels te stellen (+ de regeling die dat invult). | ‘bij (of krachtens) amvb / ministeriële regeling worden regels gesteld’ (verplicht); ‘kunnen regels worden gesteld’ (facultatief) |
 | **Brondefinitie** | In de wetgeving opgenomen definitie. | Definitieartikel met aanhef en onderdelen, vaak vooraan de regeling |
 
-Voor de volledige omschrijving, de herkenningsvragen en de uitdrukkingswijze per klasse: zie
-`references/jas-klassen-referentie.md`. Raadpleeg dat bestand bij twijfel of samenloop.
 
-## Werkwijze
+## Reikwijdte en onderzoek
 
-Gebruik de **herkenningsvraag** per klasse als grammaticale ontleedvraag op de tekst, zoals bij
-zinsontleding.
+Activiteit 2 omvat ook de samenhang van elementen (2c). Noodzakelijke begripsduiding,
+interpretatie en scenario's ondersteunen dit; formele RegelSpraak-/gegevensmodellen,
+uitvoerbare besluiten en een nieuwe app-interface vallen buiten deze versie.
 
-1. **Anker aan een centrale klasse.** Zoek eerst de *rechtsbetrekking*, het *rechtsfeit*, de
-   *afleidingsregel* of de *voorwaarde* die de bepaling draagt.
-2. **Hang de rest daaraan op**: wie is rechthebbende, wie plichthebbende, wat is het rechtsobject,
-   onder welke voorwaarden geldt het.
-3. **Ga daarna de diepte in**: bij elke voorwaarde de variabelen waaraan getoetst wordt; daarna
-   operatoren, parameters, tijds- en plaatsaanduidingen, delegaties en brondefinities.
-4. Bij een bepaling die iets berekent: begin bij de formulering die de **uiteindelijke waarde**
-   vaststelt en werk terug naar de invoervariabelen.
+Bronverantwoording, afwijkingen en onderzoeksbevindingen:
+[onderzoeksdocument](../../../docs/wetsanalyse/methode-onderzoek.md).
+Voor conceptvoorbeelden en de gezamenlijke beoordelingsprocedure:
+[referentieset](../../../docs/wetsanalyse/referentieset/README.md).
 
-**Fragmentgrenzen.** Markeer precies zoveel tekst als nodig is om de betekenis van het element
-volledig te dragen. De klasse bepaalt de omvang: bij een *variabele* geen werkwoord en geen
-voorwaarden, bij een *afleidingsregel* juist wel, bij een *voorwaarde* de hele zin of het hele
-zinsdeel. Neem het lidwoord mee, en een verwijzing als die de betekenis draagt.
+## Import in platformagents
 
-**Markeringen mogen overlappen** — dat is de verwachte uitkomst, niet een fout. Een voorwaarde
-bevat vrijwel altijd variabelen; een rechtsbetrekking bevat haar subjecten en object.
-
-Volledige markeerregels — opsommingen, verwijzende voornaamwoorden, homoniemen, en wat je juist
-*niet* markeert — staan in `references/markeren-fragmentgrenzen.md`.
-
-## Samenloop: de meest specifieke klasse wint
-
-De bron geeft één expliciete prioriteitsregel, tweemaal (`H2-JAS.md:107` en `:116`):
-
-> Een formulering kan zowel tot de klasse tijdsaanduiding [resp. plaatsaanduiding] als tot de
-> klasse parameter of variabele behoren. Als dat zich voordoet, kiezen we bij de analyse voor de
-> meest specifieke klasse.
-
-Dus: **tijdsaanduiding en plaatsaanduiding winnen van variabele en parameter.** De reden is dat een
-tijdsaanduiding de duur van een rechtsbetrekking of het moment van een tijdsverloop bepaalt, en dat
-belang rechtvaardigt een eigen klasse.
-
-Bij andere samenloop geeft de taxonomie uit `H3-Kader.md` de richting — hoe dieper in de boom, hoe
-specifieker: voorwaarde ⊃ afleidingsregel ⊃ {operator, variabele ⊃ {variabelewaarde,
-tijdsaanduiding, plaatsaanduiding}, parameter ⊃ parameterwaarde}.
-
-**Twijfel je nog?** Kies de best passende klasse en noteer het alternatief expliciet als
-alternatief, met een korte motivatie. Forceer geen zekerheid die er niet is.
-
-## Voorbeeld
-
-De zin uit artikel 9, eerste lid, Invorderingswet 1990 zoals de eval-set hem draagt
-(`tools/graph-qa/eval/`):
-
-> Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.
-
-| fragment | klasse | waarom |
-| --- | --- | --- |
-| `Een belastingaanslag` | Rechtsobject | Waar gaat de invorderbaarheid over? Zelfstandig naamwoord met lidwoord. |
-| `Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet` | Rechtsbetrekking | De formulering die de juridische toestand draagt: vanaf wanneer mag worden ingevorderd. |
-| `zes weken na de dagtekening van het aanslagbiljet` | Tijdsaanduiding | Vanaf welk moment? Tijdvak vanaf een gebeurtenis — wint van variabele/parameter. |
-
-Let op wat hier gebeurt: drie markeringen op één zin, deels overlappend. De ontvanger als tweede
-partij in de rechtsbetrekking staat **niet** in deze zin — die noem je in de toelichting, je
-markeert hem niet.
-
-## Buiten de huidige scope
-
-Benoem deze wel als je ze tegenkomt, maar lever ze niet als markering:
-
-- **Deelactiviteit 2c** (een structuurdiagram rond een centrale klasse) — de methode kent hem, dit
-  platform levert hem niet.
-- **Activiteit 3** (begrippen en begripsdefinities maken bij de markeringen) en de
-  RegelSpraak-formalisering.
-- **Subklassen** van rechtsbetrekking (aanspraak/bevoegdheid/immuniteit/vrijheid) en van rechtsfeit.
-  Het annotatiecontract draagt alleen de dertien klassen; een subtype heeft nergens een veld.
-
-## Kwaliteitscheck voordat je oplevert
-
-- Staat elk gemarkeerd fragment **letterlijk** in de opgehaalde tekst?
-- Is elke markering herleidbaar naar artikel + lid (en bronreferentie)?
-- Zijn alle klassen uit de dertien, en geen verzonnen klassen?
-- Heb je fijnmazig genoeg gewerkt — meerdere markeringen per lid, overlap waar die hoort?
-- Is bij samenloop de meest specifieke klasse gekozen, en staat het alternatief genoteerd?
-- Zijn interpretatiekeuzes en twijfel expliciet benoemd in plaats van weggepoetst?
-- Heeft een mens het resultaat beoordeeld voordat het als vastgesteld geldt?
-
-## Verder lezen
-
-- `references/jas-klassen-referentie.md` — de dertien klassen volledig, uit de bron, met
-  regelverwijzingen.
-- `references/markeren-fragmentgrenzen.md` — hoe je markeert: grenzen, overlap, opsommingen,
-  verwijzingen, homoniemen.
-- `references/verwijzingen-volgen.md` — het volg-beleid voor kruisverwijzingen. Hoort bij het
-  afbakenen van een werkgebied over meerdere bronnen, niet bij het annoteren van één bepaling.
+[Agentrollen](references/agentrollen.md) beschrijft de beperkte runtime-uitvoering.
+`agentrollen.json` koppelt rollen aan stabiele sectie-ID’s en M/P-bronnen.
+Genereer beide Pythonbestanden met `tools/graph-qa/scripts/genereer_jas_klassen.py`.
+De machineleesbare methodeversie staat uitsluitend in bovenstaande metadata;
+de pakkethash onderscheidt wijzigingen binnen dezelfde inhoudelijke methodeversie.

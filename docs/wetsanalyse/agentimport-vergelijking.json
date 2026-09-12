@@ -1,0 +1,70 @@
+{
+  "model": "claude-sonnet-4-6",
+  "herhalingen": 1,
+  "resultaten": {
+    "voor": {
+      "IW01": {
+        "elementen": 5,
+        "letterlijk": 5,
+        "geel": 1,
+        "rood": 0,
+        "calls": 4
+      },
+      "AWB04": {
+        "elementen": 9,
+        "letterlijk": 9,
+        "geel": 6,
+        "rood": 0,
+        "calls": 4
+      },
+      "WZT01": {
+        "elementen": 15,
+        "letterlijk": 15,
+        "geel": 8,
+        "rood": 0,
+        "calls": 4
+      },
+      "RVV03": {
+        "elementen": 9,
+        "letterlijk": 9,
+        "geel": 4,
+        "rood": 1,
+        "calls": 4
+      }
+    },
+    "na": {
+      "IW01": {
+        "elementen": 5,
+        "letterlijk": 5,
+        "geel": 4,
+        "rood": 0,
+        "calls": 4
+      },
+      "AWB04": {
+        "elementen": 8,
+        "letterlijk": 8,
+        "geel": 4,
+        "rood": 0,
+        "calls": 4
+      },
+      "WZT01": {
+        "elementen": 16,
+        "letterlijk": 16,
+        "geel": 7,
+        "rood": 0,
+        "calls": 4
+      },
+      "RVV03": {
+        "elementen": 10,
+        "letterlijk": 10,
+        "geel": 6,
+        "rood": 0,
+        "calls": 4
+      }
+    }
+  },
+  "gemeten_pakkethash": "ec72824bc85fc6223aa5e5404d319d6e04ec2c95ff4ea01c1808b8a41dac5f72",
+  "definitieve_pakkethash": "960881caf15485c5b1505ee64c1174884e382342c40f51538f4c4128e283ad66",
+  "alle_gemeten_nieuwe_systeemprompts_exact_gelijk_aan_definitieve_runtime": true,
+  "verschil_pakketidentiteit": "Alleen documentatie buiten de geselecteerde instructies: tabelopmaak P12, uitleg generatiepad en afsluitende witruimte. Geselecteerde secties en rollen exact gelijk."
+}

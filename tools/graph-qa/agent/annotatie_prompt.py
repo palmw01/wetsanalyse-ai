@@ -6,8 +6,9 @@ markeert JAS-elementen in een aangeleverde artikeltekst en geeft ze **gestructur
 terug. Brongetrouwheid is heilig: alléén letterlijke fragmenten uit de tekst.
 
 WAAR DE METHODETEKST VANDAAN KOMT. `agent/jas_klassen.py` is **afgeleid**, geen bron: het
-JAS_KLASSEN-blok wordt gegenereerd uit
-`.claude/skills/wetsanalyse/references/jas-klassen-referentie.md` door
+JAS_KLASSEN-blok wordt gegenereerd uit de klassereferentie. De rolinstructies komen
+via `methode.instructies` uit `methodepakket.py`, geselecteerd door `agentrollen.json`.
+Beide bestanden worden gegenereerd door
 `scripts/genereer_jas_klassen.py`, bewaakt door `tests/test_methode_drift.py`. Wil je het gedrag
 van de annotator bijsturen — een klasse scherper omschrijven, een herkenningsvraag toevoegen — doe
 dat dan in de markdown en draai het script. Bewerk je de Python, dan faalt de drift-test.
@@ -21,6 +22,15 @@ from __future__ import annotations
 import re
 
 from .jas_klassen import JAS_KLASSEN, JAS_KLASSEN_VOLGORDE, REGELS, RegelType
+
+
+from .methode import instructies
+
+
+def _analyseprotocol(fase: str) -> str:
+    return instructies({"Kandidaten": "kandidaten", "Classificatie": "classificatie",
+                        "Review": "critic", "Annotator": "annotator",
+                        "Herziening": "herziening"}[fase])
 
 
 def _eerste_zin(tekst: str) -> str:
@@ -78,8 +88,10 @@ def annotatie_systeemprompt(kort: bool = False) -> str:
 DE DERTIEN JAS-KLASSEN (gebruik exact deze namen, verzin geen andere):
 {_klassen_referentie(kort)}
 
+{_analyseprotocol("Annotator")}
+
 WERKWIJZE
-- Markeer de betekenisdragende formuleringen in de aangeleverde artikeltekst en classificeer elke in de meest specifieke passende JAS-klasse.{(' ' + prioriteitsregels) if prioriteitsregels else ''}
+- Markeer de betekenisdragende formuleringen in de aangeleverde artikeltekst en classificeer elke in de inhoudelijk passende JAS-klasse.{(' ' + prioriteitsregels) if prioriteitsregels else ''}
 - BRONGETROUW: het veld `tekst` is een LETTERLIJK, aaneengesloten fragment uit de aangeleverde artikeltekst – exact overgenomen (zelfde woorden, leestekens en volgorde). Verzin niets, parafraseer niet, vul niets aan. Kun je een element niet met een letterlijk fragment onderbouwen, neem het dan niet op.
 - Geef bij twijfel tussen klassen `alternatieven`: de andere kandidaat-klasse(n) met een korte motivatie. Forceer geen zekerheid die er niet is.
 - `lid`: het lidnummer waarin het fragment staat (bijv. "1"); leeg als het niet aan een lid te koppelen is.
@@ -118,7 +130,7 @@ def kandidaten_systeemprompt() -> str:
     klasse-specificatie. Zo zijn span-recall en klasse-accuracy onafhankelijk
     meetbaar.
     """
-    return """Je bent een tekstanalyst die Nederlandse wetteksten voorbereidt voor JAS-annotatie.
+    return _analyseprotocol("Kandidaten") + "\n\n" + """Je bent een tekstanalyst die Nederlandse wetteksten voorbereidt voor JAS-annotatie.
 
 TAAK
 Identificeer alle tekstfragmenten in de aangeleverde artikeltekst die mogelijk een juridisch relevant element zijn: partijen, voorwerpen, relaties, handelingen, voorwaarden, tijds- en plaatsaanduidingen, waarden, delegaties, definities en rekenregels.
@@ -158,9 +170,11 @@ def klasseer_systeemprompt(kort: bool = False) -> str:
 DE DERTIEN JAS-KLASSEN (gebruik exact deze namen):
 {_klassen_referentie(kort)}
 
+{_analyseprotocol("Classificatie")}
+
 WERKWIJZE
 - Classificeer elk aangeleverd fragment in precies één JAS-klasse.{(' ' + prioriteitsregels) if prioriteitsregels else ''}
-- BRONGETROUW: het veld `tekst` MOET exact overeenkomen met het aangeleverde `span` – kopieer het letterlijk.
+- BRONGETROUW: kopieer `tekst` letterlijk uit de brontekst. Kandidaatgrenzen zijn voorlopig: verfijn ze waar de juridische functie dat vereist en controleer lid/onderdeel opnieuw.
 - Geef bij twijfel `alternatieven` met een korte motivatie per alternatieve klasse.
 - `toelichting`: één beknopte zin waarom deze klasse past (herleidbaar naar de herken-vraag).
 - Laat een kandidaat weg als hij bij nader inzien geen JAS-element is (leeg `tekst`-veld is niet toegestaan).
@@ -195,8 +209,8 @@ def critic_systeemprompt(kort: bool = False) -> str:
     prioriteitsregels = _prioriteitsregels_tekst()
     prioriteitsblok = (
         f"\n\nPRIORITEITSREGELS VAN DE METHODE – deze gaan vóór jouw oordeel. {prioriteitsregels} "
-        "Een element dat zo\u2019n regel volgt is dus GOED, ook als de andere klasse op zichzelf ook zou "
-        "passen: markeer dat niet als fout. En stel nooit een `voorstel_klasse` voor die tegen een van "
+        "Het volgen van deze voorrangsregel is op zichzelf geen klassefout; beoordeel fragmentgrens, "
+        "toepassing en onderbouwing afzonderlijk. Stel geen `voorstel_klasse` voor die tegen een van "
         "deze regels ingaat – die wordt niet uitgevoerd."
         if prioriteitsregels else ""
     )
@@ -204,6 +218,8 @@ def critic_systeemprompt(kort: bool = False) -> str:
 
 DE DERTIEN JAS-KLASSEN (gebruik exact deze namen, verzin geen andere):
 {_klassen_referentie(kort)}{prioriteitsblok}
+
+{_analyseprotocol("Review")}
 
 WAAR JE OP LET (per voorgesteld element):
 - Verkeerde of te grove klasse (past een andere JAS-klasse beter?).
@@ -253,8 +269,8 @@ De MOTIVATIE leest een jurist letterlijk op zijn reviewkaart. Schrijf hem dus vo
 
 NIET DE EERSTE RONDE? Dan staat er onder de voorstellen wat je vórige ronde vond en wat de annotator daarmee heeft gedaan.
 - Is een punt opgelost? Zeg dat: `aandacht: "groen"`, `actie: "behoud"`. Dat is een uitkomst, geen zwakte.
-- Heeft de annotator jouw voorstel bewust laten liggen? Dan is dat een gemotiveerd meningsverschil. Herhaal het niet – zet het hooguit op "geel" zodat de jurist het ziet, en ga verder.
-- Herhaal geen punten die je al maakte, en meld bij ONTBREKEND alleen elementen die je nog niet eerder hebt genoemd. Is er niets meer over? Zeg dat met groene oordelen en een lege `ontbrekend`.
+- Is een bezwaar nog onopgelost? Beoordeel de inhoud opnieuw en behoud de passende ernst. Een eerdere afwijzing alleen bewijst niet dat het bezwaar is opgelost. Een verdedigbaar meningsverschil blijft geel; een aantoonbare fout kan rood blijven.
+- Meld eerder genoemde ontbrekende elementen opnieuw wanneer ze nog werkelijk ontbreken. Voeg geen dubbeling toe als ze inmiddels zijn verwerkt. Geef alleen groen wanneer het inhoudelijke bezwaar opgelost is.
 
 ELEMENTEN GEMARKEERD MET "DOOR DE JURIST" heeft een mens zelf aangebracht. Beoordeel ze net zo eerlijk, maar weet dat je oordeel daar een SUGGESTIE is die de jurist naast zich neer mag leggen: gebruik `actie: "behoud"` tenzij je echt denkt dat er iets mis is, en formuleer de motivatie als een vraag of overweging, niet als een correctie."""
 
@@ -276,13 +292,13 @@ def _stand_van(voorstel: dict, laatste_ronde: dict) -> str:
     if voorstel_klasse and any(
         str(a.get("klasse")) == voorstel_klasse for a in (voorstel.get("alternatieven") or [])
     ):
-        return "als ALTERNATIEF aan de jurist voorgelegd – die kiest; herhaal het niet"
+        return "als ALTERNATIEF aan de jurist voorgelegd – die kiest; beoordeel of het inhoudelijke bezwaar nog bestaat"
     # Geel verandert nooit iets (zie `pas_critic_toe`), maar het is wél afgehandeld: de motivatie
     # staat als kanttekening op de kaart van de jurist. Zonder deze regel viel een geel voorstel dat
     # géén klasse noemde – dus een fragmentvoorstel – terug op "ongewijzigd gelaten", en herhaalde de
     # Critic zijn advies woord voor woord in ronde 2. Dat gebeurde op dev bij 'aansprakelijk'.
     if str(laatste_ronde.get("aandacht", "")) == "geel" and laatste_ronde.get("actie") != "behoud":
-        return "als kanttekening aan de jurist gemeld – die weegt het; herhaal het niet"
+        return "als kanttekening aan de jurist gemeld – die weegt het; beoordeel of het inhoudelijke bezwaar nog bestaat"
     if voorstel.get("aangepast_na_kritiek"):
         return "de annotator heeft dit AANGEPAST"
     return "ongewijzigd gelaten"
@@ -356,6 +372,8 @@ def herziening_systeemprompt(kort: bool = False) -> str:
 
 DE DERTIEN JAS-KLASSEN (gebruik exact deze namen, verzin geen andere):
 {_klassen_referentie(kort)}{prioriteitsblok}
+
+{_analyseprotocol("Herziening")}
 
 BRONGETROUWHEID – elk `tekst`-veld moet een LETTERLIJK aaneengesloten fragment uit de artikeltekst zijn. Niet parafraseren, niet samenvatten, geen woorden toevoegen of weglaten. Een fragment dat niet letterlijk voorkomt wordt verworpen.
 

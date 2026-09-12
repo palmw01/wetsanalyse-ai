@@ -321,6 +321,12 @@ JAS_KLASSEN: tuple[JasKlasse, ...] = (
         ),
     ),
 )
+# Compatibiliteitsnamen; inhoud staat uitsluitend in het methodepakket.
+from .methodepakket import PAKKET as _METHODEPAKKET
+ANNOTATIEPROTOCOL_VERSIE = _METHODEPAKKET['versie']
+ANNOTATIEPROTOCOL = {naam: _METHODEPAKKET['secties']['annotatie-' + key]['tekst']
+    for naam, key in [('Gedeeld', 'gedeeld'), ('Kandidaten', 'kandidaten'),
+                      ('Classificatie', 'classificatie'), ('Review', 'review')]}
 # --- EINDE GEGENEREERD ---
 
 # Canonieke weergave-volgorde + naamlijst (drift-guard: gelijk aan validation.JAS_KLASSEN_VOLGORDE).
