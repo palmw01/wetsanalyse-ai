@@ -1,0 +1,1362 @@
+[
+  {
+    "id": "IW01",
+    "familie": "IW",
+    "split": "ontwikkeling",
+    "artikel": "BWBR0004770/9/1",
+    "bron_id": "L04",
+    "versie": "2026-07-01",
+    "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+    "tekst_sha256": "fd044d7e35ad3a1eb2440ee5d485759c70efa621732d21a94714e2b656c0034d",
+    "grammatica": "Onderwerp is de belastingaanslag; de invorderende actor is niet letterlijk genoemd. De tijdsbepaling begint bij de dagtekening, niet bij ontvangst.",
+    "annotaties": [
+      {
+        "id": "E01",
+        "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+        "klasse": "Rechtsbetrekking",
+        "motivatie": "Volledige dragende formulering van invorderbaarheid.",
+        "start": 0,
+        "end": 87
+      },
+      {
+        "id": "E02",
+        "tekst": "Een belastingaanslag",
+        "klasse": "Rechtsobject",
+        "motivatie": "Voorwerp waarop invorderbaarheid ziet.",
+        "start": 0,
+        "end": 20
+      },
+      {
+        "id": "E03",
+        "tekst": "zes weken na de dagtekening van het aanslagbiljet",
+        "klasse": "Tijdsaanduiding",
+        "motivatie": "Duur plus startgebeurtenis.",
+        "start": 37,
+        "end": 86
+      }
+    ],
+    "samenhang": "N01: invorderbaarheid van aanslag vanaf tijdstip. R01: betrokken bevoegdheid en wederpartij vragen context; G01: tijdsverloop kan de juridische toestand wijzigen.",
+    "scenario": "Normaal: bepaal de zeswekengrens vanuit dagtekening. Grens: net ervoor/erna onderscheiden. Onbekende dagtekening: datum niet bepaalbaar. Andere leden kunnen afwijken.",
+    "reviewvraag": "Beoordeel of de dragende formulering als rechtsbetrekking of als beschrijving van een rechtsgevolg moet worden geduid; controleer art.9 overige leden en termijnrecht.",
+    "status": "concept",
+    "referentie_goedgekeurd": false
+  },
+  {
+    "id": "IW02",
+    "familie": "IW",
+    "split": "ontwikkeling",
+    "artikel": "BWBR0004770/36/1",
+    "bron_id": "L04",
+    "versie": "2026-07-01",
+    "tekst": "Hoofdelijk aansprakelijk is voor de loonbelasting, de omzetbelasting, de accijns, de verbruiksbelastingen van alcoholvrije dranken en van pruimtabak en snuiftabak, de in artikel 1 van de Wet belastingen op milieugrondslag genoemde belastingen en de kansspelbelasting verschuldigd door een rechtspersoonlijkheid bezittend lichaam in de zin van de Algemene wet inzake rijksbelastingen dat volledig rechtsbevoegd is, voor zover het aan de heffing van vennootschapsbelasting is onderworpen: ieder van de bestuurders overeenkomstig het bepaalde in de volgende leden.",
+    "tekst_sha256": "a0723a3330cdbb0c3770fadd06c2ca1ba8df14188726dff9a46dcc7acea2ba25",
+    "grammatica": "Inversie: ieder van de bestuurders is de aansprakelijke partij. De kwalificaties van het lichaam en voor zover beperken de reikwijdte; volgende leden zijn noodzakelijk.",
+    "annotaties": [
+      {
+        "id": "E01",
+        "tekst": "Hoofdelijk aansprakelijk is voor de loonbelasting, de omzetbelasting, de accijns, de verbruiksbelastingen van alcoholvrije dranken en van pruimtabak en snuiftabak, de in artikel 1 van de Wet belastingen op milieugrondslag genoemde belastingen en de kansspelbelasting verschuldigd door een rechtspersoonlijkheid bezittend lichaam in de zin van de Algemene wet inzake rijksbelastingen dat volledig rechtsbevoegd is, voor zover het aan de heffing van vennootschapsbelasting is onderworpen: ieder van de bestuurders overeenkomstig het bepaalde in de volgende leden.",
+        "klasse": "Rechtsbetrekking",
+        "motivatie": "De gehele aansprakelijkheidsnorm inclusief afbakening.",
+        "start": 0,
+        "end": 561
+      },
+      {
+        "id": "E02",
+        "tekst": "ieder van de bestuurders",
+        "klasse": "Rechtssubject",
+        "motivatie": "Drager van de aansprakelijkheid.",
+        "start": 487,
+        "end": 511
+      },
+      {
+        "id": "E03",
+        "tekst": "de loonbelasting",
+        "klasse": "Rechtsobject",
+        "motivatie": "Een van de opgesomde belastingen.",
+        "start": 33,
+        "end": 49
+      },
+      {
+        "id": "E04",
+        "tekst": "voor zover het aan de heffing van vennootschapsbelasting is onderworpen",
+        "klasse": "Voorwaarde",
+        "motivatie": "Beperkt de relevante lichamen.",
+        "start": 414,
+        "end": 485
+      },
+      {
+        "id": "E05",
+        "tekst": "de omzetbelasting",
+        "klasse": "Rechtsobject",
+        "motivatie": "Afzonderlijk belastingobject uit de gedeelde aansprakelijkheidsnorm.",
+        "start": 51,
+        "end": 68
+      },
+      {
+        "id": "E06",
+        "tekst": "de accijns",
+        "klasse": "Rechtsobject",
+        "motivatie": "Afzonderlijk belastingobject uit de gedeelde aansprakelijkheidsnorm.",
+        "start": 70,
+        "end": 80
+      },
+      {
+        "id": "E07",
+        "tekst": "de verbruiksbelastingen van alcoholvrije dranken en van pruimtabak en snuiftabak",
+        "klasse": "Rechtsobject",
+        "motivatie": "Afzonderlijk belastingobject uit de gedeelde aansprakelijkheidsnorm.",
+        "start": 82,
+        "end": 162
+      },
+      {
+        "id": "E08",
+        "tekst": "de in artikel 1 van de Wet belastingen op milieugrondslag genoemde belastingen",
+        "klasse": "Rechtsobject",
+        "motivatie": "Afzonderlijk belastingobject uit de gedeelde aansprakelijkheidsnorm.",
+        "start": 164,
+        "end": 242
+      },
+      {
+        "id": "E09",
+        "tekst": "de kansspelbelasting",
+        "klasse": "Rechtsobject",
+        "motivatie": "Afzonderlijk belastingobject uit de gedeelde aansprakelijkheidsnorm.",
+        "start": 246,
+        "end": 266
+      },
+      {
+        "id": "E10",
+        "tekst": "een rechtspersoonlijkheid bezittend lichaam in de zin van de Algemene wet inzake rijksbelastingen dat volledig rechtsbevoegd is",
+        "klasse": "Rechtssubject",
+        "motivatie": "Afgebakende belastingschuldige; geen willekeurige bestuurder als grammaticaal onderwerp lezen.",
+        "start": 285,
+        "end": 412
+      }
+    ],
+    "samenhang": "N01 koppelt bestuurders, belastingschulden en kenmerken van het lichaam. De opsomming omvat meerdere belastingobjecten; de afzonderlijke belastingobjecten zijn met de gezamenlijke aansprakelijkheidsnorm verbonden.",
+    "scenario": "Normaal: bestuurder van passend lichaam. Tegenvoorbeeld: lichaam buiten de kwalificatie. Alleen uit dit lid volgt nog geen definitief persoonlijk aansprakelijkheidsbesluit.",
+    "reviewvraag": "Beoordeel de onderscheiden belastingobjecten en de voorwaarden uit volgende leden vóór vaststelling.",
+    "status": "concept",
+    "referentie_goedgekeurd": false
+  },
+  {
+    "id": "IW03",
+    "familie": "IW",
+    "split": "ontwikkeling",
+    "artikel": "BWBR0004770/36/4",
+    "bron_id": "L04",
+    "versie": "2026-07-01",
+    "tekst": "Indien het lichaam niet of niet op juiste wijze aan zijn in het tweede lid bedoelde verplichting heeft voldaan, is een bestuurder op de voet van het bepaalde in het derde lid aansprakelijk, met dien verstande dat wordt vermoed dat de niet betaling aan hem is te wijten en dat de periode van drie jaren wordt geacht in te gaan op het tijdstip waarop het lichaam in gebreke is. Tot de weerlegging van het vermoeden wordt slechts toegelaten de bestuurder die aannemelijk maakt dat het niet aan hem is te wijten dat het lichaam niet aan zijn in het tweede lid bedoelde verplichting heeft voldaan.",
+    "tekst_sha256": "839506fb6db9276b78ad4f9be8afeef0d5898696ae5fcbb8054da107c21d306e",
+    "grammatica": "Twee zinnen: een conditionele aansprakelijkheids- en vermoedenregeling, daarna een beperking van toegang tot weerlegging. Niet of niet op juiste wijze omvat twee alternatieven.",
+    "annotaties": [
+      {
+        "id": "E01",
+        "tekst": "Indien het lichaam niet of niet op juiste wijze aan zijn in het tweede lid bedoelde verplichting heeft voldaan",
+        "klasse": "Voorwaarde",
+        "motivatie": "Gebrekkige melding als voorwaarde.",
+        "start": 0,
+        "end": 110
+      },
+      {
+        "id": "E02",
+        "tekst": "een bestuurder",
+        "klasse": "Rechtssubject",
+        "motivatie": "Potentieel aansprakelijke partij.",
+        "start": 115,
+        "end": 129
+      },
+      {
+        "id": "E03",
+        "tekst": "het lichaam",
+        "klasse": "Rechtssubject",
+        "motivatie": "Partij met meldingsverplichting.",
+        "start": 7,
+        "end": 18
+      },
+      {
+        "id": "E04",
+        "tekst": "de periode van drie jaren",
+        "klasse": "Tijdsaanduiding",
+        "motivatie": "Periode met nader omschreven ingang.",
+        "start": 276,
+        "end": 301
+      },
+      {
+        "id": "E05",
+        "tekst": "Tot de weerlegging van het vermoeden wordt slechts toegelaten de bestuurder die aannemelijk maakt dat het niet aan hem is te wijten dat het lichaam niet aan zijn in het tweede lid bedoelde verplichting heeft voldaan.",
+        "klasse": "Afleidingsregel",
+        "motivatie": "Regel voor toelating tot weerlegging; definitieve klasse ter review.",
+        "start": 376,
+        "end": 592
+      },
+      {
+        "id": "E06",
+        "tekst": "Indien het lichaam niet of niet op juiste wijze aan zijn in het tweede lid bedoelde verplichting heeft voldaan, is een bestuurder op de voet van het bepaalde in het derde lid aansprakelijk, met dien verstande dat wordt vermoed dat de niet betaling aan hem is te wijten en dat de periode van drie jaren wordt geacht in te gaan op het tijdstip waarop het lichaam in gebreke is.",
+        "klasse": "Rechtsbetrekking",
+        "motivatie": "Dragende aansprakelijkheidsnorm met vermoeden en tijdsbepaling; deelmarkeringen onderscheiden functies.",
+        "start": 0,
+        "end": 375
+      },
+      {
+        "id": "E07",
+        "tekst": "wordt vermoed dat de niet betaling aan hem is te wijten",
+        "klasse": "Afleidingsregel",
+        "motivatie": "Toekenning van een vermoeden; geen vaststaand materieel feit.",
+        "start": 213,
+        "end": 268
+      },
+      {
+        "id": "E08",
+        "tekst": "wordt geacht in te gaan op het tijdstip waarop het lichaam in gebreke is",
+        "klasse": "Afleidingsregel",
+        "motivatie": "Wettelijke bepaling van het ingangstijdstip; fictie onderscheiden van weerlegbaar vermoeden.",
+        "start": 302,
+        "end": 374
+      },
+      {
+        "id": "E09",
+        "tekst": "het tijdstip waarop het lichaam in gebreke is",
+        "klasse": "Tijdsaanduiding",
+        "motivatie": "Startmoment voor de periode.",
+        "start": 329,
+        "end": 374
+      }
+    ],
+    "samenhang": "N01: voorwaarde verwijst naar lid2, aansprakelijkheid naar lid3. N02: wettelijk vermoeden en tijdsfictie. N03: toegang tot weerlegging is niet hetzelfde als succesvolle weerlegging.",
+    "scenario": "Bij gebrekkige melding activeert dit lid een vermoeden, geen onweerlegbaar bewijs. Onbekende verwijtbaarheid mag niet automatisch als schuld worden ingevuld.",
+    "reviewvraag": "Lees leden2/3 en beoordeel de afbakening en klassen van vermoeden, fictie en toelatingsregel; bevestig dat succesvolle weerlegging niet wordt verondersteld.",
+    "status": "concept",
+    "referentie_goedgekeurd": false
+  },
+  {
+    "id": "IW04",
+    "familie": "IW",
+    "split": "ontwikkeling",
+    "artikel": "BWBR0004770/34/6",
+    "bron_id": "L04",
+    "versie": "2026-07-01",
+    "tekst": "Bij ministeriële regeling worden nadere regels gesteld met betrekking tot de toepassing van het derde lid.",
+    "tekst_sha256": "c0ad8c5227c159f4650da09b8e380d69a549f4f96b9a7ed641512133cb60a941",
+    "grammatica": "Passieve formulering worden gesteld schrijft nadere regelgeving voor. Lees het volledige gedelegeerde onderwerp, niet uitsluitend de introductiewoorden.",
+    "annotaties": [
+      {
+        "id": "E01",
+        "tekst": "Bij ministeriële regeling worden nadere regels gesteld met betrekking tot de toepassing van het derde lid.",
+        "klasse": "Delegatiebevoegdheid en delegatie-invulling",
+        "motivatie": "Volledige delegatieformulering inclusief onderwerpen.",
+        "start": 0,
+        "end": 106
+      }
+    ],
+    "samenhang": "N01: delegatiegrondslag; koppeling naar concrete uitvoeringsregeling staat nog open. Geen burgerverplichting afleiden uitsluitend uit de opdracht tot regelgeving.",
+    "scenario": "Normaal: gevonden uitvoeringsregel met passende grondslag. Ontbrekend: geen regeling in bronpakket; nadere norminhoud blijft onbekend.",
+    "reviewvraag": "Controleer welke bepalingen daadwerkelijk uitvoering geven aan deze delegatie en op welke peildatum.",
+    "status": "concept",
+    "referentie_goedgekeurd": false
+  },
+  {
+    "id": "AWB01",
+    "familie": "Awb",
+    "split": "ontwikkeling",
+    "artikel": "BWBR0005537/5:2/1",
+    "bron_id": "L04",
+    "versie": "2026-08-15",
+    "tekst": "In deze wet wordt verstaan onder:\na. bestuurlijke sanctie: een door een bestuursorgaan wegens een overtreding opgelegde verplichting of onthouden aanspraak;\nb. herstelsanctie: een bestuurlijke sanctie die strekt tot het geheel of gedeeltelijk ongedaan maken of beëindigen van een overtreding, tot het voorkomen van herhaling van een overtreding, dan wel tot het wegnemen of beperken van de gevolgen van een overtreding;\nc. bestraffende sanctie: een bestuurlijke sanctie voor zover deze beoogt de overtreder leed toe te voegen.",
+    "tekst_sha256": "f955acb8014ace19b51c268a036d3cbd2554fcdc6f30b9d3d50002b260d9266b",
+    "grammatica": "De definitie omvat opgelegde verplichting of onthouden aanspraak; wegens koppelt aan een overtreding.",
+    "annotaties": [
+      {
+        "id": "E01",
+        "tekst": "bestuurlijke sanctie: een door een bestuursorgaan wegens een overtreding opgelegde verplichting of onthouden aanspraak;",
+        "klasse": "Brondefinitie",
+        "motivatie": "Wettelijke begripsomschrijving met bereik uit de aanhef.",
+        "start": 37,
+        "end": 156
+      },
+      {
+        "id": "E02",
+        "tekst": "een bestuursorgaan",
+        "klasse": "Rechtssubject",
+        "motivatie": "Opleggend orgaan binnen de definitie.",
+        "start": 68,
+        "end": 86
+      },
+      {
+        "id": "E03",
+        "tekst": "wegens een overtreding",
+        "klasse": "Voorwaarde",
+        "motivatie": "Verband met overtreding begrenst de definitie.",
+        "start": 87,
+        "end": 109
+      }
+    ],
+    "samenhang": "N01 betreft onderdeel a: bestuurlijke sanctie. De aanhef bepaalt het definitiebereik. Andere onderdelen blijven context en worden in AWB01–03 apart behandeld.",
+    "scenario": "Een nadelig besluit zonder overtreding is niet reeds op deze omschrijving een bestuurlijke sanctie.",
+    "reviewvraag": "Beoordeel volledige definitiegrenzen, samenhang met de andere definities en relevantie voor een concrete maatregel; nog geen toepassingsbesluit.",
+    "status": "concept",
+    "referentie_goedgekeurd": false
+  },
+  {
+    "id": "AWB02",
+    "familie": "Awb",
+    "split": "ontwikkeling",
+    "artikel": "BWBR0005537/5:2/1",
+    "bron_id": "L04",
+    "versie": "2026-08-15",
+    "tekst": "In deze wet wordt verstaan onder:\na. bestuurlijke sanctie: een door een bestuursorgaan wegens een overtreding opgelegde verplichting of onthouden aanspraak;\nb. herstelsanctie: een bestuurlijke sanctie die strekt tot het geheel of gedeeltelijk ongedaan maken of beëindigen van een overtreding, tot het voorkomen van herhaling van een overtreding, dan wel tot het wegnemen of beperken van de gevolgen van een overtreding;\nc. bestraffende sanctie: een bestuurlijke sanctie voor zover deze beoogt de overtreder leed toe te voegen.",
+    "tekst_sha256": "f955acb8014ace19b51c268a036d3cbd2554fcdc6f30b9d3d50002b260d9266b",
+    "grammatica": "De reeks doelen deelt die strekt tot. Dan wel is niet zonder context een exclusieve keuze.",
+    "annotaties": [
+      {
+        "id": "E01",
+        "tekst": "herstelsanctie: een bestuurlijke sanctie die strekt tot het geheel of gedeeltelijk ongedaan maken of beëindigen van een overtreding, tot het voorkomen van herhaling van een overtreding, dan wel tot het wegnemen of beperken van de gevolgen van een overtreding;",
+        "klasse": "Brondefinitie",
+        "motivatie": "Wettelijke begripsomschrijving met bereik uit de aanhef.",
+        "start": 160,
+        "end": 419
+      },
+      {
+        "id": "E02",
+        "tekst": "het geheel of gedeeltelijk ongedaan maken of beëindigen van een overtreding",
+        "klasse": "Voorwaarde",
+        "motivatie": "Doelcomponent die de kwalificatie als herstelsanctie begrenst; classificatie ter review.",
+        "start": 216,
+        "end": 291
+      },
+      {
+        "id": "E03",
+        "tekst": "het voorkomen van herhaling van een overtreding",
+        "klasse": "Voorwaarde",
+        "motivatie": "Doelcomponent die de kwalificatie als herstelsanctie begrenst; classificatie ter review.",
+        "start": 297,
+        "end": 344
+      },
+      {
+        "id": "E04",
+        "tekst": "het wegnemen of beperken van de gevolgen van een overtreding",
+        "klasse": "Voorwaarde",
+        "motivatie": "Doelcomponent die de kwalificatie als herstelsanctie begrenst; classificatie ter review.",
+        "start": 358,
+        "end": 418
+      }
+    ],
+    "samenhang": "N01 betreft onderdeel b: herstelsanctie. De aanhef bepaalt het definitiebereik. Andere onderdelen blijven context en worden in AWB01–03 apart behandeld.",
+    "scenario": "Een maatregel kan zowel beëindiging als voorkoming van herhaling nastreven; behandel dat niet automatisch als tegenstrijdigheid.",
+    "reviewvraag": "Beoordeel volledige definitiegrenzen, samenhang met de andere definities en relevantie voor een concrete maatregel; nog geen toepassingsbesluit.",
+    "status": "concept",
+    "referentie_goedgekeurd": false
+  },
+  {
+    "id": "AWB03",
+    "familie": "Awb",
+    "split": "ontwikkeling",
+    "artikel": "BWBR0005537/5:2/1",
+    "bron_id": "L04",
+    "versie": "2026-08-15",
+    "tekst": "In deze wet wordt verstaan onder:\na. bestuurlijke sanctie: een door een bestuursorgaan wegens een overtreding opgelegde verplichting of onthouden aanspraak;\nb. herstelsanctie: een bestuurlijke sanctie die strekt tot het geheel of gedeeltelijk ongedaan maken of beëindigen van een overtreding, tot het voorkomen van herhaling van een overtreding, dan wel tot het wegnemen of beperken van de gevolgen van een overtreding;\nc. bestraffende sanctie: een bestuurlijke sanctie voor zover deze beoogt de overtreder leed toe te voegen.",
+    "tekst_sha256": "f955acb8014ace19b51c268a036d3cbd2554fcdc6f30b9d3d50002b260d9266b",
+    "grammatica": "Voor zover verbindt de kwalificatie met het beoogde leedtoevoegende karakter.",
+    "annotaties": [
+      {
+        "id": "E01",
+        "tekst": "bestraffende sanctie: een bestuurlijke sanctie voor zover deze beoogt de overtreder leed toe te voegen.",
+        "klasse": "Brondefinitie",
+        "motivatie": "Wettelijke begripsomschrijving met bereik uit de aanhef.",
+        "start": 423,
+        "end": 526
+      },
+      {
+        "id": "E02",
+        "tekst": "voor zover deze beoogt de overtreder leed toe te voegen",
+        "klasse": "Voorwaarde",
+        "motivatie": "Doelgerichte reikwijdte van de bestraffende kwalificatie.",
+        "start": 470,
+        "end": 525
+      }
+    ],
+    "samenhang": "N01 betreft onderdeel c: bestraffende sanctie. De aanhef bepaalt het definitiebereik. Andere onderdelen blijven context en worden in AWB01–03 apart behandeld.",
+    "scenario": "Een gemengde maatregel vraagt analyse van functie en bereik; niet iedere sanctie is bestraffend.",
+    "reviewvraag": "Beoordeel volledige definitiegrenzen, samenhang met de andere definities en relevantie voor een concrete maatregel; nog geen toepassingsbesluit.",
+    "status": "concept",
+    "referentie_goedgekeurd": false
+  },
+  {
+    "id": "AWB04",
+    "familie": "Awb",
+    "split": "ontwikkeling",
+    "artikel": "BWBR0005537/4:17/2",
+    "bron_id": "L04",
+    "versie": "2026-08-15",
+    "tekst": "De dwangsom bedraagt de eerste veertien dagen € 23 per dag, de daaropvolgende veertien dagen € 35 per dag en de overige dagen € 45 per dag.",
+    "tekst_sha256": "0fead802bb963eeceaeea7fe06028f48cb725b1ebbb802e4f3ed20337ef25ac2",
+    "grammatica": "Eén berekening met drie opeenvolgende tijdvakken; laatst genoemde dagprijs geldt niet vanaf dag1.",
+    "annotaties": [
+      {
+        "id": "E01",
+        "tekst": "De dwangsom bedraagt de eerste veertien dagen € 23 per dag, de daaropvolgende veertien dagen € 35 per dag en de overige dagen € 45 per dag.",
+        "klasse": "Afleidingsregel",
+        "motivatie": "Complete staffel, niet alleen bedraagt.",
+        "start": 0,
+        "end": 139
+      },
+      {
+        "id": "E02",
+        "tekst": "De dwangsom",
+        "klasse": "Variabele en variabelewaarde",
+        "motivatie": "Af te leiden bedrag.",
+        "start": 0,
+        "end": 11
+      },
+      {
+        "id": "E03",
+        "tekst": "de eerste veertien dagen",
+        "klasse": "Tijdsaanduiding",
+        "motivatie": "Eerste staffelperiode.",
+        "start": 21,
+        "end": 45
+      },
+      {
+        "id": "E04",
+        "tekst": "€ 23 per dag",
+        "klasse": "Parameter en parameterwaarde",
+        "motivatie": "Tarief in het eerste tijdvak.",
+        "start": 46,
+        "end": 58
+      },
+      {
+        "id": "E05",
+        "tekst": "de daaropvolgende veertien dagen",
+        "klasse": "Tijdsaanduiding",
+        "motivatie": "Onderdeel van de tijdafhankelijke dwangsomstaffel.",
+        "start": 60,
+        "end": 92
+      },
+      {
+        "id": "E06",
+        "tekst": "de overige dagen",
+        "klasse": "Tijdsaanduiding",
+        "motivatie": "Onderdeel van de tijdafhankelijke dwangsomstaffel.",
+        "start": 109,
+        "end": 125
+      },
+      {
+        "id": "E07",
+        "tekst": "€ 35 per dag",
+        "klasse": "Parameter en parameterwaarde",
+        "motivatie": "Onderdeel van de tijdafhankelijke dwangsomstaffel.",
+        "start": 93,
+        "end": 105
+      },
+      {
+        "id": "E08",
+        "tekst": "€ 45 per dag",
+        "klasse": "Parameter en parameterwaarde",
+        "motivatie": "Onderdeel van de tijdafhankelijke dwangsomstaffel.",
+        "start": 126,
+        "end": 138
+      }
+    ],
+    "samenhang": "N01: dagnummer selecteert tarief; totaal volgt uit toepasselijke dagen. Het ontstaan en maximum van de dwangsom vragen andere leden. Alle drie tijdvakken en tarieven zijn afzonderlijk opgenomen.",
+    "scenario": "Als toepasselijkheid vaststaat: dag14 en15 hebben verschillende staffels. Onbekende ingangsdatum: totaal niet berekenbaar.",
+    "reviewvraag": "Controleer overige leden, maximum en overgangsrecht en beoordeel de volledige staffel vóór goldvaststelling.",
+    "status": "concept",
+    "referentie_goedgekeurd": false
+  },
+  {
+    "id": "WZT01",
+    "familie": "Wzt",
+    "split": "ontwikkeling",
+    "artikel": "2 lid1",
+    "bron_id": "L05",
+    "versie": "webweergave geldend vanaf 2025-01-01, geraadpleegd door broncache 2025-02-26",
+    "tekst": "Indien de normpremie voor een verzekerde in het berekeningsjaar minder bedraagt dan de standaardpremie in dat jaar, heeft de verzekerde aanspraak op een zorgtoeslag ter grootte van dat verschil. Voor een verzekerde met een partner wordt daarbij tweemaal de standaardpremie in aanmerking genomen; in dat geval worden de verzekerde en zijn partner voor de toepassing van deze wet geacht gezamenlijk één aanspraak te hebben.",
+    "tekst_sha256": "d97b6101940cb1efa1dcac67869a6421ed442cbd76547082d15878c6500c5bd4",
+    "grammatica": "Minder dan is strikt; dat verschil verwijst naar standaardpremie minus normpremie. Tweede zin wijzigt de partnerberekening.",
+    "annotaties": [
+      {
+        "id": "E01",
+        "tekst": "Indien de normpremie voor een verzekerde in het berekeningsjaar minder bedraagt dan de standaardpremie in dat jaar, heeft de verzekerde aanspraak op een zorgtoeslag ter grootte van dat verschil. Voor een verzekerde met een partner wordt daarbij tweemaal de standaardpremie in aanmerking genomen; in dat geval worden de verzekerde en zijn partner voor de toepassing van deze wet geacht gezamenlijk één aanspraak te hebben.",
+        "klasse": "Rechtsbetrekking",
+        "motivatie": "Dragende normformulering; verdere opdeling vóór goldreview.",
+        "start": 0,
+        "end": 421
+      },
+      {
+        "id": "E02",
+        "tekst": "de verzekerde",
+        "klasse": "Rechtssubject",
+        "motivatie": "Rechthebbende.",
+        "start": 122,
+        "end": 135
+      },
+      {
+        "id": "E03",
+        "tekst": "een zorgtoeslag",
+        "klasse": "Rechtsobject",
+        "motivatie": "Voorwerp van de aanspraak.",
+        "start": 149,
+        "end": 164
+      },
+      {
+        "id": "E04",
+        "tekst": "minder bedraagt dan",
+        "klasse": "Operator",
+        "motivatie": "Strikte vergelijking.",
+        "start": 64,
+        "end": 83
+      },
+      {
+        "id": "E05",
+        "tekst": "Indien de normpremie voor een verzekerde in het berekeningsjaar minder bedraagt dan de standaardpremie in dat jaar",
+        "klasse": "Voorwaarde",
+        "motivatie": "Complete voorwaarde voor de enkelvoudige aanspraak.",
+        "start": 0,
+        "end": 114
+      },
+      {
+        "id": "E06",
+        "tekst": "de normpremie",
+        "klasse": "Variabele en variabelewaarde",
+        "motivatie": "Invoer van de vergelijking.",
+        "start": 7,
+        "end": 20
+      },
+      {
+        "id": "E07",
+        "tekst": "de standaardpremie",
+        "klasse": "Parameter en parameterwaarde",
+        "motivatie": "Vastgestelde referentiepremie voor het jaar; definitie/jaar controleren.",
+        "start": 84,
+        "end": 102
+      },
+      {
+        "id": "E08",
+        "tekst": "in het berekeningsjaar",
+        "klasse": "Tijdsaanduiding",
+        "motivatie": "Referentieperiode van vergelijking en aanspraak.",
+        "start": 41,
+        "end": 63
+      },
+      {
+        "id": "E09",
+        "tekst": "dat verschil",
+        "klasse": "Variabele en variabelewaarde",
+        "motivatie": "Afgeleide verschilwaarde met antecedenten uit de eerste zin.",
+        "start": 181,
+        "end": 193
+      },
+      {
+        "id": "E10",
+        "tekst": "tweemaal",
+        "klasse": "Operator",
+        "motivatie": "Vermenigvuldiging in de partnervariant.",
+        "start": 245,
+        "end": 253
+      },
+      {
+        "id": "E11",
+        "tekst": "Voor een verzekerde met een partner wordt daarbij tweemaal de standaardpremie in aanmerking genomen; in dat geval worden de verzekerde en zijn partner voor de toepassing van deze wet geacht gezamenlijk één aanspraak te hebben.",
+        "klasse": "Afleidingsregel",
+        "motivatie": "Partnerberekening met juridische fictie gezamenlijke aanspraak; nader splitsen kan verdedigbaar zijn.",
+        "start": 195,
+        "end": 421
+      }
+    ],
+    "samenhang": "N01: aanspraak bij positieve verschilwaarde. N02: partnervariant en gezamenlijke aanspraak.",
+    "scenario": "Normpremie lager dan standaardpremie: positieve verschilwaarde in de enkelvoudige variant. Gelijk: voorwaarde niet vervuld. Partner: andere berekeningsbasis.",
+    "reviewvraag": "Controleer definities verzekerde/partner, vermogensuitsluiting en maandbepaling; tariefwaarden niet uit deze tekst afleiden.",
+    "status": "concept",
+    "referentie_goedgekeurd": false
+  },
+  {
+    "id": "WZT02",
+    "familie": "Wzt",
+    "split": "ontwikkeling",
+    "artikel": "2 lid2",
+    "bron_id": "L05",
+    "versie": "webweergave geldend vanaf 2025-01-01, geraadpleegd door broncache 2025-02-26",
+    "tekst": "De normpremie bedraagt een percentage van het drempelinkomen in het berekeningsjaar, vermeerderd met een percentage van het toetsingsinkomen van de verzekerde in dat jaar voorzover dat toetsingsinkomen het drempelinkomen te boven gaat. Voor een verzekerde met een partner wordt daarbij het gezamenlijke toetsingsinkomen in aanmerking genomen.",
+    "tekst_sha256": "c5225a14754f01e1d39d0041143cc4cd678e00fa71521ebc14719e3513993deb",
+    "grammatica": "Voorzover beperkt de inkomenscomponent tot het deel boven de drempel. Partnerzin verandert de inkomensgrondslag.",
+    "annotaties": [
+      {
+        "id": "E01",
+        "tekst": "De normpremie bedraagt een percentage van het drempelinkomen in het berekeningsjaar, vermeerderd met een percentage van het toetsingsinkomen van de verzekerde in dat jaar voorzover dat toetsingsinkomen het drempelinkomen te boven gaat. Voor een verzekerde met een partner wordt daarbij het gezamenlijke toetsingsinkomen in aanmerking genomen.",
+        "klasse": "Afleidingsregel",
+        "motivatie": "Dragende normformulering; verdere opdeling vóór goldreview.",
+        "start": 0,
+        "end": 342
+      },
+      {
+        "id": "E02",
+        "tekst": "De normpremie",
+        "klasse": "Variabele en variabelewaarde",
+        "motivatie": "Uitkomstgrootheid.",
+        "start": 0,
+        "end": 13
+      },
+      {
+        "id": "E03",
+        "tekst": "vermeerderd met",
+        "klasse": "Operator",
+        "motivatie": "Optelling van componenten.",
+        "start": 85,
+        "end": 100
+      },
+      {
+        "id": "E04",
+        "tekst": "het drempelinkomen",
+        "klasse": "Variabele en variabelewaarde",
+        "motivatie": "Wettelijk gedefinieerde grootheid; parameterduiding beoordelen.",
+        "start": 42,
+        "end": 60
+      },
+      {
+        "id": "E05",
+        "tekst": "De normpremie bedraagt een percentage van het drempelinkomen in het berekeningsjaar, vermeerderd met een percentage van het toetsingsinkomen van de verzekerde in dat jaar voorzover dat toetsingsinkomen het drempelinkomen te boven gaat.",
+        "klasse": "Afleidingsregel",
+        "motivatie": "Volledige berekening van de normpremie.",
+        "start": 0,
+        "end": 235
+      },
+      {
+        "id": "E06",
+        "tekst": "voorzover dat toetsingsinkomen het drempelinkomen te boven gaat",
+        "klasse": "Voorwaarde",
+        "motivatie": "Reikwijdte van de tweede component.",
+        "start": 171,
+        "end": 234
+      },
+      {
+        "id": "E07",
+        "tekst": "het toetsingsinkomen van de verzekerde",
+        "klasse": "Variabele en variabelewaarde",
+        "motivatie": "Persoonsgebonden invoerwaarde.",
+        "start": 120,
+        "end": 158
+      },
+      {
+        "id": "E08",
+        "tekst": "het gezamenlijke toetsingsinkomen",
+        "klasse": "Variabele en variabelewaarde",
+        "motivatie": "Grondslag bij partner.",
+        "start": 286,
+        "end": 319
+      },
+      {
+        "id": "E09",
+        "tekst": "in het berekeningsjaar",
+        "klasse": "Tijdsaanduiding",
+        "motivatie": "Tijdreferentie van de berekening.",
+        "start": 61,
+        "end": 83
+      }
+    ],
+    "samenhang": "N01: basiscomponent plus component over inkomensoverschrijding. N02: gezamenlijke inkomensbasis bij partner.",
+    "scenario": "Toetsingsinkomen onder/gelijk/boven drempel: overschrijding niet stilzwijgend negatief maken. Zonder percentages geen numerieke uitkomst.",
+    "reviewvraag": "Volg art.1/2lid3 en geldende percentages; beoordeel variabele versus parameter van drempelinkomen.",
+    "status": "concept",
+    "referentie_goedgekeurd": false
+  },
+  {
+    "id": "WZT03",
+    "familie": "Wzt",
+    "split": "ontwikkeling",
+    "artikel": "2 lid4",
+    "bron_id": "L05",
+    "versie": "webweergave geldend vanaf 2025-01-01, geraadpleegd door broncache 2025-02-26",
+    "tekst": "In afwijking van het eerste lid bedraagt de aanspraak op een zorgtoeslag voor een verzekerde met een partner die geen verzekerde is, vijftig procent van het op grond van het eerste lid berekende bedrag.",
+    "tekst_sha256": "e451949b57459ba0df7bbab07818e73d96e11e99514fc20d6f84c843863b209e",
+    "grammatica": "Die geen verzekerde is beperkt partner; in afwijking overschrijft de berekening voor dit geval.",
+    "annotaties": [
+      {
+        "id": "E01",
+        "tekst": "In afwijking van het eerste lid bedraagt de aanspraak op een zorgtoeslag voor een verzekerde met een partner die geen verzekerde is, vijftig procent van het op grond van het eerste lid berekende bedrag.",
+        "klasse": "Afleidingsregel",
+        "motivatie": "Dragende normformulering; verdere opdeling vóór goldreview.",
+        "start": 0,
+        "end": 202
+      },
+      {
+        "id": "E02",
+        "tekst": "vijftig procent",
+        "klasse": "Parameter en parameterwaarde",
+        "motivatie": "Vaste vermenigvuldigingsfactor.",
+        "start": 133,
+        "end": 148
+      },
+      {
+        "id": "E03",
+        "tekst": "een partner die geen verzekerde is",
+        "klasse": "Voorwaarde",
+        "motivatie": "Kwalificerende beperking van de partner; grens/klasse ter review.",
+        "start": 97,
+        "end": 131
+      },
+      {
+        "id": "E04",
+        "tekst": "een verzekerde",
+        "klasse": "Rechtssubject",
+        "motivatie": "Drager van de aangepaste aanspraak.",
+        "start": 78,
+        "end": 92
+      },
+      {
+        "id": "E05",
+        "tekst": "het op grond van het eerste lid berekende bedrag",
+        "klasse": "Variabele en variabelewaarde",
+        "motivatie": "Invoerwaarde uit de verwijzing naar lid1.",
+        "start": 153,
+        "end": 201
+      }
+    ],
+    "samenhang": "N01 koppelt uitkomst van lid1 aan factor0,5, alleen bij de beschreven partnerstatus.",
+    "scenario": "Partner niet verzekerd: halve lid1-uitkomst. Partner wel verzekerd: deze uitzondering niet toepassen. Status onbekend: uitkomst onzeker.",
+    "reviewvraag": "Verifieer definitiebereik verzekerde; beoordeel of volledige voorwaardelijke formulering ruimer moet worden gemarkeerd.",
+    "status": "concept",
+    "referentie_goedgekeurd": false
+  },
+  {
+    "id": "WZT04",
+    "familie": "Wzt",
+    "split": "ontwikkeling",
+    "artikel": "2 lid6",
+    "bron_id": "L05",
+    "versie": "webweergave geldend vanaf 2025-01-01, geraadpleegd door broncache 2025-02-26",
+    "tekst": "Bij regeling van Onze Minister kunnen omtrent het bepaalde in het vijfde lid nadere regels worden gesteld.",
+    "tekst_sha256": "c9f794ff757058db498c894d9e8688380789aa534ad9a67898c167eed420f3ae",
+    "grammatica": "Kunnen duidt facultatieve regelgevende delegatie; omtrent verwijst naar maandelijkse bepaling in lid5.",
+    "annotaties": [
+      {
+        "id": "E01",
+        "tekst": "Bij regeling van Onze Minister kunnen omtrent het bepaalde in het vijfde lid nadere regels worden gesteld.",
+        "klasse": "Delegatiebevoegdheid en delegatie-invulling",
+        "motivatie": "Dragende normformulering; verdere opdeling vóór goldreview.",
+        "start": 0,
+        "end": 106
+      },
+      {
+        "id": "E02",
+        "tekst": "Onze Minister",
+        "klasse": "Rechtssubject",
+        "motivatie": "Bevoegd orgaan volgens brondefinitie.",
+        "start": 17,
+        "end": 30
+      }
+    ],
+    "samenhang": "N01: bevoegdheid tot nadere regels over lid5, geen bewijs dat deze bevoegdheid is gebruikt.",
+    "scenario": "Regeling gevonden: toets inhoud en grondslag. Geen regeling gevonden: inhoud van nadere regels onbekend, niet verzinnen.",
+    "reviewvraag": "Volg lid5, definitie Onze Minister en feitelijke delegatie-invulling.",
+    "status": "concept",
+    "referentie_goedgekeurd": false
+  },
+  {
+    "id": "RVV01",
+    "familie": "RVV",
+    "split": "ontwikkeling",
+    "artikel": "74 lid1a",
+    "bron_id": "L03",
+    "versie": "Stb.1990,459 p.13; historische tekst",
+    "tekst": "Bij voetgangerslichten betekent:\na. groen licht: voetgangers mogen oversteken;",
+    "tekst_sha256": "d111b7c81a4201b0fa510dc3045ebaafaef7fc5709caa7a5a8a5f899491f2416",
+    "grammatica": "De aanhef conditioneert het verlof; mogen is hier toestemming.",
+    "annotaties": [
+      {
+        "id": "E01",
+        "tekst": "voetgangers",
+        "klasse": "Rechtssubject",
+        "motivatie": "Dragers van het verlof.",
+        "start": 4,
+        "end": 15
+      },
+      {
+        "id": "E02",
+        "tekst": "voetgangers mogen oversteken",
+        "klasse": "Rechtsbetrekking",
+        "motivatie": "Verlof tot oversteken.",
+        "start": 49,
+        "end": 77
+      },
+      {
+        "id": "E03",
+        "tekst": "groen licht",
+        "klasse": "Voorwaarde",
+        "motivatie": "Situatie waarin het verlof geldt.",
+        "start": 36,
+        "end": 47
+      }
+    ],
+    "samenhang": "R01: verlof voetgangers bij groen. Wederpartij niet automatisch Staat.",
+    "scenario": "Groen: beschreven verlof. Andere lichtkleur: niet uit deze tak afleiden.",
+    "reviewvraag": "Onderzoek rangorde van aanwijzingen; bepaal een eventuele wederpartij op grond van context.",
+    "status": "concept",
+    "referentie_goedgekeurd": false
+  },
+  {
+    "id": "RVV02",
+    "familie": "RVV",
+    "split": "ontwikkeling",
+    "artikel": "74 lid1b",
+    "bron_id": "L03",
+    "versie": "Stb.1990,459 p.13; historische tekst",
+    "tekst": "Bij voetgangerslichten betekent:\nb. groen knipperend licht: voetgangers mogen oversteken; het rode licht verschijnt spoedig;",
+    "tekst_sha256": "eaaff1e08e078b680b53a9cd09e05f86d7891ff12a9e8606beb60a3e73721876",
+    "grammatica": "Toestemming plus aankondiging. Spoedig heeft geen in seconden vastgelegde waarde.",
+    "annotaties": [
+      {
+        "id": "E01",
+        "tekst": "voetgangers mogen oversteken",
+        "klasse": "Rechtsbetrekking",
+        "motivatie": "Verlof blijft bestaan bij groen knipperen.",
+        "start": 60,
+        "end": 88
+      },
+      {
+        "id": "E02",
+        "tekst": "groen knipperend licht",
+        "klasse": "Voorwaarde",
+        "motivatie": "Kleur en knippertoestand bepalen de tak.",
+        "start": 36,
+        "end": 58
+      },
+      {
+        "id": "E03",
+        "tekst": "spoedig",
+        "klasse": "Tijdsaanduiding",
+        "motivatie": "Relatieve tijdsaanduiding, geen numerieke termijn.",
+        "start": 116,
+        "end": 123
+      },
+      {
+        "id": "E04",
+        "tekst": "voetgangers",
+        "klasse": "Rechtssubject",
+        "motivatie": "Dragers van het verlof.",
+        "start": 4,
+        "end": 15
+      }
+    ],
+    "samenhang": "N01 verlof; N02 waarschuwing voor komende toestand, niet een bevel om snel te lopen.",
+    "scenario": "Groen knipperen: oversteken toegestaan volgens deze tak. Geen exacte resterende seconden uit spoedig afleiden.",
+    "reviewvraag": "Beoordeel of de waarschuwende uitspraak aanvullende markering behoeft zonder haar tot rechtsfeit te verheffen.",
+    "status": "concept",
+    "referentie_goedgekeurd": false
+  },
+  {
+    "id": "RVV03",
+    "familie": "RVV",
+    "split": "ontwikkeling",
+    "artikel": "74 lid1c",
+    "bron_id": "L03",
+    "versie": "Stb.1990,459 p.13; historische tekst",
+    "tekst": "Bij voetgangerslichten betekent:\nc. rood licht: voetgangers mogen niet meer beginnen over te steken; reeds overstekende voetgangers moeten zo snel mogelijk doorlopen.",
+    "tekst_sha256": "1d32f648c90119bc2a00d4355b05c64066067359ae8a0946fbd61fe79ab9841f",
+    "grammatica": "Twee verschillende groepen: nog te beginnen versus reeds onderweg. Negatie raakt beginnen, niet het doorlopen.",
+    "annotaties": [
+      {
+        "id": "E01",
+        "tekst": "voetgangers mogen niet meer beginnen over te steken",
+        "klasse": "Rechtsbetrekking",
+        "motivatie": "Verbod om te beginnen.",
+        "start": 48,
+        "end": 99
+      },
+      {
+        "id": "E02",
+        "tekst": "reeds overstekende voetgangers moeten zo snel mogelijk doorlopen",
+        "klasse": "Rechtsbetrekking",
+        "motivatie": "Plicht voor reeds overstekenden.",
+        "start": 101,
+        "end": 165
+      },
+      {
+        "id": "E03",
+        "tekst": "rood licht",
+        "klasse": "Voorwaarde",
+        "motivatie": "Situatie uit de aanhef.",
+        "start": 36,
+        "end": 46
+      },
+      {
+        "id": "E04",
+        "tekst": "reeds overstekende voetgangers",
+        "klasse": "Rechtssubject",
+        "motivatie": "Afgebakende groep plichtdragers.",
+        "start": 101,
+        "end": 131
+      },
+      {
+        "id": "E05",
+        "tekst": "voetgangers",
+        "klasse": "Rechtssubject",
+        "motivatie": "Algemene groep in de verbodstak.",
+        "start": 4,
+        "end": 15
+      }
+    ],
+    "samenhang": "R01 verbod en R02 doorloopplicht hebben andere actorstatus. Geen algemene plicht om midden op de weg te stoppen.",
+    "scenario": "Rood vóór vertrek: niet beginnen. Rood tijdens oversteken: doorlopen zo snel mogelijk.",
+    "reviewvraag": "Controleer redelijke duiding van zo snel mogelijk en rangorde met aanwijzingen; geen exacte loopsnelheid verzinnen.",
+    "status": "concept",
+    "referentie_goedgekeurd": false
+  },
+  {
+    "id": "RVV04",
+    "familie": "RVV",
+    "split": "ontwikkeling",
+    "artikel": "75",
+    "bron_id": "L03",
+    "versie": "Stb.1990,459 p.13; historische tekst",
+    "tekst": "Geel knipperlicht betekent: gevaarlijk punt; voorzichtigheid geboden.",
+    "tekst_sha256": "ea68be1b959b40dc3e2f0e3d3a8d4e9b35da96660eab5cad87374a6d2df46c56",
+    "grammatica": "Verkort gezegde geboden drukt norm uit zonder moeten. Eerste zinsdeel beschrijft waarschuwing.",
+    "annotaties": [
+      {
+        "id": "E01",
+        "tekst": "voorzichtigheid geboden",
+        "klasse": "Rechtsbetrekking",
+        "motivatie": "Impliciete gedragsnorm; actor vraagt context.",
+        "start": 45,
+        "end": 68
+      },
+      {
+        "id": "E02",
+        "tekst": "Geel knipperlicht",
+        "klasse": "Voorwaarde",
+        "motivatie": "Signaal waarop de norm betrekking heeft.",
+        "start": 0,
+        "end": 17
+      }
+    ],
+    "samenhang": "N01 signaalbetekenis; N02 voorzichtigheidsnorm. Geen onvoorwaardelijke oversteektoestemming uit deze zin.",
+    "scenario": "Geel knipperen: voorzichtigheid. Concrete voorrang kan niet uitsluitend uit deze formulering worden beslist.",
+    "reviewvraag": "Lees historische art.74lid2; houd versie1990 apart van latere expliciete voorrangsregel.",
+    "status": "concept",
+    "referentie_goedgekeurd": false
+  },
+  {
+    "id": "BW01",
+    "familie": "BW6",
+    "split": "held-out",
+    "artikel": "217 lid1",
+    "bron_id": "L02",
+    "versie": "Stb.1991,600 p.135–136; historische tekst",
+    "tekst": "Een overeenkomst komt tot stand door een aanbod en de aanvaarding daarvan.",
+    "tekst_sha256": "8749ed7288598aa57072d2e0567f6c57d9ca3425865371e3700853e10f87b20d",
+    "grammatica": "Daarvan verwijst naar hetzelfde aanbod; en verbindt constitutieve elementen, geen vrije keuze.",
+    "annotaties": [
+      {
+        "id": "E01",
+        "tekst": "een aanbod",
+        "klasse": "Rechtsfeit",
+        "motivatie": "Rechtshandeling als onderdeel van totstandkoming.",
+        "start": 37,
+        "end": 47
+      },
+      {
+        "id": "E02",
+        "tekst": "de aanvaarding daarvan",
+        "klasse": "Rechtsfeit",
+        "motivatie": "Aanvaarding van het genoemde aanbod.",
+        "start": 51,
+        "end": 73
+      },
+      {
+        "id": "E03",
+        "tekst": "Een overeenkomst",
+        "klasse": "Rechtsobject",
+        "motivatie": "Ontstane overeenkomst; classificatie ter beoordeling.",
+        "start": 0,
+        "end": 16
+      },
+      {
+        "id": "E04",
+        "tekst": "Een overeenkomst komt tot stand door een aanbod en de aanvaarding daarvan.",
+        "klasse": "Rechtsfeit",
+        "motivatie": "Volledige constitutieve gebeurtenis; rechtsgevolg totstandkoming apart in dossier.",
+        "start": 0,
+        "end": 74
+      }
+    ],
+    "samenhang": "G01: totstandkoming door aanbod en aanvaarding. Voorwaarden voor geldigheid/toepasselijkheid staan elders.",
+    "scenario": "Alleen aanbod: totstandkoming volgt niet. Passende aanvaarding: constitutieve combinatie, mits overige vereisten vervuld.",
+    "reviewvraag": "Controleer Boek3 geldigheid en art.217lid2; beoordeel objectduiding en volledige juridische gevolgrelatie.",
+    "status": "concept",
+    "referentie_goedgekeurd": false
+  },
+  {
+    "id": "BW02",
+    "familie": "BW6",
+    "split": "held-out",
+    "artikel": "219 lid1",
+    "bron_id": "L02",
+    "versie": "Stb.1991,600 p.135–136; historische tekst",
+    "tekst": "Een aanbod kan worden herroepen, tenzij het een termijn voor de aanvaarding inhoudt of de onherroepelijkheid ervan op andere wijze uit het aanbod volgt.",
+    "tekst_sha256": "28fdae8902ef956b7f222cf71ad66fd007430af7fa6ca5366df735b78aeee67d",
+    "grammatica": "Passief kan worden herroepen; tenzij omvat twee alternatieve uitzonderingen. Het/ervan verwijzen naar aanbod.",
+    "annotaties": [
+      {
+        "id": "E01",
+        "tekst": "Een aanbod kan worden herroepen",
+        "klasse": "Rechtsbetrekking",
+        "motivatie": "Herroepingsbevoegdheid; actor impliciet.",
+        "start": 0,
+        "end": 31
+      },
+      {
+        "id": "E02",
+        "tekst": "tenzij het een termijn voor de aanvaarding inhoudt of de onherroepelijkheid ervan op andere wijze uit het aanbod volgt",
+        "klasse": "Voorwaarde",
+        "motivatie": "Uitzonderingen op herroepbaarheid.",
+        "start": 33,
+        "end": 151
+      },
+      {
+        "id": "E03",
+        "tekst": "Een aanbod",
+        "klasse": "Rechtsobject",
+        "motivatie": "Voorwerp van de herroepingsbevoegdheid.",
+        "start": 0,
+        "end": 10
+      }
+    ],
+    "samenhang": "R01 herroepbaarheid beperkt door twee uitzonderingen; G01 feitelijke herroeping is nog niet gegeven.",
+    "scenario": "Aanbod met aanvaardingstermijn: uitzondering. Zonder termijn maar anderszins onherroepelijk: eveneens uitzondering.",
+    "reviewvraag": "Volg art.217lid2 en219 overige leden; geen actorcitaat toevoegen dat niet in de tekst staat.",
+    "status": "concept",
+    "referentie_goedgekeurd": false
+  },
+  {
+    "id": "BW03",
+    "familie": "BW6",
+    "split": "held-out",
+    "artikel": "219 lid2",
+    "bron_id": "L02",
+    "versie": "Stb.1991,600 p.135–136; historische tekst",
+    "tekst": "De herroeping kan slechts geschieden, zolang het aanbod niet is aanvaard en evenmin een mededeling, houdende de aanvaarding is verzonden. Bevat het aanbod de mededeling dat het vrijblijvend wordt gedaan, dan kan de herroeping nog onverwijld na de aanvaarding geschieden.",
+    "tekst_sha256": "686dbdd5d10631cc9d7348c2f79f5f051578835ba804839f02c4e67bb92708b4",
+    "grammatica": "Zolang omvat twee negatieve voorwaarden; tweede zin wijzigt de situatie voor vrijblijvend aanbod.",
+    "annotaties": [
+      {
+        "id": "E01",
+        "tekst": "De herroeping",
+        "klasse": "Rechtsfeit",
+        "motivatie": "Handeling met mogelijk gevolg.",
+        "start": 0,
+        "end": 13
+      },
+      {
+        "id": "E02",
+        "tekst": "zolang het aanbod niet is aanvaard en evenmin een mededeling, houdende de aanvaarding is verzonden",
+        "klasse": "Voorwaarde",
+        "motivatie": "Cumulatieve negatieve voorwaarden.",
+        "start": 38,
+        "end": 136
+      },
+      {
+        "id": "E03",
+        "tekst": "onverwijld na de aanvaarding",
+        "klasse": "Tijdsaanduiding",
+        "motivatie": "Relatief moment zonder vaste dagentelling.",
+        "start": 230,
+        "end": 258
+      },
+      {
+        "id": "E04",
+        "tekst": "De herroeping kan slechts geschieden, zolang het aanbod niet is aanvaard en evenmin een mededeling, houdende de aanvaarding is verzonden.",
+        "klasse": "Rechtsbetrekking",
+        "motivatie": "Begrensde herroepingsbevoegdheid uit de eerste zin.",
+        "start": 0,
+        "end": 137
+      },
+      {
+        "id": "E05",
+        "tekst": "Bevat het aanbod de mededeling dat het vrijblijvend wordt gedaan, dan kan de herroeping nog onverwijld na de aanvaarding geschieden.",
+        "klasse": "Rechtsbetrekking",
+        "motivatie": "Bijzondere herroepingsroute voor vrijblijvend aanbod.",
+        "start": 138,
+        "end": 270
+      },
+      {
+        "id": "E06",
+        "tekst": "Bevat het aanbod de mededeling dat het vrijblijvend wordt gedaan",
+        "klasse": "Voorwaarde",
+        "motivatie": "Voorwaarde voor bijzondere route.",
+        "start": 138,
+        "end": 202
+      }
+    ],
+    "samenhang": "N01 begrenst herroepingsmoment; N02 uitzonderingsroute vrijblijvend aanbod.",
+    "scenario": "Aanvaarding verzonden maar niet ontvangen: niet negeren. Vrijblijvend: beoordeel aanvullende route; onverwijld is geen zelfbedachte24uur.",
+    "reviewvraag": "Lees samen met lid1 en verklaringsregels; beoordeel volledige rechtsbetrekkingsmarkeringen.",
+    "status": "concept",
+    "referentie_goedgekeurd": false
+  },
+  {
+    "id": "BW04",
+    "familie": "BW6",
+    "split": "held-out",
+    "artikel": "221 lid1",
+    "bron_id": "L02",
+    "versie": "Stb.1991,600 p.135–136; historische tekst",
+    "tekst": "Een mondeling aanbod vervalt, wanneer het niet onmiddellijk wordt aanvaard, een schriftelijk aanbod, wanneer het niet binnen een redelijke tijd wordt aanvaard.",
+    "tekst_sha256": "19e3b030e168a4c6415d8cadb51f6900f80b060316cceaa6cbe0d89d00f75592",
+    "grammatica": "Tweede zinsdeel laat vervalt weg; twee modaliteiten hebben verschillende termijnen. Niet-aanvaarding is essentieel.",
+    "annotaties": [
+      {
+        "id": "E01",
+        "tekst": "Een mondeling aanbod",
+        "klasse": "Rechtsobject",
+        "motivatie": "Voorwerp van verval.",
+        "start": 0,
+        "end": 20
+      },
+      {
+        "id": "E02",
+        "tekst": "een schriftelijk aanbod",
+        "klasse": "Rechtsobject",
+        "motivatie": "Tweede type aanbod.",
+        "start": 76,
+        "end": 99
+      },
+      {
+        "id": "E03",
+        "tekst": "onmiddellijk",
+        "klasse": "Tijdsaanduiding",
+        "motivatie": "Termijn mondelinge variant.",
+        "start": 47,
+        "end": 59
+      },
+      {
+        "id": "E04",
+        "tekst": "binnen een redelijke tijd",
+        "klasse": "Tijdsaanduiding",
+        "motivatie": "Open termijn schriftelijke variant.",
+        "start": 118,
+        "end": 143
+      },
+      {
+        "id": "E05",
+        "tekst": "Een mondeling aanbod vervalt, wanneer het niet onmiddellijk wordt aanvaard, een schriftelijk aanbod, wanneer het niet binnen een redelijke tijd wordt aanvaard.",
+        "klasse": "Rechtsfeit",
+        "motivatie": "Tijdsverloop zonder tijdige aanvaarding als constitutieve gebeurtenis; verval is het gevolg.",
+        "start": 0,
+        "end": 159
+      },
+      {
+        "id": "E06",
+        "tekst": "wanneer het niet onmiddellijk wordt aanvaard",
+        "klasse": "Voorwaarde",
+        "motivatie": "Voorwaarde voor mondeling aanbod.",
+        "start": 30,
+        "end": 74
+      },
+      {
+        "id": "E07",
+        "tekst": "wanneer het niet binnen een redelijke tijd wordt aanvaard",
+        "klasse": "Voorwaarde",
+        "motivatie": "Voorwaarde voor schriftelijk aanbod.",
+        "start": 101,
+        "end": 158
+      }
+    ],
+    "samenhang": "G01/G02: verval afhankelijk van vorm en tijdige aanvaarding; ellips alleen analytisch aanvullen.",
+    "scenario": "Schriftelijk aanbod na één dag: niet zonder context vervallen verklaren. Aanvaarding onbekend: verval niet vast te stellen.",
+    "reviewvraag": "Controleer art.217lid2 en context van redelijke tijd; beoordeel rechtsfeitfragmenten versus gevolgomschrijving.",
+    "status": "concept",
+    "referentie_goedgekeurd": false
+  },
+  {
+    "id": "OW01",
+    "familie": "Omgevingswet",
+    "split": "held-out",
+    "artikel": "1.3",
+    "bron_id": "L01",
+    "versie": "Stb.2016,156 p.2–3; historische tekst",
+    "tekst": "Deze wet is, met het oog op duurzame ontwikkeling, de bewoonbaarheid van het land en de bescherming en verbetering van het leefmilieu, gericht op het in onderlinge samenhang:\na. bereiken en in stand houden van een veilige en gezonde fysieke leefomgeving en een goede omgevingskwaliteit, en\nb. doelmatig beheren, gebruiken en ontwikkelen van de fysieke leefomgeving ter vervulling van maatschappelijke behoeften.",
+    "tekst_sha256": "36a30a8860fd3ebafd6fe8138bed6651b35768e5e4eb116134e35b77d80a7aab",
+    "grammatica": "In onderlinge samenhang bindt beide doelen; a en b mogen niet geïsoleerd als enige doel gelezen worden.",
+    "annotaties": [
+      {
+        "id": "E01",
+        "tekst": "en",
+        "klasse": "Operator",
+        "motivatie": "Alleen het en tussen onderdelen a/b draagt hier de expliciete verbinding; occurrence ter review.",
+        "start": 287,
+        "end": 289
+      }
+    ],
+    "samenhang": "N01 doelbepaling als interpretatieve context. Geen individuele aanspraak of vergunninguitkomst uitsluitend uit het doel afleiden.",
+    "scenario": "Een activiteit ondersteunt gebruik maar schaadt kwaliteit: beide doelen zichtbaar houden; geen automatische goedkeuring.",
+    "reviewvraag": "Beoordeel of de expliciete verbinding als operator zinvol is; het doel zelf staat in de contextkaart en wordt niet tot individuele aanspraak verheven. Hoe werkt dit doel via concrete bevoegdheidsnormen?",
+    "status": "concept",
+    "referentie_goedgekeurd": false
+  },
+  {
+    "id": "OW02",
+    "familie": "Omgevingswet",
+    "split": "held-out",
+    "artikel": "1.6",
+    "bron_id": "L01",
+    "versie": "Stb.2016,156 p.2–3; historische tekst",
+    "tekst": "Een ieder draagt voldoende zorg voor de fysieke leefomgeving.",
+    "tekst_sha256": "5f4b071df601a168e19687f5b15d9919d742916b04ebf1492921f65cb65b510b",
+    "grammatica": "Indicatief draagt is normatief; voldoende is open en niet een kwantitatief vastgestelde drempel.",
+    "annotaties": [
+      {
+        "id": "E01",
+        "tekst": "Een ieder",
+        "klasse": "Rechtssubject",
+        "motivatie": "Algemene normadressaat.",
+        "start": 0,
+        "end": 9
+      },
+      {
+        "id": "E02",
+        "tekst": "Een ieder draagt voldoende zorg voor de fysieke leefomgeving.",
+        "klasse": "Rechtsbetrekking",
+        "motivatie": "Volledige zorgplicht.",
+        "start": 0,
+        "end": 61
+      },
+      {
+        "id": "E03",
+        "tekst": "de fysieke leefomgeving",
+        "klasse": "Rechtsobject",
+        "motivatie": "Voorwerp van zorg.",
+        "start": 37,
+        "end": 60
+      }
+    ],
+    "samenhang": "R01 zorgplicht; inhoud en verhouding tot specifieke regels vragen1.2/1.7/1.8. Geen wederpartij of sanctie verzinnen.",
+    "scenario": "Activiteit met onbekende gevolgen: niet automatisch voldoende zorg. Geen exact meetgetal uit voldoende afleiden.",
+    "reviewvraag": "Lees bereik1.2 en verhouding1.8; beoordeel open norm aan passende context en bronnen.",
+    "status": "concept",
+    "referentie_goedgekeurd": false
+  },
+  {
+    "id": "OW03",
+    "familie": "Omgevingswet",
+    "split": "held-out",
+    "artikel": "1.7",
+    "bron_id": "L01",
+    "versie": "Stb.2016,156 p.2–3; historische tekst",
+    "tekst": "Een ieder die weet of redelijkerwijs kan vermoeden dat zijn activiteit nadelige gevolgen kan hebben voor de fysieke leefomgeving, is verplicht:\na. alle maatregelen te nemen die redelijkerwijs van hem kunnen worden gevraagd om die gevolgen te voorkomen,\nb. voor zover die gevolgen niet kunnen worden voorkomen: die gevolgen zoveel mogelijk te beperken of ongedaan te maken,\nc. als die gevolgen onvoldoende kunnen worden beperkt: die activiteit achterwege te laten voor zover dat redelijkerwijs van hem kan worden gevraagd.",
+    "tekst_sha256": "099fe8637ec788c2dfdb48266b242863984e6142d6f763aaf7e578f990c10e7b",
+    "grammatica": "Weet of redelijkerwijs kan vermoeden is epistemisch; kan hebben drukt mogelijkheid uit. Takvoorwaarden bepalen vervolgverplichtingen.",
+    "annotaties": [
+      {
+        "id": "E01",
+        "tekst": "Een ieder",
+        "klasse": "Rechtssubject",
+        "motivatie": "Actor met nader omschreven kennispositie.",
+        "start": 0,
+        "end": 9
+      },
+      {
+        "id": "E02",
+        "tekst": "voor zover die gevolgen niet kunnen worden voorkomen",
+        "klasse": "Voorwaarde",
+        "motivatie": "Voorwaarde/reikwijdte bij takb.",
+        "start": 256,
+        "end": 308
+      },
+      {
+        "id": "E03",
+        "tekst": "als die gevolgen onvoldoende kunnen worden beperkt",
+        "klasse": "Voorwaarde",
+        "motivatie": "Voorwaarde bij takc.",
+        "start": 376,
+        "end": 426
+      },
+      {
+        "id": "E04",
+        "tekst": "Een ieder die weet of redelijkerwijs kan vermoeden dat zijn activiteit nadelige gevolgen kan hebben voor de fysieke leefomgeving, is verplicht:",
+        "klasse": "Rechtsbetrekking",
+        "motivatie": "Gedeelde plichtformulering; de inhoud wordt door drie onderdelen aangevuld.",
+        "start": 0,
+        "end": 143
+      },
+      {
+        "id": "E05",
+        "tekst": "die weet of redelijkerwijs kan vermoeden dat zijn activiteit nadelige gevolgen kan hebben voor de fysieke leefomgeving",
+        "klasse": "Voorwaarde",
+        "motivatie": "Kennis- of vermoedensdrempel voor normadressaat.",
+        "start": 10,
+        "end": 128
+      },
+      {
+        "id": "E06",
+        "tekst": "alle maatregelen te nemen die redelijkerwijs van hem kunnen worden gevraagd om die gevolgen te voorkomen,",
+        "klasse": "Rechtsbetrekking",
+        "motivatie": "Plichtinhoud die in het dossier aan de gedeelde aanhef gekoppeld blijft.",
+        "start": 147,
+        "end": 252
+      },
+      {
+        "id": "E07",
+        "tekst": "voor zover die gevolgen niet kunnen worden voorkomen: die gevolgen zoveel mogelijk te beperken of ongedaan te maken,",
+        "klasse": "Rechtsbetrekking",
+        "motivatie": "Plichtinhoud die in het dossier aan de gedeelde aanhef gekoppeld blijft.",
+        "start": 256,
+        "end": 372
+      },
+      {
+        "id": "E08",
+        "tekst": "als die gevolgen onvoldoende kunnen worden beperkt: die activiteit achterwege te laten voor zover dat redelijkerwijs van hem kan worden gevraagd.",
+        "klasse": "Rechtsbetrekking",
+        "motivatie": "Plichtinhoud die in het dossier aan de gedeelde aanhef gekoppeld blijft.",
+        "start": 376,
+        "end": 521
+      },
+      {
+        "id": "E09",
+        "tekst": "voor zover dat redelijkerwijs van hem kan worden gevraagd",
+        "klasse": "Voorwaarde",
+        "motivatie": "Redelijkheidsbegrenzing van achterwege laten.",
+        "start": 463,
+        "end": 520
+      }
+    ],
+    "samenhang": "N01 kennisdrempel; R01 voorkomen, R02 beperken/ongedaan maken, R03 achterwege laten. De gedeelde aanhef en gescheiden onderdelen blijven verbonden.",
+    "scenario": "Gevolgen onvoorkombaar maar beperkbaar: beoordeel takb. Onvoldoende beperkbaar: takc plus redelijkheidsbegrenzing.",
+    "reviewvraag": "Beoordeel de aanhef en plichtfragmenten als samenhangend geheel, de koppeling met1.8 en de betekenis van redelijkerwijs.",
+    "status": "concept",
+    "referentie_goedgekeurd": false
+  },
+  {
+    "id": "OW04",
+    "familie": "Omgevingswet",
+    "split": "held-out",
+    "artikel": "1.8",
+    "bron_id": "L01",
+    "versie": "Stb.2016,156 p.2–3; historische tekst",
+    "tekst": "Aan de verplichtingen, bedoeld in de artikelen 1.6 en 1.7, wordt in ieder geval voldaan, voor zover bij wettelijk voorschrift of besluit specifieke regels zijn gesteld met het oog op de doelen van de wet, en die regels worden nageleefd.",
+    "tekst_sha256": "072319d1a3e003a3cf400b1f825693cdb9c4738d693e3fe5d5b01142329a60de",
+    "grammatica": "Passief wordt voldaan; in ieder geval is geen uitsluitend-als. Die regels verwijst naar doelgebonden specifieke regels.",
+    "annotaties": [
+      {
+        "id": "E01",
+        "tekst": "voor zover bij wettelijk voorschrift of besluit specifieke regels zijn gesteld met het oog op de doelen van de wet, en die regels worden nageleefd",
+        "klasse": "Voorwaarde",
+        "motivatie": "Samenhang van specifieke regels, doelbinding en naleving.",
+        "start": 89,
+        "end": 235
+      },
+      {
+        "id": "E02",
+        "tekst": "Aan de verplichtingen, bedoeld in de artikelen 1.6 en 1.7, wordt in ieder geval voldaan, voor zover bij wettelijk voorschrift of besluit specifieke regels zijn gesteld met het oog op de doelen van de wet, en die regels worden nageleefd.",
+        "klasse": "Afleidingsregel",
+        "motivatie": "Voldoen aan zorgplicht afgeleid uit passende specifieke regels en naleving; classificatie ter review.",
+        "start": 0,
+        "end": 236
+      }
+    ],
+    "samenhang": "N01 koppelt naleving van specifieke regels aan voldoen aan zorgplichten binnen het beschreven bereik. Omgekeerde gevolgtrekking is niet automatisch geldig.",
+    "scenario": "Passende specifieke regels nageleefd: route tot voldoen. Niet nageleefd: niet uit deze zin alleen concluderen welke overtreding/sanctie geldt.",
+    "reviewvraag": "Lees1.6/1.7 en de specifieke norm. Beoordeel bereik voor zover; niet als volledige uitschakeling van elke zorgplicht lezen.",
+    "status": "concept",
+    "referentie_goedgekeurd": false
+  }
+]

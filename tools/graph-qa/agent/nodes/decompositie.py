@@ -15,6 +15,7 @@ from langgraph.config import get_stream_writer
 from ..agent_common import kap_toolresultaat
 from ..berichten import _parse_final, _schoon_messages, _trim_messages
 from ..narratie import _stap, _toolregel
+from ..methode import instructies
 from ..prompts import SYSTEM_PROMPT
 from ..specialists import get as get_specialist
 from ..state import State
@@ -46,7 +47,7 @@ def decompose_node(b: Bouw, state: State) -> dict[str, Any]:
     resp = b.llm.create(
         model=b.model,
         max_tokens=400,
-        system=_DECOMPOSE_SYSTEM + b.memory_context(state),
+        system=[_DECOMPOSE_SYSTEM + "\n\n" + instructies("decompositie"), b.memory_context(state)],
         tools=[],
         messages=[{"role": "user", "content": state["question"]}],
     )
@@ -162,16 +163,17 @@ def synthesize_node(b: Bouw, state: State) -> dict[str, Any]:
     bevindingen = "\n\n".join(
         f"DEELVRAAG: {f['vraag']}\nBEVINDING: {f['antwoord']}" for f in findings
     )
-    system = _SYNTHESE_SYSTEM
+    system = _SYNTHESE_SYSTEM + "\n\n" + instructies("synthese")
+    variabel = ""
     if state.get("corrected") and state.get("unsupported"):
-        system += (
+        variabel += (
             "\n\nVerwijder of onderbouw deze eerder niet-gegronde verwijzingen: "
             + ", ".join(state["unsupported"]) + "."
         )
     user = f"OORSPRONKELIJKE VRAAG:\n{state['question']}\n\nBEVINDINGEN PER DEELVRAAG:\n{bevindingen}"
     parts: list[str] = []
     with b.llm.stream(
-        model=b.model, max_tokens=4096, system=system, tools=[],
+        model=b.model, max_tokens=4096, system=[system, variabel], tools=[],
         messages=[{"role": "user", "content": user}],
     ) as stream:
         for delta in stream.text_deltas:

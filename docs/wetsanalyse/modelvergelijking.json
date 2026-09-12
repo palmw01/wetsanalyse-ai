@@ -1,0 +1,2119 @@
+{
+  "status": "gemeten_nog_niet_juridisch_beoordeeld",
+  "model": "claude-sonnet-4-6",
+  "baseline_commit": "ac4d12f2888d2d17ec90e4e97ee7bee96cc6d302",
+  "scope": "directe annotator, vier ontwikkelgevallen, geen critic of dossier; geen expertgold",
+  "max_tokens": 8192,
+  "herhalingen": 3,
+  "resultaten": [
+    {
+      "casus": "IW01",
+      "ronde": 1,
+      "variant": "oud",
+      "prompt_sha256": "c4bc2561e886fd49e38975fe84fff0024d9b5d2b999765a1ff2d6752b2bfa9a8",
+      "bron_sha256": "fd044d7e35ad3a1eb2440ee5d485759c70efa621732d21a94714e2b656c0034d",
+      "stop_reason": "end_turn",
+      "seconden": 9.959639895001601,
+      "elementen": [
+        {
+          "klasse": "Rechtsobject",
+          "tekst": "belastingaanslag",
+          "lid": "",
+          "onderdeel": "",
+          "toelichting": "De belastingaanslag is het voorwerp waarop de rechtsbetrekking (invorderbaarheid) betrekking heeft.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsbetrekking",
+          "tekst": "is invorderbaar",
+          "lid": "",
+          "onderdeel": "",
+          "toelichting": "De invorderbaarheid beschrijft de juridische toestand (het recht tot invordering) die na het verstrijken van de termijn ontstaat.",
+          "alternatieven": [
+            {
+              "klasse": "Afleidingsregel",
+              "motivatie": "Invorderbaarheid kan ook worden gezien als een afleiding van de rechtsstatus op basis van het tijdsverloop."
+            }
+          ]
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "zes weken na de dagtekening van het aanslagbiljet",
+          "lid": "",
+          "onderdeel": "",
+          "toelichting": "Dit is een tijdvak dat het tijdstip bepaalt waarop de rechtsbetrekking (invorderbaarheid) intreedt.",
+          "alternatieven": [
+            {
+              "klasse": "Voorwaarde",
+              "motivatie": "Het tijdsverloop fungeert tevens als conditie waaraan voldaan moet zijn voor het intreden van de invorderbaarheid."
+            }
+          ]
+        },
+        {
+          "klasse": "Rechtsobject",
+          "tekst": "aanslagbiljet",
+          "lid": "",
+          "onderdeel": "",
+          "toelichting": "Het aanslagbiljet is het document (voorwerp) waarvan de dagtekening het referentiepunt vormt voor de tijdsaanduiding.",
+          "alternatieven": []
+        }
+      ],
+      "ruwe_uitvoer": "{\"elementen\": [\n  {\"klasse\": \"Rechtsobject\", \"tekst\": \"belastingaanslag\", \"lid\": \"\", \"onderdeel\": \"\", \"toelichting\": \"De belastingaanslag is het voorwerp waarop de rechtsbetrekking (invorderbaarheid) betrekking heeft.\", \"alternatieven\": []},\n  {\"klasse\": \"Rechtsbetrekking\", \"tekst\": \"is invorderbaar\", \"lid\": \"\", \"onderdeel\": \"\", \"toelichting\": \"De invorderbaarheid beschrijft de juridische toestand (het recht tot invordering) die na het verstrijken van de termijn ontstaat.\", \"alternatieven\": [{\"klasse\": \"Afleidingsregel\", \"motivatie\": \"Invorderbaarheid kan ook worden gezien als een afleiding van de rechtsstatus op basis van het tijdsverloop.\"}]},\n  {\"klasse\": \"Tijdsaanduiding\", \"tekst\": \"zes weken na de dagtekening van het aanslagbiljet\", \"lid\": \"\", \"onderdeel\": \"\", \"toelichting\": \"Dit is een tijdvak dat het tijdstip bepaalt waarop de rechtsbetrekking (invorderbaarheid) intreedt.\", \"alternatieven\": [{\"klasse\": \"Voorwaarde\", \"motivatie\": \"Het tijdsverloop fungeert tevens als conditie waaraan voldaan moet zijn voor het intreden van de invorderbaarheid.\"}]},\n  {\"klasse\": \"Rechtsobject\", \"tekst\": \"aanslagbiljet\", \"lid\": \"\", \"onderdeel\": \"\", \"toelichting\": \"Het aanslagbiljet is het document (voorwerp) waarvan de dagtekening het referentiepunt vormt voor de tijdsaanduiding.\", \"alternatieven\": []}\n]}",
+      "niet_letterlijk": 0
+    },
+    {
+      "casus": "IW01",
+      "ronde": 1,
+      "variant": "nieuw",
+      "prompt_sha256": "46fd7c2c3c8855e97ee4f294650278b0f52fdc1179026d2bc054ef752c515436",
+      "bron_sha256": "fd044d7e35ad3a1eb2440ee5d485759c70efa621732d21a94714e2b656c0034d",
+      "stop_reason": "end_turn",
+      "seconden": 13.154147470006137,
+      "elementen": [
+        {
+          "klasse": "Rechtsobject",
+          "tekst": "belastingaanslag",
+          "lid": "",
+          "onderdeel": "",
+          "toelichting": "De belastingaanslag is het voorwerp waarop de rechtsbetrekking (invorderbaarheid) betrekking heeft.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsbetrekking",
+          "tekst": "is invorderbaar",
+          "lid": "",
+          "onderdeel": "",
+          "toelichting": "Beschrijft de juridische toestand van de belastingaanslag: het recht om tot invordering over te gaan bestaat vanaf een bepaald moment.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "zes weken na de dagtekening van het aanslagbiljet",
+          "lid": "",
+          "onderdeel": "",
+          "toelichting": "Bepaalt het tijdstip waarop de invorderbaarheid intreedt, uitgedrukt als tijdvak na een referentiedatum.",
+          "alternatieven": [
+            {
+              "klasse": "Variabele en variabelewaarde",
+              "motivatie": "De dagtekening van het aanslagbiljet is een variabele datum die per aanslag verschilt; prioriteitsregel JAS-PRIORITY-001 geeft echter Tijdsaanduiding voorrang."
+            }
+          ]
+        },
+        {
+          "klasse": "Parameter en parameterwaarde",
+          "tekst": "zes weken",
+          "lid": "",
+          "onderdeel": "",
+          "toelichting": "Een vaste termijn die voor alle belastingaanslagen gelijk is en als constante dient in de bepaling van het invorderingstijdstip.",
+          "alternatieven": [
+            {
+              "klasse": "Tijdsaanduiding",
+              "motivatie": "De termijn van zes weken duidt tevens een tijdvak aan; hij is hier echter als vaste parameter opgenomen omdat hij voor alle gevallen gelijk is."
+            }
+          ]
+        },
+        {
+          "klasse": "Rechtsobject",
+          "tekst": "aanslagbiljet",
+          "lid": "",
+          "onderdeel": "",
+          "toelichting": "Het aanslagbiljet is het document (voorwerp) waarvan de dagtekening de referentiedatum voor de invorderbaarheid bepaalt.",
+          "alternatieven": []
+        }
+      ],
+      "ruwe_uitvoer": "{\"elementen\": [\n  {\"klasse\": \"Rechtsobject\", \"tekst\": \"belastingaanslag\", \"lid\": \"\", \"onderdeel\": \"\", \"toelichting\": \"De belastingaanslag is het voorwerp waarop de rechtsbetrekking (invorderbaarheid) betrekking heeft.\", \"alternatieven\": []},\n  {\"klasse\": \"Rechtsbetrekking\", \"tekst\": \"is invorderbaar\", \"lid\": \"\", \"onderdeel\": \"\", \"toelichting\": \"Beschrijft de juridische toestand van de belastingaanslag: het recht om tot invordering over te gaan bestaat vanaf een bepaald moment.\", \"alternatieven\": []},\n  {\"klasse\": \"Tijdsaanduiding\", \"tekst\": \"zes weken na de dagtekening van het aanslagbiljet\", \"lid\": \"\", \"onderdeel\": \"\", \"toelichting\": \"Bepaalt het tijdstip waarop de invorderbaarheid intreedt, uitgedrukt als tijdvak na een referentiedatum.\", \"alternatieven\": [{\"klasse\": \"Variabele en variabelewaarde\", \"motivatie\": \"De dagtekening van het aanslagbiljet is een variabele datum die per aanslag verschilt; prioriteitsregel JAS-PRIORITY-001 geeft echter Tijdsaanduiding voorrang.\"}]},\n  {\"klasse\": \"Parameter en parameterwaarde\", \"tekst\": \"zes weken\", \"lid\": \"\", \"onderdeel\": \"\", \"toelichting\": \"Een vaste termijn die voor alle belastingaanslagen gelijk is en als constante dient in de bepaling van het invorderingstijdstip.\", \"alternatieven\": [{\"klasse\": \"Tijdsaanduiding\", \"motivatie\": \"De termijn van zes weken duidt tevens een tijdvak aan; hij is hier echter als vaste parameter opgenomen omdat hij voor alle gevallen gelijk is.\"}]},\n  {\"klasse\": \"Rechtsobject\", \"tekst\": \"aanslagbiljet\", \"lid\": \"\", \"onderdeel\": \"\", \"toelichting\": \"Het aanslagbiljet is het document (voorwerp) waarvan de dagtekening de referentiedatum voor de invorderbaarheid bepaalt.\", \"alternatieven\": []}\n]}",
+      "niet_letterlijk": 0
+    },
+    {
+      "casus": "AWB04",
+      "ronde": 1,
+      "variant": "oud",
+      "prompt_sha256": "c4bc2561e886fd49e38975fe84fff0024d9b5d2b999765a1ff2d6752b2bfa9a8",
+      "bron_sha256": "0fead802bb963eeceaeea7fe06028f48cb725b1ebbb802e4f3ed20337ef25ac2",
+      "stop_reason": "end_turn",
+      "seconden": 9.82868251200125,
+      "elementen": [
+        {
+          "klasse": "Rechtsobject",
+          "tekst": "dwangsom",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "De dwangsom is het voorwerp van de rechtsbetrekking waarop de berekening betrekking heeft.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Afleidingsregel",
+          "tekst": "De dwangsom bedraagt de eerste veertien dagen € 23 per dag, de daaropvolgende veertien dagen € 35 per dag en de overige dagen € 45 per dag",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Deze zin bepaalt de hoogte van de dwangsom door verschillende tarieven toe te kennen aan opeenvolgende tijdvakken (rekenregel).",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "de eerste veertien dagen",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Aanduiding van het eerste tijdvak waarbinnen het bijbehorende tarief geldt.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Parameter en parameterwaarde",
+          "tekst": "€ 23 per dag",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Een vaste waarde (tarief) die voor alle gevallen gelijk is gedurende het eerste tijdvak.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "de daaropvolgende veertien dagen",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Aanduiding van het tweede tijdvak waarbinnen het verhoogde tarief geldt.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Parameter en parameterwaarde",
+          "tekst": "€ 35 per dag",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Een vaste waarde (tarief) die voor alle gevallen gelijk is gedurende het tweede tijdvak.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "de overige dagen",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Aanduiding van het derde tijdvak (resterende dagen) waarbinnen het hoogste tarief geldt.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Parameter en parameterwaarde",
+          "tekst": "€ 45 per dag",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Een vaste waarde (tarief) die voor alle gevallen gelijk is gedurende het derde tijdvak.",
+          "alternatieven": []
+        }
+      ],
+      "ruwe_uitvoer": "{\"elementen\": [\n  {\"klasse\": \"Rechtsobject\", \"tekst\": \"dwangsom\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"De dwangsom is het voorwerp van de rechtsbetrekking waarop de berekening betrekking heeft.\", \"alternatieven\": []},\n  {\"klasse\": \"Afleidingsregel\", \"tekst\": \"De dwangsom bedraagt de eerste veertien dagen € 23 per dag, de daaropvolgende veertien dagen € 35 per dag en de overige dagen € 45 per dag\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Deze zin bepaalt de hoogte van de dwangsom door verschillende tarieven toe te kennen aan opeenvolgende tijdvakken (rekenregel).\", \"alternatieven\": []},\n  {\"klasse\": \"Tijdsaanduiding\", \"tekst\": \"de eerste veertien dagen\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Aanduiding van het eerste tijdvak waarbinnen het bijbehorende tarief geldt.\", \"alternatieven\": []},\n  {\"klasse\": \"Parameter en parameterwaarde\", \"tekst\": \"€ 23 per dag\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Een vaste waarde (tarief) die voor alle gevallen gelijk is gedurende het eerste tijdvak.\", \"alternatieven\": []},\n  {\"klasse\": \"Tijdsaanduiding\", \"tekst\": \"de daaropvolgende veertien dagen\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Aanduiding van het tweede tijdvak waarbinnen het verhoogde tarief geldt.\", \"alternatieven\": []},\n  {\"klasse\": \"Parameter en parameterwaarde\", \"tekst\": \"€ 35 per dag\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Een vaste waarde (tarief) die voor alle gevallen gelijk is gedurende het tweede tijdvak.\", \"alternatieven\": []},\n  {\"klasse\": \"Tijdsaanduiding\", \"tekst\": \"de overige dagen\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Aanduiding van het derde tijdvak (resterende dagen) waarbinnen het hoogste tarief geldt.\", \"alternatieven\": []},\n  {\"klasse\": \"Parameter en parameterwaarde\", \"tekst\": \"€ 45 per dag\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Een vaste waarde (tarief) die voor alle gevallen gelijk is gedurende het derde tijdvak.\", \"alternatieven\": []}\n]}",
+      "niet_letterlijk": 0
+    },
+    {
+      "casus": "AWB04",
+      "ronde": 1,
+      "variant": "nieuw",
+      "prompt_sha256": "46fd7c2c3c8855e97ee4f294650278b0f52fdc1179026d2bc054ef752c515436",
+      "bron_sha256": "0fead802bb963eeceaeea7fe06028f48cb725b1ebbb802e4f3ed20337ef25ac2",
+      "stop_reason": "end_turn",
+      "seconden": 11.263143281001248,
+      "elementen": [
+        {
+          "klasse": "Rechtsobject",
+          "tekst": "dwangsom",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "De dwangsom is het voorwerp van de rechtsbetrekking waarover de hoogte wordt bepaald.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Afleidingsregel",
+          "tekst": "De dwangsom bedraagt de eerste veertien dagen € 23 per dag, de daaropvolgende veertien dagen € 35 per dag en de overige dagen € 45 per dag",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "De bepaling stelt de hoogte van de dwangsom vast op basis van het tijdvak (rekenregel met drie staffels).",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "de eerste veertien dagen",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Tijdvak dat de eerste periode van de dwangsomberekening afbakent.",
+          "alternatieven": [
+            {
+              "klasse": "Voorwaarde",
+              "motivatie": "Het tijdvak fungeert als conditie voor de toepasselijke tariefstaffel."
+            }
+          ]
+        },
+        {
+          "klasse": "Parameter en parameterwaarde",
+          "tekst": "€ 23 per dag",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Vaste waarde (tarief) die geldt voor alle rechtssubjecten in de eerste veertien dagen.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "de daaropvolgende veertien dagen",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Tijdvak dat de tweede periode van de dwangsomberekening afbakent.",
+          "alternatieven": [
+            {
+              "klasse": "Voorwaarde",
+              "motivatie": "Het tijdvak fungeert als conditie voor de toepasselijke tariefstaffel."
+            }
+          ]
+        },
+        {
+          "klasse": "Parameter en parameterwaarde",
+          "tekst": "€ 35 per dag",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Vaste waarde (tarief) die geldt voor alle rechtssubjecten in de daaropvolgende veertien dagen.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "de overige dagen",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Tijdvak dat de resterende periode na de eerste twee staffels afbakent.",
+          "alternatieven": [
+            {
+              "klasse": "Voorwaarde",
+              "motivatie": "Het tijdvak fungeert als conditie voor de toepasselijke tariefstaffel."
+            }
+          ]
+        },
+        {
+          "klasse": "Parameter en parameterwaarde",
+          "tekst": "€ 45 per dag",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Vaste waarde (tarief) die geldt voor alle rechtssubjecten na de twee voorgaande perioden.",
+          "alternatieven": []
+        }
+      ],
+      "ruwe_uitvoer": "{\"elementen\": [\n  {\"klasse\": \"Rechtsobject\", \"tekst\": \"dwangsom\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"De dwangsom is het voorwerp van de rechtsbetrekking waarover de hoogte wordt bepaald.\", \"alternatieven\": []},\n  {\"klasse\": \"Afleidingsregel\", \"tekst\": \"De dwangsom bedraagt de eerste veertien dagen € 23 per dag, de daaropvolgende veertien dagen € 35 per dag en de overige dagen € 45 per dag\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"De bepaling stelt de hoogte van de dwangsom vast op basis van het tijdvak (rekenregel met drie staffels).\", \"alternatieven\": []},\n  {\"klasse\": \"Tijdsaanduiding\", \"tekst\": \"de eerste veertien dagen\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Tijdvak dat de eerste periode van de dwangsomberekening afbakent.\", \"alternatieven\": [{\"klasse\": \"Voorwaarde\", \"motivatie\": \"Het tijdvak fungeert als conditie voor de toepasselijke tariefstaffel.\"}]},\n  {\"klasse\": \"Parameter en parameterwaarde\", \"tekst\": \"€ 23 per dag\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Vaste waarde (tarief) die geldt voor alle rechtssubjecten in de eerste veertien dagen.\", \"alternatieven\": []},\n  {\"klasse\": \"Tijdsaanduiding\", \"tekst\": \"de daaropvolgende veertien dagen\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Tijdvak dat de tweede periode van de dwangsomberekening afbakent.\", \"alternatieven\": [{\"klasse\": \"Voorwaarde\", \"motivatie\": \"Het tijdvak fungeert als conditie voor de toepasselijke tariefstaffel.\"}]},\n  {\"klasse\": \"Parameter en parameterwaarde\", \"tekst\": \"€ 35 per dag\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Vaste waarde (tarief) die geldt voor alle rechtssubjecten in de daaropvolgende veertien dagen.\", \"alternatieven\": []},\n  {\"klasse\": \"Tijdsaanduiding\", \"tekst\": \"de overige dagen\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Tijdvak dat de resterende periode na de eerste twee staffels afbakent.\", \"alternatieven\": [{\"klasse\": \"Voorwaarde\", \"motivatie\": \"Het tijdvak fungeert als conditie voor de toepasselijke tariefstaffel.\"}]},\n  {\"klasse\": \"Parameter en parameterwaarde\", \"tekst\": \"€ 45 per dag\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Vaste waarde (tarief) die geldt voor alle rechtssubjecten na de twee voorgaande perioden.\", \"alternatieven\": []}\n]}",
+      "niet_letterlijk": 0
+    },
+    {
+      "casus": "WZT01",
+      "ronde": 1,
+      "variant": "oud",
+      "prompt_sha256": "c4bc2561e886fd49e38975fe84fff0024d9b5d2b999765a1ff2d6752b2bfa9a8",
+      "bron_sha256": "d97b6101940cb1efa1dcac67869a6421ed442cbd76547082d15878c6500c5bd4",
+      "stop_reason": "end_turn",
+      "seconden": 22.533158117999847,
+      "elementen": [
+        {
+          "klasse": "Voorwaarde",
+          "tekst": "Indien de normpremie voor een verzekerde in het berekeningsjaar minder bedraagt dan de standaardpremie in dat jaar",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit is de conditie waaraan voldaan moet zijn voordat het recht op zorgtoeslag intreedt.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Variabele en variabelewaarde",
+          "tekst": "normpremie",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De normpremie is een kenmerk (variabele) van de verzekerde dat een bepaalde waarde heeft en bepalend is voor het recht op zorgtoeslag.",
+          "alternatieven": [
+            {
+              "klasse": "Parameter en parameterwaarde",
+              "motivatie": "De normpremie kan ook als een vaste (berekende) waarde voor een jaar gelden en daarmee parameterkarakter hebben."
+            }
+          ]
+        },
+        {
+          "klasse": "Rechtssubject",
+          "tekst": "verzekerde",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De verzekerde is de drager van het recht op zorgtoeslag.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "berekeningsjaar",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Het berekeningsjaar duidt het tijdvak aan waarbinnen de normpremie en standaardpremie worden vastgesteld.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Operator",
+          "tekst": "minder bedraagt dan",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit is een vergelijkingsoperator die de normpremie vergelijkt met de standaardpremie.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Parameter en parameterwaarde",
+          "tekst": "standaardpremie",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De standaardpremie is een voor alle verzekerden gelijke vaste waarde per jaar en heeft daarmee het karakter van een parameter.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "in dat jaar",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit duidt het tijdvak (het berekeningsjaar) aan waarvoor de standaardpremie geldt.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsbetrekking",
+          "tekst": "heeft de verzekerde aanspraak op een zorgtoeslag",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit beschrijft de juridische relatie waarbij de verzekerde het recht heeft op zorgtoeslag.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsobject",
+          "tekst": "zorgtoeslag",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De zorgtoeslag is het voorwerp van de aanspraak (het recht) van de verzekerde.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Afleidingsregel",
+          "tekst": "ter grootte van dat verschil",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit bepaalt de hoogte van de zorgtoeslag door het verschil tussen normpremie en standaardpremie als uitvoervariabele vast te stellen.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Voorwaarde",
+          "tekst": "Voor een verzekerde met een partner",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit is de conditie (het hebben van een partner) waaronder de afwijkende berekeningsregel met tweemaal de standaardpremie van toepassing is.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtssubject",
+          "tekst": "partner",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De partner is een rechtssubject dat mede betrokken is in de rechtsbetrekking bij de berekening van de zorgtoeslag.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Afleidingsregel",
+          "tekst": "wordt daarbij tweemaal de standaardpremie in aanmerking genomen",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit is een rekenregel die bepaalt hoe de standaardpremie wordt berekend bij een verzekerde met partner (tweemaal de standaardpremie).",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Parameter en parameterwaarde",
+          "tekst": "tweemaal",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De factor twee is een vaste waarde (parameter) die geldt voor alle verzekerden met een partner bij de berekening van de standaardpremie.",
+          "alternatieven": [
+            {
+              "klasse": "Operator",
+              "motivatie": "Tweemaal kan ook worden gezien als een vermenigvuldigingsoperator in de rekenregel."
+            }
+          ]
+        },
+        {
+          "klasse": "Rechtsbetrekking",
+          "tekst": "worden de verzekerde en zijn partner voor de toepassing van deze wet geacht gezamenlijk één aanspraak te hebben",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit beschrijft de juridische relatie waarbij verzekerde en partner gezamenlijk als één rechtssubject met één aanspraak worden behandeld.",
+          "alternatieven": []
+        }
+      ],
+      "ruwe_uitvoer": "```json\n{\"elementen\": [\n  {\n    \"klasse\": \"Voorwaarde\",\n    \"tekst\": \"Indien de normpremie voor een verzekerde in het berekeningsjaar minder bedraagt dan de standaardpremie in dat jaar\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit is de conditie waaraan voldaan moet zijn voordat het recht op zorgtoeslag intreedt.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Variabele en variabelewaarde\",\n    \"tekst\": \"normpremie\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"De normpremie is een kenmerk (variabele) van de verzekerde dat een bepaalde waarde heeft en bepalend is voor het recht op zorgtoeslag.\",\n    \"alternatieven\": [{\"klasse\": \"Parameter en parameterwaarde\", \"motivatie\": \"De normpremie kan ook als een vaste (berekende) waarde voor een jaar gelden en daarmee parameterkarakter hebben.\"}]\n  },\n  {\n    \"klasse\": \"Rechtssubject\",\n    \"tekst\": \"verzekerde\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"De verzekerde is de drager van het recht op zorgtoeslag.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Tijdsaanduiding\",\n    \"tekst\": \"berekeningsjaar\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Het berekeningsjaar duidt het tijdvak aan waarbinnen de normpremie en standaardpremie worden vastgesteld.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Operator\",\n    \"tekst\": \"minder bedraagt dan\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit is een vergelijkingsoperator die de normpremie vergelijkt met de standaardpremie.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Parameter en parameterwaarde\",\n    \"tekst\": \"standaardpremie\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"De standaardpremie is een voor alle verzekerden gelijke vaste waarde per jaar en heeft daarmee het karakter van een parameter.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Tijdsaanduiding\",\n    \"tekst\": \"in dat jaar\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit duidt het tijdvak (het berekeningsjaar) aan waarvoor de standaardpremie geldt.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Rechtsbetrekking\",\n    \"tekst\": \"heeft de verzekerde aanspraak op een zorgtoeslag\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit beschrijft de juridische relatie waarbij de verzekerde het recht heeft op zorgtoeslag.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Rechtsobject\",\n    \"tekst\": \"zorgtoeslag\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"De zorgtoeslag is het voorwerp van de aanspraak (het recht) van de verzekerde.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Afleidingsregel\",\n    \"tekst\": \"ter grootte van dat verschil\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit bepaalt de hoogte van de zorgtoeslag door het verschil tussen normpremie en standaardpremie als uitvoervariabele vast te stellen.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Voorwaarde\",\n    \"tekst\": \"Voor een verzekerde met een partner\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit is de conditie (het hebben van een partner) waaronder de afwijkende berekeningsregel met tweemaal de standaardpremie van toepassing is.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Rechtssubject\",\n    \"tekst\": \"partner\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"De partner is een rechtssubject dat mede betrokken is in de rechtsbetrekking bij de berekening van de zorgtoeslag.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Afleidingsregel\",\n    \"tekst\": \"wordt daarbij tweemaal de standaardpremie in aanmerking genomen\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit is een rekenregel die bepaalt hoe de standaardpremie wordt berekend bij een verzekerde met partner (tweemaal de standaardpremie).\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Parameter en parameterwaarde\",\n    \"tekst\": \"tweemaal\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"De factor twee is een vaste waarde (parameter) die geldt voor alle verzekerden met een partner bij de berekening van de standaardpremie.\",\n    \"alternatieven\": [{\"klasse\": \"Operator\", \"motivatie\": \"Tweemaal kan ook worden gezien als een vermenigvuldigingsoperator in de rekenregel.\"}]\n  },\n  {\n    \"klasse\": \"Rechtsbetrekking\",\n    \"tekst\": \"worden de verzekerde en zijn partner voor de toepassing van deze wet geacht gezamenlijk één aanspraak te hebben\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit beschrijft de juridische relatie waarbij verzekerde en partner gezamenlijk als één rechtssubject met één aanspraak worden behandeld.\",\n    \"alternatieven\": []\n  }\n]}\n```",
+      "niet_letterlijk": 0
+    },
+    {
+      "casus": "WZT01",
+      "ronde": 1,
+      "variant": "nieuw",
+      "prompt_sha256": "46fd7c2c3c8855e97ee4f294650278b0f52fdc1179026d2bc054ef752c515436",
+      "bron_sha256": "d97b6101940cb1efa1dcac67869a6421ed442cbd76547082d15878c6500c5bd4",
+      "stop_reason": "end_turn",
+      "seconden": 24.582234546003747,
+      "elementen": [
+        {
+          "klasse": "Voorwaarde",
+          "tekst": "Indien de normpremie voor een verzekerde in het berekeningsjaar minder bedraagt dan de standaardpremie in dat jaar",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit is de conditie waaraan voldaan moet zijn voor het intreden van het rechtsgevolg (aanspraak op zorgtoeslag): de normpremie moet lager zijn dan de standaardpremie.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsobject",
+          "tekst": "normpremie",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De normpremie is het voorwerp van de vergelijking en daarmee een kenmerk/rechtsobject waarop de aanspraak wordt gebaseerd.",
+          "alternatieven": [
+            {
+              "klasse": "Variabele en variabelewaarde",
+              "motivatie": "De normpremie is ook een variabele die per verzekerde een andere waarde kan hebben."
+            }
+          ]
+        },
+        {
+          "klasse": "Rechtssubject",
+          "tekst": "verzekerde",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De verzekerde is de drager van de aanspraak op zorgtoeslag en daarmee rechtssubject in deze rechtsbetrekking.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "berekeningsjaar",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Het berekeningsjaar duidt het tijdvak aan waarbinnen de normpremie geldt en is daarmee een tijdsaanduiding.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Operator",
+          "tekst": "minder bedraagt dan",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit is een vergelijkingsoperator die de normpremie vergelijkt met de standaardpremie (kleiner-dan-relatie).",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsobject",
+          "tekst": "standaardpremie",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De standaardpremie is het voorwerp waarmee de normpremie wordt vergeleken en waarmee de hoogte van de zorgtoeslag wordt bepaald.",
+          "alternatieven": [
+            {
+              "klasse": "Parameter en parameterwaarde",
+              "motivatie": "De standaardpremie is een vaste waarde die voor een bepaald jaar voor alle verzekerden gelijk is."
+            }
+          ]
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "in dat jaar",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Duidt het tijdvak aan waarvoor de standaardpremie geldt.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsbetrekking",
+          "tekst": "heeft de verzekerde aanspraak op een zorgtoeslag",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit beschrijft de juridische relatie waarbij de verzekerde het recht heeft op zorgtoeslag.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsobject",
+          "tekst": "zorgtoeslag",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De zorgtoeslag is het voorwerp van de aanspraak van de verzekerde.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Afleidingsregel",
+          "tekst": "ter grootte van dat verschil",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Deze regel bepaalt de hoogte van de zorgtoeslag als het verschil tussen normpremie en standaardpremie.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Voorwaarde",
+          "tekst": "Voor een verzekerde met een partner",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit is de conditie (een verzekerde met een partner) waaronder de bijzondere berekeningsregel van toepassing is.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtssubject",
+          "tekst": "partner",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De partner is een rechtssubject wiens aanwezigheid de berekening beïnvloedt en die mede in de aanspraak wordt betrokken.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Afleidingsregel",
+          "tekst": "wordt daarbij tweemaal de standaardpremie in aanmerking genomen",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit is een rekenregel die de grondslag voor de berekening van de zorgtoeslag bij een verzekerde met partner vaststelt op tweemaal de standaardpremie.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Operator",
+          "tekst": "tweemaal",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit is een rekenkundige operator (vermenigvuldiging met factor 2) die de standaardpremie verdubbelt bij een verzekerde met partner.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsfeit",
+          "tekst": "worden de verzekerde en zijn partner voor de toepassing van deze wet geacht gezamenlijk één aanspraak te hebben",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit is een juridische fictie die een rechtsgevolg creëert: de verzekerde en partner worden geacht samen één aanspraak te hebben, wat de juridische toestand wijzigt.",
+          "alternatieven": [
+            {
+              "klasse": "Rechtsbetrekking",
+              "motivatie": "Het gezamenlijk hebben van één aanspraak beschrijft ook de juridische relatie tussen de verzekerde, zijn partner en de zorgtoeslag."
+            }
+          ]
+        }
+      ],
+      "ruwe_uitvoer": "```json\n{\"elementen\": [\n  {\n    \"klasse\": \"Voorwaarde\",\n    \"tekst\": \"Indien de normpremie voor een verzekerde in het berekeningsjaar minder bedraagt dan de standaardpremie in dat jaar\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit is de conditie waaraan voldaan moet zijn voor het intreden van het rechtsgevolg (aanspraak op zorgtoeslag): de normpremie moet lager zijn dan de standaardpremie.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Rechtsobject\",\n    \"tekst\": \"normpremie\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"De normpremie is het voorwerp van de vergelijking en daarmee een kenmerk/rechtsobject waarop de aanspraak wordt gebaseerd.\",\n    \"alternatieven\": [{\"klasse\": \"Variabele en variabelewaarde\", \"motivatie\": \"De normpremie is ook een variabele die per verzekerde een andere waarde kan hebben.\"}]\n  },\n  {\n    \"klasse\": \"Rechtssubject\",\n    \"tekst\": \"verzekerde\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"De verzekerde is de drager van de aanspraak op zorgtoeslag en daarmee rechtssubject in deze rechtsbetrekking.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Tijdsaanduiding\",\n    \"tekst\": \"berekeningsjaar\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Het berekeningsjaar duidt het tijdvak aan waarbinnen de normpremie geldt en is daarmee een tijdsaanduiding.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Operator\",\n    \"tekst\": \"minder bedraagt dan\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit is een vergelijkingsoperator die de normpremie vergelijkt met de standaardpremie (kleiner-dan-relatie).\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Rechtsobject\",\n    \"tekst\": \"standaardpremie\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"De standaardpremie is het voorwerp waarmee de normpremie wordt vergeleken en waarmee de hoogte van de zorgtoeslag wordt bepaald.\",\n    \"alternatieven\": [{\"klasse\": \"Parameter en parameterwaarde\", \"motivatie\": \"De standaardpremie is een vaste waarde die voor een bepaald jaar voor alle verzekerden gelijk is.\"}]\n  },\n  {\n    \"klasse\": \"Tijdsaanduiding\",\n    \"tekst\": \"in dat jaar\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Duidt het tijdvak aan waarvoor de standaardpremie geldt.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Rechtsbetrekking\",\n    \"tekst\": \"heeft de verzekerde aanspraak op een zorgtoeslag\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit beschrijft de juridische relatie waarbij de verzekerde het recht heeft op zorgtoeslag.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Rechtsobject\",\n    \"tekst\": \"zorgtoeslag\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"De zorgtoeslag is het voorwerp van de aanspraak van de verzekerde.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Afleidingsregel\",\n    \"tekst\": \"ter grootte van dat verschil\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Deze regel bepaalt de hoogte van de zorgtoeslag als het verschil tussen normpremie en standaardpremie.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Voorwaarde\",\n    \"tekst\": \"Voor een verzekerde met een partner\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit is de conditie (een verzekerde met een partner) waaronder de bijzondere berekeningsregel van toepassing is.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Rechtssubject\",\n    \"tekst\": \"partner\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"De partner is een rechtssubject wiens aanwezigheid de berekening beïnvloedt en die mede in de aanspraak wordt betrokken.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Afleidingsregel\",\n    \"tekst\": \"wordt daarbij tweemaal de standaardpremie in aanmerking genomen\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit is een rekenregel die de grondslag voor de berekening van de zorgtoeslag bij een verzekerde met partner vaststelt op tweemaal de standaardpremie.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Operator\",\n    \"tekst\": \"tweemaal\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit is een rekenkundige operator (vermenigvuldiging met factor 2) die de standaardpremie verdubbelt bij een verzekerde met partner.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Rechtsfeit\",\n    \"tekst\": \"worden de verzekerde en zijn partner voor de toepassing van deze wet geacht gezamenlijk één aanspraak te hebben\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit is een juridische fictie die een rechtsgevolg creëert: de verzekerde en partner worden geacht samen één aanspraak te hebben, wat de juridische toestand wijzigt.\",\n    \"alternatieven\": [{\"klasse\": \"Rechtsbetrekking\", \"motivatie\": \"Het gezamenlijk hebben van één aanspraak beschrijft ook de juridische relatie tussen de verzekerde, zijn partner en de zorgtoeslag.\"}]\n  }\n]}\n```",
+      "niet_letterlijk": 0
+    },
+    {
+      "casus": "RVV03",
+      "ronde": 1,
+      "variant": "oud",
+      "prompt_sha256": "c4bc2561e886fd49e38975fe84fff0024d9b5d2b999765a1ff2d6752b2bfa9a8",
+      "bron_sha256": "1d32f648c90119bc2a00d4355b05c64066067359ae8a0946fbd61fe79ab9841f",
+      "stop_reason": "end_turn",
+      "seconden": 8.38134191899735,
+      "elementen": [
+        {
+          "klasse": "Brondefinitie",
+          "tekst": "rood licht",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Het artikel geeft een expliciete begripsomschrijving aan de term 'rood licht' bij voetgangerslichten.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtssubject",
+          "tekst": "voetgangers",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Voetgangers zijn de dragers van de plicht (niet mogen beginnen over te steken) die hier wordt omschreven.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsbetrekking",
+          "tekst": "mogen niet meer beginnen over te steken",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Dit beschrijft de verbodsverplichting (plicht) die rust op voetgangers bij rood licht.",
+          "alternatieven": [
+            {
+              "klasse": "Rechtsfeit",
+              "motivatie": "Het beginnen met oversteken kan ook als een handeling met rechtsgevolg worden gezien."
+            }
+          ]
+        },
+        {
+          "klasse": "Rechtssubject",
+          "tekst": "reeds overstekende voetgangers",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Reeds overstekende voetgangers zijn de dragers van de afzonderlijke plicht om zo snel mogelijk door te lopen.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsbetrekking",
+          "tekst": "moeten zo snel mogelijk doorlopen",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Dit beschrijft de verplichting die rust op reeds overstekende voetgangers bij rood licht.",
+          "alternatieven": []
+        }
+      ],
+      "ruwe_uitvoer": "```json\n{\"elementen\": [\n  {\"klasse\": \"Brondefinitie\", \"tekst\": \"rood licht\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Het artikel geeft een expliciete begripsomschrijving aan de term 'rood licht' bij voetgangerslichten.\", \"alternatieven\": []},\n  {\"klasse\": \"Rechtssubject\", \"tekst\": \"voetgangers\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Voetgangers zijn de dragers van de plicht (niet mogen beginnen over te steken) die hier wordt omschreven.\", \"alternatieven\": []},\n  {\"klasse\": \"Rechtsbetrekking\", \"tekst\": \"mogen niet meer beginnen over te steken\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Dit beschrijft de verbodsverplichting (plicht) die rust op voetgangers bij rood licht.\", \"alternatieven\": [{\"klasse\": \"Rechtsfeit\", \"motivatie\": \"Het beginnen met oversteken kan ook als een handeling met rechtsgevolg worden gezien.\"}]},\n  {\"klasse\": \"Rechtssubject\", \"tekst\": \"reeds overstekende voetgangers\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Reeds overstekende voetgangers zijn de dragers van de afzonderlijke plicht om zo snel mogelijk door te lopen.\", \"alternatieven\": []},\n  {\"klasse\": \"Rechtsbetrekking\", \"tekst\": \"moeten zo snel mogelijk doorlopen\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Dit beschrijft de verplichting die rust op reeds overstekende voetgangers bij rood licht.\", \"alternatieven\": []}\n]}\n```",
+      "niet_letterlijk": 0
+    },
+    {
+      "casus": "RVV03",
+      "ronde": 1,
+      "variant": "nieuw",
+      "prompt_sha256": "46fd7c2c3c8855e97ee4f294650278b0f52fdc1179026d2bc054ef752c515436",
+      "bron_sha256": "1d32f648c90119bc2a00d4355b05c64066067359ae8a0946fbd61fe79ab9841f",
+      "stop_reason": "end_turn",
+      "seconden": 12.080816649999178,
+      "elementen": [
+        {
+          "klasse": "Brondefinitie",
+          "tekst": "rood licht",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Dit is een expliciete begripsomschrijving van een verkeerssignaal in de context van voetgangerslichten."
+        },
+        {
+          "klasse": "Rechtssubject",
+          "tekst": "voetgangers",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Voetgangers zijn de dragers van de plicht die voortvloeit uit het rode licht."
+        },
+        {
+          "klasse": "Rechtsbetrekking",
+          "tekst": "mogen niet meer beginnen over te steken",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Dit beschrijft een verbod (plicht) voor voetgangers om niet te beginnen met oversteken bij rood licht."
+        },
+        {
+          "klasse": "Rechtsobject",
+          "tekst": "over te steken",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Het oversteken is het voorwerp van de verbodsnorm waaraan voetgangers zijn gebonden.",
+          "alternatieven": [
+            {
+              "klasse": "Rechtsfeit",
+              "motivatie": "Het beginnen met oversteken kan ook worden gezien als een handeling met rechtsgevolg."
+            }
+          ]
+        },
+        {
+          "klasse": "Rechtssubject",
+          "tekst": "reeds overstekende voetgangers",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "De reeds overstekende voetgangers zijn de dragers van de plicht om door te lopen."
+        },
+        {
+          "klasse": "Voorwaarde",
+          "tekst": "reeds overstekende",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "De eigenschap 'reeds overstekende' stelt een conditie aan welk rechtssubject de tweede norm (doorlopen) geldt."
+        },
+        {
+          "klasse": "Rechtsbetrekking",
+          "tekst": "moeten zo snel mogelijk doorlopen",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Dit beschrijft de plicht van reeds overstekende voetgangers om zo snel mogelijk door te lopen."
+        },
+        {
+          "klasse": "Variabele en variabelewaarde",
+          "tekst": "zo snel mogelijk",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Dit drukt de norm uit voor de snelheid (variabele) waarmee de plicht tot doorlopen moet worden nagekomen."
+        }
+      ],
+      "ruwe_uitvoer": "{\"elementen\": [\n  {\"klasse\": \"Brondefinitie\", \"tekst\": \"rood licht\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Dit is een expliciete begripsomschrijving van een verkeerssignaal in de context van voetgangerslichten.\"},\n  {\"klasse\": \"Rechtssubject\", \"tekst\": \"voetgangers\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Voetgangers zijn de dragers van de plicht die voortvloeit uit het rode licht.\"},\n  {\"klasse\": \"Rechtsbetrekking\", \"tekst\": \"mogen niet meer beginnen over te steken\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Dit beschrijft een verbod (plicht) voor voetgangers om niet te beginnen met oversteken bij rood licht.\"},\n  {\"klasse\": \"Rechtsobject\", \"tekst\": \"over te steken\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Het oversteken is het voorwerp van de verbodsnorm waaraan voetgangers zijn gebonden.\", \"alternatieven\": [{\"klasse\": \"Rechtsfeit\", \"motivatie\": \"Het beginnen met oversteken kan ook worden gezien als een handeling met rechtsgevolg.\"}]},\n  {\"klasse\": \"Rechtssubject\", \"tekst\": \"reeds overstekende voetgangers\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"De reeds overstekende voetgangers zijn de dragers van de plicht om door te lopen.\"},\n  {\"klasse\": \"Voorwaarde\", \"tekst\": \"reeds overstekende\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"De eigenschap 'reeds overstekende' stelt een conditie aan welk rechtssubject de tweede norm (doorlopen) geldt.\"},\n  {\"klasse\": \"Rechtsbetrekking\", \"tekst\": \"moeten zo snel mogelijk doorlopen\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Dit beschrijft de plicht van reeds overstekende voetgangers om zo snel mogelijk door te lopen.\"},\n  {\"klasse\": \"Variabele en variabelewaarde\", \"tekst\": \"zo snel mogelijk\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Dit drukt de norm uit voor de snelheid (variabele) waarmee de plicht tot doorlopen moet worden nagekomen.\"}\n]}",
+      "niet_letterlijk": 0
+    },
+    {
+      "casus": "IW01",
+      "ronde": 2,
+      "variant": "nieuw",
+      "prompt_sha256": "46fd7c2c3c8855e97ee4f294650278b0f52fdc1179026d2bc054ef752c515436",
+      "bron_sha256": "fd044d7e35ad3a1eb2440ee5d485759c70efa621732d21a94714e2b656c0034d",
+      "stop_reason": "end_turn",
+      "seconden": 13.102517551000346,
+      "elementen": [
+        {
+          "klasse": "Rechtssubject",
+          "tekst": "Een belastingaanslag",
+          "lid": "",
+          "onderdeel": "",
+          "toelichting": "De belastingaanslag is het subject waarover de juridische toestand (invorderbaarheid) wordt vastgesteld.",
+          "alternatieven": [
+            {
+              "klasse": "Rechtsobject",
+              "motivatie": "De belastingaanslag kan ook worden gezien als het voorwerp van de invorderingsrelatie tussen schuldeiser en schuldenaar."
+            }
+          ]
+        },
+        {
+          "klasse": "Rechtsbetrekking",
+          "tekst": "is invorderbaar",
+          "lid": "",
+          "onderdeel": "",
+          "toelichting": "Beschrijft de juridische toestand dat de belastingaanslag voor invordering vatbaar is, wat een recht/plicht-verhouding tussen belastingschuldige en ontvanger impliceert.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "zes weken na de dagtekening van het aanslagbiljet",
+          "lid": "",
+          "onderdeel": "",
+          "toelichting": "Geeft het tijdstip aan waarop de invorderbaarheid intreedt, uitgedrukt als een termijn van zes weken na een bepaald moment.",
+          "alternatieven": [
+            {
+              "klasse": "Voorwaarde",
+              "motivatie": "Het verstrijken van zes weken na dagtekening kan ook worden gelezen als de conditie waaraan voldaan moet zijn voordat invorderbaarheid intreedt."
+            }
+          ]
+        },
+        {
+          "klasse": "Parameter en parameterwaarde",
+          "tekst": "zes weken",
+          "lid": "",
+          "onderdeel": "",
+          "toelichting": "Een vaste termijn die voor alle belastingaanslagen gelijk is en niet per geval varieert.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsobject",
+          "tekst": "aanslagbiljet",
+          "lid": "",
+          "onderdeel": "",
+          "toelichting": "Het aanslagbiljet is het concrete document (voorwerp) waarvan de dagtekening de aanvang van de termijn bepaalt.",
+          "alternatieven": []
+        }
+      ],
+      "ruwe_uitvoer": "{\"elementen\": [\n  {\"klasse\": \"Rechtssubject\", \"tekst\": \"Een belastingaanslag\", \"lid\": \"\", \"onderdeel\": \"\", \"toelichting\": \"De belastingaanslag is het subject waarover de juridische toestand (invorderbaarheid) wordt vastgesteld.\", \"alternatieven\": [{\"klasse\": \"Rechtsobject\", \"motivatie\": \"De belastingaanslag kan ook worden gezien als het voorwerp van de invorderingsrelatie tussen schuldeiser en schuldenaar.\"}]},\n  {\"klasse\": \"Rechtsbetrekking\", \"tekst\": \"is invorderbaar\", \"lid\": \"\", \"onderdeel\": \"\", \"toelichting\": \"Beschrijft de juridische toestand dat de belastingaanslag voor invordering vatbaar is, wat een recht/plicht-verhouding tussen belastingschuldige en ontvanger impliceert.\", \"alternatieven\": []},\n  {\"klasse\": \"Tijdsaanduiding\", \"tekst\": \"zes weken na de dagtekening van het aanslagbiljet\", \"lid\": \"\", \"onderdeel\": \"\", \"toelichting\": \"Geeft het tijdstip aan waarop de invorderbaarheid intreedt, uitgedrukt als een termijn van zes weken na een bepaald moment.\", \"alternatieven\": [{\"klasse\": \"Voorwaarde\", \"motivatie\": \"Het verstrijken van zes weken na dagtekening kan ook worden gelezen als de conditie waaraan voldaan moet zijn voordat invorderbaarheid intreedt.\"}]},\n  {\"klasse\": \"Parameter en parameterwaarde\", \"tekst\": \"zes weken\", \"lid\": \"\", \"onderdeel\": \"\", \"toelichting\": \"Een vaste termijn die voor alle belastingaanslagen gelijk is en niet per geval varieert.\", \"alternatieven\": []},\n  {\"klasse\": \"Rechtsobject\", \"tekst\": \"aanslagbiljet\", \"lid\": \"\", \"onderdeel\": \"\", \"toelichting\": \"Het aanslagbiljet is het concrete document (voorwerp) waarvan de dagtekening de aanvang van de termijn bepaalt.\", \"alternatieven\": []}\n]}",
+      "niet_letterlijk": 0
+    },
+    {
+      "casus": "IW01",
+      "ronde": 2,
+      "variant": "oud",
+      "prompt_sha256": "c4bc2561e886fd49e38975fe84fff0024d9b5d2b999765a1ff2d6752b2bfa9a8",
+      "bron_sha256": "fd044d7e35ad3a1eb2440ee5d485759c70efa621732d21a94714e2b656c0034d",
+      "stop_reason": "end_turn",
+      "seconden": 7.420129730999179,
+      "elementen": [
+        {
+          "klasse": "Rechtsobject",
+          "tekst": "belastingaanslag",
+          "lid": "",
+          "onderdeel": "",
+          "toelichting": "De belastingaanslag is het voorwerp van de rechtsbetrekking (de invorderbaarheid).",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsbetrekking",
+          "tekst": "is invorderbaar",
+          "lid": "",
+          "onderdeel": "",
+          "toelichting": "Beschrijft de juridische toestand van de belastingaanslag: de plicht tot betaling is afdwingbaar.",
+          "alternatieven": [
+            {
+              "klasse": "Afleidingsregel",
+              "motivatie": "Kan ook gezien worden als een regel die de juridische status 'invorderbaar' afleidt op basis van het tijdsverloop."
+            }
+          ]
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "zes weken na de dagtekening van het aanslagbiljet",
+          "lid": "",
+          "onderdeel": "",
+          "toelichting": "Geeft het tijdvak aan waarna de invorderbaarheid intreedt, uitgedrukt als een periode na een bepaalde datum.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsobject",
+          "tekst": "aanslagbiljet",
+          "lid": "",
+          "onderdeel": "",
+          "toelichting": "Het aanslagbiljet is het voorwerp waarvan de dagtekening bepalend is voor de tijdsaanduiding.",
+          "alternatieven": []
+        }
+      ],
+      "ruwe_uitvoer": "{\"elementen\": [\n  {\"klasse\": \"Rechtsobject\", \"tekst\": \"belastingaanslag\", \"lid\": \"\", \"onderdeel\": \"\", \"toelichting\": \"De belastingaanslag is het voorwerp van de rechtsbetrekking (de invorderbaarheid).\", \"alternatieven\": []},\n  {\"klasse\": \"Rechtsbetrekking\", \"tekst\": \"is invorderbaar\", \"lid\": \"\", \"onderdeel\": \"\", \"toelichting\": \"Beschrijft de juridische toestand van de belastingaanslag: de plicht tot betaling is afdwingbaar.\", \"alternatieven\": [{\"klasse\": \"Afleidingsregel\", \"motivatie\": \"Kan ook gezien worden als een regel die de juridische status 'invorderbaar' afleidt op basis van het tijdsverloop.\"}]},\n  {\"klasse\": \"Tijdsaanduiding\", \"tekst\": \"zes weken na de dagtekening van het aanslagbiljet\", \"lid\": \"\", \"onderdeel\": \"\", \"toelichting\": \"Geeft het tijdvak aan waarna de invorderbaarheid intreedt, uitgedrukt als een periode na een bepaalde datum.\", \"alternatieven\": []},\n  {\"klasse\": \"Rechtsobject\", \"tekst\": \"aanslagbiljet\", \"lid\": \"\", \"onderdeel\": \"\", \"toelichting\": \"Het aanslagbiljet is het voorwerp waarvan de dagtekening bepalend is voor de tijdsaanduiding.\", \"alternatieven\": []}\n]}",
+      "niet_letterlijk": 0
+    },
+    {
+      "casus": "AWB04",
+      "ronde": 2,
+      "variant": "nieuw",
+      "prompt_sha256": "46fd7c2c3c8855e97ee4f294650278b0f52fdc1179026d2bc054ef752c515436",
+      "bron_sha256": "0fead802bb963eeceaeea7fe06028f48cb725b1ebbb802e4f3ed20337ef25ac2",
+      "stop_reason": "end_turn",
+      "seconden": 12.087511562996951,
+      "elementen": [
+        {
+          "klasse": "Rechtsobject",
+          "tekst": "dwangsom",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "De dwangsom is het voorwerp van de rechtsbetrekking waarvan de hoogte wordt vastgesteld.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Afleidingsregel",
+          "tekst": "De dwangsom bedraagt de eerste veertien dagen € 23 per dag, de daaropvolgende veertien dagen € 35 per dag en de overige dagen € 45 per dag.",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Dit lid bevat een rekenregel die de hoogte van de dwangsom afleidt op basis van het tijdvak (eerste 14 dagen, daaropvolgende 14 dagen, overige dagen) en bijbehorende dagbedragen.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "de eerste veertien dagen",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Geeft het eerste tijdvak aan waarvoor het dagbedrag van € 23 geldt.",
+          "alternatieven": [
+            {
+              "klasse": "Voorwaarde",
+              "motivatie": "Het tijdvak fungeert tevens als conditie waaronder het bijbehorende tarief van toepassing is."
+            }
+          ]
+        },
+        {
+          "klasse": "Parameter en parameterwaarde",
+          "tekst": "€ 23 per dag",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Dit is een vaste parameterwaarde (dagbedrag) die voor alle rechtssubjecten gelijkelijk geldt gedurende het eerste tijdvak.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "de daaropvolgende veertien dagen",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Geeft het tweede tijdvak aan waarvoor het dagbedrag van € 35 geldt.",
+          "alternatieven": [
+            {
+              "klasse": "Voorwaarde",
+              "motivatie": "Het tijdvak fungeert tevens als conditie waaronder het bijbehorende tarief van toepassing is."
+            }
+          ]
+        },
+        {
+          "klasse": "Parameter en parameterwaarde",
+          "tekst": "€ 35 per dag",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Dit is een vaste parameterwaarde (dagbedrag) die voor alle rechtssubjecten gelijkelijk geldt gedurende het tweede tijdvak.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "de overige dagen",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Geeft het derde (resterende) tijdvak aan waarvoor het dagbedrag van € 45 geldt.",
+          "alternatieven": [
+            {
+              "klasse": "Voorwaarde",
+              "motivatie": "Het tijdvak fungeert tevens als conditie waaronder het bijbehorende tarief van toepassing is."
+            }
+          ]
+        },
+        {
+          "klasse": "Parameter en parameterwaarde",
+          "tekst": "€ 45 per dag",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Dit is een vaste parameterwaarde (dagbedrag) die voor alle rechtssubjecten gelijkelijk geldt gedurende het derde tijdvak.",
+          "alternatieven": []
+        }
+      ],
+      "ruwe_uitvoer": "{\"elementen\": [\n  {\"klasse\": \"Rechtsobject\", \"tekst\": \"dwangsom\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"De dwangsom is het voorwerp van de rechtsbetrekking waarvan de hoogte wordt vastgesteld.\", \"alternatieven\": []},\n  {\"klasse\": \"Afleidingsregel\", \"tekst\": \"De dwangsom bedraagt de eerste veertien dagen € 23 per dag, de daaropvolgende veertien dagen € 35 per dag en de overige dagen € 45 per dag.\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Dit lid bevat een rekenregel die de hoogte van de dwangsom afleidt op basis van het tijdvak (eerste 14 dagen, daaropvolgende 14 dagen, overige dagen) en bijbehorende dagbedragen.\", \"alternatieven\": []},\n  {\"klasse\": \"Tijdsaanduiding\", \"tekst\": \"de eerste veertien dagen\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Geeft het eerste tijdvak aan waarvoor het dagbedrag van € 23 geldt.\", \"alternatieven\": [{\"klasse\": \"Voorwaarde\", \"motivatie\": \"Het tijdvak fungeert tevens als conditie waaronder het bijbehorende tarief van toepassing is.\"}]},\n  {\"klasse\": \"Parameter en parameterwaarde\", \"tekst\": \"€ 23 per dag\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Dit is een vaste parameterwaarde (dagbedrag) die voor alle rechtssubjecten gelijkelijk geldt gedurende het eerste tijdvak.\", \"alternatieven\": []},\n  {\"klasse\": \"Tijdsaanduiding\", \"tekst\": \"de daaropvolgende veertien dagen\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Geeft het tweede tijdvak aan waarvoor het dagbedrag van € 35 geldt.\", \"alternatieven\": [{\"klasse\": \"Voorwaarde\", \"motivatie\": \"Het tijdvak fungeert tevens als conditie waaronder het bijbehorende tarief van toepassing is.\"}]},\n  {\"klasse\": \"Parameter en parameterwaarde\", \"tekst\": \"€ 35 per dag\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Dit is een vaste parameterwaarde (dagbedrag) die voor alle rechtssubjecten gelijkelijk geldt gedurende het tweede tijdvak.\", \"alternatieven\": []},\n  {\"klasse\": \"Tijdsaanduiding\", \"tekst\": \"de overige dagen\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Geeft het derde (resterende) tijdvak aan waarvoor het dagbedrag van € 45 geldt.\", \"alternatieven\": [{\"klasse\": \"Voorwaarde\", \"motivatie\": \"Het tijdvak fungeert tevens als conditie waaronder het bijbehorende tarief van toepassing is.\"}]},\n  {\"klasse\": \"Parameter en parameterwaarde\", \"tekst\": \"€ 45 per dag\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Dit is een vaste parameterwaarde (dagbedrag) die voor alle rechtssubjecten gelijkelijk geldt gedurende het derde tijdvak.\", \"alternatieven\": []}\n]}",
+      "niet_letterlijk": 0
+    },
+    {
+      "casus": "AWB04",
+      "ronde": 2,
+      "variant": "oud",
+      "prompt_sha256": "c4bc2561e886fd49e38975fe84fff0024d9b5d2b999765a1ff2d6752b2bfa9a8",
+      "bron_sha256": "0fead802bb963eeceaeea7fe06028f48cb725b1ebbb802e4f3ed20337ef25ac2",
+      "stop_reason": "end_turn",
+      "seconden": 11.231726635996893,
+      "elementen": [
+        {
+          "klasse": "Rechtsobject",
+          "tekst": "dwangsom",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "De dwangsom is het voorwerp van de rechtsbetrekking waarover een bedrag wordt vastgesteld.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Afleidingsregel",
+          "tekst": "bedraagt",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Dit werkwoord drukt uit hoe de hoogte van de dwangsom wordt afgeleid op basis van de verstreken periode.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "de eerste veertien dagen",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Dit is een tijdvak dat bepaalt gedurende welke periode het eerste dagtarief geldt.",
+          "alternatieven": [
+            {
+              "klasse": "Voorwaarde",
+              "motivatie": "Het tijdvak fungeert tevens als conditie waaronder het bijbehorende tarief van toepassing is."
+            }
+          ]
+        },
+        {
+          "klasse": "Parameter en parameterwaarde",
+          "tekst": "€ 23 per dag",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Dit is een vaste waarde (tarief) die voor alle rechtssubjecten en rechtsobjecten gelijk is gedurende de eerste veertien dagen.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "de daaropvolgende veertien dagen",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Dit is een tijdvak dat bepaalt gedurende welke periode het tweede dagtarief geldt.",
+          "alternatieven": [
+            {
+              "klasse": "Voorwaarde",
+              "motivatie": "Het tijdvak fungeert tevens als conditie waaronder het bijbehorende tarief van toepassing is."
+            }
+          ]
+        },
+        {
+          "klasse": "Parameter en parameterwaarde",
+          "tekst": "€ 35 per dag",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Dit is een vaste waarde (tarief) die voor alle rechtssubjecten en rechtsobjecten gelijk is gedurende de daaropvolgende veertien dagen.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "de overige dagen",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Dit is een tijdvak (restcategorie) dat bepaalt gedurende welke periode het derde dagtarief geldt.",
+          "alternatieven": [
+            {
+              "klasse": "Voorwaarde",
+              "motivatie": "Het tijdvak fungeert tevens als conditie waaronder het bijbehorende tarief van toepassing is."
+            }
+          ]
+        },
+        {
+          "klasse": "Parameter en parameterwaarde",
+          "tekst": "€ 45 per dag",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Dit is een vaste waarde (tarief) die voor alle rechtssubjecten en rechtsobjecten gelijk is gedurende de overige dagen.",
+          "alternatieven": []
+        }
+      ],
+      "ruwe_uitvoer": "{\"elementen\": [\n  {\"klasse\": \"Rechtsobject\", \"tekst\": \"dwangsom\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"De dwangsom is het voorwerp van de rechtsbetrekking waarover een bedrag wordt vastgesteld.\", \"alternatieven\": []},\n  {\"klasse\": \"Afleidingsregel\", \"tekst\": \"bedraagt\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Dit werkwoord drukt uit hoe de hoogte van de dwangsom wordt afgeleid op basis van de verstreken periode.\", \"alternatieven\": []},\n  {\"klasse\": \"Tijdsaanduiding\", \"tekst\": \"de eerste veertien dagen\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Dit is een tijdvak dat bepaalt gedurende welke periode het eerste dagtarief geldt.\", \"alternatieven\": [{\"klasse\": \"Voorwaarde\", \"motivatie\": \"Het tijdvak fungeert tevens als conditie waaronder het bijbehorende tarief van toepassing is.\"}]},\n  {\"klasse\": \"Parameter en parameterwaarde\", \"tekst\": \"€ 23 per dag\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Dit is een vaste waarde (tarief) die voor alle rechtssubjecten en rechtsobjecten gelijk is gedurende de eerste veertien dagen.\", \"alternatieven\": []},\n  {\"klasse\": \"Tijdsaanduiding\", \"tekst\": \"de daaropvolgende veertien dagen\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Dit is een tijdvak dat bepaalt gedurende welke periode het tweede dagtarief geldt.\", \"alternatieven\": [{\"klasse\": \"Voorwaarde\", \"motivatie\": \"Het tijdvak fungeert tevens als conditie waaronder het bijbehorende tarief van toepassing is.\"}]},\n  {\"klasse\": \"Parameter en parameterwaarde\", \"tekst\": \"€ 35 per dag\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Dit is een vaste waarde (tarief) die voor alle rechtssubjecten en rechtsobjecten gelijk is gedurende de daaropvolgende veertien dagen.\", \"alternatieven\": []},\n  {\"klasse\": \"Tijdsaanduiding\", \"tekst\": \"de overige dagen\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Dit is een tijdvak (restcategorie) dat bepaalt gedurende welke periode het derde dagtarief geldt.\", \"alternatieven\": [{\"klasse\": \"Voorwaarde\", \"motivatie\": \"Het tijdvak fungeert tevens als conditie waaronder het bijbehorende tarief van toepassing is.\"}]},\n  {\"klasse\": \"Parameter en parameterwaarde\", \"tekst\": \"€ 45 per dag\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Dit is een vaste waarde (tarief) die voor alle rechtssubjecten en rechtsobjecten gelijk is gedurende de overige dagen.\", \"alternatieven\": []}\n]}",
+      "niet_letterlijk": 0
+    },
+    {
+      "casus": "WZT01",
+      "ronde": 2,
+      "variant": "nieuw",
+      "prompt_sha256": "46fd7c2c3c8855e97ee4f294650278b0f52fdc1179026d2bc054ef752c515436",
+      "bron_sha256": "d97b6101940cb1efa1dcac67869a6421ed442cbd76547082d15878c6500c5bd4",
+      "stop_reason": "end_turn",
+      "seconden": 23.54933954099397,
+      "elementen": [
+        {
+          "klasse": "Voorwaarde",
+          "tekst": "Indien de normpremie voor een verzekerde in het berekeningsjaar minder bedraagt dan de standaardpremie in dat jaar",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Deze bijzin beschrijft de conditie waaronder de aanspraak op zorgtoeslag ontstaat: de normpremie moet kleiner zijn dan de standaardpremie.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsobject",
+          "tekst": "normpremie",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De normpremie is het voorwerp van de vergelijking en daarmee van de afleidingsregel die de zorgtoeslag bepaalt.",
+          "alternatieven": [
+            {
+              "klasse": "Variabele en variabelewaarde",
+              "motivatie": "De normpremie is een kenmerk dat per verzekerde een andere waarde kan hebben."
+            }
+          ]
+        },
+        {
+          "klasse": "Rechtssubject",
+          "tekst": "verzekerde",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De verzekerde is de drager van de aanspraak op zorgtoeslag.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "berekeningsjaar",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Het berekeningsjaar duidt het tijdvak aan waarbinnen de normpremie in aanmerking wordt genomen.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Operator",
+          "tekst": "minder bedraagt dan",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit is een vergelijkingsoperator die de normpremie vergelijkt met de standaardpremie (kleiner-dan-relatie).",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Parameter en parameterwaarde",
+          "tekst": "standaardpremie",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De standaardpremie is een voor alle verzekerden gelijke vaste waarde per jaar die als vergelijkingsbedrag fungeert.",
+          "alternatieven": [
+            {
+              "klasse": "Variabele en variabelewaarde",
+              "motivatie": "Als de standaardpremie per individu zou kunnen variëren, zou het een variabele zijn; hier is het echter een jaarlijks vastgesteld uniform bedrag."
+            }
+          ]
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "in dat jaar",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Verwijst naar het berekeningsjaar als het tijdvak waarvoor de standaardpremie geldt.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsbetrekking",
+          "tekst": "heeft de verzekerde aanspraak op een zorgtoeslag",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit beschrijft het recht van de verzekerde op zorgtoeslag, de juridische relatie tussen verzekerde en de toeslag als rechtsgevolg.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsobject",
+          "tekst": "zorgtoeslag",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De zorgtoeslag is het voorwerp van de aanspraak van de verzekerde.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Afleidingsregel",
+          "tekst": "ter grootte van dat verschil",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Deze formulering bepaalt de hoogte van de zorgtoeslag: het verschil tussen normpremie en standaardpremie.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Voorwaarde",
+          "tekst": "Voor een verzekerde met een partner",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit beschrijft de aanvullende conditie (het hebben van een partner) waaronder de bijzondere berekeningsregel voor tweemaal de standaardpremie van toepassing is.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtssubject",
+          "tekst": "partner",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De partner is een rechtssubject wiens aanwezigheid de berekening van de zorgtoeslag beïnvloedt.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Afleidingsregel",
+          "tekst": "tweemaal de standaardpremie in aanmerking genomen",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Deze rekenregel bepaalt dat bij een verzekerde met partner de standaardpremie wordt verdubbeld voor de berekening van de zorgtoeslag.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Operator",
+          "tekst": "tweemaal",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit is een rekenkundige operator (vermenigvuldiging met twee) die aangeeft hoe de standaardpremie wordt berekend bij aanwezigheid van een partner.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsbetrekking",
+          "tekst": "worden de verzekerde en zijn partner voor de toepassing van deze wet geacht gezamenlijk één aanspraak te hebben",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit beschrijft de juridische fictie dat verzekerde en partner samen als één rechtssubject met één aanspraak worden behandeld.",
+          "alternatieven": [
+            {
+              "klasse": "Afleidingsregel",
+              "motivatie": "De fictie 'geacht gezamenlijk één aanspraak te hebben' leidt een nieuwe juridische toestand af uit het feit dat er een partner is."
+            }
+          ]
+        }
+      ],
+      "ruwe_uitvoer": "```json\n{\"elementen\": [\n  {\n    \"klasse\": \"Voorwaarde\",\n    \"tekst\": \"Indien de normpremie voor een verzekerde in het berekeningsjaar minder bedraagt dan de standaardpremie in dat jaar\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Deze bijzin beschrijft de conditie waaronder de aanspraak op zorgtoeslag ontstaat: de normpremie moet kleiner zijn dan de standaardpremie.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Rechtsobject\",\n    \"tekst\": \"normpremie\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"De normpremie is het voorwerp van de vergelijking en daarmee van de afleidingsregel die de zorgtoeslag bepaalt.\",\n    \"alternatieven\": [\n      {\"klasse\": \"Variabele en variabelewaarde\", \"motivatie\": \"De normpremie is een kenmerk dat per verzekerde een andere waarde kan hebben.\"}\n    ]\n  },\n  {\n    \"klasse\": \"Rechtssubject\",\n    \"tekst\": \"verzekerde\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"De verzekerde is de drager van de aanspraak op zorgtoeslag.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Tijdsaanduiding\",\n    \"tekst\": \"berekeningsjaar\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Het berekeningsjaar duidt het tijdvak aan waarbinnen de normpremie in aanmerking wordt genomen.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Operator\",\n    \"tekst\": \"minder bedraagt dan\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit is een vergelijkingsoperator die de normpremie vergelijkt met de standaardpremie (kleiner-dan-relatie).\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Parameter en parameterwaarde\",\n    \"tekst\": \"standaardpremie\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"De standaardpremie is een voor alle verzekerden gelijke vaste waarde per jaar die als vergelijkingsbedrag fungeert.\",\n    \"alternatieven\": [\n      {\"klasse\": \"Variabele en variabelewaarde\", \"motivatie\": \"Als de standaardpremie per individu zou kunnen variëren, zou het een variabele zijn; hier is het echter een jaarlijks vastgesteld uniform bedrag.\"}\n    ]\n  },\n  {\n    \"klasse\": \"Tijdsaanduiding\",\n    \"tekst\": \"in dat jaar\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Verwijst naar het berekeningsjaar als het tijdvak waarvoor de standaardpremie geldt.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Rechtsbetrekking\",\n    \"tekst\": \"heeft de verzekerde aanspraak op een zorgtoeslag\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit beschrijft het recht van de verzekerde op zorgtoeslag, de juridische relatie tussen verzekerde en de toeslag als rechtsgevolg.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Rechtsobject\",\n    \"tekst\": \"zorgtoeslag\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"De zorgtoeslag is het voorwerp van de aanspraak van de verzekerde.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Afleidingsregel\",\n    \"tekst\": \"ter grootte van dat verschil\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Deze formulering bepaalt de hoogte van de zorgtoeslag: het verschil tussen normpremie en standaardpremie.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Voorwaarde\",\n    \"tekst\": \"Voor een verzekerde met een partner\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit beschrijft de aanvullende conditie (het hebben van een partner) waaronder de bijzondere berekeningsregel voor tweemaal de standaardpremie van toepassing is.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Rechtssubject\",\n    \"tekst\": \"partner\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"De partner is een rechtssubject wiens aanwezigheid de berekening van de zorgtoeslag beïnvloedt.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Afleidingsregel\",\n    \"tekst\": \"tweemaal de standaardpremie in aanmerking genomen\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Deze rekenregel bepaalt dat bij een verzekerde met partner de standaardpremie wordt verdubbeld voor de berekening van de zorgtoeslag.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Operator\",\n    \"tekst\": \"tweemaal\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit is een rekenkundige operator (vermenigvuldiging met twee) die aangeeft hoe de standaardpremie wordt berekend bij aanwezigheid van een partner.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Rechtsbetrekking\",\n    \"tekst\": \"worden de verzekerde en zijn partner voor de toepassing van deze wet geacht gezamenlijk één aanspraak te hebben\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit beschrijft de juridische fictie dat verzekerde en partner samen als één rechtssubject met één aanspraak worden behandeld.\",\n    \"alternatieven\": [\n      {\"klasse\": \"Afleidingsregel\", \"motivatie\": \"De fictie 'geacht gezamenlijk één aanspraak te hebben' leidt een nieuwe juridische toestand af uit het feit dat er een partner is.\"}\n    ]\n  }\n]}\n```",
+      "niet_letterlijk": 0
+    },
+    {
+      "casus": "WZT01",
+      "ronde": 2,
+      "variant": "oud",
+      "prompt_sha256": "c4bc2561e886fd49e38975fe84fff0024d9b5d2b999765a1ff2d6752b2bfa9a8",
+      "bron_sha256": "d97b6101940cb1efa1dcac67869a6421ed442cbd76547082d15878c6500c5bd4",
+      "stop_reason": "end_turn",
+      "seconden": 19.429741826999816,
+      "elementen": [
+        {
+          "klasse": "Voorwaarde",
+          "tekst": "Indien de normpremie voor een verzekerde in het berekeningsjaar minder bedraagt dan de standaardpremie in dat jaar",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit is de conditie waaraan voldaan moet zijn voordat de aanspraak op zorgtoeslag ontstaat.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsobject",
+          "tekst": "normpremie",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De normpremie is het voorwerp waarover de vergelijking wordt gemaakt en is daarmee het object in de rechtsbetrekking.",
+          "alternatieven": [
+            {
+              "klasse": "Variabele en variabelewaarde",
+              "motivatie": "De normpremie kan per verzekerde een andere waarde hebben en is daarmee ook een variabele."
+            }
+          ]
+        },
+        {
+          "klasse": "Rechtssubject",
+          "tekst": "verzekerde",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De verzekerde is de drager van de aanspraak op zorgtoeslag.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "berekeningsjaar",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Het berekeningsjaar is de tijdsperiode waarbinnen de normpremie wordt vastgesteld.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Operator",
+          "tekst": "minder bedraagt dan",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit is een vergelijkingsoperator die de normpremie vergelijkt met de standaardpremie.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Parameter en parameterwaarde",
+          "tekst": "standaardpremie",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De standaardpremie is een voor alle verzekerden gelijke waarde in een bepaald jaar en fungeert daarmee als parameter.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "in dat jaar",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Verwijst naar het berekeningsjaar als tijdvak waarvoor de standaardpremie geldt.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsbetrekking",
+          "tekst": "heeft de verzekerde aanspraak op een zorgtoeslag",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit beschrijft de juridische relatie waarbij de verzekerde het recht heeft op zorgtoeslag.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsobject",
+          "tekst": "zorgtoeslag",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De zorgtoeslag is het voorwerp van de aanspraak van de verzekerde.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Afleidingsregel",
+          "tekst": "ter grootte van dat verschil",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit bepaalt de hoogte van de zorgtoeslag als het verschil tussen normpremie en standaardpremie.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Voorwaarde",
+          "tekst": "Voor een verzekerde met een partner",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit is de conditie die bepaalt wanneer de bijzondere berekeningswijze met tweemaal de standaardpremie van toepassing is.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtssubject",
+          "tekst": "partner",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De partner is een rechtssubject wiens aanwezigheid de berekening van de zorgtoeslag beïnvloedt.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Afleidingsregel",
+          "tekst": "wordt daarbij tweemaal de standaardpremie in aanmerking genomen",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit is een rekenregel die bepaalt dat bij een verzekerde met partner de standaardpremie wordt verdubbeld.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Operator",
+          "tekst": "tweemaal",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit is een rekenkundige operator die de vermenigvuldiging van de standaardpremie met twee uitdrukt.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsfeit",
+          "tekst": "worden de verzekerde en zijn partner voor de toepassing van deze wet geacht gezamenlijk één aanspraak te hebben",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit is een fictief rechtsfeit dat een wijziging in de juridische toestand teweegbrengt door de verzekerde en partner als één aanspraakhebber te beschouwen.",
+          "alternatieven": [
+            {
+              "klasse": "Afleidingsregel",
+              "motivatie": "Het kan ook worden gezien als een afleidingsregel die de gezamenlijke aanspraak als juridisch feit afleidt uit de relatie verzekerde-partner."
+            }
+          ]
+        }
+      ],
+      "ruwe_uitvoer": "```json\n{\"elementen\": [\n  {\"klasse\": \"Voorwaarde\", \"tekst\": \"Indien de normpremie voor een verzekerde in het berekeningsjaar minder bedraagt dan de standaardpremie in dat jaar\", \"lid\": \"1\", \"onderdeel\": \"\", \"toelichting\": \"Dit is de conditie waaraan voldaan moet zijn voordat de aanspraak op zorgtoeslag ontstaat.\", \"alternatieven\": []},\n  {\"klasse\": \"Rechtsobject\", \"tekst\": \"normpremie\", \"lid\": \"1\", \"onderdeel\": \"\", \"toelichting\": \"De normpremie is het voorwerp waarover de vergelijking wordt gemaakt en is daarmee het object in de rechtsbetrekking.\", \"alternatieven\": [{\"klasse\": \"Variabele en variabelewaarde\", \"motivatie\": \"De normpremie kan per verzekerde een andere waarde hebben en is daarmee ook een variabele.\"}]},\n  {\"klasse\": \"Rechtssubject\", \"tekst\": \"verzekerde\", \"lid\": \"1\", \"onderdeel\": \"\", \"toelichting\": \"De verzekerde is de drager van de aanspraak op zorgtoeslag.\", \"alternatieven\": []},\n  {\"klasse\": \"Tijdsaanduiding\", \"tekst\": \"berekeningsjaar\", \"lid\": \"1\", \"onderdeel\": \"\", \"toelichting\": \"Het berekeningsjaar is de tijdsperiode waarbinnen de normpremie wordt vastgesteld.\", \"alternatieven\": []},\n  {\"klasse\": \"Operator\", \"tekst\": \"minder bedraagt dan\", \"lid\": \"1\", \"onderdeel\": \"\", \"toelichting\": \"Dit is een vergelijkingsoperator die de normpremie vergelijkt met de standaardpremie.\", \"alternatieven\": []},\n  {\"klasse\": \"Parameter en parameterwaarde\", \"tekst\": \"standaardpremie\", \"lid\": \"1\", \"onderdeel\": \"\", \"toelichting\": \"De standaardpremie is een voor alle verzekerden gelijke waarde in een bepaald jaar en fungeert daarmee als parameter.\", \"alternatieven\": []},\n  {\"klasse\": \"Tijdsaanduiding\", \"tekst\": \"in dat jaar\", \"lid\": \"1\", \"onderdeel\": \"\", \"toelichting\": \"Verwijst naar het berekeningsjaar als tijdvak waarvoor de standaardpremie geldt.\", \"alternatieven\": []},\n  {\"klasse\": \"Rechtsbetrekking\", \"tekst\": \"heeft de verzekerde aanspraak op een zorgtoeslag\", \"lid\": \"1\", \"onderdeel\": \"\", \"toelichting\": \"Dit beschrijft de juridische relatie waarbij de verzekerde het recht heeft op zorgtoeslag.\", \"alternatieven\": []},\n  {\"klasse\": \"Rechtsobject\", \"tekst\": \"zorgtoeslag\", \"lid\": \"1\", \"onderdeel\": \"\", \"toelichting\": \"De zorgtoeslag is het voorwerp van de aanspraak van de verzekerde.\", \"alternatieven\": []},\n  {\"klasse\": \"Afleidingsregel\", \"tekst\": \"ter grootte van dat verschil\", \"lid\": \"1\", \"onderdeel\": \"\", \"toelichting\": \"Dit bepaalt de hoogte van de zorgtoeslag als het verschil tussen normpremie en standaardpremie.\", \"alternatieven\": []},\n  {\"klasse\": \"Voorwaarde\", \"tekst\": \"Voor een verzekerde met een partner\", \"lid\": \"1\", \"onderdeel\": \"\", \"toelichting\": \"Dit is de conditie die bepaalt wanneer de bijzondere berekeningswijze met tweemaal de standaardpremie van toepassing is.\", \"alternatieven\": []},\n  {\"klasse\": \"Rechtssubject\", \"tekst\": \"partner\", \"lid\": \"1\", \"onderdeel\": \"\", \"toelichting\": \"De partner is een rechtssubject wiens aanwezigheid de berekening van de zorgtoeslag beïnvloedt.\", \"alternatieven\": []},\n  {\"klasse\": \"Afleidingsregel\", \"tekst\": \"wordt daarbij tweemaal de standaardpremie in aanmerking genomen\", \"lid\": \"1\", \"onderdeel\": \"\", \"toelichting\": \"Dit is een rekenregel die bepaalt dat bij een verzekerde met partner de standaardpremie wordt verdubbeld.\", \"alternatieven\": []},\n  {\"klasse\": \"Operator\", \"tekst\": \"tweemaal\", \"lid\": \"1\", \"onderdeel\": \"\", \"toelichting\": \"Dit is een rekenkundige operator die de vermenigvuldiging van de standaardpremie met twee uitdrukt.\", \"alternatieven\": []},\n  {\"klasse\": \"Rechtsfeit\", \"tekst\": \"worden de verzekerde en zijn partner voor de toepassing van deze wet geacht gezamenlijk één aanspraak te hebben\", \"lid\": \"1\", \"onderdeel\": \"\", \"toelichting\": \"Dit is een fictief rechtsfeit dat een wijziging in de juridische toestand teweegbrengt door de verzekerde en partner als één aanspraakhebber te beschouwen.\", \"alternatieven\": [{\"klasse\": \"Afleidingsregel\", \"motivatie\": \"Het kan ook worden gezien als een afleidingsregel die de gezamenlijke aanspraak als juridisch feit afleidt uit de relatie verzekerde-partner.\"}]}\n]}\n```",
+      "niet_letterlijk": 0
+    },
+    {
+      "casus": "RVV03",
+      "ronde": 2,
+      "variant": "nieuw",
+      "prompt_sha256": "46fd7c2c3c8855e97ee4f294650278b0f52fdc1179026d2bc054ef752c515436",
+      "bron_sha256": "1d32f648c90119bc2a00d4355b05c64066067359ae8a0946fbd61fe79ab9841f",
+      "stop_reason": "end_turn",
+      "seconden": 8.926115926005878,
+      "elementen": [
+        {
+          "klasse": "Brondefinitie",
+          "tekst": "rood licht",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Het artikel geeft een expliciete begripsomschrijving aan het signaal 'rood licht' bij voetgangerslichten."
+        },
+        {
+          "klasse": "Rechtssubject",
+          "tekst": "voetgangers",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Voetgangers zijn de dragers van de plichten die voortvloeien uit het rode licht."
+        },
+        {
+          "klasse": "Rechtsbetrekking",
+          "tekst": "mogen niet meer beginnen over te steken",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Dit beschrijft een verbod (plicht) voor voetgangers om bij rood licht te beginnen over te steken."
+        },
+        {
+          "klasse": "Rechtssubject",
+          "tekst": "reeds overstekende voetgangers",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Reeds overstekende voetgangers zijn een afzonderlijke categorie rechtssubjecten met een eigen plicht."
+        },
+        {
+          "klasse": "Voorwaarde",
+          "tekst": "reeds overstekende",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "De eigenschap 'reeds overstekende' is een conditie die bepaalt op welke voetgangers de doorloopplicht van toepassing is."
+        },
+        {
+          "klasse": "Rechtsbetrekking",
+          "tekst": "moeten zo snel mogelijk doorlopen",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Dit beschrijft een plicht voor reeds overstekende voetgangers om zo snel mogelijk door te lopen."
+        },
+        {
+          "klasse": "Variabele en variabelewaarde",
+          "tekst": "zo snel mogelijk",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Dit geeft een kwalificerende waarde aan de wijze waarop de doorloopplicht moet worden uitgevoerd."
+        }
+      ],
+      "ruwe_uitvoer": "{\"elementen\": [\n  {\"klasse\": \"Brondefinitie\", \"tekst\": \"rood licht\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Het artikel geeft een expliciete begripsomschrijving aan het signaal 'rood licht' bij voetgangerslichten.\"},\n  {\"klasse\": \"Rechtssubject\", \"tekst\": \"voetgangers\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Voetgangers zijn de dragers van de plichten die voortvloeien uit het rode licht.\"},\n  {\"klasse\": \"Rechtsbetrekking\", \"tekst\": \"mogen niet meer beginnen over te steken\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Dit beschrijft een verbod (plicht) voor voetgangers om bij rood licht te beginnen over te steken.\"},\n  {\"klasse\": \"Rechtssubject\", \"tekst\": \"reeds overstekende voetgangers\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Reeds overstekende voetgangers zijn een afzonderlijke categorie rechtssubjecten met een eigen plicht.\"},\n  {\"klasse\": \"Voorwaarde\", \"tekst\": \"reeds overstekende\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"De eigenschap 'reeds overstekende' is een conditie die bepaalt op welke voetgangers de doorloopplicht van toepassing is.\"},\n  {\"klasse\": \"Rechtsbetrekking\", \"tekst\": \"moeten zo snel mogelijk doorlopen\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Dit beschrijft een plicht voor reeds overstekende voetgangers om zo snel mogelijk door te lopen.\"},\n  {\"klasse\": \"Variabele en variabelewaarde\", \"tekst\": \"zo snel mogelijk\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Dit geeft een kwalificerende waarde aan de wijze waarop de doorloopplicht moet worden uitgevoerd.\"}\n]}",
+      "niet_letterlijk": 0
+    },
+    {
+      "casus": "RVV03",
+      "ronde": 2,
+      "variant": "oud",
+      "prompt_sha256": "c4bc2561e886fd49e38975fe84fff0024d9b5d2b999765a1ff2d6752b2bfa9a8",
+      "bron_sha256": "1d32f648c90119bc2a00d4355b05c64066067359ae8a0946fbd61fe79ab9841f",
+      "stop_reason": "end_turn",
+      "seconden": 11.36335496900574,
+      "elementen": [
+        {
+          "klasse": "Brondefinitie",
+          "tekst": "rood licht",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Het artikel geeft een expliciete begripsomschrijving aan de term 'rood licht' bij voetgangerslichten.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtssubject",
+          "tekst": "voetgangers",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Voetgangers zijn de dragers van de plicht (niet beginnen over te steken) en worden als partij in de rechtsbetrekking aangeduid.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsbetrekking",
+          "tekst": "mogen niet meer beginnen over te steken",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Dit werkwoordelijk gezegde drukt een verbod (plicht) uit voor voetgangers om over te steken bij rood licht.",
+          "alternatieven": [
+            {
+              "klasse": "Voorwaarde",
+              "motivatie": "De formulering 'niet meer beginnen' zou kunnen worden gezien als een conditionele beperking, maar de kern is de rechtsbetrekking (verbod)."
+            }
+          ]
+        },
+        {
+          "klasse": "Voorwaarde",
+          "tekst": "reeds overstekende",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Dit fragment stelt de conditie dat de voetganger al bezig is met oversteken als grond voor de afwijkende plicht.",
+          "alternatieven": [
+            {
+              "klasse": "Variabele en variabelewaarde",
+              "motivatie": "Het beschrijft een toestand/eigenschap van het rechtssubject, maar functioneert hier primair als voorwaarde voor de tweede plicht."
+            }
+          ]
+        },
+        {
+          "klasse": "Rechtssubject",
+          "tekst": "reeds overstekende voetgangers",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "De reeds overstekende voetgangers zijn het rechtssubject van de tweede in dit onderdeel opgelegde plicht.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsbetrekking",
+          "tekst": "moeten zo snel mogelijk doorlopen",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Dit drukt een plicht uit voor reeds overstekende voetgangers om het oversteken zo snel mogelijk te voltooien.",
+          "alternatieven": []
+        }
+      ],
+      "ruwe_uitvoer": "```json\n{\"elementen\": [\n  {\"klasse\": \"Brondefinitie\", \"tekst\": \"rood licht\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Het artikel geeft een expliciete begripsomschrijving aan de term 'rood licht' bij voetgangerslichten.\", \"alternatieven\": []},\n  {\"klasse\": \"Rechtssubject\", \"tekst\": \"voetgangers\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Voetgangers zijn de dragers van de plicht (niet beginnen over te steken) en worden als partij in de rechtsbetrekking aangeduid.\", \"alternatieven\": []},\n  {\"klasse\": \"Rechtsbetrekking\", \"tekst\": \"mogen niet meer beginnen over te steken\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Dit werkwoordelijk gezegde drukt een verbod (plicht) uit voor voetgangers om over te steken bij rood licht.\", \"alternatieven\": [{\"klasse\": \"Voorwaarde\", \"motivatie\": \"De formulering 'niet meer beginnen' zou kunnen worden gezien als een conditionele beperking, maar de kern is de rechtsbetrekking (verbod).\"}]},\n  {\"klasse\": \"Voorwaarde\", \"tekst\": \"reeds overstekende\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Dit fragment stelt de conditie dat de voetganger al bezig is met oversteken als grond voor de afwijkende plicht.\", \"alternatieven\": [{\"klasse\": \"Variabele en variabelewaarde\", \"motivatie\": \"Het beschrijft een toestand/eigenschap van het rechtssubject, maar functioneert hier primair als voorwaarde voor de tweede plicht.\"}]},\n  {\"klasse\": \"Rechtssubject\", \"tekst\": \"reeds overstekende voetgangers\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"De reeds overstekende voetgangers zijn het rechtssubject van de tweede in dit onderdeel opgelegde plicht.\", \"alternatieven\": []},\n  {\"klasse\": \"Rechtsbetrekking\", \"tekst\": \"moeten zo snel mogelijk doorlopen\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Dit drukt een plicht uit voor reeds overstekende voetgangers om het oversteken zo snel mogelijk te voltooien.\", \"alternatieven\": []}\n]}\n```",
+      "niet_letterlijk": 0
+    },
+    {
+      "casus": "IW01",
+      "ronde": 3,
+      "variant": "oud",
+      "prompt_sha256": "c4bc2561e886fd49e38975fe84fff0024d9b5d2b999765a1ff2d6752b2bfa9a8",
+      "bron_sha256": "fd044d7e35ad3a1eb2440ee5d485759c70efa621732d21a94714e2b656c0034d",
+      "stop_reason": "end_turn",
+      "seconden": 6.717754286000854,
+      "elementen": [
+        {
+          "klasse": "Rechtsobject",
+          "tekst": "belastingaanslag",
+          "lid": "",
+          "onderdeel": "",
+          "toelichting": "De belastingaanslag is het voorwerp van de rechtsbetrekking (invorderbaarheid).",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsbetrekking",
+          "tekst": "is invorderbaar",
+          "lid": "",
+          "onderdeel": "",
+          "toelichting": "Beschrijft de juridische toestand van de belastingaanslag, namelijk dat deze opeisbaar/invorderbaar is.",
+          "alternatieven": [
+            {
+              "klasse": "Afleidingsregel",
+              "motivatie": "De invorderbaarheid kan ook worden gezien als een afleiding op basis van het verstrijken van de termijn."
+            }
+          ]
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "zes weken na de dagtekening van het aanslagbiljet",
+          "lid": "",
+          "onderdeel": "",
+          "toelichting": "Geeft het tijdstip aan vanaf wanneer de belastingaanslag invorderbaar is.",
+          "alternatieven": [
+            {
+              "klasse": "Voorwaarde",
+              "motivatie": "Het verstrijken van de termijn kan ook worden gezien als een voorwaarde voor de invorderbaarheid."
+            }
+          ]
+        }
+      ],
+      "ruwe_uitvoer": "{\"elementen\": [\n  {\"klasse\": \"Rechtsobject\", \"tekst\": \"belastingaanslag\", \"lid\": \"\", \"onderdeel\": \"\", \"toelichting\": \"De belastingaanslag is het voorwerp van de rechtsbetrekking (invorderbaarheid).\", \"alternatieven\": []},\n  {\"klasse\": \"Rechtsbetrekking\", \"tekst\": \"is invorderbaar\", \"lid\": \"\", \"onderdeel\": \"\", \"toelichting\": \"Beschrijft de juridische toestand van de belastingaanslag, namelijk dat deze opeisbaar/invorderbaar is.\", \"alternatieven\": [{\"klasse\": \"Afleidingsregel\", \"motivatie\": \"De invorderbaarheid kan ook worden gezien als een afleiding op basis van het verstrijken van de termijn.\"}]},\n  {\"klasse\": \"Tijdsaanduiding\", \"tekst\": \"zes weken na de dagtekening van het aanslagbiljet\", \"lid\": \"\", \"onderdeel\": \"\", \"toelichting\": \"Geeft het tijdstip aan vanaf wanneer de belastingaanslag invorderbaar is.\", \"alternatieven\": [{\"klasse\": \"Voorwaarde\", \"motivatie\": \"Het verstrijken van de termijn kan ook worden gezien als een voorwaarde voor de invorderbaarheid.\"}]}\n]}",
+      "niet_letterlijk": 0
+    },
+    {
+      "casus": "IW01",
+      "ronde": 3,
+      "variant": "nieuw",
+      "prompt_sha256": "46fd7c2c3c8855e97ee4f294650278b0f52fdc1179026d2bc054ef752c515436",
+      "bron_sha256": "fd044d7e35ad3a1eb2440ee5d485759c70efa621732d21a94714e2b656c0034d",
+      "stop_reason": "end_turn",
+      "seconden": 9.558348753002065,
+      "elementen": [
+        {
+          "klasse": "Rechtsobject",
+          "tekst": "belastingaanslag",
+          "lid": "",
+          "onderdeel": "",
+          "toelichting": "De belastingaanslag is het voorwerp waarop de rechtsbetrekking van invorderbaarheid betrekking heeft.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsbetrekking",
+          "tekst": "is invorderbaar",
+          "lid": "",
+          "onderdeel": "",
+          "toelichting": "De invorderbaarheid beschrijft de juridische toestand van de belastingaanslag, namelijk dat deze opeisbaar is geworden.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "zes weken na de dagtekening van het aanslagbiljet",
+          "lid": "",
+          "onderdeel": "",
+          "toelichting": "Dit is een tijdvak dat aangeeft vanaf welk moment de belastingaanslag invorderbaar wordt.",
+          "alternatieven": [
+            {
+              "klasse": "Voorwaarde",
+              "motivatie": "Het tijdsverloop kan ook worden gezien als een voorwaarde waaraan voldaan moet zijn voordat de invorderbaarheid intreedt."
+            }
+          ]
+        },
+        {
+          "klasse": "Variabele en variabelewaarde",
+          "tekst": "zes weken",
+          "lid": "",
+          "onderdeel": "",
+          "toelichting": "De termijn van zes weken is de concrete waarde die aangeeft hoe lang na dagtekening de belastingaanslag invorderbaar wordt.",
+          "alternatieven": [
+            {
+              "klasse": "Parameter en parameterwaarde",
+              "motivatie": "De termijn van zes weken is gelijk voor alle rechtssubjecten en rechtsobjecten en kan worden beschouwd als een vaste parameterwaarde."
+            }
+          ]
+        },
+        {
+          "klasse": "Rechtsobject",
+          "tekst": "aanslagbiljet",
+          "lid": "",
+          "onderdeel": "",
+          "toelichting": "Het aanslagbiljet is het document waarvan de dagtekening het startpunt vormt voor de berekening van de invorderingstermijn.",
+          "alternatieven": []
+        }
+      ],
+      "ruwe_uitvoer": "{\"elementen\": [\n  {\"klasse\": \"Rechtsobject\", \"tekst\": \"belastingaanslag\", \"lid\": \"\", \"onderdeel\": \"\", \"toelichting\": \"De belastingaanslag is het voorwerp waarop de rechtsbetrekking van invorderbaarheid betrekking heeft.\", \"alternatieven\": []},\n  {\"klasse\": \"Rechtsbetrekking\", \"tekst\": \"is invorderbaar\", \"lid\": \"\", \"onderdeel\": \"\", \"toelichting\": \"De invorderbaarheid beschrijft de juridische toestand van de belastingaanslag, namelijk dat deze opeisbaar is geworden.\", \"alternatieven\": []},\n  {\"klasse\": \"Tijdsaanduiding\", \"tekst\": \"zes weken na de dagtekening van het aanslagbiljet\", \"lid\": \"\", \"onderdeel\": \"\", \"toelichting\": \"Dit is een tijdvak dat aangeeft vanaf welk moment de belastingaanslag invorderbaar wordt.\", \"alternatieven\": [{\"klasse\": \"Voorwaarde\", \"motivatie\": \"Het tijdsverloop kan ook worden gezien als een voorwaarde waaraan voldaan moet zijn voordat de invorderbaarheid intreedt.\"}]},\n  {\"klasse\": \"Variabele en variabelewaarde\", \"tekst\": \"zes weken\", \"lid\": \"\", \"onderdeel\": \"\", \"toelichting\": \"De termijn van zes weken is de concrete waarde die aangeeft hoe lang na dagtekening de belastingaanslag invorderbaar wordt.\", \"alternatieven\": [{\"klasse\": \"Parameter en parameterwaarde\", \"motivatie\": \"De termijn van zes weken is gelijk voor alle rechtssubjecten en rechtsobjecten en kan worden beschouwd als een vaste parameterwaarde.\"}]},\n  {\"klasse\": \"Rechtsobject\", \"tekst\": \"aanslagbiljet\", \"lid\": \"\", \"onderdeel\": \"\", \"toelichting\": \"Het aanslagbiljet is het document waarvan de dagtekening het startpunt vormt voor de berekening van de invorderingstermijn.\", \"alternatieven\": []}\n]}",
+      "niet_letterlijk": 0
+    },
+    {
+      "casus": "AWB04",
+      "ronde": 3,
+      "variant": "oud",
+      "prompt_sha256": "c4bc2561e886fd49e38975fe84fff0024d9b5d2b999765a1ff2d6752b2bfa9a8",
+      "bron_sha256": "0fead802bb963eeceaeea7fe06028f48cb725b1ebbb802e4f3ed20337ef25ac2",
+      "stop_reason": "end_turn",
+      "seconden": 9.415402373000688,
+      "elementen": [
+        {
+          "klasse": "Rechtsobject",
+          "tekst": "dwangsom",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "De dwangsom is het voorwerp van de rechtsbetrekking waarover de hoogte wordt bepaald.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Afleidingsregel",
+          "tekst": "bedraagt",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Dit werkwoord drukt de rekenregel uit waarmee de hoogte van de dwangsom wordt vastgesteld.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "de eerste veertien dagen",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Dit is een tijdvak dat aangeeft gedurende welke periode het eerste tarief van de dwangsom geldt.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Parameter en parameterwaarde",
+          "tekst": "€ 23 per dag",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Dit is een vaste waarde (tarief) die voor alle rechtssubjecten in de eerste veertien dagen gelijk is.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "de daaropvolgende veertien dagen",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Dit is een tijdvak dat aangeeft gedurende welke periode het tweede tarief van de dwangsom geldt.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Parameter en parameterwaarde",
+          "tekst": "€ 35 per dag",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Dit is een vaste waarde (tarief) die voor alle rechtssubjecten in de daaropvolgende veertien dagen gelijk is.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "de overige dagen",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Dit is een tijdvak dat aangeeft gedurende welke periode het derde tarief van de dwangsom geldt.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Parameter en parameterwaarde",
+          "tekst": "€ 45 per dag",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Dit is een vaste waarde (tarief) die voor alle rechtssubjecten na de eerste 28 dagen gelijk is.",
+          "alternatieven": []
+        }
+      ],
+      "ruwe_uitvoer": "{\"elementen\": [\n  {\"klasse\": \"Rechtsobject\", \"tekst\": \"dwangsom\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"De dwangsom is het voorwerp van de rechtsbetrekking waarover de hoogte wordt bepaald.\", \"alternatieven\": []},\n  {\"klasse\": \"Afleidingsregel\", \"tekst\": \"bedraagt\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Dit werkwoord drukt de rekenregel uit waarmee de hoogte van de dwangsom wordt vastgesteld.\", \"alternatieven\": []},\n  {\"klasse\": \"Tijdsaanduiding\", \"tekst\": \"de eerste veertien dagen\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Dit is een tijdvak dat aangeeft gedurende welke periode het eerste tarief van de dwangsom geldt.\", \"alternatieven\": []},\n  {\"klasse\": \"Parameter en parameterwaarde\", \"tekst\": \"€ 23 per dag\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Dit is een vaste waarde (tarief) die voor alle rechtssubjecten in de eerste veertien dagen gelijk is.\", \"alternatieven\": []},\n  {\"klasse\": \"Tijdsaanduiding\", \"tekst\": \"de daaropvolgende veertien dagen\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Dit is een tijdvak dat aangeeft gedurende welke periode het tweede tarief van de dwangsom geldt.\", \"alternatieven\": []},\n  {\"klasse\": \"Parameter en parameterwaarde\", \"tekst\": \"€ 35 per dag\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Dit is een vaste waarde (tarief) die voor alle rechtssubjecten in de daaropvolgende veertien dagen gelijk is.\", \"alternatieven\": []},\n  {\"klasse\": \"Tijdsaanduiding\", \"tekst\": \"de overige dagen\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Dit is een tijdvak dat aangeeft gedurende welke periode het derde tarief van de dwangsom geldt.\", \"alternatieven\": []},\n  {\"klasse\": \"Parameter en parameterwaarde\", \"tekst\": \"€ 45 per dag\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Dit is een vaste waarde (tarief) die voor alle rechtssubjecten na de eerste 28 dagen gelijk is.\", \"alternatieven\": []}\n]}",
+      "niet_letterlijk": 0
+    },
+    {
+      "casus": "AWB04",
+      "ronde": 3,
+      "variant": "nieuw",
+      "prompt_sha256": "46fd7c2c3c8855e97ee4f294650278b0f52fdc1179026d2bc054ef752c515436",
+      "bron_sha256": "0fead802bb963eeceaeea7fe06028f48cb725b1ebbb802e4f3ed20337ef25ac2",
+      "stop_reason": "end_turn",
+      "seconden": 9.693304749998788,
+      "elementen": [
+        {
+          "klasse": "Rechtsobject",
+          "tekst": "dwangsom",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "De dwangsom is het voorwerp van de rechtsbetrekking waarover de hoogte wordt bepaald.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Afleidingsregel",
+          "tekst": "De dwangsom bedraagt de eerste veertien dagen € 23 per dag, de daaropvolgende veertien dagen € 35 per dag en de overige dagen € 45 per dag",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "De zin bepaalt via een rekenregel de hoogte van de dwangsom voor opeenvolgende perioden.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "de eerste veertien dagen",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Duidt het eerste tijdvak aan waarvoor de bijbehorende parameterwaarde geldt.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Parameter en parameterwaarde",
+          "tekst": "€ 23 per dag",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Dit is een vaste waarde (per dag) die geldt voor alle rechtssubjecten in het eerste tijdvak.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "de daaropvolgende veertien dagen",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Duidt het tweede tijdvak aan waarvoor de bijbehorende parameterwaarde geldt.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Parameter en parameterwaarde",
+          "tekst": "€ 35 per dag",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Dit is een vaste waarde (per dag) die geldt voor alle rechtssubjecten in het tweede tijdvak.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "de overige dagen",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Duidt het derde (resterende) tijdvak aan waarvoor de bijbehorende parameterwaarde geldt.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Parameter en parameterwaarde",
+          "tekst": "€ 45 per dag",
+          "lid": "2",
+          "onderdeel": "",
+          "toelichting": "Dit is een vaste waarde (per dag) die geldt voor alle rechtssubjecten na de eerste twee tijdvakken.",
+          "alternatieven": []
+        }
+      ],
+      "ruwe_uitvoer": "{\"elementen\": [\n  {\"klasse\": \"Rechtsobject\", \"tekst\": \"dwangsom\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"De dwangsom is het voorwerp van de rechtsbetrekking waarover de hoogte wordt bepaald.\", \"alternatieven\": []},\n  {\"klasse\": \"Afleidingsregel\", \"tekst\": \"De dwangsom bedraagt de eerste veertien dagen € 23 per dag, de daaropvolgende veertien dagen € 35 per dag en de overige dagen € 45 per dag\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"De zin bepaalt via een rekenregel de hoogte van de dwangsom voor opeenvolgende perioden.\", \"alternatieven\": []},\n  {\"klasse\": \"Tijdsaanduiding\", \"tekst\": \"de eerste veertien dagen\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Duidt het eerste tijdvak aan waarvoor de bijbehorende parameterwaarde geldt.\", \"alternatieven\": []},\n  {\"klasse\": \"Parameter en parameterwaarde\", \"tekst\": \"€ 23 per dag\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Dit is een vaste waarde (per dag) die geldt voor alle rechtssubjecten in het eerste tijdvak.\", \"alternatieven\": []},\n  {\"klasse\": \"Tijdsaanduiding\", \"tekst\": \"de daaropvolgende veertien dagen\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Duidt het tweede tijdvak aan waarvoor de bijbehorende parameterwaarde geldt.\", \"alternatieven\": []},\n  {\"klasse\": \"Parameter en parameterwaarde\", \"tekst\": \"€ 35 per dag\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Dit is een vaste waarde (per dag) die geldt voor alle rechtssubjecten in het tweede tijdvak.\", \"alternatieven\": []},\n  {\"klasse\": \"Tijdsaanduiding\", \"tekst\": \"de overige dagen\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Duidt het derde (resterende) tijdvak aan waarvoor de bijbehorende parameterwaarde geldt.\", \"alternatieven\": []},\n  {\"klasse\": \"Parameter en parameterwaarde\", \"tekst\": \"€ 45 per dag\", \"lid\": \"2\", \"onderdeel\": \"\", \"toelichting\": \"Dit is een vaste waarde (per dag) die geldt voor alle rechtssubjecten na de eerste twee tijdvakken.\", \"alternatieven\": []}\n]}",
+      "niet_letterlijk": 0
+    },
+    {
+      "casus": "WZT01",
+      "ronde": 3,
+      "variant": "oud",
+      "prompt_sha256": "c4bc2561e886fd49e38975fe84fff0024d9b5d2b999765a1ff2d6752b2bfa9a8",
+      "bron_sha256": "d97b6101940cb1efa1dcac67869a6421ed442cbd76547082d15878c6500c5bd4",
+      "stop_reason": "end_turn",
+      "seconden": 23.63879908400122,
+      "elementen": [
+        {
+          "klasse": "Voorwaarde",
+          "tekst": "Indien de normpremie voor een verzekerde in het berekeningsjaar minder bedraagt dan de standaardpremie in dat jaar",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Deze zinsnede beschrijft de conditie waaronder het recht op zorgtoeslag ontstaat: de normpremie moet lager zijn dan de standaardpremie.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Variabele en variabelewaarde",
+          "tekst": "normpremie",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De normpremie is een kenmerk (variabele) van een verzekerde dat per persoon een andere waarde kan hebben.",
+          "alternatieven": [
+            {
+              "klasse": "Parameter en parameterwaarde",
+              "motivatie": "Als de normpremie voor een periode een vaste waarde heeft voor alle verzekerden, zou het een parameter zijn; echter omdat het 'voor een verzekerde' geldt, is het veeleer een persoonsgebonden variabele."
+            }
+          ]
+        },
+        {
+          "klasse": "Rechtssubject",
+          "tekst": "verzekerde",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De verzekerde is de drager van het recht op zorgtoeslag.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "berekeningsjaar",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Het berekeningsjaar is een tijdvak dat aangeeft voor welke periode de normpremie wordt vastgesteld.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Operator",
+          "tekst": "minder bedraagt dan",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit is een vergelijkingsoperator die de normpremie vergelijkt met de standaardpremie.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Parameter en parameterwaarde",
+          "tekst": "standaardpremie",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De standaardpremie is een vaste waarde die voor een bepaald jaar gelijk is voor alle verzekerden en fungeert daarmee als parameter.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "dat jaar",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Verwijst naar het berekeningsjaar als tijdvak waarbinnen de standaardpremie geldt.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsbetrekking",
+          "tekst": "heeft de verzekerde aanspraak op een zorgtoeslag",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit werkwoordelijke gezegde beschrijft het recht van de verzekerde op zorgtoeslag, dus de juridische relatie tussen verzekerde en de toeslagverlenende instantie.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsobject",
+          "tekst": "zorgtoeslag",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De zorgtoeslag is het voorwerp van het recht waarop de verzekerde aanspraak heeft.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Afleidingsregel",
+          "tekst": "ter grootte van dat verschil",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Deze formulering geeft aan hoe de hoogte van de zorgtoeslag wordt berekend, namelijk als het verschil tussen normpremie en standaardpremie.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Voorwaarde",
+          "tekst": "Voor een verzekerde met een partner",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit beschrijft de specifieke omstandigheid (het hebben van een partner) waaronder de bijzondere berekeningsregel van toepassing is.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtssubject",
+          "tekst": "partner",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De partner is een betrokken entiteit in de rechtsbetrekking naast de verzekerde.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Afleidingsregel",
+          "tekst": "wordt daarbij tweemaal de standaardpremie in aanmerking genomen",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit is een rekenregel die bepaalt dat bij een verzekerde met partner de standaardpremie verdubbeld wordt voor de berekening van de zorgtoeslag.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Operator",
+          "tekst": "tweemaal",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit is een rekenkundige operator (vermenigvuldiging met twee) die aangeeft hoe de standaardpremie wordt vermenigvuldigd.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsbetrekking",
+          "tekst": "worden de verzekerde en zijn partner voor de toepassing van deze wet geacht gezamenlijk één aanspraak te hebben",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit beschrijft de juridische fictie waarbij verzekerde en partner gezamenlijk als één rechtssubject met één aanspraak worden behandeld.",
+          "alternatieven": [
+            {
+              "klasse": "Afleidingsregel",
+              "motivatie": "De fictie 'worden geacht' creëert een afgeleide juridische toestand op basis van de omstandigheid dat er een partner is, wat ook als afleidingsregel kan worden gezien."
+            }
+          ]
+        }
+      ],
+      "ruwe_uitvoer": "```json\n{\"elementen\": [\n  {\n    \"klasse\": \"Voorwaarde\",\n    \"tekst\": \"Indien de normpremie voor een verzekerde in het berekeningsjaar minder bedraagt dan de standaardpremie in dat jaar\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Deze zinsnede beschrijft de conditie waaronder het recht op zorgtoeslag ontstaat: de normpremie moet lager zijn dan de standaardpremie.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Variabele en variabelewaarde\",\n    \"tekst\": \"normpremie\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"De normpremie is een kenmerk (variabele) van een verzekerde dat per persoon een andere waarde kan hebben.\",\n    \"alternatieven\": [{\"klasse\": \"Parameter en parameterwaarde\", \"motivatie\": \"Als de normpremie voor een periode een vaste waarde heeft voor alle verzekerden, zou het een parameter zijn; echter omdat het 'voor een verzekerde' geldt, is het veeleer een persoonsgebonden variabele.\"}]\n  },\n  {\n    \"klasse\": \"Rechtssubject\",\n    \"tekst\": \"verzekerde\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"De verzekerde is de drager van het recht op zorgtoeslag.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Tijdsaanduiding\",\n    \"tekst\": \"berekeningsjaar\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Het berekeningsjaar is een tijdvak dat aangeeft voor welke periode de normpremie wordt vastgesteld.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Operator\",\n    \"tekst\": \"minder bedraagt dan\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit is een vergelijkingsoperator die de normpremie vergelijkt met de standaardpremie.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Parameter en parameterwaarde\",\n    \"tekst\": \"standaardpremie\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"De standaardpremie is een vaste waarde die voor een bepaald jaar gelijk is voor alle verzekerden en fungeert daarmee als parameter.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Tijdsaanduiding\",\n    \"tekst\": \"dat jaar\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Verwijst naar het berekeningsjaar als tijdvak waarbinnen de standaardpremie geldt.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Rechtsbetrekking\",\n    \"tekst\": \"heeft de verzekerde aanspraak op een zorgtoeslag\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit werkwoordelijke gezegde beschrijft het recht van de verzekerde op zorgtoeslag, dus de juridische relatie tussen verzekerde en de toeslagverlenende instantie.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Rechtsobject\",\n    \"tekst\": \"zorgtoeslag\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"De zorgtoeslag is het voorwerp van het recht waarop de verzekerde aanspraak heeft.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Afleidingsregel\",\n    \"tekst\": \"ter grootte van dat verschil\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Deze formulering geeft aan hoe de hoogte van de zorgtoeslag wordt berekend, namelijk als het verschil tussen normpremie en standaardpremie.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Voorwaarde\",\n    \"tekst\": \"Voor een verzekerde met een partner\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit beschrijft de specifieke omstandigheid (het hebben van een partner) waaronder de bijzondere berekeningsregel van toepassing is.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Rechtssubject\",\n    \"tekst\": \"partner\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"De partner is een betrokken entiteit in de rechtsbetrekking naast de verzekerde.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Afleidingsregel\",\n    \"tekst\": \"wordt daarbij tweemaal de standaardpremie in aanmerking genomen\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit is een rekenregel die bepaalt dat bij een verzekerde met partner de standaardpremie verdubbeld wordt voor de berekening van de zorgtoeslag.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Operator\",\n    \"tekst\": \"tweemaal\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit is een rekenkundige operator (vermenigvuldiging met twee) die aangeeft hoe de standaardpremie wordt vermenigvuldigd.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Rechtsbetrekking\",\n    \"tekst\": \"worden de verzekerde en zijn partner voor de toepassing van deze wet geacht gezamenlijk één aanspraak te hebben\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit beschrijft de juridische fictie waarbij verzekerde en partner gezamenlijk als één rechtssubject met één aanspraak worden behandeld.\",\n    \"alternatieven\": [{\"klasse\": \"Afleidingsregel\", \"motivatie\": \"De fictie 'worden geacht' creëert een afgeleide juridische toestand op basis van de omstandigheid dat er een partner is, wat ook als afleidingsregel kan worden gezien.\"}]\n  }\n]}\n```",
+      "niet_letterlijk": 0
+    },
+    {
+      "casus": "WZT01",
+      "ronde": 3,
+      "variant": "nieuw",
+      "prompt_sha256": "46fd7c2c3c8855e97ee4f294650278b0f52fdc1179026d2bc054ef752c515436",
+      "bron_sha256": "d97b6101940cb1efa1dcac67869a6421ed442cbd76547082d15878c6500c5bd4",
+      "stop_reason": "end_turn",
+      "seconden": 23.49640269199881,
+      "elementen": [
+        {
+          "klasse": "Voorwaarde",
+          "tekst": "Indien de normpremie voor een verzekerde in het berekeningsjaar minder bedraagt dan de standaardpremie in dat jaar",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit is de conditie waaraan voldaan moet zijn voordat de aanspraak op zorgtoeslag ontstaat: de normpremie moet lager zijn dan de standaardpremie.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsobject",
+          "tekst": "normpremie",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De normpremie is het voorwerp van de vergelijking en het object waarover de aanspraak wordt berekend.",
+          "alternatieven": [
+            {
+              "klasse": "Variabele en variabelewaarde",
+              "motivatie": "De normpremie is ook een variabele die per verzekerde een andere waarde kan hebben."
+            }
+          ]
+        },
+        {
+          "klasse": "Rechtssubject",
+          "tekst": "verzekerde",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De verzekerde is de drager van de aanspraak op zorgtoeslag en daarmee de plichthebbende/rechthebbende partij.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Tijdsaanduiding",
+          "tekst": "berekeningsjaar",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Het berekeningsjaar duidt het tijdvak aan waarbinnen de normpremie en standaardpremie worden vastgesteld.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Operator",
+          "tekst": "minder bedraagt dan",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit is een vergelijkingsoperator die de normpremie vergelijkt met de standaardpremie om te bepalen of aan de voorwaarde is voldaan.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Parameter en parameterwaarde",
+          "tekst": "standaardpremie",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De standaardpremie is een voor alle verzekerden gelijke waarde in een bepaald jaar en fungeert daarmee als parameter in de voorwaarde en berekening.",
+          "alternatieven": [
+            {
+              "klasse": "Variabele en variabelewaarde",
+              "motivatie": "De standaardpremie kan per jaar variëren, maar is voor een gegeven jaar een vaste waarde."
+            }
+          ]
+        },
+        {
+          "klasse": "Rechtsbetrekking",
+          "tekst": "heeft de verzekerde aanspraak op een zorgtoeslag",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit beschrijft de juridische relatie waarbij de verzekerde het recht heeft op zorgtoeslag tegenover de uitvoerende instantie.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsobject",
+          "tekst": "zorgtoeslag",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De zorgtoeslag is het voorwerp van de aanspraak, het object waarop de verzekerde recht heeft.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Afleidingsregel",
+          "tekst": "ter grootte van dat verschil",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit is een rekenregel die de hoogte van de zorgtoeslag vaststelt als het verschil tussen normpremie en standaardpremie.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Voorwaarde",
+          "tekst": "Voor een verzekerde met een partner",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit is een conditie die aangeeft wanneer de bijzondere berekeningsregel met tweemaal de standaardpremie van toepassing is.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtssubject",
+          "tekst": "partner",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "De partner is een rechtssubject wiens aanwezigheid de berekening en de aanspraak beïnvloedt.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Afleidingsregel",
+          "tekst": "tweemaal de standaardpremie in aanmerking genomen",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit is een rekenregel die bepaalt dat bij een verzekerde met partner de standaardpremie wordt verdubbeld voor de berekening van de zorgtoeslag.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Operator",
+          "tekst": "tweemaal",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit is een rekenkundige operator (vermenigvuldiging met twee) die aangeeft hoe de standaardpremie wordt aangepast bij een verzekerde met partner.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsbetrekking",
+          "tekst": "worden de verzekerde en zijn partner voor de toepassing van deze wet geacht gezamenlijk één aanspraak te hebben",
+          "lid": "1",
+          "onderdeel": "",
+          "toelichting": "Dit beschrijft de juridische fictie waarbij de verzekerde en zijn partner samen als één rechtssubject met één aanspraak worden behandeld.",
+          "alternatieven": [
+            {
+              "klasse": "Afleidingsregel",
+              "motivatie": "De bepaling leidt een fictieve juridische toestand af (gezamenlijke aanspraak) uit bestaande feiten (aanwezigheid partner)."
+            }
+          ]
+        }
+      ],
+      "ruwe_uitvoer": "```json\n{\"elementen\": [\n  {\n    \"klasse\": \"Voorwaarde\",\n    \"tekst\": \"Indien de normpremie voor een verzekerde in het berekeningsjaar minder bedraagt dan de standaardpremie in dat jaar\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit is de conditie waaraan voldaan moet zijn voordat de aanspraak op zorgtoeslag ontstaat: de normpremie moet lager zijn dan de standaardpremie.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Rechtsobject\",\n    \"tekst\": \"normpremie\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"De normpremie is het voorwerp van de vergelijking en het object waarover de aanspraak wordt berekend.\",\n    \"alternatieven\": [\n      {\"klasse\": \"Variabele en variabelewaarde\", \"motivatie\": \"De normpremie is ook een variabele die per verzekerde een andere waarde kan hebben.\"}\n    ]\n  },\n  {\n    \"klasse\": \"Rechtssubject\",\n    \"tekst\": \"verzekerde\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"De verzekerde is de drager van de aanspraak op zorgtoeslag en daarmee de plichthebbende/rechthebbende partij.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Tijdsaanduiding\",\n    \"tekst\": \"berekeningsjaar\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Het berekeningsjaar duidt het tijdvak aan waarbinnen de normpremie en standaardpremie worden vastgesteld.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Operator\",\n    \"tekst\": \"minder bedraagt dan\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit is een vergelijkingsoperator die de normpremie vergelijkt met de standaardpremie om te bepalen of aan de voorwaarde is voldaan.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Parameter en parameterwaarde\",\n    \"tekst\": \"standaardpremie\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"De standaardpremie is een voor alle verzekerden gelijke waarde in een bepaald jaar en fungeert daarmee als parameter in de voorwaarde en berekening.\",\n    \"alternatieven\": [\n      {\"klasse\": \"Variabele en variabelewaarde\", \"motivatie\": \"De standaardpremie kan per jaar variëren, maar is voor een gegeven jaar een vaste waarde.\"}\n    ]\n  },\n  {\n    \"klasse\": \"Rechtsbetrekking\",\n    \"tekst\": \"heeft de verzekerde aanspraak op een zorgtoeslag\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit beschrijft de juridische relatie waarbij de verzekerde het recht heeft op zorgtoeslag tegenover de uitvoerende instantie.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Rechtsobject\",\n    \"tekst\": \"zorgtoeslag\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"De zorgtoeslag is het voorwerp van de aanspraak, het object waarop de verzekerde recht heeft.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Afleidingsregel\",\n    \"tekst\": \"ter grootte van dat verschil\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit is een rekenregel die de hoogte van de zorgtoeslag vaststelt als het verschil tussen normpremie en standaardpremie.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Voorwaarde\",\n    \"tekst\": \"Voor een verzekerde met een partner\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit is een conditie die aangeeft wanneer de bijzondere berekeningsregel met tweemaal de standaardpremie van toepassing is.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Rechtssubject\",\n    \"tekst\": \"partner\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"De partner is een rechtssubject wiens aanwezigheid de berekening en de aanspraak beïnvloedt.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Afleidingsregel\",\n    \"tekst\": \"tweemaal de standaardpremie in aanmerking genomen\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit is een rekenregel die bepaalt dat bij een verzekerde met partner de standaardpremie wordt verdubbeld voor de berekening van de zorgtoeslag.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Operator\",\n    \"tekst\": \"tweemaal\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit is een rekenkundige operator (vermenigvuldiging met twee) die aangeeft hoe de standaardpremie wordt aangepast bij een verzekerde met partner.\",\n    \"alternatieven\": []\n  },\n  {\n    \"klasse\": \"Rechtsbetrekking\",\n    \"tekst\": \"worden de verzekerde en zijn partner voor de toepassing van deze wet geacht gezamenlijk één aanspraak te hebben\",\n    \"lid\": \"1\",\n    \"onderdeel\": \"\",\n    \"toelichting\": \"Dit beschrijft de juridische fictie waarbij de verzekerde en zijn partner samen als één rechtssubject met één aanspraak worden behandeld.\",\n    \"alternatieven\": [\n      {\"klasse\": \"Afleidingsregel\", \"motivatie\": \"De bepaling leidt een fictieve juridische toestand af (gezamenlijke aanspraak) uit bestaande feiten (aanwezigheid partner).\"}\n    ]\n  }\n]}\n```",
+      "niet_letterlijk": 0
+    },
+    {
+      "casus": "RVV03",
+      "ronde": 3,
+      "variant": "oud",
+      "prompt_sha256": "c4bc2561e886fd49e38975fe84fff0024d9b5d2b999765a1ff2d6752b2bfa9a8",
+      "bron_sha256": "1d32f648c90119bc2a00d4355b05c64066067359ae8a0946fbd61fe79ab9841f",
+      "stop_reason": "end_turn",
+      "seconden": 10.344342265001615,
+      "elementen": [
+        {
+          "klasse": "Brondefinitie",
+          "tekst": "rood licht",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "De term 'rood licht' wordt hier uitdrukkelijk omschreven met een eenduidige betekenis in de context van voetgangerslichten.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtssubject",
+          "tekst": "voetgangers",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Voetgangers zijn de dragers van de plicht om niet meer te beginnen over te steken.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Rechtsbetrekking",
+          "tekst": "mogen niet meer beginnen over te steken",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Dit werkwoordelijk gezegde drukt een verbod (plicht) uit voor voetgangers bij rood licht.",
+          "alternatieven": [
+            {
+              "klasse": "Voorwaarde",
+              "motivatie": "De formulering kan ook worden gelezen als een voorwaarde waaronder de plicht geldt, namelijk bij rood licht."
+            }
+          ]
+        },
+        {
+          "klasse": "Rechtssubject",
+          "tekst": "reeds overstekende voetgangers",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Reeds overstekende voetgangers zijn de dragers van de plicht om zo snel mogelijk door te lopen.",
+          "alternatieven": []
+        },
+        {
+          "klasse": "Voorwaarde",
+          "tekst": "reeds overstekende",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "De eigenschap 'reeds overstekende' stelt een eis aan het rechtssubject: alleen voetgangers die al bezig zijn met oversteken vallen onder deze plicht.",
+          "alternatieven": [
+            {
+              "klasse": "Variabele en variabelewaarde",
+              "motivatie": "Het kan ook worden gezien als een kenmerk (variabele) van het rechtssubject voetgangers."
+            }
+          ]
+        },
+        {
+          "klasse": "Rechtsbetrekking",
+          "tekst": "moeten zo snel mogelijk doorlopen",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Dit werkwoordelijk gezegde drukt een plicht uit voor reeds overstekende voetgangers om zo snel mogelijk door te lopen.",
+          "alternatieven": []
+        }
+      ],
+      "ruwe_uitvoer": "```json\n{\"elementen\": [\n  {\"klasse\": \"Brondefinitie\", \"tekst\": \"rood licht\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"De term 'rood licht' wordt hier uitdrukkelijk omschreven met een eenduidige betekenis in de context van voetgangerslichten.\", \"alternatieven\": []},\n  {\"klasse\": \"Rechtssubject\", \"tekst\": \"voetgangers\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Voetgangers zijn de dragers van de plicht om niet meer te beginnen over te steken.\", \"alternatieven\": []},\n  {\"klasse\": \"Rechtsbetrekking\", \"tekst\": \"mogen niet meer beginnen over te steken\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Dit werkwoordelijk gezegde drukt een verbod (plicht) uit voor voetgangers bij rood licht.\", \"alternatieven\": [{\"klasse\": \"Voorwaarde\", \"motivatie\": \"De formulering kan ook worden gelezen als een voorwaarde waaronder de plicht geldt, namelijk bij rood licht.\"}]},\n  {\"klasse\": \"Rechtssubject\", \"tekst\": \"reeds overstekende voetgangers\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Reeds overstekende voetgangers zijn de dragers van de plicht om zo snel mogelijk door te lopen.\", \"alternatieven\": []},\n  {\"klasse\": \"Voorwaarde\", \"tekst\": \"reeds overstekende\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"De eigenschap 'reeds overstekende' stelt een eis aan het rechtssubject: alleen voetgangers die al bezig zijn met oversteken vallen onder deze plicht.\", \"alternatieven\": [{\"klasse\": \"Variabele en variabelewaarde\", \"motivatie\": \"Het kan ook worden gezien als een kenmerk (variabele) van het rechtssubject voetgangers.\"}]},\n  {\"klasse\": \"Rechtsbetrekking\", \"tekst\": \"moeten zo snel mogelijk doorlopen\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Dit werkwoordelijk gezegde drukt een plicht uit voor reeds overstekende voetgangers om zo snel mogelijk door te lopen.\", \"alternatieven\": []}\n]}\n```",
+      "niet_letterlijk": 0
+    },
+    {
+      "casus": "RVV03",
+      "ronde": 3,
+      "variant": "nieuw",
+      "prompt_sha256": "46fd7c2c3c8855e97ee4f294650278b0f52fdc1179026d2bc054ef752c515436",
+      "bron_sha256": "1d32f648c90119bc2a00d4355b05c64066067359ae8a0946fbd61fe79ab9841f",
+      "stop_reason": "end_turn",
+      "seconden": 9.604098926000006,
+      "elementen": [
+        {
+          "klasse": "Brondefinitie",
+          "tekst": "rood licht",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Dit is een expliciete begripsomschrijving van 'rood licht' bij voetgangerslichten, zoals gedefinieerd in de regeling."
+        },
+        {
+          "klasse": "Rechtssubject",
+          "tekst": "voetgangers",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Voetgangers zijn de dragers van de plicht om niet meer te beginnen over te steken bij rood licht."
+        },
+        {
+          "klasse": "Rechtsbetrekking",
+          "tekst": "mogen niet meer beginnen over te steken",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Dit beschrijft een verbodsnorm (plicht) voor voetgangers: het is hun niet toegestaan om te beginnen over te steken bij rood licht."
+        },
+        {
+          "klasse": "Rechtssubject",
+          "tekst": "reeds overstekende voetgangers",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Reeds overstekende voetgangers zijn de dragers van de plicht om zo snel mogelijk door te lopen."
+        },
+        {
+          "klasse": "Voorwaarde",
+          "tekst": "reeds overstekende",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "De eigenschap 'reeds overstekende' specificeert de conditie waaronder de doorloopplicht geldt, namelijk dat de voetganger al bezig is met oversteken."
+        },
+        {
+          "klasse": "Rechtsbetrekking",
+          "tekst": "moeten zo snel mogelijk doorlopen",
+          "lid": "1",
+          "onderdeel": "c",
+          "toelichting": "Dit beschrijft een gebodsnorm (plicht) voor reeds overstekende voetgangers om zo snel mogelijk door te lopen."
+        }
+      ],
+      "ruwe_uitvoer": "{\"elementen\": [\n  {\"klasse\": \"Brondefinitie\", \"tekst\": \"rood licht\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Dit is een expliciete begripsomschrijving van 'rood licht' bij voetgangerslichten, zoals gedefinieerd in de regeling.\"},\n  {\"klasse\": \"Rechtssubject\", \"tekst\": \"voetgangers\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Voetgangers zijn de dragers van de plicht om niet meer te beginnen over te steken bij rood licht.\"},\n  {\"klasse\": \"Rechtsbetrekking\", \"tekst\": \"mogen niet meer beginnen over te steken\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Dit beschrijft een verbodsnorm (plicht) voor voetgangers: het is hun niet toegestaan om te beginnen over te steken bij rood licht.\"},\n  {\"klasse\": \"Rechtssubject\", \"tekst\": \"reeds overstekende voetgangers\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Reeds overstekende voetgangers zijn de dragers van de plicht om zo snel mogelijk door te lopen.\"},\n  {\"klasse\": \"Voorwaarde\", \"tekst\": \"reeds overstekende\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"De eigenschap 'reeds overstekende' specificeert de conditie waaronder de doorloopplicht geldt, namelijk dat de voetganger al bezig is met oversteken.\"},\n  {\"klasse\": \"Rechtsbetrekking\", \"tekst\": \"moeten zo snel mogelijk doorlopen\", \"lid\": \"1\", \"onderdeel\": \"c\", \"toelichting\": \"Dit beschrijft een gebodsnorm (plicht) voor reeds overstekende voetgangers om zo snel mogelijk door te lopen.\"}\n]}",
+      "niet_letterlijk": 0
+    }
+  ],
+  "prompts_bestand": "modelvergelijking-prompts.json",
+  "protocolversie": "2.0",
+  "temperature": "providerdefault, niet expliciet ingesteld",
+  "meetdatum": "2026-09-12"
+}

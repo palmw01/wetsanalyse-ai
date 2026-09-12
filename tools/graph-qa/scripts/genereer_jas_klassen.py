@@ -1,32 +1,12 @@
 #!/usr/bin/env python3
-"""Genereer het JAS_KLASSEN-blok in `agent/jas_klassen.py` uit de wetsanalyse-skill.
+"""Genereer klassendefinities en het methodepakket uit de wetsanalyse-skill.
 
-WAAROM DIT BESTAAT
-------------------
-De methode Wetsanalyse zat op twee plekken: als leesbare markdown in de skill
-(`.claude/skills/wetsanalyse/`) en als Python-strings in `agent/jas_klassen.py`. Alleen de
-klasse-*namen* waren tegen drift bewaakt; de inhoudelijke duiding eromheen niet — en die liep
-aantoonbaar uit elkaar. De skill was op zeven plekken armer dan zijn eigen bron, het zwaarst bij
-Delegatiebevoegdheid.
+De volledige klassevelden komen uit references/jas-klassen-referentie.md.
+agentrollen.json selecteert expliciete secties voor het standalone methodepakket.
+De metadata in SKILL.md bevat de enige machineleesbare methodeversie.
+REGELS en afgeleide klassevolgorde blijven buiten het gegenereerde klasseblok.
 
-Sindsdien is `references/jas-klassen-referentie.md` de bron en is dit blok afgeleid. Wie de
-methode wil bijsturen bewerkt de markdown en draait dit script; `tests/test_methode_drift.py`
-faalt zodra dat vergeten is.
-
-WAT HET NIET DOET
------------------
-Het schrijft geen prompt en het verkort niets. De referentie draagt de volledige bronvelden en
-die komen ongewijzigd in de code terecht; hoeveel daarvan in een prompt terechtkomt beslist
-`agent/annotatie_prompt.py`. Zo blijft "één bron van waarheid" gescheiden van "hoe groot mag de
-prompt zijn" — twee vragen die anders door elkaar gaan lopen.
-
-Alleen het blok tussen de GEGENEREERD-markers wordt vervangen. `REGELS`, `RegelType` en de
-afgeleide `JAS_KLASSEN_VOLGORDE` blijven handwerk.
-
-GEBRUIK
--------
-    .venv/bin/python scripts/genereer_jas_klassen.py           # schrijf
-    .venv/bin/python scripts/genereer_jas_klassen.py --check   # faal bij verschil (CI/test)
+Gebruik: .venv/bin/python scripts/genereer_jas_klassen.py [--check]
 """
 from __future__ import annotations
 
@@ -129,6 +109,14 @@ def bouw_blok(klassen: list[tuple[str, str, str, str]]) -> str:
         delen.append(_veld("uitdrukkingswijze", uitdrukking))
         delen.append("    ),")
     delen.append(")")
+    delen.extend([
+        "# Compatibiliteitsnamen; inhoud staat uitsluitend in het methodepakket.",
+        "from .methodepakket import PAKKET as _METHODEPAKKET",
+        "ANNOTATIEPROTOCOL_VERSIE = _METHODEPAKKET['versie']",
+        "ANNOTATIEPROTOCOL = {naam: _METHODEPAKKET['secties']['annotatie-' + key]['tekst']",
+        "    for naam, key in [('Gedeeld', 'gedeeld'), ('Kandidaten', 'kandidaten'),",
+        "                      ('Classificatie', 'classificatie'), ('Review', 'review')]}",
+    ])
     delen.append(EINDE)
     return "\n".join(delen)
 
@@ -148,7 +136,15 @@ def main() -> int:
                    help="niets schrijven; exitcode 1 als het bestand niet bij de skill past")
     args = p.parse_args()
 
+    sys.path.insert(0, str(DOEL.parents[1]))
+    from scripts.genereer_methodepakket import DOEL as PAKKET_DOEL, genereer
+    pakket = genereer()  # Valideer alles vóór een van beide bestanden te schrijven.
     verwacht = vervang(DOEL.read_text(encoding="utf-8"), bouw_blok(lees_klassen()))
+    if args.check and (not PAKKET_DOEL.exists() or PAKKET_DOEL.read_text() != pakket):
+        print("methodepakket.py wijkt af: draai scripts/genereer_jas_klassen.py", file=sys.stderr)
+        return 1
+    if not args.check:
+        PAKKET_DOEL.write_text(pakket, encoding="utf-8")
     if args.check:
         if verwacht != DOEL.read_text(encoding="utf-8"):
             print(f"{DOEL.relative_to(WORTEL)} loopt uit de pas met de skill-referentie.\n"
