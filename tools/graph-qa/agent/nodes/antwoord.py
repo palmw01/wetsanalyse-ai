@@ -21,7 +21,7 @@ from ..specialists import get as get_specialist
 from ..state import State
 from ..tools import anthropic_schemas
 from ..tool_execution import execute_tool
-from ..tools.annotatie_tools import begrens_antwoord
+from ..tools.annotatie_tools import ANNOTATIE_TOOL_NAMEN, begrens_antwoord
 from .context import Bouw
 
 logger = logging.getLogger("graph_qa.orchestrator")
@@ -107,8 +107,19 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         # route levert JSON, geen antwoord – daar geen token; annoteer_node vat samen).
         antwoord = "\n\n".join(p for p in text_parts if p)
         if state.get("annotaties_lezen"):
-            antwoord = begrens_antwoord(antwoord, state.get("source_trace", []))
-            upd["messages"] = [{"role": "assistant", "content": [{"type": "text", "text": antwoord}]}]
+            begrensd = begrens_antwoord(antwoord, state.get("source_trace", []))
+            if begrensd != antwoord:
+                # Wél melden, want dit gebeurde tot 22 sep 2026 volledig stil: in de logs stond
+                # alleen "antwoord klaar". NIET in `messages` schrijven – die historie gaat via de
+                # checkpointer mee naar de volgende beurt, en dan leest het model zijn eigen
+                # "ik kon niet raadplegen" als vaststaand feit en probeert het niet opnieuw.
+                logger.warning(
+                    "leesroute: antwoord begrensd",
+                    extra={"categorie": "functioneel", "run_id": state.get("run_id", ""),
+                           "annotatietools": sum(1 for naam, _ in state.get("source_trace", [])
+                                                 if naam in ANNOTATIE_TOOL_NAMEN)},
+                )
+            antwoord = begrensd
         upd["answer"] = antwoord
         if stream_naar_denk and antwoord:
             writer({"type": "token", "content": antwoord})

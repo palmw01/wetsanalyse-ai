@@ -19,7 +19,11 @@ def begrens_antwoord(answer: str, trace) -> str:
             except ValueError:
                 responses.append({"status": "unavailable"})
     if not responses:
-        return "Ik heb de opgeslagen annotaties niet kunnen raadplegen; ik kan daarom geen zoekuitkomst geven."
+        # Hoort in de leesroute niet meer voor te komen: die zoekt zelf vóór de eerste LLM-call
+        # (`nodes/annotatie_lezen.py`). Blijft staan als vangnet, met een tekst die zegt wat er
+        # werkelijk aan de hand is in plaats van te suggereren dat het zoeken mislukte.
+        return ("Er is bij deze beurt niet in de opgeslagen annotaties gezocht, dus dit is geen "
+                "uitspraak over wat er wel of niet is vastgelegd. Stel de vraag opnieuw.")
     if all(r.get("status") == "invalid_request" for r in responses):
         return "De annotatiezoekvraag is niet uitgevoerd: controleer de filters of begin opnieuw als de zoekresultaten zijn gewijzigd."
     if not any(r.get("status") in {"ok", "partial"} for r in responses):

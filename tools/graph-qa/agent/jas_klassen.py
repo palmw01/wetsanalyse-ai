@@ -20,6 +20,7 @@ De klasse-*namen* zijn de canonieke JAS-namen (dezelfde weergave-volgorde als
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 
@@ -332,6 +333,18 @@ ANNOTATIEPROTOCOL = {naam: _METHODEPAKKET['secties']['annotatie-' + key]['tekst'
 # Canonieke weergave-volgorde + naamlijst (drift-guard: gelijk aan validation.JAS_KLASSEN_VOLGORDE).
 JAS_KLASSEN_VOLGORDE: tuple[str, ...] = tuple(k.naam for k in JAS_KLASSEN)
 GELDIGE_JAS_KLASSEN: frozenset[str] = frozenset(JAS_KLASSEN_VOLGORDE)
+
+
+def klassen_in_tekst(tekst: str) -> list[str]:
+    """De JAS-klassen die in deze tekst worden genoemd, in canonieke volgorde.
+
+    Hier en niet in de aanroeper, zodat de klassenkennis op één plek blijft: een tweede lijst
+    klassenamen elders loopt vroeg of laat uit de pas met JAS_KLASSEN. Meervoud telt mee
+    ("rechtsobjecten"), hoofdletters niet.
+    """
+    laag = tekst.casefold()
+    return [naam for naam in JAS_KLASSEN_VOLGORDE
+            if re.search(rf"\b{re.escape(naam.casefold())}(en|s)?\b", laag)]
 
 
 # ---------------------------------------------------------------------------

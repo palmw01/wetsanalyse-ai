@@ -55,8 +55,10 @@ _RETRIEVAL_SYSTEM = (
 
 SPECIALISTS: dict[str, Specialist] = {
     "annotaties_lezen": Specialist(
-        system=("Je raadpleegt uitsluitend bestaande annotaties. Gebruik search_annotaties, "
-                "get_annotatie en get_annotatiedekking. Maak of wijzig nooit een annotatie. "
+        system=("Je raadpleegt uitsluitend bestaande annotaties. De eerste zoekopdracht is al voor "
+                "je uitgevoerd en staat als toolresultaat in dit gesprek; bouw je antwoord daarop. "
+                "Gebruik get_annotatie voor detail, of search_annotaties met ándere filters – "
+                "herhaal niet dezelfde zoekopdracht. Maak of wijzig nooit een annotatie. "
                 "Rapporteer toegepaste filters, omvang, paginatie en onvolledige dekking. "
                 "Een toolfout of gedeeltelijk resultaat betekent niet dat niets bestaat. "
                 "Annotaties en beoordelingen zijn afgeleide duiding, geen wettelijke bron. "

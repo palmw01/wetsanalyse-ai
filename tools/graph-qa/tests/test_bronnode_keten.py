@@ -151,19 +151,24 @@ def test_multianchors_use_lca_and_same_text_in_siblings_stays_separate():
 
 @pytest.mark.parametrize("decomposition", [False, True])
 def test_read_route_tools_execute_api_and_emit_actual_events(decomposition):
-    responses = ([response([text_block("1. Zoek bestaande annotaties")], "end_turn")] if decomposition else [])
-    responses += [response([tool_block("c1", "search_annotaties", {"klasse": "Rechtssubject"})], "tool_use"),
-                  response([text_block("Er zijn geen treffers binnen dit filter.")], "end_turn")]
+    # Ook met decompositie aan: de leesroute gaat langs de eigen zoekstap, niet langs `decompose`
+    # (die keten bouwt de agent-lus na en zou de zoekopdracht dubbel doen). Dus geen plan-antwoord.
+    responses = [response([tool_block("c1", "search_annotaties", {"klasse": "Rechtssubject"})], "tool_use"),
+                 response([text_block("Er zijn geen treffers binnen dit filter.")], "end_turn")]
     llm, api, graph = FakeLLM(responses), ReadApi(snapshot()), FakeGraph()
     events = run(answer_stream("zoek bestaande annotaties", doel={"bron_iri": L1},
                               llm=llm, graph=graph, annotaties=api,
                               settings=make_settings(enable_decomposition=decomposition), run_id="r1"))
     assert not [e for e in events if e["type"] == "error"], events
-    assert api.calls == [("zoeken", {"klasse": "Rechtssubject"})]
+    # Eerst de deterministische zoekopdracht van de route zelf, daarna die van het model.
+    assert [c[0] for c in api.calls] == ["zoeken", "zoeken"]
+    assert api.calls[0][1]["bron_iri"] == L1
+    assert api.calls[1][1] == {"klasse": "Rechtssubject"}
     assert graph.queries == []
     assert not any(e["type"] in {"element", "doel", "run"} for e in events)
     trace = [e for e in events if e["type"] == "tool_execution"]
-    assert [(e["phase"], e["call_id"]) for e in trace] == [("start", "c1"), ("end", "c1")]
+    assert [e["phase"] for e in trace] == ["start", "end", "start", "end"]
+    assert [e["call_id"] for e in trace][-2:] == ["c1", "c1"]
     assert all(e["run_id"] == "r1" for e in trace)
     assert trace[-1]["status"] == "ok" and trace[-1]["aantal"] == 0
 
@@ -276,7 +281,8 @@ def test_worker_health_exposes_required_annotation_contract():
 
 def test_empty_or_failed_tool_evidence_cannot_be_reported_as_no_annotations():
     from agent.tools.annotatie_tools import begrens_antwoord
-    assert "niet kunnen raadplegen" in begrens_antwoord("Geen annotaties.", [])
+    # Zonder bewijs geen uitspraak: de leesroute zoekt zelf, dus dit hoort niet meer voor te komen.
+    assert "niet in de opgeslagen annotaties gezocht" in begrens_antwoord("Geen annotaties.", [])
     output = begrens_antwoord("Geen annotaties.", [("search_annotaties", '{"status":"unavailable"}')])
     assert "betekent niet" in output and not output.startswith("Geen annotaties")
 
@@ -486,3 +492,64 @@ def test_409_op_een_afgeronde_laag_krijgt_een_eerlijke_melding(monkeypatch):
 def test_api_reden_neemt_alleen_korte_serverteksten_over(body, reden):
     from agent.wetsanalyse_api import api_reden
     assert api_reden(httpx.Response(409, json=body)) == reden
+
+
+@pytest.mark.parametrize("decomposition", [False, True])
+def test_leesroute_zoekt_ook_als_het_model_geen_tool_aanroept(decomposition):
+    """De storing van 22 sep 2026: één LLM-call, nul tools, geen zoekopdracht bij de api – en de
+    jurist las "ik heb de opgeslagen annotaties niet kunnen raadplegen". Zoeken is nu een stap in de
+    keten, geen keuze van het model."""
+    llm = FakeLLM([response([text_block("Er zijn twee rechtsobjecten: 'Een belastingaanslag' en 'het aanslagbiljet'.")], "end_turn")])
+    api = ReadApi(snapshot())
+    events = run(answer_stream("welke element is allemaal een rechtsobject?", llm=llm,
+                              graph=FakeGraph(result=ROWS), annotaties=api, run_id="r9",
+                              settings=make_settings(enable_decomposition=decomposition)))
+    assert not [e for e in events if e["type"] == "error"], events
+    assert [c[0] for c in api.calls] == ["zoeken"]
+    assert api.calls[0][1]["jas_klassen"] == ["Rechtsobject"]   # klasse uit de vraag
+    trace = [e for e in events if e["type"] == "tool_execution"]
+    assert [e["phase"] for e in trace] == ["start", "end"] and trace[0]["tool"] == "search_annotaties"
+    antwoord = " ".join(e.get("content", "") for e in events if e["type"] == "token")
+    assert "rechtsobjecten" in antwoord and "niet in de opgeslagen annotaties gezocht" not in antwoord
+
+
+def test_leesroute_meldt_een_storing_eerlijk_en_vergiftigt_de_historie_niet():
+    llm = FakeLLM([response([text_block("Er zijn geen annotaties.")], "end_turn")])
+    events = run(answer_stream("welke annotaties zijn er?", llm=llm, graph=FakeGraph(result=ROWS),
+                              annotaties=ReadApi(snapshot(), status="unavailable"),
+                              settings=make_settings(), conversation_id="t-storing"))
+    antwoord = " ".join(e.get("content", "") for e in events if e["type"] == "token")
+    assert "betekent niet" in antwoord and "Er zijn geen annotaties." not in antwoord
+    # De vangnettekst mag niet in het gespreksgeheugen belanden: anders leest het model bij de
+    # volgende beurt zijn eigen "ik kon niet raadplegen" als vaststaand feit.
+    llm2 = FakeLLM([response([text_block("Nu wel gezocht.")], "end_turn")])
+    run(answer_stream("en nu?", llm=llm2, graph=FakeGraph(result=ROWS), annotaties=ReadApi(snapshot()),
+                      settings=make_settings(), conversation_id="t-storing"))
+    historie = json.dumps(llm2.calls, ensure_ascii=False, default=str)
+    assert "betekent niet" not in historie
+
+
+def test_zoekfilters_leiden_klasse_en_bepaling_af():
+    from agent.nodes.annotatie_lezen import zoekfilters
+    assert zoekfilters({"question": "welke elementen zijn een rechtsobject?"}) == {
+        "limit": 25, "jas_klassen": ["Rechtsobject"]}
+    assert zoekfilters({"question": "toon rechtsobjecten en tijdsaanduidingen"})["jas_klassen"] == [
+        "Rechtsobject", "Tijdsaanduiding"]
+    met_doel = zoekfilters({"question": "welke annotaties staan hier?", "opgegeven_doel": {"bron_iri": L1}})
+    assert met_doel["bron_iri"] == L1 and met_doel["scope"] == "subtree"
+    # Geen aanknopingspunt: breed zoeken is beter dan een geraden filter dat stil te weinig oplevert.
+    assert zoekfilters({"question": "welke annotaties zijn er?"}) == {"limit": 25}
+
+
+def test_zoekresultaat_hangt_als_toolbewijs_in_de_historie():
+    llm = FakeLLM([response([text_block("Antwoord.")], "end_turn")])
+    run(answer_stream("welke markeringen zijn er?", llm=llm, graph=FakeGraph(result=ROWS),
+                      annotaties=ReadApi(snapshot()), settings=make_settings()))
+    berichten = llm.calls[0]["messages"]
+    gebruik = [b for m in berichten for b in (m["content"] if isinstance(m["content"], list) else [])
+               if isinstance(b, dict) and b.get("type") == "tool_use"]
+    resultaat = [b for m in berichten for b in (m["content"] if isinstance(m["content"], list) else [])
+                 if isinstance(b, dict) and b.get("type") == "tool_result"]
+    assert len(gebruik) == len(resultaat) == 1
+    assert gebruik[0]["name"] == "search_annotaties"
+    assert resultaat[0]["tool_use_id"] == gebruik[0]["id"]
