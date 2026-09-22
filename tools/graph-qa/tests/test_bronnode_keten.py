@@ -195,6 +195,30 @@ def test_tools_are_explicit_and_read_intent_does_not_match_annotation_request():
     assert not is_leesvraag("annoteer dit artikel opnieuw")
 
 
+@pytest.mark.parametrize("vraag", [
+    # `markeringen?` maakte alleen de slot-n optioneel en matchte dus nooit het enkelvoud; een vraag
+    # naar de klasse of de elementen werd helemaal niet als leesvraag herkend (22 sep 2026).
+    "welke markering is een Rechtssubject?",
+    "welke elementen hebben de klasse Rechtssubject?",
+    "welke klasse heeft 'de ontvanger'?",
+    "hoeveel elementen zijn er geclassificeerd als Rechtsobject?",
+    "wat is er gemarkeerd in artikel 9?",
+])
+def test_vraag_naar_bestaande_markeringen_gaat_naar_de_leesroute(vraag):
+    assert is_leesvraag(vraag)
+
+
+@pytest.mark.parametrize("vraag", [
+    "markeer en classificeer de JAS-elementen in artikel 9",   # opdracht, geen vraag
+    "voeg een element toe",
+    "verwijder de markering",
+    "wat zegt artikel 9 lid 1?",                                # gewone wetsvraag
+    "welke voorwaarde geldt voor uitstel van betaling?",        # klassenaam is ook gewone taal
+])
+def test_schrijfopdracht_en_wetsvraag_blijven_buiten_de_leesroute(vraag):
+    assert not is_leesvraag(vraag)
+
+
 def test_mcp_uses_trusted_actor_and_rejects_model_supplied_identity(monkeypatch):
     from agent import mcp_server
     calls = []
