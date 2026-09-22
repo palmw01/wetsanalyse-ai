@@ -37,6 +37,9 @@ class Bericht(BaseModel):
     annotatie_slug: str = ""
     annotatie_titel: str = ""
     ontbrekend: list[dict] = []
+    # Lex hergebruikte (een deel van) de gedeelde annotatielaag: welke leden, en hoe ver de review
+    # was. Zonder dit veld is na herladen niet meer te zien dat er niets nieuws is geannoteerd.
+    hergebruik: dict = {}
     # Van welke agent-run deze beurt de uitkomst is. Dient als idempotentiesleutel: dezelfde run mag
     # maar één assistent-bericht opleveren, ook als er twee tabbladen meekeken.
     run_id: str = ""
@@ -72,6 +75,7 @@ class BerichtInvoer(BaseModel):
     annotatie_slug: str = ""
     annotatie_titel: str = ""
     ontbrekend: list[dict] = []
+    hergebruik: dict = {}
     run_id: str = ""
 
 

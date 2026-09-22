@@ -855,6 +855,11 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'WETSANALYSE_API_TOKENS_FILE', value: '/run/secrets/api_tokens' }
             { name: 'WETSANALYSE_ADMIN_TOKENS_FILE', value: '/run/secrets/admin_tokens' }
             { name: 'DATABASE_URL_FILE', value: '/run/secrets/database_url' }
+            // De api projecteert de gedeelde annotatielagen naar de kennisgraaf (named graphs
+            // urn:jas:graph:*) en bouwt ze na een GraphDB-herstart opnieuw op uit Postgres. Hij is de
+            // enige schrijver onder urn:jas:; graph-qa leest alleen.
+            { name: 'GRAPHDB_URL', value: graphdbInternalUrl }
+            { name: 'GRAPHDB_REPOSITORY', value: 'inning' }
           ]
           probes: [
             {

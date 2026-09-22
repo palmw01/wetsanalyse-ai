@@ -83,7 +83,10 @@ async def test_run_wordt_geregistreerd_op_document_element_en_audit(client):
     slug = await _document_met_spoor(client)
 
     doc = (await client.get(f"{BASIS}/{slug}")).json()
-    assert doc["runs"] == [{**RUN, "tijd": doc["runs"][0]["tijd"]}]
+    # Alleen de meegestuurde velden: de run draagt ook velden met een standaardwaarde (modus,
+    # prompt_hash, …) die deze client niet kent.
+    assert len(doc["runs"]) == 1
+    assert {k: doc["runs"][0][k] for k in RUN} == RUN
     agent = {e["id"]: e for e in doc["elementen"] if e["herkomst"] == "agent"}
     assert agent["m2"]["geproduceerd_door"]["model"] == "claude-sonnet-4-6"
     assert agent["m2"]["geproduceerd_door"]["agent_versie"] == "0.4.0"

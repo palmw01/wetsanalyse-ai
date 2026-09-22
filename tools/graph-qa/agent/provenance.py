@@ -28,6 +28,11 @@ from .namespace import vindplaats_patroon
 _IRI_RE = re.compile(vindplaats_patroon())
 _JCI_RE = re.compile(r"jci[\d.]+:c:BWBR\d+[^\s\"'<>)\]}\\]*")
 _BWB_RE = re.compile(r"\bBWBR\d+\b")
+# De JAS-annotatielagen (`urn:jas:…`, door de api in de graaf gezet) dragen het BWB-id in hun IRI:
+# `urn:jas:annotatie:BWBR0004770:artikel:9:e1`. Een annotatie is afgeleide duiding, geen vindplaats –
+# telde dat id als losse bron, dan leek een annotatie de wettekst te onderbouwen terwijl er geen
+# wettekst was opgehaald. Die IRI's worden daarom weggelaten vóór het zoeken.
+_AFGELEID_RE = re.compile(r"urn:jas[:\-][^\s\"'<>)\]}\\]*")
 
 
 def _clean(uri: str) -> str:
@@ -47,6 +52,7 @@ def iter_refs(text: str) -> Iterator[tuple[str, str | None, str | None]]:
     gevonden IRI/jci valt.
     """
     seen: set[str] = set()
+    text = _AFGELEID_RE.sub(" ", text)
 
     def emit(uri: str, *, iri: str | None = None, jci: str | None = None):
         uri = _clean(uri)

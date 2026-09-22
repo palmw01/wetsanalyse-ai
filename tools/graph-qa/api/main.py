@@ -252,6 +252,7 @@ async def chat(
         async for event in answer_stream(
             request.question, request.conversation_id,
             modus=request.modus, context=request.context, doel=request.doel,
+            hergebruik=request.hergebruik,
         ):
             yield {"data": json.dumps(event, ensure_ascii=False)}
 
@@ -349,6 +350,7 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
             answer_stream(
                 request.question, request.conversation_id,
                 modus=request.modus, context=request.context, doel=request.doel,
+                hergebruik=request.hergebruik,
                 # Stoppen loopt via deze vlag: de graaf betreedt dan geen nieuwe node meer. Bewust
                 # geen taak-annulering – de nodes zijn synchroon en de MCP-verbinding wordt in een
                 # `finally` gesloten.

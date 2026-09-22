@@ -13,9 +13,14 @@ Twee volgorde-eisen die je niet mag omdraaien:
 
 1. **`done` gaat er pas uit als er is weggeschreven.** Anders ziet een client die precies op dat
    moment herlaadt noch de lopende run, noch het bericht – en dan lijkt de beurt verdampt.
-2. **Het document wordt pas aan het eind gemaakt.** `emit_node` is terminaal: vóór dat punt zijn er
-   geen elementen. Een document dat al bij het `doel`-event ontstond, zou bij elke afgebroken run als
-   leeg skelet in de werkvoorraad blijven staan.
+2. **Er wordt pas aan het eind geschreven.** `emit_node` is terminaal: vóór dat punt zijn er geen
+   elementen. Een laag die al bij het `doel`-event ontstond, zou bij elke afgebroken run als leeg
+   skelet in de werkvoorraad blijven staan.
+
+Sinds 22 sep 2026 schrijft een annotatiebeurt naar de **gedeelde laag van het artikel**
+(`PUT /v1/annotatie/lagen/{bwbId}/{artikel}/elementen`), niet meer naar een eigen document per
+beurt: één laag per artikel voor iedereen, zodat een artikel dat al geannoteerd is niet opnieuw
+hoeft. De lidstand (hash + IRI per lid) en de artikelhash reizen mee op het `doel`-event.
 """
 from __future__ import annotations
 
@@ -51,6 +56,7 @@ class BeurtSchrijver:
         self.ontbrekend: list[dict[str, Any]] = []
         self.run: dict[str, Any] | None = None
         self.kandidaten: list[dict[str, Any]] = []
+        self.hergebruik: dict[str, Any] = {}
         self.tekst = ""
         self.denk = ""
         self.bronnen: list[dict[str, Any]] = []
@@ -78,6 +84,8 @@ class BeurtSchrijver:
             self.suggesties.append(event.get("suggestie") or {})
         elif soort == "kandidaten":
             self.kandidaten = event.get("kandidaten") or []
+        elif soort == "hergebruik":
+            self.hergebruik = event.get("hergebruik") or {}
 
     def _voeg_element_toe(self, element: dict[str, Any]) -> None:
         """Ontdubbeld verzamelen: de annoteerder ⇄ Critic-lus kan hetzelfde element opnieuw sturen,
@@ -107,7 +115,13 @@ class BeurtSchrijver:
 
     @property
     def is_annotatie(self) -> bool:
-        return bool(self.doel and self.doel.get("bwbId") and self.elementen)
+        return bool(self.doel and self.doel.get("bwbId")
+                    and (self.elementen or self.volledig_hergebruikt))
+
+    @property
+    def volledig_hergebruikt(self) -> bool:
+        """Alles kwam uit de gedeelde laag: geen nieuwe voorstellen, wel een annotatie."""
+        return bool(self.hergebruik.get("volledig")) and not self.elementen
 
 
 async def voer_beurt_uit(
@@ -214,32 +228,59 @@ async def _leg_vast(
     gestopt: bool,
     user_id: str,
 ) -> AsyncIterator[dict[str, Any]]:
-    """Schrijf document, elementen en het chatbericht weg; meld de uitkomst aan de client."""
+    """Schrijf de markeringen naar de gedeelde laag en het chatbericht weg; meld de uitkomst."""
     api = WetsanalyseApi(settings, user_id)
     try:
         bericht: dict[str, Any] = {"rol": "assistant", "run_id": run.run_id}
         slug = ""
-        elementen_bewaard = False
 
         if schrijver.is_annotatie:
-            # Vanaf hier kan een deel geslaagd zijn: het document en zijn elementen staan er dan al
-            # terwijl het chatbericht nog moet. Wat er wél is bewaard hoort in de foutmelding —
-            # anders leest de jurist "niet opgeslagen", draait hij de beurt van 60-90 seconden
-            # opnieuw, en heeft hij een tweede annotatiedocument.
+            # Eén PUT naar de gedeelde laag van het artikel: de api maakt hem aan als hij er nog
+            # niet is. Vanaf hier kan een deel geslaagd zijn – de laag staat er, het chatbericht
+            # nog niet – en dat hoort in de foutmelding. Anders draait de jurist de beurt van 60-90
+            # seconden opnieuw voor iets wat al bewaard is.
             doel = schrijver.doel or {}
-            slug = await api.maak_document(
-                bwb_id=str(doel.get("bwbId", "")),
-                artikel=str(doel.get("artikel", "")),
-                lid=str(doel.get("lid") or ""),
-                citeertitel=str(doel.get("citeertitel") or ""),
-            )
-            await api.zet_elementen(
-                slug,
-                elementen=schrijver.elementen,
-                suggesties=schrijver.suggesties,
-                run=schrijver.run,
-            )
-            elementen_bewaard = True
+            run_info = schrijver.run or {}
+            aanduiding = str(doel.get("artikel") or doel.get("nummer") or "")
+            if schrijver.volledig_hergebruikt:
+                # Niets nieuws om te mergen; alleen vastleggen dát er hergebruikt is.
+                laag = await api.hergebruik(
+                    bwb_id=str(doel.get("bwbId", "")), artikel=aanduiding,
+                    citeertitel=str(doel.get("citeertitel") or ""),
+                    leden=list(doel.get("leden") or []), run=schrijver.run,
+                )
+            else:
+                laag = await api.zet_laag_elementen(
+                    bwb_id=str(doel.get("bwbId", "")),
+                    artikel=aanduiding,
+                    citeertitel=str(doel.get("citeertitel") or ""),
+                    elementen=schrijver.elementen,
+                    suggesties=schrijver.suggesties,
+                    run=schrijver.run,
+                    leden=list(doel.get("leden") or []),
+                    bron_hash=str(doel.get("bron_hash") or ""),
+                    modus="opnieuw" if run_info.get("modus") == "opnieuw" else "auto",
+                )
+            slug = str(laag.get("slug", ""))
+            if getattr(api, "hergebruikt", None):
+                # De graaf zag deze leden niet als geannoteerd, de api wel: de projectie liep
+                # achter (meestal net na een GraphDB-herstart). Dat kostte tokens, geen werk –
+                # maar het moet meetbaar zijn, anders valt een haperende projectie nooit op.
+                logger.warning(
+                    "hergebruik_gemist",
+                    extra={"categorie": "functioneel", "run_id": run.run_id,
+                           "leden": api.hergebruikt, "annotatie_slug": slug},
+                )
+                # Het vangnet van de api: dit lid was al geannoteerd en is niet veranderd, dus
+                # deze voorstellen zijn niet toegevoegd. Geen fout – de bestaande annotatie staat
+                # er – maar de jurist moet weten waarom zijn nieuwe voorstellen er niet bij staan.
+                leden = ", ".join(api.hergebruikt)
+                yield {
+                    "type": "waarschuwing",
+                    "message": (f"Lid {leden} was al geannoteerd en is sindsdien niet veranderd. De "
+                                "bestaande annotatie is behouden; deze nieuwe voorstellen zijn niet "
+                                "toegevoegd. Vraag om opnieuw annoteren als je ze er toch bij wilt."),
+                }
             if getattr(api, "verworpen", 0):
                 # Niet als `error`: de beurt is geslaagd en de rest staat er. Maar wél zeggen —
                 # anders ziet de jurist dertien markeringen en weet hij niet dat het er vijftien
@@ -256,6 +297,7 @@ async def _leg_vast(
                 "annotatie_titel": _titel(doel),
                 "ontbrekend": schrijver.ontbrekend,
                 "denk": schrijver.denk,
+                **({"hergebruik": schrijver.hergebruik} if schrijver.hergebruik else {}),
             }
         else:
             tekst = schrijver.tekst.strip()
@@ -297,23 +339,15 @@ async def _leg_vast(
         )
         # Zichtbaar falen: de jurist moet weten dat dit werk niet bewaard is, niet later ontdekken
         # dat het gesprek een gat heeft. Wél eerlijk zijn over wat er al staat: "probeer opnieuw" is
-        # een slecht advies als de annotatie er al is – dat levert een tweede document op.
-        if slug and elementen_bewaard:
+        # een slecht advies als de annotatie er al is.
+        #
+        # Het geval "document bestaat, markeringen niet" is er niet meer: de laag en haar
+        # markeringen gaan in één PUT. Mislukt die, dan is er geen slug en valt dit in de laatste tak.
+        if slug:
             yield {
                 "type": "error",
                 "message": ("De annotatie is bewaard, alleen het bericht in dit gesprek niet. "
-                            "Je vindt hem terug bij Annotaties; de vraag opnieuw stellen maakt een "
-                            "tweede annotatie."),
-                "annotatie_slug": slug,
-            }
-        elif slug:
-            # Het document bestaat, de markeringen niet. Zeggen dat de annotatie bewaard is, is dan
-            # onwaar – en het advies "niet opnieuw proberen" is precies verkeerd: er valt niets terug
-            # te vinden. Op dev liep een run hierop stuk en hield de jurist een leeg document over.
-            yield {
-                "type": "error",
-                "message": ("De markeringen konden niet worden opgeslagen; bij Annotaties staat een "
-                            "leeg document. Stel de vraag opnieuw."),
+                            "Je vindt hem terug bij Annotaties."),
                 "annotatie_slug": slug,
             }
         else:

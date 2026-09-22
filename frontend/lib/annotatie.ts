@@ -4,12 +4,15 @@ import { jasVolgorde } from "./jas";
 import type { LidRegel } from "./selectie";
 import type {
   AgentContext,
+  AgentDoel,
   AgentDoelInvoer,
+  AgentHergebruik,
   AgentKandidaat,
   AnnotatieDocument,
   AnnotatieElement,
   GraafArtikel,
   DocumentStatus,
+  Lifecycle,
   VoorstelElement,
 } from "./types";
 
@@ -422,3 +425,64 @@ export function bronversieMelding(doc: { bronversies?: string[] }): string {
 export function isNietBeoordeeld(el: { aandacht?: string | null; herkomst?: string }): boolean {
   return !el.aandacht && el.herkomst !== "mens";
 }
+
+/** De mededeling bij een hergebruikte annotatie, in woorden van de jurist.
+ *
+ *  Volledig: er is niets opnieuw bekeken, en dat moet er staan – anders lijkt het een verse
+ *  annotatie. Deels: welke leden kwamen uit de laag; de rest is net opnieuw geannoteerd. */
+export function hergebruikTekst(h: AgentHergebruik): string {
+  const leden = h.leden.filter((l) => l !== "");
+  const wat = leden.length === 0 ? "Dit artikel" : leden.length === 1 ? `Lid ${leden[0]}` : `Leden ${leden.join(", ")}`;
+  const t = h.telling;
+  const stand = `${t.markeringen} ${t.markeringen === 1 ? "markering" : "markeringen"}, waarvan ${t.beoordeeld} beoordeeld en ${t.te_beoordelen} nog te beoordelen`;
+  return h.volledig
+    ? `${wat} was al geannoteerd en de wettekst is sindsdien niet veranderd. Dit is de bestaande annotatie (${stand}).`
+    : `${wat} kwam ongewijzigd uit de bestaande annotatie (${stand}); de rest is nu opnieuw geannoteerd.`;
+}
+
+/** Het doel voor "Lex opnieuw laten annoteren": de bepaling zoals de beurt hem had, of anders het
+ *  artikel van de laag. Zonder doel zou de agent de bepaling opnieuw moeten zoeken – en kan hij bij
+ *  een andere uitkomen dan waar de jurist op klikte. */
+export function doelVoorOpnieuw(
+  doel: AgentDoelInvoer | undefined,
+  doc: Pick<AnnotatieDocument, "bwbId" | "artikel" | "citeertitel"> | undefined,
+): AgentDoelInvoer | undefined {
+  if (doel?.bwbId) return doel;
+  if (!doc?.bwbId || !doc.artikel) return undefined;
+  return { bwbId: doc.bwbId, artikel: doc.artikel, ...(doc.citeertitel ? { citeertitel: doc.citeertitel } : {}) };
+}
+
+/** Actuele markeringen en de historie: markeringen van een lid waarvan de wettekst sindsdien
+ *  veranderde. Die laatste blijven met hun oordeel bewaard, maar horen niet in de tekst of de
+ *  werkvoorraad – ze gaan over tekst die er niet meer staat. */
+export function splitsVerouderd<T extends { verouderd?: boolean }>(elementen: T[]): { actueel: T[]; historie: T[] } {
+  const actueel: T[] = [];
+  const historie: T[] = [];
+  for (const el of elementen) (el.verouderd ? historie : actueel).push(el);
+  return { actueel, historie };
+}
+
+/** Het doel van een afgelopen beurt, in de vorm waarin het mee kan naar een nieuwe (`startRun`).
+ *  Zonder de tekst: die haalt de agent zelf op – de graaf is de bron. */
+export function doelInvoerVan(doel: AgentDoel | null | undefined): AgentDoelInvoer | undefined {
+  if (!doel?.bwbId) return undefined;
+  return {
+    bwbId: doel.bwbId,
+    ...(doel.artikel ? { artikel: doel.artikel } : {}),
+    ...(doel.lid ? { lid: doel.lid } : {}),
+    ...(doel.nummer ? { nummer: doel.nummer } : {}),
+    ...(doel.citeertitel ? { citeertitel: doel.citeertitel } : {}),
+  };
+}
+
+/** Het oordeel over een markering in woorden – dezelfde als de export (`api/app/annotatie_export.py`,
+ *  `STATUS_LABEL`), zodat een markering in de werkplek en in het rapport hetzelfde heet. */
+export const LIFECYCLE_LABEL: Record<Lifecycle, string> = {
+  voorgesteld: "voorstel van Lex",
+  critic_checked: "voorstel van Lex (door Critic gezien)",
+  human_approved: "akkoord",
+  edited: "door jurist aangepast",
+  rejected: "verworpen",
+  published: "gepubliceerd",
+  reused: "hergebruikt",
+};

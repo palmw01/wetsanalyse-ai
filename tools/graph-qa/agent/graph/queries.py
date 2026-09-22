@@ -723,8 +723,16 @@ def referenced_by(bwb_id: str, artikel: str) -> str:
 
 
 def resolve_begrip(term: str) -> str:
+    """Thesaurustermen (`urn:bwb:begrip:…`) waarvan het label de term bevat.
+
+    Het filter op de eigen IRI-ruimte staat er sinds 22 sep 2026, toen de JAS-annotatielagen in de
+    graaf kwamen: hun ontologie brengt de dertien JAS-klassen én alle reviewwaarden ("voorgesteld",
+    "rood", …) als `skos:Concept` mee. Zonder filter antwoordde "recht" met Rechtssubject en
+    Rechtsobject – methodebegrippen, geen wettelijke. `tests/test_annotatielaag_isolatie.py`.
+    """
     return PREFIXES + f"""SELECT DISTINCT ?concept ?label ?related WHERE {{
   ?concept a skos:Concept .
+  FILTER(STRSTARTS(STR(?concept), "{NS}"))
   {{ ?concept skos:prefLabel ?label }} UNION {{ ?concept rdfs:label ?label }}
   FILTER(CONTAINS(LCASE(STR(?label)), LCASE({_lit(term)})))
   OPTIONAL {{ ?concept skos:related|skos:broader|skos:narrower ?related }}
@@ -1019,3 +1027,65 @@ SELECT ?soort ?term ?label ?comment WHERE {{
   OPTIONAL {{ ?t rdfs:label ?label }}
   OPTIONAL {{ ?t rdfs:comment ?comment }}
 }} ORDER BY ?soort ?term"""
+
+
+# ------------------------------------------------------------------
+# De gedeelde JAS-annotatielaag (door de api geprojecteerd, zie
+# docs/wetsanalyse-workbench/jas-annotatie-ontologie.md)
+# ------------------------------------------------------------------
+#
+# Deze twee bouwers lezen BEWUST de annotatielaag – het zijn de enige. Ze bevragen alleen de named
+# graph van één laag (`GRAPH <…>`), nooit de union, en worden niet als tool aan het model gegeven:
+# ze voeden de hergebruikbeslissing van de annotatieketen, niet een antwoord over de wet.
+
+JAS = "urn:jas-ns:"
+
+
+def laag_graaf(bwb_id: str, aanduiding: str) -> str:
+    """De named graph van de laag van één artikel – exact zoals de api hem schrijft
+    (`api/app/graaf_projectie.laag_graaf_iri`): BWB-id in hoofdletters, het artikelnummer zonder
+    witruimte, elk segment gecodeerd zoals de importer dat doet."""
+    nummer = "".join(str(aanduiding).split())
+    if not (_ART_RE.match(nummer) or _NUMMER_VRIJ_RE.match(nummer)):
+        raise ValueError(f"Ongeldige aanduiding: {aanduiding!r}.")
+    bwb = _bwb(str(bwb_id).strip().upper())
+    return f"urn:jas:graph:{_segment(bwb)}:artikel:{_segment(nummer)}"
+
+
+def laagstand(bwb_id: str, aanduiding: str) -> str:
+    """De laag van dit artikel en per lid de hash van de tekst waarop hij gebaseerd is.
+
+    Geen rijen = het artikel is (nog) niet geannoteerd, of de projectie is na een GraphDB-herstart
+    nog niet terug. In beide gevallen annoteert de keten gewoon; de api is het vangnet.
+    """
+    return PREFIXES + f"""PREFIX jas: <{JAS}>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+SELECT ?slug ?status ?bijgewerkt ?lid ?hash WHERE {{
+  GRAPH <{laag_graaf(bwb_id, aanduiding)}> {{
+    ?laag a jas:AnnotatieLaag ; jas:slug ?slug .
+    OPTIONAL {{ ?laag jas:status ?status }}
+    OPTIONAL {{ ?laag dcterms:modified ?bijgewerkt }}
+    OPTIONAL {{ ?laag jas:heeftLidstand ?ls . ?ls jas:lid ?lid ; jas:lidHash ?hash }}
+  }}
+}}"""
+
+
+def laag_markeringen(bwb_id: str, aanduiding: str) -> str:
+    """De actuele (niet-verouderde) markeringen van de laag: klasse, citaat, lid en reviewstatus.
+
+    De klassenaam komt uit de ontologie (`skos:prefLabel`, een andere named graph); staat die er
+    (nog) niet, dan valt hij terug op de slug uit de IRI.
+    """
+    return PREFIXES + f"""PREFIX jas: <{JAS}>
+PREFIX oa: <http://www.w3.org/ns/oa#>
+SELECT ?id ?klasse ?tekst ?lid ?lifecycle WHERE {{
+  GRAPH <{laag_graaf(bwb_id, aanduiding)}> {{
+    ?a a jas:Markering ; jas:elementId ?id ; jas:klasse ?k ; jas:lifecycle ?lc ;
+       jas:verouderd false ; oa:hasTarget/oa:hasSelector ?q .
+    ?q a oa:TextQuoteSelector ; oa:exact ?tekst .
+    OPTIONAL {{ ?a jas:lid ?lid }}
+  }}
+  OPTIONAL {{ ?k skos:prefLabel ?label }}
+  BIND(COALESCE(STR(?label), STRAFTER(STR(?k), "{JAS}klasse:")) AS ?klasse)
+  BIND(STRAFTER(STR(?lc), "{JAS}lifecycle-") AS ?lifecycle)
+}} ORDER BY ?lid ?id"""

@@ -92,10 +92,13 @@ def bronversies(elementen: list[Any]) -> list[str]:
     want de offsets van de oudere elementen wijzen dan naar tekst die verschoven is.
 
     Elementen zonder anker of zonder hash tellen niet mee: die claimen geen positie, dus ze kunnen
-    er ook niet naast zitten.
+    er ook niet naast zitten. Verouderde elementen evenmin: dat die over een oudere tekst gaan is
+    precies wat de vlag al zegt, en ze zouden anders elke bijgewerkte laag als conflict markeren.
     """
     gezien: set[str] = set()
     for el in elementen:
+        if getattr(el, "verouderd", False):
+            continue
         anker = getattr(el, "anker", None)
         if anker is None:
             continue

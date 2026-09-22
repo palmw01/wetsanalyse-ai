@@ -320,9 +320,11 @@ def test_corpus_blijft_binnen_het_gevraagde_lid():
         llm=llm, graph=graaf,
     ))
 
-    corpus = next(e for e in events if e["type"] == "doel")["doel"]["leden_teksten"][0]["tekst"]
-    assert "Een belastingaanslag" in corpus
-    assert "uitstel van betaling" not in corpus, "lid 2 hoort niet in het corpus van lid 1"
+    # Het doel draagt sinds de gedeelde laag het HELE artikel (de ankers staan daarop), maar de
+    # lidstand – wat deze beurt annoteerde en naar de laag schrijft – is alleen lid 1.
+    doel = next(e for e in events if e["type"] == "doel")["doel"]
+    assert "uitstel van betaling" in doel["leden_teksten"][0]["tekst"]
+    assert [ld["lid"] for ld in doel["leden"]] == ["1"], "lid 2 hoort niet bij deze beurt"
 
     elementen = [e["element"] for e in events if e["type"] == "element"]
     assert [el["tekst"] for el in elementen] == ["Een belastingaanslag"]

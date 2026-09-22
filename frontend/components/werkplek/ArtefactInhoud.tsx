@@ -12,9 +12,11 @@ import { OntbrekendLijst } from "@/components/werkplek/OntbrekendLijst";
 import { ReviewQueue, type OpenRij } from "@/components/werkplek/ReviewQueue";
 import { SelectiePopover, type SelectieDoel } from "@/components/werkplek/SelectiePopover";
 import {
-  DOCUMENT_STATUS_LABEL, DOCUMENT_STATUS_STYLE, bronVan, isDocumentVergrendeld, isVergrendeld,
-  overlaptSelectie, pastInFilter, regelsVan, sorteerReview, volgendeElement, type ReviewFilter,
+  DOCUMENT_STATUS_LABEL, DOCUMENT_STATUS_STYLE, LIFECYCLE_LABEL, bronVan, isDocumentVergrendeld,
+  isVergrendeld, overlaptSelectie, pastInFilter, regelsVan, sorteerReview, splitsVerouderd,
+  volgendeElement, type ReviewFilter,
 } from "@/lib/annotatie";
+import { jasStyle } from "@/lib/jas";
 import { maakAnker, vindPositie } from "@/lib/selectie";
 import type {
   AnnotatieDocument, AnnotatieElement, BeslissingInvoer, DocumentStatus, GraafArtikel, OntbrekendItem,
@@ -66,6 +68,10 @@ export function ArtefactInhoud({
   // documentpaneel zijn eigen `useMemo`'s hangt, dus een verse array per render zette die uit.
   const regels = useMemo(() => regelsVan(info), [info]);
   const bron = useMemo(() => bronVan(regels), [regels]);
+  // Markeringen van een lid waarvan de wettekst sindsdien veranderde, horen niet in de tekst of de
+  // werkvoorraad: ze gaan over tekst die er niet meer staat. Ze blijven wél zichtbaar als historie,
+  // met het oordeel dat er destijds over werd geveld.
+  const { actueel, historie } = useMemo(() => splitsVerouderd(doc.elementen), [doc.elementen]);
 
   // Eén lus, twee antwoorden – beide uit dezelfde `vindPositie` als de weergave, dus ze kloppen
   // altijd met wat je ziet:
@@ -74,14 +80,14 @@ export function ArtefactInhoud({
   const { zwevendeIds, posities } = useMemo(() => {
     const zwevend = new Set<string>();
     const pos = new Map<string, number>();
-    for (const el of doc.elementen) {
+    for (const el of actueel) {
       if (el.lifecycle === "rejected") continue;
       const idx = vindPositie(bron, el.tekst.trim(), el.anker, []);
       if (idx < 0) zwevend.add(el.id);
       else pos.set(el.id, idx);
     }
     return { zwevendeIds: zwevend, posities: pos };
-  }, [doc.elementen, bron]);
+  }, [actueel, bron]);
   const [selectie, setSelectie] = useState<(SelectieDoel & { start: number; eind: number; lid: string; bron: string }) | null>(null);
   const [fout, setFout] = useState<string | null>(null);
   const [filter, setFilter] = useState<ReviewFilter>("alles");
@@ -91,7 +97,7 @@ export function ArtefactInhoud({
   // Raakt de selectie de markering die in beeld staat? Dan is dit vermoedelijk een correctie op dát
   // element (inkorten/uitbreiden) en niet een nieuwe markering. De positie komt uit dezelfde
   // `vindPositie` als de weergave, dus het antwoord klopt altijd met wat je ziet.
-  const actief = doc.elementen.find((e) => e.id === actiefId && e.lifecycle !== "rejected");
+  const actief = actueel.find((e) => e.id === actiefId && e.lifecycle !== "rejected");
   const actiefBereik = (() => {
     if (!actief || !selectie) return null;
     const start = vindPositie(selectie.bron, actief.tekst.trim(), actief.anker, []);
@@ -109,8 +115,8 @@ export function ArtefactInhoud({
   // filterwissel de onderlinge volgorde niet. Hier berekend en niet in de lijst, zodat het toetsenbord
   // gegarandeerd dezelfde volgorde doorloopt als je ziet en de positiekaart maar op één plek bestaat.
   const getoond = useMemo(
-    () => sorteerReview(doc.elementen, posities).filter((el) => pastInFilter(el, filter)),
-    [doc.elementen, filter, posities],
+    () => sorteerReview(actueel, posities).filter((el) => pastInFilter(el, filter)),
+    [actueel, filter, posities],
   );
 
   /** De selectie loslaten, inclusief die in de DOM.
@@ -190,7 +196,7 @@ export function ArtefactInhoud({
       if (e.key === "j" || e.key === "ArrowDown") return stap(1);
       if (e.key === "k" || e.key === "ArrowUp") return stap(-1);
       if (!actiefId) return;
-      const actiefEl = doc.elementen.find((el) => el.id === actiefId);
+      const actiefEl = actueel.find((el) => el.id === actiefId);
       if (!actiefEl) return;
 
       // Ook het slot op dít element telt: anders opent `x` een redenen-rij die alleen nog een 409
@@ -356,7 +362,7 @@ export function ArtefactInhoud({
             regels={regels}
             // Verworpen markeringen niet in de tekst oplichten (de reviewer keurde ze net af); ze
             // blijven wél in de ReviewQueue zichtbaar met hun "verworpen"-status.
-            elementen={doc.elementen
+            elementen={actueel
               .filter((e) => e.lifecycle !== "rejected")
               .map((e) => ({
                 id: e.id, klasse: e.klasse, tekst: e.tekst, herkomst: e.herkomst, anker: e.anker,
@@ -391,9 +397,9 @@ export function ArtefactInhoud({
           )}
 
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto py-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
-          {doc.elementen.length > 0 ? (
+          {actueel.length > 0 ? (
             <ReviewQueue
-              elementen={doc.elementen}
+              elementen={actueel}
               getoond={getoond}
               filter={filter}
               onFilter={setFilter}
@@ -414,12 +420,13 @@ export function ArtefactInhoud({
           ) : (
             <p className="text-sm text-muted">Geen elementen.</p>
           )}
+          {historie.length > 0 && <Historie elementen={historie} />}
           {ontbrekend && ontbrekend.length > 0 && (
             <OntbrekendLijst
               items={ontbrekend}
               bron={bron}
               regels={regels}
-              elementen={doc.elementen}
+              elementen={actueel}
               onToevoegen={onEigenMarkering && !vergrendeld ? markeer : undefined}
             />
           )}
@@ -462,5 +469,34 @@ function StatusKnop({
     >
       {bezig ? "Bezig…" : afgerond ? "Heropenen" : "Annotatie afronden"}
     </button>
+  );
+}
+
+
+/** Markeringen bij een oudere versie van de wettekst: alleen-lezen, ingeklapt.
+ *
+ *  Weggooien zou het oordeel van een jurist wissen; tussen de actuele markeringen laten staan zou ze
+ *  laten lijken op werk dat nog gedaan moet worden, en in de tekst laten oplichten zou een fragment
+ *  aanwijzen dat er zo niet meer staat. */
+function Historie({ elementen }: { elementen: AnnotatieElement[] }) {
+  return (
+    <details className="rounded-kaart border border-line bg-surface/60 px-3 py-2 text-sm">
+      <summary className="cursor-pointer text-xs font-medium text-muted">
+        Historie – tekst gewijzigd ({elementen.length})
+      </summary>
+      <p className="mt-2 text-xs text-faint">
+        Deze markeringen horen bij een eerdere versie van de wettekst. Het oordeel dat er destijds
+        over werd geveld staat erbij; wijzigen kan niet meer.
+      </p>
+      <ul className="mt-2 space-y-1.5">
+        {elementen.map((el) => (
+          <li key={el.id} className="flex flex-wrap items-baseline gap-1.5 text-xs text-muted">
+            <span className={`shrink-0 rounded px-1 text-[0.7rem] ${jasStyle(el.klasse)}`}>{el.klasse}</span>
+            <span className="line-through decoration-faint">“{el.tekst}”</span>
+            <span className="text-faint">· {LIFECYCLE_LABEL[el.lifecycle] ?? el.lifecycle}</span>
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }

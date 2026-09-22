@@ -73,6 +73,11 @@ export function AnnotatieKaart({
             </span>
           ) : null,
         )}
+        {(doc.verouderd ?? 0) > 0 && (
+          <span title="Markeringen bij een oudere versie van de wettekst; ze staan als historie in de annotatie.">
+            {doc.verouderd} verouderd
+          </span>
+        )}
         <span>bijgewerkt {geleden(doc.updated)}</span>
         {doc.laatste_model && <span className="font-mono text-[0.65rem]">{doc.laatste_model}</span>}
       </div>
@@ -87,6 +92,9 @@ export function AnnotatieKaart({
         {/* Verwijderen kan hier omdat dit overzicht de wezen zichtbaar maakt: annotaties waarvan het
             gesprek allang weg is. Twee klikken, zoals overal in deze app. Andersom laten we het
             gesprek juist met rust: dat blijft staan met een kaart die zegt dat de annotatie weg is. */}
+        {/* Een gedeelde laag draagt het werk van meerdere juristen en is niet te verwijderen – de
+            api weigert het ook. Alleen een oud per-gebruiker-document heeft nog deze knop. */}
+        {!doc.laag_sleutel && (
         <BevestigKnop
           bevestigTekst="Verwijderen?"
           onBevestig={() => onVerwijder(doc.slug)}
@@ -97,6 +105,7 @@ export function AnnotatieKaart({
         >
           Verwijderen
         </BevestigKnop>
+        )}
       </div>
     </article>
   );

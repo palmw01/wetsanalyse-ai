@@ -1,0 +1,58 @@
+# Een klein stuk BWB-graaf in de vorm die tools/bwb-import schrijft: genoeg om de querybouwers
+# van graph-qa echte rijen te laten opleveren. Artikel 9 van de Invorderingswet 1990 (ingekort),
+# met twee leden, een onderdeel, een verwijzing en een thesaurusterm.
+@prefix bwb: <urn:bwb-ns:> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+
+bwb:Regeling a owl:Class ; rdfs:label "regeling"@nl .
+bwb:Artikel a owl:Class ; rdfs:label "artikel"@nl .
+bwb:tekst a owl:DatatypeProperty ; rdfs:label "tekst"@nl .
+
+<urn:bwb:BWBR0004770> a bwb:Regeling, bwb:Wet ;
+    bwb:bwbId "BWBR0004770" ;
+    bwb:citeertitel "Invorderingswet 1990" ;
+    bwb:afkorting "IW 1990" ;
+    bwb:soort "wet" ;
+    rdfs:label "Invorderingswet 1990" ;
+    dcterms:subject <urn:bwb:begrip:belastingrecht> ;
+    bwb:heeftArtikel <urn:bwb:BWBR0004770:artikel:9> , <urn:bwb:BWBR0004770:artikel:10> .
+
+<urn:bwb:begrip:belastingrecht> a skos:Concept ; skos:prefLabel "Belastingrecht"@nl .
+
+<urn:bwb:BWBR0004770:artikel:9> a bwb:Artikel ;
+    bwb:nummer "9" ;
+    rdfs:label "Artikel 9"@nl ;
+    bwb:jci "jci1.3:c:BWBR0004770&artikel=9" ;
+    bwb:heeftLid <urn:bwb:BWBR0004770:artikel:9:lid:1> , <urn:bwb:BWBR0004770:artikel:9:lid:2> ;
+    bwb:volgtOp <urn:bwb:BWBR0004770:artikel:8> .
+
+<urn:bwb:BWBR0004770:artikel:9:lid:1> a bwb:Lid ;
+    bwb:nummer "1" ;
+    rdfs:label "Artikel 9, lid 1"@nl ;
+    bwb:jci "jci1.3:c:BWBR0004770&artikel=9&lid=1" ;
+    bwb:tekst "De ontvanger kan de belastingschuldige uitstel van betaling verlenen."@nl ;
+    bwb:heeftOnderdeel <urn:bwb:BWBR0004770:artikel:9:lid:1:o:a> ;
+    bwb:heeftVerwijzing <urn:bwb:ref:v1> .
+
+<urn:bwb:BWBR0004770:artikel:9:lid:1:o:a> a bwb:Onderdeel ;
+    bwb:nummer "a." ;
+    bwb:tekst "indien de aanslag nog niet vaststaat;"@nl .
+
+<urn:bwb:ref:v1> a bwb:Verwijzing ;
+    bwb:naar <urn:bwb:BWBR0004770:artikel:10> ;
+    bwb:ankerTekst "artikel 10" ;
+    bwb:soort "intern" .
+
+<urn:bwb:BWBR0004770:artikel:9:lid:2> a bwb:Lid ;
+    bwb:nummer "2" ;
+    bwb:tekst "Uitstel wordt verleend bij beschikking."@nl ;
+    bwb:verwijstNaar <urn:bwb:BWBR0004770:artikel:10> .
+
+<urn:bwb:BWBR0004770:artikel:10> a bwb:Artikel ;
+    bwb:nummer "10" ;
+    rdfs:label "Artikel 10"@nl ;
+    bwb:tekst "Een beschikking wordt bekendgemaakt aan de belastingschuldige."@nl ;
+    bwb:verwijzingDoor <urn:bwb:BWBR0004770> .

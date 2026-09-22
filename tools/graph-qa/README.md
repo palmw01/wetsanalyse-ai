@@ -36,7 +36,10 @@ behandelt; een vraag die niet over wetgeving gaat wordt daar al afgewezen.
 **De annotatie-worker** – voor een opdracht als *"annoteer artikel 36 lid 4 van de Invorderingswet
 1990"*: ophalen → annoteren → **Critic** → de eenduidige correcties door code laten uitvoeren → een
 eindbeoordeling → de elementen uitsturen. Elk voorstel is een letterlijk fragment met een JAS-klasse
-en een aandacht-niveau (🟢🟡🔴); de jurist beoordeelt ze in de werkplek. Zie `CLAUDE.md` voor de
+en een aandacht-niveau (🟢🟡🔴); de jurist beoordeelt ze in de werkplek. De uitkomst landt in de
+**gedeelde laag van het artikel** (één per artikel, voor iedereen). Staat een lid daar al in en is de
+wettekst niet veranderd, dan wordt het **hergebruikt** in plaats van opnieuw geannoteerd; met
+`hergebruik: "opnieuw"` in het verzoek vraag je expliciet om een nieuwe ronde, die de laag aanvult. Zie `CLAUDE.md` voor de
 volledige keten en de regels die daarbij gelden.
 
 ### Decompositie (multi-hop, optioneel)
@@ -130,8 +133,8 @@ browser kijkt mee. Sluit je het tabblad, dan loopt het werk door.
 **De events** zijn hetzelfde over beide wegen: `status` · `reason` (denkproces) · `token`
 (eindantwoord) · `sources` · `grounding` · `conversation_id` · `done` · `error`. Draait de
 annotatie-worker, dan komen daar `doel` · `element` (per brongetrouw JAS-element, mét `aandacht`
-🟢🟡🔴 + `critic`) · `ontbrekend` · `suggestie` · `kandidaten` · `run` · `opgeslagen` ·
-`waarschuwing` bij. Over de run-events kan er ook een `gat` voorbijkomen: dan is er vluchtig verkeer
+🟢🟡🔴 + `critic`) · `ontbrekend` · `suggestie` · `kandidaten` · `hergebruik` · `run` ·
+`opgeslagen` · `waarschuwing` bij. Over de run-events kan er ook een `gat` voorbijkomen: dan is er vluchtig verkeer
 weggevallen bij het cappen van de log, en toont de client "…" in plaats van een verminkt antwoord.
 
 **Authenticatie.** `QA_API_TOKEN` wordt timing-safe vergeleken. Legt de agent zijn beurten zelf vast

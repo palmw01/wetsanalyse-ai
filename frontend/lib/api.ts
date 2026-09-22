@@ -6,6 +6,7 @@ import {
   parseBronnen,
   parseDoel,
   parseElement,
+  parseHergebruik,
   parseKandidaten,
   parseOntbrekend,
   parseRun,
@@ -39,6 +40,7 @@ import type {
   AgentDoelInvoer,
   AgentDoel,
   AgentGrounding,
+  AgentHergebruik,
   AgentKandidaat,
   AgentRun,
   Anker,
@@ -390,6 +392,16 @@ export async function changePassword(current: string, nieuw: string): Promise<vo
 
 // --- Annotatie-workbench -----------------------------------------------------
 
+/** De gedeelde annotatielagen – één per artikel, voor iedereen. `mijn` beperkt tot lagen waar je
+ *  zelf iets aan deed (dat staat in de audit; een laag heeft geen eigenaar). */
+export async function lijstLagen(opties: { mijn?: boolean; limit?: number } = {}): Promise<DocumentSamenvatting[]> {
+  const qs = new URLSearchParams({ limit: String(opties.limit ?? 200) });
+  if (opties.mijn) qs.set("mijn", "true");
+  return json<DocumentSamenvatting[]>(
+    await fetch(`/api/annotatie/lagen?${qs}`, { cache: "no-store" }),
+  );
+}
+
 export async function lijstDocumenten(limit = 200): Promise<DocumentSamenvatting[]> {
   // Eén ruime greep: bij tientallen documenten is client-side zoeken/filteren genoeg, en de lijst
   // moet in één keer sorteerbaar zijn. De api kan limit/offset als het ooit groeit.
@@ -515,6 +527,8 @@ export type AgentHandlers = {
     onSuggestie?: (s: { element_id: string; aandacht: string; motivatie: string }) => void;
   /** De vraag noemde een onderwerp, geen bepaling: dit zijn de gevonden bepalingen om uit te kiezen. */
   onKandidaten?: (k: AgentKandidaat[]) => void;
+  /** Lex hergebruikte (een deel van) de gedeelde laag in plaats van opnieuw te annoteren. */
+  onHergebruik?: (h: AgentHergebruik) => void;
   /** Het volgnummer van het laatst verwerkte event. Daarmee haakt een client na een onderbreking
    *  weer aan op precies het juiste punt in plaats van vanaf het begin. */
   onSeq?: (seq: number) => void;
@@ -553,7 +567,14 @@ export type AgentHandlers = {
 export async function startRun(
   prompt: string,
   conversationId?: string,
-  extra?: { modus?: "auto" | "advies"; context?: AgentContext; doel?: AgentDoelInvoer },
+  extra?: {
+    modus?: "auto" | "advies";
+    context?: AgentContext;
+    doel?: AgentDoelInvoer;
+    /** "opnieuw" = de jurist vraagt expliciet om een nieuwe ronde op een al geannoteerd artikel.
+     *  Die vult de gedeelde laag aan; wat beoordeeld is blijft staan. */
+    hergebruik?: "auto" | "opnieuw";
+  },
 ): Promise<RunStart> {
   const res = await fetch("/api/annotatie/run", {
     method: "POST",
@@ -566,6 +587,7 @@ export async function startRun(
       // Kennen we de bepaling al, dan hoeft niemand hem meer te zoeken: de agent slaat de
       // supervisor en de ophaal-agent over en annoteert precies deze.
       ...(extra?.doel ? { doel: extra.doel } : {}),
+      ...(extra?.hergebruik ? { hergebruik: extra.hergebruik } : {}),
     }),
   });
   if (res.status === 409) {
@@ -716,6 +738,7 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
               sources?: unknown;
               suggestie?: unknown;
               kandidaten?: unknown;
+              hergebruik?: unknown;
               seq?: number;
               weggevallen?: number;
               annotatie_slug?: string;
@@ -772,6 +795,10 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
         else if (ev.type === "kandidaten") {
           const kandidaten = geldig(parseKandidaten, ev.kandidaten ?? [], "kandidaten");
           if (kandidaten) handlers.onKandidaten?.(kandidaten);
+        }
+        else if (ev.type === "hergebruik" && ev.hergebruik) {
+          const hergebruik = geldig(parseHergebruik, ev.hergebruik, "hergebruik");
+          if (hergebruik) handlers.onHergebruik?.(hergebruik);
         }
         else if (ev.type === "opgeslagen")
           handlers.onOpgeslagen?.({ annotatie_slug: ev.annotatie_slug ?? "", run_id: ev.run_id ?? "" });

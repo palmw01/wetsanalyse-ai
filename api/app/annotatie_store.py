@@ -8,12 +8,17 @@ blijven (SQLite-tests).
 """
 from __future__ import annotations
 
-from typing import Callable
+import uuid
+from typing import TYPE_CHECKING, Callable
 
-from sqlalchemy import delete, insert, select, update
+from sqlalchemy import delete, exists, insert, or_, select, update
+from sqlalchemy.exc import IntegrityError
 
 from . import db
-from .annotatie_contracts import AgentRun, AnnotatieDocument, AnnotatieElement, AuditRecord
+from .annotatie_contracts import AgentRun, AnnotatieDocument, AnnotatieElement, AuditRecord, LidStand
+
+if TYPE_CHECKING:
+    from .annotatie_migratie import LaagPlan
 
 # Sentinel: het document bestaat (en is van de client) maar het gevraagde element niet.
 GEEN_ELEMENT = object()
@@ -25,6 +30,21 @@ def etag_van(doc: AnnotatieDocument) -> str:
     """Zwakke ETag uit `updated`. Bewust geen aparte versiekolom: `updated` wordt binnen dezelfde
     transactie gezet als de elementen, dus het is even betrouwbaar en kost geen migratie."""
     return f'W/"{doc.updated.isoformat() if doc.updated else "0"}"'
+
+
+def laag_sleutel(bwb_id: str, artikel: str) -> str:
+    """De sleutel van de gedeelde laag van één artikel: `"{BWBID}:{artikel}"`.
+
+    Genormaliseerd op wat een aanroeper onschuldig anders kan schrijven – hoofdletters in het
+    BWB-id, witruimte rond of in het artikelnummer. Méér niet: "3a" en "3A" zijn in de wet
+    verschillende artikelen en dat mag de sleutel niet gelijkmaken.
+    """
+    return f"{bwb_id.strip().upper()}:{''.join(artikel.split())}"
+
+
+def mag_zien(doc: AnnotatieDocument, user_id: str) -> bool:
+    """Een laag is van iedereen; een per-gebruiker-document alleen van zijn eigenaar."""
+    return bool(doc.laag_sleutel) or doc.user_id == user_id
 
 
 def _naar_document(row) -> AnnotatieDocument:
@@ -41,6 +61,10 @@ def _naar_document(row) -> AnnotatieDocument:
         status=d["status"],
         elementen=[AnnotatieElement.model_validate(e) for e in (d["elementen"] or [])],
         runs=[AgentRun.model_validate(r) for r in (d["runs"] or [])],
+        laag_sleutel=d["laag_sleutel"] or "",
+        # NULL op rijen van vóór de kolom: `reconcile_schema` voegt hem toe zonder waarde.
+        leden={k: LidStand.model_validate(w) for k, w in (d["leden"] or {}).items()},
+        samengevoegd_in=d["samengevoegd_in"] or "",
         created=db.aware(d["created"]),
         updated=db.aware(d["updated"]),
     )
@@ -62,9 +86,60 @@ class AnnotatieStore:
                 status=doc.status.value,
                 elementen=[e.model_dump(mode="json") for e in doc.elementen],
                 runs=[r.model_dump(mode="json") for r in doc.runs],
+                laag_sleutel=doc.laag_sleutel,
+                leden={k: w.model_dump(mode="json") for k, w in doc.leden.items()},
                 created=now,
                 updated=now,
             ))
+
+    async def laad_laag(self, sleutel: str) -> AnnotatieDocument | None:
+        async with db.get_engine().connect() as conn:
+            row = (await conn.execute(
+                select(db.annotatie_documenten).where(db.annotatie_documenten.c.laag_sleutel == sleutel)
+            )).first()
+        return _naar_document(row) if row else None
+
+    async def haal_of_maak_laag(
+        self, bwb_id: str, artikel: str, citeertitel: str, client_id: str,
+    ) -> tuple[AnnotatieDocument, bool]:
+        """De gedeelde laag van dit artikel, en of hij net is aangemaakt.
+
+        Insert-dan-herlaad in plaats van check-dan-insert: twee Lex-runs op hetzelfde artikel
+        tegelijk mogen er geen twee lagen van maken, en dat dwingt de unieke index af – niet deze
+        code. Verliest deze aanroep de race, dan leest hij de laag van de winnaar.
+        """
+        sleutel = laag_sleutel(bwb_id, artikel)
+        if (bestaand := await self.laad_laag(sleutel)) is not None:
+            return bestaand, False
+        doc = AnnotatieDocument(
+            slug=uuid.uuid4().hex[:16], client_id=client_id, citeertitel=citeertitel,
+            bwbId=bwb_id.strip().upper(), artikel="".join(artikel.split()), laag_sleutel=sleutel,
+        )
+        try:
+            await self.maak_document(doc)
+        except IntegrityError:
+            winnaar = await self.laad_laag(sleutel)
+            if winnaar is None:
+                raise
+            return winnaar, False
+        return await self.laad_laag(sleutel), True  # type: ignore[return-value]
+
+    async def lijst_lagen(
+        self, mijn_user_id: str | None = None, bwb_id: str | None = None,
+        limit: int = 50, offset: int = 0,
+    ) -> list[AnnotatieDocument]:
+        """De gedeelde lagen, meest recent eerst. `mijn_user_id` beperkt tot lagen waar die gebruiker
+        iets aan deed – dat staat in de audit, want een laag heeft geen eigenaar."""
+        t = db.annotatie_documenten
+        q = select(t).where(t.c.laag_sleutel != "")
+        if bwb_id:
+            q = q.where(t.c.bwbId == bwb_id.strip().upper())
+        if mijn_user_id:
+            a = db.annotatie_audit
+            q = q.where(exists().where(a.c.document_slug == t.c.slug, a.c.actor == mijn_user_id))
+        async with db.get_engine().connect() as conn:
+            rows = (await conn.execute(q.order_by(t.c.updated.desc()).limit(limit).offset(offset))).all()
+        return [_naar_document(r) for r in rows]
 
     async def laad_document(self, slug: str) -> AnnotatieDocument | None:
         async with db.get_engine().connect() as conn:
@@ -78,6 +153,8 @@ class AnnotatieStore:
             rows = (await conn.execute(
                 select(db.annotatie_documenten)
                 .where(db.annotatie_documenten.c.user_id == user_id)
+                # Opgegaan in een laag: die staat in de lagenlijst, niet nog eens hier.
+                .where(db.annotatie_documenten.c.samengevoegd_in == "")
                 .order_by(db.annotatie_documenten.c.updated.desc())
                 .limit(limit).offset(offset)
             )).all()
@@ -93,6 +170,9 @@ class AnnotatieStore:
         async with db.get_engine().connect() as conn:
             rows = (await conn.execute(
                 select(db.annotatie_documenten)
+                # Een samengevoegd document staat met zijn elementen óók in de laag; meetellen zou
+                # elke beslissing in de statistiek verdubbelen.
+                .where(db.annotatie_documenten.c.samengevoegd_in == "")
                 .order_by(db.annotatie_documenten.c.updated.desc())
                 .limit(limit)
             )).all()
@@ -128,8 +208,20 @@ class AnnotatieStore:
             if row is None:
                 return None
             doc = _naar_document(row)
-            if doc.user_id != user_id:
+            if not mag_zien(doc, user_id):
                 return None
+            if doc.samengevoegd_in:
+                # Het document is opgegaan in een laag: schrijven gaat naar de laag. Anders landt
+                # een beslissing vanuit een oude chatverwijzing in een rij die niemand meer ziet.
+                slug = doc.samengevoegd_in
+                row = (await conn.execute(
+                    select(db.annotatie_documenten)
+                    .where(db.annotatie_documenten.c.slug == slug)
+                    .with_for_update()
+                )).first()
+                if row is None:
+                    return None
+                doc = _naar_document(row)
             if if_match is not None and if_match != etag_van(doc):
                 return CONFLICT
             uitkomst = muteer(doc)
@@ -141,11 +233,15 @@ class AnnotatieStore:
                 .values(
                     elementen=[e.model_dump(mode="json") for e in doc.elementen],
                     runs=[r.model_dump(mode="json") for r in doc.runs],
+                    leden={k: w.model_dump(mode="json") for k, w in doc.leden.items()},
                     status=doc.status.value,
                     updated=now,
                 )
             )
         doc.updated = now
+        # Ná de commit: de projectie leest de laag opnieuw, en moet dan deze stand zien.
+        from . import graaf_projectie
+        graaf_projectie.na_mutatie(self, doc)
         return doc
 
     async def beslis_op_element(
@@ -205,11 +301,102 @@ class AnnotatieStore:
                 for actie, element_id, detail in regels
             ])
 
-    async def lees_audit(self, slug: str, limit: int = 200, offset: int = 0) -> list[AuditRecord]:
+    async def samengevoegde_slugs(self, laag_slug: str) -> list[str]:
+        """De per-gebruiker-documenten die bij de migratie in deze laag zijn opgegaan."""
+        t = db.annotatie_documenten
+        async with db.get_engine().connect() as conn:
+            rows = (await conn.execute(select(t.c.slug).where(t.c.samengevoegd_in == laag_slug))).all()
+        return [r[0] for r in rows]
+
+    async def te_migreren(self) -> tuple[list[AnnotatieDocument], dict[str, AnnotatieDocument]]:
+        """Alle per-gebruiker-documenten die nog niet in een laag zijn opgegaan, plus de bestaande
+        lagen per sleutel."""
+        t = db.annotatie_documenten
+        async with db.get_engine().connect() as conn:
+            rows = (await conn.execute(select(t).where(or_(
+                t.c.laag_sleutel != "", t.c.samengevoegd_in == "")))).all()
+        docs = [_naar_document(r) for r in rows]
+        return ([d for d in docs if not d.laag_sleutel],
+                {d.laag_sleutel: d for d in docs if d.laag_sleutel})
+
+    async def pas_samenvoeging_toe(self, plan: "LaagPlan") -> bool:
+        """Eén laag uit het plan wegschrijven, in één transactie: het doel wordt (of blijft) de laag,
+        de bronnen gaan erin op. Beide in dezelfde transactie – half gemigreerd zou elementen dubbel
+        laten verschijnen: in de laag én in een document dat nog in iemands lijst staat.
+
+        `False` = het doel is sinds het plannen gewijzigd (een Lex-run of een beslissing ertussen).
+        Dan wordt er niets geschreven: overschrijven zou dat werk wissen. Opnieuw draaien plant op de
+        nieuwe stand."""
+        t = db.annotatie_documenten
+        now = db.utcnow()
+        async with db.get_engine().begin() as conn:
+            row = (await conn.execute(
+                select(t.c.updated).where(t.c.slug == plan.doel_slug).with_for_update())).first()
+            if row is None or db.aware(row[0]) != plan.doel_updated:
+                return False
+            await conn.execute(update(t).where(t.c.slug == plan.doel_slug).values(
+                elementen=[e.model_dump(mode="json") for e in plan.elementen],
+                runs=[r.model_dump(mode="json") for r in plan.runs],
+                status=plan.status.value,
+                laag_sleutel=plan.sleutel, user_id="", lid="",
+                updated=now,
+            ))
+            if plan.bronnen:
+                await conn.execute(update(t).where(t.c.slug.in_(plan.bronnen)).values(
+                    samengevoegd_in=plan.doel_slug))
+        from . import graaf_projectie
+        if (laag := await self.laad_document(plan.doel_slug)) is not None:
+            graaf_projectie.na_mutatie(self, laag)
+        return True
+
+    # --- outbox van de graafprojectie ---------------------------------------------------------------
+
+    async def markeer_geprojecteerd(self, slug: str, tot) -> None:
+        """Overschrijven, geen maximum: een trage, oudere projectie laat de laag zo vuil achter."""
+        t = db.annotatie_documenten
+        async with db.get_engine().begin() as conn:
+            await conn.execute(update(t).where(t.c.slug == slug).values(geprojecteerd_tot=tot))
+
+    async def vuile_lagen(self, limit: int = 50) -> list[str]:
+        t = db.annotatie_documenten
+        async with db.get_engine().connect() as conn:
+            rows = (await conn.execute(
+                select(t.c.slug).where(t.c.laag_sleutel != "")
+                .where(or_(t.c.geprojecteerd_tot.is_(None), t.c.geprojecteerd_tot < t.c.updated))
+                .order_by(t.c.updated).limit(limit)
+            )).all()
+        return [r[0] for r in rows]
+
+    async def maak_lagen_vuil(self) -> None:
+        t = db.annotatie_documenten
+        async with db.get_engine().begin() as conn:
+            await conn.execute(update(t).where(t.c.laag_sleutel != "").values(geprojecteerd_tot=None))
+
+    async def geprojecteerde_lagen(self) -> list[AnnotatieDocument]:
+        t = db.annotatie_documenten
+        async with db.get_engine().connect() as conn:
+            rows = (await conn.execute(
+                select(t).where(t.c.laag_sleutel != "").where(t.c.geprojecteerd_tot.is_not(None))
+            )).all()
+        return [_naar_document(r) for r in rows]
+
+    async def projectie_telling(self) -> dict[str, int]:
+        t = db.annotatie_documenten
+        async with db.get_engine().connect() as conn:
+            rows = (await conn.execute(
+                select(t.c.geprojecteerd_tot, t.c.updated).where(t.c.laag_sleutel != ""))).all()
+        vuil = sum(1 for tot, upd in rows if tot is None or db.aware(tot) < db.aware(upd))
+        return {"lagen": len(rows), "achterstand": vuil}
+
+    async def lees_audit(
+        self, slug: str, limit: int = 200, offset: int = 0, ook: list[str] | None = None,
+    ) -> list[AuditRecord]:
+        """De tijdlijn van één document; `ook` voegt de tijdlijnen van samengevoegde documenten toe
+        (op id, dus in de volgorde waarin het gebeurde)."""
         async with db.get_engine().connect() as conn:
             rows = (await conn.execute(
                 select(db.annotatie_audit)
-                .where(db.annotatie_audit.c.document_slug == slug)
+                .where(db.annotatie_audit.c.document_slug.in_([slug, *(ook or [])]))
                 .order_by(db.annotatie_audit.c.id)
                 .limit(limit).offset(offset)
             )).all()

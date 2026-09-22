@@ -213,7 +213,31 @@ annotatie_documenten = Table(
     Column("runs", _JSON, nullable=False, default=list),
     Column("created", _DT, nullable=False),
     Column("updated", _DT, nullable=False),
+    # Gevuld = dit is de GEDEELDE laag van één artikel ("{BWBID}:{artikel}"), niet een document van
+    # één gebruiker. Leeg voor de per-gebruiker-documenten van vóór de lagen. Eén laag per artikel
+    # wordt door de partiële unieke index hieronder afgedwongen, niet door een check-then-insert:
+    # twee Lex-runs op hetzelfde artikel mogen er geen twee lagen van maken.
+    Column("laag_sleutel", String(128), nullable=False, server_default="", default=""),
+    # De actuele brontekststand per lid: {lid: {hash, iri, bijgewerkt}}. Hieraan ziet de merge of een
+    # lid sinds de vorige annotatie veranderd is. graph-qa levert de hashes; de api heeft geen
+    # wettekst en rekent ze dus nooit zelf uit.
+    Column("leden", _JSON, nullable=True, default=dict),
+    # Een per-gebruiker-document dat bij de migratie is opgegaan in de laag met deze slug. De rij
+    # blijft staan (oude chatberichten verwijzen ernaar en de audit hangt eraan); lezen en schrijven
+    # volgen de verwijzing.
+    Column("samengevoegd_in", String(255), nullable=False, server_default="", default=""),
+    # Tot welke `updated` deze laag in de kennisgraaf staat. Kleiner dan `updated` (of leeg) = de
+    # projectie loopt achter; de reconcile-lus pakt hem op. Zo is deze kolom de outbox, zonder een
+    # aparte tabel die met de laag in de pas moet blijven.
+    Column("geprojecteerd_tot", _DT, nullable=True),
     Index("ix_annotatie_docs_user_updated", "user_id", "updated"),
+    Index(
+        "ux_annotatie_laag",
+        "laag_sleutel",
+        unique=True,
+        sqlite_where=text("laag_sleutel <> ''"),
+        postgresql_where=text("laag_sleutel <> ''"),
+    ),
 )
 
 # Append-only audit trail: de onwijzigbare geschiedenis (event-log) náást de huidige documentstaat.

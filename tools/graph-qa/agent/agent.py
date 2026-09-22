@@ -138,6 +138,7 @@ async def answer_stream(
     graph: GraphPort | None = None,
     stop_check: Callable[[], bool] | None = None,
     meter: Verbruiksmeter | None = None,
+    hergebruik: str = "auto",
 ) -> AsyncIterator[dict[str, Any]]:
     """
     Async generator die SSE-events yield:
@@ -207,6 +208,10 @@ async def answer_stream(
         # tweede vraag in hetzelfde gesprek tegen de tekst van de vórige bepaling – precies de
         # verwisseling die de gerichte ophaal moet uitsluiten.
         "corpus": "",
+        "artikel_corpus": "",
+        "lidstand": [],
+        "hergebruik_modus": hergebruik,
+        "hergebruik": {},
         "voorstellen": [],
         "verworpen_fragmenten": [],
         "critic_feedback": [],

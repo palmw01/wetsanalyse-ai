@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, Field, ValidationError, computed_field, model_validator
 
@@ -85,6 +86,14 @@ class AgentRun(BaseModel):
     agent_versie: str = ""
     critic_rondes: int = 0       # aantal herzieningen in deze beurt
     stop_reden: str = ""         # waaróm de annotatielus eindigde
+    # Wat deze ronde deed en onder welke omstandigheden. Alleen voor herleidbaarheid: hergebruik
+    # kijkt bewust níét naar prompt of model, want de gedeelde laag is "de laatste stand" en niet
+    # "de uitkomst van deze promptversie".
+    modus: str = ""              # "" (oud) | nieuw | opnieuw | hergebruik
+    leden: list[str] = []        # de leden die deze ronde (her)annoteerde of hergebruikte
+    prompt_hash: str = ""
+    methode_versie: str = ""     # hash over de JAS-klassen en de prioriteitsregels
+    instellingen: dict = {}
     tijd: datetime = Field(default_factory=utcnow)
 
 
@@ -164,6 +173,10 @@ class Anker(BaseModel):
     voor: str = ""        # tot 48 tekens context vóór het fragment
     na: str = ""          # tot 48 tekens context erna
     bron_hash: str = ""   # FNV-1a 32-bit over de UTF-8-bytes van de brontekst, als hex
+    # Dezelfde hash over alleen het lidsegment ("2. tekst…") waar het fragment in staat. Daaraan
+    # ziet de gedeelde laag per lid of de tekst sinds de annotatie veranderde; `bron_hash` gaat over
+    # het hele artikel en verandert dus ook als een ánder lid wijzigt.
+    lid_hash: str = ""
 
 
 class AnnotatieElement(BaseModel):
@@ -190,6 +203,11 @@ class AnnotatieElement(BaseModel):
     geproduceerd_door: AgentRun | None = None   # None = agent-ronde van vóór de registratie, of mens
     diff: dict = {}            # bij een edit: {veld: {"voor": ..., "na": ...}}
     beslissingen: list[Beslissing] = []
+    # De wettekst van dit lid is na de annotatie veranderd. Bewust een vlag en geen lifecycle: de
+    # lifecycle is het oordeel van de jurist (goedgekeurd/afgewezen), en dat hoort als historie
+    # bewaard te blijven. Een verouderd element is alleen-lezen en doet niet mee aan ontdubbelen.
+    verouderd: bool = False
+    verouderd_op: datetime | None = None
 
     @model_validator(mode="after")
     def _herstel_herkomst(self):
@@ -206,8 +224,21 @@ class AnnotatieElement(BaseModel):
         return self
 
 
+class LidStand(BaseModel):
+    """De brontekststand van één lid zoals de gedeelde laag hem het laatst zag."""
+
+    hash: str = ""
+    iri: str = ""                 # de lid-node in de BWB-graaf (urn:bwb:…:artikel:n:lid:n)
+    bijgewerkt: datetime | None = None
+
+
 class AnnotatieDocument(BaseModel):
-    """Annotaties per bron (bwbId+artikel[+lid]) binnen een werkgebied."""
+    """Annotaties per bron (bwbId+artikel[+lid]) binnen een werkgebied.
+
+    Met een `laag_sleutel` is dit de **gedeelde laag** van één artikel: zichtbaar en bewerkbaar voor
+    iedereen, zonder eigenaar (`user_id` leeg). Wie wat deed staat per handeling in de audit en in
+    `Beslissing.actor`. Zonder sleutel is het een per-gebruiker-document van vóór de lagen.
+    """
 
     slug: str
     user_id: str = ""       # eigenaar (ingelogde gebruiker); de zichtbaarheid gaat hierop
@@ -222,6 +253,9 @@ class AnnotatieDocument(BaseModel):
     status: DocumentStatus = DocumentStatus.in_review
     elementen: list[AnnotatieElement] = []
     runs: list[AgentRun] = []   # het productiespoor: elke agent-ronde die aan dit document werkte
+    laag_sleutel: str = ""
+    leden: dict[str, LidStand] = {}
+    samengevoegd_in: str = ""   # opgegaan in de laag met deze slug (migratie)
     created: datetime | None = None
     updated: datetime | None = None
 
@@ -351,6 +385,55 @@ class ElementenInvoer(BaseModel):
         return {**data, "elementen": goed, "geweigerd": geweigerd}
 
 
+class LidInvoer(BaseModel):
+    """De brontekststand van één lid zoals graph-qa hem bij deze ronde zag."""
+
+    lid: str = ""
+    hash: str
+    iri: str = ""
+
+
+class LaagElementenInvoer(ElementenInvoer):
+    """De uitkomst van één agent-ronde voor de GEDEELDE laag van een artikel.
+
+    Verschilt op drie punten van `ElementenInvoer`:
+
+    * `leden` draagt per lid de hash van de tekst die de agent zag. Wijkt die af van wat de laag
+      kende, dan worden de oude markeringen van dat lid **verouderd** (niet ingetrokken).
+    * `modus="auto"` is het vangnet onder het hergebruik van graph-qa: voorstellen voor een lid
+      waarvan de hash ongewijzigd is worden genegeerd, want dat lid had hergebruikt moeten worden.
+      Een achterlopende graaf kost daardoor hooguit tokens, nooit reviewstatus. `"opnieuw"` is de
+      expliciete vraag van de jurist en voegt wél toe.
+    * Er wordt **nooit ingetrokken** (`trek_ontbrekende_in` telt hier niet). Opnieuw annoteren is
+      aanvullen: de spreiding tussen runs zou anders onbeoordeeld werk van anderen laten verdwijnen.
+    """
+
+    citeertitel: str = ""
+    leden: list[LidInvoer] = []
+    bron_hash: str = ""          # de hash over het hele artikelcorpus, voor elementen van vóór lid_hash
+    modus: Literal["auto", "opnieuw"] = "auto"
+
+
+class AnkerStempel(BaseModel):
+    element_id: str
+    anker: Anker
+
+
+class HergebruikInvoer(BaseModel):
+    """graph-qa hergebruikte de laag in plaats van opnieuw te annoteren.
+
+    Legt vast dát er hergebruikt is (audit + een run met `modus="hergebruik"`) en stempelt waar
+    nodig de ankers bij naar de actuele positie – oude elementen hebben nog geen `lid_hash`, of hun
+    offsets gingen over één lid in plaats van het hele artikel. Alleen positievelden veranderen;
+    klasse, tekst en oordeel blijven van de jurist.
+    """
+
+    citeertitel: str = ""
+    leden: list[LidInvoer] = []
+    ankers: list[AnkerStempel] = []
+    run: AgentRun | None = None
+
+
 class MensElementInvoer(BaseModel):
     """Eén element dat de JURIST zelf aanmaakt (tekstselectie in het documentpaneel)."""
 
@@ -419,4 +502,6 @@ class DocumentSamenvatting(BaseModel):
     per_aandacht: dict[str, int] = {}
     per_klasse: dict[str, int] = {}
     laatste_model: str = ""      # leeg = geen agent-ronde geregistreerd (of alleen eigen werk)
+    laag_sleutel: str = ""       # gevuld = gedeelde laag
+    verouderd: int = 0           # markeringen bij een oudere versie van de wettekst
     updated: datetime | None = None

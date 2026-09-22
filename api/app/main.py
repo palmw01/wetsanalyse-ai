@@ -87,7 +87,24 @@ async def lifespan(app: FastAPI):
         await verbruik.ensure_seeded(settings)
     except Exception:  # noqa: BLE001 – seeding mag de start nooit blokkeren
         logger.exception("Seeden van het budgetbeleid is mislukt")
+    # De projectie van de annotatielagen naar de kennisgraaf. Zonder GRAPHDB_URL staat hij uit en is
+    # elke hook een no-op; Postgres blijft hoe dan ook de waarheid.
+    projectie_taak = None
+    if settings.graphdb_url:
+        from . import graaf_projectie
+        from .deps import get_annotatie_store
+
+        projector = graaf_projectie.GraafProjector(settings.graphdb_url, settings.graphdb_repository)
+        graaf_projectie.zet_projector(projector)
+        projectie_taak = asyncio.create_task(
+            projector.lus(get_annotatie_store(), settings.jas_projectie_interval_s))
     yield
+    if projectie_taak is not None:
+        from . import graaf_projectie
+
+        projectie_taak.cancel()
+        await graaf_projectie.projector().close()
+        graaf_projectie.zet_projector(None)
     await db.dispose_engine()
 
 

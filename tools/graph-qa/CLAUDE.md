@@ -184,6 +184,15 @@ gemeten (4 sep 2026), niet uit de code afgeleid.
   `follow_verwijzingen` en `context()` volgen daarom `(heeftLid|heeftOnderdeel)+` mee en melden in
   `?vanuit` waar de verwijzing vandaan komt. Zonder dat meldt de tool "geen verwijzingen" op een
   artikel dat er vijf heeft.
+- **De graaf bevat ook JAS-annotatielagen** (`urn:jas:graph:*`, sinds 22 sep 2026, door de api
+  geprojecteerd – zie `docs/wetsanalyse-workbench/jas-annotatie-ontologie.md`). Omdat de queries de
+  union bevragen, moet elke bouwer óf op subjecten onder `urn:bwb:` filteren óf alleen `bwb:`-
+  predicaten volgen. `resolve_begrip` deed geen van beide en gaf op "recht" de JAS-klassen
+  Rechtssubject en Rechtsobject terug (die staan als `skos:Concept` in de jas-ontologie); hij filtert
+  nu op `NS`. `tests/test_annotatielaag_isolatie.py` draait **elke** bouwer uit
+  `test_sparql_syntax.GEVALLEN` op een stuk BWB-graaf met en zonder laag en eist identieke rijen –
+  een nieuwe bouwer valt daar dus vanzelf onder. De laag in die test is een afdruk van de echte
+  projectie; de api bewaakt dat hij actueel blijft (`test_graph_qa_fixture_volgt_de_projectie`).
 - **Het fallback-label van een verwijsdoel staat op `bwb:doelLabel`, niet op `rdfs:label`.** Lees het
   als `COALESCE(rdfs:label, bwb:doelLabel)`: een geïmporteerd doel houdt zijn eigen naam, een stub
   blijft leesbaar. Op `rdfs:label` kwam de fallback náást het echte label te staan (aparte named
@@ -194,6 +203,11 @@ gemeten (4 sep 2026), niet uit de code afgeleid.
 - `provenance.iter_refs` herkent vindplaatsen – BWB-IRI's (`urn:bwb:…`), jci-strings
   (`jci…:c:BWBR…`) en kale BWB-id's – in **tool-resultaten**. `collect_sources` bouwt daaruit de
   ontdubbelde bronnenlijst. Bronnen komen dus nooit uit de prozatekst van het model.
+- **Een annotatie is geen vindplaats.** `urn:jas:annotatie:BWBR0004770:…` bevat een BWB-id, en
+  `iter_refs` telde dat als losse bron – een annotatie leek dan wettekst te onderbouwen die niet was
+  opgehaald. `urn:jas…`-IRI's worden daarom vóór het zoeken weggelaten (`_AFGELEID_RE`). Een
+  `urn:bwb:`-object náást een annotatie telt wél; dat onderscheid (duiding naast wettekst in één
+  resultaat) hoort bij het latere QA-gebruik van de laag, dat bronsoorten apart moet houden.
 - `grounding.check_grounding` past diezelfde herkenning toe op het **antwoord** en markeert citaten
   waarvan het BWB-id niet in de trace voorkomt. Deterministisch, op BWB-granulariteit (geen vals alarm
   op jci-formattering of geparafraseerde IRI's). `curate_sources` snoeit de lijst tot aangehaalde
@@ -297,8 +311,21 @@ was, verloor het werk, ook al had de agent zijn beurt keurig afgemaakt.
 
 `voer_beurt_uit` zit om `answer_stream` heen, verzamelt dezelfde velden als de werkplek deed
 (`doel`/`element`/`run`/`ontbrekend`/`suggestie`/tekst/denk/bronnen) en schrijft aan het eind via
-`agent/wetsanalyse_api.py`: **document → elementen → chatbericht**. Daarna gaat er één
+`agent/wetsanalyse_api.py`: **de gedeelde laag van het artikel → chatbericht**. Daarna gaat er één
 `opgeslagen`-event uit. **Buiten de LangGraph-code**, dus `orchestrator.py` blijft ongemoeid.
+
+**Eén laag per artikel, voor iedereen** (sinds 22 sep 2026). Een annotatiebeurt maakt geen eigen
+document meer maar doet één `PUT /v1/annotatie/lagen/{bwbId}/{artikel}/elementen`; de api maakt de
+laag aan als hij er nog niet is en merget. Mee gaan de **lidstand** (per geannoteerd lid de hash en
+de IRI, van het `doel`-event), de artikelhash en de `modus` (`opnieuw` als de jurist daar expliciet
+om vroeg – `ChatRequest.hergebruik` – anders `auto`). In `auto` negeert de api voorstellen voor een
+lid dat al geannoteerd en ongewijzigd is (`X-Hergebruikt-Leden`); de driver meldt dat als
+`waarschuwing`. Omdat het één PUT is, bestaat "document staat er, markeringen niet" niet meer.
+
+**Response-headers lees je in kleine letters.** httpx geeft ze zo terug; `X-Verworpen` werd tot
+22 sep 2026 met hoofdletters gelezen en was dus altijd 0 – de waarschuwing over verworpen
+markeringen kon nooit afgaan. De tests zagen dat niet omdat ze de client nabootsten;
+`tests/test_gedeelde_laag.py` draait daarom tegen de échte client met een `MockTransport`.
 
 Vier regels die je niet mag omdraaien:
 
@@ -366,6 +393,25 @@ ophaal (agent ⇄ tools) → annoteer → critic₁ → patch ─┬─→ herzi
                                                      ├─→ critic₂ ──────────→ emit
                                                      └─────────────────────→ emit
 ```
+
+**Hergebruik vóór annoteren** (sinds 22 sep 2026, `agent/annotatielaag.py`). Staat het artikel al in
+de gedeelde laag en is de tekst van een lid sindsdien niet veranderd, dan gaat dat lid niet opnieuw
+door het model. De beslissing valt op de **graaf**: twee read-only queries op de named graph van de
+laag (`queries.laagstand`/`laag_markeringen`, met expliciete `GRAPH` – de enige bouwers die de laag
+bewust lezen) leveren per lid de hash, die `deel_leden_in` vergelijkt met de hash van de zojuist
+opgehaalde tekst.
+
+- **Volledig ongewijzigd** → `annoteer` gaat via `route_na_annoteer` rechtstreeks naar `emit`, zonder
+  één LLM-call. `emit` stuurt een `hergebruik`-event (slug, leden, telling), een `run` met
+  `modus="hergebruik"` en een samenvatting; de driver doet `POST …/lagen/…/hergebruik` in plaats van
+  een PUT. De elementen komen **niet** uit de graaf naar de werkplek: die haalt de laag na
+  `opgeslagen` bij de api, want Postgres is de waarheid.
+- **Deels gewijzigd** → alleen de gewijzigde leden gaan naar de annoteerder (het corpus is dan de
+  aaneenschakeling van hún segmenten, dus lid-scoping en `herankeer` blijven kloppen) en alleen hun
+  stand gaat naar de api. Het `hergebruik`-event meldt welke leden zijn overgeslagen.
+- **`hergebruik: "opnieuw"`** (de jurist vraagt er expliciet om) of **geen laag / onleesbare graaf**
+  → gewoon annoteren. Een haperende graaf is nooit een reden om niet te annoteren; de api is het
+  vangnet, en herkent die een lid dat de graaf miste, dan logt de driver `hergebruik_gemist`.
 
 **Lineair, geen cyclus.** De Critic wijst aan wát er mis is, **code** voert de eenduidige correcties
 uit (`annotatie.pas_critic_toe`), en het model draait alleen nog voor wat brontekst lézen vraagt.
@@ -491,7 +537,9 @@ weg: ze bestonden alleen om een cyclus te laten stoppen die er niet meer is.
 - **`emit_node` is de enige plek die annotatie-events uitstuurt.** Zou de Critic dat doen, dan zag de
   werkplek elke tussenversie van de lus voorbijkomen.
 - **Elke beurt meldt zijn herkomst.** `emit_node` stuurt vóór de elementen één `run`-event
-  (`model`/`provider`/`agent_versie`/`critic_rondes`/`stop_reden`); de werkplek legt dat bij de
+  (`model`/`provider`/`agent_versie`/`critic_rondes`/`stop_reden`, en sinds 22 sep 2026 ook
+  `modus`, `leden`, `prompt_hash` en `methode_versie` – vingerafdrukken uit `annotatie_prompt` – plus
+  de instellingen die de uitkomst sturen); de werkplek legt dat bij de
   api vast op het document én per element. Zonder dat is achteraf niet vast te stellen mét welk
   model een markering is gemaakt – precies wat een export moet dragen en wat de latere
   graaf-promotie als provenance nodig heeft. `agent_versie` komt uit `AGENT_VERSION` en valt
@@ -617,6 +665,14 @@ Drie dingen die je verder moet kennen voordat je hieraan werkt:
   fetch-resultaten van de beurt aaneen (haalde de ophaal-agent eerst het hele artikel en daarna het
   lid, dan zit lid 2 er ook in) en elk resultaat is afgekapt op 8000 tekens. `_corpus_uit_trace` is
   alleen nog de terugval als de graaf niets geeft.
+- **Het corpus is het lid, het anker staat op het artikel.** `_scope_voor_doel` haalt in één
+  SPARQL-call zowel wat de annoteerder leest (`corpus`, bij een lid alleen dat lid) als het hele
+  artikel (`artikel_corpus`) met per lid de IRI. Annoteren, Critic en herziening werken op `corpus`;
+  `emit_node` zet de ankers daarna om naar het artikel (`annotatie.herankeer`) en geeft elk anker de
+  `lid_hash` van zijn segment (`annotatie.lid_hashes`). Dat is een verschuiving per segment, geen
+  zoektocht: het gescopete corpus bestaat uit exact dezelfde segmenten. Klopt het segment niet, dan
+  wordt het anker `None`. Het `doel`-event draagt daarom het héle artikel als `leden_teksten`, met
+  `lid` als focus.
 - **Het lid en het anker zijn één beslissing.** `_verwerk` zoekt een fragment binnen het lid dat het
   element zelf noemt (`_lid_segmenten` splitst het corpus op `"\n\n"` – exact, want zo bouwt
   `_leden_en_corpus` hem op; onderdelen hangen met een enkele `"\n"`). Staat het er niet, dan wint
@@ -665,7 +721,7 @@ Drie dingen die je verder moet kennen voordat je hieraan werkt:
 - **SSE-event-contract.** De event-types zijn het contract met de consumenten (de werkplek); wijzig
   ze bewust en gelijktijdig, en over beide wegen gelijk (`/v1/chat` én de run-events).
   Antwoordroute: `status`/`reason`/`token`/`sources`/`grounding`/`done`/`error`. Annotatie-worker:
-  `doel`/`run`/`element`/`ontbrekend`/`suggestie`/`kandidaten`/`opgeslagen`/`waarschuwing`.
+  `doel`/`run`/`element`/`ontbrekend`/`suggestie`/`kandidaten`/`hergebruik`/`opgeslagen`/`waarschuwing`.
   **`reason` = het denkproces** (tool-narratie, live gestreamd); **`token` = alléén het eindantwoord**
   – hou die twee gescheiden zodat de werkplek ze los kan tonen. Niet elk event is een fout:
   `waarschuwing` betekent dat de beurt slaagde maar niet alles bewaard is (zie §*De uitkomst

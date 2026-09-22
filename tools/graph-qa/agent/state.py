@@ -51,6 +51,16 @@ class State(TypedDict, total=False):
     # `_corpus_voor_doel`) en daarna hergebruikt door de Critic en de herziening, zodat alle drie
     # over exact dezelfde bepaling oordelen én er maar één ophaalactie nodig is.
     corpus: str
+    # Het hele artikel rond `corpus`, en per lid in scope de hash en de IRI. De gedeelde
+    # annotatielaag is per artikel: `emit_node` zet de ankers om naar dit corpus (`herankeer`) en de
+    # lidstand gaat mee naar de api, zodat een volgende beurt ziet welk lid veranderde.
+    artikel_corpus: str
+    lidstand: list[dict[str, str]]
+    # "opnieuw" = de jurist vroeg expliciet om een nieuwe ronde op een al geannoteerd artikel.
+    hergebruik_modus: str
+    # Wat er uit de gedeelde laag is hergebruikt (zie `annotatielaag`): slug, leden, telling en of
+    # het volledig was. Leeg = niets hergebruikt.
+    hergebruik: dict[str, Any]
     # Annotatie: de gegronde voorstellen (als dicts) die annoteer_node maakt; critic_node scoort ze
     # met een aandacht-niveau en emit ze dán pas als `element`-events.
     #
