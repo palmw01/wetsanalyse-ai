@@ -170,3 +170,65 @@ def test_de_guard_slaat_aan_op_precies_dit_soort_verschil():
     api = _api_velden("ElementInvoer")
     verschil = _vorm(NieuwVeld.model_fields["aandacht"].annotation) != _vorm(api["aandacht"])
     assert verschil, "als dit gelijk is, bewaakt de guard niets meer"
+
+
+GESPREK_CONTRACT = CONTRACT.with_name("gesprek_contracts.py")
+
+
+def _bericht_velden() -> set[str]:
+    """De velden van `BerichtInvoer` in de api, uit de bron gelezen (zelfde reden als hierboven)."""
+    blok = re.search(r"^class BerichtInvoer\(BaseModel\):(.*?)(?=^class |\Z)",
+                     GESPREK_CONTRACT.read_text(), re.S | re.M)
+    assert blok, "BerichtInvoer niet gevonden"
+    return {m.group(1) for regel in blok.group(1).splitlines()
+            if (m := re.match(r"^\s{4}(\w+)\s*:", regel.split("#")[0]))}
+
+
+@pytest.mark.parametrize("annotatie", [True, False])
+def test_elk_veld_van_het_chatbericht_bestaat_in_de_api(annotatie):
+    """Een veld dat de api niet kent, laat Pydantic stil vallen. Zo verdween `annotatie_doel` na #473:
+    de chip naar het annotatiepaneel stond er direct na de beurt, maar was na het heropenen van het
+    gesprek weg (22 sep 2026). Deze test faalt in plaats van dat een veld ongemerkt verdwijnt."""
+    import asyncio
+    from types import SimpleNamespace
+    from agent import beurt
+    from fakes import make_settings
+
+    verstuurd: list[dict] = []
+
+    class Api:
+        def __init__(self, *args):
+            pass
+        async def zet_bronnode_batch(self, data):
+            return {}
+        async def voeg_bericht_toe(self, gesprek_id, bericht):
+            verstuurd.append(bericht)
+            return {}
+        async def aclose(self):
+            pass
+
+    schrijver = beurt.BeurtSchrijver()
+    schrijver.verwerk({"type": "tool_execution", "run_id": "r1", "call_id": "c1", "tool": "t", "phase": "end"})
+    if annotatie:
+        schrijver.doel = {"schema_versie": 2, "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+                          "snapshot_id": "s", "bereik": [], "label": "Artikel 9, Lid 1"}
+        schrijver.run = {"modus": "nieuw"}
+        schrijver.hergebruik = {"volledig": False}
+    else:
+        schrijver.tekst = "Een antwoord."
+
+    async def leg_vast():
+        original = beurt.WetsanalyseApi
+        beurt.WetsanalyseApi = Api
+        try:
+            return [e async for e in beurt._leg_vast(schrijver, settings=make_settings(),
+                    run=SimpleNamespace(run_id="r1"), gesprek_id="g1", gestopt=False, user_id="jurist")]
+        finally:
+            beurt.WetsanalyseApi = original
+
+    asyncio.run(leg_vast())
+    bericht, = verstuurd
+    if annotatie:
+        assert "annotatie_doel" in bericht  # anders toetst deze test het v2-pad niet
+    onbekend = set(bericht) - _bericht_velden()
+    assert not onbekend, f"de api laat deze velden van het chatbericht vallen: {sorted(onbekend)}"
