@@ -65,3 +65,8 @@ api/*.db
 
 # bwb-import draait op pip; een uv.lock daar is een artefact van een `uv run` zonder --no-project.
 tools/bwb-import/uv.lock
+
+# Lokale werkbestanden – niet in de repo
+.codex/
+afbeeldingen/
+demo/
