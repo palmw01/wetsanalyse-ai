@@ -12,14 +12,15 @@ from typing import Any
 
 from langgraph.config import get_stream_writer
 
-from ..agent_common import kap_toolresultaat
 from ..berichten import _parse_final, _schoon_messages, _trim_messages
 from ..narratie import _stap, _toolregel
 from ..methode import instructies
 from ..prompts import SYSTEM_PROMPT
 from ..specialists import get as get_specialist
 from ..state import State
-from ..tools import anthropic_schemas, dispatch
+from ..tools import anthropic_schemas
+from ..tool_execution import execute_tool
+from ..tools.annotatie_tools import begrens_antwoord
 from .context import Bouw
 
 logger = logging.getLogger("graph_qa.orchestrator")
@@ -129,7 +130,7 @@ def solve_node(b: Bouw, state: State) -> dict[str, Any]:
             _stap(writer, "Graaf bevragen", ", ".join(_toolregel(t) for t in tool_uses))
             results = []
             for tu in tool_uses:
-                result_text = kap_toolresultaat(dispatch(tu["name"], b.graph, tu["input"], b.settings))
+                result_text = execute_tool(b, state, writer, tu)
                 trace.append((tu["name"], result_text))
                 results.append({"type": "tool_result", "tool_use_id": tu["id"], "content": result_text})
             msgs.append({"role": "user", "content": results})
@@ -146,6 +147,8 @@ def solve_node(b: Bouw, state: State) -> dict[str, Any]:
     if enkelvoudig:
         # Simpele vraag: de tool-loze eindbeurt ís het eind-antwoord (geen synthese) → als token.
         antwoord = findings[0]["antwoord"] if findings else ""
+        if state.get("annotaties_lezen"):
+            antwoord = begrens_antwoord(antwoord, trace)
         upd["answer"] = antwoord
         if antwoord:
             writer({"type": "token", "content": antwoord})
@@ -178,9 +181,14 @@ def synthesize_node(b: Bouw, state: State) -> dict[str, Any]:
     ) as stream:
         for delta in stream.text_deltas:
             parts.append(delta)
-            writer({"type": "token", "content": delta})
+            if not state.get("annotaties_lezen"):
+                writer({"type": "token", "content": delta})
         stream.final_message()
-    return {"answer": "".join(parts).strip()}
+    answer = "".join(parts).strip()
+    if state.get("annotaties_lezen"):
+        answer = begrens_antwoord(answer, state.get("source_trace", []))
+        writer({"type": "token", "content": answer})
+    return {"answer": answer}
 
 def resynth_node(b: Bouw, state: State) -> dict[str, Any]:
     """Ongegronde synthese → markeer voor één her-synthese (synthesize_node leest corrected)."""

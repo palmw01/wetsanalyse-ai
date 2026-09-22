@@ -7,6 +7,7 @@ import { BevestigKnop } from "@/components/ui/BevestigKnop";
 import { DOCUMENT_STATUS_LABEL, DOCUMENT_STATUS_STYLE } from "@/lib/annotatie";
 import { naamVan, vindplaatsLabel } from "@/lib/annotatieOverzicht";
 import type { DocumentSamenvatting } from "@/lib/types";
+import { nodeLink } from "@/lib/annotatieNode";
 
 /** "3 dagen geleden" – genoeg om te zien wat blijft liggen, zonder valse precisie. */
 function geleden(iso?: string | null): string {
@@ -40,12 +41,12 @@ export function AnnotatieKaart({
           {/* De hele kaart aanklikbaar maken zou de knoppen eronder onbereikbaar maken voor het
               toetsenbord; daarom is de titel de link. */}
           <h3 className="truncate font-display text-sm font-semibold text-lint">
-            <Link href={`/annotaties/${doc.slug}`} className="focus-ring rounded hover:underline">
+            <Link href={doc.bron_iri ? nodeLink({ bron_iri: doc.bron_iri, snapshot_id: doc.snapshot_id }) : `/annotaties/${doc.slug}`} className="focus-ring rounded hover:underline">
               {naamVan(doc)}
             </Link>
           </h3>
           <p className="text-xs text-muted">
-            {vindplaatsLabel(doc)} · {doc.bwbId}
+            {doc.label || vindplaatsLabel(doc)} · {doc.bwbId}
           </p>
         </div>
         <span
@@ -84,7 +85,7 @@ export function AnnotatieKaart({
 
       <div className="flex flex-wrap items-center gap-2">
         <Link
-          href={`/annotaties/${doc.slug}`}
+          href={doc.bron_iri ? nodeLink({ bron_iri: doc.bron_iri, snapshot_id: doc.snapshot_id }) : `/annotaties/${doc.slug}`}
           className="focus-ring inline-flex min-h-[24px] items-center rounded-full border border-line px-2.5 py-0.5 text-[11px] font-medium text-lint transition-colors hover:bg-surface coarse:min-h-[44px]"
         >
           Openen
@@ -94,7 +95,7 @@ export function AnnotatieKaart({
             gesprek juist met rust: dat blijft staan met een kaart die zegt dat de annotatie weg is. */}
         {/* Een gedeelde laag draagt het werk van meerdere juristen en is niet te verwijderen – de
             api weigert het ook. Alleen een oud per-gebruiker-document heeft nog deze knop. */}
-        {!doc.laag_sleutel && (
+        {!doc.laag_sleutel && !doc.bron_iri && (
         <BevestigKnop
           bevestigTekst="Verwijderen?"
           onBevestig={() => onVerwijder(doc.slug)}

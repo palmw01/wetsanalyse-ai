@@ -101,6 +101,7 @@ def build_graph(
     llm: LLMPort,
     graph: GraphPort,
     stop_check: Callable[[], bool] | None = None,
+    annotaties=None,
 ) -> StateGraph:
     """Bouw de (ongecompileerde) toestandsgraaf; de wrapper compileert 'm met een checkpointer."""
     # `model` is het sterke model: annoteerder, Critic, herziener en de QA-specialisten. De router
@@ -143,12 +144,16 @@ def build_graph(
                                     f"lid {c['lid']}" if c.get("lid") else "") if x)
         if plek:
             regels.append(f"Bepaling: {plek}")
+        for veld, label in (("bron_iri", "Bronnode"), ("element_id", "Annotatie-ID"),
+                            ("snapshot_id", "Getoonde bronsnapshot")):
+            if c.get(veld):
+                regels.append(f"{label}: {c[veld]}")
         if c.get("klasse"):
             regels.append(f"Voorgestelde JAS-klasse: {c['klasse']}")
         if c.get("fragment"):
             regels.append(f'Fragment: "{c["fragment"]}"')
         if c.get("corpus"):
-            regels.append(f"\nArtikeltekst:\n{truncate(str(c['corpus']), 6000)}")
+            regels.append(f"\nBrontekst:\n{truncate(str(c['corpus']), 6000)}")
         regels += [
             "--- EINDE ---",
             "",
@@ -196,6 +201,7 @@ def build_graph(
         settings=settings, llm=llm, graph=graph, stop_check=stop_check,
         model=model, model_router=model_router, model_ophaal=model_ophaal,
         memory_context=_memory_context, corpus=_corpus, advies_context=_advies_context,
+        annotaties=annotaties,
     )
 
 

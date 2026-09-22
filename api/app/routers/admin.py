@@ -754,6 +754,8 @@ async def migreer_naar_lagen(dry_run: bool = Query(True)):
     Idempotent: een tweede run vindt geen documenten meer. Een laag die tussen plannen en schrijven
     veranderde wordt overgeslagen (`overgeslagen`), niet overschreven – dan gewoon opnieuw draaien.
     """
+    from ..annotatie_v2_contract_guard import require_legacy_migration
+    require_legacy_migration()
     store = get_annotatie_store()
     docs, lagen = await store.te_migreren()
     plannen = plan_samenvoeging(docs, lagen)

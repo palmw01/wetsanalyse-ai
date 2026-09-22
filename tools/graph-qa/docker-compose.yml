@@ -1,7 +1,9 @@
 services:
   graph-qa:
     image: graph-qa:latest
-    build: .
+    build:
+      context: ../..
+      dockerfile: tools/graph-qa/Dockerfile
     restart: unless-stopped
     ports:
       - "${PORT:-8080}:8080"

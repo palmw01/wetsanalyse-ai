@@ -22,6 +22,7 @@ from collections.abc import Iterable, Iterator
 
 from .models import Source
 from .namespace import vindplaats_patroon
+from .tools.annotatie_tools import ANNOTATIE_TOOL_NAMEN
 
 # Backslash uitgesloten uit de char-class zodat een naijlende escape (bv. "...g=2026-07-01\\")
 # niet mee in de IRI/jci wordt gezogen.
@@ -89,7 +90,7 @@ def collect_sources(entries: Iterable[tuple[str, str]]) -> list[Source]:
     seen: set[str] = set()
 
     for tool, text in entries:
-        if not text:
+        if not text or tool in ANNOTATIE_TOOL_NAMEN:
             continue
         for uri, iri, jci in iter_refs(text):
             if uri in seen:

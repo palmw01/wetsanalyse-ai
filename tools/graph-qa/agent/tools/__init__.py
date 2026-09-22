@@ -13,6 +13,7 @@ De registry levert twee dingen aan de loop:
 from __future__ import annotations
 
 import logging
+import json
 import re
 from collections.abc import Callable
 from typing import Any
@@ -23,6 +24,7 @@ from ..graph import queries, schema
 from ..mcp_client import MCPError
 from ..ports import GraphPort
 from .jas_tools import JAS_TOOL_NAMEN, JAS_TOOLS  # noqa: F401 – re-exporteerd voor orchestrator
+from .annotatie_tools import ANNOTATIE_TOOLS, ANNOTATIE_TOOL_NAMEN, dispatch_annotatie
 
 logger = logging.getLogger("graph_qa.tools")
 
@@ -494,6 +496,7 @@ TOOLS: list[dict[str, Any]] = [
     },
 ]
 
+TOOLS += ANNOTATIE_TOOLS
 _BY_NAME: dict[str, dict[str, Any]] = {t["name"]: t for t in TOOLS + JAS_TOOLS}
 
 
@@ -524,11 +527,21 @@ def _graaf_is_weg(exc: Exception) -> bool:
     return bool(_GRAAF_WEG_RE.search(str(exc)))
 
 
-def dispatch(name: str, graph: GraphPort, args: dict[str, Any] | None, settings: Any = None) -> str:
+def dispatch(name: str, graph: GraphPort, args: dict[str, Any] | None, settings: Any = None,
+             *, annotaties=None) -> str:
     tool = _BY_NAME.get(name)
     if tool is None:
         return f"Onbekende tool: {name}"
     try:
+        if name in ANNOTATIE_TOOL_NAMEN:
+            if annotaties is None and settings is not None:
+                from ..annotatie_read import AnnotatieReadApi
+                annotaties = AnnotatieReadApi(settings, getattr(settings, "annotatie_read_user_id", ""))
+            try:
+                return dispatch_annotatie(name, args or {}, annotaties)
+            except (ValueError, TypeError, KeyError) as exc:
+                return json.dumps({"status": "invalid_request", "volledig": False,
+                                   "reden": "ongeldige_argumenten", "melding": str(exc)}, ensure_ascii=False)
         if tool.get("needs_settings"):
             return tool["handler"](graph, args or {}, settings)
         return tool["handler"](graph, args or {})

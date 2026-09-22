@@ -14,7 +14,7 @@ from __future__ import annotations
 import asyncio
 import json
 
-from agent.agent import answer_stream
+from bron_fakes import answer_stream
 from fakes import FakeGraph, FakeLLM, make_settings, response, text_block, tool_block
 
 # get_lid/get_bepaling leveren SPARQL-TSV met ?tekst; JSON-string-encoded zoals de MCP.
@@ -92,7 +92,7 @@ def test_get_bepaling_route_voor_decimaal_nummer():
     assert doel["nummer"] == "9.1" and doel["artikel"] == "9.1"
     elementen = [e["element"] for e in events if e["type"] == "element"]
     assert len(elementen) == 1
-    assert elementen[0]["vindplaats"] == "BWBR0024096 art. 9.1"
+    assert elementen[0]["vindplaats"] == "BWBR0024096 bepaling 9.1"
 
 
 def test_alternatieven_maken_een_element_niet_geel():
@@ -320,20 +320,18 @@ def test_corpus_blijft_binnen_het_gevraagde_lid():
         llm=llm, graph=graaf,
     ))
 
-    # Het doel draagt sinds de gedeelde laag het HELE artikel (de ankers staan daarop), maar de
-    # lidstand – wat deze beurt annoteerde en naar de laag schrijft – is alleen lid 1.
+    # De canonieke bronnode beperkt zowel zichtbare tekst als annotatie-input tot lid 1.
     doel = next(e for e in events if e["type"] == "doel")["doel"]
-    assert "uitstel van betaling" in doel["leden_teksten"][0]["tekst"]
-    assert [ld["lid"] for ld in doel["leden"]] == ["1"], "lid 2 hoort niet bij deze beurt"
+    assert "uitstel van betaling" not in doel["leden_teksten"][0]["tekst"]
+    assert [s["bron_iri"] for s in doel["segmenten"]] == ["urn:bwb:BWBR0004770:artikel:9:lid:1"]
 
     elementen = [e["element"] for e in events if e["type"] == "element"]
     assert [el["tekst"] for el in elementen] == ["Een belastingaanslag"]
     assert elementen[0]["vindplaats"] == "BWBR0004770 art. 9 lid 1"
 
 
-def test_corpus_valt_terug_op_de_trace_als_de_graaf_niets_geeft():
-    """Geen corpus uit de graaf (onbekende vindplaats, andere structuur) mag de beurt niet slopen:
-    dan is de tekst die de agent zag beter dan geen tekst."""
+def test_onoplosbare_bronnode_valt_niet_terug_op_de_trace():
+    """Een gevonden citaat is geen vervanging voor een canonieke bronnode."""
     llm = FakeLLM([
         response([text_block("WORKERS: annotatie\nPLAN: annoteer art 9 lid 1")], "end_turn"),
         response([tool_block("t1", "get_lid", {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "1"})], "tool_use"),
@@ -344,7 +342,7 @@ def test_corpus_valt_terug_op_de_trace_als_de_graaf_niets_geeft():
 
     def alleen_voor_de_toolcall(query: str) -> str:
         # get_artikel (de gerichte ophaal) levert niets; de lid-query van de agent wél.
-        return "" if "/artikel/9>" in query else LID_TSV
+        return "" if "SELECT DISTINCT ?node ?type ?parent" in query else LID_TSV
 
     events = _run(answer_stream(
         "annoteer artikel 9 lid 1 van de Invorderingswet 1990",
@@ -353,4 +351,5 @@ def test_corpus_valt_terug_op_de_trace_als_de_graaf_niets_geeft():
     ))
 
     elementen = [e["element"] for e in events if e["type"] == "element"]
-    assert {el["klasse"] for el in elementen} == {"Rechtssubject", "Rechtsbetrekking"}
+    assert elementen == []
+    assert llm.index == 3, "geen annotatie of Critic op onoplosbare bron"

@@ -397,9 +397,11 @@ export async function changePassword(current: string, nieuw: string): Promise<vo
 export async function lijstLagen(opties: { mijn?: boolean; limit?: number } = {}): Promise<DocumentSamenvatting[]> {
   const qs = new URLSearchParams({ limit: String(opties.limit ?? 200) });
   if (opties.mijn) qs.set("mijn", "true");
-  return json<DocumentSamenvatting[]>(
-    await fetch(`/api/annotatie/lagen?${qs}`, { cache: "no-store" }),
-  );
+  const [legacy, nodes] = await Promise.all([
+    fetch(`/api/annotatie/lagen?${qs}`, { cache: "no-store" }).then(json<DocumentSamenvatting[]>),
+    fetch(`/api/annotatie/v2/node-lagen?${qs}`, { cache: "no-store" }).then(json<DocumentSamenvatting[]>),
+  ]);
+  return [...nodes, ...legacy];
 }
 
 export async function lijstDocumenten(limit = 200): Promise<DocumentSamenvatting[]> {
@@ -511,6 +513,7 @@ export async function verwijderGesprek(id: string): Promise<void> {
 /** De callbacks waarmee een beurt binnenkomt. Gedeeld door het starten van een run (`startRun`) en
  *  het aanhaken bij een lopende (`volgRun`) – één contract, twee ingangen. */
 export type AgentHandlers = {
+    onToolExecution?: (event: import("./annotatieNode").ToolExecution) => void;
     onStatus?: (m: string) => void;
     onReason?: (t: string) => void;
     onToken?: (t: string) => void;
@@ -541,7 +544,7 @@ export type AgentHandlers = {
   onGat?: (aantal: number) => void;
   /** De agent heeft de uitkomst zelf vastgelegd (bericht + eventueel annotatiedocument). Komt vlak
    *  vóór het einde. Blijft hij uit, dan schrijft de werkplek zelf weg, zoals vroeger. */
-  onOpgeslagen?: (uitkomst: { annotatie_slug: string; run_id: string }) => void;
+  onOpgeslagen?: (uitkomst: { annotatie_slug: string; run_id: string; annotatie_doel?: import("./annotatieNode").NodeDoel }) => void;
   /** De beurt slaagde, maar niet alles is bewaard – bv. een markering die de api niet accepteerde.
    *  Geen fout (het meeste staat er wél), maar de jurist hoort te weten dat er iets ontbreekt. */
   onWaarschuwing?: (bericht: string) => void;
@@ -742,6 +745,7 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
               seq?: number;
               weggevallen?: number;
               annotatie_slug?: string;
+              annotatie_doel?: import("./annotatieNode").NodeDoel;
               run_id?: string;
               // grounding: `niveau` is nieuw; een oudere agent stuurt alleen `grounded`.
               niveau?: AgentGrounding["niveau"];
@@ -800,8 +804,13 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
           const hergebruik = geldig(parseHergebruik, ev.hergebruik, "hergebruik");
           if (hergebruik) handlers.onHergebruik?.(hergebruik);
         }
+        else if (ev.type === "tool_execution") {
+          const { parseToolExecution } = await import("./annotatieNode");
+          const execution = parseToolExecution(ev);
+          if (execution) handlers.onToolExecution?.(execution);
+        }
         else if (ev.type === "opgeslagen")
-          handlers.onOpgeslagen?.({ annotatie_slug: ev.annotatie_slug ?? "", run_id: ev.run_id ?? "" });
+          handlers.onOpgeslagen?.({ annotatie_slug: ev.annotatie_slug ?? "", run_id: ev.run_id ?? "", annotatie_doel: ev.annotatie_doel });
         else if (ev.type === "waarschuwing") handlers.onWaarschuwing?.(ev.message ?? "");
         // `agentFout` onderscheidt dit van een 502 die zegt "de BFF kon graph-qa niet bereiken":
         // die is tijdelijk en mag opnieuw, deze is een uitkomst van de beurt zelf.

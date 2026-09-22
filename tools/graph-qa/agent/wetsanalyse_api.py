@@ -118,6 +118,10 @@ class WetsanalyseApi:
 
     # -- annotatie-domein ------------------------------------------------------------------------
 
+    async def zet_bronnode_batch(self, payload: dict[str, Any]) -> dict[str, Any]:
+        data = {**payload, "elementen": [naar_contract(e) for e in payload.get("elementen", [])]}
+        return await self._post("/v1/annotatie/lagen/batch", data)
+
     async def zet_laag_elementen(
         self,
         *,

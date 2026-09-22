@@ -8,3 +8,8 @@
 .git
 .github
 analyses/
+
+# Lokale credentials mogen nooit in een runtime-image terechtkomen.
+**/.env
+**/.env.*
+!**/.env.example

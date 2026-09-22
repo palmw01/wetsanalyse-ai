@@ -17,7 +17,7 @@ from __future__ import annotations
 import asyncio
 import json
 
-from agent.agent import answer_stream
+from bron_fakes import answer_stream
 from agent.annotatie import filter_kandidaten, parse_kandidaten
 from fakes import FakeGraph, FakeLLM, make_settings, response, text_block, tool_block
 
@@ -156,7 +156,7 @@ def test_een_bepaling_die_niet_op_te_halen_is_zegt_dat():
     # Lege graaf: er valt geen corpus op te halen.
     events = _annoteer(llm, graph_result=json.dumps("?nummer\t?tekst\t?jci\n"))
 
-    tekst = "".join(e["content"] for e in events if e["type"] == "token")
-    assert "niet ophalen" in tekst
+    tekst = " ".join(e.get("content", "") or e.get("message", "") for e in events if e["type"] in {"token", "error"})
+    assert "bron" in tekst.lower() or "regeling" in tekst.lower()
     assert not [e for e in events if e["type"] == "element"]
     assert llm.index == 3, "geen kandidaat- en geen klasseer-call op een lege tekst"

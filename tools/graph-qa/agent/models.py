@@ -13,9 +13,8 @@ from pydantic import BaseModel, model_validator
 class BestaandElement(BaseModel):
     """Een element dat al in het annotatie-document staat, meegestuurd door de werkplek.
 
-    De agent kan niet zelf in het document kijken (dat leeft in de api), dus de werkplek geeft door
-    wat er al ligt. De Critic kan zo ook meekijken op wat de JURIST heeft gemarkeerd – als suggestie,
-    nooit als wijziging.
+    De werkplek stuurt deze context mee bij adviesvragen. De annotatieketen haalt actuele
+    menselijke markeringen zelfstandig uit de API op voor de Critic.
     """
 
     id: str = ""
@@ -30,6 +29,8 @@ class ChatContext(BaseModel):
     in beeld heeft; bij een gewone vraag blijft dit leeg."""
 
     slug: str = ""
+    bron_iri: str = ""
+    snapshot_id: str = ""
     bwbId: str = ""
     artikel: str = ""
     lid: str = ""
@@ -49,6 +50,7 @@ class AgentDoel(BaseModel):
     jurist aanwees. Zonder doel gaat de beurt de gewone weg: supervisor → ophaal-agent.
     """
 
+    bron_iri: str = ""
     bwbId: str = ""
     artikel: str = ""
     lid: str = ""
@@ -63,7 +65,7 @@ class ChatRequest(BaseModel):
     # "advies" = een vraag bij een bestaande annotatie. De supervisor kiest dan niet zelf, maar
     # routeert hard naar de antwoord-worker: zo kan een adviesvraag structureel geen annotatie
     # wijzigen (die route emit simpelweg geen doel/element-events).
-    modus: Literal["auto", "advies"] = "auto"
+    modus: Literal["auto", "advies", "annotaties_lezen"] = "auto"
     context: ChatContext | None = None
     # Een al geannoteerd artikel wordt hergebruikt (`auto`), tenzij de jurist expliciet om een nieuwe
     # ronde vraagt (`opnieuw`). Die voegt toe aan de gedeelde laag; wat beoordeeld is blijft staan.
@@ -85,9 +87,9 @@ class ChatRequest(BaseModel):
         if self.modus != "advies":
             return self
         c = self.context
-        if c is None or not (c.fragment.strip() or c.bwbId.strip()):
+        if c is None or not (c.fragment.strip() or c.bwbId.strip() or c.bron_iri.strip()):
             raise ValueError(
-                "modus 'advies' vraagt een context met minimaal een fragment of een bwbId; "
+                "modus 'advies' vraagt een context met minimaal een fragment, bwbId of bron_iri; "
                 "zonder onderwerp is er niets om over te adviseren"
             )
         return self
@@ -248,6 +250,7 @@ class AnnotatieVoorstel(BaseModel):
     grounded: bool = False
     vindplaats: str = ""               # bwbId/artikel/lid/jci-notatie
     anker: Anker | None = None         # exacte positie in de brontekst; None tot _verwerk() het vult
+    ankers: list[dict[str, Any]] = []   # gevalideerde lokale bronankers, ook bij overspannende elementen
     aandacht: str = ""                 # "" | groen | geel | rood – gezet door de Critic-node
     critic: str = ""                   # korte Critic-motivatie bij het aandacht-niveau
     critic_rondes: list[CriticRonde] = []   # het heen-en-weer per ronde; leeg tot de eerste Critic-pas

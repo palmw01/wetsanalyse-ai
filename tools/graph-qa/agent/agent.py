@@ -27,6 +27,7 @@ from .config import Settings
 from .models import Verbruiksmeter
 from .observability import get_tracer
 from .ports import GraphPort, LLMPort
+from .tools.annotatie_tools import is_leesvraag
 
 logger = logging.getLogger(__name__)
 
@@ -139,6 +140,9 @@ async def answer_stream(
     stop_check: Callable[[], bool] | None = None,
     meter: Verbruiksmeter | None = None,
     hergebruik: str = "auto",
+    user_id: str = "",
+    run_id: str = "",
+    annotaties=None,
 ) -> AsyncIterator[dict[str, Any]]:
     """
     Async generator die SSE-events yield:
@@ -166,7 +170,14 @@ async def answer_stream(
             # halen: de foutpaden yielden geen verbruik meer, en de tokens zijn dan wél op.
             if meter is not None:
                 llm.meter = meter
-        await run_sync(graph.initialize)
+        try:
+            await run_sync(graph.initialize)
+        except Exception:
+            if not is_leesvraag(question, modus):
+                raise
+            # Annotatiezoeken heeft een eigen API-poort. Een defecte brontool mag die read-route
+            # niet uitschakelen; eventuele aanvullende brontools rapporteren hun eigen fout.
+            logger.warning("brongraaf niet beschikbaar; annotatieleesroute blijft bereikbaar", exc_info=True)
     except Exception as exc:
         logger.warning("MCP-verbinding mislukt", exc_info=True)
         yield {"type": "error", "message": f"MCP-verbinding mislukt: {exc}"}
@@ -176,7 +187,7 @@ async def answer_stream(
 
     from .orchestrator import build_graph
 
-    builder = build_graph(settings, llm, graph, stop_check=stop_check)
+    builder = build_graph(settings, llm, graph, stop_check=stop_check, annotaties=annotaties)
     thread_id = conversation_id or uuid.uuid4().hex
     config = {
         "configurable": {"thread_id": thread_id},
@@ -185,6 +196,15 @@ async def answer_stream(
     # Per beurt: nieuwe user-message (append-reducer) + reset van de werkvelden.
     init: dict[str, Any] = {
         "question": question,
+        "run_id": run_id or uuid.uuid4().hex,
+        "user_id": user_id,
+        "annotaties_lezen": is_leesvraag(question, modus),
+        "specialist": "annotaties_lezen" if is_leesvraag(question, modus) else "",
+        "bron_snapshot": {},
+        "annotatie_weergave": {},
+        "corpus_segmenten": [],
+        "hergebruikte_nodes": [],
+        "annotatie_fout": "",
         "messages": [{"role": "user", "content": question}],
         "modus": modus,
         "context": context.model_dump() if hasattr(context, "model_dump") else (context or {}),

@@ -17,6 +17,7 @@ from ..narratie import _stap
 from ..state import State
 from ..methode import instructies
 from ..supervisor import SUPERVISOR_SYSTEM, parse_supervisor
+from ..tools.annotatie_tools import is_leesvraag
 from .context import Bouw
 
 logger = logging.getLogger("graph_qa.orchestrator")
@@ -26,7 +27,13 @@ def supervisor_node(b: Bouw, state: State) -> dict[str, Any]:
     """Bepaalt de worker-keten (antwoord/annotatie) voor deze vraag; zet de eerste worker actief."""
     writer = get_stream_writer()
 
-    if _heeft_opgegeven_doel(state):
+    if is_leesvraag(state.get("question", ""), state.get("modus", "auto")):
+        _stap(writer, "Lex", "raadpleegt bestaande annotaties")
+        return {"specialist": "annotaties_lezen", "worker_plan": ["annotaties_lezen"],
+                "worker_idx": 0, "plan": "bestaande annotaties raadplegen",
+                "afwijzen": False, "annotaties_lezen": True}
+
+    if _heeft_opgegeven_doel(state) and state.get("modus") != "advies":
         # De aanroeper weet welke bepaling geannoteerd moet worden. Dan is er niets te kiezen en
         # niets te zoeken: geen supervisor-call, en `_entry_node` slaat de ophaal-agent over.
         # Wat de router zou beslissen is hier al bekend, en wat de ophaal-agent zou vinden staat
@@ -78,6 +85,8 @@ def _entry_node(b: Bouw, state: State) -> str:
     Wees de vraag afgewezen, dan gaat er geen enkele worker draaien – dat is de hele winst."""
     if state.get("afwijzen"):
         return "afwijzen"
+    if state.get("annotaties_lezen"):
+        return "decompose" if b.settings.enable_decomposition else "agent"
     if state.get("specialist") == "annotatie":
         # Doel al bekend → recht naar de annoteerder; de agent⇄tools-lus zou alleen opzoeken
         # wat de aanroeper al meestuurde. `annoteer_node` haalt het corpus zelf gericht op.

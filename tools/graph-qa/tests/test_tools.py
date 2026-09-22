@@ -7,6 +7,7 @@ from agent.mcp_client import MCPError
 from fakes import FakeGraph, make_settings
 
 EXPECTED = {
+    "search_annotaties", "get_annotatie", "get_annotatiedekking",
     "search_wetgeving", "semantic_search", "get_artikel", "get_lid", "get_bepaling", "list_regelingen",
     "get_regeling_info", "follow_verwijzingen", "verwijst_naar_deze", "referenced_by",
     "inhoudsopgave", "zoek_definitie", "grondslagen", "geldigheid", "bijlagen", "get_context",

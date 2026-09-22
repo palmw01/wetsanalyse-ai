@@ -80,6 +80,8 @@ class Settings(BaseModel):
     # (dan schrijft de werkplek het weg, zoals vroeger) – zo blijft lokaal draaien zonder api mogelijk.
     wetsanalyse_api_url: str = ""
     wetsanalyse_api_token: str | None = None
+    # Alleen voor machine-lokale MCP/CLI-clients; nooit door een modelargument instelbaar.
+    annotatie_read_user_id: str = ""
 
     # API-laag
     qa_api_token: str | None = None
@@ -201,6 +203,7 @@ class Settings(BaseModel):
             "annotatie_prompt_kort": e.get("ANNOTATIE_PROMPT_KORT"),
             "wetsanalyse_api_url": e.get("WETSANALYSE_API_URL"),
             "wetsanalyse_api_token": _read_secret(e, "WETSANALYSE_API_TOKEN"),
+            "annotatie_read_user_id": e.get("ANNOTATIE_READ_USER_ID"),
             "qa_api_token": _read_secret(e, "QA_API_TOKEN"),
             "cors_origins": cors or None,
             "rate_limit": e.get("QA_RATE_LIMIT"),

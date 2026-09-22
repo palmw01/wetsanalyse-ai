@@ -31,7 +31,10 @@ def _doel_uit_json(text: str) -> dict[str, str]:
             data = json.loads(text[s : e + 1])
             if isinstance(data, dict):
                 d = data.get("doel") if isinstance(data.get("doel"), dict) else data
-                return {k: str(d.get(k, "")).strip() for k in ("bwbId", "artikel", "lid", "nummer", "citeertitel")}
+                result = {k: str(d.get(k, "")).strip() for k in ("bwbId", "artikel", "lid", "nummer", "citeertitel")}
+                if d.get("bron_iri"):
+                    result["bron_iri"] = str(d["bron_iri"]).strip()
+                return result
         except json.JSONDecodeError:
             pass
     return {"bwbId": "", "artikel": "", "lid": "", "nummer": "", "citeertitel": ""}
@@ -160,8 +163,18 @@ def _bepaal_doel(state: State) -> dict[str, str]:
     als die uit de trace komt.
     """
     opgegeven = state.get("opgegeven_doel") or {}
+    snapshot = state.get("bron_snapshot") or {}
+    if snapshot.get("doel"):
+        target = snapshot["doel"]
+        return {**target, "bwbId": target.get("bwb_id", ""),
+                "citeertitel": opgegeven.get("citeertitel", "")}
+    if opgegeven.get("bron_iri"):
+        return {**opgegeven, "bwbId": opgegeven.get("bwbId", ""),
+                "artikel": opgegeven.get("artikel", ""), "lid": opgegeven.get("lid", "")}
     uit_tool = _doel_uit_toolcalls(state.get("messages", []))
     uit_json = _doel_uit_json(state.get("answer", ""))
+    if uit_json.get("bron_iri") and not opgegeven:
+        return uit_json
     return {
         k: str(opgegeven.get(k, "") or "").strip() or uit_tool.get(k, "") or uit_json.get(k, "")
         for k in ("bwbId", "artikel", "lid", "nummer", "citeertitel")
@@ -171,6 +184,8 @@ def _bepaal_doel(state: State) -> dict[str, str]:
 def _heeft_opgegeven_doel(state: State) -> bool:
     """Kunnen we meteen annoteren? Alleen met bwbId én een aanduiding is het doel compleet."""
     doel = state.get("opgegeven_doel") or {}
+    if doel.get("bron_iri"):
+        return True
     return bool(str(doel.get("bwbId", "")).strip()
                 and (str(doel.get("artikel", "")).strip() or str(doel.get("nummer", "")).strip()))
 

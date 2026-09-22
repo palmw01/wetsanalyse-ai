@@ -218,7 +218,7 @@ def _check_auth(creds: HTTPAuthorizationCredentials | None = Depends(_bearer)) -
 
 @app.get("/health")
 async def health() -> dict[str, str]:
-    return {"status": "ok"}
+    return {"status": "ok", "annotatie_contract_versie": "2"}
 
 
 @app.post("/v1/chat")
@@ -351,6 +351,7 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
                 request.question, request.conversation_id,
                 modus=request.modus, context=request.context, doel=request.doel,
                 hergebruik=request.hergebruik,
+                user_id=gebruiker, run_id=run.run_id,
                 # Stoppen loopt via deze vlag: de graaf betreedt dan geen nieuwe node meer. Bewust
                 # geen taak-annulering – de nodes zijn synchroon en de MCP-verbinding wordt in een
                 # `finally` gesloten.

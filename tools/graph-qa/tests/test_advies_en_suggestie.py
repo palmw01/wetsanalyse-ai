@@ -10,7 +10,7 @@ from __future__ import annotations
 import asyncio
 import json
 
-from agent.agent import answer_stream
+from bron_fakes import answer_stream
 from agent.models import ChatContext
 from fakes import FakeGraph, FakeLLM, make_settings, response, text_block, tool_block
 

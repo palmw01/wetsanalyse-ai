@@ -21,6 +21,7 @@ WORKDIR /app/api
 # OTEL_EXPORTER_OTLP_ENDPOINT werkt (gated op runtime; zonder endpoint gebeurt er niets).
 # De lock zorgt voor reproduceerbare builds.
 COPY api/pyproject.toml api/uv.lock /app/api/
+COPY packages/bronmodel /app/packages/bronmodel
 RUN uv sync --extra llm --extra otel --frozen
 
 # uv laat een gebundelde setuptools 70.3.0 in de .venv achter; Trivy scant die venv

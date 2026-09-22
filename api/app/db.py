@@ -257,6 +257,30 @@ annotatie_audit = Table(
 )
 
 
+# Bronnode-annotaties: afzonderlijke tabellen, zonder inhoudmigratie of legacy-drops.
+annotatie_v2_state = Table("annotatie_v2_state", metadata,
+    Column("id", Integer, primary_key=True), Column("revisie", Integer, nullable=False, default=0))
+annotatie_v2_snapshots = Table("annotatie_v2_snapshots", metadata,
+    Column("id", String(128), primary_key=True), Column("inhoud", _JSON, nullable=False))
+annotatie_v2_lagen = Table("annotatie_v2_lagen", metadata,
+    Column("id", String(64), primary_key=True), Column("bron_iri", Text, nullable=False, unique=True),
+    Column("revisie", Integer, nullable=False), Column("status", String(24), nullable=False),
+    Column("snapshot_id", String(128), nullable=False), Column("geprojecteerd_revisie", Integer, nullable=False, default=0),
+    Column("updated", _DT, nullable=False))
+annotatie_v2_elementen = Table("annotatie_v2_elementen", metadata,
+    Column("id", String(64), primary_key=True), Column("laag_id", String(64), nullable=False, index=True),
+    Column("inhoud", _JSON, nullable=False))
+annotatie_v2_batches = Table("annotatie_v2_batches", metadata,
+    Column("id", String(128), primary_key=True), Column("payload_hash", String(64), nullable=False),
+    Column("antwoord", _JSON, nullable=False))
+annotatie_v2_dekking = Table("annotatie_v2_dekking", metadata,
+    Column("id", String(64), primary_key=True), Column("bron_iri", Text, nullable=False, index=True),
+    Column("snapshot_id", String(128), nullable=False), Column("inhoud", _JSON, nullable=False))
+annotatie_v2_audit = Table("annotatie_v2_audit", metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True), Column("element_id", String(64), nullable=True),
+    Column("actor", String(64), nullable=False), Column("actie", String(40), nullable=False),
+    Column("detail", _JSON, nullable=False), Column("tijdstip", _DT, nullable=False))
+
 # --- Tokenbudget --------------------------------------------------------------
 # Verbruik is een JOURNAAL, geen teller. Eén rij per LLM-call; de stand van nu is een som over het
 # huidige venster. Dat heeft drie eigenschappen die een teller niet heeft:

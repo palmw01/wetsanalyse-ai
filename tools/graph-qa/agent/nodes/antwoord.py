@@ -11,7 +11,6 @@ from typing import Any
 
 from langgraph.config import get_stream_writer
 
-from ..agent_common import kap_toolresultaat
 from ..berichten import _parse_final, _schoon_messages, _trim_messages
 from ..grounding import check_grounding, curate_sources
 from ..narratie import _grounding_melding, _stap, _toolregel
@@ -20,7 +19,9 @@ from ..provenance import collect_sources
 from ..specialists import DEFAULT as DEFAULT_SPECIALIST
 from ..specialists import get as get_specialist
 from ..state import State
-from ..tools import anthropic_schemas, dispatch
+from ..tools import anthropic_schemas
+from ..tool_execution import execute_tool
+from ..tools.annotatie_tools import begrens_antwoord
 from .context import Bouw
 
 logger = logging.getLogger("graph_qa.orchestrator")
@@ -105,6 +106,9 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         # De tool-loze beurt is het eindantwoord: dát is de leesbare `token`-stroom (de annotatie-
         # route levert JSON, geen antwoord – daar geen token; annoteer_node vat samen).
         antwoord = "\n\n".join(p for p in text_parts if p)
+        if state.get("annotaties_lezen"):
+            antwoord = begrens_antwoord(antwoord, state.get("source_trace", []))
+            upd["messages"] = [{"role": "assistant", "content": [{"type": "text", "text": antwoord}]}]
         upd["answer"] = antwoord
         if stream_naar_denk and antwoord:
             writer({"type": "token", "content": antwoord})
@@ -125,7 +129,7 @@ def tools_node(b: Bouw, state: State) -> dict[str, Any]:
     trace = list(state.get("source_trace", []))
     results = []
     for tu in pending:
-        result_text = kap_toolresultaat(dispatch(tu["name"], b.graph, tu["input"], b.settings))
+        result_text = execute_tool(b, state, writer, tu)
         trace.append((tu["name"], result_text))
         results.append({"type": "tool_result", "tool_use_id": tu["id"], "content": result_text})
     return {

@@ -9,6 +9,7 @@ on:
     branches: [master]
     paths:
       - "tools/graph-qa/**"
+      - "packages/bronmodel/**"
       - ".claude/skills/wetsanalyse/**"
       - "!tools/graph-qa/**/*.md"
       - ".github/workflows/graph-qa-docker-publish.yml"
@@ -42,7 +43,7 @@ jobs:
         uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           enable-cache: true
-      - run: uv sync --extra dev
+      - run: uv sync --extra dev --extra mcp
       - run: uv run python scripts/genereer_jas_klassen.py --check
       - run: uv run pytest -q
 
@@ -82,7 +83,7 @@ jobs:
         id: build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
-          context: tools/graph-qa
+          context: .
           file: tools/graph-qa/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}

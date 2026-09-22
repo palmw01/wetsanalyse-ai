@@ -8,7 +8,7 @@ import type {
   AgentDoelInvoer, AgentGrounding, AgentHergebruik, AgentKandidaat, Bron, OntbrekendItem,
 } from "./types";
 
-export type ThreadItem =
+export type ThreadItem = { tool_executions?: import("./annotatieNode").ToolExecution[] } & (
   | { id: string; type: "user"; tekst: string; over?: string }
   | { id: string; type: "antwoord"; tekst: string; denk?: string; bronnen?: Bron[];
       // De brongetrouwheidstoets van déze beurt. Live; hij reist niet mee in het berichtcontract,
@@ -26,6 +26,7 @@ export type ThreadItem =
       hergebruik?: AgentHergebruik;
       /** De bepaling, zodat "Lex opnieuw laten annoteren" hem kan meegeven. */
       doel?: AgentDoelInvoer;
+      annotatie_doel?: import("./annotatieNode").NodeDoel;
     }
   // De vraag noemde een onderwerp: de agent vond bepalingen, de jurist kiest er één.
-  | { id: string; type: "kandidaten"; tekst: string; kandidaten: AgentKandidaat[] };
+  | { id: string; type: "kandidaten"; tekst: string; kandidaten: AgentKandidaat[] });

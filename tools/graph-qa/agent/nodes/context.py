@@ -37,3 +37,4 @@ class Bouw:
     memory_context: Callable[[State], str]
     corpus: Callable[[State], str]
     advies_context: Callable[[State], str]
+    annotaties: object | None = None

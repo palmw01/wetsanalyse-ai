@@ -70,7 +70,7 @@ raakt "frontend/" && {
   draai "frontend · lint"      frontend npm run lint --silent
   draai "frontend · typecheck" frontend npm run typecheck --silent
 }
-raakt "tools/graph-qa/"   && draai "graph-qa"   tools/graph-qa   uv run --frozen pytest -q -x
+{ raakt "tools/graph-qa/" || raakt "packages/bronmodel/"; } && draai "graph-qa"   tools/graph-qa   uv run --frozen pytest -q -x
 # bwb-import draait op pip + requirements.txt, niet op een uv-project: zonder `python -m`
 # staat de map niet op sys.path en is `app` niet te importeren. `--with-requirements` bouwt
 # de omgeving die er lokaal niet is. `--no-project` is nodig omdat uv anders de map als project
@@ -78,7 +78,7 @@ raakt "tools/graph-qa/"   && draai "graph-qa"   tools/graph-qa   uv run --frozen
 # image-build kan triggeren.
 raakt "tools/bwb-import/" && draai "bwb-import" tools/bwb-import \
   uv run --no-project --with-requirements requirements.txt python -m pytest -q -x
-raakt "api/"              && draai "api"        api              uv run pytest -q -x
+{ raakt "api/" || raakt "packages/bronmodel/"; } && draai "api"        api              uv run pytest -q -x
 
 if [ -n "$mislukt" ]; then
   echo ""

@@ -21,7 +21,7 @@ import json
 
 import pytest
 
-from agent.agent import answer_stream
+from bron_fakes import answer_stream
 from agent.annotatie import pas_critic_toe
 from fakes import FakeGraph, FakeLLM, make_settings, response, text_block, tool_block
 

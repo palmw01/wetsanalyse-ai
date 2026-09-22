@@ -142,6 +142,9 @@ class Settings:
         self.graphdb_url = os.environ.get("GRAPHDB_URL", "").strip().rstrip("/")
         self.graphdb_repository = os.environ.get("GRAPHDB_REPOSITORY", "inning").strip()
         self.jas_projectie_interval_s = float(os.environ.get("JAS_PROJECTIE_INTERVAL", "60"))
+        self.annotatie_contract_versie = int(os.environ.get("ANNOTATIE_CONTRACT_VERSIE", "2"))
+        if self.annotatie_contract_versie not in {1, 2}:
+            raise ValueError("ANNOTATIE_CONTRACT_VERSIE moet 1 of 2 zijn")
 
 @lru_cache
 def get_settings() -> Settings:

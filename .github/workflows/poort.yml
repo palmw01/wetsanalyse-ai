@@ -370,6 +370,11 @@ jobs:
 
           heeft() { echo "$code" | grep -q "^$1" && echo true || echo false; }
           graph_qa=$(heeft 'tools/graph-qa/')
+          api=$(heeft 'api/')
+          if [ "$(heeft 'packages/bronmodel/')" = true ]; then
+            graph_qa=true
+            api=true
+          fi
           if [ -n "$skill" ]; then
             echo "Skill-wijziging gezien: graph-qa-tests draaien voor de methode-drift-guard."
             graph_qa=true
@@ -378,7 +383,7 @@ jobs:
             echo "frontend=$(heeft 'frontend/')"
             echo "graph_qa=$graph_qa"
             echo "bwb_import=$(heeft 'tools/bwb-import/')"
-            echo "api=$(heeft 'api/')"
+            echo "api=$api"
           } | tee -a "$GITHUB_OUTPUT"
 
       # ── frontend ────────────────────────────────────────────────────────────
@@ -405,6 +410,23 @@ jobs:
         working-directory: frontend
         run: npm run typecheck
 
+      - name: frontend – browserregressie bronnodes
+        if: steps.raakt.outputs.frontend == 'true'
+        working-directory: frontend
+        env:
+          AUTH_SECRET: annotatie-browser-test-only-secret
+          AUTH_TRUST_HOST: "true"
+        run: |
+          npx playwright install --with-deps chromium
+          npm run dev -- --hostname 127.0.0.1 --port 3109 > /tmp/annotatie-next.log 2>&1 &
+          next_pid=$!
+          trap 'kill "$next_pid" || true' EXIT
+          for poging in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3109/api/auth/session > /dev/null; then break; fi
+            sleep 1
+          done
+          npm run test:browser
+
       # ── Python-onderdelen ───────────────────────────────────────────────────
       - name: uv installeren
         if: steps.raakt.outputs.api == 'true' || steps.raakt.outputs.graph_qa == 'true'
@@ -419,11 +441,13 @@ jobs:
           # Zet de integratietests van de gedeelde run-store aan; zonder deze slaan ze zichzelf over.
           RUNSTORE_TEST_DSN: postgresql://test:test@localhost:5432/test
         run: |
-          uv sync --extra dev
+          uv sync --extra dev --extra mcp
           uv run python scripts/genereer_jas_klassen.py --check
           uv run pytest -q
 
       - name: api – tests
+        env:
+          ANNOTATIE_TEST_DSN: postgresql+asyncpg://test:test@localhost:5432/test
         if: steps.raakt.outputs.api == 'true'
         working-directory: api
         run: |

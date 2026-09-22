@@ -16,7 +16,9 @@ from datetime import datetime, timezone
 from typing import Any
 
 from langgraph.config import get_stream_writer
+from bronmodel import BronFout
 
+from ..bron_annotatie import bevroren_markeringen
 from ..agent_common import truncate
 from ..annotatie import (
     _fnv1a_32, _lid_segmenten, _verwerk, _verwerk_critic, aanduiding_in_woorden,
@@ -44,6 +46,7 @@ from ..models import AgentRun
 from ..narratie import _annoteer_melding, _critic_melding, _herzien_melding, _stap
 from ..state import State
 from .context import Bouw
+from ..bron_annotatie import lees_bron, controleer_hergebruik, lokale_elementen, doel_event, bron_instructie
 
 logger = logging.getLogger("graph_qa.orchestrator")
 
@@ -77,6 +80,8 @@ def _pas_hergebruik_toe(
     – de api krijgt ook alleen die. `hergebruik` is None als er niets te hergebruiken valt, of als de
     jurist expliciet om een nieuwe ronde vroeg.
     """
+    if bron.get("bron_snapshot"):
+        return controleer_hergebruik(b, state, bron, get_stream_writer())
     if state.get("hergebruik_modus") == "opnieuw" or not bron.get("lidstand"):
         return bron, None
     aanduiding = doel.get("artikel") or doel.get("nummer") or ""
@@ -121,6 +126,8 @@ def _doel_event(doel: dict[str, Any], velden: dict[str, Any]) -> dict[str, Any]:
     de werkplek licht ze op in precies deze tekst. `lid` blijft staan als focus. `leden` en
     `bron_hash` zijn voor het schrijfpad (`beurt._leg_vast`) – die neemt ze mee naar de laag.
     """
+    if velden.get("bron_snapshot"):
+        return doel_event(doel, velden)
     artikel_corpus = velden.get("artikel_corpus") or velden.get("corpus") or ""
     return {
         **doel,
@@ -136,6 +143,8 @@ def annoteer_node(b: Bouw, state: State) -> dict[str, Any]:
     element ertegen. De gegronde voorstellen gaan naar de state; de aparte critic_node scoort ze en
     emit ze dán als `element`-events. annoteer emit alléén `doel` (en een melding bij lege uitkomst)."""
     writer = get_stream_writer()
+    if state.get("annotaties_lezen"):
+        raise ValueError("Een leesroute mag geen annotatie produceren")
 
     # Een ONDERWERP in plaats van een bepaling: de ophaal-agent legt kandidaten voor en wij
     # annoteren nog niets. Welke bepaling de werkvoorraad in gaat is een inhoudelijke keuze van
@@ -156,21 +165,22 @@ def annoteer_node(b: Bouw, state: State) -> dict[str, Any]:
     # `_corpus_voor_doel`: die reconstructie mengt bepalingen en is afgekapt op 8000 tekens.
     aanduiding = doel.get("artikel") or doel.get("nummer") or ""
     try:
-        scope = _scope_voor_doel(doel, b.graph, state.get("source_trace", []))
-    except OngeldigeVindplaats as fout:
+        bron = lees_bron(b, state, doel, writer)
+        bron, hergebruik = _pas_hergebruik_toe(b, state, doel, bron)
+    except (OngeldigeVindplaats, BronFout) as fout:
         # De beurt eindigt hier, en dat is de bedoeling. Doorgaan zou markeringen opleveren onder een
         # aanduiding die de werkplek niet kan openen – de jurist ziet dan pas bij het openen dat er
         # iets mis is, en heeft ondertussen een document in zijn werkvoorraad dat nergens bij hoort.
         melding = (
-            f"Ik kan geen annotatie maken voor {aanduiding!r}: dat is geen geldige aanduiding van een "
-            f"bepaling ({fout}). Noem de bepaling zoals de wet hem nummert – bijvoorbeeld 'artikel 6', "
-            "'artikel 22a' of, bij een beleidsregel, '9.1'."
+            f"Ik kan de gevraagde bepaling nu niet annoteren: {fout}."
         )
         writer({"type": "token", "content": melding})
         return {"answer": melding, "voorstellen": [], "messages": [{"role": "assistant", "content": melding}]}
 
-    corpus, soort = scope.corpus, scope.soort
-    bron = _scope_velden(scope)
+    corpus = bron["corpus"]
+    soort = bron["bron_snapshot"]["doel"]["type"]
+    doel = _bepaal_doel({**state, **bron})
+    aanduiding = doel.get("artikel") or doel.get("nummer") or ""
     if not corpus.strip():
         melding = (
             "Ik kon de gevraagde bepaling niet ophalen om te annoteren – controleer de wet en het "
@@ -179,7 +189,6 @@ def annoteer_node(b: Bouw, state: State) -> dict[str, Any]:
         writer({"type": "token", "content": melding})
         return {"answer": melding, "voorstellen": [], "messages": [{"role": "assistant", "content": melding}]}
 
-    bron, hergebruik = _pas_hergebruik_toe(b, state, doel, bron)
     if hergebruik:
         _stap(writer, "Hergebruik", _hergebruik_melding(hergebruik))
         if hergebruik["volledig"]:
@@ -196,7 +205,7 @@ def annoteer_node(b: Bouw, state: State) -> dict[str, Any]:
     resp = b.llm.create(
         model=b.model,
         max_tokens=8192,
-        system=annotatie_systeemprompt(b.settings.annotatie_prompt_kort),
+        system=annotatie_systeemprompt(b.settings.annotatie_prompt_kort) + bron_instructie(bron),
         tools=[],
         messages=[{"role": "user", "content": annotatie_userprompt(doel.get("bwbId", ""), aanduiding, corpus, doel.get("lid", ""))}],
     )
@@ -206,12 +215,14 @@ def annoteer_node(b: Bouw, state: State) -> dict[str, Any]:
     # de herziening, waar een verwisseld id wél een bestaande markering raakt.
     voorstellen, verworpen = _verwerk(
         llm_text, corpus, doel.get("bwbId", ""), aanduiding, doel.get("lid", ""), soort=soort,
+        bron=bron,
     )
     _stap(writer, "Annoteerder", _annoteer_melding(voorstellen, verworpen))
 
     # Stuur de opgehaalde tekst mee zodat de frontend precies dít toont (één bron, ook voor divisies).
     writer({"type": "doel", "doel": _doel_event(doel, bron)})
-    if not voorstellen:
+    eigen = bevroren_markeringen(bron)
+    if not voorstellen and not eigen:
         leeg = f"Ik vond geen JAS-elementen om te markeren in artikel {aanduiding}" + (
             f" lid {doel['lid']}." if doel.get("lid") else "."
         )
@@ -219,33 +230,6 @@ def annoteer_node(b: Bouw, state: State) -> dict[str, Any]:
         return {"answer": leeg, "voorstellen": [], "verworpen_fragmenten": [], **bron,
                 "hergebruik": hergebruik or {},
                 "messages": [{"role": "assistant", "content": leeg}]}
-    # Markeringen die de JURIST zelf maakte gaan mee als BEVROREN voorstellen: de Critic mag er
-    # iets van vinden (dat is een tweede paar ogen op eigen werk), maar ze doen niet mee in de
-    # herzieningslus en worden nooit gewijzigd. De api weigert dat trouwens ook.
-    # Ze moeten wél over DEZE bepaling gaan: een fragment dat niet letterlijk in het opgehaalde
-    # corpus staat, kan de Critic niet beoordelen. Zonder deze grens oordeelt hij over een
-    # markering uit een ander artikel die de werkplek meestuurde – en dat leest als een
-    # kanttekening op werk dat hier niet ligt.
-    meegestuurd = [
-        e for e in ((state.get("context") or {}).get("bestaande_elementen") or [])
-        if e.get("herkomst") == "mens" and e.get("tekst")
-    ]
-    eigen = [
-        {
-            "id": e.get("id", ""), "klasse": e.get("klasse", ""), "tekst": e.get("tekst", ""),
-            "lid": e.get("lid", ""), "toelichting": "", "alternatieven": [],
-            "grounded": True, "vindplaats": "", "aandacht": "", "critic": "",
-            "van_jurist": True,
-        }
-        for e in meegestuurd
-        if komt_letterlijk_voor(corpus, str(e.get("tekst", "")))
-    ]
-    if len(eigen) < len(meegestuurd):
-        logger.info(
-            "eigen markeringen buiten deze bepaling overgeslagen",
-            extra={"meegestuurd": len(meegestuurd), "beoordeeld": len(eigen)},
-        )
-
     # De verworpen fragmenten gaan mee de state in: de herzieningsronde (zie `route_na_critic`)
     # kan het model daarmee zijn eigen bijna-goede citaten laten repareren.
     return {
@@ -287,11 +271,23 @@ def annoteer_kandidaten_node(b: Bouw, state: State) -> dict[str, Any]:
     # Gebruik het in state gecachede corpus; als dat leeg is haal het gericht op
     # (zelfde strategie als annoteer_node – zonder dit zou een direct-naar-annoteer
     # route met leeg corpus altijd een lege kandidatenlijst opleveren).
-    if state.get("corpus") and state.get("artikel_corpus"):
-        bron = {k: state.get(k) for k in ("corpus", "artikel_corpus", "lidstand")}
-    else:
-        bron = _scope_velden(_scope_voor_doel(doel, b.graph, state.get("source_trace", [])))
+    if state.get("annotaties_lezen"):
+        raise ValueError("Een leesroute mag geen annotatie produceren")
+    try:
+        if state.get("bron_snapshot"):
+            bron = {k: state.get(k) for k in ("corpus", "artikel_corpus", "lidstand", "bron_snapshot",
+                                            "corpus_segmenten", "annotatie_weergave", "hergebruikte_nodes")}
+        else:
+            bron = lees_bron(b, state, doel, writer)
+        bron, hergebruik = _pas_hergebruik_toe(b, state, doel, bron)
+    except (BronFout, OngeldigeVindplaats) as fout:
+        melding = f"Ik kan de gevraagde bron niet annoteren: {fout}."
+        writer({"type": "token", "content": melding})
+        return {"answer": melding, "annotatie_fout": melding, "voorstellen": [],
+                "kandidaten_v2a": [], "corpus": "", "bron_snapshot": {},
+                "messages": [{"role": "assistant", "content": melding}]}
     corpus = bron["corpus"]
+    doel = _bepaal_doel({**state, **bron})
     if not corpus.strip():
         # Zelfde melding als V1. Stil teruggeven liet de klasseer-node hierna een LLM-call doen
         # op een lege tekst, en las de jurist "geen JAS-elementen gevonden" waar "ik kon de
@@ -301,10 +297,9 @@ def annoteer_kandidaten_node(b: Bouw, state: State) -> dict[str, Any]:
             "artikel/lid (bij een beleidsregel bv. '9.1')."
         )
         writer({"type": "token", "content": melding})
-        return {"answer": melding, "voorstellen": [], "kandidaten_v2a": [], "corpus": "",
+        return {"answer": melding, "annotatie_fout": melding, "voorstellen": [], "kandidaten_v2a": [], "corpus": "",
                 "messages": [{"role": "assistant", "content": melding}]}
 
-    bron, hergebruik = _pas_hergebruik_toe(b, state, doel, bron)
     if hergebruik:
         _stap(writer, "Hergebruik", _hergebruik_melding(hergebruik))
         if hergebruik["volledig"]:
@@ -317,7 +312,7 @@ def annoteer_kandidaten_node(b: Bouw, state: State) -> dict[str, Any]:
     resp = b.llm.create(
         model=b.model,
         max_tokens=4096,
-        system=kandidaten_systeemprompt(),
+        system=kandidaten_systeemprompt() + bron_instructie(bron),
         tools=[],
         messages=[{"role": "user", "content": kandidaten_userprompt(
             doel.get("bwbId", ""), aanduiding, corpus, doel.get("lid"),
@@ -345,6 +340,8 @@ def annoteer_klasseer_node(b: Bouw, state: State) -> dict[str, Any]:
     classificeert. Dat voorkomt dat een lege kandidatenlijst het annotatie-proces stillegt.
     """
     writer = get_stream_writer()
+    if state.get("annotatie_fout"):
+        return {"voorstellen": [], "verworpen_fragmenten": []}
     doel = _bepaal_doel(state)
     if (state.get("hergebruik") or {}).get("volledig"):
         writer({"type": "doel", "doel": _doel_event(doel, state)})
@@ -358,7 +355,7 @@ def annoteer_klasseer_node(b: Bouw, state: State) -> dict[str, Any]:
         _stap(writer, "Classificator", "geen kandidaten – gecombineerde aanpak (V1-fallback)")
         resp = b.llm.create(
             model=b.model, max_tokens=8192,
-            system=annotatie_systeemprompt(b.settings.annotatie_prompt_kort), tools=[],
+            system=annotatie_systeemprompt(b.settings.annotatie_prompt_kort) + bron_instructie(state), tools=[],
             messages=[{"role": "user", "content": annotatie_userprompt(
                 doel.get("bwbId", ""), aanduiding, corpus, doel.get("lid"),
             )}],
@@ -368,7 +365,7 @@ def annoteer_klasseer_node(b: Bouw, state: State) -> dict[str, Any]:
               f"classificeert {len(kandidaten)} kandidaten voor art. {aanduiding}")
         resp = b.llm.create(
             model=b.model, max_tokens=8192,
-            system=klasseer_systeemprompt(b.settings.annotatie_prompt_kort), tools=[],
+            system=klasseer_systeemprompt(b.settings.annotatie_prompt_kort) + bron_instructie(state), tools=[],
             messages=[{"role": "user", "content": klasseer_userprompt(
                 doel.get("bwbId", ""), aanduiding, corpus, kandidaten, doel.get("lid"),
             )}],
@@ -377,6 +374,7 @@ def annoteer_klasseer_node(b: Bouw, state: State) -> dict[str, Any]:
     llm_text = "".join(b.text for b in resp.content if b.type == "text")
     voorstellen, verworpen = _verwerk(
         llm_text, corpus, doel.get("bwbId", ""), aanduiding, doel.get("lid"),
+        bron=state,
     )
     _stap(writer, "Classificator", _annoteer_melding(voorstellen, verworpen))
 
@@ -386,7 +384,8 @@ def annoteer_klasseer_node(b: Bouw, state: State) -> dict[str, Any]:
 
     writer({"type": "doel", "doel": _doel_event(doel, state)})
 
-    if not voorstellen:
+    eigen = bevroren_markeringen(state)
+    if not voorstellen and not eigen:
         leeg = (
             f"Ik vond geen JAS-elementen om te markeren in artikel {aanduiding}"
             + (f" lid {doel['lid']}." if doel.get("lid") else ".")
@@ -396,20 +395,6 @@ def annoteer_klasseer_node(b: Bouw, state: State) -> dict[str, Any]:
                 "corpus": corpus,
                 "messages": [{"role": "assistant", "content": leeg}]}
 
-    meegestuurd = [
-        e for e in ((state.get("context") or {}).get("bestaande_elementen") or [])
-        if e.get("herkomst") == "mens" and e.get("tekst")
-    ]
-    eigen = [
-        {
-            "id": e.get("id", ""), "klasse": e.get("klasse", ""), "tekst": e.get("tekst", ""),
-            "lid": e.get("lid", ""), "toelichting": "", "alternatieven": [],
-            "grounded": True, "vindplaats": "", "aandacht": "", "critic": "",
-            "van_jurist": True,
-        }
-        for e in meegestuurd
-        if komt_letterlijk_voor(corpus, str(e.get("tekst", "")))
-    ]
     return {
         "voorstellen": [v.model_dump() for v in voorstellen] + eigen,
         "verworpen_fragmenten": [x.model_dump() for x in verworpen],
@@ -649,7 +634,7 @@ def herzie_node(b: Bouw, state: State) -> dict[str, Any]:
         resp = b.llm.create(
             model=b.model,
             max_tokens=8192,
-            system=herziening_systeemprompt(b.settings.annotatie_prompt_kort),
+            system=herziening_systeemprompt(b.settings.annotatie_prompt_kort) + bron_instructie(state),
             tools=[],
             messages=[{"role": "user", "content": herziening_userprompt(
                 voorstellen, feedback,
@@ -664,6 +649,7 @@ def herzie_node(b: Bouw, state: State) -> dict[str, Any]:
             # Alleen de id's die de herziener zélf voorgelegd kreeg. Verwisselt het model er
             # twee, dan zou het anders element A overschrijven met de inhoud van B.
             geldige_ids={str(v.get("id", "")) for v in voorstellen if v.get("id")},
+            bron=state,
         )
     except Exception as fout:  # noqa: BLE001 – een mislukte herziening mag de annotatie niet breken
         # De sóórt fout mee, nooit het bericht: daar kan prompt- of brontekst in zitten. Zonder dit
@@ -761,9 +747,11 @@ def emit_node(b: Bouw, state: State) -> dict[str, Any]:
     herzieningslus zoveel rondes kan draaien als nodig zonder dat de werkplek tussenversies
     te zien krijgt."""
     writer = get_stream_writer()
+    if state.get("annotaties_lezen"):
+        raise ValueError("Een leesroute mag geen annotatie opslaan")
     voorstellen = list(state.get("voorstellen") or [])
     hergebruik = state.get("hergebruik") or {}
-    if not voorstellen and not hergebruik:
+    if not voorstellen and not hergebruik and not state.get("bron_snapshot"):
         return {}
     doel = _bepaal_doel(state)
     if hergebruik:
@@ -781,7 +769,7 @@ def emit_node(b: Bouw, state: State) -> dict[str, Any]:
     # De gedeelde laag is per artikel: de ankers gaan van wat de annoteerder las naar het hele
     # artikel, met per anker de hash van zijn lid. Hier en niet eerder, want de Critic en de
     # herziening werken op `corpus` – en `emit` is de enige uitgang.
-    voorstellen = herankeer(voorstellen, corpus, state.get("artikel_corpus") or corpus)
+    voorstellen = lokale_elementen(voorstellen, state)
     lidstand = state.get("lidstand") or []
 
     # Vóór de elementen: met welk model deze voorstellen zijn gemaakt. Zonder dit is achteraf
@@ -811,10 +799,12 @@ def emit_node(b: Bouw, state: State) -> dict[str, Any]:
         if v.get("van_jurist"):
             # Geen `element`-event: dit element bestaat al in het document en mag niet opnieuw
             # als voorstel binnenkomen. Alleen het oordeel gaat mee, als suggestie.
-            if v.get("aandacht"):
+            klasse, tekst, waarom = openstaand_voorstel(v, corpus)
+            if v.get("aandacht") or klasse or tekst:
                 writer({"type": "suggestie", "suggestie": {
                     "element_id": v.get("id", ""), "aandacht": v.get("aandacht", ""),
-                    "motivatie": v.get("critic", ""),
+                    "motivatie": waarom or v.get("critic", ""),
+                    "voorstel_klasse": klasse, "voorstel_tekst": tekst,
                 }})
             continue
         if v.get("aandacht") in ("geel", "rood"):
