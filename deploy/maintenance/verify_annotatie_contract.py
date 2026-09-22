@@ -1,6 +1,6 @@
 import json, urllib.request, urllib.error
 from pathlib import Path
-import os, subprocess
+import os, subprocess, time
 
 def az(*args):
  result = subprocess.run(['az',*args,'--only-show-errors','-o','json'],capture_output=True,text=True,check=True)
@@ -14,7 +14,13 @@ headers={'Authorization':'Bearer '+token,'X-User-Id':'palmw01','Content-Type':'a
 def call(path,body=None):
  req=urllib.request.Request(base+path,headers=headers,data=json.dumps(body).encode() if body is not None else None)
  with urllib.request.urlopen(req,timeout=40) as r: return json.load(r)
-c=call('/v1/annotatie/capabilities'); assert c['schema_versie']==int(os.environ['CONTRACT']); print('Contract bevestigd:',c['schema_versie'])
+for attempt in range(30):
+ c=call('/v1/annotatie/capabilities')
+ if c['schema_versie']==int(os.environ['CONTRACT']): break
+ print('Wachten op verkeersomschakeling; huidig contract:',c['schema_versie'],flush=True)
+ time.sleep(4)
+else: raise SystemExit('Nieuwe contractversie niet bereikbaar na 120 seconden')
+print('Contract bevestigd:',c['schema_versie'],flush=True)
 if c['schema_versie']==1: raise SystemExit(0)
 v=call('/v1/annotatie/weergave?bwb_id=BWBR0004770&artikel=9&lid=1')
 print('Doel',json.dumps(v['doel'],ensure_ascii=False))
