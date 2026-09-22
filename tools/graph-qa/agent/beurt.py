@@ -382,6 +382,12 @@ async def _leg_vast(
                 "annotatie_slug": slug,
                 **({"annotatie_doel": opgeslagen_doel} if opgeslagen_doel else {}),
             }
+        elif isinstance(exc, WetsanalyseApiFout) and exc.status == 409 and "Heropen" in exc.reden:
+            # De laag werd afgerond terwijl de beurt liep (vooraf controleert de annotatie-route
+            # dat al). Opnieuw proberen helpt dan niet; heropenen wel.
+            yield {"type": "error", "foutcode": "annotatie_afgerond",
+                   "message": "Deze annotatie is afgerond. De nieuwe voorstellen zijn niet opgeslagen; "
+                              "heropen de annotatie in het paneel als je Lex hem opnieuw wilt laten annoteren."}
         elif isinstance(exc, WetsanalyseApiFout) and exc.status in (409, 412):
             yield {"type": "error", "foutcode": "annotatie_conflict",
                    "message": "De bron of annotatielaag is intussen gewijzigd. De nieuwe voorstellen "

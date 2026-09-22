@@ -40,6 +40,10 @@ def lees_bron(b, state, doel, writer):
             "bron_snapshot": snapshot, "corpus_segmenten": spans}
 
 
+AFGEROND = ("deze annotatie is afgerond. Heropen hem in het annotatiepaneel als ik hem opnieuw of "
+            "verder moet annoteren")
+
+
 def controleer_hergebruik(b, state, bron, writer):
     """De API is leidend, ook vlak na een graafherstart; niet stil dubbel annoteren."""
     snapshot = bron["bron_snapshot"]
@@ -55,16 +59,28 @@ def controleer_hergebruik(b, state, bron, writer):
     if view.get("schema_versie") != 2 or view.get("snapshot_id") != snapshot["snapshot_id"]:
         raise BronFout("De bron veranderde tijdens het ophalen; probeer opnieuw")
     bron = {**bron, "annotatie_weergave": view}
-    if state.get("hergebruik_modus") == "opnieuw":
-        return bron, None
-    if coverage.get("snapshot_id") != snapshot["snapshot_id"]:
-        return bron, None
-    completed = set(coverage.get("bereik") or [])
     selected = {s["bron_iri"] for s in snapshot["segmenten"]}
+    # Een afgeronde laag is bevroren: de api weigert er nieuwe voorstellen in (409). Dat hoort de
+    # jurist vóór een modelronde te horen, niet erna – een volledige ronde kost een minuut en
+    # tokens, en "probeer opnieuw" levert daarna precies hetzelfde op. Afgeronde nodes gaan
+    # daarom mee als "al geannoteerd", zodat er geen nieuw element in belandt. Alleen als er dan
+    # niets overblijft om te doen – geen open node en geen eigen markering van een jurist waar de
+    # Critic advies op kan geven (dat mag wél op een afgeronde laag) – stopt de beurt meteen.
+    afgerond = {laag["bron_iri"] for laag in view.get("lagen") or [] if laag.get("status") == "geaccordeerd"}
+    alles_afgerond = (bool(selected) and selected <= afgerond
+                      and not bevroren_markeringen({**bron, "annotatie_weergave": view}))
+    if state.get("hergebruik_modus") == "opnieuw" or coverage.get("snapshot_id") != snapshot["snapshot_id"]:
+        if alles_afgerond:
+            raise BronFout(AFGEROND)
+        return {**bron, "hergebruikte_nodes": sorted(afgerond & selected)}, None
+    completed = set(coverage.get("bereik") or [])
     full = bool(coverage.get("voltooid") and selected <= completed and coverage.get("parent_context"))
     elements = list(view.get("elementen") or [])
+    # Hergebruiken mag wel: dat voegt niets toe aan de laag.
+    if alles_afgerond and not full:
+        raise BronFout(AFGEROND)
     if not completed:
-        return bron, None
+        return {**bron, "hergebruikte_nodes": sorted(afgerond & selected)}, None
     from .annotatielaag import telling
     reused = {"slug": params["bron_iri"], "status": "", "bijgewerkt": coverage.get("peilmoment", ""),
               "leden": [{"lid": n.get("nummer", ""), "iri": n["bron_iri"], "hash": n["bron_hash"]}
@@ -73,7 +89,8 @@ def controleer_hergebruik(b, state, bron, writer):
               "telling": telling(elements), "volledig": full}
     # Parent-context blijft volledig beschikbaar voor overspannende regels. De prompt vertelt
     # expliciet welke nodes al af zijn; hun lokale elementen mogen niet opnieuw worden voorgesteld.
-    return {**bron, "hergebruikte_nodes": sorted(completed & selected)}, reused
+    # Afgeronde nodes horen daar ook bij: daar mag niets meer bij.
+    return {**bron, "hergebruikte_nodes": sorted((completed | afgerond) & selected)}, reused
 
 
 def lokale_elementen(voorstellen: list[dict[str, Any]], state) -> list[dict[str, Any]]:
