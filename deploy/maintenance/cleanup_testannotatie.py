@@ -1,7 +1,7 @@
 """Eenmalige, begrensde opschoning van de expliciet vrijgegeven testlaag.
 
 Uitvoeren in de API-container, met dezelfde configuratie. Geen generieke purge.
-Een andere inhoud, een tweede document of menselijke beoordeling stopt de actie.
+Een gewijzigde inhoud of menselijke beoordeling stopt de actie.
 """
 import asyncio
 import json
@@ -42,7 +42,8 @@ async def main():
         async with db.get_engine().begin() as conn:
             assert conn.dialect.name == "postgresql", "Deze actie is uitsluitend voor acceptatie-PostgreSQL"
             await conn.execute(text("LOCK TABLE annotatie_documenten IN EXCLUSIVE MODE"))
-            rows = (await conn.execute(select(db.annotatie_documenten))).mappings().all()
+            rows = (await conn.execute(select(db.annotatie_documenten).where(db.annotatie_documenten.c.slug == SLUG))).mappings().all()
+            other_count = (await conn.execute(select(func.count()).select_from(db.annotatie_documenten).where(db.annotatie_documenten.c.slug != SLUG))).scalar_one()
             assert len(rows) == 1 and rows[0]["slug"] == SLUG, "Annotatie-inventaris gewijzigd"
             assert db.aware(rows[0]["updated"]) == UPDATED, "Annotatie gewijzigd"
             if cfg.graphdb_url:
@@ -55,7 +56,7 @@ async def main():
                 exists = (await conn.execute(text("SELECT to_regclass(:name)"), {"name": table})).scalar()
                 if exists:
                     protected[table] = (await conn.execute(text(f'SELECT count(*) FROM "{table}"'))).scalar_one()
-            print(json.dumps({"dry_run": not DO_WRITE, "slug": SLUG, "elementen": 7, "auditregels": audit_count, "beschermd": protected, "graafprojectie_actief": bool(cfg.graphdb_url)}), flush=True)
+            print(json.dumps({"dry_run": not DO_WRITE, "slug": SLUG, "elementen": 7, "auditregels": audit_count, "beschermd": protected, "graafprojectie_actief": bool(cfg.graphdb_url), "overige_documenten": other_count}), flush=True)
             if not DO_WRITE:
                 print("ANNOTATIE_CLEANUP_DRY_RUN_OK", flush=True)
                 return
@@ -69,13 +70,14 @@ DELETE DATA {{ GRAPH <{REGISTER_GRAAF}> {{ <{REGISTER}> <{JAS.inLaag}> <{owner}>
             await conn.execute(delete(db.annotatie_audit).where(db.annotatie_audit.c.document_slug == SLUG))
             result = await conn.execute(delete(db.annotatie_documenten).where(db.annotatie_documenten.c.slug == SLUG))
             assert result.rowcount == 1
+            assert (await conn.execute(select(func.count()).select_from(db.annotatie_documenten).where(db.annotatie_documenten.c.slug != SLUG))).scalar_one() == other_count
             for table, count in protected.items():
                 assert (await conn.execute(text(f'SELECT count(*) FROM "{table}"'))).scalar_one() == count
         if cfg.graphdb_url:
             assert not (await query(f"ASK {{ GRAPH <{graph}> {{ ?s ?p ?o }} }}"))["boolean"]
             assert await query(source_query) == source_before
         async with db.get_engine().connect() as conn:
-            assert (await conn.execute(select(func.count()).select_from(db.annotatie_documenten))).scalar_one() == 0
+            assert (await conn.execute(select(func.count()).select_from(db.annotatie_documenten).where(db.annotatie_documenten.c.slug == SLUG))).scalar_one() == 0
         print("ANNOTATIE_CLEANUP_EXECUTED_OK", flush=True)
 
 asyncio.run(main())
