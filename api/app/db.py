@@ -222,6 +222,10 @@ annotatie_documenten = Table(
     # lid sinds de vorige annotatie veranderd is. graph-qa levert de hashes; de api heeft geen
     # wettekst en rekent ze dus nooit zelf uit.
     Column("leden", _JSON, nullable=True, default=dict),
+    # Een per-gebruiker-document dat bij de migratie is opgegaan in de laag met deze slug. De rij
+    # blijft staan (oude chatberichten verwijzen ernaar en de audit hangt eraan); lezen en schrijven
+    # volgen de verwijzing.
+    Column("samengevoegd_in", String(255), nullable=False, server_default="", default=""),
     Index("ix_annotatie_docs_user_updated", "user_id", "updated"),
     Index(
         "ux_annotatie_laag",

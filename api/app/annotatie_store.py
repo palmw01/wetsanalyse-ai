@@ -9,13 +9,16 @@ blijven (SQLite-tests).
 from __future__ import annotations
 
 import uuid
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 
-from sqlalchemy import delete, exists, insert, select, update
+from sqlalchemy import delete, exists, insert, or_, select, update
 from sqlalchemy.exc import IntegrityError
 
 from . import db
 from .annotatie_contracts import AgentRun, AnnotatieDocument, AnnotatieElement, AuditRecord, LidStand
+
+if TYPE_CHECKING:
+    from .annotatie_migratie import LaagPlan
 
 # Sentinel: het document bestaat (en is van de client) maar het gevraagde element niet.
 GEEN_ELEMENT = object()
@@ -61,6 +64,7 @@ def _naar_document(row) -> AnnotatieDocument:
         laag_sleutel=d["laag_sleutel"] or "",
         # NULL op rijen van vóór de kolom: `reconcile_schema` voegt hem toe zonder waarde.
         leden={k: LidStand.model_validate(w) for k, w in (d["leden"] or {}).items()},
+        samengevoegd_in=d["samengevoegd_in"] or "",
         created=db.aware(d["created"]),
         updated=db.aware(d["updated"]),
     )
@@ -149,6 +153,8 @@ class AnnotatieStore:
             rows = (await conn.execute(
                 select(db.annotatie_documenten)
                 .where(db.annotatie_documenten.c.user_id == user_id)
+                # Opgegaan in een laag: die staat in de lagenlijst, niet nog eens hier.
+                .where(db.annotatie_documenten.c.samengevoegd_in == "")
                 .order_by(db.annotatie_documenten.c.updated.desc())
                 .limit(limit).offset(offset)
             )).all()
@@ -164,6 +170,9 @@ class AnnotatieStore:
         async with db.get_engine().connect() as conn:
             rows = (await conn.execute(
                 select(db.annotatie_documenten)
+                # Een samengevoegd document staat met zijn elementen óók in de laag; meetellen zou
+                # elke beslissing in de statistiek verdubbelen.
+                .where(db.annotatie_documenten.c.samengevoegd_in == "")
                 .order_by(db.annotatie_documenten.c.updated.desc())
                 .limit(limit)
             )).all()
@@ -201,6 +210,18 @@ class AnnotatieStore:
             doc = _naar_document(row)
             if not mag_zien(doc, user_id):
                 return None
+            if doc.samengevoegd_in:
+                # Het document is opgegaan in een laag: schrijven gaat naar de laag. Anders landt
+                # een beslissing vanuit een oude chatverwijzing in een rij die niemand meer ziet.
+                slug = doc.samengevoegd_in
+                row = (await conn.execute(
+                    select(db.annotatie_documenten)
+                    .where(db.annotatie_documenten.c.slug == slug)
+                    .with_for_update()
+                )).first()
+                if row is None:
+                    return None
+                doc = _naar_document(row)
             if if_match is not None and if_match != etag_van(doc):
                 return CONFLICT
             uitkomst = muteer(doc)
@@ -277,11 +298,60 @@ class AnnotatieStore:
                 for actie, element_id, detail in regels
             ])
 
-    async def lees_audit(self, slug: str, limit: int = 200, offset: int = 0) -> list[AuditRecord]:
+    async def samengevoegde_slugs(self, laag_slug: str) -> list[str]:
+        """De per-gebruiker-documenten die bij de migratie in deze laag zijn opgegaan."""
+        t = db.annotatie_documenten
+        async with db.get_engine().connect() as conn:
+            rows = (await conn.execute(select(t.c.slug).where(t.c.samengevoegd_in == laag_slug))).all()
+        return [r[0] for r in rows]
+
+    async def te_migreren(self) -> tuple[list[AnnotatieDocument], dict[str, AnnotatieDocument]]:
+        """Alle per-gebruiker-documenten die nog niet in een laag zijn opgegaan, plus de bestaande
+        lagen per sleutel."""
+        t = db.annotatie_documenten
+        async with db.get_engine().connect() as conn:
+            rows = (await conn.execute(select(t).where(or_(
+                t.c.laag_sleutel != "", t.c.samengevoegd_in == "")))).all()
+        docs = [_naar_document(r) for r in rows]
+        return ([d for d in docs if not d.laag_sleutel],
+                {d.laag_sleutel: d for d in docs if d.laag_sleutel})
+
+    async def pas_samenvoeging_toe(self, plan: "LaagPlan") -> bool:
+        """Eén laag uit het plan wegschrijven, in één transactie: het doel wordt (of blijft) de laag,
+        de bronnen gaan erin op. Beide in dezelfde transactie – half gemigreerd zou elementen dubbel
+        laten verschijnen: in de laag én in een document dat nog in iemands lijst staat.
+
+        `False` = het doel is sinds het plannen gewijzigd (een Lex-run of een beslissing ertussen).
+        Dan wordt er niets geschreven: overschrijven zou dat werk wissen. Opnieuw draaien plant op de
+        nieuwe stand."""
+        t = db.annotatie_documenten
+        now = db.utcnow()
+        async with db.get_engine().begin() as conn:
+            row = (await conn.execute(
+                select(t.c.updated).where(t.c.slug == plan.doel_slug).with_for_update())).first()
+            if row is None or db.aware(row[0]) != plan.doel_updated:
+                return False
+            await conn.execute(update(t).where(t.c.slug == plan.doel_slug).values(
+                elementen=[e.model_dump(mode="json") for e in plan.elementen],
+                runs=[r.model_dump(mode="json") for r in plan.runs],
+                status=plan.status.value,
+                laag_sleutel=plan.sleutel, user_id="", lid="",
+                updated=now,
+            ))
+            if plan.bronnen:
+                await conn.execute(update(t).where(t.c.slug.in_(plan.bronnen)).values(
+                    samengevoegd_in=plan.doel_slug))
+        return True
+
+    async def lees_audit(
+        self, slug: str, limit: int = 200, offset: int = 0, ook: list[str] | None = None,
+    ) -> list[AuditRecord]:
+        """De tijdlijn van één document; `ook` voegt de tijdlijnen van samengevoegde documenten toe
+        (op id, dus in de volgorde waarin het gebeurde)."""
         async with db.get_engine().connect() as conn:
             rows = (await conn.execute(
                 select(db.annotatie_audit)
-                .where(db.annotatie_audit.c.document_slug == slug)
+                .where(db.annotatie_audit.c.document_slug.in_([slug, *(ook or [])]))
                 .order_by(db.annotatie_audit.c.id)
                 .limit(limit).offset(offset)
             )).all()

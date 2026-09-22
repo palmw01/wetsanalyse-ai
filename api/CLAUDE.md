@@ -151,6 +151,16 @@ De API bedient acht dingen:
   - **`POST …/hergebruik`** legt vast dát Lex hergebruikte (audit `laag-hergebruikt`, run met
     `modus="hergebruik"`) en stempelt ankers bij naar de actuele positie – alleen positievelden; een
     anker dat een ander fragment omspant wordt geweigerd. Werkt ook op een afgeronde laag.
+  - **Migratie van de oude documenten** (`annotatie_migratie.py`,
+    `POST /v1/admin/annotatie/migreer-naar-lagen`, standaard `dry_run=true`). Per artikel wordt het
+    recentste document de laag (zijn slug blijft), tenzij er al een laag is; de rest krijgt
+    `samengevoegd_in`. Ontdubbelen op `_sleutel`: een oordeel van een jurist gaat voor op een
+    onbeoordeeld voorstel, bij twee oordelen telt de laatste beslissing en gaat de verliezer volledig
+    in de audit (`migratie-conflict`), bij twee voorstellen wint het recentste document en wordt een
+    andere klasse een alternatief. Een laag die tussen plannen en schrijven veranderde wordt
+    overgeslagen, niet overschreven. Idempotent. Een samengevoegd document blijft bestaan: lezen,
+    schrijven en de audit volgen `samengevoegd_in` (oude chatberichten verwijzen ernaar), en het
+    telt niet meer mee in de eigen lijst of de statistiek.
   - **Eén laag, ook bij gelijktijdigheid.** `haal_of_maak_laag` is insert-dan-herlaad; de unieke
     index beslist. (Niet te testen met twee gelijktijdige requests op de in-memory SQLite: die deelt
     één verbinding en rolt dan ook de insert van de winnaar terug.)

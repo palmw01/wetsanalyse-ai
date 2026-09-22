@@ -45,6 +45,7 @@ from ..llm.litellm_client import build_llm_client
 from ..llm_profile import LlmProfile
 from ..ratelimit import rate_limited_admin_test
 from ..secrets_crypto import SecretsCryptoError, crypto_beschikbaar
+from ..annotatie_migratie import plan_samenvoeging
 from ..annotatie_statistiek import ReviewStatistiek, rapport
 from ..deps import get_annotatie_store
 from .auth import huidige_beheerder, vergeet_actief
@@ -740,6 +741,44 @@ async def get_feedback(offset: int = Query(0, ge=0), limit: int = Query(50, ge=1
         for row in rows
     ]
     return FeedbackAdminPaginaOut(items=items, totaal=totaal)
+
+
+@router.post("/annotatie/migreer-naar-lagen")
+async def migreer_naar_lagen(dry_run: bool = Query(True)):
+    """Voeg de per-gebruiker-annotatiedocumenten samen tot de gedeelde laag per artikel.
+
+    **Standaard een dry-run**: het rapport laat per artikel zien welke documenten samengaan, hoeveel
+    elementen er overblijven en hoeveel oordelen botsten, zonder iets te schrijven. Pas met
+    `dry_run=false` wordt het uitgevoerd. De regels staan in `annotatie_migratie`.
+
+    Idempotent: een tweede run vindt geen documenten meer. Een laag die tussen plannen en schrijven
+    veranderde wordt overgeslagen (`overgeslagen`), niet overschreven – dan gewoon opnieuw draaien.
+    """
+    store = get_annotatie_store()
+    docs, lagen = await store.te_migreren()
+    plannen = plan_samenvoeging(docs, lagen)
+    uitgevoerd, overgeslagen = [], []
+    if not dry_run:
+        for plan in plannen:
+            if not await store.pas_samenvoeging_toe(plan):
+                overgeslagen.append(plan.sleutel)
+                continue
+            uitgevoerd.append(plan.sleutel)
+            await store.schrijf_auditregels(plan.doel_slug, "migratie", "migratie", [
+                ("laag-gemigreerd", None, plan.rapport()),
+                *(("migratie-conflict", c["verliezer"]["id"], c) for c in plan.conflicten),
+            ])
+            for bron in plan.bronnen:
+                await store.schrijf_audit(bron, "migratie", "migratie", "samengevoegd-in-laag",
+                                          detail={"laag": plan.doel_slug, "sleutel": plan.sleutel,
+                                                  "id_hernoemd": plan.id_hernoemd.get(bron, {})})
+    return {
+        "dry_run": dry_run,
+        "documenten": len(docs),
+        "lagen": [p.rapport() for p in plannen],
+        "uitgevoerd": uitgevoerd,
+        "overgeslagen": overgeslagen,
+    }
 
 
 @router.get("/annotatie-statistiek", response_model=ReviewStatistiek)
