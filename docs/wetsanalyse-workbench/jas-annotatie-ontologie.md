@@ -110,7 +110,7 @@ GRAPH <urn:jas:graph:BWBR0004770:artikel:9> {
 
   <urn:jas:annotatie:BWBR0004770:artikel:9:e7k2:beslissing:1> a jas:Beslissing, prov:Activity ;
       jas:beslissingType jas:beslissing-approve ;
-      prov:wasAssociatedWith <urn:jas:agent:mens:palmw01> .
+      prov:wasAssociatedWith <urn:jas:agent:mens:jurist01> .
 }
 ```
 
@@ -126,6 +126,15 @@ wettekst opduiken. Daarom (`api/tests/test_graaf_projectie.py`):
    jas-ontologie. De repository draait met `rdfsplus-optimized`, en een range op een property die naar
    een wet-node wijst laat GraphDB triples áfleiden met een `urn:bwb:`-subject.
 4. **De OA- en PROV-ontologieën worden niet geladen** – om dezelfde reden.
+
+## Wie de laag leest
+
+Alleen de **hergebruikbeslissing** van de annotatieketen (`tools/graph-qa/agent/annotatielaag.py`):
+twee queries met een expliciete `GRAPH <urn:jas:graph:…>` – `laagstand` (de hash per lid) en
+`laag_markeringen` (de actuele markeringen voor de samenvatting). Ze zijn geen tool voor het model.
+Is een lid ongewijzigd, dan gaat het niet opnieuw door het model; de markeringen zelf haalt de
+werkplek daarna bij de api, want Postgres is de waarheid. Kan de laag niet gelezen worden, dan
+annoteert Lex gewoon – de api negeert dan voorstellen voor een lid waarvan hij de hash al kent.
 
 ## Buiten scope (nog)
 

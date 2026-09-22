@@ -4,13 +4,14 @@
 > scratchbestand (`~/.claude/plans/…`) is vluchtig en wordt overschreven – dít bestand niet. Bijwerken?
 > Pas dit bestand aan (en commit).
 >
-> Laatst bijgewerkt: 2026-09-01. Status: Deliverable 0 en **Fase 1 zijn geleverd**, en het
+> Laatst bijgewerkt: 2026-09-22. Status: Deliverable 0 en **Fase 1 zijn geleverd**, en het
 > grootste deel van **Fase 2** ook — het annotatiedomein draait in de api
 > (`app/annotatie_contracts.py`, `annotatie_store.py`, `annotatie_export.py`,
 > `routers/annotatie.py`), de annotatieketen met Critic in graph-qa
 > (`agent/nodes/annotatie.py`) en de werkplek in de frontend. Open binnen Fase 2: de leerlus
-> (lessons-learned, pre-flight, knowledge-check). **Fase 3 is niet begonnen.** Van **Fase 4** staat
-> sinds 22 sep 2026 de basis (zie het kader onder Fase 4).
+> (lessons-learned, pre-flight, knowledge-check). **Fase 3 is niet begonnen.** **Fase 4** is sinds
+> 22 sep 2026 geleverd, in een andere vorm dan gepland – alleen QA-gebruik van de laag staat nog
+> open (zie het kader onder Fase 4).
 >
 > Let op bij het lezen: dit bestand is plan én changelog geworden. Onder de fasen staan
 > "Bijgesteld"- en "Deels geleverd"-kaders uit latere rondes; die zijn actueler dan de
@@ -140,15 +141,21 @@ Zelfde review-workflow + audit.
 JAS-annotatie-vocabulaire (ontologie); één geauthenticeerd, idempotent, geaudit schrijfpad in de api
 (adresseert het open+writable-graaf-risico). Daarna bevraagbaar door de QA-agent (virtuous loop).
 
-> **Deels geleverd (22 sep 2026), anders dan hierboven gepland.** Niet "promoveren wat geaccordeerd
+> **Geleverd (22 sep 2026), anders dan hierboven gepland.** Niet "promoveren wat geaccordeerd
 > is", maar een **gedeelde laag per artikel** die als geheel naar de graaf wordt geprojecteerd, met
 > reviewstatus en al – zodat Lex een al geannoteerd artikel kan hergebruiken. Postgres blijft de
 > waarheid; de api projecteert elke laag naar `urn:jas:graph:<bwbId>:artikel:<nr>` en bouwt alles
 > opnieuw op na een GraphDB-herstart. Model: W3C Web Annotation + PROV-O + SKOS, zie
-> `jas-annotatie-ontologie.md`. Geleverd: de laag, de migratie van de oude documenten en de
-> projectie. Open: het hergebruik in graph-qa, de werkplek, en QA-gebruik door de antwoord-worker
-> (dat laatste bewust later, want het raakt de grounding). Het "geauthenticeerde" schrijfpad is er
-> niet: GraphDB heeft op Azure geen eigen security, de netwerkgrens is de enige.
+> `jas-annotatie-ontologie.md`. Geleverd (PR's #458, #464–#469): de laag in de api, de migratie
+> van de oude documenten, de projectie, de isolatie (annotaties vervuilen de QA van Lex niet), het
+> schrijfpad van graph-qa naar de laag, het **hergebruik** (een ongewijzigd lid gaat niet opnieuw
+> door het model; de beslissing valt op de graaf, de api is het vangnet) en de werkplek (lagenlijst,
+> hergebruikmelding, *opnieuw annoteren*, verouderde markeringen als historie).
+>
+> Open: **QA-gebruik** door de antwoord-worker – bewust later, want het raakt de grounding: een
+> annotatie is afgeleide duiding en mag nooit als wettekst of vindplaats tellen
+> (`docs/kennisbank/PLAN.md`). Het "geauthenticeerde" schrijfpad is er niet: GraphDB heeft op Azure
+> geen eigen security, de netwerkgrens is de enige.
 
 Doorlopend: audit trail (vanaf Fase 1), lessons-learned (vanaf Fase 2), observability/trace-koppeling,
 DI + tests per laag. **Brongetrouwheid + mens-beslist in elke fase.**
