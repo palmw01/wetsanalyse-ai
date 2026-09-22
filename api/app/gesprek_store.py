@@ -28,6 +28,7 @@ def _bericht_uit_row(row) -> Bericht:
         annotatie_titel=inhoud.get("annotatie_titel", ""),
         run_id=inhoud.get("run_id", ""),
         ontbrekend=inhoud.get("ontbrekend", []) or [],
+        hergebruik=inhoud.get("hergebruik", {}) or {},
         created=db.aware(d["created"]),
     )
 
@@ -45,6 +46,8 @@ def _inhoud(inv: BerichtInvoer | Bericht) -> dict:
         inhoud["annotatie_titel"] = inv.annotatie_titel
     if inv.ontbrekend:
         inhoud["ontbrekend"] = inv.ontbrekend
+    if inv.hergebruik:
+        inhoud["hergebruik"] = inv.hergebruik
     if inv.run_id:
         inhoud["run_id"] = inv.run_id
     return inhoud

@@ -28,6 +28,7 @@
 import type {
   Aandacht,
   AgentDoel,
+  AgentHergebruik,
   AgentKandidaat,
   AgentRun,
   Alternatief,
@@ -175,6 +176,31 @@ export const parseKandidaten = lijst<AgentKandidaat>((v) => {
     ...(optioneel(v.fragment) !== undefined ? { fragment: optioneel(v.fragment) } : {}),
   };
 });
+
+/** Lex hergebruikte (een deel van) de gedeelde laag. De leden komen als `{lid, hash, iri}` binnen;
+ *  voor de werkplek telt alleen welk lid. Zonder slug is het event onbruikbaar: dan is er niets om
+ *  naar te wijzen. */
+export const parseHergebruik: Parser<AgentHergebruik> = (v) => {
+  if (!isObject(v)) return undefined;
+  const slug = eis(v.slug);
+  if (!slug) return undefined;
+  const leden = Array.isArray(v.leden)
+    ? v.leden.map((l) => (isObject(l) ? tekst(l.lid) : tekst(l)))
+    : [];
+  const t = isObject(v.telling) ? v.telling : {};
+  return {
+    slug,
+    leden,
+    volledig: vlag(v.volledig),
+    bijgewerkt: tekst(v.bijgewerkt),
+    telling: {
+      markeringen: getal(t.markeringen),
+      beoordeeld: getal(t.beoordeeld),
+      afgewezen: getal(t.afgewezen),
+      te_beoordelen: getal(t.te_beoordelen),
+    },
+  };
+};
 
 export const parseSuggestie: Parser<{ element_id: string; aandacht: string; motivatie: string }> = (
   v,

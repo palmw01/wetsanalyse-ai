@@ -9,7 +9,7 @@ import { MobieleTopbar } from "@/components/werkplek/MobieleTopbar";
 import { Melding } from "@/components/ui/Melding";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { SkipLink, HOOFDINHOUD_ID } from "@/components/ui/SkipLink";
-import { isApiError, lijstDocumenten, verwijderDocument } from "@/lib/api";
+import { isApiError, lijstLagen, verwijderDocument } from "@/lib/api";
 import { metSpoor } from "@/lib/uiSpoor";
 import {
   WEERGAVEN, groepeerPerRegeling, isTeDoen, sorteerTeDoen, zoek,
@@ -18,6 +18,10 @@ import {
 import type { DocumentSamenvatting } from "@/lib/types";
 
 /** Het annotatie-overzicht: de annotaties los van de gesprekken waarin ze zijn gemaakt.
+ *
+ *  Sinds 22 sep 2026 zijn dat de GEDEELDE lagen: één annotatie per artikel voor iedereen, zodat Lex
+ *  een artikel dat al geannoteerd is niet opnieuw hoeft te doen. "Door mij bewerkt" beperkt de lijst
+ *  tot de lagen waar je zelf iets aan deed – een laag heeft geen eigenaar, dus dat staat in de audit.
  *
  *  Twee weergaven op één lijst. *Te doen* is werkvoorraad – wat vraagt nog aandacht, rood eerst.
  *  *Alles* is het archief, gegroepeerd per regeling, want juristen zoeken in wetten en niet in
@@ -28,6 +32,7 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
   const [fout, setFout] = useState<string | null>(null);
   const [weergave, setWeergave] = useState<Weergave>(beginWeergave);
   const [term, setTerm] = useState("");
+  const [alleenMijn, setAlleenMijn] = useState(false);
   // Onder `lg` is de sidebar een drawer. Zonder deze state was er op een smal scherm géén sidebar
   // én geen manier om er een te openen: geen gesprekken, geen account, geen uitloggen.
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -35,12 +40,12 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
   const laad = useCallback(async () => {
     setFout(null);
     try {
-      setDocs(await lijstDocumenten());
+      setDocs(await lijstLagen({ mijn: alleenMijn }));
     } catch (e) {
       setFout(isApiError(e) ? `${e.detail} (${e.status})` : (e as Error).message);
       setDocs([]);
     }
-  }, []);
+  }, [alleenMijn]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -95,7 +100,8 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
             <header className="mb-5">
               <h1 className="font-display text-lg font-semibold text-lint">Annotaties</h1>
               <p className="mt-1 text-sm text-muted">
-                Je JAS-annotaties, los van het gesprek waarin ze zijn gemaakt.
+                De JAS-annotaties per artikel, gedeeld met iedereen – los van het gesprek waarin
+                ze zijn gemaakt.
               </p>
             </header>
 
@@ -120,6 +126,16 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
                   </button>
                 ))}
               </div>
+
+              <label className="inline-flex items-center gap-1.5 text-xs text-muted">
+                <input
+                  type="checkbox"
+                  checked={alleenMijn}
+                  onChange={(e) => setAlleenMijn(e.target.checked)}
+                  className="focus-ring h-3.5 w-3.5 accent-lint"
+                />
+                Door mij bewerkt
+              </label>
 
               <input
                 type="search"
