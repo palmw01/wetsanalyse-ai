@@ -123,7 +123,8 @@ De API bedient acht dingen:
   `require_client` blijft de bearer-poort + audit-herkomst).
   Levenscyclus: document aanmaken → `PUT elementen` (de uitkomst van één agent-ronde) → per element
   een human-decision (approve/edit/reject/comment; edit berekent een `diff`) → `GET audit`.
-  **Geen graaf-mutatie** vanuit dit domein (de projectie naar GraphDB is een volgende stap).
+  **De gedeelde lagen worden naar de kennisgraaf geprojecteerd** (`graaf_projectie.py`, zie hieronder);
+  de per-gebruiker-documenten niet.
 
   **De gedeelde laag per artikel.** Een rij met een gevulde `laag_sleutel` (`"{BWBID}:{artikel}"`,
   uniek via de partiële index `ux_annotatie_laag`) is de laag van dat artikel: geen eigenaar
@@ -161,6 +162,21 @@ De API bedient acht dingen:
     overgeslagen, niet overschreven. Idempotent. Een samengevoegd document blijft bestaan: lezen,
     schrijven en de audit volgen `samengevoegd_in` (oude chatberichten verwijzen ernaar), en het
     telt niet meer mee in de eigen lijst of de statistiek.
+  - **Projectie naar de kennisgraaf** (`graaf_projectie.py`, `jas_ontologie.py`; model in
+    `docs/wetsanalyse-workbench/jas-annotatie-ontologie.md`). Postgres is de waarheid, de graaf een
+    projectie: na elke mutatie van een laag vervangt `muteer_document` op de achtergrond haar named
+    graph (`urn:jas:graph:<bwbId>:artikel:<nr>`, GSP `PUT`); `geprojecteerd_tot` is de outbox en een
+    reconcile-lus in de lifespan (`JAS_PROJECTIE_INTERVAL`, 60 s) haalt achterstand in. Ontbreekt het
+    register (`urn:jas:graph:register`), dan is GraphDB herstart: ontologie, alle lagen, register als
+    laatste. Ontbreekt de repository, dan wacht hij (de importer is er eigenaar van). Uit zonder
+    `GRAPHDB_URL`. Projecties van dezelfde laag lopen in één proces na elkaar (lock per slug) – anders
+    kan een oudere `PUT` ná een nieuwere landen terwijl de outbox de nieuwere boekt. Tussen replica's
+    is dat niet uitgesloten; `POST /v1/admin/annotatie/herprojecteer` zet alles opnieuw klaar,
+    `GET /v1/admin/annotatie/projectie` toont de stand. **Invarianten (met tests):** geen subject
+    onder `urn:bwb:`, geen `urn:bwb-ns:`-predicaat, geen domain/range/subPropertyOf/sameAs in de
+    ontologie – anders duikt een annotatie op als wettekst in de queries, de similarity-index of de
+    bronnencontrole van Lex. `docs/wetsanalyse-workbench/jas-ontologie.ttl` is een afdruk van
+    `jas_ontologie.bouw_ontologie()` met een drift-test.
   - **Eén laag, ook bij gelijktijdigheid.** `haal_of_maak_laag` is insert-dan-herlaad; de unieke
     index beslist. (Niet te testen met twee gelijktijdige requests op de in-memory SQLite: die deelt
     één verbinding en rolt dan ook de insert van de winnaar terug.)

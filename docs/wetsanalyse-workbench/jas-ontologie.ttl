@@ -1,0 +1,350 @@
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix jas: <urn:jas-ns:> .
+@prefix jask: <urn:jas-ns:klasse:> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+jas: a owl:Ontology ;
+    rdfs:label "JAS-annotaties"@nl ;
+    dcterms:description "Vocabulaire voor JAS-annotaties (activiteit 2 van de methode Wetsanalyse) op de BWB-graaf. Markeringen zijn W3C Web Annotations (oa:), herkomst staat in PROV-O."@nl .
+
+jas:AgentRun a owl:Class ;
+    rdfs:label "agent-ronde"@nl ;
+    rdfs:comment "Eén beurt van Lex die markeringen voorstelde of hergebruikte."@nl .
+
+jas:Alternatief a owl:Class ;
+    rdfs:label "alternatief"@nl ;
+    rdfs:comment "Een andere klasse die bij twijfel in aanmerking kwam."@nl .
+
+jas:AnnotatieLaag a owl:Class ;
+    rdfs:label "annotatielaag"@nl ;
+    rdfs:comment "De gedeelde JAS-annotatie van één artikel."@nl .
+
+jas:Beslissing a owl:Class ;
+    rdfs:label "beslissing"@nl ;
+    rdfs:comment "Eén oordeel van een jurist over een markering."@nl .
+
+jas:CriticRonde a owl:Class ;
+    rdfs:label "Critic-ronde"@nl ;
+    rdfs:comment "Eén oordeel van de Critic over een markering."@nl .
+
+jas:Lidstand a owl:Class ;
+    rdfs:label "lidstand"@nl ;
+    rdfs:comment "De versie van de wettekst van één lid waarop de laag gebaseerd is."@nl .
+
+jas:Markering a owl:Class ;
+    rdfs:label "markering"@nl ;
+    rdfs:comment "Eén JAS-markering: een fragment wettekst met zijn klasse."@nl .
+
+jas:Register a owl:Class ;
+    rdfs:label "register"@nl ;
+    rdfs:comment "Welke lagen er in de kennisgraaf staan, en in welke versie."@nl .
+
+jas:aandacht a owl:ObjectProperty ;
+    rdfs:label "aandacht (Critic)"@nl .
+
+jas:aandacht-geel a skos:Concept ;
+    skos:inScheme jas:aandacht-waarden ;
+    skos:prefLabel "geel"@nl .
+
+jas:aandacht-groen a skos:Concept ;
+    skos:inScheme jas:aandacht-waarden ;
+    skos:prefLabel "groen"@nl .
+
+jas:aandacht-rood a skos:Concept ;
+    skos:inScheme jas:aandacht-waarden ;
+    skos:prefLabel "rood"@nl .
+
+jas:actie a owl:DatatypeProperty ;
+    rdfs:label "actie van de Critic"@nl .
+
+jas:artikel a owl:DatatypeProperty ;
+    rdfs:label "artikel"@nl .
+
+jas:bepaling a owl:ObjectProperty ;
+    rdfs:label "bepaling in de wet"@nl .
+
+jas:beslissing-approve a skos:Concept ;
+    skos:inScheme jas:beslissing-waarden ;
+    skos:prefLabel "approve"@nl .
+
+jas:beslissing-comment a skos:Concept ;
+    skos:inScheme jas:beslissing-waarden ;
+    skos:prefLabel "comment"@nl .
+
+jas:beslissing-edit a skos:Concept ;
+    skos:inScheme jas:beslissing-waarden ;
+    skos:prefLabel "edit"@nl .
+
+jas:beslissing-heropen a skos:Concept ;
+    skos:inScheme jas:beslissing-waarden ;
+    skos:prefLabel "heropen"@nl .
+
+jas:beslissing-reject a skos:Concept ;
+    skos:inScheme jas:beslissing-waarden ;
+    skos:prefLabel "reject"@nl .
+
+jas:beslissingType a owl:ObjectProperty ;
+    rdfs:label "soort beslissing"@nl .
+
+jas:bronHash a owl:DatatypeProperty ;
+    rdfs:label "hash van het artikelcorpus"@nl .
+
+jas:bwbId a owl:DatatypeProperty ;
+    rdfs:label "BWB-id"@nl .
+
+jas:criticRondes a owl:DatatypeProperty ;
+    rdfs:label "aantal Critic-rondes"@nl .
+
+jas:elementId a owl:DatatypeProperty ;
+    rdfs:label "element-id"@nl .
+
+jas:gewijzigdDoor a owl:DatatypeProperty ;
+    rdfs:label "laatst gewijzigd door (agent of mens)"@nl .
+
+jas:heeftAlternatief a owl:ObjectProperty ;
+    rdfs:label "heeft alternatief"@nl .
+
+jas:heeftBeslissing a owl:ObjectProperty ;
+    rdfs:label "heeft beslissing"@nl .
+
+jas:heeftCriticRonde a owl:ObjectProperty ;
+    rdfs:label "heeft Critic-ronde"@nl .
+
+jas:heeftLidstand a owl:ObjectProperty ;
+    rdfs:label "heeft lidstand"@nl .
+
+jas:herkomst a owl:DatatypeProperty ;
+    rdfs:label "aangemaakt door (agent of mens)"@nl .
+
+jas:inGraaf a owl:ObjectProperty ;
+    rdfs:label "in named graph"@nl .
+
+jas:inLaag a owl:ObjectProperty ;
+    rdfs:label "in laag"@nl .
+
+jas:klasse a owl:ObjectProperty ;
+    rdfs:label "JAS-klasse"@nl .
+
+jask:afleidingsregel a skos:Concept ;
+    skos:inScheme jas:klassen ;
+    skos:notation 6 ;
+    skos:prefLabel "Afleidingsregel"@nl ;
+    skos:topConceptOf jas:klassen .
+
+jask:brondefinitie a skos:Concept ;
+    skos:inScheme jas:klassen ;
+    skos:notation 13 ;
+    skos:prefLabel "Brondefinitie"@nl ;
+    skos:topConceptOf jas:klassen .
+
+jask:delegatiebevoegdheid-en-delegatie-invulling a skos:Concept ;
+    skos:inScheme jas:klassen ;
+    skos:notation 12 ;
+    skos:prefLabel "Delegatiebevoegdheid en delegatie-invulling"@nl ;
+    skos:topConceptOf jas:klassen .
+
+jask:operator a skos:Concept ;
+    skos:inScheme jas:klassen ;
+    skos:notation 9 ;
+    skos:prefLabel "Operator"@nl ;
+    skos:topConceptOf jas:klassen .
+
+jask:parameter-en-parameterwaarde a skos:Concept ;
+    skos:inScheme jas:klassen ;
+    skos:notation 8 ;
+    skos:prefLabel "Parameter en parameterwaarde"@nl ;
+    skos:topConceptOf jas:klassen .
+
+jask:plaatsaanduiding a skos:Concept ;
+    skos:inScheme jas:klassen ;
+    skos:notation 11 ;
+    skos:prefLabel "Plaatsaanduiding"@nl ;
+    skos:topConceptOf jas:klassen .
+
+jask:rechtsbetrekking a skos:Concept ;
+    skos:inScheme jas:klassen ;
+    skos:notation 3 ;
+    skos:prefLabel "Rechtsbetrekking"@nl ;
+    skos:topConceptOf jas:klassen .
+
+jask:rechtsfeit a skos:Concept ;
+    skos:inScheme jas:klassen ;
+    skos:notation 4 ;
+    skos:prefLabel "Rechtsfeit"@nl ;
+    skos:topConceptOf jas:klassen .
+
+jask:rechtsobject a skos:Concept ;
+    skos:inScheme jas:klassen ;
+    skos:notation 2 ;
+    skos:prefLabel "Rechtsobject"@nl ;
+    skos:topConceptOf jas:klassen .
+
+jask:rechtssubject a skos:Concept ;
+    skos:inScheme jas:klassen ;
+    skos:notation 1 ;
+    skos:prefLabel "Rechtssubject"@nl ;
+    skos:topConceptOf jas:klassen .
+
+jask:tijdsaanduiding a skos:Concept ;
+    skos:inScheme jas:klassen ;
+    skos:notation 10 ;
+    skos:prefLabel "Tijdsaanduiding"@nl ;
+    skos:topConceptOf jas:klassen .
+
+jask:variabele-en-variabelewaarde a skos:Concept ;
+    skos:inScheme jas:klassen ;
+    skos:notation 7 ;
+    skos:prefLabel "Variabele en variabelewaarde"@nl ;
+    skos:topConceptOf jas:klassen .
+
+jask:voorwaarde a skos:Concept ;
+    skos:inScheme jas:klassen ;
+    skos:notation 5 ;
+    skos:prefLabel "Voorwaarde"@nl ;
+    skos:topConceptOf jas:klassen .
+
+jas:lid a owl:DatatypeProperty ;
+    rdfs:label "lid"@nl .
+
+jas:lidHash a owl:DatatypeProperty ;
+    rdfs:label "hash van het lidsegment"@nl .
+
+jas:lifecycle a owl:ObjectProperty ;
+    rdfs:label "reviewstatus"@nl .
+
+jas:lifecycle-critic_checked a skos:Concept ;
+    skos:inScheme jas:lifecycle-waarden ;
+    skos:prefLabel "critic_checked"@nl .
+
+jas:lifecycle-edited a skos:Concept ;
+    skos:inScheme jas:lifecycle-waarden ;
+    skos:prefLabel "edited"@nl .
+
+jas:lifecycle-human_approved a skos:Concept ;
+    skos:inScheme jas:lifecycle-waarden ;
+    skos:prefLabel "human_approved"@nl .
+
+jas:lifecycle-published a skos:Concept ;
+    skos:inScheme jas:lifecycle-waarden ;
+    skos:prefLabel "published"@nl .
+
+jas:lifecycle-rejected a skos:Concept ;
+    skos:inScheme jas:lifecycle-waarden ;
+    skos:prefLabel "rejected"@nl .
+
+jas:lifecycle-reused a skos:Concept ;
+    skos:inScheme jas:lifecycle-waarden ;
+    skos:prefLabel "reused"@nl .
+
+jas:lifecycle-voorgesteld a skos:Concept ;
+    skos:inScheme jas:lifecycle-waarden ;
+    skos:prefLabel "voorgesteld"@nl .
+
+jas:methodeVersie a owl:DatatypeProperty ;
+    rdfs:label "methodeversie"@nl .
+
+jas:modus a owl:DatatypeProperty ;
+    rdfs:label "modus"@nl .
+
+jas:motivatie a owl:DatatypeProperty ;
+    rdfs:label "motivatie"@nl .
+
+jas:opmerking a owl:DatatypeProperty ;
+    rdfs:label "opmerking"@nl .
+
+jas:promptHash a owl:DatatypeProperty ;
+    rdfs:label "prompt-hash"@nl .
+
+jas:reden-anders a skos:Concept ;
+    skos:inScheme jas:reden-waarden ;
+    skos:prefLabel "anders"@nl .
+
+jas:reden-bron_gemist a skos:Concept ;
+    skos:inScheme jas:reden-waarden ;
+    skos:prefLabel "bron_gemist"@nl .
+
+jas:reden-interpretatie a skos:Concept ;
+    skos:inScheme jas:reden-waarden ;
+    skos:prefLabel "interpretatie"@nl .
+
+jas:reden-onvoldoende_context a skos:Concept ;
+    skos:inScheme jas:reden-waarden ;
+    skos:prefLabel "onvoldoende_context"@nl .
+
+jas:reden-tekst a skos:Concept ;
+    skos:inScheme jas:reden-waarden ;
+    skos:prefLabel "tekst"@nl .
+
+jas:reden-verkeerde_klasse a skos:Concept ;
+    skos:inScheme jas:reden-waarden ;
+    skos:prefLabel "verkeerde_klasse"@nl .
+
+jas:reviewReden a owl:ObjectProperty ;
+    rdfs:label "reden"@nl .
+
+jas:ronde a owl:DatatypeProperty ;
+    rdfs:label "ronde"@nl .
+
+jas:slug a owl:DatatypeProperty ;
+    rdfs:label "slug in de api"@nl .
+
+jas:status a owl:ObjectProperty ;
+    rdfs:label "status"@nl .
+
+jas:status-geaccordeerd a skos:Concept ;
+    skos:inScheme jas:status-waarden ;
+    skos:prefLabel "geaccordeerd"@nl .
+
+jas:status-gepromoveerd a skos:Concept ;
+    skos:inScheme jas:status-waarden ;
+    skos:prefLabel "gepromoveerd"@nl .
+
+jas:status-in_review a skos:Concept ;
+    skos:inScheme jas:status-waarden ;
+    skos:prefLabel "in_review"@nl .
+
+jas:stopReden a owl:DatatypeProperty ;
+    rdfs:label "stopreden"@nl .
+
+jas:toegepast a owl:DatatypeProperty ;
+    rdfs:label "toegepast"@nl .
+
+jas:verouderd a owl:DatatypeProperty ;
+    rdfs:label "hoort bij een oudere versie van de wettekst"@nl .
+
+jas:versie a owl:DatatypeProperty ;
+    rdfs:label "versie"@nl .
+
+jas:vindplaats a owl:DatatypeProperty ;
+    rdfs:label "vindplaats"@nl .
+
+jas:voorstelKlasse a owl:ObjectProperty ;
+    rdfs:label "voorgestelde klasse"@nl .
+
+jas:voorstelTekst a owl:DatatypeProperty ;
+    rdfs:label "voorgesteld fragment"@nl .
+
+jas:wijziging a owl:DatatypeProperty ;
+    rdfs:label "wijziging (JSON)"@nl .
+
+jas:aandacht-waarden a skos:ConceptScheme ;
+    skos:prefLabel "aandacht"@nl .
+
+jas:status-waarden a skos:ConceptScheme ;
+    skos:prefLabel "status"@nl .
+
+jas:beslissing-waarden a skos:ConceptScheme ;
+    skos:prefLabel "beslissing"@nl .
+
+jas:reden-waarden a skos:ConceptScheme ;
+    skos:prefLabel "reden"@nl .
+
+jas:lifecycle-waarden a skos:ConceptScheme ;
+    skos:prefLabel "lifecycle"@nl .
+
+jas:klassen a skos:ConceptScheme ;
+    skos:prefLabel "JAS-klassen"@nl .
+

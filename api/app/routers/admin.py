@@ -781,6 +781,29 @@ async def migreer_naar_lagen(dry_run: bool = Query(True)):
     }
 
 
+@router.get("/annotatie/projectie")
+async def projectie_status():
+    """Hoe de projectie van de annotatielagen naar de kennisgraaf ervoor staat."""
+    from .. import graaf_projectie
+
+    p = graaf_projectie.projector()
+    telling = await get_annotatie_store().projectie_telling()
+    return {"actief": p is not None, **telling, **(p.status if p else {})}
+
+
+@router.post("/annotatie/herprojecteer", status_code=status.HTTP_202_ACCEPTED)
+async def herprojecteer():
+    """Markeer alle lagen als vuil; de reconcile-lus schrijft ze opnieuw naar de graaf. Voor na een
+    handmatige ingreep in GraphDB, of om een vermoeden van afwijking weg te nemen."""
+    from .. import graaf_projectie
+
+    if graaf_projectie.projector() is None:
+        raise HTTPException(status_code=409, detail="De projectie staat uit (geen GRAPHDB_URL).")
+    store = get_annotatie_store()
+    await store.maak_lagen_vuil()
+    return await store.projectie_telling()
+
+
 @router.get("/annotatie-statistiek", response_model=ReviewStatistiek)
 async def get_annotatie_statistiek(limit: int = Query(1000, ge=1, le=5000)):
     """Wat juristen met de voorstellen van de agent deden, over alle documenten heen.

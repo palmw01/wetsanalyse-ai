@@ -136,6 +136,13 @@ class Settings:
         self.otel_service_name = os.environ.get("OTEL_SERVICE_NAME", "wetsanalyse-api")
         self.otel_metrics_enabled = os.environ.get("OTEL_METRICS_ENABLED", "1") != "0"
 
+        # --- Projectie van de annotatielagen naar de kennisgraaf ---
+        # Leeg = uit (tests, lokaal zonder GraphDB). Postgres blijft de waarheid; de graaf is een
+        # projectie die na verlies (GraphDB is niet-persistent) opnieuw wordt opgebouwd.
+        self.graphdb_url = os.environ.get("GRAPHDB_URL", "").strip().rstrip("/")
+        self.graphdb_repository = os.environ.get("GRAPHDB_REPOSITORY", "inning").strip()
+        self.jas_projectie_interval_s = float(os.environ.get("JAS_PROJECTIE_INTERVAL", "60"))
+
 @lru_cache
 def get_settings() -> Settings:
     return Settings()

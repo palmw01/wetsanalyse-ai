@@ -226,6 +226,10 @@ annotatie_documenten = Table(
     # blijft staan (oude chatberichten verwijzen ernaar en de audit hangt eraan); lezen en schrijven
     # volgen de verwijzing.
     Column("samengevoegd_in", String(255), nullable=False, server_default="", default=""),
+    # Tot welke `updated` deze laag in de kennisgraaf staat. Kleiner dan `updated` (of leeg) = de
+    # projectie loopt achter; de reconcile-lus pakt hem op. Zo is deze kolom de outbox, zonder een
+    # aparte tabel die met de laag in de pas moet blijven.
+    Column("geprojecteerd_tot", _DT, nullable=True),
     Index("ix_annotatie_docs_user_updated", "user_id", "updated"),
     Index(
         "ux_annotatie_laag",

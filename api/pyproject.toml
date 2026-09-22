@@ -19,6 +19,7 @@ dependencies = [
     # Annotatie-export naar PDF (pure-python wheel; geen systeemlibs zoals cairo/pango nodig).
     # Bewust geen optionele extra: exporteren hoort altijd te werken.
     "reportlab>=4.2",
+    "rdflib>=7",
 ]
 
 [project.optional-dependencies]
