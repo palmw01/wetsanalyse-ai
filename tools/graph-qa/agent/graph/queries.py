@@ -723,8 +723,16 @@ def referenced_by(bwb_id: str, artikel: str) -> str:
 
 
 def resolve_begrip(term: str) -> str:
+    """Thesaurustermen (`urn:bwb:begrip:…`) waarvan het label de term bevat.
+
+    Het filter op de eigen IRI-ruimte staat er sinds 22 sep 2026, toen de JAS-annotatielagen in de
+    graaf kwamen: hun ontologie brengt de dertien JAS-klassen én alle reviewwaarden ("voorgesteld",
+    "rood", …) als `skos:Concept` mee. Zonder filter antwoordde "recht" met Rechtssubject en
+    Rechtsobject – methodebegrippen, geen wettelijke. `tests/test_annotatielaag_isolatie.py`.
+    """
     return PREFIXES + f"""SELECT DISTINCT ?concept ?label ?related WHERE {{
   ?concept a skos:Concept .
+  FILTER(STRSTARTS(STR(?concept), "{NS}"))
   {{ ?concept skos:prefLabel ?label }} UNION {{ ?concept rdfs:label ?label }}
   FILTER(CONTAINS(LCASE(STR(?label)), LCASE({_lit(term)})))
   OPTIONAL {{ ?concept skos:related|skos:broader|skos:narrower ?related }}

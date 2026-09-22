@@ -25,6 +25,11 @@ from app.jas_ontologie import JAS, JASK, OA, ONTOLOGIE_GRAAF, bouw_ontologie
 T0 = datetime(2026, 9, 1, 12, tzinfo=timezone.utc)
 LID1 = "urn:bwb:BWBR0004770:artikel:9:lid:1"
 TTL = Path(__file__).resolve().parents[2] / "docs" / "wetsanalyse-workbench" / "jas-ontologie.ttl"
+# graph-qa bewijst met deze laag dat zijn queries niet door annotaties vervuild raken
+# (`tools/graph-qa/tests/test_annotatielaag_isolatie.py`). Hij kan de api niet importeren, dus hij
+# krijgt een afdruk – en die moet de echte projectie blijven volgen.
+GRAPH_QA_FIXTURE = (Path(__file__).resolve().parents[2] / "tools" / "graph-qa" / "tests" / "fixtures"
+                    / "jas_laag_voorbeeld.ttl")
 
 
 def _laag(**kw) -> AnnotatieDocument:
@@ -136,6 +141,13 @@ def test_ontologie_ttl_is_actueel():
     en schrijf het naar docs/wetsanalyse-workbench/jas-ontologie.ttl."""
     opgeslagen = Graph().parse(TTL, format="turtle")
     assert isomorphic(opgeslagen, bouw_ontologie())
+
+
+def test_graph_qa_fixture_volgt_de_projectie():
+    """Faalt dit na een wijziging aan het model: schrijf `bouw_laaggraaf(_laag())` als Turtle naar
+    tools/graph-qa/tests/fixtures/jas_laag_voorbeeld.ttl en draai de isolatietest van graph-qa."""
+    opgeslagen = Graph().parse(GRAPH_QA_FIXTURE, format="turtle")
+    assert isomorphic(opgeslagen, bouw_laaggraaf(_laag()))
 
 
 # --- schrijven naar een nep-GraphDB --------------------------------------------------------------
