@@ -1010,8 +1010,13 @@ export function WerkplekClient({
       {/* De annotatie blijft bereikbaar. De chip in de thread scrolt weg zodra het gesprek doorloopt;
           dan is er geen weg terug naar het werk waar je middenin zat. */}
       {!nodeDoel && !artefactSlug && laatsteNodeAnnotatie && (
-        <button className="border-b border-line bg-surface px-4 py-2 text-left text-sm" onClick={() => void openArtefact(laatsteNodeAnnotatie.slug, laatsteNodeAnnotatie.annotatie_doel)}>
-          {laatsteNodeAnnotatie.titel || "Laatste annotatie"} · Openen
+        <button
+          type="button"
+          onClick={() => void openArtefact(laatsteNodeAnnotatie.slug, laatsteNodeAnnotatie.annotatie_doel)}
+          className="focus-ring flex w-full shrink-0 items-center gap-2 border-b border-line bg-surface px-4 py-2 text-left text-xs text-muted transition hover:bg-surface-2"
+        >
+          <span className="truncate font-medium text-ink">{laatsteNodeAnnotatie.titel || "Laatste annotatie"}</span>
+          <span className="ml-auto shrink-0 font-medium text-lint">Openen</span>
         </button>
       )}
       {!nodeDoel && !artefactSlug && !laatsteNodeAnnotatie && laatsteAnnotatie && docs[laatsteAnnotatie] && (

@@ -203,7 +203,11 @@ sidebar blijft staan**, je stapt niet uit de app.
 **Eén inhoud, twee schillen.** `components/werkplek/ArtefactInhoud.tsx` draagt de wettekst, de
 reviewlijst en alle handlers; `ArtefactPaneel` is nog slechts de `Dialog`-schil eromheen en de
 annotatiepagina is de tweede schil – hetzelfde patroon als `DisclaimerClient` en
-`InstellingenInhoud`. Let op **Escape**: dat hing aan `Dialog.onEscape`, maar die schil bestaat niet
+`InstellingenInhoud`. Een **bronnode-annotatie** (contract 2) gebruikt dezelfde inhoud:
+`NodeAnnotatiePaneel` haalt de v2-weergave op en vertaalt die via `lib/annotatieNodeAdapter.ts`
+(codepoints per bronnode ⇄ UTF-16 in de samengestelde bron). Het kreeg in #473 een eigen, kaal
+paneel en verloor daarmee alle opmaak en bediening; bouw dus geen tweede weergave, maar breid de
+adapter uit. Let op **Escape**: dat hing aan `Dialog.onEscape`, maar die schil bestaat niet
 altijd meer. De inhoud handelt het nu zelf af (selectie → bedieningsrij → gekozen element →
 `onSluiten`), en `ArtefactPaneel` geeft `Dialog` daarom een **no-op** `onEscape` mee. Zou die er ook
 op reageren, dan sprong Escape in één klap door alle lagen heen.

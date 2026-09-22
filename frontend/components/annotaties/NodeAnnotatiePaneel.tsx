@@ -1,187 +1,245 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useSession } from "next-auth/react";
-import { BevestigKnop } from "@/components/ui/BevestigKnop";
-import { Dialog, type DialogVariant } from "@/components/ui/Dialog";
-import { JAS_KLASSEN } from "@/lib/jas";
-import { LIFECYCLE_LABEL } from "@/lib/annotatie";
-import type { Lifecycle } from "@/lib/types";
-import { NodeReviewDetails } from "./NodeReviewDetails";
-import { haalNodeWeergave, nodeRequest, nodeError, nodeLink, segmentAnker, verwachteRevisies,
-  elementVergrendeld, type NodeDoel, type NodeElement, type NodeAnker, type NodeWeergave } from "@/lib/annotatieNode";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-export function NodeAnnotatiePaneel({ doel, onSluit, variant, onVraag }: {
+import { Dialog, type DialogVariant } from "@/components/ui/Dialog";
+import { Melding } from "@/components/ui/Melding";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { ArtefactInhoud } from "@/components/werkplek/ArtefactInhoud";
+import { foutTekst, type ExportFormaat } from "@/lib/api";
+import {
+  haalNodeWeergave, nodeError, nodeLink, nodeRequest, verwachteRevisies,
+  type NodeDoel, type NodeElement, type NodeWeergave,
+} from "@/lib/annotatieNode";
+import {
+  beslissingNaarNode, documentVanNode, nodeAnkersUitSelectie, nodeBronVan, tekstVanAnkers,
+} from "@/lib/annotatieNodeAdapter";
+import type { Anker, BeslissingInvoer } from "@/lib/types";
+
+/** Een annotatie op een bronnode (contract 2), in het vertrouwde annotatiepaneel.
+ *
+ *  Dit component bezit alleen de v2-kant: de weergave ophalen, de handelingen naar
+ *  `/api/annotatie/v2/**` sturen en daarna opnieuw laden. Wat je ziet – wettekst, reviewkaarten,
+ *  selectiepopover, sneltoetsen, export en afronden – is `ArtefactInhoud`, dezelfde inhoud als bij
+ *  een artikeldocument. De vertaling tussen beide staat in `lib/annotatieNodeAdapter.ts`.
+ *
+ *  Met `onSluit` staat hij in dezelfde `Dialog`-schil als `ArtefactPaneel` (werkplek); zonder is
+ *  het de kale inhoud voor een eigen pagina. */
+export function NodeAnnotatiePaneel({ doel, onSluit, variant = "side", onVraag }: {
   doel: NodeDoel; onSluit?: () => void; variant?: DialogVariant;
   onVraag?: (element: NodeElement, view: NodeWeergave) => void;
 }) {
-  const { data: sessie } = useSession();
   const [view, setView] = useState<NodeWeergave>();
-  const [fout, setFout] = useState("");
+  const [laadFout, setLaadFout] = useState("");
+  const [actiefId, setActiefId] = useState<string>();
   const [melding, setMelding] = useState("");
-  const [bezig, setBezig] = useState(false);
-  const [actief, setActief] = useState<string>();
-  const [selectie, setSelectie] = useState<NodeAnker[]>([]);
-  const [klasse, setKlasse] = useState("");
-  const [toelichting, setToelichting] = useState("");
-  const [reden, setReden] = useState("");
-  const [filter, setFilter] = useState("alles");
-  const tekstRef = useRef<HTMLDivElement>(null);
+
   const laad = useCallback(async () => {
-    setFout("");
+    setLaadFout("");
     try { setView(await haalNodeWeergave(doel)); }
-    catch (e) { setFout((e as Error).message); }
+    catch (e) { setLaadFout(foutTekst(e, "De annotatie is niet geladen.")); }
   }, [doel]);
   useEffect(() => {
     // Een externe API-request initialiseren; dezelfde laadactie dient ook de retryknop.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void laad();
   }, [laad]);
-  async function wijzig(path: string, body: unknown, method = "POST") {
-    setBezig(true); setFout("");
+
+  const nb = useMemo(() => (view ? nodeBronVan(view) : undefined), [view]);
+  const doc = useMemo(() => (view && nb ? documentVanNode(view, nb) : undefined), [view, nb]);
+
+  /** Elke mutatie: versturen, daarna altijd opnieuw laden – ook na een fout, want een 412 betekent
+   *  juist dat de stand in beeld niet meer klopt. De fout gaat dóór naar `ArtefactInhoud`, die hem
+   *  bij de kaart toont. */
+  async function muteer(pad: string, body: unknown, method = "POST") {
     try {
-      await nodeRequest(path, body, method);
-      await laad(); setSelectie([]); setMelding("Wijziging opgeslagen.");
-    } catch (e) { setFout((e as Error).message); }
-    finally { setBezig(false); }
-  }
-  function selecteer() {
-    const selection = window.getSelection();
-    if (!view || !selection?.rangeCount || selection.isCollapsed || !tekstRef.current) return;
-    const range = selection.getRangeAt(0);
-    if (!tekstRef.current.contains(range.startContainer) || !tekstRef.current.contains(range.endContainer)) return;
-    const ankers: NodeAnker[] = [];
-    for (const root of tekstRef.current.querySelectorAll<HTMLElement>("[data-bron]")) {
-      if (!range.intersectsNode(root)) continue;
-      const segment = view.segmenten.find((s) => s.bron_iri === root.dataset.bron)!;
-      const offset = (container: Node, position: number, fallback: number) => {
-        if (!root.contains(container)) return fallback;
-        const prefix = document.createRange(); prefix.selectNodeContents(root); prefix.setEnd(container, position);
-        return prefix.toString().length;
-      };
-      const start = offset(range.startContainer, range.startOffset, 0);
-      const eind = offset(range.endContainer, range.endOffset, segment.tekst.length);
-      if (eind > start) ankers.push(segmentAnker(segment, start, eind));
+      return await nodeRequest<Record<string, unknown>>(pad, body, method);
+    } finally {
+      await laad();
     }
-    setSelectie(ankers);
   }
-  const selected = view?.elementen.find((e) => e.id === actief);
-  async function beslis(el: NodeElement, type: string, wijziging?: unknown) {
-    if (!view) return;
-    await wijzig(`elementen/${encodeURIComponent(el.id)}/beslissing`, {
-      type, snapshot_id: view.snapshot_id, verwachte_revisies: verwachteRevisies(view),
-      ...(reden ? { comment: reden, review_reason: reden } : {}),
-      ...(wijziging ? { wijziging, review_reason: reden || (typeof wijziging === "object" && "klasse" in wijziging ? "verkeerde_klasse" : "tekst") } : {}),
+
+  async function beslissing(elementId: string, req: BeslissingInvoer) {
+    if (!view || !nb || !doc) return;
+    const huidig = doc.elementen.find((e) => e.id === elementId);
+    await muteer(`elementen/${encodeURIComponent(elementId)}/beslissing`, {
+      ...beslissingNaarNode(req, nb, huidig),
+      snapshot_id: view.snapshot_id, verwachte_revisies: verwachteRevisies(view),
     });
+    setMelding("Wijziging opgeslagen.");
   }
-  async function exporteer(formaat: string) {
+
+  async function eigenMarkering(invoer: { klasse: string; toelichting: string; anker: Anker }) {
+    if (!view || !nb) return;
+    const ankers = nodeAnkersUitSelectie(nb, invoer.anker.start, invoer.anker.eind);
+    if (!ankers.length) throw new Error("Deze selectie bevat geen wettekst om te markeren.");
+    const uit = await muteer("elementen", {
+      doel: { bron_iri: view.doel.bron_iri }, snapshot_id: view.snapshot_id,
+      verwachte_revisies: verwachteRevisies(view),
+      element: { klasse: invoer.klasse, toelichting: invoer.toelichting, tekst: tekstVanAnkers(ankers), ankers },
+    });
+    const nieuw = (uit?.element as { id?: string } | undefined)?.id;
+    if (nieuw) setActiefId(nieuw);
+    setMelding(`Gemarkeerd als ${invoer.klasse}.`);
+  }
+
+  async function wisEigenMarkering(elementId: string) {
     if (!view) return;
-    setBezig(true); setFout("");
-    try {
-      const response = await fetch("/api/annotatie/v2/weergave/export", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bron_iri: view.doel.bron_iri, snapshot_id: view.snapshot_id, formaat }),
-      });
-      if (!response.ok) throw await nodeError(response);
-      const url = URL.createObjectURL(await response.blob());
-      const a = document.createElement("a"); a.href = url; a.download = `annotatie.${formaat}`;
-      a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch (e) { setFout((e as Error).message); }
-    finally { setBezig(false); }
+    const el = view.elementen.find((e) => e.id === elementId);
+    const revisie = view.lagen.find((l) => l.bron_iri === el?.eigenaar_iri)?.revisie ?? 0;
+    await muteer(`elementen/${encodeURIComponent(elementId)}?verwachte_revisie=${revisie}`, {}, "DELETE");
+    setActiefId((huidig) => (huidig === elementId ? undefined : huidig));
+    setMelding("Markering gewist.");
   }
-  const button = "rounded border border-line px-2 py-1 text-sm disabled:opacity-40";
-  const inhoud = <div className="min-w-0 space-y-4 overflow-y-auto bg-paper p-5">
-    <div className="flex flex-wrap items-center gap-2">
-      <h2 className="min-w-0 flex-1 text-lg font-medium">{view?.doel.label || doel.label || "Annotatie"}</h2>
-      {onSluit && <button className={button} onClick={onSluit}>Sluiten</button>}
+
+  /** Afronden geldt voor de bepaling in beeld, dus voor elke laag daarin. Eén voor één: de api
+   *  toetst per laag of alles beoordeeld is, en een weigering noemt dan de laag waar het zit. */
+  async function status(nieuw: "geaccordeerd" | "in_review") {
+    if (!view) return;
+    try {
+      for (const laag of view.lagen.filter((l) => l.status !== nieuw)) {
+        await nodeRequest(`lagen/${encodeURIComponent(laag.id)}/status`, { status: nieuw, verwachte_revisie: laag.revisie });
+      }
+    } finally {
+      await laad();
+    }
+    setMelding(nieuw === "geaccordeerd" ? "Annotatie afgerond." : "Annotatie heropend.");
+  }
+
+  async function exporteer(formaat: ExportFormaat) {
+    if (!view) return;
+    const response = await fetch("/api/annotatie/v2/weergave/export", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bron_iri: view.doel.bron_iri, snapshot_id: view.snapshot_id, formaat }),
+    });
+    if (!response.ok) throw await nodeError(response);
+    const url = URL.createObjectURL(await response.blob());
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `annotatie.${formaat}`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  const inhoud = !view || !nb || !doc ? (
+    <LaadStand fout={laadFout} onOpnieuw={() => void laad()} onSluit={onSluit} />
+  ) : (
+    <>
+      <p className="sr-only" aria-live="polite">{melding}</p>
+      <ArtefactInhoud
+        doc={doc}
+        info={nb.info}
+        actiefId={actiefId}
+        onKies={(id) => setActiefId((huidig) => (id && id === huidig ? undefined : id))}
+        onBeslissing={beslissing}
+        onEigenMarkering={eigenMarkering}
+        onWisEigenMarkering={wisEigenMarkering}
+        onVraag={onVraag ? (el) => {
+          const node = view.elementen.find((e) => e.id === el.id);
+          if (node) onVraag(node, view);
+        } : undefined}
+        onStatus={status}
+        onSluiten={onSluit}
+        onExport={exporteer}
+        extra={<NodeExtra view={view} doel={doel} />}
+      />
+    </>
+  );
+
+  if (!onSluit) return inhoud;
+  // `onEscape` is een no-op om dezelfde reden als in `ArtefactPaneel`: de inhoud pelt Escape zelf
+  // laag voor laag af.
+  return (
+    <Dialog label={`Annotatie: ${view?.doel.label || doel.label || "bepaling"}`} variant={variant}
+      onSluit={onSluit} onEscape={view ? () => {} : undefined}>
+      {inhoud}
+    </Dialog>
+  );
+}
+
+/** Wat alleen een bronnode-annotatie kent: een gewijzigde bronstand, markeringen die over deze
+ *  bepaling heen lopen, en de voortgang per laag als de bepaling er meer dan één draagt. */
+function NodeExtra({ view, doel }: { view: NodeWeergave; doel: NodeDoel }) {
+  const labelVan = (iri: string) => view.segmenten.find((s) => s.bron_iri === iri)?.label || view.doel.label || iri;
+  return (
+    <>
+      {doel.snapshot_id && doel.snapshot_id !== view.snapshot_id && (
+        <Melding type="uitleg" compact>
+          De wettekst is gewijzigd sinds deze annotatie werd gemaakt. Je ziet de huidige versie;
+          markeringen bij de oude tekst staan onder Historie.
+        </Melding>
+      )}
+      {view.verwijzingen.length > 0 && (
+        <section className="rounded-kaart border border-line bg-surface/60 px-3 py-2 text-sm">
+          <h3 className="text-xs font-medium text-muted">Overspant meerdere bepalingen ({view.verwijzingen.length})</h3>
+          <p className="mt-1 text-xs text-faint">
+            Deze markeringen raken deze bepaling, maar horen bij een ruimere selectie. Je beoordeelt ze daar.
+          </p>
+          <ul className="mt-2 space-y-1">
+            {view.verwijzingen.map((r) => (
+              <li key={r.id} className="text-xs">
+                <Link href={nodeLink({ bron_iri: r.eigenaar_iri })} className="focus-ring rounded font-medium text-lint underline underline-offset-2 hover:no-underline">
+                  {r.klasse}
+                </Link>
+                <span className="text-muted"> · {labelVan(r.eigenaar_iri)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {view.lagen.length > 1 && (
+        <section className="rounded-kaart border border-line bg-surface/60 px-3 py-2 text-sm">
+          <h3 className="text-xs font-medium text-muted">Voortgang per bepaling</h3>
+          <ul className="mt-2 space-y-1">
+            {view.lagen.map((l) => (
+              <li key={l.id} className="flex items-baseline justify-between gap-3 text-xs">
+                <span className="min-w-0 truncate text-ink">{labelVan(l.bron_iri)}</span>
+                <span className="shrink-0 text-muted">{l.status === "geaccordeerd" ? "Afgerond" : "In review"}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      <p className="text-xs text-faint">
+        <Link href={nodeLink({ ...view.doel, snapshot_id: view.snapshot_id })} className="focus-ring rounded underline underline-offset-2 hover:text-ink">
+          Deelbare link naar deze annotatie
+        </Link>
+      </p>
+    </>
+  );
+}
+
+/** Laden of niet geladen – met het kruisje op dezelfde plek als in het geladen paneel, anders zit je
+ *  op een smal scherm vast achter een paneel dat niet opent. */
+function LaadStand({ fout, onOpnieuw, onSluit }: { fout: string; onOpnieuw: () => void; onSluit?: () => void }) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex shrink-0 items-start gap-3 border-b border-line px-5 py-3.5 pt-[max(0.875rem,env(safe-area-inset-top))]">
+        <p className="min-w-0 flex-1 truncate text-[0.65rem] font-semibold uppercase tracking-wide text-faint">Annotatie · JAS</p>
+        {onSluit && (
+          <button type="button" onClick={onSluit} aria-label="Sluiten"
+            className="focus-ring -mr-1 shrink-0 rounded-kaart p-1.5 text-muted transition-colors hover:bg-surface hover:text-ink">
+            <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+              <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
+            </svg>
+          </button>
+        )}
+      </div>
+      <div className="space-y-3 p-5">
+        {fout ? (
+          <Melding type="fout" titel="Niet geladen">
+            {fout}{" "}
+            <button type="button" onClick={onOpnieuw} className="underline">Opnieuw proberen</button>
+          </Melding>
+        ) : (
+          <>
+            <Skeleton className="h-4 w-64" />
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-4 w-40" />
+          </>
+        )}
+      </div>
     </div>
-    <p aria-live="polite" className="text-sm">{melding}</p>
-    {fout && <div role="alert" className="rounded border border-red-300 p-3">{fout}{" "}
-      <button className={button} onClick={() => void laad()}>Opnieuw laden</button></div>}
-    {!view && !fout && <p>Annotatie laden…</p>}
-    {view && <>
-      {doel.snapshot_id && doel.snapshot_id !== view.snapshot_id && <p role="status" className="rounded border border-line p-3 text-sm">De brontekst is gewijzigd sinds dit verzoek. Je ziet de huidige versie; eerdere markeringen blijven herkenbaar als historie.</p>}
-      <div className="flex flex-wrap gap-2 text-sm">
-        <Link className="underline" href={nodeLink({ ...view.doel, snapshot_id: view.snapshot_id })}>Deelbare annotatie</Link>
-        <span>{view.elementen.filter((e) => !e.verouderd).length} elementen</span>
-        {["pdf", "csv", "json"].map((f) => <button className={button} key={f} disabled={bezig} onClick={() => void exporteer(f)}>Export {f.toUpperCase()}</button>)}
-      </div>
-      <div ref={tekstRef} className="space-y-3 rounded border border-line bg-white p-4" onMouseUp={selecteer} onKeyUp={selecteer} onTouchEnd={selecteer}>
-        {view.segmenten.map((s) => {
-          const chars = Array.from(s.tekst);
-          const anchors = selected && !selected.verouderd ? selected.ankers.filter((a) => a.bron_iri === s.bron_iri && a.bron_hash === s.bron_hash) : [];
-          const boundaries = [...new Set([0, chars.length, ...anchors.flatMap((a) => [a.start, a.eind])])].sort((a, b) => a - b);
-          return <section key={s.bron_iri}>
-            <p className="mb-1 select-none text-xs font-medium text-muted">{s.label}</p>
-            <div data-bron={s.bron_iri} className="whitespace-pre-wrap leading-7">{boundaries.slice(0, -1).map((start, i) => {
-              const end = boundaries[i + 1], value = chars.slice(start, end).join("");
-              return anchors.some((a) => a.start <= start && a.eind >= end)
-                ? <mark key={start}>{value}</mark> : <span key={start}>{value}</span>;
-            })}</div>
-          </section>;
-        })}
-      </div>
-      {selectie.length > 0 && <div className="space-y-2 rounded border border-line p-3">
-        <p className="text-sm">Geselecteerd: {selectie.map((a) => a.tekst).join(" … ")}</p>
-        <label className="block text-sm">JAS-klasse<select className="ml-2 rounded border p-1" value={klasse} onChange={(e) => setKlasse(e.target.value)}>
-          <option value="">Kies een klasse</option>{JAS_KLASSEN.map((k) => <option key={k}>{k}</option>)}
-        </select></label>
-        <label className="block text-sm">Toelichting<input className="ml-2 rounded border p-1" value={toelichting} onChange={(e) => setToelichting(e.target.value)} /></label>
-        <button className={button} disabled={bezig || !klasse.trim()} onClick={() => void wijzig("elementen", {
-          doel: { bron_iri: view.doel.bron_iri }, snapshot_id: view.snapshot_id,
-          verwachte_revisies: verwachteRevisies(view), element: { klasse, toelichting,
-            tekst: selectie.map((a) => a.tekst).join(" "), ankers: selectie },
-        })}>Markering toevoegen</button>{" "}
-        {selected && <button className={button} disabled={bezig || elementVergrendeld(view, selected)} onClick={() => void beslis(selected, "edit", {
-          tekst: selectie.map((a) => a.tekst).join(" "), ankers: selectie,
-        })}>Gekozen markering aanpassen</button>}{" "}
-        <button className={button} onClick={() => setSelectie([])}>Selectie sluiten</button>
-      </div>}
-      <div className="space-y-2">
-        <h3 className="font-medium">Beoordelen</h3>
-        <label className="block text-sm">Weergave<select aria-label="Reviewfilter" className="ml-2 rounded border p-1" value={filter} onChange={(event) => setFilter(event.target.value)}>
-          <option value="alles">Actuele markeringen</option><option value="open">Te beoordelen</option>
-          <option value="aandacht">Met aandachtspunt</option><option value="historie">Oudere bronversies</option>
-        </select></label>
-        <label className="block text-sm">Reden of toelichting bij beslissing<input className="mt-1 block w-full rounded border p-2" value={reden} onChange={(e) => setReden(e.target.value)} /></label>
-        {view.elementen.filter((e) => filter === "historie" ? e.verouderd : !e.verouderd
-          && (filter !== "aandacht" || ["geel", "rood"].includes(e.aandacht || ""))
-          && (filter !== "open" || !["human_approved", "edited", "rejected", "published"].includes(e.lifecycle))).map((e) => <article key={e.id} className="rounded border border-line p-3">
-          <button className="text-left font-medium" onClick={() => setActief(actief === e.id ? undefined : e.id)}>{e.klasse}: {e.tekst}</button>
-          <p className="text-sm text-muted">{e.toelichting}</p>
-          <p className="text-xs text-muted">{e.verouderd ? "Historie · oudere brontekst" : LIFECYCLE_LABEL[e.lifecycle as Lifecycle] || e.lifecycle}</p>
-          <NodeReviewDetails key={`${e.id}:${view.lagen.find((l) => l.bron_iri === e.eigenaar_iri)?.revisie}`}
-            element={e} disabled={bezig || elementVergrendeld(view, e)} onEdit={(value) => beslis(e, "edit", value)} />
-          {onVraag && <button className={`${button} mt-2`} onClick={() => onVraag(e, view)}>Vraag Lex</button>}
-          {!e.verouderd && <div className="mt-2 flex flex-wrap gap-2">
-            <button className={button} disabled={bezig || elementVergrendeld(view, e)} onClick={() => void beslis(e, "approve")}>Akkoord</button>
-            <button className={button} disabled={bezig || elementVergrendeld(view, e) || !reden.trim()} onClick={() => void beslis(e, "reject")}>Verwerpen</button>
-            <button className={button} disabled={bezig || !reden.trim() || view.lagen.some((l) => l.bron_iri === e.eigenaar_iri && l.status === "geaccordeerd")} onClick={() => void beslis(e, "comment")}>Toelichten</button>
-            {e.herkomst === "mens" && e.aangemaakt_door === sessie?.user?.userid && !e.beslissingen?.length && <BevestigKnop
-              className={button} bevestigTekst="Markering wissen?" disabled={bezig || elementVergrendeld(view, e)}
-              onBevestig={() => wijzig(`elementen/${encodeURIComponent(e.id)}?verwachte_revisie=${view.lagen.find((l) => l.bron_iri === e.eigenaar_iri)?.revisie}`, {}, "DELETE")}>Wissen</BevestigKnop>}
-            {["human_approved", "rejected"].includes(e.lifecycle) && (e.herkomst !== "mens" || !!e.beslissingen?.length) && <button className={button}
-              disabled={bezig || view.lagen.some((l) => l.bron_iri === e.eigenaar_iri && l.status === "geaccordeerd")}
-              onClick={() => void beslis(e, "heropen")}>Beoordeling heropenen</button>}
-          </div>}
-        </article>)}
-      </div>
-      {view.verwijzingen.length > 0 && <div className="rounded border border-line p-3">
-        <h3 className="font-medium">Overspant meerdere bepalingen</h3>
-        <p className="text-sm text-muted">Deze gerelateerde annotaties zijn hier gedeeltelijk zichtbaar en tellen niet mee in de review.</p>
-        {view.verwijzingen.map((r) => <p key={r.id} className="text-sm"><Link className="underline" href={nodeLink({ bron_iri: r.eigenaar_iri })}>{r.klasse} · {r.label}</Link></p>)}
-      </div>}
-      <div className="space-y-2"><h3 className="font-medium">Voortgang per bepaling</h3>
-        {view.lagen.map((l) => <div className="flex flex-wrap items-center gap-2 text-sm" key={l.id}>
-          <span>{view.segmenten.find((s) => s.bron_iri === l.bron_iri)?.label || view.doel.label}</span>
-          <span>{l.status === "geaccordeerd" ? "Afgerond" : "In review"}</span>
-          <button className={button} disabled={bezig} onClick={() => void wijzig(`lagen/${encodeURIComponent(l.id)}/status`, {
-            status: l.status === "geaccordeerd" ? "in_review" : "geaccordeerd", verwachte_revisie: l.revisie,
-          })}>{l.status === "geaccordeerd" ? "Heropenen" : "Afronden"}</button>
-        </div>)}
-      </div>
-    </>}
-  </div>;
-  return onSluit ? <Dialog label={`Annotatie: ${doel.label || "bepaling"}`} variant={variant} onSluit={onSluit}>{inhoud}</Dialog> : inhoud;
+  );
 }
