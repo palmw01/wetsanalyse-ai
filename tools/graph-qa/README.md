@@ -63,13 +63,15 @@ de tools (`agent/specialists.py`):
 | `definitie` | Begrippen en definities herleiden en letterlijk citeren. | `zoek_definitie`, `resolve_begrip`, `get_artikel`/`get_lid`, `verwijst_naar_deze` |
 | `duiding` | Betekenis, structuur en samenhang van een bepaling; kruisverwijzingen volgen. | `get_context`, `follow_verwijzingen`, `verwijst_naar_deze`, `inhoudsopgave`, `grondslagen`, `geldigheid` |
 | `algemeen` | Overige juridische vragen. | Alle tools |
+| `annotaties_lezen` | Vragen óver bestaande annotaties ("welke elementen zijn een Rechtsobject?"). De route zoekt eerst zelf, dan formuleert het model. | `search_annotaties`, `get_annotatie`, `get_annotatiedekking` + de ophaaltools |
 
 De ophaal-agent van de annotatieketen (`retrieval`) krijgt bewust géén `grondslagen`/`geldigheid`:
 die rol wijst een bepaling **aan**, hij duidt haar niet. Toolbereik is hier gedragssturing.
 
 ### De toollaag (retrieval)
 
-Het model krijgt **geen** vrije SPARQL, maar een set van negentien getypeerde tools; alleen
+Het model krijgt **geen** vrije SPARQL, maar een set van 22 getypeerde tools – 19 op de kennisgraaf
+en 3 op de opgeslagen annotaties (die laatste lopen via de api, niet via SPARQL); alleen
 `raw_sparql` is een afgeschermd laatste redmiddel:
 
 - **Zoeken** – `search_wetgeving` (full-text/Lucene; veldgericht op één van de negen geïndexeerde

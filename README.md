@@ -237,6 +237,12 @@ Een supervisor kiest per vraag één specialist: `definitie` (begrippen opzoeken
 en samenhang) of `algemeen` (alle tools). De specialist bevraagt de graaf, waarna grounding het
 antwoord toetst en de bronnen uit de tool-trace worden verzameld.
 
+Gaat de vraag over **bestaande annotaties** ("welke elementen zijn een Rechtsobject?"), dan geldt de
+leesroute: die voert eerst zelf een zoekopdracht uit op de opgeslagen annotaties en laat het model
+daarna formuleren. Zoeken is er een stap in de keten, geen keuze van het model — dat scheelde op
+22 sep 2026 een non-antwoord op een vraag die gewoon te beantwoorden was. Een storing wordt nooit
+stilzwijgend "er zijn geen annotaties".
+
 ## Projectstructuur
 
 ```
@@ -251,7 +257,7 @@ frontend/             Next.js-webapp
   lib/                  de rekenkern – hier staat de testbare logica
 tools/graph-qa/       de agent (Lex)
   agent/orchestrator.py bouwt de LangGraph-graaf (de nodes staan in agent/nodes/)
-  agent/nodes/          de nodes per keten: annotatie, antwoord, supervisie, decompositie
+  agent/nodes/          de nodes per keten: annotatie, annotatie_lezen, antwoord, supervisie, decompositie
   agent/supervisor.py   workerkeuze + specialistkeuze, met harde allowlist
   agent/annotatie.py    annotatiedomein; pas_critic_toe voert correcties uit
   agent/grounding.py    de brongetrouwheidscontrole
@@ -291,6 +297,9 @@ komen secrets als bestand binnen in plaats van als omgevingsvariabele.
 | `AZURE_FOUNDRY_BASE_URL` / `_API_KEY` | graph-qa | – | Moet op `/anthropic` eindigen. |
 | `SIMILARITY_INDEX` | graph-qa | leeg | Leeg ⇒ `semantic_search` degradeert naar tekstzoeken. |
 | `QA_API_TOKEN` | graph-qa | leeg | **Leeg = open**. Verplicht zodra de agent naar de API schrijft. |
+| `ANNOTATIE_READ_USER_ID` | graph-qa | leeg | Alleen voor CLI/MCP: namens wie de annotatieleestools lezen. Nooit door een modelargument te kiezen. |
+| `ANNOTATIE_CONTRACT_VERSIE` | api | `2` | `2` = annotaties op bronnodes; bij `1` zijn die routes uit en gelden de oude artikelbrede paden. |
+| `JAS_PROJECTIE_INTERVAL` | api | `60` | Seconden tussen twee rondes van de projectielus — het vangnet onder de directe projectie naar de graaf. |
 | `GRAPHDB_URL` | bwb-import | `http://graphdb:7200` | Waar de importer naartoe schrijft. |
 | `BWB_IMPORT_WTI` | bwb-import | `false` | Zet de WTI-verrijking aan (organisatie, wetsfamilie, grondslagen, rechtsgebieden). |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | alle | leeg | Leeg = alleen JSON-logs, nul overhead. |
@@ -322,8 +331,11 @@ krijgen een eigen `bwb:Verwijzing`-resource, zodat soort en betrouwbaarheid vast
 — een uit tekst afgeleide verwijzing draagt `bwb:betrouwbaarheid "laag"`.
 
 De agent krijgt **geen vrije SPARQL**, maar een getypeerde toollaag: tekst zoeken, een artikel of lid
-ophalen, verwijzingen volgen in beide richtingen, context opvragen, een begrip resolven. Alleen
-`raw_sparql` is een uitweg, en een allowlist laat daar uitsluitend lezende queries door.
+ophalen, verwijzingen volgen in beide richtingen, context opvragen, een begrip resolven. Daarnaast
+drie tools op de **opgeslagen annotaties** – `search_annotaties`, `get_annotatie` en
+`get_annotatiedekking` – die niet rechtstreeks de graaf bevragen maar via de API lopen, zodat elke
+treffer tegen PostgreSQL wordt geverifieerd. Alleen `raw_sparql` is een uitweg, en een allowlist laat
+daar uitsluitend lezende queries door.
 
 ## De agent (Lex)
 
@@ -493,7 +505,8 @@ ze buiten git.
 |---|---|
 | [`docs/observability.md`](docs/observability.md) | Logschema, tracing door de keten, AVG-redactie |
 | [`docs/wetsanalyse-workbench/PLAN.md`](docs/wetsanalyse-workbench/PLAN.md) | Het plan achter de werkplek |
-| [`docs/wetsanalyse-workbench/jas-annotatie-ontologie.md`](docs/wetsanalyse-workbench/jas-annotatie-ontologie.md) | De annotatielaag in RDF (nog niet gebouwd) |
+| [`docs/architectuur/annotatie-bronnodes.md`](docs/architectuur/annotatie-bronnodes.md) | Contract 2: annotaties op bronnodes – ankers, opslag, projectie, leestools |
+| [`docs/wetsanalyse-workbench/jas-annotatie-ontologie.md`](docs/wetsanalyse-workbench/jas-annotatie-ontologie.md) | De annotatielagen in RDF, zoals ze in de graaf staan |
 | [`docs/kennisbank/PLAN.md`](docs/kennisbank/PLAN.md) | Een tweede corpus naast de wetsgraaf – lees dit vóór je aan retrieval werkt |
 | [`docs/README.md`](docs/README.md) | Wegwijzer door `docs/`: bron van derden, specificatie, plan of runbook |
 | [`.claude/skills/wetsanalyse/`](.claude/skills/wetsanalyse/SKILL.md) | De annoteerinstructie voor activiteit 2 – en de bron van de klassetekst in de code |

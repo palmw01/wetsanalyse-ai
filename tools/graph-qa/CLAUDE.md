@@ -29,6 +29,7 @@ benoemt daarom expliciet welke packages in de wheel horen – anders faalt `uv s
 | Module | Wat erin zit |
 |---|---|
 | `nodes/annotatie.py` | annoteren, Critic, patch, herzien, emit |
+| `nodes/annotatie_lezen.py` | de leesroute: eerst zoeken in de opgeslagen annotaties, dan pas formuleren |
 | `nodes/antwoord.py` | agent ⇄ tools, verify, correct, finalize |
 | `nodes/supervisie.py` | supervisor, entry-router, advance, afwijzen |
 | `nodes/decompositie.py` | decompose, solve, synthesize, resynth |
@@ -147,7 +148,8 @@ veilig**, verplicht bij >1 replica) → **`CHECKPOINT_DB_PATH`** → `AsyncSqlit
 
 ### Toollaag & queries
 
-- **`tools/__init__.py`** – `TOOLS` (19 declaraties met JSON-schema + handler), `anthropic_schemas(only=)`
+- **`tools/__init__.py`** – `TOOLS` (22 declaraties met JSON-schema + handler, inclusief de drie
+  annotatieleestools uit `tools/annotatie_tools.py`), `anthropic_schemas(only=)`
   (model-facing subset) en `dispatch()` (voert de handler uit; vangt `ValueError`/`MCPError`/`KeyError`
   als tekst i.p.v. te crashen). Een tool met `needs_settings` krijgt `settings` mee (bv. `semantic_search`).
 - **`graph/queries.py`** – de SPARQL-bouwers (o.a. `context()` = de GraphRAG-UNION). **`graph/schema.py`** —
@@ -375,6 +377,11 @@ complete annotatie van vijftien markeringen terwijl de agent klaar en gegrond wa
 velden **op de grens**, niet bij de aanroeper, en zet ze in `OPGEVANGEN` in
 `tests/test_contract_drift.py`; die guard houdt beide modellen veld voor veld tegen elkaar.
 
+Dezelfde test bewaakt sinds 22 sep 2026 ook het **chatbericht**: elk veld dat `_leg_vast` meestuurt
+moet in `BerichtInvoer` van de api staan. Dat gat kostte de werkplek haar annotatiechip – de api kende
+`annotatie_doel` en `tool_executions` niet, Pydantic liet ze stil vallen, en na het heropenen van een
+gesprek wees het bericht nergens meer naar.
+
 **Niet alles bewaard is geen fout, maar wel iets om te melden.** De api laat sinds die episode een
 element dat zijn schema niet haalt vallen in plaats van de hele ronde te weigeren, en telt ze in de
 header `X-Verworpen`. Die lezen we uit en sturen we door als `waarschuwing`-event: een luide fout
@@ -386,6 +393,41 @@ inruilen voor een stille zou geen verbetering zijn.
 > te starten** zonder eigen `QA_API_TOKEN`. De frontend-BFF vult `user_id` uit de sessie – nooit uit
 > de browser-body.
 
+### De leesroute: vragen óver bestaande annotaties
+
+Een vraag naar wat er al geannoteerd is, gaat niet langs de annoteerder maar langs de **leesroute**.
+Drie dingen maken die route wat hij is:
+
+1. **Herkenning** (`tools/annotatie_tools.py:is_leesvraag`). Een onderwerp (annotatie, markering,
+   element, klasse, gemarkeerd, geannoteerd, …) plus een leeswoord, en géén schrijfwoord. `markeer`
+   en `classificeer` tellen als schrijven: "markeer de JAS-elementen in artikel 9" is een opdracht,
+   geen vraag. Een kale klassenaam telt bewust níét als onderwerp – *Voorwaarde* en *Tijdsaanduiding*
+   zijn ook gewone juridische taal. De supervisor kiest hier dus niet: de herkenning is hard, zodat
+   een leesvraag topologisch geen annotatie kán worden.
+2. **Zoeken is een stap, geen keuze** (`nodes/annotatie_lezen.py`, sinds 22 sep 2026). De node
+   `annotaties_zoeken` voert vóór de eerste LLM-call zelf `search_annotaties` uit, met filters uit de
+   vraag (JAS-klasse via `jas_klassen.klassen_in_tekst`) en uit het meegegeven doel. Het resultaat
+   gaat als echt `tool_use`/`tool_result`-paar de historie in en in de `source_trace`; daarna
+   formuleert de agent, met de tools nog beschikbaar voor verdieping. De route slaat `decompose` over:
+   die keten bouwt de agent-lus na en zou de zoekstap dubbel doen.
+
+   Dáárvoor hing de route op de vrije toolkeuze van het model, en dat ging live mis: één LLM-call,
+   nul tools, geen zoekopdracht bij de api – en de jurist las "Ik heb de opgeslagen annotaties niet
+   kunnen raadplegen" op een vraag die gewoon te beantwoorden was.
+3. **Een storing wordt nooit een leeg antwoord** (`begrens_antwoord`). Is er geen bruikbaar
+   zoekresultaat, dan vervangt die functie het modelantwoord door een eerlijke melding. Wat hij
+   schrijft gaat **niet** in `messages`: die historie reist via de checkpointer mee naar de volgende
+   beurt, en dan leest het model zijn eigen "ik kon niet raadplegen" als vaststaand feit. Grijpt hij
+   in, dan volgt een logregel — dat gebeurde tot 22 sep 2026 volledig stil.
+
+De drie tools (`search_annotaties`, `get_annotatie`, `get_annotatiedekking`) lopen via de api
+(`agent/annotatie_read.py`), niet via SPARQL: de api verifieert zijn graafkandidaten tegen Postgres,
+en die controle mag niet te omzeilen zijn. De actor is de rungebruiker; een CLI/MCP-client moet
+`ANNOTATIE_READ_USER_ID` uit vertrouwde configuratie zetten, want een toolargument mag nooit bepalen
+namens wie er gelezen wordt. Elke aanroep levert `tool_execution`-events (start en einde, met
+filters, status, aantal en duur) — dat is het spoor dat de werkplek toont, geen weergave van
+modelgedachten.
+
 ### De annotatie-keten
 
 ```
@@ -393,6 +435,17 @@ ophaal (agent ⇄ tools) → annoteer → critic₁ → patch ─┬─→ herzi
                                                      ├─→ critic₂ ──────────→ emit
                                                      └─────────────────────→ emit
 ```
+
+**Een afgeronde bepaling stopt de beurt vóór de eerste modelronde** (`bron_annotatie.py`, sinds
+22 sep 2026). De api bevriest een afgeronde laag en weigert nieuwe voorstellen met een 409. Dat hoort
+de jurist te horen vóór een ronde van een minuut, niet erna: `controleer_hergebruik` leest de
+laagstatus uit de weergave, behandelt afgeronde nodes als "al geannoteerd" (er komt dus geen nieuw
+element in) en stopt de beurt als er niets te doen overblijft. Hergebruik en Critic-advies op de eigen
+markeringen van een jurist blijven wél toegestaan – advies wijzigt de laag niet. Loopt het tóch mis
+doordat de laag tijdens de beurt werd afgerond, dan geeft `_leg_vast` de foutcode
+`annotatie_afgerond` met de vraag om te heropenen, in plaats van het generieke "probeer opnieuw".
+`wetsanalyse_api` logt daarbij de reden die de api zelf gaf (`api_reden`, een korte servertekst of
+foutcode, nooit de body).
 
 **Hergebruik vóór annoteren** (sinds 22 sep 2026, `agent/annotatielaag.py`). Staat het artikel al in
 de gedeelde laag en is de tekst van een lid sindsdien niet veranderd, dan gaat dat lid niet opnieuw

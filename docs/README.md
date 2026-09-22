@@ -50,10 +50,11 @@ landen; de tekst niet.
 - [Annotaties op bronnodes, contract 2](architectuur/annotatie-bronnodes.md) — lokale ankers,
   node-lagen, echte annotatiezoektools, SSE-uitvoeringsspoor en gecontroleerde omschakeling.
 
-- **`wetsanalyse-workbench/jas-annotatie-ontologie.md`** — de RDF-projectie van de gedeelde
-  annotatielagen naar de graaf (`api/app/graaf_projectie.py`), met `jas-ontologie.ttl` als afdruk van
-  de vocabulaire (drift-test in de api). Het domein zelf staat in `api/app/annotatie_contracts.py` —
-  dat bestand is de waarheid over lifecycle, beslissingen en Critic-rondes; de graaf is een projectie.
+- **`wetsanalyse-workbench/jas-annotatie-ontologie.md`** — de RDF-projectie van de annotatielagen
+  naar de graaf (`api/app/graaf_projectie_v2.py`): sinds contract 2 één laag per bronnode, in
+  `urn:jas:graph:v2:<laag-id>`. Het domein zelf staat in de api — die is de waarheid over lifecycle,
+  beslissingen en dekking; de graaf is een projectie. `jas-ontologie.ttl` en `api/app/jas_ontologie.py`
+  horen bij het oudere v1-pad (laag per artikel) en blijven staan als historie.
 - **`schrijfrichtlijn-lex.md`** — toon en opmaak van de assistent Lex. Zijn identiteit staat in
   `tools/graph-qa/agent/prompts.py`.
 

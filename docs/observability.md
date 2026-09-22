@@ -53,6 +53,14 @@ straat: dat ene exemplaar leest beide workspaces.
 | **Frontend** (`frontend/`, Next.js) | server-side JSON naar stdout in de BFF-lagen | `@vercel/otel`: route handlers + uitgaande `fetch` (traceparent) | request-count/latency (auto) |
 | **graph-qa** (`tools/graph-qa/`) | gestructureerde JSON-logs | `/v1/runs` (de weg van de werkplek) en `/v1/chat` + GraphDB-MCP-calls | http-server-latency (auto) |
 
+Drie logregels van graph-qa die bij een storing het eerst iets zeggen: **`api-schrijffout`** (met
+`http_status` en, sinds 22 sep 2026, `api_reden` – de korte servertekst van de api, nooit de body),
+**`leesroute: antwoord begrensd`** (het vangnet verving het modelantwoord omdat er geen bruikbaar
+zoekresultaat was) en **`hergebruik_gemist`** (de graaf liep achter op de api). De beurt zelf legt
+daarnaast per tool-aanroep een `tool_execution`-event in de SSE vast – start en einde, met filters,
+status, aantal en duur. Dat is een uitvoeringsspoor voor de jurist in de werkplek, geen logkanaal:
+het gaat naar de browser en naar het chatbericht, niet naar Log Analytics.
+
 De **GraphDB-kennisgraaf en de externe diensten** (overheid.nl-bronnen, de LLM-provider) draaien buiten
 deze repo en zijn niet geïnstrumenteerd; ze verschijnen in de traces als virtuele peer-node (zie de
 service-graph-connector) i.p.v. als eigen span.

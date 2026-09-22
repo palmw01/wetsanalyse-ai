@@ -38,6 +38,14 @@ De HTTP-worker gebruikt de geauthenticeerde rungebruiker. CLI/MCP vereist daarna
 
 `ANNOTATIE_CONTRACT_VERSIE` is expliciet instelbaar; de nieuwe API heeft standaard waarde `2`. Bij waarde `1` zijn de nieuwe annotatieroutes niet actief. `/v1/annotatie/capabilities` rapporteert de actieve versie. Bij versie `2` weigert de API oude artikelbrede schrijfacties en de oude artikelmigratie. Oude lees-/exportpaden blijven beschikbaar; de expliciet toegestane verwijdering van het ene testdocument kan via het oude verwijderpad.
 
+**De omschakeling is op 22 sep 2026 uitgevoerd op acceptatie**; productie draait sindsdien op hetzelfde
+image met dezelfde standaard. Het stappenplan hieronder is dus historie, bewaard omdat een volgende
+omgeving (of een herstel) hem opnieuw nodig heeft. De hulpmiddelen erbij waren eenmalig en zijn nu
+dood: `.github/workflows/annotatie-contract.yml` met `deploy/maintenance/verify_annotatie_contract.py`
+(de omschakeling plus rooktest) en `.github/workflows/cleanup-testannotatie.yml` met
+`deploy/maintenance/cleanup_testannotatie.py` (het opruimen van één vrijgegeven testdocument, met een
+hardgecodeerd slug).
+
 Voor een omgeving met bestaande actieve componenten:
 
 1. Zet de API expliciet op contract `1` vóór de nieuwe API-revisie verkeer krijgt; rol het nieuwe API-image en de aanvullende tabellen uit.
@@ -45,6 +53,25 @@ Voor een omgeving met bestaande actieve componenten:
 3. Controleer dat alle actieve revisies de nieuwe contractondersteuning hebben. Schakel de API vervolgens expliciet naar contract `2` en stuur alle verkeer naar die revisie.
 4. Controleer artikel 9 lid 1, hergebruik, lokale review, export, de drie leestools en het zichtbare SSE-spoor. Controleer ook dat een oude schrijfaanroep wordt geweigerd.
 5. Verwijder uitsluitend het vooraf geïdentificeerde en door de gebruiker vrijgegeven testdocument. Er is geen inhoudmigratie; bronnen, gebruikers en gesprekken blijven behouden.
+
+### Wat er ná de omschakeling is bijgesteld (22 sep 2026)
+
+Vijf dingen bleken pas in gebruik, en staan nu vast in tests:
+
+- **De werkplek gebruikt het vertrouwde annotatiepaneel** (#483). `NodeAnnotatiePaneel` is een dunne
+  schil om `ArtefactInhoud`, met `lib/annotatieNodeAdapter.ts` als vertaling tussen codepoints per
+  bronnode en UTF-16 in de samengestelde bron. Het eerste, eigen paneel verloor alle opmaak en
+  bediening.
+- **Een afgeronde bepaling stopt de beurt vóór de modelronde** (#484). De api bevriest een afgeronde
+  laag (409); Lex controleerde dat pas bij het opslaan, ná een minuut modelaanroepen.
+- **De projectie is direct, de lus is vangnet** (#485). Daarvoor stond een annotatie tot een minuut
+  later in de graaf.
+- **Het chatbericht draagt `annotatie_doel` en `tool_executions`** (#487). Zonder die velden wees een
+  bericht na het heropenen van een gesprek nergens meer naar — een node-laag heeft immers geen slug —
+  en verdwenen de chip, de hergebruikmelding en het toolspoor.
+- **De leesroute zoekt zelf** (#488, #489). De herkenning van een leesvraag is verbreed (enkelvoud,
+  klasse, element), en `annotaties_zoeken` voert vóór de eerste LLM-call zelf `search_annotaties` uit.
+  Daarvoor hing het aan de toolkeuze van het model, en dat leverde een non-antwoord op.
 
 Na v2-schrijfverkeer mag rollback alleen naar een v2-compatibele versie, of naar tijdelijk onbeschikbare annotaties. Zet oude brede schrijfpaden niet weer open. De afzonderlijke image-publicatieworkflows regelen deze gecoördineerde eerste omschakeling niet automatisch.
 

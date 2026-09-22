@@ -9,9 +9,9 @@
 > (`app/annotatie_contracts.py`, `annotatie_store.py`, `annotatie_export.py`,
 > `routers/annotatie.py`), de annotatieketen met Critic in graph-qa
 > (`agent/nodes/annotatie.py`) en de werkplek in de frontend. Open binnen Fase 2: de leerlus
-> (lessons-learned, pre-flight, knowledge-check). **Fase 3 is niet begonnen.** **Fase 4** is sinds
-> 22 sep 2026 geleverd, in een andere vorm dan gepland – alleen QA-gebruik van de laag staat nog
-> open (zie het kader onder Fase 4).
+> (lessons-learned, pre-flight, knowledge-check). **Fase 3 is niet begonnen.** **Fase 4** is op
+> 22 sep 2026 geleverd, in een andere vorm dan gepland; ook het QA-gebruik van de laag is er sindsdien
+> (zie het kader onder Fase 4).
 >
 > Let op bij het lezen: dit bestand is plan én changelog geworden. Onder de fasen staan
 > "Bijgesteld"- en "Deels geleverd"-kaders uit latere rondes; die zijn actueler dan de
@@ -142,19 +142,26 @@ JAS-annotatie-vocabulaire (ontologie); één geauthenticeerd, idempotent, geaudi
 (adresseert het open+writable-graaf-risico). Daarna bevraagbaar door de QA-agent (virtuous loop).
 
 > **Geleverd (22 sep 2026), anders dan hierboven gepland.** Niet "promoveren wat geaccordeerd
-> is", maar een **gedeelde laag per artikel** die als geheel naar de graaf wordt geprojecteerd, met
-> reviewstatus en al – zodat Lex een al geannoteerd artikel kan hergebruiken. Postgres blijft de
-> waarheid; de api projecteert elke laag naar `urn:jas:graph:<bwbId>:artikel:<nr>` en bouwt alles
-> opnieuw op na een GraphDB-herstart. Model: W3C Web Annotation + PROV-O + SKOS, zie
+> is", maar een **gedeelde laag** die als geheel naar de graaf wordt geprojecteerd, met
+> reviewstatus en al – zodat Lex een al geannoteerde bepaling kan hergebruiken. Eerst per artikel;
+> later diezelfde dag, met contract 2 (PR #473), **per bronnode**: een laag hoort bij één canonieke
+> bron-IRI en markeringen dragen lokale ankers. Postgres blijft de
+> waarheid; de api projecteert elke laag naar `urn:jas:graph:v2:<laag-id>` – sinds PR #485 direct na
+> elke commit, met de lus van 60 s als vangnet – en bouwt alles opnieuw op na een GraphDB-herstart. Model: W3C Web Annotation + PROV-O + SKOS, zie
 > `jas-annotatie-ontologie.md`. Geleverd (PR's #458, #464–#469): de laag in de api, de migratie
 > van de oude documenten, de projectie, de isolatie (annotaties vervuilen de QA van Lex niet), het
 > schrijfpad van graph-qa naar de laag, het **hergebruik** (een ongewijzigd lid gaat niet opnieuw
 > door het model; de beslissing valt op de graaf, de api is het vangnet) en de werkplek (lagenlijst,
 > hergebruikmelding, *opnieuw annoteren*, verouderde markeringen als historie).
 >
-> Open: **QA-gebruik** door de antwoord-worker – bewust later, want het raakt de grounding: een
-> annotatie is afgeleide duiding en mag nooit als wettekst of vindplaats tellen
-> (`docs/kennisbank/PLAN.md`). Het "geauthenticeerde" schrijfpad is er niet: GraphDB heeft op Azure
+> **QA-gebruik is er ook** (PR's #473, #488, #489): drie leestools (`search_annotaties`,
+> `get_annotatie`, `get_annotatiedekking`) en een leesroute die vóór de eerste LLM-call zelf zoekt.
+> De grondingsgrens blijft staan waar hij hoort: annotatiebewijs telt nooit als wettekst of
+> vindplaats (`check_grounding` laat het buiten het bewijs). Wat er ná de omschakeling nog is
+> bijgesteld – paneel, afgeronde bepaling, directe projectie, berichtcontract, leesroute (PR's
+> #483–#489) – staat in `docs/architectuur/annotatie-bronnodes.md`.
+>
+> Het "geauthenticeerde" schrijfpad is er niet: GraphDB heeft op Azure
 > geen eigen security, de netwerkgrens is de enige.
 
 Doorlopend: audit trail (vanaf Fase 1), lessons-learned (vanaf Fase 2), observability/trace-koppeling,

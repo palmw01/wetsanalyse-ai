@@ -2,7 +2,8 @@
 
 Headless HTTP-backend voor de **Wetsanalyse-werkplek** – een kerncomponent van het agent-platform,
 onder de [frontend](../frontend). De API bedient het **JAS-annotatiedomein** van de werkplek
-(documenten/elementen/beslissingen + append-only auditlog), het **login-/gebruikersbeheer** (de API is
+(markeringen, beslissingen en een append-only auditlog – sinds 22 sep 2026 op **contract 2**, met een
+laag per bronnode), het **login-/gebruikersbeheer** (de API is
 de identiteitsbron), het **LLM-modelprofielbeheer**, de **profiel-keuzelijst**, de **berichten** (release notes) en de **gebruikersfeedback**.
 
 > **De QA/annotatie-agent is een aparte dienst.** `tools/graph-qa/` beantwoordt de vragen, stelt
@@ -21,7 +22,26 @@ de identiteitsbron), het **LLM-modelprofielbeheer**, de **profiel-keuzelijst**, 
 
 Alle endpoints zijn client-gescopet en versioneerd onder `/v1`.
 
-**Annotatiedomein (de werkplek):**
+**Annotatiedomein – contract 2, annotaties op bronnodes** (de werkplek). Een laag hoort bij één
+bron-IRI: een artikel, een lid of een onderdeel. Specificatie:
+[`docs/architectuur/annotatie-bronnodes.md`](../docs/architectuur/annotatie-bronnodes.md).
+
+| Methode | Pad | Wat het doet |
+|---------|-----|--------------|
+| `GET` | `/v1/annotatie/capabilities` | Welke contractversie actief is |
+| `GET` | `/v1/annotatie/weergave` | De bepaling met haar segmenten, lagen, markeringen en dekking |
+| `GET` | `/v1/annotatie/dekking` | Is deze bronnode (of subtree) daadwerkelijk behandeld? |
+| `POST` | `/v1/annotatie/lagen/batch` | De uitkomst van één agent-ronde, in één transactie (idempotent op `batch_id`) |
+| `POST` | `/v1/annotatie/elementen` | Eigen markering van de jurist toevoegen |
+| `GET` `DELETE` | `/v1/annotatie/elementen/{id}` | Markering ophalen / een eigen, nog niet beoordeelde markering wissen |
+| `POST` | `/v1/annotatie/elementen/{id}/beslissing` | Human-decision (approve/edit/reject/comment/heropen) |
+| `POST` | `/v1/annotatie/lagen/{id}/status` | Afronden (`geaccordeerd`) of heropenen (`in_review`) |
+| `POST` | `/v1/annotatie/zoeken` | Zoeken in opgeslagen annotaties; kandidaten uit de graaf, geverifieerd tegen PostgreSQL |
+| `GET` | `/v1/annotatie/node-lagen` | Overzicht van de lagen (werkvoorraad per bepaling) |
+| `POST` | `/v1/annotatie/weergave/export` | Export als `pdf\|csv\|json` |
+
+**De oude, artikelbrede routes (contract 1).** Onder contract 2 geven de schrijfacties hieronder een
+**409**; lezen en exporteren blijft werken voor wat er nog staat.
 
 | Methode | Pad | Wat het doet |
 |---------|-----|--------------|
