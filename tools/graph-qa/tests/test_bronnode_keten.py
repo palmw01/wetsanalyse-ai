@@ -38,8 +38,9 @@ def snapshot(iri=L1, rows=None):
 
 
 class ReadApi:
-    def __init__(self, snap, *, completed=False, status="ok"):
+    def __init__(self, snap, *, completed=False, status="ok", afgerond=()):
         self.snap, self.completed, self.status = snap, completed, status
+        self.afgerond = list(afgerond)
         self.calls = []
 
     def zoeken(self, filters):
@@ -58,7 +59,9 @@ class ReadApi:
 
     def weergave(self, doel):
         self.calls.append(("weergave", doel))
-        return {"schema_versie": 2, "snapshot_id": self.snap["snapshot_id"], "lagen": [], "elementen": []}
+        return {"schema_versie": 2, "snapshot_id": self.snap["snapshot_id"], "elementen": [],
+                "lagen": [{"id": f"laag-{i}", "bron_iri": iri, "revisie": 3, "status": "geaccordeerd"}
+                          for i, iri in enumerate(self.afgerond)]}
 
 
 def run(gen):
@@ -388,3 +391,74 @@ def test_node_advice_keeps_identity_and_snapshot_and_cannot_write_even_with_goal
     assert not api.calls
     prompt = json.dumps(llm.calls[0], ensure_ascii=False)
     assert L1 in prompt and "snapshot-from-view" in prompt and "human-7" in prompt
+
+
+@pytest.mark.parametrize("hergebruik", ["auto", "opnieuw"])
+def test_afgeronde_bepaling_stopt_voordat_er_een_modelronde_draait(hergebruik):
+    # Live gezien op 22 sep 2026: een volledige ronde op een afgeronde laag, daarna 409 en de
+    # melding "probeer opnieuw". Nu stopt de beurt vóór de eerste modelcall, met de echte reden.
+    llm = FakeLLM([])
+    events = run(answer_stream("annoteer artikel 9 lid 1", doel={"bron_iri": L1}, llm=llm, hergebruik=hergebruik,
+                              graph=FakeGraph(result=ROWS), annotaties=ReadApi(snapshot(), afgerond=[L1]),
+                              settings=make_settings()))
+    assert llm.calls == []
+    assert not any(e["type"] in {"element", "doel", "run"} for e in events)
+    tekst = " ".join(e.get("content", "") for e in events)
+    assert "afgerond" in tekst and "Heropen" in tekst
+
+
+def test_afgeronde_bepaling_mag_wel_hergebruikt_worden():
+    llm = FakeLLM([])
+    events = run(answer_stream("annoteer lid 1", doel={"bron_iri": L1}, llm=llm, graph=FakeGraph(result=ROWS),
+                              annotaties=ReadApi(snapshot(), completed=True, afgerond=[L1]), settings=make_settings()))
+    assert llm.calls == [] and not [e for e in events if e["type"] == "error"], events
+    assert next(e["hergebruik"] for e in events if e["type"] == "hergebruik")["volledig"]
+
+
+def test_afgerond_lid_telt_als_klaar_binnen_een_open_artikel():
+    llm = FakeLLM([
+        response([text_block(json.dumps({"elementen": [
+            {"klasse": "Rechtsobject", "tekst": "belastingaanslag"},
+            {"klasse": "Rechtssubject", "tekst": "De ontvanger"}]}))], "end_turn"),
+        response([text_block('{"oordelen": [], "ontbrekend": []}')], "end_turn"),
+    ])
+    events = run(answer_stream("annoteer artikel 9", doel={"bron_iri": ART}, llm=llm, graph=FakeGraph(result=ROWS),
+                              annotaties=ReadApi(snapshot(ART), afgerond=[L1]),
+                              settings=make_settings(critic_max_rondes=0), run_id="deels", user_id="jurist"))
+    assert not [e for e in events if e["type"] == "error"], events
+    # Lid 1 is afgerond: daar komt niets bij, lid 2 wordt gewoon geannoteerd.
+    owners = [e["element"]["eigenaar_iri"] for e in events if e["type"] == "element"]
+    assert owners == [L2]
+    prompt = json.dumps(llm.calls, ensure_ascii=False, default=str)
+    assert "lokaal al geannoteerd" in prompt and L1 in prompt.split("lokaal al geannoteerd", 1)[1]
+
+
+def test_409_op_een_afgeronde_laag_krijgt_een_eerlijke_melding(monkeypatch):
+    from agent import beurt
+    from agent.wetsanalyse_api import WetsanalyseApiFout
+    class Api:
+        def __init__(self, *args):
+            pass
+        async def zet_bronnode_batch(self, data):
+            raise WetsanalyseApiFout("conflict", 409, "Heropen de laag voordat je haar wijzigt.")
+        async def aclose(self):
+            pass
+    monkeypatch.setattr(beurt, "WetsanalyseApi", Api)
+    writer = beurt.BeurtSchrijver()
+    writer.doel = {"schema_versie": 2, "bron_iri": L1, "snapshot_id": "s", "bereik": [L1]}
+    writer.run = {"modus": "nieuw"}
+    events = run(beurt._leg_vast(writer, settings=make_settings(), run=SimpleNamespace(run_id="r1"),
+                                gesprek_id="g1", gestopt=False, user_id="jurist"))
+    assert events[0]["foutcode"] == "annotatie_afgerond"
+    assert "heropen" in events[0]["message"] and "Probeer" not in events[0]["message"]
+
+
+@pytest.mark.parametrize("body,reden", [
+    ({"detail": "Heropen de laag voordat je haar wijzigt."}, "Heropen de laag voordat je haar wijzigt."),
+    ({"detail": {"fout": "revisie_conflict", "bron_iri": L1}}, "revisie_conflict"),
+    ({"detail": [{"loc": ["body"], "input": "geheime invoer"}]}, ""),
+    ({"detail": "x" * 500}, ""),
+])
+def test_api_reden_neemt_alleen_korte_serverteksten_over(body, reden):
+    from agent.wetsanalyse_api import api_reden
+    assert api_reden(httpx.Response(409, json=body)) == reden

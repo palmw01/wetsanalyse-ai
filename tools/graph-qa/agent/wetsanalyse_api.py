@@ -60,9 +60,28 @@ def naar_contract(element: dict[str, Any]) -> dict[str, Any]:
 class WetsanalyseApiFout(Exception):
     """De uitkomst kon niet worden vastgelegd. Expliciet, want stil verliezen is het ergste."""
 
-    def __init__(self, melding: str, status: int = 0) -> None:
+    def __init__(self, melding: str, status: int = 0, reden: str = "") -> None:
         super().__init__(melding)
         self.status = status
+        #: De reden die de api zelf gaf ("Heropen de laag …"), zodat de jurist een eerlijke melding
+        #: krijgt in plaats van "probeer opnieuw".
+        self.reden = reden
+
+
+def api_reden(antwoord: httpx.Response) -> str:
+    """De foutreden uit een api-antwoord: een korte servertekst of een foutcode, nooit de body.
+
+    `detail` is bij deze api een vaste melding ("Heropen de laag …") of een object met `fout`;
+    alles daarbuiten (een lange tekst, een lijst validatiefouten met invoer erin) laten we weg."""
+    try:
+        detail = antwoord.json().get("detail")
+    except (ValueError, AttributeError):
+        return ""
+    if isinstance(detail, str) and len(detail) <= 200:
+        return detail
+    if isinstance(detail, dict) and isinstance(detail.get("fout"), str):
+        return detail["fout"][:80]
+    return ""
 
 
 class GesprekVerdwenen(WetsanalyseApiFout):
@@ -108,12 +127,15 @@ class WetsanalyseApi:
         if antwoord.status_code == 404 and "/gesprekken/" in pad:
             raise GesprekVerdwenen(f"{methode} {pad} → 404", 404)
         if antwoord.status_code >= 400:
-            # De ruwe body kan gebruikersinhoud bevatten; log de status en het pad, niet de payload.
+            # De ruwe body kan gebruikersinhoud bevatten; log de status, het pad en alleen de reden
+            # die de api zelf formuleert. Zonder die reden was een 409 achteraf niet te duiden.
+            reden = api_reden(antwoord)
             logger.error(
                 "api-schrijffout",
-                extra={"categorie": "technisch", "http_status": antwoord.status_code, "http_path": pad},
+                extra={"categorie": "technisch", "http_status": antwoord.status_code, "http_path": pad,
+                       "api_reden": reden},
             )
-            raise WetsanalyseApiFout(f"{methode} {pad} → {antwoord.status_code}", antwoord.status_code)
+            raise WetsanalyseApiFout(f"{methode} {pad} → {antwoord.status_code}", antwoord.status_code, reden)
         return antwoord.json() if antwoord.content else {}
 
     # -- annotatie-domein ------------------------------------------------------------------------
