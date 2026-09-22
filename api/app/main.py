@@ -90,6 +90,7 @@ async def lifespan(app: FastAPI):
     # De projectie van de annotatielagen naar de kennisgraaf. Zonder GRAPHDB_URL staat hij uit en is
     # elke hook een no-op; Postgres blijft hoe dan ook de waarheid.
     projectie_taak = None
+    projectie_v2_taak = None
     if settings.graphdb_url:
         from . import graaf_projectie
         from .deps import get_annotatie_store
@@ -98,7 +99,15 @@ async def lifespan(app: FastAPI):
         graaf_projectie.zet_projector(projector)
         projectie_taak = asyncio.create_task(
             projector.lus(get_annotatie_store(), settings.jas_projectie_interval_s))
+        from .graaf_projectie_v2 import lus as v2_projectie_lus
+        projectie_v2_taak = asyncio.create_task(v2_projectie_lus(settings.jas_projectie_interval_s))
     yield
+    if projectie_v2_taak is not None:
+        projectie_v2_taak.cancel()
+        try:
+            await projectie_v2_taak
+        except asyncio.CancelledError:
+            pass
     if projectie_taak is not None:
         from . import graaf_projectie
 
@@ -133,6 +142,8 @@ observability.instrument_fastapi(app)
 app.include_router(catalog.router, prefix="/v1")
 app.include_router(admin.router, prefix="/v1")
 app.include_router(auth.router, prefix="/v1")
+from . import annotatie_v2
+app.include_router(annotatie_v2.router, prefix="/v1")
 app.include_router(annotatie.router, prefix="/v1")
 app.include_router(berichten.router, prefix="/v1")
 app.include_router(feedback.router, prefix="/v1")

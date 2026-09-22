@@ -63,8 +63,9 @@ from ..deps import get_annotatie_store
 from ..annotatie_validatie import bronversies, controleer_element
 from ..validation import GELDIGE_JAS_KLASSEN
 from .auth import actieve_userid
+from ..annotatie_v2_contract_guard import require_legacy_write
 
-router = APIRouter(prefix="/annotatie", tags=["annotatie"])
+router = APIRouter(prefix="/annotatie", tags=["annotatie"], dependencies=[Depends(require_legacy_write)])
 
 # Velden die een agent-ronde inhoudelijk mag bijwerken op een niet-bevroren element.
 _INHOUD_VELDEN = ("klasse", "tekst", "lid", "toelichting", "vindplaats")

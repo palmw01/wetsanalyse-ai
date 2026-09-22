@@ -210,3 +210,39 @@ async def test_meekijken_op_een_lopende_run_levert_events_terwijl_ze_ontstaan(st
     events = [e async for e in store.volg(run)]
     assert [e["type"] for e in events] == ["token", "token", "done"]
     assert run.status == "klaar"
+
+
+@met_store
+async def test_sluiten_bewaart_eindstatus_voordat_databasepool_sluit(store):
+    started = asyncio.Event()
+    async def stream(run):
+        yield {"type": "tool_execution", "run_id": run.run_id, "call_id": "call1",
+               "tool": "get_annotatie", "phase": "start"}
+        started.set()
+        await asyncio.Event().wait()
+    run = await store.start(conversation_id="shutdown", vraag="v", maak_stroom=stream, user_id="u1")
+    await asyncio.wait_for(started.wait(), timeout=5)
+    await store.sluit()
+    assert run.taak.done()
+    replica = PostgresStore(DSN)
+    await replica.setup()
+    try:
+        saved = await replica.get(run.run_id, user_id="u1")
+        assert saved.status == "gestopt"
+        events = [e async for e in replica.volg(saved)]
+        assert events[0]["tool"] == "get_annotatie"
+    finally:
+        await replica.sluit()
+
+
+@met_store
+async def test_sluiten_direct_na_start_laat_geen_lopende_run_achter(store):
+    run = await store.start(conversation_id="instant", vraag="v", maak_stroom=blijf_draaien())
+    await store.sluit()
+    replica = PostgresStore(DSN)
+    await replica.setup()
+    try:
+        saved = await replica.get(run.run_id)
+        assert saved.status == "gestopt"
+    finally:
+        await replica.sluit()

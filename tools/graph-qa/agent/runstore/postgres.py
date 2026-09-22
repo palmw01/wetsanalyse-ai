@@ -126,8 +126,21 @@ class PostgresStore:
             await conn.execute(_SCHEMA)
 
     async def sluit(self) -> None:
-        for taak in list(self._taken.values()):
+        run_ids = list(self._taken)
+        taken = list(self._taken.values())
+        for taak in taken:
             taak.cancel()
+        # Annulering schrijft nog de eindstatus en stopt de heartbeat. Houd de pool
+        # open totdat dit klaar is, zodat andere replicas geen spookrun zien.
+        if taken:
+            await asyncio.gather(*taken, return_exceptions=True)
+            # Een taak kan al geannuleerd zijn vóór haar coroutine start. Ook dan
+            # moet de bij start() vastgelegde run als beëindigd leesbaar zijn.
+            async with self.pool.connection() as conn:
+                await conn.execute(
+                    "UPDATE agent_runs SET status = 'gestopt', afgerond = now() "
+                    "WHERE run_id = ANY(%s) AND status = 'loopt'", (run_ids,))
+            self._taken.clear()
         if self._pool is not None:
             await self._pool.close()
             self._pool = None

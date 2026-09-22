@@ -102,6 +102,7 @@ def test_zonder_ankers_geen_versies():
 
 @pytest.fixture
 async def client(monkeypatch):
+    monkeypatch.setenv("ANNOTATIE_CONTRACT_VERSIE", "1")
     monkeypatch.setenv("WETSANALYSE_AUTH_REQUIRED", "0")
     from app import db, ratelimit
     from app.config import get_settings

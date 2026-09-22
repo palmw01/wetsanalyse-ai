@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import asyncio
 import json
-import logging
 from typing import Any
 
 import pytest
 
 from agent.agent import answer_stream
+from bronmodel import bouw_snapshot
+from bron_fakes import bronrijen
 from agent.annotatie import _fnv1a_32
 from agent.beurt import voer_beurt_uit
 from agent.runs import Run
@@ -45,15 +46,29 @@ MARKERINGEN_TSV = json.dumps(
 
 
 def _graaf(laag: dict[str, str] | None, *, laag_faalt: bool = False) -> FakeGraph:
-    def antwoord(query: str) -> str:
-        if "jas:AnnotatieLaag" in query:
-            if laag_faalt:
-                raise RuntimeError("GraphDB even weg")
-            return _laag_tsv(laag) if laag else json.dumps("?slug\t?status\t?bijgewerkt\t?lid\t?hash")
-        if "jas:Markering" in query:
-            return MARKERINGEN_TSV
-        return ARTIKEL_TSV
-    return FakeGraph(results=antwoord)
+    graph = FakeGraph(result=bronrijen(ARTIKEL_TSV, DOEL))
+    graph.laag, graph.laag_faalt, graph.api_calls = laag or {}, laag_faalt, []
+    return graph
+
+
+class NodeLeesApi:
+    def __init__(self, graph, lid):
+        self.graph = graph
+        self.snapshot = bouw_snapshot(graph._result, bwb_id=DOEL["bwbId"], artikel="9", lid=lid)
+        self.nodes = {s["nummer"]: s for s in self.snapshot["segmenten"]}
+        self.complete = {self.nodes[n]["bron_iri"] for n, value in graph.laag.items()
+                         if n in self.nodes and value == _fnv1a_32({"1": LID1, "2": LID2}[n])}
+    def dekking(self, _doel):
+        self.graph.api_calls.append("dekking")
+        return {"status": "unavailable" if self.graph.laag_faalt else "ok",
+                "snapshot_id": self.snapshot["snapshot_id"], "voltooid": len(self.complete) == len(self.nodes),
+                "parent_context": len(self.complete) == len(self.nodes), "bereik": sorted(self.complete)}
+    def weergave(self, _doel):
+        self.graph.api_calls.append("weergave")
+        elements = [{"id": "e"+n, "klasse": "Rechtssubject", "tekst": "De ontvanger" if n == "2" else "Een belastingaanslag",
+                     "eigenaar_iri": node["bron_iri"], "lifecycle": "voorgesteld", "lid": n}
+                    for n, node in self.nodes.items() if node["bron_iri"] in self.complete]
+        return {"schema_versie": 2, "snapshot_id": self.snapshot["snapshot_id"], "elementen": elements, "lagen": []}
 
 
 def _annotatie(*elementen: dict) -> Any:
@@ -69,6 +84,7 @@ def _draai(llm: FakeLLM, graaf: FakeGraph, *, lid: str = "", hergebruik: str = "
         return [e async for e in answer_stream(
             "annoteer", doel={**DOEL, "lid": lid}, llm=llm, graph=graaf, hergebruik=hergebruik,
             settings=make_settings(enable_decomposition=True, critic_max_rondes=0, **settings),
+            annotaties=NodeLeesApi(graaf, lid),
         )]
     return asyncio.run(verzamel())
 
@@ -88,19 +104,20 @@ def test_ongewijzigd_lid_kost_geen_llm_call(splitsing: bool):
     assert llm.calls == [] and not _van(events, "error")
     assert not _van(events, "element")
     hergebruik, = [e["hergebruik"] for e in _van(events, "hergebruik")]
-    assert hergebruik["volledig"] and hergebruik["slug"] == "laag1"
+    assert hergebruik["volledig"] and hergebruik["slug"] == "urn:bwb:BWBR0004770:artikel:9:lid:2"
     assert [ld["lid"] for ld in hergebruik["leden"]] == ["2"]
     # Alleen de markeringen van dít lid tellen mee.
     assert hergebruik["telling"] == {"markeringen": 1, "beoordeeld": 0, "afgewezen": 0,
                                      "te_beoordelen": 1}
     run, = [e["run"] for e in _van(events, "run")]
-    assert run["modus"] == "hergebruik" and run["leden"] == ["2"]
+    assert run["modus"] == "hergebruik"
     assert "hergebruikt" in "".join(e["content"] for e in _van(events, "token"))
     # Het doel draagt de lidstand, zodat de driver het hergebruik kan vastleggen.
     doel, = [e["doel"] for e in _van(events, "doel")]
-    assert doel["leden"][0]["hash"] == _fnv1a_32(LID2)
-    # De laag is gelezen uit zijn eigen named graph, niet uit de union.
-    assert any("GRAPH <urn:jas:graph:BWBR0004770:artikel:9>" in q for q in graaf.queries)
+    assert doel["bereik"] == ["urn:bwb:BWBR0004770:artikel:9:lid:2"]
+    assert len(doel["segmenten"][0]["bron_hash"]) == 64
+    assert graaf.api_calls == ["dekking", "weergave"]
+    assert not any("jas:AnnotatieLaag" in q for q in graaf.queries)
 
 
 def test_gewijzigd_lid_wordt_gewoon_geannoteerd():
@@ -117,37 +134,38 @@ def test_deels_gewijzigd_artikel_annoteert_alleen_het_gewijzigde_lid():
                    GEEN_OORDEEL])
     events = _draai(llm, _graaf({"1": _fnv1a_32(LID1), "2": "oude-hash"}))
 
-    # Het model kreeg alleen lid 2 te lezen.
+    # Oudertekst blijft beschikbaar voor overspannende samenhang; lokaal hergebruik is expliciet.
     prompt = llm.calls[0]["messages"][0]["content"]
-    assert LID2 in prompt and LID1 not in prompt
+    assert LID2.removeprefix("2. ") in prompt and LID1.removeprefix("1. ") in prompt
+    assert "urn:bwb:BWBR0004770:artikel:9:lid:1" in str(llm.calls[0])
 
     hergebruik, = [e["hergebruik"] for e in _van(events, "hergebruik")]
     assert not hergebruik["volledig"] and [ld["lid"] for ld in hergebruik["leden"]] == ["1"]
     # Naar de api gaat alleen de stand van het lid dat opnieuw is geannoteerd.
     doel, = [e["doel"] for e in _van(events, "doel")]
-    assert [ld["lid"] for ld in doel["leden"]] == ["2"]
-    assert doel["leden_teksten"][0]["tekst"] == ARTIKEL
-    # En het anker staat gewoon op het hele artikel.
-    a = _van(events, "element")[0]["element"]["anker"]
-    assert ARTIKEL[a["start"]:a["eind"]] == "De ontvanger" and a["lid_hash"] == _fnv1a_32(LID2)
+    assert doel["bereik"] == ["urn:bwb:BWBR0004770:artikel:9:lid:1", "urn:bwb:BWBR0004770:artikel:9:lid:2"]
+    a, = _van(events, "element")[0]["element"]["ankers"]
+    assert a["bron_iri"].endswith(":lid:2") and a["start"] == 0
+    assert len(a["bron_hash"]) == 64
 
 
-def test_opnieuw_annoteren_kijkt_niet_naar_de_laag():
+def test_opnieuw_annoteren_controleert_api_maar_hergebruikt_niet():
     llm = FakeLLM([_annotatie({"klasse": "Rechtssubject", "tekst": "De ontvanger", "lid": "2"}),
                    GEEN_OORDEEL])
     graaf = _graaf({"2": _fnv1a_32(LID2)})
     events = _draai(llm, graaf, lid="2", hergebruik="opnieuw")
     assert not _van(events, "hergebruik") and _van(events, "element")
-    assert not any("jas:AnnotatieLaag" in q for q in graaf.queries)
+    assert graaf.api_calls == ["dekking", "weergave"]
     assert _van(events, "run")[0]["run"]["modus"] == "opnieuw"
 
 
-def test_onleesbare_laag_betekent_gewoon_annoteren():
-    """Een GraphDB die hapert is geen reden om niet te annoteren; de api is het vangnet."""
+def test_onleesbare_dekking_stopt_zonder_nieuwe_annotatie():
+    """Een API-storing is geen bewijs dat annotaties ontbreken."""
     llm = FakeLLM([_annotatie({"klasse": "Rechtssubject", "tekst": "De ontvanger", "lid": "2"}),
                    GEEN_OORDEEL])
     events = _draai(llm, _graaf(None, laag_faalt=True), lid="2")
-    assert not _van(events, "error") and _van(events, "element")
+    assert not _van(events, "element") and llm.calls == []
+    assert any(e.get("status") == "unavailable" for e in _van(events, "tool_execution"))
 
 
 def test_geen_laag_betekent_gewoon_annoteren():
@@ -161,11 +179,16 @@ def test_geen_laag_betekent_gewoon_annoteren():
 
 class NepApi:
     def __init__(self, hergebruikt: list[str] | None = None) -> None:
+        self.batches: list[dict] = []
         self.hergebruik_posts: list[dict] = []
         self.laag_puts: list[dict] = []
         self.berichten: list[dict] = []
         self.verworpen = 0
         self.hergebruikt = hergebruikt or []
+
+    async def zet_bronnode_batch(self, batch):
+        self.batches.append(batch)
+        return {"annotatie_doel": {"bron_iri": batch["doel"]["bron_iri"], "snapshot_id": batch["snapshot_id"]}}
 
     async def hergebruik(self, **kw: Any) -> dict:
         self.hergebruik_posts.append(kw)
@@ -204,20 +227,18 @@ def test_volledig_hergebruik_wordt_vastgelegd_zonder_merge(monkeypatch):
     nep = NepApi()
     uit = _leg_vast(events, nep, monkeypatch)
 
-    post, = nep.hergebruik_posts
-    assert (post["bwb_id"], post["artikel"]) == ("BWBR0004770", "9")
-    assert [ld["lid"] for ld in post["leden"]] == ["2"] and post["run"]["modus"] == "hergebruik"
-    assert nep.laag_puts == []
-    assert nep.berichten[0]["annotatie_slug"] == "laag1"
-    assert [e for e in uit if e["type"] == "opgeslagen"][0]["annotatie_slug"] == "laag1"
+    batch, = nep.batches
+    assert batch["doel"]["bron_iri"].endswith(":lid:2")
+    assert batch["elementen"] == [] and batch["run"]["modus"] == "hergebruik"
+    assert nep.laag_puts == [] and nep.hergebruik_posts == []
+    assert nep.berichten[0]["annotatie_doel"]["bron_iri"].endswith(":lid:2")
+    assert nep.berichten[0]["tool_executions"]
+    assert _van(uit, "opgeslagen")[0]["annotatie_doel"]["bron_iri"].endswith(":lid:2")
 
 
-def test_gemist_hergebruik_is_meetbaar(monkeypatch, caplog):
-    """De graaf zag het lid niet als geannoteerd, de api wel: de projectie liep achter. Dat kost
-    tokens, geen werk – maar het moet in de log staan."""
-    llm = FakeLLM([_annotatie({"klasse": "Rechtssubject", "tekst": "De ontvanger", "lid": "2"}),
-                   GEEN_OORDEEL])
-    events = _draai(llm, _graaf(None), lid="2")
-    with caplog.at_level(logging.WARNING, logger="graph_qa.beurt"):
-        _leg_vast(events, NepApi(hergebruikt=["2"]), monkeypatch)
-    assert any(r.getMessage() == "hergebruik_gemist" for r in caplog.records)
+def test_api_onbeschikbaarheid_wordt_in_het_toolspoor_vastgelegd():
+    graph = _graaf(None, laag_faalt=True)
+    events = _draai(FakeLLM([]), graph, lid="2")
+    end = [e for e in _van(events, "tool_execution") if e["tool"] == "get_annotatiedekking" and e["phase"] == "end"]
+    assert len(end) == 1 and end[0]["status"] == "unavailable"
+    assert graph.api_calls == ["dekking"]

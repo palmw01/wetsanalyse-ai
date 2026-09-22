@@ -100,7 +100,7 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
             <header className="mb-5">
               <h1 className="font-display text-lg font-semibold text-lint">Annotaties</h1>
               <p className="mt-1 text-sm text-muted">
-                De JAS-annotaties per artikel, gedeeld met iedereen – los van het gesprek waarin
+                De JAS-annotaties per bepaling, gedeeld met iedereen – los van het gesprek waarin
                 ze zijn gemaakt.
               </p>
             </header>

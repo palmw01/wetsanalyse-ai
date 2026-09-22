@@ -14,6 +14,14 @@ from .berichten import _voeg_toe_en_snoei
 
 class State(TypedDict, total=False):
     question: str
+    run_id: str
+    user_id: str
+    annotaties_lezen: bool
+    bron_snapshot: dict[str, Any]
+    annotatie_weergave: dict[str, Any]
+    corpus_segmenten: list[dict[str, Any]]
+    hergebruikte_nodes: list[str]
+    annotatie_fout: str
     # Episodisch geheugen, gepersisteerd door de checkpointer. De reducer voegt toe én snoeit: zonder
     # dat groeide de bewaarde historie onbeperkt door (inclusief elk tool-resultaat van 8000 tekens),
     # en werd elke checkpoint-write in een lang gesprek trager en dikker. Snoeien gebeurt alleen op

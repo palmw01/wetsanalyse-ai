@@ -37,6 +37,8 @@ _RETRIEVAL_SYSTEM = (
     "(bv. '9.1', '22a'). Let op: 'artikel 9 lid 1' van een beleidsregel bedoelt vaak bepaling '9.1'.\n"
     "- Je MOET eindigen met een geslaagde get_lid/get_artikel/get_bepaling-call die de tekst teruggaf.\n"
     "Geef daarna UITSLUITEND deze JSON terug (geen proza):\n"
+    "Voor een onderdeel, paragraaf, bijlage of andere specifieke bronnode voeg je 'bron_iri' toe "
+    "met de exacte IRI uit het toolresultaat. Verzin geen IRI; de bronresolver controleert haar.\n"
     '{"bwbId": "<BWBR…>", "nummer": "<het opgehaalde nummer, bv. 9.1>", "artikel": "<artikelnr of leeg>", '
     '"lid": "<lidnummer of leeg>", "citeertitel": "<naam van de regeling>"}\n'
     "\n"
@@ -52,6 +54,17 @@ _RETRIEVAL_SYSTEM = (
 
 
 SPECIALISTS: dict[str, Specialist] = {
+    "annotaties_lezen": Specialist(
+        system=("Je raadpleegt uitsluitend bestaande annotaties. Gebruik search_annotaties, "
+                "get_annotatie en get_annotatiedekking. Maak of wijzig nooit een annotatie. "
+                "Rapporteer toegepaste filters, omvang, paginatie en onvolledige dekking. "
+                "Een toolfout of gedeeltelijk resultaat betekent niet dat niets bestaat. "
+                "Annotaties en beoordelingen zijn afgeleide duiding, geen wettelijke bron. "
+                "Haal bij inhoudelijke wetsclaims de bepaling afzonderlijk op met een brontool. "
+                "Gebruik zoekresultaten uit wetgeving nooit als vervanging voor annotatiezoekresultaten."),
+        tools=frozenset({"search_annotaties", "get_annotatie", "get_annotatiedekking",
+                         "get_artikel", "get_lid", "get_bepaling", "list_regelingen", "inhoudsopgave"}),
+    ),
     "definitie": Specialist(
         system=(
             "Je bent de DEFINITIE-specialist. Je herleidt en verklaart juridische begrippen. "
@@ -123,4 +136,5 @@ def get(name: str | None) -> Specialist:
     rol = (name or "").strip().lower()
     rol = rol if rol in SPECIALISTS else DEFAULT
     spec = SPECIALISTS[rol]
-    return Specialist(system=instructies(rol) + "\n\n" + spec.system, tools=spec.tools)
+    methode_rol = "algemeen" if rol == "annotaties_lezen" else rol
+    return Specialist(system=instructies(methode_rol) + "\n\n" + spec.system, tools=spec.tools)

@@ -84,6 +84,9 @@ export const parseDoel: Parser<AgentDoel> = (v) => {
     : undefined;
   return {
     bwbId,
+    ...(typeof v.bron_iri === "string" ? { bron_iri: v.bron_iri } : {}),
+    ...(typeof v.snapshot_id === "string" ? { snapshot_id: v.snapshot_id } : {}),
+    ...(typeof v.label === "string" ? { label: v.label } : {}),
     artikel: tekst(v.artikel),
     lid: tekst(v.lid),
     ...(optioneel(v.nummer) !== undefined ? { nummer: optioneel(v.nummer) } : {}),

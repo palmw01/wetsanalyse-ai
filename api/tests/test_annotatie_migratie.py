@@ -122,6 +122,7 @@ def test_runs_samengevoegd_op_tijd():
 
 @pytest.fixture
 async def omgeving(monkeypatch):
+    monkeypatch.setenv("ANNOTATIE_CONTRACT_VERSIE", "1")
     monkeypatch.setenv("WETSANALYSE_AUTH_REQUIRED", "0")
     monkeypatch.setenv("WETSANALYSE_ADMIN_TOKENS", "beheer:geheim")
     from app import db, ratelimit

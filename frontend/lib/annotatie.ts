@@ -468,6 +468,9 @@ export function doelInvoerVan(doel: AgentDoel | null | undefined): AgentDoelInvo
   if (!doel?.bwbId) return undefined;
   return {
     bwbId: doel.bwbId,
+    ...(doel.bron_iri ? { bron_iri: doel.bron_iri } : {}),
+    ...(doel.snapshot_id ? { snapshot_id: doel.snapshot_id } : {}),
+    ...(doel.label ? { label: doel.label } : {}),
     ...(doel.artikel ? { artikel: doel.artikel } : {}),
     ...(doel.lid ? { lid: doel.lid } : {}),
     ...(doel.nummer ? { nummer: doel.nummer } : {}),

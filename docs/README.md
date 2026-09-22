@@ -47,6 +47,9 @@ landen; de tekst niet.
 
 ## Specificaties van ons systeem
 
+- [Annotaties op bronnodes, contract 2](architectuur/annotatie-bronnodes.md) — lokale ankers,
+  node-lagen, echte annotatiezoektools, SSE-uitvoeringsspoor en gecontroleerde omschakeling.
+
 - **`wetsanalyse-workbench/jas-annotatie-ontologie.md`** — de RDF-projectie van de gedeelde
   annotatielagen naar de graaf (`api/app/graaf_projectie.py`), met `jas-ontologie.ttl` als afdruk van
   de vocabulaire (drift-test in de api). Het domein zelf staat in `api/app/annotatie_contracts.py` —

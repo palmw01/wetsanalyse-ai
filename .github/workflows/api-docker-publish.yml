@@ -9,6 +9,7 @@ on:
     branches: [master]
     paths:
       - "api/**"
+      - "packages/bronmodel/**"
       # API-documentatie (*.md) triggert géén build/deploy.
       - "!api/**/*.md"
       # De skill-references/scripts/assets worden in de image gebakken → wél rebuilden (incl. .md).

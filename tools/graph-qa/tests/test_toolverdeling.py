@@ -99,7 +99,9 @@ def test_elke_graaftool_zit_in_de_retrieval_smoke():
     gedekt = {c.tool for c in CONTROLES}
     # `semantic_search` hangt aan een similarity-index die na elke herstart van de niet-persistente
     # graaf ontbreekt; `raw_sparql` heeft geen vaste vorm om op te toetsen.
-    buiten = {"semantic_search", "raw_sparql"}
+    # Deze expliciete annotatiezoektools lezen de canonieke API-projectie, niet GraphPort;
+    # hun API/MCP-contracten worden in test_bronnode_keten getoetst.
+    buiten = {"semantic_search", "raw_sparql", "search_annotaties", "get_annotatie", "get_annotatiedekking"}
     ongedekt = {t["name"] for t in tools.TOOLS} - gedekt - buiten
     assert not ongedekt, (
         f"deze tools worden nergens tegen de echte graaf geraakt: {sorted(ongedekt)}. "

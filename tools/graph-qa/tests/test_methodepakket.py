@@ -5,7 +5,7 @@ import shutil
 import subprocess
 import sys
 import pytest
-from agent.agent import answer_stream
+from bron_fakes import answer_stream
 from agent.methode import instructies
 from agent.methodepakket import PAKKET
 from scripts.genereer_methodepakket import DOEL, SKILL, compileer, genereer, sha

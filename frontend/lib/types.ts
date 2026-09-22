@@ -343,6 +343,9 @@ export interface AuditRecord {
 /** Eén regel in het annotatie-overzicht: naam, voortgang en de JAS-verdeling voor de kleurstrip,
  *  zodat de lijst zonder tweede call kan tonen wat er nog te beoordelen is. */
 export interface DocumentSamenvatting {
+  bron_iri?: string;
+  label?: string;
+  snapshot_id?: string;
   slug: string;
   bwbId: string;
   artikel: string;
@@ -406,6 +409,9 @@ export interface BeslissingInvoer {
 /** Het doel dat de ophaal-agent heeft opgehaald (uit het `doel`-SSE-event), incl. de opgehaalde tekst
  *  zodat het documentpaneel precies dát toont (ook beleidsregels/divisies zoals '9.1'). */
 export interface AgentDoel {
+  bron_iri?: string;
+  snapshot_id?: string;
+  label?: string;
   bwbId: string;
   artikel: string;
   lid: string;
@@ -422,6 +428,9 @@ export interface AgentDoel {
  *  Spiegelt `AgentDoel` in `tools/graph-qa/agent/models.py`.
  */
 export interface AgentDoelInvoer {
+  bron_iri?: string;
+  snapshot_id?: string;
+  label?: string;
   bwbId: string;
   artikel?: string;
   lid?: string;
@@ -443,6 +452,8 @@ export interface AgentKandidaat {
 
 /** Context bij een adviesvraag of een annotatie: waar gaat het over. */
 export interface AgentContext {
+  bron_iri?: string;
+  snapshot_id?: string;
   slug?: string;
   bwbId?: string;
   artikel?: string;
@@ -543,6 +554,8 @@ export type Rol = "user" | "assistant";
  *  leesbare kaart staan in plaats van een naamloze verwijzing. Berichten van vóór dit veld leveren
  *  `""` – dat is een lege terugval, geen fout. */
 export interface Bericht {
+  annotatie_doel?: import("./annotatieNode").NodeDoel;
+  tool_executions?: import("./annotatieNode").ToolExecution[];
   id?: number;
   rol: Rol;
   tekst: string;
@@ -580,6 +593,8 @@ export interface GesprekSamenvatting {
 
 /** Eén toe te voegen bericht (append). */
 export interface BerichtInvoer {
+  annotatie_doel?: import("./annotatieNode").NodeDoel;
+  tool_executions?: import("./annotatieNode").ToolExecution[];
   rol: Rol;
   tekst?: string;
   denk?: string;

@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Juridische vraagbeantwoording via GraphDB-graaf (MCP)"
 requires-python = ">=3.11"
 dependencies = [
+    "wetsanalyse-bronmodel",
     "anthropic>=1,<2",
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.30.0",
@@ -62,6 +63,9 @@ graph-qa-mcp = "agent.mcp_server:main"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.uv.sources]
+wetsanalyse-bronmodel = { path = "../../packages/bronmodel" }
 
 # De code leeft in agent/ + api/ (geen `graph_qa/`-map), dus hatchling expliciet vertellen
 # welke packages in de wheel horen – anders faalt `uv sync` (kan geen files bepalen).

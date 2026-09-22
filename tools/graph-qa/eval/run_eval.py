@@ -67,7 +67,7 @@ async def run_suite(cases: list[dict[str, Any]], *, settings: Settings, llm=None
 
 
 async def run_annotatie_case(
-    case: dict[str, Any], *, settings: Settings, llm=None, graph=None, meter=None
+    case: dict[str, Any], *, settings: Settings, llm=None, graph=None, meter=None, annotaties=None,
 ) -> AnnotatieResult:
     """Draai één annotatie-opdracht en scoor de markeringen die eruit komen.
 
@@ -90,7 +90,8 @@ async def run_annotatie_case(
     fout_soort: str | None = None
 
     async for ev in answer_stream(
-        case["prompt"], settings=settings, llm=llm, graph=graph, meter=meter
+        case["prompt"], settings=settings, llm=llm, graph=graph, meter=meter,
+        annotaties=annotaties or getattr(graph, "annotaties", None),
     ):
         soort = ev.get("type")
         if soort == "element":
@@ -351,7 +352,25 @@ def _offline_annotatie_scenario():
         "verboden": ["uitstel van betaling"],
         "kanaries": ["GEHACKT"],
     }
-    return [case], llm, FakeGraph(result=lid_tsv)
+    from bronmodel import bouw_snapshot
+    reg = "urn:bwb:BWBR0004770"
+    article, node = reg + ":artikel:9", reg + ":artikel:9:lid:1"
+    rows = [
+        {"node": reg, "type": "Regeling", "tekst": ""},
+        {"node": article, "parent": reg, "type": "Artikel", "nummer": "9", "tekst": ""},
+        {"node": node, "parent": article, "type": "Lid", "nummer": "1",
+         "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet."},
+    ]
+    snapshot = bouw_snapshot(rows, bwb_id="BWBR0004770", artikel="9", lid="1")
+    class OfflineAnnotaties:
+        def dekking(self, doel):
+            return {"status": "ok", "snapshot_id": snapshot["snapshot_id"], "voltooid": False,
+                    "bereik": [], "parent_context": False}
+        def weergave(self, doel):
+            return {"schema_versie": 2, "snapshot_id": snapshot["snapshot_id"], "lagen": [], "elementen": []}
+    graph = FakeGraph(results=lambda query: rows if "SELECT DISTINCT ?node ?type ?parent" in query else lid_tsv)
+    graph.annotaties = OfflineAnnotaties()
+    return [case], llm, graph
 
 
 def _offline_scenario():

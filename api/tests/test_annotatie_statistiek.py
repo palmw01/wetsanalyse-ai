@@ -164,6 +164,7 @@ def test_niets_levert_nullen_op_en_geen_deling_door_nul():
 
 @pytest.fixture
 async def admin_client(monkeypatch):
+    monkeypatch.setenv("ANNOTATIE_CONTRACT_VERSIE", "1")
     monkeypatch.setenv("WETSANALYSE_AUTH_REQUIRED", "0")
     monkeypatch.setenv("WETSANALYSE_ADMIN_TOKENS", "beheer:geheim")
     from app import db, ratelimit

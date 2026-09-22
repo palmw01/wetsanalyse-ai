@@ -9,9 +9,10 @@ WORKDIR /app
 RUN pip install --no-cache-dir --upgrade pip 'setuptools>=83.0.0' \
  && rm -f /usr/local/lib/python3.14/site-packages/pip/_vendor/bom.cdx.json
 
-COPY pyproject.toml ./
-COPY agent/ agent/
-COPY api/ api/
+COPY tools/graph-qa/pyproject.toml ./
+COPY tools/graph-qa/agent/ agent/
+COPY tools/graph-qa/api/ api/
+COPY packages/bronmodel /packages/bronmodel
 
 # De eval-harnas reist mee in het image, en dat is geen slordigheid. De graaf is `external: false`
 # — alleen bereikbaar bínnen de container-apps-omgeving — dus de enige plek waar de annotatieketen
@@ -21,7 +22,7 @@ COPY api/ api/
 # Het is een paar kilobyte Python plus twee jsonl-sets en het draait nooit vanzelf: de service-CMD
 # hieronder raakt het niet aan. `tests/` gaat bewust NIET mee — die importeert run_eval alleen in
 # de `--offline`-tak, en die tak hoort thuis op een ontwikkelmachine, niet in productie.
-COPY eval/ eval/
+COPY tools/graph-qa/eval/ eval/
 
 # Installeren uit pyproject.toml, mét de 'otel'-extra (zodat OTel werkt zodra
 # OTEL_EXPORTER_OTLP_ENDPOINT gezet is; zonder die packages degradeert observability naar alleen
@@ -30,7 +31,7 @@ COPY eval/ eval/
 # Bewust géén handmatig herhaalde pip-lijst hier: die liep uit de pas met pyproject.toml, waardoor
 # langgraph-checkpoint-postgres en psycopg ontbraken en de agent bij een gezette CHECKPOINT_DB_URL
 # omviel met "No module named 'langgraph.checkpoint.postgres'". Eén lijst, één bron van waarheid.
-RUN pip install --no-cache-dir '.[otel]' "msgpack>=1.1.0"
+RUN pip install --no-cache-dir /packages/bronmodel '.[otel]' "msgpack>=1.1.0"
 
 # Non-root + /data voor de durable checkpointer-db (named volume; CHECKPOINT_DB_PATH=/data/...).
 #

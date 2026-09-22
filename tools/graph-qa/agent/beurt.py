@@ -60,6 +60,7 @@ class BeurtSchrijver:
         self.tekst = ""
         self.denk = ""
         self.bronnen: list[dict[str, Any]] = []
+        self.tool_executions: list[dict[str, Any]] = []
 
     def verwerk(self, event: dict[str, Any]) -> None:
         """Eén event bijhouden. Dezelfde toewijzing als de handlers in de werkplek."""
@@ -86,6 +87,8 @@ class BeurtSchrijver:
             self.kandidaten = event.get("kandidaten") or []
         elif soort == "hergebruik":
             self.hergebruik = event.get("hergebruik") or {}
+        elif soort == "tool_execution":
+            self.tool_executions.append({k: v for k, v in event.items() if k != "type"})
 
     def _voeg_element_toe(self, element: dict[str, Any]) -> None:
         """Ontdubbeld verzamelen: de annoteerder ⇄ Critic-lus kan hetzelfde element opnieuw sturen,
@@ -103,6 +106,11 @@ class BeurtSchrijver:
             eigen_id, ander_id = element.get("id") or "", bestaand.get("id") or ""
             if eigen_id and ander_id:
                 return eigen_id == ander_id
+            if element.get("ankers") or bestaand.get("ankers"):
+                def anker_sleutel(value):
+                    return tuple((a.get("bron_iri"), a.get("start"), a.get("eind")) for a in value.get("ankers", []))
+                return (element.get("klasse") == bestaand.get("klasse") and
+                        anker_sleutel(element) == anker_sleutel(bestaand))
             return sleutel_van(element.get("tekst") or "", element.get("lid") or "") == sleutel_van(
                 bestaand.get("tekst") or "", bestaand.get("lid") or ""
             )
@@ -115,8 +123,8 @@ class BeurtSchrijver:
 
     @property
     def is_annotatie(self) -> bool:
-        return bool(self.doel and self.doel.get("bwbId")
-                    and (self.elementen or self.volledig_hergebruikt))
+        return bool(self.doel and (self.doel.get("bron_iri") or self.doel.get("bwbId"))
+                    and (self.elementen or self.volledig_hergebruikt or self.run))
 
     @property
     def volledig_hergebruikt(self) -> bool:
@@ -231,8 +239,11 @@ async def _leg_vast(
     """Schrijf de markeringen naar de gedeelde laag en het chatbericht weg; meld de uitkomst."""
     api = WetsanalyseApi(settings, user_id)
     try:
-        bericht: dict[str, Any] = {"rol": "assistant", "run_id": run.run_id}
+        bericht: dict[str, Any] = {"rol": "assistant", "run_id": run.run_id,
+                                 "tool_executions": schrijver.tool_executions}
         slug = ""
+        annotatie_bewaard = False
+        opgeslagen_doel = None
 
         if schrijver.is_annotatie:
             # Eén PUT naar de gedeelde laag van het artikel: de api maakt hem aan als hij er nog
@@ -242,7 +253,18 @@ async def _leg_vast(
             doel = schrijver.doel or {}
             run_info = schrijver.run or {}
             aanduiding = str(doel.get("artikel") or doel.get("nummer") or "")
-            if schrijver.volledig_hergebruikt:
+            if doel.get("schema_versie") == 2:
+                laag = await api.zet_bronnode_batch({
+                    "batch_id": run.run_id,
+                    "doel": {"bron_iri": doel["bron_iri"]}, "snapshot_id": doel["snapshot_id"],
+                    "verwachte_revisies": doel.get("verwachte_revisies") or {},
+                    "elementen": schrijver.elementen,
+                    "suggesties": schrijver.suggesties,
+                    "dekking": {"voltooid": not gestopt, "bereik": doel.get("bereik") or [],
+                                "parent_context": not gestopt},
+                    "run": schrijver.run or {},
+                })
+            elif schrijver.volledig_hergebruikt:
                 # Niets nieuws om te mergen; alleen vastleggen dát er hergebruikt is.
                 laag = await api.hergebruik(
                     bwb_id=str(doel.get("bwbId", "")), artikel=aanduiding,
@@ -262,6 +284,10 @@ async def _leg_vast(
                     modus="opnieuw" if run_info.get("modus") == "opnieuw" else "auto",
                 )
             slug = str(laag.get("slug", ""))
+            annotatie_bewaard = True
+            if doel.get("schema_versie") == 2:
+                opgeslagen_doel = {"bron_iri": doel["bron_iri"], "label": doel.get("label", ""),
+                                   "snapshot_id": doel["snapshot_id"]}
             if getattr(api, "hergebruikt", None):
                 # De graaf zag deze leden niet als geannoteerd, de api wel: de projectie liep
                 # achter (meestal net na een GraphDB-herstart). Dat kostte tokens, geen werk –
@@ -298,6 +324,10 @@ async def _leg_vast(
                 "ontbrekend": schrijver.ontbrekend,
                 "denk": schrijver.denk,
                 **({"hergebruik": schrijver.hergebruik} if schrijver.hergebruik else {}),
+                **({"annotatie_doel": {"bron_iri": doel["bron_iri"],
+                                       "label": doel.get("label", ""),
+                                       "snapshot_id": doel["snapshot_id"]}}
+                   if doel.get("schema_versie") == 2 else {}),
             }
         else:
             tekst = schrijver.tekst.strip()
@@ -320,7 +350,8 @@ async def _leg_vast(
         )
         # De client hoeft de inhoud niet mee te krijgen: hij haalt het document bij de api op. Zo
         # blijft er één bron van waarheid en groeit het SSE-contract niet mee met het datamodel.
-        yield {"type": "opgeslagen", "annotatie_slug": slug, "run_id": run.run_id}
+        yield {"type": "opgeslagen", "annotatie_slug": slug, "run_id": run.run_id,
+               **({"annotatie_doel": bericht["annotatie_doel"]} if bericht.get("annotatie_doel") else {})}
     except GesprekVerdwenen:
         # De jurist verwijderde het gesprek terwijl de beurt liep. Dat is geen fout om over te
         # klagen – alarm slaan over iemands eigen handeling leert mensen meldingen negeren.
@@ -331,7 +362,7 @@ async def _leg_vast(
             "gesprek verdwenen tijdens de beurt",
             extra={"categorie": "functioneel", "run_id": run.run_id, "chat_session_id": gesprek_id},
         )
-    except (WetsanalyseApiFout, Exception):
+    except (WetsanalyseApiFout, Exception) as exc:
         logger.exception(
             "beurt niet vastgelegd",
             extra={"categorie": "technisch", "run_id": run.run_id, "chat_session_id": gesprek_id,
@@ -343,13 +374,18 @@ async def _leg_vast(
         #
         # Het geval "document bestaat, markeringen niet" is er niet meer: de laag en haar
         # markeringen gaan in één PUT. Mislukt die, dan is er geen slug en valt dit in de laatste tak.
-        if slug:
+        if annotatie_bewaard:
             yield {
                 "type": "error",
                 "message": ("De annotatie is bewaard, alleen het bericht in dit gesprek niet. "
                             "Je vindt hem terug bij Annotaties."),
                 "annotatie_slug": slug,
+                **({"annotatie_doel": opgeslagen_doel} if opgeslagen_doel else {}),
             }
+        elif isinstance(exc, WetsanalyseApiFout) and exc.status in (409, 412):
+            yield {"type": "error", "foutcode": "annotatie_conflict",
+                   "message": "De bron of annotatielaag is intussen gewijzigd. De nieuwe voorstellen "
+                              "zijn niet opgeslagen; laad de annotatie opnieuw."}
         else:
             yield {
                 "type": "error",

@@ -24,12 +24,19 @@ Draaien (vraagt de `mcp`-extra, die bewust niet in het productie-image zit):
 
     GRAPHDB_MCP_URL=… GRAPHDB_TOKEN=… uv run --extra mcp graph-qa-mcp
 
+Voor opgeslagen annotaties zijn daarnaast WETSANALYSE_API_URL, WETSANALYSE_API_TOKEN
+en ANNOTATIE_READ_USER_ID vereist. Die laatste is de bestaande actieve gebruiker
+namens wie deze vertrouwde lokale server leest; een toolargument kan hem niet wijzigen.
+Zonder die context blijven brontools werken en melden annotatietools expliciet
+dat toegang niet beschikbaar is.
+
 Registreren hoort **machine-lokaal** (`claude mcp add`), niet in deze repo: die is publiek.
 Logs gaan naar stderr; stdout is exclusief voor het MCP-protocol.
 """
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import sys
 from typing import Any
@@ -38,8 +45,15 @@ from agent import tools
 from agent.adapters.graphdb_graph import make_graph
 from agent.config import Settings
 from agent.ports import GraphPort
+from agent.annotatie_read import AnnotatieReadApi
 
 logger = logging.getLogger("graph_qa.mcp_server")
+
+
+def dispatch_mcp(name: str, arguments: dict, graph: GraphPort, settings: Settings) -> str:
+    """De actor komt uitsluitend uit vertrouwde serverconfiguratie, nooit uit de toolcall."""
+    return tools.dispatch(name, graph, arguments, settings,
+                          annotaties=AnnotatieReadApi(settings, settings.annotatie_read_user_id))
 
 
 def _bouw_server() -> tuple[Any, Settings, GraphPort]:
@@ -67,12 +81,17 @@ def _bouw_server() -> tuple[Any, Settings, GraphPort]:
     async def roep_aan(_ctx: Any, params: Any) -> Any:
         # `dispatch` is synchroon (de graafclient is dat ook) en mag de event loop niet blokkeren.
         resultaat = await asyncio.to_thread(
-            tools.dispatch, params.name, graph, params.arguments or {}, settings
+            dispatch_mcp, params.name, params.arguments or {}, graph, settings
         )
         # `dispatch` werpt niet: een toolfout komt terug als tekst, met uitleg voor het model. Die
         # afspraak houden we hier vast — een MCP-fout zou de client dwingen te raden of het aan de
         # vraag lag of aan de graaf, terwijl de tekst dat gewoon zegt.
-        return CallToolResult(content=[TextContent(type="text", text=resultaat)])
+        try:
+            parsed = json.loads(resultaat)
+        except ValueError:
+            parsed = {}
+        failed = resultaat.startswith("Fout bij tool") or (isinstance(parsed, dict) and parsed.get("status") in {"unavailable", "invalid_request"})
+        return CallToolResult(content=[TextContent(type="text", text=resultaat)], is_error=failed)
 
     # De low-level server neemt de handlers als constructor-argumenten. Bewust niet de high-level
     # MCPServer: die leidt het JSON-schema af uit een Python-functiesignatuur, terwijl onze schema's

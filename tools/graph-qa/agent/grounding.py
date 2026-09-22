@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 from .annotatie import komt_letterlijk_voor
 from .models import Source
 from .provenance import _BWB_RE, citations_in, first_bwb
+from .tools.annotatie_tools import ANNOTATIE_TOOL_NAMEN
 
 # Citaten in de vormen die een model gebruikt: rechte en typografische dubbele aanhalingstekens.
 # Enkele quotes blijven erbuiten – die staan in Nederlandse lopende tekst te vaak om iets anders
@@ -64,7 +65,7 @@ def _citaten(text: str) -> list[str]:
 
 def check_grounding(answer_text: str, source_trace: list[tuple[str, str]]) -> GroundingReport:
     """Markeer wat in het antwoord niet uit de trace te herleiden is: verwijzingen én citaten."""
-    trace_text = "\n".join(t for _, t in source_trace if t)
+    trace_text = "\n".join(t for name, t in source_trace if t and name not in ANNOTATIE_TOOL_NAMEN)
     # Exacte BWB-id's uit de trace (woordgrens via _BWB_RE), zodat een gehallucineerde prefix-id
     # (bv. BWBR0001 t.o.v. het opgehaalde BWBR00012345) niet vals als gegrond geldt.
     trace_bwbs = set(_BWB_RE.findall(trace_text))

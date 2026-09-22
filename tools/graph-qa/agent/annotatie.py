@@ -652,18 +652,26 @@ def pas_critic_toe(
                 nieuw["alternatieven"] = alts
             gewijzigd = True
         tekst = str(f.get("voorstel_tekst", "")).strip()
+        # Een lokale ankerreeks begrenst een critic-correctie. Identieke tekst elders in het
+        # artikel is geen toestemming om een markering naar een andere bepaling te verplaatsen.
+        lokale_matches = [a for a in nieuw.get("ankers", []) if tekst and a["tekst"].count(tekst) == 1]
         if (
             actie == "vervang"
             and rood
             and tekst
             and tekst != nieuw.get("tekst")
             and komt_letterlijk_voor(corpus, tekst)
+            and (not nieuw.get("ankers") or len(lokale_matches) == 1)
         ):
             nieuw["tekst"] = tekst
             # Het anker moet mee. Zonder dit bleef het op de vórige, langere span staan: op
             # 1 sep 2026 stond er live een Operator "en" met een anker van 83 tekens eromheen,
             # en omdat `bron_hash` klopt gebruikt de werkplek die offsets rechtstreeks.
             nieuw["anker"] = _anker_voor(corpus, tekst, str(nieuw.get("lid") or ""))
+            if lokale_matches:
+                oud = lokale_matches[0]
+                begin = oud["start"] + oud["tekst"].index(tekst)
+                nieuw["ankers"] = [{**oud, "start": begin, "eind": begin + len(tekst), "tekst": tekst}]
             gewijzigd = True
 
         if gewijzigd:
@@ -920,7 +928,7 @@ def aanduiding_in_woorden(aanduiding: str, lid: str = "", soort: str = "") -> st
 
 def _verwerk(
     llm_text: str, corpus: str, bwb_id: str, artikel: str, scope_lid: str | None = None,
-    geldige_ids: set[str] | None = None, soort: str = "",
+    geldige_ids: set[str] | None = None, soort: str = "", bron: dict | None = None,
 ) -> tuple[list[AnnotatieVoorstel], list[VerworpenFragment]]:
     """Parse de LLM-JSON, valideer klasse + brongetrouwheid, bereken vindplaats.
 
@@ -943,6 +951,9 @@ def _verwerk(
     teller verloren, terwijl ze de bruikbaarste feedback voor een herzieningsronde zijn: een bijna
     goed citaat is met de aanwijzing "dit staat niet letterlijk in de tekst" prima te repareren.
     """
+    if bron and bron.get("bron_snapshot"):
+        from .bron_annotatie import verwerk_bron
+        return verwerk_bron(llm_text, corpus, bwb_id, artikel, scope_lid, geldige_ids, soort, bron)
     norm_corpus = _normaliseer(corpus)
     segmenten = _lid_segmenten(corpus)
     genummerd = any(nummer for nummer, _, _ in segmenten)

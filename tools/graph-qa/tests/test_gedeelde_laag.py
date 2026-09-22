@@ -7,7 +7,7 @@ import json
 
 import httpx
 
-from agent.agent import answer_stream
+from bron_fakes import answer_stream
 from agent.annotatie import _fnv1a_32, herankeer, lid_hashes
 from agent.annotatie_prompt import methode_versie, prompt_hash
 from agent.wetsanalyse_api import WetsanalyseApi
@@ -141,24 +141,26 @@ def _events(hergebruik: str = "auto") -> list[dict]:
     return asyncio.run(verzamel())
 
 
-def test_lid_annoteren_ankert_op_het_hele_artikel():
+def test_lid_annoteren_ankert_lokaal_op_de_bronnode():
+    from hashlib import sha256
     events = _events()
-    doel = next(e for e in events if e["type"] == "doel")["doel"]
-    artikel = doel["leden_teksten"][0]["tekst"]
-    assert artikel == ARTIKEL
-    assert doel["leden"] == [{"lid": "2", "hash": _fnv1a_32(LID2),
-                              "iri": "urn:bwb:BWBR0004770:artikel:9:lid:2"}]
-    assert doel["bron_hash"] == _fnv1a_32(ARTIKEL)
-
+    doel = next(e["doel"] for e in events if e["type"] == "doel")
+    assert doel["leden_teksten"][0]["tekst"] == LID2.removeprefix("2. ")
+    segment, = doel["segmenten"]
+    assert segment["bron_iri"] == "urn:bwb:BWBR0004770:artikel:9:lid:2"
     element, = [e["element"] for e in events if e["type"] == "element"]
-    a = element["anker"]
-    assert artikel[a["start"]:a["eind"]] == "De ontvanger"
-    assert a["lid_hash"] == _fnv1a_32(LID2) and a["bron_hash"] == _fnv1a_32(ARTIKEL)
+    a, = element["ankers"]
+    assert a["start"] == 0
+    assert segment["tekst"][a["start"]:a["eind"]] == "De ontvanger"
+    assert a["bron_hash"] == sha256(segment["tekst"].encode()).hexdigest()
+    assert "anker" not in element
 
 
 def test_run_draagt_herkomst_en_modus():
     run = next(e for e in _events()[::-1] if e["type"] == "run")["run"]
-    assert run["modus"] == "nieuw" and run["leden"] == ["2"]
+    assert run["modus"] == "nieuw"
+    doel = next(e["doel"] for e in _events() if e["type"] == "doel")
+    assert doel["bereik"] == ["urn:bwb:BWBR0004770:artikel:9:lid:2"]
     assert run["prompt_hash"] == prompt_hash() and run["methode_versie"] == methode_versie()
     assert set(run["instellingen"]) == {"annotatie_prompt_kort", "enable_kandidaat_splitsing",
                                         "critic_max_rondes"}

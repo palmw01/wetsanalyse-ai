@@ -91,6 +91,10 @@ def test_geen_stil_verschil_met_het_api_contract(agent_klasse, api_klasse):
     api = _api_velden(api_klasse)
 
     for naam, veld in agent.items():
+        if (agent_klasse, naam) == ("AnnotatieVoorstel", "ankers"):
+            # V2 gebruikt getypeerde multiankers; runtime roundtrip hieronder bewaakt deze grens.
+            assert _vorm(veld.annotation) == "list[dict[str,Any]]"
+            continue
         if (agent_klasse, naam) in OPGEVANGEN:
             continue
         if naam not in api:
@@ -105,6 +109,26 @@ def test_geen_stil_verschil_met_het_api_contract(agent_klasse, api_klasse):
             f"alles-of-niets: de jurist verliest de hele annotatie. Vertaal het in "
             f"`wetsanalyse_api.naar_contract` en zet het in OPGEVANGEN."
         )
+
+
+def test_v2_multiankers_blijven_getypeerd_en_behouden_aan_de_api_grens():
+    import importlib.util
+    import sys
+    path = CONTRACT.with_name("annotatie_v2_contracts.py")
+    spec = importlib.util.spec_from_file_location("v2_contract_test", path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    anchors = [
+        {"bron_iri": "urn:lid1", "start": 1, "eind": 2, "tekst": "😀", "bron_hash": "a" * 64},
+        {"bron_iri": "urn:lid2", "start": 0, "eind": 4, "tekst": "test", "bron_hash": "b" * 64},
+    ]
+    proposal = am.AnnotatieVoorstel(klasse="Rechtsfeit", tekst="😀 test", ankers=anchors)
+    actual = module.Element.model_validate(proposal.model_dump()).model_dump()
+    assert actual["ankers"] == anchors
+    assert actual["klasse"] == "Rechtsfeit" and actual["tekst"] == "😀 test"
+    with pytest.raises(ValueError):
+        module.Element.model_validate({"klasse": "Rechtsfeit", "tekst": "x", "ankers": [{"bron_iri": "urn:x"}]})
 
 
 def test_de_vertaling_dekt_alles_wat_in_opgevangen_staat():
