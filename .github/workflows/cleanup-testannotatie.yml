@@ -49,6 +49,7 @@ jobs:
           secrets = az('containerapp', 'secret', 'list', '-g', rg, '-n', app)
           secrets = [s for s in secrets if s['name'] in wanted]
           assert all(s.get('value') for s in secrets) and len(secrets) == len(wanted)
+          secrets = [{'name': s['name'], 'value': s['value']} for s in secrets]
           code = 'DO_WRITE = ' + str(os.environ['UITVOEREN'] == 'true') + '\n'
           code += pathlib.Path('deploy/maintenance/cleanup_testannotatie.py').read_text()
           payload = base64.b64encode(zlib.compress(code.encode())).decode()
@@ -74,10 +75,10 @@ jobs:
                       if status in {'Succeeded', 'Failed', 'Stopped'}:
                           break
                       time.sleep(5)
-                  logs = az('containerapp', 'job', 'logs', 'show', '-g', rg, '-n', job, '--execution', execution, '--container', 'cleanup', '--tail', '100')
-                  print(json.dumps(logs))
+                  logs = subprocess.run(['az', 'containerapp', 'job', 'logs', 'show', '-g', rg, '-n', job, '--execution', execution, '--container', 'cleanup', '--tail', '100'], capture_output=True, text=True, check=True).stdout
+                  print(logs)
                   marker = 'ANNOTATIE_CLEANUP_EXECUTED_OK' if os.environ['UITVOEREN'] == 'true' else 'ANNOTATIE_CLEANUP_DRY_RUN_OK'
-                  if status != 'Succeeded' or marker not in json.dumps(logs):
+                  if status != 'Succeeded' or marker not in logs:
                       raise SystemExit('Opschoning niet bevestigd: ' + status)
               finally:
                   az('containerapp', 'job', 'delete', '-g', rg, '-n', job, '--yes')
