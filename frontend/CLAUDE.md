@@ -54,7 +54,7 @@ De **harde scheidingslijn**: alles met een token is server-only.
 - `lib/api.ts` – alle client-side fetch-helpers naar `/api/**`. Eén plek voor het foutcontract
   (`parseError` → `ApiError` met `retryAfter`); gebruik `isApiError()` in de UI.
 - `lib/types.ts` – **met de hand afgeleid van `../api/app/annotatie_contracts.py`**
-  (+ `gesprek_contracts.py`) en de bron-van-waarheid voor de TS-kant. Wijzigt het API-contract, werk dit bestand bij (verifieer
+  (+ `annotatie_v2_contracts.py` en `gesprek_contracts.py`) en de bron-van-waarheid voor de TS-kant. Wijzigt het API-contract, werk dit bestand bij (verifieer
   desgewenst tegen `openapi-typescript http://localhost:3000/openapi.json` – zie de README).
   `lib/jas.ts` is de afgeleide presentatie-helper voor de JAS-klasse-weergave (kleur + label uit
   `docs/wetsanalyse/wa-table.png`); brongetrouw geldt ook in de UI – verzin er geen klassen bij.
@@ -136,8 +136,12 @@ Bovenaan de shell staat de klikbare **testomgeving-strook**. De shell is twee ko
   events-route is de SSE-passthrough. Het documentpaneel haalt de artikeltekst via
   `app/api/annotatie/artikel/route.ts` → graph-qa `GET /v1/artikel` (`haalArtikelGraaf`). De **persistente
   review-state via de api** – BFF `app/api/annotatie/documenten/*` → `/v1/annotatie/*` via `proxy()`, mét
-  de vertrouwde `X-User-Id` uit de sessie (annotatie-documenten zijn **per-gebruiker gescopet**, net als
-  de gesprekken). Types in `lib/types.ts` (afgeleid van `api/app/annotatie_contracts.py`).
+  de vertrouwde `X-User-Id` uit de sessie. Sinds contract 2 (22 sep 2026) loopt de bronnode-annotatie
+  via de catch-all `app/api/annotatie/v2/[...pad]/route.ts` → `/v1/annotatie/{weergave,dekking,
+  elementen,lagen,node-lagen}`; client-helpers in `lib/annotatieNode.ts`. Die **node-lagen zijn
+  gedeeld**, niet per gebruiker – de oude per-gebruiker-documenten wél, net als de gesprekken. Types
+  in `lib/types.ts` (afgeleid van `api/app/annotatie_contracts.py` en
+  `api/app/annotatie_v2_contracts.py`).
 - **Config:** `GRAPH_QA_URL` (intern, default `http://graph-qa:8080`, via `graphQaBaseUrl()`) +
   `GRAPH_QA_TOKEN(_FILE)` – de frontend moet graph-qa op het gedeelde docker-netwerk kunnen
   bereiken (`lib/config.ts`).
@@ -178,8 +182,9 @@ sidebar blijft staan**, je stapt niet uit de app.
   geschiedenis). De kaart toont de **JAS-kleurstrip**: de klasseverdeling als balk, waar Claude een
   thumbnail zou tonen.
 - **Het overzicht toont de gedeelde lagen** (sinds 22 sep 2026, `lijstLagen` → BFF
-  `app/api/annotatie/lagen`): één annotatie per artikel voor iedereen, zodat Lex een al geannoteerd
-  artikel kan hergebruiken. *Door mij bewerkt* (`mijn=true`) beperkt tot lagen waar je zelf iets aan
+  `app/api/annotatie/lagen` plus `…/v2/node-lagen`): één annotatie per bepaling voor iedereen, zodat
+  Lex een al geannoteerde bepaling kan hergebruiken. Een kaart met een `bron_iri` opent de
+  bronnode-weergave (`/annotaties/node`), de rest het oude document. *Door mij bewerkt* (`mijn=true`) beperkt tot lagen waar je zelf iets aan
   deed – een laag heeft geen eigenaar, de api leest dat uit de audit. Een laag heeft **geen
   verwijderknop** (de api weigert het met 403: hij draagt het werk van meerdere juristen); de kaart
   telt de verouderde markeringen apart.
@@ -207,7 +212,11 @@ annotatiepagina is de tweede schil – hetzelfde patroon als `DisclaimerClient` 
 `NodeAnnotatiePaneel` haalt de v2-weergave op en vertaalt die via `lib/annotatieNodeAdapter.ts`
 (codepoints per bronnode ⇄ UTF-16 in de samengestelde bron). Het kreeg in #473 een eigen, kaal
 paneel en verloor daarmee alle opmaak en bediening; bouw dus geen tweede weergave, maar breid de
-adapter uit. Let op **Escape**: dat hing aan `Dialog.onEscape`, maar die schil bestaat niet
+adapter uit. `ArtefactInhoud` heeft daarvoor twee optionele haken: `onExport` (een eigen
+exportroute) en `extra` (blokken onder de reviewlijst, zoals "overspant meerdere bepalingen" en de
+voortgang per bepaling). De paginaschil eromheen — sidebar, mobiele topbar, de weg terug naar het
+overzicht — is gedeeld in `components/annotaties/AnnotatiePaginaSchil.tsx`, gebruikt door
+`/annotaties/<slug>` én `/annotaties/node`. Let op **Escape**: dat hing aan `Dialog.onEscape`, maar die schil bestaat niet
 altijd meer. De inhoud handelt het nu zelf af (selectie → bedieningsrij → gekozen element →
 `onSluiten`), en `ArtefactPaneel` geeft `Dialog` daarom een **no-op** `onEscape` mee. Zou die er ook
 op reageren, dan sprong Escape in één klap door alle lagen heen.
@@ -613,7 +622,9 @@ Een knop *Exporteren* in de kop van het artefact (`components/werkplek/ExportKno
   BFF-route moet die header dus doorgeven (`app/api/_lib/proxy.ts` → `PASS_THROUGH_HEADERS`) en de
   queryparam `formaat` expliciet doorsturen; een proxyroute die dat laat vallen faalt stil op het
   default-formaat. Downloaden zelf gaat via `exporteerDocument` in `lib/api.ts` (Blob →
-  `createObjectURL` → `<a download>`) – het enige downloadpatroon in deze app.
+  `createObjectURL` → `<a download>`) – het enige downloadpatroon in deze app. Een bronnode-annotatie
+  exporteert via haar eigen route; `ExportKnop` neemt daarvoor een `onDownload` aan, zodat de knop,
+  het keuzepaneel en de foutmelding hetzelfde blijven.
 
 Wat de export draagt (en waarom het er is): naast de tabel het **volledige spoor** per markering
 en **met welk model** de agent het voorstel maakte (`AgentRun`, zie hieronder). Zonder dat laatste

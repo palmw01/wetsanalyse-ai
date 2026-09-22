@@ -8,17 +8,33 @@ zelfstandige, Dockeriseerbare dienst die je via HTTP (Postman/Swagger) bevraagt 
 
 De API bedient acht dingen:
 
-1. **Het JAS-annotatiedomein van de werkplek** (`/v1/annotatie/*`): documenten/elementen/beslissingen
-   + append-only auditlog + **export** (pdf/csv/json). De agent stelt voor, de mens beslist; de API bewaart de review-state.
-   **Per-gebruiker gescopet** via de vertrouwde `X-User-Id`-header (`actieve_userid`, net als de
-   gesprekken; 404 op andermans document). De bearer-`client_id` blijft als herkomst in de audit.
-   **Uitzondering: de gedeelde laag per artikel** (`/v1/annotatie/lagen/*`, zie hieronder) – één
-   laag per bwbId+artikel voor iedereen, zodat Lex een al geannoteerd artikel kan hergebruiken.
+1. **Het JAS-annotatiedomein van de werkplek** (`/v1/annotatie/*`): markeringen, beslissingen,
+   append-only auditlog en **export** (pdf/csv/json). De agent stelt voor, de mens beslist; de API
+   bewaart de review-state.
+
+   **Sinds 22 sep 2026 draait dat op contract 2: bronnode-annotaties** (`ANNOTATIE_CONTRACT_VERSIE`,
+   default `2`; `/v1/annotatie/capabilities` vertelt wat er aanstaat). Een laag hoort bij één
+   canonieke bron-IRI – een artikel, een lid of een onderdeel – in plaats van bij een artikel als
+   geheel, en markeringen dragen lokale ankers per bronnode. De routes zijn `weergave`, `dekking`,
+   `lagen/batch`, `elementen`, `elementen/{id}/beslissing`, `lagen/{id}/status`, `zoeken`,
+   `node-lagen` en `weergave/export`. Specificatie:
+   [`docs/architectuur/annotatie-bronnodes.md`](../docs/architectuur/annotatie-bronnodes.md).
+
+   Node-lagen zijn **gedeeld**, niet per gebruiker: wie wat deed staat in de audit en in
+   `Beslissing.actor`. Onder contract 2 weigert de api de oude, artikelbrede schrijfacties met een
+   409 (`annotatie_v2_contract_guard`); de v1-lees- en exportpaden hieronder blijven bestaan voor wat
+   er nog staat, en beschrijven de wereld van contract 1.
 2. **De chatgeschiedenis van de werkplek** (`/v1/gesprekken/*`): gesprekken + geordende berichten
    (`gesprek_contracts.py`/`gesprek_store.py`/`routers/gesprekken.py`). Net als het annotatie-domein
    **per-gebruiker gescopet** via de vertrouwde `X-User-Id`-header (`actieve_userid`, hergebruikt uit
    de auth-router; 404 op andermans gesprek). Een bericht kan naar een annotatie-document verwijzen
-   (`annotatie_slug`); de review-state zelf blijft in het annotatie-domein. Die verwijzing heeft
+   (`annotatie_slug`) of naar een bronnode (`annotatie_doel`, contract 2); de review-state zelf blijft
+   in het annotatie-domein. Een bericht draagt ook het **uitvoeringsspoor** van de beurt
+   (`tool_executions`). Die twee velden ontbraken tot 22 sep 2026 in het contract, en Pydantic liet ze
+   stil vallen: een bronnode-laag heeft geen slug, dus na het heropenen van een gesprek wees het
+   bericht nergens meer naar en verdwenen de chip naar het annotatiepaneel, de hergebruikmelding en
+   het toolspoor. Een drift-guard in graph-qa (`tests/test_contract_drift.py`) toetst nu elk veld dat
+   de agent meestuurt tegen `BerichtInvoer`. Die verwijzing heeft
    **geen foreign key**, dus draagt het bericht er zijn eigen leesbare label bij (`annotatie_titel`):
    wordt het document later verwijderd, dan blijft het gesprek leesbaar in plaats van naar een
    naamloze slug te wijzen. `DELETE` van een annotatie-document raakt de berichten bewust niet – het
@@ -100,7 +116,9 @@ De API bedient acht dingen:
   verbindingstest; de QA-agent (graph-qa) heeft een eigen LLM-config en wordt er niet door aangestuurd.
 - `db.py` – async SQLAlchemy-Core laag: engine-beheer + de tabeldefinities (`llm_profiles`,
   `users`, `registratie_aanvragen`, `token_verbruik`, `budget_beleid`, `api_tokens`,
-  `annotatie_documenten`, `annotatie_audit`, `gesprekken`, `gesprek_berichten`). Portable types
+  `annotatie_documenten`, `annotatie_audit`, de `annotatie_v2_*`-tabellen van contract 2 (`state`,
+  `snapshots`, `lagen`, `elementen`, `batches`, `dekking`, `audit`), `berichten`,
+  `bericht_leesbewijzen`, `user_feedback`, `gesprekken`, `gesprek_berichten`). Portable types
   (`JSON`→`JSONB` op Postgres, `JSON` op SQLite-tests), tz-aware datetimes. `create_all` maakt bij de
   start **ontbrekende tabellen** idempotent aan; `reconcile_schema()` (ook in de lifespan) voegt daarna
   **ontbrekende kolommen** additief toe (`ALTER TABLE … ADD COLUMN`; nooit droppen/typewijzigen) zodat
@@ -116,6 +134,25 @@ De API bedient acht dingen:
   brongetrouwheid-/schema-helpers. Het annotatiedomein valideert de klasse van een voorgesteld element
   hiertegen.
 - `ratelimit.py` – in-process per-client rate limit (dependency) + `QuotaExceeded`.
+- **Contract 2 – bronnode-annotaties** (`annotatie_v2.py` de router, `annotatie_v2_store.py` de
+  opslag, `annotatie_v2_contracts.py` het wirecontract, `annotatie_v2_zoeken.py` de zoektool,
+  `annotatie_v2_contract_guard.py` de omschakeling, `graaf_projectie_v2.py` de projectie). Postgres
+  is de waarheid; een laag draagt een revisie, een snapshot van de bronboom en een dekkingsadministratie.
+  Eén globaal schrijfslot (`schrijftransactie`) serialiseert de kleine schrijfacties, ook over
+  processen heen; batches zijn idempotent op batch-ID plus payload. Zoeken haalt kandidaten uit de
+  graaf en **verifieert ze tegen Postgres**: een storing of achterlopende projectie is nooit een leeg
+  succesvol resultaat. Details, inclusief de ankers en de dekkingsregels, staan in
+  [`docs/architectuur/annotatie-bronnodes.md`](../docs/architectuur/annotatie-bronnodes.md).
+
+  **De projectie is direct, de lus is het vangnet** (sinds 22 sep 2026). Elke laagwijziging loopt via
+  `_raak`, die de laag op de verbinding noteert; `schrijftransactie` start ná een geslaagde commit
+  `graaf_projectie_v2.na_mutatie` op de achtergrond. Een geweigerde mutatie (409/412) projecteert dus
+  niets, en een haperende GraphDB laat de beslissing van een jurist niet falen: de laag blijft vuil en
+  de reconcile-lus (`JAS_PROJECTIE_INTERVAL`, 60 s) neemt haar mee. Dáárvoor was die lus het enige
+  pad, en stond een annotatie tot een minuut later in de graaf. De named graph is
+  `urn:jas:graph:v2:<laag-id>` met register `urn:jas:graph:register:v2`; lagen die uit Postgres
+  verdwijnen worden als wees opgeruimd, na een hercontrole onder het schrijfslot. Het RDF-model staat
+  in [`docs/wetsanalyse-workbench/jas-annotatie-ontologie.md`](../docs/wetsanalyse-workbench/jas-annotatie-ontologie.md).
 - `annotatie_contracts.py` – Pydantic-modellen + enums (`AnnotatieDocument`, `AnnotatieElement` met
   `lifecycle`/`beslissingen`/`alternatieven`/`aandacht`/`diff`, `Beslissing`, `AuditRecord`,
   `ReviewReason`). `annotatie_store.py` – `AnnotatieStore` (aparte store op dezelfde engine).
@@ -162,8 +199,9 @@ De API bedient acht dingen:
     overgeslagen, niet overschreven. Idempotent. Een samengevoegd document blijft bestaan: lezen,
     schrijven en de audit volgen `samengevoegd_in` (oude chatberichten verwijzen ernaar), en het
     telt niet meer mee in de eigen lijst of de statistiek.
-  - **Projectie naar de kennisgraaf** (`graaf_projectie.py`, `jas_ontologie.py`; model in
-    `docs/wetsanalyse-workbench/jas-annotatie-ontologie.md`). Postgres is de waarheid, de graaf een
+  - **Projectie naar de kennisgraaf van de v1-laag** (`graaf_projectie.py`, `jas_ontologie.py`).
+    Onder contract 2 wordt dit pad niet meer geschreven; de projectie van nu staat hieronder. Postgres
+    is de waarheid, de graaf een
     projectie: na elke mutatie van een laag vervangt `muteer_document` op de achtergrond haar named
     graph (`urn:jas:graph:<bwbId>:artikel:<nr>`, GSP `PUT`); `geprojecteerd_tot` is de outbox en een
     reconcile-lus in de lifespan (`JAS_PROJECTIE_INTERVAL`, 60 s) haalt achterstand in. Ontbreekt het
@@ -301,7 +339,8 @@ loggen. Zie `docs/observability.md`.
 
 ## Garanties (niet aan tornen)
 
-- **Per-gebruiker isolatie.** Elk annotatie-document (behalve de gedeelde laag per artikel) én elk **gesprek** is per-gebruiker gescopet via
+- **Per-gebruiker isolatie.** Elk v1-annotatie-document (behalve de gedeelde laag per artikel; de
+  node-lagen van contract 2 zijn óók gedeeld) én elk **gesprek** is per-gebruiker gescopet via
   de vertrouwde `X-User-Id`-header – 404 op andermans slug/id (lekt niet). De dependency is
   **`actieve_userid`** (`routers/auth.py`): die controleert bovendien dat het account nog bestaat en
   actief is, met een cache van 30s. `huidige_userid` leest alleen de header en is er voor endpoints

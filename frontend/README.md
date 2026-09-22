@@ -11,6 +11,11 @@ kennisgraaf) en
 approve/edit/reject/comment). Die pagina praat live met de graph-qa-agent (SSE) en bewaart de
 review-state via de API. De home (`/`) leidt hierheen door.
 
+**De annotaties** staan los van de gesprekken: `/annotaties` is het overzicht, en één annotatie opent
+op eigen benen — `/annotaties/node` voor een bronnode (contract 2, de huidige vorm) en
+`/annotaties/<slug>` voor een oud artikeldocument. Beide tonen dezelfde inhoud als het paneel in de
+werkplek.
+
 **Het instellingenvenster** (`/instellingen/*`) opent als dialoog over de werkplek heen en draagt
 account (wachtwoord, 2FA) plus – voor beheerders – het beheer: de modelprofielen die de agent
 aansturen (toevoegen/bewerken/verwijderen, default kiezen, verbinding testen), **gebruikers** en
@@ -144,7 +149,7 @@ commentaarregels in `docker-compose.yml`).
 
 ## Types up-to-date houden (optioneel)
 
-`lib/types.ts` is met de hand afgeleid van `api/app/annotatie_contracts.py` (+ `gesprek_contracts.py`)
+`lib/types.ts` is met de hand afgeleid van `api/app/annotatie_contracts.py` en `api/app/annotatie_v2_contracts.py` (+ `gesprek_contracts.py`)
 en is de bron-van-waarheid. Wil
 je tegen het live OpenAPI-schema controleren:
 

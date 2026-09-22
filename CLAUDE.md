@@ -25,16 +25,18 @@ plaats van schijnzekerheid.
 ### Platform-componenten
 
 1. **`api/`** – headless FastAPI-backend (PostgreSQL-opslag, per-client bearer-auth) voor de werkplek.
-   Bedient het **annotatie-domein** (`/v1/annotatie/*`: documenten/elementen/beslissingen +
-   append-only auditlog), de **chatgeschiedenis** (`/v1/gesprekken/*`), het
+   Bedient het **annotatie-domein** (`/v1/annotatie/*`: markeringen, beslissingen en een append-only
+   auditlog; sinds 22 sep 2026 op **contract 2**, met een laag per bronnode in plaats van per artikel
+   – `ANNOTATIE_CONTRACT_VERSIE`, default `2`, en de oude artikelbrede schrijfacties geven 409), de
+   **chatgeschiedenis** (`/v1/gesprekken/*`), het
    **login-/gebruikersbeheer** (de API is de identiteitsbron van de webapp, inclusief
    zelfregistratie-aanvragen die een beheerder goedkeurt), het
    **LLM-modelprofielbeheer** (`/v1/admin/*`; de env-`LLM_*`-waarden seeden alleen het eerste
    default-profiel), het **tokenbudget per gebruiker** (`/v1/verbruik/*`: meten, tonen, begrenzen —
    verbruik is een append-only journaal en de stand een som over het huidige venster, zodat werk
    weggooien geen tokens teruggeeft en de reset geen cronjob vraagt) en de **profiel-keuzelijst**
-   (`/v1/profiles`). Annotatie-documenten en gesprekken
-   zijn **per gebruiker gescopet**. Eigen `CLAUDE.md` + `README.md`.
+   (`/v1/profiles`). Gesprekken zijn **per gebruiker gescopet**; annotatielagen juist **gedeeld** –
+   ze dragen het werk van meerdere juristen, en wie wat deed staat in de audit. Eigen `CLAUDE.md` + `README.md`.
 2. **`frontend/`** – Next.js-webapp (BFF) bovenop de API. De app **is de werkplek** (`/workbench`, de
    *Lex-pagina*): één chat-achtig gespreksvenster voor **vragen én JAS-annotatie**, live tegen
    graph-qa (SSE); de home leidt daarheen door. Account, beheer en instellingen openen als
@@ -52,8 +54,11 @@ plaats van schijnzekerheid.
    wet- en regelgeving beantwoordt door de BWB-**kennisgraaf** (GraphDB via MCP) te bevragen en het
    antwoord **brongetrouw** te onderbouwen (grounding + bronnen uit de tool-trace). Eén **unified
    LangGraph-agent**: een **supervisor** kiest per vraag een worker-keten – de **antwoord-worker**
-   (specialisten `definitie`/`duiding`/`algemeen`: agent ⇄ tools → verify → finalize) of de
-   **annotatie-worker** (ophaal → annoteer → **Critic** → advance, met aandacht-niveau 🟢🟡🔴).
+   (specialisten `definitie`/`duiding`/`algemeen`: agent ⇄ tools → verify → finalize), de
+   **annotatie-worker** (ophaal → annoteer → **Critic** → advance, met aandacht-niveau 🟢🟡🔴) of de
+   **leesroute** voor vragen óver bestaande annotaties (`annotaties_lezen`: eerst zelf zoeken met
+   `search_annotaties`, dan pas formuleren – zoeken is een stap in de keten, geen keuze van het
+   model).
    Endpoints: `POST /v1/runs` (+ `/events`, `/cancel`; de weg van de werkplek – de beurt draait bij de
    agent, de browser kijkt mee), `POST /v1/chat` (SSE, aan de verbinding gekoppeld en **zonder
    eigenaarscontrole** – niet voor de webapp) en `GET /v1/artikel`. De werkplek praat er **direct** mee (SSE);
@@ -73,11 +78,15 @@ plaats van schijnzekerheid.
    netwerkschijf gebruiken), maar de graaf is volledig reproduceerbaar uit overheid.nl – zie
    §*Uitrollen*.
 
-   Naast de wetten staan er de **gedeelde JAS-annotatielagen** (`urn:jas:graph:*`, W3C Web Annotation
-   + PROV-O). Die schrijft **alleen de api**, als projectie van Postgres; na een GraphDB-herstart
-   bouwt hij ze zelf opnieuw op. Lex leest ze vóór het annoteren: een lid dat al geannoteerd is en
-   waarvan de wettekst niet veranderde, gaat niet opnieuw door het model. Zie
-   `docs/wetsanalyse-workbench/jas-annotatie-ontologie.md`.
+   Naast de wetten staan er de **gedeelde JAS-annotatielagen** (`urn:jas:graph:v2:<laag-id>` met
+   register `urn:jas:graph:register:v2`, W3C Web Annotation). Eén laag hoort bij één bronnode – een
+   artikel, een lid of een onderdeel. Die schrijft **alleen de api**, als projectie van Postgres:
+   direct na elke geslaagde commit, met een achtergrondlus van 60 s als vangnet; na een
+   GraphDB-herstart bouwt hij ze zelf opnieuw op. Lex gebruikt ze twee keer: vóór het annoteren (een
+   bepaling die al af is gaat niet opnieuw door het model) en om ze te doorzoeken
+   (`search_annotaties`, met verificatie tegen Postgres). Zie
+   `docs/architectuur/annotatie-bronnodes.md` voor het contract en
+   `docs/wetsanalyse-workbench/jas-annotatie-ontologie.md` voor het RDF-model.
 
    **GraphDB draait op Azure zonder eigen security, en de netwerkgrens is de enige beveiliging:**
    `external: false`, alleen bereikbaar binnen de Container Apps Environment. Het `GRAPHDB_TOKEN` dat
@@ -308,7 +317,10 @@ plan mag verouderen.
   `git check-ignore -v <pad>`.
 - `docs/regelspraak/` – de RegelSpraak-specificaties (PDF), voor de latere formaliseringsfase.
   Ook lokaal-only (gitignored), dus afwezig in een verse kloon.
-- `docs/wetsanalyse-workbench/` – het plan achter de werkplek + de JAS-annotatie-ontologie.
+- `docs/architectuur/annotatie-bronnodes.md` – de **geldende specificatie** van contract 2:
+  eigenaarschap en ankers, opslag en projectie, de leestools en het uitvoeringsspoor.
+- `docs/wetsanalyse-workbench/` – het plan achter de werkplek + de JAS-annotatie-ontologie (het
+  RDF-model van de lagen).
 - `docs/kennisbank/PLAN.md` – het gefaseerde plan voor een **tweede corpus** naast de wetsgraaf
   (beleidsstukken en handleidingen die Lex samen met de wettekst mag bevragen). Nog niet gebouwd;
   lees het vóór je aan retrieval of grounding werkt, want het stelt eisen aan beide.
