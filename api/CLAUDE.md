@@ -12,6 +12,8 @@ De API bedient acht dingen:
    + append-only auditlog + **export** (pdf/csv/json). De agent stelt voor, de mens beslist; de API bewaart de review-state.
    **Per-gebruiker gescopet** via de vertrouwde `X-User-Id`-header (`actieve_userid`, net als de
    gesprekken; 404 op andermans document). De bearer-`client_id` blijft als herkomst in de audit.
+   **Uitzondering: de gedeelde laag per artikel** (`/v1/annotatie/lagen/*`, zie hieronder) – één
+   laag per bwbId+artikel voor iedereen, zodat Lex een al geannoteerd artikel kan hergebruiken.
 2. **De chatgeschiedenis van de werkplek** (`/v1/gesprekken/*`): gesprekken + geordende berichten
    (`gesprek_contracts.py`/`gesprek_store.py`/`routers/gesprekken.py`). Net als het annotatie-domein
    **per-gebruiker gescopet** via de vertrouwde `X-User-Id`-header (`actieve_userid`, hergebruikt uit
@@ -121,7 +123,37 @@ De API bedient acht dingen:
   `require_client` blijft de bearer-poort + audit-herkomst).
   Levenscyclus: document aanmaken → `PUT elementen` (de uitkomst van één agent-ronde) → per element
   een human-decision (approve/edit/reject/comment; edit berekent een `diff`) → `GET audit`.
-  **Geen graaf-mutatie** vanuit dit domein.
+  **Geen graaf-mutatie** vanuit dit domein (de projectie naar GraphDB is een volgende stap).
+
+  **De gedeelde laag per artikel.** Een rij met een gevulde `laag_sleutel` (`"{BWBID}:{artikel}"`,
+  uniek via de partiële index `ux_annotatie_laag`) is de laag van dat artikel: geen eigenaar
+  (`user_id` leeg), zichtbaar en bewerkbaar voor iedereen (`annotatie_store.mag_zien`), niet te
+  verwijderen (403). Wie wat deed staat per handeling in de audit en in `Beslissing.actor`. Omdat een
+  laag een slug heeft zoals elk document, lopen beslissingen, status, audit en export via de
+  bestaande `/documenten/{slug}/…`-routes; alleen ophalen, samenvoegen en hergebruik hebben eigen
+  routes onder `/lagen/{bwbId}/{artikel}`.
+
+  - **Hash per lid.** `leden` op de laag houdt per lid de hash bij van de tekst die de laatste ronde
+    zag; `Anker.lid_hash` doet dat per markering. graph-qa levert de hashes – de api heeft geen
+    wettekst en rekent ze nooit zelf uit.
+  - **Bronwijziging veroudert, trekt niet in.** Wijkt de hash van een lid af, dan krijgen de actuele
+    markeringen van dat lid `verouderd=True`: hun lifecycle (het oordeel van de jurist) blijft als
+    historie staan, ze zijn alleen-lezen (409, behalve `comment`), tellen niet mee als werkvoorraad
+    of bronversie en doen niet mee aan ontdubbelen. Een afgeronde laag gaat dan automatisch weer open
+    (`heropend-door-bronwijziging`). Oude ankers zonder `lid_hash` worden op `bron_hash` getoetst
+    (artikel- óf lidsegmenthash); zonder anker wordt niets verouderd verklaard.
+  - **Het vangnet onder hergebruik.** In `modus="auto"` negeert de merge voorstellen voor een lid
+    waarvan de hash ongewijzigd is (`X-Hergebruikt-Leden`): dat lid had hergebruikt moeten worden.
+    Een achterlopende graaf kost zo hooguit tokens, nooit reviewstatus. `"opnieuw"` (de expliciete
+    vraag van de jurist) voegt wél toe.
+  - **Op een laag wordt nooit ingetrokken.** Opnieuw annoteren is aanvullen; de spreiding tussen
+    runs zou anders onbeoordeeld werk van anderen laten verdwijnen.
+  - **`POST …/hergebruik`** legt vast dát Lex hergebruikte (audit `laag-hergebruikt`, run met
+    `modus="hergebruik"`) en stempelt ankers bij naar de actuele positie – alleen positievelden; een
+    anker dat een ander fragment omspant wordt geweigerd. Werkt ook op een afgeronde laag.
+  - **Eén laag, ook bij gelijktijdigheid.** `haal_of_maak_laag` is insert-dan-herlaad; de unieke
+    index beslist. (Niet te testen met twee gelijktijdige requests op de in-memory SQLite: die deelt
+    één verbinding en rolt dan ook de insert van de winnaar terug.)
 
   **De `review_reason` komt van de server.** Bij een **edit** leidt `_reden_uit_diff` hem af uit de
   diff die de router toch al berekent (één veld → `tekst`/`verkeerde_klasse`/`interpretatie`; meer
@@ -243,7 +275,7 @@ loggen. Zie `docs/observability.md`.
 
 ## Garanties (niet aan tornen)
 
-- **Per-gebruiker isolatie.** Elk annotatie-document én elk **gesprek** is per-gebruiker gescopet via
+- **Per-gebruiker isolatie.** Elk annotatie-document (behalve de gedeelde laag per artikel) én elk **gesprek** is per-gebruiker gescopet via
   de vertrouwde `X-User-Id`-header – 404 op andermans slug/id (lekt niet). De dependency is
   **`actieve_userid`** (`routers/auth.py`): die controleert bovendien dat het account nog bestaat en
   actief is, met een cache van 30s. `huidige_userid` leest alleen de header en is er voor endpoints

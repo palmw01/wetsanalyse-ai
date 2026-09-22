@@ -195,7 +195,8 @@ def tel_elementen(elementen: list[AnnotatieElement]) -> ExportTelling:
             telling.van_agent += 1
         if el.beslissingen:
             telling.beslist += 1
-        else:
+        elif not el.verouderd:
+            # Een verouderd voorstel is geen werkvoorraad: het hoort bij tekst die er niet meer staat.
             telling.te_beoordelen += 1
     return telling
 

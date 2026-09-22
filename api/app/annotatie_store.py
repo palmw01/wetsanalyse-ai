@@ -8,12 +8,14 @@ blijven (SQLite-tests).
 """
 from __future__ import annotations
 
+import uuid
 from typing import Callable
 
-from sqlalchemy import delete, insert, select, update
+from sqlalchemy import delete, exists, insert, select, update
+from sqlalchemy.exc import IntegrityError
 
 from . import db
-from .annotatie_contracts import AgentRun, AnnotatieDocument, AnnotatieElement, AuditRecord
+from .annotatie_contracts import AgentRun, AnnotatieDocument, AnnotatieElement, AuditRecord, LidStand
 
 # Sentinel: het document bestaat (en is van de client) maar het gevraagde element niet.
 GEEN_ELEMENT = object()
@@ -25,6 +27,21 @@ def etag_van(doc: AnnotatieDocument) -> str:
     """Zwakke ETag uit `updated`. Bewust geen aparte versiekolom: `updated` wordt binnen dezelfde
     transactie gezet als de elementen, dus het is even betrouwbaar en kost geen migratie."""
     return f'W/"{doc.updated.isoformat() if doc.updated else "0"}"'
+
+
+def laag_sleutel(bwb_id: str, artikel: str) -> str:
+    """De sleutel van de gedeelde laag van één artikel: `"{BWBID}:{artikel}"`.
+
+    Genormaliseerd op wat een aanroeper onschuldig anders kan schrijven – hoofdletters in het
+    BWB-id, witruimte rond of in het artikelnummer. Méér niet: "3a" en "3A" zijn in de wet
+    verschillende artikelen en dat mag de sleutel niet gelijkmaken.
+    """
+    return f"{bwb_id.strip().upper()}:{''.join(artikel.split())}"
+
+
+def mag_zien(doc: AnnotatieDocument, user_id: str) -> bool:
+    """Een laag is van iedereen; een per-gebruiker-document alleen van zijn eigenaar."""
+    return bool(doc.laag_sleutel) or doc.user_id == user_id
 
 
 def _naar_document(row) -> AnnotatieDocument:
@@ -41,6 +58,9 @@ def _naar_document(row) -> AnnotatieDocument:
         status=d["status"],
         elementen=[AnnotatieElement.model_validate(e) for e in (d["elementen"] or [])],
         runs=[AgentRun.model_validate(r) for r in (d["runs"] or [])],
+        laag_sleutel=d["laag_sleutel"] or "",
+        # NULL op rijen van vóór de kolom: `reconcile_schema` voegt hem toe zonder waarde.
+        leden={k: LidStand.model_validate(w) for k, w in (d["leden"] or {}).items()},
         created=db.aware(d["created"]),
         updated=db.aware(d["updated"]),
     )
@@ -62,9 +82,60 @@ class AnnotatieStore:
                 status=doc.status.value,
                 elementen=[e.model_dump(mode="json") for e in doc.elementen],
                 runs=[r.model_dump(mode="json") for r in doc.runs],
+                laag_sleutel=doc.laag_sleutel,
+                leden={k: w.model_dump(mode="json") for k, w in doc.leden.items()},
                 created=now,
                 updated=now,
             ))
+
+    async def laad_laag(self, sleutel: str) -> AnnotatieDocument | None:
+        async with db.get_engine().connect() as conn:
+            row = (await conn.execute(
+                select(db.annotatie_documenten).where(db.annotatie_documenten.c.laag_sleutel == sleutel)
+            )).first()
+        return _naar_document(row) if row else None
+
+    async def haal_of_maak_laag(
+        self, bwb_id: str, artikel: str, citeertitel: str, client_id: str,
+    ) -> tuple[AnnotatieDocument, bool]:
+        """De gedeelde laag van dit artikel, en of hij net is aangemaakt.
+
+        Insert-dan-herlaad in plaats van check-dan-insert: twee Lex-runs op hetzelfde artikel
+        tegelijk mogen er geen twee lagen van maken, en dat dwingt de unieke index af – niet deze
+        code. Verliest deze aanroep de race, dan leest hij de laag van de winnaar.
+        """
+        sleutel = laag_sleutel(bwb_id, artikel)
+        if (bestaand := await self.laad_laag(sleutel)) is not None:
+            return bestaand, False
+        doc = AnnotatieDocument(
+            slug=uuid.uuid4().hex[:16], client_id=client_id, citeertitel=citeertitel,
+            bwbId=bwb_id.strip().upper(), artikel="".join(artikel.split()), laag_sleutel=sleutel,
+        )
+        try:
+            await self.maak_document(doc)
+        except IntegrityError:
+            winnaar = await self.laad_laag(sleutel)
+            if winnaar is None:
+                raise
+            return winnaar, False
+        return await self.laad_laag(sleutel), True  # type: ignore[return-value]
+
+    async def lijst_lagen(
+        self, mijn_user_id: str | None = None, bwb_id: str | None = None,
+        limit: int = 50, offset: int = 0,
+    ) -> list[AnnotatieDocument]:
+        """De gedeelde lagen, meest recent eerst. `mijn_user_id` beperkt tot lagen waar die gebruiker
+        iets aan deed – dat staat in de audit, want een laag heeft geen eigenaar."""
+        t = db.annotatie_documenten
+        q = select(t).where(t.c.laag_sleutel != "")
+        if bwb_id:
+            q = q.where(t.c.bwbId == bwb_id.strip().upper())
+        if mijn_user_id:
+            a = db.annotatie_audit
+            q = q.where(exists().where(a.c.document_slug == t.c.slug, a.c.actor == mijn_user_id))
+        async with db.get_engine().connect() as conn:
+            rows = (await conn.execute(q.order_by(t.c.updated.desc()).limit(limit).offset(offset))).all()
+        return [_naar_document(r) for r in rows]
 
     async def laad_document(self, slug: str) -> AnnotatieDocument | None:
         async with db.get_engine().connect() as conn:
@@ -128,7 +199,7 @@ class AnnotatieStore:
             if row is None:
                 return None
             doc = _naar_document(row)
-            if doc.user_id != user_id:
+            if not mag_zien(doc, user_id):
                 return None
             if if_match is not None and if_match != etag_van(doc):
                 return CONFLICT
@@ -141,6 +212,7 @@ class AnnotatieStore:
                 .values(
                     elementen=[e.model_dump(mode="json") for e in doc.elementen],
                     runs=[r.model_dump(mode="json") for r in doc.runs],
+                    leden={k: w.model_dump(mode="json") for k, w in doc.leden.items()},
                     status=doc.status.value,
                     updated=now,
                 )
