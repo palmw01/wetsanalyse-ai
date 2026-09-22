@@ -1,0 +1,130 @@
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix jas: <urn:jas-ns:> .
+@prefix jask: <urn:jas-ns:klasse:> .
+@prefix oa: <http://www.w3.org/ns/oa#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<urn:jas:annotatie:BWBR0004770:artikel:9:e0> a oa:Annotation,
+        jas:Markering ;
+    oa:hasBody jask:voorwaarde ;
+    oa:hasTarget <urn:jas:annotatie:BWBR0004770:artikel:9:e0:doel> ;
+    oa:motivatedBy oa:classifying ;
+    prov:invalidatedAtTime "2026-09-01T12:00:00+00:00"^^xsd:dateTime ;
+    jas:elementId "e0" ;
+    jas:herkomst "agent" ;
+    jas:inLaag <urn:jas:laag:BWBR0004770:artikel:9> ;
+    jas:klasse jask:voorwaarde ;
+    jas:lid "1" ;
+    jas:lifecycle jas:lifecycle-rejected ;
+    jas:verouderd true .
+
+<urn:jas:agent:mens:jurist-a> a prov:Person .
+
+<urn:jas:agent:model:claude-sonnet-4-6> a prov:SoftwareAgent ;
+    rdfs:label "claude-sonnet-4-6" .
+
+<urn:jas:annotatie:BWBR0004770:artikel:9:e0:doel> a oa:SpecificResource ;
+    oa:hasSelector <urn:jas:annotatie:BWBR0004770:artikel:9:e0:quote> ;
+    oa:hasSource <urn:bwb:BWBR0004770:artikel:9:lid:1> .
+
+<urn:jas:annotatie:BWBR0004770:artikel:9:e0:quote> a oa:TextQuoteSelector ;
+    oa:exact "indien" .
+
+<urn:jas:annotatie:BWBR0004770:artikel:9:e1:alt:1> a jas:Alternatief ;
+    jas:klasse jask:rechtsobject ;
+    jas:motivatie "twijfel"@nl .
+
+<urn:jas:annotatie:BWBR0004770:artikel:9:e1:beslissing:1> a prov:Activity,
+        jas:Beslissing ;
+    prov:endedAtTime "2026-09-01T12:00:00+00:00"^^xsd:dateTime ;
+    prov:used <urn:jas:annotatie:BWBR0004770:artikel:9:e1> ;
+    prov:wasAssociatedWith <urn:jas:agent:mens:jurist-a> ;
+    jas:beslissingType jas:beslissing-approve ;
+    jas:reviewReden jas:reden-interpretatie .
+
+<urn:jas:annotatie:BWBR0004770:artikel:9:e1:critic:1> a prov:Activity,
+        jas:CriticRonde ;
+    prov:endedAtTime "2026-09-01T12:00:00+00:00"^^xsd:dateTime ;
+    prov:used <urn:jas:annotatie:BWBR0004770:artikel:9:e1> ;
+    prov:wasAssociatedWith <urn:jas:agent:lex:0.4.0> ;
+    jas:aandacht jas:aandacht-geel ;
+    jas:actie "behoud" ;
+    jas:motivatie "let op"@nl ;
+    jas:ronde 1 ;
+    jas:toegepast false ;
+    jas:voorstelKlasse jask:rechtsobject .
+
+<urn:jas:annotatie:BWBR0004770:artikel:9:e1:doel> a oa:SpecificResource ;
+    oa:hasSelector <urn:jas:annotatie:BWBR0004770:artikel:9:e1:positie>,
+        <urn:jas:annotatie:BWBR0004770:artikel:9:e1:quote> ;
+    oa:hasSource <urn:bwb:BWBR0004770:artikel:9:lid:1> .
+
+<urn:jas:annotatie:BWBR0004770:artikel:9:e1:positie> a oa:TextPositionSelector ;
+    oa:end "15"^^xsd:nonNegativeInteger ;
+    oa:start "3"^^xsd:nonNegativeInteger ;
+    jas:bronHash "art" ;
+    jas:lidHash "h1" .
+
+<urn:jas:annotatie:BWBR0004770:artikel:9:e1:quote> a oa:TextQuoteSelector ;
+    oa:exact "de ontvanger" ;
+    oa:prefix "1. " ;
+    oa:suffix " kan" .
+
+<urn:jas:annotatie:BWBR0004770:artikel:9:e1:toelichting> a oa:TextualBody ;
+    rdf:value "wie int"@nl ;
+    oa:purpose oa:describing .
+
+<urn:jas:laag:BWBR0004770:artikel:9:lid:1> a jas:Lidstand ;
+    prov:generatedAtTime "2026-09-01T12:00:00+00:00"^^xsd:dateTime ;
+    jas:bepaling <urn:bwb:BWBR0004770:artikel:9:lid:1> ;
+    jas:lid "1" ;
+    jas:lidHash "h1" .
+
+<urn:jas:laag:BWBR0004770:artikel:9:run:0> a prov:Activity,
+        jas:AgentRun ;
+    prov:startedAtTime "2026-09-01T12:00:00+00:00"^^xsd:dateTime ;
+    prov:wasAssociatedWith <urn:jas:agent:lex:0.4.0>,
+        <urn:jas:agent:model:claude-sonnet-4-6> ;
+    jas:criticRondes 0 ;
+    jas:lid "1" ;
+    jas:methodeVersie "m1" ;
+    jas:modus "nieuw" ;
+    jas:promptHash "p1" ;
+    jas:ronde 0 .
+
+<urn:jas:annotatie:BWBR0004770:artikel:9:e1> a oa:Annotation,
+        jas:Markering ;
+    oa:hasBody jask:rechtssubject,
+        <urn:jas:annotatie:BWBR0004770:artikel:9:e1:toelichting> ;
+    oa:hasTarget <urn:jas:annotatie:BWBR0004770:artikel:9:e1:doel> ;
+    oa:motivatedBy oa:classifying ;
+    prov:wasAttributedTo <urn:jas:agent:lex:0.4.0> ;
+    prov:wasGeneratedBy <urn:jas:laag:BWBR0004770:artikel:9:run:0> ;
+    jas:aandacht jas:aandacht-geel ;
+    jas:elementId "e1" ;
+    jas:heeftAlternatief <urn:jas:annotatie:BWBR0004770:artikel:9:e1:alt:1> ;
+    jas:heeftBeslissing <urn:jas:annotatie:BWBR0004770:artikel:9:e1:beslissing:1> ;
+    jas:heeftCriticRonde <urn:jas:annotatie:BWBR0004770:artikel:9:e1:critic:1> ;
+    jas:herkomst "agent" ;
+    jas:inLaag <urn:jas:laag:BWBR0004770:artikel:9> ;
+    jas:klasse jask:rechtssubject ;
+    jas:lid "1" ;
+    jas:lifecycle jas:lifecycle-human_approved ;
+    jas:verouderd false .
+
+<urn:jas:laag:BWBR0004770:artikel:9> a jas:AnnotatieLaag ;
+    dcterms:modified "2026-09-01T12:00:00+00:00"^^xsd:dateTime ;
+    dcterms:title "Invorderingswet 1990" ;
+    jas:artikel "9" ;
+    jas:bepaling <urn:bwb:BWBR0004770:artikel:9> ;
+    jas:bwbId "BWBR0004770" ;
+    jas:heeftLidstand <urn:jas:laag:BWBR0004770:artikel:9:lid:1> ;
+    jas:slug "laag1" ;
+    jas:status jas:status-in_review .
+
+<urn:jas:agent:lex:0.4.0> a prov:SoftwareAgent ;
+    rdfs:label "Lex 0.4.0" .
+

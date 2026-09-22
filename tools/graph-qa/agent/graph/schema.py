@@ -57,7 +57,12 @@ def graph_schema(graph: GraphPort) -> str:
         f"  artikel   {queries.NS}{{BWB-id}}:artikel:{{nr}}\n"
         f"  lid       {queries.NS}{{BWB-id}}:artikel:{{nr}}:lid:{{nr}}\n"
         f"  Filter altijd op STRSTARTS(STR(?s), \"{queries.NS}\") – anders tel je de\n"
-        "  owl:sameAs-tweelingen van wetten.overheid.nl dubbel.\n\n"
+        "  owl:sameAs-tweelingen van wetten.overheid.nl dubbel.\n"
+        # Sinds 22 sep 2026 staan de JAS-annotatielagen in dezelfde graaf. Ze dragen BWB-id's in
+        # hun IRI en citeren wettekst in oa:exact, dus een vrije query kan ze tegenkomen.
+        "  urn:jas:… zijn JAS-annotaties: afgeleide duiding door Lex en juristen, GEEN wettekst\n"
+        "  en GEEN vindplaats. Citeer ze nooit als bron; de wet staat alleen onder "
+        f"{queries.NS}.\n\n"
         "REGELINGEN IN DE GRAAF:\n"
         f"{regelingen}"
     )

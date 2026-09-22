@@ -184,6 +184,15 @@ gemeten (4 sep 2026), niet uit de code afgeleid.
   `follow_verwijzingen` en `context()` volgen daarom `(heeftLid|heeftOnderdeel)+` mee en melden in
   `?vanuit` waar de verwijzing vandaan komt. Zonder dat meldt de tool "geen verwijzingen" op een
   artikel dat er vijf heeft.
+- **De graaf bevat ook JAS-annotatielagen** (`urn:jas:graph:*`, sinds 22 sep 2026, door de api
+  geprojecteerd – zie `docs/wetsanalyse-workbench/jas-annotatie-ontologie.md`). Omdat de queries de
+  union bevragen, moet elke bouwer óf op subjecten onder `urn:bwb:` filteren óf alleen `bwb:`-
+  predicaten volgen. `resolve_begrip` deed geen van beide en gaf op "recht" de JAS-klassen
+  Rechtssubject en Rechtsobject terug (die staan als `skos:Concept` in de jas-ontologie); hij filtert
+  nu op `NS`. `tests/test_annotatielaag_isolatie.py` draait **elke** bouwer uit
+  `test_sparql_syntax.GEVALLEN` op een stuk BWB-graaf met en zonder laag en eist identieke rijen –
+  een nieuwe bouwer valt daar dus vanzelf onder. De laag in die test is een afdruk van de echte
+  projectie; de api bewaakt dat hij actueel blijft (`test_graph_qa_fixture_volgt_de_projectie`).
 - **Het fallback-label van een verwijsdoel staat op `bwb:doelLabel`, niet op `rdfs:label`.** Lees het
   als `COALESCE(rdfs:label, bwb:doelLabel)`: een geïmporteerd doel houdt zijn eigen naam, een stub
   blijft leesbaar. Op `rdfs:label` kwam de fallback náást het echte label te staan (aparte named
@@ -194,6 +203,11 @@ gemeten (4 sep 2026), niet uit de code afgeleid.
 - `provenance.iter_refs` herkent vindplaatsen – BWB-IRI's (`urn:bwb:…`), jci-strings
   (`jci…:c:BWBR…`) en kale BWB-id's – in **tool-resultaten**. `collect_sources` bouwt daaruit de
   ontdubbelde bronnenlijst. Bronnen komen dus nooit uit de prozatekst van het model.
+- **Een annotatie is geen vindplaats.** `urn:jas:annotatie:BWBR0004770:…` bevat een BWB-id, en
+  `iter_refs` telde dat als losse bron – een annotatie leek dan wettekst te onderbouwen die niet was
+  opgehaald. `urn:jas…`-IRI's worden daarom vóór het zoeken weggelaten (`_AFGELEID_RE`). Een
+  `urn:bwb:`-object náást een annotatie telt wél; dat onderscheid (duiding naast wettekst in één
+  resultaat) hoort bij het latere QA-gebruik van de laag, dat bronsoorten apart moet houden.
 - `grounding.check_grounding` past diezelfde herkenning toe op het **antwoord** en markeert citaten
   waarvan het BWB-id niet in de trace voorkomt. Deterministisch, op BWB-granulariteit (geen vals alarm
   op jci-formattering of geparafraseerde IRI's). `curate_sources` snoeit de lijst tot aangehaalde
