@@ -1,0 +1,59 @@
+name: Annotatiecontract omschakelen
+on:
+  workflow_dispatch:
+    inputs:
+      contract:
+        description: '1 tijdens uitrol, 2 na verificatie van alle nieuwe images'
+        type: choice
+        options: ['1', '2']
+        default: '1'
+permissions:
+  contents: read
+concurrency:
+  group: annotatie-contract
+  cancel-in-progress: false
+jobs:
+  omschakelen:
+    runs-on: ubuntu-latest
+    environment: acceptatie
+    env:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      RG: ${{ vars.AZURE_RESOURCE_GROUP }}
+      APP: ${{ vars.APP_NAME }}
+      CONTRACT: ${{ inputs.contract }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Aanmelden
+        run: |
+          set -euo pipefail
+          for key in AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID AZURE_CLIENT_SECRET RG APP; do
+            test -n "${!key}" || exit 1
+          done
+          az login --service-principal --username "$AZURE_CLIENT_ID" --password "$AZURE_CLIENT_SECRET" --tenant "$AZURE_TENANT_ID" --output none
+          az account set --subscription "$AZURE_SUBSCRIPTION_ID"
+      - name: Contract en graafprojectie instellen
+        run: |
+          set -euo pipefail
+          case "$CONTRACT" in 1|2) ;; *) exit 1 ;; esac
+          graph=$(az containerapp show -n "$APP-graphdb" -g "$RG" --query properties.configuration.ingress.fqdn -o tsv)
+          test -n "$graph"
+          az containerapp update -n "$APP-api" -g "$RG" --set-env-vars "ANNOTATIE_CONTRACT_VERSIE=$CONTRACT" "GRAPHDB_URL=https://$graph" "GRAPHDB_REPOSITORY=inning" --output none
+          rev=$(az containerapp show -n "$APP-api" -g "$RG" --query properties.latestRevisionName -o tsv)
+          for attempt in $(seq 1 30); do
+            state=$(az containerapp revision show -n "$APP-api" -g "$RG" --revision "$rev" --query properties.runningState -o tsv)
+            case "$state" in
+              Running|RunningAtMaxScale)
+                az containerapp ingress traffic set -n "$APP-api" -g "$RG" --revision-weight "$rev=100" --output none
+                echo "Contract $CONTRACT actief op $rev"
+                exit 0 ;;
+              Failed|Degraded) echo "Revisie ongezond: $state"; exit 1 ;;
+            esac
+            sleep 10
+          done
+          exit 1
+      - name: Afmelden
+        if: always()
+        run: az logout || true

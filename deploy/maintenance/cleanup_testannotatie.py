@@ -14,8 +14,8 @@ from app.annotatie_store import AnnotatieStore
 from app.config import get_settings
 from app.graaf_projectie import REGISTER, REGISTER_GRAAF, JAS, laag_graaf_iri, laag_iri
 
-SLUG = "cf51263f2e184b80"
-UPDATED = datetime.fromisoformat("2026-09-22T11:49:40.776695+00:00")
+SLUG = "3c1be4914d684a63"
+UPDATED = datetime.fromisoformat("2026-09-22T13:48:02.407385+00:00")
 
 async def main():
     cfg = get_settings()
@@ -26,7 +26,7 @@ async def main():
         raise RuntimeError("Testdocument ontbreekt; geen wijziging uitgevoerd")
     assert doc.bwbId == "BWBR0004770" and doc.artikel == "9"
     assert doc.laag_sleutel == "BWBR0004770:9"
-    assert len(doc.elementen) == 7 and not any(e.beslissingen for e in doc.elementen)
+    assert len(doc.elementen) == 6 and not any(e.beslissingen for e in doc.elementen)
     assert db.aware(doc.updated) == UPDATED
     repo = cfg.graphdb_url.rstrip("/") + "/repositories/" + cfg.graphdb_repository
     graph, owner = laag_graaf_iri(doc), laag_iri(doc)
@@ -56,7 +56,7 @@ async def main():
                 exists = (await conn.execute(text("SELECT to_regclass(:name)"), {"name": table})).scalar()
                 if exists:
                     protected[table] = (await conn.execute(text(f'SELECT count(*) FROM "{table}"'))).scalar_one()
-            print(json.dumps({"dry_run": not DO_WRITE, "slug": SLUG, "elementen": 7, "auditregels": audit_count, "beschermd": protected, "graafprojectie_actief": bool(cfg.graphdb_url), "overige_documenten": other_count}), flush=True)
+            print(json.dumps({"dry_run": not DO_WRITE, "slug": SLUG, "elementen": 6, "auditregels": audit_count, "beschermd": protected, "graafprojectie_actief": bool(cfg.graphdb_url), "overige_documenten": other_count}), flush=True)
             if not DO_WRITE:
                 print("ANNOTATIE_CLEANUP_DRY_RUN_OK", flush=True)
                 return
