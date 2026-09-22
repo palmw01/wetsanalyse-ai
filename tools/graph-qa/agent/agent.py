@@ -211,6 +211,7 @@ async def answer_stream(
         "artikel_corpus": "",
         "lidstand": [],
         "hergebruik_modus": hergebruik,
+        "hergebruik": {},
         "voorstellen": [],
         "verworpen_fragmenten": [],
         "critic_feedback": [],

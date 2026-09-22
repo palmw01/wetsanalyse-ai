@@ -52,6 +52,7 @@ from .nodes.annotatie import (
     emit_node,
     herzie_node,
     patch_node,
+    route_na_annoteer,
     route_na_critic,
     route_na_patch,
 )
@@ -240,11 +241,15 @@ def build_graph(
         add("herzie", functools.partial(herzie_node, b))
         add("emit", functools.partial(emit_node, b))
 
+        # Na het annoteren: naar de Critic, of – als de gedeelde laag volledig is hergebruikt en er
+        # dus niets nieuws te beoordelen valt – rechtstreeks naar `emit`. Nog steeds lineair.
+        naar_critic = {"critic": "critic", "emit": "emit"}
         if settings.enable_kandidaat_splitsing:
             g.add_edge("annoteer_kandidaten", "annoteer_klasseer")
-            g.add_edge("annoteer_klasseer", "critic")
+            g.add_conditional_edges("annoteer_klasseer", functools.partial(route_na_annoteer, b),
+                                    naar_critic)
         else:
-            g.add_edge("annoteer", "critic")
+            g.add_conditional_edges("annoteer", functools.partial(route_na_annoteer, b), naar_critic)
         g.add_conditional_edges("critic", functools.partial(route_na_critic, b), {"patch": "patch", "emit": "emit"})
         g.add_conditional_edges("patch", functools.partial(route_na_patch, b),
                                 {"herzie": "herzie", "critic": "critic", "emit": "emit"})

@@ -37,6 +37,7 @@ from ..annotatie_prompt import (
     methode_versie,
     prompt_hash,
 )
+from ..annotatielaag import deel_leden_in, lees_laagstand, telling
 from ..artikel import ArtikelScope, OngeldigeVindplaats
 from ..doel import _bepaal_doel, _kandidaten_uit_json, _ontbrekend_sleutel, _scope_voor_doel
 from ..models import AgentRun
@@ -63,6 +64,54 @@ def _scope_velden(scope: ArtikelScope) -> dict[str, Any]:
         if lid in hashes
     ]
     return {"corpus": scope.corpus, "artikel_corpus": scope.artikel_corpus, "lidstand": lidstand}
+
+
+def _pas_hergebruik_toe(
+    b: Bouw, state: State, doel: dict[str, Any], bron: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    """Staat dit artikel al (deels) in de gedeelde laag? Dan hoeven die leden niet opnieuw.
+
+    Geeft `(bron, hergebruik)`. Bij gedeeltelijk hergebruik is `bron` ingekort tot de leden die wél
+    geannoteerd moeten worden: het corpus bevat dan alleen hun segmenten (zelfde vorm, dus
+    `_lid_segmenten`, de lid-scoping en `herankeer` blijven kloppen) en de lidstand alleen die leden
+    – de api krijgt ook alleen die. `hergebruik` is None als er niets te hergebruiken valt, of als de
+    jurist expliciet om een nieuwe ronde vroeg.
+    """
+    if state.get("hergebruik_modus") == "opnieuw" or not bron.get("lidstand"):
+        return bron, None
+    aanduiding = doel.get("artikel") or doel.get("nummer") or ""
+    laag = lees_laagstand(b.graph, doel.get("bwbId", ""), aanduiding)
+    ongewijzigd, rest = deel_leden_in(bron["lidstand"], laag)
+    if laag is None or not ongewijzigd:
+        return bron, None
+
+    leden = {ld["lid"] for ld in ongewijzigd}
+    markeringen = [m for m in laag.markeringen if m.get("lid", "") in leden]
+    hergebruik = {
+        "slug": laag.slug, "status": laag.status, "bijgewerkt": laag.bijgewerkt,
+        "leden": ongewijzigd, "markeringen": markeringen, "telling": telling(markeringen),
+        "volledig": not rest,
+    }
+    if rest:
+        te_doen = {ld["lid"] for ld in rest}
+        corpus = bron["corpus"]
+        deel = "\n\n".join(corpus[s:e] for lid, s, e in _lid_segmenten(corpus) if lid in te_doen)
+        bron = {**bron, "corpus": deel, "lidstand": rest}
+    return bron, hergebruik
+
+
+def _hergebruik_melding(hergebruik: dict[str, Any]) -> str:
+    leden = [ld["lid"] for ld in hergebruik["leden"]]
+    wat = ("het artikel" if leden == [""] else
+           f"lid {leden[0]}" if len(leden) == 1 else "leden " + ", ".join(leden))
+    t = hergebruik["telling"]
+    return (f"{wat} ongewijzigd sinds de vorige annotatie · {t['markeringen']} markeringen uit de "
+            f"graaf ({t['beoordeeld']} beoordeeld, {t['te_beoordelen']} te beoordelen)")
+
+
+def route_na_annoteer(b: Bouw, state: State) -> str:
+    """Volledig hergebruikt: niets om te beoordelen, dus direct naar `emit`. Anders de Critic."""
+    return "emit" if (state.get("hergebruik") or {}).get("volledig") else "critic"
 
 
 def _doel_event(doel: dict[str, Any], velden: dict[str, Any]) -> dict[str, Any]:
@@ -130,6 +179,17 @@ def annoteer_node(b: Bouw, state: State) -> dict[str, Any]:
         writer({"type": "token", "content": melding})
         return {"answer": melding, "voorstellen": [], "messages": [{"role": "assistant", "content": melding}]}
 
+    bron, hergebruik = _pas_hergebruik_toe(b, state, doel, bron)
+    if hergebruik:
+        _stap(writer, "Hergebruik", _hergebruik_melding(hergebruik))
+        if hergebruik["volledig"]:
+            # Geen LLM-call: de laag staat er, met de oordelen van de juristen erbij. `emit` meldt
+            # het en de driver legt vast dát er hergebruikt is.
+            writer({"type": "doel", "doel": _doel_event(doel, bron)})
+            return {**bron, "hergebruik": hergebruik, "voorstellen": [],
+                    "verworpen_fragmenten": [], "answer": ""}
+    corpus = bron["corpus"]
+
     plek = aanduiding_in_woorden(aanduiding, doel.get("lid", ""), soort)
     _stap(writer, "Annoteerder", f"leest {plek} ({len(corpus)} tekens)")
 
@@ -157,6 +217,7 @@ def annoteer_node(b: Bouw, state: State) -> dict[str, Any]:
         )
         writer({"type": "token", "content": leeg})
         return {"answer": leeg, "voorstellen": [], "verworpen_fragmenten": [], **bron,
+                "hergebruik": hergebruik or {},
                 "messages": [{"role": "assistant", "content": leeg}]}
     # Markeringen die de JURIST zelf maakte gaan mee als BEVROREN voorstellen: de Critic mag er
     # iets van vinden (dat is een tweede paar ogen op eigen werk), maar ze doen niet mee in de
@@ -193,6 +254,7 @@ def annoteer_node(b: Bouw, state: State) -> dict[str, Any]:
         # De Critic en de herziening lezen dit; zonder dit zouden ze de bepaling opnieuw ophalen
         # (of erger: terugvallen op de trace en over een ándere tekst oordelen).
         **bron,
+        "hergebruik": hergebruik or {},
         "answer": "",
     }
 
@@ -242,6 +304,13 @@ def annoteer_kandidaten_node(b: Bouw, state: State) -> dict[str, Any]:
         return {"answer": melding, "voorstellen": [], "kandidaten_v2a": [], "corpus": "",
                 "messages": [{"role": "assistant", "content": melding}]}
 
+    bron, hergebruik = _pas_hergebruik_toe(b, state, doel, bron)
+    if hergebruik:
+        _stap(writer, "Hergebruik", _hergebruik_melding(hergebruik))
+        if hergebruik["volledig"]:
+            return {"kandidaten_v2a": [], **bron, "hergebruik": hergebruik}
+    corpus = bron["corpus"]
+
     aanduiding = doel.get("artikel") or doel.get("nummer") or ""
     _stap(writer, "Kandidaatgenerator", f"zoekt spans in art. {aanduiding}")
 
@@ -262,7 +331,7 @@ def annoteer_kandidaten_node(b: Bouw, state: State) -> dict[str, Any]:
     # Het corpus MOET mee. `annoteer_klasseer_node` leest het uit de state, en zonder dit veld
     # staat daar niets – of, bij een tweede bepaling in dezelfde run, de tekst van de vórige.
     # Dan gront `_verwerk` elk fragment tegen de verkeerde tekst en verwerpt het alles.
-    return {"kandidaten_v2a": gefilterd, **bron}
+    return {"kandidaten_v2a": gefilterd, **bron, "hergebruik": hergebruik or {}}
 
 def annoteer_klasseer_node(b: Bouw, state: State) -> dict[str, Any]:
     """Fase 2A stap 2: classificeer de gefilterde kandidaten.
@@ -277,6 +346,9 @@ def annoteer_klasseer_node(b: Bouw, state: State) -> dict[str, Any]:
     """
     writer = get_stream_writer()
     doel = _bepaal_doel(state)
+    if (state.get("hergebruik") or {}).get("volledig"):
+        writer({"type": "doel", "doel": _doel_event(doel, state)})
+        return {"voorstellen": [], "verworpen_fragmenten": []}
     corpus = state.get("corpus") or ""
     kandidaten = state.get("kandidaten_v2a") or []
     aanduiding = doel.get("artikel") or doel.get("nummer") or ""
@@ -690,9 +762,19 @@ def emit_node(b: Bouw, state: State) -> dict[str, Any]:
     te zien krijgt."""
     writer = get_stream_writer()
     voorstellen = list(state.get("voorstellen") or [])
-    if not voorstellen:
+    hergebruik = state.get("hergebruik") or {}
+    if not voorstellen and not hergebruik:
         return {}
     doel = _bepaal_doel(state)
+    if hergebruik:
+        # Vóór alles: de werkplek toont "hergebruikt uit een eerdere annotatie", en de driver legt
+        # vast dát er hergebruikt is. Het event draagt geen elementen: de laag komt bij de api
+        # vandaan (Postgres is de waarheid), de graaf gaf alleen het oordeel "ongewijzigd".
+        writer({"type": "hergebruik", "hergebruik": {
+            k: hergebruik[k] for k in ("slug", "status", "bijgewerkt", "leden", "telling", "volledig")
+        }})
+    if hergebruik.get("volledig"):
+        return _emit_hergebruik(b, state, doel, hergebruik, writer)
     aanduiding = doel.get("artikel") or doel.get("nummer") or ""
     ontbrekend = state.get("critic_ontbrekend") or []
     corpus = b.corpus(state)
@@ -797,4 +879,35 @@ def emit_node(b: Bouw, state: State) -> dict[str, Any]:
     geheugen = f"[Annotatie {plek}] Ik markeerde {len(voorstellen)} JAS-elementen: {elems}" + (
         " (…)" if len(voorstellen) > 12 else "."
     )
+    return {"answer": samenvatting, "messages": [{"role": "assistant", "content": geheugen}]}
+
+
+def _emit_hergebruik(
+    b: Bouw, state: State, doel: dict[str, Any], hergebruik: dict[str, Any], writer,
+) -> dict[str, Any]:
+    """De uitgang zonder nieuwe voorstellen: alles kwam uit de laag."""
+    aanduiding = doel.get("artikel") or doel.get("nummer") or ""
+    plek = f"artikel {aanduiding}" + (f" lid {doel['lid']}" if doel.get("lid") else "")
+    writer({"type": "run", "run": AgentRun(
+        model=b.model, provider=b.settings.llm_provider, agent_versie=b.settings.agent_versie,
+        stop_reden="hergebruikt", modus="hergebruik",
+        leden=[str(ld.get("lid", "")) for ld in hergebruik["leden"]],
+        prompt_hash=prompt_hash(b.settings.annotatie_prompt_kort), methode_versie=methode_versie(),
+        tijd=datetime.now(timezone.utc),
+    ).model_dump(mode="json")})
+    t = hergebruik["telling"]
+    samenvatting = (
+        f"{plek[0].upper()}{plek[1:]} is al geannoteerd en de wettekst is sindsdien niet veranderd. "
+        f"Ik heb de bestaande annotatie hergebruikt: {t['markeringen']} markeringen, waarvan "
+        f"{t['beoordeeld']} beoordeeld en {t['te_beoordelen']} nog te beoordelen."
+        " Wil je toch een nieuwe ronde, vraag dan om opnieuw annoteren – wat al beoordeeld is "
+        "blijft staan."
+    )
+    _stap(writer, "Klaar", f"hergebruikt · {t['markeringen']} markeringen uit de laag")
+    writer({"type": "token", "content": samenvatting})
+    markeringen = hergebruik.get("markeringen") or []
+    elems = "; ".join(f"{m.get('klasse', '')}: '{truncate(m.get('tekst', ''), 80)}'"
+                      for m in markeringen[:12])
+    geheugen = (f"[Annotatie {plek}, hergebruikt] De laag bevat {len(markeringen)} JAS-elementen: "
+                f"{elems}" + (" (…)" if len(markeringen) > 12 else "."))
     return {"answer": samenvatting, "messages": [{"role": "assistant", "content": geheugen}]}

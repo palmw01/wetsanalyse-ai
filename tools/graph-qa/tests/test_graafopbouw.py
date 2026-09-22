@@ -45,11 +45,13 @@ def annotatieketen(entry: str) -> set[tuple[str, str, str, bool]]:
         ("herzie", "critic", "", False),
         ("emit", "advance", "", False),
     }
-    if entry == "annoteer":
-        keten.add(("annoteer", "critic", "", False))
-    else:
+    # Na het annoteren naar de Critic, of – bij volledig hergebruik van de gedeelde laag – meteen
+    # naar emit. Een bewuste wijziging (22 sep 2026); nog steeds zonder terugwaartse edge.
+    laatste = "annoteer" if entry == "annoteer" else "annoteer_klasseer"
+    if entry != "annoteer":
         keten.add(("annoteer_kandidaten", "annoteer_klasseer", "", False))
-        keten.add(("annoteer_klasseer", "critic", "", False))
+    keten.add((laatste, "critic", "", True))
+    keten.add((laatste, "emit", "", True))
     return keten
 
 
