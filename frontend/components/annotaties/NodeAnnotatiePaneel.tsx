@@ -201,11 +201,6 @@ function NodeExtra({ view, doel }: { view: NodeWeergave; doel: NodeDoel }) {
           </ul>
         </section>
       )}
-      <p className="text-xs text-faint">
-        <Link href={nodeLink({ ...view.doel, snapshot_id: view.snapshot_id })} className="focus-ring rounded underline underline-offset-2 hover:text-ink">
-          Deelbare link naar deze annotatie
-        </Link>
-      </p>
     </>
   );
 }
