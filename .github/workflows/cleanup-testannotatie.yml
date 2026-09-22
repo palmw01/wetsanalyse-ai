@@ -1,0 +1,54 @@
+name: Eenmalig testannotatie opruimen
+on:
+  workflow_dispatch:
+    inputs:
+      uitvoeren:
+        description: 'Wis de gecontroleerde testlaag cf51263f2e184b80 met 7 voorstellen'
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: cleanup-testannotatie
+  cancel-in-progress: false
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    environment: acceptatie
+    env:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      RG: ${{ vars.AZURE_RESOURCE_GROUP }}
+      APP: ${{ vars.APP_NAME }}
+      UITVOEREN: ${{ inputs.uitvoeren }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Aanmelden
+        run: |
+          set -euo pipefail
+          for key in AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID AZURE_CLIENT_SECRET RG APP; do
+            test -n "${!key}" || exit 1
+          done
+          az login --service-principal --username "$AZURE_CLIENT_ID" --password "$AZURE_CLIENT_SECRET" --tenant "$AZURE_TENANT_ID" --output none
+          az account set --subscription "$AZURE_SUBSCRIPTION_ID"
+      - name: Gerichte beheeractie in de bestaande API-container
+        run: |
+          python3 - <<'PY'
+          import base64, os, pathlib, shlex, subprocess, zlib
+          code = 'DO_WRITE = ' + str(os.environ['UITVOEREN'] == 'true') + '\n'
+          code += pathlib.Path('deploy/maintenance/cleanup_testannotatie.py').read_text()
+          payload = base64.b64encode(zlib.compress(code.encode())).decode()
+          command = 'python -c ' + shlex.quote('import base64,zlib;exec(zlib.decompress(base64.b64decode(' + repr(payload) + ')))')
+          args = ['az', 'containerapp', 'exec', '--resource-group', os.environ['RG'], '--name', os.environ['APP'] + '-api', '--command', command]
+          result = subprocess.run(['script', '-q', '-e', '-c', shlex.join(args), '/dev/null'], capture_output=True, text=True, timeout=180)
+          print(result.stdout)
+          print(result.stderr)
+          marker = 'ANNOTATIE_CLEANUP_EXECUTED_OK' if os.environ['UITVOEREN'] == 'true' else 'ANNOTATIE_CLEANUP_DRY_RUN_OK'
+          if result.returncode or marker not in result.stdout:
+              raise SystemExit('Opschoning niet bevestigd; controleer uitvoer.')
+          PY
+      - name: Afmelden
+        if: always()
+        run: az logout || true
