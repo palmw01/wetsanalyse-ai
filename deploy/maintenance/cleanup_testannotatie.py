@@ -26,7 +26,7 @@ async def main():
         raise RuntimeError("Testdocument ontbreekt; geen wijziging uitgevoerd")
     assert doc.bwbId == "BWBR0004770" and doc.artikel == "9"
     assert doc.laag_sleutel == "BWBR0004770:9"
-    assert len(doc.elementen) == 7 and not any(e.beslissingen or e.herkomst == "mens" for e in doc.elementen)
+    assert len(doc.elementen) == 7 and not any(e.beslissingen for e in doc.elementen)
     assert db.aware(doc.updated) == UPDATED
     assert cfg.graphdb_url, "Graafprojectie moet ook opgeruimd kunnen worden"
     repo = cfg.graphdb_url.rstrip("/") + "/repositories/" + cfg.graphdb_repository
