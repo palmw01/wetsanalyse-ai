@@ -45,10 +45,11 @@ jobs:
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           enable-cache: true
-      - run: uv sync --extra dev
-      - run: uv run pytest -q
+      # Audit dezelfde runtime-dependencies als de Docker-build, inclusief de engine en tracing.
+      - run: uv sync --extra dev --extra llm --extra otel --locked
+      - run: uv run --extra dev --extra llm --extra otel --locked pytest -q
       - name: pip-audit (faalt bij bekende kwetsbaarheden)
-        run: uv run --with pip-audit pip-audit
+        run: uv run --extra dev --extra llm --extra otel --locked --with pip-audit pip-audit
 
   build-and-push:
     needs: test
