@@ -168,6 +168,26 @@ class WetsanalyseApi:
         ]
         return uit
 
+    async def hergebruik(
+        self,
+        *,
+        bwb_id: str,
+        artikel: str,
+        citeertitel: str,
+        leden: list[dict[str, Any]],
+        run: dict[str, Any] | None,
+    ) -> dict[str, Any]:
+        """Leg vast dat deze beurt de laag hergebruikte in plaats van opnieuw te annoteren.
+
+        Verandert niets aan inhoud of oordeel – de api schrijft een auditregel en een run met
+        `modus="hergebruik"`, zodat het spoor laat zien dát en wanneer er is hergebruikt.
+        """
+        payload: dict[str, Any] = {"citeertitel": citeertitel, "leden": leden, "ankers": []}
+        if run:
+            payload["run"] = {k: v for k, v in run.items() if not (k == "tijd" and v is None)}
+        pad = f"/v1/annotatie/lagen/{quote(bwb_id, safe='')}/{quote(artikel, safe='')}/hergebruik"
+        return await self._post(pad, payload)
+
     # -- gesprekken-domein -----------------------------------------------------------------------
 
     async def voeg_bericht_toe(self, gesprek_id: str, bericht: dict[str, Any]) -> dict[str, Any]:

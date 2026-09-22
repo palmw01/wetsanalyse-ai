@@ -56,6 +56,7 @@ class BeurtSchrijver:
         self.ontbrekend: list[dict[str, Any]] = []
         self.run: dict[str, Any] | None = None
         self.kandidaten: list[dict[str, Any]] = []
+        self.hergebruik: dict[str, Any] = {}
         self.tekst = ""
         self.denk = ""
         self.bronnen: list[dict[str, Any]] = []
@@ -83,6 +84,8 @@ class BeurtSchrijver:
             self.suggesties.append(event.get("suggestie") or {})
         elif soort == "kandidaten":
             self.kandidaten = event.get("kandidaten") or []
+        elif soort == "hergebruik":
+            self.hergebruik = event.get("hergebruik") or {}
 
     def _voeg_element_toe(self, element: dict[str, Any]) -> None:
         """Ontdubbeld verzamelen: de annoteerder ⇄ Critic-lus kan hetzelfde element opnieuw sturen,
@@ -112,7 +115,13 @@ class BeurtSchrijver:
 
     @property
     def is_annotatie(self) -> bool:
-        return bool(self.doel and self.doel.get("bwbId") and self.elementen)
+        return bool(self.doel and self.doel.get("bwbId")
+                    and (self.elementen or self.volledig_hergebruikt))
+
+    @property
+    def volledig_hergebruikt(self) -> bool:
+        """Alles kwam uit de gedeelde laag: geen nieuwe voorstellen, wel een annotatie."""
+        return bool(self.hergebruik.get("volledig")) and not self.elementen
 
 
 async def voer_beurt_uit(
@@ -232,19 +241,36 @@ async def _leg_vast(
             # seconden opnieuw voor iets wat al bewaard is.
             doel = schrijver.doel or {}
             run_info = schrijver.run or {}
-            laag = await api.zet_laag_elementen(
-                bwb_id=str(doel.get("bwbId", "")),
-                artikel=str(doel.get("artikel") or doel.get("nummer") or ""),
-                citeertitel=str(doel.get("citeertitel") or ""),
-                elementen=schrijver.elementen,
-                suggesties=schrijver.suggesties,
-                run=schrijver.run,
-                leden=list(doel.get("leden") or []),
-                bron_hash=str(doel.get("bron_hash") or ""),
-                modus="opnieuw" if run_info.get("modus") == "opnieuw" else "auto",
-            )
+            aanduiding = str(doel.get("artikel") or doel.get("nummer") or "")
+            if schrijver.volledig_hergebruikt:
+                # Niets nieuws om te mergen; alleen vastleggen dát er hergebruikt is.
+                laag = await api.hergebruik(
+                    bwb_id=str(doel.get("bwbId", "")), artikel=aanduiding,
+                    citeertitel=str(doel.get("citeertitel") or ""),
+                    leden=list(doel.get("leden") or []), run=schrijver.run,
+                )
+            else:
+                laag = await api.zet_laag_elementen(
+                    bwb_id=str(doel.get("bwbId", "")),
+                    artikel=aanduiding,
+                    citeertitel=str(doel.get("citeertitel") or ""),
+                    elementen=schrijver.elementen,
+                    suggesties=schrijver.suggesties,
+                    run=schrijver.run,
+                    leden=list(doel.get("leden") or []),
+                    bron_hash=str(doel.get("bron_hash") or ""),
+                    modus="opnieuw" if run_info.get("modus") == "opnieuw" else "auto",
+                )
             slug = str(laag.get("slug", ""))
             if getattr(api, "hergebruikt", None):
+                # De graaf zag deze leden niet als geannoteerd, de api wel: de projectie liep
+                # achter (meestal net na een GraphDB-herstart). Dat kostte tokens, geen werk –
+                # maar het moet meetbaar zijn, anders valt een haperende projectie nooit op.
+                logger.warning(
+                    "hergebruik_gemist",
+                    extra={"categorie": "functioneel", "run_id": run.run_id,
+                           "leden": api.hergebruikt, "annotatie_slug": slug},
+                )
                 # Het vangnet van de api: dit lid was al geannoteerd en is niet veranderd, dus
                 # deze voorstellen zijn niet toegevoegd. Geen fout – de bestaande annotatie staat
                 # er – maar de jurist moet weten waarom zijn nieuwe voorstellen er niet bij staan.

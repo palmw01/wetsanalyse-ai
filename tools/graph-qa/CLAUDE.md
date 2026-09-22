@@ -394,6 +394,25 @@ ophaal (agent ⇄ tools) → annoteer → critic₁ → patch ─┬─→ herzi
                                                      └─────────────────────→ emit
 ```
 
+**Hergebruik vóór annoteren** (sinds 22 sep 2026, `agent/annotatielaag.py`). Staat het artikel al in
+de gedeelde laag en is de tekst van een lid sindsdien niet veranderd, dan gaat dat lid niet opnieuw
+door het model. De beslissing valt op de **graaf**: twee read-only queries op de named graph van de
+laag (`queries.laagstand`/`laag_markeringen`, met expliciete `GRAPH` – de enige bouwers die de laag
+bewust lezen) leveren per lid de hash, die `deel_leden_in` vergelijkt met de hash van de zojuist
+opgehaalde tekst.
+
+- **Volledig ongewijzigd** → `annoteer` gaat via `route_na_annoteer` rechtstreeks naar `emit`, zonder
+  één LLM-call. `emit` stuurt een `hergebruik`-event (slug, leden, telling), een `run` met
+  `modus="hergebruik"` en een samenvatting; de driver doet `POST …/lagen/…/hergebruik` in plaats van
+  een PUT. De elementen komen **niet** uit de graaf naar de werkplek: die haalt de laag na
+  `opgeslagen` bij de api, want Postgres is de waarheid.
+- **Deels gewijzigd** → alleen de gewijzigde leden gaan naar de annoteerder (het corpus is dan de
+  aaneenschakeling van hún segmenten, dus lid-scoping en `herankeer` blijven kloppen) en alleen hun
+  stand gaat naar de api. Het `hergebruik`-event meldt welke leden zijn overgeslagen.
+- **`hergebruik: "opnieuw"`** (de jurist vraagt er expliciet om) of **geen laag / onleesbare graaf**
+  → gewoon annoteren. Een haperende graaf is nooit een reden om niet te annoteren; de api is het
+  vangnet, en herkent die een lid dat de graaf miste, dan logt de driver `hergebruik_gemist`.
+
 **Lineair, geen cyclus.** De Critic wijst aan wát er mis is, **code** voert de eenduidige correcties
 uit (`annotatie.pas_critic_toe`), en het model draait alleen nog voor wat brontekst lézen vraagt.
 Hoogstens 4 LLM-calls per annotatie; een schone annotatie kost er 2 – net als voorheen.
@@ -702,7 +721,7 @@ Drie dingen die je verder moet kennen voordat je hieraan werkt:
 - **SSE-event-contract.** De event-types zijn het contract met de consumenten (de werkplek); wijzig
   ze bewust en gelijktijdig, en over beide wegen gelijk (`/v1/chat` én de run-events).
   Antwoordroute: `status`/`reason`/`token`/`sources`/`grounding`/`done`/`error`. Annotatie-worker:
-  `doel`/`run`/`element`/`ontbrekend`/`suggestie`/`kandidaten`/`opgeslagen`/`waarschuwing`.
+  `doel`/`run`/`element`/`ontbrekend`/`suggestie`/`kandidaten`/`hergebruik`/`opgeslagen`/`waarschuwing`.
   **`reason` = het denkproces** (tool-narratie, live gestreamd); **`token` = alléén het eindantwoord**
   – hou die twee gescheiden zodat de werkplek ze los kan tonen. Niet elk event is een fout:
   `waarschuwing` betekent dat de beurt slaagde maar niet alles bewaard is (zie §*De uitkomst

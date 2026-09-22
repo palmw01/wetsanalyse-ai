@@ -58,6 +58,9 @@ class State(TypedDict, total=False):
     lidstand: list[dict[str, str]]
     # "opnieuw" = de jurist vroeg expliciet om een nieuwe ronde op een al geannoteerd artikel.
     hergebruik_modus: str
+    # Wat er uit de gedeelde laag is hergebruikt (zie `annotatielaag`): slug, leden, telling en of
+    # het volledig was. Leeg = niets hergebruikt.
+    hergebruik: dict[str, Any]
     # Annotatie: de gegronde voorstellen (als dicts) die annoteer_node maakt; critic_node scoort ze
     # met een aandacht-niveau en emit ze dán pas als `element`-events.
     #
