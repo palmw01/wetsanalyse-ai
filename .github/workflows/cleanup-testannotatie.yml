@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       uitvoeren:
-        description: 'Wis de gecontroleerde testlaag cf51263f2e184b80 met 7 voorstellen'
+        description: 'Wis de gecontroleerde testlaag 3c1be4914d684a63 met 6 voorstellen'
         type: boolean
         default: false
 permissions:
