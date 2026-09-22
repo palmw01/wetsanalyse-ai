@@ -1,17 +1,17 @@
 /** Canonieke bronnodeweergave. Posities zijn Unicode-codepunten, niet UTF-16. */
 export interface NodeDoel {
   bron_iri: string; type?: string; label?: string; bwb_id?: string;
-  artikel?: string; lid?: string; snapshot_id?: string;
+  artikel?: string; lid?: string; snapshot_id?: string; citeertitel?: string;
 }
 export interface NodeSegment {
-  bron_iri: string; parent_iri?: string; type: string; label: string;
+  bron_iri: string; parent_iri?: string; type: string; label: string; nummer?: string;
   tekst: string; bron_hash: string; volgorde: number;
 }
 export interface NodeAnker { bron_iri: string; start: number; eind: number; tekst: string; bron_hash: string }
 export interface NodeElement {
   id: string; eigenaar_iri: string; laag_id: string; klasse: string; tekst: string;
   toelichting: string; ankers: NodeAnker[]; lifecycle: string; herkomst: string;
-  aangemaakt_door?: string;
+  aangemaakt_door?: string; gewijzigd_door?: string;
   verouderd?: boolean; beslissingen?: import("./types").Beslissing[];
   alternatieven?: import("./types").Alternatief[];
   aandacht?: string | null; critic?: string;

@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { vindplaatsLabel } from "@/lib/annotatieOverzicht";
-import { foutTekst } from "@/lib/api";
+import { foutTekst, type ExportFormaat } from "@/lib/api";
 
 import { Melding } from "@/components/ui/Melding";
 import { DocumentPaneel } from "@/components/werkplek/DocumentPaneel";
@@ -44,6 +44,11 @@ export interface ArtefactInhoudProps {
   /** Meegeven in de dialoogschil (het kruisje, en de laatste laag van Escape); weglaten op de
    *  eigen pagina, die niets te sluiten heeft. */
   onSluiten?: () => void;
+  /** Eigen export in plaats van de artikel-export. Een bronnode-annotatie exporteert via haar eigen
+   *  route; de knop, het keuzepaneel en de foutmelding blijven die van het paneel. */
+  onExport?: (formaat: ExportFormaat) => Promise<void>;
+  /** Aanvullende blokken onder de reviewlijst, in dezelfde scrollzone. */
+  extra?: ReactNode;
 }
 
 /** De inhoud van het annotatie-artefact: brongetrouwe artikeltekst met letterlijke highlights, en
@@ -54,7 +59,7 @@ export interface ArtefactInhoudProps {
  *  pagina. Eén inhoud, twee schillen – anders gaan de twee weergaven uit elkaar lopen. */
 export function ArtefactInhoud({
   doc, info, ontbrekend, actiefId, onKies, onBeslissing, onEigenMarkering,
-  onWisEigenMarkering, onVraag, onStatus, onSluiten,
+  onWisEigenMarkering, onVraag, onStatus, onSluiten, onExport, extra,
 }: ArtefactInhoudProps) {
   // Eén bron voor de bewoording: `vindplaatsLabel` weet uit het graaf-`soort` of dit een artikel
   // met leden is of een bepaling van een beleidsregel. Hier raden op puntjes in het nummer zou bij
@@ -348,7 +353,7 @@ export function ArtefactInhoud({
               {DOCUMENT_STATUS_LABEL[doc.status]}
             </span>
             {/* De wettekst gaat mee naar de export: de api heeft hem niet (de graaf is de bron). */}
-            <ExportKnop slug={doc.slug} leden={info.leden_teksten} onFout={setFout} />
+            <ExportKnop slug={doc.slug} leden={info.leden_teksten} onFout={setFout} onDownload={onExport} />
             {onStatus && <StatusKnop status={doc.status} bezig={statusBezig} onZet={zetStatus} />}
           </div>
         </div>
@@ -421,6 +426,7 @@ export function ArtefactInhoud({
             <p className="text-sm text-muted">Geen elementen.</p>
           )}
           {historie.length > 0 && <Historie elementen={historie} />}
+          {extra}
           {ontbrekend && ontbrekend.length > 0 && (
             <OntbrekendLijst
               items={ontbrekend}
