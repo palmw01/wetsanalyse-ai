@@ -65,6 +65,9 @@ class ChatRequest(BaseModel):
     # wijzigen (die route emit simpelweg geen doel/element-events).
     modus: Literal["auto", "advies"] = "auto"
     context: ChatContext | None = None
+    # Een al geannoteerd artikel wordt hergebruikt (`auto`), tenzij de jurist expliciet om een nieuwe
+    # ronde vraagt (`opnieuw`). Die voegt toe aan de gedeelde laag; wat beoordeeld is blijft staan.
+    hergebruik: Literal["auto", "opnieuw"] = "auto"
 
     @model_validator(mode="after")
     def _advies_heeft_een_onderwerp(self) -> "ChatRequest":
@@ -178,6 +181,9 @@ class Anker(BaseModel):
     voor: str = ""        # tot 48 tekens originele tekst vóór het fragment
     na: str = ""          # tot 48 tekens originele tekst erna
     bron_hash: str = ""   # FNV-1a 32-bit hash van de brontekst, als hex-string
+    # Dezelfde hash over alleen het lidsegment ("2. tekst…"). Zie `annotatie.lid_hashes`: daaraan ziet
+    # de gedeelde laag per lid of de wettekst sinds de annotatie veranderde.
+    lid_hash: str = ""
 
 
 class CriticRonde(BaseModel):
@@ -214,6 +220,13 @@ class AgentRun(BaseModel):
     agent_versie: str = ""
     critic_rondes: int = 0
     stop_reden: str = ""
+    # Wat deze beurt deed en onder welke omstandigheden – voor herleidbaarheid, niet als sleutel voor
+    # hergebruik: de gedeelde laag is "de laatste stand", niet "de uitkomst van deze promptversie".
+    modus: str = ""              # nieuw | opnieuw | hergebruik
+    leden: list[str] = []        # de leden die deze beurt (her)annoteerde of hergebruikte
+    prompt_hash: str = ""
+    methode_versie: str = ""     # hash over de JAS-klassen en de prioriteitsregels
+    instellingen: dict = {}
     tijd: datetime | None = None
 
 
