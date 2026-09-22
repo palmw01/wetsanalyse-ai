@@ -30,6 +30,7 @@ import type {
   AgentDoel,
   AgentGrounding,
   AgentDoelInvoer,
+  AgentHergebruik,
   AgentKandidaat,
   AnnotatieDocument,
   BeslissingInvoer,
@@ -41,7 +42,8 @@ import type {
   VoorstelElement,
 } from "@/lib/types";
 import {
-  annotatieTitel, BESLIST_LIFECYCLES, bronversieMelding, eigenMarkeringenVoorContext,
+  annotatieTitel, BESLIST_LIFECYCLES, bronversieMelding, doelInvoerVan, doelVoorOpnieuw,
+  eigenMarkeringenVoorContext,
   isVerwijderd, kandidaatLabel,
   doelVanKandidaat, kandidaatPrompt, kandidatenAlsTekst, mergeVoorstellen, vraagContextLabel,
   vraagContextVan, vraagSuggesties,
@@ -55,6 +57,8 @@ import { ChevronOmlaag, Cirkel, Waarschuwing } from "@/components/ui/Icoon";
 import { jasStyle } from "@/lib/jas";
 import { bronHref } from "@/lib/url";
 import type { ThreadItem } from "@/lib/threadItem";
+import { parseHergebruik } from "@/lib/agentEvents";
+import { HergebruikMelding } from "@/components/werkplek/HergebruikMelding";
 import {
   pasDemoBeslissingToe, voegDemoElementToe, wisDemoElement, zetDemoStatus, type DemoScene,
 } from "@/lib/rondleidingDemo";
@@ -237,7 +241,9 @@ export function WerkplekClient({
               ? { id: uid(), type: "user" as const, tekst: b.tekst }
               : b.annotatie_slug
                 ? { id: uid(), type: "annotatie" as const, slug: b.annotatie_slug,
-                    titel: b.annotatie_titel || undefined, ontbrekend: b.ontbrekend, denk: b.denk }
+                    titel: b.annotatie_titel || undefined, ontbrekend: b.ontbrekend, denk: b.denk,
+                    // Na herladen moet nog te zien zijn dat er niets opnieuw is bekeken.
+                    hergebruik: b.hergebruik ? parseHergebruik(b.hergebruik) : undefined }
                 : { id: uid(), type: "antwoord" as const, tekst: b.tekst, denk: b.denk, bronnen: b.bronnen },
           ),
         );
@@ -406,8 +412,10 @@ export function WerkplekClient({
     }
   }
 
-  /** @param doel de bepaling, als die al vaststaat (zie `startRun`). */
-  async function verstuur(vast?: string, doel?: AgentDoelInvoer) {
+  /** @param doel de bepaling, als die al vaststaat (zie `startRun`).
+   *  @param hergebruik "opnieuw" = de jurist vraagt expliciet om een nieuwe ronde op een al
+   *    geannoteerd artikel; zonder doel betekent dat niets (de agent weet dan nog niet welk). */
+  async function verstuur(vast?: string, doel?: AgentDoelInvoer, hergebruik?: "opnieuw") {
     // In de rondleiding is dit venster een voorbeeld: er gaat niets naar de agent. De invoerbalk is
     // ook uitgeschakeld, dit is het vangnet voor Enter en de voorbeeldknoppen.
     if (demo) return;
@@ -486,7 +494,7 @@ export function WerkplekClient({
         ? { context: { bestaande_elementen: reedsEigen } }
         : undefined;
     // Een adviesvraag draagt nooit een doel: die route annoteert niet.
-    const extra = doel && !context ? { ...basis, doel } : basis;
+    const extra = doel && !context ? { ...basis, doel, ...(hergebruik ? { hergebruik } : {}) } : basis;
 
     let gestart;
     try {
@@ -559,6 +567,7 @@ export function WerkplekClient({
     const ontbrekend: OntbrekendItem[] = [];
     const suggesties: { element_id: string; aandacht: string; motivatie: string }[] = [];
     let kandidaten: AgentKandidaat[] = [];
+    let hergebruik: AgentHergebruik | undefined;
     let tekst = "";
     let denk = "";
     let bronnen: Bron[] = [];
@@ -607,6 +616,7 @@ export function WerkplekClient({
           onOntbrekend: (xs) => ontbrekend.push(...xs),
           onSuggestie: (s) => suggesties.push(s),
           onKandidaten: (k) => (kandidaten = k),
+          onHergebruik: (h) => (hergebruik = h),
           // De eventlog van de run is gecapt: er is narratie weggevallen. Benoem dat, in plaats van
           // een tekst te tonen die compleet lijkt maar het niet is.
           // Er viel narratie weg doordat de eventlog gecapt is. Zet de markering in het spoor waar
@@ -651,7 +661,9 @@ export function WerkplekClient({
 
       // De agent heeft het vastgelegd. Nu alleen nog tonen wat er staat – de api is de bron.
       if (opgeslagen) {
-        await toonVastgelegdeBeurt(opgeslagen, { antId, ontbrekend, denk });
+        await toonVastgelegdeBeurt(opgeslagen, {
+          antId, ontbrekend, denk, hergebruik, doel: doelInvoerVan(doelRef.d),
+        });
         onGewijzigd();
         return;
       }
@@ -735,7 +747,10 @@ export function WerkplekClient({
    */
   async function toonVastgelegdeBeurt(
     uitkomst: { annotatie_slug: string },
-    { antId, ontbrekend, denk }: { antId: string; ontbrekend: OntbrekendItem[]; denk: string },
+    { antId, ontbrekend, denk, hergebruik, doel }: {
+      antId: string; ontbrekend: OntbrekendItem[]; denk: string;
+      hergebruik?: AgentHergebruik; doel?: AgentDoelInvoer;
+    },
   ) {
     if (!uitkomst.annotatie_slug) return; // een gewoon antwoord staat al in beeld
     const doc = await laadDocEnGeef(uitkomst.annotatie_slug);
@@ -746,7 +761,7 @@ export function WerkplekClient({
       setItems((xs) =>
         xs.map((x) =>
           x.id === antId
-            ? { id: antId, type: "annotatie", slug: uitkomst.annotatie_slug, ontbrekend, denk }
+            ? { id: antId, type: "annotatie", slug: uitkomst.annotatie_slug, ontbrekend, denk, hergebruik, doel }
             : x,
         ),
       );
@@ -759,7 +774,8 @@ export function WerkplekClient({
     setItems((xs) =>
       xs.map((x) =>
         x.id === antId
-          ? { id: antId, type: "annotatie", slug: doc.slug, titel: annotatieTitel(doc), ontbrekend, denk }
+          ? { id: antId, type: "annotatie", slug: doc.slug, titel: annotatieTitel(doc), ontbrekend, denk,
+              hergebruik, doel }
           : x,
       ),
     );
@@ -1155,10 +1171,27 @@ export function WerkplekClient({
                 <AnnotatieChip
                   doc={docs[item.slug]}
                   titel={item.titel}
-                  aantal={docs[item.slug]?.elementen.length}
+                  aantal={docs[item.slug]?.elementen.filter((e) => !e.verouderd).length}
                   verwijderd={!!verwijderd[item.slug]}
                   onOpen={() => void openArtefact(item.slug)}
                 />
+                {(() => {
+                  // Alleen op een gedeelde laag: een oud per-gebruiker-document kan niet worden
+                  // aangevuld, en een verwijderde annotatie al helemaal niet.
+                  const doc = docs[item.slug];
+                  const opnieuwDoel = doc?.laag_sleutel && !verwijderd[item.slug]
+                    ? doelVoorOpnieuw(item.doel, doc) : undefined;
+                  if (!item.hergebruik && !opnieuwDoel) return null;
+                  return (
+                    <HergebruikMelding
+                      hergebruik={item.hergebruik}
+                      uitgeschakeld={bezig || geblokkeerd || !!demo}
+                      onOpnieuw={opnieuwDoel ? () => void verstuur(
+                        `Annoteer ${annotatieTitel(doc!)} opnieuw`, opnieuwDoel, "opnieuw",
+                      ) : undefined}
+                    />
+                  );
+                })()}
               </div>
             );
           })}

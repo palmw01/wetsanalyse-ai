@@ -297,6 +297,7 @@ async def _leg_vast(
                 "annotatie_titel": _titel(doel),
                 "ontbrekend": schrijver.ontbrekend,
                 "denk": schrijver.denk,
+                **({"hergebruik": schrijver.hergebruik} if schrijver.hergebruik else {}),
             }
         else:
             tekst = schrijver.tekst.strip()

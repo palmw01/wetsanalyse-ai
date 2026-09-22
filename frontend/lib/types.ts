@@ -255,6 +255,12 @@ export interface AgentRun {
   agent_versie: string;
   critic_rondes: number;
   stop_reden: string;
+  /** "" (oud) | nieuw | opnieuw | hergebruik – wat deze ronde deed. */
+  modus?: string;
+  /** De leden die deze ronde (her)annoteerde of hergebruikte. */
+  leden?: string[];
+  prompt_hash?: string;
+  methode_versie?: string;
   tijd: string;
 }
 
@@ -266,6 +272,8 @@ export interface Anker {
   voor: string;
   na: string;
   bron_hash: string;
+  /** Hash van alleen het lidsegment: daaraan ziet de gedeelde laag of dít lid veranderde. */
+  lid_hash?: string;
 }
 
 export interface AnnotatieElement {
@@ -290,6 +298,10 @@ export interface AnnotatieElement {
   beslissingen: Beslissing[];
   /** null = markering van de jurist, of een agent-ronde van vóór de registratie. */
   geproduceerd_door?: AgentRun | null;
+  /** De wettekst van dit lid is sinds de annotatie veranderd. Het oordeel blijft als historie
+   *  staan, maar de markering is alleen-lezen en hoort niet meer in de werkvoorraad. */
+  verouderd?: boolean;
+  verouderd_op?: string | null;
 }
 
 export interface AnnotatieDocument {
@@ -313,6 +325,8 @@ export interface AnnotatieDocument {
    *  markering springt dan naar een ander voorkomen of verdwijnt. Door de api afgeleid en niet
    *  opgeslagen; oudere responses kennen het veld niet, vandaar optioneel. */
   bronversies?: string[];
+  /** Gevuld = de gedeelde laag van één artikel (voor iedereen, niet te verwijderen). */
+  laag_sleutel?: string;
   created?: string | null;
   updated?: string | null;
 }
@@ -343,7 +357,22 @@ export interface DocumentSamenvatting {
   per_klasse: Record<string, number>;
   /** Leeg = geen agent-ronde geregistreerd (of alleen eigen werk). */
   laatste_model: string;
+  /** Gevuld = gedeelde laag. */
+  laag_sleutel?: string;
+  /** Markeringen bij een oudere versie van de wettekst. */
+  verouderd?: number;
   updated?: string | null;
+}
+
+/** Lex hergebruikte (een deel van) de gedeelde laag: die leden waren al geannoteerd en de wettekst
+ *  is sindsdien niet veranderd. Komt als `hergebruik`-event, vóór `opgeslagen`. */
+export interface AgentHergebruik {
+  slug: string;
+  leden: string[];
+  /** Alles kwam uit de laag – er is niets nieuws geannoteerd. */
+  volledig: boolean;
+  bijgewerkt: string;
+  telling: { markeringen: number; beoordeeld: number; afgewezen: number; te_beoordelen: number };
 }
 
 export interface DocumentCreate {
@@ -522,6 +551,9 @@ export interface Bericht {
   annotatie_slug: string;
   annotatie_titel: string;
   ontbrekend: OntbrekendItem[];
+  /** Lex hergebruikte (een deel van) de gedeelde laag; zelfde vorm als het `hergebruik`-event
+   *  (maar met de leden zoals graph-qa ze stuurde – zie `parseHergebruik`). */
+  hergebruik?: unknown;
   /** Van welke agent-run deze beurt de uitkomst is; de api gebruikt het als idempotentiesleutel,
    *  zodat twee meekijkende tabbladen niet elk hun eigen kopie wegschrijven. */
   run_id: string;

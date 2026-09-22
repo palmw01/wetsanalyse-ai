@@ -95,6 +95,21 @@ async def test_annotatie_bericht_verwijzing(client):
     assert doc["berichten"][0]["ontbrekend"][0]["klasse"] == "Voorwaarde"
 
 
+async def test_hergebruik_overleeft_het_opslaan(client):
+    """Lex hergebruikte de gedeelde laag. Zonder dit veld is na herladen niet meer te zien dat er
+    niets opnieuw is bekeken – dan leest het als een verse annotatie."""
+    gid = await _maak(client)
+    hergebruik = {"slug": "laag1", "volledig": True, "leden": [{"lid": "2", "hash": "h"}],
+                  "telling": {"markeringen": 3, "beoordeeld": 1, "afgewezen": 0, "te_beoordelen": 2}}
+    await client.post(f"{BASIS}/{gid}/berichten", json={
+        "rol": "assistant", "tekst": "", "annotatie_slug": "laag1", "hergebruik": hergebruik,
+    }, headers=A)
+    await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "assistant", "tekst": "gewoon"}, headers=A)
+    berichten = (await client.get(f"{BASIS}/{gid}", headers=A)).json()["berichten"]
+    assert berichten[0]["hergebruik"] == hergebruik
+    assert berichten[1]["hergebruik"] == {}
+
+
 async def test_annotatie_titel_is_optioneel(client):
     """Berichten van vóór dit veld hebben de sleutel niet in hun JSON-inhoud; die leveren "" op."""
     gid = await _maak(client)

@@ -177,6 +177,22 @@ sidebar blijft staan**, je stapt niet uit de app.
   stand staat in de URL (`?weergave=alles`, via `replace` – een weergavewissel is geen stap in de
   geschiedenis). De kaart toont de **JAS-kleurstrip**: de klasseverdeling als balk, waar Claude een
   thumbnail zou tonen.
+- **Het overzicht toont de gedeelde lagen** (sinds 22 sep 2026, `lijstLagen` → BFF
+  `app/api/annotatie/lagen`): één annotatie per artikel voor iedereen, zodat Lex een al geannoteerd
+  artikel kan hergebruiken. *Door mij bewerkt* (`mijn=true`) beperkt tot lagen waar je zelf iets aan
+  deed – een laag heeft geen eigenaar, de api leest dat uit de audit. Een laag heeft **geen
+  verwijderknop** (de api weigert het met 403: hij draagt het werk van meerdere juristen); de kaart
+  telt de verouderde markeringen apart.
+- **Hergebruik en "opnieuw annoteren" staan bij de annotatie in het gesprek**
+  (`HergebruikMelding`). Het `hergebruik`-event (`parseHergebruik`) zegt welke leden uit de laag
+  kwamen; de melding blijft na herladen staan omdat graph-qa hem ook in het chatbericht zet
+  (`Bericht.hergebruik`). De knop *Lex opnieuw laten annoteren* start een run met
+  `hergebruik: "opnieuw"` en het doel van de beurt (`doelVoorOpnieuw`) – zonder doel zou de agent de
+  bepaling opnieuw moeten zoeken. Die ronde vult de laag aan; wat beoordeeld is blijft staan.
+- **Verouderde markeringen zijn historie** (`splitsVerouderd`). Is de wettekst van een lid veranderd,
+  dan zet de api de oude markeringen op `verouderd`: ze lichten niet meer op in de tekst, staan niet
+  in de reviewlijst, maar wel ingeklapt onder *Historie – tekst gewijzigd*, met het oordeel dat er
+  destijds over werd geveld (`LIFECYCLE_LABEL`, dezelfde woorden als de export).
 - **De sorteer-, groepeer- en zoeklogica staat in `lib/annotatieOverzicht.ts`**, niet in het
   component: vitest draait node-env zonder DOM, dus alleen pure helpers zijn testbaar – dezelfde
   reden die `lib/selectie.ts` al noemt.

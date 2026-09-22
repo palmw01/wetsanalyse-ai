@@ -4,7 +4,9 @@
 // moet kunnen opbouwen (`lib/rondleidingDemo.ts`) zonder dat `lib/` een component hoeft te
 // importeren – dezelfde reden waarom de rest van de rekenkern in `lib/` woont.
 
-import type { AgentGrounding, AgentKandidaat, Bron, OntbrekendItem } from "./types";
+import type {
+  AgentDoelInvoer, AgentGrounding, AgentHergebruik, AgentKandidaat, Bron, OntbrekendItem,
+} from "./types";
 
 export type ThreadItem =
   | { id: string; type: "user"; tekst: string; over?: string }
@@ -17,6 +19,13 @@ export type ThreadItem =
   // kunnen zien hoe hij tot stand kwam.
   // `titel` komt uit het bericht zelf (`annotatie_titel`), niet uit het document: er is geen foreign
   // key, dus na het verwijderen van het document is dit het enige dat de kaart nog kan benoemen.
-  | { id: string; type: "annotatie"; slug: string; titel?: string; ontbrekend?: OntbrekendItem[]; denk?: string }
+  | {
+      id: string; type: "annotatie"; slug: string; titel?: string; ontbrekend?: OntbrekendItem[];
+      denk?: string;
+      /** Lex hergebruikte de laag (deels) in plaats van opnieuw te annoteren. */
+      hergebruik?: AgentHergebruik;
+      /** De bepaling, zodat "Lex opnieuw laten annoteren" hem kan meegeven. */
+      doel?: AgentDoelInvoer;
+    }
   // De vraag noemde een onderwerp: de agent vond bepalingen, de jurist kiest er één.
   | { id: string; type: "kandidaten"; tekst: string; kandidaten: AgentKandidaat[] };
