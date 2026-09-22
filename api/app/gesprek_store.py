@@ -29,6 +29,8 @@ def _bericht_uit_row(row) -> Bericht:
         run_id=inhoud.get("run_id", ""),
         ontbrekend=inhoud.get("ontbrekend", []) or [],
         hergebruik=inhoud.get("hergebruik", {}) or {},
+        annotatie_doel=inhoud.get("annotatie_doel") or None,
+        tool_executions=inhoud.get("tool_executions", []) or [],
         created=db.aware(d["created"]),
     )
 
@@ -48,6 +50,10 @@ def _inhoud(inv: BerichtInvoer | Bericht) -> dict:
         inhoud["ontbrekend"] = inv.ontbrekend
     if inv.hergebruik:
         inhoud["hergebruik"] = inv.hergebruik
+    if inv.annotatie_doel:
+        inhoud["annotatie_doel"] = inv.annotatie_doel.model_dump()
+    if inv.tool_executions:
+        inhoud["tool_executions"] = inv.tool_executions
     if inv.run_id:
         inhoud["run_id"] = inv.run_id
     return inhoud

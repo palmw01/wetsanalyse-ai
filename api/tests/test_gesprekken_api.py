@@ -95,6 +95,33 @@ async def test_annotatie_bericht_verwijzing(client):
     assert doc["berichten"][0]["ontbrekend"][0]["klasse"] == "Voorwaarde"
 
 
+async def test_bronnode_annotatie_en_toolspoor_overleven_het_heropenen(client):
+    """Een bronnode-laag heeft geen slug. Viel `annotatie_doel` weg, dan wees het bericht na herladen
+    nergens meer naar en verdween de chip naar het annotatiepaneel (22 sep 2026)."""
+    gid = await _maak(client)
+    doel = {"bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+            "label": "Invorderingswet 1990 – Artikel 9, Lid 1", "snapshot_id": "s1"}
+    spoor = [{"run_id": "r1", "call_id": "c1", "tool": "get_annotatiedekking", "phase": "end", "status": "ok"}]
+    await client.post(f"{BASIS}/{gid}/berichten", json={
+        "rol": "assistant", "tekst": "", "denk": "· klaar", "annotatie_slug": "",
+        "annotatie_doel": doel, "tool_executions": spoor, "run_id": "r1",
+    }, headers=A)
+    await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "assistant", "tekst": "oud"}, headers=A)
+    berichten = (await client.get(f"{BASIS}/{gid}", headers=A)).json()["berichten"]
+    assert berichten[0]["annotatie_doel"] == doel
+    assert berichten[0]["tool_executions"] == spoor
+    # Een bericht zonder deze velden (ook van vóór deze fix) levert een lege terugval.
+    assert berichten[1]["annotatie_doel"] is None and berichten[1]["tool_executions"] == []
+
+
+async def test_toolspoor_is_begrensd(client):
+    gid = await _maak(client)
+    r = await client.post(f"{BASIS}/{gid}/berichten", json={
+        "rol": "assistant", "tekst": "x", "tool_executions": [{"tool": "t"}] * 201,
+    }, headers=A)
+    assert r.status_code == 422
+
+
 async def test_hergebruik_overleeft_het_opslaan(client):
     """Lex hergebruikte de gedeelde laag. Zonder dit veld is na herladen niet meer te zien dat er
     niets opnieuw is bekeken – dan leest het als een verse annotatie."""
