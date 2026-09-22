@@ -34,9 +34,16 @@ def is_leesvraag(question: str, modus: str = "auto") -> bool:
         return True
     q = question.casefold()
     # Een leesvraag mag niet door een modelrouter in een schrijfactie veranderen.
-    onderwerp = re.search(r"\b(annotaties?|markeringen?|geannoteerd|annotatiedekking)\b", q)
+    # Let op de groepering: `markeringen?` maakt alleen de slot-n optioneel en matcht dus
+    # "markeringe", nooit het enkelvoud "markering". Daardoor ging "welke markering is een
+    # Rechtssubject?" langs de zoektool heen (22 sep 2026).
+    onderwerp = re.search(r"\b(annotatie(s)?|markering(en)?|element(en)?|klasse(n)?|jas-klasse(n)?"
+                          r"|gemarkeerd|geannoteerd|geclassificeerd|annotatiedekking)\b", q)
     lezen = re.search(r"\b(zoek|vind|toon|bekijk|laat|zien|welke?|wat|waar|hoe|hoeveel|bestaande|opgeslagen|al|dekking)\b", q)
-    schrijven = re.search(r"\b(annoteer|annoteren|herannoteer|maak|maken|voeg|toevoegen|wijzig|wijzigen|verwijder|verwijderen|corrigeer|corrigeren)\b", q)
+    # `markeer`/`classificeer` horen hier ook: "markeer de JAS-elementen in artikel 9" is een opdracht
+    # om te annoteren, geen vraag naar wat er al staat.
+    schrijven = re.search(r"\b(annoteer|annoteren|herannoteer|markeer|markeren|classificeer|classificeren"
+                          r"|maak|maken|voeg|toevoegen|wijzig|wijzigen|verwijder|verwijderen|corrigeer|corrigeren)\b", q)
     return bool(onderwerp and lezen and not schrijven)
 
 
