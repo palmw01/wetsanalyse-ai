@@ -40,11 +40,14 @@ De HTTP-worker gebruikt de geauthenticeerde rungebruiker. CLI/MCP vereist daarna
 
 **De omschakeling is op 22 sep 2026 uitgevoerd op acceptatie**; productie draait sindsdien op hetzelfde
 image met dezelfde standaard. Het stappenplan hieronder is dus historie, bewaard omdat een volgende
-omgeving (of een herstel) hem opnieuw nodig heeft. De hulpmiddelen erbij waren eenmalig en zijn nu
-dood: `.github/workflows/annotatie-contract.yml` met `deploy/maintenance/verify_annotatie_contract.py`
-(de omschakeling plus rooktest) en `.github/workflows/cleanup-testannotatie.yml` met
-`deploy/maintenance/cleanup_testannotatie.py` (het opruimen van één vrijgegeven testdocument, met een
-hardgecodeerd slug).
+omgeving (of een herstel) hem opnieuw nodig heeft.
+
+De hulpmiddelen van die ene keer zijn **verwijderd**, want ze waren onherhaalbaar: een workflow die
+het contract omzette en een rooktest draaide, en een workflow die één vrijgegeven testdocument
+opruimde op een hardgecodeerd slug en tijdstempel. Beide staan in de historie (zoek op
+`annotatie-contract.yml` en `cleanup-testannotatie.yml`) als een volgende omgeving iets soortgelijks
+nodig heeft; ze laten staan zou een knop opleveren die niets meer doet, of erger, iets doet op
+verkeerde data. Het contract zelf zet je met `ANNOTATIE_CONTRACT_VERSIE` op de container app.
 
 Voor een omgeving met bestaande actieve componenten:
 
