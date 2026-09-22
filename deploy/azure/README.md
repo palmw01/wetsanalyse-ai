@@ -376,12 +376,12 @@ nooit platte env-vars.
 ## Het annotatiecontract
 
 De api draait op **contract 2** (bronnode-annotaties): `ANNOTATIE_CONTRACT_VERSIE` staat standaard op
-`2` in het image, dus de bicep hoeft hem niet te zetten. De omschakeling van 22 sep 2026 liep via de
-workflow `annotatie-contract.yml`, die de variabele tijdelijk op `1` kon zetten om de nieuwe revisies
-gecontroleerd binnen te laten. Die workflow was eenmalig; hij staat een nieuwe omgeving niet in de
-weg, maar hoort ook niet bij een gewone uitrol. Zet je de waarde ooit handmatig met
-`az containerapp update`, weet dan dat een `azure-infra`-deploy de template opnieuw schrijft en de
-default terugzet.
+`2` in het image, dus de bicep hoeft hem niet te zetten. De omschakeling van 22 sep 2026 liep via een
+eenmalige workflow die de variabele tijdelijk op `1` zette om de nieuwe revisies gecontroleerd binnen
+te laten; die is daarna verwijderd (te vinden in de historie als `annotatie-contract.yml`). Moet je
+het ooit opnieuw doen, dan is het één `az containerapp update --set-env-vars
+ANNOTATIE_CONTRACT_VERSIE=1` vóór de nieuwe revisie verkeer krijgt, en daarna terug naar `2`. Weet
+wel dat een `azure-infra`-deploy de template opnieuw schrijft en de default terugzet.
 
 ## Kosten drukken
 
