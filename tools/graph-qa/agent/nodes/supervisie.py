@@ -15,6 +15,7 @@ from langgraph.config import get_stream_writer
 from ..doel import _heeft_opgegeven_doel
 from ..narratie import _stap
 from ..state import State
+from ..methode import instructies
 from ..supervisor import SUPERVISOR_SYSTEM, parse_supervisor
 from .context import Bouw
 
@@ -52,7 +53,7 @@ def supervisor_node(b: Bouw, state: State) -> dict[str, Any]:
     resp = b.llm.create(
         model=b.model_router,
         max_tokens=300,
-        system=SUPERVISOR_SYSTEM + b.memory_context(state),
+        system=[SUPERVISOR_SYSTEM + "\n\n" + instructies("supervisor"), b.memory_context(state)],
         tools=[],
         messages=[{"role": "user", "content": state["question"]}],
     )

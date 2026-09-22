@@ -1,0 +1,172 @@
+{
+  "secties": {
+    "annotatie-gedeeld": {
+      "bestand": "references/annotatieprotocol.md",
+      "bronnen": [
+        "P02",
+        "P03",
+        "P04",
+        "P05",
+        "P09",
+        "P11"
+      ]
+    },
+    "annotatie-kandidaten": {
+      "bestand": "references/annotatieprotocol.md",
+      "bronnen": [
+        "P02",
+        "P03",
+        "P04",
+        "P05",
+        "P09",
+        "P11"
+      ]
+    },
+    "annotatie-classificatie": {
+      "bestand": "references/annotatieprotocol.md",
+      "bronnen": [
+        "P02",
+        "P03",
+        "P04",
+        "P05",
+        "P09",
+        "P11"
+      ]
+    },
+    "annotatie-review": {
+      "bestand": "references/annotatieprotocol.md",
+      "bronnen": [
+        "P02",
+        "P03",
+        "P04",
+        "P05",
+        "P09",
+        "P11"
+      ]
+    },
+    "basis": {
+      "bestand": "references/agentrollen.md",
+      "bronnen": [
+        "M01",
+        "M03",
+        "P01",
+        "P03",
+        "P11",
+        "P12"
+      ]
+    },
+    "supervisor": {
+      "bestand": "references/agentrollen.md",
+      "bronnen": [
+        "M03",
+        "P11",
+        "P12"
+      ]
+    },
+    "retrieval": {
+      "bestand": "references/agentrollen.md",
+      "bronnen": [
+        "M01",
+        "P01",
+        "P06",
+        "P11",
+        "P12"
+      ]
+    },
+    "definitie": {
+      "bestand": "references/agentrollen.md",
+      "bronnen": [
+        "M01",
+        "M04",
+        "P03",
+        "P06",
+        "P12"
+      ]
+    },
+    "duiding": {
+      "bestand": "references/agentrollen.md",
+      "bronnen": [
+        "M01",
+        "M06",
+        "M07",
+        "P02",
+        "P03",
+        "P07",
+        "P08",
+        "P12"
+      ]
+    },
+    "decompositie": {
+      "bestand": "references/agentrollen.md",
+      "bronnen": [
+        "M03",
+        "P01",
+        "P03",
+        "P12"
+      ]
+    },
+    "synthese": {
+      "bestand": "references/agentrollen.md",
+      "bronnen": [
+        "M09",
+        "P03",
+        "P09",
+        "P12"
+      ]
+    }
+  },
+  "rollen": {
+    "supervisor": [
+      "basis",
+      "supervisor"
+    ],
+    "retrieval": [
+      "basis",
+      "retrieval"
+    ],
+    "definitie": [
+      "basis",
+      "definitie"
+    ],
+    "duiding": [
+      "basis",
+      "duiding"
+    ],
+    "decompositie": [
+      "basis",
+      "decompositie"
+    ],
+    "synthese": [
+      "basis",
+      "synthese"
+    ],
+    "algemeen": [
+      "basis"
+    ],
+    "kandidaten": [
+      "basis",
+      "annotatie-gedeeld",
+      "annotatie-kandidaten"
+    ],
+    "annotator": [
+      "basis",
+      "annotatie-gedeeld",
+      "annotatie-classificatie"
+    ],
+    "classificatie": [
+      "basis",
+      "annotatie-gedeeld",
+      "annotatie-classificatie"
+    ],
+    "critic": [
+      "basis",
+      "annotatie-gedeeld",
+      "annotatie-review"
+    ],
+    "herziening": [
+      "basis",
+      "annotatie-gedeeld",
+      "annotatie-review"
+    ]
+  }
+}

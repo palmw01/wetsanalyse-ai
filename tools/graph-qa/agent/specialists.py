@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .annotatie_prompt import annotatie_systeemprompt
+from .methode import instructies
 
 
 @dataclass(frozen=True)
@@ -61,8 +61,7 @@ SPECIALISTS: dict[str, Specialist] = {
             "definieert, mét jci en citeertitel. Pas als dat niets geeft: resolve_begrip (de "
             "SKOS-thesaurus – redactionele trefwoorden, géén wettelijke definitie) of "
             "search_wetgeving met veld='definieertBegrip'.\n"
-            "Begripsbepalingen staan doorgaans in artikel 1 of 2 van een regeling; haal die beide "
-            "in één beurt op in plaats van na elkaar. Het definitie-artikel zelf bevat vaak alleen "
+            "Haal de gevonden definitiebepaling op. Het definitie-artikel zelf bevat vaak alleen "
             "de aanhef ('Deze wet verstaat onder:') – de definities zitten in de onderdelen van het "
             "lid, die get_lid meelevert (sinds de heeftOnderdeel-fix van 1 sep 2026; daarvóór kwamen ze "
             "er niet uit). Citeer de vindplaats van het ONDERDEEL (…&o=k), niet die "
@@ -121,4 +120,7 @@ DEFAULT = "algemeen"
 
 def get(name: str | None) -> Specialist:
     """Specialist op naam; valt terug op 'algemeen' bij onbekend/leeg."""
-    return SPECIALISTS.get((name or "").strip().lower(), SPECIALISTS[DEFAULT])
+    rol = (name or "").strip().lower()
+    rol = rol if rol in SPECIALISTS else DEFAULT
+    spec = SPECIALISTS[rol]
+    return Specialist(system=instructies(rol) + "\n\n" + spec.system, tools=spec.tools)

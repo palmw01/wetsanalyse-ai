@@ -1,5 +1,6 @@
 # JAS-klassen – volledige referentie
 
+Grondslag: [bronnen en beslisregister](bronnen.md) — M04, P05.
 De dertien klassen van het Juridisch Analyseschema, zoals vastgelegd in de officiële
 Rijksspecificatie. Dit zijn de **enige** toegestane klassen; verzin er geen bij.
 
@@ -29,27 +30,13 @@ Het onderscheid binnen een paar blijft inhoudelijk gelden — een parameter is d
 een parameterwaarde de *concrete waarde* — maar beide krijgen hetzelfde label. Zeg in de
 `toelichting` welke helft je bedoelt.
 
-## Ordening: welke klasse is specifieker?
+## Samenloop en bronstatus
 
-De taxonomie uit het begrippenkader (`H3-Kader.md:19-33`) ordent de klassen. Bij samenloop is dit
-de tiebreaker: **hoe dieper in de boom, hoe specifieker**.
-
-```
-rechtssubject · rechtsobject · rechtsbetrekking · delegatiebevoegdheid ·
-delegatie-invulling · rechtsfeit
-voorwaarde
-└── afleidingsregel
-    ├── operator
-    ├── variabele
-    │   ├── variabelewaarde
-    │   ├── tijdsaanduiding
-    │   └── plaatsaanduiding
-    └── parameter
-        └── parameterwaarde
-```
-
-Let op dat tijds- en plaatsaanduiding hier onder **variabele** hangen. Dat verklaart de
-prioriteitsregel hieronder: ze zijn een verbijzondering, en de verbijzondering wint.
+Deze bronvelden zijn herkenningshulp; uitdrukkingswijzen zijn geen contextloze
+beslisregels. De ordening in H3 rechtvaardigt geen algemene 'diepste klasse wint'.
+Alleen de expliciete tijd/plaats-voorrang boven variabele/parameter geldt bij dezelfde
+functie. Andere samenloop: onderscheid overlap van concurrerende interpretaties.
+Lees markeren-fragmentgrenzen.md en annotatieprotocol.md voor projectregels.
 
 ---
 
