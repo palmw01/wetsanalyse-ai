@@ -59,6 +59,8 @@ jobs:
             sleep 10
           done
           exit 1
+      - name: Controle met de daadwerkelijke frontendverbinding
+        run: python3 deploy/maintenance/verify_annotatie_contract.py
       - name: Afmelden
         if: always()
         run: az logout || true
