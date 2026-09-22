@@ -57,6 +57,7 @@ from .nodes.annotatie import (
     route_na_patch,
 )
 from .nodes.context import Bouw
+from .nodes.annotatie_lezen import zoek_annotaties_node
 from .nodes.supervisie import (
     _entry_node,
     advance_node,
@@ -282,7 +283,9 @@ def build_graph(
         # keten; bij splitsing is dat `annoteer_kandidaten`.
         _annoteer_entry = annotatieketen()
         entrymap = {"agent": "agent", "annoteer": _annoteer_entry, "decompose": "decompose",
-                    "afwijzen": "afwijzen"}
+                    "annotaties_zoeken": "annotaties_zoeken", "afwijzen": "afwijzen"}
+        add("annotaties_zoeken", functools.partial(zoek_annotaties_node, b))
+        g.add_edge("annotaties_zoeken", "agent")
         g.add_edge(START, "supervisor")
         g.add_edge("afwijzen", END)
         g.add_conditional_edges("supervisor", functools.partial(_entry_node, b), entrymap)
@@ -312,8 +315,11 @@ def build_graph(
         add("afwijzen", functools.partial(afwijs_node, b))
         _annoteer_entry = annotatieketen()
         g.add_edge(START, "supervisor")
+        add("annotaties_zoeken", functools.partial(zoek_annotaties_node, b))
+        g.add_edge("annotaties_zoeken", "agent")
         g.add_conditional_edges("supervisor", functools.partial(_entry_node, b),
-                                {"agent": "agent", "annoteer": _annoteer_entry, "afwijzen": "afwijzen"})
+                                {"agent": "agent", "annoteer": _annoteer_entry,
+                                 "annotaties_zoeken": "annotaties_zoeken", "afwijzen": "afwijzen"})
         g.add_edge("afwijzen", END)
         g.add_conditional_edges(
             "agent", functools.partial(route_after_agent, b),
@@ -325,6 +331,7 @@ def build_graph(
         g.add_edge("finalize", "advance")
         g.add_conditional_edges("advance", functools.partial(route_after_advance, b),
                                 {"agent": "agent", "annoteer": _annoteer_entry,
+                                 "annotaties_zoeken": "annotaties_zoeken",
                                  "afwijzen": "afwijzen", "einde": END})
         return g
 

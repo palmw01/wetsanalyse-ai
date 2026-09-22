@@ -86,7 +86,9 @@ def _entry_node(b: Bouw, state: State) -> str:
     if state.get("afwijzen"):
         return "afwijzen"
     if state.get("annotaties_lezen"):
-        return "decompose" if b.settings.enable_decomposition else "agent"
+        # Eerst zoeken, dan formuleren – ook met decompositie aan: `solve_node` bouwt de agent-lus
+        # na en zou de zoekstap dubbel doen.
+        return "annotaties_zoeken"
     if state.get("specialist") == "annotatie":
         # Doel al bekend → recht naar de annoteerder; de agent⇄tools-lus zou alleen opzoeken
         # wat de aanroeper al meestuurde. `annoteer_node` haalt het corpus zelf gericht op.

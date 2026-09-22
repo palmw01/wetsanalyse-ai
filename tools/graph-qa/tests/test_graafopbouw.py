@@ -61,7 +61,7 @@ ANNOTATIE_NODES = {"critic", "patch", "herzie", "emit"}
 def test_planning_is_de_standaardvorm():
     nodes, edges = structuur(enable_planning=True)
     assert nodes == {
-        "supervisor", "agent", "tools", "verify", "correct", "finalize",
+        "supervisor", "agent", "tools", "verify", "correct", "finalize", "annotaties_zoeken",
         "annoteer", "critic", "patch", "herzie", "emit", "advance", "afwijzen",
     }
     assert edges == {
@@ -69,6 +69,9 @@ def test_planning_is_de_standaardvorm():
         ("supervisor", "agent", "", True),
         ("supervisor", "annoteer", "", True),
         ("supervisor", "afwijzen", "", True),
+        # De leesroute zoekt eerst zelf; pas daarna formuleert de agent (zie nodes/annotatie_lezen.py).
+        ("supervisor", "annotaties_zoeken", "", True),
+        ("annotaties_zoeken", "agent", "", False),
         ("afwijzen", EIND, "", False),
         ("agent", "tools", "", True),
         ("agent", "verify", "", True),
@@ -80,6 +83,7 @@ def test_planning_is_de_standaardvorm():
         ("finalize", "advance", "", False),
         ("advance", "agent", "", True),
         ("advance", "annoteer", "", True),
+        ("advance", "annotaties_zoeken", "", True),
         ("advance", "afwijzen", "", True),
         ("advance", EIND, "einde", True),
     } | annotatieketen("annoteer")
@@ -99,6 +103,8 @@ def test_decompositie_voegt_de_deelvraag_keten_toe():
     assert ("resynth", "synthesize", "", False) in edges
     # De supervisor kan hier ook naar decompose routeren.
     assert ("supervisor", "decompose", "", True) in edges
+    # Ook met decompositie gaat de leesroute eerst langs de eigen zoekstap, niet langs decompose.
+    assert ("annotaties_zoeken", "agent", "", False) in edges
     assert ("advance", "decompose", "", True) in edges
 
 
@@ -143,5 +149,5 @@ def test_stopbewaking_zit_om_elke_node():
     assert nodes == {
         "supervisor", "decompose", "solve", "synthesize", "resynth", "agent", "tools",
         "annoteer_kandidaten", "annoteer_klasseer", "critic", "patch", "herzie", "emit",
-        "advance", "afwijzen", "verify", "finalize",
+        "advance", "afwijzen", "verify", "finalize", "annotaties_zoeken",
     }
