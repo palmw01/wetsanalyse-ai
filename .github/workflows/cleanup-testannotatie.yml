@@ -44,6 +44,13 @@ jobs:
           current = az('containerapp', 'show', '-g', rg, '-n', app)
           container = current['properties']['template']['containers'][0]
           env = [e for e in container.get('env', []) if e['name'] in {'DATABASE_URL', 'GRAPHDB_URL', 'GRAPHDB_REPOSITORY'}]
+          if not any(e['name'] == 'DATABASE_URL' for e in env):
+              dbfile = next(e['value'] for e in container['env'] if e['name'] == 'DATABASE_URL_FILE')
+              mount = next(m for m in container['volumeMounts'] if dbfile.startswith(m['mountPath'].rstrip('/') + '/'))
+              volume = next(v for v in current['properties']['template']['volumes'] if v['name'] == mount['volumeName'])
+              relative = dbfile[len(mount['mountPath'].rstrip('/')) + 1:]
+              secret = next(s for s in volume['secrets'] if s['path'] == relative)
+              env.append({'name': 'DATABASE_URL', 'secretRef': secret['secretRef']})
           assert any(e['name'] == 'DATABASE_URL' for e in env)
           wanted = {e['secretRef'] for e in env if e.get('secretRef')}
           secrets = az('containerapp', 'secret', 'list', '-g', rg, '-n', app)
