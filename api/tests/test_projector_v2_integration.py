@@ -182,3 +182,21 @@ async def test_projector_rowlock_keeps_concurrent_review_dirty(graphdb, monkeypa
     assert layer["revisie"] == 2 and layer["geprojecteerd_revisie"] < 2
     assert await projection.reconcile() == 1
     assert (await projection.zoek_kandidaten({"lifecycle": ["human_approved"]}))["ids"] == [eid]
+
+
+async def test_commit_staat_direct_in_de_graaf_zonder_de_lus(graphdb):
+    projection.activeer(True)
+    try:
+        snap = snapshot(ONE)
+        created = await store.batch(request(snap, [element(snap)]), snap, "a")
+        layer_id, eid = created["lagen"][0]["id"], created["elementen"][0]["id"]
+        await asyncio.gather(*projection._taken)
+        assert await _marker(layer_id) == 1
+        assert (await projection.zoek_kandidaten({}))["ids"] == [eid]
+        await store.beslis(eid, Beslissing(type="approve", snapshot_id=snap["snapshot_id"],
+                                          verwachte_revisies={ONE: 1}), snap, "b")
+        await asyncio.gather(*projection._taken)
+        assert await _marker(layer_id) == 2
+        assert (await projection.zoek_kandidaten({"lifecycle": ["human_approved"]}))["ids"] == [eid]
+    finally:
+        await projection.stop()

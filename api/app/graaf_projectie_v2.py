@@ -25,6 +25,10 @@ REGISTER = URIRef("urn:jas:graph:register:v2")
 SCHEMA = URIRef("urn:jas:projectieschema:v2")
 logger = logging.getLogger(__name__)
 _locks: dict[str, asyncio.Lock] = {}
+# Directe projectie na een commit, zoals v1 (`graaf_projectie.na_mutatie`): alleen aan als de lus
+# draait (GRAPHDB_URL gezet). De taken houden we vast, anders ruimt de garbage collector ze op.
+_actief = False
+_taken: set[asyncio.Task] = set()
 
 
 def graph_iri(laag_id: str) -> URIRef:
@@ -217,6 +221,37 @@ INSERT {{ GRAPH <{REGISTER}> {{
             await conn.execute(update(db.annotatie_v2_lagen).where(db.annotatie_v2_lagen.c.id == laag_id)
                                .values(geprojecteerd_revisie=laag["revisie"]))
     return True
+
+
+def activeer(aan: bool) -> None:
+    global _actief
+    _actief = aan
+
+
+async def stop() -> None:
+    activeer(False)
+    for taak in list(_taken):
+        taak.cancel()
+    await asyncio.gather(*_taken, return_exceptions=True)
+
+
+def na_mutatie(laag_ids) -> None:
+    """Best-effort, op de achtergrond, direct na de commit. Een GraphDB die hapert mag geen beslissing
+    van een jurist laten falen: mislukt het, dan blijft de laag vuil en neemt `lus` hem mee."""
+    if not _actief:
+        return
+
+    async def _doe(laag_id: str):
+        try:
+            await projecteer(laag_id)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("annotatie_v2_projectie_uitgesteld",
+                           extra={"laag_id": laag_id, "fouttype": type(exc).__name__})
+
+    for laag_id in dict.fromkeys(laag_ids):
+        taak = asyncio.get_running_loop().create_task(_doe(laag_id))
+        _taken.add(taak)
+        taak.add_done_callback(_taken.discard)
 
 
 async def reconcile() -> int:

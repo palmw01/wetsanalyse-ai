@@ -99,10 +99,14 @@ async def lifespan(app: FastAPI):
         graaf_projectie.zet_projector(projector)
         projectie_taak = asyncio.create_task(
             projector.lus(get_annotatie_store(), settings.jas_projectie_interval_s))
-        from .graaf_projectie_v2 import lus as v2_projectie_lus
+        from .graaf_projectie_v2 import activeer as v2_activeer, lus as v2_projectie_lus
+        # Direct na elke commit projecteren, met de lus als vangnet – zoals v1.
+        v2_activeer(True)
         projectie_v2_taak = asyncio.create_task(v2_projectie_lus(settings.jas_projectie_interval_s))
     yield
     if projectie_v2_taak is not None:
+        from .graaf_projectie_v2 import stop as v2_stop
+        await v2_stop()
         projectie_v2_taak.cancel()
         try:
             await projectie_v2_taak
