@@ -95,6 +95,54 @@ def _lid_segmenten(corpus: str) -> list[tuple[str, int, int]]:
     return segmenten
 
 
+def lid_hashes(corpus: str) -> dict[str, str]:
+    """De hash per lidsegment ("2. tekst…"), zoals de gedeelde annotatielaag hem bijhoudt.
+
+    Per lid en niet per artikel: verandert alleen lid 3 na een herimport, dan blijven de markeringen
+    van de andere leden gewoon geldig. Het segment is exact wat `_lid_segmenten` teruggeeft, dus
+    ook exact wat een per-lid-corpus zou zijn – dezelfde tekst geeft dezelfde hash, hoe het corpus
+    ook werd opgehaald.
+    """
+    return {lid: _fnv1a_32(corpus[start:eind]) for lid, start, eind in _lid_segmenten(corpus)}
+
+
+def herankeer(
+    voorstellen: list[dict[str, Any]], corpus: str, artikel_corpus: str,
+) -> list[dict[str, Any]]:
+    """Zet de ankers van `corpus` (wat de annoteerder las) om naar `artikel_corpus` (het hele artikel).
+
+    De gedeelde laag is per artikel, dus daar horen de offsets op te staan; de annoteerder leest bij
+    een lid alleen dat lid. Omdat het gescopete corpus uit exact dezelfde segmenten bestaat als het
+    artikel (`artikel.artikel_scope`), is dit een verschuiving per segment en geen zoektocht: de
+    tekst ernaast is identiek. Elk anker krijgt daarbij de `lid_hash` van zijn segment.
+
+    Een anker waarvan het segment in het artikel niet te vinden is, wordt `None` – een ontbrekend
+    anker is zichtbaar in de werkplek, een fout anker niet. Markeringen van de jurist blijven
+    ongemoeid: die gaan niet mee als element.
+    """
+    eigen = {lid: (start, eind) for lid, start, eind in _lid_segmenten(corpus)}
+    doel = {lid: (start, eind) for lid, start, eind in _lid_segmenten(artikel_corpus)}
+    hashes = lid_hashes(artikel_corpus)
+    segmenten = _lid_segmenten(corpus)
+    uit: list[dict[str, Any]] = []
+    for v in voorstellen:
+        anker = v.get("anker")
+        if v.get("van_jurist") or not anker:
+            uit.append(v)
+            continue
+        lid = _lid_op(segmenten, int(anker.get("start", 0)))
+        van, naar = eigen.get(lid), doel.get(lid)
+        if van is None or naar is None or corpus[van[0]:van[1]] != artikel_corpus[naar[0]:naar[1]]:
+            uit.append({**v, "anker": None})
+            continue
+        verschuiving = naar[0] - van[0]
+        nieuw = _maak_anker(artikel_corpus, int(anker["start"]) + verschuiving,
+                            int(anker["eind"]) + verschuiving, str(anker.get("lid") or ""))
+        nieuw.lid_hash = hashes.get(lid, "")
+        uit.append({**v, "anker": nieuw.model_dump()})
+    return uit
+
+
 def _segment_van(segmenten: list[tuple[str, int, int]], lid: str) -> tuple[int, int] | None:
     """Het (start, eind)-venster van `lid`, of None als het corpus dat lid niet draagt."""
     for nummer, start, eind in segmenten:

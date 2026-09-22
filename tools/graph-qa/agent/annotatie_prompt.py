@@ -18,6 +18,7 @@ door de markdown in te korten, niet door hier te knippen.
 """
 from __future__ import annotations
 
+import hashlib
 import re
 
 from .jas_klassen import JAS_KLASSEN, JAS_KLASSEN_VOLGORDE, REGELS, RegelType
@@ -432,3 +433,36 @@ def herziening_userprompt(
         blokken += ["", "--- EERDER VERWORPEN ---", weg, "--- EINDE ---"]
     blokken += ["", f"--- ARTIKELTEKST ---\n{artikeltekst}\n--- EINDE ARTIKELTEKST ---"]
     return "\n".join(blokken)
+
+
+# --- herleidbaarheid ---------------------------------------------------------------------------------
+
+def _vingerafdruk(*delen: str) -> str:
+    return hashlib.sha256("\x1f".join(delen).encode("utf-8")).hexdigest()[:12]
+
+
+def prompt_hash(kort: bool = False) -> str:
+    """Een vingerafdruk van alle prompts van de annotatieketen, zoals ze nu in de code staan.
+
+    Gaat mee in de `run` van elke beurt, zodat achteraf te zien is welke promptversie een markering
+    maakte – de spreiding tussen runs is groot, en zonder dit valt een promptwijziging niet te
+    onderscheiden van toeval. De userprompts met vaste invulwaarden, zodat ook hun sjabloon meetelt.
+    Het is een herkomstveld, geen sleutel: hergebruik van de gedeelde laag kijkt er bewust niet naar.
+    """
+    voorbeeld = [{"id": "x", "klasse": "Rechtssubject", "tekst": "t", "lid": "1"}]
+    return _vingerafdruk(
+        annotatie_systeemprompt(kort), annotatie_userprompt("B", "A", "T", "L"),
+        kandidaten_systeemprompt(), kandidaten_userprompt("B", "A", "T", "L"),
+        klasseer_systeemprompt(kort), klasseer_userprompt("B", "A", "T", voorbeeld, "L"),
+        critic_systeemprompt(kort), critic_userprompt(voorbeeld, "T", ["o"]),
+        herziening_systeemprompt(kort), herziening_userprompt(voorbeeld, [], [], [], "T"),
+    )
+
+
+def methode_versie() -> str:
+    """Een vingerafdruk van de methode zelf: de dertien klassen en de prioriteitsregels.
+
+    Los van de prompt, want die twee veranderen om verschillende redenen: de methode via de skill
+    (`scripts/genereer_jas_klassen.py`), de prompt via deze module.
+    """
+    return _vingerafdruk(repr(JAS_KLASSEN), repr(REGELS))

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import re
+from dataclasses import dataclass
 
 from .graph import queries
 from .graph.results import parse_select
@@ -236,12 +237,15 @@ def _vouw_onderdelen_in(rows: list[dict]) -> list[dict]:
             if onderdeel:
                 losse_onderdelen.append(onderdeel)
             continue
-        bestaand = per_lid.setdefault(lidnummer, {"lid": lidnummer, "tekst": lidtekst, "delen": []})
+        bestaand = per_lid.setdefault(lidnummer, {"lid": lidnummer, "tekst": lidtekst, "delen": [],
+                                                  "iri": str(r.get("lid") or "")})
         if onderdeel and onderdeel not in bestaand["delen"]:
             bestaand["delen"].append(onderdeel)
 
     leden = [
-        {"lid": ld["lid"], "tekst": "\n".join([ld["tekst"], *ld["delen"]])}
+        # De IRI van de lid-node reist mee: de gedeelde annotatielaag wijst ernaar, en een lid zónder
+        # eigen jci heeft in de graaf een `…:id:<xml-id>`-vorm die niet uit het nummer te maken is.
+        {"lid": ld["lid"], "tekst": "\n".join([ld["tekst"], *ld["delen"]]), "iri": ld["iri"]}
         for ld in per_lid.values()
     ]
     if losse_onderdelen and not leden:
@@ -280,6 +284,7 @@ def _vouw_subbepalingen_in(rows: list[dict]) -> list[dict]:
                 "lid": (r.get("subnummer") or "").strip(),
                 "tekst": (r.get("subtekst") or "").strip(),
                 "delen": [],
+                "iri": sub,
             },
         )
         onderdeel = _onderdeelregel(r)
@@ -291,7 +296,7 @@ def _vouw_subbepalingen_in(rows: list[dict]) -> list[dict]:
         regels = [deel for deel in [sub["tekst"], *sub["delen"]] if deel]
         if not regels:
             continue
-        uit.append({"lid": sub["lid"], "tekst": "\n".join(regels)})
+        uit.append({"lid": sub["lid"], "tekst": "\n".join(regels), "iri": sub["iri"]})
     uit.sort(key=lambda ld: _lidsleutel(ld["lid"]))
     return uit
 
@@ -359,27 +364,52 @@ def _leden_en_corpus(
     soort = _soort_van(rows)
     if not leden and not lid_gevraagd:
         leden, soort = _bepaling_fallback(bwb_id, artikel, graph)
-    corpus = "\n\n".join((f'{ld["lid"]}. {ld["tekst"]}' if ld["lid"] else ld["tekst"]) for ld in leden)
-    return leden, corpus, soort
+    return leden, _corpus_van(leden), soort
+
+
+def _corpus_van(leden: list[dict]) -> str:
+    return "\n\n".join((f'{ld["lid"]}. {ld["tekst"]}' if ld["lid"] else ld["tekst"]) for ld in leden)
+
+
+@dataclass
+class ArtikelScope:
+    """De tekst waarop geannoteerd wordt, én het artikel eromheen.
+
+    `corpus` is wat de annoteerder leest (bij een lid alleen dat lid); `artikel_corpus` is het hele
+    artikel. De gedeelde laag is per artikel, dus de ankers moeten uiteindelijk op het hele artikel
+    staan – en per lid een hash dragen, zodat een latere beurt ziet welk lid veranderde.
+    `leden` zijn álle leden van het artikel, met hun IRI in de graaf.
+    """
+
+    corpus: str
+    soort: str
+    artikel_corpus: str
+    leden: list[dict]
+
+
+def artikel_scope(
+    bwb_id: str, artikel: str, graph: GraphPort, lid: str | None = None
+) -> ArtikelScope:
+    """Eén ophaalactie voor beide teksten.
+
+    Het gescopete corpus is letterlijk een deel van het artikelcorpus – dezelfde segmenten, in
+    dezelfde vorm – zodat een anker in het ene exact naar het andere om te rekenen is
+    (`annotatie.herankeer`). Wijkt het af, dan valt het gewoon niet te ankeren; nooit fout.
+    """
+    alle, artikel_corpus, soort = _leden_en_corpus(bwb_id, artikel, graph)
+    if lid and str(lid).strip():
+        gescoped = [ld for ld in alle if _match_lid(ld["lid"], str(lid))]
+    else:
+        gescoped = alle
+    return ArtikelScope(
+        corpus=_corpus_van(gescoped), soort=soort, artikel_corpus=artikel_corpus,
+        leden=[{"lid": ld["lid"], "iri": ld.get("iri", "")} for ld in alle],
+    )
 
 
 def artikel_corpus(bwb_id: str, artikel: str, graph: GraphPort, lid: str | None = None) -> str:
     """Alleen de corpus-tekst (voor de annotatie-flow; één SPARQL, geen regeling-info)."""
     return _leden_en_corpus(bwb_id, artikel, graph, lid)[1]
-
-
-def corpus_en_soort(
-    bwb_id: str, artikel: str, graph: GraphPort, lid: str | None = None
-) -> tuple[str, str]:
-    """Corpus + knooptype in één ophaalactie.
-
-    Apart van `artikel_corpus` omdat die functie op tientallen plekken (en in de tests) als
-    "geef me de tekst" wordt gebruikt; het soort erbij zou daar alleen ruis zijn. Wie de vindplaats
-    in woorden moet uitdrukken heeft het wél nodig, en een tweede SPARQL-call daarvoor zou zonde
-    zijn — de query levert het al mee.
-    """
-    leden, corpus, soort = _leden_en_corpus(bwb_id, artikel, graph, lid)
-    return corpus, soort
 
 
 def haal_artikel_sync(bwb_id: str, artikel: str, graph: GraphPort, lid: str | None = None) -> dict:

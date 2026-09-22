@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
@@ -84,8 +85,10 @@ class WetsanalyseApi:
             "Content-Type": "application/json",
         }
         self._client = httpx.AsyncClient(timeout=TIMEOUT)
-        #: Hoeveel markeringen de api liet vallen bij de laatste `zet_elementen`. Zie daar.
+        #: Hoeveel markeringen de api liet vallen bij de laatste `zet_laag_elementen`. Zie daar.
         self.verworpen = 0
+        #: De leden die de api als al geannoteerd en ongewijzigd herkende (en dus niet aanvulde).
+        self.hergebruikt: list[str] = []
         self._laatste_headers: dict[str, str] = {}
 
     async def aclose(self) -> None:
@@ -101,7 +104,7 @@ class WetsanalyseApi:
         antwoord = await self._client.request(
             methode, f"{self._basis}{pad}", json=payload, headers=self._headers,
         )
-        self._laatste_headers = dict(antwoord.headers)
+        self._laatste_headers = {k.lower(): v for k, v in antwoord.headers.items()}
         if antwoord.status_code == 404 and "/gesprekken/" in pad:
             raise GesprekVerdwenen(f"{methode} {pad} → 404", 404)
         if antwoord.status_code >= 400:
@@ -115,48 +118,54 @@ class WetsanalyseApi:
 
     # -- annotatie-domein ------------------------------------------------------------------------
 
-    async def maak_document(self, *, bwb_id: str, artikel: str, lid: str, citeertitel: str) -> str:
-        """Maak het annotatiedocument en geef de slug terug.
-
-        Bewust pas hier, aan het eind van de beurt, en niet zodra het doel bekend is: `emit_node` is
-        terminaal, dus een run die eerder sneuvelt heeft nul elementen. Een document dat dan al
-        bestond zou als leeg skelet in de werkvoorraad van de jurist blijven staan.
-        """
-        doc = await self._post("/v1/annotatie/documenten", {
-            "bwbId": bwb_id,
-            "artikel": artikel,
-            "lid": lid or None,
-            # De wetnaam hoort in `citeertitel`; `werkgebied` blijft leeg tot de jurist er zelf een
-            # kennisdomein van maakt.
-            "citeertitel": citeertitel,
-        })
-        return str(doc.get("slug", ""))
-
-    async def zet_elementen(
+    async def zet_laag_elementen(
         self,
-        slug: str,
         *,
+        bwb_id: str,
+        artikel: str,
+        citeertitel: str,
         elementen: list[dict[str, Any]],
         suggesties: list[dict[str, Any]],
         run: dict[str, Any] | None,
+        leden: list[dict[str, Any]],
+        bron_hash: str,
+        modus: str = "auto",
     ) -> dict[str, Any]:
-        """De uitkomst van deze agent-ronde. De api merget op id/tekst+lid en bevriest wat de jurist
-        al beoordeeld heeft – die semantiek zit daar, niet hier."""
+        """De uitkomst van deze beurt in de GEDEELDE laag van het artikel. Geeft de laag terug.
+
+        Eén PUT, en de api maakt de laag aan als hij er nog niet is. Er is dus geen losse stap meer
+        die een leeg document kan achterlaten als de tweede mislukt. De merge-semantiek (op id of
+        tekst+lid, bevriezen wat de jurist beoordeelde, verouderen bij een gewijzigd lid, nooit
+        intrekken) zit aan de api-kant, niet hier.
+
+        `leden` is per geannoteerd lid de hash en de IRI; daaraan ziet de api welk lid veranderde.
+        In `modus="auto"` negeert hij voorstellen voor een lid dat al geannoteerd en ongewijzigd is
+        – die staan dan in `self.hergebruikt`.
+        """
         self.verworpen = 0
+        self.hergebruikt = []
         payload: dict[str, Any] = {
+            "citeertitel": citeertitel,
             "elementen": [naar_contract(e) for e in elementen],
             "suggesties": [_leeg_is_niets(s) for s in suggesties],
             "ronde": 0,
+            "leden": leden,
+            "bron_hash": bron_hash,
+            "modus": modus,
         }
         if run:
             # `tijd` is bij ons optioneel en bij de api verplicht mét default. Hem als `None`
             # meesturen is dus géén "laat maar leeg" maar een validatiefout; weglaten wél.
             payload["run"] = {k: v for k, v in run.items() if not (k == "tijd" and v is None)}
-        uit = await self._put(f"/v1/annotatie/documenten/{slug}/elementen", payload)
+        pad = f"/v1/annotatie/lagen/{quote(bwb_id, safe='')}/{quote(artikel, safe='')}/elementen"
+        uit = await self._put(pad, payload)
         # De api laat een element dat zijn schema niet haalt vallen in plaats van de hele ronde te
         # weigeren – beter, maar daarmee wordt een lúíde fout een stille. Daarom telt hij ze in
         # `X-Verworpen` en zeggen wij het tegen de jurist.
-        self.verworpen = int(self._laatste_headers.get("X-Verworpen", 0) or 0)
+        self.verworpen = int(self._laatste_headers.get("x-verworpen", 0) or 0)
+        self.hergebruikt = [
+            lid for lid in (self._laatste_headers.get("x-hergebruikt-leden") or "").split(",") if lid
+        ]
         return uit
 
     # -- gesprekken-domein -----------------------------------------------------------------------

@@ -29,21 +29,17 @@ class NepApi:
 
     def __init__(self, *, faalt: bool | str = False) -> None:
         self.faalt = faalt
-        self.documenten: list[dict[str, Any]] = []
-        self.element_puts: list[dict[str, Any]] = []
+        self.laag_puts: list[dict[str, Any]] = []
         self.berichten: list[tuple[str, dict[str, Any]]] = []
         self.gesloten = False
         self.verworpen = 0
+        self.hergebruikt: list[str] = []
 
-    async def maak_document(self, **kw: Any) -> str:
-        self.documenten.append(kw)
-        return "slug-1"
-
-    async def zet_elementen(self, slug: str, **kw: Any) -> dict[str, Any]:
+    async def zet_laag_elementen(self, **kw: Any) -> dict[str, Any]:
         if self.faalt == "elementen":
-            raise WetsanalyseApiFout("PUT /v1/annotatie/documenten/…/elementen → 422", 422)
-        self.element_puts.append({"slug": slug, **kw})
-        return {}
+            raise WetsanalyseApiFout("PUT /v1/annotatie/lagen/…/elementen → 422", 422)
+        self.laag_puts.append(kw)
+        return {"slug": "slug-1"}
 
     async def voeg_bericht_toe(self, gesprek_id: str, bericht: dict[str, Any]) -> dict[str, Any]:
         if self.faalt == "verdwenen":
@@ -111,8 +107,10 @@ async def test_antwoordbeurt_wordt_vastgelegd(api):
 
 
 @asyncio_test
-async def test_annotatiebeurt_maakt_document_en_elementen(api):
-    doel = {"bwbId": "BWBR0004770", "artikel": "9", "lid": "1", "citeertitel": "Invorderingswet 1990"}
+async def test_annotatiebeurt_schrijft_naar_de_gedeelde_laag(api):
+    doel = {"bwbId": "BWBR0004770", "artikel": "9", "lid": "1", "citeertitel": "Invorderingswet 1990",
+            "leden": [{"lid": "1", "hash": "h1", "iri": "urn:bwb:BWBR0004770:artikel:9:lid:1"}],
+            "bron_hash": "art"}
     uit = await _draai([
         {"type": "doel", "doel": doel},
         {"type": "run", "run": {"model": "claude", "provider": "azure"}},
@@ -122,11 +120,12 @@ async def test_annotatiebeurt_maakt_document_en_elementen(api):
         {"type": "done"},
     ])
 
-    assert api.documenten == [{
-        "bwb_id": "BWBR0004770", "artikel": "9", "lid": "1", "citeertitel": "Invorderingswet 1990",
-    }]
-    put = api.element_puts[0]
-    assert put["slug"] == "slug-1"
+    put, = api.laag_puts
+    assert (put["bwb_id"], put["artikel"], put["citeertitel"]) == (
+        "BWBR0004770", "9", "Invorderingswet 1990")
+    # De lidstand gaat mee: daaraan ziet de api welk lid veranderde.
+    assert put["leden"] == doel["leden"] and put["bron_hash"] == "art"
+    assert put["modus"] == "auto"
     assert put["elementen"][0]["tekst"] == "de ontvanger"
     assert put["suggesties"][0]["aandacht"] == "geel"
     assert put["run"] == {"model": "claude", "provider": "azure"}
@@ -161,7 +160,7 @@ async def test_een_element_zonder_eindoordeel_breekt_de_hele_annotatie_niet(api)
 
     from agent.wetsanalyse_api import naar_contract
 
-    elementen = api.element_puts[0]["elementen"]
+    elementen = api.laag_puts[0]["elementen"]
     assert naar_contract(elementen[0])["aandacht"] is None, "geen oordeel is None, geen lege string"
     assert naar_contract(elementen[1])["aandacht"] == "geel", "een echt oordeel blijft staan"
 
@@ -176,19 +175,14 @@ async def test_zonder_elementen_geen_leeg_document(api):
         {"type": "token", "content": "Ik vond geen JAS-elementen."},
         {"type": "done"},
     ])
-    assert api.documenten == []
+    assert api.laag_puts == []
     _, bericht = api.berichten[0]
     assert bericht["tekst"] == "Ik vond geen JAS-elementen."
 
 
 @asyncio_test
-async def test_mislukte_elementen_beloven_geen_bewaarde_annotatie(monkeypatch):
-    """Het document bestaat dan wel, de markeringen niet – dat is iets anders dan "bewaard".
-
-    Op dev liep een run hierop stuk (422 op de PUT) en las de jurist dat de annotatie bewaard was en
-    dat opnieuw proberen een tweede zou opleveren. Er viel niets terug te vinden: het document was
-    leeg. Een melding die het werk veiliger voorstelt dan het is, is erger dan geen melding.
-    """
+async def test_mislukte_laag_belooft_niets(monkeypatch):
+    """Eén PUT: mislukt die, dan is er niets bewaard – en dan is opnieuw proberen het juiste advies."""
     nep = NepApi(faalt="elementen")
     monkeypatch.setattr("agent.beurt.WetsanalyseApi", lambda *_a, **_k: nep)
     uit = await _draai([
@@ -198,9 +192,37 @@ async def test_mislukte_elementen_beloven_geen_bewaarde_annotatie(monkeypatch):
     ])
 
     fout = [e for e in uit if e["type"] == "error"][0]
-    assert "leeg document" in fout["message"]
-    assert "opnieuw" in fout["message"], "hier is opnieuw proberen juist wél het advies"
+    assert "opnieuw" in fout["message"]
     assert "bewaard" not in fout["message"]
+    assert "annotatie_slug" not in fout
+
+
+@asyncio_test
+async def test_opnieuw_annoteren_reist_mee_naar_de_laag(api):
+    await _draai([
+        {"type": "doel", "doel": {"bwbId": "B", "artikel": "9", "citeertitel": "Wet"}},
+        {"type": "run", "run": {"model": "m", "modus": "opnieuw"}},
+        {"type": "element", "element": {"id": "e1", "klasse": "Rechtssubject", "tekst": "t"}},
+        {"type": "done"},
+    ])
+    assert api.laag_puts[0]["modus"] == "opnieuw"
+
+
+@asyncio_test
+async def test_al_geannoteerd_lid_wordt_gemeld(monkeypatch):
+    """Het vangnet van de api liet deze voorstellen vallen omdat het lid al geannoteerd en
+    ongewijzigd was. Geen fout – maar wel zeggen, anders zoekt de jurist zijn nieuwe voorstellen."""
+    nep = NepApi()
+    nep.hergebruikt = ["1"]
+    monkeypatch.setattr("agent.beurt.WetsanalyseApi", lambda *_a, **_k: nep)
+    uit = await _draai([
+        {"type": "doel", "doel": {"bwbId": "B", "artikel": "9", "lid": "1"}},
+        {"type": "element", "element": {"id": "e1", "klasse": "Rechtssubject", "tekst": "t"}},
+        {"type": "done"},
+    ])
+    waarschuwing, = [e for e in uit if e["type"] == "waarschuwing"]
+    assert "Lid 1 was al geannoteerd" in waarschuwing["message"]
+    assert not [e for e in uit if e["type"] == "error"]
 
 
 @asyncio_test
@@ -243,7 +265,7 @@ async def test_element_wordt_ontdubbeld(api):
         {"type": "element", "element": {"id": "e1", "klasse": "Rechtsobject", "tekst": "t"}},
         {"type": "done"},
     ])
-    elementen = api.element_puts[0]["elementen"]
+    elementen = api.laag_puts[0]["elementen"]
     assert len(elementen) == 1
     assert elementen[0]["klasse"] == "Rechtsobject"
 
@@ -274,7 +296,7 @@ async def test_stoppen_vóór_de_voorstellen_belooft_niets(api):
     )
     _, bericht = api.berichten[0]
     assert bericht["tekst"] == "_Gestopt – er waren nog geen voorstellen._"
-    assert api.documenten == []
+    assert api.laag_puts == []
 
 
 @asyncio_test
@@ -328,9 +350,9 @@ async def test_half_vastgelegde_annotatie_zegt_wat_er_wel_staat(monkeypatch):
     fout = next(e for e in uit if e["type"] == "error")
     assert "annotatie is bewaard" in fout["message"].lower()
     assert fout["annotatie_slug"] == "slug-1", "zodat de client er meteen heen kan wijzen"
-    assert "opnieuw" not in fout["message"] or "tweede annotatie" in fout["message"]
-    # Het document en de elementen zijn wél geschreven – dat is precies waarom de melding anders is.
-    assert nep.documenten and nep.element_puts
+    assert "opnieuw" not in fout["message"]
+    # De laag is wél geschreven – dat is precies waarom de melding anders is.
+    assert nep.laag_puts
 
 
 def test_schrijver_houdt_denkproces_en_tekst_gescheiden():
@@ -366,5 +388,5 @@ async def test_verwijderd_gesprek_is_geen_storing(monkeypatch):
 
     assert [e for e in uit if e["type"] == "error"] == []   # geen alarm
     assert uit[-1]["type"] == "done"                        # de beurt eindigt gewoon
-    assert nep.documenten and nep.element_puts               # het werk is bewaard
+    assert nep.laag_puts               # het werk is bewaard
     assert nep.gesloten

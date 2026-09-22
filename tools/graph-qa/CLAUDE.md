@@ -311,8 +311,21 @@ was, verloor het werk, ook al had de agent zijn beurt keurig afgemaakt.
 
 `voer_beurt_uit` zit om `answer_stream` heen, verzamelt dezelfde velden als de werkplek deed
 (`doel`/`element`/`run`/`ontbrekend`/`suggestie`/tekst/denk/bronnen) en schrijft aan het eind via
-`agent/wetsanalyse_api.py`: **document → elementen → chatbericht**. Daarna gaat er één
+`agent/wetsanalyse_api.py`: **de gedeelde laag van het artikel → chatbericht**. Daarna gaat er één
 `opgeslagen`-event uit. **Buiten de LangGraph-code**, dus `orchestrator.py` blijft ongemoeid.
+
+**Eén laag per artikel, voor iedereen** (sinds 22 sep 2026). Een annotatiebeurt maakt geen eigen
+document meer maar doet één `PUT /v1/annotatie/lagen/{bwbId}/{artikel}/elementen`; de api maakt de
+laag aan als hij er nog niet is en merget. Mee gaan de **lidstand** (per geannoteerd lid de hash en
+de IRI, van het `doel`-event), de artikelhash en de `modus` (`opnieuw` als de jurist daar expliciet
+om vroeg – `ChatRequest.hergebruik` – anders `auto`). In `auto` negeert de api voorstellen voor een
+lid dat al geannoteerd en ongewijzigd is (`X-Hergebruikt-Leden`); de driver meldt dat als
+`waarschuwing`. Omdat het één PUT is, bestaat "document staat er, markeringen niet" niet meer.
+
+**Response-headers lees je in kleine letters.** httpx geeft ze zo terug; `X-Verworpen` werd tot
+22 sep 2026 met hoofdletters gelezen en was dus altijd 0 – de waarschuwing over verworpen
+markeringen kon nooit afgaan. De tests zagen dat niet omdat ze de client nabootsten;
+`tests/test_gedeelde_laag.py` draait daarom tegen de échte client met een `MockTransport`.
 
 Vier regels die je niet mag omdraaien:
 
@@ -505,7 +518,9 @@ weg: ze bestonden alleen om een cyclus te laten stoppen die er niet meer is.
 - **`emit_node` is de enige plek die annotatie-events uitstuurt.** Zou de Critic dat doen, dan zag de
   werkplek elke tussenversie van de lus voorbijkomen.
 - **Elke beurt meldt zijn herkomst.** `emit_node` stuurt vóór de elementen één `run`-event
-  (`model`/`provider`/`agent_versie`/`critic_rondes`/`stop_reden`); de werkplek legt dat bij de
+  (`model`/`provider`/`agent_versie`/`critic_rondes`/`stop_reden`, en sinds 22 sep 2026 ook
+  `modus`, `leden`, `prompt_hash` en `methode_versie` – vingerafdrukken uit `annotatie_prompt` – plus
+  de instellingen die de uitkomst sturen); de werkplek legt dat bij de
   api vast op het document én per element. Zonder dat is achteraf niet vast te stellen mét welk
   model een markering is gemaakt – precies wat een export moet dragen en wat de latere
   graaf-promotie als provenance nodig heeft. `agent_versie` komt uit `AGENT_VERSION` en valt
@@ -631,6 +646,14 @@ Drie dingen die je verder moet kennen voordat je hieraan werkt:
   fetch-resultaten van de beurt aaneen (haalde de ophaal-agent eerst het hele artikel en daarna het
   lid, dan zit lid 2 er ook in) en elk resultaat is afgekapt op 8000 tekens. `_corpus_uit_trace` is
   alleen nog de terugval als de graaf niets geeft.
+- **Het corpus is het lid, het anker staat op het artikel.** `_scope_voor_doel` haalt in één
+  SPARQL-call zowel wat de annoteerder leest (`corpus`, bij een lid alleen dat lid) als het hele
+  artikel (`artikel_corpus`) met per lid de IRI. Annoteren, Critic en herziening werken op `corpus`;
+  `emit_node` zet de ankers daarna om naar het artikel (`annotatie.herankeer`) en geeft elk anker de
+  `lid_hash` van zijn segment (`annotatie.lid_hashes`). Dat is een verschuiving per segment, geen
+  zoektocht: het gescopete corpus bestaat uit exact dezelfde segmenten. Klopt het segment niet, dan
+  wordt het anker `None`. Het `doel`-event draagt daarom het héle artikel als `leden_teksten`, met
+  `lid` als focus.
 - **Het lid en het anker zijn één beslissing.** `_verwerk` zoekt een fragment binnen het lid dat het
   element zelf noemt (`_lid_segmenten` splitst het corpus op `"\n\n"` – exact, want zo bouwt
   `_leden_en_corpus` hem op; onderdelen hangen met een enkele `"\n"`). Staat het er niet, dan wint
