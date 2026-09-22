@@ -171,7 +171,17 @@ async def _document_or_404(store: AnnotatieStore, slug: str, user_id: str) -> An
     doc = await store.laad_document(slug)
     if doc is None or not mag_zien(doc, user_id):
         raise HTTPException(status_code=404, detail=f"Onbekend annotatie-document: {slug}")
+    if doc.samengevoegd_in:
+        # Opgegaan in een laag (migratie): oude chatberichten verwijzen nog naar deze slug.
+        doc = await store.laad_document(doc.samengevoegd_in)
+        if doc is None:
+            raise HTTPException(status_code=404, detail=f"Onbekend annotatie-document: {slug}")
     return doc
+
+
+async def _audit_slugs(store: AnnotatieStore, doc: AnnotatieDocument) -> list[str]:
+    """Bij een laag horen ook de tijdlijnen van de documenten die erin opgingen."""
+    return await store.samengevoegde_slugs(doc.slug) if doc.laag_sleutel else []
 
 
 @router.post("/documenten", status_code=status.HTTP_201_CREATED, response_model=AnnotatieDocument)
@@ -783,8 +793,8 @@ async def haal_audit(
 ):
     """Append-only tijdlijn, oudste eerst. Gepagineerd: sinds elke agent-ronde per element een regel
     schrijft loopt dit bij een lange review in de honderden."""
-    await _document_or_404(store, slug, user_id)
-    return await store.lees_audit(slug, limit, offset)
+    doc = await _document_or_404(store, slug, user_id)
+    return await store.lees_audit(doc.slug, limit, offset, ook=await _audit_slugs(store, doc))
 
 
 class ExportInvoer(BaseModel):
@@ -816,8 +826,9 @@ async def exporteer_document(
     # Het hele auditlog, niet de eerste pagina: een export die de tijdlijn halverwege afkapt is
     # erger dan geen tijdlijn, want de afkapping is in het bestand niet te zien.
     audit = []
+    ook = await _audit_slugs(store, doc)
     while True:
-        blok = await store.lees_audit(slug, limit=500, offset=len(audit))
+        blok = await store.lees_audit(doc.slug, limit=500, offset=len(audit), ook=ook)
         audit.extend(blok)
         if len(blok) < 500:
             break

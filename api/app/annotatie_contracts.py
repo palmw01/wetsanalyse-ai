@@ -255,6 +255,7 @@ class AnnotatieDocument(BaseModel):
     runs: list[AgentRun] = []   # het productiespoor: elke agent-ronde die aan dit document werkte
     laag_sleutel: str = ""
     leden: dict[str, LidStand] = {}
+    samengevoegd_in: str = ""   # opgegaan in de laag met deze slug (migratie)
     created: datetime | None = None
     updated: datetime | None = None
 
