@@ -239,6 +239,9 @@ class AnnotatieStore:
                 )
             )
         doc.updated = now
+        # Ná de commit: de projectie leest de laag opnieuw, en moet dan deze stand zien.
+        from . import graaf_projectie
+        graaf_projectie.na_mutatie(self, doc)
         return doc
 
     async def beslis_op_element(
@@ -341,7 +344,49 @@ class AnnotatieStore:
             if plan.bronnen:
                 await conn.execute(update(t).where(t.c.slug.in_(plan.bronnen)).values(
                     samengevoegd_in=plan.doel_slug))
+        from . import graaf_projectie
+        if (laag := await self.laad_document(plan.doel_slug)) is not None:
+            graaf_projectie.na_mutatie(self, laag)
         return True
+
+    # --- outbox van de graafprojectie ---------------------------------------------------------------
+
+    async def markeer_geprojecteerd(self, slug: str, tot) -> None:
+        """Overschrijven, geen maximum: een trage, oudere projectie laat de laag zo vuil achter."""
+        t = db.annotatie_documenten
+        async with db.get_engine().begin() as conn:
+            await conn.execute(update(t).where(t.c.slug == slug).values(geprojecteerd_tot=tot))
+
+    async def vuile_lagen(self, limit: int = 50) -> list[str]:
+        t = db.annotatie_documenten
+        async with db.get_engine().connect() as conn:
+            rows = (await conn.execute(
+                select(t.c.slug).where(t.c.laag_sleutel != "")
+                .where(or_(t.c.geprojecteerd_tot.is_(None), t.c.geprojecteerd_tot < t.c.updated))
+                .order_by(t.c.updated).limit(limit)
+            )).all()
+        return [r[0] for r in rows]
+
+    async def maak_lagen_vuil(self) -> None:
+        t = db.annotatie_documenten
+        async with db.get_engine().begin() as conn:
+            await conn.execute(update(t).where(t.c.laag_sleutel != "").values(geprojecteerd_tot=None))
+
+    async def geprojecteerde_lagen(self) -> list[AnnotatieDocument]:
+        t = db.annotatie_documenten
+        async with db.get_engine().connect() as conn:
+            rows = (await conn.execute(
+                select(t).where(t.c.laag_sleutel != "").where(t.c.geprojecteerd_tot.is_not(None))
+            )).all()
+        return [_naar_document(r) for r in rows]
+
+    async def projectie_telling(self) -> dict[str, int]:
+        t = db.annotatie_documenten
+        async with db.get_engine().connect() as conn:
+            rows = (await conn.execute(
+                select(t.c.geprojecteerd_tot, t.c.updated).where(t.c.laag_sleutel != ""))).all()
+        vuil = sum(1 for tot, upd in rows if tot is None or db.aware(tot) < db.aware(upd))
+        return {"lagen": len(rows), "achterstand": vuil}
 
     async def lees_audit(
         self, slug: str, limit: int = 200, offset: int = 0, ook: list[str] | None = None,

@@ -47,10 +47,10 @@ landen; de tekst niet.
 
 ## Specificaties van ons systeem
 
-- **`wetsanalyse-workbench/jas-annotatie-ontologie.md`** — de RDF-projectie van het annotatiedomein
-  naar de graaf. **Nog niet gebouwd** (Fase 4). Het *werkende* domein staat niet hier maar in
-  `api/app/annotatie_contracts.py` — dat bestand is de waarheid over lifecycle, beslissingen en
-  Critic-rondes.
+- **`wetsanalyse-workbench/jas-annotatie-ontologie.md`** — de RDF-projectie van de gedeelde
+  annotatielagen naar de graaf (`api/app/graaf_projectie.py`), met `jas-ontologie.ttl` als afdruk van
+  de vocabulaire (drift-test in de api). Het domein zelf staat in `api/app/annotatie_contracts.py` —
+  dat bestand is de waarheid over lifecycle, beslissingen en Critic-rondes; de graaf is een projectie.
 - **`schrijfrichtlijn-lex.md`** — toon en opmaak van de assistent Lex. Zijn identiteit staat in
   `tools/graph-qa/agent/prompts.py`.
 

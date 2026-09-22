@@ -73,6 +73,10 @@ plaats van schijnzekerheid.
    netwerkschijf gebruiken), maar de graaf is volledig reproduceerbaar uit overheid.nl – zie
    §*Uitrollen*.
 
+   Naast de wetten staan er de **gedeelde JAS-annotatielagen** (`urn:jas:graph:*`, W3C Web Annotation
+   + PROV-O). Die schrijft **alleen de api**, als projectie van Postgres; na een GraphDB-herstart
+   bouwt hij ze zelf opnieuw op. Zie `docs/wetsanalyse-workbench/jas-annotatie-ontologie.md`.
+
    **GraphDB draait op Azure zonder eigen security, en de netwerkgrens is de enige beveiliging:**
    `external: false`, alleen bereikbaar binnen de Container Apps Environment. Het `GRAPHDB_TOKEN` dat
    graph-qa meestuurt is daar geen slot – GraphDB negeert het – en `bwb-import` schrijft zonder
