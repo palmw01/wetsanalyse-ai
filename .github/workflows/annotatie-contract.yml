@@ -46,7 +46,12 @@ jobs:
             state=$(az containerapp revision show -n "$APP-api" -g "$RG" --revision "$rev" --query properties.runningState -o tsv)
             case "$state" in
               Running|RunningAtMaxScale)
-                az containerapp ingress traffic set -n "$APP-api" -g "$RG" --revision-weight "$rev=100" --output none
+                mode=$(az containerapp show -n "$APP-api" -g "$RG" --query properties.configuration.activeRevisionsMode -o tsv)
+                if [ "$mode" = Multiple ]; then
+                  az containerapp ingress traffic set -n "$APP-api" -g "$RG" --revision-weight "$rev=100" --output none
+                else
+                  echo "Single revision: verkeer schakelt automatisch naar de gezonde revisie."
+                fi
                 echo "Contract $CONTRACT actief op $rev"
                 exit 0 ;;
               Failed|Degraded) echo "Revisie ongezond: $state"; exit 1 ;;
