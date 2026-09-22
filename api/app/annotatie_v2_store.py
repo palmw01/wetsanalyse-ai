@@ -78,15 +78,24 @@ def valideer(element: Element, snapshot: dict, scope: set[str]) -> dict:
 
 @asynccontextmanager
 async def schrijftransactie():
+    # Elke laagwijziging loopt via `_raak`, die de laag hier noteert. Pas ná een geslaagde commit gaan
+    # die lagen naar de graaf; bij een fout (ook een 409/412) komt de regel eronder nooit aan de beurt.
+    te_projecteren: set[str] = set()
     async with db.get_engine().begin() as conn:
+        conn.info["te_projecteren"] = te_projecteren
         try:
-            async with conn.begin_nested():
-                await conn.execute(insert(db.annotatie_v2_state).values(id=1, revisie=0))
-        except IntegrityError:
-            pass
-        await conn.execute(select(db.annotatie_v2_state).where(
-            db.annotatie_v2_state.c.id == 1).with_for_update())
-        yield conn
+            try:
+                async with conn.begin_nested():
+                    await conn.execute(insert(db.annotatie_v2_state).values(id=1, revisie=0))
+            except IntegrityError:
+                pass
+            await conn.execute(select(db.annotatie_v2_state).where(
+                db.annotatie_v2_state.c.id == 1).with_for_update())
+            yield conn
+        finally:
+            conn.info.pop("te_projecteren", None)
+    from .graaf_projectie_v2 import na_mutatie
+    na_mutatie(sorted(te_projecteren))
 
 
 @asynccontextmanager
@@ -135,6 +144,7 @@ async def _laag(conn, layers: dict, iri: str, snapshot_id: str, expected: dict) 
 
 async def _raak(conn, layer: dict, snapshot_id: str):
     layer.update(revisie=layer["revisie"] + 1, snapshot_id=snapshot_id, updated=db.utcnow())
+    conn.info.get("te_projecteren", set()).add(layer["id"])
     await conn.execute(update(db.annotatie_v2_lagen).where(
         db.annotatie_v2_lagen.c.id == layer["id"]).values(**layer))
     await conn.execute(update(db.annotatie_v2_state).where(db.annotatie_v2_state.c.id == 1).values(

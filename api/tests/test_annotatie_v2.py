@@ -441,3 +441,44 @@ async def test_pdf_preserves_all_local_anchors_and_owner(monkeypatch):
     assert ONE in parsed and TWO in parsed
     assert "[2, 6)" in parsed and "[0, 4)" in parsed
     assert a["ankers"][0]["bron_hash"] in parsed.replace("\n", "")
+
+
+async def test_elke_commit_projecteert_direct_en_een_fout_niet(monkeypatch, caplog):
+    # Zoals v1: direct na de commit naar de graaf, met de lus als vangnet. Een geweigerde mutatie
+    # projecteert niets, en een haperende graaf laat de mutatie zelf niet falen.
+    import asyncio
+    from app import graaf_projectie_v2
+    geprojecteerd = []
+    async def projecteer(laag_id):
+        geprojecteerd.append(laag_id)
+        return True
+    monkeypatch.setattr(graaf_projectie_v2, "projecteer", projecteer)
+    graaf_projectie_v2.activeer(True)
+    try:
+        snap = snapshot(ONE)
+        created = await store.batch(request(snap, [element(snap)]), snap, "a")
+        await asyncio.gather(*graaf_projectie_v2._taken)
+        assert geprojecteerd == [created["lagen"][0]["id"]]
+
+        with pytest.raises(HTTPException):
+            await store.batch(request(snap, [element(snap, start=7, end=11)], batch_id="oud",
+                                      revisions={ONE: 0}), snap, "a")
+        await asyncio.gather(*graaf_projectie_v2._taken)
+        assert len(geprojecteerd) == 1
+
+        async def faalt(laag_id):
+            raise RuntimeError("graaf weg")
+        monkeypatch.setattr(graaf_projectie_v2, "projecteer", faalt)
+        await store.zet_status(created["lagen"][0]["id"], "in_review", 1, "a")
+        await asyncio.gather(*graaf_projectie_v2._taken)
+        assert "annotatie_v2_projectie_uitgesteld" in caplog.text
+    finally:
+        await graaf_projectie_v2.stop()
+
+
+async def test_zonder_graaf_geen_directe_projectie(monkeypatch):
+    from app import graaf_projectie_v2
+    monkeypatch.setattr(graaf_projectie_v2, "projecteer", lambda laag_id: pytest.fail("geen graaf geconfigureerd"))
+    snap = snapshot(ONE)
+    await store.batch(request(snap, [element(snap)]), snap, "a")
+    assert not graaf_projectie_v2._taken
