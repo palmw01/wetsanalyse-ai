@@ -1,0 +1,32 @@
+jas_class: Afleidingsregel
+bron: {omschrijving: "H2:71", vraag: "H2:72", uitdrukkingswijze: "H2:73"}
+begrippen:
+  - {naam: Afleidingsregel, subtype: ""}
+syntactic_signals:
+  - "kopulatieve zin met berekening: '<variabele> bedraagt …', '<variabele> is het gezamenlijke bedrag van …' – H2:73"
+  - "'wordt gesteld op', 'wordt berekend', 'wordt geacht', 'wordt vermoed' (afleiding van een feit)"
+lexical_signals:
+  - "bedragen, stellen op, verminderen met, vermeerderen met, berekenen, gezamenlijk bedrag, geacht, vermoed"
+semantic_signals:
+  - "creëert een nieuw feit of een nieuwe waarde uit bestaande (H2:71); rekenregel of beslisregel"
+structural_signals:
+  - "spanoptie: de volledige zin of clause met invoer, bewerking en uitkomst"
+candidate_rules:
+  - {id: jas.afleiding.bedraagt, status: gepland}
+  - {id: jas.afleiding.wordt_gesteld_op, status: gepland}
+  - {id: jas.afleiding.fictie_vermoeden, status: gepland}
+confusable_classes:
+  - {klasse: Parameter en parameterwaarde, reden: "'bedraagt € 23' kan een parameterwaarde vastleggen"}
+  - {klasse: Rechtsbetrekking, reden: "'is … verschuldigd' als norm of als uitkomst"}
+  - {klasse: Voorwaarde, reden: "beslisregel met eisen"}
+negative_patterns:
+  - {patroon: "los 'bedraagt' of 'en' zonder invoer en uitkomst", reden: "projectregel annotatieprotocol: een los 'bedraagt' draagt geen rekenregel"}
+required_context:
+  - "de uitvoervariabele (onderwerp) en de invoer in dezelfde zin of aanhef"
+deterministic_detection_possible: middel
+llm_needed_for:
+  - "rekenregel tegenover vastgelegde parameterwaarde"
+  - "grens van de regel bij meerdere zinnen"
+test_cases:
+  - {bron: "referentieset:WZT02", span: "De normpremie bedraagt een percentage van het drempelinkomen", verwacht: kandidaat, status: provisional}
+  - {bron: "referentieset:IW03", span: "wordt vermoed dat de niet betaling aan hem is te wijten", verwacht: kandidaat, status: provisional}

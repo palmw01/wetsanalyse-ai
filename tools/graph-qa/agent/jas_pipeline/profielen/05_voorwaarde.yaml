@@ -1,0 +1,40 @@
+jas_class: Voorwaarde
+bron: {omschrijving: "H2:62", vraag: "H2:63", uitdrukkingswijze: "H2:64"}
+begrippen:
+  - {naam: Voorwaarde, subtype: ""}
+syntactic_signals:
+  - "bijzin (advcl) met voegwoord 'indien', 'als', 'tenzij', 'mits', 'wanneer', 'voor zover', 'voorzover' – H2:64"
+  - "vaste inleiding 'met dien verstande dat', 'met uitzondering van' – H2:64"
+  - "bijwoord bij het werkwoord dat een eis stelt ('schriftelijk', 'elektronisch') – H2:64"
+  - "relatieve bijzin die een eis aan een subject of object stelt ('een partner die geen verzekerde is')"
+lexical_signals:
+  - "voegwoorden en inleiders hierboven; ook 'ingeval', 'behoudens', 'onverminderd'"
+semantic_signals:
+  - "omstandigheid waaraan voldaan moet zijn voor een rechtsgevolg (H2:62); cumulatief of alternatief"
+structural_signals:
+  - "onderdelen van een opsomming onder een voorwaardelijke aanhef zijn elk een (deel)voorwaarde"
+  - "grens: tot aan de komma of het hoofdzinwerkwoord waarop de bijzin werkt"
+candidate_rules:
+  - {id: jas.voorwaarde.voorwaardelijke_bijzin, status: gepland}
+  - {id: jas.voorwaarde.vaste_inleiding, status: gepland}
+  - {id: jas.voorwaarde.beperkende_bijzin, status: gepland}
+  - {id: jas.voorwaarde.bijwoord, status: gepland}
+confusable_classes:
+  - {klasse: Rechtsfeit, reden: "een handeling als eis"}
+  - {klasse: Operator, reden: "de vergelijking binnen een voorwaarde is zelf een operator (H2:62)"}
+  - {klasse: Afleidingsregel, reden: "beslisregel tegenover losse eis"}
+negative_patterns:
+  - {patroon: "'als bedoeld in' / 'als omschreven in'", reden: "verwijzing, geen voorwaardelijk voegwoord"}
+  - {patroon: "'als' als vergelijking of hoedanigheid ('als bestuurder', 'even hoog als')", reden: "geen bijzin-inleider (geen mark)"}
+required_context:
+  - "de norm of het rechtsgevolg waarop de voorwaarde werkt"
+  - "de aanhef van een opsomming"
+deterministic_detection_possible: hoog
+llm_needed_for:
+  - "bijwoordelijke voorwaarde ('schriftelijk') tegenover gewone bepaling"
+  - "bereik bij geneste of samengestelde voorwaarden"
+test_cases:
+  - {bron: "referentieset:AWB03", span: "voor zover deze beoogt de overtreder leed toe te voegen", verwacht: kandidaat, status: provisional}
+  - {bron: "referentieset:WZT02", span: "voorzover dat toetsingsinkomen het drempelinkomen te boven gaat", verwacht: kandidaat, status: provisional}
+  - {bron: "adr-001:negatieve-patronen", tekst: "de aanslag, bedoeld in artikel 9, of een aanslag als bedoeld in artikel 10", span: "als bedoeld in", verwacht: geen, status: synthetic}
+  - {bron: "adr-001:negatieve-patronen", tekst: "Hij treedt op als bestuurder van het lichaam.", span: "als bestuurder", verwacht: geen, status: synthetic}

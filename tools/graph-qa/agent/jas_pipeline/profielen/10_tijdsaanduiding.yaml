@@ -1,0 +1,37 @@
+jas_class: Tijdsaanduiding
+bron: {omschrijving: "H2:107", vraag: "H2:108", uitdrukkingswijze: "H2:109"}
+begrippen:
+  - {naam: Tijdsaanduiding, subtype: ""}
+syntactic_signals:
+  - "voorzetselgroep met tijdsvoorzetsel: 'binnen', 'na', 'vóór', 'voor', 'gedurende', 'met ingang van', 'vanaf', 'tot', 'uiterlijk op'"
+  - "duur: telwoord + periodewoord ('zes weken', 'veertien dagen', 'drie jaren')"
+  - "startgebeurtenis na de duur hoort in de span ('zes weken na de dagtekening van …')"
+lexical_signals:
+  - "concrete datum ('1 september 2009') – H2:109"
+  - "datumomschrijving ('de eerste maandag van de maand') – H2:109"
+  - "periodewoorden: jaar, kalenderjaar, berekeningsjaar, maand, week, dag, tijdvak, termijn, periode, tijdstip – H2:109"
+  - "bijwoorden: spoedig, onverwijld, terstond, tijdig"
+semantic_signals:
+  - "wanneer, sinds of tot wanneer iets geldt of gebeurt (H2:108)"
+structural_signals: []
+candidate_rules:
+  - {id: jas.tijd.datum, status: gepland}
+  - {id: jas.tijd.duur, status: gepland}
+  - {id: jas.tijd.voorzetselgroep, status: gepland}
+  - {id: jas.tijd.periodewoord, status: gepland}
+confusable_classes:
+  - {klasse: Variabele en variabelewaarde, reden: "tijdswaarde als kenmerk", regel: JAS-PRIORITY-001}
+  - {klasse: Parameter en parameterwaarde, reden: "vaste termijn", regel: JAS-PRIORITY-001}
+  - {klasse: Rechtsfeit, reden: "tijdsverloop met rechtsgevolg of de startgebeurtenis"}
+negative_patterns:
+  - {patroon: "'voor' als doelvoorzetsel ('voor de loonbelasting')", reden: "geen tijdsvoorzetsel zonder tijdswoord"}
+required_context:
+  - "de startgebeurtenis of het tijdvak waarop de duur betrekking heeft"
+deterministic_detection_possible: hoog
+llm_needed_for:
+  - "grens: tot waar de startgebeurtenis loopt"
+  - "tijdsaanduiding tegenover rechtsfeit bij een gebeurtenis"
+test_cases:
+  - {bron: "referentieset:IW01", span: "zes weken na de dagtekening van het aanslagbiljet", verwacht: kandidaat, status: provisional}
+  - {bron: "referentieset:AWB04", span: "de eerste veertien dagen", verwacht: kandidaat, status: provisional}
+  - {bron: "H2:109", tekst: "Deze wet treedt in werking op 1 september 2009.", span: "1 september 2009", verwacht: kandidaat, status: synthetic}

@@ -1,0 +1,29 @@
+jas_class: Plaatsaanduiding
+bron: {omschrijving: "H2:116", vraag: "H2:117", uitdrukkingswijze: "H2:118"}
+begrippen:
+  - {naam: Plaatsaanduiding, subtype: ""}
+syntactic_signals:
+  - "voorzetselgroep met plaatsvoorzetsel ('in', 'binnen', 'buiten') + gebiedsnaam of -omschrijving"
+lexical_signals:
+  - "gazetteer: Nederland, Europees Nederland, Caribisch Nederland, Bonaire, Sint Eustatius, Saba, provincie, gemeente, lidstaat, Europese Unie, Zwitserland – H2:118"
+  - "algemene gebiedsomschrijving ('een lidstaat van de Europese Unie') – H2:118"
+semantic_signals:
+  - "werkingsgebied van de regel (H2:116); de meeste wetgeving heeft er geen"
+structural_signals: []
+candidate_rules:
+  - {id: jas.plaats.gazetteer, status: gepland}
+  - {id: jas.plaats.gebiedsomschrijving, status: gepland}
+confusable_classes:
+  - {klasse: Variabele en variabelewaarde, reden: "woonplaats als kenmerk", regel: JAS-PRIORITY-002}
+  - {klasse: Parameter en parameterwaarde, reden: "vast gebied", regel: JAS-PRIORITY-002}
+  - {klasse: Rechtssubject, reden: "'de gemeente' als bestuursorgaan tegenover als gebied"}
+negative_patterns:
+  - {patroon: "plaatsnaam in een eigennaam of wetstitel ('Wet … Bonaire')", reden: "citeertitel, geen werkingsgebied"}
+required_context:
+  - "of het gebied de toepassing van de regel begrenst"
+deterministic_detection_possible: middel
+llm_needed_for:
+  - "werkingsgebied tegenover toevallige plaatsnaam of bestuursorgaan"
+test_cases:
+  - {bron: "H2:118", tekst: "Deze regeling geldt in een lidstaat van de Europese Unie.", span: "een lidstaat van de Europese Unie", verwacht: kandidaat, status: synthetic}
+  - {bron: "H2:118", tekst: "Het besluit is van toepassing in de gemeente Amsterdam.", span: "de gemeente Amsterdam", verwacht: kandidaat, status: synthetic}

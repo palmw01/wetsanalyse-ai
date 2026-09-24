@@ -1,0 +1,27 @@
+jas_class: Brondefinitie
+bron: {omschrijving: "H2:134", vraag: "H2:135", uitdrukkingswijze: "H2:136"}
+begrippen:
+  - {naam: Brondefinitie, subtype: ""}
+syntactic_signals:
+  - "onderdeel '<term>: <omschrijving>' onder een definitie-aanhef"
+lexical_signals:
+  - "aanhef: 'wordt verstaan onder', 'In deze wet (en de daarop berustende bepalingen) wordt verstaan onder', 'Onder … wordt verstaan'"
+semantic_signals:
+  - "expliciete begripsomschrijving in de wetgeving (H2:134)"
+structural_signals:
+  - "artikel met aanhef en onderdelen, vaak aan het begin van de regeling – H2:136 (bronmodel: Lid/Onderdeel-boom)"
+candidate_rules:
+  - {id: jas.definitie.verstaan_onder, status: gepland}
+  - {id: jas.definitie.onderdeel_term_dubbelepunt, status: gepland}
+confusable_classes:
+  - {klasse: Voorwaarde, reden: "de omschrijving bevat vaak eisen ('voor zover …')"}
+  - {klasse: Rechtssubject, reden: "de gedefinieerde term kan een partij aanduiden"}
+negative_patterns:
+  - {patroon: "dubbele punt buiten een definitie-aanhef (inleiding van een opsomming)", reden: "geen begripsomschrijving"}
+required_context:
+  - "de aanhef van het definitieartikel of -lid"
+deterministic_detection_possible: hoog
+llm_needed_for:
+  - "grens van de omschrijving bij geneste onderdelen"
+test_cases:
+  - {bron: "referentieset:AWB01", span: "bestuurlijke sanctie: een door een bestuursorgaan wegens een overtreding opgelegde verplichting of onthouden aanspraak;", verwacht: kandidaat, status: provisional}

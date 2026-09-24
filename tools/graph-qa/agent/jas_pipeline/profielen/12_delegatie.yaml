@@ -1,0 +1,30 @@
+jas_class: Delegatiebevoegdheid en delegatie-invulling
+bron: {omschrijving: "H2:125", vraag: "H2:126", uitdrukkingswijze: "H2:127"}
+begrippen:
+  - {naam: Delegatiebevoegdheid, subtype: delegatiebevoegdheid}
+  - {naam: Delegatie-invulling, subtype: delegatie-invulling}
+syntactic_signals:
+  - "passief 'worden (nadere) regels gesteld' / 'kunnen (nadere) regels worden gesteld' met 'bij of krachtens' + regelingsvorm – H2:127"
+  - "aanhef van een gedelegeerde regeling: 'Gelet op artikel …' (invulling)"
+lexical_signals:
+  - "algemene maatregel van bestuur, ministeriële regeling, regeling van Onze Minister, bij of krachtens, nadere regels"
+semantic_signals:
+  - "opdracht of bevoegdheid om (nadere) regels te stellen, aan een specifiek rechtssubject (H2:125)"
+structural_signals:
+  - "invulling: grondslag in de graaf (WTI 'grondslag' van de gedelegeerde regeling) – getypeerde query, geen vrije SPARQL"
+candidate_rules:
+  - {id: jas.delegatie.regels_gesteld, status: gepland}
+  - {id: jas.delegatie.grondslag_wti, status: gepland}
+confusable_classes:
+  - {klasse: Rechtsbetrekking, reden: "een bevoegdheid in het algemeen tegenover delegatie van regelgeving"}
+negative_patterns:
+  - {patroon: "'regels' in andere betekenis ('de regels van het spel')", reden: "geen regelgevende bevoegdheid"}
+required_context:
+  - "het gedelegeerde onderwerp ('met betrekking tot …')"
+deterministic_detection_possible: hoog
+llm_needed_for:
+  - "grens: reikwijdte van het gedelegeerde onderwerp"
+  - "subtype: bevoegdheid of invulling bij tekstuele verwijzing"
+test_cases:
+  - {bron: "referentieset:IW04", span: "Bij ministeriële regeling worden nadere regels gesteld met betrekking tot de toepassing van het derde lid.", verwacht: kandidaat, status: provisional}
+  - {bron: "referentieset:WZT04", span: "Bij regeling van Onze Minister kunnen omtrent het bepaalde in het vijfde lid nadere regels worden gesteld.", verwacht: kandidaat, status: provisional}

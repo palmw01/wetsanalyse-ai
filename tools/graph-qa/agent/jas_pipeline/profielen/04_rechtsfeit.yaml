@@ -1,0 +1,30 @@
+jas_class: Rechtsfeit
+bron: {omschrijving: "H2:53", vraag: "H2:54", uitdrukkingswijze: "H2:55"}
+begrippen:
+  - {naam: Rechtsfeit, subtype: ""}
+syntactic_signals:
+  - "nominalisatie + 'van' + naamwoordgroep ('indienen van een bezwaarschrift', 'toekennen van een subsidie') – H2:55"
+  - "actieve werkwoordsvorm in een bijzin die een gevolg inleidt ('nadat …', 'zodra …', 'door …')"
+lexical_signals:
+  - "handelings- of gebeurteniswoorden: indienen, toekennen, horen, vaststellen, betalen, overlijden, verstrijken, dagtekening, bekendmaking"
+semantic_signals:
+  - "handeling, gebeurtenis of tijdsverloop die een juridische toestand wijzigt (H2:53)"
+structural_signals: []
+candidate_rules:
+  - {id: jas.feit.nominalisatie_van, status: gepland}
+  - {id: jas.feit.gebeurtenisbijzin, status: gepland}
+confusable_classes:
+  - {klasse: Voorwaarde, reden: "een feit als eis voor een rechtsgevolg ('indien … betaalt')"}
+  - {klasse: Tijdsaanduiding, reden: "tijdsverloop ('het verstrijken van de termijn') of een startgebeurtenis in een termijn"}
+  - {klasse: Rechtsobject, reden: "genominaliseerde handeling als voorwerp"}
+negative_patterns:
+  - {patroon: "elk werkwoord zonder aanwijsbaar rechtsgevolg", reden: "projectregel markeren-fragmentgrenzen: niet elk werkwoord"}
+required_context:
+  - "het rechtsgevolg of de rechtsbetrekking waar het feit op inwerkt"
+deterministic_detection_possible: laag
+llm_needed_for:
+  - "of er een rechtsgevolg aan verbonden is (H2:53)"
+  - "feit tegenover voorwaarde of tijdsaanduiding"
+test_cases:
+  - {bron: "H2:55", tekst: "Na het indienen van een bezwaarschrift beslist de inspecteur.", span: "indienen van een bezwaarschrift", verwacht: kandidaat, status: synthetic}
+  - {bron: "H2:55", tekst: "Het horen van belanghebbende kan achterwege blijven.", span: "horen van belanghebbende", verwacht: kandidaat, status: synthetic}
