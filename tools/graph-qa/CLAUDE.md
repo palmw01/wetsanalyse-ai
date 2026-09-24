@@ -879,6 +879,13 @@ dezelfde bepaling levert tussen runs sterk verschillende uitkomsten op (geel var
 dus één run is een anekdote. Lees precisie/recall en span-IoU als bandbreedte; de *garanties* horen
 wél op 100%.
 
+**Legacy tegen `hybrid_v1` meet `eval/compare_pipelines.py`** (ADR-001 PR 16): per casus dezelfde
+bronfixture voor beide routes, afwisselend per casus, en daarna P/R/F1 op positie, stabiliteit over de
+herhalingen, efficiëntie en foutcategorieën. De uitkomst draagt de referentiestatus; tegen de
+provisional referentieset heet recall *ankerdekking*. Het rapport meldt ook de maten voor alleen
+onbetwiste voorstellen, want een geel voorstel is een vraag aan de jurist en geen uitspraak.
+`--offline` toetst het harnas zonder kosten.
+
 **Hoe stabiel de keten is, meet een apart script**: `eval/stabiliteit.py` draait dezelfde
 ontwikkelcasussen N keer door de volledige keten, en `eval/stabiliteit_analyse.py` zet de runs
 op één lijn en telt per fase (annoteerder, na Critic) de detectie-, span- en klassestabiliteit plus
