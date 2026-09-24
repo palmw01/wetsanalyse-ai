@@ -38,8 +38,7 @@
     "samenhang": "N01: invorderbaarheid van aanslag vanaf tijdstip. R01: betrokken bevoegdheid en wederpartij vragen context; G01: tijdsverloop kan de juridische toestand wijzigen.",
     "scenario": "Normaal: bepaal de zeswekengrens vanuit dagtekening. Grens: net ervoor/erna onderscheiden. Onbekende dagtekening: datum niet bepaalbaar. Andere leden kunnen afwijken.",
     "reviewvraag": "Beoordeel of de dragende formulering als rechtsbetrekking of als beschrijving van een rechtsgevolg moet worden geduid; controleer art.9 overige leden en termijnrecht.",
-    "status": "concept",
-    "referentie_goedgekeurd": false
+    "referentie_status": "provisional"
   },
   {
     "id": "IW02",
@@ -136,8 +135,7 @@
     "samenhang": "N01 koppelt bestuurders, belastingschulden en kenmerken van het lichaam. De opsomming omvat meerdere belastingobjecten; de afzonderlijke belastingobjecten zijn met de gezamenlijke aansprakelijkheidsnorm verbonden.",
     "scenario": "Normaal: bestuurder van passend lichaam. Tegenvoorbeeld: lichaam buiten de kwalificatie. Alleen uit dit lid volgt nog geen definitief persoonlijk aansprakelijkheidsbesluit.",
     "reviewvraag": "Beoordeel de onderscheiden belastingobjecten en de voorwaarden uit volgende leden vóór vaststelling.",
-    "status": "concept",
-    "referentie_goedgekeurd": false
+    "referentie_status": "provisional"
   },
   {
     "id": "IW03",
@@ -226,8 +224,7 @@
     "samenhang": "N01: voorwaarde verwijst naar lid2, aansprakelijkheid naar lid3. N02: wettelijk vermoeden en tijdsfictie. N03: toegang tot weerlegging is niet hetzelfde als succesvolle weerlegging.",
     "scenario": "Bij gebrekkige melding activeert dit lid een vermoeden, geen onweerlegbaar bewijs. Onbekende verwijtbaarheid mag niet automatisch als schuld worden ingevuld.",
     "reviewvraag": "Lees leden2/3 en beoordeel de afbakening en klassen van vermoeden, fictie en toelatingsregel; bevestig dat succesvolle weerlegging niet wordt verondersteld.",
-    "status": "concept",
-    "referentie_goedgekeurd": false
+    "referentie_status": "provisional"
   },
   {
     "id": "IW04",
@@ -252,8 +249,7 @@
     "samenhang": "N01: delegatiegrondslag; koppeling naar concrete uitvoeringsregeling staat nog open. Geen burgerverplichting afleiden uitsluitend uit de opdracht tot regelgeving.",
     "scenario": "Normaal: gevonden uitvoeringsregel met passende grondslag. Ontbrekend: geen regeling in bronpakket; nadere norminhoud blijft onbekend.",
     "reviewvraag": "Controleer welke bepalingen daadwerkelijk uitvoering geven aan deze delegatie en op welke peildatum.",
-    "status": "concept",
-    "referentie_goedgekeurd": false
+    "referentie_status": "provisional"
   },
   {
     "id": "AWB01",
@@ -294,8 +290,7 @@
     "samenhang": "N01 betreft onderdeel a: bestuurlijke sanctie. De aanhef bepaalt het definitiebereik. Andere onderdelen blijven context en worden in AWB01–03 apart behandeld.",
     "scenario": "Een nadelig besluit zonder overtreding is niet reeds op deze omschrijving een bestuurlijke sanctie.",
     "reviewvraag": "Beoordeel volledige definitiegrenzen, samenhang met de andere definities en relevantie voor een concrete maatregel; nog geen toepassingsbesluit.",
-    "status": "concept",
-    "referentie_goedgekeurd": false
+    "referentie_status": "provisional"
   },
   {
     "id": "AWB02",
@@ -344,8 +339,7 @@
     "samenhang": "N01 betreft onderdeel b: herstelsanctie. De aanhef bepaalt het definitiebereik. Andere onderdelen blijven context en worden in AWB01–03 apart behandeld.",
     "scenario": "Een maatregel kan zowel beëindiging als voorkoming van herhaling nastreven; behandel dat niet automatisch als tegenstrijdigheid.",
     "reviewvraag": "Beoordeel volledige definitiegrenzen, samenhang met de andere definities en relevantie voor een concrete maatregel; nog geen toepassingsbesluit.",
-    "status": "concept",
-    "referentie_goedgekeurd": false
+    "referentie_status": "provisional"
   },
   {
     "id": "AWB03",
@@ -378,8 +372,7 @@
     "samenhang": "N01 betreft onderdeel c: bestraffende sanctie. De aanhef bepaalt het definitiebereik. Andere onderdelen blijven context en worden in AWB01–03 apart behandeld.",
     "scenario": "Een gemengde maatregel vraagt analyse van functie en bereik; niet iedere sanctie is bestraffend.",
     "reviewvraag": "Beoordeel volledige definitiegrenzen, samenhang met de andere definities en relevantie voor een concrete maatregel; nog geen toepassingsbesluit.",
-    "status": "concept",
-    "referentie_goedgekeurd": false
+    "referentie_status": "provisional"
   },
   {
     "id": "AWB04",
@@ -460,8 +453,7 @@
     "samenhang": "N01: dagnummer selecteert tarief; totaal volgt uit toepasselijke dagen. Het ontstaan en maximum van de dwangsom vragen andere leden. Alle drie tijdvakken en tarieven zijn afzonderlijk opgenomen.",
     "scenario": "Als toepasselijkheid vaststaat: dag14 en15 hebben verschillende staffels. Onbekende ingangsdatum: totaal niet berekenbaar.",
     "reviewvraag": "Controleer overige leden, maximum en overgangsrecht en beoordeel de volledige staffel vóór goldvaststelling.",
-    "status": "concept",
-    "referentie_goedgekeurd": false
+    "referentie_status": "provisional"
   },
   {
     "id": "WZT01",
@@ -566,8 +558,7 @@
     "samenhang": "N01: aanspraak bij positieve verschilwaarde. N02: partnervariant en gezamenlijke aanspraak.",
     "scenario": "Normpremie lager dan standaardpremie: positieve verschilwaarde in de enkelvoudige variant. Gelijk: voorwaarde niet vervuld. Partner: andere berekeningsbasis.",
     "reviewvraag": "Controleer definities verzekerde/partner, vermogensuitsluiting en maandbepaling; tariefwaarden niet uit deze tekst afleiden.",
-    "status": "concept",
-    "referentie_goedgekeurd": false
+    "referentie_status": "provisional"
   },
   {
     "id": "WZT02",
@@ -656,8 +647,7 @@
     "samenhang": "N01: basiscomponent plus component over inkomensoverschrijding. N02: gezamenlijke inkomensbasis bij partner.",
     "scenario": "Toetsingsinkomen onder/gelijk/boven drempel: overschrijding niet stilzwijgend negatief maken. Zonder percentages geen numerieke uitkomst.",
     "reviewvraag": "Volg art.1/2lid3 en geldende percentages; beoordeel variabele versus parameter van drempelinkomen.",
-    "status": "concept",
-    "referentie_goedgekeurd": false
+    "referentie_status": "provisional"
   },
   {
     "id": "WZT03",
@@ -714,8 +704,7 @@
     "samenhang": "N01 koppelt uitkomst van lid1 aan factor0,5, alleen bij de beschreven partnerstatus.",
     "scenario": "Partner niet verzekerd: halve lid1-uitkomst. Partner wel verzekerd: deze uitzondering niet toepassen. Status onbekend: uitkomst onzeker.",
     "reviewvraag": "Verifieer definitiebereik verzekerde; beoordeel of volledige voorwaardelijke formulering ruimer moet worden gemarkeerd.",
-    "status": "concept",
-    "referentie_goedgekeurd": false
+    "referentie_status": "provisional"
   },
   {
     "id": "WZT04",
@@ -748,8 +737,7 @@
     "samenhang": "N01: bevoegdheid tot nadere regels over lid5, geen bewijs dat deze bevoegdheid is gebruikt.",
     "scenario": "Regeling gevonden: toets inhoud en grondslag. Geen regeling gevonden: inhoud van nadere regels onbekend, niet verzinnen.",
     "reviewvraag": "Volg lid5, definitie Onze Minister en feitelijke delegatie-invulling.",
-    "status": "concept",
-    "referentie_goedgekeurd": false
+    "referentie_status": "provisional"
   },
   {
     "id": "RVV01",
@@ -790,8 +778,7 @@
     "samenhang": "R01: verlof voetgangers bij groen. Wederpartij niet automatisch Staat.",
     "scenario": "Groen: beschreven verlof. Andere lichtkleur: niet uit deze tak afleiden.",
     "reviewvraag": "Onderzoek rangorde van aanwijzingen; bepaal een eventuele wederpartij op grond van context.",
-    "status": "concept",
-    "referentie_goedgekeurd": false
+    "referentie_status": "provisional"
   },
   {
     "id": "RVV02",
@@ -840,8 +827,7 @@
     "samenhang": "N01 verlof; N02 waarschuwing voor komende toestand, niet een bevel om snel te lopen.",
     "scenario": "Groen knipperen: oversteken toegestaan volgens deze tak. Geen exacte resterende seconden uit spoedig afleiden.",
     "reviewvraag": "Beoordeel of de waarschuwende uitspraak aanvullende markering behoeft zonder haar tot rechtsfeit te verheffen.",
-    "status": "concept",
-    "referentie_goedgekeurd": false
+    "referentie_status": "provisional"
   },
   {
     "id": "RVV03",
@@ -898,8 +884,7 @@
     "samenhang": "R01 verbod en R02 doorloopplicht hebben andere actorstatus. Geen algemene plicht om midden op de weg te stoppen.",
     "scenario": "Rood vóór vertrek: niet beginnen. Rood tijdens oversteken: doorlopen zo snel mogelijk.",
     "reviewvraag": "Controleer redelijke duiding van zo snel mogelijk en rangorde met aanwijzingen; geen exacte loopsnelheid verzinnen.",
-    "status": "concept",
-    "referentie_goedgekeurd": false
+    "referentie_status": "provisional"
   },
   {
     "id": "RVV04",
@@ -932,8 +917,7 @@
     "samenhang": "N01 signaalbetekenis; N02 voorzichtigheidsnorm. Geen onvoorwaardelijke oversteektoestemming uit deze zin.",
     "scenario": "Geel knipperen: voorzichtigheid. Concrete voorrang kan niet uitsluitend uit deze formulering worden beslist.",
     "reviewvraag": "Lees historische art.74lid2; houd versie1990 apart van latere expliciete voorrangsregel.",
-    "status": "concept",
-    "referentie_goedgekeurd": false
+    "referentie_status": "provisional"
   },
   {
     "id": "BW01",
@@ -982,8 +966,7 @@
     "samenhang": "G01: totstandkoming door aanbod en aanvaarding. Voorwaarden voor geldigheid/toepasselijkheid staan elders.",
     "scenario": "Alleen aanbod: totstandkoming volgt niet. Passende aanvaarding: constitutieve combinatie, mits overige vereisten vervuld.",
     "reviewvraag": "Controleer Boek3 geldigheid en art.217lid2; beoordeel objectduiding en volledige juridische gevolgrelatie.",
-    "status": "concept",
-    "referentie_goedgekeurd": false
+    "referentie_status": "provisional"
   },
   {
     "id": "BW02",
@@ -1024,8 +1007,7 @@
     "samenhang": "R01 herroepbaarheid beperkt door twee uitzonderingen; G01 feitelijke herroeping is nog niet gegeven.",
     "scenario": "Aanbod met aanvaardingstermijn: uitzondering. Zonder termijn maar anderszins onherroepelijk: eveneens uitzondering.",
     "reviewvraag": "Volg art.217lid2 en219 overige leden; geen actorcitaat toevoegen dat niet in de tekst staat.",
-    "status": "concept",
-    "referentie_goedgekeurd": false
+    "referentie_status": "provisional"
   },
   {
     "id": "BW03",
@@ -1090,8 +1072,7 @@
     "samenhang": "N01 begrenst herroepingsmoment; N02 uitzonderingsroute vrijblijvend aanbod.",
     "scenario": "Aanvaarding verzonden maar niet ontvangen: niet negeren. Vrijblijvend: beoordeel aanvullende route; onverwijld is geen zelfbedachte24uur.",
     "reviewvraag": "Lees samen met lid1 en verklaringsregels; beoordeel volledige rechtsbetrekkingsmarkeringen.",
-    "status": "concept",
-    "referentie_goedgekeurd": false
+    "referentie_status": "provisional"
   },
   {
     "id": "BW04",
@@ -1164,8 +1145,7 @@
     "samenhang": "G01/G02: verval afhankelijk van vorm en tijdige aanvaarding; ellips alleen analytisch aanvullen.",
     "scenario": "Schriftelijk aanbod na één dag: niet zonder context vervallen verklaren. Aanvaarding onbekend: verval niet vast te stellen.",
     "reviewvraag": "Controleer art.217lid2 en context van redelijke tijd; beoordeel rechtsfeitfragmenten versus gevolgomschrijving.",
-    "status": "concept",
-    "referentie_goedgekeurd": false
+    "referentie_status": "provisional"
   },
   {
     "id": "OW01",
@@ -1190,8 +1170,7 @@
     "samenhang": "N01 doelbepaling als interpretatieve context. Geen individuele aanspraak of vergunninguitkomst uitsluitend uit het doel afleiden.",
     "scenario": "Een activiteit ondersteunt gebruik maar schaadt kwaliteit: beide doelen zichtbaar houden; geen automatische goedkeuring.",
     "reviewvraag": "Beoordeel of de expliciete verbinding als operator zinvol is; het doel zelf staat in de contextkaart en wordt niet tot individuele aanspraak verheven. Hoe werkt dit doel via concrete bevoegdheidsnormen?",
-    "status": "concept",
-    "referentie_goedgekeurd": false
+    "referentie_status": "provisional"
   },
   {
     "id": "OW02",
@@ -1232,8 +1211,7 @@
     "samenhang": "R01 zorgplicht; inhoud en verhouding tot specifieke regels vragen1.2/1.7/1.8. Geen wederpartij of sanctie verzinnen.",
     "scenario": "Activiteit met onbekende gevolgen: niet automatisch voldoende zorg. Geen exact meetgetal uit voldoende afleiden.",
     "reviewvraag": "Lees bereik1.2 en verhouding1.8; beoordeel open norm aan passende context en bronnen.",
-    "status": "concept",
-    "referentie_goedgekeurd": false
+    "referentie_status": "provisional"
   },
   {
     "id": "OW03",
@@ -1322,8 +1300,7 @@
     "samenhang": "N01 kennisdrempel; R01 voorkomen, R02 beperken/ongedaan maken, R03 achterwege laten. De gedeelde aanhef en gescheiden onderdelen blijven verbonden.",
     "scenario": "Gevolgen onvoorkombaar maar beperkbaar: beoordeel takb. Onvoldoende beperkbaar: takc plus redelijkheidsbegrenzing.",
     "reviewvraag": "Beoordeel de aanhef en plichtfragmenten als samenhangend geheel, de koppeling met1.8 en de betekenis van redelijkerwijs.",
-    "status": "concept",
-    "referentie_goedgekeurd": false
+    "referentie_status": "provisional"
   },
   {
     "id": "OW04",
@@ -1356,7 +1333,6 @@
     "samenhang": "N01 koppelt naleving van specifieke regels aan voldoen aan zorgplichten binnen het beschreven bereik. Omgekeerde gevolgtrekking is niet automatisch geldig.",
     "scenario": "Passende specifieke regels nageleefd: route tot voldoen. Niet nageleefd: niet uit deze zin alleen concluderen welke overtreding/sanctie geldt.",
     "reviewvraag": "Lees1.6/1.7 en de specifieke norm. Beoordeel bereik voor zover; niet als volledige uitschakeling van elke zorgplicht lezen.",
-    "status": "concept",
-    "referentie_goedgekeurd": false
+    "referentie_status": "provisional"
   }
 ]
