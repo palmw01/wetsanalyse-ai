@@ -123,6 +123,24 @@ Ook aan de antwoordkant blijft het gescheiden: `check_grounding`
 (`tools/graph-qa/agent/grounding.py`) laat de resultaten van de annotatietools bewust buiten het
 bewijs voor een wetsclaim. Een annotatie is afgeleide duiding en kan een vindplaats niet dragen.
 
+## Structurele validatie (SHACL)
+
+Sinds ADR-001 PR 14 beschrijft `api/app/shapes/jas-v2.ttl` dit model in SHACL. De shapes zijn
+verdeeld in twee groepen, en die scheiding is de kern:
+
+- **`jasv:RdfStructuur`**: de projectie is structureel geldige RDF volgens dit model (typen,
+  cardinaliteit, datatypes, precies één positie- en één citaatselector, `oa:start < oa:end`).
+- **`jasv:JasModel`**: het JAS-model klopt (klasse uit de dertien canonieke namen, geldige
+  lifecycle en laagstatus, bron onder `urn:bwb:`, een SHA256-bronhash, en invariant 1 hierboven:
+  geen subject onder `urn:bwb:`).
+
+Wat SHACL niet kan zeggen, is of een annotatie **juridisch juist** is. Dat blijft de jurist.
+
+De shapes zijn **niet-blokkerend**: ze draaien in `api/tests/test_shacl.py` (en dus in `poort`)
+en via `app/shacl.valideer(graph)` als diagnose, niet in het schrijfpad. `pyshacl` is een
+dev-afhankelijkheid; zonder die dependency geeft de diagnose `beschikbaar: false` in plaats van te
+falen. Een drift-test houdt de klassen- en lifecycle-lijst in de shapes gelijk aan de api.
+
 ## Wie de laag leest
 
 - **De api zelf**, voor `search_annotaties`: `graaf_projectie_v2.zoek_kandidaten` stelt een getypeerde
