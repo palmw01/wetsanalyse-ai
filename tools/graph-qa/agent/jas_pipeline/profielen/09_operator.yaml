@@ -1,0 +1,33 @@
+jas_class: Operator
+bron: {omschrijving: "H2:98", vraag: "H2:99", uitdrukkingswijze: "H2:100"}
+begrippen:
+  - {naam: Operator, subtype: ""}
+syntactic_signals:
+  - "nevenschikkend voegwoord (cc) tussen voorwaarden, clauses of termen van een berekening – logische operator"
+  - "ontkenning (advmod 'niet', 'geen') binnen een voorwaarde – negatie (H2:98)"
+  - "vergelijkende constructie: 'groter dan', 'kleiner dan', 'meer bedraagt dan', 'minder bedraagt dan', 'is gelijk aan' – H2:100"
+lexical_signals:
+  - "rekenkundig: 'het gezamenlijke bedrag van', 'de som van', 'vermeerderd met', 'verminderd met', 'percentage van', 'tweemaal' – H2:100"
+  - "logisch: 'en', 'of', 'niet', 'ten minste', 'dan wel' – H2:100"
+semantic_signals:
+  - "verbindt elementen van een berekening of (samengestelde) voorwaarde (H2:98)"
+structural_signals:
+  - "'en'/'of' aan het eind van een opsommingsonderdeel verbindt de onderdelen (cumulatief/alternatief)"
+candidate_rules:
+  - {id: jas.operator.rekenkundig, status: gepland}
+  - {id: jas.operator.vergelijking, status: gepland}
+  - {id: jas.operator.logisch, status: gepland}
+confusable_classes:
+  - {klasse: Afleidingsregel, reden: "de operator is een deel van de regel, niet de regel"}
+  - {klasse: Voorwaarde, reden: "de vergelijking tegenover de hele voorwaarde"}
+negative_patterns:
+  - {patroon: "'en'/'of' binnen één naamwoordgroep ('de omzetbelasting en de accijns' als opsomming van objecten)", reden: "projectregel markeren-fragmentgrenzen: 'en' kan woorden binnen één naamwoordgroep verbinden"}
+  - {patroon: "'en' binnen een woord of eigennaam", reden: "geen token/geen coördinatie"}
+required_context:
+  - "de operanden (voorwaarden, variabelen of parameters) die hij verbindt"
+deterministic_detection_possible: hoog
+llm_needed_for:
+  - "'en'/'of' tussen objecten binnen een groep tegenover tussen voorwaarden"
+test_cases:
+  - {bron: "referentieset:WZT02", span: "vermeerderd met", verwacht: kandidaat, status: provisional}
+  - {bron: "referentieset:WZT01", span: "minder bedraagt dan", verwacht: kandidaat, status: provisional}

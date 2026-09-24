@@ -27,6 +27,9 @@ dependencies = [
     # Kwam mee via langgraph-checkpoint-postgres; de gedeelde run-store hangt er direct van
     # af, dus hij hoort hier expliciet te staan.
     "psycopg-pool>=3.2",
+    # De detectieprofielen van de hybride JAS-pijplijn staan als YAML (agent/jas_pipeline/profielen).
+    # Kwam al transitief mee via uvicorn[standard]; wat je importeert hoor je te declareren.
+    "pyyaml>=6",
 ]
 # NB: Settings gebruikt bewust een gewone pydantic BaseModel (agent/config.py),
 # niet pydantic-settings – geen extra runtime-dependency nodig.

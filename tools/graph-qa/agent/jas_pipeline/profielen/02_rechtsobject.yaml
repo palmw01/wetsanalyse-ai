@@ -1,0 +1,32 @@
+jas_class: Rechtsobject
+bron: {omschrijving: "H2:35", vraag: "H2:36", uitdrukkingswijze: "H2:37"}
+begrippen:
+  - {naam: Rechtsobject, subtype: ""}
+syntactic_signals:
+  - "naamwoordgroep met relatie obj of obl bij een normatief predicaat of rechtsfeit"
+  - "naamwoordgroep na 'ter zake van', 'voor', 'op' bij een verschuldigdheid of aanspraak"
+  - "aanwijzend of betrekkelijk voornaamwoord ('dat', 'hetgeen', 'welk(e)') – H2:37"
+lexical_signals:
+  - "kopnaamwoord voor een belasting, heffing, aanslag, toeslag, sanctie, vergunning, uitkering, zaak of dienst"
+semantic_signals:
+  - "voorwerp van een recht, plicht of rechtsfeit; waarover iets verschuldigd is (H2:36)"
+structural_signals:
+  - "elk opsommingsonderdeel onder een aanhef als 'voor de …' is een afzonderlijke kandidaat"
+candidate_rules:
+  - {id: jas.object.np_bij_normatief_predicaat, status: gepland}
+  - {id: jas.object.opsommingsonderdeel, status: gepland}
+confusable_classes:
+  - {klasse: Rechtssubject, reden: "beide naamwoordgroep"}
+  - {klasse: Variabele en variabelewaarde, reden: "een bedrag of toeslag kan de uitkomst van een afleiding zijn"}
+  - {klasse: Rechtsfeit, reden: "een genominaliseerde handeling ('de betaling') kan voorwerp of feit zijn"}
+negative_patterns:
+  - {patroon: "naamwoord in een wettelijke verwijzing ('artikel 9, derde lid')", reden: "verwijzing, geen voorwerp"}
+required_context:
+  - "het predicaat of rechtsfeit waar het voorwerp bij hoort"
+deterministic_detection_possible: laag
+llm_needed_for:
+  - "voorwerp tegenover subject, variabele of rechtsfeit"
+test_cases:
+  - {bron: "referentieset:IW01", span: "Een belastingaanslag", verwacht: kandidaat, status: provisional}
+  - {bron: "referentieset:IW02", span: "de loonbelasting", verwacht: kandidaat, status: provisional}
+  - {bron: "referentieset:WZT01", span: "een zorgtoeslag", verwacht: kandidaat, status: provisional}

@@ -1,0 +1,37 @@
+jas_class: Rechtssubject
+bron: {omschrijving: "H2:26", vraag: "H2:27", uitdrukkingswijze: "H2:28"}
+begrippen:
+  - {naam: Rechtssubject, subtype: ""}
+syntactic_signals:
+  - "naamwoordgroep (np of np_kern) met relatie nsubj, nsubj:pass, obl:agent of iobj bij een normatief predicaat"
+  - "persoonlijk voornaamwoord als onderwerp ('hij', 'zij', soms 'het') – H2:28"
+  - "onbepaald of betrekkelijk voornaamwoord ('iemand', 'een ieder', 'degene', 'die') – H2:28"
+lexical_signals:
+  - "kopnaamwoord in het rollexicon: belastingplichtige, inspecteur, ontvanger, Onze Minister, bestuursorgaan, bestuurder, lichaam, verzekerde, partner, overtreder, voetganger, werkgever"
+  - "suffix van een persoonsaanduiding: -plichtige, -gerechtigde, -hebbende, -houder, -nemer, -gever"
+semantic_signals:
+  - "drager van een recht of plicht in de bepaling (H2:26); geen louter grammaticaal onderwerp"
+structural_signals:
+  - "partij genoemd in de aanhef van een opsomming geldt voor alle onderdelen"
+candidate_rules:
+  - {id: jas.subject.np_bij_normatief_predicaat, status: gepland}
+  - {id: jas.subject.rollexicon, status: gepland}
+  - {id: jas.subject.voornaamwoord, status: gepland}
+confusable_classes:
+  - {klasse: Rechtsobject, reden: "beide naamwoordgroep; een persoon kan ook voorwerp zijn (H2:35)"}
+  - {klasse: Variabele en variabelewaarde, reden: "een kenmerk van een persoon ('gehuwde partner') kan een variabele zijn"}
+negative_patterns:
+  - {patroon: "grammaticaal onderwerp van een passieve zin zonder dragende partij ('De aanslag wordt …')", reden: "projectregel markeren-fragmentgrenzen: een grammaticaal onderwerp is niet automatisch rechtssubject"}
+  - {patroon: "persoon in een kwalificatie van een ander element", reden: "projectregel markeren-fragmentgrenzen: andere juridische functie"}
+required_context:
+  - "het normatieve predicaat van de zin (wie heeft het recht of de plicht)"
+  - "het antecedent van een voornaamwoord"
+deterministic_detection_possible: middel
+llm_needed_for:
+  - "drager van recht/plicht tegenover grammaticaal onderwerp of object"
+  - "antecedent bij 'hij', 'deze', 'dergelijke' als de parse het niet eenduidig maakt"
+test_cases:
+  - {bron: "referentieset:RVV01", span: "voetgangers", verwacht: kandidaat, status: provisional}
+  - {bron: "referentieset:WZT04", span: "Onze Minister", verwacht: kandidaat, status: provisional}
+  - {bron: "referentieset:IW03", span: "een bestuurder", verwacht: kandidaat, status: provisional}
+  - {bron: "H2:28", tekst: "Iemand die een aangifte doet, is verplicht die te ondertekenen.", span: "Iemand", verwacht: kandidaat, status: synthetic}

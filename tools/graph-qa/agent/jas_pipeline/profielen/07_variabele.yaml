@@ -1,0 +1,35 @@
+jas_class: Variabele en variabelewaarde
+bron: {omschrijving: "H2:80", vraag: "H2:81", uitdrukkingswijze: "H2:82"}
+begrippen:
+  - {naam: Variabele, subtype: variabele}
+  - {naam: Variabelewaarde, subtype: variabelewaarde}
+syntactic_signals:
+  - "naamwoordgroep die een eigenschap noemt ('het toetsingsinkomen van de verzekerde', 'de hoogte van …')"
+  - "onderwerp van een afleidingsregel (uitvoervariabele)"
+  - "limitatieve opsomming van mogelijke waarden (enumeratie) – H2:82"
+lexical_signals:
+  - "inkomen, bedrag, hoogte, duur, aantal, leeftijd, naam, geregistreerd"
+  - "concrete waarde: getal, datum, bedrag – variabelewaarde (H2:82)"
+semantic_signals:
+  - "kenmerk dat per instantie kan verschillen (H2:80), tegenover een parameter die voor iedereen gelijk is (H2:89)"
+structural_signals: []
+candidate_rules:
+  - {id: jas.variabele.eigenschap_np, status: gepland}
+  - {id: jas.variabele.uitvoer_van_afleiding, status: gepland}
+  - {id: jas.waarde.numeriek, status: gepland}
+confusable_classes:
+  - {klasse: Parameter en parameterwaarde, reden: "variabel per geval of constant voor iedereen"}
+  - {klasse: Tijdsaanduiding, reden: "specifiekere klasse bij een tijdswaarde", regel: JAS-PRIORITY-001}
+  - {klasse: Plaatsaanduiding, reden: "specifiekere klasse bij een plaatswaarde", regel: JAS-PRIORITY-002}
+  - {klasse: Rechtsobject, reden: "bedrag of toeslag als voorwerp"}
+negative_patterns:
+  - {patroon: "rangtelwoord of nummer in een verwijzing ('derde lid', 'artikel 9')", reden: "verwijzing, geen waarde"}
+required_context:
+  - "het subject of object waarvan het een kenmerk is"
+deterministic_detection_possible: laag
+llm_needed_for:
+  - "variabele tegenover parameter"
+  - "subtype: variabele of variabelewaarde"
+test_cases:
+  - {bron: "referentieset:WZT02", span: "het drempelinkomen", verwacht: kandidaat, status: provisional}
+  - {bron: "referentieset:AWB04", span: "De dwangsom", verwacht: kandidaat, status: provisional}

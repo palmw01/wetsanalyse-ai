@@ -1,0 +1,36 @@
+jas_class: Rechtsbetrekking
+bron: {omschrijving: "H2:44", vraag: "H2:45", uitdrukkingswijze: "H2:46"}
+begrippen:
+  - {naam: Rechtsbetrekking, subtype: ""}
+syntactic_signals:
+  - "predicaat met modaal hulpwerkwoord: 'kan', 'mag', 'moet', 'dient te' + hoofdwerkwoord – H2:46"
+  - "vaste werkwoordelijke uitdrukking van recht of plicht: 'heeft recht op', 'heeft aanspraak op', 'heeft de plicht om', 'draagt de last om', 'is verplicht', 'is bevoegd' – H2:46"
+  - "koppelwerkwoord + normatief adjectief: 'is aansprakelijk', 'is verschuldigd', 'is invorderbaar'"
+  - "ontkenning binnen het predicaat ('mag niet', 'is niet verplicht') hoort bij dezelfde kandidaat"
+lexical_signals:
+  - "lemma's: kunnen, mogen, moeten, dienen, verplicht, bevoegd, aansprakelijk, verschuldigd, gehouden, gerechtigd, aanspraak, recht"
+semantic_signals:
+  - "juridische verhouding tussen twee rechtssubjecten, recht tegenover plicht (H2:44)"
+structural_signals:
+  - "spanoptie: de volledige normclause (projectregel: bij een enkelvoudige normzin de hele zin)"
+candidate_rules:
+  - {id: jas.betrekking.modaal_predicaat, status: gepland}
+  - {id: jas.betrekking.vaste_uitdrukking, status: gepland}
+  - {id: jas.betrekking.normatief_adjectief, status: gepland}
+confusable_classes:
+  - {klasse: Rechtsfeit, reden: "een handeling in de norm ('mag oversteken') tegenover de norm zelf"}
+  - {klasse: Afleidingsregel, reden: "'is … verschuldigd' kan een uitkomst van een berekening inleiden"}
+  - {klasse: Delegatiebevoegdheid en delegatie-invulling, reden: "'kunnen regels worden gesteld' is een bevoegdheid, maar delegatie is specifieker"}
+negative_patterns:
+  - {patroon: "los hulpwerkwoord of gezegde zonder partij of object", reden: "projectregel annotatieprotocol: een geïsoleerd gezegde is slechts een herkenningssignaal"}
+  - {patroon: "'kunnen regels worden gesteld' / 'worden regels gesteld'", reden: "delegatiepatroon (H2:127) – hoort bij Delegatiebevoegdheid"}
+required_context:
+  - "de partijen (subject, eventueel wederpartij) en het object in dezelfde uitspraak"
+deterministic_detection_possible: middel
+llm_needed_for:
+  - "recht of plicht tussen rechtssubjecten tegenover louter handeling of toestand"
+  - "keuze tussen spanopties: predicaat of volledige normclause"
+test_cases:
+  - {bron: "referentieset:RVV01", span: "voetgangers mogen oversteken", verwacht: kandidaat, status: provisional}
+  - {bron: "referentieset:IW01", span: "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.", verwacht: kandidaat, status: provisional}
+  - {bron: "H2:46", tekst: "De belanghebbende kan verzoeken om uitstel.", span: "kan verzoeken", verwacht: kandidaat, status: synthetic}
