@@ -25,6 +25,7 @@ from ..models import AnnotatieAlternatief, AnnotatieVoorstel
 from .besluit import Beslissing, deterministisch
 from .classificatie import batches, classificeer, optie_ids, promptversie
 from .dekking import controleer_a, structureel
+from .validatie import valideer
 from .detectoren import BronTekst, detecteer_alles
 from .fusie import Fusie, fuseer
 from .kandidaten import Candidate, CandidateStatus
@@ -114,7 +115,7 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
 
     kaart = CorpusMap(corpus_segmenten)
     per_id = fusie.per_id()
-    voorstellen, gezien = [], set()
+    paren, gezien = [], set()
     for b in sorted(beslissingen, key=lambda b: b.label):
         if b.status is not CandidateStatus.ACCEPTED:
             continue
@@ -122,7 +123,15 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
         sleutel = (v["ankers"][0]["bron_iri"], v["ankers"][0]["start"], v["ankers"][0]["eind"], v["klasse"])
         if sleutel not in gezien:                 # twee kandidaten die op dezelfde optie uitkomen
             gezien.add(sleutel)
-            voorstellen.append(v)
+            paren.append((v, b))
+
+    # Validatie vóór de uitgang (PR 11): een structurele fout haalt het voorstel eruit en maakt
+    # de beslissing REJECTED met de foutcode – zichtbaar in de meting, niet stil.
+    voorstellen, bevindingen = valideer(paren, per_id, snapshot, {"model": model, **meting})
+    fout = {x.label: x for x in bevindingen if x.ernst == "fout"}
+    beslissingen = [b.model_copy(update={"status": CandidateStatus.REJECTED, "reden": f"VALIDATION_ERROR:{fout[b.label].code}"})
+                    if b.label in fout else b for b in beslissingen]
+    meting["validatie"] = [x.model_dump() for x in bevindingen]
     meting["deterministisch"] = sum(b.door != "model" for b in beslissingen)
     # Dekking A: gooit als een kandidaat zonder beslissing bleef – dat is een fout in de keten,
     # geen uitkomst om te rapporteren.
