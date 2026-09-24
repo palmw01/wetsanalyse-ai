@@ -47,6 +47,13 @@ en geen bijvangst. De annotatieketen wordt door één helper (`annotatieketen()`
 in elke tak identiek; de antwoordketen staat per tak apart, omdat die echt verschilt
 (`verify → resynth` bij decompositie, `verify → correct` bij planning).
 
+**`agent/jas_pipeline/` is de hybride annotatiepijplijn in opbouw** (ADR-001,
+`docs/architectuur/adr-001-hybride-jas-pijplijn.md`): pure functies zonder LangGraph, die pas via de
+vlag `ANNOTATION_PIPELINE` in een beurt komen. Tot nu toe staat er de taalanalyse (`taal/`: een
+UD-model, verwisselbare providers en afgeleide constituenten/spanopties; de keuze voor spaCy
+`nl_core_news_md` staat in `docs/architectuur/adr-002-taalprovider.md`). Vraagt de `nlp`-extra;
+zonder die extra degradeert de provider zichtbaar (`niveau=TOKENS`, reden in `fout`), hij gooit niet.
+
 Ondersteunend, op agent-niveau omdat meerdere ketens ze delen: `agent/state.py` (de State),
 `agent/berichten.py` (het venster naar de LLM), `agent/narratie.py` (de statusregels) en
 `agent/doel.py` (waar gaat deze beurt over, en welke tekst hoort erbij).

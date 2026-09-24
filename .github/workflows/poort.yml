@@ -441,7 +441,9 @@ jobs:
           # Zet de integratietests van de gedeelde run-store aan; zonder deze slaan ze zichzelf over.
           RUNSTORE_TEST_DSN: postgresql://test:test@localhost:5432/test
         run: |
-          uv sync --extra dev --extra mcp
+          # `nlp`: de taalanalyse van de hybride JAS-pijplijn (ADR-002). Zonder die extra slaan de
+          # tests tegen de echte parser zichzelf over, en dan bewaakt niets het providercontract.
+          uv sync --extra dev --extra mcp --extra nlp
           uv run python scripts/genereer_jas_klassen.py --check
           uv run pytest -q
 
