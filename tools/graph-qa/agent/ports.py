@@ -65,6 +65,8 @@ class LLMPort(Protocol):
         system: Systeem,
         tools: list[dict[str, Any]],
         messages: list[dict[str, Any]],
+        tool_choice: dict[str, Any] | None = None,
+        temperature: float | None = None,
     ) -> Any: ...
 
     def stream(

@@ -33,6 +33,14 @@ COPY tools/graph-qa/eval/ eval/
 # omviel met "No module named 'langgraph.checkpoint.postgres'". Eén lijst, één bron van waarheid.
 RUN pip install --no-cache-dir /packages/bronmodel '.[otel]' "msgpack>=1.1.0"
 
+# De taalanalyse van de hybride JAS-pijplijn (ADR-002): spaCy + het Nederlandse md-model. Niet via
+# '.[nlp]', want het model staat niet op PyPI en pip kent de `tool.uv.sources`-URL niet. Deze regel
+# en pyproject.toml moeten dezelfde versie en URL noemen; `tests/test_deploy_drift.py` bewaakt dat.
+# Zonder dit pakket draait `ANNOTATION_PIPELINE=hybrid_v1` gedegradeerd (alleen tokens), zichtbaar
+# in de run-provenance; de legacy-keten gebruikt het niet.
+RUN pip install --no-cache-dir "spacy>=3.8,<3.9" \
+    "https://github.com/explosion/spacy-models/releases/download/nl_core_news_md-3.8.0/nl_core_news_md-3.8.0-py3-none-any.whl"
+
 # Non-root + /data voor de durable checkpointer-db (named volume; CHECKPOINT_DB_PATH=/data/...).
 #
 # `chmod -R a+rX /app` maakt de build onafhankelijk van de umask van wie 'm bouwt: COPY neemt de

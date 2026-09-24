@@ -137,6 +137,54 @@ def _doel_event(doel: dict[str, Any], velden: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _bereid_voor(b: Bouw, state: State, writer) -> dict[str, Any]:
+    """Wat élke annotatieroute vóór het analyseren doet: de bron gericht ophalen, hergebruik en
+    afronding toetsen, het `doel`-event bij volledig hergebruik. Geeft `{"klaar": update}` als de
+    beurt hier eindigt, anders doel, bron, hergebruik, soort en aanduiding.
+
+    Gedeeld door de legacy-annoteerder en de hybride keten (ADR-001 PR 9), zodat beide routes
+    aantoonbaar dezelfde bron en dezelfde hergebruikregels gebruiken voordat ze uiteenlopen.
+    """
+    doel = _bepaal_doel(state)
+    # Gericht ophalen op basis van het doel – niet reconstrueren uit de trace. Zie
+    # `_corpus_voor_doel`: die reconstructie mengt bepalingen en is afgekapt op 8000 tekens.
+    aanduiding = doel.get("artikel") or doel.get("nummer") or ""
+    try:
+        bron = lees_bron(b, state, doel, writer)
+        bron, hergebruik = _pas_hergebruik_toe(b, state, doel, bron)
+    except (OngeldigeVindplaats, BronFout) as fout:
+        # De beurt eindigt hier, en dat is de bedoeling. Doorgaan zou markeringen opleveren onder een
+        # aanduiding die de werkplek niet kan openen – de jurist ziet dan pas bij het openen dat er
+        # iets mis is, en heeft ondertussen een document in zijn werkvoorraad dat nergens bij hoort.
+        melding = (
+            f"Ik kan de gevraagde bepaling nu niet annoteren: {fout}."
+        )
+        writer({"type": "token", "content": melding})
+        return {"klaar": {"answer": melding, "voorstellen": [], "messages": [{"role": "assistant", "content": melding}]}}
+
+    corpus = bron["corpus"]
+    soort = bron["bron_snapshot"]["doel"]["type"]
+    doel = _bepaal_doel({**state, **bron})
+    aanduiding = doel.get("artikel") or doel.get("nummer") or ""
+    if not corpus.strip():
+        melding = (
+            "Ik kon de gevraagde bepaling niet ophalen om te annoteren – controleer de wet en het "
+            "artikel/lid (bij een beleidsregel bv. '9.1')."
+        )
+        writer({"type": "token", "content": melding})
+        return {"klaar": {"answer": melding, "voorstellen": [], "messages": [{"role": "assistant", "content": melding}]}}
+
+    if hergebruik:
+        _stap(writer, "Hergebruik", _hergebruik_melding(hergebruik))
+        if hergebruik["volledig"]:
+            # Geen LLM-call: de laag staat er, met de oordelen van de juristen erbij. `emit` meldt
+            # het en de driver legt vast dát er hergebruikt is.
+            writer({"type": "doel", "doel": _doel_event(doel, bron)})
+            return {"klaar": {**bron, "hergebruik": hergebruik, "voorstellen": [],
+                              "verworpen_fragmenten": [], "answer": ""}}
+    return {"doel": doel, "bron": bron, "hergebruik": hergebruik, "soort": soort, "aanduiding": aanduiding}
+
+
 def annoteer_node(b: Bouw, state: State) -> dict[str, Any]:
     """Aparte annoteer-stap: de ophaal-agent heeft de bepaling opgehaald (in de source_trace).
     Hier doet een PURE LLM-call (geen tools) de JAS-analyse op ALLEEN die tekst en gronden we elk
@@ -160,44 +208,11 @@ def annoteer_node(b: Bouw, state: State) -> dict[str, Any]:
         return {"answer": melding, "voorstellen": [],
                 "messages": [{"role": "assistant", "content": melding}]}
 
-    doel = _bepaal_doel(state)
-    # Gericht ophalen op basis van het doel – niet reconstrueren uit de trace. Zie
-    # `_corpus_voor_doel`: die reconstructie mengt bepalingen en is afgekapt op 8000 tekens.
-    aanduiding = doel.get("artikel") or doel.get("nummer") or ""
-    try:
-        bron = lees_bron(b, state, doel, writer)
-        bron, hergebruik = _pas_hergebruik_toe(b, state, doel, bron)
-    except (OngeldigeVindplaats, BronFout) as fout:
-        # De beurt eindigt hier, en dat is de bedoeling. Doorgaan zou markeringen opleveren onder een
-        # aanduiding die de werkplek niet kan openen – de jurist ziet dan pas bij het openen dat er
-        # iets mis is, en heeft ondertussen een document in zijn werkvoorraad dat nergens bij hoort.
-        melding = (
-            f"Ik kan de gevraagde bepaling nu niet annoteren: {fout}."
-        )
-        writer({"type": "token", "content": melding})
-        return {"answer": melding, "voorstellen": [], "messages": [{"role": "assistant", "content": melding}]}
-
-    corpus = bron["corpus"]
-    soort = bron["bron_snapshot"]["doel"]["type"]
-    doel = _bepaal_doel({**state, **bron})
-    aanduiding = doel.get("artikel") or doel.get("nummer") or ""
-    if not corpus.strip():
-        melding = (
-            "Ik kon de gevraagde bepaling niet ophalen om te annoteren – controleer de wet en het "
-            "artikel/lid (bij een beleidsregel bv. '9.1')."
-        )
-        writer({"type": "token", "content": melding})
-        return {"answer": melding, "voorstellen": [], "messages": [{"role": "assistant", "content": melding}]}
-
-    if hergebruik:
-        _stap(writer, "Hergebruik", _hergebruik_melding(hergebruik))
-        if hergebruik["volledig"]:
-            # Geen LLM-call: de laag staat er, met de oordelen van de juristen erbij. `emit` meldt
-            # het en de driver legt vast dát er hergebruikt is.
-            writer({"type": "doel", "doel": _doel_event(doel, bron)})
-            return {**bron, "hergebruik": hergebruik, "voorstellen": [],
-                    "verworpen_fragmenten": [], "answer": ""}
-    corpus = bron["corpus"]
+    voorbereid = _bereid_voor(b, state, writer)
+    if "klaar" in voorbereid:
+        return voorbereid["klaar"]
+    doel, bron, hergebruik = voorbereid["doel"], voorbereid["bron"], voorbereid["hergebruik"]
+    corpus, soort, aanduiding = bron["corpus"], voorbereid["soort"], voorbereid["aanduiding"]
 
     plek = aanduiding_in_woorden(aanduiding, doel.get("lid", ""), soort)
     _stap(writer, "Annoteerder", f"leest {plek} ({len(corpus)} tekens)")
@@ -789,6 +804,14 @@ def emit_node(b: Bouw, state: State) -> dict[str, Any]:
             "annotatie_prompt_kort": b.settings.annotatie_prompt_kort,
             "enable_kandidaat_splitsing": b.settings.enable_kandidaat_splitsing,
             "critic_max_rondes": b.settings.critic_max_rondes,
+            "annotation_pipeline": b.settings.annotation_pipeline,
+            **({"hybride": {
+                "taal_provider": b.settings.taal_provider,
+                "classifier_granulariteit": b.settings.classifier_granulariteit,
+                "classifier_temperature": b.settings.classifier_temperature,
+                "deterministisch_accepteren": b.settings.deterministisch_accepteren,
+                "meting": (state.get("hybride") or {}).get("meting", {}),
+            }} if b.settings.annotation_pipeline == "hybrid_v1" else {}),
         },
         tijd=datetime.now(timezone.utc),
     ).model_dump(mode="json")})

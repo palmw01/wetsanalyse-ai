@@ -163,7 +163,8 @@ def test_run_draagt_herkomst_en_modus():
     assert doel["bereik"] == ["urn:bwb:BWBR0004770:artikel:9:lid:2"]
     assert run["prompt_hash"] == prompt_hash() and run["methode_versie"] == methode_versie()
     assert set(run["instellingen"]) == {"annotatie_prompt_kort", "enable_kandidaat_splitsing",
-                                        "critic_max_rondes"}
+                                        "critic_max_rondes", "annotation_pipeline"}
+    assert run["instellingen"]["annotation_pipeline"] == "legacy"
 
     run = next(e for e in _events("opnieuw") if e["type"] == "run")["run"]
     assert run["modus"] == "opnieuw"

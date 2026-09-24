@@ -27,9 +27,23 @@ import yaml
 from ...jas_klassen import JAS_KLASSEN, JAS_KLASSEN_VOLGORDE, REGELS
 
 MAP = Path(__file__).parent
-REPO = Path(__file__).resolve().parents[5]
-H2 = REPO / "docs" / "wetsanalyse" / "wetsanalyse-rijk" / "H2-JAS.md"
-REFERENTIESET = REPO / "docs" / "wetsanalyse" / "referentieset" / "cases.json"
+
+
+def _docs() -> Path:
+    """De docs-map van de repo. Bestaat alleen in een werkkopie, niet in het image (/app/agent/…):
+    daarom lui en pas bij gebruik – de profielen zelf hebben hem niet nodig."""
+    for ouder in Path(__file__).resolve().parents:
+        if (ouder / "docs" / "wetsanalyse").is_dir():
+            return ouder / "docs" / "wetsanalyse"
+    raise ProfielFout("docs/wetsanalyse niet gevonden: alleen beschikbaar in een werkkopie van de repo")
+
+
+def h2_pad() -> Path:
+    return _docs() / "wetsanalyse-rijk" / "H2-JAS.md"
+
+
+def referentieset_pad() -> Path:
+    return _docs() / "referentieset" / "cases.json"
 
 VELDEN = (
     "jas_class", "bron", "begrippen", "syntactic_signals", "lexical_signals", "semantic_signals",
@@ -111,7 +125,7 @@ def laad() -> dict[str, Profiel]:
 
 def referentietekst(casus_id: str) -> str:
     """De analysetekst van een ontwikkelcasus. Een held-out casus is hier uitdrukkelijk verboden."""
-    for c in json.loads(REFERENTIESET.read_text(encoding="utf-8")):
+    for c in json.loads(referentieset_pad().read_text(encoding="utf-8")):
         if c["id"] == casus_id:
             if c["split"] != "ontwikkeling":
                 raise ProfielFout(f"{casus_id} is held-out en mag niet in een profiel")

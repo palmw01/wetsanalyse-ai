@@ -20,6 +20,9 @@ class State(TypedDict, total=False):
     bron_snapshot: dict[str, Any]
     annotatie_weergave: dict[str, Any]
     corpus_segmenten: list[dict[str, Any]]
+    # De hybride keten (ADR-001): wat er gemeten en besloten is, voor de run-provenance. Per beurt
+    # gereset; leeg in de legacy-route.
+    hybride: dict[str, Any]
     hergebruikte_nodes: list[str]
     annotatie_fout: str
     # Episodisch geheugen, gepersisteerd door de checkpointer. De reducer voegt toe én snoeit: zonder

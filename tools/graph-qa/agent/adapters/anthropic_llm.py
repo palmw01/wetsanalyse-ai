@@ -108,18 +108,26 @@ class AnthropicLLM:
         system: Systeem,
         tools: list[dict[str, Any]],
         messages: list[dict[str, Any]],
+        tool_choice: dict[str, Any] | None = None,
+        temperature: float | None = None,
     ) -> Any:
+        # Alleen meesturen wat gezet is: zonder deze twee is de aanroep exact wat hij was.
+        extra: dict[str, Any] = {}
+        if tool_choice is not None:
+            extra["tool_choice"] = tool_choice
+        if temperature is not None:
+            extra["temperature"] = temperature
         try:
             resp = self._client.messages.create(
                 model=model, max_tokens=max_tokens, system=self._system(system),
-                tools=tools, messages=messages,
+                tools=tools, messages=messages, **extra,
             )
         except anthropic.BadRequestError as exc:
             if not self._zonder_caching(exc):
                 raise
             resp = self._client.messages.create(
                 model=model, max_tokens=max_tokens, system=self._system(system),
-                tools=tools, messages=messages,
+                tools=tools, messages=messages, **extra,
             )
         self.meter.tel_response(resp)
         return resp

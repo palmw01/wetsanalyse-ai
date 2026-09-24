@@ -78,3 +78,14 @@ def test_probes_blijven_binnen_de_azure_limiet() -> None:
         + ". Wil je meer speling? Verhoog failureThreshold – de totale marge is "
           "initialDelay + failureThreshold × periodSeconds."
     )
+
+
+def test_dockerfile_installeert_hetzelfde_taalmodel_als_pyproject() -> None:
+    """Het image installeert spaCy + het NL-model buiten '.[nlp]' om (pip kent tool.uv.sources niet).
+    Loopt die regel uit de pas met pyproject.toml, dan meet CI een ander model dan er draait."""
+    pyproject = (WORTEL / "tools/graph-qa/pyproject.toml").read_text(encoding="utf-8")
+    dockerfile = (WORTEL / "tools/graph-qa/Dockerfile").read_text(encoding="utf-8")
+    url = re.search(r'nl-core-news-md = \{ url = "([^"]+)" \}', pyproject)
+    assert url, "de uv-bron van het taalmodel is verdwenen uit pyproject.toml"
+    assert url.group(1) in dockerfile
+    assert '"spacy>=3.8,<3.9"' in pyproject and '"spacy>=3.8,<3.9"' in dockerfile

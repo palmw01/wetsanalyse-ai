@@ -44,6 +44,7 @@ from .nodes.antwoord import (
     tools_node,
     verify_node,
 )
+from .nodes.hybride import hybride_annoteer_node
 from .nodes.annotatie import (
     annoteer_kandidaten_node,
     annoteer_klasseer_node,
@@ -236,6 +237,14 @@ def build_graph(
         wél echt tussen die twee (`verify → resynth` versus `verify → correct`), dus die blijft per
         tak apart staan; alleen wat aantoonbaar hetzelfde was is hier samengebracht.
         """
+        if settings.annotation_pipeline == "hybrid_v1":
+            # ADR-001: detectie → fusie → kleine classifier, dan rechtstreeks naar `emit`. Geen
+            # Critic die de hele set opnieuw interpreteert; de gerichte reviewer volgt (PR 12).
+            add("hybride_annoteer", functools.partial(hybride_annoteer_node, b))
+            add("emit", functools.partial(emit_node, b))
+            g.add_edge("hybride_annoteer", "emit")
+            g.add_edge("emit", "advance")
+            return "hybride_annoteer"
         if settings.enable_kandidaat_splitsing:
             add("annoteer_kandidaten", functools.partial(annoteer_kandidaten_node, b))
             add("annoteer_klasseer", functools.partial(annoteer_klasseer_node, b))
