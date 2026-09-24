@@ -319,6 +319,10 @@ plan mag verouderen.
   Ook lokaal-only (gitignored), dus afwezig in een verse kloon.
 - `docs/architectuur/annotatie-bronnodes.md` – de **geldende specificatie** van contract 2:
   eigenaarschap en ankers, opslag en projectie, de leestools en het uitvoeringsspoor.
+- `docs/architectuur/adr-001-hybride-jas-pijplijn.md` – **voorgesteld** herontwerp van de
+  annotatieketen (deterministische detectie → kandidaten → kleine classifier → gerichte review),
+  met de PR-roadmap. Lees het vóór je aan de annotatieprompts, de Critic of de eval werkt: het
+  legt vast welke kennis voortaan in regels en tests hoort in plaats van in prompts.
 - `docs/wetsanalyse-workbench/` – het plan achter de werkplek + de JAS-annotatie-ontologie (het
   RDF-model van de lagen).
 - `docs/kennisbank/PLAN.md` – het gefaseerde plan voor een **tweede corpus** naast de wetsgraaf

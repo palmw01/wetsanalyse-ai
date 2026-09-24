@@ -63,6 +63,11 @@ landen; de tekst niet.
 - **`wetsanalyse-workbench/PLAN.md`** — de workbench en de annotatie-agent. Fase 1 en het grootste
   deel van Fase 2 zijn gebouwd; het bestand is plan én changelog, dus lees de latere kaders als de
   actuele stand.
+- **[`architectuur/adr-001-hybride-jas-pijplijn.md`](architectuur/adr-001-hybride-jas-pijplijn.md)**
+  — herontwerp van de annotatieketen naar een grotendeels deterministische pijplijn (bronstructuur,
+  taalanalyse, detectoren, kandidaten, kleine classifier, gerichte review), met gap-analyse per
+  JAS-klasse en een PR-roadmap. Voorgesteld op 24 sep 2026; nog niets van gebouwd. De opdracht
+  erachter staat in [`architectuur/opdracht-jas-annotatiepijplijn.md`](architectuur/opdracht-jas-annotatiepijplijn.md).
 - **`kennisbank/PLAN.md`** — een tweede corpus (beleidsstukken, handleidingen) naast de wetsgraaf.
   Nog niets van gebouwd. Lees dit vóór je aan retrieval of grounding werkt: het stelt eisen aan
   allebei.
