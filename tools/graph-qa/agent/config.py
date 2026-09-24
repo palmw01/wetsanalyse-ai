@@ -12,6 +12,7 @@ from __future__ import annotations
 import os
 from collections.abc import Mapping
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -108,6 +109,26 @@ class Settings(BaseModel):
     # Zet aan na een baseline-eval; schakel terug als de score daalt.
     enable_kandidaat_splitsing: bool = False
 
+    # Welke annotatieketen draait (ADR-001). `legacy` = de bestaande keten (annoteer → Critic →
+    # patch → herzie → emit), byte-voor-byte ongewijzigd. `hybrid_v1` = deterministische detectie
+    # → fusie → kleine classifier op kandidaat-labels → emit. Parallel te draaien op dezelfde
+    # bepaling, dus objectief te vergelijken (PR 16); legacy blijft de default tot dat bewezen is.
+    annotation_pipeline: Literal["legacy", "hybrid_v1"] = "legacy"
+    # Taalanalyse voor de hybride keten (ADR-002). Zonder geïnstalleerd model degradeert hij
+    # zichtbaar naar alleen tokens; de parsedetectoren melden zich dan overgeslagen.
+    taal_provider: str = "spacy:nl_core_news_md"
+    # Eén classificatiecall voor alle kandidaten (`universeel`) of één per klassefamilie
+    # (`familie`). Welke betrouwbaarder is, wordt gemeten (opdracht §15), niet aangenomen.
+    classifier_granulariteit: Literal["universeel", "familie"] = "universeel"
+    # Leeg = providerdefault. Opus 4.7+/Sonnet 5 weigeren sampling-parameters (400); daarom geen
+    # vaste waarde. De reproduceerbaarheid komt uit de beperkte keuze (enum op labels), niet uit
+    # deze knop. Wat er gebruikt is, staat in de provenance van de beurt.
+    classifier_temperature: float | None = None
+    # Een kandidaat met één mogelijke klasse en alleen sterk, hoog-deterministisch bewijs (datum,
+    # definitieonderdeel, delegatieformule …) wordt zonder modelaanroep voorgesteld. Het blijft een
+    # VOORSTEL: de jurist beoordeelt het zoals elk ander (ADR-001 §10.5).
+    deterministisch_accepteren: bool = True
+
     # Correctie na de Critic: **0 = uit**, **> 0 = aan**.
     #
     # LET OP – deze knop telt géén rondes meer, ondanks zijn naam. De keten ligt vast:
@@ -195,6 +216,11 @@ class Settings(BaseModel):
             "max_subquestions": e.get("MAX_SUBQUESTIONS"),
             "sub_max_turns": e.get("SUB_MAX_TURNS"),
             "enable_kandidaat_splitsing": e.get("ENABLE_KANDIDAAT_SPLITSING"),
+            "annotation_pipeline": e.get("ANNOTATION_PIPELINE"),
+            "taal_provider": e.get("TAAL_PROVIDER"),
+            "classifier_granulariteit": e.get("CLASSIFIER_GRANULARITEIT"),
+            "classifier_temperature": e.get("CLASSIFIER_TEMPERATURE"),
+            "deterministisch_accepteren": e.get("DETERMINISTISCH_ACCEPTEREN"),
             "critic_max_rondes": e.get("CRITIC_MAX_RONDES"),
             "grounding_correct": e.get("GROUNDING_CORRECT"),
             "prompt_caching": e.get("PROMPT_CACHING"),

@@ -35,12 +35,13 @@ from typing import Any
 
 from agent.jas_pipeline.taal import LinguisticAnalysis, maak_provider, spanopties
 
-CASES = Path(__file__).resolve().parents[3] / "docs" / "wetsanalyse" / "referentieset" / "cases.json"
+from agent.jas_pipeline.profielen import referentieset_pad
 _VOORWAARDE_VOEGWOORDEN = {"indien", "tenzij", "mits", "als", "zover", "wanneer"}
 
 
-def ontwikkelcasussen(pad: Path = CASES) -> list[dict[str, Any]]:
+def ontwikkelcasussen(pad: Path | None = None) -> list[dict[str, Any]]:
     """Alleen de ontwikkelsplit: held-out families mogen niet sturen welke parser we kiezen."""
+    pad = pad or referentieset_pad()
     return [c for c in json.loads(pad.read_text(encoding="utf-8")) if c.get("split") == "ontwikkeling"]
 
 

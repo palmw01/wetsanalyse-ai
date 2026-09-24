@@ -60,6 +60,26 @@ kandidaatmodel (`kandidaten.py`) en de detectoren (`detectoren/`). **Een detecto
 aanreiken meet `python -m eval.kandidaat_eval` (seconden, geen model). Dat is ankerdekking, geen
 recall.
 
+**De hybride route staat achter `ANNOTATION_PIPELINE`** (`legacy` default, `hybrid_v1`). In
+`hybrid_v1` is de annotatieketen `hybride_annoteer → emit`: dezelfde voorbereiding als de
+annoteerder (`nodes/annotatie._bereid_voor` – bron, hergebruik, afronding), daarna
+`jas_pipeline/keten.analyseer` – detectoren, fusie, deterministische besluiten en één kleine
+classifier-call op kandidaat-labels. Vier regels die je niet mag omdraaien:
+
+- **Het model kiest, het typt niet.** De classifier krijgt labels, fragmenten, bewijscodes en de
+  toegestane beslissingen, en antwoordt via één `strict` tool met enums. Een ongeldige of
+  ontbrekende beslissing wordt `UNCERTAIN` met een reden – nooit geraden, nooit stil weggelaten.
+- **`tool_choice` blijft `auto` en `temperature` staat standaard uit**: geforceerde tool-use en
+  sampling-parameters geven op de nieuwste modellen een 400. Wat er gebruikt is, staat in
+  `run.instellingen.hybride`.
+- **Geen terugval naar de legacy-prompt.** Zonder spaCy-model draait de keten gedegradeerd (alleen
+  lexicale en structurele detectoren) en zegt dat in de meting en de statusregel.
+- **Voorstellen hebben exact de legacy-vorm** (`ankers` per bronnode + `anker` op het corpus), dus
+  `emit`, de api en de werkplek merken niets. Ids zijn deterministisch (kandidaat + klasse + grens).
+
+Er draait in `hybrid_v1` nog geen Critic: de gerichte reviewer (PR 12) komt alleen op
+conflictgevallen, niet op de hele set.
+
 Ondersteunend, op agent-niveau omdat meerdere ketens ze delen: `agent/state.py` (de State),
 `agent/berichten.py` (het venster naar de LLM), `agent/narratie.py` (de statusregels) en
 `agent/doel.py` (waar gaat deze beurt over, en welke tekst hoort erbij).

@@ -6,9 +6,9 @@ import re
 import pytest
 
 from agent.jas_klassen import JAS_KLASSEN, JAS_KLASSEN_VOLGORDE, REGELS, RegelType
-from agent.jas_pipeline.profielen import H2, ProfielFout, laad, referentietekst, casustekst
+from agent.jas_pipeline.profielen import ProfielFout, casustekst, h2_pad, laad, referentietekst
 
-H2_REGELS = H2.read_text(encoding="utf-8").splitlines()
+H2_REGELS = h2_pad().read_text(encoding="utf-8").splitlines()
 _VELDLABEL = {"omschrijving": "**omschrijving klasse**", "vraag": "**vraag**",
               "uitdrukkingswijze": "**uitdrukkingswijze**"}
 
@@ -97,3 +97,11 @@ def test_kandidaatregels_zijn_uniek():
 def test_elk_profiel_zegt_waar_het_model_nog_nodig_is():
     for p in laad().values():
         assert p.llm_needed_for and p.negative_patterns is not None and p.required_context
+
+
+def test_de_pijplijn_leunt_niet_op_de_repo_indeling():
+    """In het image staat de code onder /app/agent/…; een `parents[5]` op moduleniveau crashte daar
+    bij het importeren (gevonden bij de image-build van PR 9). Paden naar docs/ zijn lui."""
+    from pathlib import Path
+    for pad in Path("agent/jas_pipeline").rglob("*.py"):
+        assert "parents[" not in pad.read_text(encoding="utf-8"), pad

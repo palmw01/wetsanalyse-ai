@@ -203,6 +203,7 @@ async def answer_stream(
         "bron_snapshot": {},
         "annotatie_weergave": {},
         "corpus_segmenten": [],
+        "hybride": {},
         "hergebruikte_nodes": [],
         "annotatie_fout": "",
         "messages": [{"role": "user", "content": question}],
