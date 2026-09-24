@@ -105,3 +105,39 @@ publicatie via PNA bewaard en gecontroleerd, inclusief tekstextractie en hashes.
 De oplevering omvat dus een onderbouwde methode en werkende technische koppeling, met
 meetbare eerste gedragsverbetering én zichtbare resterende beperkingen. Vaststelling
 van juridische kwaliteit blijft afhankelijk van de geplande gezamenlijke beoordeling.
+
+## Stabiliteitsmeting: zelfde passage, meerdere runs
+
+Toegevoegd op 24 september 2026. De eval-job draait de annotatie wel drie keer, maar rapporteert
+elke run los. Hoe vaak dezelfde passage hetzelfde oplevert, werd nergens berekend. Deze meting doet
+dat, over de **volledige keten** (annoteerder → Critic → patch/herziening → Critic → emit) en tegen
+een vaste bronfixture. Standaard gaat dat over de zestien ontwikkelcasussen met vijf herhalingen.
+
+```bash
+# vanuit tools/graph-qa; betaalde aanvragen, weigert held-out en bestaande uitvoer
+.venv/bin/python -m eval.stabiliteit --output /tmp/stabiliteit.json [--cases IW01 …] [--herhalingen 5]
+.venv/bin/python -m eval.stabiliteit_analyse /tmp/stabiliteit.json --md /tmp/stabiliteit.md --json /tmp/analyse.json
+```
+
+Eén ketenrun kost 4 modelcalls en 60–90 s, en gebruikt ongeveer 36k tokens: ~2k ongecachete
+input, ~29k cache-reads en ~5k output (gemeten op IW01 en AWB04, 24 september 2026). De volledige
+meting (16 × 5) komt daarmee op ongeveer 2,9M tokens en 1,5–2 uur. `--max-tokens-totaal` (standaard
+6M, inclusief cache-tokens) stopt de meting als dat uit de hand loopt.
+
+De analyse zet de elementen van alle runs per casus op één lijn, op hun positie in de tekst.
+Daarna meet ze, zowel voor de ruwe annoteerder-uitvoer als na de Critic:
+
+- in hoeveel runs elk element voorkomt;
+- of de span exact gelijk is, en anders hoeveel de spans overlappen;
+- of de klasse unaniem is;
+- welke **klasseparen** het vaakst wisselen, met een voorbeeldfragment.
+
+Het verschil tussen de twee fasen laat zien of de Critic de spreiding verkleint of vergroot.
+
+**Dit meet reproduceerbaarheid, geen juistheid.** Een keten kan heel stabiel dezelfde fout maken.
+Een hogere overeenstemming is dus nooit op zichzelf bewijs van een betere annotatie. Een wijziging
+is pas een verbetering als ze ook inhoudelijk standhoudt, eerst in de menselijke review en later
+tegen een geadjudiceerde referentie. De maten dienen om te bepalen *waar* de keten wisselt, zodat
+gerichte maatregelen (onderscheidingsregels per klassepaar, kandidaatbeperking) op gemeten
+problemen landen en niet op vermoedens. Temperatuur staat nog op de providerdefault. Het rapport
+legt dat vast, zodat een latere meting met een vaste temperatuur er direct mee te vergelijken is.

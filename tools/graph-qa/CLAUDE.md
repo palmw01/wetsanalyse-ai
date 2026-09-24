@@ -839,6 +839,13 @@ dezelfde bepaling levert tussen runs sterk verschillende uitkomsten op (geel var
 dus één run is een anekdote. Lees precisie/recall en span-IoU als bandbreedte; de *garanties* horen
 wél op 100%.
 
+**Hoe stabiel de keten is, meet een apart script**: `eval/stabiliteit.py` draait dezelfde
+ontwikkelcasussen N keer door de volledige keten, en `eval/stabiliteit_analyse.py` zet de runs
+op één lijn en telt per fase (annoteerder, na Critic) de detectie-, span- en klassestabiliteit plus
+de klasseparen die het vaakst wisselen. Het draait lokaal, zonder graaf (vaste bronfixture, gedeeld
+met `compare_methodeketen.py` via `eval/keten_fixture.py`), maar wel tegen de provider. Hoge
+overeenstemming is geen kwaliteitsbewijs – zie `docs/wetsanalyse/evaluatie-methode.md`.
+
 **De eval-job draait hetzelfde image als de graph-qa-app**, dus een eval-rapport gaat over de code
 die op dát moment is uitgerold — niet over je werkkopie. De bicep zet één `graphQaImage` op allebei,
 maar de publish-workflow werkte lang alleen de app bij; de job bleef dan hangen op het image van de
