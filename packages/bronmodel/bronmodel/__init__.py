@@ -11,6 +11,8 @@ import re
 from collections import defaultdict
 from typing import Any, Callable
 
+from .corpus import CorpusMap, CorpusSegment, Span, SpanFout
+
 RELATIES = ("heeftHoofdstuk", "heeftTiteldeel", "heeftAfdeling", "heeftParagraaf",
             "heeftArtikel", "heeftLid", "heeftOnderdeel", "heeftDivisie", "heeftBijlage")
 TYPEN = ("Regeling", "Hoofdstuk", "Titeldeel", "Afdeling", "Paragraaf", "Artikel",
