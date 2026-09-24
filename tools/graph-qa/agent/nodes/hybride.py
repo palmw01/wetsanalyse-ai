@@ -30,6 +30,11 @@ def _melding(meting: dict[str, Any], voorstellen: int) -> str:
         delen.append(f"{status['UNCERTAIN']} onzeker")
     if meting.get("gedegradeerd"):
         delen.append(f"zonder zinsontleding voor {len(meting['gedegradeerd'])} bronnode(s)")
+    ongedekt = sum(len(b.get("ongedekt", [])) for b in (meting.get("dekking") or {}).values())
+    if ongedekt:
+        # Geen recall-claim: dit zijn zinsdelen waar geen enkele detector iets vond. De jurist
+        # hoort te weten dat die niet beoordeeld zijn, niet dat ze leeg zijn.
+        delen.append(f"{ongedekt} zinsdeel/-delen zonder kandidaat")
     return " · ".join(delen)
 
 
