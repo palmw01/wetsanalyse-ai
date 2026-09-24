@@ -25,6 +25,9 @@ from ..models import AnnotatieAlternatief, AnnotatieVoorstel
 from .besluit import Beslissing, deterministisch
 from .classificatie import batches, classificeer, optie_ids, promptversie
 from .dekking import controleer_a, structureel
+from .onzekerheid import REVIEWBAAR, signaleer
+from .resolver import los_op
+from .review import beoordeel
 from .validatie import valideer
 from .detectoren import BronTekst, detecteer_alles
 from .fusie import Fusie, fuseer
@@ -90,6 +93,12 @@ def _voorstel(k: Candidate, b: Beslissing, kaart: CorpusMap, corpus: str, lid: s
     ).model_dump()
 
 
+def _verwerp(beslissingen: list[Beslissing], bevindingen) -> list[Beslissing]:
+    fout = {x.label: x for x in bevindingen if x.ernst == "fout"}
+    return [b.model_copy(update={"status": CandidateStatus.REJECTED, "reden": f"VALIDATION_ERROR:{fout[b.label].code}"})
+            if b.label in fout else b for b in beslissingen]
+
+
 def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]], corpus: str,
               llm: Any, model: str, settings: Any, lid: str = "", vindplaats: str = "",
               hergebruikte_nodes: set[str] | frozenset[str] = frozenset()) -> Uitkomst:
@@ -127,11 +136,29 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
 
     # Validatie vóór de uitgang (PR 11): een structurele fout haalt het voorstel eruit en maakt
     # de beslissing REJECTED met de foutcode – zichtbaar in de meting, niet stil.
-    voorstellen, bevindingen = valideer(paren, per_id, snapshot, {"model": model, **meting})
-    fout = {x.label: x for x in bevindingen if x.ernst == "fout"}
-    beslissingen = [b.model_copy(update={"status": CandidateStatus.REJECTED, "reden": f"VALIDATION_ERROR:{fout[b.label].code}"})
-                    if b.label in fout else b for b in beslissingen]
-    meting["validatie"] = [x.model_dump() for x in bevindingen]
+    prov = {"model": model, **meting}
+    voorstellen, bevindingen = valideer(paren, per_id, snapshot, prov)
+    beslissingen = _verwerp(beslissingen, bevindingen)
+
+    # Twijfel → gerichte review → resolver (PR 12-13). De reviewer ziet alleen twijfelgevallen;
+    # de resolver voert een vaste tabel uit en schrijft elke transitie weg.
+    per_label = {k.label: k for k in fusie.kandidaten}
+    label_van = {v["id"]: b.label for v, b in paren}
+    twijfels = signaleer(per_id, beslissingen, bevindingen, set(meting["gedegradeerd"]))
+    te_reviewen = [t for t in twijfels if t.reden in REVIEWBAAR]
+    oordelen = (beoordeel(llm, model, te_reviewen, per_label, corpus, meting)
+                if te_reviewen and settings.gerichte_review else [])
+    voorstellen, beslissingen, transities = los_op(
+        [{**v, "_label": label_van[v["id"]]} for v in voorstellen], beslissingen, twijfels, oordelen, per_label,
+        lambda k, b: _voorstel(k, b, kaart, corpus, lid, vindplaats))
+    # Wat de resolver maakte of wijzigde, gaat opnieuw door dezelfde controles.
+    per_b = {b.label: b for b in beslissingen}
+    voorstellen, na = valideer([({k: x for k, x in v.items() if k != "_label"}, per_b[v["_label"]])
+                                for v in voorstellen], per_id, snapshot, prov)
+    beslissingen = _verwerp(beslissingen, na)
+    meting["validatie"] = [x.model_dump() for x in (*bevindingen, *(x for x in na if x.ernst == "fout"))]
+    meting["twijfels"] = [t.model_dump() for t in twijfels]
+    meting["resolutie"] = [t.model_dump() for t in transities]
     meting["deterministisch"] = sum(b.door != "model" for b in beslissingen)
     # Dekking A: gooit als een kandidaat zonder beslissing bleef – dat is een fout in de keten,
     # geen uitkomst om te rapporteren.

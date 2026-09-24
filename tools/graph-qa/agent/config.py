@@ -128,6 +128,10 @@ class Settings(BaseModel):
     # definitieonderdeel, delegatieformule …) wordt zonder modelaanroep voorgesteld. Het blijft een
     # VOORSTEL: de jurist beoordeelt het zoals elk ander (ADR-001 §10.5).
     deterministisch_accepteren: bool = True
+    # De gerichte reviewer (ADR-001 PR 12): alleen op twijfelgevallen (detectieconflict, geen
+    # geldige classificatie, twee klassen op één fragment). Uit = die gevallen gaan zonder tweede
+    # modeloordeel naar de jurist; de resolver blijft gewoon draaien.
+    gerichte_review: bool = True
 
     # Correctie na de Critic: **0 = uit**, **> 0 = aan**.
     #
@@ -221,6 +225,7 @@ class Settings(BaseModel):
             "classifier_granulariteit": e.get("CLASSIFIER_GRANULARITEIT"),
             "classifier_temperature": e.get("CLASSIFIER_TEMPERATURE"),
             "deterministisch_accepteren": e.get("DETERMINISTISCH_ACCEPTEREN"),
+            "gerichte_review": e.get("GERICHTE_REVIEW"),
             "critic_max_rondes": e.get("CRITIC_MAX_RONDES"),
             "grounding_correct": e.get("GROUNDING_CORRECT"),
             "prompt_caching": e.get("PROMPT_CACHING"),

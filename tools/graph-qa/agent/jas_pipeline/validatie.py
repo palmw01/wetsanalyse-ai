@@ -6,7 +6,7 @@ toetsen of wat er uitgaat structureel klopt met de bron, de kandidaat en de besl
 Fouten (het voorstel gaat er niet uit; de beslissing wordt REJECTED met foutcode):
 
 - `V_KANDIDAAT`   – het voorstel hangt niet aan een bekende kandidaat en beslissing
-- `V_STATUS`      – de beslissing is niet ACCEPTED
+- `V_STATUS`      – de beslissing is niet ACCEPTED of HUMAN_REVIEW
 - `V_ANKER`       – offsets, letterlijke tekst, bron-hash of snapshot kloppen niet (bronmodel)
 - `V_KLASSE`      – de klasse bestaat niet of was voor deze kandidaat niet toegestaan
 - `V_GRENS`       – de grens is niet de kandidaatspan en geen van zijn spanopties
@@ -64,7 +64,7 @@ def _fout(v: dict[str, Any], b: Beslissing, k: Candidate | None, snapshot: dict[
           provenance: dict[str, Any]) -> tuple[str, str] | None:
     if k is None or k.label != b.label:
         return "V_KANDIDAAT", b.kandidaat_id
-    if b.status is not CandidateStatus.ACCEPTED:
+    if b.status not in (CandidateStatus.ACCEPTED, CandidateStatus.HUMAN_REVIEW):
         return "V_STATUS", b.status.value
     ankers = v.get("ankers") or []
     try:
