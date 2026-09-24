@@ -15,10 +15,14 @@ semantic_signals:
   - "wanneer, sinds of tot wanneer iets geldt of gebeurt (H2:108)"
 structural_signals: []
 candidate_rules:
-  - {id: jas.tijd.datum, status: gepland}
-  - {id: jas.tijd.duur, status: gepland}
+  - {id: jas.tijd.datum, status: geïmplementeerd}
+  - {id: jas.tijd.duur, status: geïmplementeerd}
   - {id: jas.tijd.voorzetselgroep, status: gepland}
-  - {id: jas.tijd.periodewoord, status: gepland}
+  - {id: jas.tijd.periodewoord, status: geïmplementeerd}
+  - {id: jas.tijd.relatief, status: geïmplementeerd}
+  - {id: jas.tijd.periode_van, status: geïmplementeerd}
+  - {id: jas.tijd.tijdstip, status: geïmplementeerd}
+  - {id: jas.tijd.bijwoord, status: geïmplementeerd}
 confusable_classes:
   - {klasse: Variabele en variabelewaarde, reden: "tijdswaarde als kenmerk", regel: JAS-PRIORITY-001}
   - {klasse: Parameter en parameterwaarde, reden: "vaste termijn", regel: JAS-PRIORITY-001}

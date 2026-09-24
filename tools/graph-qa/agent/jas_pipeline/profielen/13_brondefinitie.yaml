@@ -11,8 +11,8 @@ semantic_signals:
 structural_signals:
   - "artikel met aanhef en onderdelen, vaak aan het begin van de regeling – H2:136 (bronmodel: Lid/Onderdeel-boom)"
 candidate_rules:
-  - {id: jas.definitie.verstaan_onder, status: gepland}
-  - {id: jas.definitie.onderdeel_term_dubbelepunt, status: gepland}
+  - {id: jas.definitie.verstaan_onder, status: geïmplementeerd}
+  - {id: jas.definitie.onderdeel_term_dubbelepunt, status: geïmplementeerd}
 confusable_classes:
   - {klasse: Voorwaarde, reden: "de omschrijving bevat vaak eisen ('voor zover …')"}
   - {klasse: Rechtssubject, reden: "de gedefinieerde term kan een partij aanduiden"}

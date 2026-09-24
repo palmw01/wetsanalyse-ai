@@ -1,0 +1,26 @@
+# Plaatsaanduiding (H2:116-118; profiel 11_plaatsaanduiding.yaml).
+- id: jas.plaats.gazetteer
+  klassen: [Plaatsaanduiding]
+  code: LOCATION_NAME
+  bron: "H2:118"
+  versie: 1
+  hoofdletterongevoelig: false
+  patroon: '\b(?:{GEBIED}|de\s+(?:gemeente|provincie)\s+[A-Z][\w-]+(?:\s+[A-Z][\w-]+)?)\b'
+  links: '\b(?:in|binnen|buiten)\s+'
+  tests:
+    positief: [{tekst: "Het besluit is van toepassing in de gemeente Amsterdam.", span: "in de gemeente Amsterdam"}]
+    negatief: [{tekst: "Hij woont in nederland", span: "nederland"}]
+    rand: [{tekst: "in Caribisch Nederland", span: "in Caribisch Nederland"}]
+    overlap: [{tekst: "in Nederland of in België", spans: ["in Nederland", "in België"]}]
+- id: jas.plaats.gebiedsomschrijving
+  klassen: [Plaatsaanduiding]
+  code: LOCATION_DESCRIPTION
+  bron: "H2:118"
+  versie: 1
+  patroon: '\b(?:een|de|andere)\s+(?:andere\s+)?lidstaat(?:\s+van\s+de\s+Europese\s+Unie)?\b'
+  links: '\b(?:in|binnen|buiten)\s+'
+  tests:
+    positief: [{tekst: "Deze regeling geldt in een lidstaat van de Europese Unie.", span: "in een lidstaat van de Europese Unie"}]
+    negatief: [{tekst: "de lidstaatverplichting", span: "de lidstaat"}]
+    rand: [{tekst: "een andere lidstaat", span: "een andere lidstaat"}]
+    overlap: [{tekst: "in een lidstaat of in Nederland", spans: ["in een lidstaat", "in Nederland"]}]

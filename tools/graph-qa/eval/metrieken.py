@@ -68,9 +68,11 @@ def recall_naam(status: str) -> str:
 def kandidaat_metrieken(kandidaten: list[dict[str, Any]], referentie: list[Ref], status: str) -> dict[str, Any]:
     """Hoe goed reikt de kandidaatgenerator de referentiespans aan?
 
-    `kandidaten`: dicts met `bron`, `start`, `eind`, `possible_classes` en `detectors` (de namen
-    van de detectoren die hem vonden). Een referentie heet *gedekt* als er een kandidaat op exact
-    die positie ligt, en *gedekt met klasse* als die klasse ook in `possible_classes` staat.
+    `kandidaten`: dicts met `bron`, `start`, `eind`, `possible_classes`, `detectors` (de namen
+    van de detectoren die hem vonden) en optioneel `opties` (spanopties als (start, eind)). Een
+    referentie heet *gedekt* als er een kandidaat op exact die positie ligt, en *gedekt met
+    klasse* als die klasse ook in `possible_classes` staat. `candidate_recall_incl_opties` telt ook
+    een spanoptie mee: dat is de grens waar een latere keuze uit kan putten.
     """
     op_plek: dict[tuple[str, int, int], list[dict[str, Any]]] = defaultdict(list)
     for k in kandidaten:
@@ -88,12 +90,15 @@ def kandidaat_metrieken(kandidaten: list[dict[str, Any]], referentie: list[Ref],
 
     alle = [x for v in per_klasse.values() for x in v]
     raak_kandidaten = sum(1 for plek in op_plek if plek in ref_plekken)
+    optieplekken = {(k["bron"], s, e) for k in kandidaten for s, e in k.get("opties", ())} | set(op_plek)
+    incl_opties = sum(1 for r in referentie if (r.bron, r.start, r.eind) in optieplekken)
     return {
         "referentie_status": status,
         "referenties": len(referentie),
         "kandidaten": len(op_plek),
         "candidate_recall": _deel(sum(g for g, _ in alle), len(alle)),
         "candidate_recall_met_klasse": _deel(sum(k for _, k in alle), len(alle)),
+        "candidate_recall_incl_opties": _deel(incl_opties, len(referentie)),
         "candidate_precision": _deel(raak_kandidaten, len(op_plek)),
         "kandidaten_per_referentie": _deel(len(op_plek), len(referentie)),
         "per_klasse": {k: {"n": len(v), "candidate_recall": _deel(sum(g for g, _ in v), len(v)),

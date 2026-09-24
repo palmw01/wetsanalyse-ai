@@ -1,0 +1,14 @@
+# Delegatiebevoegdheid (H2:125-127; profiel 12_delegatie.yaml). De invulling uit de graaf
+# (jas.delegatie.grondslag_wti) is structureel en komt met de syntactische detectoren.
+- id: jas.delegatie.regels_gesteld
+  klassen: [Delegatiebevoegdheid en delegatie-invulling]
+  code: DELEGATION_FORMULA
+  bron: "H2:127"
+  versie: 1
+  niet_binnen: []
+  patroon: '\b(?:bij|krachtens)(?:\s+of\s+krachtens)?\s+{REGELINGSVORM}\b[^.;]*?\bregels\b[^.;]*?\bgesteld\b[^.;]*[.;]?'
+  tests:
+    positief: [{tekst: "Bij ministeriële regeling worden nadere regels gesteld met betrekking tot de toepassing van het derde lid.", span: "Bij ministeriële regeling worden nadere regels gesteld met betrekking tot de toepassing van het derde lid."}]
+    negatief: [{tekst: "Bij ministeriële regeling wordt de datum vastgesteld.", span: "Bij ministeriële regeling wordt de datum vastgesteld."}]
+    rand: [{tekst: "Bij of krachtens algemene maatregel van bestuur kunnen regels worden gesteld;", span: "Bij of krachtens algemene maatregel van bestuur kunnen regels worden gesteld;"}]
+    overlap: [{tekst: "Bij algemene maatregel van bestuur worden regels gesteld. Bij ministeriële regeling kunnen nadere regels worden gesteld.", spans: ["Bij algemene maatregel van bestuur worden regels gesteld.", "Bij ministeriële regeling kunnen nadere regels worden gesteld."]}]
