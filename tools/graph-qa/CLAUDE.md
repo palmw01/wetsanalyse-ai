@@ -53,6 +53,12 @@ vlag `ANNOTATION_PIPELINE` in een beurt komen. Tot nu toe staat er de taalanalys
 UD-model, verwisselbare providers en afgeleide constituenten/spanopties; de keuze voor spaCy
 `nl_core_news_md` staat in `docs/architectuur/adr-002-taalprovider.md`). Vraagt de `nlp`-extra;
 zonder die extra degradeert de provider zichtbaar (`niveau=TOKENS`, reden in `fout`), hij gooit niet.
+Verder: detectieprofielen per klasse (`profielen/*.yaml`, officiële tekst alleen via `H2:NN`), het
+kandidaatmodel (`kandidaten.py`) en de detectoren (`detectoren/`). **Een detectorregel wijzig je in
+`detectoren/regels/*.yaml`, met zijn vier testsoorten (positief, negatief, rand, overlap) erbij** –
+`tests/test_detectoren.py` weigert een regel zonder. Hoeveel referentiespans de detectoren
+aanreiken meet `python -m eval.kandidaat_eval` (seconden, geen model). Dat is ankerdekking, geen
+recall.
 
 Ondersteunend, op agent-niveau omdat meerdere ketens ze delen: `agent/state.py` (de State),
 `agent/berichten.py` (het venster naar de LLM), `agent/narratie.py` (de statusregels) en

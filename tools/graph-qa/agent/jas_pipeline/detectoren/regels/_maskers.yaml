@@ -1,0 +1,20 @@
+# Negatieve patronen (ADR-001 §3E, detectieprofielen `negative_patterns`). Geen JAS-kandidaten:
+# bereiken waarbinnen een regel met `niet_binnen: [<masker>]` niet mag vuren.
+- id: masker.verwijzing.artikel
+  masker: verwijzing
+  bron: "adr-001:negatieve-patronen"
+  patroon: '\b(?:artikel|artikelen|art\.)\s+\d+[a-z]*(?::\d+[a-z]*)?(?:,\s*(?:het\s+)?{RANGTELWOORD}\s+lid)?(?:,\s*onderdeel\s+[a-z0-9]+°?)?'
+  tests:
+    positief: [{tekst: "bedoeld in artikel 9, derde lid, onderdeel a", span: "artikel 9, derde lid, onderdeel a"}]
+- id: masker.verwijzing.lid
+  masker: verwijzing
+  bron: "adr-001:negatieve-patronen"
+  patroon: '\b(?:het\s+|dit\s+)?{RANGTELWOORD}\s+(?:lid|leden)\b'
+  tests:
+    positief: [{tekst: "op de voet van het bepaalde in het derde lid", span: "het derde lid"}]
+- id: masker.verwijzing.bedoeld
+  masker: verwijzing
+  bron: "adr-001:negatieve-patronen"
+  patroon: '\b(?:als\s+)?bedoeld\s+in\b'
+  tests:
+    positief: [{tekst: "een aanslag als bedoeld in artikel 10", span: "als bedoeld in"}]

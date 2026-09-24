@@ -11,8 +11,8 @@ semantic_signals:
   - "werkingsgebied van de regel (H2:116); de meeste wetgeving heeft er geen"
 structural_signals: []
 candidate_rules:
-  - {id: jas.plaats.gazetteer, status: gepland}
-  - {id: jas.plaats.gebiedsomschrijving, status: gepland}
+  - {id: jas.plaats.gazetteer, status: geïmplementeerd}
+  - {id: jas.plaats.gebiedsomschrijving, status: geïmplementeerd}
 confusable_classes:
   - {klasse: Variabele en variabelewaarde, reden: "woonplaats als kenmerk", regel: JAS-PRIORITY-002}
   - {klasse: Parameter en parameterwaarde, reden: "vast gebied", regel: JAS-PRIORITY-002}

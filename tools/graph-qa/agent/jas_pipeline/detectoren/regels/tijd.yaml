@@ -1,0 +1,83 @@
+# Tijdsaanduiding (H2:107-109; profiel 10_tijdsaanduiding.yaml). JAS-PRIORITY-001 maakt van een
+# tijdswaarde met dezelfde functie een Tijdsaanduiding; daarom staan var/par hier niet als klasse.
+- id: jas.tijd.datum
+  klassen: [Tijdsaanduiding]
+  code: TEMPORAL_DATE
+  bron: "H2:109"
+  versie: 1
+  patroon: '\b\d{1,2}\s+{MAAND}\s+\d{4}\b'
+  links: '\b(?:op|vóór|voor|na|met ingang van|vanaf|tot en met|tot)\s+'
+  tests:
+    positief: [{tekst: "Deze wet treedt in werking op 1 september 2009.", span: "op 1 september 2009"}]
+    negatief: [{tekst: "Zie Stb. 2009, 1.", span: "2009"}]
+    rand: [{tekst: "met ingang van 1 januari 2027", span: "met ingang van 1 januari 2027"}]
+    overlap: [{tekst: "tot 31 december 2026 en vanaf 1 januari 2027", spans: ["tot 31 december 2026", "vanaf 1 januari 2027"]}]
+- id: jas.tijd.duur
+  klassen: [Tijdsaanduiding]
+  code: TEMPORAL_DURATION
+  bron: "H2:109"
+  versie: 1
+  patroon: '\b{TELWOORD}\s+{PERIODE}\b'
+  links: '\b(?:binnen|gedurende|na|voor|vóór|uiterlijk|ten minste|ten hoogste|een termijn van|de periode van)\s+'
+  rechts: '\s+(?:na|vóór|voor|vanaf|te rekenen vanaf|nadat|voordat)\s+[^,.;:]+'
+  tests:
+    positief: [{tekst: "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.", span: "zes weken na de dagtekening van het aanslagbiljet"}]
+    negatief: [{tekst: "de eerste van de twee bestuurders", span: "twee bestuurders"}]
+    rand: [{tekst: "binnen 14 dagen.", span: "binnen 14 dagen"}]
+    overlap: [{tekst: "binnen zes weken en uiterlijk twee jaren", spans: ["binnen zes weken", "uiterlijk twee jaren"]}]
+- id: jas.tijd.relatief
+  klassen: [Tijdsaanduiding]
+  code: TEMPORAL_RELATIVE_PERIOD
+  bron: "H2:109"
+  versie: 1
+  patroon: '\b(?:de|het)\s+(?:eerste|daaropvolgende|volgende|overige|laatste|komende|voorafgaande)(?:\s+{TELWOORD})?\s+{PERIODE}\b'
+  tests:
+    positief: [{tekst: "De dwangsom bedraagt de eerste veertien dagen € 23 per dag, de overige dagen € 45 per dag.", span: "de eerste veertien dagen"}]
+    negatief: [{tekst: "de eerste bestuurder", span: "de eerste bestuurder"}]
+    rand: [{tekst: "de overige dagen", span: "de overige dagen"}]
+    overlap: [{tekst: "de eerste veertien dagen, de daaropvolgende veertien dagen", spans: ["de eerste veertien dagen", "de daaropvolgende veertien dagen"]}]
+- id: jas.tijd.periodewoord
+  klassen: [Tijdsaanduiding]
+  code: TEMPORAL_PERIOD_NOUN
+  bron: "H2:109"
+  versie: 1
+  patroon: '\b(?:het|de|dat|dit|hetzelfde|het\s+volgende|het\s+voorafgaande)\s+{PERIODENAAM}\b'
+  links: '\b(?:in|gedurende|over|na|vóór|voor|tot)\s+'
+  tests:
+    positief: [{tekst: "in het berekeningsjaar minder bedraagt", span: "in het berekeningsjaar"}]
+    negatief: [{tekst: "het jaarverslag", span: "het jaar"}]
+    rand: [{tekst: "in dat jaar.", span: "in dat jaar"}]
+    overlap: [{tekst: "in het berekeningsjaar en in dat jaar", spans: ["in het berekeningsjaar", "in dat jaar"]}]
+- id: jas.tijd.periode_van
+  klassen: [Tijdsaanduiding]
+  code: TEMPORAL_PERIOD_OF
+  bron: "H2:109"
+  versie: 1
+  patroon: '\b(?:de|een)\s+(?:periode|termijn)\s+van\s+{TELWOORD}\s+{PERIODE}\b'
+  tests:
+    positief: [{tekst: "dat de periode van drie jaren wordt geacht in te gaan", span: "de periode van drie jaren"}]
+    negatief: [{tekst: "de periode waarin", span: "de periode waarin"}]
+    rand: [{tekst: "een termijn van 6 weken", span: "een termijn van 6 weken"}]
+    overlap: [{tekst: "een termijn van zes weken", spans: ["een termijn van zes weken", "zes weken"]}]
+- id: jas.tijd.tijdstip
+  klassen: [Tijdsaanduiding]
+  code: TEMPORAL_MOMENT
+  bron: "H2:109"
+  versie: 1
+  patroon: '\bhet\s+tijdstip\s+(?:waarop|van)\s+[^,.;:]+'
+  tests:
+    positief: [{tekst: "wordt geacht in te gaan op het tijdstip waarop het lichaam in gebreke is.", span: "het tijdstip waarop het lichaam in gebreke is"}]
+    negatief: [{tekst: "op enig moment", span: "enig moment"}]
+    rand: [{tekst: "het tijdstip van ontvangst", span: "het tijdstip van ontvangst"}]
+    overlap: [{tekst: "het tijdstip waarop de termijn van zes weken eindigt", spans: ["het tijdstip waarop de termijn van zes weken eindigt", "zes weken"]}]
+- id: jas.tijd.bijwoord
+  klassen: [Tijdsaanduiding]
+  code: TEMPORAL_ADVERB
+  bron: "H2:108"
+  versie: 1
+  patroon: '\b(?:zo\s+spoedig\s+mogelijk|zo\s+snel\s+mogelijk|onverwijld|terstond|onmiddellijk|spoedig|tijdig)\b'
+  tests:
+    positief: [{tekst: "het rode licht verschijnt spoedig;", span: "spoedig"}]
+    negatief: [{tekst: "snelheid", span: "snel"}]
+    rand: [{tekst: "moeten zo snel mogelijk doorlopen", span: "zo snel mogelijk"}]
+    overlap: [{tekst: "onverwijld en tijdig", spans: ["onverwijld", "tijdig"]}]

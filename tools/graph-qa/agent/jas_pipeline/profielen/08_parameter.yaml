@@ -13,8 +13,8 @@ semantic_signals:
   - "waarde die gedurende een periode voor alle gevallen gelijk is (H2:89)"
 structural_signals: []
 candidate_rules:
-  - {id: jas.waarde.bedrag, status: gepland}
-  - {id: jas.waarde.percentage, status: gepland}
+  - {id: jas.waarde.bedrag, status: geïmplementeerd}
+  - {id: jas.waarde.percentage, status: geïmplementeerd}
   - {id: jas.parameter.beschrijving, status: gepland}
 confusable_classes:
   - {klasse: Variabele en variabelewaarde, reden: "constant of per geval verschillend"}

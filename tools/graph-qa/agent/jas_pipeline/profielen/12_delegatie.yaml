@@ -13,7 +13,7 @@ semantic_signals:
 structural_signals:
   - "invulling: grondslag in de graaf (WTI 'grondslag' van de gedelegeerde regeling) – getypeerde query, geen vrije SPARQL"
 candidate_rules:
-  - {id: jas.delegatie.regels_gesteld, status: gepland}
+  - {id: jas.delegatie.regels_gesteld, status: geïmplementeerd}
   - {id: jas.delegatie.grondslag_wti, status: gepland}
 confusable_classes:
   - {klasse: Rechtsbetrekking, reden: "een bevoegdheid in het algemeen tegenover delegatie van regelgeving"}

@@ -1,0 +1,35 @@
+# Operator (H2:98-100; profiel 09_operator.yaml). Logisch 'en'/'of' tussen voorwaarden vraagt de
+# parse en staat daarom in de syntactische detectoren (PR 7), niet hier.
+- id: jas.operator.vergelijking
+  klassen: [Operator]
+  code: COMPARISON
+  bron: "H2:100"
+  versie: 1
+  patroon: '\b(?:(?:meer|minder|groter|kleiner|hoger|lager)\s+(?:(?:bedraagt|bedragen|is|zijn)\s+)?dan|(?:is|zijn)\s+gelijk\s+aan|te\s+boven\s+(?:gaat|gaan))\b'
+  tests:
+    positief: [{tekst: "in het berekeningsjaar minder bedraagt dan de standaardpremie", span: "minder bedraagt dan"}]
+    negatief: [{tekst: "Hij is dan ook bevoegd.", span: "dan"}]
+    rand: [{tekst: "voorzover dat toetsingsinkomen het drempelinkomen te boven gaat.", span: "te boven gaat"}]
+    overlap: [{tekst: "groter dan of gelijk aan", spans: ["groter dan"]}]
+- id: jas.operator.rekenkundig
+  klassen: [Operator]
+  code: ARITHMETIC
+  bron: "H2:100"
+  versie: 1
+  patroon: '\b(?:vermeerderd\s+met|verminderd\s+met|vermenigvuldigd\s+met|gedeeld\s+door|de\s+som\s+van|het\s+gezamenlijke\s+bedrag\s+van|het\s+verschil\s+tussen|(?:een\s+)?percentage\s+van)\b'
+  tests:
+    positief: [{tekst: "in het berekeningsjaar, vermeerderd met een percentage", span: "vermeerderd met"}]
+    negatief: [{tekst: "verminderde vraag", span: "verminderd"}]
+    rand: [{tekst: "De normpremie bedraagt een percentage van het drempelinkomen", span: "een percentage van"}]
+    overlap: [{tekst: "de som van a verminderd met b", spans: ["de som van", "verminderd met"]}]
+- id: jas.operator.logisch
+  klassen: [Operator]
+  code: LOGICAL
+  bron: "H2:100"
+  versie: 1
+  patroon: '\b(?:ten\s+minste|ten\s+hoogste|dan\s+wel|noch)\b'
+  tests:
+    positief: [{tekst: "dan wel tot het wegnemen van de gevolgen", span: "dan wel"}]
+    negatief: [{tekst: "tentoonstelling", span: "ten"}]
+    rand: [{tekst: "Ten minste.", span: "Ten minste"}]
+    overlap: [{tekst: "ten minste twee dan wel drie", spans: ["ten minste", "dan wel"]}]

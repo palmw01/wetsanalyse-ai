@@ -14,9 +14,10 @@ semantic_signals:
 structural_signals:
   - "'en'/'of' aan het eind van een opsommingsonderdeel verbindt de onderdelen (cumulatief/alternatief)"
 candidate_rules:
-  - {id: jas.operator.rekenkundig, status: gepland}
-  - {id: jas.operator.vergelijking, status: gepland}
-  - {id: jas.operator.logisch, status: gepland}
+  - {id: jas.operator.rekenkundig, status: geïmplementeerd}
+  - {id: jas.operator.vergelijking, status: geïmplementeerd}
+  - {id: jas.operator.logisch, status: geïmplementeerd}
+  - {id: jas.waarde.veelvoud, status: geïmplementeerd}
 confusable_classes:
   - {klasse: Afleidingsregel, reden: "de operator is een deel van de regel, niet de regel"}
   - {klasse: Voorwaarde, reden: "de vergelijking tegenover de hele voorwaarde"}

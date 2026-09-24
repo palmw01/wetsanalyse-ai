@@ -1,0 +1,34 @@
+# Waarden (H2:82, H2:91; profielen 07/08). Parameter of variabele is een semantische keuze.
+- id: jas.waarde.bedrag
+  klassen: [Parameter en parameterwaarde, Variabele en variabelewaarde]
+  code: MONEY_AMOUNT
+  bron: "H2:91"
+  versie: 1
+  patroon: '€\s?\d{1,3}(?:\.\d{3})*(?:,(?:\d{1,2}|-))?(?:\s+per\s+(?:dag|week|maand|jaar|kalenderjaar|uur))?'
+  tests:
+    positief: [{tekst: "de eerste veertien dagen € 23 per dag", span: "€ 23 per dag"}]
+    negatief: [{tekst: "artikel 23", span: "23"}]
+    rand: [{tekst: "ten hoogste € 1.250,50.", span: "€ 1.250,50"}]
+    overlap: [{tekst: "€ 23 per dag en € 35 per dag", spans: ["€ 23 per dag", "€ 35 per dag"]}]
+- id: jas.waarde.percentage
+  klassen: [Parameter en parameterwaarde, Variabele en variabelewaarde]
+  code: PERCENTAGE
+  bron: "H2:91"
+  versie: 1
+  patroon: '\b(?:\d+(?:,\d+)?\s?%|(?:\d+(?:,\d+)?|{TELWOORD})\s+procent)'
+  tests:
+    positief: [{tekst: "vijftig procent van het berekende bedrag", span: "vijftig procent"}]
+    negatief: [{tekst: "procentueel", span: "procent"}]
+    rand: [{tekst: "tegen 5,25%", span: "5,25%"}]
+    overlap: [{tekst: "20% of vijftig procent", spans: ["20%", "vijftig procent"]}]
+- id: jas.waarde.veelvoud
+  klassen: [Operator, Parameter en parameterwaarde]
+  code: MULTIPLIER
+  bron: "H2:100"
+  versie: 1
+  patroon: '\b(?:twee|drie|vier|vijf|tien)maal\b'
+  tests:
+    positief: [{tekst: "wordt daarbij tweemaal de standaardpremie in aanmerking genomen", span: "tweemaal"}]
+    negatief: [{tekst: "tweemaandelijks", span: "twee"}]
+    rand: [{tekst: "Driemaal.", span: "Driemaal"}]
+    overlap: [{tekst: "tweemaal of driemaal", spans: ["tweemaal", "driemaal"]}]
