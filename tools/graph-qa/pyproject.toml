@@ -47,6 +47,15 @@ dev = [
 mcp = [
     "mcp>=1.2",
 ]
+# Taalanalyse voor de hybride JAS-pijplijn (ADR-001 PR 3, agent/jas_pipeline/taal). spaCy met het
+# Nederlandse md-model (UD Alpino + LassySmall, CC BY-SA 4.0, ±53 MB): de keuze staat onderbouwd in
+# docs/architectuur/adr-002-taalprovider.md. Een extra en geen vaste afhankelijkheid: zolang
+# ANNOTATION_PIPELINE op `legacy` staat gebruikt geen enkele beurt hem, en zonder deze extra
+# degradeert de provider zichtbaar in plaats van te falen.
+nlp = [
+    "spacy>=3.8,<3.9",
+    "nl-core-news-md",
+]
 otel = [
     "opentelemetry-sdk>=1.29.0",
     "opentelemetry-exporter-otlp>=1.29.0",
@@ -66,6 +75,8 @@ build-backend = "hatchling.build"
 
 [tool.uv.sources]
 wetsanalyse-bronmodel = { path = "../../packages/bronmodel" }
+# Het spaCy-model staat niet op PyPI; de wheel komt rechtstreeks van de release van explosion.
+nl-core-news-md = { url = "https://github.com/explosion/spacy-models/releases/download/nl_core_news_md-3.8.0/nl_core_news_md-3.8.0-py3-none-any.whl" }
 
 # De code leeft in agent/ + api/ (geen `graph_qa/`-map), dus hatchling expliciet vertellen
 # welke packages in de wheel horen – anders faalt `uv sync` (kan geen files bepalen).
