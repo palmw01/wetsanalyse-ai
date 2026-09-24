@@ -14,9 +14,9 @@ semantic_signals:
 structural_signals:
   - "spanoptie: de volledige normclause (projectregel: bij een enkelvoudige normzin de hele zin)"
 candidate_rules:
-  - {id: jas.betrekking.modaal_predicaat, status: gepland}
-  - {id: jas.betrekking.vaste_uitdrukking, status: gepland}
-  - {id: jas.betrekking.normatief_adjectief, status: gepland}
+  - {id: jas.betrekking.modaal_predicaat, status: geïmplementeerd}
+  - {id: jas.betrekking.vaste_uitdrukking, status: geïmplementeerd}
+  - {id: jas.betrekking.normatief_adjectief, status: geïmplementeerd}
 confusable_classes:
   - {klasse: Rechtsfeit, reden: "een handeling in de norm ('mag oversteken') tegenover de norm zelf"}
   - {klasse: Afleidingsregel, reden: "'is … verschuldigd' kan een uitkomst van een berekening inleiden"}

@@ -12,9 +12,9 @@ semantic_signals:
 structural_signals:
   - "spanoptie: de volledige zin of clause met invoer, bewerking en uitkomst"
 candidate_rules:
-  - {id: jas.afleiding.bedraagt, status: gepland}
-  - {id: jas.afleiding.wordt_gesteld_op, status: gepland}
-  - {id: jas.afleiding.fictie_vermoeden, status: gepland}
+  - {id: jas.afleiding.bedraagt, status: geïmplementeerd}
+  - {id: jas.afleiding.wordt_gesteld_op, status: geïmplementeerd}
+  - {id: jas.afleiding.fictie_vermoeden, status: geïmplementeerd}
 confusable_classes:
   - {klasse: Parameter en parameterwaarde, reden: "'bedraagt € 23' kan een parameterwaarde vastleggen"}
   - {klasse: Rechtsbetrekking, reden: "'is … verschuldigd' als norm of als uitkomst"}

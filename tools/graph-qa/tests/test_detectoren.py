@@ -56,10 +56,12 @@ def test_maskers(masker):
 
 
 def test_masker_onderdrukt_een_nummer_in_een_verwijzing():
+    """Geen kandidaat ligt binnen een verwijzing; een groter segment eromheen mag wel."""
     tekst = "bedoeld in artikel 10, tweede lid, bedraagt ten minste 5%."
-    grenzen = _grenzen(kandidaten_van(detecteer_alles(BronTekst.van_tekst("urn:test", tekst))))
-    assert "5%" in grenzen and "ten minste" in grenzen
-    assert not any("10" in g or "tweede" in g for g in grenzen)
+    kandidaten = kandidaten_van(detecteer_alles(BronTekst.van_tekst("urn:test", tekst)))
+    assert {"5%", "ten minste"} <= _grenzen(kandidaten)
+    verwijzing = maskers(tekst)["verwijzing"]
+    assert not any(ms <= k.span.start and k.span.eind <= me for k in kandidaten for ms, me in verwijzing)
 
 
 # --- definities ---------------------------------------------------------------------------------
@@ -95,13 +97,14 @@ def test_definitie_in_een_zin():
 # --- samenhang met de profielen en eigenschappen van de laag -----------------------------------
 
 def test_elke_regel_staat_als_geimplementeerd_in_een_profiel_van_zijn_klassen():
+    """Elke regel-id die een detector kan uitgeven staat als geïmplementeerd in een profiel, en omgekeerd."""
+    from agent.jas_pipeline.detectoren import standaard_detectoren
     profielen = laad()
-    detectorregels = {r.id: r.klassen for r in REGELS} | {
-        DefinitieDetector.REGEL_ONDERDEEL: ("Brondefinitie",), DefinitieDetector.REGEL_ZIN: ("Brondefinitie",)}
-    for rid, klassen in detectorregels.items():
-        assert any({"id": rid, "status": "geïmplementeerd"} in profielen[k].candidate_rules for k in klassen), rid
-    geimplementeerd = {r["id"] for p in profielen.values() for r in p.candidate_rules if r["status"] == "geïmplementeerd"}
-    assert geimplementeerd <= set(detectorregels), geimplementeerd - set(detectorregels)
+    in_profiel = {r["id"]: k for k, p in profielen.items() for r in p.candidate_rules if r["status"] == "geïmplementeerd"}
+    uitgegeven = {rid for d in standaard_detectoren() for rid in d.REGELS}
+    assert uitgegeven == set(in_profiel), (uitgegeven ^ set(in_profiel))
+    for r in REGELS:                         # een YAML-regel hoort bij een profiel van een van zijn klassen
+        assert in_profiel[r.id] in r.klassen, r.id
 
 
 def test_elke_kandidaat_is_letterlijk_onbehandeld_en_draagt_zijn_regel():

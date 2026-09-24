@@ -1,0 +1,46 @@
+# Voorwaarde (H2:62-64; profiel 05_voorwaarde.yaml). 'als' staat hier bewust niet: dat is te vaak
+# vergelijking of hoedanigheid; de syntactische detector neemt 'als' alleen als het een bijzin inleidt.
+- id: jas.voorwaarde.voorwaardelijke_bijzin
+  klassen: [Voorwaarde]
+  code: CONDITIONAL_CLAUSE
+  bron: "H2:64"
+  versie: 1
+  patroon: '\b(?:indien|tenzij|mits|wanneer|ingeval|in\s+geval|voor\s+zover|voorzover|voor\s+zolang|zolang)\b[^,.;:]+'
+  tests:
+    positief: [{tekst: "Indien het lichaam niet heeft voldaan, is een bestuurder aansprakelijk.", span: "Indien het lichaam niet heeft voldaan"}]
+    negatief: [{tekst: "Hij treedt op als bestuurder.", span: "als bestuurder"}]
+    rand: [{tekst: "voorzover dat toetsingsinkomen het drempelinkomen te boven gaat.", span: "voorzover dat toetsingsinkomen het drempelinkomen te boven gaat"}]
+    overlap: [{tekst: "tenzij hij binnen zes weken betaalt", spans: ["tenzij hij binnen zes weken betaalt", "binnen zes weken"]}]
+- id: jas.voorwaarde.vaste_inleiding
+  klassen: [Voorwaarde]
+  code: CONDITIONAL_FORMULA
+  bron: "H2:64"
+  versie: 1
+  patroon: '\b(?:met\s+dien\s+verstande\s+dat|met\s+uitzondering\s+van|behoudens|onverminderd)\b[^.;:]+'
+  tests:
+    positief: [{tekst: "is hij aansprakelijk, met dien verstande dat wordt vermoed dat hij schuld heeft.", span: "met dien verstande dat wordt vermoed dat hij schuld heeft"}]
+    negatief: [{tekst: "Hij verstaat het goed.", span: "verstaat"}]
+    rand: [{tekst: "met uitzondering van de accijns", span: "met uitzondering van de accijns"}]
+    overlap: [{tekst: "met uitzondering van de periode van drie jaren", spans: ["met uitzondering van de periode van drie jaren", "de periode van drie jaren"]}]
+- id: jas.voorwaarde.bijwoord
+  klassen: [Voorwaarde]
+  code: CONDITIONAL_ADVERB
+  bron: "H2:64"
+  versie: 1
+  patroon: '\b(?:schriftelijk|elektronisch|mondeling|langs\s+elektronische\s+weg|op\s+papier)\b'
+  tests:
+    positief: [{tekst: "Het verzoek wordt schriftelijk ingediend.", span: "schriftelijk"}]
+    negatief: [{tekst: "de schriftelijkheid", span: "schriftelijk"}]
+    rand: [{tekst: "langs elektronische weg.", span: "langs elektronische weg"}]
+    overlap: [{tekst: "schriftelijk of elektronisch", spans: ["schriftelijk", "elektronisch"]}]
+- id: jas.voorwaarde.wegens
+  klassen: [Voorwaarde, Rechtsfeit]
+  code: CAUSAL_PHRASE
+  bron: "H2:63"
+  versie: 1
+  patroon: '\bwegens\s+(?:een|de|het)\s+[\w-]+'
+  tests:
+    positief: [{tekst: "een wegens een overtreding opgelegde verplichting", span: "wegens een overtreding"}]
+    negatief: [{tekst: "de weg naar huis", span: "weg"}]
+    rand: [{tekst: "Wegens de overtreding.", span: "Wegens de overtreding"}]
+    overlap: [{tekst: "wegens een overtreding en wegens de schuld", spans: ["wegens een overtreding", "wegens de schuld"]}]

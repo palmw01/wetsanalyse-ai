@@ -1,0 +1,18 @@
+# Rechtssubject (H2:26-28; profiel 01_rechtssubject.yaml). Lexicaal naast de parse: een parse van
+# wetstekst hangt 'voetgangers' soms als flat aan een opsommingslabel of leest 'de verzekerde
+# aanspraak' als één groep. De rol zelf is het signaal (H2:28: "zelfstandig naamwoord waarmee een
+# persoon of andere entiteit wordt beschreven"); of het de drager van recht of plicht is, blijft
+# een latere keuze.
+- id: jas.subject.rollexicon
+  klassen: [Rechtssubject, Rechtsobject]
+  code: ROLE_NOUN
+  bron: "H2:28"
+  versie: 1
+  patroon: '(?:\b(?:de|een|elke|iedere|zijn|haar|deze|die)\s+)?\b(?:Onze\s+Ministers?|{ROL})\b'
+  links: '\b(?:(?:de|een)\s+)?(?:reeds\s+|niet\s+)?[\w-]+nde\s+'
+  rechts: '\s+van\s+(?:de|het|zijn|haar)\s+[\w-]+'
+  tests:
+    positief: [{tekst: "voetgangers mogen oversteken;", span: "voetgangers"}]
+    negatief: [{tekst: "Bij voetgangerslichten betekent:", span: "voetgangers"}]
+    rand: [{tekst: "reeds overstekende voetgangers moeten doorlopen", span: "reeds overstekende voetgangers"}]
+    overlap: [{tekst: "ieder van de bestuurders", spans: ["ieder van de bestuurders", "de bestuurders"]}]

@@ -1,0 +1,39 @@
+# Afleidingsregel (H2:71-73; profiel 06_afleidingsregel.yaml). De span is het normsegment
+# (tussen . ; :), want de regel draagt invoer, bewerking en uitkomst; een los 'bedraagt' is geen regel.
+- id: jas.afleiding.bedraagt
+  klassen: [Afleidingsregel, Parameter en parameterwaarde]
+  code: CALCULATION_COPULA
+  bron: "H2:73"
+  versie: 1
+  niet_binnen: []
+  patroon: '[^.;:]*?(?<!minder )(?<!meer )\b(?:bedraagt|bedragen)\b(?!\s+(?:\w+\s+)?dan\b)[^.;]*[.;]?'
+  tests:
+    positief: [{tekst: "De dwangsom bedraagt € 23 per dag.", span: "De dwangsom bedraagt € 23 per dag."}]
+    negatief: [{tekst: "Indien de premie minder bedraagt dan de standaardpremie", span: "minder bedraagt dan"}]
+    rand: [{tekst: "In afwijking van het eerste lid bedraagt de aanspraak vijftig procent.", span: "In afwijking van het eerste lid bedraagt de aanspraak vijftig procent."}]
+    overlap: [{tekst: "De premie bedraagt een percentage van het inkomen, vermeerderd met € 10.", spans: ["De premie bedraagt een percentage van het inkomen, vermeerderd met € 10.", "vermeerderd met"]}]
+- id: jas.afleiding.wordt_gesteld_op
+  klassen: [Afleidingsregel]
+  code: CALCULATION_PASSIVE
+  bron: "H2:73"
+  versie: 1
+  niet_binnen: []
+  patroon: '[^.;:]*?\b(?:wordt|worden)\b[^.;:]*?\b(?:gesteld\s+op|berekend|vastgesteld\s+op|in\s+aanmerking\s+genomen)\b'
+  rechts: '[^.]*\.?'
+  tests:
+    positief: [{tekst: "Voor een verzekerde met een partner wordt daarbij tweemaal de standaardpremie in aanmerking genomen; klaar.", span: "Voor een verzekerde met een partner wordt daarbij tweemaal de standaardpremie in aanmerking genomen"}]
+    negatief: [{tekst: "Bij ministeriële regeling worden regels gesteld.", span: "regels gesteld"}]
+    rand: [{tekst: "De rente wordt gesteld op 4%.", span: "De rente wordt gesteld op"}]
+    overlap: [{tekst: "Het bedrag wordt berekend. De rente wordt gesteld op 4%.", spans: ["Het bedrag wordt berekend", "De rente wordt gesteld op"]}]
+- id: jas.afleiding.fictie_vermoeden
+  klassen: [Afleidingsregel]
+  code: LEGAL_FICTION
+  bron: "H2:71"
+  versie: 1
+  niet_binnen: []
+  patroon: '\b(?:wordt|worden)\s+(?:[\w-]+\s+){0,3}?(?:vermoed|geacht)\b[^,.;:]*?(?=\s+en\s+dat\b|[,.;:]|$)'
+  tests:
+    positief: [{tekst: "met dien verstande dat wordt vermoed dat de niet betaling aan hem is te wijten en dat de periode loopt.", span: "wordt vermoed dat de niet betaling aan hem is te wijten"}]
+    negatief: [{tekst: "Hij vermoedt dat het klopt.", span: "vermoedt"}]
+    rand: [{tekst: "de periode wordt geacht in te gaan op het tijdstip waarop het lichaam in gebreke is.", span: "wordt geacht in te gaan op het tijdstip waarop het lichaam in gebreke is"}]
+    overlap: [{tekst: "wordt geacht in te gaan op het tijdstip waarop hij in gebreke is", spans: ["wordt geacht in te gaan op het tijdstip waarop hij in gebreke is", "het tijdstip waarop hij in gebreke is"]}]

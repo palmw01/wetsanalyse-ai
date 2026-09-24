@@ -14,8 +14,8 @@ semantic_signals:
   - "kenmerk dat per instantie kan verschillen (H2:80), tegenover een parameter die voor iedereen gelijk is (H2:89)"
 structural_signals: []
 candidate_rules:
-  - {id: jas.variabele.eigenschap_np, status: gepland}
-  - {id: jas.variabele.uitvoer_van_afleiding, status: gepland}
+  - {id: jas.variabele.eigenschap_np, status: geïmplementeerd}
+  - {id: jas.variabele.uitvoer_van_afleiding, status: geïmplementeerd}
   - {id: jas.waarde.numeriek, status: gepland}
 confusable_classes:
   - {klasse: Parameter en parameterwaarde, reden: "variabel per geval of constant voor iedereen"}

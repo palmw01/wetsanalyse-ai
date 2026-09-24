@@ -148,6 +148,7 @@ class RegelDetector:
         self.naam = naam
         self.regels = regels
         self.versie = ".".join(str(r.versie) for r in regels)
+        self.REGELS = tuple(r.id for r in regels)
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         masker = maskers(bron.tekst)
