@@ -5,7 +5,7 @@ import json
 from uuid import uuid4
 from typing import Any
 
-from bronmodel import BronFout, resolve, valideer_ankers
+from bronmodel import BronFout, CorpusMap, resolve, valideer_ankers
 
 from .tool_execution import execute_tool, read_port
 
@@ -18,17 +18,9 @@ def doel_params(doel):
 
 
 def corpus_segmenten(segmenten):
-    chunks, spans, offset = [], [], 0
-    for segment in segmenten:
-        text = segment["tekst"]
-        if not text.strip():
-            continue
-        if chunks:
-            offset += 2
-        spans.append({**segment, "corpus_start": offset, "corpus_eind": offset + len(text)})
-        chunks.append(text)
-        offset += len(text)
-    return "\n\n".join(chunks), spans
+    """Het analysecorpus plus per node zijn corpusoffsets; de rekenregel staat in `CorpusMap`."""
+    kaart = CorpusMap(segmenten)
+    return kaart.corpus, kaart.als_dicts()
 
 
 def lees_bron(b, state, doel, writer):
@@ -95,7 +87,7 @@ def controleer_hergebruik(b, state, bron, writer):
 
 def lokale_elementen(voorstellen: list[dict[str, Any]], state) -> list[dict[str, Any]]:
     snapshot = state["bron_snapshot"]
-    spans = state["corpus_segmenten"]
+    kaart = CorpusMap(state["corpus_segmenten"])
     reused = set(state.get("hergebruikte_nodes") or [])
     result = []
     for element in voorstellen:
@@ -113,13 +105,7 @@ def lokale_elementen(voorstellen: list[dict[str, Any]], state) -> list[dict[str,
                 continue
             result.append({**{k: v for k, v in element.items() if k != "anker"}, "eigenaar_iri": owner})
             continue
-        for segment in spans:
-            left, right = max(start, segment["corpus_start"]), min(end, segment["corpus_eind"])
-            if left >= right:
-                continue
-            a, z = left - segment["corpus_start"], right - segment["corpus_start"]
-            anchors.append({"bron_iri": segment["bron_iri"], "start": a, "eind": z,
-                            "tekst": segment["tekst"][a:z], "bron_hash": segment["bron_hash"]})
+        anchors.extend(span.anker() for span in kaart.naar_spans(start, end))
         owner = valideer_ankers(snapshot, anchors)
         # Een nieuwe parent-analyse mag een gedeeld lokaal element niet opnieuw aanmaken.
         if len({a["bron_iri"] for a in anchors}) == 1 and anchors[0]["bron_iri"] in reused:
@@ -150,6 +136,7 @@ def verwerk_bron(llm_text, corpus, bwb_id, artikel, scope_lid, geldige_ids, soor
     from .models import VerworpenFragment
     spans = bron["corpus_segmenten"]
     by_iri = {s["bron_iri"]: s for s in spans}
+    kaart = CorpusMap(spans)
     result, rejected, seen = [], [], {}
     for item in _parse_elementen(llm_text):
         anchors = []
@@ -194,8 +181,8 @@ def verwerk_bron(llm_text, corpus, bwb_id, artikel, scope_lid, geldige_ids, soor
                 continue
             first, last = anchors[0], anchors[-1]
             proposal.anker = _maak_anker(corpus,
-                by_iri[first["bron_iri"]]["corpus_start"] + first["start"],
-                by_iri[last["bron_iri"]]["corpus_start"] + last["eind"], scope_lid or "")
+                kaart.segment(first["bron_iri"]).corpus_start + first["start"],
+                kaart.segment(last["bron_iri"]).corpus_start + last["eind"], scope_lid or "")
             proposal.ankers = anchors
             if any(previous.id == proposal.id for previous in result):
                 proposal.id = uuid4().hex[:12]
