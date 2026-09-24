@@ -27,28 +27,10 @@ def main():
     from agent.config import Settings
     from dotenv import load_dotenv
     load_dotenv(ROOT / 'tools/graph-qa/.env')
-    settings = Settings.from_env().model_copy(update={
-        'checkpoint_db_path': None, 'checkpoint_db_url': None,
-        'llm_timeout_seconds': 60, 'llm_max_retries': 0,
-        'enable_kandidaat_splitsing': False, 'critic_max_rondes': 2,
-        'enable_planning': True, 'enable_decomposition': False,
-    })
-    class Graph:
-        def __init__(self, text): self.text = text
-        def initialize(self): return {}
-        def close(self): pass
-        def sparql(self, query):
-            literal = json.dumps(self.text, ensure_ascii=False) + '@nl'
-            return json.dumps('?tekst\t?jci\t?lid\t?lidnummer\t?lidtekst\t?onderdeel\t?onderdeeltekst\n'
-                              + '\t"jci"\t"lid-1"\t"1"\t' + literal + '\t\t')
-        def semantic_search(self, query, limit=10): raise AssertionError('onverwachte zoekroute')
-    class Capture:
-        def __init__(self): self.llm = AnthropicLLM(settings); self.calls = []
-        def create(self, **kw): self.calls.append(kw); return self.llm.create(**kw)
-        def stream(self, **kw): self.calls.append(kw); return self.llm.stream(**kw)
-    cases = json.loads((ROOT / 'docs/wetsanalyse/referentieset/cases.json').read_text())
-    cases = [c for c in cases if c['id'] in ['IW01','AWB04','WZT01','RVV03']]
-    assert len(cases) == 4 and all(c['split'] == 'ontwikkeling' for c in cases)
+    sys.path.append(str(ROOT / 'tools/graph-qa'))  # achteraan: de snapshot-agent gaat voor
+    from eval.keten_fixture import Capture, FixtureGraph, LegeAnnotaties, fixture_doel, ketensettings, laad_cases
+    settings = ketensettings(Settings.from_env())
+    cases = laad_cases(['IW01', 'AWB04', 'WZT01', 'RVV03'])
     report = {'variant': args.variant, 'status': 'bezig', 'model': settings.llm_model,
         'scope': 'expliciet doel → bronophaling → annotator → critic → eventuele patch/herziening/critic → emit; vaste bronfixture, geen router/retrieval-LLM',
         'herhalingen': 1, 'temperature': 'providerdefault',
@@ -59,11 +41,9 @@ def main():
     def save(): args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
     async def run():
         for c in cases:
-            llm = Capture(); start = time.monotonic()
-            # Alleen technische fixture-identiteit; de werkelijke passage staat in het rapport.
-            doel = {'bwbId': 'BWBR0004770', 'artikel': '9', 'lid': '1', 'citeertitel': c['id']}
-            events = [e async for e in answer_stream('Annoteer de aangewezen bronpassage.', doel=doel,
-                       settings=settings, llm=llm, graph=Graph(c['tekst']))]
+            llm = Capture(AnthropicLLM(settings)); start = time.monotonic()
+            events = [e async for e in answer_stream('Annoteer de aangewezen bronpassage.', doel=fixture_doel(c),
+                       settings=settings, llm=llm, graph=FixtureGraph(c['tekst']), annotaties=LegeAnnotaties(c['tekst']))]
             report['resultaten'].append({'casus': c['id'], 'bron_sha256': c['tekst_sha256'],
                 'analysetekst': c['tekst'], 'seconden': time.monotonic()-start, 'calls': llm.calls, 'events': events})
             save(); print(args.variant, c['id'], len(llm.calls), 'modelcalls', flush=True)
