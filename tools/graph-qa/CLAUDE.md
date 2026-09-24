@@ -77,8 +77,15 @@ classifier-call op kandidaat-labels. Vier regels die je niet mag omdraaien:
 - **Voorstellen hebben exact de legacy-vorm** (`ankers` per bronnode + `anker` op het corpus), dus
   `emit`, de api en de werkplek merken niets. Ids zijn deterministisch (kandidaat + klasse + grens).
 
-Er draait in `hybrid_v1` nog geen Critic: de gerichte reviewer (PR 12) komt alleen op
-conflictgevallen, niet op de hele set.
+**Geen Critic over de hele set, wel een gerichte reviewer op twijfelgevallen.** Na validatie
+(`jas_pipeline/validatie.py`, `V_*`-codes) signaleert `onzekerheid.py` twijfel uit waarneembare
+signalen: `DETECTOR_CONFLICT` (het model koos iets anders dan een vast patroon aanwijst),
+`CLASSIFIER_ABSTAIN`, `ZELFDE_SPAN` en `DEGRADED_PARSE`. Alleen de eerste drie gaan naar de
+reviewer (`review.py`: KEEP / CHANGE / HUMAN_REVIEW per geval, via een `strict` tool). Wat dat oordeel
+doet, beslist `resolver.TABEL` – een vaste tabel, elke transitie in `meting["resolutie"]`:
+onenigheid wordt HUMAN_REVIEW (geel, met alternatieven), een CHANGE tegen JAS-PRIORITY wordt niet
+uitgevoerd, en er wordt nooit iets automatisch "rood" doorgevoerd. `GERICHTE_REVIEW=false` slaat de
+reviewer over; de twijfelgevallen gaan dan rechtstreeks geel naar de jurist.
 
 Ondersteunend, op agent-niveau omdat meerdere ketens ze delen: `agent/state.py` (de State),
 `agent/berichten.py` (het venster naar de LLM), `agent/narratie.py` (de statusregels) en

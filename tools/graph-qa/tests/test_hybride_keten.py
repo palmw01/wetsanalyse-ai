@@ -87,14 +87,20 @@ def test_een_termijn_wordt_zonder_model_voorgesteld_ook_als_het_model_alles_afwi
     assert [(e["klasse"], e["tekst"]) for e in _elementen(events)] == [("Tijdsaanduiding", "binnen zes weken")]
 
 
-def test_geen_tool_aanroep_is_een_nieuwe_poging_en_daarna_onzeker():
+def test_geen_tool_aanroep_gaat_via_een_nieuwe_poging_en_de_reviewer_naar_de_jurist():
+    """Classifier zonder uitvoer (2 pogingen) → CLASSIFIER_ABSTAIN → gerichte reviewer, ook zonder
+    uitvoer → resolver: HUMAN_REVIEW. De jurist krijgt ze geel, met alle mogelijke klassen."""
     llm = KetenLLM(tool_aanroep=False)
     events = _draai(llm)
-    assert len(llm.calls) == 5                          # één nieuwe poging, niet meer
-    run = next(e for e in events if e["type"] == "run")["run"]
-    meting = run["instellingen"]["hybride"]["meting"]
-    assert meting["per_status"]["UNCERTAIN"] > 0 and meting["llm_calls"] == 2
-    assert [e["tekst"] for e in _elementen(events)] == ["binnen zes weken"]   # alleen het regelbesluit
+    assert len(llm.calls) == 6                          # 3 vooraf, classifier ×2, reviewer ×1
+    meting = next(e for e in events if e["type"] == "run")["run"]["instellingen"]["hybride"]["meting"]
+    assert meting["llm_calls"] == 2 and meting["review_calls"] == 1
+    assert meting["per_status"]["UNCERTAIN"] == 0 and meting["per_status"]["HUMAN_REVIEW"] > 0
+    assert {t["regel"] for t in meting["resolutie"]} == {"R-ONGELDIG"}
+    elementen = _elementen(events)
+    regel = [e for e in elementen if e["tekst"] == "binnen zes weken"]
+    assert regel and not regel[0]["aandacht"]            # het regelbesluit is niet betwist
+    assert all(e["aandacht"] == "geel" for e in elementen if e["tekst"] != "binnen zes weken")
 
 
 def test_run_draagt_de_hybride_provenance():

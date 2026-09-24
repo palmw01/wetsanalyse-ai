@@ -102,9 +102,13 @@ def test_de_keten_maakt_een_gevalideerde_fout_rejected(monkeypatch):
     from agent.jas_pipeline.validatie import Bevinding
     from test_hybride_keten import KetenLLM, _draai
     echte = keten.valideer
+    rondes = []
 
     def met_fout(paren, *a):
         goed, bev = echte(paren, *a)
+        rondes.append(1)
+        if len(rondes) > 1:                  # alleen de eerste validatieronde krijgt de fout
+            return goed, bev
         weg = paren[0][1].label
         return [v for v, b in paren[1:]], [*bev, Bevinding(code="V_ANKER", label=weg, detail="test")]
     monkeypatch.setattr(keten, "valideer", met_fout)
