@@ -14,7 +14,9 @@ import argparse
 import json
 from pathlib import Path
 
-from agent.jas_pipeline.detectoren import BronTekst, detecteer_alles, kandidaten_van
+from agent.jas_pipeline.detectoren import BronTekst, detecteer_alles
+from agent.jas_pipeline.fusie import fuseer
+from agent.jas_pipeline.kandidaten import CandidateStatus
 from eval.metrieken import Ref, controleer_status, kandidaat_metrieken, kern, laagste_status
 from eval.taal_benchmark import ontwikkelcasussen
 
@@ -26,14 +28,17 @@ def meet(taal: str = "spacy:nl_core_news_md") -> dict:
     if taal != "null":
         from agent.jas_pipeline.taal import maak_provider
         provider = maak_provider(taal)
-    kandidaten, referentie = [], []
+    kandidaten, referentie, afgewezen = [], [], 0
     for c in casussen:
         tekst = c["tekst"]
         analyse = provider.analyseer(tekst) if provider else None
-        for k in kandidaten_van(detecteer_alles(BronTekst.van_tekst(c["id"], tekst, analyse=analyse))):
+        for k in fuseer(detecteer_alles(BronTekst.van_tekst(c["id"], tekst, analyse=analyse))).kandidaten:
+            # Een kandidaat die de specificiteitsregels afwezen, reikte de span wél aan, maar
+            # geen klasse meer.
+            afgewezen += k.status is CandidateStatus.REJECTED
             kandidaten.append({
                 "bron": c["id"], "start": k.span.start, "eind": k.span.eind,
-                "possible_classes": list(k.possible_classes),
+                "possible_classes": [] if k.status is CandidateStatus.REJECTED else list(k.possible_classes),
                 "detectors": sorted({e.detector for e in k.evidence}),
                 "opties": [kern(tekst, o.span.start, o.span.eind) for o in k.span_options],
             })
@@ -42,7 +47,7 @@ def meet(taal: str = "spacy:nl_core_news_md") -> dict:
     # Kandidaatgrenzen op dezelfde kern-normalisatie als de referentie (rand-interpunctie weg).
     for k in kandidaten:
         k["start"], k["eind"] = kern_van(casussen, k)
-    return kandidaat_metrieken(kandidaten, referentie, status)
+    return {**kandidaat_metrieken(kandidaten, referentie, status), "afgewezen_door_specificiteit": afgewezen}
 
 
 def kern_van(casussen: list[dict], k: dict) -> tuple[int, int]:
@@ -60,6 +65,7 @@ def markdown(m: dict) -> str:
         regels.append(f"| {k} | {v['n']} | {pct(v['candidate_recall'])} | {pct(v['met_klasse'])} |")
     regels += [f"| **totaal** | {m['referenties']} | {pct(m['candidate_recall'])} "
                f"(incl. opties {pct(m['candidate_recall_incl_opties'])}) | {pct(m['candidate_recall_met_klasse'])} |",
+               "", f"Afgewezen door JAS-specificiteitsregels: {m['afgewezen_door_specificiteit']}.",
                "", "Unieke bijdrage per detector: " + ", ".join(f"{d} {n}" for d, n in m["unieke_bijdrage_per_detector"].items())]
     return "\n".join(regels) + "\n"
 
