@@ -67,5 +67,6 @@ def kandidaten_van(resultaten: list[DetectorResult]) -> list[Candidate]:
 
 def standaard_detectoren() -> list[Detector]:
     from .regels import regeldetectoren
-    from .structuur import DefinitieDetector
-    return [*regeldetectoren(), DefinitieDetector()]
+    from .structuur import BetekenisDetector, DefinitieDetector
+    from .syntactisch import syntactische_detectoren
+    return [*regeldetectoren(), DefinitieDetector(), BetekenisDetector(), *syntactische_detectoren()]

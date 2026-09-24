@@ -26,6 +26,7 @@ class DefinitieDetector:
     versie = "1"
     REGEL_ONDERDEEL = "jas.definitie.onderdeel_term_dubbelepunt"
     REGEL_ZIN = "jas.definitie.verstaan_onder"
+    REGELS = (REGEL_ONDERDEEL, REGEL_ZIN)
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         tekst = bron.tekst
@@ -47,3 +48,34 @@ class DefinitieDetector:
                 [Evidence(detector=self.naam, code="DEFINITION_SENTENCE", regel=self.REGEL_ZIN)]))
         return DetectorResult(detector=self.naam, versie=self.versie, bron_iri=bron.bron_iri,
                               kandidaten=tuple(kandidaten))
+
+
+# 'Bij voetgangerslichten betekent: a. groen licht: voetgangers mogen oversteken;' en
+# 'Geel knipperlicht betekent: gevaarlijk punt;'. De term is de situatie waaronder de betekenis
+# geldt – een kandidaat-Voorwaarde, geen definitie (er staat geen 'wordt verstaan onder').
+_BETEKENT = re.compile(r"\bbetekent\s*:", re.IGNORECASE)
+_BETEKENT_ONDERWERP = re.compile(r"^[ \t]*(?P<term>[^:\n]{1,80}?)\s+betekent\s*:", re.IGNORECASE | re.MULTILINE)
+
+
+class BetekenisDetector:
+    naam = "betekenis"
+    versie = "1"
+    REGEL = "jas.voorwaarde.betekenis_term"
+    REGELS = (REGEL,)
+
+    def detecteer(self, bron: BronTekst) -> DetectorResult:
+        tekst = bron.tekst
+        kandidaten: list[Candidate] = []
+        aanhef = _BETEKENT.search(tekst)
+        if aanhef or _BETEKENT.search(bron.context):
+            for m in _ONDERDEEL.finditer(tekst, aanhef.end() if aanhef else 0):
+                kandidaten.append(self._kandidaat(bron, m.start("term"), m.end("term")))
+        for m in _BETEKENT_ONDERWERP.finditer(tekst):
+            if not re.match(r"(?i)bij\b", m.group("term")):          # 'Bij … betekent:' is een aanhef
+                kandidaten.append(self._kandidaat(bron, m.start("term"), m.end("term")))
+        return DetectorResult(detector=self.naam, versie=self.versie, bron_iri=bron.bron_iri,
+                              kandidaten=tuple(kandidaten))
+
+    def _kandidaat(self, bron: BronTekst, s: int, e: int) -> Candidate:
+        return Candidate.maak(bron.span(s, e), ["Voorwaarde", "Rechtsobject"], [Evidence(
+            detector=self.naam, code="MEANING_TERM", regel=self.REGEL, detail=bron.tekst[s:e])])

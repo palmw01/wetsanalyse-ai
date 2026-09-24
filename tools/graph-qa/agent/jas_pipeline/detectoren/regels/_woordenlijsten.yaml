@@ -115,3 +115,90 @@ GEBIED:
   - Zwitserland
   - de Europese Unie
   - de Europese Economische Ruimte
+# Rollen die in wetgeving als partij optreden (profiel Rechtssubject, lexical_signals). Lemma's.
+ROL:
+  - belastingplichtige
+  - belanghebbende
+  - inspecteur
+  - ontvanger
+  - minister
+  - bestuursorgaan
+  - bestuurder
+  - bestuurders
+  - lichaam
+  - verzekerde
+  - partner
+  - overtreder
+  - voetganger
+  - voetgangers
+  - werkgever
+  - werknemer
+  - aanvrager
+  - schuldeiser
+  - schuldenaar
+  - rechter
+  - college
+  - staat
+  - gemeente
+  - degene
+  - iemand
+  - ieder
+  - een ieder
+  - hij
+  - zij
+  - diegene
+# Kenmerken die per geval verschillen (profiel Variabele, lexical_signals). Een woord eindigt vaak
+# op zo'n kern ("toetsingsinkomen"), daarom matcht de detector op het einde van het lemma.
+EIGENSCHAP:
+  - inkomen
+  - bedrag
+  - premie
+  - dwangsom
+  - hoogte
+  - omvang
+  - duur
+  - aantal
+  - leeftijd
+  - verschil
+  - waarde
+  - vermogen
+  - winst
+  - loon
+  - schuld
+  - toeslag
+# Beschrijvingen van een vaste waarde (profiel Parameter, H2:91).
+PARAMETERWOORD:
+  - standaardpremie
+  - tarief
+  - drempel
+  - drempelbedrag
+  - maximum
+  - minimum
+  - vrijstelling
+  - forfait
+  - heffingskorting
+# Uitdrukkingswijze Rechtsbetrekking (H2:46): modaal hulpwerkwoord of normatief predicaat.
+MODAAL:
+  - kan
+  - kunnen
+  - mag
+  - mogen
+  - moet
+  - moeten
+  - dient
+  - dienen
+NORMATIEF:
+  - verplicht
+  - bevoegd
+  - aansprakelijk
+  - verschuldigd
+  - invorderbaar
+  - gehouden
+  - gerechtigd
+  - geboden
+  - verboden
+  - toegestaan
+  - "re:recht\\s+op"
+  - "re:aanspraak\\s+op"
+  - "re:de\\s+plicht"
+  - "re:de\\s+last"

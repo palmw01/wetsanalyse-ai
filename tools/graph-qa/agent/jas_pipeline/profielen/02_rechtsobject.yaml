@@ -13,8 +13,8 @@ semantic_signals:
 structural_signals:
   - "elk opsommingsonderdeel onder een aanhef als 'voor de …' is een afzonderlijke kandidaat"
 candidate_rules:
-  - {id: jas.object.np_bij_normatief_predicaat, status: gepland}
-  - {id: jas.object.opsommingsonderdeel, status: gepland}
+  - {id: jas.object.np_bij_normatief_predicaat, status: geïmplementeerd}
+  - {id: jas.object.opsommingsonderdeel, status: geïmplementeerd}
 confusable_classes:
   - {klasse: Rechtssubject, reden: "beide naamwoordgroep"}
   - {klasse: Variabele en variabelewaarde, reden: "een bedrag of toeslag kan de uitkomst van een afleiding zijn"}

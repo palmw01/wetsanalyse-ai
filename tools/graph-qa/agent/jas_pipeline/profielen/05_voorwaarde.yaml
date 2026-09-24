@@ -15,10 +15,13 @@ structural_signals:
   - "onderdelen van een opsomming onder een voorwaardelijke aanhef zijn elk een (deel)voorwaarde"
   - "grens: tot aan de komma of het hoofdzinwerkwoord waarop de bijzin werkt"
 candidate_rules:
-  - {id: jas.voorwaarde.voorwaardelijke_bijzin, status: gepland}
-  - {id: jas.voorwaarde.vaste_inleiding, status: gepland}
-  - {id: jas.voorwaarde.beperkende_bijzin, status: gepland}
-  - {id: jas.voorwaarde.bijwoord, status: gepland}
+  - {id: jas.voorwaarde.voorwaardelijke_bijzin, status: geïmplementeerd}
+  - {id: jas.voorwaarde.vaste_inleiding, status: geïmplementeerd}
+  - {id: jas.voorwaarde.beperkende_bijzin, status: geïmplementeerd}
+  - {id: jas.voorwaarde.bijwoord, status: geïmplementeerd}
+  - {id: jas.voorwaarde.als_bijzin, status: geïmplementeerd}
+  - {id: jas.voorwaarde.wegens, status: geïmplementeerd}
+  - {id: jas.voorwaarde.betekenis_term, status: geïmplementeerd}
 confusable_classes:
   - {klasse: Rechtsfeit, reden: "een handeling als eis"}
   - {klasse: Operator, reden: "de vergelijking binnen een voorwaarde is zelf een operator (H2:62)"}

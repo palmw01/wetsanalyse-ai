@@ -6,7 +6,7 @@ enige vond. Geen modelaanroepen, geen graaf – draait in seconden, dus bij elke
 
 Dit is **ankerdekking**, geen annotation recall: de referentie is niet vastgesteld (§13).
 
-    python -m eval.kandidaat_eval [--md uit.md] [--json uit.json] [--taal spacy|null]
+    python -m eval.kandidaat_eval [--md uit.md] [--json uit.json] [--taal spacy:nl_core_news_md|null]
 """
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from eval.metrieken import Ref, controleer_status, kandidaat_metrieken, kern, la
 from eval.taal_benchmark import ontwikkelcasussen
 
 
-def meet(taal: str = "null") -> dict:
+def meet(taal: str = "spacy:nl_core_news_md") -> dict:
     casussen = ontwikkelcasussen()
     status = laagste_status(controleer_status(c) for c in casussen)
     provider = None
@@ -68,7 +68,7 @@ def main() -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--md")
     p.add_argument("--json")
-    p.add_argument("--taal", default="null")
+    p.add_argument("--taal", default="spacy:nl_core_news_md")
     args = p.parse_args()
     m = meet(args.taal)
     print(markdown(m))

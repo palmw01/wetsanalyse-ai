@@ -11,7 +11,7 @@ semantic_signals:
   - "handeling, gebeurtenis of tijdsverloop die een juridische toestand wijzigt (H2:53)"
 structural_signals: []
 candidate_rules:
-  - {id: jas.feit.nominalisatie_van, status: gepland}
+  - {id: jas.feit.nominalisatie_van, status: geïmplementeerd}
   - {id: jas.feit.gebeurtenisbijzin, status: gepland}
 confusable_classes:
   - {klasse: Voorwaarde, reden: "een feit als eis voor een rechtsgevolg ('indien … betaalt')"}

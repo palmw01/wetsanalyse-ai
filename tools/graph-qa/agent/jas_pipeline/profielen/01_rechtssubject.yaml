@@ -14,9 +14,9 @@ semantic_signals:
 structural_signals:
   - "partij genoemd in de aanhef van een opsomming geldt voor alle onderdelen"
 candidate_rules:
-  - {id: jas.subject.np_bij_normatief_predicaat, status: gepland}
-  - {id: jas.subject.rollexicon, status: gepland}
-  - {id: jas.subject.voornaamwoord, status: gepland}
+  - {id: jas.subject.np_bij_normatief_predicaat, status: geïmplementeerd}
+  - {id: jas.subject.rollexicon, status: geïmplementeerd}
+  - {id: jas.subject.voornaamwoord, status: geïmplementeerd}
 confusable_classes:
   - {klasse: Rechtsobject, reden: "beide naamwoordgroep; een persoon kan ook voorwerp zijn (H2:35)"}
   - {klasse: Variabele en variabelewaarde, reden: "een kenmerk van een persoon ('gehuwde partner') kan een variabele zijn"}
