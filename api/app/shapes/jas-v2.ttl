@@ -1,0 +1,78 @@
+# SHACL-shapes voor de v2-projectie van de JAS-annotatielagen (ADR-001 PR 14).
+#
+# Twee niveaus, bewust gescheiden (opdracht §21):
+#   jasv:RdfStructuur – is de projectie structureel geldige RDF volgens ons model
+#                       (typen, cardinaliteit, datatypes, start < eind)?
+#   jasv:JasModel     – klopt het JAS-model (klasse uit de dertien, geldige lifecycle en
+#                       laagstatus, bron onder urn:bwb:, wettekst schoon)?
+# Wat SHACL níét kan zeggen: of een annotatie juridisch juist is. Dat blijft de jurist.
+#
+# Niet-blokkerend: deze shapes draaien in tests en CI (api/tests/test_shacl.py) en via
+# app/shacl.py als diagnose, niet in het schrijfpad.
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix oa:   <http://www.w3.org/ns/oa#> .
+@prefix jas:  <urn:jas-ns:> .
+@prefix jasv: <urn:jas-ns:validatie:> .
+
+jasv:RdfStructuur a sh:PropertyGroup ; sh:order 1 .
+jasv:JasModel     a sh:PropertyGroup ; sh:order 2 .
+
+# --- laag -----------------------------------------------------------------------------------------
+jasv:LaagShape a sh:NodeShape ;
+  sh:targetClass jas:AnnotatieLaag ;
+  sh:property [ sh:path jas:laagId ; sh:datatype xsd:string ; sh:minCount 1 ; sh:maxCount 1 ; sh:group jasv:RdfStructuur ] ;
+  sh:property [ sh:path jas:revisie ; sh:datatype xsd:integer ; sh:minCount 1 ; sh:maxCount 1 ; sh:minInclusive 0 ; sh:group jasv:RdfStructuur ] ;
+  sh:property [ sh:path jas:schemaVersie ; sh:hasValue 2 ; sh:maxCount 1 ; sh:group jasv:RdfStructuur ] ;
+  sh:property [ sh:path jas:bepaling ; sh:nodeKind sh:IRI ; sh:minCount 1 ; sh:maxCount 1 ;
+                sh:pattern "^urn:bwb:BWB[RV][0-9]+" ; sh:group jasv:JasModel ] ;
+  sh:property [ sh:path jas:status ; sh:minCount 1 ; sh:maxCount 1 ;
+                sh:in ( "in_review" "geaccordeerd" "gepromoveerd" ) ; sh:group jasv:JasModel ] ;
+  # De wettekst blijft schoon: niets in deze graph heeft een subject onder urn:bwb:
+  # (jas-annotatie-ontologie.md, invariant 1). Één SPARQL-constraint op de laag dekt de hele graph.
+  sh:sparql [
+    sh:message "Een subject onder urn:bwb: in een annotatielaag – een annotatie zou als wettekst lezen." ;
+    sh:select """SELECT $this ?value WHERE { ?value ?p ?o . FILTER(isIRI(?value) && STRSTARTS(STR(?value), "urn:bwb:")) }""" ;
+  ] .
+
+# --- markering ------------------------------------------------------------------------------------
+jasv:MarkeringShape a sh:NodeShape ;
+  sh:targetClass jas:Markering ;
+  sh:property [ sh:path jas:inLaag ; sh:class jas:AnnotatieLaag ; sh:minCount 1 ; sh:maxCount 1 ; sh:group jasv:RdfStructuur ] ;
+  sh:property [ sh:path jas:elementId ; sh:datatype xsd:string ; sh:minCount 1 ; sh:maxCount 1 ; sh:minLength 1 ; sh:group jasv:RdfStructuur ] ;
+  sh:property [ sh:path jas:tekst ; sh:datatype xsd:string ; sh:minCount 1 ; sh:maxCount 1 ; sh:minLength 1 ; sh:group jasv:RdfStructuur ] ;
+  sh:property [ sh:path jas:verouderd ; sh:datatype xsd:boolean ; sh:minCount 1 ; sh:maxCount 1 ; sh:group jasv:RdfStructuur ] ;
+  sh:property [ sh:path oa:hasBody ; sh:class oa:TextualBody ; sh:maxCount 1 ; sh:group jasv:RdfStructuur ] ;
+  sh:property [ sh:path oa:hasTarget ; sh:node jasv:DoelShape ; sh:minCount 1 ; sh:group jasv:RdfStructuur ] ;
+  # De dertien canonieke namen (api/app/jas_klassen.py); test_shacl bewaakt dat deze lijst meeloopt.
+  sh:property [ sh:path jas:klasseNaam ; sh:minCount 1 ; sh:maxCount 1 ; sh:group jasv:JasModel ;
+                sh:in ( "Rechtssubject" "Rechtsobject" "Rechtsbetrekking" "Rechtsfeit" "Voorwaarde"
+                        "Afleidingsregel" "Variabele en variabelewaarde" "Parameter en parameterwaarde"
+                        "Operator" "Tijdsaanduiding" "Plaatsaanduiding"
+                        "Delegatiebevoegdheid en delegatie-invulling" "Brondefinitie" ) ] ;
+  sh:property [ sh:path jas:lifecycle ; sh:minCount 1 ; sh:maxCount 1 ; sh:group jasv:JasModel ;
+                sh:in ( "voorgesteld" "critic_checked" "human_approved" "edited" "rejected" "published" "reused" ) ] .
+
+# --- doel en selectors ----------------------------------------------------------------------------
+jasv:DoelShape a sh:NodeShape ;
+  sh:class oa:SpecificResource ;
+  sh:property [ sh:path oa:hasSource ; sh:nodeKind sh:IRI ; sh:minCount 1 ; sh:maxCount 1 ;
+                sh:pattern "^urn:bwb:BWB[RV][0-9]+" ; sh:group jasv:JasModel ] ;
+  sh:property [ sh:path jas:volgorde ; sh:datatype xsd:integer ; sh:minCount 1 ; sh:maxCount 1 ; sh:group jasv:RdfStructuur ] ;
+  sh:property [ sh:path jas:bronHash ; sh:datatype xsd:string ; sh:minCount 1 ; sh:maxCount 1 ;
+                sh:pattern "^[0-9a-f]{64}$" ; sh:group jasv:JasModel ] ;
+  sh:property [ sh:path oa:hasSelector ; sh:qualifiedValueShape jasv:PositieShape ;
+                sh:qualifiedMinCount 1 ; sh:qualifiedMaxCount 1 ; sh:group jasv:RdfStructuur ] ;
+  sh:property [ sh:path oa:hasSelector ; sh:qualifiedValueShape jasv:CitaatShape ;
+                sh:qualifiedMinCount 1 ; sh:qualifiedMaxCount 1 ; sh:group jasv:RdfStructuur ] .
+
+jasv:PositieShape a sh:NodeShape ;
+  sh:class oa:TextPositionSelector ;
+  sh:property [ sh:path oa:start ; sh:datatype xsd:integer ; sh:minCount 1 ; sh:maxCount 1 ; sh:minInclusive 0 ;
+                sh:lessThan oa:end ] ;
+  sh:property [ sh:path oa:end ; sh:datatype xsd:integer ; sh:minCount 1 ; sh:maxCount 1 ] .
+
+jasv:CitaatShape a sh:NodeShape ;
+  sh:class oa:TextQuoteSelector ;
+  sh:property [ sh:path oa:exact ; sh:datatype xsd:string ; sh:minCount 1 ; sh:maxCount 1 ; sh:minLength 1 ] .
