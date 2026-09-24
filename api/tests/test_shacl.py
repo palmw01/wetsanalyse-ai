@@ -77,3 +77,16 @@ def test_zonder_pyshacl_valt_de_diagnose_niet_om(monkeypatch):
         return echte(naam, *a, **kw)
     monkeypatch.setattr(builtins, "__import__", geen_pyshacl)
     assert valideer(_graaf())["beschikbaar"] is False
+
+
+def test_prov_projectie_is_conform_en_houdt_de_wettekst_schoon():
+    from rdflib import RDF
+    from app.graaf_projectie_v2 import PROV
+    spoor = {"pijplijn": "hybrid_v1", "jas_versie": "1.0.10", "beslissing": {"door": "regel"},
+             "kandidaat": {"bewijs": [{"regel": "jas.tijd.duur"}]}}
+    g = bouw_graaf(LAAG, [{**ELEMENT, "trace": spoor}], prov=True)
+    [act] = list(g.objects(element_iri("e1"), PROV.wasGeneratedBy))
+    assert (act, RDF.type, PROV.Activity) in g and (act, JAS.regel, Literal("jas.tijd.duur")) in g
+    assert valideer(g)["conform"] is True
+    assert not any(str(s).startswith("urn:bwb:") for s in g.subjects())
+    assert len(bouw_graaf(LAAG, [{**ELEMENT, "trace": spoor}])) < len(g)      # default uit

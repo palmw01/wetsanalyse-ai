@@ -142,6 +142,10 @@ class Settings:
         self.graphdb_url = os.environ.get("GRAPHDB_URL", "").strip().rstrip("/")
         self.graphdb_repository = os.environ.get("GRAPHDB_REPOSITORY", "inning").strip()
         self.jas_projectie_interval_s = float(os.environ.get("JAS_PROJECTIE_INTERVAL", "60"))
+        # PROV-O in de v2-projectie (ADR-001 PR 15): per element uit de hybride keten een
+        # prov:Activity met pijplijn en beslisser. Default uit – de projectie blijft plat tot iemand
+        # het herkomstspoor in de graaf wil bevragen; in Postgres staat het altijd.
+        self.jas_projectie_prov = os.environ.get("JAS_PROJECTIE_PROV", "").lower() in {"1", "true", "ja"}
         self.annotatie_contract_versie = int(os.environ.get("ANNOTATIE_CONTRACT_VERSIE", "2"))
         if self.annotatie_contract_versie not in {1, 2}:
             raise ValueError("ANNOTATIE_CONTRACT_VERSIE moet 1 of 2 zijn")

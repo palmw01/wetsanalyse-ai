@@ -482,3 +482,27 @@ async def test_zonder_graaf_geen_directe_projectie(monkeypatch):
     snap = snapshot(ONE)
     await store.batch(request(snap, [element(snap)]), snap, "a")
     assert not graaf_projectie_v2._taken
+
+
+async def test_herkomstspoor_per_element_blijft_bewaard_tot_in_de_weergave():
+    """ADR-001 PR 15: `trace` is een expliciet contractveld en reist mee tot in de opslag en de export."""
+    snap = snapshot(ONE)
+    spoor = {"pijplijn": "hybrid_v1", "jas_versie": "1.0.10",
+             "kandidaat": {"id": "Kabc", "label": "C001", "bewijs": [{"detector": "tijd", "code": "TEMPORAL_DURATION"}]},
+             "beslissing": {"door": "regel", "status": "ACCEPTED"}, "vraag": ""}
+    await store.batch(request(snap, [element(snap, trace=spoor)]), snap, "a")
+    [e] = (await store.weergave(snap))["elementen"]
+    assert e["trace"] == spoor
+
+
+async def test_element_zonder_spoor_krijgt_een_leeg_spoor():
+    snap = snapshot(ONE)
+    await store.batch(request(snap, [element(snap)]), snap, "a")
+    [e] = (await store.weergave(snap))["elementen"]
+    assert e.get("trace", {}) == {}
+
+
+def test_csv_provenance_draagt_het_spoor_alleen_als_het_er_is():
+    from app.annotatie_v2 import _provenance
+    assert _provenance({"geproduceerd_door": {"model": "m"}}) == {"model": "m"}
+    assert _provenance({"geproduceerd_door": {"model": "m"}, "trace": {"x": 1}}) == {"model": "m", "trace": {"x": 1}}

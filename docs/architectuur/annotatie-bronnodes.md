@@ -6,6 +6,13 @@ Een verzoek om artikel 9 lid 1 toont en annoteert uitsluitend die bestaande bron
 
 Een laag hoort bij één canonieke bron-IRI. Een element heeft één stabiel ID en één of meer geordende, niet-overlappende ankers. Elk anker bevat de bron-IRI, de SHA256 van de exacte UTF-8-tekst, het letterlijke fragment en start/eind als Unicode-codepoints. De frontend vertaalt DOM-posities in UTF-16 naar die codepoints. De eigenaar is de diepste gezamenlijke bestaande voorouder van alle ankers. Bij verplaatsing blijft het element-ID behouden.
 
+Een element kan een **herkomstspoor** dragen (`trace`, sinds ADR-001 PR 15, additief). Bij de
+hybride annotatieketen staan daarin de kandidaat met zijn bewijs (detector, regel, UD-relatie), de
+beslissing (regel, model of specificiteit, met reden), de exacte regel die het model over die
+kandidaat zag, en de validatie-, twijfel- en resolutieregels. Bij de legacy-keten is het leeg.
+Het spoor wordt ongewijzigd bewaard en geëxporteerd (JSON volledig, CSV in de provenance-kolom). Het
+is herkomst, geen juridische autoriteit.
+
 Een weergave omvat alleen de gekozen subtree. Elementen met ankers die deels buiten de selectie vallen verschijnen als verwijzing naar hun eigenaar; ze tellen niet mee als lokaal beoordeelbare elementen. Er is geen knop die ongemerkt de selectie tot het artikel verbreedt. JSON-, CSV- en PDF-export gebruiken dezelfde selectie.
 
 Snapshots bevatten de hele canonieke bronboom. De snapshot-ID hangt niet van de geselecteerde node af. Dekking wordt op de structuur en hashes van het betreffende bereik gecontroleerd: een wijziging in een ander lid maakt ongewijzigde dekking niet ongeldig. Een succesvol voltooid leeg resultaat is wel dekking; een afgebroken run niet. Los behandelde kinderen bewijzen niet dat de context van hun ouder beoordeeld is.

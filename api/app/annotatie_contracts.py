@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, ValidationError, computed_field, model_validator
 
@@ -315,6 +315,10 @@ class ElementInvoer(BaseModel):
     critic: str = ""                   # korte Critic-motivatie
     critic_rondes: list[CriticRonde] = []
     anker: Anker | None = None
+    # Het herkomstspoor van één element uit de hybride keten (ADR-001 PR 15): kandidaat, bewijs,
+    # beslissing, de exacte vraag aan het model, validatie, twijfel en resolutie. Leeg bij de
+    # legacy-keten. Herkomst, geen juridische autoriteit.
+    trace: dict[str, Any] = {}
 
 
 class SuggestieInvoer(BaseModel):

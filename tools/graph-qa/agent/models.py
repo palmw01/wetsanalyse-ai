@@ -254,6 +254,10 @@ class AnnotatieVoorstel(BaseModel):
     aandacht: str = ""                 # "" | groen | geel | rood – gezet door de Critic-node
     critic: str = ""                   # korte Critic-motivatie bij het aandacht-niveau
     critic_rondes: list[CriticRonde] = []   # het heen-en-weer per ronde; leeg tot de eerste Critic-pas
+    # Herkomstspoor uit de hybride keten (ADR-001 PR 15); leeg in de legacy-keten. Zie
+    # `jas_pipeline/keten.py` voor de inhoud en `tests/test_provenance_element.py` voor de vragen
+    # (opdracht §40) die het moet kunnen beantwoorden.
+    trace: dict[str, Any] = {}
 
 
 class CriticOordeel(BaseModel):

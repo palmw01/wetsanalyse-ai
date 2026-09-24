@@ -23,7 +23,7 @@ from bronmodel import CorpusMap, Span
 from ..annotatie import _maak_anker
 from ..models import AnnotatieAlternatief, AnnotatieVoorstel
 from .besluit import Beslissing, deterministisch
-from .classificatie import batches, classificeer, optie_ids, promptversie
+from .classificatie import batches, classificeer, kandidaatregel, optie_ids, promptversie
 from .dekking import controleer_a, structureel
 from .onzekerheid import REVIEWBAAR, signaleer
 from .resolver import los_op
@@ -34,6 +34,10 @@ from .fusie import Fusie, fuseer
 from .kandidaten import Candidate, CandidateStatus
 from .profielen import laad
 from .taal import maak_provider
+
+
+# De JAS-versie waarop profielen en regels berusten (ADR-001 §1.1; minbzk/wetsanalyse 5ae93cc).
+JAS_VERSIE = "1.0.10"
 
 
 @cache
@@ -90,7 +94,38 @@ def _voorstel(k: Candidate, b: Beslissing, kaart: CorpusMap, corpus: str, lid: s
         klasse=b.klasse, tekst=span.tekst, lid=lid, toelichting=_toelichting(k, b),
         alternatieven=alternatieven, grounded=True, vindplaats=vindplaats,
         anker=anker, ankers=[span.anker()],
+        trace=_spoor(k, b),
     ).model_dump()
+
+
+def _spoor(k: Candidate, b: Beslissing) -> dict[str, Any]:
+    """Het herkomstspoor van één element (opdracht §27, §40). Wat de hele beurt deelt – taalmodel,
+    detectorversies, methode- en promptversie, model – staat in de `run`; hier alleen wat per
+    element verschilt. `vervolledig` voegt validatie, twijfel en resolutie toe."""
+    return {
+        "pijplijn": "hybrid_v1", "jas_versie": JAS_VERSIE,
+        "kandidaat": {"id": k.id, "label": k.label, "span": k.span.model_dump(),
+                      "mogelijke_klassen": list(k.possible_classes), "gedegradeerd": k.gedegradeerd,
+                      "bewijs": [e.model_dump() for e in k.evidence],
+                      "spanopties": [{"soort": o.soort, "start": o.span.start, "eind": o.span.eind}
+                                     for o in k.span_options]},
+        "beslissing": b.model_dump(mode="json"),
+        # Alleen als er een model aan te pas kwam: de exacte regel die het over deze kandidaat zag.
+        "vraag": kandidaatregel(k) if b.door == "model" else "",
+    }
+
+
+def _vervolledig(voorstellen: list[dict[str, Any]], beslissingen: list[Beslissing], bevindingen, twijfels,
+                 transities) -> None:
+    per_b = {b.label: b for b in beslissingen}
+    for v in voorstellen:
+        spoor = v.get("trace") or {}
+        label = spoor.get("kandidaat", {}).get("label", "")
+        spoor["beslissing"] = per_b[label].model_dump(mode="json") if label in per_b else spoor.get("beslissing")
+        spoor["validatie"] = [x.model_dump() for x in bevindingen if x.label == label]
+        spoor["twijfel"] = [t.model_dump() for t in twijfels if t.label == label]
+        spoor["resolutie"] = [t.model_dump() for t in transities if t.label == label]
+        v["trace"] = spoor
 
 
 def _verwerp(beslissingen: list[Beslissing], bevindingen) -> list[Beslissing]:
@@ -157,6 +192,7 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
                                 for v in voorstellen], per_id, snapshot, prov)
     beslissingen = _verwerp(beslissingen, na)
     meting["validatie"] = [x.model_dump() for x in (*bevindingen, *(x for x in na if x.ernst == "fout"))]
+    _vervolledig(voorstellen, beslissingen, (*bevindingen, *na), twijfels, transities)
     meting["twijfels"] = [t.model_dump() for t in twijfels]
     meting["resolutie"] = [t.model_dump() for t in transities]
     meting["deterministisch"] = sum(b.door != "model" for b in beslissingen)

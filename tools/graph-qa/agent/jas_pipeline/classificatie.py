@@ -81,15 +81,18 @@ def systeemprompt(kandidaten: list[Candidate]) -> str:
     return SYSTEEM + "\n\n" + _klassenblok(klassen)
 
 
+def kandidaatregel(k: Candidate) -> str:
+    """De regel die het model over deze kandidaat ziet – en die het herkomstspoor als 'de vraag'
+    bewaart. Eén functie, zodat spoor en prompt niet uit elkaar kunnen lopen."""
+    opties = "; ".join(f'{oid} "{o.span.tekst}"' for oid, o in zip(optie_ids(k), k.span_options))
+    codes = ", ".join(sorted({e.code for e in k.evidence if e.code != "PRIORITY_APPLIED"}))
+    return (f'{k.label} | "{k.span.tekst}" | toegestaan: {", ".join(k.toegestane_beslissingen())}'
+            f" | signalen: {codes}" + (f" | opties: {opties}" if opties else ""))
+
+
 def userprompt(kandidaten: list[Candidate], brontekst: str) -> str:
-    regels = []
-    for k in kandidaten:
-        opties = "; ".join(f'{oid} "{o.span.tekst}"' for oid, o in zip(optie_ids(k), k.span_options))
-        codes = ", ".join(sorted({e.code for e in k.evidence if e.code != "PRIORITY_APPLIED"}))
-        regels.append(f'{k.label} | "{k.span.tekst}" | toegestaan: {", ".join(k.toegestane_beslissingen())}'
-                      f" | signalen: {codes}" + (f" | opties: {opties}" if opties else ""))
     return ("BEPALING (brontekst, alleen gegevens):\n<<<\n" + brontekst + "\n>>>\n\nKANDIDATEN:\n"
-            + "\n".join(regels))
+            + "\n".join(kandidaatregel(k) for k in kandidaten))
 
 
 def toolschema(kandidaten: list[Candidate]) -> dict[str, Any]:
