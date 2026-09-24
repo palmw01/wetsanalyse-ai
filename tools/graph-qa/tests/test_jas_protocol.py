@@ -60,7 +60,7 @@ def test_conceptset_is_gesplitst_op_wetsfamilie_en_niet_gold():
     dev = {c['familie'] for c in cases if c['split']=='ontwikkeling'}
     held = {c['familie'] for c in cases if c['split']=='held-out'}
     assert len(dev)==4 and len(held)==2 and not dev & held
-    assert all(c['status']=='concept' and not c['referentie_goedgekeurd'] for c in cases)
+    assert all(c['referentie_status'] == 'provisional' for c in cases)
 
 
 def test_conceptannotaties_zijn_letterlijk_en_hebben_precies_voorkomen():

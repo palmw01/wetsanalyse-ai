@@ -27,6 +27,11 @@ Een uitgebreider voorbeeld in dossieropmaak staat in
 [Cases.json](cases.json) bewaart de exacte analysetekst met SHA-256, vindplaats,
 bron-ID, conceptmarkeringen en offsets. De offsets tellen Python-Unicode-codepunten
 binnen deze analysetekst; ze zijn geen vervanging van de platformankers.
+Elke casus draagt `referentie_status` (sinds 24 sep 2026; verving `status: concept` en
+`referentie_goedgekeurd: false`). Alle casussen staan op `provisional`. De betekenis van de
+statussen staat in [ADR-001 §13](../../architectuur/adr-001-hybride-jas-pijplijn.md). `adjudicated`
+of `gold` mag alleen met een vastgelegde `adjudicatie` (beoordelaars, datum, procedure); een test
+in graph-qa bewaakt dat.
 De leesbare dossiers zijn gegenereerd uit dat bestand:
 
 ```bash
