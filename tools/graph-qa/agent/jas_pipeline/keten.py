@@ -24,6 +24,7 @@ from ..annotatie import _maak_anker
 from ..models import AnnotatieAlternatief, AnnotatieVoorstel
 from .besluit import Beslissing, deterministisch
 from .classificatie import batches, classificeer, optie_ids, promptversie
+from .dekking import controleer_a, structureel
 from .detectoren import BronTekst, detecteer_alles
 from .fusie import Fusie, fuseer
 from .kandidaten import Candidate, CandidateStatus
@@ -123,5 +124,11 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
             gezien.add(sleutel)
             voorstellen.append(v)
     meting["deterministisch"] = sum(b.door != "model" for b in beslissingen)
-    meting["per_status"] = {s.value: sum(b.status is s for b in beslissingen) for s in CandidateStatus}
+    # Dekking A: gooit als een kandidaat zonder beslissing bleef – dat is een fout in de keten,
+    # geen uitkomst om te rapporteren.
+    meting["per_status"] = controleer_a(fusie, beslissingen)
+    gedraaid: dict[str, set[str]] = {}
+    for r in resultaten:
+        gedraaid.setdefault(r.bron_iri, set()).add(r.detector)
+    meting["dekking"] = structureel(fusie, teksten, gedraaid)
     return Uitkomst(voorstellen, fusie, beslissingen, meting)
