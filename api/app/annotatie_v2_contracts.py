@@ -27,6 +27,9 @@ class Element(BaseModel):
     tekst: str
     toelichting: str = ""
     ankers: list[Anker] = Field(min_length=1, max_length=100)
+    # Herkomstspoor per element (ADR-001 PR 15). Expliciet in plaats van via `extra`, zodat het
+    # contract zegt dat het meereist en tot in de opslag en de export bewaard blijft.
+    trace: dict = Field(default_factory=dict)
 
 
 class Dekking(BaseModel):

@@ -37,6 +37,12 @@ def doel_query(bron_iri: str = "", bwb_id: str = "", artikel: str = "", lid: str
     return dict(bron_iri=bron_iri, bwb_id=bwb_id, artikel=artikel, lid=lid)
 
 
+
+def _provenance(element: dict) -> dict:
+    """De run die het element maakte, plus – bij de hybride keten – zijn herkomstspoor per element."""
+    run = element.get("geproduceerd_door") or {}
+    return {**run, "trace": element["trace"]} if element.get("trace") else run
+
 @router.get("/capabilities")
 async def capabilities(actor: str = Depends(actieve_userid)):
     return {"schema_versie": contract_versie(), "bronnodes_actief": contract_versie() == 2,
@@ -159,7 +165,7 @@ async def post_export(req: ExportInvoer, actor: str = Depends(actieve_userid)):
             writer.writerow(["element"] + [cell(e.get(k, "")) for k in
                 ("id", "eigenaar_iri", "klasse", "tekst", "lifecycle", "snapshot_id")]
                 + [json.dumps(e["ankers"], ensure_ascii=False), json.dumps(e["beslissingen"], ensure_ascii=False),
-                   e["herkomst"], json.dumps(e.get("geproduceerd_door", {}), ensure_ascii=False), laagstatus])
+                   e["herkomst"], json.dumps(_provenance(e), ensure_ascii=False), laagstatus])
         for ref in view["verwijzingen"]:
             writer.writerow(["verwijzing", ref["id"], ref["eigenaar_iri"], ref["klasse"], ref["label"], "", req.snapshot_id,
                              "[]", "[]", "", "", ""])

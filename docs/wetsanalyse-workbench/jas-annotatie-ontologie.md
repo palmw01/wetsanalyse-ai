@@ -123,6 +123,12 @@ Ook aan de antwoordkant blijft het gescheiden: `check_grounding`
 (`tools/graph-qa/agent/grounding.py`) laat de resultaten van de annotatietools bewust buiten het
 bewijs voor een wetsclaim. Een annotatie is afgeleide duiding en kan een vindplaats niet dragen.
 
+**Herkomst in de graaf (optioneel).** Met `JAS_PROJECTIE_PROV=true` krijgt een element uit de
+hybride keten `prov:wasGeneratedBy` een `prov:Activity` met `prov:wasAssociatedWith
+<urn:jas:agent:pijplijn:hybrid_v1>`, `jas:beslistDoor` (regel/model/specificiteit), `jas:jasVersie`
+en de gebruikte `jas:regel`-id's. Er komen geen personen in (die blijven in Postgres) en geen
+domain/range. Standaard staat dit uit; het volledige spoor staat altijd in Postgres (`trace`).
+
 ## Structurele validatie (SHACL)
 
 Sinds ADR-001 PR 14 beschrijft `api/app/shapes/jas-v2.ttl` dit model in SHACL. De shapes zijn

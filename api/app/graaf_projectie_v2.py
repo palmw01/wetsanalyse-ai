@@ -21,6 +21,7 @@ from .config import get_settings
 
 JAS = Namespace("urn:jas-ns:")
 OA = Namespace("http://www.w3.org/ns/oa#")
+PROV = Namespace("http://www.w3.org/ns/prov#")
 REGISTER = URIRef("urn:jas:graph:register:v2")
 SCHEMA = URIRef("urn:jas:projectieschema:v2")
 logger = logging.getLogger(__name__)
@@ -46,7 +47,7 @@ def element_iri(element_id: str) -> URIRef:
     return URIRef("urn:jas:element:" + quote(element_id, safe=""))
 
 
-def bouw_graaf(laag: dict, elementen: list[dict]) -> Graph:
+def bouw_graaf(laag: dict, elementen: list[dict], prov: bool = False) -> Graph:
     g = Graph()
     owner = laag_iri(laag["id"])
     g.add((owner, RDF.type, JAS.AnnotatieLaag))
@@ -83,7 +84,27 @@ def bouw_graaf(laag: dict, elementen: list[dict]) -> Graph:
             g.add((target, OA.hasSelector, quote))
             g.add((quote, RDF.type, OA.TextQuoteSelector))
             g.add((quote, OA.exact, Literal(anker["tekst"])))
+        if prov and element.get("trace"):
+            _prov(g, e, element["trace"])
     return g
+
+
+def _prov(g: Graph, e: URIRef, spoor: dict) -> None:
+    """Herkomst als PROV-O: welke pijplijn en wie besliste (regel, model, specificiteit).
+
+    Bewust zonder personen – de graaf heeft geen authenticatie, dus beslissingen van juristen
+    blijven in Postgres – en zonder domain/range (invariant 3). Modelherkomst is geen juridische
+    autoriteit; het zegt alleen hoe het voorstel ontstond.
+    """
+    beslissing = spoor.get("beslissing") or {}
+    activiteit = BNode()
+    g.add((e, PROV.wasGeneratedBy, activiteit))
+    g.add((activiteit, RDF.type, PROV.Activity))
+    g.add((activiteit, PROV.wasAssociatedWith, URIRef("urn:jas:agent:pijplijn:" + str(spoor.get("pijplijn", "onbekend")))))
+    g.add((activiteit, JAS.beslistDoor, Literal(str(beslissing.get("door", "")))))
+    g.add((activiteit, JAS.jasVersie, Literal(str(spoor.get("jas_versie", "")))))
+    for regel in sorted({b.get("regel", "") for b in (spoor.get("kandidaat") or {}).get("bewijs", []) if b.get("regel")}):
+        g.add((activiteit, JAS.regel, Literal(regel)))
 
 
 def _lit(value: Any) -> str:
@@ -201,7 +222,7 @@ async def projecteer(laag_id: str) -> bool:
             laag = dict(row)
             elements = (await conn.execute(select(db.annotatie_v2_elementen.c.inhoud).where(
                 db.annotatie_v2_elementen.c.laag_id == laag_id))).scalars().all()
-            data = bouw_graaf(laag, list(elements))
+            data = bouw_graaf(laag, list(elements), prov=get_settings().jas_projectie_prov)
             async with httpx.AsyncClient(timeout=30) as client:
                 r = await client.put(_repo() + "/rdf-graphs/service", params={"graph": str(graph_iri(laag_id))},
                                      content=data.serialize(format="turtle").encode(),
