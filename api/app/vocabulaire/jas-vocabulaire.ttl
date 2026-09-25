@@ -1,0 +1,813 @@
+# GEGENEREERD door tools/graph-qa/scripts/genereer_jas_vocabulaire.py – niet met de hand bewerken.
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix jas: <urn:jas-ns:> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<urn:jas-ns:begrip:Afleidingsregel> a skos:Concept,
+        jas:Begrip ;
+    skos:broader <urn:jas-ns:klasse:Afleidingsregel> ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Afleidingsregel"@nl .
+
+<urn:jas-ns:begrip:Brondefinitie> a skos:Concept,
+        jas:Begrip ;
+    skos:broader <urn:jas-ns:klasse:Brondefinitie> ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Brondefinitie"@nl .
+
+<urn:jas-ns:begrip:DelegatieInvulling> a skos:Concept,
+        jas:Begrip ;
+    skos:broader <urn:jas-ns:klasse:DelegatiebevoegdheidEnDelegatieInvulling> ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Delegatie-invulling"@nl ;
+    jas:subtype "delegatie-invulling" .
+
+<urn:jas-ns:begrip:Delegatiebevoegdheid> a skos:Concept,
+        jas:Begrip ;
+    skos:broader <urn:jas-ns:klasse:DelegatiebevoegdheidEnDelegatieInvulling> ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Delegatiebevoegdheid"@nl ;
+    jas:subtype "delegatiebevoegdheid" .
+
+<urn:jas-ns:begrip:Operator> a skos:Concept,
+        jas:Begrip ;
+    skos:broader <urn:jas-ns:klasse:Operator> ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Operator"@nl .
+
+<urn:jas-ns:begrip:Parameter> a skos:Concept,
+        jas:Begrip ;
+    skos:broader <urn:jas-ns:klasse:ParameterEnParameterwaarde> ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Parameter"@nl ;
+    jas:subtype "parameter" .
+
+<urn:jas-ns:begrip:Parameterwaarde> a skos:Concept,
+        jas:Begrip ;
+    skos:broader <urn:jas-ns:klasse:ParameterEnParameterwaarde> ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Parameterwaarde"@nl ;
+    jas:subtype "parameterwaarde" .
+
+<urn:jas-ns:begrip:Plaatsaanduiding> a skos:Concept,
+        jas:Begrip ;
+    skos:broader <urn:jas-ns:klasse:Plaatsaanduiding> ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Plaatsaanduiding"@nl .
+
+<urn:jas-ns:begrip:Rechtsbetrekking> a skos:Concept,
+        jas:Begrip ;
+    skos:broader <urn:jas-ns:klasse:Rechtsbetrekking> ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Rechtsbetrekking"@nl .
+
+<urn:jas-ns:begrip:Rechtsfeit> a skos:Concept,
+        jas:Begrip ;
+    skos:broader <urn:jas-ns:klasse:Rechtsfeit> ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Rechtsfeit"@nl .
+
+<urn:jas-ns:begrip:Rechtsobject> a skos:Concept,
+        jas:Begrip ;
+    skos:broader <urn:jas-ns:klasse:Rechtsobject> ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Rechtsobject"@nl .
+
+<urn:jas-ns:begrip:Rechtssubject> a skos:Concept,
+        jas:Begrip ;
+    skos:broader <urn:jas-ns:klasse:Rechtssubject> ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Rechtssubject"@nl .
+
+<urn:jas-ns:begrip:Tijdsaanduiding> a skos:Concept,
+        jas:Begrip ;
+    skos:broader <urn:jas-ns:klasse:Tijdsaanduiding> ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Tijdsaanduiding"@nl .
+
+<urn:jas-ns:begrip:Variabele> a skos:Concept,
+        jas:Begrip ;
+    skos:broader <urn:jas-ns:klasse:VariabeleEnVariabelewaarde> ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Variabele"@nl ;
+    jas:subtype "variabele" .
+
+<urn:jas-ns:begrip:Variabelewaarde> a skos:Concept,
+        jas:Begrip ;
+    skos:broader <urn:jas-ns:klasse:VariabeleEnVariabelewaarde> ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Variabelewaarde"@nl ;
+    jas:subtype "variabelewaarde" .
+
+<urn:jas-ns:begrip:Voorwaarde> a skos:Concept,
+        jas:Begrip ;
+    skos:broader <urn:jas-ns:klasse:Voorwaarde> ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Voorwaarde"@nl .
+
+<urn:jas-ns:besluit:model> a jas:Besluitwijze ;
+    skos:definition "Het model koos uit de klassen die het patroon toeliet."@nl ;
+    skos:prefLabel "model"@nl ;
+    jas:codeWaarde "model" .
+
+<urn:jas-ns:besluit:regel> a jas:Besluitwijze ;
+    skos:definition "Besloten zonder model: één klasse mogelijk en sterk bewijs."@nl ;
+    skos:prefLabel "vaste regel"@nl ;
+    jas:codeWaarde "regel" .
+
+<urn:jas-ns:besluit:specificiteit> a jas:Besluitwijze ;
+    skos:definition "Besloten door een JAS-voorrangsregel over overlappende fragmenten."@nl ;
+    skos:prefLabel "voorrangsregel"@nl ;
+    jas:codeWaarde "specificiteit" .
+
+<urn:jas-ns:classifier:CLASSIFIER_GEEN_UITVOER> a jas:Classifiercode ;
+    skos:definition "Het model antwoordde niet via het hulpmiddel."@nl ;
+    skos:prefLabel "Geen uitvoer van het model"@nl ;
+    jas:codeWaarde "CLASSIFIER_GEEN_UITVOER" .
+
+<urn:jas-ns:classifier:CLASSIFIER_OMITTED> a jas:Classifiercode ;
+    skos:definition "Het model liet deze kandidaat weg."@nl ;
+    skos:prefLabel "Overgeslagen door het model"@nl ;
+    jas:codeWaarde "CLASSIFIER_OMITTED" .
+
+<urn:jas-ns:classifier:CLASSIFIER_ONGELDIGE_KLASSE> a jas:Classifiercode ;
+    skos:definition "Het model koos een klasse die voor deze kandidaat niet mocht."@nl ;
+    skos:prefLabel "Niet-toegestane klasse"@nl ;
+    jas:codeWaarde "CLASSIFIER_ONGELDIGE_KLASSE" .
+
+<urn:jas-ns:classifier:CLASSIFIER_ONGELDIGE_OPTIE> a jas:Classifiercode ;
+    skos:definition "Het model koos een grens die niet werd aangeboden."@nl ;
+    skos:prefLabel "Niet-bestaande grens"@nl ;
+    jas:codeWaarde "CLASSIFIER_ONGELDIGE_OPTIE" .
+
+<urn:jas-ns:classifier:VALIDATION_ERROR> a jas:Classifiercode ;
+    skos:definition "Het voorstel haalde een structurele controle niet en is verworpen."@nl ;
+    skos:prefLabel "Afgekeurd bij de validatie"@nl ;
+    jas:codeWaarde "VALIDATION_ERROR" .
+
+<urn:jas-ns:code:DEFINITION_ITEM> a jas:Detectiecode ;
+    skos:definition "Een onderdeel van een begripsbepalingenartikel: 'a. X: …'."@nl ;
+    skos:prefLabel "Begripsbepaling (onderdeel)"@nl ;
+    jas:codeWaarde "DEFINITION_ITEM" .
+
+<urn:jas-ns:code:DEFINITION_SENTENCE> a jas:Detectiecode ;
+    skos:definition "'In deze wet wordt verstaan onder X: …'."@nl ;
+    skos:prefLabel "Begripsbepaling (zin)"@nl ;
+    jas:codeWaarde "DEFINITION_SENTENCE" .
+
+<urn:jas-ns:code:ENUMERATED_NP> a jas:Detectiecode ;
+    skos:definition "Een naamwoordgroep als onderdeel van een opsomming."@nl ;
+    skos:prefLabel "Opsommingsonderdeel"@nl ;
+    jas:codeWaarde "ENUMERATED_NP" .
+
+<urn:jas-ns:code:MEANING_TERM> a jas:Detectiecode ;
+    skos:definition "Het begrip dat in een begripsbepaling een betekenis krijgt."@nl ;
+    skos:prefLabel "Begrip met betekenis"@nl ;
+    jas:codeWaarde "MEANING_TERM" .
+
+<urn:jas-ns:code:NOMINALIZED_ACTION> a jas:Detectiecode ;
+    skos:definition "'Het indienen van', 'de dagtekening van': een handeling of gebeurtenis als naamwoord."@nl ;
+    skos:prefLabel "Handeling als zelfstandig naamwoord"@nl ;
+    jas:codeWaarde "NOMINALIZED_ACTION" .
+
+<urn:jas-ns:code:NORMATIVE_PREDICATE> a jas:Detectiecode ;
+    skos:definition "'Is verplicht', 'kan', 'heeft recht op', 'is bevoegd': een recht of plicht."@nl ;
+    skos:prefLabel "Normatief gezegde"@nl ;
+    jas:codeWaarde "NORMATIVE_PREDICATE" .
+
+<urn:jas-ns:code:OBJECT_NP> a jas:Detectiecode ;
+    skos:definition "Een naamwoordgroep als voorwerp bij een normatief gezegde."@nl ;
+    skos:prefLabel "Voorwerp bij een recht of plicht"@nl ;
+    jas:codeWaarde "OBJECT_NP" .
+
+<urn:jas-ns:code:PARAMETER_NOUN> a jas:Detectiecode ;
+    skos:definition "'Tarief', 'drempel', 'vrijstelling': een woord dat een vaste waarde benoemt."@nl ;
+    skos:prefLabel "Parameterwoord"@nl ;
+    jas:codeWaarde "PARAMETER_NOUN" .
+
+<urn:jas-ns:code:PERSON_PRONOUN> a jas:Detectiecode ;
+    skos:definition "'Hij', 'degene', 'een ieder': een voornaamwoord dat naar een persoon verwijst."@nl ;
+    skos:prefLabel "Verwijzend voornaamwoord"@nl ;
+    jas:codeWaarde "PERSON_PRONOUN" .
+
+<urn:jas-ns:code:PRIORITY_APPLIED> a jas:Detectiecode ;
+    skos:definition "Een specifiekere klasse ging voor op een algemenere, volgens de JAS-voorrangsregels."@nl ;
+    skos:prefLabel "Voorrangsregel toegepast"@nl ;
+    jas:codeWaarde "PRIORITY_APPLIED" .
+
+<urn:jas-ns:code:PROPERTY_NOUN> a jas:Detectiecode ;
+    skos:definition "'De hoogte van', 'het bedrag van': een naamwoordgroep die een eigenschap noemt."@nl ;
+    skos:prefLabel "Eigenschap"@nl ;
+    jas:codeWaarde "PROPERTY_NOUN" .
+
+<urn:jas-ns:code:RESTRICTIVE_RELATIVE> a jas:Detectiecode ;
+    skos:definition "Een betrekkelijke bijzin die de groep beperkt ('die …', 'waarvan …') – vaak een voorwaarde."@nl ;
+    skos:prefLabel "Beperkende bijzin"@nl ;
+    jas:codeWaarde "RESTRICTIVE_RELATIVE" .
+
+<urn:jas-ns:code:SUBJECT_NP> a jas:Detectiecode ;
+    skos:definition "Het onderwerp van een zin met een normatief gezegde – vaak de drager van het recht of de plicht."@nl ;
+    skos:prefLabel "Onderwerp bij een recht of plicht"@nl ;
+    jas:codeWaarde "SUBJECT_NP" .
+
+<urn:jas-ns:regel:JAS-PRIORITY-001> a jas:Methoderegel ;
+    skos:definition "Indien een formulering zowel als tijdsaanduiding als variabele of parameter kan worden geclassificeerd, prevaleert tijdsaanduiding als de meest specifieke klasse."@nl ;
+    skos:prefLabel "JAS-PRIORITY-001" ;
+    jas:geldtVoor <urn:jas-ns:klasse:ParameterEnParameterwaarde>,
+        <urn:jas-ns:klasse:Tijdsaanduiding>,
+        <urn:jas-ns:klasse:VariabeleEnVariabelewaarde> ;
+    jas:regelType "priority" .
+
+<urn:jas-ns:regel:JAS-PRIORITY-002> a jas:Methoderegel ;
+    skos:definition "Indien een formulering zowel als plaatsaanduiding als variabele of parameter kan worden geclassificeerd, prevaleert plaatsaanduiding als de meest specifieke klasse."@nl ;
+    skos:prefLabel "JAS-PRIORITY-002" ;
+    jas:geldtVoor <urn:jas-ns:klasse:ParameterEnParameterwaarde>,
+        <urn:jas-ns:klasse:Plaatsaanduiding>,
+        <urn:jas-ns:klasse:VariabeleEnVariabelewaarde> ;
+    jas:regelType "priority" .
+
+<urn:jas-ns:regel:jas.afleiding.bedraagt> a jas:Detectorregel ;
+    dcterms:source "H2:73" ;
+    skos:prefLabel "Berekening met 'bedraagt'"@nl ;
+    jas:code <urn:jas-ns:code:CALCULATION_COPULA> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Afleidingsregel>,
+        <urn:jas-ns:klasse:ParameterEnParameterwaarde> .
+
+<urn:jas-ns:regel:jas.afleiding.fictie_vermoeden> a jas:Detectorregel ;
+    dcterms:source "H2:71" ;
+    skos:prefLabel "Wettelijk vermoeden of fictie"@nl ;
+    jas:code <urn:jas-ns:code:LEGAL_FICTION> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Afleidingsregel> .
+
+<urn:jas-ns:regel:jas.afleiding.wordt_gesteld_op> a jas:Detectorregel ;
+    dcterms:source "H2:73" ;
+    skos:prefLabel "Berekening in de lijdende vorm"@nl ;
+    jas:code <urn:jas-ns:code:CALCULATION_PASSIVE> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Afleidingsregel> .
+
+<urn:jas-ns:regel:jas.delegatie.regels_gesteld> a jas:Detectorregel ;
+    dcterms:source "H2:127" ;
+    skos:prefLabel "Delegatieformule"@nl ;
+    jas:code <urn:jas-ns:code:DELEGATION_FORMULA> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:DelegatiebevoegdheidEnDelegatieInvulling> .
+
+<urn:jas-ns:regel:jas.operator.logisch> a jas:Detectorregel ;
+    dcterms:source "H2:100" ;
+    skos:prefLabel "Logische verbinding"@nl ;
+    jas:code <urn:jas-ns:code:LOGICAL> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Operator> .
+
+<urn:jas-ns:regel:jas.operator.rekenkundig> a jas:Detectorregel ;
+    dcterms:source "H2:100" ;
+    skos:prefLabel "Rekenkundige bewerking"@nl ;
+    jas:code <urn:jas-ns:code:ARITHMETIC> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Operator> .
+
+<urn:jas-ns:regel:jas.operator.vergelijking> a jas:Detectorregel ;
+    dcterms:source "H2:100" ;
+    skos:prefLabel "Vergelijking"@nl ;
+    jas:code <urn:jas-ns:code:COMPARISON> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Operator> .
+
+<urn:jas-ns:regel:jas.plaats.gazetteer> a jas:Detectorregel ;
+    dcterms:source "H2:118" ;
+    skos:prefLabel "Plaatsnaam"@nl ;
+    jas:code <urn:jas-ns:code:LOCATION_NAME> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Plaatsaanduiding> .
+
+<urn:jas-ns:regel:jas.plaats.gebiedsomschrijving> a jas:Detectorregel ;
+    dcterms:source "H2:118" ;
+    skos:prefLabel "Gebiedsomschrijving"@nl ;
+    jas:code <urn:jas-ns:code:LOCATION_DESCRIPTION> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Plaatsaanduiding> .
+
+<urn:jas-ns:regel:jas.subject.rollexicon> a jas:Detectorregel ;
+    dcterms:source "H2:28" ;
+    skos:prefLabel "Rol of instantie"@nl ;
+    jas:code <urn:jas-ns:code:ROLE_NOUN> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Rechtsobject>,
+        <urn:jas-ns:klasse:Rechtssubject> .
+
+<urn:jas-ns:regel:jas.tijd.bijwoord> a jas:Detectorregel ;
+    dcterms:source "H2:108" ;
+    skos:prefLabel "Tijdsbijwoord"@nl ;
+    jas:code <urn:jas-ns:code:TEMPORAL_ADVERB> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Tijdsaanduiding> .
+
+<urn:jas-ns:regel:jas.tijd.datum> a jas:Detectorregel ;
+    dcterms:source "H2:109" ;
+    skos:prefLabel "Datum"@nl ;
+    jas:code <urn:jas-ns:code:TEMPORAL_DATE> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Tijdsaanduiding> .
+
+<urn:jas-ns:regel:jas.tijd.duur> a jas:Detectorregel ;
+    dcterms:source "H2:109" ;
+    skos:prefLabel "Termijn"@nl ;
+    jas:code <urn:jas-ns:code:TEMPORAL_DURATION> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Tijdsaanduiding> .
+
+<urn:jas-ns:regel:jas.tijd.periode_van> a jas:Detectorregel ;
+    dcterms:source "H2:109" ;
+    skos:prefLabel "Periode van"@nl ;
+    jas:code <urn:jas-ns:code:TEMPORAL_PERIOD_OF> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Tijdsaanduiding> .
+
+<urn:jas-ns:regel:jas.tijd.periodewoord> a jas:Detectorregel ;
+    dcterms:source "H2:109" ;
+    skos:prefLabel "Periodewoord"@nl ;
+    jas:code <urn:jas-ns:code:TEMPORAL_PERIOD_NOUN> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Tijdsaanduiding> .
+
+<urn:jas-ns:regel:jas.tijd.relatief> a jas:Detectorregel ;
+    dcterms:source "H2:109" ;
+    skos:prefLabel "Relatieve periode"@nl ;
+    jas:code <urn:jas-ns:code:TEMPORAL_RELATIVE_PERIOD> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Tijdsaanduiding> .
+
+<urn:jas-ns:regel:jas.tijd.tijdstip> a jas:Detectorregel ;
+    dcterms:source "H2:109" ;
+    skos:prefLabel "Tijdstip"@nl ;
+    jas:code <urn:jas-ns:code:TEMPORAL_MOMENT> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Tijdsaanduiding> .
+
+<urn:jas-ns:regel:jas.voorwaarde.bijwoord> a jas:Detectorregel ;
+    dcterms:source "H2:64" ;
+    skos:prefLabel "Voorwaardelijk bijwoord"@nl ;
+    jas:code <urn:jas-ns:code:CONDITIONAL_ADVERB> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Voorwaarde> .
+
+<urn:jas-ns:regel:jas.voorwaarde.vaste_inleiding> a jas:Detectorregel ;
+    dcterms:source "H2:64" ;
+    skos:prefLabel "Vaste voorwaardeformule"@nl ;
+    jas:code <urn:jas-ns:code:CONDITIONAL_FORMULA> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Voorwaarde> .
+
+<urn:jas-ns:regel:jas.voorwaarde.voorwaardelijke_bijzin> a jas:Detectorregel ;
+    dcterms:source "H2:64" ;
+    skos:prefLabel "Voorwaardelijke bijzin"@nl ;
+    jas:code <urn:jas-ns:code:CONDITIONAL_CLAUSE> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Voorwaarde> .
+
+<urn:jas-ns:regel:jas.voorwaarde.wegens> a jas:Detectorregel ;
+    dcterms:source "H2:63" ;
+    skos:prefLabel "Oorzaak"@nl ;
+    jas:code <urn:jas-ns:code:CAUSAL_PHRASE> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Rechtsfeit>,
+        <urn:jas-ns:klasse:Voorwaarde> .
+
+<urn:jas-ns:regel:jas.waarde.bedrag> a jas:Detectorregel ;
+    dcterms:source "H2:91" ;
+    skos:prefLabel "Geldbedrag"@nl ;
+    jas:code <urn:jas-ns:code:MONEY_AMOUNT> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:ParameterEnParameterwaarde>,
+        <urn:jas-ns:klasse:VariabeleEnVariabelewaarde> .
+
+<urn:jas-ns:regel:jas.waarde.percentage> a jas:Detectorregel ;
+    dcterms:source "H2:91" ;
+    skos:prefLabel "Percentage"@nl ;
+    jas:code <urn:jas-ns:code:PERCENTAGE> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:ParameterEnParameterwaarde>,
+        <urn:jas-ns:klasse:VariabeleEnVariabelewaarde> .
+
+<urn:jas-ns:regel:jas.waarde.veelvoud> a jas:Detectorregel ;
+    dcterms:source "H2:100" ;
+    skos:prefLabel "Veelvoud"@nl ;
+    jas:code <urn:jas-ns:code:MULTIPLIER> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Operator>,
+        <urn:jas-ns:klasse:ParameterEnParameterwaarde> .
+
+<urn:jas-ns:resolutie:R-ABSTAIN-CHANGE> a jas:Resolutieregel ;
+    skos:definition "Het model gaf geen keuze; de reviewer koos een van de toegestane klassen."@nl ;
+    skos:prefLabel "Reviewer koos een klasse"@nl ;
+    jas:codeWaarde "R-ABSTAIN-CHANGE" .
+
+<urn:jas-ns:resolutie:R-ABSTAIN-HUMAN> a jas:Resolutieregel ;
+    skos:definition "Model en reviewer kozen niet; de jurist beslist."@nl ;
+    skos:prefLabel "Geen keuze – jij kiest"@nl ;
+    jas:codeWaarde "R-ABSTAIN-HUMAN" .
+
+<urn:jas-ns:resolutie:R-ABSTAIN-KEEP> a jas:Resolutieregel ;
+    skos:definition "Het model gaf geen keuze; de jurist beslist."@nl ;
+    skos:prefLabel "Niets om aan te houden – jij kiest"@nl ;
+    jas:codeWaarde "R-ABSTAIN-KEEP" .
+
+<urn:jas-ns:resolutie:R-CONFLICT-CHANGE> a jas:Resolutieregel ;
+    skos:definition "De reviewer koos de klasse die het vaste patroon aanwees; de keuze van het model blijft als alternatief."@nl ;
+    skos:prefLabel "Reviewer volgt het patroon"@nl ;
+    jas:codeWaarde "R-CONFLICT-CHANGE" .
+
+<urn:jas-ns:resolutie:R-CONFLICT-HUMAN> a jas:Resolutieregel ;
+    skos:definition "Model en patroon zijn het oneens en de reviewer koos niet: beide lezingen liggen bij de jurist."@nl ;
+    skos:prefLabel "Onenigheid – jij kiest"@nl ;
+    jas:codeWaarde "R-CONFLICT-HUMAN" .
+
+<urn:jas-ns:resolutie:R-CONFLICT-KEEP> a jas:Resolutieregel ;
+    skos:definition "Het conflict met het patroon blijft bestaan, dus de keuze ligt bij de jurist."@nl ;
+    skos:prefLabel "Reviewer houdt de keuze van het model aan – jij beslist"@nl ;
+    jas:codeWaarde "R-CONFLICT-KEEP" .
+
+<urn:jas-ns:resolutie:R-DEGRADED> a jas:Resolutieregel ;
+    skos:definition "Zonder zinsontleding besliste het model met minder bewijs; de jurist kijkt mee."@nl ;
+    skos:prefLabel "Minder signalen – jij kijkt"@nl ;
+    jas:codeWaarde "R-DEGRADED" .
+
+<urn:jas-ns:resolutie:R-ONGELDIG> a jas:Resolutieregel ;
+    skos:definition "Het oordeel van de reviewer was niet te gebruiken; de jurist beslist."@nl ;
+    skos:prefLabel "Reviewer gaf geen bruikbaar oordeel – jij kiest"@nl ;
+    jas:codeWaarde "R-ONGELDIG" .
+
+<urn:jas-ns:resolutie:R-PRIORITEIT> a jas:Resolutieregel ;
+    skos:definition "De reviewer stelde een klasse voor die tegen een JAS-voorrangsregel ingaat; die staat als alternatief."@nl ;
+    skos:prefLabel "Wijziging tegen een voorrangsregel niet uitgevoerd"@nl ;
+    jas:codeWaarde "R-PRIORITEIT" .
+
+<urn:jas-ns:resolutie:R-SPAN-CHANGE> a jas:Resolutieregel ;
+    skos:definition "De reviewer koos één klasse voor het fragment; de andere blijft als alternatief."@nl ;
+    skos:prefLabel "Samengevoegd tot één klasse"@nl ;
+    jas:codeWaarde "R-SPAN-CHANGE" .
+
+<urn:jas-ns:resolutie:R-SPAN-HUMAN> a jas:Resolutieregel ;
+    skos:definition "Het fragment kreeg twee klassen en de reviewer koos niet."@nl ;
+    skos:prefLabel "Twee klassen – jij kiest"@nl ;
+    jas:codeWaarde "R-SPAN-HUMAN" .
+
+<urn:jas-ns:resolutie:R-SPAN-KEEP> a jas:Resolutieregel ;
+    skos:definition "De reviewer bevestigde dat het fragment twee functies heeft; beide blijven staan."@nl ;
+    skos:prefLabel "Twee functies op één fragment"@nl ;
+    jas:codeWaarde "R-SPAN-KEEP" .
+
+<urn:jas-ns:twijfel:CLASSIFIER_ABSTAIN> a jas:Twijfelreden ;
+    skos:definition "Het model gaf voor dit fragment geen bruikbare beslissing."@nl ;
+    skos:prefLabel "Geen geldige keuze van het model"@nl ;
+    jas:codeWaarde "CLASSIFIER_ABSTAIN" .
+
+<urn:jas-ns:twijfel:DEGRADED_PARSE> a jas:Twijfelreden ;
+    skos:definition "De zinsontleding ontbrak voor deze tekst; het model besliste met minder signalen."@nl ;
+    skos:prefLabel "Zonder zinsontleding"@nl ;
+    jas:codeWaarde "DEGRADED_PARSE" .
+
+<urn:jas-ns:twijfel:DETECTOR_CONFLICT> a jas:Twijfelreden ;
+    skos:definition "Het model koos iets anders dan een vast patroon aanwijst."@nl ;
+    skos:prefLabel "Model en patroon zijn het oneens"@nl ;
+    jas:codeWaarde "DETECTOR_CONFLICT" .
+
+<urn:jas-ns:twijfel:ZELFDE_SPAN> a jas:Twijfelreden ;
+    skos:definition "Hetzelfde fragment kreeg twee klassen; dat mag alleen bij verschillende functies."@nl ;
+    skos:prefLabel "Twee klassen op hetzelfde fragment"@nl ;
+    jas:codeWaarde "ZELFDE_SPAN" .
+
+<urn:jas-ns:validatie:V_ANKER> a jas:Validatiecode ;
+    skos:definition "Het anker wijst niet exact naar het fragment in de bron."@nl ;
+    skos:prefLabel "Anker klopt niet"@nl ;
+    jas:codeWaarde "V_ANKER" .
+
+<urn:jas-ns:validatie:V_GRENS> a jas:Validatiecode ;
+    skos:definition "Het fragment valt buiten de bronnode of is leeg."@nl ;
+    skos:prefLabel "Ongeldige grens"@nl ;
+    jas:codeWaarde "V_GRENS" .
+
+<urn:jas-ns:validatie:V_KANDIDAAT> a jas:Validatiecode ;
+    skos:definition "Het voorstel hoort bij geen enkele kandidaat."@nl ;
+    skos:prefLabel "Onbekende kandidaat"@nl ;
+    jas:codeWaarde "V_KANDIDAAT" .
+
+<urn:jas-ns:validatie:V_KLASSE> a jas:Validatiecode ;
+    skos:definition "De klasse is niet een van de dertien JAS-klassen of niet toegestaan voor deze kandidaat."@nl ;
+    skos:prefLabel "Ongeldige klasse"@nl ;
+    jas:codeWaarde "V_KLASSE" .
+
+<urn:jas-ns:validatie:V_PROVENANCE> a jas:Validatiecode ;
+    skos:definition "Het spoor van het voorstel is onvolledig."@nl ;
+    skos:prefLabel "Herkomst ontbreekt"@nl ;
+    jas:codeWaarde "V_PROVENANCE" .
+
+<urn:jas-ns:validatie:V_STATUS> a jas:Validatiecode ;
+    skos:definition "Het voorstel heeft een status die niet bij een voorstel hoort."@nl ;
+    skos:prefLabel "Ongeldige status"@nl ;
+    jas:codeWaarde "V_STATUS" .
+
+<urn:jas-ns:validatie:W_ZELFDE_SPAN> a jas:Validatiecode ;
+    skos:definition "Waarschuwing: hetzelfde fragment kreeg twee klassen."@nl ;
+    skos:prefLabel "Twee klassen op hetzelfde fragment"@nl ;
+    jas:codeWaarde "W_ZELFDE_SPAN" .
+
+<urn:jas-ns:code:ARITHMETIC> a jas:Detectiecode ;
+    skos:definition "'Vermeerderd met', 'verminderd met', 'de som van': een rekenkundige operator."@nl ;
+    skos:prefLabel "Rekenkundige bewerking"@nl ;
+    jas:codeWaarde "ARITHMETIC" .
+
+<urn:jas-ns:code:CALCULATION_COPULA> a jas:Detectiecode ;
+    skos:definition "Een zin waarin iets een bedrag of waarde 'bedraagt' – de vorm van een afleidingsregel."@nl ;
+    skos:prefLabel "Berekening met 'bedraagt'"@nl ;
+    jas:codeWaarde "CALCULATION_COPULA" .
+
+<urn:jas-ns:code:CALCULATION_PASSIVE> a jas:Detectiecode ;
+    skos:definition "'Wordt gesteld op', 'wordt berekend', 'wordt in aanmerking genomen': een waarde wordt vastgesteld."@nl ;
+    skos:prefLabel "Berekening in de lijdende vorm"@nl ;
+    jas:codeWaarde "CALCULATION_PASSIVE" .
+
+<urn:jas-ns:code:CAUSAL_PHRASE> a jas:Detectiecode ;
+    skos:definition "'Wegens', 'ten gevolge van': een oorzaak die een voorwaarde of rechtsfeit kan zijn."@nl ;
+    skos:prefLabel "Oorzaak"@nl ;
+    jas:codeWaarde "CAUSAL_PHRASE" .
+
+<urn:jas-ns:code:COMPARISON> a jas:Detectiecode ;
+    skos:definition "'Meer bedraagt dan', 'ten minste', 'niet meer dan': een vergelijkende operator."@nl ;
+    skos:prefLabel "Vergelijking"@nl ;
+    jas:codeWaarde "COMPARISON" .
+
+<urn:jas-ns:code:CONDITIONAL_ADVERB> a jas:Detectiecode ;
+    skos:definition "Een bijwoord dat een voorwaarde stelt, zoals 'schriftelijk'."@nl ;
+    skos:prefLabel "Voorwaardelijk bijwoord"@nl ;
+    jas:codeWaarde "CONDITIONAL_ADVERB" .
+
+<urn:jas-ns:code:CONDITIONAL_CLAUSE> a jas:Detectiecode ;
+    skos:definition "Een bijzin met 'indien', 'als', 'tenzij', 'mits' of 'voor zover'."@nl ;
+    skos:prefLabel "Voorwaardelijke bijzin"@nl ;
+    jas:codeWaarde "CONDITIONAL_CLAUSE" .
+
+<urn:jas-ns:code:CONDITIONAL_FORMULA> a jas:Detectiecode ;
+    skos:definition "'Met dien verstande dat', 'met uitzondering van': een vaste inleiding van een voorwaarde."@nl ;
+    skos:prefLabel "Vaste voorwaardeformule"@nl ;
+    jas:codeWaarde "CONDITIONAL_FORMULA" .
+
+<urn:jas-ns:code:DELEGATION_FORMULA> a jas:Detectiecode ;
+    skos:definition "'Bij of krachtens … worden regels gesteld': de vaste vorm waarmee de wet een bevoegdheid delegeert."@nl ;
+    skos:prefLabel "Delegatieformule"@nl ;
+    jas:codeWaarde "DELEGATION_FORMULA" .
+
+<urn:jas-ns:code:LEGAL_FICTION> a jas:Detectiecode ;
+    skos:definition "'Wordt vermoed dat', 'wordt geacht': de wet leidt een feit af."@nl ;
+    skos:prefLabel "Wettelijk vermoeden of fictie"@nl ;
+    jas:codeWaarde "LEGAL_FICTION" .
+
+<urn:jas-ns:code:LOCATION_DESCRIPTION> a jas:Detectiecode ;
+    skos:definition "Een omschreven gebied, zoals 'een lidstaat van de Europese Unie'."@nl ;
+    skos:prefLabel "Gebiedsomschrijving"@nl ;
+    jas:codeWaarde "LOCATION_DESCRIPTION" .
+
+<urn:jas-ns:code:LOCATION_NAME> a jas:Detectiecode ;
+    skos:definition "Een gemeente, provincie of land uit de lijst van bekende namen."@nl ;
+    skos:prefLabel "Plaatsnaam"@nl ;
+    jas:codeWaarde "LOCATION_NAME" .
+
+<urn:jas-ns:code:LOGICAL> a jas:Detectiecode ;
+    skos:definition "'Dan wel', 'en', 'of' tussen voorwaarden: een logische operator."@nl ;
+    skos:prefLabel "Logische verbinding"@nl ;
+    jas:codeWaarde "LOGICAL" .
+
+<urn:jas-ns:code:MONEY_AMOUNT> a jas:Detectiecode ;
+    skos:definition "Een bedrag in euro's."@nl ;
+    skos:prefLabel "Geldbedrag"@nl ;
+    jas:codeWaarde "MONEY_AMOUNT" .
+
+<urn:jas-ns:code:MULTIPLIER> a jas:Detectiecode ;
+    skos:definition "'Tweemaal', 'het drievoudige': een vermenigvuldiging."@nl ;
+    skos:prefLabel "Veelvoud"@nl ;
+    jas:codeWaarde "MULTIPLIER" .
+
+<urn:jas-ns:code:PERCENTAGE> a jas:Detectiecode ;
+    skos:definition "Een percentage, in cijfers of woorden."@nl ;
+    skos:prefLabel "Percentage"@nl ;
+    jas:codeWaarde "PERCENTAGE" .
+
+<urn:jas-ns:code:ROLE_NOUN> a jas:Detectiecode ;
+    skos:definition "Een woord uit de lijst van rollen en instanties (de ontvanger, de inspecteur, Onze Minister)."@nl ;
+    skos:prefLabel "Rol of instantie"@nl ;
+    jas:codeWaarde "ROLE_NOUN" .
+
+<urn:jas-ns:code:TEMPORAL_ADVERB> a jas:Detectiecode ;
+    skos:definition "'Spoedig', 'onverwijld': een bijwoord van tijd."@nl ;
+    skos:prefLabel "Tijdsbijwoord"@nl ;
+    jas:codeWaarde "TEMPORAL_ADVERB" .
+
+<urn:jas-ns:code:TEMPORAL_DATE> a jas:Detectiecode ;
+    skos:definition "Een concrete datum."@nl ;
+    skos:prefLabel "Datum"@nl ;
+    jas:codeWaarde "TEMPORAL_DATE" .
+
+<urn:jas-ns:code:TEMPORAL_DURATION> a jas:Detectiecode ;
+    skos:definition "Een duur, zoals 'zes weken na de dagtekening'."@nl ;
+    skos:prefLabel "Termijn"@nl ;
+    jas:codeWaarde "TEMPORAL_DURATION" .
+
+<urn:jas-ns:code:TEMPORAL_MOMENT> a jas:Detectiecode ;
+    skos:definition "'Het tijdstip waarop …': een moment dat door een gebeurtenis wordt bepaald."@nl ;
+    skos:prefLabel "Tijdstip"@nl ;
+    jas:codeWaarde "TEMPORAL_MOMENT" .
+
+<urn:jas-ns:code:TEMPORAL_PERIOD_NOUN> a jas:Detectiecode ;
+    skos:definition "Een woord dat een periode aanduidt: kalenderjaar, berekeningsjaar, tijdvak."@nl ;
+    skos:prefLabel "Periodewoord"@nl ;
+    jas:codeWaarde "TEMPORAL_PERIOD_NOUN" .
+
+<urn:jas-ns:code:TEMPORAL_PERIOD_OF> a jas:Detectiecode ;
+    skos:definition "'De periode van drie jaren': een benoemde periode."@nl ;
+    skos:prefLabel "Periode van"@nl ;
+    jas:codeWaarde "TEMPORAL_PERIOD_OF" .
+
+<urn:jas-ns:code:TEMPORAL_RELATIVE_PERIOD> a jas:Detectiecode ;
+    skos:definition "Een periode ten opzichte van iets anders: 'de eerste veertien dagen'."@nl ;
+    skos:prefLabel "Relatieve periode"@nl ;
+    jas:codeWaarde "TEMPORAL_RELATIVE_PERIOD" .
+
+<urn:jas-ns:klasse:Brondefinitie> a skos:Concept,
+        jas:Klasse ;
+    dcterms:source "omschrijving H2:134",
+        "uitdrukkingswijze H2:136",
+        "vraag H2:135" ;
+    skos:definition "Een brondefinitie is een begripsomschrijving die expliciet is opgenomen in de wetgeving en een eenduidige betekenis geeft aan een in de wetgeving (veel) gebruikte term. Brondefinities staan in de regel in een of meer artikelen aan het begin van een wet of gedelegeerde regeling. Als in de wet een term is gedefinieerd, wordt deze definitie standaard hergebruikt in de daarop gebaseerde gedelegeerde regelingen. De definities worden in de gedelegeerde regeling niet opnieuw opgenomen. \"Brondefinities moeten worden onderscheiden van de begrippen en begripsomschrijvingen die bij de Wetsanalyse worden gemaakt voor geclassificeerde formuleringen in de wetgeving. Deze begrippen hebben geen directe wettelijke bron, maar zijn nodig om formuleringen uniek te kunnen aanduiden.\""@nl ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Brondefinitie"@nl ;
+    skos:topConceptOf <urn:jas-ns:schema:jas-1.0.10> ;
+    jas:herkenningsvraag "Is deze term uitdrukkelijk omschreven in de wetgeving?"@nl ;
+    jas:uitdrukkingswijze "Een artikel met brondefinities bestaat in de regel uit een aanhef en verschillende onderdelen, bij voorkeur in alfabetische volgorde. Vaak staat dit artikel aan het begin van de regeling, maar er kunnen ook brondefinities zijn die voor een specifiek onderdeel gelden — een hoofdstuk, paragraaf of zelfs één artikel."@nl ;
+    jas:volgorde 12 .
+
+<urn:jas-ns:klasse:Rechtsbetrekking> a skos:Concept,
+        jas:Klasse ;
+    dcterms:source "omschrijving H2:44",
+        "uitdrukkingswijze H2:46",
+        "vraag H2:45" ;
+    skos:definition "Een rechtsbetrekking is een juridische relatie tussen twee rechtssubjecten en beschrijft een specifieke juridische toestand tussen deze rechtssubjecten. Een van deze rechtssubjecten heeft een plicht en de ander het bijbehorend recht. De algemene juridische toestand van een rechtssubject is de verzameling van alle specifieke rechtsbetrekkingen waarin dit rechtssubject als rechthebbende of plichthebbende partij optreedt."@nl ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Rechtsbetrekking"@nl ;
+    skos:topConceptOf <urn:jas-ns:schema:jas-1.0.10> ;
+    jas:herkenningsvraag "Hoe verhouden twee rechtssubjecten zich tot elkaar? Welke relatie(s) hebben twee rechtssubjecten met elkaar?"@nl ;
+    jas:uitdrukkingswijze "Te herkennen aan een of meer werkwoorden, langs twee herkenningsroutes: hoofdwerkwoord met hulpwerkwoord — bij een recht: ‘kan verzoeken’, ‘mag wijzigen’; bij een plicht: ‘stelt vast’, ‘mag niet inhalen’, ‘is verplicht informatie te verstrekken’, ‘moet informeren’, ‘dient te voldoen’. samengesteld werkwoord — bij een recht: ‘heeft recht op’, ‘heeft aanspraak op’; bij een plicht: ‘heeft de plicht om’, ‘draagt de last om’."@nl ;
+    jas:volgorde 2 .
+
+<urn:jas-ns:klasse:Rechtsfeit> a skos:Concept,
+        jas:Klasse ;
+    dcterms:source "omschrijving H2:53",
+        "uitdrukkingswijze H2:55",
+        "vraag H2:54" ;
+    skos:definition "Een rechtsfeit is een handeling of gebeurtenis die, of tijdsverloop dat een wijziging in de juridische toestand teweegbrengt. Aan een rechtsfeit zijn dus rechtsgevolgen verbonden die een rechtsbetrekking creëren, wijzigen of beëindigen."@nl ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Rechtsfeit"@nl ;
+    skos:topConceptOf <urn:jas-ns:schema:jas-1.0.10> ;
+    jas:herkenningsvraag "Wat is de gebeurtenis of handeling die, of het tijdsverloop dat gevolgen heeft voor de rechtsbetrekking?"@nl ;
+    jas:uitdrukkingswijze "Te herkennen aan een actieve werkwoordsvorm, al dan niet in combinatie met een zelfstandig naamwoord, zoals ‘indienen van een bezwaarschrift’, ‘toekennen van een subsidie’, ‘horen van belanghebbende’ of ‘kenbaar maken van elektronische bereikbaarheid’."@nl ;
+    jas:volgorde 3 .
+
+<urn:jas-ns:klasse:Rechtsobject> a skos:Concept,
+        jas:Klasse ;
+    dcterms:source "omschrijving H2:35",
+        "uitdrukkingswijze H2:37",
+        "vraag H2:36" ;
+    skos:definition "Een rechtsobject is het voorwerp van een rechtsbetrekking en/of rechtsfeit. Een rechtsobject kan zowel een fysieke (bijvoorbeeld een personenauto of een huis) als een niet-fysieke verschijningsvorm (bijvoorbeeld medische zorg) hebben."@nl ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Rechtsobject"@nl ;
+    skos:topConceptOf <urn:jas-ns:schema:jas-1.0.10> ;
+    jas:herkenningsvraag "Wat is het voorwerp van een recht of plicht? Waar is het rechtssubject eigenaar of houder van? Waar heeft een waarde betrekking op? Waarover is iets verschuldigd?"@nl ;
+    jas:uitdrukkingswijze "Te herkennen aan een zelfstandig naamwoord waarmee het voorwerp van een recht of plicht wordt omschreven, bijvoorbeeld een studie, een woning of een dienstbetrekking. Ook een aanwijzend of betrekkelijk voornaamwoord kan wijzen op een rechtsobject, bijvoorbeeld ‘dat’, ‘hetgeen’ en ‘welk(e)’."@nl ;
+    jas:volgorde 1 .
+
+<urn:jas-ns:klasse:Rechtssubject> a skos:Concept,
+        jas:Klasse ;
+    dcterms:source "omschrijving H2:26",
+        "uitdrukkingswijze H2:28",
+        "vraag H2:27" ;
+    skos:definition "Een rechtssubject is de drager van rechten en plichten. Het is een partij in een rechtsbetrekking."@nl ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Rechtssubject"@nl ;
+    skos:topConceptOf <urn:jas-ns:schema:jas-1.0.10> ;
+    jas:herkenningsvraag "Wie heeft het recht? Wie heeft de plicht? Van wie is een rechtsobject? Bij wie hoort een waarde?"@nl ;
+    jas:uitdrukkingswijze "Te herkennen aan een zelfstandig naamwoord waarmee een persoon of andere entiteit wordt beschreven, of aan een persoonlijk voornaamwoord zoals ‘hij’, ‘zij’ en soms ook ‘het’. Maar ook een onbepaald of betrekkelijk voornaamwoord kan wijzen op een rechtssubject, bijvoorbeeld ‘iemand’, ‘een ieder’ of ‘degene’."@nl ;
+    jas:volgorde 0 .
+
+<urn:jas-ns:klasse:DelegatiebevoegdheidEnDelegatieInvulling> a skos:Concept,
+        jas:Klasse ;
+    dcterms:source "omschrijving H2:125",
+        "uitdrukkingswijze H2:127",
+        "vraag H2:126" ;
+    skos:definition "Een delegatiebevoegdheid maakt het mogelijk of schrijft voor dat (nadere) regels worden gesteld over een rechtsbetrekking, rechtsfeit of afleidingsregel. Met delegatie-invulling duiden we de regeling of het regelingsonderdeel aan waarin de delegatiebevoegdheid is gebruikt. Een delegatiebevoegdheid wordt altijd aan een specifiek rechtssubject toegekend: de regering (bij een amvb, vastgesteld door de Koning) of een minister (bij een ministeriële regeling). De delegatie kan verplicht of facultatief zijn. Vaak is subdelegatie mogelijk: bepalingen in een amvb kunnen verder worden uitgewerkt in een ministeriële regeling. Vier dingen die de bron hier expliciet maakt en die je bij het annoteren nodig hebt: 1. Delegaties bepalen het werkgebied. \"Het herkennen van delegatiebevoegdheden is vooral van belang voor het bepalen van het werkgebied van de Wetsanalyse. Als de delegatiebevoegdheid daadwerkelijk is gebruikt, moet de op grond daarvan vastgestelde gedelegeerde regelgeving in het werkgebied worden betrokken.\" 2. De delegerende wet wijst nooit naar de invulling. \"De delegerende wet bevat logischerwijs geen concrete verwijzingen naar de delegatie-invulling. Die is immers op het moment van voorbereiden van die wet nog niet vastgesteld.\" Zoek een delegatie-invulling dus niet in de moederwet. 3. wetten.nl-metadata is onvolledig. De wetsinformatie bij een artikel \"is echter niet altijd volledig. Afstemming met wetgevingsjuristen om het werkgebied compleet te maken is daarom van belang.\" Dat geldt ook voor de verwijzingen die de kennisgraaf uit die bron overneemt. 4. Een delegatie-invulling is niet lexicaal te herkennen. \"In de delegatie-invulling wordt niet met standaard uitdrukkingswijzen gewerkt\" (H2:127). Je vindt hem alleen via de relatie met de grondslag, niet via signaalwoorden."@nl ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Delegatiebevoegdheid en delegatie-invulling"@nl ;
+    skos:topConceptOf <urn:jas-ns:schema:jas-1.0.10> ;
+    jas:herkenningsvraag "Geeft een wetsartikel de opdracht om (nadere) regels te stellen? Verwijst een bepaling in een gedelegeerde regeling naar een artikel in de bovenliggende wet?"@nl ;
+    jas:uitdrukkingswijze "Verplichte delegatie: ‘bij (of krachtens) algemene maatregel van bestuur / bij ministeriële regeling worden regels gesteld (…)’. Facultatieve bevoegdheid: ‘kunnen regels worden gesteld’. Bij ‘bij of krachtens’ kan subdelegatie plaatsvinden."@nl ;
+    jas:volgorde 11 .
+
+<urn:jas-ns:klasse:Afleidingsregel> a skos:Concept,
+        jas:Klasse ;
+    dcterms:source "omschrijving H2:71",
+        "uitdrukkingswijze H2:73",
+        "vraag H2:72" ;
+    skos:definition "Een afleidingsregel is een regel die nieuwe feiten of waarden creëert met behulp van bestaande feiten of waarden. Te denken valt aan regels die bepalen of een recht bestaat (een beslisregel), of die de hoogte en duur van een recht bepalen (een rekenregel). De variabele die vastgesteld wordt door de afleidingsregels, noemen we uitvoervariabele. Bij een rekenregel is dit de uitkomst van de rekensom; bij een beslisregel een conclusie als ja/nee of waar/onwaar. De variabelen die gebruikt worden voor de vaststelling, noemen we invoervariabelen. Als sprake is van vaste getallen of waarden in een afleidingsregel die over een periode gelijk zijn voor alle rechtssubjecten en rechtsobjecten, noemen we deze parameters. Afleidingsregels worden ook gebruikt om te bepalen of een rechtssubject of rechtsobject tot een bepaalde doelgroep behoort; het gaat dan om het afleiden van specialisaties van rechtssubjecten en rechtsobjecten op basis van bepaalde kenmerken."@nl ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Afleidingsregel"@nl ;
+    skos:topConceptOf <urn:jas-ns:schema:jas-1.0.10> ;
+    jas:herkenningsvraag "Hoe wordt een variabele berekend of afgeleid? Hoe wordt een specifiek rechtssubject of rechtsobject bepaald?"@nl ;
+    jas:uitdrukkingswijze "Te herkennen aan woorden die duiden op een berekening of afleiding, zoals ‘is (…) verminderd met’, ‘bedraagt (…) vermeerderd met’, ‘wordt gesteld op’ of ‘is het gezamenlijke bedrag van’, maar ook eenvoudigweg ‘en’."@nl ;
+    jas:volgorde 5 .
+
+<urn:jas-ns:klasse:Plaatsaanduiding> a skos:Concept,
+        jas:Klasse ;
+    dcterms:source "omschrijving H2:116",
+        "uitdrukkingswijze H2:118",
+        "vraag H2:117" ;
+    skos:definition "Een plaatsaanduiding is een plaats of een gebied waar bepaalde wetgeving betrekking op heeft. Zij bepaalt het toepassingsbereik van de regels voor rechtssubjecten, rechtsobjecten, rechtsbetrekkingen of rechtsfeiten. De meeste wetgeving geldt voor heel Nederland en heeft daarom geen expliciete plaatsaanduiding. Zodra het werkingsgebied beperkter of ruimer moet zijn, wordt in wetgeving wel een expliciete plaatsaanduiding opgenomen."@nl ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Plaatsaanduiding"@nl ;
+    skos:topConceptOf <urn:jas-ns:schema:jas-1.0.10> ;
+    jas:herkenningsvraag "Waar (voor welk gebied of welke plaats) geldt de wettelijke regel (niet)?"@nl ;
+    jas:uitdrukkingswijze "Uitgedrukt met een algemene beschrijving van het gebied (een lidstaat van de EU) of met de naam van een specifiek gebied (de gemeente Amsterdam, de provincie Limburg, Nederland, Zwitserland)."@nl ;
+    jas:volgorde 10 .
+
+<urn:jas-ns:klasse:Operator> a skos:Concept,
+        jas:Klasse ;
+    dcterms:source "omschrijving H2:98",
+        "uitdrukkingswijze H2:100",
+        "vraag H2:99" ;
+    skos:definition "Een operator is een woord, een combinatie van woorden of een teken dat een rekenkundige bewerking, een samengestelde voorwaarde, een gelijkstelling of een vergelijking van twee waarden of berekeningen uitdrukt. Een operator beschrijft hoe verschillende elementen van een berekening, voorwaarde of samengestelde voorwaarde met elkaar verbonden worden om tot een resultaat te leiden. Drie typen: rekenkundige operatoren — voeren een bewerking uit, zoals optellen, aftrekken, vermenigvuldigen; vergelijkingsoperatoren — vergelijken variabelen met elkaar of een variabele met een parameter; logische operatoren — bepalen bij samengestelde voorwaarden of aan (ten minste) één voorwaarde moet worden voldaan (OF, disjunctie, alternatief) of aan alle (EN, conjunctie, cumulatief); ook kan er sprake zijn van een voorwaarde waaraan niet voldaan mag zijn (NIET, negatie)."@nl ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Operator"@nl ;
+    skos:topConceptOf <urn:jas-ns:schema:jas-1.0.10> ;
+    jas:herkenningsvraag "Hoe worden variabelen of parameters verbonden in een berekening? In welke verhouding staan voorwaarden tot elkaar? Welke vergelijking wordt in een voorwaarde gemaakt?"@nl ;
+    jas:uitdrukkingswijze "rekenkundig: ‘het gezamenlijke bedrag van’, ‘de som van’, ‘vermeerderd met’, ‘verminderd met’, ‘percentage van’; vergelijking: ‘groter dan’, ‘kleiner dan’, ‘meer bedraagt dan’, ‘is gelijk aan’; logisch: ‘en’, ‘of’, ‘niet’, ‘ten minste’."@nl ;
+    jas:volgorde 8 .
+
+<urn:jas-ns:klasse:Voorwaarde> a skos:Concept,
+        jas:Klasse ;
+    dcterms:source "omschrijving H2:62",
+        "uitdrukkingswijze H2:64",
+        "vraag H2:63" ;
+    skos:definition "Een voorwaarde is een conditie die beschrijft aan welke omstandigheid voldaan moet zijn voor het intreden van een rechtsgevolg. Een voorwaarde kan ook betrekking hebben op een rechtssubject of op een waarde die bij een rechtsobject of bij een afleidingsregel hoort. Een voorwaarde bevat vaste elementen, die in de logica operanden en operatoren worden genoemd. Operanden kunnen rechtssubjecten of rechtsobjecten, eigenschappen van rechtssubjecten of rechtsobjecten, berekeningen of waarden zijn. Een operator is de beschrijving van een vergelijking die in de voorwaarde voorkomt, zoals ‘groter dan’, ‘kleiner dan’ en ‘gelijk aan’."@nl ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Voorwaarde"@nl ;
+    skos:topConceptOf <urn:jas-ns:schema:jas-1.0.10> ;
+    jas:herkenningsvraag "Welke eisen worden gesteld aan een rechtssubject, een rechtsobject, een rechtsbetrekking of een rechtsfeit? Onder welke omstandigheden geldt een waarde bij een rechtsobject?"@nl ;
+    jas:uitdrukkingswijze "Te herkennen aan een voorwaardelijke bijzin, in de meeste gevallen ingeleid door een voegwoord zoals ‘indien’, ‘als’, ‘tenzij’, ‘mits’ of een combinatie van woorden, zoals ‘met dien verstande dat’ of ‘met uitzondering van’. Ook kan een voorwaarde afgeleid worden uit een bijwoord bij een werkwoord, zoals ‘schriftelijk’ of ‘elektronisch’. Voorwaarden kunnen enkelvoudig of samengesteld zijn: een samengestelde voorwaarde bestaat uit verschillende eisen die alle vervuld moeten zijn (cumulatief) of waarvan er één vervuld moet zijn (alternatief)."@nl ;
+    jas:volgorde 4 .
+
+<urn:jas-ns:klasse:VariabeleEnVariabelewaarde> a skos:Concept,
+        jas:Klasse ;
+    dcterms:source "omschrijving H2:80",
+        "uitdrukkingswijze H2:82",
+        "vraag H2:81" ;
+    skos:definition "Een variabele is een kenmerk van een rechtssubject, rechtsobject, rechtsbetrekking of rechtsfeit dat voor verschillende instanties daarvan (dus voor specifieke personen, zaken, relaties, handelingen of gebeurtenissen in de werkelijkheid) een andere waarde kan hebben. Een variabelewaarde geeft de waarde aan die een bepaalde variabele kan hebben. De wijze waarop een variabelewaarde is omschreven in wetgeving kan een beperking in de mogelijke waarden voor een variabele inhouden, of een voorwaarde aan een variabele stellen."@nl ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Variabele en variabelewaarde"@nl ;
+    skos:topConceptOf <urn:jas-ns:schema:jas-1.0.10> ;
+    jas:herkenningsvraag "Wat zijn de specifieke kenmerken van een rechtsobject, rechtssubject, rechtsbetrekking of rechtsfeit? Welke eigenschappen worden genoemd? Welke waarde heeft een rechtsobject? Hoe lang of hoe hoog is een rechtsobject? En voor de waarde: welk bedrag, welke duur of welke hoogte hoort bij deze variabele?"@nl ;
+    jas:uitdrukkingswijze "vier varianten: getal of datum — een concreet bedrag, een concrete datum, een concrete tijdsduur of een andere numerieke waarde; tekst — bijvoorbeeld de variabele ‘naam van een werkgever’; enumeratiewaarde — een limitatieve opsomming van de mogelijke waarden, in getallen of tekst; booleaanse waarde — een bijzondere enumeratiewaarde met twee waarden, ‘ja’ (waar) of ‘nee’ (onwaar); bijvoorbeeld de variabele ‘geregistreerd in het donorregister’."@nl ;
+    jas:volgorde 6 .
+
+<urn:jas-ns:klasse:ParameterEnParameterwaarde> a skos:Concept,
+        jas:Klasse ;
+    dcterms:source "omschrijving H2:89",
+        "uitdrukkingswijze H2:91",
+        "vraag H2:90" ;
+    skos:definition "Een parameter is een beschrijving van een waarde die gelijk is voor alle rechtssubjecten, rechtsobjecten, rechtsbetrekkingen en rechtsfeiten. Vanwege de stabiele waarde wordt een parameter ook wel constante genoemd. Parameters worden gebruikt in afleidingsregels en voorwaarden. In de regel geldt een parameter voor een bepaalde periode, bijvoorbeeld een kalenderjaar, maar hij kan ook voor een onbepaalde duur gelden (bijvoorbeeld voor de hele geldigheidsduur van de wettelijke regel). De waarde die een parameter in de desbetreffende periode heeft, is een parameterwaarde. De parameter is dus de omschrijving van de waarde, en de parameterwaarde is de concrete waarde die daaraan is toegekend."@nl ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Parameter en parameterwaarde"@nl ;
+    skos:topConceptOf <urn:jas-ns:schema:jas-1.0.10> ;
+    jas:herkenningsvraag "Is sprake van een waarde die gedurende een periode een vaste hoogte heeft voor alle rechtssubjecten en rechtsobjecten?"@nl ;
+    jas:uitdrukkingswijze "Een parameter is te herkennen aan een beschrijving van een waarde, bijvoorbeeld van een tarief, een (drempel)bedrag (eventueel met een maximum of een minimum) of een vrijstelling. Een parameterwaarde is te herkennen aan bijvoorbeeld een bedrag in geld, een percentage of een datum."@nl ;
+    jas:volgorde 7 .
+
+<urn:jas-ns:klasse:Tijdsaanduiding> a skos:Concept,
+        jas:Klasse ;
+    dcterms:source "omschrijving H2:107",
+        "uitdrukkingswijze H2:109",
+        "vraag H2:108" ;
+    skos:definition "Een tijdsaanduiding is een omschrijving van een tijdstip of tijdvak. Een tijdsaanduiding is nodig om de geldigheid van een rechtsbetrekking te duiden, om een tijdsverloop met rechtsgevolg uit te drukken of als variabele bij een specifiek rechtssubject of rechtsobject. Ook kan een tijdsaanduiding (met name een tijdstip) een parameterwaarde zijn — een voorbeeld is een peildatum die wordt vergeleken met een andere datum (als variabele) in een voorwaarde. De tijdsaanduiding is als aparte klasse opgenomen, hoewel deze ook beschouwd zou kunnen worden als een verduidelijking van de klassen variabele of parameter. Gelet op het belang van de tijdsaanduiding voor het bepalen van de duur van een rechtsbetrekking of het tijdstip van een tijdsverloop met rechtsgevolgen, is tijdsaanduiding als aparte klasse opgenomen."@nl ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Tijdsaanduiding"@nl ;
+    skos:topConceptOf <urn:jas-ns:schema:jas-1.0.10> ;
+    jas:herkenningsvraag "Wanneer, op welk moment? Sinds wanneer of tot wanneer, vanaf welk moment of tot welk moment?"@nl ;
+    jas:uitdrukkingswijze "Te herkennen aan een concrete datum (bijvoorbeeld 1 september 2009), of aan een omschrijving die een datum beschrijft (de eerste maandag van de maand). Tijdvakken zijn vaak te herkennen aan woorden die een periode duiden, zoals jaar, maand, week en dag, of specialisaties daarvan zoals kalenderjaar."@nl ;
+    jas:volgorde 9 .
+
+<urn:jas-ns:schema:jas-1.0.10> a skos:ConceptScheme ;
+    dcterms:source "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md" ;
+    skos:prefLabel "Juridisch Analyseschema"@nl ;
+    jas:jasVersie "1.0.10" ;
+    jas:vocabulaireVersie "3d011ff5657e" .
+

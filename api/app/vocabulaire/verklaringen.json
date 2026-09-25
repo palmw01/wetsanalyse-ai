@@ -1,0 +1,703 @@
+{
+  "besluit": {
+    "model": {
+      "naam": "model",
+      "uitleg": "Het model koos uit de klassen die het patroon toeliet."
+    },
+    "regel": {
+      "naam": "vaste regel",
+      "uitleg": "Besloten zonder model: één klasse mogelijk en sterk bewijs."
+    },
+    "specificiteit": {
+      "naam": "voorrangsregel",
+      "uitleg": "Besloten door een JAS-voorrangsregel over overlappende fragmenten."
+    }
+  },
+  "classifier": {
+    "CLASSIFIER_GEEN_UITVOER": {
+      "naam": "Geen uitvoer van het model",
+      "uitleg": "Het model antwoordde niet via het hulpmiddel."
+    },
+    "CLASSIFIER_OMITTED": {
+      "naam": "Overgeslagen door het model",
+      "uitleg": "Het model liet deze kandidaat weg."
+    },
+    "CLASSIFIER_ONGELDIGE_KLASSE": {
+      "naam": "Niet-toegestane klasse",
+      "uitleg": "Het model koos een klasse die voor deze kandidaat niet mocht."
+    },
+    "CLASSIFIER_ONGELDIGE_OPTIE": {
+      "naam": "Niet-bestaande grens",
+      "uitleg": "Het model koos een grens die niet werd aangeboden."
+    },
+    "VALIDATION_ERROR": {
+      "naam": "Afgekeurd bij de validatie",
+      "uitleg": "Het voorstel haalde een structurele controle niet en is verworpen."
+    }
+  },
+  "detectie": {
+    "ARITHMETIC": {
+      "naam": "Rekenkundige bewerking",
+      "uitleg": "'Vermeerderd met', 'verminderd met', 'de som van': een rekenkundige operator."
+    },
+    "CALCULATION_COPULA": {
+      "naam": "Berekening met 'bedraagt'",
+      "uitleg": "Een zin waarin iets een bedrag of waarde 'bedraagt' – de vorm van een afleidingsregel."
+    },
+    "CALCULATION_PASSIVE": {
+      "naam": "Berekening in de lijdende vorm",
+      "uitleg": "'Wordt gesteld op', 'wordt berekend', 'wordt in aanmerking genomen': een waarde wordt vastgesteld."
+    },
+    "CAUSAL_PHRASE": {
+      "naam": "Oorzaak",
+      "uitleg": "'Wegens', 'ten gevolge van': een oorzaak die een voorwaarde of rechtsfeit kan zijn."
+    },
+    "COMPARISON": {
+      "naam": "Vergelijking",
+      "uitleg": "'Meer bedraagt dan', 'ten minste', 'niet meer dan': een vergelijkende operator."
+    },
+    "CONDITIONAL_ADVERB": {
+      "naam": "Voorwaardelijk bijwoord",
+      "uitleg": "Een bijwoord dat een voorwaarde stelt, zoals 'schriftelijk'."
+    },
+    "CONDITIONAL_CLAUSE": {
+      "naam": "Voorwaardelijke bijzin",
+      "uitleg": "Een bijzin met 'indien', 'als', 'tenzij', 'mits' of 'voor zover'."
+    },
+    "CONDITIONAL_FORMULA": {
+      "naam": "Vaste voorwaardeformule",
+      "uitleg": "'Met dien verstande dat', 'met uitzondering van': een vaste inleiding van een voorwaarde."
+    },
+    "DEFINITION_ITEM": {
+      "naam": "Begripsbepaling (onderdeel)",
+      "uitleg": "Een onderdeel van een begripsbepalingenartikel: 'a. X: …'."
+    },
+    "DEFINITION_SENTENCE": {
+      "naam": "Begripsbepaling (zin)",
+      "uitleg": "'In deze wet wordt verstaan onder X: …'."
+    },
+    "DELEGATION_FORMULA": {
+      "naam": "Delegatieformule",
+      "uitleg": "'Bij of krachtens … worden regels gesteld': de vaste vorm waarmee de wet een bevoegdheid delegeert."
+    },
+    "ENUMERATED_NP": {
+      "naam": "Opsommingsonderdeel",
+      "uitleg": "Een naamwoordgroep als onderdeel van een opsomming."
+    },
+    "LEGAL_FICTION": {
+      "naam": "Wettelijk vermoeden of fictie",
+      "uitleg": "'Wordt vermoed dat', 'wordt geacht': de wet leidt een feit af."
+    },
+    "LOCATION_DESCRIPTION": {
+      "naam": "Gebiedsomschrijving",
+      "uitleg": "Een omschreven gebied, zoals 'een lidstaat van de Europese Unie'."
+    },
+    "LOCATION_NAME": {
+      "naam": "Plaatsnaam",
+      "uitleg": "Een gemeente, provincie of land uit de lijst van bekende namen."
+    },
+    "LOGICAL": {
+      "naam": "Logische verbinding",
+      "uitleg": "'Dan wel', 'en', 'of' tussen voorwaarden: een logische operator."
+    },
+    "MEANING_TERM": {
+      "naam": "Begrip met betekenis",
+      "uitleg": "Het begrip dat in een begripsbepaling een betekenis krijgt."
+    },
+    "MONEY_AMOUNT": {
+      "naam": "Geldbedrag",
+      "uitleg": "Een bedrag in euro's."
+    },
+    "MULTIPLIER": {
+      "naam": "Veelvoud",
+      "uitleg": "'Tweemaal', 'het drievoudige': een vermenigvuldiging."
+    },
+    "NOMINALIZED_ACTION": {
+      "naam": "Handeling als zelfstandig naamwoord",
+      "uitleg": "'Het indienen van', 'de dagtekening van': een handeling of gebeurtenis als naamwoord."
+    },
+    "NORMATIVE_PREDICATE": {
+      "naam": "Normatief gezegde",
+      "uitleg": "'Is verplicht', 'kan', 'heeft recht op', 'is bevoegd': een recht of plicht."
+    },
+    "OBJECT_NP": {
+      "naam": "Voorwerp bij een recht of plicht",
+      "uitleg": "Een naamwoordgroep als voorwerp bij een normatief gezegde."
+    },
+    "PARAMETER_NOUN": {
+      "naam": "Parameterwoord",
+      "uitleg": "'Tarief', 'drempel', 'vrijstelling': een woord dat een vaste waarde benoemt."
+    },
+    "PERCENTAGE": {
+      "naam": "Percentage",
+      "uitleg": "Een percentage, in cijfers of woorden."
+    },
+    "PERSON_PRONOUN": {
+      "naam": "Verwijzend voornaamwoord",
+      "uitleg": "'Hij', 'degene', 'een ieder': een voornaamwoord dat naar een persoon verwijst."
+    },
+    "PRIORITY_APPLIED": {
+      "naam": "Voorrangsregel toegepast",
+      "uitleg": "Een specifiekere klasse ging voor op een algemenere, volgens de JAS-voorrangsregels."
+    },
+    "PROPERTY_NOUN": {
+      "naam": "Eigenschap",
+      "uitleg": "'De hoogte van', 'het bedrag van': een naamwoordgroep die een eigenschap noemt."
+    },
+    "RESTRICTIVE_RELATIVE": {
+      "naam": "Beperkende bijzin",
+      "uitleg": "Een betrekkelijke bijzin die de groep beperkt ('die …', 'waarvan …') – vaak een voorwaarde."
+    },
+    "ROLE_NOUN": {
+      "naam": "Rol of instantie",
+      "uitleg": "Een woord uit de lijst van rollen en instanties (de ontvanger, de inspecteur, Onze Minister)."
+    },
+    "SUBJECT_NP": {
+      "naam": "Onderwerp bij een recht of plicht",
+      "uitleg": "Het onderwerp van een zin met een normatief gezegde – vaak de drager van het recht of de plicht."
+    },
+    "TEMPORAL_ADVERB": {
+      "naam": "Tijdsbijwoord",
+      "uitleg": "'Spoedig', 'onverwijld': een bijwoord van tijd."
+    },
+    "TEMPORAL_DATE": {
+      "naam": "Datum",
+      "uitleg": "Een concrete datum."
+    },
+    "TEMPORAL_DURATION": {
+      "naam": "Termijn",
+      "uitleg": "Een duur, zoals 'zes weken na de dagtekening'."
+    },
+    "TEMPORAL_MOMENT": {
+      "naam": "Tijdstip",
+      "uitleg": "'Het tijdstip waarop …': een moment dat door een gebeurtenis wordt bepaald."
+    },
+    "TEMPORAL_PERIOD_NOUN": {
+      "naam": "Periodewoord",
+      "uitleg": "Een woord dat een periode aanduidt: kalenderjaar, berekeningsjaar, tijdvak."
+    },
+    "TEMPORAL_PERIOD_OF": {
+      "naam": "Periode van",
+      "uitleg": "'De periode van drie jaren': een benoemde periode."
+    },
+    "TEMPORAL_RELATIVE_PERIOD": {
+      "naam": "Relatieve periode",
+      "uitleg": "Een periode ten opzichte van iets anders: 'de eerste veertien dagen'."
+    }
+  },
+  "jas_versie": "1.0.10",
+  "klassen": [
+    {
+      "begrippen": [
+        {
+          "naam": "Rechtssubject",
+          "subtype": ""
+        }
+      ],
+      "bron": {
+        "omschrijving": "H2:26",
+        "uitdrukkingswijze": "H2:28",
+        "vraag": "H2:27"
+      },
+      "iri": "urn:jas-ns:klasse:Rechtssubject",
+      "naam": "Rechtssubject",
+      "omschrijving": "Een rechtssubject is de drager van rechten en plichten. Het is een partij in een rechtsbetrekking.",
+      "vraag": "Wie heeft het recht? Wie heeft de plicht? Van wie is een rechtsobject? Bij wie hoort een waarde?"
+    },
+    {
+      "begrippen": [
+        {
+          "naam": "Rechtsobject",
+          "subtype": ""
+        }
+      ],
+      "bron": {
+        "omschrijving": "H2:35",
+        "uitdrukkingswijze": "H2:37",
+        "vraag": "H2:36"
+      },
+      "iri": "urn:jas-ns:klasse:Rechtsobject",
+      "naam": "Rechtsobject",
+      "omschrijving": "Een rechtsobject is het voorwerp van een rechtsbetrekking en/of rechtsfeit. Een rechtsobject kan zowel een fysieke (bijvoorbeeld een personenauto of een huis) als een niet-fysieke verschijningsvorm (bijvoorbeeld medische zorg) hebben.",
+      "vraag": "Wat is het voorwerp van een recht of plicht? Waar is het rechtssubject eigenaar of houder van? Waar heeft een waarde betrekking op? Waarover is iets verschuldigd?"
+    },
+    {
+      "begrippen": [
+        {
+          "naam": "Rechtsbetrekking",
+          "subtype": ""
+        }
+      ],
+      "bron": {
+        "omschrijving": "H2:44",
+        "uitdrukkingswijze": "H2:46",
+        "vraag": "H2:45"
+      },
+      "iri": "urn:jas-ns:klasse:Rechtsbetrekking",
+      "naam": "Rechtsbetrekking",
+      "omschrijving": "Een rechtsbetrekking is een juridische relatie tussen twee rechtssubjecten en beschrijft een specifieke juridische toestand tussen deze rechtssubjecten. Een van deze rechtssubjecten heeft een plicht en de ander het bijbehorend recht. De algemene juridische toestand van een rechtssubject is de verzameling van alle specifieke rechtsbetrekkingen waarin dit rechtssubject als rechthebbende of plichthebbende partij optreedt.",
+      "vraag": "Hoe verhouden twee rechtssubjecten zich tot elkaar? Welke relatie(s) hebben twee rechtssubjecten met elkaar?"
+    },
+    {
+      "begrippen": [
+        {
+          "naam": "Rechtsfeit",
+          "subtype": ""
+        }
+      ],
+      "bron": {
+        "omschrijving": "H2:53",
+        "uitdrukkingswijze": "H2:55",
+        "vraag": "H2:54"
+      },
+      "iri": "urn:jas-ns:klasse:Rechtsfeit",
+      "naam": "Rechtsfeit",
+      "omschrijving": "Een rechtsfeit is een handeling of gebeurtenis die, of tijdsverloop dat een wijziging in de juridische toestand teweegbrengt. Aan een rechtsfeit zijn dus rechtsgevolgen verbonden die een rechtsbetrekking creëren, wijzigen of beëindigen.",
+      "vraag": "Wat is de gebeurtenis of handeling die, of het tijdsverloop dat gevolgen heeft voor de rechtsbetrekking?"
+    },
+    {
+      "begrippen": [
+        {
+          "naam": "Voorwaarde",
+          "subtype": ""
+        }
+      ],
+      "bron": {
+        "omschrijving": "H2:62",
+        "uitdrukkingswijze": "H2:64",
+        "vraag": "H2:63"
+      },
+      "iri": "urn:jas-ns:klasse:Voorwaarde",
+      "naam": "Voorwaarde",
+      "omschrijving": "Een voorwaarde is een conditie die beschrijft aan welke omstandigheid voldaan moet zijn voor het intreden van een rechtsgevolg. Een voorwaarde kan ook betrekking hebben op een rechtssubject of op een waarde die bij een rechtsobject of bij een afleidingsregel hoort. Een voorwaarde bevat vaste elementen, die in de logica operanden en operatoren worden genoemd. Operanden kunnen rechtssubjecten of rechtsobjecten, eigenschappen van rechtssubjecten of rechtsobjecten, berekeningen of waarden zijn. Een operator is de beschrijving van een vergelijking die in de voorwaarde voorkomt, zoals ‘groter dan’, ‘kleiner dan’ en ‘gelijk aan’.",
+      "vraag": "Welke eisen worden gesteld aan een rechtssubject, een rechtsobject, een rechtsbetrekking of een rechtsfeit? Onder welke omstandigheden geldt een waarde bij een rechtsobject?"
+    },
+    {
+      "begrippen": [
+        {
+          "naam": "Afleidingsregel",
+          "subtype": ""
+        }
+      ],
+      "bron": {
+        "omschrijving": "H2:71",
+        "uitdrukkingswijze": "H2:73",
+        "vraag": "H2:72"
+      },
+      "iri": "urn:jas-ns:klasse:Afleidingsregel",
+      "naam": "Afleidingsregel",
+      "omschrijving": "Een afleidingsregel is een regel die nieuwe feiten of waarden creëert met behulp van bestaande feiten of waarden. Te denken valt aan regels die bepalen of een recht bestaat (een beslisregel), of die de hoogte en duur van een recht bepalen (een rekenregel). De variabele die vastgesteld wordt door de afleidingsregels, noemen we uitvoervariabele. Bij een rekenregel is dit de uitkomst van de rekensom; bij een beslisregel een conclusie als ja/nee of waar/onwaar. De variabelen die gebruikt worden voor de vaststelling, noemen we invoervariabelen. Als sprake is van vaste getallen of waarden in een afleidingsregel die over een periode gelijk zijn voor alle rechtssubjecten en rechtsobjecten, noemen we deze parameters. Afleidingsregels worden ook gebruikt om te bepalen of een rechtssubject of rechtsobject tot een bepaalde doelgroep behoort; het gaat dan om het afleiden van specialisaties van rechtssubjecten en rechtsobjecten op basis van bepaalde kenmerken.",
+      "vraag": "Hoe wordt een variabele berekend of afgeleid? Hoe wordt een specifiek rechtssubject of rechtsobject bepaald?"
+    },
+    {
+      "begrippen": [
+        {
+          "naam": "Variabele",
+          "subtype": "variabele"
+        },
+        {
+          "naam": "Variabelewaarde",
+          "subtype": "variabelewaarde"
+        }
+      ],
+      "bron": {
+        "omschrijving": "H2:80",
+        "uitdrukkingswijze": "H2:82",
+        "vraag": "H2:81"
+      },
+      "iri": "urn:jas-ns:klasse:VariabeleEnVariabelewaarde",
+      "naam": "Variabele en variabelewaarde",
+      "omschrijving": "Een variabele is een kenmerk van een rechtssubject, rechtsobject, rechtsbetrekking of rechtsfeit dat voor verschillende instanties daarvan (dus voor specifieke personen, zaken, relaties, handelingen of gebeurtenissen in de werkelijkheid) een andere waarde kan hebben. Een variabelewaarde geeft de waarde aan die een bepaalde variabele kan hebben. De wijze waarop een variabelewaarde is omschreven in wetgeving kan een beperking in de mogelijke waarden voor een variabele inhouden, of een voorwaarde aan een variabele stellen.",
+      "vraag": "Wat zijn de specifieke kenmerken van een rechtsobject, rechtssubject, rechtsbetrekking of rechtsfeit? Welke eigenschappen worden genoemd? Welke waarde heeft een rechtsobject? Hoe lang of hoe hoog is een rechtsobject? En voor de waarde: welk bedrag, welke duur of welke hoogte hoort bij deze variabele?"
+    },
+    {
+      "begrippen": [
+        {
+          "naam": "Parameter",
+          "subtype": "parameter"
+        },
+        {
+          "naam": "Parameterwaarde",
+          "subtype": "parameterwaarde"
+        }
+      ],
+      "bron": {
+        "omschrijving": "H2:89",
+        "uitdrukkingswijze": "H2:91",
+        "vraag": "H2:90"
+      },
+      "iri": "urn:jas-ns:klasse:ParameterEnParameterwaarde",
+      "naam": "Parameter en parameterwaarde",
+      "omschrijving": "Een parameter is een beschrijving van een waarde die gelijk is voor alle rechtssubjecten, rechtsobjecten, rechtsbetrekkingen en rechtsfeiten. Vanwege de stabiele waarde wordt een parameter ook wel constante genoemd. Parameters worden gebruikt in afleidingsregels en voorwaarden. In de regel geldt een parameter voor een bepaalde periode, bijvoorbeeld een kalenderjaar, maar hij kan ook voor een onbepaalde duur gelden (bijvoorbeeld voor de hele geldigheidsduur van de wettelijke regel). De waarde die een parameter in de desbetreffende periode heeft, is een parameterwaarde. De parameter is dus de omschrijving van de waarde, en de parameterwaarde is de concrete waarde die daaraan is toegekend.",
+      "vraag": "Is sprake van een waarde die gedurende een periode een vaste hoogte heeft voor alle rechtssubjecten en rechtsobjecten?"
+    },
+    {
+      "begrippen": [
+        {
+          "naam": "Operator",
+          "subtype": ""
+        }
+      ],
+      "bron": {
+        "omschrijving": "H2:98",
+        "uitdrukkingswijze": "H2:100",
+        "vraag": "H2:99"
+      },
+      "iri": "urn:jas-ns:klasse:Operator",
+      "naam": "Operator",
+      "omschrijving": "Een operator is een woord, een combinatie van woorden of een teken dat een rekenkundige bewerking, een samengestelde voorwaarde, een gelijkstelling of een vergelijking van twee waarden of berekeningen uitdrukt. Een operator beschrijft hoe verschillende elementen van een berekening, voorwaarde of samengestelde voorwaarde met elkaar verbonden worden om tot een resultaat te leiden. Drie typen: rekenkundige operatoren — voeren een bewerking uit, zoals optellen, aftrekken, vermenigvuldigen; vergelijkingsoperatoren — vergelijken variabelen met elkaar of een variabele met een parameter; logische operatoren — bepalen bij samengestelde voorwaarden of aan (ten minste) één voorwaarde moet worden voldaan (OF, disjunctie, alternatief) of aan alle (EN, conjunctie, cumulatief); ook kan er sprake zijn van een voorwaarde waaraan niet voldaan mag zijn (NIET, negatie).",
+      "vraag": "Hoe worden variabelen of parameters verbonden in een berekening? In welke verhouding staan voorwaarden tot elkaar? Welke vergelijking wordt in een voorwaarde gemaakt?"
+    },
+    {
+      "begrippen": [
+        {
+          "naam": "Tijdsaanduiding",
+          "subtype": ""
+        }
+      ],
+      "bron": {
+        "omschrijving": "H2:107",
+        "uitdrukkingswijze": "H2:109",
+        "vraag": "H2:108"
+      },
+      "iri": "urn:jas-ns:klasse:Tijdsaanduiding",
+      "naam": "Tijdsaanduiding",
+      "omschrijving": "Een tijdsaanduiding is een omschrijving van een tijdstip of tijdvak. Een tijdsaanduiding is nodig om de geldigheid van een rechtsbetrekking te duiden, om een tijdsverloop met rechtsgevolg uit te drukken of als variabele bij een specifiek rechtssubject of rechtsobject. Ook kan een tijdsaanduiding (met name een tijdstip) een parameterwaarde zijn — een voorbeeld is een peildatum die wordt vergeleken met een andere datum (als variabele) in een voorwaarde. De tijdsaanduiding is als aparte klasse opgenomen, hoewel deze ook beschouwd zou kunnen worden als een verduidelijking van de klassen variabele of parameter. Gelet op het belang van de tijdsaanduiding voor het bepalen van de duur van een rechtsbetrekking of het tijdstip van een tijdsverloop met rechtsgevolgen, is tijdsaanduiding als aparte klasse opgenomen.",
+      "vraag": "Wanneer, op welk moment? Sinds wanneer of tot wanneer, vanaf welk moment of tot welk moment?"
+    },
+    {
+      "begrippen": [
+        {
+          "naam": "Plaatsaanduiding",
+          "subtype": ""
+        }
+      ],
+      "bron": {
+        "omschrijving": "H2:116",
+        "uitdrukkingswijze": "H2:118",
+        "vraag": "H2:117"
+      },
+      "iri": "urn:jas-ns:klasse:Plaatsaanduiding",
+      "naam": "Plaatsaanduiding",
+      "omschrijving": "Een plaatsaanduiding is een plaats of een gebied waar bepaalde wetgeving betrekking op heeft. Zij bepaalt het toepassingsbereik van de regels voor rechtssubjecten, rechtsobjecten, rechtsbetrekkingen of rechtsfeiten. De meeste wetgeving geldt voor heel Nederland en heeft daarom geen expliciete plaatsaanduiding. Zodra het werkingsgebied beperkter of ruimer moet zijn, wordt in wetgeving wel een expliciete plaatsaanduiding opgenomen.",
+      "vraag": "Waar (voor welk gebied of welke plaats) geldt de wettelijke regel (niet)?"
+    },
+    {
+      "begrippen": [
+        {
+          "naam": "Delegatiebevoegdheid",
+          "subtype": "delegatiebevoegdheid"
+        },
+        {
+          "naam": "Delegatie-invulling",
+          "subtype": "delegatie-invulling"
+        }
+      ],
+      "bron": {
+        "omschrijving": "H2:125",
+        "uitdrukkingswijze": "H2:127",
+        "vraag": "H2:126"
+      },
+      "iri": "urn:jas-ns:klasse:DelegatiebevoegdheidEnDelegatieInvulling",
+      "naam": "Delegatiebevoegdheid en delegatie-invulling",
+      "omschrijving": "Een delegatiebevoegdheid maakt het mogelijk of schrijft voor dat (nadere) regels worden gesteld over een rechtsbetrekking, rechtsfeit of afleidingsregel. Met delegatie-invulling duiden we de regeling of het regelingsonderdeel aan waarin de delegatiebevoegdheid is gebruikt. Een delegatiebevoegdheid wordt altijd aan een specifiek rechtssubject toegekend: de regering (bij een amvb, vastgesteld door de Koning) of een minister (bij een ministeriële regeling). De delegatie kan verplicht of facultatief zijn. Vaak is subdelegatie mogelijk: bepalingen in een amvb kunnen verder worden uitgewerkt in een ministeriële regeling. Vier dingen die de bron hier expliciet maakt en die je bij het annoteren nodig hebt: 1. Delegaties bepalen het werkgebied. \"Het herkennen van delegatiebevoegdheden is vooral van belang voor het bepalen van het werkgebied van de Wetsanalyse. Als de delegatiebevoegdheid daadwerkelijk is gebruikt, moet de op grond daarvan vastgestelde gedelegeerde regelgeving in het werkgebied worden betrokken.\" 2. De delegerende wet wijst nooit naar de invulling. \"De delegerende wet bevat logischerwijs geen concrete verwijzingen naar de delegatie-invulling. Die is immers op het moment van voorbereiden van die wet nog niet vastgesteld.\" Zoek een delegatie-invulling dus niet in de moederwet. 3. wetten.nl-metadata is onvolledig. De wetsinformatie bij een artikel \"is echter niet altijd volledig. Afstemming met wetgevingsjuristen om het werkgebied compleet te maken is daarom van belang.\" Dat geldt ook voor de verwijzingen die de kennisgraaf uit die bron overneemt. 4. Een delegatie-invulling is niet lexicaal te herkennen. \"In de delegatie-invulling wordt niet met standaard uitdrukkingswijzen gewerkt\" (H2:127). Je vindt hem alleen via de relatie met de grondslag, niet via signaalwoorden.",
+      "vraag": "Geeft een wetsartikel de opdracht om (nadere) regels te stellen? Verwijst een bepaling in een gedelegeerde regeling naar een artikel in de bovenliggende wet?"
+    },
+    {
+      "begrippen": [
+        {
+          "naam": "Brondefinitie",
+          "subtype": ""
+        }
+      ],
+      "bron": {
+        "omschrijving": "H2:134",
+        "uitdrukkingswijze": "H2:136",
+        "vraag": "H2:135"
+      },
+      "iri": "urn:jas-ns:klasse:Brondefinitie",
+      "naam": "Brondefinitie",
+      "omschrijving": "Een brondefinitie is een begripsomschrijving die expliciet is opgenomen in de wetgeving en een eenduidige betekenis geeft aan een in de wetgeving (veel) gebruikte term. Brondefinities staan in de regel in een of meer artikelen aan het begin van een wet of gedelegeerde regeling. Als in de wet een term is gedefinieerd, wordt deze definitie standaard hergebruikt in de daarop gebaseerde gedelegeerde regelingen. De definities worden in de gedelegeerde regeling niet opnieuw opgenomen. \"Brondefinities moeten worden onderscheiden van de begrippen en begripsomschrijvingen die bij de Wetsanalyse worden gemaakt voor geclassificeerde formuleringen in de wetgeving. Deze begrippen hebben geen directe wettelijke bron, maar zijn nodig om formuleringen uniek te kunnen aanduiden.\"",
+      "vraag": "Is deze term uitdrukkelijk omschreven in de wetgeving?"
+    }
+  ],
+  "regels": {
+    "JAS-PRIORITY-001": {
+      "naam": "JAS-PRIORITY-001",
+      "soort": "methode",
+      "uitleg": "Indien een formulering zowel als tijdsaanduiding als variabele of parameter kan worden geclassificeerd, prevaleert tijdsaanduiding als de meest specifieke klasse."
+    },
+    "JAS-PRIORITY-002": {
+      "naam": "JAS-PRIORITY-002",
+      "soort": "methode",
+      "uitleg": "Indien een formulering zowel als plaatsaanduiding als variabele of parameter kan worden geclassificeerd, prevaleert plaatsaanduiding als de meest specifieke klasse."
+    },
+    "jas.afleiding.bedraagt": {
+      "bron": "H2:73",
+      "code": "CALCULATION_COPULA",
+      "naam": "Berekening met 'bedraagt'",
+      "soort": "detector",
+      "uitleg": "Een zin waarin iets een bedrag of waarde 'bedraagt' – de vorm van een afleidingsregel."
+    },
+    "jas.afleiding.fictie_vermoeden": {
+      "bron": "H2:71",
+      "code": "LEGAL_FICTION",
+      "naam": "Wettelijk vermoeden of fictie",
+      "soort": "detector",
+      "uitleg": "'Wordt vermoed dat', 'wordt geacht': de wet leidt een feit af."
+    },
+    "jas.afleiding.wordt_gesteld_op": {
+      "bron": "H2:73",
+      "code": "CALCULATION_PASSIVE",
+      "naam": "Berekening in de lijdende vorm",
+      "soort": "detector",
+      "uitleg": "'Wordt gesteld op', 'wordt berekend', 'wordt in aanmerking genomen': een waarde wordt vastgesteld."
+    },
+    "jas.delegatie.regels_gesteld": {
+      "bron": "H2:127",
+      "code": "DELEGATION_FORMULA",
+      "naam": "Delegatieformule",
+      "soort": "detector",
+      "uitleg": "'Bij of krachtens … worden regels gesteld': de vaste vorm waarmee de wet een bevoegdheid delegeert."
+    },
+    "jas.operator.logisch": {
+      "bron": "H2:100",
+      "code": "LOGICAL",
+      "naam": "Logische verbinding",
+      "soort": "detector",
+      "uitleg": "'Dan wel', 'en', 'of' tussen voorwaarden: een logische operator."
+    },
+    "jas.operator.rekenkundig": {
+      "bron": "H2:100",
+      "code": "ARITHMETIC",
+      "naam": "Rekenkundige bewerking",
+      "soort": "detector",
+      "uitleg": "'Vermeerderd met', 'verminderd met', 'de som van': een rekenkundige operator."
+    },
+    "jas.operator.vergelijking": {
+      "bron": "H2:100",
+      "code": "COMPARISON",
+      "naam": "Vergelijking",
+      "soort": "detector",
+      "uitleg": "'Meer bedraagt dan', 'ten minste', 'niet meer dan': een vergelijkende operator."
+    },
+    "jas.plaats.gazetteer": {
+      "bron": "H2:118",
+      "code": "LOCATION_NAME",
+      "naam": "Plaatsnaam",
+      "soort": "detector",
+      "uitleg": "Een gemeente, provincie of land uit de lijst van bekende namen."
+    },
+    "jas.plaats.gebiedsomschrijving": {
+      "bron": "H2:118",
+      "code": "LOCATION_DESCRIPTION",
+      "naam": "Gebiedsomschrijving",
+      "soort": "detector",
+      "uitleg": "Een omschreven gebied, zoals 'een lidstaat van de Europese Unie'."
+    },
+    "jas.subject.rollexicon": {
+      "bron": "H2:28",
+      "code": "ROLE_NOUN",
+      "naam": "Rol of instantie",
+      "soort": "detector",
+      "uitleg": "Een woord uit de lijst van rollen en instanties (de ontvanger, de inspecteur, Onze Minister)."
+    },
+    "jas.tijd.bijwoord": {
+      "bron": "H2:108",
+      "code": "TEMPORAL_ADVERB",
+      "naam": "Tijdsbijwoord",
+      "soort": "detector",
+      "uitleg": "'Spoedig', 'onverwijld': een bijwoord van tijd."
+    },
+    "jas.tijd.datum": {
+      "bron": "H2:109",
+      "code": "TEMPORAL_DATE",
+      "naam": "Datum",
+      "soort": "detector",
+      "uitleg": "Een concrete datum."
+    },
+    "jas.tijd.duur": {
+      "bron": "H2:109",
+      "code": "TEMPORAL_DURATION",
+      "naam": "Termijn",
+      "soort": "detector",
+      "uitleg": "Een duur, zoals 'zes weken na de dagtekening'."
+    },
+    "jas.tijd.periode_van": {
+      "bron": "H2:109",
+      "code": "TEMPORAL_PERIOD_OF",
+      "naam": "Periode van",
+      "soort": "detector",
+      "uitleg": "'De periode van drie jaren': een benoemde periode."
+    },
+    "jas.tijd.periodewoord": {
+      "bron": "H2:109",
+      "code": "TEMPORAL_PERIOD_NOUN",
+      "naam": "Periodewoord",
+      "soort": "detector",
+      "uitleg": "Een woord dat een periode aanduidt: kalenderjaar, berekeningsjaar, tijdvak."
+    },
+    "jas.tijd.relatief": {
+      "bron": "H2:109",
+      "code": "TEMPORAL_RELATIVE_PERIOD",
+      "naam": "Relatieve periode",
+      "soort": "detector",
+      "uitleg": "Een periode ten opzichte van iets anders: 'de eerste veertien dagen'."
+    },
+    "jas.tijd.tijdstip": {
+      "bron": "H2:109",
+      "code": "TEMPORAL_MOMENT",
+      "naam": "Tijdstip",
+      "soort": "detector",
+      "uitleg": "'Het tijdstip waarop …': een moment dat door een gebeurtenis wordt bepaald."
+    },
+    "jas.voorwaarde.bijwoord": {
+      "bron": "H2:64",
+      "code": "CONDITIONAL_ADVERB",
+      "naam": "Voorwaardelijk bijwoord",
+      "soort": "detector",
+      "uitleg": "Een bijwoord dat een voorwaarde stelt, zoals 'schriftelijk'."
+    },
+    "jas.voorwaarde.vaste_inleiding": {
+      "bron": "H2:64",
+      "code": "CONDITIONAL_FORMULA",
+      "naam": "Vaste voorwaardeformule",
+      "soort": "detector",
+      "uitleg": "'Met dien verstande dat', 'met uitzondering van': een vaste inleiding van een voorwaarde."
+    },
+    "jas.voorwaarde.voorwaardelijke_bijzin": {
+      "bron": "H2:64",
+      "code": "CONDITIONAL_CLAUSE",
+      "naam": "Voorwaardelijke bijzin",
+      "soort": "detector",
+      "uitleg": "Een bijzin met 'indien', 'als', 'tenzij', 'mits' of 'voor zover'."
+    },
+    "jas.voorwaarde.wegens": {
+      "bron": "H2:63",
+      "code": "CAUSAL_PHRASE",
+      "naam": "Oorzaak",
+      "soort": "detector",
+      "uitleg": "'Wegens', 'ten gevolge van': een oorzaak die een voorwaarde of rechtsfeit kan zijn."
+    },
+    "jas.waarde.bedrag": {
+      "bron": "H2:91",
+      "code": "MONEY_AMOUNT",
+      "naam": "Geldbedrag",
+      "soort": "detector",
+      "uitleg": "Een bedrag in euro's."
+    },
+    "jas.waarde.percentage": {
+      "bron": "H2:91",
+      "code": "PERCENTAGE",
+      "naam": "Percentage",
+      "soort": "detector",
+      "uitleg": "Een percentage, in cijfers of woorden."
+    },
+    "jas.waarde.veelvoud": {
+      "bron": "H2:100",
+      "code": "MULTIPLIER",
+      "naam": "Veelvoud",
+      "soort": "detector",
+      "uitleg": "'Tweemaal', 'het drievoudige': een vermenigvuldiging."
+    }
+  },
+  "resolutie": {
+    "R-ABSTAIN-CHANGE": {
+      "naam": "Reviewer koos een klasse",
+      "uitleg": "Het model gaf geen keuze; de reviewer koos een van de toegestane klassen."
+    },
+    "R-ABSTAIN-HUMAN": {
+      "naam": "Geen keuze – jij kiest",
+      "uitleg": "Model en reviewer kozen niet; de jurist beslist."
+    },
+    "R-ABSTAIN-KEEP": {
+      "naam": "Niets om aan te houden – jij kiest",
+      "uitleg": "Het model gaf geen keuze; de jurist beslist."
+    },
+    "R-CONFLICT-CHANGE": {
+      "naam": "Reviewer volgt het patroon",
+      "uitleg": "De reviewer koos de klasse die het vaste patroon aanwees; de keuze van het model blijft als alternatief."
+    },
+    "R-CONFLICT-HUMAN": {
+      "naam": "Onenigheid – jij kiest",
+      "uitleg": "Model en patroon zijn het oneens en de reviewer koos niet: beide lezingen liggen bij de jurist."
+    },
+    "R-CONFLICT-KEEP": {
+      "naam": "Reviewer houdt de keuze van het model aan – jij beslist",
+      "uitleg": "Het conflict met het patroon blijft bestaan, dus de keuze ligt bij de jurist."
+    },
+    "R-DEGRADED": {
+      "naam": "Minder signalen – jij kijkt",
+      "uitleg": "Zonder zinsontleding besliste het model met minder bewijs; de jurist kijkt mee."
+    },
+    "R-ONGELDIG": {
+      "naam": "Reviewer gaf geen bruikbaar oordeel – jij kiest",
+      "uitleg": "Het oordeel van de reviewer was niet te gebruiken; de jurist beslist."
+    },
+    "R-PRIORITEIT": {
+      "naam": "Wijziging tegen een voorrangsregel niet uitgevoerd",
+      "uitleg": "De reviewer stelde een klasse voor die tegen een JAS-voorrangsregel ingaat; die staat als alternatief."
+    },
+    "R-SPAN-CHANGE": {
+      "naam": "Samengevoegd tot één klasse",
+      "uitleg": "De reviewer koos één klasse voor het fragment; de andere blijft als alternatief."
+    },
+    "R-SPAN-HUMAN": {
+      "naam": "Twee klassen – jij kiest",
+      "uitleg": "Het fragment kreeg twee klassen en de reviewer koos niet."
+    },
+    "R-SPAN-KEEP": {
+      "naam": "Twee functies op één fragment",
+      "uitleg": "De reviewer bevestigde dat het fragment twee functies heeft; beide blijven staan."
+    }
+  },
+  "twijfel": {
+    "CLASSIFIER_ABSTAIN": {
+      "naam": "Geen geldige keuze van het model",
+      "uitleg": "Het model gaf voor dit fragment geen bruikbare beslissing."
+    },
+    "DEGRADED_PARSE": {
+      "naam": "Zonder zinsontleding",
+      "uitleg": "De zinsontleding ontbrak voor deze tekst; het model besliste met minder signalen."
+    },
+    "DETECTOR_CONFLICT": {
+      "naam": "Model en patroon zijn het oneens",
+      "uitleg": "Het model koos iets anders dan een vast patroon aanwijst."
+    },
+    "ZELFDE_SPAN": {
+      "naam": "Twee klassen op hetzelfde fragment",
+      "uitleg": "Hetzelfde fragment kreeg twee klassen; dat mag alleen bij verschillende functies."
+    }
+  },
+  "validatie": {
+    "V_ANKER": {
+      "naam": "Anker klopt niet",
+      "uitleg": "Het anker wijst niet exact naar het fragment in de bron."
+    },
+    "V_GRENS": {
+      "naam": "Ongeldige grens",
+      "uitleg": "Het fragment valt buiten de bronnode of is leeg."
+    },
+    "V_KANDIDAAT": {
+      "naam": "Onbekende kandidaat",
+      "uitleg": "Het voorstel hoort bij geen enkele kandidaat."
+    },
+    "V_KLASSE": {
+      "naam": "Ongeldige klasse",
+      "uitleg": "De klasse is niet een van de dertien JAS-klassen of niet toegestaan voor deze kandidaat."
+    },
+    "V_PROVENANCE": {
+      "naam": "Herkomst ontbreekt",
+      "uitleg": "Het spoor van het voorstel is onvolledig."
+    },
+    "V_STATUS": {
+      "naam": "Ongeldige status",
+      "uitleg": "Het voorstel heeft een status die niet bij een voorstel hoort."
+    },
+    "W_ZELFDE_SPAN": {
+      "naam": "Twee klassen op hetzelfde fragment",
+      "uitleg": "Waarschuwing: hetzelfde fragment kreeg twee klassen."
+    }
+  },
+  "vocabulaire_versie": "3d011ff5657e"
+}

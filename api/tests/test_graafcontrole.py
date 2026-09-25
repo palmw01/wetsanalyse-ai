@@ -36,8 +36,11 @@ async def omgeving(monkeypatch):
 
 
 async def _geprojecteerd(omgeving):
+    import httpx
     nep, snap, laag_id, eid = omgeving
     assert await projectie.projecteer(laag_id)
+    async with httpx.AsyncClient() as client:
+        await projectie.zorg_voor_vocabulaire(client)
     return nep, snap, laag_id, eid
 
 
@@ -47,6 +50,7 @@ async def test_een_geprojecteerde_laag_is_in_orde(omgeving):
     assert r["graaf_beschikbaar"] and r["in_orde"] is True, r
     assert r["lagen"] == 1 and not r["afwijkingen"] and not r["verweesd"] and not r["achterstand"]
     assert r["invarianten"] == {"geen_bwb_subject": True, "geen_bwb_predicaat": True, "geen_schema_axioma": True}
+    assert r["vocabulaire"]["aanwezig"] is True
     assert r["shacl"]["beschikbaar"] is True
     assert r["shacl"]["conform"] is True and not r["shacl"]["bevindingen"]
 
@@ -184,3 +188,10 @@ async def test_shacl_beschikbaarheid_ook_zonder_lagen(monkeypatch):
     finally:
         get_settings.cache_clear()
         await db.dispose_engine()
+
+
+async def test_een_ontbrekende_vocabulaire_is_een_afwijking(omgeving):
+    nep, *_ = await _geprojecteerd(omgeving)
+    nep.ds.remove_graph(nep.ds.graph(projectie.VOCABULAIRE))
+    r = await controleer(shacl=False)
+    assert r["vocabulaire"]["aanwezig"] is False and r["in_orde"] is False
