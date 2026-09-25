@@ -145,6 +145,35 @@ async def node_lagen(mijn: bool = False, bwbId: str = "", limit: int = Query(50,
     return await store.overzicht(actor if mijn else None, bwbId, limit, offset)
 
 
+class VerwijderInvoer(BaseModel):
+    bron_iri: str
+    snapshot_id: str
+    verwachte_revisies: dict[str, int] = Field(default_factory=dict)
+
+
+@router.post("/weergave/verwijder")
+async def post_verwijder(req: VerwijderInvoer, actor: str = Depends(actieve_userid)):
+    """Verwijder de annotatie van de bepaling in beeld – uit Postgres én uit de graaf. Elke gebruiker
+    mag dit; het staat in de audit. Zie `annotatie_v2_store.verwijder_weergave` voor wat er meegaat."""
+    # De bewaarde snapshot eerst: verwijderen hoort niet te hangen aan de bereikbaarheid van de
+    # brongraaf. Alleen als deze stand nooit is weggeschreven, vragen we hem opnieuw op.
+    # De bewaarde bronboom kan bij een ander doel zijn weggeschreven (het artikel, terwijl nu een lid in
+    # beeld is); het doel is hier de gevraagde bronnode.
+    try:
+        bewaard = await store.historische_snapshot(req.snapshot_id)
+        doel = store.nodes_van(bewaard).get(req.bron_iri)
+        snapshot = {**bewaard, "doel": doel} if doel else None
+    except HTTPException as exc:
+        if exc.status_code != 404:
+            raise
+        snapshot = None
+    if snapshot is None:
+        snapshot = await resolve_bron({"bron_iri": req.bron_iri})
+        if snapshot["snapshot_id"] != req.snapshot_id:
+            raise HTTPException(409, "Bronstand gewijzigd; laad opnieuw vóór verwijderen.")
+    return await store.verwijder_weergave(snapshot, req.verwachte_revisies, actor)
+
+
 class ExportInvoer(BaseModel):
     bron_iri: str
     snapshot_id: str

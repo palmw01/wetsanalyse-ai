@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import { vindplaatsLabel } from "@/lib/annotatieOverzicht";
 import { foutTekst, type ExportFormaat } from "@/lib/api";
 
+import { BevestigKnop } from "@/components/ui/BevestigKnop";
 import { Melding } from "@/components/ui/Melding";
 import { DocumentPaneel } from "@/components/werkplek/DocumentPaneel";
 import { ExportKnop } from "@/components/werkplek/ExportKnop";
@@ -39,6 +40,9 @@ export interface ArtefactInhoudProps {
   onVraag?: (el: AnnotatieElement) => void;
   /** Afronden of heropenen. Weglaten verbergt de knop (bv. in een alleen-lezen weergave). */
   onStatus?: (status: "geaccordeerd" | "in_review") => Promise<void>;
+  /** De hele annotatie van deze bepaling verwijderen, uit de database én de graaf. Weglaten
+   *  verbergt de knop (er is niets te verwijderen, of de weergave is alleen-lezen). */
+  onVerwijder?: () => Promise<void>;
   /** Meegeven in de dialoogschil (het kruisje, en de laatste laag van Escape); weglaten op de
    *  eigen pagina, die niets te sluiten heeft. */
   onSluiten?: () => void;
@@ -57,7 +61,7 @@ export interface ArtefactInhoudProps {
  *  pagina. Eén inhoud, twee schillen – anders gaan de twee weergaven uit elkaar lopen. */
 export function ArtefactInhoud({
   doc, info, actiefId, onKies, onBeslissing, onEigenMarkering,
-  onWisEigenMarkering, onVraag, onStatus, onSluiten, onExport, extra,
+  onWisEigenMarkering, onVraag, onStatus, onVerwijder, onSluiten, onExport, extra,
 }: ArtefactInhoudProps) {
   // Eén bron voor de bewoording: `vindplaatsLabel` weet uit het graaf-`soort` of dit een artikel
   // met leden is of een bepaling van een beleidsregel. Hier raden op puntjes in het nummer zou bij
@@ -164,6 +168,16 @@ export function ArtefactInhoud({
       setFout(foutTekst(e, "De status is niet gewijzigd."));
     } finally {
       setStatusBezig(false);
+    }
+  }
+
+  async function verwijder() {
+    if (!onVerwijder) return;
+    setFout(null);
+    try {
+      await onVerwijder();
+    } catch (e) {
+      setFout(foutTekst(e, "De annotatie is niet verwijderd."));
     }
   }
 
@@ -352,6 +366,20 @@ export function ArtefactInhoud({
             {/* De wettekst gaat mee naar de export: de api heeft hem niet (de graaf is de bron). */}
             <ExportKnop slug={doc.slug} leden={info.leden_teksten} onFout={setFout} onDownload={onExport} />
             {onStatus && <StatusKnop status={doc.status} bezig={statusBezig} onZet={zetStatus} />}
+            {/* Elke gebruiker mag dit, ook op een afgeronde annotatie; de audit legt vast wie het deed.
+                Tweede klik bevestigt, zoals elders in de app. */}
+            {onVerwijder && (
+              <BevestigKnop
+                onBevestig={verwijder}
+                bevestigTekst="Verwijderen?"
+                ariaLabel="Annotatie verwijderen"
+                titel="Verwijdert alle markeringen en beoordelingen van deze bepaling, ook uit de kennisgraaf"
+                className="focus-ring inline-flex min-h-[24px] shrink-0 items-center rounded-full border border-line px-2 py-0.5 text-[11px] font-medium text-muted transition-colors hover:border-fout/40 hover:text-fout disabled:opacity-60 coarse:min-h-[44px] coarse:px-3"
+                bevestigClassName="border-fout bg-fout text-paper hover:text-paper"
+              >
+                Verwijderen
+              </BevestigKnop>
+            )}
           </div>
         </div>
 

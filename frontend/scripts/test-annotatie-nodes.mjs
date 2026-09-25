@@ -21,7 +21,12 @@ const doel = (lid) => ({ bron_iri: `urn:lid${lid}`, label: `Invorderingswet – 
   type: "Lid", bwb_id: "BWBR0004770", artikel: "9", lid: String(lid), citeertitel: "Invorderingswet 1990" });
 const segment = (lid) => ({ bron_iri: `urn:lid${lid}`, parent_iri: "urn:artikel9", type: "Lid", nummer: String(lid), label: `Lid ${lid}`,
   tekst: lid === 1 ? "A😀 ontvanger" : "UITSLUITEND TWEE", bron_hash: `hash${lid}`, volgorde: lid });
-function view(iri) {
+// Bepalingen waarvan de annotatie in deze run is verwijderd (POST weergave/verwijder).
+const verwijderd = new Set();
+const view = (iri) => verwijderd.has(iri)
+  ? { ...volledigeView(iri), lagen: [], elementen: [], verwijderd: { op: "2026-09-25T10:00:00+00:00" } }
+  : volledigeView(iri);
+function volledigeView(iri) {
   const ids = iri === "urn:artikel9" ? [1, 2] : [iri === "urn:lid2" ? 2 : 1];
   return { schema_versie: 2, doel: iri === "urn:artikel9"
       ? { bron_iri: iri, label: "Artikel 9", type: "Artikel", bwb_id: "BWBR0004770", artikel: "9", citeertitel: "Invorderingswet 1990" }
@@ -59,6 +64,10 @@ await page.route("**/api/**", async (route) => {
   else if (url.pathname.includes("/actief")) return route.fulfill({ status: 404, json: {} });
   else if (url.pathname.includes("/verbruik")) body = { actief: false, geblokkeerd: false };
   else if (url.pathname.endsWith("/elementen")) body = { id: "nieuw" };
+  if (url.pathname.endsWith("/weergave/verwijder")) {
+    verwijderd.add(req.postDataJSON().bron_iri);
+    return route.fulfill({ json: { verwijderd: { lagen: 2, elementen: 1 }, graaf: "verwijderd" } });
+  }
   if (url.pathname.endsWith("/weergave/export")) return route.fulfill({ contentType: "application/json", body: "{}" });
   return route.fulfill({ status: 200, json: body });
 });
@@ -119,6 +128,14 @@ try {
   assert.equal(multi.element.ankers[0].tekst, "😀 ontvanger");
   assert.equal(multi.element.ankers[1].tekst, "UITS");
   assert.equal(multi.element.tekst, "😀 ontvanger UITS");
+  // Verwijderen: naast afronden, tweede klik bevestigt, alle lagen in beeld met hun revisie.
+  await page.getByRole("button", { name: "Annotatie verwijderen", exact: true }).click();
+  await page.getByRole("button", { name: "Verwijderen?", exact: true }).click();
+  assert.deepEqual((await verzoek((r) => r.path.endsWith("/weergave/verwijder"))).body,
+    { bron_iri: "urn:artikel9", snapshot_id: "snapshot", verwachte_revisies: { "urn:lid1": 1, "urn:lid2": 1 } });
+  await page.getByText("Deze annotatie is verwijderd op", { exact: false }).waitFor();
+  assert.equal(await page.getByRole("button", { name: "Annotatie verwijderen", exact: true }).count(), 0);
+  assert.equal(await page.getByRole("button", { name: "Annotatie afronden", exact: true }).count(), 0);
   await page.goto(`${base}/workbench?gesprek=g1`);
   await page.getByText("Invorderingswet – artikel 9 lid 1", { exact: true }).last().click();
   await wettekst().getByText("ontvanger", { exact: false }).waitFor();
@@ -143,5 +160,5 @@ try {
   await page.getByText("search_annotaties", { exact: true }).first().waitFor();
   assert.equal(await page.getByText("meer resultaten beschikbaar", { exact: false }).count() >= 1, true);
   assert.deepEqual(errors, []);
-  console.log("Browser OK: vertrouwd paneel op bronnodes, lidselectie, twee doelen, herladen toolspoor, Unicode/multiankers, klasse via palet, Vraag Lex/live SSE en mutatie/exportcontract.");
+  console.log("Browser OK: vertrouwd paneel op bronnodes, verwijderen met bevestiging, lidselectie, twee doelen, herladen toolspoor, Unicode/multiankers, klasse via palet, Vraag Lex/live SSE en mutatie/exportcontract.");
 } finally { await browser.close(); }

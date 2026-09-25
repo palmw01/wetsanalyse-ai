@@ -107,6 +107,20 @@ export function NodeAnnotatiePaneel({ doel, onSluit, variant = "side", onVraag }
     setMelding(nieuw === "geaccordeerd" ? "Annotatie afgerond." : "Annotatie heropend.");
   }
 
+  /** De bepaling in beeld, met alles eronder: één handeling, één transactie in de api. Daarna
+   *  opnieuw laden – het paneel toont dan dat de annotatie verwijderd is, en een 412 (iemand wijzigde
+   *  intussen iets) laat de actuele stand zien in plaats van blind te verwijderen. */
+  async function verwijder() {
+    if (!view) return;
+    const uit = await muteer("weergave/verwijder", {
+      bron_iri: view.doel.bron_iri, snapshot_id: view.snapshot_id, verwachte_revisies: verwachteRevisies(view),
+    }) as { graaf?: string } | undefined;
+    setActiefId(undefined);
+    setMelding(uit?.graaf === "volgt"
+      ? "Annotatie verwijderd. De kennisgraaf volgt binnen een minuut."
+      : "Annotatie verwijderd.");
+  }
+
   async function exporteer(formaat: ExportFormaat) {
     if (!view) return;
     const response = await fetch("/api/annotatie/v2/weergave/export", {
@@ -139,7 +153,8 @@ export function NodeAnnotatiePaneel({ doel, onSluit, variant = "side", onVraag }
           const node = view.elementen.find((e) => e.id === el.id);
           if (node) onVraag(node, view);
         } : undefined}
-        onStatus={status}
+        onStatus={view.lagen.length ? status : undefined}
+        onVerwijder={view.lagen.length ? verwijder : undefined}
         onSluiten={onSluit}
         onExport={exporteer}
         extra={<NodeExtra view={view} doel={doel} />}
@@ -164,6 +179,12 @@ function NodeExtra({ view, doel }: { view: NodeWeergave; doel: NodeDoel }) {
   const labelVan = (iri: string) => view.segmenten.find((s) => s.bron_iri === iri)?.label || view.doel.label || iri;
   return (
     <>
+      {view.verwijderd && (
+        <Melding type="uitleg" compact>
+          Deze annotatie is verwijderd op {new Date(view.verwijderd.op).toLocaleString("nl-NL", {
+            dateStyle: "long", timeStyle: "short" })}. Vraag Lex om de bepaling opnieuw te annoteren, of markeer zelf.
+        </Melding>
+      )}
       {doel.snapshot_id && doel.snapshot_id !== view.snapshot_id && (
         <Melding type="uitleg" compact>
           De wettekst is gewijzigd sinds deze annotatie werd gemaakt. Je ziet de huidige versie;

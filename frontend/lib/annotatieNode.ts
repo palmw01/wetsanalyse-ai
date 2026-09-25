@@ -24,6 +24,9 @@ export interface NodeWeergave {
   lagen: NodeLaag[]; elementen: NodeElement[];
   verwijzingen: { id: string; eigenaar_iri: string; klasse: string; label: string; detail_url?: string }[];
   dekking: Record<string, unknown>;
+  /** Gezet als deze bepaling geannoteerd was en die annotatie is verwijderd (en er sindsdien geen
+   *  nieuwe laag is). Zo leest een heropend gesprek "verwijderd" in plaats van een leeg paneel. */
+  verwijderd?: { op: string } | null;
 }
 export interface ToolExecution {
   run_id: string; call_id: string; tool: string; phase: "started" | "completed" | "failed";

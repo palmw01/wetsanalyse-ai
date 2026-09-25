@@ -23,6 +23,8 @@ PostgreSQL is de bron voor lagen, elementen, snapshots, beoordelingen, dekking e
 
 De API projecteert iedere laag in `urn:jas:graph:v2:<laag-id>`, direct na elke geslaagde schrijftransactie (op de achtergrond, best-effort) – net als v1. De achtergrondtaak (`JAS_PROJECTIE_INTERVAL`, standaard 60 s) is het vangnet: mislukt de directe projectie, dan blijft de laag vuil en neemt die hem mee. Register `urn:jas:graph:register:v2` en de graph zelf dragen de laagrevisie. `geprojecteerd_revisie` is de transactionele achterstandsmarkering; de achtergrondtaak probeert achterstallige lagen opnieuw en herstelt een verdwenen projectie. Een rowlock voorkomt dat een oudere projector een nieuwere laag overschrijft. Achtergebleven geregistreerde v2-graphs worden alleen verwijderd na een hercontrole onder het schrijfslot; bestaande lagen en andere graphs blijven behouden. De oorspronkelijke brongraphs worden nooit als annotatieopslag gebruikt.
 
+Verwijderen (`POST /v1/annotatie/weergave/verwijder`, elke gebruiker) haalt alle lagen in het bereik van de bepaling in beeld weg, met hun elementen en de dekkingsrijen van die bronnodes; een dekkingsrij van een ruimere bepaling verliest die bronnodes uit haar bereik en is daarna niet meer voltooid. Elementen van een voorouderlaag blijven staan. De audit krijgt per laag `laag-verwijderd` en blijft verder ongewijzigd; de weergave leest daaruit `verwijderd`. Na de commit gaan de graph en de registerregels van die lagen direct weg; lukt dat niet, dan ruimt de achtergrondtaak ze op als wees. Een nieuwe annotatie op dezelfde bepaling krijgt een nieuwe laag-id en botst dus nooit met een achtergebleven projectie.
+
 ## Echte leestoegang en uitvoeringsspoor
 
 Lex en MCP registreren dezelfde drie tools:

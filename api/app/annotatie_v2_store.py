@@ -317,10 +317,14 @@ async def weergave(snapshot: dict) -> dict:
                 refs.append({"id": value["id"], "eigenaar_iri": value["eigenaar_iri"],
                              "klasse": value["klasse"], "label": "Onderdeel van een ruimere annotatie",
                              "detail_url": f"/v1/annotatie/elementen/{value['id']}"})
+        lagen = [publiek_laag(l) for i, l in layers.items() if i in scope]
         return {"schema_versie": 2, "doel": snapshot["doel"], "snapshot_id": snapshot["snapshot_id"],
                 "segmenten": [n for n in nodes.values() if n["bron_iri"] in scope and n.get("tekst")],
-                "lagen": [publiek_laag(l) for i, l in layers.items() if i in scope],
-                "elementen": elements, "verwijzingen": refs, "dekking": await dekking(snapshot, conn)}
+                "lagen": lagen, "elementen": elements, "verwijzingen": refs,
+                "dekking": await dekking(snapshot, conn),
+                # Een lege weergave kan twee dingen zijn: nooit geannoteerd, of verwijderd. Het tweede
+                # hoort de jurist te lezen (zoals een verwijderd document in v1).
+                "verwijderd": None if lagen else await _verwijderd(conn, scope)}
 
 
 async def detail(element_id: str) -> dict:
@@ -445,6 +449,69 @@ async def verwijder(element_id: str, expected: int, actor: str) -> dict:
         await _raak(conn, layer, layer["snapshot_id"])
         await _audit(conn, actor, "element-verwijderd", {"element": value}, element_id)
         return {"verwijderd": element_id, "laag": publiek_laag(layer)}
+
+
+async def verwijder_weergave(snapshot: dict, verwachte_revisies: dict[str, int], actor: str) -> dict:
+    """Verwijder de annotatie van de bepaling in beeld: elke laag op het doel en de bronnodes eronder,
+    met hun elementen en hun dekking. Elke gebruiker mag dit (besluit 25 sep 2026); het staat in de
+    audit (`laag-verwijderd`, append-only – die regels blijven).
+
+    Wat er níét onder valt: een element van een ruimere laag (een voorouder) dat met één anker in deze
+    bepaling valt – dat is een verwijzing, geen eigendom van deze weergave.
+
+    De dekking gaat mee, anders ziet Lex de bepaling bij een volgende beurt als "al geannoteerd" en
+    hergebruikt hij niets. Een batchregel van een ruimere bepaling houdt haar bereik buiten deze scope.
+    Revisies worden getoetst zoals elders: iemand die intussen iets wijzigde, geeft een 412.
+    """
+    scope = bereik_van(snapshot)
+    async with schrijftransactie() as conn:
+        layers = await _lagen(conn)
+        doelen = {iri: layer for iri, layer in layers.items() if iri in scope}
+        if not doelen:
+            raise HTTPException(404, "Er is hier geen annotatie om te verwijderen.")
+        for iri, layer in doelen.items():
+            if verwachte_revisies.get(iri) != layer["revisie"]:
+                raise HTTPException(412, {"fout": "revisie_conflict", "bron_iri": iri, "revisie": layer["revisie"]})
+        ids = [layer["id"] for layer in doelen.values()]
+        rows = (await conn.execute(select(db.annotatie_v2_elementen.c.id, db.annotatie_v2_elementen.c.laag_id)
+                                   .where(db.annotatie_v2_elementen.c.laag_id.in_(ids)))).all()
+        per_laag: dict[str, list[str]] = {}
+        for element_id, laag_id in rows:
+            per_laag.setdefault(laag_id, []).append(element_id)
+        await conn.execute(delete(db.annotatie_v2_elementen).where(db.annotatie_v2_elementen.c.laag_id.in_(ids)))
+        await conn.execute(delete(db.annotatie_v2_lagen).where(db.annotatie_v2_lagen.c.id.in_(ids)))
+        for row in (await conn.execute(select(db.annotatie_v2_dekking))).mappings().all():
+            inhoud = dict(row["inhoud"])
+            if row["bron_iri"] in scope:
+                await conn.execute(delete(db.annotatie_v2_dekking).where(db.annotatie_v2_dekking.c.id == row["id"]))
+                continue
+            bereik = [i for i in inhoud.get("bereik", []) if i not in scope]
+            if len(bereik) != len(inhoud.get("bereik", [])):
+                inhoud.update(bereik=bereik, voltooid=False, parent_context=False,
+                              structureel={k: v for k, v in (inhoud.get("structureel") or {}).items() if k not in scope})
+                await conn.execute(update(db.annotatie_v2_dekking).where(
+                    db.annotatie_v2_dekking.c.id == row["id"]).values(inhoud=inhoud))
+        for iri, layer in sorted(doelen.items()):
+            await _audit(conn, actor, "laag-verwijderd", {
+                "bron_iri": iri, "laag_id": layer["id"], "revisie": layer["revisie"], "status": layer["status"],
+                "weergave": snapshot["doel"]["bron_iri"], "elementen": sorted(per_laag.get(layer["id"], []))})
+        await conn.execute(update(db.annotatie_v2_state).where(db.annotatie_v2_state.c.id == 1).values(
+            revisie=db.annotatie_v2_state.c.revisie + 1))
+    from .graaf_projectie_v2 import verwijder_projecties
+    graaf = await verwijder_projecties(ids)
+    return {"verwijderd": {"lagen": len(ids), "elementen": len(rows)}, "graaf": graaf}
+
+
+async def _verwijderd(conn, scope: set[str]) -> dict | None:
+    """Is de annotatie in deze scope verwijderd (en sindsdien niet opnieuw gemaakt – dan was er een
+    laag)? Dan zegt de werkplek dat, in plaats van een leeg paneel te tonen."""
+    rows = (await conn.execute(select(db.annotatie_v2_audit.c.detail, db.annotatie_v2_audit.c.tijdstip)
+                               .where(db.annotatie_v2_audit.c.actie == "laag-verwijderd")
+                               .order_by(db.annotatie_v2_audit.c.id.desc()))).all()
+    for detail, tijdstip in rows:
+        if (detail or {}).get("bron_iri") in scope:
+            return {"op": db.aware(tijdstip).isoformat()}
+    return None
 
 
 async def overzicht(actor: str | None, bwb_id: str, limit: int, offset: int) -> list[dict]:
