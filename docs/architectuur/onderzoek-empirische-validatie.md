@@ -843,6 +843,12 @@ Algemeen voor elke PR:
   - geen systeemvoorstellen zichtbaar.
 - Vergelijkingsscript A/B → verschillenlijst en κ.
 - Test: het formulier toont geen systeemoutput; de vergelijking op positie is correct.
+- *Stand:* uitgevoerd.
+  - Protocol: `docs/wetsanalyse/referentieset/adjudicatieprotocol.md`.
+  - Formulier: `scripts/blind_formulier.py`. De casusvelden gaan er via een allowlist in.
+  - Vergelijken en adjudiceren: `eval/adjudicatie.py` (`vergelijk`, `besluit`).
+  - Bevriezen: `eval.referentieset --bevries`. Dat zet `review_pending` op `adjudicated`.
+  - Namen van annotatoren zijn codes, want de repo is publiek.
 
 **V3 – Fouttaxonomie v2**
 
