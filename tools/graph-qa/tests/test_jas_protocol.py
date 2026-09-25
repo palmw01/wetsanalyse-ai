@@ -9,7 +9,7 @@ from scripts.render_jas_referentieset import MAP, render
 
 
 def _cases():
-    return json.loads((MAP/'cases.json').read_text())
+    return json.loads((MAP/'v1'/'cases.json').read_text())
 
 
 def test_conceptset_is_gesplitst_op_wetsfamilie_en_niet_gold():
@@ -25,8 +25,8 @@ def test_conceptset_is_gesplitst_op_wetsfamilie_en_niet_gold():
 def test_conceptannotaties_zijn_letterlijk_en_hebben_precies_voorkomen():
     for c in _cases():
         assert hashlib.sha256(c['tekst'].encode()).hexdigest() == c['tekst_sha256']
-        for e in c['annotaties']:
-            assert c['tekst'][e['start']:e['end']] == e['tekst'], (c['id'], e['id'])
+        for e in c['gold']:
+            assert c['tekst'][e['start']:e['eind']] == e['tekst'], (c['id'], e['gid'])
             assert e['klasse'] in GELDIGE_JAS_KLASSEN
 
 

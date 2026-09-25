@@ -42,8 +42,8 @@ def meet(taal: str = "spacy:nl_core_news_md") -> dict:
                 "detectors": sorted({e.detector for e in k.evidence}),
                 "opties": [kern(tekst, o.span.start, o.span.eind) for o in k.span_options],
             })
-        for a in c["annotaties"]:
-            referentie.append(Ref(c["id"], *kern(tekst, a["start"], a["end"]), a["klasse"]))
+        for a in c["gold"]:
+            referentie.append(Ref(c["id"], *kern(tekst, a["start"], a["eind"]), a["klasse"]))
     # Kandidaatgrenzen op dezelfde kern-normalisatie als de referentie (rand-interpunctie weg).
     for k in kandidaten:
         k["start"], k["eind"] = kern_van(casussen, k)

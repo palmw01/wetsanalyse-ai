@@ -44,7 +44,14 @@ def kern(tekst: str, start: int, eind: int) -> tuple[int, int]:
 
 
 def controleer_status(referentie: dict[str, Any]) -> str:
-    """De status van één referentie; `adjudicated`/`gold` zonder adjudicatierecord is een fout."""
+    """De status van één referentie; `adjudicated`/`gold` zonder adjudicatierecord is een fout.
+
+    Een casus uit de geversioneerde referentieset (herkenbaar aan `gold`) toetst het volledige schema
+    van `eval.referentieset`; de ankerset (`golden_annotatie.jsonl`) houdt het lichtere record.
+    """
+    if "gold" in referentie:
+        from eval.referentieset import valideer_casus   # lui: referentieset importeert deze module
+        return valideer_casus(referentie)
     status = referentie.get("referentie_status", "")
     if status not in STATUSSEN:
         raise ValueError(f"onbekende of ontbrekende referentie_status: {status!r}")

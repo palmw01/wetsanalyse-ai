@@ -18,7 +18,7 @@ wijzigingen zijn niet onderzocht. Dit is een afgebakende oefening, geen volledig
 | M06 | Methodebron, geen rechtsbron | [JRM-verrijking en bronverantwoording](../../../.claude/skills/wetsanalyse/references/jrm-verrijking.md) | Werkversie2024-11-18 | Zie manifest |
 
 De bronhash staat in het [manifest](../bronnen/manifest.json). De analyse gebruikt de
-ongewijzigde analysetekst van RVV03 in [cases.json](cases.json). PDF-regelafbrekingen zijn
+ongewijzigde analysetekst van RVV03 in [v1/cases.json](v1/cases.json). PDF-regelafbrekingen zijn
 samengevoegd. Een juridische peildatum voor actuele toepassing is bewust niet gekozen.
 Het bredere beleidsdoel van het RVV is hier niet uit toelichting vastgesteld. De concrete
 tekstfunctie — gedrag bij rood regelen — is rechtstreeks in B01 zichtbaar.

@@ -42,8 +42,13 @@ def h2_pad() -> Path:
     return _docs() / "wetsanalyse-rijk" / "H2-JAS.md"
 
 
+def referentieset_map() -> Path:
+    return _docs() / "referentieset"
+
+
 def referentieset_pad() -> Path:
-    return _docs() / "referentieset" / "cases.json"
+    """De casussen van de actuele versie; schema en manifest bewaakt `eval.referentieset`."""
+    return referentieset_map() / "v1" / "cases.json"
 
 VELDEN = (
     "jas_class", "bron", "begrippen", "syntactic_signals", "lexical_signals", "semantic_signals",

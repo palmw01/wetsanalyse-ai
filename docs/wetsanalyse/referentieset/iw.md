@@ -1,6 +1,6 @@
 # Conceptanalyses IW
 
-<!-- Gegenereerd uit cases.json door render_jas_referentieset.py. -->
+<!-- Gegenereerd uit v1/cases.json door render_jas_referentieset.py. -->
 
 Status: concept; niet vastgesteld en geen volledige gold-annotaties. Gebruik de reviewvragen om ontbrekende onderdelen en betwiste duidingen af te ronden. Bron-ID’s verwijzen naar [het manifest](../bronnen/manifest.json). Het analysedoel is methodetoetsing van de vastgelegde tekst, niet een individueel besluit.
 
