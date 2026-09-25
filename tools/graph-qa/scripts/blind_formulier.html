@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blind annoteren</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1b1b1b; --muted: #5c5c5c; --rand: #d0d4da; --vlak: #f3f5f8;
+    --accent: #154273; --mark: #ffe9a8; --mark-rand: #c99a00; --neg: #f4d3d3; --fout: #a3001b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16181c; --fg: #e8e8e8; --muted: #a0a4ab; --rand: #3a3f47; --vlak: #1f2329;
+      --accent: #8fb8e8; --mark: #5a4a12; --mark-rand: #d8b440; --neg: #5a2626; --fout: #ff8a8a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 system-ui, sans-serif; }
+  main { max-width: 960px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 1.3rem; margin: 0 0 4px; }
+  h2 { font-size: 1.05rem; margin: 20px 0 8px; }
+  p.uitleg { color: var(--muted); margin: 0 0 12px; }
+  fieldset { border: 1px solid var(--rand); border-radius: 6px; padding: 10px 12px; margin: 0 0 12px; }
+  legend { padding: 0 4px; font-weight: 600; }
+  label { display: block; margin: 6px 0 2px; font-size: .9rem; color: var(--muted); }
+  input[type=text], select, textarea { width: 100%; padding: 6px 8px; border: 1px solid var(--rand);
+    border-radius: 4px; background: var(--bg); color: var(--fg); font: inherit; }
+  textarea { min-height: 60px; }
+  .rij { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px 12px; }
+  button { padding: 6px 12px; border: 1px solid var(--accent); border-radius: 4px; background: var(--accent);
+    color: var(--bg); font: inherit; cursor: pointer; }
+  button.stil { background: transparent; color: var(--accent); }
+  #bron { white-space: pre-wrap; padding: 12px; background: var(--vlak); border: 1px solid var(--rand);
+    border-radius: 6px; font-size: 1.05rem; line-height: 1.8; user-select: text; }
+  #bron mark { background: var(--mark); color: inherit; border-bottom: 2px solid var(--mark-rand); }
+  #bron mark.neg { background: var(--neg); border-bottom-color: var(--fout); }
+  #selectie { font-family: ui-monospace, monospace; font-size: .9rem; }
+  #melding { color: var(--fout); min-height: 1.2em; }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th, td { text-align: left; border-bottom: 1px solid var(--rand); padding: 4px 6px; vertical-align: top; }
+  .meta { color: var(--muted); font-size: .9rem; }
+  .radio label { display: inline-flex; gap: 4px; margin-right: 14px; color: var(--fg); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Blind annoteren – adjudicatieprotocol v<span id="protocol"></span></h1>
+  <p class="uitleg">Dit formulier toont alleen de brontekst. Het bevat bewust geen systeemvoorstellen, geen
+    conceptmarkeringen en geen werk van de andere annotator. Werk de casus volledig uit en sla het resultaat op
+    als JSON; lever dat in bij de adjudicator.</p>
+
+  <fieldset>
+    <legend>Annotator en casus</legend>
+    <div class="rij">
+      <div><label for="annotator">Naam annotator</label><input type="text" id="annotator" autocomplete="off"></div>
+      <div><label for="casus">Casus</label><select id="casus"></select></div>
+    </div>
+    <p class="meta" id="casusmeta"></p>
+  </fieldset>
+
+  <fieldset>
+    <legend>Stap 1 – Bron controleren</legend>
+    <p class="meta">Controleer tekst en SHA-256 tegen de officiële bron. Bij <em>unusable</em> stopt de casus.</p>
+    <div class="radio" id="bronstatus"></div>
+  </fieldset>
+
+  <h2>Stap 2 – Brontekst</h2>
+  <p class="uitleg">Selecteer een fragment met de muis. Een selectie moet op woordgrenzen beginnen en eindigen.</p>
+  <div id="bron"></div>
+  <p>Selectie: <span id="selectie">–</span></p>
+  <p id="melding" role="alert"></p>
+
+  <fieldset>
+    <legend>Element</legend>
+    <div class="rij">
+      <div><label for="klasse">JAS-klasse</label><select id="klasse"></select></div>
+      <div><label for="subtype">Subtype (optioneel)</label><select id="subtype"></select></div>
+      <div><label for="vraag">Beantwoorde herkenningsvraag</label><select id="vraag"></select></div>
+      <div><label for="h2">H2-verwijzing</label><input type="text" id="h2" placeholder="H2:108"></div>
+    </div>
+    <label for="motivatie">Motivatie</label><textarea id="motivatie"></textarea>
+    <label for="context">Benodigde context (optioneel)</label><input type="text" id="context">
+    <p><button id="voegtoe">Voeg element toe</button></p>
+  </fieldset>
+
+  <fieldset>
+    <legend>Negatief element (alleen bij een bewuste keuze)</legend>
+    <label for="waarom">Waarom is de selectie géén element?</label><input type="text" id="waarom">
+    <p><button id="negatief" class="stil">Leg vast als negatief</button></p>
+  </fieldset>
+
+  <h2>Vastgelegd</h2>
+  <table>
+    <thead><tr><th>Fragment</th><th>Klasse</th><th>H2</th><th>Motivatie</th><th></th></tr></thead>
+    <tbody id="elementen"></tbody>
+  </table>
+  <label for="opmerking">Opmerking bij de casus (optioneel)</label><textarea id="opmerking"></textarea>
+
+  <p>
+    <button id="opslaan">Opslaan als JSON</button>
+    <label class="stil" style="display:inline">
+      <button class="stil" id="laadknop" type="button">JSON laden</button>
+      <input type="file" id="laad" accept="application/json" hidden>
+    </label>
+  </p>
+</main>
+
+<script type="application/json" id="data">/*__DATA__*/</script>
+<script>
+"use strict";
+const DATA = JSON.parse(document.getElementById("data").textContent);
+const $ = (id) => document.getElementById(id);
+const WOORD = /[\p{L}\p{N}_]/u;
+const SPATIE = /\s/u;
+const STATUSSEN = ["valid", "ambiguous", "unusable"];
+let casus = null, tekens = [], sel = null;
+const staat = {};   // casus-id → {source_status, elementen, negatief, opmerking}
+
+function opslagsleutel(id) { return `blind:${DATA.referentie_versie}:${$("annotator").value.trim()}:${id}`; }
+function bewaarConcept() {
+  try { localStorage.setItem(opslagsleutel(casus.id), JSON.stringify(staat[casus.id])); } catch (e) { /* geen opslag */ }
+}
+function haalConcept(id) {
+  try { const s = localStorage.getItem(opslagsleutel(id)); return s ? JSON.parse(s) : null; } catch (e) { return null; }
+}
+function leeg() { return {source_status: null, elementen: [], negatief: [], opmerking: ""}; }
+function huidig() { return staat[casus.id] || (staat[casus.id] = haalConcept(casus.id) || leeg()); }
+
+// Offsets zijn Unicode-codepoints (zoals Python); de DOM telt UTF-16. Daarom rekenen we via `tekens`.
+function naarCodepoint(utf16) { return Array.from(casus.tekst.slice(0, utf16)).length; }
+
+function renderBron() {
+  const st = huidig(), grenzen = new Set([0, tekens.length]);
+  const spans = [...st.elementen.map(e => ({...e, neg: false})), ...st.negatief.map(n => ({...n, neg: true}))];
+  spans.forEach(e => { grenzen.add(e.start); grenzen.add(e.eind); });
+  const punten = [...grenzen].sort((a, b) => a - b);
+  const bron = $("bron");
+  bron.textContent = "";
+  for (let i = 0; i < punten.length - 1; i++) {
+    const s = punten[i], t = punten[i + 1], stuk = tekens.slice(s, t).join("");
+    const dekkend = spans.filter(e => e.start <= s && t <= e.eind);
+    if (!dekkend.length) { bron.appendChild(document.createTextNode(stuk)); continue; }
+    const m = document.createElement("mark");
+    m.textContent = stuk;
+    if (dekkend.every(e => e.neg)) m.className = "neg";
+    m.title = dekkend.map(e => e.neg ? "negatief" : e.klasse).join(" · ");
+    bron.appendChild(m);
+  }
+}
+
+function renderLijst() {
+  const st = huidig(), body = $("elementen");
+  body.textContent = "";
+  const rijen = [...st.elementen.map((e, i) => ({e, i, neg: false})), ...st.negatief.map((e, i) => ({e, i, neg: true}))]
+    .sort((x, y) => x.e.start - y.e.start || x.e.eind - y.e.eind);
+  for (const {e, i, neg} of rijen) {
+    const tr = document.createElement("tr");
+    const cellen = neg ? [e.tekst, "— negatief", "", e.waarom_geen_element] : [e.tekst, e.klasse + (e.subtype ? ` (${e.subtype})` : ""), e.h2_ref, e.motivatie];
+    for (const c of cellen) { const td = document.createElement("td"); td.textContent = c; tr.appendChild(td); }
+    const td = document.createElement("td"), knop = document.createElement("button");
+    knop.className = "stil"; knop.textContent = "verwijder";
+    knop.onclick = () => { (neg ? st.negatief : st.elementen).splice(i, 1); bewaarConcept(); renderAlles(); };
+    td.appendChild(knop); tr.appendChild(td); body.appendChild(tr);
+  }
+}
+
+function renderStatus() {
+  const doos = $("bronstatus"), st = huidig();
+  doos.textContent = "";
+  for (const s of STATUSSEN) {
+    const l = document.createElement("label"), r = document.createElement("input");
+    r.type = "radio"; r.name = "bronstatus"; r.value = s; r.checked = st.source_status === s;
+    r.onchange = () => { st.source_status = s; bewaarConcept(); };
+    l.appendChild(r); l.appendChild(document.createTextNode(s)); doos.appendChild(l);
+  }
+}
+
+function renderAlles() { renderStatus(); renderBron(); renderLijst(); $("opmerking").value = huidig().opmerking || ""; }
+
+function kiesCasus(id) {
+  casus = DATA.casussen.find(c => c.id === id);
+  tekens = Array.from(casus.tekst);
+  sel = null; $("selectie").textContent = "–"; $("melding").textContent = "";
+  $("casusmeta").textContent = `${casus.vindplaats} · versie ${casus.versie} · bron ${casus.bron_id} · ${casus.tekstsoort} · SHA-256 ${casus.tekst_sha256}`;
+  renderAlles();
+}
+
+function leesSelectie() {
+  const s = window.getSelection(), bron = $("bron");
+  if (!s.rangeCount || s.isCollapsed || !bron.contains(s.anchorNode) || !bron.contains(s.focusNode)) return;
+  const r = s.getRangeAt(0), voor = document.createRange();
+  voor.setStart(bron, 0); voor.setEnd(r.startContainer, r.startOffset);
+  let start = naarCodepoint(voor.toString().length);
+  let eind = start + Array.from(r.toString()).length;
+  while (start < eind && SPATIE.test(tekens[start])) start++;
+  while (eind > start && SPATIE.test(tekens[eind - 1])) eind--;
+  $("melding").textContent = "";
+  if (start >= eind) { sel = null; return; }
+  const midden = (start > 0 && WOORD.test(tekens[start - 1]) && WOORD.test(tekens[start])) ||
+                 (eind < tekens.length && WOORD.test(tekens[eind]) && WOORD.test(tekens[eind - 1]));
+  if (midden) { sel = null; $("selectie").textContent = "–"; $("melding").textContent = "De selectie begint of eindigt midden in een woord."; return; }
+  sel = {start, eind, tekst: tekens.slice(start, eind).join("")};
+  $("selectie").textContent = `${start}–${eind} “${sel.tekst}”`;
+}
+
+function vulKlassen() {
+  const k = $("klasse");
+  for (const kl of DATA.klassen) { const o = document.createElement("option"); o.value = o.textContent = kl.naam; k.appendChild(o); }
+  k.onchange = vulAfhankelijk; vulAfhankelijk();
+}
+function vulAfhankelijk() {
+  const kl = DATA.klassen.find(x => x.naam === $("klasse").value);
+  const v = $("vraag"), s = $("subtype");
+  v.textContent = ""; s.textContent = "";
+  for (const q of kl.vragen) { const o = document.createElement("option"); o.value = o.textContent = q; v.appendChild(o); }
+  const geen = document.createElement("option"); geen.value = ""; geen.textContent = "—"; s.appendChild(geen);
+  for (const t of kl.subtypes) { const o = document.createElement("option"); o.value = o.textContent = t; s.appendChild(o); }
+}
+
+function voegToe() {
+  const fout = (m) => { $("melding").textContent = m; };
+  if (!sel) return fout("Selecteer eerst een fragment in de brontekst.");
+  const h2 = $("h2").value.trim(), motivatie = $("motivatie").value.trim();
+  if (!/^H2:\d+$/.test(h2)) return fout("De H2-verwijzing heeft de vorm H2:NN.");
+  if (!motivatie) return fout("Een element zonder motivatie is niet te adjudiceren.");
+  const st = huidig(), klasse = $("klasse").value;
+  if (st.elementen.some(e => e.start === sel.start && e.eind === sel.eind && e.klasse === klasse)) return fout("Dit element staat er al.");
+  st.elementen.push({start: sel.start, eind: sel.eind, tekst: sel.tekst, klasse, subtype: $("subtype").value || null,
+    context: $("context").value.trim() || null, motivatie, herkenningsvraag: $("vraag").value, h2_ref: h2, relaties: []});
+  $("motivatie").value = ""; $("context").value = "";
+  bewaarConcept(); renderAlles();
+}
+
+function negatief() {
+  if (!sel) { $("melding").textContent = "Selecteer eerst een fragment in de brontekst."; return; }
+  const waarom = $("waarom").value.trim();
+  if (!waarom) { $("melding").textContent = "Een negatief element vraagt een reden."; return; }
+  huidig().negatief.push({start: sel.start, eind: sel.eind, tekst: sel.tekst, waarom_geen_element: waarom});
+  $("waarom").value = ""; bewaarConcept(); renderAlles();
+}
+
+function opslaan() {
+  const st = huidig(), annotator = $("annotator").value.trim();
+  if (!annotator) { $("melding").textContent = "Vul je naam in."; return; }
+  if (!st.source_status) { $("melding").textContent = "Stap 1: leg de bronstatus vast."; return; }
+  const uit = {protocolversie: DATA.protocolversie, annotator, casus_id: casus.id, tekst_sha256: casus.tekst_sha256,
+    source_status: st.source_status, elementen: st.elementen, negatief: st.negatief};
+  if (st.opmerking) uit.opmerking = st.opmerking;
+  const blob = new Blob([JSON.stringify(uit, null, 2) + "\n"], {type: "application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = `${casus.id}-${annotator.replace(/\W+/g, "_")}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+function laad(bestand) {
+  bestand.text().then(t => {
+    const d = JSON.parse(t);
+    if (!DATA.casussen.some(c => c.id === d.casus_id)) throw new Error("onbekende casus");
+    if (d.tekst_sha256 !== DATA.casussen.find(c => c.id === d.casus_id).tekst_sha256) throw new Error("andere tekstversie");
+    $("annotator").value = d.annotator || "";
+    staat[d.casus_id] = {source_status: d.source_status, elementen: d.elementen || [], negatief: d.negatief || [], opmerking: d.opmerking || ""};
+    $("casus").value = d.casus_id; kiesCasus(d.casus_id); bewaarConcept();
+  }).catch(e => { $("melding").textContent = `Laden mislukt: ${e.message}`; });
+}
+
+$("protocol").textContent = DATA.protocolversie;
+for (const c of DATA.casussen) { const o = document.createElement("option"); o.value = c.id; o.textContent = `${c.id} — ${c.vindplaats}`; $("casus").appendChild(o); }
+$("casus").onchange = (e) => kiesCasus(e.target.value);
+$("annotator").onchange = () => { for (const k of Object.keys(staat)) delete staat[k]; kiesCasus(casus.id); };
+$("opmerking").oninput = (e) => { huidig().opmerking = e.target.value; bewaarConcept(); };
+document.addEventListener("selectionchange", leesSelectie);
+$("voegtoe").onclick = voegToe;
+$("negatief").onclick = negatief;
+$("opslaan").onclick = opslaan;
+$("laadknop").onclick = () => $("laad").click();
+$("laad").onchange = (e) => e.target.files[0] && laad(e.target.files[0]);
+vulKlassen();
+kiesCasus(DATA.casussen[0].id);
+</script>
+</body>
+</html>

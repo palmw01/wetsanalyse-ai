@@ -19,6 +19,8 @@ run tegen de referentie, en het harnas leidt hem af.
     python -m eval.referentieset --check          # valideer de actuele versie
     python -m eval.referentieset --bijwerken      # herbereken de hash van een niet-bevroren versie
     python -m eval.referentieset --dekking        # dekkingsmatrix §10.3: wat ontbreekt nog
+    python -m eval.referentieset --bevries 2026-10-15 --protocol 1   # §11 stap 6
+    python -m eval.referentieset --versie v1 --nieuw v2                # volgende versie, niet bevroren
 """
 from __future__ import annotations
 
@@ -216,6 +218,16 @@ def valideer(cases: list[dict[str, Any]], manifest: dict[str, Any]) -> None:
         raise ReferentieFout("changelog zonder voorganger")
 
 
+def bevries(cases: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """§11 stap 6: bij het bevriezen wordt `review_pending` `adjudicated`.
+
+    Een casus met een adjudicatierecord staat tot dat moment op `review_pending`, want `adjudicated`
+    kan alleen in een bevroren versie. Of het record compleet is, toetst `valideer` daarna.
+    """
+    return [{**c, "referentie_status": "adjudicated"} if c["referentie_status"] == "review_pending" else c
+            for c in cases]
+
+
 # --- dekkingsmatrix §10.3 -----------------------------------------------------------------------
 
 def dekkingsgaten(cases: list[dict[str, Any]], minimum: int = 2) -> dict[str, list[str]]:
@@ -246,16 +258,41 @@ def main() -> int:
     groep.add_argument("--check", action="store_true")
     groep.add_argument("--bijwerken", action="store_true")
     groep.add_argument("--dekking", action="store_true")
+    groep.add_argument("--bevries", metavar="DATUM")
+    groep.add_argument("--nieuw", metavar="VERSIE")
+    ap.add_argument("--protocol", help="protocolversie bij --bevries")
     args = ap.parse_args()
     cases, manifest = laad(args.versie)
-    if args.bijwerken:
+    if args.nieuw:
+        valideer(cases, manifest)
+        doel = versiemap(args.nieuw)
+        if doel.exists():
+            print(f"{args.nieuw} bestaat al.")
+            return 1
+        doel.mkdir()
+        (doel / "cases.json").write_text(json.dumps(cases, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        (doel / "manifest.json").write_text(json.dumps(
+            {**manifest, "referentie_versie": args.nieuw, "protocolversie": None, "bevroren_op": None,
+             "voorganger": args.versie, "changelog": [], "toelichting": ""}, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8")
+        print(f"{args.nieuw} aangemaakt vanuit {args.versie}.")
+        return 0
+    if args.bijwerken or args.bevries:
         if manifest["bevroren_op"]:
             print(f"{args.versie} is bevroren op {manifest['bevroren_op']}: maak een nieuwe versie.")
             return 1
+        if args.bevries and not args.protocol:
+            print("--bevries vraagt --protocol: tegen welke protocolversie is geadjudiceerd?")
+            return 1
+        if args.bevries:
+            cases = bevries(cases)
+            manifest["bevroren_op"], manifest["protocolversie"] = args.bevries, args.protocol
         manifest["referentie_status"] = {c["id"]: c["referentie_status"] for c in cases}
         manifest["sha256"] = sethash(cases)
-        (versiemap(args.versie) / "manifest.json").write_text(
-            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        valideer(cases, manifest)     # eerst valideren, dan pas schrijven
+        m = versiemap(args.versie)
+        (m / "cases.json").write_text(json.dumps(cases, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        (m / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     valideer(cases, manifest)
     if args.dekking:
         for rij, gaten in dekkingsgaten(cases).items():

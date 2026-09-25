@@ -73,6 +73,11 @@ tekst vandaag toepasselijk is. Actualiteit is een afzonderlijk onderzoeks- en re
 
 ## Samen beoordelen
 
+Hoe een casus `adjudicated` wordt, staat in het [adjudicatieprotocol](adjudicatieprotocol.md): blind
+annoteren met een formulier dat alleen de bron toont, automatisch vergelijken op positie (met κ),
+adjudiceren per verschil en daarna bevriezen. De aanwijzingen hieronder horen bij de
+conceptbespreking van vóór het protocol.
+
 Begin met IW01, AWB04 en RVV03: ze maken fragmentgrenzen, berekeningen en negaties direct
 bespreekbaar. De reviewer maakt eerst een eigen duiding vanuit het bronpakket; daarna
 vergelijken we het concept. Registreer per casus:
