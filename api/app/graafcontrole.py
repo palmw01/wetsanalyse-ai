@@ -30,7 +30,8 @@ from sqlalchemy import select
 
 from . import db
 from .config import get_settings
-from .graaf_projectie_v2 import JAS, REGISTER, _repo, _select, bouw_graaf, graph_iri, laag_iri
+from .graaf_projectie_v2 import (JAS, REGISTER, VOCAB_SCHEMA, VOCABULAIRE, _lit, _repo, _select, bouw_graaf,
+                                 graph_iri, laag_iri, vocabulaire)
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +93,8 @@ def _pyshacl_aanwezig() -> bool:
 async def controleer(*, shacl: bool = True) -> dict[str, Any]:
     """Volledige controle. `shacl=False` voor de lichte variant in de reconcile-lus."""
     uit: dict[str, Any] = {"graaf_beschikbaar": False, "in_orde": None, "lagen": 0, "achterstand": [],
-                           "afwijkingen": [], "verweesd": [], "invarianten": {}, "shacl": None}
+                           "afwijkingen": [], "verweesd": [], "invarianten": {}, "vocabulaire": None,
+                           "shacl": None}
     lagen, elementen = await _postgres()
     uit["lagen"] = len(lagen)
     if not get_settings().graphdb_url:
@@ -147,6 +149,9 @@ async def controleer(*, shacl: bool = True) -> dict[str, Any]:
                    if g not in {str(graph_iri(i)) for i in bekend}], key=str)
             for naam, query in _INVARIANTEN.items():
                 uit["invarianten"][naam] = not await _ask(client, query)
+            versie, _ttl = vocabulaire()
+            uit["vocabulaire"] = {"versie": versie, "aanwezig": await _ask(client, (
+                f"ASK {{ GRAPH <{VOCABULAIRE}> {{ <{VOCAB_SCHEMA}> <{JAS.vocabulaireVersie}> {_lit(versie)} }} }}"))}
             if shacl:
                 uit["shacl"] = shacl_uit
     except (httpx.HTTPError, ConnectionError, ValueError) as exc:
@@ -155,6 +160,7 @@ async def controleer(*, shacl: bool = True) -> dict[str, Any]:
         uit["reden"] = "graaf_onbeschikbaar"
         return uit
     uit["in_orde"] = (not uit["afwijkingen"] and not uit["verweesd"] and all(uit["invarianten"].values())
+                      and uit["vocabulaire"]["aanwezig"]
                       and (not shacl or uit["shacl"]["conform"] is not False))
     return uit
 
@@ -167,7 +173,8 @@ async def log_stand() -> dict[str, Any]:
         logger.warning("graafcontrole_fout", extra={"fouttype": type(exc).__name__})
         return {}
     if uit["graaf_beschikbaar"]:
-        aantal = len(uit["afwijkingen"]) + len(uit["verweesd"]) + sum(not v for v in uit["invarianten"].values())
+        aantal = (len(uit["afwijkingen"]) + len(uit["verweesd"]) + sum(not v for v in uit["invarianten"].values())
+                  + (not uit["vocabulaire"]["aanwezig"]))
         (logger.warning if aantal else logger.info)("annotatie_graafcontrole", extra={
             "annotatie_graaf_afwijking": aantal, "lagen": uit["lagen"], "achterstand": len(uit["achterstand"])})
     return uit

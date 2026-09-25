@@ -10,6 +10,8 @@ import asyncio
 import json
 import logging
 import re
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -30,6 +32,51 @@ _locks: dict[str, asyncio.Lock] = {}
 # draait (GRAPHDB_URL gezet). De taken houden we vast, anders ruimt de garbage collector ze op.
 _actief = False
 _taken: set[asyncio.Task] = set()
+
+
+VOCABULAIRE = URIRef("urn:jas:graph:vocabulaire")
+VOCABULAIRE_TTL = Path(__file__).parent / "vocabulaire" / "jas-vocabulaire.ttl"
+VOCABULAIRE_JSON = Path(__file__).parent / "vocabulaire" / "verklaringen.json"
+VOCAB_SCHEMA = URIRef("urn:jas-ns:schema:jas-1.0.10")
+
+
+def klasse_iri(naam: str) -> URIRef:
+    """`Delegatiebevoegdheid en delegatie-invulling` → `urn:jas-ns:klasse:DelegatiebevoegdheidEnDelegatieInvulling`.
+
+    Zelfde regel als `tools/graph-qa/scripts/genereer_jas_vocabulaire.slug`; `test_vocabulaire.py`
+    bewaakt dat elke klasse van de api zo een concept in de vocabulaire vindt."""
+    return URIRef("urn:jas-ns:klasse:" + "".join(d[:1].upper() + d[1:] for d in re.split(r"[\s\-]+", naam.strip()) if d))
+
+
+@lru_cache(maxsize=1)
+def vocabulaire() -> tuple[str, str]:
+    """(versie, turtle) van de gegenereerde vocabulaire."""
+    ttl = VOCABULAIRE_TTL.read_text(encoding="utf-8")
+    versie = json.loads(VOCABULAIRE_JSON.read_text(encoding="utf-8"))["vocabulaire_versie"]
+    return versie, ttl
+
+
+@lru_cache(maxsize=1)
+def verklaringen() -> dict:
+    return json.loads(VOCABULAIRE_JSON.read_text(encoding="utf-8"))
+
+
+async def zorg_voor_vocabulaire(client: httpx.AsyncClient) -> bool:
+    """Zet de vocabulairegraaf neer als hij ontbreekt of een andere versie draagt. True = geschreven.
+
+    De graaf is niet-persistent; na een herstart bouwt de reconcile-lus hem zo opnieuw op, net als de lagen."""
+    versie, ttl = vocabulaire()
+    r = await client.post(_repo(), data={"query": f'ASK {{ GRAPH <{VOCABULAIRE}> {{ <{VOCAB_SCHEMA}> '
+                                                  f'<{JAS.vocabulaireVersie}> {_lit(versie)} }} }}'},
+                          headers={"Accept": "application/sparql-results+json"})
+    r.raise_for_status()
+    if r.json().get("boolean"):
+        return False
+    r = await client.put(_repo() + "/rdf-graphs/service", params={"graph": str(VOCABULAIRE)},
+                         content=ttl.encode("utf-8"), headers={"Content-Type": "text/turtle"})
+    r.raise_for_status()
+    logger.info("annotatie_vocabulaire_geprojecteerd", extra={"versie": versie})
+    return True
 
 
 def graph_iri(laag_id: str) -> URIRef:
@@ -291,6 +338,8 @@ async def reconcile() -> int:
                 f"INSERT DATA {{ GRAPH <{REGISTER}> {{ <{SCHEMA}> <{JAS.versie}> 2 }} }}"})
             r.raise_for_status()
     await verwijder_verweesde_projecties()
+    async with httpx.AsyncClient(timeout=20) as client:
+        await zorg_voor_vocabulaire(client)
     return count
 
 

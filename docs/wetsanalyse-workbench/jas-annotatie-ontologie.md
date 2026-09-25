@@ -105,6 +105,30 @@ GRAPH <urn:jas:graph:v2:8d9d3fb6…> {
 }
 ```
 
+## De vocabulaire (`urn:jas:graph:vocabulaire`)
+
+Naast de lagen staat één graph met de **methode zelf**, als `skos:Concept`s in het schema
+`urn:jas-ns:schema:jas-1.0.10`:
+
+| IRI | wat |
+|---|---|
+| `urn:jas-ns:klasse:<Naam>` | de dertien klassen (`jas:Klasse`): `skos:prefLabel`, `skos:definition`, `jas:herkenningsvraag`, `jas:uitdrukkingswijze`, `dcterms:source` naar `H2:NN` |
+| `urn:jas-ns:begrip:<Naam>` | de zestien officiële begrippen (`jas:Begrip`), met `skos:broader` naar hun klasse en `jas:subtype` |
+| `urn:jas-ns:regel:<id>` | de JAS-regels (`jas:Methoderegel`, bv. JAS-PRIORITY-001) en de detectorregels (`jas:Detectorregel`, met `jas:code`, `jas:wijstAan` en de H2-bron) |
+| `urn:jas-ns:code:…`, `…:twijfel:…`, `…:resolutie:…`, `…:validatie:…` | de codes in een herkomstspoor, met leesbare naam en uitleg |
+
+`<Naam>` is de klassenaam in CamelCase (`DelegatiebevoegdheidEnDelegatieInvulling`,
+`graaf_projectie_v2.klasse_iri`). De graph is **gegenereerd**:
+`tools/graph-qa/scripts/genereer_jas_vocabulaire.py` bouwt hem uit de klassen, profielen,
+detectorregels en `agent/jas_pipeline/verklaringen.yaml`, en schrijft `api/app/vocabulaire/
+jas-vocabulaire.ttl` plus `verklaringen.json`. Een drift-test in graph-qa houdt die bestanden actueel.
+De reconcile-lus zet de graph neer als hij ontbreekt of een andere `jas:vocabulaireVersie` draagt, en
+de graafcontrole meldt een ontbrekende vocabulaire. `GET /v1/annotatie/verklaringen` levert de
+JSON aan de werkplek: de jurist ziet de naam, het id staat in de tooltip.
+
+Ook hier gelden de invarianten hieronder; `test_annotatielaag_isolatie.py` laadt de vocabulaire mee
+en eist dat geen enkele graaftool van Lex er iets van teruggeeft.
+
 ## De wettekst blijft schoon (invarianten, met tests)
 
 Lex bevraagt de union van alle graven (zonder `GRAPH`), de similarity-index pakt elke `urn:bwb-ns:tekst`

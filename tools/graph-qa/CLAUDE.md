@@ -60,6 +60,13 @@ kandidaatmodel (`kandidaten.py`) en de detectoren (`detectoren/`). **Een detecto
 aanreiken meet `python -m eval.kandidaat_eval` (seconden, geen model). Dat is ankerdekking, geen
 recall.
 
+**Elke code in een `trace` heeft een leesbare verklaring** in `jas_pipeline/verklaringen.yaml`
+(detectie, besluit, twijfel, resolutie, validatie, classifier); `tests/test_verklaringen.py` weigert
+een code zonder verklaring én een verklaring voor een code die niet meer bestaat. Nieuwe detectorregel
+of resolutieregel? Zet er een naam en uitleg bij, en draai daarna
+`python scripts/genereer_jas_vocabulaire.py`: die schrijft de vocabulairegraaf en `verklaringen.json`
+naar de api (`api/app/vocabulaire/`), bewaakt door `tests/test_vocabulaire_drift.py`.
+
 **De annotatieketen is `annoteer → emit`** (sinds ADR-001 PR 18 de enige route; de legacy-keten met
 annoteerder, Critic, patcher en herziener is weg). `annoteer` bereidt voor
 (`nodes/annotatie._bereid_voor` – bron, hergebruik, afronding) en draait daarna

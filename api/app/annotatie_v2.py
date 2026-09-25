@@ -19,6 +19,7 @@ from .auth import require_client
 from .bron_resolver import resolve_bron as _resolve_bron
 from .routers.auth import actieve_userid
 from .annotatie_v2_contract_guard import contract_versie, require_v2
+from .graaf_projectie_v2 import verklaringen
 
 router = APIRouter(prefix="/annotatie", tags=["annotatie-bronnodes"],
                    dependencies=[Depends(require_client), Depends(require_v2)])
@@ -42,6 +43,15 @@ def _provenance(element: dict) -> dict:
     """De run die het element maakte, plus – bij de hybride keten – zijn herkomstspoor per element."""
     run = element.get("geproduceerd_door") or {}
     return {**run, "trace": element["trace"]} if element.get("trace") else run
+
+@router.get("/verklaringen")
+async def get_verklaringen(actor: str = Depends(actieve_userid)):
+    """Leesbare namen en uitleg van alles wat in een `trace` kan staan – klassen, begrippen, regels,
+    detectiecodes, twijfelredenen, resolutie- en validatiecodes. Gegenereerd uit de methode
+    (`tools/graph-qa/scripts/genereer_jas_vocabulaire.py`); de werkplek toont de naam en zet het id
+    in de tooltip."""
+    return verklaringen()
+
 
 @router.get("/capabilities")
 async def capabilities(actor: str = Depends(actieve_userid)):

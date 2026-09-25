@@ -1,0 +1,92 @@
+# Leesbare verklaringen van alle codes die de annotatieketen in een `trace` kan zetten.
+#
+# Eén catalogus voor drie lezers: de werkplek ("Waarom?"), de exports (CSV/PDF) en de vocabulaire-
+# graaf (`scripts/genereer_jas_vocabulaire.py`). Besluit gebruiker (25 sep 2026): de jurist ziet de
+# naam; het id staat in de tooltip. `tests/test_verklaringen.py` weigert een code die de keten kan
+# uitgeven zonder regel hier – een uitleg die ontbreekt is een lege plek in de werkplek.
+#
+# Schrijf voor de jurist: wat het patroon herkent, niet hoe het gebouwd is.
+
+detectie:
+  # vaste patronen (detectoren/regels/*.yaml)
+  CALCULATION_COPULA: {naam: "Berekening met 'bedraagt'", uitleg: "Een zin waarin iets een bedrag of waarde 'bedraagt' – de vorm van een afleidingsregel."}
+  CALCULATION_PASSIVE: {naam: "Berekening in de lijdende vorm", uitleg: "'Wordt gesteld op', 'wordt berekend', 'wordt in aanmerking genomen': een waarde wordt vastgesteld."}
+  LEGAL_FICTION: {naam: "Wettelijk vermoeden of fictie", uitleg: "'Wordt vermoed dat', 'wordt geacht': de wet leidt een feit af."}
+  DELEGATION_FORMULA: {naam: "Delegatieformule", uitleg: "'Bij of krachtens … worden regels gesteld': de vaste vorm waarmee de wet een bevoegdheid delegeert."}
+  MONEY_AMOUNT: {naam: "Geldbedrag", uitleg: "Een bedrag in euro's."}
+  PERCENTAGE: {naam: "Percentage", uitleg: "Een percentage, in cijfers of woorden."}
+  MULTIPLIER: {naam: "Veelvoud", uitleg: "'Tweemaal', 'het drievoudige': een vermenigvuldiging."}
+  COMPARISON: {naam: "Vergelijking", uitleg: "'Meer bedraagt dan', 'ten minste', 'niet meer dan': een vergelijkende operator."}
+  ARITHMETIC: {naam: "Rekenkundige bewerking", uitleg: "'Vermeerderd met', 'verminderd met', 'de som van': een rekenkundige operator."}
+  LOGICAL: {naam: "Logische verbinding", uitleg: "'Dan wel', 'en', 'of' tussen voorwaarden: een logische operator."}
+  LOCATION_NAME: {naam: "Plaatsnaam", uitleg: "Een gemeente, provincie of land uit de lijst van bekende namen."}
+  LOCATION_DESCRIPTION: {naam: "Gebiedsomschrijving", uitleg: "Een omschreven gebied, zoals 'een lidstaat van de Europese Unie'."}
+  ROLE_NOUN: {naam: "Rol of instantie", uitleg: "Een woord uit de lijst van rollen en instanties (de ontvanger, de inspecteur, Onze Minister)."}
+  TEMPORAL_DATE: {naam: "Datum", uitleg: "Een concrete datum."}
+  TEMPORAL_DURATION: {naam: "Termijn", uitleg: "Een duur, zoals 'zes weken na de dagtekening'."}
+  TEMPORAL_RELATIVE_PERIOD: {naam: "Relatieve periode", uitleg: "Een periode ten opzichte van iets anders: 'de eerste veertien dagen'."}
+  TEMPORAL_PERIOD_NOUN: {naam: "Periodewoord", uitleg: "Een woord dat een periode aanduidt: kalenderjaar, berekeningsjaar, tijdvak."}
+  TEMPORAL_PERIOD_OF: {naam: "Periode van", uitleg: "'De periode van drie jaren': een benoemde periode."}
+  TEMPORAL_MOMENT: {naam: "Tijdstip", uitleg: "'Het tijdstip waarop …': een moment dat door een gebeurtenis wordt bepaald."}
+  TEMPORAL_ADVERB: {naam: "Tijdsbijwoord", uitleg: "'Spoedig', 'onverwijld': een bijwoord van tijd."}
+  CONDITIONAL_CLAUSE: {naam: "Voorwaardelijke bijzin", uitleg: "Een bijzin met 'indien', 'als', 'tenzij', 'mits' of 'voor zover'."}
+  CONDITIONAL_FORMULA: {naam: "Vaste voorwaardeformule", uitleg: "'Met dien verstande dat', 'met uitzondering van': een vaste inleiding van een voorwaarde."}
+  CONDITIONAL_ADVERB: {naam: "Voorwaardelijk bijwoord", uitleg: "Een bijwoord dat een voorwaarde stelt, zoals 'schriftelijk'."}
+  CAUSAL_PHRASE: {naam: "Oorzaak", uitleg: "'Wegens', 'ten gevolge van': een oorzaak die een voorwaarde of rechtsfeit kan zijn."}
+  # structuur (detectoren/structuur.py)
+  DEFINITION_ITEM: {naam: "Begripsbepaling (onderdeel)", uitleg: "Een onderdeel van een begripsbepalingenartikel: 'a. X: …'."}
+  DEFINITION_SENTENCE: {naam: "Begripsbepaling (zin)", uitleg: "'In deze wet wordt verstaan onder X: …'."}
+  MEANING_TERM: {naam: "Begrip met betekenis", uitleg: "Het begrip dat in een begripsbepaling een betekenis krijgt."}
+  # zinsontleding (detectoren/syntactisch.py)
+  NORMATIVE_PREDICATE: {naam: "Normatief gezegde", uitleg: "'Is verplicht', 'kan', 'heeft recht op', 'is bevoegd': een recht of plicht."}
+  PARAMETER_NOUN: {naam: "Parameterwoord", uitleg: "'Tarief', 'drempel', 'vrijstelling': een woord dat een vaste waarde benoemt."}
+  PROPERTY_NOUN: {naam: "Eigenschap", uitleg: "'De hoogte van', 'het bedrag van': een naamwoordgroep die een eigenschap noemt."}
+  PERSON_PRONOUN: {naam: "Verwijzend voornaamwoord", uitleg: "'Hij', 'degene', 'een ieder': een voornaamwoord dat naar een persoon verwijst."}
+  SUBJECT_NP: {naam: "Onderwerp bij een recht of plicht", uitleg: "Het onderwerp van een zin met een normatief gezegde – vaak de drager van het recht of de plicht."}
+  ENUMERATED_NP: {naam: "Opsommingsonderdeel", uitleg: "Een naamwoordgroep als onderdeel van een opsomming."}
+  OBJECT_NP: {naam: "Voorwerp bij een recht of plicht", uitleg: "Een naamwoordgroep als voorwerp bij een normatief gezegde."}
+  RESTRICTIVE_RELATIVE: {naam: "Beperkende bijzin", uitleg: "Een betrekkelijke bijzin die de groep beperkt ('die …', 'waarvan …') – vaak een voorwaarde."}
+  NOMINALIZED_ACTION: {naam: "Handeling als zelfstandig naamwoord", uitleg: "'Het indienen van', 'de dagtekening van': een handeling of gebeurtenis als naamwoord."}
+  # fusie (specificiteit.py)
+  PRIORITY_APPLIED: {naam: "Voorrangsregel toegepast", uitleg: "Een specifiekere klasse ging voor op een algemenere, volgens de JAS-voorrangsregels."}
+
+besluit:
+  regel: {naam: "vaste regel", uitleg: "Besloten zonder model: één klasse mogelijk en sterk bewijs."}
+  specificiteit: {naam: "voorrangsregel", uitleg: "Besloten door een JAS-voorrangsregel over overlappende fragmenten."}
+  model: {naam: "model", uitleg: "Het model koos uit de klassen die het patroon toeliet."}
+
+twijfel:
+  DETECTOR_CONFLICT: {naam: "Model en patroon zijn het oneens", uitleg: "Het model koos iets anders dan een vast patroon aanwijst."}
+  CLASSIFIER_ABSTAIN: {naam: "Geen geldige keuze van het model", uitleg: "Het model gaf voor dit fragment geen bruikbare beslissing."}
+  ZELFDE_SPAN: {naam: "Twee klassen op hetzelfde fragment", uitleg: "Hetzelfde fragment kreeg twee klassen; dat mag alleen bij verschillende functies."}
+  DEGRADED_PARSE: {naam: "Zonder zinsontleding", uitleg: "De zinsontleding ontbrak voor deze tekst; het model besliste met minder signalen."}
+
+resolutie:
+  R-CONFLICT-KEEP: {naam: "Reviewer houdt de keuze van het model aan – jij beslist", uitleg: "Het conflict met het patroon blijft bestaan, dus de keuze ligt bij de jurist."}
+  R-CONFLICT-CHANGE: {naam: "Reviewer volgt het patroon", uitleg: "De reviewer koos de klasse die het vaste patroon aanwees; de keuze van het model blijft als alternatief."}
+  R-CONFLICT-HUMAN: {naam: "Onenigheid – jij kiest", uitleg: "Model en patroon zijn het oneens en de reviewer koos niet: beide lezingen liggen bij de jurist."}
+  R-ABSTAIN-KEEP: {naam: "Niets om aan te houden – jij kiest", uitleg: "Het model gaf geen keuze; de jurist beslist."}
+  R-ABSTAIN-CHANGE: {naam: "Reviewer koos een klasse", uitleg: "Het model gaf geen keuze; de reviewer koos een van de toegestane klassen."}
+  R-ABSTAIN-HUMAN: {naam: "Geen keuze – jij kiest", uitleg: "Model en reviewer kozen niet; de jurist beslist."}
+  R-SPAN-KEEP: {naam: "Twee functies op één fragment", uitleg: "De reviewer bevestigde dat het fragment twee functies heeft; beide blijven staan."}
+  R-SPAN-CHANGE: {naam: "Samengevoegd tot één klasse", uitleg: "De reviewer koos één klasse voor het fragment; de andere blijft als alternatief."}
+  R-SPAN-HUMAN: {naam: "Twee klassen – jij kiest", uitleg: "Het fragment kreeg twee klassen en de reviewer koos niet."}
+  R-DEGRADED: {naam: "Minder signalen – jij kijkt", uitleg: "Zonder zinsontleding besliste het model met minder bewijs; de jurist kijkt mee."}
+  R-ONGELDIG: {naam: "Reviewer gaf geen bruikbaar oordeel – jij kiest", uitleg: "Het oordeel van de reviewer was niet te gebruiken; de jurist beslist."}
+  R-PRIORITEIT: {naam: "Wijziging tegen een voorrangsregel niet uitgevoerd", uitleg: "De reviewer stelde een klasse voor die tegen een JAS-voorrangsregel ingaat; die staat als alternatief."}
+
+validatie:
+  V_ANKER: {naam: "Anker klopt niet", uitleg: "Het anker wijst niet exact naar het fragment in de bron."}
+  V_GRENS: {naam: "Ongeldige grens", uitleg: "Het fragment valt buiten de bronnode of is leeg."}
+  V_KANDIDAAT: {naam: "Onbekende kandidaat", uitleg: "Het voorstel hoort bij geen enkele kandidaat."}
+  V_KLASSE: {naam: "Ongeldige klasse", uitleg: "De klasse is niet een van de dertien JAS-klassen of niet toegestaan voor deze kandidaat."}
+  V_PROVENANCE: {naam: "Herkomst ontbreekt", uitleg: "Het spoor van het voorstel is onvolledig."}
+  V_STATUS: {naam: "Ongeldige status", uitleg: "Het voorstel heeft een status die niet bij een voorstel hoort."}
+  W_ZELFDE_SPAN: {naam: "Twee klassen op hetzelfde fragment", uitleg: "Waarschuwing: hetzelfde fragment kreeg twee klassen."}
+
+classifier:
+  CLASSIFIER_GEEN_UITVOER: {naam: "Geen uitvoer van het model", uitleg: "Het model antwoordde niet via het hulpmiddel."}
+  CLASSIFIER_OMITTED: {naam: "Overgeslagen door het model", uitleg: "Het model liet deze kandidaat weg."}
+  CLASSIFIER_ONGELDIGE_KLASSE: {naam: "Niet-toegestane klasse", uitleg: "Het model koos een klasse die voor deze kandidaat niet mocht."}
+  CLASSIFIER_ONGELDIGE_OPTIE: {naam: "Niet-bestaande grens", uitleg: "Het model koos een grens die niet werd aangeboden."}
+  VALIDATION_ERROR: {naam: "Afgekeurd bij de validatie", uitleg: "Het voorstel haalde een structurele controle niet en is verworpen."}

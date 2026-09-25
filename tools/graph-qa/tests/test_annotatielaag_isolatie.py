@@ -28,6 +28,10 @@ from test_sparql_syntax import GEVALLEN  # noqa: E402
 
 FIXTURES = Path(__file__).parent / "fixtures"
 ONTOLOGIE_TTL = Path(__file__).resolve().parents[3] / "docs" / "wetsanalyse-workbench" / "jas-ontologie.ttl"
+# De JAS-vocabulaire (klassen, begrippen, regels, codes als skos:Concept) staat sinds plan-herkomst
+# PR 3 ook in de graaf. Ze draagt de klassenamen als prefLabel – precies wat een zoektool van Lex
+# niet als wettekst mag teruggeven.
+VOCABULAIRE_TTL = Path(__file__).resolve().parents[3] / "api" / "app" / "vocabulaire" / "jas-vocabulaire.ttl"
 
 
 def _dataset(met_laag: bool) -> Dataset:
@@ -37,6 +41,7 @@ def _dataset(met_laag: bool) -> Dataset:
         ds.graph(URIRef("urn:jas:graph:BWBR0004770:artikel:9")).parse(
             FIXTURES / "jas_laag_voorbeeld.ttl", format="turtle")
         ds.graph(URIRef("urn:jas:graph:ontologie")).parse(ONTOLOGIE_TTL, format="turtle")
+        ds.graph(URIRef("urn:jas:graph:vocabulaire")).parse(VOCABULAIRE_TTL, format="turtle")
     return ds
 
 
