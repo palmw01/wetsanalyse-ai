@@ -351,26 +351,6 @@ async def test_parent_context_does_not_reopen_or_touch_reused_approved_children(
     assert view["dekking"]["voltooid"]
 
 
-async def test_critic_advice_on_approved_human_preserves_anchors_and_review_status():
-    snap = snapshot(ONE)
-    first = await store.batch(request(snap, [element(snap)]), snap, "a", mens=True)
-    original = first["elementen"][0]
-    await store.zet_status(first["lagen"][0]["id"], "geaccordeerd", 1, "a")
-    req = request(snap, batch_id="advice", revisions={ONE: 2}, run={"model": "critic"},
-        suggesties=[{"element_id": original["id"], "aandacht": "geel", "motivatie": "Controleer context",
-                      "voorstel_klasse": "Voorwaarde", "voorstel_tekst": "ander fragment"}])
-    answer = await store.batch(req, snap, "b")
-    assert await store.batch(req, snap, "b") == answer
-    detail = await store.detail(original["id"])
-    after = detail["element"]
-    for key in ("ankers", "tekst", "klasse", "lifecycle", "beslissingen", "eigenaar_iri"):
-        assert after[key] == original[key]
-    assert detail["laag"]["status"] == "geaccordeerd"
-    assert detail["laag"]["revisie"] == 3
-    assert after["critic_suggestie"]["status"] == "open"
-    assert after["critic_suggestie"]["geproduceerd_door"] == {"model": "critic"}
-
-
 async def test_removed_source_node_historical_detail_and_search(monkeypatch):
     from app import annotatie_v2, annotatie_v2_zoeken, graaf_projectie_v2
     old = snapshot(TWO)
@@ -398,27 +378,6 @@ async def test_removed_source_node_historical_detail_and_search(monkeypatch):
         inclusief_verouderd=True, bronversie=old["snapshot_id"]))
     assert result["resultaten"][0]["verouderd"]
     assert result["resultaten"][0]["bronverwijzing"]["historisch"]
-
-
-async def test_incoming_agent_critic_advice_is_stored_without_automatic_edit():
-    snap = snapshot(ONE)
-    proposal = element(snap, id="proposed-first")
-    req = request(snap, [proposal], suggesties=[{"element_id": "proposed-first", "aandacht": "geel",
-        "motivatie": "Controleer de klasse", "voorstel_klasse": "Voorwaarde"}])
-    result = await store.batch(req, snap, "a")
-    e = result["elementen"][0]
-    assert e["klasse"] == "Rechtssubject" and e["lifecycle"] == "voorgesteld"
-    assert e["critic_suggestie"]["voorstel_klasse"] == "Voorwaarde"
-    await store.beslis(e["id"], Beslissing(type="approve", snapshot_id=snap["snapshot_id"],
-        verwachte_revisies={ONE: 1}), snap, "b")
-    await store.zet_status(result["lagen"][0]["id"], "geaccordeerd", 2, "b")
-    replay = request(snap, [element(snap, id="new-agent-id")], batch_id="new-review", revisions={ONE: 3},
-        suggesties=[{"element_id": "new-agent-id", "aandacht": "groen", "motivatie": "Correct"}])
-    reused = await store.batch(replay, snap, "a")
-    assert reused["elementen"][0]["id"] == e["id"]
-    assert reused["elementen"][0]["lifecycle"] == "human_approved"
-    assert reused["suggesties"][0]["element_id"] == e["id"]
-    assert reused["lagen"][0]["status"] == "geaccordeerd"
 
 
 async def test_pdf_preserves_all_local_anchors_and_owner(monkeypatch):

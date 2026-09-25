@@ -85,7 +85,6 @@ describe("verwerkSseStroom – via volgRun", () => {
     let denk = "";
     let doel: unknown = null;
     const elementen: unknown[] = [];
-    let ontbrekend: unknown[] = [];
     let bronnen: unknown[] = [];
     await volgRun("run-1", {
       onStatus: (m) => (denk += `[${m}]`),
@@ -94,7 +93,6 @@ describe("verwerkSseStroom – via volgRun", () => {
       onSources: (b) => (bronnen = b),
       onDoel: (d) => (doel = d),
       onElement: (e) => elementen.push(e),
-      onOntbrekend: (items) => (ontbrekend = items),
     });
 
     expect(tekst).toBe("Antwoord hier."); // token = alléén het eindantwoord
@@ -106,7 +104,7 @@ describe("verwerkSseStroom – via volgRun", () => {
     expect(elementen).toEqual([
       { ...element, lid: "", toelichting: "", vindplaats: "", alternatieven: [], grounded: false },
     ]);
-    expect(ontbrekend).toEqual([{ klasse: "Rechtsfeit", reden: "handeling" }]);
+    // Een `ontbrekend`-event (vervallen met de Critic, ADR-001 PR 18) wordt genegeerd, niet gebroken.
   });
 
   it("slaat een misvormd event over en laat de rest van de beurt doorlopen", async () => {

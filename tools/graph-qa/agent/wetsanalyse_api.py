@@ -151,7 +151,6 @@ class WetsanalyseApi:
         artikel: str,
         citeertitel: str,
         elementen: list[dict[str, Any]],
-        suggesties: list[dict[str, Any]],
         run: dict[str, Any] | None,
         leden: list[dict[str, Any]],
         bron_hash: str,
@@ -173,7 +172,6 @@ class WetsanalyseApi:
         payload: dict[str, Any] = {
             "citeertitel": citeertitel,
             "elementen": [naar_contract(e) for e in elementen],
-            "suggesties": [_leeg_is_niets(s) for s in suggesties],
             "ronde": 0,
             "leden": leden,
             "bron_hash": bron_hash,

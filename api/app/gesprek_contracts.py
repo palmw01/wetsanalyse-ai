@@ -33,7 +33,7 @@ class AnnotatieDoel(BaseModel):
 
 class Bericht(BaseModel):
     """Eén beurt in het gesprek. Assistent-berichten dragen optioneel `denk`/`bronnen`, of een
-    verwijzing naar een annotatie-document (`annotatie_slug` + de Critic-`ontbrekend`-suggesties).
+    verwijzing naar een annotatie-document (`annotatie_slug`) of bronnode (`annotatie_doel`).
 
     `annotatie_titel` is het leesbare label van dat document op het moment van de beurt ("Wet IB 2001
     – art. 3.1 lid 2"). Het bericht beschrijft zichzelf dus: wordt het document later verwijderd, dan
@@ -47,7 +47,6 @@ class Bericht(BaseModel):
     bronnen: list[dict] = []
     annotatie_slug: str = ""
     annotatie_titel: str = ""
-    ontbrekend: list[dict] = []
     # Lex hergebruikte (een deel van) de gedeelde annotatielaag: welke leden, en hoe ver de review
     # was. Zonder dit veld is na herladen niet meer te zien dat er niets nieuws is geannoteerd.
     hergebruik: dict = {}
@@ -92,7 +91,6 @@ class BerichtInvoer(BaseModel):
     bronnen: list[dict] = []
     annotatie_slug: str = ""
     annotatie_titel: str = ""
-    ontbrekend: list[dict] = []
     hergebruik: dict = {}
     dekking: dict = {}
     annotatie_doel: AnnotatieDoel | None = None

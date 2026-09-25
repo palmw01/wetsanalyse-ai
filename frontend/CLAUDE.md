@@ -67,7 +67,7 @@ De **harde scheidingslijn**: alles met een token is server-only.
   blijven bestaan als redirect naar de bijbehorende tab.
 - `components/` – presentatie. `components/werkplek/` = de hele chat-werkruimte (zie §*Werkplek*):
   de schil en het gesprek (sidebar, thread, artefactpaneel) én het annotatiegereedschap dát in dat
-  paneel staat (`DocumentPaneel`, `ReviewQueue`, `SelectiePopover`, `OntbrekendLijst`, `ExportKnop`).
+  paneel staat (`DocumentPaneel`, `ReviewQueue`, `SelectiePopover`, `ExportKnop`).
   Die tweede groep stond tot 31 aug 2026 in een eigen `components/workbench/`; één map, want de
   grens liep door één bestand (`ArtefactInhoud.tsx`, de enige importeur) en kostte elke lezer een
   vraag zonder nut.
@@ -148,9 +148,10 @@ Bovenaan de shell staat de klikbare **testomgeving-strook**. De shell is twee ko
 
 ### De tijdlijn van een annotatie
 
-Een annotatiebeurt duurt 60-90 seconden. graph-qa stuurt daarin per fase een `status`-regel
-(supervisor → ophaal-agent → annoteerder ⇄ Critic → herziening → klaar); `onStatus` plakt die als
-`· <regel>` aan `denk`, en `DenkProces` toont ze **live** onder de lopende beurt.
+graph-qa stuurt per fase een `status`-regel (supervisor → ophaal-agent → Bron → Taalanalyse →
+Detectie → Besluit → Classificatie → Review → Resultaat → Klaar, elk met de duur erachter);
+`onStatus` plakt die als `· <regel>` aan `denk`, en `DenkProces` toont ze **live** onder de lopende
+beurt.
 
 Zodra de beurt een annotatie blijkt, ging dat spoor eerder verloren: het antwoord-item werd vervangen
 door de chip. Nu draagt het `annotatie`-item een `denk`-veld, staat de tijdlijn ingeklapt boven de
@@ -319,9 +320,8 @@ bovenin). Eén gedeelde scroller liet de tekst uit beeld lopen zodra je verderop
 Selecteren scrolt **beide kanten op** in beeld: de markering in de tekst (`DocumentPaneel`) én de
 kaart in de lijst (`ReviewQueue`), met `prefers-reduced-motion` gerespecteerd.
 
-- **De kaart is compact**; details (toelichting, Critic-motivatie, alternatieven, adviesdraadje,
-  opmerking) vouwen open bij selectie. Eén begrip stuurt alles: `actief`. Een **openstaande
-  kanttekening** blijft ook ingeklapt zichtbaar – dat signaal mag je niet missen.
+- **De kaart is compact**; details (toelichting, uitleg van de review, alternatieven, opmerking)
+  vouwen open bij selectie. Eén begrip stuurt alles: `actief`.
 - **Eén vaste volgorde** (`sorteerReview`): de canonieke **JAS-tabelvolgorde** (`jasVolgorde` uit
   `lib/jas.ts`) → lid (numeriek!) → plek in de tekst → invoervolgorde. Géén van die sleutels verandert
   door reviewen; eerder woog aandacht en voortgang het zwaarst, waardoor een goedgekeurd element naar
@@ -471,19 +471,10 @@ herschrijf je niet – en het zou bestaande dangling rijen toch niet oplossen. Z
 beoordelen · Openen`) zodra het paneel dicht is; de chip in de thread scrolt immers weg. Verwijderde
 documenten slaat die balk over.
 
-**"Mogelijk ontbrekend" is werkvoorraad, geen mededeling** (`components/werkplek/OntbrekendLijst.tsx`).
-Staat er een letterlijk fragment bij dat in de tekst voorkomt → *Toevoegen als \<klasse\>*, één klik,
-met anker. Anders zegt het kaartje waaróm het niet kan (geen fragment aangewezen, of het fragment
-staat niet letterlijk in de tekst). Toegevoegde items tonen "✓ inmiddels gemarkeerd" en tellen niet
-meer mee; is alles afgehandeld, dan verdwijnt het blok.
-
-**Bewust géén "wegleggen".** Dit is informatie, geen takenlijst. Zo'n knop suggereerde een
-afhandeling die nergens landde (sessie-only, zonder reden, na herladen weer terug) – terwijl *"Lex
-zag hier een Rechtssubject en ik vind van niet"* juist een interpretatiekeuze is die in het
-spoor thuishoort; elders in de werkplek is zoiets wél een `reject` met reden of een `comment`. En
-omdat dit lijstje de **restpost van de Critic** is, zegt structureel wegklikken iets over de kwaliteit
-van de Critic: dat signaal hoort niet in een sessie-variabele te verdwijnen. Zolang `ontbrekend` bij
-het chatbericht hoort en niet bij het annotatiedocument, is niets vastleggen eerlijker dan doen alsof.
+**Er is geen "mogelijk ontbrekend"-lijst meer.** Die was de restpost van de Critic en verviel met
+hem (ADR-001 PR 18, 25 sep 2026). Het vangnet is nu de dekking: graph-qa stuurt een `dekking`-event
+met de zinsdelen waar geen enkele detector iets vond – een meting, geen gok. De werkplek toont die
+volgens `docs/architectuur/plan-herkomst-in-werkplek.md` (PR 6).
 
 ### Symbolen zijn iconen, geen tekens
 
@@ -499,19 +490,14 @@ Eén uitzondering, en die is principieel: tekst die als **inhoud** wordt opgesla
 die als chatbericht de geschiedenis in gaat, `WerkplekClient`) kan geen component dragen. Daar staat
 geen icoon maar een woord.
 
-**"Niet beoordeeld" is geen "geen bezwaar".** De Critic hoort over elk agent-voorstel een oordeel te
-vellen, maar hij slaat er soms één over — live gezien op 2 sep 2026: 1 van de 32 markeringen bij
-art. 2 lid 1 IW 1990 kwam binnen met een lege `aandacht` en zonder `critic_rondes`. De kaart toonde
-dan géén badge, en daarmee is die niet te onderscheiden van een element waar niets op aan te merken
-viel. `isNietBeoordeeld` (`lib/annotatie.ts`) geeft zo'n element een eigen, neutrale badge. Dezelfde
-redenering als bij grounding, waar `onbepaald` bewust naast `gegrond` staat: niets gecontroleerd als
-goedkeuring tellen levert precies de schijnzekerheid op die dit platform wil vermijden. Een
-markering van de **jurist** valt erbuiten — die beoordeelt de Critic niet, zijn oordeel daarover komt
-als `critic_suggestie` binnen. De agent meldt het aantal ook in de tijdlijn (`· N zonder oordeel`),
-maar die staat ingeklapt.
+**Geen badge is een gewoon voorstel.** De annotatieketen zet `aandacht` alleen als er iets te zeggen
+valt: **geel = "Keuze voor jou"** (twijfel die de reviewer niet besliste), **groen = "Bevestigd door
+review"** (een twijfelgeval dat de gerichte review besliste). Tot 25 sep 2026 stond hier een badge
+"Niet beoordeeld" voor elementen zonder Critic-oordeel; die zou nu op elk onbetwist voorstel staan.
+Het veld `critic` draagt de uitleg van de review en staat op de kaart als "Review: …".
 
-**De aandacht-as zegt wat hij bedoelt.** Het oordeel van de Critic staat op de reviewkaart als
-**badge met tekst** – *Geen bezwaar* / *Even kijken* / *Waarschijnlijk fout* – in dezelfde vorm als de
+**De aandacht-as zegt wat hij bedoelt.** Het oordeel staat op de reviewkaart als
+**badge met tekst** – *Bevestigd door review* / *Keuze voor jou* / *Waarschijnlijk fout* – in dezelfde vorm als de
 documentstatus-badge (`AANDACHT_PILL` in `ReviewQueue.tsx` naast `DOCUMENT_STATUS_STYLE`): één
 badgevorm in de hele app. Dat was een rondje van 8px met de betekenis alleen in een `aria-label`; wie
 de kleurcode niet kende zag een stip en verder niets. Kleur blijft meedoen via de linker accentrand en
@@ -595,7 +581,7 @@ Bij **verwerpen** blijft de reden een vraag aan de jurist; die informatie staat 
   niet, want die is `human_approved` bij het aanmaken – anders staat je verse markering meteen op
   slot, wisknop en al.
 - **Verworpen markeringen tellen niet als "inmiddels gemarkeerd"** (`alGemarkeerd` in
-  `lib/annotatie.ts`, gebruikt door `OntbrekendLijst`). Verwerp je een markering, dan wil je het
+  `lib/annotatie.ts`, straks voor de ongedekte zinsdelen uit de dekking). Verwerp je een markering, dan wil je het
   ontbrekend-item juist opnieuw kunnen toevoegen; het bleef er met een vinkje bij staan. Zelfde
   regel als in `DocumentPaneel`, dat verworpen markeringen ook niet meer oplicht.
 - **De reden blijft alleen bij verwerpen een vraag**: die informatie heeft alleen de mens.
@@ -676,7 +662,7 @@ De jurist kan in `DocumentPaneel` tekst selecteren en die zelf markeren. Zes din
   markering dus op het verkeerde lid vast, tot in het anker en het auditspoor.
 - **De context bij een annotatiebeurt is één document.** `eigenMarkeringenVoorContext(doc)` levert de
   eigen, niet-verworpen markeringen van de bepaling die openstaat – niet alles wat er in het gesprek
-  is geopend. Anders legt de Critic een fragment uit artikel 36 naast de tekst van artikel 8.
+  is geopend. Anders legt Lex bij een adviesvraag een fragment uit artikel 36 naast de tekst van artikel 8.
   graph-qa handhaaft diezelfde grens nog eens tegen het corpus dat het zelf ophaalde.
 - **Elk element draagt een `anker`**: exacte offsets + quote-met-context + een hash van de bron.
   `segmenteer` gebruikt die in drie stappen (offsets → context → eerste voorkomen), waardoor twee

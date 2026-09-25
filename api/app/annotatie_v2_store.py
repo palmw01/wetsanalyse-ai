@@ -215,22 +215,17 @@ async def batch(req: Batch, snapshot: dict, actor: str, *, mens: bool = False) -
                     db.annotatie_v2_elementen.c.id == old["id"]).values(inhoud=old))
                 await _audit(conn, actor, "bron-gewijzigd", {"snapshot_id": req.snapshot_id}, old["id"])
         saved = []
-        persisted_ids = {}
         for value in values:
             # Canonieke ankers onderscheiden identieke woorden op verschillende plekken.
             key = digest({"klasse": value["klasse"], "ankers": value["ankers"]})
             existing = next((x for x in current.values() if not x.get("verouderd")
                              and digest({"klasse": x["klasse"], "ankers": x["ankers"]}) == key), None)
             if existing:
-                if value["id"]:
-                    persisted_ids[value["id"]] = existing["id"]
                 saved.append(existing)
                 continue  # nooit menselijke historie of afwijzingen met agentwerk overschrijven
             element_id = value["id"] or uuid.uuid4().hex
             if element_id in current:
                 raise HTTPException(409, "Element-ID bestaat al; gebruik de correctieroute.")
-            if value["id"]:
-                persisted_ids[value["id"]] = element_id
             value.update(id=element_id, laag_id=touched[value["eigenaar_iri"]]["id"],
                          lifecycle="human_approved" if mens else "voorgesteld", herkomst="mens" if mens else "agent",
                          aangemaakt_door=actor, beslissingen=[], verouderd=False, geproduceerd_door=req.run)
@@ -239,31 +234,6 @@ async def batch(req: Batch, snapshot: dict, actor: str, *, mens: bool = False) -
             await _audit(conn, actor, "element-gemaakt", {"batch_id": req.batch_id}, element_id)
             current[element_id] = value
             saved.append(value)
-        for suggestion in req.suggesties:
-            target_id = persisted_ids.get(suggestion.element_id, suggestion.element_id)
-            value = current.get(target_id)
-            if value is None or (value.get("herkomst") != "mens" and target_id not in {e["id"] for e in saved}):
-                raise HTTPException(422, "Criticadvies vereist een menselijke markering of voorstel uit deze batch.")
-            if value["eigenaar_iri"] not in scope or not {a["bron_iri"] for a in value["ankers"]} <= scope:
-                raise HTTPException(422, "Criticadvies valt buiten het volledige elementbereik.")
-            if value.get("verouderd") or any(nodes_van(snapshot)[a["bron_iri"]]["bron_hash"] != a["bron_hash"]
-                                            for a in value["ankers"]):
-                raise HTTPException(409, "Geen nieuw advies op een verouderde markering.")
-            if suggestion.voorstel_klasse and suggestion.voorstel_klasse not in GELDIGE_JAS_KLASSEN:
-                raise HTTPException(422, "Criticadvies bevat een onbekende klasse.")
-            owner = value["eigenaar_iri"]
-            if owner not in touched:
-                layer = layers[owner]
-                if req.verwachte_revisies.get(owner, 0) != layer["revisie"]:
-                    raise HTTPException(412, "Laag is intussen gewijzigd.")
-                touched[owner] = layer  # advies verandert geen laagstatus, ook niet geaccordeerd
-            advice = suggestion.model_dump(exclude={"element_id"})
-            advice.update(status="open", tijd=db.utcnow().isoformat(), geproduceerd_door=req.run)
-            previous = value.get("critic_suggestie")
-            value["critic_suggestie"] = advice
-            await conn.execute(update(db.annotatie_v2_elementen).where(
-                db.annotatie_v2_elementen.c.id == target_id).values(inhoud=value))
-            await _audit(conn, actor, "critic-advies", {"advies": advice, "vorig_advies": previous}, target_id)
         for layer in touched.values():
             await _raak(conn, layer, req.snapshot_id)
         if req.dekking.voltooid:
@@ -274,8 +244,7 @@ async def batch(req: Batch, snapshot: dict, actor: str, *, mens: bool = False) -
         result = {"schema_versie": 2, "batch_id": req.batch_id, "doel": snapshot["doel"],
                   "annotatie_doel": {**snapshot["doel"], "snapshot_id": req.snapshot_id},
                   "snapshot_id": req.snapshot_id, "lagen": [publiek_laag(x) for x in touched.values()],
-                  "elementen": saved, "suggesties": [{"element_id": persisted_ids.get(s.element_id, s.element_id),
-                      **current[persisted_ids.get(s.element_id, s.element_id)]["critic_suggestie"]} for s in req.suggesties]}
+                  "elementen": saved}
         await _audit(conn, actor, "batch", {"batch_id": req.batch_id,
             "bron_iri": snapshot["doel"]["bron_iri"], "run": req.run, "dekking": req.dekking.model_dump()})
         await conn.execute(insert(db.annotatie_v2_batches).values(

@@ -33,8 +33,6 @@ import type {
   AgentRun,
   Alternatief,
   Bron,
-  CriticRonde,
-  OntbrekendItem,
   RunStart,
   VoorstelElement,
 } from "./types";
@@ -98,20 +96,6 @@ export const parseDoel: Parser<AgentDoel> = (v) => {
 const parseAlternatief: Parser<Alternatief> = (v) =>
   isObject(v) ? { klasse: tekst(v.klasse), motivatie: tekst(v.motivatie) } : undefined;
 
-const parseCriticRonde: Parser<CriticRonde> = (v) => {
-  if (!isObject(v)) return undefined;
-  return {
-    ronde: getal(v.ronde),
-    aandacht: aandachtVan(v.aandacht) ?? null,
-    motivatie: tekst(v.motivatie),
-    actie: tekst(v.actie),
-    ...(typeof v.toegepast === "boolean" ? { toegepast: v.toegepast } : {}),
-    voorstel_klasse: tekst(v.voorstel_klasse),
-    voorstel_tekst: tekst(v.voorstel_tekst),
-    tijd: tekst(v.tijd),
-  };
-};
-
 export const parseElement: Parser<VoorstelElement> = (v) => {
   if (!isObject(v)) return undefined;
   // Zonder klasse of letterlijke tekst is er niets brongetrouws te markeren.
@@ -121,8 +105,6 @@ export const parseElement: Parser<VoorstelElement> = (v) => {
   const alternatieven =
     v.alternatieven === undefined ? [] : lijst(parseAlternatief)(v.alternatieven);
   if (!alternatieven) return undefined;
-  const rondes = v.critic_rondes === undefined ? undefined : lijst(parseCriticRonde)(v.critic_rondes);
-  if (v.critic_rondes !== undefined && !rondes) return undefined;
   const aandacht = aandachtVan(v.aandacht);
   return {
     ...(optioneel(v.id) !== undefined ? { id: optioneel(v.id) } : {}),
@@ -135,7 +117,6 @@ export const parseElement: Parser<VoorstelElement> = (v) => {
     grounded: vlag(v.grounded),
     ...(aandacht ? { aandacht } : {}),
     ...(optioneel(v.critic) !== undefined ? { critic: optioneel(v.critic) } : {}),
-    ...(rondes ? { critic_rondes: rondes } : {}),
   };
 };
 
@@ -146,7 +127,6 @@ export const parseRun: Parser<AgentRun> = (v) =>
         model: tekst(v.model),
         provider: tekst(v.provider),
         agent_versie: tekst(v.agent_versie),
-        critic_rondes: getal(v.critic_rondes),
         stop_reden: tekst(v.stop_reden),
         tijd: tekst(v.tijd),
       }
@@ -155,17 +135,6 @@ export const parseRun: Parser<AgentRun> = (v) =>
 export const parseBronnen = lijst<Bron>((v) =>
   isObject(v) ? { label: tekst(v.label), uri: tekst(v.uri) } : undefined,
 );
-
-export const parseOntbrekend = lijst<OntbrekendItem>((v) => {
-  if (!isObject(v)) return undefined;
-  const klasse = eis(v.klasse);
-  if (!klasse) return undefined;
-  return {
-    klasse,
-    reden: tekst(v.reden),
-    ...(optioneel(v.tekst) !== undefined ? { tekst: optioneel(v.tekst) } : {}),
-  };
-});
 
 export const parseKandidaten = lijst<AgentKandidaat>((v) => {
   if (!isObject(v)) return undefined;
@@ -203,15 +172,6 @@ export const parseHergebruik: Parser<AgentHergebruik> = (v) => {
       te_beoordelen: getal(t.te_beoordelen),
     },
   };
-};
-
-export const parseSuggestie: Parser<{ element_id: string; aandacht: string; motivatie: string }> = (
-  v,
-) => {
-  if (!isObject(v)) return undefined;
-  const elementId = eis(v.element_id);
-  if (!elementId) return undefined;
-  return { element_id: elementId, aandacht: tekst(v.aandacht), motivatie: tekst(v.motivatie) };
 };
 
 const STATUS: readonly string[] = ["loopt", "klaar", "gestopt", "mislukt"];

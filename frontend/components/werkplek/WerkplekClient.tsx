@@ -40,7 +40,6 @@ import type {
   BeslissingType,
   Bron,
   GraafArtikel,
-  OntbrekendItem,
   Verbruiksstand,
   VoorstelElement,
 } from "@/lib/types";
@@ -247,7 +246,7 @@ export function WerkplekClient({
               : b.annotatie_slug || b.annotatie_doel
                 ? { id: uid(), type: "annotatie" as const, slug: b.annotatie_slug || b.annotatie_doel!.bron_iri,
                     titel: b.annotatie_doel?.label || b.annotatie_titel || undefined, annotatie_doel: b.annotatie_doel,
-                    tool_executions: (b.tool_executions ?? []).map(parseToolExecution).filter((e): e is ToolExecution => !!e), ontbrekend: b.ontbrekend, denk: b.denk,
+                    tool_executions: (b.tool_executions ?? []).map(parseToolExecution).filter((e): e is ToolExecution => !!e), denk: b.denk,
                     // Na herladen moet nog te zien zijn dat er niets opnieuw is bekeken.
                     hergebruik: b.hergebruik ? parseHergebruik(b.hergebruik) : undefined }
                 : { id: uid(), type: "antwoord" as const, tekst: b.tekst, denk: b.denk, bronnen: b.bronnen, tool_executions: (b.tool_executions ?? []).map(parseToolExecution).filter((e): e is ToolExecution => !!e) },
@@ -576,11 +575,8 @@ export function WerkplekClient({
     setBezig(true);
 
     const doelRef: { d: AgentDoel | null } = { d: null };
-    // Ontdubbeld verzamelen: de agent kan hetzelfde element in meerdere rondes opnieuw sturen
-    // (annoteerder ⇄ Critic), en dan wint de laatste versie.
+    // Ontdubbeld verzamelen: komt hetzelfde element twee keer binnen, dan wint de laatste versie.
     let els: VoorstelElement[] = [];
-    const ontbrekend: OntbrekendItem[] = [];
-    const suggesties: { element_id: string; aandacht: string; motivatie: string }[] = [];
     let kandidaten: AgentKandidaat[] = [];
     let hergebruik: AgentHergebruik | undefined;
     let tekst = "";
@@ -633,8 +629,6 @@ export function WerkplekClient({
           },
           onDoel: (d) => (doelRef.d = d),
           onElement: (e) => (els = mergeVoorstellen(els, e)),
-          onOntbrekend: (xs) => ontbrekend.push(...xs),
-          onSuggestie: (s) => suggesties.push(s),
           onKandidaten: (k) => (kandidaten = k),
           onHergebruik: (h) => (hergebruik = h),
           // De eventlog van de run is gecapt: er is narratie weggevallen. Benoem dat, in plaats van
@@ -682,7 +676,7 @@ export function WerkplekClient({
       // De agent heeft het vastgelegd. Nu alleen nog tonen wat er staat – de api is de bron.
       if (opgeslagen) {
         await toonVastgelegdeBeurt(opgeslagen, {
-          antId, ontbrekend, denk, hergebruik, doel: doelInvoerVan(doelRef.d), tool_executions: toolExecutions,
+          antId, denk, hergebruik, doel: doelInvoerVan(doelRef.d), tool_executions: toolExecutions,
         });
         onGewijzigd();
         return;
@@ -767,8 +761,8 @@ export function WerkplekClient({
    */
   async function toonVastgelegdeBeurt(
     uitkomst: { annotatie_slug: string; annotatie_doel?: NodeDoel },
-    { antId, ontbrekend, denk, hergebruik, doel, tool_executions }: {
-      antId: string; ontbrekend: OntbrekendItem[]; denk: string;
+    { antId, denk, hergebruik, doel, tool_executions }: {
+      antId: string; denk: string;
       hergebruik?: AgentHergebruik; doel?: AgentDoelInvoer; tool_executions?: ToolExecution[];
     },
   ) {
@@ -777,7 +771,7 @@ export function WerkplekClient({
     } : undefined);
     if (node) {
       setItems((xs) => xs.map((x) => x.id === antId ? { id: antId, type: "annotatie", slug: uitkomst.annotatie_slug || node.bron_iri,
-        annotatie_doel: node, titel: node.label, ontbrekend, denk, hergebruik, doel, tool_executions } : x));
+        annotatie_doel: node, titel: node.label, denk, hergebruik, doel, tool_executions } : x));
       setArtefactSlug(undefined); setNodeDoel(node); return;
     }
     if (!uitkomst.annotatie_slug) return; // een gewoon antwoord staat al in beeld
@@ -789,7 +783,7 @@ export function WerkplekClient({
       setItems((xs) =>
         xs.map((x) =>
           x.id === antId
-            ? { id: antId, type: "annotatie", slug: uitkomst.annotatie_slug, ontbrekend, denk, hergebruik, doel }
+            ? { id: antId, type: "annotatie", slug: uitkomst.annotatie_slug, denk, hergebruik, doel }
             : x,
         ),
       );
@@ -802,7 +796,7 @@ export function WerkplekClient({
     setItems((xs) =>
       xs.map((x) =>
         x.id === antId
-          ? { id: antId, type: "annotatie", slug: doc.slug, titel: annotatieTitel(doc), ontbrekend, denk,
+          ? { id: antId, type: "annotatie", slug: doc.slug, titel: annotatieTitel(doc), denk,
               hergebruik, doel }
           : x,
       ),
@@ -969,11 +963,6 @@ export function WerkplekClient({
       variant={breed ? "kolom" : "side"}
       doc={docs[artefactSlug]}
       info={infos[artefactSlug]}
-      ontbrekend={
-        (items.find((x) => x.type === "annotatie" && x.slug === artefactSlug) as
-          | { ontbrekend?: OntbrekendItem[] }
-          | undefined)?.ontbrekend
-      }
       actiefId={actiefId}
       // Nog eens op dezelfde markering klikken laat hem weer los. Selecteren zet de tekst in
       // focus (alleen die markering), dus zonder toggle zou je er niet meer uit komen.

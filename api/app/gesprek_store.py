@@ -27,7 +27,6 @@ def _bericht_uit_row(row) -> Bericht:
         annotatie_slug=inhoud.get("annotatie_slug", ""),
         annotatie_titel=inhoud.get("annotatie_titel", ""),
         run_id=inhoud.get("run_id", ""),
-        ontbrekend=inhoud.get("ontbrekend", []) or [],
         hergebruik=inhoud.get("hergebruik", {}) or {},
         dekking=inhoud.get("dekking", {}) or {},
         annotatie_doel=inhoud.get("annotatie_doel") or None,
@@ -47,8 +46,6 @@ def _inhoud(inv: BerichtInvoer | Bericht) -> dict:
         inhoud["annotatie_slug"] = inv.annotatie_slug
     if inv.annotatie_titel:
         inhoud["annotatie_titel"] = inv.annotatie_titel
-    if inv.ontbrekend:
-        inhoud["ontbrekend"] = inv.ontbrekend
     if inv.hergebruik:
         inhoud["hergebruik"] = inv.hergebruik
     if inv.dekking:
@@ -188,7 +185,7 @@ class GesprekStore:
         return Bericht(
             id=nieuw_id, rol=inv.rol, tekst=inv.tekst, denk=inv.denk, bronnen=inv.bronnen,
             annotatie_slug=inv.annotatie_slug, annotatie_titel=inv.annotatie_titel,
-            ontbrekend=inv.ontbrekend, run_id=inv.run_id, created=db.aware(now),
+            run_id=inv.run_id, created=db.aware(now),
         )
 
     async def hernoem_gesprek(self, gesprek_id: str, titel: str) -> None:

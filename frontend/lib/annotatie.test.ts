@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  isNietBeoordeeld,
   bronversieMelding,
   bronVan,
   eigenMarkeringenVoorContext,
@@ -162,8 +161,6 @@ const ELEMENT = {
   alternatieven: [],
   aandacht: null,
   critic: "",
-  critic_rondes: [],
-  critic_suggestie: null,
   anker: null,
   diff: {},
   beslissingen: [],
@@ -487,7 +484,7 @@ describe("eigenMarkeringenVoorContext", () => {
     ({
       id: "e1", klasse: "Rechtssubject", tekst: "de ontvanger", lid: "1", toelichting: "",
       vindplaats: "", herkomst: "agent", lifecycle: "proposed", alternatieven: [],
-      critic_rondes: [], aandacht: null, critic: "", anker: null, ...p,
+      aandacht: null, critic: "", anker: null, ...p,
     }) as AnnotatieElement;
 
   const doc = (elementen: AnnotatieElement[]): AnnotatieDocument =>
@@ -615,25 +612,3 @@ describe("bronversieMelding", () => {
   });
 });
 
-describe("isNietBeoordeeld", () => {
-  it("herkent een agent-voorstel dat de Critic oversloeg", () => {
-    // De echte casus (2 sep 2026): 1 van de 32 markeringen bij art. 2 lid 1 IW 1990 kwam binnen met
-    // lifecycle "voorgesteld", lege aandacht en critic_rondes []. Zonder eigen badge is dat op de
-    // kaart niet van "geen bezwaar" te onderscheiden.
-    expect(isNietBeoordeeld({ aandacht: "", herkomst: "agent" })).toBe(true);
-    expect(isNietBeoordeeld({ herkomst: "agent" })).toBe(true);
-    expect(isNietBeoordeeld({ aandacht: null, herkomst: "agent" })).toBe(true);
-  });
-
-  it("zwijgt zodra de Critic wél een oordeel gaf", () => {
-    for (const a of ["groen", "geel", "rood"]) {
-      expect(isNietBeoordeeld({ aandacht: a, herkomst: "agent" })).toBe(false);
-    }
-  });
-
-  it("laat een eigen markering van de jurist met rust", () => {
-    // Die beoordeelt de Critic niet – zijn oordeel komt als `critic_suggestie` binnen. Het label
-    // zou daar de normale gang van zaken als een tekortkoming laten lezen.
-    expect(isNietBeoordeeld({ aandacht: "", herkomst: "mens" })).toBe(false);
-  });
-});

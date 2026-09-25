@@ -44,14 +44,6 @@ class Dekking(BaseModel):
     proces: dict = Field(default_factory=dict)
 
 
-class CriticSuggestie(BaseModel):
-    element_id: str = Field(min_length=1, max_length=64)
-    aandacht: Literal["groen", "geel", "rood"]
-    motivatie: str
-    voorstel_klasse: str = ""
-    voorstel_tekst: str = ""
-
-
 class Batch(BaseModel):
     batch_id: str = Field(min_length=1, max_length=128)
     doel: Doel
@@ -60,7 +52,6 @@ class Batch(BaseModel):
     elementen: list[Element] = Field(default_factory=list, max_length=5000)
     dekking: Dekking = Field(default_factory=Dekking)
     run: dict = Field(default_factory=dict)
-    suggesties: list[CriticSuggestie] = Field(default_factory=list, max_length=1000)
 
 
 class Beslissing(BaseModel):

@@ -312,12 +312,9 @@ def test_server_persists_node_target_and_actual_tool_trace_with_batch(monkeypatc
     writer.verwerk({"type": "element", "element": {"id": "e1", "klasse": "Rechtsobject", "tekst": T1,
                     "ankers": [{"bron_iri": L1, "tekst": T1, "start": 0, "eind": len(T1),
                                 "bron_hash": snap["segmenten"][0]["bron_hash"]}]}})
-    writer.verwerk({"type": "suggestie", "suggestie": {"element_id": "human-7",
-                    "aandacht": "geel", "motivatie": "Controleer de klasse"}})
     events = run(beurt._leg_vast(writer, settings=make_settings(), run=SimpleNamespace(run_id="r1"),
                                 gesprek_id="g1", gestopt=False, user_id="jurist"))
-    assert saved["batch"]["suggesties"] == [{"element_id": "human-7", "aandacht": "geel",
-                                            "motivatie": "Controleer de klasse"}]
+    assert "suggesties" not in saved["batch"]
     assert saved["batch"]["batch_id"] == "r1"
     assert saved["batch"]["verwachte_revisies"] == {L1: 3}
     assert saved["batch"]["dekking"] == {"voltooid": True, "bereik": [L1], "parent_context": True,

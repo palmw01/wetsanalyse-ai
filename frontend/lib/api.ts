@@ -8,10 +8,8 @@ import {
   parseElement,
   parseHergebruik,
   parseKandidaten,
-  parseOntbrekend,
   parseRun,
   parseRunStart,
-  parseSuggestie,
 } from "./agentEvents";
 import type {
   ApiError,
@@ -58,7 +56,6 @@ import type {
   GesprekSamenvatting,
   GraafArtikel,
   OngelezenAantalOut,
-  OntbrekendItem,
   RunStart,
   VoorstelElement,
 } from "./types";
@@ -525,9 +522,6 @@ export type AgentHandlers = {
     onElement?: (el: VoorstelElement) => void;
     /** De herkomst van deze beurt (model/agentversie); komt vóór de elementen. */
     onRun?: (run: AgentRun) => void;
-    onOntbrekend?: (items: OntbrekendItem[]) => void;
-    /** Kanttekening van de Critic bij een markering die de JURIST maakte. Nooit een wijziging. */
-    onSuggestie?: (s: { element_id: string; aandacht: string; motivatie: string }) => void;
   /** De vraag noemde een onderwerp, geen bepaling: dit zijn de gevonden bepalingen om uit te kiezen. */
   onKandidaten?: (k: AgentKandidaat[]) => void;
   /** Lex hergebruikte (een deel van) de gedeelde laag in plaats van opnieuw te annoteren. */
@@ -737,9 +731,7 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
               doel?: unknown;
               element?: unknown;
               run?: unknown;
-              items?: unknown;
               sources?: unknown;
-              suggestie?: unknown;
               kandidaten?: unknown;
               hergebruik?: unknown;
               seq?: number;
@@ -787,14 +779,6 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
         else if (ev.type === "run" && ev.run) {
           const run = geldig(parseRun, ev.run, "run");
           if (run) handlers.onRun?.(run);
-        }
-        else if (ev.type === "ontbrekend") {
-          const items = geldig(parseOntbrekend, ev.items ?? [], "ontbrekend");
-          if (items) handlers.onOntbrekend?.(items);
-        }
-        else if (ev.type === "suggestie" && ev.suggestie) {
-          const suggestie = geldig(parseSuggestie, ev.suggestie, "suggestie");
-          if (suggestie) handlers.onSuggestie?.(suggestie);
         }
         else if (ev.type === "kandidaten") {
           const kandidaten = geldig(parseKandidaten, ev.kandidaten ?? [], "kandidaten");
