@@ -755,8 +755,8 @@
         "tekst": "voetgangers",
         "klasse": "Rechtssubject",
         "motivatie": "Dragers van het verlof.",
-        "start": 4,
-        "end": 15
+        "start": 49,
+        "end": 60
       },
       {
         "id": "E02",
@@ -820,8 +820,8 @@
         "tekst": "voetgangers",
         "klasse": "Rechtssubject",
         "motivatie": "Dragers van het verlof.",
-        "start": 4,
-        "end": 15
+        "start": 60,
+        "end": 71
       }
     ],
     "samenhang": "N01 verlof; N02 waarschuwing voor komende toestand, niet een bevel om snel te lopen.",
@@ -877,8 +877,8 @@
         "tekst": "voetgangers",
         "klasse": "Rechtssubject",
         "motivatie": "Algemene groep in de verbodstak.",
-        "start": 4,
-        "end": 15
+        "start": 48,
+        "end": 59
       }
     ],
     "samenhang": "R01 verbod en R02 doorloopplicht hebben andere actorstatus. Geen algemene plicht om midden op de weg te stoppen.",

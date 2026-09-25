@@ -65,13 +65,13 @@ def _foutcategorie(v: list[Ref], r: list[Ref]) -> Counter[str]:
 
 
 def meet(cases: list[dict[str, Any]], herhalingen: int, settings: Any, maak_llm, rapport: dict[str, Any],
-         bewaar=lambda: None) -> None:
+         bewaar=lambda: None, routes: tuple[str, ...] = ROUTES) -> None:
     from agent.agent import answer_stream      # pas hier: agentmodules laden de configuratie
 
     async def run():
         for ronde in range(1, herhalingen + 1):
             for c in cases:
-                for route in ROUTES:          # afwisselend per casus, zodat een storing beide raakt
+                for route in routes:          # afwisselend per casus, zodat een storing beide raakt
                     s = settings.model_copy(update={"annotation_pipeline": route})
                     llm = Capture(maak_llm(s))
                     start = time.monotonic()
@@ -223,6 +223,8 @@ def main() -> int:
     ap.add_argument("--offline", action="store_true")
     ap.add_argument("--analyseer", type=Path, help="alleen een bestaand rapport analyseren")
     ap.add_argument("--md", type=Path)
+    ap.add_argument("--routes", nargs="+", choices=ROUTES, default=list(ROUTES),
+                    help="alleen deze routes; gebruik dit alleen als de andere route ongewijzigd is")
     args = ap.parse_args()
     if args.analyseer:
         a = analyseer(json.loads(args.analyseer.read_text()))
@@ -239,11 +241,11 @@ def main() -> int:
         else:
             from agent.adapters.anthropic_llm import AnthropicLLM
             maak = AnthropicLLM
-        rapport = {"status": "bezig", "model": settings.llm_model, "offline": args.offline,
+        rapport = {"status": "bezig", "model": settings.llm_model, "offline": args.offline, "routes": args.routes,
                    "herhalingen": args.herhalingen, "casussen": cases, "runs": []}
         bewaar = lambda: args.output.write_text(json.dumps(rapport, ensure_ascii=False, indent=2))  # noqa: E731
         try:
-            meet(cases, args.herhalingen, settings, maak, rapport, bewaar)
+            meet(cases, args.herhalingen, settings, maak, rapport, bewaar, tuple(args.routes))
             rapport["status"] = "gemeten_nog_niet_juridisch_beoordeeld"
         except Exception as exc:
             rapport.update(status="niet_volledig_gemeten", fout=f"{type(exc).__name__}: {str(exc)[:300]}")

@@ -157,3 +157,27 @@ def test_graaf_hybride_tak_heeft_geen_critic(tak):
     assert "hybride_annoteer" in nodes and not {"critic", "patch", "herzie", "annoteer"} & nodes
     assert ("hybride_annoteer", "emit", "", False) in edges or any(
         e[0] == "hybride_annoteer" and e[1] == "emit" for e in edges)
+
+
+# --- PR 17: het model kiest geen grens meer (SPAN_ERROR) --------------------------------------
+
+def test_zonder_spankeuze_krijgt_het_model_geen_opties_en_wordt_een_optie_genegeerd():
+    from agent.jas_pipeline.classificatie import systeemprompt, toolschema, userprompt
+    from bronmodel import Span, tekst_hash
+    from agent.jas_pipeline.kandidaten import BronSpan, Candidate, Evidence, SpanOption
+    t = "binnen zes weken na betaling"
+    k = Candidate.maak(Span("urn:t", 0, 16, t[:16], tekst_hash(t)), ["Tijdsaanduiding", "Voorwaarde"],
+                       [Evidence(detector="d", code="C")],
+                       [SpanOption(soort="kern", span=BronSpan(bron_iri="urn:t", start=7, eind=16, tekst=t[7:16],
+                                                               bron_hash=tekst_hash(t)))]).model_copy(update={"label": "C001"})
+    schema = toolschema([k])["input_schema"]["properties"]["beslissingen"]["items"]["properties"]["optie"]["enum"]
+    assert schema == [""] and "opties:" not in userprompt([k], t) and "spanopties" not in systeemprompt([k])
+    [b] = valideer([k], [{"kandidaat": "C001", "beslissing": "Tijdsaanduiding", "optie": "C001.O1"}], spankeuze=False)
+    assert b.status is CandidateStatus.ACCEPTED and b.optie == ""
+    assert toolschema([k], spankeuze=True)["input_schema"]["properties"]["beslissingen"]["items"]["properties"]["optie"]["enum"] == ["", "C001.O1"]
+
+
+def test_de_run_legt_vast_of_het_model_de_grens_mocht_kiezen():
+    run = next(e for e in _draai(KetenLLM()) if e["type"] == "run")["run"]
+    from agent.jas_pipeline.classificatie import promptversie
+    assert run["instellingen"]["hybride"]["meting"]["classifier_prompt"] == promptversie(False) != promptversie(True)

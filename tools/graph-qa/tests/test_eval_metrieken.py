@@ -85,3 +85,17 @@ def test_niets_te_meten_is_geen_gratis_een():
     m = classificatie_metrieken([], [], "silver")
     assert m["micro"]["precision"] is None and m["macro_f1"] is None and m["exact_span"] is None
     assert kandidaat_metrieken([], [], "silver")["candidate_recall"] is None
+
+
+def test_elke_referentiemarkering_is_letterlijk_en_ligt_op_woordgrenzen():
+    """Een offset midden in een woord telt een correcte keten als fout. Gevonden in de A/B van
+    25 sep 2026: 'voetgangers' wees in RVV01–03 naar het begin van 'voetgangerslichten'."""
+    import re
+    woord = re.compile(r"\w")
+    for c in json.loads(CASES.read_text(encoding="utf-8")):
+        t = c["tekst"]
+        for a in c["annotaties"]:
+            s, e = a["start"], a["end"]
+            assert t[s:e] == a["tekst"], (c["id"], a["id"])
+            assert not (s > 0 and woord.match(t[s - 1]) and woord.match(t[s])), (c["id"], a["id"], "begin")
+            assert not (e < len(t) and woord.match(t[e]) and woord.match(t[e - 1])), (c["id"], a["id"], "eind")

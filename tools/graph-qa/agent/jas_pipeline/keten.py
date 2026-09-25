@@ -79,7 +79,8 @@ def _toelichting(k: Candidate, b: Beslissing) -> str:
     return f"{b.klasse}, {wie} ({signalen}). Herkenningsvraag: {vraag}"
 
 
-def _voorstel(k: Candidate, b: Beslissing, kaart: CorpusMap, corpus: str, lid: str, vindplaats: str) -> dict[str, Any]:
+def _voorstel(k: Candidate, b: Beslissing, kaart: CorpusMap, corpus: str, lid: str, vindplaats: str,
+              spankeuze: bool = False) -> dict[str, Any]:
     start, eind = _grens(k, b.optie)
     seg = kaart.segment(k.span.bron_iri)
     span = Span(k.span.bron_iri, start, eind, seg.tekst[start:eind], seg.bron_hash)
@@ -94,11 +95,11 @@ def _voorstel(k: Candidate, b: Beslissing, kaart: CorpusMap, corpus: str, lid: s
         klasse=b.klasse, tekst=span.tekst, lid=lid, toelichting=_toelichting(k, b),
         alternatieven=alternatieven, grounded=True, vindplaats=vindplaats,
         anker=anker, ankers=[span.anker()],
-        trace=_spoor(k, b),
+        trace=_spoor(k, b, spankeuze),
     ).model_dump()
 
 
-def _spoor(k: Candidate, b: Beslissing) -> dict[str, Any]:
+def _spoor(k: Candidate, b: Beslissing, spankeuze: bool = False) -> dict[str, Any]:
     """Het herkomstspoor van één element (opdracht §27, §40). Wat de hele beurt deelt – taalmodel,
     detectorversies, methode- en promptversie, model – staat in de `run`; hier alleen wat per
     element verschilt. `vervolledig` voegt validatie, twijfel en resolutie toe."""
@@ -111,7 +112,7 @@ def _spoor(k: Candidate, b: Beslissing) -> dict[str, Any]:
                                      for o in k.span_options]},
         "beslissing": b.model_dump(mode="json"),
         # Alleen als er een model aan te pas kwam: de exacte regel die het over deze kandidaat zag.
-        "vraag": kandidaatregel(k) if b.door == "model" else "",
+        "vraag": kandidaatregel(k, spankeuze) if b.door == "model" else "",
     }
 
 
@@ -144,7 +145,7 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
     meting: dict[str, Any] = {"llm_calls": 0, "kandidaten": len(fusie.kandidaten),
                               "gedegradeerd": sorted({t.bron_iri for t in teksten if t.analyse and t.analyse.gedegradeerd}),
                               "taal_model": next((t.analyse.model for t in teksten if t.analyse), ""),
-                              "classifier_prompt": promptversie()}
+                              "classifier_prompt": promptversie(settings.classifier_spankeuze)}
 
     beslissingen: list[Beslissing] = []
     naar_model: list[Candidate] = []
@@ -155,7 +156,8 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
         else:
             beslissingen.append(b)
     for batch in batches(naar_model, settings.classifier_granulariteit):
-        beslissingen += classificeer(llm, model, batch, corpus, settings.classifier_temperature, meting)
+        beslissingen += classificeer(llm, model, batch, corpus, settings.classifier_temperature, meting,
+                                     spankeuze=settings.classifier_spankeuze)
 
     kaart = CorpusMap(corpus_segmenten)
     per_id = fusie.per_id()
@@ -163,7 +165,7 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
     for b in sorted(beslissingen, key=lambda b: b.label):
         if b.status is not CandidateStatus.ACCEPTED:
             continue
-        v = _voorstel(per_id[b.kandidaat_id], b, kaart, corpus, lid, vindplaats)
+        v = _voorstel(per_id[b.kandidaat_id], b, kaart, corpus, lid, vindplaats, settings.classifier_spankeuze)
         sleutel = (v["ankers"][0]["bron_iri"], v["ankers"][0]["start"], v["ankers"][0]["eind"], v["klasse"])
         if sleutel not in gezien:                 # twee kandidaten die op dezelfde optie uitkomen
             gezien.add(sleutel)
@@ -185,7 +187,7 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
                 if te_reviewen and settings.gerichte_review else [])
     voorstellen, beslissingen, transities = los_op(
         [{**v, "_label": label_van[v["id"]]} for v in voorstellen], beslissingen, twijfels, oordelen, per_label,
-        lambda k, b: _voorstel(k, b, kaart, corpus, lid, vindplaats))
+        lambda k, b: _voorstel(k, b, kaart, corpus, lid, vindplaats, settings.classifier_spankeuze))
     # Wat de resolver maakte of wijzigde, gaat opnieuw door dezelfde controles.
     per_b = {b.label: b for b in beslissingen}
     voorstellen, na = valideer([({k: x for k, x in v.items() if k != "_label"}, per_b[v["_label"]])

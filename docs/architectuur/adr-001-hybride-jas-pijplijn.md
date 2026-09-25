@@ -482,3 +482,6 @@ De legacy-baseline wordt gemeten met de instrumentatie van `feat/stabiliteitsben
 3 runs). Die meting kost modelaanroepen en is op de datum van dit document **nog niet
 uitgevoerd**. De uitkomst komt als bijlage bij dit ADR, met model, temperatuur (providerdefault),
 `prompt_hash` en `methode_versie` erbij.
+
+**Gemeten op 25 sep 2026:** zie [metingen/2026-09-25-ab-legacy-hybrid.md](metingen/2026-09-25-ab-legacy-hybrid.md)
+(legacy tegen hybrid_v1, vóór en ná PR 17).
