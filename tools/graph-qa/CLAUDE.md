@@ -60,6 +60,12 @@ kandidaatmodel (`kandidaten.py`) en de detectoren (`detectoren/`). **Een detecto
 aanreiken meet `python -m eval.kandidaat_eval` (seconden, geen model). Dat is ankerdekking, geen
 recall.
 
+**Het JAS-subtype** (`jas_pipeline/subtype.py`) maakt het onderscheid binnen de drie samengevoegde
+klassen machineleesbaar: `jas_subtype` op het element (variabele/variabelewaarde,
+parameter/parameterwaarde, delegatiebevoegdheid). Alleen bij eenduidig bewijs uit de detectiecodes;
+anders leeg – nooit geraden. Het reist via het v2-contract naar de api, de graaf (`jas:subtype`) en
+de exports.
+
 **Elke code in een `trace` heeft een leesbare verklaring** in `jas_pipeline/verklaringen.yaml`
 (detectie, besluit, twijfel, resolutie, validatie, classifier); `tests/test_verklaringen.py` weigert
 een code zonder verklaring én een verklaring voor een code die niet meer bestaat. Nieuwe detectorregel

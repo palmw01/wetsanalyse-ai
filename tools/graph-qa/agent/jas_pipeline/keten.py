@@ -28,6 +28,7 @@ from .besluit import Beslissing, deterministisch
 from .classificatie import batches, classificeer, kandidaatregel, optie_ids, promptversie
 from .dekking import controleer_a, structureel
 from .onzekerheid import REVIEWBAAR, signaleer
+from .subtype import bepaal as bepaal_subtype
 from .resolver import los_op
 from .review import beoordeel
 from .validatie import valideer
@@ -97,6 +98,7 @@ def _voorstel(k: Candidate, b: Beslissing, kaart: CorpusMap, corpus: str, lid: s
         klasse=b.klasse, tekst=span.tekst, lid=lid, toelichting=_toelichting(k, b),
         alternatieven=alternatieven, grounded=True, vindplaats=vindplaats,
         anker=anker, ankers=[span.anker()],
+        jas_subtype=bepaal_subtype(b.klasse, (e.code for e in k.evidence)),
         trace=_spoor(k, b, spankeuze),
     ).model_dump()
 

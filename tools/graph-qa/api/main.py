@@ -12,7 +12,7 @@ Endpoint: POST /v1/chat
     {"type": "done"}
     {"type": "error", "message": "..."}
     (annotatie-route emit daarnaast {"type":"doel",...}, één {"type":"run","run":{...}} met de
-     herkomst van de beurt (model/provider/agent_versie/critic_rondes/stop_reden) vóór de elementen,
+     herkomst van de beurt (model/provider/agent_versie/stop_reden) vóór de elementen,
      {"type":"element",...} – het element draagt een Critic-`aandacht` (groen|geel|rood) +
      `critic`-motivatie – en één {"type":"ontbrekend","items":[...]})
 

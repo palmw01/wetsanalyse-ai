@@ -28,7 +28,6 @@ CONTRACT = Path(__file__).resolve().parents[3] / "api" / "app" / "annotatie_cont
 #: uitzondering: hier weet de agent iets niet wat het contract wél eist.
 OPGEVANGEN = {
     ("AnnotatieVoorstel", "aandacht"),   # "" → None
-    ("CriticRonde", "aandacht"),         # "" → None
     ("AgentRun", "tijd"),                # None → weggelaten, api vult zelf
     # Geen typeverschil maar een naamsverschil dat de api zelf afhandelt: "" betekent daar "geen id,
     # match op tekst+lid" en dat is precies de bedoelde semantiek.
@@ -41,19 +40,18 @@ INTERN = {("AnnotatieVoorstel", "grounded")}
 
 PAREN = [
     ("AnnotatieVoorstel", "ElementInvoer"),
-    ("CriticRonde", "CriticRonde"),
     ("AnnotatieAlternatief", "Alternatief"),
     ("AgentRun", "AgentRun"),
 ]
 
 
-def _api_velden(klasse: str) -> dict[str, str]:
+def _api_velden(klasse: str, bestand: Path = CONTRACT) -> dict[str, str]:
     """De veldtypes van één contractklasse, uit de bron gelezen.
 
     Importeren kan niet: `annotatie_contracts` gebruikt relatieve imports en graph-qa heeft de api
     niet als afhankelijkheid – dat is juist de scheiding die deze test bewaakt.
     """
-    bron = CONTRACT.read_text()
+    bron = bestand.read_text()
     blok = re.search(rf"^class {klasse}\(BaseModel\):(.*?)(?=^class |\Z)", bron, re.S | re.M)
     assert blok, f"contractklasse {klasse} niet gevonden"
     uit: dict[str, str] = {}
@@ -89,6 +87,10 @@ def _vorm(annotatie: object) -> str:
 def test_geen_stil_verschil_met_het_api_contract(agent_klasse, api_klasse):
     agent = getattr(am, agent_klasse).model_fields
     api = _api_velden(api_klasse)
+    if api_klasse == "ElementInvoer":
+        # Sinds contract 2 schrijft de agent via `annotatie_v2_contracts.Element`; een veld dat daar
+        # expliciet staat (bv. `jas_subtype`) reist mee, ook als het v1-contract het niet kent.
+        api = {**_api_velden("Element", CONTRACT.with_name("annotatie_v2_contracts.py")), **api}
 
     for naam, veld in agent.items():
         if (agent_klasse, naam) == ("AnnotatieVoorstel", "ankers"):
@@ -133,24 +135,13 @@ def test_v2_multiankers_blijven_getypeerd_en_behouden_aan_de_api_grens():
 
 def test_de_vertaling_dekt_alles_wat_in_opgevangen_staat():
     """Anders staat er een afspraak op papier die niemand uitvoert."""
-    element = {
-        "aandacht": "",
-        "critic_rondes": [{"ronde": 1, "aandacht": ""}, {"ronde": 2, "aandacht": "geel"}],
-    }
-    uit = naar_contract(element)
-    assert uit["aandacht"] is None
-    assert uit["critic_rondes"][0]["aandacht"] is None
-    assert uit["critic_rondes"][1]["aandacht"] == "geel", "een echt oordeel blijft staan"
+    assert naar_contract({"aandacht": ""})["aandacht"] is None
+    assert naar_contract({"aandacht": "geel"})["aandacht"] == "geel", "een echt oordeel blijft staan"
 
 
 def test_de_vertaling_laat_geldige_waarden_met_rust():
     element = {"aandacht": "rood", "klasse": "Voorwaarde", "tekst": "indien"}
     assert naar_contract(element) == element
-
-
-def test_een_element_zonder_rondes_krijgt_er_geen():
-    """De vertaling vult niets aan; ze zet alleen recht wat anders zou afketsen."""
-    assert "critic_rondes" not in naar_contract({"aandacht": "groen"})
 
 
 def test_leeg_is_niets_werkt_op_elk_veld():
