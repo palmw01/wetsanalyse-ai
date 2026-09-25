@@ -30,6 +30,7 @@ from .dekking import controleer_a, structureel
 from .onzekerheid import REVIEWBAAR, signaleer
 from .subtype import bepaal as bepaal_subtype
 from .resolver import los_op
+from .reviewload import splits
 from .review import beoordeel
 from .validatie import valideer
 from .detectoren import BronTekst, detecteer_alles
@@ -233,6 +234,8 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
     _vervolledig(voorstellen, beslissingen, (*bevindingen, *na), twijfels, transities)
     meting["twijfels"] = [t.model_dump() for t in twijfels]
     meting["resolutie"] = [t.model_dump() for t in transities]
+    # Juridisch tegenover technisch (V5, onderzoek §6): alleen rapportage, afgeleid uit het spoor.
+    meting["reviewload"] = splits(beslissingen, twijfels, transities)
     meting["deterministisch"] = sum(b.door != "model" for b in beslissingen)
     # Dekking A: gooit als een kandidaat zonder beslissing bleef – dat is een fout in de keten,
     # geen uitkomst om te rapporteren.

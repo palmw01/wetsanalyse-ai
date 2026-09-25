@@ -87,6 +87,7 @@ validatie:
 classifier:
   CLASSIFIER_GEEN_UITVOER: {naam: "Geen uitvoer van het model", uitleg: "Het model antwoordde niet via het hulpmiddel."}
   CLASSIFIER_OMITTED: {naam: "Overgeslagen door het model", uitleg: "Het model liet deze kandidaat weg."}
+  CLASSIFIER_CONTRACT_ERROR: {naam: "Technische storing van het model", uitleg: "Het model koos buiten wat voor dit fragment was toegestaan. Dat is een contractfout, geen juridische twijfel; de afhandeling is die van een onbesliste classificatie."}
   CLASSIFIER_ONGELDIGE_KLASSE: {naam: "Niet-toegestane klasse", uitleg: "Het model koos een klasse die voor deze kandidaat niet mocht."}
   CLASSIFIER_ONGELDIGE_OPTIE: {naam: "Niet-bestaande grens", uitleg: "Het model koos een grens die niet werd aangeboden."}
   VALIDATION_ERROR: {naam: "Afgekeurd bij de validatie", uitleg: "Het voorstel haalde een structurele controle niet en is verworpen."}

@@ -189,3 +189,48 @@ def _f1(p: float | None, r: float | None) -> float | None:
     if p is None or r is None:
         return None
     return 2 * p * r / (p + r) if p + r else 0.0
+
+
+# --- classifier-contract (onderzoek §9, V5) ---------------------------------------------------
+
+_ONGELDIGE_UITVOER = ("CLASSIFIER_GEEN_UITVOER", "CLASSIFIER_OMITTED")
+
+
+def contract_metrieken(register: list[dict[str, Any]], granulariteit: str = "universeel",
+                       resolutie: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    """Hoe vaak de classifier (en de reviewer) buiten zijn contract trad, op het beslisregister (V4).
+
+    - `leakage_count`: de ongeldige keuze stond wél in de batch-enum (de unie over de batch);
+    - `leakage_uit_specificiteit`: de ongeldige keuze was bij déze kandidaat door JAS-PRIORITY
+      weggehaald – een conflict tussen regel en model, geen gewone vergissing.
+
+    De batch-unie wordt herleid met dezelfde indeling als de keten (`classificatie.batches`): één
+    batch bij `universeel`, anders per familie van de eerste mogelijke klasse.
+    """
+    from agent.jas_pipeline.classificatie import FAMILIES
+    from agent.jas_pipeline.kandidaten import GEEN_ANNOTATIE
+
+    model = [b for b in register if b.get("door") == "model"]
+    sleutel = (lambda b: "alle") if granulariteit == "universeel" else (lambda b: FAMILIES[b["mogelijke_klassen"][0]])
+    unie: dict[str, set[str]] = defaultdict(set)
+    for b in model:
+        unie[sleutel(b)].update(b["mogelijke_klassen"], {GEEN_ANNOTATIE})
+    ongeldig_klasse = [b for b in model if b.get("classifier_reden", "").startswith("CLASSIFIER_ONGELDIGE_KLASSE:")]
+    gekozen = {id(b): b["classifier_reden"].split(":", 1)[1] for b in ongeldig_klasse}
+    ongeldig_optie = sum(b.get("classifier_reden", "").startswith("CLASSIFIER_ONGELDIGE_OPTIE:") for b in model)
+    ongeldige_uitvoer = sum(b.get("classifier_reden", "") in _ONGELDIGE_UITVOER for b in model)
+    fouten = len(ongeldig_klasse) + ongeldig_optie + ongeldige_uitvoer
+    review = [t for t in (resolutie or []) if t.get("reden") != "DEGRADED_PARSE"]
+    return {
+        "modelbeslissingen": len(model),
+        "invalid_class_selections": len(ongeldig_klasse),
+        "invalid_option_selections": ongeldig_optie,
+        "leakage_count": sum(gekozen[id(b)] in unie[sleutel(b)] for b in ongeldig_klasse),
+        "leakage_uit_specificiteit": sum(gekozen[id(b)] in b.get("vervallen", ()) for b in ongeldig_klasse),
+        "invalid_tool_outputs": ongeldige_uitvoer,
+        "contract_error_rate": fouten / len(model) if model else None,
+        "reviewer_gevallen": len(review),
+        "reviewer_contract_errors": sum(t.get("regel") == "R-ONGELDIG" for t in review),
+        "reviewer_contract_error_rate": (sum(t.get("regel") == "R-ONGELDIG" for t in review) / len(review)
+                                         if review else None),
+    }

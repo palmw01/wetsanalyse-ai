@@ -14,6 +14,10 @@
     }
   },
   "classifier": {
+    "CLASSIFIER_CONTRACT_ERROR": {
+      "naam": "Technische storing van het model",
+      "uitleg": "Het model koos buiten wat voor dit fragment was toegestaan. Dat is een contractfout, geen juridische twijfel; de afhandeling is die van een onbesliste classificatie."
+    },
     "CLASSIFIER_GEEN_UITVOER": {
       "naam": "Geen uitvoer van het model",
       "uitleg": "Het model antwoordde niet via het hulpmiddel."
@@ -699,5 +703,5 @@
       "uitleg": "Waarschuwing: hetzelfde fragment kreeg twee klassen."
     }
   },
-  "vocabulaire_versie": "3d011ff5657e"
+  "vocabulaire_versie": "627465db0aa8"
 }

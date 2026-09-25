@@ -45,6 +45,10 @@ class Oordeel(BaseModel):
     actie: str                  # KEEP | CHANGE | HUMAN_REVIEW
     klasse: str = ""            # alleen bij CHANGE
     geldig: bool = True         # False als de uitvoer niet te gebruiken was → resolver: HUMAN_REVIEW
+    # Alleen rapportage (V5): wat de reviewer werkelijk antwoordde, en waarom dat niet bruikbaar
+    # was. Zonder dit is na een R-ONGELDIG niet te zeggen of hij niets zei of iets ongeldigs.
+    ruw: dict | None = None
+    ongeldig_omdat: str = ""
 
 
 def _schema(twijfels: list[Twijfel]) -> dict[str, Any]:
@@ -70,6 +74,19 @@ def _prompt(twijfels: list[Twijfel], kandidaten: dict[str, Candidate], brontekst
             + "\n".join(regels))
 
 
+def _waarom_ongeldig(t: Twijfel, item: dict[str, Any] | None, items_ontbreken: bool) -> str:
+    if items_ontbreken:
+        return "geen tool-aanroep"
+    if item is None:
+        return "geen oordeel voor dit geval"
+    actie, klasse = str(item.get("actie", "")), str(item.get("klasse", ""))
+    if actie not in ACTIES:
+        return f"onbekende actie {actie[:40]!r}"
+    if actie == "CHANGE" and klasse not in t.alternatieven:
+        return f"klasse {klasse[:60]!r} is geen alternatief voor dit geval"
+    return ""
+
+
 def valideer(twijfels: list[Twijfel], items: list[dict[str, Any]] | None) -> list[Oordeel]:
     per = {}
     for item in items or []:
@@ -79,9 +96,12 @@ def valideer(twijfels: list[Twijfel], items: list[dict[str, Any]] | None) -> lis
     for t in twijfels:
         item = per.get(t.label)
         actie, klasse = (str(item.get("actie", "")), str(item.get("klasse", ""))) if item else ("", "")
-        ok = item is not None and actie in ACTIES and (actie != "CHANGE" or klasse in t.alternatieven)
+        waarom = _waarom_ongeldig(t, item, items is None)
+        ok = not waarom
         uit.append(Oordeel(label=t.label, actie=actie if ok else "HUMAN_REVIEW",
-                           klasse=klasse if ok and actie == "CHANGE" else "", geldig=ok))
+                           klasse=klasse if ok and actie == "CHANGE" else "", geldig=ok,
+                           ruw={"actie": actie[:40], "klasse": klasse[:60]} if item else None,
+                           ongeldig_omdat=waarom))
     return uit
 
 
