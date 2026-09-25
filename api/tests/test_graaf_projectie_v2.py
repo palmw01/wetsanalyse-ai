@@ -2,7 +2,7 @@ import pytest
 from rdflib import Dataset, Literal, URIRef
 from rdflib.plugins.sparql.parser import parseQuery
 
-from app.graaf_projectie_v2 import JAS, OA, REGISTER, SCHEMA, bouw_graaf, graph_iri, laag_iri, zoek_query
+from app.graaf_projectie_v2 import JAS, OA, REGISTER, SCHEMA, SCHEMA_VERSIE, bouw_graaf, graph_iri, laag_iri, zoek_query
 
 
 def dataset():
@@ -16,7 +16,7 @@ def dataset():
     for triple in bouw_graaf(laag, [element]):
         graph.add(triple)
     register = ds.graph(REGISTER)
-    register.add((SCHEMA, JAS.versie, Literal(2)))
+    register.add((SCHEMA, JAS.versie, Literal(SCHEMA_VERSIE)))
     register.add((laag_iri(laag["id"]), JAS.inGraaf, graph.identifier))
     register.add((laag_iri(laag["id"]), JAS.revisie, Literal(2)))
     # An unrelated graph has the exact same vocabulary; it must never leak into search.

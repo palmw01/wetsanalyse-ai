@@ -42,6 +42,9 @@ def _dataset(met_laag: bool) -> Dataset:
             FIXTURES / "jas_laag_voorbeeld.ttl", format="turtle")
         ds.graph(URIRef("urn:jas:graph:ontologie")).parse(ONTOLOGIE_TTL, format="turtle")
         ds.graph(URIRef("urn:jas:graph:vocabulaire")).parse(VOCABULAIRE_TTL, format="turtle")
+        # Een laag in projectieschema 3 (herkomst, beoordelingen, dekking), afdruk van de echte
+        # projectie – bewaakt door api/tests/test_graaf_rijk.py.
+        ds.graph(URIRef("urn:jas:graph:v2:laag-9-1")).parse(FIXTURES / "jas_laag_v3_voorbeeld.ttl", format="turtle")
     return ds
 
 
