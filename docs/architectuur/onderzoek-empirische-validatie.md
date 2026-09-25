@@ -920,6 +920,16 @@ Algemeen voor elke PR:
 - Juridisch/technisch/evaluatie apart; per familie en per tekstsoort.
 - Relationele checklist §14 als invulbare bijlage.
 - *Geen* totaalscore.
+- *Stand:* uitgevoerd in `eval/laagrapport.py`, dat een run-set van `compare_pipelines` inleest.
+  - Lagen: kandidaat, span, classificatie, proces, classifier-contract en stabiliteit, per familie
+    en per tekstsoort.
+  - Fouten per soort en per laag.
+  - Onder n = 20 staat bij elk percentage de teller en noemer.
+  - Checklist: `--bijlage` levert een vooringevulde JSON. Via `--checklist` gaat hij terug; de
+    correcties worden dan handmatige foutcodes, en vraag 7–9 worden per frame geteld.
+  - Het beslisregister draagt nu ook `detectoren` en `opties`. Die zijn nodig voor
+    `detector_contribution` en `candidate_recall_incl_opties`.
+  - `fouttaxonomie.uit_register` levert de volledige invoer, inclusief afgewezen kandidaten.
 
 **V7 – Baseline hybrid_v1 op de adjudicated set**
 

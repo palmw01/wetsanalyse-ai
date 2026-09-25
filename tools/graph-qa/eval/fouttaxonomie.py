@@ -214,6 +214,32 @@ def uit_uitkomst(uitkomst: Any, tekst: str | None = None, bron: str = "",
     return voorstellen, kandidaten
 
 
+def uit_register(register: list[dict[str, Any]], elementen: list[dict[str, Any]], tekst: str | None = None,
+                 bron: str = "", granulariteit: str = "universeel") -> tuple[list[Voorstel], list[Kandidaat]]:
+    """Volledige invoer uit het beslisregister (V4) plus de voorstellen: ook afgewezen kandidaten,
+    en de batch-unie herleid met dezelfde indeling als de keten."""
+    from agent.jas_pipeline.classificatie import FAMILIES
+
+    voorstellen, _ = uit_elementen(elementen, tekst, bron)
+    model = [b for b in register if b.get("door") == "model"]
+    sleutel = (lambda b: "alle") if granulariteit == "universeel" else (lambda b: FAMILIES[b["mogelijke_klassen"][0]])
+    unie: dict[str, set[str]] = {}
+    for b in model:
+        unie.setdefault(sleutel(b), set()).update(b["mogelijke_klassen"], {GEEN_ANNOTATIE})
+    kandidaten = []
+    for b in register:
+        s, e = kern(tekst, b["start"], b["eind"]) if tekst is not None else (b["start"], b["eind"])
+        opties = tuple(tuple(kern(tekst, o[0], o[1])) if tekst is not None else (o[0], o[1])
+                       for o in b.get("opties", ()))
+        kandidaten.append(Kandidaat(
+            label=b.get("label", ""), bron=bron, start=s, eind=e, klassen=tuple(b.get("mogelijke_klassen", ())),
+            codes=frozenset(b.get("bewijs", ())), vervallen=tuple(b.get("vervallen", ())), opties=opties,
+            status=b.get("status", ""), door=b.get("door", ""), klasse=b.get("klasse", ""),
+            reden=b.get("classifier_reden") or b.get("reden", ""),
+            batch_unie=frozenset(unie[sleutel(b)]) if b.get("door") == "model" else None))
+    return voorstellen, kandidaten
+
+
 # --- classificatie ------------------------------------------------------------------------------
 
 def _fout(primair: str, secundair: Iterable[str] = (), **kw: Any) -> Fout:
