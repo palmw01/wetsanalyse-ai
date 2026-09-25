@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write   # om `release/prd` te verzetten na een geslaagde promotie
-      packages: read
+      packages: write   # om de tags `prd`/`prd-vorige` te zetten (bescherming tegen ghcr-cleanup)
     # De required reviewer op deze environment is de poort vóór productie.
     environment: productie
     env:
@@ -150,6 +150,32 @@ jobs:
           wacht api
           wacht frontend
           wacht graph-qa
+
+      # ghcr-cleanup bewaart per image alleen de vijf nieuwste builds. Wat productie draait (en de
+      # versie daarvoor, voor een rollback) moet daar buiten vallen, anders verdwijnt het image
+      # onder een draaiende straat en komt de volgende replica niet op. De cleanup sluit deze twee
+      # tags uit. Pas ná de health-gate: `prd` hoort naar iets te wijzen dat gezond opkwam.
+      - name: Productie-images beschermen (tags prd en prd-vorige)
+        env:
+          IMG_API: ${{ steps.digests.outputs.api }}
+          IMG_FRONTEND: ${{ steps.digests.outputs.frontend }}
+          IMG_GRAPH_QA: ${{ steps.digests.outputs.graph_qa }}
+          IMG_BWB_IMPORT: ${{ steps.digests.outputs.bwb_import }}
+        run: |
+          set -euo pipefail
+          for img in "$IMG_API" "$IMG_FRONTEND" "$IMG_GRAPH_QA" "$IMG_BWB_IMPORT"; do
+            repo="${img%@*}"
+            # De vorige productieversie schuift door naar prd-vorige (bestaat de tag nog niet, dan
+            # is dit de eerste beschermde promotie).
+            if docker buildx imagetools inspect "$repo:prd" >/dev/null 2>&1; then
+              oud=$(docker buildx imagetools inspect "$repo:prd" --format '{{ .Manifest.Digest }}')
+              if [ "$repo@$oud" != "$img" ]; then
+                docker buildx imagetools create -t "$repo:prd-vorige" "$repo@$oud"
+              fi
+            fi
+            docker buildx imagetools create -t "$repo:prd" "$img"
+            echo "  $repo:prd → ${img#*@}"
+          done
 
       # Wat draait er in productie? Die vraag is nu met git te beantwoorden in plaats van met de
       # portal. De tag blijft het onveranderlijke ijkpunt; deze branch is de aanwijzer die meebeweegt.
