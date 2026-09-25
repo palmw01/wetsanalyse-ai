@@ -1,0 +1,1979 @@
+{
+ "bron": "export LI 2008 §9.5 (BWBR0024096, divisie 9.5), run 25 sep 2026 12:50Z; alleen spoorvelden, ingekort voor V3",
+ "granulariteit": "universeel",
+ "elementen": [
+  {
+   "klasse": "Rechtsobject",
+   "aandacht": null,
+   "tekst": "de betalingstermijn",
+   "ankers": [
+    {
+     "start": 4,
+     "eind": 23
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C001",
+     "span": {
+      "start": 4,
+      "eind": 23
+     },
+     "mogelijke_klassen": [
+      "Rechtssubject",
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "bewijs": [
+      {
+       "code": "SUBJECT_NP",
+       "detail": ""
+      }
+     ],
+     "spanopties": [
+      {
+       "start": 4,
+       "eind": 39
+      }
+     ]
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Rechtsobject"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Rechtsobject",
+   "aandacht": null,
+   "tekst": "een aanslag",
+   "ankers": [
+    {
+     "start": 28,
+     "eind": 39
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C002",
+     "span": {
+      "start": 28,
+      "eind": 39
+     },
+     "mogelijke_klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde",
+      "Rechtssubject"
+     ],
+     "bewijs": [
+      {
+       "code": "OBJECT_NP",
+       "detail": ""
+      }
+     ],
+     "spanopties": []
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Rechtsobject"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Rechtsobject",
+   "aandacht": null,
+   "tekst": "de dagtekening van een aanslagbiljet",
+   "ankers": [
+    {
+     "start": 117,
+     "eind": 153
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C005",
+     "span": {
+      "start": 117,
+      "eind": 153
+     },
+     "mogelijke_klassen": [
+      "Rechtsfeit",
+      "Voorwaarde",
+      "Rechtsobject"
+     ],
+     "bewijs": [
+      {
+       "code": "NOMINALIZED_ACTION",
+       "detail": ""
+      }
+     ],
+     "spanopties": []
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Rechtsobject"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Rechtsobject",
+   "aandacht": null,
+   "tekst": "de dagtekening",
+   "ankers": [
+    {
+     "start": 117,
+     "eind": 131
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C006",
+     "span": {
+      "start": 117,
+      "eind": 131
+     },
+     "mogelijke_klassen": [
+      "Rechtssubject",
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "bewijs": [
+      {
+       "code": "SUBJECT_NP",
+       "detail": ""
+      }
+     ],
+     "spanopties": [
+      {
+       "start": 117,
+       "eind": 153
+      }
+     ]
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Rechtsobject"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Rechtsobject",
+   "aandacht": null,
+   "tekst": "een aanslagbiljet",
+   "ankers": [
+    {
+     "start": 136,
+     "eind": 153
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C007",
+     "span": {
+      "start": 136,
+      "eind": 153
+     },
+     "mogelijke_klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde",
+      "Rechtssubject"
+     ],
+     "bewijs": [
+      {
+       "code": "OBJECT_NP",
+       "detail": ""
+      }
+     ],
+     "spanopties": []
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Rechtsobject"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Rechtsobject",
+   "aandacht": null,
+   "tekst": "de betalingstermijn",
+   "ankers": [
+    {
+     "start": 174,
+     "eind": 193
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C008",
+     "span": {
+      "start": 174,
+      "eind": 193
+     },
+     "mogelijke_klassen": [
+      "Rechtssubject",
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "bewijs": [
+      {
+       "code": "SUBJECT_NP",
+       "detail": ""
+      }
+     ],
+     "spanopties": [
+      {
+       "start": 174,
+       "eind": 207
+      }
+     ]
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Rechtsobject"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Rechtsobject",
+   "aandacht": null,
+   "tekst": "de betalingstermijn",
+   "ankers": [
+    {
+     "start": 234,
+     "eind": 253
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C010",
+     "span": {
+      "start": 234,
+      "eind": 253
+     },
+     "mogelijke_klassen": [
+      "Rechtsobject",
+      "Rechtssubject",
+      "Variabele en variabelewaarde"
+     ],
+     "bewijs": [
+      {
+       "code": "ENUMERATED_NP",
+       "detail": ""
+      }
+     ],
+     "spanopties": [
+      {
+       "start": 234,
+       "eind": 267
+      }
+     ]
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Rechtsobject"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Rechtsobject",
+   "aandacht": null,
+   "tekst": "de dagtekening",
+   "ankers": [
+    {
+     "start": 296,
+     "eind": 310
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C012",
+     "span": {
+      "start": 296,
+      "eind": 310
+     },
+     "mogelijke_klassen": [
+      "Rechtssubject",
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "bewijs": [
+      {
+       "code": "SUBJECT_NP",
+       "detail": ""
+      }
+     ],
+     "spanopties": []
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Rechtsobject"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Rechtsobject",
+   "aandacht": null,
+   "tekst": "de betalingstermijn",
+   "ankers": [
+    {
+     "start": 339,
+     "eind": 358
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C013",
+     "span": {
+      "start": 339,
+      "eind": 358
+     },
+     "mogelijke_klassen": [
+      "Rechtssubject",
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "bewijs": [
+      {
+       "code": "SUBJECT_NP",
+       "detail": ""
+      }
+     ],
+     "spanopties": [
+      {
+       "start": 339,
+       "eind": 433
+      }
+     ]
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Rechtsobject"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Rechtsobject",
+   "aandacht": null,
+   "tekst": "de betalingstermijn",
+   "ankers": [
+    {
+     "start": 388,
+     "eind": 407
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C015",
+     "span": {
+      "start": 388,
+      "eind": 407
+     },
+     "mogelijke_klassen": [
+      "Rechtsobject",
+      "Rechtssubject",
+      "Variabele en variabelewaarde"
+     ],
+     "bewijs": [
+      {
+       "code": "ENUMERATED_NP",
+       "detail": ""
+      }
+     ],
+     "spanopties": [
+      {
+       "start": 388,
+       "eind": 433
+      }
+     ]
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Rechtsobject"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Voorwaarde",
+   "aandacht": null,
+   "tekst": "tenzij het jaartal aangeeft dat het een schrikkeljaar is",
+   "ankers": [
+    {
+     "start": 435,
+     "eind": 491
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C017",
+     "span": {
+      "start": 435,
+      "eind": 491
+     },
+     "mogelijke_klassen": [
+      "Voorwaarde"
+     ],
+     "bewijs": [
+      {
+       "code": "CONDITIONAL_CLAUSE",
+       "detail": ""
+      }
+     ],
+     "spanopties": []
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Voorwaarde"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Rechtsobject",
+   "aandacht": null,
+   "tekst": "het jaartal",
+   "ankers": [
+    {
+     "start": 442,
+     "eind": 453
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C018",
+     "span": {
+      "start": 442,
+      "eind": 453
+     },
+     "mogelijke_klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde",
+      "Rechtssubject"
+     ],
+     "bewijs": [
+      {
+       "code": "OBJECT_NP",
+       "detail": ""
+      }
+     ],
+     "spanopties": []
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Rechtsobject"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Variabele en variabelewaarde",
+   "aandacht": null,
+   "tekst": "een schrikkeljaar",
+   "ankers": [
+    {
+     "start": 471,
+     "eind": 488
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C019",
+     "span": {
+      "start": 471,
+      "eind": 488
+     },
+     "mogelijke_klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde",
+      "Rechtssubject"
+     ],
+     "bewijs": [
+      {
+       "code": "OBJECT_NP",
+       "detail": ""
+      }
+     ],
+     "spanopties": [
+      {
+       "start": 467,
+       "eind": 491
+      }
+     ]
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Variabele en variabelewaarde"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Rechtsobject",
+   "aandacht": null,
+   "tekst": "de termijn",
+   "ankers": [
+    {
+     "start": 507,
+     "eind": 517
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C021",
+     "span": {
+      "start": 507,
+      "eind": 517
+     },
+     "mogelijke_klassen": [
+      "Rechtssubject",
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "bewijs": [
+      {
+       "code": "SUBJECT_NP",
+       "detail": ""
+      }
+     ],
+     "spanopties": []
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Rechtsobject"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Operator",
+   "aandacht": null,
+   "tekst": "dan wel",
+   "ankers": [
+    {
+     "start": 538,
+     "eind": 545
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C022",
+     "span": {
+      "start": 538,
+      "eind": 545
+     },
+     "mogelijke_klassen": [
+      "Operator"
+     ],
+     "bewijs": [
+      {
+       "code": "LOGICAL",
+       "detail": ""
+      }
+     ],
+     "spanopties": []
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Operator"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Voorwaarde",
+   "aandacht": null,
+   "tekst": "Als de dagtekening van het aanslagbiljet valt op een andere dag dan de laatste dag van de kalendermaand",
+   "ankers": [
+    {
+     "start": 556,
+     "eind": 659
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C023",
+     "span": {
+      "start": 556,
+      "eind": 659
+     },
+     "mogelijke_klassen": [
+      "Voorwaarde"
+     ],
+     "bewijs": [
+      {
+       "code": "CONDITIONAL_CLAUSE",
+       "detail": ""
+      }
+     ],
+     "spanopties": []
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Voorwaarde"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Rechtsobject",
+   "aandacht": null,
+   "tekst": "de dagtekening van het aanslagbiljet",
+   "ankers": [
+    {
+     "start": 560,
+     "eind": 596
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C024",
+     "span": {
+      "start": 560,
+      "eind": 596
+     },
+     "mogelijke_klassen": [
+      "Rechtsfeit",
+      "Voorwaarde",
+      "Rechtsobject"
+     ],
+     "bewijs": [
+      {
+       "code": "NOMINALIZED_ACTION",
+       "detail": ""
+      }
+     ],
+     "spanopties": []
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Rechtsobject"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Rechtsobject",
+   "aandacht": null,
+   "tekst": "de dagtekening",
+   "ankers": [
+    {
+     "start": 560,
+     "eind": 574
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C025",
+     "span": {
+      "start": 560,
+      "eind": 574
+     },
+     "mogelijke_klassen": [
+      "Rechtssubject",
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "bewijs": [
+      {
+       "code": "SUBJECT_NP",
+       "detail": ""
+      }
+     ],
+     "spanopties": [
+      {
+       "start": 560,
+       "eind": 596
+      }
+     ]
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Rechtsobject"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Rechtsobject",
+   "aandacht": null,
+   "tekst": "het aanslagbiljet",
+   "ankers": [
+    {
+     "start": 579,
+     "eind": 596
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C026",
+     "span": {
+      "start": 579,
+      "eind": 596
+     },
+     "mogelijke_klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde",
+      "Rechtssubject"
+     ],
+     "bewijs": [
+      {
+       "code": "OBJECT_NP",
+       "detail": ""
+      }
+     ],
+     "spanopties": []
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Rechtsobject"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Tijdsaanduiding",
+   "aandacht": null,
+   "tekst": "de laatste dag",
+   "ankers": [
+    {
+     "start": 624,
+     "eind": 638
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C028",
+     "span": {
+      "start": 624,
+      "eind": 638
+     },
+     "mogelijke_klassen": [
+      "Tijdsaanduiding",
+      "Rechtsobject",
+      "Rechtssubject"
+     ],
+     "bewijs": [
+      {
+       "code": "TEMPORAL_RELATIVE_PERIOD",
+       "detail": ""
+      },
+      {
+       "code": "OBJECT_NP",
+       "detail": ""
+      },
+      {
+       "code": "PRIORITY_APPLIED",
+       "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+      }
+     ],
+     "spanopties": [
+      {
+       "start": 624,
+       "eind": 659
+      }
+     ]
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Tijdsaanduiding"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Rechtsobject",
+   "aandacht": null,
+   "tekst": "de termijn",
+   "ankers": [
+    {
+     "start": 669,
+     "eind": 679
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C030",
+     "span": {
+      "start": 669,
+      "eind": 679
+     },
+     "mogelijke_klassen": [
+      "Rechtssubject",
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "bewijs": [
+      {
+       "code": "SUBJECT_NP",
+       "detail": ""
+      }
+     ],
+     "spanopties": []
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Rechtsobject"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Rechtsobject",
+   "aandacht": null,
+   "tekst": "een betalingstermijn",
+   "ankers": [
+    {
+     "start": 701,
+     "eind": 721
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C032",
+     "span": {
+      "start": 701,
+      "eind": 721
+     },
+     "mogelijke_klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde",
+      "Rechtssubject"
+     ],
+     "bewijs": [
+      {
+       "code": "OBJECT_NP",
+       "detail": ""
+      }
+     ],
+     "spanopties": [
+      {
+       "start": 701,
+       "eind": 735
+      }
+     ]
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Rechtsobject"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Variabele en variabelewaarde",
+   "aandacht": null,
+   "tekst": "hetzelfde nummer",
+   "ankers": [
+    {
+     "start": 751,
+     "eind": 767
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C036",
+     "span": {
+      "start": 751,
+      "eind": 767
+     },
+     "mogelijke_klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde",
+      "Rechtssubject"
+     ],
+     "bewijs": [
+      {
+       "code": "OBJECT_NP",
+       "detail": ""
+      }
+     ],
+     "spanopties": []
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Variabele en variabelewaarde"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Voorwaarde",
+   "aandacht": null,
+   "tekst": "als dat van de dagtekening",
+   "ankers": [
+    {
+     "start": 774,
+     "eind": 800
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C037",
+     "span": {
+      "start": 774,
+      "eind": 800
+     },
+     "mogelijke_klassen": [
+      "Voorwaarde"
+     ],
+     "bewijs": [
+      {
+       "code": "CONDITIONAL_CLAUSE",
+       "detail": ""
+      }
+     ],
+     "spanopties": []
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Voorwaarde"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Rechtsobject",
+   "aandacht": null,
+   "tekst": "de dagtekening",
+   "ankers": [
+    {
+     "start": 786,
+     "eind": 800
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C038",
+     "span": {
+      "start": 786,
+      "eind": 800
+     },
+     "mogelijke_klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde",
+      "Rechtssubject"
+     ],
+     "bewijs": [
+      {
+       "code": "OBJECT_NP",
+       "detail": ""
+      }
+     ],
+     "spanopties": []
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Rechtsobject"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Voorwaarde",
+   "aandacht": null,
+   "tekst": "Als de dagtekening bijvoorbeeld 15 maart is",
+   "ankers": [
+    {
+     "start": 802,
+     "eind": 845
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C039",
+     "span": {
+      "start": 802,
+      "eind": 845
+     },
+     "mogelijke_klassen": [
+      "Voorwaarde"
+     ],
+     "bewijs": [
+      {
+       "code": "CONDITIONAL_CLAUSE",
+       "detail": ""
+      }
+     ],
+     "spanopties": []
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Voorwaarde"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Rechtsobject",
+   "aandacht": null,
+   "tekst": "de dagtekening",
+   "ankers": [
+    {
+     "start": 806,
+     "eind": 820
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C040",
+     "span": {
+      "start": 806,
+      "eind": 820
+     },
+     "mogelijke_klassen": [
+      "Rechtssubject",
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "bewijs": [
+      {
+       "code": "SUBJECT_NP",
+       "detail": ""
+      }
+     ],
+     "spanopties": []
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Rechtsobject"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Rechtsobject",
+   "aandacht": null,
+   "tekst": "de termijn",
+   "ankers": [
+    {
+     "start": 855,
+     "eind": 865
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C041",
+     "span": {
+      "start": 855,
+      "eind": 865
+     },
+     "mogelijke_klassen": [
+      "Rechtssubject",
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "bewijs": [
+      {
+       "code": "SUBJECT_NP",
+       "detail": ""
+      }
+     ],
+     "spanopties": []
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Rechtsobject"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Rechtsobject",
+   "aandacht": null,
+   "tekst": "de betalingstermijn",
+   "ankers": [
+    {
+     "start": 886,
+     "eind": 905
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C042",
+     "span": {
+      "start": 886,
+      "eind": 905
+     },
+     "mogelijke_klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde",
+      "Rechtssubject"
+     ],
+     "bewijs": [
+      {
+       "code": "OBJECT_NP",
+       "detail": ""
+      }
+     ],
+     "spanopties": [
+      {
+       "start": 883,
+       "eind": 905
+      }
+     ]
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Rechtsobject"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Rechtsobject",
+   "aandacht": null,
+   "tekst": "de dagtekening",
+   "ankers": [
+    {
+     "start": 922,
+     "eind": 936
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C044",
+     "span": {
+      "start": 922,
+      "eind": 936
+     },
+     "mogelijke_klassen": [
+      "Rechtssubject",
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "bewijs": [
+      {
+       "code": "SUBJECT_NP",
+       "detail": ""
+      }
+     ],
+     "spanopties": [
+      {
+       "start": 922,
+       "eind": 945
+      }
+     ]
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Rechtsobject"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Rechtsobject",
+   "aandacht": null,
+   "tekst": "de termijn",
+   "ankers": [
+    {
+     "start": 955,
+     "eind": 965
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C045",
+     "span": {
+      "start": 955,
+      "eind": 965
+     },
+     "mogelijke_klassen": [
+      "Rechtssubject",
+      "Rechtsobject",
+      "Variabele en variabelewaarde"
+     ],
+     "bewijs": [
+      {
+       "code": "SUBJECT_NP",
+       "detail": ""
+      }
+     ],
+     "spanopties": []
+    },
+    "beslissing": {
+     "status": "ACCEPTED",
+     "door": "model",
+     "reden": "",
+     "klasse": "Rechtsobject"
+    },
+    "twijfel": [],
+    "resolutie": []
+   }
+  },
+  {
+   "klasse": "Tijdsaanduiding",
+   "aandacht": "geel",
+   "tekst": "één maand",
+   "ankers": [
+    {
+     "start": 54,
+     "eind": 63
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C003",
+     "span": {
+      "start": 54,
+      "eind": 63
+     },
+     "mogelijke_klassen": [
+      "Tijdsaanduiding",
+      "Rechtsobject",
+      "Rechtssubject"
+     ],
+     "bewijs": [
+      {
+       "code": "TEMPORAL_DURATION",
+       "detail": ""
+      },
+      {
+       "code": "OBJECT_NP",
+       "detail": ""
+      },
+      {
+       "code": "PRIORITY_APPLIED",
+       "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+      }
+     ],
+     "spanopties": []
+    },
+    "beslissing": {
+     "status": "HUMAN_REVIEW",
+     "door": "model",
+     "reden": "R-ONGELDIG",
+     "klasse": "Tijdsaanduiding"
+    },
+    "twijfel": [
+     {
+      "reden": "CLASSIFIER_ABSTAIN",
+      "detail": "CLASSIFIER_ONGELDIGE_KLASSE:Variabele en variabelewaarde"
+     }
+    ],
+    "resolutie": [
+     {
+      "regel": "R-ONGELDIG"
+     }
+    ]
+   }
+  },
+  {
+   "klasse": "Tijdsaanduiding",
+   "aandacht": "geel",
+   "tekst": "zes weken",
+   "ankers": [
+    {
+     "start": 81,
+     "eind": 90
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C004",
+     "span": {
+      "start": 81,
+      "eind": 90
+     },
+     "mogelijke_klassen": [
+      "Tijdsaanduiding",
+      "Rechtsobject",
+      "Rechtssubject"
+     ],
+     "bewijs": [
+      {
+       "code": "TEMPORAL_DURATION",
+       "detail": ""
+      },
+      {
+       "code": "OBJECT_NP",
+       "detail": ""
+      },
+      {
+       "code": "PRIORITY_APPLIED",
+       "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+      }
+     ],
+     "spanopties": []
+    },
+    "beslissing": {
+     "status": "HUMAN_REVIEW",
+     "door": "model",
+     "reden": "R-ONGELDIG",
+     "klasse": "Tijdsaanduiding"
+    },
+    "twijfel": [
+     {
+      "reden": "CLASSIFIER_ABSTAIN",
+      "detail": "CLASSIFIER_ONGELDIGE_KLASSE:Variabele en variabelewaarde"
+     }
+    ],
+    "resolutie": [
+     {
+      "regel": "R-ONGELDIG"
+     }
+    ]
+   }
+  },
+  {
+   "klasse": "Tijdsaanduiding",
+   "aandacht": "geel",
+   "tekst": "één maand",
+   "ankers": [
+    {
+     "start": 198,
+     "eind": 207
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C009",
+     "span": {
+      "start": 198,
+      "eind": 207
+     },
+     "mogelijke_klassen": [
+      "Tijdsaanduiding",
+      "Rechtsobject",
+      "Rechtssubject"
+     ],
+     "bewijs": [
+      {
+       "code": "TEMPORAL_DURATION",
+       "detail": ""
+      },
+      {
+       "code": "OBJECT_NP",
+       "detail": ""
+      },
+      {
+       "code": "PRIORITY_APPLIED",
+       "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+      }
+     ],
+     "spanopties": []
+    },
+    "beslissing": {
+     "status": "HUMAN_REVIEW",
+     "door": "model",
+     "reden": "R-ONGELDIG",
+     "klasse": "Tijdsaanduiding"
+    },
+    "twijfel": [
+     {
+      "reden": "CLASSIFIER_ABSTAIN",
+      "detail": "CLASSIFIER_ONGELDIGE_KLASSE:Variabele en variabelewaarde"
+     }
+    ],
+    "resolutie": [
+     {
+      "regel": "R-ONGELDIG"
+     }
+    ]
+   }
+  },
+  {
+   "klasse": "Tijdsaanduiding",
+   "aandacht": "geel",
+   "tekst": "zes weken",
+   "ankers": [
+    {
+     "start": 258,
+     "eind": 267
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C011",
+     "span": {
+      "start": 258,
+      "eind": 267
+     },
+     "mogelijke_klassen": [
+      "Tijdsaanduiding",
+      "Rechtsobject",
+      "Rechtssubject"
+     ],
+     "bewijs": [
+      {
+       "code": "TEMPORAL_DURATION",
+       "detail": ""
+      },
+      {
+       "code": "OBJECT_NP",
+       "detail": ""
+      },
+      {
+       "code": "PRIORITY_APPLIED",
+       "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+      }
+     ],
+     "spanopties": []
+    },
+    "beslissing": {
+     "status": "HUMAN_REVIEW",
+     "door": "model",
+     "reden": "R-ONGELDIG",
+     "klasse": "Tijdsaanduiding"
+    },
+    "twijfel": [
+     {
+      "reden": "CLASSIFIER_ABSTAIN",
+      "detail": "CLASSIFIER_ONGELDIGE_KLASSE:Variabele en variabelewaarde"
+     }
+    ],
+    "resolutie": [
+     {
+      "regel": "R-ONGELDIG"
+     }
+    ]
+   }
+  },
+  {
+   "klasse": "Tijdsaanduiding",
+   "aandacht": "geel",
+   "tekst": "een maand",
+   "ankers": [
+    {
+     "start": 363,
+     "eind": 372
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C014",
+     "span": {
+      "start": 363,
+      "eind": 372
+     },
+     "mogelijke_klassen": [
+      "Tijdsaanduiding",
+      "Rechtsobject",
+      "Rechtssubject"
+     ],
+     "bewijs": [
+      {
+       "code": "TEMPORAL_DURATION",
+       "detail": ""
+      },
+      {
+       "code": "OBJECT_NP",
+       "detail": ""
+      },
+      {
+       "code": "PRIORITY_APPLIED",
+       "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+      }
+     ],
+     "spanopties": [
+      {
+       "start": 363,
+       "eind": 384
+      }
+     ]
+    },
+    "beslissing": {
+     "status": "HUMAN_REVIEW",
+     "door": "model",
+     "reden": "R-ONGELDIG",
+     "klasse": "Tijdsaanduiding"
+    },
+    "twijfel": [
+     {
+      "reden": "CLASSIFIER_ABSTAIN",
+      "detail": "CLASSIFIER_ONGELDIGE_KLASSE:Variabele en variabelewaarde"
+     }
+    ],
+    "resolutie": [
+     {
+      "regel": "R-ONGELDIG"
+     }
+    ]
+   }
+  },
+  {
+   "klasse": "Tijdsaanduiding",
+   "aandacht": "geel",
+   "tekst": "zes weken",
+   "ankers": [
+    {
+     "start": 412,
+     "eind": 421
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C016",
+     "span": {
+      "start": 412,
+      "eind": 421
+     },
+     "mogelijke_klassen": [
+      "Tijdsaanduiding",
+      "Rechtsobject",
+      "Rechtssubject"
+     ],
+     "bewijs": [
+      {
+       "code": "TEMPORAL_DURATION",
+       "detail": ""
+      },
+      {
+       "code": "OBJECT_NP",
+       "detail": ""
+      },
+      {
+       "code": "PRIORITY_APPLIED",
+       "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+      }
+     ],
+     "spanopties": [
+      {
+       "start": 412,
+       "eind": 433
+      }
+     ]
+    },
+    "beslissing": {
+     "status": "HUMAN_REVIEW",
+     "door": "model",
+     "reden": "R-ONGELDIG",
+     "klasse": "Tijdsaanduiding"
+    },
+    "twijfel": [
+     {
+      "reden": "CLASSIFIER_ABSTAIN",
+      "detail": "CLASSIFIER_ONGELDIGE_KLASSE:Variabele en variabelewaarde"
+     }
+    ],
+    "resolutie": [
+     {
+      "regel": "R-ONGELDIG"
+     }
+    ]
+   }
+  },
+  {
+   "klasse": "Rechtsobject",
+   "aandacht": "geel",
+   "tekst": "de kalendermaand",
+   "ankers": [
+    {
+     "start": 643,
+     "eind": 659
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C029",
+     "span": {
+      "start": 643,
+      "eind": 659
+     },
+     "mogelijke_klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde",
+      "Rechtssubject"
+     ],
+     "bewijs": [
+      {
+       "code": "OBJECT_NP",
+       "detail": ""
+      }
+     ],
+     "spanopties": []
+    },
+    "beslissing": {
+     "status": "HUMAN_REVIEW",
+     "door": "model",
+     "reden": "R-ONGELDIG",
+     "klasse": "Rechtsobject"
+    },
+    "twijfel": [
+     {
+      "reden": "CLASSIFIER_ABSTAIN",
+      "detail": "CLASSIFIER_ONGELDIGE_KLASSE:Tijdsaanduiding"
+     }
+    ],
+    "resolutie": [
+     {
+      "regel": "R-ONGELDIG"
+     }
+    ]
+   }
+  },
+  {
+   "klasse": "Tijdsaanduiding",
+   "aandacht": "geel",
+   "tekst": "een maand",
+   "ankers": [
+    {
+     "start": 680,
+     "eind": 689
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C031",
+     "span": {
+      "start": 680,
+      "eind": 689
+     },
+     "mogelijke_klassen": [
+      "Tijdsaanduiding",
+      "Rechtsobject",
+      "Rechtssubject"
+     ],
+     "bewijs": [
+      {
+       "code": "TEMPORAL_DURATION",
+       "detail": ""
+      },
+      {
+       "code": "OBJECT_NP",
+       "detail": ""
+      },
+      {
+       "code": "PRIORITY_APPLIED",
+       "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+      }
+     ],
+     "spanopties": []
+    },
+    "beslissing": {
+     "status": "HUMAN_REVIEW",
+     "door": "model",
+     "reden": "R-ONGELDIG",
+     "klasse": "Tijdsaanduiding"
+    },
+    "twijfel": [
+     {
+      "reden": "CLASSIFIER_ABSTAIN",
+      "detail": "CLASSIFIER_ONGELDIGE_KLASSE:Variabele en variabelewaarde"
+     }
+    ],
+    "resolutie": [
+     {
+      "regel": "R-ONGELDIG"
+     }
+    ]
+   }
+  },
+  {
+   "klasse": "Tijdsaanduiding",
+   "aandacht": "geel",
+   "tekst": "een maand",
+   "ankers": [
+    {
+     "start": 726,
+     "eind": 735
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C033",
+     "span": {
+      "start": 726,
+      "eind": 735
+     },
+     "mogelijke_klassen": [
+      "Tijdsaanduiding",
+      "Rechtsobject",
+      "Rechtssubject"
+     ],
+     "bewijs": [
+      {
+       "code": "TEMPORAL_DURATION",
+       "detail": ""
+      },
+      {
+       "code": "OBJECT_NP",
+       "detail": ""
+      },
+      {
+       "code": "PRIORITY_APPLIED",
+       "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+      }
+     ],
+     "spanopties": []
+    },
+    "beslissing": {
+     "status": "HUMAN_REVIEW",
+     "door": "model",
+     "reden": "R-ONGELDIG",
+     "klasse": "Tijdsaanduiding"
+    },
+    "twijfel": [
+     {
+      "reden": "CLASSIFIER_ABSTAIN",
+      "detail": "CLASSIFIER_ONGELDIGE_KLASSE:Variabele en variabelewaarde"
+     }
+    ],
+    "resolutie": [
+     {
+      "regel": "R-ONGELDIG"
+     }
+    ]
+   }
+  },
+  {
+   "klasse": "Voorwaarde",
+   "aandacht": "geel",
+   "tekst": "de dag die hetzelfde nummer heeft als dat van de dagtekening",
+   "ankers": [
+    {
+     "start": 740,
+     "eind": 800
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C034",
+     "span": {
+      "start": 740,
+      "eind": 800
+     },
+     "mogelijke_klassen": [
+      "Voorwaarde",
+      "Rechtssubject",
+      "Rechtsobject"
+     ],
+     "bewijs": [
+      {
+       "code": "RESTRICTIVE_RELATIVE",
+       "detail": ""
+      }
+     ],
+     "spanopties": []
+    },
+    "beslissing": {
+     "status": "HUMAN_REVIEW",
+     "door": "model",
+     "reden": "R-ONGELDIG",
+     "klasse": "Voorwaarde"
+    },
+    "twijfel": [
+     {
+      "reden": "CLASSIFIER_ABSTAIN",
+      "detail": "CLASSIFIER_ONGELDIGE_KLASSE:Tijdsaanduiding"
+     }
+    ],
+    "resolutie": [
+     {
+      "regel": "R-ONGELDIG"
+     }
+    ]
+   }
+  },
+  {
+   "klasse": "Rechtsobject",
+   "aandacht": "geel",
+   "tekst": "de dag",
+   "ankers": [
+    {
+     "start": 740,
+     "eind": 746
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C035",
+     "span": {
+      "start": 740,
+      "eind": 746
+     },
+     "mogelijke_klassen": [
+      "Rechtsobject",
+      "Variabele en variabelewaarde",
+      "Rechtssubject"
+     ],
+     "bewijs": [
+      {
+       "code": "OBJECT_NP",
+       "detail": ""
+      }
+     ],
+     "spanopties": [
+      {
+       "start": 740,
+       "eind": 800
+      }
+     ]
+    },
+    "beslissing": {
+     "status": "HUMAN_REVIEW",
+     "door": "model",
+     "reden": "R-ONGELDIG",
+     "klasse": "Rechtsobject"
+    },
+    "twijfel": [
+     {
+      "reden": "CLASSIFIER_ABSTAIN",
+      "detail": "CLASSIFIER_ONGELDIGE_KLASSE:Tijdsaanduiding"
+     }
+    ],
+    "resolutie": [
+     {
+      "regel": "R-ONGELDIG"
+     }
+    ]
+   }
+  },
+  {
+   "klasse": "Tijdsaanduiding",
+   "aandacht": "geel",
+   "tekst": "zes weken",
+   "ankers": [
+    {
+     "start": 906,
+     "eind": 915
+    }
+   ],
+   "trace": {
+    "kandidaat": {
+     "label": "C043",
+     "span": {
+      "start": 906,
+      "eind": 915
+     },
+     "mogelijke_klassen": [
+      "Tijdsaanduiding",
+      "Rechtsobject",
+      "Rechtssubject"
+     ],
+     "bewijs": [
+      {
+       "code": "TEMPORAL_DURATION",
+       "detail": ""
+      },
+      {
+       "code": "OBJECT_NP",
+       "detail": ""
+      },
+      {
+       "code": "PRIORITY_APPLIED",
+       "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+      }
+     ],
+     "spanopties": []
+    },
+    "beslissing": {
+     "status": "HUMAN_REVIEW",
+     "door": "model",
+     "reden": "R-ONGELDIG",
+     "klasse": "Tijdsaanduiding"
+    },
+    "twijfel": [
+     {
+      "reden": "CLASSIFIER_ABSTAIN",
+      "detail": "CLASSIFIER_ONGELDIGE_KLASSE:Variabele en variabelewaarde"
+     }
+    ],
+    "resolutie": [
+     {
+      "regel": "R-ONGELDIG"
+     }
+    ]
+   }
+  }
+ ]
+}

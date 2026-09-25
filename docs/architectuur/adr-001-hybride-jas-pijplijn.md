@@ -424,6 +424,11 @@ Elke PR bevat de 14 acceptatiepunten uit §36. Elke PR na PR 1 draagt een sectie
 
 ## 12. Fouttaxonomie
 
+> **Opgevolgd door fouttaxonomie v2** ([onderzoek-empirische-validatie §8](onderzoek-empirische-validatie.md)),
+> uitgevoerd in `tools/graph-qa/eval/fouttaxonomie.py` (validatieplan V3). V2 voegt onder meer
+> contract-, leakage-, hypothese- en spanfouten toe, en per fout de soort
+> (juridisch/technisch/evaluatie). De tabel hieronder blijft staan als historie.
+
 Elke analysefout en elke regressie krijgt precies één primaire categorie. De categorie hoort bij
 de eerste stap waar het misging, niet bij de stap waar het zichtbaar werd.
 
