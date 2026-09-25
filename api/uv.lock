@@ -2992,6 +2992,7 @@ dependencies = [
     { name = "httpx" },
     { name = "pydantic" },
     { name = "pyotp" },
+    { name = "pyshacl" },
     { name = "rdflib" },
     { name = "reportlab" },
     { name = "sqlalchemy", extra = ["asyncio"] },
@@ -3003,7 +3004,6 @@ dependencies = [
 [package.optional-dependencies]
 dev = [
     { name = "aiosqlite" },
-    { name = "pyshacl" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-httpx" },
@@ -3039,7 +3039,7 @@ requires-dist = [
     { name = "opentelemetry-sdk", marker = "extra == 'otel'", specifier = ">=1.44.0" },
     { name = "pydantic", specifier = ">=2.7" },
     { name = "pyotp", specifier = ">=2.9" },
-    { name = "pyshacl", marker = "extra == 'dev'", specifier = ">=0.30" },
+    { name = "pyshacl", specifier = ">=0.30" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.1.1" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23" },
     { name = "pytest-httpx", marker = "extra == 'dev'", specifier = ">=0.30" },

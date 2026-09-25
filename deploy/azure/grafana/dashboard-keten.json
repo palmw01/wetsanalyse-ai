@@ -369,6 +369,52 @@
       }
     },
     {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Annotatiegraaf wijkt af van Postgres",
+      "description": "Uitkomst van de lichte graafcontrole die de api elke ~10 reconcile-rondes draait (app/graafcontrole.py, logregel `annotatie_graafcontrole`): het aantal afwijkingen tussen de annotatiegraaf in GraphDB en Postgres – een laag die niet of met een andere revisie in het register staat, een graph die niet isomorf is met wat de projectie nu zou bouwen, verweesde graphs en gebroken invarianten (een `urn:bwb:`-subject in een laag). Een laag die nog niet geprojecteerd is telt niet mee (achterstand). Hoort op 0 te staan. Staat hij hoger, draai dan de volledige controle met SHACL: `GET /v1/admin/annotatie/graafcontrole` of het admin-MCP-tool `annotatie_graafcontrole`.",
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 18
+      },
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "__DSUID__"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "azureLogAnalytics": {
+            "resources": [
+              "__WORKSPACE__"
+            ],
+            "dashboardTime": true,
+            "timeColumn": "TimeGenerated",
+            "query": "ContainerAppConsoleLogs_CL\n| where ContainerAppName_s == '__APPNAME__-api'\n| extend j = parse_json(Log_s)\n| where tostring(j.bericht) == 'annotatie_graafcontrole'\n| summarize afwijkingen = max(toint(j.annotatie_graaf_afwijking)) by bin(TimeGenerated, 10m)\n| order by TimeGenerated asc"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "pointSize": 5,
+            "showPoints": "always"
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+    {
       "id": 9,
       "type": "timeseries",
       "title": "Handelingen die blijven hangen",

@@ -5,8 +5,10 @@ bevindingen naar niveau: `rdf` (structureel geldige RDF) en `jas_model` (structu
 JAS-model). Een derde niveau – juridisch juist – bestaat hier bewust niet: dat oordeel is aan de
 jurist, niet aan een shape.
 
-pyshacl is een dev-afhankelijkheid. Zonder pyshacl geeft `valideer` `beschikbaar: False` terug in
-plaats van te falen: de projectie mag nooit op een diagnose-instrument omvallen.
+pyshacl is sinds de graafcontrole (`app/graafcontrole.py`) een runtime-afhankelijkheid, maar de shapes
+blijven niet-blokkerend: ze draaien nooit in het schrijfpad. Zonder pyshacl geeft `valideer`
+`beschikbaar: False` terug in plaats van te falen: de projectie mag nooit op een diagnose-instrument
+omvallen.
 """
 from __future__ import annotations
 
