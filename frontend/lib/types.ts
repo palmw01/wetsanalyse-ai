@@ -220,30 +220,6 @@ export interface Beslissing {
   wijziging: Record<string, unknown>;
 }
 
-/** Eén Critic-oordeel binnen de herzieningslus, met de instructie die eruit volgde. */
-export interface CriticRonde {
-  ronde: number;
-  aandacht?: Aandacht | null;
-  motivatie: string;
-  actie: string;              // behoud | vervang | verwijder
-  /** Is de instructie ook uitgevoerd? De correctie gebeurt in code (graph-qa's patcher), dus
-   *  "de Critic vroeg erom" en "het is gebeurd" zijn twee verschillende feiten. */
-  toegepast?: boolean;
-  voorstel_klasse: string;
-  voorstel_tekst: string;
-  tijd: string;
-}
-
-/** Critic-oordeel op een element dat de JURIST maakte. Advies; wordt nooit toegepast. */
-export interface CriticSuggestie {
-  aandacht?: Aandacht | null;
-  motivatie: string;
-  voorstel_klasse: string;
-  voorstel_tekst: string;
-  status: string;             // open | geaccepteerd | afgewezen
-  tijd: string;
-}
-
 /** De herkomst van één agent-ronde: wélk model de voorstellen maakte.
  *  Komt als `run`-SSE-event uit graph-qa en gaat mee in de PUT naar de api, die het op het
  *  document én op elk element vastlegt. Zonder dit is achteraf niet te zeggen waar een markering
@@ -253,7 +229,6 @@ export interface AgentRun {
   model: string;
   provider: string;
   agent_versie: string;
-  critic_rondes: number;
   stop_reden: string;
   /** "" (oud) | nieuw | opnieuw | hergebruik – wat deze ronde deed. */
   modus?: string;
@@ -290,9 +265,8 @@ export interface AnnotatieElement {
   lifecycle: Lifecycle;
   alternatieven: Alternatief[];
   aandacht?: Aandacht | null;
+  /** De uitleg van de gerichte review bij een twijfelgeval (resolver, ADR-001). */
   critic?: string;
-  critic_rondes: CriticRonde[];
-  critic_suggestie?: CriticSuggestie | null;
   anker?: Anker | null;
   diff: Record<string, { voor: unknown; na: unknown }>;
   beslissingen: Beslissing[];
@@ -511,20 +485,8 @@ export interface VoorstelElement {
   vindplaats: string;
   alternatieven: Alternatief[];
   grounded: boolean;
-  aandacht?: Aandacht;   // Critic-oordeel (groen|geel|rood); afwezig = geen Critic-pas
-  critic?: string;       // korte Critic-motivatie
-  /** Het heen-en-weer met de Critic, één regel per ronde. De api merget ze op rondenummer. */
-  critic_rondes?: CriticRonde[];
-}
-
-/** Een door de Critic vermoed ontbrekend JAS-element (suggestief; geen span/bron). */
-export interface OntbrekendItem {
-  klasse: string;
-  reden: string;
-  /** Het letterlijke fragment dat gemarkeerd zou moeten worden. Ontbreekt als de Critic het element
-   *  alleen impliciet in de tekst ziet – dan is het niet toe te voegen (elk element moet letterlijk
-   *  in de wettekst staan) en zegt de UI dat ook. */
-  tekst?: string;
+  aandacht?: Aandacht;   // geel = keuze voor de jurist, groen = door de review bevestigd; afwezig = gewoon voorstel
+  critic?: string;       // uitleg van de gerichte review
 }
 
 /** Eén agent-beurt als server-object (graph-qa `/v1/runs`).
@@ -547,7 +509,7 @@ export interface RunStart {
 export type Rol = "user" | "assistant";
 
 /** Eén beurt in een gesprek. Assistent-berichten dragen optioneel denkproces/bronnen, of een
- *  verwijzing naar een annotatie-document (`annotatie_slug` + de Critic-`ontbrekend`-suggesties).
+ *  verwijzing naar een annotatie (`annotatie_slug`, of `annotatie_doel` voor een bronnode).
  *
  *  `annotatie_titel` is het leesbare label van dat document op het moment van de beurt. Het bericht
  *  beschrijft zichzelf dus: wordt het document later verwijderd, dan blijft er in de thread een
@@ -563,7 +525,6 @@ export interface Bericht {
   bronnen: Bron[];
   annotatie_slug: string;
   annotatie_titel: string;
-  ontbrekend: OntbrekendItem[];
   /** Lex hergebruikte (een deel van) de gedeelde laag; zelfde vorm als het `hergebruik`-event
    *  (maar met de leden zoals graph-qa ze stuurde – zie `parseHergebruik`). */
   hergebruik?: unknown;
@@ -601,7 +562,6 @@ export interface BerichtInvoer {
   bronnen?: Bron[];
   annotatie_slug?: string;
   annotatie_titel?: string;
-  ontbrekend?: OntbrekendItem[];
   run_id?: string;
 }
 

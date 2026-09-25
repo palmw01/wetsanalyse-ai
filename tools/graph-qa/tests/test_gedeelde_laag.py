@@ -42,7 +42,7 @@ def test_client_put_naar_de_laag_en_leest_de_headers():
             return await client.zet_laag_elementen(
                 bwb_id="BWBR0024096", artikel="25.1", citeertitel="Leidraad",
                 elementen=[{"id": "e1", "klasse": "Rechtssubject", "tekst": "t", "aandacht": ""}],
-                suggesties=[], run={"model": "m", "tijd": None},
+                run={"model": "m", "tijd": None},
                 leden=[{"lid": "", "hash": "h", "iri": ""}], bron_hash="art", modus="opnieuw",
             )
         finally:

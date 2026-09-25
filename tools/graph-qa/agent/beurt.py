@@ -52,8 +52,6 @@ class BeurtSchrijver:
     def __init__(self) -> None:
         self.doel: dict[str, Any] | None = None
         self.elementen: list[dict[str, Any]] = []
-        self.suggesties: list[dict[str, Any]] = []
-        self.ontbrekend: list[dict[str, Any]] = []
         self.run: dict[str, Any] | None = None
         self.kandidaten: list[dict[str, Any]] = []
         self.hergebruik: dict[str, Any] = {}
@@ -80,10 +78,6 @@ class BeurtSchrijver:
             self._voeg_element_toe(event.get("element") or {})
         elif soort == "run":
             self.run = event.get("run") or {}
-        elif soort == "ontbrekend":
-            self.ontbrekend.extend(event.get("items") or [])
-        elif soort == "suggestie":
-            self.suggesties.append(event.get("suggestie") or {})
         elif soort == "kandidaten":
             self.kandidaten = event.get("kandidaten") or []
         elif soort == "hergebruik":
@@ -262,7 +256,6 @@ async def _leg_vast(
                     "doel": {"bron_iri": doel["bron_iri"]}, "snapshot_id": doel["snapshot_id"],
                     "verwachte_revisies": doel.get("verwachte_revisies") or {},
                     "elementen": schrijver.elementen,
-                    "suggesties": schrijver.suggesties,
                     "dekking": {"voltooid": not gestopt, "bereik": doel.get("bereik") or [],
                                 "parent_context": not gestopt,
                                 # Wat de keten wel en niet kon bekijken (dimensies, ongedekte
@@ -285,7 +278,6 @@ async def _leg_vast(
                     artikel=aanduiding,
                     citeertitel=str(doel.get("citeertitel") or ""),
                     elementen=schrijver.elementen,
-                    suggesties=schrijver.suggesties,
                     run=schrijver.run,
                     leden=list(doel.get("leden") or []),
                     bron_hash=str(doel.get("bron_hash") or ""),
@@ -329,7 +321,6 @@ async def _leg_vast(
             bericht |= {
                 "annotatie_slug": slug,
                 "annotatie_titel": _titel(doel),
-                "ontbrekend": schrijver.ontbrekend,
                 "denk": schrijver.denk,
                 **({"hergebruik": schrijver.hergebruik} if schrijver.hergebruik else {}),
                 **({"dekking": schrijver.dekking} if schrijver.dekking else {}),

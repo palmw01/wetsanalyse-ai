@@ -135,8 +135,6 @@ export function elementVanNode(el: NodeElement, nb: NodeBron): AnnotatieElement 
     alternatieven: el.alternatieven ?? [],
     aandacht: (el.aandacht as AnnotatieElement["aandacht"]) ?? null,
     critic: el.critic,
-    critic_rondes: el.critic_rondes ?? [],
-    critic_suggestie: el.critic_suggestie ?? null,
     anker: bereik ? maakAnker(nb.bron, bereik.start, bereik.eind, bereik.lid) : null,
     diff: {},
     beslissingen: el.beslissingen ?? [],

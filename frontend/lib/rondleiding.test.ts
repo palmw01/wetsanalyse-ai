@@ -145,8 +145,8 @@ describe("de voorbeeldscène", () => {
     const beslist = pasDemoBeslissingToe(eerste, eerste.elementen[0].id, { type: "approve", comment: "" });
     expect(beslist.elementen[0].lifecycle).toBe("human_approved");
     // Het origineel blijft ongemoeid, en een volgende start begint weer bij nul.
-    expect(eerste.elementen[0].lifecycle).toBe("critic_checked");
-    expect(maakDemoDocument().elementen[0].lifecycle).toBe("critic_checked");
+    expect(eerste.elementen[0].lifecycle).toBe("voorgesteld");
+    expect(maakDemoDocument().elementen[0].lifecycle).toBe("voorgesteld");
   });
 });
 

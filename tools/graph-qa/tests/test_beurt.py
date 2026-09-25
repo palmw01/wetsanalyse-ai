@@ -115,8 +115,6 @@ async def test_annotatiebeurt_schrijft_naar_de_gedeelde_laag(api):
         {"type": "doel", "doel": doel},
         {"type": "run", "run": {"model": "claude", "provider": "azure"}},
         {"type": "element", "element": {"id": "e1", "klasse": "Rechtssubject", "tekst": "de ontvanger"}},
-        {"type": "suggestie", "suggestie": {"element_id": "m1", "aandacht": "geel", "motivatie": "let op"}},
-        {"type": "ontbrekend", "items": [{"klasse": "Rechtsfeit"}]},
         {"type": "done"},
     ])
 
@@ -127,14 +125,12 @@ async def test_annotatiebeurt_schrijft_naar_de_gedeelde_laag(api):
     assert put["leden"] == doel["leden"] and put["bron_hash"] == "art"
     assert put["modus"] == "auto"
     assert put["elementen"][0]["tekst"] == "de ontvanger"
-    assert put["suggesties"][0]["aandacht"] == "geel"
     assert put["run"] == {"model": "claude", "provider": "azure"}
 
     _, bericht = api.berichten[0]
     assert bericht["annotatie_slug"] == "slug-1"
     # Het label reist mee zodat de kaart zichzelf kan benoemen als het document later weg is.
     assert bericht["annotatie_titel"] == "Invorderingswet 1990 – art. 9 lid 1"
-    assert bericht["ontbrekend"] == [{"klasse": "Rechtsfeit"}]
 
     opgeslagen = [e for e in uit if e["type"] == "opgeslagen"][0]
     assert opgeslagen["annotatie_slug"] == "slug-1"

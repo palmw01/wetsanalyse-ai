@@ -83,7 +83,6 @@ async def test_annotatie_bericht_verwijzing(client):
     r = await client.post(f"{BASIS}/{gid}/berichten", json={
         "rol": "assistant", "tekst": "Ik heb art. 9 geannoteerd.",
         "annotatie_slug": "doc-abc", "annotatie_titel": "Invorderingswet 1990 – art. 9 lid 1",
-        "ontbrekend": [{"klasse": "Voorwaarde"}],
     }, headers=A)
     assert r.status_code == 201
     # Het bericht draagt het label zelf, zodat het gesprek leesbaar blijft als het document later
@@ -92,7 +91,6 @@ async def test_annotatie_bericht_verwijzing(client):
     doc = (await client.get(f"{BASIS}/{gid}", headers=A)).json()
     assert doc["berichten"][0]["annotatie_slug"] == "doc-abc"
     assert doc["berichten"][0]["annotatie_titel"] == "Invorderingswet 1990 – art. 9 lid 1"
-    assert doc["berichten"][0]["ontbrekend"][0]["klasse"] == "Voorwaarde"
 
 
 async def test_bronnode_annotatie_en_toolspoor_overleven_het_heropenen(client):

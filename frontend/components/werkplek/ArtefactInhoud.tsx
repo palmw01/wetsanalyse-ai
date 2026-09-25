@@ -8,7 +8,6 @@ import { foutTekst, type ExportFormaat } from "@/lib/api";
 import { Melding } from "@/components/ui/Melding";
 import { DocumentPaneel } from "@/components/werkplek/DocumentPaneel";
 import { ExportKnop } from "@/components/werkplek/ExportKnop";
-import { OntbrekendLijst } from "@/components/werkplek/OntbrekendLijst";
 import { ReviewQueue, type OpenRij } from "@/components/werkplek/ReviewQueue";
 import { SelectiePopover, type SelectieDoel } from "@/components/werkplek/SelectiePopover";
 import {
@@ -19,13 +18,12 @@ import {
 import { jasStyle } from "@/lib/jas";
 import { maakAnker, vindPositie } from "@/lib/selectie";
 import type {
-  AnnotatieDocument, AnnotatieElement, BeslissingInvoer, DocumentStatus, GraafArtikel, OntbrekendItem,
+  AnnotatieDocument, AnnotatieElement, BeslissingInvoer, DocumentStatus, GraafArtikel,
 } from "@/lib/types";
 
 export interface ArtefactInhoudProps {
   doc: AnnotatieDocument;
   info: GraafArtikel;
-  ontbrekend?: OntbrekendItem[];
   actiefId?: string;
   onKies: (id?: string) => void;
   onBeslissing: (elementId: string, req: BeslissingInvoer) => Promise<void>;
@@ -58,7 +56,7 @@ export interface ArtefactInhoudProps {
  *  werkplek zit hij in een `Dialog` (`ArtefactPaneel`), op `/annotaties/<slug>` in een gewone
  *  pagina. Eén inhoud, twee schillen – anders gaan de twee weergaven uit elkaar lopen. */
 export function ArtefactInhoud({
-  doc, info, ontbrekend, actiefId, onKies, onBeslissing, onEigenMarkering,
+  doc, info, actiefId, onKies, onBeslissing, onEigenMarkering,
   onWisEigenMarkering, onVraag, onStatus, onSluiten, onExport, extra,
 }: ArtefactInhoudProps) {
   // Eén bron voor de bewoording: `vindplaatsLabel` weet uit het graaf-`soort` of dit een artikel
@@ -281,9 +279,8 @@ export function ArtefactInhoud({
     }
   }
 
-  /** Zelf markeren, of een ontbrekend element toevoegen: beide lopen hierlangs zodat een mislukking
-   *  in de melding van het paneel landt. De ontbrekend-lijst kreeg eerder `onEigenMarkering`
-   *  rechtstreeks doorgegeven en faalde daardoor stil – de klik leek genegeerd te worden. */
+  /** Zelf markeren loopt hierlangs, zodat een mislukking in de melding van het paneel landt in plaats
+   *  van stil te falen. */
   async function markeer(invoer: {
     klasse: string; tekst: string; lid: string; toelichting: string; anker: ReturnType<typeof maakAnker>;
   }): Promise<void> {
@@ -427,15 +424,6 @@ export function ArtefactInhoud({
           )}
           {historie.length > 0 && <Historie elementen={historie} />}
           {extra}
-          {ontbrekend && ontbrekend.length > 0 && (
-            <OntbrekendLijst
-              items={ontbrekend}
-              bron={bron}
-              regels={regels}
-              elementen={actueel}
-              onToevoegen={onEigenMarkering && !vergrendeld ? markeer : undefined}
-            />
-          )}
           </div>
         </div>
 

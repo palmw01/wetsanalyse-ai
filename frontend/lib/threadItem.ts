@@ -5,7 +5,7 @@
 // importeren – dezelfde reden waarom de rest van de rekenkern in `lib/` woont.
 
 import type {
-  AgentDoelInvoer, AgentGrounding, AgentHergebruik, AgentKandidaat, Bron, OntbrekendItem,
+  AgentDoelInvoer, AgentGrounding, AgentHergebruik, AgentKandidaat, Bron,
 } from "./types";
 
 export type ThreadItem = { tool_executions?: import("./annotatieNode").ToolExecution[] } & (
@@ -20,7 +20,7 @@ export type ThreadItem = { tool_executions?: import("./annotatieNode").ToolExecu
   // `titel` komt uit het bericht zelf (`annotatie_titel`), niet uit het document: er is geen foreign
   // key, dus na het verwijderen van het document is dit het enige dat de kaart nog kan benoemen.
   | {
-      id: string; type: "annotatie"; slug: string; titel?: string; ontbrekend?: OntbrekendItem[];
+      id: string; type: "annotatie"; slug: string; titel?: string;
       denk?: string;
       /** Lex hergebruikte de laag (deels) in plaats van opnieuw te annoteren. */
       hergebruik?: AgentHergebruik;

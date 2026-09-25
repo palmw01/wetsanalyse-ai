@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { isNietBeoordeeld, isBeslist, isVergrendeld, type ReviewFilter } from "@/lib/annotatie";
+import { isBeslist, isVergrendeld, type ReviewFilter } from "@/lib/annotatie";
 import { ChevronOmlaag, Ruit, Vinkje, Waarschuwing } from "@/components/ui/Icoon";
 import { Meter } from "@/components/ui/Meter";
 import { JAS_KLASSEN, jasStyle } from "@/lib/jas";
@@ -22,33 +22,22 @@ const REDENEN: { waarde: ReviewReason; label: string }[] = [
 // buiten de huisstijl.
 //
 // Dit was een rondje van 8px zonder tekst, met de betekenis alleen in een `title`/`aria-label`. Wie
-// de kleurcode niet kent zag dus een stip en verder niets – op een reviewkaart waar juist het oordeel
-// van de Critic staat. Nu is het een **badge met tekst**, in dezelfde vorm als de documentstatus
+// de kleurcode niet kent zag dus een stip en verder niets. Nu is het een **badge met tekst**, in dezelfde vorm als de documentstatus
 // ("In behandeling", `ArtefactInhoud`): één badgevorm in de hele app.
 //
 // De achtergrond staat op volle sterkte terwijl de kaart eronder dezelfde tint op 40% draagt – dat
 // verschil plus de rand maakt de badge zichtbaar binnen zijn eigen kleurfamilie.
 const AANDACHT: Record<string, { pill: string; label: string; rand: string; tint: string }> = {
-  groen: { pill: "border-aandacht-groen-rand bg-aandacht-groen-bg text-aandacht-groen-tekst", label: "Geen bezwaar", rand: "border-l-aandacht-groen-rand", tint: "bg-aandacht-groen-bg/40" },
-  geel: { pill: "border-aandacht-geel-rand bg-aandacht-geel-bg text-aandacht-geel-tekst", label: "Even kijken", rand: "border-l-aandacht-geel-rand", tint: "bg-aandacht-geel-bg/40" },
+  groen: { pill: "border-aandacht-groen-rand bg-aandacht-groen-bg text-aandacht-groen-tekst", label: "Bevestigd door review", rand: "border-l-aandacht-groen-rand", tint: "bg-aandacht-groen-bg/40" },
+  geel: { pill: "border-aandacht-geel-rand bg-aandacht-geel-bg text-aandacht-geel-tekst", label: "Keuze voor jou", rand: "border-l-aandacht-geel-rand", tint: "bg-aandacht-geel-bg/40" },
   rood: { pill: "border-aandacht-rood-rand bg-aandacht-rood-bg text-aandacht-rood-tekst", label: "Waarschijnlijk fout", rand: "border-l-aandacht-rood-rand", tint: "bg-aandacht-rood-bg/40" },
 };
 
-// NIET BEOORDEELD IS GEEN "GEEN BEZWAAR". De Critic hoort over elk voorstel een oordeel te vellen,
-// maar hij slaat er soms één over — live gezien op 2 sep 2026: 1 van de 32 markeringen bij art. 2
-// lid 1 IW 1990 kwam met een lege `aandacht` en zonder `critic_rondes` binnen. Zonder badge ziet die
-// kaart eruit als elke andere, en dan leest de jurist "de Critic had niets aan te merken" waar
-// "de Critic heeft er niet naar gekeken" staat.
-//
-// Dezelfde redenering als bij grounding, waar `onbepaald` bewust naast `gegrond` bestaat: dat als
-// goedkeuring tellen levert precies de schijnzekerheid op die dit platform wil vermijden. Neutraal
-// van kleur, want er is geen bezwaar geconstateerd — alleen niets gecontroleerd.
-const NIET_BEOORDEELD = {
-  pill: "border-line bg-surface text-muted",
-  label: "Niet beoordeeld",
-  rand: "border-l-line",
-  tint: "",
-};
+// Geen badge betekent: een gewoon voorstel van Lex. De annotatieketen (ADR-001) zet alleen
+// `aandacht` als er iets te zeggen valt – geel is een keuze die bij de jurist ligt (twijfel die de
+// reviewer niet besliste), groen een twijfelgeval dat de gerichte review bevestigde. Tot 25 sep 2026
+// stond hier een badge "Niet beoordeeld" voor elementen zonder Critic-oordeel; die Critic bestaat niet
+// meer, en de badge zou nu op elk onbetwist voorstel staan.
 
 // Zelfde vorm als de documentstatus-badge in `ArtefactInhoud`; alleen de kleuren verschillen per
 // niveau. Verander je die daar, verander hem dan hier mee – het is bewust één vormtaal.
@@ -233,7 +222,7 @@ function DecisionCard({
   // uitschakelt, `elVergrendeld` is wat de Heropenen-knop tevoorschijn haalt.
   const elVergrendeld = isVergrendeld(el);
   const slot = elVergrendeld || !!docVergrendeld;
-  const aandacht = el.aandacht ? AANDACHT[el.aandacht] : isNietBeoordeeld(el) ? NIET_BEOORDEELD : null;
+  const aandacht = el.aandacht ? AANDACHT[el.aandacht] : null;
   const eigen = el.herkomst === "mens";
   // Alleen de kaart waaraan je werkt toont zijn details. Alles altijd tonen kostte drie kaarten per
   // scherm; zo passen er tien in en blijft de lijst te overzien.
@@ -496,86 +485,8 @@ function DecisionCard({
         </div>
       )}
 
-      {uitgeklapt && el.critic && <p className="mt-1 text-xs italic text-muted">Critic: {el.critic}</p>}
-
-      {/* Het heen-en-weer met de Critic. Pas vanaf twee rondes: bij één ronde staat het oordeel
-          hierboven al en zou dit hetzelfde twee keer zeggen. */}
-      {uitgeklapt && el.critic_rondes.length > 1 && (
-        <ol className="mt-1.5 space-y-0.5 border-l-2 border-line pl-2.5 text-[0.7rem] text-muted">
-          {el.critic_rondes.map((r) => (
-            <li key={r.ronde}>
-              <span className="font-medium">Ronde {r.ronde}</span>
-              {r.aandacht ? ` · ${r.aandacht}` : ""}
-              {r.actie && r.actie !== "behoud" ? ` · ${r.actie}` : ""}
-              {r.voorstel_klasse ? ` → ${r.voorstel_klasse}` : ""}
-              {/* Een voorstel dat is uitgevoerd leest anders dan een voorstel dat bleef liggen. */}
-              {r.toegepast ? " · toegepast" : ""}
-              {r.motivatie ? ` – ${r.motivatie}` : ""}
-            </li>
-          ))}
-        </ol>
-      )}
-
-      {/* Kanttekening bij een markering die de JURIST zelf maakte. Bewust een andere vorm dan de kaart
-          zelf: dit is advies dat je naast je neer mag leggen, geen voorstel om te beoordelen. */}
-      {/* Een openstaande kanttekening blijft ook ingeklapt zichtbaar: dat signaal mag je niet missen
-          doordat het achter een selectie verstopt zit. */}
-      {!uitgeklapt && el.critic_suggestie?.motivatie && el.critic_suggestie.status === "open" && (
-        <p className="mt-1.5 truncate text-xs text-muted">
-          <span className="font-medium text-ink">Kanttekening:</span> {el.critic_suggestie.motivatie}
-        </p>
-      )}
-
-      {uitgeklapt && !slot && el.critic_suggestie?.motivatie && el.critic_suggestie.status === "open" && (
-        <div
-          className="mt-2 rounded-kaart border border-dashed border-line bg-surface p-2"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <p className="text-xs text-muted">
-            <span className="font-medium text-ink">Kanttekening van Lex:</span>{" "}
-            {el.critic_suggestie.motivatie}
-            {el.critic_suggestie.voorstel_klasse && (
-              <> Voorstel: <span className={`rounded px-1 ${jasStyle(el.critic_suggestie.voorstel_klasse)}`}>
-                {el.critic_suggestie.voorstel_klasse}
-              </span></>
-            )}
-            {el.critic_suggestie.voorstel_tekst && (
-              <> Voorgesteld fragment: <q className="italic">{el.critic_suggestie.voorstel_tekst}</q></>
-            )}
-          </p>
-          <div className="mt-1.5 flex flex-wrap gap-1.5">
-            {el.critic_suggestie.voorstel_klasse && (
-              <button
-                disabled={bezig}
-                onClick={() => void wijzig({ klasse: el.critic_suggestie!.voorstel_klasse })}
-                className={`${KNOP_BASIS} ${KNOP_PRIMAIR}`}
-              >
-                Overnemen
-              </button>
-            )}
-            {/* Zonder anker: de server wist het oude dan, want dat wees naar het fragment zoals het
-                wás. Zie `Wijziging.anker`. */}
-            {el.critic_suggestie.voorstel_tekst && (
-              <button
-                disabled={bezig}
-                onClick={() => void wijzig({ tekst: el.critic_suggestie!.voorstel_tekst })}
-                className={`${KNOP_BASIS} ${KNOP_PRIMAIR}`}
-              >
-                Fragment overnemen
-              </button>
-            )}
-            <button
-              disabled={bezig}
-              onClick={() =>
-                void verstuur({ type: "comment", comment: "Kanttekening van Lex afgewezen." })
-              }
-              className={`${KNOP_BASIS} ${KNOP_TWEEDE}`}
-            >
-              Naast me neerleggen
-            </button>
-          </div>
-        </div>
-      )}
+      {/* De uitleg van de gerichte review bij een twijfelgeval (resolver, ADR-001). */}
+      {uitgeklapt && el.critic && <p className="mt-1 text-xs italic text-muted">Review: {el.critic}</p>}
 
       {uitgeklapt && !slot && el.alternatieven.length > 0 && (
         <div className="mt-1.5 flex flex-wrap items-center gap-1 text-xs text-muted" onClick={(e) => e.stopPropagation()}>

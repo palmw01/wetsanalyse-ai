@@ -51,7 +51,6 @@ const DEMO_RUN: AgentRun = {
   model: "voorbeeld",
   provider: "rondleiding",
   agent_versie: "demo",
-  critic_rondes: 1,
   stop_reden: "klaar",
   tijd: "2026-01-01T09:00:00Z",
 };
@@ -159,12 +158,10 @@ function elementVan(spec: DemoSpec, index: number, bron: string): AnnotatieEleme
     vindplaats: `lid ${spec.lid}`,
     herkomst: "agent",
     gewijzigd_door: "",
-    lifecycle: "critic_checked" as Lifecycle,
+    lifecycle: "voorgesteld" as Lifecycle,
     alternatieven: spec.alternatief ? [spec.alternatief] : [],
     aandacht: spec.aandacht,
     critic: spec.critic,
-    critic_rondes: [],
-    critic_suggestie: null,
     anker,
     diff: {},
     beslissingen: [],
@@ -231,7 +228,7 @@ function maakDemoItems(): ThreadItem[] {
       titel: `${DEMO_LABEL} · Invorderingswet 1990 – artikel 9`,
       denk:
         "· supervisor koos de annotatie-worker · bepaling opgehaald uit de graaf · " +
-        "11 markeringen voorgesteld · Critic las mee (1 ronde) · vastgelegd",
+        "11 markeringen voorgesteld · 1 modelaanroep · 3 ter keuze · vastgelegd",
     },
   ];
 }
@@ -281,7 +278,7 @@ function lifecycleNa(type: BeslissingInvoer["type"], huidig: Lifecycle): Lifecyc
   if (type === "approve") return "human_approved";
   if (type === "reject") return "rejected";
   if (type === "edit") return "edited";
-  if (type === "heropen") return "critic_checked";
+  if (type === "heropen") return "voorgesteld";
   return huidig;
 }
 
@@ -322,8 +319,6 @@ export function voegDemoElementToe(
     lifecycle: "human_approved",
     alternatieven: [],
     aandacht: null,
-    critic_rondes: [],
-    critic_suggestie: null,
     anker: invoer.anker,
     diff: {},
     beslissingen: [],

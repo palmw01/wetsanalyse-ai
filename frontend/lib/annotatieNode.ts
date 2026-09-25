@@ -15,8 +15,6 @@ export interface NodeElement {
   verouderd?: boolean; beslissingen?: import("./types").Beslissing[];
   alternatieven?: import("./types").Alternatief[];
   aandacht?: string | null; critic?: string;
-  critic_rondes?: import("./types").CriticRonde[];
-  critic_suggestie?: import("./types").CriticSuggestie | null;
   geproduceerd_door?: import("./types").AgentRun | null;
   provenance?: Partial<import("./types").AgentRun>;
 }
