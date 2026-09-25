@@ -893,15 +893,11 @@ jobs:
                                      --execution "$uitvoering" --tail 250 2>/dev/null || true)
           echo "$logs"
           {
-            echo "## Eval – annotatieketen (2 promptvarianten × 3 runs)"
+            echo "## Eval – annotatieketen (3 runs)"
             echo ""
             echo "- Straat: \`$APP_NAME\` · Execution: \`$uitvoering\` · Status: **$status**"
             echo ""
-            echo "Vergelijk de varianten \`vol\` en \`kort\`: die verschillen alleen in hoeveel van de"
-            echo "klassenreferentie in de prompt staat (~14,5k tegen ~5,6k tekens), en beantwoorden"
-            echo "de vraag of de volle brontekst beter annoteert."
-            echo ""
-            echo "Lees recall en span-IoU als **bandbreedte over de drie runs per variant**, niet als"
+            echo "Lees recall en span-IoU als **bandbreedte over de drie runs**, niet als"
             echo "één getal: JAS-analyse kent interpretatieruimte en dezelfde bepaling levert tussen"
             echo "runs sterk verschillende uitkomsten op. De *garanties* (letterlijkheid, geldige"
             echo "klassen, binnen bereik, injectie weerstaan) horen wél op 100% te staan — die dwingt"

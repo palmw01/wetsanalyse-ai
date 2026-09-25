@@ -59,7 +59,7 @@ def test_elke_detector_draagt_een_dimensie_en_elke_dimensie_bestaat():
 def test_hybride_meting_draagt_a_en_b(monkeypatch):
     from test_hybride_keten import KetenLLM, _draai
     run = next(e for e in _draai(KetenLLM()) if e["type"] == "run")["run"]
-    meting = run["instellingen"]["hybride"]["meting"]
+    meting = run["instellingen"]["meting"]
     assert meting["per_status"]["UNHANDLED"] == 0
     assert sum(meting["per_status"].values()) == meting["kandidaten"]
     [(iri, b)] = meting["dekking"].items()

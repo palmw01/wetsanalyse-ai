@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from agent.config import Settings
-from eval.compare_pipelines import ROUTES, _NepLLM, analyseer, markdown, meet
+from eval.compare_pipelines import MEETBAAR, _NepLLM, analyseer, markdown, meet
 from eval.keten_fixture import ketensettings, laad_cases
 
 
@@ -13,10 +13,10 @@ def _rapport(herhalingen=2):
     return rapport
 
 
-def test_beide_routes_krijgen_elke_casus_in_elke_ronde():
+def test_elke_route_krijgt_elke_casus_in_elke_ronde():
     r = _rapport()
     assert {(x["route"], x["casus"], x["ronde"]) for x in r["runs"]} == {
-        (route, c, ronde) for route in ROUTES for c in ("IW01", "AWB04") for ronde in (1, 2)}
+        (route, c, ronde) for route in MEETBAAR for c in ("IW01", "AWB04") for ronde in (1, 2)}
     assert not any(x["fout"] for x in r["runs"])
 
 

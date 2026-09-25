@@ -77,7 +77,8 @@ niet betrouwbaar opgelost. Die uitkomst blijft zichtbaar; er is geen claim van f
 annotatie of 10/10-juridische kwaliteit. De volledige critic-keten kan afwijkend reageren
 en is hier alleen technisch met fakes getoetst.
 
-Herhalen vanuit `tools/graph-qa`, naar een **nieuw** uitvoerbestand:
+Herhalen kon vanuit `tools/graph-qa` tot ADR-001 PR 18 (25 sep 2026), die dit script met de
+legacy-keten verwijderde; het commando staat hier als verslag:
 
 ```bash
 .venv/bin/python -m eval.compare_annotatie_prompts --baseline-ref <commit-uit-rapport> --cases IW01 AWB04 WZT01 RVV03 --herhalingen 3 --output /tmp/jas-nieuwe-meting.json
@@ -110,34 +111,32 @@ van juridische kwaliteit blijft afhankelijk van de geplande gezamenlijke beoorde
 
 Toegevoegd op 24 september 2026. De eval-job draait de annotatie wel drie keer, maar rapporteert
 elke run los. Hoe vaak dezelfde passage hetzelfde oplevert, werd nergens berekend. Deze meting doet
-dat, over de **volledige keten** (annoteerder → Critic → patch/herziening → Critic → emit) en tegen
-een vaste bronfixture. Standaard gaat dat over de zestien ontwikkelcasussen met vijf herhalingen.
+dat tegen een vaste bronfixture, standaard over de zestien ontwikkelcasussen.
 
 ```bash
-# vanuit tools/graph-qa; betaalde aanvragen, weigert held-out en bestaande uitvoer
-.venv/bin/python -m eval.stabiliteit --output /tmp/stabiliteit.json [--cases IW01 …] [--herhalingen 5]
-.venv/bin/python -m eval.stabiliteit_analyse /tmp/stabiliteit.json --md /tmp/stabiliteit.md --json /tmp/analyse.json
+# vanuit tools/graph-qa; betaalde aanvragen, weigert held-out casussen
+.venv/bin/python -m eval.compare_pipelines --output /tmp/ab.json [--cases IW01 …] [--herhalingen 3]
+.venv/bin/python -m eval.compare_pipelines --analyseer /tmp/ab.json --md /tmp/ab.md
 ```
 
-Eén ketenrun kost 4 modelcalls en 60–90 s, en gebruikt ongeveer 36k tokens: ~2k ongecachete
-input, ~29k cache-reads en ~5k output (gemeten op IW01 en AWB04, 24 september 2026). De volledige
-meting (16 × 5) komt daarmee op ongeveer 2,9M tokens en 1,5–2 uur. `--max-tokens-totaal` (standaard
-6M, inclusief cache-tokens) stopt de meting als dat uit de hand loopt.
+Tot 25 september 2026 draaide dit met een eigen script (`eval/stabiliteit.py`) over de legacy-keten
+(annoteerder → Critic → patch/herziening → Critic → emit). Die keten is met ADR-001 PR 18
+verwijderd; de metingen van toen staan in
+`docs/architectuur/metingen/2026-09-25-ab-legacy-hybrid.md`. Eén legacy-ketenrun kostte 4
+modelcalls, 60–90 s en ongeveer 36k tokens; de huidige keten doet 1–3 calls en ~4k tokens per casus.
 
-De analyse zet de elementen van alle runs per casus op één lijn, op hun positie in de tekst.
-Daarna meet ze, zowel voor de ruwe annoteerder-uitvoer als na de Critic:
+De analyse (`eval/stabiliteit_analyse.py`) zet de elementen van alle runs per casus op één lijn, op
+hun positie in de tekst, en meet:
 
 - in hoeveel runs elk element voorkomt;
 - of de span exact gelijk is, en anders hoeveel de spans overlappen;
 - of de klasse unaniem is;
 - welke **klasseparen** het vaakst wisselen, met een voorbeeldfragment.
 
-Het verschil tussen de twee fasen laat zien of de Critic de spreiding verkleint of vergroot.
-
 **Dit meet reproduceerbaarheid, geen juistheid.** Een keten kan heel stabiel dezelfde fout maken.
 Een hogere overeenstemming is dus nooit op zichzelf bewijs van een betere annotatie. Een wijziging
 is pas een verbetering als ze ook inhoudelijk standhoudt, eerst in de menselijke review en later
 tegen een geadjudiceerde referentie. De maten dienen om te bepalen *waar* de keten wisselt, zodat
 gerichte maatregelen (onderscheidingsregels per klassepaar, kandidaatbeperking) op gemeten
-problemen landen en niet op vermoedens. Temperatuur staat nog op de providerdefault. Het rapport
-legt dat vast, zodat een latere meting met een vaste temperatuur er direct mee te vergelijken is.
+problemen landen en niet op vermoedens. Temperatuur staat op de providerdefault (sampling-parameters
+geven op de nieuwste modellen een 400); het rapport legt de instellingen vast.

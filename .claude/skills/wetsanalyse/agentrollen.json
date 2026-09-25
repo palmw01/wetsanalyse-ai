@@ -1,49 +1,5 @@
 {
   "secties": {
-    "annotatie-gedeeld": {
-      "bestand": "references/annotatieprotocol.md",
-      "bronnen": [
-        "P02",
-        "P03",
-        "P04",
-        "P05",
-        "P09",
-        "P11"
-      ]
-    },
-    "annotatie-kandidaten": {
-      "bestand": "references/annotatieprotocol.md",
-      "bronnen": [
-        "P02",
-        "P03",
-        "P04",
-        "P05",
-        "P09",
-        "P11"
-      ]
-    },
-    "annotatie-classificatie": {
-      "bestand": "references/annotatieprotocol.md",
-      "bronnen": [
-        "P02",
-        "P03",
-        "P04",
-        "P05",
-        "P09",
-        "P11"
-      ]
-    },
-    "annotatie-review": {
-      "bestand": "references/annotatieprotocol.md",
-      "bronnen": [
-        "P02",
-        "P03",
-        "P04",
-        "P05",
-        "P09",
-        "P11"
-      ]
-    },
     "basis": {
       "bestand": "references/agentrollen.md",
       "bronnen": [
@@ -142,31 +98,6 @@
     ],
     "algemeen": [
       "basis"
-    ],
-    "kandidaten": [
-      "basis",
-      "annotatie-gedeeld",
-      "annotatie-kandidaten"
-    ],
-    "annotator": [
-      "basis",
-      "annotatie-gedeeld",
-      "annotatie-classificatie"
-    ],
-    "classificatie": [
-      "basis",
-      "annotatie-gedeeld",
-      "annotatie-classificatie"
-    ],
-    "critic": [
-      "basis",
-      "annotatie-gedeeld",
-      "annotatie-review"
-    ],
-    "herziening": [
-      "basis",
-      "annotatie-gedeeld",
-      "annotatie-review"
     ]
   }
 }

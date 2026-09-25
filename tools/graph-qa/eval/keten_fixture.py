@@ -1,9 +1,7 @@
 """Gedeelde fixture voor ketenmetingen: vaste bronpassage, vastgelegde modelcalls.
 
-De keten (annoteerder → critic → patch/herziening → critic → emit) draait echt, maar de graaf
-geeft altijd dezelfde passage terug. Zo meet een script de modelketen en niet de bronophaling.
-Agentmodules worden pas binnen de functies geïmporteerd: `compare_methodeketen` zet eerst een
-ander agentpad op `sys.path`.
+De annotatieketen draait echt, maar de graaf geeft altijd dezelfde passage terug. Zo meet een
+script de keten en niet de bronophaling.
 """
 from __future__ import annotations
 
@@ -32,11 +30,10 @@ def ontwikkelcases() -> list[str]:
 
 
 def ketensettings(settings: Any) -> Any:
-    """Expliciet-doelketen zonder checkpoint, splitsing of decompositie; twee Critic-rondes."""
+    """Expliciet-doelketen zonder checkpoint en zonder decompositie."""
     return settings.model_copy(update={
         'checkpoint_db_path': None, 'checkpoint_db_url': None,
         'llm_timeout_seconds': 60, 'llm_max_retries': 0,
-        'enable_kandidaat_splitsing': False, 'critic_max_rondes': 2,
         'enable_planning': True, 'enable_decomposition': False,
     })
 

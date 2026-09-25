@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import logging
 import re
-from dataclasses import dataclass
 
 from .graph import queries
 from .graph.results import parse_select
@@ -371,40 +370,8 @@ def _corpus_van(leden: list[dict]) -> str:
     return "\n\n".join((f'{ld["lid"]}. {ld["tekst"]}' if ld["lid"] else ld["tekst"]) for ld in leden)
 
 
-@dataclass
-class ArtikelScope:
-    """De tekst waarop geannoteerd wordt, én het artikel eromheen.
-
-    `corpus` is wat de annoteerder leest (bij een lid alleen dat lid); `artikel_corpus` is het hele
-    artikel. De gedeelde laag is per artikel, dus de ankers moeten uiteindelijk op het hele artikel
-    staan – en per lid een hash dragen, zodat een latere beurt ziet welk lid veranderde.
-    `leden` zijn álle leden van het artikel, met hun IRI in de graaf.
-    """
-
-    corpus: str
-    soort: str
-    artikel_corpus: str
-    leden: list[dict]
 
 
-def artikel_scope(
-    bwb_id: str, artikel: str, graph: GraphPort, lid: str | None = None
-) -> ArtikelScope:
-    """Eén ophaalactie voor beide teksten.
-
-    Het gescopete corpus is letterlijk een deel van het artikelcorpus – dezelfde segmenten, in
-    dezelfde vorm – zodat een anker in het ene exact naar het andere om te rekenen is
-    (`annotatie.herankeer`). Wijkt het af, dan valt het gewoon niet te ankeren; nooit fout.
-    """
-    alle, artikel_corpus, soort = _leden_en_corpus(bwb_id, artikel, graph)
-    if lid and str(lid).strip():
-        gescoped = [ld for ld in alle if _match_lid(ld["lid"], str(lid))]
-    else:
-        gescoped = alle
-    return ArtikelScope(
-        corpus=_corpus_van(gescoped), soort=soort, artikel_corpus=artikel_corpus,
-        leden=[{"lid": ld["lid"], "iri": ld.get("iri", "")} for ld in alle],
-    )
 
 
 def artikel_corpus(bwb_id: str, artikel: str, graph: GraphPort, lid: str | None = None) -> str:

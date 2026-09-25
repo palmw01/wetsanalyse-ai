@@ -6,7 +6,6 @@ import asyncio
 import json
 from typing import Any
 
-import pytest
 
 from agent.agent import answer_stream
 from bronmodel import bouw_snapshot
@@ -14,7 +13,8 @@ from bron_fakes import bronrijen
 from agent.annotatie import _fnv1a_32
 from agent.beurt import voer_beurt_uit
 from agent.runs import Run
-from fakes import FakeGraph, FakeLLM, make_settings, response, text_block
+from agent.jas_pipeline.kandidaten import GEEN_ANNOTATIE
+from fakes import FakeGraph, FakeLLM, KetenLLM, make_settings
 
 LID1 = "1. Een belastingaanslag is invorderbaar zes weken na de dagtekening."
 LID2 = "2. De ontvanger kan uitstel van betaling verlenen."
@@ -71,11 +71,10 @@ class NodeLeesApi:
         return {"schema_versie": 2, "snapshot_id": self.snapshot["snapshot_id"], "elementen": elements, "lagen": []}
 
 
-def _annotatie(*elementen: dict) -> Any:
-    return response([text_block(json.dumps({"elementen": list(elementen)}))], "end_turn")
-
-
-GEEN_OORDEEL = response([text_block(json.dumps({"oordelen": [], "ontbrekend": []}))], "end_turn")
+def _keten() -> KetenLLM:
+    """Classifier-nep: "De ontvanger" wordt Rechtssubject, de rest wordt afgewezen."""
+    return KetenLLM(kies=lambda toegestaan, fragment: (
+        "Rechtssubject" if fragment == "De ontvanger" and "Rechtssubject" in toegestaan else GEEN_ANNOTATIE))
 
 
 def _draai(llm: FakeLLM, graaf: FakeGraph, *, lid: str = "", hergebruik: str = "auto",
@@ -83,7 +82,7 @@ def _draai(llm: FakeLLM, graaf: FakeGraph, *, lid: str = "", hergebruik: str = "
     async def verzamel():
         return [e async for e in answer_stream(
             "annoteer", doel={**DOEL, "lid": lid}, llm=llm, graph=graaf, hergebruik=hergebruik,
-            settings=make_settings(enable_decomposition=True, critic_max_rondes=0, **settings),
+            settings=make_settings(enable_decomposition=True, **settings),
             annotaties=NodeLeesApi(graaf, lid),
         )]
     return asyncio.run(verzamel())
@@ -95,11 +94,10 @@ def _van(events: list[dict], soort: str) -> list[dict]:
 
 # --- de keten ---------------------------------------------------------------------------------------
 
-@pytest.mark.parametrize("splitsing", [False, True], ids=["annoteer", "kandidaat-splitsing"])
-def test_ongewijzigd_lid_kost_geen_llm_call(splitsing: bool):
+def test_ongewijzigd_lid_kost_geen_llm_call():
     llm = FakeLLM([])        # elke aanroep zou een IndexError geven
     graaf = _graaf({"2": _fnv1a_32(LID2)})
-    events = _draai(llm, graaf, lid="2", enable_kandidaat_splitsing=splitsing)
+    events = _draai(llm, graaf, lid="2")
 
     assert llm.calls == [] and not _van(events, "error")
     assert not _van(events, "element")
@@ -121,37 +119,37 @@ def test_ongewijzigd_lid_kost_geen_llm_call(splitsing: bool):
 
 
 def test_gewijzigd_lid_wordt_gewoon_geannoteerd():
-    llm = FakeLLM([_annotatie({"klasse": "Rechtssubject", "tekst": "De ontvanger", "lid": "2"}),
-                   GEEN_OORDEEL])
+    llm = _keten()
     events = _draai(llm, _graaf({"2": "oude-hash"}), lid="2")
     assert not _van(events, "hergebruik")
-    assert [e["element"]["tekst"] for e in _van(events, "element")] == ["De ontvanger"]
+    assert "De ontvanger" in [e["element"]["tekst"] for e in _van(events, "element")]
     assert _van(events, "run")[0]["run"]["modus"] == "nieuw"
 
 
 def test_deels_gewijzigd_artikel_annoteert_alleen_het_gewijzigde_lid():
-    llm = FakeLLM([_annotatie({"klasse": "Rechtssubject", "tekst": "De ontvanger", "lid": "2"}),
-                   GEEN_OORDEEL])
+    llm = _keten()
     events = _draai(llm, _graaf({"1": _fnv1a_32(LID1), "2": "oude-hash"}))
 
-    # Oudertekst blijft beschikbaar voor overspannende samenhang; lokaal hergebruik is expliciet.
+    # De hele tekst blijft context, maar kandidaten komen alleen uit het gewijzigde lid.
     prompt = llm.calls[0]["messages"][0]["content"]
-    assert LID2.removeprefix("2. ") in prompt and LID1.removeprefix("1. ") in prompt
-    assert "urn:bwb:BWBR0004770:artikel:9:lid:1" in str(llm.calls[0])
+    context, kandidaten = prompt.split(">>>", 1)
+    assert LID2.removeprefix("2. ") in context and LID1.removeprefix("1. ") in context
+    assert "De ontvanger" in kandidaten and "belastingaanslag" not in kandidaten
 
     hergebruik, = [e["hergebruik"] for e in _van(events, "hergebruik")]
     assert not hergebruik["volledig"] and [ld["lid"] for ld in hergebruik["leden"]] == ["1"]
     # Naar de api gaat alleen de stand van het lid dat opnieuw is geannoteerd.
     doel, = [e["doel"] for e in _van(events, "doel")]
     assert doel["bereik"] == ["urn:bwb:BWBR0004770:artikel:9:lid:1", "urn:bwb:BWBR0004770:artikel:9:lid:2"]
-    a, = _van(events, "element")[0]["element"]["ankers"]
+    element, = [e["element"] for e in _van(events, "element") if e["element"]["tekst"] == "De ontvanger"]
+    a, = element["ankers"]
     assert a["bron_iri"].endswith(":lid:2") and a["start"] == 0
     assert len(a["bron_hash"]) == 64
+    assert all(e["element"]["eigenaar_iri"].endswith(":lid:2") for e in _van(events, "element"))
 
 
 def test_opnieuw_annoteren_controleert_api_maar_hergebruikt_niet():
-    llm = FakeLLM([_annotatie({"klasse": "Rechtssubject", "tekst": "De ontvanger", "lid": "2"}),
-                   GEEN_OORDEEL])
+    llm = _keten()
     graaf = _graaf({"2": _fnv1a_32(LID2)})
     events = _draai(llm, graaf, lid="2", hergebruik="opnieuw")
     assert not _van(events, "hergebruik") and _van(events, "element")
@@ -161,16 +159,14 @@ def test_opnieuw_annoteren_controleert_api_maar_hergebruikt_niet():
 
 def test_onleesbare_dekking_stopt_zonder_nieuwe_annotatie():
     """Een API-storing is geen bewijs dat annotaties ontbreken."""
-    llm = FakeLLM([_annotatie({"klasse": "Rechtssubject", "tekst": "De ontvanger", "lid": "2"}),
-                   GEEN_OORDEEL])
+    llm = _keten()
     events = _draai(llm, _graaf(None, laag_faalt=True), lid="2")
     assert not _van(events, "element") and llm.calls == []
     assert any(e.get("status") == "unavailable" for e in _van(events, "tool_execution"))
 
 
 def test_geen_laag_betekent_gewoon_annoteren():
-    llm = FakeLLM([_annotatie({"klasse": "Rechtssubject", "tekst": "De ontvanger", "lid": "2"}),
-                   GEEN_OORDEEL])
+    llm = _keten()
     events = _draai(llm, _graaf(None), lid="2")
     assert not _van(events, "hergebruik") and _van(events, "element")
 

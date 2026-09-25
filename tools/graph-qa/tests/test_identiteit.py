@@ -45,7 +45,7 @@ def test_prompt_verbiedt_zelfbedachte_jas_klassen():
 
     Op dev zette de `algemeen`-specialist onder een uitleg een lijstje "voorgestelde JAS-klassen"
     met labels als `art36-IW` en `betalingsonmacht-melding` – die bestaan niet; de dertien staan
-    vast. De klassecontrole (`_verwerk`) zit alléén in de annotatieroute, dus hier is de prompt de
+    vast. De klassecontrole (de enum van de classifier) zit alléén in de annotatieroute, dus hier is de prompt de
     enige rem. De identiteitsregel noemt markeren wél als iets wat Lex doet, en dat las het model
     als uitnodiging; deze grens hoort daar dus expliciet naast te staan.
     """

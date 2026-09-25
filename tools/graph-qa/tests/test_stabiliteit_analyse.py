@@ -4,7 +4,7 @@ from __future__ import annotations
 import pytest
 
 from eval.keten_fixture import laad_cases
-from eval.stabiliteit_analyse import analyseer, analyseer_casus, cluster, markdown, plaats
+from eval.stabiliteit_analyse import analyseer_casus, cluster, plaats
 
 TEKST = 'De ontvanger betaalt de belastingaanslag binnen zes weken na de dagtekening.'
 
@@ -85,27 +85,6 @@ def test_plaatsing_negeert_witruimteverschil_en_meldt_onplaatsbaar():
     assert m['onplaatsbaar'] == 1 and m['clusters'] == 0
 
 
-def test_rapportanalyse_en_markdown():
-    rapport = {
-        'model': 'test', 'status': 'gemeten', 'herhalingen': 2, 'temperature': 'x', 'settings': {},
-        'casussen': [{'id': 'IW01', 'tekst': TEKST}],
-        'runs': [
-            {'casus': 'IW01', 'ronde': 1, 'annoteerder': BASIS,
-             'na_keten': [dict(e, aandacht='groen') for e in BASIS]},
-            {'casus': 'IW01', 'ronde': 2, 'annoteerder': BASIS,
-             'na_keten': [_e('De ontvanger', 'Rechtsobject', aandacht='geel')]},
-            {'casus': 'IW01', 'ronde': 3, 'fout': True, 'annoteerder': [], 'na_keten': []},
-        ],
-    }
-    a = analyseer(rapport)
-    assert a['per_casus']['IW01']['annoteerder']['runs'] == 2  # foutrun telt niet mee
-    assert a['totaal']['annoteerder']['klasse_unaniem'] == 1.0
-    assert a['totaal']['na_keten']['klasseparen'] == {'Rechtsobject ↔ Rechtssubject': 1}
-    assert a['per_casus']['IW01']['aandacht'] == {'groen': 3, 'geel': 1}
-    md = markdown(a)
-    assert 'Rechtsobject ↔ Rechtssubject' in md and 'stabiel fout' in md
-
-
 def test_held_out_casussen_worden_geweigerd():
     with pytest.raises(ValueError, match='held-out'):
         laad_cases(['IW01', 'BW01'])
@@ -114,46 +93,30 @@ def test_held_out_casussen_worden_geweigerd():
     assert [c['id'] for c in laad_cases(['IW01'])] == ['IW01']
 
 
-def test_ruwe_annotatie_komt_uit_de_annoteerdercall():
-    from agent.annotatie_prompt import annotatie_systeemprompt, critic_systeemprompt
-    from eval.stabiliteit import ruwe_annotatie
-
-    antwoord = '{"elementen": [{"tekst": "De ontvanger", "klasse": "Rechtssubject", "id": "x"}]}'
-    calls = [
-        {'system': critic_systeemprompt(), 'antwoord': '{"elementen": []}'},
-        {'system': annotatie_systeemprompt() + '\nBRON: …', 'antwoord': antwoord},
-    ]
-    assert ruwe_annotatie(calls, kort=False) == [{'tekst': 'De ontvanger', 'klasse': 'Rechtssubject'}]
-    assert ruwe_annotatie(calls[:1], kort=False) == []
-
-
 def test_fixture_draagt_de_volledige_keten():
     """De fixture moet de v2-bronroute voeden; anders levert elke meting stil nul calls op."""
     import asyncio
-    import json as _json
 
     from agent.agent import answer_stream
+    from agent.jas_pipeline.kandidaten import GEEN_ANNOTATIE
     from eval.keten_fixture import Capture, FixtureGraph, LegeAnnotaties, fixture_doel
-    from fakes import FakeLLM, make_settings, response, text_block
+    from fakes import KetenLLM, make_settings
 
-    llm = Capture(FakeLLM([
-        response([text_block(_json.dumps({'elementen': [
-            {'klasse': 'Rechtssubject', 'tekst': 'De ontvanger'}]}))], 'end_turn'),
-        response([text_block('{"oordelen": [], "ontbrekend": []}')], 'end_turn'),
-    ]))
+    llm = Capture(KetenLLM(kies=lambda toegestaan, f: (
+        'Rechtssubject' if f == 'De ontvanger' and 'Rechtssubject' in toegestaan else GEEN_ANNOTATIE)))
     case = {'id': 'X', 'tekst': TEKST}
 
     async def verzamel():
         return [e async for e in answer_stream(
             'Annoteer de aangewezen bronpassage.', doel=fixture_doel(case), llm=llm,
             graph=FixtureGraph(TEKST), annotaties=LegeAnnotaties(TEKST),
-            settings=make_settings(critic_max_rondes=0))]
+            settings=make_settings())]
 
     events = asyncio.run(verzamel())
     assert not [e for e in events if e['type'] == 'error'], events
-    element, = [e['element'] for e in events if e['type'] == 'element']
-    assert element['tekst'] == 'De ontvanger'
-    assert len(llm.calls) == 2 and llm.calls[0]['antwoord']
+    elementen = [e['element'] for e in events if e['type'] == 'element']
+    assert 'De ontvanger' in {el['tekst'] for el in elementen}
+    assert llm.calls, 'de fixture voedde geen classifier-call'
 
 
 def test_geneste_bijna_gelijke_spans_lopen_niet_door_elkaar():

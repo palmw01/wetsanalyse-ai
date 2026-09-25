@@ -2,7 +2,7 @@
 JAS-klassen-referentie – de dertien klassen van het Juridisch Analyseschema.
 
 Per klasse een omschrijving, een herken-vraag (à la zinsontleding) en de uitdrukkingswijze in
-wetgeving. Deze referentie voedt de annotatie-prompt (`agent/annotatie_prompt.py`).
+wetgeving. De annotatieketen gebruikt hem voor klassenamen, regels en drift-controles.
 
 HET BLOK HIERONDER IS GEGENEREERD, geen handwerk. Bron is de wetsanalyse-skill
 (`.claude/skills/wetsanalyse/references/jas-klassen-referentie.md`), die op zijn beurt letterlijk
@@ -322,12 +322,6 @@ JAS_KLASSEN: tuple[JasKlasse, ...] = (
         ),
     ),
 )
-# Compatibiliteitsnamen; inhoud staat uitsluitend in het methodepakket.
-from .methodepakket import PAKKET as _METHODEPAKKET
-ANNOTATIEPROTOCOL_VERSIE = _METHODEPAKKET['versie']
-ANNOTATIEPROTOCOL = {naam: _METHODEPAKKET['secties']['annotatie-' + key]['tekst']
-    for naam, key in [('Gedeeld', 'gedeeld'), ('Kandidaten', 'kandidaten'),
-                      ('Classificatie', 'classificatie'), ('Review', 'review')]}
 # --- EINDE GEGENEREERD ---
 
 # Canonieke weergave-volgorde + naamlijst (drift-guard: gelijk aan validation.JAS_KLASSEN_VOLGORDE).
@@ -428,3 +422,10 @@ REGELS: tuple[JASRule, ...] = (
         }),
     ),
 )
+
+
+def methode_versie() -> str:
+    """Een vingerafdruk van de methode: de dertien klassen en de JAS-regels. Gaat mee in de `run`
+    van elke beurt; verandert als de skill of `REGELS` verandert."""
+    import hashlib
+    return hashlib.sha256(repr((JAS_KLASSEN, REGELS)).encode("utf-8")).hexdigest()[:12]

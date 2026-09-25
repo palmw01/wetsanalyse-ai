@@ -201,9 +201,8 @@ class CriticRonde(BaseModel):
     aandacht: str = ""                 # groen | geel | rood
     motivatie: str = ""
     actie: str = "behoud"              # behoud | vervang | verwijder
-    # Is de instructie ook uitgevoerd? De patcher (`annotatie.pas_critic_toe`) zet dit. Zonder dit
-    # verschilt "de Critic vroeg erom" niet van "het is ook gebeurd" – en dat verschil moet een
-    # auditspoor kunnen laten zien.
+    # Was de instructie ook uitgevoerd? Gezet door de legacy-Critic (tot ADR-001 PR 18); blijft in
+    # het model omdat opgeslagen elementen dit spoor nog dragen.
     toegepast: bool = False
     voorstel_klasse: str = ""
     voorstel_tekst: str = ""
@@ -249,9 +248,9 @@ class AnnotatieVoorstel(BaseModel):
     alternatieven: list[AnnotatieAlternatief] = []
     grounded: bool = False
     vindplaats: str = ""               # bwbId/artikel/lid/jci-notatie
-    anker: Anker | None = None         # exacte positie in de brontekst; None tot _verwerk() het vult
+    anker: Anker | None = None         # exacte positie in het corpus; de keten zet hem naast `ankers`
     ankers: list[dict[str, Any]] = []   # gevalideerde lokale bronankers, ook bij overspannende elementen
-    aandacht: str = ""                 # "" | groen | geel | rood – gezet door de Critic-node
+    aandacht: str = ""                 # "" | groen | geel | rood – gezet door de resolver (geel = keuze voor de jurist)
     critic: str = ""                   # korte Critic-motivatie bij het aandacht-niveau
     critic_rondes: list[CriticRonde] = []   # het heen-en-weer per ronde; leeg tot de eerste Critic-pas
     # Herkomstspoor uit de hybride keten (ADR-001 PR 15); leeg in de legacy-keten. Zie

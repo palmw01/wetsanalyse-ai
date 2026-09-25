@@ -20,9 +20,6 @@ class State(TypedDict, total=False):
     bron_snapshot: dict[str, Any]
     annotatie_weergave: dict[str, Any]
     corpus_segmenten: list[dict[str, Any]]
-    # De hybride keten (ADR-001): wat er gemeten en besloten is, voor de run-provenance. Per beurt
-    # gereset; leeg in de legacy-route.
-    hybride: dict[str, Any]
     hergebruikte_nodes: list[str]
     annotatie_fout: str
     # Episodisch geheugen, gepersisteerd door de checkpointer. De reducer voegt toe én snoeit: zonder
@@ -58,39 +55,19 @@ class State(TypedDict, total=False):
     # die route, want een ophaal-agent die de verkeerde bepaling kiest levert werk op dat
     # brongetrouw én verkeerd is.
     opgegeven_doel: dict[str, str]
-    # De tekst waarop deze annotatiebeurt draait: gericht opgehaald door annoteer_node (zie
-    # `_corpus_voor_doel`) en daarna hergebruikt door de Critic en de herziening, zodat alle drie
-    # over exact dezelfde bepaling oordelen én er maar één ophaalactie nodig is.
+    # De tekst waarop deze annotatiebeurt draait: de niet-lege bronsegmenten van de snapshot,
+    # samengevoegd (`bronmodel.CorpusMap`). Eén ophaalactie, en alles daarna leest deze tekst.
     corpus: str
-    # Het hele artikel rond `corpus`, en per lid in scope de hash en de IRI. De gedeelde
-    # annotatielaag is per artikel: `emit_node` zet de ankers om naar dit corpus (`herankeer`) en de
-    # lidstand gaat mee naar de api, zodat een volgende beurt ziet welk lid veranderde.
-    artikel_corpus: str
-    lidstand: list[dict[str, str]]
-    # "opnieuw" = de jurist vroeg expliciet om een nieuwe ronde op een al geannoteerd artikel.
+    # "opnieuw" = de jurist vroeg expliciet om een nieuwe ronde op een al geannoteerde bepaling.
     hergebruik_modus: str
-    # Wat er uit de gedeelde laag is hergebruikt (zie `annotatielaag`): slug, leden, telling en of
-    # het volledig was. Leeg = niets hergebruikt.
+    # Wat er uit de gedeelde laag is hergebruikt (`bron_annotatie.controleer_hergebruik`): leden,
+    # telling en of het volledig was. Leeg = niets hergebruikt.
     hergebruik: dict[str, Any]
-    # Annotatie: de gegronde voorstellen (als dicts) die annoteer_node maakt; critic_node scoort ze
-    # met een aandacht-niveau en emit ze dán pas als `element`-events.
-    #
-    # Alle annotatie-velden zijn last-value-wins (géén operator.add-reducer): elke node levert de
-    # volledige lijst. Met een append-reducer zou de Critic-feedback over rondes heen stapelen en
-    # zou een herziening zijn eigen vorige oordeel als actueel aanzien.
+    # De voorstellen (als dicts, `AnnotatieVoorstel`-vorm) die `annoteer` maakt en `emit` uitstuurt.
     voorstellen: list[dict[str, Any]]
-    verworpen_fragmenten: list[dict[str, Any]]   # niet-gegronde citaten, als feedback voor een herziening
-    kandidaten_v2a: list[dict[str, Any]]         # fase 2A: gefilterde kandidaten vóór classificatie
-    critic_feedback: list[dict[str, Any]]        # [{id, aandacht, motivatie, actie, voorstel_*}]
-    critic_ontbrekend: list[dict[str, Any]]
-    critic_gefaald: bool
-    critic_ronde: int                            # welke Critic-pas: 1 = oordeel, 2 = eindbeoordeling
-    # Convergentie. Zonder deze drie draait de lus altijd tot de rondelimiet: de Critic bedenkt elke
-    # ronde opnieuw wat er "mist", dus er is altijd een reden om door te gaan.
-    nieuw_ontbrekend: list[dict[str, Any]]       # gemist én nog niet eerder gemeld – alleen dit is werk
-    gemeld_ontbrekend: list[str]                 # sleutels van alles wat al ooit gemeld is
-    patch_toegepast: int                         # hoeveel Critic-aanwijzingen de patcher uitvoerde
-    stop_reden: str                              # waaróm de lus eindigde; komt in de tijdlijn
+    # Wat de analyse mat en besloot (ADR-001): meting, beslissingen, detectoren, overgeslagen
+    # detectoren. Gaat als provenance mee in de `run`.
+    analyse: dict[str, Any]
     # Wat de werkplek meestuurt over de bepaling/markering die in beeld staat. `modus == "advies"`
     # betekent: een vraag bij een bestaande annotatie, die niets mag wijzigen.
     modus: str

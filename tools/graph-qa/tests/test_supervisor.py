@@ -101,8 +101,8 @@ def test_afwijzing_geldt_de_vraag_niet_het_gesprek():
 def test_recursielimiet_dekt_een_volle_annotatieketen():
     """De oude formule (`max_turns * 2 + 10`) telde alleen de agent-lus: één annotatie-worker die
     zijn beurtlimiet vol gebruikt zat al op ~49 van de 50 stappen, en twee workers gingen eroverheen."""
-    s = make_settings(max_turns=20, critic_max_rondes=2)
-    een_worker = 2 * s.max_turns + 6 + 2 * s.critic_max_rondes
+    s = make_settings(max_turns=20)
+    een_worker = 2 * s.max_turns + 6
     assert _recursielimiet(s) >= 2 * een_worker
 
 

@@ -83,7 +83,7 @@ Gecontroleerd op 12 september 2026:
 
 ## Modelproef
 
-[compare_methodeketen.py](../../tools/graph-qa/eval/compare_methodeketen.py) vergelijkt
+`eval/compare_methodeketen.py` (verwijderd met ADR-001 PR 18; zie de git-geschiedenis) vergeleek
 vier bestaande ontwikkelcasussen op dezelfde modelinstellingen en vaste openbare bronpassages.
 De baseline is een bestandssnapshot van de werkende methode 2.1 direct vóór deze import,
 niet de oudere Git-HEAD. De rapporten bewaren hashes van de agentbestanden en werkelijke

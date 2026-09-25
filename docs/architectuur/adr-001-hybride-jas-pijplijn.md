@@ -1,6 +1,6 @@
 # ADR-001 — Hybride JAS-annotatiepijplijn
 
-Status: **voorgesteld** · Datum: 2026-09-24 · Soort: *plan* (zie `docs/README.md`) · JAS-versie: 1.0.10
+Status: **uitgevoerd t/m PR 18** (25-09-2026; zie §15) · Datum: 2026-09-24 · Soort: *plan* (zie `docs/README.md`) · JAS-versie: 1.0.10
 
 Opdracht: [`opdracht-jas-annotatiepijplijn.md`](opdracht-jas-annotatiepijplijn.md). Dit document is
 de oplevering van de analysefase (§42 van de opdracht, stap 1–8): current state, JAS-conformiteit,
@@ -485,3 +485,21 @@ uitgevoerd**. De uitkomst komt als bijlage bij dit ADR, met model, temperatuur (
 
 **Gemeten op 25 sep 2026:** zie [metingen/2026-09-25-ab-legacy-hybrid.md](metingen/2026-09-25-ab-legacy-hybrid.md)
 (legacy tegen hybrid_v1, vóór en ná PR 17).
+
+## 15. Stand van uitvoering
+
+PR 0–17 zijn gemerged (#492–#509). **PR 18 (legacy removal)** is uitgevoerd op 25 sep 2026, op
+besluit van de producteigenaar en **zonder de adjudicatie** die §6 en §8.6 als voorwaarde noemden:
+alle data is nog proof-of-concept, en de A/B-meting (bijlage §14) liet op de provisional referentie
+een duidelijk verschil zien (F1 39% → 49%, ankerdekking 47% → 84%). Dat is ankerdekking, geen
+annotation recall; die blijft onmeetbaar tot de referentieset geadjudiceerd is (§10.4).
+
+Wat PR 18 weghaalde: de legacy-nodes (annoteer, Critic, patch, herzie, kandidaat-splitsing), de
+prompts (`annotatie_prompt.py`) en de annotatierollen in het methodepakket, `annotatielaag.py` en de
+laagqueries, de knoppen `ANNOTATION_PIPELINE`, `CRITIC_MAX_RONDES`, `ENABLE_KANDIDAAT_SPLITSING` en
+`ANNOTATIE_PROMPT_KORT`, de legacy-evalscripts (`stabiliteit.py`, `compare_methodeketen.py`,
+`compare_annotatie_prompts.py`) en twee `poort`-guards die over die prompts gingen. De keten is nu
+`annoteer → emit`.
+
+Bewust vervallen gedrag: het Critic-advies op markeringen van de jurist (`suggestie`-events) en de
+generatieve `ontbrekend`-lijst. Het vangnet voor gemiste elementen is de dekkingsanalyse (PR 10).

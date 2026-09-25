@@ -11,9 +11,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 SKILL = ROOT / '.claude/skills/wetsanalyse'
 DOEL = ROOT / 'tools/graph-qa/agent/methodepakket.py'
+# De annotatierollen (kandidaten, annotator, classificatie, critic, herziening) zijn met ADR-001
+# PR 18 vervallen: de annotatieketen gebruikt geen generatieve prompts met methodetekst meer.
 ROLLEN = frozenset({'supervisor', 'retrieval', 'definitie', 'duiding', 'algemeen',
-                    'decompositie', 'synthese', 'kandidaten', 'annotator',
-                    'classificatie', 'critic', 'herziening'})
+                    'decompositie', 'synthese'})
 
 
 def sha(tekst: str) -> str:

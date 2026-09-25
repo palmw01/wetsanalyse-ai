@@ -103,18 +103,7 @@ class Settings(BaseModel):
     max_subquestions: int = 5         # cap op het aantal deelvragen (kosten/latency begrenzen)
     sub_max_turns: int = 8            # agent⇄tools-beurten per deelvraag (los van max_turns)
 
-    # Fase 2A: kandidaat/filter/classificatie-splitsing.
-    # Uit (default) = V1 gecombineerde annotatie-aanpak (één call, bewezen keten).
-    # Aan = twee aparte calls: kandidaatgeneratie + classificatie.
-    # Zet aan na een baseline-eval; schakel terug als de score daalt.
-    enable_kandidaat_splitsing: bool = False
-
-    # Welke annotatieketen draait (ADR-001). `legacy` = de bestaande keten (annoteer → Critic →
-    # patch → herzie → emit), byte-voor-byte ongewijzigd. `hybrid_v1` = deterministische detectie
-    # → fusie → kleine classifier op kandidaat-labels → emit. Parallel te draaien op dezelfde
-    # bepaling, dus objectief te vergelijken (PR 16); legacy blijft de default tot dat bewezen is.
-    annotation_pipeline: Literal["legacy", "hybrid_v1"] = "legacy"
-    # Taalanalyse voor de hybride keten (ADR-002). Zonder geïnstalleerd model degradeert hij
+    # Taalanalyse voor de annotatieketen (ADR-002). Zonder geïnstalleerd model degradeert hij
     # zichtbaar naar alleen tokens; de parsedetectoren melden zich dan overgeslagen.
     taal_provider: str = "spacy:nl_core_news_md"
     # Eén classificatiecall voor alle kandidaten (`universeel`) of één per klassefamilie
@@ -137,17 +126,6 @@ class Settings(BaseModel):
     # referentie – de kandidaatspan was 23× raak geweest. De grens komt uit de detector; het model
     # classificeert. De opties blijven in het herkomstspoor.
     classifier_spankeuze: bool = False
-
-    # Correctie na de Critic: **0 = uit**, **> 0 = aan**.
-    #
-    # LET OP – deze knop telt géén rondes meer, ondanks zijn naam. De keten ligt vast:
-    # `annoteer → critic₁ → patch → [herzie] → [critic₂] → emit`, zonder cyclus. Er valt dus niets te
-    # begrenzen; er valt alleen te kiezen of de correctiestap er is. De naam en de env-var
-    # (`CRITIC_MAX_RONDES`) blijven bestaan zodat een draaiende deployment niet omvalt.
-    #
-    # Uit betekent exact het oude `annoteer → critic → emit` – de veiligheidsklep om dit zonder
-    # rollback terug te draaien.
-    critic_max_rondes: int = 2
 
     # Geheugen (LangGraph-checkpointer). Voorrang: `checkpoint_db_url` (Postgres, gedeeld → horizontaal
     # veilig) → anders `checkpoint_db_path` (durable AsyncSqliteSaver, per-instance) → anders in-memory.
@@ -175,14 +153,6 @@ class Settings(BaseModel):
     # mislukte call kost, en dat is precies wat er misging.
     llm_timeout_seconds: float = 120.0
     llm_max_retries: int = 2
-
-    # MEETKNOP, geen productie-instelling. Aan (`ANNOTATIE_PROMPT_KORT=true`) rendert de
-    # klassenreferentie alleen de EERSTE ZIN van omschrijving, herken-vraag en uitdrukkingswijze:
-    # ~5,6k tekens in plaats van ~14,5k. Dat is bewust even groot als de verkorte referentie die tot
-    # 1 sep 2026 in de prompt stond (5564 tekens), zodat de eval-job beide varianten naast elkaar
-    # kan draaien en de vraag "helpt de volle brontekst?" met cijfers te beantwoorden is.
-    # Laat hem uit tenzij je meet; korter is niet beter, dat is juist wat gemeten moet worden.
-    annotatie_prompt_kort: bool = False
 
     # Grounding
     # Bij een ongegrond antwoord één corrigerende her-vraag (`correct_node`), hoogstens één keer.
@@ -224,20 +194,16 @@ class Settings(BaseModel):
             "enable_decomposition": e.get("ENABLE_DECOMPOSITION"),
             "max_subquestions": e.get("MAX_SUBQUESTIONS"),
             "sub_max_turns": e.get("SUB_MAX_TURNS"),
-            "enable_kandidaat_splitsing": e.get("ENABLE_KANDIDAAT_SPLITSING"),
-            "annotation_pipeline": e.get("ANNOTATION_PIPELINE"),
             "taal_provider": e.get("TAAL_PROVIDER"),
             "classifier_granulariteit": e.get("CLASSIFIER_GRANULARITEIT"),
             "classifier_temperature": e.get("CLASSIFIER_TEMPERATURE"),
             "deterministisch_accepteren": e.get("DETERMINISTISCH_ACCEPTEREN"),
             "gerichte_review": e.get("GERICHTE_REVIEW"),
             "classifier_spankeuze": e.get("CLASSIFIER_SPANKEUZE"),
-            "critic_max_rondes": e.get("CRITIC_MAX_RONDES"),
             "grounding_correct": e.get("GROUNDING_CORRECT"),
             "prompt_caching": e.get("PROMPT_CACHING"),
             "llm_timeout_seconds": e.get("LLM_TIMEOUT_SECONDS"),
             "llm_max_retries": e.get("LLM_MAX_RETRIES"),
-            "annotatie_prompt_kort": e.get("ANNOTATIE_PROMPT_KORT"),
             "wetsanalyse_api_url": e.get("WETSANALYSE_API_URL"),
             "wetsanalyse_api_token": _read_secret(e, "WETSANALYSE_API_TOKEN"),
             "annotatie_read_user_id": e.get("ANNOTATIE_READ_USER_ID"),
