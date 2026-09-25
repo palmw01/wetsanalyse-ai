@@ -77,7 +77,8 @@ def _alleen(fragment, klasse):
 
 def test_iw9_lid1_only_selected_source_and_local_sha256_anchor():
     snap = snapshot()
-    llm = KetenLLM(kies=_alleen("Een belastingaanslag", "Rechtsobject"))
+    # Een lexicaal signaal (termijn), zodat de test ook zonder spaCy-model een kandidaat heeft.
+    llm = KetenLLM(kies=_alleen("zes weken na de dagtekening", "Tijdsaanduiding"))
     graph, api = FakeGraph(result=ROWS), ReadApi(snap)
     events = run(answer_stream("annoteer artikel 9 lid 1", doel={"bron_iri": L1},
                               llm=llm, graph=graph, annotaties=api, settings=make_settings(),
@@ -87,11 +88,11 @@ def test_iw9_lid1_only_selected_source_and_local_sha256_anchor():
     assert target["bron_iri"] == L1
     assert [s["tekst"] for s in target["segmenten"]] == [T1]
     assert T2 not in target["leden_teksten"][0]["tekst"]
-    element, = [e["element"] for e in events if e["type"] == "element" and e["element"]["klasse"] == "Rechtsobject"]
+    element, = [e["element"] for e in events if e["type"] == "element" and e["element"]["klasse"] == "Tijdsaanduiding"]
     anchor, = element["ankers"]
     assert element["eigenaar_iri"] == L1
     assert anchor["bron_iri"] == L1 and len(anchor["bron_hash"]) == 64
-    assert T1[anchor["start"]:anchor["eind"]] == "Een belastingaanslag"
+    assert T1[anchor["start"]:anchor["eind"]] == "zes weken na de dagtekening"
     assert "anker" not in element
     assert all(e["element"]["eigenaar_iri"] == L1 for e in events if e["type"] == "element")
     assert [c[0] for c in api.calls] == ["dekking", "weergave"]
