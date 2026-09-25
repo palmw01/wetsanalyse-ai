@@ -238,3 +238,25 @@ def test_api_onbeschikbaarheid_wordt_in_het_toolspoor_vastgelegd():
     end = [e for e in _van(events, "tool_execution") if e["tool"] == "get_annotatiedekking" and e["phase"] == "end"]
     assert len(end) == 1 and end[0]["status"] == "unavailable"
     assert graph.api_calls == ["dekking"]
+
+
+def test_dekking_gaat_mee_naar_de_laag_en_het_chatbericht(monkeypatch):
+    """Het `dekking`-event van de keten landt in de batch (voor de weergave en de graaf) én in het
+    chatbericht (zodat een heropend gesprek hem nog toont)."""
+    dekking = {"per_bron": {"urn:bwb:BWBR0004770:artikel:9:lid:2": {
+                   "dimensies": {"tijd": "uitgevoerd"}, "ongedekt": [{"tekst": "kan", "start": 13, "eind": 16}]}},
+               "proces": {"ACCEPTED": 1}, "gedegradeerd": [], "taal_model": "", "fasen": []}
+    events = [
+        {"type": "doel", "doel": {"schema_versie": 2, "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:2",
+                                  "snapshot_id": "s1", "bwbId": "BWBR0004770", "artikel": "9", "lid": "2"}},
+        {"type": "run", "run": {"model": "m"}},
+        {"type": "dekking", "dekking": dekking},
+        {"type": "element", "element": {"id": "e1", "klasse": "Rechtssubject", "tekst": "De ontvanger", "lid": "2"}},
+        {"type": "done"},
+    ]
+    nep = NepApi()
+    _leg_vast(events, nep, monkeypatch)
+    batch, = nep.batches
+    assert batch["dekking"]["structureel"] == dekking["per_bron"]
+    assert batch["dekking"]["proces"] == {"ACCEPTED": 1}
+    assert nep.berichten[0]["dekking"] == dekking

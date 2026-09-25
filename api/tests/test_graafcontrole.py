@@ -47,8 +47,8 @@ async def test_een_geprojecteerde_laag_is_in_orde(omgeving):
     assert r["graaf_beschikbaar"] and r["in_orde"] is True, r
     assert r["lagen"] == 1 and not r["afwijkingen"] and not r["verweesd"] and not r["achterstand"]
     assert r["invarianten"] == {"geen_bwb_subject": True, "geen_bwb_predicaat": True, "geen_schema_axioma": True}
-    if r["shacl"]["beschikbaar"]:
-        assert r["shacl"]["conform"] is True and not r["shacl"]["bevindingen"]
+    assert r["shacl"]["beschikbaar"] is True
+    assert r["shacl"]["conform"] is True and not r["shacl"]["bevindingen"]
 
 
 async def test_een_beslissing_die_nog_niet_geprojecteerd_is_heet_achterstand_geen_afwijking(omgeving):
@@ -173,3 +173,14 @@ async def test_achterstand_ook_na_een_postgres_wijziging_zonder_projectie(omgevi
                            .values(revisie=5))
     r = await controleer(shacl=False)
     assert r["achterstand"] and not r["afwijkingen"]
+
+
+async def test_shacl_beschikbaarheid_ook_zonder_lagen(monkeypatch):
+    db.init_engine("sqlite+aiosqlite://")
+    await db.create_all()
+    installeer(monkeypatch)
+    try:
+        assert (await controleer())["shacl"]["beschikbaar"] is True
+    finally:
+        get_settings.cache_clear()
+        await db.dispose_engine()

@@ -269,7 +269,8 @@ async def batch(req: Batch, snapshot: dict, actor: str, *, mens: bool = False) -
         if req.dekking.voltooid:
             await conn.execute(insert(db.annotatie_v2_dekking).values(id=uuid.uuid4().hex,
                 bron_iri=snapshot["doel"]["bron_iri"], snapshot_id=req.snapshot_id,
-                inhoud={**req.dekking.model_dump(), "run": req.run, "batch_id": req.batch_id}))
+                inhoud={**req.dekking.model_dump(), "run": req.run, "batch_id": req.batch_id,
+                        "tijd": db.utcnow().isoformat()}))
         result = {"schema_versie": 2, "batch_id": req.batch_id, "doel": snapshot["doel"],
                   "annotatie_doel": {**snapshot["doel"], "snapshot_id": req.snapshot_id},
                   "snapshot_id": req.snapshot_id, "lagen": [publiek_laag(x) for x in touched.values()],
@@ -294,6 +295,9 @@ async def dekking(snapshot: dict, conn=None) -> dict:
     covered: set[str] = set()
     complete = False
     parent_context = False
+    # Per bronnode de recentste structurele meting die nog over déze tekst gaat (zelfde hash): een
+    # oudere meting wijst met haar offsets naar een tekst die er niet meer staat.
+    structureel: dict[str, tuple[str, dict]] = {}
     def signature(tree: dict, keys: set[str]):
         return {i: (tree[i].get("parent_iri"), tree[i]["bron_hash"]) for i in keys}
     for row in rows:
@@ -302,6 +306,11 @@ async def dekking(snapshot: dict, conn=None) -> dict:
             continue
         old = nodes_van(old_snapshot)
         reached = set(row["inhoud"].get("bereik", []))
+        tijd = str(row["inhoud"].get("tijd", ""))
+        for iri, meting in (row["inhoud"].get("structureel") or {}).items():
+            if (iri in scope and iri in old and old[iri]["bron_hash"] == nodes[iri]["bron_hash"]
+                    and tijd >= structureel.get(iri, ("", {}))[0]):
+                structureel[iri] = (tijd, meting)
         covered.update(i for i in reached & scope if i in old
                        and old[i]["bron_hash"] == nodes[i]["bron_hash"]
                        and old[i].get("parent_iri") == nodes[i].get("parent_iri"))
@@ -316,7 +325,8 @@ async def dekking(snapshot: dict, conn=None) -> dict:
         if same and text_nodes <= reached and context:
             complete, parent_context = True, True
     return {"status": "ok", "doel": snapshot["doel"], "snapshot_id": snapshot["snapshot_id"],
-            "voltooid": complete, "bereik": sorted(covered), "parent_context": parent_context}
+            "voltooid": complete, "bereik": sorted(covered), "parent_context": parent_context,
+            "structureel": {iri: m for iri, (_t, m) in sorted(structureel.items())}}
 
 
 async def weergave(snapshot: dict) -> dict:

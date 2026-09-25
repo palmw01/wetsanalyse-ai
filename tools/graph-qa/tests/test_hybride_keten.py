@@ -179,3 +179,34 @@ def test_de_run_legt_vast_of_het_model_de_grens_mocht_kiezen():
     run = next(e for e in _draai(KetenLLM()) if e["type"] == "run")["run"]
     from agent.jas_pipeline.classificatie import promptversie
     assert run["instellingen"]["meting"]["classifier_prompt"] == promptversie(False) != promptversie(True)
+
+
+# --- PR 2 (plan herkomst): de beurt vertelt per fase wat er gebeurde --------------------------
+
+def test_elke_fase_meldt_zich_met_zijn_duur():
+    events = _draai(KetenLLM())
+    status = [e for e in events if e["type"] == "status"]
+    fasen = [e["message"].split(" · ")[0] for e in status if "duur_ms" in e]
+    assert fasen[:3] == ["Taalanalyse", "Detectie", "Besluit"] and fasen[-1] == "Resultaat"
+    assert "Classificatie" in fasen
+    assert all(isinstance(e["duur_ms"], int) and e["message"].endswith(" s)") for e in status if "duur_ms" in e)
+
+
+def test_het_dekking_event_komt_voor_de_elementen_met_offsets():
+    events = _draai(KetenLLM())
+    soorten = [e["type"] for e in events]
+    assert soorten.index("dekking") < soorten.index("element")
+    dekking = next(e["dekking"] for e in events if e["type"] == "dekking")
+    per_bron, = dekking["per_bron"].values()
+    assert set(per_bron["dimensies"]) >= {"tijd", "actor", "definitie"}
+    for d in per_bron["ongedekt"]:
+        assert LID[d["start"]:d["eind"]] == d["tekst"]
+    assert dekking["proces"] and sum(dekking["proces"].values()) > 0
+    assert [f["fase"] for f in dekking["fasen"]][0] == "Taalanalyse"
+
+
+def test_zonder_zinsontleding_krijgt_de_jurist_een_waarschuwing():
+    """Deze tests draaien met de null-provider: dat is precies de gedegradeerde toestand."""
+    events = _draai(KetenLLM())
+    waarschuwing, = [e for e in events if e["type"] == "waarschuwing"]
+    assert "zinsontleding" in waarschuwing["message"]

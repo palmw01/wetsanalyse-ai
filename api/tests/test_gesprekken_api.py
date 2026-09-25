@@ -137,6 +137,20 @@ async def test_hergebruik_overleeft_het_opslaan(client):
     assert berichten[1]["hergebruik"] == {}
 
 
+async def test_dekking_overleeft_het_opslaan(client):
+    """Wat de annotatieketen wel en niet kon bekijken, met de fasen en hun duur – ook na herladen."""
+    gid = await _maak(client)
+    dekking = {"per_bron": {"urn:bwb:BWBR0004770:artikel:9:lid:1": {
+                   "dimensies": {"tijd": "uitgevoerd"}, "ongedekt": [{"tekst": "is invorderbaar", "start": 21, "eind": 36}]}},
+               "proces": {"ACCEPTED": 4, "REJECTED": 2}, "gedegradeerd": [], "taal_model": "nl_core_news_md",
+               "fasen": [{"fase": "Detectie", "samenvatting": "6 kandidaten", "ms": 120}]}
+    await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "assistant", "tekst": "", "dekking": dekking}, headers=A)
+    await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "assistant", "tekst": "gewoon"}, headers=A)
+    berichten = (await client.get(f"{BASIS}/{gid}", headers=A)).json()["berichten"]
+    assert berichten[0]["dekking"] == dekking
+    assert berichten[1]["dekking"] == {}
+
+
 async def test_annotatie_titel_is_optioneel(client):
     """Berichten van vóór dit veld hebben de sleutel niet in hun JSON-inhoud; die leveren "" op."""
     gid = await _maak(client)

@@ -36,6 +36,12 @@ class Dekking(BaseModel):
     voltooid: bool = False
     bereik: list[str] = Field(default_factory=list)
     parent_context: bool = False
+    # Wat de keten per bronnode wel en niet kon bekijken (ADR-001 PR 10): de twaalf
+    # detectiedimensies en de ongedekte zinsdelen met offsets – `{bron_iri: {dimensies, ongedekt}}`.
+    # Geen recall; een meting van de detectoren. Expliciet in het model, anders valt hij stil weg.
+    structureel: dict = Field(default_factory=dict)
+    # Procesdekking (A): per kandidaatstatus het aantal; UNHANDLED is altijd 0.
+    proces: dict = Field(default_factory=dict)
 
 
 class CriticSuggestie(BaseModel):
