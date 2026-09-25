@@ -113,6 +113,6 @@ def test_de_keten_maakt_een_gevalideerde_fout_rejected(monkeypatch):
         return [v for v, b in paren[1:]], [*bev, Bevinding(code="V_ANKER", label=weg, detail="test")]
     monkeypatch.setattr(keten, "valideer", met_fout)
     events = _draai(KetenLLM())
-    meting = next(e for e in events if e["type"] == "run")["run"]["instellingen"]["hybride"]["meting"]
+    meting = next(e for e in events if e["type"] == "run")["run"]["instellingen"]["meting"]
     assert [v["code"] for v in meting["validatie"]] == ["V_ANKER"]
     assert meting["per_status"]["UNHANDLED"] == 0 and meting["per_status"]["REJECTED"] >= 1

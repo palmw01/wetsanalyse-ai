@@ -14,7 +14,7 @@ jurist beoordeelt en beslist, geen juridisch advies) staan in het **IDENTITEIT-b
 `SYSTEM_PROMPT` (`agent/prompts.py`) – dat is de enige plek met de volledige tekst, en omdat de
 specialisten daarop stapelen geldt hij voor alle drie. Hij stelt zich **alleen op verzoek** voor; de
 werkplek toont de korte variant in zijn lege staat. De interne rollen van de annotatieketen
-(annoteerder, Critic, herziener in `annotatie_prompt.py`) blijven **naamloos**: Lex is de dienst als
+(classifier en gerichte reviewer in `agent/jas_pipeline/`) blijven **naamloos**: Lex is de dienst als
 geheel, niet elke node. In de code, het image, de stack en de env-vars blijft alles `graph-qa` heten.
 
 ## Twee lagen: `agent/` (domein) en `api/` (HTTP)
@@ -28,7 +28,7 @@ benoemt daarom expliciet welke packages in de wheel horen – anders faalt `uv s
 
 | Module | Wat erin zit |
 |---|---|
-| `nodes/annotatie.py` | annoteren, Critic, patch, herzien, emit |
+| `nodes/annotatie.py` | annoteer (voorbereiding + `jas_pipeline.keten.analyseer`) en emit |
 | `nodes/annotatie_lezen.py` | de leesroute: eerst zoeken in de opgeslagen annotaties, dan pas formuleren |
 | `nodes/antwoord.py` | agent ⇄ tools, verify, correct, finalize |
 | `nodes/supervisie.py` | supervisor, entry-router, advance, afwijzen |
@@ -47,9 +47,9 @@ en geen bijvangst. De annotatieketen wordt door één helper (`annotatieketen()`
 in elke tak identiek; de antwoordketen staat per tak apart, omdat die echt verschilt
 (`verify → resynth` bij decompositie, `verify → correct` bij planning).
 
-**`agent/jas_pipeline/` is de hybride annotatiepijplijn in opbouw** (ADR-001,
-`docs/architectuur/adr-001-hybride-jas-pijplijn.md`): pure functies zonder LangGraph, die pas via de
-vlag `ANNOTATION_PIPELINE` in een beurt komen. Tot nu toe staat er de taalanalyse (`taal/`: een
+**`agent/jas_pipeline/` is de annotatiepijplijn** (ADR-001,
+`docs/architectuur/adr-001-hybride-jas-pijplijn.md`): pure functies zonder LangGraph, aangeroepen
+vanuit `nodes/annotatie.annoteer_node`. Er staat de taalanalyse (`taal/`: een
 UD-model, verwisselbare providers en afgeleide constituenten/spanopties; de keuze voor spaCy
 `nl_core_news_md` staat in `docs/architectuur/adr-002-taalprovider.md`). Vraagt de `nlp`-extra;
 zonder die extra degradeert de provider zichtbaar (`niveau=TOKENS`, reden in `fout`), hij gooit niet.
@@ -60,10 +60,10 @@ kandidaatmodel (`kandidaten.py`) en de detectoren (`detectoren/`). **Een detecto
 aanreiken meet `python -m eval.kandidaat_eval` (seconden, geen model). Dat is ankerdekking, geen
 recall.
 
-**De hybride route staat achter `ANNOTATION_PIPELINE`** (`legacy` default, `hybrid_v1`). In
-`hybrid_v1` is de annotatieketen `hybride_annoteer → emit`: dezelfde voorbereiding als de
-annoteerder (`nodes/annotatie._bereid_voor` – bron, hergebruik, afronding), daarna
-`jas_pipeline/keten.analyseer` – detectoren, fusie, deterministische besluiten en één kleine
+**De annotatieketen is `annoteer → emit`** (sinds ADR-001 PR 18 de enige route; de legacy-keten met
+annoteerder, Critic, patcher en herziener is weg). `annoteer` bereidt voor
+(`nodes/annotatie._bereid_voor` – bron, hergebruik, afronding) en draait daarna
+`jas_pipeline/keten.analyseer`: detectoren, fusie, deterministische besluiten en één kleine
 classifier-call op kandidaat-labels. Vier regels die je niet mag omdraaien:
 
 - **Het model kiest, het typt niet.** De classifier krijgt labels, fragmenten, bewijscodes en de
@@ -71,11 +71,12 @@ classifier-call op kandidaat-labels. Vier regels die je niet mag omdraaien:
   ontbrekende beslissing wordt `UNCERTAIN` met een reden – nooit geraden, nooit stil weggelaten.
 - **`tool_choice` blijft `auto` en `temperature` staat standaard uit**: geforceerde tool-use en
   sampling-parameters geven op de nieuwste modellen een 400. Wat er gebruikt is, staat in
-  `run.instellingen.hybride`.
-- **Geen terugval naar de legacy-prompt.** Zonder spaCy-model draait de keten gedegradeerd (alleen
+  `run.instellingen` (met de meting onder `run.instellingen.meting`).
+- **Geen terugval naar een generatieve prompt.** Zonder spaCy-model draait de keten gedegradeerd (alleen
   lexicale en structurele detectoren) en zegt dat in de meting en de statusregel.
-- **Voorstellen hebben exact de legacy-vorm** (`ankers` per bronnode + `anker` op het corpus), dus
-  `emit`, de api en de werkplek merken niets. Ids zijn deterministisch (kandidaat + klasse + grens).
+- **Voorstellen houden de contractvorm** (`ankers` per bronnode + `anker` op het corpus, plus
+  `trace`), dus `emit`, de api en de werkplek hoeven niets te raden. Ids zijn deterministisch
+  (kandidaat + klasse + grens).
 
 **Geen Critic over de hele set, wel een gerichte reviewer op twijfelgevallen.** Na validatie
 (`jas_pipeline/validatie.py`, `V_*`-codes) signaleert `onzekerheid.py` twijfel uit waarneembare
@@ -160,7 +161,7 @@ veilig**, verplicht bij >1 replica) → **`CHECKPOINT_DB_PATH`** → `AsyncSqlit
   het stabiele deel. Caching is een **prefix-match**, dus die volgorde is betekenisdragend – zet je
   het plan of de geheugen-context vóór de identiteit, dan is de cache stil waardeloos (geen fout,
   wel de volle rekening). Onder `_MIN_CACHE_TEKENS` gaat er geen cache-punt op: de annotatieketen
-  (8-10k tekens systeemprompt, 3-5 calls per beurt) profiteert, de kortere QA-prompt niet. Weigert
+  (classifier en reviewer, 1-3 calls per beurt) profiteert, de kortere QA-prompt niet. Weigert
   de provider `cache_control` – op Foundry is het een beta-functie – dan zet de adapter zichzelf uit
   en herhaalt de call zonder; de prijs van caching mag nooit "de dienst ligt plat" zijn. Knop:
   `PROMPT_CACHING=false`.
@@ -435,7 +436,7 @@ inruilen voor een stille zou geen verbetering zijn.
 
 ### De leesroute: vragen óver bestaande annotaties
 
-Een vraag naar wat er al geannoteerd is, gaat niet langs de annoteerder maar langs de **leesroute**.
+Een vraag naar wat er al geannoteerd is, gaat niet langs de annotatieketen maar langs de **leesroute**.
 Drie dingen maken die route wat hij is:
 
 1. **Herkenning** (`tools/annotatie_tools.py:is_leesvraag`). Een onderwerp (annotatie, markering,
@@ -471,181 +472,42 @@ modelgedachten.
 ### De annotatie-keten
 
 ```
-ophaal (agent ⇄ tools) → annoteer → critic₁ → patch ─┬─→ herzie → critic₂ → emit → advance
-                                                     ├─→ critic₂ ──────────→ emit
-                                                     └─────────────────────→ emit
+ophaal (agent ⇄ tools) → annoteer → emit → advance
 ```
 
-**Een afgeronde bepaling stopt de beurt vóór de eerste modelronde** (`bron_annotatie.py`, sinds
-22 sep 2026). De api bevriest een afgeronde laag en weigert nieuwe voorstellen met een 409. Dat hoort
-de jurist te horen vóór een ronde van een minuut, niet erna: `controleer_hergebruik` leest de
-laagstatus uit de weergave, behandelt afgeronde nodes als "al geannoteerd" (er komt dus geen nieuw
-element in) en stopt de beurt als er niets te doen overblijft. Hergebruik en Critic-advies op de eigen
-markeringen van een jurist blijven wél toegestaan – advies wijzigt de laag niet. Loopt het tóch mis
-doordat de laag tijdens de beurt werd afgerond, dan geeft `_leg_vast` de foutcode
-`annotatie_afgerond` met de vraag om te heropenen, in plaats van het generieke "probeer opnieuw".
-`wetsanalyse_api` logt daarbij de reden die de api zelf gaf (`api_reden`, een korte servertekst of
-foutcode, nooit de body).
+`annoteer` doet drie dingen na elkaar, en de eerste twee kosten geen modelcall:
 
-**Hergebruik vóór annoteren** (sinds 22 sep 2026, `agent/annotatielaag.py`). Staat het artikel al in
-de gedeelde laag en is de tekst van een lid sindsdien niet veranderd, dan gaat dat lid niet opnieuw
-door het model. De beslissing valt op de **graaf**: twee read-only queries op de named graph van de
-laag (`queries.laagstand`/`laag_markeringen`, met expliciete `GRAPH` – de enige bouwers die de laag
-bewust lezen) leveren per lid de hash, die `deel_leden_in` vergelijkt met de hash van de zojuist
-opgehaalde tekst.
+1. **Bron** (`bron_annotatie.lees_bron`): `bronmodel.resolve` levert een snapshot van de bronnode
+   met per node een SHA256 en de corpusspans. Een vindplaats die niet te resolven is, breekt de
+   beurt; er is geen terugval op de tool-trace.
+2. **Hergebruik en afronding** (`bron_annotatie.controleer_hergebruik`): de api is leidend
+   (`get_annotatiedekking` + `get_annotatieweergave`, beide als toolspoor). Nodes die al af zijn of
+   een afgeronde laag hebben, gaan niet opnieuw door de keten; is er niets meer te doen, dan stopt
+   de beurt vóór de eerste modelcall. Een onleesbare dekking stopt de beurt ook – een api-storing is
+   geen bewijs dat annotaties ontbreken. `hergebruik: "opnieuw"` annoteert alles opnieuw.
+3. **Analyse** (`jas_pipeline.keten.analyseer`, zie hierboven). De hele bepaling is context; alleen
+   de niet-hergebruikte nodes leveren kandidaten.
 
-- **Volledig ongewijzigd** → `annoteer` gaat via `route_na_annoteer` rechtstreeks naar `emit`, zonder
-  één LLM-call. `emit` stuurt een `hergebruik`-event (slug, leden, telling), een `run` met
-  `modus="hergebruik"` en een samenvatting; de driver doet `POST …/lagen/…/hergebruik` in plaats van
-  een PUT. De elementen komen **niet** uit de graaf naar de werkplek: die haalt de laag na
-  `opgeslagen` bij de api, want Postgres is de waarheid.
-- **Deels gewijzigd** → alleen de gewijzigde leden gaan naar de annoteerder (het corpus is dan de
-  aaneenschakeling van hún segmenten, dus lid-scoping en `herankeer` blijven kloppen) en alleen hun
-  stand gaat naar de api. Het `hergebruik`-event meldt welke leden zijn overgeslagen.
-- **`hergebruik: "opnieuw"`** (de jurist vraagt er expliciet om) of **geen laag / onleesbare graaf**
-  → gewoon annoteren. Een haperende graaf is nooit een reden om niet te annoteren; de api is het
-  vangnet, en herkent die een lid dat de graaf miste, dan logt de driver `hergebruik_gemist`.
+**Volledig hergebruik** → geen modelcall; `emit` stuurt een `hergebruik`-event, een `run` met
+`modus="hergebruik"` en een samenvatting, en de driver legt de lege batch vast. **Een afgeronde laag**
+die tijdens de beurt dichtging, geeft bij `_leg_vast` de foutcode `annotatie_afgerond` met de vraag
+om te heropenen; `wetsanalyse_api` logt de reden die de api gaf (`api_reden`, nooit de body).
 
-**Lineair, geen cyclus.** De Critic wijst aan wát er mis is, **code** voert de eenduidige correcties
-uit (`annotatie.pas_critic_toe`), en het model draait alleen nog voor wat brontekst lézen vraagt.
-Hoogstens 4 LLM-calls per annotatie; een schone annotatie kost er 2 – net als voorheen.
+- **`emit_node` is de enige plek die annotatie-events uitstuurt**: één `run`, een `element` per
+  voorstel en de samenvattings-`token`.
+- **Elke beurt meldt zijn herkomst.** Het `run`-event draagt `model`/`provider`/`agent_versie`/
+  `modus`/`leden`, `prompt_hash` (= `classificatie.promptversie`), `methode_versie`
+  (= `jas_klassen.methode_versie()`, een hash over klassen en regels) en `instellingen` met de
+  meting. Per element staat de volledige route in `trace` (bewijs, vraag, besluit, validatie,
+  twijfel, resolutie) – zie `tests/test_provenance_element.py` voor de zestien vragen die daarmee
+  te beantwoorden zijn. `agent_versie` komt uit `AGENT_VERSION`; onbekend blijft leeg.
+- **Geel is een vraag, geen oordeel.** De resolver zet `aandacht: "geel"` met de alternatieven erbij;
+  de werkplek toont die als aanklikbare chip. Er wordt nooit automatisch iets "rood" doorgevoerd.
 
-Waarom dat zo is: de Critic leverde altijd al een uitvoerbare instructie (`actie` +
-`voorstel_klasse`/`voorstel_tekst`), en die ging naar een tweede LLM die hem moest lezen, uitvoeren
-en alle ongemoeide elementen ongewijzigd terugtypen. Dat is werk dat code exact doet en een taalmodel
-bij benadering – en het maakte van de keten een onderhandeling tussen twee modellen. Zeven van de
-vijfentwintig commits vóór deze wijziging repareerden die lus; er stonden vier convergentie-guards in
-(`herziening_wijzigde`, `geweigerde_feedback`, `gemeld_ontbrekend`, de rondecap). De eerste twee zijn
-weg: ze bestonden alleen om een cyclus te laten stoppen die er niet meer is.
-
-- **Wat de patcher doet** (`pas_critic_toe`) hangt af van het aandacht-niveau, en dat is de kern:
-  - **rood + vervang** → uitvoeren. Klasse vervangen, fragment vervangen (*alleen* als het letterlijk
-    in het corpus staat, dezelfde eis als bij een vers voorstel), of verwijderen. Het element krijgt
-    dan een lege `aandacht` en `critic₂` velt er een nieuw oordeel over.
-
-    **Behalve als de vervanging tegen een PRIORITEITSREGEL van de methode ingaat.** Dan blijft de
-    klasse staan en wordt de lezing van de Critic een alternatief, net als bij geel; de instructie
-    is daarmee afgehandeld en gaat niet door naar de herziener. Rood is de tak zonder tweede
-    beoordelaar, en de Critic kende JAS-PRIORITY-001/002 tot 1 sep 2026 niet eens uit zijn prompt –
-    een correct toegepaste Tijdsaanduiding kon dus met één rood oordeel Variabele worden.
-  - **geel verandert nooit iets.** Een voorgestelde klasse wordt een **alternatief** op het element;
-    de werkplek toont die als aanklikbare chip ("Twijfel – klik om te wisselen"), dus de jurist neemt
-    hem met één klik over en het landt als zíjn beslissing in het auditspoor. Een voorgesteld
-    frágment kent die tussenvorm niet en blijft alleen in de motivatie staan. In beide gevallen is de
-    instructie **afgehandeld** en gaat hij niet door naar de herziener – deed hij dat wel, dan voerde
-    een taalmodel alsnog uit wat ter beoordeling zou worden voorgelegd (op dev kortte hij zo twee
-    fragmenten in op een geel advies). Niets veranderd, dus ook geen herbeoordeling.
-
-    Eén uitzondering, en die komt niet van een model: de **prioriteitsvalidator** loopt na afloop
-    over álle voorstellen. Stelt de Critic geel + `Tijdsaanduiding` voor op een `Variabele`, dan
-    wordt dat alsnog de klasse – niet omdat hij het vroeg, maar omdat de methode het voorschrijft.
-    Precies wat er was gebeurd als de annoteerder datzelfde paar had opgeleverd; zonder deze pas
-    hing de uitkomst af van wie het alternatief aandroeg. "Geel verandert nooit iets" houdt een
-    tweede **taalmodel** tegen, en dit is deterministische methode die de andere lezing bovendien
-    als alternatief laat staan. Een markering van de jurist blijft ook hier ongemoeid.
-
-  **De herziening bewaart de alternatieven.** Zij levert de hele elementenlijst opnieuw op en
-  `_verwerk` bouwt daaruit verse voorstellen; nam de merge alleen dát lijstje over, dan wiste een
-  herziening precies de voorkeur die de patcher er net had neergezet. Samenvoegen op klasse, het
-  bestaande eerst – net als bij `critic_rondes`.
-
-  Zonder die tweedeling koos de Critic in de praktijk bijna altijd "geel · behoud" – twee live runs
-  lang deed de patcher niets – en bleef de jurist met precies dezelfde vraag zitten als waarmee hij
-  begon. Nooit op een markering van de jurist: dat oordeel is een suggestie. Elke *uitgevoerde*
-  correctie zet `toegepast: true` op de laatste `critic_rondes`-regel, want "de Critic vroeg erom" is
-  iets anders dan "het is ook gebeurd".
-- **Prioriteitsregels gelden voor élke rol die classificeert.** `_prioriteitsregels_tekst()`
-  genereert de instructie uit `jas_klassen.REGELS` en zit in de prompt van de annoteerder, de
-  klasseerder, de Critic én de herziener; `_pas_prioriteitsregels_toe()` dwingt hem daarna
-  deterministisch af, in `_verwerk` (verse en herziene voorstellen) én in `pas_critic_toe`. Eén
-  bron van waarheid voor allebei, zodat prompt en handhaving niet uit elkaar kunnen lopen. De guard
-  in `poort` eist dat elke prompt die `_klassen_referentie` toont ook de regels toont – wie de
-  dertien klassen krijgt, mag kiezen, en hoort de regels te kennen die die keuze binden.
-- **Wat de herziener nog doet**: een bijna-goed citaat repareren (`verworpen_fragmenten`) en een
-  gemeld ontbrekend element toevoegen. Dat vraagt de brontekst lezen, geen instructie uitvoeren.
-  `_open_werk` is precies die twee; correctie-instructies staan er niet meer bij.
-
-  **De patcher snoeit `critic_feedback` tot wat hij níét afhandelde.** Anders krijgt de herziener
-  dezelfde instructies opnieuw voorgelegd: de correcties die net zijn uitgevoerd (dubbel werk) én de
-  gele voorkeuren die bewust níét zijn uitgevoerd – en dan voert een taalmodel alsnog uit wat juist
-  aan de jurist zou worden voorgelegd. Dat ging live mis en stond zichtbaar in de tijdlijn:
-  "2 aanwijzingen toegepast" gevolgd door "4 aangepast". Wat overblijft is alleen een rood oordeel
-  waar niets uitvoerbaars in zat (een voorgesteld fragment dat niet letterlijk in de bron staat) —
-  precies het geval waarin het model wél iets kan: de bron lezen en het bedoelde fragment opzoeken.
-- **`critic₂` is het sluitstuk, geen ingang.** Hij draait alleen als er iets veranderd is, zodat het
-  oordeel op de kaart gaat over de versie die de jurist vóór zich krijgt. Vraagt hij dán opnieuw om
-  een correctie, dan gaat die naar de jurist – niet naar nóg een ronde. `critic_ronde` telt daarom
-  Critic-passen (1 = oordeel, 2 = eindbeoordeling) en wordt gezet waar hij over gaat.
-- **`CRITIC_MAX_RONDES` telt geen rondes meer**, ondanks zijn naam: 0 = uit (exact `annoteer → critic
-  → emit`, de terugvaloptie in productie), > 0 = aan. De naam blijft zodat een draaiende deployment
-  niet omvalt. Er is een test die het uit-gedrag bewaakt.
-- **Het geheugenblok moet de waarheid vertellen.** `_stand_van` leidt uit het spoor af wat er met
-  het vorige oordeel gebeurde: *uitgevoerd* (de patcher deed het), *als alternatief voorgelegd* (de
-  voorgestelde klasse staat nu bij de jurist), *aangepast* (de herziener) of *ongewijzigd gelaten*.
-  Dat onderscheid is niet cosmetisch: de prompt leest "ongewijzigd" als een gemotiveerd
-  meningsverschil, en toen een uitgevoerde correctie nog als "ongewijzigd" binnenkwam draaide de
-  Critic op dev zijn eigen oordeel om – ronde 1 "maak er Rechtsbetrekking van" (uitgevoerd), ronde 2
-  "dit is geen Rechtsbetrekking maar een Rechtsobject".
-- **De Critic heeft geheugen.** Vanaf ronde 2 krijgt hij per element zijn vorige oordeel terug plus of
-  de annoteerder het aanpaste (`_vorige_ronde_blok`), en de al gemelde ontbrekende elementen. Zonder
-  dat begon hij elke ronde met een schone lei: hij kon nooit zeggen "dit is opgelost" en bedacht elke
-  ronde opnieuw wat er miste. Dat spoor staat in **`critic_rondes`** per element – een veld dat al in
-  het api-contract en de frontend-types zat maar nooit werd gevuld; het bedient nu het geheugen van de
-  Critic, de kaart in de werkplek en de merge in de api tegelijk.
-- **Twijfel is geen aandacht.** Alternatieven forceren geen "geel" meer (die regel maakte elk
-  gedisambigueerd element permanent geel, waardoor de vlag betekenisloos werd). De Critic bepaalt de
-  kleur; `emit_node` telt twijfel apart in de samenvatting.
-- **Elke rol die per element schrijft, krijgt hetzelfde tokenbudget** (`max_tokens=8192`). De
-  Critic stond tot 1 sep 2026 als enige op 2048 — het krapste van de keten, terwijl hij per element
-  de meeste tekst produceert. Zijn antwoord werd afgekapt, `_verwerk_critic` redde met
-  `_balanced_objecten` wat er compleet in stond en de rest verdween. Live gemeten plafond: 27
-  markeringen → 15 beoordeeld, 48 → 22, 72 → 29, 82 → 24. Vlak, dus een tokengrens en geen keuze
-  van het model. De guard in `poort` bewaakt dat geen per-element-rol krapper staat dan de
-  annoteerder.
-
-  **"Zonder oordeel" heeft twee oorzaken, en die zijn niet hetzelfde.** De Critic kan een element
-  overslaan (modelgedrag), of hij geeft wél een oordeel waarvan wij het niveau niet kunnen lezen —
-  een `aandacht` die niet groen/geel/rood is, of die ontbreekt. Dat tweede gooide `_verwerk_critic`
-  stil weg, motivatie en instructie incluis, en dan komt het element bij de jurist alsof de Critic
-  er nooit naar keek. Het verschil is wezenlijk: het eerste valt niet te repareren, het tweede wel.
-  `_verwerk_critic` geeft die onleesbare waarden als derde retourwaarde terug en de tijdlijn noemt
-  ze (`· 2 zonder oordeel (waarvan 1 met een onleesbaar niveau: neutraal)`). Die meting wees op
-  2 sep 2026 uit dat het model in ronde 1 een oordeel gaf met een leeg `aandacht`-veld en een
-  gevulde motivatie, en dat wij dat weggooiden.
-
-  **Een onleesbaar niveau sleept de motivatie niet meer mee.** Is er een opmerking, dan wordt het
-  oordeel bewaard met een leeg niveau; zonder opmerking valt er niets te redden en verdwijnt het
-  zoals voorheen. Het niveau wordt **niet** aangevuld met een gok — een verzonnen "geel" is een
-  oordeel dat het model niet gaf. Het blijft dus leeg, en dat valt overal goed: `_critic_melding`
-  telt het als `"geen oordeel"`, de api houdt het element op `voorgesteld` (de lifecycle hangt aan
-  `aandacht`), de kaart toont *Niet beoordeeld* mét de opmerking, en een meegegeven `actie` valt
-  zonder rood niveau in de gele tak van `pas_critic_toe`: voorgelegd, niet uitgevoerd.
-
-  **En afkapping is nooit stil.** `critic_node` leest `stop_reason`; is die `max_tokens`, dan zegt
-  de tijdlijn dat. `_critic_melding` krijgt bovendien het ingediende totaal mee en meldt het
-  verschil (`… · 58 zonder oordeel`) — de `"geen oordeel"`-bak telde alleen wat de Critic terúggaf,
-  dus wat hij niet noemde kwam nergens voor. Dat is de reden dat de tijdlijn "beoordeelt 82
-  markeringen" kon zeggen terwijl er 20 oordelen waren.
-
-- **`emit_node` is de enige plek die annotatie-events uitstuurt.** Zou de Critic dat doen, dan zag de
-  werkplek elke tussenversie van de lus voorbijkomen.
-- **Elke beurt meldt zijn herkomst.** `emit_node` stuurt vóór de elementen één `run`-event
-  (`model`/`provider`/`agent_versie`/`critic_rondes`/`stop_reden`, en sinds 22 sep 2026 ook
-  `modus`, `leden`, `prompt_hash` en `methode_versie` – vingerafdrukken uit `annotatie_prompt` – plus
-  de instellingen die de uitkomst sturen); de werkplek legt dat bij de
-  api vast op het document én per element. Zonder dat is achteraf niet vast te stellen mét welk
-  model een markering is gemaakt – precies wat een export moet dragen en wat de latere
-  graaf-promotie als provenance nodig heeft. `agent_versie` komt uit `AGENT_VERSION` en valt
-  terug op de pakketversie; onbekend blijft leeg (liever geen versie dan een verzonnen versie).
-- **Faalgedrag: nooit minder dan we al hadden.** Critic faalt → direct emitten met de voorstellen
-  ongemoeid (ook hun eerdere oordeel). Herziening faalt of levert niets gegronds → vorige voorstellen
-  behouden. De merge is een union; alleen een expliciete `verwijder`-instructie laat iets verdwijnen.
-- **Een gecorrigeerd element draagt geen oud oordeel.** Zodra de patcher of de herziener iets
-  wijzigt is de aandacht leeg tot `critic₂` erover heeft geoordeeld – een oordeel over een vórige
-  versie op de nieuwe plakken zou schijnzekerheid zijn.
-- **De rondeteller wordt gereset** in `advance_node` én in de init van `answer_stream`. Zonder die
-  reset begint een tweede beurt in dezelfde thread met een volle teller (de checkpointer bewaart de
-  state) en wordt de correctie overgeslagen.
+Vervallen met PR 18 (25 sep 2026): het Critic-advies op markeringen van de jurist (`suggestie`), de
+`ontbrekend`-lijst, de herziener en de knoppen `ANNOTATION_PIPELINE`, `CRITIC_MAX_RONDES`,
+`ENABLE_KANDIDAAT_SPLITSING` en `ANNOTATIE_PROMPT_KORT`. Wie de geschiedenis van die keten zoekt,
+vindt haar in git vóór die PR.
 
 **Buiten de WETGEVING eindigt bij de supervisor.** Zegt hij `PLAN: AFWIJZEN`, dan routeert
 `_entry_node` naar de `afwijzen`-node: één beleefde melding, geen specialist, geen tool-call, geen
@@ -674,8 +536,8 @@ Een half doel (alleen een `bwbId`) telt niet – dan valt er wél iets te zoeken
 beurt en wordt daarom **per beurt gereset** in `answer_stream`, net als de andere annotatievelden.
 
 **Model per rol.** `LLM_MODEL_ROUTER` en `LLM_MODEL_OPHAAL` (leeg = `LLM_MODEL`) zetten de supervisor
-en de ophaal-agent op een eigen model; `Settings.model_voor` doet de terugval. De annoteerder, de
-Critic en de QA-specialisten hebben **geen** eigen knop en draaien altijd op `LLM_MODEL`: wie een
+en de ophaal-agent op een eigen model; `Settings.model_voor` doet de terugval. De classifier, de
+reviewer en de QA-specialisten hebben **geen** eigen knop en draaien altijd op `LLM_MODEL`: wie een
 oordeel velt over wetgeving hoort niet met een env-var te verzwakken.
 
 **Advies bij twijfel** (`modus: "advies"` in de body; werkt op `/v1/runs` én `/v1/chat`, want beide
@@ -699,110 +561,31 @@ contextblok (bepaling, klasse, fragment, corpus) gaat mee in de systeemprompt.
 **Een ONDERWERP in plaats van een bepaling** ("annoteer alles over aansprakelijkheid van de
 bestuurder") levert geen annotatie maar een keuze. De ophaal-agent zoekt dan met
 `semantic_search`/`search_wetgeving` en geeft `{"kandidaten": [...]}` terug; `annoteer_node` ziet dat,
-emit één `kandidaten`-event en stopt de beurt – geen LLM-call voor annoteren of Critic. Welke bepaling
+emit één `kandidaten`-event en stopt de beurt – geen classifier-call. Welke bepaling
 de werkvoorraad in gaat is een inhoudelijke keuze; de agent er zelf één laten pakken levert een
 annotatie op een bepaling die niemand vroeg. De werkplek toont de lijst en stuurt de gekozen bepaling
 als nieuwe opdracht in.
 
-**De Critic kijkt ook mee op markeringen van de jurist.** Die komen via `context.bestaande_elementen`
-binnen en gaan als BEVROREN voorstellen (`van_jurist`) mee de Critic in: de patcher raakt ze niet aan,
-ze gaan niet mee de herziening in, ze komen niet terug als `element`-event, en hun oordeel gaat als
-apart `suggestie`-event naar de werkplek. Ook een rood oordeel op eigen werk wordt dus nooit
-uitgevoerd.
-Ze moeten wél **letterlijk in het opgehaalde corpus staan** (`komt_letterlijk_voor`) – dezelfde eis als
-voor de agent zelf. De werkplek stuurde ooit de markeringen van álle geopende documenten mee, en dan
-oordeelt de Critic over een fragment uit een andere bepaling dat hij niet voor zich heeft. Die grens
-ligt hier en niet alleen in de frontend: het is dezelfde brongetrouwheidsregel, dus hij hoort op de
-plek te staan waar het corpus bekend is.
-
-Drie dingen die je verder moet kennen voordat je hieraan werkt:
-
-- **Elk voorstel draagt een `id`** dat `_verwerk` toekent (niet het model). De Critic koppelt zijn
-  oordeel daarop; op positie koppelen brak zodra een ronde een element toevoegde of wegliet. Geeft
-  het model een `id` mee, dan blijft dat behouden – zo matcht de api het bij een volgende ronde op
-  hetzelfde element en blijven de beslissingen van de jurist staan.
-- **Dezelfde markering komt maar één keer terug.** Een fragment is niet zijn id maar zijn inhoud:
-  `sleutel_van(tekst, lid)` – genormaliseerde tekst + lid, **zonder klasse**. `_verwerk` ontdubbelt
-  daarop binnen een ronde en de merge in `herzie_node` doet het over rondes heen – een herziening
-  die een bestaand fragment opnieuw voorstelt zónder id kreeg anders een vers id, en dan stond de
-  markering er twee keer. Het **oudste id wint**, want daaraan hangen de beslissingen van de jurist
-  en het auditspoor.
-  De klasse hoort er bewust niet in: een herziening mág juist herclassificeren en moet dan hetzelfde
-  element treffen. Dit is dezelfde regel als de api-merge (`routers/annotatie.py:_sleutel`) en
-  `mergeVoorstellen` in de werkplek – drie implementaties, één regel, bewaakt door
-  `tests/test_ontdubbelsleutel.py`. Stelt het model binnen één ronde dezelfde span met een ándere
-  klasse voor, dan wordt die tweede lezing een **alternatief** op het eerste voorstel.
-- **Verworpen fragmenten gaan niet verloren.** `_verwerk` geeft ze terug met een reden
-  (`niet_letterlijk` of `ongeldige_klasse`) in plaats van ze te tellen. Een bijna-goed citaat is met
-  die aanwijzing prima te repareren – dat is de goedkoopste kwaliteitswinst in de keten.
-- **Een gemist element zonder fragment is waardeloos.** De Critic moet bij `ontbrekend` het
-  letterlijke fragment meegeven; kan hij het niet aanwijzen (impliciet subject bv.), dan begint de
-  reden met `"impliciet:"` en blijft `tekst` leeg. Zonder fragment kan de annoteerder het in de
-  herziening niet toevoegen (het moet letterlijk in de tekst staan) en kan de werkplek er geen
-  "toevoegen"-knop van maken – dan blijft het een mededeling waar niemand iets mee kan.
-- **De Critic geeft instructies, geen klachten.** Naast `aandacht` + `motivatie` levert hij
-  `actie` (`behoud|vervang|verwijder`) met een `voorstel_klasse`/`voorstel_tekst`. `verwijder` mag
-  alleen bij rood, en `vervang` zonder voorstel degradeert naar `behoud` – anders is het geen
-  opdracht. Die normalisatie zit in `_verwerk_critic`, niet in de prompt: op een model vertrouwen
-  voor een veiligheidsregel is geen veiligheidsregel.
+**Dezelfde markering komt maar één keer terug.** Een fragment is niet zijn id maar zijn inhoud:
+`sleutel_van(tekst, lid)` – genormaliseerde tekst + lid, **zonder klasse**. Dat is dezelfde regel als
+de api-merge (`routers/annotatie.py:_sleutel`) en `mergeVoorstellen` in de werkplek – drie
+implementaties, één regel, bewaakt door `tests/test_ontdubbelsleutel.py`. De klasse hoort er bewust
+niet in: een herclassificatie moet hetzelfde element treffen, anders staan er twee kaarten.
 
 ## Kern-invarianten (niet breken)
 
 - **Brongetrouwheid.** Bronnen én grounding komen uit de **tool-trace**, nooit uit een regex over
   modeltekst. Als iets niet uit een tool kwam, is het geen bron en niet gegrond. En "niets te
   controleren" is geen goedkeuring: dat is `niveau: "onbepaald"`, niet gegrond.
-- **Het annotatie-corpus is één bepaling.** `annoteer_node` haalt de tekst gericht op met
-  `artikel.artikel_corpus(bwbId, artikel, lid)` – dezelfde functie als `GET /v1/artikel`, dus wat de
-  jurist ziet en waartegen wordt gegrond is één tekst – en zet hem in `state["corpus"]`, waar de
-  Critic en de herziening hem uit lezen. Reconstrueer hem **niet** uit de tool-trace: dat plakt álle
-  fetch-resultaten van de beurt aaneen (haalde de ophaal-agent eerst het hele artikel en daarna het
-  lid, dan zit lid 2 er ook in) en elk resultaat is afgekapt op 8000 tekens. `_corpus_uit_trace` is
-  alleen nog de terugval als de graaf niets geeft.
-- **Het corpus is het lid, het anker staat op het artikel.** `_scope_voor_doel` haalt in één
-  SPARQL-call zowel wat de annoteerder leest (`corpus`, bij een lid alleen dat lid) als het hele
-  artikel (`artikel_corpus`) met per lid de IRI. Annoteren, Critic en herziening werken op `corpus`;
-  `emit_node` zet de ankers daarna om naar het artikel (`annotatie.herankeer`) en geeft elk anker de
-  `lid_hash` van zijn segment (`annotatie.lid_hashes`). Dat is een verschuiving per segment, geen
-  zoektocht: het gescopete corpus bestaat uit exact dezelfde segmenten. Klopt het segment niet, dan
-  wordt het anker `None`. Het `doel`-event draagt daarom het héle artikel als `leden_teksten`, met
-  `lid` als focus.
-- **Het lid en het anker zijn één beslissing.** `_verwerk` zoekt een fragment binnen het lid dat het
-  element zelf noemt (`_lid_segmenten` splitst het corpus op `"\n\n"` – exact, want zo bouwt
-  `_leden_en_corpus` hem op; onderdelen hangen met een enkele `"\n"`). Staat het er niet, dan wint
-  het anker en wordt het lid gecorrigeerd naar waar het landt; verwerpen zou letterlijke wettekst
-  weggooien wegens een verkeerde lid-claim. Beide bepalen langs eigen weg – het lid van het model,
-  de positie als het eerste voorkomen in het hele corpus – liet ze uit elkaar lopen: bij artikel 6
-  Uitvoeringsregeling Awir kregen 2 van de 43 markeringen een anker in een ander lid dan hun
-  vindplaats beloofde, en "derde" landde op het rangtelwoord in "artikel 25, derde lid" in plaats
-  van op het rechtssubject. Dat bijt alleen bij een corpus van meerdere leden; met een `scope_lid`
-  is er één segment.
-
-  De zoekladder is **onderdeel → lid → hele corpus**, en elke trede kiest bij voorkeur een
-  voorkomen dat op **woordgrenzen** staat. Dat laatste is geen finesse: de Operator "en" komt 59x
-  voor in lid 2 en het eerste voorkomen zit in "Als gevall**en** als bedoeld" — een lettergreep.
-  Het is een voorkeur en geen eis: staat een fragment nergens op woordgrenzen, dan wint alsnog het
-  eerste voorkomen. Brongetrouwe tekst weggooien omdat de plaatsbepaling niet scherp te krijgen is,
-  zou erger zijn dan een minder scherpe plaatsbepaling.
-
-  **Het `onderdeel` komt uit de prompt en wordt niet opgeslagen.** Het model noemde het al in zijn
-  prozatoelichting ("in onderdeel c"); sinds 1 sep 2026 is er een veld voor. Het stuurt alleen het
-  zoeken — de offsets in het `Anker` pinnen de plek daarna exact, dus opslaan zou dezelfde
-  informatie dubbel dragen en het api-contract raken zonder dat iemand er iets aan heeft. Een fout
-  onderdeel valt terug op het lid en corrigeert het lid **niet**: dat is een grovere claim en kan
-  best kloppen.
-
-  **Eén functie rekent dit uit**: `_lokaliseer`. Zij bedient `_verwerk` (verse voorstellen) én
-  `pas_critic_toe` (een door de Critic vervangen fragment). Die tweede werkte zijn anker eerder
-  helemaal niet bij — de patcher verving alleen `tekst` — waardoor er op 1 sep 2026 live een
-  Operator "en" stond met een anker van 83 tekens eromheen. Lukt het lokaliseren niet, dan is het
-  anker `None`: een ontbrekend anker is zichtbaar in de werkplek, een fout anker niet.
-
-  Wat dit **niet** oplost: zes van de acht meervoudige fragmenten in die annotatie landen nog
-  steeds op het eerste voorkomen binnen hun onderdeel — daar meestal het enige, maar niet
-  aantoonbaar ("belanghebbende" staat 2x in onderdeel f). Verder scherpstellen vraagt dat het model
-  langere, zelf-onderscheidende fragmenten kiest: een prompt- en methodekwestie, geen zoekkwestie.
-  `tests/test_anker_lid.py` legt de garanties én de grenzen vast. De **eval kan dit niet meten** –
-  de scorers vergelijken spans op tekst, nooit op positie.
+- **Het annotatie-corpus is één bronnode.** `lees_bron` haalt de tekst gericht op via
+  `bronmodel.resolve` – dezelfde bron als `GET /v1/artikel`, dus wat de jurist ziet en waartegen
+  wordt geankerd is één tekst. Reconstrueer hem **niet** uit de tool-trace: die plakt alle
+  fetch-resultaten van de beurt aaneen en is afgekapt op 8000 tekens.
+- **Offsets komen nooit van een model.** Detectoren leveren spans op bronnode-offsets
+  (codepoints); de classifier kiest een klasse per kandidaat-label en typt geen tekst.
+  `bron_annotatie.lokale_elementen` valideert de ankers tegen de snapshot (`bronmodel.valideer_ankers`:
+  bestaan, bereik, hash, letterlijkheid) en bepaalt de eigenaar als diepste gemeenschappelijke
+  bronnode. Een element zonder controleerbaar anker is een fout, geen voorstel.
 - **`GRAPHDB_TOKEN` is verplicht.** Afgedwongen bij startup (lifespan) én per request (`make_graph →
   require_graph`). Het token is de sleutel voor de auth-proxy, die hem vervangt door het
   GraphDB-service-account; de agent kent die credentials zelf niet. Maak dit niet optioneel.
@@ -814,22 +597,21 @@ Drie dingen die je verder moet kennen voordat je hieraan werkt:
 - **SSE-event-contract.** De event-types zijn het contract met de consumenten (de werkplek); wijzig
   ze bewust en gelijktijdig, en over beide wegen gelijk (`/v1/chat` én de run-events).
   Antwoordroute: `status`/`reason`/`token`/`sources`/`grounding`/`done`/`error`. Annotatie-worker:
-  `doel`/`run`/`element`/`ontbrekend`/`suggestie`/`kandidaten`/`hergebruik`/`opgeslagen`/`waarschuwing`.
+  `doel`/`run`/`element`/`kandidaten`/`hergebruik`/`opgeslagen`/`waarschuwing` (`ontbrekend` en
+  `suggestie` verdwenen met de Critic in ADR-001 PR 18).
   **`reason` = het denkproces** (tool-narratie, live gestreamd); **`token` = alléén het eindantwoord**
   – hou die twee gescheiden zodat de werkplek ze los kan tonen. Niet elk event is een fout:
   `waarschuwing` betekent dat de beurt slaagde maar niet alles bewaard is (zie §*De uitkomst
-  vastleggen*), en dat is iets anders dan `error`. De Critic mag de annotatie nooit breken.
-- **De keten meldt zich.** De annotatiefase duurt 60-90 s; daar tussenin ging vroeger geen enkel
-  event uit, dus de jurist keek naar een leeg scherm. Elke stap stuurt nu een `status`-regel met zijn
-  naam en uitkomst: `Supervisor → …` / `Graaf bevragen · get_lid(BWBR…, 9, 1)` / `Annoteerder · N
-  fragmenten, M gegrond` / `Critic · 1 rood, 2 geel · 1 mogelijk gemist` / `Herziening 1 · X
-  aangepast, Y ongewijzigd` / `Klaar · N elementen`. Ook de faalpaden melden zich (Critic
-  overgeslagen, herziening leverde niets op) – stil doorgaan wekt de indruk dat alles beoordeeld is.
-  De bewoording zit in pure functies (`_annoteer_melding`, `_critic_melding`, `_herzien_melding`,
-  `_toolregel`) zodat hij te testen is; de werkplek bewaart de reeks bij de annotatie.
+  vastleggen*), en dat is iets anders dan `error`.
+- **De keten meldt zich.** Elke stap stuurt een `status`-regel met zijn naam en uitkomst:
+  `Supervisor → …` / `Graaf bevragen · get_lid(BWBR…, 9, 1)` / `Hergebruik · …` / `Detectie · leest
+  …` / `Classificatie · N kandidaten, M zonder model …` / `Klaar · N elementen`. Een gedegradeerde
+  taalanalyse zegt dat in de regel – stil doorgaan wekt de indruk dat alles is gezien. De bewoording
+  zit in pure functies (`_analysemelding`, `_hergebruik_melding`, `_toolregel`) zodat hij te testen
+  is; de werkplek bewaart de reeks bij de annotatie.
 - **Eén idioom: `Actor · wat er gebeurde`.** Alle statusregels lopen via `_stap(writer, actor,
   bericht)`; een test bewaakt de vorm. Zonder die helper verzon elke node zijn eigen stijl —
-  "Opgesplitst in 3 deelvragen." naast "Annoteerder · 4 gegrond", en twee verschillende teksten voor
+  "Opgesplitst in 3 deelvragen." naast "Classificatie · 4 voorstellen", en twee verschillende teksten voor
   dezelfde graafbevraging. Dat geldt voor de héle keten, niet alleen de annotatie: ook de
   antwoordroute meldt nu zijn stappen zónder eigen narratie (`Controle · brongetrouwheid…`,
   `Correctie · …`, `Synthese · …`, `Klaar · N bronnen`). De LLM-narratie zelf blijft `reason`; die
@@ -879,18 +661,17 @@ dezelfde bepaling levert tussen runs sterk verschillende uitkomsten op (geel var
 dus één run is een anekdote. Lees precisie/recall en span-IoU als bandbreedte; de *garanties* horen
 wél op 100%.
 
-**Legacy tegen `hybrid_v1` meet `eval/compare_pipelines.py`** (ADR-001 PR 16): per casus dezelfde
-bronfixture voor beide routes, afwisselend per casus, en daarna P/R/F1 op positie, stabiliteit over de
+**De keten meet `eval/compare_pipelines.py`** (ADR-001 PR 16): per casus dezelfde bronfixture, en
+daarna P/R/F1 op positie, stabiliteit over de
 herhalingen, efficiëntie en foutcategorieën. De uitkomst draagt de referentiestatus; tegen de
 provisional referentieset heet recall *ankerdekking*. Het rapport meldt ook de maten voor alleen
 onbetwiste voorstellen, want een geel voorstel is een vraag aan de jurist en geen uitspraak.
-`--offline` toetst het harnas zonder kosten.
+`--offline` toetst het harnas zonder kosten. Oude rapporten met een `legacy`-route blijven
+analyseerbaar (`ROUTES`), maar alleen `hybrid_v1` is nog te meten (`MEETBAAR`); de legacy-baseline
+staat in `docs/architectuur/metingen/`.
 
-**Hoe stabiel de keten is, meet een apart script**: `eval/stabiliteit.py` draait dezelfde
-ontwikkelcasussen N keer door de volledige keten, en `eval/stabiliteit_analyse.py` zet de runs
-op één lijn en telt per fase (annoteerder, na Critic) de detectie-, span- en klassestabiliteit plus
-de klasseparen die het vaakst wisselen. Het draait lokaal, zonder graaf (vaste bronfixture, gedeeld
-met `compare_methodeketen.py` via `eval/keten_fixture.py`), maar wel tegen de provider. Hoge
+**Stabiliteit over herhalingen** rekent `eval/stabiliteit_analyse.py` uit (uitlijnen op positie,
+detectie-, span- en klassestabiliteit per casus); `compare_pipelines` gebruikt die functies. Hoge
 overeenstemming is geen kwaliteitsbewijs – zie `docs/wetsanalyse/evaluatie-methode.md`.
 
 **De eval-job draait hetzelfde image als de graph-qa-app**, dus een eval-rapport gaat over de code
@@ -1011,27 +792,11 @@ strekking, niet in opmaak.
 De IRI-vorm van geneste onderdelen wijkt af van wat de parser aanmaakt; dat is nooit verklaard. Na
 deze aanpak doet het er voor de volgorde niet meer toe.
 
-**De promptlengte is meetbaar, niet aangenomen.** `ANNOTATIE_PROMPT_KORT=true` laat
-`_klassen_referentie` alleen de eerste zin per veld renderen: een annoteerprompt van ~8,6k tekens in
-plaats van ~17,4k. Dat is bewust binnen een procent van de 8503 tekens die de prompt had vóór 1 sep
-2026, toen de volle brontekst uit de skill erin kwam. Die verdubbeling gebeurde op de redenering dat
-de bron rijker was dan wat erin stond — een redenering, geen meting.
-
-Die vergelijking hoort in **één uitvoering**: dezelfde graafstand, hetzelfde model, dezelfde dag.
-Een vergelijking over twee deploys heen haalt die drie door elkaar met het effect dat je wilt meten.
-
-**Maar hij zit sinds 5 sep 2026 niet meer in de standaard eval-job.** Twee varianten × drie runs is
-zes suites, en dat was de factor twee die de run over zijn tijdsbudget duwde toen de provider
-`overloaded_error` gaf. De job draait nu **drie runs van één variant**; wil je de promptlengte
-meten, zet dan `ANNOTATIE_PROMPT_KORT` op de job en draai `eval` twee keer achter elkaar — binnen
-dezelfde deploy, dus de drie voorwaarden blijven overeind. Zet de knop niet aan in productie:
-korter is niet beter, dat is juist wat gemeten wordt.
-
 **De cases zijn geselecteerd op signaal per teken, niet op aantal.** Het corpus van de set ging op
 5 sep 2026 van 16.521 naar 3.349 tekens (−80%) terwijl de klassedekking van 6 naar 12 van de 13
 JAS-klassen groeide. De kosten worden namelijk gedreven door corpusomvang: meer tekst geeft meer
-markeringen, en de Critic beoordeelt er per stuk één — bij 40 markeringen liep hij tegen zijn
-`max_tokens` aan, een stille foutbron.
+markeringen, en de toenmalige Critic beoordeelde er per stuk één — bij 40 markeringen liep hij
+tegen zijn `max_tokens` aan, een stille foutbron.
 
 Twee dure cases zijn vervangen door een compacte tweeling op hetzelfde pad, gevonden door de graaf
 te bevragen op korte bepalingen met veel verschillende JAS-signalen:

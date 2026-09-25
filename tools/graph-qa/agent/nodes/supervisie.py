@@ -103,12 +103,9 @@ def advance_node(b: Bouw, state: State) -> dict[str, Any]:
     if idx < len(plan):
         upd.update({
             "specialist": plan[idx], "turns": 0, "corrected": False, "answer": "",
-            # Ook de annotatie-velden: een volgende worker begint schoon, anders zou een
-            # tweede annotatie in dezelfde beurt op de rondeteller van de eerste doorbouwen.
-            "voorstellen": [], "verworpen_fragmenten": [], "critic_feedback": [],
-            "critic_ontbrekend": [], "critic_gefaald": False, "critic_ronde": 0,
-            "nieuw_ontbrekend": [], "gemeld_ontbrekend": [], "patch_toegepast": 0,
-            "stop_reden": "",
+            # Ook de annotatie-velden: een volgende worker begint schoon, anders zou een tweede
+            # annotatie in dezelfde beurt de voorstellen van de eerste uitsturen.
+            "voorstellen": [], "analyse": {},
         })
     return upd
 

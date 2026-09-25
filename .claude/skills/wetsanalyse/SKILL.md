@@ -93,7 +93,10 @@ Voor conceptvoorbeelden en de gezamenlijke beoordelingsprocedure:
 ## Import in platformagents
 
 [Agentrollen](references/agentrollen.md) beschrijft de beperkte runtime-uitvoering.
-`agentrollen.json` koppelt rollen aan stabiele sectie-ID’s en M/P-bronnen.
+`agentrollen.json` koppelt rollen aan stabiele sectie-ID’s en M/P-bronnen: supervisor,
+ophaalagent, specialisten, decompositie en synthese. De annotatie gebruikt geen methodeprompt meer.
+Die werkt met detectieprofielen en regels in `tools/graph-qa/agent/jas_pipeline/`, die naar
+dezelfde klassenreferentie (`H2:NN`) verwijzen (ADR-001).
 Genereer beide Pythonbestanden met `tools/graph-qa/scripts/genereer_jas_klassen.py`.
 De machineleesbare methodeversie staat uitsluitend in bovenstaande metadata;
 de pakkethash onderscheidt wijzigingen binnen dezelfde inhoudelijke methodeversie.

@@ -40,8 +40,8 @@ of 'beleid gaat vóór rechtspraak'-regel.
 
 ## Beperkte annotatie-runtime
 
-De huidige annotator heeft geen brontools en annoteert uitsluitend zijn aangeboden
-corpus. Deze brononderzoeksworkflow is daarvoor geen claim dat onderzoek is uitgevoerd.
+De annotatieketen van het platform heeft geen brontools en annoteert uitsluitend de
+aangeboden bronnode. Deze brononderzoeksworkflow is daarvoor geen claim dat onderzoek is uitgevoerd.
 Noteer bij betrokken elementen welke context ontbreekt. Als het contract geen
 passende plaats biedt voor een algemene lacune, maak dan geen volledigheidsclaim en
 laat die lacune in de dossierworkflow behandelen; verzin geen markering als drager.

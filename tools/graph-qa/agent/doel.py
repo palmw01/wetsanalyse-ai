@@ -11,10 +11,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from .artikel import ArtikelScope, OngeldigeVindplaats, artikel_scope
 from .graph import queries
 from .graph.results import parse_select
-from .ports import GraphPort
 from .state import State
 
 logger = logging.getLogger("graph_qa.orchestrator")
@@ -86,9 +84,6 @@ def _kandidaten_uit_json(text: str) -> list[dict[str, str]]:
 # naar een leeg scherm en zag het heen-en-weer tussen annoteerder en Critic niet. Deze regels vullen
 # dat gat. Ze zijn pure functies zodat de bewoording te testen is zonder een hele graaf te draaien.
 
-def _ontbrekend_sleutel(item: dict[str, Any]) -> str:
-    """Identiteit van een gemeld gemist element: klasse + het genoemde fragment."""
-    return f"{str(item.get('klasse', '')).strip()}|{' '.join(str(item.get('tekst', '')).split()).lower()}"
 
 
 def _is_vindplaats(aanduiding: str) -> bool:
@@ -211,61 +206,5 @@ def _corpus_uit_trace(source_trace: list[tuple[str, str]]) -> str:
     return "\n\n".join(delen)
 
 
-def _corpus_voor_doel(
-    doel: dict[str, str], graph: GraphPort, source_trace: list[tuple[str, str]]
-) -> tuple[str, str]:
-    """(corpus, soort) – zie `_scope_voor_doel`, waar dit een verkorting van is."""
-    scope = _scope_voor_doel(doel, graph, source_trace)
-    return scope.corpus, scope.soort
 
 
-def _scope_voor_doel(
-    doel: dict[str, str], graph: GraphPort, source_trace: list[tuple[str, str]]
-) -> ArtikelScope:
-    """De tekst waarop geannoteerd wordt: precies de bepaling uit `doel`, ongekapt.
-
-    Eén gerichte ophaalactie via `artikel.artikel_corpus` – dezelfde functie waarmee `GET /v1/artikel`
-    het documentpaneel vult. Daarmee is er weer één bron voor wat de jurist ziet en waartegen de
-    brongetrouwheid wordt gecheckt, zoals `agent/artikel.py` altijd al beloofde.
-
-    Kost één extra SPARQL-call per annotatiebeurt. Dat is de prijs voor een corpus dat niet afhangt
-    van hoeveel omwegen de ophaal-agent nam; het resultaat gaat in de state, dus Critic en herziening
-    betalen hem niet opnieuw.
-
-    Levert de graaf niets (of kennen we het doel niet), dan valt dit terug op de trace-reconstructie:
-    liever de tekst die de agent zag dan helemaal geen corpus.
-
-    Eén uitzondering: is de aanduiding zélf ongeldig, dan gaat `OngeldigeVindplaats` door naar de
-    aanroeper. Terugvallen zou daar een annotatie opleveren onder een vindplaats die niet te openen
-    is; `annoteer_node` maakt er een leesbare melding van en stopt de beurt.
-
-    Geeft naast het corpus het **knooptype** terug ("Artikel"/"Divisie", leeg bij de trace-terugval),
-    zodat de vindplaats in de juiste woorden komt te staan: een divisie van een beleidsregel is geen
-    artikel met leden. En het hele artikel met zijn leden: de gedeelde annotatielaag is per artikel.
-    Bij de trace-terugval is dat onbekend; dan is het artikelcorpus het corpus zelf en zonder leden.
-    """
-    bwb = (doel.get("bwbId") or "").strip()
-    aanduiding = (doel.get("artikel") or doel.get("nummer") or "").strip()
-    if bwb and aanduiding:
-        try:
-            scope = artikel_scope(bwb, aanduiding, graph, (doel.get("lid") or "").strip() or None)
-            if scope.corpus.strip():
-                return scope
-            logger.info(
-                "corpus: graaf gaf niets voor het doel; terugval op de tool-trace",
-                extra={"bwb_id": bwb, "aanduiding": aanduiding, "lid": doel.get("lid", "")},
-            )
-        except OngeldigeVindplaats:
-            # GEEN terugval. Een ongeldige vindplaats is geen ophaalprobleem maar een kapot doel, en
-            # terugvallen levert dan een annotatie op onder een aanduiding die nooit te openen is —
-            # precies wat er op 1 sep 2026 in productie gebeurde. Beter een beurt die eerlijk faalt
-            # dan 26 markeringen die de jurist niet kan bekijken.
-            logger.warning(
-                "corpus: het doel is geen geldige vindplaats; de beurt breekt af",
-                extra={"bwb_id": bwb, "aanduiding": aanduiding, "lid": doel.get("lid", "")},
-            )
-            raise
-        except Exception:  # noqa: BLE001 – een mislukte ophaal mag de annotatie niet breken
-            logger.warning("corpus: gericht ophalen mislukt; terugval op de tool-trace", exc_info=True)
-    corpus = _corpus_uit_trace(source_trace)
-    return ArtikelScope(corpus=corpus, soort="", artikel_corpus=corpus, leden=[])

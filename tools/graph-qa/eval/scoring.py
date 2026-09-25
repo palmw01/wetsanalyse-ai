@@ -129,7 +129,7 @@ def _norm(tekst: str) -> str:
 
 def letterlijkheid(elementen: list[dict[str, Any]], corpus: str) -> float:
     """Aandeel markeringen dat letterlijk in de opgehaalde tekst staat. Hoort 1.0 te zijn:
-    `_verwerk` verwerpt al wat niet letterlijk voorkomt."""
+    de keten maakt spans uit bronoffsets, nooit uit modeltekst."""
     if not elementen:
         return 1.0
     norm_corpus = _norm(corpus)
@@ -139,7 +139,7 @@ def letterlijkheid(elementen: list[dict[str, Any]], corpus: str) -> float:
 
 def klassen_geldig(elementen: list[dict[str, Any]], geldige: set[str]) -> float:
     """Aandeel markeringen met een bestaande JAS-klasse. Hoort 1.0 te zijn – de drift-guard en
-    `_verwerk` dwingen het af."""
+    de enum in het classifierschema dwingen het af."""
     if not elementen:
         return 1.0
     return sum(1 for e in elementen if e.get("klasse") in geldige) / len(elementen)

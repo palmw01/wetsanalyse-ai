@@ -3,9 +3,12 @@
 Grondslag: [bronnen en beslisregister](bronnen.md) — P02–P05, P09, P11.
 Versie: zie metadata in ../SKILL.md
 
-De gemarkeerde secties worden via agentrollen.json gegenereerd naar
-agent/methodepakket.py. ANNOTATIEPROTOCOL in agent/jas_klassen.py is een compatibiliteitsalias. Het geldt voor de beperkte annotatie-interface, zonder brontools.
-De volledige dossierworkflow staat in analyseprotocol.md.
+Dit protocol beschrijft hoe je markeert binnen een aangeboden brontekst. Het is methode voor
+wie annoteert (jurist of dossierworkflow). Sinds ADR-001 PR 18 (25 sep 2026) gaat het niet meer
+als prompt naar de platformagent. Die werkt met deterministische detectoren en een kleine
+classifier (`tools/graph-qa/agent/jas_pipeline/`), en de regels die daar gelden staan als data en
+tests in de detectieprofielen en regelbestanden. De sectiemarkeringen hieronder zijn gebleven als
+stabiele verwijzing. De volledige dossierworkflow staat in analyseprotocol.md.
 
 ## Gedeeld
 

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+import re
 from types import SimpleNamespace
 from typing import Any
 
@@ -82,6 +83,43 @@ class FakeLLM:
     def stream(self, **kwargs: Any) -> _FakeStream:
         self._leg_vast(kwargs)
         return _FakeStream(self._next())
+
+
+class KetenLLM(FakeLLM):
+    """FakeLLM voor de annotatieketen (ADR-001): eerst de vaste `responses` (supervisor, ophaal-
+    agent), daarna beantwoordt hij de classifier per kandidaat-label en de gerichte reviewer.
+
+    De labels bestaan pas na de fusie, dus hij leest ze uit de prompt. `kies(toegestaan, fragment)`
+    bepaalt per kandidaat de beslissing (default: de eerste toegestane klasse); `review` de actie van
+    de reviewer (default HUMAN_REVIEW). `tool_aanroep=False` laat beide zonder tool-aanroep antwoorden.
+    """
+
+    _REGEL = re.compile(r'^(C\d{3}) \| "(.*?)" \| toegestaan: ([^|]+)', re.M)
+    _GEVAL = re.compile(r"^(C\d{3}) \|", re.M)
+
+    def __init__(self, responses: list[SimpleNamespace] | None = None, kies=None, review: str = "HUMAN_REVIEW",
+                 tool_aanroep: bool = True) -> None:
+        super().__init__(responses or [])
+        self.kies = kies or (lambda toegestaan, fragment: toegestaan[0])
+        self.review, self.tool_aanroep = review, tool_aanroep
+
+    def create(self, **kwargs: Any) -> SimpleNamespace:
+        if self.index < len(self._responses):
+            return super().create(**kwargs)
+        self._leg_vast(kwargs)
+        naam = (kwargs.get("tools") or [{}])[0].get("name", "")
+        if not self.tool_aanroep or naam not in {"classificeer", "beoordeel"}:
+            return response([text_block("Ik kies niet.")], "end_turn")
+        prompt = kwargs["messages"][0]["content"]
+        if naam == "classificeer":
+            items = [{"kandidaat": label, "optie": "",
+                      "beslissing": self.kies([t.strip() for t in toegestaan.split(",")], fragment)}
+                     for label, fragment, toegestaan in self._REGEL.findall(prompt)]
+            invoer = {"beslissingen": items}
+        else:
+            invoer = {"oordelen": [{"geval": g, "actie": self.review, "klasse": ""}
+                                   for g in self._GEVAL.findall(prompt.split("TWIJFELGEVALLEN:")[-1])]}
+        return response([SimpleNamespace(type="tool_use", id="k1", name=naam, input=invoer)], "tool_use")
 
 
 class FakeGraph:

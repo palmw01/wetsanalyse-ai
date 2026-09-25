@@ -1,9 +1,9 @@
-"""Twee dingen die de jurist rond zijn eigen werk krijgt:
+"""**Advies bij twijfel** (`modus="advies"`) – een vraag bij een bestaande annotatie. De supervisor
+kiest dan niet zelf maar routeert hard naar de antwoord-worker, zodat een adviesvraag
+*topologisch* geen annotatie kan wijzigen: die route emit simpelweg geen doel/element-events.
 
-1. **Advies bij twijfel** (`modus="advies"`) – een vraag bij een bestaande annotatie. De supervisor
-   kiest dan niet zelf maar routeert hard naar de antwoord-worker, zodat een adviesvraag
-   *topologisch* geen annotatie kan wijzigen: die route emit simpelweg geen doel/element-events.
-2. **De Critic kijkt mee op eigen markeringen** – als suggestie, nooit als wijziging.
+Het Critic-advies op eigen markeringen van de jurist (`suggestie`-events) verviel met de
+legacy-keten in ADR-001 PR 18.
 """
 from __future__ import annotations
 
@@ -163,101 +163,3 @@ def test_gewone_vraag_gebruikt_de_supervisor_gewoon():
         settings=make_settings(enable_decomposition=False), llm=llm, graph=FakeGraph(result=LID_TSV),
     ))
     assert "WORKERS" in llm.calls[0]["system"], "zonder adviesmodus loopt het via de supervisor"
-
-
-# --- 2. de Critic kijkt mee op eigen markeringen -------------------------------------------------
-
-def _annotatie_met_eigen_markering(critic_oordelen: list[dict], herziening=None):
-    responses = [
-        response([text_block("WORKERS: annotatie\nPLAN: annoteer art 9 lid 1")], "end_turn"),
-        response([tool_block("t1", "get_lid", {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "1"})], "tool_use"),
-        response([text_block('{"bwbId":"BWBR0004770","artikel":"9","lid":"1"}')], "end_turn"),
-        response([text_block(json.dumps({"elementen": [
-            {"id": "agent-1", "klasse": "Rechtssubject", "tekst": "De ontvanger", "lid": "1"},
-        ]}))], "end_turn"),
-        response([text_block(json.dumps({"oordelen": critic_oordelen, "ontbrekend": []}))], "end_turn"),
-    ]
-    if herziening:
-        responses += herziening
-    llm = FakeLLM(responses)
-    events = _run(answer_stream(
-        "annoteer artikel 9 lid 1",
-        context=ChatContext(bestaande_elementen=[
-            {"id": "mens-1", "klasse": "Voorwaarde", "tekst": "indien de schuldenaar daarom verzoekt",
-             "lid": "1", "herkomst": "mens"},
-        ]),
-        settings=make_settings(enable_decomposition=True), llm=llm, graph=FakeGraph(result=LID_TSV),
-    ))
-    return events, llm
-
-
-def test_eigen_markering_krijgt_een_suggestie_geen_element():
-    """Het element bestaat al in het document; alleen het oordeel komt terug."""
-    events, _ = _annotatie_met_eigen_markering([
-        {"id": "agent-1", "aandacht": "groen", "motivatie": "helder"},
-        {"id": "mens-1", "aandacht": "geel", "motivatie": "zou dit niet een Rechtsfeit zijn?"},
-    ])
-    elementen = [e["element"] for e in events if e["type"] == "element"]
-    assert [e["id"] for e in elementen] == ["agent-1"], "een mens-element komt niet als voorstel terug"
-
-    suggesties = [e["suggestie"] for e in events if e["type"] == "suggestie"]
-    assert len(suggesties) == 1
-    assert suggesties[0]["element_id"] == "mens-1"
-    assert suggesties[0]["aandacht"] == "geel"
-
-
-def test_de_critic_prompt_labelt_eigen_markeringen():
-    _, llm = _annotatie_met_eigen_markering([{"id": "agent-1", "aandacht": "groen", "motivatie": "ok"}])
-    critic_prompt = llm.calls[4]["messages"][0]["content"]
-    assert "DOOR DE JURIST" in critic_prompt
-    assert "indien de schuldenaar daarom verzoekt" in critic_prompt
-
-
-def test_een_rood_oordeel_op_eigen_werk_start_geen_herziening():
-    """De agent herschrijft nooit wat de jurist markeerde – ook niet als de Critic het afkeurt."""
-    events, llm = _annotatie_met_eigen_markering([
-        {"id": "agent-1", "aandacht": "groen", "motivatie": "helder"},
-        {"id": "mens-1", "aandacht": "rood", "motivatie": "onjuist", "actie": "vervang",
-         "voorstel_klasse": "Rechtsfeit"},
-    ])
-    assert llm.index == 5, "geen herzieningsronde: aanloop + annoteer + critic"
-    suggesties = [e["suggestie"] for e in events if e["type"] == "suggestie"]
-    assert suggesties[0]["aandacht"] == "rood", "de kanttekening komt wél door"
-
-
-def test_markering_uit_een_andere_bepaling_gaat_de_critic_niet_in():
-    """Een eigen markering die niet in de opgehaalde tekst staat, hoort er niet bij te zitten.
-
-    De werkplek stuurde ooit de markeringen van álle geopende documenten mee; dan legt de Critic een
-    fragment uit artikel 36 naast de tekst van artikel 9 en oordeelt hij over iets wat hij niet kan
-    zien. Dat wordt hier structureel afgevangen: dezelfde letterlijkheidseis als voor de agent zelf.
-    """
-    llm = FakeLLM([
-        response([text_block("WORKERS: annotatie\nPLAN: annoteer art 9 lid 1")], "end_turn"),
-        response([tool_block("t1", "get_lid", {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "1"})], "tool_use"),
-        response([text_block('{"bwbId":"BWBR0004770","artikel":"9","lid":"1"}')], "end_turn"),
-        response([text_block(json.dumps({"elementen": [
-            {"id": "agent-1", "klasse": "Rechtssubject", "tekst": "De ontvanger", "lid": "1"},
-        ]}))], "end_turn"),
-        response([text_block(json.dumps({"oordelen": [
-            {"id": "agent-1", "aandacht": "groen", "motivatie": "helder"},
-        ], "ontbrekend": []}))], "end_turn"),
-    ])
-    events = _run(answer_stream(
-        "annoteer artikel 9 lid 1",
-        context=ChatContext(bestaande_elementen=[
-            # staat wél in de tekst van art. 9 lid 1
-            {"id": "mens-hier", "klasse": "Voorwaarde", "tekst": "indien de schuldenaar daarom verzoekt",
-             "lid": "1", "herkomst": "mens"},
-            # komt uit een heel andere bepaling
-            {"id": "mens-elders", "klasse": "Rechtssubject", "tekst": "de bestuurder van het lichaam",
-             "lid": "1", "herkomst": "mens"},
-        ]),
-        settings=make_settings(enable_decomposition=True), llm=llm, graph=FakeGraph(result=LID_TSV),
-    ))
-
-    critic_prompt = llm.calls[4]["messages"][0]["content"]
-    assert "indien de schuldenaar daarom verzoekt" in critic_prompt
-    assert "de bestuurder van het lichaam" not in critic_prompt, "vreemd fragment gaat de prompt niet in"
-    assert "mens-elders" not in [e.get("suggestie", {}).get("element_id") for e in events
-                                 if e["type"] == "suggestie"]

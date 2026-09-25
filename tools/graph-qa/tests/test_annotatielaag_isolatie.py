@@ -78,8 +78,6 @@ EXTRA = [
 
 @pytest.mark.parametrize(("naam", "sparql"), GEVALLEN + EXTRA, ids=[g[0] for g in GEVALLEN + EXTRA])
 def test_query_ziet_de_annotatielaag_niet(naam: str, sparql: str, kaal: Dataset, met_laag: Dataset):
-    if naam.startswith("laag"):
-        pytest.skip("leest de annotatielaag bewust – zie test_laagqueries_lezen_de_projectie")
     zonder = _rijen(kaal, sparql)
     if zonder is None:
         pytest.skip("rdflib kan deze query niet uitvoeren (GraphDB wel) – niet te vergelijken")
@@ -118,14 +116,3 @@ def test_annotatie_iri_is_geen_bron():
 def test_bwb_verwijzing_naast_annotatie_telt_nog_wel():
     tekst = "urn:jas:annotatie:BWBR0004770:artikel:9:e1 over urn:bwb:BWBR0004770:artikel:9:lid:1 (BWBR0002320)"
     assert citations_in(tekst) == ["urn:bwb:BWBR0004770:artikel:9:lid:1", "BWBR0002320"]
-
-
-def test_laagqueries_lezen_de_projectie(kaal: Dataset, met_laag: Dataset):
-    """De twee bouwers die de laag wél lezen, tegen de afdruk van de echte projectie – zodat een
-    wijziging aan het RDF-model in de api hier zichtbaar breekt in plaats van stil niets te vinden."""
-    stand = _rijen(met_laag, q.laagstand("BWBR0004770", "9"))
-    assert stand == [("laag1", "urn:jas-ns:status-in_review", "2026-09-01T12:00:00+00:00", "1", "h1")]
-    markeringen = _rijen(met_laag, q.laag_markeringen("BWBR0004770", "9"))
-    # Alleen de actuele markering; de verouderde (e0) valt weg.
-    assert markeringen == [("e1", "Rechtssubject", "de ontvanger", "1", "human_approved")]
-    assert _rijen(kaal, q.laagstand("BWBR0004770", "9")) == []

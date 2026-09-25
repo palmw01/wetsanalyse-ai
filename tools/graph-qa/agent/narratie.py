@@ -31,79 +31,8 @@ def _toolregel(call: dict[str, Any]) -> str:
     return f"{call.get('name', '?')}({', '.join(truncate(d, 60) for d in delen)})" if delen else str(call.get("name", "?"))
 
 
-def _annoteer_melding(voorstellen: list[Any], verworpen: list[Any]) -> str:
-    """Wat de annoteerder opleverde, inclusief wat er sneuvelde en waarom."""
-    regel = f"{len(voorstellen) + len(verworpen)} fragmenten, {len(voorstellen)} gegrond"
-    if not verworpen:
-        return regel
-    per_reden: dict[str, int] = {}
-    for v in verworpen:
-        reden = getattr(v, "reden", "") or "onbekend"
-        per_reden[reden] = per_reden.get(reden, 0) + 1
-    uitleg = {"niet_letterlijk": "niet letterlijk", "ongeldige_klasse": "ongeldige klasse"}
-    details = ", ".join(f"{n}× {uitleg.get(r, r)}" for r, n in per_reden.items())
-    return f"{regel} – {len(verworpen)} verworpen ({details})"
 
 
-def _critic_melding(
-    oordelen: dict[str, Any],
-    ontbrekend: list[Any],
-    nieuw: int | None = None,
-    gedempt: int = 0,
-    ingediend: int | None = None,
-    afgekapt: bool = False,
-    onleesbaar: list[str] | None = None,
-) -> str:
-    """Tellingen per aandacht-niveau; de oordelen zelf staan al op de reviewkaarten.
-
-    `ingediend` is het aantal markeringen dat de Critic vóórgelegd kreeg. Het verschil met het
-    aantal oordelen hoort in de regel: de `"geen oordeel"`-bak hieronder telt alleen elementen die
-    de Critic terúggaf, dus wat hij helemaal niet noemde kwam nergens voor. Bij bepaling 26.1.9
-    meldde de tijdlijn "beoordeelt 82 markeringen" gevolgd door 20 oordelen, en dat driekwart geen
-    oordeel had kreeg de jurist alleen te zien door de reviewkaarten één voor één na te lopen.
-
-    `afgekapt` (stop_reason == max_tokens) zegt wáárom er oordelen ontbreken. Zonder dat blijft het
-    gissen tussen een tokengrens, een onbekend element-id en een model dat niets te melden had.
-    """
-    telling: dict[str, int] = {}
-    for o in oordelen.values():
-        niveau = getattr(o, "aandacht", "") or "geen oordeel"
-        telling[niveau] = telling.get(niveau, 0) + 1
-    # Een gedempt oordeel staat als geel op de kaart. Het hier als rood tellen zou de tijdlijn iets
-    # anders laten zeggen dan de jurist ziet – precies het soort verschil waarmee je deze keten
-    # beoordeelt.
-    if gedempt:
-        telling["rood"] = max(0, telling.get("rood", 0) - gedempt)
-        telling["geel"] = telling.get("geel", 0) + gedempt
-        if not telling["rood"]:
-            telling.pop("rood", None)
-    volgorde = ["rood", "geel", "groen", "geen oordeel"]
-    delen = [f"{telling[n]} {n}" for n in volgorde if telling.get(n)]
-    regel = ", ".join(delen) if delen else "geen oordelen"
-    if gedempt:
-        woord = "oordeel" if gedempt == 1 else "oordelen"
-        regel += f" · {gedempt} {woord} over een eigen correctie: als twijfel voorgelegd"
-    if ingediend is not None and ingediend > len(oordelen):
-        zonder = ingediend - len(oordelen)
-        regel += f" · {zonder} zonder oordeel"
-        if afgekapt:
-            regel += " (afgekapt op de tokenlimiet)"
-        # "Zonder oordeel" heeft twee heel verschillende oorzaken en de jurist kan ze niet uit
-        # elkaar houden: de Critic sloeg het element over (modelgedrag), of hij gaf wél een oordeel
-        # maar wij konden het niveau niet lezen en gooiden het weg (onze fout, en repareerbaar).
-        # Sinds 2 sep 2026 zegt de regel welke van de twee het was.
-        if onleesbaar:
-            vormen = ", ".join(sorted(set(onleesbaar))[:3])
-            regel += f" (waarvan {len(onleesbaar)} met een onleesbaar niveau: {vormen})"
-    elif afgekapt:
-        regel += " · afgekapt op de tokenlimiet"
-    if ontbrekend:
-        regel += f" · {len(ontbrekend)} mogelijk gemist"
-        # Onderscheid maken tussen "hij ziet iets nieuws" en "hij herhaalt zichzelf" is precies wat
-        # je wilt kunnen zien in de tijdlijn.
-        if nieuw is not None and nieuw < len(ontbrekend):
-            regel += f" ({nieuw} nieuw)" if nieuw else " (niets nieuws)"
-    return regel
 
 
 def _grounding_melding(report: Any) -> str:
@@ -140,20 +69,3 @@ def _grounding_melding(report: Any) -> str:
     return f"brongetrouwheid: {' en '.join(goed)} gecontroleerd"
 
 
-def _herzien_melding(voor: list[dict[str, Any]], na: list[dict[str, Any]]) -> str:
-    """Wat de annoteerder met de kritiek deed. Dít is het samenspel: aangepast versus behouden."""
-    oud = {v.get("id"): v for v in voor}
-    aangepast = sum(
-        1 for v in na
-        if v.get("id") in oud
-        and any(oud[v["id"]].get(k) != v.get(k) for k in ("klasse", "tekst", "lid"))
-    )
-    ongewijzigd = sum(1 for v in na if v.get("id") in oud) - aangepast
-    toegevoegd = sum(1 for v in na if v.get("id") not in oud)
-    verdwenen = sum(1 for v in voor if v.get("id") not in {x.get("id") for x in na})
-    delen = [f"{aangepast} aangepast", f"{ongewijzigd} ongewijzigd"]
-    if toegevoegd:
-        delen.append(f"{toegevoegd} toegevoegd")
-    if verdwenen:
-        delen.append(f"{verdwenen} verwijderd")
-    return ", ".join(delen)

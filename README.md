@@ -259,7 +259,7 @@ tools/graph-qa/       de agent (Lex)
   agent/orchestrator.py bouwt de LangGraph-graaf (de nodes staan in agent/nodes/)
   agent/nodes/          de nodes per keten: annotatie, annotatie_lezen, antwoord, supervisie, decompositie
   agent/supervisor.py   workerkeuze + specialistkeuze, met harde allowlist
-  agent/annotatie.py    annotatiedomein; pas_critic_toe voert correcties uit
+  agent/jas_pipeline/   de annotatieketen: detectoren, classifier, reviewer, resolver (ADR-001)
   agent/grounding.py    de brongetrouwheidscontrole
   agent/tools/          de getypeerde toollaag boven MCP
 tools/bwb-import/     ETL overheid.nl → RDF

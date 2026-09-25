@@ -66,8 +66,8 @@ landen; de tekst niet.
 - **[`architectuur/adr-001-hybride-jas-pijplijn.md`](architectuur/adr-001-hybride-jas-pijplijn.md)**
   — herontwerp van de annotatieketen naar een grotendeels deterministische pijplijn (bronstructuur,
   taalanalyse, detectoren, kandidaten, kleine classifier, gerichte review), met gap-analyse per
-  JAS-klasse en een PR-roadmap. Voorgesteld op 24 sep 2026; nog niets van gebouwd. De opdracht
-  erachter staat in [`architectuur/opdracht-jas-annotatiepijplijn.md`](architectuur/opdracht-jas-annotatiepijplijn.md).
+  JAS-klasse en een PR-roadmap. Voorgesteld op 24 sep 2026, uitgevoerd t/m PR 18 (25 sep 2026:
+  legacy-keten verwijderd). De opdracht erachter staat in [`architectuur/opdracht-jas-annotatiepijplijn.md`](architectuur/opdracht-jas-annotatiepijplijn.md).
   Deelbesluiten: [ADR-002 taalanalyse-provider](architectuur/adr-002-taalprovider.md).
 - **`kennisbank/PLAN.md`** — een tweede corpus (beleidsstukken, handleidingen) naast de wetsgraaf.
   Nog niets van gebouwd. Lees dit vóór je aan retrieval of grounding werkt: het stelt eisen aan

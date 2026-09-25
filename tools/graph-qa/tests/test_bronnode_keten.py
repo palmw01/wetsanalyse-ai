@@ -10,14 +10,14 @@ import pytest
 from bronmodel import bouw_snapshot
 
 from agent.agent import answer_stream
-from agent.annotatie import _verwerk, pas_critic_toe
 from agent.annotatie_read import AnnotatieReadApi
 from agent.bron_annotatie import corpus_segmenten, lokale_elementen
 from agent.grounding import check_grounding
 from agent.provenance import collect_sources
 from agent.tools import anthropic_schemas, dispatch
 from agent.tools.annotatie_tools import ANNOTATIE_TOOL_NAMEN, is_leesvraag
-from fakes import FakeGraph, FakeLLM, make_settings, response, text_block, tool_block
+from agent.jas_pipeline.kandidaten import GEEN_ANNOTATIE
+from fakes import FakeGraph, FakeLLM, KetenLLM, make_settings, response, text_block, tool_block
 
 BWB = "BWBR0004770"
 REG = f"urn:bwb:{BWB}"
@@ -70,36 +70,38 @@ def run(gen):
     return asyncio.run(collect())
 
 
+def _alleen(fragment, klasse):
+    """Classifier-keuze: `klasse` voor precies dit fragment, anders geen annotatie."""
+    return lambda toegestaan, f: klasse if f == fragment and klasse in toegestaan else GEEN_ANNOTATIE
+
+
 def test_iw9_lid1_only_selected_source_and_local_sha256_anchor():
     snap = snapshot()
-    llm = FakeLLM([
-        response([text_block(json.dumps({"elementen": [{"klasse": "Rechtsobject", "tekst": "belastingaanslag"}]}))], "end_turn"),
-        response([text_block('{"oordelen": [], "ontbrekend": []}')], "end_turn"),
-    ])
+    llm = KetenLLM(kies=_alleen("Een belastingaanslag", "Rechtsobject"))
     graph, api = FakeGraph(result=ROWS), ReadApi(snap)
     events = run(answer_stream("annoteer artikel 9 lid 1", doel={"bron_iri": L1},
-                              llm=llm, graph=graph, annotaties=api, settings=make_settings(critic_max_rondes=0),
+                              llm=llm, graph=graph, annotaties=api, settings=make_settings(),
                               run_id="regressie", user_id="jurist"))
     assert not [e for e in events if e["type"] == "error"], events
     target = next(e["doel"] for e in events if e["type"] == "doel")
     assert target["bron_iri"] == L1
     assert [s["tekst"] for s in target["segmenten"]] == [T1]
     assert T2 not in target["leden_teksten"][0]["tekst"]
-    element, = [e["element"] for e in events if e["type"] == "element"]
+    element, = [e["element"] for e in events if e["type"] == "element" and e["element"]["klasse"] == "Rechtsobject"]
     anchor, = element["ankers"]
     assert element["eigenaar_iri"] == L1
     assert anchor["bron_iri"] == L1 and len(anchor["bron_hash"]) == 64
-    assert T1[anchor["start"]:anchor["eind"]] == "belastingaanslag"
+    assert T1[anchor["start"]:anchor["eind"]] == "Een belastingaanslag"
     assert "anker" not in element
+    assert all(e["element"]["eigenaar_iri"] == L1 for e in events if e["type"] == "element")
     assert [c[0] for c in api.calls] == ["dekking", "weergave"]
 
 
-@pytest.mark.parametrize("split", [False, True])
-def test_completed_node_reuse_costs_no_model_calls(split):
+def test_completed_node_reuse_costs_no_model_calls():
     llm = FakeLLM([])
     events = run(answer_stream("annoteer lid 1", doel={"bron_iri": L1}, llm=llm,
                               graph=FakeGraph(result=ROWS), annotaties=ReadApi(snapshot(), completed=True),
-                              settings=make_settings(enable_kandidaat_splitsing=split)))
+                              settings=make_settings()))
     assert not [e for e in events if e["type"] == "error"], events
     assert llm.calls == []
     assert next(e["hergebruik"] for e in events if e["type"] == "hergebruik")["volledig"]
@@ -132,21 +134,19 @@ def test_multianchors_use_lca_and_same_text_in_siblings_stays_separate():
     snap = snapshot(ART, rows)
     corpus, spans = corpus_segmenten(snap["segmenten"])
     bron = {"bron_snapshot": snap, "corpus_segmenten": spans}
+    hashes = {seg["bron_iri"]: seg["bron_hash"] for seg in snap["segmenten"]}
+
     def anchor(iri):
-        return {"bron_iri": iri, "tekst": "De ontvanger", "start": 0, "eind": 12}
-    raw = {"elementen": [
-        {"klasse": "Rechtssubject", "tekst": "De ontvanger", "ankers": [anchor(L1)]},
-        {"klasse": "Rechtssubject", "tekst": "De ontvanger", "ankers": [anchor(L2)]},
-        {"klasse": "Afleidingsregel", "tekst": "De ontvanger\n\nDe ontvanger", "ankers": [anchor(L1), anchor(L2)]},
-    ]}
-    elements, rejected = _verwerk(json.dumps(raw), corpus, BWB, "9", bron=bron)
-    assert not rejected
-    actual = lokale_elementen([e.model_dump() for e in elements], bron)
+        return {"bron_iri": iri, "tekst": "De ontvanger", "start": 0, "eind": 12, "bron_hash": hashes[iri]}
+    elements = [
+        {"id": "a", "klasse": "Rechtssubject", "tekst": "De ontvanger", "anker": {"start": 0, "eind": 12}, "ankers": [anchor(L1)]},
+        {"id": "b", "klasse": "Rechtssubject", "tekst": "De ontvanger", "anker": {"start": 0, "eind": 12}, "ankers": [anchor(L2)]},
+        {"id": "c", "klasse": "Afleidingsregel", "tekst": "De ontvanger De ontvanger", "anker": {"start": 0, "eind": 12},
+         "ankers": [anchor(L1), anchor(L2)]},
+    ]
+    actual = lokale_elementen(elements, bron)
     assert [e["eigenaar_iri"] for e in actual] == [L1, L2, ART]
     assert len(actual[-1]["ankers"]) == 2
-    ambiguous, rejected = _verwerk(json.dumps({"elementen": [{"klasse": "Rechtssubject", "tekst": "De ontvanger"}]}),
-                                  corpus, BWB, "9", bron=bron)
-    assert not ambiguous and rejected
 
 
 @pytest.mark.parametrize("decomposition", [False, True])
@@ -325,19 +325,6 @@ def test_server_persists_node_target_and_actual_tool_trace_with_batch(monkeypatc
     assert events[-1]["annotatie_doel"]["bron_iri"] == L1
 
 
-def test_local_critic_correction_cannot_jump_to_same_quote_in_another_node():
-    snap = snapshot(ART)
-    corpus, spans = corpus_segmenten(snap["segmenten"])
-    bron = {"bron_snapshot": snap, "corpus_segmenten": spans}
-    proposals, _ = _verwerk(json.dumps({"elementen": [{"klasse": "Rechtsobject", "tekst": T1}]}),
-                            corpus, BWB, "9", bron=bron)
-    old = proposals[0].model_dump()
-    changed, _, _ = pas_critic_toe([old], [{"id": old["id"], "aandacht": "rood", "actie": "vervang",
-                                         "voorstel_tekst": "De ontvanger"}], corpus)
-    assert changed[0]["tekst"] == T1
-    assert changed[0]["ankers"][0]["bron_iri"] == L1
-
-
 @pytest.mark.parametrize("batch_fails", [True, False])
 def test_write_conflict_and_saved_annotation_chat_failure_are_distinguished(monkeypatch, batch_fails):
     from agent import beurt
@@ -366,41 +353,6 @@ def test_write_conflict_and_saved_annotation_chat_failure_are_distinguished(monk
     else:
         assert events[0]["annotatie_doel"]["bron_iri"] == L1
         assert "is bewaard" in events[0]["message"]
-
-
-@pytest.mark.parametrize("split", [False, True])
-def test_current_api_human_marking_receives_critic_advice_without_client_context(split):
-    from copy import deepcopy
-    from agent.bron_annotatie import bevroren_markeringen
-    snap = snapshot()
-    human = {"id": "mens-1", "herkomst": "mens", "klasse": "Rechtsobject", "tekst": T1,
-             "eigenaar_iri": L1, "lifecycle": "human_approved", "ankers": [
-                 {"bron_iri": L1, "start": 0, "eind": len(T1), "tekst": T1,
-                  "bron_hash": snap["segmenten"][0]["bron_hash"]}]}
-    original = deepcopy(human)
-    class HumanApi(ReadApi):
-        def weergave(self, doel):
-            return {**super().weergave(doel), "elementen": [human],
-                    "lagen": [{"bron_iri": L1, "revisie": 7, "status": "geaccordeerd"}]}
-    replies = [response([text_block('{"elementen": []}')], "end_turn"),
-               response([text_block(json.dumps({"oordelen": [{"id": "mens-1", "aandacht": "rood",
-                   "motivatie": "Controleer de klasse", "actie": "vervang", "voorstel_klasse": "Rechtsfeit"}],
-                   "ontbrekend": []}))], "end_turn")]
-    if split:
-        replies.insert(0, response([text_block('{"kandidaten": []}')], "end_turn"))
-    llm = FakeLLM(replies)
-    events = run(answer_stream("beoordeel annotaties opnieuw", doel={"bron_iri": L1},
-        hergebruik="opnieuw", llm=llm, graph=FakeGraph(result=ROWS), annotaties=HumanApi(snap),
-        settings=make_settings(critic_max_rondes=0, enable_kandidaat_splitsing=split)))
-    assert human == original
-    assert not [e for e in events if e["type"] == "element"]
-    suggestions = [e["suggestie"] for e in events if e["type"] == "suggestie"]
-    assert suggestions and suggestions[0]["element_id"] == "mens-1"
-    assert suggestions[0]["voorstel_klasse"] == "Rechtsfeit"
-    goal = next(e["doel"] for e in events if e["type"] == "doel")
-    assert goal["verwachte_revisies"] == {L1: 7}
-    human["ankers"][0]["bron_hash"] = "obsolete"
-    assert bevroren_markeringen({"bron_snapshot": snap, "annotatie_weergave": {"elementen": [human]}}) == []
 
 
 def test_node_advice_keeps_identity_and_snapshot_and_cannot_write_even_with_goal():
@@ -446,21 +398,14 @@ def test_afgeronde_bepaling_mag_wel_hergebruikt_worden():
 
 
 def test_afgerond_lid_telt_als_klaar_binnen_een_open_artikel():
-    llm = FakeLLM([
-        response([text_block(json.dumps({"elementen": [
-            {"klasse": "Rechtsobject", "tekst": "belastingaanslag"},
-            {"klasse": "Rechtssubject", "tekst": "De ontvanger"}]}))], "end_turn"),
-        response([text_block('{"oordelen": [], "ontbrekend": []}')], "end_turn"),
-    ])
+    llm = KetenLLM(kies=lambda toegestaan, f: toegestaan[0])
     events = run(answer_stream("annoteer artikel 9", doel={"bron_iri": ART}, llm=llm, graph=FakeGraph(result=ROWS),
                               annotaties=ReadApi(snapshot(ART), afgerond=[L1]),
-                              settings=make_settings(critic_max_rondes=0), run_id="deels", user_id="jurist"))
+                              settings=make_settings(), run_id="deels", user_id="jurist"))
     assert not [e for e in events if e["type"] == "error"], events
     # Lid 1 is afgerond: daar komt niets bij, lid 2 wordt gewoon geannoteerd.
-    owners = [e["element"]["eigenaar_iri"] for e in events if e["type"] == "element"]
-    assert owners == [L2]
-    prompt = json.dumps(llm.calls, ensure_ascii=False, default=str)
-    assert "lokaal al geannoteerd" in prompt and L1 in prompt.split("lokaal al geannoteerd", 1)[1]
+    owners = {e["element"]["eigenaar_iri"] for e in events if e["type"] == "element"}
+    assert owners == {L2}
 
 
 def test_409_op_een_afgeronde_laag_krijgt_een_eerlijke_melding(monkeypatch):

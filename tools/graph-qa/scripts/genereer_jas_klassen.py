@@ -109,14 +109,6 @@ def bouw_blok(klassen: list[tuple[str, str, str, str]]) -> str:
         delen.append(_veld("uitdrukkingswijze", uitdrukking))
         delen.append("    ),")
     delen.append(")")
-    delen.extend([
-        "# Compatibiliteitsnamen; inhoud staat uitsluitend in het methodepakket.",
-        "from .methodepakket import PAKKET as _METHODEPAKKET",
-        "ANNOTATIEPROTOCOL_VERSIE = _METHODEPAKKET['versie']",
-        "ANNOTATIEPROTOCOL = {naam: _METHODEPAKKET['secties']['annotatie-' + key]['tekst']",
-        "    for naam, key in [('Gedeeld', 'gedeeld'), ('Kandidaten', 'kandidaten'),",
-        "                      ('Classificatie', 'classificatie'), ('Review', 'review')]}",
-    ])
     delen.append(EINDE)
     return "\n".join(delen)
 

@@ -1,29 +1,21 @@
-"""Analyse van een stabiliteitsrapport (`eval.stabiliteit`): waar wisselt de keten tussen runs?
+"""Reproduceerbaarheid over herhaalde runs: waar wisselt de keten tussen runs?
 
-Uitvoeren vanuit tools/graph-qa:
-    .venv/bin/python -m eval.stabiliteit_analyse rapport.json [--json uit.json] [--md uit.md]
-
-Offline en zonder model. Elementen van alle runs van één casus worden uitgelijnd op hun positie
-in de casustekst; per cluster telt de analyse in hoeveel runs het voorkomt, of de span gelijk is
-en of de klasse gelijk is. Dat gebeurt twee keer: voor de ruwe annoteerder-uitvoer en voor wat
-de keten na de Critic uitstuurt.
+Rekenfuncties die `eval/compare_pipelines.py` per casus gebruikt: de elementen van alle runs
+worden uitgelijnd op hun positie in de casustekst, en per cluster telt `analyseer_casus` in hoeveel
+runs het voorkomt, of de span gelijk is en of de klasse gelijk is.
 
 Dit is een reproduceerbaarheidsmeting, geen kwaliteitsoordeel: een keten kan heel stabiel
 dezelfde fout maken. Hoge overeenstemming is dus nooit op zichzelf bewijs van verbetering.
 """
 from __future__ import annotations
 
-import argparse
-import json
 import re
 from collections import Counter
 from itertools import combinations
-from pathlib import Path
 from statistics import mean, pstdev
 from typing import Any
 
 Span = tuple[int, int]
-FASEN = ('annoteerder', 'na_keten')
 _CONTEXT = 16
 
 
@@ -176,106 +168,13 @@ def analyseer_casus(tekst: str, runs: list[list[dict[str, Any]]]) -> dict[str, A
     }
 
 
-def _aandacht(runs: list[dict[str, Any]]) -> dict[str, int]:
-    return dict(Counter(e.get('aandacht') or 'geen' for r in runs for e in r['na_keten']))
 
 
-def analyseer(rapport: dict[str, Any]) -> dict[str, Any]:
-    teksten = {c['id']: c['tekst'] for c in rapport['casussen']}
-    per_casus: dict[str, Any] = {}
-    for casus, tekst in teksten.items():
-        runs = sorted((r for r in rapport['runs'] if r['casus'] == casus and not r.get('fout')),
-                      key=lambda r: r['ronde'])
-        if len(runs) < 2:
-            continue
-        per_casus[casus] = {fase: analyseer_casus(tekst, [r[fase] for r in runs]) for fase in FASEN}
-        per_casus[casus]['aandacht'] = _aandacht(runs)
-
-    totaal: dict[str, Any] = {}
-    for fase in FASEN:
-        maten = [c[fase] for c in per_casus.values()]
-        paren: Counter[str] = Counter()
-        for m in maten:
-            paren.update(m['klasseparen'])
-
-        def gem(sleutel: str) -> float | None:
-            w = [m[sleutel] for m in maten if m[sleutel] is not None]
-            return round(mean(w), 3) if w else None
-
-        totaal[fase] = {
-            'casussen': len(maten),
-            'detectie_stabiel': gem('detectie_stabiel'), 'span_exact': gem('span_exact'),
-            'span_iou': gem('span_iou'), 'klasse_unaniem': gem('klasse_unaniem'),
-            'klasse_paarsgewijs': gem('klasse_paarsgewijs'),
-            'elementen_spreiding': gem('elementen_spreiding'),
-            'onplaatsbaar': sum(m['onplaatsbaar'] for m in maten),
-            'klasseparen': dict(paren.most_common()),
-        }
-    return {
-        'bron': {k: rapport.get(k) for k in ('model', 'status', 'herhalingen', 'temperature', 'settings')},
-        'waarschuwing': 'Reproduceerbaarheid, geen juistheid: stabiel kan ook stabiel fout zijn.',
-        'totaal': totaal, 'per_casus': per_casus,
-    }
 
 
-def _pct(x: float | None) -> str:
-    return '–' if x is None else f'{x * 100:.0f}%'
 
 
-def markdown(analyse: dict[str, Any]) -> str:
-    bron, totaal = analyse['bron'], analyse['totaal']
-    regels = [
-        '# Stabiliteitsmeting JAS-annotatieketen', '',
-        f"Model `{bron.get('model')}`, {bron.get('herhalingen')} herhalingen, "
-        f"temperature: {bron.get('temperature')}. Status: {bron.get('status')}.", '',
-        f"> {analyse['waarschuwing']}", '',
-        '## Totaal (gemiddeld over casussen)', '',
-        '| Maat | Annoteerder | Na keten |', '|---|---:|---:|',
-    ]
-    for sleutel, naam in [('detectie_stabiel', 'Element in alle runs'), ('span_exact', 'Span exact gelijk'),
-                          ('span_iou', 'Span-overlap (IoU)'), ('klasse_unaniem', 'Klasse unaniem'),
-                          ('klasse_paarsgewijs', 'Klasse paarsgewijs gelijk')]:
-        regels.append(f"| {naam} | {_pct(totaal['annoteerder'][sleutel])} | {_pct(totaal['na_keten'][sleutel])} |")
-    regels.append(f"| Spreiding aantal elementen (sd) | {totaal['annoteerder']['elementen_spreiding']} "
-                  f"| {totaal['na_keten']['elementen_spreiding']} |")
-    regels.append(f"| Niet te plaatsen elementen | {totaal['annoteerder']['onplaatsbaar']} "
-                  f"| {totaal['na_keten']['onplaatsbaar']} |")
-    regels += ['', '## Meest wisselende klasseparen (na keten)', '']
-    paren = totaal['na_keten']['klasseparen']
-    if paren:
-        regels += ['| Klassepaar | Wisselingen | Voorbeeld |', '|---|---:|---|']
-        for paar, aantal in list(paren.items())[:10]:
-            vb = next((c['na_keten']['voorbeelden'][paar] for c in analyse['per_casus'].values()
-                       if paar in c['na_keten']['voorbeelden']), '')
-            regels.append(f'| {paar} | {aantal} | “{vb}” |')
-    else:
-        regels.append('Geen klassewisselingen gemeten.')
-    regels += ['', '## Per casus (na keten)', '',
-               '| Casus | Elementen per run | In alle runs | Span exact | Klasse unaniem | Aandacht |',
-               '|---|---|---:|---:|---:|---|']
-    for casus, c in analyse['per_casus'].items():
-        m = c['na_keten']
-        aandacht = ', '.join(f'{k} {v}' for k, v in sorted(c['aandacht'].items()))
-        regels.append(f"| {casus} | {m['elementen_per_run']} | {_pct(m['detectie_stabiel'])} "
-                      f"| {_pct(m['span_exact'])} | {_pct(m['klasse_unaniem'])} | {aandacht} |")
-    return '\n'.join(regels) + '\n'
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('rapport', type=Path)
-    ap.add_argument('--json', type=Path, help='schrijf de volledige analyse als JSON')
-    ap.add_argument('--md', type=Path, help='schrijf de samenvatting als markdown')
-    args = ap.parse_args()
-    analyse = analyseer(json.loads(args.rapport.read_text()))
-    if args.json:
-        args.json.write_text(json.dumps(analyse, ensure_ascii=False, indent=2) + '\n')
-    tekst = markdown(analyse)
-    if args.md:
-        args.md.write_text(tekst)
-    print(tekst)
-    return 0
 
 
-if __name__ == '__main__':
-    raise SystemExit(main())

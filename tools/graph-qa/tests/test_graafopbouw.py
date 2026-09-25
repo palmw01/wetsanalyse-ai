@@ -7,8 +7,8 @@ structuur vast zodat een ontvlechting van `build_graph` aantoonbaar gedragsbehou
 ongewijzigd groen te blijven. Moet je hem aanpassen, dan is er iets aan de routering veranderd —
 dat mag, maar het moet een bewuste wijziging zijn en geen bijvangst van een refactor.
 
-De gedragskant (wat een node dóét) staat in test_orchestrator.py, test_critic_lus.py en
-test_kandidaat_splitsing.py; hier gaat het puur om welke node met welke verbonden is.
+De gedragskant (wat een node dóét) staat in test_orchestrator.py en test_hybride_keten.py; hier
+gaat het puur om welke node met welke verbonden is.
 """
 
 from __future__ import annotations
@@ -31,38 +31,18 @@ def structuur(**kw) -> tuple[set[str], set[tuple[str, str, str, bool]]]:
     return set(g.nodes), edges
 
 
-# De annotatieketen zoals hij er in élke tak met annotatie uitziet: lineair van annoteer naar emit,
-# met `emit` als enige uitgang naar advance. Geen enkele edge wijst terug naar een eerdere stap —
-# dat is de eigenschap die de keten convergentievrij maakt en die we niet stilzwijgend willen verliezen.
-def annotatieketen(entry: str) -> set[tuple[str, str, str, bool]]:
-    label = "annoteer" if entry != "annoteer" else ""
-    keten = {
-        ("critic", "patch", "", True),
-        ("critic", "emit", "", True),
-        ("patch", "herzie", "", True),
-        ("patch", "critic", "", True),
-        ("patch", "emit", "", True),
-        ("herzie", "critic", "", False),
-        ("emit", "advance", "", False),
-    }
-    # Na het annoteren naar de Critic, of – bij volledig hergebruik van de gedeelde laag – meteen
-    # naar emit. Een bewuste wijziging (22 sep 2026); nog steeds zonder terugwaartse edge.
-    laatste = "annoteer" if entry == "annoteer" else "annoteer_klasseer"
-    if entry != "annoteer":
-        keten.add(("annoteer_kandidaten", "annoteer_klasseer", "", False))
-    keten.add((laatste, "critic", "", True))
-    keten.add((laatste, "emit", "", True))
-    return keten
-
-
-ANNOTATIE_NODES = {"critic", "patch", "herzie", "emit"}
+# De annotatieketen zoals hij er in élke tak met annotatie uitziet (ADR-001 PR 18): de hybride
+# analyse en daarna emit, als enige uitgang naar advance. Geen Critic, geen herziening, geen
+# terugwaartse edge.
+ANNOTATIEKETEN = {("annoteer", "emit", "", False), ("emit", "advance", "", False)}
+ANNOTATIE_NODES = {"annoteer", "emit"}
 
 
 def test_planning_is_de_standaardvorm():
     nodes, edges = structuur(enable_planning=True)
     assert nodes == {
         "supervisor", "agent", "tools", "verify", "correct", "finalize", "annotaties_zoeken",
-        "annoteer", "critic", "patch", "herzie", "emit", "advance", "afwijzen",
+        "annoteer", "emit", "advance", "afwijzen",
     }
     assert edges == {
         (START, "supervisor", "", False),
@@ -86,7 +66,7 @@ def test_planning_is_de_standaardvorm():
         ("advance", "annotaties_zoeken", "", True),
         ("advance", "afwijzen", "", True),
         ("advance", EIND, "einde", True),
-    } | annotatieketen("annoteer")
+    } | ANNOTATIEKETEN
 
 
 def test_decompositie_voegt_de_deelvraag_keten_toe():
@@ -123,31 +103,16 @@ def test_de_annotatieketen_is_identiek_in_elke_tak_die_hem_heeft(tak):
     """De invariant die de ontvlechting moet behouden: de keten van annoteer tot emit is in beide
     takken exact dezelfde, ook al verschilt de antwoordketen eromheen."""
     _, edges = structuur(**tak)
-    assert annotatieketen("annoteer") <= edges
-
-
-@pytest.mark.parametrize("tak", [{"enable_planning": True}, {"enable_decomposition": True}])
-def test_kandidaat_splitsing_vervangt_alleen_de_ingang(tak):
-    """Met splitsing komt er één node vóór: annoteer_kandidaten → annoteer_klasseer → critic.
-    De rest van de keten is ongewijzigd, en alles wat naar 'annoteer' routeerde wijst nu naar
-    de eerste van de twee."""
-    nodes, edges = structuur(**tak, enable_kandidaat_splitsing=True)
-    assert {"annoteer_kandidaten", "annoteer_klasseer"} <= nodes
-    assert "annoteer" not in nodes
-    assert annotatieketen("annoteer_kandidaten") <= edges
-    # Elke router die 'annoteer' als bestemming kende, wijst nu naar de kandidaten-node.
-    for bron in ("supervisor", "agent", "advance"):
-        assert (bron, "annoteer_kandidaten", "annoteer", True) in edges
+    assert ANNOTATIEKETEN <= edges
 
 
 def test_stopbewaking_zit_om_elke_node():
     """Elke node wordt via `add()` geregistreerd, die `stopbaar()` eromheen wikkelt. Zou een node
     daarbuiten om geregistreerd worden, dan negeert hij een stopverzoek."""
-    nodes, _ = structuur(enable_decomposition=True, enable_kandidaat_splitsing=True)
+    nodes, _ = structuur(enable_decomposition=True)
     # Alle nodes van de rijkste tak; als hier iets bijkomt zonder dat deze lijst meegroeit,
     # is dat een signaal om te controleren of het via add() ging.
     assert nodes == {
         "supervisor", "decompose", "solve", "synthesize", "resynth", "agent", "tools",
-        "annoteer_kandidaten", "annoteer_klasseer", "critic", "patch", "herzie", "emit",
-        "advance", "afwijzen", "verify", "finalize", "annotaties_zoeken",
+        "annoteer", "emit", "advance", "afwijzen", "verify", "finalize", "annotaties_zoeken",
     }

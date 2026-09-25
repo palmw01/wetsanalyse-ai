@@ -1,7 +1,8 @@
-"""A/B: de legacy-annotatieketen tegen `hybrid_v1`, op identieke bronnen (ADR-001 PR 16).
+"""Meting van de annotatieketen op de ontwikkelcasussen (ADR-001 PR 16).
 
-Beide routes krijgen per casus exact dezelfde bronpassage (`keten_fixture`), hetzelfde model en
-dezelfde instellingen; alleen `ANNOTATION_PIPELINE` verschilt. Per route en per casus meet het:
+Oorspronkelijk een A/B van de legacy-keten tegen `hybrid_v1`; sinds PR 18 bestaat alleen de
+laatste nog, en meet dit harnas die – oude rapporten met legacy-runs blijven analyseerbaar. Per
+casus dezelfde bronpassage (`keten_fixture`), en per route en casus:
 
 - **kwaliteit tegen de referentie**: P/R/F1 per klasse, micro/macro, confusion, exacte span en
   partiële overlap (`eval/metrieken.py`), op positie. De referentie is `provisional`, dus recall
@@ -33,7 +34,10 @@ from eval.keten_fixture import (
 from eval.metrieken import Ref, classificatie_metrieken, controleer_status, kern, laagste_status, recall_naam
 from eval.stabiliteit_analyse import analyseer_casus
 
+# `legacy` bestaat alleen nog in rapporten van vóór ADR-001 PR 18; de analyse kan die nog lezen,
+# meten kan alleen de huidige keten.
 ROUTES = ("legacy", "hybrid_v1")
+MEETBAAR = ("hybrid_v1",)
 
 
 def _posities(elementen: list[dict[str, Any]], tekst: str, casus: str) -> list[Ref]:
@@ -65,14 +69,14 @@ def _foutcategorie(v: list[Ref], r: list[Ref]) -> Counter[str]:
 
 
 def meet(cases: list[dict[str, Any]], herhalingen: int, settings: Any, maak_llm, rapport: dict[str, Any],
-         bewaar=lambda: None, routes: tuple[str, ...] = ROUTES) -> None:
+         bewaar=lambda: None, routes: tuple[str, ...] = MEETBAAR) -> None:
     from agent.agent import answer_stream      # pas hier: agentmodules laden de configuratie
 
     async def run():
         for ronde in range(1, herhalingen + 1):
             for c in cases:
                 for route in routes:          # afwisselend per casus, zodat een storing beide raakt
-                    s = settings.model_copy(update={"annotation_pipeline": route})
+                    s = settings
                     llm = Capture(maak_llm(s))
                     start = time.monotonic()
                     events = [e async for e in answer_stream(
@@ -84,7 +88,7 @@ def meet(cases: list[dict[str, Any]], herhalingen: int, settings: Any, maak_llm,
                         "seconden": round(time.monotonic() - start, 2), "modelcalls": len(llm.calls),
                         "tokens": {v: sum(k.get(v, 0) for k in llm.calls) for v in TOKENVELDEN},
                         "fout": any(e.get("type") == "error" for e in events),
-                        "meting": ((run_ev.get("instellingen") or {}).get("hybride") or {}).get("meting", {}),
+                        "meting": (run_ev.get("instellingen") or {}).get("meting", {}),
                         "na_keten": [e["element"] for e in events if e.get("type") == "element"],
                     })
                     bewaar()
@@ -223,8 +227,8 @@ def main() -> int:
     ap.add_argument("--offline", action="store_true")
     ap.add_argument("--analyseer", type=Path, help="alleen een bestaand rapport analyseren")
     ap.add_argument("--md", type=Path)
-    ap.add_argument("--routes", nargs="+", choices=ROUTES, default=list(ROUTES),
-                    help="alleen deze routes; gebruik dit alleen als de andere route ongewijzigd is")
+    ap.add_argument("--routes", nargs="+", choices=MEETBAAR, default=list(MEETBAAR),
+                    help="welke route(s) meten; legacy bestaat sinds PR 18 niet meer")
     args = ap.parse_args()
     if args.analyseer:
         a = analyseer(json.loads(args.analyseer.read_text()))

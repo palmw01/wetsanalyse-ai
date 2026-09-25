@@ -14,7 +14,8 @@ import json
 
 from bron_fakes import answer_stream
 from agent.config import Settings
-from fakes import FakeGraph, FakeLLM, make_settings, response, text_block, tool_block
+from agent.jas_pipeline.kandidaten import GEEN_ANNOTATIE
+from fakes import FakeGraph, KetenLLM, make_settings, response, text_block, tool_block
 
 #: Antwoord op `get_lid` – wat de ophaal-agent als tool-resultaat terugkrijgt.
 LID_TSV = json.dumps(
@@ -41,16 +42,15 @@ def _run(gen):
     return asyncio.run(collect())
 
 
-def _annoteer(elementen: list[dict]):
-    return response([text_block(json.dumps({"elementen": elementen}))], "end_turn")
+def _keten(responses: list | None = None) -> KetenLLM:
+    """Classifier-nep: alleen "De ontvanger" wordt Rechtssubject, de rest wordt afgewezen."""
+    return KetenLLM(responses, kies=lambda toegestaan, fragment: (
+        "Rechtssubject" if fragment == "De ontvanger" and "Rechtssubject" in toegestaan else GEEN_ANNOTATIE))
 
 
-def _critic(oordelen: list[dict]):
-    return response([text_block(json.dumps({"oordelen": oordelen, "ontbrekend": []}))], "end_turn")
-
-
-_ELEMENT = {"id": "el-a", "klasse": "Rechtssubject", "tekst": "De ontvanger", "lid": "1"}
-_GROEN = {"id": "el-a", "aandacht": "groen", "motivatie": "juist"}
+def _ketencalls(llm) -> list[dict]:
+    """De calls van de annotatieketen zelf: classifier en gerichte reviewer."""
+    return [c for c in llm.calls if (c.get("tools") or [{}])[0].get("name") in {"classificeer", "beoordeel"}]
 
 
 def _aanloop() -> list:
@@ -69,7 +69,7 @@ def test_model_voor_valt_terug_op_het_hoofdmodel():
     s = Settings(llm_model="sterk")
     assert s.model_voor("router") == "sterk"
     assert s.model_voor("ophaal") == "sterk"
-    # De annoteerder en de Critic hebben géén eigen knop: dat is de grens, geen omissie.
+    # De classifier en de reviewer hebben géén eigen knop: dat is de grens, geen omissie.
     assert s.model_voor("annoteerder") == "sterk"
     assert s.model_voor("critic") == "sterk"
     assert s.model_voor("bestaat-niet") == "sterk"
@@ -88,8 +88,8 @@ def test_from_env_leest_de_rol_modellen():
 
 
 def test_elke_rol_draait_op_zijn_eigen_model():
-    """De volgorde van de calls is de volgorde van de keten: router → ophaal ×2 → annoteer → critic."""
-    llm = FakeLLM([*_aanloop(), _annoteer([_ELEMENT]), _critic([_GROEN])])
+    """De volgorde van de calls is de volgorde van de keten: router → ophaal ×2 → classifier (→ reviewer)."""
+    llm = _keten(_aanloop())
     _run(answer_stream(
         VRAAG,
         settings=make_settings(llm_model="sterk", llm_model_router="klein", llm_model_ophaal="middel"),
@@ -97,12 +97,13 @@ def test_elke_rol_draait_op_zijn_eigen_model():
     ))
 
     modellen = [c["model"] for c in llm.calls]
-    assert modellen == ["klein", "middel", "middel", "sterk", "sterk"]
+    assert modellen[:3] == ["klein", "middel", "middel"]
+    assert _ketencalls(llm) and set(modellen[3:]) == {"sterk"}, "wie het oordeel velt, draait op het hoofdmodel"
 
 
 def test_zonder_overrides_draait_alles_op_een_model():
     """Terugdraaien is een lege env-var: dan is de keten byte-voor-byte de oude."""
-    llm = FakeLLM([*_aanloop(), _annoteer([_ELEMENT]), _critic([_GROEN])])
+    llm = _keten(_aanloop())
     _run(answer_stream(
         VRAAG, settings=make_settings(llm_model="sterk"), llm=llm, graph=FakeGraph(result=LID_TSV),
     ))
@@ -111,25 +112,25 @@ def test_zonder_overrides_draait_alles_op_een_model():
 
 # --- 2. een meegegeven doel -----------------------------------------------------------------------
 
-def _met_doel(doel: dict, llm: FakeLLM):
+def _met_doel(doel: dict, llm: KetenLLM):
     return _run(answer_stream(
         VRAAG, doel=doel, settings=make_settings(), llm=llm, graph=FakeGraph(result=ARTIKEL_TSV),
     ))
 
 
 def test_een_meegegeven_doel_slaat_supervisor_en_ophaal_over():
-    """Twee LLM-calls in plaats van vijf: alleen nog annoteren en beoordelen."""
-    llm = FakeLLM([_annoteer([_ELEMENT]), _critic([_GROEN])])
+    """Alleen de annotatieketen zelf draait: geen supervisor, geen ophaal-agent."""
+    llm = _keten()
     events = _met_doel(DOEL, llm)
 
-    assert len(llm.calls) == 2, "supervisor en ophaal-agent horen niet te draaien"
+    assert llm.calls and llm.calls == _ketencalls(llm), "supervisor en ophaal-agent horen niet te draaien"
     elementen = [e["element"] for e in events if e["type"] == "element"]
-    assert [el["klasse"] for el in elementen] == ["Rechtssubject"]
+    assert ("Rechtssubject", "De ontvanger") in {(el["klasse"], el["tekst"]) for el in elementen}
 
 
 def test_het_meegegeven_doel_is_het_doel_dat_eruit_komt():
     """De bepaling die de jurist aanwees, niet een die een agent erbij zocht."""
-    llm = FakeLLM([_annoteer([_ELEMENT]), _critic([_GROEN])])
+    llm = _keten()
     events = _met_doel(DOEL, llm)
 
     doel_ev = next(e["doel"] for e in events if e["type"] == "doel")
@@ -141,30 +142,30 @@ def test_het_meegegeven_doel_is_het_doel_dat_eruit_komt():
 def test_het_corpus_komt_gericht_uit_de_graaf():
     """Zonder ophaal-agent is er geen tool-trace; het corpus moet dus uit de gerichte SPARQL komen."""
     graaf = FakeGraph(result=ARTIKEL_TSV)
-    llm = FakeLLM([_annoteer([_ELEMENT]), _critic([_GROEN])])
+    llm = _keten()
     _run(answer_stream(VRAAG, doel=DOEL, settings=make_settings(), llm=llm, graph=graaf))
 
     assert graaf.queries, "er hoort één gerichte ophaalactie te zijn gedaan"
-    assert "De ontvanger" in llm.calls[0]["system"] or "De ontvanger" in str(llm.calls[0]["messages"])
+    assert "De ontvanger" in str(llm.calls[0]["messages"])
 
 
 def test_een_half_doel_gaat_gewoon_de_gewone_weg():
     """Alleen een bwbId is geen bepaling: dan is er wél iets te zoeken."""
-    llm = FakeLLM([*_aanloop(), _annoteer([_ELEMENT]), _critic([_GROEN])])
+    llm = _keten(_aanloop())
     _run(answer_stream(
         VRAAG, doel={"bwbId": "BWBR0004770"}, settings=make_settings(),
         llm=llm, graph=FakeGraph(result=LID_TSV),
     ))
-    assert len(llm.calls) == 5
+    assert "WORKERS" in llm.calls[0]["system"] and llm.index == 3, "supervisor en ophaal-agent draaiden"
 
 
 def test_zonder_doel_verandert_er_niets():
-    llm = FakeLLM([*_aanloop(), _annoteer([_ELEMENT]), _critic([_GROEN])])
+    llm = _keten(_aanloop())
     events = _run(answer_stream(
         VRAAG, settings=make_settings(), llm=llm, graph=FakeGraph(result=LID_TSV),
     ))
-    assert len(llm.calls) == 5
-    assert [e["element"]["id"] for e in events if e["type"] == "element"] == ["el-a"]
+    assert llm.index == 3 and _ketencalls(llm)
+    assert "De ontvanger" in [e["element"]["tekst"] for e in events if e["type"] == "element"]
 
 
 # ── adviesvragen hebben een onderwerp nodig ──────────────────────────────────────────────────────

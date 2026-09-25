@@ -28,12 +28,10 @@ from .agent_common import BeurtGestopt, truncate
 from .doel import (  # noqa: F401 – re-export: tests importeren _kandidaten_uit_json hiervandaan
     _bepaal_doel,
     _corpus_uit_trace,
-    _corpus_voor_doel,
     _doel_uit_json,
     _doel_uit_toolcalls,
     _heeft_opgegeven_doel,
     _kandidaten_uit_json,
-    _ontbrekend_sleutel,
 )
 from .nodes.antwoord import (
     agent_node,
@@ -44,19 +42,7 @@ from .nodes.antwoord import (
     tools_node,
     verify_node,
 )
-from .nodes.hybride import hybride_annoteer_node
-from .nodes.annotatie import (
-    annoteer_kandidaten_node,
-    annoteer_klasseer_node,
-    annoteer_node,
-    critic_node,
-    emit_node,
-    herzie_node,
-    patch_node,
-    route_na_annoteer,
-    route_na_critic,
-    route_na_patch,
-)
+from .nodes.annotatie import annoteer_node, emit_node
 from .nodes.context import Bouw
 from .nodes.annotatie_lezen import zoek_annotaties_node
 from .nodes.supervisie import (
@@ -83,10 +69,7 @@ from .berichten import (  # noqa: F401 – re-export: tests en node-modules impo
     _voeg_toe_en_snoei,
 )
 from .narratie import (  # noqa: F401 – re-export, zie hierboven
-    _annoteer_melding,
-    _critic_melding,
     _grounding_melding,
-    _herzien_melding,
     _stap,
     _toolregel,
 )
@@ -106,7 +89,7 @@ def build_graph(
     annotaties=None,
 ) -> StateGraph:
     """Bouw de (ongecompileerde) toestandsgraaf; de wrapper compileert 'm met een checkpointer."""
-    # `model` is het sterke model: annoteerder, Critic, herziener en de QA-specialisten. De router
+    # `model` is het sterke model: de annotatie-classifier, de reviewer en de QA-specialisten. De router
     # en de ophaal-agent mogen apart worden gezet (`Settings.model_voor`); staat er niets, dan is
     # het alle drie hetzelfde en draait de keten exact als voorheen.
     model = settings.llm_model
@@ -229,49 +212,16 @@ def build_graph(
     def annotatieketen() -> str:
         """Registreer de annotatie-worker en zijn edges; geeft de naam van de ingang terug.
 
-        Lineair: annoteer → critic₁ → patch → [herzie → critic₂] → emit, met `emit` als enige
-        uitgang zodat de werkplek nooit tussenversies ziet. Geen enkele edge wijst terug naar een
-        eerdere stap, dus er is geen cyclus om te laten convergeren.
-
-        Dit blok stond identiek in de decompositie- en de planning-tak. De antwoordketen verschilt
-        wél echt tussen die twee (`verify → resynth` versus `verify → correct`), dus die blijft per
-        tak apart staan; alleen wat aantoonbaar hetzelfde was is hier samengebracht.
+        `annoteer → emit` (ADR-001): detectie, fusie, kleine classifier, validatie, gerichte review
+        en resolver zitten allemaal in `annoteer` (`jas_pipeline.keten`); `emit` is de enige uitgang,
+        zodat de werkplek nooit tussenversies ziet. Dit blok is in elke tak identiek; de
+        antwoordketen eromheen verschilt per tak en staat daarom apart.
         """
-        if settings.annotation_pipeline == "hybrid_v1":
-            # ADR-001: detectie → fusie → kleine classifier, dan rechtstreeks naar `emit`. Geen
-            # Critic die de hele set opnieuw interpreteert; de gerichte reviewer volgt (PR 12).
-            add("hybride_annoteer", functools.partial(hybride_annoteer_node, b))
-            add("emit", functools.partial(emit_node, b))
-            g.add_edge("hybride_annoteer", "emit")
-            g.add_edge("emit", "advance")
-            return "hybride_annoteer"
-        if settings.enable_kandidaat_splitsing:
-            add("annoteer_kandidaten", functools.partial(annoteer_kandidaten_node, b))
-            add("annoteer_klasseer", functools.partial(annoteer_klasseer_node, b))
-            entry = "annoteer_kandidaten"
-        else:
-            add("annoteer", functools.partial(annoteer_node, b))
-            entry = "annoteer"
-        add("critic", functools.partial(critic_node, b))
-        add("patch", functools.partial(patch_node, b))
-        add("herzie", functools.partial(herzie_node, b))
+        add("annoteer", functools.partial(annoteer_node, b))
         add("emit", functools.partial(emit_node, b))
-
-        # Na het annoteren: naar de Critic, of – als de gedeelde laag volledig is hergebruikt en er
-        # dus niets nieuws te beoordelen valt – rechtstreeks naar `emit`. Nog steeds lineair.
-        naar_critic = {"critic": "critic", "emit": "emit"}
-        if settings.enable_kandidaat_splitsing:
-            g.add_edge("annoteer_kandidaten", "annoteer_klasseer")
-            g.add_conditional_edges("annoteer_klasseer", functools.partial(route_na_annoteer, b),
-                                    naar_critic)
-        else:
-            g.add_conditional_edges("annoteer", functools.partial(route_na_annoteer, b), naar_critic)
-        g.add_conditional_edges("critic", functools.partial(route_na_critic, b), {"patch": "patch", "emit": "emit"})
-        g.add_conditional_edges("patch", functools.partial(route_na_patch, b),
-                                {"herzie": "herzie", "critic": "critic", "emit": "emit"})
-        g.add_edge("herzie", "critic")
+        g.add_edge("annoteer", "emit")
         g.add_edge("emit", "advance")
-        return entry
+        return "annoteer"
 
     add("verify", functools.partial(verify_node, b))
     add("finalize", functools.partial(finalize_node, b))
@@ -288,8 +238,6 @@ def build_graph(
         add("tools", functools.partial(tools_node, b))
         add("advance", functools.partial(advance_node, b))
         add("afwijzen", functools.partial(afwijs_node, b))
-        # Alle conditional-edges die "annoteer" als doel teruggeven moeten naar de ingang van de
-        # keten; bij splitsing is dat `annoteer_kandidaten`.
         _annoteer_entry = annotatieketen()
         entrymap = {"agent": "agent", "annoteer": _annoteer_entry, "decompose": "decompose",
                     "annotaties_zoeken": "annotaties_zoeken", "afwijzen": "afwijzen"}

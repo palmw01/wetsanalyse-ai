@@ -34,8 +34,8 @@ def _antwoorden(el, run):
         "welke JAS-versie": t["jas_versie"],
         "hoe geprojecteerd": el["ankers"],        # de projectie is een functie van ankers + klasse
         "welke provenance": (run["model"], run["prompt_hash"], run["methode_versie"],
-                             inst["annotation_pipeline"], inst["hybride"]["meting"]["classifier_prompt"],
-                             inst["hybride"]["meting"]["taal_model"] or "geen parser"),
+                             inst["meting"]["classifier_prompt"],
+                             inst["meting"]["taal_model"] or "geen parser"),
     }
 
 

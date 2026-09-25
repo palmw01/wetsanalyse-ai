@@ -52,9 +52,8 @@ mcp = [
 ]
 # Taalanalyse voor de hybride JAS-pijplijn (ADR-001 PR 3, agent/jas_pipeline/taal). spaCy met het
 # Nederlandse md-model (UD Alpino + LassySmall, CC BY-SA 4.0, ±53 MB): de keuze staat onderbouwd in
-# docs/architectuur/adr-002-taalprovider.md. Een extra en geen vaste afhankelijkheid: zolang
-# ANNOTATION_PIPELINE op `legacy` staat gebruikt geen enkele beurt hem, en zonder deze extra
-# degradeert de provider zichtbaar in plaats van te falen.
+# docs/architectuur/adr-002-taalprovider.md. Een extra en geen vaste afhankelijkheid: zonder deze
+# extra degradeert de provider zichtbaar (alleen lexicale detectoren) in plaats van te falen.
 nlp = [
     "spacy>=3.8,<3.9",
     "nl-core-news-md",

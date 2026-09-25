@@ -63,9 +63,6 @@ GEVALLEN: list[tuple[str, str]] = [
     ("bijlagen", q.bijlagen(IW)),
     ("bijlagen+nummer", q.bijlagen(IW, "1")),
     ("ontologie", q.ontologie()),
-    ("laagstand", q.laagstand(IW, "36")),
-    ("laagstand+divisie", q.laagstand(LEIDRAAD, "25.1")),
-    ("laag_markeringen", q.laag_markeringen(IW, "5:2")),
 ]
 
 
@@ -85,6 +82,6 @@ def test_elke_publieke_bouwer_wordt_getoetst():
         if not naam.startswith("_") and callable(getattr(q, naam)) and getattr(q, naam).__module__ == q.__name__
     }
     # Helpers die geen complete query opleveren.
-    helpers = {"regeling_iri", "artikel_iri", "lid_iri", "node_patroon", "is_artikelnummer", "laag_graaf"}
+    helpers = {"regeling_iri", "artikel_iri", "lid_iri", "node_patroon", "is_artikelnummer"}
     ontbreekt = publiek - getoetst - helpers
     assert not ontbreekt, f"deze query-bouwers staan niet in GEVALLEN: {sorted(ontbreekt)}"

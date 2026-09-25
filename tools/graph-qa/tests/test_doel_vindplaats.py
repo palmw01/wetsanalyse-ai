@@ -12,26 +12,19 @@ niet breken") en viel terug op de tool-trace. Er ontstond een document met 26 ma
 vindplaats `artikel:6:lid:1:o:c` — een aanduiding die de werkplek per definitie niet kan openen. De
 fout ontstond in de agent en werd zichtbaar bij de jurist, twee stappen verderop.
 
-Deze test legt beide helften van de fix vast: het doel slaat mislukte calls over, en een ongeldige
-vindplaats breekt de beurt in plaats van er stilletjes omheen te werken.
+Deze test legt de eerste helft van de fix vast: het doel slaat mislukte calls over. De tweede helft
+– een ongeldige vindplaats breekt de beurt – zit sinds ADR-001 PR 18 in `bronmodel.resolve`: de
+trace-terugval bestaat niet meer.
 """
 from __future__ import annotations
 
 import pytest
 
-from agent.artikel import OngeldigeVindplaats
-from agent.doel import _bepaal_doel, _corpus_voor_doel, _doel_uit_toolcalls, _is_vindplaats
+from agent.doel import _doel_uit_toolcalls, _is_vindplaats
 
 
 def _call(naam: str, **inp) -> dict:
     return {"role": "assistant", "content": [{"type": "tool_use", "name": naam, "input": inp}]}
-
-
-class _GraafZonderTekst:
-    """Een graaf die niets teruggeeft; we toetsen hier de vindplaats, niet de inhoud."""
-
-    def sparql(self, query: str) -> str:  # pragma: no cover - triviaal
-        return ""
 
 
 def test_iri_achtervoegsel_is_geen_vindplaats():
@@ -65,30 +58,3 @@ def test_zonder_enige_geldige_call_blijft_het_doel_leeg():
     assert doel["bwbId"] == ""
 
 
-def test_ongeldig_doel_breekt_de_beurt_in_plaats_van_terug_te_vallen():
-    """Terugvallen op de trace-reconstructie leverde het onopenbare document op.
-
-    De trace bevat hier wél tekst, dus de oude code zou er vrolijk mee doorgegaan zijn.
-    """
-    trace = [("get_artikel", '?tekst\n"Een bepaling met tekst die de agent onderweg zag."')]
-    with pytest.raises(OngeldigeVindplaats):
-        _corpus_voor_doel(
-            {"bwbId": "BWBR0019237", "artikel": "artikel:6:lid:1:o:c", "lid": ""},
-            _GraafZonderTekst(),
-            trace,
-        )
-
-
-def test_een_meegegeven_doel_wordt_ook_getoetst():
-    """De werkplek stuurt bij een kandidaatkeuze een doel mee; ook dat kan onzin bevatten."""
-    state = {
-        "opgegeven_doel": {"bwbId": "BWBR0019237", "artikel": "artikel:6:lid:1:o:c"},
-        "messages": [_call("get_lid", bwb_id="BWBR0019237", artikel="6", lid="1")],
-        "answer": "",
-    }
-    doel = _bepaal_doel(state)
-    # `_bepaal_doel` geeft het opgegeven doel voorrang; de bescherming zit erachter, in
-    # `_corpus_voor_doel`, dat hierop met OngeldigeVindplaats afbreekt.
-    assert not _is_vindplaats(doel["artikel"])
-    with pytest.raises(OngeldigeVindplaats):
-        _corpus_voor_doel(doel, _GraafZonderTekst(), [])

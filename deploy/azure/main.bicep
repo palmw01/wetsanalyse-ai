@@ -1035,14 +1035,6 @@ resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
 // Handmatige trigger, geen schedule: elke run kost LLM-tokens. Draaien via `azure-infra.yml`
 // (actie `eval`) of `az containerapp job start -n ${appName}-eval -g <rg>`.
 //
-// DRIE runs van één promptvariant, niet zes van twee. De vol/kort-vergelijking was een tweede
-// meting die meeliftte op de eerste, en juist die factor twee duwde de run van 5 sep 2026 over de
-// twee uur (de provider gaf toen `overloaded_error`, waardoor elke call in zijn timeout liep). Ze
-// is nu een eigen actie, `eval-promptvarianten`, zodat de standaardmeting binnen haar tijd blijft
-// en de vergelijking nog steeds in één uitvoering gebeurt wanneer je hem stelt.
-//
-// Drie runs blijven het minimum: JAS-analyse kent interpretatieruimte en één run is een anekdote.
-//
 // `python -u` is geen detail. Zonder unbuffered stdout houdt Python zijn uitvoer vast en dumpt hij
 // het hele rapport in één keer; tientallen regels krijgen dan dezelfde tijdstempel in Log Analytics
 // en `order by TimeGenerated` levert ze in willekeurige volgorde terug. Precies dat maakte het
@@ -1054,21 +1046,11 @@ resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
 // je meet dan een keten die op onvolledige wettekst werkt, zonder dat het rapport dat verraadt.
 // Precies wat er gebeurde toen `get_lid` op het niet-bestaande `bwb:bevat` stond.
 //
-// DRIE RUNS PER VARIANT, en dat is de kern van de meting. JAS-annotatie kent interpretatieruimte
+// DRIE RUNS, en dat is de kern van de meting. JAS-annotatie kent interpretatieruimte
 // en dezelfde bepaling levert tussen runs sterk verschillende uitkomsten op (geel varieerde
 // 38–77%). Eén run is daarom geen meting maar een anekdote; drie runs geven een bandbreedte. De
 // loop gaat door na een mislukte run en meldt aan het eind of er één faalde — anders verlies je de
 // runs die wél slaagden.
-//
-// TWEE VARIANTEN, in één uitvoering. `vol` is de volle klassenreferentie uit de skill (~14,5k
-// tekens); `kort` is dezelfde referentie tot de eerste zin per veld (~5,6k), even groot als de
-// verkorte referentie die tot 1 sep 2026 in de prompt stond. Op 1 sep is die prompt verdubbeld op
-// de redenering dat de bron rijker is dan wat erin stond — niet op een meting. Dit beantwoordt die
-// vraag met cijfers.
-//
-// Beide varianten in dezelfde uitvoering draaien is geen gemak maar methode: dezelfde graafstand,
-// hetzelfde model, dezelfde dag. Een vergelijking over twee deploys heen zou die drie door elkaar
-// halen met het effect dat je wilt meten.
 resource evalJob 'Microsoft.App/jobs@2024-03-01' = {
   name: '${appName}-eval'
   location: location
@@ -1077,8 +1059,8 @@ resource evalJob 'Microsoft.App/jobs@2024-03-01' = {
     environmentId: cae.id
     configuration: {
       triggerType: 'Manual'
-      // Zes runs (twee varianten × drie) × acht cases × een annotatieketen van 60–90 s ≈ 60 min;
-      // twee uur geeft lucht.
+      // Drie runs × tien cases; de hybride keten doet ~1–2 modelcalls per case in plaats van 4–5.
+      // Twee uur is ruim, maar een overbelaste provider (5 sep 2026) kost per call drie timeouts.
       replicaTimeout: 7200
       replicaRetryLimit: 0   // opnieuw proberen zou de meting vervuilen, niet redden
       manualTriggerConfig: {

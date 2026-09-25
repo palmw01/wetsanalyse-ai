@@ -56,7 +56,7 @@ def _draai(llm, **settings):
     async def verzamel():
         return [e async for e in answer_stream(
             "annoteer artikel 9 lid 1 van de Invorderingswet 1990",
-            settings=make_settings(enable_decomposition=True, annotation_pipeline="hybrid_v1",
+            settings=make_settings(enable_decomposition=True,
                                    taal_provider="null", **settings),
             llm=llm, graph=FakeGraph(result=LID_TSV))]
     return asyncio.run(verzamel())
@@ -93,7 +93,7 @@ def test_geen_tool_aanroep_gaat_via_een_nieuwe_poging_en_de_reviewer_naar_de_jur
     llm = KetenLLM(tool_aanroep=False)
     events = _draai(llm)
     assert len(llm.calls) == 6                          # 3 vooraf, classifier ×2, reviewer ×1
-    meting = next(e for e in events if e["type"] == "run")["run"]["instellingen"]["hybride"]["meting"]
+    meting = next(e for e in events if e["type"] == "run")["run"]["instellingen"]["meting"]
     assert meting["llm_calls"] == 2 and meting["review_calls"] == 1
     assert meting["per_status"]["UNCERTAIN"] == 0 and meting["per_status"]["HUMAN_REVIEW"] > 0
     assert {t["regel"] for t in meting["resolutie"]} == {"R-ONGELDIG"}
@@ -105,9 +105,8 @@ def test_geen_tool_aanroep_gaat_via_een_nieuwe_poging_en_de_reviewer_naar_de_jur
 
 def test_run_draagt_de_hybride_provenance():
     run = next(e for e in _draai(KetenLLM()) if e["type"] == "run")["run"]
-    inst = run["instellingen"]
-    assert inst["annotation_pipeline"] == "hybrid_v1"
-    h = inst["hybride"]
+    h = run["instellingen"]
+    assert "annotation_pipeline" not in h, "er is maar één route meer"
     assert h["taal_provider"] == "null" and h["classifier_granulariteit"] == "universeel"
     assert h["meting"]["kandidaten"] > 0 and h["meting"]["classifier_prompt"]
     assert h["meting"]["gedegradeerd"], "zonder parser hoort dat zichtbaar te zijn"
@@ -151,12 +150,11 @@ def test_geen_annotatie_is_een_afwijzing_door_het_model():
 
 
 @pytest.mark.parametrize("tak", [{"enable_planning": True}, {"enable_decomposition": True}])
-def test_graaf_hybride_tak_heeft_geen_critic(tak):
+def test_graaf_annotatieketen_heeft_geen_critic(tak):
     from test_graafopbouw import structuur
-    nodes, edges = structuur(**tak, annotation_pipeline="hybrid_v1")
-    assert "hybride_annoteer" in nodes and not {"critic", "patch", "herzie", "annoteer"} & nodes
-    assert ("hybride_annoteer", "emit", "", False) in edges or any(
-        e[0] == "hybride_annoteer" and e[1] == "emit" for e in edges)
+    nodes, edges = structuur(**tak)
+    assert "annoteer" in nodes and not {"critic", "patch", "herzie", "hybride_annoteer"} & nodes
+    assert ("annoteer", "emit", "", False) in edges
 
 
 # --- PR 17: het model kiest geen grens meer (SPAN_ERROR) --------------------------------------
@@ -180,4 +178,4 @@ def test_zonder_spankeuze_krijgt_het_model_geen_opties_en_wordt_een_optie_genege
 def test_de_run_legt_vast_of_het_model_de_grens_mocht_kiezen():
     run = next(e for e in _draai(KetenLLM()) if e["type"] == "run")["run"]
     from agent.jas_pipeline.classificatie import promptversie
-    assert run["instellingen"]["hybride"]["meting"]["classifier_prompt"] == promptversie(False) != promptversie(True)
+    assert run["instellingen"]["meting"]["classifier_prompt"] == promptversie(False) != promptversie(True)

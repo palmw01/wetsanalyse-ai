@@ -96,17 +96,14 @@ def _recursielimiet(settings: Settings) -> int:
     `except` hieronder en werd "Er ging iets mis", terwijl het werk van tientallen calls weg was.
 
     Nu volgt de limiet de topologie: per worker de agent⇄tools-lus (2 stappen per beurt) plus de
-    vaste nodes eromheen (supervisor/annoteer/critic/emit/advance ≈ 6) plus de correctieketen, maal
-    het maximum aantal workers (`supervisor._MAX_WORKERS`), met marge.
-
-    Die correctieketen is een **vast** aantal stappen – `patch → herzie → critic` – en niet meer een
-    lus die met `critic_max_rondes` meeschaalt. De instelling zegt alleen nog of hij aanstaat.
+    vaste nodes eromheen (supervisor/annoteer/emit/advance ≈ 6), maal het maximum aantal workers
+    (`supervisor._MAX_WORKERS`), met marge.
 
     Dit is een vangnet, geen kostenknop: de echte begrenzing is `max_turns`.
     """
     from .supervisor import _MAX_WORKERS
 
-    per_worker = 2 * settings.max_turns + 6 + (3 if settings.critic_max_rondes > 0 else 0)
+    per_worker = 2 * settings.max_turns + 6
     return _MAX_WORKERS * per_worker + 10
 
 
@@ -203,7 +200,6 @@ async def answer_stream(
         "bron_snapshot": {},
         "annotatie_weergave": {},
         "corpus_segmenten": [],
-        "hybride": {},
         "hergebruikte_nodes": [],
         "annotatie_fout": "",
         "messages": [{"role": "user", "content": question}],
@@ -220,29 +216,17 @@ async def answer_stream(
         "sub_questions": [],
         "sub_findings": [],
         # Een afwijzing geldt de vráág, niet het gesprek. Bleef deze vlag staan, dan werd elke
-        # volgende beurt in dezelfde thread ook afgewezen – dezelfde soort fout als een blijvende
-        # `critic_ronde` hieronder.
+        # volgende beurt in dezelfde thread ook afgewezen – dezelfde soort fout als een blijvend
+        # corpus hieronder.
         "afwijzen": False,
         # Annotatie-velden: MOETEN mee in de reset. De checkpointer bewaart de state per thread, dus
-        # zonder dit begint een tweede beurt met `critic_ronde` van de vorige annotatie en wordt de
-        # herzieningslus overgeslagen. Het corpus hoort daar ook bij: zonder reset annoteert een
-        # tweede vraag in hetzelfde gesprek tegen de tekst van de vórige bepaling – precies de
-        # verwisseling die de gerichte ophaal moet uitsluiten.
+        # zonder dit annoteert een tweede vraag in hetzelfde gesprek tegen de tekst of de voorstellen
+        # van de vórige bepaling – precies de verwisseling die de gerichte ophaal moet uitsluiten.
         "corpus": "",
-        "artikel_corpus": "",
-        "lidstand": [],
         "hergebruik_modus": hergebruik,
         "hergebruik": {},
         "voorstellen": [],
-        "verworpen_fragmenten": [],
-        "critic_feedback": [],
-        "critic_ontbrekend": [],
-        "critic_gefaald": False,
-        "critic_ronde": 0,
-        "nieuw_ontbrekend": [],
-        "gemeld_ontbrekend": [],
-        "patch_toegepast": 0,
-        "stop_reden": "",
+        "analyse": {},
     }
 
     tracer = get_tracer(__name__)

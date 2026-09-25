@@ -2,51 +2,10 @@
 import hashlib
 import json
 from pathlib import Path
-from types import SimpleNamespace
 
-import pytest
 
-from agent import annotatie_prompt as prompts
 from agent.jas_klassen import GELDIGE_JAS_KLASSEN
-from agent.nodes import annotatie as nodes
-from fakes import FakeLLM, make_settings, response, text_block
 from scripts.render_jas_referentieset import MAP, render
-
-
-@pytest.mark.parametrize('builder,section', [
-    (prompts.annotatie_systeemprompt, 'Classificatie'),
-    (prompts.klasseer_systeemprompt, 'Classificatie'),
-    (prompts.kandidaten_systeemprompt, 'Kandidaten'),
-    (prompts.critic_systeemprompt, 'Review'),
-    (prompts.herziening_systeemprompt, 'Review'),
-])
-def test_protocolwijziging_bereikt_elke_relevante_prompt(monkeypatch, builder, section):
-    from agent.methodepakket import PAKKET
-    key = {'Classificatie': 'classificatie', 'Kandidaten': 'kandidaten', 'Review': 'review'}[section]
-    monkeypatch.setitem(PAKKET['secties']['annotatie-gedeeld'], 'tekst', 'unieke-gedeelde-instructie')
-    monkeypatch.setitem(PAKKET['secties']['annotatie-' + key], 'tekst', 'unieke-fase-instructie')
-    modes = [()] if section == 'Kandidaten' else [(), (True,)]
-    for args in modes:
-        text = builder(*args)
-        assert 'unieke-gedeelde-instructie' in text
-        assert 'unieke-fase-instructie' in text
-
-
-def test_verfijnde_kandidaatgrens_wordt_op_bron_gecontroleerd(monkeypatch):
-    corpus = 'Het bedrag bedraagt tien euro.'
-    llm = FakeLLM([response([text_block(json.dumps({'elementen': [
-        {'klasse': 'Afleidingsregel', 'tekst': corpus, 'lid': '1'},
-        {'klasse': 'Rechtssubject', 'tekst': 'De minister', 'lid': '1'},
-    ]}))], 'end_turn')])
-    monkeypatch.setattr(nodes, 'get_stream_writer', lambda: lambda event: None)
-    monkeypatch.setattr(nodes, '_bepaal_doel', lambda state: {'bwbId':'test', 'artikel':'1', 'lid':'1'})
-    result = nodes.annoteer_klasseer_node(
-        SimpleNamespace(llm=llm, model='fake', settings=make_settings()),
-        {'corpus':corpus, 'kandidaten_v2a':[{'span':'bedraagt','lid':'1'}]},
-    )
-    assert [e['tekst'] for e in result['voorstellen']] == [corpus]
-    assert result['verworpen_fragmenten'][0]['tekst'] == 'De minister'
-    assert llm.calls[0]['tools'] == []
 
 
 def _cases():

@@ -318,9 +318,10 @@ def _offline_annotatie_scenario():
     buiten-bereik telt en dat een injectie in de wettekst wordt opgemerkt. Of het écht model daar
     intrapt, meet alleen de live-run.
 
-    De verwachte set bevat één exact-match (Rechtsobject) en één span-mismatch
-    (Tijdsaanduiding – agent geeft een kortere variant terug). Zo exerceren we alle
-    matching-passen in de offline-run.
+    De keten draait echt (detectoren, fusie, validatie, resolver); alleen het model is nep. De
+    nep-classifier geeft geen tool-aanroep, dus alles wat een model zou moeten beslissen gaat via de
+    reviewer (ook zonder uitvoer) naar de jurist, en de termijn komt deterministisch uit een regel.
+    Zo exerceert de run de scorers: de Tijdsaanduiding is een exacte match, de rest trendmeting.
     """
     import json as _json
 
@@ -329,24 +330,18 @@ def _offline_annotatie_scenario():
     lid_tsv = _json.dumps(
         '?nummer\t?tekst\n"1"\t"Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet."'
     )
-    elementen = _json.dumps({"elementen": [
-        {"klasse": "Rechtsobject", "tekst": "Een belastingaanslag", "lid": "1",
-         "toelichting": "waarover het gaat", "alternatieven": []},
-        {"klasse": "Tijdsaanduiding", "tekst": "zes weken na de dagtekening", "lid": "1",
-         "toelichting": "wanneer", "alternatieven": []},
-    ]})
+    geen_keuze = response([text_block("Ik kies niet.")], "end_turn")
     llm = FakeLLM([
         response([text_block("WORKERS: annotatie\nPLAN: annoteer art 9 lid 1")], "end_turn"),
         response([tool_block("t1", "get_lid", {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "1"})], "tool_use"),
         response([text_block('{"bwbId":"BWBR0004770","artikel":"9","lid":"1","citeertitel":"IW 1990"}')], "end_turn"),
-        response([text_block(elementen)], "end_turn"),
-        response([text_block(_json.dumps({"oordelen": [], "ontbrekend": []}))], "end_turn"),
+        geen_keuze, geen_keuze,          # classifier + één nieuwe poging
+        geen_keuze,                      # gerichte reviewer
     ])
     case = {
         "prompt": "annoteer artikel 9 lid 1 van de Invorderingswet 1990",
         "verwacht": [
             {"klasse": "Rechtsobject", "tekst": "Een belastingaanslag"},
-            # Gold heeft de volledige tijdsspan; agent geeft een kortere variant – IoU > 0, exact = 0
             {"klasse": "Tijdsaanduiding", "tekst": "zes weken na de dagtekening van het aanslagbiljet"},
         ],
         "verboden": ["uitstel van betaling"],

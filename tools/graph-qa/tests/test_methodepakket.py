@@ -10,7 +10,7 @@ from agent.methode import instructies
 from agent.methodepakket import PAKKET
 from scripts.genereer_methodepakket import DOEL, SKILL, compileer, genereer, sha
 from fakes import FakeGraph, FakeLLM, make_settings, response, text_block
-from test_doel_en_modellen import _run, _aanloop, _annoteer, _critic, _ELEMENT, _GROEN, DOEL as TARGET, ARTIKEL_TSV, LID_TSV
+from test_doel_en_modellen import _run, _aanloop, _keten, _ketencalls, DOEL as TARGET, ARTIKEL_TSV, LID_TSV
 
 
 def antwoord(text): return response([text_block(text)], 'end_turn')
@@ -74,23 +74,19 @@ def test_advies():
 
 
 def test_volledige_ophaalroute():
-    llm = FakeLLM([*_aanloop(), _annoteer([_ELEMENT]), _critic([_GROEN])])
+    llm = _keten(_aanloop())
     _run(answer_stream('Annoteer artikel 9 lid 1', settings=make_settings(), llm=llm, graph=FakeGraph(result=LID_TSV)))
-    for call,rol in zip(llm.calls,['supervisor','retrieval','retrieval','annotator','critic'], strict=True): check(call,rol)
-    assert llm.calls[-1]['tools'] == llm.calls[-2]['tools'] == []
+    for call,rol in zip(llm.calls[:3],['supervisor','retrieval','retrieval'], strict=True): check(call,rol)
+    assert llm.calls[3:] == _ketencalls(llm) != []
 
 
 def test_explicit_doel():
-    llm = FakeLLM([_annoteer([_ELEMENT]), _critic([_GROEN])])
+    """De annotatieketen draagt geen methodepakket-rol: haar kennis zit in profielen en regels
+    (ADR-001), niet in een prompt uit de skill."""
+    llm = _keten()
     _run(answer_stream('Annoteer', doel=TARGET, settings=make_settings(), llm=llm, graph=FakeGraph(result=ARTIKEL_TSV)))
-    assert len(llm.calls) == 2
-    check(llm.calls[0], 'annotator'); check(llm.calls[1], 'critic')
-
-
-def test_kandidaten():
-    from test_kandidaat_splitsing import _volledige_keten, _annoteer as run_split
-    llm = _volledige_keten(); run_split(llm)
-    check(llm.calls[3], 'kandidaten'); check(llm.calls[4], 'classificatie'); check(llm.calls[5], 'critic')
+    assert llm.calls == _ketencalls(llm) != []
+    assert all('WETSANALYSE' not in c['system'] for c in llm.calls)
 
 
 def test_decompositie_synthese():
@@ -111,17 +107,6 @@ def test_correctie():
 def test_productiepackage_zonder_skill(tmp_path):
     shutil.copytree(DOEL.parent, tmp_path/'agent', ignore=shutil.ignore_patterns('__pycache__'))
     code = ('import sys; sys.path.insert(0, '+repr(str(tmp_path))+'); '
-            'from agent.methode import instructies; from agent.annotatie_prompt import annotatie_systeemprompt; '
-            'assert "rol duiding" in instructies("duiding"); assert "rol annotator" in annotatie_systeemprompt()')
+            'from agent.methode import instructies; from agent.jas_pipeline import keten; '
+            'assert "rol duiding" in instructies("duiding")')
     subprocess.run([sys.executable,'-I','-c',code], cwd=tmp_path, check=True, capture_output=True)
-
-
-def test_herziening_met_onopgelost_fragment():
-    llm = FakeLLM([
-        _annoteer([_ELEMENT, {'id':'fout','klasse':'Voorwaarde','tekst':'verzonnen tekst','lid':'1'}]),
-        _critic([_GROEN]), _annoteer([_ELEMENT]), _critic([_GROEN]),
-    ])
-    _run(answer_stream('Annoteer', doel=TARGET, settings=make_settings(), llm=llm, graph=FakeGraph(result=ARTIKEL_TSV)))
-    assert len(llm.calls) == 4
-    check(llm.calls[2], 'herziening'); check(llm.calls[3], 'critic')
-    assert all(c['tools'] == [] for c in llm.calls)

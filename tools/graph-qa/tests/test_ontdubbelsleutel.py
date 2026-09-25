@@ -11,14 +11,8 @@ from __future__ import annotations
 
 import pytest
 
-from agent.annotatie import _verwerk, sleutel_van
+from agent.annotatie import sleutel_van
 from agent.beurt import BeurtSchrijver
-
-CORPUS = (
-    "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet. "
-    "De ontvanger kan uitstel van betaling verlenen."
-)
-
 
 # --- de sleutel zelf ---------------------------------------------------------------------------
 
@@ -44,66 +38,6 @@ def test_sleutel_identiteit(a, b, zelfde):
 def test_sleutel_negeert_klasse_by_design():
     """Regressie op de bug: mét klasse in de sleutel werd een herclassificatie een tweede element."""
     assert sleutel_van("de ontvanger", "1") == sleutel_van("de ontvanger", "1")
-
-
-# --- implementatie 1: de annoteer-parser -------------------------------------------------------
-
-def _json(*elementen: dict) -> str:
-    import json
-
-    return json.dumps({"elementen": list(elementen)})
-
-
-def test_verwerk_ontdubbelt_identieke_herhaling():
-    voorstellen, verworpen = _verwerk(
-        _json(
-            {"klasse": "Rechtssubject", "tekst": "De ontvanger"},
-            {"klasse": "Rechtssubject", "tekst": "De  ontvanger"},
-        ),
-        CORPUS, "BWBR0004770", "9",
-    )
-    assert len(voorstellen) == 1
-    assert not verworpen
-
-
-def test_verwerk_maakt_van_tweede_klasse_een_alternatief():
-    """Dezelfde span, andere klasse: twijfel, geen tweede element – en niet stil weggegooid."""
-    voorstellen, _ = _verwerk(
-        _json(
-            {"klasse": "Tijdsaanduiding", "tekst": "zes weken na de dagtekening van het aanslagbiljet"},
-            {"klasse": "Voorwaarde", "tekst": "zes weken na de dagtekening van het aanslagbiljet",
-             "toelichting": "kan ook een conditie zijn"},
-        ),
-        CORPUS, "BWBR0004770", "9",
-    )
-    assert len(voorstellen) == 1
-    v = voorstellen[0]
-    assert v.klasse == "Tijdsaanduiding"
-    assert [a.klasse for a in v.alternatieven] == ["Voorwaarde"]
-    assert v.alternatieven[0].motivatie == "kan ook een conditie zijn"
-
-
-def test_verwerk_dupliceert_alternatief_niet():
-    voorstellen, _ = _verwerk(
-        _json(
-            {"klasse": "Tijdsaanduiding", "tekst": "zes weken na de dagtekening van het aanslagbiljet",
-             "alternatieven": [{"klasse": "Voorwaarde", "motivatie": "eerder al genoemd"}]},
-            {"klasse": "Voorwaarde", "tekst": "zes weken na de dagtekening van het aanslagbiljet"},
-        ),
-        CORPUS, "BWBR0004770", "9",
-    )
-    assert [a.klasse for a in voorstellen[0].alternatieven] == ["Voorwaarde"]
-
-
-def test_verwerk_houdt_zelfde_tekst_in_ander_lid_apart():
-    voorstellen, _ = _verwerk(
-        _json(
-            {"klasse": "Rechtssubject", "tekst": "De ontvanger", "lid": "1"},
-            {"klasse": "Rechtssubject", "tekst": "De ontvanger", "lid": "2"},
-        ),
-        CORPUS, "BWBR0004770", "9",
-    )
-    assert len(voorstellen) == 2
 
 
 # --- implementatie 2: de beurt-driver ----------------------------------------------------------
