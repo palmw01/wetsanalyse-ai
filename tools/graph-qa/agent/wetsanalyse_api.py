@@ -50,11 +50,7 @@ def _leeg_is_niets(waarde: dict[str, Any], veld: str = "aandacht") -> dict[str, 
 
 def naar_contract(element: dict[str, Any]) -> dict[str, Any]:
     """Eén element in de vorm die `ElementInvoer` accepteert. Zie `_leeg_is_niets`."""
-    uit = _leeg_is_niets(element)
-    rondes = uit.get("critic_rondes")
-    if rondes:
-        uit = {**uit, "critic_rondes": [_leeg_is_niets(r) for r in rondes]}
-    return uit
+    return _leeg_is_niets(element)
 
 
 class WetsanalyseApiFout(Exception):

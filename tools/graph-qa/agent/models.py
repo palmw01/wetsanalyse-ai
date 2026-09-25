@@ -188,26 +188,6 @@ class Anker(BaseModel):
     lid_hash: str = ""
 
 
-class CriticRonde(BaseModel):
-    """Wat de Critic in één pas van dit element vond, en wat hij ermee wilde.
-
-    Spiegelt `CriticRonde` in `api/app/annotatie_contracts.py`; de api merget ze op `ronde` en vult
-    `tijd` zelf. Deze regels zijn drie dingen tegelijk: het geheugen van de Critic in een volgende
-    ronde, het spoor dat de jurist op de kaart terugziet, en de reden dat de lus kan zien of een punt
-    al eens is gemaakt.
-    """
-
-    ronde: int
-    aandacht: str = ""                 # groen | geel | rood
-    motivatie: str = ""
-    actie: str = "behoud"              # behoud | vervang | verwijder
-    # Was de instructie ook uitgevoerd? Gezet door de legacy-Critic (tot ADR-001 PR 18); blijft in
-    # het model omdat opgeslagen elementen dit spoor nog dragen.
-    toegepast: bool = False
-    voorstel_klasse: str = ""
-    voorstel_tekst: str = ""
-
-
 class AgentRun(BaseModel):
     """De herkomst van één annotatiebeurt: wélk model de voorstellen maakte.
 
@@ -219,7 +199,6 @@ class AgentRun(BaseModel):
     model: str = ""
     provider: str = ""
     agent_versie: str = ""
-    critic_rondes: int = 0
     stop_reden: str = ""
     # Wat deze beurt deed en onder welke omstandigheden – voor herleidbaarheid, niet als sleutel voor
     # hergebruik: de gedeelde laag is "de laatste stand", niet "de uitkomst van deze promptversie".
@@ -238,8 +217,8 @@ class AnnotatieVoorstel(BaseModel):
     server-side ingevuld door de brongetrouwheid-check (nooit door het model).
     """
 
-    # Stabiel id, hier toegekend (niet door het model). De Critic verwijst ernaar en de api matcht
-    # erop bij een volgende ronde; op positie koppelen breekt zodra een herziening iets toevoegt.
+    # Stabiel id, hier toegekend (niet door het model): dezelfde span met dezelfde klasse krijgt in
+    # elke run hetzelfde id, zodat de api het element bij een volgende ronde herkent.
     id: str = ""
     klasse: str
     tekst: str
@@ -251,47 +230,15 @@ class AnnotatieVoorstel(BaseModel):
     anker: Anker | None = None         # exacte positie in het corpus; de keten zet hem naast `ankers`
     ankers: list[dict[str, Any]] = []   # gevalideerde lokale bronankers, ook bij overspannende elementen
     aandacht: str = ""                 # "" | groen | geel | rood – gezet door de resolver (geel = keuze voor de jurist)
-    critic: str = ""                   # korte Critic-motivatie bij het aandacht-niveau
-    critic_rondes: list[CriticRonde] = []   # het heen-en-weer per ronde; leeg tot de eerste Critic-pas
+    critic: str = ""                   # uitleg van de gerichte review bij het aandacht-niveau
+    # JAS-subtype binnen een samengevoegde klasse (variabele/variabelewaarde, parameter/parameterwaarde,
+    # delegatiebevoegdheid/delegatie-invulling). Alleen gezet waar het deterministisch vaststaat
+    # (`jas_pipeline/subtype.py`); leeg = onbepaald, nooit geraden.
+    jas_subtype: str = ""
     # Herkomstspoor uit de hybride keten (ADR-001 PR 15); leeg in de legacy-keten. Zie
     # `jas_pipeline/keten.py` voor de inhoud en `tests/test_provenance_element.py` voor de vragen
     # (opdracht §40) die het moet kunnen beantwoorden.
     trace: dict[str, Any] = {}
-
-
-class CriticOordeel(BaseModel):
-    """Wat de Critic van één voorstel vindt, inclusief wat de annoteerder ermee moet doen.
-
-    Zonder `actie`/`voorstel_*` is een herzieningsronde onmogelijk: dan weet de annoteerder wél dat
-    er iets mis is, maar niet wat.
-    """
-
-    aandacht: str = ""                 # groen | geel | rood
-    motivatie: str = ""
-    actie: str = "behoud"              # behoud | vervang | verwijder
-    voorstel_klasse: str = ""
-    voorstel_tekst: str = ""
-
-
-class OntbrekendItem(BaseModel):
-    """Een door de Critic vermoed ontbrekend element: een JAS-klasse die waarschijnlijk óók in de tekst
-    zit maar niet is gemarkeerd. `tekst` is optioneel – staat er een letterlijk fragment bij, dan kan
-    een herzieningsronde het element daadwerkelijk toevoegen in plaats van alleen een klasse te roepen."""
-
-    klasse: str
-    reden: str = ""
-    tekst: str = ""
-
-
-class VerworpenFragment(BaseModel):
-    """Een voorstel dat de grondingscheck niet haalde.
-
-    Werd eerder alleen geteld en weggegooid. Juist deze informatie laat het model zichzelf
-    corrigeren: "dit citaat staat niet letterlijk in de tekst" is een aanwijzing, geen fout."""
-
-    klasse: str
-    tekst: str
-    reden: str                         # ongeldige_klasse | niet_letterlijk
 
 
 # --- Artikeltekst uit de graaf (workbench-documentpaneel) ---------------------

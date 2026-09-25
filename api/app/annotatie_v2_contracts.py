@@ -30,6 +30,8 @@ class Element(BaseModel):
     # Herkomstspoor per element (ADR-001 PR 15). Expliciet in plaats van via `extra`, zodat het
     # contract zegt dat het meereist en tot in de opslag en de export bewaard blijft.
     trace: dict = Field(default_factory=dict)
+    # JAS-subtype binnen een samengevoegde klasse; leeg = onbepaald. Expliciet, net als `trace`.
+    jas_subtype: str = Field(default="", pattern=r"^(|variabele|variabelewaarde|parameter|parameterwaarde|delegatiebevoegdheid|delegatie-invulling)$")
 
 
 class Dekking(BaseModel):
