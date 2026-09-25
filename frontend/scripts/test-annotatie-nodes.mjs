@@ -28,19 +28,18 @@ function view(iri) {
       : doel(ids[0]),
     snapshot_id: "snapshot", segmenten: ids.map(segment),
     lagen: ids.map((id) => ({ id: `laag${id}`, bron_iri: `urn:lid${id}`, status: "in_review", revisie: 1 })),
-    elementen: ids.includes(1) ? [{ id: "e1", eigenaar_iri: "urn:lid1", laag_id: "laag1", klasse: "Rechtssubject", tekst: "ontvanger", toelichting: "Voert de handeling uit", lifecycle: "critic_checked", herkomst: "agent",
+    elementen: ids.includes(1) ? [{ id: "e1", eigenaar_iri: "urn:lid1", laag_id: "laag1", klasse: "Rechtssubject", tekst: "ontvanger", toelichting: "Voert de handeling uit", lifecycle: "voorgesteld", herkomst: "agent",
       ankers: [{ bron_iri: "urn:lid1", start: 3, eind: 12, tekst: "ontvanger", bron_hash: "hash1" }],
       critic: "Handelende instantie geverifieerd", aandacht: "groen",
       alternatieven: [{ klasse: "Rechtsobject", motivatie: "De ontvanger is hier handelend" }],
-      critic_rondes: [{ ronde: 1, motivatie: "Actor staat letterlijk in de bron", actie: "behoud", toegepast: true }],
       beslissingen: [{ type: "comment", actor: "Reviewer", comment: "Bron nagekeken", wijziging: {} }],
     }] : [], verwijzingen: [], dekking: {} };
 }
 const trace = [{ run_id: "r1", call_id: "call1", tool: "search_annotaties", phase: "end", status: "ok", aantal: 2, has_more: true }];
 const berichten = [1, 2].flatMap((lid) => [
-  { rol: "user", tekst: `Annoteer artikel 9 lid ${lid}`, denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "", ontbrekend: [] },
+  { rol: "user", tekst: `Annoteer artikel 9 lid ${lid}`, denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "" },
   { rol: "assistant", tekst: "", denk: "", bronnen: [], annotatie_slug: "zelfde-oude-laag", annotatie_titel: "Artikel 9", annotatie_doel: doel(lid),
-    tool_executions: trace, ontbrekend: [], run_id: `r${lid}` },
+    tool_executions: trace, run_id: `r${lid}` },
 ]);
 await page.route("**/api/**", async (route) => {
   const req = route.request(), url = new URL(req.url());
@@ -92,7 +91,7 @@ try {
   await page.getByRole("button", { name: "Annotatie afronden", exact: true }).waitFor();
   // De klasse is de knop; het palet wijzigt meteen.
   await page.getByTitle("Andere klasse kiezen").click();
-  await page.getByText("Critic: Handelende instantie geverifieerd", { exact: true }).waitFor();
+  await page.getByText("Review: Handelende instantie geverifieerd", { exact: true }).waitFor();
   await page.getByRole("button", { name: "Rechtsobject", exact: true }).first().click();
   const decision = await verzoek((r) => r.path.endsWith("/beslissing"));
   assert.equal(decision.body.type, "edit");
