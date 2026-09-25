@@ -34,7 +34,9 @@ from eval.keten_fixture import (
 )
 from eval.beslisstabiliteit import rapport as beslisrapport
 from eval.fouttaxonomie import Uitslag, classificeer, tel, uit_elementen
-from eval.metrieken import Ref, classificatie_metrieken, controleer_status, kern, laagste_status, recall_naam
+from eval.metrieken import (
+    Ref, classificatie_metrieken, contract_metrieken, controleer_status, kern, laagste_status, recall_naam,
+)
 from eval.stabiliteit_analyse import analyseer_casus
 
 # `legacy` bestaat alleen nog in rapporten van vóór ADR-001 PR 18; de analyse kan die nog lezen,
@@ -94,6 +96,7 @@ def meet(cases: list[dict[str, Any]], herhalingen: int, settings: Any, maak_llm,
                         "tokens": {v: sum(k.get(v, 0) for k in llm.calls) for v in TOKENVELDEN},
                         "fout": any(e.get("type") == "error" for e in events),
                         "meting": (run_ev.get("instellingen") or {}).get("meting", {}),
+                        "granulariteit": (run_ev.get("instellingen") or {}).get("classifier_granulariteit", ""),
                         "na_keten": [e["element"] for e in events if e.get("type") == "element"],
                         # Het beslisregister (V4): ook wat geen voorstel werd.
                         "beslissingen": next((e["dekking"].get("beslissingen", []) for e in events
@@ -152,6 +155,9 @@ def analyseer(rapport: dict[str, Any]) -> dict[str, Any]:
             if len(registers) >= 2:
                 beslis[cid] = beslisrapport(registers)
         n = len(runs)
+        contract = _som([contract_metrieken(r["beslissingen"], r.get("granulariteit") or "universeel",
+                                            r["meting"].get("resolutie")) for r in runs if r.get("beslissingen")])
+        reviewload = _som([r["meting"]["reviewload"] for r in runs if r["meting"].get("reviewload")])
         beslissingen = Counter()
         for r in runs:
             beslissingen.update((r["meting"].get("per_status") or {}))
@@ -167,6 +173,9 @@ def analyseer(rapport: dict[str, Any]) -> dict[str, Any]:
             "partieel_zelfde_klasse": _gem([m["partial_overlap_zelfde_klasse"] for m in per_ronde]),
             "per_klasse_f1": _per_klasse(per_ronde),
             "foutcategorieen": tel(uitslagen),
+            "classifier_contract": contract,
+            # Juridisch tegenover technisch (onderzoek §6): opgeteld over alle runs.
+            "reviewload": reviewload,
             "debatable_uitgesloten": len(betwist),
             "beslisstabiliteit": {
                 "kandidaatbeslisstabiliteit": _gem([b["kandidaatbeslisstabiliteit"] for b in beslis.values()]),
@@ -189,6 +198,18 @@ def analyseer(rapport: dict[str, Any]) -> dict[str, Any]:
                 "review_calls_per_run": round(sum(r["meting"].get("review_calls", 0) for r in runs) / n, 2),
             },
         }
+    return uit
+
+
+def _som(metingen: list[dict[str, Any]]) -> dict[str, Any]:
+    """Tellers optellen over runs; de percentages opnieuw uitrekenen uit de sommen."""
+    if not metingen:
+        return {}
+    uit = {k: sum(m.get(k) or 0 for m in metingen) for k in metingen[0] if not k.endswith("_rate")}
+    if "modelbeslissingen" in uit:
+        fouten = uit["invalid_class_selections"] + uit["invalid_option_selections"] + uit["invalid_tool_outputs"]
+        uit["contract_error_rate"] = _deel(fouten, uit["modelbeslissingen"])
+        uit["reviewer_contract_error_rate"] = _deel(uit["reviewer_contract_errors"], uit["reviewer_gevallen"])
     return uit
 
 
@@ -228,7 +249,13 @@ def markdown(a: dict[str, Any]) -> str:
               rij("seconden per run", "efficientie.seconden_per_run", pct=False),
               rij("elementen per run", "efficientie.elementen_per_run", pct=False),
               rij("beslissingen zonder model", "efficientie.zonder_model"),
-              rij("human review", "efficientie.human_review"), "",
+              rij("human review", "efficientie.human_review"),
+              rij("  waarvan juridisch", "reviewload.juridisch", pct=False),
+              rij("  waarvan technisch", "reviewload.technisch", pct=False),
+              rij("contractfouten classifier", "classifier_contract.contract_error_rate"),
+              rij("  leakage", "classifier_contract.leakage_count", pct=False),
+              rij("  leakage uit specificiteit", "classifier_contract.leakage_uit_specificiteit", pct=False),
+              rij("contractfouten reviewer", "classifier_contract.reviewer_contract_error_rate"), "",
               "Foutcategorieën (fouttaxonomie v2, primair): " + "; ".join(
                   f"{r}: {a['routes'][r]['foutcategorieen']['primair']}" for r in routes),
               "Per soort: " + "; ".join(f"{r}: {a['routes'][r]['foutcategorieen']['per_soort']}" for r in routes)]

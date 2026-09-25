@@ -41,6 +41,10 @@ class Twijfel(BaseModel):
     huidig: str = ""                      # de klasse die nu voorligt (leeg bij abstain)
     alternatieven: tuple[str, ...] = ()   # wat er ook toegestaan is
     detail: str = ""
+    # Alleen rapportage (validatieplan V5): bij CLASSIFIER_ABSTAIN of het een contractfout was (een
+    # keuze buiten de toegestane beslissingen) of echt geen uitvoer. De reviewer ziet dit veld niet
+    # en de resolver kijkt er niet naar; de afhandeling blijft die van CLASSIFIER_ABSTAIN.
+    categorie: str = ""
 
 
 def signaleer(kandidaten: dict[str, Candidate], beslissingen: list[Beslissing], bevindingen: list[Bevinding],
@@ -51,8 +55,10 @@ def signaleer(kandidaten: dict[str, Candidate], beslissingen: list[Beslissing], 
         k = kandidaten[b.kandidaat_id]
         overige = tuple(c for c in k.possible_classes if c != b.klasse)
         if b.status is CandidateStatus.UNCERTAIN and b.door == "model":
+            contract = b.reden.startswith(("CLASSIFIER_ONGELDIGE_KLASSE", "CLASSIFIER_ONGELDIGE_OPTIE"))
             uit.append(Twijfel(label=b.label, reden="CLASSIFIER_ABSTAIN", alternatieven=k.possible_classes,
-                               detail=b.reden))
+                               detail=b.reden,
+                               categorie="CLASSIFIER_CONTRACT_ERROR" if contract else "CLASSIFIER_ABSTAIN"))
             continue
         if b.status is not CandidateStatus.ACCEPTED or b.door != "model":
             continue

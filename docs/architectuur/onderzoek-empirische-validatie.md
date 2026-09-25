@@ -901,6 +901,18 @@ Algemeen voor elke PR:
 - `meting.reviewload` volgens §6.
 - Werkplek: technische gevallen herkenbaar als zodanig in de tekst, zonder gedragswijziging.
 - Test met de T4-vorm: 12 → contract 12 / legal 0.
+- *Stand:* uitgevoerd.
+  - De contractfout is geen nieuwe twijfelreden geworden maar een afgeleide `categorie` op
+    `CLASSIFIER_ABSTAIN`. De reviewer-prompt toont reden en detail; een nieuwe reden zou dus een
+    promptwijziging zijn.
+  - Reviewer: `Oordeel.ruw` en `ongeldig_omdat`, en in het spoor `Transitie.oordeel_ruw` en
+    `ongeldig_omdat`.
+  - `meting.reviewload`: `agent/jas_pipeline/reviewload.py`. Elk geel geval krijgt precies één
+    oorsprong.
+  - Metrics §9: `metrieken.contract_metrieken`, berekend op het beslisregister. Die komen ook in
+    `compare_pipelines`.
+  - Werkplek: de gele kaart zegt bij een contractfout "Technische storing, geen juridische twijfel".
+  - T4: 12 human review → 12 contract, 0 juridisch. Leakage 12, waarvan 9 uit specificiteit.
 
 **V6 – Rapport per laag**
 

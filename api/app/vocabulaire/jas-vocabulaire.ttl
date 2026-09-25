@@ -121,6 +121,11 @@
     skos:prefLabel "voorrangsregel"@nl ;
     jas:codeWaarde "specificiteit" .
 
+<urn:jas-ns:classifier:CLASSIFIER_CONTRACT_ERROR> a jas:Classifiercode ;
+    skos:definition "Het model koos buiten wat voor dit fragment was toegestaan. Dat is een contractfout, geen juridische twijfel; de afhandeling is die van een onbesliste classificatie."@nl ;
+    skos:prefLabel "Technische storing van het model"@nl ;
+    jas:codeWaarde "CLASSIFIER_CONTRACT_ERROR" .
+
 <urn:jas-ns:classifier:CLASSIFIER_GEEN_UITVOER> a jas:Classifiercode ;
     skos:definition "Het model antwoordde niet via het hulpmiddel."@nl ;
     skos:prefLabel "Geen uitvoer van het model"@nl ;
@@ -809,5 +814,5 @@
     dcterms:source "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md" ;
     skos:prefLabel "Juridisch Analyseschema"@nl ;
     jas:jasVersie "1.0.10" ;
-    jas:vocabulaireVersie "3d011ff5657e" .
+    jas:vocabulaireVersie "627465db0aa8" .
 

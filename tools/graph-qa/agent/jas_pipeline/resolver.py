@@ -53,6 +53,9 @@ class Transitie(BaseModel):
     regel: str
     van: str
     naar: str
+    # Alleen rapportage (V5): bij R-ONGELDIG het ruwe reviewer-antwoord en waarom het niet deugde.
+    ongeldig_omdat: str = ""
+    oordeel_ruw: dict | None = None
 
 
 def _schendt_prioriteit(van: str, naar: str) -> str:
@@ -135,12 +138,12 @@ def los_op(voorstellen: list[dict[str, Any]], beslissingen: list[Beslissing], tw
         else:                                            # HUMAN
             if vs:
                 for v in vs:
-                    v.update(aandacht="geel", critic=_uitleg(t))
+                    v.update(aandacht="geel", critic=_uitleg(t, regel))
                     _alt(v, t.alternatieven, "ook mogelijk; kies in de review")
             else:                                        # geen klasse gekozen: leg het voor, met alle opties
                 eerste = k.possible_classes[0]
                 nb = b.model_copy(update={"status": CandidateStatus.HUMAN_REVIEW, "klasse": eerste, "reden": regel})
-                nv = {**maak_voorstel(k, nb), "_label": t.label, "aandacht": "geel", "critic": _uitleg(t)}
+                nv = {**maak_voorstel(k, nb), "_label": t.label, "aandacht": "geel", "critic": _uitleg(t, regel)}
                 _alt(nv, k.possible_classes, "ook mogelijk; kies in de review")
                 uit.append(nv)
                 per_label_b[t.label] = nb
@@ -148,14 +151,28 @@ def los_op(voorstellen: list[dict[str, Any]], beslissingen: list[Beslissing], tw
                 per_label_b[t.label] = per_label_b[t.label].model_copy(
                     update={"status": CandidateStatus.HUMAN_REVIEW, "reden": regel})
         transities.append(Transitie(label=t.label, reden=t.reden, actie=actie, regel=regel,
-                                    van=b.status.value, naar=per_label_b[t.label].status.value))
+                                    van=b.status.value, naar=per_label_b[t.label].status.value,
+                                    ongeldig_omdat=o.ongeldig_omdat if o and regel == ONGELDIG[0] else "",
+                                    oordeel_ruw=o.ruw if o and regel == ONGELDIG[0] else None))
     return uit, [per_label_b[b.label] for b in beslissingen], transities
 
 
-def _uitleg(t: Twijfel) -> str:
-    return {
-        "DETECTOR_CONFLICT": f"De gekozen klasse botst met een vast herkenningspatroon ({t.detail}). Kies zelf.",
-        "CLASSIFIER_ABSTAIN": "De classificatie bleef onbeslist; de eerste klasse is een voorstel, kies zelf.",
-        "ZELFDE_SPAN": "Hetzelfde fragment kreeg twee klassen; overlap mag alleen bij verschillende functies.",
-        "DEGRADED_PARSE": "Zonder zinsontleding geclassificeerd; minder signalen dan normaal.",
-    }[t.reden]
+def _uitleg(t: Twijfel, regel: str = "") -> str:
+    """De tekst op de gele kaart. Een technische storing heet ook zo (V5): anders leest de jurist
+    een contractfout van het model als juridische twijfel."""
+    if t.reden == "CLASSIFIER_ABSTAIN" and t.categorie == "CLASSIFIER_CONTRACT_ERROR":
+        gekozen = t.detail.split(":", 1)[1] if ":" in t.detail else ""
+        tekst = ("Technische storing, geen juridische twijfel: het model koos een klasse die hier niet was "
+                 f"toegestaan{f' ({gekozen})' if gekozen else ''}. De eerste klasse is een voorstel; kies zelf.")
+    elif t.reden == "CLASSIFIER_ABSTAIN":
+        tekst = ("Technische storing, geen juridische twijfel: het model gaf voor dit fragment geen "
+                 "bruikbare beslissing. De eerste klasse is een voorstel; kies zelf.")
+    else:
+        tekst = {
+            "DETECTOR_CONFLICT": f"De gekozen klasse botst met een vast herkenningspatroon ({t.detail}). Kies zelf.",
+            "ZELFDE_SPAN": "Hetzelfde fragment kreeg twee klassen; overlap mag alleen bij verschillende functies.",
+            "DEGRADED_PARSE": "Zonder zinsontleding geclassificeerd; minder signalen dan normaal.",
+        }[t.reden]
+    if regel == ONGELDIG[0] and t.reden != "CLASSIFIER_ABSTAIN":
+        tekst += " De gerichte review gaf geen bruikbaar oordeel (technische storing)."
+    return tekst

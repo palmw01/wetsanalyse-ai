@@ -101,6 +101,19 @@ onenigheid wordt HUMAN_REVIEW (geel, met alternatieven), een CHANGE tegen JAS-PR
 uitgevoerd, en er wordt nooit iets automatisch "rood" doorgevoerd. `GERICHTE_REVIEW=false` slaat de
 reviewer over; de twijfelgevallen gaan dan rechtstreeks geel naar de jurist.
 
+**Een technische storing is geen juridische twijfel** (validatieplan V5, alleen rapportage):
+
+- Een ongeldige classifierkeuze blijft `CLASSIFIER_ABSTAIN`, met dezelfde afhandeling en dezelfde
+  reviewer-prompt. Wel draagt de twijfel `categorie: CLASSIFIER_CONTRACT_ERROR`, en de gele kaart
+  zegt "Technische storing".
+- Bij `R-ONGELDIG` bewaart de resolutie het ruwe reviewer-antwoord (`oordeel_ruw`) en de reden
+  (`ongeldig_omdat`).
+- `meting.reviewload` (`jas_pipeline/reviewload.py`) splitst de gele gevallen in juridisch en
+  technisch.
+
+Zet `categorie` nooit in de reviewer-prompt: dat is een promptwijziging, en die hoort pas na de
+V7-baseline (onderzoek §15).
+
 Ondersteunend, op agent-niveau omdat meerdere ketens ze delen: `agent/state.py` (de State),
 `agent/berichten.py` (het venster naar de LLM), `agent/narratie.py` (de statusregels) en
 `agent/doel.py` (waar gaat deze beurt over, en welke tekst hoort erbij).
