@@ -1,10 +1,13 @@
-name: Eenmalig – inventaris legacy-annotaties (alleen lezen)
-# ADR-001 PR 18 haalde de legacy-annotatieketen weg; de data die ze maakte staat nog in Postgres en
-# in GraphDB. Deze actie TELT die data per straat en wijzigt niets: basis voor een apart besluit over
-# wat er weg mag. Hij draait het script in een tijdelijke job met het api-image en dezelfde
-# database-configuratie als de api, en ruimt die job daarna op.
+name: Eenmalig – wis legacy-annotaties (POC-data)
+# Na ADR-001 PR 18: wist ALLE annotatiedata (v1 en v2) plus de annotatieverwijzingen in
+# chatberichten en de v2-laaggraphs uit één straat – zie deploy/maintenance/wis_legacy_annotaties.py.
 #
-# Eenmalig: na de opruiming gaat deze workflow er weer uit (zoals cleanup-testannotatie in #491).
+# Twee stappen, bewust:
+#   1. `uitvoeren` uit (default) = dry-run: telt onder slot en meldt de stand in de samenvatting.
+#   2. `uitvoeren` aan + `verwacht` = de stand-JSON uit stap 1. Wijkt één getal af, dan wijzigt hij
+#      niets. Productie vraagt daarbovenop de goedkeuring van de environment-reviewer.
+#
+# Eenmalig: na de opruiming gaan deze workflow en de inventaris er weer uit (zoals #491).
 on:
   workflow_dispatch:
     inputs:
@@ -13,13 +16,21 @@ on:
         type: choice
         options: [acceptatie, productie]
         default: acceptatie
+      uitvoeren:
+        description: 'Echt wissen (uit = dry-run)'
+        type: boolean
+        default: false
+      verwacht:
+        description: 'Bij uitvoeren: de stand-JSON uit de dry-run'
+        type: string
+        default: ''
 permissions:
   contents: read
 concurrency:
-  group: inventaris-legacy-annotaties-${{ inputs.straat }}
+  group: wis-legacy-annotaties-${{ inputs.straat }}
   cancel-in-progress: false
 jobs:
-  inventaris:
+  wis:
     runs-on: ubuntu-latest
     environment: ${{ inputs.straat }}
     env:
@@ -29,6 +40,8 @@ jobs:
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
       RG: ${{ vars.AZURE_RESOURCE_GROUP }}
       APP: ${{ vars.APP_NAME }}
+      UITVOEREN: ${{ inputs.uitvoeren }}
+      VERWACHT: ${{ inputs.verwacht }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Aanmelden
@@ -39,7 +52,7 @@ jobs:
           done
           az login --service-principal --username "$AZURE_CLIENT_ID" --password "$AZURE_CLIENT_SECRET" --tenant "$AZURE_TENANT_ID" --output none
           az account set --subscription "$AZURE_SUBSCRIPTION_ID"
-      - name: Inventaris in een tijdelijke job met het api-image
+      - name: Wissen (of dry-run) in een tijdelijke job met het api-image
         run: |
           python3 - <<'PY'
           import base64, json, os, pathlib, subprocess, tempfile, time, yaml, zlib
@@ -61,15 +74,21 @@ jobs:
           secrets = az('containerapp', 'secret', 'list', '-g', rg, '-n', app, '--show-values')
           secrets = [{'name': s['name'], 'value': s['value']} for s in secrets if s['name'] in wanted]
           assert len(secrets) == len(wanted) and all(s['value'] for s in secrets)
-          code = pathlib.Path('deploy/maintenance/inventaris_legacy_annotaties.py').read_text()
+          schrijf = os.environ['UITVOEREN'] == 'true'
+          verwacht = json.loads(os.environ['VERWACHT']) if os.environ['VERWACHT'].strip() else {}
+          if schrijf and not verwacht:
+              raise SystemExit('Uitvoeren vraagt `verwacht`: de stand-JSON uit de dry-run.')
+          assert all(isinstance(k, str) and isinstance(v, int) for k, v in verwacht.items())
+          code = f'DO_WRITE = {schrijf!r}\nVERWACHT = {verwacht!r}\n'
+          code += pathlib.Path('deploy/maintenance/wis_legacy_annotaties.py').read_text()
           payload = base64.b64encode(zlib.compress(code.encode())).decode()
           command = 'import base64,zlib;exec(zlib.decompress(base64.b64decode(' + repr(payload) + ')))'
-          job = os.environ['APP'] + '-inv-' + os.environ['GITHUB_RUN_ID']
+          job = os.environ['APP'] + '-wis-' + os.environ['GITHUB_RUN_ID']
           config = {'location': current['location'], 'properties': {
               'environmentId': current['properties'].get('environmentId') or current['properties']['managedEnvironmentId'],
               'configuration': {'triggerType': 'Manual', 'replicaTimeout': 300, 'replicaRetryLimit': 0,
                   'manualTriggerConfig': {'parallelism': 1, 'replicaCompletionCount': 1}, 'secrets': secrets},
-              'template': {'containers': [{'name': 'inventaris', 'image': container['image'],
+              'template': {'containers': [{'name': 'wis', 'image': container['image'],
                   'command': ['python', '-c'], 'args': [command], 'env': env,
                   'resources': {'cpu': 0.25, 'memory': '0.5Gi'}}]}}}
           with tempfile.TemporaryDirectory() as temp:
@@ -85,23 +104,29 @@ jobs:
                       if status in {'Succeeded', 'Failed', 'Stopped'}:
                           break
                       time.sleep(5)
+                  marker = 'ANNOTATIE_WIS_EXECUTED_OK' if schrijf else 'ANNOTATIE_WIS_DRY_RUN_OK'
                   logs = ''
                   for _ in range(12):   # de logs komen met vertraging binnen
                       logs = subprocess.run(['az', 'containerapp', 'job', 'logs', 'show', '-g', rg, '-n', job,
-                                             '--execution', execution, '--container', 'inventaris', '--tail', '100'],
+                                             '--execution', execution, '--container', 'wis', '--tail', '200'],
                                             capture_output=True, text=True).stdout
-                      if 'ANNOTATIE_INVENTARIS_OK' in logs or status != 'Succeeded':
+                      if marker in logs or status != 'Succeeded':
                           break
                       time.sleep(10)
                   print(logs)
                   import re
-                  m = re.search(r'INVENTARIS ([A-Za-z0-9+/=]+)', logs)
-                  regel = base64.b64decode(m.group(1)).decode() if m else ''
+                  meldingen = {m.group(1): json.loads(base64.b64decode(m.group(2)))
+                               for m in re.finditer(r'(WIS_STAND|WIS_KLAAR) ([A-Za-z0-9+/=]+)', logs)}
+                  stand = meldingen.get('WIS_STAND', {})
                   with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
-                      f.write(f"## Inventaris legacy-annotaties – {os.environ['APP']}\n\nStatus: **{status}**\n\n")
-                      f.write('```json\n' + (json.dumps(json.loads(regel), indent=2, ensure_ascii=False) if regel else logs) + '\n```\n')
-                  if status != 'Succeeded' or 'ANNOTATIE_INVENTARIS_OK' not in logs:
-                      raise SystemExit('Inventaris niet bevestigd: ' + status)
+                      f.write(f"## Wis legacy-annotaties – {os.environ['APP']} ({'UITGEVOERD' if schrijf else 'dry-run'})\n\n")
+                      f.write(f"Status: **{status}**\n\n")
+                      if stand:
+                          f.write('Stand onder slot (plak `stand` letterlijk als `verwacht` om uit te voeren):\n\n')
+                          f.write('```json\n' + json.dumps(stand.get('stand', {}), sort_keys=True) + '\n```\n\n')
+                          f.write('```json\n' + json.dumps(meldingen, indent=2, ensure_ascii=False) + '\n```\n')
+                  if status != 'Succeeded' or marker not in logs:
+                      raise SystemExit('Niet bevestigd: ' + status)
               finally:
                   az('containerapp', 'job', 'delete', '-g', rg, '-n', job, '--yes')
           PY

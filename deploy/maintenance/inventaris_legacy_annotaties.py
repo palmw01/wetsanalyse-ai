@@ -13,6 +13,7 @@ Wat hij telt:
 - chatberichten die naar een annotatie verwijzen (`annotatie_doel`/`annotatie_slug`).
 """
 import asyncio
+import base64
 import json
 from collections import Counter
 
@@ -124,6 +125,8 @@ async def main():
 
     uit["graaf"] = await _graphs(cfg)
     print(json.dumps(uit, ensure_ascii=False, sort_keys=True), flush=True)
+    # Base64 op één regel: de containerlogs pakken elke regel in JSON in zónder te escapen.
+    print("INVENTARIS " + base64.b64encode(json.dumps(uit, sort_keys=True).encode()).decode(), flush=True)
     print(MARKER, flush=True)
 
 
