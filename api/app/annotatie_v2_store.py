@@ -245,8 +245,11 @@ async def batch(req: Batch, snapshot: dict, actor: str, *, mens: bool = False) -
                   "annotatie_doel": {**snapshot["doel"], "snapshot_id": req.snapshot_id},
                   "snapshot_id": req.snapshot_id, "lagen": [publiek_laag(x) for x in touched.values()],
                   "elementen": saved}
+        # Het beslisregister (V4) hoort bij de batch en staat daarom in dit auditrecord: zo is het
+        # terug te lezen via de weergave en de export, ook voor kandidaten zonder element.
         await _audit(conn, actor, "batch", {"batch_id": req.batch_id,
-            "bron_iri": snapshot["doel"]["bron_iri"], "run": req.run, "dekking": req.dekking.model_dump()})
+            "bron_iri": snapshot["doel"]["bron_iri"], "run": req.run, "dekking": req.dekking.model_dump(),
+            "beslissingen": [b.model_dump() for b in req.beslissingen]})
         await conn.execute(insert(db.annotatie_v2_batches).values(
             id=req.batch_id, payload_hash=fingerprint, antwoord=result))
         return result

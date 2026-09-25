@@ -615,6 +615,10 @@ niet in: een herclassificatie moet hetzelfde element treffen, anders staan er tw
   elementen en zegt wat de keten wel en niet kon bekijken: per bronnode de twaalf dimensies en de
   ongedekte zinsdelen mét offsets, de procesdekking en de fasen met hun duur. De driver legt hem vast
   in de batch (`Dekking.structureel`/`proces`, de api toont hem in de weergave) en in het chatbericht.
+  Het event draagt ook het **beslisregister** (`beslissingen`, `jas_pipeline/beslisregister.py`): per
+  kandidaat de uitkomst, óók de afgewezen, met bewijsfingerprint en de classifierreden van vóór de
+  resolver. Dat gaat als `Batch.beslissingen` naar de api (bewaard in de batch-audit, dus terug te
+  lezen via weergave en export) en bewust níét in het chatbericht of op de elementen.
   **`reason` = het denkproces** (tool-narratie, live gestreamd); **`token` = alléén het eindantwoord**
   – hou die twee gescheiden zodat de werkplek ze los kan tonen. Niet elk event is een fout:
   `waarschuwing` betekent dat de beurt slaagde maar niet alles bewaard is (zie §*De uitkomst

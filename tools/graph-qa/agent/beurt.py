@@ -264,6 +264,10 @@ async def _leg_vast(
                                 "structureel": schrijver.dekking.get("per_bron", {}),
                                 "proces": schrijver.dekking.get("proces", {})},
                     "run": schrijver.run or {},
+                    # Per kandidaat de uitkomst, ook de afgewezen (validatieplan V4). De api bewaart
+                    # het bij de batch; het staat niet op de elementen, want dan draagt elk element
+                    # de hele lijst.
+                    "beslissingen": schrijver.dekking.get("beslissingen") or [],
                 })
             elif schrijver.volledig_hergebruikt:
                 # Niets nieuws om te mergen; alleen vastleggen dát er hergebruikt is.
@@ -323,7 +327,9 @@ async def _leg_vast(
                 "annotatie_titel": _titel(doel),
                 "denk": schrijver.denk,
                 **({"hergebruik": schrijver.hergebruik} if schrijver.hergebruik else {}),
-                **({"dekking": schrijver.dekking} if schrijver.dekking else {}),
+                # Zonder het beslisregister: dat hoort bij de batch, niet in de gespreksgeschiedenis.
+                **({"dekking": {k: v for k, v in schrijver.dekking.items() if k != "beslissingen"}}
+                   if schrijver.dekking else {}),
                 **({"annotatie_doel": {"bron_iri": doel["bron_iri"],
                                        "label": doel.get("label", ""),
                                        "snapshot_id": doel["snapshot_id"]}}

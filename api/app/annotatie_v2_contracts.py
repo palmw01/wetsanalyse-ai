@@ -46,6 +46,26 @@ class Dekking(BaseModel):
     proces: dict = Field(default_factory=dict)
 
 
+class KandidaatBeslissing(BaseModel):
+    """Eén regel uit het beslisregister van de agent (validatieplan V4): per kandidaat de uitkomst,
+    óók als die "niets" was. Een meting; het verandert niets aan de lagen of de elementen."""
+
+    kandidaat_id: str = Field(max_length=64)
+    label: str = Field(default="", max_length=16)
+    bron_iri: str
+    start: int = Field(ge=0)
+    eind: int = Field(gt=0)
+    mogelijke_klassen: list[str] = Field(default_factory=list, max_length=20)
+    vervallen: list[str] = Field(default_factory=list, max_length=20)
+    bewijs: list[str] = Field(default_factory=list, max_length=50)
+    bewijs_fingerprint: str = Field(default="", max_length=64)
+    status: Literal["ACCEPTED", "REJECTED", "UNCERTAIN", "HUMAN_REVIEW", "UNHANDLED"]
+    door: str = Field(default="", max_length=20)
+    klasse: str = ""
+    reden: str = Field(default="", max_length=200)
+    classifier_reden: str = Field(default="", max_length=200)
+
+
 class Batch(BaseModel):
     batch_id: str = Field(min_length=1, max_length=128)
     doel: Doel
@@ -54,6 +74,7 @@ class Batch(BaseModel):
     elementen: list[Element] = Field(default_factory=list, max_length=5000)
     dekking: Dekking = Field(default_factory=Dekking)
     run: dict = Field(default_factory=dict)
+    beslissingen: list[KandidaatBeslissing] = Field(default_factory=list, max_length=5000)
 
 
 class Beslissing(BaseModel):
