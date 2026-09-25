@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[3]
-CASES = ROOT / 'docs/wetsanalyse/referentieset/cases.json'
+CASES = ROOT / 'docs/wetsanalyse/referentieset/v1/cases.json'
 
 
 def laad_cases(ids: list[str]) -> list[dict[str, Any]]:

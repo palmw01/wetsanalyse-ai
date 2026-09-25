@@ -103,8 +103,8 @@ def analyseer(rapport: dict[str, Any]) -> dict[str, Any]:
         runs = [r for r in rapport["runs"] if r["route"] == route and not r["fout"]]
         if not runs:
             continue
-        ref = [Ref(c["id"], *kern(c["tekst"], a["start"], a["end"]), a["klasse"])
-               for c in casussen.values() for a in c["annotaties"]]
+        ref = [Ref(c["id"], *kern(c["tekst"], a["start"], a["eind"]), a["klasse"])
+               for c in casussen.values() for a in c["gold"]]
         per_ronde, onbetwist = [], []
         fouten: Counter[str] = Counter()
         for ronde in sorted({r["ronde"] for r in runs}):

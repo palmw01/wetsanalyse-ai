@@ -12,7 +12,7 @@ from eval.metrieken import (
 )
 
 ROOT = Path(__file__).resolve().parents[3]
-CASES = ROOT / "docs" / "wetsanalyse" / "referentieset" / "cases.json"
+CASES = ROOT / "docs" / "wetsanalyse" / "referentieset" / "v1" / "cases.json"
 GOLDEN = Path(__file__).resolve().parents[1] / "eval" / "golden_annotatie.jsonl"
 
 T, V, P = "Tijdsaanduiding", "Voorwaarde", "Parameter en parameterwaarde"
@@ -94,8 +94,8 @@ def test_elke_referentiemarkering_is_letterlijk_en_ligt_op_woordgrenzen():
     woord = re.compile(r"\w")
     for c in json.loads(CASES.read_text(encoding="utf-8")):
         t = c["tekst"]
-        for a in c["annotaties"]:
-            s, e = a["start"], a["end"]
-            assert t[s:e] == a["tekst"], (c["id"], a["id"])
-            assert not (s > 0 and woord.match(t[s - 1]) and woord.match(t[s])), (c["id"], a["id"], "begin")
-            assert not (e < len(t) and woord.match(t[e]) and woord.match(t[e - 1])), (c["id"], a["id"], "eind")
+        for a in c["gold"]:
+            s, e = a["start"], a["eind"]
+            assert t[s:e] == a["tekst"], (c["id"], a["gid"])
+            assert not (s > 0 and woord.match(t[s - 1]) and woord.match(t[s])), (c["id"], a["gid"], "begin")
+            assert not (e < len(t) and woord.match(t[e]) and woord.match(t[e - 1])), (c["id"], a["gid"], "eind")

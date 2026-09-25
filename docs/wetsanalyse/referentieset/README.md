@@ -24,14 +24,34 @@ Een uitgebreider voorbeeld in dossieropmaak staat in
 
 ## Bronpakketten en actualiteit
 
-[Cases.json](cases.json) bewaart de exacte analysetekst met SHA-256, vindplaats,
-bron-ID, conceptmarkeringen en offsets. De offsets tellen Python-Unicode-codepunten
+De set is **geversioneerd**: één map per versie, nu [`v1/`](v1/). Daarin bewaart
+[`cases.json`](v1/cases.json) de exacte analysetekst met SHA-256, vindplaats, bron-ID,
+conceptmarkeringen (`gold`) en offsets; [`manifest.json`](v1/manifest.json) draagt de hash over
+alle casussen, de status per casus en de changelog. De offsets tellen Python-Unicode-codepunten
 binnen deze analysetekst; ze zijn geen vervanging van de platformankers.
-Elke casus draagt `referentie_status` (sinds 24 sep 2026; verving `status: concept` en
-`referentie_goedgekeurd: false`). Alle casussen staan op `provisional`. De betekenis van de
-statussen staat in [ADR-001 §13](../../architectuur/adr-001-hybride-jas-pijplijn.md). `adjudicated`
-of `gold` mag alleen met een vastgelegde `adjudicatie` (beoordelaars, datum, procedure); een test
-in graph-qa bewaakt dat.
+
+Het schema staat in [onderzoek-empirische-validatie §10.4](../../architectuur/onderzoek-empirische-validatie.md)
+en wordt bewaakt door `tools/graph-qa/eval/referentieset.py`:
+
+```bash
+cd tools/graph-qa
+uv run python -m eval.referentieset --check       # schema + manifest
+uv run python -m eval.referentieset --bijwerken   # hash herberekenen na een bewuste wijziging
+uv run python -m eval.referentieset --dekking     # welke klassen/constructies ontbreken nog (§10.3)
+```
+
+Drie regels:
+
+- **`adjudicated`/`gold` vraagt een volledig record.** Per casus twee annotatoren, een
+  adjudicator, datum, protocolversie en een gecontroleerde `source_status`; per element een
+  `annotation_status`, de herkenningsvraag (letterlijk uit JAS), een `H2:NN`-verwijzing en het
+  adjudicatiebesluit. En alleen in een bevroren versie (`bevroren_op` in het manifest).
+- **Een bevroren versie verandert niet.** Een fout in gold wordt `v<N+1>` met `voorganger` en een
+  changelog per gid; een stille correctie laat de hash afwijken en de test falen.
+- **Niet beoordeeld is leeg.** `v1` is de migratie van de ongeversioneerde `cases.json` (stand
+  25 sep 2026) zonder inhoudelijke wijziging. Alle casussen staan op `provisional`, en
+  `source_status`, `constructies`, negatieve elementen en de adjudicatievelden zijn leeg: invullen
+  hoort bij de beoordeling, niet bij de migratie.
 **Correctie 25 sep 2026:** bij RVV01 (E01), RVV02 (E04) en RVV03 (E05) wees de offset van
 "voetgangers" naar het begin van het woord "voetgangerslichten". Het fragment klopte, de plek niet.
 De offsets wijzen nu naar het zelfstandige woord in de norm. Een test in graph-qa eist sindsdien dat

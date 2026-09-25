@@ -87,8 +87,8 @@ def meet(spec: str, casussen: list[dict[str, Any]]) -> dict[str, Any]:
         grenzen_eind = {t.eind for t in a.tokens}
         bereiken = _constituentbereiken(a)
         opties = spanopties(a)
-        for ann in c["annotaties"]:
-            s, e = _kern(tekst, ann["start"], ann["end"])
+        for ann in c["gold"]:
+            s, e = _kern(tekst, ann["start"], ann["eind"])
             per_klasse[ann["klasse"]].append((s in grenzen_start and e in grenzen_eind, (s, e) in bereiken,
                                               (s, e) in opties))
         optie_aantal += len(opties)

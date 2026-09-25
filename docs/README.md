@@ -71,6 +71,11 @@ landen; de tekst niet.
   Deelbesluiten: [ADR-002 taalanalyse-provider](architectuur/adr-002-taalprovider.md). Vervolg:
   [plan-herkomst-in-werkplek.md](architectuur/plan-herkomst-in-werkplek.md) – het herkomstspoor
   zichtbaar maken in SSE, werkplek en exports.
+- **[`architectuur/onderzoek-empirische-validatie.md`](architectuur/onderzoek-empirische-validatie.md)**
+  — onderzoeksontwerp voor de juridische validatie van `hybrid_v1`: bewijs per hypothese,
+  fouttaxonomie v2, metrics, adjudicatieprotocol en de roadmap V1–V7. Tot na V7 geen wijziging aan
+  detectoren, prompts of classifier (§18). V1 – de geversioneerde referentieset – staat in
+  `wetsanalyse/referentieset/v1/`.
 - **`kennisbank/PLAN.md`** — een tweede corpus (beleidsstukken, handleidingen) naast de wetsgraaf.
   Nog niets van gebouwd. Lees dit vóór je aan retrieval of grounding werkt: het stelt eisen aan
   allebei.
