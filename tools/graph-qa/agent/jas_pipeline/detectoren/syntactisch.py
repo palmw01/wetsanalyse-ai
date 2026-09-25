@@ -151,7 +151,21 @@ def _trim(tekst: str, s: int, e: int) -> tuple[int, int]:
 
 # --- naamwoordgroepen: subject, object, variabele, parameter ------------------------------------
 
+def _naamwoordelijk_gezegde(a: LinguisticAnalysis, t: Token) -> bool:
+    """`is invorderbaar`, `is bevoegd`: het naamwoordelijk deel van het gezegde, geen naamwoordgroep.
+
+    Herkenbaar aan een koppelwerkwoord (`cop`) als kind en géén lidwoord. De tagger noemt zo'n woord
+    soms een NOUN – bij art. 9 lid 1 IW 1990 ("Een belastingaanslag is invorderbaar …") werd
+    "invorderbaar" daardoor een OBJECT_NP-kandidaat met de hele zin als grens, en koos het model
+    Variabele (acceptatie, 25 sep 2026). Het gezegde draagt de normatieve relatie; die vindt de
+    NormDetector. Met lidwoord ("is de ontvanger") blijft het wél een naamwoordgroep."""
+    kinderen = [a.tokens[k] for k in a.kinderen(t.i)]
+    return any(k.deprel == "cop" for k in kinderen) and not any(k.deprel == "det" for k in kinderen)
+
+
 def _nominaal(a: LinguisticAnalysis, t: Token) -> bool:
+    if _naamwoordelijk_gezegde(a, t):
+        return False
     if t.upos in {"NOUN", "PROPN"}:
         return True
     if t.upos == "PRON":

@@ -126,3 +126,19 @@ def test_of_binnen_een_naamwoordgroep_is_geen_operator(parser):
     """PR 17 (Operator-F1 26% in de A/B): 'verplichting of onthouden aanspraak' verbindt woorden, geen zinsdelen."""
     t = "een door een bestuursorgaan wegens een overtreding opgelegde verplichting of onthouden aanspraak;"
     assert LogischeOperatorDetector().detecteer(_bron(t, parser)).kandidaten == ()
+
+
+def test_naamwoordelijk_gezegde_is_geen_naamwoordgroep(parser):
+    """Regressie (acceptatie, 25 sep 2026): spaCy tagt "invorderbaar" als NOUN; zonder deze regel werd
+    het een OBJECT_NP-kandidaat met de hele zin als grens, en koos het model Variabele."""
+    tekst = "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet."
+    kandidaten = NaamwoordgroepDetector().detecteer(_bron(tekst, parser)).kandidaten
+    assert "invorderbaar" not in {k.span.tekst for k in kandidaten}
+    assert not [o for k in kandidaten for o in k.span_options if o.span.tekst == tekst[:-1]]
+    # De echte naamwoordgroepen blijven.
+    assert {"Een belastingaanslag", "het aanslagbiljet"} <= _grenzen(kandidaten)
+
+
+def test_gezegde_met_lidwoord_blijft_een_naamwoordgroep(parser):
+    kandidaten = NaamwoordgroepDetector().detecteer(_bron("Belastingplichtige is de natuurlijke persoon.", parser)).kandidaten
+    assert any("natuurlijke persoon" in g for g in _grenzen(kandidaten))
