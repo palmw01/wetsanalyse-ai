@@ -57,7 +57,9 @@ jobs:
           python3 - <<'PY'
           import base64, json, os, pathlib, subprocess, tempfile, time, yaml, zlib
           def az(*args):
-              result = subprocess.run(['az', *args, '--only-show-errors', '-o', 'json'], capture_output=True, text=True, check=True)
+              result = subprocess.run(['az', *args, '--only-show-errors', '-o', 'json'], capture_output=True, text=True)
+              if result.returncode:
+                  raise SystemExit(f"az {' '.join(args[:3])} faalde:\n{result.stderr.strip()}")
               return json.loads(result.stdout) if result.stdout.strip() else None
           rg, app = os.environ['RG'], os.environ['APP'] + '-api'
           current = az('containerapp', 'show', '-g', rg, '-n', app)
@@ -83,7 +85,7 @@ jobs:
           code += pathlib.Path('deploy/maintenance/wis_legacy_annotaties.py').read_text()
           payload = base64.b64encode(zlib.compress(code.encode())).decode()
           command = 'import base64,zlib;exec(zlib.decompress(base64.b64decode(' + repr(payload) + ')))'
-          job = os.environ['APP'] + '-wis-' + os.environ['GITHUB_RUN_ID']
+          job = os.environ['APP'] + '-wis-' + os.environ['GITHUB_RUN_ID'][-8:]
           config = {'location': current['location'], 'properties': {
               'environmentId': current['properties'].get('environmentId') or current['properties']['managedEnvironmentId'],
               'configuration': {'triggerType': 'Manual', 'replicaTimeout': 300, 'replicaRetryLimit': 0,
@@ -128,7 +130,10 @@ jobs:
                   if status != 'Succeeded' or marker not in logs:
                       raise SystemExit('Niet bevestigd: ' + status)
               finally:
-                  az('containerapp', 'job', 'delete', '-g', rg, '-n', job, '--yes')
+                  try:
+                      az('containerapp', 'job', 'delete', '-g', rg, '-n', job, '--yes')
+                  except SystemExit as e:   # een mislukte create laat niets achter om te wissen
+                      print(e)
           PY
       - name: Afmelden
         if: always()
