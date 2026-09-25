@@ -680,7 +680,8 @@ wél op 100%.
 
 **De keten meet `eval/compare_pipelines.py`** (ADR-001 PR 16): per casus dezelfde bronfixture, en
 daarna P/R/F1 op positie, stabiliteit over de
-herhalingen, efficiëntie en foutcategorieën. De uitkomst draagt de referentiestatus; tegen de
+herhalingen, efficiëntie en foutcategorieën volgens fouttaxonomie v2 (`eval/fouttaxonomie.py`: primair,
+secundair en soort; `debatable` telt nergens mee). De uitkomst draagt de referentiestatus; tegen de
 provisional referentieset heet recall *ankerdekking*. Het rapport meldt ook de maten voor alleen
 onbetwiste voorstellen, want een geel voorstel is een vraag aan de jurist en geen uitspraak.
 `--offline` toetst het harnas zonder kosten. Oude rapporten met een `legacy`-route blijven

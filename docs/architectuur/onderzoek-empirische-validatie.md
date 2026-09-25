@@ -858,6 +858,19 @@ Algemeen voor elke PR:
 - `debatable` uitgesloten van de telling.
 - ADR-001 §12 verwijst hiernaar.
 - Test per code met een geconstrueerd geval, waaronder de 12 T4-vormen als fixture.
+- *Stand:* uitgevoerd in `eval/fouttaxonomie.py`.
+  - Twee soorten invoer:
+    - volledig: alle kandidaten, via `uit_uitkomst`;
+    - alleen voorstellen: via `uit_elementen`, voor een export of een `element`-event.
+  - De oorspronkelijke classifierreden komt uit `trace.twijfel`, omdat de resolver `beslissing.reden`
+    overschrijft.
+  - Leakage wordt alleen vastgesteld als de batch-unie bekend is, of als ondergrens bij een
+    universele batch.
+  - Handmatige codes uit de checklist (§14) komen erbij via `correcties`.
+  - `compare_pipelines` gebruikt de classificeerder en sluit `debatable` uit.
+  - Fixture: de uitgeklede T4-export (`tests/fixtures/t4_li95_spoor.json`). Daarin zijn de 12
+    gevallen 9× primair CONTRACT met LEAKAGE en HYPOTHESIS, en 3× primair POSSIBLE_CLASS met
+    CONTRACT en LEAKAGE.
 
 **V4 – Kandidaatbeslisstabiliteit**
 

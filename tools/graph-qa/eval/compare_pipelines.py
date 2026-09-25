@@ -10,7 +10,8 @@ casus dezelfde bronpassage (`keten_fixture`), en per route en casus:
 - **reproduceerbaarheid** over de herhalingen (`stabiliteit_analyse.analyseer_casus`);
 - **efficiëntie**: modelcalls, tokens per soort, seconden, en voor hybrid het aandeel beslissingen
   zonder model, review- en human-review-aandeel;
-- **fouten per categorie** (ADR-001 §12) voor wat tegen de referentie te herleiden is.
+- **fouten per categorie** volgens fouttaxonomie v2 (`eval/fouttaxonomie.py`, onderzoek §8): primair,
+  secundair en soort (juridisch/technisch/evaluatie). `debatable` in de referentie telt nergens mee.
 
 Een meting mag de gemeten toestand niet veranderen: geen api, geen checkpointer, lege
 annotatiepoort. Met `--offline` draait het tegen een nep-LLM (geen kosten, alleen de mechaniek).
@@ -31,6 +32,7 @@ from typing import Any
 from eval.keten_fixture import (
     TOKENVELDEN, Capture, FixtureGraph, LegeAnnotaties, fixture_doel, ketensettings, laad_cases, ontwikkelcases,
 )
+from eval.fouttaxonomie import Uitslag, classificeer, tel, uit_elementen
 from eval.metrieken import Ref, classificatie_metrieken, controleer_status, kern, laagste_status, recall_naam
 from eval.stabiliteit_analyse import analyseer_casus
 
@@ -52,20 +54,22 @@ def _posities(elementen: list[dict[str, Any]], tekst: str, casus: str) -> list[R
     return uit
 
 
-def _foutcategorie(v: list[Ref], r: list[Ref]) -> Counter[str]:
-    """Wat tegen de referentie herleidbaar is (ADR-001 §12): gemist, verkeerde klasse, verkeerde grens."""
-    uit: Counter[str] = Counter()
-    vs = {(x.bron, x.start, x.eind): x.klasse for x in v}
-    for ref in r:
-        plek = (ref.bron, ref.start, ref.eind)
-        if plek in vs:
-            if vs[plek] != ref.klasse:
-                uit["CLASSIFICATION_ERROR"] += 1
-        elif any(x.bron == ref.bron and x.start < ref.eind and ref.start < x.eind and x.klasse == ref.klasse for x in v):
-            uit["SPAN_ERROR"] += 1
-        else:
-            uit["CANDIDATE_MISSED"] += 1
-    return uit
+def _gold(c: dict[str, Any]) -> list[dict[str, Any]]:
+    """De referentie van één casus op kern-posities, met status (voor `debatable`)."""
+    return [{"gid": g["gid"], "start": s, "eind": e, "klasse": g["klasse"],
+             "annotation_status": g.get("annotation_status")}
+            for g in c["gold"] for s, e in [kern(c["tekst"], g["start"], g["eind"])]]
+
+
+def _debatable(c: dict[str, Any]) -> set[tuple[int, int]]:
+    return {(g["start"], g["eind"]) for g in _gold(c) if g["annotation_status"] == "debatable"}
+
+
+def _fouten(run: dict[str, Any], c: dict[str, Any]) -> Uitslag:
+    """Fouttaxonomie v2 op één run. Alleen voorstellen: afgewezen kandidaten en de batch-unie
+    ontbreken in de events (V4), dus leakage en model-afwijzingen blijven hier ongeteld."""
+    voorstellen, kandidaten = uit_elementen(run["na_keten"], c["tekst"], c["id"])
+    return classificeer(_gold(c), voorstellen, kandidaten, bron=c["id"])
 
 
 def meet(cases: list[dict[str, Any]], herhalingen: int, settings: Any, maak_llm, rapport: dict[str, Any],
@@ -95,28 +99,45 @@ def meet(cases: list[dict[str, Any]], herhalingen: int, settings: Any, maak_llm,
     asyncio.run(run())
 
 
+def _v1(c: dict[str, Any]) -> dict[str, Any]:
+    """Rapporten van vóór referentieset v1 dragen hun casussen in het oude formaat (`annotaties`,
+    `end`); zonder deze vertaling zijn ze niet meer te analyseren."""
+    if "gold" in c:
+        return c
+    oud = {k: v for k, v in c.items() if k not in ("annotaties", "artikel")}
+    return {**oud, "gold": [{"gid": a["id"], "start": a["start"], "eind": a["end"], "tekst": a["tekst"],
+                             "klasse": a["klasse"], "annotation_status": None} for a in c["annotaties"]]}
+
+
 def analyseer(rapport: dict[str, Any]) -> dict[str, Any]:
-    casussen = {c["id"]: c for c in rapport["casussen"]}
-    status = laagste_status(controleer_status(c) for c in casussen.values())
+    casussen = {c["id"]: _v1(c) for c in rapport["casussen"]}
+    status = laagste_status(controleer_status(c) for c in rapport["casussen"])   # vóór de vertaling
     uit: dict[str, Any] = {"referentie_status": status, "recall_heet": recall_naam(status), "routes": {}}
     for route in ROUTES:
         runs = [r for r in rapport["runs"] if r["route"] == route and not r["fout"]]
         if not runs:
             continue
-        ref = [Ref(c["id"], *kern(c["tekst"], a["start"], a["eind"]), a["klasse"])
-               for c in casussen.values() for a in c["gold"]]
-        per_ronde, onbetwist = [], []
-        fouten: Counter[str] = Counter()
+        # `debatable` blijft buiten teller én noemer: niet in de referentie, en een voorstel op
+        # die plek telt ook niet als overbodig.
+        betwist = {(cid, *p) for cid, c in casussen.items() for p in _debatable(c)}
+        ref = [Ref(cid, g["start"], g["eind"], g["klasse"]) for cid, c in casussen.items() for g in _gold(c)
+               if g["annotation_status"] != "debatable"]
+
+        def telt(p: Ref) -> bool:
+            return (p.bron, p.start, p.eind) not in betwist
+
+        per_ronde, onbetwist, uitslagen = [], [], []
         for ronde in sorted({r["ronde"] for r in runs}):
             deze = [r for r in runs if r["ronde"] == ronde]
-            vs = [p for r in deze for p in _posities(r["na_keten"], casussen[r["casus"]]["tekst"], r["casus"])]
+            vs = [p for r in deze for p in _posities(r["na_keten"], casussen[r["casus"]]["tekst"], r["casus"])
+                  if telt(p)]
             # Een geel voorstel is een vraag aan de jurist, geen uitspraak: apart meten wat de keten
             # zonder voorbehoud voorstelt.
             zeker = [p for r in deze for p in _posities([e for e in r["na_keten"] if e.get("aandacht") != "geel"],
-                                                         casussen[r["casus"]]["tekst"], r["casus"])]
+                                                         casussen[r["casus"]]["tekst"], r["casus"]) if telt(p)]
             per_ronde.append(classificatie_metrieken(vs, ref, status))
             onbetwist.append(classificatie_metrieken(zeker, ref, status))
-            fouten.update(_foutcategorie(vs, ref))
+            uitslagen += [_fouten(r, casussen[r["casus"]]) for r in deze]
         stabiliteit = {}
         for cid, c in casussen.items():
             reeks = [r["na_keten"] for r in sorted(runs, key=lambda r: r["ronde"]) if r["casus"] == cid]
@@ -137,7 +158,8 @@ def analyseer(rapport: dict[str, Any]) -> dict[str, Any]:
             "exact_span": _gem([m["exact_span"] for m in per_ronde]),
             "partieel_zelfde_klasse": _gem([m["partial_overlap_zelfde_klasse"] for m in per_ronde]),
             "per_klasse_f1": _per_klasse(per_ronde),
-            "foutcategorieen": dict(fouten.most_common()),
+            "foutcategorieen": tel(uitslagen),
+            "debatable_uitgesloten": len(betwist),
             "stabiliteit": {
                 "detectie_stabiel": _gem([s["detectie_stabiel"] for s in stabiliteit.values()]),
                 "span_exact": _gem([s["span_exact"] for s in stabiliteit.values()]),
@@ -192,8 +214,9 @@ def markdown(a: dict[str, Any]) -> str:
               rij("elementen per run", "efficientie.elementen_per_run", pct=False),
               rij("beslissingen zonder model", "efficientie.zonder_model"),
               rij("human review", "efficientie.human_review"), "",
-              "Foutcategorieën (ADR-001 §12): " + "; ".join(
-                  f"{r}: {a['routes'][r]['foutcategorieen']}" for r in routes)]
+              "Foutcategorieën (fouttaxonomie v2, primair): " + "; ".join(
+                  f"{r}: {a['routes'][r]['foutcategorieen']['primair']}" for r in routes),
+              "Per soort: " + "; ".join(f"{r}: {a['routes'][r]['foutcategorieen']['per_soort']}" for r in routes)]
     return "\n".join(regels) + "\n"
 
 
