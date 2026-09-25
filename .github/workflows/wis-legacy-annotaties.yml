@@ -62,6 +62,10 @@ jobs:
                   raise SystemExit(f"az {' '.join(args[:3])} faalde:\n{result.stderr.strip()}")
               return json.loads(result.stdout) if result.stdout.strip() else None
           rg, app = os.environ['RG'], os.environ['APP'] + '-api'
+          # Het actuele api-image, niet dat van de app zelf: het productie-image van v1.5.0 was op
+          # 25 sep 2026 al uit GHCR weggeruimd (MANIFEST_UNKNOWN). Het script gebruikt alleen de
+          # db-/config-modules, die in beide versies gelijk zijn; de app zelf raakt de job niet.
+          IMAGE = 'ghcr.io/palmw01/wetsanalyse-api:latest'
           current = az('containerapp', 'show', '-g', rg, '-n', app)
           container = current['properties']['template']['containers'][0]
           env = [e for e in container.get('env', []) if e['name'] in {'DATABASE_URL', 'GRAPHDB_URL', 'GRAPHDB_REPOSITORY'}]
@@ -90,7 +94,7 @@ jobs:
               'environmentId': current['properties'].get('environmentId') or current['properties']['managedEnvironmentId'],
               'configuration': {'triggerType': 'Manual', 'replicaTimeout': 300, 'replicaRetryLimit': 0,
                   'manualTriggerConfig': {'parallelism': 1, 'replicaCompletionCount': 1}, 'secrets': secrets},
-              'template': {'containers': [{'name': 'wis', 'image': container['image'],
+              'template': {'containers': [{'name': 'wis', 'image': IMAGE,
                   'command': ['python', '-c'], 'args': [command], 'env': env,
                   'resources': {'cpu': 0.25, 'memory': '0.5Gi'}}]}}}
           with tempfile.TemporaryDirectory() as temp:

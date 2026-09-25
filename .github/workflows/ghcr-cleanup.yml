@@ -1,4 +1,10 @@
-# Retentie voor de GHCR-image ghcr.io/<owner>/wetsanalyse-api.
+# Retentie voor de GHCR-images van de vier componenten.
+#
+# `prd` en `prd-vorige` zijn uitgesloten: die zet promote.yml op wat productie draait en op de
+# versie daarvoor. Zonder die uitsluiting ruimde deze retentie de productie-images op zodra er vijf
+# nieuwere builds waren – op 25 sep 2026 bleken de api- en graph-qa-images van v1.5.0 (productie
+# sinds 8 sep) verdwenen. Productie draaide nog op een gecachte replica; elke herstart, nieuwe
+# replica of rollback zou op `MANIFEST_UNKNOWN` zijn gestrand.
 # Bewaart structureel de 5 nieuwste builds (getagde versies) plus hun bijbehorende
 # untagged child-manifests (SBOM/provenance-attestaties); oudere builds en verweesde
 # untagged digests worden opgeruimd. dataaxiom/ghcr-cleanup-action snapt de multi-arch-/
@@ -47,7 +53,7 @@ jobs:
           keep-n-tagged: 5
           # latest nooit verwijderen. De `dev`-tag was beschermd zolang de dev-stack draaide; die
           # omgeving is op 27 aug 2026 opgeheven, dus dev-images vallen nu gewoon onder de retentie.
-          exclude-tags: latest
+          exclude-tags: latest,prd,prd-vorige
           delete-untagged: true
           validate: true
           dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
@@ -60,7 +66,7 @@ jobs:
           keep-n-tagged: 5
           # latest nooit verwijderen. De `dev`-tag was beschermd zolang de dev-stack draaide; die
           # omgeving is op 27 aug 2026 opgeheven, dus dev-images vallen nu gewoon onder de retentie.
-          exclude-tags: latest
+          exclude-tags: latest,prd,prd-vorige
           delete-untagged: true
           validate: true
           dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
@@ -73,7 +79,7 @@ jobs:
           keep-n-tagged: 5
           # latest nooit verwijderen. De `dev`-tag was beschermd zolang de dev-stack draaide; die
           # omgeving is op 27 aug 2026 opgeheven, dus dev-images vallen nu gewoon onder de retentie.
-          exclude-tags: latest
+          exclude-tags: latest,prd,prd-vorige
           delete-untagged: true
           validate: true
           dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
@@ -86,7 +92,7 @@ jobs:
           keep-n-tagged: 5
           # latest nooit verwijderen. De `dev`-tag was beschermd zolang de dev-stack draaide; die
           # omgeving is op 27 aug 2026 opgeheven, dus dev-images vallen nu gewoon onder de retentie.
-          exclude-tags: latest
+          exclude-tags: latest,prd,prd-vorige
           delete-untagged: true
           validate: true
           dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
