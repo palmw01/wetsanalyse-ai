@@ -820,3 +820,16 @@ async def get_annotatie_statistiek(limit: int = Query(1000, ge=1, le=5000)):
     """
     docs = await get_annotatie_store().alle_documenten(limit)
     return rapport(docs)
+
+
+@router.get("/annotatie/graafcontrole")
+async def graafcontrole(shacl: bool = Query(True, description="Ook SHACL per laag (duurder)")) -> dict:
+    """Klopt de annotatiegraaf met Postgres, en is hij netjes opgebouwd? Alleen lezend.
+
+    Consistentie (register, revisies, verweesde graphs), bouw (opgehaalde graph isomorf met
+    `bouw_graaf` uit de Postgres-stand), SHACL per niveau en de invarianten voor schone wettekst.
+    Een onbereikbare graaf levert `graaf_beschikbaar: false` en `in_orde: null`, nooit "in orde".
+    """
+    from ..graafcontrole import controleer
+
+    return await controleer(shacl=shacl)

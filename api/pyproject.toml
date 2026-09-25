@@ -21,6 +21,10 @@ dependencies = [
     # Bewust geen optionele extra: exporteren hoort altijd te werken.
     "reportlab>=4.2",
     "rdflib>=7",
+    # SHACL voor de live graafcontrole (`app/graafcontrole.py`, `/v1/admin/annotatie/graafcontrole`).
+    # Sinds de graafcontrole runtime: de shapes blijven niet-blokkerend – ze draaien nooit in het
+    # schrijfpad, alleen in de controle, de tests en CI.
+    "pyshacl>=0.30",
 ]
 
 [project.optional-dependencies]
@@ -43,9 +47,6 @@ dev = [
     "pytest-httpx>=0.30",
     # In-memory SQLite-backend voor de unit-tests (portable SQL → ook Postgres in productie).
     "aiosqlite>=0.20",
-    # SHACL-validatie van de RDF-projectie (ADR-001 PR 14). Bewust dev-only en niet-blokkerend:
-    # de shapes draaien in tests en CI, niet in het schrijfpad, tot bewezen is dat ze kloppen.
-    "pyshacl>=0.30",
 ]
 
 [tool.pytest.ini_options]

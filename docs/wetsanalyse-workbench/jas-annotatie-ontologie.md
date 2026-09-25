@@ -142,10 +142,39 @@ verdeeld in twee groepen, en die scheiding is de kern:
 
 Wat SHACL niet kan zeggen, is of een annotatie **juridisch juist** is. Dat blijft de jurist.
 
-De shapes zijn **niet-blokkerend**: ze draaien in `api/tests/test_shacl.py` (en dus in `poort`)
-en via `app/shacl.valideer(graph)` als diagnose, niet in het schrijfpad. `pyshacl` is een
-dev-afhankelijkheid; zonder die dependency geeft de diagnose `beschikbaar: false` in plaats van te
-falen. Een drift-test houdt de klassen- en lifecycle-lijst in de shapes gelijk aan de api.
+De shapes zijn **niet-blokkerend**: ze draaien in `api/tests/test_shacl.py` (en dus in `poort`),
+in de graafcontrole hieronder en via `app/shacl.valideer(graph)` als diagnose, nooit in het
+schrijfpad. `pyshacl` is een runtime-afhankelijkheid van de api; ontbreekt hij toch, dan geeft de
+diagnose `beschikbaar: false` in plaats van te falen. Een drift-test houdt de klassen- en
+lifecycle-lijst in de shapes gelijk aan de api.
+
+## Graafcontrole: is de graaf netjes opgebouwd?
+
+`api/app/graafcontrole.py` controleert achteraf, alleen lezend, of de graaf klopt met Postgres.
+Vier vragen, elk apart gerapporteerd:
+
+1. **Consistentie**: staat elke laag in het register en als named graph, met dezelfde revisie als in
+   Postgres? En staat er niets in de graaf dat Postgres niet kent (verweesde registratie of graph)?
+2. **Bouw**: is de opgehaalde graph **isomorf** met wat `bouw_graaf` nú uit de Postgres-stand zou
+   maken? Dat vangt elke drift tussen projectiecode en opgeslagen graaf: een half geschreven graph,
+   een oudere projector, een handmatige wijziging, een schemawijziging die nog niet overal landde.
+3. **SHACL** per niveau (`rdf` / `jas_model`).
+4. **Invarianten**: geen `urn:bwb:`-subject, geen `urn:bwb-ns:`-predicaat en geen schema-axioma's
+   (domain/range/subClassOf/sameAs) in een `urn:jas:graph:*`.
+
+Een laag die nog niet geprojecteerd is (`geprojecteerd_revisie < revisie`) heet **achterstand** en
+telt niet als afwijking; de directe projectie en de reconcile-lus halen hem in. Een onbereikbare of
+niet-geconfigureerde graaf levert `in_orde: null` op, nooit "in orde".
+
+Drie ingangen:
+- `GET /v1/admin/annotatie/graafcontrole[?shacl=false]` (admin-token), ook als admin-MCP-tool
+  `annotatie_graafcontrole`;
+- de reconcile-lus draait elke tien rondes de lichte variant (zonder SHACL) en logt
+  `annotatie_graafcontrole` met het veld `annotatie_graaf_afwijking`;
+- het Grafana-paneel *Annotatiegraaf wijkt af van Postgres* toont dat veld. Het hoort op 0 te staan.
+
+`api/tests/test_graafcontrole.py` vult de graaf met de échte projectie en muteert hem daarna op elke
+manier waarop hij uit de pas kan lopen; de controle moet elke mutatie melden.
 
 ## Wie de laag leest
 

@@ -93,6 +93,18 @@ const TOOLS: ToolDef[] = [
     run: (a) =>
       apiFetch("GET", `/v1/admin/annotatie-statistiek${a.limit ? `?limit=${a.limit}` : ""}`),
   },
+  {
+    name: "annotatie_graafcontrole",
+    description:
+      "Controleert of de annotatiegraaf in GraphDB klopt met Postgres en netjes is opgebouwd: per laag " +
+      "register- en graph-revisie, of de graph isomorf is met wat de projectie nu zou bouwen, " +
+      "verweesde graphs, SHACL-bevindingen (rdf / jas_model) en de invarianten voor schone wettekst. " +
+      "`in_orde: null` betekent dat de graaf niet bereikbaar of niet geconfigureerd is – nooit 'goed'. " +
+      "Een laag in `achterstand` is nog niet geprojecteerd; dat haalt de api zelf in.",
+    input: S({ shacl: z.boolean().optional() }),
+    run: (a) =>
+      apiFetch("GET", `/v1/admin/annotatie/graafcontrole${a.shacl === false ? "?shacl=false" : ""}`),
+  },
 
   // – modelprofielen —
   {

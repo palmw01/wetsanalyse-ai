@@ -336,12 +336,19 @@ DELETE WHERE {{ GRAPH <{REGISTER}> {{ {laag_iri(layer_id).n3()} ?p ?o }} }}'''
     return removed
 
 
-async def lus(interval: float = 30) -> None:
+async def lus(interval: float = 30, controle_elke: int = 10) -> None:
+    ronde = 0
     while True:
         try:
             count = await reconcile()
             if count:
                 logger.info("annotatie_v2_geprojecteerd", extra={"aantal": count})
+            # Elke paar rondes de lichte graafcontrole (zonder SHACL): een logregel met
+            # `annotatie_graaf_afwijking`, zodat Grafana een graaf die stil uit de pas loopt laat zien.
+            ronde += 1
+            if ronde % controle_elke == 0:
+                from .graafcontrole import log_stand
+                await log_stand()
         except asyncio.CancelledError:
             raise
         except Exception as exc:
