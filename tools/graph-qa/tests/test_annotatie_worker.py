@@ -69,7 +69,7 @@ def test_ophalen_dan_annoteren_grondt_lid():
 
 def test_get_bepaling_route_voor_decimaal_nummer():
     # Beleidsregel/divisie: de ophaal-agent gebruikt get_bepaling('9.1'); doel.nummer/artikel = '9.1'.
-    bep_tsv = json.dumps('?nummer\t?tekst\t?label\n"9.1"\t"In de gevallen waarin voor voorlopige aanslagen."@nl\t"Afwijking"')
+    bep_tsv = json.dumps('?nummer\t?tekst\t?label\n"9.1"\t"In de gevallen waarin binnen zes weken een voorlopige aanslag wordt opgelegd."@nl\t"Afwijking"')
     llm = KetenLLM(_aanloop(
         "get_bepaling", {"bwb_id": "BWBR0024096", "nummer": "9.1"},
         '{"bwbId":"BWBR0024096","nummer":"9.1","artikel":"","lid":"","citeertitel":"Leidraad Invordering 2008"}',
