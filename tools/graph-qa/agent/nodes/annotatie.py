@@ -25,6 +25,7 @@ from ..bron_annotatie import controleer_hergebruik, doel_event, lees_bron, lokal
 from ..doel import _bepaal_doel, _kandidaten_uit_json
 from ..jas_klassen import methode_versie
 from ..jas_pipeline.classificatie import promptversie
+from ..jas_pipeline.beslisregister import compact as beslisregister
 from ..jas_pipeline.keten import analyseer
 from ..models import AgentRun
 from ..narratie import _stap
@@ -116,7 +117,10 @@ def annoteer_node(b: Bouw, state: State) -> dict[str, Any]:
     writer({"type": "doel", "doel": doel_event(doel, bron)})
 
     analyse = {"meting": uitkomst.meting,
-               "beslissingen": [x.model_dump(mode="json") for x in uitkomst.beslissingen],
+               # Per kandidaat de uitkomst, óók als die "niets" was (validatieplan V4). Reist met de
+               # dekking mee naar de batch; zie `jas_pipeline/beslisregister.py`.
+               "beslissingen": beslisregister(uitkomst.fusie.kandidaten, uitkomst.beslissingen,
+                                              uitkomst.voorstellen),
                "detectoren": [list(d) for d in uitkomst.fusie.detectoren],
                "overgeslagen": [o.model_dump() for o in uitkomst.fusie.overgeslagen]}
     if not uitkomst.voorstellen:
@@ -178,6 +182,7 @@ def emit_node(b: Bouw, state: State) -> dict[str, Any]:
             "per_bron": meting["dekking"], "proces": meting.get("per_status", {}),
             "gedegradeerd": meting.get("gedegradeerd", []), "taal_model": meting.get("taal_model", ""),
             "fasen": meting.get("fasen", []),
+            "beslissingen": (state.get("analyse") or {}).get("beslissingen", []),
         }})
 
     ter_keuze = 0

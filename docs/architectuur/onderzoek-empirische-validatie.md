@@ -880,6 +880,18 @@ Algemeen voor elke PR:
   bewijsfingerprint) additief in de batch naar de api; bewaard bij de run.
 - Contract-drift-test mee.
 - Test: afgewezen kandidaten zijn na de batch terug te lezen.
+- *Stand:* uitgevoerd.
+  - Beslisregister: `agent/jas_pipeline/beslisregister.py`. Velden per kandidaat:
+    - id, label, bron, start en eind;
+    - mogelijke klassen en de klassen die voorrang weghaalde;
+    - bewijscodes en de bewijsfingerprint;
+    - status, door, klasse en reden;
+    - `classifier_reden` van vóór de resolver.
+  - Transport: via het `dekking`-event → `Batch.beslissingen` → de batch-audit in de api. Daarmee
+    staat het in de weergave en de export, en niet op de elementen of in het chatbericht.
+  - Harnas: `compare_pipelines` bewaart het register per run.
+  - Rapport §13: `eval/beslisstabiliteit.py`, met kandidaatbeslisstabiliteit, fingerprint-drift en
+    contractfouten per casus.
 
 **V5 – Classifier-contract en reviewload**
 

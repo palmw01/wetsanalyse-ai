@@ -32,6 +32,7 @@ from typing import Any
 from eval.keten_fixture import (
     TOKENVELDEN, Capture, FixtureGraph, LegeAnnotaties, fixture_doel, ketensettings, laad_cases, ontwikkelcases,
 )
+from eval.beslisstabiliteit import rapport as beslisrapport
 from eval.fouttaxonomie import Uitslag, classificeer, tel, uit_elementen
 from eval.metrieken import Ref, classificatie_metrieken, controleer_status, kern, laagste_status, recall_naam
 from eval.stabiliteit_analyse import analyseer_casus
@@ -94,6 +95,9 @@ def meet(cases: list[dict[str, Any]], herhalingen: int, settings: Any, maak_llm,
                         "fout": any(e.get("type") == "error" for e in events),
                         "meting": (run_ev.get("instellingen") or {}).get("meting", {}),
                         "na_keten": [e["element"] for e in events if e.get("type") == "element"],
+                        # Het beslisregister (V4): ook wat geen voorstel werd.
+                        "beslissingen": next((e["dekking"].get("beslissingen", []) for e in events
+                                              if e.get("type") == "dekking"), []),
                     })
                     bewaar()
     asyncio.run(run())
@@ -138,11 +142,15 @@ def analyseer(rapport: dict[str, Any]) -> dict[str, Any]:
             per_ronde.append(classificatie_metrieken(vs, ref, status))
             onbetwist.append(classificatie_metrieken(zeker, ref, status))
             uitslagen += [_fouten(r, casussen[r["casus"]]) for r in deze]
-        stabiliteit = {}
+        stabiliteit, beslis = {}, {}
         for cid, c in casussen.items():
             reeks = [r["na_keten"] for r in sorted(runs, key=lambda r: r["ronde"]) if r["casus"] == cid]
             if len(reeks) >= 2:
                 stabiliteit[cid] = analyseer_casus(c["tekst"], reeks)
+            registers = [r["beslissingen"] for r in sorted(runs, key=lambda r: r["ronde"])
+                         if r["casus"] == cid and r.get("beslissingen")]     # oude rapporten: geen register
+            if len(registers) >= 2:
+                beslis[cid] = beslisrapport(registers)
         n = len(runs)
         beslissingen = Counter()
         for r in runs:
@@ -160,6 +168,11 @@ def analyseer(rapport: dict[str, Any]) -> dict[str, Any]:
             "per_klasse_f1": _per_klasse(per_ronde),
             "foutcategorieen": tel(uitslagen),
             "debatable_uitgesloten": len(betwist),
+            "beslisstabiliteit": {
+                "kandidaatbeslisstabiliteit": _gem([b["kandidaatbeslisstabiliteit"] for b in beslis.values()]),
+                "fingerprint_drift": sum(len(b["fingerprint_drift"]) for b in beslis.values()),
+                "per_casus": beslis,
+            },
             "stabiliteit": {
                 "detectie_stabiel": _gem([s["detectie_stabiel"] for s in stabiliteit.values()]),
                 "span_exact": _gem([s["span_exact"] for s in stabiliteit.values()]),
@@ -209,6 +222,8 @@ def markdown(a: dict[str, Any]) -> str:
               rij("exacte span", "exact_span"), rij("partieel, zelfde klasse", "partieel_zelfde_klasse"),
               rij("detectie stabiel", "stabiliteit.detectie_stabiel"), rij("span exact over runs", "stabiliteit.span_exact"),
               rij("klasse unaniem over runs", "stabiliteit.klasse_unaniem"),
+              rij("kandidaatbeslisstabiliteit", "beslisstabiliteit.kandidaatbeslisstabiliteit"),
+              rij("fingerprint-drift (bug)", "beslisstabiliteit.fingerprint_drift", pct=False),
               rij("modelcalls per run", "efficientie.modelcalls_per_run", pct=False),
               rij("seconden per run", "efficientie.seconden_per_run", pct=False),
               rij("elementen per run", "efficientie.elementen_per_run", pct=False),

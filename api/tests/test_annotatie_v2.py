@@ -484,3 +484,36 @@ async def test_structurele_dekking_reist_mee_en_veroudert_met_de_tekst():
         if n["bron_iri"] == ONE:
             n["tekst"], n["bron_hash"] = "Iets anders", hashlib.sha256(b"Iets anders").hexdigest()
     assert (await store.weergave(gewijzigd))["dekking"]["structureel"] == {}
+
+
+async def test_afgewezen_kandidaten_zijn_na_de_batch_terug_te_lezen():
+    """Validatieplan V4: het beslisregister – ook wat geen element werd – staat bij de batch en komt
+    terug in de audit van de weergave, en daarmee in de export."""
+    snap = snapshot(ONE)
+    register = [
+        {"kandidaat_id": "Ka", "label": "C001", "bron_iri": ONE, "start": 2, "eind": 6,
+         "mogelijke_klassen": ["Rechtssubject"], "bewijs": ["SUBJECT_NP"], "bewijs_fingerprint": "f1",
+         "status": "ACCEPTED", "door": "model", "klasse": "Rechtssubject"},
+        {"kandidaat_id": "Kb", "label": "C002", "bron_iri": ONE, "start": 7, "eind": 11,
+         "mogelijke_klassen": ["Tijdsaanduiding"], "bewijs": ["TEMPORAL_DATE"], "bewijs_fingerprint": "f2",
+         "status": "REJECTED", "door": "model", "reden": "geen annotatie"},
+        {"kandidaat_id": "Kc", "label": "C003", "bron_iri": ONE, "start": 2, "eind": 11,
+         "mogelijke_klassen": ["Rechtsobject"], "vervallen": ["Variabele en variabelewaarde"],
+         "bewijs": ["OBJECT_NP"], "status": "HUMAN_REVIEW", "door": "model", "klasse": "Rechtsobject",
+         "reden": "R-ONGELDIG", "classifier_reden": "CLASSIFIER_ONGELDIGE_KLASSE:Variabele en variabelewaarde"},
+    ]
+    await store.batch(request(snap, [element(snap)], beslissingen=register), snap, "a")
+    view = await store.weergave(snap)
+    view["audit"] = await store.audit_weergave(view)
+    [batch] = [a for a in view["audit"] if a["actie"] == "batch"]
+    terug = {b["label"]: b for b in batch["detail"]["beslissingen"]}
+    assert set(terug) == {"C001", "C002", "C003"}
+    assert terug["C002"]["status"] == "REJECTED" and terug["C002"]["bewijs"] == ["TEMPORAL_DATE"]
+    assert terug["C003"]["classifier_reden"].startswith("CLASSIFIER_ONGELDIGE_KLASSE")
+    assert len(view["elementen"]) == 1          # het register maakt geen elementen
+
+
+def test_beslisregister_weigert_een_onbekende_status():
+    with pytest.raises(ValueError):
+        Batch.model_validate(dict(batch_id="b", doel={"bron_iri": ONE}, snapshot_id="s", beslissingen=[
+            {"kandidaat_id": "K", "bron_iri": ONE, "start": 0, "eind": 1, "status": "MISSCHIEN"}]))
