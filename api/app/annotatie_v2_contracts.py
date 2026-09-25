@@ -58,6 +58,8 @@ class KandidaatBeslissing(BaseModel):
     mogelijke_klassen: list[str] = Field(default_factory=list, max_length=20)
     vervallen: list[str] = Field(default_factory=list, max_length=20)
     bewijs: list[str] = Field(default_factory=list, max_length=50)
+    detectoren: list[str] = Field(default_factory=list, max_length=20)
+    opties: list[list[int]] = Field(default_factory=list, max_length=20)   # spanopties als [start, eind]
     bewijs_fingerprint: str = Field(default="", max_length=64)
     status: Literal["ACCEPTED", "REJECTED", "UNCERTAIN", "HUMAN_REVIEW", "UNHANDLED"]
     door: str = Field(default="", max_length=20)

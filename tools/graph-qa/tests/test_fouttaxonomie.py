@@ -163,3 +163,23 @@ def test_elke_code_heeft_laag_en_soort_zoals_het_ontwerp():
     assert len(CODES) == 29
     assert ALLEEN_SECUNDAIR <= set(CODES)
     assert {c for c, (_, s) in CODES.items() if s == "evaluatie"} == {"REFERENCE_ERROR", "MATCHING_ERROR"}
+
+
+def test_uit_register_ziet_afgewezen_kandidaten_en_herleidt_de_batch_unie():
+    from eval.fouttaxonomie import uit_register
+    register = [
+        {"label": "C1", "start": 0, "eind": 10, "mogelijke_klassen": [T, RO], "vervallen": [VAR],
+         "bewijs": ["TEMPORAL_DURATION", "OBJECT_NP"], "opties": [], "status": "HUMAN_REVIEW", "door": "model",
+         "klasse": T, "reden": "R-ONGELDIG", "classifier_reden": f"CLASSIFIER_ONGELDIGE_KLASSE:{VAR}"},
+        {"label": "C2", "start": 20, "eind": 30, "mogelijke_klassen": [RO, VAR], "bewijs": ["OBJECT_NP"],
+         "opties": [[20, 25]], "status": "REJECTED", "door": "model", "klasse": "", "reden": "geen annotatie"},
+    ]
+    element = {"klasse": T, "aandacht": "geel", "ankers": [{"start": 0, "eind": 10}],
+               "trace": {"kandidaat": {"label": "C1", "span": {"start": 0, "eind": 10}, "mogelijke_klassen": [T, RO]}}}
+    voorstellen, kandidaten = uit_register(register, [element], bron="b")
+    assert len(voorstellen) == 1 and len(kandidaten) == 2          # C2 staat niet in de export, wel hier
+    uit = classificeer([_g(0, 10, T, gid="G1"), _g(20, 25, RO, gid="G2")], voorstellen, kandidaten, bron="b")
+    f = {x.gid: x for x in uit.fouten}
+    assert (f["G1"].primair, set(f["G1"].secundair)) == (
+        "CLASSIFIER_CONTRACT_ERROR", {"CLASSIFIER_CROSS_CANDIDATE_LEAKAGE", "HYPOTHESIS_ERROR"})
+    assert f["G2"].primair == "CLASSIFIER_ERROR"                     # grens stond als optie klaar

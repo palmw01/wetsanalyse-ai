@@ -61,6 +61,8 @@ def compact(kandidaten: list[Candidate] | tuple[Candidate, ...], beslissingen: l
             "start": k.span.start, "eind": k.span.eind, "mogelijke_klassen": list(k.possible_classes),
             "vervallen": vervallen(k),
             "bewijs": sorted({e.code for e in k.evidence if e.code != "PRIORITY_APPLIED"}),
+            "detectoren": sorted({e.detector for e in k.evidence if e.code != "PRIORITY_APPLIED"}),
+            "opties": [[o.span.start, o.span.eind] for o in k.span_options],
             "bewijs_fingerprint": fingerprint(k),
             "status": b.status.value, "door": b.door, "klasse": b.klasse, "reden": b.reden,
             "classifier_reden": twijfel.get(b.label, b.reden if b.reden.startswith("CLASSIFIER_") else ""),

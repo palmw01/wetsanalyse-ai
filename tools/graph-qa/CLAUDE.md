@@ -705,6 +705,13 @@ onbetwiste voorstellen, want een geel voorstel is een vraag aan de jurist en gee
 analyseerbaar (`ROUTES`), maar alleen `hybrid_v1` is nog te meten (`MEETBAAR`); de legacy-baseline
 staat in `docs/architectuur/metingen/`.
 
+**Het rapport per laag** (`eval/laagrapport.py`, validatieplan V6) leest dezelfde run-set.
+- Per laag rapporteert het kandidaat, span, classificatie, proces, contract en stabiliteit, per familie
+  en per tekstsoort.
+- Fouten staan apart naar juridisch, technisch en evaluatie.
+- Er is geen totaalscore.
+- De relationele checklist (§14) komt eruit als invulbijlage en gaat terug als handmatige foutcodes.
+
 **Stabiliteit over herhalingen** rekent `eval/stabiliteit_analyse.py` uit (uitlijnen op positie,
 detectie-, span- en klassestabiliteit per casus); `compare_pipelines` gebruikt die functies. Hoge
 overeenstemming is geen kwaliteitsbewijs – zie `docs/wetsanalyse/evaluatie-methode.md`.
