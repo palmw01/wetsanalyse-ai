@@ -84,9 +84,10 @@ def test_prov_projectie_is_conform_en_houdt_de_wettekst_schoon():
     from app.graaf_projectie_v2 import PROV
     spoor = {"pijplijn": "hybrid_v1", "jas_versie": "1.0.10", "beslissing": {"door": "regel"},
              "kandidaat": {"bewijs": [{"regel": "jas.tijd.duur"}]}}
-    g = bouw_graaf(LAAG, [{**ELEMENT, "trace": spoor}], prov=True)
+    g = bouw_graaf(LAAG, [{**ELEMENT, "trace": spoor}])
     [act] = list(g.objects(element_iri("e1"), PROV.wasGeneratedBy))
-    assert (act, RDF.type, PROV.Activity) in g and (act, JAS.regel, Literal("jas.tijd.duur")) in g
+    assert (act, RDF.type, PROV.Activity) in g
+    assert (act, JAS.regel, URIRef("urn:jas-ns:regel:jas.tijd.duur")) in g
     assert valideer(g)["conform"] is True
     assert not any(str(s).startswith("urn:bwb:") for s in g.subjects())
-    assert len(bouw_graaf(LAAG, [{**ELEMENT, "trace": spoor}])) < len(g)      # default uit
+    assert len(bouw_graaf(LAAG, [{**ELEMENT, "trace": spoor}], prov=False)) < len(g)   # PROV is standaard aan

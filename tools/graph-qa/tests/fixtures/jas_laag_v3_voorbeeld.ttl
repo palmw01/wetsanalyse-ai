@@ -1,0 +1,112 @@
+# Afdruk van api/app/graaf_projectie_v2.bouw_graaf (schema 3) – bewaakt door api/tests/test_graaf_rijk.py.
+@prefix ns1: <urn:jas-ns:> .
+@prefix ns2: <http://www.w3.org/ns/oa#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<urn:jas:element:e3> a ns2:Annotation,
+        ns1:Markering ;
+    ns2:hasBody [ a ns2:TextualBody ;
+            rdf:value "…" ],
+        <urn:jas-ns:klasse:Tijdsaanduiding> ;
+    ns2:hasTarget [ a ns2:SpecificResource ;
+            ns2:hasSelector [ a ns2:TextPositionSelector ;
+                    ns2:end 86 ;
+                    ns2:start 50 ],
+                [ a ns2:TextQuoteSelector ;
+                    ns2:exact "de dagtekening van het aanslagbiljet" ] ;
+            ns2:hasSource <urn:bwb:BWBR0004770:artikel:9:lid:1> ;
+            ns1:bronHash "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" ;
+            ns1:snapshotId "snap-1" ;
+            ns1:volgorde 0 ] ;
+    ns2:motivatedBy ns2:classifying ;
+    prov:wasGeneratedBy [ a prov:Activity,
+                ns1:Besluit ;
+            prov:wasAssociatedWith <urn:jas:agent:pijplijn:hybrid_v1> ;
+            prov:wasInformedBy <urn:jas:run:770a76fcc7bf2326> ;
+            ns1:beslistDoor <urn:jas-ns:besluit:model> ;
+            ns1:bewijs <urn:jas-ns:code:NOMINALIZED_ACTION>,
+                <urn:jas-ns:code:TEMPORAL_MOMENT> ;
+            ns1:detector "nominalisatie",
+                "tijd" ;
+            ns1:jasVersie "1.0.10" ;
+            ns1:modelvraag "C004 | \"de dagtekening van het aanslagbiljet\" | toegestaan: Rechtsfeit, Tijdsaanduiding, Rechtsobject" ;
+            ns1:mogelijkeKlasse <urn:jas-ns:klasse:Rechtsfeit>,
+                <urn:jas-ns:klasse:Rechtsobject>,
+                <urn:jas-ns:klasse:Tijdsaanduiding> ;
+            ns1:regel <urn:jas-ns:regel:jas.feit.nominalisatie_van>,
+                <urn:jas-ns:regel:jas.tijd.tijdstip> ;
+            ns1:resolutieregel <urn:jas-ns:resolutie:R-CONFLICT-HUMAN> ;
+            ns1:twijfel <urn:jas-ns:twijfel:DETECTOR_CONFLICT> ] ;
+    ns1:aandacht "geel" ;
+    ns1:alternatief [ a ns1:Alternatief ;
+            ns1:klasse <urn:jas-ns:klasse:Rechtsfeit> ;
+            ns1:klasseNaam "Rechtsfeit" ;
+            ns1:reden "de keuze van het model" ] ;
+    ns1:beoordeling [ a ns1:Beoordeling ;
+            prov:atTime "2026-09-25T10:14:00+00:00"^^xsd:dateTime ;
+            ns1:naar <urn:jas-ns:klasse:Tijdsaanduiding> ;
+            ns1:reden "verkeerde_klasse" ;
+            ns1:soort "edit" ;
+            ns1:van <urn:jas-ns:klasse:Rechtsfeit> ;
+            ns1:volgorde 0 ],
+        [ a ns1:Beoordeling ;
+            prov:atTime "2026-09-25T10:15:00+00:00"^^xsd:dateTime ;
+            ns1:soort "comment" ;
+            ns1:volgorde 1 ] ;
+    ns1:elementId "e3" ;
+    ns1:grensoptie [ a ns1:Grensoptie ;
+            ns1:bron <urn:bwb:BWBR0004770:artikel:9:lid:1> ;
+            ns1:eind 86 ;
+            ns1:soort "zinsdeel" ;
+            ns1:start 50 ],
+        [ a ns1:Grensoptie ;
+            ns1:bron <urn:bwb:BWBR0004770:artikel:9:lid:1> ;
+            ns1:eind 64 ;
+            ns1:soort "kern" ;
+            ns1:start 53 ] ;
+    ns1:herkomst "agent" ;
+    ns1:inLaag <urn:jas:laag:v2:laag-9-1> ;
+    ns1:klasse <urn:jas-ns:klasse:Tijdsaanduiding> ;
+    ns1:klasseNaam "Tijdsaanduiding" ;
+    ns1:lifecycle "edited" ;
+    ns1:tekst "de dagtekening van het aanslagbiljet" ;
+    ns1:toelichting "…" ;
+    ns1:verouderd false .
+
+<urn:jas:agent:model:claude-sonnet-5> a prov:SoftwareAgent ;
+    ns1:modelNaam "claude-sonnet-5" .
+
+<urn:jas:laag:v2:laag-9-1> a ns1:AnnotatieLaag ;
+    ns1:bepaling <urn:bwb:BWBR0004770:artikel:9:lid:1> ;
+    ns1:dekking [ a ns1:Dekking ;
+            ns1:bron <urn:bwb:BWBR0004770:artikel:9:lid:1> ;
+            ns1:dimensie [ ns1:naam "definitie" ;
+                    ns1:stand "overgeslagen" ],
+                [ ns1:naam "tijd" ;
+                    ns1:stand "uitgevoerd" ] ;
+            ns1:ongedekt [ a ns2:SpecificResource ;
+                    ns2:hasSelector [ a ns2:TextPositionSelector ;
+                            ns2:end 36 ;
+                            ns2:start 21 ],
+                        [ a ns2:TextQuoteSelector ;
+                            ns2:exact "is invorderbaar" ] ;
+                    ns2:hasSource <urn:bwb:BWBR0004770:artikel:9:lid:1> ] ] ;
+    ns1:laagId "laag-9-1" ;
+    ns1:revisie 4 ;
+    ns1:schemaVersie 3 ;
+    ns1:snapshotId "snap-1" ;
+    ns1:status "in_review" .
+
+<urn:jas:run:770a76fcc7bf2326> a prov:Activity,
+        ns1:AgentRonde ;
+    prov:startedAtTime "2026-09-25T10:12:31+00:00"^^xsd:dateTime ;
+    prov:wasAssociatedWith <urn:jas:agent:model:claude-sonnet-5> ;
+    ns1:agentVersie "1.6.0" ;
+    ns1:methodeVersie "3c0d" ;
+    ns1:modus "nieuw" ;
+    ns1:promptHash "a91e" ;
+    ns1:provider "anthropic_via_azure_foundry" ;
+    ns1:taalModel "nl_core_news_md" .
+

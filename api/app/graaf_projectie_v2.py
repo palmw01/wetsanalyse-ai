@@ -10,7 +10,9 @@ import asyncio
 import json
 import logging
 import re
+import hashlib
 from functools import lru_cache
+from urllib.parse import quote
 from pathlib import Path
 from typing import Any
 
@@ -94,24 +96,64 @@ def element_iri(element_id: str) -> URIRef:
     return URIRef("urn:jas:element:" + quote(element_id, safe=""))
 
 
-def bouw_graaf(laag: dict, elementen: list[dict], prov: bool = False) -> Graph:
+SCHEMA_VERSIE = 3
+XSD = Namespace("http://www.w3.org/2001/XMLSchema#")
+
+
+def _tijd(waarde: Any) -> Literal | None:
+    return Literal(str(waarde), datatype=XSD.dateTime) if waarde else None
+
+
+def run_iri(run: dict) -> URIRef:
+    """Eén IRI per agent-ronde, afgeleid uit de run zelf – dezelfde voor alle elementen die die ronde
+    maakte, in welke laag ze ook landen."""
+    sleutel = json.dumps({k: run.get(k) for k in ("model", "agent_versie", "prompt_hash", "methode_versie", "tijd")},
+                         sort_keys=True, default=str)
+    return URIRef("urn:jas:run:" + hashlib.sha256(sleutel.encode()).hexdigest()[:16])
+
+
+def _code_iri(ruimte: str, code: str) -> URIRef:
+    return URIRef(f"urn:jas-ns:{ruimte}:" + quote(str(code), safe="-_."))
+
+
+def bouw_graaf(laag: dict, elementen: list[dict], prov: bool = True, dekking: dict | None = None) -> Graph:
+    """De named graph van één laag (projectieschema 3).
+
+    Naast de markering zelf (klasse, fragment, ankers, lifecycle) draagt hij sinds plan-herkomst PR 3b
+    alles wat Postgres over haar weet en geen persoon is: de klasse als concept uit de vocabulaire,
+    aandacht, herkomst, subtype, alternatieven met hun reden, de voorgestelde grenzen, de herkomst als
+    PROV (de ronde, het model, de regels, twijfel, resolutie, de exacte modelvraag), de beoordelingen
+    zonder actor, en per bronnode de dekking. Geen `urn:bwb:`-subject, geen schema-axioma's."""
     g = Graph()
     owner = laag_iri(laag["id"])
     g.add((owner, RDF.type, JAS.AnnotatieLaag))
     for p, v in ((JAS.laagId, laag["id"]), (JAS.revisie, laag["revisie"]),
-                 (JAS.status, laag["status"]), (JAS.schemaVersie, 2)):
+                 (JAS.status, laag["status"]), (JAS.schemaVersie, SCHEMA_VERSIE)):
         g.add((owner, p, Literal(v)))
     g.add((owner, JAS.bepaling, URIRef(laag["bron_iri"])))
+    if laag.get("snapshot_id"):
+        g.add((owner, JAS.snapshotId, Literal(laag["snapshot_id"])))
+    if dekking:
+        _dekking(g, owner, dekking)
     for element in elementen:
         e = element_iri(element["id"])
         g.add((e, RDF.type, JAS.Markering))
+        g.add((e, RDF.type, OA.Annotation))
         g.add((e, JAS.inLaag, owner))
         for p, value in ((JAS.elementId, element["id"]), (JAS.klasseNaam, element["klasse"]),
                          (JAS.lifecycle, element.get("lifecycle", "")),
                          (JAS.verouderd, bool(element.get("verouderd", False))),
                          (JAS.tekst, element.get("tekst", "")),
-                         (JAS.toelichting, element.get("toelichting", ""))):
+                         (JAS.toelichting, element.get("toelichting", "")),
+                         (JAS.herkomst, element.get("herkomst", ""))):
             g.add((e, p, Literal(value)))
+        g.add((e, JAS.klasse, klasse_iri(element["klasse"])))
+        g.add((e, OA.motivatedBy, OA.classifying))
+        g.add((e, OA.hasBody, klasse_iri(element["klasse"])))
+        if element.get("aandacht"):
+            g.add((e, JAS.aandacht, Literal(element["aandacht"])))
+        if element.get("jas_subtype"):
+            g.add((e, JAS.subtype, Literal(element["jas_subtype"])))
         body = BNode()
         g.add((e, OA.hasBody, body))
         g.add((body, RDF.type, OA.TextualBody))
@@ -131,27 +173,144 @@ def bouw_graaf(laag: dict, elementen: list[dict], prov: bool = False) -> Graph:
             g.add((target, OA.hasSelector, quote))
             g.add((quote, RDF.type, OA.TextQuoteSelector))
             g.add((quote, OA.exact, Literal(anker["tekst"])))
-        if prov and element.get("trace"):
-            _prov(g, e, element["trace"])
+        for alt in element.get("alternatieven") or []:
+            a = BNode()
+            g.add((e, JAS.alternatief, a))
+            g.add((a, RDF.type, JAS.Alternatief))
+            g.add((a, JAS.klasse, klasse_iri(alt.get("klasse", ""))))
+            g.add((a, JAS.klasseNaam, Literal(alt.get("klasse", ""))))
+            if alt.get("motivatie"):
+                g.add((a, JAS.reden, Literal(alt["motivatie"])))
+        spoor = element.get("trace") or {}
+        kandidaat = spoor.get("kandidaat") or {}
+        bron = (kandidaat.get("span") or {}).get("bron_iri", "")
+        for optie in kandidaat.get("spanopties") or []:
+            o = BNode()
+            g.add((e, JAS.grensoptie, o))
+            g.add((o, RDF.type, JAS.Grensoptie))
+            g.add((o, JAS.soort, Literal(optie.get("soort", ""))))
+            g.add((o, JAS.start, Literal(int(optie["start"]))))
+            g.add((o, JAS.eind, Literal(int(optie["eind"]))))
+            if bron:
+                g.add((o, JAS.bron, URIRef(bron)))
+        if prov:
+            _prov(g, e, spoor, element.get("geproduceerd_door") or {})
+        _beoordelingen(g, e, element, spoor)
     return g
 
 
-def _prov(g: Graph, e: URIRef, spoor: dict) -> None:
-    """Herkomst als PROV-O: welke pijplijn en wie besliste (regel, model, specificiteit).
+def _prov(g: Graph, e: URIRef, spoor: dict, run: dict) -> None:
+    """Herkomst als PROV-O, zonder personen en zonder domain/range (invariant 3).
 
-    Bewust zonder personen – de graaf heeft geen authenticatie, dus beslissingen van juristen
-    blijven in Postgres – en zonder domain/range (invariant 3). Modelherkomst is geen juridische
-    autoriteit; het zegt alleen hoe het voorstel ontstond.
-    """
+    De ronde is een `prov:Activity` met het model als `prov:SoftwareAgent`; per element een eigen
+    besluit-activiteit met wie besliste (regel/model/voorrangsregel), het bewijs (regels en codes als
+    IRI's in de vocabulaire), twijfel, resolutie, validatie en de exacte modelvraag. Modelherkomst is
+    geen juridische autoriteit; het zegt alleen hoe het voorstel ontstond."""
+    if run:
+        r = run_iri(run)
+        g.add((r, RDF.type, PROV.Activity))
+        g.add((r, RDF.type, JAS.AgentRonde))
+        if run.get("model"):
+            agent = URIRef("urn:jas:agent:model:" + quote(str(run["model"]), safe="-_."))
+            g.add((r, PROV.wasAssociatedWith, agent))
+            g.add((agent, RDF.type, PROV.SoftwareAgent))
+            g.add((agent, JAS.modelNaam, Literal(str(run["model"]))))
+        for p, k in ((JAS.agentVersie, "agent_versie"), (JAS.promptHash, "prompt_hash"),
+                     (JAS.methodeVersie, "methode_versie"), (JAS.provider, "provider"), (JAS.modus, "modus")):
+            if run.get(k):
+                g.add((r, p, Literal(str(run[k]))))
+        taal = ((run.get("instellingen") or {}).get("meting") or {}).get("taal_model")
+        if taal:
+            g.add((r, JAS.taalModel, Literal(str(taal))))
+        t = _tijd(run.get("tijd"))
+        if t is not None:
+            g.add((r, PROV.startedAtTime, t))
+    if not spoor:
+        if run:
+            g.add((e, PROV.wasGeneratedBy, run_iri(run)))
+        return
     beslissing = spoor.get("beslissing") or {}
     activiteit = BNode()
     g.add((e, PROV.wasGeneratedBy, activiteit))
     g.add((activiteit, RDF.type, PROV.Activity))
+    g.add((activiteit, RDF.type, JAS.Besluit))
     g.add((activiteit, PROV.wasAssociatedWith, URIRef("urn:jas:agent:pijplijn:" + str(spoor.get("pijplijn", "onbekend")))))
-    g.add((activiteit, JAS.beslistDoor, Literal(str(beslissing.get("door", "")))))
+    if run:
+        g.add((activiteit, PROV.wasInformedBy, run_iri(run)))
+    if beslissing.get("door"):
+        g.add((activiteit, JAS.beslistDoor, _code_iri("besluit", beslissing["door"])))
     g.add((activiteit, JAS.jasVersie, Literal(str(spoor.get("jas_versie", "")))))
-    for regel in sorted({b.get("regel", "") for b in (spoor.get("kandidaat") or {}).get("bewijs", []) if b.get("regel")}):
-        g.add((activiteit, JAS.regel, Literal(regel)))
+    kandidaat = spoor.get("kandidaat") or {}
+    for bewijs in kandidaat.get("bewijs") or []:
+        if bewijs.get("code"):
+            g.add((activiteit, JAS.bewijs, _code_iri("code", bewijs["code"])))
+        if bewijs.get("regel"):
+            g.add((activiteit, JAS.regel, _code_iri("regel", bewijs["regel"])))
+        if bewijs.get("detector"):
+            g.add((activiteit, JAS.detector, Literal(str(bewijs["detector"]))))
+    for klasse in kandidaat.get("mogelijke_klassen") or []:
+        g.add((activiteit, JAS.mogelijkeKlasse, klasse_iri(klasse)))
+    for t in spoor.get("twijfel") or []:
+        g.add((activiteit, JAS.twijfel, _code_iri("twijfel", t.get("reden", ""))))
+    for t in spoor.get("resolutie") or []:
+        if t.get("regel"):
+            g.add((activiteit, JAS.resolutieregel, _code_iri("resolutie", t["regel"])))
+    for v in spoor.get("validatie") or []:
+        if v.get("code"):
+            g.add((activiteit, JAS.validatie, _code_iri("validatie", v["code"])))
+    if spoor.get("vraag"):
+        g.add((activiteit, JAS.modelvraag, Literal(str(spoor["vraag"]))))
+
+
+def _beoordelingen(g: Graph, e: URIRef, element: dict, spoor: dict) -> None:
+    """Elke beslissing van een jurist als `jas:Beoordeling`: soort, tijdstip, reden en de klassewissel.
+    Nooit de actor of vrije commentaartekst – de graaf heeft geen authenticatie; wie het deed staat
+    in Postgres."""
+    klasse = ((spoor.get("beslissing") or {}).get("klasse")) or element.get("klasse", "")
+    for i, b in enumerate(element.get("beslissingen") or []):
+        n = BNode()
+        g.add((e, JAS.beoordeling, n))
+        g.add((n, RDF.type, JAS.Beoordeling))
+        g.add((n, JAS.volgorde, Literal(i)))
+        g.add((n, JAS.soort, Literal(str(b.get("type", "")))))
+        t = _tijd(b.get("tijd"))
+        if t is not None:
+            g.add((n, PROV.atTime, t))
+        if b.get("review_reason"):
+            g.add((n, JAS.reden, Literal(str(b["review_reason"]))))
+        nieuw = (b.get("wijziging") or {}).get("klasse")
+        if nieuw and nieuw != klasse:
+            g.add((n, JAS.van, klasse_iri(klasse)))
+            g.add((n, JAS.naar, klasse_iri(nieuw)))
+            klasse = nieuw
+
+
+def _dekking(g: Graph, owner: URIRef, dekking: dict) -> None:
+    """Per bronnode: de detectiedimensies en de zinsdelen zonder kandidaat (met selectors)."""
+    for bron_iri, meting in sorted(dekking.items()):
+        d = BNode()
+        g.add((owner, JAS.dekking, d))
+        g.add((d, RDF.type, JAS.Dekking))
+        g.add((d, JAS.bron, URIRef(bron_iri)))
+        for naam, stand in sorted((meting.get("dimensies") or {}).items()):
+            dim = BNode()
+            g.add((d, JAS.dimensie, dim))
+            g.add((dim, JAS.naam, Literal(naam)))
+            g.add((dim, JAS.stand, Literal(stand)))
+        for deel in meting.get("ongedekt") or []:
+            if not isinstance(deel, dict):
+                continue
+            o, pos, citaat = BNode(), BNode(), BNode()
+            g.add((d, JAS.ongedekt, o))
+            g.add((o, RDF.type, OA.SpecificResource))
+            g.add((o, OA.hasSource, URIRef(bron_iri)))
+            g.add((o, OA.hasSelector, pos))
+            g.add((pos, RDF.type, OA.TextPositionSelector))
+            g.add((pos, OA.start, Literal(int(deel["start"]))))
+            g.add((pos, OA.end, Literal(int(deel["eind"]))))
+            g.add((o, OA.hasSelector, citaat))
+            g.add((citaat, RDF.type, OA.TextQuoteSelector))
+            g.add((citaat, OA.exact, Literal(str(deel.get("tekst", "")))))
 
 
 def _lit(value: Any) -> str:
@@ -209,7 +368,7 @@ def zoek_query(filters: dict, limit: int = 10001) -> str:
 PREFIX oa: <http://www.w3.org/ns/oa#>
 PREFIX bwb: <urn:bwb-ns:>
 SELECT DISTINCT ?id WHERE {{
- GRAPH <{REGISTER}> {{ <{SCHEMA}> jas:versie 2 . ?laag jas:inGraaf ?g ; jas:revisie ?rev . }}
+ GRAPH <{REGISTER}> {{ <{SCHEMA}> jas:versie {SCHEMA_VERSIE} . ?laag jas:inGraaf ?g ; jas:revisie ?rev . }}
  GRAPH ?g {{
   ?laag jas:revisie ?rev ; jas:status ?laagstatus .
   ?e a jas:Markering ; jas:inLaag ?laag ; jas:elementId ?id ;
@@ -236,12 +395,12 @@ async def _select(client: httpx.AsyncClient, query: str) -> list[dict]:
 
 async def zoek_kandidaten(filters: dict) -> dict:
     manifest_query = f'''PREFIX jas: <urn:jas-ns:>
-SELECT ?id ?rev WHERE {{ GRAPH <{REGISTER}> {{ <{SCHEMA}> jas:versie 2 .
+SELECT ?id ?rev WHERE {{ GRAPH <{REGISTER}> {{ <{SCHEMA}> jas:versie {SCHEMA_VERSIE} .
  ?laag jas:inGraaf ?g ; jas:revisie ?rev ; jas:laagId ?id . }}
- GRAPH ?g {{ ?laag jas:revisie ?rev ; jas:schemaVersie 2 . }} }}'''
+ GRAPH ?g {{ ?laag jas:revisie ?rev ; jas:schemaVersie {SCHEMA_VERSIE} . }} }}'''
     try:
         async with httpx.AsyncClient(timeout=20) as client:
-            r = await client.post(_repo(), data={"query": f"ASK {{ GRAPH <{REGISTER}> {{ <{SCHEMA}> <{JAS.versie}> 2 }} }}"},
+            r = await client.post(_repo(), data={"query": f"ASK {{ GRAPH <{REGISTER}> {{ <{SCHEMA}> <{JAS.versie}> {SCHEMA_VERSIE} }} }}"},
                                   headers={"Accept": "application/sparql-results+json"})
             r.raise_for_status()
             if not r.json().get("boolean"):
@@ -258,6 +417,29 @@ SELECT ?id ?rev WHERE {{ GRAPH <{REGISTER}> {{ <{SCHEMA}> jas:versie 2 .
         return {"ids": [], "manifest": {}, "beschikbaar": False, "reden": "graaf_onbeschikbaar"}
 
 
+# Na een schemawijziging staat de oude versie nog in het register; die hoort er niet naast te staan.
+_OUDE_SCHEMAVERSIES = (f"DELETE {{ GRAPH <{REGISTER}> {{ <{SCHEMA}> <{JAS.versie}> ?v }} }} WHERE {{ "
+                       f"GRAPH <{REGISTER}> {{ <{SCHEMA}> <{JAS.versie}> ?v FILTER(?v != {SCHEMA_VERSIE}) }} }};\n")
+
+
+async def laag_invoer(conn, laag: dict) -> tuple[list[dict], dict]:
+    """Wat `bouw_graaf` voor deze laag nodig heeft: de elementen, en de structurele dekking van de
+    recentste batch op dezelfde bronstand (snapshot). Eén functie voor projectie én graafcontrole,
+    zodat die twee nooit uit verschillende invoer bouwen."""
+    elementen = list((await conn.execute(select(db.annotatie_v2_elementen.c.inhoud).where(
+        db.annotatie_v2_elementen.c.laag_id == laag["id"]))).scalars().all())
+    rijen = (await conn.execute(select(db.annotatie_v2_dekking.c.inhoud).where(
+        db.annotatie_v2_dekking.c.snapshot_id == laag.get("snapshot_id", "")))).scalars().all()
+    eigen = {i for e in elementen for i in [e.get("eigenaar_iri")] if i} | {laag["bron_iri"]}
+    dekking: dict[str, tuple[str, dict]] = {}
+    for inhoud in rijen:
+        tijd = str(inhoud.get("tijd", ""))
+        for iri, meting in (inhoud.get("structureel") or {}).items():
+            if iri in eigen and tijd >= dekking.get(iri, ("", {}))[0]:
+                dekking[iri] = (tijd, meting)
+    return elementen, {iri: m for iri, (_t, m) in dekking.items()}
+
+
 async def projecteer(laag_id: str) -> bool:
     """Het rowlock beschermt ook tegen een oudere projector in een ander proces."""
     async with _locks.setdefault(laag_id, asyncio.Lock()):
@@ -267,9 +449,8 @@ async def projecteer(laag_id: str) -> bool:
             if row is None:
                 return False
             laag = dict(row)
-            elements = (await conn.execute(select(db.annotatie_v2_elementen.c.inhoud).where(
-                db.annotatie_v2_elementen.c.laag_id == laag_id))).scalars().all()
-            data = bouw_graaf(laag, list(elements), prov=get_settings().jas_projectie_prov)
+            elements, dekking = await laag_invoer(conn, laag)
+            data = bouw_graaf(laag, elements, dekking=dekking)
             async with httpx.AsyncClient(timeout=30) as client:
                 r = await client.put(_repo() + "/rdf-graphs/service", params={"graph": str(graph_iri(laag_id))},
                                      content=data.serialize(format="turtle").encode(),
@@ -278,10 +459,10 @@ async def projecteer(laag_id: str) -> bool:
                 # Update only this registry entry: parallel different-layer projectors cannot
                 # overwrite each other's registry contributions.
                 owner = laag_iri(laag_id).n3()
-                statement = f'''PREFIX jas: <urn:jas-ns:>
+                statement = _OUDE_SCHEMAVERSIES + f'''PREFIX jas: <urn:jas-ns:>
 DELETE {{ GRAPH <{REGISTER}> {{ {owner} ?p ?o }} }}
 INSERT {{ GRAPH <{REGISTER}> {{
- <{SCHEMA}> jas:versie 2 . {owner} jas:inGraaf {graph_iri(laag_id).n3()} ;
+ <{SCHEMA}> jas:versie {SCHEMA_VERSIE} . {owner} jas:inGraaf {graph_iri(laag_id).n3()} ;
  jas:laagId {_lit(laag_id)} ; jas:revisie {int(laag['revisie'])} .
 }} }} WHERE {{ OPTIONAL {{ GRAPH <{REGISTER}> {{ {owner} ?p ?o }} }} }}'''
                 r = await client.post(_repo() + "/statements", data={"update": statement})
@@ -335,7 +516,7 @@ async def reconcile() -> int:
     if not lagen:
         async with httpx.AsyncClient(timeout=20) as client:
             r = await client.post(_repo() + "/statements", data={"update":
-                f"INSERT DATA {{ GRAPH <{REGISTER}> {{ <{SCHEMA}> <{JAS.versie}> 2 }} }}"})
+                _OUDE_SCHEMAVERSIES + f"INSERT DATA {{ GRAPH <{REGISTER}> {{ <{SCHEMA}> <{JAS.versie}> {SCHEMA_VERSIE} }} }}"})
             r.raise_for_status()
     await verwijder_verweesde_projecties()
     async with httpx.AsyncClient(timeout=20) as client:

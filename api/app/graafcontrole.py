@@ -31,7 +31,7 @@ from sqlalchemy import select
 from . import db
 from .config import get_settings
 from .graaf_projectie_v2 import (JAS, REGISTER, VOCAB_SCHEMA, VOCABULAIRE, _lit, _repo, _select, bouw_graaf,
-                                 graph_iri, laag_iri, vocabulaire)
+                                 graph_iri, laag_iri, laag_invoer, vocabulaire)
 
 logger = logging.getLogger(__name__)
 
@@ -66,15 +66,11 @@ async def _haal_graph(client: httpx.AsyncClient, iri: str) -> Graph:
     return Graph().parse(data=r.text, format="turtle")
 
 
-async def _postgres() -> tuple[list[dict], dict[str, list[dict]]]:
+async def _postgres() -> tuple[list[dict], dict[str, tuple[list[dict], dict]]]:
     async with db.get_engine().connect() as conn:
         lagen = [dict(r) for r in (await conn.execute(select(db.annotatie_v2_lagen))).mappings().all()]
-        rows = (await conn.execute(select(db.annotatie_v2_elementen.c.laag_id,
-                                          db.annotatie_v2_elementen.c.inhoud))).all()
-    per_laag: dict[str, list[dict]] = {}
-    for laag_id, inhoud in rows:
-        per_laag.setdefault(laag_id, []).append(inhoud)
-    return lagen, per_laag
+        invoer = {laag["id"]: await laag_invoer(conn, laag) for laag in lagen}
+    return lagen, invoer
 
 
 def _verschil(verwacht: Graph, echt: Graph) -> dict[str, int]:
@@ -100,7 +96,6 @@ async def controleer(*, shacl: bool = True) -> dict[str, Any]:
     if not get_settings().graphdb_url:
         uit["reden"] = "graafprojectie_uit"
         return uit
-    prov = get_settings().jas_projectie_prov
     try:
         async with httpx.AsyncClient(timeout=30) as client:
             register = {r["id"]: r for r in await _select(client, _REGISTER_QUERY)}
@@ -130,7 +125,8 @@ async def controleer(*, shacl: bool = True) -> dict[str, Any]:
                 if graaf_rev != Literal(rev):
                     uit["afwijkingen"].append({"laag_id": lid, "soort": "graphrevisie",
                                                "detail": {"postgres": rev, "graph": str(graaf_rev)}})
-                verwacht = bouw_graaf(laag, elementen.get(lid, []), prov=prov)
+                els, dekking = elementen.get(lid, ([], {}))
+                verwacht = bouw_graaf(laag, els, dekking=dekking)
                 if not isomorphic(verwacht, echt):
                     uit["afwijkingen"].append({"laag_id": lid, "soort": "inhoud_wijkt_af",
                                                "detail": _verschil(verwacht, echt)})

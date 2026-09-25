@@ -56,26 +56,34 @@ De laag-id en het element-id worden gecodeerd met `quote(s, safe="")`.
 | doel, positie, citaat, body | blanke nodes binnen de graph van de laag |
 | bronnode (de wet) | `urn:bwb:…` – alleen als **object**, nooit als subject |
 
-Van een jurist staat er in de graaf niets: de actor, de beslissingen en het auditspoor blijven in
-Postgres. De graaf heeft geen authenticatie, dus hoort daar geen persoonsgegeven in.
+Van een jurist staat er in de graaf geen persoonsgegeven: zijn beoordelingen staan er als soort,
+tijdstip en klassewissel, maar de actor, vrije commentaartekst en het volledige auditspoor blijven in
+Postgres. De graaf heeft geen authenticatie.
 
-## Het model
+## Het model (projectieschema 3)
+
+Sinds 25 sep 2026 (plan herkomst PR 3b) draagt een laag alles wat Postgres over een markering weet
+en geen persoon is. `jas:schemaVersie` is 3; het register draagt `jas:versie 3`, en na een
+schemawijziging projecteert de reconcile-lus alle lagen opnieuw.
 
 | node | typen | draagt |
 |---|---|---|
-| laag | `jas:AnnotatieLaag` | `jas:laagId`, `jas:revisie`, `jas:status`, `jas:schemaVersie` (2), `jas:bepaling` → de bronnode |
-| markering | `jas:Markering` | `jas:inLaag` → de laag, `jas:elementId`, `jas:klasseNaam`, `jas:lifecycle`, `jas:verouderd`, `jas:tekst` (het letterlijke fragment), `jas:toelichting`, `oa:hasBody`, `oa:hasTarget` (één per anker) |
-| body | `oa:TextualBody` | `rdf:value` – de toelichting van de annotator |
-| doel | `oa:SpecificResource` | `oa:hasSource` → de bronnode, `jas:volgorde` (het hoeveelste anker), `jas:bronHash`, `jas:snapshotId`, `oa:hasSelector` |
-| positie | `oa:TextPositionSelector` | `oa:start`, `oa:end` – **Unicode-codepunten binnen de eigen tekst van die bronnode**, niet binnen het artikel |
-| citaat | `oa:TextQuoteSelector` | `oa:exact` – het letterlijke fragment |
+| laag | `jas:AnnotatieLaag` | `jas:laagId`, `jas:revisie`, `jas:status`, `jas:schemaVersie` (3), `jas:snapshotId`, `jas:bepaling` → de bronnode, `jas:dekking` (per bronnode) |
+| markering | `jas:Markering`, `oa:Annotation` | `jas:inLaag`, `jas:elementId`, `jas:klasse` → concept in de vocabulaire, `jas:klasseNaam`, `jas:lifecycle`, `jas:verouderd`, `jas:tekst`, `jas:toelichting`, `jas:herkomst` (agent/mens), `jas:aandacht`, `jas:subtype`, `oa:motivatedBy oa:classifying`, `oa:hasBody` (tekst én klasse-concept), `oa:hasTarget` (één per anker), `jas:alternatief`, `jas:grensoptie`, `jas:beoordeling`, `prov:wasGeneratedBy` |
+| body | `oa:TextualBody` | `rdf:value` – de toelichting |
+| doel | `oa:SpecificResource` | `oa:hasSource` → de bronnode, `jas:volgorde`, `jas:bronHash`, `jas:snapshotId`, `oa:hasSelector` |
+| positie / citaat | `oa:TextPositionSelector` / `oa:TextQuoteSelector` | `oa:start`, `oa:end` (codepunten binnen de eigen tekst van de bronnode) / `oa:exact` |
+| alternatief | `jas:Alternatief` | `jas:klasse` → concept, `jas:klasseNaam`, `jas:reden` |
+| grensoptie | `jas:Grensoptie` | `jas:soort` (kern/zinsdeel/…), `jas:start`, `jas:eind`, `jas:bron` |
+| besluit | `prov:Activity`, `jas:Besluit` | `jas:beslistDoor` → `urn:jas-ns:besluit:*`, `jas:bewijs` → codes, `jas:regel` → regels, `jas:detector`, `jas:mogelijkeKlasse`, `jas:twijfel`, `jas:resolutieregel`, `jas:validatie`, `jas:modelvraag`, `jas:jasVersie`, `prov:wasInformedBy` → de ronde |
+| ronde | `prov:Activity`, `jas:AgentRonde` (`urn:jas:run:<hash>`) | `prov:wasAssociatedWith` → het model (`prov:SoftwareAgent`), `jas:agentVersie`, `jas:promptHash`, `jas:methodeVersie`, `jas:taalModel`, `jas:modus`, `prov:startedAtTime` |
+| beoordeling | `jas:Beoordeling` | `jas:soort` (approve/reject/heropen/comment/edit), `prov:atTime`, `jas:reden`, bij een klassewissel `jas:van`/`jas:naar` – **nooit** actor of commentaartekst |
+| dekking | `jas:Dekking` | `jas:bron`, `jas:dimensie` (`jas:naam`, `jas:stand`), `jas:ongedekt` (een `oa:SpecificResource` met selectors) |
 
 Een element met meerdere ankers draagt meerdere `oa:hasTarget`-nodes, in bronvolgorde; de eigenaar
-van de laag is de diepste gezamenlijke voorouder van die ankers.
-
-De klasse staat als **naam** in `jas:klasseNaam` (canoniek uit `api/app/jas_klassen.py`), niet als
-SKOS-concept: het v2-schema houdt de projectie opzettelijk plat, omdat de zoektool zijn kandidaten
-toch tegen Postgres verifieert.
+van de laag is de diepste gezamenlijke voorouder van die ankers. De IRI's van codes, regels en
+klassen wijzen naar de vocabulaire hieronder, zodat een SPARQL-query naast het id ook de leesbare
+naam en de H2-bron kan ophalen.
 
 **Verouderd.** Verandert de wettekst van een bronnode, dan blijven de oude markeringen staan met
 `jas:verouderd true`: het oordeel van de jurist is historie, geen afval. Een query naar de actuele
@@ -147,11 +155,9 @@ Ook aan de antwoordkant blijft het gescheiden: `check_grounding`
 (`tools/graph-qa/agent/grounding.py`) laat de resultaten van de annotatietools bewust buiten het
 bewijs voor een wetsclaim. Een annotatie is afgeleide duiding en kan een vindplaats niet dragen.
 
-**Herkomst in de graaf (optioneel).** Met `JAS_PROJECTIE_PROV=true` krijgt een element uit de
-hybride keten `prov:wasGeneratedBy` een `prov:Activity` met `prov:wasAssociatedWith
-<urn:jas:agent:pijplijn:hybrid_v1>`, `jas:beslistDoor` (regel/model/specificiteit), `jas:jasVersie`
-en de gebruikte `jas:regel`-id's. Er komen geen personen in (die blijven in Postgres) en geen
-domain/range. Standaard staat dit uit; het volledige spoor staat altijd in Postgres (`trace`).
+**Herkomst in de graaf.** Sinds schema 3 standaard (de vlag `JAS_PROJECTIE_PROV` is weg): zie de
+besluit- en ronde-nodes in de tabel hierboven. Er komen geen personen in, geen commentaartekst en geen
+domain/range; de shape `jasv:BeoordelingShape` eist dat een beoordeling geen `jas:actor` draagt.
 
 ## Structurele validatie (SHACL)
 
@@ -213,5 +219,5 @@ zodat de verificatie tegen Postgres niet te omzeilen is.
 ## Buiten scope
 
 - **Begrippen (activiteit 3)** worden hier niet geschreven.
-- **Beslissingen, audit en dekking** blijven in Postgres. De graaf draagt de uitkomst (lifecycle,
-  laagstatus), niet het spoor ernaartoe.
+- **Wie iets deed** (actor, user-id) en **vrije commentaartekst** blijven in Postgres, net als de
+  volledige audit. De graaf draagt het spoor zonder personen.

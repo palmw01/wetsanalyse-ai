@@ -195,3 +195,24 @@ async def test_een_ontbrekende_vocabulaire_is_een_afwijking(omgeving):
     nep.ds.remove_graph(nep.ds.graph(projectie.VOCABULAIRE))
     r = await controleer(shacl=False)
     assert r["vocabulaire"]["aanwezig"] is False and r["in_orde"] is False
+
+
+async def test_dekking_uit_de_batch_komt_in_de_graaf_en_de_controle_bouwt_hem_mee(monkeypatch):
+    """De projectie en de controle lezen de dekking via dezelfde `laag_invoer`; anders zou elke laag
+    met dekking als 'inhoud wijkt af' gemeld worden."""
+    db.init_engine("sqlite+aiosqlite://")
+    await db.create_all()
+    nep = installeer(monkeypatch)
+    try:
+        snap = snapshot(ONE)
+        meting = {"dimensies": {"tijd": "uitgevoerd"}, "ongedekt": [{"tekst": "Alfa", "start": 7, "eind": 11}]}
+        uit = await store.batch(request(snap, [element(snap)], dekking={"voltooid": True, "bereik": [ONE],
+                                                                     "structureel": {ONE: meting}}), snap, "a")
+        laag_id = uit["lagen"][0]["id"]
+        await _geprojecteerd((nep, snap, laag_id, uit["elementen"][0]["id"]))
+        assert list(nep.ds.graph(graph_iri(laag_id)).objects(laag_iri(laag_id), JAS.dekking))
+        r = await controleer()
+        assert r["in_orde"] is True, r
+    finally:
+        get_settings.cache_clear()
+        await db.dispose_engine()
