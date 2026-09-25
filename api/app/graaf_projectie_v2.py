@@ -524,6 +524,32 @@ async def reconcile() -> int:
     return count
 
 
+def _verwijder_statement(layer_id: str) -> str:
+    return f"""DROP SILENT GRAPH {graph_iri(layer_id).n3()};
+DELETE WHERE {{ GRAPH <{REGISTER}> {{ {laag_iri(layer_id).n3()} ?p ?o }} }}"""
+
+
+async def verwijder_projecties(laag_ids: list[str]) -> str:
+    """Haal de graphs van verwijderde lagen direct weg, na de commit in Postgres.
+
+    Best-effort: `"verwijderd"`, `"uit"` (geen graaf geconfigureerd) of `"volgt"` (GraphDB haperde;
+    de reconcile-lus ruimt verweesde projecties op). Een laag-id is een uuid die nooit terugkomt, dus
+    een nieuwe annotatie op dezelfde bepaling kan hier niet mee botsen."""
+    if not get_settings().graphdb_url:
+        return "uit"
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            for laag_id in laag_ids:
+                r = await client.post(_repo() + "/statements", data={"update": _verwijder_statement(laag_id)})
+                r.raise_for_status()
+    except (httpx.HTTPError, ConnectionError) as exc:
+        logger.warning("annotatie_v2_verwijderen_uitgesteld", extra={"fouttype": type(exc).__name__,
+                                                                     "aantal": len(laag_ids)})
+        return "volgt"
+    logger.info("annotatie_v2_projectie_verwijderd", extra={"aantal": len(laag_ids)})
+    return "verwijderd"
+
+
 async def verwijder_verweesde_projecties(limit: int = 50) -> int:
     """Ruim uitsluitend geregistreerde v2-afgeleiden zonder Postgres-laag op.
 
@@ -556,9 +582,7 @@ SELECT ?id ?laag ?g WHERE {{ GRAPH <{REGISTER}> {{
                     db.annotatie_v2_lagen.c.id == layer_id))).first()
                 if exists:
                     continue
-                statement = f'''DROP SILENT GRAPH {graph_iri(layer_id).n3()};
-DELETE WHERE {{ GRAPH <{REGISTER}> {{ {laag_iri(layer_id).n3()} ?p ?o }} }}'''
-                response = await client.post(_repo() + "/statements", data={"update": statement})
+                response = await client.post(_repo() + "/statements", data={"update": _verwijder_statement(layer_id)})
                 response.raise_for_status()
                 removed += 1
     if removed:

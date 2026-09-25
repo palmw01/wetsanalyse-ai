@@ -186,9 +186,18 @@ sidebar blijft staan**, je stapt niet uit de app.
   `app/api/annotatie/lagen` plus `…/v2/node-lagen`): één annotatie per bepaling voor iedereen, zodat
   Lex een al geannoteerde bepaling kan hergebruiken. Een kaart met een `bron_iri` opent de
   bronnode-weergave (`/annotaties/node`), de rest het oude document. *Door mij bewerkt* (`mijn=true`) beperkt tot lagen waar je zelf iets aan
-  deed – een laag heeft geen eigenaar, de api leest dat uit de audit. Een laag heeft **geen
-  verwijderknop** (de api weigert het met 403: hij draagt het werk van meerdere juristen); de kaart
-  telt de verouderde markeringen apart.
+  deed – een laag heeft geen eigenaar, de api leest dat uit de audit. De kaart telt de verouderde
+  markeringen apart. Een v1-laag per artikel heeft geen verwijderknop (403); een **bronnode-annotatie
+  wel**, in het paneel zelf – zie hieronder.
+- **Verwijderen staat naast afronden** (sinds 25 sep 2026): *Verwijderen* in de actierij van
+  `ArtefactInhoud` (`onVerwijder`, alleen als er een laag in beeld is), een `BevestigKnop` – tweede
+  klik bevestigt, zoals overal in de app. Elke gebruiker mag het, ook op een afgeronde annotatie;
+  wie het deed staat in de audit. `NodeAnnotatiePaneel.verwijder` stuurt `weergave/verwijder` met
+  de revisies in beeld (412 als iemand intussen iets wijzigde) en laadt daarna opnieuw. De api haalt
+  alle lagen van de bepaling in beeld weg – met elementen en dekking, en direct daarna uit de graaf –
+  en de weergave draagt dan `verwijderd: {op}`: het paneel zegt "Deze annotatie is verwijderd op …"
+  in plaats van leeg te zijn, ook als je hem later vanuit een oud gesprek opent. Lex annoteert zo'n
+  bepaling bij een volgende vraag gewoon opnieuw.
 - **Hergebruik en "opnieuw annoteren" staan bij de annotatie in het gesprek**
   (`HergebruikMelding`). Het `hergebruik`-event (`parseHergebruik`) zegt welke leden uit de laag
   kwamen; de melding blijft na herladen staan omdat graph-qa hem ook in het chatbericht zet

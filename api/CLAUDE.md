@@ -17,13 +17,32 @@ De API bedient acht dingen:
    canonieke bron-IRI – een artikel, een lid of een onderdeel – in plaats van bij een artikel als
    geheel, en markeringen dragen lokale ankers per bronnode. De routes zijn `weergave`, `dekking`,
    `lagen/batch`, `elementen`, `elementen/{id}/beslissing`, `lagen/{id}/status`, `zoeken`,
-   `node-lagen` en `weergave/export`. Specificatie:
+   `node-lagen`, `weergave/export` en `weergave/verwijder`. Specificatie:
    [`docs/architectuur/annotatie-bronnodes.md`](../docs/architectuur/annotatie-bronnodes.md).
 
    Node-lagen zijn **gedeeld**, niet per gebruiker: wie wat deed staat in de audit en in
    `Beslissing.actor`. Onder contract 2 weigert de api de oude, artikelbrede schrijfacties met een
    409 (`annotatie_v2_contract_guard`); de v1-lees- en exportpaden hieronder blijven bestaan voor wat
    er nog staat, en beschrijven de wereld van contract 1.
+
+   **Verwijderen mag iedereen** (`POST weergave/verwijder`, `annotatie_v2_store.verwijder_weergave`,
+   sinds 25 sep 2026): alle lagen van de bepaling in beeld (het doel en de bronnodes eronder) met hun
+   elementen, in één transactie onder het schrijfslot en met de gewone revisietoets (412). Wat erbij
+   hoort, en waarom:
+   - **De dekking gaat mee.** Anders leest Lex de bepaling bij de volgende beurt als "al geannoteerd".
+     Een dekkingsrij van een ruimere bepaling houdt haar bereik buiten deze scope en verliest
+     `voltooid`.
+   - **Een element van een ruimere laag blijft staan.** Valt het met één anker in deze bepaling, dan
+     is het daar een verwijzing, geen eigendom.
+   - **De audit blijft.** Per laag een regel `laag-verwijderd` (append-only; de eerdere regels staan
+     er nog). Daaruit leest de weergave `verwijderd: {op}`, zodat een heropend gesprek "verwijderd"
+     toont in plaats van een leeg paneel.
+   - **De graaf direct, de lus als vangnet.** Na de commit `graaf_projectie_v2.verwijder_projecties`
+     (DROP van de graph plus de registerregels); haperde GraphDB, dan meldt de respons `graaf: "volgt"`
+     en ruimt `verwijder_verweesde_projecties` de wees bij de volgende ronde op.
+   - **Geen afhankelijkheid van de brongraaf.** De route neemt de bewaarde snapshot; alleen een
+     bronstand die nooit is weggeschreven wordt opnieuw opgehaald (en geeft 409 als hij intussen
+     veranderde).
 2. **De chatgeschiedenis van de werkplek** (`/v1/gesprekken/*`): gesprekken + geordende berichten
    (`gesprek_contracts.py`/`gesprek_store.py`/`routers/gesprekken.py`). Net als het annotatie-domein
    **per-gebruiker gescopet** via de vertrouwde `X-User-Id`-header (`actieve_userid`, hergebruikt uit
