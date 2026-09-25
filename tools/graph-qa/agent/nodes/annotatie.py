@@ -78,22 +78,6 @@ def _bereid_voor(b: Bouw, state: State, writer) -> dict[str, Any]:
     return {"doel": doel, "bron": bron, "hergebruik": hergebruik, "soort": soort, "aanduiding": aanduiding}
 
 
-def _analysemelding(meting: dict[str, Any], voorstellen: int) -> str:
-    status = meting.get("per_status", {})
-    delen = [f"{meting.get('kandidaten', 0)} kandidaten", f"{meting.get('deterministisch', 0)} zonder model",
-             f"{meting.get('llm_calls', 0)} modelaanroep(en)", f"{voorstellen} voorgesteld"]
-    if status.get("HUMAN_REVIEW"):
-        delen.append(f"{status['HUMAN_REVIEW']} ter keuze aan de jurist")
-    if meting.get("gedegradeerd"):
-        delen.append(f"zonder zinsontleding voor {len(meting['gedegradeerd'])} bronnode(s)")
-    ongedekt = sum(len(b.get("ongedekt", [])) for b in (meting.get("dekking") or {}).values())
-    if ongedekt:
-        # Geen recall-claim: dit zijn zinsdelen waar geen enkele detector iets vond. De jurist
-        # hoort te weten dat die niet beoordeeld zijn, niet dat ze leeg zijn.
-        delen.append(f"{ongedekt} zinsdeel/-delen zonder kandidaat")
-    return " · ".join(delen)
-
-
 def annoteer_node(b: Bouw, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
     if state.get("annotaties_lezen"):
@@ -113,15 +97,22 @@ def annoteer_node(b: Bouw, state: State) -> dict[str, Any]:
     doel, bron, hergebruik = voorbereid["doel"], voorbereid["bron"], voorbereid["hergebruik"]
     soort, aanduiding, lid = voorbereid["soort"], voorbereid["aanduiding"], doel.get("lid", "")
     plek = aanduiding_in_woorden(aanduiding, lid, soort)
-    _stap(writer, "Detectie", f"leest {plek} ({len(bron['corpus'])} tekens)")
+    _stap(writer, "Bron", f"{plek} ({len(bron['corpus'])} tekens)")
 
     uitkomst = analyseer(
         snapshot=bron["bron_snapshot"], corpus_segmenten=bron["corpus_segmenten"], corpus=bron["corpus"],
         llm=b.llm, model=b.model, settings=b.settings, lid=lid,
         vindplaats=f"{doel.get('bwbId', '')} {plek}",
         hergebruikte_nodes=frozenset(bron.get("hergebruikte_nodes") or []),
+        melding=lambda fase, samenvatting, ms: _stap(writer, fase, samenvatting, duur_ms=ms),
     )
-    _stap(writer, "Classificatie", _analysemelding(uitkomst.meting, len(uitkomst.voorstellen)))
+    if uitkomst.meting.get("gedegradeerd"):
+        # De beurt slaagt, maar zonder zinsontleding ontbraken subject-, object- en bijzindetectie.
+        # Dat hoort de jurist te weten, niet alleen in een ingeklapte statusregel.
+        writer({"type": "waarschuwing", "message": (
+            f"De zinsontleding was niet beschikbaar voor {len(uitkomst.meting['gedegradeerd'])} "
+            "bronnode(s). Alleen vaste patronen (termijnen, bedragen, verwijzingen, formules) zijn "
+            "gezocht; onderwerpen, voorwerpen en bijzinnen kunnen ontbreken.")})
     writer({"type": "doel", "doel": doel_event(doel, bron)})
 
     analyse = {"meting": uitkomst.meting,
@@ -177,6 +168,17 @@ def emit_node(b: Bouw, state: State) -> dict[str, Any]:
         prompt_hash=promptversie(b.settings.classifier_spankeuze), methode_versie=methode_versie(),
         instellingen=_instellingen(b, state), tijd=datetime.now(timezone.utc),
     ).model_dump(mode="json")})
+
+    meting = (state.get("analyse") or {}).get("meting") or {}
+    if meting.get("dekking") is not None:
+        # Vóór de elementen: wat de keten wel en niet heeft kunnen bekijken. Vervangt de vervallen
+        # `ontbrekend`-lijst – geen gok van een model over wat mist, maar een meting van welke tekst
+        # geen enkele detector raakte. Nooit te lezen als recall.
+        writer({"type": "dekking", "dekking": {
+            "per_bron": meting["dekking"], "proces": meting.get("per_status", {}),
+            "gedegradeerd": meting.get("gedegradeerd", []), "taal_model": meting.get("taal_model", ""),
+            "fasen": meting.get("fasen", []),
+        }})
 
     ter_keuze = 0
     for v in voorstellen:

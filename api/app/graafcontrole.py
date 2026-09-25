@@ -81,6 +81,14 @@ def _verschil(verwacht: Graph, echt: Graph) -> dict[str, int]:
     return {"triples_verwacht": len(verwacht), "triples_in_graaf": len(echt)}
 
 
+def _pyshacl_aanwezig() -> bool:
+    try:
+        import pyshacl  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
 async def controleer(*, shacl: bool = True) -> dict[str, Any]:
     """Volledige controle. `shacl=False` voor de lichte variant in de reconcile-lus."""
     uit: dict[str, Any] = {"graaf_beschikbaar": False, "in_orde": None, "lagen": 0, "achterstand": [],
@@ -96,7 +104,7 @@ async def controleer(*, shacl: bool = True) -> dict[str, Any]:
             register = {r["id"]: r for r in await _select(client, _REGISTER_QUERY)}
             v2_graphs = {r["g"] for r in await _select(client, _V2_GRAPHS_QUERY)}
             uit["graaf_beschikbaar"] = True
-            shacl_uit: dict[str, Any] = {"beschikbaar": None, "conform": True, "bevindingen": []}
+            shacl_uit: dict[str, Any] = {"beschikbaar": _pyshacl_aanwezig(), "conform": True, "bevindingen": []}
             for laag in sorted(lagen, key=lambda x: x["id"]):
                 lid, rev = laag["id"], int(laag["revisie"])
                 if int(laag.get("geprojecteerd_revisie") or 0) < rev:

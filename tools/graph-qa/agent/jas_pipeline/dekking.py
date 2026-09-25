@@ -68,8 +68,9 @@ def structureel(fusie: Fusie, bronnen: list[Any], gedraaid: dict[str, set[str]])
     return per_bron
 
 
-def ongedekt(fusie: Fusie, bron: Any) -> list[str]:
-    """Zinnen en bijzinnen van deze bron waar geen enkele kandidaat mee overlapt."""
+def ongedekt(fusie: Fusie, bron: Any) -> list[dict[str, Any]]:
+    """Zinnen en bijzinnen van deze bron waar geen enkele kandidaat mee overlapt, met hun offsets
+    (codepoints binnen de bronnode), zodat de werkplek ze in de tekst kan aanwijzen."""
     spans = [(k.span.start, k.span.eind) for k in fusie.kandidaten if k.span.bron_iri == bron.bron_iri]
 
     def raak(s: int, e: int) -> bool:
@@ -81,5 +82,5 @@ def ongedekt(fusie: Fusie, bron: Any) -> list[str]:
     uit = []
     for s, e in sorted(set(delen)):
         if not raak(s, e) and bron.tekst[s:e].strip(" .,;:"):
-            uit.append(bron.tekst[s:e])
+            uit.append({"tekst": bron.tekst[s:e], "start": s, "eind": e})
     return uit

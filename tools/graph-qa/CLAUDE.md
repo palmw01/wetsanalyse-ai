@@ -597,18 +597,22 @@ niet in: een herclassificatie moet hetzelfde element treffen, anders staan er tw
 - **SSE-event-contract.** De event-types zijn het contract met de consumenten (de werkplek); wijzig
   ze bewust en gelijktijdig, en over beide wegen gelijk (`/v1/chat` én de run-events).
   Antwoordroute: `status`/`reason`/`token`/`sources`/`grounding`/`done`/`error`. Annotatie-worker:
-  `doel`/`run`/`element`/`kandidaten`/`hergebruik`/`opgeslagen`/`waarschuwing` (`ontbrekend` en
-  `suggestie` verdwenen met de Critic in ADR-001 PR 18).
+  `doel`/`run`/`dekking`/`element`/`kandidaten`/`hergebruik`/`opgeslagen`/`waarschuwing`
+  (`ontbrekend` en `suggestie` verdwenen met de Critic in ADR-001 PR 18). **`dekking`** gaat vóór de
+  elementen en zegt wat de keten wel en niet kon bekijken: per bronnode de twaalf dimensies en de
+  ongedekte zinsdelen mét offsets, de procesdekking en de fasen met hun duur. De driver legt hem vast
+  in de batch (`Dekking.structureel`/`proces`, de api toont hem in de weergave) en in het chatbericht.
   **`reason` = het denkproces** (tool-narratie, live gestreamd); **`token` = alléén het eindantwoord**
   – hou die twee gescheiden zodat de werkplek ze los kan tonen. Niet elk event is een fout:
   `waarschuwing` betekent dat de beurt slaagde maar niet alles bewaard is (zie §*De uitkomst
   vastleggen*), en dat is iets anders dan `error`.
-- **De keten meldt zich.** Elke stap stuurt een `status`-regel met zijn naam en uitkomst:
-  `Supervisor → …` / `Graaf bevragen · get_lid(BWBR…, 9, 1)` / `Hergebruik · …` / `Detectie · leest
-  …` / `Classificatie · N kandidaten, M zonder model …` / `Klaar · N elementen`. Een gedegradeerde
-  taalanalyse zegt dat in de regel – stil doorgaan wekt de indruk dat alles is gezien. De bewoording
-  zit in pure functies (`_analysemelding`, `_hergebruik_melding`, `_toolregel`) zodat hij te testen
-  is; de werkplek bewaart de reeks bij de annotatie.
+- **De keten meldt zich, per fase en met duur.** `Supervisor → …` / `Graaf bevragen · get_lid(…)` /
+  `Hergebruik · …` / `Bron · art. 9 lid 1 (N tekens)`, en dan uit `jas_pipeline.keten.analyseer`
+  (via zijn `melding`-callback): `Taalanalyse` / `Detectie` / `Besluit` / `Classificatie` / `Review`
+  / `Resultaat`, elk met `(0,4 s)` achter de regel en `duur_ms` op het event. De duur staat bewust ook
+  in de tekst: die reist als `denk` mee naar het chatbericht en is zo na herladen nog te zien. Een
+  gedegradeerde taalanalyse zegt dat in de regel én als `waarschuwing`-event – stil doorgaan wekt de
+  indruk dat alles is gezien. De fasen staan ook in `meting["fasen"]`.
 - **Eén idioom: `Actor · wat er gebeurde`.** Alle statusregels lopen via `_stap(writer, actor,
   bericht)`; een test bewaakt de vorm. Zonder die helper verzon elke node zijn eigen stijl —
   "Opgesplitst in 3 deelvragen." naast "Classificatie · 4 voorstellen", en twee verschillende teksten voor

@@ -506,3 +506,22 @@ def test_csv_provenance_draagt_het_spoor_alleen_als_het_er_is():
     from app.annotatie_v2 import _provenance
     assert _provenance({"geproduceerd_door": {"model": "m"}}) == {"model": "m"}
     assert _provenance({"geproduceerd_door": {"model": "m"}, "trace": {"x": 1}}) == {"model": "m", "trace": {"x": 1}}
+
+
+async def test_structurele_dekking_reist_mee_en_veroudert_met_de_tekst():
+    """De keten meldt per bronnode wat hij wel en niet kon bekijken; de weergave toont de recentste
+    meting die nog over déze tekst gaat – een oudere wijst met haar offsets naar tekst die er niet meer staat."""
+    snap = snapshot(ONE)
+    meting = {"dimensies": {"tijd": "uitgevoerd", "definitie": "overgeslagen"},
+              "ongedekt": [{"tekst": "Alfa", "start": 7, "eind": 11}]}
+    await store.batch(request(snap, [element(snap)], dekking={"voltooid": True, "bereik": [ONE],
+                                                              "structureel": {ONE: meting},
+                                                              "proces": {"ACCEPTED": 1}}), snap, "a")
+    view = await store.weergave(snap)
+    assert view["dekking"]["structureel"] == {ONE: meting}
+    # Andere tekst in lid 1: de oude meting geldt niet meer.
+    gewijzigd = snapshot(ONE, second="Beta")
+    for n in gewijzigd["nodes"]:
+        if n["bron_iri"] == ONE:
+            n["tekst"], n["bron_hash"] = "Iets anders", hashlib.sha256(b"Iets anders").hexdigest()
+    assert (await store.weergave(gewijzigd))["dekking"]["structureel"] == {}

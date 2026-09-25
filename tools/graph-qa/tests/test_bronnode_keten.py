@@ -320,7 +320,8 @@ def test_server_persists_node_target_and_actual_tool_trace_with_batch(monkeypatc
                                             "motivatie": "Controleer de klasse"}]
     assert saved["batch"]["batch_id"] == "r1"
     assert saved["batch"]["verwachte_revisies"] == {L1: 3}
-    assert saved["batch"]["dekking"] == {"voltooid": True, "bereik": [L1], "parent_context": True}
+    assert saved["batch"]["dekking"] == {"voltooid": True, "bereik": [L1], "parent_context": True,
+                                        "structureel": {}, "proces": {}}
     assert saved["bericht"]["annotatie_doel"]["bron_iri"] == L1
     assert saved["bericht"]["tool_executions"][0]["call_id"] == "c1"
     assert events[-1]["annotatie_doel"]["bron_iri"] == L1

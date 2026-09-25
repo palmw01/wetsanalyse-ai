@@ -51,6 +51,9 @@ class Bericht(BaseModel):
     # Lex hergebruikte (een deel van) de gedeelde annotatielaag: welke leden, en hoe ver de review
     # was. Zonder dit veld is na herladen niet meer te zien dat er niets nieuws is geannoteerd.
     hergebruik: dict = {}
+    # Wat de annotatieketen wel en niet kon bekijken (dimensies per bronnode, ongedekte zinsdelen met
+    # offsets, procesdekking, de fasen met hun duur) – zodat een heropend gesprek het nog toont.
+    dekking: dict = {}
     # Bronnode-annotatie (contract 2): de verwijzing die `annotatie_slug` voor een artikeldocument is.
     annotatie_doel: AnnotatieDoel | None = None
     # Het uitvoeringsspoor van de beurt ("Graaf geraadpleegd · N aanroepen"), ook na herladen.
@@ -91,6 +94,7 @@ class BerichtInvoer(BaseModel):
     annotatie_titel: str = ""
     ontbrekend: list[dict] = []
     hergebruik: dict = {}
+    dekking: dict = {}
     annotatie_doel: AnnotatieDoel | None = None
     # Een beurt levert er hooguit enkele tientallen; de grens is een vangnet, geen verwachting.
     tool_executions: list[dict] = Field(default_factory=list, max_length=200)

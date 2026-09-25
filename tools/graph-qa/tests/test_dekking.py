@@ -46,7 +46,9 @@ def test_b_met_parser_is_volledig_uitgevoerd():
 
 def test_ongedekt_noemt_zinsdelen_zonder_kandidaat():
     bron, _, f = _keten(NullProvider())
-    assert ongedekt(f, bron) == ["Zo is het."]
+    assert [d["tekst"] for d in ongedekt(f, bron)] == ["Zo is het."]
+    d, = ongedekt(f, bron)
+    assert bron.tekst[d["start"]:d["eind"]] == "Zo is het."
 
 
 def test_elke_detector_draagt_een_dimensie_en_elke_dimensie_bestaat():

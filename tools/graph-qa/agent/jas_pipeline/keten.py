@@ -14,6 +14,8 @@ dekkingsboekhouding (PR 10). Er valt hier nooit iets terug naar een volledige LL
 from __future__ import annotations
 
 import hashlib
+import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from functools import cache
 from typing import Any
@@ -135,16 +137,41 @@ def _verwerp(beslissingen: list[Beslissing], bevindingen) -> list[Beslissing]:
             if b.label in fout else b for b in beslissingen]
 
 
+class _Fasen:
+    """Meet de duur per fase en meldt hem – als statusregel (via `melding`) én in de meting."""
+
+    def __init__(self, melding: Callable[[str, str, int], None] | None) -> None:
+        self.melding, self.lijst, self.t = melding, [], time.perf_counter()
+
+    def klaar(self, fase: str, samenvatting: str) -> None:
+        nu = time.perf_counter()
+        ms = round((nu - self.t) * 1000)
+        self.t = nu
+        self.lijst.append({"fase": fase, "samenvatting": samenvatting, "ms": ms})
+        if self.melding is not None:
+            self.melding(fase, samenvatting, ms)
+
+
 def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]], corpus: str,
               llm: Any, model: str, settings: Any, lid: str = "", vindplaats: str = "",
-              hergebruikte_nodes: set[str] | frozenset[str] = frozenset()) -> Uitkomst:
+              hergebruikte_nodes: set[str] | frozenset[str] = frozenset(),
+              melding: Callable[[str, str, int], None] | None = None) -> Uitkomst:
+    """De hele keten. `melding(fase, samenvatting, ms)` wordt per afgeronde fase aangeroepen, zodat de
+    beurt zich per stap meldt in plaats van één regel na afloop."""
+    fasen = _Fasen(melding)
     teksten = [t for t in _bronteksten(snapshot["segmenten"], snapshot["nodes"], settings.taal_provider)
                if t.bron_iri not in hergebruikte_nodes]
+    gedegradeerd = sorted({t.bron_iri for t in teksten if t.analyse and t.analyse.gedegradeerd})
+    taal_model = next((t.analyse.model for t in teksten if t.analyse), "")
+    zinnen = sum(len(t.analyse.zinnen) for t in teksten if t.analyse)
+    fasen.klaar("Taalanalyse", (f"{taal_model or 'geen parser'}, {zinnen} zin(nen)" if not gedegradeerd
+                                else f"gedegradeerd voor {len(gedegradeerd)} bronnode(s): alleen lexicale detectoren"))
     resultaten = [r for t in teksten for r in detecteer_alles(t)]
     fusie = fuseer(resultaten)
+    detectoren = len({r.detector for r in resultaten})
+    fasen.klaar("Detectie", f"{len(fusie.kandidaten)} kandidaten uit {detectoren} detectoren")
     meting: dict[str, Any] = {"llm_calls": 0, "kandidaten": len(fusie.kandidaten),
-                              "gedegradeerd": sorted({t.bron_iri for t in teksten if t.analyse and t.analyse.gedegradeerd}),
-                              "taal_model": next((t.analyse.model for t in teksten if t.analyse), ""),
+                              "gedegradeerd": gedegradeerd, "taal_model": taal_model,
                               "classifier_prompt": promptversie(settings.classifier_spankeuze)}
 
     beslissingen: list[Beslissing] = []
@@ -155,9 +182,14 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
             naar_model.append(k)
         else:
             beslissingen.append(b)
+    fasen.klaar("Besluit", f"{len(beslissingen)} op vaste regels, {len(naar_model)} naar het model")
     for batch in batches(naar_model, settings.classifier_granulariteit):
         beslissingen += classificeer(llm, model, batch, corpus, settings.classifier_temperature, meting,
                                      spankeuze=settings.classifier_spankeuze)
+    if naar_model:
+        afgewezen = sum(b.status is CandidateStatus.REJECTED and b.door == "model" for b in beslissingen)
+        fasen.klaar("Classificatie", f"{len(naar_model)} kandidaten in {meting['llm_calls']} modelaanroep(en), "
+                                     f"{afgewezen} afgewezen")
 
     kaart = CorpusMap(corpus_segmenten)
     per_id = fusie.per_id()
@@ -185,6 +217,8 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
     te_reviewen = [t for t in twijfels if t.reden in REVIEWBAAR]
     oordelen = (beoordeel(llm, model, te_reviewen, per_label, corpus, meting)
                 if te_reviewen and settings.gerichte_review else [])
+    if twijfels:
+        fasen.klaar("Review", f"{len(twijfels)} twijfelgeval(len), {len(te_reviewen)} naar de reviewer")
     voorstellen, beslissingen, transities = los_op(
         [{**v, "_label": label_van[v["id"]]} for v in voorstellen], beslissingen, twijfels, oordelen, per_label,
         lambda k, b: _voorstel(k, b, kaart, corpus, lid, vindplaats, settings.classifier_spankeuze))
@@ -205,4 +239,9 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
     for r in resultaten:
         gedraaid.setdefault(r.bron_iri, set()).add(r.detector)
     meting["dekking"] = structureel(fusie, teksten, gedraaid)
+    ongedekt = sum(len(b["ongedekt"]) for b in meting["dekking"].values())
+    ter_keuze = meting["per_status"].get("HUMAN_REVIEW", 0)
+    fasen.klaar("Resultaat", f"{len(voorstellen)} voorgesteld" + (f", {ter_keuze} ter keuze aan de jurist" if ter_keuze else "")
+                + (f", {ongedekt} zinsdeel/-delen zonder kandidaat" if ongedekt else ""))
+    meting["fasen"] = fasen.lijst
     return Uitkomst(voorstellen, fusie, beslissingen, meting)

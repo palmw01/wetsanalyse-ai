@@ -9,14 +9,26 @@ from typing import Any
 
 from .agent_common import truncate
 
-def _stap(writer: Any, actor: str, bericht: str) -> None:
+def _duur(ms: int) -> str:
+    """`0,4 s` / `12 s` – Nederlandse notatie, zoals de werkplek hem toont."""
+    return f"{ms / 1000:.1f} s".replace(".", ",") if ms < 10_000 else f"{round(ms / 1000)} s"
+
+
+def _stap(writer: Any, actor: str, bericht: str, duur_ms: int | None = None) -> None:
     """Meld één stap in de keten: `Actor · wat er gebeurde`.
 
     Bestaat om het idioom af te dwingen. Zonder deze helper verzint elke node zijn eigen vorm – zo
     stonden er "Opgesplitst in 3 deelvragen." en "Annoteerder · 4 gegrond" naast elkaar, en waren er
     twee verschillende teksten voor dezelfde graafbevraging.
+
+    Met `duur_ms` staat de duur achter de regel (`… (0,4 s)`) én als eigen veld op het event: de
+    tekst reist als `denk` mee naar het chatbericht, dus zo blijft de duur na herladen bewaard.
     """
-    writer({"type": "status", "message": f"{actor} · {bericht}"})
+    event: dict[str, Any] = {"type": "status", "message": f"{actor} · {bericht}"}
+    if duur_ms is not None:
+        event["message"] += f" ({_duur(duur_ms)})"
+        event["duur_ms"] = duur_ms
+    writer(event)
 
 
 def _toolregel(call: dict[str, Any]) -> str:

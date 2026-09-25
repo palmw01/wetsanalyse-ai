@@ -57,6 +57,7 @@ class BeurtSchrijver:
         self.run: dict[str, Any] | None = None
         self.kandidaten: list[dict[str, Any]] = []
         self.hergebruik: dict[str, Any] = {}
+        self.dekking: dict[str, Any] = {}
         self.tekst = ""
         self.denk = ""
         self.bronnen: list[dict[str, Any]] = []
@@ -87,6 +88,8 @@ class BeurtSchrijver:
             self.kandidaten = event.get("kandidaten") or []
         elif soort == "hergebruik":
             self.hergebruik = event.get("hergebruik") or {}
+        elif soort == "dekking":
+            self.dekking = event.get("dekking") or {}
         elif soort == "tool_execution":
             self.tool_executions.append({k: v for k, v in event.items() if k != "type"})
 
@@ -261,7 +264,12 @@ async def _leg_vast(
                     "elementen": schrijver.elementen,
                     "suggesties": schrijver.suggesties,
                     "dekking": {"voltooid": not gestopt, "bereik": doel.get("bereik") or [],
-                                "parent_context": not gestopt},
+                                "parent_context": not gestopt,
+                                # Wat de keten wel en niet kon bekijken (dimensies, ongedekte
+                                # zinsdelen met offsets, procesdekking) – de api toont het in de
+                                # weergave en projecteert het naar de graaf.
+                                "structureel": schrijver.dekking.get("per_bron", {}),
+                                "proces": schrijver.dekking.get("proces", {})},
                     "run": schrijver.run or {},
                 })
             elif schrijver.volledig_hergebruikt:
@@ -324,6 +332,7 @@ async def _leg_vast(
                 "ontbrekend": schrijver.ontbrekend,
                 "denk": schrijver.denk,
                 **({"hergebruik": schrijver.hergebruik} if schrijver.hergebruik else {}),
+                **({"dekking": schrijver.dekking} if schrijver.dekking else {}),
                 **({"annotatie_doel": {"bron_iri": doel["bron_iri"],
                                        "label": doel.get("label", ""),
                                        "snapshot_id": doel["snapshot_id"]}}
