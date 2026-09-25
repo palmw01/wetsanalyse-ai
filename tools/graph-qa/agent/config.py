@@ -132,6 +132,11 @@ class Settings(BaseModel):
     # geldige classificatie, twee klassen op één fragment). Uit = die gevallen gaan zonder tweede
     # modeloordeel naar de jurist; de resolver blijft gewoon draaien.
     gerichte_review: bool = True
+    # Mag de classifier een andere grens kiezen dan de kandidaatspan (een spanoptie)? Uit sinds
+    # ADR-001 PR 17: in de A/B van 25 sep 2026 koos het model 82× een optie, 8× raak tegen de
+    # referentie – de kandidaatspan was 23× raak geweest. De grens komt uit de detector; het model
+    # classificeert. De opties blijven in het herkomstspoor.
+    classifier_spankeuze: bool = False
 
     # Correctie na de Critic: **0 = uit**, **> 0 = aan**.
     #
@@ -226,6 +231,7 @@ class Settings(BaseModel):
             "classifier_temperature": e.get("CLASSIFIER_TEMPERATURE"),
             "deterministisch_accepteren": e.get("DETERMINISTISCH_ACCEPTEREN"),
             "gerichte_review": e.get("GERICHTE_REVIEW"),
+            "classifier_spankeuze": e.get("CLASSIFIER_SPANKEUZE"),
             "critic_max_rondes": e.get("CRITIC_MAX_RONDES"),
             "grounding_correct": e.get("GROUNDING_CORRECT"),
             "prompt_caching": e.get("PROMPT_CACHING"),

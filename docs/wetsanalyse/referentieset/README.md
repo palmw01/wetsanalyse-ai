@@ -32,6 +32,11 @@ Elke casus draagt `referentie_status` (sinds 24 sep 2026; verving `status: conce
 statussen staat in [ADR-001 §13](../../architectuur/adr-001-hybride-jas-pijplijn.md). `adjudicated`
 of `gold` mag alleen met een vastgelegde `adjudicatie` (beoordelaars, datum, procedure); een test
 in graph-qa bewaakt dat.
+**Correctie 25 sep 2026:** bij RVV01 (E01), RVV02 (E04) en RVV03 (E05) wees de offset van
+"voetgangers" naar het begin van het woord "voetgangerslichten". Het fragment klopte, de plek niet.
+De offsets wijzen nu naar het zelfstandige woord in de norm. Een test in graph-qa eist sindsdien dat
+elke markering letterlijk is en op woordgrenzen ligt. Metingen van vóór die datum rekenden beide
+routes op deze drie markeringen onterecht af.
 De leesbare dossiers zijn gegenereerd uit dat bestand:
 
 ```bash

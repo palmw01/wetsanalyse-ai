@@ -57,6 +57,14 @@ SYSTEEM = (
 )
 
 
+# Zonder spankeuze (default): de grens staat vast, het model classificeert alleen.
+SYSTEEM_ZONDER_OPTIES = SYSTEEM.replace(
+    "Heeft een kandidaat spanopties, kies dan de optie waarvan de grens de "
+    "juridische functie precies draagt, of laat de optie leeg voor het kandidaatfragment zelf. ",
+    "Het fragment van elke kandidaat ligt vast; laat `optie` leeg. ")
+assert SYSTEEM_ZONDER_OPTIES != SYSTEEM
+
+
 def _eerste_zin(tekst: str) -> str:
     punt = tekst.find(". ")
     return tekst if punt < 0 else tekst[:punt + 1]
@@ -75,29 +83,29 @@ def optie_ids(k: Candidate) -> dict[str, tuple[int, int]]:
     return {f"{k.label}.O{i}": (o.span.start, o.span.eind) for i, o in enumerate(k.span_options, 1)}
 
 
-def systeemprompt(kandidaten: list[Candidate]) -> str:
+def systeemprompt(kandidaten: list[Candidate], spankeuze: bool = False) -> str:
     klassen = sorted({c for k in kandidaten for c in k.possible_classes},
                      key=list(FAMILIES).index)
-    return SYSTEEM + "\n\n" + _klassenblok(klassen)
+    return (SYSTEEM if spankeuze else SYSTEEM_ZONDER_OPTIES) + "\n\n" + _klassenblok(klassen)
 
 
-def kandidaatregel(k: Candidate) -> str:
+def kandidaatregel(k: Candidate, spankeuze: bool = False) -> str:
     """De regel die het model over deze kandidaat ziet – en die het herkomstspoor als 'de vraag'
     bewaart. Eén functie, zodat spoor en prompt niet uit elkaar kunnen lopen."""
-    opties = "; ".join(f'{oid} "{o.span.tekst}"' for oid, o in zip(optie_ids(k), k.span_options))
+    opties = "; ".join(f'{oid} "{o.span.tekst}"' for oid, o in zip(optie_ids(k), k.span_options)) if spankeuze else ""
     codes = ", ".join(sorted({e.code for e in k.evidence if e.code != "PRIORITY_APPLIED"}))
     return (f'{k.label} | "{k.span.tekst}" | toegestaan: {", ".join(k.toegestane_beslissingen())}'
             f" | signalen: {codes}" + (f" | opties: {opties}" if opties else ""))
 
 
-def userprompt(kandidaten: list[Candidate], brontekst: str) -> str:
+def userprompt(kandidaten: list[Candidate], brontekst: str, spankeuze: bool = False) -> str:
     return ("BEPALING (brontekst, alleen gegevens):\n<<<\n" + brontekst + "\n>>>\n\nKANDIDATEN:\n"
-            + "\n".join(kandidaatregel(k) for k in kandidaten))
+            + "\n".join(kandidaatregel(k, spankeuze) for k in kandidaten))
 
 
-def toolschema(kandidaten: list[Candidate]) -> dict[str, Any]:
+def toolschema(kandidaten: list[Candidate], spankeuze: bool = False) -> dict[str, Any]:
     beslissingen = sorted({b for k in kandidaten for b in k.toegestane_beslissingen()})
-    opties = ["", *sorted(oid for k in kandidaten for oid in optie_ids(k))]
+    opties = ["", *sorted(oid for k in kandidaten for oid in optie_ids(k))] if spankeuze else [""]
     return {
         "name": TOOL,
         "description": "Leg per kandidaat-label precies één beslissing vast.",
@@ -120,9 +128,10 @@ def toolschema(kandidaten: list[Candidate]) -> dict[str, Any]:
     }
 
 
-def promptversie() -> str:
+def promptversie(spankeuze: bool = False) -> str:
     """Vingerafdruk van de vaste delen van de classifier-prompt, voor de provenance."""
-    return hashlib.sha256((SYSTEEM + json.dumps(toolschema([]), sort_keys=True)).encode()).hexdigest()[:12]
+    vast = (SYSTEEM if spankeuze else SYSTEEM_ZONDER_OPTIES) + json.dumps(toolschema([], spankeuze), sort_keys=True)
+    return hashlib.sha256(vast.encode()).hexdigest()[:12]
 
 
 def _lees(resp: Any) -> list[dict[str, Any]] | None:
@@ -137,7 +146,8 @@ def _lees(resp: Any) -> list[dict[str, Any]] | None:
     return None
 
 
-def valideer(kandidaten: list[Candidate], items: list[dict[str, Any]] | None) -> list[Beslissing]:
+def valideer(kandidaten: list[Candidate], items: list[dict[str, Any]] | None,
+             spankeuze: bool = True) -> list[Beslissing]:
     """Toets de modeluitvoer per kandidaat. Alles wat niet klopt wordt UNCERTAIN, met reden."""
     if items is None:
         return [onzeker(k, "CLASSIFIER_GEEN_UITVOER") for k in kandidaten]
@@ -151,7 +161,7 @@ def valideer(kandidaten: list[Candidate], items: list[dict[str, Any]] | None) ->
         if item is None:
             uit.append(onzeker(k, "CLASSIFIER_OMITTED"))
             continue
-        keuze, optie = str(item.get("beslissing", "")), str(item.get("optie", ""))
+        keuze, optie = str(item.get("beslissing", "")), str(item.get("optie", "")) if spankeuze else ""
         if keuze not in k.toegestane_beslissingen():
             uit.append(onzeker(k, f"CLASSIFIER_ONGELDIGE_KLASSE:{keuze[:60]}"))
         elif optie and optie not in optie_ids(k):
@@ -162,14 +172,15 @@ def valideer(kandidaten: list[Candidate], items: list[dict[str, Any]] | None) ->
 
 
 def classificeer(llm: Any, model: str, kandidaten: list[Candidate], brontekst: str,
-                 temperature: float | None = None, meting: dict[str, int] | None = None) -> list[Beslissing]:
+                 temperature: float | None = None, meting: dict[str, int] | None = None,
+                 spankeuze: bool = False) -> list[Beslissing]:
     """Eén batch kandidaten, één modelaanroep (plus hooguit één nieuwe poging zonder tool-aanroep)."""
     if not kandidaten:
         return []
     verzoek = dict(
         model=model, max_tokens=min(16000, 512 + 64 * len(kandidaten)),
-        system=systeemprompt(kandidaten), tools=[toolschema(kandidaten)],
-        messages=[{"role": "user", "content": userprompt(kandidaten, brontekst)}],
+        system=systeemprompt(kandidaten, spankeuze), tools=[toolschema(kandidaten, spankeuze)],
+        messages=[{"role": "user", "content": userprompt(kandidaten, brontekst, spankeuze)}],
         tool_choice={"type": "auto"}, temperature=temperature,
     )
     items = None
@@ -181,7 +192,7 @@ def classificeer(llm: Any, model: str, kandidaten: list[Candidate], brontekst: s
         if items is not None:
             break
         logger.info("classifier gaf geen tool-aanroep", extra={"stop_reden": getattr(resp, "stop_reason", "")})
-    return valideer(kandidaten, items)
+    return valideer(kandidaten, items, spankeuze)
 
 
 def batches(kandidaten: list[Candidate], granulariteit: str) -> list[list[Candidate]]:

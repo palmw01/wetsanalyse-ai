@@ -120,3 +120,9 @@ def test_ankerdekking_zakt_niet_onder_de_gemeten_vloer(parser):
     m = meet()
     assert m["candidate_recall"] >= 0.80, m["per_klasse"]
     assert m["kandidaten_per_referentie"] <= 5.0, "kandidaatexplosie"
+
+
+def test_of_binnen_een_naamwoordgroep_is_geen_operator(parser):
+    """PR 17 (Operator-F1 26% in de A/B): 'verplichting of onthouden aanspraak' verbindt woorden, geen zinsdelen."""
+    t = "een door een bestuursorgaan wegens een overtreding opgelegde verplichting of onthouden aanspraak;"
+    assert LogischeOperatorDetector().detecteer(_bron(t, parser)).kandidaten == ()

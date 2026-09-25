@@ -300,7 +300,7 @@ class NominalisatieDetector:
 class LogischeOperatorDetector:
     REGELS: tuple[str, ...] = ("jas.operator.nevenschikking", "jas.operator.negatie")
     naam = "logisch"
-    versie = "1"
+    versie = "2"                         # 2: geen nevenschikking binnen een naamwoordgroep (PR 17)
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         a, reden = _parse_of_reden(bron)
@@ -311,8 +311,16 @@ class LogischeOperatorDetector:
             laag = t.tekst.lower()
             kop = a.tokens[t.head] if t.head >= 0 else None
             # 'en'/'of' tussen (bij)zinnen of predicaten – niet tussen woorden in één naamwoordgroep.
-            clause = kop is not None and (kop.upos in {"VERB", "AUX"} or any(
-                a.tokens[k].deprel in _ONDERWERP for k in a.kinderen(kop.i)))
+            # Een logische operator verbindt zinsdelen (voorwaarden, normen), geen woorden binnen één
+            # naamwoordgroep ("een verplichting of onthouden aanspraak"; profiel Operator,
+            # negative_patterns). Het tweede conjunct moet dus een eigen zin zijn – met een eigen
+            # onderwerp of als persoonsvorm – én het eerste conjunct moet zelf werkwoordelijk zijn.
+            clause = False
+            if kop is not None and kop.head >= 0:
+                eerste = a.tokens[kop.head]
+                eigen_zin = (any(a.tokens[k].deprel in _ONDERWERP for k in a.kinderen(kop.i))
+                             or kop.feat("VerbForm") == "Fin")
+                clause = kop.deprel == "conj" and eerste.upos in {"VERB", "AUX", "ADJ"} and eigen_zin
             if t.deprel == "cc" and laag in {"en", "of"} and clause:
                 regel, code = "jas.operator.nevenschikking", "CLAUSE_COORDINATION"
             elif laag in {"niet", "geen"} and t.deprel in {"advmod", "det"} and kop is not None \
