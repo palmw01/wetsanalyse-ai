@@ -282,7 +282,7 @@ class BijzinDetector:
 class NominalisatieDetector:
     REGELS: tuple[str, ...] = ("jas.feit.nominalisatie_van",)
     naam = "nominalisatie"
-    versie = "1"
+    versie = "2"  # infinitieftak vereist Inf; 'het bepaalde' (Part) is geen infinitief
     _AAN_DE_RAND = {"case", "cc", "advmod", "mark", "punct"}
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
@@ -292,7 +292,7 @@ class NominalisatieDetector:
         kandidaten = []
         for t in a.tokens:
             kinderen = a.kinderen(t.i)
-            infinitief = t.upos == "VERB" and any(a.tokens[k].deprel == "det" and a.tokens[k].tekst.lower() == "het"
+            infinitief = t.upos == "VERB" and t.feat("VerbForm") == "Inf" and any(a.tokens[k].deprel == "det" and a.tokens[k].tekst.lower() == "het"
                                                   for k in kinderen)
             handeling = (t.upos == "NOUN" and t.tekst.lower().endswith("ing")
                          and any(a.tokens[k].deprel == "nmod" for k in kinderen))

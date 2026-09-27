@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from agent.jas_pipeline.detectoren import BronTekst, detecteer_alles
-from agent.jas_pipeline.detectoren.syntactisch import BijzinDetector
+from agent.jas_pipeline.detectoren.syntactisch import BijzinDetector, NominalisatieDetector
 from agent.jas_pipeline.taal import SpacyProvider
 
 CASES = {c["id"]: c for c in json.loads((Path(__file__).parent / "fixtures/detector_audit_diagnostiek.json").read_text())}
@@ -63,3 +63,14 @@ def test_t4_elliptische_vergelijking_is_geen_voorwaarde(parser):
 ])
 def test_als_contexten(parser, tekst, positief):
     assert bool(voorwaarden(tekst, parser)) is positief
+
+
+@pytest.mark.parametrize("cid", ["IW02", "IW03", "WZT04"])
+def test_nominalisatie_infinitieftak_verwart_deelwoord_niet_met_infinitief(parser, cid):
+    from eval.taal_benchmark import ontwikkelcasussen
+    tekst = next(c["tekst"] for c in ontwikkelcasussen() if c["id"] == cid)
+    a = parser.analyseer(tekst)
+    token = next(t for t in a.tokens if t.tekst == "bepaalde")
+    assert token.feat("VerbForm") == "Part", "de regressie betreft de waargenomen deelwoordparse"
+    ks = NominalisatieDetector().detecteer(BronTekst.van_tekst(cid, tekst, analyse=a)).kandidaten
+    assert not any(e.detail == "bepaalde" for k in ks for e in k.evidence)

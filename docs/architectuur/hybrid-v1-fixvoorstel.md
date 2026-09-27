@@ -20,3 +20,16 @@ correctie een predicaatvereiste voor de als-bijzin: de eigen subboom moet VERB/A
 (inclusief een koppelwerkwoord bij een nominale kop). Dit sluit beide aangetoonde nominale
 fragmenten uit, zonder een contextuele vergelijkingsclassifier te introduceren. Vergelijkingen
 met een eigen werkwoord en elliptische voorwaarden blijven een expliciete beperking.
+
+## Aanvullend voorstel na grammaticale controle, vóór implementatie
+
+**F04 — P1 — IMPLEMENTATION_BUG — FIX_BEFORE_BASELINE (A/B).**
+De als `infinitief` benoemde tak in NominalisatieDetector neemt ieder VERB met lidwoord `het`.
+De bestaande ontwikkelteksten IW02, IW03 en WZT04 leveren daardoor `het bepaalde …` als
+NOMINALIZED_ACTION, terwijl spaCy expliciet `VerbForm=Part` rapporteert. De eigen bedoelde
+grammaticale conditie wordt dus niet getoetst. Minimale fix: vereis `VerbForm=Inf` in die tak;
+behoud de aparte NOUN/-ing-tak en juridische alternatieven. Bestanden: syntactische detector
+en regressietest. Risico: parsers zonder Inf-feature verliezen deze detectie; freeze geldt
+voor het vastgelegde spaCy-model. Verwacht: drie kandidaten minder, zonder verlies van
+provisional referentieankers; dit wordt gemeten, niet aangenomen. Regressie: alle drie bestaande
+teksten, plus behoud van `het indienen van een bezwaarschrift`.
