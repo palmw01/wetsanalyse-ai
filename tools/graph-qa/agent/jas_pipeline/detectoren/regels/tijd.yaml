@@ -16,10 +16,12 @@
   klassen: [Tijdsaanduiding]
   code: TEMPORAL_DURATION
   bron: "H2:109"
-  versie: 1
+  versie: 2
   patroon: '\b{TELWOORD}\s+{PERIODE}\b'
   links: '\b(?:binnen|gedurende|na|voor|vóór|uiterlijk|ten minste|ten hoogste|een termijn van|de periode van)\s+'
-  rechts: '\s+(?:na|vóór|voor|vanaf|te rekenen vanaf|nadat|voordat)\s+[^,.;:]+'
+  # T3/IW art. 9 lid 5: de distributieve vervolgbepaling is geen startgebeurtenis.
+  # Geen algemene stop op "en": "na de verzending en de bekendmaking" blijft heel.
+  rechts: '\s+(?:na|vóór|voor|vanaf|te rekenen vanaf|nadat|voordat)\s+(?:(?!\s+en\s+(?:elk|ieder)\s+van\b)[^,.;:])+'
   tests:
     positief: [{tekst: "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.", span: "zes weken na de dagtekening van het aanslagbiljet"}]
     negatief: [{tekst: "de eerste van de twee bestuurders", span: "twee bestuurders"}]

@@ -13,3 +13,10 @@ zij zijn geen uitbreiding van de provisional of adjudicated referentieset.
 Alle overige voorstellen worden in de volledige audit geclassificeerd. Generic NP,
 Rechtsfeit-alternatieven, bewijssterkte, relationele frames en geplande detectorregels worden
 niet op basis van theoretisch nut ingevoerd. Er worden geen verse modelruns gedaan.
+
+Reproductie F02: ook het reeds bestaande negatieve profielvoorbeeld `Hij treedt op als
+bestuurder van het lichaam` krijgt met spaCy `mark` + `advcl`. Daarom wordt de minimale
+correctie een predicaatvereiste voor de als-bijzin: de eigen subboom moet VERB/AUX bevatten
+(inclusief een koppelwerkwoord bij een nominale kop). Dit sluit beide aangetoonde nominale
+fragmenten uit, zonder een contextuele vergelijkingsclassifier te introduceren. Vergelijkingen
+met een eigen werkwoord en elliptische voorwaarden blijven een expliciete beperking.

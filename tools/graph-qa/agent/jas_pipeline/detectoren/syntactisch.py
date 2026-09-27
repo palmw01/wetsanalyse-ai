@@ -243,7 +243,7 @@ class NaamwoordgroepDetector:
 class BijzinDetector:
     REGELS: tuple[str, ...] = ("jas.voorwaarde.als_bijzin", "jas.voorwaarde.beperkende_bijzin")
     naam = "bijzin"
-    versie = "1"
+    versie = "2"  # alleen een als-clause met eigen predicatie; T4 C037 / profiel negatieve gevallen
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         a, reden = _parse_of_reden(bron)
@@ -252,10 +252,13 @@ class BijzinDetector:
         kandidaten = []
         for t in a.tokens:
             kinderen = a.kinderen(t.i)
-            # 'als' als inleider van een bijzin; 'als bedoeld in' en 'als bestuurder' hebben geen mark.
+            # Ook vergelijkend 'als dat van …' en 'als bestuurder' kunnen mark + advcl krijgen.
+            # Een nominale groep zonder werkwoordelijke predicatie is nog geen conditionele bijzin.
             als = next((a.tokens[k] for k in kinderen if a.tokens[k].deprel == "mark"
                         and a.tokens[k].tekst.lower() == "als"), None)
-            if t.deprel in _BIJZIN and als is not None and not _in_verwijzing(bron, als.start, als.eind):
+            eigen_predicaat = any(a.tokens[i].upos in {"VERB", "AUX"} for i in a.subboom(t.i)) if als else False
+            if t.deprel in _BIJZIN and als is not None and eigen_predicaat \
+                    and not _in_verwijzing(bron, als.start, als.eind):
                 g = _bereik(a, a.subboom(t.i))
                 if g:
                     kandidaten.append(_kandidaat(bron, [(g, "bijzin")], [VW], [Evidence(
