@@ -1,0 +1,82 @@
+[
+  {
+    "id": "IW-D2",
+    "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:5",
+    "tekst": "In afwijking van het eerste lid is een voorlopige aanslag in de inkomstenbelasting of in de vennootschapsbelasting en een voorlopige conserverende aanslag in de inkomstenbelasting, waarvan het aanslagbiljet een dagtekening heeft die ligt in het jaar waarover deze is vastgesteld, invorderbaar in zoveel gelijke termijnen als er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven. De eerste termijn vervalt één maand na de dagtekening van het aanslagbiljet en elk van de volgende termijnen telkens een maand later. Indien de toepassing van de eerste volzin niet leidt tot meer dan één termijn, vindt het eerste lid toepassing.",
+    "bron_sha256": "11aab4fb73f10380f88b3db884976396773f0fd9b40bcda37fe8140dadf2943d",
+    "export_bestand": "annotatie (2).json",
+    "export_sha256": "91d9cc4534584b1ea436933e4682737ade0dde4d85aff5bf3ff48a29ae91c780",
+    "export_datum": "2026-09-25T12:33:11.207756+00:00",
+    "status": "diagnostisch_geen_referentie",
+    "historische_detectorbevindingen": [
+      {
+        "id": "K202c80df667f",
+        "span": {
+          "eind": 567,
+          "start": 461,
+          "tekst": "één maand na de dagtekening van het aanslagbiljet en elk van de volgende termijnen telkens een maand later",
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:5",
+          "bron_hash": "11aab4fb73f10380f88b3db884976396773f0fd9b40bcda37fe8140dadf2943d"
+        },
+        "label": "C024",
+        "bewijs": [
+          {
+            "code": "TEMPORAL_DURATION",
+            "regel": "jas.tijd.duur",
+            "detail": "één maand",
+            "relatie": "",
+            "detector": "tijd"
+          }
+        ],
+        "spanopties": [
+          {
+            "eind": 470,
+            "soort": "kern",
+            "start": 461
+          }
+        ],
+        "gedegradeerd": false,
+        "mogelijke_klassen": [
+          "Tijdsaanduiding"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "LI-D3",
+    "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5",
+    "tekst": "Als de betalingstermijn van een aanslag is gesteld op één maand of is gesteld op zes weken, dan houdt dat in dat als de dagtekening van een aanslagbiljet valt op 31 oktober, de betalingstermijn van één maand vervalt op 30 november en de betalingstermijn van zes weken vervalt op 12 december. Als de dagtekening 28 februari is, dan vervalt de betalingstermijn van een maand op 31 maart en de betalingstermijn van zes weken op 11 april, tenzij het jaartal aangeeft dat het een schrikkeljaar is, in welk geval de termijn vervalt op 28 maart dan wel 10 april. Als de dagtekening van het aanslagbiljet valt op een andere dag dan de laatste dag van de kalendermaand, vervalt de termijn een maand later (bij een betalingstermijn van een maand) op de dag die hetzelfde nummer heeft als dat van de dagtekening. Als de dagtekening bijvoorbeeld 15 maart is, vervalt de termijn dus op 15 april. Is de betalingstermijn zes weken en is de dagtekening 15 maart, vervalt de termijn op 26 april.",
+    "bron_sha256": "726e8826e0208095b2858a1f7779faca91d7dc7aa2548cd2318fc8f2419fdfbf",
+    "export_bestand": "annotatie (3).json",
+    "export_sha256": "50bfd12b5af598a44463493ff77226caf3305a484a0796ce643e1e18c03b21a5",
+    "export_datum": "2026-09-25T12:52:39.441349+00:00",
+    "status": "diagnostisch_geen_referentie",
+    "historische_detectorbevindingen": [
+      {
+        "id": "K4ae89e1ef59f",
+        "span": {
+          "eind": 800,
+          "start": 774,
+          "tekst": "als dat van de dagtekening",
+          "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5",
+          "bron_hash": "726e8826e0208095b2858a1f7779faca91d7dc7aa2548cd2318fc8f2419fdfbf"
+        },
+        "label": "C037",
+        "bewijs": [
+          {
+            "code": "CONDITIONAL_CLAUSE",
+            "regel": "jas.voorwaarde.als_bijzin",
+            "detail": "als",
+            "relatie": "advcl",
+            "detector": "bijzin"
+          }
+        ],
+        "spanopties": [],
+        "gedegradeerd": false,
+        "mogelijke_klassen": [
+          "Voorwaarde"
+        ]
+      }
+    ]
+  }
+]
