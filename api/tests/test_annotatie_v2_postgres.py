@@ -50,6 +50,12 @@ async def test_concurrent_retry_commits_once():
         assert len((await conn.execute(select(db.annotatie_v2_audit))).all()) == 2
 
 
+async def test_detectiebijdragen_en_afwijzingen_overleven_postgres_roundtrip():
+    # Dezelfde contractcontrole als SQLite, nu met de echte JSON-opslag van PostgreSQL.
+    from test_annotatie_v2 import test_afgewezen_kandidaten_zijn_na_de_batch_terug_te_lezen as controle
+    await controle()
+
+
 async def test_concurrent_same_node_revision_conflict_without_lost_update():
     snap = snapshot(ONE)
     a = request(snap, [element(snap)], batch_id="a")
