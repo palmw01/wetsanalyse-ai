@@ -120,7 +120,7 @@ def annoteer_node(b: Bouw, state: State) -> dict[str, Any]:
                # Per kandidaat de uitkomst, óók als die "niets" was (validatieplan V4). Reist met de
                # dekking mee naar de batch; zie `jas_pipeline/beslisregister.py`.
                "beslissingen": beslisregister(uitkomst.fusie.kandidaten, uitkomst.beslissingen,
-                                              uitkomst.voorstellen),
+                                              uitkomst.voorstellen, uitkomst.fusie.bijdragen),
                "detectoren": [list(d) for d in uitkomst.fusie.detectoren],
                "overgeslagen": [o.model_dump() for o in uitkomst.fusie.overgeslagen]}
     if not uitkomst.voorstellen:

@@ -61,6 +61,9 @@ class KandidaatBeslissing(BaseModel):
     detectoren: list[str] = Field(default_factory=list, max_length=20)
     opties: list[list[int]] = Field(default_factory=list, max_length=20)   # spanopties als [start, eind]
     bewijs_fingerprint: str = Field(default="", max_length=64)
+    # Additieve diagnostiek vóór fusie; oude batches missen dit veld. Geen RDF-projectie
+    # of beslisinput. De batch-audit bewaart ook bijdragen van afgewezen kandidaten.
+    detectiebijdragen: list[dict] = Field(default_factory=list, max_length=100)
     status: Literal["ACCEPTED", "REJECTED", "UNCERTAIN", "HUMAN_REVIEW", "UNHANDLED"]
     door: str = Field(default="", max_length=20)
     klasse: str = ""

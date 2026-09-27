@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict
 
-from .kandidaten import Candidate, DetectorResult, label_kandidaten
+from .kandidaten import Candidate, DetectieBijdrage, DetectorResult, label_kandidaten
 
 
 class Relatie(BaseModel):
@@ -44,6 +44,7 @@ class Fusie(BaseModel):
     relaties: tuple[Relatie, ...] = ()
     overgeslagen: tuple[Overgeslagen, ...] = ()
     detectoren: tuple[tuple[str, str], ...] = ()      # (naam, versie), voor de provenance
+    bijdragen: tuple[DetectieBijdrage, ...] = ()     # uitsluitend diagnostiek, vóór fusie/specificiteit
 
     def per_id(self) -> dict[str, Candidate]:
         return {k.id: k for k in self.kandidaten}
@@ -98,4 +99,6 @@ def fuseer(resultaten: list[DetectorResult]) -> Fusie:
         overgeslagen=tuple(Overgeslagen(detector=r.detector, bron_iri=r.bron_iri, reden=r.reden)
                            for r in resultaten if r.overgeslagen),
         detectoren=tuple(sorted({(r.detector, r.versie) for r in resultaten})),
+        bijdragen=tuple(b for r in resultaten for b in (
+            r.bijdragen or tuple(DetectieBijdrage.van(k, r.detector, r.versie) for k in r.kandidaten))),
     )

@@ -45,6 +45,7 @@ def test_register_bevat_elke_kandidaat_ook_de_afgewezen():
     contract = [b for b in register if b["classifier_reden"].startswith("CLASSIFIER_ONGELDIGE_KLASSE")]
     assert contract and all(not b["reden"].startswith("CLASSIFIER_") for b in contract)
     assert all(b["bewijs_fingerprint"] and b["bron_iri"] and b["eind"] > b["start"] for b in register)
+    assert all(b["detectiebijdragen"] for b in register)
 
 
 def test_register_is_deterministisch_over_runs():

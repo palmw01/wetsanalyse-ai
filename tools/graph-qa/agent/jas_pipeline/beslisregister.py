@@ -23,7 +23,7 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
-from .kandidaten import Candidate
+from .kandidaten import Candidate, DetectieBijdrage
 
 
 def fingerprint(k: Candidate) -> str:
@@ -41,9 +41,12 @@ def vervallen(k: Candidate) -> list[str]:
 
 
 def compact(kandidaten: list[Candidate] | tuple[Candidate, ...], beslissingen: list[Any],
-            voorstellen: list[dict[str, Any]]) -> list[dict[str, Any]]:
+            voorstellen: list[dict[str, Any]], bijdragen: tuple[DetectieBijdrage, ...] = ()) -> list[dict[str, Any]]:
     """Eén regel per kandidaat die een beslissing kreeg, in labelvolgorde."""
     per_label = {k.label: k for k in kandidaten}
+    bijdragen_per_id: dict[str, list[dict[str, Any]]] = {}
+    for bijdrage in bijdragen:
+        bijdragen_per_id.setdefault(bijdrage.kandidaat_id, []).append(bijdrage.model_dump(mode="json"))
     twijfel = {}
     for v in voorstellen:
         spoor = v.get("trace") or {}
@@ -64,6 +67,7 @@ def compact(kandidaten: list[Candidate] | tuple[Candidate, ...], beslissingen: l
             "detectoren": sorted({e.detector for e in k.evidence if e.code != "PRIORITY_APPLIED"}),
             "opties": [[o.span.start, o.span.eind] for o in k.span_options],
             "bewijs_fingerprint": fingerprint(k),
+            "detectiebijdragen": bijdragen_per_id.get(k.id, []),
             "status": b.status.value, "door": b.door, "klasse": b.klasse, "reden": b.reden,
             "classifier_reden": twijfel.get(b.label, b.reden if b.reden.startswith("CLASSIFIER_") else ""),
         })
