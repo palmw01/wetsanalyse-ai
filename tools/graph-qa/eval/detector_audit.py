@@ -141,6 +141,7 @@ def meet():
             "scenario": {s: scenario(rs, s) for s in ("S0", "S1", "S2")},
             "classifier_input_sha256": sha(json.dumps(payload, ensure_ascii=False, sort_keys=True).encode()),
             "parse_sha256": sha(repr(a).encode()),
+            "detectiebijdragen": [b.model_dump(mode="json") for b in getattr(f, "bijdragen", ())],
             "detectoren": [{"naam": r.detector, "versie": r.versie, "n": len(r.kandidaten),
                             "overgeslagen": r.overgeslagen} for r in rs]}
     ids = [c["id"] for c in cases]
@@ -157,9 +158,16 @@ def meet():
         gc = {c for x in gs for c in x["possible_classes"]}
         oc = {c for x in os for c in x["possible_classes"]}
         ocodes = {e["code"] for x in os for e in x["bewijs"]}
+        sterk_overlap = [x for x in other if x["bron"] == r["bron"] and x["id"] != r["id"]
+                        and any(e["code"] in STERK_BEWIJS for e in x["bewijs"])
+                        and x["start"] < r["eind"] and r["start"] < x["eind"]]
         s2 = next((x for x in per_case[r["bron"]]["scenario"]["S2"] if x["id"] == r["id"]), None)
         details.append({"id": r["id"], "bron": r["bron"], "tekst": r["tekst"],
                         "ook_andere_detector": bool(os), "ook_sterk_bewijs": bool(ocodes & STERK_BEWIJS),
+                        "sterke_overlap_andere_grens": [
+                            {"id": x["id"], "relatie": "binnen_sterk" if x["start"] <= r["start"] and r["eind"] <= x["eind"]
+                             else "bevat_sterk" if r["start"] <= x["start"] and x["eind"] <= r["eind"] else "overlap"}
+                            for x in sterk_overlap],
                         "toegevoegde_klassen_voor_specificiteit": sorted(gc - oc),
                         "toegevoegde_klassen_na_specificiteit": sorted(set(r["possible_classes"]) -
                             set(s2["possible_classes"] if s2 else [])),
@@ -177,6 +185,7 @@ def meet():
         "schema_versie": 1, "git_sha": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
         "python": platform.python_version(), "spacy": importlib.metadata.version("spacy"), "taalmodel": provider.model,
         "referentie_status": status, "ontwikkeling": ids, "diagnostiek": [c["id"] for c in diagnostiek],
+        "referentieankers": refs,
         "config": {"deterministisch_accepteren": True, "classifier_granulariteit": "universeel",
                    "classifier_spankeuze": False, "modelaanroepen": 0},
         "hashes": {str(p.relative_to(ROOT)): sha(p.read_bytes()) for p in sorted(bestanden)},

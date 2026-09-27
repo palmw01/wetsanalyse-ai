@@ -121,6 +121,28 @@ class Candidate(_Vast):
         return (*self.possible_classes, GEEN_ANNOTATIE)
 
 
+class DetectieBijdrage(_Vast):
+    """Diagnostische opname vóór samenvoeging, geen zelfstandig juridisch oordeel.
+
+    De bewijsstukken ondersteunen gezamenlijk de aangeboden klassen; dit model beweert
+    geen één-op-één relatie binnen die bijdrage. Declaratieve regels bewaren elk hun eigen
+    bijdrage voordat RegelDetector ze op dezelfde span samenvoegt.
+    """
+
+    kandidaat_id: str
+    detector: str
+    versie: str
+    regel_versie: str = ""
+    mogelijke_klassen: tuple[str, ...]
+    bewijs: tuple[Evidence, ...]
+    opties: tuple[SpanOption, ...] = ()
+
+    @classmethod
+    def van(cls, k: Candidate, detector: str, versie: str, regel_versie: str = "") -> DetectieBijdrage:
+        return cls(kandidaat_id=k.id, detector=detector, versie=versie, regel_versie=regel_versie,
+                   mogelijke_klassen=k.possible_classes, bewijs=k.evidence, opties=k.span_options)
+
+
 class DetectorResult(_Vast):
     """De opbrengst van één detector op één bronnode, inclusief wat hij níet kon."""
 
@@ -130,6 +152,7 @@ class DetectorResult(_Vast):
     kandidaten: tuple[Candidate, ...] = ()
     overgeslagen: bool = False         # draaide niet (bv. geen parse beschikbaar)
     reden: str = ""                    # waarom overgeslagen of gedegradeerd
+    bijdragen: tuple[DetectieBijdrage, ...] = ()  # optioneel, vóór interne regelmerge
 
 
 def label_kandidaten(kandidaten: list[Candidate] | tuple[Candidate, ...]) -> tuple[Candidate, ...]:

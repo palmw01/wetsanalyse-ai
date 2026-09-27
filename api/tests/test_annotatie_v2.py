@@ -496,7 +496,10 @@ async def test_afgewezen_kandidaten_zijn_na_de_batch_terug_te_lezen():
          "status": "ACCEPTED", "door": "model", "klasse": "Rechtssubject"},
         {"kandidaat_id": "Kb", "label": "C002", "bron_iri": ONE, "start": 7, "eind": 11,
          "mogelijke_klassen": ["Tijdsaanduiding"], "bewijs": ["TEMPORAL_DATE"], "bewijs_fingerprint": "f2",
-         "status": "REJECTED", "door": "model", "reden": "geen annotatie"},
+         "status": "REJECTED", "door": "model", "reden": "geen annotatie",
+         "detectiebijdragen": [{"kandidaat_id": "Kb", "detector": "tijd", "versie": "1",
+                               "regel_versie": "1", "mogelijke_klassen": ["Tijdsaanduiding"],
+                               "bewijs": [{"code": "TEMPORAL_DATE", "regel": "jas.tijd.datum"}], "opties": []}]},
         {"kandidaat_id": "Kc", "label": "C003", "bron_iri": ONE, "start": 2, "eind": 11,
          "mogelijke_klassen": ["Rechtsobject"], "vervallen": ["Variabele en variabelewaarde"],
          "bewijs": ["OBJECT_NP"], "status": "HUMAN_REVIEW", "door": "model", "klasse": "Rechtsobject",
@@ -509,6 +512,8 @@ async def test_afgewezen_kandidaten_zijn_na_de_batch_terug_te_lezen():
     terug = {b["label"]: b for b in batch["detail"]["beslissingen"]}
     assert set(terug) == {"C001", "C002", "C003"}
     assert terug["C002"]["status"] == "REJECTED" and terug["C002"]["bewijs"] == ["TEMPORAL_DATE"]
+    assert terug["C002"]["detectiebijdragen"] == register[1]["detectiebijdragen"]
+    assert terug["C001"]["detectiebijdragen"] == []  # oude registers blijven geldig
     assert terug["C003"]["classifier_reden"].startswith("CLASSIFIER_ONGELDIGE_KLASSE")
     assert len(view["elementen"]) == 1          # het register maakt geen elementen
 

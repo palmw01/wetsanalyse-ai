@@ -29,7 +29,7 @@ from typing import Any
 import yaml
 
 from ...jas_klassen import GELDIGE_JAS_KLASSEN
-from ..kandidaten import BronSpan, Candidate, DetectorResult, Evidence, SpanOption
+from ..kandidaten import BronSpan, Candidate, DetectieBijdrage, DetectorResult, Evidence, SpanOption
 from . import BronTekst
 
 MAP = Path(__file__).parent / "regels"
@@ -153,6 +153,7 @@ class RegelDetector:
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         masker = maskers(bron.tekst)
         kandidaten: dict[str, Candidate] = {}
+        bijdragen = []
         for regel in self.regels:
             weg = [b for naam in regel.niet_binnen for b in masker.get(naam, [])]
             for grenzen in regel.vind(bron.tekst):
@@ -164,6 +165,7 @@ class RegelDetector:
                 bewijs = Evidence(detector=self.naam, code=regel.code, regel=regel.id,
                                   detail=bron.tekst[grenzen[0][0]:grenzen[0][1]])
                 k = Candidate.maak(bron.span(*langste), regel.klassen, [bewijs], opties)
+                bijdragen.append(DetectieBijdrage.van(k, self.naam, self.versie, str(regel.versie)))
                 if k.id in kandidaten:           # zelfde span via twee regels: bewijs samenvoegen
                     oud = kandidaten[k.id]
                     k = oud.model_copy(update={
@@ -172,7 +174,7 @@ class RegelDetector:
                         "span_options": tuple(dict.fromkeys((*oud.span_options, *opties)))})
                 kandidaten[k.id] = k
         return DetectorResult(detector=self.naam, versie=self.versie, bron_iri=bron.bron_iri,
-                              kandidaten=tuple(kandidaten.values()))
+                              kandidaten=tuple(kandidaten.values()), bijdragen=tuple(bijdragen))
 
 
 @cache
