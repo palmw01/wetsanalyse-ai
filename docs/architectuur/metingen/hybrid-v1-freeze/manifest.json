@@ -1,0 +1,581 @@
+{
+  "code_sha": "3b5118670790a360f3f2e35f0536cd4d1141a2ed",
+  "basis_master": "9de992226e18514f40d96dd29ed98498e747ffe6",
+  "datum": "2026-09-27T22:46:33+02:00",
+  "python": "3.14.3",
+  "spacy": "3.8.16",
+  "spacy_model": "nl_core_news_md",
+  "spacy_model_versie": "3.8.0",
+  "agent_versie": "0.1.0",
+  "jas_versie": "1.0.10",
+  "classifier_promptversie": "97ae4ea7f557",
+  "classifier_systeem_sha256": "9cd5a7d2e1325b1ed21365643f4edb7c4a2782f29579d50517c98ff4532f9d8a",
+  "classifier_volledig_klassenblok_sha256": "de66c0f455c713de7fa890da6ad21b0b259ec809986cba9c27d0b8d8237b9482",
+  "classifier_schema_leeg_sha256": "3310c985036e9109c86dd2582f21e798766c00fe0ed37d6719dd49416b9517e4",
+  "reviewer_systeem_sha256": "688aedac74a2636275e246c3cbebd5cb455f217159acda134b1982c42b41f94f",
+  "detectoren": [
+    {
+      "naam": "afleiding",
+      "versie": "1.1.1",
+      "regels": [
+        "jas.afleiding.bedraagt",
+        "jas.afleiding.wordt_gesteld_op",
+        "jas.afleiding.fictie_vermoeden"
+      ]
+    },
+    {
+      "naam": "delegatie",
+      "versie": "1",
+      "regels": [
+        "jas.delegatie.regels_gesteld"
+      ]
+    },
+    {
+      "naam": "numeriek",
+      "versie": "1.1.1",
+      "regels": [
+        "jas.waarde.bedrag",
+        "jas.waarde.percentage",
+        "jas.waarde.veelvoud"
+      ]
+    },
+    {
+      "naam": "operator",
+      "versie": "1.1.1",
+      "regels": [
+        "jas.operator.vergelijking",
+        "jas.operator.rekenkundig",
+        "jas.operator.logisch"
+      ]
+    },
+    {
+      "naam": "plaats",
+      "versie": "1.1",
+      "regels": [
+        "jas.plaats.gazetteer",
+        "jas.plaats.gebiedsomschrijving"
+      ]
+    },
+    {
+      "naam": "subject",
+      "versie": "1",
+      "regels": [
+        "jas.subject.rollexicon"
+      ]
+    },
+    {
+      "naam": "tijd",
+      "versie": "1.2.1.1.1.1.1",
+      "regels": [
+        "jas.tijd.datum",
+        "jas.tijd.duur",
+        "jas.tijd.relatief",
+        "jas.tijd.periodewoord",
+        "jas.tijd.periode_van",
+        "jas.tijd.tijdstip",
+        "jas.tijd.bijwoord"
+      ]
+    },
+    {
+      "naam": "voorwaarde",
+      "versie": "1.1.1.1",
+      "regels": [
+        "jas.voorwaarde.voorwaardelijke_bijzin",
+        "jas.voorwaarde.vaste_inleiding",
+        "jas.voorwaarde.bijwoord",
+        "jas.voorwaarde.wegens"
+      ]
+    },
+    {
+      "naam": "definitie",
+      "versie": "1",
+      "regels": [
+        "jas.definitie.onderdeel_term_dubbelepunt",
+        "jas.definitie.verstaan_onder"
+      ]
+    },
+    {
+      "naam": "betekenis",
+      "versie": "1",
+      "regels": [
+        "jas.voorwaarde.betekenis_term"
+      ]
+    },
+    {
+      "naam": "norm",
+      "versie": "1",
+      "regels": [
+        "jas.betrekking.modaal_predicaat",
+        "jas.betrekking.vaste_uitdrukking",
+        "jas.betrekking.normatief_adjectief"
+      ]
+    },
+    {
+      "naam": "naamwoordgroep",
+      "versie": "1",
+      "regels": [
+        "jas.parameter.beschrijving",
+        "jas.variabele.uitvoer_van_afleiding",
+        "jas.variabele.eigenschap_np",
+        "jas.subject.voornaamwoord",
+        "jas.subject.rollexicon",
+        "jas.subject.np_bij_normatief_predicaat",
+        "jas.object.opsommingsonderdeel",
+        "jas.object.np_bij_normatief_predicaat"
+      ]
+    },
+    {
+      "naam": "bijzin",
+      "versie": "2",
+      "regels": [
+        "jas.voorwaarde.als_bijzin",
+        "jas.voorwaarde.beperkende_bijzin"
+      ]
+    },
+    {
+      "naam": "nominalisatie",
+      "versie": "2",
+      "regels": [
+        "jas.feit.nominalisatie_van"
+      ]
+    },
+    {
+      "naam": "logisch",
+      "versie": "2",
+      "regels": [
+        "jas.operator.nevenschikking",
+        "jas.operator.negatie"
+      ]
+    }
+  ],
+  "declaratieve_regels": [
+    {
+      "id": "jas.afleiding.bedraagt",
+      "detector": "afleiding",
+      "versie": 1,
+      "code": "CALCULATION_COPULA",
+      "klassen": [
+        "Afleidingsregel",
+        "Parameter en parameterwaarde"
+      ]
+    },
+    {
+      "id": "jas.afleiding.wordt_gesteld_op",
+      "detector": "afleiding",
+      "versie": 1,
+      "code": "CALCULATION_PASSIVE",
+      "klassen": [
+        "Afleidingsregel"
+      ]
+    },
+    {
+      "id": "jas.afleiding.fictie_vermoeden",
+      "detector": "afleiding",
+      "versie": 1,
+      "code": "LEGAL_FICTION",
+      "klassen": [
+        "Afleidingsregel"
+      ]
+    },
+    {
+      "id": "jas.delegatie.regels_gesteld",
+      "detector": "delegatie",
+      "versie": 1,
+      "code": "DELEGATION_FORMULA",
+      "klassen": [
+        "Delegatiebevoegdheid en delegatie-invulling"
+      ]
+    },
+    {
+      "id": "jas.waarde.bedrag",
+      "detector": "numeriek",
+      "versie": 1,
+      "code": "MONEY_AMOUNT",
+      "klassen": [
+        "Parameter en parameterwaarde",
+        "Variabele en variabelewaarde"
+      ]
+    },
+    {
+      "id": "jas.waarde.percentage",
+      "detector": "numeriek",
+      "versie": 1,
+      "code": "PERCENTAGE",
+      "klassen": [
+        "Parameter en parameterwaarde",
+        "Variabele en variabelewaarde"
+      ]
+    },
+    {
+      "id": "jas.waarde.veelvoud",
+      "detector": "numeriek",
+      "versie": 1,
+      "code": "MULTIPLIER",
+      "klassen": [
+        "Operator",
+        "Parameter en parameterwaarde"
+      ]
+    },
+    {
+      "id": "jas.operator.vergelijking",
+      "detector": "operator",
+      "versie": 1,
+      "code": "COMPARISON",
+      "klassen": [
+        "Operator"
+      ]
+    },
+    {
+      "id": "jas.operator.rekenkundig",
+      "detector": "operator",
+      "versie": 1,
+      "code": "ARITHMETIC",
+      "klassen": [
+        "Operator"
+      ]
+    },
+    {
+      "id": "jas.operator.logisch",
+      "detector": "operator",
+      "versie": 1,
+      "code": "LOGICAL",
+      "klassen": [
+        "Operator"
+      ]
+    },
+    {
+      "id": "jas.plaats.gazetteer",
+      "detector": "plaats",
+      "versie": 1,
+      "code": "LOCATION_NAME",
+      "klassen": [
+        "Plaatsaanduiding"
+      ]
+    },
+    {
+      "id": "jas.plaats.gebiedsomschrijving",
+      "detector": "plaats",
+      "versie": 1,
+      "code": "LOCATION_DESCRIPTION",
+      "klassen": [
+        "Plaatsaanduiding"
+      ]
+    },
+    {
+      "id": "jas.subject.rollexicon",
+      "detector": "subject",
+      "versie": 1,
+      "code": "ROLE_NOUN",
+      "klassen": [
+        "Rechtssubject",
+        "Rechtsobject"
+      ]
+    },
+    {
+      "id": "jas.tijd.datum",
+      "detector": "tijd",
+      "versie": 1,
+      "code": "TEMPORAL_DATE",
+      "klassen": [
+        "Tijdsaanduiding"
+      ]
+    },
+    {
+      "id": "jas.tijd.duur",
+      "detector": "tijd",
+      "versie": 2,
+      "code": "TEMPORAL_DURATION",
+      "klassen": [
+        "Tijdsaanduiding"
+      ]
+    },
+    {
+      "id": "jas.tijd.relatief",
+      "detector": "tijd",
+      "versie": 1,
+      "code": "TEMPORAL_RELATIVE_PERIOD",
+      "klassen": [
+        "Tijdsaanduiding"
+      ]
+    },
+    {
+      "id": "jas.tijd.periodewoord",
+      "detector": "tijd",
+      "versie": 1,
+      "code": "TEMPORAL_PERIOD_NOUN",
+      "klassen": [
+        "Tijdsaanduiding"
+      ]
+    },
+    {
+      "id": "jas.tijd.periode_van",
+      "detector": "tijd",
+      "versie": 1,
+      "code": "TEMPORAL_PERIOD_OF",
+      "klassen": [
+        "Tijdsaanduiding"
+      ]
+    },
+    {
+      "id": "jas.tijd.tijdstip",
+      "detector": "tijd",
+      "versie": 1,
+      "code": "TEMPORAL_MOMENT",
+      "klassen": [
+        "Tijdsaanduiding"
+      ]
+    },
+    {
+      "id": "jas.tijd.bijwoord",
+      "detector": "tijd",
+      "versie": 1,
+      "code": "TEMPORAL_ADVERB",
+      "klassen": [
+        "Tijdsaanduiding"
+      ]
+    },
+    {
+      "id": "jas.voorwaarde.voorwaardelijke_bijzin",
+      "detector": "voorwaarde",
+      "versie": 1,
+      "code": "CONDITIONAL_CLAUSE",
+      "klassen": [
+        "Voorwaarde"
+      ]
+    },
+    {
+      "id": "jas.voorwaarde.vaste_inleiding",
+      "detector": "voorwaarde",
+      "versie": 1,
+      "code": "CONDITIONAL_FORMULA",
+      "klassen": [
+        "Voorwaarde"
+      ]
+    },
+    {
+      "id": "jas.voorwaarde.bijwoord",
+      "detector": "voorwaarde",
+      "versie": 1,
+      "code": "CONDITIONAL_ADVERB",
+      "klassen": [
+        "Voorwaarde"
+      ]
+    },
+    {
+      "id": "jas.voorwaarde.wegens",
+      "detector": "voorwaarde",
+      "versie": 1,
+      "code": "CAUSAL_PHRASE",
+      "klassen": [
+        "Voorwaarde",
+        "Rechtsfeit"
+      ]
+    }
+  ],
+  "detectorcode": {
+    "sha256": "6b9f80d97833559465b8c55b2902b4c4ca7f3e35931234f48fdc5f1fc12d484a",
+    "bestanden": {
+      "tools/graph-qa/agent/jas_pipeline/detectoren/__init__.py": "64ecdd1fdb471686007cb94f1d49087c8335676f23c71de03bdda6cb5e20ac7e",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels.py": "d737fa67c15b04f4f1991e0d9761a942a99287cc0bc99c2b1ef37fe4916af9e7",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/structuur.py": "9e4fd8f115d0ce7dd3bc7021ac336db155073a17ed83f294cf2618761aff4111",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/syntactisch.py": "74c1ac4e30e6cd2e84d75d2a5d492c466bceb3701223f45e0ea2ec8f390d57b9"
+    }
+  },
+  "detectorregels": {
+    "sha256": "85babde63edd68630154b1e6893648f7c7df7bd7977cd92baeab19c17a07c942",
+    "bestanden": {
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels/_maskers.yaml": "2e5b98bf48f6f12ea63fab5c5f3f5ff359f71825ff958c9b94ca5cfc85d765a2",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels/_woordenlijsten.yaml": "9df9cced774b6ef58c6d784a60896cc9bf53abd9fa3b60627aec8717035ace0c",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels/afleiding.yaml": "e86ca826ecb05ac5d9b12f0e39572977ba290a3221456f3bf620c1be302514b4",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels/delegatie.yaml": "a70bd912271075601625ad9b8def91d210add5a46d14dca98b1326ab0d38760c",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels/numeriek.yaml": "cad3756f0c7b0d3a144ac22d02c88157129ba1961fa0b4a814d19fd65e232acf",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels/operator.yaml": "83208fb7f45ea597ab97e77c20d4bf312f8275f28947004169a0ff5e58bbcddf",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels/plaats.yaml": "124f3e1b5fe1d234ef9c657a5fcdc7fbcdb05d3710ffc602d26c9d0f27921087",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels/subject.yaml": "3bc94cc0af0a32e08380d796693dd45f4a1ceb81da8baf5fe5aa53874ddcf810",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels/tijd.yaml": "72112838ece7a9d6a774b99a15a9b3c57a44210fcf3314df0f9f6db7332b5e5a",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels/voorwaarde.yaml": "fbaf68dce9d8d3bb3e174cfd25ac23abac6fe2fd6232b0ddfede2a9b238e1fe5"
+    }
+  },
+  "profielen": {
+    "sha256": "3ab5ab0888d359ef4f3ec0c3fa985aeeaa1e8d1b15e56050e0a4f37e8b7504ab",
+    "bestanden": {
+      "tools/graph-qa/agent/jas_pipeline/profielen/01_rechtssubject.yaml": "d44ff3b2a61b28d353a2b62eb61617dd4e5a17d075dd55a684f860d046b9038b",
+      "tools/graph-qa/agent/jas_pipeline/profielen/02_rechtsobject.yaml": "4b2e7d7653c3a927d75997ce2a46c047cdc56f16d0cd8153218cb787a003f9bc",
+      "tools/graph-qa/agent/jas_pipeline/profielen/03_rechtsbetrekking.yaml": "5d504d64ef6c747dac004d7c878b96ec910ab8326b2ae3f697998f4093238e0e",
+      "tools/graph-qa/agent/jas_pipeline/profielen/04_rechtsfeit.yaml": "90e755c2820d84dc34baca3c36384707e7a1bafd2e8e5171374fc090949eeca6",
+      "tools/graph-qa/agent/jas_pipeline/profielen/05_voorwaarde.yaml": "0e6805d0e5bb1345de09eea71aa1160f434f3188d60ce80dae1c42b70f41bf30",
+      "tools/graph-qa/agent/jas_pipeline/profielen/06_afleidingsregel.yaml": "68ab37fc0ab8fd7cad3bb2905724380bd197a64ef4e4f08d8e080bca8c8a1c81",
+      "tools/graph-qa/agent/jas_pipeline/profielen/07_variabele.yaml": "08c709a12d8fa8d1dd81e39cba6b3ca298597806ae996e28025e1c5e8e6b3748",
+      "tools/graph-qa/agent/jas_pipeline/profielen/08_parameter.yaml": "bf226186c2b26217a4c8e065934b0b0e3f600debdea7cb3520a0d8971dad9552",
+      "tools/graph-qa/agent/jas_pipeline/profielen/09_operator.yaml": "950cf67f01eb84e74d8d2fa5b212714bcc7eb10bd0ebd0a7bbbdc36a3550ba6f",
+      "tools/graph-qa/agent/jas_pipeline/profielen/10_tijdsaanduiding.yaml": "58ce3ad47256881ace318e8e2189174e208e5e7eba6eff579f43c1b542ca62de",
+      "tools/graph-qa/agent/jas_pipeline/profielen/11_plaatsaanduiding.yaml": "b9edd04ae81cbc32a1250b656fc565e5e5ca434028073b9493ad1a9b799b5189",
+      "tools/graph-qa/agent/jas_pipeline/profielen/12_delegatie.yaml": "703296d23142027efb17e6cfdd0c2be78e7ed31229041b000fa62d29cbdb5654",
+      "tools/graph-qa/agent/jas_pipeline/profielen/13_brondefinitie.yaml": "bcfd7b350c273f7c698743a074a1764832d65e32146aa7f6aa419f894c85874d"
+    }
+  },
+  "profiel_determinisme": {
+    "Rechtssubject": "middel",
+    "Rechtsobject": "laag",
+    "Rechtsbetrekking": "middel",
+    "Rechtsfeit": "laag",
+    "Voorwaarde": "hoog",
+    "Afleidingsregel": "middel",
+    "Variabele en variabelewaarde": "laag",
+    "Parameter en parameterwaarde": "hoog",
+    "Operator": "hoog",
+    "Tijdsaanduiding": "hoog",
+    "Plaatsaanduiding": "middel",
+    "Delegatiebevoegdheid en delegatie-invulling": "hoog",
+    "Brondefinitie": "hoog"
+  },
+  "gepland": [
+    {
+      "id": "jas.feit.gebeurtenisbijzin",
+      "klasse": "Rechtsfeit"
+    },
+    {
+      "id": "jas.waarde.numeriek",
+      "klasse": "Variabele en variabelewaarde"
+    },
+    {
+      "id": "jas.tijd.voorzetselgroep",
+      "klasse": "Tijdsaanduiding"
+    },
+    {
+      "id": "jas.delegatie.grondslag_wti",
+      "klasse": "Delegatiebevoegdheid en delegatie-invulling"
+    }
+  ],
+  "deterministisch": {
+    "accepteren": true,
+    "sterk_bewijs": [
+      "ARITHMETIC",
+      "COMPARISON",
+      "DEFINITION_ITEM",
+      "DEFINITION_SENTENCE",
+      "DELEGATION_FORMULA",
+      "LOCATION_DESCRIPTION",
+      "LOCATION_NAME",
+      "TEMPORAL_DATE",
+      "TEMPORAL_DURATION",
+      "TEMPORAL_MOMENT",
+      "TEMPORAL_PERIOD_OF",
+      "TEMPORAL_RELATIVE_PERIOD"
+    ],
+    "klasse_van_bewijs": {
+      "TEMPORAL_DATE": "Tijdsaanduiding",
+      "TEMPORAL_DURATION": "Tijdsaanduiding",
+      "TEMPORAL_RELATIVE_PERIOD": "Tijdsaanduiding",
+      "TEMPORAL_PERIOD_OF": "Tijdsaanduiding",
+      "TEMPORAL_MOMENT": "Tijdsaanduiding",
+      "DEFINITION_ITEM": "Brondefinitie",
+      "DEFINITION_SENTENCE": "Brondefinitie",
+      "DELEGATION_FORMULA": "Delegatiebevoegdheid en delegatie-invulling",
+      "COMPARISON": "Operator",
+      "ARITHMETIC": "Operator",
+      "LOCATION_NAME": "Plaatsaanduiding",
+      "LOCATION_DESCRIPTION": "Plaatsaanduiding"
+    }
+  },
+  "classifier_granulariteit": "universeel",
+  "classifier_spankeuze": false,
+  "classifier_temperature": null,
+  "gerichte_review": true,
+  "taal_provider": "spacy:nl_core_news_md",
+  "llm_model_configdefault": "claude-sonnet-4-6",
+  "llm_provider_configdefault": "anthropic_via_azure_foundry",
+  "verse_modelruns": 0,
+  "deployment_gewijzigd": false,
+  "lockfiles": {
+    "api/uv.lock": "0648eeb936be51f91cb8a08da17de525f8dc0d24d01ff3753a9ff0d8970ee831",
+    "tools/graph-qa/uv.lock": "2bdc4327141d01379812fc0a1a410180f52bcb624073e7bf86f070e8b9bb4db2"
+  },
+  "beschermde_bestanden_ongewijzigd": {
+    ".claude/skills/wetsanalyse/SKILL.md": "02af01e08aa15828c094ff0ac880a10416d6c72537322bf31764e2b94a643254",
+    ".claude/skills/wetsanalyse/agentrollen.json": "a46fda930fc9e646c69497c1962f9b2d11454f3a4bc0d2c5e7ca7fcdeb3ebdbd",
+    ".claude/skills/wetsanalyse/assets/analysedossier.md": "414add548eff32c953a80e5a876bc09403b32c9e85e9a3202aac2672b3046044",
+    ".claude/skills/wetsanalyse/references/agentrollen.md": "f46b17b5d7f7054bed32767a063b3212428956ee7c85aa78de68887035291787",
+    ".claude/skills/wetsanalyse/references/analyseprotocol.md": "93e80d0c0659499670fc77e6c067ec080db5a9d5a13b9d12252e4025d115072a",
+    ".claude/skills/wetsanalyse/references/annotatieprotocol.md": "b18155f0078f12f06553cabd3dff417209cc41b7e7e22e1de33cc6459fae9986",
+    ".claude/skills/wetsanalyse/references/bronnen.md": "3a4bbbbc2ce4eaa054f0055b16ca5646c004db3a9fab3c96ba00f85e5a6f8afc",
+    ".claude/skills/wetsanalyse/references/jas-klassen-referentie.md": "5fe94a8c3718eb3d0f21a04cda9e89d9c35db4260b39f1900ead19a86ee91a95",
+    ".claude/skills/wetsanalyse/references/jrm-verrijking.md": "87f41ab671a2bdb5d83fe94f35aa39a46afac51c66ce87d739de6a3127779a8d",
+    ".claude/skills/wetsanalyse/references/kwaliteit.md": "c713dcfa114710d6e98a608d840c62a093f0d2c800e6bc110c56b2314000bec1",
+    ".claude/skills/wetsanalyse/references/markeren-fragmentgrenzen.md": "42dce3d0e79d0d5a18bb104f70d4656803e4adbc7040b6e40809ec4fc021e32f",
+    ".claude/skills/wetsanalyse/references/verwijzingen-volgen.md": "5f9a80f6af7dd34dac45433bd74597d032f53eeaa68b07b1d9e1a4d7dbfc4f1a",
+    "api/app/graaf_projectie_v2.py": "35f02b53165ee1c794420a5826356dc36ce59fa5f3b60bf2809b14c87153f762",
+    "api/app/shapes/jas-v2.ttl": "62b7c77788a742b94fcfbf98f7e45a450cd26eeb12755a6a5443b0337c7f92d0",
+    "docs/wetsanalyse/referentieset/README.md": "25ba8bf536befa828df4a1a0a15aabb01e99c23cdbc61db46dc8b87c51e1a0d9",
+    "docs/wetsanalyse/referentieset/adjudicatieprotocol.md": "f9f2e6bbc423da588dec718c698fd70b6bed25b365967ef17ea8efafc135e5ce",
+    "docs/wetsanalyse/referentieset/awb.md": "af5265265c34271e44c8b5453e5cbd0ec0e6b8071596f4b582177c00c8bc1df7",
+    "docs/wetsanalyse/referentieset/bw6.md": "5c8e77746a0f9ccf3b677853304b3b0da88de4bcbe26ed08e2b7c7959690545f",
+    "docs/wetsanalyse/referentieset/iw.md": "4ed8e675b5789abf515b6a4e19e8c26d1c68060bff06eabfbe9e595e53d284c0",
+    "docs/wetsanalyse/referentieset/omgevingswet.md": "548800572ed176bec3080ea58717a9474114015fefe3707215162513eef6d700",
+    "docs/wetsanalyse/referentieset/rvv.md": "de6a18630ff19195ea2e7bdb69f33c97eed0c8acded8a46349a1cf4b9f9be09f",
+    "docs/wetsanalyse/referentieset/v1/cases.json": "b2d780ad4b996cead46b51e19d03dfad923c9a4afb34fbd22ec76c7e21e9e710",
+    "docs/wetsanalyse/referentieset/v1/manifest.json": "8bb55255da7e6cb943c850388f903b1fb73f624b383432bac4dabaf4e5d10366",
+    "docs/wetsanalyse/referentieset/voorbeeld-dossier-rvv74.md": "c4dbbb0773a8ad2f3d920089d14aa63e9a2eb1cf547ddbd77f7c6b9b6cef6f8a",
+    "docs/wetsanalyse/referentieset/wzt.md": "29196a9e246f638e096c028eb6eba648c521fc64607ac0f89240893749782564",
+    "docs/wetsanalyse/wetsanalyse-rijk/BRON.md": "bc7a3cf8bc43bc927ada18d4c97f3b4c76fbe0f774d8dd5f2c649900ffc98b52",
+    "docs/wetsanalyse/wetsanalyse-rijk/H1-Inleiding.md": "c5e0c126d344de77afb3595eee5b4736d3e7510fcf548ba88ea2e069ca10005c",
+    "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md": "12b6fb0d08a29457c49265778b566adb2557e998c1bcffc3ee24df78f0b3e0bf",
+    "docs/wetsanalyse/wetsanalyse-rijk/H3-Kader.md": "83356d6060a9ec11e9001f675e7122993e8f57ab138e0a2873dace07d9a03a4c",
+    "docs/wetsanalyse/wetsanalyse-rijk/LICENSE": "ce7d80d054cfbdd1f0ecab0b33af23f5869ed19797568943c327d655c4138c75",
+    "docs/wetsanalyse/wetsanalyse-rijk/abstract.md": "5186eac6862b8094e6331a43b1de9b35fd299f09b69405627473909a267deb3b",
+    "docs/wetsanalyse/wetsanalyse-rijk/media/analyseschema.png": "0df3a25632667f597724c8d3645dc6073c03b9ae006787e309bdae86389be821",
+    "docs/wetsanalyse/wetsanalyse-rijk/media/wa-table.png": "d0797d3e8d70dce8e68ebdbc4ea6bb88738fd581618c609f591e62a71d87efb1",
+    "tools/graph-qa/agent/config.py": "c49cd1c8ea6eb2f9cd66de944895db3afcea1eb4436a6331cb8a73a3363c246e",
+    "tools/graph-qa/agent/jas_klassen.py": "a184a067079c31678681fb68638a88365f11a423c9536a3ffac23fcd6e34958d",
+    "tools/graph-qa/agent/jas_pipeline/classificatie.py": "f030b1baf1a122d6382e0606cd03d32d6e3b139a3c1a04e07ebaf58d7fd2a4a3",
+    "tools/graph-qa/agent/jas_pipeline/review.py": "467019476770a059a90d5d802f9b23fdec5783494bc54be680b955c52560cc46",
+    "tools/graph-qa/agent/methode.py": "7560e3f62870fd9728479c37abbdd74227f0df7aa9abb487c661396b95ead437",
+    "tools/graph-qa/agent/methodepakket.py": "6fc9371e7c0fcdac3fef9c405d3098c52fa995ef013b7877dcf4b47c20792b94",
+    "tools/graph-qa/eval/golden_annotatie.jsonl": "df553ca2b99975b37717e5b2d91defa6c3e5934df4206b9fa145cafcbae9b69b",
+    "tools/graph-qa/agent/jas_pipeline/profielen/10_tijdsaanduiding.yaml": "58ce3ad47256881ace318e8e2189174e208e5e7eba6eff579f43c1b542ca62de",
+    "tools/graph-qa/agent/jas_pipeline/profielen/11_plaatsaanduiding.yaml": "b9edd04ae81cbc32a1250b656fc565e5e5ca434028073b9493ad1a9b799b5189",
+    "tools/graph-qa/agent/jas_pipeline/profielen/12_delegatie.yaml": "703296d23142027efb17e6cfdd0c2be78e7ed31229041b000fa62d29cbdb5654",
+    "tools/graph-qa/agent/jas_pipeline/profielen/13_brondefinitie.yaml": "bcfd7b350c273f7c698743a074a1764832d65e32146aa7f6aa419f894c85874d",
+    "tools/graph-qa/agent/jas_pipeline/profielen/01_rechtssubject.yaml": "d44ff3b2a61b28d353a2b62eb61617dd4e5a17d075dd55a684f860d046b9038b",
+    "tools/graph-qa/agent/jas_pipeline/profielen/02_rechtsobject.yaml": "4b2e7d7653c3a927d75997ce2a46c047cdc56f16d0cd8153218cb787a003f9bc",
+    "tools/graph-qa/agent/jas_pipeline/profielen/03_rechtsbetrekking.yaml": "5d504d64ef6c747dac004d7c878b96ec910ab8326b2ae3f697998f4093238e0e",
+    "tools/graph-qa/agent/jas_pipeline/profielen/04_rechtsfeit.yaml": "90e755c2820d84dc34baca3c36384707e7a1bafd2e8e5171374fc090949eeca6",
+    "tools/graph-qa/agent/jas_pipeline/profielen/05_voorwaarde.yaml": "0e6805d0e5bb1345de09eea71aa1160f434f3188d60ce80dae1c42b70f41bf30",
+    "tools/graph-qa/agent/jas_pipeline/profielen/06_afleidingsregel.yaml": "68ab37fc0ab8fd7cad3bb2905724380bd197a64ef4e4f08d8e080bca8c8a1c81",
+    "tools/graph-qa/agent/jas_pipeline/profielen/07_variabele.yaml": "08c709a12d8fa8d1dd81e39cba6b3ca298597806ae996e28025e1c5e8e6b3748",
+    "tools/graph-qa/agent/jas_pipeline/profielen/08_parameter.yaml": "bf226186c2b26217a4c8e065934b0b0e3f600debdea7cb3520a0d8971dad9552",
+    "tools/graph-qa/agent/jas_pipeline/profielen/09_operator.yaml": "950cf67f01eb84e74d8d2fa5b212714bcc7eb10bd0ebd0a7bbbdc36a3550ba6f"
+  },
+  "gegenereerd_vocabulaire": {
+    "voor": "627465db0aa8",
+    "na": "4089e3ffd8c1",
+    "rdf_verwijderd": [
+      [
+        "urn:jas-ns:regel:jas.tijd.duur",
+        "urn:jas-ns:regelVersie",
+        "1"
+      ],
+      [
+        "urn:jas-ns:schema:jas-1.0.10",
+        "urn:jas-ns:vocabulaireVersie",
+        "627465db0aa8"
+      ]
+    ],
+    "rdf_toegevoegd": [
+      [
+        "urn:jas-ns:regel:jas.tijd.duur",
+        "urn:jas-ns:regelVersie",
+        "2"
+      ],
+      [
+        "urn:jas-ns:schema:jas-1.0.10",
+        "urn:jas-ns:vocabulaireVersie",
+        "4089e3ffd8c1"
+      ]
+    ]
+  },
+  "bundel_hash_algoritme": "sha256(json.dumps({relatief_pad: sha256(bytes)}, sort_keys=True).encode())",
+  "methodepakket_versie": "2.1",
+  "methodepakket_sha256": "8ed090655579c6f5b94fd7c0de40edbbbd4a723975ea6c570e4a3f0b64aa1aca",
+  "methode_versie": "4fda12e4bc9a"
+}

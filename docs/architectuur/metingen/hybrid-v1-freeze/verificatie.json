@@ -1,0 +1,69 @@
+{
+  "code_sha": "3b5118670790a360f3f2e35f0536cd4d1141a2ed",
+  "start_sha": "9de992226e18514f40d96dd29ed98498e747ffe6",
+  "nulmeting_graph_qa": {
+    "passed": 1057,
+    "skipped": 19
+  },
+  "F01_F02": {
+    "regressie_eerst": "5 failed, 6 passed (inclusief twee extra negatieve profielgevallen)",
+    "gericht": 187,
+    "graph_qa_passed": 1070,
+    "graph_qa_skipped": 19,
+    "dev_kandidaten_ongewijzigd": true
+  },
+  "F03": {
+    "regressie_eerst": "2 failures bij ontbrekende herkomst; API-roundtrip faalde op weggegooid veld",
+    "graph_qa_passed": 1090,
+    "graph_qa_skipped": 2,
+    "postgres_integratie_inbegrepen": 17,
+    "geen_kandidaat_parse_prompt_of_routingverschil": true,
+    "vergelijkbare_bronnen": 18
+  },
+  "F04": {
+    "regressie_eerst": "3 failures op VerbForm=Part in IW02/IW03/WZT04",
+    "gericht": 188
+  },
+  "eind_graph_qa": {
+    "command": "RUNSTORE_TEST_DSN=<isolated-postgres> .venv/bin/python -m pytest -q -rs",
+    "passed": 1093,
+    "skipped": 2,
+    "warnings": 4671,
+    "seconden": 66.72,
+    "skip_redenen": [
+      "rdflib kan één GraphDB-query niet uitvoeren",
+      "API-router ontbreekt in graph-qa-venv"
+    ],
+    "postgres_integratie_inbegrepen": 17
+  },
+  "api_suite": {
+    "passed": 432,
+    "skipped": 7,
+    "warnings": 500,
+    "seconden": 237.09,
+    "command": ".venv/bin/python -m pytest -q",
+    "skips": "PostgreSQL, aanvullend uitgevoerd"
+  },
+  "api_postgres_en_projector": {
+    "passed": 8,
+    "skipped": 0,
+    "warnings": 72,
+    "seconden": 14.71,
+    "command": "ANNOTATIE_TEST_DSN=<isolated-postgres> .venv/bin/python -m pytest tests/test_annotatie_v2_postgres.py tests/test_projector_v2_integration.py -q -rs",
+    "projector": "RDFLib HTTP/SPARQL-testadapter; geen live GraphDB-server",
+    "nieuwe_test": "detectiebijdragen en afgewezen kandidaten overleven PostgreSQL-roundtrip"
+  },
+  "gecontroleerde_ruwe_en_fused_spans": 732,
+  "dev_ankerverlies": [],
+  "klassegedekte_ankers_voor": 73,
+  "klassegedekte_ankers_na": 73,
+  "classifier_input_gewijzigd_bronnen": [
+    "IW02",
+    "IW03",
+    "WZT04",
+    "LI-D3"
+  ],
+  "referentie_status": "provisional",
+  "modelruns": 0,
+  "testdatabase": "uitsluitend tijdelijke postgres:16-alpine-container; na afloop gestopt en verwijderd"
+}
