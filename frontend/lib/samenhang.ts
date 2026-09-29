@@ -1,3 +1,4 @@
+import { forceLink, forceManyBody, forceSimulation } from "d3-force-3d";
 import { jasStyle } from "./jas";
 import { nodeRequest, type NodeDoel } from "./annotatieNode";
 
@@ -17,11 +18,15 @@ export interface Samenhang {
   knopen: SamenhangKnoop[]; relaties: SamenhangRelatie[]; verwijzingen_beschikbaar: boolean; afgekapt: boolean;
 }
 
-/** Wat de canvas tekent: vaste posities, zodat de kaart herkenbaar blijft tussen renders. */
+/** Wat de canvas tekent. De posities komen uit een krachtlayout die hier – niet in de canvas – wordt
+ *  gerekend en daarna vastligt: zo springt er niets bij uitklappen of filteren. */
 export interface GraafKnoop extends SamenhangKnoop {
-  kort: string; kleur: string; x: number; y: number; z: number; fx: number; fy: number; fz: number;
+  kort: string; kleur: string; straal: number; x: number; y: number; z: number; fx: number; fy: number; fz: number;
 }
-export interface GraafRelatie { id: string; source: string; target: string; label: string; groep: RelatieGroep; anker_tekst: string }
+export interface GraafRelatie {
+  id: string; source: string; target: string; label: string; soort: SamenhangRelatie["soort"];
+  groep: RelatieGroep; anker_tekst: string;
+}
 export interface GraafData { nodes: GraafKnoop[]; links: GraafRelatie[] }
 
 export const SOORT_LABEL: Record<KnoopSoort, string> = {
@@ -95,14 +100,14 @@ export function voegSamen(delen: Samenhang[]): { knopen: SamenhangKnoop[]; relat
 
 const kort = (tekst: string) => tekst.length > 27 ? tekst.slice(0, 25) + "…" : tekst;
 
-/** Vaste 3D-posities per artikelcluster, radiaal: het artikel in het midden, leden in een ring en
+/** Startposities per artikelcluster, radiaal: het artikel in het midden, leden in een ring en
  *  onderdelen verder naar buiten in het verlengde van hun lid (elk blad een eigen hoeksector naar
  *  gewicht), markeringen net buiten hun fragment, klassen in een kolom rechts. De structuur erboven
  *  (regeling, hoofdstuk) staat boven-achter het artikel; daarvoor blijft bovenin de ring een opening.
  *  Verwijzingen van of naar een lid staan buiten dat lid; verwijzingen naar het artikel als geheel
  *  – vaak de grootste groep – op een eigen ring áchter het artikel, zodat ze de leden niet bedekken.
  *  Afstand en positie betekenen juridisch niets; ze houden de kaart herkenbaar en leesbaar. */
-export function bouwGraaf(delen: Samenhang[]): GraafData {
+function startposities(delen: Samenhang[]): Map<string, [number, number, number]> {
   const { knopen, relaties } = voegSamen(delen);
   const per = new Map(knopen.map((k) => [k.id, k]));
   const pos = new Map<string, [number, number, number]>();
@@ -114,8 +119,6 @@ export function bouwGraaf(delen: Samenhang[]): GraafData {
   const STRAAL = [0, 150, 230, 290, 340];
   const straal = (diepte: number) => STRAAL[Math.min(diepte, STRAAL.length - 1)];
   const punt = (r: number, hoek: number, z = 0): [number, number, number] => [r * Math.sin(hoek), r * Math.cos(hoek), z];
-  let klasseRij = 0;
-  const klasseKolom: string[] = [];
 
   delen.forEach((deel, cluster) => {
     const dx = cluster * 760;
@@ -187,22 +190,79 @@ export function bouwGraaf(delen: Samenhang[]): GraafData {
       // Naar of van het artikel als geheel: een ring áchter het artikel, per regeling bij elkaar.
       ids.forEach((id, i) => zet(id, verschuif(punt(270 + (i % 2) * 30, (2 * Math.PI * (i + 0.5)) / ids.length, -220))));
     }
-    for (const k of deel.knopen.filter((k) => k.soort === "klasse")) if (!klasseKolom.includes(k.id)) klasseKolom.push(k.id);
+    // Klassen: een kolom rechts van het cluster waarin ze voor het eerst voorkomen. Niet afhankelijk
+    // van het aantal clusters, anders zou bijladen de startstand van eerdere clusters veranderen.
+    const nieuw = deel.knopen.filter((k) => k.soort === "klasse" && !pos.has(k.id));
+    nieuw.forEach((k, i) => zet(k.id, verschuif([260, ((nieuw.length - 1) / 2 - i) * 55, i % 2 ? -30 : 30])));
   });
-  // Klassen: één kolom rechts van het laatste cluster, om het midden verdeeld.
-  const kolomX = (delen.length - 1) * 760 + 430;
-  klasseKolom.forEach((id, i) => { zet(id, [kolomX, ((klasseKolom.length - 1) / 2 - i) * 55, klasseRij++ % 2 ? -30 : 30]); });
+
+  return pos;
+}
+
+/** Straal per soort: de bron draagt het beeld, markeringen en verwijzingen zijn kleiner. */
+const STRAAL_PER_SOORT: Record<KnoopSoort, number> = {
+  artikel: 9, regeling: 7.5, deel: 6.5, lid: 6, klasse: 6.5, onderdeel: 4.5, markering: 4, extern: 3.5,
+};
+/** Rustafstand en stijfheid per relatie: structuur kort en stug, verwijzingen lang en los. */
+const VEER: Record<SamenhangRelatie["soort"], [number, number]> = {
+  bevat: [45, 0.9], markeert: [30, 0.8], heeft_klasse: [55, 0.35], verwijst_naar: [100, 0.35],
+};
+
+/** Deterministische diepte uit een id: het startpunt krijgt reliëf, zodat de krachten in drie
+ *  dimensies uitwaaieren in plaats van in het vlak te blijven. */
+function reliëf(id: string): number {
+  let h = 2166136261;
+  for (const c of id) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+  return ((h >>> 0) % 121) - 60;
+}
+
+type SimKnoop = { id: string; x: number; y: number; z: number; fx?: number; fy?: number; fz?: number };
+
+/** De samenhang als 3D-graaf. Vaste startposities (radiaal per artikelcluster, zie hierboven) plus
+ *  reliëf, daarna een krachtsimulatie per cluster met dezelfde engine als de renderer (d3-force-3d).
+ *  Al geplaatste knopen van eerdere clusters liggen daarbij vast, zodat bijladen de bestaande kaart
+ *  niet verschuift. Zonder willekeur (d3 gebruikt een vaste lcg) is de uitkomst reproduceerbaar.
+ *  Afstand en positie betekenen juridisch niets. */
+export function bouwGraaf(delen: Samenhang[]): GraafData {
+  const { knopen, relaties } = voegSamen(delen);
+  const per = new Map(knopen.map((k) => [k.id, k]));
+  const start = startposities(delen);
+  const geplaatst = new Map<string, [number, number, number]>();
+  delen.forEach((deel, cluster) => {
+    const ids = new Set(deel.knopen.map((k) => k.id));
+    const sim: SimKnoop[] = [...ids].filter((id) => per.has(id)).map((id) => {
+      const vast = geplaatst.get(id);
+      if (vast) return { id, x: vast[0], y: vast[1], z: vast[2], fx: vast[0], fy: vast[1], fz: vast[2] };
+      const [x, y, z] = start.get(id) ?? [0, 0, 0];
+      // Het artikel van dit cluster is het anker; de rest schikt zich eromheen.
+      return id === deel.artikel_iri
+        ? { id, x, y, z, fx: x, fy: y, fz: z }
+        : { id, x, y, z: z + reliëf(id) };
+    });
+    // Alleen de eigen relaties van dit cluster: een later bijgeladen artikel mag de simulatie van een
+    // eerder cluster niet veranderen.
+    const links = deel.relaties.filter((r) => ids.has(r.bron) && ids.has(r.doel))
+      .map((r) => ({ source: r.bron, target: r.doel, soort: r.soort }));
+    forceSimulation(sim, 3)
+      .force("link", forceLink<SimKnoop, (typeof links)[number]>(links).id((n) => n.id)
+        .distance((l) => VEER[l.soort][0]).strength((l) => VEER[l.soort][1]))
+      .force("charge", forceManyBody().strength(-140).distanceMax(420))
+      .stop()
+      .tick(cluster === 0 ? 300 : 220);
+    for (const n of sim) if (!geplaatst.has(n.id)) geplaatst.set(n.id, [n.x, n.y, n.z]);
+  });
 
   const nodes = knopen.map((k): GraafKnoop => {
-    const [x, y, z] = pos.get(k.id) ?? [0, 0, 0];
+    const [x, y, z] = geplaatst.get(k.id) ?? start.get(k.id) ?? [0, 0, 0];
     const kleur = k.klasse ? klasseKleur(k.klasse) : k.rand ? (k.soort === "extern" ? BRONKLEUR.extern! : RANDKLEUR) : BRONKLEUR[k.soort] ?? "#398ab8";
     const label = k.soort === "lid" && k.lid && k.artikel ? `Artikel ${k.artikel} · lid ${k.lid}` : k.label;
     const kortLabel = k.soort === "lid" && k.lid && !k.rand ? `Lid ${k.lid}` : label;
-    return { ...k, label, kort: kort(kortLabel), kleur, x, y, z, fx: x, fy: y, fz: z };
+    const straal = k.rand ? 3.5 : STRAAL_PER_SOORT[k.soort];
+    return { ...k, label, kort: kort(kortLabel), kleur, straal, x, y, z, fx: x, fy: y, fz: z };
   });
   const links = relaties.filter((r) => per.has(r.bron) && per.has(r.doel)).map((r) => ({
     id: `${r.bron}|${r.soort}|${r.doel}`, source: r.bron, target: r.doel, label: RELATIE_LABEL[r.soort],
-    groep: r.groep, anker_tekst: r.anker_tekst,
+    soort: r.soort, groep: r.groep, anker_tekst: r.anker_tekst,
   }));
   return { nodes, links };
 }

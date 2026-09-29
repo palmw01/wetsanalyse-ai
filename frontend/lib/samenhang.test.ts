@@ -40,13 +40,25 @@ describe("bouwGraaf", () => {
     expect(g.nodes.find((n) => n.id === L2)?.label).toBe("Artikel 9 · lid 2");
     expect(g.nodes.find((n) => n.id === "element:e1")?.kleur).toMatch(/^#/);
   });
-  it("geeft een uitgeklapt artikel een eigen cluster", () => {
-    const tweede = samenhang(A10, { knopen: [knoop(LAW, "regeling"), knoop(A10, "artikel", { artikel: "10" })],
-      relaties: [{ bron: LAW, doel: A10, soort: "bevat", groep: "structuur", anker_tekst: "" }] });
-    const g = bouwGraaf([samenhang(), tweede]);
-    const a10 = g.nodes.find((n) => n.id === A10)!;
-    expect(a10.rand).toBe(false);
-    expect(a10.x).toBeGreaterThan(g.nodes.find((n) => n.id === ART)!.x);
+  it("verschuift de bestaande kaart niet als een artikel wordt bijgeladen", () => {
+    const tweede = samenhang(A10, { knopen: [knoop(LAW, "regeling"), knoop(A10, "artikel", { artikel: "10" }),
+      knoop(`${A10}:lid:1`, "lid", { lid: "1", artikel: "10" })],
+      relaties: [{ bron: LAW, doel: A10, soort: "bevat", groep: "structuur", anker_tekst: "" },
+        { bron: A10, doel: `${A10}:lid:1`, soort: "bevat", groep: "structuur", anker_tekst: "" }] });
+    const voor = bouwGraaf([samenhang()]), na = bouwGraaf([samenhang(), tweede]);
+    for (const n of voor.nodes) {
+      const m = na.nodes.find((x) => x.id === n.id)!;
+      expect([m.x, m.y, m.z]).toEqual([n.x, n.y, n.z]);
+    }
+    expect(na.nodes.find((n) => n.id === A10)?.rand).toBe(false);
+    expect(na.nodes.some((n) => n.id === `${A10}:lid:1`)).toBe(true);
+  });
+  it("geeft een straal per soort", () => {
+    const g = bouwGraaf([samenhang()]);
+    const straal = (id: string) => g.nodes.find((n) => n.id === id)!.straal;
+    expect(straal(ART)).toBeGreaterThan(straal(L1));
+    expect(straal(L1)).toBeGreaterThan(straal("element:e1"));
+    expect(straal(A10)).toBeLessThan(straal(L1));
   });
 });
 
@@ -132,10 +144,12 @@ describe("bouwGraaf op de schaal van een echt artikel", () => {
     expect(breed / hoog).toBeGreaterThan(0.8);
     expect(hoog).toBeLessThan(900);
   });
-  it("zet verwijzingen naar het artikel achter het artikel en die van een lid buiten dat lid", () => {
+  it("heeft echte diepte en houdt verwijzingen verder weg dan de leden", () => {
     const p = (id: string) => g.nodes.find((n) => n.id === id)!;
-    expect(inkomend.every((id) => p(id).z < p(ART).z - 100)).toBe(true);
-    const [lid, doel] = uitgaand[0];
-    expect(Math.hypot(p(doel).x, p(doel).y)).toBeGreaterThan(Math.hypot(p(lid).x, p(lid).y));
+    const zs = g.nodes.map((n) => n.z);
+    expect(Math.max(...zs) - Math.min(...zs)).toBeGreaterThan(120);
+    const tot = (id: string) => afstand(p(id), p(ART));
+    const gem = (ids: string[]) => ids.reduce((s, id) => s + tot(id), 0) / ids.length;
+    expect(gem(inkomend)).toBeGreaterThan(gem(leden));
   });
 });

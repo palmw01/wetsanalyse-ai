@@ -177,3 +177,28 @@ a {
     max-width: none !important;
   }
 }
+
+/* Tooltips van de 3D-samenhangsgraaf (float-tooltip, innerHTML uit GraafCanvas). De bibliotheek zet
+   een donkere standaard; in de werkplek horen ze de lichte kaartstijl te volgen. */
+[data-testid="graaf-canvas"] .float-tooltip-kap {
+  padding: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+}
+.samenhang-tip {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-width: 18rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid rgb(var(--line));
+  border-radius: 0.375rem;
+  background: rgb(var(--paper) / 0.97);
+  color: rgb(var(--ink));
+  font-size: 0.75rem;
+  line-height: 1.35;
+  box-shadow: 0 4px 16px rgb(26 26 26 / 0.12);
+}
+.samenhang-tip strong { font-weight: 600; color: rgb(var(--lint)); }
+.samenhang-tip span { color: rgb(var(--muted)); font-size: 0.6875rem; }

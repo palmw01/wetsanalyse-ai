@@ -5,7 +5,7 @@ import ForceGraph3D, { type ForceGraphMethods, type LinkObject } from "react-for
 import { Group, Mesh, MeshLambertMaterial, OctahedronGeometry, SphereGeometry, Vector3, type PerspectiveCamera } from "three";
 import SpriteText from "three-spritetext";
 import type { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import type { GraafData, GraafKnoop, GraafRelatie } from "@/lib/samenhang";
+import { SOORT_LABEL, type GraafData, type GraafKnoop, type GraafRelatie } from "@/lib/samenhang";
 
 type LinkMeta = Omit<GraafRelatie, "source" | "target">;
 type RenderLink = LinkObject<GraafKnoop, LinkMeta>;
@@ -32,9 +32,9 @@ function pasCameraIn(fg: ForceGraphMethods<GraafKnoop, LinkMeta>, nodes: GraafKn
   let afstand = 100;
   for (const node of nodes) {
     const p = new Vector3(node.x, node.y, node.z).sub(midden);
-    afstand = Math.max(afstand, (Math.abs(p.dot(rechts)) + 95) / tanX + p.dot(richting), (Math.abs(p.dot(boven)) + 30) / tanY + p.dot(richting));
+    afstand = Math.max(afstand, (Math.abs(p.dot(rechts)) + 80) / tanX + p.dot(richting), (Math.abs(p.dot(boven)) + 22) / tanY + p.dot(richting));
   }
-  const positie = midden.clone().add(richting.multiplyScalar(afstand * 1.12));
+  const positie = midden.clone().add(richting.multiplyScalar(afstand * 1.04));
   fg.cameraPosition(positie, midden, ms);
 }
 
@@ -50,6 +50,22 @@ function webglBeschikbaar(): boolean {
 
 const idVan = (value: RenderLink["source"]): string => typeof value === "object" ? String(value.id) : String(value);
 
+/** De tooltips van de bibliotheek zijn innerHTML; namen en ankerteksten komen uit de brongraaf. */
+function esc(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+const tip = (hoofd: string, sub = "") =>
+  `<div class="samenhang-tip"><strong>${esc(hoofd)}</strong>${sub ? `<span>${esc(sub)}</span>` : ""}</div>`;
+
+// Kleur, breedte en kromming per verbinding. Verwijzingen krommen het sterkst, zodat ze niet over de
+// structuurlijnen heen liggen. Gedimd (buiten de selectie) blijft de kleur, maar met
+// een lage alfa – zoals in de CGM-viewer, zodat het pad van de selectie eruit springt.
+const LIJN: Record<GraafRelatie["soort"], { kleur: string; rgb: string; breedte: number; krom: number }> = {
+  bevat: { kleur: "#8aa1b6", rgb: "138,161,182", breedte: 1.6, krom: 0.06 },
+  verwijst_naar: { kleur: "#6b4e91", rgb: "107,78,145", breedte: 1.1, krom: 0.18 },
+  markeert: { kleur: "#9fb3c5", rgb: "159,179,197", breedte: 0.7, krom: 0.1 },
+  heeft_klasse: { kleur: "#b7c4d1", rgb: "183,196,209", breedte: 0.5, krom: 0.1 },
+};
 export function GraafCanvas({ data, selectie, onSelecteer, camera: cameraRef, bediening: bedieningRef, zichtbaar }: {
   data: GraafData; selectie: string; onSelecteer: (id: string) => void;
   camera: MutableRefObject<CameraStand | null>;
@@ -139,7 +155,14 @@ export function GraafCanvas({ data, selectie, onSelecteer, camera: cameraRef, be
     if (!fg || !gereed) return;
     bedieningRef.current = {
       pasIn: () => pasCameraIn(fg, data.nodes, maat.width, maat.height, minderBeweging.current ? 0 : 450),
-      focus: (node) => fg.cameraPosition({ x: node.x + 45, y: node.y + 35, z: node.z + 230 }, node, minderBeweging.current ? 0 : 450),
+      // Zoals `focusNode` in de CGM-viewer: vanaf het midden van de kaart door de knoop heen naar buiten.
+      focus: (node) => {
+        const midden = new Vector3(...(["x", "y", "z"] as const).map((as) => data.nodes.reduce((t, n) => t + n[as], 0) / Math.max(data.nodes.length, 1)) as [number, number, number]);
+        const richting = new Vector3(node.x, node.y, node.z).sub(midden);
+        if (richting.lengthSq() < 1) richting.set(0.24, 0.16, 1);
+        const doel = new Vector3(node.x, node.y, node.z).add(richting.normalize().multiplyScalar(170));
+        fg.cameraPosition(doel, node, minderBeweging.current ? 0 : 600);
+      },
     };
     return () => { bedieningRef.current = null; };
   }, [gereed, bedieningRef, data.nodes, maat]);
@@ -153,36 +176,45 @@ export function GraafCanvas({ data, selectie, onSelecteer, camera: cameraRef, be
     return () => document.removeEventListener("visibilitychange", wissel);
   }, [zichtbaar, gereed]);
 
+  // Dimmen alleen met een selectie; zonder selectie (klik op de achtergrond) is alles gelijkwaardig.
+  const dim = (id: string) => !!selectie && !buren.has(id);
   const maakObject = useCallback((node: GraafKnoop) => {
     const group = new Group();
-    const gekozen = node.id === selectie;
-    const radius = node.rand ? 4.5 : node.soort === "regeling" ? 9 : node.soort === "artikel" ? 8 : node.soort === "lid" ? 7 : 5.5;
-    const geometry = node.soort === "klasse" ? new OctahedronGeometry(radius * 1.2) : new SphereGeometry(radius, 18, 12);
-    // Een bepaling buiten het geopende artikel is gedempt en als draadmodel: hij is een verwijzing,
-    // nog geen geladen bron.
+    const radius = node.straal;
+    const geometry = node.soort === "klasse" ? new OctahedronGeometry(radius * 1.25) : new SphereGeometry(radius, 20, 14);
+    // Een bepaling buiten het geopende artikel is een draadmodel: een verwijzing, nog geen geladen bron.
+    const gedimd = !!selectie && !buren.has(node.id);
     const material = new MeshLambertMaterial({ color: node.kleur, transparent: true, wireframe: node.rand,
-      opacity: node.rand ? 0.7 : buren.has(node.id) ? 1 : 0.65 });
+      opacity: gedimd ? 0.16 : node.rand ? 0.85 : 1 });
     group.add(new Mesh(geometry, material));
-    if (gekozen) {
-      const ring = new Mesh(new SphereGeometry(radius + 2.3, 20, 14), new MeshLambertMaterial({ color: "#007bc7", wireframe: true, transparent: true, opacity: 0.35 }));
-      group.add(ring);
+    if (node.id === selectie) {
+      group.add(new Mesh(new SphereGeometry(radius + 2.5, 22, 16),
+        new MeshLambertMaterial({ color: "#007bc7", wireframe: true, transparent: true, opacity: 0.4 })));
     }
-    if (buren.has(node.id) || (node.soort !== "markering" && !node.rand)) {
+    // Vaste labels alleen voor de selectie en haar buren; de rest heeft een tooltip bij hover.
+    if (selectie && buren.has(node.id)) {
       const label = new SpriteText(node.kort, 10, "#253c53");
       label.fontFace = "Fira Sans, sans-serif";
-      label.backgroundColor = "rgba(255,255,255,0.92)";
-      label.padding = [1, 2];
-      label.borderRadius = 2;
+      label.backgroundColor = "rgba(255,255,255,0.94)";
+      label.padding = [1.5, 3];
+      label.borderRadius = 3;
       // Labels blijven 12 schermpixels hoog bij draaien, zoomen en vergroten.
       label.material.sizeAttenuation = false;
+      label.material.depthTest = false;
+      label.renderOrder = 2;
       const fov = (graph.current?.camera() as PerspectiveCamera | undefined)?.fov ?? 50;
       label.scale.multiplyScalar((2 * Math.tan(fov * Math.PI / 360) * 12) / (Math.max(maat.height, 1) * 10));
-      label.position.set(0, -(radius + 10), 0);
+      label.position.set(0, -(radius + 9), 0);
       group.add(label);
     }
     return group;
   }, [buren, selectie, maat.height]);
   const raaktSelectie = (edge: RenderLink) => idVan(edge.source) === selectie || idVan(edge.target) === selectie;
+  const lijnKleur = (edge: RenderLink) => {
+    const lijn = LIJN[edge.soort];
+    if (raaktSelectie(edge)) return "#007bc7";
+    return dim(idVan(edge.source)) || dim(idVan(edge.target)) ? `rgba(${lijn.rgb},0.08)` : lijn.kleur;
+  };
 
   return <div ref={container} className="relative h-full min-h-0 w-full overflow-hidden" data-testid="graaf-canvas" data-graaf-status={gereed ? "gereed" : "laden"}>
     {!webgl || verloren ? <div role="status" className="flex h-full items-center justify-center p-8 text-center text-sm text-muted">
@@ -191,12 +223,16 @@ export function GraafCanvas({ data, selectie, onSelecteer, camera: cameraRef, be
       ref={graph} graphData={renderData} width={maat.width} height={maat.height}
       backgroundColor="#f7f9fc" showNavInfo={false} controlType="orbit"
       enableNodeDrag={false} cooldownTicks={0} onEngineStop={klaar}
-      nodeThreeObject={maakObject} nodeLabel={() => ""}
+      nodeThreeObject={maakObject}
+      nodeLabel={(node) => tip(node.label, SOORT_LABEL[node.soort] + (node.rand && node.soort !== "extern" ? " · buiten dit artikel" : ""))}
       onNodeClick={(node) => onSelecteer(node.id)}
-      linkLabel={() => ""}
-      linkColor={(edge) => raaktSelectie(edge) ? "#007bc7" : edge.groep === "verwijzingen" ? "#6b4e91" : "#acbccb"}
-      linkWidth={(edge) => raaktSelectie(edge) ? 1.3 : 0.45}
-      linkOpacity={0.8} linkDirectionalArrowLength={3.5} linkDirectionalArrowRelPos={0.83}
+      onBackgroundClick={() => onSelecteer("")}
+      linkLabel={(edge) => tip(edge.label, edge.anker_tekst ? `“${edge.anker_tekst}”` : "")}
+      linkColor={lijnKleur}
+      linkWidth={(edge) => LIJN[edge.soort].breedte * (raaktSelectie(edge) ? 1.5 : 1)}
+      linkCurvature={(edge) => LIJN[edge.soort].krom}
+      linkOpacity={0.75} linkDirectionalArrowLength={4} linkDirectionalArrowRelPos={1}
+      linkDirectionalArrowColor={lijnKleur}
       onLinkClick={(edge) => onSelecteer(idVan(edge.target))}
       rendererConfig={{ antialias: true, alpha: false }}
     />}
