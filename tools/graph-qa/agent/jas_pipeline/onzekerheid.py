@@ -30,7 +30,7 @@ KLASSE_VAN_BEWIJS = {
 }
 assert set(KLASSE_VAN_BEWIJS) == set(STERK_BEWIJS), "elk sterk bewijs wijst één klasse aan"
 
-REVIEWBAAR = ("DETECTOR_CONFLICT", "CLASSIFIER_ABSTAIN", "ZELFDE_SPAN")
+REVIEWBAAR = ("DETECTOR_CONFLICT", "CLASSIFIER_ABSTAIN", "ZELFDE_SPAN", "CENTRALE_NORM_AFGEWEZEN")
 
 
 class Twijfel(BaseModel):
@@ -73,4 +73,34 @@ def signaleer(kandidaten: dict[str, Candidate], beslissingen: list[Beslissing], 
         if w.code == "W_ZELFDE_SPAN" and w.label in per_label:
             klassen = tuple(w.detail.split(", "))
             uit.append(Twijfel(label=w.label, reden="ZELFDE_SPAN", huidig=klassen[0], alternatieven=klassen[1:]))
+    return uit + centrale_afwijzingen(kandidaten, beslissingen)
+
+
+def centrale_afwijzingen(kandidaten, beslissingen):
+    """NormDetector levert één beschermd normsegment; inspecteer alleen die lokale eenheid.
+
+    Een nominalisatie-RF is geen centrale norm. Validatie-afwijzingen worden hier niet
+    opnieuw aangeboden. Geen detectorbewijs → geen claim dat een norm ontbreekt.
+    """
+    per_id = {b.kandidaat_id: b for b in beslissingen}
+    normen = [k for k in kandidaten.values() if any(e.code == "NORMATIVE_PREDICATE" for e in k.evidence)]
+    uit = []
+    for norm in normen:
+        b = per_id.get(norm.id)
+        if not b or b.door != "model" or b.status is not CandidateStatus.REJECTED or b.reden != "geen annotatie":
+            continue
+        binnen = [k for k in kandidaten.values() if k.span.bron_iri == norm.span.bron_iri
+                  and norm.span.start <= k.span.start and k.span.eind <= norm.span.eind]
+        if sum(k in normen for k in binnen) != 1:
+            continue
+        geaccepteerd = [k for k in binnen if k.id in per_id and per_id[k.id].status is CandidateStatus.ACCEPTED]
+        centraal = any(per_id[k.id].klasse in {"Rechtsbetrekking", "Rechtsfeit", "Afleidingsregel"}
+                       and any(e.code == "NORMATIVE_PREDICATE" or e.code.startswith("CALCULATION_")
+                               for e in k.evidence) for k in geaccepteerd)
+        rest = [k for k in geaccepteerd if per_id[k.id].klasse in {"Rechtsobject", "Tijdsaanduiding"}]
+        if rest and not centraal:
+            uit.append(Twijfel(label=norm.label, reden="CENTRALE_NORM_AFGEWEZEN", alternatieven=norm.possible_classes,
+                              categorie="INHOUDELIJKE_HERBEOORDELING",
+                              detail="Enige centrale norm afgewezen; resterend: " + "; ".join(
+                                  f"{k.label} {per_id[k.id].klasse}: {k.span.tekst}" for k in rest)))
     return uit

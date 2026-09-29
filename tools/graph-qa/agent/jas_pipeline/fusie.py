@@ -38,7 +38,8 @@ def _temporele_kernen(samen: dict[str, Candidate]) -> list[DetectieBijdrage]:
                 continue
             kid = per_span[o.span.sleutel()]
             kort = samen[kid]
-            if kid == lang.id:
+            if (kid == lang.id or not (lang.span.start <= kort.span.start < kort.span.eind <= lang.span.eind)
+                    or kort.span.bron_hash != lang.span.bron_hash):
                 continue
             afgeleid = kort.model_copy(update={"possible_classes": ("Tijdsaanduiding",),
                 "evidence": (*bewijs, Evidence(detector="fusie", code="TEMPORAL_KERNEL",

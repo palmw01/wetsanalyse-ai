@@ -14,16 +14,19 @@ from .syntactisch import _parse_of_reden, _bereik, _zonder_randfunctie, _in_verw
 AR, T, VW = "Afleidingsregel", "Tijdsaanduiding", "Voorwaarde"
 _GROOTHEID = re.compile(r"\b(?:bedrag|premie|rente|percentage|tarief|termijn|vervaldag|datum|tijdstip|aantal|waarde)\b", re.I)
 _PASSIEF = re.compile(r"\bword(?:t|en)\b[\s\S]*\bop\b[\s\S]*\b(?:vast)?gesteld\b", re.I)
-_AANTAL = re.compile(r"\bzoveel\s+(?P<uitkomst>.+?)\s+als\s+(?P<invoer>[\s\S]*\b(?:overblijven|resteren)\b)", re.I)
+_AANTAL = re.compile(r"\bzoveel\s+(?P<uitkomst>[\s\S]+?)\s+als\s+(?P<invoer>[\s\S]*\b(?:overblijven|resteren)\b)", re.I)
+_KEUZE = re.compile(r"\b(?:indien|als|in dat geval)\b[\s\S]*\b(?:vindt|vinden)\s+(?P<regel>.+?)\s+toepassing\b", re.I)
 _ELLIPTISCH = re.compile(r"\bBij\s+(?:afwijkende|ontbrekende|ongewijzigde)\s+", re.I)
 
 
 class FunctieDetector:
     naam = "functie"
     versie = "1"
+    CODES = ("CALCULATION_ASSIGNMENT", "CALCULATION_QUANTITY", "CALCULATION_CALENDAR_POSITION",
+             "TEMPORAL_DESCRIPTION", "CONDITIONAL_ELLIPSIS", "CALCULATION_APPLICABILITY")
     REGELS = ("jas.afleiding.passieve_toewijzing", "jas.afleiding.aantal_uit_restant",
               "jas.afleiding.kalenderpositie", "jas.tijd.datumomschrijving",
-              "jas.voorwaarde.elliptisch")
+              "jas.voorwaarde.elliptisch", "jas.afleiding.toepassingskeuze")
 
     def detecteer(self, bron):
         a, reden = _parse_of_reden(bron)
@@ -32,6 +35,7 @@ class FunctieDetector:
         ks = []
 
         def voeg(s, e, klasse, code, regel, **bewijs):
+            assert code in self.CODES
             ks.append(Candidate.maak(bron.span(s, e), [klasse], [Evidence(
                 detector=self.naam, code=code, regel=regel,
                 detail=json.dumps(bewijs, ensure_ascii=False, sort_keys=True))]))
@@ -46,6 +50,9 @@ class FunctieDetector:
                 voeg(s, e, AR, "CALCULATION_QUANTITY", self.REGELS[1],
                      **{naam: {"start": s + m.start(naam), "eind": s + m.end(naam), "tekst": m[naam]}
                         for naam in ("uitkomst", "invoer")})
+            if m := _KEUZE.search(tekst):
+                voeg(s, e, AR, "CALCULATION_APPLICABILITY", self.REGELS[5],
+                     toepasselijke_regel={"start": s + m.start("regel"), "eind": s + m.end("regel"), "tekst": m["regel"]})
             # Een ordinaliteitsvergelijking bij het bepalen van een vervaldatum, geen losse 'als'.
             if (re.search(r"\bvervalt\b", tekst, re.I)
                     and re.search(r"\bdag\s+die\s+hetzelfde\s+nummer\s+heeft\s+als\b", tekst, re.I)):

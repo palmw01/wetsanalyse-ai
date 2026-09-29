@@ -1,0 +1,1520 @@
+{
+  "schema_versie": 1,
+  "casussen": [
+    {
+      "id": "IW-9-1",
+      "snapshot": {
+        "schema_versie": 2,
+        "snapshot_id": "1655e631186da9569d517166b3ac71fa67fa188ba09c5a6d818194dfd94ecad4",
+        "doel": {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+          "parent_iri": "urn:bwb:BWBR0004770:artikel:9",
+          "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+          "bron_hash": "fd044d7e35ad3a1eb2440ee5d485759c70efa621732d21a94714e2b656c0034d",
+          "type": "Lid",
+          "nummer": "1",
+          "volgorde": 90
+        },
+        "nodes": [
+          {
+            "bron_iri": "urn:bwb:BWBR0004770:artikel:9",
+            "tekst": "",
+            "parent_iri": "",
+            "volgorde": 0,
+            "type": "Artikel"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+            "parent_iri": "urn:bwb:BWBR0004770:artikel:9",
+            "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+            "bron_hash": "fd044d7e35ad3a1eb2440ee5d485759c70efa621732d21a94714e2b656c0034d",
+            "type": "Lid",
+            "nummer": "1",
+            "volgorde": 90
+          }
+        ],
+        "segmenten": [
+          {
+            "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+            "parent_iri": "urn:bwb:BWBR0004770:artikel:9",
+            "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+            "bron_hash": "fd044d7e35ad3a1eb2440ee5d485759c70efa621732d21a94714e2b656c0034d",
+            "type": "Lid",
+            "nummer": "1",
+            "volgorde": 90
+          }
+        ]
+      },
+      "herkomst": "graaf",
+      "context": [
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:5",
+          "tekst": "In afwijking van het eerste lid is een voorlopige aanslag in de inkomstenbelasting of in de vennootschapsbelasting en een voorlopige conserverende aanslag in de inkomstenbelasting, waarvan het aanslagbiljet een dagtekening heeft die ligt in het jaar waarover deze is vastgesteld, invorderbaar in zoveel gelijke termijnen als er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven. De eerste termijn vervalt één maand na de dagtekening van het aanslagbiljet en elk van de volgende termijnen telkens een maand later. Indien de toepassing van de eerste volzin niet leidt tot meer dan één termijn, vindt het eerste lid toepassing.",
+          "bron_hash": "11aab4fb73f10380f88b3db884976396773f0fd9b40bcda37fe8140dadf2943d",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1",
+          "tekst": "In de gevallen waarin voor voorlopige aanslagen (bedoeld in artikel 9, vijfde lid, van de wet) die zijn gedagtekend in november of eerder, toepassing van de wet er toe zou leiden dat de enige of laatste betalingstermijn eindigt voor 31 december, dan wordt de vervaldag van deze termijn op 31 december gesteld. Bij afwijkende boekjaren wordt de laatste vervaldag steeds op de laatste dag van de maand gesteld.",
+          "bron_hash": "a6d1a0d2199a83bbe664b33c0d56efcc5160490d8284efca2b01a963ac71ff7b",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "beleidsregel"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5",
+          "tekst": "Als de betalingstermijn van een aanslag is gesteld op één maand of is gesteld op zes weken, dan houdt dat in dat als de dagtekening van een aanslagbiljet valt op 31 oktober, de betalingstermijn van één maand vervalt op 30 november en de betalingstermijn van zes weken vervalt op 12 december. Als de dagtekening 28 februari is, dan vervalt de betalingstermijn van een maand op 31 maart en de betalingstermijn van zes weken op 11 april, tenzij het jaartal aangeeft dat het een schrikkeljaar is, in welk geval de termijn vervalt op 28 maart dan wel 10 april. Als de dagtekening van het aanslagbiljet valt op een andere dag dan de laatste dag van de kalendermaand, vervalt de termijn een maand later (bij een betalingstermijn van een maand) op de dag die hetzelfde nummer heeft als dat van de dagtekening. Als de dagtekening bijvoorbeeld 15 maart is, vervalt de termijn dus op 15 april. Is de betalingstermijn zes weken en is de dagtekening 15 maart, vervalt de termijn op 26 april.",
+          "bron_hash": "726e8826e0208095b2858a1f7779faca91d7dc7aa2548cd2318fc8f2419fdfbf",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "beleidsregel"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:2:lid:1:o:i",
+          "tekst": "directeur, inspecteur of ontvanger: de functionaris die als zodanig bij ministeriële regeling is aangewezen;",
+          "bron_hash": "33f4cb8e2cc4fc29c759dab4bebde440050a32a653f2d368a5e02d4323ac84d2",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:2:lid:1:o:k",
+          "tekst": "belastingschuldige: degene te wiens naam de belastingaanslag is gesteld;",
+          "bron_hash": "a7e2581f97123b3f3d68501fcf666569897b74ac2c1a8bff7256031d0671d20e",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:2:lid:1:o:m",
+          "tekst": "belastingaanslag: de voorlopige aanslag, de aanslag, de uitnodiging tot betaling, de navorderingsaanslag en de naheffingsaanslag, alsmede de voorlopige conserverende aanslag, de conserverende aanslag en de conserverende navorderingsaanslag in de inkomstenbelasting en in de schenk- en erfbelasting;",
+          "bron_hash": "13c2852166663b62ac587af42f8d6c0230e6944f019ce87d61a070cf7baedbd7",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:3:lid:1",
+          "tekst": "De ontvanger is belast met de invordering van de rijksbelastingen.",
+          "bron_hash": "adbbd0682954198e20092819f4b8d6348b4e030d752b8c5e2cdef5eeb63f0474",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:8:lid:1",
+          "tekst": "De ontvanger maakt de belastingaanslag bekend door verzending of uitreiking van het door de inspecteur voor de belastingschuldige opgemaakte aanslagbiljet.",
+          "bron_hash": "f87cb28b1189ebbbc8b87cef163db9b54e8885427de6e891f641447caedf8e9e",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:8:lid:5",
+          "tekst": "Een belastingaanslag is door de belastingschuldige in zijn geheel verschuldigd.",
+          "bron_hash": "2ec868a3110136a3eb1d35a6523eed1e9e80f6f98541398e769daed0f956e77e",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:2",
+          "tekst": "In afwijking van het eerste lid is een navorderingsaanslag, alsmede een conserverende navorderingsaanslag invorderbaar één maand na de dagtekening van het aanslagbiljet en een naheffingsaanslag invorderbaar veertien dagen na de dagtekening van het aanslagbiljet.",
+          "bron_hash": "db3c089c4f589a1dc1f6a622216d2421dc1815541a7769b2f3212ab0ce938a51",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:6",
+          "tekst": "In afwijking van het eerste en het vijfde lid is een belastingaanslag als bedoeld in het vijfde lid, die een uit te betalen bedrag behelst, invorderbaar in zoveel gelijke termijnen als er met inbegrip van de maand die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven. De eerste termijn vervalt aan het eind van de maand van de dagtekening van het aanslagbiljet en elk van de volgende termijnen telkens een maand later.",
+          "bron_hash": "a16e7f3617566a358883834d2c3e3908da28cd17b0926eaf7f9d45f416e16046",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:7",
+          "tekst": "In afwijking van het eerste lid is een voorlopige aanslag waarvan het aanslagbiljet een dagtekening heeft die ligt voor het jaar waarover deze is vastgesteld, invorderbaar in zoveel gelijke termijnen als er maanden van het jaar zijn. De eerste termijn vervalt aan het eind van de eerste maand van het jaar waarover de voorlopige aanslag is vastgesteld en elk van de volgende termijnen telkens een maand later.",
+          "bron_hash": "db80d1cd5255686bd4fbf2440c7f55aed36ba6cfc0ba1936b146eb7b3ecb9338",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:10",
+          "tekst": "De Algemene termijnenwet is niet van toepassing op de in de voorgaande leden gestelde termijnen.",
+          "bron_hash": "4ae87b5d34b932260adc4e2b59a829667d9fa069709c298743ba4ed1eb49c798",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:12",
+          "tekst": "De verplichting tot betaling wordt niet geschorst door de indiening van een bezwaar- of beroepschrift inzake een belastingaanslag.",
+          "bron_hash": "fc2beb6729edcb7360a4398c6469805d1d78f3f12fec13551e51f00049cf8dad",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie1%2FCirculaire.divisie1.1",
+          "tekst": "De Leidraad Invordering 2008 is in de plaats getreden van de Leidraad Invordering 1990. De Leidraad Invordering 2008 bevat alleen nog beleidsregels. Werkinstructies en teksten die terug te vinden zijn in wet en regelgeving zijn niet opgenomen.",
+          "bron_hash": "52a9573193a9995b85a589f9622f25e605cba660ed7cd0fc1e988a8cd56e57c8",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "beleidsregel"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0024096:artikel:9",
+          "tekst": "In aansluiting op artikel 9 van de wet beschrijft dit artikel het beleid over:",
+          "bron_hash": "11cfc21e3debacd58a41b73861ff2e024705c96b119f8c87efb582c3ac3d1f66",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "beleidsregel"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4",
+          "tekst": "De dagtekening van het aanslagbiljet wordt normaliter zodanig bepaald dat de belastingschuldige het biljet enige dagen voor de dag van dagtekening ontvangt. Hiervan kan worden afgeweken als op grond van artikel 10 van de wet versnelde invordering wordt toegepast.",
+          "bron_hash": "9aa5bf6c34e4156c9abfaddc74c8ae68b0a256594a7efe51510f877d220e21fa",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "beleidsregel"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie1%2FCirculaire.divisie1.1%2FCirculaire.divisie1.1.2%2FTekst%2FOnderdeel._17",
+          "tekst": "wet (de): de wet van 30 mei 1990 op de invordering van rijksbelastingen (Invorderingswet 1990).",
+          "bron_hash": "3634e5efbf751da3b0df0a34c56deef5abe59382644214fdd8a47bd3c6fa019c",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "beleidsregel"
+        }
+      ],
+      "doel_metadata": {
+        "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+        "toestand": "2026-07-01",
+        "juridische_status": "wet"
+      }
+    },
+    {
+      "id": "IW-9-5",
+      "snapshot": {
+        "schema_versie": 2,
+        "snapshot_id": "56e98fac02174b16a14facf8dddc508f3b9752d7d401f4cd1de757988c0942d4",
+        "doel": {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:5",
+          "parent_iri": "urn:bwb:BWBR0004770:artikel:9",
+          "tekst": "In afwijking van het eerste lid is een voorlopige aanslag in de inkomstenbelasting of in de vennootschapsbelasting en een voorlopige conserverende aanslag in de inkomstenbelasting, waarvan het aanslagbiljet een dagtekening heeft die ligt in het jaar waarover deze is vastgesteld, invorderbaar in zoveel gelijke termijnen als er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven. De eerste termijn vervalt één maand na de dagtekening van het aanslagbiljet en elk van de volgende termijnen telkens een maand later. Indien de toepassing van de eerste volzin niet leidt tot meer dan één termijn, vindt het eerste lid toepassing.",
+          "bron_hash": "11aab4fb73f10380f88b3db884976396773f0fd9b40bcda37fe8140dadf2943d",
+          "type": "Lid",
+          "nummer": "5",
+          "volgorde": 94
+        },
+        "nodes": [
+          {
+            "bron_iri": "urn:bwb:BWBR0004770:artikel:9",
+            "tekst": "",
+            "parent_iri": "",
+            "volgorde": 0,
+            "type": "Artikel"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:5",
+            "parent_iri": "urn:bwb:BWBR0004770:artikel:9",
+            "tekst": "In afwijking van het eerste lid is een voorlopige aanslag in de inkomstenbelasting of in de vennootschapsbelasting en een voorlopige conserverende aanslag in de inkomstenbelasting, waarvan het aanslagbiljet een dagtekening heeft die ligt in het jaar waarover deze is vastgesteld, invorderbaar in zoveel gelijke termijnen als er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven. De eerste termijn vervalt één maand na de dagtekening van het aanslagbiljet en elk van de volgende termijnen telkens een maand later. Indien de toepassing van de eerste volzin niet leidt tot meer dan één termijn, vindt het eerste lid toepassing.",
+            "bron_hash": "11aab4fb73f10380f88b3db884976396773f0fd9b40bcda37fe8140dadf2943d",
+            "type": "Lid",
+            "nummer": "5",
+            "volgorde": 94
+          }
+        ],
+        "segmenten": [
+          {
+            "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:5",
+            "parent_iri": "urn:bwb:BWBR0004770:artikel:9",
+            "tekst": "In afwijking van het eerste lid is een voorlopige aanslag in de inkomstenbelasting of in de vennootschapsbelasting en een voorlopige conserverende aanslag in de inkomstenbelasting, waarvan het aanslagbiljet een dagtekening heeft die ligt in het jaar waarover deze is vastgesteld, invorderbaar in zoveel gelijke termijnen als er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven. De eerste termijn vervalt één maand na de dagtekening van het aanslagbiljet en elk van de volgende termijnen telkens een maand later. Indien de toepassing van de eerste volzin niet leidt tot meer dan één termijn, vindt het eerste lid toepassing.",
+            "bron_hash": "11aab4fb73f10380f88b3db884976396773f0fd9b40bcda37fe8140dadf2943d",
+            "type": "Lid",
+            "nummer": "5",
+            "volgorde": 94
+          }
+        ]
+      },
+      "herkomst": "graaf",
+      "context": [
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+          "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+          "bron_hash": "fd044d7e35ad3a1eb2440ee5d485759c70efa621732d21a94714e2b656c0034d",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1",
+          "tekst": "In de gevallen waarin voor voorlopige aanslagen (bedoeld in artikel 9, vijfde lid, van de wet) die zijn gedagtekend in november of eerder, toepassing van de wet er toe zou leiden dat de enige of laatste betalingstermijn eindigt voor 31 december, dan wordt de vervaldag van deze termijn op 31 december gesteld. Bij afwijkende boekjaren wordt de laatste vervaldag steeds op de laatste dag van de maand gesteld.",
+          "bron_hash": "a6d1a0d2199a83bbe664b33c0d56efcc5160490d8284efca2b01a963ac71ff7b",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "beleidsregel"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5",
+          "tekst": "Als de betalingstermijn van een aanslag is gesteld op één maand of is gesteld op zes weken, dan houdt dat in dat als de dagtekening van een aanslagbiljet valt op 31 oktober, de betalingstermijn van één maand vervalt op 30 november en de betalingstermijn van zes weken vervalt op 12 december. Als de dagtekening 28 februari is, dan vervalt de betalingstermijn van een maand op 31 maart en de betalingstermijn van zes weken op 11 april, tenzij het jaartal aangeeft dat het een schrikkeljaar is, in welk geval de termijn vervalt op 28 maart dan wel 10 april. Als de dagtekening van het aanslagbiljet valt op een andere dag dan de laatste dag van de kalendermaand, vervalt de termijn een maand later (bij een betalingstermijn van een maand) op de dag die hetzelfde nummer heeft als dat van de dagtekening. Als de dagtekening bijvoorbeeld 15 maart is, vervalt de termijn dus op 15 april. Is de betalingstermijn zes weken en is de dagtekening 15 maart, vervalt de termijn op 26 april.",
+          "bron_hash": "726e8826e0208095b2858a1f7779faca91d7dc7aa2548cd2318fc8f2419fdfbf",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "beleidsregel"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:2:lid:1:o:i",
+          "tekst": "directeur, inspecteur of ontvanger: de functionaris die als zodanig bij ministeriële regeling is aangewezen;",
+          "bron_hash": "33f4cb8e2cc4fc29c759dab4bebde440050a32a653f2d368a5e02d4323ac84d2",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:2:lid:1:o:k",
+          "tekst": "belastingschuldige: degene te wiens naam de belastingaanslag is gesteld;",
+          "bron_hash": "a7e2581f97123b3f3d68501fcf666569897b74ac2c1a8bff7256031d0671d20e",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:2:lid:1:o:m",
+          "tekst": "belastingaanslag: de voorlopige aanslag, de aanslag, de uitnodiging tot betaling, de navorderingsaanslag en de naheffingsaanslag, alsmede de voorlopige conserverende aanslag, de conserverende aanslag en de conserverende navorderingsaanslag in de inkomstenbelasting en in de schenk- en erfbelasting;",
+          "bron_hash": "13c2852166663b62ac587af42f8d6c0230e6944f019ce87d61a070cf7baedbd7",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:3:lid:1",
+          "tekst": "De ontvanger is belast met de invordering van de rijksbelastingen.",
+          "bron_hash": "adbbd0682954198e20092819f4b8d6348b4e030d752b8c5e2cdef5eeb63f0474",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:8:lid:1",
+          "tekst": "De ontvanger maakt de belastingaanslag bekend door verzending of uitreiking van het door de inspecteur voor de belastingschuldige opgemaakte aanslagbiljet.",
+          "bron_hash": "f87cb28b1189ebbbc8b87cef163db9b54e8885427de6e891f641447caedf8e9e",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:8:lid:5",
+          "tekst": "Een belastingaanslag is door de belastingschuldige in zijn geheel verschuldigd.",
+          "bron_hash": "2ec868a3110136a3eb1d35a6523eed1e9e80f6f98541398e769daed0f956e77e",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:2",
+          "tekst": "In afwijking van het eerste lid is een navorderingsaanslag, alsmede een conserverende navorderingsaanslag invorderbaar één maand na de dagtekening van het aanslagbiljet en een naheffingsaanslag invorderbaar veertien dagen na de dagtekening van het aanslagbiljet.",
+          "bron_hash": "db3c089c4f589a1dc1f6a622216d2421dc1815541a7769b2f3212ab0ce938a51",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:6",
+          "tekst": "In afwijking van het eerste en het vijfde lid is een belastingaanslag als bedoeld in het vijfde lid, die een uit te betalen bedrag behelst, invorderbaar in zoveel gelijke termijnen als er met inbegrip van de maand die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven. De eerste termijn vervalt aan het eind van de maand van de dagtekening van het aanslagbiljet en elk van de volgende termijnen telkens een maand later.",
+          "bron_hash": "a16e7f3617566a358883834d2c3e3908da28cd17b0926eaf7f9d45f416e16046",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:7",
+          "tekst": "In afwijking van het eerste lid is een voorlopige aanslag waarvan het aanslagbiljet een dagtekening heeft die ligt voor het jaar waarover deze is vastgesteld, invorderbaar in zoveel gelijke termijnen als er maanden van het jaar zijn. De eerste termijn vervalt aan het eind van de eerste maand van het jaar waarover de voorlopige aanslag is vastgesteld en elk van de volgende termijnen telkens een maand later.",
+          "bron_hash": "db80d1cd5255686bd4fbf2440c7f55aed36ba6cfc0ba1936b146eb7b3ecb9338",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:10",
+          "tekst": "De Algemene termijnenwet is niet van toepassing op de in de voorgaande leden gestelde termijnen.",
+          "bron_hash": "4ae87b5d34b932260adc4e2b59a829667d9fa069709c298743ba4ed1eb49c798",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:12",
+          "tekst": "De verplichting tot betaling wordt niet geschorst door de indiening van een bezwaar- of beroepschrift inzake een belastingaanslag.",
+          "bron_hash": "fc2beb6729edcb7360a4398c6469805d1d78f3f12fec13551e51f00049cf8dad",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie1%2FCirculaire.divisie1.1",
+          "tekst": "De Leidraad Invordering 2008 is in de plaats getreden van de Leidraad Invordering 1990. De Leidraad Invordering 2008 bevat alleen nog beleidsregels. Werkinstructies en teksten die terug te vinden zijn in wet en regelgeving zijn niet opgenomen.",
+          "bron_hash": "52a9573193a9995b85a589f9622f25e605cba660ed7cd0fc1e988a8cd56e57c8",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "beleidsregel"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0024096:artikel:9",
+          "tekst": "In aansluiting op artikel 9 van de wet beschrijft dit artikel het beleid over:",
+          "bron_hash": "11cfc21e3debacd58a41b73861ff2e024705c96b119f8c87efb582c3ac3d1f66",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "beleidsregel"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4",
+          "tekst": "De dagtekening van het aanslagbiljet wordt normaliter zodanig bepaald dat de belastingschuldige het biljet enige dagen voor de dag van dagtekening ontvangt. Hiervan kan worden afgeweken als op grond van artikel 10 van de wet versnelde invordering wordt toegepast.",
+          "bron_hash": "9aa5bf6c34e4156c9abfaddc74c8ae68b0a256594a7efe51510f877d220e21fa",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "beleidsregel"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie1%2FCirculaire.divisie1.1%2FCirculaire.divisie1.1.2%2FTekst%2FOnderdeel._17",
+          "tekst": "wet (de): de wet van 30 mei 1990 op de invordering van rijksbelastingen (Invorderingswet 1990).",
+          "bron_hash": "3634e5efbf751da3b0df0a34c56deef5abe59382644214fdd8a47bd3c6fa019c",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "beleidsregel"
+        }
+      ],
+      "doel_metadata": {
+        "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:5",
+        "toestand": "2026-07-01",
+        "juridische_status": "wet"
+      }
+    },
+    {
+      "id": "LI-9.1",
+      "snapshot": {
+        "schema_versie": 2,
+        "snapshot_id": "f0582d48dca3b3267dff2019aff194d7d1b84d089b532b202d88ae8113e0c078",
+        "doel": {
+          "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1",
+          "parent_iri": "urn:bwb:BWBR0024096:artikel:9",
+          "tekst": "In de gevallen waarin voor voorlopige aanslagen (bedoeld in artikel 9, vijfde lid, van de wet) die zijn gedagtekend in november of eerder, toepassing van de wet er toe zou leiden dat de enige of laatste betalingstermijn eindigt voor 31 december, dan wordt de vervaldag van deze termijn op 31 december gesteld. Bij afwijkende boekjaren wordt de laatste vervaldag steeds op de laatste dag van de maand gesteld.",
+          "bron_hash": "a6d1a0d2199a83bbe664b33c0d56efcc5160490d8284efca2b01a963ac71ff7b",
+          "type": "Divisie",
+          "nummer": "9.1",
+          "volgorde": 126
+        },
+        "nodes": [
+          {
+            "bron_iri": "urn:bwb:BWBR0024096:artikel:9",
+            "tekst": "In aansluiting op artikel 9 van de wet beschrijft dit artikel het beleid over:",
+            "parent_iri": "",
+            "volgorde": 0,
+            "type": "Artikel"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1",
+            "parent_iri": "urn:bwb:BWBR0024096:artikel:9",
+            "tekst": "In de gevallen waarin voor voorlopige aanslagen (bedoeld in artikel 9, vijfde lid, van de wet) die zijn gedagtekend in november of eerder, toepassing van de wet er toe zou leiden dat de enige of laatste betalingstermijn eindigt voor 31 december, dan wordt de vervaldag van deze termijn op 31 december gesteld. Bij afwijkende boekjaren wordt de laatste vervaldag steeds op de laatste dag van de maand gesteld.",
+            "bron_hash": "a6d1a0d2199a83bbe664b33c0d56efcc5160490d8284efca2b01a963ac71ff7b",
+            "type": "Divisie",
+            "nummer": "9.1",
+            "volgorde": 126
+          }
+        ],
+        "segmenten": [
+          {
+            "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1",
+            "parent_iri": "urn:bwb:BWBR0024096:artikel:9",
+            "tekst": "In de gevallen waarin voor voorlopige aanslagen (bedoeld in artikel 9, vijfde lid, van de wet) die zijn gedagtekend in november of eerder, toepassing van de wet er toe zou leiden dat de enige of laatste betalingstermijn eindigt voor 31 december, dan wordt de vervaldag van deze termijn op 31 december gesteld. Bij afwijkende boekjaren wordt de laatste vervaldag steeds op de laatste dag van de maand gesteld.",
+            "bron_hash": "a6d1a0d2199a83bbe664b33c0d56efcc5160490d8284efca2b01a963ac71ff7b",
+            "type": "Divisie",
+            "nummer": "9.1",
+            "volgorde": 126
+          }
+        ]
+      },
+      "herkomst": "graaf",
+      "context": [
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+          "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+          "bron_hash": "fd044d7e35ad3a1eb2440ee5d485759c70efa621732d21a94714e2b656c0034d",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:5",
+          "tekst": "In afwijking van het eerste lid is een voorlopige aanslag in de inkomstenbelasting of in de vennootschapsbelasting en een voorlopige conserverende aanslag in de inkomstenbelasting, waarvan het aanslagbiljet een dagtekening heeft die ligt in het jaar waarover deze is vastgesteld, invorderbaar in zoveel gelijke termijnen als er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven. De eerste termijn vervalt één maand na de dagtekening van het aanslagbiljet en elk van de volgende termijnen telkens een maand later. Indien de toepassing van de eerste volzin niet leidt tot meer dan één termijn, vindt het eerste lid toepassing.",
+          "bron_hash": "11aab4fb73f10380f88b3db884976396773f0fd9b40bcda37fe8140dadf2943d",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5",
+          "tekst": "Als de betalingstermijn van een aanslag is gesteld op één maand of is gesteld op zes weken, dan houdt dat in dat als de dagtekening van een aanslagbiljet valt op 31 oktober, de betalingstermijn van één maand vervalt op 30 november en de betalingstermijn van zes weken vervalt op 12 december. Als de dagtekening 28 februari is, dan vervalt de betalingstermijn van een maand op 31 maart en de betalingstermijn van zes weken op 11 april, tenzij het jaartal aangeeft dat het een schrikkeljaar is, in welk geval de termijn vervalt op 28 maart dan wel 10 april. Als de dagtekening van het aanslagbiljet valt op een andere dag dan de laatste dag van de kalendermaand, vervalt de termijn een maand later (bij een betalingstermijn van een maand) op de dag die hetzelfde nummer heeft als dat van de dagtekening. Als de dagtekening bijvoorbeeld 15 maart is, vervalt de termijn dus op 15 april. Is de betalingstermijn zes weken en is de dagtekening 15 maart, vervalt de termijn op 26 april.",
+          "bron_hash": "726e8826e0208095b2858a1f7779faca91d7dc7aa2548cd2318fc8f2419fdfbf",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "beleidsregel"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:2:lid:1:o:i",
+          "tekst": "directeur, inspecteur of ontvanger: de functionaris die als zodanig bij ministeriële regeling is aangewezen;",
+          "bron_hash": "33f4cb8e2cc4fc29c759dab4bebde440050a32a653f2d368a5e02d4323ac84d2",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:2:lid:1:o:k",
+          "tekst": "belastingschuldige: degene te wiens naam de belastingaanslag is gesteld;",
+          "bron_hash": "a7e2581f97123b3f3d68501fcf666569897b74ac2c1a8bff7256031d0671d20e",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:2:lid:1:o:m",
+          "tekst": "belastingaanslag: de voorlopige aanslag, de aanslag, de uitnodiging tot betaling, de navorderingsaanslag en de naheffingsaanslag, alsmede de voorlopige conserverende aanslag, de conserverende aanslag en de conserverende navorderingsaanslag in de inkomstenbelasting en in de schenk- en erfbelasting;",
+          "bron_hash": "13c2852166663b62ac587af42f8d6c0230e6944f019ce87d61a070cf7baedbd7",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:3:lid:1",
+          "tekst": "De ontvanger is belast met de invordering van de rijksbelastingen.",
+          "bron_hash": "adbbd0682954198e20092819f4b8d6348b4e030d752b8c5e2cdef5eeb63f0474",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:8:lid:1",
+          "tekst": "De ontvanger maakt de belastingaanslag bekend door verzending of uitreiking van het door de inspecteur voor de belastingschuldige opgemaakte aanslagbiljet.",
+          "bron_hash": "f87cb28b1189ebbbc8b87cef163db9b54e8885427de6e891f641447caedf8e9e",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:8:lid:5",
+          "tekst": "Een belastingaanslag is door de belastingschuldige in zijn geheel verschuldigd.",
+          "bron_hash": "2ec868a3110136a3eb1d35a6523eed1e9e80f6f98541398e769daed0f956e77e",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:2",
+          "tekst": "In afwijking van het eerste lid is een navorderingsaanslag, alsmede een conserverende navorderingsaanslag invorderbaar één maand na de dagtekening van het aanslagbiljet en een naheffingsaanslag invorderbaar veertien dagen na de dagtekening van het aanslagbiljet.",
+          "bron_hash": "db3c089c4f589a1dc1f6a622216d2421dc1815541a7769b2f3212ab0ce938a51",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:6",
+          "tekst": "In afwijking van het eerste en het vijfde lid is een belastingaanslag als bedoeld in het vijfde lid, die een uit te betalen bedrag behelst, invorderbaar in zoveel gelijke termijnen als er met inbegrip van de maand die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven. De eerste termijn vervalt aan het eind van de maand van de dagtekening van het aanslagbiljet en elk van de volgende termijnen telkens een maand later.",
+          "bron_hash": "a16e7f3617566a358883834d2c3e3908da28cd17b0926eaf7f9d45f416e16046",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:7",
+          "tekst": "In afwijking van het eerste lid is een voorlopige aanslag waarvan het aanslagbiljet een dagtekening heeft die ligt voor het jaar waarover deze is vastgesteld, invorderbaar in zoveel gelijke termijnen als er maanden van het jaar zijn. De eerste termijn vervalt aan het eind van de eerste maand van het jaar waarover de voorlopige aanslag is vastgesteld en elk van de volgende termijnen telkens een maand later.",
+          "bron_hash": "db80d1cd5255686bd4fbf2440c7f55aed36ba6cfc0ba1936b146eb7b3ecb9338",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:10",
+          "tekst": "De Algemene termijnenwet is niet van toepassing op de in de voorgaande leden gestelde termijnen.",
+          "bron_hash": "4ae87b5d34b932260adc4e2b59a829667d9fa069709c298743ba4ed1eb49c798",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:12",
+          "tekst": "De verplichting tot betaling wordt niet geschorst door de indiening van een bezwaar- of beroepschrift inzake een belastingaanslag.",
+          "bron_hash": "fc2beb6729edcb7360a4398c6469805d1d78f3f12fec13551e51f00049cf8dad",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie1%2FCirculaire.divisie1.1",
+          "tekst": "De Leidraad Invordering 2008 is in de plaats getreden van de Leidraad Invordering 1990. De Leidraad Invordering 2008 bevat alleen nog beleidsregels. Werkinstructies en teksten die terug te vinden zijn in wet en regelgeving zijn niet opgenomen.",
+          "bron_hash": "52a9573193a9995b85a589f9622f25e605cba660ed7cd0fc1e988a8cd56e57c8",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "beleidsregel"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0024096:artikel:9",
+          "tekst": "In aansluiting op artikel 9 van de wet beschrijft dit artikel het beleid over:",
+          "bron_hash": "11cfc21e3debacd58a41b73861ff2e024705c96b119f8c87efb582c3ac3d1f66",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "beleidsregel"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4",
+          "tekst": "De dagtekening van het aanslagbiljet wordt normaliter zodanig bepaald dat de belastingschuldige het biljet enige dagen voor de dag van dagtekening ontvangt. Hiervan kan worden afgeweken als op grond van artikel 10 van de wet versnelde invordering wordt toegepast.",
+          "bron_hash": "9aa5bf6c34e4156c9abfaddc74c8ae68b0a256594a7efe51510f877d220e21fa",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "beleidsregel"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie1%2FCirculaire.divisie1.1%2FCirculaire.divisie1.1.2%2FTekst%2FOnderdeel._17",
+          "tekst": "wet (de): de wet van 30 mei 1990 op de invordering van rijksbelastingen (Invorderingswet 1990).",
+          "bron_hash": "3634e5efbf751da3b0df0a34c56deef5abe59382644214fdd8a47bd3c6fa019c",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "beleidsregel"
+        }
+      ],
+      "doel_metadata": {
+        "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1",
+        "toestand": "2026-07-01",
+        "juridische_status": "beleidsregel"
+      }
+    },
+    {
+      "id": "LI-9.5",
+      "snapshot": {
+        "schema_versie": 2,
+        "snapshot_id": "020922c84dd58339ad81e21004af5f817bd2f591acc07e0ad66319d8b698e4b9",
+        "doel": {
+          "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5",
+          "parent_iri": "urn:bwb:BWBR0024096:artikel:9",
+          "tekst": "Als de betalingstermijn van een aanslag is gesteld op één maand of is gesteld op zes weken, dan houdt dat in dat als de dagtekening van een aanslagbiljet valt op 31 oktober, de betalingstermijn van één maand vervalt op 30 november en de betalingstermijn van zes weken vervalt op 12 december. Als de dagtekening 28 februari is, dan vervalt de betalingstermijn van een maand op 31 maart en de betalingstermijn van zes weken op 11 april, tenzij het jaartal aangeeft dat het een schrikkeljaar is, in welk geval de termijn vervalt op 28 maart dan wel 10 april. Als de dagtekening van het aanslagbiljet valt op een andere dag dan de laatste dag van de kalendermaand, vervalt de termijn een maand later (bij een betalingstermijn van een maand) op de dag die hetzelfde nummer heeft als dat van de dagtekening. Als de dagtekening bijvoorbeeld 15 maart is, vervalt de termijn dus op 15 april. Is de betalingstermijn zes weken en is de dagtekening 15 maart, vervalt de termijn op 26 april.",
+          "bron_hash": "726e8826e0208095b2858a1f7779faca91d7dc7aa2548cd2318fc8f2419fdfbf",
+          "type": "Divisie",
+          "nummer": "9.5",
+          "volgorde": 134
+        },
+        "nodes": [
+          {
+            "bron_iri": "urn:bwb:BWBR0024096:artikel:9",
+            "tekst": "In aansluiting op artikel 9 van de wet beschrijft dit artikel het beleid over:",
+            "parent_iri": "",
+            "volgorde": 0,
+            "type": "Artikel"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5",
+            "parent_iri": "urn:bwb:BWBR0024096:artikel:9",
+            "tekst": "Als de betalingstermijn van een aanslag is gesteld op één maand of is gesteld op zes weken, dan houdt dat in dat als de dagtekening van een aanslagbiljet valt op 31 oktober, de betalingstermijn van één maand vervalt op 30 november en de betalingstermijn van zes weken vervalt op 12 december. Als de dagtekening 28 februari is, dan vervalt de betalingstermijn van een maand op 31 maart en de betalingstermijn van zes weken op 11 april, tenzij het jaartal aangeeft dat het een schrikkeljaar is, in welk geval de termijn vervalt op 28 maart dan wel 10 april. Als de dagtekening van het aanslagbiljet valt op een andere dag dan de laatste dag van de kalendermaand, vervalt de termijn een maand later (bij een betalingstermijn van een maand) op de dag die hetzelfde nummer heeft als dat van de dagtekening. Als de dagtekening bijvoorbeeld 15 maart is, vervalt de termijn dus op 15 april. Is de betalingstermijn zes weken en is de dagtekening 15 maart, vervalt de termijn op 26 april.",
+            "bron_hash": "726e8826e0208095b2858a1f7779faca91d7dc7aa2548cd2318fc8f2419fdfbf",
+            "type": "Divisie",
+            "nummer": "9.5",
+            "volgorde": 134
+          }
+        ],
+        "segmenten": [
+          {
+            "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5",
+            "parent_iri": "urn:bwb:BWBR0024096:artikel:9",
+            "tekst": "Als de betalingstermijn van een aanslag is gesteld op één maand of is gesteld op zes weken, dan houdt dat in dat als de dagtekening van een aanslagbiljet valt op 31 oktober, de betalingstermijn van één maand vervalt op 30 november en de betalingstermijn van zes weken vervalt op 12 december. Als de dagtekening 28 februari is, dan vervalt de betalingstermijn van een maand op 31 maart en de betalingstermijn van zes weken op 11 april, tenzij het jaartal aangeeft dat het een schrikkeljaar is, in welk geval de termijn vervalt op 28 maart dan wel 10 april. Als de dagtekening van het aanslagbiljet valt op een andere dag dan de laatste dag van de kalendermaand, vervalt de termijn een maand later (bij een betalingstermijn van een maand) op de dag die hetzelfde nummer heeft als dat van de dagtekening. Als de dagtekening bijvoorbeeld 15 maart is, vervalt de termijn dus op 15 april. Is de betalingstermijn zes weken en is de dagtekening 15 maart, vervalt de termijn op 26 april.",
+            "bron_hash": "726e8826e0208095b2858a1f7779faca91d7dc7aa2548cd2318fc8f2419fdfbf",
+            "type": "Divisie",
+            "nummer": "9.5",
+            "volgorde": 134
+          }
+        ]
+      },
+      "herkomst": "graaf",
+      "context": [
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+          "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+          "bron_hash": "fd044d7e35ad3a1eb2440ee5d485759c70efa621732d21a94714e2b656c0034d",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:5",
+          "tekst": "In afwijking van het eerste lid is een voorlopige aanslag in de inkomstenbelasting of in de vennootschapsbelasting en een voorlopige conserverende aanslag in de inkomstenbelasting, waarvan het aanslagbiljet een dagtekening heeft die ligt in het jaar waarover deze is vastgesteld, invorderbaar in zoveel gelijke termijnen als er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven. De eerste termijn vervalt één maand na de dagtekening van het aanslagbiljet en elk van de volgende termijnen telkens een maand later. Indien de toepassing van de eerste volzin niet leidt tot meer dan één termijn, vindt het eerste lid toepassing.",
+          "bron_hash": "11aab4fb73f10380f88b3db884976396773f0fd9b40bcda37fe8140dadf2943d",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1",
+          "tekst": "In de gevallen waarin voor voorlopige aanslagen (bedoeld in artikel 9, vijfde lid, van de wet) die zijn gedagtekend in november of eerder, toepassing van de wet er toe zou leiden dat de enige of laatste betalingstermijn eindigt voor 31 december, dan wordt de vervaldag van deze termijn op 31 december gesteld. Bij afwijkende boekjaren wordt de laatste vervaldag steeds op de laatste dag van de maand gesteld.",
+          "bron_hash": "a6d1a0d2199a83bbe664b33c0d56efcc5160490d8284efca2b01a963ac71ff7b",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "beleidsregel"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:2:lid:1:o:i",
+          "tekst": "directeur, inspecteur of ontvanger: de functionaris die als zodanig bij ministeriële regeling is aangewezen;",
+          "bron_hash": "33f4cb8e2cc4fc29c759dab4bebde440050a32a653f2d368a5e02d4323ac84d2",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:2:lid:1:o:k",
+          "tekst": "belastingschuldige: degene te wiens naam de belastingaanslag is gesteld;",
+          "bron_hash": "a7e2581f97123b3f3d68501fcf666569897b74ac2c1a8bff7256031d0671d20e",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:2:lid:1:o:m",
+          "tekst": "belastingaanslag: de voorlopige aanslag, de aanslag, de uitnodiging tot betaling, de navorderingsaanslag en de naheffingsaanslag, alsmede de voorlopige conserverende aanslag, de conserverende aanslag en de conserverende navorderingsaanslag in de inkomstenbelasting en in de schenk- en erfbelasting;",
+          "bron_hash": "13c2852166663b62ac587af42f8d6c0230e6944f019ce87d61a070cf7baedbd7",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:3:lid:1",
+          "tekst": "De ontvanger is belast met de invordering van de rijksbelastingen.",
+          "bron_hash": "adbbd0682954198e20092819f4b8d6348b4e030d752b8c5e2cdef5eeb63f0474",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:8:lid:1",
+          "tekst": "De ontvanger maakt de belastingaanslag bekend door verzending of uitreiking van het door de inspecteur voor de belastingschuldige opgemaakte aanslagbiljet.",
+          "bron_hash": "f87cb28b1189ebbbc8b87cef163db9b54e8885427de6e891f641447caedf8e9e",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:8:lid:5",
+          "tekst": "Een belastingaanslag is door de belastingschuldige in zijn geheel verschuldigd.",
+          "bron_hash": "2ec868a3110136a3eb1d35a6523eed1e9e80f6f98541398e769daed0f956e77e",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:2",
+          "tekst": "In afwijking van het eerste lid is een navorderingsaanslag, alsmede een conserverende navorderingsaanslag invorderbaar één maand na de dagtekening van het aanslagbiljet en een naheffingsaanslag invorderbaar veertien dagen na de dagtekening van het aanslagbiljet.",
+          "bron_hash": "db3c089c4f589a1dc1f6a622216d2421dc1815541a7769b2f3212ab0ce938a51",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:6",
+          "tekst": "In afwijking van het eerste en het vijfde lid is een belastingaanslag als bedoeld in het vijfde lid, die een uit te betalen bedrag behelst, invorderbaar in zoveel gelijke termijnen als er met inbegrip van de maand die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven. De eerste termijn vervalt aan het eind van de maand van de dagtekening van het aanslagbiljet en elk van de volgende termijnen telkens een maand later.",
+          "bron_hash": "a16e7f3617566a358883834d2c3e3908da28cd17b0926eaf7f9d45f416e16046",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:7",
+          "tekst": "In afwijking van het eerste lid is een voorlopige aanslag waarvan het aanslagbiljet een dagtekening heeft die ligt voor het jaar waarover deze is vastgesteld, invorderbaar in zoveel gelijke termijnen als er maanden van het jaar zijn. De eerste termijn vervalt aan het eind van de eerste maand van het jaar waarover de voorlopige aanslag is vastgesteld en elk van de volgende termijnen telkens een maand later.",
+          "bron_hash": "db80d1cd5255686bd4fbf2440c7f55aed36ba6cfc0ba1936b146eb7b3ecb9338",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:10",
+          "tekst": "De Algemene termijnenwet is niet van toepassing op de in de voorgaande leden gestelde termijnen.",
+          "bron_hash": "4ae87b5d34b932260adc4e2b59a829667d9fa069709c298743ba4ed1eb49c798",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:12",
+          "tekst": "De verplichting tot betaling wordt niet geschorst door de indiening van een bezwaar- of beroepschrift inzake een belastingaanslag.",
+          "bron_hash": "fc2beb6729edcb7360a4398c6469805d1d78f3f12fec13551e51f00049cf8dad",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "wet"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie1%2FCirculaire.divisie1.1",
+          "tekst": "De Leidraad Invordering 2008 is in de plaats getreden van de Leidraad Invordering 1990. De Leidraad Invordering 2008 bevat alleen nog beleidsregels. Werkinstructies en teksten die terug te vinden zijn in wet en regelgeving zijn niet opgenomen.",
+          "bron_hash": "52a9573193a9995b85a589f9622f25e605cba660ed7cd0fc1e988a8cd56e57c8",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "beleidsregel"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0024096:artikel:9",
+          "tekst": "In aansluiting op artikel 9 van de wet beschrijft dit artikel het beleid over:",
+          "bron_hash": "11cfc21e3debacd58a41b73861ff2e024705c96b119f8c87efb582c3ac3d1f66",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "beleidsregel"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4",
+          "tekst": "De dagtekening van het aanslagbiljet wordt normaliter zodanig bepaald dat de belastingschuldige het biljet enige dagen voor de dag van dagtekening ontvangt. Hiervan kan worden afgeweken als op grond van artikel 10 van de wet versnelde invordering wordt toegepast.",
+          "bron_hash": "9aa5bf6c34e4156c9abfaddc74c8ae68b0a256594a7efe51510f877d220e21fa",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "beleidsregel"
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie1%2FCirculaire.divisie1.1%2FCirculaire.divisie1.1.2%2FTekst%2FOnderdeel._17",
+          "tekst": "wet (de): de wet van 30 mei 1990 op de invordering van rijksbelastingen (Invorderingswet 1990).",
+          "bron_hash": "3634e5efbf751da3b0df0a34c56deef5abe59382644214fdd8a47bd3c6fa019c",
+          "herkomst": "graaf",
+          "toestand": "2026-07-01",
+          "juridische_status": "beleidsregel"
+        }
+      ],
+      "doel_metadata": {
+        "bron_iri": "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5",
+        "toestand": "2026-07-01",
+        "juridische_status": "beleidsregel"
+      }
+    },
+    {
+      "id": "IW02",
+      "snapshot": {
+        "schema_versie": 2,
+        "snapshot_id": "497af12510e22ebe5ef36a3b92742d37894f7879f309d2f272b06b34f25e614f",
+        "snapshot_soort": "gerichte_graafnodes_geen_volledige_bronboom",
+        "nodes": [
+          {
+            "bron_iri": "urn:bwb:BWBR0004770:hoofdstuk:VI",
+            "parent_iri": "urn:bwb:BWBR0004770",
+            "type": "Hoofdstuk",
+            "nummer": "VI",
+            "label": "Hoofdstuk",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0004770",
+            "volgorde": 0,
+            "jci": "jci1.3:c:BWBR0004770&hoofdstuk=VI&z=2026-07-01&g=2026-07-01",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0004770&hoofdstuk=VI",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0004770/2026-07-01/0"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0004770:hoofdstuk:VI:afdeling:1",
+            "parent_iri": "urn:bwb:BWBR0004770:hoofdstuk:VI",
+            "type": "Afdeling",
+            "nummer": "1",
+            "label": "Afdeling",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0004770",
+            "volgorde": 1,
+            "jci": "jci1.3:c:BWBR0004770&hoofdstuk=VI&afdeling=1&z=2026-07-01&g=2026-07-01",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0004770&hoofdstuk=VI&afdeling=1",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0004770/2026-07-01/0"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0004770:artikel:36",
+            "parent_iri": "urn:bwb:BWBR0004770:hoofdstuk:VI:afdeling:1",
+            "type": "Artikel",
+            "nummer": "36",
+            "label": "Artikel 36",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0004770",
+            "volgorde": 2,
+            "jci": "jci1.3:c:BWBR0004770&hoofdstuk=VI&afdeling=1&artikel=36&z=2026-07-01&g=2026-07-01",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0004770&artikel=36",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0004770/2026-07-01/0"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0004770:artikel:36:lid:1",
+            "parent_iri": "urn:bwb:BWBR0004770:artikel:36",
+            "type": "Lid",
+            "nummer": "1",
+            "label": "",
+            "tekst": "Hoofdelijk aansprakelijk is voor de loonbelasting, de omzetbelasting, de accijns, de verbruiksbelastingen van alcoholvrije dranken en van pruimtabak en snuiftabak, de in artikel 1 van de Wet belastingen op milieugrondslag genoemde belastingen en de kansspelbelasting verschuldigd door een rechtspersoonlijkheid bezittend lichaam in de zin van de Algemene wet inzake rijksbelastingen dat volledig rechtsbevoegd is, voor zover het aan de heffing van vennootschapsbelasting is onderworpen: ieder van de bestuurders overeenkomstig het bepaalde in de volgende leden.",
+            "bron_hash": "a0723a3330cdbb0c3770fadd06c2ca1ba8df14188726dff9a46dcc7acea2ba25",
+            "bwb_id": "BWBR0004770",
+            "volgorde": 3,
+            "jci": "jci1.3:c:BWBR0004770&hoofdstuk=VI&afdeling=1&artikel=36&lid=1&z=2026-07-01&g=2026-07-01",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0004770&artikel=36&lid=1",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0004770/2026-07-01/0"
+          }
+        ],
+        "segmenten": [
+          {
+            "bron_iri": "urn:bwb:BWBR0004770:artikel:36:lid:1",
+            "parent_iri": "urn:bwb:BWBR0004770:artikel:36",
+            "type": "Lid",
+            "nummer": "1",
+            "label": "",
+            "tekst": "Hoofdelijk aansprakelijk is voor de loonbelasting, de omzetbelasting, de accijns, de verbruiksbelastingen van alcoholvrije dranken en van pruimtabak en snuiftabak, de in artikel 1 van de Wet belastingen op milieugrondslag genoemde belastingen en de kansspelbelasting verschuldigd door een rechtspersoonlijkheid bezittend lichaam in de zin van de Algemene wet inzake rijksbelastingen dat volledig rechtsbevoegd is, voor zover het aan de heffing van vennootschapsbelasting is onderworpen: ieder van de bestuurders overeenkomstig het bepaalde in de volgende leden.",
+            "bron_hash": "a0723a3330cdbb0c3770fadd06c2ca1ba8df14188726dff9a46dcc7acea2ba25",
+            "bwb_id": "BWBR0004770",
+            "volgorde": 3,
+            "jci": "jci1.3:c:BWBR0004770&hoofdstuk=VI&afdeling=1&artikel=36&lid=1&z=2026-07-01&g=2026-07-01",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0004770&artikel=36&lid=1",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0004770/2026-07-01/0"
+          }
+        ],
+        "doel": {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:36:lid:1",
+          "parent_iri": "urn:bwb:BWBR0004770:artikel:36",
+          "type": "Lid",
+          "nummer": "1",
+          "label": "",
+          "tekst": "Hoofdelijk aansprakelijk is voor de loonbelasting, de omzetbelasting, de accijns, de verbruiksbelastingen van alcoholvrije dranken en van pruimtabak en snuiftabak, de in artikel 1 van de Wet belastingen op milieugrondslag genoemde belastingen en de kansspelbelasting verschuldigd door een rechtspersoonlijkheid bezittend lichaam in de zin van de Algemene wet inzake rijksbelastingen dat volledig rechtsbevoegd is, voor zover het aan de heffing van vennootschapsbelasting is onderworpen: ieder van de bestuurders overeenkomstig het bepaalde in de volgende leden.",
+          "bron_hash": "a0723a3330cdbb0c3770fadd06c2ca1ba8df14188726dff9a46dcc7acea2ba25",
+          "bwb_id": "BWBR0004770",
+          "volgorde": 3,
+          "jci": "jci1.3:c:BWBR0004770&hoofdstuk=VI&afdeling=1&artikel=36&lid=1&z=2026-07-01&g=2026-07-01",
+          "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0004770&artikel=36&lid=1",
+          "toestand": "http://wetten.overheid.nl/id/BWBR0004770/2026-07-01/0"
+        },
+        "voorouders": [
+          {
+            "bron_iri": "urn:bwb:BWBR0004770:hoofdstuk:VI",
+            "parent_iri": "urn:bwb:BWBR0004770",
+            "type": "Hoofdstuk",
+            "nummer": "VI",
+            "label": "Hoofdstuk",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0004770",
+            "volgorde": 0,
+            "jci": "jci1.3:c:BWBR0004770&hoofdstuk=VI&z=2026-07-01&g=2026-07-01",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0004770&hoofdstuk=VI",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0004770/2026-07-01/0"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0004770:hoofdstuk:VI:afdeling:1",
+            "parent_iri": "urn:bwb:BWBR0004770:hoofdstuk:VI",
+            "type": "Afdeling",
+            "nummer": "1",
+            "label": "Afdeling",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0004770",
+            "volgorde": 1,
+            "jci": "jci1.3:c:BWBR0004770&hoofdstuk=VI&afdeling=1&z=2026-07-01&g=2026-07-01",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0004770&hoofdstuk=VI&afdeling=1",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0004770/2026-07-01/0"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0004770:artikel:36",
+            "parent_iri": "urn:bwb:BWBR0004770:hoofdstuk:VI:afdeling:1",
+            "type": "Artikel",
+            "nummer": "36",
+            "label": "Artikel 36",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0004770",
+            "volgorde": 2,
+            "jci": "jci1.3:c:BWBR0004770&hoofdstuk=VI&afdeling=1&artikel=36&z=2026-07-01&g=2026-07-01",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0004770&artikel=36",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0004770/2026-07-01/0"
+          }
+        ],
+        "toestand": "http://wetten.overheid.nl/id/BWBR0004770/2026-07-01/0"
+      },
+      "herkomst": "graaf",
+      "context": [],
+      "doel_metadata": {
+        "bron_iri": "urn:bwb:BWBR0004770:artikel:36:lid:1",
+        "toestand": "2026-07-01",
+        "juridische_status": "wet"
+      }
+    },
+    {
+      "id": "AWB04",
+      "snapshot": {
+        "schema_versie": 2,
+        "snapshot_id": "02f513a5e538f08cb7bc7ba9e6fd4a524874e68c736859b9a939c19a729542dd",
+        "snapshot_soort": "gerichte_graafnodes_geen_volledige_bronboom",
+        "nodes": [
+          {
+            "bron_iri": "urn:bwb:BWBR0005537:hoofdstuk:4",
+            "parent_iri": "urn:bwb:BWBR0005537",
+            "type": "Hoofdstuk",
+            "nummer": "4",
+            "label": "Hoofdstuk",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0005537",
+            "volgorde": 0,
+            "jci": "jci1.3:c:BWBR0005537&hoofdstuk=4&z=2026-08-15&g=2026-08-15",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0005537&hoofdstuk=4",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0005537/2026-08-15/0"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0005537:hoofdstuk:4:titeldeel:4.1",
+            "parent_iri": "urn:bwb:BWBR0005537:hoofdstuk:4",
+            "type": "Titeldeel",
+            "nummer": "4.1",
+            "label": "Titel",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0005537",
+            "volgorde": 1,
+            "jci": "jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1&z=2026-08-15&g=2026-08-15",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0005537/2026-08-15/0"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0005537:hoofdstuk:4:titeldeel:4.1:afdeling:4.1.3",
+            "parent_iri": "urn:bwb:BWBR0005537:hoofdstuk:4:titeldeel:4.1",
+            "type": "Afdeling",
+            "nummer": "4.1.3",
+            "label": "Afdeling",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0005537",
+            "volgorde": 2,
+            "jci": "jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1&afdeling=4.1.3&z=2026-08-15&g=2026-08-15",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1&afdeling=4.1.3",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0005537/2026-08-15/0"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0005537:hoofdstuk:4:titeldeel:4.1:afdeling:4.1.3:paragraaf:4.1.3.2",
+            "parent_iri": "urn:bwb:BWBR0005537:hoofdstuk:4:titeldeel:4.1:afdeling:4.1.3",
+            "type": "Paragraaf",
+            "nummer": "4.1.3.2",
+            "label": "§",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0005537",
+            "volgorde": 3,
+            "jci": "jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1&afdeling=4.1.3&paragraaf=4.1.3.2&z=2026-08-15&g=2026-08-15",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1&afdeling=4.1.3&paragraaf=4.1.3.2",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0005537/2026-08-15/0"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17",
+            "parent_iri": "urn:bwb:BWBR0005537:hoofdstuk:4:titeldeel:4.1:afdeling:4.1.3:paragraaf:4.1.3.2",
+            "type": "Artikel",
+            "nummer": "4:17",
+            "label": "Artikel 4:17",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0005537",
+            "volgorde": 4,
+            "jci": "jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1&afdeling=4.1.3&paragraaf=4.1.3.2&artikel=4:17&z=2026-08-15&g=2026-08-15",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0005537&artikel=4:17",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0005537/2026-08-15/0"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:2",
+            "parent_iri": "urn:bwb:BWBR0005537:artikel:4%3A17",
+            "type": "Lid",
+            "nummer": "2",
+            "label": "",
+            "tekst": "De dwangsom bedraagt de eerste veertien dagen € 23 per dag, de daaropvolgende veertien dagen € 35 per dag en de overige dagen € 45 per dag.",
+            "bron_hash": "0fead802bb963eeceaeea7fe06028f48cb725b1ebbb802e4f3ed20337ef25ac2",
+            "bwb_id": "BWBR0005537",
+            "volgorde": 5,
+            "jci": "jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1&afdeling=4.1.3&paragraaf=4.1.3.2&artikel=4:17&lid=2&z=2026-08-15&g=2026-08-15",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0005537&artikel=4:17&lid=2",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0005537/2026-08-15/0"
+          }
+        ],
+        "segmenten": [
+          {
+            "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:2",
+            "parent_iri": "urn:bwb:BWBR0005537:artikel:4%3A17",
+            "type": "Lid",
+            "nummer": "2",
+            "label": "",
+            "tekst": "De dwangsom bedraagt de eerste veertien dagen € 23 per dag, de daaropvolgende veertien dagen € 35 per dag en de overige dagen € 45 per dag.",
+            "bron_hash": "0fead802bb963eeceaeea7fe06028f48cb725b1ebbb802e4f3ed20337ef25ac2",
+            "bwb_id": "BWBR0005537",
+            "volgorde": 5,
+            "jci": "jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1&afdeling=4.1.3&paragraaf=4.1.3.2&artikel=4:17&lid=2&z=2026-08-15&g=2026-08-15",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0005537&artikel=4:17&lid=2",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0005537/2026-08-15/0"
+          }
+        ],
+        "doel": {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:2",
+          "parent_iri": "urn:bwb:BWBR0005537:artikel:4%3A17",
+          "type": "Lid",
+          "nummer": "2",
+          "label": "",
+          "tekst": "De dwangsom bedraagt de eerste veertien dagen € 23 per dag, de daaropvolgende veertien dagen € 35 per dag en de overige dagen € 45 per dag.",
+          "bron_hash": "0fead802bb963eeceaeea7fe06028f48cb725b1ebbb802e4f3ed20337ef25ac2",
+          "bwb_id": "BWBR0005537",
+          "volgorde": 5,
+          "jci": "jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1&afdeling=4.1.3&paragraaf=4.1.3.2&artikel=4:17&lid=2&z=2026-08-15&g=2026-08-15",
+          "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0005537&artikel=4:17&lid=2",
+          "toestand": "http://wetten.overheid.nl/id/BWBR0005537/2026-08-15/0"
+        },
+        "voorouders": [
+          {
+            "bron_iri": "urn:bwb:BWBR0005537:hoofdstuk:4",
+            "parent_iri": "urn:bwb:BWBR0005537",
+            "type": "Hoofdstuk",
+            "nummer": "4",
+            "label": "Hoofdstuk",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0005537",
+            "volgorde": 0,
+            "jci": "jci1.3:c:BWBR0005537&hoofdstuk=4&z=2026-08-15&g=2026-08-15",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0005537&hoofdstuk=4",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0005537/2026-08-15/0"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0005537:hoofdstuk:4:titeldeel:4.1",
+            "parent_iri": "urn:bwb:BWBR0005537:hoofdstuk:4",
+            "type": "Titeldeel",
+            "nummer": "4.1",
+            "label": "Titel",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0005537",
+            "volgorde": 1,
+            "jci": "jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1&z=2026-08-15&g=2026-08-15",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0005537/2026-08-15/0"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0005537:hoofdstuk:4:titeldeel:4.1:afdeling:4.1.3",
+            "parent_iri": "urn:bwb:BWBR0005537:hoofdstuk:4:titeldeel:4.1",
+            "type": "Afdeling",
+            "nummer": "4.1.3",
+            "label": "Afdeling",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0005537",
+            "volgorde": 2,
+            "jci": "jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1&afdeling=4.1.3&z=2026-08-15&g=2026-08-15",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1&afdeling=4.1.3",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0005537/2026-08-15/0"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0005537:hoofdstuk:4:titeldeel:4.1:afdeling:4.1.3:paragraaf:4.1.3.2",
+            "parent_iri": "urn:bwb:BWBR0005537:hoofdstuk:4:titeldeel:4.1:afdeling:4.1.3",
+            "type": "Paragraaf",
+            "nummer": "4.1.3.2",
+            "label": "§",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0005537",
+            "volgorde": 3,
+            "jci": "jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1&afdeling=4.1.3&paragraaf=4.1.3.2&z=2026-08-15&g=2026-08-15",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1&afdeling=4.1.3&paragraaf=4.1.3.2",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0005537/2026-08-15/0"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17",
+            "parent_iri": "urn:bwb:BWBR0005537:hoofdstuk:4:titeldeel:4.1:afdeling:4.1.3:paragraaf:4.1.3.2",
+            "type": "Artikel",
+            "nummer": "4:17",
+            "label": "Artikel 4:17",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0005537",
+            "volgorde": 4,
+            "jci": "jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1&afdeling=4.1.3&paragraaf=4.1.3.2&artikel=4:17&z=2026-08-15&g=2026-08-15",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0005537&artikel=4:17",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0005537/2026-08-15/0"
+          }
+        ],
+        "toestand": "http://wetten.overheid.nl/id/BWBR0005537/2026-08-15/0"
+      },
+      "herkomst": "graaf",
+      "context": [
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:1",
+          "tekst": "Indien een beschikking op aanvraag niet tijdig wordt gegeven, verbeurt het bestuursorgaan aan de aanvrager een dwangsom voor elke dag dat het in gebreke is, doch voor ten hoogste 42 dagen. De Algemene termijnenwet is op laatstgenoemde termijn niet van toepassing.",
+          "bron_hash": "6be09c14c2bde6a4838945fc60ec5efdb2f4d08d3902c9e95d306841d85780c1",
+          "herkomst": "graaf",
+          "toestand": "2026-08-15",
+          "juridische_status": "wet",
+          "functie": "expliciete hoofdregel"
+        }
+      ],
+      "doel_metadata": {
+        "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:2",
+        "toestand": "2026-08-15",
+        "juridische_status": "wet"
+      }
+    },
+    {
+      "id": "AWB-4:17-1",
+      "snapshot": {
+        "schema_versie": 2,
+        "snapshot_id": "c951ac6d3e6d96306ca8dc2e394d61b0be1f06a5230f8f5295eada2d8a722115",
+        "snapshot_soort": "gerichte_graafnodes_geen_volledige_bronboom",
+        "nodes": [
+          {
+            "bron_iri": "urn:bwb:BWBR0005537:hoofdstuk:4",
+            "parent_iri": "urn:bwb:BWBR0005537",
+            "type": "Hoofdstuk",
+            "nummer": "4",
+            "label": "Hoofdstuk",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0005537",
+            "volgorde": 0,
+            "jci": "jci1.3:c:BWBR0005537&hoofdstuk=4&z=2026-08-15&g=2026-08-15",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0005537&hoofdstuk=4",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0005537/2026-08-15/0"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0005537:hoofdstuk:4:titeldeel:4.1",
+            "parent_iri": "urn:bwb:BWBR0005537:hoofdstuk:4",
+            "type": "Titeldeel",
+            "nummer": "4.1",
+            "label": "Titel",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0005537",
+            "volgorde": 1,
+            "jci": "jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1&z=2026-08-15&g=2026-08-15",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0005537/2026-08-15/0"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0005537:hoofdstuk:4:titeldeel:4.1:afdeling:4.1.3",
+            "parent_iri": "urn:bwb:BWBR0005537:hoofdstuk:4:titeldeel:4.1",
+            "type": "Afdeling",
+            "nummer": "4.1.3",
+            "label": "Afdeling",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0005537",
+            "volgorde": 2,
+            "jci": "jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1&afdeling=4.1.3&z=2026-08-15&g=2026-08-15",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1&afdeling=4.1.3",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0005537/2026-08-15/0"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0005537:hoofdstuk:4:titeldeel:4.1:afdeling:4.1.3:paragraaf:4.1.3.2",
+            "parent_iri": "urn:bwb:BWBR0005537:hoofdstuk:4:titeldeel:4.1:afdeling:4.1.3",
+            "type": "Paragraaf",
+            "nummer": "4.1.3.2",
+            "label": "§",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0005537",
+            "volgorde": 3,
+            "jci": "jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1&afdeling=4.1.3&paragraaf=4.1.3.2&z=2026-08-15&g=2026-08-15",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1&afdeling=4.1.3&paragraaf=4.1.3.2",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0005537/2026-08-15/0"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17",
+            "parent_iri": "urn:bwb:BWBR0005537:hoofdstuk:4:titeldeel:4.1:afdeling:4.1.3:paragraaf:4.1.3.2",
+            "type": "Artikel",
+            "nummer": "4:17",
+            "label": "Artikel 4:17",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0005537",
+            "volgorde": 4,
+            "jci": "jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1&afdeling=4.1.3&paragraaf=4.1.3.2&artikel=4:17&z=2026-08-15&g=2026-08-15",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0005537&artikel=4:17",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0005537/2026-08-15/0"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:1",
+            "parent_iri": "urn:bwb:BWBR0005537:artikel:4%3A17",
+            "type": "Lid",
+            "nummer": "1",
+            "label": "",
+            "tekst": "Indien een beschikking op aanvraag niet tijdig wordt gegeven, verbeurt het bestuursorgaan aan de aanvrager een dwangsom voor elke dag dat het in gebreke is, doch voor ten hoogste 42 dagen. De Algemene termijnenwet is op laatstgenoemde termijn niet van toepassing.",
+            "bron_hash": "6be09c14c2bde6a4838945fc60ec5efdb2f4d08d3902c9e95d306841d85780c1",
+            "bwb_id": "BWBR0005537",
+            "volgorde": 5,
+            "jci": "jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1&afdeling=4.1.3&paragraaf=4.1.3.2&artikel=4:17&lid=1&z=2026-08-15&g=2026-08-15",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0005537&artikel=4:17&lid=1",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0005537/2026-08-15/0"
+          }
+        ],
+        "segmenten": [
+          {
+            "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:1",
+            "parent_iri": "urn:bwb:BWBR0005537:artikel:4%3A17",
+            "type": "Lid",
+            "nummer": "1",
+            "label": "",
+            "tekst": "Indien een beschikking op aanvraag niet tijdig wordt gegeven, verbeurt het bestuursorgaan aan de aanvrager een dwangsom voor elke dag dat het in gebreke is, doch voor ten hoogste 42 dagen. De Algemene termijnenwet is op laatstgenoemde termijn niet van toepassing.",
+            "bron_hash": "6be09c14c2bde6a4838945fc60ec5efdb2f4d08d3902c9e95d306841d85780c1",
+            "bwb_id": "BWBR0005537",
+            "volgorde": 5,
+            "jci": "jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1&afdeling=4.1.3&paragraaf=4.1.3.2&artikel=4:17&lid=1&z=2026-08-15&g=2026-08-15",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0005537&artikel=4:17&lid=1",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0005537/2026-08-15/0"
+          }
+        ],
+        "doel": {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:1",
+          "parent_iri": "urn:bwb:BWBR0005537:artikel:4%3A17",
+          "type": "Lid",
+          "nummer": "1",
+          "label": "",
+          "tekst": "Indien een beschikking op aanvraag niet tijdig wordt gegeven, verbeurt het bestuursorgaan aan de aanvrager een dwangsom voor elke dag dat het in gebreke is, doch voor ten hoogste 42 dagen. De Algemene termijnenwet is op laatstgenoemde termijn niet van toepassing.",
+          "bron_hash": "6be09c14c2bde6a4838945fc60ec5efdb2f4d08d3902c9e95d306841d85780c1",
+          "bwb_id": "BWBR0005537",
+          "volgorde": 5,
+          "jci": "jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1&afdeling=4.1.3&paragraaf=4.1.3.2&artikel=4:17&lid=1&z=2026-08-15&g=2026-08-15",
+          "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0005537&artikel=4:17&lid=1",
+          "toestand": "http://wetten.overheid.nl/id/BWBR0005537/2026-08-15/0"
+        },
+        "voorouders": [
+          {
+            "bron_iri": "urn:bwb:BWBR0005537:hoofdstuk:4",
+            "parent_iri": "urn:bwb:BWBR0005537",
+            "type": "Hoofdstuk",
+            "nummer": "4",
+            "label": "Hoofdstuk",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0005537",
+            "volgorde": 0,
+            "jci": "jci1.3:c:BWBR0005537&hoofdstuk=4&z=2026-08-15&g=2026-08-15",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0005537&hoofdstuk=4",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0005537/2026-08-15/0"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0005537:hoofdstuk:4:titeldeel:4.1",
+            "parent_iri": "urn:bwb:BWBR0005537:hoofdstuk:4",
+            "type": "Titeldeel",
+            "nummer": "4.1",
+            "label": "Titel",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0005537",
+            "volgorde": 1,
+            "jci": "jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1&z=2026-08-15&g=2026-08-15",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0005537/2026-08-15/0"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0005537:hoofdstuk:4:titeldeel:4.1:afdeling:4.1.3",
+            "parent_iri": "urn:bwb:BWBR0005537:hoofdstuk:4:titeldeel:4.1",
+            "type": "Afdeling",
+            "nummer": "4.1.3",
+            "label": "Afdeling",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0005537",
+            "volgorde": 2,
+            "jci": "jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1&afdeling=4.1.3&z=2026-08-15&g=2026-08-15",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1&afdeling=4.1.3",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0005537/2026-08-15/0"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0005537:hoofdstuk:4:titeldeel:4.1:afdeling:4.1.3:paragraaf:4.1.3.2",
+            "parent_iri": "urn:bwb:BWBR0005537:hoofdstuk:4:titeldeel:4.1:afdeling:4.1.3",
+            "type": "Paragraaf",
+            "nummer": "4.1.3.2",
+            "label": "§",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0005537",
+            "volgorde": 3,
+            "jci": "jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1&afdeling=4.1.3&paragraaf=4.1.3.2&z=2026-08-15&g=2026-08-15",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1&afdeling=4.1.3&paragraaf=4.1.3.2",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0005537/2026-08-15/0"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17",
+            "parent_iri": "urn:bwb:BWBR0005537:hoofdstuk:4:titeldeel:4.1:afdeling:4.1.3:paragraaf:4.1.3.2",
+            "type": "Artikel",
+            "nummer": "4:17",
+            "label": "Artikel 4:17",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0005537",
+            "volgorde": 4,
+            "jci": "jci1.3:c:BWBR0005537&hoofdstuk=4&titeldeel=4.1&afdeling=4.1.3&paragraaf=4.1.3.2&artikel=4:17&z=2026-08-15&g=2026-08-15",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0005537&artikel=4:17",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0005537/2026-08-15/0"
+          }
+        ],
+        "toestand": "http://wetten.overheid.nl/id/BWBR0005537/2026-08-15/0"
+      },
+      "herkomst": "graaf",
+      "context": [],
+      "doel_metadata": {
+        "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:1",
+        "toestand": "2026-08-15",
+        "juridische_status": "wet"
+      }
+    },
+    {
+      "id": "IW04",
+      "snapshot": {
+        "schema_versie": 2,
+        "snapshot_id": "59fb6c9712a1ec50e81c935a1d3d69eb6ba9c15bf25b40e1d716bfa47dfdbcd8",
+        "snapshot_soort": "gerichte_graafnodes_geen_volledige_bronboom",
+        "nodes": [
+          {
+            "bron_iri": "urn:bwb:BWBR0004770:hoofdstuk:VI",
+            "parent_iri": "urn:bwb:BWBR0004770",
+            "type": "Hoofdstuk",
+            "nummer": "VI",
+            "label": "Hoofdstuk",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0004770",
+            "volgorde": 0,
+            "jci": "jci1.3:c:BWBR0004770&hoofdstuk=VI&z=2026-07-01&g=2026-07-01",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0004770&hoofdstuk=VI",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0004770/2026-07-01/0"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0004770:hoofdstuk:VI:afdeling:1",
+            "parent_iri": "urn:bwb:BWBR0004770:hoofdstuk:VI",
+            "type": "Afdeling",
+            "nummer": "1",
+            "label": "Afdeling",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0004770",
+            "volgorde": 1,
+            "jci": "jci1.3:c:BWBR0004770&hoofdstuk=VI&afdeling=1&z=2026-07-01&g=2026-07-01",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0004770&hoofdstuk=VI&afdeling=1",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0004770/2026-07-01/0"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0004770:artikel:34",
+            "parent_iri": "urn:bwb:BWBR0004770:hoofdstuk:VI:afdeling:1",
+            "type": "Artikel",
+            "nummer": "34",
+            "label": "Artikel 34",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0004770",
+            "volgorde": 2,
+            "jci": "jci1.3:c:BWBR0004770&hoofdstuk=VI&afdeling=1&artikel=34&z=2026-07-01&g=2026-07-01",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0004770&artikel=34",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0004770/2026-07-01/0"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+            "parent_iri": "urn:bwb:BWBR0004770:artikel:34",
+            "type": "Lid",
+            "nummer": "6",
+            "label": "",
+            "tekst": "Bij ministeriële regeling worden nadere regels gesteld met betrekking tot de toepassing van het derde lid.",
+            "bron_hash": "c0ad8c5227c159f4650da09b8e380d69a549f4f96b9a7ed641512133cb60a941",
+            "bwb_id": "BWBR0004770",
+            "volgorde": 3,
+            "jci": "jci1.3:c:BWBR0004770&hoofdstuk=VI&afdeling=1&artikel=34&lid=6&z=2026-07-01&g=2026-07-01",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0004770&artikel=34&lid=6",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0004770/2026-07-01/0"
+          }
+        ],
+        "segmenten": [
+          {
+            "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+            "parent_iri": "urn:bwb:BWBR0004770:artikel:34",
+            "type": "Lid",
+            "nummer": "6",
+            "label": "",
+            "tekst": "Bij ministeriële regeling worden nadere regels gesteld met betrekking tot de toepassing van het derde lid.",
+            "bron_hash": "c0ad8c5227c159f4650da09b8e380d69a549f4f96b9a7ed641512133cb60a941",
+            "bwb_id": "BWBR0004770",
+            "volgorde": 3,
+            "jci": "jci1.3:c:BWBR0004770&hoofdstuk=VI&afdeling=1&artikel=34&lid=6&z=2026-07-01&g=2026-07-01",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0004770&artikel=34&lid=6",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0004770/2026-07-01/0"
+          }
+        ],
+        "doel": {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+          "parent_iri": "urn:bwb:BWBR0004770:artikel:34",
+          "type": "Lid",
+          "nummer": "6",
+          "label": "",
+          "tekst": "Bij ministeriële regeling worden nadere regels gesteld met betrekking tot de toepassing van het derde lid.",
+          "bron_hash": "c0ad8c5227c159f4650da09b8e380d69a549f4f96b9a7ed641512133cb60a941",
+          "bwb_id": "BWBR0004770",
+          "volgorde": 3,
+          "jci": "jci1.3:c:BWBR0004770&hoofdstuk=VI&afdeling=1&artikel=34&lid=6&z=2026-07-01&g=2026-07-01",
+          "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0004770&artikel=34&lid=6",
+          "toestand": "http://wetten.overheid.nl/id/BWBR0004770/2026-07-01/0"
+        },
+        "voorouders": [
+          {
+            "bron_iri": "urn:bwb:BWBR0004770:hoofdstuk:VI",
+            "parent_iri": "urn:bwb:BWBR0004770",
+            "type": "Hoofdstuk",
+            "nummer": "VI",
+            "label": "Hoofdstuk",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0004770",
+            "volgorde": 0,
+            "jci": "jci1.3:c:BWBR0004770&hoofdstuk=VI&z=2026-07-01&g=2026-07-01",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0004770&hoofdstuk=VI",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0004770/2026-07-01/0"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0004770:hoofdstuk:VI:afdeling:1",
+            "parent_iri": "urn:bwb:BWBR0004770:hoofdstuk:VI",
+            "type": "Afdeling",
+            "nummer": "1",
+            "label": "Afdeling",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0004770",
+            "volgorde": 1,
+            "jci": "jci1.3:c:BWBR0004770&hoofdstuk=VI&afdeling=1&z=2026-07-01&g=2026-07-01",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0004770&hoofdstuk=VI&afdeling=1",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0004770/2026-07-01/0"
+          },
+          {
+            "bron_iri": "urn:bwb:BWBR0004770:artikel:34",
+            "parent_iri": "urn:bwb:BWBR0004770:hoofdstuk:VI:afdeling:1",
+            "type": "Artikel",
+            "nummer": "34",
+            "label": "Artikel 34",
+            "tekst": "",
+            "bron_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bwb_id": "BWBR0004770",
+            "volgorde": 2,
+            "jci": "jci1.3:c:BWBR0004770&hoofdstuk=VI&afdeling=1&artikel=34&z=2026-07-01&g=2026-07-01",
+            "url": "https://wetten.overheid.nl/jci1.3:c:BWBR0004770&artikel=34",
+            "toestand": "http://wetten.overheid.nl/id/BWBR0004770/2026-07-01/0"
+          }
+        ],
+        "toestand": "http://wetten.overheid.nl/id/BWBR0004770/2026-07-01/0"
+      },
+      "herkomst": "graaf",
+      "context": [],
+      "doel_metadata": {
+        "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+        "toestand": "2026-07-01",
+        "juridische_status": "wet"
+      }
+    }
+  ],
+  "bronpakket_sha256": "e61518f64c9a2d61ac00dee0daeec7da690c4a7c8f191abfc74512895ee9803b",
+  "controlepakket_sha256": "5ec6742a1922c833847fd6088ce429d3459945a6274c85bcf6f427c21bd3ec3a",
+  "vervanging": {
+    "WZT01": "AWB-4:17-1",
+    "RVV03": "IW04"
+  },
+  "casussen_sha256": "2b6085c4dcfae20a569a6e8b26abc5aa6f79a7564b03747cb0aebcab30b91036",
+  "herhalingen": 3,
+  "varianten": [
+    "A_huidig",
+    "B_verbeterd",
+    "C_context"
+  ]
+}

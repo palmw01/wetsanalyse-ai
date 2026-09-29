@@ -114,7 +114,9 @@ class KeuzeFake:
                 for label in labels if label not in self.via_review]}
         else:
             labels = schema["oordelen"]["items"]["properties"]["geval"]["enum"]
-            payload = {"oordelen": [{"geval": label, "actie": "CHANGE", "klasse": self.keuzes[label]}
+            payload = {"oordelen": [{"geval": label, "actie": "CHANGE" if self.keuzes.get(label, GEEN_ANNOTATIE) != GEEN_ANNOTATIE else "KEEP",
+                                       "klasse": self.keuzes.get(label, "") if self.keuzes.get(label) != GEEN_ANNOTATIE else "",
+                                       "motivering": "Vastgelegde keuze in de offline transportproef."}
                                     for label in labels]}
         return SimpleNamespace(content=[SimpleNamespace(type="tool_use", name=tool["name"], input=payload)])
 

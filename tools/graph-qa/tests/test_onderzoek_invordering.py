@@ -120,4 +120,6 @@ def test_historische_replay_alleen_volledig_beschikbaar_voor_lid1(pakket, detect
     uit, _ = speel(c, {b["label"]: b["klasse"] or "Geen annotatie" for b in oud["beslissingen"]})
     assert uit.meting["per_status"] == oud["run"]["instellingen"]["meting"]["per_status"]
     assert {(v["tekst"], v["klasse"]) for v in uit.voorstellen} == {(v["tekst"], v["klasse"]) for v in oud["elementen"]}
-    assert not uit.meting["twijfels"]
+    assert [t["reden"] for t in uit.meting["twijfels"]] == ["CENTRALE_NORM_AFGEWEZEN"]
+    assert uit.meting["review_calls"] == 1
+    assert uit.meting["resolutie"][0]["regel"] == "R-CENTRAAL-KEEP"

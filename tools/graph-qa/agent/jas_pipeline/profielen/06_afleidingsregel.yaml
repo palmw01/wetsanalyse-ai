@@ -12,6 +12,7 @@ semantic_signals:
 structural_signals:
   - "spanoptie: de volledige zin of clause met invoer, bewerking en uitkomst"
 candidate_rules:
+  - {id: jas.afleiding.toepassingskeuze, status: geïmplementeerd}
   - {id: jas.afleiding.passieve_toewijzing, status: geïmplementeerd}
   - {id: jas.afleiding.aantal_uit_restant, status: geïmplementeerd}
   - {id: jas.afleiding.kalenderpositie, status: geïmplementeerd}

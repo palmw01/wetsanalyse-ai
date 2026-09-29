@@ -79,6 +79,8 @@ def test_berekening_en_nominalisatie_lid5(parser):
     assert [k.span.tekst for k in n] == ["de dagtekening van het aanslagbiljet"]
     assert any(k.span.tekst == "telkens een maand later" and "Tijdsaanduiding" in k.possible_classes for k in ks)
     assert any(k.span.tekst.startswith("Indien") and "niet leidt tot meer dan één termijn" in k.span.tekst for k in ks)
+    assert any(k.span.tekst.startswith("Indien") and k.span.tekst.endswith("vindt het eerste lid toepassing.")
+               and "Afleidingsregel" in k.possible_classes for k in ks)
 
 
 def test_nominalisatie_behoudt_gezamenlijke_start(parser):

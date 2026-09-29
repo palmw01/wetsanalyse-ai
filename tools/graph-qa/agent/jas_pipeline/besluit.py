@@ -65,3 +65,28 @@ def uit_modelkeuze(k: Candidate, keuze: str, optie: str) -> Beslissing:
 def onzeker(k: Candidate, reden: str) -> Beslissing:
     return Beslissing(kandidaat_id=k.id, label=k.label, status=CandidateStatus.UNCERTAIN,
                       door="model", reden=reden)
+
+
+def ontdubbel_tijd(voorstellen, beslissingen, kandidaten):
+    """Alleen expliciete kernalternatieven van dezelfde geaccepteerde T-functie ontdubbelen."""
+    bs = {b.kandidaat_id: b for b in beslissingen}
+    vs = {v["trace"]["kandidaat"]["id"]: v for v in voorstellen}
+    vervangen = {}
+    for kort in kandidaten.values():
+        b = bs.get(kort.id)
+        if not b or b.status is not CandidateStatus.ACCEPTED or b.klasse != "Tijdsaanduiding" or b.optie:
+            continue
+        ouders = [kandidaten[e.detail] for e in kort.evidence if e.code == "TEMPORAL_KERNEL"
+                  and e.detail in kandidaten and e.detail in vs and e.detail in bs
+                  and bs[e.detail].status is CandidateStatus.ACCEPTED
+                  and bs[e.detail].klasse == "Tijdsaanduiding" and not bs[e.detail].optie]
+        if ouders:
+            lang = max(ouders, key=lambda k: (k.span.eind - k.span.start, k.id))
+            vervangen[kort.id] = lang.id
+    for kid in vervangen:
+        while vervangen[kid] in vervangen:
+            vervangen[kid] = vervangen[vervangen[kid]]
+    uit = [b.model_copy(update={"status": CandidateStatus.REJECTED, "klasse": "",
+                                "reden": "DUBBELE_TIJD_FUNCTIE:" + vervangen[b.kandidaat_id]})
+           if b.kandidaat_id in vervangen else b for b in beslissingen]
+    return [v for kid, v in vs.items() if kid not in vervangen], uit, vervangen

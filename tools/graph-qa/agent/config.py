@@ -108,7 +108,7 @@ class Settings(BaseModel):
     taal_provider: str = "spacy:nl_core_news_md"
     # Eén classificatiecall voor alle kandidaten (`universeel`) of één per klassefamilie
     # (`familie`). Welke betrouwbaarder is, wordt gemeten (opdracht §15), niet aangenomen.
-    classifier_granulariteit: Literal["universeel", "familie"] = "universeel"
+    classifier_granulariteit: Literal["universeel", "familie", "klasseverzameling"] = "universeel"
     # Leeg = providerdefault. Opus 4.7+/Sonnet 5 weigeren sampling-parameters (400); daarom geen
     # vaste waarde. De reproduceerbaarheid komt uit de beperkte keuze (enum op labels), niet uit
     # deze knop. Wat er gebruikt is, staat in de provenance van de beurt.
