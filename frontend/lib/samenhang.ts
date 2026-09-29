@@ -296,3 +296,65 @@ export function zichtbareGraaf(data: GraafData, uitgebreid: string[], filters: R
 export function uitklapbaar(knoop: Pick<SamenhangKnoop, "rand" | "soort" | "bwb_id">): boolean {
   return knoop.rand && knoop.soort !== "extern" && Boolean(knoop.bwb_id);
 }
+
+// ── Bediening: pure functies achter zoeken, inspector en dubbelklik (getest zonder DOM) ──────────
+
+const normaal = (s: string) => s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLocaleLowerCase("nl");
+
+/** Knopen die bij de zoekvraag passen, over de hele graaf (ook verborgen): eerst wat met de vraag
+ *  begint, dan wat hem bevat; daarbinnen het eigen artikel vóór randknopen, en bronnen vóór
+ *  markeringen en klassen. */
+export function zoekKnopen(graaf: GraafData, vraag: string, max = 12): GraafKnoop[] {
+  const v = normaal(vraag.trim());
+  if (!v) return [];
+  const rang: Record<KnoopSoort, number> = { artikel: 0, lid: 1, onderdeel: 2, regeling: 3, deel: 3, markering: 4, klasse: 5, extern: 6 };
+  return graaf.nodes
+    .map((n) => ({ n, tekst: normaal(`${n.label} ${n.klasse}`) }))
+    .filter(({ tekst }) => tekst.includes(v))
+    .sort((a, b) => Number(!a.tekst.startsWith(v)) - Number(!b.tekst.startsWith(v)) || Number(a.n.rand) - Number(b.n.rand)
+      || rang[a.n.soort] - rang[b.n.soort] || a.n.label.localeCompare(b.n.label, "nl", { numeric: true }))
+    .slice(0, max).map(({ n }) => n);
+}
+
+export type RelatieGroepNaam = "Bevat" | "Onderdeel van" | "Verwijst naar" | "Wordt verwezen door" | "Markeringen" | "Markeert" | "Klasse";
+export interface RelatieRegel { knoop: GraafKnoop; anker_tekst: string }
+
+/** De relaties van een knoop, per soort en richting, over de héle graaf: een verborgen buur staat
+ *  er ook in, zodat je hem vanuit de inspector kunt kiezen. */
+export function relatieGroepen(graaf: GraafData, id: string): { naam: RelatieGroepNaam; regels: RelatieRegel[] }[] {
+  const per = new Map(graaf.nodes.map((n) => [n.id, n]));
+  const groepen = new Map<RelatieGroepNaam, RelatieRegel[]>();
+  const voeg = (naam: RelatieGroepNaam, ander: string, anker_tekst: string) => {
+    const knoop = per.get(ander);
+    if (knoop) groepen.set(naam, [...(groepen.get(naam) ?? []), { knoop, anker_tekst }]);
+  };
+  for (const l of graaf.links) {
+    if (l.source === id) voeg(({ bevat: "Bevat", verwijst_naar: "Verwijst naar", markeert: "Markeert", heeft_klasse: "Klasse" } as const)[l.soort], l.target, l.anker_tekst);
+    else if (l.target === id) voeg(({ bevat: "Onderdeel van", verwijst_naar: "Wordt verwezen door", markeert: "Markeringen", heeft_klasse: "Markeringen" } as const)[l.soort], l.source, l.anker_tekst);
+  }
+  const volgorde: RelatieGroepNaam[] = ["Onderdeel van", "Bevat", "Markeringen", "Markeert", "Klasse", "Verwijst naar", "Wordt verwezen door"];
+  return volgorde.filter((n) => groepen.has(n)).map((naam) => ({ naam, regels: groepen.get(naam)! }));
+}
+
+export type Hoofdactie = "tekst" | "openen" | "markeringen" | null;
+/** De ene handeling die bij deze knoop het meest voor de hand ligt. */
+export function hoofdactie(knoop: Pick<GraafKnoop, "soort" | "rand" | "bwb_id" | "id">, geopend: string[]): Hoofdactie {
+  if (knoop.soort === "klasse") return "markeringen";
+  if (knoop.rand) return uitklapbaar(knoop) && !geopend.includes(knoop.id) ? "openen" : null;
+  if (knoop.soort === "extern") return null;
+  return "tekst";
+}
+
+/** Korte stand van zaken voor de inspector zonder selectie. */
+export function samenvatting(graaf: GraafData): { leden: number; markeringen: number; verwijzingen: number } {
+  return {
+    leden: graaf.nodes.filter((n) => (n.soort === "lid" || n.soort === "onderdeel") && !n.rand).length,
+    markeringen: graaf.nodes.filter((n) => n.soort === "markering").length,
+    verwijzingen: graaf.links.filter((l) => l.soort === "verwijst_naar").length,
+  };
+}
+
+/** Een tweede klik op dezelfde knoop binnen de drempel is een dubbelklik (de renderer kent alleen klik). */
+export function isDubbelklik(vorige: { id: string; tijd: number } | null, id: string, tijd: number, drempel = 300): boolean {
+  return !!vorige && vorige.id === id && tijd - vorige.tijd <= drempel;
+}
