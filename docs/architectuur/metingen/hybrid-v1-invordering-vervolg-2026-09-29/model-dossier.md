@@ -88,15 +88,15 @@ Runbestanden met volledige prompts, reacties, bijdragen en besluiten:
 
 Gerichte herbeoordelingen en technische uitval:
 
-- A_huidig ronde 1, C025: R-ONGELDIG. 
-- C_context ronde 2, C002: R-ONGELDIG. 
-- C_context ronde 2, C018: R-ONGELDIG. 
-- C_context ronde 2, C026: R-ONGELDIG. 
-- C_context ronde 2, C035: R-ONGELDIG. 
-- C_context ronde 3, C002: R-ONGELDIG. 
-- C_context ronde 3, C018: R-ONGELDIG. 
-- C_context ronde 3, C026: R-ONGELDIG. 
-- C_context ronde 3, C035: R-ONGELDIG. 
+- A_huidig ronde 1, C025: R-ONGELDIG. geen tool-aanroep
+- C_context ronde 2, C002: R-ONGELDIG. geen tool-aanroep
+- C_context ronde 2, C018: R-ONGELDIG. geen tool-aanroep
+- C_context ronde 2, C026: R-ONGELDIG. geen tool-aanroep
+- C_context ronde 2, C035: R-ONGELDIG. geen tool-aanroep
+- C_context ronde 3, C002: R-ONGELDIG. geen tool-aanroep
+- C_context ronde 3, C018: R-ONGELDIG. geen tool-aanroep
+- C_context ronde 3, C026: R-ONGELDIG. geen tool-aanroep
+- C_context ronde 3, C035: R-ONGELDIG. geen tool-aanroep
 
 ## LI-9.1
 
@@ -229,29 +229,29 @@ Runbestanden met volledige prompts, reacties, bijdragen en besluiten:
 
 Gerichte herbeoordelingen en technische uitval:
 
-- A_huidig ronde 1, C003: R-ABSTAIN-CHANGE. 
-- A_huidig ronde 1, C004: R-ABSTAIN-CHANGE. 
-- A_huidig ronde 1, C005: R-ABSTAIN-CHANGE. 
-- A_huidig ronde 1, C009: R-ABSTAIN-CHANGE. 
-- A_huidig ronde 1, C011: R-ABSTAIN-CHANGE. 
-- A_huidig ronde 1, C014: R-ABSTAIN-CHANGE. 
-- A_huidig ronde 1, C016: R-ABSTAIN-CHANGE. 
-- A_huidig ronde 1, C024: R-ABSTAIN-CHANGE. 
-- A_huidig ronde 1, C029: R-ONGELDIG. 
-- A_huidig ronde 1, C033: R-ABSTAIN-CHANGE. 
-- A_huidig ronde 1, C035: R-ABSTAIN-HUMAN. 
-- A_huidig ronde 1, C042: R-ABSTAIN-CHANGE. 
-- A_huidig ronde 2, C003: R-ABSTAIN-CHANGE. 
-- A_huidig ronde 2, C004: R-ABSTAIN-CHANGE. 
-- A_huidig ronde 2, C009: R-ABSTAIN-CHANGE. 
-- A_huidig ronde 2, C011: R-ABSTAIN-CHANGE. 
-- A_huidig ronde 2, C014: R-ABSTAIN-CHANGE. 
-- A_huidig ronde 2, C016: R-ABSTAIN-CHANGE. 
-- A_huidig ronde 2, C031: R-ABSTAIN-CHANGE. 
-- A_huidig ronde 2, C033: R-ABSTAIN-CHANGE. 
-- A_huidig ronde 2, C034: R-ABSTAIN-HUMAN. 
-- A_huidig ronde 2, C035: R-ABSTAIN-HUMAN. 
-- A_huidig ronde 2, C042: R-ABSTAIN-CHANGE. 
+- A_huidig ronde 1, C003: R-ABSTAIN-CHANGE. Geen motivering in het oorspronkelijke besluitregister.
+- A_huidig ronde 1, C004: R-ABSTAIN-CHANGE. Geen motivering in het oorspronkelijke besluitregister.
+- A_huidig ronde 1, C005: R-ABSTAIN-CHANGE. Geen motivering in het oorspronkelijke besluitregister.
+- A_huidig ronde 1, C009: R-ABSTAIN-CHANGE. Geen motivering in het oorspronkelijke besluitregister.
+- A_huidig ronde 1, C011: R-ABSTAIN-CHANGE. Geen motivering in het oorspronkelijke besluitregister.
+- A_huidig ronde 1, C014: R-ABSTAIN-CHANGE. Geen motivering in het oorspronkelijke besluitregister.
+- A_huidig ronde 1, C016: R-ABSTAIN-CHANGE. Geen motivering in het oorspronkelijke besluitregister.
+- A_huidig ronde 1, C024: R-ABSTAIN-CHANGE. Geen motivering in het oorspronkelijke besluitregister.
+- A_huidig ronde 1, C029: R-ONGELDIG. klasse 'Tijdsaanduiding' is geen alternatief voor dit geval
+- A_huidig ronde 1, C033: R-ABSTAIN-CHANGE. Geen motivering in het oorspronkelijke besluitregister.
+- A_huidig ronde 1, C035: R-ABSTAIN-HUMAN. Geen motivering in het oorspronkelijke besluitregister.
+- A_huidig ronde 1, C042: R-ABSTAIN-CHANGE. Geen motivering in het oorspronkelijke besluitregister.
+- A_huidig ronde 2, C003: R-ABSTAIN-CHANGE. Geen motivering in het oorspronkelijke besluitregister.
+- A_huidig ronde 2, C004: R-ABSTAIN-CHANGE. Geen motivering in het oorspronkelijke besluitregister.
+- A_huidig ronde 2, C009: R-ABSTAIN-CHANGE. Geen motivering in het oorspronkelijke besluitregister.
+- A_huidig ronde 2, C011: R-ABSTAIN-CHANGE. Geen motivering in het oorspronkelijke besluitregister.
+- A_huidig ronde 2, C014: R-ABSTAIN-CHANGE. Geen motivering in het oorspronkelijke besluitregister.
+- A_huidig ronde 2, C016: R-ABSTAIN-CHANGE. Geen motivering in het oorspronkelijke besluitregister.
+- A_huidig ronde 2, C031: R-ABSTAIN-CHANGE. Geen motivering in het oorspronkelijke besluitregister.
+- A_huidig ronde 2, C033: R-ABSTAIN-CHANGE. Geen motivering in het oorspronkelijke besluitregister.
+- A_huidig ronde 2, C034: R-ABSTAIN-HUMAN. Geen motivering in het oorspronkelijke besluitregister.
+- A_huidig ronde 2, C035: R-ABSTAIN-HUMAN. Geen motivering in het oorspronkelijke besluitregister.
+- A_huidig ronde 2, C042: R-ABSTAIN-CHANGE. Geen motivering in het oorspronkelijke besluitregister.
 
 ## IW02
 
@@ -324,7 +324,7 @@ Runbestanden met volledige prompts, reacties, bijdragen en besluiten:
 
 Gerichte herbeoordelingen en technische uitval:
 
-- B_verbeterd ronde 2, C001: R-ONGELDIG. 
+- B_verbeterd ronde 2, C001: R-ONGELDIG. geen tool-aanroep
 
 ## AWB-4:17-1
 
@@ -356,7 +356,7 @@ Runbestanden met volledige prompts, reacties, bijdragen en besluiten:
 
 Gerichte herbeoordelingen en technische uitval:
 
-- B_verbeterd ronde 3, C002: R-ONGELDIG. 
+- B_verbeterd ronde 3, C002: R-ONGELDIG. geen tool-aanroep
 
 ## IW04
 

@@ -35,5 +35,17 @@
   "detectie_reproduceerbaar": true,
   "runtimecode_en_bronpakket_tijdens_proef_ongewijzigd": true,
   "classificatie_en_ankervalidatie_snapshotreplays_ongewijzigde_verzoeken": true,
-  "status": "technisch_gecontroleerd_geen_juridisch_gold"
+  "status": "technisch_gecontroleerd_geen_juridisch_gold",
+  "pre_push_graph_qa": {
+    "geslaagd": 1200,
+    "overgeslagen": 19,
+    "duur_seconden": 46.25,
+    "commando": "UV_NO_SYNC=1 git push (hook: uv run --frozen pytest -q -x)"
+  },
+  "pre_push_api": {
+    "geslaagd": 432,
+    "overgeslagen": 8,
+    "duur_seconden": 137.16,
+    "commando": "UV_NO_SYNC=1 git push (hook: uv run pytest -q -x)"
+  }
 }

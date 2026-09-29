@@ -194,7 +194,8 @@ def dossier(pakket, runs):
             if r["status"] != "ok":
                 regels.append(f'- {r["variant"]} ronde {r["ronde"]}: poging mislukt ({r.get("fout")}).')
             for t in r.get("meting", {}).get("resolutie", []):
-                regels.append(f'- {r["variant"]} ronde {r["ronde"]}, {t["label"]}: {t["regel"]}. {t.get("motivering", "")}')
+                toelichting = t.get("motivering") or t.get("ongeldig_omdat") or "Geen motivering in het oorspronkelijke besluitregister."
+                regels.append(f'- {r["variant"]} ronde {r["ronde"]}, {t["label"]}: {t["regel"]}. {toelichting}')
         md += regels or ["Geen gerichte herbeoordeling in deze pogingen."]
         md.append("")
     return "\n".join(md)

@@ -103,10 +103,12 @@ modeloordeel is geen expertvaststelling. De 60 eerdere conceptpunten zijn geen g
 
 ## Technische controle en reproductie
 
-Graph-qa: **1.193 tests geslaagd, 19 overgeslagen**, plus **7 nieuwe meetharnastests geslaagd**.
+Graph-qa: **1.200 tests geslaagd, 19 overgeslagen** in de volledige pre-push-suite,
+inclusief de zeven meetharnastests.
 De 19 overgeslagen tests betreffen optionele integraties; er is lokaal geen nieuwe volledige
-PostgreSQL-integratiemeting gedaan. De relevante API-tests voor vocabulaire, export,
-annotatievalidatie en v2: **63 geslaagd**. Gegenereerde klassen en vocabulaire komen overeen
+PostgreSQL-integratiemeting gedaan. De volledige API-suite: **432 geslaagd, 8 overgeslagen**,
+waaronder de eerder afzonderlijk gedraaide 63 tests voor vocabulaire, export,
+annotatievalidatie en v2. Gegenereerde klassen en vocabulaire komen overeen
 met hun bronbestanden. De controle op complete runs verifieert alle kandidaat-/optie-/
 voorstelspans, context, detectorbijdragen, bron-/codehashes en reproduceerbare detectie.
 
