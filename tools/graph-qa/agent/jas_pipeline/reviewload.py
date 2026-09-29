@@ -27,7 +27,7 @@ from typing import Any
 
 CONTRACT = ("CLASSIFIER_ONGELDIGE_KLASSE", "CLASSIFIER_ONGELDIGE_OPTIE")
 ONGELDIGE_UITVOER = ("CLASSIFIER_GEEN_UITVOER", "CLASSIFIER_OMITTED")
-SUBSTANTIEF = frozenset({"R-CONFLICT-KEEP", "R-CONFLICT-HUMAN", "R-SPAN-HUMAN"})
+SUBSTANTIEF = frozenset({"R-CONFLICT-KEEP", "R-CONFLICT-HUMAN", "R-SPAN-HUMAN", "R-CENTRAAL-HUMAN"})
 OORSPRONG = ("classifier_contract_failure", "classifier_invalid_output", "reviewer_contract_failure",
              "degraded_parse_review", "substantive_legal_review", "technical_other_review")
 

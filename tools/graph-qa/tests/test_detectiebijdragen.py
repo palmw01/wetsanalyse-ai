@@ -11,7 +11,7 @@ from agent.jas_pipeline.kandidaten import CandidateStatus
 def resultaten():
     def regel(rid, klasse, code):
         return Regel.van("test", {"id": rid, "klassen": [klasse], "code": code,
-                                 "bron": "test", "versie": 1, "patroon": "zes weken"})
+                                 "bron": "test", "versie": 1, "patroon": "zes weken", "bewijs": "zwak"})
     d = RegelDetector("test", (regel("jas.test.tijd", "Tijdsaanduiding", "TEMPORAL_DURATION"),
                               regel("jas.test.object", "Rechtsobject", "OBJECT_NP")))
     return [d.detecteer(BronTekst.van_tekst("test", "zes weken"))]

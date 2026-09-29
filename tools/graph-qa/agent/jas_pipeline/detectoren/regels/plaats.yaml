@@ -2,6 +2,7 @@
 - id: jas.plaats.gazetteer
   klassen: [Plaatsaanduiding]
   code: LOCATION_NAME
+  bewijs: sterk
   bron: "H2:118"
   versie: 1
   hoofdletterongevoelig: false
@@ -15,6 +16,7 @@
 - id: jas.plaats.gebiedsomschrijving
   klassen: [Plaatsaanduiding]
   code: LOCATION_DESCRIPTION
+  bewijs: sterk
   bron: "H2:118"
   versie: 1
   patroon: '\b(?:een|de|andere)\s+(?:andere\s+)?lidstaat(?:\s+van\s+de\s+Europese\s+Unie)?\b'

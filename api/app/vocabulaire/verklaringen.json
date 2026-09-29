@@ -6,7 +6,7 @@
     },
     "regel": {
       "naam": "vaste regel",
-      "uitleg": "Besloten zonder model: één klasse mogelijk en sterk bewijs."
+      "uitleg": "Besloten zonder model: sterk bewijs voor één klasse; hooguit een algemeen naamwoordgroepsignaal wees ook andere klassen aan, die als alternatief zichtbaar blijven."
     },
     "specificiteit": {
       "naam": "voorrangsregel",
@@ -44,6 +44,18 @@
       "naam": "Rekenkundige bewerking",
       "uitleg": "'Vermeerderd met', 'verminderd met', 'de som van': een rekenkundige operator."
     },
+    "CALCULATION_APPLICABILITY": {
+      "naam": "Keuze van toepasselijke regel",
+      "uitleg": "Een voorwaardelijke uitspraak bepaalt welke aangewezen regel toepassing vindt. De verwijzing en de voorwaarde blijven bij elkaar."
+    },
+    "CALCULATION_ASSIGNMENT": {
+      "naam": "Toewijzing van een waarde",
+      "uitleg": "Een benoemde grootheid of vervaldatum wordt op een uitkomst gesteld; de volledige uitspraak is een afleidingshypothese."
+    },
+    "CALCULATION_CALENDAR_POSITION": {
+      "naam": "Gelijke kalenderpositie",
+      "uitleg": "De vervaldag wordt beschreven aan de hand van hetzelfde dagnummer als een andere datum."
+    },
     "CALCULATION_COPULA": {
       "naam": "Berekening met 'bedraagt'",
       "uitleg": "Een zin waarin iets een bedrag of waarde 'bedraagt' – de vorm van een afleidingsregel."
@@ -51,6 +63,10 @@
     "CALCULATION_PASSIVE": {
       "naam": "Berekening in de lijdende vorm",
       "uitleg": "'Wordt gesteld op', 'wordt berekend', 'wordt in aanmerking genomen': een waarde wordt vastgesteld."
+    },
+    "CALCULATION_QUANTITY": {
+      "naam": "Aantal uit een restant",
+      "uitleg": "Zoveel onderdelen als er overblijven: invoer en uitkomst van een mogelijke berekening."
     },
     "CAUSAL_PHRASE": {
       "naam": "Oorzaak",
@@ -67,6 +83,10 @@
     "CONDITIONAL_CLAUSE": {
       "naam": "Voorwaardelijke bijzin",
       "uitleg": "Een bijzin met 'indien', 'als', 'tenzij', 'mits' of 'voor zover'."
+    },
+    "CONDITIONAL_ELLIPSIS": {
+      "naam": "Verkorte voorwaarde",
+      "uitleg": "Een nominale bepaling zoals bij afwijkende omstandigheden begrenst de bijbehorende uitspraak."
     },
     "CONDITIONAL_FORMULA": {
       "naam": "Vaste voorwaardeformule",
@@ -87,6 +107,10 @@
     "ENUMERATED_NP": {
       "naam": "Opsommingsonderdeel",
       "uitleg": "Een naamwoordgroep als onderdeel van een opsomming."
+    },
+    "LEGAL_EFFECT_PREDICATE": {
+      "naam": "Rechtsgevolg in de norm",
+      "uitleg": "Het normsegment noemt een rechtsgevolg (ontstaan, vervallen, verschuldigd, invorderbaar …); pas dan is Rechtsfeit een hypothese."
     },
     "LEGAL_FICTION": {
       "naam": "Wettelijk vermoeden of fictie",
@@ -168,13 +192,25 @@
       "naam": "Datum",
       "uitleg": "Een concrete datum."
     },
+    "TEMPORAL_DESCRIPTION": {
+      "naam": "Beschreven datum",
+      "uitleg": "Een dag of tijdstip met een beperkende omschrijving; de omschrijving hoort bij het fragment."
+    },
     "TEMPORAL_DURATION": {
       "naam": "Termijn",
       "uitleg": "Een duur, zoals 'zes weken na de dagtekening'."
     },
+    "TEMPORAL_KERNEL": {
+      "naam": "Kern van dezelfde tijdsfunctie",
+      "uitleg": "Deze exacte korte grens is als kern van een langere tijdsaanduiding geregistreerd. Het bewijs blijft herleidbaar."
+    },
     "TEMPORAL_MOMENT": {
       "naam": "Tijdstip",
       "uitleg": "'Het tijdstip waarop …': een moment dat door een gebeurtenis wordt bepaald."
+    },
+    "TEMPORAL_MONTH": {
+      "naam": "Benoemde maand",
+      "uitleg": "Een maand in een temporele bepaling, zonder een ontbrekend jaar aan te vullen."
     },
     "TEMPORAL_PERIOD_NOUN": {
       "naam": "Periodewoord",
@@ -183,6 +219,10 @@
     "TEMPORAL_PERIOD_OF": {
       "naam": "Periode van",
       "uitleg": "'De periode van drie jaren': een benoemde periode."
+    },
+    "TEMPORAL_RECURRENCE": {
+      "naam": "Relatieve of herhaalde termijn",
+      "uitleg": "Een duur eerder of later, eventueel telkens herhaald; het referentiepunt blijft te beoordelen."
     },
     "TEMPORAL_RELATIVE_PERIOD": {
       "naam": "Relatieve periode",
@@ -527,6 +567,20 @@
       "soort": "detector",
       "uitleg": "Een duur, zoals 'zes weken na de dagtekening'."
     },
+    "jas.tijd.herhaling": {
+      "bron": "H2:109",
+      "code": "TEMPORAL_RECURRENCE",
+      "naam": "Relatieve of herhaalde termijn",
+      "soort": "detector",
+      "uitleg": "Een duur eerder of later, eventueel telkens herhaald; het referentiepunt blijft te beoordelen."
+    },
+    "jas.tijd.maandnaam": {
+      "bron": "H2:109",
+      "code": "TEMPORAL_MONTH",
+      "naam": "Benoemde maand",
+      "soort": "detector",
+      "uitleg": "Een maand in een temporele bepaling, zonder een ontbrekend jaar aan te vullen."
+    },
     "jas.tijd.periode_van": {
       "bron": "H2:109",
       "code": "TEMPORAL_PERIOD_OF",
@@ -618,6 +672,18 @@
       "naam": "Niets om aan te houden – jij kiest",
       "uitleg": "Het model gaf geen keuze; de jurist beslist."
     },
+    "R-CENTRAAL-CHANGE": {
+      "naam": "Centrale norm herbeoordeeld",
+      "uitleg": "De reviewer kiest een toegestane klasse voor de eerder afgewezen kandidaat."
+    },
+    "R-CENTRAAL-HUMAN": {
+      "naam": "Centrale norm ter beoordeling",
+      "uitleg": "De centrale norm vraagt een menselijke keuze; de getoonde klasse is voorlopig."
+    },
+    "R-CENTRAAL-KEEP": {
+      "naam": "Afwijzing bevestigd",
+      "uitleg": "De reviewer bevestigt gemotiveerd dat de centrale kandidaat geen annotatie oplevert."
+    },
     "R-CONFLICT-CHANGE": {
       "naam": "Reviewer volgt het patroon",
       "uitleg": "De reviewer koos de klasse die het vaste patroon aanwees; de keuze van het model blijft als alternatief."
@@ -656,6 +722,10 @@
     }
   },
   "twijfel": {
+    "CENTRALE_NORM_AFGEWEZEN": {
+      "naam": "Centrale norm afgewezen",
+      "uitleg": "Een normhypothese is afgewezen terwijl objecten of tijdsaanduidingen resteren. Gerichte beoordeling kan de afwijzing bevestigen."
+    },
     "CLASSIFIER_ABSTAIN": {
       "naam": "Geen geldige keuze van het model",
       "uitleg": "Het model gaf voor dit fragment geen bruikbare beslissing."
@@ -703,5 +773,5 @@
       "uitleg": "Waarschuwing: hetzelfde fragment kreeg twee klassen."
     }
   },
-  "vocabulaire_versie": "4089e3ffd8c1"
+  "vocabulaire_versie": "adb6b121505b"
 }

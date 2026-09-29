@@ -70,3 +70,6 @@ tools/bwb-import/uv.lock
 .codex/
 afbeeldingen/
 demo/
+
+# Ruwe modelruns van metingen: als archief bewaard, niet in git (zie README van de meetmap).
+docs/architectuur/metingen/hybrid-v1-baseline-2026-09-29/modelruns*/

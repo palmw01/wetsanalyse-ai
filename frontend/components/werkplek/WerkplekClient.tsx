@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { NodeAnnotatiePaneel } from "@/components/annotaties/NodeAnnotatiePaneel";
+import { GraafIcoon } from "@/components/graaf/GraafIcoon";
+import { bronDoel, samenhangBeschikbaar } from "@/lib/samenhang";
 import { ToolSpoor } from "@/components/werkplek/ToolSpoor";
 import { mergeToolExecution, parseToolExecution, type NodeDoel, type ToolExecution, type NodeElement, type NodeWeergave } from "@/lib/annotatieNode";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -162,6 +164,10 @@ export function WerkplekClient({
   const [bezig, setBezig] = useState(false);
   const [actiefId, setActiefId] = useState<string | undefined>();
   const [nodeDoel, setNodeDoel] = useState<NodeDoel>();
+  // Opent het node-paneel op de 3D-graaf (knop onder een antwoord) of op de tekst (annotatie).
+  const [nodeTab, setNodeTab] = useState<"tekst" | "graaf">("tekst");
+  const [samenhangAan, setSamenhangAan] = useState(false);
+  useEffect(() => { void samenhangBeschikbaar().then(setSamenhangAan); }, []);
   const [nodeVraag, setNodeVraag] = useState<{ element: NodeElement; view: NodeWeergave }>();
   const [artefactSlug, setArtefactSlug] = useState<string | undefined>();
   // Zichtbaarheid van de "naar beneden"-pil: aan zodra de gebruiker weg van de bodem scrolt.
@@ -368,7 +374,7 @@ export function WerkplekClient({
   }, [beginArtefact]);
 
   async function openArtefact(slug: string, doel?: NodeDoel) {
-    if (doel?.bron_iri) { setArtefactSlug(undefined); setNodeDoel(doel); return; }
+    if (doel?.bron_iri) { setArtefactSlug(undefined); setNodeTab("tekst"); setNodeDoel(doel); return; }
     setNodeDoel(undefined);
     // In de rondleiding staan document én artikeltekst al in het geheugen. Zonder deze grens hangt
     // de demo alsnog aan de api en de graaf – en juist die kunnen plat liggen op het moment dat een
@@ -951,13 +957,23 @@ export function WerkplekClient({
     .find((x): x is Extract<Item, { type: "annotatie" }> => x.type === "annotatie" && !verwijderd[x.slug])
     ?.slug;
 
-  const artefact = nodeDoel ? <NodeAnnotatiePaneel key={`${nodeDoel.bron_iri}:${nodeDoel.snapshot_id ?? ""}`} doel={nodeDoel}
-    variant={breed ? "kolom" : "side"} onSluit={() => setNodeDoel(undefined)}
+  const artefact = nodeDoel ? <NodeAnnotatiePaneel key={`${nodeDoel.bron_iri}:${nodeDoel.snapshot_id ?? ""}:${nodeTab}`} doel={nodeDoel}
+    variant={breed ? "kolom" : "side"} onSluit={() => setNodeDoel(undefined)} beginTab={nodeTab}
     onVraag={(element, view) => {
       setVraagOver(null); setNodeVraag({ element, view });
       setInvoer(`Waarom is dit een ${element.klasse}?`);
       if (!breed) setNodeDoel(undefined);
       taRef.current?.focus();
+    }}
+    onVraagOverBron={(knoop) => {
+      // Een gewone vraag: de bepaling staat met haar vindplaats in de tekst, zodat Lex haar in de
+      // graaf terugvindt. Geen nieuw agentcontract.
+      const plek = knoop.bwb_id && knoop.artikel
+        ? ` (${knoop.bwb_id}, artikel ${knoop.artikel}${knoop.lid ? `, lid ${knoop.lid}` : ""})` : "";
+      setVraagOver(null); setNodeVraag(undefined);
+      setInvoer(`Hoe hangt ${knoop.label}${plek} samen met de bepalingen waarnaar het verwijst of die ernaar verwijzen?`);
+      if (!breed) setNodeDoel(undefined);
+      requestAnimationFrame(() => taRef.current?.focus());
     }} /> : artefactSlug && docs[artefactSlug] && infos[artefactSlug] && (
     <ArtefactPaneel
       variant={breed ? "kolom" : "side"}
@@ -1184,6 +1200,14 @@ export function WerkplekClient({
                     <Punten />
                   )}
                   {item.bronnen && item.bronnen.length > 0 && <Bronnen bronnen={item.bronnen} />}
+                  {samenhangAan && !demo && (() => {
+                    const doel = item.bronnen?.map((b) => bronDoel(b.uri)).find(Boolean);
+                    return doel && <button type="button"
+                      onClick={() => { setArtefactSlug(undefined); setNodeTab("graaf"); setNodeDoel(doel); }}
+                      className="focus-ring mt-3 flex items-center gap-2 rounded-lg border border-lint/20 bg-lint/[0.03] px-3 py-2 text-xs font-medium text-lint transition-colors hover:bg-lint/10">
+                      <GraafIcoon />Bekijk samenhang in 3D<span className="sr-only"> van {doel.label || "de bepaling"}</span>
+                    </button>;
+                  })()}
                   {item.tekst && item.grounding && <Brongetrouwheid grounding={item.grounding} />}
                   {item.tekst && <KopieerKnop tekst={item.tekst} />}
                 </div>

@@ -1,0 +1,30 @@
+{
+  "max_casussen_tegelijk": 3,
+  "volgorde_per_casus_per_ronde": [
+    [
+      "A_huidig",
+      "B_verbeterd",
+      "C_context"
+    ],
+    [
+      "B_verbeterd",
+      "C_context",
+      "A_huidig"
+    ],
+    [
+      "C_context",
+      "A_huidig",
+      "B_verbeterd"
+    ]
+  ],
+  "reeds_afgerond_bij_overnemen": [
+    "1-IW-9-1-A_huidig.json",
+    "1-IW-9-1-B_verbeterd.json",
+    "1-IW-9-1-C_context.json",
+    "1-IW-9-5-A_huidig.json",
+    "1-IW-9-5-B_verbeterd.json",
+    "1-IW-9-5-C_context.json"
+  ],
+  "planner_sha256": "316ea5591bc3dc4c216bf0c1e580f1d7be702e8f45f6d33eb421735c5443afd7",
+  "reden": "Onafhankelijke casussen parallel; alle 72 oorspronkelijke pogingen blijven behouden. Latentie is mede afhankelijk van parallelisme."
+}

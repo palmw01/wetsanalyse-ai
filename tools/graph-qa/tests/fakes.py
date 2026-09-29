@@ -12,6 +12,9 @@ from agent.config import Settings
 def make_settings(**kw: Any) -> Settings:
     """Settings voor tests: in-memory checkpointer (geen db-file) tenzij overschreven."""
     kw.setdefault("checkpoint_db_path", None)
+    # De nepmodellen spelen een vast script van één classificatiecall; de productiedefault
+    # (klasseverzameling) wordt apart getest in test_baseline_proef.
+    kw.setdefault("classifier_granulariteit", "universeel")
     return Settings(**kw)
 
 

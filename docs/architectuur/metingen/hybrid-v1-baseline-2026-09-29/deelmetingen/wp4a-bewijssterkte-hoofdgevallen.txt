@@ -1,0 +1,10 @@
+== IW-9-1: tellingen 5 -> 5 | routes {'model': 5} -> {'model': 5}
+== IW-9-5: tellingen 40 -> 40 | routes {'model': 37, 'regel': 3} -> {'model': 36, 'regel': 4}
+  ~ [544,567) 'telkens een maand later'
+      route model -> regel
+== LI-9.1: tellingen 21 -> 21 | routes {'model': 18, 'regel': 3} -> {'model': 17, 'regel': 4}
+  ~ [116,137) 'in november of eerder'
+      route model -> regel
+== LI-9.5: tellingen 59 -> 59 | routes {'model': 46, 'regel': 13} -> {'model': 45, 'regel': 14}
+  ~ [680,695) 'een maand later'
+      route model -> regel

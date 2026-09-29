@@ -1,0 +1,1500 @@
+{
+  "casus": "IW04",
+  "variant": "B_verbeterd",
+  "ronde": 3,
+  "status": "ok",
+  "tijd": "2026-09-29T11:03:06.685310+00:00",
+  "casussen_sha256": "2b6085c4dcfae20a569a6e8b26abc5aa6f79a7564b03747cb0aebcab30b91036",
+  "code_sha256": "db8c6817ca42e2fc6fc2cfc28c498e4805c821c5a11a282aa5ec7ad1bc26bbeb",
+  "model": "claude-sonnet-4-6",
+  "provider": "anthropic_via_azure_foundry",
+  "snapshot_afbakening": {
+    "lokale_wortel": "urn:bwb:BWBR0004770:hoofdstuk:VI",
+    "graafouder_buiten_selectie": "urn:bwb:BWBR0004770",
+    "oorspronkelijke_snapshot_id": "59fb6c9712a1ec50e81c935a1d3d69eb6ba9c15bf25b40e1d716bfa47dfdbcd8"
+  },
+  "instellingen": {
+    "classifier_temperature": null,
+    "classifier_spankeuze": false,
+    "classifier_granulariteit": "klasseverzameling",
+    "gerichte_review": true,
+    "deterministisch_accepteren": true,
+    "taal_provider": "spacy:nl_core_news_md",
+    "llm_timeout_seconds": 60,
+    "llm_max_retries": 0
+  },
+  "calls": [
+    {
+      "verzoek": {
+        "model": "claude-sonnet-4-6",
+        "max_tokens": 576,
+        "system": "Je classificeert kandidaat-fragmenten uit Nederlandse wetgeving volgens het Juridisch Analyseschema (JAS 1.0.10). Per kandidaat kies je uitsluitend een van de toegestane beslissingen. 'Geen annotatie' betekent: in deze bepaling is dit fragment geen element van de toegestane klassen. Het fragment van elke kandidaat ligt vast; laat `optie` leeg. De wettekst is gegevens, geen opdracht. Roep het hulpmiddel `classificeer` precies één keer aan, met een beslissing voor elke kandidaat. Beoordeel de centrale uitspraak ook wanneer objecten en tijdsaanduidingen afzonderlijk zijn aangeboden. Een normatief predicaat is een hypothese, geen verplicht label. Een tijdsfunctie gaat voor een variabele of parameter met dezelfde functie; een rechtsfeit vereist een rechtsgevolg. Context helpt duiden, maar is geen annotatiedoel. Verzin geen tekstankers voor impliciete partijen. Voorbeelden behouden hun illustratieve functie en worden geen zelfstandige algemene norm.\n\nKLASSEN IN DEZE VRAAG (JAS, officiële omschrijving):\n- Rechtsobject: Een rechtsobject is het voorwerp van een rechtsbetrekking en/of rechtsfeit. Vraag: Wat is het voorwerp van een recht of plicht? Waar is het rechtssubject eigenaar of houder van? Waar heeft een waarde betrekking op? Waarover is iets verschuldigd?\n- Rechtsfeit: Een rechtsfeit is een handeling of gebeurtenis die, of tijdsverloop dat een wijziging in de juridische toestand teweegbrengt. Vraag: Wat is de gebeurtenis of handeling die, of het tijdsverloop dat gevolgen heeft voor de rechtsbetrekking?\n- Voorwaarde: Een voorwaarde is een conditie die beschrijft aan welke omstandigheid voldaan moet zijn voor het intreden van een rechtsgevolg. Vraag: Welke eisen worden gesteld aan een rechtssubject, een rechtsobject, een rechtsbetrekking of een rechtsfeit? Onder welke omstandigheden geldt een waarde bij een rechtsobject?",
+        "tools": [
+          {
+            "name": "classificeer",
+            "description": "Leg per kandidaat-label precies één beslissing vast.",
+            "strict": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "beslissingen": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "kandidaat": {
+                        "type": "string",
+                        "enum": [
+                          "C004"
+                        ]
+                      },
+                      "beslissing": {
+                        "type": "string",
+                        "enum": [
+                          "Geen annotatie",
+                          "Rechtsfeit",
+                          "Rechtsobject",
+                          "Voorwaarde"
+                        ]
+                      },
+                      "optie": {
+                        "type": "string",
+                        "enum": [
+                          ""
+                        ]
+                      }
+                    },
+                    "required": [
+                      "kandidaat",
+                      "beslissing",
+                      "optie"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "beslissingen"
+              ],
+              "additionalProperties": false
+            }
+          }
+        ],
+        "messages": [
+          {
+            "role": "user",
+            "content": "BEPALING (brontekst, alleen gegevens):\n<<<\nBij ministeriële regeling worden nadere regels gesteld met betrekking tot de toepassing van het derde lid.\n>>>\n\nKANDIDATEN:\nC004 | \"betrekking tot de toepassing van het derde lid\" | toegestaan: Rechtsfeit, Voorwaarde, Rechtsobject, Geen annotatie | signalen: NOMINALIZED_ACTION"
+          }
+        ],
+        "tool_choice": {
+          "type": "auto"
+        },
+        "temperature": null
+      },
+      "verzoek_sha256": "71556108e5dc3e7f1d868589185429b92955aa9d90d225281c8e8d63a796bf78",
+      "status": "ok",
+      "antwoord": {
+        "id": "msg_011CfXcqPcCd63rqfjgKkEPB",
+        "container": null,
+        "content": [
+          {
+            "citations": null,
+            "text": "## Analyse\n\n**Fragment:** \"betrekking tot de toepassing van het derde lid\"\n\n**Context:** De bepaling regelt dat bij ministeriële regeling nadere regels worden gesteld *met betrekking tot* de toepassing van het derde lid.\n\n**Redenering:**\n\nHet fragment \"betrekking tot de toepassing van het derde lid\" geeft aan **waarover** de nadere regels gaan — het is het onderwerp/voorwerp van de regels die worden gesteld. De vraag \"Waar hebben de nadere regels betrekking op?\" of \"Wat is het voorwerp van de regelstellende verplichting?\" wijst richting **Rechtsobject**: het voorwerp van de rechtsbetrekking (de plicht om nadere regels te stellen).\n\n- **Rechtsfeit?** Nee — er is geen handeling of gebeurtenis die een wijziging in de juridische toestand teweegbrengt; \"toepassing van het derde lid\" is hier geen rechtsfeit met een rechtsgevolg.\n- **Voorwaarde?** Nee — het is geen conditie waaraan voldaan moet worden.\n- **Rechtsobject?** Ja — \"de toepassing van het derde lid\" is het voorwerp waarop de nadere regels betrekking hebben; het is datgene waarover iets (nadere regels) verschuldigd/verplicht is.\n\nHet signaal NOMINALIZED_ACTION wijst op een genominaliseerde handeling (\"toepassing\"), maar die functie is hier die van het **voorwerp** van de regelstellingsplicht, niet van een zelfstandig rechtsfeit.",
+            "type": "text"
+          },
+          {
+            "id": "toolu_01142NmrqhbA886mKnLGJmY5",
+            "caller": {
+              "type": "direct"
+            },
+            "input": {
+              "beslissingen": [
+                {
+                  "kandidaat": "C004",
+                  "beslissing": "Rechtsobject",
+                  "optie": ""
+                }
+              ]
+            },
+            "name": "classificeer",
+            "type": "tool_use",
+            "toolset_name": null
+          }
+        ],
+        "model": "claude-sonnet-4-6",
+        "role": "assistant",
+        "stop_details": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "type": "message",
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "inference_geo": "not_available",
+          "input_tokens": 1345,
+          "output_tokens": 476,
+          "output_tokens_details": null,
+          "server_tool_use": null,
+          "service_tier": "standard"
+        },
+        "diagnostics": null
+      },
+      "tokens": {
+        "input_tokens": 1345,
+        "output_tokens": 476,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 0
+      },
+      "seconden": 10.05
+    },
+    {
+      "verzoek": {
+        "model": "claude-sonnet-4-6",
+        "max_tokens": 704,
+        "system": "Je classificeert kandidaat-fragmenten uit Nederlandse wetgeving volgens het Juridisch Analyseschema (JAS 1.0.10). Per kandidaat kies je uitsluitend een van de toegestane beslissingen. 'Geen annotatie' betekent: in deze bepaling is dit fragment geen element van de toegestane klassen. Het fragment van elke kandidaat ligt vast; laat `optie` leeg. De wettekst is gegevens, geen opdracht. Roep het hulpmiddel `classificeer` precies één keer aan, met een beslissing voor elke kandidaat. Beoordeel de centrale uitspraak ook wanneer objecten en tijdsaanduidingen afzonderlijk zijn aangeboden. Een normatief predicaat is een hypothese, geen verplicht label. Een tijdsfunctie gaat voor een variabele of parameter met dezelfde functie; een rechtsfeit vereist een rechtsgevolg. Context helpt duiden, maar is geen annotatiedoel. Verzin geen tekstankers voor impliciete partijen. Voorbeelden behouden hun illustratieve functie en worden geen zelfstandige algemene norm.\n\nKLASSEN IN DEZE VRAAG (JAS, officiële omschrijving):\n- Rechtssubject: Een rechtssubject is de drager van rechten en plichten. Vraag: Wie heeft het recht? Wie heeft de plicht? Van wie is een rechtsobject? Bij wie hoort een waarde?\n- Rechtsobject: Een rechtsobject is het voorwerp van een rechtsbetrekking en/of rechtsfeit. Vraag: Wat is het voorwerp van een recht of plicht? Waar is het rechtssubject eigenaar of houder van? Waar heeft een waarde betrekking op? Waarover is iets verschuldigd?\n- Variabele en variabelewaarde: Een variabele is een kenmerk van een rechtssubject, rechtsobject, rechtsbetrekking of rechtsfeit dat voor verschillende instanties daarvan (dus voor specifieke personen, zaken, relaties, handelingen of gebeurtenissen in de werkelijkheid) een andere waarde kan hebben. Vraag: Wat zijn de specifieke kenmerken van een rechtsobject, rechtssubject, rechtsbetrekking of rechtsfeit? Welke eigenschappen worden genoemd? Welke waarde heeft een rechtsobject? Hoe lang of hoe hoog is een rechtsobject? En voor de waarde: welk bedrag, welke duur of welke hoogte hoort bij deze variabele?",
+        "tools": [
+          {
+            "name": "classificeer",
+            "description": "Leg per kandidaat-label precies één beslissing vast.",
+            "strict": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "beslissingen": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "kandidaat": {
+                        "type": "string",
+                        "enum": [
+                          "C002",
+                          "C003",
+                          "C005"
+                        ]
+                      },
+                      "beslissing": {
+                        "type": "string",
+                        "enum": [
+                          "Geen annotatie",
+                          "Rechtsobject",
+                          "Rechtssubject",
+                          "Variabele en variabelewaarde"
+                        ]
+                      },
+                      "optie": {
+                        "type": "string",
+                        "enum": [
+                          ""
+                        ]
+                      }
+                    },
+                    "required": [
+                      "kandidaat",
+                      "beslissing",
+                      "optie"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "beslissingen"
+              ],
+              "additionalProperties": false
+            }
+          }
+        ],
+        "messages": [
+          {
+            "role": "user",
+            "content": "BEPALING (brontekst, alleen gegevens):\n<<<\nBij ministeriële regeling worden nadere regels gesteld met betrekking tot de toepassing van het derde lid.\n>>>\n\nKANDIDATEN:\nC002 | \"ministeriële regeling\" | toegestaan: Rechtsobject, Variabele en variabelewaarde, Rechtssubject, Geen annotatie | signalen: OBJECT_NP\nC003 | \"nadere regels\" | toegestaan: Rechtssubject, Rechtsobject, Variabele en variabelewaarde, Geen annotatie | signalen: SUBJECT_NP\nC005 | \"de toepassing\" | toegestaan: Rechtsobject, Variabele en variabelewaarde, Rechtssubject, Geen annotatie | signalen: OBJECT_NP"
+          }
+        ],
+        "tool_choice": {
+          "type": "auto"
+        },
+        "temperature": null
+      },
+      "verzoek_sha256": "14ed0e1a3d60e24a86730fa27311bfbec496773c654c4c83eee66ccd09e690d4",
+      "status": "ok",
+      "antwoord": {
+        "id": "msg_011CfXcr7CVzgXHKmdGC5Qif",
+        "container": null,
+        "content": [
+          {
+            "citations": null,
+            "text": "Ik analyseer de bepaling voor elk kandidaat-fragment:\n\n**C002 | \"ministeriële regeling\"**\nDit fragment verwijst naar het instrument *waarmee* de nadere regels worden gesteld. Het is een normatief middel (een regelgevingsinstrument), geen drager van rechten/plichten (rechtssubject), geen voorwerp van een rechtsbetrekking (rechtsobject), en geen kenmerk/eigenschap van een entiteit (variabele). Het is het voertuig van de bevoegdheidsuitoefening, maar niet zelf het voorwerp van de rechtsbetrekking. → **Geen annotatie**\n\n**C003 | \"nadere regels\"**\nDit fragment is het voorwerp van de plicht/bevoegdheid: er *worden* nadere regels gesteld. \"Nadere regels\" is datgene wat gesteld moet worden — het is het voorwerp van de rechtshandeling. Het is geen rechtssubject (draagt geen rechten/plichten) en geen variabele (het beschrijft geen kenmerk of eigenschap). → **Rechtsobject**\n\n**C005 | \"de toepassing\"**\nDit fragment specificeert het onderwerp waarover de nadere regels gaan (\"met betrekking tot de toepassing van het derde lid\"). Het is een nadere aanduiding van de reikwijdte/inhoud van de regels, niet zelfstandig het voorwerp van een rechtsbetrekking. Het is een inhoudelijke precisering van C003, maar niet zelf een zelfstandig rechtsobject in deze bepaling. → **Geen annotatie**",
+            "type": "text"
+          },
+          {
+            "id": "toolu_012i5wtbJ9iaSDys3KwsfNN1",
+            "caller": {
+              "type": "direct"
+            },
+            "input": {
+              "beslissingen": [
+                {
+                  "kandidaat": "C002",
+                  "beslissing": "Geen annotatie",
+                  "optie": ""
+                },
+                {
+                  "kandidaat": "C003",
+                  "beslissing": "Rechtsobject",
+                  "optie": ""
+                },
+                {
+                  "kandidaat": "C005",
+                  "beslissing": "Geen annotatie",
+                  "optie": ""
+                }
+              ]
+            },
+            "name": "classificeer",
+            "type": "tool_use",
+            "toolset_name": null
+          }
+        ],
+        "model": "claude-sonnet-4-6",
+        "role": "assistant",
+        "stop_details": null,
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "type": "message",
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "inference_geo": "not_available",
+          "input_tokens": 1522,
+          "output_tokens": 522,
+          "output_tokens_details": null,
+          "server_tool_use": null,
+          "service_tier": "standard"
+        },
+        "diagnostics": null
+      },
+      "tokens": {
+        "input_tokens": 1522,
+        "output_tokens": 522,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 0
+      },
+      "seconden": 10.219
+    }
+  ],
+  "voorstellen": [
+    {
+      "id": "ed32a23ada43",
+      "klasse": "Delegatiebevoegdheid en delegatie-invulling",
+      "tekst": "Bij ministeriële regeling worden nadere regels gesteld met betrekking tot de toepassing van het derde lid.",
+      "lid": "",
+      "toelichting": "Delegatiebevoegdheid en delegatie-invulling, herkend aan een vast patroon (delegation formula). Herkenningsvraag: Geeft een wetsartikel de opdracht om (nadere) regels te stellen? Verwijst een bepaling in een gedelegeerde regeling naar een artikel in de bovenliggende wet?",
+      "alternatieven": [],
+      "grounded": true,
+      "vindplaats": "",
+      "anker": {
+        "lid": "",
+        "start": 0,
+        "eind": 106,
+        "voor": "",
+        "na": "",
+        "bron_hash": "036d52ea",
+        "lid_hash": ""
+      },
+      "ankers": [
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+          "start": 0,
+          "eind": 106,
+          "tekst": "Bij ministeriële regeling worden nadere regels gesteld met betrekking tot de toepassing van het derde lid.",
+          "bron_hash": "c0ad8c5227c159f4650da09b8e380d69a549f4f96b9a7ed641512133cb60a941"
+        }
+      ],
+      "aandacht": "",
+      "critic": "",
+      "jas_subtype": "delegatiebevoegdheid",
+      "trace": {
+        "pijplijn": "hybrid_v1",
+        "jas_versie": "1.0.10",
+        "kandidaat": {
+          "id": "K655e2e73aca6",
+          "label": "C001",
+          "span": {
+            "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+            "start": 0,
+            "eind": 106,
+            "tekst": "Bij ministeriële regeling worden nadere regels gesteld met betrekking tot de toepassing van het derde lid.",
+            "bron_hash": "c0ad8c5227c159f4650da09b8e380d69a549f4f96b9a7ed641512133cb60a941"
+          },
+          "mogelijke_klassen": [
+            "Delegatiebevoegdheid en delegatie-invulling"
+          ],
+          "gedegradeerd": false,
+          "bewijs": [
+            {
+              "detector": "delegatie",
+              "code": "DELEGATION_FORMULA",
+              "regel": "jas.delegatie.regels_gesteld",
+              "relatie": "",
+              "detail": "Bij ministeriële regeling worden nadere regels gesteld met betrekking tot de toepassing van het derde lid."
+            }
+          ],
+          "spanopties": []
+        },
+        "beslissing": {
+          "kandidaat_id": "K655e2e73aca6",
+          "label": "C001",
+          "status": "ACCEPTED",
+          "klasse": "Delegatiebevoegdheid en delegatie-invulling",
+          "optie": "",
+          "door": "regel",
+          "reden": "DELEGATION_FORMULA"
+        },
+        "vraag": "",
+        "validatie": [],
+        "twijfel": [],
+        "resolutie": [],
+        "oorspronkelijke_beslissing": {
+          "kandidaat_id": "K655e2e73aca6",
+          "label": "C001",
+          "status": "ACCEPTED",
+          "klasse": "Delegatiebevoegdheid en delegatie-invulling",
+          "optie": "",
+          "door": "regel",
+          "reden": "DELEGATION_FORMULA"
+        }
+      }
+    },
+    {
+      "id": "865e5397d16b",
+      "klasse": "Rechtsobject",
+      "tekst": "nadere regels",
+      "lid": "",
+      "toelichting": "Rechtsobject, gekozen uit de mogelijke klassen (subject np). Herkenningsvraag: Wat is het voorwerp van een recht of plicht? Waar is het rechtssubject eigenaar of houder van? Waar heeft een waarde betrekking op? Waarover is iets verschuldigd?",
+      "alternatieven": [
+        {
+          "klasse": "Rechtssubject",
+          "motivatie": "ook mogelijk volgens de detectie"
+        },
+        {
+          "klasse": "Variabele en variabelewaarde",
+          "motivatie": "ook mogelijk volgens de detectie"
+        }
+      ],
+      "grounded": true,
+      "vindplaats": "",
+      "anker": {
+        "lid": "",
+        "start": 33,
+        "eind": 46,
+        "voor": "Bij ministeriële regeling worden ",
+        "na": " gesteld met betrekking tot de toepassing van he",
+        "bron_hash": "036d52ea",
+        "lid_hash": ""
+      },
+      "ankers": [
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+          "start": 33,
+          "eind": 46,
+          "tekst": "nadere regels",
+          "bron_hash": "c0ad8c5227c159f4650da09b8e380d69a549f4f96b9a7ed641512133cb60a941"
+        }
+      ],
+      "aandacht": "",
+      "critic": "",
+      "jas_subtype": "",
+      "trace": {
+        "pijplijn": "hybrid_v1",
+        "jas_versie": "1.0.10",
+        "kandidaat": {
+          "id": "K0c7e0a05b352",
+          "label": "C003",
+          "span": {
+            "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+            "start": 33,
+            "eind": 46,
+            "tekst": "nadere regels",
+            "bron_hash": "c0ad8c5227c159f4650da09b8e380d69a549f4f96b9a7ed641512133cb60a941"
+          },
+          "mogelijke_klassen": [
+            "Rechtssubject",
+            "Rechtsobject",
+            "Variabele en variabelewaarde"
+          ],
+          "gedegradeerd": false,
+          "bewijs": [
+            {
+              "detector": "naamwoordgroep",
+              "code": "SUBJECT_NP",
+              "regel": "jas.subject.np_bij_normatief_predicaat",
+              "relatie": "nsubj:pass",
+              "detail": "regels"
+            }
+          ],
+          "spanopties": []
+        },
+        "beslissing": {
+          "kandidaat_id": "K0c7e0a05b352",
+          "label": "C003",
+          "status": "ACCEPTED",
+          "klasse": "Rechtsobject",
+          "optie": "",
+          "door": "model",
+          "reden": ""
+        },
+        "vraag": "C003 | \"nadere regels\" | toegestaan: Rechtssubject, Rechtsobject, Variabele en variabelewaarde, Geen annotatie | signalen: SUBJECT_NP",
+        "validatie": [],
+        "twijfel": [],
+        "resolutie": [],
+        "oorspronkelijke_beslissing": {
+          "kandidaat_id": "K0c7e0a05b352",
+          "label": "C003",
+          "status": "ACCEPTED",
+          "klasse": "Rechtsobject",
+          "optie": "",
+          "door": "model",
+          "reden": ""
+        }
+      }
+    },
+    {
+      "id": "a5a0c68c0ffe",
+      "klasse": "Rechtsobject",
+      "tekst": "betrekking tot de toepassing van het derde lid",
+      "lid": "",
+      "toelichting": "Rechtsobject, gekozen uit de mogelijke klassen (nominalized action). Herkenningsvraag: Wat is het voorwerp van een recht of plicht? Waar is het rechtssubject eigenaar of houder van? Waar heeft een waarde betrekking op? Waarover is iets verschuldigd?",
+      "alternatieven": [
+        {
+          "klasse": "Rechtsfeit",
+          "motivatie": "ook mogelijk volgens de detectie"
+        },
+        {
+          "klasse": "Voorwaarde",
+          "motivatie": "ook mogelijk volgens de detectie"
+        }
+      ],
+      "grounded": true,
+      "vindplaats": "",
+      "anker": {
+        "lid": "",
+        "start": 59,
+        "eind": 105,
+        "voor": "riële regeling worden nadere regels gesteld met ",
+        "na": ".",
+        "bron_hash": "036d52ea",
+        "lid_hash": ""
+      },
+      "ankers": [
+        {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+          "start": 59,
+          "eind": 105,
+          "tekst": "betrekking tot de toepassing van het derde lid",
+          "bron_hash": "c0ad8c5227c159f4650da09b8e380d69a549f4f96b9a7ed641512133cb60a941"
+        }
+      ],
+      "aandacht": "",
+      "critic": "",
+      "jas_subtype": "",
+      "trace": {
+        "pijplijn": "hybrid_v1",
+        "jas_versie": "1.0.10",
+        "kandidaat": {
+          "id": "Kc81d4874b964",
+          "label": "C004",
+          "span": {
+            "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+            "start": 59,
+            "eind": 105,
+            "tekst": "betrekking tot de toepassing van het derde lid",
+            "bron_hash": "c0ad8c5227c159f4650da09b8e380d69a549f4f96b9a7ed641512133cb60a941"
+          },
+          "mogelijke_klassen": [
+            "Rechtsfeit",
+            "Voorwaarde",
+            "Rechtsobject"
+          ],
+          "gedegradeerd": false,
+          "bewijs": [
+            {
+              "detector": "nominalisatie",
+              "code": "NOMINALIZED_ACTION",
+              "regel": "jas.feit.nominalisatie_van",
+              "relatie": "obl",
+              "detail": "toepassing"
+            }
+          ],
+          "spanopties": []
+        },
+        "beslissing": {
+          "kandidaat_id": "Kc81d4874b964",
+          "label": "C004",
+          "status": "ACCEPTED",
+          "klasse": "Rechtsobject",
+          "optie": "",
+          "door": "model",
+          "reden": ""
+        },
+        "vraag": "C004 | \"betrekking tot de toepassing van het derde lid\" | toegestaan: Rechtsfeit, Voorwaarde, Rechtsobject, Geen annotatie | signalen: NOMINALIZED_ACTION",
+        "validatie": [],
+        "twijfel": [],
+        "resolutie": [],
+        "oorspronkelijke_beslissing": {
+          "kandidaat_id": "Kc81d4874b964",
+          "label": "C004",
+          "status": "ACCEPTED",
+          "klasse": "Rechtsobject",
+          "optie": "",
+          "door": "model",
+          "reden": ""
+        }
+      }
+    }
+  ],
+  "meting": {
+    "llm_calls": 2,
+    "kandidaten": 5,
+    "gedegradeerd": [],
+    "taal_model": "nl_core_news_md-3.8.0",
+    "tekstgrenzen_versie": "1",
+    "tekststructuur_versie": "1",
+    "verwijzingen_versie": "2",
+    "fusie_versie": "2",
+    "broncontext": {
+      "passages": [],
+      "ontbreekt": [],
+      "doel_metadata": {},
+      "sha256": "066889cf225b060cdfd5a17dd637ea61300fafcf70d27152acf0630ffb8d73c1"
+    },
+    "detectorresultaten": [
+      {
+        "detector": "afleiding",
+        "versie": "2.2.2+grenzen.1",
+        "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+        "kandidaten": 0,
+        "overgeslagen": false,
+        "reden": ""
+      },
+      {
+        "detector": "delegatie",
+        "versie": "1",
+        "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+        "kandidaten": 1,
+        "overgeslagen": false,
+        "reden": ""
+      },
+      {
+        "detector": "numeriek",
+        "versie": "1.1.1+verwijzing.2",
+        "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+        "kandidaten": 0,
+        "overgeslagen": false,
+        "reden": ""
+      },
+      {
+        "detector": "operator",
+        "versie": "1.1.1+verwijzing.2",
+        "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+        "kandidaten": 0,
+        "overgeslagen": false,
+        "reden": ""
+      },
+      {
+        "detector": "plaats",
+        "versie": "1.1+verwijzing.2",
+        "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+        "kandidaten": 0,
+        "overgeslagen": false,
+        "reden": ""
+      },
+      {
+        "detector": "subject",
+        "versie": "1+verwijzing.2",
+        "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+        "kandidaten": 0,
+        "overgeslagen": false,
+        "reden": ""
+      },
+      {
+        "detector": "tijd",
+        "versie": "2.2.2.2.1.1.1.1.1+verwijzing.2",
+        "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+        "kandidaten": 0,
+        "overgeslagen": false,
+        "reden": ""
+      },
+      {
+        "detector": "voorwaarde",
+        "versie": "1.1.1.1+verwijzing.2",
+        "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+        "kandidaten": 0,
+        "overgeslagen": false,
+        "reden": ""
+      },
+      {
+        "detector": "definitie",
+        "versie": "2",
+        "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+        "kandidaten": 0,
+        "overgeslagen": false,
+        "reden": ""
+      },
+      {
+        "detector": "betekenis",
+        "versie": "2",
+        "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+        "kandidaten": 0,
+        "overgeslagen": false,
+        "reden": ""
+      },
+      {
+        "detector": "norm",
+        "versie": "2",
+        "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+        "kandidaten": 0,
+        "overgeslagen": false,
+        "reden": ""
+      },
+      {
+        "detector": "naamwoordgroep",
+        "versie": "1+verwijzing.2",
+        "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+        "kandidaten": 3,
+        "overgeslagen": false,
+        "reden": ""
+      },
+      {
+        "detector": "bijzin",
+        "versie": "2+verwijzing.2",
+        "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+        "kandidaten": 0,
+        "overgeslagen": false,
+        "reden": ""
+      },
+      {
+        "detector": "nominalisatie",
+        "versie": "3+verwijzing.2",
+        "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+        "kandidaten": 1,
+        "overgeslagen": false,
+        "reden": ""
+      },
+      {
+        "detector": "logisch",
+        "versie": "2",
+        "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+        "kandidaten": 0,
+        "overgeslagen": false,
+        "reden": ""
+      },
+      {
+        "detector": "functie",
+        "versie": "1",
+        "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+        "kandidaten": 0,
+        "overgeslagen": false,
+        "reden": ""
+      }
+    ],
+    "classifier_prompt": "038a0b27db75",
+    "classifier_batches": [
+      {
+        "labels": [
+          "C004"
+        ],
+        "schema_sha256": "e87649cbaa63bee443f3ceee52c949e5f476ca0c6910cf0ef7dd9eec0df12abe",
+        "beslissingen": [
+          "Geen annotatie",
+          "Rechtsfeit",
+          "Rechtsobject",
+          "Voorwaarde"
+        ]
+      },
+      {
+        "labels": [
+          "C002",
+          "C003",
+          "C005"
+        ],
+        "schema_sha256": "152f72fb140ee456e045e2eb08758dd7000c6b3c9bb9b0b29df217c815b1e406",
+        "beslissingen": [
+          "Geen annotatie",
+          "Rechtsobject",
+          "Rechtssubject",
+          "Variabele en variabelewaarde"
+        ]
+      }
+    ],
+    "oorspronkelijke_beslissingen": [
+      {
+        "kandidaat_id": "K655e2e73aca6",
+        "label": "C001",
+        "status": "ACCEPTED",
+        "klasse": "Delegatiebevoegdheid en delegatie-invulling",
+        "optie": "",
+        "door": "regel",
+        "reden": "DELEGATION_FORMULA"
+      },
+      {
+        "kandidaat_id": "Kc81d4874b964",
+        "label": "C004",
+        "status": "ACCEPTED",
+        "klasse": "Rechtsobject",
+        "optie": "",
+        "door": "model",
+        "reden": ""
+      },
+      {
+        "kandidaat_id": "K26c471974e13",
+        "label": "C002",
+        "status": "REJECTED",
+        "klasse": "",
+        "optie": "",
+        "door": "model",
+        "reden": "geen annotatie"
+      },
+      {
+        "kandidaat_id": "K0c7e0a05b352",
+        "label": "C003",
+        "status": "ACCEPTED",
+        "klasse": "Rechtsobject",
+        "optie": "",
+        "door": "model",
+        "reden": ""
+      },
+      {
+        "kandidaat_id": "K8c9c890fc8e8",
+        "label": "C005",
+        "status": "REJECTED",
+        "klasse": "",
+        "optie": "",
+        "door": "model",
+        "reden": "geen annotatie"
+      }
+    ],
+    "alternatieve_tijdgrenzen": {},
+    "validatie": [],
+    "twijfels": [],
+    "resolutie": [],
+    "reviewload": {
+      "classifier_contract_failure": 0,
+      "classifier_invalid_output": 0,
+      "reviewer_contract_failure": 0,
+      "degraded_parse_review": 0,
+      "substantive_legal_review": 0,
+      "technical_other_review": 0,
+      "human_review": 0,
+      "juridisch": 0,
+      "technisch": 0,
+      "detector_conflict_review": 0,
+      "span_review": 0,
+      "reviewer_ongeldig": 0
+    },
+    "deterministisch": 1,
+    "per_status": {
+      "UNHANDLED": 0,
+      "ACCEPTED": 3,
+      "REJECTED": 2,
+      "UNCERTAIN": 0,
+      "HUMAN_REVIEW": 0
+    },
+    "dekking": {
+      "urn:bwb:BWBR0004770:artikel:34:lid:6": {
+        "dimensies": {
+          "actor": "uitgevoerd",
+          "object": "uitgevoerd",
+          "normatieve relatie": "uitgevoerd",
+          "handeling/gebeurtenis": "uitgevoerd",
+          "voorwaarde": "uitgevoerd",
+          "berekening/afleiding": "uitgevoerd",
+          "waarde": "uitgevoerd",
+          "operator": "uitgevoerd",
+          "tijd": "uitgevoerd",
+          "plaats": "uitgevoerd",
+          "delegatie": "uitgevoerd",
+          "definitie": "uitgevoerd"
+        },
+        "ongedekt": []
+      }
+    },
+    "fasen": [
+      {
+        "fase": "Taalanalyse",
+        "samenvatting": "nl_core_news_md-3.8.0, 1 zin(nen)",
+        "ms": 2688
+      },
+      {
+        "fase": "Detectie",
+        "samenvatting": "5 kandidaten uit 16 detectoren",
+        "ms": 69
+      },
+      {
+        "fase": "Besluit",
+        "samenvatting": "1 op vaste regels, 4 naar het model",
+        "ms": 0
+      },
+      {
+        "fase": "Classificatie",
+        "samenvatting": "4 kandidaten in 2 modelaanroep(en), 2 afgewezen",
+        "ms": 20326
+      },
+      {
+        "fase": "Resultaat",
+        "samenvatting": "3 voorgesteld",
+        "ms": 1
+      }
+    ]
+  },
+  "fusie": {
+    "kandidaten": [
+      {
+        "id": "K655e2e73aca6",
+        "span": {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+          "start": 0,
+          "eind": 106,
+          "tekst": "Bij ministeriële regeling worden nadere regels gesteld met betrekking tot de toepassing van het derde lid.",
+          "bron_hash": "c0ad8c5227c159f4650da09b8e380d69a549f4f96b9a7ed641512133cb60a941"
+        },
+        "possible_classes": [
+          "Delegatiebevoegdheid en delegatie-invulling"
+        ],
+        "evidence": [
+          {
+            "detector": "delegatie",
+            "code": "DELEGATION_FORMULA",
+            "regel": "jas.delegatie.regels_gesteld",
+            "relatie": "",
+            "detail": "Bij ministeriële regeling worden nadere regels gesteld met betrekking tot de toepassing van het derde lid."
+          }
+        ],
+        "span_options": [],
+        "status": "UNHANDLED",
+        "label": "C001",
+        "gedegradeerd": false
+      },
+      {
+        "id": "K26c471974e13",
+        "span": {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+          "start": 4,
+          "eind": 25,
+          "tekst": "ministeriële regeling",
+          "bron_hash": "c0ad8c5227c159f4650da09b8e380d69a549f4f96b9a7ed641512133cb60a941"
+        },
+        "possible_classes": [
+          "Rechtsobject",
+          "Variabele en variabelewaarde",
+          "Rechtssubject"
+        ],
+        "evidence": [
+          {
+            "detector": "naamwoordgroep",
+            "code": "OBJECT_NP",
+            "regel": "jas.object.np_bij_normatief_predicaat",
+            "relatie": "obl",
+            "detail": "regeling"
+          }
+        ],
+        "span_options": [],
+        "status": "UNHANDLED",
+        "label": "C002",
+        "gedegradeerd": false
+      },
+      {
+        "id": "K0c7e0a05b352",
+        "span": {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+          "start": 33,
+          "eind": 46,
+          "tekst": "nadere regels",
+          "bron_hash": "c0ad8c5227c159f4650da09b8e380d69a549f4f96b9a7ed641512133cb60a941"
+        },
+        "possible_classes": [
+          "Rechtssubject",
+          "Rechtsobject",
+          "Variabele en variabelewaarde"
+        ],
+        "evidence": [
+          {
+            "detector": "naamwoordgroep",
+            "code": "SUBJECT_NP",
+            "regel": "jas.subject.np_bij_normatief_predicaat",
+            "relatie": "nsubj:pass",
+            "detail": "regels"
+          }
+        ],
+        "span_options": [],
+        "status": "UNHANDLED",
+        "label": "C003",
+        "gedegradeerd": false
+      },
+      {
+        "id": "Kc81d4874b964",
+        "span": {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+          "start": 59,
+          "eind": 105,
+          "tekst": "betrekking tot de toepassing van het derde lid",
+          "bron_hash": "c0ad8c5227c159f4650da09b8e380d69a549f4f96b9a7ed641512133cb60a941"
+        },
+        "possible_classes": [
+          "Rechtsfeit",
+          "Voorwaarde",
+          "Rechtsobject"
+        ],
+        "evidence": [
+          {
+            "detector": "nominalisatie",
+            "code": "NOMINALIZED_ACTION",
+            "regel": "jas.feit.nominalisatie_van",
+            "relatie": "obl",
+            "detail": "toepassing"
+          }
+        ],
+        "span_options": [],
+        "status": "UNHANDLED",
+        "label": "C004",
+        "gedegradeerd": false
+      },
+      {
+        "id": "K8c9c890fc8e8",
+        "span": {
+          "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+          "start": 74,
+          "eind": 87,
+          "tekst": "de toepassing",
+          "bron_hash": "c0ad8c5227c159f4650da09b8e380d69a549f4f96b9a7ed641512133cb60a941"
+        },
+        "possible_classes": [
+          "Rechtsobject",
+          "Variabele en variabelewaarde",
+          "Rechtssubject"
+        ],
+        "evidence": [
+          {
+            "detector": "naamwoordgroep",
+            "code": "OBJECT_NP",
+            "regel": "jas.object.np_bij_normatief_predicaat",
+            "relatie": "obl",
+            "detail": "toepassing"
+          }
+        ],
+        "span_options": [
+          {
+            "soort": "np",
+            "span": {
+              "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+              "start": 59,
+              "eind": 105,
+              "tekst": "betrekking tot de toepassing van het derde lid",
+              "bron_hash": "c0ad8c5227c159f4650da09b8e380d69a549f4f96b9a7ed641512133cb60a941"
+            }
+          }
+        ],
+        "status": "UNHANDLED",
+        "label": "C005",
+        "gedegradeerd": false
+      }
+    ],
+    "relaties": [
+      {
+        "van": "K655e2e73aca6",
+        "naar": "K26c471974e13",
+        "soort": "bevat"
+      },
+      {
+        "van": "K655e2e73aca6",
+        "naar": "K0c7e0a05b352",
+        "soort": "bevat"
+      },
+      {
+        "van": "K655e2e73aca6",
+        "naar": "Kc81d4874b964",
+        "soort": "bevat"
+      },
+      {
+        "van": "K655e2e73aca6",
+        "naar": "K8c9c890fc8e8",
+        "soort": "bevat"
+      },
+      {
+        "van": "Kc81d4874b964",
+        "naar": "K8c9c890fc8e8",
+        "soort": "bevat"
+      }
+    ],
+    "overgeslagen": [],
+    "detectoren": [
+      [
+        "afleiding",
+        "2.2.2+grenzen.1"
+      ],
+      [
+        "betekenis",
+        "2"
+      ],
+      [
+        "bijzin",
+        "2+verwijzing.2"
+      ],
+      [
+        "definitie",
+        "2"
+      ],
+      [
+        "delegatie",
+        "1"
+      ],
+      [
+        "functie",
+        "1"
+      ],
+      [
+        "logisch",
+        "2"
+      ],
+      [
+        "naamwoordgroep",
+        "1+verwijzing.2"
+      ],
+      [
+        "nominalisatie",
+        "3+verwijzing.2"
+      ],
+      [
+        "norm",
+        "2"
+      ],
+      [
+        "numeriek",
+        "1.1.1+verwijzing.2"
+      ],
+      [
+        "operator",
+        "1.1.1+verwijzing.2"
+      ],
+      [
+        "plaats",
+        "1.1+verwijzing.2"
+      ],
+      [
+        "subject",
+        "1+verwijzing.2"
+      ],
+      [
+        "tijd",
+        "2.2.2.2.1.1.1.1.1+verwijzing.2"
+      ],
+      [
+        "voorwaarde",
+        "1.1.1.1+verwijzing.2"
+      ]
+    ],
+    "bijdragen": [
+      {
+        "kandidaat_id": "K655e2e73aca6",
+        "detector": "delegatie",
+        "versie": "1",
+        "regel_versie": "1",
+        "mogelijke_klassen": [
+          "Delegatiebevoegdheid en delegatie-invulling"
+        ],
+        "bewijs": [
+          {
+            "detector": "delegatie",
+            "code": "DELEGATION_FORMULA",
+            "regel": "jas.delegatie.regels_gesteld",
+            "relatie": "",
+            "detail": "Bij ministeriële regeling worden nadere regels gesteld met betrekking tot de toepassing van het derde lid."
+          }
+        ],
+        "opties": []
+      },
+      {
+        "kandidaat_id": "K26c471974e13",
+        "detector": "naamwoordgroep",
+        "versie": "1+verwijzing.2",
+        "regel_versie": "",
+        "mogelijke_klassen": [
+          "Rechtsobject",
+          "Variabele en variabelewaarde",
+          "Rechtssubject"
+        ],
+        "bewijs": [
+          {
+            "detector": "naamwoordgroep",
+            "code": "OBJECT_NP",
+            "regel": "jas.object.np_bij_normatief_predicaat",
+            "relatie": "obl",
+            "detail": "regeling"
+          }
+        ],
+        "opties": []
+      },
+      {
+        "kandidaat_id": "K0c7e0a05b352",
+        "detector": "naamwoordgroep",
+        "versie": "1+verwijzing.2",
+        "regel_versie": "",
+        "mogelijke_klassen": [
+          "Rechtssubject",
+          "Rechtsobject",
+          "Variabele en variabelewaarde"
+        ],
+        "bewijs": [
+          {
+            "detector": "naamwoordgroep",
+            "code": "SUBJECT_NP",
+            "regel": "jas.subject.np_bij_normatief_predicaat",
+            "relatie": "nsubj:pass",
+            "detail": "regels"
+          }
+        ],
+        "opties": []
+      },
+      {
+        "kandidaat_id": "K8c9c890fc8e8",
+        "detector": "naamwoordgroep",
+        "versie": "1+verwijzing.2",
+        "regel_versie": "",
+        "mogelijke_klassen": [
+          "Rechtsobject",
+          "Variabele en variabelewaarde",
+          "Rechtssubject"
+        ],
+        "bewijs": [
+          {
+            "detector": "naamwoordgroep",
+            "code": "OBJECT_NP",
+            "regel": "jas.object.np_bij_normatief_predicaat",
+            "relatie": "obl",
+            "detail": "toepassing"
+          }
+        ],
+        "opties": [
+          {
+            "soort": "np",
+            "span": {
+              "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+              "start": 59,
+              "eind": 105,
+              "tekst": "betrekking tot de toepassing van het derde lid",
+              "bron_hash": "c0ad8c5227c159f4650da09b8e380d69a549f4f96b9a7ed641512133cb60a941"
+            }
+          }
+        ]
+      },
+      {
+        "kandidaat_id": "Kc81d4874b964",
+        "detector": "nominalisatie",
+        "versie": "3+verwijzing.2",
+        "regel_versie": "",
+        "mogelijke_klassen": [
+          "Rechtsfeit",
+          "Voorwaarde",
+          "Rechtsobject"
+        ],
+        "bewijs": [
+          {
+            "detector": "nominalisatie",
+            "code": "NOMINALIZED_ACTION",
+            "regel": "jas.feit.nominalisatie_van",
+            "relatie": "obl",
+            "detail": "toepassing"
+          }
+        ],
+        "opties": []
+      }
+    ]
+  },
+  "beslissingen": [
+    {
+      "kandidaat_id": "K655e2e73aca6",
+      "label": "C001",
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+      "start": 0,
+      "eind": 106,
+      "mogelijke_klassen": [
+        "Delegatiebevoegdheid en delegatie-invulling"
+      ],
+      "vervallen": [],
+      "bewijs": [
+        "DELEGATION_FORMULA"
+      ],
+      "detectoren": [
+        "delegatie"
+      ],
+      "opties": [],
+      "bewijs_fingerprint": "8812eb7741982551",
+      "detectiebijdragen": [
+        {
+          "kandidaat_id": "K655e2e73aca6",
+          "detector": "delegatie",
+          "versie": "1",
+          "regel_versie": "1",
+          "mogelijke_klassen": [
+            "Delegatiebevoegdheid en delegatie-invulling"
+          ],
+          "bewijs": [
+            {
+              "detector": "delegatie",
+              "code": "DELEGATION_FORMULA",
+              "regel": "jas.delegatie.regels_gesteld",
+              "relatie": "",
+              "detail": "Bij ministeriële regeling worden nadere regels gesteld met betrekking tot de toepassing van het derde lid."
+            }
+          ],
+          "opties": []
+        }
+      ],
+      "status": "ACCEPTED",
+      "door": "regel",
+      "klasse": "Delegatiebevoegdheid en delegatie-invulling",
+      "reden": "DELEGATION_FORMULA",
+      "classifier_reden": ""
+    },
+    {
+      "kandidaat_id": "K26c471974e13",
+      "label": "C002",
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+      "start": 4,
+      "eind": 25,
+      "mogelijke_klassen": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "vervallen": [],
+      "bewijs": [
+        "OBJECT_NP"
+      ],
+      "detectoren": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "bewijs_fingerprint": "98e7dca306337995",
+      "detectiebijdragen": [
+        {
+          "kandidaat_id": "K26c471974e13",
+          "detector": "naamwoordgroep",
+          "versie": "1+verwijzing.2",
+          "regel_versie": "",
+          "mogelijke_klassen": [
+            "Rechtsobject",
+            "Variabele en variabelewaarde",
+            "Rechtssubject"
+          ],
+          "bewijs": [
+            {
+              "detector": "naamwoordgroep",
+              "code": "OBJECT_NP",
+              "regel": "jas.object.np_bij_normatief_predicaat",
+              "relatie": "obl",
+              "detail": "regeling"
+            }
+          ],
+          "opties": []
+        }
+      ],
+      "status": "REJECTED",
+      "door": "model",
+      "klasse": "",
+      "reden": "geen annotatie",
+      "classifier_reden": ""
+    },
+    {
+      "kandidaat_id": "K0c7e0a05b352",
+      "label": "C003",
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+      "start": 33,
+      "eind": 46,
+      "mogelijke_klassen": [
+        "Rechtssubject",
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "vervallen": [],
+      "bewijs": [
+        "SUBJECT_NP"
+      ],
+      "detectoren": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "bewijs_fingerprint": "a0c74a29e298b370",
+      "detectiebijdragen": [
+        {
+          "kandidaat_id": "K0c7e0a05b352",
+          "detector": "naamwoordgroep",
+          "versie": "1+verwijzing.2",
+          "regel_versie": "",
+          "mogelijke_klassen": [
+            "Rechtssubject",
+            "Rechtsobject",
+            "Variabele en variabelewaarde"
+          ],
+          "bewijs": [
+            {
+              "detector": "naamwoordgroep",
+              "code": "SUBJECT_NP",
+              "regel": "jas.subject.np_bij_normatief_predicaat",
+              "relatie": "nsubj:pass",
+              "detail": "regels"
+            }
+          ],
+          "opties": []
+        }
+      ],
+      "status": "ACCEPTED",
+      "door": "model",
+      "klasse": "Rechtsobject",
+      "reden": "",
+      "classifier_reden": ""
+    },
+    {
+      "kandidaat_id": "Kc81d4874b964",
+      "label": "C004",
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+      "start": 59,
+      "eind": 105,
+      "mogelijke_klassen": [
+        "Rechtsfeit",
+        "Voorwaarde",
+        "Rechtsobject"
+      ],
+      "vervallen": [],
+      "bewijs": [
+        "NOMINALIZED_ACTION"
+      ],
+      "detectoren": [
+        "nominalisatie"
+      ],
+      "opties": [],
+      "bewijs_fingerprint": "0ca729d8a400b009",
+      "detectiebijdragen": [
+        {
+          "kandidaat_id": "Kc81d4874b964",
+          "detector": "nominalisatie",
+          "versie": "3+verwijzing.2",
+          "regel_versie": "",
+          "mogelijke_klassen": [
+            "Rechtsfeit",
+            "Voorwaarde",
+            "Rechtsobject"
+          ],
+          "bewijs": [
+            {
+              "detector": "nominalisatie",
+              "code": "NOMINALIZED_ACTION",
+              "regel": "jas.feit.nominalisatie_van",
+              "relatie": "obl",
+              "detail": "toepassing"
+            }
+          ],
+          "opties": []
+        }
+      ],
+      "status": "ACCEPTED",
+      "door": "model",
+      "klasse": "Rechtsobject",
+      "reden": "",
+      "classifier_reden": ""
+    },
+    {
+      "kandidaat_id": "K8c9c890fc8e8",
+      "label": "C005",
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+      "start": 74,
+      "eind": 87,
+      "mogelijke_klassen": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "vervallen": [],
+      "bewijs": [
+        "OBJECT_NP"
+      ],
+      "detectoren": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          59,
+          105
+        ]
+      ],
+      "bewijs_fingerprint": "98e7dca306337995",
+      "detectiebijdragen": [
+        {
+          "kandidaat_id": "K8c9c890fc8e8",
+          "detector": "naamwoordgroep",
+          "versie": "1+verwijzing.2",
+          "regel_versie": "",
+          "mogelijke_klassen": [
+            "Rechtsobject",
+            "Variabele en variabelewaarde",
+            "Rechtssubject"
+          ],
+          "bewijs": [
+            {
+              "detector": "naamwoordgroep",
+              "code": "OBJECT_NP",
+              "regel": "jas.object.np_bij_normatief_predicaat",
+              "relatie": "obl",
+              "detail": "toepassing"
+            }
+          ],
+          "opties": [
+            {
+              "soort": "np",
+              "span": {
+                "bron_iri": "urn:bwb:BWBR0004770:artikel:34:lid:6",
+                "start": 59,
+                "eind": 105,
+                "tekst": "betrekking tot de toepassing van het derde lid",
+                "bron_hash": "c0ad8c5227c159f4650da09b8e380d69a549f4f96b9a7ed641512133cb60a941"
+              }
+            }
+          ]
+        }
+      ],
+      "status": "REJECTED",
+      "door": "model",
+      "klasse": "",
+      "reden": "geen annotatie",
+      "classifier_reden": ""
+    }
+  ],
+  "seconden": 23.085,
+  "tokens": {
+    "input_tokens": 2867,
+    "output_tokens": 998,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 0
+  },
+  "kosten": {
+    "factuurbedrag": null,
+    "schatting_usd": 0.023571,
+    "usd_per_miljoen": {
+      "input_tokens": 3.0,
+      "output_tokens": 15.0,
+      "cache_read_input_tokens": 0.3,
+      "cache_creation_input_tokens": 3.75
+    },
+    "tariefbron": "https://www-cdn.anthropic.com/files/4zrzovbb/website/3684c2faafb97418665782cea0001f439f74b1d2.pdf",
+    "tariefdatum": "2026-05-27",
+    "reden": "schatting volgens Microsoft Foundry-lijstprijs, geen Azure-factuur"
+  }
+}

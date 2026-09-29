@@ -1,0 +1,1076 @@
+{
+ "werkpakket": "WP4b",
+ "git_sha": "f1a8158bc24b5c409d4ebc4beff4261f5338f5a2",
+ "hashes_sha256": "3f01e2c13c21167769f5c4fbe2a6c2eb41009e4d339eefa8122e95da0c820024",
+ "ontwikkelset": {
+  "voor": {
+   "kandidaten": 260,
+   "referenties": 81,
+   "ankers_core": 72,
+   "ankers_opties": 74,
+   "ankers_met_klasse": 72,
+   "gemiddeld_klassen": 2.0961538461538463,
+   "deterministisch": 19,
+   "specificiteit_afgewezen": 0,
+   "classifier_kandidaten": 241,
+   "zonder_hypothese": 0,
+   "classifier_batches_universeel": 16
+  },
+  "na": {
+   "kandidaten": 260,
+   "referenties": 81,
+   "ankers_core": 72,
+   "ankers_opties": 74,
+   "ankers_met_klasse": 72,
+   "gemiddeld_klassen": 2.0961538461538463,
+   "deterministisch": 22,
+   "specificiteit_afgewezen": 0,
+   "classifier_kandidaten": 238,
+   "zonder_hypothese": 0,
+   "classifier_batches_universeel": 16
+  },
+  "verloren_devankers": [],
+  "classifier_input_gewijzigd": [
+   "AWB04",
+   "LI-D3"
+  ],
+  "parse_gewijzigd": [],
+  "gewijzigde_kandidaten": {
+   "AWB04": [
+    {
+     "id": "K1d3459987364",
+     "voor": {
+      "id": "K1d3459987364",
+      "bron": "AWB04",
+      "start": 109,
+      "eind": 125,
+      "tekst": "de overige dagen",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_RELATIVE_PERIOD",
+        "regel": "jas.tijd.relatief",
+        "relatie": "",
+        "detail": "de overige dagen"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "ENUMERATED_NP",
+        "regel": "jas.object.opsommingsonderdeel",
+        "relatie": "conj",
+        "detail": "dagen"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [
+       {
+        "start": 109,
+        "eind": 138,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K1d3459987364",
+      "bron": "AWB04",
+      "start": 109,
+      "eind": 125,
+      "tekst": "de overige dagen",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_RELATIVE_PERIOD",
+        "regel": "jas.tijd.relatief",
+        "relatie": "",
+        "detail": "de overige dagen"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "ENUMERATED_NP",
+        "regel": "jas.object.opsommingsonderdeel",
+        "relatie": "conj",
+        "detail": "dagen"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [
+       {
+        "start": 109,
+        "eind": 138,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "regel"
+     }
+    },
+    {
+     "id": "K255709743c3d",
+     "voor": {
+      "id": "K255709743c3d",
+      "bron": "AWB04",
+      "start": 21,
+      "eind": 45,
+      "tekst": "de eerste veertien dagen",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_RELATIVE_PERIOD",
+        "regel": "jas.tijd.relatief",
+        "relatie": "",
+        "detail": "de eerste veertien dagen"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "dagen"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [
+       {
+        "start": 21,
+        "eind": 58,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K255709743c3d",
+      "bron": "AWB04",
+      "start": 21,
+      "eind": 45,
+      "tekst": "de eerste veertien dagen",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_RELATIVE_PERIOD",
+        "regel": "jas.tijd.relatief",
+        "relatie": "",
+        "detail": "de eerste veertien dagen"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "dagen"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [
+       {
+        "start": 21,
+        "eind": 58,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "regel"
+     }
+    },
+    {
+     "id": "K85efdb907c4a",
+     "voor": {
+      "id": "K85efdb907c4a",
+      "bron": "AWB04",
+      "start": 60,
+      "eind": 92,
+      "tekst": "de daaropvolgende veertien dagen",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_RELATIVE_PERIOD",
+        "regel": "jas.tijd.relatief",
+        "relatie": "",
+        "detail": "de daaropvolgende veertien dagen"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "parataxis",
+        "detail": "dagen"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [
+       {
+        "start": 60,
+        "eind": 105,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K85efdb907c4a",
+      "bron": "AWB04",
+      "start": 60,
+      "eind": 92,
+      "tekst": "de daaropvolgende veertien dagen",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_RELATIVE_PERIOD",
+        "regel": "jas.tijd.relatief",
+        "relatie": "",
+        "detail": "de daaropvolgende veertien dagen"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "parataxis",
+        "detail": "dagen"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [
+       {
+        "start": 60,
+        "eind": 105,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "regel"
+     }
+    }
+   ],
+   "LI-D3": [
+    {
+     "id": "K0ec9df8b2a77",
+     "voor": {
+      "id": "K0ec9df8b2a77",
+      "bron": "LI-D3",
+      "start": 363,
+      "eind": 372,
+      "tekst": "een maand",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "een maand"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "maand"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [
+       {
+        "start": 363,
+        "eind": 384,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K0ec9df8b2a77",
+      "bron": "LI-D3",
+      "start": 363,
+      "eind": 372,
+      "tekst": "een maand",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "een maand"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "maand"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [
+       {
+        "start": 363,
+        "eind": 384,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "regel"
+     }
+    },
+    {
+     "id": "K21059decb9f6",
+     "voor": {
+      "id": "K21059decb9f6",
+      "bron": "LI-D3",
+      "start": 258,
+      "eind": 267,
+      "tekst": "zes weken",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "zes weken"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "weken"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K21059decb9f6",
+      "bron": "LI-D3",
+      "start": 258,
+      "eind": 267,
+      "tekst": "zes weken",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "zes weken"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "weken"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "regel"
+     }
+    },
+    {
+     "id": "K22a46a43b9f9",
+     "voor": {
+      "id": "K22a46a43b9f9",
+      "bron": "LI-D3",
+      "start": 726,
+      "eind": 735,
+      "tekst": "een maand",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "een maand"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "maand"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K22a46a43b9f9",
+      "bron": "LI-D3",
+      "start": 726,
+      "eind": 735,
+      "tekst": "een maand",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "een maand"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "maand"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "regel"
+     }
+    },
+    {
+     "id": "K737d551b6075",
+     "voor": {
+      "id": "K737d551b6075",
+      "bron": "LI-D3",
+      "start": 680,
+      "eind": 689,
+      "tekst": "een maand",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "een maand"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "maand"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K737d551b6075",
+      "bron": "LI-D3",
+      "start": 680,
+      "eind": 689,
+      "tekst": "een maand",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "een maand"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "maand"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "regel"
+     }
+    },
+    {
+     "id": "K8dd7200f22b2",
+     "voor": {
+      "id": "K8dd7200f22b2",
+      "bron": "LI-D3",
+      "start": 81,
+      "eind": 90,
+      "tekst": "zes weken",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "zes weken"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "weken"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K8dd7200f22b2",
+      "bron": "LI-D3",
+      "start": 81,
+      "eind": 90,
+      "tekst": "zes weken",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "zes weken"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "weken"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "regel"
+     }
+    },
+    {
+     "id": "Ke979a2110568",
+     "voor": {
+      "id": "Ke979a2110568",
+      "bron": "LI-D3",
+      "start": 198,
+      "eind": 207,
+      "tekst": "één maand",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "één maand"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "maand"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Ke979a2110568",
+      "bron": "LI-D3",
+      "start": 198,
+      "eind": 207,
+      "tekst": "één maand",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "één maand"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "maand"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "regel"
+     }
+    },
+    {
+     "id": "Kf3d65575ed5a",
+     "voor": {
+      "id": "Kf3d65575ed5a",
+      "bron": "LI-D3",
+      "start": 906,
+      "eind": 915,
+      "tekst": "zes weken",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "zes weken"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "parataxis",
+        "detail": "weken"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kf3d65575ed5a",
+      "bron": "LI-D3",
+      "start": 906,
+      "eind": 915,
+      "tekst": "zes weken",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "zes weken"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "parataxis",
+        "detail": "weken"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "regel"
+     }
+    },
+    {
+     "id": "Kf86823a277c9",
+     "voor": {
+      "id": "Kf86823a277c9",
+      "bron": "LI-D3",
+      "start": 412,
+      "eind": 421,
+      "tekst": "zes weken",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "zes weken"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "weken"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [
+       {
+        "start": 412,
+        "eind": 433,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kf86823a277c9",
+      "bron": "LI-D3",
+      "start": 412,
+      "eind": 421,
+      "tekst": "zes weken",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "zes weken"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "weken"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [
+       {
+        "start": 412,
+        "eind": 433,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "regel"
+     }
+    },
+    {
+     "id": "Kfbea2e1a76f3",
+     "voor": {
+      "id": "Kfbea2e1a76f3",
+      "bron": "LI-D3",
+      "start": 54,
+      "eind": 63,
+      "tekst": "één maand",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "één maand"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "maand"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kfbea2e1a76f3",
+      "bron": "LI-D3",
+      "start": 54,
+      "eind": 63,
+      "tekst": "één maand",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "één maand"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "maand"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "regel"
+     }
+    }
+   ]
+  }
+ },
+ "onderzoek": {
+  "IW-9-1": {
+   "tellingen": {
+    "raw": 7,
+    "fusie": 5,
+    "model": 5,
+    "routes": {
+     "model": 5
+    }
+   }
+  },
+  "IW-9-5": {
+   "tellingen": {
+    "raw": 42,
+    "fusie": 40,
+    "model": 36,
+    "routes": {
+     "model": 36,
+     "regel": 4
+    }
+   }
+  },
+  "LI-9.1": {
+   "tellingen": {
+    "raw": 22,
+    "fusie": 21,
+    "model": 17,
+    "routes": {
+     "model": 17,
+     "regel": 4
+    }
+   }
+  },
+  "LI-9.5": {
+   "tellingen": {
+    "raw": 70,
+    "fusie": 59,
+    "model": 36,
+    "routes": {
+     "model": 36,
+     "regel": 23
+    }
+   }
+  }
+ }
+}

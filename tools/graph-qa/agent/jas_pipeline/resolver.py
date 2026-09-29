@@ -29,6 +29,9 @@ from .review import Oordeel
 # CHANGE (klasse wordt het voorstel van de reviewer, oude klasse alternatief, groen),
 # HUMAN (geel, alternatieven erbij), MERGE (ZELFDE_SPAN: één klasse blijft, de ander wordt alternatief).
 TABEL: dict[tuple[str, str], tuple[str, str]] = {
+    ("CENTRALE_NORM_AFGEWEZEN", "KEEP"): ("R-CENTRAAL-KEEP", "REJECT"),
+    ("CENTRALE_NORM_AFGEWEZEN", "CHANGE"): ("R-CENTRAAL-CHANGE", "CHANGE"),
+    ("CENTRALE_NORM_AFGEWEZEN", "HUMAN_REVIEW"): ("R-CENTRAAL-HUMAN", "HUMAN"),
     ("DETECTOR_CONFLICT", "KEEP"): ("R-CONFLICT-KEEP", "HUMAN"),     # conflict met de detectie blijft
     ("DETECTOR_CONFLICT", "CHANGE"): ("R-CONFLICT-CHANGE", "CHANGE"),  # reviewer volgt het sterke bewijs
     ("DETECTOR_CONFLICT", "HUMAN_REVIEW"): ("R-CONFLICT-HUMAN", "HUMAN"),
@@ -56,6 +59,7 @@ class Transitie(BaseModel):
     # Alleen rapportage (V5): bij R-ONGELDIG het ruwe reviewer-antwoord en waarom het niet deugde.
     ongeldig_omdat: str = ""
     oordeel_ruw: dict | None = None
+    motivering: str = ""
 
 
 def _schendt_prioriteit(van: str, naar: str) -> str:
@@ -107,7 +111,9 @@ def los_op(voorstellen: list[dict[str, Any]], beslissingen: list[Beslissing], tw
             regel, uitkomst = TEGEN_REGEL + ":" + schending, "HUMAN"
         vs = voorstel_van.get(t.label, [])
 
-        if uitkomst == "ACCEPT":
+        if uitkomst == "REJECT":
+            per_label_b[t.label] = b.model_copy(update={"status": CandidateStatus.REJECTED, "klasse": "", "reden": regel})
+        elif uitkomst == "ACCEPT":
             for v in vs:
                 v.update(aandacht="groen", critic="Gerichte review: beide functies blijven.")
         elif uitkomst == "CHANGE":
@@ -120,7 +126,8 @@ def los_op(voorstellen: list[dict[str, Any]], beslissingen: list[Beslissing], tw
                 nb = b.model_copy(update={"status": CandidateStatus.ACCEPTED, "klasse": naar, "door": "model",
                                           "reden": regel})
                 nv = {**maak_voorstel(k, nb), "_label": t.label, "aandacht": "groen",
-                      "critic": "Gekozen in de gerichte review; de classifier gaf geen beslissing."}
+                      "critic": ("Gekozen in de gerichte review na eerdere afwijzing." if t.reden == "CENTRALE_NORM_AFGEWEZEN"
+                                 else "Gekozen in de gerichte review; de classifier gaf geen beslissing.")}
                 uit.append(nv)
                 per_label_b[t.label] = nb
             per_label_b[t.label] = per_label_b[t.label].model_copy(update={"klasse": naar, "reden": regel})
@@ -154,6 +161,8 @@ def los_op(voorstellen: list[dict[str, Any]], beslissingen: list[Beslissing], tw
                                     van=b.status.value, naar=per_label_b[t.label].status.value,
                                     ongeldig_omdat=o.ongeldig_omdat if o and regel == ONGELDIG[0] else "",
                                     oordeel_ruw=o.ruw if o and regel == ONGELDIG[0] else None))
+        if o:
+            transities[-1] = transities[-1].model_copy(update={"motivering": o.motivering})
     return uit, [per_label_b[b.label] for b in beslissingen], transities
 
 
@@ -169,6 +178,8 @@ def _uitleg(t: Twijfel, regel: str = "") -> str:
                  "bruikbare beslissing. De eerste klasse is een voorstel; kies zelf.")
     else:
         tekst = {
+            "CENTRALE_NORM_AFGEWEZEN": "De centrale norm is afgewezen terwijl objecten of tijdsaanduidingen overblijven. "
+                "De getoonde klasse is voorlopig; beoordeel de norm en de beschikbare context.",
             "DETECTOR_CONFLICT": f"De gekozen klasse botst met een vast herkenningspatroon ({t.detail}). Kies zelf.",
             "ZELFDE_SPAN": "Hetzelfde fragment kreeg twee klassen; overlap mag alleen bij verschillende functies.",
             "DEGRADED_PARSE": "Zonder zinsontleding geclassificeerd; minder signalen dan normaal.",

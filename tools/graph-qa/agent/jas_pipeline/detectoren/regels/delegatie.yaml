@@ -3,6 +3,7 @@
 - id: jas.delegatie.regels_gesteld
   klassen: [Delegatiebevoegdheid en delegatie-invulling]
   code: DELEGATION_FORMULA
+  bewijs: sterk
   bron: "H2:127"
   versie: 1
   niet_binnen: []
