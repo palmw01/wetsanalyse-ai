@@ -7,7 +7,7 @@ import { bronDoel, samenhangBeschikbaar } from "@/lib/samenhang";
 import { ToolSpoor } from "@/components/werkplek/ToolSpoor";
 import { KeuzeKaart } from "@/components/werkplek/KeuzeKaart";
 import { ReeksBlok } from "@/components/werkplek/ReeksBlok";
-import { doelenVanKandidaten, reeksPrompt, reeksUitBerichten, verwerkReeksEvent, type Reeks } from "@/lib/reeks";
+import { doelenVanKandidaten, reeksNavigatie, reeksPrompt, reeksUitBerichten, verwerkReeksEvent, type Reeks } from "@/lib/reeks";
 import { mergeToolExecution, parseToolExecution, type NodeDoel, type ToolExecution, type NodeElement, type NodeWeergave } from "@/lib/annotatieNode";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
@@ -168,6 +168,8 @@ export function WerkplekClient({
   const [bezig, setBezig] = useState(false);
   const [actiefId, setActiefId] = useState<string | undefined>();
   const [nodeDoel, setNodeDoel] = useState<NodeDoel>();
+  /** De reeks (run-id) waaruit de open annotatie is geopend; het paneel bladert dan door de leden. */
+  const [nodeReeks, setNodeReeks] = useState<string>();
   // Opent het node-paneel op de 3D-graaf (knop onder een antwoord) of op de tekst (annotatie).
   const [nodeTab, setNodeTab] = useState<"tekst" | "graaf">("tekst");
   const [samenhangAan, setSamenhangAan] = useState(false);
@@ -995,8 +997,16 @@ export function WerkplekClient({
     .find((x): x is Extract<Item, { type: "annotatie" }> => x.type === "annotatie" && !verwijderd[x.slug])
     ?.slug;
 
+  // Hoort de open annotatie bij een reeks in dit gesprek, dan bladert het paneel door de leden.
+  const nodeReeksNav = (() => {
+    if (!nodeDoel || !nodeReeks) return undefined;
+    const item = items.find((x): x is Extract<Item, { type: "reeks" }> => x.type === "reeks" && x.reeks.runId === nodeReeks);
+    const nav = item && reeksNavigatie(item.reeks, nodeDoel.bron_iri);
+    return nav ? { ...nav, onGa: (d: NodeDoel) => setNodeDoel(d) } : undefined;
+  })();
   const artefact = nodeDoel ? <NodeAnnotatiePaneel key={`${nodeDoel.bron_iri}:${nodeDoel.snapshot_id ?? ""}:${nodeTab}`} doel={nodeDoel}
-    variant={breed ? "kolom" : "side"} onSluit={() => setNodeDoel(undefined)} beginTab={nodeTab}
+    variant={breed ? "kolom" : "side"} onSluit={() => { setNodeDoel(undefined); setNodeReeks(undefined); }} beginTab={nodeTab}
+    reeks={nodeReeksNav}
     onVraag={(element, view) => {
       setVraagOver(null); setNodeVraag({ element, view });
       setInvoer(`Waarom is dit een ${element.klasse}?`);
@@ -1284,7 +1294,11 @@ export function WerkplekClient({
                     reeks={item.reeks}
                     loopt={!!runId && runId === item.reeks.runId}
                     onStop={() => void stop()}
-                    onOpen={(o) => o.annotatie_doel && void openArtefact(o.annotatie_doel.bron_iri, o.annotatie_doel)}
+                    onOpen={(o) => {
+                      if (!o.annotatie_doel) return;
+                      setNodeReeks(item.reeks.runId);
+                      void openArtefact(o.annotatie_doel.bron_iri, o.annotatie_doel);
+                    }}
                     spoor={(o, actief) => (
                       <>
                         {o.denk && <DenkProces tekst={o.denk} actief={actief} label="Zo is dit tot stand gekomen" />}

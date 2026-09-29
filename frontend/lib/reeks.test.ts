@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseKandidaten, parseKeuze } from "./agentEvents";
 import { doelVanKandidaat } from "./annotatie";
 import {
-  actiefOnderdeel, doelenVanKandidaten, reeksPrompt, reeksSamenvatting, reeksUitBerichten, verwerkReeksEvent, type Reeks,
+  actiefOnderdeel, doelenVanKandidaten, reeksNavigatie, reeksPrompt, reeksSamenvatting, reeksUitBerichten, verwerkReeksEvent, type Reeks,
 } from "./reeks";
 import type { Bericht } from "./types";
 
@@ -141,5 +141,28 @@ describe("keuzekaart", () => {
     expect(doelenVanKandidaten(ks).map((d) => d.bron_iri)).toEqual([L1, L2]);
     expect(doelenVanKandidaten([{ bwbId: "B", artikel: "36" }])).toEqual([]);
     expect(reeksPrompt("Artikel 9", ks)).toBe("Annoteer Artikel 9: Lid 1 en Lid 2");
+  });
+});
+
+describe("reeksNavigatie", () => {
+  const r = speel([
+    START,
+    { type: "opgeslagen", annotatie_doel: { bron_iri: L1, label: "Lid 1" }, onderdeel: L1 },
+    { type: "error", message: "stuk", onderdeel: L2 },
+    { type: "opgeslagen", annotatie_doel: { bron_iri: L3, label: "Lid 3" }, onderdeel: L3 },
+  ])!;
+
+  it("bladert alleen langs leden met een annotatie", () => {
+    const nav = reeksNavigatie(r, L1)!;
+    expect(nav).toMatchObject({ index: 0, totaal: 2, ouder: "Invorderingswet 1990 – Artikel 9" });
+    expect(nav.vorige).toBeUndefined();
+    expect(nav.volgende?.bron_iri).toBe(L3);
+    expect(reeksNavigatie(r, L3)?.vorige?.bron_iri).toBe(L1);
+  });
+
+  it("geen balk voor iets buiten de reeks, of bij één lid", () => {
+    expect(reeksNavigatie(r, L2)).toBeNull();
+    expect(reeksNavigatie(r, "urn:ander")).toBeNull();
+    expect(reeksNavigatie(speel([START, { type: "opgeslagen", annotatie_doel: { bron_iri: L1 }, onderdeel: L1 }])!, L1)).toBeNull();
   });
 });

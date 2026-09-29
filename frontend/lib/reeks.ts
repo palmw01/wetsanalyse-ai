@@ -195,3 +195,27 @@ export function reeksPrompt(ouder: string, kandidaten: AgentKandidaat[]): string
   const opsomming = namen.length > 1 ? `${namen.slice(0, -1).join(", ")} en ${namen[namen.length - 1]}` : namen[0] ?? "";
   return `Annoteer ${ouder ? `${ouder}: ` : ""}${opsomming}`;
 }
+
+/** De leden van een reeks in het annotatiepaneel: welke staat er open, en waar ga je heen met
+ *  vorige/volgende. Alleen onderdelen met een vastgelegde annotatie tellen mee – een mislukt of
+ *  overgeslagen lid heeft niets om te openen. `null` als het paneel iets anders toont. */
+export interface ReeksNavigatie {
+  ouder: string;
+  index: number;
+  totaal: number;
+  vorige?: NodeDoel;
+  volgende?: NodeDoel;
+}
+
+export function reeksNavigatie(reeks: Reeks, bronIri: string): ReeksNavigatie | null {
+  const leden = reeks.onderdelen.flatMap((o) => (o.annotatie_doel ? [o.annotatie_doel] : []));
+  const index = leden.findIndex((d) => d.bron_iri === bronIri);
+  if (index < 0 || leden.length < 2) return null;
+  return {
+    ouder: reeks.ouder.label,
+    index,
+    totaal: leden.length,
+    ...(index > 0 ? { vorige: leden[index - 1] } : {}),
+    ...(index < leden.length - 1 ? { volgende: leden[index + 1] } : {}),
+  };
+}

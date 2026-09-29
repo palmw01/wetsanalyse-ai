@@ -49,6 +49,11 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
   zijn zoeken, lagen, een inspector met *Open brontekst* / *Vraag Lex hierover* en live bijwerken na
   een mutatie. Afstand en positie hebben geen juridische betekenis. Browsertest:
   `frontend/scripts/test-samenhang.mjs`.
+- **Annoteren per lid of subbepaling** (#550–#553): één artikel per vraag (meer artikelen = een
+  werkgebied, spoor D), een keuzekaart met de stand per lid, meerdere leden als één run met een
+  laag per lid (`agent/reeks.py`), een blok per lid in het gesprek en bladeren door de reeks in het
+  paneel → [`architectuur/annotatieketen.md`](architectuur/annotatieketen.md) (*Afbakening*,
+  *Keuze van de bronnode*, *Reeks*).
 - **Validatie-infrastructuur V1–V6**: referentieset v1, adjudicatieprotocol, blind formulier,
   fouttaxonomie v2, beslisregister, contractfouten en reviewload gesplitst, en een rapport per laag
   (#525–#530) → [`architectuur/onderzoek-empirische-validatie.md`](architectuur/onderzoek-empirische-validatie.md) §16.

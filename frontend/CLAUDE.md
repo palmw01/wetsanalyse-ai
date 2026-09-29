@@ -338,6 +338,12 @@ berichten: graph-qa bewaart per onderdeel een bericht met `reeks: {run_id, index
 `reeks.run_id` (de berichten zelf dragen `<run>.<n>`), en bij opnieuw aanhaken aan een lopende reeks
 gaat het gehydrateerde blok eerst weg – de eventlog speelt het geheel opnieuw af.
 
+*Open ›* in een reeksblok opent het paneel **op dat ene lid**, met bovenin een reeksbalk
+(`ReeksBalk` in `NodeAnnotatiePaneel`, `reeksNavigatie` in `lib/reeks.ts`): waar je bent ("2 van 3")
+en ‹ › of `[` `]` naar het buurlid. Bewust niet het hele artikel in één paneel: dan werken *Afronden*
+en *Verwijderen* op álle lagen in beeld, ook op leden die niet gekozen waren. Beoordelen blijft zo
+per lid, en alleen leden met een vastgelegde annotatie tellen mee in het bladeren.
+
 ### De artefact-werkbank
 
 Vanaf **1280px** (`lib/useBreedScherm.ts`) staat het artefact als **eigen kolom naast de chat** in

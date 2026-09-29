@@ -15,6 +15,7 @@ import {
 import {
   beslissingNaarNode, documentVanNode, nodeAnkersUitSelectie, nodeBronVan, tekstVanAnkers,
 } from "@/lib/annotatieNodeAdapter";
+import type { ReeksNavigatie } from "@/lib/reeks";
 import { samenhangBeschikbaar, type GraafKnoop } from "@/lib/samenhang";
 import type { Anker, BeslissingInvoer } from "@/lib/types";
 import { GraafIcoon } from "@/components/graaf/GraafIcoon";
@@ -32,12 +33,15 @@ export type PaneelTab = "tekst" | "graaf";
  *
  *  Met `onSluit` staat hij in dezelfde `Dialog`-schil als `ArtefactPaneel` (werkplek); zonder is
  *  het de kale inhoud voor een eigen pagina. */
-export function NodeAnnotatiePaneel({ doel, onSluit, variant = "side", onVraag, onVraagOverBron, beginTab = "tekst" }: {
+export function NodeAnnotatiePaneel({ doel, onSluit, variant = "side", onVraag, onVraagOverBron, beginTab = "tekst", reeks }: {
   doel: NodeDoel; onSluit?: () => void; variant?: DialogVariant;
   onVraag?: (element: NodeElement, view: NodeWeergave) => void;
   /** Een vraag over een bron- of randknoop uit de graaf; markeringen gaan via `onVraag`. */
   onVraagOverBron?: (knoop: GraafKnoop) => void;
   beginTab?: PaneelTab;
+  /** Dit lid hoort bij een reeks: bladeren naar het vorige of volgende lid. Beoordelen, afronden en
+   *  verwijderen blijven per lid – het paneel toont nooit meer lagen dan het ene lid. */
+  reeks?: ReeksNavigatie & { onGa: (doel: NodeDoel) => void };
 }) {
   const [view, setView] = useState<NodeWeergave>();
   const [samenhang, setSamenhang] = useState(false);
@@ -198,10 +202,26 @@ export function NodeAnnotatiePaneel({ doel, onSluit, variant = "side", onVraag, 
     </div>
   );
 
+  // `[` en `]` bladeren door de reeks, net als j/k door de reviewlijst – niet vanuit een invoerveld.
+  useEffect(() => {
+    if (!reeks) return;
+    const opToets = (e: KeyboardEvent) => {
+      const doelEl = e.target as HTMLElement | null;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (doelEl && (doelEl.tagName === "INPUT" || doelEl.tagName === "TEXTAREA" || doelEl.isContentEditable)) return;
+      const naar = e.key === "[" ? reeks.vorige : e.key === "]" ? reeks.volgende : undefined;
+      if (naar) { e.preventDefault(); reeks.onGa(naar); }
+    };
+    document.addEventListener("keydown", opToets);
+    return () => document.removeEventListener("keydown", opToets);
+  }, [reeks]);
+  const reeksBalk = reeks && <ReeksBalk reeks={reeks} label={view?.doel.label || doel.label || ""} />;
+
   const inhoud = !view || !nb || !doc ? (
-    <LaadStand fout={laadFout} onOpnieuw={() => void laad()} onSluit={onSluit} />
+    <>{reeksBalk}<LaadStand fout={laadFout} onOpnieuw={() => void laad()} onSluit={onSluit} /></>
   ) : (
     <>
+      {reeksBalk}
       <p className="sr-only" aria-live="polite">{melding}</p>
       {tabs}
       {toonTabs && graafGeopend && (
@@ -248,6 +268,24 @@ export function NodeAnnotatiePaneel({ doel, onSluit, variant = "side", onVraag, 
       } : undefined}>
       {inhoud}
     </Dialog>
+  );
+}
+
+/** Bovenin het paneel als het lid bij een reeks hoort: waar je bent, en ‹ › naar het buurlid. */
+function ReeksBalk({ reeks, label }: { reeks: ReeksNavigatie & { onGa: (doel: NodeDoel) => void }; label: string }) {
+  const knop = "focus-ring rounded-lg px-2 py-1 text-xs font-medium text-lint hover:bg-lint/5 disabled:cursor-default disabled:text-faint disabled:hover:bg-transparent";
+  return (
+    <nav aria-label="Reeks" className="flex shrink-0 items-center gap-2 border-b border-line bg-surface/60 px-4 py-1.5">
+      <button type="button" className={knop} disabled={!reeks.vorige} onClick={() => reeks.vorige && reeks.onGa(reeks.vorige)}
+        aria-label={reeks.vorige ? `Vorige: ${reeks.vorige.label || "vorig lid"}` : "Vorige"} title="Vorige ( [ )">‹</button>
+      <span className="min-w-0 flex-1 truncate text-center text-xs text-muted">
+        {reeks.ouder && <span>{reeks.ouder} · </span>}
+        <span className="text-ink">{label.replace(`${reeks.ouder}, `, "")}</span>
+        <span> · {reeks.index + 1} van {reeks.totaal}</span>
+      </span>
+      <button type="button" className={knop} disabled={!reeks.volgende} onClick={() => reeks.volgende && reeks.onGa(reeks.volgende)}
+        aria-label={reeks.volgende ? `Volgende: ${reeks.volgende.label || "volgend lid"}` : "Volgende"} title="Volgende ( ] )">›</button>
+    </nav>
   );
 }
 
