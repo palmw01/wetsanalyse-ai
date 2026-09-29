@@ -106,9 +106,12 @@ class Settings(BaseModel):
     # Taalanalyse voor de annotatieketen (ADR-002). Zonder geïnstalleerd model degradeert hij
     # zichtbaar naar alleen tokens; de parsedetectoren melden zich dan overgeslagen.
     taal_provider: str = "spacy:nl_core_news_md"
-    # Eén classificatiecall voor alle kandidaten (`universeel`) of één per klassefamilie
-    # (`familie`). Welke betrouwbaarder is, wordt gemeten (opdracht §15), niet aangenomen.
-    classifier_granulariteit: Literal["universeel", "familie", "klasseverzameling"] = "universeel"
+    # Eén classificatiecall voor alle kandidaten (`universeel`), één per klassefamilie (`familie`) of
+    # één per exacte toegestane klasseverzameling (`klasseverzameling`). Gemeten, niet aangenomen:
+    # baselineproef 29 sep 2026 (docs/architectuur/metingen/hybrid-v1-baseline-2026-09-29) koos volgens
+    # het vooraf vastgelegde criterium klasseverzameling: 0 contractfouten tegenover 15 (U0), stabiliteit
+    # ≥ universeel op 6/8 casussen, 1,45× de kosten per run.
+    classifier_granulariteit: Literal["universeel", "familie", "klasseverzameling"] = "klasseverzameling"
     # Leeg = providerdefault. Opus 4.7+/Sonnet 5 weigeren sampling-parameters (400); daarom geen
     # vaste waarde. De reproduceerbaarheid komt uit de beperkte keuze (enum op labels), niet uit
     # deze knop. Wat er gebruikt is, staat in de provenance van de beurt.

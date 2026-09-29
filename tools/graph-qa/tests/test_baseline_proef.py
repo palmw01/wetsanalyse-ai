@@ -33,3 +33,9 @@ def test_keuzecriterium():
     assert bp.beslis(duur, _stab())["granulariteit"] == "universeel"
     assert bp.beslis(tot, _stab(KC=0.5))["granulariteit"] == "universeel"
     assert bp.beslis(tot, _stab(UC=0.5))["context_vraagt_bevestiging"]
+
+
+def test_productiedefault_volgt_het_baselinecriterium():
+    from agent.config import Settings
+    s = Settings(checkpoint_db_path=None)
+    assert s.classifier_granulariteit == "klasseverzameling" and s.broncontext
