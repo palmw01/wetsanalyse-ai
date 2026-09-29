@@ -267,3 +267,29 @@ def test_regel_zonder_of_met_ongeldige_sterkte_wordt_geweigerd():
     for bewijs in (None, "heel sterk", "sterk"):
         with pytest.raises(ValueError):
             Regel.van("tijd", {**basis, **({"bewijs": bewijs} if bewijs else {})})
+
+
+def _kandidaat(klassen, codes):
+    from bronmodel import Span, tekst_hash
+    from agent.jas_pipeline.kandidaten import Candidate, Evidence
+    t = "de eerste veertien dagen"
+    return Candidate.maak(Span("urn:x", 0, len(t), t, tekst_hash(t)), klassen,
+                          [Evidence(detector="x", code=c) for c in codes])
+
+
+@pytest.mark.parametrize("klassen,codes,klasse", [
+    (["Tijdsaanduiding"], ["TEMPORAL_RELATIVE_PERIOD"], "Tijdsaanduiding"),
+    (["Tijdsaanduiding", "Rechtsobject"], ["TEMPORAL_RELATIVE_PERIOD", "OBJECT_NP"], "Tijdsaanduiding"),
+    # ander zwak bewijs blijft naar het model gaan (audit H7, IW01)
+    (["Tijdsaanduiding", "Rechtsfeit"], ["TEMPORAL_RELATIVE_PERIOD", "NOMINALIZED_ACTION"], None),
+    # sterke codes die verschillende klassen aanwijzen: geen regelbesluit
+    (["Tijdsaanduiding", "Operator"], ["TEMPORAL_DURATION", "COMPARISON", "OBJECT_NP"], None),
+    # alleen generiek: model
+    (["Rechtsobject", "Variabele en variabelewaarde"], ["OBJECT_NP"], None),
+])
+def test_sterk_bewijs_boven_generiek_signaal(klassen, codes, klasse):
+    from agent.jas_pipeline.besluit import deterministisch
+    b = deterministisch(_kandidaat(klassen, codes))
+    assert (b.klasse if b else None) == klasse
+    if b and len(klassen) > 1:
+        assert b.reden.startswith("STERK_BOVEN_GENERIEK:")

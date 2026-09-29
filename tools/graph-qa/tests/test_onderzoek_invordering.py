@@ -72,7 +72,8 @@ def test_verkeerde_offsets_en_onvolledige_klassenbeoordeling_falen(pakket, conce
     ("IW-9-1", "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.", "Rechtsbetrekking"),
     ("IW-9-5", "Indien de toepassing van de eerste volzin niet leidt tot meer dan één termijn", "Voorwaarde"),
     ("LI-9.1", "voorlopige aanslagen", "Rechtsobject"),
-    ("LI-9.5", "één maand", "Tijdsaanduiding"),
+    # 'één maand' is sinds audit D05 een regelbesluit; deze route test het model- en reviewpad.
+    ("LI-9.5", "de kalendermaand", "Tijdsaanduiding"),
 ])
 @pytest.mark.parametrize("review", [False, True])
 def test_beschikbare_kandidaat_blijft_intact_tot_uitvoer(pakket, detecties, cid, fragment, klasse, review):

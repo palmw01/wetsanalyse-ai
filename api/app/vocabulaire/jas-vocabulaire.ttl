@@ -112,7 +112,7 @@
     jas:codeWaarde "model" .
 
 <urn:jas-ns:besluit:regel> a jas:Besluitwijze ;
-    skos:definition "Besloten zonder model: één klasse mogelijk en sterk bewijs."@nl ;
+    skos:definition "Besloten zonder model: sterk bewijs voor één klasse; hooguit een algemeen naamwoordgroepsignaal wees ook andere klassen aan, die als alternatief zichtbaar blijven."@nl ;
     skos:prefLabel "vaste regel"@nl ;
     jas:codeWaarde "regel" .
 
@@ -898,5 +898,5 @@
     dcterms:source "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md" ;
     skos:prefLabel "Juridisch Analyseschema"@nl ;
     jas:jasVersie "1.0.10" ;
-    jas:vocabulaireVersie "6cee729368a3" .
+    jas:vocabulaireVersie "adb6b121505b" .
 

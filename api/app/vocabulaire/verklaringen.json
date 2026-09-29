@@ -6,7 +6,7 @@
     },
     "regel": {
       "naam": "vaste regel",
-      "uitleg": "Besloten zonder model: één klasse mogelijk en sterk bewijs."
+      "uitleg": "Besloten zonder model: sterk bewijs voor één klasse; hooguit een algemeen naamwoordgroepsignaal wees ook andere klassen aan, die als alternatief zichtbaar blijven."
     },
     "specificiteit": {
       "naam": "voorrangsregel",
@@ -773,5 +773,5 @@
       "uitleg": "Waarschuwing: hetzelfde fragment kreeg twee klassen."
     }
   },
-  "vocabulaire_versie": "6cee729368a3"
+  "vocabulaire_versie": "adb6b121505b"
 }

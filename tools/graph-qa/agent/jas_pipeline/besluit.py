@@ -16,7 +16,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from .bewijssterkte import klasse_van_bewijs
+from .bewijssterkte import generiek_bewijs, klasse_van_bewijs
 from .kandidaten import GEEN_ANNOTATIE, Candidate, CandidateStatus
 
 # De reden van een modelafwijzing; ook de herbeoordeling van centrale normen herkent haar hieraan.
@@ -24,6 +24,8 @@ GEEN_ANNOTATIE_REDEN = "geen annotatie"
 
 # Bewijscodes die op zichzelf één klasse dragen: afgeleid uit de regeldefinities (bewijssterkte.py).
 STERK_BEWIJS = frozenset(klasse_van_bewijs())
+KLASSE_VAN_STERK = klasse_van_bewijs()
+STERK_BOVEN_GENERIEK = "STERK_BOVEN_GENERIEK"
 # Bewijs dat niets over de klasse zegt maar over wat er al mee gebeurde.
 _ADMINISTRATIEF = frozenset({"PRIORITY_APPLIED"})
 
@@ -52,6 +54,16 @@ def deterministisch(k: Candidate) -> Beslissing | None:
     if len(k.possible_classes) == 1 and codes and codes <= STERK_BEWIJS:
         return Beslissing(kandidaat_id=k.id, label=k.label, status=CandidateStatus.ACCEPTED,
                           klasse=k.possible_classes[0], door="regel", reden=",".join(sorted(codes)))
+    # Audit D05: een generiek grammaticaal signaal (onderwerp, object, opsomming) mag sterk
+    # patroonbewijs niet blokkeren. Alle sterke codes wijzen één klasse aan en er is geen ander
+    # zwak bewijs; de overige klassen blijven als alternatief in het voorstel zichtbaar.
+    sterk = codes & STERK_BEWIJS
+    klassen = {KLASSE_VAN_STERK[c] for c in sterk}
+    if (sterk and len(klassen) == 1 and (klasse := klassen.pop()) in k.possible_classes
+            and codes - sterk and codes - sterk <= generiek_bewijs()):
+        return Beslissing(kandidaat_id=k.id, label=k.label, status=CandidateStatus.ACCEPTED, klasse=klasse,
+                          door="regel", reden=f"{STERK_BOVEN_GENERIEK}:{','.join(sorted(sterk))}"
+                          f"|{','.join(sorted(codes - sterk))}")
     return None
 
 

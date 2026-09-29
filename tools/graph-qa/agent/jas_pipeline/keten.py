@@ -96,7 +96,7 @@ def _voorstel(k: Candidate, b: Beslissing, kaart: CorpusMap, corpus: str, lid: s
     c_start, c_eind = kaart.naar_corpus(span)
     anker = _maak_anker(corpus, c_start, c_eind, lid)
     alternatieven = [AnnotatieAlternatief(klasse=c, motivatie="ook mogelijk volgens de detectie")
-                     for c in k.possible_classes if c != b.klasse] if b.door == "model" else []
+                     for c in k.possible_classes if c != b.klasse] if (b.door == "model" or len(k.possible_classes) > 1) else []
     return AnnotatieVoorstel(
         # Deterministisch: dezelfde span met dezelfde klasse krijgt in elke run hetzelfde id, dus de
         # api herkent het element bij een volgende ronde en de stabiliteitsmeting kan vergelijken.

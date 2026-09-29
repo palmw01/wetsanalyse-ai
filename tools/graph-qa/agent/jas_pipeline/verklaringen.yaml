@@ -61,7 +61,7 @@ detectie:
   PRIORITY_APPLIED: {naam: "Voorrangsregel toegepast", uitleg: "Een specifiekere klasse ging voor op een algemenere, volgens de JAS-voorrangsregels."}
 
 besluit:
-  regel: {naam: "vaste regel", uitleg: "Besloten zonder model: één klasse mogelijk en sterk bewijs."}
+  regel: {naam: "vaste regel", uitleg: "Besloten zonder model: sterk bewijs voor één klasse; hooguit een algemeen naamwoordgroepsignaal wees ook andere klassen aan, die als alternatief zichtbaar blijven."}
   specificiteit: {naam: "voorrangsregel", uitleg: "Besloten door een JAS-voorrangsregel over overlappende fragmenten."}
   model: {naam: "model", uitleg: "Het model koos uit de klassen die het patroon toeliet."}
 
