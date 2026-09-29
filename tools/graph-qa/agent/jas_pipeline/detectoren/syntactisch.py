@@ -156,6 +156,8 @@ class NaamwoordgroepDetector:
         "jas.subject.voornaamwoord", "jas.subject.rollexicon", "jas.subject.np_bij_normatief_predicaat",
         "jas.subject.np", "jas.object.opsommingsonderdeel", "jas.object.np_bij_normatief_predicaat", "jas.object.np")
     naam = "naamwoordgroep"
+    # Grammaticale rol zonder juridische functie: blokkeert sterk patroonbewijs niet (audit D05).
+    BEWIJS = {"SUBJECT_NP": ("generiek", ""), "OBJECT_NP": ("generiek", ""), "ENUMERATED_NP": ("generiek", "")}
     versie = f"2+verwijzing.{VERWIJZING_VERSIE}"  # D01: normcontext getoetst, niet verondersteld
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:

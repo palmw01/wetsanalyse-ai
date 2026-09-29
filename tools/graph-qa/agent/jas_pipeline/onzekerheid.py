@@ -16,18 +16,12 @@ from __future__ import annotations
 from pydantic import BaseModel, ConfigDict
 
 from .besluit import GEEN_ANNOTATIE_REDEN, STERK_BEWIJS, Beslissing
+from .bewijssterkte import klasse_van_bewijs
 from .kandidaten import Candidate, CandidateStatus
 from .validatie import Bevinding
 
-# Welke klasse een sterk bewijsstuk aanwijst (profielen: de hoog-deterministische regels).
-KLASSE_VAN_BEWIJS = {
-    "TEMPORAL_DATE": "Tijdsaanduiding", "TEMPORAL_DURATION": "Tijdsaanduiding",
-    "TEMPORAL_RELATIVE_PERIOD": "Tijdsaanduiding", "TEMPORAL_PERIOD_OF": "Tijdsaanduiding",
-    "TEMPORAL_MOMENT": "Tijdsaanduiding", "DEFINITION_ITEM": "Brondefinitie",
-    "DEFINITION_SENTENCE": "Brondefinitie", "DELEGATION_FORMULA": "Delegatiebevoegdheid en delegatie-invulling",
-    "COMPARISON": "Operator", "ARITHMETIC": "Operator", "LOCATION_NAME": "Plaatsaanduiding",
-    "LOCATION_DESCRIPTION": "Plaatsaanduiding",
-}
+# Welke klasse een sterk bewijsstuk aanwijst: afgeleid uit de regeldefinities (bewijssterkte.py).
+KLASSE_VAN_BEWIJS = klasse_van_bewijs()
 assert set(KLASSE_VAN_BEWIJS) == set(STERK_BEWIJS), "elk sterk bewijs wijst één klasse aan"
 
 REVIEWBAAR = ("DETECTOR_CONFLICT", "CLASSIFIER_ABSTAIN", "ZELFDE_SPAN", "CENTRALE_NORM_AFGEWEZEN")

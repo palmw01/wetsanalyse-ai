@@ -1,0 +1,184 @@
+{
+ "werkpakket": "WP4a",
+ "git_sha": "740c4c0d6161ff7de5ab347c308413c56a792e66",
+ "hashes_sha256": "2287ea799b3a1cd94263fa04a58d40ea7897d2b7b998cc23a37faac24bae2bc2",
+ "ontwikkelset": {
+  "voor": {
+   "kandidaten": 260,
+   "referenties": 81,
+   "ankers_core": 72,
+   "ankers_opties": 74,
+   "ankers_met_klasse": 72,
+   "gemiddeld_klassen": 2.0961538461538463,
+   "deterministisch": 19,
+   "specificiteit_afgewezen": 0,
+   "classifier_kandidaten": 241,
+   "zonder_hypothese": 0,
+   "classifier_batches_universeel": 16
+  },
+  "na": {
+   "kandidaten": 260,
+   "referenties": 81,
+   "ankers_core": 72,
+   "ankers_opties": 74,
+   "ankers_met_klasse": 72,
+   "gemiddeld_klassen": 2.0961538461538463,
+   "deterministisch": 19,
+   "specificiteit_afgewezen": 0,
+   "classifier_kandidaten": 241,
+   "zonder_hypothese": 0,
+   "classifier_batches_universeel": 16
+  },
+  "verloren_devankers": [],
+  "classifier_input_gewijzigd": [
+   "IW-D2",
+   "LI-D3"
+  ],
+  "parse_gewijzigd": [],
+  "gewijzigde_kandidaten": {
+   "IW-D2": [
+    {
+     "id": "K913ca384f54e",
+     "voor": {
+      "id": "K913ca384f54e",
+      "bron": "IW-D2",
+      "start": 544,
+      "eind": 567,
+      "tekst": "telkens een maand later",
+      "possible_classes": [
+       "Tijdsaanduiding"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_RECURRENCE",
+        "regel": "jas.tijd.herhaling",
+        "relatie": "",
+        "detail": "telkens een maand later"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K913ca384f54e",
+      "bron": "IW-D2",
+      "start": 544,
+      "eind": 567,
+      "tekst": "telkens een maand later",
+      "possible_classes": [
+       "Tijdsaanduiding"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_RECURRENCE",
+        "regel": "jas.tijd.herhaling",
+        "relatie": "",
+        "detail": "telkens een maand later"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "regel"
+     }
+    }
+   ],
+   "LI-D3": [
+    {
+     "id": "K844215ee2930",
+     "voor": {
+      "id": "K844215ee2930",
+      "bron": "LI-D3",
+      "start": 680,
+      "eind": 695,
+      "tekst": "een maand later",
+      "possible_classes": [
+       "Tijdsaanduiding"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_RECURRENCE",
+        "regel": "jas.tijd.herhaling",
+        "relatie": "",
+        "detail": "een maand later"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K844215ee2930",
+      "bron": "LI-D3",
+      "start": 680,
+      "eind": 695,
+      "tekst": "een maand later",
+      "possible_classes": [
+       "Tijdsaanduiding"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_RECURRENCE",
+        "regel": "jas.tijd.herhaling",
+        "relatie": "",
+        "detail": "een maand later"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "regel"
+     }
+    }
+   ]
+  }
+ },
+ "onderzoek": {
+  "IW-9-1": {
+   "tellingen": {
+    "raw": 7,
+    "fusie": 5,
+    "model": 5,
+    "routes": {
+     "model": 5
+    }
+   }
+  },
+  "IW-9-5": {
+   "tellingen": {
+    "raw": 42,
+    "fusie": 40,
+    "model": 36,
+    "routes": {
+     "model": 36,
+     "regel": 4
+    }
+   }
+  },
+  "LI-9.1": {
+   "tellingen": {
+    "raw": 22,
+    "fusie": 21,
+    "model": 17,
+    "routes": {
+     "model": 17,
+     "regel": 4
+    }
+   }
+  },
+  "LI-9.5": {
+   "tellingen": {
+    "raw": 70,
+    "fusie": 59,
+    "model": 45,
+    "routes": {
+     "model": 45,
+     "regel": 14
+    }
+   }
+  }
+ }
+}

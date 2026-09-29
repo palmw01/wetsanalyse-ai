@@ -16,17 +16,14 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from .bewijssterkte import klasse_van_bewijs
 from .kandidaten import GEEN_ANNOTATIE, Candidate, CandidateStatus
 
 # De reden van een modelafwijzing; ook de herbeoordeling van centrale normen herkent haar hieraan.
 GEEN_ANNOTATIE_REDEN = "geen annotatie"
 
-# Bewijscodes die op zichzelf een klasse dragen (profielen: deterministic_detection_possible = hoog).
-STERK_BEWIJS = frozenset({
-    "TEMPORAL_DATE", "TEMPORAL_DURATION", "TEMPORAL_RELATIVE_PERIOD", "TEMPORAL_PERIOD_OF",
-    "TEMPORAL_MOMENT", "DEFINITION_ITEM", "DEFINITION_SENTENCE", "DELEGATION_FORMULA",
-    "COMPARISON", "ARITHMETIC", "LOCATION_NAME", "LOCATION_DESCRIPTION",
-})
+# Bewijscodes die op zichzelf één klasse dragen: afgeleid uit de regeldefinities (bewijssterkte.py).
+STERK_BEWIJS = frozenset(klasse_van_bewijs())
 # Bewijs dat niets over de klasse zegt maar over wat er al mee gebeurde.
 _ADMINISTRATIEF = frozenset({"PRIORITY_APPLIED"})
 

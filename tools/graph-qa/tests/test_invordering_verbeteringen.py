@@ -237,3 +237,33 @@ def test_generieke_np_toetst_normcontext(parser):
     met = detect("De vereniging moet het besluit bekendmaken.", parser).kandidaten
     assert any(e.regel == "jas.subject.np_bij_normatief_predicaat" and "Rechtssubject" in k.possible_classes
                for k in met for e in k.evidence)
+
+
+# --- WP4 baseline: D06/D05 bewijssterkte -------------------------------------------------------
+
+def test_sterk_bewijs_afgeleid_uit_regeldefinities():
+    from agent.jas_pipeline.besluit import STERK_BEWIJS
+    from agent.jas_pipeline.onzekerheid import KLASSE_VAN_BEWIJS
+    oud = {"TEMPORAL_DATE", "TEMPORAL_DURATION", "TEMPORAL_RELATIVE_PERIOD", "TEMPORAL_PERIOD_OF",
+           "TEMPORAL_MOMENT", "DEFINITION_ITEM", "DEFINITION_SENTENCE", "DELEGATION_FORMULA",
+           "COMPARISON", "ARITHMETIC", "LOCATION_NAME", "LOCATION_DESCRIPTION"}
+    # Bewuste baselinekeuze: benoemde maand en herhaalde termijn dragen op zichzelf Tijdsaanduiding.
+    assert STERK_BEWIJS == oud | {"TEMPORAL_MONTH", "TEMPORAL_RECURRENCE"}
+    assert set(KLASSE_VAN_BEWIJS) == STERK_BEWIJS
+    assert not STERK_BEWIJS & {"TEMPORAL_KERNEL", "TEMPORAL_DESCRIPTION", "CALCULATION_ASSIGNMENT"}
+
+
+def test_geen_sterk_bewijs_voor_klasse_met_laag_determinisme():
+    from agent.jas_pipeline.onzekerheid import KLASSE_VAN_BEWIJS
+    from agent.jas_pipeline.profielen import laad
+    laag = {k for k, p in laad().items() if p.deterministic_detection_possible == "laag"}
+    assert not {c: k for c, k in KLASSE_VAN_BEWIJS.items() if k in laag}
+
+
+def test_regel_zonder_of_met_ongeldige_sterkte_wordt_geweigerd():
+    from agent.jas_pipeline.detectoren.regels import Regel
+    basis = {"id": "jas.x", "klassen": ["Tijdsaanduiding", "Rechtsobject"], "code": "X", "bron": "H2:1",
+             "versie": 1, "patroon": "x"}
+    for bewijs in (None, "heel sterk", "sterk"):
+        with pytest.raises(ValueError):
+            Regel.van("tijd", {**basis, **({"bewijs": bewijs} if bewijs else {})})

@@ -3,6 +3,7 @@
 - id: jas.afleiding.bedraagt
   klassen: [Afleidingsregel, Parameter en parameterwaarde]
   code: CALCULATION_COPULA
+  bewijs: zwak
   bron: "H2:73"
   versie: 2
   bereik: segment
@@ -16,6 +17,7 @@
 - id: jas.afleiding.wordt_gesteld_op
   klassen: [Afleidingsregel]
   code: CALCULATION_PASSIVE
+  bewijs: zwak
   bron: "H2:73"
   versie: 2
   bereik: segment
@@ -30,6 +32,7 @@
 - id: jas.afleiding.fictie_vermoeden
   klassen: [Afleidingsregel]
   code: LEGAL_FICTION
+  bewijs: zwak
   bron: "H2:71"
   versie: 2
   bereik: segment

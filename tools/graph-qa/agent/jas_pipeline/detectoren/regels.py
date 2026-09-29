@@ -36,6 +36,9 @@ from ..taal.grenzen import analyseer_grenzen, VERSIE as GRENS_VERSIE
 from . import BronTekst, resultaat
 
 MAP = Path(__file__).parent / "regels"
+# Wat één treffer over de klasse zegt (audit D06): `sterk` draagt op zichzelf één klasse,
+# `zwak` vraagt het model, `generiek` is een grammaticaal signaal dat sterk bewijs niet blokkeert.
+BEWIJSSTERKTE = ("sterk", "zwak", "generiek")
 _MACRO = re.compile(r"\{([A-Z_]+)\}")
 _RAND = " \t\n,:"      # een zinseinde (. en ;) hoort bij de span als het patroon het meeneemt
 
@@ -73,6 +76,7 @@ class Regel:
     tests: dict[str, list[dict[str, Any]]] = field(default_factory=dict, compare=False)
     bereik: str = "bron"
     controle: str = ""
+    bewijs: str = "zwak"
 
     @classmethod
     def van(cls, detector: str, d: dict[str, Any]) -> Regel:
@@ -83,6 +87,10 @@ class Regel:
             raise ValueError(f"{d.get('id')}: id moet met 'jas.' beginnen")
         if d.get("bereik", "bron") not in {"bron", "segment"} or d.get("controle", "") not in {"", "kalenderdatum"}:
             raise ValueError(f"{d.get('id')}: onbekend bereik of controle")
+        if d.get("bewijs") not in BEWIJSSTERKTE:
+            raise ValueError(f"{d.get('id')}: bewijs moet een van {BEWIJSSTERKTE} zijn")
+        if d["bewijs"] == "sterk" and len(d["klassen"]) != 1:
+            raise ValueError(f"{d.get('id')}: sterk bewijs wijst precies één klasse aan")
         vlag = re.IGNORECASE if d.get("hoofdletterongevoelig", True) else 0
 
         def comp(p: str | None, suffix: str = "") -> re.Pattern | None:
@@ -90,7 +98,7 @@ class Regel:
         return cls(d["id"], detector, tuple(d["klassen"]), d["code"], d["bron"], int(d["versie"]),
                    comp(d["patroon"]), comp(d.get("links"), "$"), comp(d.get("rechts")),
                    tuple(d.get("niet_binnen", ["verwijzing"])), d.get("tests", {}),
-                   d.get("bereik", "bron"), d.get("controle", ""))
+                   d.get("bereik", "bron"), d.get("controle", ""), d["bewijs"])
 
     def vind(self, tekst: str) -> list[list[tuple[int, int]]]:
         """Per treffer de mogelijke grenzen: kern, links+kern, kern+rechts, links+kern+rechts."""
