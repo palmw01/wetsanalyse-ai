@@ -112,6 +112,22 @@ async def test_bronnode_annotatie_en_toolspoor_overleven_het_heropenen(client):
     assert berichten[1]["annotatie_doel"] is None and berichten[1]["tool_executions"] == []
 
 
+async def test_reeksplek_overleeft_het_heropenen(client):
+    """De leden van één reeks zijn losse berichten met een eigen run_id; `reeks` brengt ze samen."""
+    gid = await _maak(client)
+    for index in range(2):
+        r = await client.post(f"{BASIS}/{gid}/berichten", json={
+            "rol": "assistant", "run_id": f"run-1.{index + 1}",
+            "reeks": {"run_id": "run-1", "index": index, "totaal": 2, "ouder": "Artikel 9"},
+        }, headers=A)
+        assert r.status_code in (200, 201), r.text
+    berichten = (await client.get(f"{BASIS}/{gid}", headers=A)).json()["berichten"]
+    assert [(b["run_id"], b["reeks"]["index"]) for b in berichten] == [("run-1.1", 0), ("run-1.2", 1)]
+    fout = await client.post(f"{BASIS}/{gid}/berichten", json={
+        "rol": "assistant", "reeks": {"run_id": "run-1", "index": 0, "totaal": 1}}, headers=A)
+    assert fout.status_code == 422
+
+
 async def test_toolspoor_is_begrensd(client):
     gid = await _maak(client)
     r = await client.post(f"{BASIS}/{gid}/berichten", json={

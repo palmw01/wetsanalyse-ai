@@ -137,8 +137,12 @@ async def voer_beurt_uit(
     gesprek_id: str,
     user_id: str,
     meter: Verbruiksmeter | None = None,
+    reeks: dict[str, Any] | None = None,
 ) -> AsyncIterator[dict[str, Any]]:
     """Draai één beurt: stuur de events door, en leg aan het eind de uitkomst vast.
+
+    `reeks` markeert een beurt als onderdeel van een reeks (`agent/reeks.py`): het bericht draagt
+    dan `{run_id, index, totaal}`, zodat de werkplek de berichten van één reeks samen toont.
 
     `run` is het run-object uit het register; we lezen er het stopverzoek en het `run_id` uit.
 
@@ -171,7 +175,7 @@ async def voer_beurt_uit(
 
     mag_vastleggen = settings.legt_zelf_vast and bool(gesprek_id) and bool(user_id)
     if mag_vastleggen:
-        async for na in _leg_vast(schrijver, settings=settings, run=run,
+        async for na in _leg_vast(schrijver, settings=settings, run=run, reeks=reeks,
                                   gesprek_id=gesprek_id, gestopt=gestopt, user_id=user_id):
             yield na
     elif schrijver.is_annotatie:
@@ -232,12 +236,14 @@ async def _leg_vast(
     gesprek_id: str,
     gestopt: bool,
     user_id: str,
+    reeks: dict[str, Any] | None = None,
 ) -> AsyncIterator[dict[str, Any]]:
     """Schrijf de markeringen naar de gedeelde laag en het chatbericht weg; meld de uitkomst."""
     api = WetsanalyseApi(settings, user_id)
     try:
         bericht: dict[str, Any] = {"rol": "assistant", "run_id": run.run_id,
-                                 "tool_executions": schrijver.tool_executions}
+                                 "tool_executions": schrijver.tool_executions,
+                                 **({"reeks": reeks} if reeks else {})}
         slug = ""
         annotatie_bewaard = False
         opgeslagen_doel = None

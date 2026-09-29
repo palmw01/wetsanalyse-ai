@@ -147,3 +147,16 @@ def test_beleidsregel_zonder_die_subbepaling_biedt_de_bestaande():
     with pytest.raises(BronKeuze) as fout:
         bouw_snapshot(_leidraad(), bwb_id=BWB, artikel="9", lid="5")
     assert [o["nummer"] for o in fout.value.opties] == ["9.1", "9.2"]
+
+
+def test_reeks_moet_onder_een_bepaling_hangen():
+    from bronmodel import gedeelde_bepaling
+    nodes = snapshot(artikel="9")["nodes"]
+    leden = [ROOT + ":id:lid-een", ROOT + ":artikel:9:lid:2"]
+    assert gedeelde_bepaling(nodes, leden)["bron_iri"] == ROOT + ":artikel:9"
+    for fout in ([leden[0], leden[0]],                     # dubbel
+                 [leden[0], ROOT + ":bestaat:niet"],        # onbekend
+                 [leden[0], ROOT + ":id:a"],                # lid en onderdeel: andere ouder
+                 [ROOT + ":id:a", ROOT + ":id:aa"]):        # onderdelen zijn niet kiesbaar
+        with pytest.raises(BronFout):
+            gedeelde_bepaling(nodes, fout)

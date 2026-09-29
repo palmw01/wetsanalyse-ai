@@ -7,7 +7,7 @@ import threading
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 
 class BestaandElement(BaseModel):
@@ -74,6 +74,9 @@ class ChatRequest(BaseModel):
     # Een al geannoteerd artikel wordt hergebruikt (`auto`), tenzij de jurist expliciet om een nieuwe
     # ronde vraagt (`opnieuw`). Die voegt toe aan de gedeelde laag; wat beoordeeld is blijft staan.
     hergebruik: Literal["auto", "opnieuw"] = "auto"
+    # Meerdere onderdelen van één artikel, gekozen op de keuzekaart: één run die ze na elkaar
+    # annoteert, elk met een eigen laag, batch en review (`agent/reeks.py`). Sluit `doel` uit.
+    doelen: list[AgentDoel] | None = Field(default=None, min_length=2, max_length=60)
 
     @model_validator(mode="after")
     def _advies_heeft_een_onderwerp(self) -> "ChatRequest":
@@ -96,6 +99,22 @@ class ChatRequest(BaseModel):
                 "modus 'advies' vraagt een context met minimaal een fragment, bwbId of bron_iri; "
                 "zonder onderwerp is er niets om over te adviseren"
             )
+        return self
+
+    @model_validator(mode="after")
+    def _reeks_is_een_keuze(self) -> "ChatRequest":
+        """Een reeks bestaat uit opties van de keuzekaart: elk met een `bron_iri`, gewoon annoteren.
+
+        Of ze onder één artikel hangen weet dit model niet – dat toetst de reeks tegen de brongraaf
+        (`bronmodel.gedeelde_bepaling`) voordat er iets draait."""
+        if self.doelen is None:
+            return self
+        if self.doel is not None:
+            raise ValueError("geef 'doel' of 'doelen', niet allebei")
+        if self.modus != "auto":
+            raise ValueError("een reeks is een annotatieopdracht; 'modus' moet 'auto' zijn")
+        if any(not d.bron_iri.strip() for d in self.doelen):
+            raise ValueError("elk onderdeel van een reeks heeft een bron_iri")
         return self
 
 

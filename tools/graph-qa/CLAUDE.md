@@ -602,6 +602,16 @@ per optie `bron_iri`, `nummer`, `soort`, `label`, `fragment`, optioneel `stand` 
 stopt – geen modelcall. De gekozen optie komt terug als doel met `bron_iri`. `AgentDoel.geheel`
 slaat de keuze over; alleen voor metingen (`eval/run_eval.py`).
 
+**Meerdere leden van één artikel zijn één run: een reeks** (`agent/reeks.py`). De werkplek stuurt
+`doelen` (2–60, elk met `bron_iri`, sluit `doel` uit) naar `POST /v1/runs` of `/v1/chat`. Vooraf
+toetst `bronmodel.gedeelde_bepaling` tegen de graaf dat alle doelen kiesbare onderdelen van dezelfde
+bepaling zijn; anders een weigering zonder onderdelen. Daarna per doel de gewone beurt, na elkaar:
+eigen `run_id` `<run>.<n>` (de api ontdubbelt batch, bericht en verbruik daarop), eigen bericht met
+`reeks: {run_id, index, totaal, ouder}`. De stroom krijgt `reeks` (start/eind) en `onderdeel`
+(start/eind) om zich heen en elk event daartussen `onderdeel: <bron_iri>`; er is één `done`.
+Vóór elk volgend onderdeel: stopverzoek en budget (fail-open); een lopend onderdeel maakt af, een
+fout in één onderdeel stopt de rest niet.
+
 **Dezelfde markering komt maar één keer terug.** Een fragment is niet zijn id maar zijn inhoud:
 `sleutel_van(tekst, lid)` – genormaliseerde tekst + lid, **zonder klasse**. Dat is dezelfde regel als
 de api-merge (`routers/annotatie.py:_sleutel`) en `mergeVoorstellen` in de werkplek – drie

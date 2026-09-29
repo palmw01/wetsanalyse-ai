@@ -31,6 +31,17 @@ class AnnotatieDoel(BaseModel):
     snapshot_id: str = ""
 
 
+class ReeksPlek(BaseModel):
+    """Waar dit bericht staat in een reeks: meerdere leden van één artikel, geannoteerd in één run
+    (graph-qa `agent/reeks.py`). Elk lid krijgt een eigen bericht met een eigen `run_id`
+    (`<run>.<n>`); dit veld laat de werkplek ze na herladen weer als één reeks tonen."""
+
+    run_id: str = Field(min_length=1, max_length=128)
+    index: int = Field(ge=0, le=59)
+    totaal: int = Field(ge=2, le=60)
+    ouder: str = Field(default="", max_length=300)
+
+
 class Bericht(BaseModel):
     """Eén beurt in het gesprek. Assistent-berichten dragen optioneel `denk`/`bronnen`, of een
     verwijzing naar een annotatie-document (`annotatie_slug`) of bronnode (`annotatie_doel`).
@@ -60,6 +71,7 @@ class Bericht(BaseModel):
     # Van welke agent-run deze beurt de uitkomst is. Dient als idempotentiesleutel: dezelfde run mag
     # maar één assistent-bericht opleveren, ook als er twee tabbladen meekeken.
     run_id: str = ""
+    reeks: ReeksPlek | None = None
     created: datetime | None = None
 
 
@@ -97,6 +109,7 @@ class BerichtInvoer(BaseModel):
     # Een beurt levert er hooguit enkele tientallen; de grens is een vangnet, geen verwachting.
     tool_executions: list[dict] = Field(default_factory=list, max_length=200)
     run_id: str = ""
+    reeks: ReeksPlek | None = None
 
 
 class GesprekSamenvatting(BaseModel):
