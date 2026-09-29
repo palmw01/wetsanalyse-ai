@@ -1,0 +1,777 @@
+{
+  "IW-9-1": {
+    "status": "concept_niet_geadjudiceerd",
+    "werkwijze": "Methodische conceptanalyse door agent; geen onafhankelijke blinde deskundigenbeoordeling. Alternatieven zijn geen verplichte extra annotaties.",
+    "klassenbeoordeling": {
+      "Rechtssubject": "Niet letterlijk aanwezig; ontvanger en belastingschuldige alleen uit graafcontext afleiden.",
+      "Rechtsobject": "Beoordeel het object van de centrale norm, niet iedere zelfstandige naamwoordgroep.",
+      "Rechtsbetrekking": "Centrale invorderbaarheids- of termijnnorm expliciteren; type rechtsbetrekking vraagt context.",
+      "Rechtsfeit": "Tijdsverloop met rechtsgevolg onderzoeken; dagtekening is niet automatisch een rechtshandeling.",
+      "Voorwaarde": "Temporele toepasselijkheid aanwezig; niet automatisch een extra Voorwaarde op dezelfde termijn.",
+      "Afleidingsregel": "De berekening dagtekening + zes weken is een analytische reconstructie, geen letterlijk uitgeschreven rekenregel.",
+      "Variabele en variabelewaarde": "Datum/aantal kunnen analytische invoergegevens zijn; geen dubbel label bij dezelfde temporele functie.",
+      "Parameter en parameterwaarde": "Geen extra parameter uitsluitend omdat een termijn een vaste duur heeft (JAS-PRIORITY-001).",
+      "Operator": "Na legt een temporele relatie; geen zelfstandig operatorlabel zonder ander vergelijkingsbereik.",
+      "Tijdsaanduiding": "Duur/startpunt/vervalmoment met de dragende context.",
+      "Plaatsaanduiding": "Geen plaatsbepaling in eigen tekst.",
+      "Delegatiebevoegdheid en delegatie-invulling": "Geen delegatieformule; een verwijzing naar de wet is geen delegatie.",
+      "Brondefinitie": "Geen expliciete begripsdefinitie in eigen tekst; eventuele definities staan in contextnodes."
+    },
+    "interpretatie": "De norm bepaalt wanneer een aanslag invorderbaar is. IW 8 lid 5 onderscheidt verschuldigdheid; IW 3 lid 1 en 2 lid 1 k dragen de abstracte partijen. Een rolverbinding is geen extra anker in dit lid.",
+    "reviewvragen": [
+      "Draagt de volledige zin primair een rechtsbetrekking of de temporele eigenschap ervan?",
+      "Rechtvaardigt hetzelfde tijdfragment een zelfstandig rechtsfeit, of legt het dossier dat als relatie vast?",
+      "Heeft het aanslagbiljet naast zijn functie als datumdrager een zelfstandige juridische objectfunctie?"
+    ],
+    "elementen": [
+      {
+        "id": "E01",
+        "start": 0,
+        "eind": 87,
+        "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+        "mogelijke_klassen": [
+          "Rechtsbetrekking",
+          "Rechtsfeit"
+        ],
+        "status": "voorstel",
+        "functie": "Dragende norm: invorderbaarheid vanaf een tijdstip; RB is werkhypothese, RF vraagt motivering."
+      },
+      {
+        "id": "E02",
+        "start": 0,
+        "eind": 20,
+        "tekst": "Een belastingaanslag",
+        "mogelijke_klassen": [
+          "Rechtsobject"
+        ],
+        "status": "voorstel",
+        "functie": "Voorwerp waarop de invorderbaarheid ziet."
+      },
+      {
+        "id": "E03",
+        "start": 37,
+        "eind": 86,
+        "tekst": "zes weken na de dagtekening van het aanslagbiljet",
+        "mogelijke_klassen": [
+          "Tijdsaanduiding"
+        ],
+        "status": "voorstel",
+        "functie": "Duur met startpunt; geen ontvangsttermijn."
+      },
+      {
+        "id": "E04",
+        "start": 37,
+        "eind": 46,
+        "tekst": "zes weken",
+        "mogelijke_klassen": [
+          "Tijdsaanduiding"
+        ],
+        "status": "samenhang",
+        "functie": "Temporele kern van E03; geen verplichte tweede annotatie."
+      },
+      {
+        "id": "E05",
+        "start": 50,
+        "eind": 86,
+        "tekst": "de dagtekening van het aanslagbiljet",
+        "mogelijke_klassen": [
+          "Tijdsaanduiding",
+          "Variabele en variabelewaarde"
+        ],
+        "status": "open",
+        "functie": "Startdatum: context bij termijn. Variabele alleen bij onderscheiden functie."
+      },
+      {
+        "id": "E06",
+        "start": 69,
+        "eind": 86,
+        "tekst": "het aanslagbiljet",
+        "mogelijke_klassen": [
+          "Rechtsobject"
+        ],
+        "status": "open",
+        "functie": "Datumdrager/document; zelfstandige objectfunctie te beoordelen."
+      },
+      {
+        "id": "E07",
+        "start": 37,
+        "eind": 86,
+        "tekst": "zes weken na de dagtekening van het aanslagbiljet",
+        "mogelijke_klassen": [
+          "Rechtsfeit"
+        ],
+        "status": "open",
+        "functie": "Verloop met mogelijke toestandsverandering; geen automatische vervanging van Tijdsaanduiding."
+      },
+      {
+        "id": "E08",
+        "start": 24,
+        "eind": 36,
+        "tekst": "invorderbaar",
+        "mogelijke_klassen": [
+          "Rechtsobject"
+        ],
+        "status": "uitsluiten",
+        "functie": "Geen object alleen wegens NOUN-tag van de parser."
+      }
+    ]
+  },
+  "IW-9-5": {
+    "status": "concept_niet_geadjudiceerd",
+    "werkwijze": "Methodische conceptanalyse door agent; geen onafhankelijke blinde deskundigenbeoordeling. Alternatieven zijn geen verplichte extra annotaties.",
+    "klassenbeoordeling": {
+      "Rechtssubject": "Belastingsoorten en aanslagen zijn geen personen; abstracte partijen volgen uit context.",
+      "Rechtsobject": "Beoordeel het object van de centrale norm, niet iedere zelfstandige naamwoordgroep.",
+      "Rechtsbetrekking": "Centrale invorderbaarheids- of termijnnorm expliciteren; type rechtsbetrekking vraagt context.",
+      "Rechtsfeit": "Tijdsverloop met rechtsgevolg onderzoeken; dagtekening is niet automatisch een rechtshandeling.",
+      "Voorwaarde": "Toepassingsvoorwaarden inclusief uitzonderingen en ontkenning onderzoeken.",
+      "Afleidingsregel": "De eerste zin bevat een algemene berekening van aantal en gelijke verdeling van termijnen; derde zin selecteert terugvalregel.",
+      "Variabele en variabelewaarde": "Datum/aantal kunnen analytische invoergegevens zijn; geen dubbel label bij dezelfde temporele functie.",
+      "Parameter en parameterwaarde": "Geen extra parameter uitsluitend omdat een termijn een vaste duur heeft (JAS-PRIORITY-001).",
+      "Operator": "Alleen met benoemde operanden en bereik; geen los of/en/als zonder functie.",
+      "Tijdsaanduiding": "Duur/startpunt/vervalmoment met de dragende context.",
+      "Plaatsaanduiding": "Geen plaatsbepaling in eigen tekst.",
+      "Delegatiebevoegdheid en delegatie-invulling": "Geen delegatieformule; een verwijzing naar de wet is geen delegatie.",
+      "Brondefinitie": "Geen expliciete begripsdefinitie in eigen tekst; eventuele definities staan in contextnodes."
+    },
+    "interpretatie": "De eerste zin koppelt soort aanslag en dagtekeningsjaar aan gelijke termijnen. De tweede regelt eerste en volgende vervalmomenten. De derde laat bij hoogstens één termijn lid 1 gelden. De berekening en de toepassingsvoorwaarden horen aan deze drie regels verbonden.",
+    "reviewvragen": [
+      "Welke grens draagt de volledige afleiding zonder het bereik en de verwijzing te verliezen?",
+      "Hoe moeten de opsomming van aanslagsoorten en de relatieve bijzin samen worden gelezen?",
+      "Welke onderscheiden functies verdienen overlappende markeringen en welke alleen relaties?"
+    ],
+    "elementen": [
+      {
+        "id": "E01",
+        "start": 0,
+        "eind": 434,
+        "tekst": "In afwijking van het eerste lid is een voorlopige aanslag in de inkomstenbelasting of in de vennootschapsbelasting en een voorlopige conserverende aanslag in de inkomstenbelasting, waarvan het aanslagbiljet een dagtekening heeft die ligt in het jaar waarover deze is vastgesteld, invorderbaar in zoveel gelijke termijnen als er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven.",
+        "mogelijke_klassen": [
+          "Rechtsbetrekking",
+          "Afleidingsregel"
+        ],
+        "status": "voorstel",
+        "functie": "Centrale bijzondere norm plus termijnberekening; mogelijke dubbele functie expliciet beoordelen."
+      },
+      {
+        "id": "E02",
+        "start": 35,
+        "eind": 114,
+        "tekst": "een voorlopige aanslag in de inkomstenbelasting of in de vennootschapsbelasting",
+        "mogelijke_klassen": [
+          "Rechtsobject"
+        ],
+        "status": "voorstel",
+        "functie": "Eerste categorie aanslagen; geen rechtssubject."
+      },
+      {
+        "id": "E03",
+        "start": 118,
+        "eind": 179,
+        "tekst": "een voorlopige conserverende aanslag in de inkomstenbelasting",
+        "mogelijke_klassen": [
+          "Rechtsobject"
+        ],
+        "status": "voorstel",
+        "functie": "Tweede categorie in opsomming."
+      },
+      {
+        "id": "E04",
+        "start": 181,
+        "eind": 278,
+        "tekst": "waarvan het aanslagbiljet een dagtekening heeft die ligt in het jaar waarover deze is vastgesteld",
+        "mogelijke_klassen": [
+          "Voorwaarde"
+        ],
+        "status": "voorstel",
+        "functie": "Toepassingsvoorwaarde: dagtekening in betrokken jaar."
+      },
+      {
+        "id": "E05",
+        "start": 296,
+        "eind": 433,
+        "tekst": "zoveel gelijke termijnen als er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven",
+        "mogelijke_klassen": [
+          "Afleidingsregel"
+        ],
+        "status": "voorstel",
+        "functie": "Aantal termijnen uit resterende maanden; gelijkheid van termijnbedragen als afzonderlijke eigenschap."
+      },
+      {
+        "id": "E06",
+        "start": 296,
+        "eind": 320,
+        "tekst": "zoveel gelijke termijnen",
+        "mogelijke_klassen": [
+          "Variabele en variabelewaarde"
+        ],
+        "status": "open",
+        "functie": "Uitkomst aantal/verdeling; onderscheiden van duur van één termijn."
+      },
+      {
+        "id": "E07",
+        "start": 321,
+        "eind": 433,
+        "tekst": "als er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven",
+        "mogelijke_klassen": [
+          "Operator",
+          "Afleidingsregel"
+        ],
+        "status": "open",
+        "functie": "Vergelijkend zoveel ... als; geen zelfstandige als-voorwaarde uitsluitend op voegwoord."
+      },
+      {
+        "id": "E08",
+        "start": 435,
+        "eind": 568,
+        "tekst": "De eerste termijn vervalt één maand na de dagtekening van het aanslagbiljet en elk van de volgende termijnen telkens een maand later.",
+        "mogelijke_klassen": [
+          "Rechtsfeit",
+          "Rechtsbetrekking"
+        ],
+        "status": "voorstel",
+        "functie": "Twee gekoppelde vervalmomenten; beoordelen als tijdsverloop/gevolg bij norm."
+      },
+      {
+        "id": "E09",
+        "start": 461,
+        "eind": 510,
+        "tekst": "één maand na de dagtekening van het aanslagbiljet",
+        "mogelijke_klassen": [
+          "Tijdsaanduiding"
+        ],
+        "status": "voorstel",
+        "functie": "Eerste vervalmoment; stop voor de volgende termijnregel."
+      },
+      {
+        "id": "E10",
+        "start": 544,
+        "eind": 567,
+        "tekst": "telkens een maand later",
+        "mogelijke_klassen": [
+          "Tijdsaanduiding"
+        ],
+        "status": "voorstel",
+        "functie": "Distributieve vervolgmomenten, gerelateerd aan de vorige termijn."
+      },
+      {
+        "id": "E11",
+        "start": 435,
+        "eind": 510,
+        "tekst": "De eerste termijn vervalt één maand na de dagtekening van het aanslagbiljet",
+        "mogelijke_klassen": [
+          "Rechtsfeit"
+        ],
+        "status": "open",
+        "functie": "Vervallen eerste termijn als tijdsverloop met gevolg."
+      },
+      {
+        "id": "E12",
+        "start": 514,
+        "eind": 567,
+        "tekst": "elk van de volgende termijnen telkens een maand later",
+        "mogelijke_klassen": [
+          "Rechtsfeit"
+        ],
+        "status": "open",
+        "functie": "Elliptisch vervolg deelt vervalt; geen werkwoord verzinnen in anker."
+      },
+      {
+        "id": "E13",
+        "start": 569,
+        "eind": 646,
+        "tekst": "Indien de toepassing van de eerste volzin niet leidt tot meer dan één termijn",
+        "mogelijke_klassen": [
+          "Voorwaarde"
+        ],
+        "status": "voorstel",
+        "functie": "Terugvalconditie inclusief negatie."
+      },
+      {
+        "id": "E14",
+        "start": 626,
+        "eind": 634,
+        "tekst": "meer dan",
+        "mogelijke_klassen": [
+          "Operator"
+        ],
+        "status": "voorstel",
+        "functie": "Vergelijking van berekend aantal met één; negatie zit in de omvattende voorwaarde."
+      },
+      {
+        "id": "E15",
+        "start": 635,
+        "eind": 646,
+        "tekst": "één termijn",
+        "mogelijke_klassen": [
+          "Parameter en parameterwaarde",
+          "Variabele en variabelewaarde"
+        ],
+        "status": "open",
+        "functie": "Drempelwaarde van aantal, niet zonder meer een tijdsduur."
+      },
+      {
+        "id": "E16",
+        "start": 569,
+        "eind": 680,
+        "tekst": "Indien de toepassing van de eerste volzin niet leidt tot meer dan één termijn, vindt het eerste lid toepassing.",
+        "mogelijke_klassen": [
+          "Afleidingsregel",
+          "Rechtsbetrekking"
+        ],
+        "status": "voorstel",
+        "functie": "Terugvalregel verwijst naar hoofdregel lid 1; anker blijft in lid 5."
+      },
+      {
+        "id": "E17",
+        "start": 0,
+        "eind": 31,
+        "tekst": "In afwijking van het eerste lid",
+        "mogelijke_klassen": [],
+        "status": "samenhang",
+        "functie": "Bronrelatie: wijkt af van IW-9-1; geen nieuwe JAS-klasse."
+      }
+    ]
+  },
+  "LI-9.1": {
+    "status": "concept_niet_geadjudiceerd",
+    "werkwijze": "Methodische conceptanalyse door agent; geen onafhankelijke blinde deskundigenbeoordeling. Alternatieven zijn geen verplichte extra annotaties.",
+    "klassenbeoordeling": {
+      "Rechtssubject": "Niet letterlijk aanwezig; ontvanger en belastingschuldige alleen uit graafcontext afleiden.",
+      "Rechtsobject": "Beoordeel het object van de centrale norm, niet iedere zelfstandige naamwoordgroep.",
+      "Rechtsbetrekking": "Centrale invorderbaarheids- of termijnnorm expliciteren; type rechtsbetrekking vraagt context.",
+      "Rechtsfeit": "Stellen van vervaldag kan een gevolg beschrijven; passief wordt gesteld bewijst op zichzelf geen norm of rechtsfeit.",
+      "Voorwaarde": "Toepassingsvoorwaarden inclusief uitzonderingen en ontkenning onderzoeken.",
+      "Afleidingsregel": "De beleidsbepaling bepaalt een vervaldatum uit de wettelijke uitkomst en aanvullende voorwaarden.",
+      "Variabele en variabelewaarde": "Datum/aantal kunnen analytische invoergegevens zijn; geen dubbel label bij dezelfde temporele functie.",
+      "Parameter en parameterwaarde": "Geen extra parameter uitsluitend omdat een termijn een vaste duur heeft (JAS-PRIORITY-001).",
+      "Operator": "Alleen met benoemde operanden en bereik; geen los of/en/als zonder functie.",
+      "Tijdsaanduiding": "Duur/startpunt/vervalmoment met de dragende context.",
+      "Plaatsaanduiding": "Geen plaatsbepaling in eigen tekst.",
+      "Delegatiebevoegdheid en delegatie-invulling": "Geen delegatieformule; een verwijzing naar de wet is geen delegatie.",
+      "Brondefinitie": "Kop benoemt afwijking; geen brondefinitie."
+    },
+    "interpretatie": "De eerste zin verplaatst onder genoemde voorwaarden de enige of laatste vervaldag naar 31 december. De tweede bepaalt een maandultimo bij afwijkende boekjaren. De wettelijke berekening moet eerst bekend zijn. Beleid vervangt de wet niet als bronstatus.",
+    "reviewvragen": [
+      "Is de centrale klasse hier Afleidingsregel, Rechtsbetrekking of beide met verschillende functie?",
+      "Welk precies toepassingsbereik heeft de slotzin over afwijkende boekjaren?",
+      "Hoe wordt enige of laatste betalingstermijn gekoppeld aan het resultaat van lid 5 en diens terugval?"
+    ],
+    "elementen": [
+      {
+        "id": "E01",
+        "start": 0,
+        "eind": 309,
+        "tekst": "In de gevallen waarin voor voorlopige aanslagen (bedoeld in artikel 9, vijfde lid, van de wet) die zijn gedagtekend in november of eerder, toepassing van de wet er toe zou leiden dat de enige of laatste betalingstermijn eindigt voor 31 december, dan wordt de vervaldag van deze termijn op 31 december gesteld.",
+        "mogelijke_klassen": [
+          "Afleidingsregel",
+          "Rechtsbetrekking"
+        ],
+        "status": "voorstel",
+        "functie": "Gehele voorwaardelijke beleidsregel inclusief nieuwe vervaldag."
+      },
+      {
+        "id": "E02",
+        "start": 27,
+        "eind": 47,
+        "tekst": "voorlopige aanslagen",
+        "mogelijke_klassen": [
+          "Rechtsobject"
+        ],
+        "status": "voorstel",
+        "functie": "Objectcategorie, nader bepaald door verwijzing en relatieve bijzin."
+      },
+      {
+        "id": "E03",
+        "start": 60,
+        "eind": 93,
+        "tekst": "artikel 9, vijfde lid, van de wet",
+        "mogelijke_klassen": [],
+        "status": "samenhang",
+        "functie": "Expliciete verwijzing naar IW-9-5, resolveer via LI-def-wet."
+      },
+      {
+        "id": "E04",
+        "start": 95,
+        "eind": 137,
+        "tekst": "die zijn gedagtekend in november of eerder",
+        "mogelijke_klassen": [
+          "Voorwaarde"
+        ],
+        "status": "voorstel",
+        "functie": "Beperking aanslagen; maand/jaarfunctie behouden."
+      },
+      {
+        "id": "E05",
+        "start": 116,
+        "eind": 137,
+        "tekst": "in november of eerder",
+        "mogelijke_klassen": [
+          "Tijdsaanduiding"
+        ],
+        "status": "voorstel",
+        "functie": "Temporele bovengrens; eerder heeft november als referentie."
+      },
+      {
+        "id": "E06",
+        "start": 183,
+        "eind": 244,
+        "tekst": "de enige of laatste betalingstermijn eindigt voor 31 december",
+        "mogelijke_klassen": [
+          "Voorwaarde"
+        ],
+        "status": "voorstel",
+        "functie": "Voorwaarde op berekend wettelijk resultaat."
+      },
+      {
+        "id": "E07",
+        "start": 228,
+        "eind": 244,
+        "tekst": "voor 31 december",
+        "mogelijke_klassen": [
+          "Tijdsaanduiding"
+        ],
+        "status": "voorstel",
+        "functie": "Bovengrens in de voorwaarde; niet de nieuwe vervaldag."
+      },
+      {
+        "id": "E08",
+        "start": 246,
+        "eind": 308,
+        "tekst": "dan wordt de vervaldag van deze termijn op 31 december gesteld",
+        "mogelijke_klassen": [
+          "Afleidingsregel",
+          "Rechtsbetrekking"
+        ],
+        "status": "voorstel",
+        "functie": "Gevolg/toewijzing bij de hoofdvoorwaarde; alleen samen met E01 interpreteren."
+      },
+      {
+        "id": "E09",
+        "start": 286,
+        "eind": 300,
+        "tekst": "op 31 december",
+        "mogelijke_klassen": [
+          "Tijdsaanduiding"
+        ],
+        "status": "voorstel",
+        "functie": "Nieuwe vervaldag in het gevolg, ander voorkomen dan E07."
+      },
+      {
+        "id": "E10",
+        "start": 310,
+        "eind": 408,
+        "tekst": "Bij afwijkende boekjaren wordt de laatste vervaldag steeds op de laatste dag van de maand gesteld.",
+        "mogelijke_klassen": [
+          "Afleidingsregel",
+          "Rechtsbetrekking"
+        ],
+        "status": "voorstel",
+        "functie": "Tweede beleidsregel; volledige voorwaarde en uitkomst."
+      },
+      {
+        "id": "E11",
+        "start": 310,
+        "eind": 334,
+        "tekst": "Bij afwijkende boekjaren",
+        "mogelijke_klassen": [
+          "Voorwaarde"
+        ],
+        "status": "voorstel",
+        "functie": "Voorwaarde zonder indien/als."
+      },
+      {
+        "id": "E12",
+        "start": 369,
+        "eind": 399,
+        "tekst": "op de laatste dag van de maand",
+        "mogelijke_klassen": [
+          "Tijdsaanduiding"
+        ],
+        "status": "voorstel",
+        "functie": "Relatieve datumomschrijving."
+      },
+      {
+        "id": "E13",
+        "start": 256,
+        "eind": 285,
+        "tekst": "de vervaldag van deze termijn",
+        "mogelijke_klassen": [
+          "Tijdsaanduiding",
+          "Variabele en variabelewaarde"
+        ],
+        "status": "open",
+        "functie": "Berekende tijdswaarde met coreferentie naar enige/laatste termijn."
+      }
+    ]
+  },
+  "LI-9.5": {
+    "status": "concept_niet_geadjudiceerd",
+    "werkwijze": "Methodische conceptanalyse door agent; geen onafhankelijke blinde deskundigenbeoordeling. Alternatieven zijn geen verplichte extra annotaties.",
+    "klassenbeoordeling": {
+      "Rechtssubject": "Geen expliciete drager van rechten/plichten; tijdseenheden zijn geen rechtssubjecten.",
+      "Rechtsobject": "Beoordeel het object van de centrale norm, niet iedere zelfstandige naamwoordgroep.",
+      "Rechtsbetrekking": "Hoofdzakelijk temporele uitwerking; niet elke voorbeeldzin is een zelfstandige bevoegdheid of verplichting.",
+      "Rechtsfeit": "Tijdsverloop met rechtsgevolg onderzoeken; dagtekening is niet automatisch een rechtshandeling.",
+      "Voorwaarde": "Toepassingsvoorwaarden inclusief uitzonderingen en ontkenning onderzoeken.",
+      "Afleidingsregel": "Algemene kalenderregel in derde zin; overige zinnen bevatten conditionele uitleg en concrete voorbeelden.",
+      "Variabele en variabelewaarde": "Datum/aantal kunnen analytische invoergegevens zijn; geen dubbel label bij dezelfde temporele functie.",
+      "Parameter en parameterwaarde": "Geen extra parameter uitsluitend omdat een termijn een vaste duur heeft (JAS-PRIORITY-001).",
+      "Operator": "Alleen met benoemde operanden en bereik; geen los of/en/als zonder functie.",
+      "Tijdsaanduiding": "Duur/startpunt/vervalmoment met de dragende context.",
+      "Plaatsaanduiding": "Geen plaatsbepaling in eigen tekst.",
+      "Delegatiebevoegdheid en delegatie-invulling": "Geen delegatieformule; een verwijzing naar de wet is geen delegatie.",
+      "Brondefinitie": "Titel Begrip maand bij betalingstermijn is op zichzelf geen definitie-aanhef; inhoud onderzoeken als uitleg/afleiding."
+    },
+    "interpretatie": "Scheid de kalenderuitwerking en haar concrete illustraties. Eén maand en zes weken worden niet gelijkgesteld. Het laatste-dag-onderscheid verklaart de februarivoorbeelden. Bronstatus blijft beleidsregel, ook voor de rekenvoorbeelden daarin.",
+    "reviewvragen": [
+      "Welke zinnen dragen algemene uitleg en welke illustreren die met concrete data?",
+      "Moeten voorbeelddata markeringen krijgen als illustratie, en hoe blijft dat zichtbaar in de huidige uitvoer?",
+      "Hoe worden de schrikkeljaarvertakking en het verschil tussen maand en zes weken verbonden?"
+    ],
+    "elementen": [
+      {
+        "id": "E01",
+        "start": 0,
+        "eind": 291,
+        "tekst": "Als de betalingstermijn van een aanslag is gesteld op één maand of is gesteld op zes weken, dan houdt dat in dat als de dagtekening van een aanslagbiljet valt op 31 oktober, de betalingstermijn van één maand vervalt op 30 november en de betalingstermijn van zes weken vervalt op 12 december.",
+        "mogelijke_klassen": [
+          "Afleidingsregel"
+        ],
+        "status": "open",
+        "functie": "Conditionele uitwerking met oktobervoorbeeld; voorbeeldstatus behouden."
+      },
+      {
+        "id": "E02",
+        "start": 292,
+        "eind": 555,
+        "tekst": "Als de dagtekening 28 februari is, dan vervalt de betalingstermijn van een maand op 31 maart en de betalingstermijn van zes weken op 11 april, tenzij het jaartal aangeeft dat het een schrikkeljaar is, in welk geval de termijn vervalt op 28 maart dan wel 10 april.",
+        "mogelijke_klassen": [
+          "Afleidingsregel"
+        ],
+        "status": "open",
+        "functie": "Februarivoorbeeld met tenzij-vertakking; geen contextloze kalenderregel."
+      },
+      {
+        "id": "E03",
+        "start": 556,
+        "eind": 801,
+        "tekst": "Als de dagtekening van het aanslagbiljet valt op een andere dag dan de laatste dag van de kalendermaand, vervalt de termijn een maand later (bij een betalingstermijn van een maand) op de dag die hetzelfde nummer heeft als dat van de dagtekening.",
+        "mogelijke_klassen": [
+          "Afleidingsregel"
+        ],
+        "status": "voorstel",
+        "functie": "Algemene kalenderregel voor dagtekening anders dan maandultimo."
+      },
+      {
+        "id": "E04",
+        "start": 0,
+        "eind": 90,
+        "tekst": "Als de betalingstermijn van een aanslag is gesteld op één maand of is gesteld op zes weken",
+        "mogelijke_klassen": [
+          "Voorwaarde"
+        ],
+        "status": "voorstel",
+        "functie": "Alternatieve termijnen in bereik van uitleg."
+      },
+      {
+        "id": "E05",
+        "start": 113,
+        "eind": 172,
+        "tekst": "als de dagtekening van een aanslagbiljet valt op 31 oktober",
+        "mogelijke_klassen": [
+          "Voorwaarde"
+        ],
+        "status": "voorstel",
+        "functie": "Voorwaarde binnen voorbeeld."
+      },
+      {
+        "id": "E06",
+        "start": 292,
+        "eind": 325,
+        "tekst": "Als de dagtekening 28 februari is",
+        "mogelijke_klassen": [
+          "Voorwaarde"
+        ],
+        "status": "voorstel",
+        "functie": "Voorbeeldvoorwaarde, schrikkeljaar bepaalt gevolg."
+      },
+      {
+        "id": "E07",
+        "start": 435,
+        "eind": 491,
+        "tekst": "tenzij het jaartal aangeeft dat het een schrikkeljaar is",
+        "mogelijke_klassen": [
+          "Voorwaarde"
+        ],
+        "status": "voorstel",
+        "functie": "Uitzondering met afzonderlijke vervalmomenten."
+      },
+      {
+        "id": "E08",
+        "start": 556,
+        "eind": 659,
+        "tekst": "Als de dagtekening van het aanslagbiljet valt op een andere dag dan de laatste dag van de kalendermaand",
+        "mogelijke_klassen": [
+          "Voorwaarde"
+        ],
+        "status": "voorstel",
+        "functie": "Algemene voorwaarde; vergelijkingsbereik behouden."
+      },
+      {
+        "id": "E09",
+        "start": 737,
+        "eind": 800,
+        "tekst": "op de dag die hetzelfde nummer heeft als dat van de dagtekening",
+        "mogelijke_klassen": [
+          "Tijdsaanduiding"
+        ],
+        "status": "voorstel",
+        "functie": "Relatieve datumomschrijving; vergelijking is geen losse als-voorwaarde."
+      },
+      {
+        "id": "E10",
+        "start": 774,
+        "eind": 800,
+        "tekst": "als dat van de dagtekening",
+        "mogelijke_klassen": [
+          "Voorwaarde"
+        ],
+        "status": "uitsluiten",
+        "functie": "Vergelijkende aanvulling zonder eigen predicatie; uitsluiten als zelfstandige voorwaarde."
+      },
+      {
+        "id": "E11",
+        "start": 751,
+        "eind": 767,
+        "tekst": "hetzelfde nummer",
+        "mogelijke_klassen": [
+          "Operator"
+        ],
+        "status": "open",
+        "functie": "Gelijkheidsvergelijking tussen dagnummers; operanden in samenhang."
+      },
+      {
+        "id": "E12",
+        "start": 54,
+        "eind": 63,
+        "tekst": "één maand",
+        "mogelijke_klassen": [
+          "Tijdsaanduiding"
+        ],
+        "status": "voorstel",
+        "functie": "Duur: behoud verschil met zes weken."
+      },
+      {
+        "id": "E13",
+        "start": 81,
+        "eind": 90,
+        "tekst": "zes weken",
+        "mogelijke_klassen": [
+          "Tijdsaanduiding"
+        ],
+        "status": "voorstel",
+        "functie": "Duur: niet gelijkstellen aan maand of parameter voor dezelfde functie."
+      },
+      {
+        "id": "E14",
+        "start": 162,
+        "eind": 172,
+        "tekst": "31 oktober",
+        "mogelijke_klassen": [
+          "Tijdsaanduiding"
+        ],
+        "status": "open",
+        "functie": "Datum in voorbeeld; geen generieke uiterste betaaldatum."
+      },
+      {
+        "id": "E15",
+        "start": 219,
+        "eind": 230,
+        "tekst": "30 november",
+        "mogelijke_klassen": [
+          "Tijdsaanduiding"
+        ],
+        "status": "open",
+        "functie": "Resultaat van maandvoorbeeld."
+      },
+      {
+        "id": "E16",
+        "start": 279,
+        "eind": 290,
+        "tekst": "12 december",
+        "mogelijke_klassen": [
+          "Tijdsaanduiding"
+        ],
+        "status": "open",
+        "functie": "Resultaat van zeswekenvoorbeeld."
+      },
+      {
+        "id": "E17",
+        "start": 376,
+        "eind": 384,
+        "tekst": "31 maart",
+        "mogelijke_klassen": [
+          "Tijdsaanduiding"
+        ],
+        "status": "open",
+        "functie": "Maandultimo-uitkomst bij 28 februari buiten schrikkeljaar."
+      },
+      {
+        "id": "E18",
+        "start": 529,
+        "eind": 537,
+        "tekst": "28 maart",
+        "mogelijke_klassen": [
+          "Tijdsaanduiding"
+        ],
+        "status": "open",
+        "functie": "Maanduitkomst bij 28 februari in schrikkeljaar."
+      },
+      {
+        "id": "E19",
+        "start": 802,
+        "eind": 882,
+        "tekst": "Als de dagtekening bijvoorbeeld 15 maart is, vervalt de termijn dus op 15 april.",
+        "mogelijke_klassen": [
+          "Afleidingsregel"
+        ],
+        "status": "open",
+        "functie": "Expliciet maartvoorbeeld van de maandregel."
+      },
+      {
+        "id": "E20",
+        "start": 883,
+        "eind": 978,
+        "tekst": "Is de betalingstermijn zes weken en is de dagtekening 15 maart, vervalt de termijn op 26 april.",
+        "mogelijke_klassen": [
+          "Afleidingsregel"
+        ],
+        "status": "open",
+        "functie": "Zeswekenvoorbeeld naast het maandvoorbeeld."
+      },
+      {
+        "id": "E21",
+        "start": 643,
+        "eind": 659,
+        "tekst": "de kalendermaand",
+        "mogelijke_klassen": [
+          "Tijdsaanduiding"
+        ],
+        "status": "open",
+        "functie": "Temporeel referentiekader; afbakening met laatste dag beoordelen."
+      },
+      {
+        "id": "E22",
+        "start": 4,
+        "eind": 23,
+        "tekst": "de betalingstermijn",
+        "mogelijke_klassen": [
+          "Rechtsobject"
+        ],
+        "status": "uitsluiten",
+        "functie": "Een naamwoordgroep is niet vanzelf een rechtsobject; primair temporele eigenschap."
+      }
+    ]
+  }
+}

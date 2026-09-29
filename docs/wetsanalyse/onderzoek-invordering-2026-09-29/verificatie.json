@@ -1,0 +1,69 @@
+{
+  "status": "technisch_geverifieerd_geen_juridische_gold",
+  "graafbronnen": {
+    "casussen": 4,
+    "contextpassages": 15,
+    "uitsluitend_graaf": true,
+    "internet_of_xml_als_analysetekst": false,
+    "xml_alleen_controle": true
+  },
+  "concepten": {
+    "onderzoeksitems": 60,
+    "alle_dertien_klassen_per_casus": true,
+    "status": "concept_niet_geadjudiceerd",
+    "brongetrouwheid": "alle 60 halfopen codepointbereiken gecontroleerd"
+  },
+  "meting": {
+    "bestand": "meting.json",
+    "sha256": "c6eb24f28c98e6a6f7d176dc86aa58bb4763400adaa07623d9833be395a37b9d",
+    "invoer_en_codehashes_gecontroleerd": true,
+    "determinisme": "detectie tweemaal per graafcasus identiek",
+    "live_modelaanroepen": 0,
+    "replay_IW_9_1": {
+      "UNHANDLED": 0,
+      "ACCEPTED": 2,
+      "REJECTED": 3,
+      "UNCERTAIN": 0,
+      "HUMAN_REVIEW": 0
+    }
+  },
+  "tests": {
+    "commando": ".venv/bin/python -m pytest tests/test_onderzoek_invordering.py tests/test_detector_audit.py tests/test_detectoren.py tests/test_syntactische_detectoren.py tests/test_taalanalyse.py tests/test_fusie.py tests/test_hybride_keten.py tests/test_tekststructuur.py tests/test_tekststructuur_keten.py tests/test_validatie.py tests/test_review_resolver.py tests/test_reviewload.py tests/test_detector_freeze_regressies.py -q",
+    "cwd": "tools/graph-qa",
+    "passed": 315,
+    "failed": 0,
+    "skipped": 0,
+    "nieuwe_onderzoekstests": 17,
+    "duur_seconden": 16.87
+  },
+  "ontwikkelcontrole": {
+    "bestand": "ontwikkelcontrole.json",
+    "casussen": 16,
+    "kandidaten": 262,
+    "voorlopige_kernankers": 73,
+    "voorlopige_ankers_totaal": 81,
+    "gewijzigde_kandidaten": 0,
+    "classifierinvoer_identiek": true,
+    "verloren_ankers": []
+  },
+  "historische_baselines_en_referenties_ongewijzigd": true,
+  "beperkingen": [
+    "Geen actuele modelclassificatie voor LI 9.1, IW 9 lid 5 of LI 9.5 gemeten.",
+    "Historische lid-5- en LI-9.5-sporen missen volledige afgewezen beslissingen; geen verzonnen replay.",
+    "Geen adjudicatie, juridische precisie/recall of modelkwaliteitswinst vastgesteld.",
+    "Geen productiewijziging, publieke API-wijziging, migratie of uitrol."
+  ],
+  "laatste_gerichte_hertoets": {
+    "commando": ".venv/bin/python -m pytest tests/test_onderzoek_invordering.py -q",
+    "passed": 17,
+    "failed": 0,
+    "skipped": 0,
+    "duur_seconden": 5.09,
+    "reden": "Modelafhankelijke historische replay gebruikt nu dezelfde skip-guard als de andere volledige-parsetests."
+  },
+  "documentcontrole": {
+    "lokale_links_geldig": true,
+    "dossiers_exact_gegenereerd_uit_concepten_en_meting": true,
+    "meting_invoer_en_codehashes_ongewijzigd": true
+  }
+}

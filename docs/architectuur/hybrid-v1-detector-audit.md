@@ -1,5 +1,14 @@
 # Detectoraudit vóór de baseline van hybrid_v1
 
+**Inhoudelijk vervolg 29 september 2026:** het [onderzoek van vier invorderingsbepalingen](../wetsanalyse/onderzoek-invordering-2026-09-29/README.md)
+voegt tien bevindingen toe, op uitsluitend graafteksten: afgewezen centrale norm zonder review,
+datums zonder jaartal, gemiste passieve datumtoewijzing en termijnberekening, temporele
+klasse-/grensgaten, batchcontract en beperkte volledigheidscontrole. Ook afleidingsdetectie
+blijkt nog binnen beschermde notaties te splitsen; F05 hieronder betrof norm en terugvalanalyse.
+De [dossiers en eisenmatrix](../wetsanalyse/onderzoek-invordering-2026-09-29/eisenmatrix.md)
+onderbouwen een afzonderlijk verbeterontwerp. Alleen onderzoeksvoorzieningen zijn toegevoegd;
+geen nieuwe productieregels of promptwijzigingen. De freeze en historische metingen blijven intact.
+
 **Aanvulling 29 september 2026:** de oorspronkelijke audit en freeze hieronder blijven het
 historische vergelijkingspunt. De [ketenkaart en tekststructuurverbetering](hybrid-v1-annotatieketen.md)
 beschrijven het vervolg: gedeelde beschermde tekstgrenzen, opmaak-onafhankelijke onderdelen
