@@ -203,7 +203,7 @@ export function NodeAnnotatiePaneel({ doel, onSluit, variant = "side", onVraag, 
       {tabs}
       {toonTabs && graafGeopend && (
         <div className={tab === "graaf" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
-          <SamenhangGraaf stand={graafStand} zichtbaar={tab === "graaf"} groot={groot} actiefElementId={actiefId}
+          <SamenhangGraaf stand={graafStand} zichtbaar={tab === "graaf"} groot={groot || !onSluit} actiefElementId={actiefId}
             onKiesElement={setActiefId} onOpenTekst={openTekst}
             onVraag={onVraag || onVraagOverBron ? vraagOverKnoop : undefined} />
         </div>

@@ -122,10 +122,11 @@ export function bouwGraaf(delen: Samenhang[]): GraafData {
     const verschuif = ([x, y, z]: [number, number, number]): [number, number, number] => [x + dx, y, z];
     const art = deel.artikel_iri;
     const eigen = new Set(deel.knopen.map((k) => k.id));
-    // Structuur boven het artikel: linksboven, buiten de ring en de markeringen van de bovenste
-    // leden. Het paneel is breed; breedte kost minder schaal dan hoogte.
+    // Structuur boven het artikel: links naast de ring, op middenhoogte en oplopend. Daar ligt
+    // geen sector van leden, onderdelen of markeringen – welk lid ook onderdelen heeft. Het canvas is
+    // breed; breedte kost minder schaal dan hoogte.
     let stap = 0;
-    for (let id = ouder(art); id; id = ouder(id)) { stap++; zet(id, verschuif([-300 - 40 * stap, 150 + 60 * stap, -40 * stap])); }
+    for (let id = ouder(art); id; id = ouder(id)) { stap++; zet(id, verschuif([-440 - 30 * stap, 55 * (stap - 1), -30 * stap])); }
     zet(art, verschuif([0, 0, 0]));
 
     // Wat aan een fragment hangt (markeringen, verwijzingen) telt mee in het gewicht van zijn sector.
