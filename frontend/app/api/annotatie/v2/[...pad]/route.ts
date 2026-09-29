@@ -9,7 +9,7 @@ async function forward(req: Request, { params }: Params) {
   if (!user) return geenSessie();
   const { pad } = await params;
   // Alleen de expliciete node-API; dit is geen generieke upstream-proxy.
-  if (!pad.length || !["weergave", "elementen", "lagen", "node-lagen"].includes(pad[0]))
+  if (!pad.length || !["weergave", "elementen", "lagen", "node-lagen", "samenhang", "capabilities"].includes(pad[0]))
     return Response.json({ detail: "Onbekende annotatieroute." }, { status: 404 });
   return proxy(`/v1/annotatie/${pad.map(pathSegment).join("/")}${new URL(req.url).search}`, {
     method: req.method,

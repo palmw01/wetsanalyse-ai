@@ -27,6 +27,7 @@ from ..jas_klassen import methode_versie
 from ..jas_pipeline.classificatie import promptversie
 from ..jas_pipeline.beslisregister import compact as beslisregister
 from ..jas_pipeline.keten import analyseer
+from ..jas_pipeline.broncontext import BronContext
 from ..models import AgentRun
 from ..narratie import _stap
 from ..state import State
@@ -105,6 +106,7 @@ def annoteer_node(b: Bouw, state: State) -> dict[str, Any]:
         llm=b.llm, model=b.model, settings=b.settings, lid=lid,
         vindplaats=f"{doel.get('bwbId', '')} {plek}",
         hergebruikte_nodes=frozenset(bron.get("hergebruikte_nodes") or []),
+        context=BronContext.ouders(bron["bron_snapshot"]) if b.settings.broncontext else None,
         melding=lambda fase, samenvatting, ms: _stap(writer, fase, samenvatting, duur_ms=ms),
     )
     if uitkomst.meting.get("gedegradeerd"):

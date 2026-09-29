@@ -25,6 +25,7 @@ class DefinitieDetector:
     REGEL_ONDERDEEL = "jas.definitie.onderdeel_term_dubbelepunt"
     REGEL_ZIN = "jas.definitie.verstaan_onder"
     REGELS = (REGEL_ONDERDEEL, REGEL_ZIN)
+    BEWIJS = {"DEFINITION_ITEM": ("sterk", "Brondefinitie"), "DEFINITION_SENTENCE": ("sterk", "Brondefinitie")}
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         tekst = bron.tekst

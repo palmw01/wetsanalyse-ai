@@ -14,6 +14,7 @@ import httpx
 from bronmodel import BronFout
 
 from . import annotatie_v2_store as store
+from . import samenhang as samenhang_mod
 from .annotatie_v2_contracts import Batch, Beslissing, Doel, Element, Zoekvraag
 from .auth import require_client
 from .bron_resolver import resolve_bron as _resolve_bron
@@ -56,12 +57,20 @@ async def get_verklaringen(actor: str = Depends(actieve_userid)):
 @router.get("/capabilities")
 async def capabilities(actor: str = Depends(actieve_userid)):
     return {"schema_versie": contract_versie(), "bronnodes_actief": contract_versie() == 2,
-            "schrijfcontract": "bronnode-v2" if contract_versie() == 2 else "artikel-v1"}
+            "schrijfcontract": "bronnode-v2" if contract_versie() == 2 else "artikel-v1",
+            "samenhang": contract_versie() == 2}
 
 
 @router.get("/weergave")
 async def get_weergave(doel: dict = Depends(doel_query), actor: str = Depends(actieve_userid)):
     return await store.weergave(await resolve_bron(doel))
+
+
+@router.get("/samenhang")
+async def get_samenhang(doel: dict = Depends(doel_query), actor: str = Depends(actieve_userid)):
+    """Bronstructuur, actuele annotaties en letterlijke verwijzingen (één stap) van het artikel
+    waartoe het doel behoort – voor de 3D-weergave. Zie `samenhang.py`."""
+    return await samenhang_mod.samenhang(await resolve_bron(doel))
 
 
 @router.get("/dekking")

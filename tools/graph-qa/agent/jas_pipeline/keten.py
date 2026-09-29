@@ -14,6 +14,7 @@ dekkingsboekhouding (PR 10). Er valt hier nooit iets terug naar een volledige LL
 from __future__ import annotations
 
 import hashlib
+import json
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -24,8 +25,9 @@ from bronmodel import CorpusMap, Span
 
 from ..annotatie import _maak_anker
 from ..models import AnnotatieAlternatief, AnnotatieVoorstel
-from .besluit import Beslissing, deterministisch
-from .classificatie import batches, classificeer, kandidaatregel, optie_ids, promptversie
+from .besluit import Beslissing, deterministisch, ontdubbel_tijd
+from .broncontext import BronContext
+from .classificatie import batches, classificeer, kandidaatregel, optie_ids, promptversie, toolschema
 from .dekking import controleer_a, structureel
 from .onzekerheid import REVIEWBAAR, signaleer
 from .subtype import bepaal as bepaal_subtype
@@ -34,7 +36,7 @@ from .reviewload import splits
 from .review import beoordeel
 from .validatie import valideer
 from .detectoren import BronTekst, detecteer_alles
-from .fusie import Fusie, fuseer
+from .fusie import Fusie, fuseer, VERSIE as FUSIE_VERSIE
 from .kandidaten import Candidate, CandidateStatus
 from .profielen import laad
 from .taal import maak_provider
@@ -94,7 +96,7 @@ def _voorstel(k: Candidate, b: Beslissing, kaart: CorpusMap, corpus: str, lid: s
     c_start, c_eind = kaart.naar_corpus(span)
     anker = _maak_anker(corpus, c_start, c_eind, lid)
     alternatieven = [AnnotatieAlternatief(klasse=c, motivatie="ook mogelijk volgens de detectie")
-                     for c in k.possible_classes if c != b.klasse] if b.door == "model" else []
+                     for c in k.possible_classes if c != b.klasse] if (b.door == "model" or len(k.possible_classes) > 1) else []
     return AnnotatieVoorstel(
         # Deterministisch: dezelfde span met dezelfde klasse krijgt in elke run hetzelfde id, dus de
         # api herkent het element bij een volgende ronde en de stabiliteitsmeting kan vergelijken.
@@ -161,10 +163,13 @@ class _Fasen:
 def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]], corpus: str,
               llm: Any, model: str, settings: Any, lid: str = "", vindplaats: str = "",
               hergebruikte_nodes: set[str] | frozenset[str] = frozenset(),
+              context: BronContext | None = None,
               melding: Callable[[str, str, int], None] | None = None) -> Uitkomst:
     """De hele keten. `melding(fase, samenvatting, ms)` wordt per afgeronde fase aangeroepen, zodat de
     beurt zich per stap meldt in plaats van één regel na afloop."""
     fasen = _Fasen(melding)
+    context = context or BronContext()
+    contextblok = context.blok()
     teksten = [t for t in _bronteksten(snapshot["segmenten"], snapshot["nodes"], settings.taal_provider)
                if t.bron_iri not in hergebruikte_nodes]
     gedegradeerd = sorted({t.bron_iri for t in teksten if t.analyse and t.analyse.gedegradeerd})
@@ -181,6 +186,7 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
                               "tekstgrenzen_versie": GRENS_VERSIE,
                               "tekststructuur_versie": STRUCTUUR_VERSIE,
                               "verwijzingen_versie": VERWIJZING_VERSIE,
+                              "fusie_versie": FUSIE_VERSIE, "broncontext": context.meting(),
                               "detectorresultaten": [{"detector": r.detector, "versie": r.versie,
                                   "bron_iri": r.bron_iri, "kandidaten": len(r.kandidaten),
                                   "overgeslagen": r.overgeslagen, "reden": r.reden} for r in resultaten],
@@ -196,8 +202,13 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
             beslissingen.append(b)
     fasen.klaar("Besluit", f"{len(beslissingen)} op vaste regels, {len(naar_model)} naar het model")
     for batch in batches(naar_model, settings.classifier_granulariteit):
+        schema = toolschema(batch, settings.classifier_spankeuze)
+        meting.setdefault("classifier_batches", []).append({"labels": [k.label for k in batch],
+            "schema_sha256": hashlib.sha256(json.dumps(schema, sort_keys=True).encode()).hexdigest(),
+            "beslissingen": schema["input_schema"]["properties"]["beslissingen"]["items"]["properties"]["beslissing"]["enum"]})
         beslissingen += classificeer(llm, model, batch, corpus, settings.classifier_temperature, meting,
-                                     spankeuze=settings.classifier_spankeuze)
+                                     spankeuze=settings.classifier_spankeuze, context=contextblok)
+    meting["oorspronkelijke_beslissingen"] = [b.model_dump(mode="json") for b in beslissingen]
     if naar_model:
         afgewezen = sum(b.status is CandidateStatus.REJECTED and b.door == "model" for b in beslissingen)
         fasen.klaar("Classificatie", f"{len(naar_model)} kandidaten in {meting['llm_calls']} modelaanroep(en), "
@@ -226,8 +237,14 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
     per_label = {k.label: k for k in fusie.kandidaten}
     label_van = {v["id"]: b.label for v, b in paren}
     twijfels = signaleer(per_id, beslissingen, bevindingen, set(meting["gedegradeerd"]))
-    te_reviewen = [t for t in twijfels if t.reden in REVIEWBAAR]
-    oordelen = (beoordeel(llm, model, te_reviewen, per_label, corpus, meting)
+    if context.ontbreekt:
+        twijfels = [t.model_copy(update={"detail": t.detail + "; ontbrekende aangevraagde context: "
+                                        + ", ".join(context.ontbreekt)})
+                    if t.reden == "CENTRALE_NORM_AFGEWEZEN" else t for t in twijfels]
+    te_reviewen = [t for t in twijfels if t.reden in REVIEWBAAR
+                  and not (t.reden == "CENTRALE_NORM_AFGEWEZEN" and context.ontbreekt)]
+    oordelen = (beoordeel(llm, model, te_reviewen, per_label, corpus, meting,
+                          gegroepeerd=settings.classifier_granulariteit == "klasseverzameling", context=contextblok)
                 if te_reviewen and settings.gerichte_review else [])
     if twijfels:
         fasen.klaar("Review", f"{len(twijfels)} twijfelgeval(len), {len(te_reviewen)} naar de reviewer")
@@ -239,8 +256,13 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
     voorstellen, na = valideer([({k: x for k, x in v.items() if k != "_label"}, per_b[v["_label"]])
                                 for v in voorstellen], per_id, snapshot, prov)
     beslissingen = _verwerp(beslissingen, na)
+    voorstellen, beslissingen, alternatieven = ontdubbel_tijd(voorstellen, beslissingen, per_id)
+    meting["alternatieve_tijdgrenzen"] = alternatieven
     meting["validatie"] = [x.model_dump() for x in (*bevindingen, *(x for x in na if x.ernst == "fout"))]
     _vervolledig(voorstellen, beslissingen, (*bevindingen, *na), twijfels, transities)
+    oorspronkelijk = {b["label"]: b for b in meting["oorspronkelijke_beslissingen"]}
+    for v in voorstellen:
+        v["trace"]["oorspronkelijke_beslissing"] = oorspronkelijk.get(v["trace"]["kandidaat"]["label"])
     meting["twijfels"] = [t.model_dump() for t in twijfels]
     meting["resolutie"] = [t.model_dump() for t in transities]
     # Juridisch tegenover technisch (V5, onderzoek §6): alleen rapportage, afgeleid uit het spoor.

@@ -1,0 +1,750 @@
+{
+  "status": "diagnostisch_geen_gold",
+  "manifest": {
+    "code": {
+      "baseline": "7ed0ba20bb9a2ec6ae19e98e8d14d4afc48ff9e4fcd385229b9c04ff80483db7",
+      "variant": "db8c6817ca42e2fc6fc2cfc28c498e4805c821c5a11a282aa5ec7ad1bc26bbeb"
+    },
+    "casussen_sha256": "2b6085c4dcfae20a569a6e8b26abc5aa6f79a7564b03747cb0aebcab30b91036",
+    "herhalingen": 3,
+    "varianten": [
+      "A_huidig",
+      "B_verbeterd",
+      "C_context"
+    ],
+    "primaire_pogingen": 72,
+    "harnas_sha256": "7700d4e3acd4a35b6e519a92381870131df61999f0ab1e8bd048e4c80afa8d99"
+  },
+  "varianten": {
+    "A_huidig": {
+      "pogingen": 24,
+      "geslaagd": 24,
+      "mislukt": 0,
+      "calls": 27,
+      "calls_mislukt": 0,
+      "classifier_calls": 24,
+      "review_calls": 3,
+      "classifier_herpogingen": 0,
+      "tokens": {
+        "input_tokens": 71816,
+        "output_tokens": 32214,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 0
+      },
+      "kosten_schatting_usd": 0.698658,
+      "mediaan_seconden": 24.557,
+      "voorstellen": 343,
+      "menselijk": 5,
+      "beslisstatus": {
+        "ACCEPTED": 338,
+        "REJECTED": 152,
+        "HUMAN_REVIEW": 5
+      },
+      "twijfels": {
+        "CLASSIFIER_ABSTAIN": 24
+      },
+      "resolutieregels": {
+        "R-ONGELDIG": 2,
+        "R-ABSTAIN-CHANGE": 19,
+        "R-ABSTAIN-HUMAN": 3
+      },
+      "technische_classifier_twijfels": {
+        "CLASSIFIER_CONTRACT_ERROR": 24
+      },
+      "ongeldige_reviewoordelen": 2,
+      "validatiefouten": {},
+      "snapshot_herstelde_pogingen": 4,
+      "ontdubbelde_tijdgrenzen": 0,
+      "stopredenen": {
+        "tool_use": 26,
+        "max_tokens": 1
+      }
+    },
+    "B_verbeterd": {
+      "pogingen": 24,
+      "geslaagd": 24,
+      "mislukt": 0,
+      "calls": 159,
+      "calls_mislukt": 0,
+      "classifier_calls": 157,
+      "review_calls": 2,
+      "classifier_herpogingen": 10,
+      "tokens": {
+        "input_tokens": 244693,
+        "output_tokens": 85889,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 0
+      },
+      "kosten_schatting_usd": 2.022414,
+      "mediaan_seconden": 94.846,
+      "voorstellen": 410,
+      "menselijk": 2,
+      "beslisstatus": {
+        "ACCEPTED": 408,
+        "REJECTED": 157,
+        "HUMAN_REVIEW": 2
+      },
+      "twijfels": {
+        "CLASSIFIER_ABSTAIN": 2
+      },
+      "resolutieregels": {
+        "R-ONGELDIG": 2
+      },
+      "technische_classifier_twijfels": {
+        "CLASSIFIER_ABSTAIN": 2
+      },
+      "ongeldige_reviewoordelen": 2,
+      "validatiefouten": {},
+      "snapshot_herstelde_pogingen": 4,
+      "ontdubbelde_tijdgrenzen": 18,
+      "stopredenen": {
+        "tool_use": 145,
+        "max_tokens": 14
+      }
+    },
+    "C_context": {
+      "pogingen": 24,
+      "geslaagd": 24,
+      "mislukt": 0,
+      "calls": 156,
+      "calls_mislukt": 0,
+      "classifier_calls": 154,
+      "review_calls": 2,
+      "classifier_herpogingen": 7,
+      "tokens": {
+        "input_tokens": 586570,
+        "output_tokens": 83794,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 0
+      },
+      "kosten_schatting_usd": 3.01662,
+      "mediaan_seconden": 75.711,
+      "voorstellen": 405,
+      "menselijk": 8,
+      "beslisstatus": {
+        "ACCEPTED": 397,
+        "REJECTED": 162,
+        "HUMAN_REVIEW": 8
+      },
+      "twijfels": {
+        "CLASSIFIER_ABSTAIN": 8
+      },
+      "resolutieregels": {
+        "R-ONGELDIG": 8
+      },
+      "technische_classifier_twijfels": {
+        "CLASSIFIER_ABSTAIN": 8
+      },
+      "ongeldige_reviewoordelen": 8,
+      "validatiefouten": {},
+      "snapshot_herstelde_pogingen": 3,
+      "ontdubbelde_tijdgrenzen": 17,
+      "stopredenen": {
+        "tool_use": 145,
+        "max_tokens": 11
+      }
+    }
+  },
+  "casussen": {
+    "IW-9-1": {
+      "A_huidig": {
+        "geslaagde_runs": 3,
+        "unie": 4,
+        "doorsnede": 2,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.5,
+        "aantallen": [
+          3,
+          3,
+          2
+        ]
+      },
+      "B_verbeterd": {
+        "geslaagde_runs": 3,
+        "unie": 3,
+        "doorsnede": 3,
+        "alle_runs_gelijk": true,
+        "status_stabiel": true,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 1.0,
+        "aantallen": [
+          3,
+          3,
+          3
+        ]
+      },
+      "C_context": {
+        "geslaagde_runs": 3,
+        "unie": 3,
+        "doorsnede": 3,
+        "alle_runs_gelijk": true,
+        "status_stabiel": true,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 1.0,
+        "aantallen": [
+          3,
+          3,
+          3
+        ]
+      }
+    },
+    "IW-9-5": {
+      "A_huidig": {
+        "geslaagde_runs": 3,
+        "unie": 34,
+        "doorsnede": 24,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          1,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.7058823529411765,
+        "aantallen": [
+          27,
+          27,
+          32
+        ]
+      },
+      "B_verbeterd": {
+        "geslaagde_runs": 3,
+        "unie": 30,
+        "doorsnede": 26,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.8666666666666667,
+        "aantallen": [
+          28,
+          28,
+          28
+        ]
+      },
+      "C_context": {
+        "geslaagde_runs": 3,
+        "unie": 36,
+        "doorsnede": 18,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          4,
+          4
+        ],
+        "doorsnede_door_unie": 0.5,
+        "aantallen": [
+          26,
+          28,
+          28
+        ]
+      }
+    },
+    "LI-9.1": {
+      "A_huidig": {
+        "geslaagde_runs": 3,
+        "unie": 10,
+        "doorsnede": 9,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.9,
+        "aantallen": [
+          9,
+          10,
+          10
+        ]
+      },
+      "B_verbeterd": {
+        "geslaagde_runs": 3,
+        "unie": 15,
+        "doorsnede": 13,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.8666666666666667,
+        "aantallen": [
+          15,
+          13,
+          15
+        ]
+      },
+      "C_context": {
+        "geslaagde_runs": 3,
+        "unie": 16,
+        "doorsnede": 14,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.875,
+        "aantallen": [
+          15,
+          15,
+          16
+        ]
+      }
+    },
+    "LI-9.5": {
+      "A_huidig": {
+        "geslaagde_runs": 3,
+        "unie": 58,
+        "doorsnede": 25,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          2,
+          2,
+          0
+        ],
+        "doorsnede_door_unie": 0.43103448275862066,
+        "aantallen": [
+          41,
+          41,
+          40
+        ]
+      },
+      "B_verbeterd": {
+        "geslaagde_runs": 3,
+        "unie": 56,
+        "doorsnede": 55,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.9821428571428571,
+        "aantallen": [
+          56,
+          55,
+          56
+        ]
+      },
+      "C_context": {
+        "geslaagde_runs": 3,
+        "unie": 56,
+        "doorsnede": 41,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.7321428571428571,
+        "aantallen": [
+          48,
+          48,
+          49
+        ]
+      }
+    },
+    "IW02": {
+      "A_huidig": {
+        "geslaagde_runs": 3,
+        "unie": 14,
+        "doorsnede": 12,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.8571428571428571,
+        "aantallen": [
+          13,
+          13,
+          13
+        ]
+      },
+      "B_verbeterd": {
+        "geslaagde_runs": 3,
+        "unie": 14,
+        "doorsnede": 11,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.7857142857142857,
+        "aantallen": [
+          13,
+          13,
+          12
+        ]
+      },
+      "C_context": {
+        "geslaagde_runs": 3,
+        "unie": 14,
+        "doorsnede": 13,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.9285714285714286,
+        "aantallen": [
+          14,
+          13,
+          13
+        ]
+      }
+    },
+    "AWB04": {
+      "A_huidig": {
+        "geslaagde_runs": 3,
+        "unie": 10,
+        "doorsnede": 10,
+        "alle_runs_gelijk": true,
+        "status_stabiel": true,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 1.0,
+        "aantallen": [
+          10,
+          10,
+          10
+        ]
+      },
+      "B_verbeterd": {
+        "geslaagde_runs": 3,
+        "unie": 11,
+        "doorsnede": 9,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          1,
+          0
+        ],
+        "doorsnede_door_unie": 0.8181818181818182,
+        "aantallen": [
+          10,
+          10,
+          10
+        ]
+      },
+      "C_context": {
+        "geslaagde_runs": 3,
+        "unie": 17,
+        "doorsnede": 12,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.7058823529411765,
+        "aantallen": [
+          16,
+          13,
+          16
+        ]
+      }
+    },
+    "AWB-4:17-1": {
+      "A_huidig": {
+        "geslaagde_runs": 3,
+        "unie": 10,
+        "doorsnede": 6,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.6,
+        "aantallen": [
+          7,
+          8,
+          7
+        ]
+      },
+      "B_verbeterd": {
+        "geslaagde_runs": 3,
+        "unie": 11,
+        "doorsnede": 8,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          1
+        ],
+        "doorsnede_door_unie": 0.7272727272727273,
+        "aantallen": [
+          10,
+          10,
+          9
+        ]
+      },
+      "C_context": {
+        "geslaagde_runs": 3,
+        "unie": 12,
+        "doorsnede": 9,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.75,
+        "aantallen": [
+          11,
+          9,
+          10
+        ]
+      }
+    },
+    "IW04": {
+      "A_huidig": {
+        "geslaagde_runs": 3,
+        "unie": 3,
+        "doorsnede": 2,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.6666666666666666,
+        "aantallen": [
+          3,
+          2,
+          2
+        ]
+      },
+      "B_verbeterd": {
+        "geslaagde_runs": 3,
+        "unie": 4,
+        "doorsnede": 3,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.75,
+        "aantallen": [
+          4,
+          3,
+          3
+        ]
+      },
+      "C_context": {
+        "geslaagde_runs": 3,
+        "unie": 3,
+        "doorsnede": 2,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.6666666666666666,
+        "aantallen": [
+          3,
+          2,
+          3
+        ]
+      }
+    }
+  },
+  "planner": {
+    "max_casussen_tegelijk": 3,
+    "volgorde_per_casus_per_ronde": [
+      [
+        "A_huidig",
+        "B_verbeterd",
+        "C_context"
+      ],
+      [
+        "B_verbeterd",
+        "C_context",
+        "A_huidig"
+      ],
+      [
+        "C_context",
+        "A_huidig",
+        "B_verbeterd"
+      ]
+    ],
+    "reeds_afgerond_bij_overnemen": [
+      "1-IW-9-1-A_huidig.json",
+      "1-IW-9-1-B_verbeterd.json",
+      "1-IW-9-1-C_context.json",
+      "1-IW-9-5-A_huidig.json",
+      "1-IW-9-5-B_verbeterd.json",
+      "1-IW-9-5-C_context.json"
+    ],
+    "planner_sha256": "316ea5591bc3dc4c216bf0c1e580f1d7be702e8f45f6d33eb421735c5443afd7",
+    "reden": "Onafhankelijke casussen parallel; alle 72 oorspronkelijke pogingen blijven behouden. Latentie is mede afhankelijk van parallelisme."
+  },
+  "snapshot_correctie": {
+    "schema_versie": 1,
+    "type": "uitsluitend_afbakening_onderzoekssnapshot",
+    "bronpakket_ongewijzigd": true,
+    "applicatiecode_ongewijzigd": true,
+    "harnas_sha256_voor": "7700d4e3acd4a35b6e519a92381870131df61999f0ab1e8bd048e4c80afa8d99",
+    "harnas_sha256_na": "5da2ef6b490e487951fa5f1d5ed2e2c280bd8b779790c32263109897a881b407",
+    "casussen_sha256": "2b6085c4dcfae20a569a6e8b26abc5aa6f79a7564b03747cb0aebcab30b91036",
+    "reden": "De hoogste geselecteerde graafouder is de lokale wortel; de verbinding buiten de selectie wordt apart bewaard. Bronteksten, offsets, directe ouders, detectoren en modelverzoeken blijven gelijk.",
+    "oorspronkelijke_pogingen": [
+      "1-AWB-4_17-1-A_huidig.json",
+      "1-AWB-4_17-1-B_verbeterd.json",
+      "1-AWB04-A_huidig.json",
+      "1-AWB04-B_verbeterd.json",
+      "1-AWB04-C_context.json",
+      "1-IW-9-1-A_huidig.json",
+      "1-IW-9-1-B_verbeterd.json",
+      "1-IW-9-1-C_context.json",
+      "1-IW-9-5-A_huidig.json",
+      "1-IW-9-5-B_verbeterd.json",
+      "1-IW-9-5-C_context.json",
+      "1-IW02-A_huidig.json",
+      "1-IW02-B_verbeterd.json",
+      "1-IW02-C_context.json",
+      "1-IW04-A_huidig.json",
+      "1-IW04-B_verbeterd.json",
+      "1-IW04-C_context.json",
+      "1-LI-9.1-A_huidig.json",
+      "1-LI-9.1-B_verbeterd.json",
+      "1-LI-9.1-C_context.json",
+      "1-LI-9.5-A_huidig.json",
+      "1-LI-9.5-B_verbeterd.json",
+      "1-LI-9.5-C_context.json"
+    ]
+  },
+  "herstelbestanden_sha256": {
+    "1-AWB-4_17-1-A_huidig.json": "990103af2de4eb639d2e094fd342a76d1d8945cd605adf0446eb28aff476d6f6",
+    "1-AWB-4_17-1-B_verbeterd.json": "b79761ac8846d084255955a2f7ec26e7fd77004615fb6a17c42b5b1ca12cb705",
+    "1-AWB04-A_huidig.json": "226c058cf843266ba506bc9a22314f8db2ecbb8923c419c9c48ef1f8e7b64eb5",
+    "1-AWB04-B_verbeterd.json": "e75588669e432ea87d63569020e76cd443eb99c553e3240b5880316e08340daf",
+    "1-AWB04-C_context.json": "f99d8a61196411756f51299d919697c4b80e092662484edd86e07e717c942c5c",
+    "1-IW02-A_huidig.json": "1539000a7a6e18daa16e60688042486adcc18916778689f91d34f1038a2d5366",
+    "1-IW02-B_verbeterd.json": "a07d0081a38d58a7c52d434d0ffcff4266d38b1aeb8410240447be3f828b33f6",
+    "1-IW02-C_context.json": "93bf52cd03ac7c91a92c82d9af51a3307e6660a130c3451fbfbc9bbe181b7e39",
+    "1-IW04-A_huidig.json": "e3d29227e7337c5c53584025db6d41a3dd60af2310ec336c615a1bc3a26a486d",
+    "1-IW04-B_verbeterd.json": "f1f4678e850f1995d4b7edc0d1a32a2e14b2f8dd7d6bbab2f38bc1f1d59a619b",
+    "1-IW04-C_context.json": "26f313606d406cd2917b8e9a28f3d8db0c180c442b174ee7ce43cb6ea8f07ce5"
+  },
+  "runbestanden_sha256": {
+    "1-AWB-4_17-1-A_huidig.json": "68192abb9514df88bb412fb789e05faf6c9bc402f6223723500328a0e2625304",
+    "1-AWB-4_17-1-B_verbeterd.json": "667a642a3a37ef8fd69339f2af33062d3bad227f5af659ac5dd573019b50e433",
+    "1-AWB-4_17-1-C_context.json": "c9021459225e3d6d29bf81f9b36b2e215751d6e29a11798b09ef708ad7afa09c",
+    "1-AWB04-A_huidig.json": "e6c57db99675ee8a68fc15170346930f5813348254fad78d3463764412237297",
+    "1-AWB04-B_verbeterd.json": "d06f7de026fd98e8587dab8065171c4f0dd252659aacd617af6ee3453725a2c0",
+    "1-AWB04-C_context.json": "436490519e2bf257c21a0fdbc4c663d3d87ad4ee88e18199f190baa2ad8f3775",
+    "1-IW-9-1-A_huidig.json": "96de7a1890c5f8a5020a9a98f5897d2d08b39034c4f57afbb860790924fc4d03",
+    "1-IW-9-1-B_verbeterd.json": "24f04864c2bda5db006c56c4f7222894fd1e9de11ac8b8b2a2c61dec983a312d",
+    "1-IW-9-1-C_context.json": "4f7ac5489804be0c467a7b78187ec7938c6da8f3e1810ca5cd8587009608f778",
+    "1-IW-9-5-A_huidig.json": "954008e0fb04f1c96478eef9f424d263bbb33b713d06272e5936af3bc77c4524",
+    "1-IW-9-5-B_verbeterd.json": "8ad41f9cb574bd4284f26b404cd9691ee62532577056a4f9eccde180d65527bd",
+    "1-IW-9-5-C_context.json": "dc8f8e3a76299d9377679cbdd6da27bae2541213cd4655c3e4e501b876be9552",
+    "1-IW02-A_huidig.json": "9e0b537f6ff9742c3ab7fff991664b171f3ceaa7933efbc1916ceb485c241833",
+    "1-IW02-B_verbeterd.json": "abf94f62fc81acfa2c8ec68a58f028a03dd5fea1309cf64070cc02fbc75a7dbd",
+    "1-IW02-C_context.json": "d11275f454da4d7f5b38e6525fc076267c64f4efe38691e78a1e63e15e7fe91f",
+    "1-IW04-A_huidig.json": "07d76d9346bea265160751331daa98f30c2f606a4504abc01d0e32da0661ecd8",
+    "1-IW04-B_verbeterd.json": "72502c2ee0c61e490af261bf39e3712b1609e5d40c0ede2f8083fa5fead462bc",
+    "1-IW04-C_context.json": "5abcf0b5ecac231a788598afe9cc4b0266f18c8885c409f95eacf7785b402dd1",
+    "1-LI-9.1-A_huidig.json": "c9113f3412cdac14cc93cbb01ebfebb93e5eb036419fe803d539543dc8318b25",
+    "1-LI-9.1-B_verbeterd.json": "cf3da2250723c9d339c79e53bfdf11cda41669d741eedee53b3ebb379ff64307",
+    "1-LI-9.1-C_context.json": "946f73c41614639c8c1016333133e161b6fde9c3a3493240274821e1471dede0",
+    "1-LI-9.5-A_huidig.json": "e4c63f4d36703b0030d115436662ca8402be000d6a9149acd2cf7479d3973f79",
+    "1-LI-9.5-B_verbeterd.json": "24b8dcc2039ef4e9cf78982f92d33558778e4e8d4b89c4101233dc8201508fee",
+    "1-LI-9.5-C_context.json": "f615738a14d5f2f0d479250a4ddec72f3d51c8c5b7df490a0700ae120338f720",
+    "2-AWB-4_17-1-A_huidig.json": "5aff121e09b8f0cebf5095b75109fcd9d4a775c2ac9e766934354b8dadf99478",
+    "2-AWB-4_17-1-B_verbeterd.json": "67280fcdece9ad210a1fd458dd89906a236ae9f2d8df5488ec7abd1c84accce7",
+    "2-AWB-4_17-1-C_context.json": "a79f697d41ce85c52d220ae8308261725bcd5ba451109737383d628f2a5d1efa",
+    "2-AWB04-A_huidig.json": "3d22db5afb39c325ee785519f88984e5628f28f25534bac52918372f3f97fff2",
+    "2-AWB04-B_verbeterd.json": "472a7d23ae7c1f792638a386166200717c93dc80ee5a18e1c3e7ccef2d0aeeea",
+    "2-AWB04-C_context.json": "eb2ca4a667fe5e277b869179d6f3fdc3d90dc76becd3f2f5af13fadffdf4dd2f",
+    "2-IW-9-1-A_huidig.json": "7497da8283c7c2a6fc0eca5db5f8adcc68b6bc2673403d6d1c34007db6022178",
+    "2-IW-9-1-B_verbeterd.json": "14fdae09c1eb9036656946910480c5d3bdff02bc945253394a04bcf1f050ca68",
+    "2-IW-9-1-C_context.json": "f2558f8930662856bd82e632ac9568ab8249f631a24cad18815b1427389b1499",
+    "2-IW-9-5-A_huidig.json": "0e291c08ee04b51d278c9fb8d2dac93e2142b1ef71e7306485e3c3512e7503aa",
+    "2-IW-9-5-B_verbeterd.json": "63dc6c598feea4ef88e04718bfe5161cdc6d03ea8d9d522bac7658e22bcc4617",
+    "2-IW-9-5-C_context.json": "d2d35d731c23ac240afa8074904de5d02b3d68de863dab7715c218dc980f428a",
+    "2-IW02-A_huidig.json": "cccdc1e942d0db5f277c5a96d8bcc7a6992fbc30b77e2b273167eaf823812a89",
+    "2-IW02-B_verbeterd.json": "b9efbadb2caf15c4b544d4640ee1d496b38ca9e0bead927ff10236e44cc880a7",
+    "2-IW02-C_context.json": "fd9affc182551da0288fdc2488c7aebf3b91cb36ba97b26e88193cd740a9c377",
+    "2-IW04-A_huidig.json": "e1d39f932ef6b8778475655c89c6eed03d987041ec51785822c9f7b89696f20e",
+    "2-IW04-B_verbeterd.json": "e43bf6f89fc467bb15506779d2ccad4d2040fa99a160ed9ab74fcfa13ceb613c",
+    "2-IW04-C_context.json": "5e5a793241d034076b00173f9f30068fc518362592a3ad3e51f70339005c43bf",
+    "2-LI-9.1-A_huidig.json": "d46c47d879ac33ad2efe4ba4d757b4c310a46100a9591dbbe2d72a7b5cc1d18c",
+    "2-LI-9.1-B_verbeterd.json": "0f63080e0c573b3162d671f91fb81387726f05d1ddc498fb61e705897c1eff62",
+    "2-LI-9.1-C_context.json": "82a96095b310e9c7704b7b6616b5d08d13c0589f1a65f153d9a366c8c2bef10b",
+    "2-LI-9.5-A_huidig.json": "681738b51c63765905ef4c1faa911e6b3ed3d8c63aa286b8d90b85b6253d5419",
+    "2-LI-9.5-B_verbeterd.json": "eecbaf779a0f04071ae76e59c5b57e2227518a95f4f9e41b404bc974688ca47b",
+    "2-LI-9.5-C_context.json": "80b842a9c2fa98150f89701a60937a0083be54fda603b0ff632f06467642eaab",
+    "3-AWB-4_17-1-A_huidig.json": "47be02997097db18f5da2b2b55d80f7485459e745321e9677018643f9fe31491",
+    "3-AWB-4_17-1-B_verbeterd.json": "1753ca714a00c0fa3185b340ad808a0910d6311cdfee5bb0a6b693bb2f67d176",
+    "3-AWB-4_17-1-C_context.json": "ecb6c7e955414cf2813c7209a71c9051aa68b5efde93526a17846ac2e14cc485",
+    "3-AWB04-A_huidig.json": "5b2689c53a146939198b1b0cac981458b81dbd7bff0fb06cde32c2104c257d8e",
+    "3-AWB04-B_verbeterd.json": "4620c6456db57a46b56de1dbc66f1c01787d9a6567a1d58dc1763ec8941a99d7",
+    "3-AWB04-C_context.json": "90aafb9ee6aab7204241f807d544c4555d285281e3eaaab33eeded52cac193c0",
+    "3-IW-9-1-A_huidig.json": "902030610d8c036a4daec385d0cdaf2c9c0fe18a9e8c1f5668c7e595807d7d0a",
+    "3-IW-9-1-B_verbeterd.json": "6283cf37e3958cebd6d695a273002a612840c1b3c4e4d4efa172f519255f7291",
+    "3-IW-9-1-C_context.json": "b6cbe2d5ce2aaa3eea892001d0c3a761fff9fe3caef00f0cac7036e4dd84119d",
+    "3-IW-9-5-A_huidig.json": "23d0edba3a94804166fbce4d19b4010f81f29fb97ee8a80f4598f24a1c674d72",
+    "3-IW-9-5-B_verbeterd.json": "c5c385fbe1a1532a0d2f16a1064ae9de46090b0984a91dd69f9fecf4f1d3857d",
+    "3-IW-9-5-C_context.json": "90d66de10174d3d521d60b15abb673ca54095ea743e126e386f400ef42810202",
+    "3-IW02-A_huidig.json": "7b3aeb232c89eea2a9d2e8980fba4177fd7d1c46a4d582bb02fab640f852c370",
+    "3-IW02-B_verbeterd.json": "80ce3f149127f5d0cc188708237127c506e90767ee6a47d6f478b9bed6005f76",
+    "3-IW02-C_context.json": "ab1b4b2fc8e4bfa0fe0524cf1738cf7d70773ab22128d6bfbd46960dcafdc525",
+    "3-IW04-A_huidig.json": "1593b2c65b91606597d2373ad812f08f5b62aca910fc16bf8564e0396780f0d6",
+    "3-IW04-B_verbeterd.json": "fea25988a1b095a6aaf66ad13772260cb79149ac387bcf724df92f4faa1016d6",
+    "3-IW04-C_context.json": "4dfd12d1769cf2dde22c2b0e1f570c0336bb3d087b7a4cb4470ec2cf03599a21",
+    "3-LI-9.1-A_huidig.json": "31ca854b8b153229c210ed1900e4776952f927840f89ecc649a7995093587870",
+    "3-LI-9.1-B_verbeterd.json": "03b8560d66e0ee3d5e1df93daa68f74a828230907bf758ca8e9f746c5379d3af",
+    "3-LI-9.1-C_context.json": "7b6ea5eeb27c0441d0cbe0a0a92942030dccd524964348c7bd641c1551de0547",
+    "3-LI-9.5-A_huidig.json": "70a7095c19fa98b83181a1849994cc6a13a1af254ec51c762a65569a143a8fe2",
+    "3-LI-9.5-B_verbeterd.json": "2a610a31bb604081940c53e9044130cfb3d40e283ee8958402587e33df5f304d",
+    "3-LI-9.5-C_context.json": "138032b1b78a380815a188f4d86237580aa2ba9ebcbdf08ec59c6acd13de24af"
+  }
+}

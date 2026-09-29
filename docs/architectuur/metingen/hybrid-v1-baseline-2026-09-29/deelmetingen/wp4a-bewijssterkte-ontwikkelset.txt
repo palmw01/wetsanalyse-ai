@@ -1,0 +1,4 @@
+S0 voor/na: {'kandidaten': (260, 260), 'ankers_core': (72, 72), 'ankers_met_klasse': (72, 72)} determ: 19 19
+verloren: []
+IW-D2 classifier_input_gelijk False
+LI-D3 classifier_input_gelijk False
