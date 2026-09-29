@@ -4,8 +4,9 @@
   klassen: [Tijdsaanduiding]
   code: TEMPORAL_DATE
   bron: "H2:109"
-  versie: 1
-  patroon: '\b\d{1,2}\s+{MAAND}\s+\d{4}\b'
+  versie: 2
+  controle: kalenderdatum
+  patroon: '\b\d{1,2}\s+{MAAND}(?:\s+\d{4}(?!\d))?\b'
   links: '\b(?:op|vóór|voor|na|met ingang van|vanaf|tot en met|tot)\s+'
   tests:
     positief: [{tekst: "Deze wet treedt in werking op 1 september 2009.", span: "op 1 september 2009"}]

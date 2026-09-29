@@ -4,9 +4,10 @@
   klassen: [Afleidingsregel, Parameter en parameterwaarde]
   code: CALCULATION_COPULA
   bron: "H2:73"
-  versie: 1
+  versie: 2
+  bereik: segment
   niet_binnen: []
-  patroon: '[^.;:]*?(?<!minder )(?<!meer )\b(?:bedraagt|bedragen)\b(?!\s+(?:\w+\s+)?dan\b)[^.;]*[.;]?'
+  patroon: '[\s\S]*?(?<!minder )(?<!meer )\b(?:bedraagt|bedragen)\b(?!\s+(?:\w+\s+)?dan\b)[\s\S]*'
   tests:
     positief: [{tekst: "De dwangsom bedraagt € 23 per dag.", span: "De dwangsom bedraagt € 23 per dag."}]
     negatief: [{tekst: "Indien de premie minder bedraagt dan de standaardpremie", span: "minder bedraagt dan"}]
@@ -16,10 +17,11 @@
   klassen: [Afleidingsregel]
   code: CALCULATION_PASSIVE
   bron: "H2:73"
-  versie: 1
+  versie: 2
+  bereik: segment
   niet_binnen: []
-  patroon: '[^.;:]*?\b(?:wordt|worden)\b[^.;:]*?\b(?:gesteld\s+op|berekend|vastgesteld\s+op|in\s+aanmerking\s+genomen)\b'
-  rechts: '[^.]*\.?'
+  patroon: '[\s\S]*?\b(?:wordt|worden)\b[\s\S]*?\b(?:gesteld\s+op|berekend|vastgesteld\s+op|in\s+aanmerking\s+genomen)\b'
+  rechts: '[\s\S]*'
   tests:
     positief: [{tekst: "Voor een verzekerde met een partner wordt daarbij tweemaal de standaardpremie in aanmerking genomen; klaar.", span: "Voor een verzekerde met een partner wordt daarbij tweemaal de standaardpremie in aanmerking genomen"}]
     negatief: [{tekst: "Bij ministeriële regeling worden regels gesteld.", span: "regels gesteld"}]
@@ -29,9 +31,10 @@
   klassen: [Afleidingsregel]
   code: LEGAL_FICTION
   bron: "H2:71"
-  versie: 1
+  versie: 2
+  bereik: segment
   niet_binnen: []
-  patroon: '\b(?:wordt|worden)\s+(?:[\w-]+\s+){0,3}?(?:vermoed|geacht)\b[^,.;:]*?(?=\s+en\s+dat\b|[,.;:]|$)'
+  patroon: '\b(?:wordt|worden)\s+(?:[\w-]+\s+){0,3}?(?:vermoed|geacht)\b[^,]*?(?=\s+en\s+dat\b|,|[.;:]?$)'
   tests:
     positief: [{tekst: "met dien verstande dat wordt vermoed dat de niet betaling aan hem is te wijten en dat de periode loopt.", span: "wordt vermoed dat de niet betaling aan hem is te wijten"}]
     negatief: [{tekst: "Hij vermoedt dat het klopt.", span: "vermoedt"}]
