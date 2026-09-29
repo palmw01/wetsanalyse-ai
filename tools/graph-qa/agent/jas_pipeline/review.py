@@ -40,7 +40,8 @@ SYSTEEM = (
     "afwijzing; CHANGE: kies uitsluitend een aangeboden klasse voor de bestaande kandidaat. "
     "Een normsignaal verplicht niet tot acceptatie. Bij onvoldoende context kies je HUMAN_REVIEW. "
     "Geef steeds een korte motivering en vermeld welke aangeboden context je gebruikt. "
-    "Context is geen annotatiedoel. Roep het hulpmiddel `beoordeel` precies één keer aan."
+    "Context is geen annotatiedoel. Roep het hulpmiddel `beoordeel` direct en precies één keer aan; "
+    "je motivering hoort in het veld `motivering`, niet in tekst daarbuiten."
 )
 
 
@@ -133,11 +134,14 @@ def beoordeel(llm: Any, model: str, twijfels: list[Twijfel], kandidaten_per_labe
         meting.setdefault("review_batches", []).append({"labels": [t.label for t in twijfels],
             "prompt_sha256": hashlib.sha256((SYSTEEM + _prompt(twijfels, kandidaten_per_label, brontekst, context)).encode()).hexdigest(),
             "schema_sha256": hashlib.sha256(json.dumps(_schema(twijfels), sort_keys=True).encode()).hexdigest()})
-    resp = llm.create(model=model, max_tokens=min(8000, 256 + 160 * len(twijfels)), system=SYSTEEM,
+    # Ruim budget (baselineproef 29 sep: iedere reviewaanroep stopte op max_tokens vóór de aanroep).
+    resp = llm.create(model=model, max_tokens=min(8000, 1536 + 256 * len(twijfels)), system=SYSTEEM,
                       tools=[_schema(twijfels)], tool_choice={"type": "auto"},
                       messages=[{"role": "user", "content": _prompt(twijfels, kandidaten_per_label, brontekst, context)}])
     if meting is not None:
         meting["review_calls"] = meting.get("review_calls", 0) + 1
+        if getattr(resp, "stop_reason", "") == "max_tokens":
+            meting["review_afgekapt"] = meting.get("review_afgekapt", 0) + 1
     items = None
     for blok in getattr(resp, "content", []) or []:
         if getattr(blok, "type", "") == "tool_use" and getattr(blok, "name", "") == TOOL:

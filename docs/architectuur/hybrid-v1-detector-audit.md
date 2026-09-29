@@ -1,5 +1,10 @@
 # Detectoraudit vóór de baseline van hybrid_v1
 
+**Baseline 29 september 2026:** de nulmeting is opgeschoven. D01, D03, D04, D05 en D06 zijn
+alsnog vóór de baseline opgelost, elk met een eigen deelmeting; de nieuwe
+[baselinemeetmap](metingen/hybrid-v1-baseline-2026-09-29/README.md) is het vertrekpunt voor het
+vervolg. De rijen hieronder vermelden de uitvoering; de oorspronkelijke analyse blijft staan.
+
 **Implementatievervolg 29 september 2026:** het [invorderingsvervolg](hybrid-v1-invordering-vervolg.md)
 implementeert A01–A10 uit het daaropvolgende onderzoeksontwerp: beschermde afleidingsgrenzen,
 datums zonder jaartal, termijnfuncties, expliciete tijdkernhypothesen, gerichte toetsing van
@@ -132,12 +137,12 @@ correctie vlak vóór V7. Het toevoegen van een nieuwe normcontextgate bij gener
 | F02 | nominale vergelijkings-/hoedanigheidsfrase als conditionele clause | OVERBROAD_DETECTION | P1 | FIX_BEFORE_BASELINE — uitgevoerd, A/B |
 | F03 | oorsprong van klassen verdwijnt bij interne merge en fusie | FUSION_DESIGN_LIMITATION | P2 | FIX_BEFORE_BASELINE — diagnostische opslag, D; semantische fusie blijft |
 | F04 | Part geaccepteerd door als Inf bedoelde nominalisatietak | IMPLEMENTATION_BUG | P1 | FIX_BEFORE_BASELINE — uitgevoerd, A/B |
-| D01 | generic NP-regel noemt normatief predicaat zonder dat te toetsen | PROFILE_IMPLEMENTATION_MISMATCH | P3 | DEFER_UNTIL_AFTER_BASELINE |
+| D01 | generic NP-regel noemt normatief predicaat zonder dat te toetsen | PROFILE_IMPLEMENTATION_MISMATCH | P3 | OPGELOST VÓÓR BASELINE — normcontext per beschermd segment getoetst; zonder normcontext `jas.object.np`/`jas.subject.np` zonder Rechtssubject bij object en lijdend onderwerp ([wp3](metingen/hybrid-v1-baseline-2026-09-29/deelmetingen/wp3-normsignaal-ontwikkelset.txt)) |
 | D02 | grammaticale rollen missen juridische governor/voice/dragerrelatie | MISSING_CONTEXT | P3 | DEFER_UNTIL_AFTER_BASELINE |
-| D03 | normatief signaal biedt RF zonder bewijs voor rechtsgevolg | EVIDENCE_MAPPING_ERROR | P3 | DEFER_UNTIL_AFTER_BASELINE |
-| D04 | -ing+nmod is onvoldoende actieherkenning; voorbeelden regeling/toepassing/dagtekening | OVERBROAD_DETECTION | P3 | DEFER_UNTIL_AFTER_BASELINE |
-| D05 | zwak bewijs en extra klassen blokkeren sterk patroonbewijs | DETERMINISTIC_POLICY_LIMITATION | P3 | DEFER_UNTIL_AFTER_BASELINE |
-| D06 | centrale sterktelijst heeft geen sluitende relatie met profielmetadata | PROFILE_IMPLEMENTATION_MISMATCH | P3 | DEFER_UNTIL_AFTER_BASELINE |
+| D03 | normatief signaal biedt RF zonder bewijs voor rechtsgevolg | EVIDENCE_MAPPING_ERROR | P3 | OPGELOST VÓÓR BASELINE — RF alleen met `LEGAL_EFFECT_PREDICATE` (lijst RECHTSGEVOLG); RF-of-RB bij IW 9 lid 1 blijft een juridische vraag ([wp3](metingen/hybrid-v1-baseline-2026-09-29/deelmetingen/wp3-normsignaal-ontwikkelset.txt)) |
+| D04 | -ing+nmod is onvoldoende actieherkenning; voorbeelden regeling/toepassing/dagtekening | OVERBROAD_DETECTION | P3 | OPGELOST VÓÓR BASELINE — van/door-bepaling vereist; vaste voorzetseluitdrukkingen en regelingsvormen uitgesloten; 'dagtekening' blijft (N02) ([wp2](metingen/hybrid-v1-baseline-2026-09-29/deelmetingen/wp2-nominalisatie-ontwikkelset.txt)) |
+| D05 | zwak bewijs en extra klassen blokkeren sterk patroonbewijs | DETERMINISTIC_POLICY_LIMITATION | P3 | OPGELOST VÓÓR BASELINE — generiek NP-bewijs blokkeert sterk bewijs niet meer (`STERK_BOVEN_GENERIEK`); ander zwak bewijs wel; AWB04-periodes worden regelbesluit ([wp4b](metingen/hybrid-v1-baseline-2026-09-29/deelmetingen/wp4b-sterk-boven-generiek-ontwikkelset.txt)) |
+| D06 | centrale sterktelijst heeft geen sluitende relatie met profielmetadata | PROFILE_IMPLEMENTATION_MISMATCH | P3 | OPGELOST VÓÓR BASELINE — sterkte per regel in de regeldefinitie, lijst afgeleid (`bewijssterkte.py`); klasse met determinisme `laag` heeft geen sterke code ([wp4a](metingen/hybrid-v1-baseline-2026-09-29/deelmetingen/wp4a-bewijssterkte-hoofdgevallen.txt)) |
 | D07 | vergelijkend als met werkwoord, ellipsen en indirecte clause-attachment | PARSER_DEPENDENCY | P3 | DEFER_UNTIL_AFTER_BASELINE |
 | D08 | operanden, normrollen en afleidingsrelaties ontbreken | RELATION_MODEL_LIMITATION | P3 | DEFER_UNTIL_AFTER_BASELINE |
 | D09 | vier geplande regels en lexicale varianten ontbreken | UNDER_DETECTION | P3 | DEFER_UNTIL_AFTER_BASELINE |

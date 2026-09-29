@@ -3,6 +3,9 @@
 De onderstaande kaart hoort bij de eerdere tekststructuurversie. De
 [vervolgkaart voor invordering](hybrid-v1-invordering-vervolg.md) beschrijft de daarna
 toegevoegde termijnfuncties, contextvoorziening en gerichte toetsing van centrale afwijzingen.
+De [baseline van 29 september](metingen/hybrid-v1-baseline-2026-09-29/README.md) is het
+vertrekpunt voor het vervolg; tussen detectoren en deterministisch besluit zit daar de
+[afgeleide bewijssterkte](../../tools/graph-qa/agent/jas_pipeline/bewijssterkte.py).
 
 Deze kaart beschrijft de geïmplementeerde keten en het afzonderlijke vergelijkingspunt
 na de [detectoraudit](hybrid-v1-detector-audit.md). Het betreft een technische verbetering

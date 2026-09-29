@@ -293,3 +293,23 @@ def test_sterk_bewijs_boven_generiek_signaal(klassen, codes, klasse):
     assert (b.klasse if b else None) == klasse
     if b and len(klassen) > 1:
         assert b.reden.startswith("STERK_BOVEN_GENERIEK:")
+
+
+def test_afgekapte_modelantwoorden_worden_geteld_en_budget_is_ruim():
+    from types import SimpleNamespace
+    from agent.jas_pipeline.classificatie import classificeer
+    from agent.jas_pipeline.onzekerheid import Twijfel
+    from agent.jas_pipeline.review import beoordeel
+    verzoeken = []
+
+    class Afgekapt:
+        def create(self, **kw):
+            verzoeken.append(kw)
+            return SimpleNamespace(content=[SimpleNamespace(type="text", text="Ik analyseer …")], stop_reason="max_tokens")
+    k = _kandidaat(["Tijdsaanduiding", "Rechtsobject"], ["TEMPORAL_DURATION", "NOMINALIZED_ACTION"])
+    meting = {}
+    classificeer(Afgekapt(), "m", [k], "tekst", meting=meting)
+    assert meting["afgekapt"] == 2 and verzoeken[0]["max_tokens"] >= 1536
+    t = Twijfel(label=k.label, reden="CLASSIFIER_ABSTAIN", alternatieven=("Tijdsaanduiding",))
+    beoordeel(Afgekapt(), "m", [t], {k.label: k}, "tekst", meting)
+    assert meting["review_afgekapt"] == 1 and verzoeken[-1]["max_tokens"] >= 1536

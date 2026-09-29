@@ -9,6 +9,27 @@ De oorspronkelijke onderzoeksbestanden, freeze en referentieset v1 blijven ongew
 Nieuwe resultaten staan in een [afzonderlijke meetmap](metingen/hybrid-v1-invordering-vervolg-2026-09-29/README.md).
 Dit document vervolgt de eerdere [ketenkaart voor tekststructuur](hybrid-v1-annotatieketen.md).
 
+## Aanvulling: baseline 29 september 2026
+
+Deze versie is vóór de nulmeting verder aangescherpt en vormt samen met vijf uitgestelde
+auditpunten de [nieuwe baseline](metingen/hybrid-v1-baseline-2026-09-29/README.md). Wat
+daardoor anders is dan hieronder beschreven:
+
+- **Context in productie.** `broncontext` (standaard aan) bepaalt of `BronContext.ouders` wordt
+  meegegeven. Context staat als eigen `CONTEXT`-blok ná de afgesloten bepaling, niet erbinnen.
+  Een ouderpassage met afwijkende hash wordt als ontbrekend gemeld in plaats van de annotatie te
+  stoppen. Het productiemechanisme levert alleen een passage als de oudernode eigen tekst heeft:
+  bij de onderzochte wetsartikelen is dat niet zo, bij de Leidraad wel. De C-variant van de
+  vorige proef (samengesteld pakket van achttien passages) meet dus niet het productiegedrag.
+- **Functiedetector.** Passieve toewijzing en toepassingskeuze worden op dependencies getoetst:
+  een grootheid als lijdend onderwerp met een `op`-bepaling; een toepassingskeuze onder een
+  voorwaarde, niet ontkend en niet `overeenkomstige toepassing`.
+- **Tijdkern.** `TEMPORAL_KERNEL` verwijst naar de ouder en kopieert geen detectorbewijs meer
+  (fusie v3), zodat een bijdrage nooit een treffer suggereert die de detector niet deed.
+- **Auditpunten D01, D03–D06**: normcontext bij generieke NP, Rechtsfeit alleen met rechtsgevolg,
+  nominalisatie alleen bij handeling, afgeleide bewijssterkte en sterk bewijs boven generiek
+  NP-bewijs. Zie de [detectoraudit](hybrid-v1-detector-audit.md).
+
 ## Bronbeleid en afbakening
 
 De vier hoofdgevallen zijn IW 9 lid 1, IW 9 lid 5 en Leidraad Invordering §9.1 en §9.5.
