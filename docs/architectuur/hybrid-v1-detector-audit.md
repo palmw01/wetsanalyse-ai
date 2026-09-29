@@ -1,5 +1,13 @@
 # Detectoraudit vóór de baseline van hybrid_v1
 
+**Implementatievervolg 29 september 2026:** het [invorderingsvervolg](hybrid-v1-invordering-vervolg.md)
+implementeert A01–A10 uit het daaropvolgende onderzoeksontwerp: beschermde afleidingsgrenzen,
+datums zonder jaartal, termijnfuncties, expliciete tijdkernhypothesen, gerichte toetsing van
+centrale afwijzingen en afzonderlijke graafcontext. Anders dan de eerdere technische ronde
+bevat dit ook gewijzigde prompts en beslisregels. De [nieuwe meetmap](metingen/hybrid-v1-invordering-vervolg-2026-09-29/README.md)
+bewaart de afzonderlijke fasen, alle detectieverschillen en de modelproef. Onderstaande
+audit en eerdere onderzoeksuitspraken blijven hun historische betekenis houden.
+
 **Inhoudelijk vervolg 29 september 2026:** het [onderzoek van vier invorderingsbepalingen](../wetsanalyse/onderzoek-invordering-2026-09-29/README.md)
 voegt tien bevindingen toe, op uitsluitend graafteksten: afgewezen centrale norm zonder review,
 datums zonder jaartal, gemiste passieve datumtoewijzing en termijnberekening, temporele

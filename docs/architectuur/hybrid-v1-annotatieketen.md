@@ -1,5 +1,9 @@
 # Annotatieketen en tekststructuur — 29 september 2026
 
+De onderstaande kaart hoort bij de eerdere tekststructuurversie. De
+[vervolgkaart voor invordering](hybrid-v1-invordering-vervolg.md) beschrijft de daarna
+toegevoegde termijnfuncties, contextvoorziening en gerichte toetsing van centrale afwijzingen.
+
 Deze kaart beschrijft de geïmplementeerde keten en het afzonderlijke vergelijkingspunt
 na de [detectoraudit](hybrid-v1-detector-audit.md). Het betreft een technische verbetering
 van tekstgrenzen, structuur en herkomst. Classifierprompts, juridische herkenningsregels,

@@ -6,6 +6,7 @@ uitvoer; hervatten slaat bestaande pogingen over, ook mislukte. Geen extra herha
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -57,7 +58,7 @@ def prepare():
 
 
 def controleer_cases(p):
-    from bronmodel import tekst_hash
+    from bronmodel import tekst_hash, valideer_ankers
     if p["casussen_sha256"] != sha(p["casussen"]):
         raise ValueError("bronpakket veranderd")
     if len({c["id"] for c in p["casussen"]}) != len(p["casussen"]):
@@ -70,6 +71,37 @@ def controleer_cases(p):
                 raise ValueError("gewijzigde brontekst")
         if any(n["herkomst"] != "graaf" for n in c["context"]):
             raise ValueError("context komt niet uit de graaf")
+        snap = onderzoekssnapshot(c["snapshot"])
+        for n in snap["segmenten"]:
+            if n["tekst"]:
+                valideer_ankers(snap, [{"bron_iri": n["bron_iri"], "bron_hash": n["bron_hash"],
+                    "start": 0, "eind": len(n["tekst"]), "tekst": n["tekst"]}])
+
+
+def onderzoekssnapshot(snapshot):
+    """Sluit uitsluitend de lokale onderzoeksboom af; bewaar de echte graafouder.
+
+    Een gerichte selectie pretendeert geen volledige regelingboom te zijn. De hoogste
+    meegeleverde ouder is haar lokale wortel. Geen tekst, eigen bronnode of context
+    verandert; de externe graafverbinding blijft expliciet in de afbakening aanwezig.
+    """
+    s = deepcopy(snapshot)
+    iris = {n["bron_iri"] for n in s["nodes"]}
+    toppen = [n for n in s["nodes"] if n.get("parent_iri") and n["parent_iri"] not in iris]
+    if not toppen:
+        return s
+    if s.get("snapshot_soort") != "gerichte_graafnodes_geen_volledige_bronboom" or len(toppen) != 1:
+        raise ValueError("alleen expliciet gerichte onderzoekssnapshot mag lokaal worden afgesloten")
+    top = toppen[0]
+    if top["bron_iri"] in {n["bron_iri"] for n in s["segmenten"]}:
+        raise ValueError("eigen bronnode mag haar directe oudercontext niet verliezen")
+    s["afbakening"] = {"lokale_wortel": top["bron_iri"], "graafouder_buiten_selectie": top["parent_iri"],
+                       "oorspronkelijke_snapshot_id": s["snapshot_id"]}
+    top["graaf_parent_iri"] = top["parent_iri"]
+    top["parent_iri"] = ""
+    s["snapshot_soort"] = "afgebakende_onderzoekssnapshot"
+    s["snapshot_id"] = sha(s)
+    return s
 
 
 def codehash(root):
@@ -90,7 +122,8 @@ def worker(args):
     p = json.loads(args.cases.read_text())
     controleer_cases(p)
     c = next(c for c in p["casussen"] if c["id"] == args.case)
-    cm = CorpusMap(c["snapshot"]["segmenten"])
+    snap = onderzoekssnapshot(c["snapshot"])
+    cm = CorpusMap(snap["segmenten"])
     s = Settings.from_env({**dotenv_values(ROOT / "tools/graph-qa/.env"), **os.environ}).model_copy(update={
         "llm_model": "claude-sonnet-4-6", "llm_timeout_seconds": 60, "llm_max_retries": 0,
         "classifier_temperature": None, "classifier_spankeuze": False,
@@ -99,9 +132,25 @@ def worker(args):
         "taal_provider": "spacy:nl_core_news_md"})
     calls = []
     live = AnthropicLLM(s)
+    vorig = json.loads(args.replay_source.read_text()) if args.replay_source else None
+    oude_calls = iter(vorig["calls"]) if vorig else iter(())
+    opnieuw = 0
 
     class Capture:
         def create(self, **kw):
+            nonlocal opnieuw
+            oud = next(oude_calls, None)
+            if oud is not None:
+                if sha(kw) != oud["verzoek_sha256"] or oud["status"] != "ok":
+                    raise ValueError("replay vereist exact hetzelfde succesvolle modelverzoek")
+                from anthropic.types import Message
+                calls.append(oud)
+                return Message.model_validate(oud["antwoord"])
+            if vorig:
+                # Geen classifier opnieuw betalen; alleen eventueel nieuw bereikbare review.
+                if kw["tools"][0]["name"] != "beoordeel":
+                    raise ValueError("replay zou een classifieraanvraag herhalen")
+                opnieuw += 1
             rec = {"verzoek": kw, "verzoek_sha256": sha(kw), "status": "gestart"}
             calls.append(rec)
             t = time.monotonic()
@@ -124,23 +173,33 @@ def worker(args):
     r = {"casus": c["id"], "variant": args.variant, "ronde": args.ronde, "status": "gestart",
          "tijd": datetime.now(timezone.utc).isoformat(), "casussen_sha256": p["casussen_sha256"],
          "code_sha256": codehash(args.code_root), "model": s.llm_model, "provider": s.llm_provider,
+         "snapshot_afbakening": snap.get("afbakening", {}),
          "instellingen": {k: getattr(s, k) for k in ("classifier_temperature", "classifier_spankeuze",
              "classifier_granulariteit", "gerichte_review", "deterministisch_accepteren", "taal_provider",
              "llm_timeout_seconds", "llm_max_retries")}, "calls": calls}
     start = time.monotonic()
     try:
-        uit = analyseer(snapshot=c["snapshot"], corpus_segmenten=cm.als_dicts(), corpus=cm.corpus,
+        uit = analyseer(snapshot=snap, corpus_segmenten=cm.als_dicts(), corpus=cm.corpus,
                         llm=Capture(), model=s.llm_model, settings=s, **extra)
         if uit.meting["gedegradeerd"]:
             raise RuntimeError("volledige parse vereist")
         for v in uit.voorstellen:
-            valideer_ankers(c["snapshot"], v["ankers"])
+            valideer_ankers(snap, v["ankers"])
         r.update(status="ok", voorstellen=uit.voorstellen, meting=uit.meting,
                  fusie=uit.fusie.model_dump(mode="json"),
                  beslissingen=compact(uit.fusie.kandidaten, uit.beslissingen, uit.voorstellen, uit.fusie.bijdragen))
     except Exception as e:
         r.update(status="fout", fout=type(e).__name__, http_status=getattr(e, "status_code", None))
     r["seconden"] = round(time.monotonic() - start, 3)
+    if vorig:
+        if r["status"] != "ok" or next(oude_calls, None) is not None or r["fusie"] != vorig["fusie"]:
+            raise ValueError("snapshotreplay veranderde detectie/verzoeken of faalde")
+        r["herstel"] = {"origineel": args.replay_source.name,
+            "origineel_sha256": hashlib.sha256(args.replay_source.read_bytes()).hexdigest(),
+            "reden": "lokale onderzoeksboom afsluiten met behoud van graafouder en alle letterlijke teksten",
+            "nieuwe_review_calls": opnieuw, "replay_seconden": r["seconden"], "hersteld_op": r["tijd"]}
+        r["tijd"] = vorig["tijd"]
+        r["seconden"] = round(vorig["seconden"] + sum(c["seconden"] for c in calls[len(vorig["calls"]):]), 3)
     r["tokens"] = {k: sum(call.get("tokens", {}).get(k, 0) for call in calls) for k in TOKENS}
     r["kosten"] = {"factuurbedrag": None, "schatting_usd": round(sum(r["tokens"][k] * TARIEVEN[k] / 1e6 for k in TOKENS), 6),
                    "usd_per_miljoen": TARIEVEN, "tariefbron": TARIEFBRON, "tariefdatum": "2026-05-27",
@@ -160,6 +219,7 @@ def main():
     p.add_argument("--variant", choices=VARIANTEN)
     p.add_argument("--ronde", type=int)
     p.add_argument("--output", type=Path)
+    p.add_argument("--replay-source", type=Path, help="hergebruik bewaarde reacties na uitsluitend snapshotafbakening")
     args = p.parse_args()
     if args.prepare:
         result = prepare()
