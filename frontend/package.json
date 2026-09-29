@@ -4,7 +4,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "mock:graaf": "GRAAF_MOCK=1 AUTH_SECRET=wetsanalyse-local-graaf-mock-only AUTH_TRUST_HOST=true next dev --hostname 127.0.0.1 --port 3110",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -12,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:browser": "node scripts/test-annotatie-nodes.mjs"
+    "test:browser": "node scripts/test-annotatie-nodes.mjs && node scripts/test-samenhang.mjs"
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",

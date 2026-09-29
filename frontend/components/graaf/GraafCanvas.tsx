@@ -5,7 +5,7 @@ import ForceGraph3D, { type ForceGraphMethods, type LinkObject } from "react-for
 import { Group, Mesh, MeshLambertMaterial, OctahedronGeometry, SphereGeometry, Vector3, type PerspectiveCamera } from "three";
 import SpriteText from "three-spritetext";
 import type { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import type { GraafData, GraafKnoop, GraafRelatie } from "@/lib/graafMock";
+import type { GraafData, GraafKnoop, GraafRelatie } from "@/lib/samenhang";
 
 type LinkMeta = Omit<GraafRelatie, "source" | "target">;
 type RenderLink = LinkObject<GraafKnoop, LinkMeta>;
@@ -13,7 +13,7 @@ type Punt = { x: number; y: number; z: number };
 export type CameraStand = { positie: Punt; doel: Punt };
 export interface GraafCameraBediening { pasIn: () => void; focus: (node: GraafKnoop) => void }
 
-/** Pas op de werkelijke viewport en het centrum van de voorbeeldknopen.
+/** Pas op de werkelijke viewport en het centrum van de knopen.
  * De bibliotheek past rond de wereldoorsprong; bij een smalle, nog initialiserende
  * viewport kan die berekening midden ín de graaf belanden. */
 function pasCameraIn(fg: ForceGraphMethods<GraafKnoop, LinkMeta>, nodes: GraafKnoop[], width: number, height: number, ms: number) {
@@ -155,15 +155,18 @@ export function GraafCanvas({ data, selectie, onSelecteer, camera: cameraRef, be
   const maakObject = useCallback((node: GraafKnoop) => {
     const group = new Group();
     const gekozen = node.id === selectie;
-    const radius = node.soort === "regeling" ? 9 : node.soort === "artikel" ? 8 : node.soort === "lid" ? 7 : 5.5;
+    const radius = node.rand ? 4.5 : node.soort === "regeling" ? 9 : node.soort === "artikel" ? 8 : node.soort === "lid" ? 7 : 5.5;
     const geometry = node.soort === "klasse" ? new OctahedronGeometry(radius * 1.2) : new SphereGeometry(radius, 18, 12);
-    const material = new MeshLambertMaterial({ color: node.kleur, transparent: true, opacity: buren.has(node.id) ? 1 : 0.65 });
+    // Een bepaling buiten het geopende artikel is gedempt en als draadmodel: hij is een verwijzing,
+    // nog geen geladen bron.
+    const material = new MeshLambertMaterial({ color: node.kleur, transparent: true, wireframe: node.rand,
+      opacity: node.rand ? 0.7 : buren.has(node.id) ? 1 : 0.65 });
     group.add(new Mesh(geometry, material));
     if (gekozen) {
       const ring = new Mesh(new SphereGeometry(radius + 2.3, 20, 14), new MeshLambertMaterial({ color: "#007bc7", wireframe: true, transparent: true, opacity: 0.35 }));
       group.add(ring);
     }
-    if (buren.has(node.id) || node.soort !== "markering") {
+    if (buren.has(node.id) || (node.soort !== "markering" && !node.rand)) {
       const label = new SpriteText(node.kort, 10, "#253c53");
       label.fontFace = "Fira Sans, sans-serif";
       label.backgroundColor = "rgba(255,255,255,0.92)";

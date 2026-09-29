@@ -13,8 +13,7 @@
 // eerste verdediging.
 const csp = [
   "default-src 'self'",
-  // React ontwikkeltools reconstrueren callstacks met eval. Alleen in de lokale mock toestaan.
-  `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "development" && process.env.GRAAF_MOCK === "1" ? " 'unsafe-eval'" : ""}`,
+  "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
   "font-src 'self'",
@@ -33,7 +32,6 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
-  ...(process.env.NODE_ENV === "development" && process.env.GRAAF_MOCK === "1" ? { devIndicators: false } : {}),
   output: "standalone",
   poweredByHeader: false,
   reactStrictMode: true,

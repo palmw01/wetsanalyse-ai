@@ -348,6 +348,33 @@ kaart in de lijst (`ReviewQueue`), met `prefers-reduced-motion` gerespecteerd.
   het toetsenbord gegarandeerd dezelfde volgorde als je ziet, en staat er nooit op twee kaarten
   tegelijk een rij open.
 
+### De samenhangsgraaf (3D)
+
+Het bronnode-paneel (`NodeAnnotatiePaneel`) heeft naast *Tekst* een tab **3D-graaf**
+(`components/graaf/SamenhangGraaf.tsx`), en onder een antwoord met een bron naar een BWB-bepaling
+staat **Bekijk samenhang in 3D**, dat hetzelfde paneel direct op die tab opent. Beide verschijnen
+alleen als de api de capability `samenhang` meldt (`samenhangBeschikbaar()`, één keer per pagina).
+
+- **Data**: `GET /v1/annotatie/samenhang` (`api/app/samenhang.py`) via de v2-proxy. Het antwoord
+  bestrijkt het artikel waartoe het doel behoort: bronstructuur, actuele markeringen met hun
+  JAS-klasse, en de **letterlijke** verwijzingen uit de graaf, één stap uit en in. Een doel buiten
+  het artikel is een **randknoop** (draadmodel, gedempt); *Artikel bijladen* haalt dat artikel erbij
+  als eigen cluster. Een niet-geïmporteerd doel heet **extern** en is niet uit te klappen. Er wordt
+  niets afgeleid: afstand en positie betekenen juridisch niets, en dat staat ook in beeld.
+- **Rekenkern in `lib/samenhang.ts`** (samenvoegen, vaste layout per cluster, zichtbaarheid en
+  filters, `bronDoel` voor jci/graaf-IRI → bronnode), getest zonder DOM. De layout is
+  deterministisch en vast (`fx/fy/fz`); er draait geen force-simulatie, zodat de kaart herkenbaar
+  blijft tussen renders.
+- **three.js laadt lui**: `SamenhangGraaf` en daarin `GraafCanvas` via `next/dynamic` met
+  `ssr: false`. Zonder WebGL of na contextverlies blijven de knopenlijst (de toetsenbordroute),
+  het detail en *Open brontekst* bruikbaar.
+- **Eén selectie**: de gekozen markering is in tekst en graaf dezelfde (`actiefId` van het paneel).
+  *Open brontekst* wisselt naar de tekst en scrolt naar het lid (`data-lid` op de blokken van
+  `DocumentPaneel`). *Vraag Lex hierover* gaat voor een markering via de bestaande `onVraag`; voor
+  een bron zet het een gewone vraag met vindplaats klaar – geen eigen agentcontract.
+- **Vergroten** gebruikt de `Dialog`-variant `fullscreen`; Escape verkleint eerst en sluit daarna.
+- Browserregressie: `scripts/test-samenhang.mjs` (gemockte BFF, zie de kop van het script).
+
 ### Eén gesprek: vragen gaan altijd via het centrale venster
 
 De reviewkaart had een eigen mini-chat (`AdviesDraadje`). Die bestond alleen omdat het artefact

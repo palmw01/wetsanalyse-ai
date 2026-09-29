@@ -5,7 +5,6 @@
 
 import type { NextAuthConfig } from "next-auth";
 import { DISCLAIMER_COOKIE, DISCLAIMER_PAD, vereistAkkoord } from "@/lib/disclaimer";
-import { graafMockAan } from "@/lib/graafMockGate";
 
 export type Role = "beheerder" | "analist";
 
@@ -20,7 +19,6 @@ export const SESSIE_KORT = 12 * 60 * 60; // 12 uur (niet onthouden)
 // en de health-check voor Docker/NPM/CI – die mag nooit achter de login vallen).
 function isPublic(path: string): boolean {
   return (
-    (path === "/mock/graaf" && graafMockAan()) ||
     path === "/login" ||
     path === "/login/2fa" ||
     path === "/setup" ||

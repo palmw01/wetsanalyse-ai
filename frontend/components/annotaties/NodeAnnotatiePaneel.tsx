@@ -15,7 +15,13 @@ import {
 import {
   beslissingNaarNode, documentVanNode, nodeAnkersUitSelectie, nodeBronVan, tekstVanAnkers,
 } from "@/lib/annotatieNodeAdapter";
+import { samenhangBeschikbaar, type GraafKnoop } from "@/lib/samenhang";
 import type { Anker, BeslissingInvoer } from "@/lib/types";
+import { GraafIcoon } from "@/components/graaf/GraafIcoon";
+import { SamenhangGraaf, useSamenhangStand } from "@/components/graaf/SamenhangGraaf";
+
+// three.js zit in `GraafCanvas`, dat `SamenhangGraaf` zelf lui laadt: pas als de tab opengaat.
+export type PaneelTab = "tekst" | "graaf";
 
 /** Een annotatie op een bronnode (contract 2), in het vertrouwde annotatiepaneel.
  *
@@ -26,11 +32,21 @@ import type { Anker, BeslissingInvoer } from "@/lib/types";
  *
  *  Met `onSluit` staat hij in dezelfde `Dialog`-schil als `ArtefactPaneel` (werkplek); zonder is
  *  het de kale inhoud voor een eigen pagina. */
-export function NodeAnnotatiePaneel({ doel, onSluit, variant = "side", onVraag }: {
+export function NodeAnnotatiePaneel({ doel, onSluit, variant = "side", onVraag, onVraagOverBron, beginTab = "tekst" }: {
   doel: NodeDoel; onSluit?: () => void; variant?: DialogVariant;
   onVraag?: (element: NodeElement, view: NodeWeergave) => void;
+  /** Een vraag over een bron- of randknoop uit de graaf; markeringen gaan via `onVraag`. */
+  onVraagOverBron?: (knoop: GraafKnoop) => void;
+  beginTab?: PaneelTab;
 }) {
   const [view, setView] = useState<NodeWeergave>();
+  const [samenhang, setSamenhang] = useState(false);
+  const [tab, setTab] = useState<PaneelTab>(beginTab);
+  const [graafGeopend, setGraafGeopend] = useState(beginTab === "graaf");
+  const [groot, setGroot] = useState(false);
+  useEffect(() => { void samenhangBeschikbaar().then(setSamenhang); }, []);
+  if (tab === "graaf" && !graafGeopend) setGraafGeopend(true);
+  const graafStand = useSamenhangStand(doel, graafGeopend && samenhang);
   const [laadFout, setLaadFout] = useState("");
   const [actiefId, setActiefId] = useState<string>();
   const [melding, setMelding] = useState("");
@@ -136,12 +152,63 @@ export function NodeAnnotatiePaneel({ doel, onSluit, variant = "side", onVraag }
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
+  /** Van graaf naar tekst: dezelfde markering blijft gekozen; bij een bron scrollt de tekst naar het lid. */
+  function openTekst(knoop: GraafKnoop) {
+    setTab("tekst");
+    setGroot(false);
+    if (knoop.element_id) { setActiefId(knoop.element_id); return; }
+    if (knoop.lid) requestAnimationFrame(() => document.querySelector(`[data-artefact] [data-lid="${CSS.escape(knoop.lid)}"]`)
+      ?.scrollIntoView({ block: "center" }));
+  }
+  function vraagOverKnoop(knoop: GraafKnoop) {
+    const el = view?.elementen.find((e) => e.id === knoop.element_id);
+    setGroot(false);
+    if (el && view && onVraag) onVraag(el, view);
+    else onVraagOverBron?.(knoop);
+  }
+  const toonTabs = samenhang && !!view;
+  const tabs = toonTabs && (
+    <div className="flex shrink-0 items-center gap-2 border-b border-line px-4 py-2">
+      <div className="flex rounded-lg bg-surface p-1" role="group" aria-label="Weergave kiezen">
+        {(["tekst", "graaf"] as const).map((waarde) => (
+          <button key={waarde} type="button" aria-pressed={tab === waarde} onClick={() => { setTab(waarde); if (waarde === "tekst") setGroot(false); }}
+            className={`focus-ring flex min-h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium ${tab === waarde ? "bg-paper text-lint shadow-zacht" : "text-muted hover:text-lint"}`}>
+            {waarde === "graaf" && <GraafIcoon />}{waarde === "tekst" ? "Tekst" : "3D-graaf"}
+          </button>
+        ))}
+      </div>
+      <div className="flex-1" />
+      {tab === "graaf" && onSluit && (
+        <button type="button" className="focus-ring rounded-lg p-2 text-muted hover:bg-surface" onClick={() => setGroot((v) => !v)}
+          aria-label={groot ? "Verkleinen" : "Vergroten"} title={groot ? "Terug naar zijpaneel" : "Graaf vergroten"}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d={groot ? "M9 3v6H3m18 6h-6v6M3 9l6-6m6 18 6-6" : "M8 3H3v5m13 13h5v-5M3 3l6 6m6 6 6 6"} /></svg>
+        </button>
+      )}
+      {tab === "graaf" && onSluit && (
+        <button type="button" onClick={onSluit} aria-label="Sluiten"
+          className="focus-ring rounded-kaart p-1.5 text-muted transition-colors hover:bg-surface hover:text-ink">
+          <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+            <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
+          </svg>
+        </button>
+      )}
+    </div>
+  );
+
   const inhoud = !view || !nb || !doc ? (
     <LaadStand fout={laadFout} onOpnieuw={() => void laad()} onSluit={onSluit} />
   ) : (
     <>
       <p className="sr-only" aria-live="polite">{melding}</p>
-      <ArtefactInhoud
+      {tabs}
+      {toonTabs && graafGeopend && (
+        <div className={tab === "graaf" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
+          <SamenhangGraaf stand={graafStand} zichtbaar={tab === "graaf"} groot={groot} actiefElementId={actiefId}
+            onKiesElement={setActiefId} onOpenTekst={openTekst}
+            onVraag={onVraag || onVraagOverBron ? vraagOverKnoop : undefined} />
+        </div>
+      )}
+      {(!toonTabs || tab === "tekst") && <ArtefactInhoud
         doc={doc}
         info={nb.info}
         actiefId={actiefId}
@@ -158,7 +225,7 @@ export function NodeAnnotatiePaneel({ doel, onSluit, variant = "side", onVraag }
         onSluiten={onSluit}
         onExport={exporteer}
         extra={<NodeExtra view={view} doel={doel} />}
-      />
+      />}
     </>
   );
 
@@ -166,8 +233,12 @@ export function NodeAnnotatiePaneel({ doel, onSluit, variant = "side", onVraag }
   // `onEscape` is een no-op om dezelfde reden als in `ArtefactPaneel`: de inhoud pelt Escape zelf
   // laag voor laag af.
   return (
-    <Dialog label={`Annotatie: ${view?.doel.label || doel.label || "bepaling"}`} variant={variant}
-      onSluit={onSluit} onEscape={view ? () => {} : undefined}>
+    <Dialog label={`Annotatie: ${view?.doel.label || doel.label || "bepaling"}`} variant={groot ? "fullscreen" : variant}
+      onSluit={onSluit} onEscape={view ? () => {
+        // In de tekst pelt de inhoud Escape zelf af; in de graaf doet het paneel dat.
+        if (tab !== "graaf") return;
+        if (groot) setGroot(false); else onSluit();
+      } : undefined}>
       {inhoud}
     </Dialog>
   );

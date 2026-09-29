@@ -4,9 +4,6 @@ Next.js (App Router) + TypeScript-frontend. De app **is de werkplek**: een chat-
 tegen de graph-qa-agent (login/beheer lopen via de [Wetsanalyse-API](../api)). De home leidt door naar
 `/workbench`.
 
-**Lokale 3D-mock:** `npm run mock:graaf` opent een interactieve versie van de workbench
-met een 3D-graaf naast chat en annotaties. Zie [starten en uitproberen](MOCK-GRAAF.md).
-
 **De werkplek** (`/workbench`, de *Lex-pagina*): één gespreksvenster met **twee
 werkwijzen** – **vragen** aan **Lex** (de assistent voor wetsanalyse; brongetrouwe Q&A over de
 kennisgraaf) en
