@@ -32,8 +32,9 @@
   klassen: [Tijdsaanduiding]
   code: TEMPORAL_RELATIVE_PERIOD
   bron: "H2:109"
-  versie: 1
+  versie: 2
   patroon: '\b(?:de|het)\s+(?:eerste|daaropvolgende|volgende|overige|laatste|komende|voorafgaande)(?:\s+{TELWOORD})?\s+{PERIODE}\b'
+  rechts: '\s+van\s+(?:de|het)\s+(?:kalender)?(?:maand|jaar|week)\b'
   tests:
     positief: [{tekst: "De dwangsom bedraagt de eerste veertien dagen € 23 per dag, de overige dagen € 45 per dag.", span: "de eerste veertien dagen"}]
     negatief: [{tekst: "de eerste bestuurder", span: "de eerste bestuurder"}]
@@ -43,7 +44,7 @@
   klassen: [Tijdsaanduiding]
   code: TEMPORAL_PERIOD_NOUN
   bron: "H2:109"
-  versie: 1
+  versie: 2
   patroon: '\b(?:het|de|dat|dit|hetzelfde|het\s+volgende|het\s+voorafgaande)\s+{PERIODENAAM}\b'
   links: '\b(?:in|gedurende|over|na|vóór|voor|tot)\s+'
   tests:
@@ -84,3 +85,26 @@
     negatief: [{tekst: "snelheid", span: "snel"}]
     rand: [{tekst: "moeten zo snel mogelijk doorlopen", span: "zo snel mogelijk"}]
     overlap: [{tekst: "onverwijld en tijdig", spans: ["onverwijld", "tijdig"]}]
+
+- id: jas.tijd.maandnaam
+  klassen: [Tijdsaanduiding]
+  code: TEMPORAL_MONTH
+  bron: "H2:109"
+  versie: 1
+  patroon: '\bin\s+{MAAND}(?:\s+of\s+(?:eerder|later))?\b'
+  tests:
+    positief: [{tekst: "gedagtekend in november of eerder", span: "in november of eerder"}]
+    negatief: [{tekst: "Mei is een naam.", span: "Mei"}]
+    rand: [{tekst: "in januari.", span: "in januari"}]
+    overlap: [{tekst: "in januari en in maart", spans: ["in januari", "in maart"]}]
+- id: jas.tijd.herhaling
+  klassen: [Tijdsaanduiding]
+  code: TEMPORAL_RECURRENCE
+  bron: "H2:109"
+  versie: 1
+  patroon: '\b(?:telkens\s+)?{TELWOORD}\s+{PERIODE}\s+(?:later|eerder)\b'
+  tests:
+    positief: [{tekst: "telkens een maand later.", span: "telkens een maand later"}]
+    negatief: [{tekst: "de latere bestuurder", span: "latere"}]
+    rand: [{tekst: "een week eerder", span: "een week eerder"}]
+    overlap: [{tekst: "een maand later en een week eerder", spans: ["een maand later", "een week eerder"]}]

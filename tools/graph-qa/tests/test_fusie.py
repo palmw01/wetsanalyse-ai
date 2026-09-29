@@ -86,7 +86,8 @@ def test_iw01_geen_parameter_op_de_duur_binnen_de_tijdsaanduiding():
     duur_als_waarde = _k("zes weken", [P, V], "NUMBER")
     f = fuseer([_r(tijd, duur_als_waarde)])
     k = next(k for k in f.kandidaten if k.span.tekst == "zes weken")
-    assert k.status is CandidateStatus.REJECTED
+    assert k.status is CandidateStatus.UNHANDLED
+    assert k.possible_classes == (T,)  # exacte kern erft nu de onderbouwde tijdhypothese
     assert any(e.regel == "JAS-PRIORITY-001" and e.code == "PRIORITY_APPLIED" for e in k.evidence)
 
 

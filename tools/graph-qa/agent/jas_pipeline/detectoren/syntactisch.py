@@ -263,7 +263,7 @@ class BijzinDetector:
 class NominalisatieDetector:
     REGELS: tuple[str, ...] = ("jas.feit.nominalisatie_van",)
     naam = "nominalisatie"
-    versie = f"2+verwijzing.{VERWIJZING_VERSIE}"  # infinitieftak vereist Inf, geen Part
+    versie = f"3+verwijzing.{VERWIJZING_VERSIE}"  # zelfstandige/distributieve vervolgfunctie
     _AAN_DE_RAND = {"case", "cc", "advmod", "mark", "punct"}
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
@@ -276,10 +276,21 @@ class NominalisatieDetector:
             infinitief = t.upos == "VERB" and t.feat("VerbForm") == "Inf" and any(a.tokens[k].deprel == "det" and a.tokens[k].tekst.lower() == "het"
                                                   for k in kinderen)
             handeling = (t.upos == "NOUN" and t.tekst.lower().endswith("ing")
-                         and any(a.tokens[k].deprel == "nmod" for k in kinderen))
+                         and any(a.tokens[k].deprel == "nmod" for k in (
+                             *kinderen, *(j for c in kinderen if a.tokens[c].deprel == "conj"
+                                          and a.tokens[c].tekst.lower().endswith("ing") for j in a.kinderen(c)))))
             if not (infinitief or handeling):
                 continue
             weg = {i for k in kinderen if a.tokens[k].deprel in {"parataxis", *_BIJZIN} for i in a.subboom(k)}
+            for i in a.subboom(t.i):
+                n = a.tokens[i]
+                if n.deprel == "conj" and (
+                    n.feat("VerbForm") == "Fin"
+                    or any(a.tokens[j].deprel in _ONDERWERP for j in a.kinderen(i))
+                    or (n.tekst.lower() in {"elk", "ieder", "elke", "iedere"}
+                        and any(a.tokens[j].tekst.lower() in {"later", "vervalt", "volgende"} for j in a.subboom(i)))
+                ):
+                    weg.update(a.subboom(i))
             tokens = sorted(set(a.subboom(t.i)) - weg)
             while tokens and a.tokens[tokens[0]].deprel in self._AAN_DE_RAND and tokens[0] != t.i:
                 tokens.pop(0)

@@ -18,7 +18,34 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict
 
-from .kandidaten import Candidate, DetectieBijdrage, DetectorResult, label_kandidaten
+from .kandidaten import Candidate, DetectieBijdrage, DetectorResult, Evidence, label_kandidaten
+
+VERSIE = "2"
+
+
+def _temporele_kernen(samen: dict[str, Candidate]) -> list[DetectieBijdrage]:
+    """Alleen een exact geregistreerde kern krijgt de hypothese, nooit willekeurige nesting."""
+    bijdragen = []
+    per_span = {k.span.sleutel(): k.id for k in samen.values()}
+    for lang in tuple(samen.values()):
+        if "Tijdsaanduiding" not in lang.possible_classes:
+            continue
+        bewijs = tuple(e for e in lang.evidence if e.code.startswith("TEMPORAL_"))
+        if not bewijs:
+            continue
+        for o in lang.span_options:
+            if o.soort != "kern" or o.span.sleutel() not in per_span:
+                continue
+            kid = per_span[o.span.sleutel()]
+            kort = samen[kid]
+            if kid == lang.id:
+                continue
+            afgeleid = kort.model_copy(update={"possible_classes": ("Tijdsaanduiding",),
+                "evidence": (*bewijs, Evidence(detector="fusie", code="TEMPORAL_KERNEL",
+                    detail=lang.id)), "span_options": ()})
+            bijdragen.append(DetectieBijdrage.van(afgeleid, "fusie", VERSIE))
+            samen[kid] = _samen(kort, afgeleid)
+    return bijdragen
 
 
 class Relatie(BaseModel):
@@ -92,6 +119,7 @@ def fuseer(resultaten: list[DetectorResult]) -> Fusie:
     for r in resultaten:
         for k in r.kandidaten:
             samen[k.id] = _samen(samen[k.id], k) if k.id in samen else _samen(k, k)
+    kernbijdragen = _temporele_kernen(samen)
     kandidaten = label_kandidaten(pas_toe(tuple(samen.values())))
     return Fusie(
         kandidaten=kandidaten,
@@ -100,5 +128,5 @@ def fuseer(resultaten: list[DetectorResult]) -> Fusie:
                            for r in resultaten if r.overgeslagen),
         detectoren=tuple(sorted({(r.detector, r.versie) for r in resultaten})),
         bijdragen=tuple(b for r in resultaten for b in (
-            r.bijdragen or tuple(DetectieBijdrage.van(k, r.detector, r.versie) for k in r.kandidaten))),
+            r.bijdragen or tuple(DetectieBijdrage.van(k, r.detector, r.versie) for k in r.kandidaten))) + tuple(kernbijdragen),
     )

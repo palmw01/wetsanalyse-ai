@@ -51,3 +51,54 @@ def test_datums_op_herhaalde_offsets_blijven_afzonderlijk():
     assert len(dates) == 2
     assert len({k.span.start for k in dates}) == 2
     assert all("31 december" in k.span.tekst for k in dates)
+
+
+def test_beide_toewijzingen_en_elliptische_voorwaarde(parser):
+    ks = detect(CASES["LI-9.1"]["tekst"], parser).kandidaten
+    assert len([k for k in ks if "Afleidingsregel" in k.possible_classes]) == 2
+    assert any(k.span.tekst == "Bij afwijkende boekjaren" and "Voorwaarde" in k.possible_classes for k in ks)
+    assert any(k.span.tekst == "de laatste dag van de maand" and "Tijdsaanduiding" in k.possible_classes for k in ks)
+
+
+@pytest.mark.parametrize("tekst,ar", [
+    ("De vervaldag wordt op 31 december gesteld.", True),
+    ("De vervaldag wordt gesteld op 31 december.", True),
+    ("Het boek wordt op tafel gelegd.", False),
+    ("Bij ministeriële regeling worden regels gesteld.", False),
+    ("Hij neemt zoveel boeken als hij wil.", False),
+    ("De bijdrage kent zoveel delen als er maanden resteren.", True),
+])
+def test_synthetische_toewijzing_en_aantal(parser, tekst, ar):
+    assert any("Afleidingsregel" in k.possible_classes for k in detect(tekst, parser).kandidaten) == ar
+
+
+def test_berekening_en_nominalisatie_lid5(parser):
+    ks = detect(CASES["IW-9-5"]["tekst"], parser).kandidaten
+    assert any(k.span.start == 0 and "Afleidingsregel" in k.possible_classes for k in ks)
+    n = [k for k in ks if k.span.start == 474 and any(e.code == "NOMINALIZED_ACTION" for e in k.evidence)]
+    assert [k.span.tekst for k in n] == ["de dagtekening van het aanslagbiljet"]
+    assert any(k.span.tekst == "telkens een maand later" and "Tijdsaanduiding" in k.possible_classes for k in ks)
+    assert any(k.span.tekst.startswith("Indien") and "niet leidt tot meer dan één termijn" in k.span.tekst for k in ks)
+
+
+def test_nominalisatie_behoudt_gezamenlijke_start(parser):
+    ks = detect("Na de verzending en de bekendmaking van het besluit begint de termijn.", parser).kandidaten
+    assert any("de verzending en de bekendmaking van het besluit" in k.span.tekst for k in ks)
+
+
+def test_kalenderpositie_en_brongetrouwheid(parser):
+    tekst = CASES["LI-9.5"]["tekst"]
+    ks = detect(tekst, parser).kandidaten
+    assert any(k.span.tekst == "de dag die hetzelfde nummer heeft als dat van de dagtekening" and
+               "Tijdsaanduiding" in k.possible_classes for k in ks)
+    assert any(k.span.start == 556 and "Afleidingsregel" in k.possible_classes for k in ks)
+    assert all(tekst[k.span.start:k.span.eind] == k.span.tekst for k in ks)
+    assert not any(k.span.tekst == "als dat van de dagtekening" and "Voorwaarde" in k.possible_classes for k in ks)
+
+
+def test_korte_tijdkern_krijgt_tijd_met_herleidbare_bijdrage(parser):
+    f = detect(CASES["IW-9-1"]["tekst"], parser)
+    kort = next(k for k in f.kandidaten if k.span.tekst == "zes weken")
+    assert "Tijdsaanduiding" in kort.possible_classes
+    assert any(b.kandidaat_id == kort.id and b.detector == "fusie" for b in f.bijdragen)
+    assert any(b.kandidaat_id == kort.id and b.detector == "naamwoordgroep" for b in f.bijdragen)

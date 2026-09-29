@@ -51,6 +51,7 @@ PERIODE:
   - uur
   - uren
 PERIODENAAM:
+  - kalendermaand
   - berekeningsjaar
   - kalenderjaar
   - belastingjaar
