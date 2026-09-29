@@ -324,10 +324,13 @@ plan mag verouderen.
   (deterministische detectie → kandidaten → kleine classifier → gerichte review), met de
   PR-roadmap; sinds PR 18 de enige route. Lees het vóór je aan de detectoren, de classifier of de
   eval werkt: het legt vast welke kennis in regels en tests hoort in plaats van in prompts.
-- `docs/wetsanalyse-workbench/` – het plan achter de werkplek + de JAS-annotatie-ontologie (het
-  RDF-model van de lagen).
-- `docs/kennisbank/PLAN.md` – het gefaseerde plan voor een **tweede corpus** naast de wetsgraaf
-  (beleidsstukken en handleidingen die Lex samen met de wettekst mag bevragen). Nog niet gebouwd;
-  lees het vóór je aan retrieval of grounding werkt, want het stelt eisen aan beide.
+- `docs/architectuur/annotatieketen.md` – hoe de annotatieketen **nu** werkt: stappen,
+  configuratie (`CLASSIFIER_GRANULARITEIT` e.d.), beslisbeleid, detectoren en bekende beperkingen.
+  `docs/architectuur/metingen/README.md` is het meetlogboek: welke meting bij welke code hoort.
+  Meetbestanden zijn bewijs en worden niet achteraf gewijzigd.
+- `docs/wetsanalyse-workbench/` – de JAS-annotatie-ontologie (het RDF-model van de lagen).
+- `docs/PLAN.md` – het **enige plan**: de open sporen (validatie V7, herkomst in de werkplek,
+  leerlus, werkgebieden en begrippen, kennisbank) en de open keuzes. Lees spoor E vóór je aan
+  retrieval of grounding werkt, want het stelt eisen aan beide.
 - `docs/observability.md` en `docs/schrijfrichtlijn-lex.md` (de toon van Lex; zijn identiteit staat in
   `tools/graph-qa/agent/prompts.py`).

@@ -2,7 +2,7 @@
 
 Status: **uitgevoerd t/m PR 18** (25-09-2026; zie §15) · Datum: 2026-09-24 · Soort: *plan* (zie `docs/README.md`) · JAS-versie: 1.0.10
 
-Opdracht: [`opdracht-jas-annotatiepijplijn.md`](opdracht-jas-annotatiepijplijn.md). Dit document is
+Opdracht: `opdracht-jas-annotatiepijplijn.md` (sinds 29 sep 2026 alleen in de git-geschiedenis, toegevoegd in `b4e81e8`). Dit document is
 de oplevering van de analysefase (§42 van de opdracht, stap 1–8): current state, JAS-conformiteit,
 gap-analyse, doelarchitectuur, verantwoordelijkheidskaart, PR-plan, test- en evaluatieplan,
 risico's en open beslissingen. Het wijzigt geen gedrag. De geldende specificatie blijft
@@ -16,7 +16,7 @@ De huidige annotatieketen in `tools/graph-qa` laat een LLM de volledige JAS-anal
 Een tweede LLM (de Critic) herbeoordeelt die volledige set en een derde (de herziener) kan de set
 opnieuw uitschrijven. De keten is al sterk verbeterd: patches worden in code uitgevoerd, er zijn
 prioriteitsregels, `bronmodel`-ankers en provenance-vingerafdrukken. De kern blijft echter
-generatief. De stabiliteitsmeting van 24-09 (`docs/wetsanalyse/evaluatie-methode.md` §Stabiliteit)
+generatief. De stabiliteitsmeting van 24-09 (zie `docs/architectuur/metingen/README.md`)
 en de proef op IW01 (dubbel tijd/parameter-label in 1 of 2 van de 3 runs) laten zien dat dezelfde
 invoer verschillende uitkomsten geeft.
 
@@ -492,6 +492,8 @@ uitgevoerd**. De uitkomst komt als bijlage bij dit ADR, met model, temperatuur (
 (legacy tegen hybrid_v1, vóór en ná PR 17).
 
 ## 15. Stand van uitvoering
+
+> Open werk dat hieruit volgt staat in [`../PLAN.md`](../PLAN.md) (spoor A en B).
 
 PR 0–17 zijn gemerged (#492–#509). **PR 18 (legacy removal)** is uitgevoerd op 25 sep 2026, op
 besluit van de producteigenaar en **zonder de adjudicatie** die §6 en §8.6 als voorwaarde noemden:

@@ -818,6 +818,8 @@ V7.
 
 ## 16. PR-roadmap V1–V7
 
+> Open werk dat hieruit volgt (V7 en daarna) staat in [`../PLAN.md`](../PLAN.md), spoor A.
+
 Algemeen voor elke PR:
 
 - geen wijziging aan detectoren, prompts, classifier, onzekerheid, reviewer of resolver;

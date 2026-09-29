@@ -714,7 +714,7 @@ staat in `docs/architectuur/metingen/`.
 
 **Stabiliteit over herhalingen** rekent `eval/stabiliteit_analyse.py` uit (uitlijnen op positie,
 detectie-, span- en klassestabiliteit per casus); `compare_pipelines` gebruikt die functies. Hoge
-overeenstemming is geen kwaliteitsbewijs – zie `docs/wetsanalyse/evaluatie-methode.md`.
+overeenstemming is geen kwaliteitsbewijs – zie `docs/architectuur/metingen/README.md`.
 
 **De eval-job draait hetzelfde image als de graph-qa-app**, dus een eval-rapport gaat over de code
 die op dát moment is uitgerold — niet over je werkkopie. De bicep zet één `graphQaImage` op allebei,
