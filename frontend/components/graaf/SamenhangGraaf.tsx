@@ -23,6 +23,11 @@ const Canvas = dynamic(() => import("./GraafCanvas").then((m) => m.GraafCanvas),
 const KNOP = "focus-ring inline-flex min-h-9 items-center justify-center gap-1.5 rounded-button border border-line bg-paper px-2.5 py-1.5 text-xs text-lint transition-colors hover:border-lint/40 hover:bg-surface disabled:cursor-not-allowed disabled:opacity-50 coarse:min-h-11";
 const GROEPEN: [RelatieGroep, string][] = [["structuur", "Bronstructuur"], ["verwijzingen", "Verwijzingen"], ["annotaties", "Annotaties"]];
 
+/** Een lijnstuk in de legenda, in dezelfde kleur en dikte als de verbinding in de graaf. */
+function Streep({ className }: { className: string }) {
+  return <span aria-hidden="true" className={`inline-block w-5 shrink-0 rounded-full ${className}`} />;
+}
+
 /** Een gevulde stip in de kleur van de tekst (legenda). */
 function Bol({ className = "" }: { className?: string }) {
   return <svg className={`h-[1em] w-[1em] ${className}`} viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="5" fill="currentColor" /></svg>;
@@ -47,6 +52,7 @@ export function useSamenhangStand(doel: NodeDoel, actief: boolean) {
   const [uitgebreid, setUitgebreid] = useState<string[]>([doel.bron_iri]);
   const [filters, setFilters] = useState<Record<RelatieGroep, boolean>>({ structuur: true, verwijzingen: true, annotaties: true });
   const [lijst, setLijst] = useState(false);
+  const [legenda, setLegenda] = useState(false);
   const [zoek, setZoek] = useState("");
   const camera = useRef<CameraStand | null>(null);
   const laad = useCallback(async () => {
@@ -64,7 +70,7 @@ export function useSamenhangStand(doel: NodeDoel, actief: boolean) {
     if (actief) void laad();
   }, [laad, actief]);
   return { delen, setDelen, fout, setFout, laadtUit, setLaadtUit, selectie, setSelectie, uitgebreid, setUitgebreid,
-    filters, setFilters, lijst, setLijst, zoek, setZoek, camera, laad };
+    filters, setFilters, lijst, setLijst, legenda, setLegenda, zoek, setZoek, camera, laad };
 }
 export type SamenhangStand = ReturnType<typeof useSamenhangStand>;
 
@@ -79,7 +85,7 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, onKie
   onVraag?: (knoop: GraafKnoop) => void;
 }) {
   const { delen, setDelen, fout, setFout, laadtUit, setLaadtUit, selectie, setSelectie, uitgebreid, setUitgebreid,
-    filters, setFilters, lijst, setLijst, zoek, setZoek, camera, laad } = stand;
+    filters, setFilters, lijst, setLijst, legenda, setLegenda, zoek, setZoek, camera, laad } = stand;
   const bediening = useRef<GraafCameraBediening | null>(null);
 
   const alles = useMemo(() => delen ? bouwGraaf(delen) : { nodes: [], links: [] }, [delen]);
@@ -95,9 +101,13 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, onKie
     .map((e) => e.source === gekozenId ? e.target : e.source).filter((id) => !data.nodes.some((n) => n.id === id))).size : 0;
   const hoofd = delen?.[0];
 
+  /** Kiezen laat de camera naar de knoop vliegen (zoals de CGM-viewer); een lege id – klik op de
+   *  achtergrond – heft de selectie en daarmee het dimmen op. */
   function kies(id: string) {
     setSelectie(id);
     onKiesElement(alles.nodes.find((n) => n.id === id)?.element_id || undefined);
+    const knoop = id ? alles.nodes.find((n) => n.id === id) : undefined;
+    if (knoop) requestAnimationFrame(() => bediening.current?.focus(knoop));
   }
 
   async function toonVerbindingen() {
@@ -138,7 +148,8 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, onKie
         <div className="flex shrink-0 items-center gap-2 px-3 pt-3">
           <button className={KNOP} onClick={() => bediening.current?.pasIn()}>Alles in beeld</button>
           <button className={`${KNOP} ${lijst ? "border-lint/50 bg-lint/5" : ""}`} aria-expanded={lijst} onClick={() => setLijst((v) => !v)}>Knopenlijst</button>
-          <span className="ml-auto rounded-full border border-line bg-paper px-2 py-1 text-[10px] font-semibold tracking-wide text-muted">3D</span>
+          <button className={`${KNOP} ${legenda ? "border-lint/50 bg-lint/5" : ""}`} aria-expanded={legenda} onClick={() => setLegenda((v) => !v)}>Legenda</button>
+          <button className={KNOP} onClick={() => { setUitgebreid(alles.nodes.map((n) => n.id)); setFilters({ structuur: true, verwijzingen: true, annotaties: true }); }}>Alles tonen</button>
         </div>
         <div className="relative min-h-0 flex-1">
           <CanvasGrens><Canvas data={data} selectie={gekozenId} onSelecteer={kies} camera={camera} bediening={bediening} zichtbaar={zichtbaar} /></CanvasGrens>
@@ -150,6 +161,18 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, onKie
               </button>)}
               {!zichtbareLijst.length && <p className="p-3 text-xs text-muted">Geen knopen gevonden.</p>}
             </div>
+          </div>}
+          {legenda && <div role="group" aria-label="Legenda" className="absolute bottom-2 right-3 z-10 w-56 rounded-kaart border border-line bg-paper/95 p-3 text-xs text-muted shadow-kaart">
+            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-faint">Knopen</p>
+            <p className="flex items-center gap-2"><Bol className="text-lint" /> Bron (regeling, artikel, lid)</p>
+            <p className="flex items-center gap-2"><Bol className="text-muted" /> Markering, in JAS-kleur</p>
+            <p className="flex items-center gap-2"><Ruit /> JAS-klasse</p>
+            <p className="flex items-center gap-2"><Cirkel /> Buiten dit artikel</p>
+            <p className="mb-1.5 mt-2.5 text-[10px] font-semibold uppercase tracking-wider text-faint">Verbindingen</p>
+            <p className="flex items-center gap-2"><Streep className="h-[3px] bg-[#8aa1b6]" /> bevat</p>
+            <p className="flex items-center gap-2"><Streep className="h-[2px] bg-[#6b4e91]" /> verwijst naar</p>
+            <p className="flex items-center gap-2"><Streep className="h-px bg-[#9fb3c5]" /> markeert / heeft klasse</p>
+            <p className="mt-2 text-[10px] text-faint">Hover toont de naam; afstand en positie hebben geen juridische betekenis.</p>
           </div>}
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-line/60 px-4 py-2 text-[10px] text-muted">
@@ -171,7 +194,6 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, onKie
               title={!extraAantal ? "Alle verbindingen van deze knoop zijn zichtbaar" : undefined}>
               {laadtUit === geselecteerd.id ? "Laden…" : uitklapbaar(geselecteerd) ? "Artikel bijladen" : `Toon verbindingen${extraAantal > 0 ? ` (+${extraAantal})` : ""}`}
             </button>
-            <button className={KNOP} onClick={() => bediening.current?.focus(geselecteerd)}>Focus</button>
           </div>
           {geselecteerd.soort === "extern" && <p className="text-xs text-muted">Deze bepaling staat niet in de kennisgraaf; alleen de verwijzing ernaar is bekend.</p>}
           {relaties.length > 0 && <div className="border-t border-line pt-2">
@@ -187,15 +209,8 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, onKie
             })}
           </div>}
           <p className="text-[10px] leading-relaxed text-faint">Verbindingen tonen bronstructuur, verwijzingen uit de tekst en annotaties. Afstand en positie hebben geen juridische betekenis.</p>
-        </div> : <p className="p-5 text-sm text-muted">Selecteer een zichtbare knoop om de bron, markering of klasse te bekijken.</p>}
+        </div> : <p className="p-5 text-sm text-muted">Selecteer een knoop in de graaf of de knopenlijst om de bron, markering of klasse te bekijken.</p>}
       </div>
-    </div>
-    <div className="flex shrink-0 flex-wrap gap-x-4 gap-y-1 border-t border-line px-4 py-2 text-[10px] text-muted">
-      <span className="inline-flex items-center gap-1"><Bol className="text-lint" /> Bron</span>
-      <span className="inline-flex items-center gap-1"><Bol className="text-muted" /> Markering in JAS-kleur</span>
-      <span className="inline-flex items-center gap-1"><Ruit /> JAS-klasse</span>
-      <span className="inline-flex items-center gap-1"><Cirkel /> Buiten dit artikel</span>
-      <button onClick={() => { setUitgebreid(alles.nodes.map((n) => n.id)); setFilters({ structuur: true, verwijzingen: true, annotaties: true }); }} className="focus-ring ml-auto rounded text-lint underline underline-offset-2">Alles tonen</button>
     </div>
   </div>;
 }

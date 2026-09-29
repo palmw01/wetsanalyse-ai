@@ -361,10 +361,15 @@ alleen als de api de capability `samenhang` meldt (`samenhangBeschikbaar()`, é�
   het artikel is een **randknoop** (draadmodel, gedempt); *Artikel bijladen* haalt dat artikel erbij
   als eigen cluster. Een niet-geïmporteerd doel heet **extern** en is niet uit te klappen. Er wordt
   niets afgeleid: afstand en positie betekenen juridisch niets, en dat staat ook in beeld.
-- **Rekenkern in `lib/samenhang.ts`** (samenvoegen, vaste layout per cluster, zichtbaarheid en
-  filters, `bronDoel` voor jci/graaf-IRI → bronnode), getest zonder DOM. De layout is
-  deterministisch en vast (`fx/fy/fz`); er draait geen force-simulatie, zodat de kaart herkenbaar
-  blijft tussen renders.
+- **Rekenkern in `lib/samenhang.ts`** (samenvoegen, layout, zichtbaarheid en filters, `bronDoel`
+  voor jci/graaf-IRI → bronnode), getest zonder DOM. De layout is een **3D-krachtsimulatie**
+  (`d3-force-3d`, dezelfde engine als de renderer) vanuit radiale startposities, per artikelcluster
+  gerekend en daarna vast (`fx/fy/fz`): reproduceerbaar, en bijladen verschuift de bestaande kaart
+  niet. Hij draait in `lib/`, niet in de canvas – anders herrekent elke uitklapping alles.
+- **Weergave naar de CGM-viewer**: straal per soort, gebogen verbindingen met pijl en breedte per
+  soort, alles buiten de selectie gedimd, vaste labels alleen voor selectie en buren (de rest als
+  tooltip bij hover, `.samenhang-tip` in `globals.css`, tekst altijd ge-escaped), camera vliegt naar
+  de gekozen knoop, klik op de achtergrond heft de selectie op, zwevende legenda.
 - **three.js laadt lui**: `SamenhangGraaf` en daarin `GraafCanvas` via `next/dynamic` met
   `ssr: false`. Zonder WebGL of na contextverlies blijven de knopenlijst (de toetsenbordroute),
   het detail en *Open brontekst* bruikbaar.

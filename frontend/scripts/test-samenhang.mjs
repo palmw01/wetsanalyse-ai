@@ -112,6 +112,17 @@ async function openLijst(page) {
   assert.equal(await page.getByRole("button", { name: "3D-graaf" }).getAttribute("aria-pressed"), "true");
   await page.locator('[data-graaf-status="gereed"]').waitFor({ timeout: 20000 });
   await page.screenshot({ path: `${shots}/1-graaf.png` });
+  // Namen staan als tooltip op de knopen (alleen selectie en buren hebben een vast label).
+  const doek = await page.locator('[data-testid="graaf-canvas"] canvas').boundingBox();
+  let tooltip = "";
+  for (let i = 0; i < 40 && !tooltip; i++) {
+    await page.mouse.move(doek.x + doek.width * (0.2 + (i % 8) * 0.08), doek.y + doek.height * (0.25 + Math.floor(i / 8) * 0.12));
+    await page.waitForTimeout(60);
+    // Niet wachten: zonder tooltip op deze plek meteen door naar de volgende.
+    const tips = page.locator(".samenhang-tip");
+    tooltip = (await tips.count()) ? (await tips.first().textContent()) || "" : "";
+  }
+  assert.ok(tooltip.length > 0, "een knoop of verbinding toont een tooltip bij hover");
 
   // 2. Knoop kiezen via de lijst; het lid toont zijn verwijzingen en uitklappen toont de randknoop.
   await openLijst(page);
