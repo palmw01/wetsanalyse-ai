@@ -378,6 +378,15 @@ alleen als de api de capability `samenhang` meldt (`samenhangBeschikbaar()`, é�
   `DocumentPaneel`). *Vraag Lex hierover* gaat voor een markering via de bestaande `onVraag`; voor
   een bron zet het een gewone vraag met vindplaats klaar – geen eigen agentcontract.
 - **Vergroten** gebruikt de `Dialog`-variant `fullscreen`; Escape verkleint eerst en sluit daarna.
+- **Knoppen, bewust gekozen.** Werkbalk (hele graaf): *Alles in beeld* (camera past het zichtbare
+  in), *Knopenlijst* (zoeken + toetsenbordroute), *Legenda*, en *Alles tonen* ⇄ *Minder tonen*
+  (terug naar de stand van daarvoor). Detail (gekozen knoop), alleen als ze iets doen – niets staat
+  grijs: *Focus* (camera naar de knoop, ook na eigen draaien), *Toon verbindingen (+n)* ⇄ *Verberg
+  verbindingen*, *Artikel bijladen* (alleen randknoop), *Open brontekst* (bron of markering binnen
+  het artikel), *Vraag Lex hierover* (niet bij een klasse).
+- **Live bij een annotatiewijziging**: `NodeAnnotatiePaneel` roept na elke mutatie (via `muteer`,
+  en `status`) `graafStand.ververs()` aan. Die haalt elk geladen deel opnieuw op; `bouwGraaf(delen,
+  vorige)` houdt bestaande knopen op hun plek, zodat alleen de nieuwe markering verschijnt.
 - Browserregressie: `scripts/test-samenhang.mjs` (gemockte BFF, zie de kop van het script).
 
 ### Eén gesprek: vragen gaan altijd via het centrale venster

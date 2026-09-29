@@ -36,6 +36,17 @@ function samenhang(iri) {
       rel(L1, STUB, "verwijst_naar", "verwijzingen", "artikel 3 van de Awb"),
       rel("element:e1", L1, "markeert", "annotaties"), rel("element:e1", "klasse:Rechtssubject", "heeft_klasse", "annotaties")] };
 }
+// Na een mutatie (afronden, markeren, …) levert de api een extra markering op lid 2: zo is te zien
+// of de graaf zonder herladen meeloopt.
+let bijgewerkt = false;
+function samenhangNu(iri) {
+  const s = samenhang(iri);
+  if (!bijgewerkt || iri.startsWith(A10)) return s;
+  return { ...s, knopen: [...s.knopen,
+      knoop("element:e2", "markering", { label: "artikel 10", tekst: "artikel 10", klasse: "Rechtsobject", lifecycle: "voorgesteld", element_id: "e2", artikel: "9", lid: "2" }),
+      knoop("klasse:Rechtsobject", "klasse", { label: "Rechtsobject", klasse: "Rechtsobject" })],
+    relaties: [...s.relaties, rel("element:e2", L2, "markeert", "annotaties"), rel("element:e2", "klasse:Rechtsobject", "heeft_klasse", "annotaties")] };
+}
 const segment = (iri, lid, tekst) => ({ bron_iri: iri, parent_iri: ART, type: "Lid", nummer: lid, label: `Lid ${lid}`, tekst, bron_hash: `h${lid}`, volgorde: Number(lid) });
 function weergave(iri) {
   const segs = [segment(L1, "1", "De ontvanger vordert de belastingaanslag in."), segment(L2, "2", "In afwijking van het eerste lid geldt artikel 10.")]
@@ -80,9 +91,9 @@ async function nieuwePagina({ width = 1440, height = 1000, webgl = true } = {}) 
   await page.route("**/api/**", async (route) => {
     const req = route.request(), url = new URL(req.url());
     if (url.pathname.startsWith("/api/auth/")) return route.continue();
-    if (req.method() !== "GET") log.mutaties.push(`${req.method()} ${url.pathname}`);
+    if (req.method() !== "GET") { log.mutaties.push(`${req.method()} ${url.pathname}`); bijgewerkt = true; }
     if (url.pathname.endsWith("/v2/capabilities")) return route.fulfill({ json: { schema_versie: 2, bronnodes_actief: true, samenhang: true } });
-    if (url.pathname.endsWith("/v2/samenhang")) { log.samenhang.push(url.searchParams.get("bron_iri")); return route.fulfill({ json: samenhang(url.searchParams.get("bron_iri")) }); }
+    if (url.pathname.endsWith("/v2/samenhang")) { log.samenhang.push(url.searchParams.get("bron_iri")); return route.fulfill({ json: samenhangNu(url.searchParams.get("bron_iri")) }); }
     if (url.pathname.endsWith("/v2/weergave")) return route.fulfill({ json: weergave(url.searchParams.get("bron_iri")) });
     if (url.pathname === "/api/gesprekken/g1") return route.fulfill({ json: { id: "g1", user_id: "browser-test", titel: "Samenhang", berichten } });
     if (url.pathname === "/api/gesprekken") return route.fulfill({ json: [{ id: "g1", titel: "Samenhang", aantal_berichten: 2 }] });
@@ -102,6 +113,7 @@ async function openLijst(page) {
 
 // 1. Breed scherm: chatknop opent het paneel direct op de graaf.
 {
+  bijgewerkt = false;
   const { page, log } = await nieuwePagina();
   await page.goto(`${base}/workbench?gesprek=g1`);
   await page.getByRole("button", { name: /Bekijk samenhang in 3D/ }).click();
@@ -139,6 +151,12 @@ async function openLijst(page) {
   await knopInLijst(page, STUB).click();
   assert.match(await page.getByTestId("graaf-detail").innerText(), /niet in de kennisgraaf/);
   assert.equal(await page.getByRole("button", { name: "Artikel bijladen" }).count(), 0, "extern is niet uitklapbaar");
+  // Een uitgeklapt lid is ook weer in te klappen; een knoop zonder extra's toont die knop niet.
+  await knopInLijst(page, L1).click();
+  await page.getByRole("button", { name: "Verberg verbindingen" }).click();
+  assert.equal(await knopInLijst(page, STUB).count(), 0, "verbergen haalt de externe verwijzing weg");
+  await page.getByRole("button", { name: /Toon verbindingen/ }).click();
+  await knopInLijst(page, STUB).waitFor();
 
   // 3. Markering: de keuze is in tekst en graaf dezelfde.
   await knopInLijst(page, "element:e1").click();
@@ -148,6 +166,7 @@ async function openLijst(page) {
   await page.locator("[data-artefact]").waitFor();
   await page.getByRole("button", { name: "3D-graaf" }).click();
   assert.equal(await knopInLijst(page, "element:e1").getAttribute("aria-pressed"), "true", "selectie blijft na terugkeren");
+  await page.getByRole("button", { name: "Focus" }).click();
 
   // 4. Vergroten en met Escape terug; de camera en selectie blijven.
   await page.getByRole("button", { name: "Vergroten" }).click();
@@ -161,6 +180,23 @@ async function openLijst(page) {
   await page.getByRole("button", { name: "Vraag Lex hierover" }).click();
   assert.match(await page.locator("textarea").inputValue(), /Hoe hangt .*BWBR0004770, artikel 10, lid 1/);
   assert.deepEqual(log.mutaties, [], "de graaf muteert niets");
+
+  // 5b. Alles tonen is omkeerbaar.
+  const zichtbaar = await page.locator("[data-knoop-id]").count();
+  await page.getByRole("button", { name: "Alles tonen" }).click();
+  assert.equal(await page.getByRole("button", { name: "Minder tonen" }).getAttribute("aria-pressed"), "true");
+  assert.ok(await page.locator("[data-knoop-id]").count() >= zichtbaar);
+  await page.getByRole("button", { name: "Minder tonen" }).click();
+  assert.equal(await page.locator("[data-knoop-id]").count(), zichtbaar, "Minder tonen keert terug naar de eerdere stand");
+
+  // 5c. Een annotatiewijziging werkt de graaf bij zonder herladen.
+  const voor = log.samenhang.filter((i) => i === L2).length;
+  await page.getByRole("button", { name: "Tekst", exact: true }).click();
+  await page.getByRole("button", { name: /afronden/i }).first().click();
+  await page.getByRole("button", { name: "3D-graaf" }).click();
+  await knopInLijst(page, "element:e2").waitFor({ timeout: 10000 });
+  assert.ok(log.samenhang.filter((i) => i === L2).length > voor, "de graaf haalt de samenhang opnieuw op");
+  assert.ok(await knopInLijst(page, A10L1).count(), "het bijgeladen artikel blijft uitgeklapt");
   assert.deepEqual(log.errors, []);
   assert.deepEqual(log.console, [], "geen consolefouten");
   await page.close();
