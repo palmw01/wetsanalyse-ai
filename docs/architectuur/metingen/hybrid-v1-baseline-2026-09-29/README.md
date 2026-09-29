@@ -51,8 +51,48 @@ primaire pogingen**, `claude-sonnet-4-6` via Azure Foundry, SDK-retries op nul.
 
 `eval.baseline_proef rapport` past dit criterium mechanisch toe (`beslis`), zonder afstelling achteraf.
 
+## Uitkomst
+
+**Proef 1 is afgekeurd.** Het model stopte vóór de tool-aanroep op het tokenbudget: iedere
+reviewaanroep van de nieuwe code en 5 van 27 U0-classificaties. Zie
+[proef1-budgetdefect/BEVINDING.md](proef1-budgetdefect/BEVINDING.md). Na herstel (`eb0849e`) is
+de proef met dezelfde opzet en hetzelfde criterium herhaald; proef 2 is de baseline.
+
+**Proef 2** ([model-vergelijking.md](model-vergelijking.md)): 84/84 pogingen geslaagd, nul afgekapte
+aanroepen in de nieuwe code (A: nog 3 van 28), geraamd $2,94.
+
+| Variant | Contractfouten | Voorstellen (menselijk) | USD/run |
+|---|---:|---:|---:|
+| A (productie vóór deze ronde) | 22 | 342 (11) | 0,030 |
+| U0 | 15 | 424 (5) | 0,027 |
+| K0 | 0 | 428 (1) | 0,042 |
+| UC (2 casussen) | 9 | 213 (0) | 0,038 |
+| KC (2 casussen) | 0 | 210 (0) | 0,055 |
+
+Mechanische toepassing van het criterium: KC heeft minder contractfouten (0 tegen 9), is op
+**6/8** casussen minstens zo stabiel als UC (precies op de drempel) en kost **1,45×** per run.
+Daarmee wordt **`klasseverzameling` de productiedefault**. Context blijft aan: UC is op één casus
+minder stabiel dan U0, ruim onder de drempel van vijf.
+
+Inhoudelijk, zonder juridische score (referentieset v1 is provisional):
+
+- **IW 9 lid 1**: in K0 in alle runs de centrale uitspraak als Rechtsfeit, plus aanslag en
+  termijn. In U0 wijst de classifier de norm af en legt de herbeoordeling haar gemotiveerd voor als
+  keuze tussen Rechtsfeit en Rechtsbetrekking (`R-CENTRAAL-HUMAN`, 3×; K0 1×). Dat is precies de
+  juridische vraag die open staat. Het object 'het aanslagbiljet' komt er in de baseline bij.
+- **LI-9.5**: vast/unie van 24/56 (A) naar 52–56/56; U0 en UC zijn in alle runs identiek.
+- Stabiliteit is geen juistheid; een voorstel meer is geen expertvaststelling.
+
 ## Ruwe runbestanden
 
-`modelruns/` (volledige verzoeken, reacties, tokens en uitvoer per poging) staat niet in git.
-Het wordt als gecomprimeerd archief bewaard; naam en SHA-256 staan hieronder zodra de proef
-klaar is. `model-vergelijking.json` bevat de SHA-256 van ieder runbestand.
+`modelruns/` en `modelruns-proef1/` (volledige verzoeken, reacties, tokens en uitvoer per poging)
+staan niet los in git maar als gecomprimeerd archief in [archief/](archief):
+
+| Archief | SHA-256 |
+|---|---|
+| `hybrid-v1-baseline-2026-09-29-modelruns-proef2.tar.zst` | `2727e2b696aeb0ea258956f6e34d795f3aa6b661bca7c9d1d11bcbc0fe4069a5` |
+| `hybrid-v1-baseline-2026-09-29-modelruns-proef1.tar.zst` | `8314c02dff2d0e6afd503659aea8b2fbcde0e6033d1cc03b59a49e248a877bc9` |
+
+Uitpakken in deze map (`tar --zstd -xf archief/…`) herstelt `modelruns/`; `eval.baseline_proef
+rapport` controleert daarna bronnen, code-hashes, brongetrouwheid en reproduceerbare detectie.
+`model-vergelijking.json` bevat de SHA-256 van ieder runbestand.

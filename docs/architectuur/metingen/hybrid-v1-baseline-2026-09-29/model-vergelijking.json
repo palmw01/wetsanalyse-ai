@@ -1,0 +1,1539 @@
+{
+  "status": "diagnostisch_geen_gold",
+  "manifest": {
+    "schema_versie": 1,
+    "model": "claude-sonnet-4-6",
+    "herhalingen": 3,
+    "varianten": {
+      "A": {
+        "code": "baseline",
+        "granulariteit": "universeel",
+        "context": "geen"
+      },
+      "U0": {
+        "code": "variant",
+        "granulariteit": "universeel",
+        "context": "uit"
+      },
+      "K0": {
+        "code": "variant",
+        "granulariteit": "klasseverzameling",
+        "context": "uit"
+      },
+      "UC": {
+        "code": "variant",
+        "granulariteit": "universeel",
+        "context": "ouders"
+      },
+      "KC": {
+        "code": "variant",
+        "granulariteit": "klasseverzameling",
+        "context": "ouders"
+      }
+    },
+    "code": {
+      "baseline": "7ed0ba20bb9a2ec6ae19e98e8d14d4afc48ff9e4fcd385229b9c04ff80483db7",
+      "variant": "9d21c3888c671f8ee60f15b4ebe78043c361054b1b84a92a52f3dcfaa506d598"
+    },
+    "casussen_sha256": "2b6085c4dcfae20a569a6e8b26abc5aa6f79a7564b03747cb0aebcab30b91036",
+    "identiek_aan": {
+      "IW-9-1/UC": "U0",
+      "IW-9-1/KC": "K0",
+      "IW-9-5/UC": "U0",
+      "IW-9-5/KC": "K0",
+      "IW02/UC": "U0",
+      "IW02/KC": "K0",
+      "AWB04/UC": "U0",
+      "AWB04/KC": "K0",
+      "AWB-4:17-1/UC": "U0",
+      "AWB-4:17-1/KC": "K0",
+      "IW04/UC": "U0",
+      "IW04/KC": "K0"
+    },
+    "primaire_pogingen": 84,
+    "pogingen": [
+      {
+        "ronde": 1,
+        "casus": "IW-9-1",
+        "variant": "A"
+      },
+      {
+        "ronde": 1,
+        "casus": "IW-9-1",
+        "variant": "U0"
+      },
+      {
+        "ronde": 1,
+        "casus": "IW-9-1",
+        "variant": "K0"
+      },
+      {
+        "ronde": 1,
+        "casus": "IW-9-5",
+        "variant": "A"
+      },
+      {
+        "ronde": 1,
+        "casus": "IW-9-5",
+        "variant": "U0"
+      },
+      {
+        "ronde": 1,
+        "casus": "IW-9-5",
+        "variant": "K0"
+      },
+      {
+        "ronde": 1,
+        "casus": "LI-9.1",
+        "variant": "A"
+      },
+      {
+        "ronde": 1,
+        "casus": "LI-9.1",
+        "variant": "U0"
+      },
+      {
+        "ronde": 1,
+        "casus": "LI-9.1",
+        "variant": "K0"
+      },
+      {
+        "ronde": 1,
+        "casus": "LI-9.1",
+        "variant": "UC"
+      },
+      {
+        "ronde": 1,
+        "casus": "LI-9.1",
+        "variant": "KC"
+      },
+      {
+        "ronde": 1,
+        "casus": "LI-9.5",
+        "variant": "A"
+      },
+      {
+        "ronde": 1,
+        "casus": "LI-9.5",
+        "variant": "U0"
+      },
+      {
+        "ronde": 1,
+        "casus": "LI-9.5",
+        "variant": "K0"
+      },
+      {
+        "ronde": 1,
+        "casus": "LI-9.5",
+        "variant": "UC"
+      },
+      {
+        "ronde": 1,
+        "casus": "LI-9.5",
+        "variant": "KC"
+      },
+      {
+        "ronde": 1,
+        "casus": "IW02",
+        "variant": "A"
+      },
+      {
+        "ronde": 1,
+        "casus": "IW02",
+        "variant": "U0"
+      },
+      {
+        "ronde": 1,
+        "casus": "IW02",
+        "variant": "K0"
+      },
+      {
+        "ronde": 1,
+        "casus": "AWB04",
+        "variant": "A"
+      },
+      {
+        "ronde": 1,
+        "casus": "AWB04",
+        "variant": "U0"
+      },
+      {
+        "ronde": 1,
+        "casus": "AWB04",
+        "variant": "K0"
+      },
+      {
+        "ronde": 1,
+        "casus": "AWB-4:17-1",
+        "variant": "A"
+      },
+      {
+        "ronde": 1,
+        "casus": "AWB-4:17-1",
+        "variant": "U0"
+      },
+      {
+        "ronde": 1,
+        "casus": "AWB-4:17-1",
+        "variant": "K0"
+      },
+      {
+        "ronde": 1,
+        "casus": "IW04",
+        "variant": "A"
+      },
+      {
+        "ronde": 1,
+        "casus": "IW04",
+        "variant": "U0"
+      },
+      {
+        "ronde": 1,
+        "casus": "IW04",
+        "variant": "K0"
+      },
+      {
+        "ronde": 2,
+        "casus": "IW-9-1",
+        "variant": "U0"
+      },
+      {
+        "ronde": 2,
+        "casus": "IW-9-1",
+        "variant": "K0"
+      },
+      {
+        "ronde": 2,
+        "casus": "IW-9-1",
+        "variant": "A"
+      },
+      {
+        "ronde": 2,
+        "casus": "IW-9-5",
+        "variant": "U0"
+      },
+      {
+        "ronde": 2,
+        "casus": "IW-9-5",
+        "variant": "K0"
+      },
+      {
+        "ronde": 2,
+        "casus": "IW-9-5",
+        "variant": "A"
+      },
+      {
+        "ronde": 2,
+        "casus": "LI-9.1",
+        "variant": "U0"
+      },
+      {
+        "ronde": 2,
+        "casus": "LI-9.1",
+        "variant": "K0"
+      },
+      {
+        "ronde": 2,
+        "casus": "LI-9.1",
+        "variant": "UC"
+      },
+      {
+        "ronde": 2,
+        "casus": "LI-9.1",
+        "variant": "KC"
+      },
+      {
+        "ronde": 2,
+        "casus": "LI-9.1",
+        "variant": "A"
+      },
+      {
+        "ronde": 2,
+        "casus": "LI-9.5",
+        "variant": "U0"
+      },
+      {
+        "ronde": 2,
+        "casus": "LI-9.5",
+        "variant": "K0"
+      },
+      {
+        "ronde": 2,
+        "casus": "LI-9.5",
+        "variant": "UC"
+      },
+      {
+        "ronde": 2,
+        "casus": "LI-9.5",
+        "variant": "KC"
+      },
+      {
+        "ronde": 2,
+        "casus": "LI-9.5",
+        "variant": "A"
+      },
+      {
+        "ronde": 2,
+        "casus": "IW02",
+        "variant": "U0"
+      },
+      {
+        "ronde": 2,
+        "casus": "IW02",
+        "variant": "K0"
+      },
+      {
+        "ronde": 2,
+        "casus": "IW02",
+        "variant": "A"
+      },
+      {
+        "ronde": 2,
+        "casus": "AWB04",
+        "variant": "U0"
+      },
+      {
+        "ronde": 2,
+        "casus": "AWB04",
+        "variant": "K0"
+      },
+      {
+        "ronde": 2,
+        "casus": "AWB04",
+        "variant": "A"
+      },
+      {
+        "ronde": 2,
+        "casus": "AWB-4:17-1",
+        "variant": "U0"
+      },
+      {
+        "ronde": 2,
+        "casus": "AWB-4:17-1",
+        "variant": "K0"
+      },
+      {
+        "ronde": 2,
+        "casus": "AWB-4:17-1",
+        "variant": "A"
+      },
+      {
+        "ronde": 2,
+        "casus": "IW04",
+        "variant": "U0"
+      },
+      {
+        "ronde": 2,
+        "casus": "IW04",
+        "variant": "K0"
+      },
+      {
+        "ronde": 2,
+        "casus": "IW04",
+        "variant": "A"
+      },
+      {
+        "ronde": 3,
+        "casus": "IW-9-1",
+        "variant": "K0"
+      },
+      {
+        "ronde": 3,
+        "casus": "IW-9-1",
+        "variant": "A"
+      },
+      {
+        "ronde": 3,
+        "casus": "IW-9-1",
+        "variant": "U0"
+      },
+      {
+        "ronde": 3,
+        "casus": "IW-9-5",
+        "variant": "K0"
+      },
+      {
+        "ronde": 3,
+        "casus": "IW-9-5",
+        "variant": "A"
+      },
+      {
+        "ronde": 3,
+        "casus": "IW-9-5",
+        "variant": "U0"
+      },
+      {
+        "ronde": 3,
+        "casus": "LI-9.1",
+        "variant": "K0"
+      },
+      {
+        "ronde": 3,
+        "casus": "LI-9.1",
+        "variant": "UC"
+      },
+      {
+        "ronde": 3,
+        "casus": "LI-9.1",
+        "variant": "KC"
+      },
+      {
+        "ronde": 3,
+        "casus": "LI-9.1",
+        "variant": "A"
+      },
+      {
+        "ronde": 3,
+        "casus": "LI-9.1",
+        "variant": "U0"
+      },
+      {
+        "ronde": 3,
+        "casus": "LI-9.5",
+        "variant": "K0"
+      },
+      {
+        "ronde": 3,
+        "casus": "LI-9.5",
+        "variant": "UC"
+      },
+      {
+        "ronde": 3,
+        "casus": "LI-9.5",
+        "variant": "KC"
+      },
+      {
+        "ronde": 3,
+        "casus": "LI-9.5",
+        "variant": "A"
+      },
+      {
+        "ronde": 3,
+        "casus": "LI-9.5",
+        "variant": "U0"
+      },
+      {
+        "ronde": 3,
+        "casus": "IW02",
+        "variant": "K0"
+      },
+      {
+        "ronde": 3,
+        "casus": "IW02",
+        "variant": "A"
+      },
+      {
+        "ronde": 3,
+        "casus": "IW02",
+        "variant": "U0"
+      },
+      {
+        "ronde": 3,
+        "casus": "AWB04",
+        "variant": "K0"
+      },
+      {
+        "ronde": 3,
+        "casus": "AWB04",
+        "variant": "A"
+      },
+      {
+        "ronde": 3,
+        "casus": "AWB04",
+        "variant": "U0"
+      },
+      {
+        "ronde": 3,
+        "casus": "AWB-4:17-1",
+        "variant": "K0"
+      },
+      {
+        "ronde": 3,
+        "casus": "AWB-4:17-1",
+        "variant": "A"
+      },
+      {
+        "ronde": 3,
+        "casus": "AWB-4:17-1",
+        "variant": "U0"
+      },
+      {
+        "ronde": 3,
+        "casus": "IW04",
+        "variant": "K0"
+      },
+      {
+        "ronde": 3,
+        "casus": "IW04",
+        "variant": "A"
+      },
+      {
+        "ronde": 3,
+        "casus": "IW04",
+        "variant": "U0"
+      }
+    ],
+    "harnas_sha256": "1abd907082634fafd4e6e94a0ee13159aec99c38922e1342fb7154e98730336e"
+  },
+  "varianten": {
+    "A": {
+      "pogingen": 24,
+      "geslaagd": 24,
+      "mislukt": 0,
+      "calls": 28,
+      "calls_mislukt": 0,
+      "classifier_calls": 25,
+      "review_calls": 3,
+      "classifier_herpogingen": 1,
+      "tokens": {
+        "input_tokens": 73522,
+        "output_tokens": 33919,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 0
+      },
+      "kosten_schatting_usd": 0.729351,
+      "mediaan_seconden": 22.488,
+      "voorstellen": 342,
+      "menselijk": 11,
+      "beslisstatus": {
+        "ACCEPTED": 331,
+        "REJECTED": 153,
+        "HUMAN_REVIEW": 11
+      },
+      "twijfels": {
+        "CLASSIFIER_ABSTAIN": 22
+      },
+      "resolutieregels": {
+        "R-ONGELDIG": 11,
+        "R-ABSTAIN-CHANGE": 11
+      },
+      "technische_classifier_twijfels": {
+        "CLASSIFIER_CONTRACT_ERROR": 22
+      },
+      "ongeldige_reviewoordelen": 11,
+      "validatiefouten": {},
+      "snapshot_herstelde_pogingen": 0,
+      "ontdubbelde_tijdgrenzen": 0,
+      "stopredenen": {
+        "max_tokens": 3,
+        "tool_use": 25
+      },
+      "contractfouten": 22,
+      "regelbesluiten": null,
+      "centrale_norm": {},
+      "kosten_per_run_usd": 0.03039
+    },
+    "U0": {
+      "pogingen": 24,
+      "geslaagd": 24,
+      "mislukt": 0,
+      "calls": 38,
+      "calls_mislukt": 0,
+      "classifier_calls": 24,
+      "review_calls": 14,
+      "classifier_herpogingen": 0,
+      "tokens": {
+        "input_tokens": 87335,
+        "output_tokens": 25211,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 0
+      },
+      "kosten_schatting_usd": 0.64017,
+      "mediaan_seconden": 23.722,
+      "voorstellen": 424,
+      "menselijk": 5,
+      "beslisstatus": {
+        "HUMAN_REVIEW": 5,
+        "ACCEPTED": 419,
+        "REJECTED": 137
+      },
+      "twijfels": {
+        "CENTRALE_NORM_AFGEWEZEN": 3,
+        "CLASSIFIER_ABSTAIN": 15
+      },
+      "resolutieregels": {
+        "R-CENTRAAL-HUMAN": 3,
+        "R-ABSTAIN-CHANGE": 13,
+        "R-ONGELDIG": 1,
+        "R-ABSTAIN-HUMAN": 1
+      },
+      "technische_classifier_twijfels": {
+        "CLASSIFIER_CONTRACT_ERROR": 15
+      },
+      "ongeldige_reviewoordelen": 1,
+      "validatiefouten": {},
+      "snapshot_herstelde_pogingen": 0,
+      "ontdubbelde_tijdgrenzen": 15,
+      "stopredenen": {
+        "tool_use": 38
+      },
+      "contractfouten": 15,
+      "regelbesluiten": 114,
+      "centrale_norm": {
+        "R-CENTRAAL-HUMAN": 3
+      },
+      "kosten_per_run_usd": 0.026674
+    },
+    "K0": {
+      "pogingen": 24,
+      "geslaagd": 24,
+      "mislukt": 0,
+      "calls": 148,
+      "calls_mislukt": 0,
+      "classifier_calls": 147,
+      "review_calls": 1,
+      "classifier_herpogingen": 0,
+      "tokens": {
+        "input_tokens": 227797,
+        "output_tokens": 21851,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 0
+      },
+      "kosten_schatting_usd": 1.011156,
+      "mediaan_seconden": 28.336,
+      "voorstellen": 428,
+      "menselijk": 1,
+      "beslisstatus": {
+        "ACCEPTED": 427,
+        "REJECTED": 133,
+        "HUMAN_REVIEW": 1
+      },
+      "twijfels": {
+        "CENTRALE_NORM_AFGEWEZEN": 1
+      },
+      "resolutieregels": {
+        "R-CENTRAAL-HUMAN": 1
+      },
+      "technische_classifier_twijfels": {},
+      "ongeldige_reviewoordelen": 0,
+      "validatiefouten": {},
+      "snapshot_herstelde_pogingen": 0,
+      "ontdubbelde_tijdgrenzen": 18,
+      "stopredenen": {
+        "tool_use": 148
+      },
+      "contractfouten": 0,
+      "regelbesluiten": 114,
+      "centrale_norm": {
+        "R-CENTRAAL-HUMAN": 1
+      },
+      "kosten_per_run_usd": 0.042131
+    },
+    "UC": {
+      "pogingen": 6,
+      "geslaagd": 6,
+      "mislukt": 0,
+      "calls": 12,
+      "calls_mislukt": 0,
+      "classifier_calls": 6,
+      "review_calls": 6,
+      "classifier_herpogingen": 0,
+      "tokens": {
+        "input_tokens": 31272,
+        "output_tokens": 8978,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 0
+      },
+      "kosten_schatting_usd": 0.228486,
+      "mediaan_seconden": 31.473,
+      "voorstellen": 213,
+      "menselijk": 0,
+      "beslisstatus": {
+        "ACCEPTED": 213,
+        "REJECTED": 27
+      },
+      "twijfels": {
+        "CLASSIFIER_ABSTAIN": 9
+      },
+      "resolutieregels": {
+        "R-ABSTAIN-CHANGE": 9
+      },
+      "technische_classifier_twijfels": {
+        "CLASSIFIER_CONTRACT_ERROR": 9
+      },
+      "ongeldige_reviewoordelen": 0,
+      "validatiefouten": {},
+      "snapshot_herstelde_pogingen": 0,
+      "ontdubbelde_tijdgrenzen": 6,
+      "stopredenen": {
+        "tool_use": 12
+      },
+      "contractfouten": 9,
+      "regelbesluiten": 81,
+      "centrale_norm": {},
+      "kosten_per_run_usd": 0.038081
+    },
+    "KC": {
+      "pogingen": 6,
+      "geslaagd": 6,
+      "mislukt": 0,
+      "calls": 42,
+      "calls_mislukt": 0,
+      "classifier_calls": 42,
+      "review_calls": 0,
+      "classifier_herpogingen": 0,
+      "tokens": {
+        "input_tokens": 76770,
+        "output_tokens": 6762,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 0
+      },
+      "kosten_schatting_usd": 0.33174,
+      "mediaan_seconden": 26.273,
+      "voorstellen": 210,
+      "menselijk": 0,
+      "beslisstatus": {
+        "ACCEPTED": 210,
+        "REJECTED": 30
+      },
+      "twijfels": {},
+      "resolutieregels": {},
+      "technische_classifier_twijfels": {},
+      "ongeldige_reviewoordelen": 0,
+      "validatiefouten": {},
+      "snapshot_herstelde_pogingen": 0,
+      "ontdubbelde_tijdgrenzen": 6,
+      "stopredenen": {
+        "tool_use": 42
+      },
+      "contractfouten": 0,
+      "regelbesluiten": 81,
+      "centrale_norm": {},
+      "kosten_per_run_usd": 0.05529
+    }
+  },
+  "casussen": {
+    "IW-9-1": {
+      "A": {
+        "geslaagde_runs": 3,
+        "unie": 4,
+        "doorsnede": 2,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.5,
+        "aantallen": [
+          3,
+          3,
+          3
+        ]
+      },
+      "U0": {
+        "geslaagde_runs": 3,
+        "unie": 4,
+        "doorsnede": 4,
+        "alle_runs_gelijk": true,
+        "status_stabiel": true,
+        "menselijk_per_run": [
+          1,
+          1,
+          1
+        ],
+        "doorsnede_door_unie": 1.0,
+        "aantallen": [
+          4,
+          4,
+          4
+        ]
+      },
+      "K0": {
+        "geslaagde_runs": 3,
+        "unie": 5,
+        "doorsnede": 3,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          1
+        ],
+        "doorsnede_door_unie": 0.6,
+        "aantallen": [
+          4,
+          4,
+          4
+        ]
+      },
+      "UC": {
+        "geslaagde_runs": 3,
+        "unie": 4,
+        "doorsnede": 4,
+        "alle_runs_gelijk": true,
+        "status_stabiel": true,
+        "menselijk_per_run": [
+          1,
+          1,
+          1
+        ],
+        "doorsnede_door_unie": 1.0,
+        "aantallen": [
+          4,
+          4,
+          4
+        ]
+      },
+      "KC": {
+        "geslaagde_runs": 3,
+        "unie": 5,
+        "doorsnede": 3,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          1
+        ],
+        "doorsnede_door_unie": 0.6,
+        "aantallen": [
+          4,
+          4,
+          4
+        ]
+      }
+    },
+    "IW-9-5": {
+      "A": {
+        "geslaagde_runs": 3,
+        "unie": 37,
+        "doorsnede": 21,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          1,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.5675675675675675,
+        "aantallen": [
+          26,
+          31,
+          32
+        ]
+      },
+      "U0": {
+        "geslaagde_runs": 3,
+        "unie": 34,
+        "doorsnede": 31,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          1,
+          0
+        ],
+        "doorsnede_door_unie": 0.9117647058823529,
+        "aantallen": [
+          32,
+          32,
+          33
+        ]
+      },
+      "K0": {
+        "geslaagde_runs": 3,
+        "unie": 37,
+        "doorsnede": 25,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.6756756756756757,
+        "aantallen": [
+          31,
+          31,
+          31
+        ]
+      },
+      "UC": {
+        "geslaagde_runs": 3,
+        "unie": 34,
+        "doorsnede": 31,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          1,
+          0
+        ],
+        "doorsnede_door_unie": 0.9117647058823529,
+        "aantallen": [
+          32,
+          32,
+          33
+        ]
+      },
+      "KC": {
+        "geslaagde_runs": 3,
+        "unie": 37,
+        "doorsnede": 25,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.6756756756756757,
+        "aantallen": [
+          31,
+          31,
+          31
+        ]
+      }
+    },
+    "LI-9.1": {
+      "A": {
+        "geslaagde_runs": 3,
+        "unie": 10,
+        "doorsnede": 8,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.8,
+        "aantallen": [
+          10,
+          8,
+          8
+        ]
+      },
+      "U0": {
+        "geslaagde_runs": 3,
+        "unie": 16,
+        "doorsnede": 15,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.9375,
+        "aantallen": [
+          15,
+          15,
+          16
+        ]
+      },
+      "K0": {
+        "geslaagde_runs": 3,
+        "unie": 17,
+        "doorsnede": 13,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.7647058823529411,
+        "aantallen": [
+          15,
+          15,
+          15
+        ]
+      },
+      "UC": {
+        "geslaagde_runs": 3,
+        "unie": 17,
+        "doorsnede": 13,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.7647058823529411,
+        "aantallen": [
+          15,
+          15,
+          15
+        ]
+      },
+      "KC": {
+        "geslaagde_runs": 3,
+        "unie": 16,
+        "doorsnede": 16,
+        "alle_runs_gelijk": true,
+        "status_stabiel": true,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 1.0,
+        "aantallen": [
+          16,
+          16,
+          16
+        ]
+      }
+    },
+    "LI-9.5": {
+      "A": {
+        "geslaagde_runs": 3,
+        "unie": 56,
+        "doorsnede": 24,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          10,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.42857142857142855,
+        "aantallen": [
+          40,
+          38,
+          42
+        ]
+      },
+      "U0": {
+        "geslaagde_runs": 3,
+        "unie": 56,
+        "doorsnede": 56,
+        "alle_runs_gelijk": true,
+        "status_stabiel": true,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 1.0,
+        "aantallen": [
+          56,
+          56,
+          56
+        ]
+      },
+      "K0": {
+        "geslaagde_runs": 3,
+        "unie": 56,
+        "doorsnede": 52,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.9285714285714286,
+        "aantallen": [
+          54,
+          54,
+          54
+        ]
+      },
+      "UC": {
+        "geslaagde_runs": 3,
+        "unie": 56,
+        "doorsnede": 56,
+        "alle_runs_gelijk": true,
+        "status_stabiel": true,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 1.0,
+        "aantallen": [
+          56,
+          56,
+          56
+        ]
+      },
+      "KC": {
+        "geslaagde_runs": 3,
+        "unie": 54,
+        "doorsnede": 54,
+        "alle_runs_gelijk": true,
+        "status_stabiel": true,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 1.0,
+        "aantallen": [
+          54,
+          54,
+          54
+        ]
+      }
+    },
+    "IW02": {
+      "A": {
+        "geslaagde_runs": 3,
+        "unie": 16,
+        "doorsnede": 10,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.625,
+        "aantallen": [
+          14,
+          14,
+          11
+        ]
+      },
+      "U0": {
+        "geslaagde_runs": 3,
+        "unie": 11,
+        "doorsnede": 11,
+        "alle_runs_gelijk": true,
+        "status_stabiel": true,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 1.0,
+        "aantallen": [
+          11,
+          11,
+          11
+        ]
+      },
+      "K0": {
+        "geslaagde_runs": 3,
+        "unie": 13,
+        "doorsnede": 13,
+        "alle_runs_gelijk": true,
+        "status_stabiel": true,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 1.0,
+        "aantallen": [
+          13,
+          13,
+          13
+        ]
+      },
+      "UC": {
+        "geslaagde_runs": 3,
+        "unie": 11,
+        "doorsnede": 11,
+        "alle_runs_gelijk": true,
+        "status_stabiel": true,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 1.0,
+        "aantallen": [
+          11,
+          11,
+          11
+        ]
+      },
+      "KC": {
+        "geslaagde_runs": 3,
+        "unie": 13,
+        "doorsnede": 13,
+        "alle_runs_gelijk": true,
+        "status_stabiel": true,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 1.0,
+        "aantallen": [
+          13,
+          13,
+          13
+        ]
+      }
+    },
+    "AWB04": {
+      "A": {
+        "geslaagde_runs": 3,
+        "unie": 10,
+        "doorsnede": 10,
+        "alle_runs_gelijk": true,
+        "status_stabiel": true,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 1.0,
+        "aantallen": [
+          10,
+          10,
+          10
+        ]
+      },
+      "U0": {
+        "geslaagde_runs": 3,
+        "unie": 11,
+        "doorsnede": 9,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.8181818181818182,
+        "aantallen": [
+          10,
+          10,
+          10
+        ]
+      },
+      "K0": {
+        "geslaagde_runs": 3,
+        "unie": 13,
+        "doorsnede": 13,
+        "alle_runs_gelijk": true,
+        "status_stabiel": true,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 1.0,
+        "aantallen": [
+          13,
+          13,
+          13
+        ]
+      },
+      "UC": {
+        "geslaagde_runs": 3,
+        "unie": 11,
+        "doorsnede": 9,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.8181818181818182,
+        "aantallen": [
+          10,
+          10,
+          10
+        ]
+      },
+      "KC": {
+        "geslaagde_runs": 3,
+        "unie": 13,
+        "doorsnede": 13,
+        "alle_runs_gelijk": true,
+        "status_stabiel": true,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 1.0,
+        "aantallen": [
+          13,
+          13,
+          13
+        ]
+      }
+    },
+    "AWB-4:17-1": {
+      "A": {
+        "geslaagde_runs": 3,
+        "unie": 9,
+        "doorsnede": 6,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.6666666666666666,
+        "aantallen": [
+          6,
+          6,
+          9
+        ]
+      },
+      "U0": {
+        "geslaagde_runs": 3,
+        "unie": 12,
+        "doorsnede": 8,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          1,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.6666666666666666,
+        "aantallen": [
+          11,
+          10,
+          9
+        ]
+      },
+      "K0": {
+        "geslaagde_runs": 3,
+        "unie": 9,
+        "doorsnede": 9,
+        "alle_runs_gelijk": true,
+        "status_stabiel": true,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 1.0,
+        "aantallen": [
+          9,
+          9,
+          9
+        ]
+      },
+      "UC": {
+        "geslaagde_runs": 3,
+        "unie": 12,
+        "doorsnede": 8,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          1,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.6666666666666666,
+        "aantallen": [
+          11,
+          10,
+          9
+        ]
+      },
+      "KC": {
+        "geslaagde_runs": 3,
+        "unie": 9,
+        "doorsnede": 9,
+        "alle_runs_gelijk": true,
+        "status_stabiel": true,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 1.0,
+        "aantallen": [
+          9,
+          9,
+          9
+        ]
+      }
+    },
+    "IW04": {
+      "A": {
+        "geslaagde_runs": 3,
+        "unie": 3,
+        "doorsnede": 2,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.6666666666666666,
+        "aantallen": [
+          3,
+          2,
+          3
+        ]
+      },
+      "U0": {
+        "geslaagde_runs": 3,
+        "unie": 3,
+        "doorsnede": 2,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.6666666666666666,
+        "aantallen": [
+          2,
+          3,
+          3
+        ]
+      },
+      "K0": {
+        "geslaagde_runs": 3,
+        "unie": 4,
+        "doorsnede": 3,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.75,
+        "aantallen": [
+          4,
+          3,
+          4
+        ]
+      },
+      "UC": {
+        "geslaagde_runs": 3,
+        "unie": 3,
+        "doorsnede": 2,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.6666666666666666,
+        "aantallen": [
+          2,
+          3,
+          3
+        ]
+      },
+      "KC": {
+        "geslaagde_runs": 3,
+        "unie": 4,
+        "doorsnede": 3,
+        "alle_runs_gelijk": false,
+        "status_stabiel": false,
+        "menselijk_per_run": [
+          0,
+          0,
+          0
+        ],
+        "doorsnede_door_unie": 0.75,
+        "aantallen": [
+          4,
+          3,
+          4
+        ]
+      }
+    }
+  },
+  "keuze": {
+    "granulariteit": "klasseverzameling",
+    "criteria": {
+      "minder_contractfouten": true,
+      "stabiliteit_kc_ge_uc_casussen": 6,
+      "kostenfactor_kc_uc": 1.452
+    },
+    "context_slechter_dan_zonder_casussen": 1,
+    "context_vraagt_bevestiging": false
+  },
+  "runbestanden_sha256": {
+    "1-IW-9-1-A.json": "7d55fa20b85978f13c4fa83303250009ca677c9bc78fa07b3526b5c120f4e3c0",
+    "1-IW-9-1-U0.json": "6a411473d77875d3f6b76f7eaa797541c46f7c103f272a7dca5089f61a625b87",
+    "1-IW-9-1-K0.json": "756977509bea24f19489ecf1223fcde185f4e798d74f8b56e1c2631bb4dfb499",
+    "1-IW-9-5-A.json": "c23986fb1aa68b7e9a578d4fd516aaa9dda9048f413535378120cc467ebfde4e",
+    "1-IW-9-5-U0.json": "82fb634a959955cd642bf8210b4cb4d6a79b98aecda8872bc74aadf563154292",
+    "1-IW-9-5-K0.json": "2f2231594b5b73adf183831a9f449a2dc4cc31499eec61f10df7a6c25d6426d0",
+    "1-LI-9.1-A.json": "bb7601255151f33213d84eaf3fe34c9b0756a7f8a8ebcd79476451b83a868484",
+    "1-LI-9.1-U0.json": "9f27435ed336c1d89006a973ffb5bbbb64a646bf6bec3a6cdac8c7662a2cc6c2",
+    "1-LI-9.1-K0.json": "f9ba14e965ea9b4d85219a5475ce1274915085868d811b348ce53f151ae19db6",
+    "1-LI-9.1-UC.json": "28166132120a83255000f68175ca5475905c9a042c21f4b2524b24cdda32a98f",
+    "1-LI-9.1-KC.json": "dab778aef18ae3ae5d23d3574aa7ea9814d954a1625516ee0e2a0fd3c83d7abf",
+    "1-LI-9.5-A.json": "dc5f17a119020be0903ea2521f2ab699271fe88a123355f28e517a805dd895cb",
+    "1-LI-9.5-U0.json": "58f9377a7be890502f9a7bccf5e04721b83b2d68125df72394861b6a1bc4b8a4",
+    "1-LI-9.5-K0.json": "8e5a474cb6e3b329558c9b401725af4e7765236cd36d34867362d2b03b466b70",
+    "1-LI-9.5-UC.json": "e3ccc07635635b3f19ecd7db37523ed89c774d902467bfde3f21657d47fbffbd",
+    "1-LI-9.5-KC.json": "9270999c79d0377e61f34a06dc8f4eea74e61e84ea36ebb2fecf9ea8b7bcaea2",
+    "1-IW02-A.json": "3265c998a89a2cdc68f20f59cb4042a22ffbecd4c9c7d8628932ac6098fd90b7",
+    "1-IW02-U0.json": "f45efa41d770e8beb8f18d87679ca8858ba7d610f5b9f1445202a56b9d24562d",
+    "1-IW02-K0.json": "260e203d679987a00aa041572446c693604d6068a9ad4100e357c97be4a50e80",
+    "1-AWB04-A.json": "5467b5b5eb5c5810190b553cd1711257330991f00cc6bbbadf88148d16536508",
+    "1-AWB04-U0.json": "f1fc7e729abe13696fee4d352391bd3200d791b716e349fdafbce543bcd6b63b",
+    "1-AWB04-K0.json": "0aa86217adc24281b3a4f5453001ae54e45a5dbf9739336194029224f092b384",
+    "1-AWB-4_17-1-A.json": "0d15a41437b1dcbcd8d95e46d3c80b07036eb39d7565fbf3a4ef41c2413d48da",
+    "1-AWB-4_17-1-U0.json": "55db5e384986d03c98ebaead4f729bbb8f1c480dbbaf641bc8d224953fa4f709",
+    "1-AWB-4_17-1-K0.json": "a10de1710779f96ef2b4cee8ed931680911b3b98f5209166750751ef75b48edf",
+    "1-IW04-A.json": "42a944dc6306e6554320614ad26489393b2ad3a116134fe244e4e0551b0aabb3",
+    "1-IW04-U0.json": "008fd01fdc39e342558e9ab741da5256d7fcdf5da3040721ff2b9152adbe553e",
+    "1-IW04-K0.json": "054c84183b7595c36421c0206c2cd668513c16e1453fce7832b03fc53430b671",
+    "2-IW-9-1-U0.json": "9715e258823d35ab1cbec97b8856ec9bc98f3d7380edf7285d2a6bc0c54ea54b",
+    "2-IW-9-1-K0.json": "9ef3a7bda9d3ee9ef702919e675bc66355a8909389b8045517543dfbdd924eae",
+    "2-IW-9-1-A.json": "d8c221e7db84addcfccce24ff8183b819b1379c7a90a0fddf8f5dc4fb7bed5c7",
+    "2-IW-9-5-U0.json": "bbab3f021e3822f985a30b639e5fe3c63a0ee6b496471ae3775525d6cc0fe55a",
+    "2-IW-9-5-K0.json": "da702168bf554c34e06e0e8bc099063f94cf85fd95748a975d0adb55a005ddd9",
+    "2-IW-9-5-A.json": "1f29364a9e195752ca1ebd7194529fd3306b2d5941c89e37b13f7f08b8ec90d1",
+    "2-LI-9.1-U0.json": "d4eb174b14ed71d84967325c387b2051f95e70d432f1364e9c37ef9df2295a41",
+    "2-LI-9.1-K0.json": "f7d750336930fb1e6943db08bd549a2c2c345820781c14ee57cf51f31f1802ba",
+    "2-LI-9.1-UC.json": "060d698ac10266d6e9830d4f483d5bd524998c251e22702a38aa95b00e58e64b",
+    "2-LI-9.1-KC.json": "5a613a5201700552b2e627f8c65879928b8ab693a31775ceeccfc2992c391e0c",
+    "2-LI-9.1-A.json": "ccdc54819bbe8cedcbee4e051750c717e1a0da6c4c3b4c06aefbfb3ee028790a",
+    "2-LI-9.5-U0.json": "5df8e0200b9d378e443d04eb43ba97386d8d7579d003e1876c4cf610dd3eb8a1",
+    "2-LI-9.5-K0.json": "1e23288f8bc3e5740b54f1ec00d00be0ccf1090606ae82218ee9c9256a23278a",
+    "2-LI-9.5-UC.json": "76a4b465799f0bb19537e1e87aa0d2fd9b89ab8865a9a30ddd793fe20d6462dd",
+    "2-LI-9.5-KC.json": "3f482d78a3195a607ddcc077e755bda5f4fec5fcd3578be522195d3f5d152597",
+    "2-LI-9.5-A.json": "92a12a1b38bc875fd8f7700dd466725847d3d525cbcfd29bcd7d207683a8f05b",
+    "2-IW02-U0.json": "b630c5e85e9502bde385fe49fda9863ea799e7c9df2b39b34e51e0794fbf8713",
+    "2-IW02-K0.json": "b834f907152dbacecc4dd498b529be6370a8c1abf93eb288ce8302c46287900f",
+    "2-IW02-A.json": "617f5e56e80f40b6eff03a3975b26516a2cbb1f80f9cc3fc4b2ac0b9da456480",
+    "2-AWB04-U0.json": "187166e4aea5db57873d30a63aa14ad78b0e6ef9e8a2ef2daf8738bad439d7fa",
+    "2-AWB04-K0.json": "644b4da2abd5c5751105ba8c458b2d72752c968a332ecfbca56242811a1d5537",
+    "2-AWB04-A.json": "92be63f71bb89060c0bafc3064a7a0d0c0b1834a9b74288aea1db52b0c5ef12f",
+    "2-AWB-4_17-1-U0.json": "b3f487dd83a5191cb5e818888a536bc687074e99f79f55c5ef2bb1daa5273852",
+    "2-AWB-4_17-1-K0.json": "21c5dffc185b11ffa63c38d7b472c454b47bd40e2a39a8c9d7e6e2ced63a7eeb",
+    "2-AWB-4_17-1-A.json": "7b96f66af65929c549ee2100789502a60f5b33bd997c97384f4061642632b205",
+    "2-IW04-U0.json": "273c4dc3fe0daba885bea0f5d09933be3a6808e5e382f8e5c000a12cd471d480",
+    "2-IW04-K0.json": "070ee91f34021d2edffda039e03b18c6ff797eedce5d20c8fac98bab4e83fc17",
+    "2-IW04-A.json": "1c8f6f582832e94970ccbbef7caa8dae956916e8e27ec32899fb81cde0b0eea2",
+    "3-IW-9-1-K0.json": "8f8d30cfc9867bdf0759477c60c66b5f40f2eeab1f177d891f238c0bba78836f",
+    "3-IW-9-1-A.json": "85c216e0b650ba67222ff1b411355590161020723c9ec8e53f4528b468d082d2",
+    "3-IW-9-1-U0.json": "fbbd82c53962a9644fcdf578680ec007c4597e2343ed5d194b9a64d3961f7035",
+    "3-IW-9-5-K0.json": "e3ac87cea6c432e4f4ad5f3d032a82a918569200ae049f72a6e7d96ffaa0ad97",
+    "3-IW-9-5-A.json": "cdfaab631ff357b7547d4b0af508446040e0883124a07d2d5d12c2ffe3f5d069",
+    "3-IW-9-5-U0.json": "3f410507ec1591566a148058b01d1a5b3346591b405fcfac39b7c89756e2e5f0",
+    "3-LI-9.1-K0.json": "1185f481e408c3017f71c1797ec65f795c3b85962ed8ea5837929c83ac42ef05",
+    "3-LI-9.1-UC.json": "a1fbc42b3a8addd81bc31f62651749639634b7aed869b563b20e96a3ae2b5c9f",
+    "3-LI-9.1-KC.json": "3f7cb34368467a386303457233571b4b11a4257a10bd38837a45a63300798b16",
+    "3-LI-9.1-A.json": "0fc0d5c64ff011cad665ed7ea855e52bee970c50512a4eb644a714e2c7a9ff2f",
+    "3-LI-9.1-U0.json": "72d72a916df8f1d11de4b02067d44b29a04eea6ea3648f1a1c0c3187d8377266",
+    "3-LI-9.5-K0.json": "a0e942a4b8d9af1abba46affcf5a8ffa3740158c2a3b48a76765ae349b34219c",
+    "3-LI-9.5-UC.json": "859b0ab1c46e0553d130620ad66de71f3110548fec9e22a0bbcc394764abfe2d",
+    "3-LI-9.5-KC.json": "744c8d465f4a7e9e2491f02c0fccaa1c9ae36d3389f01967d077af7660dab7a9",
+    "3-LI-9.5-A.json": "1bb1b082b61c2ca67c061990c72454ea007a0c21396bbf94f49b2d160adead50",
+    "3-LI-9.5-U0.json": "47f4fd023e166426de01d2bfc5d9a69abb1e39b969d6f4d5cd600c7d67e831d2",
+    "3-IW02-K0.json": "6daf1f798e186530400c404a5a8daea6f620248a516505d351541395ae9c25a6",
+    "3-IW02-A.json": "3d501ca34bb6067cbddc9597077be30310f7a50759e9c776ab505e971391521e",
+    "3-IW02-U0.json": "a582faa8eb07cc444c193aa9fd95d15c7cae21f89c36b53ded9516b98623ab79",
+    "3-AWB04-K0.json": "a0cc0a196a3e5cd57a2cdce427948b9102fa8365121ea779687151e889687552",
+    "3-AWB04-A.json": "988e0c3e444e3913f5dda379ec59bee6e73865414b1753f36cc3c243b7f7f801",
+    "3-AWB04-U0.json": "5e6a5a3de14a8c851d0bc636e987c42b9f57bc8ac96df04393fd1f17451a36f7",
+    "3-AWB-4_17-1-K0.json": "a42a1e476ec89c627c2ab446cdd5cc06444029e13d0cfd16d6f1f9e8e6faef93",
+    "3-AWB-4_17-1-A.json": "398e088cb71e599e0a78e0cd7b0603787e042b43dc73cb7eea82f9231ed32a05",
+    "3-AWB-4_17-1-U0.json": "91ca97ff42945d3774d976b4d0d59af8ab45f7f6dba58e08a2117cdbbc2beb97",
+    "3-IW04-K0.json": "267a98c15084e317bf9de2ee5c07f209eb5a3c5f612fca739d28594ba0768520",
+    "3-IW04-A.json": "1c8c2914aeeb4707fa27a3a37bfa74eafbe6c169b85127e5849d48e228eb58fd",
+    "3-IW04-U0.json": "a84aedf6e96aa4a3b0f5066ea109218f37f5084b457dc629e16568146a404b5e"
+  }
+}
