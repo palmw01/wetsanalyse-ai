@@ -1,0 +1,39 @@
+{
+  "code_baseline": "b8117e2",
+  "code_variant": "a0699a5",
+  "harnas_correctie": "853281f",
+  "graph_qa": {
+    "geslaagd": 1193,
+    "overgeslagen": 19,
+    "commando": ".venv/bin/python -m pytest -q -o faulthandler_timeout=30",
+    "log_sha256": "5c3884fcb3a2f5e0547c6618e8be352b3c5d00ad705dcc8cdf22adf1226d8a3b"
+  },
+  "harnas_tests": {
+    "geslaagd": 7,
+    "commando": ".venv/bin/python -m pytest -q tests/test_invordering_proef.py"
+  },
+  "api": {
+    "geslaagd": 63,
+    "commando": ".venv/bin/python -m pytest -q tests/test_vocabulaire.py tests/test_annotatie_export.py tests/test_annotatie_validatie.py tests/test_annotatie_v2.py"
+  },
+  "generatorchecks": [
+    "genereer_jas_klassen.py --check",
+    "genereer_jas_vocabulaire.py --check"
+  ],
+  "historische_bestanden_ongewijzigd": [
+    "docs/wetsanalyse/onderzoek-invordering-2026-09-29",
+    "docs/wetsanalyse/referentieset/v1",
+    "docs/architectuur/metingen/hybrid-v1-tekststructuur-2026-09-29"
+  ],
+  "modelpogingen": 72,
+  "adapteraanroepen": 342,
+  "ankerfouten_na_snapshotcorrectie": 0,
+  "snapshotreplays": 11,
+  "extra_modelcalls_snapshotreplay": 0,
+  "alle_spans_brongetrouw": true,
+  "alle_detectorbijdragen_consistent": true,
+  "detectie_reproduceerbaar": true,
+  "runtimecode_en_bronpakket_tijdens_proef_ongewijzigd": true,
+  "classificatie_en_ankervalidatie_snapshotreplays_ongewijzigde_verzoeken": true,
+  "status": "technisch_gecontroleerd_geen_juridisch_gold"
+}

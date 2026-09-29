@@ -1,0 +1,15 @@
+{
+  "code": {
+    "baseline": "7ed0ba20bb9a2ec6ae19e98e8d14d4afc48ff9e4fcd385229b9c04ff80483db7",
+    "variant": "db8c6817ca42e2fc6fc2cfc28c498e4805c821c5a11a282aa5ec7ad1bc26bbeb"
+  },
+  "casussen_sha256": "2b6085c4dcfae20a569a6e8b26abc5aa6f79a7564b03747cb0aebcab30b91036",
+  "herhalingen": 3,
+  "varianten": [
+    "A_huidig",
+    "B_verbeterd",
+    "C_context"
+  ],
+  "primaire_pogingen": 72,
+  "harnas_sha256": "7700d4e3acd4a35b6e519a92381870131df61999f0ab1e8bd048e4c80afa8d99"
+}

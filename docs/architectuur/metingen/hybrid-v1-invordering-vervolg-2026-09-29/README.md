@@ -6,6 +6,9 @@ De [implementatie en ketenkaart](../../hybrid-v1-invordering-vervolg.md) beschri
 verantwoordelijkheden, acceptatiegevallen, code en beperkingen. Baseline b8117e2 en
 verbeterde meetversie a0699a5 worden afzonderlijk bewaard; de oude metingen zijn niet herschreven.
 
+Begin bij de [inhoudelijke bevindingen](bevindingen.md): het oorspronkelijke voorbeeld,
+de andere drie hoofdgevallen, de gevolgen van context en de resterende beoordelingsvragen.
+
 ## Bronnen
 
 Uitsluitend de graaf levert doel- en contextteksten voor de modelproef. De oorspronkelijke

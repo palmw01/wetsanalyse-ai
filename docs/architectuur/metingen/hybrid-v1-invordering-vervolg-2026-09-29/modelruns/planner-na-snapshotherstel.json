@@ -1,0 +1,47 @@
+{
+  "max_casussen_tegelijk": 3,
+  "volgorde_per_casus_per_ronde": [
+    [
+      "A_huidig",
+      "B_verbeterd",
+      "C_context"
+    ],
+    [
+      "B_verbeterd",
+      "C_context",
+      "A_huidig"
+    ],
+    [
+      "C_context",
+      "A_huidig",
+      "B_verbeterd"
+    ]
+  ],
+  "reeds_afgerond_bij_overnemen": [
+    "1-AWB-4_17-1-A_huidig.json",
+    "1-AWB-4_17-1-B_verbeterd.json",
+    "1-AWB04-A_huidig.json",
+    "1-AWB04-B_verbeterd.json",
+    "1-AWB04-C_context.json",
+    "1-IW-9-1-A_huidig.json",
+    "1-IW-9-1-B_verbeterd.json",
+    "1-IW-9-1-C_context.json",
+    "1-IW-9-5-A_huidig.json",
+    "1-IW-9-5-B_verbeterd.json",
+    "1-IW-9-5-C_context.json",
+    "1-IW02-A_huidig.json",
+    "1-IW02-B_verbeterd.json",
+    "1-IW02-C_context.json",
+    "1-IW04-A_huidig.json",
+    "1-IW04-B_verbeterd.json",
+    "1-IW04-C_context.json",
+    "1-LI-9.1-A_huidig.json",
+    "1-LI-9.1-B_verbeterd.json",
+    "1-LI-9.1-C_context.json",
+    "1-LI-9.5-A_huidig.json",
+    "1-LI-9.5-B_verbeterd.json",
+    "1-LI-9.5-C_context.json"
+  ],
+  "planner_sha256": "097a76fcb2d5c01d3e907dc369416f7d6db914f5d15a8baba8fb94f1ab36bdeb",
+  "reden": "Onafhankelijke casussen parallel; alle 72 oorspronkelijke pogingen blijven behouden. Latentie is mede afhankelijk van parallelisme."
+}

@@ -113,6 +113,7 @@ def samenvatting(rs):
         "ongeldige_reviewoordelen": sum(t["regel"] == "R-ONGELDIG" for r in ok for t in r["meting"]["resolutie"]),
         "validatiefouten": dict(Counter(t["code"] for r in ok for t in r["meting"]["validatie"] if t["ernst"] == "fout")),
         "snapshot_herstelde_pogingen": sum("herstel" in r for r in rs),
+        "ontdubbelde_tijdgrenzen": sum(len(r["meting"].get("alternatieve_tijdgrenzen", {})) for r in ok),
         "stopredenen": dict(Counter(c.get("antwoord", {}).get("stop_reason", "fout") for c in calls)),
     }
 
@@ -122,8 +123,13 @@ def stabiliteit(rs):
     if not sets:
         return {"geslaagde_runs": 0}
     union, inter = set.union(*sets), set.intersection(*sets)
+    statussen = [{(sleutel(v), v["trace"]["beslissing"]["status"]) for v in r["voorstellen"]}
+                 for r in rs if r["status"] == "ok"]
     return {"geslaagde_runs": len(sets), "unie": len(union), "doorsnede": len(inter),
             "alle_runs_gelijk": all(s == sets[0] for s in sets),
+            "status_stabiel": all(s == statussen[0] for s in statussen),
+            "menselijk_per_run": [sum(v["trace"]["beslissing"]["status"] == "HUMAN_REVIEW"
+                for v in r["voorstellen"]) for r in rs if r["status"] == "ok"],
             "doorsnede_door_unie": len(inter) / len(union) if union else 1.0,
             "aantallen": [len(s) for s in sets]}
 
