@@ -110,7 +110,12 @@ const zoekveld = (page) => page.getByRole("combobox", { name: "Knoop zoeken" });
 /** Kies een knoop via het zoekveld (ook als hij verborgen is). */
 async function zoekEnKies(page, vraag, id) {
   await zoekveld(page).fill(vraag);
-  await page.locator(`[role="option"][data-knoop-id="${id}"]`).click();
+  const optie = page.locator(`[role="option"][data-knoop-id="${id}"]`);
+  // De camera- en lijstupdates na een vorige keuze kunnen de lijst kort hertekenen: dan opnieuw openen.
+  for (let i = 0; i < 3; i++) {
+    try { await optie.click({ timeout: 5000 }); return; } catch { await zoekveld(page).click(); }
+  }
+  await optie.click();
 }
 /** De knopen die nu in beeld staan: de lijst bij een lege zoekfocus. */
 async function inBeeld(page) {

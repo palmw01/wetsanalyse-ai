@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Kruis, Zoek } from "@/components/ui/Icoon";
 import { SOORT_LABEL, zoekKnopen, type GraafData, type GraafKnoop } from "@/lib/samenhang";
 
@@ -14,6 +14,11 @@ export function GraafZoek({ graaf, zichtbaar, gekozen, onKies }: {
   const [open, setOpen] = useState(false);
   const [actief, setActief] = useState(0);
   const lijstId = useId();
+  // Sluiten na blur wacht even (een klik op een optie moet eerst landen); focus of typen ná die
+  // blur annuleert het, anders klapt de lijst dicht terwijl je al weer zoekt.
+  const sluitTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const openLijst = () => { clearTimeout(sluitTimer.current); setOpen(true); };
+  useEffect(() => () => clearTimeout(sluitTimer.current), []);
   const resultaten = useMemo(() => vraag.trim() ? zoekKnopen(graaf, vraag) : zichtbaar.slice(0, 40), [graaf, vraag, zichtbaar]);
   const zichtbareIds = useMemo(() => new Set(zichtbaar.map((n) => n.id)), [zichtbaar]);
 
@@ -29,11 +34,11 @@ export function GraafZoek({ graaf, zichtbaar, gekozen, onKies }: {
       <input role="combobox" aria-expanded={open} aria-controls={lijstId} aria-autocomplete="list" aria-label="Knoop zoeken"
         aria-activedescendant={open && resultaten[actief] ? `${lijstId}-${actief}` : undefined}
         placeholder="Zoek knoop…" value={vraag}
-        onChange={(e) => { setVraag(e.target.value); setActief(0); setOpen(true); }}
-        onFocus={() => setOpen(true)} onClick={() => setOpen(true)}
-        onBlur={() => setTimeout(() => setOpen(false), 120)}
+        onChange={(e) => { setVraag(e.target.value); setActief(0); openLijst(); }}
+        onFocus={openLijst} onClick={openLijst}
+        onBlur={() => { sluitTimer.current = setTimeout(() => setOpen(false), 120); }}
         onKeyDown={(e) => {
-          if (e.key === "ArrowDown") { e.preventDefault(); setOpen(true); setActief((i) => Math.min(i + 1, resultaten.length - 1)); }
+          if (e.key === "ArrowDown") { e.preventDefault(); openLijst(); setActief((i) => Math.min(i + 1, resultaten.length - 1)); }
           else if (e.key === "ArrowUp") { e.preventDefault(); setActief((i) => Math.max(i - 1, 0)); }
           else if (e.key === "Enter" && resultaten[actief]) { e.preventDefault(); kies(resultaten[actief]); }
           else if (e.key === "Escape" && (open || vraag)) { e.stopPropagation(); setOpen(false); setVraag(""); }
