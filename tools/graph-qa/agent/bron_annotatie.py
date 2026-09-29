@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from bronmodel import BronFout, CorpusMap, resolve, valideer_ankers
+from bronmodel import BronFout, CorpusMap, resolve, subtree, valideer_ankers
 
 from .tool_execution import execute_tool, read_port
 
@@ -75,6 +75,41 @@ def controleer_hergebruik(b, state, bron, writer):
               "telling": telling(elements), "volledig": full}
     # Nodes die al af zijn (of afgerond) worden niet opnieuw geanalyseerd; daar mag niets meer bij.
     return {**bron, "hergebruikte_nodes": sorted((completed | afgerond) & selected)}, reused
+
+
+def stand_per_optie(b, state, writer, snapshot: dict, opties: list[dict]) -> list[dict] | None:
+    """Hoe ver het werk per optie van de keuzekaart is, uit één weergave van de ouder.
+
+    Zo ziet de jurist vóór het kiezen waar nog werk ligt en vinkt hij niet af wat al klaar is. De
+    status is `nieuw` (niets), `te_beoordelen` (voorstellen zonder oordeel), `beoordeeld` of
+    `afgerond` (elke laag in de subtree geaccordeerd). `None` als de api het niet betrouwbaar weet:
+    dan geen stand in plaats van een geraden stand.
+    """
+    params = {"bron_iri": snapshot["doel"]["bron_iri"]}
+    view = json.loads(execute_tool(
+        b, state, writer, {"name": "get_annotatieweergave", "input": params},
+        operation=lambda: read_port(b, state).weergave(params),
+    ))
+    if view.get("schema_versie") != 2:
+        return None
+    lagen = {laag["bron_iri"]: laag for laag in view.get("lagen") or []}
+    elementen = list(view.get("elementen") or [])
+    uit = []
+    for optie in opties:
+        bereik = {n["bron_iri"] for n in subtree(snapshot["nodes"], optie["bron_iri"])}
+        t = telling([e for e in elementen if e.get("eigenaar_iri") in bereik])
+        eigen = [lagen[i] for i in bereik if i in lagen]
+        if eigen and all(laag.get("status") == "geaccordeerd" for laag in eigen):
+            status = "afgerond"
+        elif t["te_beoordelen"]:
+            status = "te_beoordelen"
+        elif t["markeringen"]:
+            status = "beoordeeld"
+        else:
+            status = "nieuw"
+        uit.append({**optie, "stand": {"status": status, "voorstellen": t["markeringen"],
+                                       "te_beoordelen": t["te_beoordelen"]}})
+    return uit
 
 
 def lokale_elementen(voorstellen: list[dict[str, Any]], state) -> list[dict[str, Any]]:

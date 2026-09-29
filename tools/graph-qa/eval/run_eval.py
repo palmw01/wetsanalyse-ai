@@ -92,6 +92,9 @@ async def run_annotatie_case(
     async for ev in answer_stream(
         case["prompt"], settings=settings, llm=llm, graph=graph, meter=meter,
         annotaties=annotaties or getattr(graph, "annotaties", None),
+        # Een casus als "artikel 36a" meet het hele artikel; zonder `geheel` levert dat nu een
+        # keuzekaart op in plaats van markeringen. Bij een lid heeft de vlag geen effect.
+        doel={"geheel": True},
     ):
         soort = ev.get("type")
         if soort == "element":

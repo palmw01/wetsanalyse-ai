@@ -56,6 +56,10 @@ class AgentDoel(BaseModel):
     lid: str = ""
     nummer: str = ""          # decimale bepaling (beleidsregel/circulaire), bv. "9.1"
     citeertitel: str = ""
+    # Een artikel met leden (of een divisie met subbepalingen) levert standaard een keuzekaart op in
+    # plaats van één analyse over het geheel. `geheel` slaat die keuze bewust over – voor metingen
+    # die hele artikelen vergelijken, niet voor de werkplek.
+    geheel: bool = False
 
 
 class ChatRequest(BaseModel):

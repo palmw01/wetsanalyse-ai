@@ -81,7 +81,7 @@ def _draai(llm: FakeLLM, graaf: FakeGraph, *, lid: str = "", hergebruik: str = "
            **settings: Any) -> list[dict]:
     async def verzamel():
         return [e async for e in answer_stream(
-            "annoteer", doel={**DOEL, "lid": lid}, llm=llm, graph=graaf, hergebruik=hergebruik,
+            "annoteer", doel={**DOEL, "lid": lid, "geheel": not lid}, llm=llm, graph=graaf, hergebruik=hergebruik,
             settings=make_settings(enable_decomposition=True, **settings),
             annotaties=NodeLeesApi(graaf, lid),
         )]

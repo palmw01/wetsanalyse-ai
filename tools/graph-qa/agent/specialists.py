@@ -42,6 +42,12 @@ _RETRIEVAL_SYSTEM = (
     '{"bwbId": "<BWBR…>", "nummer": "<het opgehaalde nummer, bv. 9.1>", "artikel": "<artikelnr of leeg>", '
     '"lid": "<lidnummer of leeg>", "citeertitel": "<naam van de regeling>"}\n'
     "\n"
+    "MEER DAN ÉÉN ARTIKEL – noemt de gebruiker meerdere artikelen ('artikel 8 en 9', 'art. 8 lid 2 en "
+    "art. 9', 'de artikelen 8 t/m 10'), haal dan NIETS op en kies er GEEN uit; geef alleen deze JSON:\n"
+    '{"meerdere": ["<artikelnr>", "<artikelnr>"]}\n'
+    "Meerdere leden of subbepalingen van hetzelfde artikel ('artikel 9 lid 1 en 3', '9.1 en 9.5') zijn "
+    "wél één artikel: haal dan het artikel op (get_artikel of get_bepaling met het artikelnummer).\n"
+    "\n"
     "UITZONDERING – de gebruiker noemt GEEN bepaling maar een ONDERWERP ('alles over aansprakelijkheid "
     "van de bestuurder', 'de bepalingen over uitstel van betaling'). Kies er dan NIET zelf één uit: "
     "zoek met semantic_search/search_wetgeving en leg de gevonden bepalingen als keuze voor. Haal in "

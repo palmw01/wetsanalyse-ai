@@ -149,6 +149,45 @@ def _doel_uit_toolcalls(messages: list[dict[str, Any]]) -> dict[str, str]:
     return doel
 
 
+def _meerdere_artikelen(state: State) -> list[str]:
+    """Wees de ophaal-agent meer dan één artikel aan? Dan annoteren we niets.
+
+    Twee bronnen: de `{"meerdere": [...]}`-JSON die de prompt vraagt, en – als vangnet voor een
+    agent die zich daar niet aan hield – de fetch-calls. Vroeger won dan stil de laatste call en
+    verdween het andere artikel zonder melding. Alleen calls binnen de regeling van het uiteindelijke
+    doel tellen (een misser in een andere regeling onderweg is geen tweede artikel) en een
+    subbepaling telt bij haar stam (9.1 hoort bij 9).
+    """
+    import json
+
+    tekst = state.get("answer", "")
+    s, e = tekst.find("{"), tekst.rfind("}")
+    if s != -1 and e > s:
+        try:
+            data = json.loads(tekst[s : e + 1])
+            if isinstance(data, dict) and isinstance(data.get("meerdere"), list):
+                return [str(x).strip() for x in data["meerdere"] if str(x).strip()] or ["?", "?"]
+        except json.JSONDecodeError:
+            pass
+    doel = _doel_uit_toolcalls(state.get("messages", []))
+    stammen: list[str] = []
+    for msg in state.get("messages", []):
+        if msg.get("role") != "assistant" or not isinstance(msg.get("content"), list):
+            continue
+        for blok in msg["content"]:
+            if not (isinstance(blok, dict) and blok.get("type") == "tool_use"
+                    and blok.get("name") in ("get_lid", "get_artikel", "get_bepaling")):
+                continue
+            inp = blok.get("input") or {}
+            nummer = str(inp.get("artikel") or inp.get("nummer") or "").strip()
+            if not _is_vindplaats(nummer) or str(inp.get("bwb_id", "")).strip() != doel["bwbId"]:
+                continue
+            stam = nummer.split(".", 1)[0]
+            if stam not in stammen:
+                stammen.append(stam)
+    return stammen if len(stammen) > 1 else []
+
+
 def _bepaal_doel(state: State) -> dict[str, str]:
     """Combineer: neem de tool-call als bron (gezaghebbend) en vul lege velden aan uit de JSON.
 

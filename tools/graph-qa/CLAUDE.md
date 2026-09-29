@@ -592,6 +592,16 @@ de werkvoorraad in gaat is een inhoudelijke keuze; de agent er zelf één laten 
 annotatie op een bepaling die niemand vroeg. De werkplek toont de lijst en stuurt de gekozen bepaling
 als nieuwe opdracht in.
 
+**Eén artikel per annotatievraag, en een artikel met leden wordt een keuze.** Noemt de vraag meer
+artikelen ("artikel 8 en 9"), dan wijst de supervisor haar af vóór de ophaal-agent draait
+(`aanwijzing.lees_aanwijzing`, deterministisch); de ophaal-JSON `{"meerdere": [...]}` en een vangnet
+op de fetch-calls (`doel._meerdere_artikelen`) vangen de rest. Vroeger won stil de laatste
+fetch-call. Wijst het doel een artikel met leden of een divisie met subbepalingen aan, dan emit
+`annoteer_node` een `kandidaten`-event met `keuze: {soort: "onderdeel"|"bepaling", ouder, alles}` en
+per optie `bron_iri`, `nummer`, `soort`, `label`, `fragment`, optioneel `stand` en `gekozen`, en
+stopt – geen modelcall. De gekozen optie komt terug als doel met `bron_iri`. `AgentDoel.geheel`
+slaat de keuze over; alleen voor metingen (`eval/run_eval.py`).
+
 **Dezelfde markering komt maar één keer terug.** Een fragment is niet zijn id maar zijn inhoud:
 `sleutel_van(tekst, lid)` – genormaliseerde tekst + lid, **zonder klasse**. Dat is dezelfde regel als
 de api-merge (`routers/annotatie.py:_sleutel`) en `mergeVoorstellen` in de werkplek – drie
