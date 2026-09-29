@@ -384,19 +384,21 @@ alleen als de api de capability `samenhang` meldt (`samenhangBeschikbaar()`, é�
   een eenmalige **hint** (`GraafHint`, `localStorage` in try/catch).
 - **Wat is dit? – de inspector** (`GraafInspector`): kop met soort en naam, *Centreren* en ✕, en
   precies **één gevulde hoofdactie** (`hoofdactie()` in `lib/samenhang.ts`): *Toon in tekst* (bron of
-  markering binnen het artikel), *Artikel openen* (geïmporteerde randknoop), *Toon/Verberg
-  markeringen* (klasse), niets bij extern. Daarnaast rustig *Vraag Lex* (niet bij een klasse) en de
+  markering binnen het artikel), *Artikel openen* (geïmporteerde randknoop), niets bij een klasse of
+  extern. Daarnaast rustig *Vraag Lex* (niet bij een klasse) en de
   schakelaar *Verbindingen tonen (n)* – dezelfde handeling als dubbelklik, weg als er niets te tonen
   valt. Relaties per soort als uitklapgroepen (`relatieGroepen`). Breed staat hij rechts, smal onder
   de graaf en ingeklapt tot kop + hoofdactie, zodat het canvas zijn hoogte houdt.
+- **Annotaties staan er meteen.** Met de laag *Annotaties* aan (de default) toont de omgeving naast
+  de bronstructuur ook alle markeringen met hun JAS-klasse; alleen verwijzingen naar buiten vragen om
+  uitklappen. Ze zaten eerst achter uitklappen – de klasse hangt aan de markering, niet aan het lid,
+  dus je moest twee niveaus diep. De laag uitzetten is de weg naar rust, geen verstoppen.
 - **Kiezen klapt tijdelijk uit, dubbelklikken zet vast.** De omgeving is wat je zelf uitklapte
-  (`uitgebreid`). Daarbovenop klapt de gekozen knoop uit zolang hij gekozen is – een JAS-klasse (die
-  zegt niets zonder haar markeringen) of een knoop die in de omgeving verborgen was (via zoeken, de
-  tekst of een tijdelijk getoonde buur). Dat is **afgeleid, niet opgeslagen** (`tijdelijk` in
-  `SamenhangGraaf`): kies je iets anders, dan verdwijnt het weer. Het werd eerst in `uitgebreid`
-  gezet, en toen bleef elke ooit aangeklikte klasse voorgoed in de omgeving staan en andere niet.
-  De schakelaar/hoofdactie klapt een tijdelijk uitgeklapte knoop in voor zolang hij gekozen is
-  (`ingeklapt`); dubbelklikken zet hem vast in de omgeving.
+  (`uitgebreid`). Daarbovenop klapt een gekozen knoop die in de omgeving verborgen was (via zoeken of
+  een tijdelijk getoonde buur) uit zolang hij gekozen is. Dat is **afgeleid, niet opgeslagen**
+  (`tijdelijk` in `SamenhangGraaf`): kies je iets anders, dan verdwijnt het weer. Het werd eerst in
+  `uitgebreid` gezet, en toen bleef elke ooit aangeklikte knoop voorgoed in de omgeving staan. De
+  schakelaar klapt zo'n knoop in voor zolang hij gekozen is (`ingeklapt`); dubbelklikken zet hem vast.
 - **Eén selectie**: de gekozen markering is in tekst en graaf dezelfde (`actiefId` van het paneel).
   *Toon in tekst* wisselt naar de tekst en scrolt naar het lid (`data-lid` op de blokken van
   `DocumentPaneel`). *Vraag Lex* gaat voor een markering via de bestaande `onVraag`; voor een bron

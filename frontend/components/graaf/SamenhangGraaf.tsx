@@ -129,16 +129,15 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, onKie
   const actieveKnoop = actiefElementId ? `element:${actiefElementId}` : undefined;
   const gekozenId = actieveKnoop && alles.nodes.some((n) => n.id === actieveKnoop) ? actieveKnoop : selectie;
   // De omgeving is wat je zelf uitklapte. Daarbovenop klapt de gekozen knoop uit zolang hij gekozen
-  // is: een JAS-klasse (die zegt niets zonder haar markeringen) of een knoop die in de omgeving
-  // verborgen was (via zoeken, de tekst of een tijdelijk getoonde buur). Kies je iets anders, dan
-  // verdwijnt dat weer – anders bleef elke ooit aangeklikte klasse voorgoed in beeld.
+  // is, als hij in de omgeving verborgen was (via zoeken of een tijdelijk getoonde buur). Kies je
+  // iets anders, dan verdwijnt dat weer – anders bleef elke ooit gekozen knoop voorgoed in beeld.
   const omgeving = useMemo(() => zichtbareGraaf(alles, uitgebreid, filters), [alles, uitgebreid, filters]);
   // De inspector kijkt naar de héle graaf: ook een verborgen buur staat erin en is te kiezen.
   const geselecteerd = alles.nodes.find((n) => n.id === gekozenId);
   const tijdelijk = useMemo(() => {
     const k = alles.nodes.find((n) => n.id === gekozenId);
     return k && k.id !== ingeklapt && !uitgebreid.includes(k.id)
-      && (k.soort === "klasse" || !omgeving.nodes.some((n) => n.id === k.id)) ? k.id : "";
+      && !omgeving.nodes.some((n) => n.id === k.id) ? k.id : "";
   }, [alles, gekozenId, ingeklapt, uitgebreid, omgeving]);
   const data = useMemo(() => tijdelijk ? zichtbareGraaf(alles, [...uitgebreid, tijdelijk], filters) : omgeving,
     [alles, uitgebreid, filters, tijdelijk, omgeving]);
@@ -193,7 +192,6 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, onKie
     const actie = bepaalHoofdactie(knoop, geopend);
     if (actie === "tekst") onOpenTekst(knoop);
     else if (actie === "openen") void openArtikel(knoop);
-    else if (actie === "markeringen") wisselVerbindingen(knoop.id);
   }
 
   if (!delen) return <div className="space-y-3 p-5">
