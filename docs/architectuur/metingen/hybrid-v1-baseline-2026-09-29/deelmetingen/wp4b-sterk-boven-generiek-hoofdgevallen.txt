@@ -1,0 +1,22 @@
+== IW-9-1: tellingen 5 -> 5 | routes {'model': 5} -> {'model': 5}
+== IW-9-5: tellingen 40 -> 40 | routes {'model': 36, 'regel': 4} -> {'model': 36, 'regel': 4}
+== LI-9.1: tellingen 21 -> 21 | routes {'model': 17, 'regel': 4} -> {'model': 17, 'regel': 4}
+== LI-9.5: tellingen 59 -> 59 | routes {'model': 45, 'regel': 14} -> {'model': 36, 'regel': 23}
+  ~ [54,63) 'één maand'
+      route model -> regel
+  ~ [81,90) 'zes weken'
+      route model -> regel
+  ~ [198,207) 'één maand'
+      route model -> regel
+  ~ [258,267) 'zes weken'
+      route model -> regel
+  ~ [363,372) 'een maand'
+      route model -> regel
+  ~ [412,421) 'zes weken'
+      route model -> regel
+  ~ [680,689) 'een maand'
+      route model -> regel
+  ~ [726,735) 'een maand'
+      route model -> regel
+  ~ [906,915) 'zes weken'
+      route model -> regel

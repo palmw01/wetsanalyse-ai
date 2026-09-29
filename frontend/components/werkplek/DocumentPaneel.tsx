@@ -294,6 +294,7 @@ export function DocumentPaneel({
           <div
             key={bi}
             data-offset={blok.offset}
+            data-lid={blok.lid}
             className={`${INSPRING[Math.min(blok.niveau, INSPRING.length - 1)]} ${
               blok.eersteVanLid && bi > 0 ? "mt-4" : blok.niveau > 0 ? "mt-1" : "mt-2"
             } ${blok.nummer ? "relative" : ""}`}

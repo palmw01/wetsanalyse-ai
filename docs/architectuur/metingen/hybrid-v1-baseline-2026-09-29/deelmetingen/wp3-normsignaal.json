@@ -1,0 +1,8186 @@
+{
+ "werkpakket": "WP3",
+ "git_sha": "4bc1faaeea323ba2089a282f9f3b2b68c1fdd4d5",
+ "hashes_sha256": "9f552f0d0789b77e0a756c5b37a0625f1b08b6894454ddbf8919cdc37ad679d5",
+ "ontwikkelset": {
+  "voor": {
+   "kandidaten": 260,
+   "referenties": 81,
+   "ankers_core": 72,
+   "ankers_opties": 74,
+   "ankers_met_klasse": 72,
+   "gemiddeld_klassen": 2.4115384615384614,
+   "deterministisch": 19,
+   "specificiteit_afgewezen": 0,
+   "classifier_kandidaten": 241,
+   "zonder_hypothese": 0,
+   "classifier_batches_universeel": 16
+  },
+  "na": {
+   "kandidaten": 260,
+   "referenties": 81,
+   "ankers_core": 72,
+   "ankers_opties": 74,
+   "ankers_met_klasse": 72,
+   "gemiddeld_klassen": 2.0961538461538463,
+   "deterministisch": 19,
+   "specificiteit_afgewezen": 0,
+   "classifier_kandidaten": 241,
+   "zonder_hypothese": 0,
+   "classifier_batches_universeel": 16
+  },
+  "verloren_devankers": [],
+  "classifier_input_gewijzigd": [
+   "AWB01",
+   "AWB02",
+   "AWB03",
+   "AWB04",
+   "IW-D2",
+   "IW01",
+   "IW02",
+   "IW03",
+   "IW04",
+   "LI-D3",
+   "RVV01",
+   "RVV02",
+   "RVV03",
+   "RVV04",
+   "WZT01",
+   "WZT02",
+   "WZT03"
+  ],
+  "parse_gewijzigd": [],
+  "gewijzigde_kandidaten": {
+   "IW01": [
+    {
+     "id": "Ka0986661a17d",
+     "voor": {
+      "id": "Ka0986661a17d",
+      "bron": "IW01",
+      "start": 0,
+      "eind": 87,
+      "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+      "possible_classes": [
+       "Rechtsbetrekking",
+       "Rechtsfeit"
+      ],
+      "bewijs": [
+       {
+        "detector": "norm",
+        "code": "NORMATIVE_PREDICATE",
+        "regel": "jas.betrekking.normatief_adjectief",
+        "relatie": "",
+        "detail": "invorderbaar"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Ka0986661a17d",
+      "bron": "IW01",
+      "start": 0,
+      "eind": 87,
+      "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+      "possible_classes": [
+       "Rechtsbetrekking",
+       "Rechtsfeit"
+      ],
+      "bewijs": [
+       {
+        "detector": "norm",
+        "code": "NORMATIVE_PREDICATE",
+        "regel": "jas.betrekking.normatief_adjectief",
+        "relatie": "",
+        "detail": "invorderbaar"
+       },
+       {
+        "detector": "norm",
+        "code": "LEGAL_EFFECT_PREDICATE",
+        "regel": "jas.feit.rechtsgevolg_in_norm",
+        "relatie": "",
+        "detail": "invorderbaar"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    }
+   ],
+   "IW02": [
+    {
+     "id": "K635cbe66eef6",
+     "voor": {
+      "id": "K635cbe66eef6",
+      "bron": "IW02",
+      "start": 543,
+      "eind": 560,
+      "tekst": "de volgende leden",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "leden"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K635cbe66eef6",
+      "bron": "IW02",
+      "start": 543,
+      "eind": 560,
+      "tekst": "de volgende leden",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "leden"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Ka1df880a7d25",
+     "voor": {
+      "id": "Ka1df880a7d25",
+      "bron": "IW02",
+      "start": 0,
+      "eind": 485,
+      "tekst": "Hoofdelijk aansprakelijk is voor de loonbelasting, de omzetbelasting, de accijns, de verbruiksbelastingen van alcoholvrije dranken en van pruimtabak en snuiftabak, de in artikel 1 van de Wet belastingen op milieugrondslag genoemde belastingen en de kansspelbelasting verschuldigd door een rechtspersoonlijkheid bezittend lichaam in de zin van de Algemene wet inzake rijksbelastingen dat volledig rechtsbevoegd is, voor zover het aan de heffing van vennootschapsbelasting is onderworpen",
+      "possible_classes": [
+       "Rechtsbetrekking",
+       "Rechtsfeit"
+      ],
+      "bewijs": [
+       {
+        "detector": "norm",
+        "code": "NORMATIVE_PREDICATE",
+        "regel": "jas.betrekking.normatief_adjectief",
+        "relatie": "",
+        "detail": "aansprakelijk"
+       }
+      ],
+      "opties": [
+       {
+        "start": 0,
+        "eind": 561,
+        "soort": "zin"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Ka1df880a7d25",
+      "bron": "IW02",
+      "start": 0,
+      "eind": 485,
+      "tekst": "Hoofdelijk aansprakelijk is voor de loonbelasting, de omzetbelasting, de accijns, de verbruiksbelastingen van alcoholvrije dranken en van pruimtabak en snuiftabak, de in artikel 1 van de Wet belastingen op milieugrondslag genoemde belastingen en de kansspelbelasting verschuldigd door een rechtspersoonlijkheid bezittend lichaam in de zin van de Algemene wet inzake rijksbelastingen dat volledig rechtsbevoegd is, voor zover het aan de heffing van vennootschapsbelasting is onderworpen",
+      "possible_classes": [
+       "Rechtsbetrekking",
+       "Rechtsfeit"
+      ],
+      "bewijs": [
+       {
+        "detector": "norm",
+        "code": "NORMATIVE_PREDICATE",
+        "regel": "jas.betrekking.normatief_adjectief",
+        "relatie": "",
+        "detail": "aansprakelijk"
+       },
+       {
+        "detector": "norm",
+        "code": "LEGAL_EFFECT_PREDICATE",
+        "regel": "jas.feit.rechtsgevolg_in_norm",
+        "relatie": "",
+        "detail": "verschuldigd"
+       }
+      ],
+      "opties": [
+       {
+        "start": 0,
+        "eind": 561,
+        "soort": "zin"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    }
+   ],
+   "IW03": [
+    {
+     "id": "K142a66b27c7e",
+     "voor": {
+      "id": "K142a66b27c7e",
+      "bron": "IW03",
+      "start": 380,
+      "eind": 394,
+      "tekst": "de weerlegging",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obl",
+        "detail": "weerlegging"
+       }
+      ],
+      "opties": [
+       {
+        "start": 380,
+        "eind": 412,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K142a66b27c7e",
+      "bron": "IW03",
+      "start": 380,
+      "eind": 394,
+      "tekst": "de weerlegging",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "weerlegging"
+       }
+      ],
+      "opties": [
+       {
+        "start": 380,
+        "eind": 412,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K7e59407d03fc",
+     "voor": {
+      "id": "K7e59407d03fc",
+      "bron": "IW03",
+      "start": 399,
+      "eind": 412,
+      "tekst": "het vermoeden",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "vermoeden"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K7e59407d03fc",
+      "bron": "IW03",
+      "start": 399,
+      "eind": 412,
+      "tekst": "het vermoeden",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "vermoeden"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Ka5ae5e38742d",
+     "voor": {
+      "id": "Ka5ae5e38742d",
+      "bron": "IW03",
+      "start": 0,
+      "eind": 375,
+      "tekst": "Indien het lichaam niet of niet op juiste wijze aan zijn in het tweede lid bedoelde verplichting heeft voldaan, is een bestuurder op de voet van het bepaalde in het derde lid aansprakelijk, met dien verstande dat wordt vermoed dat de niet betaling aan hem is te wijten en dat de periode van drie jaren wordt geacht in te gaan op het tijdstip waarop het lichaam in gebreke is.",
+      "possible_classes": [
+       "Rechtsbetrekking",
+       "Rechtsfeit"
+      ],
+      "bewijs": [
+       {
+        "detector": "norm",
+        "code": "NORMATIVE_PREDICATE",
+        "regel": "jas.betrekking.normatief_adjectief",
+        "relatie": "",
+        "detail": "aansprakelijk"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Ka5ae5e38742d",
+      "bron": "IW03",
+      "start": 0,
+      "eind": 375,
+      "tekst": "Indien het lichaam niet of niet op juiste wijze aan zijn in het tweede lid bedoelde verplichting heeft voldaan, is een bestuurder op de voet van het bepaalde in het derde lid aansprakelijk, met dien verstande dat wordt vermoed dat de niet betaling aan hem is te wijten en dat de periode van drie jaren wordt geacht in te gaan op het tijdstip waarop het lichaam in gebreke is.",
+      "possible_classes": [
+       "Rechtsbetrekking"
+      ],
+      "bewijs": [
+       {
+        "detector": "norm",
+        "code": "NORMATIVE_PREDICATE",
+        "regel": "jas.betrekking.normatief_adjectief",
+        "relatie": "",
+        "detail": "aansprakelijk"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kcb5aa48c765c",
+     "voor": {
+      "id": "Kcb5aa48c765c",
+      "bron": "IW03",
+      "start": 565,
+      "eind": 577,
+      "tekst": "verplichting",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np_bij_normatief_predicaat",
+        "relatie": "nsubj",
+        "detail": "verplichting"
+       }
+      ],
+      "opties": [
+       {
+        "start": 541,
+        "eind": 577,
+        "soort": "np_met_bijzin"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kcb5aa48c765c",
+      "bron": "IW03",
+      "start": 565,
+      "eind": 577,
+      "tekst": "verplichting",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np",
+        "relatie": "nsubj",
+        "detail": "verplichting"
+       }
+      ],
+      "opties": [
+       {
+        "start": 541,
+        "eind": 577,
+        "soort": "np_met_bijzin"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    }
+   ],
+   "IW04": [
+    {
+     "id": "K111f0453e08f",
+     "voor": {
+      "id": "K111f0453e08f",
+      "bron": "IW04",
+      "start": 74,
+      "eind": 87,
+      "tekst": "de toepassing",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obl",
+        "detail": "toepassing"
+       }
+      ],
+      "opties": [
+       {
+        "start": 59,
+        "eind": 105,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K111f0453e08f",
+      "bron": "IW04",
+      "start": 74,
+      "eind": 87,
+      "tekst": "de toepassing",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "toepassing"
+       }
+      ],
+      "opties": [
+       {
+        "start": 59,
+        "eind": 105,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K5724e2d98cef",
+     "voor": {
+      "id": "K5724e2d98cef",
+      "bron": "IW04",
+      "start": 33,
+      "eind": 46,
+      "tekst": "nadere regels",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np_bij_normatief_predicaat",
+        "relatie": "nsubj:pass",
+        "detail": "regels"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K5724e2d98cef",
+      "bron": "IW04",
+      "start": 33,
+      "eind": 46,
+      "tekst": "nadere regels",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np",
+        "relatie": "nsubj:pass",
+        "detail": "regels"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kc55e0165e278",
+     "voor": {
+      "id": "Kc55e0165e278",
+      "bron": "IW04",
+      "start": 4,
+      "eind": 25,
+      "tekst": "ministeriële regeling",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obl",
+        "detail": "regeling"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kc55e0165e278",
+      "bron": "IW04",
+      "start": 4,
+      "eind": 25,
+      "tekst": "ministeriële regeling",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "regeling"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    }
+   ],
+   "AWB01": [
+    {
+     "id": "K18065253a5be",
+     "voor": {
+      "id": "K18065253a5be",
+      "bron": "AWB01",
+      "start": 176,
+      "eind": 200,
+      "tekst": "een bestuurlijke sanctie",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "root",
+        "detail": "sanctie"
+       }
+      ],
+      "opties": [
+       {
+        "start": 176,
+        "eind": 291,
+        "soort": "np_met_bijzin"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K18065253a5be",
+      "bron": "AWB01",
+      "start": 176,
+      "eind": 200,
+      "tekst": "een bestuurlijke sanctie",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "root",
+        "detail": "sanctie"
+       }
+      ],
+      "opties": [
+       {
+        "start": 176,
+        "eind": 291,
+        "soort": "np_met_bijzin"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K1e11c97d0cb0",
+     "voor": {
+      "id": "K1e11c97d0cb0",
+      "bron": "AWB01",
+      "start": 59,
+      "eind": 132,
+      "tekst": "een door een bestuursorgaan wegens een overtreding opgelegde verplichting",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "root",
+        "detail": "verplichting"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K1e11c97d0cb0",
+      "bron": "AWB01",
+      "start": 59,
+      "eind": 132,
+      "tekst": "een door een bestuursorgaan wegens een overtreding opgelegde verplichting",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "root",
+        "detail": "verplichting"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K2258d526960b",
+     "voor": {
+      "id": "K2258d526960b",
+      "bron": "AWB01",
+      "start": 315,
+      "eind": 324,
+      "tekst": "herhaling",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "herhaling"
+       }
+      ],
+      "opties": [
+       {
+        "start": 315,
+        "eind": 344,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K2258d526960b",
+      "bron": "AWB01",
+      "start": 315,
+      "eind": 324,
+      "tekst": "herhaling",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "herhaling"
+       }
+      ],
+      "opties": [
+       {
+        "start": 315,
+        "eind": 344,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K268df3645e6a",
+     "voor": {
+      "id": "K268df3645e6a",
+      "bron": "AWB01",
+      "start": 160,
+      "eind": 174,
+      "tekst": "herstelsanctie",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "root",
+        "detail": "herstelsanctie"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K268df3645e6a",
+      "bron": "AWB01",
+      "start": 160,
+      "eind": 174,
+      "tekst": "herstelsanctie",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "root",
+        "detail": "herstelsanctie"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K39cdfe91699d",
+     "voor": {
+      "id": "K39cdfe91699d",
+      "bron": "AWB01",
+      "start": 423,
+      "eind": 443,
+      "tekst": "bestraffende sanctie",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np_bij_normatief_predicaat",
+        "relatie": "nsubj",
+        "detail": "sanctie"
+       }
+      ],
+      "opties": [
+       {
+        "start": 420,
+        "eind": 443,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K39cdfe91699d",
+      "bron": "AWB01",
+      "start": 423,
+      "eind": 443,
+      "tekst": "bestraffende sanctie",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np",
+        "relatie": "nsubj",
+        "detail": "sanctie"
+       }
+      ],
+      "opties": [
+       {
+        "start": 420,
+        "eind": 443,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K4ad9ee3e5317",
+     "voor": {
+      "id": "K4ad9ee3e5317",
+      "bron": "AWB01",
+      "start": 387,
+      "eind": 398,
+      "tekst": "de gevolgen",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "gevolgen"
+       }
+      ],
+      "opties": [
+       {
+        "start": 387,
+        "eind": 418,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K4ad9ee3e5317",
+      "bron": "AWB01",
+      "start": 387,
+      "eind": 398,
+      "tekst": "de gevolgen",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "gevolgen"
+       }
+      ],
+      "opties": [
+       {
+        "start": 387,
+        "eind": 418,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K6305bf706e87",
+     "voor": {
+      "id": "K6305bf706e87",
+      "bron": "AWB01",
+      "start": 276,
+      "eind": 291,
+      "tekst": "een overtreding",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "overtreding"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K6305bf706e87",
+      "bron": "AWB01",
+      "start": 276,
+      "eind": 291,
+      "tekst": "een overtreding",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "overtreding"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K6c04a88a458a",
+     "voor": {
+      "id": "K6c04a88a458a",
+      "bron": "AWB01",
+      "start": 403,
+      "eind": 418,
+      "tekst": "een overtreding",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "overtreding"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K6c04a88a458a",
+      "bron": "AWB01",
+      "start": 403,
+      "eind": 418,
+      "tekst": "een overtreding",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "overtreding"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K76f93dc712c4",
+     "voor": {
+      "id": "K76f93dc712c4",
+      "bron": "AWB01",
+      "start": 420,
+      "eind": 422,
+      "tekst": "c.",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "c."
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K76f93dc712c4",
+      "bron": "AWB01",
+      "start": 420,
+      "eind": 422,
+      "tekst": "c.",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "c."
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kb0e4ede6cd63",
+     "voor": {
+      "id": "Kb0e4ede6cd63",
+      "bron": "AWB01",
+      "start": 146,
+      "eind": 155,
+      "tekst": "aanspraak",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "parataxis",
+        "detail": "aanspraak"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kb0e4ede6cd63",
+      "bron": "AWB01",
+      "start": 146,
+      "eind": 155,
+      "tekst": "aanspraak",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "parataxis",
+        "detail": "aanspraak"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kcf0e84ddb6f7",
+     "voor": {
+      "id": "Kcf0e84ddb6f7",
+      "bron": "AWB01",
+      "start": 37,
+      "eind": 57,
+      "tekst": "bestuurlijke sanctie",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "parataxis",
+        "detail": "sanctie"
+       }
+      ],
+      "opties": [
+       {
+        "start": 34,
+        "eind": 57,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kcf0e84ddb6f7",
+      "bron": "AWB01",
+      "start": 37,
+      "eind": 57,
+      "tekst": "bestuurlijke sanctie",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "parataxis",
+        "detail": "sanctie"
+       }
+      ],
+      "opties": [
+       {
+        "start": 34,
+        "eind": 57,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kd0b6789813dd",
+     "voor": {
+      "id": "Kd0b6789813dd",
+      "bron": "AWB01",
+      "start": 216,
+      "eind": 226,
+      "tekst": "het geheel",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obl",
+        "detail": "geheel"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kd0b6789813dd",
+      "bron": "AWB01",
+      "start": 216,
+      "eind": 226,
+      "tekst": "het geheel",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "geheel"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kd3668d0e11c5",
+     "voor": {
+      "id": "Kd3668d0e11c5",
+      "bron": "AWB01",
+      "start": 445,
+      "eind": 469,
+      "tekst": "een bestuurlijke sanctie",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np_bij_normatief_predicaat",
+        "relatie": "nsubj",
+        "detail": "sanctie"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kd3668d0e11c5",
+      "bron": "AWB01",
+      "start": 445,
+      "eind": 469,
+      "tekst": "een bestuurlijke sanctie",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np",
+        "relatie": "nsubj",
+        "detail": "sanctie"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Keed4393b5006",
+     "voor": {
+      "id": "Keed4393b5006",
+      "bron": "AWB01",
+      "start": 3,
+      "eind": 11,
+      "tekst": "deze wet",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obl",
+        "detail": "wet"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Keed4393b5006",
+      "bron": "AWB01",
+      "start": 3,
+      "eind": 11,
+      "tekst": "deze wet",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "wet"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kf58bc46d0248",
+     "voor": {
+      "id": "Kf58bc46d0248",
+      "bron": "AWB01",
+      "start": 94,
+      "eind": 109,
+      "tekst": "een overtreding",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obl",
+        "detail": "overtreding"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kf58bc46d0248",
+      "bron": "AWB01",
+      "start": 94,
+      "eind": 109,
+      "tekst": "een overtreding",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "overtreding"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kfde1fcc8d625",
+     "voor": {
+      "id": "Kfde1fcc8d625",
+      "bron": "AWB01",
+      "start": 329,
+      "eind": 344,
+      "tekst": "een overtreding",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "overtreding"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kfde1fcc8d625",
+      "bron": "AWB01",
+      "start": 329,
+      "eind": 344,
+      "tekst": "een overtreding",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "overtreding"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    }
+   ],
+   "AWB02": [
+    {
+     "id": "K04e38de9989a",
+     "voor": {
+      "id": "K04e38de9989a",
+      "bron": "AWB02",
+      "start": 329,
+      "eind": 344,
+      "tekst": "een overtreding",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "overtreding"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K04e38de9989a",
+      "bron": "AWB02",
+      "start": 329,
+      "eind": 344,
+      "tekst": "een overtreding",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "overtreding"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K09a37286832d",
+     "voor": {
+      "id": "K09a37286832d",
+      "bron": "AWB02",
+      "start": 3,
+      "eind": 11,
+      "tekst": "deze wet",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obl",
+        "detail": "wet"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K09a37286832d",
+      "bron": "AWB02",
+      "start": 3,
+      "eind": 11,
+      "tekst": "deze wet",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "wet"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K0ac93dccbd3c",
+     "voor": {
+      "id": "K0ac93dccbd3c",
+      "bron": "AWB02",
+      "start": 315,
+      "eind": 324,
+      "tekst": "herhaling",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "herhaling"
+       }
+      ],
+      "opties": [
+       {
+        "start": 315,
+        "eind": 344,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K0ac93dccbd3c",
+      "bron": "AWB02",
+      "start": 315,
+      "eind": 324,
+      "tekst": "herhaling",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "herhaling"
+       }
+      ],
+      "opties": [
+       {
+        "start": 315,
+        "eind": 344,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K191c9e9c9bdf",
+     "voor": {
+      "id": "K191c9e9c9bdf",
+      "bron": "AWB02",
+      "start": 276,
+      "eind": 291,
+      "tekst": "een overtreding",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "overtreding"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K191c9e9c9bdf",
+      "bron": "AWB02",
+      "start": 276,
+      "eind": 291,
+      "tekst": "een overtreding",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "overtreding"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K405cf065478a",
+     "voor": {
+      "id": "K405cf065478a",
+      "bron": "AWB02",
+      "start": 445,
+      "eind": 469,
+      "tekst": "een bestuurlijke sanctie",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np_bij_normatief_predicaat",
+        "relatie": "nsubj",
+        "detail": "sanctie"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K405cf065478a",
+      "bron": "AWB02",
+      "start": 445,
+      "eind": 469,
+      "tekst": "een bestuurlijke sanctie",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np",
+        "relatie": "nsubj",
+        "detail": "sanctie"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K438b534be497",
+     "voor": {
+      "id": "K438b534be497",
+      "bron": "AWB02",
+      "start": 403,
+      "eind": 418,
+      "tekst": "een overtreding",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "overtreding"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K438b534be497",
+      "bron": "AWB02",
+      "start": 403,
+      "eind": 418,
+      "tekst": "een overtreding",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "overtreding"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K4fd1b5f9b11b",
+     "voor": {
+      "id": "K4fd1b5f9b11b",
+      "bron": "AWB02",
+      "start": 94,
+      "eind": 109,
+      "tekst": "een overtreding",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obl",
+        "detail": "overtreding"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K4fd1b5f9b11b",
+      "bron": "AWB02",
+      "start": 94,
+      "eind": 109,
+      "tekst": "een overtreding",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "overtreding"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K4ff6e94edb3e",
+     "voor": {
+      "id": "K4ff6e94edb3e",
+      "bron": "AWB02",
+      "start": 216,
+      "eind": 226,
+      "tekst": "het geheel",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obl",
+        "detail": "geheel"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K4ff6e94edb3e",
+      "bron": "AWB02",
+      "start": 216,
+      "eind": 226,
+      "tekst": "het geheel",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "geheel"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K6bba00f1deec",
+     "voor": {
+      "id": "K6bba00f1deec",
+      "bron": "AWB02",
+      "start": 37,
+      "eind": 57,
+      "tekst": "bestuurlijke sanctie",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "parataxis",
+        "detail": "sanctie"
+       }
+      ],
+      "opties": [
+       {
+        "start": 34,
+        "eind": 57,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K6bba00f1deec",
+      "bron": "AWB02",
+      "start": 37,
+      "eind": 57,
+      "tekst": "bestuurlijke sanctie",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "parataxis",
+        "detail": "sanctie"
+       }
+      ],
+      "opties": [
+       {
+        "start": 34,
+        "eind": 57,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Ka68312a845c9",
+     "voor": {
+      "id": "Ka68312a845c9",
+      "bron": "AWB02",
+      "start": 176,
+      "eind": 200,
+      "tekst": "een bestuurlijke sanctie",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "root",
+        "detail": "sanctie"
+       }
+      ],
+      "opties": [
+       {
+        "start": 176,
+        "eind": 291,
+        "soort": "np_met_bijzin"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Ka68312a845c9",
+      "bron": "AWB02",
+      "start": 176,
+      "eind": 200,
+      "tekst": "een bestuurlijke sanctie",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "root",
+        "detail": "sanctie"
+       }
+      ],
+      "opties": [
+       {
+        "start": 176,
+        "eind": 291,
+        "soort": "np_met_bijzin"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kc4c324c1aef7",
+     "voor": {
+      "id": "Kc4c324c1aef7",
+      "bron": "AWB02",
+      "start": 420,
+      "eind": 422,
+      "tekst": "c.",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "c."
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kc4c324c1aef7",
+      "bron": "AWB02",
+      "start": 420,
+      "eind": 422,
+      "tekst": "c.",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "c."
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kcf1857b68910",
+     "voor": {
+      "id": "Kcf1857b68910",
+      "bron": "AWB02",
+      "start": 160,
+      "eind": 174,
+      "tekst": "herstelsanctie",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "root",
+        "detail": "herstelsanctie"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kcf1857b68910",
+      "bron": "AWB02",
+      "start": 160,
+      "eind": 174,
+      "tekst": "herstelsanctie",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "root",
+        "detail": "herstelsanctie"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kcf8b7bd01a1a",
+     "voor": {
+      "id": "Kcf8b7bd01a1a",
+      "bron": "AWB02",
+      "start": 423,
+      "eind": 443,
+      "tekst": "bestraffende sanctie",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np_bij_normatief_predicaat",
+        "relatie": "nsubj",
+        "detail": "sanctie"
+       }
+      ],
+      "opties": [
+       {
+        "start": 420,
+        "eind": 443,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kcf8b7bd01a1a",
+      "bron": "AWB02",
+      "start": 423,
+      "eind": 443,
+      "tekst": "bestraffende sanctie",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np",
+        "relatie": "nsubj",
+        "detail": "sanctie"
+       }
+      ],
+      "opties": [
+       {
+        "start": 420,
+        "eind": 443,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kd669d5a6b315",
+     "voor": {
+      "id": "Kd669d5a6b315",
+      "bron": "AWB02",
+      "start": 146,
+      "eind": 155,
+      "tekst": "aanspraak",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "parataxis",
+        "detail": "aanspraak"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kd669d5a6b315",
+      "bron": "AWB02",
+      "start": 146,
+      "eind": 155,
+      "tekst": "aanspraak",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "parataxis",
+        "detail": "aanspraak"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kf9a0e2ff50f2",
+     "voor": {
+      "id": "Kf9a0e2ff50f2",
+      "bron": "AWB02",
+      "start": 387,
+      "eind": 398,
+      "tekst": "de gevolgen",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "gevolgen"
+       }
+      ],
+      "opties": [
+       {
+        "start": 387,
+        "eind": 418,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kf9a0e2ff50f2",
+      "bron": "AWB02",
+      "start": 387,
+      "eind": 398,
+      "tekst": "de gevolgen",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "gevolgen"
+       }
+      ],
+      "opties": [
+       {
+        "start": 387,
+        "eind": 418,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kffc5ba25c34e",
+     "voor": {
+      "id": "Kffc5ba25c34e",
+      "bron": "AWB02",
+      "start": 59,
+      "eind": 132,
+      "tekst": "een door een bestuursorgaan wegens een overtreding opgelegde verplichting",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "root",
+        "detail": "verplichting"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kffc5ba25c34e",
+      "bron": "AWB02",
+      "start": 59,
+      "eind": 132,
+      "tekst": "een door een bestuursorgaan wegens een overtreding opgelegde verplichting",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "root",
+        "detail": "verplichting"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    }
+   ],
+   "AWB03": [
+    {
+     "id": "K06ea646afe20",
+     "voor": {
+      "id": "K06ea646afe20",
+      "bron": "AWB03",
+      "start": 59,
+      "eind": 132,
+      "tekst": "een door een bestuursorgaan wegens een overtreding opgelegde verplichting",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "root",
+        "detail": "verplichting"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K06ea646afe20",
+      "bron": "AWB03",
+      "start": 59,
+      "eind": 132,
+      "tekst": "een door een bestuursorgaan wegens een overtreding opgelegde verplichting",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "root",
+        "detail": "verplichting"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K09709d7c436c",
+     "voor": {
+      "id": "K09709d7c436c",
+      "bron": "AWB03",
+      "start": 3,
+      "eind": 11,
+      "tekst": "deze wet",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obl",
+        "detail": "wet"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K09709d7c436c",
+      "bron": "AWB03",
+      "start": 3,
+      "eind": 11,
+      "tekst": "deze wet",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "wet"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K1c4a360019bf",
+     "voor": {
+      "id": "K1c4a360019bf",
+      "bron": "AWB03",
+      "start": 276,
+      "eind": 291,
+      "tekst": "een overtreding",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "overtreding"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K1c4a360019bf",
+      "bron": "AWB03",
+      "start": 276,
+      "eind": 291,
+      "tekst": "een overtreding",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "overtreding"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K36b76407b44b",
+     "voor": {
+      "id": "K36b76407b44b",
+      "bron": "AWB03",
+      "start": 216,
+      "eind": 226,
+      "tekst": "het geheel",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obl",
+        "detail": "geheel"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K36b76407b44b",
+      "bron": "AWB03",
+      "start": 216,
+      "eind": 226,
+      "tekst": "het geheel",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "geheel"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K387ca42ebc25",
+     "voor": {
+      "id": "K387ca42ebc25",
+      "bron": "AWB03",
+      "start": 176,
+      "eind": 200,
+      "tekst": "een bestuurlijke sanctie",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "root",
+        "detail": "sanctie"
+       }
+      ],
+      "opties": [
+       {
+        "start": 176,
+        "eind": 291,
+        "soort": "np_met_bijzin"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K387ca42ebc25",
+      "bron": "AWB03",
+      "start": 176,
+      "eind": 200,
+      "tekst": "een bestuurlijke sanctie",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "root",
+        "detail": "sanctie"
+       }
+      ],
+      "opties": [
+       {
+        "start": 176,
+        "eind": 291,
+        "soort": "np_met_bijzin"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K4224ed72ed6c",
+     "voor": {
+      "id": "K4224ed72ed6c",
+      "bron": "AWB03",
+      "start": 403,
+      "eind": 418,
+      "tekst": "een overtreding",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "overtreding"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K4224ed72ed6c",
+      "bron": "AWB03",
+      "start": 403,
+      "eind": 418,
+      "tekst": "een overtreding",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "overtreding"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K5abf59c22580",
+     "voor": {
+      "id": "K5abf59c22580",
+      "bron": "AWB03",
+      "start": 146,
+      "eind": 155,
+      "tekst": "aanspraak",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "parataxis",
+        "detail": "aanspraak"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K5abf59c22580",
+      "bron": "AWB03",
+      "start": 146,
+      "eind": 155,
+      "tekst": "aanspraak",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "parataxis",
+        "detail": "aanspraak"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K82f11f91c533",
+     "voor": {
+      "id": "K82f11f91c533",
+      "bron": "AWB03",
+      "start": 445,
+      "eind": 469,
+      "tekst": "een bestuurlijke sanctie",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np_bij_normatief_predicaat",
+        "relatie": "nsubj",
+        "detail": "sanctie"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K82f11f91c533",
+      "bron": "AWB03",
+      "start": 445,
+      "eind": 469,
+      "tekst": "een bestuurlijke sanctie",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np",
+        "relatie": "nsubj",
+        "detail": "sanctie"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K841e447e3b05",
+     "voor": {
+      "id": "K841e447e3b05",
+      "bron": "AWB03",
+      "start": 423,
+      "eind": 443,
+      "tekst": "bestraffende sanctie",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np_bij_normatief_predicaat",
+        "relatie": "nsubj",
+        "detail": "sanctie"
+       }
+      ],
+      "opties": [
+       {
+        "start": 420,
+        "eind": 443,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K841e447e3b05",
+      "bron": "AWB03",
+      "start": 423,
+      "eind": 443,
+      "tekst": "bestraffende sanctie",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np",
+        "relatie": "nsubj",
+        "detail": "sanctie"
+       }
+      ],
+      "opties": [
+       {
+        "start": 420,
+        "eind": 443,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K8f8205cb4f9c",
+     "voor": {
+      "id": "K8f8205cb4f9c",
+      "bron": "AWB03",
+      "start": 315,
+      "eind": 324,
+      "tekst": "herhaling",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "herhaling"
+       }
+      ],
+      "opties": [
+       {
+        "start": 315,
+        "eind": 344,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K8f8205cb4f9c",
+      "bron": "AWB03",
+      "start": 315,
+      "eind": 324,
+      "tekst": "herhaling",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "herhaling"
+       }
+      ],
+      "opties": [
+       {
+        "start": 315,
+        "eind": 344,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Ka53ed955649e",
+     "voor": {
+      "id": "Ka53ed955649e",
+      "bron": "AWB03",
+      "start": 329,
+      "eind": 344,
+      "tekst": "een overtreding",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "overtreding"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Ka53ed955649e",
+      "bron": "AWB03",
+      "start": 329,
+      "eind": 344,
+      "tekst": "een overtreding",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "overtreding"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Ka79362bd3211",
+     "voor": {
+      "id": "Ka79362bd3211",
+      "bron": "AWB03",
+      "start": 387,
+      "eind": 398,
+      "tekst": "de gevolgen",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "gevolgen"
+       }
+      ],
+      "opties": [
+       {
+        "start": 387,
+        "eind": 418,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Ka79362bd3211",
+      "bron": "AWB03",
+      "start": 387,
+      "eind": 398,
+      "tekst": "de gevolgen",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "gevolgen"
+       }
+      ],
+      "opties": [
+       {
+        "start": 387,
+        "eind": 418,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kaade95aa8a4b",
+     "voor": {
+      "id": "Kaade95aa8a4b",
+      "bron": "AWB03",
+      "start": 420,
+      "eind": 422,
+      "tekst": "c.",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "c."
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kaade95aa8a4b",
+      "bron": "AWB03",
+      "start": 420,
+      "eind": 422,
+      "tekst": "c.",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "c."
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kd903dd396c06",
+     "voor": {
+      "id": "Kd903dd396c06",
+      "bron": "AWB03",
+      "start": 37,
+      "eind": 57,
+      "tekst": "bestuurlijke sanctie",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "parataxis",
+        "detail": "sanctie"
+       }
+      ],
+      "opties": [
+       {
+        "start": 34,
+        "eind": 57,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kd903dd396c06",
+      "bron": "AWB03",
+      "start": 37,
+      "eind": 57,
+      "tekst": "bestuurlijke sanctie",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "parataxis",
+        "detail": "sanctie"
+       }
+      ],
+      "opties": [
+       {
+        "start": 34,
+        "eind": 57,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Ke9dfbf9bda90",
+     "voor": {
+      "id": "Ke9dfbf9bda90",
+      "bron": "AWB03",
+      "start": 160,
+      "eind": 174,
+      "tekst": "herstelsanctie",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "root",
+        "detail": "herstelsanctie"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Ke9dfbf9bda90",
+      "bron": "AWB03",
+      "start": 160,
+      "eind": 174,
+      "tekst": "herstelsanctie",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "root",
+        "detail": "herstelsanctie"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kfa874ea55dea",
+     "voor": {
+      "id": "Kfa874ea55dea",
+      "bron": "AWB03",
+      "start": 94,
+      "eind": 109,
+      "tekst": "een overtreding",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obl",
+        "detail": "overtreding"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kfa874ea55dea",
+      "bron": "AWB03",
+      "start": 94,
+      "eind": 109,
+      "tekst": "een overtreding",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "overtreding"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    }
+   ],
+   "AWB04": [
+    {
+     "id": "K255709743c3d",
+     "voor": {
+      "id": "K255709743c3d",
+      "bron": "AWB04",
+      "start": 21,
+      "eind": 45,
+      "tekst": "de eerste veertien dagen",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_RELATIVE_PERIOD",
+        "regel": "jas.tijd.relatief",
+        "relatie": "",
+        "detail": "de eerste veertien dagen"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obl",
+        "detail": "dagen"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [
+       {
+        "start": 21,
+        "eind": 58,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K255709743c3d",
+      "bron": "AWB04",
+      "start": 21,
+      "eind": 45,
+      "tekst": "de eerste veertien dagen",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_RELATIVE_PERIOD",
+        "regel": "jas.tijd.relatief",
+        "relatie": "",
+        "detail": "de eerste veertien dagen"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "dagen"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [
+       {
+        "start": 21,
+        "eind": 58,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K3f69bbb7cc74",
+     "voor": {
+      "id": "K3f69bbb7cc74",
+      "bron": "AWB04",
+      "start": 46,
+      "eind": 47,
+      "tekst": "€",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "€"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K3f69bbb7cc74",
+      "bron": "AWB04",
+      "start": 46,
+      "eind": 47,
+      "tekst": "€",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "€"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K4f1bb8a4cbd9",
+     "voor": {
+      "id": "K4f1bb8a4cbd9",
+      "bron": "AWB04",
+      "start": 55,
+      "eind": 58,
+      "tekst": "dag",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "dag"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K4f1bb8a4cbd9",
+      "bron": "AWB04",
+      "start": 55,
+      "eind": 58,
+      "tekst": "dag",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "dag"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K78a66e7e9bf5",
+     "voor": {
+      "id": "K78a66e7e9bf5",
+      "bron": "AWB04",
+      "start": 126,
+      "eind": 127,
+      "tekst": "€",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "€"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K78a66e7e9bf5",
+      "bron": "AWB04",
+      "start": 126,
+      "eind": 127,
+      "tekst": "€",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "€"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K85efdb907c4a",
+     "voor": {
+      "id": "K85efdb907c4a",
+      "bron": "AWB04",
+      "start": 60,
+      "eind": 92,
+      "tekst": "de daaropvolgende veertien dagen",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_RELATIVE_PERIOD",
+        "regel": "jas.tijd.relatief",
+        "relatie": "",
+        "detail": "de daaropvolgende veertien dagen"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "parataxis",
+        "detail": "dagen"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [
+       {
+        "start": 60,
+        "eind": 105,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K85efdb907c4a",
+      "bron": "AWB04",
+      "start": 60,
+      "eind": 92,
+      "tekst": "de daaropvolgende veertien dagen",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_RELATIVE_PERIOD",
+        "regel": "jas.tijd.relatief",
+        "relatie": "",
+        "detail": "de daaropvolgende veertien dagen"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "parataxis",
+        "detail": "dagen"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [
+       {
+        "start": 60,
+        "eind": 105,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K9d411c11eee2",
+     "voor": {
+      "id": "K9d411c11eee2",
+      "bron": "AWB04",
+      "start": 135,
+      "eind": 138,
+      "tekst": "dag",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "dag"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K9d411c11eee2",
+      "bron": "AWB04",
+      "start": 135,
+      "eind": 138,
+      "tekst": "dag",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "dag"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kab855479aaf9",
+     "voor": {
+      "id": "Kab855479aaf9",
+      "bron": "AWB04",
+      "start": 102,
+      "eind": 105,
+      "tekst": "dag",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "dag"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kab855479aaf9",
+      "bron": "AWB04",
+      "start": 102,
+      "eind": 105,
+      "tekst": "dag",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "dag"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kc4229e62c546",
+     "voor": {
+      "id": "Kc4229e62c546",
+      "bron": "AWB04",
+      "start": 93,
+      "eind": 94,
+      "tekst": "€",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "€"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kc4229e62c546",
+      "bron": "AWB04",
+      "start": 93,
+      "eind": 94,
+      "tekst": "€",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "€"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    }
+   ],
+   "WZT01": [
+    {
+     "id": "K112445c4039b",
+     "voor": {
+      "id": "K112445c4039b",
+      "bron": "WZT01",
+      "start": 397,
+      "eind": 410,
+      "tekst": "één aanspraak",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obj",
+        "detail": "aanspraak"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K112445c4039b",
+      "bron": "WZT01",
+      "start": 397,
+      "eind": 410,
+      "tekst": "één aanspraak",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obj",
+        "detail": "aanspraak"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K162874f8b9d4",
+     "voor": {
+      "id": "K162874f8b9d4",
+      "bron": "WZT01",
+      "start": 299,
+      "eind": 308,
+      "tekst": "dat geval",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obl",
+        "detail": "geval"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K162874f8b9d4",
+      "bron": "WZT01",
+      "start": 299,
+      "eind": 308,
+      "tekst": "dat geval",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "geval"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K4a1dbdd3450a",
+     "voor": {
+      "id": "K4a1dbdd3450a",
+      "bron": "WZT01",
+      "start": 369,
+      "eind": 377,
+      "tekst": "deze wet",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "wet"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K4a1dbdd3450a",
+      "bron": "WZT01",
+      "start": 369,
+      "eind": 377,
+      "tekst": "deze wet",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "wet"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K865727aa7e2c",
+     "voor": {
+      "id": "K865727aa7e2c",
+      "bron": "WZT01",
+      "start": 351,
+      "eind": 364,
+      "tekst": "de toepassing",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "toepassing"
+       }
+      ],
+      "opties": [
+       {
+        "start": 351,
+        "eind": 377,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K865727aa7e2c",
+      "bron": "WZT01",
+      "start": 351,
+      "eind": 364,
+      "tekst": "de toepassing",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "toepassing"
+       }
+      ],
+      "opties": [
+       {
+        "start": 351,
+        "eind": 377,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kcd17214361e1",
+     "voor": {
+      "id": "Kcd17214361e1",
+      "bron": "WZT01",
+      "start": 276,
+      "eind": 286,
+      "tekst": "aanmerking",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "compound:prt",
+        "detail": "aanmerking"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kcd17214361e1",
+      "bron": "WZT01",
+      "start": 276,
+      "eind": 286,
+      "tekst": "aanmerking",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "compound:prt",
+        "detail": "aanmerking"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kdf87521e8853",
+     "voor": {
+      "id": "Kdf87521e8853",
+      "bron": "WZT01",
+      "start": 0,
+      "eind": 194,
+      "tekst": "Indien de normpremie voor een verzekerde in het berekeningsjaar minder bedraagt dan de standaardpremie in dat jaar, heeft de verzekerde aanspraak op een zorgtoeslag ter grootte van dat verschil.",
+      "possible_classes": [
+       "Rechtsbetrekking",
+       "Rechtsfeit"
+      ],
+      "bewijs": [
+       {
+        "detector": "norm",
+        "code": "NORMATIVE_PREDICATE",
+        "regel": "jas.betrekking.vaste_uitdrukking",
+        "relatie": "",
+        "detail": "aanspraak op"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kdf87521e8853",
+      "bron": "WZT01",
+      "start": 0,
+      "eind": 194,
+      "tekst": "Indien de normpremie voor een verzekerde in het berekeningsjaar minder bedraagt dan de standaardpremie in dat jaar, heeft de verzekerde aanspraak op een zorgtoeslag ter grootte van dat verschil.",
+      "possible_classes": [
+       "Rechtsbetrekking"
+      ],
+      "bewijs": [
+       {
+        "detector": "norm",
+        "code": "NORMATIVE_PREDICATE",
+        "regel": "jas.betrekking.vaste_uitdrukking",
+        "relatie": "",
+        "detail": "aanspraak op"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    }
+   ],
+   "WZT02": [
+    {
+     "id": "K0348514efe77",
+     "voor": {
+      "id": "K0348514efe77",
+      "bron": "WZT02",
+      "start": 162,
+      "eind": 170,
+      "tekst": "dat jaar",
+      "possible_classes": [
+       "Rechtsobject",
+       "Rechtssubject",
+       "Tijdsaanduiding"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "jaar"
+       },
+       {
+        "detector": "fusie",
+        "code": "TEMPORAL_KERNEL",
+        "regel": "",
+        "relatie": "",
+        "detail": "{\"codes\": [\"TEMPORAL_PERIOD_NOUN\"], \"ouder\": \"K585d780b5dd8\"}"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K0348514efe77",
+      "bron": "WZT02",
+      "start": 162,
+      "eind": 170,
+      "tekst": "dat jaar",
+      "possible_classes": [
+       "Rechtsobject",
+       "Tijdsaanduiding"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "jaar"
+       },
+       {
+        "detector": "fusie",
+        "code": "TEMPORAL_KERNEL",
+        "regel": "",
+        "relatie": "",
+        "detail": "{\"codes\": [\"TEMPORAL_PERIOD_NOUN\"], \"ouder\": \"K585d780b5dd8\"}"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K2d3933a419ac",
+     "voor": {
+      "id": "K2d3933a419ac",
+      "bron": "WZT02",
+      "start": 23,
+      "eind": 37,
+      "tekst": "een percentage",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obj",
+        "detail": "percentage"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K2d3933a419ac",
+      "bron": "WZT02",
+      "start": 23,
+      "eind": 37,
+      "tekst": "een percentage",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obj",
+        "detail": "percentage"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K332636a92ad1",
+     "voor": {
+      "id": "K332636a92ad1",
+      "bron": "WZT02",
+      "start": 323,
+      "eind": 333,
+      "tekst": "aanmerking",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "compound:prt",
+        "detail": "aanmerking"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K332636a92ad1",
+      "bron": "WZT02",
+      "start": 323,
+      "eind": 333,
+      "tekst": "aanmerking",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "compound:prt",
+        "detail": "aanmerking"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kbc512ad8311e",
+     "voor": {
+      "id": "Kbc512ad8311e",
+      "bron": "WZT02",
+      "start": 64,
+      "eind": 83,
+      "tekst": "het berekeningsjaar",
+      "possible_classes": [
+       "Rechtsobject",
+       "Rechtssubject",
+       "Tijdsaanduiding"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "berekeningsjaar"
+       },
+       {
+        "detector": "fusie",
+        "code": "TEMPORAL_KERNEL",
+        "regel": "",
+        "relatie": "",
+        "detail": "{\"codes\": [\"TEMPORAL_PERIOD_NOUN\"], \"ouder\": \"K4da9993ca69c\"}"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kbc512ad8311e",
+      "bron": "WZT02",
+      "start": 64,
+      "eind": 83,
+      "tekst": "het berekeningsjaar",
+      "possible_classes": [
+       "Rechtsobject",
+       "Tijdsaanduiding"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "berekeningsjaar"
+       },
+       {
+        "detector": "fusie",
+        "code": "TEMPORAL_KERNEL",
+        "regel": "",
+        "relatie": "",
+        "detail": "{\"codes\": [\"TEMPORAL_PERIOD_NOUN\"], \"ouder\": \"K4da9993ca69c\"}"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kd4ae30cbe588",
+     "voor": {
+      "id": "Kd4ae30cbe588",
+      "bron": "WZT02",
+      "start": 101,
+      "eind": 115,
+      "tekst": "een percentage",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obl",
+        "detail": "percentage"
+       }
+      ],
+      "opties": [
+       {
+        "start": 101,
+        "eind": 170,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kd4ae30cbe588",
+      "bron": "WZT02",
+      "start": 101,
+      "eind": 115,
+      "tekst": "een percentage",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "percentage"
+       }
+      ],
+      "opties": [
+       {
+        "start": 101,
+        "eind": 170,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    }
+   ],
+   "WZT03": [
+    {
+     "id": "K91cefd6d3614",
+     "voor": {
+      "id": "K91cefd6d3614",
+      "bron": "WZT03",
+      "start": 0,
+      "eind": 202,
+      "tekst": "In afwijking van het eerste lid bedraagt de aanspraak op een zorgtoeslag voor een verzekerde met een partner die geen verzekerde is, vijftig procent van het op grond van het eerste lid berekende bedrag.",
+      "possible_classes": [
+       "Afleidingsregel",
+       "Parameter en parameterwaarde",
+       "Rechtsbetrekking",
+       "Rechtsfeit"
+      ],
+      "bewijs": [
+       {
+        "detector": "afleiding",
+        "code": "CALCULATION_COPULA",
+        "regel": "jas.afleiding.bedraagt",
+        "relatie": "",
+        "detail": "In afwijking van het eerste lid bedraagt de aanspraak op een zorgtoeslag voor een verzekerde met een partner die geen verzekerde is, vijftig procent van het op grond van het eerste lid berekende bedrag."
+       },
+       {
+        "detector": "norm",
+        "code": "NORMATIVE_PREDICATE",
+        "regel": "jas.betrekking.vaste_uitdrukking",
+        "relatie": "",
+        "detail": "aanspraak op"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K91cefd6d3614",
+      "bron": "WZT03",
+      "start": 0,
+      "eind": 202,
+      "tekst": "In afwijking van het eerste lid bedraagt de aanspraak op een zorgtoeslag voor een verzekerde met een partner die geen verzekerde is, vijftig procent van het op grond van het eerste lid berekende bedrag.",
+      "possible_classes": [
+       "Afleidingsregel",
+       "Parameter en parameterwaarde",
+       "Rechtsbetrekking"
+      ],
+      "bewijs": [
+       {
+        "detector": "afleiding",
+        "code": "CALCULATION_COPULA",
+        "regel": "jas.afleiding.bedraagt",
+        "relatie": "",
+        "detail": "In afwijking van het eerste lid bedraagt de aanspraak op een zorgtoeslag voor een verzekerde met een partner die geen verzekerde is, vijftig procent van het op grond van het eerste lid berekende bedrag."
+       },
+       {
+        "detector": "norm",
+        "code": "NORMATIVE_PREDICATE",
+        "regel": "jas.betrekking.vaste_uitdrukking",
+        "relatie": "",
+        "detail": "aanspraak op"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    }
+   ],
+   "RVV01": [
+    {
+     "id": "K294266e34422",
+     "voor": {
+      "id": "K294266e34422",
+      "bron": "RVV01",
+      "start": 42,
+      "eind": 47,
+      "tekst": "licht",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "root",
+        "detail": "licht"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K294266e34422",
+      "bron": "RVV01",
+      "start": 42,
+      "eind": 47,
+      "tekst": "licht",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "root",
+        "detail": "licht"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K29e7e847bbd6",
+     "voor": {
+      "id": "K29e7e847bbd6",
+      "bron": "RVV01",
+      "start": 49,
+      "eind": 78,
+      "tekst": "voetgangers mogen oversteken;",
+      "possible_classes": [
+       "Rechtsbetrekking",
+       "Rechtsfeit"
+      ],
+      "bewijs": [
+       {
+        "detector": "norm",
+        "code": "NORMATIVE_PREDICATE",
+        "regel": "jas.betrekking.modaal_predicaat",
+        "relatie": "",
+        "detail": "mogen"
+       }
+      ],
+      "opties": [
+       {
+        "start": 0,
+        "eind": 78,
+        "soort": "zin"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K29e7e847bbd6",
+      "bron": "RVV01",
+      "start": 49,
+      "eind": 78,
+      "tekst": "voetgangers mogen oversteken;",
+      "possible_classes": [
+       "Rechtsbetrekking"
+      ],
+      "bewijs": [
+       {
+        "detector": "norm",
+        "code": "NORMATIVE_PREDICATE",
+        "regel": "jas.betrekking.modaal_predicaat",
+        "relatie": "",
+        "detail": "mogen"
+       }
+      ],
+      "opties": [
+       {
+        "start": 0,
+        "eind": 78,
+        "soort": "zin"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K72a3993a0705",
+     "voor": {
+      "id": "K72a3993a0705",
+      "bron": "RVV01",
+      "start": 4,
+      "eind": 22,
+      "tekst": "voetgangerslichten",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obl",
+        "detail": "voetgangerslichten"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K72a3993a0705",
+      "bron": "RVV01",
+      "start": 4,
+      "eind": 22,
+      "tekst": "voetgangerslichten",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "voetgangerslichten"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K7d307ff21479",
+     "voor": {
+      "id": "K7d307ff21479",
+      "bron": "RVV01",
+      "start": 33,
+      "eind": 41,
+      "tekst": "a. groen",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "root",
+        "detail": "a."
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K7d307ff21479",
+      "bron": "RVV01",
+      "start": 33,
+      "eind": 41,
+      "tekst": "a. groen",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "root",
+        "detail": "a."
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    }
+   ],
+   "RVV02": [
+    {
+     "id": "K80c0c69b5553",
+     "voor": {
+      "id": "K80c0c69b5553",
+      "bron": "RVV02",
+      "start": 33,
+      "eind": 52,
+      "tekst": "b. groen knipperend",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "b."
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K80c0c69b5553",
+      "bron": "RVV02",
+      "start": 33,
+      "eind": 52,
+      "tekst": "b. groen knipperend",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "b."
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kadb16a357eb6",
+     "voor": {
+      "id": "Kadb16a357eb6",
+      "bron": "RVV02",
+      "start": 90,
+      "eind": 104,
+      "tekst": "het rode licht",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np_bij_normatief_predicaat",
+        "relatie": "nsubj",
+        "detail": "licht"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kadb16a357eb6",
+      "bron": "RVV02",
+      "start": 90,
+      "eind": 104,
+      "tekst": "het rode licht",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np",
+        "relatie": "nsubj",
+        "detail": "licht"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kbcf14172b192",
+     "voor": {
+      "id": "Kbcf14172b192",
+      "bron": "RVV02",
+      "start": 60,
+      "eind": 89,
+      "tekst": "voetgangers mogen oversteken;",
+      "possible_classes": [
+       "Rechtsbetrekking",
+       "Rechtsfeit"
+      ],
+      "bewijs": [
+       {
+        "detector": "norm",
+        "code": "NORMATIVE_PREDICATE",
+        "regel": "jas.betrekking.modaal_predicaat",
+        "relatie": "",
+        "detail": "mogen"
+       }
+      ],
+      "opties": [
+       {
+        "start": 0,
+        "eind": 124,
+        "soort": "zin"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kbcf14172b192",
+      "bron": "RVV02",
+      "start": 60,
+      "eind": 89,
+      "tekst": "voetgangers mogen oversteken;",
+      "possible_classes": [
+       "Rechtsbetrekking"
+      ],
+      "bewijs": [
+       {
+        "detector": "norm",
+        "code": "NORMATIVE_PREDICATE",
+        "regel": "jas.betrekking.modaal_predicaat",
+        "relatie": "",
+        "detail": "mogen"
+       }
+      ],
+      "opties": [
+       {
+        "start": 0,
+        "eind": 124,
+        "soort": "zin"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kce3c8d82ed56",
+     "voor": {
+      "id": "Kce3c8d82ed56",
+      "bron": "RVV02",
+      "start": 53,
+      "eind": 58,
+      "tekst": "licht",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np_bij_normatief_predicaat",
+        "relatie": "nsubj",
+        "detail": "licht"
+       }
+      ],
+      "opties": [
+       {
+        "start": 33,
+        "eind": 58,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kce3c8d82ed56",
+      "bron": "RVV02",
+      "start": 53,
+      "eind": 58,
+      "tekst": "licht",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np",
+        "relatie": "nsubj",
+        "detail": "licht"
+       }
+      ],
+      "opties": [
+       {
+        "start": 33,
+        "eind": 58,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kfd6a4efa860a",
+     "voor": {
+      "id": "Kfd6a4efa860a",
+      "bron": "RVV02",
+      "start": 4,
+      "eind": 22,
+      "tekst": "voetgangerslichten",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obl",
+        "detail": "voetgangerslichten"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kfd6a4efa860a",
+      "bron": "RVV02",
+      "start": 4,
+      "eind": 22,
+      "tekst": "voetgangerslichten",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "voetgangerslichten"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    }
+   ],
+   "RVV03": [
+    {
+     "id": "K1da77ef05248",
+     "voor": {
+      "id": "K1da77ef05248",
+      "bron": "RVV03",
+      "start": 4,
+      "eind": 22,
+      "tekst": "voetgangerslichten",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obl",
+        "detail": "voetgangerslichten"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K1da77ef05248",
+      "bron": "RVV03",
+      "start": 4,
+      "eind": 22,
+      "tekst": "voetgangerslichten",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "voetgangerslichten"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K8a85a0ceab80",
+     "voor": {
+      "id": "K8a85a0ceab80",
+      "bron": "RVV03",
+      "start": 48,
+      "eind": 100,
+      "tekst": "voetgangers mogen niet meer beginnen over te steken;",
+      "possible_classes": [
+       "Rechtsbetrekking",
+       "Rechtsfeit"
+      ],
+      "bewijs": [
+       {
+        "detector": "norm",
+        "code": "NORMATIVE_PREDICATE",
+        "regel": "jas.betrekking.modaal_predicaat",
+        "relatie": "",
+        "detail": "mogen"
+       }
+      ],
+      "opties": [
+       {
+        "start": 0,
+        "eind": 166,
+        "soort": "zin"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K8a85a0ceab80",
+      "bron": "RVV03",
+      "start": 48,
+      "eind": 100,
+      "tekst": "voetgangers mogen niet meer beginnen over te steken;",
+      "possible_classes": [
+       "Rechtsbetrekking"
+      ],
+      "bewijs": [
+       {
+        "detector": "norm",
+        "code": "NORMATIVE_PREDICATE",
+        "regel": "jas.betrekking.modaal_predicaat",
+        "relatie": "",
+        "detail": "mogen"
+       }
+      ],
+      "opties": [
+       {
+        "start": 0,
+        "eind": 166,
+        "soort": "zin"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Ka86b170bbfc0",
+     "voor": {
+      "id": "Ka86b170bbfc0",
+      "bron": "RVV03",
+      "start": 33,
+      "eind": 46,
+      "tekst": "c. rood licht",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np_bij_normatief_predicaat",
+        "relatie": "nsubj",
+        "detail": "c."
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Ka86b170bbfc0",
+      "bron": "RVV03",
+      "start": 33,
+      "eind": 46,
+      "tekst": "c. rood licht",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np",
+        "relatie": "nsubj",
+        "detail": "c."
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kd923fd9c4fbd",
+     "voor": {
+      "id": "Kd923fd9c4fbd",
+      "bron": "RVV03",
+      "start": 101,
+      "eind": 166,
+      "tekst": "reeds overstekende voetgangers moeten zo snel mogelijk doorlopen.",
+      "possible_classes": [
+       "Rechtsbetrekking",
+       "Rechtsfeit"
+      ],
+      "bewijs": [
+       {
+        "detector": "norm",
+        "code": "NORMATIVE_PREDICATE",
+        "regel": "jas.betrekking.modaal_predicaat",
+        "relatie": "",
+        "detail": "moeten"
+       }
+      ],
+      "opties": [
+       {
+        "start": 0,
+        "eind": 166,
+        "soort": "zin"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kd923fd9c4fbd",
+      "bron": "RVV03",
+      "start": 101,
+      "eind": 166,
+      "tekst": "reeds overstekende voetgangers moeten zo snel mogelijk doorlopen.",
+      "possible_classes": [
+       "Rechtsbetrekking"
+      ],
+      "bewijs": [
+       {
+        "detector": "norm",
+        "code": "NORMATIVE_PREDICATE",
+        "regel": "jas.betrekking.modaal_predicaat",
+        "relatie": "",
+        "detail": "moeten"
+       }
+      ],
+      "opties": [
+       {
+        "start": 0,
+        "eind": 166,
+        "soort": "zin"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    }
+   ],
+   "RVV04": [
+    {
+     "id": "K5b19f7a3b8e2",
+     "voor": {
+      "id": "K5b19f7a3b8e2",
+      "bron": "RVV04",
+      "start": 45,
+      "eind": 69,
+      "tekst": "voorzichtigheid geboden.",
+      "possible_classes": [
+       "Rechtsbetrekking",
+       "Rechtsfeit"
+      ],
+      "bewijs": [
+       {
+        "detector": "norm",
+        "code": "NORMATIVE_PREDICATE",
+        "regel": "jas.betrekking.normatief_adjectief",
+        "relatie": "",
+        "detail": "geboden"
+       }
+      ],
+      "opties": [
+       {
+        "start": 0,
+        "eind": 69,
+        "soort": "zin"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K5b19f7a3b8e2",
+      "bron": "RVV04",
+      "start": 45,
+      "eind": 69,
+      "tekst": "voorzichtigheid geboden.",
+      "possible_classes": [
+       "Rechtsbetrekking"
+      ],
+      "bewijs": [
+       {
+        "detector": "norm",
+        "code": "NORMATIVE_PREDICATE",
+        "regel": "jas.betrekking.normatief_adjectief",
+        "relatie": "",
+        "detail": "geboden"
+       }
+      ],
+      "opties": [
+       {
+        "start": 0,
+        "eind": 69,
+        "soort": "zin"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kc1153ddad3e0",
+     "voor": {
+      "id": "Kc1153ddad3e0",
+      "bron": "RVV04",
+      "start": 28,
+      "eind": 43,
+      "tekst": "gevaarlijk punt",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "root",
+        "detail": "punt"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kc1153ddad3e0",
+      "bron": "RVV04",
+      "start": 28,
+      "eind": 43,
+      "tekst": "gevaarlijk punt",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "root",
+        "detail": "punt"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kcacb2c9ba9df",
+     "voor": {
+      "id": "Kcacb2c9ba9df",
+      "bron": "RVV04",
+      "start": 0,
+      "eind": 17,
+      "tekst": "Geel knipperlicht",
+      "possible_classes": [
+       "Voorwaarde",
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "betekenis",
+        "code": "MEANING_TERM",
+        "regel": "jas.voorwaarde.betekenis_term",
+        "relatie": "",
+        "detail": "Geel knipperlicht"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obj",
+        "detail": "knipperlicht"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kcacb2c9ba9df",
+      "bron": "RVV04",
+      "start": 0,
+      "eind": 17,
+      "tekst": "Geel knipperlicht",
+      "possible_classes": [
+       "Voorwaarde",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "betekenis",
+        "code": "MEANING_TERM",
+        "regel": "jas.voorwaarde.betekenis_term",
+        "relatie": "",
+        "detail": "Geel knipperlicht"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obj",
+        "detail": "knipperlicht"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    }
+   ],
+   "IW-D2": [
+    {
+     "id": "K003f57283bea",
+     "voor": {
+      "id": "K003f57283bea",
+      "bron": "IW-D2",
+      "start": 626,
+      "eind": 646,
+      "tekst": "meer dan één termijn",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obl",
+        "detail": "termijn"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K003f57283bea",
+      "bron": "IW-D2",
+      "start": 626,
+      "eind": 646,
+      "tekst": "meer dan één termijn",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "termijn"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K32f511ac4597",
+     "voor": {
+      "id": "K32f511ac4597",
+      "bron": "IW-D2",
+      "start": 669,
+      "eind": 679,
+      "tekst": "toepassing",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "appos",
+        "detail": "toepassing"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K32f511ac4597",
+      "bron": "IW-D2",
+      "start": 669,
+      "eind": 679,
+      "tekst": "toepassing",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "appos",
+        "detail": "toepassing"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K3826db18a62a",
+     "voor": {
+      "id": "K3826db18a62a",
+      "bron": "IW-D2",
+      "start": 474,
+      "eind": 488,
+      "tekst": "de dagtekening",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obl",
+        "detail": "dagtekening"
+       }
+      ],
+      "opties": [
+       {
+        "start": 474,
+        "eind": 567,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K3826db18a62a",
+      "bron": "IW-D2",
+      "start": 474,
+      "eind": 488,
+      "tekst": "de dagtekening",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "dagtekening"
+       }
+      ],
+      "opties": [
+       {
+        "start": 474,
+        "eind": 567,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K46e98d1b7ad9",
+     "voor": {
+      "id": "K46e98d1b7ad9",
+      "bron": "IW-D2",
+      "start": 576,
+      "eind": 589,
+      "tekst": "de toepassing",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np_bij_normatief_predicaat",
+        "relatie": "nsubj",
+        "detail": "toepassing"
+       }
+      ],
+      "opties": [
+       {
+        "start": 576,
+        "eind": 610,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K46e98d1b7ad9",
+      "bron": "IW-D2",
+      "start": 576,
+      "eind": 589,
+      "tekst": "de toepassing",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np",
+        "relatie": "nsubj",
+        "detail": "toepassing"
+       }
+      ],
+      "opties": [
+       {
+        "start": 576,
+        "eind": 610,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K47d261144832",
+     "voor": {
+      "id": "K47d261144832",
+      "bron": "IW-D2",
+      "start": 435,
+      "eind": 452,
+      "tekst": "De eerste termijn",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np_bij_normatief_predicaat",
+        "relatie": "nsubj",
+        "detail": "termijn"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K47d261144832",
+      "bron": "IW-D2",
+      "start": 435,
+      "eind": 452,
+      "tekst": "De eerste termijn",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np",
+        "relatie": "nsubj",
+        "detail": "termijn"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K4d6ea9bc6729",
+     "voor": {
+      "id": "K4d6ea9bc6729",
+      "bron": "IW-D2",
+      "start": 461,
+      "eind": 470,
+      "tekst": "één maand",
+      "possible_classes": [
+       "Rechtsobject",
+       "Rechtssubject",
+       "Tijdsaanduiding"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obl",
+        "detail": "maand"
+       },
+       {
+        "detector": "fusie",
+        "code": "TEMPORAL_KERNEL",
+        "regel": "",
+        "relatie": "",
+        "detail": "{\"codes\": [\"TEMPORAL_DURATION\"], \"ouder\": \"Kea2d8acf9ae8\"}"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K4d6ea9bc6729",
+      "bron": "IW-D2",
+      "start": 461,
+      "eind": 470,
+      "tekst": "één maand",
+      "possible_classes": [
+       "Rechtsobject",
+       "Tijdsaanduiding"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "maand"
+       },
+       {
+        "detector": "fusie",
+        "code": "TEMPORAL_KERNEL",
+        "regel": "",
+        "relatie": "",
+        "detail": "{\"codes\": [\"TEMPORAL_DURATION\"], \"ouder\": \"Kea2d8acf9ae8\"}"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K55d01cf34f89",
+     "voor": {
+      "id": "K55d01cf34f89",
+      "bron": "IW-D2",
+      "start": 493,
+      "eind": 510,
+      "tekst": "het aanslagbiljet",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "aanslagbiljet"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K55d01cf34f89",
+      "bron": "IW-D2",
+      "start": 493,
+      "eind": 510,
+      "tekst": "het aanslagbiljet",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "aanslagbiljet"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kbff43f495c81",
+     "voor": {
+      "id": "Kbff43f495c81",
+      "bron": "IW-D2",
+      "start": 594,
+      "eind": 610,
+      "tekst": "de eerste volzin",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "volzin"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kbff43f495c81",
+      "bron": "IW-D2",
+      "start": 594,
+      "eind": 610,
+      "tekst": "de eerste volzin",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "volzin"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kd01964a841ab",
+     "voor": {
+      "id": "Kd01964a841ab",
+      "bron": "IW-D2",
+      "start": 522,
+      "eind": 543,
+      "tekst": "de volgende termijnen",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "termijnen"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kd01964a841ab",
+      "bron": "IW-D2",
+      "start": 522,
+      "eind": 543,
+      "tekst": "de volgende termijnen",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "termijnen"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kd336a9a0d278",
+     "voor": {
+      "id": "Kd336a9a0d278",
+      "bron": "IW-D2",
+      "start": 0,
+      "eind": 434,
+      "tekst": "In afwijking van het eerste lid is een voorlopige aanslag in de inkomstenbelasting of in de vennootschapsbelasting en een voorlopige conserverende aanslag in de inkomstenbelasting, waarvan het aanslagbiljet een dagtekening heeft die ligt in het jaar waarover deze is vastgesteld, invorderbaar in zoveel gelijke termijnen als er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven.",
+      "possible_classes": [
+       "Rechtsbetrekking",
+       "Rechtsfeit",
+       "Afleidingsregel"
+      ],
+      "bewijs": [
+       {
+        "detector": "norm",
+        "code": "NORMATIVE_PREDICATE",
+        "regel": "jas.betrekking.normatief_adjectief",
+        "relatie": "",
+        "detail": "invorderbaar"
+       },
+       {
+        "detector": "functie",
+        "code": "CALCULATION_QUANTITY",
+        "regel": "jas.afleiding.aantal_uit_restant",
+        "relatie": "",
+        "detail": "{\"invoer\": {\"eind\": 433, \"start\": 325, \"tekst\": \"er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven\"}, \"uitkomst\": {\"eind\": 320, \"start\": 303, \"tekst\": \"gelijke termijnen\"}}"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kd336a9a0d278",
+      "bron": "IW-D2",
+      "start": 0,
+      "eind": 434,
+      "tekst": "In afwijking van het eerste lid is een voorlopige aanslag in de inkomstenbelasting of in de vennootschapsbelasting en een voorlopige conserverende aanslag in de inkomstenbelasting, waarvan het aanslagbiljet een dagtekening heeft die ligt in het jaar waarover deze is vastgesteld, invorderbaar in zoveel gelijke termijnen als er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven.",
+      "possible_classes": [
+       "Rechtsbetrekking",
+       "Rechtsfeit",
+       "Afleidingsregel"
+      ],
+      "bewijs": [
+       {
+        "detector": "norm",
+        "code": "NORMATIVE_PREDICATE",
+        "regel": "jas.betrekking.normatief_adjectief",
+        "relatie": "",
+        "detail": "invorderbaar"
+       },
+       {
+        "detector": "norm",
+        "code": "LEGAL_EFFECT_PREDICATE",
+        "regel": "jas.feit.rechtsgevolg_in_norm",
+        "relatie": "",
+        "detail": "invorderbaar"
+       },
+       {
+        "detector": "functie",
+        "code": "CALCULATION_QUANTITY",
+        "regel": "jas.afleiding.aantal_uit_restant",
+        "relatie": "",
+        "detail": "{\"invoer\": {\"eind\": 433, \"start\": 325, \"tekst\": \"er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven\"}, \"uitkomst\": {\"eind\": 320, \"start\": 303, \"tekst\": \"gelijke termijnen\"}}"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kdadf43235266",
+     "voor": {
+      "id": "Kdadf43235266",
+      "bron": "IW-D2",
+      "start": 544,
+      "eind": 561,
+      "tekst": "telkens een maand",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obl",
+        "detail": "maand"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kdadf43235266",
+      "bron": "IW-D2",
+      "start": 544,
+      "eind": 561,
+      "tekst": "telkens een maand",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "maand"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    }
+   ],
+   "LI-D3": [
+    {
+     "id": "K04ffd93af26a",
+     "voor": {
+      "id": "K04ffd93af26a",
+      "bron": "LI-D3",
+      "start": 751,
+      "eind": 767,
+      "tekst": "hetzelfde nummer",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obj",
+        "detail": "nummer"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K04ffd93af26a",
+      "bron": "LI-D3",
+      "start": 751,
+      "eind": 767,
+      "tekst": "hetzelfde nummer",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obj",
+        "detail": "nummer"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K0ec9df8b2a77",
+     "voor": {
+      "id": "K0ec9df8b2a77",
+      "bron": "LI-D3",
+      "start": 363,
+      "eind": 372,
+      "tekst": "een maand",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "een maand"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "maand"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [
+       {
+        "start": 363,
+        "eind": 384,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K0ec9df8b2a77",
+      "bron": "LI-D3",
+      "start": 363,
+      "eind": 372,
+      "tekst": "een maand",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "een maand"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "maand"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [
+       {
+        "start": 363,
+        "eind": 384,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K12deb8c0377c",
+     "voor": {
+      "id": "K12deb8c0377c",
+      "bron": "LI-D3",
+      "start": 922,
+      "eind": 936,
+      "tekst": "de dagtekening",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np_bij_normatief_predicaat",
+        "relatie": "nsubj",
+        "detail": "dagtekening"
+       }
+      ],
+      "opties": [
+       {
+        "start": 922,
+        "eind": 945,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K12deb8c0377c",
+      "bron": "LI-D3",
+      "start": 922,
+      "eind": 936,
+      "tekst": "de dagtekening",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np",
+        "relatie": "nsubj",
+        "detail": "dagtekening"
+       }
+      ],
+      "opties": [
+       {
+        "start": 922,
+        "eind": 945,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K1a8e261d4937",
+     "voor": {
+      "id": "K1a8e261d4937",
+      "bron": "LI-D3",
+      "start": 4,
+      "eind": 23,
+      "tekst": "de betalingstermijn",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np_bij_normatief_predicaat",
+        "relatie": "nsubj:pass",
+        "detail": "betalingstermijn"
+       }
+      ],
+      "opties": [
+       {
+        "start": 4,
+        "eind": 39,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K1a8e261d4937",
+      "bron": "LI-D3",
+      "start": 4,
+      "eind": 23,
+      "tekst": "de betalingstermijn",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np",
+        "relatie": "nsubj:pass",
+        "detail": "betalingstermijn"
+       }
+      ],
+      "opties": [
+       {
+        "start": 4,
+        "eind": 39,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K21059decb9f6",
+     "voor": {
+      "id": "K21059decb9f6",
+      "bron": "LI-D3",
+      "start": 258,
+      "eind": 267,
+      "tekst": "zes weken",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "zes weken"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "weken"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K21059decb9f6",
+      "bron": "LI-D3",
+      "start": 258,
+      "eind": 267,
+      "tekst": "zes weken",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "zes weken"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "weken"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K22a46a43b9f9",
+     "voor": {
+      "id": "K22a46a43b9f9",
+      "bron": "LI-D3",
+      "start": 726,
+      "eind": 735,
+      "tekst": "een maand",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "een maand"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "maand"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K22a46a43b9f9",
+      "bron": "LI-D3",
+      "start": 726,
+      "eind": 735,
+      "tekst": "een maand",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "een maand"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "maand"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K24500621f558",
+     "voor": {
+      "id": "K24500621f558",
+      "bron": "LI-D3",
+      "start": 669,
+      "eind": 679,
+      "tekst": "de termijn",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np_bij_normatief_predicaat",
+        "relatie": "nsubj",
+        "detail": "termijn"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K24500621f558",
+      "bron": "LI-D3",
+      "start": 669,
+      "eind": 679,
+      "tekst": "de termijn",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np",
+        "relatie": "nsubj",
+        "detail": "termijn"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K371144f39a1e",
+     "voor": {
+      "id": "K371144f39a1e",
+      "bron": "LI-D3",
+      "start": 117,
+      "eind": 131,
+      "tekst": "de dagtekening",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np_bij_normatief_predicaat",
+        "relatie": "nsubj",
+        "detail": "dagtekening"
+       }
+      ],
+      "opties": [
+       {
+        "start": 117,
+        "eind": 153,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K371144f39a1e",
+      "bron": "LI-D3",
+      "start": 117,
+      "eind": 131,
+      "tekst": "de dagtekening",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np",
+        "relatie": "nsubj",
+        "detail": "dagtekening"
+       }
+      ],
+      "opties": [
+       {
+        "start": 117,
+        "eind": 153,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K48c987ad4eec",
+     "voor": {
+      "id": "K48c987ad4eec",
+      "bron": "LI-D3",
+      "start": 955,
+      "eind": 965,
+      "tekst": "de termijn",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np_bij_normatief_predicaat",
+        "relatie": "nsubj",
+        "detail": "termijn"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K48c987ad4eec",
+      "bron": "LI-D3",
+      "start": 955,
+      "eind": 965,
+      "tekst": "de termijn",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np",
+        "relatie": "nsubj",
+        "detail": "termijn"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K5482ba4ea097",
+     "voor": {
+      "id": "K5482ba4ea097",
+      "bron": "LI-D3",
+      "start": 296,
+      "eind": 310,
+      "tekst": "de dagtekening",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np_bij_normatief_predicaat",
+        "relatie": "nsubj",
+        "detail": "dagtekening"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K5482ba4ea097",
+      "bron": "LI-D3",
+      "start": 296,
+      "eind": 310,
+      "tekst": "de dagtekening",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np",
+        "relatie": "nsubj",
+        "detail": "dagtekening"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K64b6e07e61a4",
+     "voor": {
+      "id": "K64b6e07e61a4",
+      "bron": "LI-D3",
+      "start": 339,
+      "eind": 358,
+      "tekst": "de betalingstermijn",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np_bij_normatief_predicaat",
+        "relatie": "nsubj",
+        "detail": "betalingstermijn"
+       }
+      ],
+      "opties": [
+       {
+        "start": 339,
+        "eind": 433,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K64b6e07e61a4",
+      "bron": "LI-D3",
+      "start": 339,
+      "eind": 358,
+      "tekst": "de betalingstermijn",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np",
+        "relatie": "nsubj",
+        "detail": "betalingstermijn"
+       }
+      ],
+      "opties": [
+       {
+        "start": 339,
+        "eind": 433,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K65ccaebe9849",
+     "voor": {
+      "id": "K65ccaebe9849",
+      "bron": "LI-D3",
+      "start": 471,
+      "eind": 488,
+      "tekst": "een schrikkeljaar",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "ccomp",
+        "detail": "schrikkeljaar"
+       }
+      ],
+      "opties": [
+       {
+        "start": 467,
+        "eind": 491,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K65ccaebe9849",
+      "bron": "LI-D3",
+      "start": 471,
+      "eind": 488,
+      "tekst": "een schrikkeljaar",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "ccomp",
+        "detail": "schrikkeljaar"
+       }
+      ],
+      "opties": [
+       {
+        "start": 467,
+        "eind": 491,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K737d551b6075",
+     "voor": {
+      "id": "K737d551b6075",
+      "bron": "LI-D3",
+      "start": 680,
+      "eind": 689,
+      "tekst": "een maand",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "een maand"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obl",
+        "detail": "maand"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K737d551b6075",
+      "bron": "LI-D3",
+      "start": 680,
+      "eind": 689,
+      "tekst": "een maand",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "een maand"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "maand"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K76f5737ca7d0",
+     "voor": {
+      "id": "K76f5737ca7d0",
+      "bron": "LI-D3",
+      "start": 496,
+      "eind": 506,
+      "tekst": "welk geval",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obl",
+        "detail": "geval"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K76f5737ca7d0",
+      "bron": "LI-D3",
+      "start": 496,
+      "eind": 506,
+      "tekst": "welk geval",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "geval"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K7afcf2e614b8",
+     "voor": {
+      "id": "K7afcf2e614b8",
+      "bron": "LI-D3",
+      "start": 786,
+      "eind": 800,
+      "tekst": "de dagtekening",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "dagtekening"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K7afcf2e614b8",
+      "bron": "LI-D3",
+      "start": 786,
+      "eind": 800,
+      "tekst": "de dagtekening",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "dagtekening"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K8093d457635b",
+     "voor": {
+      "id": "K8093d457635b",
+      "bron": "LI-D3",
+      "start": 579,
+      "eind": 596,
+      "tekst": "het aanslagbiljet",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "aanslagbiljet"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K8093d457635b",
+      "bron": "LI-D3",
+      "start": 579,
+      "eind": 596,
+      "tekst": "het aanslagbiljet",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "aanslagbiljet"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K8dd7200f22b2",
+     "voor": {
+      "id": "K8dd7200f22b2",
+      "bron": "LI-D3",
+      "start": 81,
+      "eind": 90,
+      "tekst": "zes weken",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "zes weken"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obl",
+        "detail": "weken"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K8dd7200f22b2",
+      "bron": "LI-D3",
+      "start": 81,
+      "eind": 90,
+      "tekst": "zes weken",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "zes weken"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "weken"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K8fb5d264dac2",
+     "voor": {
+      "id": "K8fb5d264dac2",
+      "bron": "LI-D3",
+      "start": 605,
+      "eind": 619,
+      "tekst": "een andere dag",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obl",
+        "detail": "dag"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K8fb5d264dac2",
+      "bron": "LI-D3",
+      "start": 605,
+      "eind": 619,
+      "tekst": "een andere dag",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "dag"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K9059d932848e",
+     "voor": {
+      "id": "K9059d932848e",
+      "bron": "LI-D3",
+      "start": 442,
+      "eind": 453,
+      "tekst": "het jaartal",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obj",
+        "detail": "jaartal"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K9059d932848e",
+      "bron": "LI-D3",
+      "start": 442,
+      "eind": 453,
+      "tekst": "het jaartal",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obj",
+        "detail": "jaartal"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "K9c7f4adf604e",
+     "voor": {
+      "id": "K9c7f4adf604e",
+      "bron": "LI-D3",
+      "start": 806,
+      "eind": 820,
+      "tekst": "de dagtekening",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np_bij_normatief_predicaat",
+        "relatie": "nsubj",
+        "detail": "dagtekening"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "K9c7f4adf604e",
+      "bron": "LI-D3",
+      "start": 806,
+      "eind": 820,
+      "tekst": "de dagtekening",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np",
+        "relatie": "nsubj",
+        "detail": "dagtekening"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Ka6dbdf14a4e6",
+     "voor": {
+      "id": "Ka6dbdf14a4e6",
+      "bron": "LI-D3",
+      "start": 855,
+      "eind": 865,
+      "tekst": "de termijn",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np_bij_normatief_predicaat",
+        "relatie": "nsubj",
+        "detail": "termijn"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Ka6dbdf14a4e6",
+      "bron": "LI-D3",
+      "start": 855,
+      "eind": 865,
+      "tekst": "de termijn",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np",
+        "relatie": "nsubj",
+        "detail": "termijn"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Ka877aa8800d7",
+     "voor": {
+      "id": "Ka877aa8800d7",
+      "bron": "LI-D3",
+      "start": 507,
+      "eind": 517,
+      "tekst": "de termijn",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np_bij_normatief_predicaat",
+        "relatie": "nsubj",
+        "detail": "termijn"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Ka877aa8800d7",
+      "bron": "LI-D3",
+      "start": 507,
+      "eind": 517,
+      "tekst": "de termijn",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np",
+        "relatie": "nsubj",
+        "detail": "termijn"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kb1537f523b88",
+     "voor": {
+      "id": "Kb1537f523b88",
+      "bron": "LI-D3",
+      "start": 174,
+      "eind": 193,
+      "tekst": "de betalingstermijn",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np_bij_normatief_predicaat",
+        "relatie": "nsubj",
+        "detail": "betalingstermijn"
+       }
+      ],
+      "opties": [
+       {
+        "start": 174,
+        "eind": 207,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kb1537f523b88",
+      "bron": "LI-D3",
+      "start": 174,
+      "eind": 193,
+      "tekst": "de betalingstermijn",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np",
+        "relatie": "nsubj",
+        "detail": "betalingstermijn"
+       }
+      ],
+      "opties": [
+       {
+        "start": 174,
+        "eind": 207,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kc7f8ed7d0a56",
+     "voor": {
+      "id": "Kc7f8ed7d0a56",
+      "bron": "LI-D3",
+      "start": 624,
+      "eind": 638,
+      "tekst": "de laatste dag",
+      "possible_classes": [
+       "Rechtsobject",
+       "Rechtssubject",
+       "Tijdsaanduiding"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "dep",
+        "detail": "dag"
+       },
+       {
+        "detector": "fusie",
+        "code": "TEMPORAL_KERNEL",
+        "regel": "",
+        "relatie": "",
+        "detail": "{\"codes\": [\"TEMPORAL_RELATIVE_PERIOD\"], \"ouder\": \"Kdecde08d8726\"}"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [
+       {
+        "start": 624,
+        "eind": 659,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kc7f8ed7d0a56",
+      "bron": "LI-D3",
+      "start": 624,
+      "eind": 638,
+      "tekst": "de laatste dag",
+      "possible_classes": [
+       "Rechtsobject",
+       "Tijdsaanduiding"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "dep",
+        "detail": "dag"
+       },
+       {
+        "detector": "fusie",
+        "code": "TEMPORAL_KERNEL",
+        "regel": "",
+        "relatie": "",
+        "detail": "{\"codes\": [\"TEMPORAL_RELATIVE_PERIOD\"], \"ouder\": \"Kdecde08d8726\"}"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [
+       {
+        "start": 624,
+        "eind": 659,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kca3c792bae87",
+     "voor": {
+      "id": "Kca3c792bae87",
+      "bron": "LI-D3",
+      "start": 701,
+      "eind": 721,
+      "tekst": "een betalingstermijn",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obl",
+        "detail": "betalingstermijn"
+       }
+      ],
+      "opties": [
+       {
+        "start": 701,
+        "eind": 735,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kca3c792bae87",
+      "bron": "LI-D3",
+      "start": 701,
+      "eind": 721,
+      "tekst": "een betalingstermijn",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "betalingstermijn"
+       }
+      ],
+      "opties": [
+       {
+        "start": 701,
+        "eind": 735,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kcdeb1bb819c0",
+     "voor": {
+      "id": "Kcdeb1bb819c0",
+      "bron": "LI-D3",
+      "start": 136,
+      "eind": 153,
+      "tekst": "een aanslagbiljet",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "aanslagbiljet"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kcdeb1bb819c0",
+      "bron": "LI-D3",
+      "start": 136,
+      "eind": 153,
+      "tekst": "een aanslagbiljet",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "aanslagbiljet"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kd05f00ea378e",
+     "voor": {
+      "id": "Kd05f00ea378e",
+      "bron": "LI-D3",
+      "start": 643,
+      "eind": 659,
+      "tekst": "de kalendermaand",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_PERIOD_NOUN",
+        "regel": "jas.tijd.periodewoord",
+        "relatie": "",
+        "detail": "de kalendermaand"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "kalendermaand"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kd05f00ea378e",
+      "bron": "LI-D3",
+      "start": 643,
+      "eind": 659,
+      "tekst": "de kalendermaand",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_PERIOD_NOUN",
+        "regel": "jas.tijd.periodewoord",
+        "relatie": "",
+        "detail": "de kalendermaand"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "kalendermaand"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kd063df03b372",
+     "voor": {
+      "id": "Kd063df03b372",
+      "bron": "LI-D3",
+      "start": 740,
+      "eind": 746,
+      "tekst": "de dag",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obl",
+        "detail": "dag"
+       }
+      ],
+      "opties": [
+       {
+        "start": 740,
+        "eind": 800,
+        "soort": "np_met_bijzin"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kd063df03b372",
+      "bron": "LI-D3",
+      "start": 740,
+      "eind": 746,
+      "tekst": "de dag",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "dag"
+       }
+      ],
+      "opties": [
+       {
+        "start": 740,
+        "eind": 800,
+        "soort": "np_met_bijzin"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kdc169cf6da1a",
+     "voor": {
+      "id": "Kdc169cf6da1a",
+      "bron": "LI-D3",
+      "start": 560,
+      "eind": 574,
+      "tekst": "de dagtekening",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np_bij_normatief_predicaat",
+        "relatie": "nsubj",
+        "detail": "dagtekening"
+       }
+      ],
+      "opties": [
+       {
+        "start": 560,
+        "eind": 596,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kdc169cf6da1a",
+      "bron": "LI-D3",
+      "start": 560,
+      "eind": 574,
+      "tekst": "de dagtekening",
+      "possible_classes": [
+       "Rechtssubject",
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "SUBJECT_NP",
+        "regel": "jas.subject.np",
+        "relatie": "nsubj",
+        "detail": "dagtekening"
+       }
+      ],
+      "opties": [
+       {
+        "start": 560,
+        "eind": 596,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Ke85a4a04cd0e",
+     "voor": {
+      "id": "Ke85a4a04cd0e",
+      "bron": "LI-D3",
+      "start": 886,
+      "eind": 905,
+      "tekst": "de betalingstermijn",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "root",
+        "detail": "betalingstermijn"
+       }
+      ],
+      "opties": [
+       {
+        "start": 883,
+        "eind": 905,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Ke85a4a04cd0e",
+      "bron": "LI-D3",
+      "start": 886,
+      "eind": 905,
+      "tekst": "de betalingstermijn",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "root",
+        "detail": "betalingstermijn"
+       }
+      ],
+      "opties": [
+       {
+        "start": 883,
+        "eind": 905,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Ke979a2110568",
+     "voor": {
+      "id": "Ke979a2110568",
+      "bron": "LI-D3",
+      "start": 198,
+      "eind": 207,
+      "tekst": "één maand",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "één maand"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "maand"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Ke979a2110568",
+      "bron": "LI-D3",
+      "start": 198,
+      "eind": 207,
+      "tekst": "één maand",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "één maand"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "maand"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kf3d65575ed5a",
+     "voor": {
+      "id": "Kf3d65575ed5a",
+      "bron": "LI-D3",
+      "start": 906,
+      "eind": 915,
+      "tekst": "zes weken",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "zes weken"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "parataxis",
+        "detail": "weken"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kf3d65575ed5a",
+      "bron": "LI-D3",
+      "start": 906,
+      "eind": 915,
+      "tekst": "zes weken",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "zes weken"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "parataxis",
+        "detail": "weken"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kf86823a277c9",
+     "voor": {
+      "id": "Kf86823a277c9",
+      "bron": "LI-D3",
+      "start": 412,
+      "eind": 421,
+      "tekst": "zes weken",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "zes weken"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "weken"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [
+       {
+        "start": 412,
+        "eind": 433,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kf86823a277c9",
+      "bron": "LI-D3",
+      "start": 412,
+      "eind": 421,
+      "tekst": "zes weken",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "zes weken"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "weken"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [
+       {
+        "start": 412,
+        "eind": 433,
+        "soort": "np"
+       }
+      ],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kfbea2e1a76f3",
+     "voor": {
+      "id": "Kfbea2e1a76f3",
+      "bron": "LI-D3",
+      "start": 54,
+      "eind": 63,
+      "tekst": "één maand",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "één maand"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "obl",
+        "detail": "maand"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kfbea2e1a76f3",
+      "bron": "LI-D3",
+      "start": 54,
+      "eind": 63,
+      "tekst": "één maand",
+      "possible_classes": [
+       "Tijdsaanduiding",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "tijd",
+        "code": "TEMPORAL_DURATION",
+        "regel": "jas.tijd.duur",
+        "relatie": "",
+        "detail": "één maand"
+       },
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "obl",
+        "detail": "maand"
+       },
+       {
+        "detector": "specificiteit",
+        "code": "PRIORITY_APPLIED",
+        "regel": "JAS-PRIORITY-001",
+        "relatie": "",
+        "detail": "Tijdsaanduiding op dezelfde span; vervalt: Variabele en variabelewaarde"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    },
+    {
+     "id": "Kfe9995e36dcc",
+     "voor": {
+      "id": "Kfe9995e36dcc",
+      "bron": "LI-D3",
+      "start": 28,
+      "eind": 39,
+      "tekst": "een aanslag",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde",
+       "Rechtssubject"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np_bij_normatief_predicaat",
+        "relatie": "nmod",
+        "detail": "aanslag"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": {
+      "id": "Kfe9995e36dcc",
+      "bron": "LI-D3",
+      "start": 28,
+      "eind": 39,
+      "tekst": "een aanslag",
+      "possible_classes": [
+       "Rechtsobject",
+       "Variabele en variabelewaarde"
+      ],
+      "bewijs": [
+       {
+        "detector": "naamwoordgroep",
+        "code": "OBJECT_NP",
+        "regel": "jas.object.np",
+        "relatie": "nmod",
+        "detail": "aanslag"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     }
+    }
+   ]
+  }
+ },
+ "onderzoek": {
+  "IW-9-1": {
+   "tellingen": {
+    "raw": 7,
+    "fusie": 5,
+    "model": 5,
+    "routes": {
+     "model": 5
+    }
+   }
+  },
+  "IW-9-5": {
+   "tellingen": {
+    "raw": 42,
+    "fusie": 40,
+    "model": 37,
+    "routes": {
+     "model": 37,
+     "regel": 3
+    }
+   }
+  },
+  "LI-9.1": {
+   "tellingen": {
+    "raw": 22,
+    "fusie": 21,
+    "model": 18,
+    "routes": {
+     "model": 18,
+     "regel": 3
+    }
+   }
+  },
+  "LI-9.5": {
+   "tellingen": {
+    "raw": 70,
+    "fusie": 59,
+    "model": 46,
+    "routes": {
+     "model": 46,
+     "regel": 13
+    }
+   }
+  }
+ }
+}

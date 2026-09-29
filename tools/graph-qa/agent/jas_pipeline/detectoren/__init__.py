@@ -94,7 +94,8 @@ def kandidaten_van(resultaten: list[DetectorResult]) -> list[Candidate]:
 
 
 def standaard_detectoren() -> list[Detector]:
+    from .functies import FunctieDetector
     from .regels import regeldetectoren
     from .structuur import BetekenisDetector, DefinitieDetector
     from .syntactisch import syntactische_detectoren
-    return [*regeldetectoren(), DefinitieDetector(), BetekenisDetector(), *syntactische_detectoren()]
+    return [*regeldetectoren(), DefinitieDetector(), BetekenisDetector(), *syntactische_detectoren(), FunctieDetector()]

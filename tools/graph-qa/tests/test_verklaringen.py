@@ -26,6 +26,8 @@ def _uitgegeven() -> dict[str, set[str]]:
     for f in (PIJPLIJN / "detectoren" / "regels").glob("*.yaml"):
         if not f.name.startswith("_"):
             regels |= {r["code"] for r in yaml.safe_load(f.read_text(encoding="utf-8")) or []}
+    from agent.jas_pipeline.detectoren import standaard_detectoren
+    regels |= {code for d in standaard_detectoren() for code in getattr(d, "CODES", ())}
     python = _bron("*.py", "detectoren/*.py")
     return {
         "detectie": regels | set(re.findall(r'Evidence\([^)]*?code="([A-Z_]+)"', python, re.S)),

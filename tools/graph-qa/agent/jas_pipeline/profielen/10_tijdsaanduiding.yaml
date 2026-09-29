@@ -15,6 +15,9 @@ semantic_signals:
   - "wanneer, sinds of tot wanneer iets geldt of gebeurt (H2:108)"
 structural_signals: []
 candidate_rules:
+  - {id: jas.tijd.datumomschrijving, status: geïmplementeerd}
+  - {id: jas.tijd.maandnaam, status: geïmplementeerd}
+  - {id: jas.tijd.herhaling, status: geïmplementeerd}
   - {id: jas.tijd.datum, status: geïmplementeerd}
   - {id: jas.tijd.duur, status: geïmplementeerd}
   - {id: jas.tijd.voorzetselgroep, status: gepland}

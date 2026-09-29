@@ -30,7 +30,7 @@ def test_a_gooit_bij_een_kandidaat_zonder_beslissing():
 def test_b_zonder_parser_zegt_welke_dimensies_niet_draaiden():
     bron, resultaten, f = _keten(NullProvider())
     b = structureel(f, [bron], {"urn:t": {r.detector for r in resultaten}})["urn:t"]["dimensies"]
-    assert b["tijd"] == "uitgevoerd" and b["normatieve relatie"] == "uitgevoerd"
+    assert b["tijd"] == "gedeeltelijk" and b["normatieve relatie"] == "uitgevoerd"
     assert b["object"] == "overgeslagen" and b["handeling/gebeurtenis"] == "overgeslagen"
     assert b["actor"] == "gedeeltelijk"            # het rollexicon draaide, de naamwoordgroepen niet
 

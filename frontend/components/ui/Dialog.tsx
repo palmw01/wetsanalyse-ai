@@ -7,6 +7,8 @@ const FOCUSBAAR =
   'a[href],button:not([disabled]),textarea,input:not([disabled]),select,[tabindex]:not([tabindex="-1"])';
 
 export type DialogVariant =
+  /** Vergrote artefactweergave; gebruikt dezelfde focus-trap als de andere modale vormen. */
+  | "fullscreen"
   /** Gecentreerd venster (instellingen). Op mobiel een bijna-volledig-scherm sheet. */
   | "center"
   /** Van rechts inschuivend paneel (artefact). Op mobiel een bottom-sheet. */
@@ -19,6 +21,7 @@ export type DialogVariant =
   | "compact";
 
 const PANEEL_CLASS: Record<DialogVariant, string> = {
+  fullscreen: "absolute inset-0 flex flex-col bg-paper outline-none sm:inset-3 sm:rounded-kaart sm:shadow-kaart",
   // Vaste hoogte, en dat is hier een kenmerk: het instellingenvenster wisselt van tab en zou anders
   // bij elke wissel van formaat springen. Voor een korte, vaste inhoud is `compact` de juiste keuze —
   // die 42rem stond onder het feedbackformulier als een halve pagina wit.
