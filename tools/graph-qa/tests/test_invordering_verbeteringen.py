@@ -191,3 +191,23 @@ def test_ontdubbel_tijd_alleen_geregistreerde_kern():
     assert next(b for b in uit if b.kandidaat_id == kort.id).reden == "DUBBELE_TIJD_FUNCTIE:" + lang.id
     with pytest.raises(ValueError, match="meer dan één voorstel"):
         ontdubbel_tijd([_voorstel(lang), _voorstel(lang)], bs, {lang.id: lang, kort.id: kort})
+
+
+# --- WP2 baseline: D04 nominalisatie -----------------------------------------------------------
+
+@pytest.mark.parametrize("tekst,span,verwacht", [
+    ("In afwijking van het eerste lid is de aanslag invorderbaar.", "afwijking van het eerste lid", False),
+    ("Bij regeling van Onze Minister worden regels gesteld.", "regeling van Onze Minister", False),
+    ("De termijn vangt aan na de dagtekening van het aanslagbiljet.", "de dagtekening van het aanslagbiljet", True),
+    ("Na het indienen van een bezwaarschrift beslist de inspecteur.", "het indienen van een bezwaarschrift", True),
+])
+def test_nominalisatie_alleen_bij_handeling(parser, tekst, span, verwacht):
+    ks = detect(tekst, parser).kandidaten
+    assert any(k.span.tekst == span and any(e.code == "NOMINALIZED_ACTION" for e in k.evidence) for k in ks) == verwacht
+
+
+def test_distributieve_vervolgfunctie_zonder_casuswoorden(parser):
+    ks = detect("De eerste termijn vervalt na de dagtekening van het besluit en iedere volgende termijn "
+                "een week daarna.", parser).kandidaten
+    n = [k.span.tekst for k in ks if any(e.code == "NOMINALIZED_ACTION" for e in k.evidence)]
+    assert n and all("iedere" not in t for t in n)

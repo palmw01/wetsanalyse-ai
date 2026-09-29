@@ -1,0 +1,177 @@
+{
+ "werkpakket": "WP2",
+ "git_sha": "afdc343a0b2f301fe95d4827c5c76fe4b3490869",
+ "hashes_sha256": "d2f6b8aa11c8e27160ee41dce2bdbd78bce17331c3313a8c6c942ea6261f22d0",
+ "ontwikkelset": {
+  "voor": {
+   "kandidaten": 262,
+   "referenties": 81,
+   "ankers_core": 72,
+   "ankers_opties": 74,
+   "ankers_met_klasse": 72,
+   "gemiddeld_klassen": 2.4160305343511452,
+   "deterministisch": 19,
+   "specificiteit_afgewezen": 0,
+   "classifier_kandidaten": 243,
+   "zonder_hypothese": 0,
+   "classifier_batches_universeel": 16
+  },
+  "na": {
+   "kandidaten": 260,
+   "referenties": 81,
+   "ankers_core": 72,
+   "ankers_opties": 74,
+   "ankers_met_klasse": 72,
+   "gemiddeld_klassen": 2.4115384615384614,
+   "deterministisch": 19,
+   "specificiteit_afgewezen": 0,
+   "classifier_kandidaten": 241,
+   "zonder_hypothese": 0,
+   "classifier_batches_universeel": 16
+  },
+  "verloren_devankers": [],
+  "classifier_input_gewijzigd": [
+   "IW-D2",
+   "WZT03",
+   "WZT04"
+  ],
+  "parse_gewijzigd": [],
+  "gewijzigde_kandidaten": {
+   "WZT03": [
+    {
+     "id": "K576214050798",
+     "voor": {
+      "id": "K576214050798",
+      "bron": "WZT03",
+      "start": 3,
+      "eind": 31,
+      "tekst": "afwijking van het eerste lid",
+      "possible_classes": [
+       "Rechtsfeit",
+       "Voorwaarde",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "nominalisatie",
+        "code": "NOMINALIZED_ACTION",
+        "regel": "jas.feit.nominalisatie_van",
+        "relatie": "obl",
+        "detail": "afwijking"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": null
+    }
+   ],
+   "WZT04": [
+    {
+     "id": "K35d41d74386a",
+     "voor": {
+      "id": "K35d41d74386a",
+      "bron": "WZT04",
+      "start": 4,
+      "eind": 30,
+      "tekst": "regeling van Onze Minister",
+      "possible_classes": [
+       "Rechtsfeit",
+       "Voorwaarde",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "nominalisatie",
+        "code": "NOMINALIZED_ACTION",
+        "regel": "jas.feit.nominalisatie_van",
+        "relatie": "obl",
+        "detail": "regeling"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": null
+    }
+   ],
+   "IW-D2": [
+    {
+     "id": "Ke0b0eb56b55b",
+     "voor": {
+      "id": "Ke0b0eb56b55b",
+      "bron": "IW-D2",
+      "start": 3,
+      "eind": 31,
+      "tekst": "afwijking van het eerste lid",
+      "possible_classes": [
+       "Rechtsfeit",
+       "Voorwaarde",
+       "Rechtsobject"
+      ],
+      "bewijs": [
+       {
+        "detector": "nominalisatie",
+        "code": "NOMINALIZED_ACTION",
+        "regel": "jas.feit.nominalisatie_van",
+        "relatie": "obl",
+        "detail": "afwijking"
+       }
+      ],
+      "opties": [],
+      "status": "UNHANDLED",
+      "route": "model"
+     },
+     "na": null
+    }
+   ]
+  }
+ },
+ "onderzoek": {
+  "IW-9-1": {
+   "tellingen": {
+    "raw": 7,
+    "fusie": 5,
+    "model": 5,
+    "routes": {
+     "model": 5
+    }
+   }
+  },
+  "IW-9-5": {
+   "tellingen": {
+    "raw": 42,
+    "fusie": 40,
+    "model": 37,
+    "routes": {
+     "model": 37,
+     "regel": 3
+    }
+   }
+  },
+  "LI-9.1": {
+   "tellingen": {
+    "raw": 22,
+    "fusie": 21,
+    "model": 18,
+    "routes": {
+     "model": 18,
+     "regel": 3
+    }
+   }
+  },
+  "LI-9.5": {
+   "tellingen": {
+    "raw": 70,
+    "fusie": 59,
+    "model": 46,
+    "routes": {
+     "model": 46,
+     "regel": 13
+    }
+   }
+  }
+ }
+}

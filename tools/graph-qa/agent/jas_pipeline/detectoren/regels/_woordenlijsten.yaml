@@ -203,3 +203,17 @@ GROOTHEID:
   - tijdstip
   - aantal
   - waarde
+# Distributieve kwantoren: 'en elk van de volgende termijnen …' opent een eigen vervolgfunctie.
+# spaCy nl_core_news_md geeft hier PronType=Ind, niet Tot; daarom een lijst (NominalisatieDetector).
+DISTRIBUTIEF:
+  - elk
+  - elke
+  - ieder
+  - iedere
+# Vaste voorzetseluitdrukkingen met een -ing-woord: een relatie tussen bepalingen, geen handeling.
+VOORZETSELUITDRUKKING:
+  - in afwijking van
+  - met inachtneming van
+  - met toepassing van
+  - ter uitvoering van
+  - in overeenstemming met

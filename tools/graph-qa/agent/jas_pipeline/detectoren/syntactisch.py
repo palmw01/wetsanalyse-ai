@@ -237,24 +237,41 @@ class BijzinDetector:
 # --- Rechtsfeit: nominalisatie ('het indienen van …', 'de dagtekening van …') -------------------
 
 class NominalisatieDetector:
+    """Handeling of gebeurtenis als naamwoord: 'het indienen van …', 'de dagtekening van …' (H2:55).
+
+    Een -ing-woord telt alleen met een 'van'- of 'door'-bepaling, niet in een vaste
+    voorzetseluitdrukking ('in afwijking van') of regelingsvorm ('regeling van Onze Minister'):
+    daar noemt het een verhouding of een regeling, geen handeling (audit D04). Een nevengeschikte
+    tak met eigen predicaat, eigen onderwerp of distributieve kwantor is een eigen functie en
+    valt buiten de span.
+    """
     REGELS: tuple[str, ...] = ("jas.feit.nominalisatie_van",)
     naam = "nominalisatie"
-    versie = f"3+verwijzing.{VERWIJZING_VERSIE}"  # zelfstandige/distributieve vervolgfunctie
+    versie = f"4+verwijzing.{VERWIJZING_VERSIE}"  # D04: van/door-bepaling, vaste uitdrukkingen, distributief
     _AAN_DE_RAND = {"case", "cc", "advmod", "mark", "punct"}
+    _BEPALING = {"van", "door"}
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         a, reden = _parse_of_reden(bron)
         if a is None:
             return resultaat(self, bron, overgeslagen=True, reden=reden)
+        uitgesloten = [m.span() for naam in ("VOORZETSELUITDRUKKING", "REGELINGSVORM")
+                       for m in re.finditer(rf"\b(?:{woordenlijsten()[naam]})\b", bron.tekst, re.IGNORECASE)]
+
+        def bepaling(k: int) -> bool:
+            return a.tokens[k].deprel == "nmod" and any(
+                a.tokens[c].deprel == "case" and a.tokens[c].tekst.lower() in self._BEPALING for c in a.kinderen(k))
+
         kandidaten = []
         for t in a.tokens:
             kinderen = a.kinderen(t.i)
             infinitief = t.upos == "VERB" and t.feat("VerbForm") == "Inf" and any(a.tokens[k].deprel == "det" and a.tokens[k].tekst.lower() == "het"
                                                   for k in kinderen)
             handeling = (t.upos == "NOUN" and t.tekst.lower().endswith("ing")
-                         and any(a.tokens[k].deprel == "nmod" for k in (
+                         and any(bepaling(k) for k in (
                              *kinderen, *(j for c in kinderen if a.tokens[c].deprel == "conj"
-                                          and a.tokens[c].tekst.lower().endswith("ing") for j in a.kinderen(c)))))
+                                          and a.tokens[c].tekst.lower().endswith("ing") for j in a.kinderen(c))))
+                         and not any(s <= t.start and t.eind <= e for s, e in uitgesloten))
             if not (infinitief or handeling):
                 continue
             weg = {i for k in kinderen if a.tokens[k].deprel in {"parataxis", *_BIJZIN} for i in a.subboom(k)}
@@ -263,8 +280,9 @@ class NominalisatieDetector:
                 if n.deprel == "conj" and (
                     n.feat("VerbForm") == "Fin"
                     or any(a.tokens[j].deprel in _ONDERWERP for j in a.kinderen(i))
-                    or (n.tekst.lower() in {"elk", "ieder", "elke", "iedere"}
-                        and any(a.tokens[j].tekst.lower() in {"later", "vervalt", "volgende"} for j in a.subboom(i)))
+                    or _lijst("DISTRIBUTIEF").match(n.tekst)
+                    or any(a.tokens[j].deprel == "det" and _lijst("DISTRIBUTIEF").match(a.tokens[j].tekst)
+                           for j in a.kinderen(i))
                 ):
                     weg.update(a.subboom(i))
             tokens = sorted(set(a.subboom(t.i)) - weg)

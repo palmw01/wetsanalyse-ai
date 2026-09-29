@@ -18,6 +18,8 @@ confusable_classes:
   - {klasse: Tijdsaanduiding, reden: "tijdsverloop ('het verstrijken van de termijn') of een startgebeurtenis in een termijn"}
   - {klasse: Rechtsobject, reden: "genominaliseerde handeling als voorwerp"}
 negative_patterns:
+  - {patroon: "-ing-woord in een vaste voorzetseluitdrukking ('in afwijking van', 'met inachtneming van')", reden: "verhouding tussen bepalingen, geen handeling (audit D04)"}
+  - {patroon: "regelingsvorm ('regeling van Onze Minister')", reden: "noemt een regeling, geen handeling (audit D04)"}
   - {patroon: "elk werkwoord zonder aanwijsbaar rechtsgevolg", reden: "projectregel markeren-fragmentgrenzen: niet elk werkwoord"}
 required_context:
   - "het rechtsgevolg of de rechtsbetrekking waar het feit op inwerkt"
