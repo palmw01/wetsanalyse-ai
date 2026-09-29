@@ -39,7 +39,16 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
   [`architectuur/adr-002-taalprovider.md`](architectuur/adr-002-taalprovider.md).
 - **Herkomstspoor, eerste helft**: graafcontrole (#517), SSE-fasen met duur en dekking (#518),
   JAS-vocabulairegraaf en leesbare trace-codes (#519), rijke annotatiegraaf schema 3 (#520),
-  Critic-restanten weg (#521), JAS-subtype machineleesbaar (#523).
+  Critic-restanten weg (#521), JAS-subtype machineleesbaar (#523). Dat zijn PR 1–4 van spoor B;
+  PR 0 staat nog open.
+- **Samenhangsgraaf** (#540–#546): `GET /v1/annotatie/samenhang` (`api/app/samenhang.py`,
+  capability `samenhang`) en een 3D-krachtgraaf (`components/graaf/SamenhangGraaf.tsx`,
+  `lib/samenhang.ts`). Die staat als tab *3D-graaf* in het annotatiepaneel en opent ook via
+  "Bekijk samenhang in 3D" onder chatbronnen. Hij toont de bronstructuur, markeringen met hun
+  JAS-klasse en de letterlijke verwijzingen één stap in en uit. Randknopen zijn bij te laden, en er
+  zijn zoeken, lagen, een inspector met *Open brontekst* / *Vraag Lex hierover* en live bijwerken na
+  een mutatie. Afstand en positie hebben geen juridische betekenis. Browsertest:
+  `frontend/scripts/test-samenhang.mjs`.
 - **Validatie-infrastructuur V1–V6**: referentieset v1, adjudicatieprotocol, blind formulier,
   fouttaxonomie v2, beslisregister, contractfouten en reviewload gesplitst, en een rapport per laag
   (#525–#530) → [`architectuur/onderzoek-empirische-validatie.md`](architectuur/onderzoek-empirische-validatie.md) §16.
@@ -52,7 +61,7 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | Spoor | Onderwerp | Stand |
 |---|---|---|
 | A | Juridische validatie van `hybrid_v1` (V7) | Wacht op mensenwerk: 0 casussen `adjudicated` |
-| B | Herkomst zichtbaar in werkplek en exports | PR 0 te verifiëren; PR 5–9 open |
+| B | Herkomst zichtbaar in werkplek en exports | PR 0 te verifiëren (productie draait `v1.6.0`, vóór #517); samenhangsgraaf geleverd; PR 5–10 open |
 | C | Leerlus en knowledge-check | Te herijken |
 | D | Activiteit 3: werkgebieden en begrippen | Ontwerp klaar, niets gebouwd |
 | E | Kennisbank (tweede corpus) | Ontwerp klaar, niets gebouwd |
@@ -99,21 +108,29 @@ Open vragen die V7 moet beantwoorden staan in het onderzoek §17.
 
 **Doel.** De rijkdom van `trace` en run-meting (bewijs, detectoren, regels, twijfel, resolutie,
 dekking) moet zichtbaar worden voor de jurist, en aantoonbaar correct in de graaf en in exports.
+De samenhangsgraaf is de plek waar die herkomst ook ruimtelijk zichtbaar wordt, naast de tekst.
 
 **Besluiten van de gebruiker:**
 - regel-id's worden getoond als leesbare naam, met het id in een tooltip;
 - vrij selecteren blijft bestaan naast voorgestelde grenzen;
 - de exacte modelvraag komt in de JSON-export;
-- beoordelingen komen in de graaf **zonder personen**.
+- beoordelingen komen in de graaf **zonder personen**;
+- de 3D-samenhangsgraaf is dé graaftab van het paneel. De Turtle van een markering en de
+  graafcontrole-status komen onder "technisch detail" in de graafinspector en in de export.
 
 **UI-richting.** De huidige opzet blijft: een gespreksvenster met de annotatie als zijpaneel. Die
 volgt zo dicht mogelijk de patronen van Claude:
 - een ingeklapt stappenblok met fasen en duur;
 - het antwoord als proza met citatie-chips die een bronkaart openen;
 - een artefact-kaartje dat het zijpaneel opent, met revisiekiezer en de tabs *Tekst / Dekking /
-  Graaf*;
+  3D-graaf*;
 - bij tekstselectie een zwevende balk *Markeer als… / Vraag Lex*, die een citaat-chip in de invoer
   zet.
+
+Er staat al: de tabs *Tekst* en *3D-graaf*, *Vraag Lex* in `SelectiePopover`, en *Open brontekst* /
+*Vraag Lex hierover* in de graafinspector. Nog te bouwen: de tab *Dekking*, het stappenblok met duur,
+het artefact-kaartje met revisiekiezer, de citatie-chips met bronkaart en de citaat-chip in de
+invoer.
 
 De huisstijl (lintblauw, Fira, JAS-kleuren) blijft.
 
@@ -123,17 +140,19 @@ SSE-wegen blijven gelijk en drift-tests gaan mee. Elke PR die graph-qa raakt dra
 
 | PR | Inhoud | Hangt af van |
 |---|---|---|
-| 0 | **Verifiëren**: heeft de productie-api `GRAPHDB_URL` en projecteert de reconcile-lus (`annotatie_v2_geprojecteerd`)? Zo niet: `azure-infra` → productie → `wat-if` → akkoord → `deploy` | — |
-| 5 | "Waarom?"-uitklap op de elementkaart: bewijs als zinnen met regelnaam (uit de vocabulaire), wie besliste, twijfelreden in gewone taal, resolutieregel, subtype; ruwe modelvraag achter "technisch detail". Alternatief-chips met reden. Beurtsamenvatting in de tijdlijn, gedegradeerd-badge. Revisiekiezer (api: revisiehistorie per laag uit de audit) en citatie-/bronkaartcomponent | 4 ✓ |
-| 6 | Dekking in het documentpaneel: ongedekte zinsdelen onderstreept, "markeer zelf" via `SelectiePopover`, dimensie-overzicht per bronnode. Bron: de weergave-`dekking` | 2 ✓ |
-| 7 | Exports. CSV: platte kolommen (`besloten_door`, `regels`, `detectoren`, `twijfel`, `resolutieregel`, `mogelijke_klassen`, `subtype`, `validatie`, `aandacht`, `herkomst`). PDF: herkomstregel per element en beurtmeting. JSON v3 met `trace.vraag`, run-meting en dekking, plus JSON-schema. Turtle via dezelfde `bouw_graaf` | 3 ✓ |
-| 8 | Grenskeuze: `spanopties` als "andere grens"-chips en een nieuwe beslissing `grens` (additief, geaudit) | 5 |
-| 9 | *Optioneel*: `search_annotaties` filtert op `herkomst`, `beslistDoor`, twijfel, aandacht en subtype | 3 ✓ |
+| 0 | **Verifiëren**: heeft de productie-api `GRAPHDB_URL` en projecteert de reconcile-lus (`annotatie_v2_geprojecteerd`)? Zo niet: `azure-infra` → productie → `wat-if` → akkoord → `deploy`. Daarna een release (tag `v*` → `promote.yml`), want productie draait `v1.6.0` en mist #517–#546. Dan `graafcontrole` op productie | — |
+| 5 | "Waarom?"-uitklap op de elementkaart én in de graafinspector bij een markeringsknoop (één component): bewijs als zinnen met regelnaam (uit de vocabulaire), wie besliste, twijfelreden in gewone taal, resolutieregel, subtype; ruwe modelvraag achter "technisch detail". Alternatief-chips met reden. Beurtsamenvatting in de tijdlijn, gedegradeerd-badge. Revisiekiezer (api: revisiehistorie per laag uit de audit) en citatie-/bronkaartcomponent | 4 ✓ |
+| 6 | Dekking in het documentpaneel: ongedekte zinsdelen onderstreept, "markeer zelf" via `SelectiePopover`, dimensie-overzicht per bronnode. In de 3D-graaf een laag *Dekking* met ongedekte zinsdelen per lid. Bron: de weergave-`dekking` | 2 ✓ |
+| 7 | Exports. CSV: platte kolommen (`besloten_door`, `regels`, `detectoren`, `twijfel`, `resolutieregel`, `mogelijke_klassen`, `subtype`, `validatie`, `aandacht`, `herkomst`). PDF: herkomstregel per element en beurtmeting. JSON v3 met `trace.vraag`, run-meting en dekking, plus JSON-schema. Turtle via dezelfde `bouw_graaf`; die levert ook de "technisch detail"-weergave in de graafinspector, met de graafcontrole-status | 3 ✓ |
+| 8 | Grenskeuze: `spanopties` als "andere grens"-chips en een nieuwe beslissing `grens` (additief, geaudit; de SHACL-shape kent `grens` al) | 5 |
+| 9 | *Optioneel*: `search_annotaties` filtert op `herkomst`, `beslistDoor`, twijfel, aandacht en subtype. Dezelfde filters kunnen als lagen in `lib/samenhang.ts` | 3 ✓ |
+| 10 | *Optioneel*: samenhang op de rijke graaf. `samenhang.py` leest nu `weergave` plus de wetsgraaf; herkomst (agent/mens), aandacht en beoordelingsstatus komen als knoopkenmerk en laag in de 3D-graaf | 5 |
 
 **Verificatie.** Per PR: api `uv run pytest`, graph-qa met en zonder spaCy, frontend
-`npm test`/typecheck en `poort`. Acceptatie live: één bepaling annoteren en beoordelen, dan geeft
-`graafcontrole` 0 afwijkingen en is SHACL conform. Daarna op productie. De werkplek doorlopen in
-Chrome: uitklap, chips, dekking en export in 4 formaten.
+`npm test`/typecheck/`npm run test:browser` (met `test-samenhang.mjs`) en `poort`. Acceptatie live:
+één bepaling annoteren en beoordelen, dan geeft `graafcontrole` 0 afwijkingen en is SHACL conform.
+Daarna op productie. De werkplek doorlopen in Chrome: uitklap, chips, dekking, de 3D-graaftab
+(inspector, dekkingslaag, technisch detail) en export in 4 formaten.
 
 ---
 
@@ -187,7 +206,8 @@ voor een afleidingsregel worden vastgelegd.
 **Uitgangssituatie.** Het werkgebied is nu een vrij tekstveld, in v2 leeg. Er zijn geen opgeslagen
 betekenisgroepen en geen analysebegrippen; de JAS-begrippen in de vocabulaire zijn classificaties.
 `tools/nl-sbb-begrip` is een los hulpmiddel. Samenhang zit in `api/app/samenhang.py` en
-`frontend/lib/samenhang.ts`. De runstore overleeft een procesuitval nog niet. De keten `hybrid_v1`
+`frontend/lib/samenhang.ts`: een 3D-samenhangsgraaf per bepaling (`/v1/annotatie/samenhang`), die
+de tab *Samenhang* en de werkgebiedgraaf als basis kunnen hergebruiken. De runstore overleeft een procesuitval nog niet. De keten `hybrid_v1`
 hoeft niet te veranderen.
 
 #### Werkgebied als node
@@ -278,6 +298,7 @@ Samenhang**. Zolang Lex vanuit een werkgebied werkt, blijft de naam van dat werk
   "Stel een scherpere definitie voor". Een chatantwoord wordt pas opgeslagen als voorstel via de api.
 - **Graaf**: compact met werkgebied, bronnen en begrippen; annotaties op verzoek. Een lijn betekent
   alleen wat het relatietype zegt, en voorstellen en geaccordeerde relaties zijn te onderscheiden.
+  Bouwt voort op de samenhangsgraaf (lagen, inspector, bijladen), met het werkgebied als cluster.
 
 #### Datamodel
 
@@ -473,8 +494,8 @@ blijft bij de wettekst.
 
 - **A** loopt los van de rest en is vooral werk voor beoordelaars. Het blokkeert alleen semantisch
   werk aan de annotatieketen, niet B, D of E.
-- **B**: PR 0 eerst (bepaalt of productie überhaupt projecteert). Daarna 5 → 8. PR 6, 7 en 9 kunnen
-  parallel.
+- **B**: PR 0 eerst, inclusief een productierelease (bepaalt of productie überhaupt projecteert).
+  Daarna 5 → 8 en 5 → 10. PR 6, 7 en 9 kunnen parallel.
 - **D** en **E** zijn onafhankelijk. D-levering 4 (Lex leest begrippen) en E-fase 3 (koppelen aan
   bepalingen) gebruiken allebei het projectie- en schrijfpad van de api. Ontwerp ze samen als ze
   tegelijk aan de orde komen.
@@ -490,6 +511,6 @@ blijft bij de wettekst.
 3. **D — kaders**: één begrippenkader per werkgebied als start (voorstel), met later expliciet
    hergebruik tussen kaders.
 4. **C**: blijft de leerlus een doel, en in welke vorm?
-5. **B — PR 9**: wel of niet bouwen.
+5. **B — PR 9 en 10**: wel of niet bouwen.
 6. **A — scope**: horen relaties (operand, afleiding) en beleidsregels met rekenvoorbeelden bij
    activiteit 2? Zie het onderzoek §17, punten 7 en 9.
