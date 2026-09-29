@@ -120,6 +120,122 @@ def test_unknown_requested_lid_never_falls_back_to_article():
     assert "lid" in " ".join(e.get("content", "") for e in events)
 
 
+def _keuze(events):
+    kaart, = [e for e in events if e["type"] == "kandidaten"]
+    return kaart
+
+
+def test_artikel_met_leden_geeft_een_keuzekaart_zonder_modelcall():
+    llm = FakeLLM([])
+    events = run(answer_stream("annoteer artikel 9", doel={"bwbId": BWB, "artikel": "9"}, llm=llm,
+                              graph=FakeGraph(result=ROWS), annotaties=ReadApi(snapshot()),
+                              settings=make_settings()))
+    assert not llm.calls
+    assert not any(e["type"] in {"element", "doel", "run", "error"} for e in events), events
+    kaart = _keuze(events)
+    assert kaart["keuze"] == {"soort": "onderdeel", "ouder": kaart["keuze"]["ouder"], "alles": True}
+    assert [k["bron_iri"] for k in kaart["kandidaten"]] == [L1, L2]
+    assert [(k["artikel"], k["lid"], k["soort"]) for k in kaart["kandidaten"]] == [("9", "1", "Lid"), ("9", "2", "Lid")]
+    assert kaart["kandidaten"][0]["fragment"] == T1       # letterlijk uit de bron
+    assert "2 leden" in " ".join(e.get("content", "") for e in events if e["type"] == "token")
+
+
+class StandApi(ReadApi):
+    """Weergave van het artikel: lid 1 heeft één voorstel zonder oordeel, lid 2 is afgerond."""
+
+    def weergave(self, doel):
+        self.calls.append(("weergave", doel))
+        return {"schema_versie": 2, "snapshot_id": self.snap["snapshot_id"],
+                "elementen": [{"id": "e1", "eigenaar_iri": L1, "lifecycle": "proposed"},
+                              {"id": "e2", "eigenaar_iri": L2, "lifecycle": "human_approved"}],
+                "lagen": [{"id": "l1", "bron_iri": L1, "status": "open"},
+                          {"id": "l2", "bron_iri": L2, "status": "geaccordeerd"}]}
+
+
+def test_keuzekaart_toont_per_lid_hoe_ver_het_werk_is():
+    api = StandApi(snapshot(ART))
+    events = run(answer_stream("annoteer artikel 9", doel={"bwbId": BWB, "artikel": "9"}, llm=FakeLLM([]),
+                              graph=FakeGraph(result=ROWS), annotaties=api, settings=make_settings()))
+    standen = [k["stand"] for k in _keuze(events)["kandidaten"]]
+    assert standen == [{"status": "te_beoordelen", "voorstellen": 1, "te_beoordelen": 1},
+                       {"status": "afgerond", "voorstellen": 1, "te_beoordelen": 0}]
+    assert api.calls == [("weergave", {"bron_iri": ART})]
+
+
+def test_keuzekaart_zonder_api_geeft_geen_geraden_stand():
+    class Weg(ReadApi):
+        def weergave(self, doel):
+            return {"status": "unavailable", "volledig": False}
+    events = run(answer_stream("annoteer artikel 9", doel={"bwbId": BWB, "artikel": "9"}, llm=FakeLLM([]),
+                              graph=FakeGraph(result=ROWS), annotaties=Weg(snapshot()), settings=make_settings()))
+    assert all("stand" not in k for k in _keuze(events)["kandidaten"])
+    assert "niet ophalen" in " ".join(e.get("content", "") for e in events if e["type"] == "token")
+
+
+def test_een_gekozen_lid_gaat_zonder_ophalen_door():
+    llm = KetenLLM(kies=_alleen("zes weken na de dagtekening", "Tijdsaanduiding"))
+    events = run(answer_stream("annoteer lid 1", doel={"bron_iri": L1, "bwbId": BWB, "artikel": "9", "lid": "1"},
+                              llm=llm, graph=FakeGraph(result=ROWS), annotaties=ReadApi(snapshot()),
+                              settings=make_settings()))
+    assert not any(e["type"] == "kandidaten" for e in events)
+    assert next(e["doel"] for e in events if e["type"] == "doel")["bron_iri"] == L1
+
+
+def test_onbekend_lid_toont_de_leden_die_er_wel_zijn():
+    events = run(answer_stream("annoteer lid 99", doel={"bwbId": BWB, "artikel": "9", "lid": "99"},
+                              llm=FakeLLM([]), graph=FakeGraph(result=ROWS), annotaties=ReadApi(snapshot()),
+                              settings=make_settings()))
+    kaart = _keuze(events)
+    assert kaart["keuze"]["soort"] == "onderdeel" and kaart["keuze"]["alles"]
+    assert [k["bron_iri"] for k in kaart["kandidaten"]] == [L1, L2]
+
+
+def test_dubbelzinnig_nummer_wordt_een_keuze_met_pad():
+    rows = ROWS + [{"node": REG + ":bijlage:1", "parent": REG, "type": "Bijlage", "nummer": "1", "tekst": ""},
+                   {"node": REG + ":bijlage:1:artikel:9", "parent": REG + ":bijlage:1", "type": "Artikel",
+                    "nummer": "9", "tekst": "Tekst in de bijlage."}]
+    events = run(answer_stream("annoteer artikel 9", doel={"bwbId": BWB, "artikel": "9"}, llm=FakeLLM([]),
+                              graph=FakeGraph(result=rows), annotaties=ReadApi(snapshot()),
+                              settings=make_settings()))
+    kaart = _keuze(events)
+    assert kaart["keuze"]["soort"] == "bepaling" and not kaart["keuze"]["alles"]
+    assert {k["bron_iri"] for k in kaart["kandidaten"]} == {ART, REG + ":bijlage:1:artikel:9"}
+    assert any("Bijlage" in k["label"] for k in kaart["kandidaten"])
+
+
+LEIDRAAD = "BWBR0024096"
+LR = f"urn:bwb:{LEIDRAAD}"
+LR_ROWS = [
+    {"node": LR, "type": "Regeling", "nummer": "", "tekst": "", "citeertitel": "Leidraad Invordering 2008"},
+    {"node": LR + ":divisie:9", "parent": LR, "type": "Divisie", "nummer": "9", "label": "Artikel 9", "tekst": ""},
+    {"node": LR + ":divisie:9.1", "parent": LR + ":divisie:9", "type": "Divisie", "nummer": "9.1",
+     "tekst": "De termijn van zes weken na de dagtekening geldt ook hier."},
+    {"node": LR + ":divisie:9.2", "parent": LR + ":divisie:9", "type": "Divisie", "nummer": "9.2",
+     "tekst": "Uitstel wordt schriftelijk verleend."},
+]
+
+
+def test_leidraad_artikel_geeft_de_subbepalingen_als_keuze():
+    events = run(answer_stream("annoteer artikel 9 leidraad", doel={"bwbId": LEIDRAAD, "artikel": "9"},
+                              llm=FakeLLM([]), graph=FakeGraph(result=LR_ROWS),
+                              annotaties=ReadApi(bouw_snapshot(LR_ROWS, bron_iri=LR + ":divisie:9.1", bwb_id=LEIDRAAD)),
+                              settings=make_settings()))
+    kaart = _keuze(events)
+    assert [(k["artikel"], k["lid"], k["soort"]) for k in kaart["kandidaten"]] == [("9.1", "", "Divisie"), ("9.2", "", "Divisie")]
+    assert "2 onderdelen" in " ".join(e.get("content", "") for e in events if e["type"] == "token")
+
+
+def test_leidraad_artikel_9_lid_1_is_bepaling_9_1():
+    llm = KetenLLM(kies=lambda toegestaan, f: GEEN_ANNOTATIE)
+    events = run(answer_stream("annoteer artikel 9 lid 1 leidraad", doel={"bwbId": LEIDRAAD, "artikel": "9", "lid": "1"},
+                              llm=llm, graph=FakeGraph(result=LR_ROWS),
+                              annotaties=ReadApi(bouw_snapshot(LR_ROWS, bron_iri=LR + ":divisie:9.1", bwb_id=LEIDRAAD)),
+                              settings=make_settings()))
+    assert not any(e["type"] in {"kandidaten", "error"} for e in events), events
+    assert next(e["doel"] for e in events if e["type"] == "doel")["bron_iri"] == LR + ":divisie:9.1"
+    assert any("geen leden; ik neem bepaling 9.1" in e["message"] for e in events if e["type"] == "status")
+
+
 def test_coverage_outage_does_not_trigger_new_annotation():
     llm = FakeLLM([])
     events = run(answer_stream("annoteer", doel={"bron_iri": L1}, llm=llm,
@@ -398,8 +514,8 @@ def test_afgeronde_bepaling_mag_wel_hergebruikt_worden():
 
 def test_afgerond_lid_telt_als_klaar_binnen_een_open_artikel():
     llm = KetenLLM(kies=lambda toegestaan, f: toegestaan[0])
-    events = run(answer_stream("annoteer artikel 9", doel={"bron_iri": ART}, llm=llm, graph=FakeGraph(result=ROWS),
-                              annotaties=ReadApi(snapshot(ART), afgerond=[L1]),
+    events = run(answer_stream("annoteer artikel 9", doel={"bron_iri": ART, "geheel": True}, llm=llm,
+                              graph=FakeGraph(result=ROWS), annotaties=ReadApi(snapshot(ART), afgerond=[L1]),
                               settings=make_settings(), run_id="deels", user_id="jurist"))
     assert not [e for e in events if e["type"] == "error"], events
     # Lid 1 is afgerond: daar komt niets bij, lid 2 wordt gewoon geannoteerd.
@@ -497,3 +613,30 @@ def test_zoekresultaat_hangt_als_toolbewijs_in_de_historie():
     assert len(gebruik) == len(resultaat) == 1
     assert gebruik[0]["name"] == "search_annotaties"
     assert resultaat[0]["tool_use_id"] == gebruik[0]["id"]
+
+
+def _via_ophaal(vraag, doel_json, rows, api):
+    llm = FakeLLM([response([text_block("WORKERS: annotatie\nPLAN: annoteer")], "end_turn"),
+                   response([text_block(json.dumps(doel_json))], "end_turn")])
+    return run(answer_stream(vraag, llm=llm, graph=FakeGraph(result=rows), annotaties=api,
+                             settings=make_settings())), llm
+
+
+def test_genoemde_leden_van_een_artikel_staan_vooraf_aangevinkt():
+    events, llm = _via_ophaal("annoteer artikel 9 lid 1 en 2 IW", {"bwbId": BWB, "artikel": "9", "lid": "1"},
+                              ROWS, ReadApi(snapshot(ART)))
+    kaart = _keuze(events)
+    assert [(k["lid"], k.get("gekozen", False)) for k in kaart["kandidaten"]] == [("1", True), ("2", True)]
+    assert llm.index == 2 and not any(e["type"] == "element" for e in events)
+
+
+def test_leidraad_subbepalingen_vooraf_aangevinkt():
+    rows = LR_ROWS + [{"node": LR + ":divisie:9.3", "parent": LR + ":divisie:9", "type": "Divisie",
+                       "nummer": "9.3", "tekst": "Nog een regel."}]
+    events, _ = _via_ophaal("annoteer 9.1 en 9.3 van de Leidraad, artikel 9.1 en 9.3",
+                            {"bwbId": LEIDRAAD, "nummer": "9.1", "artikel": "9.1", "lid": ""}, rows,
+                            ReadApi(bouw_snapshot(rows, bron_iri=LR + ":divisie:9", bwb_id=LEIDRAAD)))
+    kaart = _keuze(events)
+    assert [(k["nummer"], k.get("gekozen", False)) for k in kaart["kandidaten"]] == [
+        ("9.1", True), ("9.2", False), ("9.3", True)]
+

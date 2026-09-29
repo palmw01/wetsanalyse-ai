@@ -32,6 +32,7 @@ class State(TypedDict, total=False):
     plan: str
     worker_plan: list[str]   # geordende worker-keten (specialist-namen) die de supervisor koos
     afwijzen: bool           # supervisor plaatste de vraag buiten de scope → geen worker draait
+    afwijs_melding: str      # eigen afwijstekst (b.v. meer dan één artikel); leeg = buiten de scope
     worker_idx: int          # index van de huidige worker in worker_plan
     source_trace: list[tuple[str, str]]
     answer: str

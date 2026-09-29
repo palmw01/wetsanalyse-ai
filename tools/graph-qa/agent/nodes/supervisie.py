@@ -12,6 +12,7 @@ from typing import Any
 
 from langgraph.config import get_stream_writer
 
+from ..aanwijzing import lees_aanwijzing, melding_meerdere
 from ..doel import _heeft_opgegeven_doel
 from ..narratie import _stap
 from ..state import State
@@ -74,6 +75,14 @@ def supervisor_node(b: Bouw, state: State) -> dict[str, Any]:
         return {"specialist": "", "plan": plan, "worker_plan": [], "worker_idx": 0,
                 "afwijzen": True}
     eerste = worker_plan[0]
+    if eerste == "annotatie":
+        # Eén artikel per annotatievraag. Meer artikelen is een werkgebied afbakenen – een andere
+        # functie. Deterministisch en vóór de ophaal-agent: die zou er anders stil één uitkiezen.
+        aanwijzing = lees_aanwijzing(state.get("question", ""))
+        if aanwijzing.meerdere_artikelen:
+            _stap(writer, "Lex", f"meer dan één artikel genoemd ({', '.join(aanwijzing.artikelen)})")
+            return {"specialist": "", "plan": plan, "worker_plan": [], "worker_idx": 0,
+                    "afwijzen": True, "afwijs_melding": melding_meerdere(aanwijzing.artikelen)}
     _stap(writer, "Supervisor", f"kiest de {eerste}-worker · {plan[:80]}")
     return {"specialist": eerste, "plan": plan, "worker_plan": worker_plan, "worker_idx": 0,
             "afwijzen": False}
@@ -131,6 +140,11 @@ def afwijs_node(b: Bouw, state: State) -> dict[str, Any]:
     milieugrondslag noemt.
     """
     writer = get_stream_writer()
+    if state.get("afwijs_melding"):
+        melding = state["afwijs_melding"]
+        writer({"type": "token", "content": melding})
+        _stap(writer, "Klaar", "niet geannoteerd – vraag opnieuw voor één artikel")
+        return {"answer": melding, "messages": [{"role": "assistant", "content": melding}]}
     melding = (
         "Deze vraag gaat niet over Nederlandse wet- en regelgeving, dus daar kan ik je niet mee "
         "helpen. Vraag me gerust naar een bepaling, een begrip of de samenhang tussen artikelen "

@@ -16,13 +16,14 @@ from datetime import datetime, timezone
 from typing import Any
 
 from langgraph.config import get_stream_writer
-from bronmodel import BronFout
+from bronmodel import BronFout, BronKeuze, onderdelen_om_te_kiezen
 
 from ..agent_common import truncate
 from ..annotatie import aanduiding_in_woorden
 from ..artikel import OngeldigeVindplaats
-from ..bron_annotatie import controleer_hergebruik, doel_event, lees_bron, lokale_elementen
-from ..doel import _bepaal_doel, _kandidaten_uit_json
+from ..bron_annotatie import controleer_hergebruik, doel_event, lees_bron, lokale_elementen, stand_per_optie
+from ..aanwijzing import lees_aanwijzing, melding_meerdere
+from ..doel import _bepaal_doel, _heeft_opgegeven_doel, _kandidaten_uit_json, _meerdere_artikelen
 from ..jas_klassen import methode_versie
 from ..jas_pipeline.classificatie import promptversie
 from ..jas_pipeline.beslisregister import compact as beslisregister
@@ -45,14 +46,77 @@ def _hergebruik_melding(hergebruik: dict[str, Any]) -> str:
             f"graaf ({t['beoordeeld']} beoordeeld, {t['te_beoordelen']} te beoordelen)")
 
 
+# Een artikel kan veel leden hebben (IW 1990 art. 9: twaalf); de keuze is dan de hele lijst. Het
+# plafond voorkomt alleen dat een ontspoorde bronboom de thread overspoelt.
+MAX_OPTIES = 60
+
+
+def _keuzekaart(writer, opties: list[dict], *, bwb_id: str, citeertitel: str, ouder: str,
+                melding: str, soort: str) -> dict[str, Any]:
+    """De jurist kiest welke bronnode de werkvoorraad in gaat; wij annoteren nog niets.
+
+    Zelfde `kandidaten`-event als bij een onderwerpvraag, additief verrijkt: elke optie draagt haar
+    `bron_iri`, zodat de gekozen beurt de supervisor en het ophalen overslaat. `keuze.soort` is
+    "onderdeel" (leden of subbepalingen van één bepaling; "alles" = elk als eigen laag) of
+    "bepaling" (een dubbelzinnig nummer). Alle opties komen uit de brongraaf.
+    """
+    kandidaten = [{"bwbId": bwb_id, "artikel": o["artikel"], "lid": o["lid"], "citeertitel": citeertitel,
+                   "fragment": o["fragment"], "bron_iri": o["bron_iri"], "nummer": o["nummer"],
+                   "soort": o["type"], "label": o["label"], **({"stand": o["stand"]} if "stand" in o else {}),
+                   **({"gekozen": True} if o.get("gekozen") else {})}
+                  for o in opties[:MAX_OPTIES]]
+    writer({"type": "kandidaten", "kandidaten": kandidaten,
+            "keuze": {"soort": soort, "ouder": ouder, "alles": soort == "onderdeel"}})
+    writer({"type": "token", "content": melding})
+    return {"klaar": {"answer": melding, "voorstellen": [], "messages": [{"role": "assistant", "content": melding}]}}
+
+
+def _opties_melding(ouder: str, opties: list[dict]) -> str:
+    wat = "leden" if all(o["type"] == "Lid" for o in opties) else "onderdelen"
+    return f"{ouder} heeft {len(opties)} {wat}. Welk deel wil je annoteren?"
+
+
 def _bereid_voor(b: Bouw, state: State, writer) -> dict[str, Any]:
     """De bron gericht ophalen, hergebruik en afronding toetsen, het `doel`-event bij volledig
     hergebruik. Geeft `{"klaar": update}` als de beurt hier eindigt, anders doel, bron, hergebruik,
     soort en aanduiding."""
     doel = _bepaal_doel(state)
+    geheel = bool((state.get("opgegeven_doel") or {}).get("geheel"))
+    # "artikel 9 lid 1 en 3" of "9.1 en 9.5": één artikel, meerdere leden. Dan wordt het artikel
+    # het doel en staan de genoemde leden vooraf aangevinkt op de kaart. Een meegestuurd doel (een
+    # keuze op de kaart zelf) blijft precies wat de jurist aanwees.
+    genoemd = () if _heeft_opgegeven_doel(state) else lees_aanwijzing(state.get("question", "")).leden
+    if len(genoemd) > 1 and not geheel:
+        stam = str(doel.get("artikel") or doel.get("nummer") or "").split(".", 1)[0]
+        doel = {"bwbId": doel.get("bwbId", ""), "artikel": stam, "lid": "", "nummer": "",
+                "citeertitel": doel.get("citeertitel", "")}
     try:
         bron = lees_bron(b, state, doel, writer)
+        snapshot = bron["bron_snapshot"]
+        opties = [] if geheel else onderdelen_om_te_kiezen(snapshot)
+        if opties:
+            ouder = snapshot["doel"]["label"]
+            if len(genoemd) > 1:
+                stam = snapshot["doel"]["nummer"]
+                opties = [{**o, "gekozen": o["lid"] in genoemd or o["nummer"] in {f"{stam}.{x}" for x in genoemd}}
+                          for o in opties]
+            met_stand = stand_per_optie(b, state, writer, snapshot, opties)
+            melding = _opties_melding(ouder, opties)
+            if met_stand is None:
+                melding += " De stand per onderdeel kon ik nu niet ophalen."
+            return _keuzekaart(writer, met_stand or opties, bwb_id=snapshot["doel"]["bwb_id"],
+                               citeertitel=snapshot["doel"]["citeertitel"], ouder=ouder,
+                               melding=melding, soort="onderdeel")
+        if doel.get("lid") and snapshot["doel"]["type"] != "Lid" and not snapshot["doel"]["lid"]:
+            # "artikel 9 lid 1" van een beleidsregel is bepaling 9.1 (`bronmodel._kies_lid`).
+            _stap(writer, "Bron", f"{snapshot['doel']['citeertitel']} kent bij {doel.get('artikel')} geen "
+                                  f"leden; ik neem bepaling {snapshot['doel']['nummer']}")
         bron, hergebruik = controleer_hergebruik(b, state, bron, writer)
+    except BronKeuze as keuze:
+        melding = f"{keuze}. Welke bedoel je?"
+        return _keuzekaart(writer, keuze.opties, bwb_id=str(doel.get("bwbId") or ""),
+                           citeertitel=str(doel.get("citeertitel") or ""), ouder=keuze.ouder,
+                           melding=melding, soort="onderdeel" if keuze.ouder else "bepaling")
     except (OngeldigeVindplaats, BronFout) as fout:
         # De beurt eindigt hier, en dat is de bedoeling. Doorgaan zou markeringen opleveren onder een
         # aanduiding die de werkplek niet kan openen – de jurist ziet dan pas bij het openen dat er
@@ -86,6 +150,13 @@ def annoteer_node(b: Bouw, state: State) -> dict[str, Any]:
         raise ValueError("Een leesroute mag geen annotatie produceren")
     # Een ONDERWERP in plaats van een bepaling: de ophaal-agent legt kandidaten voor en wij
     # annoteren nog niets. Welke bepaling de werkvoorraad in gaat is een keuze van de jurist.
+    if not _heeft_opgegeven_doel(state):
+        meerdere = _meerdere_artikelen(state)
+        if meerdere:
+            melding = melding_meerdere(meerdere)
+            writer({"type": "token", "content": melding})
+            _stap(writer, "Klaar", "niet geannoteerd – vraag opnieuw voor één artikel")
+            return {"answer": melding, "voorstellen": [], "messages": [{"role": "assistant", "content": melding}]}
     kandidaten = _kandidaten_uit_json(state.get("answer", ""))
     if kandidaten:
         writer({"type": "kandidaten", "kandidaten": kandidaten})

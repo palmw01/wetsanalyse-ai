@@ -26,6 +26,63 @@ class BronFout(ValueError):
     """Een bron ontbreekt, is dubbelzinnig of heeft geen consistente boom."""
 
 
+class BronKeuze(BronFout):
+    """De vraag wijst niet één bronnode aan, maar de graaf kent wel de opties.
+
+    Een dubbelzinnig artikelnummer of een lid dat niet bestaat is geen doodlopende fout: de jurist
+    kiest uit `opties` (zie `_optie`), allemaal nodes uit de brongraaf. `ouder` is het label van de
+    bepaling waaronder ze hangen, leeg als ze nergens onder samenkomen. Wie alleen `BronFout` kent,
+    ziet de oude fout.
+    """
+
+    def __init__(self, melding: str, opties: list[dict], ouder: str = ""):
+        super().__init__(melding)
+        self.opties, self.ouder = opties, ouder
+
+
+# Het niveau waarop de jurist kiest: onder een artikel de leden, onder een divisie (een beleidsregel
+# als Leidraad 9) de subbepalingen 9.1, 9.2 … Dieper (onderdelen a, 1°) gaat mee binnen de keuze.
+_KIESBAAR = {"Artikel": {"Lid"}, "Divisie": {"Divisie", "Artikel"}}
+_FRAGMENT = 160
+
+
+def _optie(by_id: dict[str, dict], node: dict, ordered: list[dict], *, met_pad: bool = False) -> dict:
+    """Een keuze-optie: de node met artikel/lid zoals de agent ze als doel kent en het begin van
+    de eerste eigen tekst in de subtree, letterlijk (de weergave kort hem zelf in)."""
+    keten, iri = [], node["bron_iri"]
+    while iri:
+        keten.append(by_id[iri])
+        iri = by_id[iri]["parent_iri"]
+    artikel = next((n["nummer"] for n in keten if n["type"] in {"Artikel", "Divisie"}), "")
+    lid = next((n["nummer"] for n in keten if n["type"] == "Lid"), "")
+    tekst = next((n["tekst"] for n in subtree(ordered, node["bron_iri"]) if n["tekst"].strip()), "")
+    label = node["label"]
+    if met_pad:
+        # Bij twee keer "artikel 1" zegt het label alleen niets; het pad (hoofdstuk, bijlage) wel.
+        label = ", ".join(n["label"] for n in reversed(keten) if n["type"] != "Regeling")
+    return {"bron_iri": node["bron_iri"], "type": node["type"], "nummer": node["nummer"],
+            "label": label, "artikel": artikel, "lid": lid, "fragment": tekst.strip()[:_FRAGMENT]}
+
+
+def _kiesbare_kinderen(ordered: list[dict], node: dict) -> list[dict]:
+    soorten = _KIESBAAR.get(node["type"], set())
+    return [n for n in ordered if n["parent_iri"] == node["bron_iri"] and n["type"] in soorten]
+
+
+def onderdelen_om_te_kiezen(snapshot: dict) -> list[dict]:
+    """De leden of subbepalingen waartussen de jurist kiest vóór er geannoteerd wordt.
+
+    Leeg als het doel al één werkeenheid is: een lid, een onderdeel, een artikel zonder leden of
+    met één lid. Eén laag per bronnode is ook de eenheid van werk – een heel artikel in één
+    analyse is groot en laat de jurist niet kiezen wat de werkvoorraad in gaat.
+    """
+    ordered = snapshot["nodes"]
+    by_id = {n["bron_iri"]: n for n in ordered}
+    doel = by_id.get(snapshot["doel"]["bron_iri"])
+    kinderen = _kiesbare_kinderen(ordered, doel) if doel else []
+    return [_optie(by_id, n, ordered) for n in kinderen] if len(kinderen) > 1 else []
+
+
 def tekst_hash(tekst: str) -> str:
     return hashlib.sha256(tekst.encode("utf-8")).hexdigest()
 
@@ -163,6 +220,31 @@ def valideer_ankers(snapshot: dict, ankers: list[dict]) -> str:
     return eigenaar(snapshot["nodes"], [a["bron_iri"] for a in ankers])
 
 
+def _kies_lid(nodes: dict[str, dict], ordered: list[dict], children: dict[str, list[dict]],
+              bepaling: dict, lid: str, titel: str) -> str:
+    """Het lid onder `bepaling`; nooit stil het hele artikel.
+
+    Een beleidsregel kent geen leden: "artikel 9 lid 1" van de Leidraad is subbepaling 9.1. Die
+    vertaling is deterministisch en alleen als 9.1 echt bestaat. Een lid dat niet bestaat levert de
+    leden die er wél zijn als keuze op.
+    """
+    leden = [n for n in children[bepaling["bron_iri"]] if n["type"] == "Lid"]
+    if not leden and bepaling["type"] == "Divisie":
+        sub = [n for n in children[bepaling["bron_iri"]] if n["type"] in {"Divisie", "Artikel"}
+               and n["nummer"].strip() == f"{bepaling['nummer'].strip()}.{lid.strip()}"]
+        if len(sub) == 1:
+            return sub[0]["bron_iri"]
+    gevonden = [n for n in leden if n["nummer"].strip().lstrip("0") == lid.strip().lstrip("0")]
+    if len(gevonden) == 1:
+        return gevonden[0]["bron_iri"]
+    opties = _kiesbare_kinderen(ordered, bepaling)
+    if opties and len(gevonden) == 0:
+        wat = "leden" if opties[0]["type"] == "Lid" else "onderdelen"
+        raise BronKeuze(f"Het gevraagde lid {lid} bestaat niet; {bepaling['label']} heeft {len(opties)} {wat}",
+                        [_optie(nodes, n, ordered) for n in opties], ouder=f"{titel} – {bepaling['label']}")
+    raise BronFout("Het gevraagde lid bestaat niet of is dubbelzinnig")
+
+
 def bouw_snapshot(rows: list[dict], *, bron_iri: str = "", bwb_id: str,
                   artikel: str = "", lid: str = "") -> dict:
     nodes: dict[str, dict] = {}
@@ -212,19 +294,19 @@ def bouw_snapshot(rows: list[dict], *, bron_iri: str = "", bwb_id: str,
     visit("")
     if len(visited) != len(nodes):
         raise BronFout("Niet alle nodes zijn verbonden")
+    titel = next((r["citeertitel"] for r in rows if r.get("citeertitel")), bwb_id)
     if not bron_iri:
         if artikel:
             candidates = [n for n in ordered if n["type"] in {"Artikel", "Divisie"}
                           and n["nummer"].strip() == artikel.strip()]
-            if len(candidates) != 1:
+            if len(candidates) > 1:
+                raise BronKeuze(f"Artikel {artikel} komt {len(candidates)} keer voor in {titel}",
+                                [_optie(nodes, n, ordered, met_pad=True) for n in candidates])
+            if not candidates:
                 raise BronFout("Bepaling niet gevonden of dubbelzinnig; kies een bronnode")
             bron_iri = candidates[0]["bron_iri"]
             if lid:
-                candidates = [n for n in children[bron_iri] if n["type"] == "Lid"
-                              and n["nummer"].strip().lstrip("0") == lid.strip().lstrip("0")]
-                if len(candidates) != 1:
-                    raise BronFout("Het gevraagde lid bestaat niet of is dubbelzinnig")
-                bron_iri = candidates[0]["bron_iri"]
+                bron_iri = _kies_lid(nodes, ordered, children, nodes[bron_iri], lid, titel)
         elif lid:
             raise BronFout("Een lid vereist een artikel")
         else:
@@ -240,7 +322,6 @@ def bouw_snapshot(rows: list[dict], *, bron_iri: str = "", bwb_id: str,
     lidnummer = next((n["nummer"] for n in [target, *parents] if n["type"] == "Lid"), "")
     canonical = json.dumps({"nodes": ordered, "toestand": sorted(toestanden)}, ensure_ascii=False,
                            sort_keys=True, separators=(",", ":"))
-    titel = next((r["citeertitel"] for r in rows if r.get("citeertitel")), bwb_id)
     path = [n for n in [*reversed(parents), target] if n["type"] != "Regeling"]
     # Detailkop: wet + concrete vindplaats, niet alleen "Lid 1". Bronlabels zelf
     # blijven los van de tekst waar de ankers tegen worden gecontroleerd.

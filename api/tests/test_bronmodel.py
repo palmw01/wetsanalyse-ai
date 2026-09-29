@@ -1,6 +1,6 @@
 """Contracttests voor dezelfde bronresolver die API en agent gebruiken."""
 import pytest
-from bronmodel import BronFout, bouw_snapshot, bron_query, eigenaar, valideer_ankers
+from bronmodel import BronFout, BronKeuze, bouw_snapshot, bron_query, eigenaar, onderdelen_om_te_kiezen, valideer_ankers
 from rdflib.plugins.sparql.parser import parseQuery
 
 BWB = "BWBR0004770"
@@ -96,3 +96,54 @@ def test_foreign_law_with_same_prefix_rejected():
     rows = fixture() + [{"node": ROOT + "1:artikel:3", "type": "urn:bwb-ns:Artikel", "parent": ROOT}]
     with pytest.raises(BronFout, match="bronvreemde"):
         bouw_snapshot(rows, bwb_id=BWB)
+
+
+def test_artikel_met_leden_geeft_de_leden_als_keuze():
+    opties = onderdelen_om_te_kiezen(snapshot(artikel="9"))
+    assert [(o["bron_iri"], o["artikel"], o["lid"], o["type"]) for o in opties] == [
+        (ROOT + ":id:lid-een", "9", "1", "Lid"), (ROOT + ":artikel:9:lid:2", "9", "2", "Lid")]
+    # Het fragment is de eerste eigen tekst in de subtree, letterlijk.
+    assert opties[0]["fragment"] == "De ontvanger 😀 handelt."
+
+
+def test_een_lid_is_al_een_werkeenheid():
+    assert onderdelen_om_te_kiezen(snapshot(artikel="9", lid="1")) == []
+
+
+def test_onbekend_lid_biedt_de_bestaande_leden():
+    with pytest.raises(BronKeuze) as fout:
+        snapshot(artikel="9", lid="7")
+    assert [o["lid"] for o in fout.value.opties] == ["1", "2"]
+    assert fout.value.ouder.endswith("Artikel 9") and "lid 7" in str(fout.value)
+
+
+def test_dubbelzinnig_nummer_toont_het_pad():
+    rows = fixture() + [{"node": ROOT + ":bijlage:1", "type": "urn:bwb-ns:Bijlage", "parent": ROOT,
+                         "nummer": "1", "label": "Bijlage 1"},
+                        {"node": ROOT + ":bijlage:1:artikel:9", "type": "urn:bwb-ns:Artikel",
+                         "parent": ROOT + ":bijlage:1", "nummer": "9", "tekst": "In de bijlage."}]
+    with pytest.raises(BronKeuze) as fout:
+        bouw_snapshot(rows, bwb_id=BWB, artikel="9")
+    assert sorted(o["label"] for o in fout.value.opties) == ["Artikel 9", "Bijlage 1, Artikel 9"]
+    assert fout.value.ouder == ""
+
+
+def _leidraad():
+    return [{"node": ROOT, "type": "urn:bwb-ns:Regeling"},
+            {"node": ROOT + ":d:9", "type": "urn:bwb-ns:Divisie", "parent": ROOT, "nummer": "9"},
+            {"node": ROOT + ":d:9.1", "type": "urn:bwb-ns:Divisie", "parent": ROOT + ":d:9", "nummer": "9.1",
+             "tekst": "Eerste regel."},
+            {"node": ROOT + ":d:9.2", "type": "urn:bwb-ns:Divisie", "parent": ROOT + ":d:9", "nummer": "9.2",
+             "tekst": "Tweede regel."}]
+
+
+def test_beleidsregel_lid_is_de_subbepaling():
+    s = bouw_snapshot(_leidraad(), bwb_id=BWB, artikel="9", lid="2")
+    assert s["doel"]["bron_iri"] == ROOT + ":d:9.2"
+    assert [o["nummer"] for o in onderdelen_om_te_kiezen(bouw_snapshot(_leidraad(), bwb_id=BWB, artikel="9"))] == ["9.1", "9.2"]
+
+
+def test_beleidsregel_zonder_die_subbepaling_biedt_de_bestaande():
+    with pytest.raises(BronKeuze) as fout:
+        bouw_snapshot(_leidraad(), bwb_id=BWB, artikel="9", lid="5")
+    assert [o["nummer"] for o in fout.value.opties] == ["9.1", "9.2"]

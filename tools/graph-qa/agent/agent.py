@@ -219,6 +219,7 @@ async def answer_stream(
         # volgende beurt in dezelfde thread ook afgewezen – dezelfde soort fout als een blijvend
         # corpus hieronder.
         "afwijzen": False,
+        "afwijs_melding": "",
         # Annotatie-velden: MOETEN mee in de reset. De checkpointer bewaart de state per thread, dus
         # zonder dit annoteert een tweede vraag in hetzelfde gesprek tegen de tekst of de voorstellen
         # van de vórige bepaling – precies de verwisseling die de gerichte ophaal moet uitsluiten.
