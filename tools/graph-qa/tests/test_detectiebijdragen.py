@@ -24,7 +24,7 @@ def test_bewaart_klassen_per_regel_voor_interne_merge_en_voor_fusie():
     assert len(f.bijdragen) == 2
     assert {b.bewijs[0].regel: b.mogelijke_klassen for b in f.bijdragen} == {
         "jas.test.tijd": ("Tijdsaanduiding",), "jas.test.object": ("Rechtsobject",)}
-    assert all(b.detector == "test" and b.versie == "1.1" and b.regel_versie == "1" for b in f.bijdragen)
+    assert all(b.detector == "test" and b.versie == rs[0].versie and b.regel_versie == "1" for b in f.bijdragen)
 
 
 def test_afgewezen_kandidaat_houdt_bijdragen_en_oude_registeraanroep_werkt():

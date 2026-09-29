@@ -3,18 +3,18 @@
 - id: masker.verwijzing.artikel
   masker: verwijzing
   bron: "adr-001:negatieve-patronen"
-  patroon: '\b(?:artikel|artikelen|art\.)\s+\d+[a-z]*(?::\d+[a-z]*)?(?:,\s*(?:het\s+)?{RANGTELWOORD}\s+lid)?(?:,\s*onderdeel\s+[a-z0-9]+°?)?'
+  herkenner: artikel
   tests:
     positief: [{tekst: "bedoeld in artikel 9, derde lid, onderdeel a", span: "artikel 9, derde lid, onderdeel a"}]
 - id: masker.verwijzing.lid
   masker: verwijzing
   bron: "adr-001:negatieve-patronen"
-  patroon: '\b(?:het\s+|dit\s+)?{RANGTELWOORD}\s+(?:lid|leden)\b'
+  herkenner: lid
   tests:
     positief: [{tekst: "op de voet van het bepaalde in het derde lid", span: "het derde lid"}]
 - id: masker.verwijzing.bedoeld
   masker: verwijzing
   bron: "adr-001:negatieve-patronen"
-  patroon: '\b(?:als\s+)?bedoeld\s+in\b'
+  herkenner: bedoeld
   tests:
     positief: [{tekst: "een aanslag als bedoeld in artikel 10", span: "als bedoeld in"}]

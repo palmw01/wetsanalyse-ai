@@ -23,6 +23,9 @@ from agent.jas_pipeline.fusie import _samen, fuseer
 from agent.jas_pipeline.kandidaten import CandidateStatus, label_kandidaten
 from agent.jas_pipeline.specificiteit import pas_toe
 from agent.jas_pipeline.taal import SpacyProvider
+from agent.jas_pipeline.taal.grenzen import VERSIE as GRENS_VERSIE
+from agent.jas_pipeline.taal.structuur import VERSIE as STRUCTUUR_VERSIE
+from agent.jas_pipeline.taal.verwijzingen import VERSIE as VERWIJZING_VERSIE
 from eval.kandidaat_eval import meet as kandidaatmeting
 from eval.metrieken import controleer_status, kern, laagste_status
 from eval.taal_benchmark import ontwikkelcasussen
@@ -187,7 +190,9 @@ def meet():
         "referentie_status": status, "ontwikkeling": ids, "diagnostiek": [c["id"] for c in diagnostiek],
         "referentieankers": refs,
         "config": {"deterministisch_accepteren": True, "classifier_granulariteit": "universeel",
-                   "classifier_spankeuze": False, "modelaanroepen": 0},
+                   "classifier_spankeuze": False, "modelaanroepen": 0,
+                   "tekstgrenzen_versie": GRENS_VERSIE, "tekststructuur_versie": STRUCTUUR_VERSIE,
+                   "verwijzingen_versie": VERWIJZING_VERSIE},
         "hashes": {str(p.relative_to(ROOT)): sha(p.read_bytes()) for p in sorted(bestanden)},
         "kandidaat_eval": kandidaatmeting(),
         "scenario": {s: samenvatting([r for cid in ids for r in per_case[cid]["scenario"][s]], refs, teksten)

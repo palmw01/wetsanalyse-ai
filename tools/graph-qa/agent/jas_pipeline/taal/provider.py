@@ -14,6 +14,7 @@ from __future__ import annotations
 import re
 from typing import Protocol
 
+from .grenzen import analyseer_grenzen
 from .model import LinguisticAnalysis, Niveau, Token, Zin
 
 
@@ -27,29 +28,16 @@ class TaalProvider(Protocol):
 # --- terugval: alleen tokens en zinnen ---------------------------------------------------------
 
 _TOKEN_RE = re.compile(r"\w+(?:[-']\w+)*|[^\w\s]", re.UNICODE)
-# Een zin eindigt op . ; : ! ? gevolgd door witruimte, of op een regelovergang (onderdelen van
-# een opsomming staan per regel).
-_ZINSGRENS_RE = re.compile(r"(?<=[.;:!?])\s+|\n+")
-# Behalve een punt na een kort label: een opsommingsteken of afkorting ("b.", "1°.", "art.", "9."),
-# geen einde. Een zin die op een kort woord eindigt wordt daardoor niet geknipt; op dit niveau
-# (geen parser) is te weinig knippen minder schadelijk dan een opsomming uit elkaar halen.
-_LABEL_RE = re.compile(
-    r"(?:^|[\s(])(?:[a-z]{1,2}|\d+[a-z]?|\d+°|[IVXLC]+|art|artt|nr|jo|bijv|resp|enz|etc)\.$")
-
 
 def tokens_en_zinnen(tekst: str) -> tuple[tuple[Token, ...], tuple[Zin, ...]]:
     tokens: list[Token] = []
     zinnen: list[Zin] = []
-    begin = 0
-    grenzen = [m.start() for m in _ZINSGRENS_RE.finditer(tekst)
-               if "\n" in m.group() or not _LABEL_RE.search(tekst, 0, m.start())] + [len(tekst)]
-    for grens in grenzen:
+    for zin in analyseer_grenzen(tekst).zinnen(tekst):
         eerste = len(tokens)
-        for m in _TOKEN_RE.finditer(tekst, begin, grens):
+        for m in _TOKEN_RE.finditer(tekst, zin.start, zin.eind):
             tokens.append(Token(len(tokens), m.group(), m.start(), m.end(), len(zinnen)))
         if len(tokens) > eerste:
             zinnen.append(Zin(len(zinnen), tokens[eerste].start, tokens[-1].eind, (eerste, len(tokens))))
-        begin = grens
     return tuple(tokens), tuple(zinnen)
 
 

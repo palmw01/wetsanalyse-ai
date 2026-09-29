@@ -21,24 +21,21 @@ from functools import cache
 from ..kandidaten import BronSpan, Candidate, DetectorResult, Evidence, SpanOption
 from ..taal import LinguisticAnalysis, Token
 from ..taal.afgeleid import _BIJZIN, _KERN
-from . import BronTekst
+from ..taal.grenzen import analyseer_grenzen
+from ..taal.verwijzingen import VERSIE as VERWIJZING_VERSIE
+from . import BronTekst, resultaat
 from .regels import maskers, woordenlijsten
 
 SUBJ, OBJ, BETR, FEIT, VW, VAR, PAR, OP = (
     "Rechtssubject", "Rechtsobject", "Rechtsbetrekking", "Rechtsfeit", "Voorwaarde",
     "Variabele en variabelewaarde", "Parameter en parameterwaarde", "Operator")
 
-_SEGMENTGRENS = re.compile(r"[.;:]")
 _ONDERWERP = {"nsubj", "nsubj:pass", "obl:agent", "csubj"}
 
 
 @cache
 def _lijst(naam: str) -> re.Pattern:
     return re.compile(rf"^(?:{woordenlijsten()[naam]})$", re.IGNORECASE)
-
-
-def _overgeslagen(naam: str, bron: BronTekst, reden: str) -> DetectorResult:
-    return DetectorResult(detector=naam, versie="1", bron_iri=bron.bron_iri, overgeslagen=True, reden=reden)
 
 
 def _parse_of_reden(bron: BronTekst) -> tuple[LinguisticAnalysis | None, str]:
@@ -92,19 +89,15 @@ class NormDetector:
     REGELS: tuple[str, ...] = ("jas.betrekking.modaal_predicaat", "jas.betrekking.vaste_uitdrukking",
                                "jas.betrekking.normatief_adjectief")
     naam = "norm"
-    versie = "1"
+    versie = "2"  # gedeelde beschermde tekstgrenzen
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         tekst = bron.tekst
-        segmenten = []
-        begin = 0
-        for m in [*_SEGMENTGRENS.finditer(tekst), None]:
-            eind = m.end() if m else len(tekst)
-            segmenten.append((begin, eind))
-            begin = eind
-        zinnen = _zinnen(tekst)
+        structuur = analyseer_grenzen(tekst)
+        zinnen = structuur.zinnen(tekst)
         kandidaten = []
-        for s, e in segmenten:
+        for segment in structuur.segmenten(tekst):
+            s, e = segment.start, segment.eind
             stuk = tekst[s:e]
             modaal = re.search(rf"\b(?:{woordenlijsten()['MODAAL']})\b", stuk, re.IGNORECASE)
             normatief = re.search(rf"\b(?:{woordenlijsten()['NORMATIEF']})\b", stuk, re.IGNORECASE)
@@ -120,21 +113,11 @@ class NormDetector:
             regel = ("jas.betrekking.modaal_predicaat" if modaal else
                      "jas.betrekking.vaste_uitdrukking" if " " in treffer.group() else
                      "jas.betrekking.normatief_adjectief")
-            zin = next(((zs, ze) for zs, ze in zinnen if zs <= s2 and e2 <= ze), (s2, e2))
+            zin = next(((z.start, z.eind) for z in zinnen if z.start <= s2 and e2 <= z.eind), (s2, e2))
             grenzen = [((s2, e2), "segment"), (_trim(tekst, *zin), "zin")]
             bewijs = [Evidence(detector=self.naam, code="NORMATIVE_PREDICATE", regel=regel, detail=treffer.group())]
             kandidaten.append(_kandidaat(bron, grenzen, [BETR, FEIT], bewijs))
-        return DetectorResult(detector=self.naam, versie=self.versie, bron_iri=bron.bron_iri,
-                              kandidaten=tuple(kandidaten))
-
-
-def _zinnen(tekst: str) -> list[tuple[int, int]]:
-    uit, begin = [], 0
-    for m in re.finditer(r"(?<=[.])\s+(?=[A-Z])|\n", tekst):
-        uit.append((begin, m.start()))
-        begin = m.end()
-    uit.append((begin, len(tekst)))
-    return uit
+        return resultaat(self, bron, kandidaten)
 
 
 def _trim(tekst: str, s: int, e: int) -> tuple[int, int]:
@@ -181,12 +164,12 @@ class NaamwoordgroepDetector:
         "jas.subject.voornaamwoord", "jas.subject.rollexicon", "jas.subject.np_bij_normatief_predicaat",
         "jas.object.opsommingsonderdeel", "jas.object.np_bij_normatief_predicaat")
     naam = "naamwoordgroep"
-    versie = "1"
+    versie = f"1+verwijzing.{VERWIJZING_VERSIE}"
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         a, reden = _parse_of_reden(bron)
         if a is None:
-            return _overgeslagen(self.naam, bron, reden)
+            return resultaat(self, bron, overgeslagen=True, reden=reden)
         kandidaten = []
         for t in a.tokens:
             if not _nominaal(a, t) or t.deprel in {"fixed", "flat", "flat:name", "compound", "nmod:poss"}:
@@ -207,8 +190,7 @@ class NaamwoordgroepDetector:
             lemma = (t.lemma or t.tekst).lower()
             bewijs, klassen = self._classificeer_signaal(a, t, lemma)
             kandidaten.append(_kandidaat(bron, grenzen, klassen, bewijs))
-        return DetectorResult(detector=self.naam, versie=self.versie, bron_iri=bron.bron_iri,
-                              kandidaten=tuple(kandidaten))
+        return resultaat(self, bron, kandidaten)
 
     def _classificeer_signaal(self, a: LinguisticAnalysis, t: Token, lemma: str):
         """Welke klassen mogelijk zijn en waarom – signalen uit het profiel, geen besluit."""
@@ -243,12 +225,12 @@ class NaamwoordgroepDetector:
 class BijzinDetector:
     REGELS: tuple[str, ...] = ("jas.voorwaarde.als_bijzin", "jas.voorwaarde.beperkende_bijzin")
     naam = "bijzin"
-    versie = "2"  # alleen een als-clause met eigen predicatie; T4 C037 / profiel negatieve gevallen
+    versie = f"2+verwijzing.{VERWIJZING_VERSIE}"  # als-clause met eigen predicatie; T4 C037
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         a, reden = _parse_of_reden(bron)
         if a is None:
-            return _overgeslagen(self.naam, bron, reden)
+            return resultaat(self, bron, overgeslagen=True, reden=reden)
         kandidaten = []
         for t in a.tokens:
             kinderen = a.kinderen(t.i)
@@ -273,8 +255,7 @@ class BijzinDetector:
                     kandidaten.append(_kandidaat(bron, [(g, "np_met_bijzin")], [VW, SUBJ, OBJ], [Evidence(
                         detector=self.naam, code="RESTRICTIVE_RELATIVE", regel="jas.voorwaarde.beperkende_bijzin",
                         relatie="acl:relcl", detail=t.tekst)]))
-        return DetectorResult(detector=self.naam, versie=self.versie, bron_iri=bron.bron_iri,
-                              kandidaten=tuple(kandidaten))
+        return resultaat(self, bron, kandidaten)
 
 
 # --- Rechtsfeit: nominalisatie ('het indienen van …', 'de dagtekening van …') -------------------
@@ -282,13 +263,13 @@ class BijzinDetector:
 class NominalisatieDetector:
     REGELS: tuple[str, ...] = ("jas.feit.nominalisatie_van",)
     naam = "nominalisatie"
-    versie = "2"  # infinitieftak vereist Inf; 'het bepaalde' (Part) is geen infinitief
+    versie = f"2+verwijzing.{VERWIJZING_VERSIE}"  # infinitieftak vereist Inf, geen Part
     _AAN_DE_RAND = {"case", "cc", "advmod", "mark", "punct"}
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         a, reden = _parse_of_reden(bron)
         if a is None:
-            return _overgeslagen(self.naam, bron, reden)
+            return resultaat(self, bron, overgeslagen=True, reden=reden)
         kandidaten = []
         for t in a.tokens:
             kinderen = a.kinderen(t.i)
@@ -308,8 +289,7 @@ class NominalisatieDetector:
             kandidaten.append(_kandidaat(bron, [(g, "np")], [FEIT, VW, OBJ], [Evidence(
                 detector=self.naam, code="NOMINALIZED_ACTION", regel="jas.feit.nominalisatie_van",
                 relatie=t.deprel, detail=t.tekst)]))
-        return DetectorResult(detector=self.naam, versie=self.versie, bron_iri=bron.bron_iri,
-                              kandidaten=tuple(kandidaten))
+        return resultaat(self, bron, kandidaten)
 
 
 # --- Operator: nevenschikking tussen clauses en negatie ----------------------------------------
@@ -322,7 +302,7 @@ class LogischeOperatorDetector:
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         a, reden = _parse_of_reden(bron)
         if a is None:
-            return _overgeslagen(self.naam, bron, reden)
+            return resultaat(self, bron, overgeslagen=True, reden=reden)
         kandidaten = []
         for t in a.tokens:
             laag = t.tekst.lower()
@@ -347,8 +327,7 @@ class LogischeOperatorDetector:
                 continue
             kandidaten.append(_kandidaat(bron, [((t.start, t.eind), "kern")], [OP], [Evidence(
                 detector=self.naam, code=code, regel=regel, relatie=t.deprel, detail=t.tekst)]))
-        return DetectorResult(detector=self.naam, versie=self.versie, bron_iri=bron.bron_iri,
-                              kandidaten=tuple(kandidaten))
+        return resultaat(self, bron, kandidaten)
 
 
 def syntactische_detectoren() -> list:
