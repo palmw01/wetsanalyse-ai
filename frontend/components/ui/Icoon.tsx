@@ -70,3 +70,38 @@ export function Cirkel({ className = "" }: IcoonProps) {
 export function Ruit({ className = "" }: IcoonProps) {
   return svg(<path d="M8 2.5 13.5 8 8 13.5 2.5 8Z" />, className);
 }
+
+/** Zoeken (vergrootglas). */
+export function Zoek({ className = "" }: IcoonProps) {
+  return svg(<><circle cx="7" cy="7" r="4.2" /><path d="m10.2 10.2 3.3 3.3" /></>, className);
+}
+
+/** Lagen: gestapelde vlakken, voor wat er in beeld staat. */
+export function Lagen({ className = "" }: IcoonProps) {
+  return svg(<><path d="M8 2.5 14 5.5 8 8.5 2 5.5Z" /><path d="m2 8.5 6 3 6-3" /><path d="m2 11 6 3 6-3" /></>, className);
+}
+
+/** Alles in beeld: vier hoeken naar buiten. */
+export function Passend({ className = "" }: IcoonProps) {
+  return svg(<path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10" />, className);
+}
+
+/** Inzoomen. */
+export function Plus({ className = "" }: IcoonProps) {
+  return svg(<path d="M8 3v10M3 8h10" />, className);
+}
+
+/** Uitzoomen. */
+export function Min({ className = "" }: IcoonProps) {
+  return svg(<path d="M3 8h10" />, className);
+}
+
+/** Centreren: vizier. */
+export function Richten({ className = "" }: IcoonProps) {
+  return svg(<><circle cx="8" cy="8" r="4.5" /><circle cx="8" cy="8" r="1" /><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2" /></>, className);
+}
+
+/** Sluiten of wissen (klein kruis, voor in een regel). */
+export function Kruis({ className = "" }: IcoonProps) {
+  return svg(<path d="m4 4 8 8M12 4l-8 8" />, className);
+}

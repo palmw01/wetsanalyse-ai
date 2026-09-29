@@ -348,6 +348,69 @@ kaart in de lijst (`ReviewQueue`), met `prefers-reduced-motion` gerespecteerd.
   het toetsenbord gegarandeerd dezelfde volgorde als je ziet, en staat er nooit op twee kaarten
   tegelijk een rij open.
 
+### De samenhangsgraaf (3D)
+
+Het bronnode-paneel (`NodeAnnotatiePaneel`) heeft naast *Tekst* een tab **3D-graaf**
+(`components/graaf/SamenhangGraaf.tsx`), en onder een antwoord met een bron naar een BWB-bepaling
+staat **Bekijk samenhang in 3D**, dat hetzelfde paneel direct op die tab opent. Beide verschijnen
+alleen als de api de capability `samenhang` meldt (`samenhangBeschikbaar()`, één keer per pagina).
+
+- **Data**: `GET /v1/annotatie/samenhang` (`api/app/samenhang.py`) via de v2-proxy. Het antwoord
+  bestrijkt het artikel waartoe het doel behoort: bronstructuur, actuele markeringen met hun
+  JAS-klasse, en de **letterlijke** verwijzingen uit de graaf, één stap uit en in. Een doel buiten
+  het artikel is een **randknoop** (draadmodel, gedempt); *Artikel openen* haalt dat artikel erbij
+  als eigen cluster. Een niet-geïmporteerd doel heet **extern** en is niet uit te klappen. Er wordt
+  niets afgeleid: afstand en positie betekenen juridisch niets, en dat staat ook in beeld.
+- **Rekenkern in `lib/samenhang.ts`** (samenvoegen, layout, zichtbaarheid en filters, `bronDoel`
+  voor jci/graaf-IRI → bronnode), getest zonder DOM. De layout is een **3D-krachtsimulatie**
+  (`d3-force-3d`, dezelfde engine als de renderer) vanuit radiale startposities, per artikelcluster
+  gerekend en daarna vast (`fx/fy/fz`): reproduceerbaar, en bijladen verschuift de bestaande kaart
+  niet. Hij draait in `lib/`, niet in de canvas – anders herrekent elke uitklapping alles.
+- **Weergave naar de CGM-viewer**: straal per soort, gebogen verbindingen met pijl en breedte per
+  soort, alles buiten de selectie gedimd, vaste labels alleen voor selectie en buren (de rest als
+  tooltip bij hover, `.samenhang-tip` in `globals.css`, tekst altijd ge-escaped), camera vliegt naar
+  de gekozen knoop.
+- **three.js laadt lui**: `SamenhangGraaf` en daarin `GraafCanvas` via `next/dynamic` met
+  `ssr: false`. Zonder WebGL of na contextverlies blijven zoeken, Lagen en de inspector bruikbaar.
+- **Bediening als een kaart-app** (sinds 29 sep 2026; daarvoor een werkbalk met vier knoppen,
+  filters in de kop en tot vijf detailknoppen). In de graaf doe je wat je kunt aanwijzen: **klik**
+  kiest (camera vliegt erheen), **dubbelklik** toont/verbergt de verbindingen of opent een randknoop
+  (`isDubbelklik`, 300 ms – de bibliotheek kent alleen `onNodeClick`), **achtergrond** heft de
+  selectie op, **hover** geeft de naam. De rest staat op één vaste plek per vraag, zwevend in het
+  canvas: *waar ben ik?* – **zoeken** linksboven (`GraafZoek`, combobox over álle knopen, ook
+  verborgen; lege focus = wat in beeld staat) en **Omgeving | Alles** rechtsboven (terug naar
+  Omgeving herstelt je eerdere stand); *wat zie ik?* – **Lagen** linksonder (`GraafLagen`: filters
+  en legenda in één); *beeld* – **Alles in beeld / in- / uitzoomen** rechtsonder (`GraafBeeld`); en
+  een eenmalige **hint** (`GraafHint`, `localStorage` in try/catch).
+- **Wat is dit? – de inspector** (`GraafInspector`): kop met soort en naam, *Centreren* en ✕, en
+  precies **één gevulde hoofdactie** (`hoofdactie()` in `lib/samenhang.ts`): *Toon in tekst* (bron of
+  markering binnen het artikel), *Artikel openen* (geïmporteerde randknoop), niets bij een klasse of
+  extern. Daarnaast rustig *Vraag Lex* (niet bij een klasse) en de
+  schakelaar *Verbindingen tonen (n)* – dezelfde handeling als dubbelklik, weg als er niets te tonen
+  valt. Relaties per soort als uitklapgroepen (`relatieGroepen`). Breed staat hij rechts, smal onder
+  de graaf en ingeklapt tot kop + hoofdactie, zodat het canvas zijn hoogte houdt.
+- **Annotaties staan er meteen.** Met de laag *Annotaties* aan (de default) toont de omgeving naast
+  de bronstructuur ook alle markeringen met hun JAS-klasse; alleen verwijzingen naar buiten vragen om
+  uitklappen. Ze zaten eerst achter uitklappen – de klasse hangt aan de markering, niet aan het lid,
+  dus je moest twee niveaus diep. De laag uitzetten is de weg naar rust, geen verstoppen.
+- **Kiezen klapt tijdelijk uit, dubbelklikken zet vast.** De omgeving is wat je zelf uitklapte
+  (`uitgebreid`). Daarbovenop klapt een gekozen knoop die in de omgeving verborgen was (via zoeken of
+  een tijdelijk getoonde buur) uit zolang hij gekozen is. Dat is **afgeleid, niet opgeslagen**
+  (`tijdelijk` in `SamenhangGraaf`): kies je iets anders, dan verdwijnt het weer. Het werd eerst in
+  `uitgebreid` gezet, en toen bleef elke ooit aangeklikte knoop voorgoed in de omgeving staan. De
+  schakelaar klapt zo'n knoop in voor zolang hij gekozen is (`ingeklapt`); dubbelklikken zet hem vast.
+- **Eén selectie**: de gekozen markering is in tekst en graaf dezelfde (`actiefId` van het paneel).
+  *Toon in tekst* wisselt naar de tekst en scrolt naar het lid (`data-lid` op de blokken van
+  `DocumentPaneel`). *Vraag Lex* gaat voor een markering via de bestaande `onVraag`; voor een bron
+  zet het een gewone vraag met vindplaats klaar – geen eigen agentcontract.
+- **Vergroten** gebruikt de `Dialog`-variant `fullscreen`. De stand staat daarom in de hook
+  `useSamenhangStand` in het paneel, niet in de graaf: een variantwissel remount de inhoud.
+  **Escape** van binnen naar buiten: zoeklijst → Lagen → selectie → verkleinen → sluiten.
+- **Live bij een annotatiewijziging**: `NodeAnnotatiePaneel` roept na elke mutatie (via `muteer`,
+  en `status`) `graafStand.ververs()` aan. Die haalt elk geladen deel opnieuw op (per artikel vervangen, zodat een intussen geopend artikel blijft staan); `bouwGraaf(delen,
+  vorige)` houdt bestaande knopen op hun plek, zodat alleen de nieuwe markering verschijnt.
+- Browserregressie: `scripts/test-samenhang.mjs` (gemockte BFF, zie de kop van het script).
+
 ### Eén gesprek: vragen gaan altijd via het centrale venster
 
 De reviewkaart had een eigen mini-chat (`AdviesDraadje`). Die bestond alleen omdat het artefact
