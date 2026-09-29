@@ -28,10 +28,11 @@ function pasCameraIn(fg: ForceGraphMethods<GraafKnoop, LinkMeta>, nodes: GraafKn
   const boven = richting.clone().cross(rechts).normalize();
   const tanY = Math.tan(cam.fov * Math.PI / 360);
   const tanX = tanY * (width / height);
+  // Marge voor de labels: die hangen onder en naast de knoop, en een afgesneden label leest als fout.
   let afstand = 100;
   for (const node of nodes) {
     const p = new Vector3(node.x, node.y, node.z).sub(midden);
-    afstand = Math.max(afstand, (Math.abs(p.dot(rechts)) + 35) / tanX + p.dot(richting), (Math.abs(p.dot(boven)) + 26) / tanY + p.dot(richting));
+    afstand = Math.max(afstand, (Math.abs(p.dot(rechts)) + 95) / tanX + p.dot(richting), (Math.abs(p.dot(boven)) + 30) / tanY + p.dot(richting));
   }
   const positie = midden.clone().add(richting.multiplyScalar(afstand * 1.12));
   fg.cameraPosition(positie, midden, ms);

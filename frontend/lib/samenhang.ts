@@ -95,57 +95,109 @@ export function voegSamen(delen: Samenhang[]): { knopen: SamenhangKnoop[]; relat
 
 const kort = (tekst: string) => tekst.length > 27 ? tekst.slice(0, 25) + "…" : tekst;
 
-/** Vaste 3D-posities per artikelcluster: structuur links, leden in het midden, markeringen in een
- *  ring rond hun lid, klassen rechts, randknopen erachter. Afstand en positie betekenen juridisch
- *  niets; ze houden de kaart alleen herkenbaar. Elk uitgeklapt artikel krijgt een eigen cluster. */
+/** Vaste 3D-posities per artikelcluster, radiaal: het artikel in het midden, leden in een ring en
+ *  onderdelen verder naar buiten in het verlengde van hun lid (elk blad een eigen hoeksector naar
+ *  gewicht), markeringen net buiten hun fragment, klassen in een kolom rechts. De structuur erboven
+ *  (regeling, hoofdstuk) staat boven-achter het artikel; daarvoor blijft bovenin de ring een opening.
+ *  Verwijzingen van of naar een lid staan buiten dat lid; verwijzingen naar het artikel als geheel
+ *  – vaak de grootste groep – op een eigen ring áchter het artikel, zodat ze de leden niet bedekken.
+ *  Afstand en positie betekenen juridisch niets; ze houden de kaart herkenbaar en leesbaar. */
 export function bouwGraaf(delen: Samenhang[]): GraafData {
   const { knopen, relaties } = voegSamen(delen);
   const per = new Map(knopen.map((k) => [k.id, k]));
   const pos = new Map<string, [number, number, number]>();
   const zet = (id: string, p: [number, number, number]) => { if (!pos.has(id)) pos.set(id, p); };
-  const kinderen = (id: string) => relaties.filter((r) => r.soort === "bevat" && r.bron === id).map((r) => r.doel);
+  const bevat = relaties.filter((r) => r.soort === "bevat");
+  const kinderen = (id: string) => bevat.filter((r) => r.bron === id).map((r) => r.doel);
+  const ouder = (id: string) => bevat.find((r) => r.doel === id)?.bron;
+  const OPENING = Math.PI / 6;                   // halve opening bovenin de ring, voor de structuur
+  const STRAAL = [0, 150, 230, 290, 340];
+  const straal = (diepte: number) => STRAAL[Math.min(diepte, STRAAL.length - 1)];
+  const punt = (r: number, hoek: number, z = 0): [number, number, number] => [r * Math.sin(hoek), r * Math.cos(hoek), z];
   let klasseRij = 0;
+  const klasseKolom: string[] = [];
+
   delen.forEach((deel, cluster) => {
-    const dx = cluster * 380;
-    // Structuur boven het artikel: een diagonaal naar links boven.
-    const keten: string[] = [];
-    for (let id: string | undefined = deel.artikel_iri; id; id = relaties.find((r) => r.soort === "bevat" && r.doel === id)?.bron)
-      keten.unshift(id);
-    keten.forEach((id, i) => zet(id, [dx - 40 - (keten.length - 1 - i) * 55, 20 + (keten.length - 1 - i) * 40, (i % 2 ? 1 : -1) * 25]));
-    // Leden en onderdelen onder het artikel, op volgorde.
-    const binnen: string[] = [];
-    const loop = (id: string) => { for (const k of kinderen(id)) { binnen.push(k); loop(k); } };
-    loop(deel.artikel_iri);
-    binnen.forEach((id, i) => zet(id, [dx + 30 + (per.get(id)?.soort === "onderdeel" ? 30 : 0),
-      ((binnen.length - 1) / 2 - i) * 70, (i % 2 ? 1 : -1) * 30]));
-    // Markeringen in een ring rond het eerste fragment dat ze markeren.
+    const dx = cluster * 760;
+    const verschuif = ([x, y, z]: [number, number, number]): [number, number, number] => [x + dx, y, z];
+    const art = deel.artikel_iri;
+    const eigen = new Set(deel.knopen.map((k) => k.id));
+    // Structuur boven het artikel: linksboven, buiten de ring en de markeringen van de bovenste
+    // leden. Het paneel is breed; breedte kost minder schaal dan hoogte.
+    let stap = 0;
+    for (let id = ouder(art); id; id = ouder(id)) { stap++; zet(id, verschuif([-300 - 40 * stap, 150 + 60 * stap, -40 * stap])); }
+    zet(art, verschuif([0, 0, 0]));
+
+    // Wat aan een fragment hangt (markeringen, verwijzingen) telt mee in het gewicht van zijn sector.
     const markeringen = deel.knopen.filter((k) => k.soort === "markering");
+    const ankerVan = (m: string) => relaties.find((r) => r.bron === m && r.soort === "markeert")?.doel ?? art;
+    const rand = deel.knopen.filter((k) => k.rand);
+    const randAnker = (k: string) => {
+      const r = relaties.find((r) => r.soort === "verwijst_naar" && (r.bron === k || r.doel === k));
+      const ander = r ? (r.bron === k ? r.doel : r.bron) : art;
+      return eigen.has(ander) && !per.get(ander)?.rand ? ander : art;
+    };
+    const gewicht = new Map<string, number>();
+    const tel = (id: string, w: number) => gewicht.set(id, (gewicht.get(id) ?? 0) + w);
+    for (const m of markeringen) tel(ankerVan(m.id), 0.5);
+    for (const k of rand) if (randAnker(k.id) !== art) tel(randAnker(k.id), 0.5);
+
+    // Hoeksectoren: bladeren naar gewicht, een tak om het midden van zijn bladeren.
+    const sector = new Map<string, [number, number]>();
+    const bladgewicht = (id: string): number => {
+      const k = kinderen(id);
+      return (k.length ? k.reduce((s, c) => s + bladgewicht(c), 0) : 1) + (gewicht.get(id) ?? 0);
+    };
+    const verdeel = (id: string, van: number, tot: number, diepte: number) => {
+      sector.set(id, [van, tot]);
+      if (id !== art) zet(id, verschuif(punt(straal(diepte), (van + tot) / 2, diepte % 2 ? 0 : 18)));
+      const k = kinderen(id);
+      const totaal = k.reduce((s, c) => s + bladgewicht(c), 0) || 1;
+      let hoek = van;
+      for (const c of k) {
+        const breedte = (tot - van) * bladgewicht(c) / totaal;
+        verdeel(c, hoek, hoek + breedte, diepte + 1);
+        hoek += breedte;
+      }
+    };
+    verdeel(art, OPENING, 2 * Math.PI - OPENING, 0);
+    const diepte = (id: string) => { let d = 0; for (let x = id; x && x !== art; x = ouder(x) ?? "") d++; return d; };
+
+    // Buiten een fragment: markeringen op de eerste schil, verwijzingen op de tweede.
+    const waaier = (ids: string[], anker: string, extra: number, z: number) => {
+      const [van, tot] = sector.get(anker) ?? [0, 2 * Math.PI];
+      const r = straal(diepte(anker)) + extra;
+      ids.forEach((id, i) => zet(id, verschuif(punt(r + (i % 2) * 22, van + (tot - van) * (i + 1) / (ids.length + 1),
+        z + ((i % 3) - 1) * 18))));
+    };
     const perAnker = new Map<string, string[]>();
-    for (const m of markeringen) {
-      const anker = relaties.find((r) => r.bron === m.id && r.soort === "markeert")?.doel ?? deel.artikel_iri;
-      perAnker.set(anker, [...(perAnker.get(anker) ?? []), m.id]);
-    }
+    for (const m of markeringen) perAnker.set(ankerVan(m.id), [...(perAnker.get(ankerVan(m.id)) ?? []), m.id]);
     for (const [anker, ids] of perAnker) {
-      const [ax, ay] = pos.get(anker) ?? [dx + 30, 0, 0];
-      ids.forEach((id, i) => {
-        const hoek = (i / ids.length) * Math.PI * 2;
-        zet(id, [ax + 75 + Math.cos(hoek) * 40, ay + Math.sin(hoek) * 45, ((i % 3) - 1) * 50]);
-      });
+      if (anker === art) waaier(ids, art, 70, 60);
+      else waaier(ids, anker, 65, 25);
     }
-    for (const k of deel.knopen.filter((k) => k.soort === "klasse"))
-      if (!pos.has(k.id)) { zet(k.id, [dx + 230, 110 - klasseRij * 50, klasseRij % 2 ? -35 : 40]); klasseRij++; }
-    // Randknopen: een boog achter het cluster, in vaste volgorde.
-    const rand = deel.knopen.filter((k) => k.rand && !pos.has(k.id)).sort((a, b) => a.id.localeCompare(b.id));
-    rand.forEach((k, i) => {
-      const hoek = rand.length > 1 ? -Math.PI / 3 + (i / (rand.length - 1)) * (2 * Math.PI / 3) : 0;
-      zet(k.id, [dx - 20 + Math.sin(hoek) * 170, Math.cos(hoek) * 40 - 140, -170]);
-    });
+    const randPerAnker = new Map<string, string[]>();
+    for (const k of [...rand].sort((a, b) => a.id.localeCompare(b.id))) {
+      const a = randAnker(k.id);
+      randPerAnker.set(a, [...(randPerAnker.get(a) ?? []), k.id]);
+    }
+    for (const [anker, ids] of randPerAnker) {
+      if (anker !== art) { waaier(ids, anker, 130, -30); continue; }
+      // Naar of van het artikel als geheel: een ring áchter het artikel, per regeling bij elkaar.
+      ids.forEach((id, i) => zet(id, verschuif(punt(270 + (i % 2) * 30, (2 * Math.PI * (i + 0.5)) / ids.length, -220))));
+    }
+    for (const k of deel.knopen.filter((k) => k.soort === "klasse")) if (!klasseKolom.includes(k.id)) klasseKolom.push(k.id);
   });
+  // Klassen: één kolom rechts van het laatste cluster, om het midden verdeeld.
+  const kolomX = (delen.length - 1) * 760 + 430;
+  klasseKolom.forEach((id, i) => { zet(id, [kolomX, ((klasseKolom.length - 1) / 2 - i) * 55, klasseRij++ % 2 ? -30 : 30]); });
+
   const nodes = knopen.map((k): GraafKnoop => {
     const [x, y, z] = pos.get(k.id) ?? [0, 0, 0];
     const kleur = k.klasse ? klasseKleur(k.klasse) : k.rand ? (k.soort === "extern" ? BRONKLEUR.extern! : RANDKLEUR) : BRONKLEUR[k.soort] ?? "#398ab8";
     const label = k.soort === "lid" && k.lid && k.artikel ? `Artikel ${k.artikel} · lid ${k.lid}` : k.label;
-    return { ...k, label, kort: kort(k.soort === "lid" && k.lid ? `Lid ${k.lid}` : label), kleur, x, y, z, fx: x, fy: y, fz: z };
+    const kortLabel = k.soort === "lid" && k.lid && !k.rand ? `Lid ${k.lid}` : label;
+    return { ...k, label, kort: kort(kortLabel), kleur, x, y, z, fx: x, fy: y, fz: z };
   });
   const links = relaties.filter((r) => per.has(r.bron) && per.has(r.doel)).map((r) => ({
     id: `${r.bron}|${r.soort}|${r.doel}`, source: r.bron, target: r.doel, label: RELATIE_LABEL[r.soort],

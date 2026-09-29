@@ -53,9 +53,9 @@ export function useSamenhangStand(doel: NodeDoel, actief: boolean) {
     setFout("");
     try {
       const eerste = await haalSamenhang(doel);
+      // Een lid opent het hele artikel; alleen het gevraagde lid is uitgeklapt. Het artikel zelf
+      // uitklappen toont alle inkomende verwijzingen tegelijk – dat is een keuze, geen begin.
       setDelen([eerste]);
-      // Een lid opent het hele artikel; het gevraagde lid blijft geselecteerd en uitgeklapt.
-      setUitgebreid((ids) => [...new Set([...ids, eerste.artikel_iri])]);
     } catch (e) { setFout(foutTekst(e, "De samenhang is niet geladen.")); }
   }, [doel]);
   useEffect(() => {

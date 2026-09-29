@@ -88,3 +88,54 @@ describe("bronDoel", () => {
     expect(uitklapbaar({ rand: true, soort: "extern", bwb_id: "BWBR1" })).toBe(false);
   });
 });
+
+describe("bouwGraaf op de schaal van een echt artikel", () => {
+  // Naar de vorm van IW 1990 art. 9 op acceptatie: 12 leden, 4 onderdelen onder lid 9, een
+  // hoofdstuk erboven, veel inkomende verwijzingen op het artikel en enkele uit losse leden.
+  const H = `${LAW}:hoofdstuk:IV`;
+  const leden = Array.from({ length: 12 }, (_, i) => `${ART}:lid:${i + 1}`);
+  const onderdelen = ["a", "b", "c", "d"].map((o) => `${ART}:lid:9:onderdeel:${o}`);
+  const inkomend = Array.from({ length: 25 }, (_, i) => `urn:bwb:BWBR0002320:artikel:30${String.fromCharCode(97 + i)}`);
+  const uitgaand = [3, 4, 4, 8, 9, 10].map((l, i) => [`${ART}:lid:${l}`, `${LAW}:artikel:${60 + i}`] as const);
+  const groot: Samenhang = {
+    schema_versie: 1, doel: { bron_iri: leden[0] }, snapshot_id: "s", artikel_iri: ART, verwijzingen_beschikbaar: true, afgekapt: false,
+    knopen: [knoop(LAW, "regeling"), knoop(H, "deel"), knoop(ART, "artikel"),
+      ...leden.map((id, i) => knoop(id, "lid", { lid: String(i + 1), artikel: "9" })),
+      ...onderdelen.map((id) => knoop(id, "onderdeel")),
+      knoop("element:m1", "markering", { klasse: "Rechtsobject" }), knoop("element:m2", "markering", { klasse: "Tijdsaanduiding" }),
+      knoop("klasse:Rechtsobject", "klasse", { klasse: "Rechtsobject" }), knoop("klasse:Tijdsaanduiding", "klasse", { klasse: "Tijdsaanduiding" }),
+      ...inkomend.map((id) => knoop(id, "artikel", { rand: true, bwb_id: "BWBR0002320" })),
+      ...uitgaand.map(([, id]) => knoop(id, "artikel", { rand: true }))],
+    relaties: [
+      { bron: LAW, doel: H, soort: "bevat", groep: "structuur", anker_tekst: "" },
+      { bron: H, doel: ART, soort: "bevat", groep: "structuur", anker_tekst: "" },
+      ...leden.map((id) => ({ bron: ART, doel: id, soort: "bevat" as const, groep: "structuur" as const, anker_tekst: "" })),
+      ...onderdelen.map((id) => ({ bron: leden[8], doel: id, soort: "bevat" as const, groep: "structuur" as const, anker_tekst: "" })),
+      ...["m1", "m2"].map((m) => ({ bron: `element:${m}`, doel: leden[0], soort: "markeert" as const, groep: "annotaties" as const, anker_tekst: "" })),
+      { bron: "element:m1", doel: "klasse:Rechtsobject", soort: "heeft_klasse", groep: "annotaties", anker_tekst: "" },
+      { bron: "element:m2", doel: "klasse:Tijdsaanduiding", soort: "heeft_klasse", groep: "annotaties", anker_tekst: "" },
+      ...inkomend.map((id) => ({ bron: id, doel: ART, soort: "verwijst_naar" as const, groep: "verwijzingen" as const, anker_tekst: "" })),
+      ...uitgaand.map(([van, naar]) => ({ bron: van, doel: naar, soort: "verwijst_naar" as const, groep: "verwijzingen" as const, anker_tekst: "" })),
+    ],
+  };
+  const g = bouwGraaf([groot]);
+  const afstand = (a: { x: number; y: number; z: number }, b: typeof a) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+
+  it("houdt afstand tussen alle knopen", () => {
+    let min = Infinity;
+    for (const [i, a] of g.nodes.entries()) for (const b of g.nodes.slice(i + 1)) min = Math.min(min, afstand(a, b));
+    expect(min).toBeGreaterThan(20);
+  });
+  it("is geen hoge kolom: de kaart past in een breed paneel", () => {
+    const xs = g.nodes.map((n) => n.x), ys = g.nodes.map((n) => n.y);
+    const breed = Math.max(...xs) - Math.min(...xs), hoog = Math.max(...ys) - Math.min(...ys);
+    expect(breed / hoog).toBeGreaterThan(0.8);
+    expect(hoog).toBeLessThan(900);
+  });
+  it("zet verwijzingen naar het artikel achter het artikel en die van een lid buiten dat lid", () => {
+    const p = (id: string) => g.nodes.find((n) => n.id === id)!;
+    expect(inkomend.every((id) => p(id).z < p(ART).z - 100)).toBe(true);
+    const [lid, doel] = uitgaand[0];
+    expect(Math.hypot(p(doel).x, p(doel).y)).toBeGreaterThan(Math.hypot(p(lid).x, p(lid).y));
+  });
+});
