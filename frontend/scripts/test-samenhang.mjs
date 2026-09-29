@@ -148,14 +148,18 @@ async function detailsOpen(page) {
   // Namen staan als tooltip op de knopen (alleen selectie en buren hebben een vast label).
   const doek = await page.locator('[data-testid="graaf-canvas"] canvas').boundingBox();
   let tooltip = "";
-  for (let i = 0; i < 40 && !tooltip; i++) {
-    await page.mouse.move(doek.x + doek.width * (0.2 + (i % 8) * 0.08), doek.y + doek.height * (0.25 + Math.floor(i / 8) * 0.12));
-    await page.waitForTimeout(60);
+  // Een fijn raster over het hele doek: waar de knopen landen hangt af van wat er in beeld staat.
+  for (let i = 0; i < 16 * 14 && !tooltip; i++) {
+    await page.mouse.move(doek.x + doek.width * (0.1 + (i % 16) * 0.05), doek.y + doek.height * (0.15 + Math.floor(i / 16) * 0.05));
+    await page.waitForTimeout(40);
     // Niet wachten: zonder tooltip op deze plek meteen door naar de volgende.
     const tips = page.locator(".samenhang-tip");
     tooltip = (await tips.count()) ? (await tips.first().textContent()) || "" : "";
   }
   assert.ok(tooltip.length > 0, "een knoop of verbinding toont een tooltip bij hover");
+  // Met de laag Annotaties aan staan markeringen en hun JAS-klasse meteen in beeld.
+  const begin = await inBeeld(page);
+  assert.ok(begin.includes("element:e1") && begin.includes("klasse:Rechtssubject"), "annotaties staan er vanaf het begin");
 
   // 2. Zoeken kiest een knoop; de inspector toont zijn relaties per soort; de hint verdwijnt.
   await zoekEnKies(page, "lid 2", L2);
@@ -182,10 +186,10 @@ async function detailsOpen(page) {
   const aan = await schakelaar.getAttribute("aria-checked");
   await schakelaar.click();
   assert.notEqual(await schakelaar.getAttribute("aria-checked"), aan);
-  // De markering van lid 1 hangt alleen aan lid 1 (de Awb-bepaling staat sinds stap 4 vast in beeld).
-  const naKlik = (await inBeeld(page)).includes("element:e1");
+  // De Awb-bepaling hangt alleen aan lid 1 (in stap 4 stond ze maar tijdelijk in beeld).
+  const naKlik = (await inBeeld(page)).includes(STUB);
   await schakelaar.click();
-  assert.notEqual((await inBeeld(page)).includes("element:e1"), naKlik, "de schakelaar verandert wat er in beeld staat");
+  assert.notEqual((await inBeeld(page)).includes(STUB), naKlik, "de schakelaar verandert wat er in beeld staat");
 
   // 6. Markering: "Toon in tekst" wisselt naar de tekst met dezelfde keuze.
   await zoekEnKies(page, "ontvanger", "element:e1");
@@ -196,13 +200,18 @@ async function detailsOpen(page) {
   await page.getByRole("button", { name: "3D-graaf" }).click();
   assert.match(await detail(page).innerText(), /ontvanger/, "selectie blijft na terugkeren");
 
-  // 6b. Een JAS-klasse kiezen (vanuit de gekozen markering) laat de klasse én haar markeringen in
-  //     beeld: er verdwijnt niets onder je muis.
+  // 6b. Een JAS-klasse kiezen: klasse en markering staan er al (laag Annotaties), en blijven staan.
   await detailsOpen(page);
   await detail(page).getByRole("button", { name: "Rechtssubject", exact: true }).click();
   assert.match(await detail(page).innerText(), /JAS-klasse[\s\S]*Rechtssubject[\s\S]*Markeringen[\s\S]*ontvanger/i);
   const naKlasse = await inBeeld(page);
   assert.ok(naKlasse.includes("klasse:Rechtssubject") && naKlasse.includes("element:e1"), "klasse en markering blijven in beeld");
+
+  // 6c. Een via zoeken getoonde, verborgen knoop staat er alleen zolang hij gekozen is.
+  await zoekEnKies(page, "awb", STUB);
+  assert.ok((await inBeeld(page)).includes(STUB));
+  await zoekEnKies(page, "artikel 9", ART);
+  assert.ok(!(await inBeeld(page)).includes(STUB), "een eerder gekozen verborgen knoop blijft niet hangen");
 
   // 7. Centreren, en ✕ heft de selectie op: de inspector toont de stand van zaken.
   await page.getByRole("button", { name: "Centreren" }).click();

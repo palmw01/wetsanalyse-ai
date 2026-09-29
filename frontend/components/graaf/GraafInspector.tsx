@@ -37,10 +37,9 @@ export function GraafInspector({ knoop, hoofdactie, uitgeklapt, verborgenBuren, 
   </div>;
 
   const hoofdLabel = hoofdactie === "tekst" ? "Toon in tekst"
-    : hoofdactie === "openen" ? (laadt ? "Laden…" : "Artikel openen")
-    : hoofdactie === "markeringen" ? (uitgeklapt ? "Verberg markeringen" : "Toon markeringen") : "";
-  // De schakelaar is dezelfde handeling als dubbelklikken; bij een klasse doet de hoofdactie dat al.
-  const schakelaar = hoofdactie !== "markeringen" && (uitgeklapt || verborgenBuren > 0);
+    : hoofdactie === "openen" ? (laadt ? "Laden…" : "Artikel openen") : "";
+  // De schakelaar is dezelfde handeling als dubbelklikken; weg als er niets te tonen of te verbergen is.
+  const schakelaar = uitgeklapt || verborgenBuren > 0;
 
   return <div className="flex min-h-0 flex-col" data-testid="graaf-detail">
     <div className="flex items-start gap-2 px-4 pb-2 pt-3">

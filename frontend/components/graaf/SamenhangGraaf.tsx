@@ -43,6 +43,8 @@ export function useSamenhangStand(doel: NodeDoel, actief: boolean) {
   const [filters, setFilters] = useState<Record<RelatieGroep, boolean>>({ structuur: true, verwijzingen: true, annotaties: true });
   // De stand van vóór "Alles tonen", zodat "Minder tonen" precies daarheen terugkeert.
   const [voorAlles, setVoorAlles] = useState<{ uitgebreid: string[]; filters: Record<RelatieGroep, boolean> } | null>(null);
+  // De gekozen knoop die je zelf inklapte, terwijl zijn selectie hem anders zou uitklappen.
+  const [ingeklapt, setIngeklapt] = useState("");
   const [lagenOpen, setLagenOpen] = useState(false);
   const [aangeraakt, setAangeraakt] = useState(false);
   const camera = useRef<CameraStand | null>(null);
@@ -102,7 +104,7 @@ export function useSamenhangStand(doel: NodeDoel, actief: boolean) {
 
   return { delen: geladen?.delen, alles: geladen?.graaf, zetDelen, ververs, fout, setFout, laadtUit, setLaadtUit,
     selectie, setSelectie, uitgebreid, setUitgebreid, filters, setFilters, voorAlles, setVoorAlles, zetWeergave, toon,
-    lagenOpen, setLagenOpen, aangeraakt, setAangeraakt, camera, laad };
+    ingeklapt, setIngeklapt, lagenOpen, setLagenOpen, aangeraakt, setAangeraakt, camera, laad };
 }
 export type SamenhangStand = ReturnType<typeof useSamenhangStand>;
 
@@ -119,18 +121,26 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, onKie
   onVraag?: (knoop: GraafKnoop) => void;
 }) {
   const { delen, zetDelen, fout, setFout, laadtUit, setLaadtUit, selectie, setSelectie, uitgebreid, setUitgebreid,
-    filters, setFilters, voorAlles, zetWeergave, toon, lagenOpen, setLagenOpen, aangeraakt, setAangeraakt,
+    filters, setFilters, voorAlles, zetWeergave, toon, ingeklapt, setIngeklapt, lagenOpen, setLagenOpen, aangeraakt, setAangeraakt,
     camera, laad } = stand;
   const bediening = useRef<GraafCameraBediening | null>(null);
 
   const alles = useMemo(() => stand.alles ?? { nodes: [], links: [] }, [stand.alles]);
   const actieveKnoop = actiefElementId ? `element:${actiefElementId}` : undefined;
   const gekozenId = actieveKnoop && alles.nodes.some((n) => n.id === actieveKnoop) ? actieveKnoop : selectie;
-  // Een in de tekst gekozen markering is meteen zichtbaar in de graaf, met haar klasse.
-  const data = useMemo(() => zichtbareGraaf(alles, actieveKnoop ? [...uitgebreid, actieveKnoop] : uitgebreid, filters),
-    [alles, uitgebreid, filters, actieveKnoop]);
+  // De omgeving is wat je zelf uitklapte. Daarbovenop klapt de gekozen knoop uit zolang hij gekozen
+  // is, als hij in de omgeving verborgen was (via zoeken of een tijdelijk getoonde buur). Kies je
+  // iets anders, dan verdwijnt dat weer – anders bleef elke ooit gekozen knoop voorgoed in beeld.
+  const omgeving = useMemo(() => zichtbareGraaf(alles, uitgebreid, filters), [alles, uitgebreid, filters]);
   // De inspector kijkt naar de héle graaf: ook een verborgen buur staat erin en is te kiezen.
   const geselecteerd = alles.nodes.find((n) => n.id === gekozenId);
+  const tijdelijk = useMemo(() => {
+    const k = alles.nodes.find((n) => n.id === gekozenId);
+    return k && k.id !== ingeklapt && !uitgebreid.includes(k.id)
+      && !omgeving.nodes.some((n) => n.id === k.id) ? k.id : "";
+  }, [alles, gekozenId, ingeklapt, uitgebreid, omgeving]);
+  const data = useMemo(() => tijdelijk ? zichtbareGraaf(alles, [...uitgebreid, tijdelijk], filters) : omgeving,
+    [alles, uitgebreid, filters, tijdelijk, omgeving]);
   const groepen = useMemo(() => gekozenId ? relatieGroepen(alles, gekozenId) : [], [alles, gekozenId]);
   const verborgenBuren = (id: string) => new Set(alles.links.filter((e) => filters[e.groep] && (e.source === id || e.target === id))
     .map((e) => e.source === id ? e.target : e.source).filter((b) => !data.nodes.some((n) => n.id === b))).size;
@@ -140,16 +150,12 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, onKie
   /** Kiezen: zichtbaar maken als hij verborgen was, selecteren en de camera laten vliegen. Een lege
    *  id – klik op de achtergrond – heft de selectie en daarmee het dimmen op. */
   function kies(id: string) {
-    // Een in de tekst gekozen markering is alleen dankzij die keuze in beeld (met haar klasse).
-    // Kies je iets anders, dan blijft ze staan – anders verdwijnt de klasse onder je muis.
-    if (actieveKnoop && actieveKnoop !== id) toon(actieveKnoop);
     setSelectie(id);
+    setIngeklapt("");
     onKiesElement(alles.nodes.find((n) => n.id === id)?.element_id || undefined);
     const knoop = id ? alles.nodes.find((n) => n.id === id) : undefined;
     if (!knoop) return;
     setAangeraakt(true);
-    // Een JAS-klasse betekent niets zonder haar markeringen: kiezen toont ze meteen, met de lijnen.
-    if (knoop.soort === "klasse" || !data.nodes.some((n) => n.id === id)) toon(id);
     requestAnimationFrame(() => bediening.current?.focus(knoop));
   }
 
@@ -165,8 +171,11 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, onKie
     } catch (e) { setFout(foutTekst(e, "Deze bepaling kon niet worden bijgeladen.")); }
     finally { setLaadtUit(""); }
   }
-  /** Verbindingen van een knoop tonen of weer verbergen. */
+  /** Verbindingen van een knoop tonen of weer verbergen. Een alleen door de selectie uitgeklapte
+   *  knoop klap je in voor zolang hij gekozen is. */
   function wisselVerbindingen(id: string) {
+    if (id === tijdelijk) { setIngeklapt(id); return; }
+    if (id === ingeklapt) { setIngeklapt(""); return; }
     setUitgebreid((ids) => ids.includes(id) ? ids.filter((i) => i !== id) : [...ids, id]);
   }
   /** Dubbelklik in de graaf: een randknoop openen, anders verbindingen tonen of verbergen. */
@@ -175,13 +184,14 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, onKie
     if (!knoop) return;
     setAangeraakt(true);
     if (bepaalHoofdactie(knoop, geopend) === "openen") void openArtikel(knoop);
+    // Wat de selectie tijdelijk uitklapte, zet dubbelklikken vast in de omgeving.
+    else if (id === tijdelijk) toon(id);
     else wisselVerbindingen(id);
   }
   function doeHoofdactie(knoop: GraafKnoop) {
     const actie = bepaalHoofdactie(knoop, geopend);
     if (actie === "tekst") onOpenTekst(knoop);
     else if (actie === "openen") void openArtikel(knoop);
-    else if (actie === "markeringen") wisselVerbindingen(knoop.id);
   }
 
   if (!delen) return <div className="space-y-3 p-5">
@@ -227,7 +237,7 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, onKie
       <div className={`shrink-0 border-t border-line bg-paper ${groot ? "max-h-[40dvh] overflow-y-auto md:max-h-none md:w-80 md:border-l md:border-t-0" : "flex max-h-[45%] flex-col"}`}>
         <GraafInspector knoop={geselecteerd} smal={!groot}
           hoofdactie={geselecteerd ? bepaalHoofdactie(geselecteerd, geopend) : null}
-          uitgeklapt={!!geselecteerd && uitgebreid.includes(geselecteerd.id)}
+          uitgeklapt={!!geselecteerd && (uitgebreid.includes(geselecteerd.id) || tijdelijk === geselecteerd.id)}
           verborgenBuren={geselecteerd ? verborgenBuren(geselecteerd.id) : 0}
           laadt={!!geselecteerd && laadtUit === geselecteerd.id}
           groepen={groepen} samenvatting={samenvatting(alles)}

@@ -274,9 +274,10 @@ export function bouwGraaf(delen: Samenhang[], vast?: GraafData): GraafData {
 }
 
 /** Filters veranderen alleen zichtbaarheid. Altijd zichtbaar: de bronstructuur van de geopende
- *  artikelen. Uitgeklapte knopen tonen daarnaast hun directe buren. */
+ *  artikelen en – met de laag Annotaties aan – hun markeringen met JAS-klasse; wie het rustiger wil
+ *  zet die laag uit. Verwijzingen naar buiten verschijnen pas als je een knoop uitklapt. */
 export function zichtbareGraaf(data: GraafData, uitgebreid: string[], filters: Record<RelatieGroep, boolean>): GraafData {
-  const zichtbaar = new Set(data.nodes.filter((n) => !n.rand && !["markering", "klasse"].includes(n.soort)).map((n) => n.id));
+  const zichtbaar = new Set(data.nodes.filter((n) => !n.rand).map((n) => n.id));
   for (const id of uitgebreid) {
     zichtbaar.add(id);
     for (const edge of data.links) {
@@ -336,10 +337,11 @@ export function relatieGroepen(graaf: GraafData, id: string): { naam: RelatieGro
   return volgorde.filter((n) => groepen.has(n)).map((naam) => ({ naam, regels: groepen.get(naam)! }));
 }
 
-export type Hoofdactie = "tekst" | "openen" | "markeringen" | null;
+export type Hoofdactie = "tekst" | "openen" | null;
 /** De ene handeling die bij deze knoop het meest voor de hand ligt. */
 export function hoofdactie(knoop: Pick<GraafKnoop, "soort" | "rand" | "bwb_id" | "id">, geopend: string[]): Hoofdactie {
-  if (knoop.soort === "klasse") return "markeringen";
+  // Een klasse staat al met haar markeringen in beeld (laag Annotaties); daar valt niets te openen.
+  if (knoop.soort === "klasse") return null;
   if (knoop.rand) return uitklapbaar(knoop) && !geopend.includes(knoop.id) ? "openen" : null;
   if (knoop.soort === "extern") return null;
   return "tekst";

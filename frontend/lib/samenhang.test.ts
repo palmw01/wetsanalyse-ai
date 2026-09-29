@@ -71,11 +71,11 @@ describe("voegSamen", () => {
 
 describe("zichtbareGraaf", () => {
   const g = bouwGraaf([samenhang()]);
-  it("toont eerst alleen bronstructuur; uitklappen toont buren", () => {
-    expect(zichtbareGraaf(g, [], ALLES).nodes.map((n) => n.id).sort()).toEqual([ART, L1, L2, LAW].sort());
-    const open = zichtbareGraaf(g, [L1], ALLES).nodes.map((n) => n.id);
-    expect(open).toContain("element:e1");
-    expect(open).toContain(A10);
+  it("toont bronstructuur en annotaties meteen; uitklappen toont verwijzingen", () => {
+    const begin = zichtbareGraaf(g, [], ALLES).nodes.map((n) => n.id);
+    expect(begin).toEqual(expect.arrayContaining([ART, L1, L2, LAW, "element:e1", "klasse:Rechtssubject"]));
+    expect(begin).not.toContain(A10);
+    expect(zichtbareGraaf(g, [L1], ALLES).nodes.map((n) => n.id)).toContain(A10);
   });
   it("filters verbergen annotaties en randknopen", () => {
     const zonder = zichtbareGraaf(g, [L1, "element:e1"], { ...ALLES, annotaties: false, verwijzingen: false });
@@ -202,7 +202,7 @@ describe("bediening", () => {
     const k = (id: string) => g.nodes.find((n) => n.id === id)!;
     expect(hoofdactie(k(L1), [ART])).toBe("tekst");
     expect(hoofdactie(k("element:e1"), [ART])).toBe("tekst");
-    expect(hoofdactie(k("klasse:Rechtssubject"), [ART])).toBe("markeringen");
+    expect(hoofdactie(k("klasse:Rechtssubject"), [ART])).toBe(null);
     expect(hoofdactie(k(A10), [ART])).toBe("openen");
     expect(hoofdactie(k(A10), [ART, A10])).toBe(null);
   });
