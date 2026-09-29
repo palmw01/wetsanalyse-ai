@@ -8,6 +8,7 @@ import {
   parseElement,
   parseHergebruik,
   parseKandidaten,
+  parseKeuze,
   parseRun,
   parseRunStart,
 } from "./agentEvents";
@@ -523,7 +524,11 @@ export type AgentHandlers = {
     /** De herkomst van deze beurt (model/agentversie); komt vóór de elementen. */
     onRun?: (run: AgentRun) => void;
   /** De vraag noemde een onderwerp, geen bepaling: dit zijn de gevonden bepalingen om uit te kiezen. */
-  onKandidaten?: (k: AgentKandidaat[]) => void;
+  onKandidaten?: (k: AgentKandidaat[], keuze?: import("./types").AgentKeuze) => void;
+  /** Een event van een reeks (`reeks`, `onderdeel`, of een event dat bij één onderdeel hoort).
+   *  Ruw doorgegeven: `lib/reeks.ts` valideert en verwerkt het. Een fout bij één onderdeel
+   *  beëindigt de stroom dus niet – de rest van de reeks loopt door. */
+  onReeksEvent?: (event: Record<string, unknown>) => void;
   /** Lex hergebruikte (een deel van) de gedeelde laag in plaats van opnieuw te annoteren. */
   onHergebruik?: (h: AgentHergebruik) => void;
   /** Het volgnummer van het laatst verwerkte event. Daarmee haakt een client na een onderbreking
@@ -571,6 +576,9 @@ export async function startRun(
     /** "opnieuw" = de jurist vraagt expliciet om een nieuwe ronde op een al geannoteerd artikel.
      *  Die vult de gedeelde laag aan; wat beoordeeld is blijft staan. */
     hergebruik?: "auto" | "opnieuw";
+    /** Meerdere onderdelen van één bepaling, gekozen op de keuzekaart: één run, elk onderdeel
+     *  een eigen laag (graph-qa `agent/reeks.py`). Sluit `doel` uit. */
+    doelen?: AgentDoelInvoer[];
   },
 ): Promise<RunStart> {
   const res = await fetch("/api/annotatie/run", {
@@ -585,6 +593,7 @@ export async function startRun(
       // supervisor en de ophaal-agent over en annoteert precies deze.
       ...(extra?.doel ? { doel: extra.doel } : {}),
       ...(extra?.hergebruik ? { hergebruik: extra.hergebruik } : {}),
+      ...(extra?.doelen ? { doelen: extra.doelen } : {}),
     }),
   });
   if (res.status === 409) {
@@ -752,6 +761,15 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
         // een stroom die met een `error`-event begint het herstel eerst als geslaagd afmeldt.
         handlers.onLeeft?.();
         if (typeof ev.seq === "number") handlers.onSeq?.(ev.seq);
+        const onderdeel = (ev as { onderdeel?: unknown }).onderdeel;
+        if (ev.type === "reeks" || ev.type === "onderdeel" || (typeof onderdeel === "string" && onderdeel)) {
+          // Zonder reeks-handler (een oudere aanroeper) valt het event door naar de gewone
+          // afhandeling; een fout bij één onderdeel gooit dan zoals altijd.
+          if (handlers.onReeksEvent) {
+            handlers.onReeksEvent(ev as Record<string, unknown>);
+            continue;
+          }
+        }
         if (ev.type === "gat") handlers.onGat?.(ev.weggevallen ?? 0);
         else if (ev.type === "status") handlers.onStatus?.(ev.message ?? "");
         else if (ev.type === "reason") handlers.onReason?.(ev.content ?? "");
@@ -782,7 +800,7 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
         }
         else if (ev.type === "kandidaten") {
           const kandidaten = geldig(parseKandidaten, ev.kandidaten ?? [], "kandidaten");
-          if (kandidaten) handlers.onKandidaten?.(kandidaten);
+          if (kandidaten) handlers.onKandidaten?.(kandidaten, parseKeuze((ev as { keuze?: unknown }).keuze));
         }
         else if (ev.type === "hergebruik" && ev.hergebruik) {
           const hergebruik = geldig(parseHergebruik, ev.hergebruik, "hergebruik");

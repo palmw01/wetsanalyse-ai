@@ -5,6 +5,9 @@ import { NodeAnnotatiePaneel } from "@/components/annotaties/NodeAnnotatiePaneel
 import { GraafIcoon } from "@/components/graaf/GraafIcoon";
 import { bronDoel, samenhangBeschikbaar } from "@/lib/samenhang";
 import { ToolSpoor } from "@/components/werkplek/ToolSpoor";
+import { KeuzeKaart } from "@/components/werkplek/KeuzeKaart";
+import { ReeksBlok } from "@/components/werkplek/ReeksBlok";
+import { doelenVanKandidaten, reeksPrompt, reeksUitBerichten, verwerkReeksEvent, type Reeks } from "@/lib/reeks";
 import { mergeToolExecution, parseToolExecution, type NodeDoel, type ToolExecution, type NodeElement, type NodeWeergave } from "@/lib/annotatieNode";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
@@ -37,6 +40,7 @@ import type {
   AgentDoelInvoer,
   AgentHergebruik,
   AgentKandidaat,
+  AgentKeuze,
   AnnotatieDocument,
   BeslissingInvoer,
   BeslissingType,
@@ -245,9 +249,17 @@ export function WerkplekClient({
     haalGesprek(hydratieId)
       .then((g) => {
         if (afgebroken) return;
+        // De berichten van één reeks (zelfde `reeks.run_id`) worden weer één reeksblok.
+        const reeksen = new Map<string, typeof g.berichten>();
+        for (const b of g.berichten) if (b.reeks) reeksen.set(b.reeks.run_id, [...(reeksen.get(b.reeks.run_id) ?? []), b]);
         setItems(
-          g.berichten.map((b) =>
-            b.rol === "user"
+          g.berichten.flatMap((b): Item[] => {
+            if (b.reeks) {
+              const groep = reeksen.get(b.reeks.run_id) ?? [];
+              const reeks = groep[0] === b ? reeksUitBerichten(groep) : null;
+              return reeks ? [{ id: uid(), type: "reeks", reeks }] : [];
+            }
+            return [b.rol === "user"
               ? { id: uid(), type: "user" as const, tekst: b.tekst }
               : b.annotatie_slug || b.annotatie_doel
                 ? { id: uid(), type: "annotatie" as const, slug: b.annotatie_slug || b.annotatie_doel!.bron_iri,
@@ -255,15 +267,17 @@ export function WerkplekClient({
                     tool_executions: (b.tool_executions ?? []).map(parseToolExecution).filter((e): e is ToolExecution => !!e), denk: b.denk,
                     // Na herladen moet nog te zien zijn dat er niets opnieuw is bekeken.
                     hergebruik: b.hergebruik ? parseHergebruik(b.hergebruik) : undefined }
-                : { id: uid(), type: "antwoord" as const, tekst: b.tekst, denk: b.denk, bronnen: b.bronnen, tool_executions: (b.tool_executions ?? []).map(parseToolExecution).filter((e): e is ToolExecution => !!e) },
-          ),
+                : { id: uid(), type: "antwoord" as const, tekst: b.tekst, denk: b.denk, bronnen: b.bronnen, tool_executions: (b.tool_executions ?? []).map(parseToolExecution).filter((e): e is ToolExecution => !!e) }];
+          }),
         );
         // Documenten van annotatie-berichten alvast laden voor de chip-labels.
         for (const b of g.berichten) if (b.annotatie_slug && !b.annotatie_doel) void laadDoc(b.annotatie_slug);
         // Liep hier nog een beurt terwijl je ergens anders keek? Pak hem weer op. De run-ids uit de
         // geschiedenis gaan mee: daarmee is "afgerond terwijl je weg was" te onderscheiden van
         // "weg door een herstart".
-        void hervatBeurt(hydratieId, g.berichten.map((b) => b.run_id).filter(Boolean));
+        // Een reeks bewaart per onderdeel een bericht met run_id `<run>.<n>`; het run-id van de
+        // reeks zelf staat in `reeks.run_id`. Zonder dat telde een afgeronde reeks als verdwenen.
+        void hervatBeurt(hydratieId, g.berichten.flatMap((b) => [b.run_id, b.reeks?.run_id ?? ""]).filter(Boolean));
       })
       .catch(() => {});
     return () => {
@@ -428,7 +442,7 @@ export function WerkplekClient({
   /** @param doel de bepaling, als die al vaststaat (zie `startRun`).
    *  @param hergebruik "opnieuw" = de jurist vraagt expliciet om een nieuwe ronde op een al
    *    geannoteerd artikel; zonder doel betekent dat niets (de agent weet dan nog niet welk). */
-  async function verstuur(vast?: string, doel?: AgentDoelInvoer, hergebruik?: "opnieuw") {
+  async function verstuur(vast?: string, doel?: AgentDoelInvoer, hergebruik?: "opnieuw", doelen?: AgentDoelInvoer[]) {
     // In de rondleiding is dit venster een voorbeeld: er gaat niets naar de agent. De invoerbalk is
     // ook uitgeschakeld, dit is het vangnet voor Enter en de voorbeeldknoppen.
     if (demo) return;
@@ -514,7 +528,10 @@ export function WerkplekClient({
         ? { context: { bestaande_elementen: reedsEigen } }
         : undefined;
     // Een adviesvraag draagt nooit een doel: die route annoteert niet.
-    const extra = doel && !context && !nodeContext ? { ...basis, doel, ...(hergebruik ? { hergebruik } : {}) } : basis;
+    const extra = doelen?.length && !context && !nodeContext
+      // Meerdere onderdelen van één artikel: één run, elk onderdeel een eigen laag.
+      ? { ...basis, doelen }
+      : doel && !context && !nodeContext ? { ...basis, doel, ...(hergebruik ? { hergebruik } : {}) } : basis;
 
     let gestart;
     try {
@@ -584,6 +601,9 @@ export function WerkplekClient({
     // Ontdubbeld verzamelen: komt hetzelfde element twee keer binnen, dan wint de laatste versie.
     let els: VoorstelElement[] = [];
     let kandidaten: AgentKandidaat[] = [];
+    let keuze: AgentKeuze | undefined;
+    // Een reeks (meerdere onderdelen in één run): de stroom wordt per onderdeel ingedeeld.
+    let reeks: Reeks | null = null;
     let hergebruik: AgentHergebruik | undefined;
     let tekst = "";
     let denk = "";
@@ -635,7 +655,14 @@ export function WerkplekClient({
           },
           onDoel: (d) => (doelRef.d = d),
           onElement: (e) => (els = mergeVoorstellen(els, e)),
-          onKandidaten: (k) => (kandidaten = k),
+          onKandidaten: (k, kz) => { kandidaten = k; keuze = kz; },
+          onReeksEvent: (ev) => {
+            const volgende = verwerkReeksEvent(reeks, ev);
+            if (!volgende || volgende === reeks) return;
+            reeks = volgende;
+            const r = volgende;
+            setItems((xs) => xs.map((x) => (x.id === antId ? { id: antId, type: "reeks", reeks: r, tekst } : x)));
+          },
           onHergebruik: (h) => (hergebruik = h),
           // De eventlog van de run is gecapt: er is narratie weggevallen. Benoem dat, in plaats van
           // een tekst te tonen die compleet lijkt maar het niet is.
@@ -664,9 +691,14 @@ export function WerkplekClient({
       // Kandidaten EERST: dit is een keuzelijst in de thread, geen uitkomst die is vastgelegd.
       // Stond deze tak onder de `opgeslagen`-check, dan sneed die hem af zodra graph-qa zelf ging
       // wegschrijven – en verdween de keuzelijst stilzwijgend uit beeld.
+      // Een reeks legt zichzelf per onderdeel vast (graph-qa); het blok staat al in beeld.
+      if (reeks) {
+        onGewijzigd();
+        return;
+      }
       if (kandidaten.length) {
         setItems((xs) =>
-          xs.map((x) => (x.id === antId ? { id: antId, type: "kandidaten", tekst, kandidaten } : x)),
+          xs.map((x) => (x.id === antId ? { id: antId, type: "kandidaten", tekst, kandidaten, ...(keuze ? { keuze } : {}) } : x)),
         );
         // Alleen de tekst overleeft een herlaadbeurt: de kandidaten zitten niet in het
         // berichtcontract van de api. Beter een leesbare opsomming dan "ik vond 5 bepalingen".
@@ -839,7 +871,13 @@ export function WerkplekClient({
     if (lopend === "onbekend") return;
     if (lopend && lopend.status === "loopt") {
       const antId = uid();
-      setItems((xs) => [...xs, { id: antId, type: "antwoord", tekst: "" }]);
+      // Een lopende reeks heeft de onderdelen die al klaar waren al als berichten bewaard; het
+      // aanhaken speelt de hele stroom opnieuw af. Het gehydrateerde blok gaat dus weg, anders
+      // staat de reeks er twee keer.
+      setItems((xs) => [
+        ...xs.filter((x) => !(x.type === "reeks" && x.reeks.runId === lopend.run_id)),
+        { id: antId, type: "antwoord", tekst: "" },
+      ]);
       await volgBeurt({ runId: lopend.run_id, gid, antId, vanaf: 0 });
       return;
     }
@@ -1218,10 +1256,41 @@ export function WerkplekClient({
                 <div className="min-w-0 flex-1 text-sm text-ink">
                   <p className="mb-1 text-xs font-medium text-muted">Lex</p>
                   {item.tekst && <Markdown tekst={item.tekst} />}
-                  <KandidatenKeuze
-                    kandidaten={item.kandidaten}
-                    uitgeschakeld={bezig || geblokkeerd}
-                    onKies={(k) => void verstuur(kandidaatPrompt(k), doelVanKandidaat(k))}
+                  {item.keuze ? (
+                    <KeuzeKaart
+                      kandidaten={item.kandidaten}
+                      keuze={item.keuze}
+                      uitgeschakeld={bezig || geblokkeerd || !!demo}
+                      onKies={(ks) => ks.length === 1
+                        ? void verstuur(kandidaatPrompt(ks[0]), doelVanKandidaat(ks[0]))
+                        : void verstuur(reeksPrompt(item.keuze?.ouder ?? "", ks), undefined, undefined, doelenVanKandidaten(ks))}
+                    />
+                  ) : (
+                    <KandidatenKeuze
+                      kandidaten={item.kandidaten}
+                      uitgeschakeld={bezig || geblokkeerd}
+                      onKies={(k) => void verstuur(kandidaatPrompt(k), doelVanKandidaat(k))}
+                    />
+                  )}
+                </div>
+              </div>
+            ) : item.type === "reeks" ? (
+              <div key={item.id} className="group flex animate-rise gap-3">
+                <LexAvatar />
+                <div className="min-w-0 flex-1 text-sm text-ink">
+                  <p className="mb-1 text-xs font-medium text-muted">Lex</p>
+                  {item.tekst && <Markdown tekst={item.tekst} />}
+                  <ReeksBlok
+                    reeks={item.reeks}
+                    loopt={!!runId && runId === item.reeks.runId}
+                    onStop={() => void stop()}
+                    onOpen={(o) => o.annotatie_doel && void openArtefact(o.annotatie_doel.bron_iri, o.annotatie_doel)}
+                    spoor={(o, actief) => (
+                      <>
+                        {o.denk && <DenkProces tekst={o.denk} actief={actief} label="Zo is dit tot stand gekomen" />}
+                        <ToolSpoor events={o.tool_executions} />
+                      </>
+                    )}
                   />
                 </div>
               </div>
