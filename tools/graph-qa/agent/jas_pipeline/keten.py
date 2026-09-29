@@ -38,6 +38,9 @@ from .fusie import Fusie, fuseer
 from .kandidaten import Candidate, CandidateStatus
 from .profielen import laad
 from .taal import maak_provider
+from .taal.grenzen import VERSIE as GRENS_VERSIE
+from .taal.structuur import VERSIE as STRUCTUUR_VERSIE
+from .taal.verwijzingen import VERSIE as VERWIJZING_VERSIE
 
 
 # De JAS-versie waarop profielen en regels berusten (ADR-001 §1.1; minbzk/wetsanalyse 5ae93cc).
@@ -175,6 +178,12 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
     fasen.klaar("Detectie", f"{len(fusie.kandidaten)} kandidaten uit {detectoren} detectoren")
     meting: dict[str, Any] = {"llm_calls": 0, "kandidaten": len(fusie.kandidaten),
                               "gedegradeerd": gedegradeerd, "taal_model": taal_model,
+                              "tekstgrenzen_versie": GRENS_VERSIE,
+                              "tekststructuur_versie": STRUCTUUR_VERSIE,
+                              "verwijzingen_versie": VERWIJZING_VERSIE,
+                              "detectorresultaten": [{"detector": r.detector, "versie": r.versie,
+                                  "bron_iri": r.bron_iri, "kandidaten": len(r.kandidaten),
+                                  "overgeslagen": r.overgeslagen, "reden": r.reden} for r in resultaten],
                               "classifier_prompt": promptversie(settings.classifier_spankeuze)}
 
     beslissingen: list[Beslissing] = []

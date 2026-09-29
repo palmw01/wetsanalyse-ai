@@ -19,11 +19,12 @@ Regels onderdrukken standaard wat binnen het masker valt (`niet_binnen`).
 from __future__ import annotations
 
 from dataclasses import dataclass
+from collections.abc import Iterable
 from typing import Protocol
 
 from bronmodel import Span, tekst_hash
 
-from ..kandidaten import Candidate, DetectorResult
+from ..kandidaten import Candidate, DetectieBijdrage, DetectorResult
 from ..taal import LinguisticAnalysis
 
 
@@ -54,11 +55,38 @@ class Detector(Protocol):
     def detecteer(self, bron: BronTekst) -> DetectorResult: ...
 
 
+def resultaat(detector: Detector, bron: BronTekst, kandidaten: Iterable[Candidate] = (), *,
+              bijdragen: Iterable[DetectieBijdrage] | None = None,
+              overgeslagen: bool = False, reden: str = "") -> DetectorResult:
+    """Eén constructie voor treffers, nul treffers en overslaan, inclusief ruwe herkomst."""
+    ks = tuple(kandidaten)
+    if overgeslagen and (ks or not reden):
+        raise ValueError(f"{detector.naam}: overslaan vereist een reden en nul kandidaten")
+    return DetectorResult(
+        detector=detector.naam, versie=detector.versie, bron_iri=bron.bron_iri,
+        kandidaten=ks, overgeslagen=overgeslagen, reden=reden,
+        bijdragen=tuple(bijdragen) if bijdragen is not None else
+        tuple(DetectieBijdrage.van(k, detector.naam, detector.versie) for k in ks))
+
+
 def detecteer_alles(bron: BronTekst, detectoren: list[Detector] | None = None) -> list[DetectorResult]:
     """Draai alle detectoren. Geen fusie: dezelfde span kan uit meerdere resultaten komen (PR 8)."""
     if detectoren is None:
         detectoren = standaard_detectoren()
-    return [d.detecteer(bron) for d in detectoren]
+    uit = []
+    for d in detectoren:
+        r = d.detecteer(bron)
+        if (r.detector, r.versie, r.bron_iri) != (d.naam, d.versie, bron.bron_iri):
+            raise ValueError(f"detectorcontract: {d.naam}@{d.versie} leverde "
+                             f"{r.detector}@{r.versie} voor {r.bron_iri}")
+        if any((b.detector, b.versie) != (d.naam, d.versie) for b in r.bijdragen):
+            raise ValueError(f"detectorcontract: onjuiste bijdrage-identiteit bij {d.naam}")
+        if r.overgeslagen and (r.kandidaten or not r.reden or r.bijdragen):
+            raise ValueError(f"detectorcontract: ongeldige overslag bij {d.naam}")
+        if any(e.detector != d.naam for k in r.kandidaten for e in k.evidence):
+            raise ValueError(f"detectorcontract: onjuiste bewijsidentiteit bij {d.naam}")
+        uit.append(r)
+    return uit
 
 
 def kandidaten_van(resultaten: list[DetectorResult]) -> list[Candidate]:

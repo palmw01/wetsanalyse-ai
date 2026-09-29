@@ -1,0 +1,98 @@
+{
+  "broncommit": "32faeaec9a470561b7f118c121725736237c1f4c",
+  "bronnen": 18,
+  "kernspans_klassen_bewijs_en_routes_gelijk": true,
+  "classifierinvoer_gelijk": true,
+  "volledige_parses_gelijk": true,
+  "gewijzigde_opties": [
+    {
+      "casus": "RVV01",
+      "tekst": "voetgangers mogen oversteken;",
+      "voor": [
+        {
+          "start": 36,
+          "eind": 78,
+          "soort": "zin"
+        }
+      ],
+      "na": [
+        {
+          "start": 0,
+          "eind": 78,
+          "soort": "zin"
+        }
+      ]
+    },
+    {
+      "casus": "RVV02",
+      "tekst": "voetgangers mogen oversteken;",
+      "voor": [
+        {
+          "start": 36,
+          "eind": 124,
+          "soort": "zin"
+        }
+      ],
+      "na": [
+        {
+          "start": 0,
+          "eind": 124,
+          "soort": "zin"
+        }
+      ]
+    },
+    {
+      "casus": "RVV03",
+      "tekst": "voetgangers mogen niet meer beginnen over te steken;",
+      "voor": [
+        {
+          "start": 36,
+          "eind": 166,
+          "soort": "zin"
+        }
+      ],
+      "na": [
+        {
+          "start": 0,
+          "eind": 166,
+          "soort": "zin"
+        }
+      ]
+    },
+    {
+      "casus": "RVV03",
+      "tekst": "reeds overstekende voetgangers moeten zo snel mogelijk doorlopen.",
+      "voor": [
+        {
+          "start": 36,
+          "eind": 166,
+          "soort": "zin"
+        }
+      ],
+      "na": [
+        {
+          "start": 0,
+          "eind": 166,
+          "soort": "zin"
+        }
+      ]
+    }
+  ],
+  "bevroren_meetbestanden_ongewijzigd": [
+    "docs/architectuur/metingen/hybrid-v1-freeze/manifest.json",
+    "docs/architectuur/metingen/hybrid-v1-freeze/na.json",
+    "docs/architectuur/metingen/hybrid-v1-freeze/verificatie.json",
+    "docs/architectuur/metingen/hybrid-v1-freeze/voor.json"
+  ],
+  "verificatie": {
+    "graph_qa": {
+      "geslaagd": 387,
+      "commando": ".venv/bin/python -m pytest tests/test_detectoren.py tests/test_syntactische_detectoren.py tests/test_taalanalyse.py tests/test_fusie.py tests/test_detector_freeze_regressies.py tests/test_detector_audit.py tests/test_hybride_keten.py tests/test_tekststructuur.py tests/test_tekststructuur_keten.py tests/test_detectiebijdragen.py tests/test_beslisregister.py tests/test_kandidaatmodel.py tests/test_dekking.py tests/test_validatie.py tests/test_review_resolver.py tests/test_reviewload.py tests/test_bronnode_keten.py tests/test_hergebruik.py tests/test_provenance.py tests/test_provenance_element.py -q"
+    },
+    "api": {
+      "geslaagd": 30,
+      "commando": ".venv/bin/python -m pytest tests/test_annotatie_v2.py -q",
+      "database": "SQLite in-memory"
+    }
+  }
+}

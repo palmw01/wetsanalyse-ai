@@ -30,7 +30,8 @@ import yaml
 
 from ...jas_klassen import GELDIGE_JAS_KLASSEN
 from ..kandidaten import BronSpan, Candidate, DetectieBijdrage, DetectorResult, Evidence, SpanOption
-from . import BronTekst
+from ..taal.verwijzingen import PATRONEN, RANGTELWOORD, VERSIE as VERWIJZING_VERSIE
+from . import BronTekst, resultaat
 
 MAP = Path(__file__).parent / "regels"
 _MACRO = re.compile(r"\{([A-Z_]+)\}")
@@ -42,7 +43,7 @@ def woordenlijsten() -> dict[str, str]:
     lijsten = yaml.safe_load((MAP / "_woordenlijsten.yaml").read_text(encoding="utf-8"))
     return {naam: "|".join(sorted((re.escape(w) if not w.startswith("re:") else w[3:] for w in woorden),
                                   key=len, reverse=True))
-            for naam, woorden in lijsten.items()}
+            for naam, woorden in lijsten.items()} | {"RANGTELWOORD": RANGTELWOORD}
 
 
 def _vul_in(patroon: str) -> str:
@@ -123,7 +124,7 @@ class Masker:
 @cache
 def maskerregels() -> tuple[Masker, ...]:
     d = yaml.safe_load((MAP / "_maskers.yaml").read_text(encoding="utf-8"))
-    return tuple(Masker(m["id"], m["masker"], m["bron"], re.compile(_vul_in(m["patroon"]), re.IGNORECASE),
+    return tuple(Masker(m["id"], m["masker"], m["bron"], PATRONEN[m["herkenner"]],
                         m.get("tests", {})) for m in d)
 
 
@@ -148,6 +149,8 @@ class RegelDetector:
         self.naam = naam
         self.regels = regels
         self.versie = ".".join(str(r.versie) for r in regels)
+        if any("verwijzing" in r.niet_binnen for r in regels):
+            self.versie += f"+verwijzing.{VERWIJZING_VERSIE}"
         self.REGELS = tuple(r.id for r in regels)
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
@@ -173,8 +176,7 @@ class RegelDetector:
                         "evidence": (*oud.evidence, bewijs),
                         "span_options": tuple(dict.fromkeys((*oud.span_options, *opties)))})
                 kandidaten[k.id] = k
-        return DetectorResult(detector=self.naam, versie=self.versie, bron_iri=bron.bron_iri,
-                              kandidaten=tuple(kandidaten.values()), bijdragen=tuple(bijdragen))
+        return resultaat(self, bron, kandidaten.values(), bijdragen=bijdragen)
 
 
 @cache

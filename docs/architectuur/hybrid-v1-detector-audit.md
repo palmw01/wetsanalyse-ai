@@ -1,5 +1,26 @@
 # Detectoraudit vóór de baseline van hybrid_v1
 
+**Aanvulling 29 september 2026:** de oorspronkelijke audit en freeze hieronder blijven het
+historische vergelijkingspunt. De [ketenkaart en tekststructuurverbetering](hybrid-v1-annotatieketen.md)
+beschrijven het vervolg: gedeelde beschermde tekstgrenzen, opmaak-onafhankelijke onderdelen
+en een gecontroleerd detectorresultaatcontract. De nieuwe
+[voor](metingen/hybrid-v1-tekststructuur-2026-09-29/voor.json)- en
+[nameting](metingen/hybrid-v1-tekststructuur-2026-09-29/na.json) staan afzonderlijk van de freeze.
+De eerdere uitspraak onderaan dat geen minimale P1-fix meer bekend was, geldt voor het
+toen onderzochte bereik; de drie onderstaande technische acceptatiegevallen zijn aanvullend.
+
+| ID | Aanvullende bevinding | Mechanisme en status | Regressiebewijs |
+|---|---|---|---|
+| F05 | Norm afgebroken binnen `artikel 3:4`, `artikel 9.1`, `€ 1.000` of `art. 4` | `taal/grenzen.py` en `taal/verwijzingen.py`: bescherming vóór zins-/segmentgrenzen; norm v2 en terugvalprovider aangesloten. GEREPAREERD | `test_tekststructuur.py`: beide woordvolgordes, werkelijke zinseinden, Unicode, afkortingen, nummering, brongetrouwheid en determinisme |
+| F06 | Definitie/betekenisonderdelen alleen gevonden bij regelstart | `taal/structuur.py`: eigen aanhef of aparte oudercontext, labels en nodegrenzen, centrale offsetterugvertaling; beide detectoren v2. GEREPAREERD | Eén regel, meerdere regels, kindnodes, gewone dubbele punten en meerledige omschrijvingen; emittertests met nepmodellen |
+| F07 | Overgeslagen detector rapporteert hardcoded versie 1 | `detectoren.resultaat`: dezelfde constructie voor alle uitkomsten; `detecteer_alles` controleert identiteit; bijdragen en runmeting blijven herleidbaar. GEREPAREERD | Nul treffers, geen/gedegradeerde parse, identiteitsdrift, fusie/beslisregister en ketenuitvoer |
+
+De nieuwe runmeting legt ook versies van de gedeelde tekstvoorzieningen vast. Ontwikkelset:
+262 kandidaten en 73/81 kernankers met klasse blijven gelijk; vier alternatieve zinspans
+veranderen, zonder verandering in classifierinvoer of routing. D01–D12 blijven buiten deze
+technische wijziging. Er zijn geen nieuwe juridische herkenningsregels, prompts of
+beslisregels toegevoegd en er is niet uitgerold.
+
 ## Afbakening en bewijs
 
 Start: actuele remote master `9de992226e18514f40d96dd29ed98498e747ffe6` (V6), schone

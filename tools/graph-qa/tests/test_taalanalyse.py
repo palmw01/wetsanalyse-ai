@@ -88,7 +88,7 @@ def test_null_tokens_zijn_letterlijk_en_in_codepoints():
     assert all(tekst[t.start:t.eind] == t.tekst for t in tokens)
     assert [t.tekst for t in tokens][:4] == ["De", "ontvanger", "😀", "handelt"]
     assert [tekst[z.start:z.eind] for z in zinnen] == [
-        "De ontvanger 😀 handelt.", "b. binnen zes weken;", "zie art. 9 van de wet.", "Klaar."]
+        "De ontvanger 😀 handelt.", "b. binnen zes weken; zie art. 9 van de wet.", "Klaar."]
 
 
 def test_ontbrekend_model_degradeert_zichtbaar_en_gooit_niet():
