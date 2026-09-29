@@ -145,11 +145,27 @@ try {
   berichten = [
     { rol: "user", tekst: "Annoteer Invorderingswet 1990 – Artikel 9: Lid 1 en Lid 3", denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "", run_id: "" },
     { rol: "assistant", tekst: "", denk: "· Bron · art. 9 lid 1", bronnen: [], annotatie_slug: "", annotatie_titel: "IW – art. 9 lid 1", run_id: "r2.1",
-      annotatie_doel: { bron_iri: lid(1), label: `${OUDER}, Lid 1`, snapshot_id: "s" }, reeks: { run_id: "r2", index: 0, totaal: 2, ouder: OUDER } },
+      annotatie_doel: { bron_iri: lid(1), label: `${OUDER}, Lid 1`, snapshot_id: "s" }, reeks: { run_id: "r2", index: 0, totaal: 3, ouder: OUDER } },
+    { rol: "assistant", tekst: "", denk: "· Bron · art. 9 lid 3", bronnen: [], annotatie_slug: "", annotatie_titel: "IW – art. 9 lid 3", run_id: "r2.3",
+      annotatie_doel: { bron_iri: lid(3), label: `${OUDER}, Lid 3`, snapshot_id: "s" }, reeks: { run_id: "r2", index: 2, totaal: 3, ouder: OUDER } },
   ];
   await page.reload();
-  await page.getByText("1 van 2 geannoteerd · 1 niet aan bod gekomen", { exact: true }).waitFor();
+  await page.getByText("2 van 3 geannoteerd · 1 niet aan bod gekomen", { exact: true }).waitFor();
   assert.equal(await page.getByText(`Annotatie ${OUDER}`, { exact: true }).count(), 1);
+
+  // Het paneel bladert door de reeks: lid 1 → › lid 3 → [ terug naar lid 1. Per lid één weergave.
+  weergaven.length = 0;
+  await page.getByRole("button", { name: "Open ›", exact: true }).first().click();
+  const balk = page.getByRole("navigation", { name: "Reeks" });
+  await balk.getByText("1 van 2", { exact: false }).waitFor();
+  assert.equal(await balk.getByRole("button", { name: "Vorige", exact: true }).isDisabled(), true);
+  await balk.getByRole("button", { name: /^Volgende: / }).click();
+  await balk.getByText("2 van 2", { exact: false }).waitFor();
+  await wacht(() => weergaven.includes(lid(3)), "de weergave van lid 3");
+  await page.locator("body").click({ position: { x: 5, y: 500 } });
+  await page.keyboard.press("[");
+  await balk.getByText("1 van 2", { exact: false }).waitFor();
+  assert.deepEqual(weergaven.filter((w) => w !== lid(1) && w !== lid(3)), []);
   assert.deepEqual(errors, []);
-  console.log("Browser OK: keuzekaart met stand en toetsenbord, reeks als één run met twee doelen, blok per lid met fout per lid, Open › per lid, herladen zonder dubbel blok.");
+  console.log("Browser OK: keuzekaart met stand en toetsenbord, reeks als één run met twee doelen, blok per lid met fout per lid, Open › per lid, herladen zonder dubbel blok, bladeren door de reeks in het paneel.");
 } finally { await browser.close(); }
