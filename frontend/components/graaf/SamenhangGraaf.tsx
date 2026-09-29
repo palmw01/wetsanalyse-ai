@@ -12,7 +12,7 @@ import type { NodeDoel } from "@/lib/annotatieNode";
 import type { Lifecycle } from "@/lib/types";
 import {
   SOORT_LABEL, bouwGraaf, haalSamenhang, uitklapbaar, zichtbareGraaf,
-  type GraafKnoop, type RelatieGroep, type Samenhang,
+  type GraafData, type GraafKnoop, type RelatieGroep, type Samenhang,
 } from "@/lib/samenhang";
 import type { CameraStand, GraafCameraBediening } from "./GraafCanvas";
 
@@ -45,32 +45,68 @@ class CanvasGrens extends Component<{ children: ReactNode }, { fout: boolean }> 
  *  dialoogvorm en remount daarmee de inhoud, en zonder dit waren bijgeladen artikelen, uitklappingen,
  *  selectie en camera dan weg. `actief` laadt pas als de tab voor het eerst opengaat. */
 export function useSamenhangStand(doel: NodeDoel, actief: boolean) {
-  const [delen, setDelen] = useState<Samenhang[]>();
+  // Delen en graaf samen: elke nieuwe stand wordt gerekend met de posities van de vorige, zodat een
+  // annotatiewijziging of bijgeladen artikel de bestaande kaart niet verschuift.
+  const [geladen, setGeladen] = useState<{ delen: Samenhang[]; graaf: GraafData }>();
   const [fout, setFout] = useState("");
   const [laadtUit, setLaadtUit] = useState("");
   const [selectie, setSelectie] = useState(doel.bron_iri);
   const [uitgebreid, setUitgebreid] = useState<string[]>([doel.bron_iri]);
   const [filters, setFilters] = useState<Record<RelatieGroep, boolean>>({ structuur: true, verwijzingen: true, annotaties: true });
+  // De stand van vóór "Alles tonen", zodat "Minder tonen" precies daarheen terugkeert.
+  const [voorAlles, setVoorAlles] = useState<{ uitgebreid: string[]; filters: Record<RelatieGroep, boolean> } | null>(null);
   const [lijst, setLijst] = useState(false);
   const [legenda, setLegenda] = useState(false);
   const [zoek, setZoek] = useState("");
   const camera = useRef<CameraStand | null>(null);
+  const zetDelen = useCallback((maak: (oud: Samenhang[]) => Samenhang[]) => setGeladen((oud) => {
+    const delen = maak(oud?.delen ?? []);
+    return { delen, graaf: bouwGraaf(delen, oud?.graaf) };
+  }), []);
   const laad = useCallback(async () => {
     setFout("");
     try {
       const eerste = await haalSamenhang(doel);
       // Een lid opent het hele artikel; alleen het gevraagde lid is uitgeklapt. Het artikel zelf
       // uitklappen toont alle inkomende verwijzingen tegelijk – dat is een keuze, geen begin.
-      setDelen([eerste]);
+      zetDelen(() => [eerste]);
     } catch (e) { setFout(foutTekst(e, "De samenhang is niet geladen.")); }
-  }, [doel]);
+  }, [doel, zetDelen]);
   useEffect(() => {
     // Externe request initialiseren; dezelfde actie dient ook de retryknop.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (actief) void laad();
   }, [laad, actief]);
-  return { delen, setDelen, fout, setFout, laadtUit, setLaadtUit, selectie, setSelectie, uitgebreid, setUitgebreid,
-    filters, setFilters, lijst, setLijst, legenda, setLegenda, zoek, setZoek, camera, laad };
+
+  /** Na een annotatiewijziging: elk geladen deel opnieuw ophalen. Uitklappingen, filters, selectie
+   *  en camera blijven; een weggehaalde geselecteerde markering valt terug op het geopende doel. */
+  const ververs = useCallback(async () => {
+    const delen = geladen?.delen;
+    if (!delen?.length) return;
+    try {
+      const nieuw = await Promise.all(delen.map((d) => haalSamenhang({ bron_iri: d.doel.bron_iri })));
+      zetDelen(() => nieuw);
+      const ids = new Set(nieuw.flatMap((d) => d.knopen.map((k) => k.id)));
+      setSelectie((huidig) => (huidig && !ids.has(huidig) ? doel.bron_iri : huidig));
+    } catch (e) { setFout(foutTekst(e, "De graaf is niet bijgewerkt; herlaad om de laatste stand te zien.")); }
+  }, [geladen, zetDelen, doel.bron_iri]);
+
+  /** Alles tonen en weer terug naar de stand van daarvoor. */
+  const wisselAlles = useCallback((allesIds: string[]) => {
+    if (voorAlles) {
+      setUitgebreid(voorAlles.uitgebreid);
+      setFilters(voorAlles.filters);
+      setVoorAlles(null);
+      return;
+    }
+    setVoorAlles({ uitgebreid, filters });
+    setUitgebreid(allesIds);
+    setFilters({ structuur: true, verwijzingen: true, annotaties: true });
+  }, [voorAlles, uitgebreid, filters]);
+
+  return { delen: geladen?.delen, alles: geladen?.graaf, zetDelen, ververs, fout, setFout, laadtUit, setLaadtUit,
+    selectie, setSelectie, uitgebreid, setUitgebreid, filters, setFilters, voorAlles, setVoorAlles, wisselAlles,
+    lijst, setLijst, legenda, setLegenda, zoek, setZoek, camera, laad };
 }
 export type SamenhangStand = ReturnType<typeof useSamenhangStand>;
 
@@ -84,11 +120,12 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, onKie
   onOpenTekst: (knoop: GraafKnoop) => void;
   onVraag?: (knoop: GraafKnoop) => void;
 }) {
-  const { delen, setDelen, fout, setFout, laadtUit, setLaadtUit, selectie, setSelectie, uitgebreid, setUitgebreid,
-    filters, setFilters, lijst, setLijst, legenda, setLegenda, zoek, setZoek, camera, laad } = stand;
+  const { delen, zetDelen, fout, setFout, laadtUit, setLaadtUit, selectie, setSelectie, uitgebreid, setUitgebreid,
+    filters, setFilters, voorAlles, setVoorAlles, wisselAlles, lijst, setLijst, legenda, setLegenda, zoek, setZoek,
+    camera, laad } = stand;
   const bediening = useRef<GraafCameraBediening | null>(null);
 
-  const alles = useMemo(() => delen ? bouwGraaf(delen) : { nodes: [], links: [] }, [delen]);
+  const alles = useMemo(() => stand.alles ?? { nodes: [], links: [] }, [stand.alles]);
   const actieveKnoop = actiefElementId ? `element:${actiefElementId}` : undefined;
   const gekozenId = actieveKnoop && alles.nodes.some((n) => n.id === actieveKnoop) ? actieveKnoop : selectie;
   // Een in de tekst gekozen markering is meteen zichtbaar in de graaf, met haar klasse.
@@ -110,18 +147,27 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, onKie
     if (knoop) requestAnimationFrame(() => bediening.current?.focus(knoop));
   }
 
-  async function toonVerbindingen() {
-    if (!geselecteerd) return;
+  /** Een randknoop buiten het artikel als eigen artikel bijladen. */
+  async function bijladen() {
+    if (!geselecteerd || !uitklapbaar(geselecteerd)) return;
     setUitgebreid((ids) => [...new Set([...ids, geselecteerd.id])]);
-    if (!uitklapbaar(geselecteerd) || delen?.some((d) => d.artikel_iri === geselecteerd.id)) return;
     setLaadtUit(geselecteerd.id);
     try {
       const nieuw = await haalSamenhang({ bron_iri: geselecteerd.id });
-      setDelen((oud) => oud && !oud.some((d) => d.artikel_iri === nieuw.artikel_iri) ? [...oud, nieuw] : oud);
+      zetDelen((oud) => oud.some((d) => d.artikel_iri === nieuw.artikel_iri) ? oud : [...oud, nieuw]);
       setUitgebreid((ids) => [...new Set([...ids, nieuw.artikel_iri])]);
+      // "Minder tonen" mag een net bijgeladen artikel niet verbergen.
+      setVoorAlles((v) => v && { ...v, uitgebreid: [...new Set([...v.uitgebreid, geselecteerd.id, nieuw.artikel_iri])] });
     } catch (e) { setFout(foutTekst(e, "Deze bepaling kon niet worden bijgeladen.")); }
     finally { setLaadtUit(""); }
   }
+  /** Verbindingen van de gekozen knoop tonen, of weer verbergen als hij uitgeklapt is. */
+  function wisselVerbindingen() {
+    if (!geselecteerd) return;
+    setUitgebreid((ids) => ids.includes(geselecteerd.id) ? ids.filter((i) => i !== geselecteerd.id) : [...ids, geselecteerd.id]);
+  }
+  const uitgeklapt = !!geselecteerd && uitgebreid.includes(geselecteerd.id);
+  const bijlaadbaar = !!geselecteerd && uitklapbaar(geselecteerd) && !delen?.some((d) => d.artikel_iri === geselecteerd.id);
 
   if (!delen) return <div className="space-y-3 p-5">
     {fout ? <Melding type="fout" titel="Niet geladen">{fout}{" "}
@@ -149,7 +195,8 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, onKie
           <button className={KNOP} onClick={() => bediening.current?.pasIn()}>Alles in beeld</button>
           <button className={`${KNOP} ${lijst ? "border-lint/50 bg-lint/5" : ""}`} aria-expanded={lijst} onClick={() => setLijst((v) => !v)}>Knopenlijst</button>
           <button className={`${KNOP} ${legenda ? "border-lint/50 bg-lint/5" : ""}`} aria-expanded={legenda} onClick={() => setLegenda((v) => !v)}>Legenda</button>
-          <button className={KNOP} onClick={() => { setUitgebreid(alles.nodes.map((n) => n.id)); setFilters({ structuur: true, verwijzingen: true, annotaties: true }); }}>Alles tonen</button>
+          <button className={`${KNOP} ${voorAlles ? "border-lint/50 bg-lint/5" : ""}`} aria-pressed={!!voorAlles}
+            onClick={() => wisselAlles(alles.nodes.map((n) => n.id))}>{voorAlles ? "Minder tonen" : "Alles tonen"}</button>
         </div>
         <div className="relative min-h-0 flex-1">
           <CanvasGrens><Canvas data={data} selectie={gekozenId} onSelecteer={kies} camera={camera} bediening={bediening} zichtbaar={zichtbaar} /></CanvasGrens>
@@ -188,12 +235,15 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, onKie
           {geselecteerd.soort === "markering" && <span className={`inline-block rounded border px-2 py-0.5 text-[11px] ${jasStyle(geselecteerd.klasse)}`}>{geselecteerd.klasse}</span>}
           {geselecteerd.tekst && geselecteerd.soort !== "markering" && <p className="border-l-2 border-lint/20 pl-3 text-xs leading-relaxed text-muted">{geselecteerd.tekst}</p>}
           <div className="flex flex-wrap gap-2">
+            {/* Alleen knoppen die voor deze knoop iets doen; niets staat grijs in beeld. */}
+            <button className={KNOP} onClick={() => bediening.current?.focus(geselecteerd)} title="Camera naar deze knoop">Focus</button>
+            {uitgeklapt
+              ? <button className={KNOP} onClick={wisselVerbindingen}>Verberg verbindingen</button>
+              : extraAantal > 0 && <button className={KNOP} onClick={wisselVerbindingen}>Toon verbindingen (+{extraAantal})</button>}
+            {bijlaadbaar && <button className={KNOP} onClick={() => void bijladen()} disabled={!!laadtUit}>
+              {laadtUit === geselecteerd.id ? "Laden…" : "Artikel bijladen"}</button>}
             {!geselecteerd.rand && geselecteerd.soort !== "klasse" && <button className={KNOP} onClick={() => onOpenTekst(geselecteerd)}>Open brontekst</button>}
             {onVraag && geselecteerd.soort !== "klasse" && <button className={KNOP} onClick={() => onVraag(geselecteerd)}>Vraag Lex hierover</button>}
-            <button className={KNOP} onClick={() => void toonVerbindingen()} disabled={!!laadtUit || (!extraAantal && !(uitklapbaar(geselecteerd) && !delen.some((d) => d.artikel_iri === geselecteerd.id)))}
-              title={!extraAantal ? "Alle verbindingen van deze knoop zijn zichtbaar" : undefined}>
-              {laadtUit === geselecteerd.id ? "Laden…" : uitklapbaar(geselecteerd) ? "Artikel bijladen" : `Toon verbindingen${extraAantal > 0 ? ` (+${extraAantal})` : ""}`}
-            </button>
           </div>
           {geselecteerd.soort === "extern" && <p className="text-xs text-muted">Deze bepaling staat niet in de kennisgraaf; alleen de verwijzing ernaar is bekend.</p>}
           {relaties.length > 0 && <div className="border-t border-line pt-2">

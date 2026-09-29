@@ -153,3 +153,26 @@ describe("bouwGraaf op de schaal van een echt artikel", () => {
     expect(gem(inkomend)).toBeGreaterThan(gem(leden));
   });
 });
+
+describe("bouwGraaf na een annotatiewijziging", () => {
+  const extra = (s: Samenhang): Samenhang => ({ ...s,
+    knopen: [...s.knopen, knoop("element:e2", "markering", { klasse: "Tijdsaanduiding", element_id: "e2" }),
+      knoop("klasse:Tijdsaanduiding", "klasse", { klasse: "Tijdsaanduiding" })],
+    relaties: [...s.relaties, { bron: "element:e2", doel: L2, soort: "markeert", groep: "annotaties", anker_tekst: "" },
+      { bron: "element:e2", doel: "klasse:Tijdsaanduiding", soort: "heeft_klasse", groep: "annotaties", anker_tekst: "" }] });
+  const plek = (g: ReturnType<typeof bouwGraaf>, id: string) => { const n = g.nodes.find((x) => x.id === id)!; return [n.x, n.y, n.z]; };
+
+  it("houdt bestaande knopen op hun plek als er een markering bijkomt", () => {
+    const voor = bouwGraaf([samenhang()]);
+    const na = bouwGraaf([extra(samenhang())], voor);
+    for (const n of voor.nodes) expect(plek(na, n.id)).toEqual(plek(voor, n.id));
+    const nieuw = na.nodes.find((n) => n.id === "element:e2")!;
+    expect(voor.nodes.every((n) => Math.hypot(n.x - nieuw.x, n.y - nieuw.y, n.z - nieuw.z) > 5)).toBe(true);
+  });
+  it("laat een weggehaalde markering verdwijnen zonder de rest te verschuiven", () => {
+    const voor = bouwGraaf([extra(samenhang())]);
+    const na = bouwGraaf([samenhang()], voor);
+    expect(na.nodes.some((n) => n.id === "element:e2")).toBe(false);
+    for (const n of na.nodes) expect(plek(na, n.id)).toEqual(plek(voor, n.id));
+  });
+});

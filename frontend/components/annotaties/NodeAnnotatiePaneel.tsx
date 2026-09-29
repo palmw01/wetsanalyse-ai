@@ -73,6 +73,8 @@ export function NodeAnnotatiePaneel({ doel, onSluit, variant = "side", onVraag, 
       return await nodeRequest<Record<string, unknown>>(pad, body, method);
     } finally {
       await laad();
+      // De graaf toont dezelfde markeringen; zonder dit liep hij achter tot een refresh.
+      void graafStand.ververs();
     }
   }
 
@@ -119,6 +121,7 @@ export function NodeAnnotatiePaneel({ doel, onSluit, variant = "side", onVraag, 
       }
     } finally {
       await laad();
+      void graafStand.ververs();
     }
     setMelding(nieuw === "geaccordeerd" ? "Annotatie afgerond." : "Annotatie heropend.");
   }

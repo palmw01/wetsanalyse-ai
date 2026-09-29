@@ -221,18 +221,22 @@ type SimKnoop = { id: string; x: number; y: number; z: number; fx?: number; fy?:
 /** De samenhang als 3D-graaf. Vaste startposities (radiaal per artikelcluster, zie hierboven) plus
  *  reliëf, daarna een krachtsimulatie per cluster met dezelfde engine als de renderer (d3-force-3d).
  *  Al geplaatste knopen van eerdere clusters liggen daarbij vast, zodat bijladen de bestaande kaart
- *  niet verschuift. Zonder willekeur (d3 gebruikt een vaste lcg) is de uitkomst reproduceerbaar.
+ *  niet verschuift, en met `vast` (de vorige stand) behouden bestaande knopen hun plek na een
+ *  annotatiewijziging. Zonder willekeur (d3 gebruikt een vaste lcg) is de uitkomst reproduceerbaar.
  *  Afstand en positie betekenen juridisch niets. */
-export function bouwGraaf(delen: Samenhang[]): GraafData {
+export function bouwGraaf(delen: Samenhang[], vast?: GraafData): GraafData {
   const { knopen, relaties } = voegSamen(delen);
   const per = new Map(knopen.map((k) => [k.id, k]));
   const start = startposities(delen);
-  const geplaatst = new Map<string, [number, number, number]>();
+  // Knopen uit een vorige stand (na een annotatiewijziging) houden hun plek; alleen wat nieuw is,
+  // wordt door de krachten geplaatst. Zo springt de kaart niet bij elke markering.
+  const eerder = new Map((vast?.nodes ?? []).filter((n) => per.has(n.id)).map((n) => [n.id, [n.x, n.y, n.z] as [number, number, number]]));
+  const geplaatst = new Map<string, [number, number, number]>(eerder);
   delen.forEach((deel, cluster) => {
     const ids = new Set(deel.knopen.map((k) => k.id));
     const sim: SimKnoop[] = [...ids].filter((id) => per.has(id)).map((id) => {
-      const vast = geplaatst.get(id);
-      if (vast) return { id, x: vast[0], y: vast[1], z: vast[2], fx: vast[0], fy: vast[1], fz: vast[2] };
+      const plek = geplaatst.get(id);
+      if (plek) return { id, x: plek[0], y: plek[1], z: plek[2], fx: plek[0], fy: plek[1], fz: plek[2] };
       const [x, y, z] = start.get(id) ?? [0, 0, 0];
       // Het artikel van dit cluster is het anker; de rest schikt zich eromheen.
       return id === deel.artikel_iri
@@ -243,6 +247,8 @@ export function bouwGraaf(delen: Samenhang[]): GraafData {
     // eerder cluster niet veranderen.
     const links = deel.relaties.filter((r) => ids.has(r.bron) && ids.has(r.doel))
       .map((r) => ({ source: r.bron, target: r.doel, soort: r.soort }));
+    // Niets nieuw in dit cluster: de vorige stand is de uitkomst, zonder simulatie.
+    if (sim.every((n) => n.fx !== undefined)) return;
     forceSimulation(sim, 3)
       .force("link", forceLink<SimKnoop, (typeof links)[number]>(links).id((n) => n.id)
         .distance((l) => VEER[l.soort][0]).strength((l) => VEER[l.soort][1]))
