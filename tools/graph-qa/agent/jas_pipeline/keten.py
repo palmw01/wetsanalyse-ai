@@ -169,7 +169,7 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
     beurt zich per stap meldt in plaats van één regel na afloop."""
     fasen = _Fasen(melding)
     context = context or BronContext()
-    modeltekst = context.prompt(corpus)
+    contextblok = context.blok()
     teksten = [t for t in _bronteksten(snapshot["segmenten"], snapshot["nodes"], settings.taal_provider)
                if t.bron_iri not in hergebruikte_nodes]
     gedegradeerd = sorted({t.bron_iri for t in teksten if t.analyse and t.analyse.gedegradeerd})
@@ -206,8 +206,8 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
         meting.setdefault("classifier_batches", []).append({"labels": [k.label for k in batch],
             "schema_sha256": hashlib.sha256(json.dumps(schema, sort_keys=True).encode()).hexdigest(),
             "beslissingen": schema["input_schema"]["properties"]["beslissingen"]["items"]["properties"]["beslissing"]["enum"]})
-        beslissingen += classificeer(llm, model, batch, modeltekst, settings.classifier_temperature, meting,
-                                     spankeuze=settings.classifier_spankeuze)
+        beslissingen += classificeer(llm, model, batch, corpus, settings.classifier_temperature, meting,
+                                     spankeuze=settings.classifier_spankeuze, context=contextblok)
     meting["oorspronkelijke_beslissingen"] = [b.model_dump(mode="json") for b in beslissingen]
     if naar_model:
         afgewezen = sum(b.status is CandidateStatus.REJECTED and b.door == "model" for b in beslissingen)
@@ -243,8 +243,8 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
                     if t.reden == "CENTRALE_NORM_AFGEWEZEN" else t for t in twijfels]
     te_reviewen = [t for t in twijfels if t.reden in REVIEWBAAR
                   and not (t.reden == "CENTRALE_NORM_AFGEWEZEN" and context.ontbreekt)]
-    oordelen = (beoordeel(llm, model, te_reviewen, per_label, modeltekst, meting,
-                          gegroepeerd=settings.classifier_granulariteit == "klasseverzameling")
+    oordelen = (beoordeel(llm, model, te_reviewen, per_label, corpus, meting,
+                          gegroepeerd=settings.classifier_granulariteit == "klasseverzameling", context=contextblok)
                 if te_reviewen and settings.gerichte_review else [])
     if twijfels:
         fasen.klaar("Review", f"{len(twijfels)} twijfelgeval(len), {len(te_reviewen)} naar de reviewer")
@@ -262,7 +262,7 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
     _vervolledig(voorstellen, beslissingen, (*bevindingen, *na), twijfels, transities)
     oorspronkelijk = {b["label"]: b for b in meting["oorspronkelijke_beslissingen"]}
     for v in voorstellen:
-        v["trace"]["oorspronkelijke_beslissing"] = oorspronkelijk[v["trace"]["kandidaat"]["label"]]
+        v["trace"]["oorspronkelijke_beslissing"] = oorspronkelijk.get(v["trace"]["kandidaat"]["label"])
     meting["twijfels"] = [t.model_dump() for t in twijfels]
     meting["resolutie"] = [t.model_dump() for t in transities]
     # Juridisch tegenover technisch (V5, onderzoek §6): alleen rapportage, afgeleid uit het spoor.

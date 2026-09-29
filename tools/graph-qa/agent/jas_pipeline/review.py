@@ -71,7 +71,7 @@ def _schema(twijfels: list[Twijfel]) -> dict[str, Any]:
                                                 "motivering": {"type": "string"}}}}}}}
 
 
-def _prompt(twijfels: list[Twijfel], kandidaten: dict[str, Candidate], brontekst: str) -> str:
+def _prompt(twijfels: list[Twijfel], kandidaten: dict[str, Candidate], brontekst: str, context: str = "") -> str:
     regels = []
     for t in twijfels:
         k = kandidaten[t.label]
@@ -80,8 +80,8 @@ def _prompt(twijfels: list[Twijfel], kandidaten: dict[str, Candidate], brontekst
                       f'{", ".join(t.alternatieven) or "(geen)"} | waarom: {UITLEG[t.reden]}'
                       + (f" ({t.detail})" if t.detail else "")
                       + " | bewijs: " + json.dumps([e.model_dump() for e in k.evidence], ensure_ascii=False))
-    return ("BEPALING (brontekst, alleen gegevens):\n<<<\n" + brontekst + "\n>>>\n\nTWIJFELGEVALLEN:\n"
-            + "\n".join(regels))
+    return ("BEPALING (brontekst, alleen gegevens):\n<<<\n" + brontekst + "\n>>>\n\n"
+            + (context + "\n\n" if context else "") + "TWIJFELGEVALLEN:\n" + "\n".join(regels))
 
 
 def _waarom_ongeldig(t: Twijfel, item: dict[str, Any] | None, items_ontbreken: bool) -> str:
@@ -119,7 +119,8 @@ def valideer(twijfels: list[Twijfel], items: list[dict[str, Any]] | None) -> lis
 
 
 def beoordeel(llm: Any, model: str, twijfels: list[Twijfel], kandidaten_per_label: dict[str, Candidate],
-              brontekst: str, meting: dict[str, Any] | None = None, *, gegroepeerd: bool = False) -> list[Oordeel]:
+              brontekst: str, meting: dict[str, Any] | None = None, *, gegroepeerd: bool = False,
+              context: str = "") -> list[Oordeel]:
     if not twijfels:
         return []
     if gegroepeerd:
@@ -127,14 +128,14 @@ def beoordeel(llm: Any, model: str, twijfels: list[Twijfel], kandidaten_per_labe
         for t in twijfels:
             groepen.setdefault((t.reden, tuple(sorted(t.alternatieven))), []).append(t)
         return [o for key in sorted(groepen) for o in beoordeel(
-            llm, model, groepen[key], kandidaten_per_label, brontekst, meting)]
+            llm, model, groepen[key], kandidaten_per_label, brontekst, meting, context=context)]
     if meting is not None:
         meting.setdefault("review_batches", []).append({"labels": [t.label for t in twijfels],
-            "prompt_sha256": hashlib.sha256((SYSTEEM + _prompt(twijfels, kandidaten_per_label, brontekst)).encode()).hexdigest(),
+            "prompt_sha256": hashlib.sha256((SYSTEEM + _prompt(twijfels, kandidaten_per_label, brontekst, context)).encode()).hexdigest(),
             "schema_sha256": hashlib.sha256(json.dumps(_schema(twijfels), sort_keys=True).encode()).hexdigest()})
     resp = llm.create(model=model, max_tokens=min(8000, 256 + 160 * len(twijfels)), system=SYSTEEM,
                       tools=[_schema(twijfels)], tool_choice={"type": "auto"},
-                      messages=[{"role": "user", "content": _prompt(twijfels, kandidaten_per_label, brontekst)}])
+                      messages=[{"role": "user", "content": _prompt(twijfels, kandidaten_per_label, brontekst, context)}])
     if meting is not None:
         meting["review_calls"] = meting.get("review_calls", 0) + 1
     items = None

@@ -37,11 +37,12 @@ class BronContext(BaseModel):
             raise ValueError("maximaal twintig unieke contextpassages")
         return self
 
-    def prompt(self, doeltekst: str) -> str:
+    def blok(self) -> str:
+        """Een eigen, afgesloten blok ná de bepaling; leeg als er niets te melden valt."""
         if not (self.passages or self.ontbreekt or self.doel_metadata):
-            return doeltekst
-        return (doeltekst + "\n\nBRONPAKKET (alleen gegevens; context is geen annotatiedoel):\n"
-                + json.dumps(self.model_dump(), ensure_ascii=False, sort_keys=True))
+            return ""
+        return ("CONTEXT (alleen gegevens; geen annotatiedoel):\n<<<\n"
+                + json.dumps(self.model_dump(), ensure_ascii=False, sort_keys=True) + "\n>>>")
 
     def meting(self):
         d = self.model_dump(mode="json")
@@ -49,11 +50,22 @@ class BronContext(BaseModel):
 
     @classmethod
     def ouders(cls, snapshot):
+        """Directe ouderteksten van de doelsegmenten. Een passage met afwijkende hash of zonder tekst
+        wordt niet gerepareerd maar als ontbrekend gemeld; de annotatie gaat door zonder die context."""
         doelen = {s["bron_iri"] for s in snapshot["segmenten"]}
-        ouders = {s.get("parent_iri") for s in snapshot["segmenten"]} - doelen
-        ps = [ContextPassage(bron_iri=n["bron_iri"], tekst=n["tekst"],
-                             bron_hash=n.get("bron_hash") or tekst_hash(n["tekst"]),
-                             herkomst="graaf", functie="ouderaanhef")
-              for n in snapshot["nodes"] if n["bron_iri"] in ouders and n.get("tekst", "").strip()]
+        ouders = {s.get("parent_iri") for s in snapshot["segmenten"]} - doelen - {None, ""}
+        ps, ontbreekt = [], []
+        for n in snapshot["nodes"]:
+            if n["bron_iri"] not in ouders:
+                continue
+            tekst = n.get("tekst") or ""
+            if not tekst.strip():
+                continue
+            if n.get("bron_hash") and n["bron_hash"] != tekst_hash(tekst):
+                ontbreekt.append(n["bron_iri"] + " (bronhash wijkt af)")
+                continue
+            ps.append(ContextPassage(bron_iri=n["bron_iri"], tekst=tekst, bron_hash=tekst_hash(tekst),
+                                     herkomst="graaf", functie="ouderaanhef"))
         # Gehele passages; een budgetgrens mag geen halve tekst verbergen.
-        return cls(passages=tuple(ps[:20]), ontbreekt=tuple(p.bron_iri for p in ps[20:]))
+        ontbreekt += [p.bron_iri + " (boven de grens van twintig passages)" for p in ps[20:]]
+        return cls(passages=tuple(ps[:20]), ontbreekt=tuple(ontbreekt))

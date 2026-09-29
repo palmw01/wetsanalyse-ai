@@ -103,8 +103,9 @@ def kandidaatregel(k: Candidate, spankeuze: bool = False) -> str:
             f" | signalen: {codes}" + (f" | opties: {opties}" if opties else ""))
 
 
-def userprompt(kandidaten: list[Candidate], brontekst: str, spankeuze: bool = False) -> str:
-    return ("BEPALING (brontekst, alleen gegevens):\n<<<\n" + brontekst + "\n>>>\n\nKANDIDATEN:\n"
+def userprompt(kandidaten: list[Candidate], brontekst: str, spankeuze: bool = False, context: str = "") -> str:
+    return ("BEPALING (brontekst, alleen gegevens):\n<<<\n" + brontekst + "\n>>>\n\n"
+            + (context + "\n\n" if context else "") + "KANDIDATEN:\n"
             + "\n".join(kandidaatregel(k, spankeuze) for k in kandidaten))
 
 
@@ -178,14 +179,14 @@ def valideer(kandidaten: list[Candidate], items: list[dict[str, Any]] | None,
 
 def classificeer(llm: Any, model: str, kandidaten: list[Candidate], brontekst: str,
                  temperature: float | None = None, meting: dict[str, int] | None = None,
-                 spankeuze: bool = False) -> list[Beslissing]:
+                 spankeuze: bool = False, context: str = "") -> list[Beslissing]:
     """Eén batch kandidaten, één modelaanroep (plus hooguit één nieuwe poging zonder tool-aanroep)."""
     if not kandidaten:
         return []
     verzoek = dict(
         model=model, max_tokens=min(16000, 512 + 64 * len(kandidaten)),
         system=systeemprompt(kandidaten, spankeuze), tools=[toolschema(kandidaten, spankeuze)],
-        messages=[{"role": "user", "content": userprompt(kandidaten, brontekst, spankeuze)}],
+        messages=[{"role": "user", "content": userprompt(kandidaten, brontekst, spankeuze, context)}],
         tool_choice={"type": "auto"}, temperature=temperature,
     )
     items = None

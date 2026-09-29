@@ -24,6 +24,7 @@ from ..taal.afgeleid import _BIJZIN, _KERN
 from ..taal.grenzen import analyseer_grenzen
 from ..taal.verwijzingen import VERSIE as VERWIJZING_VERSIE
 from . import BronTekst, resultaat
+from .ontleding import bereik, in_verwijzing, parse_of_reden, zonder_randfunctie
 from .regels import maskers, woordenlijsten
 
 SUBJ, OBJ, BETR, FEIT, VW, VAR, PAR, OP = (
@@ -38,34 +39,9 @@ def _lijst(naam: str) -> re.Pattern:
     return re.compile(rf"^(?:{woordenlijsten()[naam]})$", re.IGNORECASE)
 
 
-def _parse_of_reden(bron: BronTekst) -> tuple[LinguisticAnalysis | None, str]:
-    if bron.analyse is None:
-        return None, "geen taalanalyse aangeleverd"
-    if bron.analyse.gedegradeerd:
-        return None, f"geen parse: {bron.analyse.fout}"
-    return bron.analyse, ""
-
-
-def _in_verwijzing(bron: BronTekst, s: int, e: int) -> bool:
-    return any(ms <= s and e <= me for ms, me in maskers(bron.tekst).get("verwijzing", []))
-
-
-def _bereik(a: LinguisticAnalysis, tokens) -> tuple[int, int] | None:
-    tokens = [i for i in tokens if a.tokens[i].upos != "PUNCT"]
-    if not tokens or not a.aaneengesloten(tuple(tokens)):
-        return None
-    return a.bereik(tokens)
-
-
-_RANDFUNCTIE = {"case", "cc", "mark", "punct"}
-
-
-def _zonder_randfunctie(a: LinguisticAnalysis, tokens, kop: int) -> list[int]:
-    """Een voorzetsel, voegwoord of leesteken vóór de groep hoort er niet bij ('Voor een partner')."""
-    tokens = sorted(tokens)
-    while tokens and tokens[0] != kop and a.tokens[tokens[0]].deprel in _RANDFUNCTIE:
-        tokens.pop(0)
-    return tokens
+# Gedeelde ontledingshulp staat in `ontleding`; de korte namen blijven voor de detectoren hier.
+_parse_of_reden, _in_verwijzing, _bereik, _zonder_randfunctie = (
+    parse_of_reden, in_verwijzing, bereik, zonder_randfunctie)
 
 
 def _optie(bron: BronTekst, grens: tuple[int, int], soort: str) -> SpanOption:

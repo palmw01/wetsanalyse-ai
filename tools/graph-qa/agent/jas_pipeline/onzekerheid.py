@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict
 
-from .besluit import STERK_BEWIJS, Beslissing
+from .besluit import GEEN_ANNOTATIE_REDEN, STERK_BEWIJS, Beslissing
 from .kandidaten import Candidate, CandidateStatus
 from .validatie import Bevinding
 
@@ -87,7 +87,7 @@ def centrale_afwijzingen(kandidaten, beslissingen):
     uit = []
     for norm in normen:
         b = per_id.get(norm.id)
-        if not b or b.door != "model" or b.status is not CandidateStatus.REJECTED or b.reden != "geen annotatie":
+        if not b or b.door != "model" or b.status is not CandidateStatus.REJECTED or b.reden != GEEN_ANNOTATIE_REDEN:
             continue
         binnen = [k for k in kandidaten.values() if k.span.bron_iri == norm.span.bron_iri
                   and norm.span.start <= k.span.start and k.span.eind <= norm.span.eind]

@@ -16,11 +16,13 @@ labels (C001…). Deterministisch: dezelfde invoer levert byte-voor-byte dezelfd
 """
 from __future__ import annotations
 
+import json
+
 from pydantic import BaseModel, ConfigDict
 
 from .kandidaten import Candidate, DetectieBijdrage, DetectorResult, Evidence, label_kandidaten
 
-VERSIE = "2"
+VERSIE = "3"  # kernbewijs verwijst naar de ouder; geen gekopieerd detectorbewijs
 
 
 def _temporele_kernen(samen: dict[str, Candidate]) -> list[DetectieBijdrage]:
@@ -41,9 +43,12 @@ def _temporele_kernen(samen: dict[str, Candidate]) -> list[DetectieBijdrage]:
             if (kid == lang.id or not (lang.span.start <= kort.span.start < kort.span.eind <= lang.span.eind)
                     or kort.span.bron_hash != lang.span.bron_hash):
                 continue
+            # Alleen de registratie zelf is nieuw bewijs. Het tijdbewijs van de ouder blijft bij de
+            # ouder; hier staat alleen welke codes dat waren, zodat herkomst niet verschuift.
             afgeleid = kort.model_copy(update={"possible_classes": ("Tijdsaanduiding",),
-                "evidence": (*bewijs, Evidence(detector="fusie", code="TEMPORAL_KERNEL",
-                    detail=lang.id)), "span_options": ()})
+                "evidence": (Evidence(detector="fusie", code="TEMPORAL_KERNEL", detail=json.dumps(
+                    {"ouder": lang.id, "codes": sorted({e.code for e in bewijs})}, sort_keys=True)),),
+                "span_options": ()})
             bijdragen.append(DetectieBijdrage.van(afgeleid, "fusie", VERSIE))
             samen[kid] = _samen(kort, afgeleid)
     return bijdragen

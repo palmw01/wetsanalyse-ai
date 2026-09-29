@@ -185,3 +185,21 @@ NORMATIEF:
   - "re:aanspraak\\s+op"
   - "re:de\\s+plicht"
   - "re:de\\s+last"
+# Bijvoeglijke naamwoorden van een verkorte voorwaarde: 'Bij afwijkende boekjaren …' (functies.py).
+ELLIPTISCH:
+  - afwijkende
+  - ontbrekende
+  - ongewijzigde
+# Grootheden die in een passieve toewijzing op een uitkomst worden gesteld (functies.py).
+GROOTHEID:
+  - bedrag
+  - premie
+  - rente
+  - percentage
+  - tarief
+  - termijn
+  - vervaldag
+  - datum
+  - tijdstip
+  - aantal
+  - waarde

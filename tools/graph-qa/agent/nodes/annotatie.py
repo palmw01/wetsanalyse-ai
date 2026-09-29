@@ -106,7 +106,7 @@ def annoteer_node(b: Bouw, state: State) -> dict[str, Any]:
         llm=b.llm, model=b.model, settings=b.settings, lid=lid,
         vindplaats=f"{doel.get('bwbId', '')} {plek}",
         hergebruikte_nodes=frozenset(bron.get("hergebruikte_nodes") or []),
-        context=BronContext.ouders(bron["bron_snapshot"]),
+        context=BronContext.ouders(bron["bron_snapshot"]) if b.settings.broncontext else None,
         melding=lambda fase, samenvatting, ms: _stap(writer, fase, samenvatting, duur_ms=ms),
     )
     if uitkomst.meting.get("gedegradeerd"):

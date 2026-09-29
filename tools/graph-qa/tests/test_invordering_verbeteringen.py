@@ -104,3 +104,90 @@ def test_korte_tijdkern_krijgt_tijd_met_herleidbare_bijdrage(parser):
     assert "Tijdsaanduiding" in kort.possible_classes
     assert any(b.kandidaat_id == kort.id and b.detector == "fusie" for b in f.bijdragen)
     assert any(b.kandidaat_id == kort.id and b.detector == "naamwoordgroep" for b in f.bijdragen)
+
+
+# --- WP1 baseline: precisie, herkomst en contextblok ------------------------------------------
+
+@pytest.mark.parametrize("tekst,code", [
+    ("Het verzoek wordt op schrift gesteld en binnen de termijn ingediend.", "CALCULATION_ASSIGNMENT"),
+    ("De aanvraag wordt ingediend op de datum waarop het besluit is gesteld.", "CALCULATION_ASSIGNMENT"),
+    ("Indien de ontvanger een beschikking als bedoeld in artikel 3 neemt, vindt artikel 5 geen toepassing.",
+     "CALCULATION_APPLICABILITY"),
+    ("Als het college besluit, vinden de artikelen 4 en 5 overeenkomstige toepassing.", "CALCULATION_APPLICABILITY"),
+    ("Artikel 4 vindt toepassing.", "CALCULATION_APPLICABILITY"),
+])
+def test_functiedetector_zonder_bekende_valse_positieven(parser, tekst, code):
+    assert not any(e.code == code for k in detect(tekst, parser).kandidaten for e in k.evidence)
+
+
+def test_toepassingskeuze_noemt_toepasselijke_regel(parser):
+    ks = detect(CASES["IW-9-5"]["tekst"], parser).kandidaten
+    e = next(e for k in ks for e in k.evidence if e.code == "CALCULATION_APPLICABILITY")
+    assert json.loads(e.detail)["toepasselijke_regel"]["tekst"] == "het eerste lid"
+
+
+def test_tijdkern_kopieert_geen_detectorbewijs(parser):
+    f = detect(CASES["IW-9-1"]["tekst"], parser)
+    kort = next(k for k in f.kandidaten if k.span.tekst == "zes weken")
+    lang = next(k for k in f.kandidaten if k.span.tekst == "zes weken na de dagtekening van het aanslagbiljet")
+    kern = [e for e in kort.evidence if e.code == "TEMPORAL_KERNEL"]
+    assert len(kern) == 1 and json.loads(kern[0].detail)["ouder"] == lang.id
+    # Tijdbewijs van een andere detector op de korte grens zou een niet-bestaande treffer suggereren.
+    assert not any(e.code.startswith("TEMPORAL_") and e.code != "TEMPORAL_KERNEL" and e.detector != "fusie"
+                   and not any(b.kandidaat_id == kort.id and b.detector == e.detector for b in f.bijdragen)
+                   for e in kort.evidence)
+
+
+def test_broncontext_eigen_blok_en_robuust():
+    from bronmodel import tekst_hash
+    from agent.jas_pipeline.broncontext import BronContext
+    from agent.jas_pipeline.classificatie import userprompt
+    snap = {"segmenten": [{"bron_iri": "urn:lid", "parent_iri": "urn:art"},
+                          {"bron_iri": "urn:lid2", "parent_iri": "urn:art2"}],
+            "nodes": [{"bron_iri": "urn:art", "tekst": "Aanhef.", "bron_hash": tekst_hash("Aanhef.")},
+                      {"bron_iri": "urn:art2", "tekst": "Anders.", "bron_hash": "fout"}]}
+    c = BronContext.ouders(snap)
+    assert [p.bron_iri for p in c.passages] == ["urn:art"]
+    assert c.ontbreekt == ("urn:art2 (bronhash wijkt af)",)
+    prompt = userprompt([], "Doeltekst.", context=c.blok())
+    bepaling = prompt.split(">>>", 1)[0]
+    assert "Aanhef." not in bepaling and "CONTEXT (alleen gegevens; geen annotatiedoel)" in prompt
+    assert BronContext().blok() == ""
+
+
+def test_review_keep_met_lege_klasse_blijft_geldig():
+    from agent.jas_pipeline.onzekerheid import Twijfel
+    from agent.jas_pipeline.review import _schema, valideer
+    for reden in ("DETECTOR_CONFLICT", "ZELFDE_SPAN"):
+        t = Twijfel(label="K1", reden=reden, huidig="Rechtsobject", alternatieven=("Rechtssubject",))
+        assert "Rechtsobject" not in _schema([t])["input_schema"]["properties"]["oordelen"]["items"]["properties"]["klasse"]["enum"]
+        [o] = valideer([t], [{"geval": "K1", "actie": "KEEP", "klasse": "", "motivering": ""}])
+        assert o.geldig and o.actie == "KEEP"
+
+
+def _tijdkandidaten():
+    from bronmodel import Span, tekst_hash
+    from agent.jas_pipeline.kandidaten import Candidate, Evidence
+    tekst = "zes weken na de dagtekening"
+    h = tekst_hash(tekst)
+    lang = Candidate.maak(Span("urn:x", 0, 27, tekst, h), ["Tijdsaanduiding"], [Evidence(detector="tijd", code="TEMPORAL_DURATION")])
+    kort = Candidate.maak(Span("urn:x", 0, 9, tekst[:9], h), ["Tijdsaanduiding"], [Evidence(
+        detector="fusie", code="TEMPORAL_KERNEL", detail=json.dumps({"ouder": lang.id, "codes": ["TEMPORAL_DURATION"]}))])
+    return lang, kort
+
+
+def _voorstel(k):
+    return {"trace": {"kandidaat": {"id": k.id, "label": k.label}}}
+
+
+def test_ontdubbel_tijd_alleen_geregistreerde_kern():
+    from agent.jas_pipeline.besluit import Beslissing, ontdubbel_tijd
+    from agent.jas_pipeline.kandidaten import CandidateStatus
+    lang, kort = _tijdkandidaten()
+    bs = [Beslissing(kandidaat_id=k.id, label=k.label, status=CandidateStatus.ACCEPTED, klasse="Tijdsaanduiding",
+                     door="model") for k in (lang, kort)]
+    vs, uit, vervangen = ontdubbel_tijd([_voorstel(lang), _voorstel(kort)], bs, {lang.id: lang, kort.id: kort})
+    assert vervangen == {kort.id: lang.id} and len(vs) == 1
+    assert next(b for b in uit if b.kandidaat_id == kort.id).reden == "DUBBELE_TIJD_FUNCTIE:" + lang.id
+    with pytest.raises(ValueError, match="meer dan één voorstel"):
+        ontdubbel_tijd([_voorstel(lang), _voorstel(lang)], bs, {lang.id: lang, kort.id: kort})

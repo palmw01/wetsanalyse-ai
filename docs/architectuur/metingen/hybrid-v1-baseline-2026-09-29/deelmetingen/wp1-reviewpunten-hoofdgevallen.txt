@@ -1,0 +1,14 @@
+== IW-9-1: tellingen 5 -> 5 | routes {'model': 5} -> {'model': 5}
+  ~ [37,46) 'zes weken'
+      bewijs - [('tijd', 'TEMPORAL_DURATION')] + []
+== IW-9-5: tellingen 41 -> 41 | routes {'model': 38, 'regel': 3} -> {'model': 38, 'regel': 3}
+  ~ [241,249) 'het jaar'
+      bewijs - [('tijd', 'TEMPORAL_PERIOD_NOUN')] + []
+  ~ [461,470) 'één maand'
+      bewijs - [('tijd', 'TEMPORAL_DURATION')] + []
+== LI-9.1: tellingen 21 -> 21 | routes {'model': 18, 'regel': 3} -> {'model': 18, 'regel': 3}
+  ~ [372,386) 'de laatste dag'
+      bewijs - [('tijd', 'TEMPORAL_RELATIVE_PERIOD')] + []
+== LI-9.5: tellingen 59 -> 59 | routes {'model': 46, 'regel': 13} -> {'model': 46, 'regel': 13}
+  ~ [624,638) 'de laatste dag'
+      bewijs - [('tijd', 'TEMPORAL_RELATIVE_PERIOD')] + []
