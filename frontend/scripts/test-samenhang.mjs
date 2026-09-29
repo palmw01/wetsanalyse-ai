@@ -182,7 +182,7 @@ async function detailsOpen(page) {
   const aan = await schakelaar.getAttribute("aria-checked");
   await schakelaar.click();
   assert.notEqual(await schakelaar.getAttribute("aria-checked"), aan);
-  // De markering van lid 1 hangt alleen aan lid 1 (de Awb-bepaling staat sinds stap 4 vast in beeld).
+  // De markering van lid 1 hangt alleen aan lid 1.
   const naKlik = (await inBeeld(page)).includes("element:e1");
   await schakelaar.click();
   assert.notEqual((await inBeeld(page)).includes("element:e1"), naKlik, "de schakelaar verandert wat er in beeld staat");
@@ -203,6 +203,16 @@ async function detailsOpen(page) {
   assert.match(await detail(page).innerText(), /JAS-klasse[\s\S]*Rechtssubject[\s\S]*Markeringen[\s\S]*ontvanger/i);
   const naKlasse = await inBeeld(page);
   assert.ok(naKlasse.includes("klasse:Rechtssubject") && naKlasse.includes("element:e1"), "klasse en markering blijven in beeld");
+  // De hoofdactie klapt de markeringen voor deze selectie in, en weer uit.
+  await page.getByRole("button", { name: "Verberg markeringen" }).click();
+  assert.ok(!(await inBeeld(page)).includes("element:e1"), "Verberg markeringen verbergt ze");
+  await page.getByRole("button", { name: "Toon markeringen" }).click();
+  assert.ok((await inBeeld(page)).includes("element:e1"));
+
+  // 6c. Kies je daarna iets anders, dan verdwijnt de klasse weer uit de omgeving (ze was tijdelijk).
+  await zoekEnKies(page, "artikel 9", ART);
+  const naArtikel = await inBeeld(page);
+  assert.ok(!naArtikel.includes("klasse:Rechtssubject"), "een eerder gekozen klasse blijft niet hangen");
 
   // 7. Centreren, en ✕ heft de selectie op: de inspector toont de stand van zaken.
   await page.getByRole("button", { name: "Centreren" }).click();

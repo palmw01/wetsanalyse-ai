@@ -389,9 +389,14 @@ alleen als de api de capability `samenhang` meldt (`samenhangBeschikbaar()`, é�
   schakelaar *Verbindingen tonen (n)* – dezelfde handeling als dubbelklik, weg als er niets te tonen
   valt. Relaties per soort als uitklapgroepen (`relatieGroepen`). Breed staat hij rechts, smal onder
   de graaf en ingeklapt tot kop + hoofdactie, zodat het canvas zijn hoogte houdt.
-- **Een JAS-klasse kiezen toont haar markeringen** (met de lijnen), en een markering die alleen
-  dankzij de keuze in de tekst in beeld stond blijft staan als je iets anders kiest – anders
-  verdween de klasse onder je muis en leek er niets meer geselecteerd.
+- **Kiezen klapt tijdelijk uit, dubbelklikken zet vast.** De omgeving is wat je zelf uitklapte
+  (`uitgebreid`). Daarbovenop klapt de gekozen knoop uit zolang hij gekozen is – een JAS-klasse (die
+  zegt niets zonder haar markeringen) of een knoop die in de omgeving verborgen was (via zoeken, de
+  tekst of een tijdelijk getoonde buur). Dat is **afgeleid, niet opgeslagen** (`tijdelijk` in
+  `SamenhangGraaf`): kies je iets anders, dan verdwijnt het weer. Het werd eerst in `uitgebreid`
+  gezet, en toen bleef elke ooit aangeklikte klasse voorgoed in de omgeving staan en andere niet.
+  De schakelaar/hoofdactie klapt een tijdelijk uitgeklapte knoop in voor zolang hij gekozen is
+  (`ingeklapt`); dubbelklikken zet hem vast in de omgeving.
 - **Eén selectie**: de gekozen markering is in tekst en graaf dezelfde (`actiefId` van het paneel).
   *Toon in tekst* wisselt naar de tekst en scrolt naar het lid (`data-lid` op de blokken van
   `DocumentPaneel`). *Vraag Lex* gaat voor een markering via de bestaande `onVraag`; voor een bron
