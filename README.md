@@ -504,10 +504,9 @@ ze buiten git.
 | Document | Onderwerp |
 |---|---|
 | [`docs/observability.md`](docs/observability.md) | Logschema, tracing door de keten, AVG-redactie |
-| [`docs/wetsanalyse-workbench/PLAN.md`](docs/wetsanalyse-workbench/PLAN.md) | Het plan achter de werkplek |
+| [`docs/PLAN.md`](docs/PLAN.md) | Het enige plan: open sporen (validatie, herkomst, begrippen, kennisbank) en open keuzes |
 | [`docs/architectuur/annotatie-bronnodes.md`](docs/architectuur/annotatie-bronnodes.md) | Contract 2: annotaties op bronnodes – ankers, opslag, projectie, leestools |
 | [`docs/wetsanalyse-workbench/jas-annotatie-ontologie.md`](docs/wetsanalyse-workbench/jas-annotatie-ontologie.md) | De annotatielagen in RDF, zoals ze in de graaf staan |
-| [`docs/kennisbank/PLAN.md`](docs/kennisbank/PLAN.md) | Een tweede corpus naast de wetsgraaf – lees dit vóór je aan retrieval werkt |
 | [`docs/README.md`](docs/README.md) | Wegwijzer door `docs/`: bron van derden, specificatie, plan of runbook |
 | [`.claude/skills/wetsanalyse/`](.claude/skills/wetsanalyse/SKILL.md) | De annoteerinstructie voor activiteit 2 – en de bron van de klassetekst in de code |
 | [`markeren-fragmentgrenzen.md`](.claude/skills/wetsanalyse/references/markeren-fragmentgrenzen.md) | Waar een markering begint en eindigt |

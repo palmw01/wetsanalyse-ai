@@ -2,8 +2,9 @@
 
 Deze map bewaart de implementatiemetingen na het
 [oorspronkelijke onderzoek](../../../wetsanalyse/onderzoek-invordering-2026-09-29/README.md).
-De [implementatie en ketenkaart](../../hybrid-v1-invordering-vervolg.md) beschrijven
-verantwoordelijkheden, acceptatiegevallen, code en beperkingen. Baseline b8117e2 en
+De [ketenspecificatie](../../annotatieketen.md) beschrijft de keten zoals hij nu werkt. De
+implementatienotitie A01–A10 (verantwoordelijkheden, acceptatiegevallen, code en beperkingen)
+staat in de git-geschiedenis als `docs/architectuur/hybrid-v1-invordering-vervolg.md`. Baseline b8117e2 en
 verbeterde meetversie a0699a5 worden afzonderlijk bewaard; de oude metingen zijn niet herschreven.
 
 Begin bij de [inhoudelijke bevindingen](bevindingen.md): het oorspronkelijke voorbeeld,

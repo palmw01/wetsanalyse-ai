@@ -546,7 +546,7 @@ documenten slaat die balk over.
 **Er is geen "mogelijk ontbrekend"-lijst meer.** Die was de restpost van de Critic en verviel met
 hem (ADR-001 PR 18, 25 sep 2026). Het vangnet is nu de dekking: graph-qa stuurt een `dekking`-event
 met de zinsdelen waar geen enkele detector iets vond – een meting, geen gok. De werkplek toont die
-volgens `docs/architectuur/plan-herkomst-in-werkplek.md` (PR 6).
+volgens `docs/PLAN.md` (spoor B, PR 6).
 
 ### Symbolen zijn iconen, geen tekens
 

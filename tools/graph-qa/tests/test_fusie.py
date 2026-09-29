@@ -79,7 +79,7 @@ def test_overgeslagen_detector_blijft_zichtbaar():
 # --- specificiteit -----------------------------------------------------------------------------
 
 def test_iw01_geen_parameter_op_de_duur_binnen_de_tijdsaanduiding():
-    """De IW01-bevinding (evaluatie-methode.md): 'zes weken' kreeg naast de Tijdsaanduiding een
+    """De IW01-bevinding (docs/architectuur/metingen/2026-09-12-methode-2.1): 'zes weken' kreeg naast de Tijdsaanduiding een
     Parameterlabel. Binnen een Tijdsaanduiding met dezelfde functie vervalt dat (JAS-PRIORITY-001)."""
     tijd = _k("zes weken na de dagtekening van het aanslagbiljet", [T], "TEMPORAL_DURATION",
               opties=[("zes weken", "kern")])
