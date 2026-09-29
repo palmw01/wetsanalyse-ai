@@ -1,0 +1,90 @@
+import { describe, expect, it } from "vitest";
+import { bouwGraaf, bronDoel, uitklapbaar, voegSamen, zichtbareGraaf, type Samenhang, type SamenhangKnoop } from "./samenhang";
+
+const LAW = "urn:bwb:BWBR0004770", ART = `${LAW}:artikel:9`, L1 = `${ART}:lid:1`, L2 = `${ART}:lid:2`;
+const A10 = `${LAW}:artikel:10`;
+function knoop(id: string, soort: SamenhangKnoop["soort"], extra: Partial<SamenhangKnoop> = {}): SamenhangKnoop {
+  return { id, soort, label: id, tekst: "", klasse: "", lifecycle: "", element_id: "", bwb_id: "BWBR0004770",
+    artikel: "", lid: "", rand: false, ...extra };
+}
+function samenhang(artikel = ART, extra: Partial<Samenhang> = {}): Samenhang {
+  return {
+    schema_versie: 1, doel: { bron_iri: artikel }, snapshot_id: "s", artikel_iri: artikel, verwijzingen_beschikbaar: true, afgekapt: false,
+    knopen: [knoop(LAW, "regeling"), knoop(ART, "artikel"), knoop(L1, "lid", { lid: "1", artikel: "9" }),
+      knoop(L2, "lid", { lid: "2", artikel: "9" }), knoop("element:e1", "markering", { klasse: "Rechtssubject", element_id: "e1" }),
+      knoop("klasse:Rechtssubject", "klasse", { klasse: "Rechtssubject" }), knoop(A10, "artikel", { rand: true, artikel: "10" })],
+    relaties: [
+      { bron: LAW, doel: ART, soort: "bevat", groep: "structuur", anker_tekst: "" },
+      { bron: ART, doel: L1, soort: "bevat", groep: "structuur", anker_tekst: "" },
+      { bron: ART, doel: L2, soort: "bevat", groep: "structuur", anker_tekst: "" },
+      { bron: L2, doel: L1, soort: "verwijst_naar", groep: "verwijzingen", anker_tekst: "het eerste lid" },
+      { bron: L1, doel: A10, soort: "verwijst_naar", groep: "verwijzingen", anker_tekst: "artikel 10" },
+      { bron: "element:e1", doel: L1, soort: "markeert", groep: "annotaties", anker_tekst: "" },
+      { bron: "element:e1", doel: "klasse:Rechtssubject", soort: "heeft_klasse", groep: "annotaties", anker_tekst: "" },
+    ],
+    ...extra,
+  };
+}
+const ALLES = { structuur: true, verwijzingen: true, annotaties: true };
+
+describe("bouwGraaf", () => {
+  it("geeft vaste, herhaalbare posities zonder samenvallende knopen", () => {
+    const a = bouwGraaf([samenhang()]), b = bouwGraaf([samenhang()]);
+    expect(a).toEqual(b);
+    const plekken = a.nodes.map((n) => `${n.x}|${n.y}|${n.z}`);
+    expect(new Set(plekken).size).toBe(plekken.length);
+    expect(a.nodes.every((n) => n.fx === n.x && n.fy === n.y && n.fz === n.z)).toBe(true);
+  });
+  it("labelt leden met artikel en kleurt markeringen naar hun klasse", () => {
+    const g = bouwGraaf([samenhang()]);
+    expect(g.nodes.find((n) => n.id === L2)?.label).toBe("Artikel 9 · lid 2");
+    expect(g.nodes.find((n) => n.id === "element:e1")?.kleur).toMatch(/^#/);
+  });
+  it("geeft een uitgeklapt artikel een eigen cluster", () => {
+    const tweede = samenhang(A10, { knopen: [knoop(LAW, "regeling"), knoop(A10, "artikel", { artikel: "10" })],
+      relaties: [{ bron: LAW, doel: A10, soort: "bevat", groep: "structuur", anker_tekst: "" }] });
+    const g = bouwGraaf([samenhang(), tweede]);
+    const a10 = g.nodes.find((n) => n.id === A10)!;
+    expect(a10.rand).toBe(false);
+    expect(a10.x).toBeGreaterThan(g.nodes.find((n) => n.id === ART)!.x);
+  });
+});
+
+describe("voegSamen", () => {
+  it("is idempotent", () => {
+    const een = voegSamen([samenhang()]);
+    expect(voegSamen([samenhang(), samenhang()])).toEqual(een);
+  });
+});
+
+describe("zichtbareGraaf", () => {
+  const g = bouwGraaf([samenhang()]);
+  it("toont eerst alleen bronstructuur; uitklappen toont buren", () => {
+    expect(zichtbareGraaf(g, [], ALLES).nodes.map((n) => n.id).sort()).toEqual([ART, L1, L2, LAW].sort());
+    const open = zichtbareGraaf(g, [L1], ALLES).nodes.map((n) => n.id);
+    expect(open).toContain("element:e1");
+    expect(open).toContain(A10);
+  });
+  it("filters verbergen annotaties en randknopen", () => {
+    const zonder = zichtbareGraaf(g, [L1, "element:e1"], { ...ALLES, annotaties: false, verwijzingen: false });
+    expect(zonder.nodes.some((n) => n.soort === "markering" || n.rand)).toBe(false);
+    expect(zonder.links.every((l) => l.groep === "structuur")).toBe(true);
+  });
+});
+
+describe("bronDoel", () => {
+  it("vertaalt jci en graaf-IRI naar een bronnode", () => {
+    expect(bronDoel("jci1.3:c:BWBR0004770&artikel=9&lid=2&z=2026-01-01&g=2026-01-01")).toMatchObject(
+      { bron_iri: L2, bwb_id: "BWBR0004770", artikel: "9", lid: "2" });
+    expect(bronDoel(ART)?.bron_iri).toBe(ART);
+  });
+  it("weigert een hele regeling, een id-knoop en vreemde bronnen", () => {
+    expect(bronDoel("jci1.3:c:BWBR0004770")).toBeUndefined();
+    expect(bronDoel(`${LAW}:id:abc`)).toBeUndefined();
+    expect(bronDoel("https://example.org")).toBeUndefined();
+  });
+  it("randknopen zijn alleen uitklapbaar als ze geïmporteerd zijn", () => {
+    expect(uitklapbaar({ rand: true, soort: "artikel", bwb_id: "BWBR1" })).toBe(true);
+    expect(uitklapbaar({ rand: true, soort: "extern", bwb_id: "BWBR1" })).toBe(false);
+  });
+});
