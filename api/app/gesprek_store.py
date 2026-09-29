@@ -31,6 +31,7 @@ def _bericht_uit_row(row) -> Bericht:
         dekking=inhoud.get("dekking", {}) or {},
         annotatie_doel=inhoud.get("annotatie_doel") or None,
         tool_executions=inhoud.get("tool_executions", []) or [],
+        reeks=inhoud.get("reeks") or None,
         created=db.aware(d["created"]),
     )
 
@@ -56,6 +57,8 @@ def _inhoud(inv: BerichtInvoer | Bericht) -> dict:
         inhoud["tool_executions"] = inv.tool_executions
     if inv.run_id:
         inhoud["run_id"] = inv.run_id
+    if inv.reeks:
+        inhoud["reeks"] = inv.reeks.model_dump()
     return inhoud
 
 

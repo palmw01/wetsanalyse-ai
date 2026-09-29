@@ -69,6 +69,26 @@ def _kiesbare_kinderen(ordered: list[dict], node: dict) -> list[dict]:
     return [n for n in ordered if n["parent_iri"] == node["bron_iri"] and n["type"] in soorten]
 
 
+def gedeelde_bepaling(nodes: list[dict], iris: list[str]) -> dict:
+    """De ene bepaling waaronder alle `iris` als kiesbare onderdelen hangen – of een `BronFout`.
+
+    Een reeks annoteert leden (of subbepalingen) van één artikel; meer artikelen samen is een
+    werkgebied, en dat is een andere functie. Dezelfde regel als de keuzekaart: alleen wat
+    `onderdelen_om_te_kiezen` zou aanbieden, en elk hooguit één keer.
+    """
+    by_id = {n["bron_iri"]: n for n in nodes}
+    if len(set(iris)) != len(iris):
+        raise BronFout("Een onderdeel staat dubbel in de reeks")
+    onbekend = [i for i in iris if i not in by_id]
+    if onbekend:
+        raise BronFout("Een onderdeel van de reeks bestaat niet in de bron")
+    ouders = {by_id[i]["parent_iri"] for i in iris}
+    ouder = by_id.get(next(iter(ouders))) if len(ouders) == 1 else None
+    if ouder is None or any(by_id[i]["type"] not in _KIESBAAR.get(ouder["type"], set()) for i in iris):
+        raise BronFout("Een reeks gaat over de leden of subbepalingen van één artikel")
+    return ouder
+
+
 def onderdelen_om_te_kiezen(snapshot: dict) -> list[dict]:
     """De leden of subbepalingen waartussen de jurist kiest vóór er geannoteerd wordt.
 

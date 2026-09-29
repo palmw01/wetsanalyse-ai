@@ -58,6 +58,7 @@ load_dotenv()  # laad .env als die naast de server staat
 from agent import observability  # noqa: E402
 from agent.agent import answer_stream, delete_conversation  # noqa: E402
 from agent.beurt import voer_beurt_uit  # noqa: E402
+from agent.reeks import reeks_run  # noqa: E402
 from agent.agent_common import run_sync  # noqa: E402
 from agent.config import Settings  # noqa: E402
 from agent.models import ArtikelResult, ChatRequest, RunStart, Verbruiksmeter  # noqa: E402
@@ -249,11 +250,12 @@ async def chat(
     )
 
     async def event_generator() -> AsyncIterator[dict]:
-        async for event in answer_stream(
+        stroom = (reeks_run(request, settings=settings, legt_vast=False) if request.doelen else answer_stream(
             request.question, request.conversation_id,
             modus=request.modus, context=request.context, doel=request.doel,
             hergebruik=request.hergebruik,
-        ):
+        ))
+        async for event in stroom:
             yield {"data": json.dumps(event, ensure_ascii=False)}
 
     return EventSourceResponse(event_generator())
@@ -342,6 +344,9 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
     een browser die blijft kijken. Is er geen api geconfigureerd, dan is hij een doorgeefluik en
     blijft de werkplek verantwoordelijk – het oude gedrag."""
     def maak(run: Run) -> AsyncIterator[dict]:
+        if request.doelen:
+            # Meerdere onderdelen van één artikel: per onderdeel deze zelfde beurt, na elkaar.
+            return reeks_run(request, run, settings=settings, user_id=gebruiker)
         # Eén meter per beurt, hier gemaakt zodat beide kanten hem kennen: de agent telt erin, de
         # beurt-driver boekt hem daarna bij de api. Dat werkt ook als de beurt op een fout of een
         # stopverzoek eindigt – die tokens zijn dan wél verbruikt.
