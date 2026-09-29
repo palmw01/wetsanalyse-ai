@@ -24,6 +24,7 @@ from ..taal.afgeleid import _BIJZIN, _KERN
 from ..taal.grenzen import analyseer_grenzen
 from ..taal.verwijzingen import VERSIE as VERWIJZING_VERSIE
 from . import BronTekst, resultaat
+from .ontleding import bereik, in_verwijzing, parse_of_reden, zonder_randfunctie
 from .regels import maskers, woordenlijsten
 
 SUBJ, OBJ, BETR, FEIT, VW, VAR, PAR, OP = (
@@ -38,34 +39,9 @@ def _lijst(naam: str) -> re.Pattern:
     return re.compile(rf"^(?:{woordenlijsten()[naam]})$", re.IGNORECASE)
 
 
-def _parse_of_reden(bron: BronTekst) -> tuple[LinguisticAnalysis | None, str]:
-    if bron.analyse is None:
-        return None, "geen taalanalyse aangeleverd"
-    if bron.analyse.gedegradeerd:
-        return None, f"geen parse: {bron.analyse.fout}"
-    return bron.analyse, ""
-
-
-def _in_verwijzing(bron: BronTekst, s: int, e: int) -> bool:
-    return any(ms <= s and e <= me for ms, me in maskers(bron.tekst).get("verwijzing", []))
-
-
-def _bereik(a: LinguisticAnalysis, tokens) -> tuple[int, int] | None:
-    tokens = [i for i in tokens if a.tokens[i].upos != "PUNCT"]
-    if not tokens or not a.aaneengesloten(tuple(tokens)):
-        return None
-    return a.bereik(tokens)
-
-
-_RANDFUNCTIE = {"case", "cc", "mark", "punct"}
-
-
-def _zonder_randfunctie(a: LinguisticAnalysis, tokens, kop: int) -> list[int]:
-    """Een voorzetsel, voegwoord of leesteken vóór de groep hoort er niet bij ('Voor een partner')."""
-    tokens = sorted(tokens)
-    while tokens and tokens[0] != kop and a.tokens[tokens[0]].deprel in _RANDFUNCTIE:
-        tokens.pop(0)
-    return tokens
+# Gedeelde ontledingshulp staat in `ontleding`; de korte namen blijven voor de detectoren hier.
+_parse_of_reden, _in_verwijzing, _bereik, _zonder_randfunctie = (
+    parse_of_reden, in_verwijzing, bereik, zonder_randfunctie)
 
 
 def _optie(bron: BronTekst, grens: tuple[int, int], soort: str) -> SpanOption:
@@ -85,11 +61,22 @@ def _kandidaat(bron: BronTekst, grenzen: list[tuple[tuple[int, int], str]], klas
 
 # --- Rechtsbetrekking: lexicaal, werkt ook zonder parse --------------------------------------
 
+def _norm_in(stuk: str) -> re.Match | None:
+    """Modaal hulpwerkwoord of normatief predicaat (H2:46); gedeeld door norm- en NP-detectie."""
+    return (re.search(rf"\b(?:{woordenlijsten()['MODAAL']})\b", stuk, re.IGNORECASE)
+            or re.search(rf"\b(?:{woordenlijsten()['NORMATIEF']})\b", stuk, re.IGNORECASE))
+
+
+def _normsegmenten(tekst: str) -> list[tuple[int, int]]:
+    """Beschermde segmenten met een normatief predicaat; zelfde grenzen als NormDetector."""
+    return [(g.start, g.eind) for g in analyseer_grenzen(tekst).segmenten(tekst) if _norm_in(tekst[g.start:g.eind])]
+
+
 class NormDetector:
     REGELS: tuple[str, ...] = ("jas.betrekking.modaal_predicaat", "jas.betrekking.vaste_uitdrukking",
-                               "jas.betrekking.normatief_adjectief")
+                               "jas.betrekking.normatief_adjectief", "jas.feit.rechtsgevolg_in_norm")
     naam = "norm"
-    versie = "2"  # gedeelde beschermde tekstgrenzen
+    versie = "3"  # D03: Rechtsfeit alleen met een rechtsgevolg in het segment
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         tekst = bron.tekst
@@ -100,7 +87,7 @@ class NormDetector:
             s, e = segment.start, segment.eind
             stuk = tekst[s:e]
             modaal = re.search(rf"\b(?:{woordenlijsten()['MODAAL']})\b", stuk, re.IGNORECASE)
-            normatief = re.search(rf"\b(?:{woordenlijsten()['NORMATIEF']})\b", stuk, re.IGNORECASE)
+            normatief = None if modaal else _norm_in(stuk)
             if not (modaal or normatief):
                 continue
             # Delegatieformule ('kunnen … regels worden gesteld') is Delegatiebevoegdheid (H2:127).
@@ -116,7 +103,12 @@ class NormDetector:
             zin = next(((z.start, z.eind) for z in zinnen if z.start <= s2 and e2 <= z.eind), (s2, e2))
             grenzen = [((s2, e2), "segment"), (_trim(tekst, *zin), "zin")]
             bewijs = [Evidence(detector=self.naam, code="NORMATIVE_PREDICATE", regel=regel, detail=treffer.group())]
-            kandidaten.append(_kandidaat(bron, grenzen, [BETR, FEIT], bewijs))
+            # Een normsignaal bewijst op zichzelf geen rechtsfeit: dat vraagt een rechtsgevolg (H2:53).
+            gevolg = re.search(rf"\b(?:{woordenlijsten()['RECHTSGEVOLG']})\b", stuk, re.IGNORECASE)
+            if gevolg:
+                bewijs.append(Evidence(detector=self.naam, code="LEGAL_EFFECT_PREDICATE",
+                                       regel="jas.feit.rechtsgevolg_in_norm", detail=gevolg.group()))
+            kandidaten.append(_kandidaat(bron, grenzen, [BETR, FEIT] if gevolg else [BETR], bewijs))
         return resultaat(self, bron, kandidaten)
 
 
@@ -162,15 +154,18 @@ class NaamwoordgroepDetector:
     REGELS: tuple[str, ...] = (
         "jas.parameter.beschrijving", "jas.variabele.uitvoer_van_afleiding", "jas.variabele.eigenschap_np",
         "jas.subject.voornaamwoord", "jas.subject.rollexicon", "jas.subject.np_bij_normatief_predicaat",
-        "jas.object.opsommingsonderdeel", "jas.object.np_bij_normatief_predicaat")
+        "jas.subject.np", "jas.object.opsommingsonderdeel", "jas.object.np_bij_normatief_predicaat", "jas.object.np")
     naam = "naamwoordgroep"
-    versie = f"1+verwijzing.{VERWIJZING_VERSIE}"
+    # Grammaticale rol zonder juridische functie: blokkeert sterk patroonbewijs niet (audit D05).
+    BEWIJS = {"SUBJECT_NP": ("generiek", ""), "OBJECT_NP": ("generiek", ""), "ENUMERATED_NP": ("generiek", "")}
+    versie = f"2+verwijzing.{VERWIJZING_VERSIE}"  # D01: normcontext getoetst, niet verondersteld
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         a, reden = _parse_of_reden(bron)
         if a is None:
             return resultaat(self, bron, overgeslagen=True, reden=reden)
         kandidaten = []
+        normen = _normsegmenten(bron.tekst)
         for t in a.tokens:
             if not _nominaal(a, t) or t.deprel in {"fixed", "flat", "flat:name", "compound", "nmod:poss"}:
                 continue
@@ -188,12 +183,18 @@ class NaamwoordgroepDetector:
             if not grenzen or _in_verwijzing(bron, *grenzen[0][0]):
                 continue
             lemma = (t.lemma or t.tekst).lower()
-            bewijs, klassen = self._classificeer_signaal(a, t, lemma)
+            norm = any(s <= t.start < e for s, e in normen)
+            bewijs, klassen = self._classificeer_signaal(a, t, lemma, norm)
             kandidaten.append(_kandidaat(bron, grenzen, klassen, bewijs))
         return resultaat(self, bron, kandidaten)
 
-    def _classificeer_signaal(self, a: LinguisticAnalysis, t: Token, lemma: str):
-        """Welke klassen mogelijk zijn en waarom – signalen uit het profiel, geen besluit."""
+    def _classificeer_signaal(self, a: LinguisticAnalysis, t: Token, lemma: str, norm: bool = True):
+        """Welke klassen mogelijk zijn en waarom – signalen uit het profiel, geen besluit.
+
+        Generieke onderwerp- en objectsignalen heten alleen 'bij normatief predicaat' als dat predicaat
+        in hetzelfde beschermde segment staat (audit D01). Zonder normcontext is een lijdend onderwerp
+        of een object geen dragende partij: Rechtssubject vervalt daar als hypothese.
+        """
         rel = t.deprel
         if _lijst("PARAMETERWOORD").match(lemma) or _lijst("PARAMETERWOORD").match(t.tekst):
             return [Evidence(detector=self.naam, code="PARAMETER_NOUN", regel="jas.parameter.beschrijving",
@@ -211,11 +212,16 @@ class NaamwoordgroepDetector:
             return [Evidence(detector=self.naam, code="ROLE_NOUN", regel="jas.subject.rollexicon",
                              relatie=rel, detail=t.tekst)], [SUBJ, OBJ]
         if rel in _ONDERWERP:
-            return [Evidence(detector=self.naam, code="SUBJECT_NP", regel="jas.subject.np_bij_normatief_predicaat",
-                             relatie=rel, detail=t.tekst)], [SUBJ, OBJ, VAR]
+            regel = "jas.subject.np_bij_normatief_predicaat" if norm else "jas.subject.np"
+            klassen = [OBJ, VAR] if (not norm and rel == "nsubj:pass") else [SUBJ, OBJ, VAR]
+            return [Evidence(detector=self.naam, code="SUBJECT_NP", regel=regel,
+                             relatie=rel, detail=t.tekst)], klassen
         if rel == "conj":
             return [Evidence(detector=self.naam, code="ENUMERATED_NP", regel="jas.object.opsommingsonderdeel",
                              relatie=rel, detail=t.tekst)], [OBJ, SUBJ, VAR]
+        if not norm:
+            return [Evidence(detector=self.naam, code="OBJECT_NP", regel="jas.object.np",
+                             relatie=rel, detail=t.tekst)], [OBJ, VAR]
         return [Evidence(detector=self.naam, code="OBJECT_NP", regel="jas.object.np_bij_normatief_predicaat",
                          relatie=rel, detail=t.tekst)], [OBJ, VAR, SUBJ]
 
@@ -261,25 +267,54 @@ class BijzinDetector:
 # --- Rechtsfeit: nominalisatie ('het indienen van …', 'de dagtekening van …') -------------------
 
 class NominalisatieDetector:
+    """Handeling of gebeurtenis als naamwoord: 'het indienen van …', 'de dagtekening van …' (H2:55).
+
+    Een -ing-woord telt alleen met een 'van'- of 'door'-bepaling, niet in een vaste
+    voorzetseluitdrukking ('in afwijking van') of regelingsvorm ('regeling van Onze Minister'):
+    daar noemt het een verhouding of een regeling, geen handeling (audit D04). Een nevengeschikte
+    tak met eigen predicaat, eigen onderwerp of distributieve kwantor is een eigen functie en
+    valt buiten de span.
+    """
     REGELS: tuple[str, ...] = ("jas.feit.nominalisatie_van",)
     naam = "nominalisatie"
-    versie = f"2+verwijzing.{VERWIJZING_VERSIE}"  # infinitieftak vereist Inf, geen Part
+    versie = f"4+verwijzing.{VERWIJZING_VERSIE}"  # D04: van/door-bepaling, vaste uitdrukkingen, distributief
     _AAN_DE_RAND = {"case", "cc", "advmod", "mark", "punct"}
+    _BEPALING = {"van", "door"}
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         a, reden = _parse_of_reden(bron)
         if a is None:
             return resultaat(self, bron, overgeslagen=True, reden=reden)
+        uitgesloten = [m.span() for naam in ("VOORZETSELUITDRUKKING", "REGELINGSVORM")
+                       for m in re.finditer(rf"\b(?:{woordenlijsten()[naam]})\b", bron.tekst, re.IGNORECASE)]
+
+        def bepaling(k: int) -> bool:
+            return a.tokens[k].deprel == "nmod" and any(
+                a.tokens[c].deprel == "case" and a.tokens[c].tekst.lower() in self._BEPALING for c in a.kinderen(k))
+
         kandidaten = []
         for t in a.tokens:
             kinderen = a.kinderen(t.i)
             infinitief = t.upos == "VERB" and t.feat("VerbForm") == "Inf" and any(a.tokens[k].deprel == "det" and a.tokens[k].tekst.lower() == "het"
                                                   for k in kinderen)
             handeling = (t.upos == "NOUN" and t.tekst.lower().endswith("ing")
-                         and any(a.tokens[k].deprel == "nmod" for k in kinderen))
+                         and any(bepaling(k) for k in (
+                             *kinderen, *(j for c in kinderen if a.tokens[c].deprel == "conj"
+                                          and a.tokens[c].tekst.lower().endswith("ing") for j in a.kinderen(c))))
+                         and not any(s <= t.start and t.eind <= e for s, e in uitgesloten))
             if not (infinitief or handeling):
                 continue
             weg = {i for k in kinderen if a.tokens[k].deprel in {"parataxis", *_BIJZIN} for i in a.subboom(k)}
+            for i in a.subboom(t.i):
+                n = a.tokens[i]
+                if n.deprel == "conj" and (
+                    n.feat("VerbForm") == "Fin"
+                    or any(a.tokens[j].deprel in _ONDERWERP for j in a.kinderen(i))
+                    or _lijst("DISTRIBUTIEF").match(n.tekst)
+                    or any(a.tokens[j].deprel == "det" and _lijst("DISTRIBUTIEF").match(a.tokens[j].tekst)
+                           for j in a.kinderen(i))
+                ):
+                    weg.update(a.subboom(i))
             tokens = sorted(set(a.subboom(t.i)) - weg)
             while tokens and a.tokens[tokens[0]].deprel in self._AAN_DE_RAND and tokens[0] != t.i:
                 tokens.pop(0)

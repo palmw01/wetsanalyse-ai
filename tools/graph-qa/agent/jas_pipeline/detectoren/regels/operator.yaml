@@ -3,6 +3,7 @@
 - id: jas.operator.vergelijking
   klassen: [Operator]
   code: COMPARISON
+  bewijs: sterk
   bron: "H2:100"
   versie: 1
   patroon: '\b(?:(?:meer|minder|groter|kleiner|hoger|lager)\s+(?:(?:bedraagt|bedragen|is|zijn)\s+)?dan|(?:is|zijn)\s+gelijk\s+aan|te\s+boven\s+(?:gaat|gaan))\b'
@@ -14,6 +15,7 @@
 - id: jas.operator.rekenkundig
   klassen: [Operator]
   code: ARITHMETIC
+  bewijs: sterk
   bron: "H2:100"
   versie: 1
   patroon: '\b(?:vermeerderd\s+met|verminderd\s+met|vermenigvuldigd\s+met|gedeeld\s+door|de\s+som\s+van|het\s+gezamenlijke\s+bedrag\s+van|het\s+verschil\s+tussen|(?:een\s+)?percentage\s+van)\b'
@@ -25,6 +27,7 @@
 - id: jas.operator.logisch
   klassen: [Operator]
   code: LOGICAL
+  bewijs: zwak
   bron: "H2:100"
   versie: 1
   patroon: '\b(?:ten\s+minste|ten\s+hoogste|dan\s+wel|noch)\b'

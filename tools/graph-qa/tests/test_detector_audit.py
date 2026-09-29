@@ -4,7 +4,7 @@ from agent.jas_pipeline.kandidaten import Candidate, DetectorResult, Evidence
 from eval.detector_audit import scenario, samenvatting
 
 
-def test_np_neutraliseren_verwijdert_geen_span_en_negeert_zwak_bewijs_niet():
+def test_np_neutraliseren_verwijdert_geen_span_en_generiek_blokkeert_sterk_niet():
     bron = BronTekst.van_tekst("test", "zes weken auto")
     tijd = Candidate.maak(bron.span(0, 9), ["Tijdsaanduiding"],
                           [Evidence(detector="tijd", code="TEMPORAL_DURATION")])
@@ -16,13 +16,14 @@ def test_np_neutraliseren_verwijdert_geen_span_en_negeert_zwak_bewijs_niet():
     s0, s1, s2 = (scenario(rs, s) for s in ("S0", "S1", "S2"))
     assert len(s0) == len(s1) == 2 and len(s2) == 1
     assert s1[0]["possible_classes"] == ["Tijdsaanduiding"]
-    assert s1[0]["route"] == "model", "OBJECT_NP blijft zwak bewijs in S1"
+    # Sinds audit D05 is OBJECT_NP generiek: het blokkeert sterk tijdbewijs niet meer (S0 en S1).
+    assert s0[0]["route"] == s1[0]["route"] == "regel"
     assert s1[1]["possible_classes"] == [] and s1[1]["route"] == "zonder_hypothese"
     assert s2[0]["route"] == "regel"
     refs = [{"id": "test/a", "bron": "test", "start": 10, "eind": 14, "klasse": "Rechtsobject"}]
     m = samenvatting(s1, refs, {"test": bron.tekst})
     assert m["ankers_core"] == 1 and m["ankers_met_klasse"] == 0
-    assert m["zonder_hypothese"] == 1 and m["classifier_kandidaten"] == 1
+    assert m["zonder_hypothese"] == 1 and m["classifier_kandidaten"] == 0
 
 
 def test_ankerbijdrage_onderscheidt_herhaalde_tekst_op_andere_offsets():

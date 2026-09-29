@@ -3,6 +3,7 @@
 - id: jas.voorwaarde.voorwaardelijke_bijzin
   klassen: [Voorwaarde]
   code: CONDITIONAL_CLAUSE
+  bewijs: zwak
   bron: "H2:64"
   versie: 1
   patroon: '\b(?:indien|tenzij|mits|wanneer|ingeval|in\s+geval|voor\s+zover|voorzover|voor\s+zolang|zolang)\b[^,.;:]+'
@@ -14,6 +15,7 @@
 - id: jas.voorwaarde.vaste_inleiding
   klassen: [Voorwaarde]
   code: CONDITIONAL_FORMULA
+  bewijs: zwak
   bron: "H2:64"
   versie: 1
   patroon: '\b(?:met\s+dien\s+verstande\s+dat|met\s+uitzondering\s+van|behoudens|onverminderd)\b[^.;:]+'
@@ -25,6 +27,7 @@
 - id: jas.voorwaarde.bijwoord
   klassen: [Voorwaarde]
   code: CONDITIONAL_ADVERB
+  bewijs: zwak
   bron: "H2:64"
   versie: 1
   patroon: '\b(?:schriftelijk|elektronisch|mondeling|langs\s+elektronische\s+weg|op\s+papier)\b'
@@ -36,6 +39,7 @@
 - id: jas.voorwaarde.wegens
   klassen: [Voorwaarde, Rechtsfeit]
   code: CAUSAL_PHRASE
+  bewijs: zwak
   bron: "H2:63"
   versie: 1
   patroon: '\bwegens\s+(?:een|de|het)\s+[\w-]+'

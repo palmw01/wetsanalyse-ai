@@ -112,7 +112,7 @@
     jas:codeWaarde "model" .
 
 <urn:jas-ns:besluit:regel> a jas:Besluitwijze ;
-    skos:definition "Besloten zonder model: één klasse mogelijk en sterk bewijs."@nl ;
+    skos:definition "Besloten zonder model: sterk bewijs voor één klasse; hooguit een algemeen naamwoordgroepsignaal wees ook andere klassen aan, die als alternatief zichtbaar blijven."@nl ;
     skos:prefLabel "vaste regel"@nl ;
     jas:codeWaarde "regel" .
 
@@ -151,6 +151,31 @@
     skos:prefLabel "Afgekeurd bij de validatie"@nl ;
     jas:codeWaarde "VALIDATION_ERROR" .
 
+<urn:jas-ns:code:CALCULATION_APPLICABILITY> a jas:Detectiecode ;
+    skos:definition "Een voorwaardelijke uitspraak bepaalt welke aangewezen regel toepassing vindt. De verwijzing en de voorwaarde blijven bij elkaar."@nl ;
+    skos:prefLabel "Keuze van toepasselijke regel"@nl ;
+    jas:codeWaarde "CALCULATION_APPLICABILITY" .
+
+<urn:jas-ns:code:CALCULATION_ASSIGNMENT> a jas:Detectiecode ;
+    skos:definition "Een benoemde grootheid of vervaldatum wordt op een uitkomst gesteld; de volledige uitspraak is een afleidingshypothese."@nl ;
+    skos:prefLabel "Toewijzing van een waarde"@nl ;
+    jas:codeWaarde "CALCULATION_ASSIGNMENT" .
+
+<urn:jas-ns:code:CALCULATION_CALENDAR_POSITION> a jas:Detectiecode ;
+    skos:definition "De vervaldag wordt beschreven aan de hand van hetzelfde dagnummer als een andere datum."@nl ;
+    skos:prefLabel "Gelijke kalenderpositie"@nl ;
+    jas:codeWaarde "CALCULATION_CALENDAR_POSITION" .
+
+<urn:jas-ns:code:CALCULATION_QUANTITY> a jas:Detectiecode ;
+    skos:definition "Zoveel onderdelen als er overblijven: invoer en uitkomst van een mogelijke berekening."@nl ;
+    skos:prefLabel "Aantal uit een restant"@nl ;
+    jas:codeWaarde "CALCULATION_QUANTITY" .
+
+<urn:jas-ns:code:CONDITIONAL_ELLIPSIS> a jas:Detectiecode ;
+    skos:definition "Een nominale bepaling zoals bij afwijkende omstandigheden begrenst de bijbehorende uitspraak."@nl ;
+    skos:prefLabel "Verkorte voorwaarde"@nl ;
+    jas:codeWaarde "CONDITIONAL_ELLIPSIS" .
+
 <urn:jas-ns:code:DEFINITION_ITEM> a jas:Detectiecode ;
     skos:definition "Een onderdeel van een begripsbepalingenartikel: 'a. X: …'."@nl ;
     skos:prefLabel "Begripsbepaling (onderdeel)"@nl ;
@@ -165,6 +190,11 @@
     skos:definition "Een naamwoordgroep als onderdeel van een opsomming."@nl ;
     skos:prefLabel "Opsommingsonderdeel"@nl ;
     jas:codeWaarde "ENUMERATED_NP" .
+
+<urn:jas-ns:code:LEGAL_EFFECT_PREDICATE> a jas:Detectiecode ;
+    skos:definition "Het normsegment noemt een rechtsgevolg (ontstaan, vervallen, verschuldigd, invorderbaar …); pas dan is Rechtsfeit een hypothese."@nl ;
+    skos:prefLabel "Rechtsgevolg in de norm"@nl ;
+    jas:codeWaarde "LEGAL_EFFECT_PREDICATE" .
 
 <urn:jas-ns:code:MEANING_TERM> a jas:Detectiecode ;
     skos:definition "Het begrip dat in een begripsbepaling een betekenis krijgt."@nl ;
@@ -216,6 +246,16 @@
     skos:prefLabel "Onderwerp bij een recht of plicht"@nl ;
     jas:codeWaarde "SUBJECT_NP" .
 
+<urn:jas-ns:code:TEMPORAL_DESCRIPTION> a jas:Detectiecode ;
+    skos:definition "Een dag of tijdstip met een beperkende omschrijving; de omschrijving hoort bij het fragment."@nl ;
+    skos:prefLabel "Beschreven datum"@nl ;
+    jas:codeWaarde "TEMPORAL_DESCRIPTION" .
+
+<urn:jas-ns:code:TEMPORAL_KERNEL> a jas:Detectiecode ;
+    skos:definition "Deze exacte korte grens is als kern van een langere tijdsaanduiding geregistreerd. Het bewijs blijft herleidbaar."@nl ;
+    skos:prefLabel "Kern van dezelfde tijdsfunctie"@nl ;
+    jas:codeWaarde "TEMPORAL_KERNEL" .
+
 <urn:jas-ns:regel:JAS-PRIORITY-001> a jas:Methoderegel ;
     skos:definition "Indien een formulering zowel als tijdsaanduiding als variabele of parameter kan worden geclassificeerd, prevaleert tijdsaanduiding als de meest specifieke klasse."@nl ;
     skos:prefLabel "JAS-PRIORITY-001" ;
@@ -236,7 +276,7 @@
     dcterms:source "H2:73" ;
     skos:prefLabel "Berekening met 'bedraagt'"@nl ;
     jas:code <urn:jas-ns:code:CALCULATION_COPULA> ;
-    jas:regelVersie 1 ;
+    jas:regelVersie 2 ;
     jas:wijstAan <urn:jas-ns:klasse:Afleidingsregel>,
         <urn:jas-ns:klasse:ParameterEnParameterwaarde> .
 
@@ -244,14 +284,14 @@
     dcterms:source "H2:71" ;
     skos:prefLabel "Wettelijk vermoeden of fictie"@nl ;
     jas:code <urn:jas-ns:code:LEGAL_FICTION> ;
-    jas:regelVersie 1 ;
+    jas:regelVersie 2 ;
     jas:wijstAan <urn:jas-ns:klasse:Afleidingsregel> .
 
 <urn:jas-ns:regel:jas.afleiding.wordt_gesteld_op> a jas:Detectorregel ;
     dcterms:source "H2:73" ;
     skos:prefLabel "Berekening in de lijdende vorm"@nl ;
     jas:code <urn:jas-ns:code:CALCULATION_PASSIVE> ;
-    jas:regelVersie 1 ;
+    jas:regelVersie 2 ;
     jas:wijstAan <urn:jas-ns:klasse:Afleidingsregel> .
 
 <urn:jas-ns:regel:jas.delegatie.regels_gesteld> a jas:Detectorregel ;
@@ -315,7 +355,7 @@
     dcterms:source "H2:109" ;
     skos:prefLabel "Datum"@nl ;
     jas:code <urn:jas-ns:code:TEMPORAL_DATE> ;
-    jas:regelVersie 1 ;
+    jas:regelVersie 2 ;
     jas:wijstAan <urn:jas-ns:klasse:Tijdsaanduiding> .
 
 <urn:jas-ns:regel:jas.tijd.duur> a jas:Detectorregel ;
@@ -323,6 +363,20 @@
     skos:prefLabel "Termijn"@nl ;
     jas:code <urn:jas-ns:code:TEMPORAL_DURATION> ;
     jas:regelVersie 2 ;
+    jas:wijstAan <urn:jas-ns:klasse:Tijdsaanduiding> .
+
+<urn:jas-ns:regel:jas.tijd.herhaling> a jas:Detectorregel ;
+    dcterms:source "H2:109" ;
+    skos:prefLabel "Relatieve of herhaalde termijn"@nl ;
+    jas:code <urn:jas-ns:code:TEMPORAL_RECURRENCE> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Tijdsaanduiding> .
+
+<urn:jas-ns:regel:jas.tijd.maandnaam> a jas:Detectorregel ;
+    dcterms:source "H2:109" ;
+    skos:prefLabel "Benoemde maand"@nl ;
+    jas:code <urn:jas-ns:code:TEMPORAL_MONTH> ;
+    jas:regelVersie 1 ;
     jas:wijstAan <urn:jas-ns:klasse:Tijdsaanduiding> .
 
 <urn:jas-ns:regel:jas.tijd.periode_van> a jas:Detectorregel ;
@@ -336,14 +390,14 @@
     dcterms:source "H2:109" ;
     skos:prefLabel "Periodewoord"@nl ;
     jas:code <urn:jas-ns:code:TEMPORAL_PERIOD_NOUN> ;
-    jas:regelVersie 1 ;
+    jas:regelVersie 2 ;
     jas:wijstAan <urn:jas-ns:klasse:Tijdsaanduiding> .
 
 <urn:jas-ns:regel:jas.tijd.relatief> a jas:Detectorregel ;
     dcterms:source "H2:109" ;
     skos:prefLabel "Relatieve periode"@nl ;
     jas:code <urn:jas-ns:code:TEMPORAL_RELATIVE_PERIOD> ;
-    jas:regelVersie 1 ;
+    jas:regelVersie 2 ;
     jas:wijstAan <urn:jas-ns:klasse:Tijdsaanduiding> .
 
 <urn:jas-ns:regel:jas.tijd.tijdstip> a jas:Detectorregel ;
@@ -421,6 +475,21 @@
     skos:prefLabel "Niets om aan te houden – jij kiest"@nl ;
     jas:codeWaarde "R-ABSTAIN-KEEP" .
 
+<urn:jas-ns:resolutie:R-CENTRAAL-CHANGE> a jas:Resolutieregel ;
+    skos:definition "De reviewer kiest een toegestane klasse voor de eerder afgewezen kandidaat."@nl ;
+    skos:prefLabel "Centrale norm herbeoordeeld"@nl ;
+    jas:codeWaarde "R-CENTRAAL-CHANGE" .
+
+<urn:jas-ns:resolutie:R-CENTRAAL-HUMAN> a jas:Resolutieregel ;
+    skos:definition "De centrale norm vraagt een menselijke keuze; de getoonde klasse is voorlopig."@nl ;
+    skos:prefLabel "Centrale norm ter beoordeling"@nl ;
+    jas:codeWaarde "R-CENTRAAL-HUMAN" .
+
+<urn:jas-ns:resolutie:R-CENTRAAL-KEEP> a jas:Resolutieregel ;
+    skos:definition "De reviewer bevestigt gemotiveerd dat de centrale kandidaat geen annotatie oplevert."@nl ;
+    skos:prefLabel "Afwijzing bevestigd"@nl ;
+    jas:codeWaarde "R-CENTRAAL-KEEP" .
+
 <urn:jas-ns:resolutie:R-CONFLICT-CHANGE> a jas:Resolutieregel ;
     skos:definition "De reviewer koos de klasse die het vaste patroon aanwees; de keuze van het model blijft als alternatief."@nl ;
     skos:prefLabel "Reviewer volgt het patroon"@nl ;
@@ -465,6 +534,11 @@
     skos:definition "De reviewer bevestigde dat het fragment twee functies heeft; beide blijven staan."@nl ;
     skos:prefLabel "Twee functies op één fragment"@nl ;
     jas:codeWaarde "R-SPAN-KEEP" .
+
+<urn:jas-ns:twijfel:CENTRALE_NORM_AFGEWEZEN> a jas:Twijfelreden ;
+    skos:definition "Een normhypothese is afgewezen terwijl objecten of tijdsaanduidingen resteren. Gerichte beoordeling kan de afwijzing bevestigen."@nl ;
+    skos:prefLabel "Centrale norm afgewezen"@nl ;
+    jas:codeWaarde "CENTRALE_NORM_AFGEWEZEN" .
 
 <urn:jas-ns:twijfel:CLASSIFIER_ABSTAIN> a jas:Twijfelreden ;
     skos:definition "Het model gaf voor dit fragment geen bruikbare beslissing."@nl ;
@@ -626,6 +700,11 @@
     skos:prefLabel "Tijdstip"@nl ;
     jas:codeWaarde "TEMPORAL_MOMENT" .
 
+<urn:jas-ns:code:TEMPORAL_MONTH> a jas:Detectiecode ;
+    skos:definition "Een maand in een temporele bepaling, zonder een ontbrekend jaar aan te vullen."@nl ;
+    skos:prefLabel "Benoemde maand"@nl ;
+    jas:codeWaarde "TEMPORAL_MONTH" .
+
 <urn:jas-ns:code:TEMPORAL_PERIOD_NOUN> a jas:Detectiecode ;
     skos:definition "Een woord dat een periode aanduidt: kalenderjaar, berekeningsjaar, tijdvak."@nl ;
     skos:prefLabel "Periodewoord"@nl ;
@@ -635,6 +714,11 @@
     skos:definition "'De periode van drie jaren': een benoemde periode."@nl ;
     skos:prefLabel "Periode van"@nl ;
     jas:codeWaarde "TEMPORAL_PERIOD_OF" .
+
+<urn:jas-ns:code:TEMPORAL_RECURRENCE> a jas:Detectiecode ;
+    skos:definition "Een duur eerder of later, eventueel telkens herhaald; het referentiepunt blijft te beoordelen."@nl ;
+    skos:prefLabel "Relatieve of herhaalde termijn"@nl ;
+    jas:codeWaarde "TEMPORAL_RECURRENCE" .
 
 <urn:jas-ns:code:TEMPORAL_RELATIVE_PERIOD> a jas:Detectiecode ;
     skos:definition "Een periode ten opzichte van iets anders: 'de eerste veertien dagen'."@nl ;
@@ -814,5 +898,5 @@
     dcterms:source "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md" ;
     skos:prefLabel "Juridisch Analyseschema"@nl ;
     jas:jasVersie "1.0.10" ;
-    jas:vocabulaireVersie "4089e3ffd8c1" .
+    jas:vocabulaireVersie "adb6b121505b" .
 

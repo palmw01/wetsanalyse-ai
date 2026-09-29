@@ -1,0 +1,94 @@
+== IW-9-1: tellingen 5 -> 5 | routes {'model': 5} -> {'model': 5}
+  ~ [0,87) 'Een belastingaanslag is invorderbaar zes weken na de dagtekening van h'
+      bewijs - [] + [('norm', 'LEGAL_EFFECT_PREDICATE')]
+== IW-9-5: tellingen 40 -> 40 | routes {'model': 37, 'regel': 3} -> {'model': 37, 'regel': 3}
+  ~ [0,434) 'In afwijking van het eerste lid is een voorlopige aanslag in de inkoms'
+      bewijs - [] + [('norm', 'LEGAL_EFFECT_PREDICATE')]
+  ~ [461,470) 'één maand'
+      klassen ('Rechtsobject', 'Rechtssubject', 'Tijdsaanduiding') -> ('Rechtsobject', 'Tijdsaanduiding')
+  ~ [474,488) 'de dagtekening'
+      klassen ('Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject') -> ('Rechtsobject', 'Variabele en variabelewaarde')
+  ~ [493,510) 'het aanslagbiljet'
+      klassen ('Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject') -> ('Rechtsobject', 'Variabele en variabelewaarde')
+  ~ [522,543) 'de volgende termijnen'
+      klassen ('Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject') -> ('Rechtsobject', 'Variabele en variabelewaarde')
+  ~ [544,561) 'telkens een maand'
+      klassen ('Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject') -> ('Rechtsobject', 'Variabele en variabelewaarde')
+  ~ [594,610) 'de eerste volzin'
+      klassen ('Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject') -> ('Rechtsobject', 'Variabele en variabelewaarde')
+  ~ [626,646) 'meer dan één termijn'
+      klassen ('Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject') -> ('Rechtsobject', 'Variabele en variabelewaarde')
+  ~ [669,679) 'toepassing'
+      klassen ('Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject') -> ('Rechtsobject', 'Variabele en variabelewaarde')
+== LI-9.1: tellingen 21 -> 21 | routes {'model': 18, 'regel': 3} -> {'model': 18, 'regel': 3}
+  ~ [3,14) 'de gevallen'
+      klassen ('Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject') -> ('Rechtsobject', 'Variabele en variabelewaarde')
+  ~ [27,47) 'voorlopige aanslagen'
+      klassen ('Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject') -> ('Rechtsobject', 'Variabele en variabelewaarde')
+  ~ [87,93) 'de wet'
+      klassen ('Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject') -> ('Rechtsobject', 'Variabele en variabelewaarde')
+  ~ [119,127) 'november'
+      klassen ('Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject') -> ('Rechtsobject', 'Variabele en variabelewaarde')
+  ~ [154,160) 'de wet'
+      klassen ('Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject') -> ('Rechtsobject', 'Variabele en variabelewaarde')
+  ~ [256,268) 'de vervaldag'
+      klassen ('Rechtssubject', 'Rechtsobject', 'Variabele en variabelewaarde') -> ('Rechtsobject', 'Variabele en variabelewaarde')
+  ~ [273,285) 'deze termijn'
+      klassen ('Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject') -> ('Rechtsobject', 'Variabele en variabelewaarde')
+  ~ [314,334) 'afwijkende boekjaren'
+      klassen ('Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject') -> ('Rechtsobject', 'Variabele en variabelewaarde')
+  ~ [341,361) 'de laatste vervaldag'
+      klassen ('Rechtssubject', 'Rechtsobject', 'Variabele en variabelewaarde') -> ('Rechtsobject', 'Variabele en variabelewaarde')
+  ~ [372,386) 'de laatste dag'
+      klassen ('Rechtsobject', 'Rechtssubject', 'Tijdsaanduiding') -> ('Rechtsobject', 'Tijdsaanduiding')
+  ~ [391,399) 'de maand'
+      klassen ('Tijdsaanduiding', 'Rechtsobject', 'Rechtssubject') -> ('Tijdsaanduiding', 'Rechtsobject')
+== LI-9.5: tellingen 59 -> 59 | routes {'model': 46, 'regel': 13} -> {'model': 46, 'regel': 13}
+  ~ [4,23) 'de betalingstermijn'
+      klassen ('Rechtssubject', 'Rechtsobject', 'Variabele en variabelewaarde') -> ('Rechtsobject', 'Variabele en variabelewaarde')
+  ~ [28,39) 'een aanslag'
+      klassen ('Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject') -> ('Rechtsobject', 'Variabele en variabelewaarde')
+  ~ [54,63) 'één maand'
+      klassen ('Tijdsaanduiding', 'Rechtsobject', 'Rechtssubject') -> ('Tijdsaanduiding', 'Rechtsobject')
+  ~ [81,90) 'zes weken'
+      klassen ('Tijdsaanduiding', 'Rechtsobject', 'Rechtssubject') -> ('Tijdsaanduiding', 'Rechtsobject')
+  ~ [136,153) 'een aanslagbiljet'
+      klassen ('Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject') -> ('Rechtsobject', 'Variabele en variabelewaarde')
+  ~ [198,207) 'één maand'
+      klassen ('Tijdsaanduiding', 'Rechtsobject', 'Rechtssubject') -> ('Tijdsaanduiding', 'Rechtsobject')
+  ~ [258,267) 'zes weken'
+      klassen ('Tijdsaanduiding', 'Rechtsobject', 'Rechtssubject') -> ('Tijdsaanduiding', 'Rechtsobject')
+  ~ [363,372) 'een maand'
+      klassen ('Tijdsaanduiding', 'Rechtsobject', 'Rechtssubject') -> ('Tijdsaanduiding', 'Rechtsobject')
+  ~ [412,421) 'zes weken'
+      klassen ('Tijdsaanduiding', 'Rechtsobject', 'Rechtssubject') -> ('Tijdsaanduiding', 'Rechtsobject')
+  ~ [442,453) 'het jaartal'
+      klassen ('Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject') -> ('Rechtsobject', 'Variabele en variabelewaarde')
+  ~ [471,488) 'een schrikkeljaar'
+      klassen ('Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject') -> ('Rechtsobject', 'Variabele en variabelewaarde')
+  ~ [496,506) 'welk geval'
+      klassen ('Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject') -> ('Rechtsobject', 'Variabele en variabelewaarde')
+  ~ [579,596) 'het aanslagbiljet'
+      klassen ('Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject') -> ('Rechtsobject', 'Variabele en variabelewaarde')
+  ~ [605,619) 'een andere dag'
+      klassen ('Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject') -> ('Rechtsobject', 'Variabele en variabelewaarde')
+  ~ [624,638) 'de laatste dag'
+      klassen ('Rechtsobject', 'Rechtssubject', 'Tijdsaanduiding') -> ('Rechtsobject', 'Tijdsaanduiding')
+  ~ [643,659) 'de kalendermaand'
+      klassen ('Tijdsaanduiding', 'Rechtsobject', 'Rechtssubject') -> ('Tijdsaanduiding', 'Rechtsobject')
+  ~ [680,689) 'een maand'
+      klassen ('Tijdsaanduiding', 'Rechtsobject', 'Rechtssubject') -> ('Tijdsaanduiding', 'Rechtsobject')
+  ~ [701,721) 'een betalingstermijn'
+      klassen ('Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject') -> ('Rechtsobject', 'Variabele en variabelewaarde')
+  ~ [726,735) 'een maand'
+      klassen ('Tijdsaanduiding', 'Rechtsobject', 'Rechtssubject') -> ('Tijdsaanduiding', 'Rechtsobject')
+  ~ [740,746) 'de dag'
+      klassen ('Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject') -> ('Rechtsobject', 'Variabele en variabelewaarde')
+  ~ [751,767) 'hetzelfde nummer'
+      klassen ('Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject') -> ('Rechtsobject', 'Variabele en variabelewaarde')
+  ~ [786,800) 'de dagtekening'
+      klassen ('Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject') -> ('Rechtsobject', 'Variabele en variabelewaarde')
+  ~ [886,905) 'de betalingstermijn'
+      klassen ('Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject') -> ('Rechtsobject', 'Variabele en variabelewaarde')
+  ~ [906,915) 'zes weken'
+      klassen ('Tijdsaanduiding', 'Rechtsobject', 'Rechtssubject') -> ('Tijdsaanduiding', 'Rechtsobject')

@@ -1,0 +1,253 @@
+S0 voor/na: {'kandidaten': (260, 260), 'ankers_core': (72, 72), 'ankers_met_klasse': (72, 72)} determ: 19 19
+verloren: []
+IW01 [0,87) 'Een belastingaanslag is invorderbaar zes weken na de dagteke'
+   bewijs -: [] +: [('norm', 'LEGAL_EFFECT_PREDICATE')]
+IW01 classifier_input_gelijk False
+IW02 [543,560) 'de volgende leden'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+IW02 [0,485) 'Hoofdelijk aansprakelijk is voor de loonbelasting, de omzetb'
+   bewijs -: [] +: [('norm', 'LEGAL_EFFECT_PREDICATE')]
+IW02 classifier_input_gelijk False
+IW03 [380,394) 'de weerlegging'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+IW03 [399,412) 'het vermoeden'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+IW03 [0,375) 'Indien het lichaam niet of niet op juiste wijze aan zijn in '
+   klassen: ['Rechtsbetrekking', 'Rechtsfeit'] -> ['Rechtsbetrekking']
+IW03 classifier_input_gelijk False
+IW04 [74,87) 'de toepassing'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+IW04 [33,46) 'nadere regels'
+   klassen: ['Rechtssubject', 'Rechtsobject', 'Variabele en variabelewaarde'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+IW04 [4,25) 'ministeriële regeling'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+IW04 classifier_input_gelijk False
+AWB01 [176,200) 'een bestuurlijke sanctie'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB01 [59,132) 'een door een bestuursorgaan wegens een overtreding opgelegde'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB01 [315,324) 'herhaling'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB01 [160,174) 'herstelsanctie'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB01 [387,398) 'de gevolgen'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB01 [276,291) 'een overtreding'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB01 [403,418) 'een overtreding'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB01 [420,422) 'c.'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB01 [146,155) 'aanspraak'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB01 [37,57) 'bestuurlijke sanctie'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB01 [216,226) 'het geheel'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB01 [3,11) 'deze wet'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB01 [94,109) 'een overtreding'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB01 [329,344) 'een overtreding'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB01 classifier_input_gelijk False
+AWB02 [329,344) 'een overtreding'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB02 [3,11) 'deze wet'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB02 [315,324) 'herhaling'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB02 [276,291) 'een overtreding'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB02 [403,418) 'een overtreding'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB02 [94,109) 'een overtreding'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB02 [216,226) 'het geheel'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB02 [37,57) 'bestuurlijke sanctie'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB02 [176,200) 'een bestuurlijke sanctie'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB02 [420,422) 'c.'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB02 [160,174) 'herstelsanctie'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB02 [146,155) 'aanspraak'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB02 [387,398) 'de gevolgen'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB02 [59,132) 'een door een bestuursorgaan wegens een overtreding opgelegde'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB02 classifier_input_gelijk False
+AWB03 [59,132) 'een door een bestuursorgaan wegens een overtreding opgelegde'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB03 [3,11) 'deze wet'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB03 [276,291) 'een overtreding'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB03 [216,226) 'het geheel'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB03 [176,200) 'een bestuurlijke sanctie'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB03 [403,418) 'een overtreding'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB03 [146,155) 'aanspraak'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB03 [315,324) 'herhaling'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB03 [329,344) 'een overtreding'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB03 [387,398) 'de gevolgen'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB03 [420,422) 'c.'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB03 [37,57) 'bestuurlijke sanctie'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB03 [160,174) 'herstelsanctie'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB03 [94,109) 'een overtreding'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB03 classifier_input_gelijk False
+AWB04 [21,45) 'de eerste veertien dagen'
+   klassen: ['Tijdsaanduiding', 'Rechtsobject', 'Rechtssubject'] -> ['Tijdsaanduiding', 'Rechtsobject']
+AWB04 [46,47) '€'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB04 [55,58) 'dag'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB04 [126,127) '€'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB04 [60,92) 'de daaropvolgende veertien dagen'
+   klassen: ['Tijdsaanduiding', 'Rechtsobject', 'Rechtssubject'] -> ['Tijdsaanduiding', 'Rechtsobject']
+AWB04 [135,138) 'dag'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB04 [102,105) 'dag'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB04 [93,94) '€'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+AWB04 classifier_input_gelijk False
+WZT01 [397,410) 'één aanspraak'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+WZT01 [299,308) 'dat geval'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+WZT01 [369,377) 'deze wet'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+WZT01 [351,364) 'de toepassing'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+WZT01 [276,286) 'aanmerking'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+WZT01 [0,194) 'Indien de normpremie voor een verzekerde in het berekeningsj'
+   klassen: ['Rechtsbetrekking', 'Rechtsfeit'] -> ['Rechtsbetrekking']
+WZT01 classifier_input_gelijk False
+WZT02 [162,170) 'dat jaar'
+   klassen: ['Rechtsobject', 'Rechtssubject', 'Tijdsaanduiding'] -> ['Rechtsobject', 'Tijdsaanduiding']
+WZT02 [23,37) 'een percentage'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+WZT02 [323,333) 'aanmerking'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+WZT02 [64,83) 'het berekeningsjaar'
+   klassen: ['Rechtsobject', 'Rechtssubject', 'Tijdsaanduiding'] -> ['Rechtsobject', 'Tijdsaanduiding']
+WZT02 [101,115) 'een percentage'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+WZT02 classifier_input_gelijk False
+WZT03 [0,202) 'In afwijking van het eerste lid bedraagt de aanspraak op een'
+   klassen: ['Afleidingsregel', 'Parameter en parameterwaarde', 'Rechtsbetrekking', 'Rechtsfeit'] -> ['Afleidingsregel', 'Parameter en parameterwaarde', 'Rechtsbetrekking']
+WZT03 classifier_input_gelijk False
+RVV01 [42,47) 'licht'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+RVV01 [49,78) 'voetgangers mogen oversteken;'
+   klassen: ['Rechtsbetrekking', 'Rechtsfeit'] -> ['Rechtsbetrekking']
+RVV01 [4,22) 'voetgangerslichten'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+RVV01 [33,41) 'a. groen'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+RVV01 classifier_input_gelijk False
+RVV02 [33,52) 'b. groen knipperend'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+RVV02 [60,89) 'voetgangers mogen oversteken;'
+   klassen: ['Rechtsbetrekking', 'Rechtsfeit'] -> ['Rechtsbetrekking']
+RVV02 [4,22) 'voetgangerslichten'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+RVV02 classifier_input_gelijk False
+RVV03 [4,22) 'voetgangerslichten'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+RVV03 [48,100) 'voetgangers mogen niet meer beginnen over te steken;'
+   klassen: ['Rechtsbetrekking', 'Rechtsfeit'] -> ['Rechtsbetrekking']
+RVV03 [101,166) 'reeds overstekende voetgangers moeten zo snel mogelijk doorl'
+   klassen: ['Rechtsbetrekking', 'Rechtsfeit'] -> ['Rechtsbetrekking']
+RVV03 classifier_input_gelijk False
+RVV04 [45,69) 'voorzichtigheid geboden.'
+   klassen: ['Rechtsbetrekking', 'Rechtsfeit'] -> ['Rechtsbetrekking']
+RVV04 [28,43) 'gevaarlijk punt'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+RVV04 [0,17) 'Geel knipperlicht'
+   klassen: ['Voorwaarde', 'Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Voorwaarde', 'Rechtsobject', 'Variabele en variabelewaarde']
+RVV04 classifier_input_gelijk False
+IW-D2 [626,646) 'meer dan één termijn'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+IW-D2 [669,679) 'toepassing'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+IW-D2 [474,488) 'de dagtekening'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+IW-D2 [461,470) 'één maand'
+   klassen: ['Rechtsobject', 'Rechtssubject', 'Tijdsaanduiding'] -> ['Rechtsobject', 'Tijdsaanduiding']
+IW-D2 [493,510) 'het aanslagbiljet'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+IW-D2 [594,610) 'de eerste volzin'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+IW-D2 [522,543) 'de volgende termijnen'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+IW-D2 [0,434) 'In afwijking van het eerste lid is een voorlopige aanslag in'
+   bewijs -: [] +: [('norm', 'LEGAL_EFFECT_PREDICATE')]
+IW-D2 [544,561) 'telkens een maand'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+IW-D2 classifier_input_gelijk False
+LI-D3 [751,767) 'hetzelfde nummer'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+LI-D3 [363,372) 'een maand'
+   klassen: ['Tijdsaanduiding', 'Rechtsobject', 'Rechtssubject'] -> ['Tijdsaanduiding', 'Rechtsobject']
+LI-D3 [4,23) 'de betalingstermijn'
+   klassen: ['Rechtssubject', 'Rechtsobject', 'Variabele en variabelewaarde'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+LI-D3 [258,267) 'zes weken'
+   klassen: ['Tijdsaanduiding', 'Rechtsobject', 'Rechtssubject'] -> ['Tijdsaanduiding', 'Rechtsobject']
+LI-D3 [726,735) 'een maand'
+   klassen: ['Tijdsaanduiding', 'Rechtsobject', 'Rechtssubject'] -> ['Tijdsaanduiding', 'Rechtsobject']
+LI-D3 [471,488) 'een schrikkeljaar'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+LI-D3 [680,689) 'een maand'
+   klassen: ['Tijdsaanduiding', 'Rechtsobject', 'Rechtssubject'] -> ['Tijdsaanduiding', 'Rechtsobject']
+LI-D3 [496,506) 'welk geval'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+LI-D3 [786,800) 'de dagtekening'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+LI-D3 [579,596) 'het aanslagbiljet'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+LI-D3 [81,90) 'zes weken'
+   klassen: ['Tijdsaanduiding', 'Rechtsobject', 'Rechtssubject'] -> ['Tijdsaanduiding', 'Rechtsobject']
+LI-D3 [605,619) 'een andere dag'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+LI-D3 [442,453) 'het jaartal'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+LI-D3 [624,638) 'de laatste dag'
+   klassen: ['Rechtsobject', 'Rechtssubject', 'Tijdsaanduiding'] -> ['Rechtsobject', 'Tijdsaanduiding']
+LI-D3 [701,721) 'een betalingstermijn'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+LI-D3 [136,153) 'een aanslagbiljet'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+LI-D3 [643,659) 'de kalendermaand'
+   klassen: ['Tijdsaanduiding', 'Rechtsobject', 'Rechtssubject'] -> ['Tijdsaanduiding', 'Rechtsobject']
+LI-D3 [740,746) 'de dag'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+LI-D3 [886,905) 'de betalingstermijn'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+LI-D3 [198,207) 'één maand'
+   klassen: ['Tijdsaanduiding', 'Rechtsobject', 'Rechtssubject'] -> ['Tijdsaanduiding', 'Rechtsobject']
+LI-D3 [906,915) 'zes weken'
+   klassen: ['Tijdsaanduiding', 'Rechtsobject', 'Rechtssubject'] -> ['Tijdsaanduiding', 'Rechtsobject']
+LI-D3 [412,421) 'zes weken'
+   klassen: ['Tijdsaanduiding', 'Rechtsobject', 'Rechtssubject'] -> ['Tijdsaanduiding', 'Rechtsobject']
+LI-D3 [54,63) 'één maand'
+   klassen: ['Tijdsaanduiding', 'Rechtsobject', 'Rechtssubject'] -> ['Tijdsaanduiding', 'Rechtsobject']
+LI-D3 [28,39) 'een aanslag'
+   klassen: ['Rechtsobject', 'Variabele en variabelewaarde', 'Rechtssubject'] -> ['Rechtsobject', 'Variabele en variabelewaarde']
+LI-D3 classifier_input_gelijk False

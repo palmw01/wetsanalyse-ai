@@ -6,6 +6,7 @@
 - id: jas.subject.rollexicon
   klassen: [Rechtssubject, Rechtsobject]
   code: ROLE_NOUN
+  bewijs: zwak
   bron: "H2:28"
   versie: 1
   patroon: '(?:\b(?:de|een|elke|iedere|zijn|haar|deze|die)\s+)?\b(?:Onze\s+Ministers?|{ROL})\b'

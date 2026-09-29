@@ -71,7 +71,7 @@ def test_reviewer_bewaart_ruwe_uitvoer_en_reden_van_ongeldigheid():
 
 
 def test_de_categorie_komt_niet_in_de_reviewer_prompt():
-    k = NS(span=NS(tekst="één maand"))
+    k = NS(span=NS(tekst="één maand"), evidence=())
     t = Twijfel(label="C1", reden="CLASSIFIER_ABSTAIN", alternatieven=("Tijdsaanduiding",),
                 detail="CLASSIFIER_ONGELDIGE_KLASSE:Variabele en variabelewaarde",
                 categorie="CLASSIFIER_CONTRACT_ERROR")
