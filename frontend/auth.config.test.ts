@@ -2,7 +2,7 @@
 // SameSite=Lax) op muterende BFF-routes en de PoC-disclaimer-gate, zonder de rol-/sessie-gates
 // te breken.
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { authConfig } from "./auth.config";
 import { DISCLAIMER_COOKIE } from "./lib/disclaimer";
 
@@ -29,6 +29,27 @@ function fakeRequest(
 }
 
 const sessie = { user: { userid: "an1", role: "analist" } };
+
+describe("Lokale 3D-mock blijft begrensd tot één ontwikkelroute", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it.each([
+    ["development", "1", true], ["development", "0", false],
+    ["development", undefined, false], ["production", "1", false], ["test", "1", false],
+  ])("omgeving %s met vlag %s geeft toegang %s", async (omgeving, vlag, toegang) => {
+    vi.stubEnv("NODE_ENV", omgeving);
+    vi.stubEnv("GRAAF_MOCK", vlag);
+    expect(await authorized({ auth: null, request: fakeRequest("GET", "https://app.example/mock/graaf") })).toBe(toegang);
+  });
+
+  it.each(["/workbench", "/mock/graaf/subroute", "/api/annotatie/v2/weergave", "/api/admin/users"])(
+    "houdt %s beschermd terwijl de mock aanstaat", async (pad) => {
+      vi.stubEnv("NODE_ENV", "development");
+      vi.stubEnv("GRAAF_MOCK", "1");
+      expect(await authorized({ auth: null, request: fakeRequest("GET", `https://app.example${pad}`) })).toBe(false);
+    },
+  );
+});
 
 describe("Origin-check op muterende BFF-routes", () => {
   it("weigert een POST met een vreemde Origin (403)", async () => {

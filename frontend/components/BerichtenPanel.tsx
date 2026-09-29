@@ -13,6 +13,7 @@ import { Popover } from "@/components/ui/Popover";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Markdown } from "@/components/werkplek/Markdown";
 import { Tag } from "@/components/ui/Badge";
+import { useLokaleMock } from "@/components/graaf/LokaleMockContext";
 
 const TYPE_BALK: Record<BerichtType, string> = {
   info:         "bg-info",
@@ -56,19 +57,21 @@ function BerichtItem({ bericht }: { bericht: BerichtOut }) {
 }
 
 export function BerichtenPanel({ positie, containerClassName }: { positie?: string; containerClassName?: string } = {}) {
+  const lokaleMock = useLokaleMock();
   const [ongelezen, setOngelezen] = useState(0);
   const [berichten, setBerichten] = useState<BerichtOut[] | null>(null);
   const [laden, setLaden] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   const laadAantal = useCallback(async () => {
+    if (lokaleMock) return;
     try {
       const { aantal } = await getOngelezenAantal();
       setOngelezen(aantal);
     } catch {
       // Badge stil laten staan bij een netwerk-hapering.
     }
-  }, []);
+  }, [lokaleMock]);
 
   useEffect(() => {
     // De setState zit ín de async callback, dus pas ná het await – geen synchrone cascading
@@ -80,6 +83,7 @@ export function BerichtenPanel({ positie, containerClassName }: { positie?: stri
   }, [laadAantal]);
 
   const onOpen = useCallback(async () => {
+    if (lokaleMock) { setBerichten([]); return; }
     setLaden(true);
     try {
       // listBerichten gebruikt ?ongelezen=true – server filtert al.
@@ -95,7 +99,7 @@ export function BerichtenPanel({ positie, containerClassName }: { positie?: stri
     } finally {
       setLaden(false);
     }
-  }, []);
+  }, [lokaleMock]);
 
   const badgeLabel = ongelezen > 99 ? "99+" : String(ongelezen);
 

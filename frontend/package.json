@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "mock:graaf": "GRAAF_MOCK=1 AUTH_SECRET=wetsanalyse-local-graaf-mock-only AUTH_TRUST_HOST=true next dev --hostname 127.0.0.1 --port 3110",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -21,15 +22,19 @@
     "qrcode": "^1.5.4",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
+    "react-force-graph-3d": "^1.29.1",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "three": "^0.186.1",
+    "three-spritetext": "^1.10.0"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@types/three": "^0.186.0",
     "autoprefixer": "^10.6.1",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.3.5",

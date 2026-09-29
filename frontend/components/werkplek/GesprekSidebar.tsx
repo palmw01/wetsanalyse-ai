@@ -11,6 +11,7 @@ import { FeedbackDialoog } from "@/components/FeedbackDialoog";
 import { GesprekLijst } from "@/components/werkplek/GesprekLijst";
 import { Meter } from "@/components/ui/Meter";
 import { wisDisclaimer } from "@/lib/api";
+import { useLokaleMock } from "@/components/graaf/LokaleMockContext";
 import { verbruikSamenvatting } from "@/lib/tokenbudget";
 import type { GesprekSamenvatting, Verbruiksstand } from "@/lib/types";
 
@@ -56,13 +57,14 @@ export function GesprekSidebar({
   verbruik = null,
 }: Props) {
   const { data: session } = useSession();
+  const lokaleMock = useLokaleMock();
   const pad = usePathname();
   const annotatiesActief = pad?.startsWith("/annotaties") ?? false;
   const [menuOpen, setMenuOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const isBeheerder = session?.user?.role === "beheerder";
-  const naam = session?.user?.userid ?? session?.user?.email ?? "";
+  const naam = lokaleMock ? "Voorbeeldgebruiker" : session?.user?.userid ?? session?.user?.email ?? "";
 
   // Sluit de instellingen-popover bij Escape of een klik buiten het blok.
   useEffect(() => {
@@ -208,6 +210,7 @@ export function GesprekSidebar({
               type="button"
               onClick={() => {
                 setMenuOpen(false);
+                if (lokaleMock) { lokaleMock("Feedback versturen hoort bij de echte workbench. In deze mock kun je de 3D-graaf en annotaties uitproberen."); return; }
                 setFeedbackOpen(true);
               }}
               className="block w-full px-3 py-2.5 text-left text-sm text-ink transition-colors hover:bg-surface"
@@ -216,7 +219,7 @@ export function GesprekSidebar({
             </button>
             <button
               type="button"
-              onClick={() => void uitloggen()}
+              onClick={() => lokaleMock ? lokaleMock("Je bekijkt een lokaal voorbeeld en bent niet ingelogd. Met ‘Herstel voorbeelden’ begin je opnieuw.") : void uitloggen()}
               className="block w-full px-3 py-2.5 text-left text-sm text-fout transition-colors hover:bg-fout/10"
             >
               Uitloggen

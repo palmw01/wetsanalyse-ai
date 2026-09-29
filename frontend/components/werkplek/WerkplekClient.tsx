@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { NodeAnnotatiePaneel } from "@/components/annotaties/NodeAnnotatiePaneel";
 import { ToolSpoor } from "@/components/werkplek/ToolSpoor";
 import { mergeToolExecution, parseToolExecution, type NodeDoel, type ToolExecution, type NodeElement, type NodeWeergave } from "@/lib/annotatieNode";
@@ -64,6 +65,10 @@ import { HergebruikMelding } from "@/components/werkplek/HergebruikMelding";
 import {
   pasDemoBeslissingToe, voegDemoElementToe, wisDemoElement, zetDemoStatus, type DemoScene,
 } from "@/lib/rondleidingDemo";
+import { DEMO_SLUG } from "@/lib/rondleidingDemo";
+import { voorbeeldAntwoord, type GraafKnoop, type GraafScenario } from "@/lib/graafMock";
+
+const GraafMockPaneel = dynamic(() => import("@/components/graaf/GraafMockPaneel").then((m) => m.GraafMockPaneel), { ssr: false });
 
 // De thread-items staan in `lib/threadItem.ts`, zodat de rondleiding er een voorbeeldbeurt
 // mee kan opbouwen zonder dit component te importeren.
@@ -117,6 +122,8 @@ interface Props {
    *  enkel verzoek naar de api. De rondleiding krijgt hiervoor een eigen mount (zie `WorkbenchShell`),
    *  zodat het echte gesprek onaangeroerd blijft en na afloop gewoon weer uit de api komt. */
   demo?: DemoScene;
+  /** Interactieve lokale mock. Vereist ook `demo`; de gewone rondleiding blijft ongewijzigd. */
+  graafMock?: GraafScenario;
   /** Meldt de rondleiding dat er in de demo iets beslist is, en wát – de bevestiging in de bubbel
    *  hoort te passen bij de handeling. Daarnaast: of het artefact openstaat. */
   onDemoBeslissing?: (type: BeslissingType) => void;
@@ -141,7 +148,9 @@ export function WerkplekClient({
   initialGesprekId, onGesprekAangemaakt, onGewijzigd, beginArtefact, demo, onDemoBeslissing,
   onDemoArtefact, demoOpenSignaal = 0, demoSluitSignaal = 0, onRondleiding,
   verbruik = null, onBeurtKlaar,
+  graafMock,
 }: Props) {
+  const lokaleGraaf = !!demo && !!graafMock;
   // Budget op? Dan gaat de invoer dicht. Alleen bij een actieve begrenzing – staat die uit, dan is
   // `geblokkeerd` per definitie false en verandert er niets.
   const geblokkeerd = Boolean(verbruik?.actief && verbruik.geblokkeerd);
@@ -163,7 +172,9 @@ export function WerkplekClient({
   const [actiefId, setActiefId] = useState<string | undefined>();
   const [nodeDoel, setNodeDoel] = useState<NodeDoel>();
   const [nodeVraag, setNodeVraag] = useState<{ element: NodeElement; view: NodeWeergave }>();
-  const [artefactSlug, setArtefactSlug] = useState<string | undefined>();
+  const [artefactSlug, setArtefactSlug] = useState<string | undefined>(lokaleGraaf && graafMock !== "nieuw" ? DEMO_SLUG : undefined);
+  const [graafTab, setGraafTab] = useState<"tekst" | "graaf">(graafMock === "bronnen" ? "graaf" : "tekst");
+  const [bronVraag, setBronVraag] = useState<GraafKnoop | null>(null);
   // Zichtbaarheid van de "naar beneden"-pil: aan zodra de gebruiker weg van de bodem scrolt.
   const [toonNaarBeneden, setToonNaarBeneden] = useState(false);
   // Wat er zojuist is opgeslagen, voor schermlezers. Zonder dit gebeurt elke annotatie-wijziging
@@ -368,6 +379,7 @@ export function WerkplekClient({
   }, [beginArtefact]);
 
   async function openArtefact(slug: string, doel?: NodeDoel) {
+    if (lokaleGraaf) setGraafTab("tekst");
     if (doel?.bron_iri) { setArtefactSlug(undefined); setNodeDoel(doel); return; }
     setNodeDoel(undefined);
     // In de rondleiding staan document én artikeltekst al in het geheugen. Zonder deze grens hangt
@@ -423,6 +435,22 @@ export function WerkplekClient({
    *  @param hergebruik "opnieuw" = de jurist vraagt expliciet om een nieuwe ronde op een al
    *    geannoteerd artikel; zonder doel betekent dat niets (de agent weet dan nog niet welk). */
   async function verstuur(vast?: string, doel?: AgentDoelInvoer, hergebruik?: "opnieuw") {
+    if (lokaleGraaf) {
+      const prompt = (vast ?? invoer).trim();
+      if (!prompt) return;
+      const context = vraagOver?.el;
+      const over = context?.tekst || bronVraag?.label;
+      setItems((oud) => [...oud,
+        { id: uid(), type: "user", tekst: prompt, over },
+        { id: uid(), type: "antwoord", tekst: voorbeeldAntwoord(prompt, context),
+          bronnen: /artikel 9|lid|samenhang|bron|graaf/i.test(prompt) || context
+            ? [{ label: "Invorderingswet 1990, artikel 9", uri: "jci1.3:c:BWBR0004770&artikel=9" }] : [] },
+        ...(/^annoteer|laat.*annotaties/i.test(prompt) ? [{ id: uid(), type: "annotatie" as const, slug: DEMO_SLUG, titel: "Invorderingswet 1990 – artikel 9" }] : []),
+      ]);
+      setInvoer(""); setVraagOver(null); setBronVraag(null);
+      if (!breed) setArtefactSlug(undefined);
+      return;
+    }
     // In de rondleiding is dit venster een voorbeeld: er gaat niets naar de agent. De invoerbalk is
     // ook uitgeschakeld, dit is het vangnet voor Enter en de voorbeeldknoppen.
     if (demo) return;
@@ -951,7 +979,36 @@ export function WerkplekClient({
     .find((x): x is Extract<Item, { type: "annotatie" }> => x.type === "annotatie" && !verwijderd[x.slug])
     ?.slug;
 
-  const artefact = nodeDoel ? <NodeAnnotatiePaneel key={`${nodeDoel.bron_iri}:${nodeDoel.snapshot_id ?? ""}`} doel={nodeDoel}
+  const artefact = lokaleGraaf && artefactSlug && docs[artefactSlug] && infos[artefactSlug] ? (
+    <GraafMockPaneel breed={breed} tab={graafTab} onTab={setGraafTab}
+      doc={docs[artefactSlug]} info={infos[artefactSlug]} actiefId={actiefId} onKies={setActiefId}
+      onSluit={() => setArtefactSlug(undefined)}
+      onBeslissing={(elementId, req) => beslissing(artefactSlug, elementId, req)}
+      onEigenMarkering={(invoer) => eigenMarkering(artefactSlug, invoer)}
+      onWisEigenMarkering={(id) => wisEigenMarkering(artefactSlug, id)}
+      onStatus={(nieuweStatus) => status(artefactSlug, nieuweStatus)}
+      onVraag={(el) => {
+        setBronVraag(null); setVraagOver({ slug: artefactSlug, el });
+        setInvoer(`Waarom is dit een ${el.klasse}?`);
+        if (!breed) setArtefactSlug(undefined);
+        taRef.current?.focus();
+      }}
+      onVraagOverBron={(node) => {
+        const el = docs[artefactSlug].elementen.find((e) => e.id === node.elementId);
+        setVraagOver(el ? { slug: artefactSlug, el } : null);
+        setBronVraag(el ? null : node);
+        setInvoer(el ? `Waarom is dit een ${el.klasse}?` : `Welke verbindingen heeft ${node.label}?`);
+        if (!breed) setArtefactSlug(undefined);
+        requestAnimationFrame(() => taRef.current?.focus());
+      }}
+      onExport={async (formaat) => {
+        if (formaat !== "json") throw new Error("In deze mock kun je de voorbeeldannotaties als JSON downloaden. PDF en CSV staan in de echte workbench.");
+        const url = URL.createObjectURL(new Blob([JSON.stringify(docs[artefactSlug], null, 2)], { type: "application/json" }));
+        const link = document.createElement("a"); link.href = url; link.download = "voorbeeld-annotatie-artikel9.json"; link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }}
+    />
+  ) : nodeDoel ? <NodeAnnotatiePaneel key={`${nodeDoel.bron_iri}:${nodeDoel.snapshot_id ?? ""}`} doel={nodeDoel}
     variant={breed ? "kolom" : "side"} onSluit={() => setNodeDoel(undefined)}
     onVraag={(element, view) => {
       setVraagOver(null); setNodeVraag({ element, view });
@@ -1184,6 +1241,12 @@ export function WerkplekClient({
                     <Punten />
                   )}
                   {item.bronnen && item.bronnen.length > 0 && <Bronnen bronnen={item.bronnen} />}
+                  {lokaleGraaf && item.bronnen && item.bronnen.length > 0 && <button type="button"
+                    onClick={() => { setArtefactSlug(DEMO_SLUG); setGraafTab("graaf"); }}
+                    className="focus-ring mt-3 flex items-center gap-2 rounded-lg border border-lint/20 bg-lint/[0.03] px-3 py-2 text-xs font-medium text-lint transition-colors hover:bg-lint/10">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="m6 7 12 2M6 7l5 12m7-10-7 10" /><circle cx="6" cy="7" r="2.5" /><circle cx="18" cy="9" r="2.5" /><circle cx="11" cy="19" r="2.5" /></svg>
+                    Bekijk samenhang in 3D <span className="ml-2 text-muted">→</span>
+                  </button>}
                   {item.tekst && item.grounding && <Brongetrouwheid grounding={item.grounding} />}
                   {item.tekst && <KopieerKnop tekst={item.tekst} />}
                 </div>
@@ -1264,6 +1327,7 @@ export function WerkplekClient({
             <span>Vraag over {nodeVraag.element.klasse}: {nodeVraag.element.tekst}</span>
             <button className="underline" onClick={() => setNodeVraag(undefined)}>Loslaten</button>
           </div>}
+          {bronVraag && <div className="mb-2 flex items-center gap-2 text-xs text-muted"><span className="truncate">Vraag over {bronVraag.label}</span><button className="focus-ring rounded underline" onClick={() => setBronVraag(null)}>Loslaten</button></div>}
           {vraagOver && !bezig && (
             <div className="mb-1.5 flex flex-wrap gap-1.5">
               {vraagSuggesties(vraagOver.el).map((vraag) => (
@@ -1307,9 +1371,9 @@ export function WerkplekClient({
               onChange={(e) => setInvoer(e.target.value)}
               onKeyDown={opToets}
               rows={1}
-              disabled={Boolean(demo) || geblokkeerd}
+              disabled={(Boolean(demo) && !lokaleGraaf) || geblokkeerd}
               placeholder={
-                demo
+                lokaleGraaf ? "Stel een voorbeeldvraag over artikel 9…" : demo
                   ? "Tijdens de rondleiding staat het invoerveld stil"
                   : geblokkeerd
                     ? "Je tokenbudget is op"
@@ -1324,7 +1388,7 @@ export function WerkplekClient({
             <button
               type="button"
               onClick={() => (bezig ? void stop() : void verstuur())}
-              disabled={Boolean(demo) || geblokkeerd || (!bezig && !invoer.trim()) || stopt}
+              disabled={(Boolean(demo) && !lokaleGraaf) || geblokkeerd || (!bezig && !invoer.trim()) || stopt}
               aria-label={bezig ? (stopt ? "Bezig met stoppen" : "Stoppen") : "Versturen"}
               title={stopt ? "De agent rondt zijn huidige stap nog af" : undefined}
               className="focus-ring mb-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-paper transition-colors hover:bg-accent-soft disabled:cursor-not-allowed disabled:opacity-40"
@@ -1348,7 +1412,7 @@ export function WerkplekClient({
             </button>
           </div>
           <p className="mt-2 text-center text-xs text-faint">
-            {demo
+            {lokaleGraaf ? "Interactieve mock · antwoorden en wijzigingen blijven lokaal." : demo
               ? "Dit is een voorbeeld voor de rondleiding – er gaat niets naar de agent."
               : geblokkeerd && verbruik
                 ? `Je tokenbudget is op. Je kunt weer verder op ${resetdatum(verbruik.reset_op)}.`
