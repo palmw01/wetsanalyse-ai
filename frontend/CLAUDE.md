@@ -311,9 +311,32 @@ Daarmee slaat de agent de supervisor én de ophaal-agent over (~3-5 LLM-calls mi
 kán hij niet meer bij een andere bepaling uitkomen dan de jurist zojuist aanwees. De prompt blijft
 daarnaast bestaan als leesbare vraag in de thread, mét het bwbId erin voor het geval een beurt tóch
 zonder doel loopt. Zelfde patroon geldt voor elke andere plek waar de werkplek de bepaling al kent:
-geef `doel` mee aan `startRun`. Een **adviesvraag** draagt nooit een doel – die route annoteert niet. Er is bewust géén "annoteer ze allemaal": elke annotatie is
-een eigen document met een eigen review. De kandidaten zitten niet in het berichtcontract van de api;
-wat na een herlaadbeurt overblijft is de opsomming uit `kandidatenAlsTekst`.
+geef `doel` mee aan `startRun`. Een **adviesvraag** draagt nooit een doel – die route annoteert niet. Bij een onderwerp is er bewust géén "annoteer ze allemaal": dat zijn
+bepalingen uit verschillende artikelen, en meerdere artikelen samen is een werkgebied. De kandidaten
+zitten niet in het berichtcontract van de api; wat na een herlaadbeurt overblijft is de opsomming uit
+`kandidatenAlsTekst`.
+
+### Kiezen binnen één artikel, en de reeks
+
+Wijst de vraag een artikel met leden aan (of een beleidsregel met subbepalingen, zoals Leidraad 9),
+dan draagt het `kandidaten`-event een **`keuze`** (`parseKeuze`) en per optie `bron_iri`, `label`,
+`stand` en eventueel `gekozen`. De thread toont dan **`KeuzeKaart`** in plaats van de kandidatenlijst:
+een listbox in Claude-stijl, focus erin bij verschijnen. **Enter of klik** annoteert één onderdeel
+(een gewone beurt met `doelVanKandidaat`, dat de `bron_iri` meeneemt); **spatie of het vinkje**
+selecteert er meer, en *Annoteer geselecteerde* start **één run met `doelen`** (`doelenVanKandidaten`).
+De stand per onderdeel (nieuw / te beoordelen / afgerond) staat erbij, en onderaan wat de keuze
+inhoudt, want elk onderdeel kost budget.
+
+Die run is een **reeks** (graph-qa `agent/reeks.py`): per onderdeel de gewone beurt, elk met een eigen
+laag. De stroom komt ingedeeld binnen – `reeks`, `onderdeel` en `onderdeel: <bron_iri>` op elk event
+ertussen – en `lib/api.ts` geeft die events ruw door aan `onReeksEvent`, zodat een fout bij één
+onderdeel de stroom niet afbreekt. `lib/reeks.ts` (`verwerkReeksEvent`, getest zonder DOM) maakt er
+het **`ReeksBlok`** van: per onderdeel een regel, het lopende open met zijn eigen "zo is dit tot stand
+gekomen", een klaar onderdeel ingeklapt met *Open ›*. Na herladen komt het blok terug uit de
+berichten: graph-qa bewaart per onderdeel een bericht met `reeks: {run_id, index, totaal, ouder}`
+(`reeksUitBerichten`). Twee dingen om niet te breken: een afgeronde reeks herken je aan
+`reeks.run_id` (de berichten zelf dragen `<run>.<n>`), en bij opnieuw aanhaken aan een lopende reeks
+gaat het gehydrateerde blok eerst weg – de eventlog speelt het geheel opnieuw af.
 
 ### De artefact-werkbank
 
@@ -869,7 +892,9 @@ tokens/secrets/inhoud loggen. In de vitest-node-omgeving wordt `server-only` ges
   (`httpOnly`/`sameSite=lax`/`secure`) staan expliciet in `authConfig` vastgelegd.
 - **Geen keuzemenu's – het is chat op de graaf.** De werkplek kiest geen wet uit een lijst: je stelt
   je vraag/annotatie-opdracht en de agent vindt de bepaling in de graaf (het `doel`-event levert
-  `bwbId`/`artikel`/`citeertitel`). Er is dus geen wet-dropdown of wet-catalogus meer.
+  `bwbId`/`artikel`/`citeertitel`). Er is dus geen wet-dropdown of wet-catalogus meer. Een keuze die
+  de agent **na** je vraag voorlegt, uit wat hij in de graaf vond (kandidaten, `KeuzeKaart`), is
+  daarmee verenigbaar: dat is een antwoord, geen menu.
 - **Huisstijl via tokens, niet hardcoded.** Kleur en typografie lopen via de tokens in
   `app/globals.css` + `tailwind.config.ts` (en `lib/jas.ts` voor de JAS-badges) – strooi
   geen losse hex-waarden door componenten. Het officiële logo-asset (`public/belastingdienst-logo.svg`)

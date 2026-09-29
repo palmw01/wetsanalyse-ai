@@ -104,6 +104,10 @@ export function doelVanKandidaat(k: AgentKandidaat): AgentDoelInvoer {
     artikel: k.artikel,
     ...(k.lid ? { lid: k.lid } : {}),
     ...(k.citeertitel ? { citeertitel: k.citeertitel } : {}),
+    // Een optie van de keuzekaart wijst de bronnode zelf aan: dan valt er niets meer te zoeken,
+    // ook niet bij twee artikelen met hetzelfde nummer (bijvoorbeeld in een bijlage).
+    ...(k.bron_iri ? { bron_iri: k.bron_iri } : {}),
+    ...(k.label ? { label: k.label } : {}),
   };
 }
 

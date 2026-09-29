@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:browser": "node scripts/test-annotatie-nodes.mjs && node scripts/test-samenhang.mjs"
+    "test:browser": "node scripts/test-annotatie-nodes.mjs && node scripts/test-samenhang.mjs && node scripts/test-reeks.mjs"
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",

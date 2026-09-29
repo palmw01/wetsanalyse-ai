@@ -30,7 +30,9 @@ import type {
   AgentDoel,
   AgentHergebruik,
   AgentKandidaat,
+  AgentKeuze,
   AgentRun,
+  KandidaatStand,
   Alternatief,
   Bron,
   RunStart,
@@ -146,8 +148,31 @@ export const parseKandidaten = lijst<AgentKandidaat>((v) => {
     ...(optioneel(v.lid) !== undefined ? { lid: optioneel(v.lid) } : {}),
     ...(optioneel(v.citeertitel) !== undefined ? { citeertitel: optioneel(v.citeertitel) } : {}),
     ...(optioneel(v.fragment) !== undefined ? { fragment: optioneel(v.fragment) } : {}),
+    ...(eis(v.bron_iri) ? { bron_iri: eis(v.bron_iri) } : {}),
+    ...(optioneel(v.nummer) !== undefined ? { nummer: optioneel(v.nummer) } : {}),
+    ...(optioneel(v.soort) !== undefined ? { soort: optioneel(v.soort) } : {}),
+    ...(optioneel(v.label) !== undefined ? { label: optioneel(v.label) } : {}),
+    ...(parseStand(v.stand) ? { stand: parseStand(v.stand) } : {}),
+    ...(v.gekozen === true ? { gekozen: true } : {}),
   };
 });
+
+const STANDEN: readonly string[] = ["nieuw", "te_beoordelen", "beoordeeld", "afgerond"];
+
+/** De stand van een onderdeel. Een onbekende status is geen stand: liever geen badge dan een
+ *  verkeerde. */
+export const parseStand: Parser<KandidaatStand> = (v) =>
+  isObject(v) && typeof v.status === "string" && STANDEN.includes(v.status)
+    ? { status: v.status as KandidaatStand["status"], voorstellen: getal(v.voorstellen),
+        te_beoordelen: getal(v.te_beoordelen) }
+    : undefined;
+
+/** Wat voor keuze de kandidaten vormen. Ontbreekt of onbekend → `undefined`: dan is het de
+ *  bestaande onderwerpkeuze, en dat is het veilige gedrag. */
+export const parseKeuze: Parser<AgentKeuze> = (v) =>
+  isObject(v) && (v.soort === "onderdeel" || v.soort === "bepaling")
+    ? { soort: v.soort, ouder: tekst(v.ouder), alles: vlag(v.alles) }
+    : undefined;
 
 /** Lex hergebruikte (een deel van) de gedeelde laag. De leden komen als `{lid, hash, iri}` binnen;
  *  voor de werkplek telt alleen welk lid. Zonder slug is het event onbruikbaar: dan is er niets om

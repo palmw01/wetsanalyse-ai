@@ -422,6 +422,31 @@ export interface AgentKandidaat {
   lid?: string;
   citeertitel?: string;
   fragment?: string;
+  /** Bij een keuze uit de onderdelen van één bepaling (`keuze` op het event): de bronnode zelf,
+   *  zodat de gekozen beurt niets meer hoeft op te zoeken. */
+  bron_iri?: string;
+  nummer?: string;
+  soort?: string;
+  label?: string;
+  /** Hoe ver het werk aan dit onderdeel is; ontbreekt als de api het niet betrouwbaar wist. */
+  stand?: KandidaatStand;
+  /** De vraag noemde dit onderdeel al ("lid 1 en 3"): vooraf aangevinkt. */
+  gekozen?: boolean;
+}
+
+export interface KandidaatStand {
+  status: "nieuw" | "te_beoordelen" | "beoordeeld" | "afgerond";
+  voorstellen: number;
+  te_beoordelen: number;
+}
+
+/** Wat voor keuze de kandidaten vormen. Zonder dit veld: bepalingen bij een ONDERWERP-vraag.
+ *  `onderdeel` = leden of subbepalingen van één bepaling (meerdere kiezen mag, `alles` biedt ze
+ *  allemaal); `bepaling` = een dubbelzinnig nummer, precies één kiezen. */
+export interface AgentKeuze {
+  soort: "onderdeel" | "bepaling";
+  ouder: string;
+  alles: boolean;
 }
 
 /** Context bij een adviesvraag of een annotatie: waar gaat het over. */
@@ -531,7 +556,18 @@ export interface Bericht {
   /** Van welke agent-run deze beurt de uitkomst is; de api gebruikt het als idempotentiesleutel,
    *  zodat twee meekijkende tabbladen niet elk hun eigen kopie wegschrijven. */
   run_id: string;
+  /** Dit bericht is één onderdeel van een reeks (meerdere leden van één artikel in één run). De
+   *  werkplek toont de berichten met dezelfde `reeks.run_id` samen als één reeksblok. */
+  reeks?: ReeksPlek | null;
   created?: string;
+}
+
+/** Spiegelt `ReeksPlek` in api/app/gesprek_contracts.py. */
+export interface ReeksPlek {
+  run_id: string;
+  index: number;
+  totaal: number;
+  ouder: string;
 }
 
 /** Eén chat-gesprek met zijn berichten (volledig geladen). */

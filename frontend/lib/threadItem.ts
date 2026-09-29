@@ -4,8 +4,9 @@
 // moet kunnen opbouwen (`lib/rondleidingDemo.ts`) zonder dat `lib/` een component hoeft te
 // importeren – dezelfde reden waarom de rest van de rekenkern in `lib/` woont.
 
+import type { Reeks } from "./reeks";
 import type {
-  AgentDoelInvoer, AgentGrounding, AgentHergebruik, AgentKandidaat, Bron,
+  AgentDoelInvoer, AgentGrounding, AgentHergebruik, AgentKandidaat, AgentKeuze, Bron,
 } from "./types";
 
 export type ThreadItem = { tool_executions?: import("./annotatieNode").ToolExecution[] } & (
@@ -29,4 +30,7 @@ export type ThreadItem = { tool_executions?: import("./annotatieNode").ToolExecu
       annotatie_doel?: import("./annotatieNode").NodeDoel;
     }
   // De vraag noemde een onderwerp: de agent vond bepalingen, de jurist kiest er één.
-  | { id: string; type: "kandidaten"; tekst: string; kandidaten: AgentKandidaat[] });
+  // `keuze` gezet: de onderdelen van één bepaling (leden, subbepalingen) of een dubbelzinnig nummer.
+  | { id: string; type: "kandidaten"; tekst: string; kandidaten: AgentKandidaat[]; keuze?: AgentKeuze }
+  // Meerdere onderdelen van één artikel in één run: per onderdeel een regel met zijn eigen spoor.
+  | { id: string; type: "reeks"; reeks: Reeks; tekst?: string });
