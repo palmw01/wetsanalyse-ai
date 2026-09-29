@@ -14,6 +14,7 @@ detectie:
   CALCULATION_CALENDAR_POSITION: {naam: "Gelijke kalenderpositie", uitleg: "De vervaldag wordt beschreven aan de hand van hetzelfde dagnummer als een andere datum."}
   TEMPORAL_DESCRIPTION: {naam: "Beschreven datum", uitleg: "Een dag of tijdstip met een beperkende omschrijving; de omschrijving hoort bij het fragment."}
   CONDITIONAL_ELLIPSIS: {naam: "Verkorte voorwaarde", uitleg: "Een nominale bepaling zoals bij afwijkende omstandigheden begrenst de bijbehorende uitspraak."}
+  LEGAL_EFFECT_PREDICATE: {naam: "Rechtsgevolg in de norm", uitleg: "Het normsegment noemt een rechtsgevolg (ontstaan, vervallen, verschuldigd, invorderbaar …); pas dan is Rechtsfeit een hypothese."}
   TEMPORAL_KERNEL: {naam: "Kern van dezelfde tijdsfunctie", uitleg: "Deze exacte korte grens is als kern van een langere tijdsaanduiding geregistreerd. Het bewijs blijft herleidbaar."}
   TEMPORAL_MONTH: {naam: "Benoemde maand", uitleg: "Een maand in een temporele bepaling, zonder een ontbrekend jaar aan te vullen."}
   TEMPORAL_RECURRENCE: {naam: "Relatieve of herhaalde termijn", uitleg: "Een duur eerder of later, eventueel telkens herhaald; het referentiepunt blijft te beoordelen."}

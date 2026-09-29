@@ -217,3 +217,16 @@ VOORZETSELUITDRUKKING:
   - met toepassing van
   - ter uitvoering van
   - in overeenstemming met
+# Rechtsgevolg in een normsegment (H2:53): alleen dan biedt NormDetector ook Rechtsfeit aan (audit D03).
+RECHTSGEVOLG:
+  - ontstaat
+  - ontstaan
+  - vervalt
+  - vervallen
+  - eindigt
+  - eindigen
+  - verschuldigd
+  - invorderbaar
+  - "re:gaa?t\\s+over"
+  - "re:treedt\\s+in\\s+werking"
+  - "re:van\\s+rechtswege"

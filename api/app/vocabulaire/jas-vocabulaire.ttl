@@ -191,6 +191,11 @@
     skos:prefLabel "Opsommingsonderdeel"@nl ;
     jas:codeWaarde "ENUMERATED_NP" .
 
+<urn:jas-ns:code:LEGAL_EFFECT_PREDICATE> a jas:Detectiecode ;
+    skos:definition "Het normsegment noemt een rechtsgevolg (ontstaan, vervallen, verschuldigd, invorderbaar …); pas dan is Rechtsfeit een hypothese."@nl ;
+    skos:prefLabel "Rechtsgevolg in de norm"@nl ;
+    jas:codeWaarde "LEGAL_EFFECT_PREDICATE" .
+
 <urn:jas-ns:code:MEANING_TERM> a jas:Detectiecode ;
     skos:definition "Het begrip dat in een begripsbepaling een betekenis krijgt."@nl ;
     skos:prefLabel "Begrip met betekenis"@nl ;
@@ -893,5 +898,5 @@
     dcterms:source "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md" ;
     skos:prefLabel "Juridisch Analyseschema"@nl ;
     jas:jasVersie "1.0.10" ;
-    jas:vocabulaireVersie "58be468989bd" .
+    jas:vocabulaireVersie "6cee729368a3" .
 

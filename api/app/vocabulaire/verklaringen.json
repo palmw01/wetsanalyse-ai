@@ -108,6 +108,10 @@
       "naam": "Opsommingsonderdeel",
       "uitleg": "Een naamwoordgroep als onderdeel van een opsomming."
     },
+    "LEGAL_EFFECT_PREDICATE": {
+      "naam": "Rechtsgevolg in de norm",
+      "uitleg": "Het normsegment noemt een rechtsgevolg (ontstaan, vervallen, verschuldigd, invorderbaar …); pas dan is Rechtsfeit een hypothese."
+    },
     "LEGAL_FICTION": {
       "naam": "Wettelijk vermoeden of fictie",
       "uitleg": "'Wordt vermoed dat', 'wordt geacht': de wet leidt een feit af."
@@ -769,5 +773,5 @@
       "uitleg": "Waarschuwing: hetzelfde fragment kreeg twee klassen."
     }
   },
-  "vocabulaire_versie": "58be468989bd"
+  "vocabulaire_versie": "6cee729368a3"
 }

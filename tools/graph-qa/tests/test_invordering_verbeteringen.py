@@ -211,3 +211,29 @@ def test_distributieve_vervolgfunctie_zonder_casuswoorden(parser):
                 "een week daarna.", parser).kandidaten
     n = [k.span.tekst for k in ks if any(e.code == "NOMINALIZED_ACTION" for e in k.evidence)]
     assert n and all("iedere" not in t for t in n)
+
+
+# --- WP3 baseline: D03/D01 normsignaal ---------------------------------------------------------
+
+@pytest.mark.parametrize("tekst,feit", [
+    ("Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.", True),
+    ("De belanghebbende kan verzoeken om uitstel.", False),
+    ("Voetgangers mogen oversteken.", False),
+    ("De vordering vervalt indien de schuldenaar niet binnen een maand moet betalen.", True),
+])
+def test_normsignaal_biedt_rechtsfeit_alleen_met_rechtsgevolg(tekst, feit):
+    ks = [k for k in detect(tekst).kandidaten if any(e.code == "NORMATIVE_PREDICATE" for e in k.evidence)]
+    assert ks and all(("Rechtsfeit" in k.possible_classes) == feit for k in ks)
+    assert all(any(e.code == "LEGAL_EFFECT_PREDICATE" for e in k.evidence) == feit for k in ks)
+
+
+def test_generieke_np_toetst_normcontext(parser):
+    zonder = detect("Het besluit wordt bekendgemaakt aan de aanvrager van de vergunning.", parser).kandidaten
+    np = [k for k in zonder if any(e.code in {"OBJECT_NP", "SUBJECT_NP"} for e in k.evidence)]
+    assert np and not any("Rechtssubject" in k.possible_classes for k in np
+                          if not any(e.code == "ROLE_NOUN" for e in k.evidence))
+    assert all(e.regel in {"jas.object.np", "jas.subject.np"} for k in np for e in k.evidence
+               if e.code in {"OBJECT_NP", "SUBJECT_NP"})
+    met = detect("De vereniging moet het besluit bekendmaken.", parser).kandidaten
+    assert any(e.regel == "jas.subject.np_bij_normatief_predicaat" and "Rechtssubject" in k.possible_classes
+               for k in met for e in k.evidence)

@@ -61,11 +61,22 @@ def _kandidaat(bron: BronTekst, grenzen: list[tuple[tuple[int, int], str]], klas
 
 # --- Rechtsbetrekking: lexicaal, werkt ook zonder parse --------------------------------------
 
+def _norm_in(stuk: str) -> re.Match | None:
+    """Modaal hulpwerkwoord of normatief predicaat (H2:46); gedeeld door norm- en NP-detectie."""
+    return (re.search(rf"\b(?:{woordenlijsten()['MODAAL']})\b", stuk, re.IGNORECASE)
+            or re.search(rf"\b(?:{woordenlijsten()['NORMATIEF']})\b", stuk, re.IGNORECASE))
+
+
+def _normsegmenten(tekst: str) -> list[tuple[int, int]]:
+    """Beschermde segmenten met een normatief predicaat; zelfde grenzen als NormDetector."""
+    return [(g.start, g.eind) for g in analyseer_grenzen(tekst).segmenten(tekst) if _norm_in(tekst[g.start:g.eind])]
+
+
 class NormDetector:
     REGELS: tuple[str, ...] = ("jas.betrekking.modaal_predicaat", "jas.betrekking.vaste_uitdrukking",
-                               "jas.betrekking.normatief_adjectief")
+                               "jas.betrekking.normatief_adjectief", "jas.feit.rechtsgevolg_in_norm")
     naam = "norm"
-    versie = "2"  # gedeelde beschermde tekstgrenzen
+    versie = "3"  # D03: Rechtsfeit alleen met een rechtsgevolg in het segment
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         tekst = bron.tekst
@@ -76,7 +87,7 @@ class NormDetector:
             s, e = segment.start, segment.eind
             stuk = tekst[s:e]
             modaal = re.search(rf"\b(?:{woordenlijsten()['MODAAL']})\b", stuk, re.IGNORECASE)
-            normatief = re.search(rf"\b(?:{woordenlijsten()['NORMATIEF']})\b", stuk, re.IGNORECASE)
+            normatief = None if modaal else _norm_in(stuk)
             if not (modaal or normatief):
                 continue
             # Delegatieformule ('kunnen … regels worden gesteld') is Delegatiebevoegdheid (H2:127).
@@ -92,7 +103,12 @@ class NormDetector:
             zin = next(((z.start, z.eind) for z in zinnen if z.start <= s2 and e2 <= z.eind), (s2, e2))
             grenzen = [((s2, e2), "segment"), (_trim(tekst, *zin), "zin")]
             bewijs = [Evidence(detector=self.naam, code="NORMATIVE_PREDICATE", regel=regel, detail=treffer.group())]
-            kandidaten.append(_kandidaat(bron, grenzen, [BETR, FEIT], bewijs))
+            # Een normsignaal bewijst op zichzelf geen rechtsfeit: dat vraagt een rechtsgevolg (H2:53).
+            gevolg = re.search(rf"\b(?:{woordenlijsten()['RECHTSGEVOLG']})\b", stuk, re.IGNORECASE)
+            if gevolg:
+                bewijs.append(Evidence(detector=self.naam, code="LEGAL_EFFECT_PREDICATE",
+                                       regel="jas.feit.rechtsgevolg_in_norm", detail=gevolg.group()))
+            kandidaten.append(_kandidaat(bron, grenzen, [BETR, FEIT] if gevolg else [BETR], bewijs))
         return resultaat(self, bron, kandidaten)
 
 
@@ -138,15 +154,16 @@ class NaamwoordgroepDetector:
     REGELS: tuple[str, ...] = (
         "jas.parameter.beschrijving", "jas.variabele.uitvoer_van_afleiding", "jas.variabele.eigenschap_np",
         "jas.subject.voornaamwoord", "jas.subject.rollexicon", "jas.subject.np_bij_normatief_predicaat",
-        "jas.object.opsommingsonderdeel", "jas.object.np_bij_normatief_predicaat")
+        "jas.subject.np", "jas.object.opsommingsonderdeel", "jas.object.np_bij_normatief_predicaat", "jas.object.np")
     naam = "naamwoordgroep"
-    versie = f"1+verwijzing.{VERWIJZING_VERSIE}"
+    versie = f"2+verwijzing.{VERWIJZING_VERSIE}"  # D01: normcontext getoetst, niet verondersteld
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         a, reden = _parse_of_reden(bron)
         if a is None:
             return resultaat(self, bron, overgeslagen=True, reden=reden)
         kandidaten = []
+        normen = _normsegmenten(bron.tekst)
         for t in a.tokens:
             if not _nominaal(a, t) or t.deprel in {"fixed", "flat", "flat:name", "compound", "nmod:poss"}:
                 continue
@@ -164,12 +181,18 @@ class NaamwoordgroepDetector:
             if not grenzen or _in_verwijzing(bron, *grenzen[0][0]):
                 continue
             lemma = (t.lemma or t.tekst).lower()
-            bewijs, klassen = self._classificeer_signaal(a, t, lemma)
+            norm = any(s <= t.start < e for s, e in normen)
+            bewijs, klassen = self._classificeer_signaal(a, t, lemma, norm)
             kandidaten.append(_kandidaat(bron, grenzen, klassen, bewijs))
         return resultaat(self, bron, kandidaten)
 
-    def _classificeer_signaal(self, a: LinguisticAnalysis, t: Token, lemma: str):
-        """Welke klassen mogelijk zijn en waarom – signalen uit het profiel, geen besluit."""
+    def _classificeer_signaal(self, a: LinguisticAnalysis, t: Token, lemma: str, norm: bool = True):
+        """Welke klassen mogelijk zijn en waarom – signalen uit het profiel, geen besluit.
+
+        Generieke onderwerp- en objectsignalen heten alleen 'bij normatief predicaat' als dat predicaat
+        in hetzelfde beschermde segment staat (audit D01). Zonder normcontext is een lijdend onderwerp
+        of een object geen dragende partij: Rechtssubject vervalt daar als hypothese.
+        """
         rel = t.deprel
         if _lijst("PARAMETERWOORD").match(lemma) or _lijst("PARAMETERWOORD").match(t.tekst):
             return [Evidence(detector=self.naam, code="PARAMETER_NOUN", regel="jas.parameter.beschrijving",
@@ -187,11 +210,16 @@ class NaamwoordgroepDetector:
             return [Evidence(detector=self.naam, code="ROLE_NOUN", regel="jas.subject.rollexicon",
                              relatie=rel, detail=t.tekst)], [SUBJ, OBJ]
         if rel in _ONDERWERP:
-            return [Evidence(detector=self.naam, code="SUBJECT_NP", regel="jas.subject.np_bij_normatief_predicaat",
-                             relatie=rel, detail=t.tekst)], [SUBJ, OBJ, VAR]
+            regel = "jas.subject.np_bij_normatief_predicaat" if norm else "jas.subject.np"
+            klassen = [OBJ, VAR] if (not norm and rel == "nsubj:pass") else [SUBJ, OBJ, VAR]
+            return [Evidence(detector=self.naam, code="SUBJECT_NP", regel=regel,
+                             relatie=rel, detail=t.tekst)], klassen
         if rel == "conj":
             return [Evidence(detector=self.naam, code="ENUMERATED_NP", regel="jas.object.opsommingsonderdeel",
                              relatie=rel, detail=t.tekst)], [OBJ, SUBJ, VAR]
+        if not norm:
+            return [Evidence(detector=self.naam, code="OBJECT_NP", regel="jas.object.np",
+                             relatie=rel, detail=t.tekst)], [OBJ, VAR]
         return [Evidence(detector=self.naam, code="OBJECT_NP", regel="jas.object.np_bij_normatief_predicaat",
                          relatie=rel, detail=t.tekst)], [OBJ, VAR, SUBJ]
 

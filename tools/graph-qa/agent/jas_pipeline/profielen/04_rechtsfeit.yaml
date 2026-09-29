@@ -6,12 +6,14 @@ syntactic_signals:
   - "nominalisatie + 'van' + naamwoordgroep ('indienen van een bezwaarschrift', 'toekennen van een subsidie') – H2:55"
   - "actieve werkwoordsvorm in een bijzin die een gevolg inleidt ('nadat …', 'zodra …', 'door …')"
 lexical_signals:
+  - "rechtsgevolg in een normsegment: ontstaat, vervalt, eindigt, is verschuldigd, is invorderbaar, gaat over, treedt in werking, van rechtswege (RECHTSGEVOLG; zonder zo'n gevolg biedt een normsignaal geen Rechtsfeit aan, audit D03)"
   - "handelings- of gebeurteniswoorden: indienen, toekennen, horen, vaststellen, betalen, overlijden, verstrijken, dagtekening, bekendmaking"
 semantic_signals:
   - "handeling, gebeurtenis of tijdsverloop die een juridische toestand wijzigt (H2:53)"
 structural_signals: []
 candidate_rules:
   - {id: jas.feit.nominalisatie_van, status: geïmplementeerd}
+  - {id: jas.feit.rechtsgevolg_in_norm, status: geïmplementeerd}
   - {id: jas.feit.gebeurtenisbijzin, status: gepland}
 confusable_classes:
   - {klasse: Voorwaarde, reden: "een feit als eis voor een rechtsgevolg ('indien … betaalt')"}
