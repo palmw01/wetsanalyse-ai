@@ -358,7 +358,7 @@ alleen als de api de capability `samenhang` meldt (`samenhangBeschikbaar()`, é�
 - **Data**: `GET /v1/annotatie/samenhang` (`api/app/samenhang.py`) via de v2-proxy. Het antwoord
   bestrijkt het artikel waartoe het doel behoort: bronstructuur, actuele markeringen met hun
   JAS-klasse, en de **letterlijke** verwijzingen uit de graaf, één stap uit en in. Een doel buiten
-  het artikel is een **randknoop** (draadmodel, gedempt); *Artikel bijladen* haalt dat artikel erbij
+  het artikel is een **randknoop** (draadmodel, gedempt); *Artikel openen* haalt dat artikel erbij
   als eigen cluster. Een niet-geïmporteerd doel heet **extern** en is niet uit te klappen. Er wordt
   niets afgeleid: afstand en positie betekenen juridisch niets, en dat staat ook in beeld.
 - **Rekenkern in `lib/samenhang.ts`** (samenvoegen, layout, zichtbaarheid en filters, `bronDoel`
@@ -369,23 +369,38 @@ alleen als de api de capability `samenhang` meldt (`samenhangBeschikbaar()`, é�
 - **Weergave naar de CGM-viewer**: straal per soort, gebogen verbindingen met pijl en breedte per
   soort, alles buiten de selectie gedimd, vaste labels alleen voor selectie en buren (de rest als
   tooltip bij hover, `.samenhang-tip` in `globals.css`, tekst altijd ge-escaped), camera vliegt naar
-  de gekozen knoop, klik op de achtergrond heft de selectie op, zwevende legenda.
+  de gekozen knoop.
 - **three.js laadt lui**: `SamenhangGraaf` en daarin `GraafCanvas` via `next/dynamic` met
-  `ssr: false`. Zonder WebGL of na contextverlies blijven de knopenlijst (de toetsenbordroute),
-  het detail en *Open brontekst* bruikbaar.
+  `ssr: false`. Zonder WebGL of na contextverlies blijven zoeken, Lagen en de inspector bruikbaar.
+- **Bediening als een kaart-app** (sinds 29 sep 2026; daarvoor een werkbalk met vier knoppen,
+  filters in de kop en tot vijf detailknoppen). In de graaf doe je wat je kunt aanwijzen: **klik**
+  kiest (camera vliegt erheen), **dubbelklik** toont/verbergt de verbindingen of opent een randknoop
+  (`isDubbelklik`, 300 ms – de bibliotheek kent alleen `onNodeClick`), **achtergrond** heft de
+  selectie op, **hover** geeft de naam. De rest staat op één vaste plek per vraag, zwevend in het
+  canvas: *waar ben ik?* – **zoeken** linksboven (`GraafZoek`, combobox over álle knopen, ook
+  verborgen; lege focus = wat in beeld staat) en **Omgeving | Alles** rechtsboven (terug naar
+  Omgeving herstelt je eerdere stand); *wat zie ik?* – **Lagen** linksonder (`GraafLagen`: filters
+  en legenda in één); *beeld* – **Alles in beeld / in- / uitzoomen** rechtsonder (`GraafBeeld`); en
+  een eenmalige **hint** (`GraafHint`, `localStorage` in try/catch).
+- **Wat is dit? – de inspector** (`GraafInspector`): kop met soort en naam, *Centreren* en ✕, en
+  precies **één gevulde hoofdactie** (`hoofdactie()` in `lib/samenhang.ts`): *Toon in tekst* (bron of
+  markering binnen het artikel), *Artikel openen* (geïmporteerde randknoop), *Toon/Verberg
+  markeringen* (klasse), niets bij extern. Daarnaast rustig *Vraag Lex* (niet bij een klasse) en de
+  schakelaar *Verbindingen tonen (n)* – dezelfde handeling als dubbelklik, weg als er niets te tonen
+  valt. Relaties per soort als uitklapgroepen (`relatieGroepen`). Breed staat hij rechts, smal onder
+  de graaf en ingeklapt tot kop + hoofdactie, zodat het canvas zijn hoogte houdt.
+- **Een JAS-klasse kiezen toont haar markeringen** (met de lijnen), en een markering die alleen
+  dankzij de keuze in de tekst in beeld stond blijft staan als je iets anders kiest – anders
+  verdween de klasse onder je muis en leek er niets meer geselecteerd.
 - **Eén selectie**: de gekozen markering is in tekst en graaf dezelfde (`actiefId` van het paneel).
-  *Open brontekst* wisselt naar de tekst en scrolt naar het lid (`data-lid` op de blokken van
-  `DocumentPaneel`). *Vraag Lex hierover* gaat voor een markering via de bestaande `onVraag`; voor
-  een bron zet het een gewone vraag met vindplaats klaar – geen eigen agentcontract.
-- **Vergroten** gebruikt de `Dialog`-variant `fullscreen`; Escape verkleint eerst en sluit daarna.
-- **Knoppen, bewust gekozen.** Werkbalk (hele graaf): *Alles in beeld* (camera past het zichtbare
-  in), *Knopenlijst* (zoeken + toetsenbordroute), *Legenda*, en *Alles tonen* ⇄ *Minder tonen*
-  (terug naar de stand van daarvoor). Detail (gekozen knoop), alleen als ze iets doen – niets staat
-  grijs: *Focus* (camera naar de knoop, ook na eigen draaien), *Toon verbindingen (+n)* ⇄ *Verberg
-  verbindingen*, *Artikel bijladen* (alleen randknoop), *Open brontekst* (bron of markering binnen
-  het artikel), *Vraag Lex hierover* (niet bij een klasse).
+  *Toon in tekst* wisselt naar de tekst en scrolt naar het lid (`data-lid` op de blokken van
+  `DocumentPaneel`). *Vraag Lex* gaat voor een markering via de bestaande `onVraag`; voor een bron
+  zet het een gewone vraag met vindplaats klaar – geen eigen agentcontract.
+- **Vergroten** gebruikt de `Dialog`-variant `fullscreen`. De stand staat daarom in de hook
+  `useSamenhangStand` in het paneel, niet in de graaf: een variantwissel remount de inhoud.
+  **Escape** van binnen naar buiten: zoeklijst → Lagen → selectie → verkleinen → sluiten.
 - **Live bij een annotatiewijziging**: `NodeAnnotatiePaneel` roept na elke mutatie (via `muteer`,
-  en `status`) `graafStand.ververs()` aan. Die haalt elk geladen deel opnieuw op; `bouwGraaf(delen,
+  en `status`) `graafStand.ververs()` aan. Die haalt elk geladen deel opnieuw op (per artikel vervangen, zodat een intussen geopend artikel blijft staan); `bouwGraaf(delen,
   vorige)` houdt bestaande knopen op hun plek, zodat alleen de nieuwe markering verschijnt.
 - Browserregressie: `scripts/test-samenhang.mjs` (gemockte BFF, zie de kop van het script).
 

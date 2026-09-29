@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bouwGraaf, bronDoel, uitklapbaar, voegSamen, zichtbareGraaf, type Samenhang, type SamenhangKnoop } from "./samenhang";
+import { bouwGraaf, bronDoel, hoofdactie, isDubbelklik, relatieGroepen, samenvatting, uitklapbaar, voegSamen, zichtbareGraaf, zoekKnopen, type Samenhang, type SamenhangKnoop } from "./samenhang";
 
 const LAW = "urn:bwb:BWBR0004770", ART = `${LAW}:artikel:9`, L1 = `${ART}:lid:1`, L2 = `${ART}:lid:2`;
 const A10 = `${LAW}:artikel:10`;
@@ -174,5 +174,43 @@ describe("bouwGraaf na een annotatiewijziging", () => {
     const na = bouwGraaf([samenhang()], voor);
     expect(na.nodes.some((n) => n.id === "element:e2")).toBe(false);
     for (const n of na.nodes) expect(plek(na, n.id)).toEqual(plek(voor, n.id));
+  });
+});
+
+describe("bediening", () => {
+  const g = bouwGraaf([samenhang()]);
+  it("zoekt over alle knopen, diakritiek-ongevoelig, begin vóór bevat", () => {
+    const benoemd = bouwGraaf([samenhang(ART, { knopen: [
+      knoop(LAW, "regeling", { label: "Invorderingswet 1990" }), knoop(ART, "artikel", { label: "Artikel 9" }),
+      knoop(L1, "lid", { lid: "1", artikel: "9" }), knoop(L2, "lid", { lid: "2", artikel: "9" }),
+      knoop("urn:x", "extern", { label: "Algemene wet bestuursrécht", rand: true }),
+      knoop(A10, "artikel", { label: "Artikel 10", rand: true })] })]);
+    expect(zoekKnopen(benoemd, "artikel").map((n) => n.id).slice(0, 2)).toEqual([ART, L1]);
+    expect(zoekKnopen(benoemd, "lid 2").map((n) => n.id)).toEqual([L2]);
+    expect(zoekKnopen(benoemd, "bestuursrecht").map((n) => n.id)).toEqual(["urn:x"]);
+    expect(zoekKnopen(benoemd, "10").map((n) => n.id)).toContain(A10);
+    expect(zoekKnopen(benoemd, "  ")).toEqual([]);
+  });
+  it("groepeert relaties per soort en richting, ook naar verborgen buren", () => {
+    expect(relatieGroepen(g, L2).map((x) => x.naam)).toEqual(["Onderdeel van", "Verwijst naar"]);
+    const lid1 = relatieGroepen(g, L1);
+    expect(lid1.map((x) => x.naam)).toEqual(["Onderdeel van", "Markeringen", "Verwijst naar", "Wordt verwezen door"]);
+    expect(lid1.find((x) => x.naam === "Verwijst naar")?.regels.map((r) => r.knoop.id)).toEqual([A10]);
+    expect(lid1.find((x) => x.naam === "Wordt verwezen door")?.regels[0].anker_tekst).toBe("het eerste lid");
+  });
+  it("kiest één hoofdactie per soort", () => {
+    const k = (id: string) => g.nodes.find((n) => n.id === id)!;
+    expect(hoofdactie(k(L1), [ART])).toBe("tekst");
+    expect(hoofdactie(k("element:e1"), [ART])).toBe("tekst");
+    expect(hoofdactie(k("klasse:Rechtssubject"), [ART])).toBe("markeringen");
+    expect(hoofdactie(k(A10), [ART])).toBe("openen");
+    expect(hoofdactie(k(A10), [ART, A10])).toBe(null);
+  });
+  it("vat samen en herkent een dubbelklik", () => {
+    expect(samenvatting(g)).toEqual({ leden: 2, markeringen: 1, verwijzingen: 2 });
+    expect(isDubbelklik({ id: "a", tijd: 1000 }, "a", 1250)).toBe(true);
+    expect(isDubbelklik({ id: "a", tijd: 1000 }, "b", 1100)).toBe(false);
+    expect(isDubbelklik({ id: "a", tijd: 1000 }, "a", 1400)).toBe(false);
+    expect(isDubbelklik(null, "a", 1)).toBe(false);
   });
 });

@@ -5,13 +5,13 @@ import ForceGraph3D, { type ForceGraphMethods, type LinkObject } from "react-for
 import { Group, Mesh, MeshLambertMaterial, OctahedronGeometry, SphereGeometry, Vector3, type PerspectiveCamera } from "three";
 import SpriteText from "three-spritetext";
 import type { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { SOORT_LABEL, type GraafData, type GraafKnoop, type GraafRelatie } from "@/lib/samenhang";
+import { SOORT_LABEL, isDubbelklik, type GraafData, type GraafKnoop, type GraafRelatie } from "@/lib/samenhang";
 
 type LinkMeta = Omit<GraafRelatie, "source" | "target">;
 type RenderLink = LinkObject<GraafKnoop, LinkMeta>;
 type Punt = { x: number; y: number; z: number };
 export type CameraStand = { positie: Punt; doel: Punt };
-export interface GraafCameraBediening { pasIn: () => void; focus: (node: GraafKnoop) => void }
+export interface GraafCameraBediening { pasIn: () => void; focus: (node: GraafKnoop) => void; zoom: (factor: number) => void }
 
 /** Pas op de werkelijke viewport en het centrum van de knopen.
  * De bibliotheek past rond de wereldoorsprong; bij een smalle, nog initialiserende
@@ -66,8 +66,12 @@ const LIJN: Record<GraafRelatie["soort"], { kleur: string; rgb: string; breedte:
   markeert: { kleur: "#9fb3c5", rgb: "159,179,197", breedte: 0.7, krom: 0.1 },
   heeft_klasse: { kleur: "#b7c4d1", rgb: "183,196,209", breedte: 0.5, krom: 0.1 },
 };
-export function GraafCanvas({ data, selectie, onSelecteer, camera: cameraRef, bediening: bedieningRef, zichtbaar }: {
+export function GraafCanvas({ data, selectie, onSelecteer, onDubbelklik, onInteractie, camera: cameraRef, bediening: bedieningRef, zichtbaar }: {
   data: GraafData; selectie: string; onSelecteer: (id: string) => void;
+  /** Tweede klik op dezelfde knoop binnen 300 ms (de renderer kent alleen klik). */
+  onDubbelklik?: (id: string) => void;
+  /** De eerste keer dat de gebruiker zelf draait of zoomt. */
+  onInteractie?: () => void;
   camera: MutableRefObject<CameraStand | null>;
   bediening: MutableRefObject<GraafCameraBediening | null>;
   zichtbaar: boolean;
@@ -79,6 +83,9 @@ export function GraafCanvas({ data, selectie, onSelecteer, camera: cameraRef, be
   const [verloren, setVerloren] = useState(false);
   const [gereed, setGereed] = useState(false);
   const minderBeweging = useRef(false);
+  const onInteractieRef = useRef(onInteractie);
+  const vorigeKlik = useRef<{ id: string; tijd: number } | null>(null);
+  useEffect(() => { onInteractieRef.current = onInteractie; }, [onInteractie]);
   const gestartRef = useRef(false);
   const frameRef = useRef(0);
   // De bibliotheek vervangt link-id's door objecten: geef nooit onze canonieke data door.
@@ -140,12 +147,15 @@ export function GraafCanvas({ data, selectie, onSelecteer, camera: cameraRef, be
       cameraRef.current = { positie: { x: positie.x, y: positie.y, z: positie.z }, doel: { x: doel.x, y: doel.y, z: doel.z } };
     }
     controls.addEventListener("end", onthoud);
+    const eerste = () => onInteractieRef.current?.();
+    controls.addEventListener("start", eerste);
     const canvas = fg.renderer().domElement;
     const verlies = (event: Event) => { event.preventDefault(); setVerloren(true); };
     canvas.addEventListener("webglcontextlost", verlies);
     return () => {
       onthoud();
       controls.removeEventListener("end", onthoud);
+      controls.removeEventListener("start", eerste);
       canvas.removeEventListener("webglcontextlost", verlies);
     };
   }, [gereed, cameraRef]);
@@ -160,8 +170,15 @@ export function GraafCanvas({ data, selectie, onSelecteer, camera: cameraRef, be
         const midden = new Vector3(...(["x", "y", "z"] as const).map((as) => data.nodes.reduce((t, n) => t + n[as], 0) / Math.max(data.nodes.length, 1)) as [number, number, number]);
         const richting = new Vector3(node.x, node.y, node.z).sub(midden);
         if (richting.lengthSq() < 1) richting.set(0.24, 0.16, 1);
-        const doel = new Vector3(node.x, node.y, node.z).add(richting.normalize().multiplyScalar(170));
+        const doel = new Vector3(node.x, node.y, node.z).add(richting.normalize().multiplyScalar(280));
         fg.cameraPosition(doel, node, minderBeweging.current ? 0 : 600);
+      },
+      // In- of uitzoomen langs de kijklijn naar het huidige draaipunt.
+      zoom: (factor) => {
+        const controls = fg.controls() as OrbitControls;
+        const doel = controls.target.clone();
+        const positie = fg.camera().position.clone().sub(doel).multiplyScalar(factor).add(doel);
+        fg.cameraPosition(positie, doel, minderBeweging.current ? 0 : 250);
       },
     };
     return () => { bedieningRef.current = null; };
@@ -225,7 +242,12 @@ export function GraafCanvas({ data, selectie, onSelecteer, camera: cameraRef, be
       enableNodeDrag={false} cooldownTicks={0} onEngineStop={klaar}
       nodeThreeObject={maakObject}
       nodeLabel={(node) => tip(node.label, SOORT_LABEL[node.soort] + (node.rand && node.soort !== "extern" ? " · buiten dit artikel" : ""))}
-      onNodeClick={(node) => onSelecteer(node.id)}
+      onNodeClick={(node) => {
+        const nu = performance.now();
+        if (onDubbelklik && isDubbelklik(vorigeKlik.current, node.id, nu)) { vorigeKlik.current = null; onDubbelklik(node.id); return; }
+        vorigeKlik.current = { id: node.id, tijd: nu };
+        onSelecteer(node.id);
+      }}
       onBackgroundClick={() => onSelecteer("")}
       linkLabel={(edge) => tip(edge.label, edge.anker_tekst ? `“${edge.anker_tekst}”` : "")}
       linkColor={lijnKleur}

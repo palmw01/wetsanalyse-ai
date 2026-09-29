@@ -238,9 +238,13 @@ export function NodeAnnotatiePaneel({ doel, onSluit, variant = "side", onVraag, 
   return (
     <Dialog label={`Annotatie: ${view?.doel.label || doel.label || "bepaling"}`} variant={groot ? "fullscreen" : variant}
       onSluit={onSluit} onEscape={view ? () => {
-        // In de tekst pelt de inhoud Escape zelf af; in de graaf doet het paneel dat.
+        // In de tekst pelt de inhoud Escape zelf af; in de graaf doet het paneel dat, van binnen naar
+        // buiten: lagen dicht → selectie op → verkleinen → sluiten. (De zoeklijst vangt haar eigen Escape.)
         if (tab !== "graaf") return;
-        if (groot) setGroot(false); else onSluit();
+        if (graafStand.lagenOpen) graafStand.setLagenOpen(false);
+        else if (graafStand.selectie || actiefId) { graafStand.setSelectie(""); setActiefId(undefined); }
+        else if (groot) setGroot(false);
+        else onSluit();
       } : undefined}>
       {inhoud}
     </Dialog>
