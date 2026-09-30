@@ -17,11 +17,9 @@
  */
 import assert from "node:assert/strict";
 import { chromium, devices, webkit } from "playwright";
-import { encode } from "../node_modules/next-auth/jwt.js";
+import { sessieCookies } from "./sessie.mjs";
 
 const base = process.env.TEST_URL || "http://localhost:3109";
-const token = await encode({ secret: "annotatie-browser-test-only-secret", salt: "authjs.session-token",
-  token: { userid: "browser-test", role: "analist", email: "test@example.test", verifiedAt: Date.now(), loginAt: Date.now() } });
 
 const doel = (lid) => ({ bron_iri: `urn:lid${lid}`, label: `Invorderingswet – artikel 9 lid ${lid}`, snapshot_id: "snapshot",
   type: "Lid", bwb_id: "BWBR0004770", artikel: "9", lid: String(lid), citeertitel: "Invorderingswet 1990" });
@@ -57,10 +55,7 @@ async function nieuwePagina(browserType, opties) {
     executablePath: browserType === chromium ? process.env.CHROMIUM_PATH : undefined, headless: true,
   });
   const context = await browser.newContext(opties);
-  await context.addCookies([
-    { name: "authjs.session-token", value: token, url: base },
-    { name: "wa-disclaimer", value: "1", url: base },
-  ]);
+  await context.addCookies(await sessieCookies(base));
   await context.addInitScript(() => localStorage.setItem("wa_rondleiding", JSON.stringify({ versie: 999, gezien: true })));
   const page = await context.newPage();
   const errors = [], requests = [];

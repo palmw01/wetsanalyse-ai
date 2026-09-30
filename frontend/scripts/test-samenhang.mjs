@@ -8,7 +8,7 @@
 import assert from "node:assert/strict";
 import { mkdirSync } from "node:fs";
 import { chromium } from "playwright";
-import { encode } from "../node_modules/next-auth/jwt.js";
+import { sessieCookies } from "./sessie.mjs";
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const shots = process.env.MOCK_SCREENSHOTS || "/tmp/wetsanalyse-samenhang";
@@ -78,11 +78,7 @@ async function nieuwePagina({ width = 1440, height = 1000, webgl = true } = {}) 
   page.on("pageerror", (e) => log.errors.push(e.message));
   // React meldt in dev dat de CSP geen eval toestaat; in productie gebruikt React geen eval.
   page.on("console", (m) => { if (m.type() === "error" && !/React will never use eval\(\) in production/.test(m.text())) log.console.push(m.text()); });
-  const token = await encode({ secret: process.env.AUTH_SECRET || "annotatie-browser-test-only-secret", salt: "authjs.session-token",
-    token: { userid: "browser-test", role: "analist", email: "test@example.test", verifiedAt: Date.now(), loginAt: Date.now() } });
-  await page.context().addCookies([
-    { name: "authjs.session-token", value: token, url: base }, { name: "wa-disclaimer", value: "1", url: base },
-  ]);
+  await page.context().addCookies(await sessieCookies(base));
   await page.addInitScript((webgl) => {
     localStorage.setItem("wa_rondleiding", JSON.stringify({ versie: 999, gezien: true }));
     if (!webgl) {
