@@ -85,7 +85,9 @@ class VerifyResult(BaseModel):
     userid: str = ""
     email: str = ""
     role: str = ""
-    ticket: str | None = None          # bij totp_required: bewijs voor het aparte 2FA-scherm
+    # bij totp_required: bewijs voor het aparte 2FA-scherm; bij ok na een TOTP-code: het 2FA-ticket
+    # (de code geldt geen tweede keer, en de BFF verifieert daarna nog eens voor de sessie)
+    ticket: str | None = None
     trusted_token: str | None = None   # bij ok + remember: 30-daags "dit apparaat onthouden"-token
 
 
@@ -252,6 +254,10 @@ async def verify(body: VerifyIn):
         # 2FA-scherm de identiteit heeft zonder het wachtwoord opnieuw te hoeven vasthouden.
         ticket = users.maak_login_ticket(body.userid) if code == "totp_required" else None
         return VerifyResult(ok=False, code=code, ticket=ticket)
+    # Er is zojuist een TOTP-code verbruikt. Die geldt geen tweede keer, en de BFF verifieert na het
+    # 2FA-scherm nog één keer (Auth.js zet dan de sessie): dit ticket draagt de geslaagde controle
+    # daarheen. De BFF zet het in dezelfde httpOnly cookie als het login-ticket.
+    tweede_factor = users.maak_2fa_ticket(user.userid) if code == "ok_totp" else None
     # Bij een geslaagde 2FA-login met "onthouden" aangevinkt: een 30-daags trusted-device-token.
     trusted = (
         users.maak_trusted_device(user)
@@ -260,7 +266,7 @@ async def verify(body: VerifyIn):
     )
     return VerifyResult(
         ok=True, code="ok", userid=user.userid, email=user.email, role=user.role,
-        trusted_token=trusted,
+        ticket=tweede_factor, trusted_token=trusted,
     )
 
 
