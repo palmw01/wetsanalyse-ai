@@ -44,8 +44,9 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   (`parseError` → `ApiError` met `retryAfter`); gebruik `isApiError()` en `foutTekst()` in de UI.
 - **`lib/agentEvents.ts`** – validatie van de SSE-stroom van de agent: een ongeldig event slaat
   over, het beëindigt de run niet.
-- **`lib/types.ts`** – met de hand afgeleid van `../api/app/annotatie_contracts.py`,
-  `annotatie_v2_contracts.py` en `gesprek_contracts.py`; de bron van waarheid aan de TS-kant. Wijzigt
+- **`lib/types.ts`** – met de hand afgeleid van `../api/app/annotatie_v2_contracts.py` en
+  `gesprek_contracts.py`; de bron van waarheid aan de TS-kant. `AnnotatieDocument` is het
+  weergavemodel van het artefact, gevuld door `lib/annotatieNodeAdapter.ts`. Wijzigt
   het API-contract, werk dit bij (controle met `openapi-typescript`, zie de README).
   **`lib/jas.ts`** is de presentatie-helper voor de JAS-klassen (kleur, label, `jasVolgorde`); de
   namen en kleuren staan canoniek in `api/app/jas_klassen.py`, en `api/tests/test_jas_kleuren_drift.py`
@@ -68,8 +69,8 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
     `KeuzeKaart`, `ReeksBlok`, `HergebruikMelding`, `Markdown`) en het annotatiegereedschap in het
     artefactpaneel (`ArtefactInhoud`, `ArtefactPaneel`, `DocumentPaneel`, `ReviewQueue`,
     `SelectiePopover`, `ExportKnop`).
-  - `annotaties/` – het overzicht en de losse annotatiepagina's (`AnnotatiesClient`,
-    `AnnotatieDetailClient`, `NodeAnnotatiePaneel`, `AnnotatiePaginaSchil`).
+  - `annotaties/` – het overzicht en de losse annotatiepagina (`AnnotatiesClient`, `AnnotatieKaart`,
+    `NodeAnnotatiePaneel`, `AnnotatiePaginaSchil`).
   - `graaf/` – de 3D-samenhangsgraaf.
   - `admin/` – de beheertabs achter het admin-token: `ProfielenPanel` (+ `ProfileEditor`),
     `UsersPanel` (+ `BudgetBeleidBlok`), `RegistratiesPanel`, `ApiTokensPanel`,
@@ -144,11 +145,8 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
     beide: na de API-delete ook graph-qa `DELETE /v1/conversations/{id}` (best-effort).
   - *Live agentverkeer via graph-qa* – `app/api/annotatie/run/**` (starten, events, `cancel`) met
     `graphQaBaseUrl()` + `GRAPH_QA_TOKEN` en `X-User-Id` (`startRun`/`volgRun`/`stopRun`/
-    `haalActieveRun`). De artikeltekst komt via `app/api/annotatie/artikel/route.ts` → graph-qa
-    `GET /v1/artikel` (`haalArtikelGraaf`).
-  - *Review-state via de API* – artikeldocumenten via `app/api/annotatie/documenten/*` →
-    `/v1/annotatie/*`; bronnode-annotaties (contract 2) via de catch-all
-    `app/api/annotatie/v2/[...pad]/route.ts` → `/v1/annotatie/{weergave,elementen,lagen,
+    `haalActieveRun`).
+  - *Review-state via de API* – de catch-all `app/api/annotatie/v2/[...pad]/route.ts` → `/v1/annotatie/{weergave,elementen,lagen,
     node-lagen,samenhang,capabilities}` (een allowlist op het eerste padsegment), met client-helpers in `lib/annotatieNode.ts`. De lagen zijn **gedeeld**,
     niet per gebruiker; gesprekken zijn per gebruiker.
 
@@ -180,11 +178,11 @@ herladen breekt hem niet af. Regels:
 - **Bij een 409 op `startRun`** (er loopt al een beurt op dit gesprek) haakt de client aan bij die run
   in plaats van te falen: twee gelijktijdige beurten schrijven door elkaar in het agent-geheugen.
 - **De agent schrijft weg, de werkplek nooit.** graph-qa stuurt vlak vóór het einde een
-  `opgeslagen`-event met de `annotatie_slug`; de client haalt het document dan bij de API op
+  `opgeslagen`-event met het `annotatie_doel` (de bronnode); de client opent dan de weergave
   (`toonVastgelegdeBeurt`). Blijft dat event uit terwijl er markeringen waren, dan is dat een
   **storing** en toont de werkplek het zo. Zet er geen tweede schrijfpad vanuit de browser naast –
-  bij gedeeltelijk falen levert dat een tweede document op. Een eigen markering van de jurist is een
-  andere handeling (`voegElementToe`). Een graph-qa zonder API-koppeling meldt zelf met een
+  bij gedeeltelijk falen levert dat een tweede annotatie op. Een eigen markering van de jurist is een
+  andere handeling (`POST elementen` in `NodeAnnotatiePaneel`). Een graph-qa zonder API-koppeling meldt zelf met een
   `error`-event dat niets is vastgelegd (`agent/beurt.py`).
 - **Tokens komen hooguit één keer per frame binnen** (`planStroom` in `volgBeurt`).
 
@@ -293,19 +291,18 @@ kaart.
   is een object-literal, dus die test is altijd onwaar en vervangt elke serverreden door een
   generieke zin.
 - **Niets faalt stil.** Het artefact openen toont een laadstand en bij een fout een `Melding` met
-  *Opnieuw proberen*. Een mislukte beslissing landt in de `Melding` van het artefact
-  (`WerkplekClient.beslissing` gooit door, `ArtefactPaneel.beslis`/`wis` vangen), niet als
-  chatbericht.
-- **Een verwijderde annotatie is een toestand, geen fout.** Een bericht verwijst met een kale
-  `annotatie_slug` naar een document, zonder foreign key. `isVerwijderd` (`lib/annotatie.ts`) scheidt
-  de 404 van een echte storing: bij 404 wordt de chip een **tombstone** (grijs, doorgestreepte titel,
-  "Deze annotatie is verwijderd", link naar `/annotaties`) met een neutrale `Melding type="uitleg"`
-  zonder *Opnieuw proberen*; al het andere houdt de rode melding mét retry. De kaart benoemt zichzelf
-  via **`annotatie_titel`** in het berichtcontract (gevuld met `annotatieTitel(doc)` bij de beurt;
-  zonder dat veld: "Annotatie"). Bewust geen cascade server-side: het gesprek is een verslag van wat
-  er gebeurde. Zelfde afhandeling op `/annotaties/[slug]`.
-- **De annotatie blijft bereikbaar** via een balk boven de chat (`art. 36 · 10 elementen · 3 te
-  beoordelen · Openen`) zodra het paneel dicht is; verwijderde documenten slaat die balk over.
+  *Opnieuw proberen* (`NodeAnnotatiePaneel`, `LaadStand`). Een mislukte beslissing landt in de
+  `Melding` van het artefact (`ArtefactInhoud.beslis`/`wis` vangen), niet als chatbericht.
+- **Een verwijderde annotatie is een toestand, geen fout.** Een bericht verwijst naar zijn annotatie
+  zonder foreign key. Een bericht met alleen een `annotatie_slug` en geen `annotatie_doel` wijst naar
+  iets wat niet meer bestaat: de chip wordt een **tombstone** (grijs, doorgestreepte titel, "Deze
+  annotatie is verwijderd", link naar `/annotaties`) met een neutrale `Melding type="uitleg"` zonder
+  *Opnieuw proberen*. Een bronnode-annotatie die intussen is verwijderd, meldt het paneel zelf
+  (`verwijderd: {op}`). De kaart benoemt zichzelf via **`annotatie_titel`** in het berichtcontract
+  (zonder dat veld: "Annotatie"). Bewust geen cascade server-side: het gesprek is een verslag van
+  wat er gebeurde.
+- **De laatste annotatie blijft bereikbaar** via een balk boven de chat (titel · *Openen*) zodra het
+  paneel dicht is; verwijderde annotaties slaat die balk over.
 - **Een knop die een call doet, toont dat.** `BevestigKnop` await't `onBevestig`, staat zolang op
   `Bezig…` en is uitgeschakeld; `AppSidebar`/`AnnotatiesClient` halen een rij meteen weg en zetten hem
   bij een fout terug. Anders is een trage call (de BFF belt bij het verwijderen van een gesprek
@@ -354,8 +351,7 @@ sidebar blijft staan.
   `weergave/verwijder` met de revisies in beeld (412 als iemand intussen iets wijzigde) en laadt
   opnieuw. De API haalt alle lagen van de bepaling in beeld weg, ook uit de graaf; de weergave draagt
   dan `verwijderd: {op}` en het paneel zegt "Deze annotatie is verwijderd op …", ook als je hem later
-  vanuit een oud gesprek opent. Lex annoteert zo'n bepaling bij een volgende vraag opnieuw. Een
-  artikelbrede laag (contract 1) heeft geen verwijderknop (403).
+  vanuit een oud gesprek opent. Lex annoteert zo'n bepaling bij een volgende vraag opnieuw.
 - **Hergebruik en "opnieuw annoteren" staan bij de annotatie in het gesprek** (`HergebruikMelding`).
   Het `hergebruik`-event (`parseHergebruik`) zegt welke leden uit de laag kwamen; de melding blijft na
   herladen omdat graph-qa hem in het chatbericht zet (`Bericht.hergebruik`). *Lex opnieuw laten
@@ -365,9 +361,9 @@ sidebar blijft staan.
 - **Verouderde markeringen zijn historie** (`splitsVerouderd`). Is de wettekst van een lid veranderd,
   dan zet de API de oude markeringen op `verouderd`: ze lichten niet op en staan niet in de
   reviewlijst, maar wel ingeklapt onder *Historie – tekst gewijzigd*, met het oordeel van toen
-  (`LIFECYCLE_LABEL`, dezelfde woorden als de export).
-- **`/annotaties/[slug]`** (`AnnotatieDetailClient`) toont het artefact op eigen benen, bewust zonder
-  `onVraag`: er is geen chatveld om een vraag in klaar te zetten – daarvoor is *Openen in de werkplek*.
+  (`LIFECYCLE_LABEL`).
+- **`/annotaties/node`** toont een bronnode-annotatie op eigen benen, bewust zonder `onVraag`: er is
+  geen chatveld om een vraag in klaar te zetten – daarvoor is *Openen in de werkplek*.
 
 **Eén inhoud, twee schillen.** `components/werkplek/ArtefactInhoud.tsx` draagt de wettekst, de
 reviewlijst en alle handlers; `ArtefactPaneel` is de `Dialog`-schil eromheen en de annotatiepagina
@@ -390,8 +386,8 @@ wrappende rij verhuist het kruisje mee zodra de ruimte krap wordt. Sluiten zit o
 hetzelfde icoon (viewBox 20, `strokeWidth` 1.6) als in `InstellingenDialog`, `DisclaimerDialog`,
 `FeedbackDialoog` en de gesprekkendrawer.
 
-**Afronden** zit in de kop van `ArtefactInhoud` (dus in beide schillen) en zet de documentstatus via
-`zetDocumentStatus`. Expliciet, want "alle elementen beslist" is niet hetzelfde als klaar zijn;
+**Afronden** zit in de kop van `ArtefactInhoud` (dus in beide schillen) en zet de status van elke laag
+in beeld (`NodeAnnotatiePaneel.status`, `POST lagen/{id}/status`). Expliciet, want "alle elementen beslist" is niet hetzelfde als klaar zijn;
 heropenen kan altijd. Afronden **bevriest de hele annotatie** (`isDocumentVergrendeld`): de handlers
 vallen stil, de selectie-popover verdwijnt, `a`/`x`/`c` doen niets en een melding boven de lijst legt
 het uit. De API weigert die mutaties toch met een 409, maar de UI laat het slot zien in plaats van die
@@ -450,10 +446,9 @@ de markering (`DocumentPaneel`) en de kaart (`ReviewQueue`), met respect voor
 
 ### Reviewen zonder formulier
 
-Elk veld schrijft zichzelf weg. De `review_reason` van een edit wordt **server-side** afgeleid uit de
-diff (`api/app/routers/annotatie.py:_reden_uit_diff`): de API berekent de diff toch, en een reden die
-hij niet kan toetsen hoort niet in een auditspoor. De client stuurt bij een edit dus géén
-`review_reason`. Bij **verwerpen** blijft de reden een vraag aan de jurist; die staat in geen diff.
+Elk veld schrijft zichzelf weg. Bij een edit stuurt de client géén `review_reason`: de beslissing
+legt de correctie zelf vast (`wijziging` en de oude waarden in `voor`), en vragen wat je zojuist deed
+is dubbelop. Bij **verwerpen** blijft de reden een vraag aan de jurist; die staat in geen correctie.
 
 - **Klasse** = de badge zelf; klikken opent het palet, een klasse kiezen ís de wijziging.
 - **Toelichting** is een inline veld (Enter/blur bewaart, Escape annuleert). Een gevulde toelichting
@@ -487,8 +482,8 @@ waar geen detector iets vond – een meting, geen gok. De werkplek toont die nog
 ### Zelf annoteren (tekstselectie)
 
 De jurist selecteert tekst in `DocumentPaneel` en markeert die zelf. Eigen markeringen gaan via
-`POST …/elementen` (`voegElementToe`; niet de PUT, dat is de uitkomst van een agent-ronde) en zijn
-meteen `human_approved`.
+`POST elementen` (`NodeAnnotatiePaneel.eigenMarkering`; niet de batch, dat is de uitkomst van een
+agent-ronde) en zijn meteen `human_approved`.
 
 - **Een selectie eindigt niet altijd met een muisklik.** Naast `onMouseUp` luistert `DocumentPaneel`
   op documentniveau naar `keyup` (Shift+pijltjes, WCAG 2.1.1) en `touchend` (selectiegrepen op een
@@ -504,11 +499,10 @@ meteen `human_approved`.
   twee blokken, dus het worden twee `<mark>`s met dezelfde klasse en hetzelfde id, optisch verbonden
   door `box-decoration-clone`.
 - **De structuur komt uit `lib/wetstructuur.ts`** (`ontleed` + `blokkenVan`). Het nestingniveau is
-  **afgeleid uit de nummervorm**: de echte nesting staat in de graaf, maar `GET /v1/artikel` levert
-  `leden_teksten` als `{lid, tekst}[]`. Een fout geeft hooguit een scheve marge, nooit een scheve
+  **afgeleid uit de nummervorm**: de echte nesting staat in de graaf, maar het artefact krijgt de tekst
+  als `leden_teksten` (`{lid, tekst}[]`, door `lib/annotatieNodeAdapter.ts`). Een fout geeft hooguit een scheve marge, nooit een scheve
   markering. `blokkenVan` vangt af dat het lidvoorvoegsel `"1. "` dezelfde vorm heeft als een
-  onderdeelnummer. Dezelfde parser staat in `api/app/wetstructuur.py` (voor de PDF);
-  `wetstructuur.vectoren.json` bewaakt dat ze niet uiteenlopen, net als `bronHash.vectoren.json`.
+  onderdeelnummer. De testvectoren staan in `wetstructuur.vectoren.json`.
 - **De brontekst is een lijst `LidRegel`, geen lijst strings** (`regelsVan`/`bronVan` in
   `lib/annotatie.ts`). Het lidnummer reist mee omdat het **niet uit de volgorde af te leiden** is: bij
   een op één lid afgebakend document is index 0 bijvoorbeeld lid 3, en ingevoegde leden heten 2a.
@@ -529,18 +523,16 @@ meteen `human_approved`.
 JSON**.
 
 - **Ook halverwege.** Geen statusdrempel: het bestand zegt zelf hoeveel er nog te beoordelen is.
-- **De wettekst reist mee.** De API heeft hem niet (de graaf is de bron), dus de knop stuurt
-  `info.leden_teksten` mee in de body. Zonder leden laat het rapport dat blok weg – nooit een
-  gereconstrueerde tekst naast een letterlijk citaat.
-- **De bestandsnaam komt van de server** (`Content-Disposition`). De BFF-route moet die header
-  doorgeven (`PASS_THROUGH_HEADERS`) en de queryparam `formaat` expliciet doorsturen; een route die
-  dat laat vallen faalt stil op het default-formaat. Downloaden gaat via `exporteerDocument` in
-  `lib/api.ts` (Blob → `createObjectURL` → `<a download>`), het enige downloadpatroon in de app. Een
-  bronnode-annotatie exporteert via haar eigen route; `ExportKnop` neemt daarvoor een `onDownload`
-  aan.
+- **De wettekst komt van de api**, uit de bewaarde bronstand (`snapshot_id`) van de weergave: de
+  export gaat over precies de tekst die de jurist zag.
+- **De bestandsnaam komt van de server** (`Content-Disposition`); de proxy geeft die header door
+  (`PASS_THROUGH_HEADERS`). `NodeAnnotatiePaneel.exporteer` post `weergave/export` en downloadt via
+  `downloadAntwoord` in `lib/api.ts` (Blob → `createObjectURL` → `<a download>`), het enige
+  downloadpatroon in de app. `ExportKnop` krijgt de download als `onDownload`; in de rondleiding is
+  die er niet en sluit het keuzepaneel zonder bestand.
 - De export draagt naast de tabel het **volledige spoor** per markering en **met welk model** de agent
-  het voorstel maakte (`AgentRun`). Die herkomst legt graph-qa zelf vast bij de API: het `run`-object
-  van de beurt komt op het document (`runs[]`) en op elk element (`geproduceerd_door`).
+  het voorstel maakte: graph-qa legt het `run`-object van de beurt vast, en het staat op elk element
+  (`geproduceerd_door`).
 
 ## De samenhangsgraaf (3D)
 

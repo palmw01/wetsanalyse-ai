@@ -41,11 +41,11 @@ const gesprekken = {
     { rol: "assistant", tekst: "Oud antwoord", denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "", run_id: "oud" },
   ],
 };
-const document1 = { slug: "doc1", bwbId: "BWBR0004770", artikel: "9", lid: "1", werkgebied: "Invorderingswet 1990",
-  status: "in_review", elementen: [], runs: [] };
 const stromen = {
   // F1: de beurt is vastgelegd, maar de wettekst komt niet binnen.
-  f1: [{ type: "status", message: "Resultaat" }, { type: "opgeslagen", run_id: "f1", annotatie_slug: "doc1" }, { type: "done" }],
+  f1: [{ type: "status", message: "Resultaat" },
+    { type: "opgeslagen", run_id: "f1", annotatie_slug: "", annotatie_doel: { ...doel(9), label: "Invorderingswet 1990 – art. 9 lid 9" } },
+    { type: "done" }],
   f2: [{ type: "token", content: "Nieuw antwoord." }, { type: "done" }],
 };
 const sse = (events) => events.map((e) => `data: ${JSON.stringify(e)}\n\n`).join("");
@@ -72,8 +72,9 @@ async function nieuwePagina(browserType, opties) {
     }
     const events = pad.match(/^\/api\/annotatie\/run\/([^/]+)\/events$/);
     if (events) return route.fulfill({ contentType: "text/event-stream", body: sse(stromen[events[1]] ?? [{ type: "done" }]) });
-    if (pad === "/api/annotatie/artikel") return route.fulfill({ status: 502, json: { detail: "Agent onbereikbaar" } });
-    if (pad === "/api/annotatie/documenten/doc1") return route.fulfill({ json: document1 });
+    if (pad.endsWith("/weergave") && url.searchParams.get("bron_iri") === "urn:lid9") {
+      return route.fulfill({ status: 503, json: { detail: "De brongraaf is tijdelijk niet beschikbaar." } });
+    }
     if (pad.endsWith("/weergave")) return route.fulfill({ json: view(url.searchParams.get("bron_iri") === "urn:lid2" ? 2 : 1) });
     if (pad.endsWith("/beslissing")) return route.fulfill({ json: {} });
     const gesprek = pad.match(/^\/api\/gesprekken\/(g\d)$/);
@@ -161,8 +162,8 @@ const beslissingen = (requests) => requests.filter((r) => r.pad.endsWith("/besli
     await page.goto(`${base}/workbench`);
     await page.getByPlaceholder("Stel een vraag of vraag een annotatie…").fill("annoteer artikel 9 lid 1");
     await page.keyboard.press("Enter");
-    await page.getByText("De annotatie kon niet worden geopend", { exact: false }).waitFor();
-    await page.getByText("Invorderingswet 1990 – art. 9 lid 1", { exact: false }).first().waitFor();
+    await page.getByText("De brongraaf is tijdelijk niet beschikbaar", { exact: false }).waitFor();
+    await page.getByText("Invorderingswet 1990 – art. 9 lid 9", { exact: false }).first().waitFor();
     // Ruim langer dan de eerste herstelpoging (1,5 s) – die mag er niet komen.
     await page.waitForTimeout(4000);
     assert.equal(requests.filter((r) => r.pad === "/api/annotatie/run/f1/events").length, 1, "de afgeronde run is opnieuw gevolgd");

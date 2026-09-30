@@ -11,23 +11,16 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArtefactPaneel } from "@/components/werkplek/ArtefactPaneel";
 import { Melding } from "@/components/ui/Melding";
 import {
-  beslis,
   foutTekst,
   haalActieveRun,
   startRun,
   stopRun,
   volgRun,
-  haalArtikelGraaf,
-  haalDocument,
   haalGesprek,
   maakGesprek,
   voegBerichtToe,
-  verwijderElement,
-  zetDocumentStatus,
-  voegElementToe,
 } from "@/lib/api";
 import { resetdatum } from "@/lib/tokenbudget";
-import { metSpoor } from "@/lib/uiSpoor";
 import type {
   Anker,
   AnnotatieElement,
@@ -45,7 +38,7 @@ import type {
   VoorstelElement,
 } from "@/lib/types";
 import {
-  annotatieTitel, BESLIST_LIFECYCLES, bronversieMelding, doelInvoerVan,
+  BESLIST_LIFECYCLES, doelInvoerVan,
   eigenMarkeringenVoorContext, isVerwijderd, kandidatenAlsTekst, mergeVoorstellen, vraagContextLabel,
   vraagContextVan, vraagSuggesties,
 } from "@/lib/annotatie";
@@ -106,8 +99,6 @@ interface Props {
   onGesprekAangemaakt: (id: string) => void;
   /** Roept terug na elke persistente wijziging zodat de sidebar-lijst kan verversen. */
   onGewijzigd: () => void;
-  /** Annotatie die bij binnenkomst open moet staan (deep-link vanuit het annotatie-overzicht). */
-  beginArtefact?: string;
   /** De voorbeeldscène van de rondleiding. Is die gezet, dan draait dit venster als demo: de thread
    *  komt uit de scène, de invoer staat stil en elke mutatie blijft in dit geheugen – er gaat geen
    *  enkel verzoek naar de api. De rondleiding krijgt hiervoor een eigen mount (zie `WorkbenchShell`),
@@ -134,7 +125,7 @@ interface Props {
 }
 
 export function WerkplekClient({
-  initialGesprekId, onGesprekAangemaakt, onGewijzigd, beginArtefact, demo, onDemoBeslissing,
+  initialGesprekId, onGesprekAangemaakt, onGewijzigd, demo, onDemoBeslissing,
   onDemoArtefact, demoOpenSignaal = 0, demoSluitSignaal = 0, onRondleiding,
   verbruik = null, onBeurtKlaar,
 }: Props) {
@@ -144,7 +135,7 @@ export function WerkplekClient({
   const [gesprekId, setGesprekId] = useState<string | null>(initialGesprekId);
   const [items, setItems] = useState<Item[]>(demo?.items ?? []);
   const [docs, setDocs] = useState<Record<string, AnnotatieDocument>>(demo?.docs ?? {});
-  const [infos, setInfos] = useState<Record<string, GraafArtikel>>(demo?.infos ?? {});
+  const [infos] = useState<Record<string, GraafArtikel>>(demo?.infos ?? {});
   // Slugs waarvan de api 404 gaf: het document bestaat niet meer. Dat is een tóéstand, geen fout —
   // opnieuw proberen kan per definitie niet lukken. Apart van `docs` omdat "nog niet geladen" en
   // "bestaat niet meer" twee verschillende dingen zijn.
@@ -181,13 +172,8 @@ export function WerkplekClient({
   // LLM-call maakt zichzelf af – dat kan tientallen seconden duren en de knop hoort dat te tonen
   // in plaats van te doen alsof het al klaar is.
   const [stopt, setStopt] = useState(false);
-  // Het artefact openen haalt document + wettekst op. Dat mag niet stil gebeuren: zonder deze twee
-  // leverde een mislukte graaf-call een klik op waar lettérlijk niets van gebeurde.
-  const [artefactLaadt, setArtefactLaadt] = useState<string | null>(null);
-  const [artefactFout, setArtefactFout] = useState<{ slug: string; melding: string } | null>(null);
-  // Zojuist geprobeerd te openen, maar het document bestaat niet meer. Los van `artefactFout`, want
-  // dit is geen storing: geen rode balk en geen retry. Nodig naast de tombstone-kaart omdat een
-  // deep-link (`/workbench?annotatie=…`) helemaal geen kaart in de thread hoeft te hebben.
+  // Zojuist geprobeerd te openen, maar de annotatie bestaat niet meer. Geen storing: geen rode balk
+  // en geen retry.
   const [artefactWeg, setArtefactWeg] = useState<string | null>(null);
   // De vorige beurt van dit gesprek is nooit afgekomen: het run-register van de agent is leeg (een
   // herstart of deploy). Beter dit zeggen dan een gesprek dat halverwege ophoudt zonder uitleg.
@@ -272,8 +258,10 @@ export function WerkplekClient({
         // laadde (een koude start duurt seconden), dan staan zijn vraag en het lopende antwoord al in
         // de thread – vervangen liet het antwoord onzichtbaar binnenstromen tot een herlaadbeurt.
         setItems((xs) => [...geschiedenis, ...xs]);
-        // Documenten van annotatie-berichten alvast laden voor de chip-labels.
-        for (const b of g.berichten) if (b.annotatie_slug && !b.annotatie_doel) void laadDoc(b.annotatie_slug);
+        // Een bericht met alleen een slug en geen bronnode verwijst naar een annotatie die niet meer
+        // bestaat: de kaart wordt een tombstone.
+        const weg = g.berichten.filter((b) => b.annotatie_slug && !b.annotatie_doel);
+        if (weg.length) setVerwijderd((m) => ({ ...m, ...Object.fromEntries(weg.map((b) => [b.annotatie_slug!, true as const])) }));
         // Liep hier nog een beurt terwijl je ergens anders keek? Pak hem weer op. De run-ids uit de
         // geschiedenis gaan mee: daarmee is "afgerond terwijl je weg was" te onderscheiden van
         // "weg door een herstart".
@@ -340,33 +328,6 @@ export function WerkplekClient({
     setItems((xs) => xs.map((x) => (x.id === id ? ({ ...x, ...patch } as Item) : x)));
   }
 
-  /** Haalt het document op en cachet het. Gooit door – de aanroeper bepaalt wat een fout betekent. */
-  async function haalEnCache(slug: string): Promise<AnnotatieDocument> {
-    const document = await haalDocument(slug);
-    setDocs((m) => ({ ...m, [slug]: document }));
-    // Gaat dit document over meer dan één brontekstversie, dan is de wet opnieuw ingelezen sinds de
-    // eerste markering en kunnen oudere markeringen op de verkeerde plek staan. Hier en niet op het
-    // schrijfpad: het document komt langs élke weg hierdoorheen, ook bij een eigen markering die
-    // niet langs graph-qa gaat.
-    const conflict = bronversieMelding(document);
-    if (conflict) setMelding(conflict);
-    return document;
-  }
-
-  /** Achtergrond-variant voor de hydratatie: faalt stil, maar onthoudt wél een 404.
-   *
-   *  Zonder dat onderscheid is "verwijderd" niet van "de api ligt plat" te scheiden, en krijgt de
-   *  jurist een *Opnieuw proberen* dat per definitie nooit kan slagen. Zo staat de kaart al als
-   *  tombstone in beeld vóórdat er iemand op klikt.
-   */
-  async function laadDoc(slug: string): Promise<void> {
-    try {
-      await haalEnCache(slug);
-    } catch (e) {
-      if (isVerwijderd(e)) setVerwijderd((m) => ({ ...m, [slug]: true }));
-    }
-  }
-
   useEffect(() => {
     if (!demo || demoOpenSignaal === 0) return;
     const slug = Object.keys(demo.docs)[0];
@@ -396,16 +357,6 @@ export function WerkplekClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [artefactSlug]);
 
-  /** Deep-link `/workbench?annotatie=<slug>`: het artefact één keer openen bij binnenkomst.
-   *  De ref voorkomt dat het paneel weer opengaat nadat de jurist het zelf heeft gesloten. */
-  const deepLinkGeopend = useRef(false);
-  useEffect(() => {
-    if (!beginArtefact || deepLinkGeopend.current) return;
-    deepLinkGeopend.current = true;
-    void openArtefact(beginArtefact);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [beginArtefact]);
-
   // Het laatst gevraagde artefact. Opent de jurist A (traag) en dan B, dan mag A bij het binnenkomen
   // B niet meer verdringen.
   const gevraagdArtefact = useRef<string | null>(null);
@@ -414,43 +365,15 @@ export function WerkplekClient({
     gevraagdArtefact.current = slug;
     if (doel?.bron_iri) { setArtefactSlug(undefined); setNodeTab("tekst"); setNodeDoel(doel); return; }
     setNodeDoel(undefined);
-    // In de rondleiding staan document én artikeltekst al in het geheugen. Zonder deze grens hangt
-    // de demo alsnog aan de api en de graaf – en juist die kunnen plat liggen op het moment dat een
-    // nieuwe gebruiker binnenkomt.
-    if (demo) {
-      setArtefactFout(null);
+    // Zonder bronnode is er alleen het document van de rondleiding, dat al in het geheugen staat.
+    // Elk ander slug-only bericht verwijst naar een annotatie die niet meer bestaat.
+    if (docs[slug] && infos[slug]) {
       setArtefactWeg(null);
       setArtefactSlug(slug);
       return;
     }
-    setArtefactFout(null);
-    // Al bekend als verwijderd: niet nog een keer proberen – er valt niets op te halen.
-    if (verwijderd[slug]) {
-      setArtefactWeg(slug);
-      return;
-    }
-    setArtefactWeg(null);
-    setArtefactLaadt(slug);
-    try {
-      const doc = docs[slug] ?? (await haalEnCache(slug));
-      if (!infos[slug]) {
-        const graaf = await haalArtikelGraaf(doc.bwbId, doc.artikel, doc.lid);
-        setInfos((m) => ({ ...m, [slug]: graaf }));
-      }
-      if (gevraagdArtefact.current !== slug) return;
-      setArtefactSlug(slug);
-    } catch (e) {
-      if (gevraagdArtefact.current !== slug) return;
-      // Zichtbaar falen: de wettekst komt uit de graaf en die kan plat liggen. Een lege klik laat de
-      // jurist denken dat de knop stuk is. Een verwijderd document is géén falen – dat wordt een
-      // tombstone-kaart, geen foutbalk.
-      if (isVerwijderd(e)) {
-        setVerwijderd((m) => ({ ...m, [slug]: true }));
-        setArtefactWeg(slug);
-      } else setArtefactFout({ slug, melding: foutTekst(e) });
-    } finally {
-      setArtefactLaadt((huidig) => (huidig === slug ? null : huidig));
-    }
+    setVerwijderd((m) => ({ ...m, [slug]: true }));
+    setArtefactWeg(slug);
   }
 
   /** Persisteer één beurt. Mislukken mag de chat niet blokkeren – maar ook niet stil gebeuren:
@@ -878,59 +801,10 @@ export function WerkplekClient({
     const node = uitkomst.annotatie_doel ?? (doel?.bron_iri ? {
       bron_iri: doel.bron_iri, label: doel.label, snapshot_id: doel.snapshot_id,
     } : undefined);
-    if (node) {
-      setItems((xs) => xs.map((x) => x.id === antId ? { id: antId, type: "annotatie", slug: uitkomst.annotatie_slug || node.bron_iri,
-        annotatie_doel: node, titel: node.label, denk, hergebruik, doel, tool_executions } : x));
-      setArtefactSlug(undefined); setNodeDoel(node); return;
-    }
-    if (!uitkomst.annotatie_slug) return; // een gewoon antwoord staat al in beeld
-    const doc = await laadDocEnGeef(uitkomst.annotatie_slug);
-    if (!doc) {
-      // De annotatie is wél vastgelegd, alleen niet op te halen. Toon de kaart tóch – met de slug
-      // die we hebben – in plaats van een gewoon antwoord waar de jurist niets mee kan; anders is
-      // het werk onvindbaar terwijl het gewoon in de api staat.
-      setItems((xs) =>
-        xs.map((x) =>
-          x.id === antId
-            ? { id: antId, type: "annotatie", slug: uitkomst.annotatie_slug, denk, hergebruik, doel }
-            : x,
-        ),
-      );
-      return;
-    }
-    // De kaart eerst: de annotatie is vastgelegd, en dat hoort in beeld te staan ook als de wettekst
-    // hieronder niet te laden is.
-    setItems((xs) =>
-      xs.map((x) =>
-        x.id === antId
-          ? { id: antId, type: "annotatie", slug: doc.slug, titel: annotatieTitel(doc), denk,
-              hergebruik, doel }
-          : x,
-      ),
-    );
-    if (!infos[doc.slug]) {
-      try {
-        const graaf = await haalArtikelGraaf(doc.bwbId, doc.artikel, doc.lid);
-        setInfos((m) => ({ ...m, [doc.slug]: graaf }));
-      } catch (e) {
-        // De graaf ligt plat of is traag. Dat is een fout bij het ópenen van het artefact, niet van
-        // de beurt: dezelfde melding met *Opnieuw proberen* als een mislukte klik op de kaart.
-        setArtefactFout({ slug: doc.slug, melding: foutTekst(e) });
-        return;
-      }
-    }
-    gevraagdArtefact.current = doc.slug;
-    setArtefactSlug(doc.slug);
-  }
-
-  /** Als `laadDoc`, maar geeft het document terug – `laadDoc` is de stille achtergrondvariant. */
-  async function laadDocEnGeef(slug: string): Promise<AnnotatieDocument | null> {
-    try {
-      return await haalEnCache(slug);
-    } catch (e) {
-      if (isVerwijderd(e)) setVerwijderd((m) => ({ ...m, [slug]: true }));
-      return null;
-    }
+    if (!node) return; // een gewoon antwoord staat al in beeld
+    setItems((xs) => xs.map((x) => x.id === antId ? { id: antId, type: "annotatie", slug: uitkomst.annotatie_slug || node.bron_iri,
+      annotatie_doel: node, titel: node.label, denk, hergebruik, doel, tool_executions } : x));
+    setArtefactSlug(undefined); setNodeDoel(node);
   }
 
   /** Loopt er nog een beurt in dit gesprek? Haak er dan weer op aan.
@@ -989,73 +863,40 @@ export function WerkplekClient({
     }
   }
 
-  /** De jurist markeert zelf een fragment. Gooit door naar het paneel, dat de fout bij de selectie
-   *  toont – daar staat de gebruiker met zijn aandacht, niet onderin de chatthread. */
+  // De handelingen hieronder werken op het document van de rondleiding: alleen dat opent in
+  // `ArtefactPaneel`. Een echte annotatie opent in `NodeAnnotatiePaneel`, dat zelf naar de api schrijft.
+
   async function eigenMarkering(
     slug: string,
     invoer: { klasse: string; tekst: string; lid: string; toelichting: string; anker: Anker },
   ) {
-    const oud = new Set((docs[slug]?.elementen ?? []).map((e) => e.id));
-    if (demo) {
-      const doc = docs[slug];
-      if (!doc) return;
-      const { doc: bijDemo, id } = voegDemoElementToe(doc, invoer);
-      setDocs((m) => ({ ...m, [slug]: bijDemo }));
-      setMelding(`Gemarkeerd als ${invoer.klasse}.`);
-      setActiefId(id);
-      return;
-    }
-    const bij = await voegElementToe(slug, invoer);
-    setDocs((m) => ({ ...m, [slug]: bij }));
+    const doc = docs[slug];
+    if (!doc) return;
+    const { doc: bijDemo, id } = voegDemoElementToe(doc, invoer);
+    setDocs((m) => ({ ...m, [slug]: bijDemo }));
     setMelding(`Gemarkeerd als ${invoer.klasse}.`);
     // Zet de verse markering meteen in beeld. De tekst toont alleen de geselecteerde, dus zonder dit
     // lijkt zelf markeren niets te doen: je selectie verdwijnt en er komt geen kleur voor terug.
-    const nieuw = bij.elementen.find((e) => !oud.has(e.id));
-    if (nieuw) setActiefId(nieuw.id);
+    setActiefId(id);
   }
 
-  /** Een eigen markering wissen. Alleen je eigen: een agent-voorstel verwérp je, zodat het
-   *  auditspoor laat zien dát er een voorstel was. Was hij actief, dan valt de focus terug op de
-   *  hele tekst – anders wijst `actiefId` naar een element dat niet meer bestaat. */
+  /** Was de gewiste markering actief, dan valt de focus terug op de hele tekst – anders wijst
+   *  `actiefId` naar een element dat niet meer bestaat. */
   async function wisEigenMarkering(slug: string, elementId: string) {
-    if (!demo) await verwijderElement(slug, elementId);
-    setDocs((m) => {
-      const doc = m[slug];
-      if (!doc) return m;
-      return { ...m, [slug]: wisDemoElement(doc, elementId) };
-    });
+    setDocs((m) => (m[slug] ? { ...m, [slug]: wisDemoElement(m[slug], elementId) } : m));
     setActiefId((huidig) => (huidig === elementId ? undefined : huidig));
     setMelding("Markering gewist.");
   }
 
-  /** Afronden of heropenen. Gooit door naar het paneel, dat de fout bij de knop toont. */
   async function status(slug: string, nieuweStatus: "geaccordeerd" | "in_review") {
-    if (demo) {
-      setDocs((m) => (m[slug] ? { ...m, [slug]: zetDemoStatus(m[slug], nieuweStatus) } : m));
-      setMelding(nieuweStatus === "geaccordeerd" ? "Annotatie afgerond." : "Annotatie heropend.");
-      return;
-    }
-    const bij = await zetDocumentStatus(slug, nieuweStatus);
-    setDocs((m) => ({ ...m, [slug]: bij }));
+    setDocs((m) => (m[slug] ? { ...m, [slug]: zetDemoStatus(m[slug], nieuweStatus) } : m));
     setMelding(nieuweStatus === "geaccordeerd" ? "Annotatie afgerond." : "Annotatie heropend.");
   }
 
   async function beslissing(slug: string, elementId: string, req: BeslissingInvoer) {
-    if (demo) {
-      setDocs((m) => (m[slug] ? { ...m, [slug]: pasDemoBeslissingToe(m[slug], elementId, req) } : m));
-      setMelding(beslissingMelding(req));
-      onDemoBeslissing?.(req.type);
-      return;
-    }
-    try {
-      const bij = await metSpoor("review_beslissing", () => beslis(slug, elementId, req));
-      setDocs((m) => ({ ...m, [slug]: bij }));
-      setMelding(beslissingMelding(req));
-    } catch (e) {
-      // Doorgooien: het artefact toont de fout bij de kaart waar hij ontstond. In de chatthread zou
-      // hij het gesprek vervuilen met techniek, ver van de plek waar je aan het werk bent.
-      throw e;
-    }
+    setDocs((m) => (m[slug] ? { ...m, [slug]: pasDemoBeslissingToe(m[slug], elementId, req) } : m));
+    setMelding(beslissingMelding(req));
+    onDemoBeslissing?.(req.type);
   }
 
   // De handelingen van de thread-rijen, als één object dat nooit verandert. `ThreadRij` is een
@@ -1144,7 +985,7 @@ export function WerkplekClient({
       onEigenMarkering={(invoer) => eigenMarkering(artefactSlug, invoer)}
       onWisEigenMarkering={(elementId) => wisEigenMarkering(artefactSlug, elementId)}
       onStatus={(nieuweStatus) => status(artefactSlug, nieuweStatus)}
-      // In de rondleiding bestaat *Vraag Lex* niet, om dezelfde reden als op `/annotaties/[slug]`:
+      // In de rondleiding bestaat *Vraag Lex* niet, om dezelfde reden als op `/annotaties/node`:
       // er is geen bruikbaar chatveld om iets in klaar te zetten – het invoerveld staat daar stil.
       // De knop deed er wél iets: hij sloot op een smal scherm het artefact, waarna de rondleiding
       // haar anker kwijt was en het paneel er zes seconden later vanzelf weer in ploft.
@@ -1185,7 +1026,6 @@ export function WerkplekClient({
         <button
           type="button"
           onClick={() => void openArtefact(laatsteAnnotatie)}
-          disabled={artefactLaadt === laatsteAnnotatie}
           className="focus-ring flex w-full shrink-0 items-center gap-2 border-b border-line bg-surface px-4 py-2 text-left text-xs text-muted transition hover:bg-surface-2 disabled:opacity-60"
         >
           <span className="truncate">
@@ -1197,7 +1037,7 @@ export function WerkplekClient({
             {teBeoordelen(docs[laatsteAnnotatie]) > 0 && ` · ${teBeoordelen(docs[laatsteAnnotatie])} te beoordelen`}
           </span>
           <span className="ml-auto shrink-0 font-medium text-lint">
-            {artefactLaadt === laatsteAnnotatie ? "Openen…" : "Openen"}
+            Openen
           </span>
         </button>
       )}
@@ -1215,21 +1055,6 @@ export function WerkplekClient({
                 Opnieuw proberen
               </button>
             )}
-          </Melding>
-        </div>
-      )}
-
-      {artefactFout && (
-        <div className="shrink-0 px-4 pt-2">
-          <Melding type="fout" compact>
-            De annotatie kon niet worden geopend ({artefactFout.melding}).{" "}
-            <button
-              type="button"
-              onClick={() => void openArtefact(artefactFout.slug)}
-              className="focus-ring rounded font-medium underline underline-offset-2"
-            >
-              Opnieuw proberen
-            </button>
           </Melding>
         </div>
       )}

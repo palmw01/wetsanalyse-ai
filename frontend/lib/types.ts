@@ -196,10 +196,10 @@ export interface ApiError {
   data?: Record<string, unknown>;
 }
 
-// --- Annotatie-domein (wetsanalyse-workbench) – afgeleid van api/app/annotatie_contracts.py ---
+// --- Annotatie-domein: het weergavemodel van het artefact (zie lib/annotatieNodeAdapter.ts) ---
 
 export type Lifecycle =
-  | "voorgesteld" | "critic_checked" | "human_approved" | "edited" | "rejected" | "published" | "reused";
+  | "voorgesteld" | "human_approved" | "edited" | "rejected" | "published" | "reused";
 export type BeslissingType = "approve" | "edit" | "reject" | "comment" | "heropen";
 export type ReviewReason =
   | "verkeerde_klasse" | "bron_gemist" | "tekst" | "interpretatie" | "onvoldoende_context" | "anders";

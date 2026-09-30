@@ -1,9 +1,9 @@
 """De canonieke ontdubbelregel: wanneer zijn twee voorstellen dezelfde markering?
 
-Die regel bestaat in drie Python-implementaties (de agent, de beurt-driver, de api) plus één in
-TypeScript (`frontend/lib/annotatie.ts:mergeVoorstellen`, met dezelfde tabel in zijn eigen test).
-Ze liepen uiteen op precies één punt – de klasse – en dat leverde dubbele kaarten op zodra een
-herziening herclassificeerde. Deze test houdt de Python-kant tegen elkaar.
+Die regel bestaat in de agent, in de beurt-driver en in TypeScript
+(`frontend/lib/annotatie.ts:mergeVoorstellen`, met dezelfde tabel in zijn eigen test). Telt de
+klasse mee, dan levert een herclassificatie zonder id een dubbele kaart op. Deze test houdt de
+Python-kant tegen elkaar.
 
 De regel: **match op `id`; is er geen id, dan op genormaliseerde tekst + lid. Nooit op klasse.**
 """
@@ -75,22 +75,3 @@ def test_beurt_houdt_ander_lid_apart():
     s.verwerk({"type": "element", "element": _el(id="a1", lid="1")})
     s.verwerk({"type": "element", "element": _el(id="a2", lid="2")})
     assert len(s.elementen) == 2
-
-
-# --- implementatie 3: de api-merge -------------------------------------------------------------
-
-def test_api_sleutel_is_dezelfde_regel():
-    """De api is de canonieke bron; de agent hoort hem exact te volgen.
-
-    Overslaan als de api niet geïnstalleerd is (graph-qa draait als eigen dienst met eigen venv).
-    """
-    api_sleutel = pytest.importorskip(
-        "app.routers.annotatie", reason="api niet in deze omgeving geïnstalleerd"
-    )._sleutel
-    for tekst, lid in [
-        ("De ontvanger", "1"),
-        ("De  ontvanger", "1"),
-        ("de ontvanger", ""),
-        ("zes weken na de dagtekening", "2"),
-    ]:
-        assert api_sleutel(tekst, lid) == sleutel_van(tekst, lid)

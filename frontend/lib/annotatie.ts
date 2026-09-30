@@ -58,14 +58,13 @@ export function bronVan(regels: LidRegel[]): string {
 
 /** Voeg een binnenkomend `element`-event samen met wat er al verzameld is.
  *
- *  De agent kan hetzelfde element in meerdere rondes opnieuw sturen (annoteerder ⇄ Critic). Zonder
- *  ontdubbelen zou de werkplek dan duplicaten tonen én naar de server sturen. Matcht op `id`, met
- *  dezelfde terugval als de server (genormaliseerde tekst + lid) voor voorstellen zonder id.
- *  De laatste versie wint: die is door de meest recente Critic-ronde gegaan.
+ *  Komt hetzelfde element in één stroom twee keer binnen, dan toont de werkplek het één keer. Matcht
+ *  op `id`, met als terugval de genormaliseerde tekst + lid voor voorstellen zonder id. De laatste
+ *  versie wint.
  *
  *  De **klasse telt niet mee** in de terugval – een herziening mag juist herclassificeren en moet
- *  dan hetzelfde element treffen. Canonieke regel: `routers/annotatie.py:_sleutel` (api) en
- *  `agent/annotatie.py:sleutel_van` (graph-qa), met dezelfde tabel in beider tests.
+ *  dan hetzelfde element treffen. Canonieke regel: `agent/annotatie.py:sleutel_van` (graph-qa), met
+ *  dezelfde tabel in beider tests.
  *
  *  Eén bewuste afwijking van de server: staat er al een element mét id en komt hetzelfde fragment
  *  zónder id binnen, dan houdt de werkplek ze apart terwijl de api ze zou samenvoegen. De agent
@@ -134,11 +133,6 @@ export function kandidatenAlsTekst(melding: string, kandidaten: AgentKandidaat[]
   return [melding.trim(), ...regels].filter(Boolean).join("\n");
 }
 
-// `gewijzigdeVelden` en `redenVoorWijziging` stonden hier: de browser leidde de `review_reason` af
-// uit wát er veranderde. Die afleiding is naar de api verhuisd (`routers/annotatie.py:
-// _reden_uit_diff`), want daar wordt de diff toch al berekend. De reden in het auditspoor was
-// anders een waarde die de server aannam maar nooit kon toetsen – te zwak voor een systeem dat om
-// herleidbaarheid draait. De ervaring blijft gelijk: de jurist krijgt nog steeds geen dropdown.
 
 /** Raakt een selectie het bereik van de actieve markering?
  *
@@ -390,26 +384,6 @@ export function isVerwijderd(e: unknown): boolean {
   return isApiError(e) && e.status === 404;
 }
 
-/** Melding als dit document over meer dan één brontekstversie gaat, anders `""`.
- *
- *  De api leidt `bronversies` af uit de `bron_hash` van elk anker. Staan er twee in, dan is de
- *  wettekst geschoven sinds de eerste markering – de importer draait wekelijks – en wijzen de
- *  offsets van de oudere markeringen naar tekst die er niet meer zo staat. In het documentpaneel
- *  springt zo'n markering dan naar een ander voorkomen of verdwijnt hij, en dat gebeurt stil.
- *
- *  Bewust geen blokkade: de jurist heeft niets fout gedaan en zijn werk hoort niet weg te vallen om
- *  een gewijzigde bron. Wel iets wat hij moet weten voordat hij een markering goedkeurt.
- */
-export function bronversieMelding(doc: { bronversies?: string[] }): string {
-  const n = doc.bronversies?.length ?? 0;
-  if (n < 2) return "";
-  return (
-    `Let op: deze annotatie gaat over ${n} versies van de wettekst. ` +
-    `De wet is opnieuw ingelezen sinds de eerste markering; oudere markeringen kunnen op de ` +
-    `verkeerde plek staan. Controleer ze in het documentpaneel voordat je ze goedkeurt.`
-  );
-}
-
 /** De mededeling bij een hergebruikte annotatie, in woorden van de jurist.
  *
  *  Volledig: er is niets opnieuw bekeken, en dat moet er staan – anders lijkt het een verse
@@ -462,11 +436,9 @@ export function doelInvoerVan(doel: AgentDoel | null | undefined): AgentDoelInvo
   };
 }
 
-/** Het oordeel over een markering in woorden – dezelfde als de export (`api/app/annotatie_export.py`,
- *  `STATUS_LABEL`), zodat een markering in de werkplek en in het rapport hetzelfde heet. */
+/** Het oordeel over een markering in woorden. */
 export const LIFECYCLE_LABEL: Record<Lifecycle, string> = {
   voorgesteld: "voorstel van Lex",
-  critic_checked: "voorstel van Lex (door Critic gezien)",
   human_approved: "akkoord",
   edited: "door jurist aangepast",
   rejected: "verworpen",

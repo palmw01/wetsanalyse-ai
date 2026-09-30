@@ -160,8 +160,8 @@ dan de graaf.
   queries de union bevragen, moet elke bouwer óf op subjecten onder `urn:bwb:` filteren óf alleen
   `bwb:`-predicaten volgen (`resolve_begrip` filtert op `NS`, anders geeft hij JAS-klassen als begrip).
   `tests/test_annotatielaag_isolatie.py` draait **elke** bouwer uit `test_sparql_syntax.GEVALLEN` met
-  en zonder laag en eist identieke rijen; de api bewaakt dat de fixture de echte projectie volgt
-  (`api/tests/test_graaf_projectie.py:test_graph_qa_fixture_volgt_de_projectie`).
+  en zonder laag en eist identieke rijen; `api/tests/test_graaf_rijk.py` bewaakt dat de fixture
+  (`tests/fixtures/jas_laag_v3_voorbeeld.ttl`) de echte projectie volgt.
 - **Het fallback-label van een verwijsdoel staat op `bwb:doelLabel`.** Lees het als
   `COALESCE(rdfs:label, bwb:doelLabel)`; op `rdfs:label` verdubbelt elke label-query haar rijen.
 
@@ -426,8 +426,8 @@ reviewer (`review.py`), de resolver (`resolver.py`), dekking, beslisregister en 
 - **Geel is een vraag, geen oordeel.** De werkplek toont de alternatieven als aanklikbare chip.
 - **Dezelfde markering komt maar één keer terug.** Zonder id is de sleutel `annotatie.sleutel_van(tekst,
   lid)` – genormaliseerde tekst + lid, **zonder klasse**, zodat een herclassificatie hetzelfde element
-  treft. Dezelfde regel staat in de api (`routers/annotatie.py:_sleutel`) en in `mergeVoorstellen` van de
-  werkplek, bewaakt door `tests/test_ontdubbelsleutel.py`.
+  treft. Dezelfde regel staat in `mergeVoorstellen` van de werkplek, bewaakt door
+  `tests/test_ontdubbelsleutel.py`.
 
 ## De leesroute: vragen óver bestaande annotaties
 

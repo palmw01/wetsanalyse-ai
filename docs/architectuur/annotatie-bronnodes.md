@@ -1,4 +1,4 @@
-# Annotaties op bronnodes (contract 2)
+# Annotaties op bronnodes
 
 Een verzoek om artikel 9 lid 1 toont en annoteert uitsluitend die bestaande bronnode en haar kinderen. De API en graph-qa gebruiken `packages/bronmodel` om dezelfde bronboom, teksthashes en lokale posities af te leiden. Er is geen terugval naar het hele artikel als een lid ontbreekt. De oorspronkelijke BWB-graaf blijft ongewijzigd.
 
@@ -43,49 +43,21 @@ De `tool_execution`-events tonen werkelijke start en afronding, filters, resulta
 
 De HTTP-worker gebruikt de geauthenticeerde rungebruiker. CLI/MCP vereist daarnaast `ANNOTATIE_READ_USER_ID` uit vertrouwde configuratie; toolargumenten kunnen de actor niet bepalen. API-URL en servicetoken blijven vereist. Zonder gebruikerscontext weigert de adapter de leesactie.
 
-## Gecontroleerde omschakeling
+## Vastgelegd in tests
 
-`ANNOTATIE_CONTRACT_VERSIE` is expliciet instelbaar; de nieuwe API heeft standaard waarde `2`. Bij waarde `1` zijn de nieuwe annotatieroutes niet actief. `/v1/annotatie/capabilities` rapporteert de actieve versie. Bij versie `2` weigert de API oude artikelbrede schrijfacties en de oude artikelmigratie. Oude lees-/exportpaden blijven beschikbaar; de expliciet toegestane verwijdering van het ene testdocument kan via het oude verwijderpad.
-
-**De omschakeling is op 22 sep 2026 uitgevoerd op acceptatie**; productie draait sindsdien op hetzelfde
-image met dezelfde standaard. Het stappenplan hieronder is dus historie, bewaard omdat een volgende
-omgeving (of een herstel) hem opnieuw nodig heeft.
-
-De hulpmiddelen van die ene keer zijn **verwijderd**, want ze waren onherhaalbaar: een workflow die
-het contract omzette en een rooktest draaide, en een workflow die één vrijgegeven testdocument
-opruimde op een hardgecodeerd slug en tijdstempel. Beide staan in de historie (zoek op
-`annotatie-contract.yml` en `cleanup-testannotatie.yml`) als een volgende omgeving iets soortgelijks
-nodig heeft; ze laten staan zou een knop opleveren die niets meer doet, of erger, iets doet op
-verkeerde data. Het contract zelf zet je met `ANNOTATIE_CONTRACT_VERSIE` op de container app.
-
-Voor een omgeving met bestaande actieve componenten:
-
-1. Zet de API expliciet op contract `1` vóór de nieuwe API-revisie verkeer krijgt; rol het nieuwe API-image en de aanvullende tabellen uit.
-2. Laat bestaande annotatieruns afronden. Rol de nieuwe graph-qa- en frontend-images uit. In deze korte overgang kunnen nieuwe annotatieverzoeken niet worden uitgevoerd; ze mogen niet naar artikelbrede opslag terugvallen.
-3. Controleer dat alle actieve revisies de nieuwe contractondersteuning hebben. Schakel de API vervolgens expliciet naar contract `2` en stuur alle verkeer naar die revisie.
-4. Controleer artikel 9 lid 1, hergebruik, lokale review, export, de drie leestools en het zichtbare SSE-spoor. Controleer ook dat een oude schrijfaanroep wordt geweigerd.
-5. Verwijder uitsluitend het vooraf geïdentificeerde en door de gebruiker vrijgegeven testdocument. Er is geen inhoudmigratie; bronnen, gebruikers en gesprekken blijven behouden.
-
-### Wat er ná de omschakeling is bijgesteld (22 sep 2026)
-
-Vijf dingen bleken pas in gebruik, en staan nu vast in tests:
-
-- **De werkplek gebruikt het vertrouwde annotatiepaneel** (#483). `NodeAnnotatiePaneel` is een dunne
-  schil om `ArtefactInhoud`, met `lib/annotatieNodeAdapter.ts` als vertaling tussen codepoints per
-  bronnode en UTF-16 in de samengestelde bron. Het eerste, eigen paneel verloor alle opmaak en
-  bediening.
-- **Een afgeronde bepaling stopt de beurt vóór de modelronde** (#484). De api bevriest een afgeronde
-  laag (409); Lex controleerde dat pas bij het opslaan, ná een minuut modelaanroepen.
-- **De projectie is direct, de lus is vangnet** (#485). Daarvoor stond een annotatie tot een minuut
-  later in de graaf.
-- **Het chatbericht draagt `annotatie_doel` en `tool_executions`** (#487). Zonder die velden wees een
-  bericht na het heropenen van een gesprek nergens meer naar — een node-laag heeft immers geen slug —
-  en verdwenen de chip, de hergebruikmelding en het toolspoor.
-- **De leesroute zoekt zelf** (#488, #489). De herkenning van een leesvraag is verbreed (enkelvoud,
-  klasse, element), en `annotaties_zoeken` voert vóór de eerste LLM-call zelf `search_annotaties` uit.
-  Daarvoor hing het aan de toolkeuze van het model, en dat leverde een non-antwoord op.
-
-Na v2-schrijfverkeer mag rollback alleen naar een v2-compatibele versie, of naar tijdelijk onbeschikbare annotaties. Zet oude brede schrijfpaden niet weer open. De afzonderlijke image-publicatieworkflows regelen deze gecoördineerde eerste omschakeling niet automatisch.
+- **De werkplek gebruikt het vertrouwde annotatiepaneel.** `NodeAnnotatiePaneel` is een dunne schil
+  om `ArtefactInhoud`, met `lib/annotatieNodeAdapter.ts` als vertaling tussen codepoints per bronnode
+  en UTF-16 in de samengestelde bron. Een eigen paneel verliest alle opmaak en bediening.
+- **Een afgeronde bepaling stopt de beurt vóór de modelronde.** De api bevriest een afgeronde laag
+  (409); Lex controleert dat vóór de modelaanroepen, niet pas bij het opslaan.
+- **De projectie is direct, de lus is vangnet.** Anders staat een annotatie tot een minuut later in
+  de graaf.
+- **Het chatbericht draagt `annotatie_doel` en `tool_executions`.** Zonder die velden wijst een
+  bericht na het heropenen van een gesprek nergens meer naar, en verdwijnen de chip, de
+  hergebruikmelding en het toolspoor.
+- **De leesroute zoekt zelf.** `annotaties_zoeken` voert vóór de eerste LLM-call zelf
+  `search_annotaties` uit; aan de toolkeuze van het model overgelaten levert het soms een
+  non-antwoord op.
 
 ## Verificatie
 

@@ -1,21 +1,12 @@
 """Canonieke JAS-klassenlijst – de enige bron voor de klassevalidatie in het annotatiedomein.
 
-De waarden komen uit `jas_klassen.py`; het annotatiedomein (`routers/annotatie.py`) valideert de
-klasse van een voorgesteld element hiertegen en de export gebruikt de volgorde en de labelkleuren.
+De waarden komen uit `jas_klassen.py`; het annotatiedomein valideert de klasse van een element
+hiertegen. De lijst staat in de api zelf en niet in de wetsanalyse-skill: het productie-image hoort
+geen skill mee te dragen om te kunnen starten.
 
-> Dit was een runtime-import uit een script in de wetsanalyse-skill, waardoor het productie-image die
-> skill moest meedragen om te kunnen starten. De skill draagt de methode, niet de code; de lijst
-> staat daarom in `jas_klassen.py`.
-
-> De vroegere brongetrouwheid-/schema-checks van de (verwijderde) `/v1/projects`-analyse-pijplijn
-> stonden hier ook; die zijn weg. **Of een fragment letterlijk in de wettekst staat** wordt
-> afgedwongen in graph-qa (grounding) en de frontend (`segmenteer`) – de api heeft de wettekst niet,
-> die zit in GraphDB.
->
-> Dat betekende tot 2 sep 2026 dat de api álles op zijn beloop liet behalve de klasse hierboven, en
-> dat is een trust boundary op de verkeerde plek: de api is de partij die vastlegt. Wat hij zonder de
-> graaf wél kan toetsen – de samenhang tussen een fragment en zijn anker – staat nu in
-> `annotatie_validatie.py`.
+> **Of een fragment letterlijk in de wettekst staat** toetsen graph-qa (grounding) en de frontend
+> (`segmenteer`); de api heeft de wettekst niet. Wat de api wél toetst – dat een anker exact het
+> fragment van de bronnode aanwijst – staat in `annotatie_v2_store.valideer`.
 """
 
 from __future__ import annotations

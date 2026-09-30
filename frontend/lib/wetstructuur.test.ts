@@ -4,8 +4,6 @@ import { blokkenVan, ontleed } from "./wetstructuur";
 import vectorenBestand from "./wetstructuur.vectoren.json";
 
 describe("ontleed – de gedeelde vectoren", () => {
-  // Dezelfde lijst die `api/tests/test_wetstructuur.py` draait. Loopt één van beide weg, dan staat
-  // een onderdeel in de PDF op een andere marge dan in de werkplek.
   const { vectoren } = vectorenBestand as {
     vectoren: { _geval: string; regel: string; uit: Record<string, unknown> }[];
   };

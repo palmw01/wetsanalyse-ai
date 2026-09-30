@@ -27,10 +27,8 @@ async def client(monkeypatch):
 
     from app import db, ratelimit
     from app.config import get_settings
-    from app.deps import get_annotatie_store
 
     get_settings.cache_clear()
-    get_annotatie_store.cache_clear()
     ratelimit.reset()
     db.init_engine("sqlite+aiosqlite://")
     await db.create_all()
@@ -45,7 +43,6 @@ async def client(monkeypatch):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
 
-    get_annotatie_store.cache_clear()
     await db.dispose_engine()
 
 

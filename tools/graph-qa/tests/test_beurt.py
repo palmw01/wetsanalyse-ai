@@ -1,7 +1,7 @@
 """De beurt-driver: de uitkomst wordt vastgelegd zonder dat er een browser bij nodig is.
 
-Dit is de tweede helft van "de beurt is van de server". Fase 1 zorgde dat de run doorloopt als de
-kijker weggaat; hier wordt bewezen dat het resultaat dan ook echt ergens landt.
+De run loopt door als de kijker weggaat; hier wordt bewezen dat het resultaat dan ook echt ergens
+landt.
 """
 from __future__ import annotations
 
@@ -29,16 +29,14 @@ class NepApi:
 
     def __init__(self, *, faalt: bool | str = False) -> None:
         self.faalt = faalt
-        self.laag_puts: list[dict[str, Any]] = []
+        self.batches: list[dict[str, Any]] = []
         self.berichten: list[tuple[str, dict[str, Any]]] = []
         self.gesloten = False
-        self.verworpen = 0
-        self.hergebruikt: list[str] = []
 
-    async def zet_laag_elementen(self, **kw: Any) -> dict[str, Any]:
+    async def zet_bronnode_batch(self, payload: dict[str, Any]) -> dict[str, Any]:
         if self.faalt == "elementen":
-            raise WetsanalyseApiFout("PUT /v1/annotatie/lagen/…/elementen → 422", 422)
-        self.laag_puts.append(kw)
+            raise WetsanalyseApiFout("POST /v1/annotatie/lagen/batch → 422", 422)
+        self.batches.append(payload)
         return {"slug": "slug-1"}
 
     async def voeg_bericht_toe(self, gesprek_id: str, bericht: dict[str, Any]) -> dict[str, Any]:
@@ -58,6 +56,16 @@ def api(monkeypatch):
     nep = NepApi()
     monkeypatch.setattr("agent.beurt.WetsanalyseApi", lambda *_a, **_k: nep)
     return nep
+
+
+LID1 = "urn:bwb:BWBR0004770:artikel:9:lid:1"
+
+
+def _doel(**extra: Any) -> dict[str, Any]:
+    """Een `doel`-event zoals `bron_annotatie.doel_event` het maakt."""
+    return {"bron_iri": LID1, "snapshot_id": "snap-1", "label": "Invorderingswet 1990, art. 9 lid 1",
+            "bwbId": "BWBR0004770", "artikel": "9", "lid": "1", "citeertitel": "Invorderingswet 1990",
+            "verwachte_revisies": {LID1: 0}, "bereik": [LID1], "schema_versie": 2, **extra}
 
 
 def _settings():
@@ -108,29 +116,30 @@ async def test_antwoordbeurt_wordt_vastgelegd(api):
 
 @asyncio_test
 async def test_annotatiebeurt_schrijft_naar_de_gedeelde_laag(api):
-    doel = {"bwbId": "BWBR0004770", "artikel": "9", "lid": "1", "citeertitel": "Invorderingswet 1990",
-            "leden": [{"lid": "1", "hash": "h1", "iri": "urn:bwb:BWBR0004770:artikel:9:lid:1"}],
-            "bron_hash": "art"}
     uit = await _draai([
-        {"type": "doel", "doel": doel},
+        {"type": "doel", "doel": _doel()},
         {"type": "run", "run": {"model": "claude", "provider": "azure"}},
         {"type": "element", "element": {"id": "e1", "klasse": "Rechtssubject", "tekst": "de ontvanger"}},
         {"type": "done"},
     ])
 
-    put, = api.laag_puts
-    assert (put["bwb_id"], put["artikel"], put["citeertitel"]) == (
-        "BWBR0004770", "9", "Invorderingswet 1990")
-    # De lidstand gaat mee: daaraan ziet de api welk lid veranderde.
-    assert put["leden"] == doel["leden"] and put["bron_hash"] == "art"
-    assert put["modus"] == "auto"
-    assert put["elementen"][0]["tekst"] == "de ontvanger"
-    assert put["run"] == {"model": "claude", "provider": "azure"}
+    batch, = api.batches
+    # Het run-id is de idempotentiesleutel; de bronstand gaat mee zodat de api een tussentijdse
+    # wijziging herkent.
+    assert batch["batch_id"] == "run-1"
+    assert batch["doel"] == {"bron_iri": LID1} and batch["snapshot_id"] == "snap-1"
+    assert batch["verwachte_revisies"] == {LID1: 0}
+    assert batch["dekking"]["voltooid"] and batch["dekking"]["bereik"] == [LID1]
+    assert batch["elementen"][0]["tekst"] == "de ontvanger"
+    assert batch["run"] == {"model": "claude", "provider": "azure"}
 
     _, bericht = api.berichten[0]
     assert bericht["annotatie_slug"] == "slug-1"
     # Het label reist mee zodat de kaart zichzelf kan benoemen als het document later weg is.
     assert bericht["annotatie_titel"] == "Invorderingswet 1990 – art. 9 lid 1"
+
+    assert bericht["annotatie_doel"] == {"bron_iri": LID1, "label": "Invorderingswet 1990, art. 9 lid 1",
+                                         "snapshot_id": "snap-1"}
 
     opgeslagen = [e for e in uit if e["type"] == "opgeslagen"][0]
     assert opgeslagen["annotatie_slug"] == "slug-1"
@@ -138,15 +147,10 @@ async def test_annotatiebeurt_schrijft_naar_de_gedeelde_laag(api):
 
 @asyncio_test
 async def test_een_element_zonder_eindoordeel_breekt_de_hele_annotatie_niet(api):
-    """`Aandacht` kent alleen groen/geel/rood; een lege string is geen oordeel maar 422.
-
-    Op dev liep daar een complete annotatie op stuk: de agent was klaar en gegrond, de PUT gaf 422 op
-    één element zonder eindoordeel, en de jurist hield een leeg document over. Alles-of-niets bij het
-    wegschrijven betekent dat het zwakste element de rest meesleurt.
-    """
-    doel = {"bwbId": "BWBR0004770", "artikel": "9", "lid": "1", "citeertitel": "Invorderingswet 1990"}
+    """Een lege `aandacht` is geen oordeel maar `None`. De batch is alles-of-niets, dus één element
+    met een ongeldige waarde zou de hele annotatie meesleuren."""
     await _draai([
-        {"type": "doel", "doel": doel},
+        {"type": "doel", "doel": _doel()},
         {"type": "element", "element": {"id": "e1", "klasse": "Rechtssubject", "tekst": "de ontvanger",
                                         "aandacht": ""}},
         {"type": "element", "element": {"id": "e2", "klasse": "Voorwaarde", "tekst": "indien",
@@ -156,7 +160,7 @@ async def test_een_element_zonder_eindoordeel_breekt_de_hele_annotatie_niet(api)
 
     from agent.wetsanalyse_api import naar_contract
 
-    elementen = api.laag_puts[0]["elementen"]
+    elementen = api.batches[0]["elementen"]
     assert naar_contract(elementen[0])["aandacht"] is None, "geen oordeel is None, geen lege string"
     assert naar_contract(elementen[1])["aandacht"] == "geel", "een echt oordeel blijft staan"
 
@@ -167,22 +171,22 @@ async def test_zonder_elementen_geen_leeg_document(api):
     al bij het `doel`-event ontstaan, dan bleef elk afgebroken pad als leeg skelet in de
     werkvoorraad van de jurist staan."""
     await _draai([
-        {"type": "doel", "doel": {"bwbId": "BWBR0004770", "artikel": "9"}},
+        {"type": "doel", "doel": _doel()},
         {"type": "token", "content": "Ik vond geen JAS-elementen."},
         {"type": "done"},
     ])
-    assert api.laag_puts == []
+    assert api.batches == []
     _, bericht = api.berichten[0]
     assert bericht["tekst"] == "Ik vond geen JAS-elementen."
 
 
 @asyncio_test
 async def test_mislukte_laag_belooft_niets(monkeypatch):
-    """Eén PUT: mislukt die, dan is er niets bewaard – en dan is opnieuw proberen het juiste advies."""
+    """Eén batch: mislukt die, dan is er niets bewaard – en dan is opnieuw proberen het juiste advies."""
     nep = NepApi(faalt="elementen")
     monkeypatch.setattr("agent.beurt.WetsanalyseApi", lambda *_a, **_k: nep)
     uit = await _draai([
-        {"type": "doel", "doel": {"bwbId": "B", "artikel": "9", "citeertitel": "Wet"}},
+        {"type": "doel", "doel": _doel()},
         {"type": "element", "element": {"id": "e1", "klasse": "Rechtssubject", "tekst": "t"}},
         {"type": "done"},
     ])
@@ -196,55 +200,18 @@ async def test_mislukte_laag_belooft_niets(monkeypatch):
 @asyncio_test
 async def test_opnieuw_annoteren_reist_mee_naar_de_laag(api):
     await _draai([
-        {"type": "doel", "doel": {"bwbId": "B", "artikel": "9", "citeertitel": "Wet"}},
+        {"type": "doel", "doel": _doel()},
         {"type": "run", "run": {"model": "m", "modus": "opnieuw"}},
         {"type": "element", "element": {"id": "e1", "klasse": "Rechtssubject", "tekst": "t"}},
         {"type": "done"},
     ])
-    assert api.laag_puts[0]["modus"] == "opnieuw"
+    assert api.batches[0]["run"]["modus"] == "opnieuw"
 
 
 @asyncio_test
-async def test_al_geannoteerd_lid_wordt_gemeld(monkeypatch):
-    """Het vangnet van de api liet deze voorstellen vallen omdat het lid al geannoteerd en
-    ongewijzigd was. Geen fout – maar wel zeggen, anders zoekt de jurist zijn nieuwe voorstellen."""
-    nep = NepApi()
-    nep.hergebruikt = ["1"]
-    monkeypatch.setattr("agent.beurt.WetsanalyseApi", lambda *_a, **_k: nep)
+async def test_een_geslaagde_batch_geeft_geen_waarschuwing(api):
     uit = await _draai([
-        {"type": "doel", "doel": {"bwbId": "B", "artikel": "9", "lid": "1"}},
-        {"type": "element", "element": {"id": "e1", "klasse": "Rechtssubject", "tekst": "t"}},
-        {"type": "done"},
-    ])
-    waarschuwing, = [e for e in uit if e["type"] == "waarschuwing"]
-    assert "Lid 1 was al geannoteerd" in waarschuwing["message"]
-    assert not [e for e in uit if e["type"] == "error"]
-
-
-@asyncio_test
-async def test_verworpen_markeringen_worden_gemeld(monkeypatch):
-    """De api laat een kapot element vallen in plaats van de ronde te weigeren – dat maakt een luide
-    fout stil. Zonder deze melding ziet de jurist dertien markeringen zonder te weten dat het er
-    vijftien hadden moeten zijn."""
-    nep = NepApi()
-    nep.verworpen = 2
-    monkeypatch.setattr("agent.beurt.WetsanalyseApi", lambda *_a, **_k: nep)
-    uit = await _draai([
-        {"type": "doel", "doel": {"bwbId": "B", "artikel": "9", "citeertitel": "Wet"}},
-        {"type": "element", "element": {"id": "e1", "klasse": "Rechtssubject", "tekst": "t"}},
-        {"type": "done"},
-    ])
-
-    waarschuwing = [e for e in uit if e["type"] == "waarschuwing"][0]
-    assert "2 markeringen" in waarschuwing["message"]
-    assert not [e for e in uit if e["type"] == "error"], "de beurt is geslaagd, dit is geen fout"
-    assert [e for e in uit if e["type"] == "opgeslagen"], "en wat er wél is, is opgeslagen"
-
-
-@asyncio_test
-async def test_zonder_verworpen_geen_waarschuwing(api):
-    uit = await _draai([
-        {"type": "doel", "doel": {"bwbId": "B", "artikel": "9", "citeertitel": "Wet"}},
+        {"type": "doel", "doel": _doel()},
         {"type": "element", "element": {"id": "e1", "klasse": "Rechtssubject", "tekst": "t"}},
         {"type": "done"},
     ])
@@ -253,15 +220,14 @@ async def test_zonder_verworpen_geen_waarschuwing(api):
 
 @asyncio_test
 async def test_element_wordt_ontdubbeld(api):
-    """De annoteerder ⇄ Critic-lus kan hetzelfde element opnieuw sturen; de laatste versie wint."""
-    doel = {"bwbId": "B", "artikel": "9", "citeertitel": "Wet"}
+    """Komt hetzelfde element twee keer binnen, dan wint de laatste versie."""
     await _draai([
-        {"type": "doel", "doel": doel},
+        {"type": "doel", "doel": _doel()},
         {"type": "element", "element": {"id": "e1", "klasse": "Rechtssubject", "tekst": "t"}},
         {"type": "element", "element": {"id": "e1", "klasse": "Rechtsobject", "tekst": "t"}},
         {"type": "done"},
     ])
-    elementen = api.laag_puts[0]["elementen"]
+    elementen = api.batches[0]["elementen"]
     assert len(elementen) == 1
     assert elementen[0]["klasse"] == "Rechtsobject"
 
@@ -292,7 +258,7 @@ async def test_stoppen_vóór_de_voorstellen_belooft_niets(api):
     )
     _, bericht = api.berichten[0]
     assert bericht["tekst"] == "_Gestopt – er waren nog geen voorstellen._"
-    assert api.laag_puts == []
+    assert api.batches == []
 
 
 @asyncio_test
@@ -329,16 +295,16 @@ async def test_schrijffout_wordt_zichtbaar(monkeypatch):
 
 @asyncio_test
 async def test_half_vastgelegde_annotatie_zegt_wat_er_wel_staat(monkeypatch):
-    """Document en elementen staan er al, alleen het chatbericht niet.
+    """De laag staat er al, alleen het chatbericht niet.
 
-    "Probeer de vraag opnieuw" is dan een slecht advies: dat draait 60-90 seconden annoteren over en
-    levert een tweede document op. De melding hoort te zeggen wat er wél bewaard is.
+    "Probeer de vraag opnieuw" is dan een slecht advies: dat draait 60-90 seconden annoteren over.
+    De melding hoort te zeggen wat er wél bewaard is.
     """
     nep = NepApi(faalt=True)
     monkeypatch.setattr("agent.beurt.WetsanalyseApi", lambda *_a, **_k: nep)
 
     uit = await _draai([
-        {"type": "doel", "doel": {"bwbId": "BWBR0004770", "artikel": "9", "lid": "1"}},
+        {"type": "doel", "doel": _doel()},
         {"type": "element", "element": {"id": "e1", "klasse": "Rechtssubject", "tekst": "De ontvanger"}},
         {"type": "done"},
     ])
@@ -348,7 +314,7 @@ async def test_half_vastgelegde_annotatie_zegt_wat_er_wel_staat(monkeypatch):
     assert fout["annotatie_slug"] == "slug-1", "zodat de client er meteen heen kan wijzen"
     assert "opnieuw" not in fout["message"]
     # De laag is wél geschreven – dat is precies waarom de melding anders is.
-    assert nep.laag_puts
+    assert nep.batches
 
 
 def test_schrijver_houdt_denkproces_en_tekst_gescheiden():
@@ -366,23 +332,20 @@ def test_schrijver_houdt_denkproces_en_tekst_gescheiden():
 
 @asyncio_test
 async def test_verwijderd_gesprek_is_geen_storing(monkeypatch):
-    """Live gevonden op dev: de jurist verwijderde het gesprek terwijl de beurt liep, en kreeg
-    vervolgens een foutmelding over zijn eigen handeling.
-
-    De api weigert terecht (erin schrijven zou een verwijderd gesprek half laten herrijzen), maar
+    """De jurist verwijdert het gesprek terwijl de beurt loopt. De api weigert terecht (erin schrijven zou een verwijderd gesprek half laten herrijzen), maar
     dat is geen storing om alarm over te slaan – dat leert mensen meldingen negeren. Het
-    annotatiedocument blijft wél bestaan: annotaties staan los van hun gesprek.
+    annotatie blijft wél bestaan: annotaties staan los van hun gesprek.
     """
     nep = NepApi(faalt="verdwenen")
     monkeypatch.setattr("agent.beurt.WetsanalyseApi", lambda *_a, **_k: nep)
 
     uit = await _draai([
-        {"type": "doel", "doel": {"bwbId": "B", "artikel": "9", "citeertitel": "Wet"}},
+        {"type": "doel", "doel": _doel()},
         {"type": "element", "element": {"id": "e1", "klasse": "Rechtssubject", "tekst": "t"}},
         {"type": "done"},
     ])
 
     assert [e for e in uit if e["type"] == "error"] == []   # geen alarm
     assert uit[-1]["type"] == "done"                        # de beurt eindigt gewoon
-    assert nep.laag_puts               # het werk is bewaard
+    assert nep.batches                 # het werk is bewaard
     assert nep.gesloten

@@ -1,7 +1,23 @@
 """Wirecontract voor bronnode-lagen; offsets zijn Unicode-codepoints."""
+from enum import Enum
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+
+class Lifecycle(str, Enum):
+    voorgesteld = "voorgesteld"
+    human_approved = "human_approved"
+    edited = "edited"
+    rejected = "rejected"
+    published = "published"
+    reused = "reused"
+
+
+class LaagStatus(str, Enum):
+    in_review = "in_review"
+    geaccordeerd = "geaccordeerd"
+    gepromoveerd = "gepromoveerd"
 
 
 class Doel(BaseModel):
@@ -20,7 +36,8 @@ class Anker(BaseModel):
 
 
 class Element(BaseModel):
-    # Critic/provenancevelden blijven behouden, maar eigenaar/lifecycle worden server-side gezet.
+    # Extra velden (aandacht, critic, geproduceerd_door, …) reizen mee; eigenaar en lifecycle zet de
+    # server zelf.
     model_config = ConfigDict(extra="allow")
     id: str = Field(default="", max_length=64)
     klasse: str
@@ -117,7 +134,6 @@ class Zoekvraag(BaseModel):
     @model_validator(mode="after")
     def _filters(self):
         from .validation import GELDIGE_JAS_KLASSEN
-        from .annotatie_contracts import Lifecycle, DocumentStatus
         if self.bron_iri and self.bronnode_id and self.bron_iri != self.bronnode_id:
             raise ValueError("Tegenstrijdige bronselectie.")
         self.bron_iri = self.bron_iri or self.bronnode_id
@@ -127,6 +143,6 @@ class Zoekvraag(BaseModel):
             raise ValueError("Onbekende JAS-klasse.")
         if set(self.lifecycle) - {x.value for x in Lifecycle}:
             raise ValueError("Onbekende lifecycle.")
-        if set(self.laagstatus) - {x.value for x in DocumentStatus}:
+        if set(self.laagstatus) - {x.value for x in LaagStatus}:
             raise ValueError("Onbekende laagstatus.")
         return self

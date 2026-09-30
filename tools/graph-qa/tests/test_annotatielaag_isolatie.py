@@ -1,13 +1,14 @@
 """Guard: de JAS-annotatielagen in de graaf veranderen niets aan wat Lex over de wet te zien krijgt.
 
-Sinds 22 sep 2026 staan er naast de wetten ook annotatielagen in GraphDB (`urn:jas:graph:*`, door de
-api geprojecteerd). De querybouwers bevragen de union van álle graven zonder `GRAPH`, en de
+Naast de wetten staan er annotatielagen in GraphDB (`urn:jas:graph:*`, door de api
+geprojecteerd). De querybouwers bevragen de union van álle graven zonder `GRAPH`, en de
 bronnencontrole telt elke BWB-verwijzing in een toolresultaat als vindplaats. Een annotatie is
 afgeleide duiding: ze mag nooit als wettekst terugkomen, en ook niet als bron meetellen.
 
 Deze test draait elke querybouwer op een klein stuk BWB-graaf, één keer kaal en één keer met een
-annotatielaag plus de jas-ontologie erbij, en eist identieke resultaten. De laag is een afdruk van
-de echte projectie (`api/app/graaf_projectie.py`); de api bewaakt dat die afdruk actueel blijft.
+annotatielaag plus de JAS-vocabulaire erbij, en eist identieke resultaten. De laag is een afdruk van
+de echte projectie (`api/app/graaf_projectie_v2.py`); `api/tests/test_graaf_rijk.py` bewaakt dat die
+afdruk actueel blijft.
 
 rdflib voert de queries uit, dus Lucene (`luc:`) levert hier niets op – met en zonder laag. Dat is
 geen gat: de FTS-connector indexeert alleen de BWB-typen (`Regeling`…`Bijlage`), niet `oa:` of `jas:`.
@@ -27,10 +28,9 @@ from agent.provenance import citations_in, collect_sources  # noqa: E402
 from test_sparql_syntax import GEVALLEN  # noqa: E402
 
 FIXTURES = Path(__file__).parent / "fixtures"
-ONTOLOGIE_TTL = Path(__file__).resolve().parents[3] / "docs" / "wetsanalyse-workbench" / "jas-ontologie.ttl"
-# De JAS-vocabulaire (klassen, begrippen, regels, codes als skos:Concept) staat sinds plan-herkomst
-# PR 3 ook in de graaf. Ze draagt de klassenamen als prefLabel – precies wat een zoektool van Lex
-# niet als wettekst mag teruggeven.
+# De JAS-vocabulaire (klassen, begrippen, regels, codes als skos:Concept) staat ook in de graaf. Ze
+# draagt de klassenamen als prefLabel – precies wat een zoektool van Lex niet als wettekst mag
+# teruggeven.
 VOCABULAIRE_TTL = Path(__file__).resolve().parents[3] / "api" / "app" / "vocabulaire" / "jas-vocabulaire.ttl"
 
 
@@ -38,12 +38,8 @@ def _dataset(met_laag: bool) -> Dataset:
     ds = Dataset(default_union=True)
     ds.graph(URIRef("urn:bwb:graph:BWBR0004770")).parse(FIXTURES / "bwb_voorbeeld.ttl", format="turtle")
     if met_laag:
-        ds.graph(URIRef("urn:jas:graph:BWBR0004770:artikel:9")).parse(
-            FIXTURES / "jas_laag_voorbeeld.ttl", format="turtle")
-        ds.graph(URIRef("urn:jas:graph:ontologie")).parse(ONTOLOGIE_TTL, format="turtle")
         ds.graph(URIRef("urn:jas:graph:vocabulaire")).parse(VOCABULAIRE_TTL, format="turtle")
-        # Een laag in projectieschema 3 (herkomst, beoordelingen, dekking), afdruk van de echte
-        # projectie – bewaakt door api/tests/test_graaf_rijk.py.
+        # Een laag met herkomst, beoordelingen en dekking.
         ds.graph(URIRef("urn:jas:graph:v2:laag-9-1")).parse(FIXTURES / "jas_laag_v3_voorbeeld.ttl", format="turtle")
     return ds
 

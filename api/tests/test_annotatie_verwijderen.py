@@ -162,7 +162,6 @@ async def test_endpoint_verwijdert_op_de_bewaarde_bronstand_zonder_de_brongraaf(
     from httpx import ASGITransport, AsyncClient
     from app import annotatie_v2
     from conftest import maak_testgebruikers
-    monkeypatch.setenv("ANNOTATIE_CONTRACT_VERSIE", "2")
     monkeypatch.setenv("WETSANALYSE_AUTH_REQUIRED", "0")
     get_settings.cache_clear()
     await maak_testgebruikers("v2-reviewer")
@@ -196,7 +195,6 @@ async def test_endpoint_weigert_een_verouderde_bronstand(monkeypatch):
     from httpx import ASGITransport, AsyncClient
     from app import annotatie_v2
     from conftest import maak_testgebruikers
-    monkeypatch.setenv("ANNOTATIE_CONTRACT_VERSIE", "2")
     monkeypatch.setenv("WETSANALYSE_AUTH_REQUIRED", "0")
     get_settings.cache_clear()
     await maak_testgebruikers("v2-reviewer")

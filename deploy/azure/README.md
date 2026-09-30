@@ -410,13 +410,6 @@ weer op `false` zetten is **niet** genoeg – een bicep-deploy in incremental mo
 `false`, de proxy bestaat alleen mét token, en `--graphdb-proxy-extern` staat in de workflow alleen
 achter een acceptatie-conditie.
 
-## Het annotatiecontract
-
-De api draait op **contract 2** (bronnode-annotaties): `ANNOTATIE_CONTRACT_VERSIE` staat standaard op
-`2` in het image, dus de bicep zet hem niet. Een tijdelijke terugschakeling naar `1` kan met
-`az containerapp update --set-env-vars ANNOTATIE_CONTRACT_VERSIE=1`; een `azure-infra`-deploy schrijft
-de template opnieuw en zet de default dan terug.
-
 ## Kosten drukken
 
 - **Uit**: `az group delete -n rg-wetsanalyse` – haalt beide straten weg; een straat is in een

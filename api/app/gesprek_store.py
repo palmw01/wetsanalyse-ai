@@ -1,7 +1,7 @@
 """
 GesprekStore – persistentie voor het gesprekken-domein (chatgeschiedenis van de werkplek).
 
-Zelfde SQLAlchemy-Core-stijl als `annotatie_store.py` op dezelfde engine (`db.get_engine()`), met een
+Zelfde SQLAlchemy-Core-stijl als de andere stores, op dezelfde engine (`db.get_engine()`), met een
 eigen tabelset (`gesprekken` + `gesprek_berichten`). Per-gebruiker gescopet (`user_id`). De berichten
 staan als aparte, geordende rijen; de heterogene beurt-payload zit in de JSON-kolom `inhoud`. Tijd komt
 uit Python (`db.utcnow`) zodat de queries portable blijven (SQLite-tests).

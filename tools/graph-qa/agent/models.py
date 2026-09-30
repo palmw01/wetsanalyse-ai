@@ -192,7 +192,6 @@ class AnnotatieAlternatief(BaseModel):
 class Anker(BaseModel):
     """Exacte positie van een fragment in de samengevoegde brontekst.
 
-    Spiegelt `Anker` in `api/app/annotatie_contracts.py` (zelfde veldnamen, zelfde semantiek).
     De offsets slaan op de samengevoegde brontekst die het documentpaneel toont – bij een
     per-lid-annotatie is dat alleen die lid-tekst. `bron_hash` is een FNV-1a 32-bit vingerafdruk;
     de UI gebruikt hem om te detecteren of de brontekst verschoven is na een herimport.

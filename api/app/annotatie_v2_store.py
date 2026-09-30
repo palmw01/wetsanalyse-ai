@@ -389,8 +389,11 @@ async def beslis(element_id: str, req: Beslissing, snapshot: dict, actor: str) -
             value.update(laag_id=touched[owner]["id"], lifecycle="edited", gewijzigd_door="mens")
         elif req.type != "comment":
             value["lifecycle"] = {"approve": "human_approved", "reject": "rejected", "heropen": "voorgesteld"}[req.type]
+        # `voor` legt de oude waarden van een correctie vast; zonder die kant is niet te zien wat de
+        # jurist anders zag dan de agent (`annotatie_statistiek`).
         decision = {"type": req.type, "actor": actor, "tijd": db.utcnow().isoformat(),
-                    "comment": req.comment, "review_reason": req.review_reason, "wijziging": req.wijziging}
+                    "comment": req.comment, "review_reason": req.review_reason, "wijziging": req.wijziging,
+                    **({"voor": {k: old.get(k) for k in req.wijziging}} if req.type == "edit" else {})}
         value["beslissingen"] = [*old.get("beslissingen", []), decision]
         await _bewaar_snapshot(conn, snapshot)
         await conn.execute(update(db.annotatie_v2_elementen).where(
@@ -560,3 +563,16 @@ async def audit_weergave(view: dict) -> list[dict]:
         return [{**dict(r), "tijdstip": db.aware(r["tijdstip"]).isoformat()} for r in rows
                 if r["element_id"] in ids or (r["element_id"] is None and (
                     r["detail"].get("laag_id") in layer_ids or r["detail"].get("bron_iri") in scope))]
+
+
+async def elementen_van_recente_lagen(limit: int) -> tuple[int, list[dict]]:
+    """De elementen van de `limit` laatst gewijzigde lagen, voor de reviewstatistiek."""
+    async with leestransactie() as conn:
+        laag_ids = (await conn.execute(select(db.annotatie_v2_lagen.c.id)
+                                       .order_by(db.annotatie_v2_lagen.c.updated.desc())
+                                       .limit(limit))).scalars().all()
+        if not laag_ids:
+            return 0, []
+        rows = (await conn.execute(select(db.annotatie_v2_elementen.c.inhoud).where(
+            db.annotatie_v2_elementen.c.laag_id.in_(laag_ids)))).scalars().all()
+        return len(laag_ids), list(rows)

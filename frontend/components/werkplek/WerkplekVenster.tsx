@@ -10,16 +10,13 @@ import { WorkbenchShell } from "@/components/werkplek/WorkbenchShell";
  *  ene naar de andere valt – en dan is het openstaande gesprek weg. */
 export function WerkplekVenster({
   beginGesprekId = null,
-  beginArtefact,
 }: {
   /** Gesprek dat bij binnenkomst open moet staan (deep-link vanuit het annotatie-overzicht). */
   beginGesprekId?: string | null;
-  /** Annotatie die bij binnenkomst als artefact open moet staan. */
-  beginArtefact?: string;
 } = {}) {
   return (
     <div className="h-screen h-[100dvh] overflow-hidden">
-      <WorkbenchShell beginGesprekId={beginGesprekId} beginArtefact={beginArtefact} />
+      <WorkbenchShell beginGesprekId={beginGesprekId} />
     </div>
   );
 }

@@ -9,9 +9,8 @@ import { MobieleTopbar } from "@/components/werkplek/MobieleTopbar";
 import { ChevronOmlaag } from "@/components/ui/Icoon";
 import { SkipLink, HOOFDINHOUD_ID } from "@/components/ui/SkipLink";
 
-/** De paginaschil om één annotatie: sidebar (met de mobiele drawer), een kop met de weg terug naar
- *  het overzicht, en het hoofdgebied. Gedeeld door `/annotaties/<slug>` en `/annotaties/node`, zodat
- *  een bronnode-annotatie op eigen benen er net zo uitziet als een artikeldocument. */
+/** De paginaschil om één annotatie op eigen benen (`/annotaties/node`): sidebar (met de mobiele
+ *  drawer), een kop met de weg terug naar het overzicht, en het hoofdgebied. */
 export function AnnotatiePaginaSchil({ titel, werkplekHref, onFout, children }: {
   titel: string;
   /** Knop "Openen in de werkplek"; weglaten als er geen werkplek-ingang voor deze annotatie is. */

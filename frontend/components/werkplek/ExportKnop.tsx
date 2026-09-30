@@ -3,16 +3,12 @@
 import { useState } from "react";
 
 import { Popover } from "@/components/ui/Popover";
-import { exporteerDocument, foutTekst, isApiError, type ExportFormaat } from "@/lib/api";
+import { foutTekst, type ExportFormaat } from "@/lib/api";
 
 interface Props {
-  slug: string;
-  /** De letterlijke wettekst per lid (rauw, zonder nummer-voorvoegsel); gaat mee zodat het rapport
-   *  de bron naast de tabel kan zetten. De api verzint hem niet – zonder leden blijft dat blok weg. */
-  leden: { lid: string; tekst: string }[];
   onFout: (melding: string) => void;
-  /** Eigen download in plaats van de artikel-export. Een bronnode-annotatie exporteert via haar
-   *  eigen route; de knop en het keuzepaneel blijven hetzelfde. */
+  /** De download zelf. Zonder (de rondleiding, die geen api heeft) sluit het keuzepaneel zonder
+   *  bestand. */
   onDownload?: (formaat: ExportFormaat) => Promise<void>;
 }
 
@@ -27,18 +23,17 @@ const FORMATEN: { formaat: ExportFormaat; label: string; uitleg: string }[] = [
  *
  *  Het paneel sluit na een geslaagde download doordat de Popover met een nieuwe `key` remount;
  *  de Popover geeft zijn eigen sluiter niet aan zijn kinderen door. */
-export function ExportKnop({ slug, leden, onFout, onDownload }: Props) {
+export function ExportKnop({ onFout, onDownload }: Props) {
   const [bezig, setBezig] = useState<ExportFormaat | null>(null);
   const [sleutel, setSleutel] = useState(0);
 
   async function download(formaat: ExportFormaat) {
     setBezig(formaat);
     try {
-      if (onDownload) await onDownload(formaat);
-      else await exporteerDocument(slug, formaat, leden);
+      await onDownload?.(formaat);
       setSleutel((k) => k + 1);
     } catch (e) {
-      onFout(onDownload ? foutTekst(e, "Exporteren is niet gelukt.") : isApiError(e) ? e.detail : "Exporteren is niet gelukt.");
+      onFout(foutTekst(e, "Exporteren is niet gelukt."));
     } finally {
       setBezig(null);
     }

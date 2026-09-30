@@ -7,9 +7,9 @@ export const metadata = { title: "Lex · Wetsanalyse" };
 export default async function WerkplekPagina({
   searchParams,
 }: {
-  searchParams: Promise<{ gesprek?: string; annotatie?: string }>;
+  searchParams: Promise<{ gesprek?: string }>;
 }) {
-  // Deep-links vanuit het annotatie-overzicht: open dit gesprek, en/of dit artefact.
-  const { gesprek, annotatie } = await searchParams;
-  return <WerkplekVenster beginGesprekId={gesprek ?? null} beginArtefact={annotatie} />;
+  // Deep-link vanuit het annotatie-overzicht: open dit gesprek.
+  const { gesprek } = await searchParams;
+  return <WerkplekVenster beginGesprekId={gesprek ?? null} />;
 }

@@ -174,25 +174,13 @@ def test_geen_laag_betekent_gewoon_annoteren():
 # --- vastleggen -------------------------------------------------------------------------------------
 
 class NepApi:
-    def __init__(self, hergebruikt: list[str] | None = None) -> None:
+    def __init__(self) -> None:
         self.batches: list[dict] = []
-        self.hergebruik_posts: list[dict] = []
-        self.laag_puts: list[dict] = []
         self.berichten: list[dict] = []
-        self.verworpen = 0
-        self.hergebruikt = hergebruikt or []
 
     async def zet_bronnode_batch(self, batch):
         self.batches.append(batch)
         return {"annotatie_doel": {"bron_iri": batch["doel"]["bron_iri"], "snapshot_id": batch["snapshot_id"]}}
-
-    async def hergebruik(self, **kw: Any) -> dict:
-        self.hergebruik_posts.append(kw)
-        return {"slug": "laag1"}
-
-    async def zet_laag_elementen(self, **kw: Any) -> dict:
-        self.laag_puts.append(kw)
-        return {"slug": "laag1"}
 
     async def voeg_bericht_toe(self, gesprek_id: str, bericht: dict) -> dict:
         self.berichten.append(bericht)
@@ -226,7 +214,6 @@ def test_volledig_hergebruik_wordt_vastgelegd_zonder_merge(monkeypatch):
     batch, = nep.batches
     assert batch["doel"]["bron_iri"].endswith(":lid:2")
     assert batch["elementen"] == [] and batch["run"]["modus"] == "hergebruik"
-    assert nep.laag_puts == [] and nep.hergebruik_posts == []
     assert nep.berichten[0]["annotatie_doel"]["bron_iri"].endswith(":lid:2")
     assert nep.berichten[0]["tool_executions"]
     assert _van(uit, "opgeslagen")[0]["annotatie_doel"]["bron_iri"].endswith(":lid:2")

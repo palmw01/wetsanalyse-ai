@@ -30,7 +30,7 @@ REGISTER = URIRef("urn:jas:graph:register:v2")
 SCHEMA = URIRef("urn:jas:projectieschema:v2")
 logger = logging.getLogger(__name__)
 _locks: dict[str, asyncio.Lock] = {}
-# Directe projectie na een commit, zoals v1 (`graaf_projectie.na_mutatie`): alleen aan als de lus
+# Directe projectie na een commit (`na_mutatie`): alleen aan als de lus
 # draait (GRAPHDB_URL gezet). De taken houden we vast, anders ruimt de garbage collector ze op.
 _actief = False
 _taken: set[asyncio.Task] = set()

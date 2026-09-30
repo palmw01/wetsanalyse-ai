@@ -11,7 +11,7 @@
 //     breekt een lopende beurt af en kost de jurist zijn hele antwoord. Overslaan + een
 //     console-regel houdt de rest van de stroom intact.
 //  2. `lib/types.ts` BLIJFT DE BRON VAN DE VORM. Dat bestand is met de hand afgeleid van
-//     api/app/annotatie_contracts.py; deze controles spiegelen het, ze vervangen het niet. Het
+//     de api-contracten; deze controles spiegelen het, ze vervangen het niet. Het
 //     retourtype van elke parser is het handgeschreven type, dus loopt het uit elkaar, dan faalt
 //     `npm run typecheck`.
 //  3. MET DE HAND, NIET MET ZOD. Zod stáát in package.json, maar werd tot nu toe nergens

@@ -31,8 +31,7 @@ overzien.
 
 1. **`api/`** – headless FastAPI-backend (PostgreSQL-opslag, per-client bearer-auth) voor de werkplek.
    Bedient het **annotatie-domein** (`/v1/annotatie/*`: markeringen, beslissingen en een append-only
-   auditlog, op **contract 2**: één laag per bronnode – artikel, lid of onderdeel.
-   `ANNOTATIE_CONTRACT_VERSIE`, default `2`; de artikelbrede schrijfacties geven dan 409), de
+   auditlog: één laag per bronnode – artikel, lid of onderdeel), de
    **chatgeschiedenis** (`/v1/gesprekken/*`), het **login-/gebruikersbeheer** (de API is de
    identiteitsbron van de webapp, inclusief zelfregistratie-aanvragen die een beheerder goedkeurt),
    het **LLM-modelprofielbeheer** (`/v1/admin/*`; de env-`LLM_*`-waarden seeden alleen het eerste
@@ -386,7 +385,7 @@ plan mag verouderen.
   wijziging aan die regels altijd met `git check-ignore -v <pad>`.
 - `docs/regelspraak/` – de RegelSpraak-specificaties (PDF), voor de latere formaliseringsfase.
   Ook lokaal-only (gitignored), dus afwezig in een verse kloon.
-- `docs/architectuur/annotatie-bronnodes.md` – de **geldende specificatie** van contract 2:
+- `docs/architectuur/annotatie-bronnodes.md` – de **geldende specificatie** van de annotatielagen:
   eigenaarschap en ankers, opslag en projectie, de leestools en het uitvoeringsspoor.
 - `docs/architectuur/adr-001-hybride-jas-pijplijn.md` – het ontwerp van de annotatieketen
   (deterministische detectie → kandidaten → kleine classifier → gerichte review); de enige route.

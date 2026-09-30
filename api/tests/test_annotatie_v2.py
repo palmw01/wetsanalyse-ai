@@ -199,7 +199,6 @@ async def test_api_view_active_user_and_export_scope(monkeypatch):
     from app import annotatie_v2
     from app.config import get_settings
     from conftest import maak_testgebruikers
-    monkeypatch.setenv("ANNOTATIE_CONTRACT_VERSIE", "2")
     monkeypatch.setenv("WETSANALYSE_AUTH_REQUIRED", "0")
     get_settings.cache_clear()
 
@@ -220,12 +219,10 @@ async def test_api_view_active_user_and_export_scope(monkeypatch):
             json={"bron_iri": ONE, "snapshot_id": snap["snapshot_id"], "formaat": "json"})
         assert export.status_code == 200
         assert "Beta" not in export.text
-        assert (await client.get("/v1/annotatie/capabilities", headers=headers)).json()["bronnodes_actief"]
+        assert (await client.get("/v1/annotatie/capabilities", headers=headers)).json()["samenhang"]
+        # Er is geen artikelbreed schrijfpad naast de bronnode-lagen.
         legacy = await client.put("/v1/annotatie/lagen/BWBR0004770/9/elementen", headers=headers, json={})
-        assert legacy.status_code == 409
-        monkeypatch.setenv("ANNOTATIE_CONTRACT_VERSIE", "1")
-        get_settings.cache_clear()
-        assert (await client.get("/v1/annotatie/weergave", headers=headers, params={"bron_iri": ONE})).status_code == 503
+        assert legacy.status_code in (404, 405)
     get_settings.cache_clear()
 
 

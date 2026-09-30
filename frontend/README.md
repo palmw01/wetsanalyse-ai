@@ -9,9 +9,8 @@ in [`CLAUDE.md`](CLAUDE.md).
   twee werkwijzen – **vragen** aan Lex (brongetrouwe Q&A over de kennisgraaf) en **JAS-annotatie**
   (Lex stelt markeringen voor, de jurist beoordeelt ze per element). De beurt draait bij graph-qa,
   de werkplek kijkt mee via SSE; de review-state staat in de API.
-- **De annotaties** staan los van de gesprekken: `/annotaties` is het overzicht, `/annotaties/node`
-  toont één bronnode-annotatie (contract 2) en `/annotaties/<slug>` een artikeldocument. Beide tonen
-  dezelfde inhoud als het paneel in de werkplek.
+- **De annotaties** staan los van de gesprekken: `/annotaties` is het overzicht en `/annotaties/node`
+  toont één bronnode-annotatie, met dezelfde inhoud als het paneel in de werkplek.
 - **Het instellingenvenster** (`/instellingen/*`) opent als dialoog over de werkplek heen: account
   (wachtwoord, 2FA, verbruik), berichten en – voor beheerders – modelprofielen, gebruikers,
   aanvragen, API-tokens, berichtenbeheer en feedback. Het beheer loopt via `/api/admin/*` met een
@@ -120,8 +119,8 @@ daarvoor geen eigen secret.
 
 ## Types bijhouden
 
-`lib/types.ts` is met de hand afgeleid van `api/app/annotatie_contracts.py`,
-`api/app/annotatie_v2_contracts.py` en `api/app/gesprek_contracts.py`, en is de bron van waarheid
+`lib/types.ts` is met de hand afgeleid van `api/app/annotatie_v2_contracts.py` en
+`api/app/gesprek_contracts.py`, en is de bron van waarheid
 aan de TS-kant. Controleren tegen het live OpenAPI-schema bij een contractwijziging:
 
 ```bash

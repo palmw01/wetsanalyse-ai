@@ -7,7 +7,7 @@ nu verbruikt heeft is `sum(...) WHERE userid = ? AND tijdstip >= venster_start`.
 Dat is geen stijlkeuze maar de reden dat drie dingen kloppen:
 
 - **Werk weggooien geeft geen tokens terug.** Een gesprek of annotatiedocument verwijderen wist zijn
-  eigen rijen (`gesprek_store.verwijder_gesprek`, `annotatie_store.verwijder_document`), maar raakt
+  eigen rijen (`gesprek_store.verwijder_gesprek`, `annotatie_v2_store.verwijder_weergave`), maar raakt
   het journaal niet: `userid` is de enige harde sleutel, `gesprek_id`/`run_id` zijn losse metadata.
 - **De reset kan niet mislukken.** Er is geen periodieke taak die de tellers nulzet; het vensterbegin
   wordt uit het anker gerekend. Draait de dienst een week niet, dan klopt de stand daarna nog steeds.

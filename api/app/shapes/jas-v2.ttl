@@ -63,7 +63,7 @@ jasv:MarkeringShape a sh:NodeShape ;
                         "Operator" "Tijdsaanduiding" "Plaatsaanduiding"
                         "Delegatiebevoegdheid en delegatie-invulling" "Brondefinitie" ) ] ;
   sh:property [ sh:path jas:lifecycle ; sh:minCount 1 ; sh:maxCount 1 ; sh:group jasv:JasModel ;
-                sh:in ( "voorgesteld" "critic_checked" "human_approved" "edited" "rejected" "published" "reused" ) ] .
+                sh:in ( "voorgesteld" "human_approved" "edited" "rejected" "published" "reused" ) ] .
 
 # --- doel en selectors ----------------------------------------------------------------------------
 jasv:DoelShape a sh:NodeShape ;
