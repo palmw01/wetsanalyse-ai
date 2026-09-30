@@ -202,3 +202,18 @@ a {
 }
 .samenhang-tip strong { font-weight: 600; color: rgb(var(--lint)); }
 .samenhang-tip span { color: rgb(var(--muted)); font-size: 0.6875rem; }
+
+/* Eén beurt in de thread (`WerkplekClient` → `ThreadRij`). Buiten beeld slaat de browser layout en
+   paint over, zodat een lang gesprek niet bij elk frame helemaal opnieuw wordt opgemaakt. Dat is de
+   browser-eigen tegenhanger van virtualisatie: de DOM blijft staan, dus zoeken (Ctrl+F),
+   schermlezers, `scrollIntoView` en het meescrollen naar de bodem blijven gewoon werken.
+   `auto` in `contain-intrinsic-size` onthoudt de echte hoogte zodra een rij één keer in beeld was,
+   zodat de scrollbalk niet verspringt. `content-visibility` legt ook paint-containment op, en dat
+   knipt alles af wat buiten de rij uitsteekt – zoals een focusring met offset. De padding met
+   gelijke negatieve marge geeft die ring ruimte zonder de layout te veranderen. */
+.thread-rij {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 160px;
+  padding: 4px;
+  margin: -4px;
+}
