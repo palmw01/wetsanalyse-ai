@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bronHref, normaliseerJci, pathSegment, veiligPad } from "./url";
+import { bronHref, isPuntSegment, normaliseerJci, pathSegment, veiligPad } from "./url";
 
 describe("normaliseerJci", () => {
   it("voegt &z= toe (gelijk aan &g=) als alleen &g= aanwezig is", () => {
@@ -46,9 +46,35 @@ describe("pathSegment", () => {
     expect(pathSegment("Mijn Profiel")).toBe("Mijn%20Profiel");
     expect(pathSegment("Mijn%20Profiel")).toBe("Mijn%20Profiel");
   });
+  // `encodeURIComponent("..")` is `..`, en `fetch` normaliseert dat upstream weg: dan komt de BFF
+  // uit bij een ander endpoint dan de route belooft.
+  it.each(["..", ".", "%2E%2E", "%2e", "%252E%252E"])("weigert het punt-segment %s", (v) => {
+    expect(() => pathSegment(v)).toThrow();
+  });
+});
+
+describe("isPuntSegment", () => {
+  it("herkent punt-segmenten door meerdere encoderingslagen heen", () => {
+    expect(isPuntSegment("..")).toBe(true);
+    expect(isPuntSegment("%2E%2E")).toBe(true);
+    expect(isPuntSegment("%252E%252E")).toBe(true);
+    expect(isPuntSegment(".%2e")).toBe(true);
+  });
+
+  it("laat gewone segmenten en lege delen met rust", () => {
+    expect(isPuntSegment("")).toBe(false);
+    expect(isPuntSegment("art.9")).toBe(false);
+    expect(isPuntSegment("...")).toBe(false);
+    expect(isPuntSegment("100%")).toBe(false);
+  });
 });
 
 describe("bronHref", () => {
+  it("geeft bij een kapotte percent-encoding in een graaf-IRI geen link, en gooit niet", () => {
+    expect(() => bronHref("urn:bwb:BWBR0004770:artikel:10%")).not.toThrow();
+    expect(bronHref("urn:bwb:BWBR0004770:artikel:10%")).toBeUndefined();
+  });
+
   it("maakt van een jci-uri een wetten.overheid.nl-deeplink", () => {
     expect(bronHref("jci1.3:c:BWBR0004770&artikel=9")).toBe(
       "https://wetten.overheid.nl/jci1.3:c:BWBR0004770&artikel=9",

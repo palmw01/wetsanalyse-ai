@@ -95,12 +95,18 @@ function InlineVeld({
   const [concept, setConcept] = useState(waarde);
   const [wisBevestiging, setWisBevestiging] = useState(false);
   const ref = useRef<HTMLInputElement>(null);
+  // Enter en Escape laten de input verdwijnen, en dan vuurt `onBlur` daarná óók – met dezelfde
+  // closure. Zonder deze vlag ging een toelichting of opmerking twee keer de audit in, en sloeg
+  // Escape ("annuleren") het concept alsnog op. Zelfde guard als in `GesprekLijst`.
+  const afgehandeld = useRef(false);
 
   useEffect(() => {
     if (bewerkt) ref.current?.focus();
   }, [bewerkt]);
 
   async function bewaar() {
+    if (afgehandeld.current) return;
+    afgehandeld.current = true;
     const nieuw = concept.trim();
     setBewerkt(false);
     if (nieuw === waarde) return;
@@ -137,6 +143,7 @@ function InlineVeld({
         type="button"
         onClick={() => {
           setConcept(waarde);
+          afgehandeld.current = false;
           setBewerkt(true);
         }}
         className={`focus-ring min-h-[24px] w-full rounded px-1 py-0.5 text-left transition hover:bg-surface coarse:min-h-[44px] ${waarde ? "" : "text-faint"}`}
@@ -155,6 +162,7 @@ function InlineVeld({
       onKeyDown={(e) => {
         if (e.key === "Enter") void bewaar();
         if (e.key === "Escape") {
+          afgehandeld.current = true;
           setConcept(waarde);
           setBewerkt(false);
         }

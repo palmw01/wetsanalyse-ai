@@ -26,8 +26,13 @@ export function TwoFactorClient() {
     // Browser-only hydratie uit sessionStorage (van stap 1 /login): het effect is hier het
     // SSR-correcte patroon – een lazy initializer zou een server/client-mismatch geven.
     /* eslint-disable react-hooks/set-state-in-effect */
-    setUserid(sessionStorage.getItem("wa_login_userid"));
-    setOnthouden(sessionStorage.getItem("wa_login_remember") === "1");
+    // Geblokkeerde opslag gooit: dan geldt wat ook bij een ontbrekende userid geldt – opnieuw beginnen.
+    try {
+      setUserid(sessionStorage.getItem("wa_login_userid"));
+      setOnthouden(sessionStorage.getItem("wa_login_remember") === "1");
+    } catch {
+      setUserid(null);
+    }
     /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
@@ -58,8 +63,12 @@ export function TwoFactorClient() {
         setFout("Inloggen mislukt. Begin opnieuw.");
         return;
       }
-      sessionStorage.removeItem("wa_login_userid");
-      sessionStorage.removeItem("wa_login_remember");
+      try {
+        sessionStorage.removeItem("wa_login_userid");
+        sessionStorage.removeItem("wa_login_remember");
+      } catch {
+        /* opslag niet beschikbaar: niets op te ruimen */
+      }
       // Harde navigatie, zie de toelichting in LoginClient.tsx: de disclaimer-gate kan hier
       // omleiden, en dat combineert niet goed met een soft router.push.
       window.location.href = veiligPad(params.get("callbackUrl"), window.location.origin);

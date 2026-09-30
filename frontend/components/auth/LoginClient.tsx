@@ -38,8 +38,17 @@ export function LoginClient() {
         // 2FA nodig én dit apparaat is niet (meer) vertrouwd → naar het aparte 2FA-scherm. Draag de
         // niet-gevoelige userid + de remember-keuze + callbackUrl mee; het login-ticket (httpOnly
         // cookie) draagt het wachtwoord-bewijs, zodat het wachtwoord het geheugen niet verlaat.
-        sessionStorage.setItem("wa_login_userid", userid);
-        sessionStorage.setItem("wa_login_remember", onthouden ? "1" : "0");
+        // Geblokkeerde opslag (strikte privacy-instellingen) gooit hier. Dat is geen storing van de
+        // dienst – die melding stond er wel, via de catch onderaan – maar een browserinstelling.
+        try {
+          sessionStorage.setItem("wa_login_userid", userid);
+          sessionStorage.setItem("wa_login_remember", onthouden ? "1" : "0");
+        } catch {
+          setFout(
+            "Je browser blokkeert de opslag die de tweestapsverificatie nodig heeft. Sta opslag voor deze site toe en probeer het opnieuw.",
+          );
+          return;
+        }
         const cb = params.get("callbackUrl");
         router.push(cb ? `/login/2fa?callbackUrl=${encodeURIComponent(cb)}` : "/login/2fa");
         return;

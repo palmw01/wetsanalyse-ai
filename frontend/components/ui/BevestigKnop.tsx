@@ -63,13 +63,17 @@ export function BevestigKnop({
   useEffect(() => {
     if (!scherp || hover) return;
     const id = window.setTimeout(() => setScherp(false), wachtMs);
+    // Capture + `stopPropagation`: een scherpe knop ontwapenen is de bovenste laag. Zonder dat
+    // sloot dezelfde Escape ook het venster of paneel waar de knop in staat.
     const opEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setScherp(false);
+      if (e.key !== "Escape") return;
+      e.stopPropagation();
+      setScherp(false);
     };
-    window.addEventListener("keydown", opEsc);
+    window.addEventListener("keydown", opEsc, true);
     return () => {
       window.clearTimeout(id);
-      window.removeEventListener("keydown", opEsc);
+      window.removeEventListener("keydown", opEsc, true);
     };
   }, [scherp, hover, wachtMs]);
 
@@ -81,8 +85,10 @@ export function BevestigKnop({
       aria-busy={bezig || undefined}
       aria-label={bezig ? "Bezig" : scherp ? bevestigTekst : ariaLabel}
       title={bezig ? "Bezig" : scherp ? bevestigTekst : titel}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
+      // Alleen een echte muis telt als "wijst naar de knop". Een tik op een aanraakscherm levert wél
+      // een enter op maar nooit een leave, en dan liep de ontwapen-timer nooit meer.
+      onPointerEnter={(e) => { if (e.pointerType === "mouse") setHover(true); }}
+      onPointerLeave={(e) => { if (e.pointerType === "mouse") setHover(false); }}
       onBlur={() => setScherp(false)}
       onClick={async (e) => {
         e.stopPropagation();

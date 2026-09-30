@@ -20,6 +20,9 @@ export type DialogVariant =
   /** Gecentreerd venster dat zo hoog is als zijn inhoud (feedback, voorwaarden). */
   | "compact";
 
+/** De open vensters, onderste eerst. Module-breed omdat de vensters elkaar niet kennen. */
+const STAPEL: symbol[] = [];
+
 const PANEEL_CLASS: Record<DialogVariant, string> = {
   fullscreen: "absolute inset-0 flex flex-col bg-paper outline-none sm:inset-3 sm:rounded-kaart sm:shadow-kaart",
   // Vaste hoogte, en dat is hier een kenmerk: het instellingenvenster wisselt van tab en zou anders
@@ -85,9 +88,24 @@ interface Props {
 export function Dialog({ label, variant = "center", wrapperClassName = "", onSluit, onEscape, children }: Props) {
   const paneelRef = useRef<HTMLDivElement>(null);
   const modaal = variant !== "kolom";
+  const idRef = useRef<symbol>(null);
+  idRef.current ??= Symbol(label);
+
+  // Alleen het bovenste venster reageert op Escape en Tab. Elke Dialog hangt zijn luisteraar aan
+  // `window`, dus lag het instellingenvenster over een open artefact (of de drawer), dan sloot één
+  // Escape ze allemaal tegelijk.
+  useEffect(() => {
+    const id = idRef.current!;
+    STAPEL.push(id);
+    return () => {
+      const i = STAPEL.lastIndexOf(id);
+      if (i >= 0) STAPEL.splice(i, 1);
+    };
+  }, []);
 
   useEffect(() => {
     const opKey = (e: KeyboardEvent) => {
+      if (STAPEL[STAPEL.length - 1] !== idRef.current) return;
       if (e.key === "Escape") {
         (onEscape ?? onSluit)();
         return;
@@ -114,8 +132,16 @@ export function Dialog({ label, variant = "center", wrapperClassName = "", onSlu
   // De focus verplaatsen hoort bij het ópenen, niet bij het (her)registreren van de luisteraar —
   // anders trekt elke wisseling van een callback de cursor terug naar het paneel, midden in het
   // veld waar je aan het typen was. Alleen modaal: bij de kolomvorm staat de chat er juist naast.
+  //
+  // Bij het sluiten gaat de focus terug naar waar hij vandaan kwam (WCAG 2.4.3): anders belandt hij
+  // op `body` en begint een toetsenbordgebruiker weer bovenaan de pagina.
   useEffect(() => {
-    if (modaal) paneelRef.current?.focus();
+    if (!modaal) return;
+    const vorige = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    paneelRef.current?.focus();
+    return () => {
+      if (vorige?.isConnected) vorige.focus({ preventScroll: true });
+    };
   }, [modaal]);
 
   if (!modaal) {

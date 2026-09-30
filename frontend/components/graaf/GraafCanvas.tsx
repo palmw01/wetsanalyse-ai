@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import ForceGraph3D, { type ForceGraphMethods, type LinkObject } from "react-force-graph-3d";
-import { Group, Mesh, MeshLambertMaterial, OctahedronGeometry, SphereGeometry, Vector3, type PerspectiveCamera } from "three";
+import { Group, Mesh, MeshLambertMaterial, OctahedronGeometry, SphereGeometry, Vector3, type BufferGeometry, type PerspectiveCamera } from "three";
 import SpriteText from "three-spritetext";
 import type { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { SOORT_LABEL, isDubbelklik, type GraafData, type GraafKnoop, type GraafRelatie } from "@/lib/samenhang";
@@ -46,6 +46,24 @@ function webglBeschikbaar(): boolean {
     gl.getExtension("WEBGL_lose_context")?.loseContext();
     return true;
   } catch { return false; }
+}
+
+// De geometrie per vorm en straal, gedeeld over alle knopen. Elke klik bouwt de knoopobjecten
+// opnieuw (dimmen en labels hangen aan de selectie), en daarbij voor elke knoop een verse bol
+// uitrekenen maakte kiezen in een groot artikel merkbaar traag. Delen is veilig: de renderer ruimt
+// bij het vervangen de GPU-buffers op (`dispose`), en three.js laadt een gedisposede geometrie bij
+// het volgende frame gewoon opnieuw.
+const VORMEN = new Map<string, BufferGeometry>();
+function vormVan(soort: "bol" | "klasse" | "halo", straal: number): BufferGeometry {
+  const sleutel = `${soort}:${straal}`;
+  let vorm = VORMEN.get(sleutel);
+  if (!vorm) {
+    vorm = soort === "klasse" ? new OctahedronGeometry(straal * 1.25)
+      : soort === "halo" ? new SphereGeometry(straal + 2.5, 22, 16)
+      : new SphereGeometry(straal, 20, 14);
+    VORMEN.set(sleutel, vorm);
+  }
+  return vorm;
 }
 
 const idVan = (value: RenderLink["source"]): string => typeof value === "object" ? String(value.id) : String(value);
@@ -198,14 +216,14 @@ export function GraafCanvas({ data, selectie, onSelecteer, onDubbelklik, onInter
   const maakObject = useCallback((node: GraafKnoop) => {
     const group = new Group();
     const radius = node.straal;
-    const geometry = node.soort === "klasse" ? new OctahedronGeometry(radius * 1.25) : new SphereGeometry(radius, 20, 14);
+    const geometry = vormVan(node.soort === "klasse" ? "klasse" : "bol", radius);
     // Een bepaling buiten het geopende artikel is een draadmodel: een verwijzing, nog geen geladen bron.
     const gedimd = !!selectie && !buren.has(node.id);
     const material = new MeshLambertMaterial({ color: node.kleur, transparent: true, wireframe: node.rand,
       opacity: gedimd ? 0.16 : node.rand ? 0.85 : 1 });
     group.add(new Mesh(geometry, material));
     if (node.id === selectie) {
-      group.add(new Mesh(new SphereGeometry(radius + 2.5, 22, 16),
+      group.add(new Mesh(vormVan("halo", radius),
         new MeshLambertMaterial({ color: "#007bc7", wireframe: true, transparent: true, opacity: 0.4 })));
     }
     // Vaste labels alleen voor de selectie en haar buren; de rest heeft een tooltip bij hover.

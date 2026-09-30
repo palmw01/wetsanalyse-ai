@@ -10,6 +10,10 @@ describe("canonieke bronnode-annotaties", () => {
     const locked = await nodeError(new Response(JSON.stringify({ detail: "Heropen de laag voordat je haar wijzigt." }), { status: 409 }));
     expect(locked.message).toBe("Heropen de laag voordat je haar wijzigt.");
   });
+  it("toont de melding van een gestructureerde fout in plaats van de kale status", async () => {
+    const fout = await nodeError(new Response(JSON.stringify({ detail: { reden: "slot", melding: "Deze laag is afgerond." } }), { status: 409 }));
+    expect(fout.message).toBe("Deze laag is afgerond.");
+  });
   it("vertaalt DOM UTF-16 naar lokale Unicode posities zonder siblingtekst", () => {
     const segment = { bron_iri: "urn:lid2", type: "Lid", label: "Lid 2", tekst: "A😀 café", bron_hash: "sha256", volgorde: 2 };
     expect(codepointOffset(segment.tekst, 3)).toBe(2);

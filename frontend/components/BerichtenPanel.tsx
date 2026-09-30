@@ -75,8 +75,18 @@ export function BerichtenPanel({ positie, containerClassName }: { positie?: stri
     // render. De regel kan daar niet doorheen kijken.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void laadAantal();
-    const id = setInterval(() => void laadAantal(), 60_000);
-    return () => clearInterval(id);
+    // Alleen in een zichtbaar tabblad; bij terugkomen meteen bijwerken (zie `WorkbenchShell`).
+    const id = setInterval(() => {
+      if (!document.hidden) void laadAantal();
+    }, 60_000);
+    const bijZicht = () => {
+      if (!document.hidden) void laadAantal();
+    };
+    document.addEventListener("visibilitychange", bijZicht);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", bijZicht);
+    };
   }, [laadAantal]);
 
   const onOpen = useCallback(async () => {

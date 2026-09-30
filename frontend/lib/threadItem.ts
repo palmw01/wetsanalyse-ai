@@ -10,7 +10,9 @@ import type {
 } from "./types";
 
 export type ThreadItem = { tool_executions?: import("./annotatieNode").ToolExecution[] } & (
-  | { id: string; type: "user"; tekst: string; over?: string }
+  // `nietVerstuurd`: de vraag is bewaard maar niet aangenomen (er liep al een beurt). Hij blijft in
+  // beeld omdat hij na herladen tóch terugkomt – wat je ziet moet kloppen met wat er bewaard is.
+  | { id: string; type: "user"; tekst: string; over?: string; nietVerstuurd?: boolean }
   | { id: string; type: "antwoord"; tekst: string; denk?: string; bronnen?: Bron[];
       // De brongetrouwheidstoets van déze beurt. Live; hij reist niet mee in het berichtcontract,
       // maar de statusregel ervan staat wél in `denk` en blijft dus na herladen terug te vinden.

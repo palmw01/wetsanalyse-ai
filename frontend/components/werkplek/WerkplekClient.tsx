@@ -245,33 +245,43 @@ export function WerkplekClient({
   // remount; zou de effect daarop herstarten, dan overschrijft `haalGesprek` de lopende stream. Een échte
   // gespreks-wissel remount dit component (via `key={mountKey}`), dus de ref draagt dan de juiste id.
   const hydratieId = useRef(initialGesprekId).current;
-  useEffect(() => {
-    if (!hydratieId) return;
-    let afgebroken = false;
-    haalGesprek(hydratieId)
+  // De geschiedenis kon niet worden geladen. Stil falen liet een leeg beginscherm zien alsof het
+  // gesprek leeg was – en een volgende vraag belandde dan in een gesprek waarvan je de rest niet zag.
+  const [hydratieFout, setHydratieFout] = useState<{ melding: string; weg: boolean } | null>(null);
+  // Welke laadpoging telt. Een oudere poging (StrictMode draait het effect twee keer, of een
+  // "opnieuw proberen" terwijl de vorige nog liep) mag de thread niet nog eens aanvullen.
+  const hydratiePoging = useRef(0);
+
+  function hydrateer(id: string) {
+    setHydratieFout(null);
+    const poging = ++hydratiePoging.current;
+    const geldt = () => levendRef.current && poging === hydratiePoging.current;
+    haalGesprek(id)
       .then((g) => {
-        if (afgebroken) return;
+        if (!geldt()) return;
         // De berichten van één reeks (zelfde `reeks.run_id`) worden weer één reeksblok.
         const reeksen = new Map<string, typeof g.berichten>();
         for (const b of g.berichten) if (b.reeks) reeksen.set(b.reeks.run_id, [...(reeksen.get(b.reeks.run_id) ?? []), b]);
-        setItems(
-          g.berichten.flatMap((b): Item[] => {
-            if (b.reeks) {
-              const groep = reeksen.get(b.reeks.run_id) ?? [];
-              const reeks = groep[0] === b ? reeksUitBerichten(groep) : null;
-              return reeks ? [{ id: uid(), type: "reeks", reeks }] : [];
-            }
-            return [b.rol === "user"
-              ? { id: uid(), type: "user" as const, tekst: b.tekst }
-              : b.annotatie_slug || b.annotatie_doel
-                ? { id: uid(), type: "annotatie" as const, slug: b.annotatie_slug || b.annotatie_doel!.bron_iri,
-                    titel: b.annotatie_doel?.label || b.annotatie_titel || undefined, annotatie_doel: b.annotatie_doel,
-                    tool_executions: (b.tool_executions ?? []).map(parseToolExecution).filter((e): e is ToolExecution => !!e), denk: b.denk,
-                    // Na herladen moet nog te zien zijn dat er niets opnieuw is bekeken.
-                    hergebruik: b.hergebruik ? parseHergebruik(b.hergebruik) : undefined }
-                : { id: uid(), type: "antwoord" as const, tekst: b.tekst, denk: b.denk, bronnen: b.bronnen, tool_executions: (b.tool_executions ?? []).map(parseToolExecution).filter((e): e is ToolExecution => !!e) }];
-          }),
-        );
+        const geschiedenis = g.berichten.flatMap((b): Item[] => {
+          if (b.reeks) {
+            const groep = reeksen.get(b.reeks.run_id) ?? [];
+            const reeks = groep[0] === b ? reeksUitBerichten(groep) : null;
+            return reeks ? [{ id: uid(), type: "reeks", reeks }] : [];
+          }
+          return [b.rol === "user"
+            ? { id: uid(), type: "user" as const, tekst: b.tekst }
+            : b.annotatie_slug || b.annotatie_doel
+              ? { id: uid(), type: "annotatie" as const, slug: b.annotatie_slug || b.annotatie_doel!.bron_iri,
+                  titel: b.annotatie_doel?.label || b.annotatie_titel || undefined, annotatie_doel: b.annotatie_doel,
+                  tool_executions: (b.tool_executions ?? []).map(parseToolExecution).filter((e): e is ToolExecution => !!e), denk: b.denk,
+                  // Na herladen moet nog te zien zijn dat er niets opnieuw is bekeken.
+                  hergebruik: b.hergebruik ? parseHergebruik(b.hergebruik) : undefined }
+              : { id: uid(), type: "antwoord" as const, tekst: b.tekst, denk: b.denk, bronnen: b.bronnen, tool_executions: (b.tool_executions ?? []).map(parseToolExecution).filter((e): e is ToolExecution => !!e) }];
+        });
+        // VÓÓR wat er al staat, niet in plaats daarvan. Verstuurde de jurist een vraag terwijl dit nog
+        // laadde (een koude start duurt seconden), dan staan zijn vraag en het lopende antwoord al in
+        // de thread – vervangen liet het antwoord onzichtbaar binnenstromen tot een herlaadbeurt.
+        setItems((xs) => [...geschiedenis, ...xs]);
         // Documenten van annotatie-berichten alvast laden voor de chip-labels.
         for (const b of g.berichten) if (b.annotatie_slug && !b.annotatie_doel) void laadDoc(b.annotatie_slug);
         // Liep hier nog een beurt terwijl je ergens anders keek? Pak hem weer op. De run-ids uit de
@@ -279,14 +289,31 @@ export function WerkplekClient({
         // "weg door een herstart".
         // Een reeks bewaart per onderdeel een bericht met run_id `<run>.<n>`; het run-id van de
         // reeks zelf staat in `reeks.run_id`. Zonder dat telde een afgeronde reeks als verdwenen.
-        void hervatBeurt(hydratieId, g.berichten.flatMap((b) => [b.run_id, b.reeks?.run_id ?? ""]).filter(Boolean));
+        void hervatBeurt(id, g.berichten.flatMap((b) => [b.run_id, b.reeks?.run_id ?? ""]).filter(Boolean));
       })
-      .catch(() => {});
+      .catch((e) => {
+        if (!geldt()) return;
+        if (isVerwijderd(e)) {
+          // Het gesprek bestaat niet (meer) – verwijderd in een ander tabblad, of een oude link. Een
+          // volgende vraag begint dan een nieuw gesprek in plaats van op een 404 te stuiten.
+          setGesprekId(null);
+          setHydratieFout({ melding: "Dit gesprek bestaat niet meer. Een nieuwe vraag begint een nieuw gesprek.", weg: true });
+          onGewijzigd();
+        } else {
+          setHydratieFout({ melding: foutTekst(e, "Het gesprek kon niet worden geladen."), weg: false });
+        }
+      });
+  }
+
+  useEffect(() => {
+    if (hydratieId) hydrateer(hydratieId);
+    const pogingen = hydratiePoging;
     return () => {
-      afgebroken = true;
+      pogingen.current += 1;
     };
-    // `laadDoc` bewust niet als dependency: deze hydratatie hoort één keer per mount te draaien (zie
-    // de toelichting hierboven), en de functie wordt elke render opnieuw gemaakt.
+    // `hydrateer` bewust niet als dependency: deze hydratatie hoort één keer per mount te draaien (zie
+    // de toelichting hierboven), en de functie wordt elke render opnieuw gemaakt. Het afbreken bij
+    // unmount loopt via `levendRef`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydratieId]);
 
@@ -389,7 +416,12 @@ export function WerkplekClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [beginArtefact]);
 
+  // Het laatst gevraagde artefact. Opent de jurist A (traag) en dan B, dan mag A bij het binnenkomen
+  // B niet meer verdringen.
+  const gevraagdArtefact = useRef<string | null>(null);
+
   async function openArtefact(slug: string, doel?: NodeDoel) {
+    gevraagdArtefact.current = slug;
     if (doel?.bron_iri) { setArtefactSlug(undefined); setNodeTab("tekst"); setNodeDoel(doel); return; }
     setNodeDoel(undefined);
     // In de rondleiding staan document én artikeltekst al in het geheugen. Zonder deze grens hangt
@@ -415,8 +447,10 @@ export function WerkplekClient({
         const graaf = await haalArtikelGraaf(doc.bwbId, doc.artikel, doc.lid);
         setInfos((m) => ({ ...m, [slug]: graaf }));
       }
+      if (gevraagdArtefact.current !== slug) return;
       setArtefactSlug(slug);
     } catch (e) {
+      if (gevraagdArtefact.current !== slug) return;
       // Zichtbaar falen: de wettekst komt uit de graaf en die kan plat liggen. Een lege klik laat de
       // jurist denken dat de knop stuk is. Een verwijderd document is géén falen – dat wordt een
       // tombstone-kaart, geen foutbalk.
@@ -425,7 +459,7 @@ export function WerkplekClient({
         setArtefactWeg(slug);
       } else setArtefactFout({ slug, melding: foutTekst(e) });
     } finally {
-      setArtefactLaadt(null);
+      setArtefactLaadt((huidig) => (huidig === slug ? null : huidig));
     }
   }
 
@@ -544,9 +578,14 @@ export function WerkplekClient({
       // stilzwijgend verdwijnt. Aanhaken bij de lopende beurt gebeurt hieronder.
       const lopend = (e as { loopendeRun?: string }).loopendeRun;
       if (lopend) {
-        setItems((xs) => xs.filter((x) => x.id !== antId && x.id !== vraagId));
+        // De vraagbubbel blijft staan, gemarkeerd als niet verstuurd: hij is al bewaard
+        // (`persisteer` draait vóór `startRun`), dus weghalen zou hem bij een herlaadbeurt gewoon
+        // laten terugkomen – en opnieuw versturen zette hem er dan dubbel in.
+        setItems((xs) => xs
+          .filter((x) => x.id !== antId)
+          .map((x) => (x.id === vraagId && x.type === "user" ? { ...x, nietVerstuurd: true } : x)));
         setInvoer(prompt);
-        setBewaarFout("Er liep al een vraag in dit gesprek; die wordt nu getoond. Je vraag staat weer in het invoerveld.");
+        setBewaarFout(null);
         const hervatId = uid();
         setItems((xs) => [...xs, { id: hervatId, type: "antwoord", tekst: "" }]);
         await volgBeurt({ runId: lopend, gid, antId: hervatId, vanaf: 0 });
@@ -568,7 +607,11 @@ export function WerkplekClient({
         bezigRef.current = false;
         return;
       }
-      updateItem(antId, { tekst: `**Er ging iets mis.** ${foutTekst(e)}` });
+      // De vraag is al bewaard; de foutmelding gaat er als antwoord bij. Anders stond er na een
+      // herlaadbeurt een vraag zonder enig antwoord, en leek het alsof hij nog liep.
+      const fout = `**Er ging iets mis.** ${foutTekst(e)}`;
+      updateItem(antId, { tekst: fout });
+      void persisteer(gid, "assistant", { tekst: fout });
       setBezig(false);
       bezigRef.current = false;
       return;
@@ -623,6 +666,28 @@ export function WerkplekClient({
     // onderbreking en begint de wachttijd weer onderaan – anders zou een lange beurt met twee losse
     // dips in de hoogste backoff blijven hangen.
     let ontving = false;
+    // De stroom zelf is afgelopen; wat daarna misgaat (het document of de wettekst ophalen) is geen
+    // verbroken verbinding. Zonder dit onderscheid speelde een mislukte graaf-call na een geslaagde
+    // beurt de hele run eindeloos opnieuw af onder "De verbinding met Lex is weggevallen".
+    let stroomKlaar = false;
+    // Tokens en denkregels komen tientallen keren per seconde binnen. Elke keer de thread bijwerken
+    // renderde het hele gesprek per token; nu hooguit één keer per frame. Voor elke andere
+    // bijwerking van dit item wordt de wachtende stand eerst weggeschreven (`schrijfStroom`), zodat
+    // er nooit een oudere tekst overheen komt.
+    let frame = 0;
+    const schrijfStroom = () => {
+      if (!frame) return;
+      cancelAnimationFrame(frame);
+      frame = 0;
+      updateItem(antId, { tekst, denk });
+    };
+    const planStroom = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        updateItem(antId, { tekst, denk });
+      });
+    };
     try {
       await volgRun(
         id,
@@ -636,15 +701,15 @@ export function WerkplekClient({
           },
           onStatus: (m) => {
             denk += (denk ? "\n" : "") + "· " + m;
-            updateItem(antId, { denk });
+            planStroom();
           },
           onReason: (t) => {
             denk += t;
-            updateItem(antId, { denk });
+            planStroom();
           },
           onToken: (t) => {
             tekst += t;
-            updateItem(antId, { tekst });
+            planStroom();
           },
           onSources: (b) => {
             bronnen = b;
@@ -659,6 +724,7 @@ export function WerkplekClient({
           onElement: (e) => (els = mergeVoorstellen(els, e)),
           onKandidaten: (k, kz) => { kandidaten = k; keuze = kz; },
           onReeksEvent: (ev) => {
+            schrijfStroom();
             const volgende = verwerkReeksEvent(reeks, ev);
             if (!volgende || volgende === reeks) return;
             reeks = volgende;
@@ -672,6 +738,7 @@ export function WerkplekClient({
           // hij hoort: stond er al antwoordtekst, dan is die mogelijk onvolledig; anders raakte het
           // alleen het denkproces en zou een "…" in het antwoord een gat suggereren dat er niet is.
           onGat: () => {
+            schrijfStroom();
             if (tekst) {
               tekst += "\n\n…\n\n";
               updateItem(antId, { tekst });
@@ -686,6 +753,8 @@ export function WerkplekClient({
         vanaf,
         beheerser.signal,
       );
+      schrijfStroom();
+      stroomKlaar = true;
       // De stroom liep tot het einde: deze beurt is afgerond en het spoor mag weg. Bij loskoppelen
       // komen we hier niet (dat gooit een AbortError), en dan blijft het spoor terecht staan.
       vergeetLopendeRun(gid);
@@ -745,6 +814,16 @@ export function WerkplekClient({
       }
       onGewijzigd();
     } catch (e) {
+      // Een half frame met oudere tekst mag de foutmelding of het herstel niet overschrijven.
+      cancelAnimationFrame(frame);
+      frame = 0;
+      if (stroomKlaar) {
+        // De beurt zelf is rond; alleen de naverwerking faalde. Niet opnieuw aanhaken – dat speelt
+        // dezelfde afloop nog eens af – maar zeggen wat er mis is, bij het antwoord.
+        setVerbindingWeg(false);
+        setMelding(foutTekst(e));
+        return;
+      }
       // Losgekoppeld is géén fout en géén einde: de run draait door bij de agent en wordt opgepakt
       // zodra dit venster terugkomt. Niets bewaren dus – het definitieve antwoord komt later.
       // Een wegvallende verbinding is óók geen einde: de beurt is van de server. Zie
@@ -829,10 +908,8 @@ export function WerkplekClient({
       );
       return;
     }
-    if (!infos[doc.slug]) {
-      const graaf = await haalArtikelGraaf(doc.bwbId, doc.artikel, doc.lid);
-      setInfos((m) => ({ ...m, [doc.slug]: graaf }));
-    }
+    // De kaart eerst: de annotatie is vastgelegd, en dat hoort in beeld te staan ook als de wettekst
+    // hieronder niet te laden is.
     setItems((xs) =>
       xs.map((x) =>
         x.id === antId
@@ -841,6 +918,18 @@ export function WerkplekClient({
           : x,
       ),
     );
+    if (!infos[doc.slug]) {
+      try {
+        const graaf = await haalArtikelGraaf(doc.bwbId, doc.artikel, doc.lid);
+        setInfos((m) => ({ ...m, [doc.slug]: graaf }));
+      } catch (e) {
+        // De graaf ligt plat of is traag. Dat is een fout bij het ópenen van het artefact, niet van
+        // de beurt: dezelfde melding met *Opnieuw proberen* als een mislukte klik op de kaart.
+        setArtefactFout({ slug: doc.slug, melding: foutTekst(e) });
+        return;
+      }
+    }
+    gevraagdArtefact.current = doc.slug;
     setArtefactSlug(doc.slug);
   }
 
@@ -991,11 +1080,13 @@ export function WerkplekClient({
   // De laatste annotatie in dit gesprek: die hoort altijd één klik weg te zijn. Verwijderde
   // documenten slaan we over – anders verdwijnt de balk terwijl er verderop in het gesprek nog een
   // annotatie staat die wél bestaat.
-  const laatsteNodeAnnotatie = [...items].reverse().find((x): x is Extract<Item, { type: "annotatie" }> => x.type === "annotatie" && !!x.annotatie_doel);
-  const laatsteAnnotatie = [...items]
+  // Eén "laatste", over beide soorten heen: de node-annotatie ging eerst altijd voor, ook als er
+  // daarna nog een artikeldocument in het gesprek stond.
+  const laatsteItem = [...items]
     .reverse()
-    .find((x): x is Extract<Item, { type: "annotatie" }> => x.type === "annotatie" && !verwijderd[x.slug])
-    ?.slug;
+    .find((x): x is Extract<Item, { type: "annotatie" }> => x.type === "annotatie" && !verwijderd[x.slug]);
+  const laatsteNodeAnnotatie = laatsteItem?.annotatie_doel ? laatsteItem : undefined;
+  const laatsteAnnotatie = laatsteItem && !laatsteItem.annotatie_doel ? laatsteItem.slug : undefined;
 
   // Hoort de open annotatie bij een reeks in dit gesprek, dan bladert het paneel door de leden.
   const nodeReeksNav = (() => {
@@ -1072,7 +1163,7 @@ export function WerkplekClient({
           <span className="ml-auto shrink-0 font-medium text-lint">Openen</span>
         </button>
       )}
-      {!nodeDoel && !artefactSlug && !laatsteNodeAnnotatie && laatsteAnnotatie && docs[laatsteAnnotatie] && (
+      {!nodeDoel && !artefactSlug && laatsteAnnotatie && docs[laatsteAnnotatie] && (
         <button
           type="button"
           onClick={() => void openArtefact(laatsteAnnotatie)}
@@ -1091,6 +1182,23 @@ export function WerkplekClient({
             {artefactLaadt === laatsteAnnotatie ? "Openen…" : "Openen"}
           </span>
         </button>
+      )}
+
+      {hydratieFout && (
+        <div className="shrink-0 px-4 pt-2">
+          <Melding type={hydratieFout.weg ? "uitleg" : "fout"} compact>
+            {hydratieFout.weg ? hydratieFout.melding : <>De eerdere berichten zijn niet geladen ({hydratieFout.melding}).</>}{" "}
+            {!hydratieFout.weg && hydratieId && (
+              <button
+                type="button"
+                onClick={() => hydrateer(hydratieId)}
+                className="focus-ring rounded font-medium underline underline-offset-2"
+              >
+                Opnieuw proberen
+              </button>
+            )}
+          </Melding>
+        </div>
       )}
 
       {artefactFout && (
@@ -1228,6 +1336,11 @@ export function WerkplekClient({
                 <div className="max-w-[85%] whitespace-pre-wrap break-words rounded-bubbel bg-lint/10 px-4 py-2.5 text-sm text-ink">
                   {item.tekst}
                 </div>
+                {item.nietVerstuurd && (
+                  <span className="max-w-[85%] text-right text-[0.7rem] text-muted">
+                    Niet verstuurd: er liep al een vraag in dit gesprek. Je vraag staat weer in het invoerveld.
+                  </span>
+                )}
               </div>
             ) : item.type === "antwoord" ? (
               <div key={item.id} className="group flex animate-rise gap-3">
@@ -1367,10 +1480,27 @@ export function WerkplekClient({
               met "Wat wil je weten over deze markering?" is een open vraag op het moment dat je juist
               snel wilt beoordelen. Ze verdwijnen zodra er een beurt loopt: een tweede vraag zou de
               eerste toch afgewezen krijgen (er loopt al een run op dit gesprek). */}
-          {nodeVraag && <div className="mb-2 flex items-center gap-2 text-xs text-muted">
-            <span>Vraag over {nodeVraag.element.klasse}: {nodeVraag.element.tekst}</span>
-            <button className="underline" onClick={() => setNodeVraag(undefined)}>Loslaten</button>
-          </div>}
+          {/* Dezelfde chip als bij `vraagOver` hieronder: klasse, fragment en een kruisje. */}
+          {nodeVraag && (
+            <div className="mb-1.5 flex items-center gap-1.5">
+              <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full border border-lint/30 bg-lint/5 px-2.5 py-1 text-xs text-lint">
+                <span className={`shrink-0 rounded px-1 text-[0.7rem] ${jasStyle(nodeVraag.element.klasse)}`}>
+                  {nodeVraag.element.klasse}
+                </span>
+                <span className="truncate">“{nodeVraag.element.tekst}”</span>
+                <button
+                  type="button"
+                  onClick={() => setNodeVraag(undefined)}
+                  aria-label="Vraag niet aan deze markering koppelen"
+                  className="focus-ring inline-flex min-h-[24px] min-w-[24px] shrink-0 items-center justify-center rounded-full p-0.5 hover:bg-lint/10 coarse:min-h-[44px] coarse:min-w-[44px]"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
+                    <path d="M18 6 6 18M6 6l12 12" />
+                  </svg>
+                </button>
+              </span>
+            </div>
+          )}
           {vraagOver && !bezig && (
             <div className="mb-1.5 flex flex-wrap gap-1.5">
               {vraagSuggesties(vraagOver.el).map((vraag) => (

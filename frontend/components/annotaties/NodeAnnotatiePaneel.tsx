@@ -6,8 +6,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Dialog, type DialogVariant } from "@/components/ui/Dialog";
 import { Melding } from "@/components/ui/Melding";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { ArtefactInhoud } from "@/components/werkplek/ArtefactInhoud";
-import { foutTekst, type ExportFormaat } from "@/lib/api";
+import { ArtefactInhoud, focusBijArtefact } from "@/components/werkplek/ArtefactInhoud";
+import { downloadAntwoord, foutTekst, type ExportFormaat } from "@/lib/api";
 import {
   haalNodeWeergave, nodeError, nodeLink, nodeRequest, verwachteRevisies,
   type NodeDoel, type NodeElement, type NodeWeergave,
@@ -151,12 +151,8 @@ export function NodeAnnotatiePaneel({ doel, onSluit, variant = "side", onVraag, 
       body: JSON.stringify({ bron_iri: view.doel.bron_iri, snapshot_id: view.snapshot_id, formaat }),
     });
     if (!response.ok) throw await nodeError(response);
-    const url = URL.createObjectURL(await response.blob());
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `annotatie.${formaat}`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    // Hetzelfde downloadpatroon als de artikelexport: bestandsnaam van de server, link in het document.
+    await downloadAntwoord(response, `annotatie.${formaat}`);
   }
 
   /** Van graaf naar tekst: dezelfde markering blijft gekozen; bij een bron scrollt de tekst naar het lid. */
@@ -209,6 +205,8 @@ export function NodeAnnotatiePaneel({ doel, onSluit, variant = "side", onVraag, 
       const doelEl = e.target as HTMLElement | null;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (doelEl && (doelEl.tagName === "INPUT" || doelEl.tagName === "TEXTAREA" || doelEl.isContentEditable)) return;
+      // Niet vanuit de chat ernaast (kolomvariant): daar horen `[` en `]` bij wat je typt of kiest.
+      if (!focusBijArtefact(doelEl)) return;
       const naar = e.key === "[" ? reeks.vorige : e.key === "]" ? reeks.volgende : undefined;
       if (naar) { e.preventDefault(); reeks.onGa(naar); }
     };
@@ -218,9 +216,9 @@ export function NodeAnnotatiePaneel({ doel, onSluit, variant = "side", onVraag, 
   const reeksBalk = reeks && <ReeksBalk reeks={reeks} label={view?.doel.label || doel.label || ""} />;
 
   const inhoud = !view || !nb || !doc ? (
-    <>{reeksBalk}<LaadStand fout={laadFout} onOpnieuw={() => void laad()} onSluit={onSluit} /></>
+    <div data-artefact-schil className="flex min-h-0 flex-1 flex-col">{reeksBalk}<LaadStand fout={laadFout} onOpnieuw={() => void laad()} onSluit={onSluit} /></div>
   ) : (
-    <>
+    <div data-artefact-schil className="flex min-h-0 flex-1 flex-col">
       {reeksBalk}
       <p className="sr-only" aria-live="polite">{melding}</p>
       {tabs}
@@ -249,7 +247,7 @@ export function NodeAnnotatiePaneel({ doel, onSluit, variant = "side", onVraag, 
         onExport={exporteer}
         extra={<NodeExtra view={view} doel={doel} />}
       />}
-    </>
+    </div>
   );
 
   if (!onSluit) return inhoud;

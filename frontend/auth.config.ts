@@ -5,6 +5,7 @@
 
 import type { NextAuthConfig } from "next-auth";
 import { DISCLAIMER_COOKIE, DISCLAIMER_PAD, vereistAkkoord } from "@/lib/disclaimer";
+import { isPuntSegment } from "@/lib/url";
 
 export type Role = "beheerder" | "analist";
 
@@ -95,9 +96,23 @@ export const authConfig = {
           }
         }
       }
+      // Een `.`/`..`-segment in een BFF-pad is nooit een geldige id, en `fetch` normaliseert het
+      // upstream weg – dan komt een route uit bij een ánder endpoint dan waarvoor hij bedoeld is.
+      // `nextUrl.pathname` is nog ge-encodeerd, dus `isPuntSegment` pelt de lagen zelf af.
+      if (path.startsWith("/api/") && path.split("/").some(isPuntSegment)) {
+        return Response.json({ detail: "Ongeldig pad." }, { status: 400 });
+      }
       if (isPublic(path)) return true;
       const user = auth?.user;
-      if (!user) return false; // → redirect naar de signIn-pagina (/login)
+      if (!user) {
+        // Een BFF-route wil een status, geen omleiding: `fetch` volgt de redirect naar /login en krijgt
+        // dan HTML met status 200, waarop `res.json()` struikelt. Met een 401 weet de client dat de
+        // sessie verlopen is en kan hij zelf naar het inlogscherm (`lib/api.ts` → `naarInloggen`).
+        if (path.startsWith("/api/")) {
+          return Response.json({ detail: "Niet ingelogd." }, { status: 401 });
+        }
+        return false; // → redirect naar de signIn-pagina (/login)
+      }
       // PoC-disclaimer: ingelogd maar deze sessie nog niet gezien → eerst het disclaimer-scherm.
       // De oorspronkelijke bestemming reist mee als callbackUrl, zodat een deeplink na akkoord
       // alsnog landt. `/api/**` blijft vrijgesteld (zie vereistAkkoord): een redirect naar HTML

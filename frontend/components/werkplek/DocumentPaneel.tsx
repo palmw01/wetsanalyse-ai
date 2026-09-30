@@ -187,21 +187,47 @@ export function DocumentPaneel({
   // aanraakscherm laat het verslepen van een selectiegreep geen `mouseup` achter. Beide luisteraars
   // hangen aan het document omdat de vinger of de cursor buiten de alinea kan loslaten;
   // `verwerkSelectie` controleert zelf al of de selectie wél binnen de tekst valt.
+  //
+  // Op een aanraakscherm is ook `touchend` niet genoeg: de selectiegrepen van iOS en Android zijn
+  // systeem-UI, en ze verslepen levert de pagina geen enkel touch-event op. Een bijgestelde selectie
+  // kwam dan nooit door. `selectionchange` wel – maar die vuurt ook tijdens elk muis-sleepgebaar, dus
+  // alleen na een aanraking, en pas als de selectie even stilstaat.
+  const verwerkRef = useRef<() => void>(() => {});
   useEffect(() => {
-    if (!onSelectie) return;
+    // Altijd de verse `verwerkSelectie` (die leest de actuele bron), zonder de luisteraars hieronder
+    // bij elke render opnieuw te hangen – dan zou een lopende wachttijd steeds worden afgebroken.
+    verwerkRef.current = verwerkSelectie;
+  });
+  const selecteerbaar = Boolean(onSelectie);
+  useEffect(() => {
+    if (!selecteerbaar) return;
+    let aanwijzer = "mouse";
+    let wacht: ReturnType<typeof setTimeout> | undefined;
+    const verwerk = () => verwerkRef.current();
+    const opAanwijzer = (e: PointerEvent) => {
+      aanwijzer = e.pointerType;
+    };
     const opToets = (e: KeyboardEvent) => {
       // Alleen na een selectie-gebaar kijken: anders draait dit bij elke toetsaanslag in de pagina.
-      if (e.shiftKey || e.key === "Shift") verwerkSelectie();
+      if (e.shiftKey || e.key === "Shift") verwerk();
     };
+    const opSelectie = () => {
+      if (aanwijzer === "mouse") return;
+      clearTimeout(wacht);
+      wacht = setTimeout(verwerk, 400);
+    };
+    document.addEventListener("pointerdown", opAanwijzer, true);
     document.addEventListener("keyup", opToets);
-    document.addEventListener("touchend", verwerkSelectie);
+    document.addEventListener("touchend", verwerk);
+    document.addEventListener("selectionchange", opSelectie);
     return () => {
+      clearTimeout(wacht);
+      document.removeEventListener("pointerdown", opAanwijzer, true);
       document.removeEventListener("keyup", opToets);
-      document.removeEventListener("touchend", verwerkSelectie);
+      document.removeEventListener("touchend", verwerk);
+      document.removeEventListener("selectionchange", opSelectie);
     };
-    // Bewust zonder dependency-array: `verwerkSelectie` leest de actuele bron en moet elke render
-    // vers zijn, net als de sneltoetsen in het artefactpaneel.
-  });
+  }, [selecteerbaar]);
 
   // De gekozen markering in beeld brengen. Zonder dit sta je bij een lange bepaling naar de verkeerde
   // alinea te kijken terwijl je in de lijst al drie elementen verder bent.

@@ -1,5 +1,6 @@
 import { forceLink, forceManyBody, forceSimulation } from "d3-force-3d";
 import { jasStyle } from "./jas";
+import { veiligDecoderen } from "./url";
 import { nodeRequest, type NodeDoel } from "./annotatieNode";
 
 /** Het antwoord van `GET /v1/annotatie/samenhang` (api/app/samenhang.py). */
@@ -50,10 +51,18 @@ export async function haalSamenhang(doel: Pick<NodeDoel, "bron_iri">): Promise<S
 }
 
 let capabilities: Promise<boolean> | undefined;
-/** Heeft de API het samenhang-endpoint? Eén keer per pagina gevraagd; een fout betekent: nee. */
+/** Heeft de API het samenhang-endpoint? Eén keer per pagina gevraagd.
+ *
+ *  Alleen een ántwoord wordt onthouden. Een fout (een koude start, een deploy) betekent "nu even
+ *  niet" – bleef die hangen, dan was de 3D-weergave de rest van de sessie weg tot een volledige
+ *  herlaadbeurt. Bij een fout vraagt de volgende aanroep het dus opnieuw. */
 export function samenhangBeschikbaar(): Promise<boolean> {
   capabilities ??= nodeRequest<{ samenhang?: boolean }>("capabilities")
-    .then((c) => Boolean(c.samenhang)).catch(() => false);
+    .then((c) => Boolean(c.samenhang))
+    .catch(() => {
+      capabilities = undefined;
+      return false;
+    });
   return capabilities;
 }
 
@@ -64,7 +73,11 @@ export function bronDoel(uri: string): NodeDoel | undefined {
   const ref = uri.trim();
   let bwb = "", paren: [string, string][] = [];
   if (ref.startsWith("urn:bwb:")) {
-    const [id, ...rest] = ref.slice("urn:bwb:".length).split(":").map(decodeURIComponent);
+    // Veilig decoderen: dit draait tijdens het renderen van een antwoord, en één kapotte IRI uit de
+    // tool-trace mag de werkplek niet onderuit halen.
+    const delen = ref.slice("urn:bwb:".length).split(":").map(veiligDecoderen);
+    if (delen.some((d) => d === undefined)) return undefined;
+    const [id, ...rest] = delen as string[];
     if (rest.length % 2) return undefined;
     bwb = id;
     for (let i = 0; i < rest.length; i += 2) paren.push([rest[i], rest[i + 1]]);

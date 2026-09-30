@@ -7,6 +7,13 @@
 // 404't ("Project niet gevonden"). Eerst decoderen en dan precies één keer encoderen maakt de
 // bewerking idempotent: zowel een al-geëncode als een kale waarde levert één, correct
 // geëncodeerd segment op.
+//
+// Eén ding laat encoderen ongemoeid: `.` en `..`. `encodeURIComponent("..")` is gewoon `..`, en
+// `fetch` normaliseert zo'n segment weg (net als `%2E%2E` – de URL-standaard telt dat ook als
+// punt-segment). Een route-param `%252E%252E` (Next decodeert één keer, deze functie nog eens) liep
+// daardoor uit het bedoelde pad: `/v1/annotatie/lagen/../../v1/…` kwam uit bij een willekeurig
+// `/v1/*`-endpoint, langs de allowlist van de BFF heen. Zo'n segment is nooit een geldige id, dus
+// weigeren we het – hier als laatste net, en eerder al in de middleware (`auth.config.ts`).
 export function pathSegment(value: string): string {
   let decoded = value;
   try {
@@ -14,7 +21,26 @@ export function pathSegment(value: string): string {
   } catch {
     // Geen geldige percent-encoding: behandel de waarde als reeds gedecodeerd.
   }
+  if (isPuntSegment(decoded)) throw new Error(`Ongeldig padsegment: ${JSON.stringify(value)}`);
   return encodeURIComponent(decoded);
+}
+
+/** Is dit segment – na hoogstens drie rondes decoderen – `.` of `..`? Meerdere rondes omdat elke
+ *  laag (browser, Next, `pathSegment`) er één kan afpellen. Leeg telt niet: dat is geen sprong. */
+export function isPuntSegment(segment: string): boolean {
+  let s = segment;
+  for (let i = 0; i < 3; i++) {
+    if (s === "." || s === "..") return true;
+    let volgende: string;
+    try {
+      volgende = decodeURIComponent(s);
+    } catch {
+      return false;
+    }
+    if (volgende === s) return false;
+    s = volgende;
+  }
+  return s === "." || s === "..";
 }
 
 // wetten.overheid.nl heeft voor een jci-deeplink zowel de zichtdatum (`&z=`) als de
@@ -47,8 +73,11 @@ const BWB_ID = /^BWBR\d+$/;
 // terugval), `:begrip:…`, `:graph:…` en `:verwijzing:…` bestaan alleen in de graaf. Daar is geen link
 // beter dan een link die ergens anders uitkomt.
 function uitGraafIri(iri: string): string | undefined {
-  const pad = iri.slice(GRAAF_BASIS.length).split(GRAAF_SEP).filter(Boolean).map(decodeURIComponent);
-  const [bwb, ...rest] = pad;
+  const pad = iri.slice(GRAAF_BASIS.length).split(GRAAF_SEP).filter(Boolean).map(veiligDecoderen);
+  // Een kapotte percent-encoding (`…:artikel:10%`) maakt de IRI onleesbaar: dan geen link. Gooien
+  // mag niet – dit draait tijdens het renderen, en een fout daar neemt de hele werkplek mee.
+  if (pad.some((deel) => deel === undefined)) return undefined;
+  const [bwb, ...rest] = pad as string[];
   if (!bwb || !BWB_ID.test(bwb)) return undefined;
   if (rest.length === 0) return `https://wetten.overheid.nl/${bwb}`;
   // De rest zijn sleutel/waarde-paren; een oneven staart of een lege waarde betekent: niet te citeren.
@@ -61,6 +90,15 @@ function uitGraafIri(iri: string): string | undefined {
     delen.push(`&${encodeURIComponent(sleutel)}=${encodeURIComponent(waarde)}`);
   }
   return `https://wetten.overheid.nl/jci1.3:c:${bwb}${delen.join("")}`;
+}
+
+/** `decodeURIComponent` die `undefined` teruggeeft in plaats van een `URIError` te gooien. */
+export function veiligDecoderen(waarde: string): string | undefined {
+  try {
+    return decodeURIComponent(waarde);
+  } catch {
+    return undefined;
+  }
 }
 
 // Veilige href voor een vindplaats. Het veld komt (indirect) uit de graaf/LLM en mag dus niet blind

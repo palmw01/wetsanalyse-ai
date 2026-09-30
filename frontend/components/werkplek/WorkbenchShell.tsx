@@ -79,8 +79,19 @@ export function WorkbenchShell({
     // (na een beurt, hieronder) – dit interval vangt alleen het geval dat er elders is verbruikt.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void laadVerbruik();
-    const id = setInterval(() => void laadVerbruik(), 60_000);
-    return () => clearInterval(id);
+    // Niet in een verborgen tabblad: tien open tabbladen hielden anders elk minuut de api (en een
+    // op nul geschaalde replica) wakker. Wordt het tabblad weer zichtbaar, dan meteen bijwerken.
+    const id = setInterval(() => {
+      if (!document.hidden) void laadVerbruik();
+    }, 60_000);
+    const bijZicht = () => {
+      if (!document.hidden) void laadVerbruik();
+    };
+    document.addEventListener("visibilitychange", bijZicht);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", bijZicht);
+    };
   }, [laadVerbruik]);
 
   function startRondleiding() {
@@ -105,12 +116,14 @@ export function WorkbenchShell({
     setActiveId(null);
     setMountKey((k) => k + 1);
     setDrawerOpen(false);
+    zetGesprekInUrl(null);
   }
 
   function openGesprek(id: string) {
     setActiveId(id);
     setMountKey((k) => k + 1);
     setDrawerOpen(false);
+    zetGesprekInUrl(id);
   }
 
   // Het chatvenster maakte zojuist (bij de eerste beurt) een gesprek aan → highlight bijwerken zónder
@@ -118,6 +131,24 @@ export function WorkbenchShell({
   function gesprekAangemaakt(id: string) {
     setActiveId(id);
     setVerversSignaal((n) => n + 1);
+    zetGesprekInUrl(id);
+  }
+
+  /** Het actieve gesprek hoort in de URL: anders opende herladen een leeg gesprek (of weer het
+   *  gesprek uit de oorspronkelijke deep-link), en was een gesprek niet te bookmarken.
+   *
+   *  Bewust de native `history.replaceState` en geen `router.replace`: die laatste rendert de
+   *  server-pagina opnieuw, terwijl hier alleen het adres hoeft mee te bewegen – het venster zelf
+   *  wisselt al in lokale state. Next houdt `useSearchParams` in de pas met deze native aanroep.
+   *  `replace` en geen `push`: van gesprek wisselen is geen stap die je met Terug ongedaan maakt, net
+   *  als de weergavewissel op `/annotaties`. Een meegekomen `?annotatie=` hoort bij het vorige
+   *  gesprek en gaat weg. */
+  function zetGesprekInUrl(id: string | null) {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("annotatie");
+    if (id) url.searchParams.set("gesprek", id);
+    else url.searchParams.delete("gesprek");
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
   }
 
   const actieveTitel = gesprekken.find((g) => g.id === activeId)?.titel || "Nieuw gesprek";

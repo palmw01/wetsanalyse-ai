@@ -12,7 +12,10 @@ export default async function NodeAnnotatiePagina({ searchParams }: {
   return (
     <AnnotatiePaginaSchil titel="Annotatie">
       {bron_iri ? (
-        <NodeAnnotatiePaneel doel={{ bron_iri, snapshot_id }} />
+        // Een `key` per bronnode: een link naar een andere bepaling (bv. "overspant meerdere
+        // bepalingen") is een soft navigation naar dezelfde pagina. Zonder key bleef het paneel
+        // staan met de selectie, tab en graafstand van de vorige bepaling.
+        <NodeAnnotatiePaneel key={`${bron_iri}:${snapshot_id ?? ""}`} doel={{ bron_iri, snapshot_id }} />
       ) : (
         <div className="p-5">
           <Melding type="uitleg">De bronnode ontbreekt in deze link.</Melding>
