@@ -112,6 +112,11 @@ class Settings(BaseModel):
     # het vooraf vastgelegde criterium klasseverzameling: 0 contractfouten tegenover 15 (U0), stabiliteit
     # ≥ universeel op 6/8 casussen, 1,45× de kosten per run.
     classifier_granulariteit: Literal["universeel", "familie", "klasseverzameling"] = "klasseverzameling"
+    # Hoeveel classificatiebatches tegelijk naar het model gaan. De batches zijn onafhankelijk (elk een
+    # eigen klasseverzameling, eigen prompt en eigen toolschema), dus parallel verandert de uitkomst
+    # niet, alleen de doorlooptijd: vier batches van ~15 s duurden na elkaar een minuut. De resultaten
+    # worden in batchvolgorde samengevoegd. 1 = na elkaar (het gedrag tot 30 sep 2026).
+    classifier_parallel: int = 4
     # Leeg = providerdefault. Opus 4.7+/Sonnet 5 weigeren sampling-parameters (400); daarom geen
     # vaste waarde. De reproduceerbaarheid komt uit de beperkte keuze (enum op labels), niet uit
     # deze knop. Wat er gebruikt is, staat in de provenance van de beurt.
@@ -203,6 +208,7 @@ class Settings(BaseModel):
             "taal_provider": e.get("TAAL_PROVIDER"),
             "classifier_granulariteit": e.get("CLASSIFIER_GRANULARITEIT"),
             "classifier_temperature": e.get("CLASSIFIER_TEMPERATURE"),
+            "classifier_parallel": e.get("CLASSIFIER_PARALLEL"),
             "deterministisch_accepteren": e.get("DETERMINISTISCH_ACCEPTEREN"),
             "gerichte_review": e.get("GERICHTE_REVIEW"),
             "classifier_spankeuze": e.get("CLASSIFIER_SPANKEUZE"),

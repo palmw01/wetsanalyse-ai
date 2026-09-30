@@ -71,12 +71,15 @@ set annotaties gefingeerd.
 | Instelling | Env | Standaard | Betekenis |
 |---|---|---|---|
 | `classifier_granulariteit` | `CLASSIFIER_GRANULARITEIT` | `klasseverzameling` | De tool-enum per batch is precies de toegestane klasseverzameling. Alternatieven: `universeel` (de oude freeze-default) en `familie`. De keuze is gemaakt met een vooraf vastgelegd criterium in de baselineproef |
+| `classifier_parallel` | `CLASSIFIER_PARALLEL` | `4` | Hoeveel classificatiebatches tegelijk naar het model gaan. De batches zijn onafhankelijk; de beslissingen komen in batchvolgorde terug, dus de uitkomst is gelijk aan `1` (na elkaar). Vier batches van ~15 s duurden na elkaar een minuut. Staat als `classifier_parallel` in de meting en de run-instellingen |
 | `deterministisch_accepteren` | `DETERMINISTISCH_ACCEPTEREN` | `true` | Regelbesluiten zonder model (zie hieronder) |
 | `gerichte_review` | `GERICHTE_REVIEW` | `true` | Tweede modeloordeel op twijfelgevallen en centrale afwijzing |
 | `classifier_spankeuze` | `CLASSIFIER_SPANKEUZE` | `false` | Het model mag uit de bestaande spanopties kiezen |
 | `broncontext` | `BRONCONTEXT` | `true` | `BronContext.ouders` meegeven als `CONTEXT`-blok |
 
-De taalprovider is `spacy:nl_core_news_md` ([ADR-002](adr-002-taalprovider.md)). Een vergelijkbare
+De taalprovider is `spacy:nl_core_news_md` ([ADR-002](adr-002-taalprovider.md)). Het model laadt
+bij het opstarten van de dienst op een achtergrondthread (`keten.warm_taalmodel_op`); daarvóór
+betaalde de eerste beurt na een koude start het laden (~5 s) in de fase *Taalanalyse*. Een vergelijkbare
 meting vereist een echte parse. Elke run legt de versies van model, prompt, schema, detectoren,
 tekstgrenzen, structuur en verwijzingen vast, plus `methode_versie` en de prompt-hash. Zet voor
 metingen `AGENT_VERSION` op de commit.

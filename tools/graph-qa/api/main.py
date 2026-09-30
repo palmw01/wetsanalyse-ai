@@ -42,6 +42,7 @@ httpx2.alias_httpx()
 import json  # noqa: E402
 import logging  # noqa: E402
 import secrets  # noqa: E402
+import threading  # noqa: E402
 import time  # noqa: E402
 from collections import deque  # noqa: E402
 from collections.abc import AsyncIterator  # noqa: E402
@@ -89,6 +90,18 @@ def _maak_runstore(s: Settings) -> RunStore:
 # Een beurt leeft hier, niet in de HTTP-request van één tabblad.
 runs: RunStore = _maak_runstore(settings)
 
+def _warm_taalmodel_op() -> None:
+    from agent.jas_pipeline.keten import warm_taalmodel_op
+
+    try:
+        begin = time.monotonic()
+        warm_taalmodel_op(settings.taal_provider)
+        logger.info("taalmodel geladen", extra={"categorie": "technisch", "provider": settings.taal_provider,
+                                                "duur_ms": round((time.monotonic() - begin) * 1000)})
+    except Exception:  # opwarmen is een optimalisatie; de eerste beurt laadt anders zelf
+        logger.warning("taalmodel opwarmen mislukt", exc_info=True, extra={"categorie": "technisch"})
+
+
 @asynccontextmanager
 async def _lifespan(_app: FastAPI):
     # Fail-fast bij boot: GRAPHDB_TOKEN is niet-optioneel. Zonder token zou graph-qa anders
@@ -101,6 +114,11 @@ async def _lifespan(_app: FastAPI):
     # draagt zelf de user_id waarnamens er geschreven wordt.
     settings.require_api()
     settings.controleer_historie_grens()
+    # Het taalmodel (spaCy) op een achtergrondthread laden: de dienst is meteen gezond, en het
+    # laden overlapt met de supervisor- en ophaalstappen van de eerste beurt in plaats van erna
+    # vier à vijf seconden te kosten. `_laad` houdt een lock, dus een beurt die eerder is wacht
+    # gewoon op dezelfde lading.
+    threading.Thread(target=_warm_taalmodel_op, name="taalmodel-opwarmen", daemon=True).start()
     # De gedeelde store maakt zijn tabellen zelf aan (idempotent, zoals de checkpointer). De
     # geheugenvariant heeft geen setup en slaat dit over.
     voorbereiden = getattr(runs, "setup", None)

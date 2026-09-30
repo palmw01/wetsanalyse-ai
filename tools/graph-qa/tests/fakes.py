@@ -15,6 +15,9 @@ def make_settings(**kw: Any) -> Settings:
     # De nepmodellen spelen een vast script van één classificatiecall; de productiedefault
     # (klasseverzameling) wordt apart getest in test_baseline_proef.
     kw.setdefault("classifier_granulariteit", "universeel")
+    # Gescripte nepmodellen spelen hun antwoorden op volgorde af; parallelle batches zouden die
+    # volgorde willekeurig maken. Het parallelle pad heeft een eigen test (test_classificatie_parallel).
+    kw.setdefault("classifier_parallel", 1)
     return Settings(**kw)
 
 

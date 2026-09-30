@@ -13,10 +13,12 @@ dekkingsboekhouding (PR 10). Er valt hier nooit iets terug naar een volledige LL
 """
 from __future__ import annotations
 
+import contextvars
 import hashlib
 import json
 import time
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from functools import cache
 from typing import Any
@@ -54,12 +56,58 @@ def _provider(spec: str):
     return maak_provider(spec)
 
 
+def warm_taalmodel_op(spec: str) -> None:
+    """Laad het taalmodel van deze configuratie alvast. Voor de opstartfase van de dienst: het laden
+    duurt seconden, en na een koude start (`minReplicas: 0`) betaalde de eerste beurt dat. Een
+    provider zonder zwaar model (`null`) heeft niets op te warmen; een laadfout blijft het gewone,
+    zichtbaar gedegradeerde pad."""
+    opwarmen = getattr(_provider(spec), "warm_op", None)
+    if opwarmen is not None:
+        opwarmen()
+
+
 @dataclass
 class Uitkomst:
     voorstellen: list[dict[str, Any]]
     fusie: Fusie
     beslissingen: list[Beslissing]
     meting: dict[str, Any] = field(default_factory=dict)
+
+
+def _classificeer_batches(alle_batches: list[list[Candidate]], llm: Any, model: str, corpus: str,
+                          settings: Any, meting: dict[str, Any], contextblok: str) -> list[Beslissing]:
+    """Alle classificatiebatches, tegelijk waar dat mag, met het resultaat in batchvolgorde.
+
+    De batches zijn onafhankelijk: elk heeft zijn eigen klasseverzameling, prompt en toolschema, en
+    geen batch leest de uitkomst van een andere. Na elkaar kostte dat per batch een volle modelronde –
+    vier batches van ~15 s maakten een beurt van een minuut. Parallel verandert de uitkomst niet:
+    elke batch krijgt precies hetzelfde verzoek, en de beslissingen komen in dezelfde volgorde terug.
+
+    Elke batch telt in een eigen `meting`-dict (een gedeelde dict tussen threads zou tellingen
+    verliezen); de tellers gaan daarna bij elkaar. `copy_context` houdt de OTel-span van de beurt
+    als ouder van de modelaanroepen in de worker-threads.
+    """
+    parallel = max(1, min(int(getattr(settings, "classifier_parallel", 1) or 1), len(alle_batches)))
+
+    def een(batch: list[Candidate]) -> tuple[list[Beslissing], dict[str, int]]:
+        eigen: dict[str, int] = {}
+        uit = classificeer(llm, model, batch, corpus, settings.classifier_temperature, eigen,
+                           spankeuze=settings.classifier_spankeuze, context=contextblok)
+        return uit, eigen
+
+    if parallel == 1:
+        uitkomsten = [een(b) for b in alle_batches]
+    else:
+        with ThreadPoolExecutor(max_workers=parallel, thread_name_prefix="classifier") as pool:
+            futures = [pool.submit(contextvars.copy_context().run, een, b) for b in alle_batches]
+            uitkomsten = [f.result() for f in futures]
+    beslissingen: list[Beslissing] = []
+    for uit, eigen in uitkomsten:
+        beslissingen += uit
+        for sleutel, waarde in eigen.items():
+            meting[sleutel] = meting.get(sleutel, 0) + waarde
+    meting["classifier_parallel"] = parallel
+    return beslissingen
 
 
 def _bronteksten(segmenten: list[dict[str, Any]], nodes: list[dict[str, Any]], taal: str) -> list[BronTekst]:
@@ -201,13 +249,13 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
         else:
             beslissingen.append(b)
     fasen.klaar("Besluit", f"{len(beslissingen)} op vaste regels, {len(naar_model)} naar het model")
-    for batch in batches(naar_model, settings.classifier_granulariteit):
+    alle_batches = batches(naar_model, settings.classifier_granulariteit)
+    for batch in alle_batches:
         schema = toolschema(batch, settings.classifier_spankeuze)
         meting.setdefault("classifier_batches", []).append({"labels": [k.label for k in batch],
             "schema_sha256": hashlib.sha256(json.dumps(schema, sort_keys=True).encode()).hexdigest(),
             "beslissingen": schema["input_schema"]["properties"]["beslissingen"]["items"]["properties"]["beslissing"]["enum"]})
-        beslissingen += classificeer(llm, model, batch, corpus, settings.classifier_temperature, meting,
-                                     spankeuze=settings.classifier_spankeuze, context=contextblok)
+    beslissingen += _classificeer_batches(alle_batches, llm, model, corpus, settings, meting, contextblok)
     meting["oorspronkelijke_beslissingen"] = [b.model_dump(mode="json") for b in beslissingen]
     if naar_model:
         afgewezen = sum(b.status is CandidateStatus.REJECTED and b.door == "model" for b in beslissingen)

@@ -85,7 +85,27 @@ class BeurtSchrijver:
         elif soort == "dekking":
             self.dekking = event.get("dekking") or {}
         elif soort == "tool_execution":
-            self.tool_executions.append({k: v for k, v in event.items() if k != "type"})
+            self._voeg_tool_toe({k: v for k, v in event.items() if k != "type"})
+
+    def _voeg_tool_toe(self, event: dict[str, Any]) -> None:
+        """Eén regel per aanroep: het eind-event werkt het start-event bij.
+
+        Elke aanroep geeft een start- én een eind-event met hetzelfde `call_id`
+        (`tool_execution.execute_tool`). Die werden hier los bewaard; de werkplek liet ze na
+        herladen dan allebei zien en telde het dubbele ("10 aanroepen" voor vijf). Dezelfde regel
+        als `mergeToolExecution` in de werkplek: een laat binnengekomen start draait een afgeronde
+        aanroep niet terug.
+        """
+        sleutel = (event.get("run_id", ""), event.get("call_id", ""))
+        if sleutel[1]:
+            for i, bestaand in enumerate(self.tool_executions):
+                if (bestaand.get("run_id", ""), bestaand.get("call_id", "")) != sleutel:
+                    continue
+                if event.get("phase") == "start" and bestaand.get("phase") != "start":
+                    return
+                self.tool_executions[i] = {**bestaand, **event}
+                return
+        self.tool_executions.append(event)
 
     def _voeg_element_toe(self, element: dict[str, Any]) -> None:
         """Ontdubbeld verzamelen: de annoteerder ⇄ Critic-lus kan hetzelfde element opnieuw sturen,

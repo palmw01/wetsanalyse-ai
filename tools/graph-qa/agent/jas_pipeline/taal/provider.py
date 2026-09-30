@@ -12,6 +12,7 @@ benchmark die de default onderbouwt staat in `eval/taal_benchmark.py`.
 from __future__ import annotations
 
 import re
+import threading
 from typing import Protocol
 
 from .grenzen import analyseer_grenzen
@@ -71,16 +72,26 @@ class SpacyProvider:
         self.model = modelnaam
         self._nlp = None
         self._laadfout = ""
+        # Het model laden kost seconden. Zonder lock laadden twee gelijktijdige beurten (of de
+        # opwarmthread bij het opstarten en de eerste beurt) het allebei.
+        self._slot = threading.Lock()
 
     def _laad(self):
-        if self._nlp is None and not self._laadfout:
-            try:
-                import spacy
-                self._nlp = spacy.load(self.modelnaam, exclude=["ner"])
-                self.model = f"{self.modelnaam}-{self._nlp.meta.get('version', '?')}"
-            except Exception as exc:          # ImportError, OSError (model ontbreekt), …
-                self._laadfout = f"spaCy-model {self.modelnaam} niet beschikbaar: {type(exc).__name__}"
+        if self._nlp is not None or self._laadfout:
+            return self._nlp
+        with self._slot:
+            if self._nlp is None and not self._laadfout:
+                try:
+                    import spacy
+                    self._nlp = spacy.load(self.modelnaam, exclude=["ner"])
+                    self.model = f"{self.modelnaam}-{self._nlp.meta.get('version', '?')}"
+                except Exception as exc:          # ImportError, OSError (model ontbreekt), …
+                    self._laadfout = f"spaCy-model {self.modelnaam} niet beschikbaar: {type(exc).__name__}"
         return self._nlp
+
+    def warm_op(self) -> None:
+        """Het model vooraf laden (bij het opstarten), zodat de eerste beurt er niet op wacht."""
+        self._laad()
 
     def analyseer(self, tekst: str) -> LinguisticAnalysis:
         nlp = self._laad()
