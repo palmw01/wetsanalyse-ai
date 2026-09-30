@@ -5,27 +5,18 @@ haar lokale ankers, haar levenscyclus en de laag waar ze bij hoort, als eigen no
 opgeslagen annotaties **doorzoeken** en kan de werkplek een al geannoteerde bepaling hergebruiken,
 terwijl elke duiding herleidbaar blijft naar de bronnode en de tekstversie.
 
-> **Dit document beschrijft contract 2 (sinds 22 sep 2026).** De laag hoort bij één canonieke
-> bron-IRI – een artikel, een lid, een onderdeel – en niet meer bij een artikel als geheel. De
-> specificatie van dat contract staat in
-> [`../architectuur/annotatie-bronnodes.md`](../architectuur/annotatie-bronnodes.md); de projectie is
-> `api/app/graaf_projectie_v2.py`.
->
-> **Het v1-pad is historie.** `api/app/graaf_projectie.py`, `api/app/jas_ontologie.py` en de afdruk
-> [`jas-ontologie.ttl`](jas-ontologie.ttl) beschrijven de oude laag per artikel
-> (`urn:jas:graph:<bwbId>:artikel:<nr>`). Die wordt onder contract 2 niet meer geschreven; de code en
-> de drift-test staan er nog voor het geval een omgeving nog op contract 1 draait.
+> De laag hoort bij één canonieke bron-IRI – een artikel, een lid, een onderdeel. De specificatie
+> staat in [`../architectuur/annotatie-bronnodes.md`](../architectuur/annotatie-bronnodes.md); de
+> projectie is `api/app/graaf_projectie_v2.py`.
 
 ## Wie schrijft, wie leest
 
 - **Postgres is de waarheid.** De api (`annotatie_v2_lagen`, `annotatie_v2_elementen`) bewaart de laag;
   de graaf is een **projectie** die op elk moment opnieuw op te bouwen is.
-- **De api is de enige schrijver** onder `urn:jas:`. Sinds 22 sep 2026 projecteert hij een laag
-  **direct na elke geslaagde schrijftransactie** (`graaf_projectie_v2.na_mutatie`, best-effort op de
-  achtergrond); de reconcile-lus (`JAS_PROJECTIE_INTERVAL`, standaard 60 s) is het vangnet voor wat
-  daarbij misging. Tot die datum was de lus het enige pad, en stond een annotatie dus tot een minuut
-  later in de graaf.
-- **Lex leest**, en sinds contract 2 ook actief: `search_annotaties`, `get_annotatie` en
+- **De api is de enige schrijver** onder `urn:jas:`. Hij projecteert een laag **direct na elke
+  geslaagde schrijftransactie** (`graaf_projectie_v2.na_mutatie`, best-effort op de achtergrond); de
+  reconcile-lus (`JAS_PROJECTIE_INTERVAL`, standaard 60 s) is het vangnet voor wat daarbij misging.
+- **Lex leest** actief: `search_annotaties`, `get_annotatie` en
   `get_annotatiedekking` lopen via de api (`tools/graph-qa/agent/annotatie_read.py`). De api zoekt de
   kandidaten in de graaf en **verifieert ze daarna tegen Postgres** – een achterlopende projectie mag
   nooit een spookresultaat opleveren, en een storing nooit een leeg succes.

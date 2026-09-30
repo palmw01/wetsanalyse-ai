@@ -35,7 +35,7 @@ describe("AppSidebar is op elk scherm bereikbaar", () => {
     "%s opent de drawer op smalle schermen",
     (_naam, bron) => {
       // `AppSidebar` is onder `lg` een `hidden`-kolom en toont zijn drawer alléén als het scherm
-      // `drawerOpen` + `onDrawerSluit` doorgeeft. `/annotaties` en `/annotaties/[slug]` deden dat
+      // `drawerOpen` + `onDrawerSluit` doorgeeft. `/annotaties` deed dat
       // niet: op een half scherm was er geen sidebar én geen enkele manier om er een te openen —
       // geen gesprekken, geen account, geen uitloggen. Alleen de propnaam toetsen is genoeg om die
       // val opnieuw te herkennen.

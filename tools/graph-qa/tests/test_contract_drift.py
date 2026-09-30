@@ -1,16 +1,14 @@
 """Drift-guard: de agent-modellen tegen het contract van de wetsanalyse-api.
 
-Waarom deze test bestaat. graph-qa en de api hebben elk hun eigen model van hetzelfde object, en ze
-komen alleen samen in één HTTP-call in een ánder proces. Een verschil tussen die twee is daar geen
-typefout maar een 422 – en omdat de PUT alles-of-niets is, verliest de jurist dan de complete
-annotatie. Dat is op dev gebeurd met `aandacht`: de agent kent `str = ""`, de api `Aandacht | None`.
-De agent was klaar en gegrond, het document bleef leeg.
+graph-qa en de api hebben elk hun eigen model van hetzelfde object, en ze komen alleen samen in één
+HTTP-call in een ánder proces. Een verschil tussen die twee is daar geen typefout maar een 422 – en
+omdat de batch alles-of-niets is, verliest de jurist dan de complete annotatie.
 
-De vertaling zelf staat op de grens (`wetsanalyse_api.naar_contract`). Deze test bewaakt dat er geen
-vierde veld bijkomt dat stilzwijgend hetzelfde doet: hij faalt zodra een agent-veld en zijn
-api-tegenhanger uit elkaar lopen zonder dat de vertaling het opvangt.
-
-Zelfde idioom als `test_jas_klassen.py`: één kopie, één guard ertegen.
+Het elementcontract van de api (`annotatie_v2_contracts.Element`) laat onbekende velden door
+(`extra="allow"`), dus een veld dat de api niet declareert reist gewoon mee. Wat wél kan breken is
+een veld dat beide kanten kennen maar anders typeren. De vertaling staat op de grens
+(`wetsanalyse_api.naar_contract`); deze test faalt zodra zo'n gedeeld veld uit elkaar loopt zonder
+dat de vertaling het opvangt.
 """
 from __future__ import annotations
 
@@ -22,34 +20,19 @@ import pytest
 from agent import models as am
 from agent.wetsanalyse_api import naar_contract, _leeg_is_niets
 
-CONTRACT = Path(__file__).resolve().parents[3] / "api" / "app" / "annotatie_contracts.py"
+CONTRACT = Path(__file__).resolve().parents[3] / "api" / "app" / "annotatie_v2_contracts.py"
 
-#: Verschillen die de vertaling op de grens bewust opvangt. Elke regel is een afspraak, geen
-#: uitzondering: hier weet de agent iets niet wat het contract wél eist.
-OPGEVANGEN = {
-    ("AnnotatieVoorstel", "aandacht"),   # "" → None
-    ("AgentRun", "tijd"),                # None → weggelaten, api vult zelf
-    # Geen typeverschil maar een naamsverschil dat de api zelf afhandelt: "" betekent daar "geen id,
-    # match op tekst+lid" en dat is precies de bedoelde semantiek.
-    ("AnnotatieVoorstel", "id"),
-}
+#: Gedeelde velden met een bewust verschil dat de api zelf afhandelt: "" betekent daar "geen id".
+OPGEVANGEN = {("AnnotatieVoorstel", "id")}
 
-#: Agent-velden die de api niet kent. Pydantic negeert ze; dat is hier gewenst – het is interne staat
-#: van de agent, geen onderdeel van het annotatie-domein.
-INTERN = {("AnnotatieVoorstel", "grounded")}
-
-PAREN = [
-    ("AnnotatieVoorstel", "ElementInvoer"),
-    ("AnnotatieAlternatief", "Alternatief"),
-    ("AgentRun", "AgentRun"),
-]
+PAREN = [("AnnotatieVoorstel", "Element")]
 
 
 def _api_velden(klasse: str, bestand: Path = CONTRACT) -> dict[str, str]:
     """De veldtypes van één contractklasse, uit de bron gelezen.
 
-    Importeren kan niet: `annotatie_contracts` gebruikt relatieve imports en graph-qa heeft de api
-    niet als afhankelijkheid – dat is juist de scheiding die deze test bewaakt.
+    Importeren kan niet: de api-modules gebruiken relatieve imports en graph-qa heeft de api niet als
+    afhankelijkheid – dat is juist de scheiding die deze test bewaakt.
     """
     bron = bestand.read_text()
     blok = re.search(rf"^class {klasse}\(BaseModel\):(.*?)(?=^class |\Z)", bron, re.S | re.M)
@@ -65,11 +48,6 @@ def _api_velden(klasse: str, bestand: Path = CONTRACT) -> dict[str, str]:
     return uit
 
 
-#: De agent noemt sommige klassen anders dan de api; dat is een naamsverschil, geen vormverschil.
-#: De velden erbinnen worden apart vergeleken (zie PAREN).
-ALIAS = {"AnnotatieAlternatief": "Alternatief"}
-
-
 def _vorm(annotatie: object) -> str:
     """De vorm van een type, zonder module-paden: `list[a.b.C]` en `list[C]` zijn hetzelfde.
 
@@ -77,9 +55,8 @@ def _vorm(annotatie: object) -> str:
     """
     tekst = str(annotatie).replace("typing.", "").replace("<class '", "").replace("'>", "")
     tekst = re.sub(r"[\w.]*\.(\w+)", r"\1", tekst)
-    for agent_naam, api_naam in ALIAS.items():
-        tekst = tekst.replace(agent_naam, api_naam)
-    return tekst.replace(" ", "").strip()
+    # Een kale `dict` valideert hetzelfde als `dict[str, Any]`.
+    return tekst.replace(" ", "").strip().replace("dict[str,Any]", "dict")
 
 
 @pytest.mark.skipif(not CONTRACT.exists(), reason="api-contract niet beschikbaar (los uitgecheckt)")
@@ -87,37 +64,26 @@ def _vorm(annotatie: object) -> str:
 def test_geen_stil_verschil_met_het_api_contract(agent_klasse, api_klasse):
     agent = getattr(am, agent_klasse).model_fields
     api = _api_velden(api_klasse)
-    if api_klasse == "ElementInvoer":
-        # Sinds contract 2 schrijft de agent via `annotatie_v2_contracts.Element`; een veld dat daar
-        # expliciet staat (bv. `jas_subtype`) reist mee, ook als het v1-contract het niet kent.
-        api = {**_api_velden("Element", CONTRACT.with_name("annotatie_v2_contracts.py")), **api}
 
     for naam, veld in agent.items():
         if (agent_klasse, naam) == ("AnnotatieVoorstel", "ankers"):
-            # V2 gebruikt getypeerde multiankers; runtime roundtrip hieronder bewaakt deze grens.
-            assert _vorm(veld.annotation) == "list[dict[str,Any]]"
+            # Getypeerde multiankers aan de api-kant; de runtime-roundtrip hieronder bewaakt deze grens.
+            assert _vorm(veld.annotation) == "list[dict]"
             continue
-        if (agent_klasse, naam) in OPGEVANGEN:
-            continue
-        if naam not in api:
-            assert (agent_klasse, naam) in INTERN, (
-                f"{agent_klasse}.{naam} bestaat niet in {api_klasse}: het verdwijnt stil bij het "
-                f"wegschrijven. Voeg het toe aan het contract, of aan INTERN als dat de bedoeling is."
-            )
+        if (agent_klasse, naam) in OPGEVANGEN or naam not in api:
             continue
         assert _vorm(veld.annotation) == _vorm(api[naam]), (
             f"{agent_klasse}.{naam} is {_vorm(veld.annotation)} en {api_klasse}.{naam} is "
-            f"{api[naam]}. Zo'n verschil is geen typefout maar een 422 op de PUT, en die is "
-            f"alles-of-niets: de jurist verliest de hele annotatie. Vertaal het in "
-            f"`wetsanalyse_api.naar_contract` en zet het in OPGEVANGEN."
+            f"{api[naam]}. Zo'n verschil is een 422 op de batch, en die is alles-of-niets: de "
+            f"jurist verliest de hele annotatie. Vertaal het in `wetsanalyse_api.naar_contract` en "
+            f"zet het in OPGEVANGEN."
         )
 
 
 def test_v2_multiankers_blijven_getypeerd_en_behouden_aan_de_api_grens():
     import importlib.util
     import sys
-    path = CONTRACT.with_name("annotatie_v2_contracts.py")
-    spec = importlib.util.spec_from_file_location("v2_contract_test", path)
+    spec = importlib.util.spec_from_file_location("v2_contract_test", CONTRACT)
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
@@ -150,17 +116,10 @@ def test_leeg_is_niets_werkt_op_elk_veld():
 
 
 def test_de_guard_slaat_aan_op_precies_dit_soort_verschil():
-    """Bewijs dat hij vangt wat er is misgegaan, in plaats van alleen groen te staan.
-
-    `aandacht` staat in OPGEVANGEN omdat de vertaling hem afhandelt. Voor een verzonnen vierde veld
-    is dat niet zo, en dan hoort de test te falen met een uitleg die naar de vertaling wijst.
-    """
-    class NieuwVeld:
-        model_fields = {"aandacht": am.AnnotatieVoorstel.model_fields["aandacht"]}
-
-    api = _api_velden("ElementInvoer")
-    verschil = _vorm(NieuwVeld.model_fields["aandacht"].annotation) != _vorm(api["aandacht"])
-    assert verschil, "als dit gelijk is, bewaakt de guard niets meer"
+    """Bewijs dat de vergelijking een typeverschil ziet, in plaats van alleen groen te staan."""
+    api = _api_velden("Element")
+    assert _vorm(am.AnnotatieVoorstel.model_fields["klasse"].annotation) == _vorm(api["klasse"])
+    assert _vorm("str | None") != _vorm(api["klasse"]), "als dit gelijk is, bewaakt de guard niets meer"
 
 
 GESPREK_CONTRACT = CONTRACT.with_name("gesprek_contracts.py")
@@ -177,9 +136,9 @@ def _bericht_velden() -> set[str]:
 
 @pytest.mark.parametrize("annotatie", [True, False])
 def test_elk_veld_van_het_chatbericht_bestaat_in_de_api(annotatie):
-    """Een veld dat de api niet kent, laat Pydantic stil vallen. Zo verdween `annotatie_doel` na #473:
-    de chip naar het annotatiepaneel stond er direct na de beurt, maar was na het heropenen van het
-    gesprek weg (22 sep 2026). Deze test faalt in plaats van dat een veld ongemerkt verdwijnt."""
+    """Een veld dat `BerichtInvoer` niet kent, laat Pydantic stil vallen: dan staat de chip naar het
+    annotatiepaneel er direct na de beurt, maar is hij na het heropenen van het gesprek weg. Deze
+    test faalt in plaats van dat een veld ongemerkt verdwijnt."""
     import asyncio
     from types import SimpleNamespace
     from agent import beurt

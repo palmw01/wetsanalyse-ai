@@ -76,9 +76,7 @@ Toelichting bij enkele documenten:
 - **`wetsanalyse-workbench/jas-annotatie-ontologie.md`** beschrijft de RDF-projectie van de
   annotatielagen (`api/app/graaf_projectie_v2.py`): één laag per bronnode, in
   `urn:jas:graph:v2:<laag-id>`. De api is de waarheid over lifecycle, beslissingen en dekking; de
-  graaf is een projectie. `jas-ontologie.ttl`, `api/app/jas_ontologie.py` en
-  `api/app/graaf_projectie.py` horen bij contract 1 (laag per artikel), dat alleen actief is met
-  `ANNOTATIE_CONTRACT_VERSIE=1`.
+  graaf is een projectie.
 - **ADR-001** is uitgevoerd: de hybride keten is de enige annotatieroute. **ADR-002** legt de
   taalprovider vast (spaCy, `nl_core_news_md`).
 - **`onderzoek-empirische-validatie.md`** bevat de fouttaxonomie v2, de metrics, het

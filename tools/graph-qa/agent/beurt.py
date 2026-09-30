@@ -1,10 +1,8 @@
 """
 De beurt-driver: vangt de eventstroom op en legt de uitkomst vast.
 
-Dit is het spiegelbeeld van wat de werkplek vroeger deed. Daar verzamelde `verstuur()` de events in
-closure-variabelen en schreef ná de stream het document, de elementen en het chatbericht weg – met
-als gevolg dat een gesloten tabblad al dat werk kostte. Diezelfde logica staat nu hier, achter de
-run, waar geen browser bij nodig is.
+De driver staat achter de run, niet in de browser: een gesloten tabblad mag het werk van een beurt
+niet kosten.
 
 Bewust **buiten** de LangGraph-code: de driver leest alleen de eventstroom van `answer_stream`, dus
 `orchestrator.py` blijft ongemoeid. Dat scheelt risico op de plek waar het duurst is.
@@ -17,10 +15,9 @@ Twee volgorde-eisen die je niet mag omdraaien:
    elementen. Een laag die al bij het `doel`-event ontstond, zou bij elke afgebroken run als leeg
    skelet in de werkvoorraad blijven staan.
 
-Sinds 22 sep 2026 schrijft een annotatiebeurt naar de **gedeelde laag van het artikel**
-(`PUT /v1/annotatie/lagen/{bwbId}/{artikel}/elementen`), niet meer naar een eigen document per
-beurt: één laag per artikel voor iedereen, zodat een artikel dat al geannoteerd is niet opnieuw
-hoeft. De lidstand (hash + IRI per lid) en de artikelhash reizen mee op het `doel`-event.
+Een annotatiebeurt schrijft één batch naar de gedeelde laag van de bronnode
+(`POST /v1/annotatie/lagen/batch`), idempotent op het run-id. De bronstand (`snapshot_id`,
+`verwachte_revisies`) reist mee op het `doel`-event.
 """
 from __future__ import annotations
 
@@ -269,85 +266,32 @@ async def _leg_vast(
         opgeslagen_doel = None
 
         if schrijver.is_annotatie:
-            # Eén PUT naar de gedeelde laag van het artikel: de api maakt hem aan als hij er nog
-            # niet is. Vanaf hier kan een deel geslaagd zijn – de laag staat er, het chatbericht
-            # nog niet – en dat hoort in de foutmelding. Anders draait de jurist de beurt van 60-90
-            # seconden opnieuw voor iets wat al bewaard is.
+            # Eén batch naar de laag van de bronnode. Vanaf hier kan een deel geslaagd zijn – de laag
+            # staat er, het chatbericht nog niet – en dat hoort in de foutmelding. Anders draait de
+            # jurist de beurt van 60-90 seconden opnieuw voor iets wat al bewaard is.
             doel = schrijver.doel or {}
-            run_info = schrijver.run or {}
-            aanduiding = str(doel.get("artikel") or doel.get("nummer") or "")
-            if doel.get("schema_versie") == 2:
-                laag = await api.zet_bronnode_batch({
-                    "batch_id": run.run_id,
-                    "doel": {"bron_iri": doel["bron_iri"]}, "snapshot_id": doel["snapshot_id"],
-                    "verwachte_revisies": doel.get("verwachte_revisies") or {},
-                    "elementen": schrijver.elementen,
-                    "dekking": {"voltooid": not gestopt, "bereik": doel.get("bereik") or [],
-                                "parent_context": not gestopt,
-                                # Wat de keten wel en niet kon bekijken (dimensies, ongedekte
-                                # zinsdelen met offsets, procesdekking) – de api toont het in de
-                                # weergave en projecteert het naar de graaf.
-                                "structureel": schrijver.dekking.get("per_bron", {}),
-                                "proces": schrijver.dekking.get("proces", {})},
-                    "run": schrijver.run or {},
-                    # Per kandidaat de uitkomst, ook de afgewezen (validatieplan V4). De api bewaart
-                    # het bij de batch; het staat niet op de elementen, want dan draagt elk element
-                    # de hele lijst.
-                    "beslissingen": schrijver.dekking.get("beslissingen") or [],
-                })
-            elif schrijver.volledig_hergebruikt:
-                # Niets nieuws om te mergen; alleen vastleggen dát er hergebruikt is.
-                laag = await api.hergebruik(
-                    bwb_id=str(doel.get("bwbId", "")), artikel=aanduiding,
-                    citeertitel=str(doel.get("citeertitel") or ""),
-                    leden=list(doel.get("leden") or []), run=schrijver.run,
-                )
-            else:
-                laag = await api.zet_laag_elementen(
-                    bwb_id=str(doel.get("bwbId", "")),
-                    artikel=aanduiding,
-                    citeertitel=str(doel.get("citeertitel") or ""),
-                    elementen=schrijver.elementen,
-                    run=schrijver.run,
-                    leden=list(doel.get("leden") or []),
-                    bron_hash=str(doel.get("bron_hash") or ""),
-                    modus="opnieuw" if run_info.get("modus") == "opnieuw" else "auto",
-                )
+            laag = await api.zet_bronnode_batch({
+                "batch_id": run.run_id,
+                "doel": {"bron_iri": doel["bron_iri"]}, "snapshot_id": doel["snapshot_id"],
+                "verwachte_revisies": doel.get("verwachte_revisies") or {},
+                "elementen": schrijver.elementen,
+                "dekking": {"voltooid": not gestopt, "bereik": doel.get("bereik") or [],
+                            "parent_context": not gestopt,
+                            # Wat de keten wel en niet kon bekijken (dimensies, ongedekte
+                            # zinsdelen met offsets, procesdekking) – de api toont het in de
+                            # weergave en projecteert het naar de graaf.
+                            "structureel": schrijver.dekking.get("per_bron", {}),
+                            "proces": schrijver.dekking.get("proces", {})},
+                "run": schrijver.run or {},
+                # Per kandidaat de uitkomst, ook de afgewezen (validatieplan V4). De api bewaart het
+                # bij de batch; het staat niet op de elementen, want dan draagt elk element de hele
+                # lijst.
+                "beslissingen": schrijver.dekking.get("beslissingen") or [],
+            })
             slug = str(laag.get("slug", ""))
             annotatie_bewaard = True
-            if doel.get("schema_versie") == 2:
-                opgeslagen_doel = {"bron_iri": doel["bron_iri"], "label": doel.get("label", ""),
-                                   "snapshot_id": doel["snapshot_id"]}
-            if getattr(api, "hergebruikt", None):
-                # De graaf zag deze leden niet als geannoteerd, de api wel: de projectie liep
-                # achter (meestal net na een GraphDB-herstart). Dat kostte tokens, geen werk –
-                # maar het moet meetbaar zijn, anders valt een haperende projectie nooit op.
-                logger.warning(
-                    "hergebruik_gemist",
-                    extra={"categorie": "functioneel", "run_id": run.run_id,
-                           "leden": api.hergebruikt, "annotatie_slug": slug},
-                )
-                # Het vangnet van de api: dit lid was al geannoteerd en is niet veranderd, dus
-                # deze voorstellen zijn niet toegevoegd. Geen fout – de bestaande annotatie staat
-                # er – maar de jurist moet weten waarom zijn nieuwe voorstellen er niet bij staan.
-                leden = ", ".join(api.hergebruikt)
-                yield {
-                    "type": "waarschuwing",
-                    "message": (f"Lid {leden} was al geannoteerd en is sindsdien niet veranderd. De "
-                                "bestaande annotatie is behouden; deze nieuwe voorstellen zijn niet "
-                                "toegevoegd. Vraag om opnieuw annoteren als je ze er toch bij wilt."),
-                }
-            if getattr(api, "verworpen", 0):
-                # Niet als `error`: de beurt is geslaagd en de rest staat er. Maar wél zeggen —
-                # anders ziet de jurist dertien markeringen en weet hij niet dat het er vijftien
-                # hadden moeten zijn. Een stil verlies is erger dan een luide fout.
-                aantal = api.verworpen
-                yield {
-                    "type": "waarschuwing",
-                    "message": (f"{aantal} markering{'en' if aantal > 1 else ''} kon niet worden "
-                                f"opgeslagen en {'staan' if aantal > 1 else 'staat'} niet in de "
-                                f"annotatie. Wat er wél is, vind je hieronder."),
-                }
+            opgeslagen_doel = {"bron_iri": doel["bron_iri"], "label": doel.get("label", ""),
+                               "snapshot_id": doel["snapshot_id"]}
             bericht |= {
                 "annotatie_slug": slug,
                 "annotatie_titel": _titel(doel),
@@ -356,10 +300,7 @@ async def _leg_vast(
                 # Zonder het beslisregister: dat hoort bij de batch, niet in de gespreksgeschiedenis.
                 **({"dekking": {k: v for k, v in schrijver.dekking.items() if k != "beslissingen"}}
                    if schrijver.dekking else {}),
-                **({"annotatie_doel": {"bron_iri": doel["bron_iri"],
-                                       "label": doel.get("label", ""),
-                                       "snapshot_id": doel["snapshot_id"]}}
-                   if doel.get("schema_versie") == 2 else {}),
+                "annotatie_doel": opgeslagen_doel,
             }
         else:
             tekst = schrijver.tekst.strip()

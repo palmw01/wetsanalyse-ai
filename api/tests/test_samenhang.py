@@ -93,7 +93,6 @@ async def test_endpoint_vereist_gebruiker_en_meldt_capability(monkeypatch):
     from app import annotatie_v2
     from app.config import get_settings
     from conftest import maak_testgebruikers
-    monkeypatch.setenv("ANNOTATIE_CONTRACT_VERSIE", "2")
     monkeypatch.setenv("WETSANALYSE_AUTH_REQUIRED", "0")
     get_settings.cache_clear()
     await maak_testgebruikers("v2-samenhang")

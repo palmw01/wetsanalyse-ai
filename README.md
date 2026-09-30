@@ -68,7 +68,7 @@ flowchart TB
 | Onderdeel | Map | Verantwoordelijkheid |
 |---|---|---|
 | **frontend** | [`frontend/`](frontend/README.md) | Next.js-webapp en BFF. `/workbench` is de werkplek: één gespreksvenster voor vragen én annotatie. Login, rollen, optionele 2FA. Rijkshuisstijl. |
-| **wetsanalyse-api** | [`api/`](api/README.md) | Headless FastAPI. Annotatiedomein (contract 2: lagen per bronnode), gesprekken, gebruikers en login, modelprofielen, tokenbudget, berichten, feedback. Identiteitsbron van de webapp. |
+| **wetsanalyse-api** | [`api/`](api/README.md) | Headless FastAPI. Annotatiedomein (lagen per bronnode), gesprekken, gebruikers en login, modelprofielen, tokenbudget, berichten, feedback. Identiteitsbron van de webapp. |
 | **graph-qa (Lex)** | [`tools/graph-qa/`](tools/graph-qa/README.md) | De agent. Eén LangGraph-graaf met een supervisor die kiest tussen een antwoord-worker, een annotatie-worker en een leesroute over bestaande annotaties. Praat via MCP met GraphDB. |
 | **bwb-import** | [`tools/bwb-import/`](tools/bwb-import/README.md) | ETL van overheid.nl naar RDF. Draait op Azure als job: wekelijks, plus een graafwacht die elk kwartier controleert of de graaf er nog staat. |
 | **bronmodel** | `packages/bronmodel/` | Gedeeld Python-pakket van api en graph-qa: canonieke bronboom, snapshot-ID's, teksthashes en tekstankers. |
@@ -263,8 +263,8 @@ Een storing wordt nooit stilzwijgend "er zijn geen annotaties".
 
 ```
 api/                  FastAPI-backend
-  app/routers/          annotatie · admin · auth · gesprekken · verbruik · berichten · feedback · catalog
-  app/annotatie_v2*.py  het annotatiedomein op bronnodes (contract 2): routes, store, zoeken
+  app/routers/          admin · auth · gesprekken · verbruik · berichten · feedback · catalog
+  app/annotatie_v2*.py  het annotatiedomein op bronnodes: routes, store, zoeken
   app/graaf_projectie_v2.py  de projectie van de lagen naar GraphDB
   app/db.py             SQLAlchemy Core-tabellen (geen ORM-klassen, geen Alembic)
   app/jas_klassen.py    de dertien JAS-klassen (canonieke bron)
@@ -323,7 +323,6 @@ komen secrets als bestand binnen in plaats van als omgevingsvariabele.
 | `WETSANALYSE_API_URL` / `_TOKEN` | graph-qa | leeg | Zonder deze legt de agent geen annotaties vast en kan hij ze niet lezen. |
 | `QA_API_TOKEN` | graph-qa | leeg | **Leeg = open**. Verplicht zodra de agent naar de API schrijft; de dienst start anders niet. |
 | `ANNOTATIE_READ_USER_ID` | graph-qa | leeg | Alleen voor CLI/MCP: namens wie de annotatieleestools lezen. Nooit door een modelargument te kiezen. |
-| `ANNOTATIE_CONTRACT_VERSIE` | api | `2` | `2` = annotaties op bronnodes; bij `1` geven die routes `503` en gelden de artikelbrede paden. |
 | `JAS_PROJECTIE_INTERVAL` | api | `60` | Seconden tussen twee rondes van de projectielus — het vangnet onder de directe projectie naar de graaf. |
 | `GRAPHDB_URL` | bwb-import | `http://graphdb:7200` | Waar de importer naartoe schrijft. |
 | `BWB_IMPORT_WTI` | bwb-import | `false` | Zet de WTI-verrijking aan (organisatie, wetsfamilie, grondslagen, rechtsgebieden). |

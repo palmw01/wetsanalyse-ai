@@ -16,6 +16,7 @@ import {
   beslissingNaarNode, documentVanNode, nodeAnkersUitSelectie, nodeBronVan, tekstVanAnkers,
 } from "@/lib/annotatieNodeAdapter";
 import type { ReeksNavigatie } from "@/lib/reeks";
+import { metSpoor } from "@/lib/uiSpoor";
 import { samenhangBeschikbaar, type GraafKnoop } from "@/lib/samenhang";
 import type { Anker, BeslissingInvoer } from "@/lib/types";
 import { GraafIcoon } from "@/components/graaf/GraafIcoon";
@@ -85,10 +86,10 @@ export function NodeAnnotatiePaneel({ doel, onSluit, variant = "side", onVraag, 
   async function beslissing(elementId: string, req: BeslissingInvoer) {
     if (!view || !nb || !doc) return;
     const huidig = doc.elementen.find((e) => e.id === elementId);
-    await muteer(`elementen/${encodeURIComponent(elementId)}/beslissing`, {
+    await metSpoor("review_beslissing", () => muteer(`elementen/${encodeURIComponent(elementId)}/beslissing`, {
       ...beslissingNaarNode(req, nb, huidig),
       snapshot_id: view.snapshot_id, verwachte_revisies: verwachteRevisies(view),
-    });
+    }));
     setMelding("Wijziging opgeslagen.");
   }
 
@@ -135,9 +136,9 @@ export function NodeAnnotatiePaneel({ doel, onSluit, variant = "side", onVraag, 
    *  intussen iets) laat de actuele stand zien in plaats van blind te verwijderen. */
   async function verwijder() {
     if (!view) return;
-    const uit = await muteer("weergave/verwijder", {
+    const uit = await metSpoor("annotatie_verwijderen", () => muteer("weergave/verwijder", {
       bron_iri: view.doel.bron_iri, snapshot_id: view.snapshot_id, verwachte_revisies: verwachteRevisies(view),
-    }) as { graaf?: string } | undefined;
+    })) as { graaf?: string } | undefined;
     setActiefId(undefined);
     setMelding(uit?.graaf === "volgt"
       ? "Annotatie verwijderd. De kennisgraaf volgt binnen een minuut."

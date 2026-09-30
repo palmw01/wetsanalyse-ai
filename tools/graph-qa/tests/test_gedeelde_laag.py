@@ -22,16 +22,13 @@ ARTIKEL = f"{LID1}\n\n{LID2}"
 
 # --- de api-client ---------------------------------------------------------------------------------
 
-def test_client_put_naar_de_laag_en_leest_de_headers():
-    """Tegen de échte client, niet tegen een nabootsing: `X-Verworpen` werd tot nu toe met
-    hoofdletters gelezen uit headers die httpx in kleine letters teruggeeft – de melding kon nooit
-    afgaan, en de tests zagen dat niet omdat ze de client nabootsten."""
+def test_client_post_de_batch_naar_de_laag():
+    """Tegen de échte client, niet tegen een nabootsing: pad, methode en de vertaling op de grens."""
     verzoeken: list[httpx.Request] = []
 
     def api(request: httpx.Request) -> httpx.Response:
         verzoeken.append(request)
-        return httpx.Response(200, json={"slug": "laag1"},
-                              headers={"X-Verworpen": "2", "X-Hergebruikt-Leden": "1,3"})
+        return httpx.Response(200, json={"slug": "laag1"})
 
     client = WetsanalyseApi(make_settings(wetsanalyse_api_url="http://api:3000",
                                           wetsanalyse_api_token="t", qa_api_token="q"), "jurist")
@@ -39,26 +36,19 @@ def test_client_put_naar_de_laag_en_leest_de_headers():
 
     async def draai():
         try:
-            return await client.zet_laag_elementen(
-                bwb_id="BWBR0024096", artikel="25.1", citeertitel="Leidraad",
-                elementen=[{"id": "e1", "klasse": "Rechtssubject", "tekst": "t", "aandacht": ""}],
-                run={"model": "m", "tijd": None},
-                leden=[{"lid": "", "hash": "h", "iri": ""}], bron_hash="art", modus="opnieuw",
-            )
+            return await client.zet_bronnode_batch({
+                "batch_id": "r1", "doel": {"bron_iri": "urn:bwb:B:artikel:1"}, "snapshot_id": "s",
+                "elementen": [{"id": "e1", "klasse": "Rechtssubject", "tekst": "t", "aandacht": ""}],
+            })
         finally:
             await client.aclose()
 
-    laag = asyncio.run(draai())
-    assert laag == {"slug": "laag1"}
-    assert client.verworpen == 2 and client.hergebruikt == ["1", "3"]
+    assert asyncio.run(draai()) == {"slug": "laag1"}
     verzoek, = verzoeken
-    assert verzoek.method == "PUT"
-    assert verzoek.url.path == "/v1/annotatie/lagen/BWBR0024096/25.1/elementen"
-    body = json.loads(verzoek.content)
-    assert body["modus"] == "opnieuw" and body["bron_hash"] == "art" and body["leden"][0]["hash"] == "h"
-    assert body["elementen"][0]["aandacht"] is None          # naar_contract op de grens
-    assert "tijd" not in body["run"]
+    assert (verzoek.method, verzoek.url.path) == ("POST", "/v1/annotatie/lagen/batch")
     assert verzoek.headers["x-user-id"] == "jurist"
+    body = json.loads(verzoek.content)
+    assert body["elementen"][0]["aandacht"] is None          # naar_contract op de grens
 
 
 # --- de keten ----------------------------------------------------------------------------------------

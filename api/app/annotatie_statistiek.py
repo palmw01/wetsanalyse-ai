@@ -1,49 +1,42 @@
-"""Wat de juristen met de voorstellen van de agent deden, over documenten heen.
+"""Wat de juristen met de voorstellen van de agent deden, over alle annotatielagen heen.
 
-**Waarom dit bestaat.** Elke keer dat een jurist zegt "nee, dit is een Rechtsfeit en geen Voorwaarde"
-is dat evaluatiedata over de agent — en die data wordt al vastgelegd: `Beslissing` draagt het type,
-de diff en de `review_reason` (die de server zélf uit de diff afleidt, `routers/annotatie._reden_uit_diff`,
-dus hij is toetsbaar en niet aangenomen), en elk element draagt `geproduceerd_door` met het model en
-de agentversie die het voorstel maakten. Er was alleen nooit een consument.
+Elke keer dat een jurist zegt "nee, dit is een Rechtsfeit en geen Voorwaarde" is dat evaluatiedata
+over de agent. Een beslissing draagt het type, de `review_reason`, de correctie (`wijziging`) en de
+oude waarden (`voor`); elk agent-element draagt `geproduceerd_door` met het model en de agentversie.
+Dit module telt dat op: de reviewuitkomst per klasse en per model, de klasse-verschuivingen die
+juristen aanbrengen, en of het aandacht-oordeel van de keten samenvalt met een correctie.
 
-Dit is geen tweede telling naast `annotatie_export.tel_elementen`, maar een aanvulling erop. Die
-functie is expliciet "één waarheid" voor de export én de werkvoorraadlijst; hij telt per klasse, per
-status, per aandacht en agent-vs-jurist. Wat hier bij komt is wat je niet uit één document afleest:
-de **reviewuitkomst per klasse**, de **verschuivingen** die juristen aanbrengen, en of de **Critic**
-ergens goed voor is.
+**Lees de cijfers als tellingen.** Zolang er weinig gereviewd is, zeggen percentages weinig; `lagen`
+en de uitkomsten staan er daarom altijd bij. Een klasse-verschuiving zegt iets over de agent én over
+de methode: JAS kent interpretatieruimte, dus een verschuiving is niet per se een fout van het model.
 
-**Lees de cijfers als wat ze zijn.** Zolang er weinig gereviewd is, zijn dit tellingen en geen
-percentages met betekenis; `documenten` en `beslist` staan er daarom altijd bij. En de
-klasse-verschuivingen zeggen iets over de agent én over de methode: JAS kent interpretatieruimte, dus
-een verschuiving is niet per se een fout van het model.
+Werkt op element-dicts zoals ze in `annotatie_v2_elementen.inhoud` en in de JSON-export staan, zodat
+het admin-endpoint en `scripts/statistiek.py` dezelfde aggregatie delen.
 """
 
 from __future__ import annotations
 
 from collections import Counter
-from typing import Any
+from typing import Any, Iterable
 
 from pydantic import BaseModel
-
-from .annotatie_contracts import AnnotatieDocument, AnnotatieElement, BeslissingType
 
 
 class ReviewStatistiek(BaseModel):
     """Het rapport. Alle velden zijn tellingen; percentages laat ik aan de lezer."""
 
-    documenten: int = 0
+    lagen: int = 0
     elementen: int = 0
 
-    #: Elementen waar een mens een oordeel over gaf, uitgesplitst naar wat dat oordeel was. Een
-    #: element kan meerdere beslissingen dragen (edit dan comment); geteld wordt de zwaarste
-    #: uitkomst, want "is dit voorstel geaccepteerd" is één vraag per element.
+    #: Agent-voorstellen naar reviewuitkomst. Een element kan meerdere beslissingen dragen (edit dan
+    #: comment); geteld wordt de zwaarste uitkomst, want "is dit voorstel geaccepteerd" is één vraag.
     goedgekeurd: int = 0
     aangepast: int = 0
     afgewezen: int = 0
     open: int = 0
 
-    #: Alleen elementen die de AGENT voorstelde. Een eigen markering van de jurist staat meteen op
-    #: goedgekeurd en zou het beeld optillen zonder dat er iets beoordeeld is.
+    #: Een eigen markering van de jurist staat meteen op goedgekeurd en zou het beeld optillen zonder
+    #: dat er iets beoordeeld is; die telt daarom apart.
     van_agent: int = 0
     van_jurist: int = 0
 
@@ -53,22 +46,21 @@ class ReviewStatistiek(BaseModel):
     klasse_verschuivingen: dict[str, int] = {}
     #: Per "model · agentversie", zodat twee versies naast elkaar te leggen zijn.
     per_model: dict[str, dict[str, int]] = {}
-    #: Viel het oordeel van de Critic samen met een correctie van de jurist? Per aandacht-niveau
-    #: het aantal beoordeelde elementen en hoeveel daarvan de jurist wijzigde of afwees.
-    critic: dict[str, dict[str, int]] = {}
+    #: Per aandacht-niveau van de keten (groen/geel): hoeveel beoordeelde elementen, en hoeveel
+    #: daarvan de jurist wijzigde of afwees.
+    per_aandacht: dict[str, dict[str, int]] = {}
 
 
 # Volgorde van zwaarte: een element dat is afgewezen én becommentarieerd telt als afgewezen.
-_ZWAARTE = {BeslissingType.reject: 3, BeslissingType.edit: 2, BeslissingType.approve: 1}
+_ZWAARTE = {"reject": 3, "edit": 2, "approve": 1}
+_UITKOMST = {"reject": "afgewezen", "edit": "aangepast", "approve": "goedgekeurd"}
 
 
-def _uitkomst(el: AnnotatieElement) -> str:
+def _uitkomst(el: dict[str, Any]) -> str:
     """De reviewuitkomst van één element: afgewezen | aangepast | goedgekeurd | open."""
-    zwaarste, score = "", 0
-    for b in el.beslissingen:
-        if (s := _ZWAARTE.get(b.type, 0)) > score:
-            zwaarste, score = b.type.value, s
-    return {"reject": "afgewezen", "edit": "aangepast", "approve": "goedgekeurd"}.get(zwaarste, "open")
+    zwaarste = max((b.get("type", "") for b in el.get("beslissingen") or []),
+                   key=lambda t: _ZWAARTE.get(t, 0), default="")
+    return _UITKOMST.get(zwaarste, "open")
 
 
 def _bij(doel: dict[str, dict[str, int]], sleutel: str, uitkomst: str) -> None:
@@ -77,91 +69,45 @@ def _bij(doel: dict[str, dict[str, int]], sleutel: str, uitkomst: str) -> None:
     vak[uitkomst] += 1
 
 
-def rapport(documenten: list[AnnotatieDocument]) -> ReviewStatistiek:
-    """Tel de review-uitkomsten over een verzameling documenten."""
-    st = ReviewStatistiek(documenten=len(documenten))
+def rapport(elementen: Iterable[dict[str, Any]], lagen: int = 0) -> ReviewStatistiek:
+    """Tel de review-uitkomsten over een verzameling elementen. Verouderde elementen tellen niet mee:
+    hun brontekst bestaat niet meer, dus hun oordeel gaat niet meer over de wet zoals die nu luidt."""
+    st = ReviewStatistiek(lagen=lagen)
     redenen: Counter[str] = Counter()
     verschuivingen: Counter[str] = Counter()
-    critic: dict[str, dict[str, int]] = {}
 
-    for doc in documenten:
-        for el in doc.elementen:
-            st.elementen += 1
-            if el.herkomst == "mens":
-                st.van_jurist += 1
-                # Een eigen markering staat bij het aanmaken al op human_approved: gemaakt, niet
-                # beoordeeld. Meetellen als "goedgekeurd voorstel" zou het beeld vertekenen.
-                continue
-            st.van_agent += 1
+    for el in elementen:
+        if el.get("verouderd"):
+            continue
+        st.elementen += 1
+        if el.get("herkomst") == "mens":
+            st.van_jurist += 1
+            continue
+        st.van_agent += 1
 
-            uitkomst = _uitkomst(el)
-            setattr(st, uitkomst, getattr(st, uitkomst) + 1)
-            _bij(st.per_klasse, el.klasse, uitkomst)
+        uitkomst = _uitkomst(el)
+        setattr(st, uitkomst, getattr(st, uitkomst) + 1)
+        _bij(st.per_klasse, el.get("klasse", ""), uitkomst)
 
-            run = el.geproduceerd_door
-            sleutel = " · ".join(x for x in (run.model, run.agent_versie) if x) if run else "onbekend"
-            _bij(st.per_model, sleutel or "onbekend", uitkomst)
+        run = el.get("geproduceerd_door") or {}
+        sleutel = " · ".join(x for x in (run.get("model"), run.get("agent_versie")) if x)
+        _bij(st.per_model, sleutel or "onbekend", uitkomst)
 
-            for b in el.beslissingen:
-                if b.review_reason:
-                    redenen[b.review_reason.value] += 1
-                # De klasse die de jurist eroverheen zette. `wijziging` is de diff die de router
-                # berekende, dus dit is wat er feitelijk veranderde – niet wat iemand claimde.
-                klasse_diff = (b.wijziging or {}).get("klasse") or {}
-                voor, na = klasse_diff.get("voor"), klasse_diff.get("na")
-                if voor and na and voor != na:
-                    verschuivingen[f"{voor} → {na}"] += 1
+        for b in el.get("beslissingen") or []:
+            if b.get("review_reason"):
+                redenen[b["review_reason"]] += 1
+            voor, na = (b.get("voor") or {}).get("klasse"), (b.get("wijziging") or {}).get("klasse")
+            if voor and na and voor != na:
+                verschuivingen[f"{voor} → {na}"] += 1
 
-            # Had de Critic gelijk? Zijn laatste oordeel tegenover wat de jurist deed. Alleen
-            # elementen die de jurist ook echt bekeek tellen mee – bij `open` weten we het niet, en
-            # dat als "niet gecorrigeerd" boeken zou rood kunstmatig goed laten lijken.
-            #
-            # `critic_rondes` is het volledige spoor, maar het is pas sinds kort gevuld en de Critic
-            # kan uit staan (`CRITIC_MAX_RONDES=0`). `aandacht` op het element draagt hetzelfde
-            # laatste oordeel, dus dat is de terugval – anders valt deze doorsnede weg op precies de
-            # documenten die er al zijn.
-            laatste = el.critic_rondes[-1].aandacht if el.critic_rondes else el.aandacht
-            if laatste and uitkomst != "open":
-                vak = critic.setdefault(laatste.value,
-                                        {"beoordeeld": 0, "gecorrigeerd": 0})
-                vak["beoordeeld"] += 1
-                if uitkomst in ("aangepast", "afgewezen"):
-                    vak["gecorrigeerd"] += 1
+        # Alleen elementen die de jurist ook echt bekeek tellen mee – bij `open` weten we het niet,
+        # en dat als "niet gecorrigeerd" boeken zou het aandacht-oordeel kunstmatig goed laten lijken.
+        if (aandacht := el.get("aandacht")) and uitkomst != "open":
+            vak = st.per_aandacht.setdefault(aandacht, {"beoordeeld": 0, "gecorrigeerd": 0})
+            vak["beoordeeld"] += 1
+            if uitkomst in ("aangepast", "afgewezen"):
+                vak["gecorrigeerd"] += 1
 
     st.per_review_reason = dict(redenen.most_common())
     st.klasse_verschuivingen = dict(verschuivingen.most_common())
-    st.critic = critic
     return st
-
-
-def rapport_uit_export(export: dict[str, Any]) -> ReviewStatistiek:
-    """Hetzelfde rapport, maar over één JSON-export in plaats van de database.
-
-    De export draagt beslissingen, `geproduceerd_door` en `critic_rondes` al mee
-    (`annotatie_export.bouw_export`), dus dit is de ingang die werkt zonder databasetoegang — en dat
-    is vandaag de enige plek waar de data van een echte werkplek te vinden is.
-    """
-    meta = export.get("document") or {}
-    doc = AnnotatieDocument(
-        slug=meta.get("slug", ""),
-        bwbId=meta.get("bwbId", ""),
-        artikel=meta.get("artikel", ""),
-        lid=meta.get("lid", "") or "",
-        elementen=[AnnotatieElement.model_validate(_naar_element(e))
-                   for e in (export.get("elementen") or [])],
-    )
-    return rapport([doc])
-
-
-def _naar_element(e: dict[str, Any]) -> dict[str, Any]:
-    """Een `ExportElement` terug naar de velden die `AnnotatieElement` verwacht.
-
-    De export is platter: `aandacht` is daar een string in plaats van een enum-of-None, en
-    `lifecycle` heet er `status` met een leesbaar label. Alleen wat het rapport gebruikt hoeft
-    te kloppen; de rest laten we op de defaults staan.
-    """
-    uit = dict(e)
-    uit.pop("status", None)
-    if not uit.get("aandacht"):
-        uit["aandacht"] = None
-    return uit

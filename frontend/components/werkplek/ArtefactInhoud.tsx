@@ -46,8 +46,8 @@ export interface ArtefactInhoudProps {
   /** Meegeven in de dialoogschil (het kruisje, en de laatste laag van Escape); weglaten op de
    *  eigen pagina, die niets te sluiten heeft. */
   onSluiten?: () => void;
-  /** Eigen export in plaats van de artikel-export. Een bronnode-annotatie exporteert via haar eigen
-   *  route; de knop, het keuzepaneel en de foutmelding blijven die van het paneel. */
+  /** De export van de bronnode-annotatie; de knop, het keuzepaneel en de foutmelding blijven die
+   *  van het paneel. */
   onExport?: (formaat: ExportFormaat) => Promise<void>;
   /** Aanvullende blokken onder de reviewlijst, in dezelfde scrollzone. */
   extra?: ReactNode;
@@ -57,8 +57,8 @@ export interface ArtefactInhoudProps {
  *  daaronder de review-queue.
  *
  *  Bewust los van zijn schil, zoals `DisclaimerClient` en `InstellingenInhoud` dat al doen: in de
- *  werkplek zit hij in een `Dialog` (`ArtefactPaneel`), op `/annotaties/<slug>` in een gewone
- *  pagina. Eén inhoud, twee schillen – anders gaan de twee weergaven uit elkaar lopen. */
+ *  werkplek zit hij in een `Dialog`, op `/annotaties/node` in een gewone pagina. Eén inhoud, twee
+ *  schillen – anders gaan de twee weergaven uit elkaar lopen. */
 export function ArtefactInhoud({
   doc, info, actiefId, onKies, onBeslissing, onEigenMarkering,
   onWisEigenMarkering, onVraag, onStatus, onVerwijder, onSluiten, onExport, extra,
@@ -370,8 +370,7 @@ export function ArtefactInhoud({
             <span className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${DOCUMENT_STATUS_STYLE[doc.status]}`}>
               {DOCUMENT_STATUS_LABEL[doc.status]}
             </span>
-            {/* De wettekst gaat mee naar de export: de api heeft hem niet (de graaf is de bron). */}
-            <ExportKnop slug={doc.slug} leden={info.leden_teksten} onFout={setFout} onDownload={onExport} />
+            <ExportKnop onFout={setFout} onDownload={onExport} />
             {onStatus && <StatusKnop status={doc.status} bezig={statusBezig} onZet={zetStatus} />}
             {/* Elke gebruiker mag dit, ook op een afgeronde annotatie; de audit legt vast wie het deed.
                 Tweede klik bevestigt, zoals elders in de app. */}

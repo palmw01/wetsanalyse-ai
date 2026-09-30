@@ -4,7 +4,7 @@ import { Melding } from "@/components/ui/Melding";
 
 export const metadata = { title: "Annotatie · Wetsanalyse" };
 
-/** Een bronnode-annotatie als eigen pagina – dezelfde schil als `/annotaties/<slug>`. */
+/** Een bronnode-annotatie als eigen pagina – in de gedeelde paginaschil. */
 export default async function NodeAnnotatiePagina({ searchParams }: {
   searchParams: Promise<{ bron_iri?: string; snapshot_id?: string }>;
 }) {

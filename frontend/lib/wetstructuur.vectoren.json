@@ -1,5 +1,5 @@
 {
-  "_waarom": "Gedeelde testvectoren voor het ontleden van één regel wettekst. TypeScript (frontend/lib/wetstructuur.ts) voedt het documentpaneel, Python (api/app/wetstructuur.py) de PDF-export; ze moeten dezelfde regel hetzelfde ontleden, anders staat een onderdeel in de PDF op een andere marge dan in de werkplek en gaat de jurist twijfelen aan de bron in plaats van aan de opmaak. Zelfde patroon als bronHash.vectoren.json, dat er kwam nadat Python en JS uiteenliepen. Beide suites toetsen tegen dit bestand; wijzig het niet met de hand zonder beide kanten mee te nemen.",
+  "_waarom": "Testvectoren voor het ontleden van één regel wettekst door frontend/lib/wetstructuur.ts, die het documentpaneel voedt.",
   "_velden": {
     "nummer": "het onderdeelnummer zoals het in de wet staat, inclusief punt; leeg als de regel er geen heeft",
     "term": "de gedefinieerde term vóór de dubbele punt, alleen vlak ná een nummer; leeg als het stuk ervóór meer dan de helft van de regel beslaat of een 'bedoeld in'-verwijzing bevat — dan is het een zin",

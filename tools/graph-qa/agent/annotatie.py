@@ -71,8 +71,7 @@ def sleutel_van(tekst: str, lid: str) -> tuple[str, str]:
     gebeurt als een herziening een bestaand fragment opnieuw voorstelt zonder het id mee te sturen —
     en dan krijgt de jurist twee identieke kaartjes te reviewen.
 
-    **Bewust ZONDER klasse**, gelijk aan de terugval in de api-merge (`routers/annotatie.py:_sleutel`)
-    en aan `mergeVoorstellen` in de werkplek: een herziening mág juist de klasse veranderen en moet
+    **Bewust ZONDER klasse**, gelijk aan `mergeVoorstellen` in de werkplek: een herziening mág juist de klasse veranderen en moet
     dan hetzelfde element treffen. Stond de klasse er wél in, dan werd een herclassificatie zonder
     id een tweede element – en zag de jurist dezelfde tekstspan twee keer met tegenstrijdige
     klassen. Dit is de canonieke regel; wie hem elders nabouwt, bouwt hem hiernaar.

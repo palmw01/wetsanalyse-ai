@@ -11,7 +11,7 @@ interface Props extends Omit<ArtefactInhoudProps, "onSluiten"> {
 
 /** De dialoogschil om het annotatie-artefact: van rechts inschuivend paneel (smal) of een eigen
  *  kolom naast de chat (breed). De inhoud zelf staat in `ArtefactInhoud` en wordt gedeeld met de
- *  losse pagina `/annotaties/<slug>`.
+ *  losse pagina `/annotaties/node`.
  *
  *  `onEscape` is bewust een no-op: de inhoud handelt Escape zelf af, want alleen die kent de lagen
  *  (selectie → bedieningsrij → gekozen element → sluiten). Zou `Dialog` hem óók afvangen, dan

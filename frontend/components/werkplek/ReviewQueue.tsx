@@ -61,7 +61,7 @@ const CHIP =
 
 /** Wie dit element maakte en wat ermee gebeurde, in mensentaal.
  *
- *  De lifecycle-namen (`voorgesteld`/`critic_checked`/`edited`) zijn machinetaal; de jurist wil weten
+ *  De lifecycle-namen (`voorgesteld`/`edited`) zijn machinetaal; de jurist wil weten
  *  van wie het element komt en of hij er al iets mee deed. Het volledige spoor staat in het auditlog. */
 function statusRegel(el: AnnotatieElement): string {
   if (el.lifecycle === "rejected") return "verworpen";

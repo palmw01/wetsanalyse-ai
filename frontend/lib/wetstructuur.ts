@@ -14,9 +14,7 @@
 // onrechte in. Dat is bewust geaccepteerd: een fout niveau geeft een scheve marge, nooit een scheve
 // markering — de offsets komen uit `data-offset` per blok en niet uit deze functie.
 //
-// Deze parser bestaat twee keer: hier voor het documentpaneel, en in `api/app/wetstructuur.py` voor
-// de PDF-export. `wetstructuur.vectoren.json` bewaakt dat beide kanten hetzelfde blijven doen —
-// zelfde patroon als `bronHash.vectoren.json`, dat er kwam nadat Python en JS uiteenliepen.
+// De testvectoren staan in `wetstructuur.vectoren.json`.
 
 /** Wat één regel wettekst blijkt te zijn. */
 export interface Onderdeel {

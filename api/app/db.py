@@ -1,9 +1,9 @@
 """Async SQLAlchemy-Core laag: engine-beheer + tabeldefinities.
 
 De datalaag is bewust **Core** (geen ORM): alle SQL is geïsoleerd in de service-modules
-(profiles/users/api_tokens/annotatie_store), de domeinmodellen blijven plain Pydantic. De
+(profiles, users, gesprek_store, annotatie_v2_store, …), de domeinmodellen blijven plain Pydantic. De
 types zijn portable – `JSON` wordt `JSONB` op PostgreSQL en gewone `JSON` op SQLite, zodat de
-unit-tests op een in-memory SQLite draaien en productie op PostgreSQL (CloudNativePG).
+unit-tests op een in-memory SQLite draaien en productie op PostgreSQL.
 
 De engine wordt lui geïnitialiseerd (lifespan in productie, fixture in tests) zodat de modules
 zonder verbinding importeerbaar blijven.
@@ -195,74 +195,7 @@ api_tokens = Table(
     Column("last_used", _DT, nullable=True),
 )
 
-# --- Annotatie-domein (wetsanalyse-workbench) ---------------------------------
-# Eén rij per bron-document; de elementen (met hun review-levenscyclus + beslissingen) staan als
-# JSON – het document draagt de HUIDIGE staat.
-annotatie_documenten = Table(
-    "annotatie_documenten",
-    metadata,
-    Column("slug", String(255), primary_key=True),
-    # Eigenaar = de ingelogde gebruiker (per-gebruiker gescopet, zoals de gesprekken). `client_id`
-    # blijft de bearer-client als herkomst-/tenant-veld, maar de zichtbaarheid gaat op `user_id`.
-    Column("user_id", String(64), nullable=False, default=""),
-    Column("client_id", String(128), nullable=False, default=""),
-    Column("citeertitel", Text, nullable=False, default=""),
-    Column("werkgebied", Text, nullable=False, default=""),
-    Column("bwbId", String(64), nullable=False, default=""),
-    Column("artikel", String(32), nullable=False, default=""),
-    Column("lid", String(32), nullable=False, default=""),
-    Column("status", String(24), nullable=False, default="in_review"),
-    Column("elementen", _JSON, nullable=False, default=list),
-    # Het productiespoor: per agent-ronde welk model/agentversie de voorstellen maakte. Additief
-    # toegevoegd, dus `reconcile_schema` zet hem op bestaande tabellen bij (geen migratie).
-    Column("runs", _JSON, nullable=False, default=list),
-    Column("created", _DT, nullable=False),
-    Column("updated", _DT, nullable=False),
-    # Gevuld = dit is de GEDEELDE laag van één artikel ("{BWBID}:{artikel}"), niet een document van
-    # één gebruiker. Leeg voor de per-gebruiker-documenten van vóór de lagen. Eén laag per artikel
-    # wordt door de partiële unieke index hieronder afgedwongen, niet door een check-then-insert:
-    # twee Lex-runs op hetzelfde artikel mogen er geen twee lagen van maken.
-    Column("laag_sleutel", String(128), nullable=False, server_default="", default=""),
-    # De actuele brontekststand per lid: {lid: {hash, iri, bijgewerkt}}. Hieraan ziet de merge of een
-    # lid sinds de vorige annotatie veranderd is. graph-qa levert de hashes; de api heeft geen
-    # wettekst en rekent ze dus nooit zelf uit.
-    Column("leden", _JSON, nullable=True, default=dict),
-    # Een per-gebruiker-document dat bij de migratie is opgegaan in de laag met deze slug. De rij
-    # blijft staan (oude chatberichten verwijzen ernaar en de audit hangt eraan); lezen en schrijven
-    # volgen de verwijzing.
-    Column("samengevoegd_in", String(255), nullable=False, server_default="", default=""),
-    # Tot welke `updated` deze laag in de kennisgraaf staat. Kleiner dan `updated` (of leeg) = de
-    # projectie loopt achter; de reconcile-lus pakt hem op. Zo is deze kolom de outbox, zonder een
-    # aparte tabel die met de laag in de pas moet blijven.
-    Column("geprojecteerd_tot", _DT, nullable=True),
-    Index("ix_annotatie_docs_user_updated", "user_id", "updated"),
-    Index(
-        "ux_annotatie_laag",
-        "laag_sleutel",
-        unique=True,
-        sqlite_where=text("laag_sleutel <> ''"),
-        postgresql_where=text("laag_sleutel <> ''"),
-    ),
-)
-
-# Append-only audit trail: de onwijzigbare geschiedenis (event-log) náást de huidige documentstaat.
-# Alleen inserts; nooit update/delete. De tijdlijn = ORDER BY id.
-annotatie_audit = Table(
-    "annotatie_audit",
-    metadata,
-    Column("id", Integer, primary_key=True, autoincrement=True),
-    Column("document_slug", String(255), nullable=False),
-    Column("client_id", String(128), nullable=False, default=""),
-    Column("actor", String(128), nullable=False, default=""),
-    Column("actie", String(64), nullable=False, default=""),
-    Column("element_id", String(64), nullable=True),
-    Column("detail", _JSON, nullable=True),
-    Column("tijdstip", _DT, nullable=False),
-    Index("ix_annotatie_audit_doc_id", "document_slug", "id"),
-)
-
-
-# Bronnode-annotaties: afzonderlijke tabellen, zonder inhoudmigratie of legacy-drops.
+# --- Annotatie-domein: één laag per bronnode -----------------------------------
 annotatie_v2_state = Table("annotatie_v2_state", metadata,
     Column("id", Integer, primary_key=True), Column("revisie", Integer, nullable=False, default=0))
 annotatie_v2_snapshots = Table("annotatie_v2_snapshots", metadata,
@@ -291,7 +224,7 @@ annotatie_v2_audit = Table("annotatie_v2_audit", metadata,
 # huidige venster. Dat heeft drie eigenschappen die een teller niet heeft:
 #
 #   1. Een verwijderd gesprek raakt het verbruik niet. `gesprek_store.verwijder_gesprek` gooit de
-#      berichten hard weg en `annotatie_store.verwijder_document` neemt zelfs de auditregels mee;
+#      berichten hard weg en `annotatie_v2_store.verwijder_weergave` haalt een annotatie weg;
 #      daarom is `userid` hier de enige harde sleutel en zijn `gesprek_id`/`run_id` losse metadata
 #      ZONDER foreign key. Wat er verbruikt is, is verbruikt – ook als het werk eruit gaat.
 #   2. De reset vraagt geen cronjob: het vensterbegin wordt uit het anker gerekend (zie

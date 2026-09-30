@@ -41,7 +41,7 @@ describe("routegate-matcher", () => {
     // route-parameter mag er nu eenmaal uitzien als een bestandsnaam.
     expect(bewaakt("/api/gesprekken/abc.png")).toBe(true);
     expect(bewaakt("/api/admin/users/foo.svg")).toBe(true);
-    expect(bewaakt("/api/annotatie/documenten/iw-art9.ico/elementen")).toBe(true);
+    expect(bewaakt("/api/gesprekken/iw-art9.ico/berichten")).toBe(true);
   });
 
   it("laat Auth.js' eigen routes en de Next-interne paden met rust", () => {

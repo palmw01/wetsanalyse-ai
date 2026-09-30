@@ -42,20 +42,16 @@ import type {
   AgentHergebruik,
   AgentKandidaat,
   AgentRun,
-  Anker,
-  AnnotatieDocument,
   Bericht,
   BerichtAanmakenIn,
   BerichtenPaginaOut,
   BerichtInvoer,
   BerichtOut,
   BerichtPublicatieIn,
-  BeslissingInvoer,
   Bron,
   DocumentSamenvatting,
   Gesprek,
   GesprekSamenvatting,
-  GraafArtikel,
   OngelezenAantalOut,
   RunStart,
   VoorstelElement,
@@ -412,83 +408,12 @@ export async function changePassword(current: string, nieuw: string): Promise<vo
 
 // --- Annotatie-workbench -----------------------------------------------------
 
-/** De gedeelde annotatielagen – één per artikel, voor iedereen. `mijn` beperkt tot lagen waar je
- *  zelf iets aan deed (dat staat in de audit; een laag heeft geen eigenaar). */
+/** De annotatielagen – één per bronnode, gedeeld. `mijn` beperkt tot lagen waar je zelf iets aan
+ *  deed (dat staat in de audit; een laag heeft geen eigenaar). */
 export async function lijstLagen(opties: { mijn?: boolean; limit?: number } = {}): Promise<DocumentSamenvatting[]> {
   const qs = new URLSearchParams({ limit: String(opties.limit ?? 200) });
   if (opties.mijn) qs.set("mijn", "true");
-  // `allSettled`: de twee bronnen staan los van elkaar. Faalde er één, dan was het hele overzicht
-  // leeg – ook de annotaties die wél te laden waren. Alleen als beide falen is dat een fout.
-  const [legacy, nodes] = await Promise.allSettled([
-    fetch(`/api/annotatie/lagen?${qs}`, { cache: "no-store" }).then(json<DocumentSamenvatting[]>),
-    fetch(`/api/annotatie/v2/node-lagen?${qs}`, { cache: "no-store" }).then(json<DocumentSamenvatting[]>),
-  ]);
-  if (legacy.status === "rejected" && nodes.status === "rejected") throw nodes.reason;
-  return [
-    ...(nodes.status === "fulfilled" ? nodes.value : []),
-    ...(legacy.status === "fulfilled" ? legacy.value : []),
-  ];
-}
-
-export async function lijstDocumenten(limit = 200): Promise<DocumentSamenvatting[]> {
-  // Eén ruime greep: bij tientallen documenten is client-side zoeken/filteren genoeg, en de lijst
-  // moet in één keer sorteerbaar zijn. De api kan limit/offset als het ooit groeit.
-  return json<DocumentSamenvatting[]>(
-    await fetch(`/api/annotatie/documenten?limit=${limit}`, { cache: "no-store" }),
-  );
-}
-
-export async function haalDocument(slug: string): Promise<AnnotatieDocument> {
-  return json<AnnotatieDocument>(
-    await fetch(`/api/annotatie/documenten/${pathSegment(slug)}`, { cache: "no-store" }),
-  );
-}
-
-export async function verwijderDocument(slug: string): Promise<void> {
-  const res = await fetch(`/api/annotatie/documenten/${pathSegment(slug)}`, { method: "DELETE" });
-  if (!res.ok) throw await parseError(res);
-}
-
-// `maakDocument` en `zetElementen` stonden hier: de browser legde de uitkomst van een agent-beurt
-// zelf vast als het `opgeslagen`-event uitbleef. Dat was een tweede implementatie naast
-// `agent/beurt.py`, en welke van de twee liep hing af van één SSE-event. Eén schrijver nu – de
-// agent – dus de browser heeft die twee routes niet meer nodig. Zet ze niet terug: een eigen
-// annotatie voeg je toe met `voegElementToe`, dat is een andere handeling.
-
-/** Voeg een EIGEN markering toe (tekstselectie van de jurist). Aparte route van `zetElementen`:
- *  dat is de uitkomst van een agent-ronde, dit komt er los bij en raakt de rest niet. */
-export async function voegElementToe(
-  slug: string,
-  element: { klasse: string; tekst: string; lid?: string; toelichting?: string; vindplaats?: string; anker?: Anker },
-): Promise<AnnotatieDocument> {
-  const res = await fetch(`/api/annotatie/documenten/${pathSegment(slug)}/elementen`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(element),
-  });
-  return json<AnnotatieDocument>(res);
-}
-
-/** Verwijder een eigen markering. Agent-voorstellen verwerp je (`beslis` met `reject`); die
- *  verdwijnen niet, zodat het auditspoor laat zien dát er een voorstel was. */
-export async function verwijderElement(slug: string, elementId: string): Promise<void> {
-  const res = await fetch(
-    `/api/annotatie/documenten/${pathSegment(slug)}/elementen/${pathSegment(elementId)}`,
-    { method: "DELETE" },
-  );
-  if (!res.ok) throw await parseError(res);
-}
-
-export async function beslis(
-  slug: string,
-  elementId: string,
-  req: BeslissingInvoer,
-): Promise<AnnotatieDocument> {
-  const res = await fetch(
-    `/api/annotatie/documenten/${pathSegment(slug)}/elementen/${pathSegment(elementId)}/beslissing`,
-    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(req) },
-  );
-  return json<AnnotatieDocument>(res);
+  return json<DocumentSamenvatting[]>(await fetch(`/api/annotatie/v2/node-lagen?${qs}`, { cache: "no-store" }));
 }
 
 // --- Gesprekken (chatgeschiedenis; per-gebruiker via de BFF-X-User-Id) ------
@@ -854,53 +779,8 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
   }
 }
 
-/** Artikeltekst uit de graaf (voedt het workbench-documentpaneel; één bron met de annotatie-corpus).
- *  Met `lid` beperk je de tekst tot dat ene lid. */
-export async function haalArtikelGraaf(bwbId: string, artikel: string, lid?: string): Promise<GraafArtikel> {
-  const q = `bwb_id=${encodeURIComponent(bwbId)}&artikel=${encodeURIComponent(artikel)}${
-    lid ? `&lid=${encodeURIComponent(lid)}` : ""
-  }`;
-  const res = await fetch(`/api/annotatie/artikel?${q}`, { cache: "no-store" });
-  return json<GraafArtikel>(res);
-}
-
-/** Rond de annotatie af of open hem weer. Bewust een expliciete handeling: "alle elementen
- *  beslist" is niet hetzelfde als "ik ben klaar". */
-export async function zetDocumentStatus(
-  slug: string,
-  status: "geaccordeerd" | "in_review",
-): Promise<AnnotatieDocument> {
-  const res = await fetch(`/api/annotatie/documenten/${pathSegment(slug)}/status`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ status }),
-  });
-  return json<AnnotatieDocument>(res);
-}
-
-/** Exportformaten van een annotatiedocument. */
+/** Exportformaten van een annotatie. */
 export type ExportFormaat = "pdf" | "csv" | "json";
-
-/** Download het annotatiedocument als bestand – ook als de review nog loopt.
- *
- *  De leden gaan mee zodat het rapport de letterlijke wettekst naast de tabel kan zetten
- *  (brongetrouwheid); ontbreken ze, dan laat de api dat blok weg in plaats van iets te
- *  reconstrueren. De bestandsnaam komt uit `Content-Disposition` – de server bepaalt hem, zodat
- *  hij overal gelijk is.
- */
-export async function exporteerDocument(
-  slug: string,
-  formaat: ExportFormaat,
-  leden: { lid: string; tekst: string }[] = [],
-): Promise<void> {
-  const res = await fetch(`/api/annotatie/documenten/${pathSegment(slug)}/export?formaat=${formaat}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ leden }),
-  });
-  if (!res.ok) throw await parseError(res);
-  await downloadAntwoord(res, `annotatie-${slug}.${formaat}`);
-}
 
 /** Bied een bestandsantwoord aan als download: Blob → `createObjectURL` → `<a download>`.
  *

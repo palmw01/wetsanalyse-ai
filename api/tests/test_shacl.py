@@ -6,7 +6,7 @@ import re
 import pytest
 from rdflib import Literal, URIRef
 
-from app.annotatie_contracts import Lifecycle
+from app.annotatie_v2_contracts import Lifecycle
 from app.graaf_projectie_v2 import JAS, OA, bouw_graaf, element_iri
 from app.jas_klassen import JAS_KLASSEN_VOLGORDE
 from app.shacl import SHAPES, valideer

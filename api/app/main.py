@@ -1,6 +1,6 @@
 """FastAPI-app: routers, OpenAPI (Swagger op /docs → importeerbaar in Postman) en health/ready.
-Sinds het verwijderen van de analyse-pijplijn bedient de app het annotatie-domein van de werkplek,
-het LLM-/gebruikersbeheer en de wet-/profiel-keuzelijsten."""
+De app bedient het annotatie-domein van de werkplek, de gesprekken, het LLM-/gebruikersbeheer en de
+wet-/profiel-keuzelijsten."""
 
 from __future__ import annotations
 
@@ -16,7 +16,6 @@ from . import __version__, db, observability
 from .config import get_settings
 from .routers import (
     admin,
-    annotatie,
     auth,
     berichten,
     catalog,
@@ -90,34 +89,22 @@ async def lifespan(app: FastAPI):
     # De projectie van de annotatielagen naar de kennisgraaf. Zonder GRAPHDB_URL staat hij uit en is
     # elke hook een no-op; Postgres blijft hoe dan ook de waarheid.
     projectie_taak = None
-    projectie_v2_taak = None
     if settings.graphdb_url:
-        from . import graaf_projectie
-        from .deps import get_annotatie_store
+        from .graaf_projectie_v2 import activeer, lus
 
-        projector = graaf_projectie.GraafProjector(settings.graphdb_url, settings.graphdb_repository)
-        graaf_projectie.zet_projector(projector)
-        projectie_taak = asyncio.create_task(
-            projector.lus(get_annotatie_store(), settings.jas_projectie_interval_s))
-        from .graaf_projectie_v2 import activeer as v2_activeer, lus as v2_projectie_lus
-        # Direct na elke commit projecteren, met de lus als vangnet – zoals v1.
-        v2_activeer(True)
-        projectie_v2_taak = asyncio.create_task(v2_projectie_lus(settings.jas_projectie_interval_s))
+        # Direct na elke commit projecteren, met de lus als vangnet.
+        activeer(True)
+        projectie_taak = asyncio.create_task(lus(settings.jas_projectie_interval_s))
     yield
-    if projectie_v2_taak is not None:
-        from .graaf_projectie_v2 import stop as v2_stop
-        await v2_stop()
-        projectie_v2_taak.cancel()
+    if projectie_taak is not None:
+        from .graaf_projectie_v2 import stop
+
+        await stop()
+        projectie_taak.cancel()
         try:
-            await projectie_v2_taak
+            await projectie_taak
         except asyncio.CancelledError:
             pass
-    if projectie_taak is not None:
-        from . import graaf_projectie
-
-        projectie_taak.cancel()
-        await graaf_projectie.projector().close()
-        graaf_projectie.zet_projector(None)
     await db.dispose_engine()
 
 
@@ -141,14 +128,11 @@ app.add_middleware(
 # Inkomende requests → spans (no-op zonder de otel-extra/endpoint).
 observability.instrument_fastapi(app)
 
-# De analyse-pijplijn (/v1/projects) is verwijderd; de API bedient nu het annotatie-domein van de
-# werkplek, het LLM-/gebruikersbeheer en de wet-/profiel-keuzelijsten.
 app.include_router(catalog.router, prefix="/v1")
 app.include_router(admin.router, prefix="/v1")
 app.include_router(auth.router, prefix="/v1")
 from . import annotatie_v2
 app.include_router(annotatie_v2.router, prefix="/v1")
-app.include_router(annotatie.router, prefix="/v1")
 app.include_router(berichten.router, prefix="/v1")
 app.include_router(feedback.router, prefix="/v1")
 app.include_router(gesprekken.router, prefix="/v1")

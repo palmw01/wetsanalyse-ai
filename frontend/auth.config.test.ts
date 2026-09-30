@@ -120,7 +120,7 @@ describe("Origin-check op muterende BFF-routes", () => {
 describe("punt-segmenten in een BFF-pad", () => {
   it.each([
     "https://app.example/api/annotatie/v2/lagen/%252E%252E/%252E%252E/v1/verbruik",
-    "https://app.example/api/annotatie/documenten/%252e/audit",
+    "https://app.example/api/gesprekken/%252e/berichten",
   ])("weigert %s met 400", async (url) => {
     const res = await authorized({ auth: sessie, request: fakeRequest("GET", url) });
     expect(res).toBeInstanceOf(Response);
@@ -130,7 +130,7 @@ describe("punt-segmenten in een BFF-pad", () => {
   it("laat een gewone slug met punten erin door", async () => {
     const res = await authorized({
       auth: sessie,
-      request: fakeRequest("GET", "https://app.example/api/annotatie/documenten/art.9.lid.1"),
+      request: fakeRequest("GET", "https://app.example/api/gesprekken/art.9.lid.1"),
     });
     expect(res).toBe(true);
   });

@@ -1,10 +1,8 @@
 """
 Client naar de wetsanalyse-API: hier legt graph-qa de uitkomst van een beurt vast.
 
-Waarom deze richting bestaat. Tot nu toe schreef de **browser** het resultaat weg, ná afloop van de
-stream. Dat betekende: wie zijn tabblad sloot voordat de agent klaar was, verloor het werk – ook als
-de agent zijn beurt keurig had afgemaakt. Bij een annotatie is dat 60 tot 90 seconden werk. Met deze
-client hoeft er aan het eind niemand meer te kijken.
+De agent schrijft zelf weg, niet de browser: een beurt van 60 tot 90 seconden mag niet verloren gaan
+omdat iemand zijn tabblad sloot. Aan het eind hoeft er dus niemand meer te kijken.
 
 Drie dingen om te weten:
 
@@ -22,7 +20,6 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-from urllib.parse import quote
 
 import httpx
 
@@ -30,26 +27,21 @@ from .config import Settings
 
 logger = logging.getLogger("graph_qa.api")
 
-# Ruim genoeg voor een PUT met tientallen elementen, krap genoeg dat een hangende api de run niet
+# Ruim genoeg voor een batch met tientallen elementen, krap genoeg dat een hangende api de run niet
 # eindeloos ophoudt.
 TIMEOUT = httpx.Timeout(connect=5.0, read=30.0, write=30.0, pool=5.0)
 
 
-#: Velden waar de agent en de api een ándere opvatting van "geen waarde" hebben: de agent gebruikt de
-#: lege string (`aandacht: str = ""`), de api een enum met `None` (`Aandacht | None`). Zo'n lege
-#: string is voor de api geen geldige waarde maar een 422 – en omdat de PUT alles-of-niets is, sleurt
-#: één zo'n veld de complete annotatie mee. Dat is op dev gebeurd: agent klaar en gegrond, jurist een
-#: leeg document.
-#:
-#: De vertaling hoort hier, op de grens, en niet bij elke aanroeper: dit is de enige plek waar de
+#: De agent gebruikt de lege string voor "geen aandacht" (`aandacht: str = ""`), de api `None`. De
+#: vertaling hoort hier, op de grens, en niet bij elke aanroeper: dit is de enige plek waar de
 #: agent-representatie het contract van een ánder proces binnengaat. `tests/test_contract_drift.py`
-#: bewaakt dat er geen vierde veld bijkomt zonder dat iemand het merkt.
+#: bewaakt dat er geen veld bijkomt zonder dat iemand het merkt.
 def _leeg_is_niets(waarde: dict[str, Any], veld: str = "aandacht") -> dict[str, Any]:
     return waarde if waarde.get(veld) else {**waarde, veld: None}
 
 
 def naar_contract(element: dict[str, Any]) -> dict[str, Any]:
-    """Eén element in de vorm die `ElementInvoer` accepteert. Zie `_leeg_is_niets`."""
+    """Eén element in de vorm die de api verwacht. Zie `_leeg_is_niets`."""
     return _leeg_is_niets(element)
 
 
@@ -100,11 +92,6 @@ class WetsanalyseApi:
             "Content-Type": "application/json",
         }
         self._client = httpx.AsyncClient(timeout=TIMEOUT)
-        #: Hoeveel markeringen de api liet vallen bij de laatste `zet_laag_elementen`. Zie daar.
-        self.verworpen = 0
-        #: De leden die de api als al geannoteerd en ongewijzigd herkende (en dus niet aanvulde).
-        self.hergebruikt: list[str] = []
-        self._laatste_headers: dict[str, str] = {}
 
     async def aclose(self) -> None:
         await self._client.aclose()
@@ -112,14 +99,10 @@ class WetsanalyseApi:
     async def _post(self, pad: str, payload: dict[str, Any]) -> dict[str, Any]:
         return await self._verstuur("POST", pad, payload)
 
-    async def _put(self, pad: str, payload: dict[str, Any]) -> dict[str, Any]:
-        return await self._verstuur("PUT", pad, payload)
-
     async def _verstuur(self, methode: str, pad: str, payload: dict[str, Any]) -> dict[str, Any]:
         antwoord = await self._client.request(
             methode, f"{self._basis}{pad}", json=payload, headers=self._headers,
         )
-        self._laatste_headers = {k.lower(): v for k, v in antwoord.headers.items()}
         if antwoord.status_code == 404 and "/gesprekken/" in pad:
             raise GesprekVerdwenen(f"{methode} {pad} → 404", 404)
         if antwoord.status_code >= 400:
@@ -139,74 +122,6 @@ class WetsanalyseApi:
     async def zet_bronnode_batch(self, payload: dict[str, Any]) -> dict[str, Any]:
         data = {**payload, "elementen": [naar_contract(e) for e in payload.get("elementen", [])]}
         return await self._post("/v1/annotatie/lagen/batch", data)
-
-    async def zet_laag_elementen(
-        self,
-        *,
-        bwb_id: str,
-        artikel: str,
-        citeertitel: str,
-        elementen: list[dict[str, Any]],
-        run: dict[str, Any] | None,
-        leden: list[dict[str, Any]],
-        bron_hash: str,
-        modus: str = "auto",
-    ) -> dict[str, Any]:
-        """De uitkomst van deze beurt in de GEDEELDE laag van het artikel. Geeft de laag terug.
-
-        Eén PUT, en de api maakt de laag aan als hij er nog niet is. Er is dus geen losse stap meer
-        die een leeg document kan achterlaten als de tweede mislukt. De merge-semantiek (op id of
-        tekst+lid, bevriezen wat de jurist beoordeelde, verouderen bij een gewijzigd lid, nooit
-        intrekken) zit aan de api-kant, niet hier.
-
-        `leden` is per geannoteerd lid de hash en de IRI; daaraan ziet de api welk lid veranderde.
-        In `modus="auto"` negeert hij voorstellen voor een lid dat al geannoteerd en ongewijzigd is
-        – die staan dan in `self.hergebruikt`.
-        """
-        self.verworpen = 0
-        self.hergebruikt = []
-        payload: dict[str, Any] = {
-            "citeertitel": citeertitel,
-            "elementen": [naar_contract(e) for e in elementen],
-            "ronde": 0,
-            "leden": leden,
-            "bron_hash": bron_hash,
-            "modus": modus,
-        }
-        if run:
-            # `tijd` is bij ons optioneel en bij de api verplicht mét default. Hem als `None`
-            # meesturen is dus géén "laat maar leeg" maar een validatiefout; weglaten wél.
-            payload["run"] = {k: v for k, v in run.items() if not (k == "tijd" and v is None)}
-        pad = f"/v1/annotatie/lagen/{quote(bwb_id, safe='')}/{quote(artikel, safe='')}/elementen"
-        uit = await self._put(pad, payload)
-        # De api laat een element dat zijn schema niet haalt vallen in plaats van de hele ronde te
-        # weigeren – beter, maar daarmee wordt een lúíde fout een stille. Daarom telt hij ze in
-        # `X-Verworpen` en zeggen wij het tegen de jurist.
-        self.verworpen = int(self._laatste_headers.get("x-verworpen", 0) or 0)
-        self.hergebruikt = [
-            lid for lid in (self._laatste_headers.get("x-hergebruikt-leden") or "").split(",") if lid
-        ]
-        return uit
-
-    async def hergebruik(
-        self,
-        *,
-        bwb_id: str,
-        artikel: str,
-        citeertitel: str,
-        leden: list[dict[str, Any]],
-        run: dict[str, Any] | None,
-    ) -> dict[str, Any]:
-        """Leg vast dat deze beurt de laag hergebruikte in plaats van opnieuw te annoteren.
-
-        Verandert niets aan inhoud of oordeel – de api schrijft een auditregel en een run met
-        `modus="hergebruik"`, zodat het spoor laat zien dát en wanneer er is hergebruikt.
-        """
-        payload: dict[str, Any] = {"citeertitel": citeertitel, "leden": leden, "ankers": []}
-        if run:
-            payload["run"] = {k: v for k, v in run.items() if not (k == "tijd" and v is None)}
-        pad = f"/v1/annotatie/lagen/{quote(bwb_id, safe='')}/{quote(artikel, safe='')}/hergebruik"
-        return await self._post(pad, payload)
 
     # -- gesprekken-domein -----------------------------------------------------------------------
 

@@ -3,10 +3,10 @@
 
     python api/scripts/statistiek.py export1.json export2.json …
 
-Waarom een script naast `GET /v1/admin/annotatie-statistiek`: dat endpoint praat met de database, en
-de api draait op Azure met interne ingress. Een export in je downloadmap is vandaag de enige plek
-waar de reviewbeslissingen van een echte werkplek te vinden zijn zonder databasetoegang. Beide
-ingangen delen dezelfde aggregatie (`app.annotatie_statistiek`), dus ze kunnen niet uiteenlopen.
+Leest de JSON-export van een annotatie (*Exporteren → JSON* in de werkplek) en telt wat er met de
+voorstellen gebeurde, zonder toegang tot de database. `GET /v1/admin/annotatie-statistiek` doet
+hetzelfde over de database; beide delen de aggregatie in `app.annotatie_statistiek`, dus ze kunnen
+niet uiteenlopen.
 
 Lees de cijfers als tellingen, niet als percentages met betekenis: zolang er weinig gereviewd is
 zegt "80% goedgekeurd" over vijf elementen niets.
@@ -19,19 +19,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app.annotatie_contracts import AnnotatieDocument, AnnotatieElement  # noqa: E402
-from app.annotatie_statistiek import _naar_element, rapport  # noqa: E402
+from app.annotatie_statistiek import rapport  # noqa: E402
 
 
-def _document(pad: Path) -> AnnotatieDocument:
-    data = json.loads(pad.read_text(encoding="utf-8"))
-    meta = data.get("document") or {}
-    return AnnotatieDocument(
-        slug=meta.get("slug") or pad.stem,
-        bwbId=meta.get("bwbId", ""), artikel=meta.get("artikel", ""), lid=meta.get("lid") or "",
-        elementen=[AnnotatieElement.model_validate(_naar_element(e))
-                   for e in (data.get("elementen") or [])],
-    )
+def _elementen(pad: Path) -> list[dict]:
+    return json.loads(pad.read_text(encoding="utf-8")).get("elementen") or []
 
 
 def _tabel(titel: str, rijen: dict, kolommen: list[str]) -> None:
@@ -48,9 +40,9 @@ def main(paden: list[str]) -> int:
     if not paden:
         print(__doc__)
         return 2
-    st = rapport([_document(Path(p)) for p in paden])
+    st = rapport([e for p in paden for e in _elementen(Path(p))], lagen=len(paden))
 
-    print(f"{st.documenten} document(en), {st.elementen} elementen "
+    print(f"{st.lagen} export(s), {st.elementen} elementen "
           f"({st.van_agent} van de agent, {st.van_jurist} van de jurist)")
     print(f"\nReviewuitkomst over de {st.van_agent} agent-voorstellen")
     for label in ("goedgekeurd", "aangepast", "afgewezen", "open"):
@@ -61,7 +53,7 @@ def main(paden: list[str]) -> int:
     _tabel("Per JAS-klasse", st.per_klasse,
            ["totaal", "goedgekeurd", "aangepast", "afgewezen", "open"])
     _tabel("Per model", st.per_model, ["totaal", "goedgekeurd", "aangepast", "afgewezen", "open"])
-    _tabel("Critic-oordeel tegenover de jurist", st.critic, ["beoordeeld", "gecorrigeerd"])
+    _tabel("Aandacht van de keten tegenover de jurist", st.per_aandacht, ["beoordeeld", "gecorrigeerd"])
 
     if st.per_review_reason:
         print("\nReden van de correctie")

@@ -30,12 +30,9 @@ const Rondleiding = dynamic(
  *  (anders breekt de SSE-stream). Op mobiel wordt de sidebar een off-canvas drawer. */
 export function WorkbenchShell({
   beginGesprekId = null,
-  beginArtefact,
 }: {
   /** Gesprek dat bij binnenkomst open moet staan (deep-link vanuit het annotatie-overzicht). */
   beginGesprekId?: string | null;
-  /** Annotatie die bij binnenkomst als artefact open moet staan. */
-  beginArtefact?: string;
 } = {}) {
   const [gesprekken, setGesprekken] = useState<GesprekSamenvatting[]>([]);
   const [activeId, setActiveId] = useState<string | null>(beginGesprekId);
@@ -270,7 +267,6 @@ export function WorkbenchShell({
           <WerkplekClient
             key={mountKey}
             initialGesprekId={activeId}
-            beginArtefact={beginArtefact}
             onGesprekAangemaakt={gesprekAangemaakt}
             onGewijzigd={() => setVerversSignaal((n) => n + 1)}
             onRondleiding={startRondleiding}

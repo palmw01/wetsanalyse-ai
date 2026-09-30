@@ -19,11 +19,10 @@ from .annotatie_v2_contracts import Batch, Beslissing, Doel, Element, Zoekvraag
 from .auth import require_client
 from .bron_resolver import resolve_bron as _resolve_bron
 from .routers.auth import actieve_userid
-from .annotatie_v2_contract_guard import contract_versie, require_v2
 from .graaf_projectie_v2 import verklaringen
 
 router = APIRouter(prefix="/annotatie", tags=["annotatie-bronnodes"],
-                   dependencies=[Depends(require_client), Depends(require_v2)])
+                   dependencies=[Depends(require_client)])
 
 
 async def resolve_bron(doel: dict) -> dict:
@@ -56,9 +55,8 @@ async def get_verklaringen(actor: str = Depends(actieve_userid)):
 
 @router.get("/capabilities")
 async def capabilities(actor: str = Depends(actieve_userid)):
-    return {"schema_versie": contract_versie(), "bronnodes_actief": contract_versie() == 2,
-            "schrijfcontract": "bronnode-v2" if contract_versie() == 2 else "artikel-v1",
-            "samenhang": contract_versie() == 2}
+    """Wat deze api kan; de werkplek toont de samenhangsgraaf alleen als `samenhang` waar is."""
+    return {"schema_versie": 2, "samenhang": True}
 
 
 @router.get("/weergave")

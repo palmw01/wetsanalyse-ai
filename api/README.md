@@ -3,8 +3,8 @@
 Headless HTTP-backend voor de **Wetsanalyse-werkplek**, onder de [frontend](../frontend). De API
 bedient:
 
-- het **JAS-annotatiedomein** (markeringen, beslissingen, een append-only auditlog en export), op
-  **contract 2**: één laag per bronnode (artikel, lid of onderdeel);
+- het **JAS-annotatiedomein** (markeringen, beslissingen, een append-only auditlog en export): één
+  laag per bronnode (artikel, lid of onderdeel);
 - de **chatgeschiedenis** van de werkplek;
 - **login en gebruikersbeheer** – de API is de identiteitsbron van de webapp, inclusief
   zelfregistratie en optionele TOTP-2FA;
@@ -34,13 +34,13 @@ Alles staat onder `/v1` en vraagt een client-bearer-token (zie §*Authenticatie*
 gebruiker werken lezen de identiteit uit de header `X-User-Id`, die de webapp-BFF of graph-qa
 server-side zet. Swagger-UI: `/docs`.
 
-**Annotatiedomein, contract 2 – annotaties op bronnodes.** Een laag hoort bij één bron-IRI. Lagen
+**Annotatiedomein – annotaties op bronnodes.** Een laag hoort bij één bron-IRI. Lagen
 zijn gedeeld tussen gebruikers; wie wat deed staat in de audit. Specificatie:
 [`docs/architectuur/annotatie-bronnodes.md`](../docs/architectuur/annotatie-bronnodes.md).
 
 | Methode | Pad | Wat het doet |
 |---------|-----|--------------|
-| `GET` | `/v1/annotatie/capabilities` | Welke contractversie actief is |
+| `GET` | `/v1/annotatie/capabilities` | Wat deze api kan (`samenhang`) |
 | `GET` | `/v1/annotatie/verklaringen` | Leesbare namen en uitleg van alles wat in een `trace` kan staan |
 | `GET` | `/v1/annotatie/weergave` | De bepaling met segmenten, lagen, markeringen en dekking |
 | `GET` | `/v1/annotatie/samenhang` | Bronstructuur, annotaties en letterlijke verwijzingen van het artikel (3D-weergave) |
@@ -54,25 +54,6 @@ zijn gedeeld tussen gebruikers; wie wat deed staat in de audit. Specificatie:
 | `GET` | `/v1/annotatie/node-lagen` | Overzicht van de lagen (werkvoorraad; `?mijn=`, `?bwbId=`, gepagineerd) |
 | `POST` | `/v1/annotatie/weergave/verwijder` | De annotatie van de bepaling in beeld verwijderen (iedere gebruiker; staat in de audit) |
 | `POST` | `/v1/annotatie/weergave/export` | Export als `pdf\|csv\|json` |
-
-**Artikelbrede routes (contract 1).** De code bestaat nog en de routes zijn geregistreerd. Onder
-contract 2 (de default) geven `POST`/`PUT`/`PATCH` hierop een **409**, behalve de export; `GET` en
-`DELETE` werken.
-
-| Methode | Pad | Wat het doet |
-|---------|-----|--------------|
-| `POST` `GET` | `/v1/annotatie/documenten` | Document aanmaken / lijst met werkvoorraad |
-| `GET` `DELETE` | `/v1/annotatie/documenten/{slug}` | Document ophalen / verwijderen |
-| `PUT` `POST` | `/v1/annotatie/documenten/{slug}/elementen` | Agent-ronde opslaan (MERGE, optioneel `If-Match`) / eigen markering toevoegen |
-| `DELETE` | `/v1/annotatie/documenten/{slug}/elementen/{id}` | Eigen markering verwijderen |
-| `POST` | `/v1/annotatie/documenten/{slug}/elementen/{id}/beslissing` | Beslissing |
-| `POST` | `/v1/annotatie/documenten/{slug}/status` | Afronden of heropenen |
-| `POST` | `/v1/annotatie/documenten/{slug}/export` | Export (`?formaat=pdf\|csv\|json`) |
-| `GET` | `/v1/annotatie/documenten/{slug}/audit` | Auditlog van het document (gepagineerd) |
-| `GET` | `/v1/annotatie/lagen` | Lijst van de gedeelde artikellagen |
-| `GET` | `/v1/annotatie/lagen/{bwbId}/{artikel}` | De gedeelde laag van een artikel |
-| `PUT` | `/v1/annotatie/lagen/{bwbId}/{artikel}/elementen` | Agent-ronde samenvoegen in de artikellaag |
-| `POST` | `/v1/annotatie/lagen/{bwbId}/{artikel}/hergebruik` | Vastleggen dat Lex de laag hergebruikte |
 
 **Gesprekken** (per gebruiker gescopet):
 
@@ -135,10 +116,7 @@ contract 2 (de default) geven `POST`/`PUT`/`PATCH` hierop een **409**, behalve d
 | `POST` | `/v1/admin/feedback/markeer-gezien` | Feedback als gezien markeren |
 | `DELETE` | `/v1/admin/feedback/{id}` | Feedback verwijderen |
 | `GET` | `/v1/admin/annotatie/graafcontrole` | Klopt de annotatiegraaf met Postgres? (alleen lezend; `?shacl=false` sneller) |
-| `GET` | `/v1/admin/annotatie-statistiek` | Wat juristen met de voorstellen deden (artikelbrede documenten) |
-| `GET` | `/v1/admin/annotatie/projectie` | Stand van de projectie van de artikellagen |
-| `POST` | `/v1/admin/annotatie/herprojecteer` | Alle artikellagen opnieuw laten projecteren |
-| `POST` | `/v1/admin/annotatie/migreer-naar-lagen` | Documenten samenvoegen tot artikellagen; onder contract 2 een 409 |
+| `GET` | `/v1/admin/annotatie-statistiek` | Wat juristen met de voorstellen deden (`?limit=` lagen) |
 
 **Zonder auth:** `GET /health` (liveness, met `git_sha` en `build_time`) en `GET /ready` (alleen
 booleans: `auth_geconfigureerd`, `llm_model_gezet`, `database_geconfigureerd`).
@@ -175,7 +153,7 @@ met `DATABASE_URL=postgresql+asyncpg://wetsanalyse:wetsanalyse@localhost:5432/we
 snelle smoke-test zonder Postgres volstaat `DATABASE_URL=sqlite+aiosqlite://` (in-memory; de
 `dev`-extra levert `aiosqlite`). De tabellen worden bij de start aangemaakt.
 
-Zonder `GRAPHDB_URL` staan de routes van contract 2 die een bronboom nodig hebben (`weergave`,
+Zonder `GRAPHDB_URL` staan de annotatieroutes die een bronboom nodig hebben (`weergave`,
 `dekking`, `lagen/batch`, …) op 503 en draait er geen projectie. Wie de werkplek lokaal volledig wil
 gebruiken, heeft een GraphDB met de repository `inning` nodig (gevuld door `tools/bwb-import/`).
 
@@ -211,7 +189,6 @@ wint. Op Azure staan alle secrets als bestand onder `/run/secrets/`.
 | `WETSANALYSE_ADMIN_TEST_RATE_MAX` / `_WINDOW` | `10` / `60` (s) | Rate limit op de verbindingstest |
 | `WETSANALYSE_TOKEN_BUDGET` | `500000` | Seed van het tokenbudget; daarna leeft het beleid in de database |
 | `WETSANALYSE_TOKEN_BUDGET_DAGEN` | `7` | Seed van de resetperiode |
-| `ANNOTATIE_CONTRACT_VERSIE` | `2` | `2` = bronnode-lagen; `1` = artikelbrede documenten (v2-routes geven dan 503) |
 | `GRAPHDB_URL` | leeg | GraphDB voor bronboom en projectie; leeg = beide uit |
 | `GRAPHDB_REPOSITORY` | `inning` | |
 | `JAS_PROJECTIE_INTERVAL` | `60` (s) | Interval van de reconcile-lus van de projectie |
@@ -254,8 +231,6 @@ acceptatie en productie, en het beheer van de secrets: zie [`CLAUDE.md`](CLAUDE.
   Log Analytics-workspace `log-<appName>`.
 - **503 "De brongraaf is tijdelijk niet beschikbaar"** op annotatieroutes: GraphDB is onbereikbaar
   of leeg; de graafwacht van de importer vult hem opnieuw.
-- **409 "Annotaties gebruiken nu bronnode-lagen"**: een client schrijft naar een artikelbrede
-  route terwijl contract 2 actief is.
 
 ## Observability
 
