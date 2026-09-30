@@ -60,9 +60,8 @@ from agent import observability  # noqa: E402
 from agent.agent import answer_stream, delete_conversation  # noqa: E402
 from agent.beurt import voer_beurt_uit  # noqa: E402
 from agent.reeks import reeks_run  # noqa: E402
-from agent.agent_common import run_sync  # noqa: E402
 from agent.config import Settings  # noqa: E402
-from agent.models import ArtikelResult, ChatRequest, RunStart, Verbruiksmeter  # noqa: E402
+from agent.models import ChatRequest, RunStart, Verbruiksmeter  # noqa: E402
 from agent.runstore import Run, RunBestaatAl, RunStore  # noqa: E402
 from agent.runstore.geheugen import GeheugenStore  # noqa: E402
 from agent.wetsanalyse_api import WetsanalyseApi  # noqa: E402
@@ -310,41 +309,6 @@ async def verwijder_conversation(
                    "chat_session_id": conversation_id},
         )
     await delete_conversation(conversation_id, settings=settings)
-
-
-@app.get("/v1/artikel", response_model=ArtikelResult)
-async def artikel(
-    bwb_id: str,
-    artikel: str,
-    lid: str | None = None,
-    _rl: None = Depends(_rate_limit),
-    _auth: None = Depends(_check_auth),
-) -> ArtikelResult:
-    """Artikeltekst uit de graaf voor het workbench-documentpaneel (weergave == annotatie-corpus).
-    Met `lid` beperk je de tekst tot dat ene lid.
-
-    Drie uitkomsten, want ze vragen om verschillende dingen van de gebruiker: **400** als de
-    aanduiding geen bepaling kán zijn (een tikfout), **404** als de graaf hem niet kent (een andere
-    wet, of nog niet geïmporteerd), en 200 met de tekst. Eerder was alles 200 met een lege lijst, en
-    dan staat de jurist naar een leeg paneel te kijken zonder te weten wat er mis is.
-    """
-    from agent.adapters.graphdb_graph import make_graph
-    from agent.artikel import OngeldigeVindplaats, haal_artikel_sync
-
-    graph = make_graph(settings)
-    try:
-        await run_sync(graph.initialize)
-        data = await run_sync(haal_artikel_sync, bwb_id, artikel, graph, lid)
-    except OngeldigeVindplaats as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    finally:
-        graph.close()
-    if not data.get("leden_teksten"):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Deze bepaling staat niet in de kennisgraaf.",
-        )
-    return ArtikelResult.model_validate(data)
 
 
 # --- Runs: de beurt is van de server ---------------------------------------------------------

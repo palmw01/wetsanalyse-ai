@@ -85,7 +85,7 @@ def aanduiding_in_woorden(aanduiding: str, lid: str = "", soort: str = "") -> st
     Een `Divisie` van een beleidsregel is geen artikel en heeft geen leden: "art. 25.1 lid 2" is een
     vindplaats die niet bestaat. De Leidraad labelt haar top-divisies zelf wél "Artikel 25", maar de
     subdivisies eronder niet, en "bepaling" dekt beide zonder iets te beweren wat niet klopt. Het is
-    ook de term die de code al gebruikt (`get_bepaling`, `_bepaling_fallback`, `OngeldigeVindplaats`).
+    ook de term die de code al gebruikt (`get_bepaling`).
 
     Onbekend soort valt terug op "art.": dat is wat er stond, en bij de zes wet-achtige regelingen –
     veruit het meeste verkeer – is het gewoon juist.

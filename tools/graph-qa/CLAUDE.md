@@ -165,37 +165,29 @@ dan de graaf.
 - **Het fallback-label van een verwijsdoel staat op `bwb:doelLabel`.** Lees het als
   `COALESCE(rdfs:label, bwb:doelLabel)`; op `rdfs:label` verdubbelt elke label-query haar rijen.
 
-### Documentpaneel en graafstructuur (`agent/artikel.py`)
+### Bepalingen ophalen: wat de graafstructuur vraagt
 
-`GET /v1/artikel` draait op `artikel.haal_artikel_sync`. De annotatieketen haalt haar corpus níét hier
-maar via `bronmodel.resolve` (zie §*De annotatieketen*). Wat de graafstructuur hier vraagt:
+De tools `get_artikel`, `get_lid` en `get_bepaling` voeden het model; het annotatiecorpus komt níét
+hier vandaan maar uit `bronmodel.resolve` (zie §*De annotatieketen*).
 
 - **Onderdelen hangen aan `heeftOnderdeel`**, en dat is een boom (`aa.` onder het lid, `1°` onder `aa.`),
   vandaar `heeftOnderdeel+`.
-- **Tool-queries en corpus-queries zijn gescheiden.** `get_artikel`/`get_bepaling` voeden de tools en
-  blijven zonder onderdelen – tool-resultaten gaan door `truncate` (8000 tekens) en een
-  definitieartikel zou zijn staart verliezen. `get_artikel_corpus`/`get_bepaling_corpus` voeden het
-  paneel, gaan niet door `truncate` en dragen de onderdelen wél. Hergebruik de `?onderdelen`-cel van
-  `get_lid` daar niet: die bakt de jci in de tekst.
-- **Decimale nummers zijn een eigen tak** (`_bepaling_fallback`), en ook daar zit de inhoud vaak in de
-  onderdelen – `bwb:tekst` mag geen harde eis zijn, anders zijn bepalingen met alléén onderdelen niet te
-  openen.
+- **Tool-resultaten gaan door `truncate`** (8000 tekens). `get_artikel` laat de onderdelen onder een lid
+  daarom weg (een definitieartikel zou zijn staart verliezen); `get_lid` levert ze in één
+  `GROUP_CONCAT`-cel met per onderdeel zijn eigen jci.
+- **Decimale nummers ("25.1") lopen via `get_bepaling`** (op `bwb:nummer` binnen de regeling), want
+  `artikel_iri` weigert een punt. `bwb:tekst` is daar optioneel: veel bepalingen hebben alleen
+  onderdelen of subdivisies.
 - **Een bepaling kan een container zijn.** Een circulaire heeft `heeftDivisie`/`heeftArtikel`
-  (subdivisies) náást `heeftOnderdeel` (de opsomming ván één divisie). Beide corpusqueries dragen een
-  transitieve `?sub`-tak met `(bwb:heeftDivisie|bwb:heeftArtikel)+`; lege tussenlagen leveren geen
-  regel op. Let op: een **heel getal** bij een beleidsregel heeft een `:artikel:`-IRI en neemt dus níét
-  de `_bepaling_fallback`. Subdivisies worden leden-rijen (`_vouw_subbepalingen_in`); `_lidsleutel`
-  sorteert per punt-segment, `_match_lid` vergelijkt de volle sleutel (anders matcht `25.1` ook `25.2`)
-  en `_controleer_vindplaats` accepteert een subbepalingnummer als `lid`.
+  (subdivisies) náást `heeftOnderdeel` (de opsomming ván één divisie). `get_bepaling` noemt de
+  subdivisies met het begin van hun tekst, zodat het model ziet dát er inhoud is. Een **heel getal**
+  bij een beleidsregel heeft wél een `:artikel:`-IRI.
 - **`_NUMMER_VRIJ_RE` staat letters op elk segment toe** ("7a.1", "22bis.1", "73.3a.2") – anders
-  worden bestaande bepalingen een 400.
+  worden bestaande bepalingen als tikfout geweigerd.
 - **Een divisie is geen artikel.** `aanduiding_in_woorden` maakt "art. 9 lid 1" of "bepaling 25, 25.1"
-  op grond van het knooptype (`?soort`), niet uit het nummer. `ArtikelResult` draagt `soort` expliciet –
-  een `response_model` filtert weg wat er niet in staat.
-- **De onderdeelvolgorde komt uit de boom, niet uit de IRI.** De corpusqueries leveren `?ouder`;
-  `_boomvolgorde` loopt diepte-eerst, broers en zussen op `_onderdeelsleutel` (cijferreeksen als getal).
-  `ORDER BY` op een IRI is lexicaal en zet geneste onderdelen vóór hun ooms – een verschil in juridische
-  strekking, niet in opmaak.
+  op grond van het knooptype, niet uit het nummer.
+- **`ORDER BY` op een IRI is lexicaal**: lid 10 komt dan vóór lid 2 en geneste onderdelen vóór hun
+  ooms. Sorteer numeriek (in SPARQL of bij de consument).
 
 ## Brongetrouwheid (`provenance.py` + `grounding.py`)
 
@@ -593,9 +585,9 @@ Nog **niet** gemeten: injectie via graafdata.
   gespreksgeheugen en run-register in Postgres (`CHECKPOINT_DB_URL_FILE`); `SIMILARITY_INDEX=bwb_similarity`;
   `ENABLE_DECOMPOSITION=0`. `tests/test_deploy_drift.py` bewaakt dat de bicep `WETSANALYSE_API_URL`/`_TOKEN`
   zet – zonder die twee legt de agent niets vast en toont de werkplek markeringen die nergens landen.
-- **Werkplek:** de frontend gebruikt de run-endpoints (BFF-routes in `frontend/app/api/annotatie/run/**`)
-  en `GET /v1/artikel` voor het documentpaneel; de review-state loopt via de api (`/v1/annotatie/*`),
-  waar graph-qa zelf naar schrijft.
+- **Werkplek:** de frontend gebruikt de run-endpoints (BFF-routes in `frontend/app/api/annotatie/run/**`);
+  de review-state en de wettekst van het paneel lopen via de api (`/v1/annotatie/*`), waar graph-qa
+  zelf naar schrijft.
 
 ## Aandachtspunten
 

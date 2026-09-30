@@ -23,8 +23,7 @@ LID_TSV = json.dumps(
     'daarom verzoekt."@nl\t"jci"'
 )
 
-#: Antwoord op `get_artikel` – de vorm die `artikel_corpus` leest bij het GERICHT ophalen. Zonder
-#: ophaal-agent is er geen tool-trace om op terug te vallen, dus loopt het corpus hier langs.
+#: Antwoord op `get_artikel` bij het gericht ophalen.
 ARTIKEL_TSV = json.dumps(
     "?tekst\t?jci\t?lid\t?lidnummer\t?lidtekst\t?onderdeel\t?onderdeeltekst\n"
     '\t"jci"\t"lid-1"\t"1"\t"De ontvanger verleent uitstel van betaling indien de schuldenaar '

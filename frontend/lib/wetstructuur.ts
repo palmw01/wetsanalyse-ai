@@ -1,15 +1,14 @@
 // Structuur herkennen in één regel wettekst, zodat de weergave kan tonen wat de wet bedoelt.
 //
-// `artikel._vouw_onderdelen_in` (graph-qa) bouwt het corpus op als één regel per onderdeel, in de
+// `lib/annotatieNodeAdapter.ts` bouwt de tekst van een lid op als één regel per onderdeel, in de
 // vorm `"{nummer} {tekst}"`, met de lidtekst als eerste regel. Die structuur is in de brontekst dus
 // alleen zichtbaar als regeleindes — en het documentpaneel toonde ze op één marge. Bij een
 // definitieartikel is dat verwarrend: in art. 2 lid 1 IW 1990 hangen `1°.` t/m `4°.` onder een
 // container tussen `a.` en `b.`, maar zonder inspringing lezen ze als zelfstandige onderdelen. Dat
 // is een verschil in juridische strekking, niet in opmaak.
 //
-// HET NIVEAU IS AFGELEID, GEEN WAARHEID. De echte nesting zit in de graaf (`heeftOnderdeel+` met
-// `?ouder`, sinds de volgordefix van 1 sep 2026), maar reist niet mee: `GET /v1/artikel` levert
-// `leden_teksten` als `{lid, tekst}[]` en verder niets. Het niveau wordt hier dus uit de vórm van
+// HET NIVEAU IS AFGELEID, GEEN WAARHEID. De echte nesting zit in de graaf (`heeftOnderdeel+`), maar
+// reist niet mee: het artefact krijgt `leden_teksten` als `{lid, tekst}[]` en verder niets. Het niveau wordt hier dus uit de vórm van
 // het nummer gelezen. Bij een regeling waar `1°.` wél op het hoogste niveau staat, springt het ten
 // onrechte in. Dat is bewust geaccepteerd: een fout niveau geeft een scheve marge, nooit een scheve
 // markering — de offsets komen uit `data-offset` per blok en niet uit deze functie.

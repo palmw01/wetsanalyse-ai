@@ -18,9 +18,8 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
 6. **Berichten** (release notes, `/v1/berichten/*` + `/v1/admin/berichten/*`) met leesbewijzen per
    (bericht, gebruiker), en **gebruikersfeedback** (`/v1/feedback` + `/v1/admin/feedback/*`).
 
-> **De wettekst komt niet uit deze API.** Lex (`tools/graph-qa/`) levert hem aan de werkplek
-> (`GET /v1/artikel`). De API leest uit GraphDB alleen de **bronboom** (`bron_resolver.py`) om ankers
-> te toetsen en snapshots vast te leggen.
+> **De wettekst komt uit de graaf.** De API leest uit GraphDB de **bronboom** (`bron_resolver.py`):
+> daarmee toetst hij ankers, legt hij snapshots vast en levert hij de segmenten van de weergave.
 
 ## Architectuur (`app/`)
 

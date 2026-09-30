@@ -97,7 +97,6 @@ werk door en legt de agent de uitkomst zelf vast.
 | `GET /v1/conversations/{id}/run` | De run waar je op kunt aanhaken, of `null`. |
 | `DELETE /v1/conversations/{id}` | Wist het agent-geheugen van één gesprek (idempotent → 204) en stopt een lopende beurt. |
 | `POST /v1/chat` | Eén beurt **aan de verbinding gekoppeld** (SSE, zelfde body). Zonder eigenaarscontrole en zonder vastleggen: voor scripts en handmatig testen, niet voor de webapp. |
-| `GET /v1/artikel` | Artikeltekst voor het documentpaneel van de werkplek: query `bwb_id`, `artikel`, optioneel `lid`. 400 bij een onmogelijke aanduiding, 404 als de graaf hem niet kent. |
 
 **Events** (gelijk over beide wegen). Antwoord: `status` · `reason` (denkproces) · `token`
 (eindantwoord) · `sources` · `grounding` · `conversation_id` · `tool_execution` · `done` · `error`.

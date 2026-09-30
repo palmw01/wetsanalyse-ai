@@ -96,8 +96,8 @@ def _is_vindplaats(aanduiding: str) -> bool:
     `artikel:6:lid:1:o:c` — een IRI-achtervoegsel dat de agent had geprobeerd als bepalingnummer —
     en dat document was per definitie niet te openen.
 
-    Bewust dezelfde bouwers als `artikel._controleer_vindplaats`: de kennis over geldige vormen
-    hoort op één plek, en een tweede validator hier zou daarvan wegdrijven.
+    Bewust de bouwers uit `graph/queries.py` (`_art`, `_nummer_vrij`): de kennis over geldige vormen
+    hoort op één plek, en een eigen validator hier zou daarvan wegdrijven.
     """
     if not aanduiding:
         return False

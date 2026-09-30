@@ -64,7 +64,7 @@ overzien.
    van het model).
    Endpoints: `POST /v1/runs` (+ `/events`, `/cancel`; de weg van de werkplek – de beurt draait bij de
    agent, de browser kijkt mee), `POST /v1/chat` (SSE, aan de verbinding gekoppeld en **zonder
-   eigenaarscontrole** – niet voor de webapp) en `GET /v1/artikel`. De werkplek praat er **direct** mee
+   eigenaarscontrole** – niet voor de webapp). De werkplek praat er **direct** mee
    (SSE); de persistente review-state loopt via de API (`/v1/annotatie/*`). Image
    `ghcr.io/palmw01/graph-qa`.
 4. **`tools/bwb-import/`** – de **BWB-importer**: haalt de wettekst op bij

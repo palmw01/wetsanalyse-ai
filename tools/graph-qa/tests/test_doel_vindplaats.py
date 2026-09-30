@@ -7,7 +7,7 @@ maar `dispatch` geeft een ongeldige aanduiding als tekst terug in plaats van te 
 beurt liep door. En `_doel_uit_toolcalls` leest de INPUT van de laatste fetch-call, niet het
 resultaat, dus die kapotte aanduiding wérd het doel.
 
-Daarna slikte `_corpus_voor_doel` de `OngeldigeVindplaats` in ("een mislukte ophaal mag de annotatie
+Daarna slikte de corpusophaling de fout in ("een mislukte ophaal mag de annotatie
 niet breken") en viel terug op de tool-trace. Er ontstond een document met 26 markeringen onder de
 vindplaats `artikel:6:lid:1:o:c` — een aanduiding die de werkplek per definitie niet kan openen. De
 fout ontstond in de agent en werd zichtbaar bij de jurist, twee stappen verderop.
