@@ -188,7 +188,7 @@ async def test_ongelezen_feedback_aantal_nieuwe_beheerder(client):
 
 
 async def test_markeer_gezien_onafhankelijk_per_beheerder(client):
-    """Kernclaim van #283: twee beheerders houden onafhankelijke 'gezien'-tellers."""
+    """Kernclaim: twee beheerders houden onafhankelijke 'gezien'-tellers."""
     for uid in ("beheerder-a", "beheerder-b"):
         r = await client.post(
             "/v1/admin/users", headers=_ADM,
@@ -218,7 +218,7 @@ async def test_markeer_gezien_onafhankelijk_per_beheerder(client):
 
 async def test_feedback_gezien_routes_vereisen_beheerder(client):
     """R12: een analist (geldige sessie, geen beheerder) krijgt 403 op de twee routes die
-    huidige_beheerder gebruiken – voorheen kon elke X-User-Id hier terecht."""
+    huidige_beheerder gebruiken – niet elke X-User-Id mag hier terecht."""
     r = await client.post(
         "/v1/admin/users", headers=_ADM,
         json={"userid": "gewone-analist", "email": "ga@test.nl", "role": "analist"},

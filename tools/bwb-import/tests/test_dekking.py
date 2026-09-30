@@ -1,9 +1,9 @@
 """De dekkingsmeting: komt alle brontekst ook echt in de graaf?
 
-Deze test is er omdat "de graaf is volledig" tot nu toe een oordeel was en geen cijfer. Elf
-artikelen van de Leidraad Invordering 2008 (10.052 tekens) vielen anderhalve maand lang stil weg
-omdat `_parse_divisie` geen tak had voor `<artikel>`-kinderen — geen fout, geen lege node, geen
-waarschuwing. Deze meting had dat op dag één aangewezen.
+Deze test maakt van "de graaf is volledig" een cijfer in plaats van een oordeel. Mist
+`_parse_divisie` bijvoorbeeld een tak voor `<artikel>`-kinderen, dan vallen elf artikelen van de
+Leidraad Invordering 2008 (10.052 tekens) stil weg — geen fout, geen lege node, geen waarschuwing.
+Deze meting wijst dat direct aan.
 
 Hij draait offline: parser → `build_graph` → tel de `bwb:tekst`-literals, en leg dat naast de
 `<al>`-tekens in de bron. Geen GraphDB nodig.

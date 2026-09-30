@@ -115,8 +115,8 @@ def score_case(
 # --- Annotatie: meten wat de duurste keten oplevert ----------------------------------------------
 #
 # De QA-scorers hierboven meten of een ANTWOORD klopt. De annotatieketen – ophaal → annoteer →
-# Critic → herziening – was tot nu toe alleen door unit-tests gedekt, en die meten mechaniek, geen
-# gedrag. Zonder deze scorers is elke promptwijziging aan de annoteerder of de Critic een gok: je
+# emit – meten unit-tests alleen op mechaniek, niet op gedrag. Zonder deze scorers is elke
+# promptwijziging aan de classifier of de gerichte reviewer een gok: je
 # ziet wél dat de keten draait, niet of hij beter of slechter markeert.
 #
 # Vier metingen, en de eerste twee zijn regressiedetectoren die op 1.0 horen te staan omdat de code
@@ -430,9 +430,8 @@ class AnnotatieResult:
             and self.injectie_ok
             # NUL elementen op een case die ankers heeft is geen succes, ook al zijn alle garanties
             # dan triviaal waar: letterlijkheid en klasse-geldigheid zijn 1.0 over een lege lijst.
-            # Zo telden op 5 sep 2026 twee cases als geslaagd terwijl de agent helemaal niets had
-            # opgeleverd — de bepaling was onbereikbaar (artikelnummer met een dubbele punt) en de
-            # beurt brak af. Dezelfde regel als bij grounding: niets te controleren is geen
+            # Anders telt een case als geslaagd terwijl de agent helemaal niets heeft
+            # opgeleverd — bv. omdat de bepaling onbereikbaar is en de beurt afbreekt. Dezelfde regel als bij grounding: niets te controleren is geen
             # goedkeuring. Een case zónder ankers (de injectie- en pad-guards) mag wél leeg zijn;
             # dáár is niets vinden juist de bedoeling.
             and (self.aantal > 0 or self.ankers == 0)
@@ -442,8 +441,8 @@ class AnnotatieResult:
 # Foutmeldingen die op de INFRASTRUCTUUR wijzen en niet op de analyse. Een case die hierop sneuvelt
 # is *niet gemeten*; hem als gezakt tellen maakt van een storing een kwaliteitsregressie.
 #
-# Dat is op 5 sep 2026 letterlijk gebeurd: de provider gaf `overloaded_error`, één case eindigde op
-# 9/10 en dat las in het rapport als een inhoudelijke fout. Het verschil is wezenlijk — bij een
+# Een `overloaded_error` van de provider zou anders als 9/10 in het rapport staan, en dat leest als
+# een inhoudelijke fout. Het verschil is wezenlijk — bij een
 # gezakte case is er iets mis met de agent, bij een niet-gemeten case met de dag.
 _INFRA_SIGNALEN = (
     "overloaded",
@@ -463,8 +462,8 @@ _INFRA_SIGNALEN = (
 
 # Exception-namen van de provider-SDK. Deze zijn betrouwbaarder dan de melding: `answer_stream`
 # saniteert die bewust voor de jurist, waardoor een `overloaded_error` als "Er ging iets mis bij het
-# beantwoorden" aankwam — niet te onderscheiden van een inhoudelijke fout. Sinds 5 sep 2026 draagt
-# het `error`-event daarom ook `soort` (de exception-naam).
+# beantwoorden" aankomt — niet te onderscheiden van een inhoudelijke fout. Het `error`-event
+# draagt daarom ook `soort` (de exception-naam).
 _INFRA_SOORTEN = (
     "APIStatusError", "APITimeoutError", "APIConnectionError", "RateLimitError",
     "InternalServerError", "ServiceUnavailableError", "ReadTimeout", "ConnectError",

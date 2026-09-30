@@ -8,7 +8,7 @@ te stellen.
 
 Dit leest alleen wat er letterlijk staat. Het bepaalt nooit zelf de bron: dat doet de graaf. Het
 kan wel met zekerheid zeggen dat er meer dan één artikel genoemd wordt, en dat hoort niet van de
-ophaal-agent af te hangen – die haalde er vroeger twee op en annoteerde stil de laatste.
+ophaal-agent af te hangen – die haalt er anders twee op en annoteert stil de laatste.
 """
 from __future__ import annotations
 

@@ -1,5 +1,5 @@
 # Operator (H2:98-100; profiel 09_operator.yaml). Logisch 'en'/'of' tussen voorwaarden vraagt de
-# parse en staat daarom in de syntactische detectoren (PR 7), niet hier.
+# parse en staat daarom in de syntactische detectoren, niet hier.
 - id: jas.operator.vergelijking
   klassen: [Operator]
   code: COMPARISON

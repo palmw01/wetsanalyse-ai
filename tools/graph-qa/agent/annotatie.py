@@ -2,9 +2,9 @@
 
 Wat hier staat, gebruiken de annotatieketen (`jas_pipeline.keten`: het corpusanker), de grounding
 van het antwoordpad (`komt_letterlijk_voor`), de beurt-driver (`sleutel_van`) en de statusregels
-(`aanduiding_in_woorden`). De generatieve annotatieroute die hier ook woonde (parsen van model-JSON,
-de Critic-patcher, lokaliseren van vrije fragmenten) is weggehaald met ADR-001 PR 18: de grens van
-een markering komt sindsdien uit een detector, niet uit tekst die een model teruggeeft.
+(`aanduiding_in_woorden`). Er zit hier geen parser voor model-JSON en geen lokalisatie van vrije
+fragmenten: de grens van een markering komt uit een detector (ADR-001), niet uit tekst die een
+model teruggeeft.
 """
 from __future__ import annotations
 

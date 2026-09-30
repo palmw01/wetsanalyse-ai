@@ -119,10 +119,9 @@ describe("segmentenVanBlok – één bron van tekst", () => {
   }
 
   it("levert samen exact de regel, met en zonder markering", () => {
-    // DEZE TEST HAD DE BUG VAN 2 SEP 2026 GEVANGEN. De weergave rendeerde nummer en term apart én
-    // daarna nog eens de hele regel via deze functie: de tekst stond dubbel in de DOM, en daarmee
-    // telde `offsetVanGrens` te veel op — elke zelfgemaakte markering zou op de verkeerde plek
-    // landen. `blokkenVan` en `segmentenVanBlok` waren elk apart getest; alleen hun combinatie brak.
+    // Rendert de weergave nummer en term apart én daarna nog eens de hele regel via deze functie,
+    // dan staat de tekst dubbel in de DOM en telt `offsetVanGrens` te veel op — elke zelfgemaakte
+    // markering landt dan op de verkeerde plek. `blokkenVan` en `segmentenVanBlok` waren elk apart getest; alleen hun combinatie brak.
     for (const b of blokken) {
       expect(segmentenVanBlok(b, null).map((s) => s.tekst).join("")).toBe(b.regel);
       expect(segmentenVanBlok(b, markering("Koninkrijk der Nederlanden")).map((s) => s.tekst).join(""))
@@ -219,9 +218,9 @@ describe("segmentenVanBlok – een markering knippen op de blokgrens", () => {
  *
  *  De tests hierboven dekken `blokkenVan` en `segmentenVanBlok` apart. Deze dekt wat de browser
  *  feitelijk doet: alle tekstknopen binnen één blok optellen (`offsetVanGrens`). Precies die
- *  combinatie brak op 2 sep 2026 — de weergave rendeerde nummer en term apart én daarna nog eens de
- *  hele regel, waardoor de tekst dubbel in de DOM stond en elke zelfgemaakte markering op de
- *  verkeerde plek zou landen. Geen van de losse tests zag dat.
+ *  combinatie kan breken — rendert de weergave nummer en term apart én daarna nog eens de hele
+ *  regel, dan staat de tekst dubbel in de DOM en landt elke zelfgemaakte markering op de verkeerde
+ *  plek. Geen van de losse tests ziet dat.
  */
 // De echte tekst uit de export van de gebruiker (art. 2 lid 1 IW 1990), afgekapt.
 const TEKST = "Deze wet verstaat onder:\na. rijksbelastingen: belastingen als bedoeld in artikel 1 van de Algemene wet inzake rijksbelastingen, alsmede rechten bij invoer en rechten bij uitvoer als bedoeld in artikel 7:3 van de Algemene douanewet, die in Nederland worden geheven;\n1°. Koninkrijk: Koninkrijk der Nederlanden;\n2°. Rijk: het land Nederland, zijnde Nederland en de BES eilanden;\nb. belastingrente en revisierente: de belastingrente en de revisierente, bedoeld in hoofdstuk VA van de Algemene wet inzake rijksbelastingen;";

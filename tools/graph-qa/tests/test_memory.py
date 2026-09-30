@@ -1,4 +1,4 @@
-"""PR 2.4: geheugen-tiers via de LangGraph-checkpointer."""
+"""Geheugen-tiers via de LangGraph-checkpointer."""
 from __future__ import annotations
 
 import asyncio

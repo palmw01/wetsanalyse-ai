@@ -1,15 +1,14 @@
-"""De hybride annotatieketen als één pure functie (ADR-001 PR 9).
+"""De hybride annotatieketen als één pure functie (ADR-001).
 
     bronsegmenten → taalanalyse → detectoren → fusie + specificiteit
                   → deterministische besluiten → classifier op labels → voorstellen
 
-Uitvoer is een lijst `AnnotatieVoorstel`-dicts in exact de vorm die de legacy-annoteerder oplevert
-(met `ankers` per bronnode en `anker` op het corpus). Daardoor lopen `emit`, de api en de werkplek
-ongewijzigd door; de hybride route vervangt alleen wat ervóór zit.
+Uitvoer is een lijst `AnnotatieVoorstel`-dicts (met `ankers` per bronnode en `anker` op het
+corpus), in de vorm die `emit`, de api en de werkplek verwachten.
 
 Een voorstel komt er alleen voor een geaccepteerde beslissing. Afgewezen en onzekere kandidaten
 verdwijnen niet: ze staan in `Uitkomst.beslissingen` en gaan mee naar de provenance en de
-dekkingsboekhouding (PR 10). Er valt hier nooit iets terug naar een volledige LLM-annotatie.
+dekkingsboekhouding (`dekking`). Er valt hier nooit iets terug naar een volledige LLM-annotatie.
 """
 from __future__ import annotations
 
@@ -274,13 +273,13 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
             gezien.add(sleutel)
             paren.append((v, b))
 
-    # Validatie vóór de uitgang (PR 11): een structurele fout haalt het voorstel eruit en maakt
+    # Validatie vóór de uitgang: een structurele fout haalt het voorstel eruit en maakt
     # de beslissing REJECTED met de foutcode – zichtbaar in de meting, niet stil.
     prov = {"model": model, **meting}
     voorstellen, bevindingen = valideer(paren, per_id, snapshot, prov)
     beslissingen = _verwerp(beslissingen, bevindingen)
 
-    # Twijfel → gerichte review → resolver (PR 12-13). De reviewer ziet alleen twijfelgevallen;
+    # Twijfel → gerichte review → resolver. De reviewer ziet alleen twijfelgevallen;
     # de resolver voert een vaste tabel uit en schrijft elke transitie weg.
     per_label = {k.label: k for k in fusie.kandidaten}
     label_van = {v["id"]: b.label for v, b in paren}

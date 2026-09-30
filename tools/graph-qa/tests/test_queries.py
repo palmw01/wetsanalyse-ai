@@ -82,10 +82,10 @@ def test_count_by_type():
 def test_context_subgraaf_dekt_alle_relaties():
     """De inbedding loopt over de ECHTE bevat-predicaten, niet over `bwb:bevat`.
 
-    Deze test eiste tot 4 sep 2026 `"bwb:bevat" in sparql` – en dat predicaat bestaat niet. De tak
-    "4-bevat-door" matchte dus nooit iets: de tool die "context" heet leverde alles behálve de
-    structurele inbedding, en de test bevestigde de bug in plaats van hem te vangen. Precies wat er
-    bij `get_lid` gebeurde. `tests/test_predicaat_dekking.py` vangt deze klasse fout nu breed.
+    `bwb:bevat` bestaat niet in de graaf. Een tak "4-bevat-door" op dat predicaat matcht nooit iets:
+    de tool die "context" heet levert dan alles behálve de structurele inbedding. Een test die
+    `"bwb:bevat" in sparql` eist, bevestigt die bug in plaats van hem te vangen.
+    `tests/test_predicaat_dekking.py` vangt deze klasse fout breed.
     """
     sparql = q.context("BWBR0004770", "9")
     # node zelf + structuur + leden + uit-/ingaande verwijzingen in één query
@@ -139,14 +139,13 @@ def test_ongeldig_artikel_wordt_geweigerd(bad):
 def test_artikelnummer_met_dubbele_punt_wordt_aanvaard_en_gecodeerd():
     """De Awb nummert haar artikelen "3:40", "5:2", "8:36f" — en dat is geen randgeval.
 
-    Gemeten in de graaf op 5 sep 2026: 570 van de 572 Awb-artikelen dragen een dubbele punt, oftewel
-    49% van alle 1162 artikelen. `_ART_RE` weigerde die vorm, waardoor de hele wet wel doorzoekbaar
-    was maar niet op te halen en niet te annoteren; twee eval-cases liepen erop vast met nul
-    markeringen.
+    570 van de 572 Awb-artikelen dragen een dubbele punt, oftewel 49% van alle 1162 artikelen.
+    Weigert `_ART_RE` die vorm, dan is de hele wet wel doorzoekbaar maar niet op te halen en niet te
+    annoteren.
 
-    De codering is de andere helft van de fix. De importer schrijft elk IRI-segment met
-    `quote(s, safe="")`, dus de graaf heeft `…:artikel:5%3A2`. Deze module plakte de IRI met een
-    f-string aaneen en maakte `…:artikel:5:2` — een andere node, en dus nul resultaten zonder
+    De codering is de andere helft. De importer schrijft elk IRI-segment met
+    `quote(s, safe="")`, dus de graaf heeft `…:artikel:5%3A2`. Een IRI die met een f-string
+    aaneen is geplakt wordt `…:artikel:5:2` — een andere node, en dus nul resultaten zonder
     foutmelding. De dubbele punt is bovendien het scheidingsteken van de URN zelf.
     """
     assert q.artikel_iri("BWBR0005537", "5:2") == "urn:bwb:BWBR0005537:artikel:5%3A2"

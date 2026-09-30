@@ -36,8 +36,8 @@ SUPERVISOR_SYSTEM = (
 _QA_SPECIALISTS = ("definitie", "duiding", "algemeen")
 
 # De enige twee workers die bestaan. Alles daarbuiten is een verzinsel van het model en telt niet
-# mee: eerder werd élke onbekende naam stilzwijgend een extra ANTWOORD-worker, zodat "WORKERS:
-# antwoord, samenvatten" dezelfde vraag twee keer beantwoordde – dubbele kosten, twee antwoorden.
+# mee: werd élke onbekende naam stilzwijgend een extra ANTWOORD-worker, dan beantwoordde "WORKERS:
+# antwoord, samenvatten" dezelfde vraag twee keer – dubbele kosten, twee antwoorden.
 _WORKERS = ("antwoord", "annotatie")
 
 # Meer dan twee schakels heeft geen enkele vraag nodig (annoteren en dan samenvatten is de langste

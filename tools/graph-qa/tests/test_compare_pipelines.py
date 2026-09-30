@@ -1,4 +1,4 @@
-"""Het A/B-harnas (ADR-001 PR 16), offline: identieke bron voor beide routes, eerlijke naamgeving."""
+"""Het A/B-harnas (ADR-001), offline: identieke bron voor beide routes, eerlijke naamgeving."""
 from __future__ import annotations
 
 from agent.config import Settings

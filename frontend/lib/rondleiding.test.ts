@@ -196,7 +196,7 @@ describe("waar de bubbel komt te staan", () => {
   const TELEFOON = { breedte: 390, hoogte: 844 };
   const BUBBEL = { breedte: 340, hoogte: 220 };
 
-  /** Ligt de bubbel volledig binnen het scherm? Dat is de eis waar het eerder op misging. */
+  /** Ligt de bubbel volledig binnen het scherm? Dat is de eis die hier bewaakt wordt. */
   function binnenBeeld(
     plaatsing: ReturnType<typeof plaatsBubbel>,
     bubbel = BUBBEL,

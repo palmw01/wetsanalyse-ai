@@ -1,9 +1,8 @@
 """De eval moet begrensd, te volgen en eerlijk over storingen zijn.
 
-Achtergrond: de run van 5 sep 2026 liep twee uur, werd door de job-timeout afgekapt en eindigde
-rood. De oorzaak lag bij de provider (`overloaded_error` + timeouts), niet bij de agent — maar in
-het rapport was dat niet te zien: één case las als "9/10 geslaagd", oftewel als een inhoudelijke
-fout. Deze tests leggen de drie eigenschappen vast die dat voortaan voorkomen.
+Een overbelaste provider (`overloaded_error` + timeouts) kan een run laten uitlopen tot de
+job-timeout, en dan leest een providerstoring in het rapport als een inhoudelijke fout ("9/10
+geslaagd"). Deze tests leggen de drie eigenschappen vast die dat voorkomen.
 """
 from __future__ import annotations
 
@@ -124,7 +123,7 @@ def _case_met_ankers():
 
 
 def test_nul_elementen_bij_een_case_met_ankers_zakt():
-    """De stille fout van 5 sep 2026: twee cases leverden niets op en telden als geslaagd.
+    """Een case die niets oplevert mag niet als geslaagd tellen.
 
     Alle garanties zijn immers triviaal waar over een lege lijst — letterlijkheid 1.0, klassen 1.0.
     De bepaling bleek onbereikbaar (artikelnummer met een dubbele punt) en de beurt brak af, maar
@@ -184,8 +183,8 @@ def test_smoke_wacht_tot_de_graaf_gevuld_is(monkeypatch):
 def test_smoke_wacht_op_een_STABIEL_aantal_regelingen(monkeypatch):
     """Eén volle peiling is niet genoeg als de import nog aan het schrijven is.
 
-    Op 5 sep 2026 startte de eval terwijl de importjob de graaf herschreef. Het aantal regelingen
-    loopt dan op, en de drempel van vijf wordt gehaald terwijl er nog twee wetten ontbreken — de
+    Start de eval terwijl de importjob de graaf herschrijft, dan loopt het aantal regelingen
+    op, en de drempel van vijf wordt gehaald terwijl er nog twee wetten ontbreken — de
     smoke zou een halve graaf meten en de gaten als defecten melden. Pas twee peilingen met
     hetzelfde aantal tellen als gereed.
     """
@@ -211,9 +210,7 @@ def test_smoke_wachttijd_is_per_omgeving_te_zetten():
     """De ruimte om te wachten hoort niet in een codewijziging te zitten.
 
     Ruim, omdat een import na een deploy minuten kan duren. Let op waar deze waarde NIET voor is:
-    hij ging op 5 sep 2026 van 180 naar 900 om een HTTP 400 uit te zitten die aan een herschrijvende
-    import werd toegeschreven. Dat was een ontbrekende MCP-handshake, en die gaat door geen enkele
-    wachttijd over — zie `test_smoke_geeft_op_bij_een_fout_die_blijft_terugkomen`.
+    een HTTP 400 van een ontbrekende MCP-handshake gaat door geen enkele wachttijd over — zie `test_smoke_geeft_op_bij_een_fout_die_blijft_terugkomen`.
     """
     from eval import retrieval_smoke as sm
 
@@ -246,7 +243,7 @@ def test_smoke_geeft_op_bij_een_fout_die_blijft_terugkomen(monkeypatch):
 
     assert "wachten helpt hier niet" in reden
     assert graaf.pogingen == sm._HERHALINGEN_GENOEG, "hij hoort niet dóór te blijven proberen"
-    # De VOLLEDIGE fouttekst, niet afgekapt op 120 tekens zoals voorheen: daar begon de oorzaak.
+    # De VOLLEDIGE fouttekst, niet afgekapt: de oorzaak staat vaak voorbij de eerste 120 tekens.
     assert "McpError" in reden
 
 
@@ -266,7 +263,7 @@ def test_smoke_blijft_wachten_bij_wisselende_fouten(monkeypatch):
 
 
 def test_smoke_meldt_niet_gemeten_in_plaats_van_21_defecten(monkeypatch, capsys):
-    """Het gedrag dat op 5 sep 2026 ontbrak: zestien valse defecten in plaats van één melding."""
+    """Eén melding "niet gemeten" in plaats van zestien valse defecten."""
     from eval import retrieval_smoke as sm
 
     class Kapot:

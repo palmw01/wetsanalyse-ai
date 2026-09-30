@@ -18,8 +18,8 @@ import type { DocumentSamenvatting } from "@/lib/types";
 
 /** Het annotatie-overzicht: de annotaties los van de gesprekken waarin ze zijn gemaakt.
  *
- *  Sinds 22 sep 2026 zijn dat de GEDEELDE lagen: één annotatie per artikel voor iedereen, zodat Lex
- *  een artikel dat al geannoteerd is niet opnieuw hoeft te doen. "Door mij bewerkt" beperkt de lijst
+ *  Dat zijn de GEDEELDE lagen: één laag per bronnode voor iedereen, zodat Lex een bepaling die al
+ *  geannoteerd is niet opnieuw hoeft te doen. "Door mij bewerkt" beperkt de lijst
  *  tot de lagen waar je zelf iets aan deed – een laag heeft geen eigenaar, dus dat staat in de audit.
  *
  *  Twee weergaven op één lijst. *Te doen* is werkvoorraad – wat vraagt nog aandacht, rood eerst.

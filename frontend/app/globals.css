@@ -51,11 +51,11 @@ html {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   /* Eén tekstschaal op elk scherm.
-     Eerder verkleinde deze 100% → 90% (tablet) → 80% (mobiel). Dat werkte tegen de controls in: die
-     staan op vaste pixelhoogtes en schalen dus níét mee, waardoor op mobiel ~11px tekst in een 48px
-     knop belandde. Bovendien is kleinere tekst op een klein scherm precies verkeerd om. De controls
-     passen zich nu aan het invoerapparaat aan (de `coarse`-variant in tailwind.config.ts) in plaats
-     van de tekst aan de schermbreedte. */
+     Geen verkleining per schermbreedte (90% tablet, 80% mobiel): dat werkt tegen de controls in, die
+     op vaste pixelhoogtes staan en dus níét meeschalen, zodat op mobiel ~11px tekst in een 48px knop
+     belandt. Bovendien is kleinere tekst op een klein scherm precies verkeerd om. De controls passen
+     zich aan het invoerapparaat aan (de `coarse`-variant in tailwind.config.ts) in plaats van de
+     tekst aan de schermbreedte. */
   font-size: 100%;
 }
 

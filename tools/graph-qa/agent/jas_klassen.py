@@ -10,9 +10,8 @@ verwijst naar `docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md`. Bijwerken doe je in
 gevolgd door `scripts/genereer_jas_klassen.py`; `tests/test_methode_drift.py` faalt als dat
 vergeten is.
 
-Waarom die kant op en niet andersom: de duiding stond eerder op twee plekken en liep ongemerkt uit
-elkaar — de skill was op zeven plekken armer dan zijn eigen bron. Nu is er één plek om te
-bewerken, en die is leesbaar.
+Waarom die kant op en niet andersom: staat de duiding op twee plekken, dan loopt ze ongemerkt uit
+elkaar. Zo is er één plek om te bewerken, en die is leesbaar.
 
 De klasse-*namen* zijn de canonieke JAS-namen (dezelfde weergave-volgorde als
 `docs/wetsanalyse/wa-table.png`) en worden apart bewaakt tegen `api/app/jas_klassen.py` en

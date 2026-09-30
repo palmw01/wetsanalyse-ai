@@ -39,8 +39,8 @@ def is_leesvraag(question: str, modus: str = "auto") -> bool:
     q = question.casefold()
     # Een leesvraag mag niet door een modelrouter in een schrijfactie veranderen.
     # Let op de groepering: `markeringen?` maakt alleen de slot-n optioneel en matcht dus
-    # "markeringe", nooit het enkelvoud "markering". Daardoor ging "welke markering is een
-    # Rechtssubject?" langs de zoektool heen (22 sep 2026).
+    # "markeringe", nooit het enkelvoud "markering". Verkeerd gegroepeerd gaat "welke markering is
+    # een Rechtssubject?" langs de zoektool heen.
     onderwerp = re.search(r"\b(annotatie(s)?|markering(en)?|element(en)?|klasse(n)?|jas-klasse(n)?"
                           r"|gemarkeerd|geannoteerd|geclassificeerd|annotatiedekking)\b", q)
     lezen = re.search(r"\b(zoek|vind|toon|bekijk|laat|zien|welke?|wat|waar|hoe|hoeveel|bestaande|opgeslagen|al|dekking)\b", q)

@@ -49,11 +49,11 @@ def test_artikelnummer_wordt_een_directe_iri(naam: str):
     "naam", ["follow_verwijzingen", "verwijst_naar_deze", "referenced_by", "get_context"]
 )
 def test_decimaal_nummer_werkt_ook(naam: str):
-    """Vóór 4 sep 2026 gaf elk van deze tools een 400 op een Leidraad-bepaling.
+    """Elk van deze tools moet een Leidraad-bepaling aankunnen, niet een 400 geven.
 
-    Ze bouwden op `artikel_iri`, en die weigert een punt. De ~800 divisies van de Leidraad
-    Invordering 2008 waren daarmee onbereikbaar voor élke verwijzings- en contextvraag, terwijl het
-    corpus-pad ze gewoon opleverde. Een jurist die zo'n bepaling opende kreeg een half platform.
+    `artikel_iri` weigert een punt. Bouwen ze daarop, dan zijn de ~800 divisies van de Leidraad
+    Invordering 2008 onbereikbaar voor élke verwijzings- en contextvraag, terwijl het corpus-pad ze
+    gewoon oplevert. Een jurist die zo'n bepaling opent krijgt dan een half platform.
     """
     g = FakeGraph(result="x")
     out = tools.dispatch(naam, g, {"bwb_id": LEIDRAAD, "nummer": "25.1"})

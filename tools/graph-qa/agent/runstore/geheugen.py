@@ -163,14 +163,14 @@ class GeheugenStore:
         want die kun je maar één keer leegdrinken en er kunnen meerdere tabbladen meekijken.
         Losraken van deze generator laat de run ongemoeid.
 
-        Twee dingen die eerder misgingen en waar de vorm nu op is gebouwd:
+        Twee dingen waar de vorm op is gebouwd:
 
         - **Een gat blijkt uit de seq-sprong**, niet uit een teller. Het snoeien (`_cap`) haalt
-          narratie weg waar die ook staat, dus "de eerste N zijn weg" was een verkeerde aanname:
-          daarmee schoven de nummers op en kreeg een aanhaker betekenisvolle events dubbel.
-        - **De toestandscontrole hoort onder de lock.** Stond ze erbuiten, dan kon de run afronden
-          tussen `if not run.loopt` en het wachten – de `notify_all` was dan al geweest en de kijker
-          bleef hangen op een run die klaar was, met een SSE-stream die nooit sloot.
+          narratie weg waar die ook staat, dus "de eerste N zijn weg" is een verkeerde aanname:
+          daarmee schuiven de nummers op en krijgt een aanhaker betekenisvolle events dubbel.
+        - **De toestandscontrole hoort onder de lock.** Staat ze erbuiten, dan kan de run afronden
+          tussen `if not run.loopt` en het wachten – de `notify_all` is dan al geweest en de kijker
+          blijft hangen op een run die klaar is, met een SSE-stream die nooit sluit.
         """
         cursor = vanaf
         while True:

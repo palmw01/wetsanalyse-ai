@@ -1,4 +1,4 @@
-"""PR 2.3: LangGraph-orkestrator – plan→retrieve→reason→verify + streaming."""
+"""LangGraph-orkestrator – plan→retrieve→reason→verify + streaming."""
 from __future__ import annotations
 
 import asyncio
@@ -223,9 +223,9 @@ def test_leeg_antwoord_levert_melding_geen_stilte():
 def test_deelvraag_beurtlimiet_dwingt_antwoord_af():
     """Raakt de deelvraag-lus zijn beurtlimiet, dan moet er alsnog een antwoord komen.
 
-    Eerder brak de lus alleen af als het model géén tools meer aanriep; bleef het zoeken, dan liep de
-    lus af met een leeg `antwoord` en zag de gebruiker alleen bronnen. Op de laatste beurt worden nu
-    geen tools meer aangeboden, zodat het model wel moet antwoorden op wat er is opgehaald.
+    Breekt de lus alleen af als het model géén tools meer aanroept, dan loopt hij bij een model dat
+    blijft zoeken af met een leeg `antwoord` en ziet de gebruiker alleen bronnen. Op de laatste beurt
+    worden daarom geen tools meer aangeboden, zodat het model wel moet antwoorden op wat er is opgehaald.
     """
     # sub_max_turns=2: de eerste beurt zoekt nog, de tweede is de laatste en krijgt geen tools meer.
     settings = make_settings(enable_planning=False, enable_decomposition=True, sub_max_turns=2)
@@ -247,11 +247,11 @@ def test_deelvraag_beurtlimiet_dwingt_antwoord_af():
 def test_correctie_op_een_citaat_dat_niet_letterlijk_is():
     """De correctieronde moet zeggen wat er écht mis is.
 
-    Hij keek alleen naar `unsupported` (verzonnen vindplaatsen). Een antwoord dat daarop schoon is
-    maar wél passages tussen aanhalingstekens zet die niet in de bron staan – op dev zeven keer in
-    één antwoord – kreeg dan een volledige extra LLM-call met de instructie "je noemde
-    verwijzing(en) `` die niet uit de graaf kwamen": een lege opsomming en een verwijt dat niet
-    klopte. Het model kan daar niets mee, dus de duurste stap in de keten deed niets.
+    Kijkt hij alleen naar `unsupported` (verzonnen vindplaatsen), dan krijgt een antwoord dat daarop
+    schoon is maar wél passages tussen aanhalingstekens zet die niet in de bron staan een volledige
+    extra LLM-call met de instructie "je noemde verwijzing(en) `` die niet uit de graaf kwamen":
+    een lege opsomming en een verwijt dat niet klopt. Het model kan daar niets mee, dus de duurste
+    stap in de keten doet dan niets.
     """
     settings = make_settings(enable_planning=False, grounding_correct=True)
     bron = "De ontvanger verleent uitstel van betaling indien de schuldenaar daarom verzoekt."

@@ -157,8 +157,8 @@ def test_geen_actieve_run_geeft_null(client):
 def test_stoppen_laat_de_run_netjes_eindigen(client, monkeypatch):
     """Stoppen loopt via een vlag die de stroom zelf leest – geen `task.cancel()`.
 
-    Dat is het verschil met vroeger: de verbinding dichtgooien liet het werk doorlopen én gooide het
-    resultaat weg. Nu stopt de beurt op een grens en blijft staan wat er al was."""
+    De verbinding dichtgooien zou het werk laten doorlopen én het resultaat weggooien. Zo stopt de
+    beurt op een grens en blijft staan wat er al was."""
     gezien: list[bool] = []
 
     def stroom_die_kijkt(_request, _gebruiker=""):
@@ -188,8 +188,8 @@ def test_stoppen_laat_de_run_netjes_eindigen(client, monkeypatch):
 
 
 def test_gesprek_verwijderen_stopt_de_lopende_beurt(client):
-    """Live gevonden op dev: het gesprek werd verwijderd terwijl de beurt liep, en de agent
-    annoteerde daarna nog anderhalve minuut vrolijk door voor iets wat niet meer bestond."""
+    """Wordt het gesprek verwijderd terwijl de beurt loopt, dan mag de agent niet nog minutenlang
+    doorannoteren voor iets wat niet meer bestaat."""
     run_id = client.post("/v1/runs", json={"question": "v", "conversation_id": "g1"}).json()["run_id"]
     assert client.delete("/v1/conversations/g1").status_code == 204
 

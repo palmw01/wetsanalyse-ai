@@ -1,10 +1,10 @@
-"""De gerichte reviewer (ADR-001 PR 12, opdracht §17): alleen concrete conflicten, geen heranalyse.
+"""De gerichte reviewer (ADR-001, opdracht §17): alleen concrete conflicten, geen heranalyse.
 
-De legacy-Critic krijgt de hele set en de hele klassenreferentie, oordeelt over elk element en
-bedenkt zelf wat er ontbreekt – een tweede volledige interpretatie. Deze reviewer krijgt per
-twijfelgeval: het fragment, de huidige klasse, de toegestane alternatieven en de reden. Hij kiest
-per geval `KEEP`, `CHANGE` (naar een van de alternatieven) of `HUMAN_REVIEW`. Hij kan niets toevoegen,
-niets verwijderen en geen grens verzetten.
+Geen tweede volledige interpretatie (de hele set en de hele klassenreferentie, een oordeel over
+elk element en zelf bedenken wat er ontbreekt). Deze reviewer krijgt per twijfelgeval: het
+fragment, de huidige klasse, de toegestane alternatieven en de reden. Hij kiest per geval `KEEP`,
+`CHANGE` (naar een van de alternatieven) of `HUMAN_REVIEW`. Hij kan niets toevoegen, niets
+verwijderen en geen grens verzetten.
 
 Wat zijn oordeel dóét, beslist de resolver met een vaste tabel (`resolver.py`). De reviewer
 adviseert; code voert uit.
@@ -134,7 +134,7 @@ def beoordeel(llm: Any, model: str, twijfels: list[Twijfel], kandidaten_per_labe
         meting.setdefault("review_batches", []).append({"labels": [t.label for t in twijfels],
             "prompt_sha256": hashlib.sha256((SYSTEEM + _prompt(twijfels, kandidaten_per_label, brontekst, context)).encode()).hexdigest(),
             "schema_sha256": hashlib.sha256(json.dumps(_schema(twijfels), sort_keys=True).encode()).hexdigest()})
-    # Ruim budget (baselineproef 29 sep: iedere reviewaanroep stopte op max_tokens vóór de aanroep).
+    # Ruim budget (in de baselineproef stopte iedere reviewaanroep op max_tokens vóór de aanroep).
     resp = llm.create(model=model, max_tokens=min(8000, 1536 + 256 * len(twijfels)), system=SYSTEEM,
                       tools=[_schema(twijfels)], tool_choice={"type": "auto"},
                       messages=[{"role": "user", "content": _prompt(twijfels, kandidaten_per_label, brontekst, context)}])

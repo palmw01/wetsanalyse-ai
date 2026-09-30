@@ -288,9 +288,9 @@ async def answer_stream(
         # foutmelding hoort dat ook te zijn.
         logger.error("agent-fout", exc_info=True)
         # `soort` draagt de EXCEPTION-NAAM mee, naast de gesaniteerde melding. De melding zelf is
-        # voor de jurist en zegt bewust niets technisch; maar daardoor was achteraf niet te zien of
-        # een beurt sneuvelde op de analyse of op een overbelaste provider. De eval telde op
-        # 5 sep 2026 een `overloaded_error` als een gezakte case — een storing die las als een
+        # voor de jurist en zegt bewust niets technisch; zonder `soort` is achteraf niet te zien of
+        # een beurt sneuvelde op de analyse of op een overbelaste provider, en telt de eval een
+        # `overloaded_error` als een gezakte case — een storing die leest als een
         # kwaliteitsregressie.
         #
         # Additief op het SSE-contract: consumenten die het veld niet kennen negeren het. Geen

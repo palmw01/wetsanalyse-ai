@@ -7,9 +7,8 @@
 # botst hij op de branch protection van master (`poort` is een required check, met `strict: true`,
 # dus de branch moet ook up-to-date zijn). Het gevolg is een race: verschuift master tussen de
 # groene check en de merge, dan faalt de run met "Base branch was modified. Review and try the
-# merge again." Zo stonden alle mislukte runs van deze workflow erbij; de instelling stond tot
-# 27 aug 2026 uit. Gevaarlijk was het niet – de protection blokkeert een merge zonder groene
-# `poort` – maar wél onbetrouwbaar, en niet wat de code hier bedoelt.
+# merge again." Gevaarlijk is dat niet – de protection blokkeert een merge zonder groene `poort` –
+# maar wél onbetrouwbaar, en niet wat de code hier bedoelt.
 #
 # Met de instelling AAN doet `--auto` wat er staat: de intentie wordt vastgehouden en GitHub
 # merget zelf zodra de required checks groen zijn en de branch bij is. Dependabot rebaset zijn
@@ -17,13 +16,12 @@
 
 name: Dependabot auto-merge
 
-# Deze workflow zet alleen auto-merge AAN; bouwen is niet zijn taak. Tot 8 sep 2026 stond daar een
-# job `publish-na-merge` voor, die op `closed` + `merged == true` wachtte om de publish-workflows te
-# dispatchen. Die kon per constructie niet werken: GitHub onderdrukt álle events die uit
+# Deze workflow zet alleen auto-merge AAN; bouwen is niet zijn taak. Een job die op `closed` +
+# `merged == true` wacht om de publish-workflows te dispatchen, kan per constructie niet werken: GitHub onderdrukt álle events die uit
 # `GITHUB_TOKEN` voortkomen, dus bij een auto-merge die híér is aangezet vuurt `closed` net zomin
-# als `push`. En vuurt hij wél (een mens mergde), dan had de push-workflow zelf al gedraaid en
-# bouwden er twee tegelijk. Het bouwen ná zo'n merge ligt nu bij `bouwwacht.yml`, die de toestand
-# meet in plaats van op een gebeurtenis te wachten. `closed` staat daarom niet meer in de `types`.
+# als `push`. En vuurt hij wél (een mens mergde), dan heeft de push-workflow zelf al gedraaid en
+# bouwen er twee tegelijk. Het bouwen ná zo'n merge ligt bij `bouwwacht.yml`, die de toestand
+# meet in plaats van op een gebeurtenis te wachten. `closed` staat daarom niet in de `types`.
 on:
   pull_request:
     types: [opened, synchronize, reopened]

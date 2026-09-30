@@ -1,4 +1,4 @@
-"""SHACL op de v2-projectie (ADR-001 PR 14): conform, en elke mutatie op het juiste niveau."""
+"""SHACL op de v2-projectie (ADR-001): conform, en elke mutatie op het juiste niveau."""
 from __future__ import annotations
 
 import re

@@ -70,7 +70,7 @@ def test_schrijfrecht_zonder_eigen_slot_weigert_te_starten():
 
 
 def test_zonder_api_config_legt_graph_qa_niets_vast():
-    """Lokaal draaien zonder api moet mogelijk blijven; dan schrijft de werkplek weg, zoals vroeger."""
+    """Lokaal draaien zonder api moet mogelijk blijven; dan schrijft de werkplek weg."""
     from agent.config import Settings
 
     assert not Settings().legt_zelf_vast

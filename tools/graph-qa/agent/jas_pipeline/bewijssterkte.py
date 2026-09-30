@@ -1,8 +1,8 @@
 """Bewijssterkte, afgeleid uit de regeldefinities (audit D06).
 
-Welke bewijscode op zichzelf één klasse draagt, stond eerder als losse lijst in `besluit` en
-`onzekerheid`, zonder sluitende relatie met de regels die de code uitgeven. Nu verklaart elke
-regel zijn sterkte waar hij gedefinieerd is: in de regel-YAML (`bewijs:`) of als `BEWIJS` op een
+Welke bewijscode op zichzelf één klasse draagt, staat niet als losse lijst in `besluit` en
+`onzekerheid` (die heeft geen sluitende relatie met de regels die de code uitgeven): elke regel
+verklaart zijn sterkte waar hij gedefinieerd is: in de regel-YAML (`bewijs:`) of als `BEWIJS` op een
 codedetector. Een code is alleen sterk als **al** zijn regels sterk zijn en dezelfde ene klasse
 aanwijzen; zo kan een zwakke regel met dezelfde code een sterke niet stil verdunnen.
 

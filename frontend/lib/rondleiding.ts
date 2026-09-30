@@ -361,9 +361,9 @@ export function plaatsBubbel(
  *  Alleen in een stap die om een handeling vraagt. In alle andere stappen dekt de laag alles af,
  *  want daar is elke klik buiten de bubbel er een die de rondleiding kan slopen.
  *
- *  Dit hangt bewust aan het gemeten vak en niet aan de plaatsing van de bubbel. Die twee werden
- *  eerder door elkaar gehaald: stond de bubbel gecentreerd (te weinig ruimte ernaast), dan verdween
- *  het gat terwijl het element er gewoon was, en kon je de knop niet meer indrukken. Waar de bubbel
+ *  Dit hangt bewust aan het gemeten vak en niet aan de plaatsing van de bubbel. Haal je die twee door
+ *  elkaar, dan verdwijnt het gat zodra de bubbel gecentreerd staat (te weinig ruimte ernaast),
+ *  terwijl het element er gewoon is, en kun je de knop niet meer indrukken. Waar de bubbel
  *  staat en of de knop bereikbaar is, zijn verschillende vragen.
  *
  *  De marge is ruimer dan die van de spotlight: het gat mag over de rand vallen, maar een meting die

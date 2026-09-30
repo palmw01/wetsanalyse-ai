@@ -153,9 +153,8 @@ export function WorkbenchShell({
   return (
     <div className="relative flex h-full flex-col">
       <SkipLink />
-      {/* Waar zit ik? Deze strook hing eerder aan de globale sitekop, en die verborg zichzelf op de
-          werkplek – dus juist waar je de hele dag werkt, zag je hem nooit. Nu staat hij bovenaan de
-          schil. De klik opent de voorwaarden als dialog (intercepting route), zodat je je gesprek
+      {/* Waar zit ik? Deze strook staat bovenaan de schil en niet in de globale sitekop: die
+          verbergt zichzelf op de werkplek, dus juist waar je de hele dag werkt, zag je hem dan nooit. De klik opent de voorwaarden als dialog (intercepting route), zodat je je gesprek
           niet verlaat. */}
       <Link
         href="/disclaimer"

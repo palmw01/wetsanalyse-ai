@@ -77,14 +77,13 @@ CONTROLES: tuple[Controle, ...] = (
     Controle("get_lid", {"bwb_id": IW, "artikel": "2", "lid": "1"},
              toelichting="definitielid – moet zijn ONDERDELEN meeleveren"),
     Controle("get_lid", {"bwb_id": AWB, "artikel": "5:2", "lid": "1"},
-             toelichting="artikelnummer MET dubbele punt; 570 van de 572 Awb-artikelen hebben er "
-                         "een, en die waren tot 5 sep 2026 onbereikbaar"),
+             toelichting="artikelnummer MET dubbele punt; 570 van de 572 Awb-artikelen hebben er een"),
     Controle("get_bepaling", {"bwb_id": LEIDRAAD, "nummer": "25.1"}, min_rijen=15,
              toelichting="container zonder eigen tekst; moet zijn 15 subdivisies noemen"),
     Controle("get_context", {"bwb_id": IW, "artikel": "36"}, min_rijen=10,
-             toelichting="moet ook de bevat-door-tak vullen (was jarenlang leeg)"),
+             toelichting="moet ook de bevat-door-tak vullen"),
     Controle("get_context", {"bwb_id": LEIDRAAD, "nummer": "25.1"},
-             toelichting="het divisie-pad; werkte vóór 4 sep 2026 helemaal niet"),
+             toelichting="het divisie-pad"),
     Controle("follow_verwijzingen", {"bwb_id": IW, "artikel": "36"}, min_rijen=5,
              toelichting="verwijzingen hangen aan de LEDEN; op het artikel alleen waren het er 0"),
     Controle("verwijst_naar_deze", {"bwb_id": IW, "artikel": "36"}, min_rijen=20,
@@ -122,9 +121,8 @@ def _rijen(resultaat: str) -> int:
 # Ruim bemeten omdat een import minuten kan duren; wachten kost niets als de graaf al staat, want
 # dan slaagt de eerste peiling meteen. Met EVAL_GRAAF_WACHT_SECONDEN per omgeving bij te stellen.
 #
-# Deze waarde ging op 5 sep 2026 van 180 naar 900 om een HTTP 400 uit te zitten die aan een
-# herschrijvende import werd toegeschreven. Dat was de verkeerde diagnose — het was een ontbrekende
-# MCP-handshake, en die gaat door geen enkele wachttijd over. Zie `_wacht_op_graaf`.
+# Een HTTP 400 van een ontbrekende MCP-handshake gaat door geen enkele wachttijd over; langer
+# wachten helpt daar niet. Zie `_wacht_op_graaf`.
 GEREED_SECONDEN = float(os.getenv("EVAL_GRAAF_WACHT_SECONDEN") or 900)
 GEREED_REGELINGEN = 5
 # Hoe vaak dezelfde fout mag terugkomen voor de lus concludeert dat wachten niet gaat helpen. Drie:
@@ -249,8 +247,8 @@ def _beoordeel(c: Controle, resultaat: str, rijen: int, fout: bool) -> dict[str,
 def _structuurintegriteit(graph: Any) -> dict[str, Any]:
     """Geen structuurdeel mag meer dan één ouder hebben.
 
-    Dit is de guard op de IRI-collisie die op 4 sep 2026 aan het licht kwam: 16 van de 93 afdelingen
-    en 5 van de 27 paragrafen vielen samen omdat hun sleutel alleen het laatste jci-segment droeg.
+    Dit is de guard op IRI-collisie: draagt de sleutel van een structuurdeel alleen het laatste
+    jci-segment, dan vallen afdelingen en paragrafen met hetzelfde nummer samen.
     Zo'n node draagt de titels, ouders én artikelen van meerdere afdelingen tegelijk — een verkeerde
     inhoudsopgave, en artikelen die aan de verkeerde afdeling hangen.
 

@@ -35,9 +35,8 @@ const AANDACHT: Record<string, { pill: string; label: string; rand: string; tint
 
 // Geen badge betekent: een gewoon voorstel van Lex. De annotatieketen (ADR-001) zet alleen
 // `aandacht` als er iets te zeggen valt – geel is een keuze die bij de jurist ligt (twijfel die de
-// reviewer niet besliste), groen een twijfelgeval dat de gerichte review bevestigde. Tot 25 sep 2026
-// stond hier een badge "Niet beoordeeld" voor elementen zonder Critic-oordeel; die Critic bestaat niet
-// meer, en de badge zou nu op elk onbetwist voorstel staan.
+// reviewer niet besliste), groen een twijfelgeval dat de gerichte review bevestigde. Een badge
+// "Niet beoordeeld" voor elementen zonder oordeel zou op elk onbetwist voorstel staan.
 
 // Zelfde vorm als de documentstatus-badge in `ArtefactInhoud`; alleen de kleuren verschillen per
 // niveau. Verander je die daar, verander hem dan hier mee – het is bewust één vormtaal.
@@ -282,8 +281,7 @@ function DecisionCard({
   /** Eén wijziging wegschrijven – geen dropdown, geen opslaan-knop.
    *
    *  De `review_reason` gaat niet mee: die leidt de server af uit de diff die hij zelf berekent.
-   *  Hij werd hier vroeger meegestuurd, maar een reden die de server niet kan toetsen hoort niet in
-   *  een auditspoor. Bij verwerpen blijft de reden wél een vraag aan de jurist – die informatie
+   *  Een reden die de server niet kan toetsen hoort niet in een auditspoor. Bij verwerpen blijft de reden wél een vraag aan de jurist – die informatie
    *  staat in geen enkele diff.
    */
   async function wijzig(w: Wijziging) {
@@ -300,9 +298,9 @@ function DecisionCard({
       } ${actief ? "border-lint ring-1 ring-lint" : ""}`}
     >
       {/* De kop in twee lagen, en op `sm:` weer op één regel.
-          Alles vocht eerder om dezelfde regel: een lange klassenaam ("Parameter en parameterwaarde")
-          duwde het lidnummer naar een eigen regel en perste Akkoord en het kruisje tegen de kaartrand.
-          Nu staan links de korte, voorspelbare dingen (aandacht, lid) mét de acties, en krijgt de
+          Op één regel vecht alles om dezelfde ruimte: een lange klassenaam ("Parameter en
+          parameterwaarde") duwt het lidnummer naar een eigen regel en perst Akkoord en het kruisje
+          tegen de kaartrand. Daarom staan links de korte, voorspelbare dingen (aandacht, lid) mét de acties, en krijgt de
           klassebadge daaronder de volle breedte. Op een breed scherm past het weer naast elkaar —
           hetzelfde patroon als `ui/ButtonRow`: mobiel gestapeld, `sm:` naast elkaar. */}
       <div className="flex flex-wrap items-center gap-1.5 sm:flex-nowrap sm:items-start sm:gap-2">
@@ -313,8 +311,8 @@ function DecisionCard({
               {aandacht.label}
             </span>
           )}
-          {/* Twijfel is geen bezwaar: de annoteerder zag twee plausibele klassen. Eerder werd zoiets
-              automatisch geel, waardoor een écht aandachtspunt niet meer opviel tussen de
+          {/* Twijfel is geen bezwaar: de annoteerder zag twee plausibele klassen. Maak je zoiets
+              automatisch geel, dan valt een écht aandachtspunt niet meer op tussen de
               disambiguaties. Neutraal merkje dus, geen kleur uit de aandacht-as. */}
           {!el.aandacht && el.alternatieven.length > 0 && (
             <span role="img" title="Twijfel tussen klassen – zie de alternatieven" aria-label="twijfel"
@@ -470,8 +468,8 @@ function DecisionCard({
 
       <p className="mt-2 border-l-2 border-line pl-2.5 text-sm italic text-ink">“{el.tekst}”</p>
 
-      {/* Een markering die niet in de tekst te vinden is verdween eerder stilzwijgend uit de
-          weergave. Dan lijkt hij weg terwijl hij er nog is – zeg het gewoon. */}
+      {/* Een markering die niet in de tekst te vinden is, mag niet stilzwijgend uit de weergave
+          verdwijnen. Dan lijkt hij weg terwijl hij er nog is – zeg het gewoon. */}
       {zwevend && (
         <p className="mt-1.5 flex items-center gap-1 text-xs text-aandacht-geel-tekst">
           <Waarschuwing /> Niet terug te vinden in de tekst – pas het fragment aan of

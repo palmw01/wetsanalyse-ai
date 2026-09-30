@@ -85,7 +85,7 @@ def test_jci_doel_ref_key_alle_niveaus() -> None:
         "BWBR0004770#artikel=2#lid=1#o=aa#o=1",
         "onderdeel",
     )
-    # Hele-structuur-doelen (voorheen gedropt).
+    # Hele-structuur-doelen worden niet gedropt.
     assert jci_doel_ref_key("jci1.3:c:BWBR0005537&titeldeel=4.1") == (
         "BWBR0005537#titeldeel=4.1",
         "titeldeel",
@@ -154,9 +154,8 @@ def test_node_ref_key_draagt_het_volledige_structuurpad() -> None:
 
     `jci_doel_ref_key` houdt alleen het laatste segment aan, en dat is voor een verwijzing prima
     ("ik verwijs naar afdeling 1") maar fataal als identiteit: dan is elke "Afdeling 1" van een
-    regeling dezelfde node. Dat gebeurde ook — gemeten in de graaf op 4 sep 2026 hadden 16 van de
-    93 afdelingen en 5 van de 27 paragrafen meer dan één ouder, met hun titels en artikelen op één
-    hoop.
+    regeling dezelfde node. In de graaf krijgen dan 16 van de 93 afdelingen en 5 van de 27
+    paragrafen meer dan één ouder, met hun titels en artikelen op één hoop.
     """
     assert jci_node_ref_key("jci1.3:c:BWBR0002320&hoofdstuk=VIII&afdeling=1&z=2026-04-11") == (
         "BWBR0002320#hoofdstuk=VIII#afdeling=1",

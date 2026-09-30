@@ -4,8 +4,8 @@
 // `fetch`, zodat de spans binnen de frontend correct nesten.
 //
 // LET OP – @vercel/otel injecteert die traceparent NIET op uitgaande fetch. Gemeten met een
-// echo-server achter `API_BASE_URL` (26 aug 2026): de upstream kreeg `traceparent=None`, terwijl er
-// in Application Insights wél nette uitgaande spans stonden. Een span is geen propagatie, en het
+// echo-server achter `API_BASE_URL`: de upstream krijgt `traceparent=None`, terwijl er
+// in Application Insights wél nette uitgaande spans staan. Een span is geen propagatie, en het
 // verschil faalt stil: je ziet telemetrie, alleen elke dienst in zijn eigen trace.
 //
 // De BFF injecteert de header daarom zelf, expliciet, op elke fetch naar een upstream – zie

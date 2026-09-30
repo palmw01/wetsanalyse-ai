@@ -80,9 +80,9 @@ def _kandidaten_uit_json(text: str) -> list[dict[str, str]]:
 
 # --- meldingen over het samenspel -----------------------------------------------------------------
 #
-# De annotatieketen doet er 60-90 seconden over en stuurde daarin geen enkel event: de jurist keek
-# naar een leeg scherm en zag het heen-en-weer tussen annoteerder en Critic niet. Deze regels vullen
-# dat gat. Ze zijn pure functies zodat de bewoording te testen is zonder een hele graaf te draaien.
+# De annotatieketen doet er 60-90 seconden over; zonder events kijkt de jurist al die tijd naar een
+# leeg scherm en ziet hij niet welke stap loopt. Deze regels vullen dat gat. Ze zijn pure functies
+# zodat de bewoording te testen is zonder een hele graaf te draaien.
 
 
 
@@ -91,10 +91,9 @@ def _is_vindplaats(aanduiding: str) -> bool:
 
     Waarom dit filter bestaat. `_doel_uit_toolcalls` leest de INPUT van een fetch-call, niet het
     resultaat — en `dispatch` vangt een ongeldige aanduiding als tekst op in plaats van te crashen,
-    dus de beurt loopt gewoon door. Een mislukte call bepaalde daardoor alsnog het doel. In
-    productie leverde dat op 1 sep 2026 een annotatie op onder de vindplaats
-    `artikel:6:lid:1:o:c` — een IRI-achtervoegsel dat de agent had geprobeerd als bepalingnummer —
-    en dat document was per definitie niet te openen.
+    dus de beurt loopt gewoon door. Zonder filter bepaalt een mislukte call alsnog het doel: dan
+    landt een annotatie onder een vindplaats als `artikel:6:lid:1:o:c` — een IRI-achtervoegsel dat
+    de agent als bepalingnummer probeerde — en dat document is per definitie niet te openen.
 
     Bewust de bouwers uit `graph/queries.py` (`_art`, `_nummer_vrij`): de kennis over geldige vormen
     hoort op één plek, en een eigen validator hier zou daarvan wegdrijven.
@@ -153,10 +152,10 @@ def _meerdere_artikelen(state: State) -> list[str]:
     """Wees de ophaal-agent meer dan één artikel aan? Dan annoteren we niets.
 
     Twee bronnen: de `{"meerdere": [...]}`-JSON die de prompt vraagt, en – als vangnet voor een
-    agent die zich daar niet aan hield – de fetch-calls. Vroeger won dan stil de laatste call en
-    verdween het andere artikel zonder melding. Alleen calls binnen de regeling van het uiteindelijke
-    doel tellen (een misser in een andere regeling onderweg is geen tweede artikel) en een
-    subbepaling telt bij haar stam (9.1 hoort bij 9).
+    agent die zich daar niet aan houdt – de fetch-calls. Zonder die controle wint stil de laatste
+    call en verdwijnt het andere artikel zonder melding. Alleen calls binnen de regeling van het
+    uiteindelijke doel tellen (een misser in een andere regeling onderweg is geen tweede artikel)
+    en een subbepaling telt bij haar stam (9.1 hoort bij 9).
     """
     import json
 

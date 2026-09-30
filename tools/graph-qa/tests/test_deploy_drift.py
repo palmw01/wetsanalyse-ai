@@ -1,11 +1,10 @@
 """Drift-guard: kan de agent in de uitgerolde omgeving zijn beurt wél vastleggen?
 
-Waarom deze test bestaat. Op 19 aug 2026 verhuisde het schrijfpad van de werkplek
-naar graph-qa zelf (commit 98eef5a, "één schrijfpad"). Die commit richtte de
-dev-compose en de toenmalige Portainer-stack netjes in, maar raakte de Azure-bicep
-niet. Daardoor stond `legt_zelf_vast` daar op false en verdween de uitkomst van
-elke annotatiebeurt: de werkplek liet supervisor, Critic en vier elementen zien,
-en meldde pas aan het eind dat er niets was vastgelegd.
+Waarom deze test bestaat. graph-qa legt de uitkomst van een annotatiebeurt zelf
+vast, en daarvoor moet de Azure-bicep de juiste env-namen zetten. Ontbreken ze, dan
+staat `legt_zelf_vast` op false en verdwijnt de uitkomst van elke annotatiebeurt:
+de werkplek laat de hele beurt en alle elementen zien, en meldt pas aan het eind
+dat er niets is vastgelegd.
 
 Dat is precies het faalgedrag waar geen compiler tegen beschermt. De agent leest
 env-namen, de bicep schrijft ze, en die twee leven in verschillende talen. Zelfde
@@ -61,10 +60,9 @@ def test_probes_blijven_binnen_de_azure_limiet() -> None:
     resource provider en `az deployment group what-if` voert die NIET uit. Een groene what-if
     bewijst hier dus niets — de fout valt pas bij een echte deploy.
 
-    Dat is precies wat er gebeurde: op 27 aug 2026 kreeg de graphdb-liveness 120 s mee (commit
-    185996d), en omdat infra handmatig is en er daarna geen deploy meer was, stond de template vijf
-    dagen onuitrolbaar in master zonder dat iemand het merkte. De eerstvolgende deploy liep erop
-    vast. Deze test kost niets en verplaatst die ontdekking naar de pull request.
+    Omdat infra handmatig wordt uitgerold, kan een onuitrolbare template dagen in master staan
+    zonder dat iemand het merkt; pas de eerstvolgende deploy loopt erop vast. Deze test kost niets
+    en verplaatst die ontdekking naar de pull request.
     """
     tekst = BICEP.read_text(encoding="utf-8")
     te_hoog = [

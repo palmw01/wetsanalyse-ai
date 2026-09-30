@@ -142,10 +142,10 @@ def test_run_imports_loopt_door_na_fout_bij_schrijven(monkeypatch: pytest.Monkey
 
 
 def test_run_imports_loopt_door_na_fout_bij_verzamelen(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Sinds de fasesplitsing kan een wet ook in fase 1 sneuvelen (download/XSD/parse).
+    """Een wet kan ook in fase 1 sneuvelen (download/XSD/parse).
 
     Die valt dan uit de structuurindex, en de rest van de batch hoort gewoon door te lopen — met
-    dezelfde per-wet-foutrapportage als voorheen. Zonder deze test zou een fout in de nieuwe fase
+    dezelfde per-wet-foutrapportage als in fase 2. Zonder deze test zou een fout in fase 1
     de hele run kunnen meeslepen zonder dat iets dat opmerkt.
     """
     main_module = _nep_fasen(monkeypatch, stuk_bij_verzamelen={"SLECHT"})

@@ -131,7 +131,7 @@ def _graaf_zonder_repository() -> FakeGraph:
 
 
 def test_ontbrekende_repository_krijgt_een_eigen_melding():
-    """De storing van 8 sep 2026: de jurist kreeg de kale GraphDB-tekst en wist nergens van.
+    """Een lege GraphDB mag de jurist niet de kale GraphDB-foutmelding geven.
 
     De weigering om uit eigen kennis te antwoorden blijft — die was juist correct — maar het
     tool-resultaat zegt nu wát er speelt en dat het vanzelf overgaat.

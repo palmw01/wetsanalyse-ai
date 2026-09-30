@@ -37,7 +37,7 @@ function volledigeView(iri) {
       beslissingen: [{ type: "comment", actor: "Reviewer", comment: "Bron nagekeken", wijziging: {} }],
     }] : [], verwijzingen: [], dekking: {} };
 }
-// Zoals graph-qa het tot 30 sep 2026 bewaarde: start én einde van dezelfde aanroep los. Na herladen
+// Een bewaard spoor met start én einde van dezelfde aanroep los. Na herladen
 // hoort dat één regel te zijn ("1 aanroepen"), niet twee.
 const trace = [
   { run_id: "r1", call_id: "call1", tool: "search_annotaties", phase: "start", status: "running" },

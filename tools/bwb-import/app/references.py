@@ -88,18 +88,18 @@ def jci_node_ref_key(doc: str | None) -> tuple[str | None, str | None]:
     **identiteit** van een node is het fout: elke "Afdeling 1" van elke regeling landt dan op
     dezelfde IRI.
 
-    Dat gebeurde ook. Live gemeten op 4 sep 2026: 16 van de 93 afdelingen en 5 van de 27 paragrafen
-    hadden meer dan één ouder. ``urn:bwb:BWBR0002320:afdeling:1`` droeg vier afdelingen ineen —
-    *Bezwaar*, *Overtredingen*, *Strafbare feiten* en *Vertegenwoordiging buiten rechte* — met vier
-    titels, vier ouders en de artikelen van alle vier op één hoop. Bij de Invorderingswet was
-    ``afdeling:1`` tegelijk *Aansprakelijkheid* (hoofdstuk VI) en *Verhaalsrechten* (hoofdstuk IV).
+    Met alleen het laatste segment hebben 16 van de 93 afdelingen en 5 van de 27 paragrafen meer dan
+    één ouder. ``urn:bwb:BWBR0002320:afdeling:1`` draagt dan vier afdelingen ineen — *Bezwaar*,
+    *Overtredingen*, *Strafbare feiten* en *Vertegenwoordiging buiten rechte* — met vier titels, vier
+    ouders en de artikelen van alle vier op één hoop. Bij de Invorderingswet is ``afdeling:1`` dan
+    tegelijk *Aansprakelijkheid* (hoofdstuk VI) en *Verhaalsrechten* (hoofdstuk IV).
 
     Gevolg voor de lezer van de graaf: een verkeerde inhoudsopgave, artikelen die aan de verkeerde
     afdeling hangen, en een artikel dat in twee hoofdstukken tegelijk lijkt te zitten.
 
     Het pad is altijd beschikbaar: alle 93 afdelingsnodes dragen een jci die het meevoert. Regelingen
     met hiërarchische nummering (de Awb: ``afdeling=10.2.1``) hebben géén hoofdstuk-segment en houden
-    dus precies dezelfde sleutel als voorheen — daar was ook geen collisie.
+    dus precies dezelfde sleutel als met alleen het laatste segment — daar is ook geen collisie.
 
     Artikel-, lid- en onderdeelsleutels blijven ongemoeid: die zijn binnen een regeling al uniek.
     """

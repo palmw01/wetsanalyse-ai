@@ -431,8 +431,8 @@ function DenkProces({
  *  toe doen:
  *
  *  - **onbepaald** – het antwoord noemde geen vindplaats en geen citaat, dus er viel niets te
- *    controleren. Dat is nadrukkelijk niet hetzelfde als "gecontroleerd en juist"; die twee vielen
- *    voorheen samen in één bool, en de UI liet ze allebei weg.
+ *    controleren. Dat is nadrukkelijk niet hetzelfde als "gecontroleerd en juist"; in één bool
+ *    vallen die twee samen, en dan laat de UI ze allebei weg.
  *  - **ongegrond** – er staat een verwijzing in die niet uit de graaf kwam, of een citaat dat niet
  *    letterlijk in de opgehaalde tekst staat. Dat is precies waar een jurist op afgaat. */
 function Brongetrouwheid({ grounding }: { grounding: AgentGrounding }) {

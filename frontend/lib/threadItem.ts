@@ -17,9 +17,9 @@ export type ThreadItem = { tool_executions?: import("./annotatieNode").ToolExecu
       // De brongetrouwheidstoets van déze beurt. Live; hij reist niet mee in het berichtcontract,
       // maar de statusregel ervan staat wél in `denk` en blijft dus na herladen terug te vinden.
       grounding?: AgentGrounding }
-  // `denk` = de tijdlijn van het samenspel (supervisor → ophaal → annoteerder ⇄ Critic). Die werd
-  // eerder weggegooid zodra de beurt een annotatie bleek; juist bij een annotatie wil je achteraf
-  // kunnen zien hoe hij tot stand kwam.
+  // `denk` = de tijdlijn van het samenspel (supervisor → ophaal → annoteer → emit). Die blijft ook
+  // bewaard als de beurt een annotatie blijkt; juist bij een annotatie wil je achteraf kunnen zien
+  // hoe hij tot stand kwam.
   // `titel` komt uit het bericht zelf (`annotatie_titel`), niet uit het document: er is geen foreign
   // key, dus na het verwijderen van het document is dit het enige dat de kaart nog kan benoemen.
   | {

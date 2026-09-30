@@ -174,13 +174,12 @@ def _h_semantic_search(g: GraphPort, a: dict[str, Any], settings: Any) -> str:
         return g.semantic_search(a["query"], limit)
     except MCPError as exc:
         # De index staat geconfigureerd maar bestaat niet in de graaf. Dat is de toestand vlak ná
-        # een herstart: de GraphDB-opslag is niet-persistent. De importer bouwt hem sinds 8 sep 2026
-        # zelf opnieuw (`ensure_similarity_index`), dus dit hoort tijdelijk te zijn — bleef het
-        # staan, dan is die herbouw stukgelopen en zegt de importlog waarom. Tot 8 sep 2026 bouwde
-        # niets hem terug en was dit permanent.
+        # een herstart: de GraphDB-opslag is niet-persistent. De importer bouwt hem zelf opnieuw
+        # (`ensure_similarity_index`), dus dit hoort tijdelijk te zijn — blijft het staan, dan is
+        # die herbouw stukgelopen en zegt de importlog waarom.
         # Het model kan hier prima omheen (tekstueel zoeken werkt),
         # maar een beheerder moet het wél weten — vandaar de waarschuwing in de log naast de
-        # terugvalmelding. Zonder dit zag je alleen een cryptische toolfout in de trace.
+        # terugvalmelding. Zonder dit zie je alleen een cryptische toolfout in de trace.
         logger.warning(
             "similarity-index niet bruikbaar; semantic_search valt terug op tekstueel zoeken",
             extra={"index": getattr(settings, "similarity_index", ""), "fout": str(exc)[:200]},
@@ -549,9 +548,9 @@ def dispatch(name: str, graph: GraphPort, args: dict[str, Any] | None, settings:
         if _graaf_is_weg(exc):
             # De repository bestaat niet. Niet "tijdelijk onbereikbaar" en geen tikfout in de query:
             # GraphDB is leeg opgekomen na een herstart (de opslag is niet-persistent) en de graaf
-            # wordt opnieuw geïmporteerd. Op 8 sep 2026 kreeg de jurist hier de kale GraphDB-tekst
+            # wordt opnieuw geïmporteerd. Zonder deze tak krijgt de jurist de kale GraphDB-tekst
             # `Repository inning doesn't exist` te zien — een correcte weigering om uit eigen
-            # geheugen te citeren, maar zonder enige aanwijzing wat er aan de hand was of hoe lang
+            # geheugen te citeren, maar zonder enige aanwijzing wat er aan de hand is of hoe lang
             # het duurt. De graafwacht-job herstelt dit binnen een kwartier.
             logger.error(
                 "de kennisgraaf is leeg: repository ontbreekt",

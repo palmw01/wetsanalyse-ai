@@ -54,10 +54,10 @@ export function mergeToolExecution(events: ToolExecution[], event: ToolExecution
 }
 /** Het toolspoor zoals het in een bewaard bericht staat, als één regel per aanroep.
  *
- *  graph-qa stuurt per aanroep twee events – start en einde, met hetzelfde `call_id` – en legde die
- *  tot 30 sep 2026 allebei los vast. Live voegt de werkplek ze samen; bij het laden van een gesprek
- *  gebeurde dat niet, en dan stond elke aanroep er twee keer ("Bezig", daarna "Uitgevoerd") en telde
- *  de kop het dubbele. Hier dezelfde regel als live, zodat ook oude berichten goed tellen. */
+ *  graph-qa stuurt per aanroep twee events – start en einde, met hetzelfde `call_id` – en een bewaard
+ *  spoor kan die allebei los bevatten. Live voegt de werkplek ze samen; zonder datzelfde bij het
+ *  laden van een gesprek staat elke aanroep er twee keer ("Bezig", daarna "Uitgevoerd") en telt de
+ *  kop het dubbele. Hier dezelfde regel als live. */
 export function toolSpoorUit(ruw: readonly unknown[] | null | undefined): ToolExecution[] {
   return (ruw ?? []).reduce<ToolExecution[]>((spoor, r) => {
     const e = parseToolExecution(r);

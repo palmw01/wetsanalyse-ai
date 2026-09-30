@@ -441,7 +441,7 @@ async def test_zonder_graaf_geen_directe_projectie(monkeypatch):
 
 
 async def test_herkomstspoor_per_element_blijft_bewaard_tot_in_de_weergave():
-    """ADR-001 PR 15: `trace` is een expliciet contractveld en reist mee tot in de opslag en de export."""
+    """ADR-001: `trace` is een expliciet contractveld en reist mee tot in de opslag en de export."""
     snap = snapshot(ONE)
     spoor = {"pijplijn": "hybrid_v1", "jas_versie": "1.0.10",
              "kandidaat": {"id": "Kabc", "label": "C001", "bewijs": [{"detector": "tijd", "code": "TEMPORAL_DURATION"}]},

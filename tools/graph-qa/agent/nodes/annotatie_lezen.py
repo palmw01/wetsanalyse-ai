@@ -1,15 +1,15 @@
 """De leesroute: eerst echt zoeken, dan pas praten.
 
-Waarom deze node bestaat. De leesroute liet het aan het model over om `search_annotaties` aan te
-roepen. Op 22 sep 2026 deed het dat niet: één LLM-call, nul tools, geen enkele zoekopdracht bij de
-api – en omdat er dan geen annotatiebewijs in de `source_trace` staat, verving `begrens_antwoord`
-het antwoord door "Ik heb de opgeslagen annotaties niet kunnen raadplegen". De jurist las een
-non-antwoord op een vraag die gewoon te beantwoorden was.
+Waarom deze node bestaat. Laat de leesroute het aan het model over om `search_annotaties` aan te
+roepen, dan doet het dat soms niet: één LLM-call, nul tools, geen enkele zoekopdracht bij de api –
+en omdat er dan geen annotatiebewijs in de `source_trace` staat, vervangt `begrens_antwoord` het
+antwoord door "Ik heb de opgeslagen annotaties niet kunnen raadplegen". De jurist leest dan een
+non-antwoord op een vraag die gewoon te beantwoorden is.
 
 Een strengere prompt lost dat niet op; die vraagt het model opnieuw om iets te onthouden. De
-annotatieroute deed het daarom al anders: die haalt de bron deterministisch op (`lees_bron`) vóór
-de eerste LLM-call. Deze node doet hetzelfde voor de leesroute – zoeken is hier geen keuze meer,
-maar een stap in de keten.
+annotatieroute haalt de bron daarom deterministisch op (`lees_bron`) vóór de eerste LLM-call.
+Deze node doet hetzelfde voor de leesroute – zoeken is hier geen keuze, maar een stap in de
+keten.
 
 Het resultaat gaat als echt `tool_use`/`tool_result`-paar de historie in, precies zoals `tools_node`
 dat doet: dan blijft het bewijs, niet een instructie, en blijven de bestaande knip- en

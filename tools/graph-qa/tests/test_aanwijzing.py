@@ -1,7 +1,7 @@
 """Eén artikel per annotatievraag – en dat hangt niet van het model af.
 
 Drie lagen: de vraag zelf (deterministisch, vóór elke ophaalcall), de ophaal-JSON `meerdere`, en een
-vangnet op de fetch-calls. Vroeger won bij "artikel 8 en 9" stil de laatste call en verdween
+vangnet op de fetch-calls. Zonder die lagen wint bij "artikel 8 en 9" stil de laatste call en verdwijnt
 artikel 8 zonder melding.
 """
 from __future__ import annotations

@@ -29,7 +29,7 @@ export function vindplaatsLabel(d: { artikel: string; lid: string; soort?: strin
 }
 
 /** De naam waaronder een annotatie in beeld komt, met dezelfde terugval als de server hanteert:
- *  citeertitel → werkgebied (waar de wetnaam vroeger in stond) → bwbId. */
+ *  citeertitel → werkgebied → bwbId. */
 export function naamVan(d: { citeertitel?: string; werkgebied?: string; bwbId: string }): string {
   return d.citeertitel || d.werkgebied || d.bwbId;
 }
@@ -53,7 +53,7 @@ function tijd(d: DocumentSamenvatting): number {
 /** Werkvoorraad-volgorde: rood eerst, dan geel, dan wat het langst stil ligt.
  *
  *  Niet op "meeste te beoordelen": een document met dertig open elementen zonder aandachtssignaal
- *  is routinewerk, terwijl één rood element een echte vraag is. De aandacht van de Critic weegt dus
+ *  is routinewerk, terwijl één rood element een echte vraag is. Het aandachtssignaal weegt dus
  *  zwaarder dan de omvang. */
 export function sorteerTeDoen(docs: DocumentSamenvatting[]): DocumentSamenvatting[] {
   return [...docs].sort(

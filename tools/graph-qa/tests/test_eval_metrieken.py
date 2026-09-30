@@ -1,4 +1,4 @@
-"""Offset-metrieken en referentiestatus (ADR-001 PR 5b, §13)."""
+"""Offset-metrieken en referentiestatus (ADR-001, §13)."""
 from __future__ import annotations
 
 import json
@@ -88,8 +88,8 @@ def test_niets_te_meten_is_geen_gratis_een():
 
 
 def test_elke_referentiemarkering_is_letterlijk_en_ligt_op_woordgrenzen():
-    """Een offset midden in een woord telt een correcte keten als fout. Gevonden in de A/B van
-    25 sep 2026: 'voetgangers' wees in RVV01–03 naar het begin van 'voetgangerslichten'."""
+    """Een offset midden in een woord telt een correcte keten als fout, zoals 'voetgangers' dat naar
+    het begin van 'voetgangerslichten' wijst (RVV01–03)."""
     import re
     woord = re.compile(r"\w")
     for c in json.loads(CASES.read_text(encoding="utf-8")):

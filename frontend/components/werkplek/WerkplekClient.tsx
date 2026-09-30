@@ -88,9 +88,9 @@ function isAfgebroken(e: unknown): boolean {
 // oplopende wachttijd (`herstelWachttijd`) en een banner die zegt wat er aan de hand is. De regel
 // zelf staat in `lib/lopendeRun.ts`; hier staat alleen wat het scherm ermee doet.
 //
-// Dit was eerder één poging na 1,5 seconde. Duurde de onderbreking langer – een herstart van
-// graph-qa is dat al – dan kwam de beurt als mislukt in beeld terwijl hij gewoon doorliep, en
-// alleen een herlaadbeurt bracht hem terug.
+// Eén poging na 1,5 seconde is niet genoeg: duurt de onderbreking langer – een herstart van
+// graph-qa is dat al – dan komt de beurt als mislukt in beeld terwijl hij gewoon doorloopt, en
+// brengt alleen een herlaadbeurt hem terug.
 
 interface Props {
   /** Het te openen gesprek, of `null` voor een vers (nog niet gepersisteerd) gesprek. */
@@ -179,8 +179,8 @@ export function WerkplekClient({
   // herstart of deploy). Beter dit zeggen dan een gesprek dat halverwege ophoudt zonder uitleg.
   const [runVerdwenen, setRunVerdwenen] = useState(false);
   // De verbinding met de lopende beurt is weg en we haken opnieuw aan. Een tóéstand en geen tekst in
-  // de antwoordbubbel: alleen zo kan de melding vanzelf verdwijnen zodra de stroom weer loopt – wat
-  // hij eerder niet deed, zodat er niets anders op zat dan herladen.
+  // de antwoordbubbel: alleen zo kan de melding vanzelf verdwijnen zodra de stroom weer loopt, in
+  // plaats van te blijven staan tot je herlaadt.
   const [verbindingWeg, setVerbindingWeg] = useState(false);
   const lijstRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
@@ -204,10 +204,9 @@ export function WerkplekClient({
   // Verdwijnt dit venster (van gesprek wisselen remount het component), dan koppelen we alleen de
   // KIJKER los. De run zelf draait bij de agent door en wordt opgepakt zodra je terugkomt.
   //
-  // Dit stond hier eerder als `abort()` op de beurt zelf, en dat was de oorzaak van "vragen worden
-  // afgebroken": van gesprek wisselen, naar het annotatie-overzicht lopen of herladen doodde het
-  // antwoord waar je op wachtte. Stoppen is nu een expliciete handeling (`stop()`), geen bijwerking
-  // van navigeren.
+  // Geen `abort()` op de beurt zelf: dan breekt van gesprek wisselen, naar het annotatie-overzicht
+  // lopen of herladen het antwoord af waar je op wacht. Stoppen is een expliciete handeling
+  // (`stop()`), geen bijwerking van navigeren.
   useEffect(() => {
     levendRef.current = true;
     return () => {
@@ -458,10 +457,10 @@ export function WerkplekClient({
     // het aanhaken na een herlaadbeurt is deze regel de user-bubbel waar het antwoord onder hoort.
     await persisteer(gid, "user", { tekst: contextLabel ? `Bij ${contextLabel}: ${prompt}` : prompt });
 
-    // Markeringen die de jurist al maakte gaan mee: de Critic kan er dan een kanttekening bij
-    // zetten. De agent kan niet zelf in het document kijken – dat leeft in de api. Alleen de
-    // bepaling die nú open staat: de Critic beoordeelt ze tegen de tekst die hij zelf ophaalt, dus
-    // markeringen uit een ander artikel kan hij daar per definitie niet in terugvinden.
+    // Markeringen die de jurist al maakte gaan mee als context (`bestaande_elementen`). De agent kan
+    // niet zelf in het document kijken – dat leeft in de api. Alleen de bepaling die nú open staat:
+    // de agent leest ze tegen de tekst die hij zelf ophaalt, dus markeringen uit een ander artikel
+    // kan hij daar per definitie niet in terugvinden.
     const reedsEigen = eigenMarkeringenVoorContext(artefactSlug ? docs[artefactSlug] : undefined);
     const basis = nodeContext ? { modus: "advies" as const, context: {
       bron_iri: nodeContext.element.eigenaar_iri, snapshot_id: nodeContext.view.snapshot_id,
@@ -567,8 +566,8 @@ export function WerkplekClient({
     let denk = "";
     let bronnen: Bron[] = [];
     // Heeft de agent de beurt zelf vastgelegd? Dan schrijft de werkplek niets meer weg – anders
-    // stond alles er twee keer. Blijft dit leeg, dan doet de client het zoals vroeger; zo werkt een
-    // graph-qa zonder api-koppeling gewoon door.
+    // staat alles er twee keer. Blijft dit leeg, dan legt de client het bericht zelf vast; zo werkt
+    // een graph-qa zonder api-koppeling gewoon door.
     let opgeslagen: { annotatie_slug: string; run_id: string; annotatie_doel?: NodeDoel } | null = null;
     let toolExecutions: ToolExecution[] = [];
     // De verbinding viel weg terwijl de run doorliep. Buiten de `try` gezet omdat het opnieuw
@@ -710,10 +709,10 @@ export function WerkplekClient({
         // `opgeslagen`-event terwijl er wél markeringen waren. Dat is een storing en die tonen we
         // als storing.
         //
-        // De werkplek schreef het hier vroeger zelf weg. Dat was een tweede, volledige
-        // implementatie van dezelfde handeling – mét eigen artikelophaling en eigen titelopbouw —
-        // en welke van de twee liep hing af van de aan/afwezigheid van één SSE-event. Bij een
-        // gedeeltelijk falen leverde dat een tweede document op. Eén schrijver, en die is de agent.
+        // De werkplek schrijft het hier niet zelf weg. Dat zou een tweede, volledige implementatie
+        // van dezelfde handeling zijn – mét eigen artikelophaling en eigen titelopbouw – en welke
+        // van de twee liep, hing dan af van de aan/afwezigheid van één SSE-event. Bij een
+        // gedeeltelijk falen levert dat een tweede document op. Eén schrijver, en die is de agent.
         const melding =
           "**Deze beurt is niet vastgelegd.** De markeringen zijn wel voorgesteld, maar niet " +
           "opgeslagen. Stel de vraag opnieuw; blijft het gebeuren, meld het dan.";

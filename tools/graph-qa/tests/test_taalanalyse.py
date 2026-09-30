@@ -1,4 +1,4 @@
-"""De linguïstische analyselaag (ADR-001 PR 3): providercontract, UD-afleidingen, geen stille terugval."""
+"""De linguïstische analyselaag (ADR-001): providercontract, UD-afleidingen, geen stille terugval."""
 from __future__ import annotations
 
 import pytest

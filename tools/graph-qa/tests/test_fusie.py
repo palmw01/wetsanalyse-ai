@@ -1,4 +1,4 @@
-"""Kandidaatfusie en JAS-specificiteit over geneste spans (ADR-001 PR 8)."""
+"""Kandidaatfusie en JAS-specificiteit over geneste spans (ADR-001)."""
 from __future__ import annotations
 
 import pytest

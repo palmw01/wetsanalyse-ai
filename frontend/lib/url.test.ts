@@ -104,8 +104,8 @@ describe("bronHref", () => {
   });
 
   it("vertaalt een graaf-IRI naar de deeplink van de bepaling", () => {
-    // De agent levert vindplaatsen ook als IRI uit de kennisgraaf. Die werden eerder achter
-    // wetten.overheid.nl geplakt – een klikbare link naar een 404.
+    // De agent levert vindplaatsen ook als IRI uit de kennisgraaf. Die achter wetten.overheid.nl
+    // plakken levert een klikbare link naar een 404.
     expect(bronHref("urn:bwb:BWBR0004770:artikel:9")).toBe(
       "https://wetten.overheid.nl/jci1.3:c:BWBR0004770&artikel=9",
     );

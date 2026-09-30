@@ -1,10 +1,8 @@
 """De dertien JAS-klassen – de canonieke bron voor het annotatiedomein.
 
-Deze lijst stond eerder in een script in de wetsanalyse-skill, dat `validation.py` op import-tijd
-inlaadde. Dat betekende dat het productie-image een Claude-skill
-moest meedragen om te kunnen starten. Toen de standalone analyse-werkstroom (de reviewlus en de
-rapportviewer) verdween, is deze kennis hierheen verhuisd: de api hangt nu nergens buiten `api/`
-meer aan vast.
+De lijst staat bewust in `api/` en niet in de wetsanalyse-skill: laadt de api hem uit een
+skill-script, dan moet het productie-image een Claude-skill meedragen om te kunnen starten. Zo
+hangt de api nergens buiten `api/` aan vast.
 
 Twee andere plekken dragen dezelfde waarden en worden door tests bewaakt:
 `frontend/lib/jas.ts` (een browser kan dit bestand niet lezen) via `tests/test_jas_kleuren_drift.py`,

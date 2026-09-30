@@ -1,10 +1,10 @@
 """Drift-guard: elk `bwb:`-term in onze SPARQL bestaat ook echt in de graaf.
 
-Waarom deze test bestaat. `get_lid` bevroeg tot 1 sep 2026 het predicaat `bwb:bevat`. Dat predicaat
-bestaat niet — de importer schrijft `HEEFT_ONDERDEEL`, wat via `rdf_vocab._camel` `bwb:heeftOnderdeel`
-wordt — dus de subquery matchte nooit iets en de tool leverde maandenlang géén enkel onderdeel. De
-test die er wél was (`test_queries.py`) las alleen de querytekst (`"bwb:bevat" in sparql`) en zag dat
-niet: een query kan syntactisch perfect zijn en semantisch nergens over gaan.
+Waarom deze test bestaat. Een predicaat dat niet in de graaf bestaat – zoals `bwb:bevat`; de importer
+schrijft `HEEFT_ONDERDEEL`, wat via `rdf_vocab._camel` `bwb:heeftOnderdeel` wordt – laat een subquery
+nooit iets matchen, en de tool levert dan géén enkel onderdeel. Een test die alleen de querytekst leest
+(`"bwb:bevat" in sparql`) ziet dat niet: een query kan syntactisch perfect zijn en semantisch nergens
+over gaan.
 
 Dat is de faalmodus die deze guard afvangt: **stille onvolledigheid**. Geen foutmelding, geen leeg
 resultaat waar iemand van opkijkt — gewoon een antwoord dat minder weet dan de graaf. Bij een
@@ -95,7 +95,7 @@ def test_de_ontologie_is_leesbaar():
 # Kardinaliteit: een query mag niet méér rijen opleveren dan er antwoorden zijn
 # ---------------------------------------------------------------------------
 #
-# De tweede les van de live-meting van 4 sep 2026, naast "een predicaat dat niet bestaat".
+# De tweede les van de live-meting, naast "een predicaat dat niet bestaat".
 # Vijf van de zeven gevonden defecten leverden gewoon rijen op — ze leverden er te véél op:
 #
 #   - `?node a ?type` matcht ook de gematerialiseerde superklassen (Citeerbaar, eli:LegalResource),

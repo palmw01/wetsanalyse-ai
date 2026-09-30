@@ -1,4 +1,4 @@
-"""Onzekerheid uit waarneembare signalen (ADR-001 PR 12, opdracht §19).
+"""Onzekerheid uit waarneembare signalen (ADR-001, opdracht §19).
 
 Geen zelfgerapporteerde modelconfidence: een twijfelgeval is een kandidaat waar iets aanwijsbaars
 botst. Vier redenen, elk met een vaste behandeling in de resolver:
