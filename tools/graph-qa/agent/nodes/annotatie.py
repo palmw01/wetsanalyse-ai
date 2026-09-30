@@ -20,7 +20,6 @@ from bronmodel import BronFout, BronKeuze, onderdelen_om_te_kiezen
 
 from ..agent_common import truncate
 from ..annotatie import aanduiding_in_woorden
-from ..artikel import OngeldigeVindplaats
 from ..bron_annotatie import controleer_hergebruik, doel_event, lees_bron, lokale_elementen, stand_per_optie
 from ..aanwijzing import lees_aanwijzing, melding_meerdere
 from ..doel import _bepaal_doel, _heeft_opgegeven_doel, _kandidaten_uit_json, _meerdere_artikelen
@@ -117,7 +116,7 @@ def _bereid_voor(b: Bouw, state: State, writer) -> dict[str, Any]:
         return _keuzekaart(writer, keuze.opties, bwb_id=str(doel.get("bwbId") or ""),
                            citeertitel=str(doel.get("citeertitel") or ""), ouder=keuze.ouder,
                            melding=melding, soort="onderdeel" if keuze.ouder else "bepaling")
-    except (OngeldigeVindplaats, BronFout) as fout:
+    except BronFout as fout:
         # De beurt eindigt hier, en dat is de bedoeling. Doorgaan zou markeringen opleveren onder een
         # aanduiding die de werkplek niet kan openen – de jurist ziet dan pas bij het openen dat er
         # iets mis is, en heeft ondertussen een document in zijn werkvoorraad dat nergens bij hoort.

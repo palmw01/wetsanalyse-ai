@@ -25,7 +25,7 @@ def wet(bwb):
     return cache[bwb]
 
 def regels(eigen, onderdelen):
-    """Zoals `artikel._vouw_onderdelen_in`: eigen tekst, daarna elk onderdeel op een eigen regel."""
+    """Eigen tekst, daarna elk onderdeel op een eigen regel."""
     uit = [eigen.strip()] if eigen.strip() else []
     def loop(ond):
         for o in ond:

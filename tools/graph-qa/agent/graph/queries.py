@@ -73,8 +73,8 @@ _BWB_RE = re.compile(r"^BWBR\d+$")
 # Artikelnummer: "9", "22a", maar ook "3:40", "5:2", "8:36f".
 #
 # Die tweede vorm gebruikt de Algemene wet bestuursrecht consequent, en zonder de dubbele punt was
-# ze onbereikbaar: `artikel_iri` weigerde een IRI te bouwen, `_controleer_vindplaats` gaf
-# OngeldigeVindplaats, en een annotatiebeurt brak af met "het doel is geen geldige vindplaats".
+# ze onbereikbaar: `artikel_iri` weigerde een IRI te bouwen en een annotatiebeurt brak af met "het
+# doel is geen geldige vindplaats".
 # Gemeten in de graaf op 5 sep 2026: **570 van de 572 Awb-artikelen** dragen een dubbele punt —
 # 49% van alle 1162 artikelen. De wet was dus wél geïmporteerd en doorzoekbaar, maar niet op te
 # halen en niet te annoteren; de eval liep erop vast met nul markeringen op twee cases.
@@ -88,8 +88,7 @@ _NUM_RE = re.compile(r"^[0-9]+[a-z]*$", re.IGNORECASE)
 # Letters mogen op ELK segment staan, niet alleen op het laatste. De oudere vorm
 # `^[0-9]+(\.[0-9]+)*[a-z]*$` eiste dat elk segment ná de eerste punt puur numeriek was, en wees
 # daarmee 52 bestaande Leidraad-bepalingen af: "7a.1", "22bis.1", "73.3a.2", "25.3a.1", "44a.2" …
-# Die gaven geen "niets gevonden" maar een 400 OngeldigeVindplaats – een tikfout-melding voor een
-# bepaling die gewoon bestaat. Een puur alfabetisch segment ("14.4.5.a", "25.2.2.a") komt ook voor.
+# Die gaven geen "niets gevonden" maar een tikfout-melding voor een bepaling die gewoon bestaat. Een puur alfabetisch segment ("14.4.5.a", "25.2.2.a") komt ook voor.
 _NUMMER_VRIJ_RE = re.compile(r"^[0-9]+[a-z]*(\.(?:[0-9]+[a-z]*|[a-z]+))*$", re.IGNORECASE)
 
 
@@ -170,20 +169,17 @@ def node_patroon(bwb_id: str, aanduiding: str, lid: str | None = None) -> str:
 
     Waarom dit bestaat. `follow_verwijzingen`, `referenced_by` en `context` bouwden alle drie
     rechtstreeks op `artikel_iri`, en die weigert een punt. Voor de ~800 divisies van de Leidraad
-    Invordering 2008 werkte dus GEEN van de drie: geen verwijzingen, geen inbedding, geen context —
-    terwijl het corpus-pad (`get_bepaling_corpus`) die bepalingen al jaren gewoon oplevert. Een
-    jurist die een Leidraad-bepaling opent kreeg daardoor een half platform.
+    Invordering 2008 werkte dus GEEN van de drie: geen verwijzingen, geen inbedding, geen context.
+    Een jurist die een Leidraad-bepaling opent kreeg daardoor een half platform.
 
     Twee vormen, één uitkomst:
     - **artikelnummer** ('9', '22a') → een directe IRI. Geen zoekwerk, geen ambiguïteit.
     - **decimaal nummer** ('9.1', '73.3a.2') → matchen op `bwb:nummer` binnen de regelingscope.
-      Een nummer kan meer dan één node raken, dus net als in `get_bepaling_corpus` kiest een
-      subquery er precies één, met voorrang voor de node die eigen tekst draagt. Zonder die keuze
+      Een nummer kan meer dan één node raken, dus kiest een subquery er precies één, met voorrang voor de node die eigen tekst draagt. Zonder die keuze
       vermenigvuldigt elke tak van een UNION zich met het aantal kandidaten.
 
     Let op de asymmetrie die blijft: een `lid` heeft bij een divisie geen betekenis (die kent
-    subdivisies, geen leden) en wordt daar genegeerd — `_leden_en_corpus` vouwt subbepalingen om
-    dezelfde reden tot leden-rijen in.
+    subdivisies, geen leden) en wordt daar genegeerd.
     """
     if is_artikelnummer(aanduiding):
         iri = lid_iri(bwb_id, aanduiding, lid) if lid else artikel_iri(bwb_id, aanduiding)
@@ -307,9 +303,8 @@ def get_artikel(bwb_id: str, artikel: str) -> str:
     FILTER(STRSTARTS(STR(?lid), "{NS}"))
     OPTIONAL {{ ?lid bwb:nummer ?lidnummer }}
     OPTIONAL {{ ?lid bwb:tekst ?lidtekst }}
-    # Numeriek sorteren, niet lexicaal: anders staat lid 10 vóór lid 2. Dezelfde valkuil die
-    # `artikel._lidsleutel` voor het corpus oplost; hier moet SPARQL het doen, want de tool levert
-    # zijn rijen rechtstreeks aan het model. "1a" telt als 1 en houdt zijn plaats via ?lid.
+    # Numeriek sorteren, niet lexicaal: anders staat lid 10 vóór lid 2. SPARQL moet het doen, want
+    # de tool levert zijn rijen rechtstreeks aan het model. "1a" telt als 1 en houdt zijn plaats via ?lid.
     BIND(xsd:integer(REPLACE(STR(?lidnummer), "[^0-9].*$", "")) AS ?lidsort)
   }}
   OPTIONAL {{
@@ -319,76 +314,6 @@ def get_artikel(bwb_id: str, artikel: str) -> str:
     OPTIONAL {{ ?o bwb:tekst ?onderdeeltekst }}
   }}
 }} ORDER BY ?lidsort ?lid ?o"""
-
-
-def get_artikel_corpus(bwb_id: str, artikel: str) -> str:
-    """Artikel met leden én onderdelen – de bron voor het annotatiecorpus en het documentpaneel.
-
-    Waarom naast `get_artikel` en niet erin. `get_artikel` voedt óók de gelijknamige tool, en
-    tool-resultaten gaan door `truncate` (8000 tekens). Bij een definitieartikel met 25 onderdelen
-    kapt dat juist de laatste definities af — dat was destijds de reden om lid-onderdelen daar weg
-    te laten, en die reden geldt nog. Het corpus gaat níet door `truncate`, dus hier kan het wel.
-
-    Waarom niet de `?onderdelen`-cel van `get_lid` hergebruiken: die bakt de jci in de tekst
-    (`"a. … [jci…]"`) zodat de agent per onderdeel een vindplaats kan citeren. Nuttig voor een
-    antwoord, onbruikbaar als corpus — een markering die zo'n regel citeert zou een jci-fragment
-    bevatten en dan liegt de letterlijkheidscontrole.
-
-    Eén rij per (lid, onderdeel). De UNION scheidt twee gevallen die elkaar uitsluiten: onderdelen
-    onder een lid, en onderdelen rechtstreeks onder het artikel (een opsomming bij een artikel
-    zónder leden). Met twee losse OPTIONALs zou dat het cartesisch product opleveren en herhaalde
-    elke lidtekst zich per onderdeel.
-
-    `heeftOnderdeel+` omdat de importer een boom schrijft: 'aa.' hangt onder het lid, '1°' onder
-    'aa.'.
-
-    De derde tak (`?sub`) is er voor een aanduiding met een héél getal die bij een beleidsregel op
-    een container uitkomt. `artikel_iri("BWBR0024096", "25")` bestaat namelijk wél – de Leidraad
-    geeft haar top-divisies een `:artikel:`-IRI – dus deze query levert rijen, `leden` is niet leeg
-    en `_bepaling_fallback` springt juist níet aan. Zonder deze tak was het resultaat een
-    inhoudsopgave van acht streepjes met een 200 eronder. Zie `get_bepaling_corpus` voor de rest
-    van de redenering; het decimale pad (`25.1.1`) loopt daar langs.
-    """
-    iri = artikel_iri(bwb_id, artikel)
-    return PREFIXES + f"""SELECT ?tekst ?jci ?soort ?lid ?lidnummer ?lidtekst ?sub ?subnummer ?subtekst
-       ?o ?ouder ?onummer ?otekst WHERE {{
-  OPTIONAL {{ <{iri}> bwb:tekst ?tekst }}
-  OPTIONAL {{ <{iri}> bwb:jci ?jci }}
-  OPTIONAL {{ <{iri}> a ?soort . FILTER(?soort IN (bwb:Artikel, bwb:Divisie)) }}
-  OPTIONAL {{
-    {{
-      <{iri}> bwb:heeftLid ?lid .
-      FILTER(STRSTARTS(STR(?lid), "{NS}"))
-      OPTIONAL {{ ?lid bwb:nummer ?lidnummer }}
-      OPTIONAL {{ ?lid bwb:tekst ?lidtekst }}
-      OPTIONAL {{
-        ?lid bwb:heeftOnderdeel+ ?o .
-        FILTER(STRSTARTS(STR(?o), "{NS}"))
-        OPTIONAL {{ ?ouder bwb:heeftOnderdeel ?o }}
-        OPTIONAL {{ ?o bwb:nummer ?onummer }}
-        OPTIONAL {{ ?o bwb:tekst ?otekst }}
-      }}
-    }} UNION {{
-      <{iri}> bwb:heeftOnderdeel+ ?o .
-      FILTER(STRSTARTS(STR(?o), "{NS}"))
-      OPTIONAL {{ ?ouder bwb:heeftOnderdeel ?o }}
-      OPTIONAL {{ ?o bwb:nummer ?onummer }}
-      OPTIONAL {{ ?o bwb:tekst ?otekst }}
-    }} UNION {{
-      <{iri}> (bwb:heeftDivisie|bwb:heeftArtikel)+ ?sub .
-      FILTER(STRSTARTS(STR(?sub), "{NS}"))
-      OPTIONAL {{ ?sub bwb:nummer ?subnummer }}
-      OPTIONAL {{ ?sub bwb:tekst ?subtekst }}
-      OPTIONAL {{
-        ?sub bwb:heeftOnderdeel+ ?o .
-        FILTER(STRSTARTS(STR(?o), "{NS}"))
-        OPTIONAL {{ ?ouder bwb:heeftOnderdeel ?o }}
-        OPTIONAL {{ ?o bwb:nummer ?onummer }}
-        OPTIONAL {{ ?o bwb:tekst ?otekst }}
-      }}
-    }}
-  }}
-}} ORDER BY ?lid ?sub ?o"""
 
 
 def get_lid(bwb_id: str, artikel: str, lid: str) -> str:
@@ -452,13 +377,12 @@ def get_bepaling(bwb_id: str, nummer: str) -> str:
     eigen tekst en vijftien subdivisies met 7842 tekens eronder (live gemeten, 4 sep 2026). De
     ophaal-agent moet volgens zijn instructie "eindigen met een geslaagde get_bepaling-call die de
     tekst teruggaf" – en dat kón niet, voor precies de bepalingen waar een jurist mee werkt.
-    `get_bepaling_corpus` had deze fix al; de tool-variant was achtergebleven.
 
     **Een container noemt zijn subdivisies.** Alleen de eigen tekst teruggeven zou bij zo'n bepaling
     een lege regel opleveren met een `200` eromheen — stil onvolledig, het gevaarlijkste geval. De
     `?sub`-tak levert daarom nummer + label + het begin van de tekst per subdivisie, zodat het model
     ziet dát er inhoud is en waar hij die kan ophalen. Bewust alleen het BEGIN (200 tekens): dit
-    resultaat gaat door `truncate`, en de volledige tekst hoort in het corpus, niet in een tool.
+    resultaat gaat door `truncate`; de volledige tekst haalt de annotatieketen via `bronmodel`.
 
     De subquery kiest één node, met voorrang voor die mét eigen tekst — een nummer kan binnen een
     regeling meer dan één node raken, en dan wil je de inhoudelijke.
@@ -487,85 +411,6 @@ def get_bepaling(bwb_id: str, nummer: str) -> str:
 }} ORDER BY ?sub LIMIT 40"""
 
 
-def get_bepaling_corpus(bwb_id: str, nummer: str) -> str:
-    """Een bepaling mét haar onderdelen – de corpusvariant van `get_bepaling`.
-
-    Waarom naast en niet in `get_bepaling`: die voedt óók de gelijknamige tool, en tool-resultaten
-    gaan door `truncate` (8000 tekens). Bepaling 26.1.9 van de Leidraad heeft 221 tekens eigen tekst
-    en 16 onderdelen met 6128 tekens; in de tool zouden juist de laatste voorwaarden wegvallen.
-    Dezelfde afweging als bij `get_artikel` / `get_artikel_corpus`.
-
-    Een divisie hangt aan haar onderdelen met hetzelfde `heeftOnderdeel` als een lid
-    (`bwb-import/app/collect.py:_divisies` roept dezelfde `_onderdelen` aan), en net zo recursief –
-    vandaar het pad `+`.
-
-    EERST ÉÉN NODE KIEZEN, dan pas de onderdelen. `get_bepaling` matcht op `bwb:nummer` en houdt
-    `LIMIT 5` aan omdat een nummer binnen een regeling meer dan één node kan raken. Met één rij per
-    onderdeel zou zo'n limiet de opsomming afkappen – precies de fout die deze query moet oplossen.
-    De subquery met `LIMIT 1` maakt de keuze eenmalig, waarna het aantal rijen alleen nog van het
-    aantal onderdelen afhangt.
-
-    `bwb:tekst` is hier OPTIONEEL, anders dan in `get_bepaling`. Zes bepalingen in de Leidraad
-    hebben geen eigen tekst maar wél onderdelen (14.2.4, 14.2a, 25.4.6, 73.3a.2, …); met tekst als
-    harde eis gaf de query niets terug en waren die bepalingen niet te openen en niet te annoteren.
-    De `FILTER(BOUND(...))` eist daarom inhoud in de een óf de ander, en de `ORDER BY` geeft
-    voorrang aan een node mét eigen tekst — een nummer kan binnen een regeling meer dan één node
-    raken, en dan wil je de inhoudelijke.
-
-    **De `?sub`-tak: een bepaling kan een container zijn.** De importer schrijft voor een circulaire
-    twee bomen: `heeftDivisie` voor divisie→subdivisie en `heeftOnderdeel` voor de opsomming ván één
-    divisie. Alleen `heeftOnderdeel+` volgen levert bij een container dus de inhoudsopgave en niets
-    meer: bepaling 25 van de Leidraad heeft 76 tekens eigen tekst en acht opsommingsstreepjes,
-    terwijl er 81 subdivisies met 43.622 tekens onder hangen. Geen fout, geen 404 — stil onvolledig,
-    en dat is precies het gevaarlijke geval.
-
-    `heeftArtikel` zit in hetzelfde pad omdat een divisie eigen artikelen kan dragen (elf in de
-    Leidraad, onder 22bis en 79). Het pad is transitief en gaat níet één niveau: bepaling 25 heeft
-    negen directe subdivisies met samen nul tekens eigen tekst — de inhoud zit pas een laag dieper.
-    Lege tussenlagen leveren gewoon geen corpusregel op.
-
-    `ORDER BY ?sub ?o` groepeert de rijen per subbepaling; de eigen onderdelen van de node zelf
-    (`?sub` ongebonden) komen eerst. De echte volgorde legt `artikel._boomvolgorde` op.
-    """
-    lit = _lit(_nummer_vrij(nummer))
-    scope = f"{NS}{_bwb(bwb_id)}"
-    return PREFIXES + f"""SELECT ?nummer ?tekst ?jci ?soort ?sub ?subnummer ?subtekst
-       ?o ?ouder ?onummer ?otekst WHERE {{
-  {{ SELECT DISTINCT ?node ?tekst WHERE {{
-      ?node bwb:nummer {lit} .
-      FILTER(STRSTARTS(STR(?node), "{scope}"))
-      OPTIONAL {{ ?node bwb:tekst ?tekst }}
-      OPTIONAL {{ ?node bwb:heeftOnderdeel ?enig }}
-      OPTIONAL {{ ?node bwb:heeftDivisie|bwb:heeftArtikel ?enigkind }}
-      FILTER(BOUND(?tekst) || BOUND(?enig) || BOUND(?enigkind))
-    }} ORDER BY DESC(BOUND(?tekst)) LIMIT 1 }}
-  BIND({lit} AS ?nummer)
-  OPTIONAL {{ ?node bwb:jci ?jci }}
-  OPTIONAL {{ ?node a ?soort . FILTER(?soort IN (bwb:Artikel, bwb:Divisie)) }}
-  OPTIONAL {{
-    {{
-      ?node bwb:heeftOnderdeel+ ?o .
-      FILTER(STRSTARTS(STR(?o), "{scope}"))
-      OPTIONAL {{ ?ouder bwb:heeftOnderdeel ?o }}
-      OPTIONAL {{ ?o bwb:nummer ?onummer }}
-      OPTIONAL {{ ?o bwb:tekst ?otekst }}
-    }} UNION {{
-      ?node (bwb:heeftDivisie|bwb:heeftArtikel)+ ?sub .
-      FILTER(STRSTARTS(STR(?sub), "{scope}"))
-      OPTIONAL {{ ?sub bwb:nummer ?subnummer }}
-      OPTIONAL {{ ?sub bwb:tekst ?subtekst }}
-      OPTIONAL {{
-        ?sub bwb:heeftOnderdeel+ ?o .
-        FILTER(STRSTARTS(STR(?o), "{scope}"))
-        OPTIONAL {{ ?ouder bwb:heeftOnderdeel ?o }}
-        OPTIONAL {{ ?o bwb:nummer ?onummer }}
-        OPTIONAL {{ ?o bwb:tekst ?otekst }}
-      }}
-    }}
-  }}
-}} ORDER BY ?sub ?o"""
-
-
 def get_regeling_info(bwb_id: str) -> str:
     """Metadata van één regeling, inclusief de WTI-verrijking – in ÉÉN rij.
 
@@ -585,8 +430,6 @@ def get_regeling_info(bwb_id: str) -> str:
     `SAMPLE` voor de rest is veilig omdat die velden per regeling één waarde hebben — en waar dat
     onverhoopt niet zo is, is één waarde nog altijd beter dan een rijenexplosie.
 
-    Let op `agent/artikel.py`, dat `info[0]["citeertitel"]` leest: dat blijft werken en wordt
-    betrouwbaarder, want er ís nu maar één rij.
     """
     iri = regeling_iri(bwb_id)
     return PREFIXES + f"""SELECT
@@ -842,7 +685,7 @@ def inhoudsopgave(bwb_id: str, vanaf: str | None = None, diepte: int = 2) -> str
 
     `?volgtOp` komt mee omdat de documentvolgorde niet uit de IRI valt af te leiden: `ORDER BY` is
     hier lexicaal (artikel 10 vóór artikel 2) en dat is een bekende valkuil in dit project. De
-    consument sorteert zelf numeriek; `artikel._onderdeelsleutel` doet dat al voor het corpus.
+    consument sorteert zelf numeriek.
     """
     d = max(1, min(int(diepte), 4))
     wortel = node_patroon(bwb_id, vanaf) if vanaf else f'BIND(<{regeling_iri(bwb_id)}> AS ?node)'

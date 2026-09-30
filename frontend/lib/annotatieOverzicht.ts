@@ -20,7 +20,7 @@ export function weergaveUitParam(param: string | null | undefined): Weergave {
 /** De vindplaats zoals hij in beeld komt: `art. 9 lid 2`, of `bepaling 25.1` bij een beleidsregel.
  *  Werkt op zowel een samenvatting als een volledig document – beide dragen artikel en lid.
  *
- *  Het `soort` komt uit de graaf (via `GET /v1/artikel`) en wordt niet uit het nummer geraden: een
+ *  Het `soort` komt uit de bronboom van de api en wordt niet uit het nummer geraden: een
  *  heel getal als "25" is bij de Invorderingswet een artikel en bij de Leidraad een divisie. Zonder
  *  soort blijft het "art.", wat het bij de zes wet-achtige regelingen ook is. */
 export function vindplaatsLabel(d: { artikel: string; lid: string; soort?: string }): string {
@@ -75,8 +75,7 @@ function sorteerBinnenRegeling(docs: DocumentSamenvatting[]): DocumentSamenvatti
  *
  * Alleen het eerste cijferblok lezen gaf voor een beleidsregel overal dezelfde sleutel: alle
  * bepalingen "25.x.y" van de Leidraad sorteerden als 25 en stonden daarmee in willekeurige
- * volgorde in de werkvoorraad. Per segment komt 25.2 vóór 25.10 en valt 73.3a tussen 73.3 en 73.4.
- * Dit is dezelfde regel als `_lidsleutel` in graph-qa. */
+ * volgorde in de werkvoorraad. Per segment komt 25.2 vóór 25.10 en valt 73.3a tussen 73.3 en 73.4. */
 function sleutel(waarde: string): [number, string][] {
   const tekst = (waarde ?? "").trim();
   if (!tekst) return [[Number.MAX_SAFE_INTEGER, ""]];

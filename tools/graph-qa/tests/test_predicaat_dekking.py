@@ -135,8 +135,7 @@ def test_regeling_info_bundelt_meerwaardige_velden():
     """Eén regeling hoort één rij te zijn.
 
     De Invorderingswet heeft 2 afkortingen en 3 ondertekenaars; met losse OPTIONALs zijn dat zes
-    rijen. `agent/artikel.py` leest `info[0]` en merkte daar niets van, maar het model kreeg de wet
-    zes keer voorgeschoteld en kon er niet uit aflezen wát nu de afkorting is.
+    rijen, en het model kreeg de wet zes keer voorgeschoteld en kon er niet uit aflezen wát nu de afkorting is.
     """
     sparql = queries.get_regeling_info("BWBR0004770")
     for veld in ("?afkorting", "?ondertekenaar", "?organisatie", "?alternatieveTitel"):

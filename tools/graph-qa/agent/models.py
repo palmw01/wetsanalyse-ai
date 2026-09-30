@@ -226,27 +226,6 @@ class AnnotatieVoorstel(BaseModel):
     trace: dict[str, Any] = {}
 
 
-# --- Artikeltekst uit de graaf (workbench-documentpaneel) ---------------------
-
-class LidTekst(BaseModel):
-    lid: str = ""
-    tekst: str = ""
-
-
-class ArtikelResult(BaseModel):
-    """Artikeltekst uit de graaf voor het workbench-documentpaneel (weergave == annotatie-corpus)."""
-
-    bwbId: str
-    artikel: str
-    citeertitel: str = ""
-    opschrift: str = ""
-    leden_teksten: list[LidTekst] = []
-    # Knooptype uit de graaf: "Artikel" of "Divisie". Stuurt alleen de bewoording van de vindplaats
-    # in de werkplek — een divisie van een beleidsregel is geen artikel en heeft geen leden. Moet
-    # hier staan omdat `response_model` alles wegfiltert wat niet in dit model is verklaard.
-    soort: str = ""
-
-
 class Verbruiksmeter:
     """Telt het tokenverbruik van één beurt op, over alle LLM-calls heen.
 
