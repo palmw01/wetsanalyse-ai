@@ -263,7 +263,7 @@ Een storing wordt nooit stilzwijgend "er zijn geen annotaties".
 
 ```
 api/                  FastAPI-backend
-  app/routers/          admin · auth · gesprekken · verbruik · berichten · feedback · catalog
+  app/routers/          admin · auth · gesprekken · verbruik · berichten · feedback
   app/annotatie_v2*.py  het annotatiedomein op bronnodes: routes, store, zoeken
   app/graaf_projectie_v2.py  de projectie van de lagen naar GraphDB
   app/db.py             SQLAlchemy Core-tabellen (geen ORM-klassen, geen Alembic)

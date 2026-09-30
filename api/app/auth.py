@@ -62,30 +62,6 @@ def _match_env_admin(presented: str, settings: Settings) -> str | None:
     return None
 
 
-def authenticate_admin(authorization: str | None, settings: Settings) -> str:
-    """Valideer tegen de statische env-admin-tokens (sync pad). Geeft de admin-id of werpt 401.
-
-    Altijd auth-plichtig (geen `auth_required`-bypass): de admin-laag beheert de LLM-config en
-    mag nooit open staan. Voor het volledige pad (env + genereerbare DB-tokens) gebruik je
-    `require_admin` (async).
-    """
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Bearer-token vereist.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    presented = authorization[len("Bearer ") :].strip()
-    admin_id = _match_env_admin(presented, settings)
-    if admin_id is not None:
-        return admin_id
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Ongeldig admin-token.",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-
-
 async def require_admin(credentials: HTTPAuthorizationCredentials | None = Depends(_bearer)) -> str:
     """FastAPI-dependency: valideer de admin-bearer en geef de admin-id, anders 401.
 

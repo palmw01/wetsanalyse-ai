@@ -115,12 +115,6 @@ class BwbDownloader:
         target = self._cache_path(ref.bwb_id, ref.locatie_wti)
         return self._download_to(ref.locatie_wti, target)
 
-    def download_manifest(self, ref: ToestandRef) -> Path | None:
-        if not ref.locatie_manifest:
-            return None
-        target = self._cache_path(ref.bwb_id, ref.locatie_manifest)
-        return self._download_to(ref.locatie_manifest, target)
-
     def _cache_path(self, bwb_id: str, url: str) -> Path:
         return self._settings.data_dir / bwb_id / url.rsplit("/", 1)[-1]
 

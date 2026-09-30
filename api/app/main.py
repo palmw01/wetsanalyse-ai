@@ -1,6 +1,5 @@
 """FastAPI-app: routers, OpenAPI (Swagger op /docs → importeerbaar in Postman) en health/ready.
-De app bedient het annotatie-domein van de werkplek, de gesprekken, het LLM-/gebruikersbeheer en de
-wet-/profiel-keuzelijsten."""
+De app bedient het annotatie-domein van de werkplek, de gesprekken en het LLM-/gebruikersbeheer."""
 
 from __future__ import annotations
 
@@ -18,7 +17,6 @@ from .routers import (
     admin,
     auth,
     berichten,
-    catalog,
     feedback,
     gesprekken,
     verbruik,
@@ -111,8 +109,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Wetsanalyse API",
     version=__version__,
-    description="Backend voor de Wetsanalyse-werkplek: het JAS-annotatiedomein, LLM-/gebruikersbeheer "
-    "en wet-/profiel-keuzelijsten. Auth via per-client bearer-token.",
+    description="Backend voor de Wetsanalyse-werkplek: het JAS-annotatiedomein, de gesprekken en het "
+    "LLM-/gebruikersbeheer. Auth via per-client bearer-token.",
     lifespan=lifespan,
 )
 
@@ -128,7 +126,6 @@ app.add_middleware(
 # Inkomende requests → spans (no-op zonder de otel-extra/endpoint).
 observability.instrument_fastapi(app)
 
-app.include_router(catalog.router, prefix="/v1")
 app.include_router(admin.router, prefix="/v1")
 app.include_router(auth.router, prefix="/v1")
 from . import annotatie_v2

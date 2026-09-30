@@ -235,12 +235,6 @@ class MCPClient:
         # notifications/initialized is optioneel; GraphDB hangt bij die call.
         return result or {}
 
-    def list_tools(self) -> list[dict[str, Any]]:
-        result = self._rpc("tools/list")
-        if result is None:
-            return []
-        return result.get("tools", [])
-
     def call_tool(self, name: str, arguments: dict[str, Any]) -> Any:
         result = self._rpc("tools/call", {"name": name, "arguments": arguments})
         if result is None:

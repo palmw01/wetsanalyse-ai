@@ -69,12 +69,6 @@ async def get_default() -> LlmProfile | None:
     return _row_to_profile(row) if row is not None else None
 
 
-async def ensure_exists(name: str) -> None:
-    """Werp ProfileError als het profiel niet bestaat (voor request-validatie → 400)."""
-    if await get_profile(name) is None:
-        raise ProfileError(f"Onbekend model_profile: {name!r}")
-
-
 async def _count() -> int:
     async with db.get_engine().connect() as conn:
         return (await conn.execute(select(func.count()).select_from(db.llm_profiles))).scalar() or 0

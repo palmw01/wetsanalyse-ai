@@ -2,13 +2,6 @@
 // Dit bestand is de bron-van-waarheid voor de frontend; zie README (gen:types) voor
 // een optioneel hulpmiddel om ze tegen /openapi.json te controleren.
 
-// --- Catalogus (niet-admin): keuzelijsten -----------------------------------
-
-export interface ProfileChoice {
-  name: string;
-  is_default: boolean;
-}
-
 // --- Admin: LLM-modelprofielen ----------------------------------------------
 
 export interface LlmProfileIn {
@@ -305,15 +298,6 @@ export interface AnnotatieDocument {
   updated?: string | null;
 }
 
-export interface AuditRecord {
-  id: number;
-  actor: string;
-  actie: string;
-  element_id?: string | null;
-  detail: Record<string, unknown>;
-  tijdstip?: string | null;
-}
-
 /** Eén regel in het annotatie-overzicht: naam, voortgang en de JAS-verdeling voor de kleurstrip,
  *  zodat de lijst zonder tweede call kan tonen wat er nog te beoordelen is. */
 export interface DocumentSamenvatting {
@@ -350,14 +334,6 @@ export interface AgentHergebruik {
   volledig: boolean;
   bijgewerkt: string;
   telling: { markeringen: number; beoordeeld: number; afgewezen: number; te_beoordelen: number };
-}
-
-export interface DocumentCreate {
-  bwbId: string;
-  artikel: string;
-  lid?: string | null;
-  citeertitel?: string;
-  werkgebied?: string;
 }
 
 export interface Wijziging {

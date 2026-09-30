@@ -227,13 +227,3 @@ async def test_test_route_rate_limited(admin_client, monkeypatch):
     ]
     assert codes[:2] == [200, 200]
     assert codes[2] == 429
-
-
-async def test_catalog_profiles_zonder_admin(admin_client):
-    # /v1/profiles is niet-admin (geen admin-token) en geeft alleen naam + default.
-    await admin_client.put("/v1/admin/profiles/snel", headers=_H, json={"model": "gpt-x"})
-    r = await admin_client.get("/v1/profiles")
-    assert r.status_code == 200
-    rows = r.json()
-    assert rows == [{"name": "snel", "is_default": True}]
-    assert "gpt-x" not in r.text  # geen model/provider/key lekken
