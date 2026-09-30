@@ -309,7 +309,7 @@ function DecisionCard({
         {/* `min-w-0`: zonder dit rekt een brede klassenaam deze kant alsnog op. */}
         <span className="order-1 flex min-w-0 flex-wrap items-center gap-1.5">
           {aandacht && (
-            <span className={`${AANDACHT_PILL} ${aandacht.pill}`} title={el.critic || undefined}>
+            <span className={`${AANDACHT_PILL} ${aandacht.pill}`} title={el.review_uitleg || undefined}>
               {aandacht.label}
             </span>
           )}
@@ -494,7 +494,7 @@ function DecisionCard({
       )}
 
       {/* De uitleg van de gerichte review bij een twijfelgeval (resolver, ADR-001). */}
-      {uitgeklapt && el.critic && <p className="mt-1 text-xs italic text-muted">Review: {el.critic}</p>}
+      {uitgeklapt && el.review_uitleg && <p className="mt-1 text-xs italic text-muted">Review: {el.review_uitleg}</p>}
 
       {uitgeklapt && !slot && el.alternatieven.length > 0 && (
         <div className="mt-1.5 flex flex-wrap items-center gap-1 text-xs text-muted" onClick={(e) => e.stopPropagation()}>

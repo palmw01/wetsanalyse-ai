@@ -13,14 +13,14 @@ Endpoint: POST /v1/chat
     {"type": "error", "message": "..."}
     (annotatie-route emit daarnaast {"type":"doel",...}, één {"type":"run","run":{...}} met de
      herkomst van de beurt (model/provider/agent_versie/stop_reden) vóór de elementen,
-     {"type":"element",...} – het element draagt een Critic-`aandacht` (groen|geel|rood) +
-     `critic`-motivatie – en één {"type":"ontbrekend","items":[...]})
+     één {"type":"dekking",...} en per voorstel {"type":"element",...} – het element draagt
+     eventueel een `aandacht` (groen|geel) en de `review_uitleg` van de gerichte review)
 
 Authenticatie: optionele Bearer-token via env QA_API_TOKEN (timing-safe vergeleken).
 Als QA_API_TOKEN niet gezet is, is het endpoint open (voor lokale dev).
 
 Beveiliging: CORS staat credentials alleen toe bij een expliciete origin-lijst
-(nooit samen met "*"); een lichte per-IP rate-limit (per proces) als dependency
+(nooit samen met "*"); een lichte rate-limit per gebruiker (per proces) als dependency
 (bewust géén BaseHTTPMiddleware, zodat de SSE-stream niet gebufferd wordt).
 
 Observability: gestructureerde JSON-logs + gated OpenTelemetry (agent/observability.py),

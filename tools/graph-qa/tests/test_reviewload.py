@@ -86,7 +86,7 @@ def test_keten_splitst_de_reviewload_en_noemt_een_storing_een_storing():
     assert rl["human_review"] > 0 and rl["classifier_contract_failure"] == rl["human_review"]
     assert rl["juridisch"] == 0
     geel = [e for e in _elementen(events) if e.get("aandacht") == "geel"]
-    assert geel and all(e["critic"].startswith("Technische storing") for e in geel)
+    assert geel and all(e["review_uitleg"].startswith("Technische storing") for e in geel)
     assert all(t["categorie"] == "CLASSIFIER_CONTRACT_ERROR" for e in geel for t in e["trace"]["twijfel"])
     # De reviewer kreeg geen tool-aanroep terug: dat staat nu in het spoor, niet alleen "R-ONGELDIG".
     assert all(r["ongeldig_omdat"] == "geen tool-aanroep" for e in geel for r in e["trace"]["resolutie"])

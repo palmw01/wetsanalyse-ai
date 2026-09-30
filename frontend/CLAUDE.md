@@ -429,7 +429,7 @@ de markering (`DocumentPaneel`) en de kaart (`ReviewQueue`), met respect voor
   zeggen valt: **groen = "Bevestigd door review"** (een twijfelgeval dat de gerichte review besliste),
   **geel = "Keuze voor jou"** (twijfel die de reviewer niet besliste). De UI kent ook **rood =
   "Waarschijnlijk fout"**, maar de keten zet dat niet: de resolver in graph-qa geeft alleen groen of
-  geel. Het veld `critic` draagt de uitleg van de review en staat uitgeklapt als "Review: …".
+  geel. Het veld `review_uitleg` draagt de uitleg van de review en staat uitgeklapt als "Review: …".
 - **De aandacht is een badge met tekst**, in dezelfde vorm als de documentstatus-badge
   (`AANDACHT_PILL` in `ReviewQueue.tsx` naast `DOCUMENT_STATUS_STYLE`): één badgevorm in de app. Kleur
   doet mee via de linker accentrand en de zachte tint (het scan-signaal), maar draagt het oordeel niet

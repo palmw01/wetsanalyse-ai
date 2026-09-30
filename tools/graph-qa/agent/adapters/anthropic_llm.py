@@ -22,11 +22,8 @@ logger = logging.getLogger("graph_qa.llm")
 # geen fout, alleen de duurdere write zonder ooit een hit. Nederlands tokeniseert op ~3,5 tekens per
 # token, dus 4000 tekens ≈ 1150 tokens: net boven het minimum, bewust aan de veilige kant.
 #
-# Wat dat in de praktijk betekent (gemeten op de huidige prompts):
-#   annoteer 8334 · critic 10353 · herziening 7922 · retrieval-specialist 4374 tekens → gecacht
-#   de QA-systeemprompt met specialist ~2800 tekens                                  → niet gecacht
-# De winst landt dus precies waar de kosten zitten: de annotatieketen, die per beurt 3 tot 5 calls
-# doet met dezelfde dertien-klassen-referentie erin.
+# De winst landt waar de kosten zitten: de classifier en de reviewer van de annotatieketen doen per
+# beurt meerdere calls met hetzelfde lange voorvoegsel. Een korte QA-systeemprompt blijft eronder.
 _MIN_CACHE_TEKENS = 4000
 
 

@@ -80,7 +80,7 @@ def test_onderwerp_levert_kandidaten_en_annoteert_nog_niets():
 
     soorten = {e["type"] for e in events}
     assert "element" not in soorten and "doel" not in soorten, "de jurist kiest eerst"
-    assert llm.index == 3, "geen annoteer- en geen critic-call"
+    assert llm.index == 3, "geen modelcall voor de annotatie"
 
 
 def test_de_gebruiker_hoort_wat_er_te_kiezen_valt():

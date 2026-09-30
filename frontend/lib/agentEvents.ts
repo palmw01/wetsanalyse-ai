@@ -118,7 +118,7 @@ export const parseElement: Parser<VoorstelElement> = (v) => {
     alternatieven,
     grounded: vlag(v.grounded),
     ...(aandacht ? { aandacht } : {}),
-    ...(optioneel(v.critic) !== undefined ? { critic: optioneel(v.critic) } : {}),
+    ...(optioneel(v.review_uitleg) !== undefined ? { review_uitleg: optioneel(v.review_uitleg) } : {}),
   };
 };
 

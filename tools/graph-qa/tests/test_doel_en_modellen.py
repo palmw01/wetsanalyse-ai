@@ -70,8 +70,8 @@ def test_model_voor_valt_terug_op_het_hoofdmodel():
     assert s.model_voor("router") == "sterk"
     assert s.model_voor("ophaal") == "sterk"
     # De classifier en de reviewer hebben géén eigen knop: dat is de grens, geen omissie.
-    assert s.model_voor("annoteerder") == "sterk"
-    assert s.model_voor("critic") == "sterk"
+    assert s.model_voor("classifier") == "sterk"
+    assert s.model_voor("reviewer") == "sterk"
     assert s.model_voor("bestaat-niet") == "sterk"
 
 

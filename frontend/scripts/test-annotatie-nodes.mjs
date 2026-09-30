@@ -32,7 +32,7 @@ function volledigeView(iri) {
     lagen: ids.map((id) => ({ id: `laag${id}`, bron_iri: `urn:lid${id}`, status: "in_review", revisie: 1 })),
     elementen: ids.includes(1) ? [{ id: "e1", eigenaar_iri: "urn:lid1", laag_id: "laag1", klasse: "Rechtssubject", tekst: "ontvanger", toelichting: "Voert de handeling uit", lifecycle: "voorgesteld", herkomst: "agent",
       ankers: [{ bron_iri: "urn:lid1", start: 3, eind: 12, tekst: "ontvanger", bron_hash: "hash1" }],
-      critic: "Handelende instantie geverifieerd", aandacht: "groen",
+      review_uitleg: "Handelende instantie geverifieerd", aandacht: "groen",
       alternatieven: [{ klasse: "Rechtsobject", motivatie: "De ontvanger is hier handelend" }],
       beslissingen: [{ type: "comment", actor: "Reviewer", comment: "Bron nagekeken", wijziging: {} }],
     }] : [], verwijzingen: [], dekking: {} };

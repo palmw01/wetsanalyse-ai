@@ -159,7 +159,7 @@ const ELEMENT = {
   lifecycle: "voorgesteld",
   alternatieven: [],
   aandacht: null,
-  critic: "",
+  review_uitleg: "",
   anker: null,
   diff: {},
   beslissingen: [],
@@ -482,7 +482,7 @@ describe("eigenMarkeringenVoorContext", () => {
     ({
       id: "e1", klasse: "Rechtssubject", tekst: "de ontvanger", lid: "1", toelichting: "",
       vindplaats: "", herkomst: "agent", lifecycle: "proposed", alternatieven: [],
-      aandacht: null, critic: "", anker: null, ...p,
+      aandacht: null, review_uitleg: "", anker: null, ...p,
     }) as AnnotatieElement;
 
   const doc = (elementen: AnnotatieElement[]): AnnotatieDocument =>
