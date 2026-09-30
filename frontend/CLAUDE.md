@@ -1,986 +1,806 @@
 # CLAUDE.md – wetsanalyse-frontend
 
-Next.js (App Router) + TypeScript-webapp bovenop de graph-qa-agent (en, voor login/beheer, de
-[wetsanalyse-API](../api)). De app **is de werkplek**: `/workbench` (de *Lex-pagina*) – één
-chat-achtig gespreksvenster voor **vragen én JAS-annotatie**, live tegen graph-qa (§*Werkplek*). De
-home (`/`) leidt daarheen door.
+Next.js (App Router) + TypeScript-webapp bovenop de graph-qa-agent en, voor login, beheer en
+opslag, de [wetsanalyse-API](../api). De app **is de werkplek**: `/workbench` (de *Lex-pagina*) –
+één chat-achtig gespreksvenster voor **vragen én JAS-annotatie**, live tegen graph-qa. De home (`/`)
+leidt daarheen door.
 
 > **Scope: chat-werkruimte.** De app bestaat uit de werkplek, het annotatie-overzicht, de
-> login-flow en het instellingenvenster (account, berichten, en voor beheerders modelprofielen, gebruikers,
-> API-tokens, berichtenbeheer en feedback). Analyses aanmaken/reviewen/rapporteren hoort niet tot
-> de functionaliteit.
+> login-flow en het instellingenvenster (account, verbruik, berichten, en voor beheerders
+> modelprofielen, gebruikers, aanvragen, API-tokens, berichtenbeheer en feedback).
 
 Lees ook de projectroot-`CLAUDE.md` en `../api/CLAUDE.md` – de API is de bron van waarheid voor de
 datacontracten en de state machine; deze app is een **dunne, server-getokende schil** eroverheen.
-Operationele details (lokaal draaien, env-vars, deployment) staan in de `README.md`; dit bestand
-beschrijft de architectuurregels die je bij code-werk *in* de frontend niet mag breken.
+Lokaal draaien, env-vars en uitrol staan in de [`README.md`](README.md); dit bestand beschrijft de
+regels die je bij code-werk *in* de frontend niet mag breken.
 
 ## Dragend principe – BFF, token blijft server-side
 
 De browser praat **uitsluitend** met de eigen Next.js-origin (`/api/**`). De Route Handlers (de
-_backend-for-frontend_) proxyen server-side naar de echte API en injecteren het Bearer-token. Het
-token komt dus **nooit** in de browser. Dit lost twee dingen tegelijk op: CORS vervalt (same-origin)
-en SSE werkt (de native `EventSource` kan geen `Authorization`-header sturen – de BFF doet dat
-server-side en pipet de stream door).
+_backend-for-frontend_) proxyen server-side naar de API en graph-qa en injecteren het Bearer-token
+(zie de README voor het schema). De **harde scheidingslijn**: alles met een token is server-only.
 
-```
-Browser ──/api/**──► Next.js (BFF, injecteert token) ──/v1/**──► wetsanalyse-api:3000
-```
-
-De **harde scheidingslijn**: alles met een token is server-only.
-
-- `lib/config.ts` (token uit env/`*_FILE`, gecached) en `lib/server.ts` (server→server fetch voor de
-  initiële render van Server Components) zijn server-only en mogen **nooit** vanuit een Client
-  Component geïmporteerd worden. Doe je dat wel, dan lekt het token naar de bundel.
-- Client Components praten alleen via `lib/api.ts` met de eigen `/api/**`-routes – **geen
-  Authorization-header** daar.
+- `lib/config.ts` (tokens uit env/`*_FILE`, gecached), `lib/server.ts` (server→server fetch voor
+  Server Components en de auth-verificatie) en `lib/logger.ts` mogen **nooit** vanuit een Client
+  Component geïmporteerd worden – dan lekt het token naar de bundel.
+- Client Components praten alleen via `lib/api.ts` met de eigen `/api/**`-routes, **zonder
+  Authorization-header**.
 
 ## Lagen (waar hoort wat)
 
-- `app/api/_lib/proxy.ts` – de kern van de BFF: één `proxy(path, init)`-helper die de upstream-status
-  en -body **ongewijzigd** teruggeeft (incl. 401/404/409/429/503 + `Retry-After`/`Location`/
-  `Content-Type`-headers), zodat de client correcte foutafhandeling houdt. `init.admin: true`
-  injecteert het admin-token i.p.v. het client-token. Verzin in nieuwe routes geen eigen
-  fetch-logica – leid alles via deze helper. Hij bewaakt ook de **wachttijd**: Node's `fetch` kent
-  geen standaardtimeout, dus een upstream die wél verbindt maar niet antwoordt liet de UI eeuwig in
-  zijn laadstand staan. Default 30 s → **504** met een leesbare reden (onbereikbaar blijft 502);
-  `timeoutMs` per route hoger waar dat hoort (de modeltest doet een echte LLM-aanroep: 120 s). De **SSE-uitzondering** is de run-events-route
-  (`app/api/annotatie/run/[id]/events/route.ts`): geen `proxy()`, maar rauwe passthrough van
-  `upstream.body` met `X-Accel-Buffering: no` en `Cache-Control: no-transform` (NPM moet
-  proxy-buffering óók uit hebben) – zie §*Werkplek*.
-- `lib/server.ts` – server-side helpers voor Server Components / auth (rechtstreeks server→server,
-  scheelt een extra self-fetch via de BFF bij de eerste render). Bevat de auth-verificatie
-  (`verifyCredentials`/`getAccountStatus`/`getSetupStatus`) die de login-flow gebruikt.
-- `lib/api.ts` – alle client-side fetch-helpers naar `/api/**`. Eén plek voor het foutcontract
-  (`parseError` → `ApiError` met `retryAfter`); gebruik `isApiError()` in de UI.
-- `lib/types.ts` – **met de hand afgeleid van `../api/app/annotatie_contracts.py`**
-  (+ `annotatie_v2_contracts.py` en `gesprek_contracts.py`) en de bron-van-waarheid voor de TS-kant. Wijzigt het API-contract, werk dit bestand bij (verifieer
-  desgewenst tegen `openapi-typescript http://localhost:3000/openapi.json` – zie de README).
-  `lib/jas.ts` is de afgeleide presentatie-helper voor de JAS-klasse-weergave (kleur + label uit
-  `docs/wetsanalyse/wa-table.png`); brongetrouw geldt ook in de UI – verzin er geen klassen bij.
-- `app/**/page.tsx` (Server Components) – data ophalen via `lib/server.ts`; interactie delegeren naar
-  een `*Client.tsx` Client Component. `app/page.tsx` (home) doet server-side een `redirect("/workbench")`.
-  De werkplek zit in `app/workbench/page.tsx` en de auth-schermen in `app/login/*` + `app/setup` +
+- **`app/api/_lib/proxy.ts`** – de kern van de BFF: één `proxy(path, init)` die de upstream-status
+  en -body **ongewijzigd** teruggeeft, inclusief de headers in `PASS_THROUGH_HEADERS`
+  (`Retry-After`, `Location`, `Content-Type`, `Content-Disposition`). `init.admin: true` injecteert
+  het admin-token. Verzin in een nieuwe route geen eigen fetch-logica. De helper bewaakt ook de
+  **wachttijd**, want Node's `fetch` kent geen standaardtimeout en een upstream die verbindt maar niet
+  antwoordt laat de UI anders eeuwig laden: default 30 s → **504** met een leesbare reden
+  (onbereikbaar = 502); `timeoutMs` per route hoger waar dat hoort (de modeltest: 120 s).
+  **Uitzondering: SSE.** `app/api/annotatie/run/[id]/events/route.ts` gebruikt geen `proxy()` maar
+  geeft `upstream.body` rauw door met `X-Accel-Buffering: no` en `Cache-Control: no-transform`.
+- **`app/api/_lib/session.ts`** – `sessionUserId()` voor de vertrouwde `X-User-Id`-header.
+- **`lib/server.ts`** – server-side helpers voor Server Components en auth
+  (`verifyCredentials`/`getAccountStatus`/`getSetupStatus`), rechtstreeks server→server.
+- **`lib/api.ts`** – alle client-side fetch-helpers naar `/api/**`, met één foutcontract
+  (`parseError` → `ApiError` met `retryAfter`); gebruik `isApiError()` en `foutTekst()` in de UI.
+- **`lib/agentEvents.ts`** – validatie van de SSE-stroom van de agent: een ongeldig event slaat
+  over, het beëindigt de run niet.
+- **`lib/types.ts`** – met de hand afgeleid van `../api/app/annotatie_contracts.py`,
+  `annotatie_v2_contracts.py` en `gesprek_contracts.py`; de bron van waarheid aan de TS-kant. Wijzigt
+  het API-contract, werk dit bij (controle met `openapi-typescript`, zie de README).
+  **`lib/jas.ts`** is de presentatie-helper voor de JAS-klassen (kleur, label, `jasVolgorde`); de
+  namen en kleuren staan canoniek in `api/app/jas_klassen.py`, en `api/tests/test_jas_kleuren_drift.py`
+  bewaakt dat deze kopie niet afdrijft. Verzin er geen
+  klassen bij.
+- **De rekenkern staat in `lib/`**, niet in componenten: vitest draait node-env zonder DOM, dus alleen
+  pure helpers zijn testbaar (`selectie`, `annotatie`, `annotatieOverzicht`, `reeks`, `samenhang`,
+  `markering`, `popover`, `wetstructuur`, `lopendeRun`, `rondleiding`, …).
+- **`app/**/page.tsx`** (Server Components) – data via `lib/server.ts`, interactie in een
+  `*Client.tsx`. `app/page.tsx` doet `redirect("/workbench")`. De werkplek zit in
+  `app/workbench/page.tsx` én in `app/default.tsx` (de default van het children-slot); beide renderen
+  `WerkplekVenster`, zodat de router bij het wisselen tussen die twee geen remount veroorzaakt en het
+  open gesprek blijft staan. Auth-schermen: `app/login/*`, `app/setup`, `app/registreren`,
   `app/disclaimer`. Account en beheer leven in het **instellingenvenster**:
-  `app/instellingen/[[...tab]]/page.tsx` als volle pagina, en `app/@modal/(.)instellingen/…` als
-  intercepting route die hem als dialoog over de werkplek heen opent. `app/beheer` en `app/account`
-  blijven bestaan als redirect naar de bijbehorende tab.
-- `components/` – presentatie. `components/werkplek/` = de hele chat-werkruimte (zie §*Werkplek*):
-  de schil en het gesprek (sidebar, thread, artefactpaneel) én het annotatiegereedschap dát in dat
-  paneel staat (`DocumentPaneel`, `ReviewQueue`, `SelectiePopover`, `ExportKnop`).
-  Die tweede groep stond tot 31 aug 2026 in een eigen `components/workbench/`; één map, want de
-  grens liep door één bestand (`ArtefactInhoud.tsx`, de enige importeur) en kostte elke lezer een
-  vraag zonder nut.
-  `components/admin/` levert de beheertabs (achter het admin-token):
-  **`ProfielenPanel`** met de modelprofiel-editor (`ProfileEditor`), **`UsersPanel`**
-  (gebruikersbeheer), **`ApiTokensPanel`**, **`BerichtenBeheerPanel`** (+ `BerichtEditor`) en
-  **`FeedbackLijstClient`**. `components/berichten/` heeft het leesbare archief. `components/account/` + `components/auth/` dragen de login/2fa/setup-flow.
-  `components/instellingen/` is het instellingenvenster zelf (`InstellingenDialog` = de dialoogschil,
-  `InstellingenInhoud` = de tabs; de tabdefinities en de pad-helpers staan in `lib/instellingen.ts`,
-  bewust **géén** `"use client"`-module zodat Server Components ze mogen importeren).
-  `components/ui/` zijn de primitives.
-- **Vormgeving (Rijkshuisstijl, Belastingdienst-stijlvak)** – alle design tokens centraal:
-  CSS-variabelen in `app/globals.css` → Tailwind in `tailwind.config.ts` (lintblauw `#154273` +
-  hemelblauw `#007bc7` op wit, Fira Sans/Mono als vrij alternatief voor Rijksoverheid Sans).
-  De root-font-size is overal 100%: schaal met de Tailwind-tekstklassen, niet met een globale
-  krimp. `components/ui/` zijn de primitives (40px-knoppen/velden die onder de `coarse:`-variant
-  – `@media (pointer: coarse)`, zie `tailwind.config.ts` – naar 48px groeien voor aanraakbediening,
-  platte cards, gecentreerde logobalk met het officiële `public/belastingdienst-logo.svg`). **Knoppen zijn mobile-first**: `Button`/`LinkButton` zijn bewust
-  breedte-neutraal (`inline-flex shrink-0`); actie-rijen lopen via `components/ui/ButtonRow.tsx`
-  (mobiel volle-breedte gestapeld, `sm:` naast elkaar). Staat een knop buiten een `ButtonRow`
-  (bv. naast een invoerveld), geef hem dan `className="w-full sm:w-auto"` en laat de container op
-  mobiel stapelen (`flex flex-col … sm:flex-row`) – geen vaste/`flex-wrap`-knoprijen die op smal
-  scherm overlopen. De JAS-klassekleuren in `lib/jas.ts` zijn de **exacte labelkleuren uit
-  `docs/wetsanalyse/wa-table.png`**.
+  `app/instellingen/[[...tab]]/page.tsx` als volle pagina, `app/@modal/(.)instellingen/…` als
+  intercepting route die hem als dialoog over de werkplek opent. `app/beheer` en `app/account` zijn
+  redirects naar de bijbehorende tab.
+- **`components/`**:
+  - `werkplek/` – de hele chat-werkruimte: schil, sidebar, thread (`ThreadRij`, `ToolSpoor`,
+    `KeuzeKaart`, `ReeksBlok`, `HergebruikMelding`, `Markdown`) en het annotatiegereedschap in het
+    artefactpaneel (`ArtefactInhoud`, `ArtefactPaneel`, `DocumentPaneel`, `ReviewQueue`,
+    `SelectiePopover`, `ExportKnop`).
+  - `annotaties/` – het overzicht en de losse annotatiepagina's (`AnnotatiesClient`,
+    `AnnotatieDetailClient`, `NodeAnnotatiePaneel`, `AnnotatiePaginaSchil`).
+  - `graaf/` – de 3D-samenhangsgraaf.
+  - `admin/` – de beheertabs achter het admin-token: `ProfielenPanel` (+ `ProfileEditor`),
+    `UsersPanel` (+ `BudgetBeleidBlok`), `RegistratiesPanel`, `ApiTokensPanel`,
+    `BerichtenBeheerPanel` (+ `BerichtEditor`), `FeedbackLijstClient`.
+  - `account/`, `auth/` – account, login/2FA/setup/registratie, disclaimer, `AuthFrame`.
+  - `instellingen/` – `InstellingenDialog` (de dialoogschil) en `InstellingenInhoud` (de tabs). De
+    tabdefinities en pad-helpers staan in `lib/instellingen.ts`, bewust **zonder** `"use client"`,
+    zodat Server Components ze mogen importeren.
+  - `rondleiding/` – de rondleiding door de werkplek (zie §*Rondleiding*).
+  - `ui/` – de primitives.
+
+### Vormgeving (Rijkshuisstijl, Belastingdienst-stijlvak)
+
+- **Tokens, geen hex-waarden.** Kleur en typografie lopen via CSS-variabelen in `app/globals.css` →
+  Tailwind in `tailwind.config.ts` (en `lib/jas.ts` voor de JAS-badges). Het logo-asset
+  `public/belastingdienst-logo.svg` blijft ongewijzigd; de JAS-klassekleuren komen exact uit
+  `docs/wetsanalyse/wa-table.png`. Uitzondering: `app/global-error.tsx` gebruikt inline stijl met
+  vaste huisstijlkleuren, omdat die boundary de hele documentboom vervangt en de app-CSS niet kan
+  veronderstellen.
+- **De root-font-size is overal 100%.** Schaal met de Tailwind-tekstklassen, niet met een globale
+  krimp.
+- **Primitives in `components/ui/`**: 40px-knoppen/velden die onder de `coarse:`-variant
+  (`@media (pointer: coarse)`, `tailwind.config.ts`) naar 48px groeien.
+- **Knoppen zijn mobile-first.** `Button`/`LinkButton` zijn breedte-neutraal (`inline-flex
+  shrink-0`); actierijen lopen via `components/ui/ButtonRow.tsx` (mobiel gestapeld op volle breedte,
+  vanaf `sm:` naast elkaar). Staat een knop buiten een `ButtonRow`, geef hem dan
+  `className="w-full sm:w-auto"` en laat de container op mobiel stapelen (`flex flex-col …
+  sm:flex-row`). Geen vaste of `flex-wrap`-knoprijen die op een smal scherm overlopen.
+- **Symbolen zijn iconen, geen tekens.** `components/ui/Icoon.tsx` levert chevron, waarschuwing,
+  vinkje, ruit en cirkel als inline SVG (`1em`, `currentColor`). Het font laadt alleen de
+  latin-subset van Fira Sans (`app/fonts.ts`), dus tekens als `▾ ◇ ▸ ⚠ ✓ ← ○` vallen terug op het
+  systeemfont en ogen per platform anders; emoji worden door het besturingssysteem in eigen kleuren
+  getekend. `·` (U+00B7) zit in de subset en mag. Uitzondering: tekst die als **inhoud** wordt
+  opgeslagen (de foutmelding die als chatbericht de geschiedenis in gaat) kan geen component dragen;
+  daar staat een woord.
+- **Kleur betekent iets, of hij hoort er niet.** Kleur is voor wat een oordeel draagt
+  (aandacht-badge, JAS-badges, accentrand). Knoppen volgen de app: primair lintblauw (`bg-accent`),
+  tweede keuze outline – geen volvlak statuskleuren.
 
 ## Werkplek – de Lex-pagina (`/workbench`)
 
-> **De agent heet Lex.** In beeld is dat de naam: de paginatitel, het label boven elk antwoord
-> (`WerkplekClient`), *Vraag Lex*, "voorstel van Lex", "Kanttekening van Lex". In de **code** blijft
-> alles `graph-qa` heten (map, image, stack, env-vars) en in het **berichtcontract** blijft de rol
-> `assistant` – de naam is presentatie, geen contract. De lege staat van de thread draagt de korte
-> zelfbeschrijving; de volledige staat in `tools/graph-qa/agent/prompts.py` (§IDENTITEIT) en de toon
-> in `docs/schrijfrichtlijn-lex.md`.
+> **De agent heet Lex** in beeld: de paginatitel, het label boven elk antwoord (`ThreadRij`), *Vraag
+> Lex*, "voorstel van Lex", "Kanttekening van Lex". In de **code** heet alles `graph-qa` (map, image,
+> env-vars) en in het **berichtcontract** blijft de rol `assistant` – de naam is presentatie. De lege
+> thread draagt een korte zelfbeschrijving; de volledige staat in `tools/graph-qa/agent/prompts.py`
+> (§IDENTITEIT), de toon in `docs/schrijfrichtlijn-lex.md`.
 
-De **Lex-pagina** (`app/workbench/page.tsx`, titel "Lex") → `components/werkplek/WorkbenchShell.tsx`:
-een **volledige chat-app-shell** (Claude/ChatGPT-achtig, in Belastingdienst-huisstijl). Er is **geen
-globale chrome**: `app/layout.tsx` bevat alleen `Providers`, `{children}` en het `modal`-slot. Elk
-scherm draagt zijn eigen kader – de shell-pagina's (`/workbench`, `/instellingen`) zetten zelf
-`h-[100dvh] overflow-hidden`, en alles daarbuiten gebruikt `AuthFrame` (zie §*Buiten de schil*).
-Bovenaan de shell staat de klikbare **testomgeving-strook**. De shell is twee kolommen:
-- **Links de sidebar** (`GesprekSidebar` + `GesprekLijst`): bovenin het Belastingdienst-logo, een
-  "Nieuw gesprek"-knop, de **chatgeschiedenis** (per-gebruiker gepersisteerd), en onderin een
-  **instellingen/gebruiker**-blok (Account/Beheer + uitloggen). Op `<lg` is dit een off-canvas drawer
-  (mobiele topbar met hamburger; scrim/Escape/safe-area) – via **`Dialog` met de `drawer`-variant**,
-  niet als eigen constructie: die droeg wél `role="dialog"`/`aria-modal` maar geen focus-trap, dus
-  liep Tab achter de scrim door naar de chat eronder. Eén focus-trap in de codebase, zoals `Dialog`
-  zelf als uitgangspunt heeft staan.
-- **Rechts het chatvenster** (`WerkplekClient.tsx`): één gespreksvenster voor **vragen** (Q&A) én
-  **JAS-annotatie**, beide als SSE tegen graph-qa's unified agent. De thread hydrateert uit het actieve
-  gesprek en **persisteert elke beurt** naar de api (`/v1/gesprekken/*`); de shell remount het venster
-  (via `key`) alleen bij echt van gesprek wisselen, niet wanneer een verse chat bij de eerste beurt zijn
-  id krijgt (anders breekt de stream). De graph-qa `conversationId` (thread_id) = het `gesprekId`.
-- De **annotatie-review** is een **artefact**: een annotatie-beurt toont een compacte chip in de thread
-  die het **`ArtefactPaneel`** opent – een van rechts inschuivend paneel (mobiel bottom-sheet) met de
-  annotatie-sub-UI in `components/werkplek/`: **`DocumentPaneel`** highlight de **letterlijke**
-  fragmenten (`segmenteer` + `lib/jas.ts:jasStyle`; substring-terugvinden) en **`ReviewQueue`** de
-  decision-cards (aandacht-as 🟢🟡🔴, voortgangsteller; edit/reject vragen een `review_reason`).
-- **Drie backends, frontend orkestreert:** de **chatgeschiedenis via de api** – BFF
-  `app/api/gesprekken/*` → `/v1/gesprekken/*` via `proxy()`, mét de vertrouwde `X-User-Id` uit de sessie
-  (client-helpers `lijstGesprekken`/`maakGesprek`/`haalGesprek`/`voegBerichtToe`/`hernoemGesprek`/
-  `verwijderGesprek`). **Twee stores op dezelfde `conversation_id`**: de UI-historie staat in de API, het
-  **agent-geheugen** in graph-qa's checkpointer – `verwijderGesprek` wist béíde (de BFF-DELETE roept ná de
-  API-delete óók graph-qa `DELETE /v1/conversations/{id}` aan, best-effort). Het **live agent-verkeer via graph-qa** – BFF
-  `app/api/annotatie/run/**` (starten/meekijken/stoppen) met `graphQaBaseUrl()` + `GRAPH_QA_TOKEN`
-  én de vertrouwde `X-User-Id` (client-helpers `startRun`/`volgRun`/`stopRun` in `lib/api.ts`); de
-  events-route is de SSE-passthrough. Het documentpaneel haalt de artikeltekst via
-  `app/api/annotatie/artikel/route.ts` → graph-qa `GET /v1/artikel` (`haalArtikelGraaf`). De **persistente
-  review-state via de api** – BFF `app/api/annotatie/documenten/*` → `/v1/annotatie/*` via `proxy()`, mét
-  de vertrouwde `X-User-Id` uit de sessie. Sinds contract 2 (22 sep 2026) loopt de bronnode-annotatie
-  via de catch-all `app/api/annotatie/v2/[...pad]/route.ts` → `/v1/annotatie/{weergave,dekking,
-  elementen,lagen,node-lagen}`; client-helpers in `lib/annotatieNode.ts`. Die **node-lagen zijn
-  gedeeld**, niet per gebruiker – de oude per-gebruiker-documenten wél, net als de gesprekken. Types
-  in `lib/types.ts` (afgeleid van `api/app/annotatie_contracts.py` en
-  `api/app/annotatie_v2_contracts.py`).
-- **Config:** `GRAPH_QA_URL` (intern, default `http://graph-qa:8080`, via `graphQaBaseUrl()`) +
-  `GRAPH_QA_TOKEN(_FILE)` – de frontend moet graph-qa op het gedeelde docker-netwerk kunnen
-  bereiken (`lib/config.ts`).
+`app/workbench/page.tsx` → `WerkplekVenster` → `components/werkplek/WorkbenchShell.tsx`: een
+volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de disclaimer). Er is
+**geen globale chrome**: `app/layout.tsx` bevat alleen `Providers`, `{children}` en het
+`modal`-slot. De shell-pagina's zetten zelf `h-[100dvh] overflow-hidden`; alles daarbuiten gebruikt
+`AuthFrame` (zie §*Buiten de schil*).
 
-### De tijdlijn van een annotatie
+- **Links de sidebar** (`AppSidebar` → `GesprekSidebar` + `GesprekLijst`): logo, *Nieuw gesprek*,
+  de per gebruiker bewaarde chatgeschiedenis en onderin het gebruikersblok (instellingen, feedback,
+  rondleiding, uitloggen, verbruiksmeter). Onder `lg` is het een off-canvas drawer via **`Dialog`
+  met variant `drawer`** – niet als eigen constructie, want `Dialog` levert de enige focus-trap in de
+  codebase; zonder die trap loopt Tab achter de scrim door naar de chat.
+- **Rechts het chatvenster** (`WerkplekClient.tsx`): vragen én annotatie, beide als run bij
+  graph-qa's unified agent. De thread hydrateert uit het actieve gesprek en **persisteert elke beurt**
+  naar de API (`/v1/gesprekken/*`). De shell remount het venster (via `key`) alleen bij echt van
+  gesprek wisselen, niet wanneer een verse chat bij de eerste beurt zijn id krijgt – anders breekt de
+  stream. De graph-qa `conversation_id` (thread_id) is het `gesprekId`.
+- **De annotatie is een artefact**: een annotatiebeurt toont een chip in de thread die het
+  **`ArtefactPaneel`** opent. `DocumentPaneel` toont de wettekst met de **letterlijke** fragmenten
+  (`segmenteer` + `lib/jas.ts:jasStyle`), `ReviewQueue` de beslissingskaarten.
+- **Drie backends, de frontend orkestreert:**
+  - *Chatgeschiedenis via de API* – `app/api/gesprekken/*` → `/v1/gesprekken/*` via `proxy()`, met
+    `X-User-Id` uit de sessie (`lijstGesprekken`/`maakGesprek`/`haalGesprek`/`voegBerichtToe`/
+    `hernoemGesprek`/`verwijderGesprek`). **Twee stores op dezelfde `conversation_id`**: de
+    UI-historie in de API, het agent-geheugen in graph-qa's checkpointer. De BFF-DELETE wist daarom
+    beide: na de API-delete ook graph-qa `DELETE /v1/conversations/{id}` (best-effort).
+  - *Live agentverkeer via graph-qa* – `app/api/annotatie/run/**` (starten, events, `cancel`) met
+    `graphQaBaseUrl()` + `GRAPH_QA_TOKEN` en `X-User-Id` (`startRun`/`volgRun`/`stopRun`/
+    `haalActieveRun`). De artikeltekst komt via `app/api/annotatie/artikel/route.ts` → graph-qa
+    `GET /v1/artikel` (`haalArtikelGraaf`).
+  - *Review-state via de API* – artikeldocumenten via `app/api/annotatie/documenten/*` →
+    `/v1/annotatie/*`; bronnode-annotaties (contract 2) via de catch-all
+    `app/api/annotatie/v2/[...pad]/route.ts` → `/v1/annotatie/{weergave,elementen,lagen,
+    node-lagen,samenhang,capabilities}` (een allowlist op het eerste padsegment), met client-helpers in `lib/annotatieNode.ts`. De lagen zijn **gedeeld**,
+    niet per gebruiker; gesprekken zijn per gebruiker.
 
-graph-qa stuurt per fase een `status`-regel (supervisor → ophaal-agent → Bron → Taalanalyse →
-Detectie → Besluit → Classificatie → Review → Resultaat → Klaar, elk met de duur erachter);
-`onStatus` plakt die als `· <regel>` aan `denk`, en `DenkProces` toont ze **live** onder de lopende
-beurt.
+### De beurt is van de server, niet van dit tabblad
 
-Zodra de beurt een annotatie blijkt, ging dat spoor eerder verloren: het antwoord-item werd vervangen
-door de chip. Nu draagt het `annotatie`-item een `denk`-veld, staat de tijdlijn ingeklapt boven de
-chip als *"Zo is dit tot stand gekomen"*, en wordt hij met de beurt bewaard (`denk` bestond al in
-`BerichtInvoer`) en bij hydratatie teruggehaald. Bij een platform dat om herleidbaarheid draait hoort
-achteraf te kunnen zien hoe een annotatie tot stand kwam.
+Een beurt draait als **run** bij graph-qa (`POST /api/annotatie/run` → `startRun`); de werkplek kijkt
+mee (`volgRun` op `/api/annotatie/run/[id]/events`). Van gesprek wisselen, naar `/annotaties` lopen of
+herladen breekt hem niet af. Regels:
 
-### Annotaties staan los van de gesprekken (`/annotaties`)
+- **Unmount koppelt alleen los.** `afbrekenRef.current?.abort()` beëindigt de kijker, niet de run.
+  Een `AbortError` in `volgBeurt` is daarom géén einde: niets bewaren, het antwoord komt later.
+- **Bij binnenkomst haak je weer aan** (`hervatBeurt` na de hydratatie): loopt er nog een beurt, dan
+  komt hij vanaf `seq 0` terug. Alleen bij status `loopt` – een afgeronde beurt staat al in de
+  gehydrateerde geschiedenis, en twee keer tonen is erger dan missen.
+- **Stoppen is een verzoek** (`stopRun`), geen dichtvallende socket. De agent stopt op een nodegrens,
+  dat kan tientallen seconden duren; de knop blijft daarom in de `stopt`-stand. Stoppen vóór de
+  voorstellen levert er nul op, en het bericht zegt dat.
+- **Na een herstart van de agent is het run-register leeg.** `lib/lopendeRun.ts` onthoudt per gesprek
+  welk run-id er liep; `standVanVorigeRun` bepaalt dan of de beurt gewoon is afgerond (het bericht met
+  dat `run_id` staat in de geschiedenis) of echt verdwenen is. Alleen in dat tweede geval komt er een
+  melding; zonder die controle zou elke normale afloop als "afgebroken" gemeld worden.
+- **Een weggevallen verbinding is geen mislukte beurt.** Bij een deploy wordt de frontend-container
+  vervangen terwijl de run doorloopt. `volgBeurt` haakt daarom **één keer** opnieuw aan
+  (`naEenGebrokenStream`, na 1,5 s, met `vanaf: 0`); pas als die herkansing op is of het venster weg
+  is, komt er een foutmelding. Eén poging: is de dienst echt onbereikbaar, dan vertelt doorproberen
+  de gebruiker niets.
+- **`run_id` reist mee naar de API** bij het bewaren van de assistent-beurt; kijken er twee tabbladen
+  mee, dan landt de uitkomst toch één keer (de API dedupliceert erop).
+- **Bij een 409 op `startRun`** (er loopt al een beurt op dit gesprek) haakt de client aan bij die run
+  in plaats van te falen: twee gelijktijdige beurten schrijven door elkaar in het agent-geheugen.
+- **De agent schrijft weg, de werkplek nooit.** graph-qa stuurt vlak vóór het einde een
+  `opgeslagen`-event met de `annotatie_slug`; de client haalt het document dan bij de API op
+  (`toonVastgelegdeBeurt`). Blijft dat event uit terwijl er markeringen waren, dan is dat een
+  **storing** en toont de werkplek het zo. Zet er geen tweede schrijfpad vanuit de browser naast –
+  bij gedeeltelijk falen levert dat een tweede document op. Een eigen markering van de jurist is een
+  andere handeling (`voegElementToe`). Een graph-qa zonder API-koppeling meldt zelf met een
+  `error`-event dat niets is vastgelegd (`agent/beurt.py`).
+- **Tokens komen hooguit één keer per frame binnen** (`planStroom` in `volgBeurt`).
 
-Een annotatie was alleen te vinden via het gesprek waarin hij gemaakt was; verdween dat gesprek, dan
-bleef het document onbereikbaar in de database staan. Nu is het artefact een eersteklas object, naar
-het model van Claude's artifacts-tab: **een ingang in de sidebar die het hoofdgebied vult – de
-sidebar blijft staan**, je stapt niet uit de app.
+**Identiteit is een vertrouwensgrens.** De BFF zet `X-User-Id` uit de sessie op alle run-routes en
+verifieert bij het starten eerst bij de API of het gesprek van deze gebruiker is. `conversation_id` is
+ook de thread_id van het agent-geheugen: zonder die controle kan een vreemd gespreks-id (dat in de
+URL van de werkplek staat) andermans historie lezen of er een vraag in injecteren. Er is daarom
+**één weg naar de agent**: elk pad dat een `conversation_id` aanneemt, verifieert eerst bij de API van
+wie dat gesprek is, zoals `app/api/annotatie/run/route.ts`. Zet er geen tweede ingang naast.
 
-- **`components/werkplek/AppSidebar.tsx`** bezit de gesprekkenlijst (laden, hernoemen, verwijderen)
-  en de mobiele drawer, en wordt gedeeld door `WorkbenchShell` en de annotatiepagina's. De handlers
-  verschillen per scherm: in de werkplek wisselt een klik van gesprek in lokale state, op
-  `/annotaties` navigeert hij naar `/workbench?gesprek=<id>`. `WorkbenchShell` verhoogt
-  `verversSignaal` als een beurt een gesprek aanmaakt – de lijst woont daar niet meer.
-- **Elk scherm met `AppSidebar` moet de drawer openen.** Onder `lg` is de sidebar een `hidden`-kolom
-  en verschijnt de drawer alléén als het scherm `drawerOpen` + `onDrawerSluit` doorgeeft. De
-  annotatiepagina's deden dat niet, en daar was op een half scherm dus géén navigatie: geen
-  gesprekken, geen account, geen uitloggen. De hamburger zit nu in de gedeelde
-  **`components/werkplek/MobieleTopbar.tsx`**, gebruikt door alle drie de schermen, en
-  `components/werkplek/sidebar.test.ts` bewaakt dat er geen vierde scherm zonder aankomt.
-- **`/annotaties`** (`components/annotaties/AnnotatiesClient.tsx`) heeft twee weergaven op één lijst:
-  *te doen* (werkvoorraad: rood → geel → langst stil) en *alles* (per regeling gegroepeerd). De
-  stand staat in de URL (`?weergave=alles`, via `replace` – een weergavewissel is geen stap in de
-  geschiedenis). De kaart toont de **JAS-kleurstrip**: de klasseverdeling als balk, waar Claude een
-  thumbnail zou tonen.
-- **Het overzicht toont de gedeelde lagen** (sinds 22 sep 2026, `lijstLagen` → BFF
-  `app/api/annotatie/lagen` plus `…/v2/node-lagen`): één annotatie per bepaling voor iedereen, zodat
-  Lex een al geannoteerde bepaling kan hergebruiken. Een kaart met een `bron_iri` opent de
-  bronnode-weergave (`/annotaties/node`), de rest het oude document. *Door mij bewerkt* (`mijn=true`) beperkt tot lagen waar je zelf iets aan
-  deed – een laag heeft geen eigenaar, de api leest dat uit de audit. De kaart telt de verouderde
-  markeringen apart. Een v1-laag per artikel heeft geen verwijderknop (403); een **bronnode-annotatie
-  wel**, in het paneel zelf – zie hieronder.
-- **Verwijderen staat naast afronden** (sinds 25 sep 2026): *Verwijderen* in de actierij van
-  `ArtefactInhoud` (`onVerwijder`, alleen als er een laag in beeld is), een `BevestigKnop` – tweede
-  klik bevestigt, zoals overal in de app. Elke gebruiker mag het, ook op een afgeronde annotatie;
-  wie het deed staat in de audit. `NodeAnnotatiePaneel.verwijder` stuurt `weergave/verwijder` met
-  de revisies in beeld (412 als iemand intussen iets wijzigde) en laadt daarna opnieuw. De api haalt
-  alle lagen van de bepaling in beeld weg – met elementen en dekking, en direct daarna uit de graaf –
-  en de weergave draagt dan `verwijderd: {op}`: het paneel zegt "Deze annotatie is verwijderd op …"
-  in plaats van leeg te zijn, ook als je hem later vanuit een oud gesprek opent. Lex annoteert zo'n
-  bepaling bij een volgende vraag gewoon opnieuw.
-- **Hergebruik en "opnieuw annoteren" staan bij de annotatie in het gesprek**
-  (`HergebruikMelding`). Het `hergebruik`-event (`parseHergebruik`) zegt welke leden uit de laag
-  kwamen; de melding blijft na herladen staan omdat graph-qa hem ook in het chatbericht zet
-  (`Bericht.hergebruik`). De knop *Lex opnieuw laten annoteren* start een run met
-  `hergebruik: "opnieuw"` en het doel van de beurt (`doelVoorOpnieuw`) – zonder doel zou de agent de
-  bepaling opnieuw moeten zoeken. Die ronde vult de laag aan; wat beoordeeld is blijft staan.
-- **Verouderde markeringen zijn historie** (`splitsVerouderd`). Is de wettekst van een lid veranderd,
-  dan zet de api de oude markeringen op `verouderd`: ze lichten niet meer op in de tekst, staan niet
-  in de reviewlijst, maar wel ingeklapt onder *Historie – tekst gewijzigd*, met het oordeel dat er
-  destijds over werd geveld (`LIFECYCLE_LABEL`, dezelfde woorden als de export).
-- **De sorteer-, groepeer- en zoeklogica staat in `lib/annotatieOverzicht.ts`**, niet in het
-  component: vitest draait node-env zonder DOM, dus alleen pure helpers zijn testbaar – dezelfde
-  reden die `lib/selectie.ts` al noemt.
-- **`/annotaties/[slug]`** toont het artefact op eigen benen. Bewust zonder `onVraag` (er is geen
-  chatveld om een vraag in klaar te zetten – daarvoor is *Openen in de werkplek*) en zonder
-  `ontbrekend` (dat hoort bij een chatbeurt, niet bij het document).
+### De tijdlijn en het toolspoor van een beurt
 
-**Eén inhoud, twee schillen.** `components/werkplek/ArtefactInhoud.tsx` draagt de wettekst, de
-reviewlijst en alle handlers; `ArtefactPaneel` is nog slechts de `Dialog`-schil eromheen en de
-annotatiepagina is de tweede schil – hetzelfde patroon als `DisclaimerClient` en
-`InstellingenInhoud`. Een **bronnode-annotatie** (contract 2) gebruikt dezelfde inhoud:
-`NodeAnnotatiePaneel` haalt de v2-weergave op en vertaalt die via `lib/annotatieNodeAdapter.ts`
-(codepoints per bronnode ⇄ UTF-16 in de samengestelde bron). Het kreeg in #473 een eigen, kaal
-paneel en verloor daarmee alle opmaak en bediening; bouw dus geen tweede weergave, maar breid de
-adapter uit. `ArtefactInhoud` heeft daarvoor twee optionele haken: `onExport` (een eigen
-exportroute) en `extra` (blokken onder de reviewlijst, zoals "overspant meerdere bepalingen" en de
-voortgang per bepaling). De paginaschil eromheen — sidebar, mobiele topbar, de weg terug naar het
-overzicht — is gedeeld in `components/annotaties/AnnotatiePaginaSchil.tsx`, gebruikt door
-`/annotaties/<slug>` én `/annotaties/node`. Let op **Escape**: dat hing aan `Dialog.onEscape`, maar die schil bestaat niet
-altijd meer. De inhoud handelt het nu zelf af (selectie → bedieningsrij → gekozen element →
-`onSluiten`), en `ArtefactPaneel` geeft `Dialog` daarom een **no-op** `onEscape` mee. Zou die er ook
-op reageren, dan sprong Escape in één klap door alle lagen heen.
+graph-qa stuurt per fase een `status`-regel met duur (supervisor → ophaal-agent → Bron →
+Taalanalyse → Detectie → Besluit → Classificatie → Review → Resultaat → Klaar); `onStatus` plakt die
+als `· <regel>` aan `denk`, en `DenkProces` toont ze live. Het `annotatie`-item draagt ook een
+`denk`-veld: de tijdlijn staat ingeklapt boven de chip als *"Zo is dit tot stand gekomen"*, wordt met
+de beurt bewaard en bij hydratatie teruggehaald. Achteraf moet te zien zijn hoe een annotatie tot
+stand kwam. `ToolSpoor` toont de graafaanroepen van de beurt (`tool_executions`), één regel per
+aanroep.
 
-**Het kruisje staat altijd rechtsboven.** De kop van `ArtefactInhoud` is twee vaste regels: titel +
-sluitknop, daaronder de acties (status, exporteren, afronden) rechts uitgelijnd. In één wrappende rij
-verhuisde het kruisje mee met de knoppen zodra de ruimte krap werd, en dan stond het op een telefoon
-ineens tussen *Exporteren* en *Afronden*. Sluiten is de uitweg en die zoek je op één plek – dezelfde
-plek als in `InstellingenDialog`, `DisclaimerDialog`, `FeedbackDialoog` en de gesprekkendrawer, met
-hetzelfde icoon (viewBox 20, `strokeWidth` 1.6). De prijs is een regel hoogte op een breed scherm.
+### Brongetrouwheid onder en in het antwoord
 
-**Afronden** zit als knop in de kop van `ArtefactInhoud` (dus in beide schillen) en zet de
-documentstatus via `zetDocumentStatus`. Expliciet, want "alle elementen beslist" is niet hetzelfde
-als klaar zijn; heropenen kan altijd. Afronden **bevriest de hele annotatie**
-(`isDocumentVergrendeld`): de handlers vallen stil, de selectie-popover en de ontbrekend-knoppen
-verdwijnen, `a`/`x`/`c` doen niets meer en er staat een uitleg-melding boven de lijst. De api
-weigert die mutaties tóch met een 409 – de UI laat het slot zien in plaats van die fout af te
-wachten, want een knop die alleen nog een foutmelding oplevert is erger dan geen knop.
-
-### Buiten de schil: één kaart
-
-Alles wat geen app-schil is – inloggen, 2FA, de eerste beheerder, de blokkerende disclaimer en de
-fout-/laadpagina's – gebruikt **`components/auth/AuthFrame.tsx`**: een gecentreerde kaart op
-`bg-surface` met het logo erboven, in dezelfde vormtaal als de dialogen. De oude documentopmaak
-(`SiteHeader`, `SiteNav`, `SiteFooter`, `AppMain`, `lib/appShell.ts`) is **weg**; die navigatiebalk
-wees naar plekken die inmiddels in de sidebar zitten. Bewust geen namaak-werkplek achter het
-inlogscherm: een lege, vervaagde app leest als "hij laadt", niet als "log eerst in".
-
-**De app-schil scrollt niet mee – ook niet op mobiel.** De body is `min-h-[100dvh]` en niet alleen
-`min-h-screen`: `100vh` is op mobiel de viewport *zonder* adresbalk, dus zolang die balk in beeld
-staat is de body hoger dan wat je ziet en kan het document zelf scrollen – waarna de
-testomgeving-strook en de mobiele topbar wegschuiven terwijl de schil eronder juist vaststaat.
-`100dvh` volgt de zichtbare hoogte; `min-h-screen` blijft ervóór staan als terugval. Daarnaast staat
-`overscroll-behavior: contain` op elke scroller (`globals.css`): bereikt een paneel zijn einde, dan
-gaf de browser de scroll door aan het document eronder, en dan bewogen die stroken alsnog
-(rubber-banding op iOS, pull-to-refresh op Android).
-
-`app/global-error.tsx` blijft een uitzondering met inline stijl en hardcoded huisstijlkleuren – die
-boundary vervangt de hele document-boom en kan de app-CSS niet veronderstellen.
-
-**Een venster is zo hoog als zijn inhoud, tenzij die wisselt.** `Dialog` kent daarvoor twee
-gecentreerde vormen: `center` houdt een vaste hoogte aan (42rem) en is bedoeld voor het
-instellingenvenster, dat anders bij elke tabwissel van formaat zou springen; `compact` groeit mee met
-de inhoud tot een plafond en is bedoeld voor een formulier of een lap tekst. De feedbackdialoog stond
-op `center` en had daardoor een halve pagina wit onder de verzendknop – op mobiel claimde hij zelfs
-94% van het scherm voor drie velden. Feedback en voorwaarden gebruiken nu `compact`.
-
-**De disclaimer heeft twee schillen, één tekst.** De edge-gate (`auth.config.ts` → `vereistAkkoord`)
-stuurt je zonder akkoord naar `/disclaimer`: dat is de **blokkerende** volle pagina in `AuthFrame`.
-Klik je de teststrook aan vanuit de werkplek, dan onderschept `app/@modal/(.)disclaimer/page.tsx` dat
-pad en opent `DisclaimerDialog` over de werkplek heen – zelfde `DisclaimerClient`, andere schil, en je
-verlaat je gesprek niet. Verander je de tekst, dan verander je hem dus op één plek.
-
-**In de dialoogschil sluit je met `router.back()`, nooit met een link.** `DisclaimerClient` krijgt
-daarvoor `onSluiten`; kruisje, achtergrondklik, Escape en de knop onderin lopen door dezelfde functie.
-Er stond een `LinkButton href="/"` onderin, en dat sluit een intercepting-route-modal juist niet: het
-modal-slot houdt zijn toestand vast bij een soft navigation, en `/` leidt bovendien door naar
-`/workbench`. Je hield de popup én kreeg er een history-entry bij, waarna het kruisje je terugbracht
-náár de voorwaarden – op mobiel, waar de dialoog het hele scherm vult, zat je dan vast.
-
-### Berichten en feedback
-
-Twee kleine domeinen die aan de app-shell hangen, niet aan de oude paginanavigatie:
-
-- **Berichten** (release notes) – `BerichtenPanel` is de bel in de **sidebar-kop** met een
-  ongelezen-badge; het archief is de niet-admin tab `/instellingen/berichten`. Let op de naamval:
-  `Bericht`/`BerichtInvoer` in `lib/types.ts` zijn **chatbeurten**, `BerichtOut` en familie zijn
-  release notes – twee losstaande API-domeinen (`/v1/gesprekken/…/berichten` vs `/v1/berichten`).
-- **Feedback** – `FeedbackDialoog` opent vanuit het gebruikersmenu onderin de sidebar. Bewust
-  **geen zwevende knop** zoals elders gebruikelijk: die valt over de chat-invoer van de werkplek.
-  De ongelezen-teller voor beheerders zit als badge op de feedbacktab (`TabDef.badge`).
-
-Beide panelen halen hun teller periodiek/bij openen op en falen **stil**: een hapering mag de
-werkplek niet blokkeren, de badge is een hint.
+- **`Brongetrouwheid`** (`ThreadRij`) leest het `grounding`-event. Het zwijgt bij
+  `niveau: "gegrond"` – een groen vinkje bij elk antwoord leert mensen erover heen te kijken – en
+  spreekt bij **ongegrond** (een verwijzing die niet uit de graaf kwam, of een citaat dat niet
+  letterlijk in de opgehaalde tekst staat) en **onbepaald** (geen vindplaats en geen citaat, dus niets
+  te controleren). Onbepaald is geen goedkeuring; toon het niet groen. De uitkomst reist niet mee in
+  het berichtcontract, maar de statusregel staat in `denk`.
+- **Een afgekeurd citaat wordt in de tekst zelf aangewezen.** `Markdown` neemt `nietLetterlijk` aan
+  en wikkelt elke treffer in een `<mark>` (aandacht-geel, stippellijn en een `sr-only`-toelichting,
+  zodat het signaal niet alleen aan kleur hangt). Dat is een **rehype-plugin op de hast-boom**, niet
+  op de bron-markdown: er komt geen teken in de tekst die de jurist zou meekopiëren. Matchen gaat
+  letterlijk – wijkt de weergave af van wat de controle vergeleek, dan markeer je liever niets dan
+  het verkeerde stuk. Logica in `lib/markering.ts`.
 
 ### Annoteren op onderwerp
 
-Noemt de vraag een onderwerp in plaats van een bepaling, dan komt er een `kandidaten`-event in plaats
-van `doel`/`element`: de thread toont een keuzelijst (`KandidatenKeuze`), en één klik stuurt
-`kandidaatPrompt(k)` als nieuwe beurt in – **mét `doelVanKandidaat(k)` als gestructureerd `doel`**.
-Daarmee slaat de agent de supervisor én de ophaal-agent over (~3-5 LLM-calls minder) en, belangrijker,
-kán hij niet meer bij een andere bepaling uitkomen dan de jurist zojuist aanwees. De prompt blijft
-daarnaast bestaan als leesbare vraag in de thread, mét het bwbId erin voor het geval een beurt tóch
-zonder doel loopt. Zelfde patroon geldt voor elke andere plek waar de werkplek de bepaling al kent:
-geef `doel` mee aan `startRun`. Een **adviesvraag** draagt nooit een doel – die route annoteert niet. Bij een onderwerp is er bewust géén "annoteer ze allemaal": dat zijn
-bepalingen uit verschillende artikelen, en meerdere artikelen samen is een werkgebied. De kandidaten
-zitten niet in het berichtcontract van de api; wat na een herlaadbeurt overblijft is de opsomming uit
+Noemt de vraag een onderwerp in plaats van een bepaling, dan komt er een `kandidaten`-event: de
+thread toont `KandidatenKeuze` (in `ThreadRij`), en één klik stuurt `kandidaatPrompt(k)` als nieuwe
+beurt in, **met `doelVanKandidaat(k)` als gestructureerd `doel`**. Daarmee slaat de agent de supervisor
+en de ophaal-agent over en kan hij niet bij een andere bepaling uitkomen dan de jurist aanwees. De
+prompt blijft als leesbare vraag in de thread staan, mét het bwbId, voor het geval een beurt tóch
+zonder doel loopt. Algemene regel: **kent de werkplek de bepaling al, geef dan `doel` mee aan
+`startRun`**. Een adviesvraag draagt nooit een doel – die route annoteert niet. Er is bewust geen
+"annoteer ze allemaal": kandidaten uit verschillende artikelen samen zijn een werkgebied. De
+kandidaten zitten niet in het berichtcontract; na herladen blijft de opsomming uit
 `kandidatenAlsTekst`.
+
+**Geen keuzemenu's – het is chat op de graaf.** Je kiest geen wet uit een lijst: je stelt je vraag en
+de agent vindt de bepaling (het `doel`-event levert `bwbId`/`artikel`/`citeertitel`). Een keuze die de
+agent ná je vraag voorlegt uit wat hij vond (kandidaten, `KeuzeKaart`) is een antwoord, geen menu.
 
 ### Kiezen binnen één artikel, en de reeks
 
-Wijst de vraag een artikel met leden aan (of een beleidsregel met subbepalingen, zoals Leidraad 9),
-dan draagt het `kandidaten`-event een **`keuze`** (`parseKeuze`) en per optie `bron_iri`, `label`,
-`stand` en eventueel `gekozen`. De thread toont dan **`KeuzeKaart`** in plaats van de kandidatenlijst:
-een listbox in Claude-stijl, focus erin bij verschijnen. **Klik (op de regel of het vinkje) of
-spatie** selecteert, en *Annoteer geselecteerde* start **één run met `doelen`**
-(`doelenVanKandidaten`). **Enter** annoteert de selectie, of zonder selectie het onderdeel onder de
-cursor (een gewone beurt met `doelVanKandidaat`, dat de `bron_iri` meeneemt). Een klik start bewust
-nooit zelf een run: tot 30 sep 2026 annoteerde een klik naast het vinkje meteen dat ene lid, en dan
-liep er een beurt op budget terwijl je nog aan het kiezen was.
-De stand per onderdeel (nieuw / te beoordelen / afgerond) staat erbij, en onderaan wat de keuze
-inhoudt, want elk onderdeel kost budget.
+Wijst de vraag een artikel met leden aan (of een beleidsregel met subbepalingen), dan draagt het
+`kandidaten`-event een **`keuze`** (`parseKeuze`) met per optie `bron_iri`, `label`, `stand` en
+eventueel `gekozen`. De thread toont dan **`KeuzeKaart`**: een listbox, focus erin bij verschijnen.
+**Klik (op de regel of het vinkje) of spatie selecteert**; *Annoteer geselecteerde* start **één run
+met `doelen`** (`doelenVanKandidaten`). **Enter** annoteert de selectie, of zonder selectie het
+onderdeel onder de cursor (een gewone beurt met `doelVanKandidaat`). Een klik start nooit zelf een
+run: dan loopt er een beurt op budget terwijl je nog kiest. De stand per onderdeel (nieuw / te
+beoordelen / afgerond) staat erbij, en onderaan wat de keuze inhoudt, want elk onderdeel kost budget.
 
-Die run is een **reeks** (graph-qa `agent/reeks.py`): per onderdeel de gewone beurt, elk met een eigen
-laag. De stroom komt ingedeeld binnen – `reeks`, `onderdeel` en `onderdeel: <bron_iri>` op elk event
-ertussen – en `lib/api.ts` geeft die events ruw door aan `onReeksEvent`, zodat een fout bij één
-onderdeel de stroom niet afbreekt. `lib/reeks.ts` (`verwerkReeksEvent`, getest zonder DOM) maakt er
-het **`ReeksBlok`** van: per onderdeel een regel, het lopende open met zijn eigen "zo is dit tot stand
-gekomen", een klaar onderdeel ingeklapt met *Open ›*. Na herladen komt het blok terug uit de
-berichten: graph-qa bewaart per onderdeel een bericht met `reeks: {run_id, index, totaal, ouder}`
-(`reeksUitBerichten`). Twee dingen om niet te breken: een afgeronde reeks herken je aan
-`reeks.run_id` (de berichten zelf dragen `<run>.<n>`), en bij opnieuw aanhaken aan een lopende reeks
-gaat het gehydrateerde blok eerst weg – de eventlog speelt het geheel opnieuw af.
+Die run is een **reeks** (graph-qa `agent/reeks.py`): per onderdeel een gewone beurt met een eigen
+laag. De events komen ingedeeld binnen (`reeks`, `onderdeel`, en `onderdeel: <bron_iri>` op elk event
+ertussen); `lib/api.ts` geeft ze ruw door aan `onReeksEvent`, zodat een fout bij één onderdeel de
+stroom niet afbreekt. `lib/reeks.ts` (`verwerkReeksEvent`) maakt er het **`ReeksBlok`** van: per
+onderdeel een regel, het lopende open met zijn eigen tijdlijn, een klaar onderdeel ingeklapt met
+*Open ›*. Na herladen komt het blok terug uit de berichten: graph-qa bewaart per onderdeel een bericht
+met `reeks: {run_id, index, totaal, ouder}` (`reeksUitBerichten`). Niet breken: een afgeronde reeks
+herken je aan `reeks.run_id` (de berichten zelf dragen `<run>.<n>`), en bij opnieuw aanhaken aan een
+lopende reeks gaat het gehydrateerde blok eerst weg – de eventlog speelt het geheel opnieuw af.
 
-*Open ›* in een reeksblok opent het paneel **op dat ene lid**, met bovenin een reeksbalk
-(`ReeksBalk` in `NodeAnnotatiePaneel`, `reeksNavigatie` in `lib/reeks.ts`): waar je bent ("2 van 3")
-en ‹ › of `[` `]` naar het buurlid. Bewust niet het hele artikel in één paneel: dan werken *Afronden*
-en *Verwijderen* op álle lagen in beeld, ook op leden die niet gekozen waren. Beoordelen blijft zo
-per lid, en alleen leden met een vastgelegde annotatie tellen mee in het bladeren.
+*Open ›* opent het paneel **op dat ene lid**, met een reeksbalk (`ReeksBalk` in
+`NodeAnnotatiePaneel`, `reeksNavigatie` in `lib/reeks.ts`): "2 van 3" en ‹ › of `[` `]` naar het
+buurlid. Bewust niet het hele artikel in één paneel: *Afronden* en *Verwijderen* werken op álle lagen
+in beeld, ook op leden die niet gekozen waren. Alleen leden met een vastgelegde annotatie tellen mee
+in het bladeren.
 
-### De artefact-werkbank
+### Eén gesprek: vragen over een markering gaan via het centrale venster
 
-Vanaf **1280px** (`lib/useBreedScherm.ts`) staat het artefact als **eigen kolom naast de chat** in
-plaats van eroverheen: `Dialog` heeft daarvoor de variant **`kolom`** – geen backdrop, geen
-`aria-modal` en géén focus-trap (die zou je opsluiten terwijl de chat er juist naast bereikbaar moet
-zijn); Escape sluit in alle varianten. Daaronder blijft het de bestaande `side`-sheet. De splitsing
-zit in `WerkplekClient` zelf en niet in `WorkbenchShell`, anders moeten `docs`/`infos` en alle
-handlers omhoog en weer terug omlaag.
+*Vraag Lex* op een reviewkaart zet een vraag klaar in het chatveld; er is geen aparte mini-chat in de
+kaart.
 
-Binnen het artefact hebben **wettekst en reviewlijst elk hun eigen scroll** (tekst `max-h-[45%]`
-bovenin). Eén gedeelde scroller liet de tekst uit beeld lopen zodra je verderop in de lijst kwam.
-Selecteren scrolt **beide kanten op** in beeld: de markering in de tekst (`DocumentPaneel`) én de
-kaart in de lijst (`ReviewQueue`), met `prefers-reduced-motion` gerespecteerd.
+- `WerkplekClient` houdt `vraagOver` (slug + element). Zolang dat staat, toont een **chip** boven het
+  invoerveld waar de vraag over gaat en gaat de beurt met `modus: "advies"` + `vraagContextVan(...)`.
+  De chip verdwijnt na het versturen – anders wordt je volgende vraag ongemerkt ook een adviesvraag.
+- **Drie vragen staan klaar** (`vraagSuggesties` in `lib/annotatie.ts`): waarom deze klasse, klopt de
+  afbakening, en – als de agent een alternatief voorstelde – waarom die andere klasse dan niet. Eén
+  klik verstuurt; ze verdwijnen zolang er een beurt loopt, want een tweede vraag zou worden
+  afgewezen.
+- Het antwoord is een gewone beurt, dus met bronnen, grounding en kopieerknop.
+- De chip is UI-state; het bewaarde bericht krijgt een contextregel
+  (`Bij <klasse> – "<fragment>" (art. 36): <vraag>`).
+- **De context is één document.** `eigenMarkeringenVoorContext(doc)` levert de eigen, niet-verworpen
+  markeringen van de bepaling die openstaat, niet alles wat in het gesprek geopend is – anders legt
+  Lex een fragment uit artikel 36 naast de tekst van artikel 8. graph-qa handhaaft die grens nog eens.
+- Op een **smal scherm** sluit het artefact al bij de klik op *Vraag Lex*: het paneel ligt daar over
+  de chat, en anders typ je in een veld dat je niet ziet. Het versturen sluit het nog eens, als
+  vangnet. De focus op de textarea blijft in dezelfde gebeurtenis als de klik: iOS opent het
+  toetsenbord alleen binnen een gebruikersgebaar.
 
-- **De kaart is compact**; details (toelichting, uitleg van de review, alternatieven, opmerking)
-  vouwen open bij selectie. Eén begrip stuurt alles: `actief`.
-- **Eén vaste volgorde** (`sorteerReview`): de canonieke **JAS-tabelvolgorde** (`jasVolgorde` uit
-  `lib/jas.ts`) → lid (numeriek!) → plek in de tekst → invoervolgorde. Géén van die sleutels verandert
-  door reviewen; eerder woog aandacht en voortgang het zwaarst, waardoor een goedgekeurd element naar
-  achteren sprong en je je plek kwijtraakte. Scherpstellen doen de filters: *alles* / *te beoordelen*
-  / *met aandacht*. De positie per element komt uit `ArtefactPaneel`, dat hem in dezelfde lus berekent
-  als de zwevende markeringen – één `vindPositie`, dus lijst en tekst spreken elkaar nooit tegen.
-- **Zwevende markeringen worden benoemd.** Is een fragment niet meer in de tekst te vinden
-  (`vindPositie` → `-1`), dan verdween de markering eerder stilzwijgend. Nu staat het op de kaart en
-  in de teller. (Zelfde les als Hypothesis' "orphans".)
-- **Toetsenbord**: `j`/`k` (of ↓/↑) door de getoonde lijst, `a` akkoord, `x` verwerpen, `c` klasse,
-  `Escape` loslaten. De listener doet **niets zolang de focus in een invoerveld staat** – anders keur
-  je iets goed door "a" te typen in een toelichting. Na `Akkoord` springt de selectie door naar het
-  volgende dat nog aandacht vraagt; knop en toets lopen via dezelfde `onAkkoord`.
-- De **volgorde en de open bedieningsrij leven in `ArtefactPaneel`**, niet in de lijst: zo doorloopt
-  het toetsenbord gegarandeerd dezelfde volgorde als je ziet, en staat er nooit op twee kaarten
-  tegelijk een rij open.
+### Foutafhandeling in de werkplek
 
-### De samenhangsgraaf (3D)
+- **Foutmeldingen via `foutTekst` uit `lib/api.ts`, nooit via `e instanceof Error`.** Een `ApiError`
+  is een object-literal, dus die test is altijd onwaar en vervangt elke serverreden door een
+  generieke zin.
+- **Niets faalt stil.** Het artefact openen toont een laadstand en bij een fout een `Melding` met
+  *Opnieuw proberen*. Een mislukte beslissing landt in de `Melding` van het artefact
+  (`WerkplekClient.beslissing` gooit door, `ArtefactPaneel.beslis`/`wis` vangen), niet als
+  chatbericht.
+- **Een verwijderde annotatie is een toestand, geen fout.** Een bericht verwijst met een kale
+  `annotatie_slug` naar een document, zonder foreign key. `isVerwijderd` (`lib/annotatie.ts`) scheidt
+  de 404 van een echte storing: bij 404 wordt de chip een **tombstone** (grijs, doorgestreepte titel,
+  "Deze annotatie is verwijderd", link naar `/annotaties`) met een neutrale `Melding type="uitleg"`
+  zonder *Opnieuw proberen*; al het andere houdt de rode melding mét retry. De kaart benoemt zichzelf
+  via **`annotatie_titel`** in het berichtcontract (gevuld met `annotatieTitel(doc)` bij de beurt;
+  zonder dat veld: "Annotatie"). Bewust geen cascade server-side: het gesprek is een verslag van wat
+  er gebeurde. Zelfde afhandeling op `/annotaties/[slug]`.
+- **De annotatie blijft bereikbaar** via een balk boven de chat (`art. 36 · 10 elementen · 3 te
+  beoordelen · Openen`) zodra het paneel dicht is; verwijderde documenten slaat die balk over.
+- **Een knop die een call doet, toont dat.** `BevestigKnop` await't `onBevestig`, staat zolang op
+  `Bezig…` en is uitgeschakeld; `AppSidebar`/`AnnotatiesClient` halen een rij meteen weg en zetten hem
+  bij een fout terug. Anders is een trage call (de BFF belt bij het verwijderen van een gesprek
+  diensten die koud kunnen starten, `minReplicas: 0`) niet te onderscheiden van een klik die niet
+  aankwam.
 
-Het bronnode-paneel (`NodeAnnotatiePaneel`) heeft naast *Tekst* een tab **3D-graaf**
-(`components/graaf/SamenhangGraaf.tsx`), en onder een antwoord met een bron naar een BWB-bepaling
-staat **Bekijk samenhang in 3D**, dat hetzelfde paneel direct op die tab opent. Beide verschijnen
-alleen als de api de capability `samenhang` meldt (`samenhangBeschikbaar()`, één keer per pagina).
-
-- **Data**: `GET /v1/annotatie/samenhang` (`api/app/samenhang.py`) via de v2-proxy. Het antwoord
-  bestrijkt het artikel waartoe het doel behoort: bronstructuur, actuele markeringen met hun
-  JAS-klasse, en de **letterlijke** verwijzingen uit de graaf, één stap uit en in. Een doel buiten
-  het artikel is een **randknoop** (draadmodel, gedempt); *Artikel openen* haalt dat artikel erbij
-  als eigen cluster. Een niet-geïmporteerd doel heet **extern** en is niet uit te klappen. Er wordt
-  niets afgeleid: afstand en positie betekenen juridisch niets, en dat staat ook in beeld.
-- **Rekenkern in `lib/samenhang.ts`** (samenvoegen, layout, zichtbaarheid en filters, `bronDoel`
-  voor jci/graaf-IRI → bronnode), getest zonder DOM. De layout is een **3D-krachtsimulatie**
-  (`d3-force-3d`, dezelfde engine als de renderer) vanuit radiale startposities, per artikelcluster
-  gerekend en daarna vast (`fx/fy/fz`): reproduceerbaar, en bijladen verschuift de bestaande kaart
-  niet. Hij draait in `lib/`, niet in de canvas – anders herrekent elke uitklapping alles.
-- **Weergave naar de CGM-viewer**: straal per soort, gebogen verbindingen met pijl en breedte per
-  soort, alles buiten de selectie gedimd, vaste labels alleen voor selectie en buren (de rest als
-  tooltip bij hover, `.samenhang-tip` in `globals.css`, tekst altijd ge-escaped), camera vliegt naar
-  de gekozen knoop.
-- **three.js laadt lui**: `SamenhangGraaf` en daarin `GraafCanvas` via `next/dynamic` met
-  `ssr: false`. Zonder WebGL of na contextverlies blijven zoeken, Lagen en de inspector bruikbaar.
-- **Bediening als een kaart-app** (sinds 29 sep 2026; daarvoor een werkbalk met vier knoppen,
-  filters in de kop en tot vijf detailknoppen). In de graaf doe je wat je kunt aanwijzen: **klik**
-  kiest (camera vliegt erheen), **dubbelklik** toont/verbergt de verbindingen of opent een randknoop
-  (`isDubbelklik`, 300 ms – de bibliotheek kent alleen `onNodeClick`), **achtergrond** heft de
-  selectie op, **hover** geeft de naam. De rest staat op één vaste plek per vraag, zwevend in het
-  canvas: *waar ben ik?* – **zoeken** linksboven (`GraafZoek`, combobox over álle knopen, ook
-  verborgen; lege focus = wat in beeld staat) en **Omgeving | Alles** rechtsboven (terug naar
-  Omgeving herstelt je eerdere stand); *wat zie ik?* – **Lagen** linksonder (`GraafLagen`: filters
-  en legenda in één); *beeld* – **Alles in beeld / in- / uitzoomen** rechtsonder (`GraafBeeld`); en
-  een eenmalige **hint** (`GraafHint`, `localStorage` in try/catch).
-- **Wat is dit? – de inspector** (`GraafInspector`): kop met soort en naam, *Centreren* en ✕, en
-  precies **één gevulde hoofdactie** (`hoofdactie()` in `lib/samenhang.ts`): *Toon in tekst* (bron of
-  markering binnen het artikel), *Artikel openen* (geïmporteerde randknoop), niets bij een klasse of
-  extern. Daarnaast rustig *Vraag Lex* (niet bij een klasse) en de
-  schakelaar *Verbindingen tonen (n)* – dezelfde handeling als dubbelklik, weg als er niets te tonen
-  valt. Relaties per soort als uitklapgroepen (`relatieGroepen`). Breed staat hij rechts, smal onder
-  de graaf en ingeklapt tot kop + hoofdactie, zodat het canvas zijn hoogte houdt.
-- **Annotaties staan er meteen.** Met de laag *Annotaties* aan (de default) toont de omgeving naast
-  de bronstructuur ook alle markeringen met hun JAS-klasse; alleen verwijzingen naar buiten vragen om
-  uitklappen. Ze zaten eerst achter uitklappen – de klasse hangt aan de markering, niet aan het lid,
-  dus je moest twee niveaus diep. De laag uitzetten is de weg naar rust, geen verstoppen.
-- **Kiezen klapt tijdelijk uit, dubbelklikken zet vast.** De omgeving is wat je zelf uitklapte
-  (`uitgebreid`). Daarbovenop klapt een gekozen knoop die in de omgeving verborgen was (via zoeken of
-  een tijdelijk getoonde buur) uit zolang hij gekozen is. Dat is **afgeleid, niet opgeslagen**
-  (`tijdelijk` in `SamenhangGraaf`): kies je iets anders, dan verdwijnt het weer. Het werd eerst in
-  `uitgebreid` gezet, en toen bleef elke ooit aangeklikte knoop voorgoed in de omgeving staan. De
-  schakelaar klapt zo'n knoop in voor zolang hij gekozen is (`ingeklapt`); dubbelklikken zet hem vast.
-- **Eén selectie**: de gekozen markering is in tekst en graaf dezelfde (`actiefId` van het paneel).
-  *Toon in tekst* wisselt naar de tekst en scrolt naar het lid (`data-lid` op de blokken van
-  `DocumentPaneel`). *Vraag Lex* gaat voor een markering via de bestaande `onVraag`; voor een bron
-  zet het een gewone vraag met vindplaats klaar – geen eigen agentcontract.
-- **Vergroten** gebruikt de `Dialog`-variant `fullscreen`. De stand staat daarom in de hook
-  `useSamenhangStand` in het paneel, niet in de graaf: een variantwissel remount de inhoud.
-  **Escape** van binnen naar buiten: zoeklijst → Lagen → selectie → verkleinen → sluiten.
-- **Live bij een annotatiewijziging**: `NodeAnnotatiePaneel` roept na elke mutatie (via `muteer`,
-  en `status`) `graafStand.ververs()` aan. Die haalt elk geladen deel opnieuw op (per artikel vervangen, zodat een intussen geopend artikel blijft staan); `bouwGraaf(delen,
-  vorige)` houdt bestaande knopen op hun plek, zodat alleen de nieuwe markering verschijnt.
-- Browserregressie: `scripts/test-samenhang.mjs` (gemockte BFF, zie de kop van het script).
-
-### Eén gesprek: vragen gaan altijd via het centrale venster
-
-De reviewkaart had een eigen mini-chat (`AdviesDraadje`). Die bestond alleen omdat het artefact
-modaal was; nu het ernaast staat is hij **verwijderd**. In plaats daarvan zet *Vraag Lex* op
-de kaart een vraag klaar in het chatveld:
-
-- `WerkplekClient` houdt `vraagOver` (slug + element). Zolang dat staat toont een **chip** boven het
-  invoerveld waar de vraag over gaat, en gaat de beurt met `modus: "advies"` + `vraagContextVan(...)`.
-  De chip verdwijnt na het versturen – anders wordt je vólgende vraag ongemerkt ook een adviesvraag.
-- **Drie vragen staan er alvast boven** (`vraagSuggesties` in `lib/annotatie.ts`): *waarom deze
-  klasse*, *klopt de afbakening*, en – als de agent een alternatief voorstelde – *waarom die andere
-  klasse dan niet*. Die derde past zich aan, want dáár zit het verschil per element. Eén klik stuurt
-  de vraag meteen; ze verdwijnen zolang er een beurt loopt, want een tweede vraag zou toch worden
-  afgewezen (er loopt al een run op dit gesprek). Een leeg veld met "Wat wil je weten over deze
-  markering?" is een open vraag op het moment dat je juist snel wilt beoordelen.
-- Het antwoord is een gewone beurt en krijgt daarmee **bronnen, grounding en de kopieerknop**, die het
-  draadje in de kaart geen van alle had.
-- De chip is UI-state en reist niet mee naar de api; het bewaarde bericht krijgt daarom een
-  contextregel (`Bij <klasse> – "<fragment>" (art. 36): <vraag>`), zoals `kandidatenAlsTekst`.
-- Op een **smal scherm** sluit het artefact al bij de klik op *Vraag Lex*, niet pas bij het
-  versturen. Daar ligt het paneel over de chat, dus anders lijkt de knop niets te doen: de chip met
-  de markering en het invoerveld staan erachter, en je typt in een veld dat je niet ziet. Het
-  versturen sluit het nog een keer, als vangnet voor wie het paneel intussen opnieuw opende – dan
-  wint het antwoord, dat je wilt zien binnenkomen. De focus op de textarea blijft in dezelfde
-  gebeurtenis als de klik staan: iOS opent het toetsenbord alleen binnen een gebruikersgebaar.
-
-**De beurt is van de server, niet van dit tabblad.** Een lopend antwoord hing aan de SSE-verbinding
-van het venster: van gesprek wisselen, naar `/annotaties` lopen of herladen brak hem af. Nu draait de
-beurt als **run** bij graph-qa (`POST /api/annotatie/run` → `startRun`) en kijkt de werkplek mee
-(`volgRun` op `/api/annotatie/run/[id]/events`). Vier regels om niet te breken:
-
-- **Unmount koppelt alleen los.** `afbrekenRef.current?.abort()` beëindigt de kijker, niet de run.
-  Een `AbortError` in `volgBeurt` is dáárom géén einde: niets bewaren, het echte antwoord komt later.
-- **Bij binnenkomst haken we weer aan** (`hervatBeurt` na de hydratatie): loopt er nog een beurt, dan
-  komt hij vanaf `seq 0` terug in beeld. Alleen bij status `loopt` – een afgeronde beurt staat al in
-  de gehydrateerde geschiedenis, en twee keer tonen is erger dan missen.
-- **Stoppen is een verzoek** (`stopRun`), geen dichtvallende socket. De agent stopt op een
-  nodegrens, dus dat kan tientallen seconden duren; de knop blijft daarom in de `stopt`-stand staan.
-  Stoppen vóór de voorstellen levert er écht nul op – het bericht zegt dat, in plaats van een half
-  resultaat te suggereren.
-- **Na een herstart van de agent is het run-register leeg.** `lib/lopendeRun.ts` onthoudt per gesprek
-  welk run-id er liep; bij binnenkomst zonder lopende run bepaalt `standVanVorigeRun` of de beurt
-  gewoon is afgerond (het bericht met dat `run_id` staat in de geschiedenis) of écht verdwenen is.
-  Alleen in dat tweede geval komt er een melding. Zonder die controle zou elke normale afloop als
-  "afgebroken" gemeld worden.
-- **`run_id` reist mee naar de api** bij het bewaren van de assistent-beurt. Kijken er twee tabbladen
-  mee, dan landt de uitkomst tóch één keer (de api dedupliceert erop).
-- **De agent schrijft weg, de werkplek nooit.** graph-qa stuurt vlak vóór het einde een
-  `opgeslagen`-event met de `annotatie_slug`; de client haalt het document dán bij de api op
-  (`toonVastgelegdeBeurt`). Blijft dat event uit terwijl er wél markeringen waren, dan is dat een
-  **storing** en toont de werkplek dat als zodanig – er is geen tweede schrijfpad meer.
-  Dat pad bestond wel (`maakDocument` + `zetElementen` vanuit de browser, met eigen artikelophaling
-  en eigen titelopbouw), en welke van de twee liep hing af van de aan/afwezigheid van één SSE-event;
-  bij een gedeeltelijk falen leverde dat een tweede document op. Beide client-helpers zijn daarom
-  weg uit `lib/api.ts`. Zet ze niet terug: een eigen markering voeg je toe met `voegElementToe`,
-  dat is een andere handeling. Een graph-qa **zonder** api-koppeling legt niets meer vast en meldt
-  dat nu zelf met een `error`-event (`agent/beurt.py`).
-- **Een weggevallen verbinding is geen mislukte beurt.** Alleen een `AbortError` (wij koppelen zelf
-  los) werd als "geen einde" behandeld; elke andere fout zette meteen "Er ging iets mis" neer. Bij
-  een deploy – de frontend-container wordt vervangen – betekende dat een beurt die als mislukt in
-  beeld kwam terwijl hij doorliep, slaagde en zijn bericht bij de api achterliet. `volgBeurt` haakt
-  nu **één keer** opnieuw aan (`naEenGebrokenStream` in `lib/lopendeRun.ts`, na 1,5 s, met
-  `vanaf: 0` zodat de eventlog wordt teruggespeeld); pas als die herkansing op is, of als het
-  venster weg is, komt er een foutmelding. Eén poging, niet meer: is de dienst echt onbereikbaar,
-  dan is doorproberen een molen die de gebruiker niets vertelt.
-
-De BFF stuurt de identiteit als **`X-User-Id`-header** mee op álle run-routes, en verifieert bij het
-starten eerst bij de api of dit gesprek van jou is – `conversation_id` is ook de thread_id van het
-agent-geheugen, dus zonder die controle kon een vreemd gespreks-id een vraag in andermans geheugen
-injecteren. Dat is een vertrouwensgrens en geen Dat is een vertrouwensgrens en geen
-gemak: graph-qa schrijft namens die gebruiker, dus wie de identiteit zelf zou mogen meesturen,
-schrijft in andermans gesprek.
-
-**Foutmeldingen lopen via `foutTekst` uit `lib/api.ts`, nooit via `e instanceof Error`.** Een
-`ApiError` is een object-literal, dus die test is altijd onwaar en verving elke serverreden door een
-generieke zin – "een agent-voorstel verwérp je" (409) werd zo onzichtbaar achter "de markering is
-niet gewist".
-
-Bij een 409 op `startRun` (er loopt al een beurt op dit gesprek) haakt de client aan bij de bestaande
-run in plaats van te falen: twee gelijktijdige beurten zouden door elkaar in het agent-geheugen
-schrijven.
-
-**Er is nog één weg naar de agent, en dat is met opzet.** `annoteerAgentStream` en zijn route
-`app/api/annotatie/agent` zijn verwijderd. Die stuurden het `conversation_id` uit de browser
-ongewijzigd door naar graph-qa – waar het de thread_id van het agent-geheugen is – zonder te
-controleren of het gesprek van deze gebruiker was; met andermans gespreks-id (dat staat in de URL van
-de werkplek) las je zo diens historie terug. Zet er geen tweede ingang naast: elk pad dat een
-`conversation_id` aanneemt, hoort eerst bij de api te verifiëren van wie dat gesprek is, zoals
-`app/api/annotatie/run/route.ts` doet.
-
-**Een afgekeurd citaat wordt in de tekst zelf aangewezen.** `grounding.niet_letterlijk` ging alleen
-naar het blok ónder het antwoord, en dat blok slaat iedereen op den duur over – terwijl je in de
-tekst naar een passage kijkt die er betrouwbaar uitziet omdát er aanhalingstekens omheen staan.
-`Markdown` neemt daarom `nietLetterlijk` aan en wikkelt elke treffer in een `<mark>` (aandacht-geel
-uit de huisstijl, plus een stippellijn en een `sr-only`-toelichting, zodat het signaal niet alleen
-aan kleur hangt). De transformatie is een **rehype-plugin op de hast-boom**, niet op de
-bron-markdown: zo komt er geen teken in de tekst die de jurist zou meekopiëren en blijft de opmaak
-zoals het model hem bedoelde. Matchen gaat letterlijk – wijkt de weergave af van wat de controle
-vergeleek (die normaliseert witruimte), dan markeren we liever niets dan het verkeerde stuk, en
-noemt het blok eronder de passage alsnog. Logica in `lib/markering.ts`, getest zonder DOM.
-
-**Brongetrouwheid staat onder het antwoord** (`Brongetrouwheid` in `WerkplekClient`). graph-qa stuurt
-per beurt een `grounding`-event; dat kwam altijd al binnen maar werd door niemand uitgelezen, dus een
-niet-onderbouwde verwijzing bleef onzichtbaar. Het blok zwijgt bij `niveau: "gegrond"` – een groen
-vinkje bij élk antwoord leert mensen erover heen te kijken – en spreekt in twee gevallen: **ongegrond**
-(een verwijzing die niet uit de graaf kwam, of een citaat dat niet letterlijk in de opgehaalde tekst
-staat) en **onbepaald** (het antwoord noemde geen vindplaats en geen citaat, dus er viel niets te
-controleren). Dat laatste is nadrukkelijk geen goedkeuring; toon het dus niet als groen. De uitkomst
-reist niet mee in het berichtcontract, maar de bijbehorende statusregel staat in `denk` en blijft na
-herladen in de tijdlijn terug te vinden.
-
-**Niets faalt meer stil.** Het artefact openen toont een laadstand en bij een fout een `Melding` met
-*Opnieuw proberen* (voorheen: een klik waar letterlijk niets van gebeurde als de graaf plat lag). Een
-mislukte beslissing landt in de `Melding` ván het artefact – `WerkplekClient.beslissing` gooit hem
-door en `ArtefactPaneel.beslis`/`wis` vangen hem – niet meer als chatbericht in de thread.
-
-**Een verwijderde annotatie is een toestand, geen fout.** Een bericht verwijst met een kale
-`annotatie_slug` naar een document – er is géén foreign key, dus verwijderen via `/annotaties` laat
-die verwijzing dangling achter. `isVerwijderd` (`lib/annotatie.ts`) scheidt de 404 van een echte
-storing: 404 → de chip wordt een **tombstone** (grijs, doorgestreepte titel, "Deze annotatie is
-verwijderd", link naar `/annotaties`) en een neutrale `Melding type="uitleg"` **zonder** *Opnieuw
-proberen*; al het andere houdt de rode melding mét retry. Dat de kaart zichzelf nog kan benoemen komt
-doordat het bericht zijn eigen label draagt: **`annotatie_titel`** in het berichtcontract, gevuld met
-`annotatieTitel(doc)` op het moment van de beurt. Berichten van vóór dat veld vallen terug op
-"Annotatie". Bewust géén cascade server-side: het gesprek is een verslag van wat er gebeurde en dat
-herschrijf je niet – en het zou bestaande dangling rijen toch niet oplossen. Zelfde afhandeling op
-`/annotaties/[slug]`.
-
-**De annotatie blijft bereikbaar** via een balk boven de chat (`art. 36 · 10 elementen · 3 te
-beoordelen · Openen`) zodra het paneel dicht is; de chip in de thread scrolt immers weg. Verwijderde
-documenten slaat die balk over.
-
-**Er is geen "mogelijk ontbrekend"-lijst meer.** Die was de restpost van de Critic en verviel met
-hem (ADR-001 PR 18, 25 sep 2026). Het vangnet is nu de dekking: graph-qa stuurt een `dekking`-event
-met de zinsdelen waar geen enkele detector iets vond – een meting, geen gok. De werkplek toont die
-volgens `docs/PLAN.md` (spoor B, PR 6).
+### Prestaties van de thread
 
 **Eén beurt is één `ThreadRij`, en die is een `memo`.** `WerkplekClient` rendert bij elke
-toetsaanslag en elk frame van een lopende stroom opnieuw. Stond de thread als één `items.map` in het
-component, dan werd elke beurt in het gesprek opnieuw opgebouwd, ook de beurten die allang klaar
-zijn. `components/werkplek/ThreadRij.tsx` krijgt daarom alleen stabiele props: het eigen item, het
-eigen document (niet de hele `docs`-map), scalaire vlaggen, en één `acties`-object dat
-`WerkplekClient` één keer maakt. Dat object gaat via een ref naar de handlers van de laatste render.
-Geef een rij dus geen inline callback of een vers object mee, want dan rendert alles weer. Om de rij
-zit `.thread-rij` (`content-visibility: auto`, zie `globals.css`): buiten beeld slaat de browser
-layout en paint over, en de DOM blijft staan. Gemeten op een productiebuild met 160 berichten:
-typen in het invoerveld ging van ~2,0 naar ~1,0 s voor 246 tekens.
-Tokens komen hooguit één keer per frame binnen (`planStroom` in `volgBeurt`).
+toetsaanslag en elk frame van een lopende stroom opnieuw. `components/werkplek/ThreadRij.tsx` krijgt
+daarom alleen stabiele props: het eigen item, het eigen document (niet de hele `docs`-map), scalaire
+vlaggen en één `acties`-object dat `WerkplekClient` één keer maakt en via een ref naar de handlers van
+de laatste render laat wijzen. **Geef een rij geen inline callback of vers object mee**, anders
+rendert alles weer. Om de rij zit `.thread-rij` (`content-visibility: auto`, `globals.css`): buiten
+beeld slaat de browser layout en paint over.
 
-### Symbolen zijn iconen, geen tekens
+## Annotaties buiten het gesprek (`/annotaties`)
 
-`components/ui/Icoon.tsx` levert de kleine iconen (chevron, waarschuwing, vinkje, ruit, cirkel) als
-inline SVG op `1em` met `currentColor`. Gebruik die, en zet geen los teken in de UI: het font laadt
-alleen de **latin-subset** van Fira Sans (`app/fonts.ts`), dus `▾ ◇ ▸ ⚠ ✓ ← ○` vallen terug op
-`system-ui` – San Francisco op iOS, Roboto op Android, Segoe op Windows. Andere breedte, ander
-gewicht, andere optische grootte, en dus een kaart die op een telefoon net wat anders oogt dan op
-desktop. Emoji hebben dat probleem in het kwadraat: die worden door het besturingssysteem getekend,
-in kleuren die niets met de huisstijl te maken hebben. `·` (U+00B7) mag wél: dat zit in de subset.
+Een annotatie is een eersteklas object: een ingang in de sidebar die het hoofdgebied vult, terwijl de
+sidebar blijft staan.
 
-Eén uitzondering, en die is principieel: tekst die als **inhoud** wordt opgeslagen (de foutmelding
-die als chatbericht de geschiedenis in gaat, `WerkplekClient`) kan geen component dragen. Daar staat
-geen icoon maar een woord.
+- **`AppSidebar`** bezit de gesprekkenlijst (laden, hernoemen, verwijderen) en de mobiele drawer, en
+  is gedeeld door `WorkbenchShell` en de annotatiepagina's. In de werkplek wisselt een klik van gesprek
+  in lokale state, op `/annotaties` navigeert hij naar `/workbench?gesprek=<id>`. `WorkbenchShell`
+  verhoogt `verversSignaal` als een beurt een gesprek aanmaakt.
+- **Elk scherm met `AppSidebar` moet de drawer openen.** Onder `lg` is de sidebar verborgen en
+  verschijnt de drawer alleen als het scherm `drawerOpen` + `onDrawerSluit` doorgeeft; anders is er op
+  een smal scherm geen navigatie, geen account en geen uitloggen. De hamburger zit in de gedeelde
+  `components/werkplek/MobieleTopbar.tsx`; `components/werkplek/sidebar.test.ts` bewaakt dat elk
+  scherm met `AppSidebar` `drawerOpen` en `onDrawerSluit` doorgeeft.
+- **`/annotaties`** (`AnnotatiesClient`) heeft twee weergaven op één lijst: *te doen* (rood → geel →
+  langst stil) en *alles* (per regeling). De stand staat in de URL (`?weergave=alles`, via `replace` –
+  een weergavewissel is geen stap in de geschiedenis). De kaart toont een **JAS-kleurstrip**
+  (`KleurStrip`) met de klasseverdeling. Sorteer-, groepeer- en zoeklogica staan in
+  `lib/annotatieOverzicht.ts`.
+- **Het overzicht toont de gedeelde lagen** (`lijstLagen` → `app/api/annotatie/lagen` plus
+  `…/v2/node-lagen`): één annotatie per bepaling voor iedereen, zodat Lex een al geannoteerde bepaling
+  kan hergebruiken. Een kaart met een `bron_iri` opent de bronnode-weergave (`/annotaties/node`), de
+  rest het artikeldocument. *Door mij bewerkt* (`mijn=true`) beperkt tot lagen waar je zelf iets aan
+  deed – een laag heeft geen eigenaar, de API leest dat uit de audit. De kaart telt verouderde
+  markeringen apart. Alle query-parameters gaan ongewijzigd door de BFF-route; een parameter die daar
+  sneuvelt faalt stil.
+- **Verwijderen staat naast afronden**: *Verwijderen* in de actierij van `ArtefactInhoud`
+  (`onVerwijder`, alleen als er een laag in beeld is), als `BevestigKnop`. Elke gebruiker mag het, ook
+  op een afgeronde annotatie; de audit legt vast wie. `NodeAnnotatiePaneel.verwijder` stuurt
+  `weergave/verwijder` met de revisies in beeld (412 als iemand intussen iets wijzigde) en laadt
+  opnieuw. De API haalt alle lagen van de bepaling in beeld weg, ook uit de graaf; de weergave draagt
+  dan `verwijderd: {op}` en het paneel zegt "Deze annotatie is verwijderd op …", ook als je hem later
+  vanuit een oud gesprek opent. Lex annoteert zo'n bepaling bij een volgende vraag opnieuw. Een
+  artikelbrede laag (contract 1) heeft geen verwijderknop (403).
+- **Hergebruik en "opnieuw annoteren" staan bij de annotatie in het gesprek** (`HergebruikMelding`).
+  Het `hergebruik`-event (`parseHergebruik`) zegt welke leden uit de laag kwamen; de melding blijft na
+  herladen omdat graph-qa hem in het chatbericht zet (`Bericht.hergebruik`). *Lex opnieuw laten
+  annoteren* start een run met `hergebruik: "opnieuw"` en het doel van de beurt (`doelVoorOpnieuw`) –
+  zonder doel zou de agent de bepaling opnieuw moeten zoeken. Die ronde vult de laag aan; wat
+  beoordeeld is blijft staan.
+- **Verouderde markeringen zijn historie** (`splitsVerouderd`). Is de wettekst van een lid veranderd,
+  dan zet de API de oude markeringen op `verouderd`: ze lichten niet op en staan niet in de
+  reviewlijst, maar wel ingeklapt onder *Historie – tekst gewijzigd*, met het oordeel van toen
+  (`LIFECYCLE_LABEL`, dezelfde woorden als de export).
+- **`/annotaties/[slug]`** (`AnnotatieDetailClient`) toont het artefact op eigen benen, bewust zonder
+  `onVraag`: er is geen chatveld om een vraag in klaar te zetten – daarvoor is *Openen in de werkplek*.
 
-**Geen badge is een gewoon voorstel.** De annotatieketen zet `aandacht` alleen als er iets te zeggen
-valt: **geel = "Keuze voor jou"** (twijfel die de reviewer niet besliste), **groen = "Bevestigd door
-review"** (een twijfelgeval dat de gerichte review besliste). Tot 25 sep 2026 stond hier een badge
-"Niet beoordeeld" voor elementen zonder Critic-oordeel; die zou nu op elk onbetwist voorstel staan.
-Het veld `critic` draagt de uitleg van de review en staat op de kaart als "Review: …".
+**Eén inhoud, twee schillen.** `components/werkplek/ArtefactInhoud.tsx` draagt de wettekst, de
+reviewlijst en alle handlers; `ArtefactPaneel` is de `Dialog`-schil eromheen en de annotatiepagina
+de tweede schil (hetzelfde patroon als `DisclaimerClient` en `InstellingenInhoud`). Een
+**bronnode-annotatie** gebruikt dezelfde inhoud: `NodeAnnotatiePaneel` haalt de v2-weergave op en
+vertaalt die via `lib/annotatieNodeAdapter.ts` (codepoints per bronnode ⇄ UTF-16 in de samengestelde
+bron). **Bouw geen tweede weergave, breid de adapter uit** – een eigen paneel verliest alle opmaak en
+bediening. `ArtefactInhoud` heeft daarvoor twee optionele haken: `onExport` (een eigen exportroute) en
+`extra` (blokken onder de reviewlijst, zoals "overspant meerdere bepalingen" en de voortgang per
+bepaling). De paginaschil (sidebar, mobiele topbar, terug naar het overzicht) is gedeeld in
+`components/annotaties/AnnotatiePaginaSchil.tsx`.
 
-**De aandacht-as zegt wat hij bedoelt.** Het oordeel staat op de reviewkaart als
-**badge met tekst** – *Bevestigd door review* / *Keuze voor jou* / *Waarschijnlijk fout* – in dezelfde vorm als de
-documentstatus-badge (`AANDACHT_PILL` in `ReviewQueue.tsx` naast `DOCUMENT_STATUS_STYLE`): één
-badgevorm in de hele app. Dat was een rondje van 8px met de betekenis alleen in een `aria-label`; wie
-de kleurcode niet kende zag een stip en verder niets. Kleur blijft meedoen via de linker accentrand en
-de zachte tint (dat is het scan-signaal in een lange lijst), maar draagt het oordeel niet meer alleen.
-De badge-achtergrond staat op volle sterkte terwijl de kaart eronder dezelfde tint op 40% draagt —
-zonder dat verschil verdwijnt hij in zijn eigen kleurfamilie.
+**Escape handelt de inhoud zelf af** (selectie → bedieningsrij → gekozen element → `onSluiten`),
+want de `Dialog`-schil is er niet altijd. `ArtefactPaneel` geeft `Dialog` daarom een **no-op**
+`onEscape`; reageert die ook, dan springt Escape in één klap door alle lagen heen.
 
-**De kaartkop is mobiel gestapeld en op `sm:` één regel.** Links de korte, voorspelbare dingen
-(aandacht-badge, lidnummer) mét de acties; de klassebadge daaronder over de volle breedte, en op een
-breed scherm ertussen. Zonder die splitsing vocht een lange klassenaam ("Parameter en
-parameterwaarde") met *Akkoord* en het kruisje om dezelfde regel. De klassenamen zijn canoniek, dus
-korter maken mag niet – dan moet de ruimte mee. Zelfde patroon als `ui/ButtonRow`.
+**Het kruisje staat altijd rechtsboven.** De kop van `ArtefactInhoud` is twee vaste regels: titel +
+sluitknop, daaronder de acties (status, exporteren, afronden, verwijderen) rechts uitgelijnd. In één
+wrappende rij verhuist het kruisje mee zodra de ruimte krap wordt. Sluiten zit op dezelfde plek en met
+hetzelfde icoon (viewBox 20, `strokeWidth` 1.6) als in `InstellingenDialog`, `DisclaimerDialog`,
+`FeedbackDialoog` en de gesprekkendrawer.
 
-**Het lidnummer staat alleen op de kaart als het document méér dan één lid beslaat** (`toonLid` uit
-`ArtefactInhoud`, afgeleid van `doc.lid`). Is het tot één lid afgebakend, dan zegt de kop het al
-("Invorderingswet 1990 – artikel 9 lid 1") en herhaalde elke kaart dezelfde mededeling. Bewust
-afgeleid van het document en niet van de elementen: anders verschijnt en verdwijnt het lidnummer
-terwijl je reviewt.
+**Afronden** zit in de kop van `ArtefactInhoud` (dus in beide schillen) en zet de documentstatus via
+`zetDocumentStatus`. Expliciet, want "alle elementen beslist" is niet hetzelfde als klaar zijn;
+heropenen kan altijd. Afronden **bevriest de hele annotatie** (`isDocumentVergrendeld`): de handlers
+vallen stil, de selectie-popover verdwijnt, `a`/`x`/`c` doen niets en een melding boven de lijst legt
+het uit. De API weigert die mutaties toch met een 409, maar de UI laat het slot zien in plaats van die
+fout af te wachten.
 
-**Kleur betekent iets, of hij hoort er niet.** De reviewkaart gebruikt kleur voor de aandacht-badge,
-de JAS-badges en de accentrand – dingen die een oordeel dragen. De knoppen volgen de app: primair is
-lintblauw (`bg-accent`, zoals `Button variant="primary"`), tweede keuze is een outline. *Akkoord* was
-volvlak groen en *Naast me neerleggen* volvlak hemelblauw; dat zijn statuskleuren, en die schreeuwen
-naast de gedempte tinten van een kaart.
+## De artefact-werkbank
 
-### Toegankelijkheid (WCAG 2.2 AA, NLDS-niveau)
+Vanaf **1280px** (`lib/useBreedScherm.ts`) staat het artefact als **eigen kolom naast de chat**:
+`Dialog`-variant **`kolom`**, zonder backdrop, `aria-modal` en focus-trap (die zou je opsluiten
+terwijl de chat ernaast bereikbaar moet zijn); Escape sluit in alle varianten. Daaronder is het de
+`side`-sheet (mobiel een bottom-sheet). De splitsing zit in `WerkplekClient` en niet in
+`WorkbenchShell`, anders moeten `docs`/`infos` en alle handlers omhoog en weer omlaag.
 
-- Markeringen in de tekst zijn **`<mark role="button" tabIndex={0}>`** met een `onKeyDown` voor
-  Enter/Space – focusbaar en met het toetsenbord te bedienen (2.1.1), maar wél **inline**. Een echte
-  `<button>` is inline-block en dus atomair: liep de markering over twee regels, dan werd hij een
-  rechthoekig blok tot aan de rechterrand en zakte de tekst erna (de afsluitende punt van het lid)
-  naar de volgende regel. Daarbij hoort `box-decoration-clone`, anders krijgt alleen het eerste
-  regelfragment een linkerrand en het laatste een rechter.
-- **Klikdoelen ≥ 24×24 CSS-px** (2.5.8) via `min-h-[24px]` op chips/knoppen, met de bestaande
-  `coarse:`-variant naar 44px op aanraakschermen (het AAA-niveau 2.5.5 dat NLDS aanhoudt).
-- **Een uitklapper blijft binnen het scherm.** `components/ui/Popover` hangt met CSS aan zijn
-  trigger (`positie`), en die weet niet waar hij op het scherm staat: een rechts uitgelijnd paneel
-  bij een knop die zelf al rechts staat, steekt links buiten beeld – op een telefoon las de
-  exportlijst zo met de eerste tekens eraf. Het component meet daarom na het openen en corrigeert
-  horizontaal (`lib/popover.ts:klemHorizontaal`, pure functie, getest zonder DOM). Verticaal kiest
-  de aanroeper zelf een richting (`top-full`/`bottom-full`) – dát is de as waar hij zicht op heeft.
-  Wie een paneel de kolombreedte wil laten volgen gebruikt `positie="inset-x-3 …"` met
-  `containerClassName="static"`, zoals de berichtenbel en het gebruikersmenu in de sidebar; dan kán
-  het per definitie niet uitsteken. `SelectiePopover` staat los (hij hangt aan een muispositie, niet
-  aan een element) en klemt zichzelf via `plaatsPopover`, inclusief zijn breedte op een smal scherm.
-- Eén **`.focus-ring`-utility** in `globals.css` (2.4.13, AAA): dubbele ring zodat de focus ook op de
-  donkere JAS-klassekleuren opvalt. Gebruik die in plaats van een eigen `focus-visible:outline`.
-- Elke wijziging wordt **aangekondigd** via de `sr-only aria-live`-regio in `WerkplekClient`
-  (`beslissingMelding`). Zonder dat gebeurt annoteren voor een schermlezer volledig stil.
+Wettekst en reviewlijst hebben **elk een eigen scroll** (tekst `max-h-[45%]` bovenin), zodat de tekst
+niet uit beeld loopt als je verderop in de lijst bent. Selecteren scrolt **beide kanten** in beeld:
+de markering (`DocumentPaneel`) en de kaart (`ReviewQueue`), met respect voor
+`prefers-reduced-motion`.
+
+- **De kaart is compact**; toelichting, uitleg van de review, alternatieven en opmerking vouwen open
+  bij selectie. Eén begrip stuurt alles: `actief`.
+- **Eén vaste volgorde** (`sorteerReview`): JAS-tabelvolgorde (`jasVolgorde`) → lid (numeriek) → plek
+  in de tekst → invoervolgorde. Geen van die sleutels verandert door reviewen, zodat je je plek niet
+  kwijtraakt; scherpstellen doen de filters (*alles* / *te beoordelen* / *met aandacht*). De positie
+  per element komt uit dezelfde `vindPositie` als de markeringen in de tekst, dus lijst en tekst
+  spreken elkaar nooit tegen.
+- **Zwevende markeringen worden benoemd.** Is een fragment niet meer in de tekst te vinden
+  (`vindPositie` → `-1`), dan staat dat op de kaart en in de teller.
+- **Toetsenbord**: `j`/`k` (of ↓/↑) door de getoonde lijst, `a` akkoord, `x` verwerpen, `c` klasse,
+  `Escape` loslaten. De listener doet **niets zolang de focus in een invoerveld staat** – anders keur
+  je iets goed door "a" te typen. Na *Akkoord* springt de selectie naar het volgende dat aandacht
+  vraagt; knop en toets lopen via dezelfde `onAkkoord`.
+- **Volgorde en open bedieningsrij leven in `ArtefactPaneel`/`ArtefactInhoud`**, niet in de lijst:
+  zo doorloopt het toetsenbord dezelfde volgorde als je ziet, en staat er nooit op twee kaarten
+  tegelijk een rij open.
+
+### De reviewkaart
+
+- **Geen badge is een gewoon voorstel.** De annotatieketen zet `aandacht` alleen als er iets te
+  zeggen valt: **groen = "Bevestigd door review"** (een twijfelgeval dat de gerichte review besliste),
+  **geel = "Keuze voor jou"** (twijfel die de reviewer niet besliste). De UI kent ook **rood =
+  "Waarschijnlijk fout"**, maar de keten zet dat niet: de resolver in graph-qa geeft alleen groen of
+  geel. Het veld `critic` draagt de uitleg van de review en staat uitgeklapt als "Review: …".
+- **De aandacht is een badge met tekst**, in dezelfde vorm als de documentstatus-badge
+  (`AANDACHT_PILL` in `ReviewQueue.tsx` naast `DOCUMENT_STATUS_STYLE`): één badgevorm in de app. Kleur
+  doet mee via de linker accentrand en de zachte tint (het scan-signaal), maar draagt het oordeel niet
+  alleen. De badge staat op volle sterkte terwijl de kaart dezelfde tint op 40% draagt – anders
+  verdwijnt hij in zijn kleurfamilie.
+- **De kaartkop is mobiel gestapeld en op `sm:` één regel**: aandacht-badge en lidnummer mét de
+  acties, de klassebadge daaronder over de volle breedte. Klassenamen zijn canoniek en mogen niet
+  korter ("Parameter en parameterwaarde"), dus de ruimte moet mee.
+- **Het lidnummer staat alleen op de kaart als het document meer dan één lid beslaat** (`toonLid`,
+  afgeleid van `doc.lid`, niet van de elementen – anders verschijnt en verdwijnt het tijdens het
+  reviewen).
+- **Geen lifecycle-jargon in beeld**: "voorstel van Lex" / "door jou aangepast" / "door jou
+  gemarkeerd" + tijd. Het volledige spoor staat in het auditlog.
 
 ### Reviewen zonder formulier
 
-De reviewkaart kent geen modi meer (`Aanpassen` → veld → reden → `Opslaan`). Elk veld schrijft
-zichzelf weg en de `review_reason` wordt **afgeleid** uit wát er veranderde – vragen wat je zojuist
-deed is dubbelop. Die afleiding staat **server-side** (`api/app/routers/annotatie.py:
-_reden_uit_diff`), niet meer hier: de api berekent de diff toch al, en een reden die hij niet kan
-toetsen hoort niet in een auditspoor. De client stuurt bij een edit dus géén `review_reason` mee.
-Bij **verwerpen** blijft de reden een vraag aan de jurist; die informatie staat in geen diff.
+Elk veld schrijft zichzelf weg. De `review_reason` van een edit wordt **server-side** afgeleid uit de
+diff (`api/app/routers/annotatie.py:_reden_uit_diff`): de API berekent de diff toch, en een reden die
+hij niet kan toetsen hoort niet in een auditspoor. De client stuurt bij een edit dus géén
+`review_reason`. Bij **verwerpen** blijft de reden een vraag aan de jurist; die staat in geen diff.
 
-- **Klasse** = de badge zelf; klikken opent het palet, klikken op een klasse ís de wijziging.
+- **Klasse** = de badge zelf; klikken opent het palet, een klasse kiezen ís de wijziging.
 - **Toelichting** is een inline veld (Enter/blur bewaart, Escape annuleert). Een gevulde toelichting
-  leegmaken vraagt een tweede klik – dat doe je met één misklik en er is geen undo.
-- **Bevestigen doet de knop zelf.** Onomkeerbare handelingen vragen overal in deze app een tweede
-  klik op dezelfde plek (`components/ui/BevestigKnop.tsx`); er is geen `window.confirm` meer. Dat was
-  een systeemvenster in systeemtaal midden in een app met een eigen vormtaal – niet te stylen, niet
-  te testen, en in sommige contexten geblokkeerd. Scherp gezet ontwapent de knop vanzelf (4 s, blur
-  of Escape): een knop die scherp blijft staan is een val, juist bij die handelingen.
-- **× betekent weghalen**, met twee uitkomsten achter hetzelfde gebaar: een agent-voorstel klapt de
-  redenen-chips uit (één klik = verworpen, terug te draaien met *Heropenen*), een eigen markering
-  verandert in "Wissen?" en is na de tweede klik echt weg (`DELETE`).
-- **Een oordeel vergrendelt de kaart.** Bij `human_approved`/`rejected` (`isVergrendeld`, een ánder
-  begrip dan `isBeslist` – dát stuurt de filters en de telling) is de klasse-badge een badge in
-  plaats van een knop, staat de toelichting als platte tekst, en zijn *Akkoord*, het kruisje, de
-  alternatieven en de kanttekening-acties weg. Ervoor in de plaats staat **Heropenen**
-  (`type: "heropen"`), dat het element terugzet in de review. Zonder die knop was een akkoord een
-  doodlopende weg: de bediening lag stil en er was niets dat hem weer aanzette – terwijl de
-  klasse-badge en de toelichting ondertussen stilzwijgend een `edit` wegschreven, dus een akkoord
-  betekende in de praktijk niets. Een **opmerking** mag wél op een vergrendeld element (die wijzigt
-  de annotatie niet); `edited` vergrendelt bewust niet, anders wringt er een heropening tussen het
-  wijzigen van een klasse en het typen van de toelichting; en een **eigen markering** vergrendelt
-  niet, want die is `human_approved` bij het aanmaken – anders staat je verse markering meteen op
-  slot, wisknop en al.
+  leegmaken vraagt een tweede klik: één misklik, en er is geen undo.
+- **Bevestigen doet de knop zelf.** Onomkeerbare handelingen vragen een tweede klik op dezelfde plek
+  (`components/ui/BevestigKnop.tsx`), nooit `window.confirm`: een systeemvenster is niet te stylen,
+  niet te testen en soms geblokkeerd. Scherp gezet ontwapent de knop vanzelf (4 s, blur of Escape).
+- **× betekent weghalen**, met twee uitkomsten: een agent-voorstel klapt de redenen-chips uit (één
+  klik = verworpen, terug te draaien met *Heropenen*); een eigen markering wordt "Wissen?" en is na de
+  tweede klik weg (`DELETE`). Een agent-voorstel verwijder je niet maar verwerp je, zodat het
+  auditspoor laat zien dát er een voorstel was.
+- **Een oordeel vergrendelt de kaart.** Bij `human_approved`/`rejected` (`isVergrendeld`; een ander
+  begrip dan `isBeslist`, dat de filters en de telling stuurt) zijn klasse en toelichting alleen-lezen
+  en zijn *Akkoord*, het kruisje, de alternatieven en de kanttekening-acties weg; **Heropenen**
+  (`type: "heropen"`) zet het element terug in de review. Zonder vergrendeling zouden badge en
+  toelichting na een akkoord stil een `edit` wegschrijven. Een **opmerking** mag wél op een vergrendeld
+  element; `edited` vergrendelt niet (anders wringt er een heropening tussen klasse en toelichting);
+  een **eigen markering** vergrendelt niet, want die is `human_approved` bij het aanmaken.
 - **Verworpen markeringen tellen niet als "inmiddels gemarkeerd"** (`alGemarkeerd` in
-  `lib/annotatie.ts`, straks voor de ongedekte zinsdelen uit de dekking). Verwerp je een markering, dan wil je het
-  ontbrekend-item juist opnieuw kunnen toevoegen; het bleef er met een vinkje bij staan. Zelfde
-  regel als in `DocumentPaneel`, dat verworpen markeringen ook niet meer oplicht.
-- **De reden blijft alleen bij verwerpen een vraag**: die informatie heeft alleen de mens.
-- **Fragment inkorten/uitbreiden**: klik de markering aan en selecteer opnieuw. Raakt de selectie het
-  bereik van de actieve markering (`overlaptSelectie` + `vindPositie`, dezelfde functie als de
-  weergave), dan biedt `SelectiePopover` bovenaan *Fragment aanpassen* aan – één klik, mét een nieuw
-  anker. Geen overlap = gewoon een nieuwe markering. Bewust wél die klik: een selectie die je maakte
-  om te lezen mag nooit stilzwijgend een annotatie wijzigen.
-- **Geen lifecycle-jargon in beeld**: de kaart toont "voorstel van Lex" / "door jou
-  aangepast" / "door jou gemarkeerd" + tijd. Het volledige spoor staat in het auditlog.
+  `lib/annotatie.ts`, voor de ongedekte zinsdelen uit de dekking), net zoals `DocumentPaneel`
+  verworpen markeringen niet oplicht.
+- **Fragment inkorten/uitbreiden**: klik de markering aan en selecteer opnieuw. Overlapt de selectie
+  de actieve markering (`overlaptSelectie` + `vindPositie`), dan biedt `SelectiePopover` bovenaan
+  *Fragment aanpassen* aan, mét een nieuw anker. Geen overlap = een nieuwe markering. Bewust een klik:
+  een selectie die je maakte om te lezen mag nooit stil een annotatie wijzigen.
 
-### De annotatie exporteren
-
-Een knop *Exporteren* in de kop van het artefact (`components/werkplek/ExportKnop.tsx`) biedt
-**PDF / CSV / JSON**. Drie dingen om te kennen:
-
-- **Ook halverwege.** Geen statusdrempel: een concept exporteren is een normale handeling, en het
-  bestand zegt zelf hoeveel er nog te beoordelen is. Een drempel zou de jurist dwingen te doen
-  alsof hij klaar is.
-- **De wettekst reist mee.** De api heeft hem niet (de graaf is de bron), dus de knop stuurt
-  `info.leden_teksten` mee in de body. Zonder leden laat het rapport dat blok weg – nooit een
-  gereconstrueerde tekst naast een letterlijk citaat.
-- **De bestandsnaam komt van de server** (`Content-Disposition`), zodat hij overal gelijk is. De
-  BFF-route moet die header dus doorgeven (`app/api/_lib/proxy.ts` → `PASS_THROUGH_HEADERS`) en de
-  queryparam `formaat` expliciet doorsturen; een proxyroute die dat laat vallen faalt stil op het
-  default-formaat. Downloaden zelf gaat via `exporteerDocument` in `lib/api.ts` (Blob →
-  `createObjectURL` → `<a download>`) – het enige downloadpatroon in deze app. Een bronnode-annotatie
-  exporteert via haar eigen route; `ExportKnop` neemt daarvoor een `onDownload` aan, zodat de knop,
-  het keuzepaneel en de foutmelding hetzelfde blijven.
-
-Wat de export draagt (en waarom het er is): naast de tabel het **volledige spoor** per markering
-en **met welk model** de agent het voorstel maakte (`AgentRun`, zie hieronder). Zonder dat laatste
-is een export achteraf niet te verantwoorden.
-
-### Herkomst van een agent-ronde
-
-graph-qa stuurt per annotatiebeurt één `run`-SSE-event vóór de elementen; `WerkplekClient` houdt
-het vast en geeft het mee aan `zetElementen`, die het als `run` in de PUT zet. De api hangt het aan
-het document (`runs[]`) én aan elk element (`geproduceerd_door`). Stuur je het niet mee, dan blijft
-het bestaande spoor staan – nooit overschrijven met "onbekend".
+**De dekking is het vangnet voor wat ontbreekt.** graph-qa stuurt een `dekking`-event met de zinsdelen
+waar geen detector iets vond – een meting, geen gok. De werkplek toont die nog niet; zie spoor B in
+`docs/PLAN.md`.
 
 ### Zelf annoteren (tekstselectie)
 
-De jurist kan in `DocumentPaneel` tekst selecteren en die zelf markeren. Zes dingen om te kennen:
+De jurist selecteert tekst in `DocumentPaneel` en markeert die zelf. Eigen markeringen gaan via
+`POST …/elementen` (`voegElementToe`; niet de PUT, dat is de uitkomst van een agent-ronde) en zijn
+meteen `human_approved`.
 
-- **Een selectie eindigt niet altijd met een muisklik.** Naast `onMouseUp` luistert
-  `DocumentPaneel` op documentniveau naar `keyup` (Shift-gebaren) en `touchend`: met Shift+pijltjes
-  komt er geen muisevent langs – dan is zelf markeren met het toetsenbord onmogelijk (WCAG 2.1.1) —
-  en het verslepen van een selectiegreep op een aanraakscherm laat er ook geen achter. Het paneel
-  ruimt de DOM-selectie op als het de popover sluit (`sluitSelectie`), anders klapt die bij de
-  volgende tik meteen weer open.
-- **De rekenkern staat in `lib/selectie.ts`**, niet in het component: vitest draait node-env zonder
-  DOM, dus alleen zo is die logica te testen. Het component doet enkel de `TreeWalker`-wandeling
+- **Een selectie eindigt niet altijd met een muisklik.** Naast `onMouseUp` luistert `DocumentPaneel`
+  op documentniveau naar `keyup` (Shift+pijltjes, WCAG 2.1.1) en `touchend` (selectiegrepen op een
+  aanraakscherm). `ArtefactInhoud.sluitSelectie` ruimt de DOM-selectie op bij het sluiten van de
+  popover, anders klapt die bij de volgende tik weer open.
+- **De rekenkern staat in `lib/selectie.ts`**; het component doet alleen de `TreeWalker`-wandeling
   (`offsetVanGrens`) en geeft knooplengtes door aan `offsetInBlok`.
-- **De tekst staat in BLOKKEN, en elk blok draagt `data-offset`.** Tot 2 sep 2026 stond alles in één
-  `<p>` met `whitespace-pre-wrap` en telde `offsetUit` de lengte van *alle* tekstknopen op. Daaruit
-  volgde een ongeschreven eis — de tekstknopen moesten samen exact de bron vormen — en die zette de
-  weergave vast: leden en onderdelen op dezelfde marge, want elk scheidingsteken dat je weglaat
-  verschuift stil elke zelfgemaakte markering. Bij art. 2 lid 1 IW 1990 lazen de geneste `1°.`–`4°.`
-  daardoor als zelfstandige onderdelen in plaats van als uitwerking van de `a.` waar ze onder hangen.
-  Nu draagt elk blok zijn startpositie en telt `offsetVanGrens` alleen binnen dát blok. **Haal
-  `data-offset` niet weg** — dan landt elke markering op de verkeerde tekst, en dat gebeurt stil.
-- **Een markering wordt op de blokgrens geknipt** (`segmentenVanBlok`). Een `<mark>` kan niet over
-  twee blokken heen; loopt een markering van de aanhef door tot in een onderdeel, dan worden het twee
-  `<mark>`s met dezelfde klasse en hetzelfde id, optisch verbonden door `box-decoration-clone`.
+- **De tekst staat in blokken, en elk blok draagt `data-offset`.** `offsetVanGrens` telt alleen binnen
+  het blok vanaf die startpositie, zodat de weergave (inspringing van leden en onderdelen) los staat
+  van de offsets. **Haal `data-offset` niet weg** – dan landt elke markering stil op de verkeerde
+  tekst.
+- **Een markering wordt op de blokgrens geknipt** (`segmentenVanBlok`): een `<mark>` kan niet over
+  twee blokken, dus het worden twee `<mark>`s met dezelfde klasse en hetzelfde id, optisch verbonden
+  door `box-decoration-clone`.
 - **De structuur komt uit `lib/wetstructuur.ts`** (`ontleed` + `blokkenVan`). Het nestingniveau is
-  **afgeleid uit de nummervorm**, geen waarheid: de echte nesting zit in de graaf (`?ouder`) maar
-  reist niet mee, want `GET /v1/artikel` levert `leden_teksten` als `{lid, tekst}[]`. Bij een
-  regeling waar `1°.` wél bovenaan staat springt het ten onrechte in — een scheve marge, nooit een
-  scheve markering. Let op de valkuil die `blokkenVan` afvangt: het lidvoorvoegsel `"1. "` heeft
-  exact de vorm van een onderdeelnummer, en alleen daar is te weten dat het om het lid gaat.
-  Dezelfde parser staat in `api/app/wetstructuur.py` voor de PDF; `wetstructuur.vectoren.json`
-  bewaakt dat ze niet uiteenlopen, net als `bronHash.vectoren.json`.
+  **afgeleid uit de nummervorm**: de echte nesting staat in de graaf, maar `GET /v1/artikel` levert
+  `leden_teksten` als `{lid, tekst}[]`. Een fout geeft hooguit een scheve marge, nooit een scheve
+  markering. `blokkenVan` vangt af dat het lidvoorvoegsel `"1. "` dezelfde vorm heeft als een
+  onderdeelnummer. Dezelfde parser staat in `api/app/wetstructuur.py` (voor de PDF);
+  `wetstructuur.vectoren.json` bewaakt dat ze niet uiteenlopen, net als `bronHash.vectoren.json`.
 - **De brontekst is een lijst `LidRegel`, geen lijst strings** (`regelsVan`/`bronVan` in
-  `lib/annotatie.ts`). Het lidnummer reist naast de regel mee omdat het **niet uit de volgorde is af
-  te leiden**: bij een op één lid afgebakend document levert de graaf alléén dat lid – index 0, lid 3 —
-  en ingevoegde leden heten 2a. `lidUitOffset` gaf eerder `String(i + 1)` terug en legde een eigen
-  markering dus op het verkeerde lid vast, tot in het anker en het auditspoor.
-- **De context bij een annotatiebeurt is één document.** `eigenMarkeringenVoorContext(doc)` levert de
-  eigen, niet-verworpen markeringen van de bepaling die openstaat – niet alles wat er in het gesprek
-  is geopend. Anders legt Lex bij een adviesvraag een fragment uit artikel 36 naast de tekst van artikel 8.
-  graph-qa handhaaft diezelfde grens nog eens tegen het corpus dat het zelf ophaalde.
+  `lib/annotatie.ts`). Het lidnummer reist mee omdat het **niet uit de volgorde af te leiden** is: bij
+  een op één lid afgebakend document is index 0 bijvoorbeeld lid 3, en ingevoegde leden heten 2a.
+  `lidUitOffset` leest het daarom uit de regel.
 - **Elk element draagt een `anker`**: exacte offsets + quote-met-context + een hash van de bron.
-  `segmenteer` gebruikt die in drie stappen (offsets → context → eerste voorkomen), waardoor twee
-  identieke fragmenten in één artikel uit elkaar blijven en een markering een herimport overleeft. `vindplaats` blijft de mensleesbare bronaanduiding; daar horen geen offsets in.
-- **De tekst toont hoogstens ÉÉN markering: de geselecteerde.** Alles tegelijk kleuren was
-  onleesbaar én onvolledig – twee markeringen kunnen niet op dezelfde tekst liggen, dus wat binnen
-  een langere markering viel (een Rechtsobject in een zin die als geheel een Afleidingsregel is)
-  verdween uit beeld. De reviewlijst is de ingang; de tekst laat zien wáár het gekozen element
-  staat. Nog eens klikken verbergt hem weer, en een eigen verse markering wordt meteen actief.
-  Daarmee is er ook geen overlap-prioritering meer nodig in `segmenteer`; de bevriezingsregel
-  (mens wint) leeft server-side.
+  `segmenteer` gebruikt die in drie stappen (offsets → context → eerste voorkomen), zodat twee
+  identieke fragmenten uit elkaar blijven en een markering een herimport overleeft. `vindplaats` is
+  de mensleesbare bronaanduiding; daar horen geen offsets in.
+- **De tekst toont hoogstens één markering: de geselecteerde.** Twee markeringen kunnen niet op
+  dezelfde tekst liggen, dus alles tegelijk kleuren is onleesbaar én onvolledig. De reviewlijst is de
+  ingang; de tekst laat zien wáár het gekozen element staat. Nog eens klikken verbergt hem, en een
+  verse eigen markering wordt meteen actief. `segmenteer` heeft daardoor geen overlap-prioritering
+  nodig; de bevriezingsregel (mens wint) leeft server-side.
 
-Eigen markeringen gaan via `POST .../elementen` (niet de PUT: dat is de uitkomst van een
-agent-ronde) en zijn meteen `human_approved`. Verwijderen kan alleen bij je eigen markeringen; een
-agent-voorstel verwérp je, zodat het auditspoor laat zien dát er een voorstel was.
+### De annotatie exporteren
+
+*Exporteren* in de kop van het artefact (`components/werkplek/ExportKnop.tsx`) biedt **PDF / CSV /
+JSON**.
+
+- **Ook halverwege.** Geen statusdrempel: het bestand zegt zelf hoeveel er nog te beoordelen is.
+- **De wettekst reist mee.** De API heeft hem niet (de graaf is de bron), dus de knop stuurt
+  `info.leden_teksten` mee in de body. Zonder leden laat het rapport dat blok weg – nooit een
+  gereconstrueerde tekst naast een letterlijk citaat.
+- **De bestandsnaam komt van de server** (`Content-Disposition`). De BFF-route moet die header
+  doorgeven (`PASS_THROUGH_HEADERS`) en de queryparam `formaat` expliciet doorsturen; een route die
+  dat laat vallen faalt stil op het default-formaat. Downloaden gaat via `exporteerDocument` in
+  `lib/api.ts` (Blob → `createObjectURL` → `<a download>`), het enige downloadpatroon in de app. Een
+  bronnode-annotatie exporteert via haar eigen route; `ExportKnop` neemt daarvoor een `onDownload`
+  aan.
+- De export draagt naast de tabel het **volledige spoor** per markering en **met welk model** de agent
+  het voorstel maakte (`AgentRun`). Die herkomst legt graph-qa zelf vast bij de API: het `run`-object
+  van de beurt komt op het document (`runs[]`) en op elk element (`geproduceerd_door`).
+
+## De samenhangsgraaf (3D)
+
+`NodeAnnotatiePaneel` heeft naast *Tekst* een tab **3D-graaf** (`components/graaf/SamenhangGraaf.tsx`),
+en onder een antwoord met een bron naar een BWB-bepaling staat **Bekijk samenhang in 3D**, dat hetzelfde
+paneel op die tab opent. Beide verschijnen alleen als de API de capability `samenhang` meldt
+(`samenhangBeschikbaar()`, één keer per pagina).
+
+- **Data**: `GET /v1/annotatie/samenhang` (`api/app/samenhang.py`) via de v2-proxy: bronstructuur van
+  het artikel, actuele markeringen met hun JAS-klasse, en de **letterlijke** verwijzingen uit de graaf,
+  één stap uit en in. Een doel buiten het artikel is een **randknoop** (gedempt); *Artikel openen*
+  haalt dat artikel erbij als eigen cluster. Een niet-geïmporteerd doel heet **extern** en is niet uit
+  te klappen. Er wordt niets afgeleid: afstand en positie betekenen juridisch niets, en dat staat in
+  beeld.
+- **Rekenkern in `lib/samenhang.ts`** (samenvoegen, layout, zichtbaarheid, filters, `bronDoel` voor
+  jci/graaf-IRI → bronnode, `hoofdactie`, `relatieGroepen`). De layout is een 3D-krachtsimulatie
+  (`d3-force-3d`, dezelfde engine als de renderer) vanuit radiale startposities, per artikelcluster
+  gerekend en daarna vast (`fx/fy/fz`): reproduceerbaar, en bijladen verschuift de bestaande kaart
+  niet. Hij draait in `lib/`, niet in de canvas – anders herrekent elke uitklapping alles.
+- **Weergave**: straal per soort, gebogen verbindingen met pijl, alles buiten de selectie gedimd, vaste
+  labels alleen voor selectie en buren (de rest als tooltip, `.samenhang-tip` in `globals.css`, tekst
+  altijd ge-escaped), camera vliegt naar de gekozen knoop.
+- **three.js laadt lui**: `SamenhangGraaf` en `GraafCanvas` via `next/dynamic` met `ssr: false`. Zonder
+  WebGL of na contextverlies blijven zoeken, Lagen en de inspector bruikbaar.
+- **Bediening als een kaart-app.** In de graaf: **klik** kiest, **dubbelklik** toont/verbergt de
+  verbindingen of opent een randknoop (`isDubbelklik`, 300 ms – de bibliotheek kent alleen
+  `onNodeClick`), **achtergrond** heft de selectie op, **hover** geeft de naam. Daarbuiten één vaste
+  plek per vraag, zwevend in het canvas: **zoeken** linksboven (`GraafZoek`, over alle knopen, ook
+  verborgen), **Omgeving | Alles** rechtsboven (terug naar Omgeving herstelt je stand), **Lagen**
+  linksonder (`GraafLagen`: filters en legenda), **Alles in beeld / in- / uitzoomen** rechtsonder
+  (`GraafBeeld`) en een eenmalige hint (`GraafHint`, `localStorage` in try/catch).
+- **De inspector** (`GraafInspector`): soort en naam, *Centreren* en ✕, en precies **één gevulde
+  hoofdactie** (`hoofdactie()`): *Toon in tekst* (bron of markering binnen het artikel), *Artikel
+  openen* (geïmporteerde randknoop), niets bij een klasse of extern. Daarnaast *Vraag Lex* (niet bij
+  een klasse) en *Verbindingen tonen (n)* (dezelfde handeling als dubbelklik). Relaties per soort als
+  uitklapgroepen. Breed staat hij rechts, smal onder de graaf en ingeklapt tot kop + hoofdactie.
+- **Annotaties staan er meteen.** Met de laag *Annotaties* aan (default) toont de omgeving naast de
+  bronstructuur alle markeringen met hun klasse; alleen verwijzingen naar buiten vragen om uitklappen.
+  De laag uitzetten is de weg naar rust.
+- **Kiezen klapt tijdelijk uit, dubbelklikken zet vast.** De omgeving is wat je zelf uitklapte
+  (`uitgebreid`). Een gekozen knoop die verborgen was, klapt uit zolang hij gekozen is; dat is
+  **afgeleid, niet opgeslagen** (`tijdelijk` in `SamenhangGraaf`) – sla het niet op in `uitgebreid`,
+  anders blijft elke ooit aangeklikte knoop voorgoed staan. De schakelaar klapt zo'n knoop in zolang
+  hij gekozen is (`ingeklapt`).
+- **Eén selectie**: de gekozen markering is in tekst en graaf dezelfde (`actiefId` van het paneel).
+  *Toon in tekst* wisselt naar de tekst en scrolt naar het lid (`data-lid` op de blokken van
+  `DocumentPaneel`). *Vraag Lex* gaat voor een markering via `onVraag`; voor een bron zet het een
+  gewone vraag met vindplaats klaar – geen eigen agentcontract.
+- **Vergroten** gebruikt de `Dialog`-variant `fullscreen`. De stand staat daarom in de hook
+  `useSamenhangStand` in het paneel, niet in de graaf: een variantwissel remount de inhoud. **Escape**
+  van binnen naar buiten: zoeklijst → Lagen → selectie → verkleinen → sluiten.
+- **Live bij een annotatiewijziging**: `NodeAnnotatiePaneel` roept na elke mutatie (`muteer`,
+  `status`) `graafStand.ververs()` aan. Die haalt elk geladen deel opnieuw op (per artikel vervangen);
+  `bouwGraaf(delen, vorige)` houdt bestaande knopen op hun plek.
+- Browserregressie: `scripts/test-samenhang.mjs`.
+
+## Buiten de schil
+
+Alles wat geen app-schil is – inloggen, 2FA, de eerste beheerder, registratie, de blokkerende
+disclaimer en de fout-/laadpagina's – gebruikt **`components/auth/AuthFrame.tsx`**: een gecentreerde
+kaart op `bg-surface` met het logo erboven. Bewust geen vervaagde werkplek achter het inlogscherm: dat
+leest als "hij laadt", niet als "log eerst in".
+
+- **De app-schil scrollt niet mee, ook niet op mobiel.** De body is `min-h-screen min-h-[100dvh]`:
+  `100vh` is op mobiel de viewport zonder adresbalk, waardoor het document kan scrollen en de strook
+  en topbar wegschuiven; `100dvh` volgt de zichtbare hoogte. Daarnaast staat
+  `overscroll-behavior: contain` op elke scroller (`globals.css`), anders geeft een paneel aan zijn
+  einde de scroll door aan het document (rubber-banding op iOS, pull-to-refresh op Android).
+- **Een venster is zo hoog als zijn inhoud, tenzij die wisselt.** `Dialog`-variant `center` houdt een
+  vaste hoogte (42rem) voor het instellingenvenster, dat anders bij elke tabwissel springt; `compact`
+  groeit mee tot een plafond, voor een formulier of een lap tekst (feedback, voorwaarden).
+- **De disclaimer heeft twee schillen, één tekst.** De edge-gate (`auth.config.ts` → `vereistAkkoord`)
+  stuurt je zonder akkoord naar `/disclaimer`, de blokkerende volle pagina in `AuthFrame`. Klik je de
+  teststrook aan vanuit de werkplek, dan onderschept `app/@modal/(.)disclaimer/page.tsx` dat pad en
+  opent `DisclaimerDialog` over de werkplek – zelfde `DisclaimerClient`.
+- **In een dialoogschil sluit je met `router.back()`, nooit met een link.** `DisclaimerClient` krijgt
+  daarvoor `onSluiten`; kruisje, achtergrondklik, Escape en de knop onderin lopen erdoor. Een link
+  sluit een intercepting-route-modal niet (het modal-slot houdt zijn toestand vast bij een soft
+  navigation) en voegt een history-entry toe, waarna het kruisje je terugbrengt náár de dialoog.
+
+## Berichten, feedback en rondleiding
+
+- **Berichten** (release notes) – `BerichtenPanel` is de bel in de sidebar-kop met een
+  ongelezen-badge; het archief is de tab `/instellingen/berichten`. Let op de naam: `Bericht`/
+  `BerichtInvoer` in `lib/types.ts` zijn **chatbeurten**, `BerichtOut` en familie zijn release notes –
+  twee API-domeinen (`/v1/gesprekken/…/berichten` vs `/v1/berichten`).
+- **Feedback** – `FeedbackDialoog` opent vanuit het gebruikersmenu onderin de sidebar, bewust niet als
+  zwevende knop: die valt over de chat-invoer. De ongelezen-teller voor beheerders is een badge op de
+  feedbacktab (`TabDef.badge`).
+- Beide halen hun teller periodiek of bij openen op en falen **stil**: een badge is een hint en mag de
+  werkplek niet blokkeren.
+- **Rondleiding** – `components/rondleiding/` loopt langs elementen met `data-tour="<anker>"` in de
+  werkplek. Stappen, teksten en de opgeslagen stand (`localStorage`, faalt stil) staan in
+  `lib/rondleiding.ts`; de voorbeeldscène in `lib/rondleidingDemo.ts` gebruikt letterlijke wettekst,
+  ankers die met `maakAnker` over dezelfde brontekst berekend zijn, en raakt de API niet. Het type
+  `ThreadItem` staat daarom in `lib/threadItem.ts`, zodat `lib/` geen component hoeft te importeren.
+
+## Toegankelijkheid (WCAG 2.2 AA, NLDS-niveau)
+
+- Markeringen in de tekst zijn **`<mark role="button" tabIndex={0}>`** met een `onKeyDown` voor
+  Enter/Space: bedienbaar met het toetsenbord (2.1.1) maar **inline**. Een echte `<button>` is
+  inline-block en wordt bij een markering over twee regels een rechthoekig blok. Daarbij hoort
+  `box-decoration-clone`, anders krijgt alleen het eerste regelfragment een linkerrand.
+- **Klikdoelen ≥ 24×24 CSS-px** (2.5.8) via `min-h-[24px]`, met de `coarse:`-variant naar 44px op
+  aanraakschermen (AAA 2.5.5, dat NLDS aanhoudt).
+- **Een uitklapper blijft binnen het scherm.** `components/ui/Popover` meet na het openen en corrigeert
+  horizontaal (`lib/popover.ts:klemHorizontaal`); verticaal kiest de aanroeper (`top-full`/
+  `bottom-full`). Een paneel dat de kolombreedte moet volgen gebruikt `positie="inset-x-3 …"` met
+  `containerClassName="static"` (berichtenbel, gebruikersmenu). `SelectiePopover` hangt aan een
+  muispositie en klemt zichzelf via `plaatsPopover`.
+- Eén **`.focus-ring`-utility** in `globals.css` (2.4.13, AAA): een dubbele ring die ook op de donkere
+  JAS-kleuren opvalt. Gebruik die in plaats van een eigen `focus-visible:outline`.
+- Elke beslissing wordt **aangekondigd** via de `sr-only aria-live`-regio in `WerkplekClient`
+  (`beslissingMelding`); anders is annoteren voor een schermlezer stil.
+- **Escape en Tab zijn voor het bovenste venster.** `Dialog` houdt een stapel bij; alleen het
+  bovenste venster reageert, en bij sluiten gaat de focus terug naar waar hij vandaan kwam. `Popover`
+  en een scherpe `BevestigKnop` vangen hun Escape in de capture-fase af. De sneltoetsen van het
+  artefact (`j/k/a/x/c`, `[`/`]`) werken alleen met de focus in het artefact (`focusBijArtefact`):
+  in de kolomvariant staat de chat ernaast, en een `a` op een chatknop zou anders het gekozen element
+  goedkeuren.
 
 ## Observability
 
-**De klik zelf laat ook een spoor na.** `lib/uiSpoor.ts` → `POST /api/ui-spoor` meldt per handeling
-`gestart` en daarna de uitkomst (`metSpoor(...)` om de call heen). Dat bestaat voor één klacht: *"ik
-klik en er gebeurt niets"* was niet te onderzoeken, want een klik die nooit een request werd laat in
-`proxy()` niets achter. De actienamen staan in een **gesloten lijst** – een vrije naam zou hier
-gebruikersinhoud (een gesprekstitel) de logs in trekken – en de route weigert al het andere. Gebruik
-het spaarzaam: op mutaties die kunnen blijven hangen, niet op elke knop.
+`instrumentation.ts` registreert OpenTelemetry via `@vercel/otel` (alleen met
+`OTEL_EXPORTER_OTLP_ENDPOINT`; tracing van route handlers en uitgaande `fetch`). **`@vercel/otel` zet
+zelf geen `traceparent` op de request**, dus de keten valt dan stil uiteen in losse traces per dienst.
+`lib/trace.ts` injecteert hem: **elke fetch naar een upstream loopt door `metTrace()`**, ook in routes
+die hun eigen fetch doen. Zonder OTel is het een no-op.
 
-**Een knop die een call doet, toont dat ook.** `BevestigKnop` await't `onBevestig`, staat zolang op
-`Bezig…` en is dan uitgeschakeld; `AppSidebar`/`AnnotatiesClient` halen de rij meteen weg en zetten
-hem bij een fout terug. Zonder dat is een trage call niet te onderscheiden van een klik die niet
-aankwam – en dat wás het beeld bij het verwijderen van een gesprek, waar de BFF drie diensten belt
-waarvan twee vanuit een koude start (`minReplicas: 0`).
+`lib/logger.ts` is de **server-only** JSON-logger (secret-redactie, `LOG_LEVEL`, `trace_id`/`span_id`),
+gebruikt in `proxy.ts`, `lib/server.ts` en de routes die zelf fetchen (run, artikel, gesprekken,
+ui-spoor). Nooit importeren in een Client Component, nooit tokens, secrets of inhoud loggen. In vitest
+wordt `server-only` gestubd (`vitest.config.ts` → `test/stub-empty.ts`).
 
-`instrumentation.ts` registreert OpenTelemetry via `@vercel/otel` (gated op
-`OTEL_EXPORTER_OTLP_ENDPOINT`; auto-tracing van route handlers + uitgaande `fetch`). De
-**traceparent-propagatie doet `@vercel/otel` níét** – het maakt spans voor een uitgaande fetch, maar
-zet geen header op de request, en de keten viel daardoor stil uiteen in losse traces per dienst.
-`lib/trace.ts` injecteert hem expliciet: **elke fetch naar een upstream loopt door
-`metTrace()`**, ook de routes die hun eigen fetch doen in plaats van `proxy()`. Zonder OTel is het
-een no-op. `lib/logger.ts` is de
-**server-only** gestructureerde JSON-logger (mirror van de MCP-logger: secret-redactie, `LOG_LEVEL`,
-`trace_id`/`span_id`), ingezet in de BFF-lagen (`app/api/_lib/proxy.ts`, `lib/server.ts`, de
-annotatie-agent-route). Nooit
-importeren vanuit een Client Component (net als `lib/config.ts`/`lib/server.ts`), en nooit
-tokens/secrets/inhoud loggen. In de vitest-node-omgeving wordt `server-only` gestubd
-(`vitest.config.ts` → `test/stub-empty.ts`). Zie `docs/observability.md`.
+**De klik zelf laat een spoor na.** `lib/uiSpoor.ts` → `POST /api/ui-spoor` meldt per handeling
+`gestart` en de uitkomst (`metSpoor(...)` om de call). Zo is "ik klik en er gebeurt niets" te
+onderzoeken: een klik die nooit een request werd, laat in `proxy()` niets achter. De actienamen staan
+in een **gesloten lijst** – een vrije naam zou gebruikersinhoud (een gesprekstitel) de logs in trekken
+– en de route weigert al het andere. Gebruik het op mutaties die kunnen blijven hangen, niet op elke
+knop. Zie `docs/observability.md`.
 
 ## Regels (niet aan tornen)
 
 - **Token nooit naar de client.** Geen import van `lib/config.ts`/`lib/server.ts` in Client
   Components; geen token in `NEXT_PUBLIC_*`. Nieuwe upstream-calls lopen via een Route Handler.
-- **Geen onbetrouwde waarde rechtstreeks in een `href`.** Velden uit de analyse-pipeline/LLM
-  (`bronreferentie`, `verwijzing.doel.target`) kunnen een `javascript:`/`data:`-scheme bevatten —
-  React escaped tekst, maar niet de href-scheme. Route ze altijd via **`bronHref`** in `lib/url.ts` —
-  één functie voor alle vormen die de agent levert (jci, graaf-IRI `urn:bwb:…`, kaal
-  BWB-id, complete wetten.overheid.nl-URL); onbekend of onbetrouwbaar → `undefined` ⇒ platte tekst.
-  Er stonden twee bijna gelijknamige helpers en de bronnenlijst greep de verkeerde: die plakte een
-  graaf-IRI achter `wetten.overheid.nl/` en kwam door de hostcontrole heen, dus stond er een
-  klikbare link naar een 404 onder elk antwoord.
-- **Status/headers ongewijzigd doorgeven.** De API bezit het gedrag (409 bij verkeerde state, 429 +
-  `Retry-After`, 404 op andermans id). De BFF maskeert dat niet; de UI reageert erop. Eén
-  uitzondering aan de clientkant: een **401** betekent altijd "geen geldige sessie", en
-  `parseError`/`nodeError` sturen de gebruiker dan zelf naar `/login` (`naarInloggen` in
-  `lib/api.ts`). De middleware geeft op `/api/*` zonder sessie daarom een 401 als JSON en géén
-  redirect – `fetch` volgde die naar de HTML van het inlogscherm, waarna `res.json()` struikelde.
+- **Geen onbetrouwde waarde rechtstreeks in een `href`.** Velden van de agent (`bronreferentie`,
+  `verwijzing.doel.target`) kunnen een `javascript:`/`data:`-scheme bevatten; React escapet tekst,
+  niet de scheme. Route ze via **`bronHref`** in `lib/url.ts` – één functie voor alle vormen (jci,
+  graaf-IRI `urn:bwb:…`, kaal BWB-id, complete wetten.overheid.nl-URL); onbekend → `undefined` ⇒
+  platte tekst. Zet er geen tweede helper naast: een graaf-IRI achter `wetten.overheid.nl/` plakken
+  komt door de hostcontrole en levert een link naar een 404.
+- **Status en headers ongewijzigd doorgeven.** De API bezit het gedrag (409 bij verkeerde state, 429 +
+  `Retry-After`, 404 op andermans id); de BFF maskeert dat niet. Eén uitzondering aan de clientkant:
+  een **401** betekent "geen geldige sessie", en `parseError`/`nodeError` sturen dan naar `/login`
+  (`naarInloggen`). De middleware geeft op `/api/*` zonder sessie daarom een 401 als JSON en geen
+  redirect – `fetch` zou die volgen naar de HTML van het inlogscherm.
 - **Route-params altijd via `pathSegment`, en die weigert `.`/`..`.** `encodeURIComponent("..")` is
-  `..`, en `fetch` normaliseert dat upstream weg: een param `%252E%252E` kwam zo via
-  `/v1/annotatie/lagen/../../…` bij elk `/v1/*`-endpoint uit, langs de allowlist van de BFF. De
-  middleware weigert zulke paden al met 400 (`isPuntSegment` in `auth.config.ts`); `pathSegment` en de
-  v2-catch-all zijn het tweede net. Gebruik in een nieuwe route dus nooit een kale
+  `..`, en `fetch` normaliseert dat upstream weg: een param kan zo via `/v1/annotatie/lagen/../../…`
+  bij elk `/v1/*`-endpoint uitkomen. De middleware weigert zulke paden met 400 (`isPuntSegment` in
+  `auth.config.ts`); `pathSegment` en de v2-catch-all zijn het tweede net. Nooit een kale
   `encodeURIComponent` op een param.
-- **Escape en Tab zijn voor het bovenste venster.** `Dialog` houdt een stapel bij; alleen het
-  bovenste venster reageert, en bij sluiten gaat de focus terug naar waar hij vandaan kwam.
-  `Popover` en een scherpe `BevestigKnop` vangen hun Escape in de capture-fase af, zodat die niet
-  ook het venster eromheen sluit. De sneltoetsen van het artefact (`j/k/a/x/c`, `[`/`]`) werken
-  alleen als de focus in het artefact staat (`focusBijArtefact`): in de kolomvariant staat de chat
-  ernaast, en daar keurde een `a` op een chatknop anders het gekozen element goed.
-- **Admin-pad apart.** `/api/admin/*` → `proxy(..., { admin: true })` → `/v1/admin/*`. Het admin-token
-  zit server-side in de BFF. Meng de twee tokens niet.
-- **Login = Auth.js (NextAuth v5), API is identiteitsbron.** De hele app zit achter een login met
-  **userid** + wachtwoord (`auth.ts` + `auth.config.ts`; `proxy.ts` – de Next 16-opvolger van
-  de `middleware`-conventie – bewaakt élke route en
-  stuurt niet-ingelogden naar `/login`). De **matcher** verankert de bestandsextensies op het einde
-  en zondert `/api/` uit van die tak: zonder dat viel elk pad met ".png" eríń (`/api/gesprekken/abc.png`)
-  buiten de gate, en een route-parameter mag er nu eenmaal uitzien als een bestandsnaam.
-  `proxy.test.ts` leest het patroon uit de bron en legt dat vast – houd de matcher daarom een
-  **letterlijke string**, want Next analyseert hem statisch bij het bouwen. Inloggen gaat uitsluitend met de userid; e-mail wordt bij
-  het aanmaken verplicht/uniek geregistreerd maar is geen inlog-identiteit. De sessie is een
-  httpOnly JWT-cookie (`AUTH_SECRET`) die de `userid` + rol draagt; de Credentials-provider
-  verifieert server→server bij de API (`lib/server.ts → verifyCredentials` → `/v1/auth/verify`). De
-  **API blijft de identiteitsbron** (users-tabel met `userid` als sleutel, wachtwoord-hash, TOTP);
-  de BFF houdt alleen de sessie. Rollen: **`beheerder`** (mag `/beheer` + `/api/admin/*`) en
-  **`analist`** (de rest) – afgedwongen in de `authorized`-callback (edge) én server-side in
-  `app/instellingen/[[...tab]]/page.tsx` (`isAdminTab(actief) && !isBeheerder` → redirect). De eerste keer (lege users-tabel) maakt `/setup` eenmalig de eerste
-  beheerder; daarna sluit die route. **Gebruikersbeheer** zit in de beheertab (`UsersPanel`, achter het
-  admin-token).
-
-  **Zelfregistratie** loopt ernaast: `/registreren` (publiek, `RegistratieClient` → `/api/registreren`)
-  legt een *aanvraag* vast, geen account. De API leidt de userid af uit voor- en achternaam
-  (`palmw01`) en bewaart de bcrypt-hash van het zelfgekozen wachtwoord; pas als een beheerder
-  goedkeurt in de tab **Aanvragen** (`RegistratiesPanel`) ontstaat de gebruiker — met dat wachtwoord,
-  dus er gaat geen tijdelijk wachtwoord rond. **Afwijzen verwijdert de aanvraag**, zodat het
-  e-mailadres en het volgnummer meteen weer vrij zijn; de knop zegt dat ook ("Afwijzen en
-  verwijderen"). Er is bewust **geen e-mail**: wie inlogt terwijl zijn aanvraag nog loopt, krijgt dat
-  te horen via de `code` `aanvraag_open` uit `/verify`, die `LoginClient` naast `totp_required`
-  afhandelt. Die status komt alleen bij het **juiste wachtwoord** terug — anders is het een middel om
-  te ontdekken wie er een aanvraag heeft liggen. Na een afwijzing valt die melding weg (de rij is er
-  niet meer) en ziet de aanvrager weer de gewone inlogfout. **2FA (TOTP)** is optioneel en self-service in de accounttab; verdere gebruikers maakt
-  een beheerder aan met een eenmalig tijdelijk wachtwoord. De account/2fa-BFF-routes zetten de
-  ingelogde identiteit als vertrouwde `X-User-Id`-header (uit de sessie, nooit uit browser-input).
-  Let op: Auth.js' eigen routes leven onder `/api/auth/*` – daar geen eigen BFF-route bijzetten
-  (de eenmalige-registratie-proxy staat daarom op `/api/setup`, de zelfregistratie op
-  `/api/registreren`). Beide staan in `isPublic()` in `auth.config.ts`; vergeet je dat, dan stuurt de
-  sessie-gate een bezoeker zonder account naar `/login` — precies het scherm waar hij niets kan.
-- **Tokenbudget zichtbaar en begrenzend.** De verbruiksstand komt van de api
-  (`/api/account/verbruik` → `/v1/verbruik`) en wordt op één plek opgehaald – `WorkbenchShell` –
-  zodat de drie plekken die hem tonen niet uit elkaar kunnen lopen: de **meterregel** in het
-  gebruikersblok van `GesprekSidebar`, de **strook** bovenin de werkplek, en de **blokkade** van de
-  invoerbalk in `WerkplekClient`. Verversen gebeurt event-gedreven ná elke beurt (`onBeurtKlaar`)
-  met een interval van 60s als vangnet, naar het model van de ongelezen-badge in `BerichtenPanel`.
-
-  Twee dingen die bewust zo zijn. **De strook wordt uit de serverstand afgeleid**, niet uit een
-  eerder gezette clientvlag – dat is precies de klacht over Claude's "Approaching usage limit"
-  (issues #51550/#51016): een banner die blijft hangen als hij niet meer geldt. Wegklikken duurt één
-  sessie; bij 100% kan het niet, want dan is het geen waarschuwing meer maar de reden dat de invoer
-  dicht is. En **de drempel komt van de server** (`stand.waarschuwing`), niet uit een berekening in
-  de browser: `WAARSCHUWINGSDREMPEL` in `lib/tokenbudget.ts` en `METER_WAARSCHUWING` in `ui/Meter`
-  bestaan alleen voor de meterkleur en moeten dezelfde waarde houden als de api.
-
-  De gebruiker ziet het volledige beeld in de niet-admin tab **Verbruik** (`VerbruikPanel`); de
-  beheerder stelt het beleid in bovenaan de tab **Gebruikers** (`BudgetBeleidBlok`) en geeft daar per
-  gebruiker een afwijkend budget. Bij Gebruikers en niet bij Modelprofielen: een budget is een
-  eigenschap van *wie* er werkt, niet van het model.
-- **Sessie-revocatie + CSRF defense-in-depth.** De sessie is rollend met een **per-login duur**:
-  `session.maxAge` = 30 dagen (`SESSIE_LANG`, de cookie-/bovengrens) + `updateAge` = 1 dag in
-  `auth.config.ts`, maar de custom `jwt.encode` in `auth.ts` zet de effectieve JWT-`exp` op
-  **30 dagen als "Ingelogd blijven op dit apparaat" is gekozen** (`token.rememberMe`), anders
-  **12 uur** (`SESSIE_KORT`). Die keuze is één checkbox op `/login` (default uit), die óók de
-  trusted-device-cookie stuurt (2FA overslaan) – op het 2FA-scherm is er dus geen aparte checkbox
-  meer; de keuze reist via `sessionStorage` (`wa_login_remember`) mee naar `/login/2fa`. **Een
-  TOTP-code geldt maar één keer** (api: `users.totp_laatste_stap`). `/api/login-2fa` verbruikt hem,
-  en de api geeft dan een **2FA-ticket** terug. Die route zet het in dezelfde httpOnly cookie als het
-  login-ticket, en `authorize` stuurt het bij de signIn mee in plaats van de code nog eens te laten
-  controleren. Daarna wist `authorize` de cookie. De
-  node-`jwt`-callback in `auth.ts` herverifieert elke ~5 min de accountstatus bij de API
-  (`lib/server.ts → getAccountStatus` → `/v1/auth/me`): een gedeactiveerd account invalideert de
-  sessie, een rolwijziging werkt direct door in het token. De edge-middleware draait de lichte
-  `jwt`-variant zonder herverificatie (`lib/server.ts` is node-only) – elke `auth()`-aanroep in
-  Server Components/route handlers loopt wél langs de herverifiërende versie, en de ~5-min
-  herverificatie (niet de lange `maxAge`) is de feitelijke revocatie-grens. Daarnaast
-  handhaaft de `authorized`-callback een **Origin-check** op muterende BFF-calls
-  (`POST/PUT/PATCH/DELETE` op `/api/*`, incl. de publieke `/api/login-verify`): een meegestuurde
-  vreemde Origin → 403; zonder Origin-header valt het terug op `SameSite=Lax`. De cookie-flags
-  (`httpOnly`/`sameSite=lax`/`secure`) staan expliciet in `authConfig` vastgelegd.
-- **Geen keuzemenu's – het is chat op de graaf.** De werkplek kiest geen wet uit een lijst: je stelt
-  je vraag/annotatie-opdracht en de agent vindt de bepaling in de graaf (het `doel`-event levert
-  `bwbId`/`artikel`/`citeertitel`). Er is dus geen wet-dropdown of wet-catalogus meer. Een keuze die
-  de agent **na** je vraag voorlegt, uit wat hij in de graaf vond (kandidaten, `KeuzeKaart`), is
-  daarmee verenigbaar: dat is een antwoord, geen menu.
-- **Huisstijl via tokens, niet hardcoded.** Kleur en typografie lopen via de tokens in
-  `app/globals.css` + `tailwind.config.ts` (en `lib/jas.ts` voor de JAS-badges) – strooi
-  geen losse hex-waarden door componenten. Het officiële logo-asset (`public/belastingdienst-logo.svg`)
-  blijft ongewijzigd; de JAS-klassekleuren komen exact uit `docs/wetsanalyse/wa-table.png`.
-- **CSP met een nonce per request, geen inline scripts.** `proxy.ts` zet de
-  Content-Security-Policy (`lib/csp.ts`): `script-src 'self' 'nonce-…' 'strict-dynamic'`, zonder
-  `'unsafe-inline'`. Next zet het nonce tijdens de server-render zelf op zijn scripts; lui geladen
-  chunks (`next/dynamic`, three.js) mogen via `'strict-dynamic'`. Twee gevolgen:
-  - **Geen eigen inline `<script>` en geen `next/script` met inline code.** Die krijgt geen nonce en
-    wordt in productie stil geblokkeerd. Heb je er toch een nodig, lees dan het nonce met
-    `(await headers()).get("x-nonce")` in een Server Component en geef het mee.
-  - **Elke pagina rendert dynamisch** (dat was al zo, want `app/layout.tsx` roept `auth()` aan). Een
-    statisch gegenereerde pagina kan geen nonce krijgen.
-  `style-src` houdt `'unsafe-inline'`, omdat de server-render `style="…"`-attributen meegeeft, en een
-  nonce geldt niet voor attributen. De CSP staat daarom niet meer in `next.config.mjs`: twee
-  CSP-headers gelden allebei, en de oude liet inline scripts weer toe.
+- **Admin-pad apart.** `/api/admin/*` → `proxy(..., { admin: true })` → `/v1/admin/*`. Meng de twee
+  tokens niet.
+- **Login = Auth.js (NextAuth v5), de API is de identiteitsbron.**
+  - `auth.ts` + `auth.config.ts`; `proxy.ts` (de Next 16-opvolger van `middleware`) bewaakt elke
+    route en stuurt niet-ingelogden naar `/login`. De **matcher** verankert de bestandsextensies op het
+    einde en zondert `/api/` daarvan uit, anders valt een route-parameter die op een bestandsnaam lijkt
+    (`/api/gesprekken/abc.png`) buiten de gate. `proxy.test.ts` leest het patroon uit de bron; houd de
+    matcher een **letterlijke string**, want Next analyseert hem statisch.
+  - Inloggen gaat uitsluitend met de userid; e-mail is verplicht en uniek maar geen inlog-identiteit.
+    De sessie is een httpOnly JWT-cookie (`AUTH_SECRET`) met `userid` + rol; de Credentials-provider
+    verifieert bij de API (`verifyCredentials` → `/v1/auth/verify`). De API bewaart users, hash en
+    TOTP; de BFF alleen de sessie.
+  - Rollen: **`beheerder`** (beheertabs + `/api/admin/*`) en **`analist`**, afgedwongen in de
+    `authorized`-callback (edge) én in `app/instellingen/[[...tab]]/page.tsx`
+    (`isAdminTab(actief) && !isBeheerder` → redirect). `/setup` maakt eenmalig de eerste beheerder.
+  - **Zelfregistratie**: `/registreren` (`RegistratieClient` → `/api/registreren`) legt een
+    *aanvraag* vast, geen account. De API leidt de userid af uit voor- en achternaam en bewaart de
+    bcrypt-hash van het gekozen wachtwoord; pas bij goedkeuring in de tab **Aanvragen**
+    (`RegistratiesPanel`) ontstaat de gebruiker, met dat wachtwoord. **Afwijzen verwijdert de
+    aanvraag** ("Afwijzen en verwijderen"), zodat e-mailadres en volgnummer vrijkomen. Er gaat bewust
+    geen e-mail: wie inlogt terwijl zijn aanvraag loopt, krijgt de `code` `aanvraag_open` uit
+    `/verify` (afgehandeld in `LoginClient` naast `totp_required`) – alleen bij het **juiste
+    wachtwoord**, anders is het een middel om te ontdekken wie een aanvraag heeft.
+  - **2FA (TOTP)** is optioneel en self-service in de accounttab. De account/2FA-routes zetten
+    `X-User-Id` uit de sessie, nooit uit browser-input.
+  - Auth.js' eigen routes leven onder `/api/auth/*`; zet daar geen eigen BFF-route bij (daarom
+    `/api/setup`, `/api/registreren`, `/api/login-verify`, `/api/login-2fa`). Publieke paden staan in
+    `isPublic()` in `auth.config.ts`; vergeet je er een, dan stuurt de gate een bezoeker zonder account
+    naar `/login`.
+- **Sessie-revocatie en CSRF.** De sessie is rollend: `session.maxAge` = `SESSIE_LANG` (30 dagen,
+  cookie-bovengrens) + `updateAge` 1 dag in `auth.config.ts`; de custom `jwt.encode` in `auth.ts` zet de
+  effectieve `exp` op 30 dagen bij *Ingelogd blijven op dit apparaat* (`token.rememberMe`), anders
+  `SESSIE_KORT` (12 uur). Die ene checkbox op `/login` (default uit) stuurt ook de trusted-device-cookie
+  (2FA overslaan); de keuze reist via `sessionStorage` (`wa_login_remember`) naar `/login/2fa`.
+  **Een TOTP-code geldt één keer**: `/api/login-2fa` verbruikt hem en de API geeft een 2FA-ticket, dat
+  in dezelfde httpOnly cookie als het login-ticket komt; `authorize` stuurt het bij de signIn mee en
+  wist daarna de cookie. De node-`jwt`-callback herverifieert elke 5 min (`HERVERIFICATIE_MS`) de
+  accountstatus (`getAccountStatus` → `/v1/auth/me`): een gedeactiveerd account invalideert de sessie,
+  een rolwijziging werkt direct door. De edge draait de lichte variant zonder herverificatie
+  (`lib/server.ts` is node-only); elke `auth()` in Server Components en route handlers herverifieert
+  wél, en die 5 minuten zijn de feitelijke revocatiegrens. De `authorized`-callback handhaaft een
+  **Origin-check** op muterende `/api/*`-calls (incl. `/api/login-verify`): vreemde Origin → 403,
+  zonder Origin valt het terug op `SameSite=Lax`. De cookie-flags staan expliciet in `authConfig`.
+- **Tokenbudget zichtbaar en begrenzend.** De stand komt van de API (`/api/account/verbruik` →
+  `/v1/verbruik`) en wordt op één plek opgehaald – `WorkbenchShell` – zodat de drie weergaven niet
+  uiteenlopen: de meter in het gebruikersblok van `GesprekSidebar`, de strook bovenin de werkplek en de
+  blokkade van de invoerbalk in `WerkplekClient`. Verversen gebeurt na elke beurt (`onBeurtKlaar`), met
+  60 s als vangnet.
+  - **De strook wordt uit de serverstand afgeleid**, niet uit een clientvlag, zodat hij niet blijft
+    hangen als hij niet meer geldt. Wegklikken duurt één sessie; bij 100% kan het niet, want dan is het
+    de reden dat de invoer dicht is.
+  - **De drempel komt van de server** (`stand.waarschuwing`). `WAARSCHUWINGSDREMPEL` in
+    `lib/tokenbudget.ts` en `METER_WAARSCHUWING` in `ui/Meter` bestaan alleen voor de meterkleur en
+    moeten dezelfde waarde houden als de API.
+  - De gebruiker ziet het volledige beeld in de tab **Verbruik** (`VerbruikPanel`); de beheerder stelt
+    het beleid in bovenaan de tab **Gebruikers** (`BudgetBeleidBlok`), met per gebruiker een afwijkend
+    budget – een budget hoort bij wie er werkt, niet bij het model.
+- **CSP met een nonce per request, geen inline scripts.** `proxy.ts` zet de Content-Security-Policy
+  (`lib/csp.ts`): `script-src 'self' 'nonce-…' 'strict-dynamic'`, zonder `'unsafe-inline'`. Next zet
+  het nonce zelf op zijn scripts; lui geladen chunks (`next/dynamic`, three.js) mogen via
+  `'strict-dynamic'`.
+  - **Geen eigen inline `<script>` en geen `next/script` met inline code**: die krijgt geen nonce en
+    wordt in productie stil geblokkeerd. Nodig? Lees het nonce met `(await headers()).get("x-nonce")`
+    in een Server Component en geef het mee.
+  - **Elke pagina rendert dynamisch** (`app/layout.tsx` roept `auth()` aan); een statische pagina kan
+    geen nonce krijgen.
+  - `style-src` houdt `'unsafe-inline'`, omdat de server-render `style="…"`-attributen meegeeft en een
+    nonce niet voor attributen geldt.
+  - De CSP staat **niet** in `next.config.mjs` (dat zet alleen de overige security-headers): twee
+    CSP-headers gelden allebei, en een statische versie zou inline scripts weer toelaten.
 
 ## Commando's
 
 ```bash
 cd frontend
 npm install
-npm run dev          # http://localhost:3000 (draait API óók op 3000? → npm run dev -- -p 3001)
+npm run dev          # http://localhost:3000 (API óók op 3000? → npm run dev -- -p 3001)
 npm run build        # productiebuild (output: 'standalone')
 npm run lint         # ESLint
 npm run typecheck    # tsc --noEmit
-npm test             # vitest (node-env, geen DOM – zie §Lagen)
-npm run test:browser # Playwright op echte Next-UI met gemockte BFF (scripts/test-*.mjs)
+npm test             # vitest (node-env, geen DOM)
+npm run test:browser # Playwright op de echte Next-UI met gemockte BFF (scripts/test-*.mjs)
 ```
 
-`test:browser` verwacht een devserver op poort 3109
-(`AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109`)
-en praat met **`localhost`**, niet met `127.0.0.1`: Next 16 weigert dev-assets aan een andere origin,
-en dan hydrateert de pagina niet en time-out elke stap zonder duidelijke fout.
+`test:browser` draait `scripts/test-annotatie-nodes.mjs`, `test-samenhang.mjs`, `test-reeks.mjs` en
+`test-toetsen.mjs`, en verwacht een devserver op poort 3109
+(`AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109`).
+Praat met **`localhost`**, niet met `127.0.0.1`: Next 16 weigert dev-assets aan een andere origin,
+waarna de pagina niet hydrateert en elke stap zonder duidelijke fout time-out.
 `scripts/test-toetsen.mjs` bewaakt wat alleen in een browser te zien is: sneltoetsen alleen met de
 focus in het artefact, Escape voor het bovenste venster, focus terug na sluiten, geen herstellus na
 een geslaagde beurt, een vraag die blijft staan tijdens het laden, en zelf markeren op een
 aanraakscherm (`TOUCH_ENGINE=webkit` voor de Safari-engine, als het systeem die kan draaien).
 
-Vereist een draaiende API (lokaal of het publieke domein) + de env-vars uit `.env.local`
-(`API_BASE_URL`, `API_TOKEN`, `ADMIN_API_TOKEN`; zie README).
+Lokaal draaien vraagt een bereikbare API en graph-qa plus `.env.local` (zie de README).
 
-**Vóór een commit: `npm test && npm run lint && npm run typecheck`.** De testsuite hoort daarbij —
-de rekenkern van deze app staat bewust in `lib/` juist zódat hij getest kan worden, en die tests
-overslaan maakt die keuze zinloos.
+**Vóór een commit: `npm test && npm run lint && npm run typecheck`.** De rekenkern staat in `lib/`
+zodat hij getest kan worden; de tests overslaan maakt die keuze zinloos. CI
+(`frontend-docker-publish.yml`) draait dezelfde drie plus `npm run build`.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

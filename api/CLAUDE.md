@@ -1,538 +1,406 @@
 # CLAUDE.md – wetsanalyse-api
 
-Headless API-backend voor de **Wetsanalyse-werkplek** – een kerncomponent van het agent-platform, een
-zelfstandige, Dockeriseerbare dienst die je via HTTP (Postman/Swagger) bevraagt en die de
-[frontend](../frontend) (de werkplek + login + `/beheer`) bedient. Lees ook de projectroot-`CLAUDE.md`.
+Headless FastAPI-backend voor de **Wetsanalyse-werkplek**: een zelfstandige, Dockeriseerbare dienst
+die de [frontend](../frontend) (werkplek, login, beheervenster) en graph-qa bedient. Lees ook de
+projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staan in
+[`README.md`](README.md); dit bestand gaat over hoe de code in elkaar zit en wat je niet mag breken.
 
-## Scope: wat deze API nog doet
+## Wat de API doet
 
-De API bedient acht dingen:
+1. **Het JAS-annotatiedomein** (`/v1/annotatie/*`): markeringen, beslissingen, append-only audit,
+   export. De agent stelt voor, de jurist beslist, de API bewaart de review-state en projecteert hem
+   naar de kennisgraaf. Actief is **contract 2, bronnode-annotaties** (`ANNOTATIE_CONTRACT_VERSIE`,
+   default `2`). De artikelbrede code van contract 1 staat er nog naast – zie §*Contract 1*.
+2. **De chatgeschiedenis** (`/v1/gesprekken/*`), per gebruiker gescopet.
+3. **Login en gebruikersbeheer** (`/v1/auth/*`, `/v1/admin/users`, `/v1/admin/registraties`): de API
+   is de identiteitsbron van de webapp.
+4. **LLM-modelprofielbeheer** (`/v1/admin/profiles`) en de **profiel-keuzelijst** (`/v1/profiles`).
+5. **Tokenbudget** (`/v1/verbruik/*`, `/v1/admin/budget`, `/v1/admin/verbruik`).
+6. **Berichten** (release notes, `/v1/berichten/*` + `/v1/admin/berichten/*`) met leesbewijzen per
+   (bericht, gebruiker), en **gebruikersfeedback** (`/v1/feedback` + `/v1/admin/feedback/*`).
 
-1. **Het JAS-annotatiedomein van de werkplek** (`/v1/annotatie/*`): markeringen, beslissingen,
-   append-only auditlog en **export** (pdf/csv/json). De agent stelt voor, de mens beslist; de API
-   bewaart de review-state.
+> **De wettekst komt niet uit deze API.** Lex (`tools/graph-qa/`) levert hem aan de werkplek
+> (`GET /v1/artikel`). De API leest uit GraphDB alleen de **bronboom** (`bron_resolver.py`) om ankers
+> te toetsen en snapshots vast te leggen.
 
-   **Sinds 22 sep 2026 draait dat op contract 2: bronnode-annotaties** (`ANNOTATIE_CONTRACT_VERSIE`,
-   default `2`; `/v1/annotatie/capabilities` vertelt wat er aanstaat). Een laag hoort bij één
-   canonieke bron-IRI – een artikel, een lid of een onderdeel – in plaats van bij een artikel als
-   geheel, en markeringen dragen lokale ankers per bronnode. De routes zijn `weergave`, `dekking`,
-   `lagen/batch`, `elementen`, `elementen/{id}/beslissing`, `lagen/{id}/status`, `zoeken`,
-   `node-lagen`, `weergave/export` en `weergave/verwijder`. Specificatie:
-   [`docs/architectuur/annotatie-bronnodes.md`](../docs/architectuur/annotatie-bronnodes.md).
+## Architectuur (`app/`)
 
-   Node-lagen zijn **gedeeld**, niet per gebruiker: wie wat deed staat in de audit en in
-   `Beslissing.actor`. Onder contract 2 weigert de api de oude, artikelbrede schrijfacties met een
-   409 (`annotatie_v2_contract_guard`); de v1-lees- en exportpaden hieronder blijven bestaan voor wat
-   er nog staat, en beschrijven de wereld van contract 1.
+| Module | Rol |
+|---|---|
+| `main.py` | Routers, `/health`, `/ready`, lifespan: LLM-throttle, DB-init met bounded retry (`_init_db_met_retry`), seeding van profiel en budgetbeleid, start van de projectielussen als `GRAPHDB_URL` gezet is. |
+| `config.py` | `Settings` uit de env; `_read_secret` leest `NAAM` of `NAAM_FILE`. |
+| `db.py` | Async SQLAlchemy Core: engine en alle tabellen. Zie §*Schema*. |
+| `deps.py` | `get_annotatie_store`, `get_gesprek_store` (de v1-store en de gesprekstore). |
+| `auth.py`, `api_tokens.py` | Client-bearer (`require_client`) en admin-bearer (`require_admin`). |
+| `user.py`, `users.py`, `registraties.py`, `routers/auth.py` | Login, 2FA, zelfregistratie. |
+| `llm_profile.py`, `profiles.py`, `secrets_crypto.py`, `llm/` | Modelprofielen, Fernet-versleuteling, LiteLLM-client, `llm/throttle.py`. |
+| `verbruik.py`, `verbruik_contracts.py`, `routers/verbruik.py` | Tokenbudget. |
+| `berichten.py`, `feedback.py` + routers | Release notes en feedback. |
+| `gesprek_contracts.py`, `gesprek_store.py`, `routers/gesprekken.py` | Chatgeschiedenis. |
+| `annotatie_v2.py` (router), `annotatie_v2_store.py`, `annotatie_v2_contracts.py`, `annotatie_v2_zoeken.py`, `annotatie_v2_contract_guard.py` | Contract 2. |
+| `bron_resolver.py` + `packages/bronmodel` | Bronboom ophalen uit de BWB-named graph, snapshot bouwen, ankers valideren. `bronmodel` is een lokaal pakket dat de API en graph-qa delen (één bronidentiteit en ankerbasis). |
+| `graaf_projectie_v2.py`, `vocabulaire/` | Projectie van de lagen naar GraphDB, en de JAS-vocabulaire. |
+| `graafcontrole.py`, `shacl.py`, `shapes/jas-v2.ttl` | Controle achteraf: klopt de graaf met Postgres? |
+| `samenhang.py` | Structuur, annotaties en verwijzingen van één artikel, voor de 3D-weergave. |
+| `annotatie_contracts.py`, `annotatie_store.py`, `routers/annotatie.py`, `annotatie_export.py`, `annotatie_validatie.py`, `annotatie_migratie.py`, `annotatie_statistiek.py`, `graaf_projectie.py`, `jas_ontologie.py`, `wetstructuur.py` | Contract 1. |
+| `jas_klassen.py`, `validation.py` | De dertien JAS-klassen, volgorde en kleuren (canoniek); `GELDIGE_JAS_KLASSEN`, `JAS_KLASSE_KLEUREN`, `jas_sorteersleutel`. |
+| `ratelimit.py` | In-process rate limit per client. |
+| `observability.py` | JSON-logging en OpenTelemetry. |
 
-   **Verwijderen mag iedereen** (`POST weergave/verwijder`, `annotatie_v2_store.verwijder_weergave`,
-   sinds 25 sep 2026): alle lagen van de bepaling in beeld (het doel en de bronnodes eronder) met hun
-   elementen, in één transactie onder het schrijfslot en met de gewone revisietoets (412). Wat erbij
-   hoort, en waarom:
-   - **De dekking gaat mee.** Anders leest Lex de bepaling bij de volgende beurt als "al geannoteerd".
-     Een dekkingsrij van een ruimere bepaling houdt haar bereik buiten deze scope en verliest
-     `voltooid`.
-   - **Een element van een ruimere laag blijft staan.** Valt het met één anker in deze bepaling, dan
-     is het daar een verwijzing, geen eigendom.
-   - **De audit blijft.** Per laag een regel `laag-verwijderd` (append-only; de eerdere regels staan
-     er nog). Daaruit leest de weergave `verwijderd: {op}`, zodat een heropend gesprek "verwijderd"
-     toont in plaats van een leeg paneel.
-   - **De graaf direct, de lus als vangnet.** Na de commit `graaf_projectie_v2.verwijder_projecties`
-     (DROP van de graph plus de registerregels); haperde GraphDB, dan meldt de respons `graaf: "volgt"`
-     en ruimt `verwijder_verweesde_projecties` de wees bij de volgende ronde op.
-   - **Geen afhankelijkheid van de brongraaf.** De route neemt de bewaarde snapshot; alleen een
-     bronstand die nooit is weggeschreven wordt opnieuw opgehaald (en geeft 409 als hij intussen
-     veranderde).
-2. **De chatgeschiedenis van de werkplek** (`/v1/gesprekken/*`): gesprekken + geordende berichten
-   (`gesprek_contracts.py`/`gesprek_store.py`/`routers/gesprekken.py`). Net als het annotatie-domein
-   **per-gebruiker gescopet** via de vertrouwde `X-User-Id`-header (`actieve_userid`, hergebruikt uit
-   de auth-router; 404 op andermans gesprek). Een bericht kan naar een annotatie-document verwijzen
-   (`annotatie_slug`) of naar een bronnode (`annotatie_doel`, contract 2); de review-state zelf blijft
-   in het annotatie-domein. Een bericht draagt ook het **uitvoeringsspoor** van de beurt
-   (`tool_executions`). Die twee velden ontbraken tot 22 sep 2026 in het contract, en Pydantic liet ze
-   stil vallen: een bronnode-laag heeft geen slug, dus na het heropenen van een gesprek wees het
-   bericht nergens meer naar en verdwenen de chip naar het annotatiepaneel, de hergebruikmelding en
-   het toolspoor. Een drift-guard in graph-qa (`tests/test_contract_drift.py`) toetst nu elk veld dat
-   de agent meestuurt tegen `BerichtInvoer`. Die verwijzing heeft
-   **geen foreign key**, dus draagt het bericht er zijn eigen leesbare label bij (`annotatie_titel`):
-   wordt het document later verwijderd, dan blijft het gesprek leesbaar in plaats van naar een
-   naamloze slug te wijzen. `DELETE` van een annotatie-document raakt de berichten bewust niet – het
-   gesprek is een verslag van wat er gebeurde. Een bericht draagt daarnaast optioneel een `run_id`:
-   dat is een **idempotentiesleutel**, want een agent-beurt hangt niet meer aan één browserverbinding
-   en er kunnen meerdere tabbladen op dezelfde run meekijken. `voeg_bericht_toe` weigert een tweede
-   bericht met hetzelfde `run_id` en geeft het bestaande terug (check-then-insert binnen de
-   transactie; géén unieke index, want `reconcile_schema` voegt die op bestaande tabellen niet toe —
-   bij een tweede API-replica is dat niet meer genoeg). De schrijver is meestal **graph-qa**, niet de
-   webapp: die legt de uitkomst van een beurt zelf vast en heeft daarvoor een eigen client-id in
-   `WETSANALYSE_API_TOKENS` (`graph-qa:<token>`) plus de `X-User-Id` van de jurist. Let op wat dat
-   betekent: `client_id` is niet aan `user_id` gebonden, dus dat token kan in elk gebruikersgesprek
-   schrijven – graph-qa blijft daarom intern-only.
-3. **Login + gebruikersbeheer** (`/v1/auth/*` + `/v1/admin/users`): de API is de identiteitsbron van
-   de webapp (userid + wachtwoord, rollen, optionele TOTP-2FA). Daaronder valt ook de
-   **zelfregistratie** (`registraties.py`, `POST /v1/auth/registratie` + `/v1/admin/registraties/*`):
-   een aanvraag met naam, e-mail en een zelfgekozen wachtwoord, die een beheerder goedkeurt of
-   afwijst. Een aanvraag is **geen account** – tot de goedkeuring bestaat er geen rij in `users` en
-   valt er niets mee in te loggen. De userid wordt afgeleid uit de naam (vier letters achternaam +
-   eerste letter voornaam + volgnummer, `palmw01`) en is bij het goedkeuren corrigeerbaar; de
-   bcrypt-hash gaat ongewijzigd over naar het account (`users.insert_user_met_hash`), zodat er geen
-   tijdelijk wachtwoord hoeft te worden rondgestuurd. **Afwijzen verwijdert de rij** – het
-   e-mailadres en het volgnummer zijn daarmee meteen weer vrij en de beheerder hoeft er geen tweede
-   handeling voor te doen; wat overblijft is de regel in het security-log. Er gaat **geen e-mail**
-   uit: zolang een aanvraag openstaat hoort de aanvrager dat bij een inlogpoging, via de `code`
-   `aanvraag_open` van `/verify` – en alleen bij het **juiste wachtwoord**, want anders wordt dat een
-   oracle waarmee je kunt uitvragen wie er een aanvraag heeft liggen. Na een afwijzing bestaat die
-   melding niet meer: er is niets om naar te verwijzen, dus dat wordt weer een gewone `invalid`.
-4. **LLM-modelprofielbeheer** (`/v1/admin/profiles`).
-5. De **profiel-keuzelijst** voor de UI (`/v1/profiles`).
-6. **Berichten** (`/v1/berichten/*` + `/v1/admin/berichten/*`): release notes die beheerders
-   publiceren en analisten lezen, met leesbewijzen per (bericht, user).
-7. **Tokenbudget** (`/v1/verbruik/*` + `/v1/admin/budget`): hoeveel LLM-tokens een gebruiker
-   verbruikt en of hij nog een beurt mag starten. **Verbruik is een journaal, de stand is een som** –
-   er wordt nergens een teller opgeslagen en nooit iets gereset. `token_verbruik` krijgt één rij per
-   LLM-call; de stand van nu is `sum(...) WHERE userid = ? AND tijdstip >= venster_start`, en dat
-   vensterbegin wordt uit het `anker` in `budget_beleid` gerekend. Daaruit volgen drie dingen die een
-   teller niet heeft: **een gesprek of document verwijderen raakt het verbruik niet** (`userid` is de
-   enige harde sleutel; `gesprek_id`/`run_id` zijn losse metadata zónder foreign key, want
-   `gesprek_store.verwijder_gesprek` en `annotatie_store.verwijder_document` ruimen hun eigen rijen
-   hard op), **de reset vraagt geen cronjob** (er is geen periodieke taak die kan mislukken of dubbel
-   draaien), en **elk getal is navraagbaar tot op de call**. Wat meetelt is het volle promptvolume –
-   invoer + uitvoer + cache_lees + cache_schrijf – dus caching verlaagt de factuur maar niet het
-   budget; de vier getallen staan apart zodat een gewogen variant een rekenregel is en geen migratie.
-   Het beleid (budget, resetperiode, aan/uit) staat in de database en niet in de env, want een limiet
-   aanpassen mag geen redeploy vragen; de env-waarden seeden alleen de eerste rij.
-8. **Gebruikersfeedback** (`/v1/feedback` + `/v1/admin/feedback/*`): onwijzigbare meldingen uit de
-   webapp. Elke beheerder heeft een eigen `feedback_gezien_op`, dus de ongelezen-teller is niet
-   gedeeld. De admin-endpoints die per-beheerder state schrijven lopen via `huidige_beheerder` —
-   defense-in-depth naast de admin-bearer, die immers een token-label levert en geen `userid`.
+## Annotaties, contract 2: bronnodes
 
-> **De QA/annotatie-agent is een aparte dienst.** `tools/graph-qa/` heeft een eigen toollaag en
-> LLM-config; de werkplek praat er direct mee (SSE). Wettekst komt daar vandaan
-> (`GET /v1/artikel`), niet uit deze API.
+De specificatie is [`docs/architectuur/annotatie-bronnodes.md`](../docs/architectuur/annotatie-bronnodes.md)
+(ankers, dekkingsregels, leestools, uitvoeringsspoor); het RDF-model staat in
+[`docs/wetsanalyse-workbench/jas-annotatie-ontologie.md`](../docs/wetsanalyse-workbench/jas-annotatie-ontologie.md).
+Hieronder wat je moet weten om de code te wijzigen.
 
-## Architectuur (app/)
+- **Een laag hoort bij één canonieke bron-IRI** – een artikel, een lid of een onderdeel. Lagen zijn
+  **gedeeld**, niet per gebruiker: wie wat deed staat in `annotatie_v2_audit` en in de beslissingen
+  op het element. Elke route vraagt wel een actieve gebruiker (`actieve_userid`).
+- **Postgres is de waarheid, RDF een herbouwbare projectie.** Tabellen: `annotatie_v2_state`,
+  `_snapshots`, `_lagen`, `_elementen`, `_batches`, `_dekking`, `_audit`.
+- **Eén globaal schrijfslot.** `annotatie_v2_store.schrijftransactie` neemt een rij-lock op
+  `annotatie_v2_state` (id 1) en serialiseert zo alle kleine schrijfacties, ook over processen en
+  replica's heen. Geen process-local locks.
+- **Revisies en snapshots.** Elke laag draagt een revisie; schrijfacties sturen
+  `verwachte_revisies` mee en krijgen **412** bij een tussentijdse wijziging. Elke schrijfactie legt
+  de snapshot van de bronboom vast; een beslissing of export tegen een andere bronstand geeft
+  **409**.
+- **Batches zijn idempotent** op `batch_id` plus payload (`POST lagen/batch`). Een eigen markering
+  van de jurist (`POST elementen`) loopt door hetzelfde pad met `mens=True`.
+- **De API toetst ankers zelf** (`annotatie_v2_store.valideer`): klasse bestaat, fragment niet
+  leeg, elk anker valt binnen het gevraagde bereik, `tekst[start:eind]` van de bronnode is exact het
+  ankerfragment en de `bron_hash` klopt, geen dubbele ankers, en de elementtekst is de
+  ankerfragmenten in volgorde. De eigenaar van het element volgt uit de ankers
+  (`bronmodel.valideer_ankers`), niet uit wat de client zegt.
+- **Verouderd.** Wijkt de hash van een geankerde bronnode af van de actuele bron, dan is het
+  element verouderd: alleen-lezen (409), telt niet mee bij afronden. De lifecycle blijft staan als
+  historie.
+- **Een oordeel vergrendelt.** Een element in `human_approved`/`rejected`/`published` dat van de
+  agent komt of al beslissingen draagt, accepteert alleen `comment` en `heropen`
+  (`annotatie_v2_store.beslis`). Afronden (`zet_status` → `geaccordeerd`) kan pas als elk actueel
+  element beoordeeld is en de bron niet veranderde.
+- **Wissen van één element** (`DELETE elementen/{id}`) mag alleen voor een eigen, nog niet
+  beoordeelde markering.
+- **Verwijderen van de bepaling in beeld mag iedereen** (`POST weergave/verwijder`,
+  `annotatie_v2_store.verwijder_weergave`): alle lagen op het doel en de bronnodes eronder, met hun
+  elementen, in één transactie onder het schrijfslot en met de revisietoets (412).
+  - **De dekking gaat mee**, anders leest Lex de bepaling bij de volgende beurt als "al
+    geannoteerd". Een dekkingsrij van een ruimere bepaling houdt haar bereik buiten deze scope en
+    verliest `voltooid`.
+  - **Een element van een ruimere laag blijft staan.** Valt het met één anker in deze bepaling, dan
+    is het daar een verwijzing, geen eigendom.
+  - **De audit blijft**: per laag een regel `laag-verwijderd` naast de bestaande regels. Daaruit
+    leest de weergave `verwijderd: {op}`, zodat een heropend gesprek "verwijderd" toont in plaats
+    van een leeg paneel.
+  - **Geen afhankelijkheid van de brongraaf.** De route neemt de bewaarde snapshot
+    (`historische_snapshot`); alleen een bronstand die nooit is weggeschreven wordt opnieuw
+    opgehaald, en die geeft 409 als hij intussen veranderde.
+  - **De graaf direct, de lus als vangnet**: na de commit `graaf_projectie_v2.verwijder_projecties`
+    (DROP van de graph plus de registerregels). Hapert GraphDB, dan meldt de respons
+    `graaf: "volgt"` en ruimt `verwijder_verweesde_projecties` de wees bij de volgende ronde op.
+- **Zoeken** (`annotatie_v2_zoeken.zoek`) haalt kandidaten uit de graaf en **verifieert ze tegen
+  Postgres** (manifest van lagen en revisies). Een storing of een achterlopende projectie is nooit
+  een leeg, succesvol resultaat: de respons draagt `volledig`.
+- **Bronboom** (`bron_resolver.resolve_bron`): leest alleen de expliciete BWB-named graph, nooit
+  een union met de annotatiegraphs. Zonder `GRAPHDB_URL` of bij een haperende GraphDB geeft de
+  router 503; een ongeldige bron-IRI 422.
+- **`/verklaringen`** levert `vocabulaire/verklaringen.json`: leesbare namen voor alles wat in een
+  `trace` kan staan. Dat bestand en `vocabulaire/jas-vocabulaire.ttl` worden **gegenereerd** door
+  `tools/graph-qa/scripts/genereer_jas_vocabulaire.py`; bewerk ze niet met de hand.
+  `tests/test_vocabulaire.py` bewaakt dat elke klasse van de API een concept heeft.
+- **`/samenhang`** (`samenhang.py`) geeft drie soorten relaties en niets anders: de bronboom, de
+  letterlijke verwijzingen uit de BWB-import (één stap in en uit, max. `MAX_VERWIJZINGEN`) en de
+  actuele markeringen. Er wordt niets afgeleid.
 
-- `config.py` – env-config + projectpaden (PROJECT_ROOT = repo-root).
-- `auth.py` – per-client bearer-tokens (erft het MCP-patroon; fail-closed; constant-tijd).
-  `require_admin` is een aparte, altijd-verplichte bearer voor `/v1/admin/*` (LLM-/
-  gebruikersbeheer). `require_admin` is **async** en accepteert twee bronnen: de statische
-  env-admin-tokens (`WETSANALYSE_ADMIN_TOKENS`) én **genereerbare DB-tokens** (`api_tokens.py`,
-  beheerd via `/beheer` → API-tokens). Die tokens staan **alleen als sha256-hash** in de
-  `api_tokens`-tabel, worden één keer bij aanmaken getoond en zijn intrekbaar; ze voeden o.a. de
-  admin-MCP (`tools/wetsanalyse-admin-mcp/`). Env-tokens blijven het bootstrap-pad.
-- `user.py`/`users.py` + `routers/auth.py` – de **login-module**: de API is de identiteitsbron van de
-  webapp. Inloggen gaat met de **`userid`** (de primaire sleutel van de `users`-tabel); `email` is een
-  verplicht, uniek registratiegegeven (geen inlog-identiteit). Wachtwoord-hash via bcrypt, rollen
-  `beheerder`/`analist`, optioneel TOTP-2FA versleuteld met dezelfde Fernet-key als de LLM-keys.
-  `/v1/auth/*` (achter `require_client`) levert de BFF (Auth.js) login-verificatie (`/verify` op
-  userid), de eenmalige eerste-beheerder-registratie (`/setup`, alleen bij lege tabel) en de
-  self-service 2FA/account (`/2fa/*`, `/change-password`, identiteit via de vertrouwde
-  `X-User-Id`-header van de BFF). De browsersessie zelf leeft in de frontend, niet hier.
-  **Een TOTP-code geldt maar één keer** (`_verbruik_totp`): de gebruikte tijdstap staat in
-  `users.totp_laatste_stap`, en een code voor een stap die niet groter is wordt geweigerd – ook
-  binnen het ±30 s-venster. Het vastleggen is één voorwaardelijke `UPDATE`, dus twee gelijktijdige
-  pogingen met dezelfde code halen het nooit allebei. Omdat de webapp na het 2FA-scherm nóg eens
-  verifieert (Auth.js zet dan de sessie), geeft `/verify` na een verbruikte code een **2FA-ticket**
-  mee (`maak_2fa_ticket`, 5 min, Fernet). Dat bewijst wachtwoord én tweede factor, zodat die tweede
-  verificatie de code niet opnieuw nodig heeft. `verify_credentials` meldt dat geval als
-  `"ok_totp"`. De tests zetten de klok stil via `users._nu`, en `_totp_now` schuift per code een stap op.
-- `llm_profile.py` – `LlmProfile`-domeinmodel (Pydantic; benoemde modelprofielen in de DB).
-  `profiles.py` – service eroverheen: CRUD, default-beheer, `resolve_config` (profiel → `LlmConfig`,
-  ontsleutelt de key, env-fallback) en `ensure_seeded` (seedt bij eerste start één default-profiel uit
-  de env). `secrets_crypto.py` – Fernet-versleuteling-at-rest van de API-key (master key uit
-  `LLM_CONFIG_SECRET(_FILE)`). De profielen worden beheerd via `/beheer` en gevalideerd met de
-  verbindingstest; de QA-agent (graph-qa) heeft een eigen LLM-config en wordt er niet door aangestuurd.
-- `db.py` – async SQLAlchemy-Core laag: engine-beheer + de tabeldefinities (`llm_profiles`,
-  `users`, `registratie_aanvragen`, `token_verbruik`, `budget_beleid`, `api_tokens`,
-  `annotatie_documenten`, `annotatie_audit`, de `annotatie_v2_*`-tabellen van contract 2 (`state`,
-  `snapshots`, `lagen`, `elementen`, `batches`, `dekking`, `audit`), `berichten`,
-  `bericht_leesbewijzen`, `user_feedback`, `gesprekken`, `gesprek_berichten`). Portable types
-  (`JSON`→`JSONB` op Postgres, `JSON` op SQLite-tests), tz-aware datetimes. `create_all` maakt bij de
-  start **ontbrekende tabellen** idempotent aan; `reconcile_schema()` (ook in de lifespan) voegt daarna
-  **ontbrekende kolommen** additief toe (`ALTER TABLE … ADD COLUMN`; nooit droppen/typewijzigen) zodat
-  een nieuw gedefinieerde kolom op een bestaande productie-tabel geen handmatige migratie vergt. Een
-  type-wijziging/drop is nog steeds een bewuste migratie.
-- `llm/` – `LLMClient`-protocol + LiteLLM-implementatie (provider = config; `complete()` levert JSON
-  conform een schema). `throttle.py` – proces-globale **concurrency-rem** (semafoor) op gelijktijdige
-  LLM-calls (`WETSANALYSE_LLM_MAX_CONCURRENCY`); ingesteld in de lifespan. De enige LLM-call in deze
-  API is nu de admin-**verbindingstest** (`POST /v1/admin/profiles/{name}/test`).
-- `jas_klassen.py` – de dertien JAS-klassen, hun weergave-volgorde en labelkleuren (canonieke
-  bron; stond eerder in de wetsanalyse-skill). `validation.py` – `GELDIGE_JAS_KLASSEN`,
-  `JAS_KLASSEN_VOLGORDE`, `JAS_KLASSE_KLEUREN` en `jas_sorteersleutel` + de
-  brongetrouwheid-/schema-helpers. Het annotatiedomein valideert de klasse van een voorgesteld element
-  hiertegen.
-- `ratelimit.py` – in-process per-client rate limit (dependency) + `QuotaExceeded`.
-- **Contract 2 – bronnode-annotaties** (`annotatie_v2.py` de router, `annotatie_v2_store.py` de
-  opslag, `annotatie_v2_contracts.py` het wirecontract, `annotatie_v2_zoeken.py` de zoektool,
-  `annotatie_v2_contract_guard.py` de omschakeling, `graaf_projectie_v2.py` de projectie). Postgres
-  is de waarheid; een laag draagt een revisie, een snapshot van de bronboom en een dekkingsadministratie.
-  Eén globaal schrijfslot (`schrijftransactie`) serialiseert de kleine schrijfacties, ook over
-  processen heen; batches zijn idempotent op batch-ID plus payload. Zoeken haalt kandidaten uit de
-  graaf en **verifieert ze tegen Postgres**: een storing of achterlopende projectie is nooit een leeg
-  succesvol resultaat. Details, inclusief de ankers en de dekkingsregels, staan in
-  [`docs/architectuur/annotatie-bronnodes.md`](../docs/architectuur/annotatie-bronnodes.md).
+### Projectie naar de kennisgraaf
 
-  **De projectie is direct, de lus is het vangnet** (sinds 22 sep 2026). Elke laagwijziging loopt via
-  `_raak`, die de laag op de verbinding noteert; `schrijftransactie` start ná een geslaagde commit
-  `graaf_projectie_v2.na_mutatie` op de achtergrond. Een geweigerde mutatie (409/412) projecteert dus
-  niets, en een haperende GraphDB laat de beslissing van een jurist niet falen: de laag blijft vuil en
-  de reconcile-lus (`JAS_PROJECTIE_INTERVAL`, 60 s) neemt haar mee. Dáárvoor was die lus het enige
-  pad, en stond een annotatie tot een minuut later in de graaf. De named graph is
-  `urn:jas:graph:v2:<laag-id>` met register `urn:jas:graph:register:v2`; lagen die uit Postgres
-  verdwijnen worden als wees opgeruimd, na een hercontrole onder het schrijfslot. Het RDF-model staat
-  in [`docs/wetsanalyse-workbench/jas-annotatie-ontologie.md`](../docs/wetsanalyse-workbench/jas-annotatie-ontologie.md).
-- `annotatie_contracts.py` – Pydantic-modellen + enums (`AnnotatieDocument`, `AnnotatieElement` met
-  `lifecycle`/`beslissingen`/`alternatieven`/`aandacht`/`diff`, `Beslissing`, `AuditRecord`,
-  `ReviewReason`). `annotatie_store.py` – `AnnotatieStore` (aparte store op dezelfde engine).
-  `routers/annotatie.py` – `/v1/annotatie/*`, per-gebruiker gescopet (`huidige_userid` + `_document_or_404`;
-  `require_client` blijft de bearer-poort + audit-herkomst).
-  Levenscyclus: document aanmaken → `PUT elementen` (de uitkomst van één agent-ronde) → per element
-  een human-decision (approve/edit/reject/comment; edit berekent een `diff`) → `GET audit`.
-  **De gedeelde lagen worden naar de kennisgraaf geprojecteerd** (`graaf_projectie.py`, zie hieronder);
-  de per-gebruiker-documenten niet.
+`graaf_projectie_v2.py`. Named graph `urn:jas:graph:v2:<laag-id>`, register
+`urn:jas:graph:register:v2`. De API is de enige schrijver onder `urn:jas:`; graph-qa leest alleen.
 
-  **De gedeelde laag per artikel.** Een rij met een gevulde `laag_sleutel` (`"{BWBID}:{artikel}"`,
-  uniek via de partiële index `ux_annotatie_laag`) is de laag van dat artikel: geen eigenaar
-  (`user_id` leeg), zichtbaar en bewerkbaar voor iedereen (`annotatie_store.mag_zien`), niet te
-  verwijderen (403). Wie wat deed staat per handeling in de audit en in `Beslissing.actor`. Omdat een
-  laag een slug heeft zoals elk document, lopen beslissingen, status, audit en export via de
-  bestaande `/documenten/{slug}/…`-routes; alleen ophalen, samenvoegen en hergebruik hebben eigen
-  routes onder `/lagen/{bwbId}/{artikel}`.
+- **Direct na de commit.** Elke laagwijziging loopt via `_raak`, die de laag op de verbinding
+  noteert; `schrijftransactie` roept ná een geslaagde commit `na_mutatie` aan, die op de achtergrond
+  projecteert. Een geweigerde mutatie (409/412) projecteert dus niets, en een haperende GraphDB laat
+  de beslissing van een jurist niet falen.
+- **De lus is het vangnet** (`lus`, interval `JAS_PROJECTIE_INTERVAL`). `reconcile` vergelijkt de
+  revisies die **in de graaf** staan met Postgres, zodat ook een lege GraphDB na een herstart wordt
+  opgemerkt en opnieuw gevuld, ruimt verweesde projecties op (na een hercontrole onder het
+  schrijfslot) en zet de vocabulaire neer als die ontbreekt. Elke tiende ronde logt hij de lichte
+  graafcontrole (`annotatie_graaf_afwijking`, voor Grafana).
+- **`projecteer`** neemt een rij-lock op de laag en een lock per laag in het proces, en schrijft
+  `geprojecteerd_revisie` pas na een geslaagde `PUT` plus registerupdate.
+- **Invarianten** (getest, en gecontroleerd door `graafcontrole.py`): geen subject onder `urn:bwb:`,
+  geen `urn:bwb-ns:`-predicaat en geen schema-axioma's (domain/range/subClassOf/sameAs) in een
+  `urn:jas:graph:*`. Anders duikt een annotatie op als wettekst in de queries, de similarity-index of
+  de bronnencontrole van Lex.
+- **Herkomst in RDF.** `bouw_graaf` zet per element een `prov:Activity` voor de run (model als
+  `prov:SoftwareAgent`) en de beoordelingen erbij.
+- **Graafcontrole** (`GET /v1/admin/annotatie/graafcontrole`, alleen lezend): consistentie
+  (register, revisies, verweesde graphs), bouw (opgehaalde graph isomorf met `bouw_graaf` uit de
+  Postgres-stand), SHACL per niveau (`rdf`/`jas_model`) en de invarianten. Een laag die nog niet
+  geprojecteerd is heet achterstand, geen afwijking. Een onbereikbare graaf levert
+  `graaf_beschikbaar: false` en `in_orde: null`, nooit "in orde". SHACL draait nooit in het
+  schrijfpad; zonder pyshacl geeft `shacl.valideer` `beschikbaar: False`.
 
-  - **Hash per lid.** `leden` op de laag houdt per lid de hash bij van de tekst die de laatste ronde
-    zag; `Anker.lid_hash` doet dat per markering. graph-qa levert de hashes – de api heeft geen
-    wettekst en rekent ze nooit zelf uit.
-  - **Bronwijziging veroudert, trekt niet in.** Wijkt de hash van een lid af, dan krijgen de actuele
-    markeringen van dat lid `verouderd=True`: hun lifecycle (het oordeel van de jurist) blijft als
-    historie staan, ze zijn alleen-lezen (409, behalve `comment`), tellen niet mee als werkvoorraad
-    of bronversie en doen niet mee aan ontdubbelen. Een afgeronde laag gaat dan automatisch weer open
-    (`heropend-door-bronwijziging`). Oude ankers zonder `lid_hash` worden op `bron_hash` getoetst
-    (artikel- óf lidsegmenthash); zonder anker wordt niets verouderd verklaard.
-  - **Het vangnet onder hergebruik.** In `modus="auto"` negeert de merge voorstellen voor een lid
-    waarvan de hash ongewijzigd is (`X-Hergebruikt-Leden`): dat lid had hergebruikt moeten worden.
-    Een achterlopende graaf kost zo hooguit tokens, nooit reviewstatus. `"opnieuw"` (de expliciete
-    vraag van de jurist) voegt wél toe.
-  - **Op een laag wordt nooit ingetrokken.** Opnieuw annoteren is aanvullen; de spreiding tussen
-    runs zou anders onbeoordeeld werk van anderen laten verdwijnen.
-  - **`POST …/hergebruik`** legt vast dát Lex hergebruikte (audit `laag-hergebruikt`, run met
-    `modus="hergebruik"`) en stempelt ankers bij naar de actuele positie – alleen positievelden; een
-    anker dat een ander fragment omspant wordt geweigerd. Werkt ook op een afgeronde laag.
-  - **Migratie van de oude documenten** (`annotatie_migratie.py`,
-    `POST /v1/admin/annotatie/migreer-naar-lagen`, standaard `dry_run=true`). Per artikel wordt het
-    recentste document de laag (zijn slug blijft), tenzij er al een laag is; de rest krijgt
-    `samengevoegd_in`. Ontdubbelen op `_sleutel`: een oordeel van een jurist gaat voor op een
-    onbeoordeeld voorstel, bij twee oordelen telt de laatste beslissing en gaat de verliezer volledig
-    in de audit (`migratie-conflict`), bij twee voorstellen wint het recentste document en wordt een
-    andere klasse een alternatief. Een laag die tussen plannen en schrijven veranderde wordt
-    overgeslagen, niet overschreven. Idempotent. Een samengevoegd document blijft bestaan: lezen,
-    schrijven en de audit volgen `samengevoegd_in` (oude chatberichten verwijzen ernaar), en het
-    telt niet meer mee in de eigen lijst of de statistiek.
-  - **Projectie naar de kennisgraaf van de v1-laag** (`graaf_projectie.py`, `jas_ontologie.py`).
-    Onder contract 2 wordt dit pad niet meer geschreven; de projectie van nu staat hieronder. Postgres
-    is de waarheid, de graaf een
-    projectie: na elke mutatie van een laag vervangt `muteer_document` op de achtergrond haar named
-    graph (`urn:jas:graph:<bwbId>:artikel:<nr>`, GSP `PUT`); `geprojecteerd_tot` is de outbox en een
-    reconcile-lus in de lifespan (`JAS_PROJECTIE_INTERVAL`, 60 s) haalt achterstand in. Ontbreekt het
-    register (`urn:jas:graph:register`), dan is GraphDB herstart: ontologie, alle lagen, register als
-    laatste. Ontbreekt de repository, dan wacht hij (de importer is er eigenaar van). Uit zonder
-    `GRAPHDB_URL`. Projecties van dezelfde laag lopen in één proces na elkaar (lock per slug) – anders
-    kan een oudere `PUT` ná een nieuwere landen terwijl de outbox de nieuwere boekt. Tussen replica's
-    is dat niet uitgesloten; `POST /v1/admin/annotatie/herprojecteer` zet alles opnieuw klaar,
-    `GET /v1/admin/annotatie/projectie` toont de stand. **Invarianten (met tests):** geen subject
-    onder `urn:bwb:`, geen `urn:bwb-ns:`-predicaat, geen domain/range/subPropertyOf/sameAs in de
-    ontologie – anders duikt een annotatie op als wettekst in de queries, de similarity-index of de
-    bronnencontrole van Lex. `docs/wetsanalyse-workbench/jas-ontologie.ttl` is een afdruk van
-    `jas_ontologie.bouw_ontologie()` met een drift-test.
-  - **Eén laag, ook bij gelijktijdigheid.** `haal_of_maak_laag` is insert-dan-herlaad; de unieke
-    index beslist. (Niet te testen met twee gelijktijdige requests op de in-memory SQLite: die deelt
-    één verbinding en rolt dan ook de insert van de winnaar terug.)
+## Contract 1: artikelbrede documenten
 
-  **De `review_reason` komt van de server.** Bij een **edit** leidt `_reden_uit_diff` hem af uit de
-  diff die de router toch al berekent (één veld → `tekst`/`verkeerde_klasse`/`interpretatie`; meer
-  velden, alleen `lid`, of niets → `anders`); een meegestuurde waarde is hooguit een hint en wordt
-  overschreven. Die afleiding stond in de browser, en daarmee stond er een reden in het auditspoor
-  die de server aannam maar nooit kon toetsen. Bij een **reject** blijft `review_reason` verplicht
-  (422 zonder): waaróm iets verworpen wordt staat in geen enkele diff – dat weet alleen de jurist.
+De code van contract 1 is nog geregistreerd en bediend; de werkplek-BFF en graph-qa hebben er nog
+routes naartoe. Hoe dat samenhangt met contract 2 (`annotatie_v2_contract_guard.py`):
 
-  **Herkomst: met welk model is geannoteerd.** graph-qa stuurt per beurt een `run`-event
-  (model/provider/agent_versie/critic_rondes/stop_reden); de werkplek geeft dat mee in
-  `PUT elementen` en de api legt het vast op het document (`runs[]`, eigen JSON-kolom), op elk
-  agent-element dat die ronde maakte of herzag (`geproduceerd_door`) én in het auditdetail. Een
-  ronde **zonder** run wist niets – een oudere client mag het spoor niet uitgummen. Documenten van
-  vóór deze registratie tonen in de export expliciet "onbekend (vóór registratie)".
+- **Contract 2 actief (de default):** `require_legacy_write` geeft **409** op elke
+  `POST`/`PUT`/`PATCH` onder de v1-router, behalve `/export`. `GET` en `DELETE` werken nog.
+  `POST /v1/admin/annotatie/migreer-naar-lagen` geeft 409 (`require_legacy_migration`).
+- **`ANNOTATIE_CONTRACT_VERSIE=1`:** de v1-router schrijft weer en de v2-routes geven **503**
+  (`require_v2`), behalve `/capabilities`.
 
-  **De wettekst in de PDF volgt de structuur van de wet** (`wetstructuur.py`). Elk lid ging tot
-  2 sep 2026 als één reportlab-`Paragraph` naar buiten, en die vouwt witruimte samen: de `\n` tussen
-  de onderdelen verdween en a./b./c. plakten aan elkaar als lopende tekst. Nu krijgt elk onderdeel
-  een eigen alinea met inspringing naar nestingniveau en een hangend nummer. Dezelfde parser draait
-  in de werkplek (`frontend/lib/wetstructuur.ts`), met gedeelde vectoren in
-  `frontend/lib/wetstructuur.vectoren.json` — anders staat een onderdeel in de PDF op een andere
-  marge dan in beeld en gaat de jurist twijfelen aan de bron in plaats van aan de opmaak. Het
-  niveau is afgeleid uit de nummervorm; de tekst zelf verandert geen teken.
+Wie aan contract 1 werkt, moet dit weten:
 
-  **Exporteren** (`annotatie_export.py`): `POST /documenten/{slug}/export?formaat=pdf|csv|json`
-  bouwt één canonieke `ExportDocument` (document + telling + elementen mét volledig spoor + het
-  hele auditlog) en serialiseert die drie keer. Werkt in elke fase; een document dat nog in review
-  is draagt de telling "te beoordelen" in de kop. De PDF (reportlab) is de JAS-tabel uit
-  `docs/wetsanalyse/wa-table.png`: de klassecel draagt de labelkleur uit
-  `validation.JAS_KLASSE_KLEUREN` (canoniek uit de skill; `test_jas_kleuren_drift.py` bewaakt dat
-  `frontend/lib/jas.ts` dezelfde waarden draagt). De **wettekst zit niet in deze api** – de
-  werkplek stuurt de leden mee in de body; ontbreken ze, dan blijft dat blok weg in plaats van dat
-  er iets gereconstrueerd wordt.
+- **Twee soorten documenten in `annotatie_documenten`.** Een gewoon document is per gebruiker
+  gescopet (404 op andermans slug). Een rij met een gevulde `laag_sleutel` (`"{BWBID}:{artikel}"`,
+  uniek via de partiële index `ux_annotatie_laag`) is de **gedeelde laag** van dat artikel: geen
+  eigenaar, zichtbaar voor iedereen (`annotatie_store.mag_zien`), niet te verwijderen (403). Een
+  laag heeft een slug zoals elk document, dus beslissingen, status, audit en export lopen via
+  `/documenten/{slug}/…`; alleen ophalen, samenvoegen en hergebruik hebben eigen routes onder
+  `/lagen/{bwbId}/{artikel}`. `haal_of_maak_laag` is insert-dan-herlaad; de unieke index beslist.
+- **Eén schrijfpad naar `elementen`:** `AnnotatieStore.muteer_document` met `with_for_update()`.
+  Zet er geen tweede pad naast; een destructief pad zonder lock wordt vroeg of laat gebruikt.
+- **`PUT elementen` is een MERGE**, geen vervanging. Matchen gaat op `id`, met genormaliseerde tekst
+  + lid als terugval. Een element waar de jurist aan te pas kwam (`herkomst == "mens"` of met
+  beslissingen) is inhoudelijk bevroren. Ontbrekende agent-elementen worden ingetrokken
+  (`trek_ontbrekende_in`), behalve op een gedeelde laag: daar is opnieuw annoteren aanvullen.
+  Optioneel `If-Match` tegen de `ETag` → 412. `ElementInvoer` wordt per element gevalideerd; een
+  ongeldig element valt af (`X-Verworpen`) zonder de rest te weigeren.
+- **Hash per lid op de gedeelde laag.** `leden` houdt per lid de hash bij van de tekst die de laatste
+  ronde zag, `Anker.lid_hash` doet dat per markering. graph-qa levert de hashes; de API rekent ze
+  nooit zelf uit. Wijkt een hash af, dan krijgen de markeringen van dat lid `verouderd=True`
+  (alleen-lezen behalve `comment`) en gaat een afgeronde laag weer open
+  (`heropend-door-bronwijziging`). In `modus="auto"` negeert de merge voorstellen voor een
+  ongewijzigd lid (`X-Hergebruikt-Leden`); `"opnieuw"` voegt wél toe. `POST …/hergebruik` legt vast
+  dát Lex hergebruikte (`laag-hergebruikt`) en stempelt alleen positievelden van ankers bij.
+- **Sloten.** Een element in `VERGRENDELDE_LIFECYCLES` accepteert alleen `comment` en `heropen`;
+  `edited` en een eigen markering vergrendelen niet. Een document op `geaccordeerd` weigert elke
+  wijziging (`_afgerond`); `POST …/status` is de enige uitweg. De toets staat binnen de
+  mutatie-callback, dus binnen dezelfde row-lock als de schrijfactie.
+- **`review_reason` komt van de server** bij een edit (`_reden_uit_diff`); bij een reject is hij
+  verplicht (422 zonder), want waarom iets verworpen wordt staat in geen diff.
+- **Een edit mag het fragment verplaatsen** (`Wijziging.anker`). Verandert de tekst zonder nieuw
+  anker, dan wordt het oude gewist – een anker over het oude fragment laat de markering na herladen
+  naar een ander voorkomen springen. In de audit als `anker_verplaatst`.
+- **Herkomst is gesplitst:** `herkomst` = wie aanmaakte (onveranderlijk), `gewijzigd_door` = wie
+  daarna aanpaste. `_herstel_herkomst` leest een element met `herkomst == "mens"`, beslissingen en
+  geen `gewijzigd_door` als agent-gemaakt en mens-gewijzigd.
+- **Run-registratie:** het `run`-event van graph-qa gaat mee in `PUT elementen` en landt in
+  `runs[]`, op elk element dat die ronde maakte of herzag (`geproduceerd_door`) en in de audit. Een
+  ronde zonder run wist niets. Zonder run toont de export `MODEL_ONBEKEND`.
+- **De API toetst de interne samenhang** (`annotatie_validatie.controleer_element`):
+  `eind - start == len(tekst)`, geldige offsets, en een anker dat niet in een ander lid wijst dan het
+  element claimt. Kapot → verwerpen. Een ontbrekend anker is toegestaan: dat is zichtbaar, een fout
+  anker niet. Meer dan één `bron_hash` op een document (`bronversies`) wordt **gemarkeerd, niet
+  verworpen** (auditregel `bronversie-conflict`; de werkplek waarschuwt via
+  `frontend/lib/annotatie.bronversieMelding`).
+- **Audit per element**: `element-voorgesteld`/`-herzien`/`-ingetrokken`/`critic-suggestie`, met
+  id en inhoud. `GET audit` is gepagineerd.
+- **Export** (`annotatie_export.py`): één `ExportDocument`, drie serialisaties. De PDF is de
+  JAS-tabel met labelkleuren uit `validation.JAS_KLASSE_KLEUREN`. De wettekst stuurt de werkplek mee
+  in de body; ontbreekt hij, dan blijft dat blok weg. `wetstructuur.py` zet elk onderdeel in een
+  eigen alinea met inspringing naar nestingniveau (afgeleid uit de nummervorm); dezelfde parser
+  staat in `frontend/lib/wetstructuur.ts`, bewaakt door `frontend/lib/wetstructuur.vectoren.json`.
+- **De lijst draagt de werkvoorraad** (`te_beoordelen`, `per_aandacht`, `per_klasse`,
+  `laatste_model`, `citeertitel`) en telt met dezelfde `tel_elementen` als de export.
+- **Projectie** (`graaf_projectie.py`, `jas_ontologie.py`): named graph
+  `urn:jas:graph:<bwbId>:artikel:<nr>`, register `urn:jas:graph:register`, outbox
+  `geprojecteerd_tot`. De v1-projector en zijn lus starten naast die van v2 zodra `GRAPHDB_URL` gezet
+  is; `GET /v1/admin/annotatie/projectie` toont de stand, `POST …/herprojecteer` zet alles opnieuw
+  klaar. Dezelfde invarianten als v2. `docs/wetsanalyse-workbench/jas-ontologie.ttl` is een afdruk
+  van `jas_ontologie.bouw_ontologie()` met een drift-test.
+- **Statistiek** (`annotatie_statistiek.py`): wat juristen met de voorstellen deden, per klasse en
+  per model. Twee ingangen op dezelfde functie: `GET /v1/admin/annotatie-statistiek` (achter het
+  admin-token, omdat documenten per gebruiker gescopet zijn) en `scripts/statistiek.py` over een
+  JSON-export. Aggregeren gebeurt in Python, want `elementen` is een JSON-kolom en de tests draaien op
+  SQLite.
+- **Migratie naar artikellagen** (`annotatie_migratie.py`, standaard `dry_run=true`) is alleen
+  bruikbaar onder contract 1.
 
-  **Afronden is een expliciete handeling.** `POST /documenten/{slug}/status` zet `geaccordeerd` of
-  weer `in_review` (promoveren hoort bij het latere graaf-schrijfpad en kan hier niet). Dat loopt
-  door `muteer_document` – het enige pad met lock én eigenaarscheck; de losse `zet_status` zonder
-  die check is daarom weg. Zonder dit endpoint stond elk document eeuwig op `in_review` en liep de
-  werkvoorraad van de jurist nooit leeg.
+## Gesprekken
 
-  **Een oordeel vergrendelt – heropenen is een handeling.** `geaccordeerd` betekende eerder niets:
-  er kon daarna nog van alles bij, af en overheen, en een goedgekeurd element kon onbeperkt opnieuw
-  beslist worden. Nu zijn er twee sloten, allebei 409 met een leesbare reden:
-  - **Element** – in `human_approved`/`rejected` (`VERGRENDELDE_LIFECYCLES`) weigert `beslissing`
-    een `edit`/`reject`/`approve`. Alleen `comment` (een kanttekening wijzigt de annotatie niet) en
-    het nieuwe **`heropen`** komen erlangs. `heropen` zet het element terug op `critic_checked` (als
-    de Critic er al naar keek, anders `voorgesteld`) en landt als eigen regel in `beslissingen` én
-    als `beslissing-heropen` in de audit – een teruggedraaid akkoord hoort zichtbaar te zijn.
-    `edited` vergrendelt bewust **niet**: een klasse wijzigen en er daarna een toelichting bij typen
-    is één doorlopende handeling. Een **eigen markering** ook niet: die is `human_approved` bij het
-    aanmaken, dus gemaakt in plaats van beoordeeld – het slot beschermt een review-oordeel over een
-    voorstel van de agent.
-  - **Document** – bij `status = geaccordeerd` weigeren `PUT elementen` (ook een agent-ronde),
-    `POST elementen`, `DELETE element` en `beslissing` (`_afgerond`). `POST .../status` is de enige
-    uitweg, en dus ook de enige ingang.
+`gesprek_contracts.py`, `gesprek_store.py`, `routers/gesprekken.py`. Per gebruiker gescopet via
+`actieve_userid`; 404 op andermans gesprek.
 
-  De toets staat binnen de mutatie-callback, dus binnen dezelfde row-lock als de schrijfactie —
-  anders glipt er tussen lezen en schrijven alsnog een wijziging langs een akkoord heen. Daarom
-  krijgt `beslis_op_element`'s `toepassen` het hele document mee en mag het een sentinel teruggeven.
+- Een bericht verwijst naar een annotatie-document (`annotatie_slug`) of naar een bronnode
+  (`annotatie_doel`, contract 2), en draagt het uitvoeringsspoor van de beurt (`tool_executions`).
+  De review-state zelf blijft in het annotatiedomein. **Een veld dat graph-qa meestuurt moet in
+  `BerichtInvoer` staan**, anders laat Pydantic het stil vallen en verdwijnen na het heropenen de
+  chip naar het annotatiepaneel en het toolspoor. `tools/graph-qa/tests/test_contract_drift.py`
+  toetst dat.
+- De verwijzing heeft **geen foreign key**, dus draagt het bericht een eigen label
+  (`annotatie_titel`). Een document verwijderen raakt de berichten niet: het gesprek is een verslag.
+- **`run_id` is een idempotentiesleutel.** Een agent-beurt hangt niet aan één browserverbinding en
+  meerdere tabbladen kunnen op dezelfde run meekijken. `voeg_bericht_toe` geeft bij een bekend
+  `run_id` het bestaande bericht terug; de partiële unieke index `ux_gesprek_berichten_run` dekt de
+  race tussen replica's, en de insert staat in een SAVEPOINT omdat een `IntegrityError` op Postgres
+  anders de hele transactie aborteert.
+- **De schrijver is meestal graph-qa**, met een eigen client-id in `WETSANALYSE_API_TOKENS`
+  (`graph-qa:<token>`) plus de `X-User-Id` van de jurist. `client_id` is niet aan `user_id`
+  gebonden: dat token kan in elk gebruikersgesprek schrijven, en graph-qa blijft daarom intern.
 
-  **De lijst draagt de werkvoorraad.** `GET /documenten` levert per document ook `te_beoordelen`,
-  `per_aandacht`, `per_klasse` (de JAS-kleurstrip in de UI), `laatste_model` en een `citeertitel`
-  met terugval op `werkgebied`/`bwbId` (`annotatie_export.weergavenaam`). De telling komt uit
-  dezelfde `tel_elementen` als de export – twee tellingen naast elkaar spreken elkaar vroeg of laat
-  tegen, en juist die telling stuurt waar de jurist heen gaat.
+## Login, registratie, 2FA
 
-    **`PUT elementen` is een MERGE, geen vervanging.** De agent kan meerdere rondes draaien
-  (annoteerder ⇄ Critic) en de jurist werkt in hetzelfde document; vervangen wiste eerder alle
-  beslissingen, levenscyclus en element-id's. Matchen gaat op `id`, met de genormaliseerde tekst +
-  lid als terugval voor clients zonder id. Een element waar de jurist aan te pas kwam (`herkomst ==
-  "mens"` of met beslissingen) is **inhoudelijk bevroren**: de agent mag er alleen nog een
-  Critic-oordeel bij zetten. Agent-elementen die in de nieuwe ronde ontbreken worden ingetrokken.
-  Optioneel `If-Match` tegen de `ETag` uit de respons → 412 bij een tussentijdse wijziging.
+- **Inloggen gaat met de `userid`** (primaire sleutel van `users`); `email` is verplicht en uniek
+  maar geen inlog-identiteit. bcrypt, rollen `beheerder`/`analist`. `/v1/auth/*` hangt achter
+  `require_client`; de BFF (Auth.js) is de enige client en zet `X-User-Id` server-side. De
+  browsersessie leeft in de frontend.
+- **Een TOTP-code geldt één keer** (`users._verbruik_totp`): de gebruikte tijdstap staat in
+  `users.totp_laatste_stap` en het vastleggen is één voorwaardelijke `UPDATE`, dus twee
+  gelijktijdige pogingen met dezelfde code halen het nooit allebei. Omdat de webapp na het
+  2FA-scherm nóg eens verifieert, geeft `/verify` na een verbruikte code een **2FA-ticket** mee
+  (`maak_2fa_ticket`, 5 min, Fernet); `verify_credentials` meldt dat als `"ok_totp"`. De 2FA-secret
+  is versleuteld met dezelfde Fernet-key als de LLM-keys. Tests zetten de klok stil via
+  `users._nu`; `_totp_now` in `tests/test_users_auth.py` schuift per code een stap op.
+- **Zelfregistratie** (`registraties.py`): een aanvraag is **geen account** – tot de goedkeuring
+  bestaat er geen rij in `users`. De userid wordt afgeleid uit de naam (vier letters achternaam +
+  eerste letter voornaam + volgnummer) en is bij goedkeuren corrigeerbaar; de bcrypt-hash gaat
+  ongewijzigd over (`users.insert_user_met_hash`), zodat er geen tijdelijk wachtwoord rondgaat.
+  **Afwijzen verwijdert de rij**: e-mailadres en volgnummer zijn meteen weer vrij; de reden staat in
+  het security-log. Er gaat geen e-mail uit: bij een openstaande aanvraag meldt `/verify` de `code`
+  `aanvraag_open`, en **alleen bij het juiste wachtwoord** – anders is het een oracle voor wie er een
+  aanvraag heeft liggen.
+- **Actief-controle.** `actieve_userid` (`routers/auth.py`) controleert dat het account bestaat en
+  actief is, met een cache van 30 s; de admin-router roept `vergeet_actief()` aan bij deactiveren of
+  verwijderen, zodat dat meteen bijt. `huidige_userid` leest alleen de header, voor endpoints die hun
+  eigen bewijs vragen (wachtwoord, 2FA-code).
+- **Admin-bearer levert geen userid.** Admin-endpoints die per-beheerder state schrijven (zoals
+  `feedback_gezien_op`) lopen daarom ook via `huidige_beheerder`.
+- **Admin-tokens**: `require_admin` (async) accepteert de env-tokens (`WETSANALYSE_ADMIN_TOKENS`,
+  het bootstrap-pad) en DB-tokens uit `api_tokens.py`. Die staan alleen als sha256-hash in
+  `api_tokens`, worden één keer getoond en zijn intrekbaar; ze voeden o.a. de admin-MCP
+  (`tools/wetsanalyse-admin-mcp/`).
 
-  **Een edit mag het fragment verplaatsen.** `Wijziging` draagt naast `klasse`/`tekst`/`toelichting`/
-  `lid` een optioneel `anker`: kort de jurist een markering in of breidt hij hem uit, dan schuift de
-  plek mee. Verandert de tekst zonder dat er een anker meekomt, dan wordt het oude **gewist** – een
-  anker dat over het oude fragment gaat laat de markering na herladen naar een ander voorkomen
-  springen. Het anker staat niet in de `diff` (machinerie, geen inhoudelijke wijziging) maar wel als
-  `anker_verplaatst` in het auditdetail.
+## Tokenbudget
 
-  **Herkomst is gesplitst.** `herkomst` = wie het element aanmaakte (onveranderlijk), `gewijzigd_door`
-  = wie het daarna aanpaste. Een edit door de jurist maakt van een agent-element dus geen
-  mens-element. Rijen van vóór die splitsing worden lazy gerepareerd door een `model_validator`.
+`verbruik.py`. **Verbruik is een journaal, de stand is een som.** `token_verbruik` krijgt één rij per
+LLM-call; de stand is `sum(...) WHERE userid = ? AND tijdstip >= venster_start`, en het vensterbegin
+volgt uit het `anker` in `budget_beleid`. Daaruit volgt:
 
-  **Audit per element.** Naast de ronde-samenvatting (`elementen-voorgesteld`) schrijft elke ronde
-  `element-voorgesteld` / `element-herzien` (met diff) / `element-ingetrokken` / `critic-suggestie`,
-  elk mét element-id en inhoud – anders is een ronde achteraf niet te reconstrueren. `GET audit` is
-  daarom gepagineerd.
-- `routers/admin.py` – **`/v1/admin/*`** achter `require_admin`: modelprofielen-CRUD (write-only
-  API-key, `api_key_set` nooit de key zelf), default zetten, verbinding testen; het gebruikersbeheer
-  (`/users` CRUD, de laatste actieve beheerder is beschermd); en de genereerbare API-tokens
-  (`/api-tokens`).
-- `annotatie_statistiek.py` – **wat juristen met de voorstellen deden**, over documenten heen:
-  goedgekeurd/aangepast/afgewezen per JAS-klasse en per model, de klasse-verschuivingen die juristen
-  aanbrachten, en of een Critic-oordeel samenviel met een correctie. Die data lag er al (`Beslissing`
-  met de server-afgeleide `review_reason`, `geproduceerd_door` per element, `critic_rondes`) maar had
-  geen consument. Geen tweede telling naast `annotatie_export.tel_elementen` – dat blijft "één
-  waarheid" voor de export en de werkvoorraadlijst – maar een aanvulling die over documenten heen
-  kijkt. Twee ingangen op dezelfde functie: `GET /v1/admin/annotatie-statistiek` (database, achter
-  het admin-token omdat documenten per gebruiker gescopet zijn en een analist anders alleen zijn
-  eigen cijfers ziet) en `scripts/statistiek.py` over een JSON-export (werkt zónder databasetoegang,
-  en dat is vandaag de enige plek waar reviewbeslissingen van een echte werkplek te vinden zijn).
-  Aggregeren gebeurt in Python: `elementen` is een JSON-kolom en de suite draait op SQLite terwijl
-  productie Postgres is.
-- `routers/catalog.py` – de niet-admin keuzelijst: `GET /v1/profiles` (alleen naam + default).
-- `main.py` – routers + `/health` (liveness) + `/ready` (alleen booleans). De lifespan doet DB-init
-  (met bounded connect-retry bij cold start), profiel-seeding en het instellen van de LLM-throttle.
+- **Werk weggooien geeft geen tokens terug.** `userid` is de enige harde sleutel; `gesprek_id` en
+  `run_id` zijn metadata zonder foreign key, want `gesprek_store.verwijder_gesprek` en
+  `annotatie_store.verwijder_document` ruimen hun eigen rijen hard op.
+- **De reset vraagt geen cronjob**, en elk getal is navraagbaar tot op de call.
+- Wat meetelt is het volle promptvolume (invoer + uitvoer + cache_lees + cache_schrijf): caching
+  verlaagt de factuur, niet het budget. De vier getallen staan apart, zodat een gewogen variant een
+  rekenregel is en geen migratie.
+- Het beleid staat in de database, want een limiet aanpassen mag geen redeploy vragen; de env-waarden
+  seeden alleen de eerste rij (`verbruik.ensure_seeded`). Boeken is idempotent op `run_id`.
 
-## Observability
+## Schema
 
-`app/observability.py` configureert **gestructureerde JSON-logging** (mirror van de MCP-logger:
-`ts/niveau/categorie/bericht/…velden`, secret-redactie, `LOG_LEVEL`/`LOG_FORMAT`) plus **OpenTelemetry**
-(traces/metrics/logs), gated op `OTEL_EXPORTER_OTLP_ENDPOINT` – leeg = no-op, alleen logs. `setup()`
-draait vroeg in `main.py`; `RequestContextMiddleware` (pure ASGI, veilig voor SSE) zet een
-`X-Request-Id` en logt per request. `get_tracer()`/`get_meter()` geven no-op-shims terug zonder de
-`otel`-extra, dus code mag onvoorwaardelijk spans/metrics maken. Nooit tokens/secrets/prompt-inhoud
-loggen. Zie `docs/observability.md`.
+Er is geen Alembic. `db.create_all` maakt bij de start **ontbrekende tabellen** aan;
+`db.reconcile_schema` voegt daarna **ontbrekende kolommen** toe (`ALTER TABLE … ADD COLUMN`, mét
+`server_default`) en maakt **ontbrekende indexen** aan (`checkfirst`). Nooit droppen of van type
+wisselen: dat is een bewuste, handmatige ingreep. Declareer een nieuwe kolom dus altijd in de
+`Table` in `db.py`; zonder die declaratie kent SQLAlchemy Core haar niet, ook als ze in de database
+bestaat. `_na_kolom` vult een nieuw toegevoegde kolom waar de waarde al elders stond (nu alleen
+`gesprek_berichten.run_id` uit `inhoud`).
+
+Portable types: `JSON` wordt `JSONB` op Postgres; datetimes zijn tz-aware (`db.aware` repareert
+naïeve SQLite-waarden). Een in-memory SQLite-URL krijgt een `StaticPool`. Let op: in-memory SQLite
+deelt één verbinding, dus twee gelijktijdige requests zijn daarop niet te testen.
 
 ## Garanties (niet aan tornen)
 
-- **Per-gebruiker isolatie.** Elk v1-annotatie-document (behalve de gedeelde laag per artikel; de
-  node-lagen van contract 2 zijn óók gedeeld) én elk **gesprek** is per-gebruiker gescopet via
-  de vertrouwde `X-User-Id`-header – 404 op andermans slug/id (lekt niet). De dependency is
-  **`actieve_userid`** (`routers/auth.py`): die controleert bovendien dat het account nog bestaat en
-  actief is, met een cache van 30s. `huidige_userid` leest alleen de header en is er voor endpoints
-  die hun eigen bewijs vragen (wachtwoord, 2FA-code). Deactiveren/verwijderen bijt meteen doordat de
-  admin-router `vergeet_actief()` aanroept.
-- **De admin-laag is altijd auth-plichtig.** `/v1/admin/*` heeft geen `AUTH_REQUIRED`-bypass; zonder
-  admin-tokens geeft alles 401. De plaintext-API-key komt nooit terug in een respons (alleen
-  `api_key_set`); het opslaan vereist een geconfigureerde Fernet-master-key.
-- **Append-only auditlog.** Elke annotatie-actie schrijft auditregels; de tijdlijn is `ORDER BY id`.
-- **Eén schrijfpad naar `elementen`.** Alles loopt via `AnnotatieStore.muteer_document` met
-  `with_for_update()`. Er stond hier ook een `vervang_elementen` zónder lock; die is weg – een
-  destructief pad dat blijft rondslingeren wordt vroeg of laat gebruikt.
-- **JAS-klassen zijn canoniek.** Een voorgesteld element wordt gevalideerd tegen
-  `validation.GELDIGE_JAS_KLASSEN` – verzin er geen bij.
-- **De api toetst zelf wat hij vastlegt** (`annotatie_validatie.py`). Tot 2 sep 2026 keek hij alleen
-  naar de klasse en een leeg fragment; al het overige leunde op graph-qa of de werkplek. Dat is een
-  trust boundary op de verkeerde plek – de api is de laatste partij die iets kan tegenhouden. Wat
-  hier NIET gebeurt is de juridische interpretatie overdoen: de wettekst zit in GraphDB en daar
-  praat de api niet mee, dus of een fragment letterlijk in de bron staat blijft aan graph-qa. Wat
-  hier wél kan is de **interne samenhang**: `eind - start == len(tekst)` (een anker dat zijn eigen
-  fragment niet dekt is kapot, ongeacht welke wet erachter zit), geldige offsets, en een anker dat
-  niet in een ander lid wijst dan het element claimt. Dat laatste vangt de Operator `"en"` met een
-  anker van 83 tekens die op 1 sep 2026 live stond.
+- **Identiteit uit `X-User-Id`.** Gesprekken en v1-documenten zijn per gebruiker gescopet (404 op
+  andermans id, lekt niet). De header is vertrouwd omdat alleen de BFF en graph-qa hem zetten – zie
+  §*Uitrol* voor wat een publieke ingress daarmee doet.
+- **De admin-laag is altijd auth-plichtig.** Geen `AUTH_REQUIRED`-bypass; zonder admin-tokens is
+  alles 401. De plaintext-API-key komt nooit terug (alleen `api_key_set`); opslaan vraagt een
+  Fernet-master-key.
+- **Append-only audit.** Elke annotatie-actie schrijft auditregels; de tijdlijn is `ORDER BY id`.
+- **JAS-klassen zijn canoniek**: `validation.GELDIGE_JAS_KLASSEN`, gevoed door `jas_klassen.py`.
+  Verzin er geen bij. `tests/test_jas_kleuren_drift.py` bewaakt dat `frontend/lib/jas.ts` dezelfde
+  kleuren draagt.
+- **De API toetst zelf wat hij vastlegt**, want hij is de laatste partij die iets kan tegenhouden.
+  Hij doet de juridische interpretatie niet over: of een fragment letterlijk in de wet staat, toetst
+  graph-qa. De API toetst de samenhang van anker, fragment en bron.
+- **Een projectie laat nooit een beslissing falen.** GraphDB-fouten in het projectiepad worden
+  gelogd en ingehaald door de lus; zoeken en graafcontrole melden onvolledigheid expliciet.
+- **Secrets zijn bestanden** (`*_FILE`), nooit plain env in productie.
+- **Log nooit tokens, secrets of prompt-inhoud.**
 
-  **Een ontbrekend anker blijft toegestaan** – `_anker_voor` in de agent geeft bewust `None` als
-  lokaliseren niet lukt, want een ontbrekend anker is zichtbaar en een fout anker niet.
+## Observability
 
-  **Geschoven is iets anders dan kapot.** `AnnotatieDocument.bronversies` (afgeleid, niet
-  opgeslagen) telt de verschillende `anker.bron_hash`-waarden. Meer dan één betekent dat het
-  document over twee brontekstversies gaat – na een herimport, of doordat er elementen uit een
-  andere bepaling in belandden. Dat wordt **gemarkeerd, niet verworpen**: de importer draait
-  wekelijks en overheid.nl verandert, dus dat is geen fout van de indiener. Er gaat wel een
-  auditregel `bronversie-conflict` in, en de werkplek waarschuwt de jurist
-  (`frontend/lib/annotatie.bronversieMelding`). Bewust een veld op het document en geen header: het
-  schrijfpad heeft twee consumenten en de frontend leest `X-Verworpen` niet – die weg loopt via
-  graph-qa's `waarschuwing`-event, en een eigen markering gaat daar niet langs.
-- **Secrets zijn bestanden.** Alle secrets (admin-tokens, client-tokens, DB-credentials, Fernet-key)
-  staan als bestanden op de host (`*_FILE`-patroon) – nooit als plain env var.
+`app/observability.py`: gestructureerde JSON-logging (`ts/niveau/categorie/bericht/…velden`,
+secret-redactie, `LOG_LEVEL`/`LOG_FORMAT`) plus OpenTelemetry, gated op
+`OTEL_EXPORTER_OTLP_ENDPOINT`. `setup()` draait vroeg in `main.py`; `RequestContextMiddleware`
+(pure ASGI) zet een `X-Request-Id` en logt per request. `get_tracer()`/`get_meter()` geven no-op-shims
+zonder de `otel`-extra, dus code mag onvoorwaardelijk spans en metrics maken. Zie
+`docs/observability.md`.
 
-## Lokaal draaien
-
-### 1. Secrets aanmaken (eenmalig)
-
-Maak `api/secrets/` aan (gitignored) en vul:
-
-```powershell
-# Vanuit de projectroot:
-mkdir api\secrets
-[IO.File]::WriteAllText("$PWD\api\secrets\api_tokens",       "lokaal:<zelfgekozen-token>")
-# LLM-beheer (admin) – optioneel lokaal:
-[IO.File]::WriteAllText("$PWD\api\secrets\admin_tokens",      "admin:<zelfgekozen-admin-token>")
-[IO.File]::WriteAllText("$PWD\api\secrets\llm_config_secret", "<fernet-key>")
-```
-
-Fernet-master-key: `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`.
-
-### 2. `.env` aanmaken
-
-Kopieer `.env.example` naar `.env` en vul in (Azure AI Foundry-config voor de verbindingstest/seed):
-
-```
-LLM_PROVIDER=azure_ai
-LLM_MODEL=claude-sonnet-4-6
-LLM_API_BASE=https://<resource-naam>.services.ai.azure.com   # geen /models achteraan
-LLM_API_KEY_FILE=secrets/llm_api_key
-WETSANALYSE_API_TOKENS_FILE=secrets/api_tokens
-WETSANALYSE_ADMIN_TOKENS=admin:<zelfgekozen-admin-token>
-LLM_CONFIG_SECRET=<fernet-key>   # nodig om API-keys via de admin-UI op te slaan
-```
-
-### 3. Server starten
+## Commando's
 
 ```bash
 cd api
 uv sync --extra llm --extra dev
-uv run --env-file .env uvicorn app.main:app --reload --port 3000
+uv run --env-file .env uvicorn app.main:app --reload --port 3000   # --env-file is verplicht
+uv run pytest -q                                                    # fakes, in-memory SQLite
 ```
 
-`uv run` laadt `.env` **niet** automatisch – de `--env-file .env` vlag is verplicht.
-Swagger: `http://localhost:3000/docs` · health: `/health` · ready: `/ready`
+Pre-commit: `uv run --extra dev --extra llm --extra otel --locked pytest -q` – dat draait CI
+(`api-docker-publish.yml`) vóór de build.
 
-Lokaal heb je ook een **PostgreSQL** nodig (de opslag). Snel:
-`docker run -d -p 5432:5432 -e POSTGRES_USER=wetsanalyse -e POSTGRES_PASSWORD=wetsanalyse -e POSTGRES_DB=wetsanalyse postgres:16`
-en zet `DATABASE_URL=postgresql+asyncpg://wetsanalyse:wetsanalyse@localhost:5432/wetsanalyse`. De
-tabellen worden bij de start aangemaakt (`db.create_all` in de lifespan).
+Twee testsets draaien alleen met een echte database: `test_annotatie_v2_postgres.py` en
+`test_projector_v2_integration.py` vragen `ANNOTATIE_TEST_DSN` (asyncpg-URL; elke test krijgt een
+eigen schema), de laatste ook `ANNOTATIE_TEST_GRAPHDB_URL`. Raak je het schrijfslot, de revisies of
+de projectie, draai ze dan: SQLite kent de rij-locks en de transactie-abort van Postgres niet.
 
-### 4. Testen
+Image bouwen vanaf de **projectroot** (het image neemt `packages/bronmodel` mee):
+`docker build -f api/Dockerfile -t wetsanalyse-api .`
 
-```bash
-uv run pytest -q               # unit-tests (fakes; geen netwerk)
-```
+## Uitrol
 
-## Deployment
+De API draait als container app `<appName>-api` (`deploy/azure/main.bicep`), `maxReplicas: 3`,
+non-root. Postgres is een eigen dienst (Azure PostgreSQL Flexible Server), zodat een
+image-redeploy de database nooit raakt; bij een cold start overbrugt `_init_db_met_retry` de
+wachttijd (`WETSANALYSE_DB_CONNECT_RETRIES`/`_BACKOFF`). `GRAPHDB_URL` wijst naar de interne GraphDB
+van dezelfde straat. De verwerking is stateless per request, dus horizontaal schalen is veilig:
+de v2-schrijfacties serialiseren op de database, niet in het proces.
 
-**Postgres draait als eigen dienst** (Azure PostgreSQL Flexible Server, `deploy/azure/main.bicep`),
-niet in de api-container – zo raakt een image-redeploy de database nooit. De API verbindt met een
-**bounded connect-retry** bij cold start (`main.py` → `_init_db_met_retry`, knoppen
-`WETSANALYSE_DB_CONNECT_RETRIES`/`_BACKOFF`). De host-secrets (incl.
-De databaseverbinding komt als secret uit de bicep (`database-url`).
+**Ingress per straat** (`apiExtern`, default `false`):
 
-Op Azure draait de API als container app; de frontend praat er server→server mee. De ingress
-verschilt **per straat** (`apiExtern` in `deploy/azure/main.bicep`, default `false`):
+- **productie** – intern, alleen bereikbaar binnen de container-apps-omgeving.
+- **acceptatie** – publiek (`--api-extern` in `azure-infra.yml`), zodat de admin-MCP bij
+  `/v1/admin/*` kan.
 
-- **productie** — intern, alleen bereikbaar vanuit de container-apps-omgeving.
-- **acceptatie** — publiek, zodat de admin-MCP (`tools/wetsanalyse-admin-mcp/`) bij `/v1/admin/*` kan.
-
-> Die ingress zit **vóór de hele app**, niet alleen voor `/v1/admin`. Publiek betekent dus ook
-> `/v1/annotatie`, `/v1/gesprekken` en `/v1/auth`, en daarmee verschuift een vertrouwensgrens: de
-> identiteit komt uit de header **`X-User-Id`** omdat die "nooit uit browser-input komt" — de BFF
-> zet hem server-side. Publiek houdt die aanname geen stand; wie een client-token heeft, kiest zijn
-> eigen `X-User-Id`. Op acceptatie is dat een bewuste afweging (daar staan geen reviewbeslissingen
-> van juristen); op productie niet, en een guard in `poort` bewaakt dat de default `false` blijft en
-> dat `--api-extern` alleen achter de acceptatie-conditie staat.
+> De ingress zit vóór de hele app. Publiek betekent ook `/v1/annotatie`, `/v1/gesprekken`,
+> `/v1/auth`, `/v1/berichten` en `/v1/feedback`, en daarmee valt de aanname onder `X-User-Id` weg:
+> wie een client-token heeft, kiest zijn eigen identiteit. Op acceptatie is dat een bewuste
+> afweging (proefdata); op productie niet. Een guard in `poort.yml` bewaakt dat de default `false`
+> blijft en dat `--api-extern` alleen achter de acceptatie-conditie staat.
 >
-> Let op wat er nog meer verandert: `apiInternalUrl` is afgeleid van `ingress.fqdn`, en die wordt bij
-> een publieke ingress `<app>.<domein>` in plaats van `<app>.internal.<domein>`. Frontend en graph-qa
-> pakken dat automatisch op, maar hun verkeer loopt dan via het publieke endpoint. Zou dit ooit naar
-> productie gaan, laat die twee dan eerst op de app-naam praten in plaats van op de FQDN.
+> `apiInternalUrl` is afgeleid van `ingress.fqdn`, en die wordt bij een publieke ingress
+> `<app>.<domein>` in plaats van `<app>.internal.<domein>`. Frontend en graph-qa lopen dan via het
+> publieke endpoint. Moet dit ooit naar productie, laat die twee dan eerst op de app-naam praten.
 
-De dienst is
-**horizontaal veilig** te schalen (stateless request-afhandeling; de opslag is de gedeelde DB). De
-containers draaien **non-root** en **PostgreSQL draait met authenticatie**. Alle secrets staan als
-bestanden op de host (`*_FILE`-patroon). Build vanaf de **projectroot**:
-`docker build -f api/Dockerfile -t wetsanalyse-api .`.
+**Secrets.** De bicep zet ze als container-app-secrets en mount ze als bestanden onder
+`/run/secrets/` (`llm_api_key`, `llm_config_secret`, `api_tokens`, `admin_tokens`, `database_url`).
+`azure-infra.yml` roteert ze niet: GitHub environment-secret (`WA_*`) → wat er in Azure draait →
+anders vers genereren. `llm-config-secret` is de Fernet-sleutel voor de API-keys van modelprofielen
+én de 2FA-secrets; genereer je hem opnieuw, dan zijn alle opgeslagen keys en 2FA-inschrijvingen
+onleesbaar. De job faalt bij een ontbrekend secret en wacht na het uitrollen tot elke app een gezonde
+revisie draait.
 
-### Secrets
+Troubleshooting van de uitrol staat in [`README.md`](README.md#troubleshooting).
 
-Op Azure beheert de bicep ze: elke waarde staat als container-app-secret en wordt als `*_FILE`-pad of
-env aan de container gegeven. `azure-infra.yml` **roteert ze niet** bij een deploy – de volgorde is
-GitHub environment-secret (`WA_*`) → wat er al in Azure draait → anders vers genereren. Dat is geen
-netheid maar noodzaak: `llm-config-secret` is de Fernet-sleutel waarmee de API de API-keys van
-modelprofielen én de 2FA-secrets van gebruikers versleutelt. Genereer je die opnieuw, dan zijn alle
-opgeslagen keys en 2FA-inschrijvingen onleesbaar.
+## Misbruik- en kostenbeheersing
 
-Die job **faalt** bewust bij een ontbrekend secret (dat was eerder een `if` die de stap oversloeg en
-de run groen liet), en hij **wacht tot de nieuwe revisie draait** – `az containerapp update` keert al
-terug zodra de revisie is aangemaakt, dus een crashende container bleef anders onopgemerkt.
+Knoppen via env (0 = uit; defaults in de README): `WETSANALYSE_RATE_LIMIT_MAX`/`_WINDOW` (per
+client → 429), `WETSANALYSE_ADMIN_TEST_RATE_MAX`/`_WINDOW` (krappe limiet op de verbindingstest, die
+een betaalde LLM-call doet achter alleen het admin-token), `WETSANALYSE_LLM_MAX_CONCURRENCY` en
+`WETSANALYSE_LLM_TIMEOUT_S`. De testfout is gesaniteerd: een vaste melding in de respons, de ruwe
+providerfout alleen in het serverlog. De rate-limiter is begrensd (sweep + harde cap van 10.000
+sleutels, fail-closed), zodat aanvaller-gekozen sleutels via de publieke login-route het geheugen
+niet vullen. `POST /v1/auth/registratie` heeft een eigen rate limit.
 
-Lokaal draaien vraagt geen van deze secrets: zie §*Lokale smoke-test* – sqlite-override plus
-`--extra llm`.
+## Nog niet gebouwd
 
-### Troubleshooting deploy
-
-- **API-log: kan niet verbinden met de database / `OperationalError`** – controleer de
-  `database-url`-secret op de container app en of de PostgreSQL-firewall de container-apps-omgeving
-  toelaat.
-- **Revisie komt niet op** – `az containerapp revision list` toont de status; de logs staan in de Log
-  Analytics-workspace `log-<appName>`.
-
-## Misbruik-/kostenbeheersing
-
-Knoppen via env (0 = uit): `WETSANALYSE_RATE_LIMIT_MAX`/`_WINDOW` (per-client request-rate → 429),
-`WETSANALYSE_ADMIN_TEST_RATE_MAX`/`_WINDOW` (aparte, krappe limiet op
-`POST /v1/admin/profiles/{name}/test` → 429; die doet een betaalde LLM-call achter alleen het
-admin-token – de testfout is gesaniteerd: een vaste melding in de respons, de ruwe provider-fout alleen
-in het server-log), `WETSANALYSE_LLM_MAX_CONCURRENCY` (globaal plafond op gelijktijdige LLM-calls) en
-`WETSANALYSE_LLM_TIMEOUT_S` (harde wandklok-timeout per LLM-call). De in-process rate-limiter is
-begrensd (sweep + harde cap op het aantal sleutels, fail-closed) zodat aanvaller-gekozen sleutels via
-de publieke login-route het geheugen niet vol pompen.
-
-## Roadmap (nog niet gebouwd)
-
-- **Externe IdP/OIDC.** De API is nu zelf de identiteitsbron (userid + wachtwoord, optioneel TOTP);
-  federatie met een externe IdP is nog niet gebouwd.
-- **Herbouw van de bredere agentische analyse-flow.** De agentische **act-2-annotatie draait al** in
-  graph-qa (de annotatie-worker: ophaal → annoteer → Critic → advance). Rest: **begrippen (activiteit
-  3)** en de **RegelSpraak-formalisering** – eerder uit de engine/webapp/skill verwijderd om later op
-  agentische basis te herbouwen (buiten deze API).
+- **Externe IdP/OIDC.** De API is zelf de identiteitsbron.
+- **Begrippen (activiteit 3) en RegelSpraak-formalisering.** Die komen later, op agentische basis en
+  buiten deze API.

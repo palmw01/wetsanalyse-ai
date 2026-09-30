@@ -16,8 +16,9 @@ beoordeling, geen bewijs van 10/10-prestaties.
 
 De laatste twee families mogen niet in prompts of few-shotvoorbeelden worden geladen.
 De familie-split beperkt voorbeeldlekkage; hij maakt een generiek, mogelijk al voorgetraind
-model niet blind voor de wetgeving. Vier ontwikkelgevallen zijn gebruikt voor een beperkte directe promptvergelijking;
-zie het evaluatierapport. Een volledige juridische kwaliteitsmeting ontbreekt nog.
+model niet blind voor de wetgeving. Een volledige juridische kwaliteitsmeting ontbreekt nog; welke
+meting welke versie van de set gebruikte, staat in het
+[meetlogboek](../../architectuur/metingen/README.md).
 
 Een uitgebreider voorbeeld in dossieropmaak staat in
 [het dossier over rood voetgangerslicht](voorbeeld-dossier-rvv74.md).
@@ -38,6 +39,8 @@ cd tools/graph-qa
 uv run python -m eval.referentieset --check       # schema + manifest
 uv run python -m eval.referentieset --bijwerken   # hash herberekenen na een bewuste wijziging
 uv run python -m eval.referentieset --dekking     # welke klassen/constructies ontbreken nog (§10.3)
+uv run python -m eval.referentieset --bevries <datum> --protocol <versie>   # een versie bevriezen
+uv run python -m eval.referentieset --versie v1 --nieuw v2                  # volgende versie aanmaken
 ```
 
 Drie regels:
@@ -48,16 +51,16 @@ Drie regels:
   adjudicatiebesluit. En alleen in een bevroren versie (`bevroren_op` in het manifest).
 - **Een bevroren versie verandert niet.** Een fout in gold wordt `v<N+1>` met `voorganger` en een
   changelog per gid; een stille correctie laat de hash afwijken en de test falen.
-- **Niet beoordeeld is leeg.** `v1` is de migratie van de ongeversioneerde `cases.json` (stand
-  25 sep 2026) zonder inhoudelijke wijziging. Alle casussen staan op `provisional`, en
-  `source_status`, `constructies`, negatieve elementen en de adjudicatievelden zijn leeg: invullen
-  hoort bij de beoordeling, niet bij de migratie.
-**Correctie 25 sep 2026:** bij RVV01 (E01), RVV02 (E04) en RVV03 (E05) wees de offset van
-"voetgangers" naar het begin van het woord "voetgangerslichten". Het fragment klopte, de plek niet.
-De offsets wijzen nu naar het zelfstandige woord in de norm. Een test in graph-qa eist sindsdien dat
-elke markering letterlijk is en op woordgrenzen ligt. Metingen van vóór die datum rekenden beide
-routes op deze drie markeringen onterecht af.
-De leesbare dossiers zijn gegenereerd uit dat bestand:
+- **Niet beoordeeld is leeg.** In `v1` staan alle casussen op `provisional`, en `source_status`,
+  `constructies`, negatieve elementen en de adjudicatievelden zijn leeg: invullen hoort bij de
+  beoordeling, niet bij het overzetten van de concepten.
+
+Elke markering moet letterlijk in de analysetekst staan én op woordgrenzen liggen
+(`tools/graph-qa/tests/test_referentieset.py`). Een offset die het juiste fragment aanwijst binnen
+een langer woord ("voetgangers" in "voetgangerslichten") telt anders als treffer op de verkeerde
+plek, en rekent een goede modeluitkomst af.
+
+De leesbare dossiers zijn gegenereerd uit `v1/cases.json`:
 
 ```bash
 python3 tools/graph-qa/scripts/render_jas_referentieset.py
@@ -75,8 +78,8 @@ tekst vandaag toepasselijk is. Actualiteit is een afzonderlijk onderzoeks- en re
 
 Hoe een casus `adjudicated` wordt, staat in het [adjudicatieprotocol](adjudicatieprotocol.md): blind
 annoteren met een formulier dat alleen de bron toont, automatisch vergelijken op positie (met κ),
-adjudiceren per verschil en daarna bevriezen. De aanwijzingen hieronder horen bij de
-conceptbespreking van vóór het protocol.
+adjudiceren per verschil en daarna bevriezen. De aanwijzingen hieronder gelden voor de
+conceptbespreking die daaraan voorafgaat.
 
 Begin met IW01, AWB04 en RVV03: ze maken fragmentgrenzen, berekeningen en negaties direct
 bespreekbaar. De reviewer maakt eerst een eigen duiding vanuit het bronpakket; daarna
@@ -89,12 +92,11 @@ vergelijken we het concept. Registreer per casus:
 
 Breid de conceptmarkeringen uit tot volledige beoordeelde annotaties voordat een casus
 voor precision/recall wordt gebruikt. De bestaande `golden_annotatie.jsonl` blijft een
-conceptankerset, niet deze nieuwe referentieset. De evidente losse werkwoordankers
-zijn op 12 september 2026 vervangen door betekenisdragende fragmenten; oude versies
-blijven via Git beschikbaar. Vergelijk scores niet rechtstreeks
+conceptankerset, niet deze referentieset. Markeringen zijn betekenisdragende fragmenten, geen
+losse werkwoordankers. Vergelijk scores niet rechtstreeks
 als de referentiegrenzen veranderen; herscore beide modeluitkomsten tegen dezelfde set.
 
 De matrix bestrijkt veel taalverschijnselen, maar nog geen volwaardig overgangsrechtgeval.
-Dat blijft een expliciete dekkingslacune vóór algemene claims over temporele kwaliteit.
+Dat is een expliciete dekkingslacune: doe geen algemene claims over temporele kwaliteit.
 Voor modelvergelijking: zelfde bronpakketten/modelinstellingen, drie herhalingen per geval,
 voorspellingen opslaan, kritieke fouten en menselijke reviewlast apart rapporteren.

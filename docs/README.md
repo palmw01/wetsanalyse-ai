@@ -41,12 +41,18 @@ Wil je het gedrag van de annotator bijsturen, bewerk dan de skill.
 
 Het boek (Boom uitgevers) en de readers van het Expertisecentrum BRM ("bestemd voor gebruik binnen
 de Belastingdienst") horen niet in deze publieke repo. Ze staan in `.gitignore`, op de **vorm** van
-het bestand en niet op één map — dat is twee keer misgegaan met een te specifiek pad. Alle PDF's
-onder `docs/` zijn daarom standaard genegeerd. Controleer na een wijziging aan die regels altijd
-met `git check-ignore -v <pad>`.
+het bestand en niet op één map (`docs/**/*.pdf`, `docs/**/*.pages.md`, `docs/**/wetsanalyse-boek.md`):
+een regel op één pad laat een kopie op een andere plek door. Alle PDF's onder `docs/` zijn daarom
+standaard genegeerd, ook die in `kennisbank/` en `regelspraak/`. Controleer na een wijziging aan die
+regels altijd met `git check-ignore -v <pad>`.
 
 Heb je dat materiaal rechtmatig, dan werkt het gewoon lokaal. De kennis eruit mag in de skill
 landen; de tekst niet.
+
+**`wetsanalyse/bronnen/`** — het [manifest](wetsanalyse/bronnen/manifest.json) van de lokaal
+bewaarde originelen (bron-ID, herkomst, versie, SHA-256) waarnaar de skill verwijst via
+`references/bronnen.md`. Alleen de README en het manifest staan in git; de PDF's en HTML-bestanden
+zelf zijn lokaal.
 
 ## Per doel één ingang
 
@@ -66,22 +72,23 @@ Toelichting bij enkele documenten:
 - **`PLAN.md`** is het enige plan. Wat af is gaat eruit; ontwerpbesluiten horen in een ADR of
   specificatie.
 - **`architectuur/annotatieketen.md`** beschrijft de stappen, de configuratie, het beslisbeleid,
-  de detectoren en de bekende beperkingen van `hybrid_v1`. Het vervangt de losse
-  `hybrid-v1-*`-documenten van 27–29 september; die staan in de git-geschiedenis.
+  de detectoren en de bekende beperkingen van `hybrid_v1`, de enige annotatieketen.
 - **`wetsanalyse-workbench/jas-annotatie-ontologie.md`** beschrijft de RDF-projectie van de
   annotatielagen (`api/app/graaf_projectie_v2.py`): één laag per bronnode, in
   `urn:jas:graph:v2:<laag-id>`. De api is de waarheid over lifecycle, beslissingen en dekking; de
-  graaf is een projectie. `jas-ontologie.ttl` en `api/app/jas_ontologie.py` horen bij het oudere
-  v1-pad (laag per artikel) en blijven als historie staan.
-- **ADR-001** is uitgevoerd t/m PR 18 (25 sep 2026). De opdracht erachter
-  (`opdracht-jas-annotatiepijplijn.md`) staat alleen nog in de git-geschiedenis.
+  graaf is een projectie. `jas-ontologie.ttl`, `api/app/jas_ontologie.py` en
+  `api/app/graaf_projectie.py` horen bij contract 1 (laag per artikel), dat alleen actief is met
+  `ANNOTATIE_CONTRACT_VERSIE=1`.
+- **ADR-001** is uitgevoerd: de hybride keten is de enige annotatieroute. **ADR-002** legt de
+  taalprovider vast (spaCy, `nl_core_news_md`).
 - **`onderzoek-empirische-validatie.md`** bevat de fouttaxonomie v2, de metrics, het
   adjudicatieprotocol en de stopcriteria (§18). V1–V6 zijn uitgevoerd, V7 is open.
 - **`architectuur/metingen/`** is bewijs: meetbestanden worden niet achteraf gewijzigd. Het
   onderzoek naar invordering staat in `wetsanalyse/onderzoek-invordering-2026-09-29/`, omdat
   code en meethashes dat pad gebruiken.
 - **`wetsanalyse/referentieset/*.md`** zijn gegenereerd uit `v1/cases.json`
-  (`render_jas_referentieset.py --check`). Bewerk de JSON, niet de Markdown.
+  (`tools/graph-qa/scripts/render_jas_referentieset.py`, met `--check` als controle). Bewerk de
+  JSON, niet de Markdown.
 
 ## Runbook
 
