@@ -280,7 +280,11 @@ gemeten (4 sep 2026), niet uit de code afgeleid.
 - `grounding.check_grounding` past diezelfde herkenning toe op het **antwoord** en markeert citaten
   waarvan het BWB-id niet in de trace voorkomt. Deterministisch, op BWB-granulariteit (geen vals alarm
   op jci-formattering of geparafraseerde IRI's). `curate_sources` snoeit de lijst tot aangehaalde
-  regelingen.
+  regelingen, en binnen een regeling waarvan het antwoord een precieze vindplaats citeert (jci of
+  graaf-IRI met artikel/lid/onderdeel) tot bronnen op het pad van die vindplaats. Een definitievraag
+  haalt art. 2 lid 1 op met al zijn onderdelen; zonder die tweede stap stonden er 28 bronnen onder een
+  antwoord over onderdeel k. Omhulsels (`hoofdstuk`, `afdeling` …) en datums tellen niet mee in het
+  pad: een jci draagt ze vaak wel, de graaf-IRI niet.
 - **Twee controles, drie uitkomsten.** Naast de vindplaatsen toetst hij ook de **citaten**: tekst die
   het antwoord tussen aanhalingstekens zet, moet letterlijk (witruimte-ongevoelig) in de trace staan —
   dezelfde eis als `annotatie.komt_letterlijk_voor` stelt aan een markering. Korte quotes (< 5
@@ -493,7 +497,10 @@ en die controle mag niet te omzeilen zijn. De actor is de rungebruiker; een CLI/
 `ANNOTATIE_READ_USER_ID` uit vertrouwde configuratie zetten, want een toolargument mag nooit bepalen
 namens wie er gelezen wordt. Elke aanroep levert `tool_execution`-events (start en einde, met
 filters, status, aantal en duur) — dat is het spoor dat de werkplek toont, geen weergave van
-modelgedachten.
+modelgedachten. **Start en einde zijn één aanroep:** `BeurtSchrijver` bewaart ze samengevoegd op
+`(run_id, call_id)`, met dezelfde regel als `mergeToolExecution` in de werkplek. Los bewaard telde
+de werkplek na herladen "10 aanroepen" voor vijf. En `aantal` staat er alleen als het antwoord een
+lijst of element dráágt: de dekking toonde anders altijd "0 resultaten".
 
 ### De annotatie-keten
 
@@ -512,7 +519,11 @@ ophaal (agent ⇄ tools) → annoteer → emit → advance
    de beurt vóór de eerste modelcall. Een onleesbare dekking stopt de beurt ook – een api-storing is
    geen bewijs dat annotaties ontbreken. `hergebruik: "opnieuw"` annoteert alles opnieuw.
 3. **Analyse** (`jas_pipeline.keten.analyseer`, zie hierboven). De hele bepaling is context; alleen
-   de niet-hergebruikte nodes leveren kandidaten.
+   de niet-hergebruikte nodes leveren kandidaten. De classificatiebatches gaan **tegelijk** naar het
+   model (`CLASSIFIER_PARALLEL`, default 4; `_classificeer_batches`): elke batch met een eigen
+   meting, de beslissingen in batchvolgorde terug, dus dezelfde uitkomst als na elkaar. `make_settings`
+   in de tests staat op 1, omdat de gescripte `FakeLLM` op volgorde antwoordt. Het spaCy-model laadt
+   bij het opstarten op een achtergrondthread (`api/main.py`), met een lock in `SpacyProvider._laad`.
 
 **Volledig hergebruik** → geen modelcall; `emit` stuurt een `hergebruik`-event, een `run` met
 `modus="hergebruik"` en een samenvatting, en de driver legt de lege batch vast. **Een afgeronde laag**

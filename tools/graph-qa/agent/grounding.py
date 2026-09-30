@@ -112,12 +112,49 @@ def check_grounding(answer_text: str, source_trace: list[tuple[str, str]]) -> Gr
     )
 
 
-def curate_sources(sources: list[Source], answer_text: str) -> list[Source]:
-    """Beperk de bronnenlijst tot regelingen (BWB-id's) die in het antwoord genoemd zijn.
+# Sleutels die een plek in de structuur aanduiden maar niet de bepaling zelf: een jci draagt vaak
+# `hoofdstuk=I` terwijl de graaf-IRI van hetzelfde lid dat niet doet. Datumsleutels (`g`, `z`)
+# zeggen iets over de versie, niet over de plek.
+_OMHULSEL = frozenset({"hoofdstuk", "afdeling", "paragraaf", "subparagraaf", "titeldeel", "titel",
+                       "boek", "deel", "g", "z"})
+_JCI_DELEN = re.compile(r"jci[\d.]+:c:(BWB[RV]\d+)(.*)$", re.I)
 
-    Coarse op BWB-id zodat alle relevante artikel-/lid-IRI's van een besproken regeling
-    behouden blijven, terwijl opgehaalde-maar-onbesproken regelingen wegvallen. Valt terug
-    op de volledige lijst als het antwoord geen enkel BWB-id noemt (dan niets weggooien).
+
+def _locatie(uri: str) -> tuple[str, tuple[tuple[str, str], ...]] | None:
+    """(BWB-id, pad) van een vindplaats: het pad is de reeks sleutel/waarde-paren zonder omhulsel
+    (`artikel`, `lid`, `o` …). Graaf-IRI en jci leveren voor dezelfde bepaling hetzelfde pad."""
+    u = uri.strip()
+    if u.startswith("urn:bwb:"):
+        bwb, *rest = u[len("urn:bwb:"):].split(":")
+        if len(rest) % 2:
+            return None
+        paren = list(zip(rest[::2], rest[1::2]))
+    elif m := _JCI_DELEN.search(u):
+        bwb = m.group(1).upper()
+        paren = [tuple(d.split("=", 1)) for d in m.group(2).split("&") if "=" in d]
+    else:
+        return None
+    return bwb, tuple((k.lower(), v) for k, v in paren if k.lower() not in _OMHULSEL)
+
+
+def _op_pad(a: tuple[tuple[str, str], ...], b: tuple[tuple[str, str], ...]) -> bool:
+    """Ligt de ene vindplaats boven of onder de andere (of zijn ze gelijk)?"""
+    kort, lang = (a, b) if len(a) <= len(b) else (b, a)
+    return lang[: len(kort)] == kort
+
+
+def curate_sources(sources: list[Source], answer_text: str) -> list[Source]:
+    """Beperk de bronnenlijst tot wat het antwoord aanhaalt.
+
+    Eerst op regeling: opgehaalde-maar-onbesproken regelingen (BWB-id's die het antwoord niet
+    noemt) vallen weg. Dan, binnen een regeling waarvan het antwoord een precieze vindplaats
+    citeert (een jci of graaf-IRI met artikel/lid/onderdeel), op pad: alleen bronnen die boven of
+    onder een geciteerde vindplaats liggen blijven staan. Een definitievraag haalt art. 2 lid 1 op
+    met al zijn onderdelen a–z; de lijst toonde dan 28 bronnen voor een antwoord over onderdeel k.
+
+    Noemt het antwoord een regeling alleen met haar BWB-id, dan blijven al haar bronnen staan, zoals
+    voorheen. Valt terug op de volledige lijst als het antwoord geen BWB-id noemt (dan niets
+    weggooien), en op de regelingsfilter als de padfilter niets overlaat.
     """
     bwbs = set(_BWB_RE.findall(answer_text))
     if not bwbs:
@@ -125,4 +162,21 @@ def curate_sources(sources: list[Source], answer_text: str) -> list[Source]:
     # Exacte BWB-id-match (woordgrens) i.p.v. substring, zodat een genoemde prefix-id geen bron van
     # een langere regeling meesleept.
     kept = [s for s in sources if (m := _BWB_RE.search(s.uri)) and m.group(0) in bwbs]
-    return kept or sources
+    if not kept:
+        return sources
+    geciteerd: dict[str, list[tuple[tuple[str, str], ...]]] = {}
+    for c in citations_in(answer_text):
+        loc = _locatie(c)
+        if loc and loc[1]:
+            geciteerd.setdefault(loc[0], []).append(loc[1])
+    if not geciteerd:
+        return kept
+
+    def blijft(s: Source) -> bool:
+        loc = _locatie(s.uri)
+        if loc is None or loc[0] not in geciteerd:
+            return True
+        return any(_op_pad(loc[1], pad) for pad in geciteerd[loc[0]])
+
+    fijn = [s for s in kept if blijft(s)]
+    return fijn or kept

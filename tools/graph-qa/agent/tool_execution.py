@@ -43,7 +43,10 @@ def execute_tool(b, state, writer, tool, *, operation=None):
         status = data.get("status", "error" if raw.startswith("Fout bij tool") else "ok")
         results = data.get("resultaten") or ([] if not data.get("element") else [data["element"]])
         writer({**event, "phase": "end", "status": status,
-                "aantal": len(results) if name in ANNOTATIE_TOOL_NAMEN and status in ("ok", "partial") else None,
+                # Alleen een antwoord dat een lijst of een element dráágt heeft een aantal. De dekking
+                # heeft geen van beide, en toonde daardoor altijd "0 resultaten".
+                "aantal": len(results) if (name in ANNOTATIE_TOOL_NAMEN and status in ("ok", "partial")
+                                           and ("resultaten" in data or "element" in data)) else None,
                 "has_more": data.get("has_more", bool(data.get("cursor") or data.get("volgende_offset"))) if status in ("ok", "partial") else None,
                 "duur_ms": round((monotonic() - start) * 1000),
                 "actualiteit": {k: data[k] for k in ("snapshot_id", "peilmoment", "volledig") if k in data},

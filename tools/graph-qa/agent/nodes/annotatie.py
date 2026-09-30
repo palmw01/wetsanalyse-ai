@@ -210,6 +210,7 @@ def _instellingen(b: Bouw, state: State) -> dict[str, Any]:
     s = b.settings
     return {"taal_provider": s.taal_provider, "classifier_granulariteit": s.classifier_granulariteit,
             "classifier_temperature": s.classifier_temperature, "classifier_spankeuze": s.classifier_spankeuze,
+            "classifier_parallel": s.classifier_parallel,
             "deterministisch_accepteren": s.deterministisch_accepteren, "gerichte_review": s.gerichte_review,
             "meting": (state.get("analyse") or {}).get("meting", {})}
 

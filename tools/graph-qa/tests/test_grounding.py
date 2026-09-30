@@ -196,3 +196,31 @@ def test_melding_noemt_beide_soorten_als_ze_er_allebei_zijn():
     bron = f"<{IW}> bwb:tekst 'De ontvanger verleent uitstel van betaling.' ."
     melding = _grounding_melding(check_grounding(answer, _trace(bron)))
     assert "verwijzing" in melding and "1 citaat" in melding and "gecontroleerd" in melding
+
+
+def test_curate_houdt_binnen_een_regeling_alleen_het_pad_van_de_geciteerde_vindplaats():
+    """Een definitievraag haalt art. 2 lid 1 op met alle onderdelen; het antwoord gaat over k."""
+    art = "urn:bwb:BWBR0004770:artikel:2"
+    lid = f"{art}:lid:1"
+    onderdelen = [f"{lid}:o:{c}" for c in "abcdefghijklmnopqrstuvwxyz"]
+    sources = [Source(label=u, uri=u) for u in ["BWBR0004770", art, lid, *onderdelen, LEIDRAAD]]
+    antwoord = ("Het begrip is gedefinieerd in artikel 2 lid 1 onderdeel k. "
+                "Vindplaats: jci1.3:c:BWBR0004770&hoofdstuk=I&artikel=2&lid=1&o=k")
+    kept = [s.uri for s in curate_sources(sources, antwoord)]
+    assert kept == ["BWBR0004770", art, lid, f"{lid}:o:k"]
+
+
+def test_curate_zonder_precieze_vindplaats_houdt_de_hele_regeling():
+    lid = "urn:bwb:BWBR0004770:artikel:2:lid:1"
+    sources = [Source(label=u, uri=u) for u in [lid, f"{lid}:o:a", f"{lid}:o:k"]]
+    kept = curate_sources(sources, "Zie de Invorderingswet 1990 (BWBR0004770).")
+    assert [s.uri for s in kept] == [s.uri for s in sources]
+
+
+def test_curate_snoeit_alleen_binnen_de_regeling_met_een_precieze_vindplaats():
+    iw_k = "urn:bwb:BWBR0004770:artikel:2:lid:1:o:k"
+    iw_a = "urn:bwb:BWBR0004770:artikel:2:lid:1:o:a"
+    awr = "urn:bwb:BWBR0002320:artikel:1"
+    sources = [Source(label=u, uri=u) for u in [iw_k, iw_a, awr]]
+    antwoord = "Zie jci1.3:c:BWBR0004770&artikel=2&lid=1&o=k en de AWR (BWBR0002320)."
+    assert [s.uri for s in curate_sources(sources, antwoord)] == [iw_k, awr]
