@@ -1,30 +1,14 @@
 /** @type {import('next').NextConfig} */
 
 // Conservatieve security-headers op alle routes. HSTS bewust NIET hier: TLS wordt door NPM
-// getermineerd, dat zet Strict-Transport-Security. De CSP staat inline scripts/styles toe
-// omdat Next.js (App Router) en Tailwind die nodig hebben; fonts worden via next/font lokaal
-// geserveerd ('self'). SSE en /api lopen same-origin, dus connect-src 'self' volstaat.
+// getermineerd, dat zet Strict-Transport-Security.
 //
-// BEKENDE AFWEGING: `script-src 'unsafe-inline'` verzwakt de XSS-mitigatie van de CSP. Dit is een
-// bewuste keuze (Next.js injecteert inline hydration-scripts). De hardening-route is een
-// nonce-gebaseerde CSP (nonce per request via de middleware, doorgegeven aan Next); dat is een
-// aparte, grotere wijziging en staat als toekomstwerk genoteerd. Overige lagen (React-escaping,
-// href-schema-guards in lib/url.ts, X-Content-Type-Options, frame-ancestors 'none') blijven de
-// eerste verdediging.
-const csp = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data:",
-  "font-src 'self'",
-  "connect-src 'self'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-].join("; ");
-
+// De Content-Security-Policy staat hier NIET meer. Die zet `proxy.ts` per request, met een nonce
+// (`lib/csp.ts`), zodat `script-src` geen `'unsafe-inline'` meer nodig heeft voor de inline
+// hydration-scripts van Next. Stond hij hier óók, dan golden beide headers tegelijk – en liet de
+// statische versie inline scripts gewoon weer toe. Statische bestanden (buiten de matcher van de
+// proxy) krijgen dus geen CSP; die renderen ook niets.
 const securityHeaders = [
-  { key: "Content-Security-Policy", value: csp },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },

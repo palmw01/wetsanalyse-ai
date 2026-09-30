@@ -921,6 +921,18 @@ tokens/secrets/inhoud loggen. In de vitest-node-omgeving wordt `server-only` ges
   `app/globals.css` + `tailwind.config.ts` (en `lib/jas.ts` voor de JAS-badges) – strooi
   geen losse hex-waarden door componenten. Het officiële logo-asset (`public/belastingdienst-logo.svg`)
   blijft ongewijzigd; de JAS-klassekleuren komen exact uit `docs/wetsanalyse/wa-table.png`.
+- **CSP met een nonce per request, geen inline scripts.** `proxy.ts` zet de
+  Content-Security-Policy (`lib/csp.ts`): `script-src 'self' 'nonce-…' 'strict-dynamic'`, zonder
+  `'unsafe-inline'`. Next zet het nonce tijdens de server-render zelf op zijn scripts; lui geladen
+  chunks (`next/dynamic`, three.js) mogen via `'strict-dynamic'`. Twee gevolgen:
+  - **Geen eigen inline `<script>` en geen `next/script` met inline code.** Die krijgt geen nonce en
+    wordt in productie stil geblokkeerd. Heb je er toch een nodig, lees dan het nonce met
+    `(await headers()).get("x-nonce")` in een Server Component en geef het mee.
+  - **Elke pagina rendert dynamisch** (dat was al zo, want `app/layout.tsx` roept `auth()` aan). Een
+    statisch gegenereerde pagina kan geen nonce krijgen.
+  `style-src` houdt `'unsafe-inline'`, omdat de server-render `style="…"`-attributen meegeeft, en een
+  nonce geldt niet voor attributen. De CSP staat daarom niet meer in `next.config.mjs`: twee
+  CSP-headers gelden allebei, en de oude liet inline scripts weer toe.
 
 ## Commando's
 
