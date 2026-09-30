@@ -252,7 +252,7 @@ class AnnotatieVoorstel(BaseModel):
     anker: Anker | None = None         # exacte positie in het corpus; de keten zet hem naast `ankers`
     ankers: list[dict[str, Any]] = []   # gevalideerde lokale bronankers, ook bij overspannende elementen
     aandacht: str = ""                 # "" | groen | geel | rood – gezet door de resolver (geel = keuze voor de jurist)
-    critic: str = ""                   # uitleg van de gerichte review bij het aandacht-niveau
+    review_uitleg: str = ""            # uitleg van de gerichte review bij het aandacht-niveau
     # JAS-subtype binnen een samengevoegde klasse (variabele/variabelewaarde, parameter/parameterwaarde,
     # delegatiebevoegdheid/delegatie-invulling). Alleen gezet waar het deterministisch vaststaat
     # (`jas_pipeline/subtype.py`); leeg = onbepaald, nooit geraden.

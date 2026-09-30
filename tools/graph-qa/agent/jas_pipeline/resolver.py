@@ -115,18 +115,18 @@ def los_op(voorstellen: list[dict[str, Any]], beslissingen: list[Beslissing], tw
             per_label_b[t.label] = b.model_copy(update={"status": CandidateStatus.REJECTED, "klasse": "", "reden": regel})
         elif uitkomst == "ACCEPT":
             for v in vs:
-                v.update(aandacht="groen", critic="Gerichte review: beide functies blijven.")
+                v.update(aandacht="groen", review_uitleg="Gerichte review: beide functies blijven.")
         elif uitkomst == "CHANGE":
             if vs:
                 v = vs[0]
                 oud = v["klasse"]
-                v.update(klasse=naar, aandacht="groen", critic=f"Gerichte review: {oud} → {naar}.")
+                v.update(klasse=naar, aandacht="groen", review_uitleg=f"Gerichte review: {oud} → {naar}.")
                 _alt(v, [oud], "eerdere keuze van de classifier")
             else:                                        # abstain: de reviewer kiest de eerste klasse
                 nb = b.model_copy(update={"status": CandidateStatus.ACCEPTED, "klasse": naar, "door": "model",
                                           "reden": regel})
                 nv = {**maak_voorstel(k, nb), "_label": t.label, "aandacht": "groen",
-                      "critic": ("Gekozen in de gerichte review na eerdere afwijzing." if t.reden == "CENTRALE_NORM_AFGEWEZEN"
+                      "review_uitleg": ("Gekozen in de gerichte review na eerdere afwijzing." if t.reden == "CENTRALE_NORM_AFGEWEZEN"
                                  else "Gekozen in de gerichte review; de classifier gaf geen beslissing.")}
                 uit.append(nv)
                 per_label_b[t.label] = nb
@@ -141,16 +141,16 @@ def los_op(voorstellen: list[dict[str, Any]], beslissingen: list[Beslissing], tw
                         weg = per_label_b[v["_label"]]
                         per_label_b[v["_label"]] = weg.model_copy(
                             update={"status": CandidateStatus.REJECTED, "reden": regel})
-                houden.update(aandacht="groen", critic=f"Gerichte review: één functie ({naar}).")
+                houden.update(aandacht="groen", review_uitleg=f"Gerichte review: één functie ({naar}).")
         else:                                            # HUMAN
             if vs:
                 for v in vs:
-                    v.update(aandacht="geel", critic=_uitleg(t, regel))
+                    v.update(aandacht="geel", review_uitleg=_uitleg(t, regel))
                     _alt(v, t.alternatieven, "ook mogelijk; kies in de review")
             else:                                        # geen klasse gekozen: leg het voor, met alle opties
                 eerste = k.possible_classes[0]
                 nb = b.model_copy(update={"status": CandidateStatus.HUMAN_REVIEW, "klasse": eerste, "reden": regel})
-                nv = {**maak_voorstel(k, nb), "_label": t.label, "aandacht": "geel", "critic": _uitleg(t, regel)}
+                nv = {**maak_voorstel(k, nb), "_label": t.label, "aandacht": "geel", "review_uitleg": _uitleg(t, regel)}
                 _alt(nv, k.possible_classes, "ook mogelijk; kies in de review")
                 uit.append(nv)
                 per_label_b[t.label] = nb

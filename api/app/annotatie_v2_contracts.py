@@ -36,7 +36,7 @@ class Anker(BaseModel):
 
 
 class Element(BaseModel):
-    # Extra velden (aandacht, critic, geproduceerd_door, …) reizen mee; eigenaar en lifecycle zet de
+    # Extra velden (aandacht, review_uitleg, geproduceerd_door, …) reizen mee; eigenaar en lifecycle zet de
     # server zelf.
     model_config = ConfigDict(extra="allow")
     id: str = Field(default="", max_length=64)

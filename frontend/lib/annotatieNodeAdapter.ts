@@ -134,7 +134,7 @@ export function elementVanNode(el: NodeElement, nb: NodeBron): AnnotatieElement 
     lifecycle: el.lifecycle as Lifecycle,
     alternatieven: el.alternatieven ?? [],
     aandacht: (el.aandacht as AnnotatieElement["aandacht"]) ?? null,
-    critic: el.critic,
+    review_uitleg: el.review_uitleg,
     anker: bereik ? maakAnker(nb.bron, bereik.start, bereik.eind, bereik.lid) : null,
     diff: {},
     beslissingen: el.beslissingen ?? [],

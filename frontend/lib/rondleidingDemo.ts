@@ -65,7 +65,7 @@ interface DemoSpec {
   aandacht: Aandacht;
   toelichting: string;
   alternatief?: { klasse: string; motivatie: string };
-  critic?: string;
+  review_uitleg?: string;
 }
 
 const DEMO_SPECS: DemoSpec[] = [
@@ -80,7 +80,7 @@ const DEMO_SPECS: DemoSpec[] = [
       klasse: "Rechtsfeit",
       motivatie: "Je kunt het invorderbaar wórden ook lezen als de gebeurtenis die de betalingsplicht opeisbaar maakt.",
     },
-    critic: "Werkwoordsvorm duidt op een rechtsbetrekking, maar het tijdsverloop maakt een rechtsfeit verdedigbaar.",
+    review_uitleg: "Werkwoordsvorm duidt op een rechtsbetrekking, maar het tijdsverloop maakt een rechtsfeit verdedigbaar.",
   },
   {
     fragment: "zes weken na de dagtekening van het aanslagbiljet", klasse: "Tijdsaanduiding", lid: "1",
@@ -93,7 +93,7 @@ const DEMO_SPECS: DemoSpec[] = [
       klasse: "Operator",
       motivatie: "De formulering verbindt twee bepalingen; dat kan ook als logische uitzondering worden gelezen.",
     },
-    critic: "Uitzonderingsformule – Voorwaarde of Operator is hier een echte interpretatiekeuze.",
+    review_uitleg: "Uitzonderingsformule – Voorwaarde of Operator is hier een echte interpretatiekeuze.",
   },
   {
     fragment: "een navorderingsaanslag", klasse: "Rechtsobject", lid: "2", aandacht: "groen",
@@ -111,7 +111,7 @@ const DEMO_SPECS: DemoSpec[] = [
     // Bewust een misser: het toont hoe een rood oordeel eruitziet en waarom je zelf corrigeert.
     fragment: "invorderbaar", voorkomen: 2, klasse: "Rechtsobject", lid: "2", aandacht: "rood",
     toelichting: "",
-    critic: "Dit is een werkwoordsvorm, geen voorwerp. Hoort vrijwel zeker bij Rechtsbetrekking.",
+    review_uitleg: "Dit is een werkwoordsvorm, geen voorwerp. Hoort vrijwel zeker bij Rechtsbetrekking.",
     alternatief: { klasse: "Rechtsbetrekking", motivatie: "Werkwoord dat de plicht tot betaling uitdrukt." },
   },
   {
@@ -161,7 +161,7 @@ function elementVan(spec: DemoSpec, index: number, bron: string): AnnotatieEleme
     lifecycle: "voorgesteld" as Lifecycle,
     alternatieven: spec.alternatief ? [spec.alternatief] : [],
     aandacht: spec.aandacht,
-    critic: spec.critic,
+    review_uitleg: spec.review_uitleg,
     anker,
     diff: {},
     beslissingen: [],

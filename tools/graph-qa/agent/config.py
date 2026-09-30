@@ -87,9 +87,10 @@ class Settings(BaseModel):
     # API-laag
     qa_api_token: str | None = None
     cors_origins: list[str] = ["*"]
-    rate_limit: int = 60          # verzoeken per venster (per proces, per IP)
+    rate_limit: int = 60          # verzoeken per venster (per proces, per gebruiker; IP als terugval)
     rate_window_seconds: float = 60.0
-    # Achter een reverse proxy: de eerste X-Forwarded-For-hop als client-IP nemen voor de rate-limit.
+    # Achter een reverse proxy: de eerste X-Forwarded-For-hop als client-IP nemen (de terugval van de
+    # rate-limit als er geen gebruiker bekend is).
     # Standaard uit (peer-IP), zodat een gespooft header de limiet niet omzeilt tenzij bewust aangezet.
     trust_proxy: bool = False
 
@@ -247,7 +248,7 @@ class Settings(BaseModel):
     def model_voor(self, rol: str) -> str:
         """Welk model draait deze rol? Onbekende of niet-ingestelde rol → `llm_model`.
 
-        Alleen `router` en `ophaal` hebben een eigen knop; de annoteerder, de Critic en de
+        Alleen `router` en `ophaal` hebben een eigen knop; de classifier, de reviewer en de
         QA-specialisten draaien per definitie op `llm_model`. Dat is geen omissie maar de grens:
         wie een oordeel velt over wetgeving krijgt het sterkste model, en dat hoort niet met een
         env-var te verzwakken.

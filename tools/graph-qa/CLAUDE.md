@@ -385,7 +385,7 @@ reviewer (`review.py`), de resolver (`resolver.py`), dekking, beslisregister en 
   `resolver.TABEL`, elke transitie in `meting["resolutie"]`: onenigheid wordt HUMAN_REVIEW (geel, met
   alternatieven), een CHANGE tegen JAS-PRIORITY wordt niet uitgevoerd, en er wordt nooit iets
   automatisch "rood" doorgevoerd. `GERICHTE_REVIEW=false` stuurt de twijfelgevallen direct geel naar de
-  jurist. De uitleg van de reviewer staat op het element in het veld `critic`.
+  jurist. De uitleg van de reviewer staat op het element in het veld `review_uitleg`.
 - **Een technische storing is geen juridische twijfel.** Een ongeldige classifierkeuze blijft
   `CLASSIFIER_ABSTAIN` met dezelfde afhandeling, maar draagt `categorie: CLASSIFIER_CONTRACT_ERROR` en de
   gele kaart zegt "Technische storing". Bij `R-ONGELDIG` bewaart de resolutie `oordeel_ruw` en

@@ -266,7 +266,7 @@ export interface AnnotatieElement {
   alternatieven: Alternatief[];
   aandacht?: Aandacht | null;
   /** De uitleg van de gerichte review bij een twijfelgeval (resolver, ADR-001). */
-  critic?: string;
+  review_uitleg?: string;
   anker?: Anker | null;
   diff: Record<string, { voor: unknown; na: unknown }>;
   beslissingen: Beslissing[];
@@ -511,7 +511,7 @@ export interface VoorstelElement {
   alternatieven: Alternatief[];
   grounded: boolean;
   aandacht?: Aandacht;   // geel = keuze voor de jurist, groen = door de review bevestigd; afwezig = gewoon voorstel
-  critic?: string;       // uitleg van de gerichte review
+  review_uitleg?: string;       // uitleg van de gerichte review
 }
 
 /** Eén agent-beurt als server-object (graph-qa `/v1/runs`).

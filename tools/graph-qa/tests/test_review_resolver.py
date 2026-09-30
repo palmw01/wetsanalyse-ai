@@ -29,7 +29,7 @@ def _b(k, status=CandidateStatus.ACCEPTED, klasse="", door="model"):
 
 def _v(k, klasse):
     return {"id": f"{k.label}-{klasse}", "klasse": klasse, "tekst": k.span.tekst, "alternatieven": [],
-            "aandacht": "", "critic": "", "_label": k.label,
+            "aandacht": "", "review_uitleg": "", "_label": k.label,
             "ankers": [{"bron_iri": "urn:t", "start": k.span.start, "eind": k.span.eind}]}
 
 
