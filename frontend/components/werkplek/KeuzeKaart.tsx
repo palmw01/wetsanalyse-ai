@@ -5,13 +5,15 @@ import type { AgentKandidaat, AgentKeuze, KandidaatStand } from "@/lib/types";
 
 /** De keuze uit de onderdelen van één bepaling (leden, of subbepalingen als 9.1), in de thread.
  *
- *  Volgt de vraagkaart van Claude: één lijst, met het toetsenbord te bedienen. Enter of een klik
- *  op een regel annoteert dat ene onderdeel; spatie of het vinkje selecteert er meer, en dan
- *  annoteert "Annoteer geselecteerde" ze als één reeks – elk met een eigen laag. Per onderdeel staat
- *  hoe ver het werk is, zodat je niet aanvinkt wat al af is.
+ *  Volgt de vraagkaart van Claude: één lijst, met het toetsenbord te bedienen. Een klik op een
+ *  regel, het vinkje of spatie selecteert; "Annoteer geselecteerde" annoteert de selectie als één
+ *  reeks – elk onderdeel met een eigen laag. Een klik start dus nooit zelf een run: het vinkje is
+ *  een klein doel, en een misklik ernaast kostte een beurt aan budget. Enter annoteert de selectie,
+ *  of zonder selectie het onderdeel onder de cursor. Per onderdeel staat hoe ver het werk is, zodat
+ *  je niet aanvinkt wat al af is.
  *
  *  Bij `keuze.soort === "bepaling"` (een dubbelzinnig artikelnummer) is er precies één te kiezen:
- *  geen vinkjes. */
+ *  geen vinkjes, en een klik kiest. */
 export function KeuzeKaart({
   kandidaten, keuze, uitgeschakeld, onKies,
 }: {
@@ -88,7 +90,7 @@ export function KeuzeKaart({
             role="option"
             aria-selected={meer ? selectie.has(i) : i === actief}
             onMouseEnter={() => setActief(i)}
-            onClick={() => verstuur([k])}
+            onClick={() => { if (uitgeschakeld) return; if (meer) wissel(i); else verstuur([k]); }}
             className={`flex cursor-pointer items-start gap-3 rounded-lg px-3 py-2 text-left ${
               i === actief ? "bg-lint/[0.06]" : ""} ${uitgeschakeld ? "cursor-not-allowed opacity-50" : ""}`}
           >
@@ -129,7 +131,7 @@ export function KeuzeKaart({
         )}
         {meer && geselecteerd.length > 0 && <Samenvatting gekozen={geselecteerd} />}
         <span className="ml-auto text-[11px] text-faint">
-          ↑↓ kiezen · Enter {meer ? (geselecteerd.length ? "annoteert selectie" : "annoteert dit onderdeel") : "annoteert"}{meer ? " · spatie selecteert" : ""}
+          ↑↓ kiezen · Enter {meer ? (geselecteerd.length ? "annoteert selectie" : "annoteert dit onderdeel") : "annoteert"}{meer ? " · klik of spatie selecteert" : ""}
         </span>
       </div>
     </div>

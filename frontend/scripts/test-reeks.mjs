@@ -116,6 +116,12 @@ try {
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press(" ");
   await page.getByText("2 gekozen · 1 nieuw · 1 al geannoteerd", { exact: true }).waitFor();
+  // Een klik op de regel (niet op het vinkje) selecteert ook, en start geen run: aan en weer uit.
+  await lijst.getByText("Tekst van lid 2.", { exact: true }).click();
+  await page.getByRole("button", { name: "Annoteer geselecteerde (3)", exact: true }).waitFor();
+  await lijst.getByText("Lid 2", { exact: true }).click();
+  await page.getByText("2 gekozen · 1 nieuw · 1 al geannoteerd", { exact: true }).waitFor();
+  assert.equal(starts.length, 1, "een klik op een regel mag geen run starten");
   await page.getByRole("button", { name: "Annoteer geselecteerde (2)", exact: true }).click();
 
   // Eén run met twee doelen, elk met zijn bronnode.

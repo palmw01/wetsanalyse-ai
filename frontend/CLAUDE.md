@@ -321,9 +321,12 @@ zitten niet in het berichtcontract van de api; wat na een herlaadbeurt overblijf
 Wijst de vraag een artikel met leden aan (of een beleidsregel met subbepalingen, zoals Leidraad 9),
 dan draagt het `kandidaten`-event een **`keuze`** (`parseKeuze`) en per optie `bron_iri`, `label`,
 `stand` en eventueel `gekozen`. De thread toont dan **`KeuzeKaart`** in plaats van de kandidatenlijst:
-een listbox in Claude-stijl, focus erin bij verschijnen. **Enter of klik** annoteert één onderdeel
-(een gewone beurt met `doelVanKandidaat`, dat de `bron_iri` meeneemt); **spatie of het vinkje**
-selecteert er meer, en *Annoteer geselecteerde* start **één run met `doelen`** (`doelenVanKandidaten`).
+een listbox in Claude-stijl, focus erin bij verschijnen. **Klik (op de regel of het vinkje) of
+spatie** selecteert, en *Annoteer geselecteerde* start **één run met `doelen`**
+(`doelenVanKandidaten`). **Enter** annoteert de selectie, of zonder selectie het onderdeel onder de
+cursor (een gewone beurt met `doelVanKandidaat`, dat de `bron_iri` meeneemt). Een klik start bewust
+nooit zelf een run: tot 30 sep 2026 annoteerde een klik naast het vinkje meteen dat ene lid, en dan
+liep er een beurt op budget terwijl je nog aan het kiezen was.
 De stand per onderdeel (nieuw / te beoordelen / afgerond) staat erbij, en onderaan wat de keuze
 inhoudt, want elk onderdeel kost budget.
 
