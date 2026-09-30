@@ -901,7 +901,11 @@ tokens/secrets/inhoud loggen. In de vitest-node-omgeving wordt `server-only` ges
   **30 dagen als "Ingelogd blijven op dit apparaat" is gekozen** (`token.rememberMe`), anders
   **12 uur** (`SESSIE_KORT`). Die keuze is één checkbox op `/login` (default uit), die óók de
   trusted-device-cookie stuurt (2FA overslaan) – op het 2FA-scherm is er dus geen aparte checkbox
-  meer; de keuze reist via `sessionStorage` (`wa_login_remember`) mee naar `/login/2fa`. De
+  meer; de keuze reist via `sessionStorage` (`wa_login_remember`) mee naar `/login/2fa`. **Een
+  TOTP-code geldt maar één keer** (api: `users.totp_laatste_stap`). `/api/login-2fa` verbruikt hem,
+  en de api geeft dan een **2FA-ticket** terug. Die route zet het in dezelfde httpOnly cookie als het
+  login-ticket, en `authorize` stuurt het bij de signIn mee in plaats van de code nog eens te laten
+  controleren. Daarna wist `authorize` de cookie. De
   node-`jwt`-callback in `auth.ts` herverifieert elke ~5 min de accountstatus bij de API
   (`lib/server.ts → getAccountStatus` → `/v1/auth/me`): een gedeactiveerd account invalideert de
   sessie, een rolwijziging werkt direct door in het token. De edge-middleware draait de lichte

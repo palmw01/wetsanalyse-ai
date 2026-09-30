@@ -45,7 +45,7 @@ export interface VerifyResult {
   email: string;
   role: "beheerder" | "analist" | "";
   // Server→server-only (via httpOnly cookies gezet door de BFF; nooit naar de browser-JS).
-  ticket?: string | null; // bij totp_required: bewijs voor het aparte 2FA-scherm
+  ticket?: string | null; // bij totp_required: het login-ticket; bij ok na een TOTP-code: het 2FA-ticket
   trusted_token?: string | null; // bij ok + remember: 30-daags "dit apparaat onthouden"-token
 }
 

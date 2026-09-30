@@ -127,6 +127,14 @@ De API bedient acht dingen:
   userid), de eenmalige eerste-beheerder-registratie (`/setup`, alleen bij lege tabel) en de
   self-service 2FA/account (`/2fa/*`, `/change-password`, identiteit via de vertrouwde
   `X-User-Id`-header van de BFF). De browsersessie zelf leeft in de frontend, niet hier.
+  **Een TOTP-code geldt maar één keer** (`_verbruik_totp`): de gebruikte tijdstap staat in
+  `users.totp_laatste_stap`, en een code voor een stap die niet groter is wordt geweigerd – ook
+  binnen het ±30 s-venster. Het vastleggen is één voorwaardelijke `UPDATE`, dus twee gelijktijdige
+  pogingen met dezelfde code halen het nooit allebei. Omdat de webapp na het 2FA-scherm nóg eens
+  verifieert (Auth.js zet dan de sessie), geeft `/verify` na een verbruikte code een **2FA-ticket**
+  mee (`maak_2fa_ticket`, 5 min, Fernet). Dat bewijst wachtwoord én tweede factor, zodat die tweede
+  verificatie de code niet opnieuw nodig heeft. `verify_credentials` meldt dat geval als
+  `"ok_totp"`. De tests zetten de klok stil via `users._nu`, en `_totp_now` schuift per code een stap op.
 - `llm_profile.py` – `LlmProfile`-domeinmodel (Pydantic; benoemde modelprofielen in de DB).
   `profiles.py` – service eroverheen: CRUD, default-beheer, `resolve_config` (profiel → `LlmConfig`,
   ontsleutelt de key, env-fallback) en `ensure_seeded` (seedt bij eerste start één default-profiel uit
