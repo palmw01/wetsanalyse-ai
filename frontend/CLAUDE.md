@@ -944,7 +944,17 @@ npm run build        # productiebuild (output: 'standalone')
 npm run lint         # ESLint
 npm run typecheck    # tsc --noEmit
 npm test             # vitest (node-env, geen DOM – zie §Lagen)
+npm run test:browser # Playwright op echte Next-UI met gemockte BFF (scripts/test-*.mjs)
 ```
+
+`test:browser` verwacht een devserver op poort 3109
+(`AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109`)
+en praat met **`localhost`**, niet met `127.0.0.1`: Next 16 weigert dev-assets aan een andere origin,
+en dan hydrateert de pagina niet en time-out elke stap zonder duidelijke fout.
+`scripts/test-toetsen.mjs` bewaakt wat alleen in een browser te zien is: sneltoetsen alleen met de
+focus in het artefact, Escape voor het bovenste venster, focus terug na sluiten, geen herstellus na
+een geslaagde beurt, een vraag die blijft staan tijdens het laden, en zelf markeren op een
+aanraakscherm (`TOUCH_ENGINE=webkit` voor de Safari-engine, als het systeem die kan draaien).
 
 Vereist een draaiende API (lokaal of het publieke domein) + de env-vars uit `.env.local`
 (`API_BASE_URL`, `API_TOKEN`, `ADMIN_API_TOKEN`; zie README).
