@@ -55,7 +55,7 @@ class Settings:
             self.admin_tokens[token.strip()] = admin_id.strip()
 
         # --- LLM-adapter ---
-        # Endpointtype bepaalt provider-prefix/auth (zie Fase 0): azure_ai (Foundry/MaaS) vs azure (OpenAI).
+        # Endpointtype bepaalt provider-prefix/auth: azure_ai (Foundry/MaaS) vs azure (OpenAI).
         self.llm_provider = os.environ.get("LLM_PROVIDER", "azure_ai")
         self.llm_model = os.environ.get("LLM_MODEL", "")
         self.llm_api_base = os.environ.get("LLM_API_BASE", "")
@@ -91,8 +91,8 @@ class Settings:
 
         # --- Database (PostgreSQL via SQLAlchemy async; asyncpg-driver) ---
         # Connection string via secret (DATABASE_URL_FILE) zodat ingebedde credentials niet als
-        # plain env in de container staan; valt terug op DATABASE_URL voor lokaal. In productie
-        # levert de CloudNativePG-operator deze secret aan. Vorm: postgresql+asyncpg://user:pw@host:5432/db
+        # plain env in de container staan; valt terug op DATABASE_URL voor lokaal. Op Azure mount de
+        # bicep hem onder /run/secrets. Vorm: postgresql+asyncpg://user:pw@host:5432/db
         self.database_url = (
             _read_secret("DATABASE_URL") or "postgresql+asyncpg://localhost:5432/wetsanalyse"
         )

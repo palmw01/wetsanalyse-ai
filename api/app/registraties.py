@@ -144,15 +144,6 @@ async def lijst(status: str | None = None) -> list[Registratie]:
     return [_row_to_registratie(r) for r in rows]
 
 
-async def aantal_open() -> int:
-    async with db.get_engine().connect() as conn:
-        return (await conn.execute(
-            select(func.count()).select_from(db.registratie_aanvragen).where(
-                db.registratie_aanvragen.c.status == "aangevraagd"
-            )
-        )).scalar() or 0
-
-
 async def openstaand_voor_userid(userid: str) -> Registratie | None:
     """De nog niet beoordeelde aanvraag die deze userid voorstelt, als die er is.
 

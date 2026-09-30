@@ -29,10 +29,6 @@ _hits: dict[str, deque[float]] = defaultdict(deque)
 _MAX_KEYS = 10_000
 
 
-class QuotaExceeded(Exception):
-    """Een client overschrijdt een beleidsgrens (gelijktijdige jobs / token-budget)."""
-
-
 def _sweep(now: float, window_s: float) -> None:
     """Verwijder sleutels waarvan alle hits buiten het venster liggen."""
     for key in [k for k, dq in _hits.items() if not dq or dq[0] <= now - window_s]:

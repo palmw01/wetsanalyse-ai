@@ -8,7 +8,7 @@ bedient:
 - de **chatgeschiedenis** van de werkplek;
 - **login en gebruikersbeheer** – de API is de identiteitsbron van de webapp, inclusief
   zelfregistratie en optionele TOTP-2FA;
-- het **LLM-modelprofielbeheer** en de **profiel-keuzelijst**;
+- het **LLM-modelprofielbeheer**;
 - het **tokenbudget** per gebruiker;
 - **berichten** (release notes) en **gebruikersfeedback**.
 
@@ -86,7 +86,6 @@ zijn gedeeld tussen gebruikers; wie wat deed staat in de audit. Specificatie:
 | `GET` | `/v1/berichten/ongelezen-aantal` | Aantal ongelezen berichten |
 | `POST` | `/v1/berichten/lees-alles` | Alles als gelezen markeren |
 | `POST` | `/v1/feedback` | Feedback insturen (`verbeteridee`/`probleemmelding`/`compliment`/`vraag`) |
-| `GET` | `/v1/profiles` | Keuzelijst modelprofielen (alleen naam + default) |
 
 **Beheer**, achter het admin-token, onder `/v1/admin`:
 

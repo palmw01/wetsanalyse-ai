@@ -143,43 +143,6 @@ class Source(BaseModel):
     origin_tool: str | None = None
 
 
-# SSE-events
-class TokenEvent(BaseModel):
-    type: Literal["token"] = "token"
-    content: str
-
-
-class SourcesEvent(BaseModel):
-    type: Literal["sources"] = "sources"
-    sources: list[Source]
-
-
-class GroundingEvent(BaseModel):
-    """De uitkomst van de brongetrouwheidstoets op het antwoord.
-
-    `niveau` is fijner dan `grounded` en is de waarde om te tonen: "onbepaald" betekent dat het
-    antwoord geen enkele vindplaats of citaat noemde en er dus niets te controleren viel. Dat als
-    "gegrond" presenteren zou schijnzekerheid zijn.
-    """
-
-    type: Literal["grounding"] = "grounding"
-    grounded: bool
-    cited: int = 0
-    unsupported: list[str] = []
-    # Als citaat gepresenteerde tekst die niet letterlijk in de opgehaalde tekst staat.
-    niet_letterlijk: list[str] = []
-    niveau: Literal["gegrond", "onbepaald", "ongegrond"] = "gegrond"
-
-
-class DoneEvent(BaseModel):
-    type: Literal["done"] = "done"
-
-
-class ErrorEvent(BaseModel):
-    type: Literal["error"] = "error"
-    message: str
-
-
 # --- Annotatie (JAS) ---------------------------------------------------------
 
 class AnnotatieAlternatief(BaseModel):

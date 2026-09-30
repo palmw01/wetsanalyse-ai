@@ -36,5 +36,3 @@ class LlmProfile(BaseModel):
     created: datetime = Field(default_factory=_utcnow)
     updated: datetime = Field(default_factory=_utcnow)
 
-    def touch(self) -> None:
-        self.updated = _utcnow()

@@ -13,7 +13,7 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
 2. **De chatgeschiedenis** (`/v1/gesprekken/*`), per gebruiker gescopet.
 3. **Login en gebruikersbeheer** (`/v1/auth/*`, `/v1/admin/users`, `/v1/admin/registraties`): de API
    is de identiteitsbron van de webapp.
-4. **LLM-modelprofielbeheer** (`/v1/admin/profiles`) en de **profiel-keuzelijst** (`/v1/profiles`).
+4. **LLM-modelprofielbeheer** (`/v1/admin/profiles`).
 5. **Tokenbudget** (`/v1/verbruik/*`, `/v1/admin/budget`, `/v1/admin/verbruik`).
 6. **Berichten** (release notes, `/v1/berichten/*` + `/v1/admin/berichten/*`) met leesbewijzen per
    (bericht, gebruiker), en **gebruikersfeedback** (`/v1/feedback` + `/v1/admin/feedback/*`).

@@ -122,16 +122,3 @@ def meet(xml_pad: str | Path, geldig_vanaf: str | None = None) -> Dekking:
     return Dekking(bwb_id=wet.bwb_id, bron_tekens=bron_tekens(xml_pad), graaf_tekens=graaf_tekens)
 
 
-def meet_map(map_pad: str | Path) -> list[Dekking]:
-    """Meet elke gecachte toestand-XML onder `map_pad` (één per BWB-map)."""
-    uit: list[Dekking] = []
-    for regeling in sorted(Path(map_pad).iterdir()):
-        if not regeling.is_dir():
-            continue
-        toestanden = [
-            p for p in sorted(regeling.glob("*.xml"))
-            if "wti" not in p.name.lower() and "manifest" not in p.name.lower()
-        ]
-        if toestanden:
-            uit.append(meet(toestanden[0]))
-    return uit
