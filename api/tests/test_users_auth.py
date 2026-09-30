@@ -40,10 +40,33 @@ async def db():
         await _db.dispose_engine()
 
 
+# De klok van `app.users` (`_nu`) staat in deze tests stil tot een test hem verzet. Een TOTP-code
+# geldt maar één keer per tijdstap; `_totp_now` schuift daarom eerst een stap op, zodat elke code die
+# een test opvraagt een verse is – zoals bij een mens die op de volgende code wacht.
+_KLOK = {"t": 1_800_000_000.0}
+
+
+@pytest.fixture(autouse=True)
+def _stilstaande_klok(monkeypatch):
+    from app import users
+
+    _KLOK["t"] = 1_800_000_000.0
+    monkeypatch.setattr(users, "_nu", lambda: _KLOK["t"])
+
+
+def _secret(otpauth_uri: str) -> str:
+    return parse_qs(urlparse(otpauth_uri).query)["secret"][0]
+
+
 def _totp_now(otpauth_uri: str) -> str:
-    """Haal het secret uit een otpauth://-URI en bereken de huidige code."""
-    secret = parse_qs(urlparse(otpauth_uri).query)["secret"][0]
-    return pyotp.TOTP(secret).now()
+    """Een verse code: de klok gaat eerst één tijdstap (30 s) vooruit."""
+    _KLOK["t"] += 30
+    return pyotp.TOTP(_secret(otpauth_uri)).at(_KLOK["t"])
+
+
+def _totp_zelfde(otpauth_uri: str) -> str:
+    """De code van de huidige tijdstap, zónder de klok te verzetten – om hergebruik te testen."""
+    return pyotp.TOTP(_secret(otpauth_uri)).at(_KLOK["t"])
 
 
 # --- wachtwoord-hashing --------------------------------------------------------
@@ -228,7 +251,7 @@ async def test_verify_credentials_via_ticket_en_trusted(monkeypatch, db):
     # Ticket telt als wachtwoord-bewijs; met geldige TOTP → ok (het 2FA-scherm zonder wachtwoord).
     ticket = users.maak_login_ticket("baas")
     user, code = await users.verify_credentials("baas", "", _totp_now(uri), ticket=ticket)
-    assert code == "ok" and user is not None
+    assert code == "ok_totp" and user is not None
 
     # Een ticket voor een ándere userid telt niet als bewijs.
     user, code = await users.verify_credentials("baas", "", _totp_now(uri),
@@ -278,13 +301,102 @@ async def test_2fa_cyclus(monkeypatch, db):
     assert (await users.verify_credentials("baas", "wachtwoord1"))[1] == "totp_required"
     assert (await users.verify_credentials("baas", "wachtwoord1", "000000"))[1] == "totp_required"
     ok_user, code = await users.verify_credentials("baas", "wachtwoord1", _totp_now(uri))
-    assert code == "ok" and ok_user is not None
+    assert code == "ok_totp" and ok_user is not None
 
     with pytest.raises(users.UserError):
         await users.disable_2fa("baas", "000000")
     await users.disable_2fa("baas", _totp_now(uri))
     assert not (await users.get_user("baas")).totp_enabled
     assert (await users.verify_credentials("baas", "wachtwoord1"))[1] == "ok"
+
+
+async def test_totp_code_geldt_maar_een_keer(monkeypatch, db):
+    """Een afgekeken code mag binnen zijn ±30 s-venster niet nog eens werken."""
+    _fresh_settings(monkeypatch)
+    from app import users
+
+    await users.bootstrap_admin("baas", "u@example.com", "wachtwoord1")
+    uri = await users.begin_2fa("baas")
+    await users.activate_2fa("baas", _totp_now(uri))
+
+    code = _totp_now(uri)
+    assert (await users.verify_credentials("baas", "wachtwoord1", code))[1] == "ok_totp"
+    # Dezelfde code, dezelfde tijdstap: geweigerd.
+    assert (await users.verify_credentials("baas", "wachtwoord1", code))[1] == "totp_required"
+    # Ook de code van de activering (een oudere stap) werkt niet meer.
+    assert (await users.verify_credentials("baas", "wachtwoord1", _totp_zelfde(uri)))[1] == "totp_required"
+    # De volgende stap wel.
+    assert (await users.verify_credentials("baas", "wachtwoord1", _totp_now(uri)))[1] == "ok_totp"
+
+
+async def test_totp_oudere_stap_na_nieuwere_geweigerd(monkeypatch, db):
+    """`valid_window` accepteert één stap terug; die mag niet meer ná een nieuwere stap."""
+    _fresh_settings(monkeypatch)
+    from app import users
+
+    await users.bootstrap_admin("baas", "u@example.com", "wachtwoord1")
+    uri = await users.begin_2fa("baas")
+    await users.activate_2fa("baas", _totp_now(uri))
+
+    _KLOK["t"] += 30
+    vorige = pyotp.TOTP(_secret(uri)).at(_KLOK["t"] - 30)
+    huidige = _totp_zelfde(uri)
+    assert (await users.verify_credentials("baas", "wachtwoord1", huidige))[1] == "ok_totp"
+    assert (await users.verify_credentials("baas", "wachtwoord1", vorige))[1] == "totp_required"
+
+
+async def test_2fa_ticket_bewijst_wachtwoord_en_tweede_factor(monkeypatch, db):
+    """Het 2FA-scherm verbruikt de code; de tweede verificatie (Auth.js) leunt op het 2FA-ticket."""
+    _fresh_settings(monkeypatch)
+    from app import users
+
+    await users.bootstrap_admin("baas", "u@example.com", "wachtwoord1")
+    uri = await users.begin_2fa("baas")
+    await users.activate_2fa("baas", _totp_now(uri))
+
+    code = _totp_now(uri)
+    login = users.maak_login_ticket("baas")
+    assert (await users.verify_credentials("baas", "", code, ticket=login))[1] == "ok_totp"
+    # Zonder 2FA-ticket stuit de tweede verificatie met dezelfde code op de verbruikte stap.
+    assert (await users.verify_credentials("baas", "", code, ticket=login))[1] == "totp_required"
+    # Met het 2FA-ticket lukt het, ook zonder (of met een oude) code.
+    tweede = users.maak_2fa_ticket("baas")
+    assert users.lees_2fa_ticket(tweede) == "baas"
+    assert (await users.verify_credentials("baas", "", code, ticket=tweede))[1] == "ok"
+    assert (await users.verify_credentials("baas", "", None, ticket=tweede))[1] == "ok"
+    # Een 2FA-ticket voor een ander telt niet, en een login-ticket is geen 2FA-ticket.
+    assert (await users.verify_credentials("baas", "", None, ticket=users.maak_2fa_ticket("ander")))[1] == "invalid"
+    assert users.lees_2fa_ticket(login) is None
+    assert users.lees_login_ticket(tweede) is None
+
+
+async def test_2fa_ticket_verloopt(monkeypatch, db):
+    import time
+
+    _fresh_settings(monkeypatch)
+    from app import users
+
+    tweede = users.maak_2fa_ticket("baas")
+    assert users.lees_2fa_ticket(tweede) == "baas"
+    # Fernet toetst de TTL tegen `time.time()`; laat die voorbij de 5 minuten lopen.
+    echt = time.time()
+    monkeypatch.setattr(time, "time", lambda: echt + 5 * 60 + 1)
+    assert users.lees_2fa_ticket(tweede) is None
+
+
+async def test_2fa_aan_en_uit_verbruiken_de_code(monkeypatch, db):
+    _fresh_settings(monkeypatch)
+    from app import users
+
+    await users.bootstrap_admin("baas", "u@example.com", "wachtwoord1")
+    uri = await users.begin_2fa("baas")
+    code = _totp_now(uri)
+    await users.activate_2fa("baas", code)
+    # Met de activeringscode meteen weer uitzetten gaat niet: die is gebruikt.
+    with pytest.raises(users.UserError):
+        await users.disable_2fa("baas", code)
+    await users.disable_2fa("baas", _totp_now(uri))
+    assert not (await users.get_user("baas")).totp_enabled
 
 
 # --- HTTP-endpoints ------------------------------------------------------------
@@ -415,6 +527,31 @@ async def test_2fa_http_via_header(client):
     totp_code = _totp_now(begin.json()["otpauth_uri"])
     dis = await client.post("/v1/auth/2fa/disable", json={"totp": totp_code}, headers=hdr)
     assert dis.status_code == 204
+
+
+async def test_2fa_login_http_verbruikt_code_en_geeft_2fa_ticket(client):
+    """De flow van de webapp: wachtwoord → login-ticket, 2FA-scherm → 2FA-ticket, Auth.js → sessie.
+    De code gaat één keer mee; de tweede verificatie leunt op het 2FA-ticket."""
+    await client.post(
+        "/v1/auth/setup", json={"userid": "baas", "email": "boss@example.com", "password": "wachtwoord1"}
+    )
+    hdr = {"X-User-Id": "baas"}
+    uri = (await client.post("/v1/auth/2fa/begin", headers=hdr)).json()["otpauth_uri"]
+    assert (await client.post("/v1/auth/2fa/activate", json={"totp": _totp_now(uri)}, headers=hdr)).status_code == 204
+
+    stap_a = (await client.post("/v1/auth/verify", json={"userid": "baas", "password": "wachtwoord1"})).json()
+    assert stap_a["code"] == "totp_required" and stap_a["ticket"]
+
+    code = _totp_now(uri)
+    stap_b = (await client.post("/v1/auth/verify", json={"userid": "baas", "ticket": stap_a["ticket"], "totp": code})).json()
+    assert stap_b["ok"] is True and stap_b["ticket"], "na een verbruikte code hoort er een 2FA-ticket mee te komen"
+
+    # Zelfde code met alleen het login-ticket: verbruikt.
+    opnieuw = (await client.post("/v1/auth/verify", json={"userid": "baas", "ticket": stap_a["ticket"], "totp": code})).json()
+    assert opnieuw["ok"] is False and opnieuw["code"] == "totp_required"
+    # Met het 2FA-ticket (zoals Auth.js na het 2FA-scherm): gelukt, en geen nieuw ticket.
+    sessie = (await client.post("/v1/auth/verify", json={"userid": "baas", "ticket": stap_b["ticket"], "totp": code})).json()
+    assert sessie["ok"] is True and sessie["ticket"] is None
 
 
 async def test_gevoelige_endpoints_rate_limited(monkeypatch):

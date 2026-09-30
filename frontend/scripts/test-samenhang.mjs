@@ -1,14 +1,16 @@
 /** Browserregressie voor de 3D-samenhangsgraaf op echte Next-UI met gemockte BFF. Start Next met
  * AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109
- * TEST_URL=http://127.0.0.1:3109 node scripts/test-samenhang.mjs   (na npx playwright install chromium)
+ * TEST_URL=http://localhost:3109 node scripts/test-samenhang.mjs   (na npx playwright install chromium)
  * Screenshots: MOCK_SCREENSHOTS (default /tmp/wetsanalyse-samenhang).
+ * Gebruik `localhost`, niet `127.0.0.1`: Next 16 weigert dev-assets aan een andere origin dan de
+ * server kent, en dan hydrateert de pagina niet – elke stap time-out dan zonder duidelijke fout.
  */
 import assert from "node:assert/strict";
 import { mkdirSync } from "node:fs";
 import { chromium } from "playwright";
-import { encode } from "../node_modules/next-auth/jwt.js";
+import { sessieCookies } from "./sessie.mjs";
 
-const base = process.env.TEST_URL || "http://127.0.0.1:3109";
+const base = process.env.TEST_URL || "http://localhost:3109";
 const shots = process.env.MOCK_SCREENSHOTS || "/tmp/wetsanalyse-samenhang";
 mkdirSync(shots, { recursive: true });
 const LAW = "urn:bwb:BWBR0004770", ART = `${LAW}:artikel:9`, L1 = `${ART}:lid:1`, L2 = `${ART}:lid:2`;
@@ -76,11 +78,7 @@ async function nieuwePagina({ width = 1440, height = 1000, webgl = true } = {}) 
   page.on("pageerror", (e) => log.errors.push(e.message));
   // React meldt in dev dat de CSP geen eval toestaat; in productie gebruikt React geen eval.
   page.on("console", (m) => { if (m.type() === "error" && !/React will never use eval\(\) in production/.test(m.text())) log.console.push(m.text()); });
-  const token = await encode({ secret: process.env.AUTH_SECRET || "annotatie-browser-test-only-secret", salt: "authjs.session-token",
-    token: { userid: "browser-test", role: "analist", email: "test@example.test", verifiedAt: Date.now(), loginAt: Date.now() } });
-  await page.context().addCookies([
-    { name: "authjs.session-token", value: token, url: base }, { name: "wa-disclaimer", value: "1", url: base },
-  ]);
+  await page.context().addCookies(await sessieCookies(base));
   await page.addInitScript((webgl) => {
     localStorage.setItem("wa_rondleiding", JSON.stringify({ versie: 999, gezien: true }));
     if (!webgl) {

@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy import (
     JSON,
+    BigInteger,
     Boolean,
     Column,
     DateTime,
@@ -90,6 +91,10 @@ users = Table(
     # AttributeError, ook al bestaat ze in de echte database – SQLAlchemy Core kent haar pas via
     # het Table-object.
     Column("feedback_gezien_op", _DT, nullable=True),
+    # De laatst gebruikte TOTP-tijdstap (unix-tijd // 30). Een code geldt maar één keer: een stap
+    # die niet groter is dan deze wordt geweigerd, ook binnen de ±30 s die `valid_window` toelaat.
+    # NULL = nog nooit een code gebruikt. Additief, dus `reconcile_schema` zet hem bij.
+    Column("totp_laatste_stap", BigInteger, nullable=True),
     Column("created", _DT, nullable=False),
     Column("updated", _DT, nullable=False),
 )

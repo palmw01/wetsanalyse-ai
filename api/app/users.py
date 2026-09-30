@@ -19,13 +19,15 @@ nooit terug.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import re
 import secrets
+import time
 
 import bcrypt
 import pyotp
-from sqlalchemy import delete, func, insert, select, text, update
+from sqlalchemy import delete, func, insert, or_, select, text, update
 
 from . import db
 from .secrets_crypto import crypto_beschikbaar, decrypt, decrypt_ttl, encrypt
@@ -143,12 +145,44 @@ async def needs_setup() -> bool:
 
 # --- credential-verificatie ----------------------------------------------------
 
-def _verify_totp(user: User, code: str) -> bool:
+def _nu() -> float:
+    """De klok voor TOTP. Een functie, zodat de tests de tijd kunnen laten verstrijken."""
+    return time.time()
+
+
+def _totp_stap(user: User, code: str) -> int | None:
+    """De tijdstap waarvoor deze code geldt, of None. Eén stap ervoor en erna telt mee: dat vangt
+    klok-drift van ±30 s op (wat `valid_window=1` eerder deed)."""
     if not user.totp_secret_enc:
+        return None
+    totp = pyotp.TOTP(decrypt(user.totp_secret_enc))
+    nu = int(_nu()) // totp.interval
+    code = code.strip()
+    for stap in (nu - 1, nu, nu + 1):
+        if hmac.compare_digest(totp.generate_otp(stap), code):
+            return stap
+    return None
+
+
+async def _verbruik_totp(user: User, code: str) -> bool:
+    """Klopt de code, én is hij nog niet gebruikt? Dan legt dit hem vast als gebruikt.
+
+    Zonder dit bleef een code zo'n 90 seconden herbruikbaar: wie hem afkeek (over de schouder, uit
+    een log, via een phishingpagina die hem doorgeeft) kon er binnen dat venster zelf mee inloggen.
+    Het vastleggen is één voorwaardelijke UPDATE, zodat twee gelijktijdige pogingen met dezelfde
+    code er nooit allebei doorkomen: alleen de eerste verhoogt de stap.
+    """
+    stap = _totp_stap(user, code)
+    if stap is None:
         return False
-    secret = decrypt(user.totp_secret_enc)
-    # valid_window=1 vangt klok-drift van ±30s op.
-    return pyotp.TOTP(secret).verify(code.strip(), valid_window=1)
+    kolom = db.users.c.totp_laatste_stap
+    async with db.get_engine().begin() as conn:
+        res = await conn.execute(
+            update(db.users)
+            .where(db.users.c.userid == user.userid, or_(kolom.is_(None), kolom < stap))
+            .values(totp_laatste_stap=stap)
+        )
+    return res.rowcount == 1
 
 
 # --- stateless auth-tokens (login-ticket + trusted device) ---------------------
@@ -168,6 +202,28 @@ def maak_login_ticket(userid: str) -> str | None:
 
 def lees_login_ticket(token: str | None) -> str | None:
     """Userid uit een geldig, niet-verlopen login-ticket; anders None."""
+    return _lees_ticket(token, "ticket")
+
+
+def maak_2fa_ticket(userid: str) -> str | None:
+    """Kortlevend bewijs 'wachtwoord én 2FA geverifieerd voor userid X'.
+
+    Bestaat omdat een TOTP-code nu maar één keer geldt. Het aparte 2FA-scherm verifieert de code
+    (`/v1/auth/verify` via de BFF-route `login-2fa`), en daarna zet Auth.js de sessie met een
+    tweede `/verify` – die de code dan niet opnieuw kan gebruiken. Dit ticket draagt de geslaagde
+    eerste controle naar de tweede. Zelfde TTL als het login-ticket.
+    """
+    if not crypto_beschikbaar():
+        return None
+    return encrypt(json.dumps({"t": "2fa", "userid": userid}))
+
+
+def lees_2fa_ticket(token: str | None) -> str | None:
+    """Userid uit een geldig, niet-verlopen 2FA-ticket; anders None."""
+    return _lees_ticket(token, "2fa")
+
+
+def _lees_ticket(token: str | None, soort: str) -> str | None:
     if not token:
         return None
     plain = decrypt_ttl(token, _LOGIN_TICKET_TTL_S)
@@ -177,7 +233,7 @@ def lees_login_ticket(token: str | None) -> str | None:
         data = json.loads(plain)
     except ValueError:
         return None
-    return data.get("userid") if data.get("t") == "ticket" else None
+    return data.get("userid") if data.get("t") == soort else None
 
 
 def _device_bind(user: User) -> str:
@@ -245,15 +301,21 @@ async def verify_credentials(
     niets te lekken), "totp_required" (wachtwoord klopt, maar 2FA staat aan en de code ontbreekt
     of is onjuist) en "aanvraag_open" (er is nog geen account, maar wel een openstaande
     zelfregistratie-aanvraag met dit voorgestelde userid – zie `_aanvraag_status`).
+    Geslaagd is "ok", of "ok_totp" als daarvoor zojuist een TOTP-code is verbruikt: dan geeft de
+    route een 2FA-ticket mee (`maak_2fa_ticket`), omdat diezelfde code geen tweede keer geldt.
 
     Twee alternatieve bewijzen naast het wachtwoord:
-    - `ticket`: een geldig login-ticket voor deze userid telt als wachtwoord-bewijs (voor het aparte
+    - `ticket`: een geldig login-ticket voor deze userid telt als wachtwoord-bewijs, een geldig
+      2FA-ticket als bewijs van wachtwoord én tweede factor (voor het aparte
       2FA-scherm, dat het wachtwoord niet vasthoudt);
     - `trusted_token`: een geldig trusted-device-token slaat bij een 2FA-account de TOTP-stap over.
     """
     user = await get_user(userid)
-    # Wachtwoord-bewijs via een geldig login-ticket voor DEZE userid, anders via het wachtwoord.
-    ticket_ok = ticket is not None and lees_login_ticket(ticket) == userid
+    # Een 2FA-ticket bewijst wachtwoord én tweede factor (de code is al gebruikt, zie
+    # `maak_2fa_ticket`); een login-ticket alleen het wachtwoord.
+    tweede_factor_ok = ticket is not None and lees_2fa_ticket(ticket) == userid
+    # Wachtwoord-bewijs via een geldig ticket voor DEZE userid, anders via het wachtwoord.
+    ticket_ok = tweede_factor_ok or (ticket is not None and lees_login_ticket(ticket) == userid)
     if user is None or not user.active:
         if not ticket_ok:
             # Constant-tijd: betaal de bcrypt-kost ook bij een onbekende/inactieve user.
@@ -266,8 +328,11 @@ async def verify_credentials(
     if user.totp_enabled:
         if await valideer_trusted_device(trusted_token) == userid:
             return user, "ok"  # vertrouwd apparaat → 2FA overgeslagen
-        if not totp or not _verify_totp(user, totp):
+        if tweede_factor_ok:
+            return user, "ok"  # de code is net al gecontroleerd (en verbruikt)
+        if not totp or not await _verbruik_totp(user, totp):
             return None, "totp_required"
+        return user, "ok_totp"
     return user, "ok"
 
 
@@ -479,7 +544,7 @@ async def activate_2fa(userid: str, code: str) -> None:
     user = await _require_user(userid)
     if not user.totp_secret_enc:
         raise UserError("Geen 2FA-aanmelding gestart; vraag eerst een nieuwe code aan.")
-    if not _verify_totp(user, code):
+    if not await _verbruik_totp(user, code):
         raise UserError("Onjuiste of verlopen code.")
     await _update(user.userid, totp_enabled=True)
 
@@ -488,6 +553,6 @@ async def disable_2fa(userid: str, code: str) -> None:
     user = await _require_user(userid)
     if not user.totp_enabled:
         raise UserError("2FA staat niet aan.")
-    if not _verify_totp(user, code):
+    if not await _verbruik_totp(user, code):
         raise UserError("Onjuiste of verlopen 2FA-code.")
     await _update(user.userid, totp_secret_enc=None, totp_enabled=False)
