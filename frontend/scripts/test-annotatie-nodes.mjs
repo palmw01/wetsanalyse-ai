@@ -37,7 +37,12 @@ function volledigeView(iri) {
       beslissingen: [{ type: "comment", actor: "Reviewer", comment: "Bron nagekeken", wijziging: {} }],
     }] : [], verwijzingen: [], dekking: {} };
 }
-const trace = [{ run_id: "r1", call_id: "call1", tool: "search_annotaties", phase: "end", status: "ok", aantal: 2, has_more: true }];
+// Zoals graph-qa het tot 30 sep 2026 bewaarde: start én einde van dezelfde aanroep los. Na herladen
+// hoort dat één regel te zijn ("1 aanroepen"), niet twee.
+const trace = [
+  { run_id: "r1", call_id: "call1", tool: "search_annotaties", phase: "start", status: "running" },
+  { run_id: "r1", call_id: "call1", tool: "search_annotaties", phase: "end", status: "ok", aantal: 2, has_more: true },
+];
 const berichten = [1, 2].flatMap((lid) => [
   { rol: "user", tekst: `Annoteer artikel 9 lid ${lid}`, denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "" },
   { rol: "assistant", tekst: "", denk: "", bronnen: [], annotatie_slug: "zelfde-oude-laag", annotatie_titel: "Artikel 9", annotatie_doel: doel(lid),

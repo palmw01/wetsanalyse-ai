@@ -52,6 +52,41 @@ export function mergeToolExecution(events: ToolExecution[], event: ToolExecution
   if (events[index].phase !== "started" && event.phase === "started") return events;
   return events.map((e, i) => i === index ? { ...e, ...event } : e);
 }
+/** Het toolspoor zoals het in een bewaard bericht staat, als één regel per aanroep.
+ *
+ *  graph-qa stuurt per aanroep twee events – start en einde, met hetzelfde `call_id` – en legde die
+ *  tot 30 sep 2026 allebei los vast. Live voegt de werkplek ze samen; bij het laden van een gesprek
+ *  gebeurde dat niet, en dan stond elke aanroep er twee keer ("Bezig", daarna "Uitgevoerd") en telde
+ *  de kop het dubbele. Hier dezelfde regel als live, zodat ook oude berichten goed tellen. */
+export function toolSpoorUit(ruw: readonly unknown[] | null | undefined): ToolExecution[] {
+  return (ruw ?? []).reduce<ToolExecution[]>((spoor, r) => {
+    const e = parseToolExecution(r);
+    return e ? mergeToolExecution(spoor, e) : spoor;
+  }, []);
+}
+/** Waar een aanroep over ging, kort: "BWBR0004770 art. 9 lid 1", of het laatste stuk van de IRI.
+ *  Zonder dit stonden er twee regels "bron_lezen · Uitgevoerd" onder elkaar, en was niet te zien
+ *  wélke bepaling er gelezen was. */
+export function toolDoelLabel(doel: unknown): string {
+  if (!doel || typeof doel !== "object") return "";
+  const d = doel as Record<string, unknown>;
+  const tekst = (k: string) => (typeof d[k] === "string" || typeof d[k] === "number" ? String(d[k]).trim() : "");
+  const delen = [tekst("bwb_id"), tekst("artikel") && `art. ${tekst("artikel")}`, tekst("lid") && `lid ${tekst("lid")}`].filter(Boolean);
+  if (delen.length) return delen.join(" ");
+  const iri = tekst("bron_iri") || tekst("id");
+  return iri.startsWith("urn:bwb:") ? iri.slice("urn:bwb:".length).replace(/:/g, " ") : iri;
+}
+
+/** Een duur zoals een mens hem leest: onder een seconde in ms ("0.0 s" zei niets), daarboven in s. */
+export function duurTekst(ms: number): string {
+  return ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1).replace(".", ",")} s`;
+}
+
+/** Een leeg object is truthy; "Actualiteit: {}" onder elke graafaanroep zei niets. */
+export function heeftInhoud(waarde: unknown): boolean {
+  if (typeof waarde === "string") return waarde.trim() !== "";
+  return !!waarde && typeof waarde === "object" && Object.keys(waarde).length > 0;
+}
 export function nodeLink(doel: NodeDoel): string {
   return `/annotaties/node?${new URLSearchParams({ bron_iri: doel.bron_iri,
     ...(doel.snapshot_id ? { snapshot_id: doel.snapshot_id } : {}) })}`;
