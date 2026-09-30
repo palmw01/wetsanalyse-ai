@@ -12,7 +12,7 @@
 
 import { parseHergebruik } from "./agentEvents";
 import type { NodeDoel, ToolExecution } from "./annotatieNode";
-import { mergeToolExecution, parseToolExecution } from "./annotatieNode";
+import { mergeToolExecution, parseToolExecution, toolSpoorUit } from "./annotatieNode";
 import type { AgentDoelInvoer, AgentHergebruik, AgentKandidaat, Bericht } from "./types";
 
 export type OnderdeelStatus = "wacht" | "bezig" | "klaar" | "hergebruik" | "fout" | "gestopt" | "overgeslagen";
@@ -168,7 +168,7 @@ export function reeksUitBerichten(berichten: Bericht[]): Reeks | null {
       voorstellen: 0,
       ...(doel ? {} : { fout: b.tekst || "Niet vastgelegd." }),
       denk: b.denk ?? "",
-      tool_executions: (b.tool_executions ?? []).map(parseToolExecution).filter((e): e is ToolExecution => !!e),
+      tool_executions: toolSpoorUit(b.tool_executions),
       ...(doel ? { annotatie_doel: doel } : {}),
       ...(hergebruik ? { hergebruik } : {}),
     });

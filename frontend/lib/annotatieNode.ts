@@ -52,6 +52,23 @@ export function mergeToolExecution(events: ToolExecution[], event: ToolExecution
   if (events[index].phase !== "started" && event.phase === "started") return events;
   return events.map((e, i) => i === index ? { ...e, ...event } : e);
 }
+/** Het toolspoor zoals het in een bewaard bericht staat, als één regel per aanroep.
+ *
+ *  graph-qa stuurt per aanroep twee events – start en einde, met hetzelfde `call_id` – en legde die
+ *  tot 30 sep 2026 allebei los vast. Live voegt de werkplek ze samen; bij het laden van een gesprek
+ *  gebeurde dat niet, en dan stond elke aanroep er twee keer ("Bezig", daarna "Uitgevoerd") en telde
+ *  de kop het dubbele. Hier dezelfde regel als live, zodat ook oude berichten goed tellen. */
+export function toolSpoorUit(ruw: readonly unknown[] | null | undefined): ToolExecution[] {
+  return (ruw ?? []).reduce<ToolExecution[]>((spoor, r) => {
+    const e = parseToolExecution(r);
+    return e ? mergeToolExecution(spoor, e) : spoor;
+  }, []);
+}
+/** Een leeg object is truthy; "Actualiteit: {}" onder elke graafaanroep zei niets. */
+export function heeftInhoud(waarde: unknown): boolean {
+  if (typeof waarde === "string") return waarde.trim() !== "";
+  return !!waarde && typeof waarde === "object" && Object.keys(waarde).length > 0;
+}
 export function nodeLink(doel: NodeDoel): string {
   return `/annotaties/node?${new URLSearchParams({ bron_iri: doel.bron_iri,
     ...(doel.snapshot_id ? { snapshot_id: doel.snapshot_id } : {}) })}`;

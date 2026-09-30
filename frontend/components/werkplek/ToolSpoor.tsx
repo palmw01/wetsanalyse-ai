@@ -1,4 +1,4 @@
-import type { ToolExecution } from "@/lib/annotatieNode";
+import { heeftInhoud, type ToolExecution } from "@/lib/annotatieNode";
 
 export function ToolSpoor({ events }: { events?: ToolExecution[] }) {
   if (!events?.length) return null;
@@ -10,9 +10,10 @@ export function ToolSpoor({ events }: { events?: ToolExecution[] }) {
       {typeof e.aantal === "number" && ` · ${e.aantal} resultaten`}
       {e.has_more && " · meer resultaten beschikbaar"}
       {typeof e.duur_ms === "number" && ` · ${(e.duur_ms / 1000).toFixed(1)} s`}
-      {e.actualiteit && <p>Actualiteit: {typeof e.actualiteit === "string" ? e.actualiteit : JSON.stringify(e.actualiteit)}</p>}
+      {heeftInhoud(e.actualiteit) && <p>Actualiteit: {typeof e.actualiteit === "string" ? e.actualiteit : JSON.stringify(e.actualiteit)}</p>}
       {e.melding && <p>{e.melding}</p>}
       {e.filters && Object.keys(e.filters).length > 0 && <p className="break-words">Filters: {JSON.stringify(e.filters)}</p>}
     </li>)}</ol>
   </details>;
 }
+

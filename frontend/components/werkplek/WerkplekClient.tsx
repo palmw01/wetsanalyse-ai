@@ -5,7 +5,7 @@ import { NodeAnnotatiePaneel } from "@/components/annotaties/NodeAnnotatiePaneel
 import { samenhangBeschikbaar } from "@/lib/samenhang";
 import { ThreadRij, type ThreadActies } from "@/components/werkplek/ThreadRij";
 import { reeksNavigatie, reeksUitBerichten, verwerkReeksEvent, type Reeks } from "@/lib/reeks";
-import { mergeToolExecution, parseToolExecution, type NodeDoel, type ToolExecution, type NodeElement, type NodeWeergave } from "@/lib/annotatieNode";
+import { mergeToolExecution, toolSpoorUit, type NodeDoel, type ToolExecution, type NodeElement, type NodeWeergave } from "@/lib/annotatieNode";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { ArtefactPaneel } from "@/components/werkplek/ArtefactPaneel";
@@ -263,10 +263,10 @@ export function WerkplekClient({
             : b.annotatie_slug || b.annotatie_doel
               ? { id: uid(), type: "annotatie" as const, slug: b.annotatie_slug || b.annotatie_doel!.bron_iri,
                   titel: b.annotatie_doel?.label || b.annotatie_titel || undefined, annotatie_doel: b.annotatie_doel,
-                  tool_executions: (b.tool_executions ?? []).map(parseToolExecution).filter((e): e is ToolExecution => !!e), denk: b.denk,
+                  tool_executions: toolSpoorUit(b.tool_executions), denk: b.denk,
                   // Na herladen moet nog te zien zijn dat er niets opnieuw is bekeken.
                   hergebruik: b.hergebruik ? parseHergebruik(b.hergebruik) : undefined }
-              : { id: uid(), type: "antwoord" as const, tekst: b.tekst, denk: b.denk, bronnen: b.bronnen, tool_executions: (b.tool_executions ?? []).map(parseToolExecution).filter((e): e is ToolExecution => !!e) }];
+              : { id: uid(), type: "antwoord" as const, tekst: b.tekst, denk: b.denk, bronnen: b.bronnen, tool_executions: toolSpoorUit(b.tool_executions) }];
         });
         // VÓÓR wat er al staat, niet in plaats daarvan. Verstuurde de jurist een vraag terwijl dit nog
         // laadde (een koude start duurt seconden), dan staan zijn vraag en het lopende antwoord al in
