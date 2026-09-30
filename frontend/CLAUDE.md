@@ -577,6 +577,18 @@ hem (ADR-001 PR 18, 25 sep 2026). Het vangnet is nu de dekking: graph-qa stuurt 
 met de zinsdelen waar geen enkele detector iets vond – een meting, geen gok. De werkplek toont die
 volgens `docs/PLAN.md` (spoor B, PR 6).
 
+**Eén beurt is één `ThreadRij`, en die is een `memo`.** `WerkplekClient` rendert bij elke
+toetsaanslag en elk frame van een lopende stroom opnieuw. Stond de thread als één `items.map` in het
+component, dan werd elke beurt in het gesprek opnieuw opgebouwd, ook de beurten die allang klaar
+zijn. `components/werkplek/ThreadRij.tsx` krijgt daarom alleen stabiele props: het eigen item, het
+eigen document (niet de hele `docs`-map), scalaire vlaggen, en één `acties`-object dat
+`WerkplekClient` één keer maakt. Dat object gaat via een ref naar de handlers van de laatste render.
+Geef een rij dus geen inline callback of een vers object mee, want dan rendert alles weer. Om de rij
+zit `.thread-rij` (`content-visibility: auto`, zie `globals.css`): buiten beeld slaat de browser
+layout en paint over, en de DOM blijft staan. Gemeten op een productiebuild met 160 berichten:
+typen in het invoerveld ging van ~2,0 naar ~1,0 s voor 246 tekens.
+Tokens komen hooguit één keer per frame binnen (`planStroom` in `volgBeurt`).
+
 ### Symbolen zijn iconen, geen tekens
 
 `components/ui/Icoon.tsx` levert de kleine iconen (chevron, waarschuwing, vinkje, ruit, cirkel) als

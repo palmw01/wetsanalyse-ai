@@ -13,6 +13,9 @@ import { describe, expect, it } from "vitest";
  *  ook die er later bij komen.
  */
 const BRON = readFileSync(join(__dirname, "WerkplekClient.tsx"), "utf8");
+/** De rijen van de thread staan sinds de memo-splitsing in een eigen bestand; de knoppen erin horen
+ *  bij dezelfde blokkade. */
+const RIJ = readFileSync(join(__dirname, "ThreadRij.tsx"), "utf8");
 
 /** De body van `verstuur()`, tot aan de volgende top-level functie. */
 function verstuurBody(): string {
@@ -46,6 +49,8 @@ describe("tokenbudget-blokkade", () => {
     // guard hierboven, geen vervanging ervan.
     const knoppen = BRON.match(/disabled=\{geblokkeerd\}/g) ?? [];
     expect(knoppen.length).toBeGreaterThanOrEqual(2);
-    expect(BRON).toContain("uitgeschakeld={bezig || geblokkeerd}");
+    expect(RIJ).toContain("uitgeschakeld={bezig || geblokkeerd}");
+    // En de rij krijgt de echte stand mee, niet een eigen afleiding.
+    expect(BRON).toContain("geblokkeerd={geblokkeerd}");
   });
 });
