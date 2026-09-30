@@ -2,6 +2,13 @@ FROM python:3.14-slim
 
 WORKDIR /app
 
+# OS-pakketten patchen (BIO2 / ISO 27002:2022 §8.8), zoals api/Dockerfile en frontend/Dockerfile.
+# De base-image loopt achter op Debian-security-updates: op 30 sep 2026 blokkeerde de Trivy-gate
+# deze build op OpenSSL 3.5.7-1~deb13u2 (CVE-2026-75804, CVE-2026-84782), terwijl deb13u3 er al was.
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
 # Pip eerst upgraden zodat de base-image-pip (met bekende CVE's) niet in de image achterblijft —
 # Trivy scant 'm anders als alert – en zijn vendored bom.cdx.json meteen weg: pip 26.x bakt een
 # CycloneDX-SBOM van zijn eigen vendored deps mee die Trivy als package-inventaris leest en los van
