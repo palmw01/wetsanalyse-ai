@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { codepointOffset, segmentAnker, mergeToolExecution, parseToolExecution, elementVergrendeld,
-  nodeLink, nodeError, toolSpoorUit, heeftInhoud, type NodeWeergave, type NodeElement, type ToolExecution } from "./annotatieNode";
+  nodeLink, nodeError, toolSpoorUit, heeftInhoud, toolDoelLabel, duurTekst, type NodeWeergave, type NodeElement, type ToolExecution } from "./annotatieNode";
 
 describe("canonieke bronnode-annotaties", () => {
   it("maakt een gestructureerd revisieconflict handelbaar en bewaart laagmeldingen", async () => {
@@ -79,5 +79,20 @@ describe("heeftInhoud", () => {
     expect(heeftInhoud(undefined)).toBe(false);
     expect(heeftInhoud({ snapshot_id: "x" })).toBe(true);
     expect(heeftInhoud("peilmoment")).toBe(true);
+  });
+});
+
+describe("toolDoelLabel en duurTekst", () => {
+  it("noemt de bepaling van een aanroep", () => {
+    expect(toolDoelLabel({ bwb_id: "BWBR0004770", artikel: "9", lid: "1" })).toBe("BWBR0004770 art. 9 lid 1");
+    expect(toolDoelLabel({ bron_iri: "urn:bwb:BWBR0004770:artikel:2:lid:1" })).toBe("BWBR0004770 artikel 2 lid 1");
+    expect(toolDoelLabel({})).toBe("");
+    expect(toolDoelLabel(undefined)).toBe("");
+  });
+
+  it("toont korte duren in ms en lange in seconden", () => {
+    expect(duurTekst(40)).toBe("40 ms");
+    expect(duurTekst(0)).toBe("0 ms");
+    expect(duurTekst(4700)).toBe("4,7 s");
   });
 });

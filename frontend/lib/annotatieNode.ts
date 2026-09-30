@@ -64,6 +64,24 @@ export function toolSpoorUit(ruw: readonly unknown[] | null | undefined): ToolEx
     return e ? mergeToolExecution(spoor, e) : spoor;
   }, []);
 }
+/** Waar een aanroep over ging, kort: "BWBR0004770 art. 9 lid 1", of het laatste stuk van de IRI.
+ *  Zonder dit stonden er twee regels "bron_lezen · Uitgevoerd" onder elkaar, en was niet te zien
+ *  wélke bepaling er gelezen was. */
+export function toolDoelLabel(doel: unknown): string {
+  if (!doel || typeof doel !== "object") return "";
+  const d = doel as Record<string, unknown>;
+  const tekst = (k: string) => (typeof d[k] === "string" || typeof d[k] === "number" ? String(d[k]).trim() : "");
+  const delen = [tekst("bwb_id"), tekst("artikel") && `art. ${tekst("artikel")}`, tekst("lid") && `lid ${tekst("lid")}`].filter(Boolean);
+  if (delen.length) return delen.join(" ");
+  const iri = tekst("bron_iri") || tekst("id");
+  return iri.startsWith("urn:bwb:") ? iri.slice("urn:bwb:".length).replace(/:/g, " ") : iri;
+}
+
+/** Een duur zoals een mens hem leest: onder een seconde in ms ("0.0 s" zei niets), daarboven in s. */
+export function duurTekst(ms: number): string {
+  return ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1).replace(".", ",")} s`;
+}
+
 /** Een leeg object is truthy; "Actualiteit: {}" onder elke graafaanroep zei niets. */
 export function heeftInhoud(waarde: unknown): boolean {
   if (typeof waarde === "string") return waarde.trim() !== "";
