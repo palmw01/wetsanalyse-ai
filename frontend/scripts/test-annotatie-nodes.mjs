@@ -1,11 +1,13 @@
 /** Browserregressie op echte Next-UI met gemockte BFF. Start Next met
  * AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109
  * npm run test:browser (na npx playwright install chromium)
+ * Gebruik `localhost`, niet `127.0.0.1`: Next 16 weigert dev-assets aan een andere origin dan de
+ * server kent, en dan hydrateert de pagina niet – elke stap time-out dan zonder duidelijke fout.
  */
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { encode } from "../node_modules/next-auth/jwt.js";
-const base = process.env.TEST_URL || "http://127.0.0.1:3109";
+const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
 const errors = [], requests = [];

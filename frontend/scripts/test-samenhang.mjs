@@ -1,14 +1,16 @@
 /** Browserregressie voor de 3D-samenhangsgraaf op echte Next-UI met gemockte BFF. Start Next met
  * AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109
- * TEST_URL=http://127.0.0.1:3109 node scripts/test-samenhang.mjs   (na npx playwright install chromium)
+ * TEST_URL=http://localhost:3109 node scripts/test-samenhang.mjs   (na npx playwright install chromium)
  * Screenshots: MOCK_SCREENSHOTS (default /tmp/wetsanalyse-samenhang).
+ * Gebruik `localhost`, niet `127.0.0.1`: Next 16 weigert dev-assets aan een andere origin dan de
+ * server kent, en dan hydrateert de pagina niet – elke stap time-out dan zonder duidelijke fout.
  */
 import assert from "node:assert/strict";
 import { mkdirSync } from "node:fs";
 import { chromium } from "playwright";
 import { encode } from "../node_modules/next-auth/jwt.js";
 
-const base = process.env.TEST_URL || "http://127.0.0.1:3109";
+const base = process.env.TEST_URL || "http://localhost:3109";
 const shots = process.env.MOCK_SCREENSHOTS || "/tmp/wetsanalyse-samenhang";
 mkdirSync(shots, { recursive: true });
 const LAW = "urn:bwb:BWBR0004770", ART = `${LAW}:artikel:9`, L1 = `${ART}:lid:1`, L2 = `${ART}:lid:2`;
