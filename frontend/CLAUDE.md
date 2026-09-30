@@ -925,6 +925,18 @@ tokens/secrets/inhoud loggen. In de vitest-node-omgeving wordt `server-only` ges
   `app/globals.css` + `tailwind.config.ts` (en `lib/jas.ts` voor de JAS-badges) – strooi
   geen losse hex-waarden door componenten. Het officiële logo-asset (`public/belastingdienst-logo.svg`)
   blijft ongewijzigd; de JAS-klassekleuren komen exact uit `docs/wetsanalyse/wa-table.png`.
+- **CSP met een nonce per request, geen inline scripts.** `proxy.ts` zet de
+  Content-Security-Policy (`lib/csp.ts`): `script-src 'self' 'nonce-…' 'strict-dynamic'`, zonder
+  `'unsafe-inline'`. Next zet het nonce tijdens de server-render zelf op zijn scripts; lui geladen
+  chunks (`next/dynamic`, three.js) mogen via `'strict-dynamic'`. Twee gevolgen:
+  - **Geen eigen inline `<script>` en geen `next/script` met inline code.** Die krijgt geen nonce en
+    wordt in productie stil geblokkeerd. Heb je er toch een nodig, lees dan het nonce met
+    `(await headers()).get("x-nonce")` in een Server Component en geef het mee.
+  - **Elke pagina rendert dynamisch** (dat was al zo, want `app/layout.tsx` roept `auth()` aan). Een
+    statisch gegenereerde pagina kan geen nonce krijgen.
+  `style-src` houdt `'unsafe-inline'`, omdat de server-render `style="…"`-attributen meegeeft, en een
+  nonce geldt niet voor attributen. De CSP staat daarom niet meer in `next.config.mjs`: twee
+  CSP-headers gelden allebei, en de oude liet inline scripts weer toe.
 
 ## Commando's
 
@@ -936,7 +948,17 @@ npm run build        # productiebuild (output: 'standalone')
 npm run lint         # ESLint
 npm run typecheck    # tsc --noEmit
 npm test             # vitest (node-env, geen DOM – zie §Lagen)
+npm run test:browser # Playwright op echte Next-UI met gemockte BFF (scripts/test-*.mjs)
 ```
+
+`test:browser` verwacht een devserver op poort 3109
+(`AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109`)
+en praat met **`localhost`**, niet met `127.0.0.1`: Next 16 weigert dev-assets aan een andere origin,
+en dan hydrateert de pagina niet en time-out elke stap zonder duidelijke fout.
+`scripts/test-toetsen.mjs` bewaakt wat alleen in een browser te zien is: sneltoetsen alleen met de
+focus in het artefact, Escape voor het bovenste venster, focus terug na sluiten, geen herstellus na
+een geslaagde beurt, een vraag die blijft staan tijdens het laden, en zelf markeren op een
+aanraakscherm (`TOUCH_ENGINE=webkit` voor de Safari-engine, als het systeem die kan draaien).
 
 Vereist een draaiende API (lokaal of het publieke domein) + de env-vars uit `.env.local`
 (`API_BASE_URL`, `API_TOKEN`, `ADMIN_API_TOKEN`; zie README).
