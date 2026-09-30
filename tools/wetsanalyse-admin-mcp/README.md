@@ -1,9 +1,10 @@
 # wetsanalyse-admin-mcp
 
 Een **stdio-MCP-server** die de bestaande admin-API van de Wetsanalyse-webapp (`/v1/admin/*`) als
-agent-tools ontsluit, zodat een MCP-client (Claude Code) de app kan configureren: modelprofielen,
-gebruikers en de genereerbare API-tokens (read). Het *wrapt* de admin-API – er is geen tweede
-configuratie-API.
+agent-tools ontsluit, zodat een MCP-client (Claude Code) de app kan configureren en de
+annotatiekwaliteit kan inzien: modelprofielen, gebruikers, de genereerbare API-tokens (read) en twee
+annotatie-controles. Het *wrapt* de admin-API – er is geen tweede configuratie-API. De code is één
+bestand: `src/index.ts`.
 
 Draait **lokaal** (op jouw machine) wanneer je Claude Code draait en praat over HTTPS met de API met
 een admin-token. Het is dus sessie-tooling, geen standing verbinding. Logs (JSON) gaan naar stderr;
@@ -11,11 +12,18 @@ het token wordt nooit gelogd.
 
 ## Tools
 
-`list_profiles`, `get_profile`, `upsert_profile`, `set_default_profile`, `test_profile`,
-`delete_profile`, `list_users`, `create_user`, `patch_user`, `list_api_tokens`.
+| groep | tools | admin-endpoint |
+|---|---|---|
+| annotatiekwaliteit | `annotatie_statistiek` (optioneel `limit`), `annotatie_graafcontrole` (optioneel `shacl`) | `GET /v1/admin/annotatie-statistiek`, `GET /v1/admin/annotatie/graafcontrole` |
+| modelprofielen | `list_profiles`, `get_profile`, `upsert_profile`, `set_default_profile`, `test_profile`, `delete_profile` | `/v1/admin/profiles[/{name}[/default\|/test]]` |
+| gebruikers | `list_users`, `create_user` (rol default `analist`), `patch_user` (rol en/of `active`) | `/v1/admin/users[/{userid}]` |
+| API-tokens | `list_api_tokens` (alleen metadata, nooit het token) | `GET /v1/admin/api-tokens` |
 
-(Genereren/intrekken van API-tokens zit bewust **niet** in de MCP – dat blijft de `/beheer`-UI, om de
-blast-radius klein te houden.)
+`annotatie_graafcontrole` geeft `in_orde: null` als de graaf niet bereikbaar of niet geconfigureerd
+is; dat betekent nooit "goed".
+
+Genereren en intrekken van API-tokens zit bewust **niet** in de MCP – dat blijft de beheertab in de
+webapp, om de blast-radius klein te houden.
 
 ## Bouwen
 
@@ -25,9 +33,13 @@ npm install
 npm run build      # → dist/ (gecommit, zodat `node dist/index.js` zonder buildstap werkt)
 ```
 
+Vereist Node ≥ 20.3. `npm run dev` draait `src/index.ts` direct via `tsx`. Wijzig je `src/index.ts`,
+bouw en commit dan ook `dist/index.js` mee: de registratie hieronder start de gebouwde versie.
+
 ## Activeren (koppelen aan productie)
 
-1. **Genereer een token** in de webapp: `/beheer` → **API-tokens** → *Token genereren* (label bijv.
+1. **Genereer een token** in de webapp: instellingen → **Beheer** → **API-tokens**
+   (`/instellingen/beheer/api-tokens`) → *Token genereren* (label bijv.
    `claude-admin-mcp`). Het volledige token wordt **één keer** getoond – kopieer het.
 2. **Zet het token** als env-var voor Claude Code. In `.claude/settings.local.json` (gitignored,
    machine-lokaal, dus het reist niet mee naar een andere kloon):
@@ -48,21 +60,22 @@ npm run build      # → dist/ (gecommit, zodat `node dist/index.js` zonder buil
 
    en zet `WETSANALYSE_ADMIN_API_URL` in dezelfde `env`-sectie als het token hierboven.
 
-   **Welke URL?** De api van **acceptatie** heeft sinds 2 sep 2026 een publieke ingress juist
-   hiervoor (`apiExtern` in `deploy/azure/main.bicep`); productie blijft intern en is dus niet te
-   koppelen — gebruik daar `/beheer` in de webapp. De FQDN haal je op met:
+   **Welke URL?** De api van **acceptatie** heeft een publieke ingress juist hiervoor
+   (`apiExtern` in `deploy/azure/main.bicep`); productie blijft intern en is dus niet te koppelen —
+   gebruik daar de beheertab in de webapp. De FQDN haal je op met:
 
    ```bash
    az containerapp show -n wetsanalyse-api -g rg-wetsanalyse \
      --query properties.configuration.ingress.fqdn -o tsv
    ```
 
-   Draai je lokaal een api, dan volstaat `http://localhost:3000` — dat toont wel je eigen database
+   Draai je lokaal een api (poort 3000, zie `api/README.md`), dan volstaat `http://localhost:3000` —
+   dat toont wel je eigen database
    en niet die van Azure.
 3. **Verifieer**: `claude mcp list` → `wetsanalyse-admin` verbonden. Vraag Claude bijv. de
    modelprofielen te tonen (`list_profiles`).
 
-Roteren = het token intrekken in `/beheer` en een nieuw genereren. Verlies je toegang, dan trek je het
+Roteren = het token intrekken in de beheertab en een nieuw genereren. Verlies je toegang, dan trek je het
 in – de MCP kan er niets meer mee.
 
 ## Env
@@ -70,7 +83,7 @@ in – de MCP kan er niets meer mee.
 | Var | Verplicht | Betekenis |
 |-----|-----------|-----------|
 | `WETSANALYSE_ADMIN_API_URL` | ja | Basis-URL van de API (bv. `https://api.wetsanalyse.example`). Machine-lokaal zetten. |
-| `WETSANALYSE_ADMIN_TOKEN`   | ja | Admin-token (env-token óf een via `/beheer` gegenereerd token). Uit je lokale env. |
+| `WETSANALYSE_ADMIN_TOKEN`   | ja | Admin-token (het statische env-token van de api óf een in de beheertab gegenereerd token). Uit je lokale env. |
 
 Zonder beide weigert de server te starten (fail-closed).
 

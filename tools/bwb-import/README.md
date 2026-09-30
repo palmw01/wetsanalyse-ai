@@ -63,7 +63,7 @@ waarde niet als segmentgrens leest.
   de laatste twee zijn `foaf:Agent` en krijgen een wet-overstijgende slug-IRI
   zodat dezelfde persoon/organisatie over regelingen heen samenvalt.
 - **T-Box + ELI**: `app/ontology.py` schrijft een OWL/RDFS-schema (labels en
-  comments `@nl`, domains/ranges) naar de named graph `BASE graph/ontologie`,
+  comments `@nl`, domains/ranges) naar de named graph `BASE graph:ontologie`,
   met sub-axioma's naar **ELI** (`eli:LegalResource(Subdivision)`, `eli:has_part`,
   `eli:cites`, `eli:title`, …). De repository draait `rdfsplus-optimized`,
   dus SPARQL over `eli:`-termen werkt via inferentie.
@@ -83,8 +83,8 @@ waarde niet als segmentgrens leest.
   verkeerde tekst.
 - **Dekking is een cijfer, geen oordeel** (`app/dekking.py`): de import legt de `<al>`-tekens in de
   bron naast de `bwb:tekst`-literals in de graaf en toont de uitkomst in het import-overzicht.
-  `tests/test_dekking.py` bewaakt hem offline op de fixtures. Dit bestaat omdat elf
-  Leidraad-artikelen (10.052 tekens) stil ontbraken: geen fout, geen lege node, geen waarschuwing.
+  `tests/test_dekking.py` bewaakt hem offline op de fixtures. Ontbrekende tekst geeft anders geen
+  fout, geen lege node en geen waarschuwing: hij is gewoon stil weg.
 - **En het cijfer bijt** (`BWB_MIN_DEKKING`, default 0,995): zakt een regeling eronder, dan eindigt
   de import met **exitcode 2** en wordt de container-app-job rood — net als de `vul-graaf`-workflow,
   die alleen `Succeeded` accepteert. Exitcode **1** blijft voorbehouden aan een import die niet
@@ -115,30 +115,30 @@ waarde niet als segmentgrens leest.
   `bwb:inFamilie` (verwante regelingen uit de wetsfamilie) en per artikel/
   structuurdeel `bwb:grondslagVoor`/`bwb:bevoegdheidVoor`/`bwb:verwijzingDoor`
   (→ de gerelateerde `bwb:Regeling`; gekoppeld via de WTI-`label-id`).
-- **IRI-schema (ref_key)**: wet = `BASE{bwb_id}`; dieper afgeleid van de jci:
-  `BASE{bwb}/artikel/{nr}`, `…/artikel/2/lid/1/o/a` (onderdelen),
-  `…/hoofdstuk/I` (structuurdelen). Een `verwijstNaar` wijst naar exact
+- **IRI-schema (ref_key)**: wet = `BASE{bwb_id}`; dieper afgeleid van de jci
+  (`Vocab.by_ref_key` in `app/rdf_vocab.py`): `BASE{bwb}:artikel:{nr}`,
+  `…:artikel:2:lid:1:o:a` (onderdelen), `…:hoofdstuk:I:afdeling:1` (structuurdelen).
+  Niet-citeerbare nodes krijgen `BASE{bwb}:id:{xml-id}`. Een `verwijstNaar` wijst naar exact
   dezelfde IRI (open-world: geen stub-nodes; de doel-IRI krijgt inhoud zodra
   die wet volgt). Verwijzingen naar hele hoofdstukken/titeldelen/afdelingen/
   wetten blijven dus behouden.
 
   **Een structuurdeel draagt het volledige pad in zijn sleutel**
-  (`{bwb}#hoofdstuk=VI#afdeling=1`, `jci_node_ref_key`), en dat is geen netheid. Tot 4 sep 2026
-  werd alleen het laatste jci-segment aangehouden, waardoor élke "Afdeling 1" van een regeling op
-  dezelfde node landde: 16 van de 93 afdelingen en 5 van de 27 paragrafen in de graaf hadden meer
-  dan één ouder, met hun titels en artikelen op één hoop. Bij de Invorderingswet was `afdeling:1`
-  tegelijk *Aansprakelijkheid* (hoofdstuk VI) en *Verhaalsrechten* (hoofdstuk IV).
+  (`{bwb}#hoofdstuk=VI#afdeling=1`, `jci_node_ref_key` in `app/references.py`), en dat is geen
+  netheid. Met alleen het laatste jci-segment landt élke "Afdeling 1" van een regeling op dezelfde
+  node, met titels en artikelen van verschillende afdelingen op één hoop: bij de Invorderingswet
+  zijn zowel *Aansprakelijkheid* (hoofdstuk VI) als *Verhaalsrechten* (hoofdstuk IV) `afdeling:1`.
 
   Een verwijzing schrijft dat pad vaak niet mee (ongeveer de helft van de afdelingsverwijzingen).
   Daarom **verzamelt de batch-import eerst alle wetten en schrijft hij pas daarna**
-  (`run_imports`): uit alle verzamelde wetten samen komt één `structuurindex` — padloze sleutel →
-  volledige ref_key, en alleen als dat nummer binnen die regeling ondubbelzinnig is — waarmee
-  `koppel_structuurverwijzingen` de doelen met een exacte lookup rechtzet.
+  (`run_imports` in `app/main.py`): uit alle verzamelde wetten samen komt één `structuurindex` —
+  padloze sleutel → volledige ref_key, en alleen als dat nummer binnen die regeling ondubbelzinnig
+  is — waarmee `koppel_structuurverwijzingen` (`app/collect.py`) de doelen met een exacte lookup
+  rechtzet.
 
   Die volgorde is het hele punt. Los je een verwijzing op tijdens de import van de *citerende* wet,
-  dan kan dat per definitie niet voor een doel in een ándere wet: die is dan nog niet gezien. Zo
-  landden 26 verwijzingen die daarvóór gewoon werkten op een lege node. De kennis bestond wél — alle
-  wetten komen in één run binnen — alleen op het verkeerde moment.
+  dan kan dat per definitie niet voor een doel in een ándere wet: die is dan nog niet gezien, en de
+  verwijzing landt op een lege node. Een losse `run_import` (één wet) heeft precies die grens.
 
   Is het nummer binnen de doelwet niet ondubbelzinnig, dan blijft de verwijzing een open stub; bij
   een écht ambigue verwijzing is dat eerlijker dan een gok. Hetzelfde geldt voor een doel in een wet
@@ -157,21 +157,17 @@ waarde niet als segmentgrens leest.
   gemarkeerd met `bwb:soort "tekstueel"` + `bwb:betrouwbaarheid "laag"`,
   zodat een chatbot erop kan filteren (uit te zetten met
   `BWB_DETECT_TEKSTUELE_REFS=false`).
-- **Idempotentie**: elke wet in named graph `BASE graph/{bwb_id}`; `PUT` vervangt.
+- **Idempotentie**: elke wet in named graph `BASE graph:{bwb_id}` (bij de default `urn:bwb:graph:BWBR…`); `PUT` vervangt.
 
 Stabiele sleutels komen uit het XML-attribuut `bwb-ng-variabel-deel`
 (bv. `BWBR0004770/HoofdstukI/Artikel1`), zodat herimports idempotent zijn. De
 ref_key is afgeleid uit de canonieke jci-verwijzing – daardoor ontstaan
 cross-wet links vanzelf zodra de doelwet ook is geïmporteerd.
 
-> **Migratie**: sinds de citeerbare-identiteit-uitbreiding wijzigen de IRI's
-> van structuurdelen, leden en onderdelen. Eén her-import per wet volstaat
-> (de named graph wordt integraal vervangen).
->
-> Datzelfde geldt voor de padsleutel en `bwb:doelLabel` hierboven (4 sep 2026): de IRI's van
-> hoofdstukken, titeldelen, afdelingen en paragrafen veranderen, artikelen en leden niet. De
-> import-job draait automatisch na een deploy en wekelijks, dus er is geen migratiestap — maar tot
-> die herimport draait, meet `eval/retrieval_smoke.py` in graph-qa nog de oude toestand.
+Verander je het IRI-schema, dan is er geen migratiestap nodig: de import vervangt elke named graph
+integraal en draait na elke deploy en wekelijks. Tot die herimport meet
+`tools/graph-qa/eval/retrieval_smoke.py` nog de oude toestand. Let op: de annotatielagen van de api
+hangen aan artikel-, lid- en onderdeel-IRI's; die mogen niet zomaar verschuiven.
 
 ## Full-text search (Lucene)
 
@@ -199,6 +195,24 @@ ORDER BY DESC(?score)
 in alle velden). graph-qa's `search_wetgeving`-tool gebruikt deze index voor
 alle tekstuele zoekvragen.
 
+## Similarity-index (`bwb_similarity`)
+
+Na het schrijven waarborgt de batch-import ook de native GraphDB text-similarity-index
+`bwb_similarity` (`ensure_similarity_index`) over alle `bwb:tekst`-literals binnen de eigen
+IRI-ruimte. graph-qa's `semantic_search` gebruikt hem (env `SIMILARITY_INDEX=bwb_similarity` op
+graph-qa); zonder index valt die tool terug op `search_wetgeving`.
+
+Twee regels:
+
+- **Hij wordt pas ná het schrijven aangemaakt**, niet in `prepare()`. Een similarity-index is een
+  momentopname die bij het aanmaken wordt getraind; over een lege graaf gebouwd vindt hij nooit
+  iets. De Lucene-connector loopt daarentegen live mee.
+- **Een bestaande index wordt niet herbouwd.** Een mislukte aanmaak is nooit fataal voor de
+  import; hij logt een waarschuwing. Achtergrond: `tools/graph-qa/docs/embeddings-runbook.md`.
+
+GraphDB bewaart de index niet over een herstart heen (de opslag op Azure is niet-persistent); de
+eerstvolgende import, via de graafwacht, bouwt hem opnieuw.
+
 ## WTI-verrijking (optioneel)
 
 Met `BWB_IMPORT_WTI=true` wordt per wet ook de wetstechnische informatie
@@ -216,27 +230,27 @@ python3 -m venv .venv
 cp .env.example .env   # vul GRAPHDB_* in (bij anonieme GraphDB volstaan de defaults)
 ```
 
-> Vereist Python ≥ 3.13 (getest op 3.14; de container draait 3.13). De XSD's
-> staan reeds in `schemas/`. `requirements.txt` pint `lxml>=5.3` omdat er voor
-> Python 3.14 (nog) geen lxml-wheel voor `~=5.3` bestaat.
+> Vereist Python ≥ 3.13 (`pyproject.toml`); de container draait 3.14. De officiële XSD's
+> staan in `schemas/`.
 
 ## Configuratie (`.env`)
 
 | Variabele              | Default                       | Uitleg                                        |
 |------------------------|-------------------------------|-----------------------------------------------|
-| `GRAPHDB_URL`          | `http://graphdb:7200`         | GraphDB-basis-URL (intern op docker-netwerk)  |
+| `GRAPHDB_URL`          | `http://graphdb:7200`         | GraphDB-basis-URL                             |
 | `GRAPHDB_REPOSITORY`   | `inning`                      | Doel-repository                               |
 | `GRAPHDB_USER`         | –                             | Optioneel; leeg = anoniem                     |
 | `GRAPHDB_PASSWORD`     | –                             | Optioneel                                     |
-| `GRAPHDB_BASE_IRI`     | `urn:bwb:`       | IRI-namespace voor resources                  |
-| `GRAPHDB_ONTOLOGY_IRI` | `urn:bwb-ns:`    | IRI-namespace voor de ontologie               |
+| `GRAPHDB_BASE_IRI`     | `urn:bwb:`                    | IRI-namespace voor resources                  |
+| `GRAPHDB_ONTOLOGY_IRI` | `urn:bwb-ns:`                 | IRI-namespace voor de ontologie               |
 | `BWB_DEFAULT_ID`       | `BWBR0004770`                 | Standaardregeling                             |
 | `BWB_VALIDATE_XSD`     | `true`                        | XSD-validatie (niet-blokkerend)               |
 | `BWB_DETECT_TEKSTUELE_REFS` | `true`                   | Ongetagde tekstverwijzingen detecteren        |
-| `BWB_IMPORT_WTI`       | `false`                       | WTI-verrijking (titels/rechtsgebieden/grondslagen) |
+| `BWB_IMPORT_WTI`       | `false`                       | WTI-verrijking (titels/rechtsgebieden/grondslagen); op Azure `true` |
+| `BWB_MIN_DEKKING`      | `0.995`                       | Ondergrens tekstdekking; eronder exitcode 2; `0` = uit |
 | `BWB_SERVICE_API_KEY`  | –                             | Optionele API-key voor de service (`X-API-Key`-header) |
-| `BWB_DATA_DIR`         | `data/`                       | Cache-map voor gedownloade XML                |
-| `BWB_SCHEMAS_DIR`      | `schemas/`                    | Map met de officiële XSD's                    |
+| `BWB_DATA_DIR`         | `data/` (in de projectwortel) | Cache-map voor gedownloade XML                |
+| `BWB_SCHEMAS_DIR`      | `schemas/` (in de projectwortel) | Map met de officiële XSD's                 |
 | `BWB_SRU_URL`          | `https://zoekservice.overheid.nl/sru/Search` | SRU-zoekdienst (discovery)     |
 | `BWB_REPO_URL`         | `https://repository.officiele-overheidspublicaties.nl` | BWB-repository (downloads) |
 
@@ -249,16 +263,35 @@ cp .env.example .env   # vul GRAPHDB_* in (bij anonieme GraphDB volstaan de defa
 # Of een andere regeling
 .venv/bin/python main.py BWBR0005537
 
-# Batch: meerdere regelingen in één run (sequentieel, per wet idempotent)
+# Batch: meerdere regelingen in één run (eerst alles verzamelen, dan schrijven; per wet idempotent)
 .venv/bin/python main.py BWBR0004770 BWBR0005537 BWBR0024096
 
-# Naar een externe GraphDB
-GRAPHDB_URL=https://graphdb.example .venv/bin/python main.py BWBR0004770
+# Alleen importeren als er een regeling in de graaf ontbreekt (de stand van de graafwacht)
+.venv/bin/python main.py BWBR0004770 BWBR0005537 --alleen-bij-verlies
+
+# Naar een andere GraphDB
+GRAPHDB_URL=http://localhost:7200 .venv/bin/python main.py BWBR0004770
 ```
 
 Na afloop verschijnt per wet een overzicht met tellingen per elementtype
 (wetten, hoofdstukken, afdelingen, paragrafen, divisies, artikelen, leden,
-onderdelen en relaties); de exit-code is 1 zodra één wet faalt.
+onderdelen en relaties) en de tekstdekking. Exitcodes: **0** goed, **1** een wet is niet
+geschreven, **2** alles is geschreven maar de tekstdekking zakt onder `BWB_MIN_DEKKING`.
+
+`--alleen-bij-verlies` doet eerst één SPARQL-peiling (`GraphDbWriter.graaf_is_compleet`): staat
+elke gevraagde regeling als gevulde named graph in de repository, dan stopt hij met exitcode 0
+zonder overheid.nl te benaderen. Elke fout in die peiling telt als "niet compleet": een ontbrekende
+repository geeft een 404, en dat is precies de toestand waarvoor de peiling bestaat.
+
+## Tests
+
+```bash
+.venv/bin/python -m pytest -q
+```
+
+De tests draaien offline op de fixtures in `tests/fixtures/`; tests met de marker `integration`
+vereisen een echte GraphDB en worden standaard overgeslagen. CI draait dezelfde suite vóór de
+image-build.
 
 ## Service
 
@@ -276,14 +309,32 @@ onderdelen en relaties); de exit-code is 1 zodra één wet faalt.
 Is `BWB_SERVICE_API_KEY` gezet, dan vereist `POST /import` de header
 `X-API-Key: <key>` (anders 401).
 
-De importer publiceert bewust geen poort: importeren is een schrijfactie op de graaf. Op Azure draait
-hij als container-app-job – starten met `azure-infra` → actie `vul-graaf`, of automatisch na elke
-`deploy` en wekelijks via de cron-trigger in `deploy/azure/main.bicep`.
+De service is de Dockerfile-`CMD`. Op Azure draait hij niet: daar starten de jobs de CLI
+(`python -m app.main`), omdat een job geen webserver nodig heeft en de exitcode meteen het resultaat
+van de import is. De importer publiceert bewust geen poort: importeren is een schrijfactie op de
+graaf.
 
-## Deployment
+## Uitrol op Azure
 
-De importer draait op Azure als **container-app-job** met een wekelijkse cron-trigger
-(zie `deploy/azure/main.bicep`). Hij vult de graaf ook automatisch na elke infra-deploy,
-want de GraphDB-opslag daar is niet-persistent. Het image `ghcr.io/palmw01/bwb-import` wordt door
-`.github/workflows/bwb-import-docker-publish.yml` gebouwd en gepusht bij een push
-naar `master` die `tools/bwb-import/**` raakt.
+Het image `ghcr.io/palmw01/bwb-import` wordt door `.github/workflows/bwb-import-docker-publish.yml`
+getest, gebouwd en gepusht bij een push naar `master` die `tools/bwb-import/**` raakt (Markdown
+uitgezonderd), of handmatig via `workflow_dispatch`. `deploy/azure/main.bicep` rolt het uit als twee
+container-app-jobs met dezelfde CLI, dezelfde lijst regelingen (param `bwbIds`) en dezelfde env
+(`BWB_IMPORT_WTI=true`, `BWB_VALIDATE_XSD=true`, `BWB_DETECT_TEKSTUELE_REFS=true`,
+`BWB_MIN_DEKKING` uit param `minDekking`):
+
+| job | trigger | wat hij doet |
+|---|---|---|
+| `<appName>-bwb-import` | cron `0 3 * * 1` (maandag 03:00 UTC), en `azure-infra` → `deploy` of `vul-graaf` | volledige import; `replicaRetryLimit: 1` |
+| `<appName>-graafwacht` | cron `*/15 * * * *` | `--alleen-bij-verlies`: één peiling, alleen bij verlies een volledige import; geen retry |
+
+De graafwacht bestaat omdat GraphDB op Azure niet-persistent is en na een onverwachte herstart leeg
+opkomt, zonder repository `inning`. Die repository maakt alleen de importer aan
+(`GraphDbWriter.ensure_constraints`), dus zonder graafwacht blijft de graaf leeg tot de volgende
+deploy of de weekcron. Draait de graafwacht precies terwijl de graaf wordt gevuld, dan start hij een
+tweede import; dat is idempotent, alleen verspilling.
+
+Handmatig starten: `azure-infra` → actie `vul-graaf` (start de import-job en wacht hem af), of
+`az containerapp job start -n <appName>-bwb-import -g <resource-group>`. Zonder GraphDB-licentie
+komt de graaf read-only op en faalt de import op het eerste schrijfverzoek; zie
+`deploy/azure/README.md`.

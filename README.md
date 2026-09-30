@@ -21,19 +21,23 @@ van weggepoetst tot schijnzekerheid. Het platform is een hulpmiddel voor de juri
 
 ## Wat het platform kan
 
-- **Een bepaling laten annoteren.** De agent haalt de wettekst uit de kennisgraaf, stelt markeringen
-  met JAS-klasse voor, en een tweede agentrol (de *Critic*) beoordeelt elk voorstel op 🟢/🟡/🔴.
+- **Een bepaling laten annoteren.** De agent haalt de wettekst van één bronnode (artikel, lid of
+  onderdeel) uit de kennisgraaf. Deterministische detectoren bepalen de fragmentgrenzen en de
+  mogelijke klassen, een kleine classifier kiest daarbinnen, en een gerichte reviewer kijkt alleen
+  naar twijfelgevallen. Elk voorstel krijgt een aandachtsniveau: 🟢 of 🟡 (een keuze voor de jurist).
 - **Vragen stellen over wetgeving.** Vrije vragen worden beantwoord vanuit de kennisgraaf, met
   bronnen die uit de tool-trace komen – niet uit het proza van het model.
-- **Reviewen en vastleggen.** De jurist keurt elk element goed, past het aan of wijst het af; het
-  document gaat van `in_review` naar `geaccordeerd` en is te exporteren als PDF, CSV of JSON.
+- **Reviewen en vastleggen.** De jurist keurt elk element goed, corrigeert het, wijst het af of
+  heropent het; een laag gaat van `in_review` naar `geaccordeerd`, en de weergave is te exporteren
+  als PDF, CSV of JSON. Annotatielagen zijn gedeeld: ze dragen het werk van meerdere juristen.
 - **De wettekst zelf binnenhalen.** De importer haalt regelingen op bij overheid.nl, valideert ze
   tegen de officiële XSD's en schrijft ze als RDF naar GraphDB – per wet idempotent.
 
 ## Architectuur
 
 Vijf diensten. De webapp is de enige die een mens ziet; zij praat met **twee** upstreams – de API
-voor alles wat bewaard moet blijven, en de agent rechtstreeks voor de lopende beurt (SSE).
+voor alles wat bewaard moet blijven, en de agent rechtstreeks voor de lopende beurt (SSE). De API is
+de waarheid over annotaties (PostgreSQL) en projecteert ze als annotatielagen in de graaf.
 
 ```mermaid
 flowchart TB
@@ -43,7 +47,7 @@ flowchart TB
         FE["<b>frontend</b> · Next.js BFF<br/><code>frontend/</code>"]
         API["<b>wetsanalyse-api</b> · FastAPI<br/><code>api/</code>"]
         QA["<b>graph-qa</b> – Lex · LangGraph<br/><code>tools/graph-qa/</code>"]
-        PG[("PostgreSQL<br/><i>documenten, gebruikers,<br/>gesprekken, auditlog</i>")]
+        PG[("PostgreSQL<br/><i>annotatielagen, gebruikers,<br/>gesprekken, auditlog</i>")]
         GDB[("GraphDB<br/><i>BWB-kennisgraaf</i><br/>repo <code>inning</code>")]
     end
 
@@ -55,7 +59,8 @@ flowchart TB
     FE -->|"live beurt<br/>SSE"| QA
     API --> PG
     QA -->|"MCP<br/><code>/mcp</code>"| GDB
-    QA -.->|"annotaties vastleggen<br/><i>alleen met WETSANALYSE_API_URL</i>"| API
+    QA -.->|"annotaties vastleggen en lezen<br/><i>alleen met WETSANALYSE_API_URL</i>"| API
+    API -->|"projectie annotatielagen"| GDB
     OVH --> IMP
     IMP -->|"RDF · named graph per wet"| GDB
 ```
@@ -63,10 +68,11 @@ flowchart TB
 | Onderdeel | Map | Verantwoordelijkheid |
 |---|---|---|
 | **frontend** | [`frontend/`](frontend/README.md) | Next.js-webapp en BFF. `/workbench` is de werkplek: één gespreksvenster voor vragen én annotatie. Login, rollen, optionele 2FA. Rijkshuisstijl. |
-| **wetsanalyse-api** | [`api/`](api/README.md) | Headless FastAPI. Annotatiedomein, gesprekken, gebruikers en login, modelprofielen, berichten, feedback. Identiteitsbron van de webapp. |
-| **graph-qa (Lex)** | [`tools/graph-qa/`](tools/graph-qa/README.md) | De agent. Eén LangGraph-graaf met een supervisor die kiest tussen een antwoord-worker en een annotatie-worker. Praat via MCP met GraphDB. |
-| **bwb-import** | [`tools/bwb-import/`](tools/bwb-import/README.md) | ETL van overheid.nl naar RDF. Draait op Azure als cron-job, wekelijks. |
-| **kennisgraaf** | [`deploy/azure/`](deploy/azure/README.md) | GraphDB 11.4, repository `inning`, met de sinds 11.2 ingebouwde MCP-server op `/mcp`. |
+| **wetsanalyse-api** | [`api/`](api/README.md) | Headless FastAPI. Annotatiedomein (contract 2: lagen per bronnode), gesprekken, gebruikers en login, modelprofielen, tokenbudget, berichten, feedback. Identiteitsbron van de webapp. |
+| **graph-qa (Lex)** | [`tools/graph-qa/`](tools/graph-qa/README.md) | De agent. Eén LangGraph-graaf met een supervisor die kiest tussen een antwoord-worker, een annotatie-worker en een leesroute over bestaande annotaties. Praat via MCP met GraphDB. |
+| **bwb-import** | [`tools/bwb-import/`](tools/bwb-import/README.md) | ETL van overheid.nl naar RDF. Draait op Azure als job: wekelijks, plus een graafwacht die elk kwartier controleert of de graaf er nog staat. |
+| **bronmodel** | `packages/bronmodel/` | Gedeeld Python-pakket van api en graph-qa: canonieke bronboom, snapshot-ID's, teksthashes en tekstankers. |
+| **kennisgraaf** | [`deploy/azure/`](deploy/azure/README.md) | GraphDB 11.4, repository `inning`, met de ingebouwde MCP-server op `/mcp` (GraphDB ≥ 11.2). |
 | **de skill** | [`.claude/skills/wetsanalyse/`](.claude/skills/wetsanalyse/SKILL.md) | De JAS-methode als inhoudelijke bron: de dertien klassen en het volg-beleid voor verwijzingen. Documentatie, geen code. |
 
 De naam **Lex** is wat de gebruiker ziet; de code, het image en de env-variabelen heten overal
@@ -79,18 +85,19 @@ De naam **Lex** is wat de gebruiker ziet; de code, het image en de env-variabele
 | **JAS** | Juridisch Analyseschema: dertien klassen waarin een wetsformulering wordt ingedeeld. |
 | **werkgebied** | De analyse-eenheid. Een kennisdomein met **meerdere** bronnen – niet één artikel. |
 | **bron** | Eén `bwbId` + `artikel` + optioneel `lid`. De kleinste citeerbare eenheid. |
+| **bronnode** | Een artikel, lid of onderdeel in de graaf. Een annotatielaag hoort bij precies één bronnode; ankers zijn offsets in Unicode-codepoints binnen de eigen tekst van die node. |
 | **bronreferentie** | De jci-uri die een markering aan de officiële vindplaats knoopt. Verplicht. |
 | **brongetrouw** | Alleen letterlijk opgehaalde wettekst. Een citaat dat niet letterlijk in het corpus staat, wordt geweigerd – mechanisch, niet op goed vertrouwen. |
 | **grounding** | Deterministische controle of het antwoord gedekt wordt door de tool-trace. Drie niveaus. |
-| **aandachtsniveau** | Het oordeel van de Critic per element: 🟢 groen, 🟡 geel, 🔴 rood. |
+| **aandachtsniveau** | Wat de annotatieketen per element aan de jurist meegeeft: 🟢 groen, of 🟡 geel – een keuze die de jurist moet maken. Onzekerheid is een code, nooit een confidence-getal. |
 | **straat** | Een zelfstandige omgeving op Azure: *acceptatie* of *productie*. |
 
 ### De dertien JAS-klassen
 
 Canonieke bron: [`api/app/jas_klassen.py`](api/app/jas_klassen.py) (`JAS_KLASSEN_VOLGORDE`).
 Twee andere plekken dragen dezelfde waarden – `frontend/lib/jas.ts`, omdat een browser geen Python
-leest, en `tools/graph-qa/agent/jas_klassen.py` – allebei met een drift-test erop. Wijzig je de
-lijst, wijzig hem dan overal; de tests wijzen je erop.
+leest, en `tools/graph-qa/agent/jas_klassen.py`, dat uit de skill wordt gegenereerd – allebei met
+een drift-test erop. Wijzig je de lijst, wijzig hem dan overal; de tests wijzen je erop.
 
 `Rechtssubject` · `Rechtsobject` · `Rechtsbetrekking` · `Rechtsfeit` · `Voorwaarde` ·
 `Afleidingsregel` · `Variabele en variabelewaarde` · `Parameter en parameterwaarde` · `Operator` ·
@@ -183,7 +190,11 @@ uv run graph-qa               # uvicorn op poort 8080
 > een agent zonder graaf zou vragen gaan beantwoorden zonder bron. `AZURE_FOUNDRY_BASE_URL` moet
 > op `/anthropic` eindigen.
 
-Laat de webapp hem vinden met `GRAPH_QA_URL` en `GRAPH_QA_TOKEN` in `frontend/.env.local`.
+Laat de webapp hem vinden met `GRAPH_QA_URL` en `GRAPH_QA_TOKEN` in `frontend/.env.local`. Wil je
+dat annotaties ook worden vastgelegd, zet dan `WETSANALYSE_API_URL` en `WETSANALYSE_API_TOKEN` in
+`tools/graph-qa/.env` (en daarmee ook `QA_API_TOKEN`). Voor de taalanalyse van de annotatieketen
+heb je de extra `nlp` nodig (`uv sync --extra nlp`); zonder die extra degradeert de keten zichtbaar
+naar tokenniveau.
 
 ### 4 · De graaf vullen (optioneel)
 
@@ -213,23 +224,28 @@ sequenceDiagram
 
     J->>W: kiest een bepaling
     W->>L: POST /v1/runs
-    L->>G: wettekst ophalen
-    L->>L: annoteren → Critic beoordeelt
-    L-->>W: SSE: doel · run · element (🟢🟡🔴)
-    L->>A: elementen vastleggen
-    J->>W: keurt goed / past aan / wijst af
+    L->>G: bronboom en wettekst ophalen
+    L->>A: bestaande lagen en dekking
+    L->>L: detectoren → classifier → gerichte review → resolver
+    L-->>W: SSE: doel · run · dekking · element (🟢🟡)
+    L->>A: batch vastleggen (laag per bronnode)
+    J->>W: keurt goed / corrigeert / wijst af
     W->>A: beslissing + auditregel
-    J->>W: status → geaccordeerd
+    J->>W: laagstatus → geaccordeerd
 ```
 
 De agent draait de beurt; de browser kijkt mee. Verbreekt de verbinding, dan loopt de run door – de
 werkplek haalt de gemiste events op met `?vanaf=<seq>`. Dat is waarom `/v1/runs` bestaat naast
 `/v1/chat`.
 
-**De Critic corrigeert niet zelf.** Code voert de correcties uit, niet een tweede taalmodel: alleen
-🔴 met een concreet vervangingsvoorstel wordt doorgevoerd, en alleen als het vervangende fragment
-letterlijk in de wettekst staat. 🟡 verandert nooit iets – dat wordt een alternatief dat de jurist
-naast het voorstel ziet. Zo kan een tweede modelronde geen tekst introduceren die er niet stond.
+Noemt de vraag een artikel met meerdere leden, dan krijgt de jurist eerst een keuzekaart in plaats
+van een analyse. Een bepaling die al (door een mens) is afgerond, gaat niet opnieuw door het model.
+
+**Het model voegt niets toe.** Detectoren bepalen de fragmenten en de ruimte van mogelijke klassen;
+het model kiest daarbinnen of wijst af, en de reviewer kiest alleen tussen bestaande alternatieven.
+Een vaste resolver voert de uitkomst uit en elk voorstel gaat opnieuw door de bronvalidatie. Zo kan
+geen modelronde tekst introduceren die er niet stond. De volledige keten staat in
+[`docs/architectuur/annotatieketen.md`](docs/architectuur/annotatieketen.md).
 
 ### Een vraag stellen
 
@@ -239,15 +255,17 @@ antwoord toetst en de bronnen uit de tool-trace worden verzameld.
 
 Gaat de vraag over **bestaande annotaties** ("welke elementen zijn een Rechtsobject?"), dan geldt de
 leesroute: die voert eerst zelf een zoekopdracht uit op de opgeslagen annotaties en laat het model
-daarna formuleren. Zoeken is er een stap in de keten, geen keuze van het model — dat scheelde op
-22 sep 2026 een non-antwoord op een vraag die gewoon te beantwoorden was. Een storing wordt nooit
-stilzwijgend "er zijn geen annotaties".
+daarna formuleren. Zoeken is er een stap in de keten, geen keuze van het model — anders kan het
+model de zoekopdracht overslaan en een non-antwoord geven op een vraag die gewoon te beantwoorden is.
+Een storing wordt nooit stilzwijgend "er zijn geen annotaties".
 
 ## Projectstructuur
 
 ```
 api/                  FastAPI-backend
-  app/routers/          annotatie · admin · auth · gesprekken · berichten · feedback · catalog
+  app/routers/          annotatie · admin · auth · gesprekken · verbruik · berichten · feedback · catalog
+  app/annotatie_v2*.py  het annotatiedomein op bronnodes (contract 2): routes, store, zoeken
+  app/graaf_projectie_v2.py  de projectie van de lagen naar GraphDB
   app/db.py             SQLAlchemy Core-tabellen (geen ORM-klassen, geen Alembic)
   app/jas_klassen.py    de dertien JAS-klassen (canonieke bron)
   app/validation.py     klassevalidatie voor het annotatiedomein
@@ -257,23 +275,28 @@ frontend/             Next.js-webapp
   lib/                  de rekenkern – hier staat de testbare logica
 tools/graph-qa/       de agent (Lex)
   agent/orchestrator.py bouwt de LangGraph-graaf (de nodes staan in agent/nodes/)
-  agent/nodes/          de nodes per keten: annotatie, annotatie_lezen, antwoord, supervisie, decompositie
+  agent/nodes/          de nodes per keten: annotatie, annotatie_lezen, antwoord, context, supervisie, decompositie
   agent/supervisor.py   workerkeuze + specialistkeuze, met harde allowlist
   agent/jas_pipeline/   de annotatieketen: detectoren, classifier, reviewer, resolver (ADR-001)
   agent/grounding.py    de brongetrouwheidscontrole
   agent/tools/          de getypeerde toollaag boven MCP
+  scripts/              generatoren die de skill naar code vertalen (jas_klassen, methodepakket)
+  eval/                 het eval-harnas met de gouden sets
 tools/bwb-import/     ETL overheid.nl → RDF
   app/parser.py         XML → dataclasses
   app/rdf_vocab.py      IRI-schema en namespaces
   app/graphdb_writer.py named graphs, FTS-connector, WTI-verrijking
   schemas/              de officiële XSD's (gecommit, gaan mee in de image)
-.claude/skills/wetsanalyse/   de JAS-methode als documentatie
-deploy/azure/         main.bicep – de volledige stack
+packages/bronmodel/   gedeelde bronboom en tekstankers voor api en graph-qa
+.claude/skills/wetsanalyse/   de JAS-methode – documentatie én build-input van graph-qa
+deploy/azure/         main.bicep (de stack per straat), grafana.bicep, gen-deploy.py
+.github/workflows/    CI: poort, publish per component, promote, rollback, azure-infra, bouwwacht
 docs/                 methodische onderbouwing en plannen
 ```
 
-Toolinstellingen per onderdeel staan in de eigen `CLAUDE.md`
-([api](api/CLAUDE.md) · [frontend](frontend/CLAUDE.md) · [graph-qa](tools/graph-qa/CLAUDE.md)).
+Toolinstellingen, invarianten en valkuilen per onderdeel staan in de eigen `CLAUDE.md`
+([api](api/CLAUDE.md) · [frontend](frontend/CLAUDE.md) · [graph-qa](tools/graph-qa/CLAUDE.md)); het
+overzicht voor wie code wijzigt staat in de root-[`CLAUDE.md`](CLAUDE.md).
 
 ## Configuratie
 
@@ -291,14 +314,16 @@ komen secrets als bestand binnen in plaats van als omgevingsvariabele.
 | `LLM_CONFIG_SECRET` | api | – | Fernet-sleutel voor API-keys **en** 2FA-secrets. Raak je hem kwijt, dan zijn beide onleesbaar. |
 | `API_BASE_URL` / `API_TOKEN` | frontend | `http://wetsanalyse-api:3000` | `API_TOKEN` is alleen de waarde ná de `:`. |
 | `GRAPH_QA_URL` / `GRAPH_QA_TOKEN` | frontend | `http://graph-qa:8080` | Zonder deze bereikt de werkplek de agent niet. |
+| `ADMIN_API_TOKEN` | frontend | – | Admin-token voor de beheertab; zonder dit geeft beheer `403`. |
 | `AUTH_SECRET` | frontend | – | Verplicht voor de login. |
 | `AUTH_URL` | frontend | – | **Verplicht achter een reverse proxy**, anders springt in-/uitloggen naar het interne adres. |
 | `GRAPHDB_MCP_URL` / `GRAPHDB_TOKEN` | graph-qa | leeg | Verplicht; de dienst start er niet zonder. |
 | `AZURE_FOUNDRY_BASE_URL` / `_API_KEY` | graph-qa | – | Moet op `/anthropic` eindigen. |
 | `SIMILARITY_INDEX` | graph-qa | leeg | Leeg ⇒ `semantic_search` degradeert naar tekstzoeken. |
-| `QA_API_TOKEN` | graph-qa | leeg | **Leeg = open**. Verplicht zodra de agent naar de API schrijft. |
+| `WETSANALYSE_API_URL` / `_TOKEN` | graph-qa | leeg | Zonder deze legt de agent geen annotaties vast en kan hij ze niet lezen. |
+| `QA_API_TOKEN` | graph-qa | leeg | **Leeg = open**. Verplicht zodra de agent naar de API schrijft; de dienst start anders niet. |
 | `ANNOTATIE_READ_USER_ID` | graph-qa | leeg | Alleen voor CLI/MCP: namens wie de annotatieleestools lezen. Nooit door een modelargument te kiezen. |
-| `ANNOTATIE_CONTRACT_VERSIE` | api | `2` | `2` = annotaties op bronnodes; bij `1` zijn die routes uit en gelden de oude artikelbrede paden. |
+| `ANNOTATIE_CONTRACT_VERSIE` | api | `2` | `2` = annotaties op bronnodes; bij `1` geven die routes `503` en gelden de artikelbrede paden. |
 | `JAS_PROJECTIE_INTERVAL` | api | `60` | Seconden tussen twee rondes van de projectielus — het vangnet onder de directe projectie naar de graaf. |
 | `GRAPHDB_URL` | bwb-import | `http://graphdb:7200` | Waar de importer naartoe schrijft. |
 | `BWB_IMPORT_WTI` | bwb-import | `false` | Zet de WTI-verrijking aan (organisatie, wetsfamilie, grondslagen, rechtsgebieden). |
@@ -339,27 +364,32 @@ daar uitsluitend lezende queries door.
 
 ## De agent (Lex)
 
-Eén LangGraph-graaf, twee routes. De supervisor kiest per vraag; zijn antwoord wordt hard gesaneerd
-tegen een allowlist, zodat een verzonnen workernaam nergens toe leidt.
+Eén LangGraph-graaf, drie routes. De supervisor kiest per vraag; zijn antwoord wordt hard
+gesaneerd tegen een allowlist, zodat een verzonnen workernaam nergens toe leidt.
 
 ```
 supervisor ─┬→ agent ⇄ tools → verify ─┬→ correct → agent
             │                          └→ finalize
-            └→ annoteer → critic → patch → [herzie → critic] → emit
+            ├→ annotaties_zoeken → agent …          (leesroute)
+            ├→ annoteer → emit                      (annotatie-worker)
+            └→ afwijzen
 ```
 
-De annotatieketen is **lineair, geen lus**: hooguit vier modelaanroepen, en een schone annotatie
-kost er twee. Details in [`tools/graph-qa/README.md`](tools/graph-qa/README.md); de toon van Lex
+`annoteer` bevat de hele hybride keten (detectie, fusie, classifier, validatie, gerichte review,
+resolver); `emit` is de enige uitgang, zodat de werkplek nooit tussenversies ziet. Details in
+[`tools/graph-qa/README.md`](tools/graph-qa/README.md) en
+[`docs/architectuur/annotatieketen.md`](docs/architectuur/annotatieketen.md); de toon van Lex
 staat in [`docs/schrijfrichtlijn-lex.md`](docs/schrijfrichtlijn-lex.md), zijn identiteit in
 `agent/prompts.py`.
 
 **Provider.** Er is één LLM-pad: Anthropic via Azure AI Foundry. Dat zit achter een `LLMPort`-
-protocol, dus een tweede provider is een extra adapter – maar die bestaat vandaag niet. Modellen
-zijn per rol instelbaar (`LLM_MODEL`, `LLM_MODEL_ROUTER`, `LLM_MODEL_OPHAAL`).
+protocol, dus een tweede provider is een extra adapter – maar die bestaat niet. Modellen
+zijn per rol instelbaar (`LLM_MODEL`, `LLM_MODEL_ROUTER`, `LLM_MODEL_OPHAAL`). De taalanalyse van
+de annotatieketen draait lokaal met spaCy (`nl_core_news_md`, extra `nlp`).
 
 **Wat deterministisch is en wat niet.** Het markeren en classificeren is probabilistisch; de
-controles eromheen zijn dat niet. Grounding, de letterlijke-citaattoets, de klassevalidatie en het
-uitvoeren van Critic-correcties zijn gewone code. Twee runs over dezelfde bepaling leveren
+controles eromheen zijn dat niet. De detectoren, grounding, de letterlijke-citaattoets, de
+bron- en klassevalidatie en de resolver zijn gewone code. Twee runs over dezelfde bepaling leveren
 verschillende markeringen op – meet daarom nooit een trend op één run.
 
 ## Testing
@@ -371,23 +401,26 @@ de suites van de onderdelen die je raakt.
 git config core.hooksPath .githooks     # eenmalig per kloon; SKIP_HOOK=1 omzeilt
 ```
 
-| Onderdeel | Commando | Omvang |
+| Onderdeel | Commando | Opmerking |
 |---|---|---|
-| `api/` | `uv run pytest -q` | 174 tests; SQLite in-memory, geen netwerk |
-| `tools/graph-qa/` | `uv run --extra dev pytest -q` | 540 tests |
-| `tools/bwb-import/` | `.venv/bin/python -m pytest` | 80 tests |
-| `frontend/` | `npm test && npm run lint && npm run typecheck` | 315 tests in 20 bestanden (vitest) |
+| `api/` | `uv run pytest -q` | SQLite in-memory; de PostgreSQL-tests draaien alleen met `ANNOTATIE_TEST_DSN` |
+| `tools/graph-qa/` | `uv run --extra dev pytest -q` | CI draait met `--extra mcp --extra nlp` en `RUNSTORE_TEST_DSN`; zonder die slaan de betreffende tests zichzelf over |
+| `tools/bwb-import/` | `.venv/bin/python -m pytest` | |
+| `frontend/` | `npm test && npm run lint && npm run typecheck` | vitest in een node-omgeving |
+| `frontend/` | `npm run test:browser` | Playwright-browserregressie tegen `npm run dev` met een gemockte BFF |
 
-Samen 1109 tests; alle vier de suites draaien zonder netwerk of draaiende diensten.
+De unit-suites draaien zonder netwerk of draaiende diensten. In CI (`poort`) draaien graph-qa en api
+tegen een PostgreSQL-servicecontainer, zodat de databasetests niet alleen lokaal bestaan.
 
-**Wat er níét getest wordt.** De frontend draait vitest in een node-omgeving zonder DOM: er zijn geen
-componenttests en geen Playwright. Daarom staat de rekenkern in `frontend/lib/` – wat daar niet
-staat, is niet getest. GraphDB-integratietests staan achter de marker `integration` en worden
-standaard overgeslagen.
+**Wat er níét getest wordt.** vitest heeft geen DOM: er zijn geen componenttests. De
+browserregressie dekt een paar werkplekstromen, niet de hele UI. Daarom staat de rekenkern in
+`frontend/lib/` – wat daar niet staat, is hooguit via de browserregressie getest. GraphDB-
+integratietests staan achter de marker `integration` en worden standaard overgeslagen.
 
-**Driftbewaking** is een eigen testcategorie: klassekleuren tussen API en frontend, het
-ontdubbelingsalgoritme dat op drie plekken bestaat, de veld-voor-veld-vergelijking van agent- en
-API-modellen, en de RDF-termen die de writer gebruikt tegen de gedeclareerde ontologie.
+**Driftbewaking** is een eigen testcategorie: klassekleuren tussen API en frontend, de uit de skill
+gegenereerde klassetekst en methodetekst, de ontdubbelsleutel, de veld-voor-veld-vergelijking van
+agent- en API-modellen, de deploy-configuratie, en de RDF-termen die de writer gebruikt tegen de
+gedeclareerde ontologie.
 
 **Kwaliteitsmeting van de agent** gaat via een eval-harnas met twee gouden sets:
 
@@ -405,10 +438,12 @@ interpretatieruimte kent).
 
 | Ik wil… | Kijk in |
 |---|---|
-| een JAS-klasse wijzigen | `api/app/jas_klassen.py`, plus `frontend/lib/jas.ts` en `tools/graph-qa/agent/jas_klassen.py` (drift-tests bewaken het) |
+| een JAS-klasse wijzigen | `api/app/jas_klassen.py`, plus `frontend/lib/jas.ts` en de skill (daarna `tools/graph-qa/scripts/genereer_jas_klassen.py`); drift-tests bewaken het |
+| het gedrag van de annotator bijsturen | de skill (`.claude/skills/wetsanalyse/`) en de detectorregels in `tools/graph-qa/agent/jas_pipeline/` – zie ADR-001 |
 | een endpoint toevoegen | `api/app/routers/` **en** de bijbehorende BFF-route in `frontend/app/api/` |
-| iets aan het agentgedrag veranderen | `tools/graph-qa/agent/orchestrator.py` + de prompts ernaast |
+| de agentgraaf veranderen | `tools/graph-qa/agent/orchestrator.py` + `agent/nodes/` |
 | de RDF-modellering uitbreiden | `tools/bwb-import/app/rdf_vocab.py` + `app/ontology.py` (drift-test bewaakt beide) |
+| de bronboom of ankers veranderen | `packages/bronmodel/` (raakt api én graph-qa) |
 | infra aanpassen | `deploy/azure/main.bicep` |
 
 > [!WARNING]
@@ -420,8 +455,10 @@ interpretatieruimte kent).
 **Uitrollen.** Azure is het enige uitrolpad, in twee straten. Een merge naar `master` rolt uit naar
 **acceptatie** – dat is tevens de proeftuin, want een dev-omgeving bestaat niet. Productie gaat via
 een tag `v*`: `promote.yml` bouwt niets, maar neemt de digests over die op acceptatie draaien, en
-toetst of die bij de getagde commit horen. Infra blijft handmatig via `azure-infra.yml`. Zie
-[`deploy/azure/README.md`](deploy/azure/README.md).
+toetst of die bij de getagde commit horen. Terugrollen gaat met `rollback.yml`, infra blijft
+handmatig via `azure-infra.yml`, en `bouwwacht.yml` bouwt alsnog wat een gemiste trigger liet
+liggen. Zie [`deploy/azure/README.md`](deploy/azure/README.md) en §*Uitrollen* in
+[`CLAUDE.md`](CLAUDE.md).
 
 ## Troubleshooting
 
@@ -429,11 +466,12 @@ toetst of die bij de getagde commit horen. Infra blijft handmatig via `azure-inf
 |---|---|
 | API start, maar alles geeft `401` | `WETSANALYSE_API_TOKENS` is leeg terwijl auth aanstaat. Fail-closed. Vul tokens, of zet `WETSANALYSE_AUTH_REQUIRED=0` (alleen lokaal). |
 | API start met lege configuratie | Je vergat `--env-file .env` bij `uv run`. |
-| `/beheer` geeft `403` | Je gebruiker heeft rol `analist`, of `ADMIN_API_TOKEN` ontbreekt in de frontend. |
+| Beheer (`/instellingen/beheer/…`) geeft `403` | Je gebruiker heeft rol `analist`, of `ADMIN_API_TOKEN` ontbreekt in de frontend. |
 | graph-qa weigert te starten | `GRAPHDB_MCP_URL` of `GRAPHDB_TOKEN` ontbreekt – bewuste fail-fast. |
 | Inloggen springt naar een intern adres | `AUTH_URL` staat niet op de publieke origin. Verplicht achter een proxy. |
-| `semantic_search` gedraagt zich als tekstzoeken | De similarity-index is leeg of `SIMILARITY_INDEX` is niet gezet. Na een herstart van de graaf moet die index eerst herbouwd worden. |
-| Alle graafvragen leveren niets op | De graaf is leeg. Draai de importer; de opslag op Azure is niet-persistent. |
+| `semantic_search` gedraagt zich als tekstzoeken | De similarity-index is leeg of `SIMILARITY_INDEX` is niet gezet. De importer bouwt de index na een herstart van de graaf zelf terug; lokaal draai je de import opnieuw. |
+| Lex meldt dat de graaf weg is (`Repository inning doesn't exist`) | GraphDB is herstart en leeg. Op Azure herstelt de graafwacht dat binnen een kwartier; forceren kan met `azure-infra` → `vul-graaf`. Lokaal: draai de importer. |
+| Annotaties landen niet, of Lex vindt geen bestaande annotaties | `WETSANALYSE_API_URL`/`_TOKEN` ontbreken bij graph-qa. |
 | De werkplek toont 0 elementen | SSE-frames worden met `\r\n` gescheiden; een handgeschreven parser die de CR niet strookt, levert stil niets op. |
 | Een filter werkt niet, zonder foutmelding | Een BFF-proxyroute stuurt de query-parameter niet door. |
 | Port 3000 al in gebruik | API en frontend willen allebei 3000. Draai de webapp met `-p 3001`. |
@@ -444,15 +482,21 @@ toetst of die bij de getagde commit horen. Infra blijft handmatig via `azure-inf
 - **Drie auth-lagen.** Gebruikers loggen in op de webapp (Auth.js, bcrypt, optionele TOTP). De BFF
   praat server-naar-server met een bearer-token dat de browser nooit ziet. Beheer zit achter een
   apart admin-token dat geen bypass kent. Tokenvergelijking is constant-tijd.
-- **Per gebruiker gescopet.** Annotatiedocumenten en gesprekken van een ander leveren een 404, niet
-  een 403 – dat lekt niet eens het bestaan.
+- **Gesprekken per gebruiker, annotaties gedeeld.** Een gesprek van een ander levert een 404, niet
+  een 403 – dat lekt niet eens het bestaan. Annotatielagen zijn juist gedeeld; wie wat deed staat in
+  de audit.
 - **Versleuteld at rest.** API-keys van modelprofielen en 2FA-secrets gaan met dezelfde
   Fernet-sleutel de database in. API-keys worden nooit teruggegeven, alleen `api_key_set`.
 - **Auditlog.** Elke beslissing over een element is append-only vastgelegd.
+- **Netwerkgrens.** GraphDB draait zonder eigen security en is alleen binnen de Container Apps
+  Environment bereikbaar; `poort` bewaakt dat. De api is alleen op acceptatie publiek (voor de
+  admin-MCP).
 - **De repo is publiek.** Een CI-guard (`geen-omgevingsgegevens`) blokkeert hostnamen, interne IP's
   en machinenamen. Neem die dus niet op in code of documentatie.
 - **Kwetsbaarhedenbeheer.** `pip-audit` en `npm audit` draaien vóór elke image-build, Trivy erna met
-  een gate op HIGH en CRITICAL. Dependabot draait wekelijks.
+  een gate op HIGH en CRITICAL (één beleid voor alle images, bewaakt door `poort`). Dependabot draait
+  wekelijks; patch- en minor-updates mergen automatisch na een groene `poort`, majors wachten op een
+  mens.
 - `POST /v1/chat` op de agent kent **geen eigenaarscontrole** en is niet bedoeld voor de webapp;
   daarvoor bestaat `/v1/runs`.
 
@@ -462,16 +506,19 @@ Eerlijk over wat er nog niet is:
 
 - **Alleen activiteit 2.** Begrippen, afleidingsregels en RegelSpraak zijn niet gebouwd.
 - **De graaf op Azure is niet-persistent.** GraphDB gebruikt memory-mapped files en kan geen
-  netwerkschijf gebruiken. Hij is volledig reproduceerbaar uit overheid.nl en vult zichzelf na een
-  deploy, maar de similarity-index overleeft een herstart evenmin.
+  netwerkschijf gebruiken. Hij is volledig reproduceerbaar uit overheid.nl en vult zichzelf (na een
+  deploy, wekelijks, en via de graafwacht binnen een kwartier na verlies); tot dan is hij leeg.
 - **Geen migratietool.** Bij het starten worden ontbrekende tabellen en kolommen additief
   bijgewerkt; kolommen hernoemen of typen wijzigen gaat zo niet.
-- **Een agent-beurt overleeft geen herstart van zijn replica.** De runs zijn sinds kort gedeeld
+- **Een agent-beurt overleeft geen herstart van zijn replica.** De runs zijn gedeeld
   (PostgreSQL), dus meelezen, de 409 en stoppen werken over replica's heen; de draaiende taak zelf
   niet, want de nodes zijn synchroon en er is geen resume-pad.
 - **Annotatieruns variëren sterk** tussen draaibeurten over dezelfde bepaling. Trek geen conclusie
   uit één run.
-- **De JAS-kennistools** bestaan in de code maar worden in de draaiende keten niet aangeroepen.
+- **De JAS-kennistools** (`agent/tools/jas_tools.py`) bestaan in de code maar worden in de draaiende
+  keten niet aangeroepen.
+- **Eén artikel per annotatievraag.** Meerdere artikelen samen is een werkgebied (activiteit 3) en
+  wordt afgewezen met het verzoek de vraag per artikel te stellen.
 - **Eén LLM-provider.** Anthropic via Azure AI Foundry; alternatieven vergen een nieuwe adapter.
 - `docs/regelspraak/` is lokaal werkmateriaal en zit **niet** in de repository.
 
@@ -506,6 +553,8 @@ ze buiten git.
 | [`docs/observability.md`](docs/observability.md) | Logschema, tracing door de keten, AVG-redactie |
 | [`docs/PLAN.md`](docs/PLAN.md) | Het enige plan: open sporen (validatie, herkomst, begrippen, kennisbank) en open keuzes |
 | [`docs/architectuur/annotatie-bronnodes.md`](docs/architectuur/annotatie-bronnodes.md) | Contract 2: annotaties op bronnodes – ankers, opslag, projectie, leestools |
+| [`docs/architectuur/annotatieketen.md`](docs/architectuur/annotatieketen.md) | Hoe de annotatieketen nu werkt: stappen, configuratie, beslisbeleid |
+| [`deploy/azure/README.md`](deploy/azure/README.md) | Uitrol, straten, secrets, release-runbook, terugrollen |
 | [`docs/wetsanalyse-workbench/jas-annotatie-ontologie.md`](docs/wetsanalyse-workbench/jas-annotatie-ontologie.md) | De annotatielagen in RDF, zoals ze in de graaf staan |
 | [`docs/README.md`](docs/README.md) | Wegwijzer door `docs/`: bron van derden, specificatie, plan of runbook |
 | [`.claude/skills/wetsanalyse/`](.claude/skills/wetsanalyse/SKILL.md) | De annoteerinstructie voor activiteit 2 – en de bron van de klassetekst in de code |

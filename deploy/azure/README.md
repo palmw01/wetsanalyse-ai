@@ -1,32 +1,41 @@
 # Wetsanalyse op Azure – acceptatie en productie
 
-Azure draagt het platform: **acceptatie** (elke merge naar `master`) en **productie** (een tag `v*`).
-Elke straat is een **zelfstandige** omgeving op Azure Container Apps met eigen kennisgraaf en eigen
-database, zonder verbinding met de docker-host. Die host draagt alleen nog de dev-omgeving.
+Azure is het enige uitrolpad, met twee straten: **acceptatie** (elke merge naar `master`) en
+**productie** (een tag `v*`). Er is geen aparte dev-omgeving; acceptatie is de proeftuin. Elke straat
+is een **zelfstandige** omgeving op Azure Container Apps met eigen kennisgraaf en eigen database.
 
-Beide straten draaien doorlopend. PostgreSQL (B1ms) en GraphDB (`minReplicas: 1`) kunnen geen van
-beide naar nul schalen, dus dit zijn vaste kosten – zie *Kosten drukken* onderaan.
+Beide straten draaien doorlopend. PostgreSQL (B1ms), GraphDB (`minReplicas: 1`), de collector en de
+frontend (`minReplicas: 1`) schalen niet naar nul, dus dit zijn vaste kosten – zie *Kosten drukken*
+onderaan.
 
-| Component | Type | Bereikbaar |
-|---|---|---|
-| PostgreSQL | Flexible Server (B1ms) | intern |
-| GraphDB | Container App | intern |
-| BWB-import | Container Apps **Job** (handmatig) | – |
-| Eval | Container Apps **Job** (handmatig) | – |
-| API | Container App | intern |
-| graph-qa | Container App | intern |
-| Frontend | Container App | **publiek HTTPS** |
-| OTel-collector | Container App (stateless) | intern |
-| Log Analytics + Application Insights | Azure Monitor | portal |
+| Component | Naam | Type | Bereikbaar |
+|---|---|---|---|
+| PostgreSQL | `<appName>-db` | Flexible Server (B1ms) | intern |
+| GraphDB | `<appName>-graphdb` | Container App | intern, altijd |
+| GraphDB-MCP-proxy | `<appName>-graphdb-proxy` | Container App, optioneel | **publiek HTTPS**, alleen op acceptatie |
+| BWB-import | `<appName>-bwb-import` | Container Apps **Job**, wekelijks (ma 03:00 UTC) | – |
+| Graafwacht | `<appName>-graafwacht` | Container Apps **Job**, elk kwartier | – |
+| Eval | `<appName>-eval` | Container Apps **Job**, handmatig | – |
+| API | `<appName>-api` | Container App | intern; op acceptatie **publiek** (`apiExtern`) |
+| graph-qa | `<appName>-graph-qa` | Container App | intern |
+| Frontend | `<appName>-frontend` | Container App | **publiek HTTPS** |
+| OTel-collector | `<appName>-otel-collector` | Container App (stateless) | intern |
+| Log Analytics + Application Insights | `log-<appName>`, `appi-<appName>` | Azure Monitor | portal |
+| Grafana | `<appName>-grafana` | Container App, in één straat | publiek HTTPS |
 
-Alleen de frontend heeft een publiek adres. De rest praat binnen de Container Apps Environment.
+De frontend is de publieke ingang. Op acceptatie heeft de api daarnaast een publieke ingress, zodat
+de admin-MCP (`tools/wetsanalyse-admin-mcp/`) erbij kan. Die ingress zit vóór de hele app – ook
+`/v1/annotatie`, `/v1/gesprekken` en `/v1/auth` – en daarom staat hij op productie dicht:
+`apiExtern` heeft default `false` en `azure-infra.yml` zet hem alleen voor acceptatie. `poort.yml`
+bewaakt beide.
 
-**Monitoring zit in de straat zelf.** De apps sturen OTLP naar de collector van hun eigen straat;
-die schrijft door naar Application Insights, workspace-based op dezelfde Log Analytics waar de
-stdout-logs al landen. Daarmee staan logs, traces en metrics bij elkaar en is de keten
-frontend → api → graph-qa onder één trace-id te volgen. Kijken doe je in de portal: *Application
-Insights → Transaction search* of *Application map*. Elke span draagt
-`deployment.environment=<appName>`, dus acceptatie en productie zijn te scheiden.
+**Monitoring zit in de straat zelf.** De apps (api, graph-qa, frontend) en de eval-job sturen OTLP
+naar de collector van hun eigen straat; die schrijft door naar Application Insights, workspace-based
+op dezelfde Log Analytics waar de stdout-logs landen. Daarmee staan logs, traces en metrics bij
+elkaar en is de keten frontend → api → graph-qa onder één trace-id te volgen. Kijken doe je in de
+portal (*Application Insights → Transaction search* of *Application map*) of met `azure-infra` →
+`telemetrie`. Elke span draagt `deployment.environment=<appName>`, dus acceptatie en productie zijn
+te scheiden.
 
 **Grafana draait hier ook**, als container app naast de straten: `azure-infra` → actie `grafana`
 (template `grafana.bicep`, dashboards in `grafana/`). Eén exemplaar bedient beide straten – een
@@ -55,24 +64,22 @@ dashboards zijn niets waard om te bewaren – die komen as-code uit `deploy/azur
 ## Vooraf: de GraphDB-licentie
 
 **Zonder licentie is deze omgeving niet bruikbaar.** GraphDB 11 laat zonder licentiebestand alleen
-*lezen* toe; het eerste schrijf-verzoek van de import-job krijgt een `500 No license was set`. Op de
-docker-host zit die licentie in de persistente datadirectory (`/opt/graphdb/home/work/graphdb.license`)
-en valt hij niet op – een verse instantie heeft hem niet.
+*lezen* toe; het eerste schrijf-verzoek van de import-job krijgt een `500 No license was set`. Een
+verse instantie heeft de licentie niet vanzelf.
 
-Geef het bestand mee met `--license-file`; het script codeert het naar base64 en zet het als secret
-in de deployment, waarna een init-container het op zijn plek schrijft. Controleer eerst of je
-licentievoorwaarden een tweede, gelijktijdig draaiende instantie toestaan – dat is een vraag aan
-Ontotext, niet aan deze README.
+Geef het bestand mee met `--license-file` (in CI: het secret `GRAPHDB_LICENSE_B64`); het script
+codeert het naar base64 en zet het als secret in de deployment, waarna een init-container het op
+zijn plek schrijft. Controleer eerst of je licentievoorwaarden een tweede, gelijktijdig draaiende
+instantie toestaan – dat is een vraag aan Ontotext, niet aan deze README.
 
-Zonder `--license-file` slaagt de deployment wél; je houdt dan een lege, read-only graaf.
+Zonder licentie slaagt de deployment wél; je houdt dan een lege, read-only graaf.
 
 ## Deployen
 
 ### Twee straten
 
-Azure is de uitrolplek, met een **acceptatie**- en een **productiestraat**. Elke straat is een
-zelfstandige omgeving in een eigen resource group, met een eigen `appName` waar alle resourcenamen
-uit volgen (`${appName}-api`, `cae-${appName}`, `log-${appName}`, …).
+Elke straat heeft een eigen `appName` waar alle resourcenamen uit volgen (`${appName}-api`,
+`cae-${appName}`, `log-${appName}`, …).
 
 | straat | rolt uit bij | resource group | `appName` |
 |---|---|---|---|
@@ -99,16 +106,24 @@ Wat je daarvoor inlevert, en waar je op moet letten:
 
 **Inrichten gebeurt per GitHub-environment** (Settings → Environments). Wat waar hoort:
 
-- **vars, per environment** – `AZURE_RESOURCE_GROUP`, `APP_NAME`, `LLM_API_BASE`, optioneel
-  `LLM_MODEL` en `AZURE_LOCATION`. Deze *moeten* per straat gezet zijn; ze hebben geen default meer,
-  zodat een niet-ingerichte straat faalt in plaats van stilletjes op de verkeerde resource group uit
-  te komen.
+- **vars, per environment** – `AZURE_RESOURCE_GROUP`, `APP_NAME` en `LLM_API_BASE` zijn verplicht en
+  hebben geen default, zodat een niet-ingerichte straat faalt in plaats van stilletjes op de
+  verkeerde resource group uit te komen. Optioneel: `LLM_MODEL` (default `claude-sonnet-4-6`),
+  `AZURE_LOCATION` (default `northeurope`), `BACKUP_RETENTION_DAYS` (default `7`) en
+  `MIN_REPLICAS_APPS` (default `0`, voor api en graph-qa).
 - **secrets** – `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`,
   `AZURE_CLIENT_SECRET`, `AZURE_AI_KEY`, `GRAPHDB_LICENSE_B64` (de licentie als
   `base64 -w0 graphdb.license`). Een job met een environment **erft de repo-secrets**, dus zolang
-  beide straten dezelfde service principal en AI-key gebruiken, volstaan de bestaande repo-secrets.
-  Wil je gescheiden credentials – aan te raden zodra productie echte gegevens draagt – zet ze dan
-  als environment-secret; die overschrijft de repo-variant.
+  beide straten dezelfde service principal en AI-key gebruiken, volstaan de repo-secrets. Wil je
+  gescheiden credentials – aan te raden zodra productie echte gegevens draagt – zet ze dan als
+  environment-secret; die overschrijft de repo-variant.
+
+Op `productie` staat een **required reviewer** en een deployment-policy die alleen tags `v*`
+toelaat; op `acceptatie` alleen de branch `master`. Die poort hoort in de environment te zitten en
+niet in een workflow-conditie die je per ongeluk wegcommit.
+
+De workflows **falen** bewust als een van deze secrets of vars ontbreekt (een preflight-stap). Een
+`if` die de stap oversloeg zou de run groen laten terwijl er niets is uitgerold.
 
 #### De applicatie-secrets roteren niet
 
@@ -121,7 +136,8 @@ die, dan is dat materiaal onherstelbaar onleesbaar.
 
 1. een **GitHub environment-secret** met die naam (`WA_LLM_CONFIG_SECRET`, `WA_AUTH_SECRET`,
    `WA_DB_ADMIN_PASSWORD`, `WA_API_TOKEN`, `WA_ADMIN_TOKEN`, `WA_QA_API_TOKEN`,
-   `WA_GRAPH_QA_API_TOKEN`, `WA_GRAPHDB_TOKEN`) – zet deze als je ze bewust wilt beheren of roteren;
+   `WA_GRAPH_QA_API_TOKEN`, `WA_GRAPHDB_TOKEN`, `WA_GRAPHDB_PROXY_TOKEN`) – zet deze als je ze bewust
+   wilt beheren of roteren;
 2. anders de waarde die **nu in Azure draait**, uitgelezen uit de container apps;
 3. anders **vers gegenereerd** – het geval van een nieuwe straat.
 
@@ -135,50 +151,55 @@ die, dan is dat materiaal onherstelbaar onleesbaar.
 Daardoor is een infra-deploy op een draaiende omgeving veilig. De toets daarop: `wat-if` mag geen
 `~ secret`-regels tonen voor de api-, frontend- en graph-qa-apps.
 
-Op `productie` staat een **required reviewer** en een deployment-policy die alleen tags `v*`
-toelaat; op `acceptatie` alleen de branch `master`. Die poort hoort in de environment te zitten en
-niet in een workflow-conditie die je per ongeluk wegcommit.
-
-De workflows falen bewust als een van deze secrets of vars ontbreekt. Eerder was dat een `if` die de
-deploy-stap oversloeg – dan was de run groen terwijl er niets was uitgerold.
-
 ### Image-swap: automatisch
 
-De vier `*-docker-publish.yml`-workflows bouwen naar GHCR en hebben daarna een `deploy`-job die de
-container app op de juiste straat naar de nieuwe **digest** zet (niet naar een tag). Die job wacht
-tot de nieuwe revisie daadwerkelijk `Running` is; `az containerapp update` keert namelijk al terug
-zodra de revisie is *aangemaakt*, dus een container die bij het starten crasht bleef anders
-onopgemerkt.
+De vier `*-docker-publish.yml`-workflows bouwen naar GHCR (pip-audit/npm-audit vooraf, Trivy-gate op
+HIGH/CRITICAL achteraf) en hebben daarna een `deploy`-job die de container app op acceptatie naar de
+nieuwe **digest** zet (niet naar een tag). Die job wacht tot de nieuwe revisie daadwerkelijk
+`Running` is; `az containerapp update` keert namelijk al terug zodra de revisie is *aangemaakt*, dus
+een container die bij het starten crasht bleef anders onopgemerkt. Bestaat de doel-app nog niet (een
+verse straat zonder infra), dan waarschuwt de job en slaat hij de swap over in plaats van rood te
+worden: het image staat dan wél in GHCR.
 
 **Een job lift niet vanzelf mee.** Zo'n `deploy`-job werkt de container **app** bij; een container
 app **job** krijgt alleen een nieuw image als de workflow er expliciet een `az containerapp job
-update` voor doet, of bij een bicep-deploy (`azure-infra` → `deploy`). Er zijn twee jobs, en beide
-worden inmiddels expliciet bijgewerkt: `bwb-import` door zijn eigen publish-workflow, en `eval` door
-die van graph-qa — de eval-job draait namelijk hetzelfde image als de graph-qa-app, want de bicep
-zet één `graphQaImage` op allebei.
+update` voor doet, of bij een bicep-deploy (`azure-infra` → `deploy`). Daarom werkt de
+bwb-import-workflow de jobs `bwb-import` én `graafwacht` bij (ze draaien hetzelfde importer-image), en
+de graph-qa-workflow ook de `eval`-job (de bicep zet één `graphQaImage` op app en job). Blijft een
+job achter, dan meet of importeert hij met een ouder image dan er live staat, en niets in zijn
+uitvoer verraadt dat. Controleer het met `azure-infra` → `inventaris`: die toont het image per job,
+en `<appName>-eval` hoort dezelfde digest te tonen als `<appName>-graph-qa`.
 
-Dat laatste is er pas op 4 sep 2026 bij gekomen, nadat de eval-job maandenlang op het image van de
-laatste infra-deploy bleef hangen: hij mat een oudere agent dan er live stond, en niets in het
-eval-rapport verraadt dat. Controleer het met `azure-infra` → `inventaris`; die toont sindsdien het
-image per job, en `wetsanalyse-eval` hoort dezelfde digest te tonen als `wetsanalyse-graph-qa`.
+Mist een merge zijn build – bijvoorbeeld een Dependabot-PR die door `GITHUB_TOKEN` is gemerged, wat
+geen `push`-event oplevert – dan vangt `bouwwacht.yml` dat binnen een kwartier op: hij vergelijkt het
+revisielabel op `:latest` met master en dispatcht de publish-workflow bij achterstand.
+
+**Retentie.** `ghcr-cleanup.yml` draait na elke geslaagde publish en bewaart per image de vijf
+nieuwste getagde builds plus hun attestaties; `latest`, `prd` en `prd-vorige` zijn uitgesloten.
+Handmatig draaien is standaard een dry-run.
 
 ### Productie: promoveren, niet herbouwen
 
 Een tag `v*` start **`promote.yml`**. Die bouwt niets: hij leest de digests die op *acceptatie*
 draaien en zet díe op productie. Zo krijgt productie exact het artefact dat getest is – een
 herbouw van dezelfde broncode levert nog altijd een ander image op (verse basis-images, verse
-dependency-resolutie).
+dependency-resolutie). De publish-workflows luisteren daarom **niet** op tags.
 
 Vóór hij iets uitrolt, controleert hij per component het OCI-label
 `org.opencontainers.image.revision` van het draaiende image tegen de commit achter de tag. Hoort het
 er niet bij, dan faalt de promotie met een melding in plaats van iets anders uit te rollen dan de
-tag belooft. Praktisch: tag een commit die al op `master` staat en waarvan acceptatie de uitrol
-heeft afgerond.
+tag belooft. De guard dekt vier targets: de apps `api`, `frontend` en `graph-qa`, plus de job
+`bwb-import`; de `graafwacht`-job krijgt hetzelfde importer-image. De `eval`-job werkt hij niet bij:
+meten gebeurt op acceptatie.
 
-De publish-workflows luisteren daarom **niet** op tags – die bouwen alleen voor acceptatie.
+Na de health-gate doet hij nog twee dingen:
 
-De guard dekt vier targets: de apps `api`, `frontend` en `graph-qa`, plus de job `bwb-import`. De
-eval-job zit er bewust niet in: die bestaat alleen op acceptatie.
+- **GHCR-tags `prd` en `prd-vorige`.** Wat productie draait en de versie daarvoor krijgen een tag,
+  zodat `ghcr-cleanup` ze niet opruimt. Zonder die bescherming verdwijnt het image onder een
+  draaiende straat zodra er vijf nieuwere builds zijn, en strandt de volgende replica, herstart of
+  rollback op `MANIFEST_UNKNOWN`.
+- **Branch `release/prd`** wijst naar de gepromoveerde commit, zodat `git log release/prd -1`
+  toont wat er in productie draait. De tag blijft het onveranderlijke ijkpunt.
 
 #### Runbook: een release klaarzetten
 
@@ -189,22 +210,20 @@ faalt de promotie op precies dat punt.
 
 1. Kies de commit op `master` die je wilt uitbrengen.
 2. Draai **alle vier** de `*-docker-publish.yml`-workflows met `workflow_dispatch` op die commit.
-   Elke run rolt ook naar acceptatie uit: inhoudelijk identiek, maar met een nieuw digest, want een
-   herbouw van dezelfde broncode levert een ander artefact op.
+   Elke run rolt ook naar acceptatie uit: inhoudelijk identiek, maar met een nieuw digest.
 3. Controleer met `azure-infra` → `inventaris` dat acceptatie die vier digests draait.
 4. Tag en push. `promote.yml` draait en wacht op de required reviewer.
 5. **Vul daarna de graaf van productie.** Promotie geeft productie het nieuwe bwb-import-image, maar
    een `job update` start geen uitvoering — de graaf blijft staan zoals hij was tot de wekelijkse
    cron of een handmatige run. Draai `azure-infra` → omgeving `productie` → actie `vul-graaf` en
-   controleer daarna de dekking. Deze stap is op 4 sep 2026 op acceptatie vergeten en kostte een
-   halve middag zoeken naar een graaf die "niet bijgewerkt" leek.
+   controleer daarna de dekking; zonder deze stap lijkt de graaf "niet bijgewerkt".
 
 ### De productiestraat aanzetten
 
 Er is geen Owner-recht voor nodig; alles gebeurt binnen de bestaande resource group.
 
 1. Environment `productie` (Settings → Environments): `AZURE_RESOURCE_GROUP=rg-wetsanalyse`,
-   `APP_NAME=wetsanalyse-prd`. De required reviewer en de tag-policy `v*` staan er al op.
+   `APP_NAME=wetsanalyse-prd`, `LLM_API_BASE`. Zet de required reviewer en de tag-policy `v*`.
 2. `azure-infra` → `productie` → `wat-if`. Verwacht **uitsluitend `+`-regels** voor
    `wetsanalyse-prd-*` en `cae-wetsanalyse-prd`. Zie je een `~` op een bestaande
    `wetsanalyse-*`-resource, stop dan: het is dezelfde groep, en dan raakt de deploy acceptatie.
@@ -220,9 +239,16 @@ Er is geen Owner-recht voor nodig; alles gebeurt binnen de bestaande resource gr
 2. **Wat zegt de telemetrie?** `azure-infra` → `telemetrie` (per straat). Zonder `query` krijg je de
    standaardset: wat er binnenkwam, requests per dienst met p95, en trace-ids die over meerdere
    diensten lopen. Met `query` stel je je eigen KQL-vraag – read-only.
-3. **Terugrollen.** `rollback` → kies straat en app, laat `revisie` leeg om te zien wat er is, en
-   draai hem daarna nog eens met de revisie die je wilt terugzetten. Achter dezelfde reviewer als een
-   uitrol.
+3. **Terugrollen.** `rollback` → kies straat en app (`api`, `frontend` of `graph-qa`), laat `revisie`
+   leeg om de revisies met hun image te zien, en draai hem daarna nog eens met de revisie die je wilt
+   terugzetten. Hij controleert eerst of die revisie bestaat, zet dan haar image terug en wacht tot
+   de nieuwe revisie draait. Achter dezelfde environment-poort als een uitrol.
+
+Terugrollen is een image-swap en geen `revision activate`: de apps draaien in single-revision-modus,
+en multiple-revision-modus zou blijvend ander gedrag zijn dan de bicep beschrijft. Er valt alleen
+iets te kiezen omdat `main.bicep` `maxInactiveRevisions: 5` op api, graph-qa en frontend zet – zonder
+die regel ruimt Azure de oude revisies op. Voeg je een app toe aan de keuzelijst, zet die regel er
+dan ook op.
 
 Let op wat terugrollen **niet** doet: `master`, de tag en `release/prd` bewegen niet mee. Een
 volgende uitrol brengt de nieuwere versie gewoon weer binnen – repareer dus de oorzaak, of draai de
@@ -235,17 +261,20 @@ Actions → **azure-infra** → *Run workflow*, met een keuze voor de straat en 
 | actie | wat het doet |
 |---|---|
 | `wat-if` *(default)* | Azure toont welke resources zouden ontstaan of wijzigen. Maakt niets aan – de enige manier om de template tegen je echte subscription te toetsen (quota, regio, rechten). |
-| `deploy` | rolt de stack uit (10-15 min; PostgreSQL is de trage stap) en start daarna meteen de import-job, want de graaf komt leeg op. |
-| `afbreken` | verwijdert de hele resource group. Vraagt om de naam ter bevestiging. |
-| `opruimen` | verwijdert wat er in de groep staat maar niet bij deze straat hoort. Toont eerst wat het zou doen; verwijdert pas als je de groepsnaam intypt. |
+| `deploy` | rolt de stack uit (10-15 min; PostgreSQL is de trage stap), wacht tot elke app een gezonde revisie draait (`ScaledToZero` telt als gezond) en start daarna meteen de import-job, want de graaf komt leeg op. Met `graphdb_proxy: true` (alleen acceptatie) komt de MCP-proxy mee. |
+| `afbreken` | verwijdert de hele resource group – dus beide straten. Vraagt om de naam ter bevestiging. |
+| `opruimen` | verwijdert wat er in de groep staat maar niet bij een straat hoort. Toont eerst wat het zou doen; verwijdert pas als je de groepsnaam intypt. |
 | `vul-graaf` | start de import-job en wacht hem af. |
-| `eval` | draait de eval-job: eerst de retrieval-smoke (gratis), daarna **drie** metingen van de annotatieketen, met het rapport in de workflow-samenvatting. Kost LLM-tokens en duurt ~40 min. Vereist een eerdere `deploy` (die maakt de job aan). **Niet vlak na een `deploy` draaien**: die start de importjob, en zolang die loopt herschrijft GraphDB de graaf. De smoke wacht daar zelf op — op 5 sep 2026 deed hij dat nog niet en meldde hij zestien defecten die er niet waren — maar dat kost minuten wachttijd die niemand hoeft te betalen. |
-| `inventaris` | read-only overzicht van wat er in de subscription draait. |
+| `eval` | draait de eval-job: eerst de retrieval-smoke (gratis), daarna **drie** metingen van de annotatieketen, met het rapport in de workflow-samenvatting. Kost LLM-tokens. Vereist een eerdere `deploy` (die maakt de job aan). **Niet vlak na een `deploy` draaien**: die start de importjob, en zolang die loopt herschrijft GraphDB de graaf. De smoke wacht daar zelf op, maar dat kost wachttijd. |
+| `inventaris` | read-only overzicht van wat er in de subscription draait, met het image per app en job. |
 | `telemetrie` | vraagt de Log Analytics-workspace of er telemetrie binnenkomt; met een eigen `query` je eigen KQL. Read-only. |
 | `grafana` | rolt alleen de Grafana-app uit (`grafana.bicep`). Raakt de applicatiestack niet. |
+| `grafana-afbreken` | verwijdert de Grafana-app van de gekozen straat. Vraagt de groepsnaam ter bevestiging. |
+| `mcp-proxy-afbreken` | verwijdert de GraphDB-MCP-proxy. Vraagt de groepsnaam ter bevestiging. |
 
 Dit is de enige workflow die resources aanmaakt, wijzigt of verwijdert. Vandaar `wat-if` als
-default: een deploy raakt GraphDB, en die is niet-persistent.
+default: een deploy raakt GraphDB, en die is niet-persistent. Hij geeft de images die nu draaien mee
+aan de deploy, zodat een infra-deploy geen `:latest` over een gepromoveerde digest heen zet.
 
 ### Wat de bicep niet opruimt
 
@@ -253,15 +282,11 @@ Bicep draait in **incremental mode**: het maakt aan en werkt bij, maar verwijder
 niet (meer) in de template staat. Haal je een component uit `main.bicep`, dan blijft de draaiende
 resource gewoon bestaan – onzichtbaar zolang je alleen naar de template kijkt, en met zijn kosten.
 
-Dat is hier echt gebeurd. Bij het verwijderen van de wettenbank-MCP (commit `9e34b75`, augustus
-2026) verdween de `mcpApp`-resource uit de bicep, maar bleven de draaiende mcp-apps staan; daarnaast
-stond er een complete tweede omgeving (`wetsanalyse-acc-*`) met een eigen PostgreSQL-server, alle
-replicas op `minReplicas: 1` en dus doorlopend aan.
-
 `azure-infra` → `opruimen` lost dat op: het neemt de bicep als waarheid en zet alles wat daar niet
 in staat op de lijst. Zonder bevestiging toont het alleen wat het zou doen – draai het zo eerst, en
 typ pas daarna de groepsnaam. De verwijdervolgorde is dwingend: container apps en jobs hangen aan
-hun managed environment, dus dat kan pas weg als het leeg is.
+hun managed environment, dus dat kan pas weg als het leeg is. Voeg je een resource aan de bicep toe,
+zet hem dan ook op de lijst van wat erbij hoort in die stap – anders gooit `opruimen` hem weg.
 
 ### Met de hand
 
@@ -272,15 +297,21 @@ az group create --name rg-wetsanalyse-test --location westeurope
 # 1. Kijk eerst wat er zou gebeuren (maakt niets aan)
 python3 deploy/azure/gen-deploy.py "<azure-ai-key>" \
     --llm-api-base "https://<resource>.services.ai.azure.com" \
+    --resource-group rg-wetsanalyse-test \
     --license-file /pad/naar/graphdb.license \
     --what-if
 
 # 2. Uitrollen (10-15 min; PostgreSQL is de trage stap)
 python3 deploy/azure/gen-deploy.py "<azure-ai-key>" \
     --llm-api-base "https://<resource>.services.ai.azure.com" \
+    --resource-group rg-wetsanalyse-test \
     --license-file /pad/naar/graphdb.license \
     --run
 ```
+
+Zonder `--what-if` of `--run` schrijft het script alleen `params.json` en print het het
+az-commando. Defaults: `--resource-group rg-wetsanalyse`, `--location westeurope`,
+`--app-name wetsanalyse`, `--llm-model claude-sonnet-4-6`.
 
 Daarna twee handelingen:
 
@@ -292,12 +323,13 @@ az containerapp job start -n <appName>-bwb-import -g <resource-group>
 open "<frontendUrl>/setup"     # frontendUrl staat in de deployment-output
 ```
 
-> **Deze weg is voor een wegwerpomgeving, niet voor acceptatie of productie.** Het script genereert
-> bij elke run **verse** tokens en een vers databasewachtwoord; op een draaiende omgeving betekent
-> opnieuw deployen dus dat sessies vervallen en de admin-tokens wijzigen. Voor acc en prd loopt de
-> weg via `azure-infra.yml`, dat de waarden uit de environment-secrets haalt en ze daarmee stabiel
-> houdt. Wil je met de hand tóch een bestaande omgeving bijwerken, bewaar dan het parameterbestand
-> (`--params-file`) buiten de repo en hergebruik het.
+> **Deze weg is voor een wegwerpomgeving, niet voor acceptatie of productie.** Het script neemt de
+> applicatie-secrets over uit de omgeving (`WA_*`-variabelen) en genereert ze anders **vers**; op een
+> draaiende omgeving betekent opnieuw deployen zonder die variabelen dus dat sessies vervallen, de
+> admin-tokens wijzigen en de Fernet-sleutel roteert. Voor acc en prd loopt de weg via
+> `azure-infra.yml`, dat ze stabiel houdt. Wil je met de hand tóch een bestaande omgeving bijwerken,
+> zet dan de `WA_*`-variabelen of bewaar het parameterbestand (`--params-file`) buiten de repo en
+> hergebruik het.
 
 ## De graaf is bewust vluchtig
 
@@ -306,36 +338,40 @@ opslaglaag werkt: geheugen-gemapte bestanden en file-locking verdragen netwerkop
 en in het slechtste geval stille indexcorruptie), en Azure Files is de enige persistente mount die
 een container-app kan krijgen. Een managed disk zou het oplossen maar vraagt een VM.
 
-Dat kan hier, omdat de graaf **reproduceerbaar** is: de import-job haalt alle regelingen rechtstreeks
-bij overheid.nl. Gevolgen:
+Dat kan hier, omdat de graaf **reproduceerbaar** is: de import-job haalt alle regelingen (`bwbIds` in
+`main.bicep`) rechtstreeks bij overheid.nl. Gevolgen:
 
 - De graphdb-app schaalt **niet naar nul** (`minReplicas: 1`) – anders is de graaf bij de volgende
   request leeg. Dit is de component die doorloopt zolang de omgeving aan staat.
-- Na elke herstart van die app moet er opnieuw geïmporteerd worden. Dat gaat sinds 8 sep 2026
-  vanzelf: de job **`<appName>-graafwacht`** draait elk kwartier, peilt met één SPARQL-query of alle
-  regelingen er staan (`--alleen-bij-verlies`) en importeert alléén bij verlies. Op een complete
-  graaf stopt hij binnen een seconde en raakt hij overheid.nl niet aan.
-
-  Daarvóór hing dit aan een `deploy` of aan de weekcron van maandag 03:00 UTC, en dus kon de graaf
-  tot bijna zeven dagen onbruikbaar zijn. Op 8 sep 2026 gebeurde dat: Lex gaf op elke vraag
-  `Repository inning doesn't exist` — een terechte weigering om uit eigen geheugen te citeren, maar
-  niemand zag het en niets herstelde het. Het paneel *Graaf weg* in het Grafana-dashboard maakt het
-  nu zichtbaar. Handmatig forceren blijft `azure-infra` → `vul-graaf`.
+- Na elke herstart van die app moet er opnieuw geïmporteerd worden, en dat gaat vanzelf: de job
+  **`<appName>-graafwacht`** draait elk kwartier, peilt met één SPARQL-query of alle regelingen er
+  staan (`--alleen-bij-verlies`) en importeert alléén bij verlies. Op een complete graaf stopt hij
+  binnen een seconde en raakt hij overheid.nl niet aan. Zonder die wacht hing herstel aan een
+  `deploy` of aan de weekcron, en kon de graaf tot bijna zeven dagen onbruikbaar zijn; Lex weigert
+  dan terecht om uit eigen geheugen te citeren (`Repository inning doesn't exist`). Het paneel
+  *Graaf weg* in het Grafana-dashboard maakt uitval zichtbaar. Handmatig forceren blijft
+  `azure-infra` → `vul-graaf`.
 - De similarity-index `bwb_similarity` (voor `semantic_search`) overleeft een herstart evenmin. De
-  importer bouwt hem sinds diezelfde datum zelf terug (`ensure_similarity_index`, net als de
-  FTS-connector); daarvóór deed niets dat en viel `semantic_search` **permanent** en stil terug op
-  `search_wetgeving`. Mislukt de herbouw, dan blijft de import groen — de wettekst staat er dan
-  gewoon — en zegt de importlog waarom.
+  importer bouwt hem zelf terug (`ensure_similarity_index`, net als de FTS-connector); zonder die
+  index valt `semantic_search` stil terug op `search_wetgeving`. Mislukt de herbouw, dan blijft de
+  import groen — de wettekst staat er dan gewoon — en zegt de importlog waarom.
+- De import controleert de tekstdekking per regeling (`minDekking`, default `0.995`); zakt een
+  regeling eronder, dan eindigt de job met exitcode 2 en wordt hij rood, terwijl de graaf wél volledig
+  geschreven is.
 
-## Beveiliging – hoe dit afwijkt van de zelfgehoste opzet
+## Beveiliging
 
-Zelfgehost draait GraphDB met eigen security en zit er een auth-proxy voor die het bearer-token van
-graph-qa controleert en vervangt door een service-account. **Hier niet**: de graaf is alleen binnen
-de Container Apps Environment bereikbaar (`external: false`), en dat is de grens. `GRAPHDB_TOKEN`
-wordt wel gezet – de code eist het fail-closed – maar het is hier geen slot.
+GraphDB draait hier **zonder eigen security**: de graaf is alleen binnen de Container Apps
+Environment bereikbaar (`external: false`), en die netwerkgrens is de enige beveiliging.
+`GRAPHDB_TOKEN` wordt wel gezet – graph-qa eist het fail-closed – maar GraphDB negeert het; het is
+hier geen slot. `bwb-import` schrijft zonder credentials.
 
-Voor een standby-/demo-omgeving is dat verdedigbaar. Wordt dit ooit een productieomgeving, dan hoort
-hetzelfde service-account + proxy-patroon als in de zelfgehoste opzet erbij.
+Voor de huidige omgevingen is dat verdedigbaar. Hoort er ooit harder bij, dan is dat GraphDB-security
+met een service-account (read-only voor graph-qa) en een proxy die het token controleert; dat raakt
+`bwb-import` én graph-qa en is een eigen traject.
+
+Alle applicatie-secrets zijn **bestanden** (`*_FILE`-patroon via secret-volumes), nooit platte
+env-vars.
 
 ### De graaf van buiten bevragen (MCP-proxy)
 
@@ -355,48 +391,49 @@ proxy aan:
      --header "Authorization: Bearer <token>"
    ```
 
-Wat de proxy is: een nginx (`<straat>-graphdb-proxy`) die uitsluitend `/mcp` doorlaat, alleen met het
-juiste bearer-token, en al het andere met 404 afwijst – geen Workbench, geen REST-API, geen
+Wat de proxy is: een nginx (`<appName>-graphdb-proxy`) die uitsluitend `/mcp` doorlaat, alleen met
+het juiste bearer-token, en al het andere met 404 afwijst – geen Workbench, geen REST-API, geen
 SPARQL-endpoint. GraphDB zelf blijft `external: false` en wordt niet aangeraakt, dus de graaf
-herstart niet en hoeft niet opnieuw geïmporteerd te worden. Hij schaalt naar nul.
+herstart niet en hoeft niet opnieuw geïmporteerd te worden. Hij schaalt naar nul. De nginx-config
+zit in een secret, en secrets zijn in Container Apps niet revisie-scoped; daarom hangt de
+`revisionSuffix` aan een hash van de config, anders rolt een configwijziging niet uit.
 
 Wat de proxy **niet** doet: read-only afdwingen. Wie erdoor komt heeft dezelfde rechten als Lex – een
 SPARQL-body is op nginx-niveau niet betrouwbaar te keuren. Dat is te dragen omdat dit alleen op
 acceptatie aan gaat, het token apart intrekbaar is en de graaf reproduceerbaar is uit overheid.nl.
-Wil je harder, dan hoort daar GraphDB-security met een read-only account bij; dat raakt `bwb-import`
-én graph-qa en is een eigen traject.
 
 Weer dicht: actie **`mcp-proxy-afbreken`** (met de resource group ter bevestiging). `graphdb_proxy`
 weer op `false` zetten is **niet** genoeg – een bicep-deploy in incremental mode verwijdert niets, en
 `opruimen` beschermt de proxy juist omdat die actie niet kan weten of hij bedoeld is.
 
-Verder ongewijzigd: alle applicatie-secrets zijn **bestanden** (`*_FILE`-patroon via secret-volumes),
-nooit platte env-vars.
+`poort.yml` bewaakt de grens: GraphDB blijft `external: false`, `graphdbProxyExtern` heeft default
+`false`, de proxy bestaat alleen mét token, en `--graphdb-proxy-extern` staat in de workflow alleen
+achter een acceptatie-conditie.
 
 ## Het annotatiecontract
 
 De api draait op **contract 2** (bronnode-annotaties): `ANNOTATIE_CONTRACT_VERSIE` staat standaard op
-`2` in het image, dus de bicep hoeft hem niet te zetten. De omschakeling van 22 sep 2026 liep via een
-eenmalige workflow die de variabele tijdelijk op `1` zette om de nieuwe revisies gecontroleerd binnen
-te laten; die is daarna verwijderd (te vinden in de historie als `annotatie-contract.yml`). Moet je
-het ooit opnieuw doen, dan is het één `az containerapp update --set-env-vars
-ANNOTATIE_CONTRACT_VERSIE=1` vóór de nieuwe revisie verkeer krijgt, en daarna terug naar `2`. Weet
-wel dat een `azure-infra`-deploy de template opnieuw schrijft en de default terugzet.
+`2` in het image, dus de bicep zet hem niet. Een tijdelijke terugschakeling naar `1` kan met
+`az containerapp update --set-env-vars ANNOTATIE_CONTRACT_VERSIE=1`; een `azure-infra`-deploy schrijft
+de template opnieuw en zet de default dan terug.
 
 ## Kosten drukken
 
-- **Uit**: `az group delete -n rg-wetsanalyse` – de omgeving is in een kwartier terug te zetten.
-- **Pauze**: `az postgres flexible-server stop -n wetsanalyse-db -g rg-wetsanalyse` plus de
-  graphdb-app op nul replica's. Api, graph-qa en frontend schalen zelf terug (frontend houdt één
-  replica: een cold start laat Auth.js-redirects timeouten).
+- **Uit**: `az group delete -n rg-wetsanalyse` – haalt beide straten weg; een straat is in een
+  kwartier terug te zetten.
+- **Pauze**: `az postgres flexible-server stop -n <appName>-db -g rg-wetsanalyse` plus de
+  graphdb-app op nul replica's. Api en graph-qa schalen zelf terug; de frontend houdt één replica,
+  want een cold start laat Auth.js-redirects timeouten.
 
 ## Bestanden
 
 | bestand | wat |
 |---|---|
-| `main.bicep` | de volledige infrastructuur |
-| `gen-deploy.py` | genereert de secrets + parameters en roept `az deployment` aan (`--what-if` / `--run`) |
+| `main.bicep` | de volledige infrastructuur van één straat |
+| `gen-deploy.py` | neemt de secrets over of genereert ze, schrijft de parameters en roept `az deployment` aan (`--what-if` / `--run`) |
+| `grafana.bicep` | de Grafana-app (actie `grafana`) |
+| `grafana/dashboard-keten.json` | het dashboardsjabloon, per straat ingevuld |
 | `.gitignore` | houdt `params.json` en licentiebestanden buiten de repo |
 
-Het image dat elke app draait is een parameter (`apiImage`, `graphQaImage`, …), zodat CI een digest
-kan meegeven in plaats van `:latest`.
+Het image dat elke app draait is een parameter (`apiImage`, `graphQaImage`, `frontendImage`,
+`bwbImportImage`), zodat CI een digest kan meegeven in plaats van `:latest`.
