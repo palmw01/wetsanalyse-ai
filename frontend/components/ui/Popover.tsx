@@ -48,14 +48,20 @@ export function Popover({ trigger, children, className = "", ariaLabel, onClose,
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") close(); };
+    // In de capture-fase en met `stopPropagation`: een open popover is de bovenste laag, dus Escape
+    // sluit alleen hém – niet ook nog het venster (`Dialog`) waar hij in staat.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.stopPropagation();
+      close();
+    };
     const onClick = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) close();
     };
-    window.addEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey, true);
     window.addEventListener("mousedown", onClick);
     return () => {
-      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keydown", onKey, true);
       window.removeEventListener("mousedown", onClick);
     };
     // Bewust alleen `open` als dependency: `close` leest onClose/setOpen via closure en hoeft

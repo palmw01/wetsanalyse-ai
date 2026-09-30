@@ -193,13 +193,18 @@ export function ArtefactInhoud({
       // NIET vanuit de chat ernaast: in de kolom-variant staat die naast het artefact, en dan sloot
       // Escape tijdens het typen van een vraag ineens het paneel waar je in werkte.
       if (e.key === "Escape") {
-        if (inVeld && !!doel?.closest("[data-artefact]")) opEscape();
-        else if (!inVeld) opEscape();
+        // Niet vanuit de chat ernaast of vanuit een venster dat eroverheen ligt (instellingen):
+        // dan hoort Escape bij dát venster.
+        if (inVeld ? !!doel?.closest("[data-artefact]") : focusBijArtefact(doel)) opEscape();
         return;
       }
       if (e.metaKey || e.ctrlKey || e.altKey) return;
 
       if (inVeld) return;
+      // De rest alleen als de focus in het artefact staat, of nergens (op de pagina zelf). In de
+      // kolomvariant staat de chat ernaast: daar zijn de pijltjes van de keuzekaart en het scrollen
+      // door de thread, en een `a` op een chatknop keurde hier ongemerkt het gekozen element goed.
+      if (!focusBijArtefact(doel)) return;
 
       const stap = (richting: 1 | -1) => {
         const volgend = volgendeElement(getoond, actiefId, richting);
@@ -222,7 +227,9 @@ export function ArtefactInhoud({
 
       if (e.key === "a") {
         e.preventDefault();
-        void keurGoed(actiefEl.id);
+        // De fout staat al in de melding boven de lijst (`beslis`); hier alleen niet laten
+        // doorlopen als onafgehandelde rejection – de knop vangt hem net zo af.
+        keurGoed(actiefEl.id).catch(() => {});
       } else if (e.key === "x") {
         e.preventDefault();
         setOpen((h) => (h === "verwerp" ? "geen" : "verwerp"));
@@ -468,6 +475,19 @@ export function ArtefactInhoud({
   );
 }
 
+
+/** Hoort een toets bij het artefact? Ja als de focus erin staat, of nergens in het bijzonder
+ *  (`body`, of het document zelf). Gedeeld met de reeksnavigatie in `NodeAnnotatiePaneel`. */
+export function focusBijArtefact(doel: EventTarget | null): boolean {
+  if (!(doel instanceof HTMLElement)) return true;
+  if (doel === document.body || doel === document.documentElement) return true;
+  // `data-artefact-schil`: wat een schil rond de inhoud zet (reeksbalk, tabbladen, de graaf) hoort er
+  // ook bij – anders deden `[`/`]` niets zodra de focus op de ‹ ›-knoppen zelf stond.
+  if (doel.closest("[data-artefact], [data-artefact-schil]")) return true;
+  // De focus op de schil eromheen – het paneel van `Dialog`, dat bij openen de focus krijgt – telt
+  // ook: anders deden Escape en de sneltoetsen niets tot je eerst ergens in het artefact klikte.
+  return !!doel.querySelector("[data-artefact]");
+}
 
 /** Afronden is een expliciete handeling van de jurist: "alle elementen beslist" is niet hetzelfde
  *  als tevreden zijn. Afronden zet de hele annotatie op slot, dus dit is óók de enige weg terug —

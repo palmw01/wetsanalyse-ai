@@ -103,14 +103,36 @@ describe("Origin-check op muterende BFF-routes", () => {
     expect((res as Response).status).toBe(403);
   });
 
-  it("blijft zonder sessie gewoon weigeren (rol-/sessie-gate intact)", async () => {
+  it("blijft zonder sessie gewoon weigeren – op een BFF-route als 401, niet als redirect", async () => {
     const res = await authorized({
       auth: null,
       request: fakeRequest("POST", "https://app.example/api/projects", {
         origin: "https://app.example",
       }),
     });
-    expect(res).toBe(false);
+    expect(res).toBeInstanceOf(Response);
+    expect((res as Response).status).toBe(401);
+  });
+});
+
+// `%2E%2E` zelf hoeft hier niet: de URL-standaard normaliseert dat al bij het parsen (ook in
+// Next), dus dat komt nooit als segment binnen. Een extra encoderingslaag wél.
+describe("punt-segmenten in een BFF-pad", () => {
+  it.each([
+    "https://app.example/api/annotatie/v2/lagen/%252E%252E/%252E%252E/v1/verbruik",
+    "https://app.example/api/annotatie/documenten/%252e/audit",
+  ])("weigert %s met 400", async (url) => {
+    const res = await authorized({ auth: sessie, request: fakeRequest("GET", url) });
+    expect(res).toBeInstanceOf(Response);
+    expect((res as Response).status).toBe(400);
+  });
+
+  it("laat een gewone slug met punten erin door", async () => {
+    const res = await authorized({
+      auth: sessie,
+      request: fakeRequest("GET", "https://app.example/api/annotatie/documenten/art.9.lid.1"),
+    });
+    expect(res).toBe(true);
   });
 });
 

@@ -40,9 +40,13 @@ export async function POST(req: Request) {
     const eigen = await proxy(`/v1/gesprekken/${pathSegment(gesprekId)}`, {
       headers: { "X-User-Id": userid },
     });
-    if (!eigen.ok) {
+    if (eigen.status === 404) {
       return Response.json({ detail: "Onbekend gesprek." }, { status: 404 });
     }
+    // Elke andere fout is een storing bij de api, geen oordeel over het gesprek: die status gaat
+    // ongewijzigd door, zodat de werkplek "probeer het zo opnieuw" kan zeggen in plaats van
+    // "onbekend gesprek".
+    if (!eigen.ok) return eigen;
   }
 
   try {

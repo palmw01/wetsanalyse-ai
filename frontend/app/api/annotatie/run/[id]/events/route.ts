@@ -12,8 +12,12 @@ import { graphQaAuthHeader, graphQaBaseUrl } from "@/lib/config";
 import { metTrace } from "@/lib/trace";
 import { logger } from "@/lib/logger";
 import { geenSessie, sessionUserId } from "@/app/api/_lib/session";
+import { pathSegment } from "@/lib/url";
 
 export const dynamic = "force-dynamic";
+
+/** Hoe lang het opzetten van de stroom (tot de headers) mag duren. */
+const OPZET_TIMEOUT_MS = 15_000;
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const userid = await sessionUserId();
@@ -21,8 +25,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
   const { id } = await params;
   const vanaf = new URL(req.url).searchParams.get("vanaf") ?? "0";
-  const url = `${graphQaBaseUrl()}/v1/runs/${encodeURIComponent(id)}/events?vanaf=${encodeURIComponent(vanaf)}`;
+  const url = `${graphQaBaseUrl()}/v1/runs/${pathSegment(id)}/events?vanaf=${encodeURIComponent(vanaf)}`;
 
+  // Wél een grens op het OPZETTEN van de stroom: een graph-qa die de verbinding aanneemt maar geen
+  // headers stuurt, hield deze request anders onbeperkt vast. Zodra de headers er zijn gaat de timer
+  // uit – de stroom zelf mag zo lang duren als de run (zie punt 1 hierboven).
+  const opzet = new AbortController();
+  const opzetTimer = setTimeout(() => opzet.abort(new DOMException("timeout", "TimeoutError")), OPZET_TIMEOUT_MS);
   let upstream: Response;
   try {
     upstream = await fetch(url, {
@@ -30,10 +39,19 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       // run-id zelf de enige beveiliging zijn – een capability in plaats van autorisatie.
       headers: metTrace({ ...graphQaAuthHeader(), "X-User-Id": userid, Accept: "text/event-stream" }),
       cache: "no-store",
+      signal: opzet.signal,
     });
   } catch (err) {
-    logger.warn("Run-events-proxy: onbereikbaar", { fout: (err as Error).message });
-    return Response.json({ detail: `Agent onbereikbaar (${(err as Error).message})` }, { status: 502 });
+    const verlopen = opzet.signal.aborted;
+    logger.warn(verlopen ? "Run-events-proxy: geen antwoord op tijd" : "Run-events-proxy: onbereikbaar", {
+      fout: (err as Error).message,
+    });
+    return Response.json(
+      { detail: verlopen ? "De agent antwoordde niet op tijd." : `Agent onbereikbaar (${(err as Error).message})` },
+      { status: verlopen ? 504 : 502 },
+    );
+  } finally {
+    clearTimeout(opzetTimer);
   }
 
   // Fouten vóór de stream als JSON, niet als SSE-frame: de client zit dan nog in `if (!res.ok)` en

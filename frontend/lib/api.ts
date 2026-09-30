@@ -85,7 +85,29 @@ export async function parseError(res: Response): Promise<ApiError> {
     /* geen JSON-body */
   }
   const ra = res.headers.get("Retry-After");
+  if (res.status === 401) naarInloggen();
   return { status: res.status, detail, reden, data, retryAfter: ra ? Number(ra) : undefined };
+}
+
+let opWegNaarInloggen = false;
+
+/** De sessie is verlopen of ingetrokken: naar het inlogscherm, met de huidige plek als terugweg.
+ *
+ *  Een 401 betekent bij de BFF en de api altijd "geen geldige sessie" (een verkeerd wachtwoord is een
+ *  400 of een `ok: false`). Zonder deze stap kwam "Niet ingelogd." als losse tekst in een bubbel of
+ *  melding terecht en bleef de werkplek doen alsof er gewerkt kon worden. Eén keer per paginaleven:
+ *  een handvol gelijktijdige calls die allemaal 401 krijgen, hoeven niet elk opnieuw te navigeren.
+ *  De login-routes zelf komen hier niet langs – die handelen hun 401 af zonder `parseError`. */
+export function naarInloggen(): void {
+  if (typeof window === "undefined" || opWegNaarInloggen) return;
+  if (window.location.pathname.startsWith("/login")) return;
+  opWegNaarInloggen = true;
+  const terug = window.location.pathname + window.location.search;
+  // Harde navigatie, geen router: de sessie is weg, en de middleware moet de volgende paginalaad
+  // opnieuw beoordelen (zie ook `LoginClient`).
+  const doel = new URL("/login", window.location.origin);
+  doel.searchParams.set("callbackUrl", terug);
+  window.location.href = doel.href;
 }
 
 async function json<T>(res: Response): Promise<T> {
@@ -395,11 +417,17 @@ export async function changePassword(current: string, nieuw: string): Promise<vo
 export async function lijstLagen(opties: { mijn?: boolean; limit?: number } = {}): Promise<DocumentSamenvatting[]> {
   const qs = new URLSearchParams({ limit: String(opties.limit ?? 200) });
   if (opties.mijn) qs.set("mijn", "true");
-  const [legacy, nodes] = await Promise.all([
+  // `allSettled`: de twee bronnen staan los van elkaar. Faalde er één, dan was het hele overzicht
+  // leeg – ook de annotaties die wél te laden waren. Alleen als beide falen is dat een fout.
+  const [legacy, nodes] = await Promise.allSettled([
     fetch(`/api/annotatie/lagen?${qs}`, { cache: "no-store" }).then(json<DocumentSamenvatting[]>),
     fetch(`/api/annotatie/v2/node-lagen?${qs}`, { cache: "no-store" }).then(json<DocumentSamenvatting[]>),
   ]);
-  return [...nodes, ...legacy];
+  if (legacy.status === "rejected" && nodes.status === "rejected") throw nodes.reason;
+  return [
+    ...(nodes.status === "fulfilled" ? nodes.value : []),
+    ...(legacy.status === "fulfilled" ? legacy.value : []),
+  ];
 }
 
 export async function lijstDocumenten(limit = 200): Promise<DocumentSamenvatting[]> {
@@ -871,13 +899,21 @@ export async function exporteerDocument(
     body: JSON.stringify({ leden }),
   });
   if (!res.ok) throw await parseError(res);
+  await downloadAntwoord(res, `annotatie-${slug}.${formaat}`);
+}
 
+/** Bied een bestandsantwoord aan als download: Blob → `createObjectURL` → `<a download>`.
+ *
+ *  Het enige downloadpatroon in deze app – artikel- én bronnode-export lopen hierlangs, zodat de
+ *  bestandsnaam overal van de server komt (`Content-Disposition`) en de link overal in het document
+ *  hangt voor de klik (oudere Firefox- en Safari-versies negeren een klik op een losse `<a>`). */
+export async function downloadAntwoord(res: Response, terugvalNaam: string): Promise<void> {
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
   try {
     const a = document.createElement("a");
     a.href = url;
-    a.download = bestandsnaamUit(res.headers.get("content-disposition")) ?? `annotatie-${slug}.${formaat}`;
+    a.download = bestandsnaamUit(res.headers.get("content-disposition")) ?? terugvalNaam;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -887,9 +923,19 @@ export async function exporteerDocument(
   }
 }
 
-function bestandsnaamUit(header: string | null): string | undefined {
-  const m = header?.match(/filename="([^"]+)"/);
-  return m?.[1];
+/** De bestandsnaam uit `Content-Disposition`: `filename*=UTF-8''…` (RFC 5987) gaat vóór
+ *  `filename="…"`, want alleen die vorm draagt tekens buiten ASCII goed over. */
+export function bestandsnaamUit(header: string | null): string | undefined {
+  const uitgebreid = header?.match(/filename\*=(?:UTF-8|utf-8)''([^;]+)/);
+  if (uitgebreid) {
+    try {
+      return decodeURIComponent(uitgebreid[1].trim());
+    } catch {
+      /* val terug op de gewone vorm */
+    }
+  }
+  const m = header?.match(/filename="([^"]+)"/) ?? header?.match(/filename=([^;]+)/);
+  return m?.[1]?.trim();
 }
 
 // --- Gebruikersfeedback -------------------------------------------------------

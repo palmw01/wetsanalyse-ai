@@ -822,7 +822,23 @@ tokens/secrets/inhoud loggen. In de vitest-node-omgeving wordt `server-only` ges
   graaf-IRI achter `wetten.overheid.nl/` en kwam door de hostcontrole heen, dus stond er een
   klikbare link naar een 404 onder elk antwoord.
 - **Status/headers ongewijzigd doorgeven.** De API bezit het gedrag (409 bij verkeerde state, 429 +
-  `Retry-After`, 404 op andermans id). De BFF maskeert dat niet; de UI reageert erop.
+  `Retry-After`, 404 op andermans id). De BFF maskeert dat niet; de UI reageert erop. Eén
+  uitzondering aan de clientkant: een **401** betekent altijd "geen geldige sessie", en
+  `parseError`/`nodeError` sturen de gebruiker dan zelf naar `/login` (`naarInloggen` in
+  `lib/api.ts`). De middleware geeft op `/api/*` zonder sessie daarom een 401 als JSON en géén
+  redirect – `fetch` volgde die naar de HTML van het inlogscherm, waarna `res.json()` struikelde.
+- **Route-params altijd via `pathSegment`, en die weigert `.`/`..`.** `encodeURIComponent("..")` is
+  `..`, en `fetch` normaliseert dat upstream weg: een param `%252E%252E` kwam zo via
+  `/v1/annotatie/lagen/../../…` bij elk `/v1/*`-endpoint uit, langs de allowlist van de BFF. De
+  middleware weigert zulke paden al met 400 (`isPuntSegment` in `auth.config.ts`); `pathSegment` en de
+  v2-catch-all zijn het tweede net. Gebruik in een nieuwe route dus nooit een kale
+  `encodeURIComponent` op een param.
+- **Escape en Tab zijn voor het bovenste venster.** `Dialog` houdt een stapel bij; alleen het
+  bovenste venster reageert, en bij sluiten gaat de focus terug naar waar hij vandaan kwam.
+  `Popover` en een scherpe `BevestigKnop` vangen hun Escape in de capture-fase af, zodat die niet
+  ook het venster eromheen sluit. De sneltoetsen van het artefact (`j/k/a/x/c`, `[`/`]`) werken
+  alleen als de focus in het artefact staat (`focusBijArtefact`): in de kolomvariant staat de chat
+  ernaast, en daar keurde een `a` op een chatknop anders het gekozen element goed.
 - **Admin-pad apart.** `/api/admin/*` → `proxy(..., { admin: true })` → `/v1/admin/*`. Het admin-token
   zit server-side in de BFF. Meng de twee tokens niet.
 - **Login = Auth.js (NextAuth v5), API is identiteitsbron.** De hele app zit achter een login met

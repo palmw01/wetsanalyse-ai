@@ -28,6 +28,12 @@ export async function getLoginTicketCookie(): Promise<string | undefined> {
   return (await cookies()).get(LOGIN_TICKET_COOKIE)?.value;
 }
 
+/** Het ticket na een geslaagde login weghalen. Het vervalt ook vanzelf (5 min), maar tot dan was
+ *  het op dit apparaat nog bruikbaar als wachtwoordbewijs voor een tweede login. */
+export async function clearLoginTicketCookie(): Promise<void> {
+  (await cookies()).set(LOGIN_TICKET_COOKIE, "", { ...base, maxAge: 0 });
+}
+
 export async function setTrustedDeviceCookie(token: string): Promise<void> {
   (await cookies()).set(TRUSTED_DEVICE_COOKIE, token, { ...base, maxAge: TRUSTED_MAX_AGE });
 }

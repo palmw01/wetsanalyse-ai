@@ -85,6 +85,11 @@ describe("zichtbareGraaf", () => {
 });
 
 describe("bronDoel", () => {
+  it("gooit niet bij een kapotte percent-encoding, maar geeft niets terug", () => {
+    expect(() => bronDoel("urn:bwb:BWBR0004770:artikel:10%")).not.toThrow();
+    expect(bronDoel("urn:bwb:BWBR0004770:artikel:10%")).toBeUndefined();
+  });
+
   it("vertaalt jci en graaf-IRI naar een bronnode", () => {
     expect(bronDoel("jci1.3:c:BWBR0004770&artikel=9&lid=2&z=2026-01-01&g=2026-01-01")).toMatchObject(
       { bron_iri: L2, bwb_id: "BWBR0004770", artikel: "9", lid: "2" });

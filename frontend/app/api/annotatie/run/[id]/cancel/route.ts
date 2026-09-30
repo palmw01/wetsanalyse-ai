@@ -9,6 +9,7 @@ import { graphQaAuthHeader, graphQaBaseUrl } from "@/lib/config";
 import { metTrace } from "@/lib/trace";
 import { logger } from "@/lib/logger";
 import { geenSessie, sessionUserId } from "@/app/api/_lib/session";
+import { pathSegment } from "@/lib/url";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const { id } = await params;
   try {
     const upstream = await fetch(
-      `${graphQaBaseUrl()}/v1/runs/${encodeURIComponent(id)}/cancel`,
+      `${graphQaBaseUrl()}/v1/runs/${pathSegment(id)}/cancel`,
       {
         method: "POST",
         // Alleen je eigen beurt stoppen: graph-qa toetst deze header.

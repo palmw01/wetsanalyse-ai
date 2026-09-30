@@ -1,3 +1,5 @@
+import { naarInloggen } from "./api";
+
 /** Canonieke bronnodeweergave. Posities zijn Unicode-codepunten, niet UTF-16. */
 export interface NodeDoel {
   bron_iri: string; type?: string; label?: string; bwb_id?: string;
@@ -74,7 +76,13 @@ export async function nodeError(response: Response): Promise<Error> {
   const error = await response.json().catch(() => ({}));
   if (response.status === 412)
     return new Error("Deze annotatie is intussen gewijzigd. Laad opnieuw en controleer de laatste stand voordat je de wijziging opnieuw opslaat.");
-  const detail = typeof error.detail === "string" ? error.detail : `Verzoek mislukt (${response.status}).`;
+  if (response.status === 401) naarInloggen();
+  // Zelfde foutcontract als `parseError` in `lib/api.ts`: een gestructureerde fout (`{reden,
+  // melding}`) draagt zijn leesbare tekst in `melding`. Die bleef hier onbenut, en dan stond er
+  // "Verzoek mislukt (409)" waar de api precies had gezegd wat er mis was.
+  const d = error?.detail;
+  const melding = d && typeof d === "object" && typeof d.melding === "string" && d.melding.trim() ? d.melding : undefined;
+  const detail = typeof d === "string" ? d : melding ?? `Verzoek mislukt (${response.status}).`;
   return new Error(detail);
 }
 export async function nodeRequest<T>(path: string, body?: unknown, method = "POST"): Promise<T> {

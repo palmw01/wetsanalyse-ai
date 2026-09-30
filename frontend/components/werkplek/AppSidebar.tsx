@@ -116,6 +116,18 @@ export function AppSidebar({
     }
   }
 
+  // Wordt het scherm breed genoeg voor de vaste sidebar terwijl de drawer openstaat, dan is die
+  // drawer onzichtbaar (`lg:hidden`) maar nog wél modaal – met een focus-trap op knoppen die je niet
+  // ziet. Dan sluiten we hem; 1024px is Tailwinds `lg`.
+  useEffect(() => {
+    if (!drawerOpen || !onDrawerSluit) return;
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const opWijziging = () => { if (mq.matches) onDrawerSluit(); };
+    opWijziging();
+    mq.addEventListener("change", opWijziging);
+    return () => mq.removeEventListener("change", opWijziging);
+  }, [drawerOpen, onDrawerSluit]);
+
   const inhoud = (extra?: { onSluit: () => void }) => (
     <GesprekSidebar
       gesprekken={gesprekken}
