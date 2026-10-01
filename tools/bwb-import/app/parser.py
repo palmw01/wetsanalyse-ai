@@ -522,9 +522,9 @@ class ToestandParser:
         **1. Opmaak** – een cursieve term (``nadruk type="cur"``) die op een dubbele punt eindigt.
         Precies, maar de bron levert het niet consequent: in artikel 2 lid 1 IW 1990 staat
         ``rijksbelastingen:`` cursief en ``belastingschuldige:`` niet, in dezelfde opsomming en met
-        dezelfde zinsvorm. Daardoor stonden er 8 sep 2026 nog maar 34 definities in de hele graaf en
-        gaf `zoek_definitie("belastingschuldige")` niets terug — de definitie-specialist moest
-        definitieartikelen raden, precies wat die tool moest wegnemen.
+        dezelfde zinsvorm. Alleen op opmaak leunen levert zo maar enkele tientallen definities in de
+        hele graaf op, en `zoek_definitie("belastingschuldige")` niets – de definitie-specialist moet
+        dan definitieartikelen raden, precies wat die tool moet wegnemen.
 
         **2. Tekst** – de vorm ``term: definitie``, maar alléén als de houder (het lid of artikel)
         definities inleidt; dat zegt `definitie_context`. Die eis is niet optioneel: de dubbele punt

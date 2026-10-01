@@ -91,7 +91,7 @@ def build_graph(
     """Bouw de (ongecompileerde) toestandsgraaf; de wrapper compileert 'm met een checkpointer."""
     # `model` is het sterke model: de annotatie-classifier, de reviewer en de QA-specialisten. De router
     # en de ophaal-agent mogen apart worden gezet (`Settings.model_voor`); staat er niets, dan is
-    # het alle drie hetzelfde en draait de keten exact als voorheen.
+    # het alle drie hetzelfde.
     model = settings.llm_model
     model_router = settings.model_voor("router")
     model_ophaal = settings.model_voor("ophaal")

@@ -1,4 +1,4 @@
-"""Detectieprofielen (ADR-001 PR 4): volledig, herleidbaar naar H2-JAS.md en zonder eigen JAS-definities."""
+"""Detectieprofielen (ADR-001): volledig, herleidbaar naar H2-JAS.md en zonder eigen JAS-definities."""
 from __future__ import annotations
 
 import re
@@ -100,8 +100,8 @@ def test_elk_profiel_zegt_waar_het_model_nog_nodig_is():
 
 
 def test_de_pijplijn_leunt_niet_op_de_repo_indeling():
-    """In het image staat de code onder /app/agent/…; een `parents[5]` op moduleniveau crashte daar
-    bij het importeren (gevonden bij de image-build van PR 9). Paden naar docs/ zijn lui."""
+    """In het image staat de code onder /app/agent/…; een `parents[5]` op moduleniveau crasht daar
+    bij het importeren. Paden naar docs/ zijn lui."""
     from pathlib import Path
     for pad in Path("agent/jas_pipeline").rglob("*.py"):
         assert "parents[" not in pad.read_text(encoding="utf-8"), pad

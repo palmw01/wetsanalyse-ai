@@ -495,7 +495,7 @@ export type AgentHandlers = {
    *  doen alsof de tekst compleet is. */
   onGat?: (aantal: number) => void;
   /** De agent heeft de uitkomst zelf vastgelegd (bericht + eventueel annotatiedocument). Komt vlak
-   *  vóór het einde. Blijft hij uit, dan schrijft de werkplek zelf weg, zoals vroeger. */
+   *  vóór het einde. Blijft hij uit, dan legt de werkplek het bericht zelf vast. */
   onOpgeslagen?: (uitkomst: { annotatie_slug: string; run_id: string; annotatie_doel?: import("./annotatieNode").NodeDoel }) => void;
   /** De beurt slaagde, maar niet alles is bewaard – bv. een markering die de api niet accepteerde.
    *  Geen fout (het meeste staat er wél), maar de jurist hoort te weten dat er iets ontbreekt. */

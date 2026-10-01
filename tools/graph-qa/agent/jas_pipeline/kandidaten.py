@@ -1,9 +1,9 @@
-"""Het kandidaatmodel (ADR-001 PR 5): wat een detector vindt, nog zonder juridisch oordeel.
+"""Het kandidaatmodel (ADR-001): wat een detector vindt, nog zonder juridisch oordeel.
 
 Een kandidaat is een **bronspan plus bewijs**. Hij zegt welke JAS-klassen mogelijk zijn
 (`possible_classes`, uit de detectieprofielen) en waarom (`evidence`), en welke andere grenzen er
 in aanmerking komen (`span_options`). Of hij een annotatie wordt, beslist een latere stap; tot die
-tijd staat hij op `UNHANDLED`, en de dekkingsboekhouding (PR 10) eist dat elke kandidaat daar
+tijd staat hij op `UNHANDLED`, en de dekkingsboekhouding (`dekking`) eist dat elke kandidaat daar
 vanaf komt.
 
 Twee identiteiten, met opzet:

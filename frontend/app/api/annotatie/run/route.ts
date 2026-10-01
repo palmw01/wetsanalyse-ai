@@ -22,8 +22,8 @@ export async function POST(req: Request) {
   if (!userid) return geenSessie();
 
   // De identiteit gaat als HEADER mee, niet in de body – één mechanisme voor alle run-routes en
-  // hetzelfde als de api hanteert. Ze kwam eerder in de body, en toen liepen de twee bronnen bij de
-  // eerste eigenaarscontrole meteen uit elkaar.
+  // hetzelfde als de api hanteert. Staat ze ook in de body, dan lopen de twee bronnen bij de eerste
+  // eigenaarscontrole meteen uit elkaar.
   const body = await req.text();
   let gesprekId = "";
   try {

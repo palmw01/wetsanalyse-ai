@@ -1,4 +1,4 @@
-"""Kandidaatdekking van de deterministische detectoren op de ontwikkelsplit (ADR-001 PR 6+).
+"""Kandidaatdekking van de deterministische detectoren op de ontwikkelsplit (ADR-001).
 
 Meet wat de detectoren aanreiken tegen de conceptmarkeringen van de referentieset (status
 `provisional`): per klasse de candidate recall, met en zonder spanopties, en wat elke detector als

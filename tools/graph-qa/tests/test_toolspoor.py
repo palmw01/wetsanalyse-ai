@@ -14,7 +14,7 @@ def _event(call_id: str, phase: str, **extra):
 
 
 def test_start_en_einde_van_een_aanroep_worden_een_bewaarde_regel():
-    """Tot 30 sep 2026 stonden ze los in het bericht: "10 aanroepen" voor vijf."""
+    """Start en einde van één aanroep tellen als één regel, niet als "10 aanroepen" voor vijf."""
     w = BeurtSchrijver()
     for i in range(5):
         w.verwerk(_event(f"c{i}", "start", status="running"))

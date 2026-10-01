@@ -72,11 +72,10 @@ export function ontleed(regel: string): Onderdeel {
 
 /** De definitieterm afsplitsen: alleen vlak ná een nummer, en alleen als het er echt één is.
  *
- *  Een dubbele punt staat ook in gewone volzinnen, dus er is een onderscheid nodig. Dat liep eerst
- *  via een grens van vier woorden, en dat was de verkeerde maatstaf: officiële begrippen zijn vaak
- *  lang. "Gedelegeerde Verordening Douanewetboek van de Unie" (6 woorden) en de reeks bij
- *  onderdeel l van art. 2 IW 1990 (8 woorden) vielen daardoor af — bij d, e en l bleef alleen de
- *  letter over. Zo gemeld op 2 sep 2026.
+ *  Een dubbele punt staat ook in gewone volzinnen, dus er is een onderscheid nodig. Een grens van
+ *  vier woorden is daarvoor de verkeerde maatstaf: officiële begrippen zijn vaak lang.
+ *  "Gedelegeerde Verordening Douanewetboek van de Unie" (6 woorden) en de reeks bij onderdeel l van
+ *  art. 2 IW 1990 (8 woorden) vallen dan af — bij d, e en l blijft alleen de letter over.
  *
  *  Twee signalen die wél uit de wetstaal volgen:
  *

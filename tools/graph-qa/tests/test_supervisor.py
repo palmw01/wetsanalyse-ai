@@ -1,9 +1,9 @@
 """De supervisor: welke workers draaien er, en wanneer draait er géén.
 
-Twee dingen die eerder ontbraken. De workerlijst werd niet gevalideerd, dus elke naam die het model
-verzon werd stilzwijgend een extra ANTWOORD-worker – dezelfde vraag twee keer beantwoord, dubbele
-kosten. En "AFWIJZEN" stond wel in het promptformaat maar werd nergens gelezen: het ging als plan de
-systeemprompt van een specialist in, waarna een tweede modelbeslissing bepaalde wat er gebeurde.
+Twee dingen die hier bewaakt worden. De workerlijst wordt gevalideerd; anders wordt elke naam die het
+model verzint stilzwijgend een extra ANTWOORD-worker – dezelfde vraag twee keer beantwoord, dubbele
+kosten. En "AFWIJZEN" wordt echt gelezen; anders gaat het als plan de systeemprompt van een
+specialist in en bepaalt een tweede modelbeslissing wat er gebeurt.
 """
 from __future__ import annotations
 
@@ -111,11 +111,11 @@ def test_recursielimiet_dekt_een_volle_annotatieketen():
 def test_prompt_beperkt_afwijzen_tot_niet_wetgeving():
     """Afwijzen mag om de vráág, niet om een vermoeden over de inhoud van de graaf.
 
-    De instructie zei "AFWIJZEN als de vraag niet over de Nederlandse wet- en regelgeving IN DE GRAAF
-    gaat", en dat voegde twee dingen samen die uit elkaar horen. Of iets over wetgeving gaat weet de
-    supervisor zonder te kijken; of een bepáálde regeling in de graaf zit juist niet – hij heeft geen
-    tools. Op dev wees hij daardoor een vraag over "de milieuwet" af, terwijl art. 36 IW 1990 de Wet
-    belastingen op milieugrondslag noemt: er was wél iets te vinden.
+    "AFWIJZEN als de vraag niet over de Nederlandse wet- en regelgeving IN DE GRAAF gaat" voegt twee
+    dingen samen die uit elkaar horen. Of iets over wetgeving gaat weet de supervisor zonder te
+    kijken; of een bepáálde regeling in de graaf zit juist niet – hij heeft geen tools. Met die
+    formulering wijst hij een vraag over "de milieuwet" af, terwijl art. 36 IW 1990 de Wet
+    belastingen op milieugrondslag noemt: er is wél iets te vinden.
     """
     prompt = SUPERVISOR_SYSTEM
     assert "AFWIJZEN als de vraag niet over Nederlandse wet- en regelgeving gaat" in prompt

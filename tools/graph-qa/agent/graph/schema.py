@@ -1,19 +1,18 @@
 """
 Schema-introspectie van de kennisgraaf, met in-proces cache.
 
-Vervangt de hardgecodeerde omvang/regelingen uit de oude system-prompt: het model
-vraagt de live tellingen op via de graph_schema-tool i.p.v. te vertrouwen op
-bevroren cijfers die verouderen zodra de graaf groeit.
+Geen hardgecodeerde omvang/regelingen in de system-prompt: het model vraagt de live tellingen
+op via de graph_schema-tool i.p.v. te vertrouwen op bevroren cijfers die verouderen zodra de
+graaf groeit.
 
-Sinds 4 sep 2026 draagt het antwoord ook de **T-Box**: welke klassen en predicaten er bestaan en
-wat ze betekenen. Die stond al in de graaf (`urn:bwb:graph:ontologie`, met `rdfs:label` en
-`rdfs:comment`), maar nergens waar het model hem kon lezen — dus moest het bij `raw_sparql`
-predicaatnamen raden, en een geraden predicaat matcht niets **zonder foutmelding**. Dat is dezelfde
-stille onvolledigheid als de `bwb:bevat`-bug, alleen dan veroorzaakt door het model.
+Het antwoord draagt ook de **T-Box**: welke klassen en predicaten er bestaan en wat ze betekenen.
+Die staat in de graaf (`urn:bwb:graph:ontologie`, met `rdfs:label` en `rdfs:comment`); zonder
+haar moet het model bij `raw_sparql` predicaatnamen raden, en een geraden predicaat matcht niets
+**zonder foutmelding** – stille onvolledigheid, veroorzaakt door het model.
 
-De cache heeft een TTL. Hij was proces-globaal en werd nooit ongeldig, terwijl de import-job
-wekelijks draait en de container maandenlang leeft: de tellingen konden dus willekeurig ver
-achterlopen op de graaf, en juist die cijfers zijn de reden dat deze tool bestaat.
+De cache heeft een TTL: de import-job draait wekelijks en de container leeft maandenlang, dus een
+cache die nooit ongeldig wordt laat de tellingen willekeurig ver achterlopen op de graaf, en juist
+die cijfers zijn de reden dat deze tool bestaat.
 """
 from __future__ import annotations
 
@@ -58,7 +57,7 @@ def graph_schema(graph: GraphPort) -> str:
         f"  lid       {queries.NS}{{BWB-id}}:artikel:{{nr}}:lid:{{nr}}\n"
         f"  Filter altijd op STRSTARTS(STR(?s), \"{queries.NS}\") – anders tel je de\n"
         "  owl:sameAs-tweelingen van wetten.overheid.nl dubbel.\n"
-        # Sinds 22 sep 2026 staan de JAS-annotatielagen in dezelfde graaf. Ze dragen BWB-id's in
+        # De JAS-annotatielagen staan in dezelfde graaf. Ze dragen BWB-id's in
         # hun IRI en citeren wettekst in oa:exact, dus een vrije query kan ze tegenkomen.
         "  urn:jas:… zijn JAS-annotaties: afgeleide duiding door Lex en juristen, GEEN wettekst\n"
         "  en GEEN vindplaats. Citeer ze nooit als bron; de wet staat alleen onder "

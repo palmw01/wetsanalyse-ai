@@ -1,13 +1,11 @@
 """
 Geparametriseerde SPARQL-bouwers voor de kennisgraaf.
 
-Deze module is de code-vorm van de queryrecepten; ze stonden eerder als proza in de
-system-prompt stonden: de eigen-IRI-ruimte-filters die owl:sameAs-tweelingen
+Deze module is de code-vorm van de queryrecepten, zodat ze niet als proza in de
+system-prompt hoeven te staan: de eigen-IRI-ruimte-filters die owl:sameAs-tweelingen
 ontdubbelen, de directe artikel-/lid-IRI-patronen, de Lucene-FTS en de
 verwijzings-/SKOS-vormen. De invoer wordt gevalideerd/ge-escaped zodat het model
 geen SPARQL kan injecteren via een tool-argument.
-
-Bron van de patronen: de eerdere agent/prompts.py (kennisgraaf-verkenning).
 """
 from __future__ import annotations
 
@@ -29,9 +27,9 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 NS = BASIS
 
 # De bevat-relatie is geen predicaat maar een alternatie. `bwb:bevat` BESTAAT NIET – de importer
-# schrijft per niveau een eigen `heeft…`-predicaat (`tools/bwb-import/app/ontology.py`). Dat was tot
-# 4 sep 2026 de stille bug in `context()`: de tak "4-bevat-door" matchte nooit iets en de agent kreeg
-# de structurele inbedding van een bepaling dus nóóit te zien. Zelfde fout als `get_lid` had.
+# schrijft per niveau een eigen `heeft…`-predicaat (`tools/bwb-import/app/ontology.py`). Een query op
+# `bwb:bevat` matcht stil niets: in `context()` zou de tak "4-bevat-door" de structurele inbedding
+# van een bepaling dan nóóit laten zien, en in `get_lid` zouden de onderdelen ontbreken.
 #
 # Ze zijn alle negen `rdfs:subPropertyOf eli:has_part`, maar daarop bevragen zou afhangen van een
 # ruleset die subPropertyOf materialiseert; de alternatie hangt nergens van af.
@@ -72,14 +70,14 @@ FTS_VELDEN = (
 _BWB_RE = re.compile(r"^BWBR\d+$")
 # Artikelnummer: "9", "22a", maar ook "3:40", "5:2", "8:36f".
 #
-# Die tweede vorm gebruikt de Algemene wet bestuursrecht consequent, en zonder de dubbele punt was
-# ze onbereikbaar: `artikel_iri` weigerde een IRI te bouwen en een annotatiebeurt brak af met "het
-# doel is geen geldige vindplaats".
-# Gemeten in de graaf op 5 sep 2026: **570 van de 572 Awb-artikelen** dragen een dubbele punt —
-# 49% van alle 1162 artikelen. De wet was dus wél geïmporteerd en doorzoekbaar, maar niet op te
-# halen en niet te annoteren; de eval liep erop vast met nul markeringen op twee cases.
+# Die tweede vorm gebruikt de Algemene wet bestuursrecht consequent, en zonder de dubbele punt is
+# ze onbereikbaar: `artikel_iri` weigert dan een IRI te bouwen en een annotatiebeurt breekt af met
+# "het doel is geen geldige vindplaats".
+# Gemeten in de graaf: **570 van de 572 Awb-artikelen** dragen een dubbele punt — 49% van alle
+# 1162 artikelen. Zonder de dubbele punt is de wet wél doorzoekbaar, maar niet op te halen en niet
+# te annoteren.
 #
-# Aan de IRI-kant hoefde niets: `rdf_vocab._iri` doet `quote(s, safe="")`, dus "5:2" wordt "5%3A2"
+# Aan de IRI-kant hoeft niets: `rdf_vocab._iri` doet `quote(s, safe="")`, dus "5:2" wordt "5%3A2"
 # — precies de vorm die de importer in de graaf zet (`…:artikel:5%3A2:lid:1`).
 _ART_RE = re.compile(r"^[0-9]+[a-z]*(:[0-9]+[a-z]*)*$", re.IGNORECASE)
 _NUM_RE = re.compile(r"^[0-9]+[a-z]*$", re.IGNORECASE)
@@ -372,11 +370,11 @@ def get_bepaling(bwb_id: str, nummer: str) -> str:
     "25", "22a") én divisies/decimale nummers ("9.1") van beleidsregels/circulaires (bv. de Leidraad
     Invordering 2008), waar het artikel/lid-IRI-patroon niet opgaat.
 
-    **`bwb:tekst` is OPTIONEEL, en dat is geen finesse.** De query eiste hem hard, en daardoor gaf
-    deze tool niets terug voor een bepaling die wél bestaat: Leidraad-bepaling 25.1 heeft nul tekens
-    eigen tekst en vijftien subdivisies met 7842 tekens eronder (live gemeten, 4 sep 2026). De
-    ophaal-agent moet volgens zijn instructie "eindigen met een geslaagde get_bepaling-call die de
-    tekst teruggaf" – en dat kón niet, voor precies de bepalingen waar een jurist mee werkt.
+    **`bwb:tekst` is OPTIONEEL, en dat is geen finesse.** Eist de query hem hard, dan geeft deze
+    tool niets terug voor een bepaling die wél bestaat: Leidraad-bepaling 25.1 heeft nul tekens
+    eigen tekst en vijftien subdivisies met 7842 tekens eronder (live gemeten). De ophaal-agent moet
+    volgens zijn instructie "eindigen met een geslaagde get_bepaling-call die de tekst teruggaf" –
+    en dat kan dan niet, voor precies de bepalingen waar een jurist mee werkt.
 
     **Een container noemt zijn subdivisies.** Alleen de eigen tekst teruggeven zou bij zo'n bepaling
     een lege regel opleveren met een `200` eromheen — stil onvolledig, het gevaarlijkste geval. De
@@ -415,16 +413,15 @@ def get_regeling_info(bwb_id: str) -> str:
     """Metadata van één regeling, inclusief de WTI-verrijking – in ÉÉN rij.
 
     `afkorting`, `alternatieveTitel`, `eerstverantwoordelijke`, `dossier`, de publicatiegegevens en
-    de `toestandUrl` stonden al in de graaf maar kwamen er niet uit. Die laatste is niet cosmetisch:
+    de `toestandUrl` komen mee. Die laatste is niet cosmetisch:
     hij zegt wélke toestand er geïmporteerd is, en dat is de vraag die elke annotatie impliciet
     beantwoordt.
 
     **Meerwaardige velden worden gebundeld, niet vermenigvuldigd.** Met losse OPTIONALs levert elk
     extra meerwaardig veld een cartesisch product: de Invorderingswet heeft 2 afkortingen ("IW",
-    "Iw 1990") en 3 ondertekenaars, en dat gaf **zes** vrijwel identieke rijen (live gemeten,
-    4 sep 2026). Het model kreeg zo zes keer dezelfde wet voorgeschoteld en kon er niet uit aflezen
-    wat nu de afkorting ís. Dit patroon bestond al vóór de WTI-velden erbij kwamen; die maakten het
-    alleen zichtbaar.
+    "Iw 1990") en 3 ondertekenaars, en dat geeft **zes** vrijwel identieke rijen (live gemeten).
+    Het model krijgt zo zes keer dezelfde wet voorgeschoteld en kan er niet uit aflezen wat nu de
+    afkorting ís.
 
     Dezelfde oplossing als in `get_lid` voor de onderdelen: `GROUP_CONCAT` per meerwaardig veld.
     `SAMPLE` voor de rest is veilig omdat die velden per regeling één waarde hebben — en waar dat
@@ -467,21 +464,21 @@ def follow_verwijzingen(bwb_id: str, artikel: str, lid: str | None = None) -> st
     """Uitgaande verwijzingen — van de bepaling ZELF én van haar leden en onderdelen.
 
     **Waarom die uitbreiding.** Verwijzingen hangen in deze graaf overwegend aan het lid, niet aan
-    het artikel. Graafbreed gemeten op 4 sep 2026: 1386 op leden, 940 op divisies, 589 op
-    onderdelen, 431 op artikelen, 142 op bijlagen. Deze tool keek alleen naar het artikel en zag dus
-    ongeveer een zesde van alles wat er staat. Voor artikel 36 IW 1990 — het aansprakelijkheids-
-    artikel — betekende dat: nul verwijzingen gemeld, vijf aanwezig.
+    het artikel. Graafbreed gemeten: 1386 op leden, 940 op divisies, 589 op onderdelen, 431 op
+    artikelen, 142 op bijlagen. Wie alleen naar het artikel kijkt, ziet dus ongeveer een zesde van
+    alles wat er staat. Voor artikel 36 IW 1990 — het aansprakelijkheidsartikel — betekent dat: nul
+    verwijzingen gemeld, vijf aanwezig.
 
     Dat is geen randgeval maar de hoofdvraag van het volg-beleid ("waar verwijst deze bepaling
-    naartoe"), en het antwoord was stil onvolledig: geen fout, geen lege tool, gewoon "niets
+    naartoe"), en het antwoord zou stil onvolledig zijn: geen fout, geen lege tool, gewoon "niets
     gevonden" op een artikel dat vol verwijzingen staat.
 
     `?vanuit` zegt uit welk lid of onderdeel de verwijzing komt, want zonder die kolom kan het model
     de vindplaats niet noemen en lijkt het alsof het artikel als geheel verwijst. Geef je een `lid`
     mee, dan blijft de tool scherp op dat lid en zijn onderdelen.
 
-    `?naar` was daarnaast een kale IRI, waardoor het model per verwijzing moest raden waar hij heen
-    wees. Label, jci, BWB-id en citeertitel van het doel komen nu mee. Het doel hoeft niet in de
+    `?naar` is daarnaast een kale IRI; om het model niet per verwijzing te laten raden waar hij
+    heen wijst, komen label, jci, BWB-id en citeertitel van het doel mee. Het doel hoeft niet in de
     graaf te zitten (open-world: een verwijzing naar een nog niet geïmporteerde wet), vandaar dat
     alles OPTIONAL is — een verwijzing met alleen een IRI is nog steeds een verwijzing.
     """
@@ -499,8 +496,8 @@ def follow_verwijzingen(bwb_id: str, artikel: str, lid: str | None = None) -> st
     ?v bwb:naar ?naar .
     # COALESCE(rdfs:label, bwb:doelLabel): een geïmporteerd doel draagt zijn eigen naam, een
     # nog-niet-geïmporteerd doel het leesbare fallback-label dat de importer meegaf. Die fallback
-    # stond tot 4 sep 2026 óók op rdfs:label, en omdat elke wet in een eigen named graph zit
-    # verscheen hij náást het echte label — waarna deze query elke verwijzing dubbel opleverde.
+    # staat bewust niet op rdfs:label: omdat elke wet in een eigen named graph zit, verschijnt hij
+    # daar náást het echte label — en levert deze query elke verwijzing dubbel op.
     OPTIONAL {{ ?naar rdfs:label ?eigenLabel }}
     OPTIONAL {{ ?naar bwb:doelLabel ?stubLabel }}
     BIND(COALESCE(?eigenLabel, ?stubLabel) AS ?doelLabel)
@@ -526,7 +523,7 @@ def verwijst_naar_deze(bwb_id: str, artikel: str, lid: str | None = None, limit:
     Deze query loopt de feitelijke citatiegraaf terug — `?bron bwb:verwijstNaar <node>` en de
     gereïficeerde vorm `?v bwb:naar <node>` — en levert de citerende bepaling zelf, mét haar
     ankertekst. Dat is de vraag die het volg-beleid voor verwijzingen stelt bij het afbakenen van
-    een werkgebied, en hij was tot nu toe onbeantwoordbaar terwijl de data er lag.
+    een werkgebied.
 
     Beide vormen in één UNION omdat de importer ze allebei schrijft en ze niet altijd samenvallen:
     de directe `verwijstNaar` staat op het citerende tekstdeel, de reïficatie draagt de metadata.
@@ -568,9 +565,9 @@ def referenced_by(bwb_id: str, artikel: str) -> str:
 def resolve_begrip(term: str) -> str:
     """Thesaurustermen (`urn:bwb:begrip:…`) waarvan het label de term bevat.
 
-    Het filter op de eigen IRI-ruimte staat er sinds 22 sep 2026, toen de JAS-annotatielagen in de
-    graaf kwamen: hun ontologie brengt de dertien JAS-klassen én alle reviewwaarden ("voorgesteld",
-    "rood", …) als `skos:Concept` mee. Zonder filter antwoordde "recht" met Rechtssubject en
+    Het filter op de eigen IRI-ruimte is nodig omdat de JAS-annotatielagen in dezelfde graaf staan:
+    hun ontologie brengt de dertien JAS-klassen én alle reviewwaarden ("voorgesteld",
+    "rood", …) als `skos:Concept` mee. Zonder filter antwoordt "recht" met Rechtssubject en
     Rechtsobject – methodebegrippen, geen wettelijke. `tests/test_annotatielaag_isolatie.py`.
     """
     return PREFIXES + f"""SELECT DISTINCT ?concept ?label ?related WHERE {{
@@ -809,9 +806,9 @@ def bijlagen(bwb_id: str, sleutel: str | None = None) -> str:
     tabellen die inhoudelijk meetellen.
 
     **De sleutel is een nummer óf een stuk van het label**, want niet elke bijlage heeft een nummer.
-    Live gemeten (4 sep 2026): de Awb heeft er drie mét nummer (1, 2, 3), de Uitvoeringsregeling
+    Live gemeten: de Awb heeft er drie mét nummer (1, 2, 3), de Uitvoeringsregeling
     Invorderingswet één **zonder** — "Bijlage – behorend bij artikel 1cb". Sleutelen op alleen
-    `bwb:nummer` maakte die bijlage onbereikbaar: hij stond in de lijst en was niet te openen.
+    `bwb:nummer` maakt die bijlage onbereikbaar: hij staat in de lijst en is niet te openen.
     """
     if sleutel is None:
         return PREFIXES + f"""SELECT ?bijlage ?nummer ?titel ?label ?jci WHERE {{

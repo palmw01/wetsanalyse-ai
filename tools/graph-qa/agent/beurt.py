@@ -105,13 +105,12 @@ class BeurtSchrijver:
         self.tool_executions.append(event)
 
     def _voeg_element_toe(self, element: dict[str, Any]) -> None:
-        """Ontdubbeld verzamelen: de annoteerder ⇄ Critic-lus kan hetzelfde element opnieuw sturen,
-        en dan wint de laatste versie.
+        """Ontdubbeld verzamelen: komt hetzelfde element opnieuw binnen, dan wint de laatste versie.
 
         Dezelfde regel als `mergeVoorstellen` in de werkplek en als de merge in de api: eerst op
         `id`, anders op de canonieke inhoudssleutel (`sleutel_van` – genormaliseerde tekst + lid).
-        Dat laatste stond hier eerder als rúwe tekst in één tuple mét het id, waardoor een
-        witruimteverschil een tweede kaart opleverde en een herziening zonder id nooit matchte.
+        Niet op rúwe tekst in één tuple mét het id: dan levert een witruimteverschil een tweede
+        kaart op en matcht een herziening zonder id nooit.
         """
         if not element:
             return
@@ -165,8 +164,8 @@ async def voer_beurt_uit(
 
     Kan graph-qa niet zelf wegschrijven (geen api geconfigureerd, of geen gesprek/gebruiker bekend),
     dan is dit puur een doorgeefluik. Leverde de beurt wél markeringen op, dan **zeggen we dat**:
-    de werkplek nam dat vroeger stilzwijgend over met een eigen schrijfpad, en dat tweede pad is
-    weg. Zwijgen zou nu betekenen dat een annotatie van anderhalve minuut spoorloos verdwijnt.
+    de werkplek heeft geen eigen schrijfpad, dus zwijgen zou betekenen dat een annotatie van
+    anderhalve minuut spoorloos verdwijnt.
     """
     schrijver = BeurtSchrijver()
     try:

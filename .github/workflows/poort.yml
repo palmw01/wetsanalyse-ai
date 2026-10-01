@@ -42,13 +42,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Bouwen ná een auto-merge kán niet aan een event hangen. Deze controle stond hier eerst
-      # andersom: ze eiste dat een job met `merged == true` óók op `closed` luisterde. Dat was de
-      # halve waarheid — de `types` klopten daarna wél, en `publish-na-merge` deed alsnog niets,
-      # want GitHub onderdrukt élk event dat uit `GITHUB_TOKEN` voortkomt, `closed` incluis. Op
-      # 8 sep 2026 landden zo vier dependency-PR's op master zonder dat er één image werd gebouwd.
-      # Het patroon is daarom nu verboden in plaats van gecorrigeerd: wie na een merge iets wil
-      # laten draaien, meet de toestand (zie `bouwwacht.yml`) in plaats van op de merge te wachten.
+      # Bouwen ná een auto-merge kán niet aan een event hangen: GitHub onderdrukt élk event dat uit
+      # `GITHUB_TOKEN` voortkomt, `closed` incluis. Een job die op de merge wacht, draait dan niet, en
+      # dependency-PR's landen op master zonder dat er een image wordt gebouwd. Het patroon is daarom
+      # verboden: wie na een merge iets wil laten draaien, meet de toestand (zie `bouwwacht.yml`) in
+      # plaats van op de merge te wachten.
       - name: Workflows – geen job die op een auto-merge-event wacht
         run: |
           python3 - <<'PYEOF'

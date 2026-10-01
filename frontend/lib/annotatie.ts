@@ -208,9 +208,9 @@ function lidRang(lid: string): number {
 
 /** Sorteer de reviewlijst in één vaste, inhoudelijke volgorde: de canonieke JAS-tabel.
  *
- *  Eerder woog aandacht (🔴🟡🟢) en voortgang het zwaarst. Beide veranderen terwijl je reviewt: keur
- *  je iets goed, dan sprong het naar achteren en schoof de rest op – je raakte je plek kwijt en een
- *  kaart stond nooit twee keer op dezelfde hoogte. Scherpstellen op twijfelgevallen doen de filters.
+ *  Niet op aandacht (🔴🟡🟢) of voortgang: beide veranderen terwijl je reviewt. Keur je iets goed,
+ *  dan springt het naar achteren en schuift de rest op – je raakt je plek kwijt en een kaart staat
+ *  nooit twee keer op dezelfde hoogte. Scherpstellen op twijfelgevallen doen de filters.
  *
  *  Sleutels van grof naar fijn: klasse (wa-tabelvolgorde) → lid → positie in de tekst →
  *  invoervolgorde. Geen van die vier verandert door reviewen; alleen als jíj de klasse wijzigt
@@ -307,10 +307,10 @@ export function vraagContextVan(
 
 /** De eigen markeringen die als context meegaan met een ANNOTATIE-beurt.
  *
- *  De Critic kijkt ermee mee op eigen werk. Dat kan alleen zinnig over de bepaling die hij voor zich
- *  heeft, dus gaat hier één document in – niet alles wat er in het gesprek is geopend. Dat laatste
- *  deed de werkplek eerder wél (`Object.values(docs).flatMap(...)`), waardoor een markering bij
- *  artikel 36 werd beoordeeld tegen de tekst van artikel 8.
+ *  Eigen werk als context heeft alleen zin over de bepaling die de beurt voor zich heeft, dus gaat
+ *  hier één document in – niet alles wat er in het gesprek is geopend
+ *  (`Object.values(docs).flatMap(...)`); anders wordt een markering bij artikel 36 gelezen tegen de
+ *  tekst van artikel 8.
  *
  *  Verworpen markeringen blijven eruit en de lijst is begrensd, net als bij `vraagContextVan`.
  */

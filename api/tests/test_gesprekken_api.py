@@ -94,8 +94,8 @@ async def test_annotatie_bericht_verwijzing(client):
 
 
 async def test_bronnode_annotatie_en_toolspoor_overleven_het_heropenen(client):
-    """Een bronnode-laag heeft geen slug. Viel `annotatie_doel` weg, dan wees het bericht na herladen
-    nergens meer naar en verdween de chip naar het annotatiepaneel (22 sep 2026)."""
+    """Een bronnode-laag heeft geen slug. Valt `annotatie_doel` weg, dan wijst het bericht na herladen
+    nergens meer naar en verdwijnt de chip naar het annotatiepaneel."""
     gid = await _maak(client)
     doel = {"bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1",
             "label": "Invorderingswet 1990 – Artikel 9, Lid 1", "snapshot_id": "s1"}

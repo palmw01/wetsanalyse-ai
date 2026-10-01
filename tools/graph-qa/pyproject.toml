@@ -50,7 +50,7 @@ dev = [
 mcp = [
     "mcp>=1.2",
 ]
-# Taalanalyse voor de hybride JAS-pijplijn (ADR-001 PR 3, agent/jas_pipeline/taal). spaCy met het
+# Taalanalyse voor de hybride JAS-pijplijn (ADR-001, agent/jas_pipeline/taal). spaCy met het
 # Nederlandse md-model (UD Alpino + LassySmall, CC BY-SA 4.0, ±53 MB): de keuze staat onderbouwd in
 # docs/architectuur/adr-002-taalprovider.md. Een extra en geen vaste afhankelijkheid: zonder deze
 # extra degradeert de provider zichtbaar (alleen lexicale detectoren) in plaats van te falen.

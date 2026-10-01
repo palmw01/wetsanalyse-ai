@@ -31,9 +31,8 @@ def structuur(**kw) -> tuple[set[str], set[tuple[str, str, str, bool]]]:
     return set(g.nodes), edges
 
 
-# De annotatieketen zoals hij er in élke tak met annotatie uitziet (ADR-001 PR 18): de hybride
-# analyse en daarna emit, als enige uitgang naar advance. Geen Critic, geen herziening, geen
-# terugwaartse edge.
+# De annotatieketen zoals hij er in élke tak met annotatie uitziet (ADR-001): de hybride
+# analyse en daarna emit, als enige uitgang naar advance. Geen review-lus, geen terugwaartse edge.
 ANNOTATIEKETEN = {("annoteer", "emit", "", False), ("emit", "advance", "", False)}
 ANNOTATIE_NODES = {"annoteer", "emit"}
 

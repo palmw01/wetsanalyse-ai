@@ -852,8 +852,8 @@ def test_graaf_is_incompleet_bij_een_lege_graaf() -> None:
 def test_ontbrekende_repository_telt_als_incompleet_en_werpt_niet() -> None:
     """`Repository inning doesn't exist` is precies waarvoor de graafwacht bestaat.
 
-    Een uitzondering hier zou de job rood maken zonder iets te herstellen; de storing van 8 sep 2026
-    liep juist op dit antwoord vast.
+    Een uitzondering hier zou de job rood maken zonder iets te herstellen, precies wanneer de graaf
+    leeg is en hersteld moet worden.
     """
     session = _GraafStub(fout=requests.HTTPError("404 Repository inning doesn't exist"))
     assert _graaf_writer(session).graaf_is_compleet(["BWBR0004770"]) is False

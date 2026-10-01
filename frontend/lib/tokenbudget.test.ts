@@ -15,7 +15,7 @@ import type { Verbruiksstand } from "./types";
  *
  *  De helpers rekenen in kalenderdagen ("reset vandaag/morgen"), en dat is per definitie lokaal.
  *  Een vaste UTC-string in een test hangt daardoor van de tijdzone af: `2026-09-06T23:00Z` valt in
- *  UTC op 6 september en in Amsterdam op 7 september. Die test slaagde lokaal en zakte op CI.
+ *  UTC op 6 september en in Amsterdam op 7 september. Zo'n test slaagt lokaal en zakt op CI.
  */
 function lokaal(dag: number, uur = 12): string {
   return new Date(2026, 8, dag, uur, 0, 0).toISOString();

@@ -2,8 +2,8 @@
 // (`ArtefactInhoud`) mee werkt – en terug.
 //
 // Waarom een vertaling en geen tweede paneel: het artefact draagt maanden aan afwegingen over
-// highlights, reviewkaarten, sneltoetsen en de selectiepopover. Een eigen v2-paneel liet dat
-// allemaal vallen (#473) en zag er daarna uit als een formulier. Eén inhoud, twee databronnen.
+// highlights, reviewkaarten, sneltoetsen en de selectiepopover. Een eigen v2-paneel laat dat
+// allemaal vallen en ziet er dan uit als een formulier. Eén inhoud, twee databronnen.
 //
 // Twee coördinatenstelsels, en die mogen nergens door elkaar lopen:
 //  • v2 rekent per bronnode in Unicode-codepoints binnen de kale nodetekst (zonder nummer);
@@ -187,7 +187,7 @@ export function tekstVanAnkers(ankers: NodeAnker[]): string {
 /** Een beslissing uit het paneel als v2-beslissing.
  *
  *  Het paneel stuurt bij een fragmentcorrectie een anker in zijn eigen coördinaten mee; dat wordt
- *  hier een set bronnode-ankers. "Fragment overnemen" van de Critic stuurt alleen tekst: die zoeken
+ *  hier een set bronnode-ankers. "Fragment overnemen" stuurt alleen tekst: die zoeken
  *  we op dezelfde manier als de weergave, dicht bij de huidige plek van het element. */
 export function beslissingNaarNode(
   req: BeslissingInvoer, nb: NodeBron, huidig?: AnnotatieElement,

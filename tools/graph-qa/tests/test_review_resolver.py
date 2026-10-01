@@ -1,4 +1,4 @@
-"""Onzekerheid, gerichte reviewer en resolver (ADR-001 PR 12-13): elke transitie uit de tabel."""
+"""Onzekerheid, gerichte reviewer en resolver (ADR-001): elke transitie uit de tabel."""
 from __future__ import annotations
 
 from types import SimpleNamespace

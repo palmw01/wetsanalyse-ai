@@ -150,10 +150,11 @@ def curate_sources(sources: list[Source], answer_text: str) -> list[Source]:
     noemt) vallen weg. Dan, binnen een regeling waarvan het antwoord een precieze vindplaats
     citeert (een jci of graaf-IRI met artikel/lid/onderdeel), op pad: alleen bronnen die boven of
     onder een geciteerde vindplaats liggen blijven staan. Een definitievraag haalt art. 2 lid 1 op
-    met al zijn onderdelen a–z; de lijst toonde dan 28 bronnen voor een antwoord over onderdeel k.
+    met al zijn onderdelen a–z; zonder padfilter toont de lijst dan 28 bronnen voor een antwoord over
+    onderdeel k.
 
-    Noemt het antwoord een regeling alleen met haar BWB-id, dan blijven al haar bronnen staan, zoals
-    voorheen. Valt terug op de volledige lijst als het antwoord geen BWB-id noemt (dan niets
+    Noemt het antwoord een regeling alleen met haar BWB-id, dan blijven al haar bronnen staan. Valt
+    terug op de volledige lijst als het antwoord geen BWB-id noemt (dan niets
     weggooien), en op de regelingsfilter als de padfilter niets overlaat.
     """
     bwbs = set(_BWB_RE.findall(answer_text))

@@ -1,4 +1,4 @@
-"""De hybride annotatieketen door de echte graaf (ADR-001 PR 9), met een nep-LLM.
+"""De hybride annotatieketen door de echte graaf (ADR-001), met een nep-LLM.
 
 FakeLLM-volgorde: supervisor → ophaal-agent (tool_use) → ophaal-agent (doel-JSON) → classifier.
 De classifier-nep leest de toegestane beslissingen uit de prompt – de labels bestaan pas na de
@@ -157,7 +157,7 @@ def test_graaf_annotatieketen_heeft_geen_critic(tak):
     assert ("annoteer", "emit", "", False) in edges
 
 
-# --- PR 17: het model kiest geen grens meer (SPAN_ERROR) --------------------------------------
+# --- Het model kiest geen grens (SPAN_ERROR) ----------------------------------------------------
 
 def test_zonder_spankeuze_krijgt_het_model_geen_opties_en_wordt_een_optie_genegeerd():
     from agent.jas_pipeline.classificatie import systeemprompt, toolschema, userprompt
@@ -181,7 +181,7 @@ def test_de_run_legt_vast_of_het_model_de_grens_mocht_kiezen():
     assert run["instellingen"]["meting"]["classifier_prompt"] == promptversie(False) != promptversie(True)
 
 
-# --- PR 2 (plan herkomst): de beurt vertelt per fase wat er gebeurde --------------------------
+# --- De beurt vertelt per fase wat er gebeurde ------------------------------------------------
 
 def test_elke_fase_meldt_zich_met_zijn_duur():
     events = _draai(KetenLLM())

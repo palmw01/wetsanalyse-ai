@@ -318,8 +318,8 @@ def test_tools_are_explicit_and_read_intent_does_not_match_annotation_request():
 
 
 @pytest.mark.parametrize("vraag", [
-    # `markeringen?` maakte alleen de slot-n optioneel en matchte dus nooit het enkelvoud; een vraag
-    # naar de klasse of de elementen werd helemaal niet als leesvraag herkend (22 sep 2026).
+    # `markeringen?` maakt alleen de slot-n optioneel en matcht dus nooit het enkelvoud; een vraag
+    # naar de klasse of de elementen moet óók als leesvraag herkend worden.
     "welke markering is een Rechtssubject?",
     "welke elementen hebben de klasse Rechtssubject?",
     "welke klasse heeft 'de ontvanger'?",
@@ -492,8 +492,8 @@ def test_node_advice_keeps_identity_and_snapshot_and_cannot_write_even_with_goal
 
 @pytest.mark.parametrize("hergebruik", ["auto", "opnieuw"])
 def test_afgeronde_bepaling_stopt_voordat_er_een_modelronde_draait(hergebruik):
-    # Live gezien op 22 sep 2026: een volledige ronde op een afgeronde laag, daarna 409 en de
-    # melding "probeer opnieuw". Nu stopt de beurt vóór de eerste modelcall, met de echte reden.
+    # Een afgeronde laag mag geen volledige modelronde kosten die daarna op een 409 en de melding
+    # "probeer opnieuw" strandt: de beurt stopt vóór de eerste modelcall, met de echte reden.
     llm = FakeLLM([])
     events = run(answer_stream("annoteer artikel 9 lid 1", doel={"bron_iri": L1}, llm=llm, hergebruik=hergebruik,
                               graph=FakeGraph(result=ROWS), annotaties=ReadApi(snapshot(), afgerond=[L1]),
@@ -556,8 +556,8 @@ def test_api_reden_neemt_alleen_korte_serverteksten_over(body, reden):
 
 @pytest.mark.parametrize("decomposition", [False, True])
 def test_leesroute_zoekt_ook_als_het_model_geen_tool_aanroept(decomposition):
-    """De storing van 22 sep 2026: één LLM-call, nul tools, geen zoekopdracht bij de api – en de
-    jurist las "ik heb de opgeslagen annotaties niet kunnen raadplegen". Zoeken is nu een stap in de
+    """Laat je het zoeken aan het model over, dan volgt soms één LLM-call zonder tools en leest de
+    jurist "ik heb de opgeslagen annotaties niet kunnen raadplegen". Zoeken is daarom een stap in de
     keten, geen keuze van het model."""
     llm = FakeLLM([response([text_block("Er zijn twee rechtsobjecten: 'Een belastingaanslag' en 'het aanslagbiljet'.")], "end_turn")])
     api = ReadApi(snapshot())

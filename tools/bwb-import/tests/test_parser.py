@@ -133,8 +133,8 @@ def test_definities_zonder_cursief_uit_de_tekst(sample_xml: Path) -> None:
     """Ook een definitie die de bron NIET cursiveert telt mee.
 
     De BWB-bron is daar inconsistent: in ditzelfde lid staat `rijksbelastingen:` wel als
-    `<nadruk type="cur">` en `belastingschuldige:` niet. Daardoor stonden er op 8 sep 2026 nog maar
-    34 definities in de hele graaf en gaf `zoek_definitie("belastingschuldige")` niets terug.
+    `<nadruk type="cur">` en `belastingschuldige:` niet. Wie alleen op cursief let, mist zo het
+    merendeel van de definities en krijgt op `zoek_definitie("belastingschuldige")` niets terug.
     """
     lid1 = _parse(sample_xml).structuurdelen[0].artikelen[1].leden[0]
     begrippen = [b for o in lid1.onderdelen for b in o.definieert_begrippen]
@@ -239,11 +239,11 @@ def test_circulaire_verwijzingen_en_onderdelen(sample_circulaire_xml: Path) -> N
 
 
 def test_circulaire_divisie_met_eigen_artikelen(sample_circulaire_xml: Path) -> None:
-    """Een divisie mag eigen ``<artikel>``-kinderen hebben; die vielen eerder stilzwijgend weg.
+    """Een divisie mag eigen ``<artikel>``-kinderen hebben; die mogen niet stilzwijgend wegvallen.
 
     Het XSD staat ze toe naast ``circulaire.divisie`` en ``tekst``, en de Leidraad Invordering 2008
     gebruikt het: tien artikelen onder ``/Circulaire.divisie22bis`` en één onder
-    ``/Circulaire.divisie79``, samen 10.052 tekens die niet in de graaf terechtkwamen.
+    ``/Circulaire.divisie79``, samen 10.052 tekens.
     """
     divisie = _parse(sample_circulaire_xml).divisies[1]
     assert divisie.nummer == "2"

@@ -68,8 +68,8 @@ export function markeringVan(
  *
  *  ÉÉN BRON VAN TEKST. De weergave mag nummer en term niet zelf opnieuw samenstellen naast deze
  *  segmenten — dan staat de tekst dubbel in de DOM én lopen de offsets mis, want `offsetVanGrens`
- *  telt de tekstknopen binnen het blok op. Die fout zat er op 2 sep 2026 in en was niet te zien in
- *  de losse tests van `blokkenVan` en deze functie; alleen hun combinatie brak. Vandaar de test die
+ *  telt de tekstknopen binnen het blok op. Die fout is niet te zien in de losse tests van
+ *  `blokkenVan` en deze functie; alleen hun combinatie breekt. Vandaar de test die
  *  eist dat de segmenten samen exact `blok.regel` vormen.
  *
  *  Geknipt wordt op twee soorten grenzen tegelijk: de markering (waar de jurist naar kijkt) en de
@@ -251,9 +251,9 @@ export function DocumentPaneel({
     const range = sel.getRangeAt(0);
     if (!houder.contains(range.commonAncestorContainer)) return;
 
-    // Per BLOK omrekenen, niet over de hele alinea. De tekst staat sinds 2 sep 2026 in aparte
-    // blokken met eigen inspringing, dus de scheidingstekens tussen leden en onderdelen zitten niet
-    // meer in de DOM — de tekstknopen vormen samen niet langer exact de bron. Elk blok draagt
+    // Per BLOK omrekenen, niet over de hele alinea. De tekst staat in aparte blokken met eigen
+    // inspringing, dus de scheidingstekens tussen leden en onderdelen zitten niet in de DOM — de
+    // tekstknopen vormen samen niet exact de bron. Elk blok draagt
     // daarom zijn startpositie als `data-offset`, en binnen dat blok klopt het optellen weer.
     const ruwStart = offsetVanGrens(houder, range.startContainer, range.startOffset);
     const ruwEind = offsetVanGrens(houder, range.endContainer, range.endOffset);
@@ -300,19 +300,19 @@ export function DocumentPaneel({
           )}
         </div>
       )}
-      {/* Volle breedte, op verzoek van de jurist (19 aug 2026). Hier stond een leeskolom van ~66
-          tekens – de klassieke leesmaat – maar op de losse annotatiepagina begrenst niets anders de
+      {/* Volle breedte, op verzoek van de jurist. Een leeskolom van ~66 tekens – de klassieke
+          leesmaat – werkt hier niet: op de losse annotatiepagina begrenst niets anders de
           breedte, en dan plakt een smalle kolom tegen de linkerrand van een breed scherm alsof er
           harde regelafbrekingen in de wettekst zitten. De afweging is bekend en bewust gemaakt:
           lange regels lezen minder prettig, maar er past meer tekst tegelijk in beeld. Verander dit
           dus niet "terug" zonder het te vragen.
 
-          BLOKKEN, GEEN PRE-WRAP. Tot 2 sep 2026 stond alles in één `<p>` met `whitespace-pre-wrap`:
-          leden en onderdelen op dezelfde marge, alleen door regeleindes gescheiden. Bij art. 2 lid 1
-          IW 1990 lazen de geneste `1°.`–`4°.` daardoor als zelfstandige onderdelen in plaats van als
-          uitwerking van de `a.` waar ze onder hangen – een verschil in juridische strekking.
+          BLOKKEN, GEEN PRE-WRAP. Eén `<p>` met `whitespace-pre-wrap` zet leden en onderdelen op
+          dezelfde marge, alleen door regeleindes gescheiden. Bij art. 2 lid 1 IW 1990 lezen de
+          geneste `1°.`–`4°.` dan als zelfstandige onderdelen in plaats van als uitwerking van de
+          `a.` waar ze onder hangen – een verschil in juridische strekking.
 
-          De scheidingstekens zitten nu niet meer in de DOM; elk blok draagt zijn positie als
+          De scheidingstekens zitten daardoor niet in de DOM; elk blok draagt zijn positie als
           `data-offset` en `offsetVanGrens` rekent daarbinnen. Haal dat attribuut dus niet weg: dan
           landt elke zelfgemaakte markering op de verkeerde tekst, en dat gebeurt stil. */}
       <div ref={tekstRef} onMouseUp={verwerkSelectie} className="text-[0.95rem] leading-7 text-ink">
@@ -328,7 +328,7 @@ export function DocumentPaneel({
             {/* ALLEEN deze segmenten – nummer en term worden hier NIET apart gerenderd. Ze zitten
                 in de segmenten en dragen daar hun opmaak via `nadruk`. Zet er niets naast: dan
                 staat de tekst dubbel in de DOM en telt `offsetVanGrens` te veel op, waarna elke
-                zelfgemaakte markering op de verkeerde plek landt. Dat ging op 2 sep 2026 mis. */}
+                zelfgemaakte markering op de verkeerde plek landt. */}
             {segmentenVanBlok(blok, markering).map((s, i) =>
               s.klasse ? (
                 // Nadrukkelijk géén `<button>`: die is inline-block en dus één atomaire box. Zodra de

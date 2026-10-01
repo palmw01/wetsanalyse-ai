@@ -1,4 +1,4 @@
-"""Offset-gebaseerde metrieken voor de hybride JAS-pijplijn (ADR-001 PR 5b, §13).
+"""Offset-gebaseerde metrieken voor de hybride JAS-pijplijn (ADR-001, §13).
 
 De scorers in `scoring.py` vergelijken op genormaliseerde tekst; die blijven voor de legacy-eval.
 Hier gaat het om **posities**: een kandidaat en een referentie-annotatie zijn dezelfde als ze

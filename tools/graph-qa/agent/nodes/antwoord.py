@@ -109,8 +109,8 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         if state.get("annotaties_lezen"):
             begrensd = begrens_antwoord(antwoord, state.get("source_trace", []))
             if begrensd != antwoord:
-                # Wél melden, want dit gebeurde tot 22 sep 2026 volledig stil: in de logs stond
-                # alleen "antwoord klaar". NIET in `messages` schrijven – die historie gaat via de
+                # Wél melden, anders gebeurt dit volledig stil: in de logs staat dan alleen
+                # "antwoord klaar". NIET in `messages` schrijven – die historie gaat via de
                 # checkpointer mee naar de volgende beurt, en dan leest het model zijn eigen
                 # "ik kon niet raadplegen" als vaststaand feit en probeert het niet opnieuw.
                 logger.warning(
@@ -172,12 +172,12 @@ def route_after_verify(b: Bouw, state: State) -> str:
 def correct_node(b: Bouw, state: State) -> dict[str, Any]:
     """Eén herkansing op wat de groundingcontrole afkeurde.
 
-    De controle keurt twee dingen af en die vragen een ándere correctie. Deze node zag alleen
-    `unsupported` (verzonnen vindplaatsen) en zweeg over `niet_letterlijk` (tekst die als citaat
-    is gepresenteerd maar niet letterlijk in de bron staat). Bij een antwoord dat alléén op dat
-    tweede struikelde – precies wat op dev gebeurde, zeven keer in één antwoord – ging er dus een
-    volledige extra LLM-call de deur uit met de instructie "je noemde verwijzing(en) `` die niet
-    uit de graaf kwamen": een lege opsomming en een verwijt dat niet klopte.
+    De controle keurt twee dingen af en die vragen een ándere correctie: `unsupported` (verzonnen
+    vindplaatsen) en `niet_letterlijk` (tekst die als citaat is gepresenteerd maar niet letterlijk
+    in de bron staat). Wie alleen naar `unsupported` kijkt, stuurt bij een antwoord dat alléén op
+    het tweede struikelt een volledige extra LLM-call de deur uit met de instructie "je noemde
+    verwijzing(en) `` die niet uit de graaf kwamen": een lege opsomming en een verwijt dat niet
+    klopt.
     """
     writer = get_stream_writer()
     unsupported = state.get("unsupported") or []

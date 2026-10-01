@@ -1,6 +1,6 @@
 """Drift-guard: de zoekvelden die we het model aanbieden bestaan ook echt in de Lucene-index.
 
-`search_wetgeving` biedt sinds 4 sep 2026 veldgericht zoeken aan (`definieertBegrip:"bestuurder"`).
+`search_wetgeving` biedt veldgericht zoeken aan (`definieertBegrip:"bestuurder"`).
 Dat werkt alleen als de veldnaam overeenkomt met wat `tools/bwb-import` in de connector-config zet.
 Doet hij dat niet, dan levert Lucene geen fout maar **nul treffers** – het model concludeert dan dat
 het begrip niet in de wet staat, terwijl de vraag verkeerd gesteld was. Stille onvolledigheid,

@@ -82,12 +82,12 @@ class Run:
     # erboven kunnen tonen in plaats van tokens uit het niets.
     vraag: str = ""
     status: str = "loopt"          # loopt | klaar | gestopt | mislukt
-    # Elk event draagt zijn EIGEN `seq`, toegekend bij het toevoegen. Eerder werd het volgnummer
-    # afgeleid uit de positie in deze lijst (`index = cursor - weggevallen`), en dat klopt alleen als
-    # precies de eerste N events verdwijnen. `_cap` snoeit echter selectief – het gooit narratie weg
-    # waar die ook staat – dus schoof na het snoeien alles op: een `doel`-event dat seq 0 had kwam
-    # terug als seq 1, en een client die opnieuw aanhaakte kreeg juist de betekenisvolle events
-    # dubbel. Nu is een seq een identiteit, geen positie.
+    # Elk event draagt zijn EIGEN `seq`, toegekend bij het toevoegen – niet afgeleid uit de positie
+    # in deze lijst (`index = cursor - weggevallen`), want dat klopt alleen als precies de eerste N
+    # events verdwijnen. `_cap` snoeit selectief – het gooit narratie weg waar die ook staat – dus
+    # dan schuift na het snoeien alles op: een `doel`-event met seq 0 komt terug als seq 1, en een
+    # client die opnieuw aanhaakt krijgt juist de betekenisvolle events dubbel. Een seq is een
+    # identiteit, geen positie.
     events: list[dict[str, Any]] = field(default_factory=list)
     # Hoeveel vluchtige events er in totaal zijn weggegooid. Puur informatief (metriek/logging); het
     # gat dat een kijker moet tonen wordt berekend uit de seq-sprong, niet hieruit.

@@ -1,4 +1,4 @@
-"""Dekkingsboekhouding (ADR-001 PR 10): A is een invariant, B is zichtbaar, C staat hier niet."""
+"""Dekkingsboekhouding (ADR-001): A is een invariant, B is zichtbaar, C staat hier niet."""
 from __future__ import annotations
 
 import pytest

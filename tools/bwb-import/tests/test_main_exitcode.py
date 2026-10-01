@@ -129,7 +129,7 @@ def test_graafwacht_importeert_niet_op_een_complete_graaf(monkeypatch: pytest.Mo
 
 
 def test_graafwacht_importeert_wel_bij_verlies(monkeypatch: pytest.MonkeyPatch) -> None:
-    """De storing van 8 sep 2026: GraphDB herstart leeg, en dan moet hij juist wél aan het werk."""
+    """GraphDB herstart leeg, en dan moet de graafwacht juist wél aan het werk."""
     _wacht_writer(monkeypatch, compleet=False)
     gedraaid: list[list[str]] = []
 

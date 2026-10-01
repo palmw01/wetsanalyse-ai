@@ -1,8 +1,8 @@
 // De Content-Security-Policy van de app, per request opgebouwd met een nonce.
 //
-// Waarom per request: `script-src 'unsafe-inline'` stond er omdat Next inline hydration-scripts
-// injecteert. Daarmee liet de CSP juist datgene toe waartegen hij bij XSS hoort te beschermen. Met een
-// nonce hoeft dat niet meer: de proxy maakt er per request één, zet hem in de policy én in de
+// Waarom per request: Next injecteert inline hydration-scripts, en zonder nonce vraagt dat om
+// `script-src 'unsafe-inline'` – waarmee de CSP juist datgene toelaat waartegen hij bij XSS hoort te
+// beschermen. Met een nonce hoeft dat niet: de proxy maakt er per request één, zet hem in de policy én in de
 // request-header, en Next voorziet zijn eigen scripts tijdens de server-render van dat nonce (zie
 // `node_modules/next/dist/docs/01-app/02-guides/content-security-policy.md`). Dat vraagt dynamisch
 // renderen; dat is hier al zo, want `app/layout.tsx` roept `auth()` aan.
@@ -23,7 +23,7 @@ export function maakNonce(): string {
  *  - `style-src` houdt bewust `'unsafe-inline'`: de server-render geeft `style="…"`-attributen mee
  *    (Popover, de 3D-graaf), en een nonce geldt alleen voor `<style>`-elementen, niet voor
  *    attributen. De XSS-winst zit in `script-src`; een stijl voert geen code uit.
- *  - De rest is gelijk aan wat `next.config.mjs` eerder statisch zette. */
+ *  - De overige directives zijn vast. */
 export function bouwCsp(nonce: string, dev: boolean): string {
   return [
     "default-src 'self'",

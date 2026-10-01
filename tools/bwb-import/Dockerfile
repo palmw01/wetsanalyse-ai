@@ -4,8 +4,8 @@ FROM python:3.14-slim
 WORKDIR /app
 
 # OS-pakketten patchen (BIO2 / ISO 27002:2022 §8.8), zoals api/Dockerfile en frontend/Dockerfile.
-# De base-image loopt achter op Debian-security-updates: op 30 sep 2026 blokkeerde de Trivy-gate
-# deze build op OpenSSL 3.5.7-1~deb13u2 (CVE-2026-75804, CVE-2026-84782), terwijl deb13u3 er al was.
+# De base-image loopt achter op Debian-security-updates; zonder upgrade blokkeert de Trivy-gate
+# de build op CVE's waarvoor de gepatchte pakketversie er al is.
 RUN apt-get update \
     && apt-get upgrade -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*

@@ -1,4 +1,4 @@
-"""Het kandidaatmodel (ADR-001 PR 5): stabiele identiteit, bewijsplicht, geen verzonnen klassen."""
+"""Het kandidaatmodel (ADR-001): stabiele identiteit, bewijsplicht, geen verzonnen klassen."""
 from __future__ import annotations
 
 import json

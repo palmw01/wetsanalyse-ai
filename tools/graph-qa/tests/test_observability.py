@@ -1,4 +1,4 @@
-"""PR 2.1: observability is fail-open en gated (no-op zonder endpoint/otel-extra)."""
+"""Observability is fail-open en gated (no-op zonder endpoint/otel-extra)."""
 from __future__ import annotations
 
 import json

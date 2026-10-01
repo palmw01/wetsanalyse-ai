@@ -46,8 +46,7 @@ function voorstel(over: Partial<VoorstelElement> = {}): VoorstelElement {
   };
 }
 
-// De agent stuurt hetzelfde element opnieuw zodra de Critic om een herziening vraagt. Zonder
-// ontdubbelen zou de werkplek dubbele kaarten tonen én dubbel naar de server sturen.
+// De agent kan hetzelfde element meer dan eens sturen. Zonder ontdubbelen zou de werkplek dubbele kaarten tonen én dubbel naar de server sturen.
 describe("mergeVoorstellen", () => {
   it("voegt een onbekend element toe", () => {
     const uit = mergeVoorstellen([], voorstel({ id: "a1" }));
@@ -230,7 +229,7 @@ describe("sorteerReview", () => {
   });
 
   it("verandert NIET als een element wordt beoordeeld", () => {
-    // Dit is het hele punt: eerder sprong een goedgekeurd element naar achteren en schoof de rest op.
+    // Dit is het hele punt: een goedgekeurd element springt niet naar achteren en de rest schuift niet op.
     const voor = [
       el("a", { klasse: "Rechtssubject", aandacht: "groen" }),
       el("b", { klasse: "Rechtsobject", aandacht: "rood" }),
@@ -509,8 +508,8 @@ describe("eigenMarkeringenVoorContext", () => {
   });
 
   it("geeft niets terug zonder document", () => {
-    // Een verse annotatie-opdracht heeft nog geen document; dan is er ook geen eigen werk om
-    // langs de Critic te leggen. Eerder gingen hier de markeringen van álle geopende documenten in.
+    // Een verse annotatie-opdracht heeft nog geen document; dan is er ook geen eigen werk om mee te
+    // sturen – en zeker niet de markeringen van álle geopende documenten.
     expect(eigenMarkeringenVoorContext(undefined)).toEqual([]);
   });
 

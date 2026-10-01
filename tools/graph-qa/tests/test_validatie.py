@@ -1,4 +1,4 @@
-"""Deterministische validatie (ADR-001 PR 11): elke structurele mutatie wordt gevangen."""
+"""Deterministische validatie (ADR-001): elke structurele mutatie wordt gevangen."""
 from __future__ import annotations
 
 import copy

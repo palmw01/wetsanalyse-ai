@@ -71,12 +71,12 @@ async def run_annotatie_case(
 ) -> AnnotatieResult:
     """Draai één annotatie-opdracht en scoor de markeringen die eruit komen.
 
-    Meet de hele keten (ophaal → annoteer → Critic → herziening), niet één node: dat is wat de jurist
+    Meet de hele keten (ophaal → annoteer → emit), niet één node: dat is wat de jurist
     ook krijgt. Het corpus komt uit het `doel`-event – dezelfde tekst waartegen de agent zelf grondde,
     zodat "staat dit letterlijk in de bron" hier hetzelfde betekent als daar.
 
     Verworpen fragmenten worden apart bijgehouden via `verworpen_p100`, gevoed door het
-    `verworpen`-event dat `emit_node` sinds fase 1B uitzendt. Ze uit de aandacht-velden afleiden
+    `verworpen`-event dat `emit_node` uitzendt. Ze uit de aandacht-velden afleiden
     kan niet: een fragment dat op "niet letterlijk" sneuvelde wordt nooit een element, dus er is
     achteraf niets meer te reconstrueren. Blijft het event uit, dan telt de maat 0 – en dat betekent
     "niets verworpen", niet "niet gemeten".
@@ -126,9 +126,9 @@ async def run_annotatie_case(
 
 
 # Vangrails voor één suite. Ze zijn er niet om zuinig te zijn maar om een meting te laten eindigen
-# met een leesbaar rapport in plaats van door een job-timeout te worden afgekapt. Op 5 sep 2026 liep
-# de eval twee uur (provider overbelast, elke call in zijn timeout) en werd hij gekapt; van de zes
-# suites waren er vier af en het begin van de log was toen al uit het venster verdwenen.
+# met een leesbaar rapport in plaats van door een job-timeout te worden afgekapt. Bij een
+# overbelaste provider loopt elke call in zijn timeout; zonder plafond kapt de job de eval af en is
+# het begin van de log al uit het venster verdwenen.
 #
 # Overschrijden is géén "gezakt": de gemeten cases houden hun uitkomst en de rest heet `overgeslagen`.
 SUITE_MINUTEN = 20.0
@@ -152,8 +152,7 @@ async def run_annotatie_suite(
     """Draai de cases op volgorde, met voortgang naar stdout en een tijd-/tokenplafond.
 
     **De voortgangsregel is functioneel, geen versiering.** De job draait in een container en de
-    enige manier om te zien wáár een run is, is de log — die tot nu toe pas aan het eind iets
-    zei. Eén geflushte regel per case maakt een vastlopende run herkenbaar terwijl hij loopt.
+    enige manier om te zien wáár een run is, is de log. Eén geflushte regel per case maakt een vastlopende run herkenbaar terwijl hij loopt.
 
     Het budget wordt ná elke case getoetst, niet tijdens: een halve annotatie afbreken levert een
     onbruikbare meting op, en de winst zit toch in het niet-starten van de volgende.
@@ -238,8 +237,8 @@ def print_annotatie_report(results: list[AnnotatieResult]) -> bool:
     gemeten = len(results) - len(ongemeten)
     print("-" * 100)
     # Drie bakken, geen twee. Een case die op een overbelaste provider sneuvelt is NIET gezakt: er
-    # is niets gemeten. Op 5 sep 2026 las zo'n storing als "9/10 geslaagd" — een kwaliteitsoordeel
-    # dat nergens op sloeg. De noemer is daarom het aantal gemeten cases.
+    # is niets gemeten. Anders leest zo'n storing als "9/10 geslaagd" — een kwaliteitsoordeel
+    # dat nergens op slaat. De noemer is daarom het aantal gemeten cases.
     print(f"{ok}/{gemeten} geslaagd van de gemeten cases "
           f"(precisie/recall zijn een trendmeting, geen slaagcriterium)")
     if ongemeten:

@@ -1,6 +1,6 @@
 """De reviewload gesplitst in juridisch en technisch (onderzoek-empirische-validatie §6, V5).
 
-"12 ter keuze aan de jurist" zei tot nu toe niet of dat twaalf juridische vragen waren of twaalf
+"12 ter keuze aan de jurist" zegt op zich niet of dat twaalf juridische vragen zijn of twaalf
 technische storingen. In LI §9.5 waren het er twaalf van de tweede soort: de classifier koos een
 klasse buiten de toegestane, en de reviewer daarna ook. Deze splitsing maakt dat zichtbaar.
 

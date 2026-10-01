@@ -1,4 +1,4 @@
-"""Syntactische detectoren (ADR-001 PR 7): kandidaten uit de taalanalyse.
+"""Syntactische detectoren (ADR-001): kandidaten uit de taalanalyse.
 
 Een parse van wetstekst is minder betrouwbaar dan van krantentekst (lange zinnen, opsommingen,
 labels als "c." die als onderwerp worden gelezen). Daarom:
@@ -130,9 +130,9 @@ def _naamwoordelijk_gezegde(a: LinguisticAnalysis, t: Token) -> bool:
     """`is invorderbaar`, `is bevoegd`: het naamwoordelijk deel van het gezegde, geen naamwoordgroep.
 
     Herkenbaar aan een koppelwerkwoord (`cop`) als kind en géén lidwoord. De tagger noemt zo'n woord
-    soms een NOUN – bij art. 9 lid 1 IW 1990 ("Een belastingaanslag is invorderbaar …") werd
-    "invorderbaar" daardoor een OBJECT_NP-kandidaat met de hele zin als grens, en koos het model
-    Variabele (acceptatie, 25 sep 2026). Het gezegde draagt de normatieve relatie; die vindt de
+    soms een NOUN – bij art. 9 lid 1 IW 1990 ("Een belastingaanslag is invorderbaar …") wordt
+    "invorderbaar" daardoor een OBJECT_NP-kandidaat met de hele zin als grens, en kiest het model
+    Variabele. Het gezegde draagt de normatieve relatie; die vindt de
     NormDetector. Met lidwoord ("is de ontvanger") blijft het wél een naamwoordgroep."""
     kinderen = [a.tokens[k] for k in a.kinderen(t.i)]
     return any(k.deprel == "cop" for k in kinderen) and not any(k.deprel == "det" for k in kinderen)
@@ -332,7 +332,7 @@ class NominalisatieDetector:
 class LogischeOperatorDetector:
     REGELS: tuple[str, ...] = ("jas.operator.nevenschikking", "jas.operator.negatie")
     naam = "logisch"
-    versie = "2"                         # 2: geen nevenschikking binnen een naamwoordgroep (PR 17)
+    versie = "2"                         # 2: geen nevenschikking binnen een naamwoordgroep
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         a, reden = _parse_of_reden(bron)

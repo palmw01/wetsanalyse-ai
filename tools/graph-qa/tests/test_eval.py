@@ -1,4 +1,4 @@
-"""PR 2.1: eval-scorers en een offline end-to-end eval-run."""
+"""Eval-scorers en een offline end-to-end eval-run."""
 from __future__ import annotations
 
 import asyncio

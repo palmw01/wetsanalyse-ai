@@ -14,7 +14,7 @@ class BestaandElement(BaseModel):
     """Een element dat al in het annotatie-document staat, meegestuurd door de werkplek.
 
     De werkplek stuurt deze context mee bij adviesvragen. De annotatieketen haalt actuele
-    menselijke markeringen zelfstandig uit de API op voor de Critic.
+    menselijke markeringen zelfstandig uit de API op.
     """
 
     id: str = ""
@@ -220,7 +220,7 @@ class AnnotatieVoorstel(BaseModel):
     # delegatiebevoegdheid/delegatie-invulling). Alleen gezet waar het deterministisch vaststaat
     # (`jas_pipeline/subtype.py`); leeg = onbepaald, nooit geraden.
     jas_subtype: str = ""
-    # Herkomstspoor uit de hybride keten (ADR-001 PR 15); leeg in de legacy-keten. Zie
+    # Herkomstspoor uit de hybride keten (ADR-001); kan leeg zijn. Zie
     # `jas_pipeline/keten.py` voor de inhoud en `tests/test_provenance_element.py` voor de vragen
     # (opdracht §40) die het moet kunnen beantwoorden.
     trace: dict[str, Any] = {}
@@ -229,7 +229,7 @@ class AnnotatieVoorstel(BaseModel):
 class Verbruiksmeter:
     """Telt het tokenverbruik van één beurt op, over alle LLM-calls heen.
 
-    De Anthropic-SDK geeft bij elk antwoord een `usage`-blok terug; tot nu toe werd dat weggegooid.
+    De Anthropic-SDK geeft bij elk antwoord een `usage`-blok terug.
     Deze meter vangt het op, zodat de api kan boeken hoeveel een gebruiker verbruikte.
 
     Er is één instantie per beurt (de adapter wordt per beurt gebouwd), en hij telt op met een

@@ -311,7 +311,7 @@ class GraphDbWriter:
         alsnog op de juiste node uitkomt. Zonder die volgorde is dat onmogelijk, want tijdens de
         import van de citerende wet is de doelwet nog niet gezien.
 
-        Zonder `verzameld` verzamelt hij zelf en werkt alles als voorheen (één wet, losse aanroep).
+        Zonder `verzameld` verzamelt hij zelf (één wet, losse aanroep).
         """
         batch, summary = verzameld if verzameld is not None else collect(
             wet, tekstuele_refs=self._tekstuele_refs
@@ -407,11 +407,11 @@ class GraphDbWriter:
             # label zodat het in de viewers niet als kaal nummer/IRI verschijnt.
             #
             # NIET op rdfs:label, en dat is een geleerde les. De guard hieronder houdt alleen
-            # binnen DEZE import stand: elke wet staat in een eigen named graph, dus schreef de
+            # binnen DEZE import stand: elke wet staat in een eigen named graph, dus schrijft de
             # import van de Leidraad een fallback-label op `…IW:artikel:36` — een node die in de
-            # graaf van de Invorderingswet zijn échte label al draagt. In de union stonden er
-            # daarna twee ("Artikel 36" én "art. 36 (BWBR0004770)"), en elke query die een label
-            # ophaalt verdubbelde daarmee haar rijen. Live gemeten op 4 sep 2026.
+            # graaf van de Invorderingswet zijn échte label al draagt. In de union staan er dan
+            # twee ("Artikel 36" én "art. 36 (BWBR0004770)"), en elke query die een label ophaalt
+            # verdubbelt daarmee haar rijen.
             #
             # Een eigen predicaat kan niet botsen. Lees het aan de queryzijde als
             # COALESCE(rdfs:label, bwb:doelLabel): een geïmporteerde node houdt zijn echte naam,
@@ -449,10 +449,10 @@ class GraphDbWriter:
 
         **Waarom dit bestaat.** GraphDB draait op Azure zonder persistente opslag en komt na een
         herstart leeg op — geen repository `inning`, geen data. Die repository wordt door precies
-        één ding aangemaakt: deze importer. Tot 8 sep 2026 gebeurde dat alleen na een deploy en
-        wekelijks via cron, dus een onverwachte herstart maakte de graaf tot bijna zeven dagen
-        onbruikbaar. Lex meldde dan eerlijk `Repository inning doesn't exist` en weigerde terecht
-        uit eigen geheugen te citeren, maar niemand zag het en niets herstelde het.
+        één ding aangemaakt: deze importer. Draait die alleen na een deploy en wekelijks via cron,
+        dan maakt een onverwachte herstart de graaf tot bijna zeven dagen onbruikbaar. Lex meldt
+        dan eerlijk `Repository inning doesn't exist` en weigert terecht uit eigen geheugen te
+        citeren, maar niemand ziet het en niets herstelt het.
 
         Elke fout telt als "niet compleet" en niet als crash: een ontbrekende repository geeft een
         HTTP 404, precies de toestand waarvoor deze controle bedoeld is. Wie hier zou opwerpen dat
@@ -513,12 +513,10 @@ class GraphDbWriter:
     def ensure_similarity_index(self) -> None:
         """Waarborg de text-similarity-index (zelfherstellend, idempotent, nooit fataal).
 
-        De tegenhanger van :meth:`ensure_fts_connector` voor `semantic_search`. Hij ontbrak, en
-        anders dan bij de FTS-connector viel dat niemand op: de index overleeft een GraphDB-herstart
-        niet, niets bouwde hem opnieuw, en graph-qa laat `semantic_search` dan *stil* terugvallen op
-        `search_wetgeving` (`agent/tools/__init__.py`). Gemeten op 8 sep 2026 bestond hij op
-        acceptatie niet — `get_similarity_options` gaf `{}` terug — terwijl `SIMILARITY_INDEX`
-        gewoon was gezet.
+        De tegenhanger van :meth:`ensure_fts_connector` voor `semantic_search`. De index overleeft
+        een GraphDB-herstart niet, en een ontbrekende index valt niemand op: graph-qa laat
+        `semantic_search` dan *stil* terugvallen op `search_wetgeving` (`agent/tools/__init__.py`),
+        terwijl `SIMILARITY_INDEX` gewoon is gezet en `get_similarity_options` `{}` teruggeeft.
 
         **Een mislukking is hier geen importfout.** De wettekst staat dan al in de graaf en is
         volledig bevraagbaar; alleen het semantisch zoeken degradeert. Rood worden zou een geslaagde
@@ -594,12 +592,11 @@ class GraphDbWriter:
             # maar bv. de connector-naam terug. De connector bestáát dan wél, maar we
             # weten niet wáárop hij indexeert.
             #
-            # Dit gaf eerder de gewenste config terug, zodat de subset-check slaagde en
-            # er niet onnodig geherindexeerd werd. Die aanname brak bij de overgang naar
-            # de URN-namespace: de connector bleef op de oude predicaten staan en de
-            # full-text-zoekopdrachten leverden daarna stil nul treffers. Stille
-            # zoekuitval is erger dan een herindexering van enkele seconden, dus bij
-            # twijfel bouwen we hem opnieuw.
+            # De gewenste config teruggeven zou de subset-check laten slagen en een
+            # herindexering besparen, maar dan blijft een connector op verouderde
+            # predicaten staan en leveren de full-text-zoekopdrachten stil nul
+            # treffers. Stille zoekuitval is erger dan een herindexering van enkele
+            # seconden, dus bij twijfel bouwen we hem opnieuw.
             logger.warning(
                 "FTS-connector %s bestaat maar de config is niet uitleesbaar (%r); "
                 "opnieuw aanmaken om te voorkomen dat hij op verouderde predicaten blijft staan",

@@ -1,10 +1,9 @@
 # Retentie voor de GHCR-images van de vier componenten.
 #
 # `prd` en `prd-vorige` zijn uitgesloten: die zet promote.yml op wat productie draait en op de
-# versie daarvoor. Zonder die uitsluiting ruimde deze retentie de productie-images op zodra er vijf
-# nieuwere builds waren – op 25 sep 2026 bleken de api- en graph-qa-images van v1.5.0 (productie
-# sinds 8 sep) verdwenen. Productie draaide nog op een gecachte replica; elke herstart, nieuwe
-# replica of rollback zou op `MANIFEST_UNKNOWN` zijn gestrand.
+# versie daarvoor. Zonder die uitsluiting ruimt deze retentie de productie-images op zodra er vijf
+# nieuwere builds zijn. Productie draait dan nog op een gecachte replica, maar elke herstart,
+# nieuwe replica of rollback strandt op `MANIFEST_UNKNOWN`.
 # Bewaart structureel de 5 nieuwste builds (getagde versies) plus hun bijbehorende
 # untagged child-manifests (SBOM/provenance-attestaties); oudere builds en verweesde
 # untagged digests worden opgeruimd. dataaxiom/ghcr-cleanup-action snapt de multi-arch-/

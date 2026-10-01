@@ -25,9 +25,9 @@ class Bouw:
     graph: GraphPort
     stop_check: Callable[[], bool] | None
 
-    # `model` is het sterke model: annoteerder, Critic, herziener en de QA-specialisten. De router
-    # en de ophaal-agent mogen apart gezet worden (`Settings.model_voor`); staat er niets, dan zijn
-    # ze alle drie hetzelfde en draait de keten exact als voorheen.
+    # `model` is het sterke model: de annotatie-classifier, de reviewer en de QA-specialisten. De
+    # router en de ophaal-agent mogen apart gezet worden (`Settings.model_voor`); staat er niets,
+    # dan zijn ze alle drie hetzelfde.
     model: str
     model_router: str
     model_ophaal: str
