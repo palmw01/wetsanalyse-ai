@@ -366,9 +366,9 @@ var collectorEndpoint = 'http://${collectorApp.name}'
 //   • `minReplicas: 1` – schaalt bewust NIET naar nul, want dan is de graaf bij de volgende request
 //     leeg. Dit is de enige component die doorloopt zolang de omgeving aan staat.
 //   • De similarity-index (`bwb_similarity`, voor semantic_search) overleeft een herstart evenmin.
-//     De importer bouwt hem sinds 8 sep 2026 zelf opnieuw (`ensure_similarity_index`), net als de
-//     FTS-connector; daarvóór deed niets dat en degradeerde de tool stil naar search_wetgeving.
-//   • Herstel van de graaf zelf loopt via de graafwacht-job (4b), niet meer via de hand.
+//     De importer bouwt hem zelf opnieuw (`ensure_similarity_index`), net als de FTS-connector;
+//     zonder die index degradeert de tool stil naar search_wetgeving.
+//   • Herstel van de graaf zelf loopt via de graafwacht-job (4b), niet via de hand.
 var heeftLicentie = !empty(graphdbLicenseBase64)
 
 resource graphdbApp 'Microsoft.App/containerApps@2024-03-01' = {
@@ -455,9 +455,8 @@ resource graphdbApp 'Microsoft.App/containerApps@2024-03-01' = {
             // LET OP: `initialDelaySeconds` mag bij Container Apps hoogstens 60 zijn; hoger wordt
             // geweigerd met `ContainerAppProbeInitialDelaySecondsOutOfRange`. Dat is een
             // preflight-controle van de resource provider en `what-if` voert hem NIET uit — een
-            // groene what-if bewijst hier dus niets. Deze waarde stond op 120 en maakte de template
-            // vanaf 27 aug 2026 onuitrolbaar; het viel niemand op omdat infra handmatig is en er
-            // sindsdien geen deploy meer was.
+            // groene what-if bewijst hier dus niets. Een te hoge waarde maakt de template
+            // onuitrolbaar, en omdat infra handmatig is valt dat pas bij de volgende deploy op.
             //
             // De bedoelde speling blijft gelijk: die is initialDelay + failureThreshold × period,
             // dus 120 + 5×30 = 270 s werd 60 + 7×30 = 270 s. Verlaag `failureThreshold` niet zonder
@@ -702,11 +701,11 @@ resource bwbImportJob 'Microsoft.App/jobs@2024-03-01' = {
 // kwartier te bevragen.
 //
 // WAAROM DIT ER IS. GraphDB komt na een herstart leeg op (zie de noot bij graphdbApp) en de
-// repository `inning` wordt door precies één ding aangemaakt: de importer. Tot 8 sep 2026 gebeurde
-// dat alleen na een deploy en wekelijks via de cron hierboven, dus een onverwachte herstart maakte
-// de graaf tot bijna zeven dagen onbruikbaar. Die ochtend gebeurde dat: Lex gaf op elke vraag
-// `Repository inning doesn't exist` en de gebruiker kon niets doen behalve wachten. De instructie
-// "draai de job na elke herstart van de graphdb-app" hing aan een gebeurtenis die niemand ziet.
+// repository `inning` wordt door precies één ding aangemaakt: de importer. Draait die alleen na een
+// deploy en wekelijks via de cron hierboven, dan maakt een onverwachte herstart de graaf tot bijna
+// zeven dagen onbruikbaar: Lex geeft op elke vraag `Repository inning doesn't exist` en de
+// gebruiker kan niets doen behalve wachten. Een instructie "draai de job na elke herstart van de
+// graphdb-app" hangt aan een gebeurtenis die niemand ziet.
 //
 // De wekelijkse job hierboven blijft ongemoeid: die houdt de wéttekst actueel, deze herstelt alleen
 // verlies. Twee jobs, één image.
@@ -779,8 +778,7 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
     configuration: {
       // Bewaar een handvol inactieve revisies, anders is `rollback.yml` een knop zonder inhoud:
       // in de single-revision-modus (de default) deactiveert Azure de oude revisie bij elke
-      // image-swap en ruimt hem daarna op. Gemeten op 27 aug 2026: alle drie de apps hadden nog
-      // precies één revisie, terwijl de nummering (41/57/75) tientallen voorgangers verried.
+      // image-swap en ruimt hem daarna op; er blijft dan per app precies één revisie over.
       // Inactieve revisies draaien niet en kosten dus geen replicas.
       maxInactiveRevisions: 5
       // DE INGRESS ZIT VÓÓR DE HELE APP, niet alleen voor /v1/admin. Met `apiExtern` worden ook
@@ -839,7 +837,7 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
           ]
           env: [
             // Telemetrie naar de collector in deze omgeving, die het doorschrijft naar Application
-            // Insights. Leeg laten = uit; dat was de stand tot nu toe.
+            // Insights. Leeg laten = uit.
             { name: 'OTEL_EXPORTER_OTLP_ENDPOINT', value: collectorEndpoint }
             { name: 'OTEL_SERVICE_NAME', value: 'wetsanalyse-api' }
             // De straat staat op elke span, zodat acceptatie en productie in dezelfde workspace
@@ -910,8 +908,7 @@ resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
     configuration: {
       // Bewaar een handvol inactieve revisies, anders is `rollback.yml` een knop zonder inhoud:
       // in de single-revision-modus (de default) deactiveert Azure de oude revisie bij elke
-      // image-swap en ruimt hem daarna op. Gemeten op 27 aug 2026: alle drie de apps hadden nog
-      // precies één revisie, terwijl de nummering (41/57/75) tientallen voorgangers verried.
+      // image-swap en ruimt hem daarna op; er blijft dan per app precies één revisie over.
       // Inactieve revisies draaien niet en kosten dus geen replicas.
       maxInactiveRevisions: 5
       ingress: {
@@ -957,7 +954,7 @@ resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
           ]
           env: [
             // Telemetrie naar de collector in deze omgeving, die het doorschrijft naar Application
-            // Insights. Leeg laten = uit; dat was de stand tot nu toe.
+            // Insights. Leeg laten = uit.
             { name: 'OTEL_EXPORTER_OTLP_ENDPOINT', value: collectorEndpoint }
             { name: 'OTEL_SERVICE_NAME', value: 'wetsanalyse-graph-qa' }
             // De straat staat op elke span, zodat acceptatie en productie in dezelfde workspace
@@ -974,8 +971,7 @@ resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'QA_API_TOKEN_FILE', value: '/run/secrets/qa_api_token' }
             // Zonder deze twee is `legt_zelf_vast` false en legt de agent de uitkomst van een
             // annotatiebeurt NIET vast – de werkplek toont dan netjes markeringen die nergens
-            // landen. Dat was tussen 19 aug (commit 98eef5a, één schrijfpad) en 27 aug 2026 het
-            // geval op Azure: die commit richtte dev in maar raakte deze bicep niet.
+            // landen. `tests/test_deploy_drift.py` bewaakt dat ze hier staan.
             { name: 'WETSANALYSE_API_URL', value: apiInternalUrl }
             { name: 'WETSANALYSE_API_TOKEN_FILE', value: '/run/secrets/wetsanalyse_api_token' }
             { name: 'SIMILARITY_INDEX', value: 'bwb_similarity' }
@@ -1037,8 +1033,8 @@ resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
 //
 // `python -u` is geen detail. Zonder unbuffered stdout houdt Python zijn uitvoer vast en dumpt hij
 // het hele rapport in één keer; tientallen regels krijgen dan dezelfde tijdstempel in Log Analytics
-// en `order by TimeGenerated` levert ze in willekeurige volgorde terug. Precies dat maakte het
-// rapport van 5 sep 2026 onleesbaar — de cijfers waren niet meer aan een run toe te wijzen. Met -u
+// en `order by TimeGenerated` levert ze in willekeurige volgorde terug – dan zijn de cijfers niet
+// meer aan een run toe te wijzen. Met -u
 // verschijnt elke regel zodra hij ontstaat, en de voortgang is bovendien live te volgen.
 //
 // De job begint met de **retrieval-smoke**: die raakt elke graaftool één keer en kost geen enkele
@@ -1060,7 +1056,7 @@ resource evalJob 'Microsoft.App/jobs@2024-03-01' = {
     configuration: {
       triggerType: 'Manual'
       // Drie runs × tien cases; de hybride keten doet ~1–2 modelcalls per case in plaats van 4–5.
-      // Twee uur is ruim, maar een overbelaste provider (5 sep 2026) kost per call drie timeouts.
+      // Twee uur is ruim, maar een overbelaste provider kost per call drie timeouts.
       replicaTimeout: 7200
       replicaRetryLimit: 0   // opnieuw proberen zou de meting vervuilen, niet redden
       manualTriggerConfig: {
@@ -1108,9 +1104,9 @@ resource evalJob 'Microsoft.App/jobs@2024-03-01' = {
             { name: 'GRAPHDB_REPOSITORY_ID', value: 'inning' }
             { name: 'SIMILARITY_INDEX', value: 'bwb_similarity' }
             // Korter wachten dan de werkplek (120 s). Een jurist die zit te wachten heeft baat bij
-            // doorwachten; een meting die tien cases achter elkaar draait niet. Op 5 sep 2026 gaf
-            // de provider `overloaded_error` en kostte elke call 120 s x 3 pogingen — dat is wat de
-            // run over de twee uur duwde. De suite kapt zichzelf nu bovendien af op tijd/tokens.
+            // doorwachten; een meting die tien cases achter elkaar draait niet. Geeft de provider
+            // `overloaded_error`, dan kost elke call anders 120 s x 3 pogingen en duwt dat de run over
+            // de twee uur. De suite kapt zichzelf bovendien af op tijd/tokens.
             { name: 'LLM_TIMEOUT_SECONDS', value: '45' }
             { name: 'HOME', value: '/tmp' }
             // Moet gezet zijn, en moet naar /tmp wijzen. `Settings.checkpoint_db_path` heeft een
@@ -1164,8 +1160,7 @@ resource frontendApp 'Microsoft.App/containerApps@2024-03-01' = {
     configuration: {
       // Bewaar een handvol inactieve revisies, anders is `rollback.yml` een knop zonder inhoud:
       // in de single-revision-modus (de default) deactiveert Azure de oude revisie bij elke
-      // image-swap en ruimt hem daarna op. Gemeten op 27 aug 2026: alle drie de apps hadden nog
-      // precies één revisie, terwijl de nummering (41/57/75) tientallen voorgangers verried.
+      // image-swap en ruimt hem daarna op; er blijft dan per app precies één revisie over.
       // Inactieve revisies draaien niet en kosten dus geen replicas.
       maxInactiveRevisions: 5
       ingress: {
@@ -1210,7 +1205,7 @@ resource frontendApp 'Microsoft.App/containerApps@2024-03-01' = {
           ]
           env: [
             // Telemetrie naar de collector in deze omgeving, die het doorschrijft naar Application
-            // Insights. Leeg laten = uit; dat was de stand tot nu toe.
+            // Insights. Leeg laten = uit.
             { name: 'OTEL_EXPORTER_OTLP_ENDPOINT', value: collectorEndpoint }
             { name: 'OTEL_SERVICE_NAME', value: 'wetsanalyse-frontend' }
             // Next.js instrumenteert `fetch` zélf en maakt daar een span voor, maar injecteert geen

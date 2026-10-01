@@ -152,7 +152,7 @@ def _nu() -> float:
 
 def _totp_stap(user: User, code: str) -> int | None:
     """De tijdstap waarvoor deze code geldt, of None. Eén stap ervoor en erna telt mee: dat vangt
-    klok-drift van ±30 s op (wat `valid_window=1` eerder deed)."""
+    klok-drift van ±30 s op (hetzelfde venster als `valid_window=1` in pyotp)."""
     if not user.totp_secret_enc:
         return None
     totp = pyotp.TOTP(decrypt(user.totp_secret_enc))

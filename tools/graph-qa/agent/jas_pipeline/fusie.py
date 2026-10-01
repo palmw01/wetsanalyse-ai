@@ -1,4 +1,4 @@
-"""Kandidaatfusie (ADR-001 PR 8): één kandidaat per span, met al het bewijs.
+"""Kandidaatfusie (ADR-001): één kandidaat per span, met al het bewijs.
 
 Meerdere detectoren vinden vaak dezelfde of een overlappende span ('zes weken' als duur én als
 naamwoordgroep). De fusie:

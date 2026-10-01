@@ -1,4 +1,4 @@
-"""Benchmark van taalanalyse-providers op wetstekst (ADR-001 PR 3).
+"""Benchmark van taalanalyse-providers op wetstekst (ADR-001).
 
 De vraag is niet "welke parser is het beste Nederlands", maar: **welke parser levert grenzen
 waarop onze detectoren JAS-kandidaten kunnen bouwen?** Er bestaat geen treebank van Nederlandse

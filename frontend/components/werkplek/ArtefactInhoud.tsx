@@ -141,7 +141,7 @@ export function ArtefactInhoud({
    *  het paneel dicht (in de dialoogschil; op een eigen pagina is er niets te sluiten en stopt het
    *  afpellen daar).
    *
-   *  Dit hing eerder aan `Dialog.onEscape`, maar die schil bestaat nu niet altijd. De afhandeling
+   *  Dit hangt niet aan `Dialog.onEscape`, want die schil bestaat niet altijd. De afhandeling
    *  hoort bij de inhoud die de lagen kent; de dialoogschil geeft `Dialog` daarom een no-op mee,
    *  anders zou Escape twee dingen tegelijk doen. */
   const opEscape = useCallback(() => {

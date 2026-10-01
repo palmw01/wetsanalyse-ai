@@ -1,7 +1,7 @@
 """Twee knoppen die de annotatieketen goedkoper én betrouwbaarder maken.
 
 1. **Model per rol** – de router en de ophaal-agent mogen op een ander model draaien dan de
-   annoteerder en de Critic. Die laatste twee vellen het juridische oordeel en houden daarom geen
+   classifier en de gerichte reviewer. Die laatste twee vellen het juridische oordeel en houden daarom geen
    eigen knop: er is geen env-var waarmee je ze per ongeluk degradeert.
 2. **Een meegegeven `doel`** – weet de werkplek de bepaling al, dan slaat de beurt de supervisor én
    de ophaal-agent over. Dat scheelt calls, maar de echte winst is dat de agent dan niet meer bij

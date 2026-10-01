@@ -1,4 +1,4 @@
-"""De resolver (ADR-001 PR 13, opdracht §18): vaste beslisregels op het oordeel van de reviewer.
+"""De resolver (ADR-001, opdracht §18): vaste beslisregels op het oordeel van de reviewer.
 
 De reviewer adviseert, deze tabel voert uit. Drie principes, rechtstreeks uit de opdracht:
 

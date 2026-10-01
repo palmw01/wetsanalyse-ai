@@ -1,4 +1,4 @@
-"""Syntactische en structurele detectoren (ADR-001 PR 7)."""
+"""Syntactische en structurele detectoren (ADR-001)."""
 from __future__ import annotations
 
 import pytest
@@ -115,7 +115,7 @@ def test_detectie_met_parse_is_deterministisch(parser):
 
 
 def test_ankerdekking_zakt_niet_onder_de_gemeten_vloer(parser):
-    """Regressievloer, geen doel: 86% gemeten op 24 sep 2026 (provisional, ontwikkelsplit)."""
+    """Regressievloer, geen doel: gemeten 86% (provisional, ontwikkelsplit)."""
     from eval.kandidaat_eval import meet
     m = meet()
     assert m["candidate_recall"] >= 0.80, m["per_klasse"]
@@ -123,14 +123,14 @@ def test_ankerdekking_zakt_niet_onder_de_gemeten_vloer(parser):
 
 
 def test_of_binnen_een_naamwoordgroep_is_geen_operator(parser):
-    """PR 17 (Operator-F1 26% in de A/B): 'verplichting of onthouden aanspraak' verbindt woorden, geen zinsdelen."""
+    """'verplichting of onthouden aanspraak' verbindt woorden, geen zinsdelen."""
     t = "een door een bestuursorgaan wegens een overtreding opgelegde verplichting of onthouden aanspraak;"
     assert LogischeOperatorDetector().detecteer(_bron(t, parser)).kandidaten == ()
 
 
 def test_naamwoordelijk_gezegde_is_geen_naamwoordgroep(parser):
-    """Regressie (acceptatie, 25 sep 2026): spaCy tagt "invorderbaar" als NOUN; zonder deze regel werd
-    het een OBJECT_NP-kandidaat met de hele zin als grens, en koos het model Variabele."""
+    """spaCy tagt "invorderbaar" als NOUN; zonder deze regel wordt het een OBJECT_NP-kandidaat met de
+    hele zin als grens, en kiest het model Variabele."""
     tekst = "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet."
     kandidaten = NaamwoordgroepDetector().detecteer(_bron(tekst, parser)).kandidaten
     assert "invorderbaar" not in {k.span.tekst for k in kandidaten}

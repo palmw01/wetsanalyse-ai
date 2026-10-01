@@ -263,7 +263,7 @@ async def test_stoppen_vóór_de_voorstellen_belooft_niets(api):
 
 @asyncio_test
 async def test_zonder_api_blijft_het_een_doorgeefluik(api):
-    """Geen api geconfigureerd → de werkplek schrijft weg, zoals vroeger. Lokaal draaien zonder api
+    """Geen api geconfigureerd → de werkplek schrijft weg. Lokaal draaien zonder api
     moet mogelijk blijven."""
     uit = await _draai(
         [{"type": "token", "content": "x"}, {"type": "done"}],

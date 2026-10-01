@@ -1,9 +1,6 @@
 """**Advies bij twijfel** (`modus="advies"`) – een vraag bij een bestaande annotatie. De supervisor
 kiest dan niet zelf maar routeert hard naar de antwoord-worker, zodat een adviesvraag
 *topologisch* geen annotatie kan wijzigen: die route emit simpelweg geen doel/element-events.
-
-Het Critic-advies op eigen markeringen van de jurist (`suggestie`-events) verviel met de
-legacy-keten in ADR-001 PR 18.
 """
 from __future__ import annotations
 

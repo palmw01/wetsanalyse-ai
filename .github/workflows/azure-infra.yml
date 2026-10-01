@@ -545,10 +545,9 @@ jobs:
           az containerapp env list --query "[].{env:name, rg:resourceGroup}" -o tsv 2>/dev/null || true
           echo "--- alle resources in $RESOURCE_GROUP ---"
           az resource list -g "$RESOURCE_GROUP" --query "sort_by([].{naam:name, type:type}, &naam)" -o tsv 2>/dev/null || true
-          # Historie, geen momentopname. Toen de graaf op 8 sep 2026 leeg bleek ("Repository inning
-          # doesn't exist") was de vraag "wanneer is GraphDB herstart, en wanneer is er daarna
-          # geïmporteerd?" met de inventaris niet te beantwoorden — die toont alleen de huidige
-          # stand. GraphDB heeft geen persistente opslag, dus zijn revisie-historie ís de
+          # Historie, geen momentopname. Blijkt de graaf leeg ("Repository inning doesn't exist"),
+          # dan is de vraag "wanneer is GraphDB herstart, en wanneer is er daarna geïmporteerd?"
+          # met alleen de huidige stand niet te beantwoorden. GraphDB heeft geen persistente opslag, dus zijn revisie-historie ís de
           # storingshistorie van de graaf.
           echo "--- graphdb-revisies ---"
           az containerapp revision list -n "$APP_NAME-graphdb" -g "$RESOURCE_GROUP" \
@@ -557,8 +556,7 @@ jobs:
           # De REPLICA, niet de revisie, is het signaal dat je zoekt. Een revisie wordt alleen door een
           # deploy aangemaakt; een container die door de liveness-probe wordt gekild of zelf crasht
           # herstart bínnen dezelfde revisie — en dan is de graaf leeg terwijl de revisielijst
-          # onveranderd sinds weken dezelfde datum toont. Precies dat gebeurde op 8 sep 2026: revisie
-          # --0000001 stond op 1 sep, en tóch was de repository weg. `restartCount` en de
+          # onveranderd sinds weken dezelfde datum toont. `restartCount` en de
           # replica-`createdTime` zijn wat die herstart wél laat zien.
           echo "--- graphdb-replicas (startTime + restartCount = de werkelijke herstart) ---"
           rev=$(az containerapp revision list -n "$APP_NAME-graphdb" -g "$RESOURCE_GROUP" \
@@ -711,7 +709,7 @@ jobs:
           # Let op de tabelnaam: de console-logs landen in ContainerAppConsoleLogs_CL (kolommen
           # ContainerAppName_s/Log_s). De tabel zonder _CL bestaat óók en is altijd leeg – een
           # diagnosevraag die daar kijkt meldt dus rustig "niets gevonden" terwijl er 12k regels
-          # staan. Zie PR #355.
+          # staan.
           vraag "Collector-logs (2 uur)" \
             "ContainerAppConsoleLogs_CL
              | where TimeGenerated > ago(2h) and ContainerAppName_s endswith 'otel-collector'
@@ -837,8 +835,8 @@ jobs:
           echo "::notice::die loopt herschrijft GraphDB de graaf. De smoke wacht daar zelf op, maar"
           echo "::notice::dat kost minuten wachttijd die niemand hoeft te betalen."
           # De starttijd vastleggen VOOR de start: het logvenster hieronder wordt hierop geankerd.
-          # Met `ago(2h)` viel het begin van een lange run buiten het venster — op 5 sep 2026 ging
-          # zo de complete retrieval-smoke verloren, juist het deel dat geen tokens kost.
+          # Met `ago(2h)` valt het begin van een lange run buiten het venster, en daarmee de complete
+          # retrieval-smoke — juist het deel dat geen tokens kost.
           gestart=$(date -u -d '2 minutes ago' +%Y-%m-%dT%H:%M:%SZ)
           az containerapp job start -n "$JOB" -g "$RESOURCE_GROUP" --output none
           uitvoering=$(az containerapp job execution list -n "$JOB" -g "$RESOURCE_GROUP" \
@@ -869,15 +867,14 @@ jobs:
             # Ingestie loopt een minuut of twee achter op de container; even geduld voor we het
             # opgeven, anders rapporteren we een lege meting terwijl de regels onderweg zijn.
             for poging in 1 2 3 4; do
-              # Twee dingen die op 5 sep 2026 misgingen en hier zijn gerepareerd:
+              # Twee valkuilen die deze query omzeilt:
               #
-              # 1. `ago(2h)` sneed het begin van de run af zodra die zelf twee uur duurde. Het
-              #    venster hangt nu aan de starttijd van déze uitvoering.
-              # 2. De regels liepen door elkaar. De oorzaak zat niet in Kusto maar in de bron:
-              #    Python bufferde zijn stdout en dumpte het rapport in één keer, waardoor
-              #    tientallen regels dezelfde tijdstempel kregen — en binnen één tijdstempel is de
-              #    volgorde willekeurig. Opgelost met `python -u` in de job (zie main.bicep); hier
-              #    volstaat daarom een gewone chronologische sortering.
+              # 1. `ago(2h)` snijdt het begin van de run af zodra die zelf twee uur duurt. Het
+              #    venster hangt daarom aan de starttijd van déze uitvoering.
+              # 2. Regels lopen door elkaar als Python zijn stdout buffert en het rapport in één
+              #    keer dumpt: tientallen regels krijgen dan dezelfde tijdstempel, en binnen één
+              #    tijdstempel is de volgorde willekeurig. De job draait daarom `python -u` (zie
+              #    main.bicep); hier volstaat een gewone chronologische sortering.
               logs=$(az monitor log-analytics query -w "$ws" --analytics-query \
                 "ContainerAppConsoleLogs_CL
                  | where TimeGenerated >= datetime('$gestart') and ContainerName_s == 'eval'

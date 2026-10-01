@@ -300,7 +300,7 @@ gesprek_berichten = Table(
     Column("gesprek_id", String(64), nullable=False),
     Column("rol", String(16), nullable=False, default="user"),
     Column("inhoud", _JSON, nullable=False, default=dict),
-    # De idempotentiesleutel van een agent-beurt. Stond eerder alleen in `inhoud`; als eigen kolom
+    # De idempotentiesleutel van een agent-beurt. Als eigen kolom (en niet alleen in `inhoud`)
     # kan de database afdwingen dat één run maar één bericht oplevert. Leeg voor berichten die niet
     # uit een run komen (de vraag van de gebruiker), vandaar de partiële index hieronder.
     Column("run_id", String(64), nullable=False, server_default="", default=""),

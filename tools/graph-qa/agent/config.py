@@ -51,14 +51,14 @@ class Settings(BaseModel):
     azure_foundry_api_key: str | None = None
     azure_foundry_base_url: str | None = None
     llm_model: str = "claude-sonnet-4-6"
-    # Model per ROL. Leeg = `llm_model`, dus zonder deze env-vars draait alles zoals voorheen.
+    # Model per ROL. Leeg = `llm_model`, dus zonder deze env-vars draait alles op één model.
     #
     # De rollen in deze keten verschillen sterk in wat ze vragen: de router kiest uit twee workers
     # en drie specialisten binnen 300 tokens, en zijn antwoord wordt daarna toch hard gesaneerd
     # (`parse_supervisor`). De ophaal-agent zoekt een bepaling op met getypeerde tools. Dat is ander
-    # werk dan het JAS-oordeel van de annoteerder en de Critic – en dáár mag je niet op besparen:
-    # die twee blijven bewust op `llm_model`, zonder eigen knop, zodat niemand ze per ongeluk
-    # degradeert. Een goedkopere Critic degradeert precies het oordeel waarvoor hij bestaat.
+    # werk dan het JAS-oordeel van de classifier en de gerichte reviewer – en dáár mag je niet op
+    # besparen: die twee blijven bewust op `llm_model`, zonder eigen knop, zodat niemand ze per
+    # ongeluk degradeert. Een goedkopere reviewer degradeert precies het oordeel waarvoor hij bestaat.
     #
     # De ophaal-agent is de gevaarlijkste om te verlagen: kiest hij de verkeerde bepaling, dan is
     # alles daarna brongetrouw én verkeerd, en dat ziet de jurist niet. Verlaag hem pas na meting
@@ -78,7 +78,7 @@ class Settings(BaseModel):
     max_history_chars: int = 40000
 
     # De wetsanalyse-API: waar de uitkomst van een beurt wordt vastgelegd. Leeg = niet vastleggen
-    # (dan schrijft de werkplek het weg, zoals vroeger) – zo blijft lokaal draaien zonder api mogelijk.
+    # – zo blijft lokaal draaien zonder api mogelijk.
     wetsanalyse_api_url: str = ""
     wetsanalyse_api_token: str | None = None
     # Alleen voor machine-lokale MCP/CLI-clients; nooit door een modelargument instelbaar.
@@ -108,15 +108,15 @@ class Settings(BaseModel):
     # zichtbaar naar alleen tokens; de parsedetectoren melden zich dan overgeslagen.
     taal_provider: str = "spacy:nl_core_news_md"
     # Eén classificatiecall voor alle kandidaten (`universeel`), één per klassefamilie (`familie`) of
-    # één per exacte toegestane klasseverzameling (`klasseverzameling`). Gemeten, niet aangenomen:
-    # baselineproef 29 sep 2026 (docs/architectuur/metingen/hybrid-v1-baseline-2026-09-29) koos volgens
+    # één per exacte toegestane klasseverzameling (`klasseverzameling`). Gemeten, niet aangenomen: de
+    # baselineproef (docs/architectuur/metingen/hybrid-v1-baseline-2026-09-29) koos volgens
     # het vooraf vastgelegde criterium klasseverzameling: 0 contractfouten tegenover 15 (U0), stabiliteit
     # ≥ universeel op 6/8 casussen, 1,45× de kosten per run.
     classifier_granulariteit: Literal["universeel", "familie", "klasseverzameling"] = "klasseverzameling"
     # Hoeveel classificatiebatches tegelijk naar het model gaan. De batches zijn onafhankelijk (elk een
     # eigen klasseverzameling, eigen prompt en eigen toolschema), dus parallel verandert de uitkomst
-    # niet, alleen de doorlooptijd: vier batches van ~15 s duurden na elkaar een minuut. De resultaten
-    # worden in batchvolgorde samengevoegd. 1 = na elkaar (het gedrag tot 30 sep 2026).
+    # niet, alleen de doorlooptijd: vier batches van ~15 s duren na elkaar een minuut. De resultaten
+    # worden in batchvolgorde samengevoegd. 1 = na elkaar.
     classifier_parallel: int = 4
     # Leeg = providerdefault. Opus 4.7+/Sonnet 5 weigeren sampling-parameters (400); daarom geen
     # vaste waarde. De reproduceerbaarheid komt uit de beperkte keuze (enum op labels), niet uit
@@ -126,12 +126,12 @@ class Settings(BaseModel):
     # definitieonderdeel, delegatieformule …) wordt zonder modelaanroep voorgesteld. Het blijft een
     # VOORSTEL: de jurist beoordeelt het zoals elk ander (ADR-001 §10.5).
     deterministisch_accepteren: bool = True
-    # De gerichte reviewer (ADR-001 PR 12): alleen op twijfelgevallen (detectieconflict, geen
+    # De gerichte reviewer (ADR-001): alleen op twijfelgevallen (detectieconflict, geen
     # geldige classificatie, twee klassen op één fragment). Uit = die gevallen gaan zonder tweede
     # modeloordeel naar de jurist; de resolver blijft gewoon draaien.
     gerichte_review: bool = True
-    # Mag de classifier een andere grens kiezen dan de kandidaatspan (een spanoptie)? Uit sinds
-    # ADR-001 PR 17: in de A/B van 25 sep 2026 koos het model 82× een optie, 8× raak tegen de
+    # Mag de classifier een andere grens kiezen dan de kandidaatspan (een spanoptie)? Standaard uit
+    # (ADR-001): in een A/B-meting koos het model 82× een optie, 8× raak tegen de
     # referentie – de kandidaatspan was 23× raak geweest. De grens komt uit de detector; het model
     # classificeert. De opties blijven in het herkomstspoor.
     classifier_spankeuze: bool = False
@@ -153,27 +153,26 @@ class Settings(BaseModel):
 
     # Hoe lang de adapter op één LLM-call wacht, en hoe vaak hij het opnieuw probeert.
     #
-    # Waarom dit een knop is. Op 5 sep 2026 was de provider overbelast (`overloaded_error`) en liep
-    # de eval-job twee uur voordat hij werd afgekapt: elke call wachtte 120 s en de SDK probeerde
-    # het daarna nog twee keer. Voor een jurist die zit te wachten is lang doorwachten juist goed —
+    # Waarom dit een knop is. Is de provider overbelast (`overloaded_error`), dan wacht elke call
+    # 120 s en probeert de SDK het daarna nog twee keer; een eval-job loopt zo uren voordat hij
+    # wordt afgekapt. Voor een jurist die zit te wachten is lang doorwachten juist goed —
     # een traag antwoord is beter dan geen antwoord — maar voor een meting die zes suites achter
     # elkaar draait is het fataal. Vandaar dezelfde code met twee instellingen: de werkplek houdt
     # 120 s, de eval-job zet `LLM_TIMEOUT_SECONDS=45`.
     #
-    # `max_retries` stond nergens en viel dus terug op de SDK-default (2). Dat is prima, maar het
-    # hoort expliciet te staan: dit getal vermenigvuldigt zich met de timeout tot de tijd die één
-    # mislukte call kost, en dat is precies wat er misging.
+    # `max_retries` is gelijk aan de SDK-default (2), maar staat hier expliciet: dit getal
+    # vermenigvuldigt zich met de timeout tot de tijd die één mislukte call kost.
     llm_timeout_seconds: float = 120.0
     llm_max_retries: int = 2
 
     # Grounding
     # Bij een ongegrond antwoord één corrigerende her-vraag (`correct_node`), hoogstens één keer.
     #
-    # Stond uit, en daarmee was de groundingcontrole een melding onder het antwoord en verder niets:
-    # de jurist las een antwoord waarvan de keten zelf had vastgesteld dat er citaten in stonden die
-    # niet in de bron voorkomen. Voor een platform waarvan brongetrouwheid het bestaansrecht is, is
+    # Staat aan, want uit is de groundingcontrole een melding onder het antwoord en verder niets:
+    # de jurist leest dan een antwoord waarvan de keten zelf heeft vastgesteld dat er citaten in staan
+    # die niet in de bron voorkomen. Voor een platform waarvan brongetrouwheid het bestaansrecht is, is
     # signaleren te weinig zolang herstellen één call kost – en die call komt er alléén als er
-    # werkelijk iets mis is. `GROUNDING_CORRECT=false` zet hem terug uit.
+    # werkelijk iets mis is. `GROUNDING_CORRECT=false` zet hem uit.
     grounding_correct: bool = True
     curate_sources: bool = True       # bronnenlijst beperken tot in het antwoord aangehaalde regelingen
 

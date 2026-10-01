@@ -1,4 +1,4 @@
-"""Deterministische detectoren (ADR-001 PR 6): elke regel met positief, negatief, rand en overlap."""
+"""Deterministische detectoren (ADR-001): elke regel met positief, negatief, rand en overlap."""
 from __future__ import annotations
 
 import pytest

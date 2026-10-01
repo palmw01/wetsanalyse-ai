@@ -1,4 +1,4 @@
-"""Dekkingsboekhouding (ADR-001 PR 10, opdracht §22): twee maten, en uitdrukkelijk geen derde.
+"""Dekkingsboekhouding (ADR-001, opdracht §22): twee maten, en uitdrukkelijk geen derde.
 
 - **A – kandidaatverwerking**: elke kandidaat eindigt als ACCEPTED, REJECTED, UNCERTAIN of
   HUMAN_REVIEW. `UNHANDLED = 0` is een invariant, geen streefwaarde: een kandidaat zonder
@@ -6,7 +6,7 @@
 - **B – structurele dekking**: per bronnode welke van de twaalf detectiedimensies zijn uitgevoerd,
   gedeeltelijk (een deel van de detectoren sloeg zich over) of overgeslagen – plus welke zinnen en
   bijzinnen géén enkele kandidaat opleverden. Dat laatste is het zichtbare vangnet voor gemiste
-  elementen; het vervangt de generatieve 'ontbrekend'-lijst van de legacy-Critic.
+  elementen, zonder dat een model een 'ontbrekend'-lijst hoeft te genereren.
 
 Wat hier níét staat is **annotation recall** (C): hoeveel echte elementen er gevonden zijn, kan
 alleen tegen een vastgestelde referentie (`eval/metrieken.py`, status adjudicated/gold). 100% A en

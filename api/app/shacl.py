@@ -1,4 +1,4 @@
-"""SHACL-diagnose van de v2-projectie (ADR-001 PR 14). Niet-blokkerend.
+"""SHACL-diagnose van de v2-projectie (ADR-001). Niet-blokkerend.
 
 `valideer(graph)` toetst een geprojecteerde laag tegen `shapes/jas-v2.ttl` en splitst de
 bevindingen naar niveau: `rdf` (structureel geldige RDF) en `jas_model` (structureel geldig

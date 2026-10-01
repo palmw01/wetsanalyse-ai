@@ -1,4 +1,4 @@
-"""Detectieprofielen per JAS-klasse (ADR-001 PR 4).
+"""Detectieprofielen per JAS-klasse (ADR-001).
 
 Per klasse één YAML-bestand met de velden uit §3 van de opdracht: welke grammaticale, lexicale,
 structurele en semantische signalen een kandidaat opleveren, met welke klassen hij verward kan

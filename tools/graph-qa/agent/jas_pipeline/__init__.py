@@ -2,5 +2,5 @@
 
 Pure functies en datatypes, zonder LangGraph: bronstructuur → taalanalyse → detectoren →
 kandidaten → classificatie → validatie. `nodes/annotatie.annoteer_node` roept `keten.analyseer`
-aan; sinds PR 18 is dit de enige annotatieroute.
+aan; dit is de enige annotatieroute.
 """

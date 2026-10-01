@@ -1,8 +1,8 @@
 # Leesbare verklaringen van alle codes die de annotatieketen in een `trace` kan zetten.
 #
 # Eén catalogus voor drie lezers: de werkplek ("Waarom?"), de exports (CSV/PDF) en de vocabulaire-
-# graaf (`scripts/genereer_jas_vocabulaire.py`). Besluit gebruiker (25 sep 2026): de jurist ziet de
-# naam; het id staat in de tooltip. `tests/test_verklaringen.py` weigert een code die de keten kan
+# graaf (`scripts/genereer_jas_vocabulaire.py`). De jurist ziet de naam; het id staat in de
+# tooltip. `tests/test_verklaringen.py` weigert een code die de keten kan
 # uitgeven zonder regel hier – een uitleg die ontbreekt is een lege plek in de werkplek.
 #
 # Schrijf voor de jurist: wat het patroon herkent, niet hoe het gebouwd is.

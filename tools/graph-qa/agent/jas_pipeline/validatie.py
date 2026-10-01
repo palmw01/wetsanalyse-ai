@@ -1,4 +1,4 @@
-"""Deterministische validatie vóór een voorstel de keten verlaat (ADR-001 PR 11, opdracht §20).
+"""Deterministische validatie vóór een voorstel de keten verlaat (ADR-001, opdracht §20).
 
 Een taalmodel mag deze controles niet vervangen, en ze hangen ook niet van een model af: ze
 toetsen of wat er uitgaat structureel klopt met de bron, de kandidaat en de beslissing.

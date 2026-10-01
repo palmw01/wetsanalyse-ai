@@ -1,4 +1,4 @@
-"""Structuurdetectoren: waar de vorm van de bron het signaal is (ADR-001 PR 6).
+"""Structuurdetectoren: waar de vorm van de bron het signaal is (ADR-001).
 
 `DefinitieDetector` – een begripsbepalingenartikel heeft een aanhef ('In deze wet wordt verstaan
 onder:') en onderdelen 'term: omschrijving' (H2:136). Het onderdeel is dan een kandidaat-

@@ -17,11 +17,10 @@ const CONTEXT_LENGTE = 48;
  *  Een 32-bits FNV-1a is daarvoor genoeg en werkt synchroon (SubtleCrypto is async).
  *
  *  HASH OVER UTF-8-BYTES, niet over UTF-16-code-units. Dat moet, want de ankers worden aan de
- *  serverkant gemaakt (`agent/annotatie.py:_fnv1a_32`) en die hasht bytes. Deze functie deed dat
- *  eerder per `charCodeAt`, wat voor ASCII toevallig hetzelfde oplevert maar voor alles daarbuiten
- *  niet: "onderdeel 1° met graden" gaf 19625595 in Python en 8ad507f3 hier. Gevolg was dat
- *  `vindPositie` bij zo'n bepaling nooit de exacte offsets kon gebruiken en altijd terugviel op
- *  contextmatching – stil, en juist bij wetteksten met een graden- of een typografisch teken.
+ *  serverkant gemaakt (`agent/annotatie.py:_fnv1a_32`) en die hasht bytes. Per `charCodeAt` hashen
+ *  levert voor ASCII toevallig hetzelfde op, maar voor alles daarbuiten niet: "onderdeel 1° met
+ *  graden" geeft dan 19625595 in Python en 8ad507f3 hier. Gevolg: `vindPositie` kan bij zo'n
+ *  bepaling nooit de exacte offsets gebruiken en valt altijd terug op contextmatching – stil, en juist bij wetteksten met een graden- of een typografisch teken.
  *  `bronHash.vectoren.json` bewaakt dat beide kanten hetzelfde blijven doen. */
 export function bronHash(bron: string): string {
   let h = 0x811c9dc5;
@@ -35,8 +34,8 @@ export function bronHash(bron: string): string {
 /** Absolute offset in de brontekst uit (index van de tekstknoop, offset daarbinnen).
  *  `lengtes` is de lengte van elke tekstknoop in documentvolgorde.
  *
- *  Dit werkt alleen als de tekstknopen samen EXACT de brontekst vormen. Die eis lag tot 2 sep 2026
- *  ongeschreven op het documentpaneel en zette de weergave vast: elke blokstructuur die een
+ *  Dit werkt alleen als de tekstknopen samen EXACT de brontekst vormen. Die eis zet de weergave vast:
+ *  elke blokstructuur die een
  *  scheidingsteken weglaat, verschuift stil elke markering die de jurist zelf maakt. Gebruik voor
  *  gestructureerde weergave `offsetInBlok`. */
 export function offsetUit(lengtes: number[], knoopIndex: number, offsetInKnoop: number): number {
@@ -106,7 +105,7 @@ export interface LidRegel {
 /** In welk lid valt deze offset? `regels` in dezelfde volgorde als waarmee de bron is samengesteld
  *  (`bronVan`). Geeft het lidnummer terug, of "" als de offset erbuiten valt.
  *
- *  Let op het verschil met de plek in de lijst: dit gaf eerder `String(i + 1)` terug, en dat is alleen
+ *  Let op het verschil met de plek in de lijst: `String(i + 1)` teruggeven is alleen
  *  bij een compleet artikel met leden 1..n hetzelfde. Bij een op één lid afgebakend document levert de
  *  graaf alléén dat lid – dan is de index 0 en het lidnummer bijvoorbeeld 3 – en bij een ingevoegd lid
  *  (2a) lopen ze sowieso uiteen. Het lidnummer belandt in het element, het anker en het auditspoor,

@@ -459,7 +459,7 @@ async def verwijder(element_id: str, expected: int, actor: str) -> dict:
 
 async def verwijder_weergave(snapshot: dict, verwachte_revisies: dict[str, int], actor: str) -> dict:
     """Verwijder de annotatie van de bepaling in beeld: elke laag op het doel en de bronnodes eronder,
-    met hun elementen en hun dekking. Elke gebruiker mag dit (besluit 25 sep 2026); het staat in de
+    met hun elementen en hun dekking. Elke gebruiker mag dit; het staat in de
     audit (`laag-verwijderd`, append-only – die regels blijven).
 
     Wat er níét onder valt: een element van een ruimere laag (een voorouder) dat met één anker in deze

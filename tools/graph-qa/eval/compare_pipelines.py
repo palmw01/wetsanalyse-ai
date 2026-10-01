@@ -1,8 +1,7 @@
-"""Meting van de annotatieketen op de ontwikkelcasussen (ADR-001 PR 16).
+"""Meting van de annotatieketen op de ontwikkelcasussen (ADR-001).
 
-Oorspronkelijk een A/B van de legacy-keten tegen `hybrid_v1`; sinds PR 18 bestaat alleen de
-laatste nog, en meet dit harnas die – oude rapporten met legacy-runs blijven analyseerbaar. Per
-casus dezelfde bronpassage (`keten_fixture`), en per route en casus:
+Meet de keten `hybrid_v1`; rapporten met runs van de verwijderde legacy-keten blijven
+analyseerbaar. Per casus dezelfde bronpassage (`keten_fixture`), en per route en casus:
 
 - **kwaliteit tegen de referentie**: P/R/F1 per klasse, micro/macro, confusion, exacte span en
   partiële overlap (`eval/metrieken.py`), op positie. De referentie is `provisional`, dus recall
@@ -39,7 +38,7 @@ from eval.metrieken import (
 )
 from eval.stabiliteit_analyse import analyseer_casus
 
-# `legacy` bestaat alleen nog in rapporten van vóór ADR-001 PR 18; de analyse kan die nog lezen,
+# `legacy` bestaat alleen nog in oude rapporten; de analyse kan die nog lezen,
 # meten kan alleen de huidige keten.
 ROUTES = ("legacy", "hybrid_v1")
 MEETBAAR = ("hybrid_v1",)
@@ -293,7 +292,7 @@ def main() -> int:
     ap.add_argument("--analyseer", type=Path, help="alleen een bestaand rapport analyseren")
     ap.add_argument("--md", type=Path)
     ap.add_argument("--routes", nargs="+", choices=MEETBAAR, default=list(MEETBAAR),
-                    help="welke route(s) meten; legacy bestaat sinds PR 18 niet meer")
+                    help="welke route(s) meten")
     args = ap.parse_args()
     if args.analyseer:
         a = analyseer(json.loads(args.analyseer.read_text()))

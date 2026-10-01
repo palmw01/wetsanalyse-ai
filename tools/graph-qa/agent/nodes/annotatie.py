@@ -6,8 +6,8 @@ JAS-voorrangsregels, één kleine classifier-call op kandidaat-labels, validatie
 reviewer op twijfelgevallen en een resolver met een vaste tabel. `emit` is de enige uitgang, zodat
 de werkplek nooit tussenversies ziet.
 
-Tot 25 sep 2026 stond hier een generatieve keten (annoteerder → Critic → patch → herziening →
-Critic). Die is weggehaald na een A/B-meting (`docs/architectuur/metingen/`); zie ADR-001 PR 18.
+Er is geen generatieve annotatieroute naast deze keten; de A/B-meting die daartoe besliste staat
+in `docs/architectuur/metingen/`, de onderbouwing in ADR-001.
 """
 from __future__ import annotations
 

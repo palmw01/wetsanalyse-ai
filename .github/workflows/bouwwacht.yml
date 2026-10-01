@@ -4,14 +4,12 @@
 # gewone merge, maar NIET voor een merge die uit `GITHUB_TOKEN` voortkomt: GitHub onderdrukt álle
 # events die door dat token worden veroorzaakt. `dependabot-auto-merge.yml` zet auto-merge aan met
 # dat token, dus als GitHub de PR vervolgens zelf merget vuurt er niets — geen `push`, en ook geen
-# `pull_request: closed`. Op 8 sep 2026 landden zo vier dependency-PR's (#443, #441, #442, #438) op
-# master zonder dat er één image werd gebouwd; acceptatie draaide oude code met een nieuwe lockfile.
+# `pull_request: closed`. Zo landen dependency-PR's op master zonder dat er één image wordt
+# gebouwd, en draait acceptatie oude code met een nieuwe lockfile.
 #
-# Dat is precies de reden dat de vorige oplossing niet kón werken: er stond een job
-# `publish-na-merge` in dependabot-auto-merge.yml die op `closed` + `merged == true` wachtte en
-# daarna de publish-workflows dispatchte. Maar `closed` wordt door dezelfde regel onderdrukt als
-# `push`. Vuurt hij, dan had de push-workflow zelf al gedraaid (en bouwden er twee tegelijk);
-# vuurt hij niet, dan doet hij niets. Hij is op 8 sep 2026 verwijderd ten gunste van deze wacht.
+# Een job die op `closed` + `merged == true` wacht en daarna de publish-workflows dispatcht, lost
+# dat niet op: `closed` wordt door dezelfde regel onderdrukt als `push`. Vuurt hij, dan heeft de
+# push-workflow zelf al gedraaid (en bouwen er twee tegelijk); vuurt hij niet, dan doet hij niets.
 #
 # HOE. Niet op een gebeurtenis wachten maar de toestand meten, zoals `<appName>-graafwacht` dat voor
 # de kennisgraaf doet: elk kwartier vergelijken wat er in GHCR staat met wat er op master staat, en

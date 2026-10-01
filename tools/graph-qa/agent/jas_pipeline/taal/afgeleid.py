@@ -1,6 +1,6 @@
 """Constituenten afgeleid uit UD: naamwoordgroepen, bijzinnen en werkwoordgroepen.
 
-Dit zijn geen JAS-klassen maar grammaticale eenheden. De detectoren (PR 6-7) gebruiken ze als
+Dit zijn geen JAS-klassen maar grammaticale eenheden. De detectoren gebruiken ze als
 kandidaatgrenzen en als spanopties; welke JAS-klasse erbij hoort beslist een latere stap.
 
 Alles hier is een functie van het UD-model, dus werkt voor elke provider die dat levert. Op een

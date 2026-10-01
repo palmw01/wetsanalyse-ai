@@ -1,9 +1,8 @@
 """Read-only vangnet: alleen lees-vormen (SELECT/ASK/CONSTRUCT/DESCRIBE) mogen erdoor.
 
-De guard werkte eerder met een blocklist van update-sleutelwoorden, en die was te omzeilen: LOAD,
-CLEAR en DROP werden alleen aan het begin van een REGEL herkend, dus achter een PREFIX op dezelfde
-regel liepen ze er doorheen. De `BYPASS`-gevallen hieronder zijn precies die vormen; ze horen bij
-een allowlist vanzelf te sneuvelen.
+Een blocklist van update-sleutelwoorden is te omzeilen: herkent hij LOAD, CLEAR en DROP alleen aan
+het begin van een REGEL, dan lopen ze achter een PREFIX op dezelfde regel er doorheen. De
+`BYPASS`-gevallen hieronder zijn precies die vormen; bij een allowlist sneuvelen ze vanzelf.
 """
 from __future__ import annotations
 

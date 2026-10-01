@@ -14,10 +14,10 @@ Wat er wél en niet gedeeld is:
   LangGraph-nodes zijn synchroon — er is geen resume-pad. Een replica die omvalt neemt zijn lopende
   runs mee.
 
-Dat laatste is nu wél zichtbaar in plaats van stil: elke lopende run schrijft een hartslag, en een
-run die `loopt` zegt maar al een minuut geen teken van leven gaf, wordt bij het uitlezen als
-`mislukt` gemarkeerd. Voorheen bleef zo'n run eeuwig "lopend" en wachtte de werkplek op een antwoord
-dat nooit kwam.
+Dat laatste is zichtbaar in plaats van stil: elke lopende run schrijft een hartslag, en een run
+die `loopt` zegt maar al een minuut geen teken van leven gaf, wordt bij het uitlezen als `mislukt`
+gemarkeerd. Zonder dat blijft zo'n run eeuwig "lopend" en wacht de werkplek op een antwoord dat
+nooit komt.
 """
 from __future__ import annotations
 

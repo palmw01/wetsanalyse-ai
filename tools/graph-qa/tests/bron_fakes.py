@@ -1,8 +1,8 @@
-"""V2 poortfixtures voor bestaande Critic-scenario's.
+"""V2 poortfixtures voor de annotatiescenario's in de tests.
 
 De canned juridische teksten blijven ongewijzigd. Deze adapter levert ze als echte
 bronboom aan de resolver en biedt een aparte, lege maar beschikbare annotatie-API.
-Geen productie-fallback en geen vervanging van Critic/annotatie-uitkomsten.
+Geen productie-fallback en geen vervanging van annotatie-uitkomsten.
 """
 import json
 

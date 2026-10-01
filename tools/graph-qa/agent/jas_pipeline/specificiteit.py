@@ -1,12 +1,12 @@
-"""Specificiteitsregels van JAS over kandidaten heen (ADR-001 PR 8, opdracht §12).
+"""Specificiteitsregels van JAS over kandidaten heen (ADR-001, opdracht §12).
 
 JAS kiest bij samenloop de meest specifieke klasse: een formulering die tijdsaanduiding én
 variabele of parameter kan zijn, is een Tijdsaanduiding (H2:107); voor een plaats geldt hetzelfde
 (H2:116). Die regels staan als `JAS-PRIORITY-001/002` in `jas_klassen.REGELS`.
 
-In de legacy-keten werkten ze alleen binnen één element (klasse tegen alternatieven). Een los
+Binnen één element (klasse tegen alternatieven) is niet genoeg: dan blijft een los
 Parameter-element op "zes weken" náást een Tijdsaanduiding op "zes weken na de dagtekening …"
-bleef daardoor staan – de IW01-bevinding. Hier gelden ze ook voor **geneste spans met dezelfde
+staan – de IW01-bevinding. Hier gelden ze ook voor **geneste spans met dezelfde
 functie**:
 
 - een kandidaat met zowel de winnende als een verliezende klasse verliest de verliezende;

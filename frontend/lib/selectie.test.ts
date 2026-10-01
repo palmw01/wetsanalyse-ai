@@ -81,7 +81,7 @@ describe("lidUitOffset", () => {
 
   it("geeft het lidnummer terug, niet de plek in de lijst", () => {
     // Een op één lid afgebakend document levert alléén dat lid – de index is dan 0 en het
-    // lidnummer 3. Vroeger kwam hier "1" uit en werd de markering op het verkeerde lid vastgelegd.
+    // lidnummer 3. Komt hier "1" uit, dan wordt de markering op het verkeerde lid vastgelegd.
     const alleenLid3 = [{ lid: "3", regel: "3. De ontvanger kan uitstel verlenen." }];
     expect(lidUitOffset(alleenLid3, 0)).toBe("3");
     expect(lidUitOffset(alleenLid3, 30)).toBe("3");

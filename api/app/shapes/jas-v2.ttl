@@ -1,4 +1,4 @@
-# SHACL-shapes voor de v2-projectie van de JAS-annotatielagen (ADR-001 PR 14).
+# SHACL-shapes voor de v2-projectie van de JAS-annotatielagen (ADR-001).
 #
 # Twee niveaus, bewust gescheiden (opdracht §21):
 #   jasv:RdfStructuur – is de projectie structureel geldige RDF volgens ons model
@@ -93,7 +93,7 @@ jasv:AlternatiefShape a sh:NodeShape ;
   sh:property [ sh:path jas:klasse ; sh:nodeKind sh:IRI ; sh:minCount 1 ; sh:maxCount 1 ;
                 sh:pattern "^urn:jas-ns:klasse:" ; sh:group jasv:JasModel ] .
 
-# Een beoordeling draagt nooit een persoon: de graaf heeft geen authenticatie (besluit 25 sep 2026).
+# Een beoordeling draagt nooit een persoon: de graaf heeft geen authenticatie.
 jasv:BeoordelingShape a sh:NodeShape ;
   sh:property [ sh:path jas:soort ; sh:minCount 1 ; sh:maxCount 1 ;
                 sh:in ( "approve" "reject" "heropen" "comment" "edit" "grens" ) ; sh:group jasv:JasModel ] ;

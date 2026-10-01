@@ -100,11 +100,11 @@ describe("verwerkSseStroom – via volgRun", () => {
     expect(bronnen).toEqual([{ label: "IW art. 9", uri: "x" }]);
     expect(doel).toEqual({ bwbId: "BWBR0004770", artikel: "9", lid: "1" });
     // Het schema vult de velden aan die de agent wegliet. Dat is geen kosmetiek: `VoorstelElement`
-    // eist ze, dus vóór de validatie kreeg de UI een object dat niet aan zijn eigen type voldeed.
+    // eist ze, dus zonder validatie krijgt de UI een object dat niet aan zijn eigen type voldoet.
     expect(elementen).toEqual([
       { ...element, lid: "", toelichting: "", vindplaats: "", alternatieven: [], grounded: false },
     ]);
-    // Een `ontbrekend`-event (vervallen met de Critic, ADR-001 PR 18) wordt genegeerd, niet gebroken.
+    // Een onbekend `ontbrekend`-event wordt genegeerd, niet gebroken.
   });
 
   it("slaat een misvormd event over en laat de rest van de beurt doorlopen", async () => {

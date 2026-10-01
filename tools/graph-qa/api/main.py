@@ -321,10 +321,9 @@ async def verwijder_conversation(
 def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
     """De eventstroom van één run, met de beurt-driver eromheen.
 
-    Die driver doet wat de werkplek vroeger ná de stream deed: verzamelen wat er binnenkomt en de
-    uitkomst vastleggen (document, elementen, chatbericht). Daarmee hangt een beurt niet meer af van
-    een browser die blijft kijken. Is er geen api geconfigureerd, dan is hij een doorgeefluik en
-    blijft de werkplek verantwoordelijk – het oude gedrag."""
+    Die driver verzamelt wat er binnenkomt en legt de uitkomst vast (document, elementen,
+    chatbericht). Daarmee hangt een beurt niet af van een browser die blijft kijken. Is er geen api
+    geconfigureerd, dan is hij een doorgeefluik."""
     def maak(run: Run) -> AsyncIterator[dict]:
         if request.doelen:
             # Meerdere onderdelen van één artikel: per onderdeel deze zelfde beurt, na elkaar.

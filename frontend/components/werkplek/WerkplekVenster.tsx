@@ -1,7 +1,7 @@
 import { WorkbenchShell } from "@/components/werkplek/WorkbenchShell";
 
 /** De werkplek beheert zijn eigen hoogte en scroll: vol-bleed, precies één viewport hoog. Die
- *  container stond eerder in de globale layout; nu die kaal is, draagt de werkplek hem zelf. Zonder
+ *  container staat niet in de globale layout (die is kaal); de werkplek draagt hem zelf. Zonder
  *  deze klasse scrolt de chat als document en staat de invoerbalk niet meer gepind onderaan.
  *
  *  Waarom een eigen component en niet gewoon in de pagina: twee plekken renderen de werkplek – de

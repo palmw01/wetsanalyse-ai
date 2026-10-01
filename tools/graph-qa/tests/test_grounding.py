@@ -1,4 +1,4 @@
-"""PR 2.1: grounding-verificatie en bron-curatie."""
+"""Grounding-verificatie en bron-curatie."""
 from __future__ import annotations
 
 from agent.grounding import check_grounding, curate_sources
@@ -165,8 +165,8 @@ def test_rapport_telt_hoeveel_citaten_zijn_nagelopen():
 
 
 def test_melding_noemt_de_citaten_als_er_geen_vindplaats_is():
-    """Het geval dat op dev misging: artikelen in gewone taal, dus nul vindplaatsen – maar wél twee
-    citaten die allebei klopten. De tijdlijn meldde toen "0 verwijzingen onderbouwd", wat leest als
+    """Artikelen in gewone taal, dus nul vindplaatsen – maar wél twee citaten die allebei kloppen.
+    De melding "0 verwijzingen onderbouwd" zou dan lezen als
     een mislukte controle terwijl er juist iets gecontroleerd én goed bevonden was."""
     from agent.orchestrator import _grounding_melding
 

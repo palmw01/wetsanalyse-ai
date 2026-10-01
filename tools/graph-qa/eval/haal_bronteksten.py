@@ -31,7 +31,7 @@ def regels(eigen, onderdelen):
         for o in ond:
             t = (o.tekst or "").strip()
             if t: uit.append(f"{(o.nummer or '').strip()} {t}".strip())
-            loop(o.subonderdelen or [])          # <- de recursie die eerder ontbrak
+            loop(o.subonderdelen or [])          # <- recursie: subonderdelen dragen ook tekst
     loop(onderdelen or [])
     return "\n".join(uit)
 

@@ -1,8 +1,8 @@
 """Het beslisregister: per kandidaat één compacte regel, óók als hij niets opleverde (validatieplan V4).
 
-Een export draagt alleen wat is voorgesteld. Wat het model afwees of wat de voorrang wegnam, bleef
-tot nu toe in de agent-state achter en was na de beurt weg. Daardoor waren twee vragen op
-productiedata niet te beantwoorden: wijst het model sterk bewijs af (H6), en krijgt dezelfde
+Een export draagt alleen wat is voorgesteld. Wat het model afwees of wat de voorrang wegnam, blijft
+anders in de agent-state achter en is na de beurt weg. Dan zijn twee vragen op productiedata niet
+te beantwoorden: wijst het model sterk bewijs af (H6), en krijgt dezelfde
 kandidaat bij een herhaling dezelfde uitkomst (§13)?
 
 Dit register reist met de batch mee naar de api, die het bij de batch bewaart. Het is een meting en

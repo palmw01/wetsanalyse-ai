@@ -1,4 +1,4 @@
-"""Provenance per element (ADR-001 PR 15): de zestien vragen uit opdracht §40, per element te
+"""Provenance per element (ADR-001): de zestien vragen uit opdracht §40, per element te
 beantwoorden uit het element-spoor plus de `run` van de beurt – zonder de keten opnieuw te draaien.
 """
 from __future__ import annotations

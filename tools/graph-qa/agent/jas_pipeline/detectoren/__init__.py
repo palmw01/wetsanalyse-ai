@@ -1,4 +1,4 @@
-"""Deterministische kandidaatdetectie (ADR-001 PR 6-7).
+"""Deterministische kandidaatdetectie (ADR-001).
 
 Een detector krijgt de tekst van één bronnode (plus eventueel zijn taalanalyse en de aanhef van
 zijn ouder) en levert een `DetectorResult`: kandidaten met bewijs, of een zichtbare reden waarom hij
@@ -70,7 +70,7 @@ def resultaat(detector: Detector, bron: BronTekst, kandidaten: Iterable[Candidat
 
 
 def detecteer_alles(bron: BronTekst, detectoren: list[Detector] | None = None) -> list[DetectorResult]:
-    """Draai alle detectoren. Geen fusie: dezelfde span kan uit meerdere resultaten komen (PR 8)."""
+    """Draai alle detectoren. Geen fusie: dezelfde span kan uit meerdere resultaten komen."""
     if detectoren is None:
         detectoren = standaard_detectoren()
     uit = []

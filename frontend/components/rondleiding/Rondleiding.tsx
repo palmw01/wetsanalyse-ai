@@ -20,10 +20,10 @@ const WACHT_OP_KLIK_MS = 6000;
 
 /** Wat de bubbel bevestigt na een handeling in een interactieve stap – per soort beslissing.
  *
- *  Eerder stond hier één regel, gekoppeld aan `stap.interactie`. De stap nodigt echter tot méér uit
- *  dan akkoord geven, en elke beslissing in de demo loopt langs dezelfde teller: koos je een andere
- *  klasse, dan bevestigde de rondleiding "Beoordeeld … staat al klaar" terwijl er niets was
- *  goedgekeurd en er niets doorsprong. Losse export zodat de werkplek hem kan aanroepen zonder de
+ *  Niet één regel, gekoppeld aan `stap.interactie`: de stap nodigt tot méér uit dan akkoord geven,
+ *  en elke beslissing in de demo loopt langs dezelfde teller. Met één regel bevestigt de rondleiding
+ *  bij een andere klasse "Beoordeeld … staat al klaar" terwijl er niets is goedgekeurd en er niets
+ *  doorspringt. Losse export zodat de werkplek hem kan aanroepen zonder de
  *  motor te kennen. */
 const INTERACTIE_BEVESTIGING: Record<BeslissingType, string> = {
   approve: "Beoordeeld. De volgende die aandacht vraagt staat al klaar.",

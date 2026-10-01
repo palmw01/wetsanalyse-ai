@@ -1,4 +1,4 @@
-"""Fase 3 PR 3.1: supervisor routeert naar een specialist met eigen tool-subset."""
+"""De supervisor routeert naar een specialist met eigen tool-subset."""
 from __future__ import annotations
 
 import asyncio

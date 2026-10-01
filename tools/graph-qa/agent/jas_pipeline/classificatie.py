@@ -1,4 +1,4 @@
-"""De kleine semantische classifier (ADR-001 PR 9, opdracht §13).
+"""De kleine semantische classifier (ADR-001, opdracht §13).
 
 Het model krijgt geen bepaling om "volledig te analyseren". Het krijgt een lijst kandidaten –
 label, letterlijk fragment, bewijscodes, de toegestane beslissingen en eventueel spanopties – en
@@ -185,7 +185,7 @@ def classificeer(llm: Any, model: str, kandidaten: list[Candidate], brontekst: s
         return []
     verzoek = dict(
         # Ruim budget: een tekstuele aanloop vóór de aanroep mag de beslissingen niet afkappen
-        # (baselineproef 29 sep: 5 van 27 U0-aanroepen stopten op max_tokens zonder aanroep).
+        # (in de baselineproef stopten 5 van 27 U0-aanroepen op max_tokens zonder aanroep).
         model=model, max_tokens=min(16000, 1536 + 96 * len(kandidaten)),
         system=systeemprompt(kandidaten, spankeuze), tools=[toolschema(kandidaten, spankeuze)],
         messages=[{"role": "user", "content": userprompt(kandidaten, brontekst, spankeuze, context)}],
