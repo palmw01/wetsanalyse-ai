@@ -349,6 +349,16 @@ def zoek_query(filters: dict, limit: int = 10001) -> str:
         values = filters.get(key) or []
         if values:
             clauses.append(f"FILTER(?{var} IN ({', '.join(_lit(v) for v in values)}))")
+    for key, pred in (("herkomst", "herkomst"), ("aandacht", "aandacht"), ("subtype", "subtype")):
+        values = filters.get(key) or []
+        if values:
+            clauses.append(f"?e jas:{pred} ?{key} . FILTER(?{key} IN ({', '.join(_lit(v) for v in values)}))")
+    if filters.get("beslist_door"):
+        door = ", ".join(_code_iri("besluit", str(v)).n3() for v in filters["beslist_door"])
+        clauses.append(f"?e prov:wasGeneratedBy/jas:beslistDoor ?door . FILTER(?door IN ({door}))")
+    if filters.get("met_twijfel") is not None:
+        clauses.append(("FILTER EXISTS" if filters["met_twijfel"] else "FILTER NOT EXISTS")
+                       + " { ?e prov:wasGeneratedBy/jas:twijfel ?twijfel }")
     if not filters.get("inclusief_verouderd", False):
         clauses.append("FILTER(?verouderd = false)")
     if not filters.get("lifecycle"):
@@ -366,6 +376,7 @@ def zoek_query(filters: dict, limit: int = 10001) -> str:
     # multi-target annotations cannot multiply rows or split a page.
     return f'''PREFIX jas: <urn:jas-ns:>
 PREFIX oa: <http://www.w3.org/ns/oa#>
+PREFIX prov: <http://www.w3.org/ns/prov#>
 PREFIX bwb: <urn:bwb-ns:>
 SELECT DISTINCT ?id WHERE {{
  GRAPH <{REGISTER}> {{ <{SCHEMA}> jas:versie {SCHEMA_VERSIE} . ?laag jas:inGraaf ?g ; jas:revisie ?rev . }}

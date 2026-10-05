@@ -59,16 +59,28 @@ def schema(name, description, properties, required=()):
 
 S = {"type": "string"}
 SS = {"type": "array", "items": S, "maxItems": 30}
+
+
+def keuzes(*waarden: str) -> dict:
+    return {"type": "array", "items": {"type": "string", "enum": list(waarden)}, "maxItems": 30}
 ANNOTATIE_TOOLS = [
     schema("search_annotaties", "Zoek opgeslagen JAS-annotaties, niet de wettekst. Filters zijn "
            "letterlijk en worden gecombineerd. Onvolledig/onbeschikbaar is geen bewijs dat er "
-           "geen annotaties bestaan. Geen semantische fallback. Resultaten zijn afgeleide duiding.",
+           "geen annotaties bestaan. Geen semantische fallback. Resultaten zijn afgeleide duiding. "
+           "Herkomstfilters: `herkomst` (agent = voorstel van Lex, mens = door een jurist gemarkeerd), "
+           "`aandacht` (geel = keuze voor de jurist, groen = bevestigd door review), `subtype`, "
+           "`beslist_door` (regel/model/specificiteit) en `met_twijfel`.",
            {"bron_iri": S, "bwb_id": S, "klasse": S, "jas_klassen": SS, "tekst": S,
             "lifecycle": SS, "laagstatus": SS, "bronversie": S,
             "tekstveld": {"type": "string", "enum": ["citaat", "toelichting", "beide"]},
             "match": {"type": "string", "enum": ["exact", "bevat"]},
             "scope": {"type": "string", "enum": ["node", "subtree"]},
             "inclusief_verouderd": {"type": "boolean"}, "cursor": S,
+            "herkomst": keuzes("agent", "mens"), "aandacht": keuzes("groen", "geel"),
+            "subtype": keuzes("variabele", "variabelewaarde", "parameter", "parameterwaarde",
+                              "delegatiebevoegdheid", "delegatie-invulling"),
+            "beslist_door": keuzes("regel", "model", "specificiteit"),
+            "met_twijfel": {"type": "boolean"},
             "limit": {"type": "integer", "minimum": 1, "maximum": 100},
             "offset": {"type": "integer", "minimum": 0}}),
     schema("get_annotatie", "Lees één opgeslagen annotatie inclusief eigenaar, alle lokale "
@@ -93,6 +105,9 @@ def dispatch_annotatie(name: str, args: dict[str, Any], port) -> str:
         elif definition["properties"][key]["type"] == "array":
             if not isinstance(value, list) or len(value) > 30 or any(not isinstance(v, str) or len(v) > 200 for v in value):
                 raise ValueError("Ongeldige filterlijst")
+            toegestaan = definition["properties"][key]["items"].get("enum")
+            if toegestaan and set(value) - set(toegestaan):
+                raise ValueError("Onbekende filterkeuze")
         elif definition["properties"][key]["type"] == "boolean":
             if type(value) is not bool:
                 raise ValueError("Ongeldige boolean")

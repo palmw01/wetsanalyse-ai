@@ -646,3 +646,36 @@ async def test_grenskeuze_zonder_opties_en_op_een_vergrendeld_element():
         await store.beslis(eid2, Beslissing(type="grens", wijziging={"optie": 0}, snapshot_id=snap2["snapshot_id"],
                                             verwachte_revisies={ONE: 2}), snap2, "jan")
     assert exc.value.status_code == 409
+
+
+async def test_zoeken_verifieert_de_herkomstfilters_in_postgres(monkeypatch):
+    from app import graaf_projectie_v2, annotatie_v2_zoeken
+    snap = snapshot(ONE)
+    spoor = {"beslissing": {"door": "model"}, "twijfel": [{"reden": "DETECTOR_CONFLICT"}]}
+    agent = (await store.batch(request(snap, [element(snap, trace=spoor, aandacht="geel", jas_subtype="parameter")]),
+                               snap, "lex"))
+    mens = await store.batch(request(snap, [element(snap, ONE, 7, 11)], batch_id="m", revisions={ONE: 1}), snap, "jan", mens=True)
+    ids = {"agent": agent["elementen"][0]["id"], "mens": mens["elementen"][0]["id"]}
+    async with db.get_engine().begin() as conn:
+        from sqlalchemy import update
+        await conn.execute(update(db.annotatie_v2_lagen).values(geprojecteerd_revisie=2))
+
+    async def candidates(_):
+        # De graaf levert hier bewust álles: de filters moeten in Postgres opnieuw worden toegepast.
+        return {"ids": sorted(ids.values()), "manifest": {agent["lagen"][0]["id"]: 2}, "beschikbaar": True}
+
+    async def resolve(_):
+        return snap
+    monkeypatch.setattr(graaf_projectie_v2, "zoek_kandidaten", candidates)
+    monkeypatch.setattr(annotatie_v2_zoeken, "resolve_bron", resolve)
+
+    async def gevonden(**filters):
+        page = await annotatie_v2_zoeken.zoek(Zoekvraag(bron_iri=ONE, **filters))
+        return {r["id"] for r in page["resultaten"] if r.get("soort") != "verwijzing"}
+    assert await gevonden(herkomst=["mens"]) == {ids["mens"]}
+    assert await gevonden(aandacht=["geel"]) == {ids["agent"]}
+    assert await gevonden(subtype=["parameter"]) == {ids["agent"]}
+    assert await gevonden(beslist_door=["model"]) == {ids["agent"]}
+    assert await gevonden(met_twijfel=False) == {ids["mens"]}
+    with pytest.raises(ValueError):
+        Zoekvraag(herkomst=["robot"])

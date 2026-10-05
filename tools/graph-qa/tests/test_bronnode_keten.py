@@ -311,6 +311,23 @@ def test_read_api_transport_failure_is_explicit_and_filter_is_not_sparql():
     assert result["status"] == "unavailable" and result["volledig"] is False
 
 
+def test_herkomstfilters_gaan_ongewijzigd_naar_de_api_en_onbekende_keuzes_niet():
+    gezien = {}
+    def handler(request):
+        gezien.update(json.loads(request.content))
+        return httpx.Response(200, json={"status": "ok", "volledig": True, "resultaten": []})
+    settings = make_settings(wetsanalyse_api_url="http://api", wetsanalyse_api_token="token")
+    port = AnnotatieReadApi(settings, "jurist", transport=httpx.MockTransport(handler))
+    filters = {"herkomst": ["mens"], "aandacht": ["geel"], "beslist_door": ["model"], "met_twijfel": True}
+    assert json.loads(dispatch("search_annotaties", FakeGraph(), filters, annotaties=port))["status"] == "ok"
+    assert gezien == filters
+    gezien.clear()
+    for ongeldig in ({"herkomst": ["robot"]}, {"met_twijfel": "ja"}):
+        result = json.loads(dispatch("search_annotaties", FakeGraph(), ongeldig, annotaties=port))
+        assert result["status"] == "invalid_request"
+    assert gezien == {}, "een ongeldige keuze bereikt de api niet"
+
+
 def test_tools_are_explicit_and_read_intent_does_not_match_annotation_request():
     assert ANNOTATIE_TOOL_NAMEN <= {s["name"] for s in anthropic_schemas()}
     assert is_leesvraag("toon opgeslagen annotaties")

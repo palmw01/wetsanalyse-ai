@@ -123,6 +123,14 @@ class Zoekvraag(BaseModel):
     match: Literal["exact", "bevat"] = "bevat"
     scope: Literal["node", "subtree"] = "subtree"
     inclusief_verouderd: bool = False
+    # Herkomst en review (spoor B PR 9). Alle optioneel; een lege lijst filtert niet.
+    herkomst: list[Literal["agent", "mens"]] = Field(default_factory=list)
+    aandacht: list[Literal["groen", "geel"]] = Field(default_factory=list)
+    subtype: list[Literal["variabele", "variabelewaarde", "parameter", "parameterwaarde",
+                          "delegatiebevoegdheid", "delegatie-invulling"]] = Field(default_factory=list)
+    beslist_door: list[Literal["regel", "model", "specificiteit"]] = Field(default_factory=list)
+    # None = geen filter; True = alleen met twijfel in het spoor; False = alleen zonder.
+    met_twijfel: bool | None = None
     bronversie: str = ""
     limit: int = Field(default=25, ge=1, le=100)
     offset: int = Field(default=0, ge=0)
