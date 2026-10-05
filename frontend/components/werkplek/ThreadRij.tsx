@@ -24,6 +24,7 @@ import {
 } from "@/lib/annotatie";
 import type { NodeDoel } from "@/lib/annotatieNode";
 import { doelenVanKandidaten, reeksPrompt } from "@/lib/reeks";
+import { bronLabel } from "@/lib/citaties";
 import { bronDoel } from "@/lib/samenhang";
 import { beurtSamenvatting, laatsteRun } from "@/lib/waarom";
 import type { ThreadItem } from "@/lib/threadItem";
@@ -93,7 +94,8 @@ export const ThreadRij = memo(function ThreadRij({
           ) : (
             // De afgekeurde citaten worden in de tekst zelf aangewezen; het blok eronder
             // blijft staan voor wat níét in de weergave terug te vinden was.
-            <Markdown tekst={item.tekst} nietLetterlijk={item.grounding?.niet_letterlijk} />
+            <Markdown tekst={item.tekst} nietLetterlijk={item.grounding?.niet_letterlijk} bronnen={item.bronnen}
+              onOpenSamenhang={samenhangAan && !demo ? acties.openSamenhang : undefined} />
           )
         ) : item.denk ? null : (
           <Punten />
@@ -506,10 +508,10 @@ function Bronnen({ bronnen }: { bronnen: Bron[] }) {
                     rel="noopener noreferrer"
                     className="text-lint underline underline-offset-2 [overflow-wrap:anywhere]"
                   >
-                    {b.label}
+                    {bronLabel(b)}
                   </a>
                 ) : (
-                  b.label
+                  bronLabel(b)
                 )}
               </span>
             );

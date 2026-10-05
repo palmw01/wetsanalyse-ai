@@ -58,6 +58,8 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
   beslist_door en twijfel; *Lagen* heeft een markeringsfilter, de inspector toont herkomst en aandacht.
 - **Zoekfilters op herkomst** (spoor B PR 9): `search_annotaties` en `POST zoeken` filteren op
   herkomst, aandacht, subtype, beslist_door en twijfel; in SPARQL én opnieuw tegen Postgres.
+- **Citatie-chips** (spoor B PR 5c): een vindplaats in het antwoord van Lex die éénduidig bij een
+  bron hoort, opent een bronkaart (`frontend/lib/citaties.ts`, `CitatieChip`).
 - **Samenhangsgraaf** (#540–#546): `GET /v1/annotatie/samenhang` (`api/app/samenhang.py`,
   capability `samenhang`) en een 3D-krachtgraaf (`components/graaf/SamenhangGraaf.tsx`,
   `lib/samenhang.ts`). Die staat als tab *3D-graaf* in het annotatiepaneel en opent ook via
@@ -83,7 +85,7 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | Spoor | Onderwerp | Stand |
 |---|---|---|
 | A | Juridische validatie van `hybrid_v1` (V7) | Wacht op mensenwerk: 0 casussen `adjudicated` |
-| B | Herkomst zichtbaar in werkplek en exports | PR 0–10 af (5a–6a op productie in `v1.8.0`, de rest op acceptatie); 5c open |
+| B | Herkomst zichtbaar in werkplek en exports | Af: alle PR's gebouwd; 5a–6a op productie in `v1.8.0`, de rest gaat mee in `v1.9.0` |
 | C | Leerlus en knowledge-check | Te herijken |
 | D | Activiteit 3: werkgebieden en begrippen | Ontwerp klaar, niets gebouwd |
 | E | Kennisbank (tweede corpus) | Ontwerp klaar, niets gebouwd |
@@ -160,9 +162,8 @@ De huisstijl (lintblauw, Fira, JAS-kleuren) blijft.
 SSE-wegen blijven gelijk en drift-tests gaan mee. Elke PR die graph-qa raakt draait ook zónder spaCy
 (`uv run --isolated --extra dev pytest -q`).
 
-| PR | Inhoud | Hangt af van |
-|---|---|---|
-| 5c | Citatie-chips met bronkaart onder de antwoorden van Lex | — |
+Alle PR's van dit spoor zijn geleverd; zie *Wat er staat*. Wat hieronder over werkwijze en
+verificatie staat, blijft gelden voor vervolgwerk aan de herkomst.
 
 **Verificatie.** Per PR: api `uv run pytest`, graph-qa met en zonder spaCy, frontend
 `npm test`/typecheck/`npm run test:browser` (met `test-samenhang.mjs`) en `poort`. Acceptatie live:

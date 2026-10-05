@@ -220,6 +220,18 @@ aanroep.
   letterlijk – wijkt de weergave af van wat de controle vergeleek, dan markeer je liever niets dan
   het verkeerde stuk. Logica in `lib/markering.ts`.
 
+### Citatie-chips onder en in het antwoord
+
+Een vindplaats die Lex in gewone taal noemt ("artikel 9 lid 2", "art. 10a, derde lid") en die
+**éénduidig** bij een bron van de beurt hoort, wordt een citatie-chip (`lib/citaties.ts`:
+`vindVermeldingen` + `koppelBron`, via `bronDoel`). De rehype-plugin `markeerCitaties` wikkelt de
+vermelding in een `cite` – de tekst zelf verandert niet, net als bij `markeerPassages`. Een klik
+opent `CitatieChip` → een bronkaart via een portal (een `Popover` is een `div` en mag niet in een
+alinea), met de wettekst (lui via `haalSamenhang`), een link naar wetten.overheid.nl en *Bekijk
+samenhang in 3D*. Geen chip bij twijfel: liever een vermelding zonder kaart dan een kaart bij de
+verkeerde bepaling. Werkt ook na herladen, want alleen `tekst` en `bronnen` zijn nodig. De lijst
+*Bronnen (n)* toont leesbare labels (`bronLabel`) in plaats van rauwe IRI's.
+
 ### Annoteren op onderwerp
 
 Noemt de vraag een onderwerp in plaats van een bepaling, dan komt er een `kandidaten`-event: de
