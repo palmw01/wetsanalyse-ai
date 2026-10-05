@@ -73,7 +73,7 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | Spoor | Onderwerp | Stand |
 |---|---|---|
 | A | Juridische validatie van `hybrid_v1` (V7) | Wacht op mensenwerk: 0 casussen `adjudicated` |
-| B | Herkomst zichtbaar in werkplek en exports | PR 0–6 af, op productie in `v1.8.0`; 5c en 7–10 open |
+| B | Herkomst zichtbaar in werkplek en exports | PR 0–6 af, op productie in `v1.8.0`; 7a in review; 5c, 7b en 8–10 open |
 | C | Leerlus en knowledge-check | Te herijken |
 | D | Activiteit 3: werkgebieden en begrippen | Ontwerp klaar, niets gebouwd |
 | E | Kennisbank (tweede corpus) | Ontwerp klaar, niets gebouwd |
@@ -153,7 +153,8 @@ SSE-wegen blijven gelijk en drift-tests gaan mee. Elke PR die graph-qa raakt dra
 | PR | Inhoud | Hangt af van |
 |---|---|---|
 | 5c | Citatie-chips met bronkaart onder de antwoorden van Lex | — |
-| 7 | Exports. CSV: platte kolommen (`besloten_door`, `regels`, `detectoren`, `twijfel`, `resolutieregel`, `mogelijke_klassen`, `subtype`, `validatie`, `aandacht`, `herkomst`). PDF: herkomstregel per element en beurtmeting. JSON v3 met `trace.vraag`, run-meting en dekking, plus JSON-schema. Turtle via dezelfde `bouw_graaf`; die levert ook de "technisch detail"-weergave in de graafinspector, met de graafcontrole-status | 3 ✓ |
+| 7a | Exports met het volledige spoor: CSV met herkomstkolommen, PDF met herkomstzin, beurtmeting en dekking, JSON v3 met schema (`GET export-schema`), TriG via `bouw_graaf` (`api/app/annotatie_export.py`) | — |
+| 7b | "Technisch detail" in de graafinspector: de Turtle van één element (`GET elementen/{id}/rdf`) en de graafcontrole-status van zijn laag zonder admin-token (een lichte per-laag variant van `graafcontrole.controleer`) | 7a |
 | 8 | Grenskeuze: `spanopties` als "andere grens"-chips en een nieuwe beslissing `grens` (additief, geaudit; de SHACL-shape kent `grens` al) | 5a ✓ |
 | 9 | *Optioneel*: `search_annotaties` filtert op `herkomst`, `beslistDoor`, twijfel, aandacht en subtype. Dezelfde filters kunnen als lagen in `lib/samenhang.ts` | 3 ✓ |
 | 10 | *Optioneel*: samenhang op de rijke graaf. `samenhang.py` leest nu `weergave` plus de wetsgraaf; herkomst (agent/mens), aandacht en beoordelingsstatus komen als knoopkenmerk en laag in de 3D-graaf | 5a ✓ |

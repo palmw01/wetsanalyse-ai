@@ -3035,6 +3035,7 @@ dependencies = [
 [package.optional-dependencies]
 dev = [
     { name = "aiosqlite" },
+    { name = "jsonschema" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-httpx" },
@@ -3060,6 +3061,7 @@ requires-dist = [
     { name = "cryptography", specifier = ">=50.0.0" },
     { name = "fastapi", specifier = ">=0.141.1" },
     { name = "httpx", specifier = ">=0.27" },
+    { name = "jsonschema", marker = "extra == 'dev'", specifier = ">=4.23" },
     { name = "litellm", marker = "extra == 'llm'", specifier = ">=1.95.0" },
     { name = "mcp", marker = "extra == 'llm'", specifier = ">=2.0.0" },
     { name = "opentelemetry-exporter-otlp", marker = "extra == 'otel'", specifier = ">=1.29.0" },

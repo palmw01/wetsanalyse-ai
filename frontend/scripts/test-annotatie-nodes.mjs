@@ -158,6 +158,10 @@ try {
   await page.getByRole("button", { name: "Exporteren", exact: true }).click();
   await page.getByRole("button", { name: /^JSON/ }).click();
   assert.deepEqual((await verzoek((r) => r.path.endsWith("/weergave/export"))).body, { bron_iri: "urn:lid1", snapshot_id: "snapshot", formaat: "json" });
+  await page.getByRole("button", { name: "Exporteren", exact: true }).click();
+  await page.getByRole("button", { name: /^RDF \(TriG\)/ }).click();
+  assert.deepEqual((await verzoek((r) => r.path.endsWith("/weergave/export") && r.body?.formaat === "trig")).body,
+    { bron_iri: "urn:lid1", snapshot_id: "snapshot", formaat: "trig" });
   // Een selectie over twee leden wordt twee bronankers, zonder lidnummer ertussen.
   await page.goto(`${base}/annotaties/node?bron_iri=urn:artikel9`);
   await wettekst().getByText("UITSLUITEND TWEE", { exact: false }).waitFor();

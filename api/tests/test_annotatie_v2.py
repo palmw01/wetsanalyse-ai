@@ -220,6 +220,16 @@ async def test_api_view_active_user_and_export_scope(monkeypatch):
             json={"bron_iri": ONE, "snapshot_id": snap["snapshot_id"], "formaat": "json"})
         assert export.status_code == 200
         assert "Beta" not in export.text
+        assert export.json()["export"]["versie"] == 3
+        trig = await client.post("/v1/annotatie/weergave/export", headers=headers,
+            json={"bron_iri": ONE, "snapshot_id": snap["snapshot_id"], "formaat": "trig"})
+        assert trig.status_code == 200 and trig.headers["content-type"].startswith("application/trig")
+        assert "urn:jas:graph:v2:" in trig.text
+        onbekend = await client.post("/v1/annotatie/weergave/export", headers=headers,
+            json={"bron_iri": ONE, "snapshot_id": snap["snapshot_id"], "formaat": "xlsx"})
+        assert onbekend.status_code == 422
+        schema = await client.get("/v1/annotatie/export-schema", headers=headers)
+        assert schema.status_code == 200 and schema.json()["$id"] == "urn:wetsanalyse:schema:annotatie-export-v3"
         assert (await client.get("/v1/annotatie/capabilities", headers=headers)).json()["samenhang"]
         # Er is geen artikelbreed schrijfpad naast de bronnode-lagen.
         legacy = await client.put("/v1/annotatie/lagen/BWBR0004770/9/elementen", headers=headers, json={})

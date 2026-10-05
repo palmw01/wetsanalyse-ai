@@ -112,6 +112,11 @@ Hieronder wat je moet weten om de code te wijzigen.
   `trace` kan staan. Dat bestand en `vocabulaire/jas-vocabulaire.ttl` worden **gegenereerd** door
   `tools/graph-qa/scripts/genereer_jas_vocabulaire.py`; bewerk ze niet met de hand.
   `tests/test_vocabulaire.py` bewaakt dat elke klasse van de API een concept heeft.
+- **Export** (`POST weergave/export`, `annotatie_export.py`): `json` (v3, schema in
+  `schemas/annotatie-export-v3.schema.json`, ook op `GET export-schema`), `csv`, `pdf` en `trig`.
+  `herkomst_regels` zet het spoor om in de leesbare namen uit `verklaringen.json`, met dezelfde
+  opzoekregels als `frontend/lib/waarom.ts`. De oude CSV-kolommen blijven vooraan staan; nieuwe komen
+  erachter. TriG bouwt per laag met `laag_invoer` + `bouw_graaf`, dus exact wat de projectie schrijft.
 - **`/samenhang`** (`samenhang.py`) geeft drie soorten relaties en niets anders: de bronboom, de
   letterlijke verwijzingen uit de BWB-import (één stap in en uit, max. `MAX_VERWIJZINGEN`) en de
   actuele markeringen. Er wordt niets afgeleid.

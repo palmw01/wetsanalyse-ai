@@ -1,18 +1,16 @@
 """Bronnode-API. Elke lees- en schrijfactie vereist een actieve gebruiker."""
 from __future__ import annotations
 
-import csv
-import io
 import json
 import re
 import uuid
-from xml.sax.saxutils import escape
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, Field
 import httpx
 from bronmodel import BronFout
 
+from . import annotatie_export as export
 from . import annotatie_v2_store as store
 from . import samenhang as samenhang_mod
 from .annotatie_v2_contracts import Batch, Beslissing, Doel, Element, Zoekvraag
@@ -194,73 +192,52 @@ class ExportInvoer(BaseModel):
     formaat: str = "json"
 
 
+_EXPORT_MIME = {"json": "application/json", "csv": "text/csv; charset=utf-8", "pdf": "application/pdf",
+                "trig": "application/trig"}
+
+
 @router.post("/weergave/export")
 async def post_export(req: ExportInvoer, actor: str = Depends(actieve_userid)):
+    """De weergave als bestand: JSON (v3, met schema), CSV, PDF of TriG. De vorm staat in
+    `annotatie_export`; hier alleen de bronstand, de audit en de keuze."""
+    if req.formaat not in _EXPORT_MIME:
+        raise HTTPException(422, "Kies json, csv, pdf of trig.")
     snapshot = await resolve_bron({"bron_iri": req.bron_iri})
     if snapshot["snapshot_id"] != req.snapshot_id:
         raise HTTPException(409, "Bronstand gewijzigd; laad opnieuw vóór exporteren.")
     view = await store.weergave(snapshot)
     view["audit"] = await store.audit_weergave(view)
-    view["export"] = {"versie": 2, "actor": actor, "op": store.db.utcnow().isoformat()}
+    view["export"] = {"versie": export.EXPORT_VERSIE, "actor": actor, "op": store.db.utcnow().isoformat()}
     if req.formaat == "json":
-        body = json.dumps(view, ensure_ascii=False, indent=2).encode()
-        mime = "application/json"
+        body = export.json_export(view, verklaringen())
     elif req.formaat == "csv":
-        text = io.StringIO()
-        writer = csv.writer(text)
-        writer.writerow(["soort", "id", "eigenaar_iri", "klasse", "tekst", "lifecycle", "snapshot_id", "ankers", "beslissingen", "herkomst", "provenance", "laagstatus"])
-        # Quotes do not neutralise spreadsheet formula execution.
-        def cell(value):
-            value = str(value)
-            return "'" + value if value[:1] in {"=", "+", "-", "@", "\t", "\r"} else value
-        for e in view["elementen"]:
-            laagstatus = next((l["status"] for l in view["lagen"] if l["id"] == e["laag_id"]), "")
-            writer.writerow(["element"] + [cell(e.get(k, "")) for k in
-                ("id", "eigenaar_iri", "klasse", "tekst", "lifecycle", "snapshot_id")]
-                + [json.dumps(e["ankers"], ensure_ascii=False), json.dumps(e["beslissingen"], ensure_ascii=False),
-                   e["herkomst"], json.dumps(_provenance(e), ensure_ascii=False), laagstatus])
-        for ref in view["verwijzingen"]:
-            writer.writerow(["verwijzing", ref["id"], ref["eigenaar_iri"], ref["klasse"], ref["label"], "", req.snapshot_id,
-                             "[]", "[]", "", "", ""])
-        for segment in view["segmenten"]:
-            writer.writerow(["brontekst", "", segment["bron_iri"], "", cell(segment["tekst"]), "", req.snapshot_id,
-                             "[]", "[]", "", "", ""])
-        for audit in view["audit"]:
-            writer.writerow(["audit", audit.get("element_id", ""), "", "", "", audit["actie"], req.snapshot_id,
-                             "[]", json.dumps(audit, ensure_ascii=False), "", "", ""])
-        body, mime = text.getvalue().encode("utf-8-sig"), "text/csv; charset=utf-8"
+        body = export.csv_export(view, verklaringen(), _provenance)
     elif req.formaat == "pdf":
-        from reportlab.lib.styles import getSampleStyleSheet
-        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-        output = io.BytesIO()
-        styles = getSampleStyleSheet()
-        story = [Paragraph(escape(str(view["doel"].get("label", "Annotaties"))), styles["Title"])]
-        story.append(Paragraph(escape("Bronstand: " + req.snapshot_id), styles["BodyText"]))
-        for layer in view["lagen"]:
-            story.append(Paragraph(escape(f"{layer['bron_iri']}: {layer['status']} (revisie {layer['revisie']})"), styles["BodyText"]))
-        for segment in view["segmenten"]:
-            story.extend([Paragraph(escape(segment.get("tekst", "")), styles["BodyText"]), Spacer(1, 10)])
-        for e in view["elementen"]:
-            story.extend([Paragraph(escape(f"{e['klasse']}: {e['tekst']} ({e['lifecycle']})"), styles["BodyText"]),
-                          Paragraph(escape("Eigenaar: " + e["eigenaar_iri"]), styles["BodyText"]),
-                          Paragraph(escape(e.get("toelichting", "")), styles["BodyText"]),
-                          Paragraph(escape("Herkomst: " + e["herkomst"] + "; " + json.dumps(e.get("geproduceerd_door", {}), ensure_ascii=False)), styles["BodyText"]),
-                          Paragraph(escape("Beoordelingen: " + json.dumps(e["beslissingen"], ensure_ascii=False)), styles["BodyText"]), Spacer(1, 8)])
-            for anchor in e["ankers"]:
-                story.append(Paragraph(escape(f"Anker: {anchor['bron_iri']} [{anchor['start']}, {anchor['eind']})"), styles["BodyText"]))
-                story.append(Paragraph(escape("Bronhash: " + anchor["bron_hash"]), styles["BodyText"]))
-                story.append(Paragraph(escape("Fragment: " + anchor["tekst"]), styles["BodyText"]))
-        if view["verwijzingen"]:
-            story.append(Paragraph("Dit bereik bevat verwijzingen naar annotaties met een ruimere bronselectie.", styles["BodyText"]))
-            for ref in view["verwijzingen"]:
-                story.append(Paragraph(escape(f"{ref['id']}: {ref['klasse']} — {ref['eigenaar_iri']}"), styles["BodyText"]))
-        if view["audit"]:
-            story.append(Paragraph("Historie", styles["Heading2"]))
-            for audit in view["audit"]:
-                story.append(Paragraph(escape(json.dumps(audit, ensure_ascii=False)), styles["BodyText"]))
-        SimpleDocTemplate(output).build(story)
-        body, mime = output.getvalue(), "application/pdf"
+        body = export.pdf_export(view, verklaringen())
     else:
-        raise HTTPException(422, "Kies json, csv of pdf.")
-    return Response(body, media_type=mime, headers={
+        body = export.trig_export(await _laaggrafen(view))
+    return Response(body, media_type=_EXPORT_MIME[req.formaat], headers={
         "Content-Disposition": f'attachment; filename="annotaties.{req.formaat}"'})
+
+
+async def _laaggrafen(view: dict) -> list:
+    """Per laag in de weergave de named graph zoals de projectie hem bouwt – dezelfde invoer
+    (`laag_invoer`) en dezelfde `bouw_graaf`, zodat de export niets anders zegt dan de kennisgraaf."""
+    from sqlalchemy import select
+
+    from .graaf_projectie_v2 import bouw_graaf, graph_iri, laag_invoer
+    uit = []
+    ids = [laag["id"] for laag in view["lagen"]]
+    async with store.leestransactie() as conn:
+        rijen = (await conn.execute(select(store.db.annotatie_v2_lagen).where(
+            store.db.annotatie_v2_lagen.c.id.in_(ids)))).mappings().all()
+        for rij in sorted((dict(r) for r in rijen), key=lambda r: ids.index(r["id"])):
+            elementen, dekking = await laag_invoer(conn, rij)
+            uit.append((graph_iri(rij["id"]), bouw_graaf(rij, elementen, dekking=dekking)))
+    return uit
+
+
+@router.get("/export-schema")
+async def get_export_schema(actor: str = Depends(actieve_userid)):
+    """Het JSON-schema van de export (versie 3)."""
+    return json.loads(export.SCHEMA_PAD.read_text(encoding="utf-8"))

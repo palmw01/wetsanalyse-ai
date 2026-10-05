@@ -13,9 +13,10 @@ interface Props {
 }
 
 const FORMATEN: { formaat: ExportFormaat; label: string; uitleg: string }[] = [
-  { formaat: "pdf", label: "PDF", uitleg: "tabel in JAS-kleuren, met wettekst en volledig spoor" },
-  { formaat: "csv", label: "CSV", uitleg: "één rij per markering, opent in Excel" },
-  { formaat: "json", label: "JSON", uitleg: "alles, machineleesbaar" },
+  { formaat: "pdf", label: "PDF", uitleg: "wettekst, markeringen met hun herkomst, beurtmeting en dekking" },
+  { formaat: "csv", label: "CSV", uitleg: "één rij per markering, met de herkomst in eigen kolommen" },
+  { formaat: "json", label: "JSON", uitleg: "alles, machineleesbaar, met schema (v3)" },
+  { formaat: "trig", label: "RDF (TriG)", uitleg: "de annotatielagen als named graphs, zoals in de kennisgraaf" },
 ];
 
 /** Download de annotatie – ook halverwege de review. Bewust geen statusdrempel: een concept
