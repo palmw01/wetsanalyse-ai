@@ -60,3 +60,43 @@ def test_exact_match_case_sensitive():
     ds = dataset()
     assert list(ds.query(zoek_query({"tekst": "betaling", "tekstveld": "citaat", "match": "exact"})))
     assert not list(ds.query(zoek_query({"tekst": "BETALING", "tekstveld": "citaat", "match": "exact"})))
+
+
+def _rijke_dataset():
+    """Twee markeringen met verschillende herkomst, aandacht, subtype en spoor."""
+    ds = Dataset()
+    laag = {"id": "layer-r", "bron_iri": "urn:bwb:BWBR0004770:artikel:9", "revisie": 1, "status": "in_review"}
+    anker = {"bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:1", "start": 0, "eind": 4, "tekst": "Alfa", "bron_hash": "a"}
+    agent = {"id": "agent", "klasse": "Voorwaarde", "tekst": "Alfa", "toelichting": "", "lifecycle": "voorgesteld",
+             "herkomst": "agent", "aandacht": "geel", "jas_subtype": "parameter", "ankers": [anker],
+             "trace": {"pijplijn": "hybrid_v1", "beslissing": {"door": "model"}, "twijfel": [{"reden": "DETECTOR_CONFLICT"}]}}
+    mens = {"id": "mens", "klasse": "Voorwaarde", "tekst": "Alfa", "toelichting": "", "lifecycle": "human_approved",
+            "herkomst": "mens", "ankers": [{**anker, "start": 0, "eind": 4}]}
+    graph = ds.graph(graph_iri(laag["id"]))
+    for triple in bouw_graaf(laag, [agent, mens]):
+        graph.add(triple)
+    ds.graph(REGISTER).add((SCHEMA, JAS.versie, Literal(SCHEMA_VERSIE)))
+    ds.graph(REGISTER).add((laag_iri(laag["id"]), JAS.inGraaf, graph.identifier))
+    ds.graph(REGISTER).add((laag_iri(laag["id"]), JAS.revisie, Literal(1)))
+    return ds
+
+
+@pytest.mark.parametrize("filters, verwacht", [
+    ({"herkomst": ["mens"]}, {"mens"}),
+    ({"herkomst": ["agent", "mens"]}, {"agent", "mens"}),
+    ({"aandacht": ["geel"]}, {"agent"}),
+    ({"aandacht": ["groen"]}, set()),
+    ({"subtype": ["parameter"]}, {"agent"}),
+    ({"beslist_door": ["model"]}, {"agent"}),
+    ({"beslist_door": ["regel"]}, set()),
+    ({"met_twijfel": True}, {"agent"}),
+    ({"met_twijfel": False}, {"mens"}),
+    ({"herkomst": ["agent"], "met_twijfel": False}, set()),
+])
+def test_herkomstfilters_vinden_precies_wat_de_projectie_schreef(filters, verwacht):
+    ds = _rijke_dataset()
+    assert {str(r.id) for r in ds.query(zoek_query(filters))} == verwacht
+
+
+def test_herkomstfilters_veranderen_de_querystructuur_niet():
+    parseQuery(zoek_query({"herkomst": ['agent") } UNION { ?s ?p ?o } #'], "beslist_door": ["model> } SERVICE <x"]}))

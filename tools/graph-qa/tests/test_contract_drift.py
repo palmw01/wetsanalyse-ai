@@ -182,3 +182,22 @@ def test_elk_veld_van_het_chatbericht_bestaat_in_de_api(annotatie):
         assert "annotatie_doel" in bericht  # anders toetst deze test het v2-pad niet
     onbekend = set(bericht) - _bericht_velden()
     assert not onbekend, f"de api laat deze velden van het chatbericht vallen: {sorted(onbekend)}"
+
+
+def test_search_annotaties_vraagt_niets_wat_de_api_niet_kent():
+    """De filters van de zoektool zijn velden van `Zoekvraag`, en een keuzelijst in de tool heeft
+    precies de waarden die de api toestaat. Anders weigert de api (422) wat het model mocht vragen,
+    of kan het model iets niet vragen wat de api wel kan."""
+    from agent.tools.annotatie_tools import ANNOTATIE_TOOLS
+
+    props = next(t for t in ANNOTATIE_TOOLS if t["name"] == "search_annotaties")["input_schema"]["properties"]
+    velden = _api_velden("Zoekvraag")
+    assert set(props) <= set(velden), f"onbekend bij de api: {sorted(set(props) - set(velden))}"
+    blok = re.search(r"^class Zoekvraag\(BaseModel\):(.*?)(?=^class |\Z)", CONTRACT.read_text(), re.S | re.M).group(1)
+    for naam, definitie in props.items():
+        enum = (definitie.get("items") or {}).get("enum")
+        if not enum:
+            continue
+        m = re.search(rf"^\s*{naam}\s*:\s*list\[Literal\[(.*?)\]\]", blok, re.S | re.M)
+        assert m, f"{naam}: geen keuzelijst in Zoekvraag"
+        assert set(enum) == set(re.findall(r'"([^"]+)"', m.group(1))), naam

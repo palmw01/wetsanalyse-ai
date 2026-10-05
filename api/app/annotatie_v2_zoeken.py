@@ -25,6 +25,22 @@ async def _manifest():
         return {r["id"]: dict(r) for r in layers}, epoch
 
 
+
+def _past_herkomst(e: dict, req) -> bool:
+    """De herkomstfilters op het element zelf – Postgres is de waarheid, de graaf levert kandidaten."""
+    spoor = e.get("trace") or {}
+    if req.herkomst and e.get("herkomst") not in req.herkomst:
+        return False
+    if req.aandacht and e.get("aandacht") not in req.aandacht:
+        return False
+    if req.subtype and e.get("jas_subtype") not in req.subtype:
+        return False
+    if req.beslist_door and (spoor.get("beslissing") or {}).get("door") not in req.beslist_door:
+        return False
+    if req.met_twijfel is not None and bool(spoor.get("twijfel")) != req.met_twijfel:
+        return False
+    return True
+
 async def zoek(req: Zoekvraag) -> dict:
     from .graaf_projectie_v2 import zoek_kandidaten
     base = {"resultaten": [], "volledig": False, "peilmoment": db.utcnow().isoformat(),
@@ -95,6 +111,8 @@ async def zoek(req: Zoekvraag) -> dict:
             if not req.lifecycle and e["lifecycle"] == "rejected":
                 continue
             if req.bronversie and e["snapshot_id"] != req.bronversie:
+                continue
+            if not _past_herkomst(e, req):
                 continue
             if req.tekst:
                 fields = [e["tekst"], e.get("toelichting", "")] if req.tekstveld == "beide" else [

@@ -56,6 +56,8 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
   beslissing `grens` laat de api het anker uit de bron rekenen.
 - **Herkomst in de 3D-graaf** (spoor B PR 10): markeringsknopen dragen herkomst, aandacht, subtype,
   beslist_door en twijfel; *Lagen* heeft een markeringsfilter, de inspector toont herkomst en aandacht.
+- **Zoekfilters op herkomst** (spoor B PR 9): `search_annotaties` en `POST zoeken` filteren op
+  herkomst, aandacht, subtype, beslist_door en twijfel; in SPARQL én opnieuw tegen Postgres.
 - **Samenhangsgraaf** (#540–#546): `GET /v1/annotatie/samenhang` (`api/app/samenhang.py`,
   capability `samenhang`) en een 3D-krachtgraaf (`components/graaf/SamenhangGraaf.tsx`,
   `lib/samenhang.ts`). Die staat als tab *3D-graaf* in het annotatiepaneel en opent ook via
@@ -81,7 +83,7 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | Spoor | Onderwerp | Stand |
 |---|---|---|
 | A | Juridische validatie van `hybrid_v1` (V7) | Wacht op mensenwerk: 0 casussen `adjudicated` |
-| B | Herkomst zichtbaar in werkplek en exports | PR 0–8 en 10 af (5a–6a op productie in `v1.8.0`, de rest op acceptatie); 5c en 9 open |
+| B | Herkomst zichtbaar in werkplek en exports | PR 0–10 af (5a–6a op productie in `v1.8.0`, de rest op acceptatie); 5c open |
 | C | Leerlus en knowledge-check | Te herijken |
 | D | Activiteit 3: werkgebieden en begrippen | Ontwerp klaar, niets gebouwd |
 | E | Kennisbank (tweede corpus) | Ontwerp klaar, niets gebouwd |
@@ -161,7 +163,6 @@ SSE-wegen blijven gelijk en drift-tests gaan mee. Elke PR die graph-qa raakt dra
 | PR | Inhoud | Hangt af van |
 |---|---|---|
 | 5c | Citatie-chips met bronkaart onder de antwoorden van Lex | — |
-| 9 | *Optioneel*: `search_annotaties` filtert op `herkomst`, `beslistDoor`, twijfel, aandacht en subtype. Dezelfde filters kunnen als lagen in `lib/samenhang.ts` | 3 ✓ |
 
 **Verificatie.** Per PR: api `uv run pytest`, graph-qa met en zonder spaCy, frontend
 `npm test`/typecheck/`npm run test:browser` (met `test-samenhang.mjs`) en `poort`. Acceptatie live:

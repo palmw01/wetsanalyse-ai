@@ -107,7 +107,10 @@ Hieronder wat je moet weten om de code te wijzigen.
     (DROP van de graph plus de registerregels). Hapert GraphDB, dan meldt de respons
     `graaf: "volgt"` en ruimt `verwijder_verweesde_projecties` de wees bij de volgende ronde op.
 - **Zoeken** (`annotatie_v2_zoeken.zoek`) haalt kandidaten uit de graaf en **verifieert ze tegen
-  Postgres** (manifest van lagen en revisies). Een storing of een achterlopende projectie is nooit
+  Postgres** (manifest van lagen en revisies). Elk filter staat dus twee keer: in `zoek_query`
+  (SPARQL) en in de Python-controle – ook de herkomstfilters `herkomst`, `aandacht`, `subtype`,
+  `beslist_door` en `met_twijfel` (`_past_herkomst`). `tools/graph-qa/tests/test_contract_drift.py`
+  bewaakt dat het toolschema van `search_annotaties` niets vraagt wat `Zoekvraag` niet kent. Een storing of een achterlopende projectie is nooit
   een leeg, succesvol resultaat: de respons draagt `volledig`.
 - **Bronboom** (`bron_resolver.resolve_bron`): leest alleen de expliciete BWB-named graph, nooit
   een union met de annotatiegraphs. Zonder `GRAPHDB_URL` of bij een haperende GraphDB geeft de
