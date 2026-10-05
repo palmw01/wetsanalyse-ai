@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { RevisieHistorie } from "@/components/annotaties/RevisieHistorie";
 import { Dialog, type DialogVariant } from "@/components/ui/Dialog";
 import { Melding } from "@/components/ui/Melding";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -246,7 +247,7 @@ export function NodeAnnotatiePaneel({ doel, onSluit, variant = "side", onVraag, 
         onVerwijder={view.lagen.length ? verwijder : undefined}
         onSluiten={onSluit}
         onExport={exporteer}
-        extra={<NodeExtra view={view} doel={doel} />}
+        extra={<NodeExtra view={view} doel={doel} onKies={setActiefId} />}
       />}
     </div>
   );
@@ -290,10 +291,11 @@ function ReeksBalk({ reeks, label }: { reeks: ReeksNavigatie & { onGa: (doel: No
 
 /** Wat alleen een bronnode-annotatie kent: een gewijzigde bronstand, markeringen die over deze
  *  bepaling heen lopen, en de voortgang per laag als de bepaling er meer dan één draagt. */
-function NodeExtra({ view, doel }: { view: NodeWeergave; doel: NodeDoel }) {
+function NodeExtra({ view, doel, onKies }: { view: NodeWeergave; doel: NodeDoel; onKies: (elementId: string) => void }) {
   const labelVan = (iri: string) => view.segmenten.find((s) => s.bron_iri === iri)?.label || view.doel.label || iri;
   return (
     <>
+      {view.lagen.length > 0 && <RevisieHistorie lagen={view.lagen} labelVan={labelVan} elementen={view.elementen} onKies={onKies} />}
       {view.verwijderd && (
         <Melding type="uitleg" compact>
           Deze annotatie is verwijderd op {new Date(view.verwijderd.op).toLocaleString("nl-NL", {

@@ -72,6 +72,9 @@ await page.route("**/api/**", async (route) => {
   let body = [];
   if (url.pathname.endsWith("/weergave")) body = view(url.searchParams.get("bron_iri"));
   else if (url.pathname.endsWith("/verklaringen")) body = verklaringen;
+  else if (url.pathname.endsWith("/lagen/laag1/revisies")) body = [
+    { revisie: 2, actor: "jan", tijdstip: "2026-10-05T10:00:00+00:00", acties: [{ actie: "approve", element_id: "e1" }] },
+    { revisie: 1, actor: "lex", tijdstip: "2026-10-04T10:00:00+00:00", acties: [{ actie: "element-gemaakt", element_id: "e1" }, { actie: "batch" }] }];
   else if (url.pathname === "/api/gesprekken/g1") body = { id: "g1", user_id: "browser-test", titel: "Test", berichten };
   else if (url.pathname === "/api/gesprekken") body = [{ id: "g1", titel: "Test", aantal_berichten: 4 }];
   else if (url.pathname.includes("/actief")) return route.fulfill({ status: 404, json: {} });
@@ -111,6 +114,15 @@ try {
   // Het vertrouwde paneel: kop met statuspil, exportknop en afronden.
   await page.getByText("Invorderingswet 1990 – art. 9 lid 1", { exact: true }).waitFor();
   await page.getByRole("button", { name: "Annotatie afronden", exact: true }).waitFor();
+  // Historie: per revisie wie wat deed, pas bij openklappen geladen; een geraakt element kies je met één klik.
+  assert.equal(requests.filter((r) => r.path.endsWith("/revisies")).length, 0);
+  const historie = page.getByTestId("revisies");
+  await historie.locator("summary").click();
+  await historie.getByText("ronde van Lex: 1 markering", { exact: false }).waitFor();
+  await historie.getByText("akkoord", { exact: false }).first().waitFor();
+  await historie.getByRole("button", { name: "ontvanger" }).first().click();
+  await page.getByText("Review: Handelende instantie geverifieerd", { exact: true }).waitFor();
+  await historie.locator("summary").click();
   // De klasse is de knop; het palet wijzigt meteen.
   await page.getByTitle("Andere klasse kiezen").click();
   await page.getByText("Review: Handelende instantie geverifieerd", { exact: true }).waitFor();

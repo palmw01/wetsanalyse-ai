@@ -214,10 +214,15 @@ annotatie_v2_batches = Table("annotatie_v2_batches", metadata,
 annotatie_v2_dekking = Table("annotatie_v2_dekking", metadata,
     Column("id", String(64), primary_key=True), Column("bron_iri", Text, nullable=False, index=True),
     Column("snapshot_id", String(128), nullable=False), Column("inhoud", _JSON, nullable=False))
+# `laag_id` is gezet waar een regel bij één laag hoort; de regel `revisie` (één per geraakte laag aan
+# het eind van een schrijftransactie) maakt er de revisiehistorie per laag van. Oudere regels hebben
+# hem niet – die laag heeft dan geen historie, geen verkeerde.
 annotatie_v2_audit = Table("annotatie_v2_audit", metadata,
     Column("id", Integer, primary_key=True, autoincrement=True), Column("element_id", String(64), nullable=True),
     Column("actor", String(64), nullable=False), Column("actie", String(40), nullable=False),
-    Column("detail", _JSON, nullable=False), Column("tijdstip", _DT, nullable=False))
+    Column("detail", _JSON, nullable=False), Column("tijdstip", _DT, nullable=False),
+    Column("laag_id", String(64), nullable=True),
+    Index("ix_annotatie_v2_audit_laag", "laag_id", "id"))
 
 # --- Tokenbudget --------------------------------------------------------------
 # Verbruik is een JOURNAAL, geen teller. Eén rij per LLM-call; de stand van nu is een som over het
