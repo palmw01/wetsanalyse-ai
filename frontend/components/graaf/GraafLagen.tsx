@@ -2,6 +2,7 @@
 
 import { useId } from "react";
 import { Lagen } from "@/components/ui/Icoon";
+import { DEKKINGSKLEUR } from "@/lib/dekking";
 import type { RelatieGroep } from "@/lib/samenhang";
 
 // Dezelfde kleuren als de lijnen in GraafCanvas (LIJN): de legenda ís het filter.
@@ -15,9 +16,11 @@ const LAGEN: { groep: RelatieGroep; naam: string; uitleg: string; voorbeeld: Rea
 ];
 
 /** Wat er in beeld staat: filters en legenda in één paneel, linksonder in het canvas. */
-export function GraafLagen({ filters, onWissel, open, onOpen }: {
+export function GraafLagen({ filters, onWissel, open, onOpen, dekking }: {
   filters: Record<RelatieGroep, boolean>; onWissel: (groep: RelatieGroep) => void;
   open: boolean; onOpen: (open: boolean) => void;
+  /** De laag Dekking; weg als er geen zinsdeel zonder treffer is. Een kenmerk, geen relatiegroep. */
+  dekking?: { aan: boolean; onWissel: () => void };
 }) {
   const paneelId = useId();
   return <div className="pointer-events-auto">
@@ -30,6 +33,16 @@ export function GraafLagen({ filters, onWissel, open, onOpen }: {
           <span className="block text-[10px] text-faint">{laag.uitleg}</span>
         </span>
       </label>)}
+      {dekking && <label className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-surface">
+        <input type="checkbox" checked={dekking.aan} onChange={dekking.onWissel} className="h-3.5 w-3.5 shrink-0 accent-lint" />
+        <svg viewBox="0 0 24 12" className="h-3 w-6 shrink-0" aria-hidden="true">
+          <circle cx="12" cy="6" r="3" fill="#398ab8" /><circle cx="12" cy="6" r="5.2" fill="none" stroke={DEKKINGSKLEUR} strokeWidth="1.2" strokeDasharray="1.6 1.2" />
+        </svg>
+        <span className="min-w-0">
+          <span className={`block text-xs ${dekking.aan ? "text-ink" : "text-faint"}`}>Dekking</span>
+          <span className="block text-[10px] text-faint">zinsdelen zonder detectortreffer (in de geopende bepaling)</span>
+        </span>
+      </label>}
       <p className="mt-1 border-t border-line px-2 pt-1.5 text-[10px] leading-relaxed text-faint">
         Open bol: buiten dit artikel. Afstand en positie hebben geen juridische betekenis.
       </p>
@@ -40,6 +53,7 @@ export function GraafLagen({ filters, onWissel, open, onOpen }: {
       <span className="flex gap-0.5" aria-hidden="true">
         {LAGEN.map((l) => <span key={l.groep} className={`h-1.5 w-1.5 rounded-full ${filters[l.groep] ? "" : "opacity-25"}`}
           style={{ backgroundColor: l.groep === "structuur" ? "#007bc7" : l.groep === "verwijzingen" ? "#6b4e91" : "#c0392b" }} />)}
+        {dekking && <span className={`h-1.5 w-1.5 rounded-full ${dekking.aan ? "" : "opacity-25"}`} style={{ backgroundColor: DEKKINGSKLEUR }} />}
       </span>
     </button>
   </div>;

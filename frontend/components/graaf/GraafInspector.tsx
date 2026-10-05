@@ -17,13 +17,15 @@ const ZICHTBAAR_PER_GROEP = 5;
 /** Wat is dit? Eén kaart per gekozen knoop: naam, inhoud, één hoofdactie, rustige extra's en de
  *  relaties per soort. Zonder selectie een korte stand van zaken. Smal (zijpaneel) staat de kaart
  *  onder de graaf en is hij in te klappen tot kop + hoofdactie, zodat het canvas zijn hoogte houdt. */
-export function GraafInspector({ knoop, element, laadElement, hoofdactie, uitgeklapt, verborgenBuren, laadt, groepen, samenvatting, smal,
+export function GraafInspector({ knoop, element, laadElement, ongedekt, hoofdactie, uitgeklapt, verborgenBuren, laadt, groepen, samenvatting, smal,
   onCentreer, onSluit, onHoofdactie, onVraag, onVerbindingen, onKies }: {
   knoop?: GraafKnoop;
   /** Het element achter een markeringsknoop, voor de Waarom-uitklap; de graaf zelf draagt het spoor niet. */
   element?: WaaromBron;
   /** Voor een markering buiten de weergave van het paneel: het element op aanvraag. */
   laadElement?: () => Promise<WaaromBron>;
+  /** De zinsdelen zonder detectortreffer van deze bronknoop (de laag Dekking). */
+  ongedekt?: string[];
   hoofdactie: Hoofdactie; uitgeklapt: boolean; verborgenBuren: number; laadt: boolean;
   groepen: { naam: RelatieGroepNaam; regels: RelatieRegel[] }[];
   samenvatting: { leden: number; markeringen: number; verwijzingen: number };
@@ -83,6 +85,19 @@ export function GraafInspector({ knoop, element, laadElement, hoofdactie, uitgek
       </div>}
       {knoop.soort === "markering" && (element || laadElement) && <WaaromUitklap key={knoop.id} el={element} laad={laadElement} />}
       {knoop.tekst && knoop.soort !== "markering" && <p className="border-l-2 border-lint/20 pl-3 text-xs leading-relaxed text-muted">{knoop.tekst}</p>}
+      {ongedekt && ongedekt.length > 0 && (() => {
+        const sleutel = `${knoop.id}|dekking`;
+        const toon = allesOpen[sleutel] ? ongedekt : ongedekt.slice(0, ZICHTBAAR_PER_GROEP);
+        return <div data-testid="graaf-dekking">
+          <p className="text-[11px] font-semibold text-muted">Zonder detectortreffer <span className="font-normal text-faint">({ongedekt.length})</span></p>
+          <ul className="mt-1 space-y-0.5 pl-4">
+            {toon.map((t, i) => <li key={i} className="text-xs text-muted">“{t}”</li>)}
+          </ul>
+          {ongedekt.length > ZICHTBAAR_PER_GROEP && !allesOpen[sleutel] && <button type="button" className={`${TEKSTKNOP} ml-4`}
+            onClick={() => setAllesOpen((a) => ({ ...a, [sleutel]: true }))}>Alle {ongedekt.length} tonen</button>}
+          <p className="mt-1 pl-4 text-[10px] text-faint">Een meting van de detectoren, geen oordeel. Markeren doe je in de tekst.</p>
+        </div>;
+      })()}
       {knoop.soort === "extern" && <p className="text-xs text-muted">Deze bepaling staat niet in de kennisgraaf; alleen de verwijzing ernaar is bekend.</p>}
       {groepen.map(({ naam, regels }) => {
         const sleutel = `${knoop.id}|${naam}`;
