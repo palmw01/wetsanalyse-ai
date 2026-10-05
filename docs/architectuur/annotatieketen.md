@@ -191,6 +191,16 @@ Deze punten zijn bewust open gelaten tot na V7 ([`../PLAN.md`](../PLAN.md), spoo
 - **Evaluatie** (D10): Rechtsfeit en Plaatsaanduiding hebben geen ontwikkelankers, en alle ankers
   zijn *provisional*.
 
+**Casus art. 9 lid 5 IW 1990** (export van acceptatie, 5 okt 2026; conceptreferentie
+[`IW05`](../wetsanalyse/referentieset/concept/IW05.json)) maakt deze beperkingen concreet. Van de 32
+voorstellen kwamen er 20 uit de naamwoordgroepdetector en besliste het model er 29, met 14×
+Rechtsobject en 0× Afleidingsregel. De keten vond de *dingen* ("de eerste termijn", "één maand", "het
+aanslagbiljet"), maar niet wat er juridisch mee gebeurt: geen markering op "vervalt" of "vindt het
+eerste lid toepassing", de ALS zonder de DAN, en "zoveel … als" niet als afleiding. Daarnaast waren er
+33 geneste overlappen waarvan een deel uit de detectoren voortkomt en niet uit juridische functie
+("de dagtekening" als Rechtsobject binnen een tijdsaanduiding). Het concept zet per exportelement
+behouden, wijzigen of verwijderen; een jurist beoordeelt het voor het naar de referentieset gaat.
+
 Bewust **niet** te wijzigen: alle uitgebreide duurspans inkorten (N01: de startgebeurtenis hoort
 volgens het profiel bij T) en *dagtekening* als woord uitsluiten (N02: strijdig met de
 profielvoorbeelden, eerst context).

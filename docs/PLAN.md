@@ -124,6 +124,16 @@ bekende beperkingen in [`architectuur/annotatieketen.md`](architectuur/annotatie
 8. De geplande regels `tijd.voorzetselgroep`, `delegatie.grondslag_wti`, `waarde.numeriek`,
    `feit.gebeurtenisbijzin`, en een eigen route voor Delegatie-invulling.
 
+9. **Relaties tussen elementen** als additieve laag in de projectie: voorwaarde → gevolg,
+   vervalmoment, invoer en uitkomst van een afleiding. Bewijs: art. 9 lid 5 (concept `IW05`).
+10. Een **deterministische nestingregel** (validatie, géén Critic): een genest element moet een andere
+    juridische functie hebben dan het element waarin het ligt.
+
+Kandidaten 2, 3, 4 en 6 hebben in art. 9 lid 5 een concreet voorbeeld: zie de casus onder *Bekende
+beperkingen* in [`architectuur/annotatieketen.md`](architectuur/annotatieketen.md) en de
+conceptcasus [`IW05`](wetsanalyse/referentieset/concept/IW05.json). Die concepten gaan pas mee in
+een meting als een jurist ze heeft beoordeeld.
+
 Open vragen die V7 moet beantwoorden staan in het onderzoek §17.
 
 ---
