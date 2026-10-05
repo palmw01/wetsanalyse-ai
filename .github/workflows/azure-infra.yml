@@ -81,6 +81,11 @@ jobs:
     # draagt bij productie de required reviewer.
     environment: ${{ inputs.omgeving }}
     env:
+      # Vrije-tekstinvoer gaat via de omgeving de shell in, nooit als `${{ inputs.… }}` in een
+      # `run:`. Dat laatste plakt de tekst in het script vóór bash het leest: een `"` in een query
+      # breekt de stap, en een `$(…)` wordt uitgevoerd. Keuzelijsten en booleans mogen wel inline.
+      INVOER_QUERY: ${{ inputs.query }}
+      INVOER_BEVESTIGING: ${{ inputs.bevestig_resource_group }}
       RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
       APP_NAME: ${{ vars.APP_NAME }}
       # Repo-vars (niet per environment): `opruimen` moet álle straten kennen om te weten wat wees
@@ -117,7 +122,7 @@ jobs:
           done
 
           if [ "${{ inputs.actie }}" = "afbreken" ]; then
-            if [ "${{ inputs.bevestig_resource_group }}" != "$RESOURCE_GROUP" ]; then
+            if [ "$INVOER_BEVESTIGING" != "$RESOURCE_GROUP" ]; then
               echo "::error::Afbreken verwijdert de hele resource group '$RESOURCE_GROUP'. Typ die naam in het bevestigingsveld."
               exit 1
             fi
@@ -127,7 +132,7 @@ jobs:
           # Grafana weghalen is klein maar onomkeerbaar (de app is weg tot je hem opnieuw uitrolt),
           # dus dezelfde bevestiging als bij `afbreken`.
           if [ "${{ inputs.actie }}" = "grafana-afbreken" ]; then
-            if [ "${{ inputs.bevestig_resource_group }}" != "$RESOURCE_GROUP" ]; then
+            if [ "$INVOER_BEVESTIGING" != "$RESOURCE_GROUP" ]; then
               echo "::error::Dit verwijdert de container app '$APP_NAME-grafana'. Typ '$RESOURCE_GROUP' in het bevestigingsveld."
               exit 1
             fi
@@ -137,7 +142,7 @@ jobs:
           # Idem voor de MCP-proxy: klein, maar het is de externe deur naar de graaf en die zet je
           # niet per ongeluk dicht terwijl je hem nodig hebt.
           if [ "${{ inputs.actie }}" = "mcp-proxy-afbreken" ]; then
-            if [ "${{ inputs.bevestig_resource_group }}" != "$RESOURCE_GROUP" ]; then
+            if [ "$INVOER_BEVESTIGING" != "$RESOURCE_GROUP" ]; then
               echo "::error::Dit verwijdert de container app '$APP_NAME-graphdb-proxy'. Typ '$RESOURCE_GROUP' in het bevestigingsveld."
               exit 1
             fi
@@ -640,7 +645,7 @@ jobs:
             exit 0
           fi
 
-          if [ "${{ inputs.bevestig_resource_group }}" != "$RESOURCE_GROUP" ]; then
+          if [ "$INVOER_BEVESTIGING" != "$RESOURCE_GROUP" ]; then
             echo ""
             echo "::warning::Alleen getoond. Typ '$RESOURCE_GROUP' in het bevestigingsveld om deze resources te verwijderen."
             exit 0
@@ -686,8 +691,8 @@ jobs:
           # Een eigen query wint: diagnose vraagt telkens iets anders, en een PR per vraag is geen
           # werkbare manier om een keten uit te pluizen. Read-only – `az monitor log-analytics query`
           # kan alleen lezen.
-          if [ -n "${{ inputs.query }}" ]; then
-            vraag "Eigen query" "${{ inputs.query }}"
+          if [ -n "$INVOER_QUERY" ]; then
+            vraag "Eigen query" "$INVOER_QUERY"
             exit 0
           fi
 
