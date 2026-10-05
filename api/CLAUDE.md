@@ -123,7 +123,8 @@ Hieronder wat je moet weten om de code te wijzigen.
   erachter. TriG bouwt per laag met `laag_invoer` + `bouw_graaf`, dus exact wat de projectie schrijft.
 - **`/samenhang`** (`samenhang.py`) geeft drie soorten relaties en niets anders: de bronboom, de
   letterlijke verwijzingen uit de BWB-import (één stap in en uit, max. `MAX_VERWIJZINGEN`) en de
-  actuele markeringen. Er wordt niets afgeleid.
+  actuele markeringen. Er wordt niets afgeleid. Een markeringsknoop draagt herkomst, aandacht,
+  subtype, `beslist_door` en `twijfel` uit het element, zodat de werkplek erop kan filteren.
 
 ### Projectie naar de kennisgraaf
 

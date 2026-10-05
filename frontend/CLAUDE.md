@@ -615,6 +615,12 @@ paneel op die tab opent. Beide verschijnen alleen als de API de capability `same
 - **Vergroten** gebruikt de `Dialog`-variant `fullscreen`. De stand staat daarom in de hook
   `useSamenhangStand` in het paneel, niet in de graaf: een variantwissel remount de inhoud. **Escape**
   van binnen naar buiten: zoeklijst → Lagen → selectie → verkleinen → sluiten.
+- **Markeringsfilter** (in *Lagen*, alleen met de laag Annotaties aan): alle / nog te beoordelen /
+  keuze voor de jurist (geel) / door een jurist gemarkeerd / met twijfel. De markeringsknoop draagt
+  daarvoor `herkomst`, `aandacht`, `subtype`, `beslist_door` en `twijfel` (`api/app/samenhang.py`).
+  Een kijkfilter: hij verbergt markeringen en klassen die dan niets meer markeren
+  (`pastBijMarkeringFilter` in `zichtbareGraaf`), nooit structuur of verwijzingen. De inspector
+  toont herkomst en aandacht als pil.
 - **Laag Dekking**: de zinsdelen zonder detectortreffer uit het paneel (`ongedektPerBron` in
   `lib/dekking.ts`, sleutel = bron-IRI = knoop-id) geven een lid of onderdeel een okerkleurige halo
   (`DEKKINGSKLEUR`) en in de inspector een blok *Zonder detectortreffer*. Het is een kenmerk, geen

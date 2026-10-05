@@ -29,7 +29,8 @@ function samenhang(iri) {
     knopen: [knoop(LAW, "regeling", { label: "Invorderingswet 1990" }), knoop(ART, "artikel", { label: "Artikel 9", artikel: "9" }),
       knoop(L1, "lid", { label: "Lid 1", artikel: "9", lid: "1", tekst: "De ontvanger vordert de belastingaanslag in." }),
       knoop(L2, "lid", { label: "Lid 2", artikel: "9", lid: "2", tekst: "In afwijking van het eerste lid geldt artikel 10." }),
-      knoop("element:e1", "markering", { label: "ontvanger", tekst: "ontvanger", klasse: "Rechtssubject", lifecycle: "voorgesteld", element_id: "e1", artikel: "9", lid: "1" }),
+      knoop("element:e1", "markering", { label: "ontvanger", tekst: "ontvanger", klasse: "Rechtssubject", lifecycle: "voorgesteld", element_id: "e1", artikel: "9", lid: "1",
+        herkomst: "agent", aandacht: "" }),
       knoop("klasse:Rechtssubject", "klasse", { label: "Rechtssubject", klasse: "Rechtssubject" }),
       knoop(A10, "artikel", { label: "Artikel 10", artikel: "10", rand: true }),
       knoop(STUB, "extern", { label: "Awb, artikel 3", bwb_id: "BWBR0002320", artikel: "3", rand: true })],
@@ -264,6 +265,14 @@ async function detailsOpen(page) {
   assert.ok(!(await inBeeld(page)).includes("element:e1"), "annotaties uit verbergt markeringen");
   if (!(await lagen.count())) await page.getByRole("button", { name: "Lagen" }).click();
   await lagen.getByRole("checkbox", { name: /Annotaties/ }).check();
+  // Markeringsfilter: "keuze voor de jurist" verbergt e1 (geen aandacht), "alle" brengt hem terug.
+  await lagen.getByLabel("Markeringen", { exact: true }).selectOption("aandacht");
+  for (let i = 0; i < 20 && (await inBeeld(page)).includes("element:e1"); i++) await page.waitForTimeout(150);
+  assert.ok(!(await inBeeld(page)).includes("element:e1"), "het markeringsfilter verbergt e1");
+  assert.ok((await inBeeld(page)).includes(L1), "structuur blijft staan");
+  await lagen.getByLabel("Markeringen", { exact: true }).selectOption("alle");
+  for (let i = 0; i < 20 && !(await inBeeld(page)).includes("element:e1"); i++) await page.waitForTimeout(150);
+  assert.ok((await inBeeld(page)).includes("element:e1"), "alle brengt e1 terug");
   await page.keyboard.press("Escape");
   assert.equal(await lagen.count(), 0, "Escape sluit het lagenpaneel");
 

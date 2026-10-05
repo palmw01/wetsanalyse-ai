@@ -109,3 +109,19 @@ async def test_endpoint_vereist_gebruiker_en_meldt_capability(monkeypatch):
         assert r.status_code == 200 and r.json()["artikel_iri"] == ART
         assert (await client.get("/v1/annotatie/capabilities", headers=headers)).json()["samenhang"]
     get_settings.cache_clear()
+
+
+async def test_markeringen_dragen_herkomst_aandacht_en_spoor(monkeypatch):
+    snap = snapshot()
+    spoor = {"beslissing": {"door": "model"}, "twijfel": [{"reden": "DETECTOR_CONFLICT"}]}
+    await store.batch(request(snap, [element(snap, trace=spoor, aandacht="geel", jas_subtype="parameter")]), snap, "a")
+    await store.batch(request(snap, [element(snap, TWO, 0, 4)], batch_id="mens", revisions={TWO: 0}), snap, "jan", mens=True)
+    monkeypatch.setattr(samenhang, "_verwijzingen", rijen())
+    g = await samenhang.samenhang(snapshot())
+    per_tekst = {k["tekst"]: k for k in g["knopen"] if k["soort"] == "markering"}
+    agent, mens = per_tekst["Alfa"], per_tekst["Beta"]
+    assert (agent["herkomst"], agent["aandacht"], agent["subtype"], agent["beslist_door"], agent["twijfel"]) == \
+        ("agent", "geel", "parameter", "model", True)
+    assert (mens["herkomst"], mens["aandacht"], mens["beslist_door"], mens["twijfel"]) == ("mens", "", "", False)
+    # Structuurknopen houden de lege standaardwaarden.
+    assert all(k["herkomst"] == "" for k in g["knopen"] if k["soort"] != "markering")

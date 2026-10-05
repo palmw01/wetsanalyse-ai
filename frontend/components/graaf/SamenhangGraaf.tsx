@@ -8,7 +8,7 @@ import { foutTekst } from "@/lib/api";
 import { haalElement, type NodeDoel, type NodeElement } from "@/lib/annotatieNode";
 import {
   bouwGraaf, haalSamenhang, hoofdactie as bepaalHoofdactie, relatieGroepen, samenvatting, uitklapbaar, zichtbareGraaf,
-  type GraafData, type GraafKnoop, type RelatieGroep, type Samenhang,
+  type GraafData, type GraafKnoop, type MarkeringFilter, type RelatieGroep, type Samenhang,
 } from "@/lib/samenhang";
 import type { CameraStand, GraafCameraBediening } from "./GraafCanvas";
 import { GraafBeeld } from "./GraafBeeld";
@@ -48,6 +48,7 @@ export function useSamenhangStand(doel: NodeDoel, actief: boolean) {
   const [lagenOpen, setLagenOpen] = useState(false);
   // De dekkingslaag verbergt niets, hij markeert alleen; daarom los van `filters` en van Omgeving/Alles.
   const [toonDekking, setToonDekking] = useState(true);
+  const [markeringFilter, setMarkeringFilter] = useState<MarkeringFilter>("alle");
   const [aangeraakt, setAangeraakt] = useState(false);
   const camera = useRef<CameraStand | null>(null);
   const zetDelen = useCallback((maak: (oud: Samenhang[]) => Samenhang[]) => setGeladen((oud) => {
@@ -106,7 +107,7 @@ export function useSamenhangStand(doel: NodeDoel, actief: boolean) {
 
   return { delen: geladen?.delen, alles: geladen?.graaf, zetDelen, ververs, fout, setFout, laadtUit, setLaadtUit,
     selectie, setSelectie, uitgebreid, setUitgebreid, filters, setFilters, voorAlles, setVoorAlles, zetWeergave, toon,
-    ingeklapt, setIngeklapt, lagenOpen, setLagenOpen, aangeraakt, setAangeraakt, camera, laad, toonDekking, setToonDekking };
+    ingeklapt, setIngeklapt, lagenOpen, setLagenOpen, aangeraakt, setAangeraakt, camera, laad, toonDekking, setToonDekking, markeringFilter, setMarkeringFilter };
 }
 export type SamenhangStand = ReturnType<typeof useSamenhangStand>;
 
@@ -128,7 +129,7 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, eleme
 }) {
   const { delen, zetDelen, fout, setFout, laadtUit, setLaadtUit, selectie, setSelectie, uitgebreid, setUitgebreid,
     filters, setFilters, voorAlles, zetWeergave, toon, ingeklapt, setIngeklapt, lagenOpen, setLagenOpen, aangeraakt, setAangeraakt,
-    camera, laad, toonDekking, setToonDekking } = stand;
+    camera, laad, toonDekking, setToonDekking, markeringFilter, setMarkeringFilter } = stand;
   const aandacht = useMemo(() => new Set(toonDekking ? Object.keys(dekking ?? {}) : []), [dekking, toonDekking]);
   const heeftDekking = Object.keys(dekking ?? {}).length > 0;
   const bediening = useRef<GraafCameraBediening | null>(null);
@@ -139,7 +140,7 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, eleme
   // De omgeving is wat je zelf uitklapte. Daarbovenop klapt de gekozen knoop uit zolang hij gekozen
   // is, als hij in de omgeving verborgen was (via zoeken of een tijdelijk getoonde buur). Kies je
   // iets anders, dan verdwijnt dat weer – anders bleef elke ooit gekozen knoop voorgoed in beeld.
-  const omgeving = useMemo(() => zichtbareGraaf(alles, uitgebreid, filters), [alles, uitgebreid, filters]);
+  const omgeving = useMemo(() => zichtbareGraaf(alles, uitgebreid, filters, markeringFilter), [alles, uitgebreid, filters, markeringFilter]);
   // De inspector kijkt naar de héle graaf: ook een verborgen buur staat erin en is te kiezen.
   const geselecteerd = alles.nodes.find((n) => n.id === gekozenId);
   const tijdelijk = useMemo(() => {
@@ -147,8 +148,8 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, eleme
     return k && k.id !== ingeklapt && !uitgebreid.includes(k.id)
       && !omgeving.nodes.some((n) => n.id === k.id) ? k.id : "";
   }, [alles, gekozenId, ingeklapt, uitgebreid, omgeving]);
-  const data = useMemo(() => tijdelijk ? zichtbareGraaf(alles, [...uitgebreid, tijdelijk], filters) : omgeving,
-    [alles, uitgebreid, filters, tijdelijk, omgeving]);
+  const data = useMemo(() => tijdelijk ? zichtbareGraaf(alles, [...uitgebreid, tijdelijk], filters, markeringFilter) : omgeving,
+    [alles, uitgebreid, filters, markeringFilter, tijdelijk, omgeving]);
   const groepen = useMemo(() => gekozenId ? relatieGroepen(alles, gekozenId) : [], [alles, gekozenId]);
   const verborgenBuren = (id: string) => new Set(alles.links.filter((e) => filters[e.groep] && (e.source === id || e.target === id))
     .map((e) => e.source === id ? e.target : e.source).filter((b) => !data.nodes.some((n) => n.id === b))).size;
@@ -238,7 +239,8 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, eleme
           <div className="flex items-end justify-between gap-2">
             <GraafLagen filters={filters} open={lagenOpen} onOpen={setLagenOpen}
               onWissel={(g: RelatieGroep) => setFilters((f) => ({ ...f, [g]: !f[g] }))}
-              dekking={heeftDekking ? { aan: toonDekking, onWissel: () => setToonDekking((v) => !v) } : undefined} />
+              dekking={heeftDekking ? { aan: toonDekking, onWissel: () => setToonDekking((v) => !v) } : undefined}
+              markering={filters.annotaties ? { waarde: markeringFilter, onKies: setMarkeringFilter } : undefined} />
             <GraafHint klaar={aangeraakt} />
             <GraafBeeld onPasIn={() => bediening.current?.pasIn()} onZoom={(f) => bediening.current?.zoom(f)} />
           </div>

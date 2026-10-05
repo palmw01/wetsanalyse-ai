@@ -9,6 +9,28 @@ export type RelatieGroep = "structuur" | "verwijzingen" | "annotaties";
 export interface SamenhangKnoop {
   id: string; soort: KnoopSoort; label: string; tekst: string; klasse: string; lifecycle: string;
   element_id: string; bwb_id: string; artikel: string; lid: string; rand: boolean;
+  /** Alleen bij een markering (api ≥ PR 10; bij een oudere api ontbreken ze). */
+  herkomst?: string; aandacht?: string; subtype?: string; beslist_door?: string; twijfel?: boolean;
+}
+
+/** Welke markeringen in beeld blijven. Een kijkfilter: hij verbergt markeringen (en klassen die
+ *  dan niets meer markeren), nooit bronstructuur of verwijzingen. */
+export type MarkeringFilter = "alle" | "te_beoordelen" | "aandacht" | "jurist" | "twijfel";
+export const MARKERING_FILTERS: { waarde: MarkeringFilter; label: string }[] = [
+  { waarde: "alle", label: "alle" },
+  { waarde: "te_beoordelen", label: "nog te beoordelen" },
+  { waarde: "aandacht", label: "keuze voor de jurist (geel)" },
+  { waarde: "jurist", label: "door een jurist gemarkeerd" },
+  { waarde: "twijfel", label: "met twijfel in het spoor" },
+];
+export function pastBijMarkeringFilter(k: Pick<SamenhangKnoop, "lifecycle" | "aandacht" | "herkomst" | "twijfel">, f: MarkeringFilter): boolean {
+  switch (f) {
+    case "te_beoordelen": return k.lifecycle === "voorgesteld";
+    case "aandacht": return k.aandacht === "geel";
+    case "jurist": return k.herkomst === "mens";
+    case "twijfel": return !!k.twijfel;
+    default: return true;
+  }
 }
 export interface SamenhangRelatie {
   bron: string; doel: string; soort: "bevat" | "verwijst_naar" | "markeert" | "heeft_klasse";
@@ -289,7 +311,8 @@ export function bouwGraaf(delen: Samenhang[], vast?: GraafData): GraafData {
 /** Filters veranderen alleen zichtbaarheid. Altijd zichtbaar: de bronstructuur van de geopende
  *  artikelen en – met de laag Annotaties aan – hun markeringen met JAS-klasse; wie het rustiger wil
  *  zet die laag uit. Verwijzingen naar buiten verschijnen pas als je een knoop uitklapt. */
-export function zichtbareGraaf(data: GraafData, uitgebreid: string[], filters: Record<RelatieGroep, boolean>): GraafData {
+export function zichtbareGraaf(data: GraafData, uitgebreid: string[], filters: Record<RelatieGroep, boolean>,
+  markering: MarkeringFilter = "alle"): GraafData {
   const zichtbaar = new Set(data.nodes.filter((n) => !n.rand).map((n) => n.id));
   for (const id of uitgebreid) {
     zichtbaar.add(id);
@@ -299,7 +322,13 @@ export function zichtbareGraaf(data: GraafData, uitgebreid: string[], filters: R
       if (edge.target === id) zichtbaar.add(edge.source);
     }
   }
-  const nodes = data.nodes.filter((n) => zichtbaar.has(n.id)
+  // Markeringen die buiten het filter vallen, en klassen die dan niets meer markeren, verdwijnen.
+  const weg = new Set(data.nodes.filter((n) => n.soort === "markering" && !pastBijMarkeringFilter(n, markering)).map((n) => n.id));
+  if (weg.size) {
+    const nogGemarkeerd = new Set(data.links.filter((e) => e.soort === "heeft_klasse" && !weg.has(e.source)).map((e) => e.target));
+    for (const n of data.nodes) if (n.soort === "klasse" && !nogGemarkeerd.has(n.id)) weg.add(n.id);
+  }
+  const nodes = data.nodes.filter((n) => zichtbaar.has(n.id) && !weg.has(n.id)
     && (filters.annotaties || !["klasse", "markering"].includes(n.soort))
     && (filters.verwijzingen || !n.rand));
   const ids = new Set(nodes.map((n) => n.id));

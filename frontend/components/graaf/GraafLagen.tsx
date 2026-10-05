@@ -3,7 +3,7 @@
 import { useId } from "react";
 import { Lagen } from "@/components/ui/Icoon";
 import { DEKKINGSKLEUR } from "@/lib/dekking";
-import type { RelatieGroep } from "@/lib/samenhang";
+import { MARKERING_FILTERS, type MarkeringFilter, type RelatieGroep } from "@/lib/samenhang";
 
 // Dezelfde kleuren als de lijnen in GraafCanvas (LIJN): de legenda ís het filter.
 const LAGEN: { groep: RelatieGroep; naam: string; uitleg: string; voorbeeld: React.ReactNode }[] = [
@@ -16,12 +16,15 @@ const LAGEN: { groep: RelatieGroep; naam: string; uitleg: string; voorbeeld: Rea
 ];
 
 /** Wat er in beeld staat: filters en legenda in één paneel, linksonder in het canvas. */
-export function GraafLagen({ filters, onWissel, open, onOpen, dekking }: {
+export function GraafLagen({ filters, onWissel, open, onOpen, dekking, markering }: {
   filters: Record<RelatieGroep, boolean>; onWissel: (groep: RelatieGroep) => void;
   open: boolean; onOpen: (open: boolean) => void;
   /** De laag Dekking; weg als er geen zinsdeel zonder treffer is. Een kenmerk, geen relatiegroep. */
   dekking?: { aan: boolean; onWissel: () => void };
+  /** Welke markeringen in beeld blijven; weg als de laag Annotaties uit staat. */
+  markering?: { waarde: MarkeringFilter; onKies: (f: MarkeringFilter) => void };
 }) {
+  const kiesId = useId();
   const paneelId = useId();
   return <div className="pointer-events-auto">
     {open && <div id={paneelId} role="group" aria-label="Lagen" className="mb-2 w-64 rounded-kaart border border-line bg-paper/95 p-2 shadow-kaart">
@@ -43,6 +46,13 @@ export function GraafLagen({ filters, onWissel, open, onOpen, dekking }: {
           <span className="block text-[10px] text-faint">zinsdelen zonder detectortreffer (in de geopende bepaling)</span>
         </span>
       </label>}
+      {markering && <div className="flex items-center gap-2 px-2 py-1.5">
+        <label htmlFor={kiesId} className="shrink-0 text-xs text-ink">Markeringen</label>
+        <select id={kiesId} value={markering.waarde} onChange={(e) => markering.onKies(e.target.value as MarkeringFilter)}
+          className="focus-ring min-w-0 flex-1 rounded border border-line bg-paper px-1.5 py-1 text-xs text-ink">
+          {MARKERING_FILTERS.map((f) => <option key={f.waarde} value={f.waarde}>{f.label}</option>)}
+        </select>
+      </div>}
       <p className="mt-1 border-t border-line px-2 pt-1.5 text-[10px] leading-relaxed text-faint">
         Open bol: buiten dit artikel. Afstand en positie hebben geen juridische betekenis.
       </p>

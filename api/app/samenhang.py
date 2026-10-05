@@ -47,6 +47,12 @@ class Knoop(BaseModel):
     artikel: str = ""
     lid: str = ""
     rand: bool = False
+    # Alleen bij een markering: wat de werkplek nodig heeft om op herkomst en review te filteren.
+    herkomst: str = ""             # agent | mens
+    aandacht: str = ""             # groen | geel, leeg = gewoon voorstel
+    subtype: str = ""
+    beslist_door: str = ""         # regel | model | specificiteit, leeg zonder spoor
+    twijfel: bool = False
 
 
 class Relatie(BaseModel):
@@ -147,9 +153,13 @@ async def samenhang(snapshot: dict) -> dict:
         if el.get("lifecycle") == "rejected" or el.get("verouderd"):
             continue
         eid, klasse = f"element:{el['id']}", el["klasse"]
+        spoor = el.get("trace") or {}
         knopen[eid] = Knoop(id=eid, soort="markering", label=el["tekst"], tekst=el["tekst"], klasse=klasse,
                             lifecycle=el.get("lifecycle", ""), element_id=el["id"],
-                            **plaats(el["eigenaar_iri"]))
+                            herkomst=el.get("herkomst") or "", aandacht=el.get("aandacht") or "",
+                            subtype=el.get("jas_subtype") or "",
+                            beslist_door=(spoor.get("beslissing") or {}).get("door") or "",
+                            twijfel=bool(spoor.get("twijfel")), **plaats(el["eigenaar_iri"]))
         for anker in {a["bron_iri"] for a in el["ankers"]} & knopen.keys():
             relaties.append(Relatie(bron=eid, doel=anker, soort="markeert", groep="annotaties"))
         knopen.setdefault(f"klasse:{klasse}", Knoop(id=f"klasse:{klasse}", soort="klasse", label=klasse, klasse=klasse))
