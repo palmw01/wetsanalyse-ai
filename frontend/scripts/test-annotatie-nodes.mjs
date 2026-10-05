@@ -76,6 +76,9 @@ await page.route("**/api/**", async (route) => {
   let body = [];
   if (url.pathname.endsWith("/weergave")) body = view(url.searchParams.get("bron_iri"));
   else if (url.pathname.endsWith("/verklaringen")) body = verklaringen;
+  else if (url.pathname.endsWith("/elementen/e1/graaf")) body = { element_id: "e1", laag_id: "laag1",
+    turtle: "<urn:jas:element:e1> a <urn:jas-ns:Markering> .",
+    graafcontrole: { laag_id: "laag1", revisie: 1, status: "in_orde", afwijkingen: [], shacl: { beschikbaar: true, conform: true, aantal: 0 } } };
   else if (url.pathname.endsWith("/lagen/laag1/revisies")) body = [
     { revisie: 2, actor: "jan", tijdstip: "2026-10-05T10:00:00+00:00", acties: [{ actie: "approve", element_id: "e1" }] },
     { revisie: 1, actor: "lex", tijdstip: "2026-10-04T10:00:00+00:00", acties: [{ actie: "element-gemaakt", element_id: "e1" }, { actie: "batch" }] }];
@@ -147,6 +150,9 @@ try {
   await page.getByText("gedegradeerd", { exact: true }).first().waitFor();
   await waarom.getByText("Technisch detail", { exact: true }).click();
   await waarom.getByText("k1 | ontvanger | Rechtssubject, Rechtsobject", { exact: true }).waitFor();
+  // Technisch detail: de graafcontrole van de laag en de RDF van deze markering, pas nu opgehaald.
+  await waarom.getByTestId("graaf-technisch").getByText("De graaf klopt met de database (revisie 1).").waitFor();
+  await waarom.getByText("<urn:jas:element:e1> a <urn:jas-ns:Markering> .", { exact: true }).waitFor();
   // Zelf markeren via de selectiepopover: " A😀 ontvanger", de emoji op UTF-16 2..4 = codepoint 1..2.
   await selecteer([0, 2], [0, 4]);
   await page.getByRole("dialog", { name: "Markering toevoegen" }).getByRole("button", { name: "Rechtssubject", exact: true }).click();

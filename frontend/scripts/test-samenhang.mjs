@@ -98,6 +98,9 @@ async function nieuwePagina({ width = 1440, height = 1000, webgl = true } = {}) 
     if (url.pathname.endsWith("/v2/samenhang")) { log.samenhang.push(url.searchParams.get("bron_iri")); return route.fulfill({ json: samenhangNu(url.searchParams.get("bron_iri")) }); }
     if (url.pathname.endsWith("/v2/weergave")) return route.fulfill({ json: weergave(url.searchParams.get("bron_iri")) });
     if (url.pathname.endsWith("/v2/elementen/e1")) return route.fulfill({ json: { element: weergave(ART).elementen[0] } });
+    if (url.pathname.endsWith("/v2/elementen/e1/graaf")) return route.fulfill({ json: { element_id: "e1", laag_id: "laag1",
+      turtle: "<urn:jas:element:e1> a <urn:jas-ns:Markering> .",
+      graafcontrole: { laag_id: "laag1", revisie: 1, status: "achterstand", afwijkingen: [], shacl: null } } });
     if (url.pathname === "/api/gesprekken/g1") return route.fulfill({ json: { id: "g1", user_id: "browser-test", titel: "Samenhang", berichten } });
     if (url.pathname === "/api/gesprekken") return route.fulfill({ json: [{ id: "g1", titel: "Samenhang", aantal_berichten: 2 }] });
     if (url.pathname.includes("/actief")) return route.fulfill({ status: 404, json: {} });
@@ -202,6 +205,8 @@ async function detailsOpen(page) {
   await detail(page).getByText("Waarom?", { exact: true }).click();
   await detail(page).getByText("Handelende partij", { exact: true }).waitFor();
   await detail(page).getByText("vaste regel", { exact: true }).waitFor();
+  await detail(page).getByText("Technisch detail", { exact: true }).click();
+  await detail(page).getByText("Nog niet in de graaf bijgewerkt", { exact: false }).waitFor();
   await page.getByRole("button", { name: "Toon in tekst" }).click();
   assert.equal(await page.getByRole("button", { name: "Tekst", exact: true }).getAttribute("aria-pressed"), "true");
   await page.locator("[data-artefact]").waitFor();

@@ -98,6 +98,24 @@ async def get_element(element_id: str, actor: str = Depends(actieve_userid)):
     return result
 
 
+@router.get("/elementen/{element_id}/graaf")
+async def get_element_graaf(element_id: str, actor: str = Depends(actieve_userid)):
+    """Technisch detail van één markering: haar RDF zoals de projectie hem schrijft, en de
+    graafcontrole van haar laag. Alleen lezend; pas opgehaald als de jurist erom vraagt.
+
+    De Turtle is `bouw_graaf` beperkt tot dit element – dezelfde functie als de projectie, dus met
+    de laag- en rondecontext die het element nodig heeft, en zonder personen."""
+    from .graafcontrole import controleer_laag
+    from .graaf_projectie_v2 import bouw_graaf
+
+    result = await store.detail(element_id)
+    element = result["element"]
+    laag = await store.laag_detail(element["laag_id"])
+    turtle = bouw_graaf(laag, [element]).serialize(format="turtle")
+    return {"element_id": element_id, "laag_id": laag["id"], "turtle": turtle,
+            "graafcontrole": await controleer_laag(laag["id"])}
+
+
 @router.post("/elementen/{element_id}/beslissing")
 async def post_beslissing(element_id: str, req: Beslissing, actor: str = Depends(actieve_userid)):
     existing = await store.detail(element_id)

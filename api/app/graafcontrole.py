@@ -86,6 +86,76 @@ def _pyshacl_aanwezig() -> bool:
     return True
 
 
+async def _controleer_laag(client: httpx.AsyncClient, laag: dict, invoer: tuple[list[dict], dict],
+                          reg: dict | None, shacl: bool) -> tuple[dict | None, list[dict], dict | None]:
+    """Eén laag tegen de graaf: (achterstand of None, afwijkingen, SHACL-uitkomst of None).
+
+    Gedeeld door de controle over alles en die per laag, zodat die twee nooit iets anders zeggen."""
+    lid, rev = laag["id"], int(laag["revisie"])
+    if int(laag.get("geprojecteerd_revisie") or 0) < rev:
+        return {"laag_id": lid, "revisie": rev, "geprojecteerd": int(laag.get("geprojecteerd_revisie") or 0)}, [], None
+    if reg is None:
+        return None, [{"laag_id": lid, "soort": "niet_in_register"}], None
+    afw: list[dict] = []
+    if reg["g"] != str(graph_iri(lid)):
+        afw.append({"laag_id": lid, "soort": "verkeerde_graph", "detail": reg["g"]})
+    if int(reg["rev"]) != rev:
+        afw.append({"laag_id": lid, "soort": "registerrevisie", "detail": {"postgres": rev, "register": int(reg["rev"])}})
+    echt = await _haal_graph(client, str(graph_iri(lid)))
+    if not len(echt):
+        return None, afw + [{"laag_id": lid, "soort": "graph_ontbreekt"}], None
+    graaf_rev = echt.value(laag_iri(lid), JAS.revisie)
+    if graaf_rev != Literal(rev):
+        afw.append({"laag_id": lid, "soort": "graphrevisie", "detail": {"postgres": rev, "graph": str(graaf_rev)}})
+    els, dekking = invoer
+    verwacht = bouw_graaf(laag, els, dekking=dekking)
+    if not isomorphic(verwacht, echt):
+        afw.append({"laag_id": lid, "soort": "inhoud_wijkt_af", "detail": _verschil(verwacht, echt)})
+    if not shacl:
+        return None, afw, None
+    from .shacl import valideer
+    r = valideer(echt)
+    bevindingen = [{"laag_id": lid, "niveau": niveau, **b} for niveau in ("rdf", "jas_model") for b in r.get(niveau, [])] \
+        if r["beschikbaar"] and not r["conform"] else []
+    return None, afw, {"beschikbaar": r["beschikbaar"], "conform": r["conform"], "bevindingen": bevindingen}
+
+
+async def controleer_laag(laag_id: str, *, shacl: bool = True) -> dict[str, Any]:
+    """De controle voor één laag, voor de werkplek (technisch detail van een markering). Zelfde
+    toetsen als `controleer`, zonder verweesde graphs en invarianten – die gaan over de hele graaf.
+
+    `status`: `in_orde`, `achterstand` (nog niet geprojecteerd; de api haalt dat in), `afwijking`,
+    `onbeschikbaar` (graaf niet bereikbaar) of `uit` (geen projectie geconfigureerd). Een
+    onbereikbare graaf is nooit "in orde"."""
+    async with db.get_engine().connect() as conn:
+        rij = (await conn.execute(select(db.annotatie_v2_lagen).where(
+            db.annotatie_v2_lagen.c.id == laag_id))).mappings().first()
+        if rij is None:
+            raise LookupError(laag_id)
+        laag = dict(rij)
+        invoer = await laag_invoer(conn, laag)
+    uit: dict[str, Any] = {"laag_id": laag_id, "revisie": int(laag["revisie"]), "status": "uit",
+                           "afwijkingen": [], "shacl": None}
+    if not get_settings().graphdb_url:
+        return uit
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            rijen = await _select(client, _REGISTER_QUERY.replace(
+                "?laag jas:laagId ?id ;", f"?laag jas:laagId ?id ; jas:laagId {_lit(laag_id)} ;"))
+            reg = next((r for r in rijen if r["id"] == laag_id), None)
+            achter, afw, bev = await _controleer_laag(client, laag, invoer, reg, shacl)
+    except (httpx.HTTPError, ConnectionError, ValueError) as exc:
+        logger.warning("graafcontrole_laag_onbeschikbaar", extra={"fouttype": type(exc).__name__})
+        uit["status"] = "onbeschikbaar"
+        return uit
+    uit["afwijkingen"] = afw
+    if bev is not None:
+        uit["shacl"] = {"beschikbaar": bev["beschikbaar"], "conform": bev["conform"], "aantal": len(bev["bevindingen"])}
+    uit["status"] = ("achterstand" if achter else "afwijking" if afw or (bev and bev["beschikbaar"] and not bev["conform"])
+                     else "in_orde")
+    return uit
+
+
 async def controleer(*, shacl: bool = True) -> dict[str, Any]:
     """Volledige controle. `shacl=False` voor de lichte variant in de reconcile-lus."""
     uit: dict[str, Any] = {"graaf_beschikbaar": False, "in_orde": None, "lagen": 0, "achterstand": [],
@@ -103,41 +173,16 @@ async def controleer(*, shacl: bool = True) -> dict[str, Any]:
             uit["graaf_beschikbaar"] = True
             shacl_uit: dict[str, Any] = {"beschikbaar": _pyshacl_aanwezig(), "conform": True, "bevindingen": []}
             for laag in sorted(lagen, key=lambda x: x["id"]):
-                lid, rev = laag["id"], int(laag["revisie"])
-                if int(laag.get("geprojecteerd_revisie") or 0) < rev:
-                    uit["achterstand"].append({"laag_id": lid, "revisie": rev,
-                                               "geprojecteerd": int(laag.get("geprojecteerd_revisie") or 0)})
-                    continue
-                reg = register.get(lid)
-                if reg is None:
-                    uit["afwijkingen"].append({"laag_id": lid, "soort": "niet_in_register"})
-                    continue
-                if reg["g"] != str(graph_iri(lid)):
-                    uit["afwijkingen"].append({"laag_id": lid, "soort": "verkeerde_graph", "detail": reg["g"]})
-                if int(reg["rev"]) != rev:
-                    uit["afwijkingen"].append({"laag_id": lid, "soort": "registerrevisie",
-                                               "detail": {"postgres": rev, "register": int(reg["rev"])}})
-                echt = await _haal_graph(client, str(graph_iri(lid)))
-                if not len(echt):
-                    uit["afwijkingen"].append({"laag_id": lid, "soort": "graph_ontbreekt"})
-                    continue
-                graaf_rev = echt.value(laag_iri(lid), JAS.revisie)
-                if graaf_rev != Literal(rev):
-                    uit["afwijkingen"].append({"laag_id": lid, "soort": "graphrevisie",
-                                               "detail": {"postgres": rev, "graph": str(graaf_rev)}})
-                els, dekking = elementen.get(lid, ([], {}))
-                verwacht = bouw_graaf(laag, els, dekking=dekking)
-                if not isomorphic(verwacht, echt):
-                    uit["afwijkingen"].append({"laag_id": lid, "soort": "inhoud_wijkt_af",
-                                               "detail": _verschil(verwacht, echt)})
-                if shacl:
-                    from .shacl import valideer
-                    r = valideer(echt)
-                    shacl_uit["beschikbaar"] = r["beschikbaar"]
-                    if r["beschikbaar"] and not r["conform"]:
+                achter, afw, bev = await _controleer_laag(client, laag, elementen.get(laag["id"], ([], {})),
+                                                         register.get(laag["id"]), shacl)
+                if achter:
+                    uit["achterstand"].append(achter)
+                uit["afwijkingen"] += afw
+                if bev is not None:
+                    shacl_uit["beschikbaar"] = bev["beschikbaar"]
+                    if bev["beschikbaar"] and not bev["conform"]:
                         shacl_uit["conform"] = False
-                        for niveau in ("rdf", "jas_model"):
-                            shacl_uit["bevindingen"] += [{"laag_id": lid, "niveau": niveau, **b} for b in r[niveau]]
+                        shacl_uit["bevindingen"] += bev["bevindingen"]
             bekend = {laag["id"] for laag in lagen}
             uit["verweesd"] = sorted(
                 [{"soort": "registratie", "laag_id": i} for i in register if i not in bekend]

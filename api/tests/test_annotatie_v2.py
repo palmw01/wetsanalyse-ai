@@ -563,3 +563,36 @@ async def test_revisiehistorie_alleen_eigen_laag_en_geen_regel_bij_een_geweigerd
     with pytest.raises(HTTPException) as exc:
         await store.revisies("bestaat-niet")
     assert exc.value.status_code == 404
+
+
+async def test_technisch_detail_van_een_element(monkeypatch):
+    from httpx import ASGITransport, AsyncClient
+    from rdflib import Graph
+    from app import graafcontrole
+    from app.config import get_settings
+    from app.graaf_projectie_v2 import element_iri
+    from conftest import maak_testgebruikers
+    monkeypatch.setenv("WETSANALYSE_AUTH_REQUIRED", "0")
+    get_settings.cache_clear()
+    await maak_testgebruikers("v2-detail")
+    from app.main import app
+
+    async def nep_controle(laag_id, *, shacl=True):
+        return {"laag_id": laag_id, "revisie": 1, "status": "in_orde", "afwijkingen": [], "shacl": None}
+    monkeypatch.setattr(graafcontrole, "controleer_laag", nep_controle)
+    snap = snapshot()
+    uit = await store.batch(request(snap, [element(snap)]), snap, "lex")
+    eid, laag_id = uit["elementen"][0]["id"], uit["lagen"][0]["id"]
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        headers = {"X-User-Id": "v2-detail"}
+        r = await client.get(f"/v1/annotatie/elementen/{eid}/graaf", headers=headers)
+        assert r.status_code == 200
+        body = r.json()
+        assert body["laag_id"] == laag_id and body["graafcontrole"]["status"] == "in_orde"
+        g = Graph().parse(data=body["turtle"], format="turtle")
+        assert (element_iri(eid), None, None) in g
+        # Geen wettekst-subject en geen persoon: de projectie zet nooit een actor in de graaf.
+        assert not any(str(s).startswith("urn:bwb:") for s in g.subjects())
+        assert "lex" not in body["turtle"]
+        assert (await client.get("/v1/annotatie/elementen/bestaat-niet/graaf", headers=headers)).status_code == 404
+    get_settings.cache_clear()
