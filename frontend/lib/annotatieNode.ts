@@ -1,4 +1,5 @@
 import { naarInloggen } from "./api";
+import { pathSegment } from "./url";
 
 /** Canonieke bronnodeweergave. Posities zijn Unicode-codepunten, niet UTF-16. */
 export interface NodeDoel {
@@ -17,6 +18,7 @@ export interface NodeElement {
   verouderd?: boolean; beslissingen?: import("./types").Beslissing[];
   alternatieven?: import("./types").Alternatief[];
   aandacht?: string | null; review_uitleg?: string;
+  trace?: import("./types").ElementTrace; jas_subtype?: string;
   geproduceerd_door?: import("./types").AgentRun | null;
   provenance?: Partial<import("./types").AgentRun>;
 }
@@ -125,6 +127,12 @@ export async function nodeRequest<T>(path: string, body?: unknown, method = "POS
     ? { cache: "no-store" } : { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (!response.ok) throw await nodeError(response);
   return response.status === 204 ? undefined as T : response.json();
+}
+/** Eén element met zijn spoor, los van een weergave (`GET elementen/{id}`). */
+export async function haalElement(id: string): Promise<NodeElement> {
+  const { element } = await nodeRequest<{ element?: NodeElement }>(`elementen/${pathSegment(id)}`);
+  if (!element) throw new Error("Geen element in het antwoord.");
+  return element;
 }
 export async function haalNodeWeergave(doel: NodeDoel): Promise<NodeWeergave> {
   return nodeRequest(`weergave?${new URLSearchParams({ bron_iri: doel.bron_iri,

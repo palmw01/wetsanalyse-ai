@@ -147,7 +147,7 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
     `graphQaBaseUrl()` + `GRAPH_QA_TOKEN` en `X-User-Id` (`startRun`/`volgRun`/`stopRun`/
     `haalActieveRun`).
   - *Review-state via de API* – de catch-all `app/api/annotatie/v2/[...pad]/route.ts` → `/v1/annotatie/{weergave,elementen,lagen,
-    node-lagen,samenhang,capabilities}` (een allowlist op het eerste padsegment), met client-helpers in `lib/annotatieNode.ts`. De lagen zijn **gedeeld**,
+    node-lagen,samenhang,capabilities,verklaringen}` (een allowlist op het eerste padsegment), met client-helpers in `lib/annotatieNode.ts`. De lagen zijn **gedeeld**,
     niet per gebruiker; gesprekken zijn per gebruiker.
 
 ### De beurt is van de server, niet van dit tabblad
@@ -197,7 +197,9 @@ wie dat gesprek is, zoals `app/api/annotatie/run/route.ts`. Zet er geen tweede i
 
 graph-qa stuurt per fase een `status`-regel met duur (supervisor → ophaal-agent → Bron →
 Taalanalyse → Detectie → Besluit → Classificatie → Review → Resultaat → Klaar); `onStatus` plakt die
-als `· <regel>` aan `denk`, en `DenkProces` toont ze live. Het `annotatie`-item draagt ook een
+als `· <regel>` aan `denk`, en `DenkProces` toont ze live. Onder de annotatiechip staat de **beurtsamenvatting** van de laatste
+ronde (`beurtSamenvatting` in `lib/waarom.ts`, uit `geproduceerd_door.instellingen.meting`):
+resultaat, bronnodes zonder zinsontleding en de totale duur. Het `annotatie`-item draagt ook een
 `denk`-veld: de tijdlijn staat ingeklapt boven de chip als *"Zo is dit tot stand gekomen"*, wordt met
 de beurt bewaard en bij hydratatie teruggehaald. Achteraf moet te zien zijn hoe een annotatie tot
 stand kwam. `ToolSpoor` toont de graafaanroepen van de beurt (`tool_executions`), één regel per
@@ -441,6 +443,15 @@ de markering (`DocumentPaneel`) en de kaart (`ReviewQueue`), met respect voor
 - **Het lidnummer staat alleen op de kaart als het document meer dan één lid beslaat** (`toonLid`,
   afgeleid van `doc.lid`, niet van de elementen – anders verschijnt en verdwijnt het tijdens het
   reviewen).
+- **Waarom?** (`components/annotaties/WaaromUitklap.tsx`, logica in `lib/waarom.ts`) toont het
+  herkomstspoor van het element (`trace`): wie besliste, het bewijs, twijfel, resolutie, controles
+  en het subtype, met de ruwe modelvraag onder *Technisch detail*. Codes worden leesbare namen via
+  `GET verklaringen` (`lib/verklaringen.ts`, één keer per pagina); het id staat in de tooltip, en een
+  onbekende code verschijnt als zichzelf. Dezelfde uitklap staat in de graafinspector bij een
+  markering; ligt die buiten de weergave van het paneel, dan haalt hij het element pas bij openklappen
+  op (`haalElement`). Een kandidaat zonder zinsontleding krijgt de badge *gedegradeerd*. De
+  alternatief-chips dragen de twijfelreden uit het spoor als tooltip. `api/tests/test_verklaringen_frontend_drift.py`
+  bewaakt dat de secties die de werkplek leest bestaan.
 - **Geen lifecycle-jargon in beeld**: "voorstel van Lex" / "door jou aangepast" / "door jou
   gemarkeerd" + tijd. Het volledige spoor staat in het auditlog.
 

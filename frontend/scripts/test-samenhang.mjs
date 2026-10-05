@@ -59,7 +59,8 @@ function weergave(iri) {
     lagen: segs.map((s) => ({ id: `laag${s.nummer}`, bron_iri: s.bron_iri, status: "in_review", revisie: 1 })),
     elementen: segs.some((s) => s.bron_iri === L1) ? [{ id: "e1", eigenaar_iri: L1, laag_id: "laag1", klasse: "Rechtssubject",
       tekst: "ontvanger", toelichting: "Voert de invordering uit", lifecycle: "voorgesteld", herkomst: "agent",
-      ankers: [{ bron_iri: L1, start: 3, eind: 12, tekst: "ontvanger", bron_hash: "h1" }] }] : [],
+      ankers: [{ bron_iri: L1, start: 3, eind: 12, tekst: "ontvanger", bron_hash: "h1" }],
+      trace: { kandidaat: { bewijs: [{ detector: "rol", code: "ROL_ACTOR", regel: "jas.subject.actor" }] }, beslissing: { door: "regel" } } }] : [],
     verwijzingen: [], dekking: {} };
 }
 const berichten = [
@@ -93,11 +94,13 @@ async function nieuwePagina({ width = 1440, height = 1000, webgl = true } = {}) 
     if (url.pathname.endsWith("/v2/capabilities")) return route.fulfill({ json: { schema_versie: 2, bronnodes_actief: true, samenhang: true } });
     if (url.pathname.endsWith("/v2/samenhang")) { log.samenhang.push(url.searchParams.get("bron_iri")); return route.fulfill({ json: samenhangNu(url.searchParams.get("bron_iri")) }); }
     if (url.pathname.endsWith("/v2/weergave")) return route.fulfill({ json: weergave(url.searchParams.get("bron_iri")) });
+    if (url.pathname.endsWith("/v2/elementen/e1")) return route.fulfill({ json: { element: weergave(ART).elementen[0] } });
     if (url.pathname === "/api/gesprekken/g1") return route.fulfill({ json: { id: "g1", user_id: "browser-test", titel: "Samenhang", berichten } });
     if (url.pathname === "/api/gesprekken") return route.fulfill({ json: [{ id: "g1", titel: "Samenhang", aantal_berichten: 2 }] });
     if (url.pathname.includes("/actief")) return route.fulfill({ status: 404, json: {} });
     if (url.pathname.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
-    if (url.pathname.includes("/verklaringen")) return route.fulfill({ json: {} });
+    if (url.pathname.includes("/verklaringen")) return route.fulfill({ json: {
+      besluit: { regel: { naam: "vaste regel", uitleg: "" } }, regels: { "jas.subject.actor": { naam: "Handelende partij", uitleg: "" } } } });
     return route.fulfill({ status: 200, json: [] });
   });
   return { page, log };
@@ -192,6 +195,10 @@ async function detailsOpen(page) {
   // 6. Markering: "Toon in tekst" wisselt naar de tekst met dezelfde keuze.
   await zoekEnKies(page, "ontvanger", "element:e1");
   assert.match(await detail(page).innerText(), /Rechtssubject/);
+  // De inspector vertelt hetzelfde als de reviewkaart: één Waarom-uitklap.
+  await detail(page).getByText("Waarom?", { exact: true }).click();
+  await detail(page).getByText("Handelende partij", { exact: true }).waitFor();
+  await detail(page).getByText("vaste regel", { exact: true }).waitFor();
   await page.getByRole("button", { name: "Toon in tekst" }).click();
   assert.equal(await page.getByRole("button", { name: "Tekst", exact: true }).getAttribute("aria-pressed"), "true");
   await page.locator("[data-artefact]").waitFor();

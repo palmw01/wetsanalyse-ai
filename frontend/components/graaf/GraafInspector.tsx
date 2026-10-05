@@ -6,6 +6,8 @@ import { LIFECYCLE_LABEL } from "@/lib/annotatie";
 import { jasStyle } from "@/lib/jas";
 import { SOORT_LABEL, type GraafKnoop, type Hoofdactie, type RelatieGroepNaam, type RelatieRegel } from "@/lib/samenhang";
 import type { Lifecycle } from "@/lib/types";
+import type { WaaromBron } from "@/lib/waarom";
+import { WaaromUitklap } from "@/components/annotaties/WaaromUitklap";
 
 const ICOON = "focus-ring flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-surface hover:text-ink coarse:h-11 coarse:w-11";
 const TEKSTKNOP = "focus-ring rounded px-1 py-1 text-xs text-lint underline-offset-2 hover:underline coarse:min-h-11";
@@ -15,9 +17,14 @@ const ZICHTBAAR_PER_GROEP = 5;
 /** Wat is dit? Eén kaart per gekozen knoop: naam, inhoud, één hoofdactie, rustige extra's en de
  *  relaties per soort. Zonder selectie een korte stand van zaken. Smal (zijpaneel) staat de kaart
  *  onder de graaf en is hij in te klappen tot kop + hoofdactie, zodat het canvas zijn hoogte houdt. */
-export function GraafInspector({ knoop, hoofdactie, uitgeklapt, verborgenBuren, laadt, groepen, samenvatting, smal,
+export function GraafInspector({ knoop, element, laadElement, hoofdactie, uitgeklapt, verborgenBuren, laadt, groepen, samenvatting, smal,
   onCentreer, onSluit, onHoofdactie, onVraag, onVerbindingen, onKies }: {
-  knoop?: GraafKnoop; hoofdactie: Hoofdactie; uitgeklapt: boolean; verborgenBuren: number; laadt: boolean;
+  knoop?: GraafKnoop;
+  /** Het element achter een markeringsknoop, voor de Waarom-uitklap; de graaf zelf draagt het spoor niet. */
+  element?: WaaromBron;
+  /** Voor een markering buiten de weergave van het paneel: het element op aanvraag. */
+  laadElement?: () => Promise<WaaromBron>;
+  hoofdactie: Hoofdactie; uitgeklapt: boolean; verborgenBuren: number; laadt: boolean;
   groepen: { naam: RelatieGroepNaam; regels: RelatieRegel[] }[];
   samenvatting: { leden: number; markeringen: number; verwijzingen: number };
   smal: boolean;
@@ -74,6 +81,7 @@ export function GraafInspector({ knoop, hoofdactie, uitgeklapt, verborgenBuren, 
         <span className={`inline-block rounded border px-2 py-0.5 text-[11px] ${jasStyle(knoop.klasse)}`}>{knoop.klasse}</span>
         {knoop.lifecycle && <span className="text-[11px] text-muted">{LIFECYCLE_LABEL[knoop.lifecycle as Lifecycle] || knoop.lifecycle}</span>}
       </div>}
+      {knoop.soort === "markering" && (element || laadElement) && <WaaromUitklap key={knoop.id} el={element} laad={laadElement} />}
       {knoop.tekst && knoop.soort !== "markering" && <p className="border-l-2 border-lint/20 pl-3 text-xs leading-relaxed text-muted">{knoop.tekst}</p>}
       {knoop.soort === "extern" && <p className="text-xs text-muted">Deze bepaling staat niet in de kennisgraaf; alleen de verwijzing ernaar is bekend.</p>}
       {groepen.map(({ naam, regels }) => {

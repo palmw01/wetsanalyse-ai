@@ -204,6 +204,31 @@ export interface Alternatief {
   motivatie: string;
 }
 
+/** Het herkomstspoor van één element, zoals de annotatieketen het meegeeft (graph-qa
+ *  `jas_pipeline/keten.py:_spoor`). Alles optioneel: een handmatige markering heeft geen spoor, en
+ *  de api bewaart het zoals het binnenkwam. De codes vertaalt `lib/verklaringen.ts`. */
+export interface ElementTrace {
+  pijplijn?: string;
+  jas_versie?: string;
+  kandidaat?: {
+    id?: string;
+    label?: string;
+    mogelijke_klassen?: string[];
+    /** Beoordeeld zonder zinsontleding: alleen de lexicale detectoren spraken mee. */
+    gedegradeerd?: boolean;
+    bewijs?: { detector: string; code: string; regel?: string; relatie?: string; detail?: string }[];
+    spanopties?: { soort: string; start: number; eind: number }[];
+  };
+  /** `door`: regel | model | specificiteit. `reden` is bij `specificiteit` het regel-id. */
+  beslissing?: { status?: string; klasse?: string; optie?: string; door?: string; reden?: string } | null;
+  oorspronkelijke_beslissing?: ElementTrace["beslissing"];
+  /** De exacte regel die het model over deze kandidaat zag; leeg als er geen model aan te pas kwam. */
+  vraag?: string;
+  twijfel?: { reden: string; huidig?: string; alternatieven?: string[]; detail?: string; categorie?: string }[];
+  resolutie?: { reden?: string; actie?: string; regel: string; van?: string; naar?: string; motivering?: string }[];
+  validatie?: { code: string; detail?: string; ernst?: string }[];
+}
+
 export interface Beslissing {
   type: BeslissingType;
   actor: string;
@@ -229,7 +254,18 @@ export interface AgentRun {
   leden?: string[];
   prompt_hash?: string;
   methode_versie?: string;
+  /** De meting van de beurt (graph-qa `nodes/annotatie.py:_instellingen`); de tijdlijn leest er de
+   *  beurtsamenvatting uit. */
+  instellingen?: { meting?: BeurtMeting };
   tijd: string;
+}
+
+export interface BeurtMeting {
+  fasen?: { fase: string; samenvatting: string; ms: number }[];
+  /** Bronnodes die zonder zinsontleding zijn beoordeeld. */
+  gedegradeerd?: string[];
+  reviewload?: { human_review?: number; juridisch?: number; technisch?: number };
+  deterministisch?: number;
 }
 
 /** Waar een fragment stond toen het werd gemaakt: exacte offsets + quote-met-context als vangnet. */
@@ -260,6 +296,9 @@ export interface AnnotatieElement {
   aandacht?: Aandacht | null;
   /** De uitleg van de gerichte review bij een twijfelgeval (resolver, ADR-001). */
   review_uitleg?: string;
+  /** Waarom dit element er staat; zie `ElementTrace` en de Waarom-uitklap. */
+  trace?: ElementTrace;
+  jas_subtype?: string;
   anker?: Anker | null;
   diff: Record<string, { voor: unknown; na: unknown }>;
   beslissingen: Beslissing[];
