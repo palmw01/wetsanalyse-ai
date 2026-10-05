@@ -47,7 +47,8 @@ async def test_concurrent_retry_commits_once():
     async with db.get_engine().connect() as conn:
         assert len((await conn.execute(select(db.annotatie_v2_elementen))).all()) == 1
         assert len((await conn.execute(select(db.annotatie_v2_batches))).all()) == 1
-        assert len((await conn.execute(select(db.annotatie_v2_audit))).all()) == 2
+        # element-gemaakt, batch en de revisieregel van de laag – één keer, ook bij twee gelijktijdige pogingen.
+        assert len((await conn.execute(select(db.annotatie_v2_audit))).all()) == 3
 
 
 async def test_detectiebijdragen_en_afwijzingen_overleven_postgres_roundtrip():
