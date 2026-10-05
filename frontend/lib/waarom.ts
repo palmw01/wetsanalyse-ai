@@ -1,3 +1,4 @@
+import type { LaagGraafcontrole } from "./annotatieNode";
 import type { AgentRun, AnnotatieElement, Beslissing, BeurtMeting, ElementTrace } from "./types";
 import { verklaar, type Verklaringen } from "./verklaringen";
 
@@ -25,7 +26,7 @@ export interface WaaromModel {
 }
 
 /** Wat een element nodig heeft voor de uitklap; zowel het paneelmodel als het ruwe v2-element passen. */
-export type WaaromBron = Pick<AnnotatieElement, "herkomst" | "trace" | "jas_subtype"> & { beslissingen?: Beslissing[] };
+export type WaaromBron = Pick<AnnotatieElement, "herkomst" | "trace" | "jas_subtype"> & { beslissingen?: Beslissing[]; id?: string };
 
 const JURIST: Partial<Record<Beslissing["type"], string>> = {
   approve: "akkoord bevonden", edit: "aangepast", reject: "verworpen", heropen: "heropend",
@@ -120,4 +121,21 @@ export function beurtSamenvatting(meting?: BeurtMeting): string {
     gedegradeerd ? `${gedegradeerd} ${gedegradeerd === 1 ? "bronnode" : "bronnodes"} zonder zinsontleding` : "",
     duur ? seconden(duur) : "",
   ].filter(Boolean).join(" · ");
+}
+
+/** De graafcontrole van een laag in gewone taal. Alleen een echte afwijking vraagt aandacht; een
+ *  achterstand haalt de api zelf in, en een onbereikbare graaf is geen oordeel over de annotatie. */
+export function graafStatusTekst(gc: LaagGraafcontrole): { tekst: string; ernst: "goed" | "neutraal" | "aandacht" } {
+  const shacl = gc.shacl && gc.shacl.beschikbaar && !gc.shacl.conform ? gc.shacl.aantal : 0;
+  switch (gc.status) {
+    case "in_orde": return { tekst: "De graaf klopt met de database (revisie " + gc.revisie + ").", ernst: "goed" };
+    case "achterstand": return { tekst: "Nog niet in de graaf bijgewerkt; de api haalt dat zelf in.", ernst: "neutraal" };
+    case "onbeschikbaar": return { tekst: "De kennisgraaf is nu niet bereikbaar – geen oordeel.", ernst: "neutraal" };
+    case "uit": return { tekst: "Deze omgeving projecteert niet naar de kennisgraaf.", ernst: "neutraal" };
+    default: {
+      const delen = [gc.afwijkingen.length ? `${gc.afwijkingen.length} ${gc.afwijkingen.length === 1 ? "afwijking" : "afwijkingen"}` : "",
+        shacl ? `${shacl} SHACL-${shacl === 1 ? "bevinding" : "bevindingen"}` : ""].filter(Boolean);
+      return { tekst: `De graaf wijkt af van de database: ${delen.join(", ") || "zie de beheercontrole"}.`, ernst: "aandacht" };
+    }
+  }
 }

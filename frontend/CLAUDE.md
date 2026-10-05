@@ -454,7 +454,9 @@ de markering (`DocumentPaneel`) en de kaart (`ReviewQueue`), met respect voor
   `GET verklaringen` (`lib/verklaringen.ts`, één keer per pagina); het id staat in de tooltip, en een
   onbekende code verschijnt als zichzelf. Dezelfde uitklap staat in de graafinspector bij een
   markering; ligt die buiten de weergave van het paneel, dan haalt hij het element pas bij openklappen
-  op (`haalElement`). Een kandidaat zonder zinsontleding krijgt de badge *gedegradeerd*. De
+  op (`haalElement`). Onder *Technisch detail* staan, pas bij openklappen opgehaald
+  (`haalElementGraaf` → `GET elementen/{id}/graaf`), de graafcontrole van de laag
+  (`graafStatusTekst`: alleen een afwijking vraagt aandacht) en de RDF van de markering. Een kandidaat zonder zinsontleding krijgt de badge *gedegradeerd*. De
   alternatief-chips dragen de twijfelreden uit het spoor als tooltip. `api/tests/test_verklaringen_frontend_drift.py`
   bewaakt dat de secties die de werkplek leest bestaan.
 - **Geen lifecycle-jargon in beeld**: "voorstel van Lex" / "door jou aangepast" / "door jou

@@ -143,6 +143,10 @@ Hieronder wat je moet weten om de code te wijzigen.
   de bronnencontrole van Lex.
 - **Herkomst in RDF.** `bouw_graaf` zet per element een `prov:Activity` voor de run (model als
   `prov:SoftwareAgent`) en de beoordelingen erbij.
+- **Graafcontrole per laag** (`graafcontrole.controleer_laag`, via `GET /v1/annotatie/elementen/{id}/graaf`
+  voor elke actieve gebruiker): dezelfde toetsen als hieronder voor één laag (`_controleer_laag` is
+  gedeeld), zonder verweesde graphs en invarianten. Het endpoint geeft er de Turtle van het element
+  bij, gebouwd met `bouw_graaf` – het technisch detail in de werkplek.
 - **Graafcontrole** (`GET /v1/admin/annotatie/graafcontrole`, alleen lezend): consistentie
   (register, revisies, verweesde graphs), bouw (opgehaalde graph isomorf met `bouw_graaf` uit de
   Postgres-stand), SHACL per niveau (`rdf`/`jas_model`) en de invarianten. Een laag die nog niet

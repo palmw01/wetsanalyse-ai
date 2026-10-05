@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { ChevronOmlaag } from "@/components/ui/Icoon";
+import { foutTekst } from "@/lib/api";
+import { haalElementGraaf, type ElementGraaf } from "@/lib/annotatieNode";
 import { haalVerklaringen, type Verklaringen } from "@/lib/verklaringen";
-import { waaromVan, type WaaromBron, type WaaromRegel } from "@/lib/waarom";
+import { graafStatusTekst, waaromVan, type WaaromBron, type WaaromRegel } from "@/lib/waarom";
 
 /** De verklaringen, één keer per pagina; tot ze er zijn staan de codes zelf in beeld. */
 export function useVerklaringen(): Verklaringen | undefined {
@@ -60,6 +62,8 @@ export function WaaromUitklap({ el, laad }: {
 
 function WaaromInhoud({ el }: { el: WaaromBron }) {
   const v = useVerklaringen();
+  // Pas bij het openklappen van het technisch detail: de graafcontrole haalt een graph op.
+  const [graafOpen, setGraafOpen] = useState(false);
   const w = waaromVan(el, v);
   return <div className="mt-1 space-y-2 border-l-2 border-lint/20 pl-3">
       {w.handmatig ? (
@@ -79,7 +83,9 @@ function WaaromInhoud({ el }: { el: WaaromBron }) {
       <Regels kop="Twijfel" regels={w.twijfel} />
       <Regels kop="Afgehandeld met" regels={w.resolutie} />
       <Regels kop="Controles" regels={w.validatie} />
-      {w.trace && <details className="group/tech">
+      {(w.trace || el.id) && <details className="group/tech" onToggle={(e) => {
+        if ((e.currentTarget as HTMLDetailsElement).open && el.id) setGraafOpen(true);
+      }}>
         <summary className="focus-ring inline-flex cursor-pointer list-none items-center gap-1 rounded text-[11px] text-muted">
           <ChevronOmlaag className="-rotate-90 transition-transform group-open/tech:rotate-0" />Technisch detail
         </summary>
@@ -87,8 +93,44 @@ function WaaromInhoud({ el }: { el: WaaromBron }) {
           <p className={`${KOP} mt-1`}>Wat het model zag</p>
           <pre className="mt-0.5 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded bg-surface p-2 text-[11px] text-ink">{w.vraag}</pre>
         </>}
-        <p className={`${KOP} mt-1`}>Spoor</p>
-        <pre className="mt-0.5 max-h-60 overflow-auto whitespace-pre-wrap break-words rounded bg-surface p-2 text-[11px] text-ink">{JSON.stringify(w.trace, null, 2)}</pre>
+        {w.trace && <>
+          <p className={`${KOP} mt-1`}>Spoor</p>
+          <pre className="mt-0.5 max-h-60 overflow-auto whitespace-pre-wrap break-words rounded bg-surface p-2 text-[11px] text-ink">{JSON.stringify(w.trace, null, 2)}</pre>
+        </>}
+        {graafOpen && el.id && <GraafDetail id={el.id} />}
       </details>}
+  </div>;
+}
+
+const PIL = {
+  goed: "border-line bg-surface text-ink",
+  neutraal: "border-line bg-surface text-muted",
+  aandacht: "border-aandacht-geel-rand bg-aandacht-geel-bg text-aandacht-geel-tekst",
+} as const;
+
+/** De RDF van deze markering en de graafcontrole van haar laag. Eén keer opgehaald per element. */
+function GraafDetail({ id }: { id: string }) {
+  const [data, setData] = useState<ElementGraaf>();
+  const [fout, setFout] = useState("");
+  const [gekopieerd, setGekopieerd] = useState(false);
+  useEffect(() => {
+    let weg = false;
+    haalElementGraaf(id).then((d) => { if (!weg) setData(d); }, (e) => { if (!weg) setFout(foutTekst(e)); });
+    return () => { weg = true; };
+  }, [id]);
+  if (fout) return <p className="mt-1 text-[11px] text-muted" data-testid="graaf-detail-fout">Graafdetail niet beschikbaar: {fout}</p>;
+  if (!data) return <p className="mt-1 text-[11px] text-muted">Graaf ophalen…</p>;
+  const status = graafStatusTekst(data.graafcontrole);
+  return <div data-testid="graaf-technisch">
+    <p className={`${KOP} mt-1`}>Graafcontrole van deze laag</p>
+    <p className={`mt-0.5 inline-flex rounded-full border px-2 py-0.5 text-[11px] ${PIL[status.ernst]}`}>{status.tekst}</p>
+    <p className={`${KOP} mt-1 flex items-center gap-2`}>
+      RDF (Turtle)
+      <button type="button" className="focus-ring rounded text-[11px] font-normal text-lint underline underline-offset-2 hover:no-underline"
+        onClick={() => { void navigator.clipboard?.writeText(data.turtle).then(() => setGekopieerd(true), () => {}); }}>
+        {gekopieerd ? "Gekopieerd" : "Kopiëren"}
+      </button>
+    </p>
+    <pre className="mt-0.5 max-h-60 overflow-auto whitespace-pre-wrap break-words rounded bg-surface p-2 text-[11px] text-ink">{data.turtle}</pre>
   </div>;
 }

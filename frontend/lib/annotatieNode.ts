@@ -147,6 +147,18 @@ export async function haalElement(id: string): Promise<NodeElement> {
   if (!element) throw new Error("Geen element in het antwoord.");
   return element;
 }
+/** Technisch detail van één markering: haar RDF zoals de projectie hem schrijft, en de graafcontrole
+ *  van haar laag (`GET elementen/{id}/graaf`). */
+export interface LaagGraafcontrole {
+  laag_id: string; revisie: number;
+  status: "in_orde" | "achterstand" | "afwijking" | "onbeschikbaar" | "uit";
+  afwijkingen: { soort: string }[];
+  shacl: { beschikbaar: boolean; conform: boolean; aantal: number } | null;
+}
+export interface ElementGraaf { element_id: string; laag_id: string; turtle: string; graafcontrole: LaagGraafcontrole }
+export function haalElementGraaf(id: string): Promise<ElementGraaf> {
+  return nodeRequest(`elementen/${pathSegment(id)}/graaf`);
+}
 export async function haalNodeWeergave(doel: NodeDoel): Promise<NodeWeergave> {
   return nodeRequest(`weergave?${new URLSearchParams({ bron_iri: doel.bron_iri,
     ...(doel.snapshot_id ? { snapshot_id: doel.snapshot_id } : {}) })}`);

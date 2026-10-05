@@ -16,7 +16,7 @@ from app import db
 from app import graaf_projectie_v2 as projectie
 from app.annotatie_v2_contracts import Beslissing
 from app.config import get_settings
-from app.graafcontrole import controleer
+from app.graafcontrole import controleer, controleer_laag
 from app.graaf_projectie_v2 import JAS, REGISTER, element_iri, graph_iri, laag_iri
 from graafdb_fake import installeer
 from test_annotatie_v2 import ONE, element, request, snapshot
@@ -216,3 +216,34 @@ async def test_dekking_uit_de_batch_komt_in_de_graaf_en_de_controle_bouwt_hem_me
     finally:
         get_settings.cache_clear()
         await db.dispose_engine()
+
+
+# --- De controle per laag (technisch detail in de werkplek) ---------------------------------------
+
+async def test_per_laag_zegt_hetzelfde_als_de_grote_controle(omgeving):
+    nep, snap, laag_id, eid = await _geprojecteerd(omgeving)
+    r = await controleer_laag(laag_id)
+    assert r["status"] == "in_orde" and not r["afwijkingen"], r
+    assert r["shacl"]["beschikbaar"] is True and r["shacl"]["conform"] is True and r["shacl"]["aantal"] == 0
+    # Nog niet geprojecteerd: achterstand, geen afwijking.
+    await store.beslis(eid, Beslissing(type="approve", snapshot_id=snap["snapshot_id"],
+                                       verwachte_revisies={ONE: 1}), snap, "b")
+    assert (await controleer_laag(laag_id))["status"] == "achterstand"
+    await projectie.projecteer(laag_id)
+    # Een wijziging in de graaf ziet hij net als de grote controle.
+    nep.ds.graph(graph_iri(laag_id)).set((element_iri(eid), JAS.tekst, Literal("iets anders")))
+    r = await controleer_laag(laag_id, shacl=False)
+    assert r["status"] == "afwijking" and {a["soort"] for a in r["afwijkingen"]} == {"inhoud_wijkt_af"}
+    assert {a["soort"] for a in r["afwijkingen"]} == {a["soort"] for a in (await controleer(shacl=False))["afwijkingen"]}
+
+
+async def test_per_laag_onbereikbaar_uit_en_onbekend(omgeving, monkeypatch):
+    nep, _snap, laag_id, _eid = await _geprojecteerd(omgeving)
+    nep.storing()
+    assert (await controleer_laag(laag_id))["status"] == "onbeschikbaar"
+    nep.storing(False)
+    monkeypatch.setenv("GRAPHDB_URL", "")
+    get_settings.cache_clear()
+    assert (await controleer_laag(laag_id))["status"] == "uit"
+    with pytest.raises(LookupError):
+        await controleer_laag("bestaat-niet")

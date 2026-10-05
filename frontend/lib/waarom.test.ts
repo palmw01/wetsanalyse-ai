@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { AgentRun, ElementTrace } from "./types";
-import { beurtSamenvatting, laatsteJuristBeslissing, laatsteRun, redenVoorAlternatief, waaromVan } from "./waarom";
+import { beurtSamenvatting, graafStatusTekst, laatsteJuristBeslissing, laatsteRun, redenVoorAlternatief, waaromVan } from "./waarom";
 import { verklaar, type Verklaringen } from "./verklaringen";
 
 const V: Verklaringen = {
@@ -123,5 +123,20 @@ describe("haalVerklaringen", () => {
     expect(await haalVerklaringen()).toEqual(V);
     expect(fetch).toHaveBeenCalledTimes(2);
     expect(String(fetch.mock.calls[0][0])).toBe("/api/annotatie/v2/verklaringen");
+  });
+});
+
+describe("graafStatusTekst", () => {
+  const gc = (status: Parameters<typeof graafStatusTekst>[0]["status"], extra = {}) =>
+    ({ laag_id: "l", revisie: 3, status, afwijkingen: [], shacl: null, ...extra });
+
+  it("vraagt alleen bij een echte afwijking aandacht", () => {
+    expect(graafStatusTekst(gc("in_orde"))).toEqual({ tekst: "De graaf klopt met de database (revisie 3).", ernst: "goed" });
+    expect(graafStatusTekst(gc("achterstand")).ernst).toBe("neutraal");
+    expect(graafStatusTekst(gc("onbeschikbaar")).ernst).toBe("neutraal");
+    expect(graafStatusTekst(gc("uit")).ernst).toBe("neutraal");
+    const af = graafStatusTekst(gc("afwijking", { afwijkingen: [{ soort: "inhoud_wijkt_af" }],
+      shacl: { beschikbaar: true, conform: false, aantal: 2 } }));
+    expect(af).toEqual({ tekst: "De graaf wijkt af van de database: 1 afwijking, 2 SHACL-bevindingen.", ernst: "aandacht" });
   });
 });
