@@ -64,6 +64,11 @@ Hieronder wat je moet weten om de code te wijzigen.
   `verwachte_revisies` mee en krijgen **412** bij een tussentijdse wijziging. Elke schrijfactie legt
   de snapshot van de bronboom vast; een beslissing of export tegen een andere bronstand geeft
   **409**.
+- **Revisiehistorie.** `schrijftransactie` houdt bij welke lagen `_raak` raakte en welke
+  auditregels er vielen, en schrijft ná de laatste mutatie (vóór de commit) per laag één regel
+  `revisie` met `laag_id` in een eigen kolom. `GET lagen/{laag_id}/revisies` leest alleen die regels.
+  Een geweigerde mutatie (409/412) schrijft er dus geen. Geef `_audit` een `laag_id` mee waar de
+  regel bij één laag hoort; een regel zonder laag (de `batch`) telt bij elke laag van de transactie.
 - **Batches zijn idempotent** op `batch_id` plus payload (`POST lagen/batch`). Een eigen markering
   van de jurist (`POST elementen`) loopt door hetzelfde pad met `mens=True`.
 - **De API toetst ankers zelf** (`annotatie_v2_store.valideer`): klasse bestaat, fragment niet

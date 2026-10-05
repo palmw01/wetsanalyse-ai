@@ -68,7 +68,8 @@ async def test_idempotent_batch_preserves_exact_reply_and_no_extra_audit():
     first = await store.batch(req, snap, "a")
     assert await store.batch(req, snap, "a") == first
     async with db.get_engine().connect() as conn:
-        assert len((await conn.execute(select(db.annotatie_v2_audit))).all()) == 2
+        # element-gemaakt, batch en de revisieregel van de laag – en bij herhalen niets erbij.
+        assert len((await conn.execute(select(db.annotatie_v2_audit))).all()) == 3
     altered = req.model_copy(update={"run": {"model": "ander"}})
     with pytest.raises(HTTPException) as exc:
         await store.batch(altered, snap, "a")
@@ -519,3 +520,36 @@ def test_beslisregister_weigert_een_onbekende_status():
     with pytest.raises(ValueError):
         Batch.model_validate(dict(batch_id="b", doel={"bron_iri": ONE}, snapshot_id="s", beslissingen=[
             {"kandidaat_id": "K", "bron_iri": ONE, "start": 0, "eind": 1, "status": "MISSCHIEN"}]))
+
+
+async def test_revisiehistorie_per_laag():
+    snap = snapshot(TWO)
+    first = await store.batch(request(snap, [element(snap, TWO, 0, 4)]), snap, "lex")
+    eid, layer = first["elementen"][0]["id"], first["lagen"][0]
+    await store.beslis(eid, Beslissing(type="approve", snapshot_id=snap["snapshot_id"],
+                                      verwachte_revisies={TWO: 1}), snap, "jan")
+    await store.zet_status(layer["id"], "geaccordeerd", 2, "piet", snap)
+    historie = await store.revisies(layer["id"])
+    assert [(h["revisie"], h["actor"]) for h in historie] == [(3, "piet"), (2, "jan"), (1, "lex")]
+    assert historie[0]["acties"] == [{"actie": "laag-status", "status": "geaccordeerd"}]
+    assert historie[1]["acties"] == [{"actie": "approve", "element_id": eid}]
+    # De ronde van Lex: het element dat hij maakte en de batch, die bij geen enkele laag apart hoort.
+    assert [a["actie"] for a in historie[2]["acties"]] == ["element-gemaakt", "batch"]
+    assert historie[2]["acties"][0]["element_id"] == eid
+    assert historie[0]["tijdstip"].endswith("+00:00")
+
+
+async def test_revisiehistorie_alleen_eigen_laag_en_geen_regel_bij_een_geweigerde_mutatie():
+    snap = snapshot(ART)
+    created = await store.batch(request(snap, [element(snap), element(snap, TWO, 0, 4)]), snap, "lex")
+    een, twee = sorted(created["lagen"], key=lambda l: l["bron_iri"])
+    eid_een = next(e["id"] for e in created["elementen"] if e["eigenaar_iri"] == ONE)
+    acties_een = (await store.revisies(een["id"]))[0]["acties"]
+    assert [a.get("element_id") for a in acties_een if a["actie"] == "element-gemaakt"] == [eid_een]
+    with pytest.raises(HTTPException):
+        await store.beslis(eid_een, Beslissing(type="approve", snapshot_id=snap["snapshot_id"],
+                                              verwachte_revisies={ONE: 99}), snap, "jan")
+    assert len(await store.revisies(een["id"])) == 1
+    with pytest.raises(HTTPException) as exc:
+        await store.revisies("bestaat-niet")
+    assert exc.value.status_code == 404

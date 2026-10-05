@@ -140,6 +140,13 @@ async def post_status(laag_id: str, req: StatusInvoer, actor: str = Depends(acti
     return await store.zet_status(laag_id, req.status, req.verwachte_revisie, actor, snapshot)
 
 
+@router.get("/lagen/{laag_id}/revisies")
+async def get_revisies(laag_id: str, limit: int = Query(100, ge=1, le=500), actor: str = Depends(actieve_userid)):
+    """De revisiehistorie van een laag, nieuwste eerst: per revisie wie, wanneer en welke acties.
+    Alleen wat er gebeurde – de inhoud van de laag zoals die toen was, bewaart de api niet."""
+    return await store.revisies(laag_id, limit)
+
+
 @router.post("/zoeken")
 async def post_zoeken(req: Zoekvraag, actor: str = Depends(actieve_userid)):
     from .annotatie_v2_zoeken import zoek

@@ -388,6 +388,11 @@ wrappende rij verhuist het kruisje mee zodra de ruimte krap wordt. Sluiten zit o
 hetzelfde icoon (viewBox 20, `strokeWidth` 1.6) als in `InstellingenDialog`, `DisclaimerDialog`,
 `FeedbackDialoog` en de gesprekkendrawer.
 
+**Historie** (`components/annotaties/RevisieHistorie.tsx`, logica in `lib/revisies.ts`) staat in de
+`extra`-haak van het paneel: per revisie van de lagen in beeld wie wat wanneer deed, pas geladen bij
+openklappen en opnieuw bij een nieuwe revisie. Een geraakt element kies je met één klik. Alleen-lezend:
+de api bewaart geen oude inhoud, dus er is geen "toon de laag zoals hij toen was".
+
 **Afronden** zit in de kop van `ArtefactInhoud` (dus in beide schillen) en zet de status van elke laag
 in beeld (`NodeAnnotatiePaneel.status`, `POST lagen/{id}/status`). Expliciet, want "alle elementen beslist" is niet hetzelfde als klaar zijn;
 heropenen kan altijd. Afronden **bevriest de hele annotatie** (`isDocumentVergrendeld`): de handlers

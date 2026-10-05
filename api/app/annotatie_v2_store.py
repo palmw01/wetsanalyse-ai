@@ -83,6 +83,7 @@ async def schrijftransactie():
     te_projecteren: set[str] = set()
     async with db.get_engine().begin() as conn:
         conn.info["te_projecteren"] = te_projecteren
+        conn.info["geraakt"], conn.info["acties"] = {}, []
         try:
             try:
                 async with conn.begin_nested():
@@ -92,8 +93,10 @@ async def schrijftransactie():
             await conn.execute(select(db.annotatie_v2_state).where(
                 db.annotatie_v2_state.c.id == 1).with_for_update())
             yield conn
+            await _revisieregels(conn)
         finally:
-            conn.info.pop("te_projecteren", None)
+            for sleutel in ("te_projecteren", "geraakt", "acties", "actor"):
+                conn.info.pop(sleutel, None)
     from .graaf_projectie_v2 import na_mutatie
     na_mutatie(sorted(te_projecteren))
 
@@ -107,9 +110,29 @@ async def leestransactie():
             yield conn
 
 
-async def _audit(conn, actor: str, actie: str, detail: dict, element_id: str | None = None):
+async def _audit(conn, actor: str, actie: str, detail: dict, element_id: str | None = None,
+                 laag_id: str | None = None):
     await conn.execute(insert(db.annotatie_v2_audit).values(
-        actor=actor, actie=actie, detail=detail, element_id=element_id, tijdstip=db.utcnow()))
+        actor=actor, actie=actie, detail=detail, element_id=element_id, laag_id=laag_id, tijdstip=db.utcnow()))
+    # Wat deze transactie deed, voor de revisieregels aan het eind ervan (`_revisieregels`).
+    if "acties" in conn.info:
+        conn.info["actor"] = actor
+        conn.info["acties"].append({"actie": actie, "laag_id": laag_id, **({"element_id": element_id} if element_id else {}),
+                                    **({"status": detail["status"]} if actie == "laag-status" else {})})
+
+
+async def _revisieregels(conn):
+    """Eén auditregel `revisie` per laag die deze transactie raakte, met wat er gebeurde.
+
+    De revisie zelf komt uit `_raak`; de acties zijn de auditregels van dezelfde transactie die bij
+    deze laag horen, of bij geen enkele laag (de batch van een ronde van Lex). Zo is de historie per
+    laag één select op `laag_id`, zonder de volgorde van losse regels te hoeven reconstrueren."""
+    for laag_id, revisie in conn.info.get("geraakt", {}).items():
+        acties = [{k: v for k, v in a.items() if k != "laag_id"} for a in conn.info.get("acties", [])
+                  if a["laag_id"] in (None, laag_id)]
+        await conn.execute(insert(db.annotatie_v2_audit).values(
+            actor=conn.info.get("actor", ""), actie="revisie", detail={"revisie": revisie, "acties": acties},
+            element_id=None, laag_id=laag_id, tijdstip=db.utcnow()))
 
 
 async def _lagen(conn) -> dict[str, dict]:
@@ -145,6 +168,8 @@ async def _laag(conn, layers: dict, iri: str, snapshot_id: str, expected: dict) 
 async def _raak(conn, layer: dict, snapshot_id: str):
     layer.update(revisie=layer["revisie"] + 1, snapshot_id=snapshot_id, updated=db.utcnow())
     conn.info.get("te_projecteren", set()).add(layer["id"])
+    if "geraakt" in conn.info:
+        conn.info["geraakt"][layer["id"]] = layer["revisie"]
     await conn.execute(update(db.annotatie_v2_lagen).where(
         db.annotatie_v2_lagen.c.id == layer["id"]).values(**layer))
     await conn.execute(update(db.annotatie_v2_state).where(db.annotatie_v2_state.c.id == 1).values(
@@ -187,7 +212,8 @@ async def batch(req: Batch, snapshot: dict, actor: str, *, mens: bool = False) -
                 if req.verwachte_revisies.get(iri, 0) != layer["revisie"]:
                     raise HTTPException(412, "Laag is intussen gewijzigd.")
                 layer["status"] = "in_review"
-                await _audit(conn, actor, "laag-bron-gewijzigd", {"laag_id": layer["id"], "snapshot_id": req.snapshot_id})
+                await _audit(conn, actor, "laag-bron-gewijzigd", {"laag_id": layer["id"], "snapshot_id": req.snapshot_id},
+                             laag_id=layer["id"])
         # Iedere volledig behandelde tekstnode krijgt ook zonder gevonden elementen een laag.
         reuse = req.run.get("modus") == "hergebruik" and not values
         if reuse and not (await dekking(snapshot, conn))["voltooid"]:
@@ -213,7 +239,7 @@ async def batch(req: Batch, snapshot: dict, actor: str, *, mens: bool = False) -
                 old["verouderd"] = True
                 await conn.execute(update(db.annotatie_v2_elementen).where(
                     db.annotatie_v2_elementen.c.id == old["id"]).values(inhoud=old))
-                await _audit(conn, actor, "bron-gewijzigd", {"snapshot_id": req.snapshot_id}, old["id"])
+                await _audit(conn, actor, "bron-gewijzigd", {"snapshot_id": req.snapshot_id}, old["id"], old["laag_id"])
         saved = []
         for value in values:
             # Canonieke ankers onderscheiden identieke woorden op verschillende plekken.
@@ -231,7 +257,7 @@ async def batch(req: Batch, snapshot: dict, actor: str, *, mens: bool = False) -
                          aangemaakt_door=actor, beslissingen=[], verouderd=False, geproduceerd_door=req.run)
             await conn.execute(insert(db.annotatie_v2_elementen).values(
                 id=element_id, laag_id=value["laag_id"], inhoud=value))
-            await _audit(conn, actor, "element-gemaakt", {"batch_id": req.batch_id}, element_id)
+            await _audit(conn, actor, "element-gemaakt", {"batch_id": req.batch_id}, element_id, value["laag_id"])
             current[element_id] = value
             saved.append(value)
         for layer in touched.values():
@@ -401,8 +427,20 @@ async def beslis(element_id: str, req: Beslissing, snapshot: dict, actor: str) -
         for layer in touched.values():
             await _raak(conn, layer, req.snapshot_id)
         await _audit(conn, actor, req.type, {**decision, "oude_eigenaar": old["eigenaar_iri"],
-                                           "nieuwe_eigenaar": value["eigenaar_iri"]}, element_id)
+                                           "nieuwe_eigenaar": value["eigenaar_iri"]}, element_id, value["laag_id"])
         return {"element": value, "lagen": [publiek_laag(l) for l in touched.values()]}
+
+
+async def revisies(laag_id: str, limit: int = 100) -> list[dict]:
+    """De revisiehistorie van één laag, nieuwste eerst: per revisie wie, wanneer en wat."""
+    await laag_detail(laag_id)  # 404 voor een onbekende laag
+    tabel = db.annotatie_v2_audit
+    async with leestransactie() as conn:
+        rows = (await conn.execute(select(tabel.c.actor, tabel.c.detail, tabel.c.tijdstip)
+                                   .where(tabel.c.laag_id == laag_id, tabel.c.actie == "revisie")
+                                   .order_by(tabel.c.id.desc()).limit(limit))).all()
+    return [{"revisie": d["revisie"], "actor": actor, "tijdstip": db.aware(t).isoformat(), "acties": d["acties"]}
+            for actor, d, t in rows]
 
 
 async def laag_detail(laag_id: str) -> dict:
@@ -435,7 +473,7 @@ async def zet_status(laag_id: str, status: str, expected: int, actor: str, snaps
             raise HTTPException(409, "Beoordeel eerst alle actuele elementen van deze laag.")
         layer["status"] = status
         await _raak(conn, layer, layer["snapshot_id"])
-        await _audit(conn, actor, "laag-status", {"laag_id": laag_id, "status": status})
+        await _audit(conn, actor, "laag-status", {"laag_id": laag_id, "status": status}, laag_id=laag_id)
         return publiek_laag(layer)
 
 
@@ -453,7 +491,7 @@ async def verwijder(element_id: str, expected: int, actor: str) -> dict:
                             {value["eigenaar_iri"]: expected})
         await conn.execute(delete(db.annotatie_v2_elementen).where(db.annotatie_v2_elementen.c.id == element_id))
         await _raak(conn, layer, layer["snapshot_id"])
-        await _audit(conn, actor, "element-verwijderd", {"element": value}, element_id)
+        await _audit(conn, actor, "element-verwijderd", {"element": value}, element_id, value["laag_id"])
         return {"verwijderd": element_id, "laag": publiek_laag(layer)}
 
 
@@ -500,7 +538,8 @@ async def verwijder_weergave(snapshot: dict, verwachte_revisies: dict[str, int],
         for iri, layer in sorted(doelen.items()):
             await _audit(conn, actor, "laag-verwijderd", {
                 "bron_iri": iri, "laag_id": layer["id"], "revisie": layer["revisie"], "status": layer["status"],
-                "weergave": snapshot["doel"]["bron_iri"], "elementen": sorted(per_laag.get(layer["id"], []))})
+                "weergave": snapshot["doel"]["bron_iri"], "elementen": sorted(per_laag.get(layer["id"], []))},
+                laag_id=layer["id"])
         await conn.execute(update(db.annotatie_v2_state).where(db.annotatie_v2_state.c.id == 1).values(
             revisie=db.annotatie_v2_state.c.revisie + 1))
     from .graaf_projectie_v2 import verwijder_projecties
