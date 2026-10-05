@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { DekkingOverzicht } from "@/components/annotaties/DekkingOverzicht";
 import { RevisieHistorie } from "@/components/annotaties/RevisieHistorie";
 import { Dialog, type DialogVariant } from "@/components/ui/Dialog";
 import { Melding } from "@/components/ui/Melding";
@@ -14,7 +15,7 @@ import {
   type NodeDoel, type NodeElement, type NodeWeergave,
 } from "@/lib/annotatieNode";
 import {
-  beslissingNaarNode, documentVanNode, nodeAnkersUitSelectie, nodeBronVan, tekstVanAnkers,
+  beslissingNaarNode, documentVanNode, nodeAnkersUitSelectie, nodeBronVan, nogOngedekt, ongedektVanNode, tekstVanAnkers,
 } from "@/lib/annotatieNodeAdapter";
 import type { ReeksNavigatie } from "@/lib/reeks";
 import { metSpoor } from "@/lib/uiSpoor";
@@ -70,6 +71,10 @@ export function NodeAnnotatiePaneel({ doel, onSluit, variant = "side", onVraag, 
 
   const nb = useMemo(() => (view ? nodeBronVan(view) : undefined), [view]);
   const doc = useMemo(() => (view && nb ? documentVanNode(view, nb) : undefined), [view, nb]);
+  const ongedekt = useMemo(
+    () => (view && nb && doc ? nogOngedekt(ongedektVanNode(view, nb), doc.elementen, nb.bron) : []),
+    [view, nb, doc],
+  );
 
   /** Elke mutatie: versturen, daarna altijd opnieuw laden – ook na een fout, want een 412 betekent
    *  juist dat de stand in beeld niet meer klopt. De fout gaat dóór naar `ArtefactInhoud`, die hem
@@ -248,6 +253,7 @@ export function NodeAnnotatiePaneel({ doel, onSluit, variant = "side", onVraag, 
         onSluiten={onSluit}
         onExport={exporteer}
         extra={<NodeExtra view={view} doel={doel} onKies={setActiefId} />}
+        ongedekt={ongedekt}
       />}
     </div>
   );
@@ -296,6 +302,8 @@ function NodeExtra({ view, doel, onKies }: { view: NodeWeergave; doel: NodeDoel;
   return (
     <>
       {view.lagen.length > 0 && <RevisieHistorie lagen={view.lagen} labelVan={labelVan} elementen={view.elementen} onKies={onKies} />}
+      <DekkingOverzicht dekking={view.dekking} labelVan={labelVan}
+        volgorde={[...view.segmenten].sort((a, b) => a.volgorde - b.volgorde).map((x) => x.bron_iri)} />
       {view.verwijderd && (
         <Melding type="uitleg" compact>
           Deze annotatie is verwijderd op {new Date(view.verwijderd.op).toLocaleString("nl-NL", {

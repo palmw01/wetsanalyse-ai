@@ -131,6 +131,21 @@ describe("segmentenVanBlok – één bron van tekst", () => {
     }
   });
 
+  it("knipt ook op ongedekte zinsdelen, zonder tekst te verliezen, en laat de markering voorgaan", () => {
+    const deel = (fragment: string) => { const s = BRON_B.indexOf(fragment); return { start: s, eind: s + fragment.length }; };
+    const ongedekt = [deel("belastingen als bedoeld"), deel("de functionaris")];
+    for (const b of blokken) {
+      expect(segmentenVanBlok(b, null, ongedekt).map((s) => s.tekst).join("")).toBe(b.regel);
+      expect(segmentenVanBlok(b, markering("bedoeld in artikel 1"), ongedekt).map((s) => s.tekst).join("")).toBe(b.regel);
+    }
+    const a = segmentenVanBlok(blokken[1], null, ongedekt);
+    expect(a.filter((s) => s.ongedekt).map((s) => s.tekst).join("")).toBe("belastingen als bedoeld");
+    // Waar de markering ligt, wint die: "bedoeld" valt in beide en is dan alleen gemarkeerd.
+    const metMark = segmentenVanBlok(blokken[1], markering("bedoeld in artikel 1"), ongedekt);
+    expect(metMark.filter((s) => s.ongedekt).map((s) => s.tekst).join("")).toBe("belastingen als ");
+    expect(metMark.some((s) => s.klasse && s.ongedekt)).toBe(false);
+  });
+
   it("geeft het onderdeelnummer en de definitieterm hun eigen nadruk", () => {
     const segs = segmentenVanBlok(blokken[1], null);
     expect(segs.find((s) => s.nadruk === "nummer")?.tekst).toBe("a.");

@@ -51,6 +51,8 @@ export interface ArtefactInhoudProps {
   onExport?: (formaat: ExportFormaat) => Promise<void>;
   /** Aanvullende blokken onder de reviewlijst, in dezelfde scrollzone. */
   extra?: ReactNode;
+  /** Zinsdelen zonder detectortreffer, in de offsets van de samengestelde bron (de dekkingsmeting). */
+  ongedekt?: { start: number; eind: number }[];
 }
 
 /** De inhoud van het annotatie-artefact: brongetrouwe artikeltekst met letterlijke highlights, en
@@ -61,7 +63,7 @@ export interface ArtefactInhoudProps {
  *  schillen – anders gaan de twee weergaven uit elkaar lopen. */
 export function ArtefactInhoud({
   doc, info, actiefId, onKies, onBeslissing, onEigenMarkering,
-  onWisEigenMarkering, onVraag, onStatus, onVerwijder, onSluiten, onExport, extra,
+  onWisEigenMarkering, onVraag, onStatus, onVerwijder, onSluiten, onExport, extra, ongedekt,
 }: ArtefactInhoudProps) {
   // Eén bron voor de bewoording: `vindplaatsLabel` weet uit het graaf-`soort` of dit een artikel
   // met leden is of een bepaling van een beleidsregel. Hier raden op puntjes in het nummer zou bij
@@ -95,6 +97,8 @@ export function ArtefactInhoud({
     }
     return { zwevendeIds: zwevend, posities: pos };
   }, [actueel, bron]);
+  // Standaard aan: het is het vangnet voor wat Lex niet zag. Uitzetten geldt voor dit paneel.
+  const [toonOngedekt, setToonOngedekt] = useState(true);
   const [selectie, setSelectie] = useState<(SelectieDoel & { start: number; eind: number; lid: string; bron: string }) | null>(null);
   const [fout, setFout] = useState<string | null>(null);
   const [filter, setFilter] = useState<ReviewFilter>("alles");
@@ -406,6 +410,9 @@ export function ArtefactInhoud({
             actiefId={actiefId}
             onKies={onKies}
             onSelectie={onEigenMarkering && !vergrendeld ? setSelectie : undefined}
+            ongedekt={ongedekt}
+            toonOngedekt={toonOngedekt}
+            onToonOngedekt={setToonOngedekt}
           />
           {onEigenMarkering && !vergrendeld && (
             <p data-tour="wettekst-tip" className="mt-2 text-xs text-faint">
