@@ -31,6 +31,7 @@ const INTERACTIE_BEVESTIGING: Record<BeslissingType, string> = {
   reject: "Verworpen. Het voorstel blijft zichtbaar, met jouw reden erbij.",
   comment: "Opmerking vastgelegd bij deze markering.",
   heropen: "Heropend. De markering staat weer in de review.",
+  grens: "Andere grens gekozen. De markering volgt nu het voorstel van de keten.",
 };
 
 export type TourFase = "welkom" | "stappen" | "slot";

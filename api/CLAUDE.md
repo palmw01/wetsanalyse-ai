@@ -69,6 +69,10 @@ Hieronder wat je moet weten om de code te wijzigen.
   `revisie` met `laag_id` in een eigen kolom. `GET lagen/{laag_id}/revisies` leest alleen die regels.
   Een geweigerde mutatie (409/412) schrijft er dus geen. Geef `_audit` een `laag_id` mee waar de
   regel bij één laag hoort; een regel zonder laag (de `batch`) telt bij elke laag van de transactie.
+- **Grenskeuze** (`type: "grens"`, `wijziging: {"optie": i}`): de jurist kiest een van de
+  grensopties die de keten voorstelde (`trace.kandidaat.spanopties`). De client stuurt alleen de
+  index; `_grens_wijziging` rekent het anker uit de brontekst en daarna loopt het als een `edit`
+  (validatie, eigenaar, `edited`, slot). De beslissing legt `voor` en `nieuw` vast.
 - **Batches zijn idempotent** op `batch_id` plus payload (`POST lagen/batch`). Een eigen markering
   van de jurist (`POST elementen`) loopt door hetzelfde pad met `mens=True`.
 - **De API toetst ankers zelf** (`annotatie_v2_store.valideer`): klasse bestaat, fragment niet

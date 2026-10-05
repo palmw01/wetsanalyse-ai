@@ -150,6 +150,26 @@ export function nogOngedekt(delen: OngedektDeel[], elementen: AnnotatieElement[]
   return delen.filter((d) => !bereiken.some(([s, e]) => s < d.eind && d.start < e));
 }
 
+/** De grensopties van een element als tekst: per optie het stuk bron dat ze aanwijzt. Opties die
+ *  hetzelfde fragment geven als de huidige markering (of als een eerdere optie) vallen weg – een
+ *  keuze die niets verandert, is geen keuze. */
+export function grensOpties(el: NodeElement, nb: NodeBron): { index: number; soort: string; tekst: string }[] {
+  const kandidaat = el.trace?.kandidaat as (NonNullable<NodeElement["trace"]>["kandidaat"] & { span?: { bron_iri?: string } }) | undefined;
+  const iri = kandidaat?.span?.bron_iri;
+  const plek = iri ? nb.plekken.find((p) => p.segment.bron_iri === iri) : undefined;
+  if (!plek) return [];
+  const tekens = Array.from(plek.segment.tekst);
+  const gezien = new Set([el.tekst.trim()]);
+  const uit: { index: number; soort: string; tekst: string }[] = [];
+  (kandidaat?.spanopties ?? []).forEach((o, index) => {
+    const tekst = tekens.slice(o.start, o.eind).join("").trim();
+    if (!tekst || gezien.has(tekst)) return;
+    gezien.add(tekst);
+    uit.push({ index, soort: o.soort, tekst });
+  });
+  return uit;
+}
+
 /** Een v2-element als paneel-element.
  *
  *  Een element met meerdere ankers (over onderdelen heen) wordt één doorlopende markering van het
@@ -174,6 +194,7 @@ export function elementVanNode(el: NodeElement, nb: NodeBron): AnnotatieElement 
     review_uitleg: el.review_uitleg,
     trace: el.trace,
     jas_subtype: el.jas_subtype,
+    grensopties: el.verouderd ? [] : grensOpties(el, nb),
     anker: bereik ? maakAnker(nb.bron, bereik.start, bereik.eind, bereik.lid) : null,
     diff: {},
     beslissingen: el.beslissingen ?? [],
@@ -236,6 +257,8 @@ export function beslissingNaarNode(
   if (req.review_reason) uit.review_reason = req.review_reason;
   const w = req.wijziging;
   if (!w) return uit;
+  // Een grenskeuze stuurt alleen de optie; het anker rekent de api uit de bron.
+  if (req.type === "grens") return { ...uit, wijziging: { optie: (w as { optie?: number }).optie } };
   const wijziging: Record<string, unknown> = {};
   if (w.klasse) wijziging.klasse = w.klasse;
   if (w.toelichting != null) wijziging.toelichting = w.toelichting;

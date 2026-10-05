@@ -459,6 +459,9 @@ de markering (`DocumentPaneel`) en de kaart (`ReviewQueue`), met respect voor
   (`graafStatusTekst`: alleen een afwijking vraagt aandacht) en de RDF van de markering. Een kandidaat zonder zinsontleding krijgt de badge *gedegradeerd*. De
   alternatief-chips dragen de twijfelreden uit het spoor als tooltip. `api/tests/test_verklaringen_frontend_drift.py`
   bewaakt dat de secties die de werkplek leest bestaan.
+- **Andere grens**: onder de alternatieven staan de grensopties van de keten als chips
+  (`grensOpties` in `lib/annotatieNodeAdapter.ts`: tekst uit de bron, zonder de huidige grens en
+  zonder dubbelen). Een klik stuurt `{type: "grens", wijziging: {optie}}`; het anker rekent de api.
 - **Geen lifecycle-jargon in beeld**: "voorstel van Lex" / "door jou aangepast" / "door jou
   gemarkeerd" + tijd. Het volledige spoor staat in het auditlog.
 

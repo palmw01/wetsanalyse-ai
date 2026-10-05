@@ -36,6 +36,7 @@ function volledigeView(iri) {
       alternatieven: [{ klasse: "Rechtsobject", motivatie: "De ontvanger is hier handelend" }],
       beslissingen: [{ type: "comment", actor: "Reviewer", comment: "Bron nagekeken", wijziging: {} }],
       trace: { kandidaat: { gedegradeerd: true, mogelijke_klassen: ["Rechtssubject", "Rechtsobject"],
+        span: { bron_iri: "urn:lid1", start: 3, eind: 12 }, spanopties: [{ soort: "zin", start: 0, eind: 12 }],
         bewijs: [{ detector: "rol", code: "ROL_ACTOR", regel: "jas.subject.actor", detail: "ontvanger" }] },
         beslissing: { door: "model", klasse: "Rechtssubject" }, vraag: "k1 | ontvanger | Rechtssubject, Rechtsobject",
         twijfel: [{ reden: "DETECTOR_CONFLICT", alternatieven: ["Rechtsobject"] }], resolutie: [{ regel: "R-CONFLICT-KEEP" }] },
@@ -153,6 +154,10 @@ try {
   // Technisch detail: de graafcontrole van de laag en de RDF van deze markering, pas nu opgehaald.
   await waarom.getByTestId("graaf-technisch").getByText("De graaf klopt met de database (revisie 1).").waitFor();
   await waarom.getByText("<urn:jas:element:e1> a <urn:jas-ns:Markering> .", { exact: true }).waitFor();
+  // Grenskeuze: de chip stuurt alleen de optie; het anker rekent de api uit de bron.
+  await page.getByRole("button", { name: "“A😀 ontvanger”", exact: true }).click();
+  const grens = await verzoek((r) => r.path.endsWith("/beslissing") && r.body?.type === "grens");
+  assert.deepEqual(grens.body.wijziging, { optie: 0 });
   // Zelf markeren via de selectiepopover: " A😀 ontvanger", de emoji op UTF-16 2..4 = codepoint 1..2.
   await selecteer([0, 2], [0, 4]);
   await page.getByRole("dialog", { name: "Markering toevoegen" }).getByRole("button", { name: "Rechtssubject", exact: true }).click();

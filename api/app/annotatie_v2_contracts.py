@@ -100,7 +100,9 @@ class Batch(BaseModel):
 
 
 class Beslissing(BaseModel):
-    type: Literal["approve", "reject", "heropen", "comment", "edit"]
+    # `grens`: kies een van de grensopties die de keten voorstelde (`wijziging: {"optie": i}`); de
+    # server rekent het anker zelf uit de bron.
+    type: Literal["approve", "reject", "heropen", "comment", "edit", "grens"]
     verwachte_revisies: dict[str, int]
     snapshot_id: str
     wijziging: dict = Field(default_factory=dict)

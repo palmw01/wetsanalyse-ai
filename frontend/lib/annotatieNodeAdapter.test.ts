@@ -4,7 +4,7 @@ import { bronVan, regelsVan } from "./annotatie";
 import { segmentAnker, type NodeElement, type NodeSegment, type NodeWeergave } from "./annotatieNode";
 import {
   beslissingNaarNode, documentVanNode, elementVanNode, lidUitIri, nodeAnkersUitSelectie, nodeBronVan,
-  nogOngedekt, ongedektVanNode, tekstVanAnkers,
+  grensOpties, nogOngedekt, ongedektVanNode, tekstVanAnkers,
 } from "./annotatieNodeAdapter";
 import { vindPositie } from "./selectie";
 import { blokkenVan } from "./wetstructuur";
@@ -229,5 +229,30 @@ describe("nogOngedekt", () => {
 
   it("telt een verworpen element niet mee", () => {
     expect(nogOngedekt([deel], [el("rejected")], nb.bron)).toEqual([deel]);
+  });
+});
+
+describe("grensOpties", () => {
+  const nb = nodeBronVan(weergave([LID1]));
+  const el = (opties: { soort: string; start: number; eind: number }[], tekst = "ontvanger") => element(
+    [{ bron_iri: LID1.bron_iri, start: 3, eind: 12, tekst, bron_hash: LID1.bron_hash }],
+    { tekst, trace: { kandidaat: { span: { bron_iri: LID1.bron_iri }, spanopties: opties } } as never });
+
+  it("geeft per optie de tekst uit de bron, in codepoints na een teken buiten het BMP", () => {
+    // "De ontvanger kan 𝑥 invorderen:" – "𝑥 invorderen" begint op codepoint 17.
+    expect(grensOpties(el([{ soort: "np", start: 0, eind: 12 }, { soort: "zin", start: 17, eind: 29 }]), nb))
+      .toEqual([{ index: 0, soort: "np", tekst: "De ontvanger" }, { index: 1, soort: "zin", tekst: "𝑥 invorderen" }]);
+  });
+
+  it("laat de huidige grens, dubbele en lege opties weg", () => {
+    expect(grensOpties(el([{ soort: "kern", start: 3, eind: 12 }, { soort: "np", start: 0, eind: 12 },
+      { soort: "np2", start: 0, eind: 12 }, { soort: "leeg", start: 2, eind: 3 }]), nb).map((o) => o.index)).toEqual([1]);
+  });
+
+  it("is leeg zonder spoor of buiten beeld", () => {
+    expect(grensOpties(element([{ bron_iri: LID1.bron_iri, start: 3, eind: 12, tekst: "ontvanger", bron_hash: LID1.bron_hash }]), nb)).toEqual([]);
+    const elders = element([{ bron_iri: LID1.bron_iri, start: 3, eind: 12, tekst: "ontvanger", bron_hash: LID1.bron_hash }],
+      { trace: { kandidaat: { span: { bron_iri: "urn:elders" }, spanopties: [{ soort: "np", start: 0, eind: 2 }] } } as never });
+    expect(grensOpties(elders, nb)).toEqual([]);
   });
 });

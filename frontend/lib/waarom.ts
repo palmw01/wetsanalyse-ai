@@ -29,7 +29,7 @@ export interface WaaromModel {
 export type WaaromBron = Pick<AnnotatieElement, "herkomst" | "trace" | "jas_subtype"> & { beslissingen?: Beslissing[]; id?: string };
 
 const JURIST: Partial<Record<Beslissing["type"], string>> = {
-  approve: "akkoord bevonden", edit: "aangepast", reject: "verworpen", heropen: "heropend",
+  approve: "akkoord bevonden", edit: "aangepast", reject: "verworpen", heropen: "heropend", grens: "andere grens gekozen",
 };
 
 /** Bewijs met een regel-id toont de regel; anders de detectiecode. Dezelfde naam twee keer (twee
