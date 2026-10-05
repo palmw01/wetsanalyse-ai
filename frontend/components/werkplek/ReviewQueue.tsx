@@ -6,6 +6,8 @@ import { isBeslist, isVergrendeld, type ReviewFilter } from "@/lib/annotatie";
 import { ChevronOmlaag, Ruit, Vinkje, Waarschuwing } from "@/components/ui/Icoon";
 import { Meter } from "@/components/ui/Meter";
 import { JAS_KLASSEN, jasStyle } from "@/lib/jas";
+import { redenVoorAlternatief } from "@/lib/waarom";
+import { useVerklaringen, WaaromUitklap } from "@/components/annotaties/WaaromUitklap";
 import type { AnnotatieElement, BeslissingInvoer, ReviewReason, Wijziging } from "@/lib/types";
 
 const REDENEN: { waarde: ReviewReason; label: string }[] = [
@@ -231,6 +233,8 @@ function DecisionCard({
   const slot = elVergrendeld || !!docVergrendeld;
   const aandacht = el.aandacht ? AANDACHT[el.aandacht] : null;
   const eigen = el.herkomst === "mens";
+  const verklaringen = useVerklaringen();
+  const gedegradeerd = !!el.trace?.kandidaat?.gedegradeerd;
   // Alleen de kaart waaraan je werkt toont zijn details. Alles altijd tonen kostte drie kaarten per
   // scherm; zo passen er tien in en blijft de lijst te overzien.
   const uitgeklapt = actief;
@@ -309,6 +313,12 @@ function DecisionCard({
           {aandacht && (
             <span className={`${AANDACHT_PILL} ${aandacht.pill}`} title={el.review_uitleg || undefined}>
               {aandacht.label}
+            </span>
+          )}
+          {/* Zonder zinsontleding zag de keten minder; dat weegt mee in hoe je het voorstel leest. */}
+          {gedegradeerd && (
+            <span className={`${AANDACHT_PILL} border-line bg-surface text-muted`} title="Beoordeeld zonder zinsontleding: alleen de woordpatronen spraken mee">
+              gedegradeerd
             </span>
           )}
           {/* Twijfel is geen bezwaar: de annoteerder zag twee plausibele klassen. Maak je zoiets
@@ -494,6 +504,8 @@ function DecisionCard({
       {/* De uitleg van de gerichte review bij een twijfelgeval (resolver, ADR-001). */}
       {uitgeklapt && el.review_uitleg && <p className="mt-1 text-xs italic text-muted">Review: {el.review_uitleg}</p>}
 
+      {uitgeklapt && <WaaromUitklap el={el} />}
+
       {uitgeklapt && !slot && el.alternatieven.length > 0 && (
         <div className="mt-1.5 flex flex-wrap items-center gap-1 text-xs text-muted" onClick={(e) => e.stopPropagation()}>
           <span>Twijfel – klik om te wisselen:</span>
@@ -501,7 +513,7 @@ function DecisionCard({
             <button
               key={a.klasse}
               disabled={bezig}
-              title={a.motivatie}
+              title={redenVoorAlternatief(el, a.klasse, a.motivatie, verklaringen)}
               onClick={() => void wijzig({ klasse: a.klasse })}
               className={`focus-ring inline-flex min-h-[24px] items-center rounded px-1.5 py-0.5 text-xs font-medium coarse:min-h-[44px] ${jasStyle(a.klasse)} hover:ring-1 hover:ring-lint`}
             >

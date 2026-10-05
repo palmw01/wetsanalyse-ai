@@ -12,7 +12,7 @@ async function forward(req: Request, { params }: Params) {
   // Alleen het eerste segment op de allowlist toetsen is niet genoeg: een `..` verderop zou upstream
   // weggenormaliseerd worden en buiten de node-API uitkomen. De middleware weigert dat al; dit is
   // het tweede net, want deze route is juist de plek waar een willekeurig pad binnenkomt.
-  if (!pad.length || !["weergave", "elementen", "lagen", "node-lagen", "samenhang", "capabilities"].includes(pad[0])
+  if (!pad.length || !["weergave", "elementen", "lagen", "node-lagen", "samenhang", "capabilities", "verklaringen"].includes(pad[0])
     || pad.some(isPuntSegment))
     return Response.json({ detail: "Onbekende annotatieroute." }, { status: 404 });
   return proxy(`/v1/annotatie/${pad.map(pathSegment).join("/")}${new URL(req.url).search}`, {

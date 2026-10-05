@@ -25,6 +25,7 @@ import {
 import type { NodeDoel } from "@/lib/annotatieNode";
 import { doelenVanKandidaten, reeksPrompt } from "@/lib/reeks";
 import { bronDoel } from "@/lib/samenhang";
+import { beurtSamenvatting, laatsteRun } from "@/lib/waarom";
 import type { ThreadItem } from "@/lib/threadItem";
 import type {
   AgentDoelInvoer, AgentGrounding, AgentKandidaat, AnnotatieDocument, Bron,
@@ -167,6 +168,12 @@ export const ThreadRij = memo(function ThreadRij({
         verwijderd={verwijderd}
         onOpen={() => acties.openArtefact(item.slug, item.annotatie_doel)}
       />
+      {(() => {
+        // De meting van de laatste ronde: wat er uitkwam, wat zonder zinsontleding ging en hoe lang
+        // het duurde. Uit het document, want de meting reist mee op elk element (`geproduceerd_door`).
+        const samenvatting = !verwijderd && doc ? beurtSamenvatting(laatsteRun(doc.elementen)?.instellingen?.meting) : "";
+        return samenvatting && <p className="mt-1 px-1 text-xs text-muted" data-testid="beurtsamenvatting">Laatste ronde van Lex: {samenvatting}</p>;
+      })()}
       {(() => {
         // Alleen op een gedeelde laag: een oud per-gebruiker-document kan niet worden
         // aangevuld, en een verwijderde annotatie al helemaal niet.

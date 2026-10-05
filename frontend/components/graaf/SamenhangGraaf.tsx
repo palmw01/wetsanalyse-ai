@@ -5,7 +5,7 @@ import { Component, useCallback, useEffect, useMemo, useRef, useState, type Reac
 import { Melding } from "@/components/ui/Melding";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { foutTekst } from "@/lib/api";
-import type { NodeDoel } from "@/lib/annotatieNode";
+import { haalElement, type NodeDoel, type NodeElement } from "@/lib/annotatieNode";
 import {
   bouwGraaf, haalSamenhang, hoofdactie as bepaalHoofdactie, relatieGroepen, samenvatting, uitklapbaar, zichtbareGraaf,
   type GraafData, type GraafKnoop, type RelatieGroep, type Samenhang,
@@ -113,9 +113,11 @@ export type SamenhangStand = ReturnType<typeof useSamenhangStand>;
  *  erover zoals bij een kaart: zoeken en weergave boven, lagen en beeld onder. Wat een knoop is,
  *  staat in de inspector, met één hoofdactie. Leeft als tab naast de tekst in het annotatiepaneel;
  *  de gekozen markering is in beide tabs dezelfde. */
-export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, onKiesElement, onOpenTekst, onVraag }: {
+export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, elementen, onKiesElement, onOpenTekst, onVraag }: {
   stand: SamenhangStand; zichtbaar: boolean; groot: boolean;
   actiefElementId?: string;
+  /** De elementen van de weergave in het paneel: daaruit haalt de inspector het spoor van een markering. */
+  elementen?: NodeElement[];
   onKiesElement: (elementId?: string) => void;
   onOpenTekst: (knoop: GraafKnoop) => void;
   onVraag?: (knoop: GraafKnoop) => void;
@@ -236,6 +238,8 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, onKie
       </div>
       <div className={`shrink-0 border-t border-line bg-paper ${groot ? "max-h-[40dvh] overflow-y-auto md:max-h-none md:w-80 md:border-l md:border-t-0" : "flex max-h-[45%] flex-col"}`}>
         <GraafInspector knoop={geselecteerd} smal={!groot}
+          element={geselecteerd?.element_id ? elementen?.find((e) => e.id === geselecteerd.element_id) : undefined}
+          laadElement={geselecteerd?.element_id ? () => haalElement(geselecteerd.element_id) : undefined}
           hoofdactie={geselecteerd ? bepaalHoofdactie(geselecteerd, geopend) : null}
           uitgeklapt={!!geselecteerd && (uitgebreid.includes(geselecteerd.id) || tijdelijk === geselecteerd.id)}
           verborgenBuren={geselecteerd ? verborgenBuren(geselecteerd.id) : 0}

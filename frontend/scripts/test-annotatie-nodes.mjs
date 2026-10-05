@@ -35,8 +35,18 @@ function volledigeView(iri) {
       review_uitleg: "Handelende instantie geverifieerd", aandacht: "groen",
       alternatieven: [{ klasse: "Rechtsobject", motivatie: "De ontvanger is hier handelend" }],
       beslissingen: [{ type: "comment", actor: "Reviewer", comment: "Bron nagekeken", wijziging: {} }],
+      trace: { kandidaat: { gedegradeerd: true, mogelijke_klassen: ["Rechtssubject", "Rechtsobject"],
+        bewijs: [{ detector: "rol", code: "ROL_ACTOR", regel: "jas.subject.actor", detail: "ontvanger" }] },
+        beslissing: { door: "model", klasse: "Rechtssubject" }, vraag: "k1 | ontvanger | Rechtssubject, Rechtsobject",
+        twijfel: [{ reden: "DETECTOR_CONFLICT", alternatieven: ["Rechtsobject"] }], resolutie: [{ regel: "R-CONFLICT-KEEP" }] },
     }] : [], verwijzingen: [], dekking: {} };
 }
+const verklaringen = {
+  besluit: { model: { naam: "model", uitleg: "Het model koos uit de klassen die het patroon toeliet." } },
+  regels: { "jas.subject.actor": { naam: "Handelende partij", uitleg: "Wie de handeling verricht.", soort: "detector" } },
+  twijfel: { DETECTOR_CONFLICT: { naam: "Detectoren spreken elkaar tegen", uitleg: "Twee klassen kwamen in aanmerking." } },
+  resolutie: { "R-CONFLICT-KEEP": { naam: "Klasse behouden", uitleg: "De reviewer bevestigde de klasse." } },
+};
 // Een bewaard spoor met start én einde van dezelfde aanroep los. Na herladen
 // hoort dat één regel te zijn ("1 aanroepen"), niet twee.
 const trace = [
@@ -61,6 +71,7 @@ await page.route("**/api/**", async (route) => {
   ].map((event) => `data: ${JSON.stringify(event)}\n\n`).join("") });
   let body = [];
   if (url.pathname.endsWith("/weergave")) body = view(url.searchParams.get("bron_iri"));
+  else if (url.pathname.endsWith("/verklaringen")) body = verklaringen;
   else if (url.pathname === "/api/gesprekken/g1") body = { id: "g1", user_id: "browser-test", titel: "Test", berichten };
   else if (url.pathname === "/api/gesprekken") body = [{ id: "g1", titel: "Test", aantal_berichten: 4 }];
   else if (url.pathname.includes("/actief")) return route.fulfill({ status: 404, json: {} });
@@ -109,6 +120,17 @@ try {
   assert.deepEqual(decision.body.wijziging, { klasse: "Rechtsobject" });
   assert.equal(decision.body.snapshot_id, "snapshot");
   assert.deepEqual(decision.body.verwachte_revisies, { "urn:lid1": 1 });
+  // Waarom: leesbare namen in beeld, het id in de tooltip, de modelvraag onder technisch detail.
+  const waarom = page.getByTestId("waarom").first();
+  await waarom.getByText("Waarom?", { exact: true }).click();
+  await waarom.getByText("Handelende partij", { exact: true }).waitFor();
+  assert.match(await waarom.getByText("Handelende partij", { exact: true }).getAttribute("title"), /^jas\.subject\.actor – /);
+  await waarom.getByText("Detectoren spreken elkaar tegen", { exact: true }).waitFor();
+  await waarom.getByText("Klasse behouden", { exact: true }).waitFor();
+  await waarom.getByText("Beoordeeld zonder zinsontleding", { exact: false }).waitFor();
+  await page.getByText("gedegradeerd", { exact: true }).first().waitFor();
+  await waarom.getByText("Technisch detail", { exact: true }).click();
+  await waarom.getByText("k1 | ontvanger | Rechtssubject, Rechtsobject", { exact: true }).waitFor();
   // Zelf markeren via de selectiepopover: " A😀 ontvanger", de emoji op UTF-16 2..4 = codepoint 1..2.
   await selecteer([0, 2], [0, 4]);
   await page.getByRole("dialog", { name: "Markering toevoegen" }).getByRole("button", { name: "Rechtssubject", exact: true }).click();
