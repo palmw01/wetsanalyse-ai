@@ -1,6 +1,6 @@
 # Plan — wetsanalyse-ai
 
-Soort: *plan* (zie [`README.md`](README.md)) · Bijgewerkt: 29 september 2026
+Soort: *plan* (zie [`README.md`](README.md)) · Bijgewerkt: 5 oktober 2026
 
 Dit is het **enige plan** van het project. Het vervangt de losse plannen voor de workbench, het
 herkomstspoor, werkgebieden en begrippen en de kennisbank. Hier staat wat er openstaat, niet wat er
@@ -40,7 +40,8 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 - **Herkomstspoor, eerste helft**: graafcontrole (#517), SSE-fasen met duur en dekking (#518),
   JAS-vocabulairegraaf en leesbare trace-codes (#519), rijke annotatiegraaf schema 3 (#520),
   Critic-restanten weg (#521), JAS-subtype machineleesbaar (#523). Dat zijn PR 1–4 van spoor B;
-  PR 0 staat nog open.
+  PR 0 is af: productie draait `v1.7.0` (1 okt) en projecteert; de api logt elke tien minuten
+  `annotatie_graafcontrole` met 0 afwijkingen (geverifieerd 5 okt via `azure-infra` → `telemetrie`).
 - **Samenhangsgraaf** (#540–#546): `GET /v1/annotatie/samenhang` (`api/app/samenhang.py`,
   capability `samenhang`) en een 3D-krachtgraaf (`components/graaf/SamenhangGraaf.tsx`,
   `lib/samenhang.ts`). Die staat als tab *3D-graaf* in het annotatiepaneel en opent ook via
@@ -66,7 +67,7 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | Spoor | Onderwerp | Stand |
 |---|---|---|
 | A | Juridische validatie van `hybrid_v1` (V7) | Wacht op mensenwerk: 0 casussen `adjudicated` |
-| B | Herkomst zichtbaar in werkplek en exports | PR 0 te verifiëren (productie draait `v1.6.0`, vóór #517); samenhangsgraaf geleverd; PR 5–10 open |
+| B | Herkomst zichtbaar in werkplek en exports | PR 0 af (productie `v1.7.0` projecteert); samenhangsgraaf geleverd; PR 5a in review (#570), 5b–10 open |
 | C | Leerlus en knowledge-check | Te herijken |
 | D | Activiteit 3: werkgebieden en begrippen | Ontwerp klaar, niets gebouwd |
 | E | Kennisbank (tweede corpus) | Ontwerp klaar, niets gebouwd |
@@ -145,13 +146,14 @@ SSE-wegen blijven gelijk en drift-tests gaan mee. Elke PR die graph-qa raakt dra
 
 | PR | Inhoud | Hangt af van |
 |---|---|---|
-| 0 | **Verifiëren**: heeft de productie-api `GRAPHDB_URL` en projecteert de reconcile-lus (`annotatie_v2_geprojecteerd`)? Zo niet: `azure-infra` → productie → `wat-if` → akkoord → `deploy`. Daarna een release (tag `v*` → `promote.yml`), want productie draait `v1.6.0` en mist #517–#546. Dan `graafcontrole` op productie | — |
-| 5 | "Waarom?"-uitklap op de elementkaart én in de graafinspector bij een markeringsknoop (één component): bewijs als zinnen met regelnaam (uit de vocabulaire), wie besliste, twijfelreden in gewone taal, resolutieregel, subtype; ruwe modelvraag achter "technisch detail". Alternatief-chips met reden. Beurtsamenvatting in de tijdlijn, gedegradeerd-badge. Revisiekiezer (api: revisiehistorie per laag uit de audit) en citatie-/bronkaartcomponent | 4 ✓ |
+| 5a | "Waarom?"-uitklap op de elementkaart én in de graafinspector (één component): bewijs met regelnaam uit de vocabulaire, wie besliste, twijfelreden, resolutieregel, subtype, ruwe modelvraag onder "technisch detail". Alternatief-chips met reden, gedegradeerd-badge, beurtsamenvatting onder de annotatiechip → #570 | 4 ✓ |
+| 5b | Revisiehistorie per laag: de api schrijft `laag_id` + `revisie` in het audit-detail en levert `GET lagen/{id}/revisies`; een alleen-lezende revisiekiezer in het paneel toont per revisie wie wat wanneer deed. Geen terugblik op de oude inhoud van de laag (besluit 5 okt) | — |
+| 5c | Citatie-chips met bronkaart onder de antwoorden van Lex | — |
 | 6 | Dekking in het documentpaneel: ongedekte zinsdelen onderstreept, "markeer zelf" via `SelectiePopover`, dimensie-overzicht per bronnode. In de 3D-graaf een laag *Dekking* met ongedekte zinsdelen per lid. Bron: de weergave-`dekking` | 2 ✓ |
 | 7 | Exports. CSV: platte kolommen (`besloten_door`, `regels`, `detectoren`, `twijfel`, `resolutieregel`, `mogelijke_klassen`, `subtype`, `validatie`, `aandacht`, `herkomst`). PDF: herkomstregel per element en beurtmeting. JSON v3 met `trace.vraag`, run-meting en dekking, plus JSON-schema. Turtle via dezelfde `bouw_graaf`; die levert ook de "technisch detail"-weergave in de graafinspector, met de graafcontrole-status | 3 ✓ |
-| 8 | Grenskeuze: `spanopties` als "andere grens"-chips en een nieuwe beslissing `grens` (additief, geaudit; de SHACL-shape kent `grens` al) | 5 |
+| 8 | Grenskeuze: `spanopties` als "andere grens"-chips en een nieuwe beslissing `grens` (additief, geaudit; de SHACL-shape kent `grens` al) | 5a |
 | 9 | *Optioneel*: `search_annotaties` filtert op `herkomst`, `beslistDoor`, twijfel, aandacht en subtype. Dezelfde filters kunnen als lagen in `lib/samenhang.ts` | 3 ✓ |
-| 10 | *Optioneel*: samenhang op de rijke graaf. `samenhang.py` leest nu `weergave` plus de wetsgraaf; herkomst (agent/mens), aandacht en beoordelingsstatus komen als knoopkenmerk en laag in de 3D-graaf | 5 |
+| 10 | *Optioneel*: samenhang op de rijke graaf. `samenhang.py` leest nu `weergave` plus de wetsgraaf; herkomst (agent/mens), aandacht en beoordelingsstatus komen als knoopkenmerk en laag in de 3D-graaf | 5a |
 
 **Verificatie.** Per PR: api `uv run pytest`, graph-qa met en zonder spaCy, frontend
 `npm test`/typecheck/`npm run test:browser` (met `test-samenhang.mjs`) en `poort`. Acceptatie live:
@@ -499,8 +501,7 @@ blijft bij de wettekst.
 
 - **A** loopt los van de rest en is vooral werk voor beoordelaars. Het blokkeert alleen semantisch
   werk aan de annotatieketen, niet B, D of E.
-- **B**: PR 0 eerst, inclusief een productierelease (bepaalt of productie überhaupt projecteert).
-  Daarna 5 → 8 en 5 → 10. PR 6, 7 en 9 kunnen parallel.
+- **B**: 5a → 8 en 5a → 10; 5b en 5c staan los. PR 6, 7 en 9 kunnen parallel.
 - **D** en **E** zijn onafhankelijk. D-levering 4 (Lex leest begrippen) en E-fase 3 (koppelen aan
   bepalingen) gebruiken allebei het projectie- en schrijfpad van de api. Ontwerp ze samen als ze
   tegelijk aan de orde komen.
