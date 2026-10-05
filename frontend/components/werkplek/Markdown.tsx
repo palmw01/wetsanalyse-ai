@@ -3,7 +3,11 @@
 import { memo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { CitatieChip } from "@/components/werkplek/CitatieChip";
+import type { NodeDoel } from "@/lib/annotatieNode";
+import { markeerCitaties } from "@/lib/citaties";
 import { markeerPassages } from "@/lib/markering";
+import type { Bron } from "@/lib/types";
 
 /** Rendert een agent-antwoord als (GitHub-flavored) Markdown. Geen rauwe HTML (geen rehype-raw), dus
  *  veilig; links laten we alleen door voor http(s) en openen extern.
@@ -29,17 +33,23 @@ export function StreamendeTekst({ tekst }: { tekst: string }) {
 export const Markdown = memo(function Markdown({
   tekst,
   nietLetterlijk,
+  bronnen,
+  onOpenSamenhang,
 }: {
   tekst: string;
   /** Passages die de brongetrouwheidscontrole afkeurde (`grounding.niet_letterlijk`). */
   nietLetterlijk?: readonly string[];
+  /** De bronnen van de beurt: een vindplaats die er éénduidig bij hoort wordt een citatie-chip. */
+  bronnen?: readonly Bron[];
+  onOpenSamenhang?: (doel: NodeDoel) => void;
 }) {
   const teMarkeren = nietLetterlijk?.length ? nietLetterlijk : null;
+  const plugins = [...(teMarkeren ? [markeerPassages(teMarkeren)] : []), ...(bronnen?.length ? [markeerCitaties(bronnen)] : [])];
   return (
     <div className={`space-y-3 ${TEKST_CLASS}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
-        rehypePlugins={teMarkeren ? [markeerPassages(teMarkeren)] : []}
+        rehypePlugins={plugins}
         components={{
           p: ({ children }) => <p className="leading-relaxed">{children}</p>,
           a: ({ href, children }) => {
@@ -71,6 +81,12 @@ export const Markdown = memo(function Markdown({
               <span className="sr-only"> (staat niet letterlijk in de opgehaalde tekst)</span>
             </mark>
           ),
+          // Alleen gezet door `markeerCitaties`: een vindplaats die bij een bron van de beurt hoort.
+          cite: ({ children, ...props }) => {
+            const index = Number((props as Record<string, unknown>)["data-bron"]);
+            const bron = bronnen?.[index];
+            return bron ? <CitatieChip bron={bron} onOpenSamenhang={onOpenSamenhang}>{children}</CitatieChip> : <>{children}</>;
+          },
           code: ({ children }) => <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">{children}</code>,
           pre: ({ children }) => (
             <pre className="overflow-x-auto rounded border border-line bg-surface p-2 font-mono text-xs">{children}</pre>

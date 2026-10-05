@@ -69,7 +69,7 @@ function weergave(iri) {
 }
 const berichten = [
   { rol: "user", tekst: "Wat regelt artikel 9 lid 2 van de Invorderingswet?", denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "" },
-  { rol: "assistant", tekst: "Lid 2 wijkt af van het eerste lid en verwijst naar artikel 10.", denk: "",
+  { rol: "assistant", tekst: "Artikel 9 lid 2 wijkt af van het eerste lid en verwijst naar artikel 10.", denk: "",
     bronnen: [{ label: "Invorderingswet 1990, artikel 9 lid 2", uri: "jci1.3:c:BWBR0004770&artikel=9&lid=2" }],
     annotatie_slug: "", annotatie_titel: "" },
 ];
@@ -145,7 +145,15 @@ async function detailsOpen(page) {
   bijgewerkt = false;
   const { page, log } = await nieuwePagina();
   await page.goto(`${base}/workbench?gesprek=g1`);
-  await page.getByRole("button", { name: /Bekijk samenhang in 3D/ }).click();
+  // Citatie-chip: "Artikel 9 lid 2" hoort bij de bron van de beurt en opent een bronkaart;
+  // "artikel 10" heeft geen bron en blijft gewone tekst.
+  await page.getByRole("button", { name: "Artikel 9 lid 2", exact: true }).click();
+  await page.getByTestId("bronkaart").getByText("Artikel 9, lid 2", { exact: true }).waitFor();
+  await page.screenshot({ path: `${shots}/0-bronkaart.png` });
+  assert.equal(await page.getByRole("button", { name: "artikel 10", exact: true }).count(), 0);
+  await page.keyboard.press("Escape");
+  await page.getByTestId("bronkaart").waitFor({ state: "detached" });
+  await page.getByRole("button", { name: /Bekijk samenhang in 3D/ }).first().click();
   await page.getByTestId("samenhang-graaf").waitFor();
   // StrictMode draait effecten in dev twee keer; tel daarom unieke aanvragen.
   assert.deepEqual([...new Set(log.samenhang)], [L2], "de graaf vraagt de samenhang van de geciteerde bepaling");
