@@ -780,7 +780,7 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
 }
 
 /** Exportformaten van een annotatie. */
-export type ExportFormaat = "pdf" | "csv" | "json";
+export type ExportFormaat = "pdf" | "csv" | "json" | "trig";
 
 /** Bied een bestandsantwoord aan als download: Blob → `createObjectURL` → `<a download>`.
  *

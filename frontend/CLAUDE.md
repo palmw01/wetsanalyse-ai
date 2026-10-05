@@ -545,7 +545,7 @@ agent-ronde) en zijn meteen `human_approved`.
 ### De annotatie exporteren
 
 *Exporteren* in de kop van het artefact (`components/werkplek/ExportKnop.tsx`) biedt **PDF / CSV /
-JSON**.
+JSON / RDF (TriG)**. De vorm staat in de api (`api/app/annotatie_export.py`); de werkplek kiest alleen.
 
 - **Ook halverwege.** Geen statusdrempel: het bestand zegt zelf hoeveel er nog te beoordelen is.
 - **De wettekst komt van de api**, uit de bewaarde bronstand (`snapshot_id`) van de weergave: de
@@ -555,9 +555,10 @@ JSON**.
   `downloadAntwoord` in `lib/api.ts` (Blob → `createObjectURL` → `<a download>`), het enige
   downloadpatroon in de app. `ExportKnop` krijgt de download als `onDownload`; in de rondleiding is
   die er niet en sluit het keuzepaneel zonder bestand.
-- De export draagt naast de tabel het **volledige spoor** per markering en **met welk model** de agent
-  het voorstel maakte: graph-qa legt het `run`-object van de beurt vast, en het staat op elk element
-  (`geproduceerd_door`).
+- De export draagt het **volledige spoor** per markering en **met welk model** de agent het voorstel
+  maakte (`geproduceerd_door`), in dezelfde leesbare namen als de Waarom-uitklap: CSV met eigen
+  herkomstkolommen, PDF met een herkomstzin, beurtmeting en dekking, JSON v3 met schema
+  (`GET export-schema`), TriG met de lagen zoals de kennisgraaf ze krijgt.
 
 ## De samenhangsgraaf (3D)
 

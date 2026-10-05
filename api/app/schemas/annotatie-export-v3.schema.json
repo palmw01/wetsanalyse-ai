@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:wetsanalyse:schema:annotatie-export-v3",
+  "title": "Wetsanalyse – export van een bronnode-annotatie, versie 3",
+  "description": "De weergave van één bepaling met haar lagen, markeringen en hun volledige herkomst. Beschrijft de vorm; extra velden zijn toegestaan.",
+  "type": "object",
+  "required": ["schema_versie", "doel", "snapshot_id", "segmenten", "lagen", "elementen", "verwijzingen", "dekking", "audit", "export", "runs"],
+  "properties": {
+    "schema_versie": { "const": 2 },
+    "snapshot_id": { "type": "string" },
+    "doel": { "type": "object", "required": ["bron_iri"], "properties": { "bron_iri": { "type": "string" } } },
+    "segmenten": {
+      "type": "array",
+      "items": { "type": "object", "required": ["bron_iri", "tekst", "bron_hash"],
+        "properties": { "bron_iri": { "type": "string" }, "tekst": { "type": "string" }, "bron_hash": { "type": "string" } } }
+    },
+    "lagen": {
+      "type": "array",
+      "items": { "type": "object", "required": ["id", "bron_iri", "revisie", "status"],
+        "properties": { "id": { "type": "string" }, "bron_iri": { "type": "string" }, "revisie": { "type": "integer" },
+          "status": { "type": "string" } } }
+    },
+    "elementen": { "type": "array", "items": { "$ref": "#/$defs/element" } },
+    "verwijzingen": { "type": "array" },
+    "dekking": {
+      "type": "object",
+      "properties": {
+        "structureel": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "dimensies": { "type": "object", "additionalProperties": { "enum": ["uitgevoerd", "gedeeltelijk", "overgeslagen"] } },
+              "ongedekt": { "type": "array", "items": { "type": "object", "required": ["tekst", "start", "eind"] } }
+            }
+          }
+        }
+      }
+    },
+    "audit": { "type": "array", "items": { "type": "object", "required": ["actie", "actor", "tijdstip"] } },
+    "export": {
+      "type": "object",
+      "required": ["versie", "schema", "actor", "op"],
+      "properties": { "versie": { "const": 3 }, "schema": { "const": "annotatie-export-v3" } }
+    },
+    "runs": {
+      "type": "array",
+      "description": "De agent-rondes onder deze weergave, elk één keer, met hun meting (instellingen.meting).",
+      "items": { "type": "object" }
+    }
+  },
+  "$defs": {
+    "element": {
+      "type": "object",
+      "required": ["id", "klasse", "tekst", "ankers", "lifecycle", "herkomst", "herkomst_regels"],
+      "properties": {
+        "id": { "type": "string" },
+        "klasse": { "type": "string" },
+        "tekst": { "type": "string" },
+        "lifecycle": { "type": "string" },
+        "herkomst": { "type": "string" },
+        "ankers": {
+          "type": "array",
+          "items": { "type": "object", "required": ["bron_iri", "start", "eind", "tekst", "bron_hash"] }
+        },
+        "trace": { "type": "object", "description": "Het herkomstspoor van de annotatieketen, incl. `vraag` (de exacte modelvraag)." },
+        "herkomst_regels": {
+          "type": "object",
+          "required": ["herkomst", "besloten_door", "regels", "detectoren", "twijfel", "resolutieregel",
+                       "mogelijke_klassen", "subtype", "validatie", "aandacht", "gedegradeerd", "jurist"],
+          "properties": {
+            "regels": { "type": "array", "items": { "type": "string" } },
+            "detectoren": { "type": "array", "items": { "type": "string" } },
+            "twijfel": { "type": "array", "items": { "type": "string" } },
+            "resolutieregel": { "type": "array", "items": { "type": "string" } },
+            "mogelijke_klassen": { "type": "array", "items": { "type": "string" } },
+            "validatie": { "type": "array", "items": { "type": "string" } },
+            "gedegradeerd": { "type": "boolean" }
+          }
+        }
+      }
+    }
+  }
+}
