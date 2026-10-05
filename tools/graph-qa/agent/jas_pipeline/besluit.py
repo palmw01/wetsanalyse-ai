@@ -40,7 +40,9 @@ class Beslissing(BaseModel):
     status: CandidateStatus
     klasse: str = ""                      # leeg bij REJECTED/UNCERTAIN
     optie: str = ""                       # gekozen spanoptie-id, leeg = de kandidaatspan
-    door: Literal["regel", "model", "specificiteit"]
+    # `terugval`: het model koos niets bruikbaars en de review besliste niet; de resolver zette de
+    # eerste mogelijke klasse voorlopig neer. Geen keuze van het model, dus ook niet zo genoemd.
+    door: Literal["regel", "model", "specificiteit", "terugval"]
     reden: str = ""                       # waarom deze uitkomst; bij UNCERTAIN een code
 
 

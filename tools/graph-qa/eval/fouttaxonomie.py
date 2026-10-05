@@ -33,6 +33,9 @@ from agent.jas_pipeline.kandidaten import GEEN_ANNOTATIE
 from agent.jas_pipeline.onzekerheid import KLASSE_VAN_BEWIJS
 from eval.metrieken import kern
 
+# Via het model gelopen: ook een terugval (het model koos niets bruikbaars) ging langs de classifier.
+MODELROUTE = frozenset({"model", "terugval"})
+
 JURIDISCH, TECHNISCH, EVALUATIE = "juridisch", "technisch", "evaluatie"
 
 #: code → (laag, typische soort). De soort per fout volgt uit de primaire code.
@@ -180,8 +183,8 @@ def uit_elementen(elementen: list[dict[str, Any]], tekst: str | None = None, bro
             kandidaten.setdefault(k.get("label", ""), _kandidaat(k, spoor.get("beslissing"), tekst, bron, None,
                                                                  spoor.get("twijfel") or ()))
     if granulariteit == "universeel":
-        unie = frozenset(x for kk in kandidaten.values() if kk.door == "model" for x in (*kk.klassen, GEEN_ANNOTATIE))
-        kandidaten = {lab: replace(kk, batch_unie=unie) if kk.door == "model" else kk for lab, kk in kandidaten.items()}
+        unie = frozenset(x for kk in kandidaten.values() if kk.door in MODELROUTE for x in (*kk.klassen, GEEN_ANNOTATIE))
+        kandidaten = {lab: replace(kk, batch_unie=unie) if kk.door in MODELROUTE else kk for lab, kk in kandidaten.items()}
     return voorstellen, list(kandidaten.values())
 
 
@@ -193,7 +196,7 @@ def uit_uitkomst(uitkomst: Any, tekst: str | None = None, bron: str = "",
 
     per_label = {k.label: k for k in uitkomst.fusie.kandidaten}
     beslissingen = {b.label: b for b in uitkomst.beslissingen}
-    naar_model = [per_label[b.label] for b in uitkomst.beslissingen if b.door == "model" and b.label in per_label]
+    naar_model = [per_label[b.label] for b in uitkomst.beslissingen if b.door in MODELROUTE and b.label in per_label]
     unie: dict[str, frozenset[str]] = {}
     for batch in batches(naar_model, granulariteit):
         u = frozenset(x for k in batch for x in k.toegestane_beslissingen())
@@ -221,7 +224,7 @@ def uit_register(register: list[dict[str, Any]], elementen: list[dict[str, Any]]
     from agent.jas_pipeline.classificatie import FAMILIES
 
     voorstellen, _ = uit_elementen(elementen, tekst, bron)
-    model = [b for b in register if b.get("door") == "model"]
+    model = [b for b in register if b.get("door") in MODELROUTE]
     sleutel = (lambda b: "alle") if granulariteit == "universeel" else (lambda b: FAMILIES[b["mogelijke_klassen"][0]])
     unie: dict[str, set[str]] = {}
     for b in model:
@@ -236,7 +239,7 @@ def uit_register(register: list[dict[str, Any]], elementen: list[dict[str, Any]]
             codes=frozenset(b.get("bewijs", ())), vervallen=tuple(b.get("vervallen", ())), opties=opties,
             status=b.get("status", ""), door=b.get("door", ""), klasse=b.get("klasse", ""),
             reden=b.get("classifier_reden") or b.get("reden", ""),
-            batch_unie=frozenset(unie[sleutel(b)]) if b.get("door") == "model" else None))
+            batch_unie=frozenset(unie[sleutel(b)]) if b.get("door") in MODELROUTE else None))
     return voorstellen, kandidaten
 
 
@@ -334,15 +337,15 @@ def classificeer(gold: list[dict[str, Any]], voorstellen: list[Voorstel], kandid
             elif techniek:
                 uit.fouten.append(_fout(techniek[0], techniek[1:], label=v.label, **basis,
                                         toelichting=f"contractfout; voorgesteld: {v.klasse}"))
-            elif kv is not None and kv.door == "model" and kv.klasse == klasse and v.klasse != klasse:
+            elif kv is not None and kv.door in MODELROUTE and kv.klasse == klasse and v.klasse != klasse:
                 uit.fouten.append(_fout("REVIEW_ERROR", label=v.label, **basis,
                                         toelichting=f"classifier koos {klasse}, na review {v.klasse}"))
             else:
                 sec = ["UNCERTAINTY_ERROR"] if not v.human_review and _sterk_voor(kv, klasse) else []
-                if kv is not None and kv.door == "model" and kv.klasse != klasse and any(
+                if kv is not None and kv.door in MODELROUTE and kv.klasse != klasse and any(
                         r.startswith("R-") and r != _REVIEW_ONGELDIG for r in v.resolutie):
                     sec.append("REVIEW_ERROR")
-                prim = "CLASSIFIER_ERROR" if kv is None or kv.door == "model" else "EVIDENCE_CLASS_MAPPING_ERROR"
+                prim = "CLASSIFIER_ERROR" if kv is None or kv.door in MODELROUTE else "EVIDENCE_CLASS_MAPPING_ERROR"
                 uit.fouten.append(_fout(prim, sec, label=v.label, **basis,
                                         toelichting=f"{klasse} aangeboden, {v.klasse} gekozen"))
             continue

@@ -101,6 +101,20 @@ def test_abstain_human_legt_alle_klassen_voor():
     assert b.status is CandidateStatus.HUMAN_REVIEW
 
 
+
+@pytest.mark.parametrize("oordeel", [Oordeel(label="C001", actie="HUMAN_REVIEW"),
+                                     Oordeel(label="C001", actie="KEEP", geldig=False)])
+def test_zonder_gekozen_klasse_heet_de_beslisser_terugval(oordeel):
+    """Een voorlopige klasse die de resolver neerzette is geen keuze van het model (art. 9 lid 5
+    IW: 'één maand' als Rechtsobject na ABSTAIN + R-ONGELDIG). Graaf, export en zoekfilters moeten
+    dat kunnen zien."""
+    k = _k("C001", [V, F])
+    tw = Twijfel(label="C001", reden="CLASSIFIER_ABSTAIN", alternatieven=(V, F))
+    [v], [b], [tr] = _los([], [_b(k, CandidateStatus.UNCERTAIN)], [tw], [oordeel], [k])
+    assert (b.door, b.klasse, b.status) == ("terugval", V, CandidateStatus.HUMAN_REVIEW)
+    assert v["aandacht"] == "geel"
+
+
 def test_zelfde_span_change_houdt_een_functie_en_wijst_de_ander_af():
     k1, k2 = _k("C001", [V, F]), _k("C002", [F, V])
     tw = Twijfel(label="C001", reden="ZELFDE_SPAN", huidig=V, alternatieven=(F,))

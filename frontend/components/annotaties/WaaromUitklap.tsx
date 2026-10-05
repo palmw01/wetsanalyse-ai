@@ -71,10 +71,18 @@ function WaaromInhoud({ el }: { el: WaaromBron }) {
           ? "Door een jurist zelf gemarkeerd; er is geen spoor van Lex."
           : "Bij dit voorstel is geen spoor bewaard."}</p>
       ) : w.besluit && (
-        <p className="text-xs text-ink">
-          Besloten door <span title={w.besluit.uitleg ? `${w.besluit.code} – ${w.besluit.uitleg}` : w.besluit.code} className="font-medium underline decoration-dotted decoration-faint underline-offset-2">{w.besluit.naam}</span>
-          {w.besluit.detail && <> ({w.besluit.detail})</>}.
-        </p>
+        w.besluit.code === "terugval" ? (
+          // Geen keuze van het model: de klasse staat er voorlopig, de jurist kiest.
+          <p className="text-xs text-aandacht-geel-tekst">
+            <span title={w.besluit.uitleg ? `${w.besluit.code} – ${w.besluit.uitleg}` : w.besluit.code} className="font-medium underline decoration-dotted underline-offset-2">Nog geen klasse gekozen</span>
+            : de klasse hierboven is voorlopig. Kies zelf.
+          </p>
+        ) : (
+          <p className="text-xs text-ink">
+            Besloten door <span title={w.besluit.uitleg ? `${w.besluit.code} – ${w.besluit.uitleg}` : w.besluit.code} className="font-medium underline decoration-dotted decoration-faint underline-offset-2">{w.besluit.naam}</span>
+            {w.besluit.detail && <> ({w.besluit.detail})</>}.
+          </p>
+        )
       )}
       {w.jurist && <p className="text-xs text-ink">Daarna {w.jurist}.</p>}
       {w.subtype && <p className="text-xs text-muted">Subtype: <span className="text-ink">{w.subtype}</span></p>}

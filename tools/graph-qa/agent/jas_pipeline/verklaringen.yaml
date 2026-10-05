@@ -64,6 +64,7 @@ besluit:
   regel: {naam: "vaste regel", uitleg: "Besloten zonder model: sterk bewijs voor één klasse; hooguit een algemeen naamwoordgroepsignaal wees ook andere klassen aan, die als alternatief zichtbaar blijven."}
   specificiteit: {naam: "voorrangsregel", uitleg: "Besloten door een JAS-voorrangsregel over overlappende fragmenten."}
   model: {naam: "model", uitleg: "Het model koos uit de klassen die het patroon toeliet."}
+  terugval: {naam: "nog geen klasse gekozen", uitleg: "Het model gaf geen bruikbare keuze en de gerichte review besliste niet; de eerste mogelijke klasse staat er voorlopig. Kies zelf."}
 
 twijfel:
   CENTRALE_NORM_AFGEWEZEN: {naam: "Centrale norm afgewezen", uitleg: "Een normhypothese is afgewezen terwijl objecten of tijdsaanduidingen resteren. Gerichte beoordeling kan de afwijzing bevestigen."}

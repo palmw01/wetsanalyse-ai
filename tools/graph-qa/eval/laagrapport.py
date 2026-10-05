@@ -138,9 +138,9 @@ def _groep(runs: list[dict[str, Any]], casussen: dict[str, dict[str, Any]], stat
         for k in kand:
             kandidaten_n += 1
             generiek += bool(k["bewijs"]) and set(k["bewijs"]) <= GENERIEK
-            model_n += k["door"] == "model"
+            model_n += k["door"] in {"model", "terugval"}   # ook een terugval liep via het model
             det_n += k["door"] == "regel"
-            geblokkeerd += k["door"] == "model" and bool(set(k["bewijs"]) & STERK_BEWIJS)
+            geblokkeerd += k["door"] in {"model", "terugval"} and bool(set(k["bewijs"]) & STERK_BEWIJS)
             for code in k["bewijs"]:
                 fp_per_code[code][1] += 1
                 fp_per_code[code][0] += (k["bron"], k["start"], k["eind"]) not in ref_plekken

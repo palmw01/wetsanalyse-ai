@@ -69,7 +69,7 @@ ANNOTATIE_TOOLS = [
            "geen annotaties bestaan. Geen semantische fallback. Resultaten zijn afgeleide duiding. "
            "Herkomstfilters: `herkomst` (agent = voorstel van Lex, mens = door een jurist gemarkeerd), "
            "`aandacht` (geel = keuze voor de jurist, groen = bevestigd door review), `subtype`, "
-           "`beslist_door` (regel/model/specificiteit) en `met_twijfel`.",
+           "`beslist_door` (regel/model/specificiteit/terugval) en `met_twijfel`.",
            {"bron_iri": S, "bwb_id": S, "klasse": S, "jas_klassen": SS, "tekst": S,
             "lifecycle": SS, "laagstatus": SS, "bronversie": S,
             "tekstveld": {"type": "string", "enum": ["citaat", "toelichting", "beide"]},
@@ -79,7 +79,7 @@ ANNOTATIE_TOOLS = [
             "herkomst": keuzes("agent", "mens"), "aandacht": keuzes("groen", "geel"),
             "subtype": keuzes("variabele", "variabelewaarde", "parameter", "parameterwaarde",
                               "delegatiebevoegdheid", "delegatie-invulling"),
-            "beslist_door": keuzes("regel", "model", "specificiteit"),
+            "beslist_door": keuzes("regel", "model", "specificiteit", "terugval"),
             "met_twijfel": {"type": "boolean"},
             "limit": {"type": "integer", "minimum": 1, "maximum": 100},
             "offset": {"type": "integer", "minimum": 0}}),

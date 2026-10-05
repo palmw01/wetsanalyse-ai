@@ -60,6 +60,8 @@ def herkomst_regels(element: dict, verklaringen: dict) -> dict[str, Any]:
     return {
         "herkomst": element.get("herkomst", ""),
         "besloten_door": besloten,
+        # Geen keuze van het model: de resolver zette de eerste mogelijke klasse voorlopig neer.
+        "terugval": door == "terugval",
         "regels": _uniek(naam(verklaringen, "regels", b["regel"]) if b.get("regel")
                          else naam(verklaringen, "detectie", b.get("code", "")) for b in bewijs),
         "detectoren": _uniek(b.get("detector") for b in bewijs),
@@ -80,7 +82,8 @@ def herkomst_zin(regels: dict) -> str:
     if not regels["besloten_door"]:
         delen = ["door een jurist zelf gemarkeerd" if regels["herkomst"] == "mens" else "geen spoor bewaard"]
     else:
-        delen = [f"besloten door {regels['besloten_door']}"]
+        delen = [f"{regels['besloten_door']} – de klasse is voorlopig" if regels.get("terugval")
+                 else f"besloten door {regels['besloten_door']}"]
         if regels["regels"]:
             delen.append("bewijs: " + ", ".join(regels["regels"]))
         if regels["twijfel"]:

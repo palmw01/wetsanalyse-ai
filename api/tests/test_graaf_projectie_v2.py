@@ -100,3 +100,21 @@ def test_herkomstfilters_vinden_precies_wat_de_projectie_schreef(filters, verwac
 
 def test_herkomstfilters_veranderen_de_querystructuur_niet():
     parseQuery(zoek_query({"herkomst": ['agent") } UNION { ?s ?p ?o } #'], "beslist_door": ["model> } SERVICE <x"]}))
+
+
+def test_terugval_is_een_eigen_beslisser_in_de_graaf():
+    """Een voorlopige klasse na ABSTAIN draagt `besluit:terugval`, niet `besluit:model`."""
+    ds = Dataset()
+    laag = {"id": "layer-t", "bron_iri": "urn:bwb:BWBR0004770:artikel:9", "revisie": 1, "status": "in_review"}
+    anker = {"bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:5", "start": 0, "eind": 9, "tekst": "één maand", "bron_hash": "a"}
+    el = {"id": "t", "klasse": "Rechtsobject", "tekst": "één maand", "toelichting": "", "lifecycle": "voorgesteld",
+          "herkomst": "agent", "aandacht": "geel", "ankers": [anker],
+          "trace": {"pijplijn": "hybrid_v1", "beslissing": {"door": "terugval"}, "twijfel": [{"reden": "CLASSIFIER_ABSTAIN"}]}}
+    graph = ds.graph(graph_iri(laag["id"]))
+    for triple in bouw_graaf(laag, [el]):
+        graph.add(triple)
+    ds.graph(REGISTER).add((SCHEMA, JAS.versie, Literal(SCHEMA_VERSIE)))
+    ds.graph(REGISTER).add((laag_iri(laag["id"]), JAS.inGraaf, graph.identifier))
+    ds.graph(REGISTER).add((laag_iri(laag["id"]), JAS.revisie, Literal(1)))
+    assert [str(r.id) for r in ds.query(zoek_query({"beslist_door": ["terugval"]}))] == ["t"]
+    assert not list(ds.query(zoek_query({"beslist_door": ["model"]})))
