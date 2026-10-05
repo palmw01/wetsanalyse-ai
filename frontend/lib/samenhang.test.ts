@@ -77,6 +77,19 @@ describe("zichtbareGraaf", () => {
     expect(begin).not.toContain(A10);
     expect(zichtbareGraaf(g, [L1], ALLES).nodes.map((n) => n.id)).toContain(A10);
   });
+  it("het markeringsfilter verbergt markeringen en klassen die niets meer markeren, nooit structuur", () => {
+    const met = (extra: object) => bouwGraaf([{ ...samenhang(), knopen: samenhang().knopen.map((k) =>
+      k.soort === "markering" ? { ...k, lifecycle: "voorgesteld", herkomst: "agent", aandacht: "geel", twijfel: false, ...extra } : k) }]);
+    const ids = (gr: ReturnType<typeof bouwGraaf>, f: Parameters<typeof zichtbareGraaf>[3]) => zichtbareGraaf(gr, [], ALLES, f).nodes.map((n) => n.id);
+    expect(ids(met({}), "aandacht")).toEqual(expect.arrayContaining(["element:e1", "klasse:Rechtssubject"]));
+    expect(ids(met({}), "te_beoordelen")).toContain("element:e1");
+    const zonder = ids(met({}), "jurist");
+    expect(zonder).not.toContain("element:e1");
+    expect(zonder).not.toContain("klasse:Rechtssubject");
+    expect(zonder).toEqual(expect.arrayContaining([ART, L1, L2, LAW]));
+    expect(ids(met({ twijfel: true }), "twijfel")).toContain("element:e1");
+    expect(ids(met({}), "alle")).toContain("element:e1");
+  });
   it("filters verbergen annotaties en randknopen", () => {
     const zonder = zichtbareGraaf(g, [L1, "element:e1"], { ...ALLES, annotaties: false, verwijzingen: false });
     expect(zonder.nodes.some((n) => n.soort === "markering" || n.rand)).toBe(false);

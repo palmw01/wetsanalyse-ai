@@ -82,6 +82,10 @@ export function GraafInspector({ knoop, element, laadElement, ongedekt, hoofdact
       {knoop.soort === "markering" && <div className="flex flex-wrap items-center gap-2">
         <span className={`inline-block rounded border px-2 py-0.5 text-[11px] ${jasStyle(knoop.klasse)}`}>{knoop.klasse}</span>
         {knoop.lifecycle && <span className="text-[11px] text-muted">{LIFECYCLE_LABEL[knoop.lifecycle as Lifecycle] || knoop.lifecycle}</span>}
+        {knoop.herkomst && <span className="rounded-full border border-line px-2 py-0.5 text-[11px] text-muted">
+          {knoop.herkomst === "mens" ? "door een jurist" : "voorstel van Lex"}</span>}
+        {knoop.aandacht === "geel" && <span className="rounded-full border border-aandacht-geel-rand bg-aandacht-geel-bg px-2 py-0.5 text-[11px] text-aandacht-geel-tekst">Keuze voor jou</span>}
+        {knoop.aandacht === "groen" && <span className="rounded-full border border-aandacht-groen-rand bg-aandacht-groen-bg px-2 py-0.5 text-[11px] text-aandacht-groen-tekst">Bevestigd door review</span>}
       </div>}
       {knoop.soort === "markering" && (element || laadElement) && <WaaromUitklap key={knoop.id} el={element} laad={laadElement} />}
       {knoop.tekst && knoop.soort !== "markering" && <p className="border-l-2 border-lint/20 pl-3 text-xs leading-relaxed text-muted">{knoop.tekst}</p>}
