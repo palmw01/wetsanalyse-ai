@@ -6,6 +6,7 @@ import { Group, Mesh, MeshLambertMaterial, OctahedronGeometry, SphereGeometry, V
 import SpriteText from "three-spritetext";
 import type { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { SOORT_LABEL, isDubbelklik, type GraafData, type GraafKnoop, type GraafRelatie } from "@/lib/samenhang";
+import { DEKKINGSKLEUR } from "@/lib/dekking";
 
 type LinkMeta = Omit<GraafRelatie, "source" | "target">;
 type RenderLink = LinkObject<GraafKnoop, LinkMeta>;
@@ -84,7 +85,7 @@ const LIJN: Record<GraafRelatie["soort"], { kleur: string; rgb: string; breedte:
   markeert: { kleur: "#9fb3c5", rgb: "159,179,197", breedte: 0.7, krom: 0.1 },
   heeft_klasse: { kleur: "#b7c4d1", rgb: "183,196,209", breedte: 0.5, krom: 0.1 },
 };
-export function GraafCanvas({ data, selectie, onSelecteer, onDubbelklik, onInteractie, camera: cameraRef, bediening: bedieningRef, zichtbaar }: {
+export function GraafCanvas({ data, selectie, onSelecteer, onDubbelklik, onInteractie, camera: cameraRef, bediening: bedieningRef, zichtbaar, aandacht }: {
   data: GraafData; selectie: string; onSelecteer: (id: string) => void;
   /** Tweede klik op dezelfde knoop binnen 300 ms (de renderer kent alleen klik). */
   onDubbelklik?: (id: string) => void;
@@ -93,6 +94,8 @@ export function GraafCanvas({ data, selectie, onSelecteer, onDubbelklik, onInter
   camera: MutableRefObject<CameraStand | null>;
   bediening: MutableRefObject<GraafCameraBediening | null>;
   zichtbaar: boolean;
+  /** Knopen met zinsdelen zonder detectortreffer (de laag Dekking): die krijgen een okerkleurige halo. */
+  aandacht?: Set<string>;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const graph = useRef<ForceGraphMethods<GraafKnoop, LinkMeta> | undefined>(undefined);
@@ -226,6 +229,11 @@ export function GraafCanvas({ data, selectie, onSelecteer, onDubbelklik, onInter
       group.add(new Mesh(vormVan("halo", radius),
         new MeshLambertMaterial({ color: "#007bc7", wireframe: true, transparent: true, opacity: 0.4 })));
     }
+    // Ruimer dan de selectiehalo, zodat ze samen op één knoop allebei te zien blijven.
+    if (aandacht?.has(node.id)) {
+      group.add(new Mesh(vormVan("halo", radius + 3),
+        new MeshLambertMaterial({ color: DEKKINGSKLEUR, wireframe: true, transparent: true, opacity: gedimd ? 0.12 : 0.45 })));
+    }
     // Vaste labels alleen voor de selectie en haar buren; de rest heeft een tooltip bij hover.
     if (selectie && buren.has(node.id)) {
       const label = new SpriteText(node.kort, 10, "#253c53");
@@ -243,7 +251,7 @@ export function GraafCanvas({ data, selectie, onSelecteer, onDubbelklik, onInter
       group.add(label);
     }
     return group;
-  }, [buren, selectie, maat.height]);
+  }, [buren, selectie, maat.height, aandacht]);
   const raaktSelectie = (edge: RenderLink) => idVan(edge.source) === selectie || idVan(edge.target) === selectie;
   const lijnKleur = (edge: RenderLink) => {
     const lijn = LIJN[edge.soort];

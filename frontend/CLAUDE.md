@@ -609,6 +609,11 @@ paneel op die tab opent. Beide verschijnen alleen als de API de capability `same
 - **Vergroten** gebruikt de `Dialog`-variant `fullscreen`. De stand staat daarom in de hook
   `useSamenhangStand` in het paneel, niet in de graaf: een variantwissel remount de inhoud. **Escape**
   van binnen naar buiten: zoeklijst → Lagen → selectie → verkleinen → sluiten.
+- **Laag Dekking**: de zinsdelen zonder detectortreffer uit het paneel (`ongedektPerBron` in
+  `lib/dekking.ts`, sleutel = bron-IRI = knoop-id) geven een lid of onderdeel een okerkleurige halo
+  (`DEKKINGSKLEUR`) en in de inspector een blok *Zonder detectortreffer*. Het is een kenmerk, geen
+  relatiegroep: `toonDekking` staat los van `filters` en raakt Omgeving/Alles niet. Alleen de
+  bronnodes van de geopende bepaling hebben een meting; de legenda zegt dat.
 - **Live bij een annotatiewijziging**: `NodeAnnotatiePaneel` roept na elke mutatie (`muteer`,
   `status`) `graafStand.ververs()` aan. Die haalt elk geladen deel opnieuw op (per artikel vervangen);
   `bouwGraaf(delen, vorige)` houdt bestaande knopen op hun plek.

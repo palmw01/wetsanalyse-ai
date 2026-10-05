@@ -61,7 +61,10 @@ function weergave(iri) {
       tekst: "ontvanger", toelichting: "Voert de invordering uit", lifecycle: "voorgesteld", herkomst: "agent",
       ankers: [{ bron_iri: L1, start: 3, eind: 12, tekst: "ontvanger", bron_hash: "h1" }],
       trace: { kandidaat: { bewijs: [{ detector: "rol", code: "ROL_ACTOR", regel: "jas.subject.actor" }] }, beslissing: { door: "regel" } } }] : [],
-    verwijzingen: [], dekking: {} };
+    verwijzingen: [],
+    // Dekking: in lid 2 gaf "geldt artikel 10" geen enkele detectortreffer.
+    dekking: segs.some((s) => s.bron_iri === L2) ? { voltooid: true, structureel: { [L2]: { dimensies: { actor: "uitgevoerd" },
+      ongedekt: [{ tekst: "geldt artikel 10", start: 32, eind: 48 }] } } } : {} };
 }
 const berichten = [
   { rol: "user", tekst: "Wat regelt artikel 9 lid 2 van de Invorderingswet?", denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "" },
@@ -233,6 +236,20 @@ async function detailsOpen(page) {
   assert.equal(await page.getByTestId("samenhang-graaf").getAttribute("data-vergroot"), "true");
   await page.keyboard.press("Escape");
   assert.equal(await page.getByTestId("samenhang-graaf").getAttribute("data-vergroot"), "false");
+
+  // 8b. Laag Dekking: het lid met een zinsdeel zonder detectortreffer toont dat in de inspector;
+  // de laag uitzetten haalt het weg (de halo zelf zit in WebGL – zie de screenshot).
+  await zoekEnKies(page, "lid 2", L2);
+  await detailsOpen(page);
+  await detail(page).getByTestId("graaf-dekking").getByText("“geldt artikel 10”").waitFor();
+  await page.screenshot({ path: `${shots}/8b-dekking.png` });
+  await page.getByRole("button", { name: "Lagen" }).click();
+  const dekkingLaag = page.getByRole("group", { name: "Lagen" }).getByRole("checkbox", { name: /Dekking/ });
+  assert.ok(await dekkingLaag.isChecked(), "de laag Dekking staat standaard aan");
+  await dekkingLaag.uncheck();
+  assert.equal(await detail(page).getByTestId("graaf-dekking").count(), 0, "laag uit haalt de dekking uit de inspector");
+  await dekkingLaag.check();
+  await page.keyboard.press("Escape");
 
   // 9. Lagen: filters en legenda in één; Escape sluit eerst het lagenpaneel.
   await zoekEnKies(page, "lid 1", L1);

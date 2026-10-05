@@ -1,5 +1,16 @@
 import type { NodeDekking } from "./annotatieNode";
 
+/** De kleur van de dekkingslaag in de 3D-graaf. Tussen de rand- en teksttint van aandacht-geel
+ *  (`globals.css`) in: de randtint zelf is als draadmodel op het lichte doek te bleek. */
+export const DEKKINGSKLEUR = "#c4893f";
+
+/** De ongedekte zinsdelen per bronnode – de sleutel is ook de knoop-id in de samenhangsgraaf. */
+export function ongedektPerBron(delen: { bron_iri: string; tekst: string }[]): Record<string, string[]> {
+  const uit: Record<string, string[]> = {};
+  for (const d of delen) (uit[d.bron_iri] ??= []).push(d.tekst);
+  return uit;
+}
+
 /** De dekking per bronnode, zoals het overzicht in het paneel hem toont. */
 export interface DekkingRegel {
   bron_iri: string;
