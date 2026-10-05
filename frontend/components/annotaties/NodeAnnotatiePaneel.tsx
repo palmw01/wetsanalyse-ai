@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { DekkingOverzicht } from "@/components/annotaties/DekkingOverzicht";
+import { ongedektPerBron } from "@/lib/dekking";
 import { RevisieHistorie } from "@/components/annotaties/RevisieHistorie";
 import { Dialog, type DialogVariant } from "@/components/ui/Dialog";
 import { Melding } from "@/components/ui/Melding";
@@ -75,6 +76,7 @@ export function NodeAnnotatiePaneel({ doel, onSluit, variant = "side", onVraag, 
     () => (view && nb && doc ? nogOngedekt(ongedektVanNode(view, nb), doc.elementen, nb.bron) : []),
     [view, nb, doc],
   );
+  const dekkingPerKnoop = useMemo(() => ongedektPerBron(ongedekt), [ongedekt]);
 
   /** Elke mutatie: versturen, daarna altijd opnieuw laden – ook na een fout, want een 412 betekent
    *  juist dat de stand in beeld niet meer klopt. De fout gaat dóór naar `ArtefactInhoud`, die hem
@@ -232,7 +234,7 @@ export function NodeAnnotatiePaneel({ doel, onSluit, variant = "side", onVraag, 
       {toonTabs && graafGeopend && (
         <div className={tab === "graaf" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
           <SamenhangGraaf stand={graafStand} zichtbaar={tab === "graaf"} groot={groot || !onSluit} actiefElementId={actiefId}
-            elementen={view.elementen} onKiesElement={setActiefId} onOpenTekst={openTekst}
+            elementen={view.elementen} dekking={dekkingPerKnoop} onKiesElement={setActiefId} onOpenTekst={openTekst}
             onVraag={onVraag || onVraagOverBron ? vraagOverKnoop : undefined} />
         </div>
       )}

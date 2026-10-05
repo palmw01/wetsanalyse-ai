@@ -42,6 +42,12 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
   Critic-restanten weg (#521), JAS-subtype machineleesbaar (#523). Dat zijn PR 1–4 van spoor B;
   PR 0 is af: productie draait `v1.7.0` (1 okt) en projecteert; de api logt elke tien minuten
   `annotatie_graafcontrole` met 0 afwijkingen (geverifieerd 5 okt via `azure-infra` → `telemetrie`).
+- **Herkomst en dekking in de werkplek** (spoor B PR 5a, 5b, 6; op productie sinds `v1.8.0`, 5 okt):
+  de Waarom-uitklap op de reviewkaart en in de graafinspector met leesbare namen uit de vocabulaire
+  (#570); revisiehistorie per laag, alleen-lezend (`GET lagen/{id}/revisies`, #572); ongedekte
+  zinsdelen onderstreept in het documentpaneel, zelf markeren vanaf zo'n zinsdeel en een
+  dimensie-overzicht (#573); de laag *Dekking* in de 3D-graaf (6b) →
+  [`frontend/CLAUDE.md`](../frontend/CLAUDE.md), [`architectuur/annotatie-bronnodes.md`](architectuur/annotatie-bronnodes.md).
 - **Samenhangsgraaf** (#540–#546): `GET /v1/annotatie/samenhang` (`api/app/samenhang.py`,
   capability `samenhang`) en een 3D-krachtgraaf (`components/graaf/SamenhangGraaf.tsx`,
   `lib/samenhang.ts`). Die staat als tab *3D-graaf* in het annotatiepaneel en opent ook via
@@ -67,7 +73,7 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | Spoor | Onderwerp | Stand |
 |---|---|---|
 | A | Juridische validatie van `hybrid_v1` (V7) | Wacht op mensenwerk: 0 casussen `adjudicated` |
-| B | Herkomst zichtbaar in werkplek en exports | PR 0 af (productie `v1.7.0` projecteert); samenhangsgraaf geleverd; PR 5a in review (#570), 5b–10 open |
+| B | Herkomst zichtbaar in werkplek en exports | PR 0–6 af, op productie in `v1.8.0`; 5c en 7–10 open |
 | C | Leerlus en knowledge-check | Te herijken |
 | D | Activiteit 3: werkgebieden en begrippen | Ontwerp klaar, niets gebouwd |
 | E | Kennisbank (tweede corpus) | Ontwerp klaar, niets gebouwd |
@@ -146,14 +152,11 @@ SSE-wegen blijven gelijk en drift-tests gaan mee. Elke PR die graph-qa raakt dra
 
 | PR | Inhoud | Hangt af van |
 |---|---|---|
-| 5a | "Waarom?"-uitklap op de elementkaart én in de graafinspector (één component): bewijs met regelnaam uit de vocabulaire, wie besliste, twijfelreden, resolutieregel, subtype, ruwe modelvraag onder "technisch detail". Alternatief-chips met reden, gedegradeerd-badge, beurtsamenvatting onder de annotatiechip → #570 | 4 ✓ |
-| 5b | Revisiehistorie per laag: de api schrijft `laag_id` + `revisie` in het audit-detail en levert `GET lagen/{id}/revisies`; een alleen-lezende revisiekiezer in het paneel toont per revisie wie wat wanneer deed. Geen terugblik op de oude inhoud van de laag (besluit 5 okt) | — |
 | 5c | Citatie-chips met bronkaart onder de antwoorden van Lex | — |
-| 6 | Dekking in het documentpaneel: ongedekte zinsdelen onderstreept, "markeer zelf" via `SelectiePopover`, dimensie-overzicht per bronnode. In de 3D-graaf een laag *Dekking* met ongedekte zinsdelen per lid. Bron: de weergave-`dekking` | 2 ✓ |
 | 7 | Exports. CSV: platte kolommen (`besloten_door`, `regels`, `detectoren`, `twijfel`, `resolutieregel`, `mogelijke_klassen`, `subtype`, `validatie`, `aandacht`, `herkomst`). PDF: herkomstregel per element en beurtmeting. JSON v3 met `trace.vraag`, run-meting en dekking, plus JSON-schema. Turtle via dezelfde `bouw_graaf`; die levert ook de "technisch detail"-weergave in de graafinspector, met de graafcontrole-status | 3 ✓ |
-| 8 | Grenskeuze: `spanopties` als "andere grens"-chips en een nieuwe beslissing `grens` (additief, geaudit; de SHACL-shape kent `grens` al) | 5a |
+| 8 | Grenskeuze: `spanopties` als "andere grens"-chips en een nieuwe beslissing `grens` (additief, geaudit; de SHACL-shape kent `grens` al) | 5a ✓ |
 | 9 | *Optioneel*: `search_annotaties` filtert op `herkomst`, `beslistDoor`, twijfel, aandacht en subtype. Dezelfde filters kunnen als lagen in `lib/samenhang.ts` | 3 ✓ |
-| 10 | *Optioneel*: samenhang op de rijke graaf. `samenhang.py` leest nu `weergave` plus de wetsgraaf; herkomst (agent/mens), aandacht en beoordelingsstatus komen als knoopkenmerk en laag in de 3D-graaf | 5a |
+| 10 | *Optioneel*: samenhang op de rijke graaf. `samenhang.py` leest nu `weergave` plus de wetsgraaf; herkomst (agent/mens), aandacht en beoordelingsstatus komen als knoopkenmerk en laag in de 3D-graaf | 5a ✓ |
 
 **Verificatie.** Per PR: api `uv run pytest`, graph-qa met en zonder spaCy, frontend
 `npm test`/typecheck/`npm run test:browser` (met `test-samenhang.mjs`) en `poort`. Acceptatie live:
@@ -501,7 +504,7 @@ blijft bij de wettekst.
 
 - **A** loopt los van de rest en is vooral werk voor beoordelaars. Het blokkeert alleen semantisch
   werk aan de annotatieketen, niet B, D of E.
-- **B**: 5a → 8 en 5a → 10; 5b en 5c staan los. PR 6, 7 en 9 kunnen parallel.
+- **B**: 7, 8, 9, 10 en 5c staan los van elkaar; alle afhankelijkheden zijn geleverd. PR 6, 7 en 9 kunnen parallel.
 - **D** en **E** zijn onafhankelijk. D-levering 4 (Lex leest begrippen) en E-fase 3 (koppelen aan
   bepalingen) gebruiken allebei het projectie- en schrijfpad van de api. Ontwerp ze samen als ze
   tegelijk aan de orde komen.

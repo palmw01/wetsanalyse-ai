@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dekkingPerBron } from "./dekking";
+import { dekkingPerBron, ongedektPerBron } from "./dekking";
 
 describe("dekkingPerBron", () => {
   it("telt per bronnode de volledig bekeken dimensies en de ongedekte zinsdelen, in tekstvolgorde", () => {
@@ -17,5 +17,13 @@ describe("dekkingPerBron", () => {
   it("is leeg zonder meting", () => {
     expect(dekkingPerBron(undefined, [])).toEqual([]);
     expect(dekkingPerBron({}, [])).toEqual([]);
+  });
+});
+
+describe("ongedektPerBron", () => {
+  it("groepeert de zinsdelen per bron-IRI, in volgorde", () => {
+    expect(ongedektPerBron([{ bron_iri: "a", tekst: "x" }, { bron_iri: "b", tekst: "y" }, { bron_iri: "a", tekst: "z" }]))
+      .toEqual({ a: ["x", "z"], b: ["y"] });
+    expect(ongedektPerBron([])).toEqual({});
   });
 });

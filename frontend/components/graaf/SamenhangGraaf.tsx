@@ -46,6 +46,8 @@ export function useSamenhangStand(doel: NodeDoel, actief: boolean) {
   // De gekozen knoop die je zelf inklapte, terwijl zijn selectie hem anders zou uitklappen.
   const [ingeklapt, setIngeklapt] = useState("");
   const [lagenOpen, setLagenOpen] = useState(false);
+  // De dekkingslaag verbergt niets, hij markeert alleen; daarom los van `filters` en van Omgeving/Alles.
+  const [toonDekking, setToonDekking] = useState(true);
   const [aangeraakt, setAangeraakt] = useState(false);
   const camera = useRef<CameraStand | null>(null);
   const zetDelen = useCallback((maak: (oud: Samenhang[]) => Samenhang[]) => setGeladen((oud) => {
@@ -104,7 +106,7 @@ export function useSamenhangStand(doel: NodeDoel, actief: boolean) {
 
   return { delen: geladen?.delen, alles: geladen?.graaf, zetDelen, ververs, fout, setFout, laadtUit, setLaadtUit,
     selectie, setSelectie, uitgebreid, setUitgebreid, filters, setFilters, voorAlles, setVoorAlles, zetWeergave, toon,
-    ingeklapt, setIngeklapt, lagenOpen, setLagenOpen, aangeraakt, setAangeraakt, camera, laad };
+    ingeklapt, setIngeklapt, lagenOpen, setLagenOpen, aangeraakt, setAangeraakt, camera, laad, toonDekking, setToonDekking };
 }
 export type SamenhangStand = ReturnType<typeof useSamenhangStand>;
 
@@ -113,18 +115,22 @@ export type SamenhangStand = ReturnType<typeof useSamenhangStand>;
  *  erover zoals bij een kaart: zoeken en weergave boven, lagen en beeld onder. Wat een knoop is,
  *  staat in de inspector, met één hoofdactie. Leeft als tab naast de tekst in het annotatiepaneel;
  *  de gekozen markering is in beide tabs dezelfde. */
-export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, elementen, onKiesElement, onOpenTekst, onVraag }: {
+export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, elementen, dekking, onKiesElement, onOpenTekst, onVraag }: {
   stand: SamenhangStand; zichtbaar: boolean; groot: boolean;
   actiefElementId?: string;
   /** De elementen van de weergave in het paneel: daaruit haalt de inspector het spoor van een markering. */
   elementen?: NodeElement[];
+  /** Per bron-IRI de zinsdelen zonder detectortreffer, uit het paneel (alleen de geopende bepaling). */
+  dekking?: Record<string, string[]>;
   onKiesElement: (elementId?: string) => void;
   onOpenTekst: (knoop: GraafKnoop) => void;
   onVraag?: (knoop: GraafKnoop) => void;
 }) {
   const { delen, zetDelen, fout, setFout, laadtUit, setLaadtUit, selectie, setSelectie, uitgebreid, setUitgebreid,
     filters, setFilters, voorAlles, zetWeergave, toon, ingeklapt, setIngeklapt, lagenOpen, setLagenOpen, aangeraakt, setAangeraakt,
-    camera, laad } = stand;
+    camera, laad, toonDekking, setToonDekking } = stand;
+  const aandacht = useMemo(() => new Set(toonDekking ? Object.keys(dekking ?? {}) : []), [dekking, toonDekking]);
+  const heeftDekking = Object.keys(dekking ?? {}).length > 0;
   const bediening = useRef<GraafCameraBediening | null>(null);
 
   const alles = useMemo(() => stand.alles ?? { nodes: [], links: [] }, [stand.alles]);
@@ -216,7 +222,8 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, eleme
     <div className={`flex min-h-0 flex-1 ${groot ? "flex-col md:flex-row" : "flex-col"}`}>
       <div className="relative min-h-[260px] min-w-0 flex-1 bg-[#f7f9fc]">
         <CanvasGrens><Canvas data={data} selectie={gekozenId} onSelecteer={kies} onDubbelklik={dubbelklik}
-          onInteractie={() => setAangeraakt(true)} camera={camera} bediening={bediening} zichtbaar={zichtbaar} /></CanvasGrens>
+          onInteractie={() => setAangeraakt(true)} camera={camera} bediening={bediening} zichtbaar={zichtbaar}
+          aandacht={aandacht} /></CanvasGrens>
         {/* Bediening zweeft over het canvas; de lege ruimte ertussen laat klikken door naar de graaf. */}
         <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-3">
           <div className="flex items-start justify-between gap-2">
@@ -230,7 +237,8 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, eleme
           </div>
           <div className="flex items-end justify-between gap-2">
             <GraafLagen filters={filters} open={lagenOpen} onOpen={setLagenOpen}
-              onWissel={(g: RelatieGroep) => setFilters((f) => ({ ...f, [g]: !f[g] }))} />
+              onWissel={(g: RelatieGroep) => setFilters((f) => ({ ...f, [g]: !f[g] }))}
+              dekking={heeftDekking ? { aan: toonDekking, onWissel: () => setToonDekking((v) => !v) } : undefined} />
             <GraafHint klaar={aangeraakt} />
             <GraafBeeld onPasIn={() => bediening.current?.pasIn()} onZoom={(f) => bediening.current?.zoom(f)} />
           </div>
@@ -240,6 +248,7 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, eleme
         <GraafInspector knoop={geselecteerd} smal={!groot}
           element={geselecteerd?.element_id ? elementen?.find((e) => e.id === geselecteerd.element_id) : undefined}
           laadElement={geselecteerd?.element_id ? () => haalElement(geselecteerd.element_id) : undefined}
+          ongedekt={toonDekking && geselecteerd ? dekking?.[geselecteerd.id] : undefined}
           hoofdactie={geselecteerd ? bepaalHoofdactie(geselecteerd, geopend) : null}
           uitgeklapt={!!geselecteerd && (uitgebreid.includes(geselecteerd.id) || tijdelijk === geselecteerd.id)}
           verborgenBuren={geselecteerd ? verborgenBuren(geselecteerd.id) : 0}
