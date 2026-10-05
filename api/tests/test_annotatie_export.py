@@ -154,3 +154,11 @@ async def test_trig_is_per_laag_wat_de_projectie_bouwt(database):
             elementen, dekking = await laag_invoer(conn, rij)
             assert isomorphic(ds.graph(graph_iri(laag["id"])), bouw_graaf(rij, elementen, dekking=dekking))
     assert not any(str(s).startswith("urn:bwb:") for g in ds.graphs() for s in g.subjects())
+
+
+def test_een_terugval_heet_geen_besluit_van_het_model():
+    el = _element(trace={**SPOOR, "beslissing": {"door": "terugval"}})
+    v = {**V, "besluit": {**V["besluit"], "terugval": {"naam": "nog geen klasse gekozen"}}}
+    r = export.herkomst_regels(el, v)
+    assert r["terugval"] is True and r["besloten_door"] == "nog geen klasse gekozen"
+    assert export.herkomst_zin(r).startswith("nog geen klasse gekozen – de klasse is voorlopig")

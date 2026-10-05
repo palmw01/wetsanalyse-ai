@@ -11,6 +11,10 @@
     "specificiteit": {
       "naam": "voorrangsregel",
       "uitleg": "Besloten door een JAS-voorrangsregel over overlappende fragmenten."
+    },
+    "terugval": {
+      "naam": "nog geen klasse gekozen",
+      "uitleg": "Het model gaf geen bruikbare keuze en de gerichte review besliste niet; de eerste mogelijke klasse staat er voorlopig. Kies zelf."
     }
   },
   "classifier": {
@@ -773,5 +777,5 @@
       "uitleg": "Waarschuwing: hetzelfde fragment kreeg twee klassen."
     }
   },
-  "vocabulaire_versie": "adb6b121505b"
+  "vocabulaire_versie": "382dff00545a"
 }

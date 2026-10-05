@@ -83,6 +83,6 @@ def _fout(v: dict[str, Any], b: Beslissing, k: Candidate | None, snapshot: dict[
         return "V_GRENS", f"{grens[1]}-{grens[2]}"
     if not k.evidence:
         return "V_PROVENANCE", "geen bewijs"
-    if b.door == "model" and not (provenance.get("model") and provenance.get("classifier_prompt")):
+    if b.door in {"model", "terugval"} and not (provenance.get("model") and provenance.get("classifier_prompt")):
         return "V_PROVENANCE", "modelbeslissing zonder model of promptversie"
     return None

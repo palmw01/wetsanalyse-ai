@@ -121,6 +121,11 @@
     skos:prefLabel "voorrangsregel"@nl ;
     jas:codeWaarde "specificiteit" .
 
+<urn:jas-ns:besluit:terugval> a jas:Besluitwijze ;
+    skos:definition "Het model gaf geen bruikbare keuze en de gerichte review besliste niet; de eerste mogelijke klasse staat er voorlopig. Kies zelf."@nl ;
+    skos:prefLabel "nog geen klasse gekozen"@nl ;
+    jas:codeWaarde "terugval" .
+
 <urn:jas-ns:classifier:CLASSIFIER_CONTRACT_ERROR> a jas:Classifiercode ;
     skos:definition "Het model koos buiten wat voor dit fragment was toegestaan. Dat is een contractfout, geen juridische twijfel; de afhandeling is die van een onbesliste classificatie."@nl ;
     skos:prefLabel "Technische storing van het model"@nl ;
@@ -898,5 +903,5 @@
     dcterms:source "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md" ;
     skos:prefLabel "Juridisch Analyseschema"@nl ;
     jas:jasVersie "1.0.10" ;
-    jas:vocabulaireVersie "adb6b121505b" .
+    jas:vocabulaireVersie "382dff00545a" .
 

@@ -99,6 +99,11 @@ metingen `AGENT_VERSION` op de commit.
   normeenheid. De oorspronkelijke afwijzing blijft bewaard. Ontbreekt de gevraagde context, dan gaat
   het naar de mens.
 - **Onzekerheid** wordt uitgedrukt in codes en aandacht-niveau, nooit in een confidence-getal.
+- **Geen klasse gekozen** (abstain zonder bruikbaar reviewoordeel, `R-ABSTAIN-HUMAN`/`R-ONGELDIG`):
+  de resolver zet de eerste mogelijke klasse **voorlopig** neer, zodat de jurist een kaart heeft om
+  te kiezen. De beslisser is dan `terugval`, niet `model` – in het spoor, de graaf
+  (`besluit:terugval`), de export en het zoekfilter. Aanleiding: art. 9 lid 5 IW 1990, waar "één
+  maand" als Rechtsobject in de laag stond terwijl het model niets had gekozen.
 
 ## Broncontext
 

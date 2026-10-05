@@ -31,7 +31,8 @@ def _uitgegeven() -> dict[str, set[str]]:
     python = _bron("*.py", "detectoren/*.py")
     return {
         "detectie": regels | set(re.findall(r'Evidence\([^)]*?code="([A-Z_]+)"', python, re.S)),
-        "besluit": set(re.findall(r'door="([a-z]+)"', _bron("besluit.py"))),
+        "besluit": set(re.findall(r'door="([a-z]+)"', _bron("besluit.py")))
+                   | set(re.findall(r'"door": "([a-z]+)"', _bron("resolver.py"))),
         "twijfel": set(re.findall(r'reden="([A-Z_]+)"', _bron("onzekerheid.py"))),
         "resolutie": {r for r, _ in resolver.TABEL.values()} | {resolver.ONGELDIG[0], resolver.TEGEN_REGEL},
         "validatie": set(re.findall(r'"([VW]_[A-Z_]+)"', _bron("validatie.py"))),

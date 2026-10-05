@@ -169,7 +169,7 @@ def _spoor(k: Candidate, b: Beslissing, spankeuze: bool = False) -> dict[str, An
                                      for o in k.span_options]},
         "beslissing": b.model_dump(mode="json"),
         # Alleen als er een model aan te pas kwam: de exacte regel die het over deze kandidaat zag.
-        "vraag": kandidaatregel(k, spankeuze) if b.door == "model" else "",
+        "vraag": kandidaatregel(k, spankeuze) if b.door in {"model", "terugval"} else "",
     }
 
 
@@ -314,7 +314,7 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
     meting["resolutie"] = [t.model_dump() for t in transities]
     # Juridisch tegenover technisch (V5, onderzoek §6): alleen rapportage, afgeleid uit het spoor.
     meting["reviewload"] = splits(beslissingen, twijfels, transities)
-    meting["deterministisch"] = sum(b.door != "model" for b in beslissingen)
+    meting["deterministisch"] = sum(b.door in {"regel", "specificiteit"} for b in beslissingen)
     # Dekking A: gooit als een kandidaat zonder beslissing bleef – dat is een fout in de keten,
     # geen uitkomst om te rapporteren.
     meting["per_status"] = controleer_a(fusie, beslissingen)

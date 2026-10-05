@@ -128,7 +128,7 @@ class Zoekvraag(BaseModel):
     aandacht: list[Literal["groen", "geel"]] = Field(default_factory=list)
     subtype: list[Literal["variabele", "variabelewaarde", "parameter", "parameterwaarde",
                           "delegatiebevoegdheid", "delegatie-invulling"]] = Field(default_factory=list)
-    beslist_door: list[Literal["regel", "model", "specificiteit"]] = Field(default_factory=list)
+    beslist_door: list[Literal["regel", "model", "specificiteit", "terugval"]] = Field(default_factory=list)
     # None = geen filter; True = alleen met twijfel in het spoor; False = alleen zonder.
     met_twijfel: bool | None = None
     bronversie: str = ""
