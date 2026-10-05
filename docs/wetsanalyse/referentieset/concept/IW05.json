@@ -1,0 +1,371 @@
+{
+ "id": "IW05",
+ "familie": "IW",
+ "split": "ontwikkeling",
+ "bron_id": "urn:bwb:BWBR0004770:artikel:9:lid:5",
+ "vindplaats": "BWBR0004770/9/5",
+ "versie": "2026-07-01",
+ "tekst": "In afwijking van het eerste lid is een voorlopige aanslag in de inkomstenbelasting of in de vennootschapsbelasting en een voorlopige conserverende aanslag in de inkomstenbelasting, waarvan het aanslagbiljet een dagtekening heeft die ligt in het jaar waarover deze is vastgesteld, invorderbaar in zoveel gelijke termijnen als er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven. De eerste termijn vervalt één maand na de dagtekening van het aanslagbiljet en elk van de volgende termijnen telkens een maand later. Indien de toepassing van de eerste volzin niet leidt tot meer dan één termijn, vindt het eerste lid toepassing.",
+ "tekst_sha256": "11aab4fb73f10380f88b3db884976396773f0fd9b40bcda37fe8140dadf2943d",
+ "source_status": null,
+ "tekstsoort": "wet",
+ "constructies": [],
+ "referentie_status": "provisional",
+ "negatief": [],
+ "grammatica": "Drie volzinnen. Volzin 1: onderwerp de voorlopige aanslagen, met een betrekkelijke bijzin als voorwaarde en een vergelijkende 'zoveel … als'-constructie als afleiding. Volzin 2: twee vervalmomenten, het tweede elliptisch ('elk van de volgende termijnen telkens een maand later [vervalt]'). Volzin 3: ALS–DAN met een negatie en een vergelijking.",
+ "samenhang": "Lid 5 wijkt af van lid 1 ('In afwijking van het eerste lid'); volzin 3 verwijst terug naar lid 1. De afwijkingsclausule is samenhang, geen Voorwaarde.",
+ "scenario": "Normaal: dagtekening in maart van het vaststellingsjaar → 9 termijnen. Grens: dagtekening in november → 1 termijn → lid 1. Dagtekening in een later jaar → voorwaarde niet vervuld, lid 1.",
+ "reviewvraag": "Beoordeel (1) of volzin 2 en 'vindt het eerste lid toepassing' Rechtsbetrekking zijn of een andere klasse; (2) of de belastingsoort binnen het Rechtsobject hoort; (3) of 'één termijn' parameter- of variabelewaarde is; (4) welke van de 32 exportelementen verdwijnen (zie verwijderd).",
+ "gold": [
+  {
+   "gid": "E01",
+   "start": 0,
+   "eind": 434,
+   "tekst": "In afwijking van het eerste lid is een voorlopige aanslag in de inkomstenbelasting of in de vennootschapsbelasting en een voorlopige conserverende aanslag in de inkomstenbelasting, waarvan het aanslagbiljet een dagtekening heeft die ligt in het jaar waarover deze is vastgesteld, invorderbaar in zoveel gelijke termijnen als er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven.",
+   "klasse": "Rechtsbetrekking",
+   "subtype": null,
+   "context": null,
+   "motivatie": "Dragende formulering van volzin 1: de voorlopige aanslagen zijn onder voorwaarde in termijnen invorderbaar (zelfde lezing als IW01).",
+   "herkenningsvraag": null,
+   "h2_ref": null,
+   "annotation_status": null,
+   "relaties": [],
+   "adjudicatie": null,
+   "export_vergelijking": "behouden"
+  },
+  {
+   "gid": "E02",
+   "start": 35,
+   "eind": 114,
+   "tekst": "een voorlopige aanslag in de inkomstenbelasting of in de vennootschapsbelasting",
+   "klasse": "Rechtsobject",
+   "subtype": null,
+   "context": null,
+   "motivatie": "Voorwerp van de invorderbaarheid. De belastingsoort bepaalt welk object het is en is geen zelfstandig Rechtsobject.",
+   "herkenningsvraag": null,
+   "h2_ref": null,
+   "annotation_status": null,
+   "relaties": [],
+   "adjudicatie": null,
+   "export_vergelijking": "wijzigen: export markeerde 'een voorlopige aanslag' en de belastingen apart"
+  },
+  {
+   "gid": "E03",
+   "start": 118,
+   "eind": 179,
+   "tekst": "een voorlopige conserverende aanslag in de inkomstenbelasting",
+   "klasse": "Rechtsobject",
+   "subtype": null,
+   "context": null,
+   "motivatie": "Tweede voorwerp van dezelfde invorderbaarheid.",
+   "herkenningsvraag": null,
+   "h2_ref": null,
+   "annotation_status": null,
+   "relaties": [],
+   "adjudicatie": null,
+   "export_vergelijking": "wijzigen: export markeerde de aanslag en 'de inkomstenbelasting' apart"
+  },
+  {
+   "gid": "E04",
+   "start": 181,
+   "eind": 278,
+   "tekst": "waarvan het aanslagbiljet een dagtekening heeft die ligt in het jaar waarover deze is vastgesteld",
+   "klasse": "Voorwaarde",
+   "subtype": null,
+   "context": null,
+   "motivatie": "De volledige voorwaarde voor termijnbetaling: dagtekening in het vaststellingsjaar.",
+   "herkenningsvraag": null,
+   "h2_ref": null,
+   "annotation_status": null,
+   "relaties": [],
+   "adjudicatie": null,
+   "export_vergelijking": "wijzigen: export had alleen 'het jaar waarover deze is vastgesteld'"
+  },
+  {
+   "gid": "E05",
+   "start": 296,
+   "eind": 433,
+   "tekst": "zoveel gelijke termijnen als er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven",
+   "klasse": "Afleidingsregel",
+   "subtype": null,
+   "context": null,
+   "motivatie": "Berekening van het aantal termijnen: resterende maanden van het jaar na de maand van dagtekening.",
+   "herkenningsvraag": null,
+   "h2_ref": null,
+   "annotation_status": null,
+   "relaties": [],
+   "adjudicatie": null,
+   "export_vergelijking": "ontbrak in export"
+  },
+  {
+   "gid": "E06",
+   "start": 296,
+   "eind": 320,
+   "tekst": "zoveel gelijke termijnen",
+   "klasse": "Variabele en variabelewaarde",
+   "subtype": null,
+   "context": null,
+   "motivatie": "De uitkomst van de afleiding (aantal termijnen).",
+   "herkenningsvraag": null,
+   "h2_ref": null,
+   "annotation_status": null,
+   "relaties": [
+    {
+     "soort": "uitkomst_van",
+     "doel": "E05"
+    }
+   ],
+   "adjudicatie": null,
+   "export_vergelijking": "behouden"
+  },
+  {
+   "gid": "E07",
+   "start": 397,
+   "eind": 421,
+   "tekst": "nog maanden van het jaar",
+   "klasse": "Variabele en variabelewaarde",
+   "subtype": null,
+   "context": null,
+   "motivatie": "Invoer van de afleiding: het aantal resterende maanden.",
+   "herkenningsvraag": null,
+   "h2_ref": null,
+   "annotation_status": null,
+   "relaties": [
+    {
+     "soort": "invoer_van",
+     "doel": "E05"
+    }
+   ],
+   "adjudicatie": null,
+   "export_vergelijking": "wijzigen: export had 'nog maanden'"
+  },
+  {
+   "gid": "E08",
+   "start": 435,
+   "eind": 568,
+   "tekst": "De eerste termijn vervalt één maand na de dagtekening van het aanslagbiljet en elk van de volgende termijnen telkens een maand later.",
+   "klasse": "Rechtsbetrekking",
+   "subtype": null,
+   "context": null,
+   "motivatie": "Volzin 2: het vervallen van de termijnen. Het normatieve predicaat 'vervalt' ontbrak in de export.",
+   "herkenningsvraag": null,
+   "h2_ref": null,
+   "annotation_status": null,
+   "relaties": [],
+   "adjudicatie": null,
+   "export_vergelijking": "ontbrak in export"
+  },
+  {
+   "gid": "E09",
+   "start": 435,
+   "eind": 452,
+   "tekst": "De eerste termijn",
+   "klasse": "Rechtsobject",
+   "subtype": null,
+   "context": null,
+   "motivatie": "Wat vervalt.",
+   "herkenningsvraag": null,
+   "h2_ref": null,
+   "annotation_status": null,
+   "relaties": [],
+   "adjudicatie": null,
+   "export_vergelijking": "behouden"
+  },
+  {
+   "gid": "E10",
+   "start": 461,
+   "eind": 510,
+   "tekst": "één maand na de dagtekening van het aanslagbiljet",
+   "klasse": "Tijdsaanduiding",
+   "subtype": null,
+   "context": null,
+   "motivatie": "Vervalmoment van de eerste termijn: duur plus referentiemoment.",
+   "herkenningsvraag": null,
+   "h2_ref": null,
+   "annotation_status": null,
+   "relaties": [
+    {
+     "soort": "vervalmoment_van",
+     "doel": "E09"
+    }
+   ],
+   "adjudicatie": null,
+   "export_vergelijking": "behouden"
+  },
+  {
+   "gid": "E11",
+   "start": 514,
+   "eind": 543,
+   "tekst": "elk van de volgende termijnen",
+   "klasse": "Rechtsobject",
+   "subtype": null,
+   "context": null,
+   "motivatie": "Wat telkens daarna vervalt.",
+   "herkenningsvraag": null,
+   "h2_ref": null,
+   "annotation_status": null,
+   "relaties": [],
+   "adjudicatie": null,
+   "export_vergelijking": "wijzigen: export had 'de volgende termijnen'"
+  },
+  {
+   "gid": "E12",
+   "start": 544,
+   "eind": 567,
+   "tekst": "telkens een maand later",
+   "klasse": "Tijdsaanduiding",
+   "subtype": null,
+   "context": null,
+   "motivatie": "Vervalmoment van elke volgende termijn, ten opzichte van de vorige.",
+   "herkenningsvraag": null,
+   "h2_ref": null,
+   "annotation_status": null,
+   "relaties": [
+    {
+     "soort": "vervalmoment_van",
+     "doel": "E11"
+    }
+   ],
+   "adjudicatie": null,
+   "export_vergelijking": "wijzigen: export markeerde 'telkens een maand' als Variabele en 'een maand' als Tijdsaanduiding"
+  },
+  {
+   "gid": "E13",
+   "start": 569,
+   "eind": 646,
+   "tekst": "Indien de toepassing van de eerste volzin niet leidt tot meer dan één termijn",
+   "klasse": "Voorwaarde",
+   "subtype": null,
+   "context": null,
+   "motivatie": "Voorwaarde voor de terugvalregel.",
+   "herkenningsvraag": null,
+   "h2_ref": null,
+   "annotation_status": null,
+   "relaties": [
+    {
+     "soort": "voorwaarde_voor",
+     "doel": "E17"
+    }
+   ],
+   "adjudicatie": null,
+   "export_vergelijking": "behouden"
+  },
+  {
+   "gid": "E14",
+   "start": 611,
+   "eind": 615,
+   "tekst": "niet",
+   "klasse": "Operator",
+   "subtype": null,
+   "context": null,
+   "motivatie": "Negatie binnen de voorwaarde.",
+   "herkenningsvraag": null,
+   "h2_ref": null,
+   "annotation_status": null,
+   "relaties": [],
+   "adjudicatie": null,
+   "export_vergelijking": "behouden"
+  },
+  {
+   "gid": "E15",
+   "start": 626,
+   "eind": 634,
+   "tekst": "meer dan",
+   "klasse": "Operator",
+   "subtype": null,
+   "context": null,
+   "motivatie": "Vergelijking binnen de voorwaarde.",
+   "herkenningsvraag": null,
+   "h2_ref": null,
+   "annotation_status": null,
+   "relaties": [],
+   "adjudicatie": null,
+   "export_vergelijking": "behouden"
+  },
+  {
+   "gid": "E16",
+   "start": 635,
+   "eind": 646,
+   "tekst": "één termijn",
+   "klasse": "Parameter en parameterwaarde",
+   "subtype": null,
+   "context": null,
+   "motivatie": "Vaste grenswaarde van de vergelijking.",
+   "herkenningsvraag": null,
+   "h2_ref": null,
+   "annotation_status": null,
+   "relaties": [],
+   "adjudicatie": null,
+   "export_vergelijking": "wijzigen: export markeerde 'meer dan één termijn' als Variabele"
+  },
+  {
+   "gid": "E17",
+   "start": 648,
+   "eind": 679,
+   "tekst": "vindt het eerste lid toepassing",
+   "klasse": "Rechtsbetrekking",
+   "subtype": null,
+   "context": null,
+   "motivatie": "Het gevolg van de voorwaarde (ALS … DAN): dan geldt lid 1. Ontbrak in de export; de klasse is een conceptkeuze voor de beoordeling.",
+   "herkenningsvraag": null,
+   "h2_ref": null,
+   "annotation_status": null,
+   "relaties": [],
+   "adjudicatie": null,
+   "export_vergelijking": "ontbrak in export"
+  }
+ ],
+ "verwijderd_uit_export": [
+  {
+   "tekst": "één maand",
+   "klasse_export": "Rechtsobject",
+   "reden": "Geen object: deel van de tijdsaanduiding E10. In de export een terugval na abstain (zie #582)."
+  },
+  {
+   "tekst": "de dagtekening",
+   "klasse_export": "Rechtsobject",
+   "reden": "Referentiemoment binnen een tijdsaanduiding of voorwaarde, geen zelfstandig object (2×)."
+  },
+  {
+   "tekst": "het aanslagbiljet",
+   "klasse_export": "Rechtsobject",
+   "reden": "Drager van de dagtekening; zelfstandig niet betekenisdragend voor deze norm (3×)."
+  },
+  {
+   "tekst": "de inkomstenbelasting / de vennootschapsbelasting",
+   "klasse_export": "Rechtsobject",
+   "reden": "Classificeert de aanslag; opgenomen in E02/E03."
+  },
+  {
+   "tekst": "invorderbaar",
+   "klasse_export": "Variabele en variabelewaarde",
+   "reden": "Het predicaat van de Rechtsbetrekking E01, geen variabele."
+  },
+  {
+   "tekst": "een dagtekening",
+   "klasse_export": "Variabele en variabelewaarde",
+   "reden": "Onderdeel van de voorwaarde E04."
+  },
+  {
+   "tekst": "de dagtekening van het aanslagbiljet en elk van de volgende termijnen telkens een maand later",
+   "klasse_export": "Rechtsfeit",
+   "reden": "Mengt referentiemoment en vervalmomenten; vervangen door E08–E12."
+  },
+  {
+   "tekst": "afwijking van het eerste lid",
+   "klasse_export": "Voorwaarde",
+   "reden": "Afwijkingsclausule: samenhang met lid 1, geen voorwaarde."
+  },
+  {
+   "tekst": "in het jaar / het jaar / na de maand",
+   "klasse_export": "Tijdsaanduiding",
+   "reden": "Opgenomen in de voorwaarde E04 en de afleiding E05; te beoordelen of ze daarbinnen zelfstandig gemarkeerd blijven."
+  }
+ ],
+ "concept": {
+  "bron": "annotaties.trig (export acceptatie, 5 okt 2026) en externe review",
+  "door": "AI-concept, niet beoordeeld",
+  "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:5",
+  "jci": "jci1.3:c:BWBR0004770&hoofdstuk=II&artikel=9&lid=5&z=2026-07-01&g=2026-07-01"
+ }
+}
