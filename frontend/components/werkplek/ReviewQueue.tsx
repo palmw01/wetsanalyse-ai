@@ -523,6 +523,19 @@ function DecisionCard({
         </div>
       )}
 
+      {uitgeklapt && !slot && (el.grensopties?.length ?? 0) > 0 && (
+        <div className="mt-1.5 flex flex-wrap items-center gap-1 text-xs text-muted" onClick={(e) => e.stopPropagation()}>
+          <span>Andere grens:</span>
+          {el.grensopties!.map((o) => (
+            <button key={o.index} type="button" disabled={bezig} title={`Voorgesteld door de keten (${o.soort})`}
+              onClick={() => void verstuur({ type: "grens", wijziging: { optie: o.index } as unknown as Wijziging })}
+              className={CHIP}>
+              “{o.tekst.length > 60 ? o.tekst.slice(0, 57) + "…" : o.tekst}”
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Vragen doe je in het centrale gespreksvenster, niet in een tweede chatje hier. Deze knop zet
           de vraag daar klaar mét de context van dit element; het antwoord komt in de thread – inclusief
           bronnen en grounding, die een draadje in de kaart nooit toonde. */}

@@ -382,6 +382,25 @@ async def historische_snapshot(snapshot_id: str) -> dict:
         return snapshot
 
 
+def _grens_wijziging(element: dict, wijziging: dict, nodes: dict) -> dict:
+    """Een grensoptie van de keten als nieuw anker. De client kiest alleen de optie; het anker komt
+    uit de brontekst zelf, zodat er nooit een fragment ontstaat dat niet letterlijk in de wet staat."""
+    if set(wijziging) != {"optie"} or not isinstance(wijziging.get("optie"), int) or isinstance(wijziging.get("optie"), bool):
+        raise HTTPException(422, "Een grenskeuze bestaat uit precies één optie-index.")
+    kandidaat = (element.get("trace") or {}).get("kandidaat") or {}
+    opties = kandidaat.get("spanopties") or []
+    iri = (kandidaat.get("span") or {}).get("bron_iri")
+    i = wijziging["optie"]
+    if not 0 <= i < len(opties) or iri not in nodes:
+        raise HTTPException(422, "Onbekende grensoptie voor dit element.")
+    optie, node = opties[i], nodes[iri]
+    tekst = node.get("tekst", "")[optie["start"]:optie["eind"]]
+    if not tekst.strip():
+        raise HTTPException(422, "Lege grensoptie.")
+    return {"ankers": [{"bron_iri": iri, "start": optie["start"], "eind": optie["eind"], "tekst": tekst,
+                        "bron_hash": node["bron_hash"]}], "tekst": tekst}
+
+
 async def beslis(element_id: str, req: Beslissing, snapshot: dict, actor: str) -> dict:
     if req.snapshot_id != snapshot["snapshot_id"]:
         raise HTTPException(409, "Bronstand gewijzigd.")
@@ -403,11 +422,13 @@ async def beslis(element_id: str, req: Beslissing, snapshot: dict, actor: str) -
             raise HTTPException(409, "Heropen het element voordat je het wijzigt.")
         value = dict(old)
         touched = {old["eigenaar_iri"]: old_layer}
-        if req.type == "edit":
-            allowed = {"klasse", "tekst", "toelichting", "ankers"}
-            if set(req.wijziging) - allowed:
+        wijziging = req.wijziging
+        if req.type in {"edit", "grens"}:
+            if req.type == "grens":
+                wijziging = _grens_wijziging(old, req.wijziging, nodes)
+            elif set(req.wijziging) - {"klasse", "tekst", "toelichting", "ankers"}:
                 raise HTTPException(422, "Niet-toegestane correctievelden.")
-            candidate = Element.model_validate({**old, **req.wijziging})
+            candidate = Element.model_validate({**old, **wijziging})
             value.update(valideer(candidate, snapshot, set(nodes)))
             owner = value["eigenaar_iri"]
             if owner not in touched:
@@ -419,7 +440,9 @@ async def beslis(element_id: str, req: Beslissing, snapshot: dict, actor: str) -
         # jurist anders zag dan de agent (`annotatie_statistiek`).
         decision = {"type": req.type, "actor": actor, "tijd": db.utcnow().isoformat(),
                     "comment": req.comment, "review_reason": req.review_reason, "wijziging": req.wijziging,
-                    **({"voor": {k: old.get(k) for k in req.wijziging}} if req.type == "edit" else {})}
+                    **({"voor": {k: old.get(k) for k in req.wijziging}} if req.type == "edit" else {}),
+                    **({"voor": {"ankers": old.get("ankers"), "tekst": old.get("tekst")},
+                        "nieuw": {"ankers": wijziging["ankers"], "tekst": wijziging["tekst"]}} if req.type == "grens" else {})}
         value["beslissingen"] = [*old.get("beslissingen", []), decision]
         await _bewaar_snapshot(conn, snapshot)
         await conn.execute(update(db.annotatie_v2_elementen).where(

@@ -16,7 +16,7 @@ export function haalRevisies(laagId: string): Promise<Revisie[]> {
 
 const ACTIE: Record<string, string> = {
   "element-gemaakt": "markering gemaakt",
-  approve: "akkoord", edit: "aangepast", reject: "verworpen", heropen: "heropend", comment: "opmerking",
+  approve: "akkoord", edit: "aangepast", grens: "andere grens", reject: "verworpen", heropen: "heropend", comment: "opmerking",
   "element-verwijderd": "markering gewist",
   "bron-gewijzigd": "verouderd door gewijzigde wettekst",
   "laag-bron-gewijzigd": "heropend door gewijzigde wettekst",

@@ -193,7 +193,7 @@ export interface ApiError {
 
 export type Lifecycle =
   | "voorgesteld" | "human_approved" | "edited" | "rejected" | "published" | "reused";
-export type BeslissingType = "approve" | "edit" | "reject" | "comment" | "heropen";
+export type BeslissingType = "approve" | "edit" | "reject" | "comment" | "heropen" | "grens";
 export type ReviewReason =
   | "verkeerde_klasse" | "bron_gemist" | "tekst" | "interpretatie" | "onvoldoende_context" | "anders";
 export type Aandacht = "groen" | "geel" | "rood";
@@ -299,6 +299,9 @@ export interface AnnotatieElement {
   /** Waarom dit element er staat; zie `ElementTrace` en de Waarom-uitklap. */
   trace?: ElementTrace;
   jas_subtype?: string;
+  /** De andere grenzen die de keten voor deze kandidaat voorstelde, als tekst (zie `grensOpties`).
+   *  `index` is de positie in `trace.kandidaat.spanopties` – dat is wat de api terugkrijgt. */
+  grensopties?: { index: number; soort: string; tekst: string }[];
   anker?: Anker | null;
   diff: Record<string, { voor: unknown; na: unknown }>;
   beslissingen: Beslissing[];

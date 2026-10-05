@@ -52,8 +52,8 @@ class ReviewStatistiek(BaseModel):
 
 
 # Volgorde van zwaarte: een element dat is afgewezen én becommentarieerd telt als afgewezen.
-_ZWAARTE = {"reject": 3, "edit": 2, "approve": 1}
-_UITKOMST = {"reject": "afgewezen", "edit": "aangepast", "approve": "goedgekeurd"}
+_ZWAARTE = {"reject": 3, "edit": 2, "grens": 2, "approve": 1}
+_UITKOMST = {"reject": "afgewezen", "edit": "aangepast", "grens": "aangepast", "approve": "goedgekeurd"}
 
 
 def _uitkomst(el: dict[str, Any]) -> str:

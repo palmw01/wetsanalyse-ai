@@ -596,3 +596,53 @@ async def test_technisch_detail_van_een_element(monkeypatch):
         assert "lex" not in body["turtle"]
         assert (await client.get("/v1/annotatie/elementen/bestaat-niet/graaf", headers=headers)).status_code == 404
     get_settings.cache_clear()
+
+
+def _met_opties(snap, iri=ONE):
+    """Een element op 'Alfa' (2–6) met de grensopties die de keten zou meegeven."""
+    n = store.nodes_van(snap)[iri]
+    trace = {"kandidaat": {"span": {"bron_iri": iri, "start": 2, "eind": 6},
+                           "spanopties": [{"soort": "np", "start": 2, "eind": 11}, {"soort": "kern", "start": 7, "eind": 11}]}}
+    assert n["tekst"][2:11] == "Alfa Alfa" and len(n["tekst"]) == 11
+    return element(snap, iri, 2, 6, trace=trace)
+
+
+async def test_grenskeuze_rekent_het_anker_uit_de_bron():
+    snap = snapshot(ONE)
+    uit = await store.batch(request(snap, [_met_opties(snap)]), snap, "lex")
+    eid = uit["elementen"][0]["id"]
+    r = await store.beslis(eid, Beslissing(type="grens", wijziging={"optie": 0}, snapshot_id=snap["snapshot_id"],
+                                           verwachte_revisies={ONE: 1}), snap, "jan")
+    el = r["element"]
+    assert el["tekst"] == "Alfa Alfa" and el["ankers"][0]["start"] == 2 and el["ankers"][0]["eind"] == 11
+    assert el["lifecycle"] == "edited" and el["gewijzigd_door"] == "mens"
+    besluit = el["beslissingen"][-1]
+    assert besluit["type"] == "grens" and besluit["voor"]["tekst"] == "Alfa" and besluit["nieuw"]["tekst"] == "Alfa Alfa"
+    laag_id = uit["lagen"][0]["id"]
+    assert [a["actie"] for a in (await store.revisies(laag_id))[0]["acties"]] == ["grens"]
+
+
+@pytest.mark.parametrize("wijziging", [{"optie": 5}, {"optie": -1}, {"optie": "0"}, {"optie": True}, {}, {"optie": 0, "tekst": "x"}])
+async def test_grenskeuze_weigert_een_ongeldige_optie(wijziging):
+    snap = snapshot(ONE)
+    eid = (await store.batch(request(snap, [_met_opties(snap)]), snap, "lex"))["elementen"][0]["id"]
+    with pytest.raises(HTTPException) as exc:
+        await store.beslis(eid, Beslissing(type="grens", wijziging=wijziging, snapshot_id=snap["snapshot_id"],
+                                           verwachte_revisies={ONE: 1}), snap, "jan")
+    assert exc.value.status_code == 422
+
+
+async def test_grenskeuze_zonder_opties_en_op_een_vergrendeld_element():
+    snap = snapshot(ONE)
+    eid = (await store.batch(request(snap, [element(snap)]), snap, "lex"))["elementen"][0]["id"]
+    with pytest.raises(HTTPException) as exc:
+        await store.beslis(eid, Beslissing(type="grens", wijziging={"optie": 0}, snapshot_id=snap["snapshot_id"],
+                                           verwachte_revisies={ONE: 1}), snap, "jan")
+    assert exc.value.status_code == 422
+    snap2 = snapshot(ONE, second="Gamma")
+    eid2 = (await store.batch(request(snap2, [_met_opties(snap2)], batch_id="b2"), snap2, "lex"))["elementen"][0]["id"]
+    await store.beslis(eid2, Beslissing(type="approve", snapshot_id=snap2["snapshot_id"], verwachte_revisies={ONE: 1}), snap2, "jan")
+    with pytest.raises(HTTPException) as exc:
+        await store.beslis(eid2, Beslissing(type="grens", wijziging={"optie": 0}, snapshot_id=snap2["snapshot_id"],
+                                            verwachte_revisies={ONE: 2}), snap2, "jan")
+    assert exc.value.status_code == 409
