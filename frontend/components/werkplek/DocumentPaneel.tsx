@@ -24,6 +24,8 @@ interface Segment {
   herkomst?: string;
   /** Opmaak van dit stuk wettekst: het onderdeelnummer of de gedefinieerde term. */
   nadruk?: "nummer" | "term";
+  /** Dit stuk valt in een zinsdeel waar geen detector iets vond (de dekkingsmeting). */
+  ongedekt?: { start: number; eind: number };
 }
 
 /** Knip `bron` in segmenten, met hoogstens ÉÉN gemarkeerd: de geselecteerde.
@@ -80,14 +82,19 @@ export function markeringVan(
 export function segmentenVanBlok(
   blok: { offset: number; regel: string; nummerEind: number; termStart: number; termEind: number },
   markering: { start: number; eind: number; klasse: string; id?: string; herkomst?: string } | null,
+  ongedekt: { start: number; eind: number }[] = [],
 ): Segment[] {
   const n = blok.regel.length;
   const eindeBlok = blok.offset + n;
   const raakt = markering && markering.eind > blok.offset && markering.start < eindeBlok;
   const mVan = raakt ? Math.max(markering!.start - blok.offset, 0) : -1;
   const mTot = raakt ? Math.min(markering!.eind - blok.offset, n) : -1;
+  // De ongedekte zinsdelen die dit blok raken, in blokcoördinaten; ook die knippen de tekst.
+  const gaten = ongedekt
+    .filter((o) => o.eind > blok.offset && o.start < eindeBlok)
+    .map((o) => ({ van: Math.max(o.start - blok.offset, 0), tot: Math.min(o.eind - blok.offset, n), deel: o }));
 
-  const grenzen = [0, n, blok.nummerEind, blok.termStart, blok.termEind, mVan, mTot]
+  const grenzen = [0, n, blok.nummerEind, blok.termStart, blok.termEind, mVan, mTot, ...gaten.flatMap((g) => [g.van, g.tot])]
     .filter((g) => g >= 0 && g <= n)
     .sort((a, b) => a - b);
 
@@ -102,6 +109,10 @@ export function segmentenVanBlok(
       seg.klasse = markering!.klasse;
       seg.id = markering!.id;
       seg.herkomst = markering!.herkomst;
+    } else {
+      // De markering gaat voor: wat de jurist bekijkt, kleurt; een onderstreping eronder zou alleen storen.
+      const gat = gaten.find((g) => van >= g.van && tot <= g.tot);
+      if (gat) seg.ongedekt = { start: gat.deel.start, eind: gat.deel.eind };
     }
     uit.push(seg);
   }
@@ -158,6 +169,9 @@ export function DocumentPaneel({
   actiefId,
   onKies,
   onSelectie,
+  ongedekt = [],
+  toonOngedekt = true,
+  onToonOngedekt,
 }: {
   opschrift: string;
   /** De artikeltekst als regels mét hun lidnummer (`regelsVan`). Niet als kale strings: het lidnummer
@@ -171,6 +185,10 @@ export function DocumentPaneel({
     fragment: string; start: number; eind: number; lid: string; bron: string;
     x: number; y: number; yBoven: number;
   }) => void;
+  /** Zinsdelen waar geen detector iets vond (de dekkingsmeting), in de offsets van `bron`. */
+  ongedekt?: { start: number; eind: number }[];
+  toonOngedekt?: boolean;
+  onToonOngedekt?: (toon: boolean) => void;
 }) {
   const bron = useMemo(() => bronVan(regels), [regels]);
   const blokken = useMemo(() => blokkenVan(regels), [regels]);
@@ -243,6 +261,23 @@ export function DocumentPaneel({
    *  exact `bron` vormen – dus de lengtes optellen tot de startknoop geeft de absolute positie.
    *  De rekenstap zelf staat in `lib/selectie.ts` en is daar getest; hier blijft alleen de
    *  DOM-wandeling over, die in de node-omgeving van vitest toch niet te testen is. */
+  /** Een ongedekt zinsdeel aanklikken = het hele deel selecteren om zelf te markeren. Zelfde weg als
+   *  een tekstselectie, dus dezelfde popover; alleen hoeft de jurist de grenzen niet zelf te trekken. */
+  function kiesOngedekt(deel: { start: number; eind: number }, el: HTMLElement) {
+    if (!onSelectie) return;
+    const rect = el.getBoundingClientRect();
+    onSelectie({
+      fragment: bron.slice(deel.start, deel.eind),
+      start: deel.start,
+      eind: deel.eind,
+      lid: lidUitOffset(regels, deel.start),
+      bron,
+      x: rect.left + rect.width / 2,
+      y: rect.bottom,
+      yBoven: rect.top,
+    });
+  }
+
   function verwerkSelectie() {
     if (!onSelectie) return;
     const sel = window.getSelection();
@@ -300,6 +335,27 @@ export function DocumentPaneel({
           )}
         </div>
       )}
+      {ongedekt.length > 0 && (
+        // Het vangnet: zinsdelen waar geen enkele detector iets vond. Een meting, geen oordeel – dus
+        // geen aandachtskleur op de balk, alleen de stippellijn in de tekst. Bij nul: niets, ook geen
+        // groen vinkje.
+        <div className="mb-3 flex items-center justify-between gap-3 px-3 text-xs text-muted" data-testid="dekking-balk">
+          <span title="Een meting van de detectoren: hier is niets gezien. Dat zegt niet dat er iets ontbreekt.">
+            {ongedekt.length} {ongedekt.length === 1 ? "zinsdeel" : "zinsdelen"} zonder treffer van een detector
+            {toonOngedekt && onSelectie ? " – klik om zelf te markeren" : ""}
+          </span>
+          {onToonOngedekt && (
+            <button
+              type="button"
+              aria-pressed={toonOngedekt}
+              onClick={() => onToonOngedekt(!toonOngedekt)}
+              className="focus-ring shrink-0 rounded font-medium text-lint underline underline-offset-2 hover:no-underline"
+            >
+              {toonOngedekt ? "Verbergen" : "Tonen"}
+            </button>
+          )}
+        </div>
+      )}
       {/* Volle breedte, op verzoek van de jurist. Een leeskolom van ~66 tekens – de klassieke
           leesmaat – werkt hier niet: op de losse annotatiepagina begrenst niets anders de
           breedte, en dan plakt een smalle kolom tegen de linkerrand van een breed scherm alsof er
@@ -329,7 +385,7 @@ export function DocumentPaneel({
                 in de segmenten en dragen daar hun opmaak via `nadruk`. Zet er niets naast: dan
                 staat de tekst dubbel in de DOM en telt `offsetVanGrens` te veel op, waarna elke
                 zelfgemaakte markering op de verkeerde plek landt. */}
-            {segmentenVanBlok(blok, markering).map((s, i) =>
+            {segmentenVanBlok(blok, markering, toonOngedekt ? ongedekt : []).map((s, i) =>
               s.klasse ? (
                 // Nadrukkelijk géén `<button>`: die is inline-block en dus één atomaire box. Zodra de
                 // markering over meer dan één regel liep, groeide hij naar de volle regelbreedte – een
@@ -369,6 +425,27 @@ export function DocumentPaneel({
                 >
                   {s.tekst}
                 </mark>
+              ) : s.ongedekt ? (
+                // Inline en met role="button", om dezelfde reden als de <mark> hierboven.
+                <span
+                  key={i}
+                  data-ongedekt
+                  {...(onSelectie ? {
+                    role: "button",
+                    tabIndex: 0,
+                    onClick: (e: React.MouseEvent<HTMLSpanElement>) => kiesOngedekt(s.ongedekt!, e.currentTarget),
+                    onKeyDown: (e: React.KeyboardEvent<HTMLSpanElement>) => {
+                      if (e.key !== "Enter" && e.key !== " ") return;
+                      e.preventDefault();
+                      kiesOngedekt(s.ongedekt!, e.currentTarget);
+                    },
+                  } : {})}
+                  title={onSelectie ? "Hier vond geen detector iets – klik om zelf te markeren" : "Hier vond geen detector iets"}
+                  className={`${NADRUK[s.nadruk ?? "geen"]} underline decoration-aandacht-geel-rand decoration-dotted decoration-2 underline-offset-4 ${
+                    onSelectie ? "focus-ring cursor-pointer rounded-sm hover:bg-aandacht-geel-bg/60" : ""}`}
+                >
+                  {s.tekst}
+                </span>
               ) : (
                 <span key={i} className={NADRUK[s.nadruk ?? "geen"]}>
                   {s.tekst}

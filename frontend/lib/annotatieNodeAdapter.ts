@@ -113,6 +113,43 @@ function bereikVan(nb: NodeBron, ankers: NodeAnker[]): { start: number; eind: nu
   return start < 0 || eind <= start ? null : { start, eind, lid };
 }
 
+/** Een zinsdeel zonder detectortreffer, in de coördinaten van het paneel (UTF-16, samengestelde bron). */
+export interface OngedektDeel { start: number; eind: number; tekst: string; lid: string; bron_iri: string }
+
+/** De ongedekte zinsdelen van de weergave, vertaald naar het paneel.
+ *
+ *  Brongetrouw: een deel komt alleen mee als de tekst op die plek letterlijk de gemeten tekst is.
+ *  Een bronnode die niet in beeld staat, of een meting die niet meer past, levert niets – liever
+ *  een onderstreping te weinig dan een op de verkeerde woorden. */
+export function ongedektVanNode(view: NodeWeergave, nb: NodeBron): OngedektDeel[] {
+  const uit: OngedektDeel[] = [];
+  for (const [iri, meting] of Object.entries(view.dekking?.structureel ?? {})) {
+    const p = nb.plekken.find((x) => x.segment.bron_iri === iri);
+    if (!p) continue;
+    for (const d of meting.ongedekt ?? []) {
+      const start = p.begin + utf16Van(p.segment.tekst, d.start);
+      const eind = p.begin + utf16Van(p.segment.tekst, d.eind);
+      if (eind > start && nb.bron.slice(start, eind) === d.tekst) uit.push({ start, eind, tekst: d.tekst, lid: p.lid, bron_iri: iri });
+    }
+  }
+  return uit.sort((a, b) => a.start - b.start);
+}
+
+/** De delen die nog steeds ongedekt zijn: een actueel, niet-verworpen element dat een deel raakt,
+ *  dekt het af – markeert de jurist er zelf iets, dan verdwijnt de onderstreping. Verworpen telt niet,
+ *  net als in `alGemarkeerd` en de tekst zelf. */
+export function nogOngedekt(delen: OngedektDeel[], elementen: AnnotatieElement[], bron: string): OngedektDeel[] {
+  const bereiken = elementen
+    .filter((e) => e.lifecycle !== "rejected" && !e.verouderd && e.tekst.trim())
+    .map((e) => {
+      const fragment = e.tekst.trim();
+      const s = vindPositie(bron, fragment, e.anker, []);
+      return s < 0 ? null : [s, s + fragment.length] as const;
+    })
+    .filter((b): b is readonly [number, number] => b !== null);
+  return delen.filter((d) => !bereiken.some(([s, e]) => s < d.eind && d.start < e));
+}
+
 /** Een v2-element als paneel-element.
  *
  *  Een element met meerdere ankers (over onderdelen heen) wordt één doorlopende markering van het

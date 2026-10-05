@@ -4,7 +4,7 @@ import { bronVan, regelsVan } from "./annotatie";
 import { segmentAnker, type NodeElement, type NodeSegment, type NodeWeergave } from "./annotatieNode";
 import {
   beslissingNaarNode, documentVanNode, elementVanNode, lidUitIri, nodeAnkersUitSelectie, nodeBronVan,
-  tekstVanAnkers,
+  nogOngedekt, ongedektVanNode, tekstVanAnkers,
 } from "./annotatieNodeAdapter";
 import { vindPositie } from "./selectie";
 import { blokkenVan } from "./wetstructuur";
@@ -176,5 +176,58 @@ describe("lidUitIri", () => {
   it("haalt het lid uit een bron-IRI", () => {
     expect(lidUitIri(`${W}:lid:2a:onderdeel:b`)).toBe("2a");
     expect(lidUitIri(W)).toBe("");
+  });
+});
+
+describe("ongedektVanNode", () => {
+  // Codepoints binnen de node: in LID1 staat "𝑥" (twee UTF-16-eenheden, één codepoint).
+  const cp = (tekst: string, deel: string) => {
+    const i = tekst.indexOf(deel);
+    return { start: Array.from(tekst.slice(0, i)).length, eind: Array.from(tekst.slice(0, i)).length + Array.from(deel).length };
+  };
+  const meting = (ongedekt: Record<string, { tekst: string; start: number; eind: number }[]>) => ({
+    structureel: Object.fromEntries(Object.entries(ongedekt).map(([iri, delen]) => [iri, { dimensies: {}, ongedekt: delen }])),
+  });
+
+  it("vertaalt codepoints per node naar de samengestelde bron, ook na een teken buiten het BMP", () => {
+    const delen = {
+      [LID1.bron_iri]: [{ tekst: "invorderen", ...cp(LID1.tekst, "invorderen") }],
+      [ONDB.bron_iri]: [{ tekst: "bij verrekening", ...cp(ONDB.tekst, "bij verrekening") }],
+    };
+    const view = weergave([LID1, ONDA, ONDB, LID2], { dekking: meting(delen) });
+    const nb = nodeBronVan(view);
+    const uit = ongedektVanNode(view, nb);
+    expect(uit.map((d) => nb.bron.slice(d.start, d.eind))).toEqual(["invorderen", "bij verrekening"]);
+    expect(uit.map((d) => d.lid)).toEqual(["1", "1"]);
+  });
+
+  it("laat een deel weg waarvan de tekst niet (meer) op die plek staat, of dat buiten beeld valt", () => {
+    const view = weergave([LID1], { dekking: meting({
+      [LID1.bron_iri]: [{ tekst: "iets anders", start: 0, eind: 11 }],
+      [LID2.bron_iri]: [{ tekst: "Het tweede lid", start: 0, eind: 14 }],
+    }) });
+    expect(ongedektVanNode(view, nodeBronVan(view))).toEqual([]);
+  });
+
+  it("is leeg zonder meting", () => {
+    const view = weergave([LID1]);
+    expect(ongedektVanNode(view, nodeBronVan(view))).toEqual([]);
+  });
+});
+
+describe("nogOngedekt", () => {
+  const view = weergave([LID2]);
+  const nb = nodeBronVan(view);
+  const start = nb.bron.indexOf("tweede");
+  const deel = { start, eind: start + "tweede lid".length, tekst: "tweede lid", lid: "2", bron_iri: LID2.bron_iri };
+  const el = (lifecycle: string) => elementVanNode(element(
+    [{ bron_iri: LID2.bron_iri, start: 8, eind: 14, tekst: "tweede", bron_hash: LID2.bron_hash }], { lifecycle }), nb);
+
+  it("haalt een deel weg zodra een element het raakt", () => {
+    expect(nogOngedekt([deel], [el("human_approved")], nb.bron)).toEqual([]);
+  });
+
+  it("telt een verworpen element niet mee", () => {
+    expect(nogOngedekt([deel], [el("rejected")], nb.bron)).toEqual([deel]);
   });
 });

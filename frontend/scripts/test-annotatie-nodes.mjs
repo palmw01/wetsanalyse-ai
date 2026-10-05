@@ -39,7 +39,11 @@ function volledigeView(iri) {
         bewijs: [{ detector: "rol", code: "ROL_ACTOR", regel: "jas.subject.actor", detail: "ontvanger" }] },
         beslissing: { door: "model", klasse: "Rechtssubject" }, vraag: "k1 | ontvanger | Rechtssubject, Rechtsobject",
         twijfel: [{ reden: "DETECTOR_CONFLICT", alternatieven: ["Rechtsobject"] }], resolutie: [{ regel: "R-CONFLICT-KEEP" }] },
-    }] : [], verwijzingen: [], dekking: {} };
+    }] : [], verwijzingen: [],
+    // Dekkingsmeting: in lid 2 vond geen detector iets bij "TWEE" (codepoints 12–16), en de
+    // tijdsdimensie draaide niet.
+    dekking: ids.includes(2) ? { voltooid: true, structureel: { "urn:lid2": {
+      dimensies: { actor: "uitgevoerd", tijd: "overgeslagen" }, ongedekt: [{ tekst: "TWEE", start: 12, eind: 16 }] } } } : {} };
 }
 const verklaringen = {
   besluit: { model: { naam: "model", uitleg: "Het model koos uit de klassen die het patroon toeliet." } },
@@ -164,6 +168,17 @@ try {
   assert.equal(multi.element.ankers[0].tekst, "😀 ontvanger");
   assert.equal(multi.element.ankers[1].tekst, "UITS");
   assert.equal(multi.element.tekst, "😀 ontvanger UITS");
+  // Dekking: het zinsdeel zonder treffer is onderstreept; één klik opent dezelfde popover met het
+  // hele zinsdeel, en het overzicht noemt de dimensie die niet draaide.
+  await page.getByTestId("dekking-balk").getByText("1 zinsdeel zonder treffer", { exact: false }).waitFor();
+  await wettekst().locator("[data-ongedekt]").click();
+  await page.getByRole("dialog", { name: "Markering toevoegen" }).getByRole("button", { name: "Rechtsobject", exact: true }).click();
+  const zelf = (await verzoek(isNieuw, 3)).body;
+  assert.deepEqual(zelf.element.ankers, [{ bron_iri: "urn:lid2", start: 12, eind: 16, tekst: "TWEE", bron_hash: "hash2" }]);
+  await page.getByTestId("dekking").locator("summary").click();
+  await page.getByTestId("dekking").getByText("tijd overgeslagen", { exact: false }).waitFor();
+  await page.getByTestId("dekking-balk").getByRole("button", { name: "Verbergen" }).click();
+  assert.equal(await wettekst().locator("[data-ongedekt]").count(), 0);
   // Verwijderen: naast afronden, tweede klik bevestigt, alle lagen in beeld met hun revisie.
   await page.getByRole("button", { name: "Annotatie verwijderen", exact: true }).click();
   await page.getByRole("button", { name: "Verwijderen?", exact: true }).click();

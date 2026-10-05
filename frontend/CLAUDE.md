@@ -491,9 +491,18 @@ is dubbelop. Bij **verwerpen** blijft de reden een vraag aan de jurist; die staa
   *Fragment aanpassen* aan, mét een nieuw anker. Geen overlap = een nieuwe markering. Bewust een klik:
   een selectie die je maakte om te lezen mag nooit stil een annotatie wijzigen.
 
-**De dekking is het vangnet voor wat ontbreekt.** graph-qa stuurt een `dekking`-event met de zinsdelen
-waar geen detector iets vond – een meting, geen gok. De werkplek toont die nog niet; zie spoor B in
-`docs/PLAN.md`.
+**De dekking is het vangnet voor wat ontbreekt.** graph-qa meet per bronnode welke detectiedimensies
+draaiden en welke zinsdelen geen enkele kandidaat opleverden; de api geeft dat mee in de weergave
+(`dekking.structureel`). Een meting, geen gok en geen recall.
+- `ongedektVanNode` (`lib/annotatieNodeAdapter.ts`) vertaalt de zinsdelen naar de samengestelde bron
+  en laat een deel weg als de tekst daar niet letterlijk staat; `nogOngedekt` haalt weg wat een
+  actueel, niet-verworpen element al raakt.
+- `DocumentPaneel` onderstreept ze gestippeld (standaard aan, *Verbergen* in de balk erboven).
+  `segmentenVanBlok` knipt erop, de actieve markering gaat voor, en de segmenten blijven samen
+  exact de regel. Een klik op een onderstreept zinsdeel opent dezelfde `SelectiePopover` met het
+  hele deel: zelf markeren zonder de grenzen te trekken.
+- `DekkingOverzicht` in de `extra`-haak toont per bronnode hoeveel dimensies volledig draaiden en
+  welke niet (`lib/dekking.ts`).
 
 ### Zelf annoteren (tekstselectie)
 

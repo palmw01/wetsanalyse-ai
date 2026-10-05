@@ -22,12 +22,25 @@ export interface NodeElement {
   geproduceerd_door?: import("./types").AgentRun | null;
   provenance?: Partial<import("./types").AgentRun>;
 }
+/** Wat de annotatieketen per bronnode kon bekijken (graph-qa `jas_pipeline/dekking.py`, deel B):
+ *  per detectiedimensie of ze draaide, en de zinsdelen waar geen enkele kandidaat uit kwam – offsets
+ *  in codepoints binnen de bronnode. Een meting van de detectoren, geen recall. De api geeft per
+ *  bronnode alleen de nieuwste meting die nog over dezelfde tekst gaat. */
+export interface StructureleDekking {
+  dimensies: Record<string, "uitgevoerd" | "gedeeltelijk" | "overgeslagen">;
+  ongedekt: { tekst: string; start: number; eind: number }[];
+}
+export interface NodeDekking {
+  voltooid?: boolean;
+  bereik?: string[];
+  structureel?: Record<string, StructureleDekking>;
+}
 export interface NodeLaag { id: string; bron_iri: string; revisie: number; status: string }
 export interface NodeWeergave {
   schema_versie: 2; doel: NodeDoel; snapshot_id: string; segmenten: NodeSegment[];
   lagen: NodeLaag[]; elementen: NodeElement[];
   verwijzingen: { id: string; eigenaar_iri: string; klasse: string; label: string; detail_url?: string }[];
-  dekking: Record<string, unknown>;
+  dekking: NodeDekking;
   /** Gezet als deze bepaling geannoteerd was en die annotatie is verwijderd (en er sindsdien geen
    *  nieuwe laag is). Zo leest een heropend gesprek "verwijderd" in plaats van een leeg paneel. */
   verwijderd?: { op: string } | null;
