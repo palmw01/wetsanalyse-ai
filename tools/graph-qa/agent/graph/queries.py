@@ -270,7 +270,7 @@ def fts(
 }} ORDER BY DESC(?score) ?node {_pagina(lim, offset, meer)}"""
 
 
-def list_regelingen() -> str:
+def list_regelingen(limit: int = 100, offset: int = 0, meer: bool = False) -> str:
     """Welke regelingen zitten in de graaf? – met hun officiële afkortingen.
 
     Die afkortingen (`bwb:afkorting`, uit de WTI-verrijking) zijn er zodat een verwijzing als "Awb"
@@ -289,7 +289,7 @@ def list_regelingen() -> str:
   OPTIONAL {{ ?regeling bwb:citeertitel ?citeertitel }}
   OPTIONAL {{ ?regeling bwb:soort ?soort }}
   OPTIONAL {{ ?regeling bwb:afkorting ?afk }}
-}} GROUP BY ?regeling ?citeertitel ?soort ORDER BY ?citeertitel"""
+}} GROUP BY ?regeling ?citeertitel ?soort ORDER BY ?citeertitel ?regeling {_pagina(max(1, min(int(limit), 200)), offset, meer)}"""
 
 
 def get_artikel(bwb_id: str, artikel: str) -> str:
@@ -301,7 +301,7 @@ def get_artikel(bwb_id: str, artikel: str) -> str:
     8000-tekenslimiet het resultaat af. Daarvoor is `get_lid`, dat ze wél levert.
     """
     iri = artikel_iri(bwb_id, artikel)
-    return PREFIXES + f"""SELECT ?tekst ?jci ?lid ?lidnummer ?lidtekst ?onderdeel ?onderdeeltekst WHERE {{
+    return PREFIXES + f"""SELECT ?tekst ?jci ?lid ?lidnummer ?lidtekst ?o ?onderdeel ?onderdeeltekst WHERE {{
   OPTIONAL {{ <{iri}> bwb:tekst ?tekst }}
   OPTIONAL {{ <{iri}> bwb:jci ?jci }}
   OPTIONAL {{
@@ -342,35 +342,23 @@ def get_lid(bwb_id: str, artikel: str, lid: str) -> str:
     `subonderdelen`, dus 'aa.' hangt onder het lid en '1°' onder 'aa.'. Vandaar het pad `+`.
     """
     iri = lid_iri(bwb_id, artikel, lid)
-    # De onderdelen in één cel (GROUP_CONCAT) i.p.v. één rij per onderdeel: anders herhaalt de
-    # lidtekst zich per onderdeel en loopt een definitielid tegen de 8000-tekenslimiet, waarna juist
-    # de laatste onderdelen wegvallen. De subquery met ORDER BY houdt de volgorde a, b, c, …
-    return PREFIXES + f"""SELECT ?nummer ?tekst ?jci
-       (GROUP_CONCAT(?regel; separator=" ⏐ ") AS ?onderdelen) WHERE {{
+    # Eén rij per onderdeel (de handler zet de lidvelden één keer apart en pagineert op hele
+    # onderdelen). Vroeger zaten ze in één GROUP_CONCAT-cel om onder de 8000-tekenkap te blijven –
+    # één cel kan niet op een onderdeelgrens worden voortgezet, rijen wel.
+    return PREFIXES + f"""SELECT ?nummer ?tekst ?jci ?o ?onummer ?otekst ?ojci WHERE {{
   OPTIONAL {{ <{iri}> bwb:nummer ?nummer }}
   OPTIONAL {{ <{iri}> bwb:tekst ?tekst }}
   OPTIONAL {{ <{iri}> bwb:jci ?jci }}
   OPTIONAL {{
-    {{ SELECT ?regel WHERE {{
-        <{iri}> bwb:heeftOnderdeel+ ?o .
-        FILTER(STRSTARTS(STR(?o), "{NS}"))
-        OPTIONAL {{ ?o bwb:nummer ?on }}
-        OPTIONAL {{ ?o bwb:tekst ?ot }}
-        OPTIONAL {{ ?o bwb:jci ?oj }}
-        # De jci van het onderdeel zélf meegeven, niet die van het lid: anders citeert de agent
-        # "onderdeel k" maar verwijst de vindplaats naar het hele definitielid. Ook geneste
-        # onderdelen hebben er een (…&o=aa&o=1).
-        #
-        # Zonder de datumstaart (&z=…&g=…): die is voor 25 onderdelen ~700 tekens aan herhaling en
-        # staat al in de jci van het lid hierboven. Wat overblijft is een geldige jci-verwijzing.
-        BIND(IF(BOUND(?oj),
-                IF(CONTAINS(?oj, "&z="), STRBEFORE(?oj, "&z="), ?oj),
-                "") AS ?ojk)
-        BIND(CONCAT(COALESCE(?on, ""), " ", COALESCE(?ot, ""),
-                    IF(?ojk != "", CONCAT(" [", ?ojk, "]"), "")) AS ?regel)
-      }} ORDER BY ?o }}
+    <{iri}> bwb:heeftOnderdeel+ ?o .
+    FILTER(STRSTARTS(STR(?o), "{NS}"))
+    OPTIONAL {{ ?o bwb:nummer ?onummer }}
+    OPTIONAL {{ ?o bwb:tekst ?otekst }}
+    # De jci van het onderdeel zélf: anders citeert de agent "onderdeel k" met de vindplaats van
+    # het hele definitielid.
+    OPTIONAL {{ ?o bwb:jci ?ojci }}
   }}
-}} GROUP BY ?nummer ?tekst ?jci"""
+}} ORDER BY ?o"""
 
 
 def get_bepaling(bwb_id: str, nummer: str) -> str:
@@ -414,7 +402,7 @@ def get_bepaling(bwb_id: str, nummer: str) -> str:
     OPTIONAL {{ ?sub rdfs:label ?sublabel }}
     OPTIONAL {{ ?sub bwb:tekst ?subtekst . BIND(SUBSTR(STR(?subtekst), 1, 200) AS ?subbegin) }}
   }}
-}} ORDER BY ?sub LIMIT 40"""
+}} ORDER BY ?sub"""
 
 
 def get_regeling_info(bwb_id: str) -> str:
@@ -468,7 +456,8 @@ def get_regeling_info(bwb_id: str) -> str:
 }}"""
 
 
-def follow_verwijzingen(bwb_id: str, artikel: str, lid: str | None = None) -> str:
+def follow_verwijzingen(bwb_id: str, artikel: str, lid: str | None = None, limit: int = 50,
+                        offset: int = 0, meer: bool = False) -> str:
     """Uitgaande verwijzingen — van de bepaling ZELF én van haar leden en onderdelen.
 
     **Waarom die uitbreiding.** Verwijzingen hangen in deze graaf overwegend aan het lid, niet aan
@@ -517,7 +506,7 @@ def follow_verwijzingen(bwb_id: str, artikel: str, lid: str | None = None) -> st
     BIND(IF(CONTAINS(?rest, "{SEP}"), STRBEFORE(?rest, "{SEP}"), ?rest) AS ?doelBwb)
     OPTIONAL {{ ?dr a bwb:Regeling ; bwb:bwbId ?doelBwb ; bwb:citeertitel ?doelRegeling }}
   }}
-}}"""
+}} ORDER BY ?vanuit ?naar ?ankerTekst ?soort ?doelSoort ?doelLabel ?doelJci ?doelRegeling {_pagina(max(1, min(int(limit), 200)), offset, meer)}"""
 
 
 def verwijst_naar_deze(bwb_id: str, artikel: str, lid: str | None = None, limit: int = 50,
@@ -557,7 +546,7 @@ def verwijst_naar_deze(bwb_id: str, artikel: str, lid: str | None = None, limit:
 }} ORDER BY ?bron ?ankerTekst ?soort ?bronLabel ?bronJci {_pagina(lim, offset, meer)}"""
 
 
-def referenced_by(bwb_id: str, artikel: str) -> str:
+def referenced_by(bwb_id: str, artikel: str, limit: int = 50, offset: int = 0, meer: bool = False) -> str:
     """Welke REGELINGEN naar dit tekstdeel verwijzen (WTI-relatie `verwijzingDoor`).
 
     Regelingniveau, bewust: dit is de vogelvlucht. Wil je de citerende bepaling zelf zien, gebruik
@@ -568,10 +557,10 @@ def referenced_by(bwb_id: str, artikel: str) -> str:
   ?node bwb:verwijzingDoor ?regeling .
   FILTER(STRSTARTS(STR(?regeling), "{NS}"))
   OPTIONAL {{ ?regeling bwb:citeertitel ?citeertitel }}
-}} ORDER BY ?citeertitel"""
+}} ORDER BY ?citeertitel ?regeling {_pagina(max(1, min(int(limit), 200)), offset, meer)}"""
 
 
-def resolve_begrip(term: str) -> str:
+def resolve_begrip(term: str, limit: int = 25, offset: int = 0, meer: bool = False) -> str:
     """Thesaurustermen (`urn:bwb:begrip:…`) waarvan het label de term bevat.
 
     Het filter op de eigen IRI-ruimte is nodig omdat de JAS-annotatielagen in dezelfde graaf staan:
@@ -585,7 +574,7 @@ def resolve_begrip(term: str) -> str:
   {{ ?concept skos:prefLabel ?label }} UNION {{ ?concept rdfs:label ?label }}
   FILTER(CONTAINS(LCASE(STR(?label)), LCASE({_lit(term)})))
   OPTIONAL {{ ?concept skos:related|skos:broader|skos:narrower ?related }}
-}} LIMIT 25"""
+}} ORDER BY ?concept ?label ?related {_pagina(max(1, min(int(limit), 100)), offset, meer)}"""
 
 
 def count_by_type() -> str:
@@ -595,7 +584,8 @@ def count_by_type() -> str:
 }} GROUP BY ?type ORDER BY DESC(?aantal)"""
 
 
-def context(bwb_id: str, artikel: str, lid: str | None = None) -> str:
+def context(bwb_id: str, artikel: str, lid: str | None = None, limit: int = 100, offset: int = 0,
+            meer: bool = False) -> str:
     """GraphRAG-subgraaf: de bepaling met haar structurele buurt in één query.
 
     Levert per relatie-soort (?relatie) een rij: de bepaling zelf (label/tekst/jci), de bevattende
@@ -661,7 +651,7 @@ def context(bwb_id: str, artikel: str, lid: str | None = None) -> str:
     OPTIONAL {{ ?vorige rdfs:label ?a }} BIND(STR(?vorige) AS ?b) }}
   UNION {{ BIND("9-gevolgd-door" AS ?relatie) ?volgende bwb:volgtOp ?node .
     OPTIONAL {{ ?volgende rdfs:label ?a }} BIND(STR(?volgende) AS ?b) }}
-}} ORDER BY ?relatie"""
+}} ORDER BY ?relatie ?b ?a {_pagina(max(1, min(int(limit), 200)), offset, meer)}"""
 
 
 # ------------------------------------------------------------------
@@ -760,7 +750,8 @@ def zoek_definitie(term: str, bwb_id: str | None = None, limit: int = 25,
 }} ORDER BY ?node ?begrip ?inLabel {_pagina(lim, offset, meer)}"""
 
 
-def grondslagen(bwb_id: str, aanduiding: str | None = None) -> str:
+def grondslagen(bwb_id: str, aanduiding: str | None = None, limit: int = 50, offset: int = 0,
+                meer: bool = False) -> str:
     """Waar berust dit op, en wat berust hierop? – de WTI-delegatierelaties.
 
     `heeftGrondslag`, `grondslagVoor`, `bevoegdheidVoor` en `inFamilie` lagen ongebruikt in de
@@ -783,10 +774,11 @@ def grondslagen(bwb_id: str, aanduiding: str | None = None) -> str:
   FILTER(STRSTARTS(STR(?doel), "{NS}"))
   OPTIONAL {{ ?doel bwb:citeertitel ?citeertitel }}
   OPTIONAL {{ ?doel rdfs:label ?label }}
-}} ORDER BY ?relatie ?citeertitel"""
+}} ORDER BY ?relatie ?citeertitel ?doel ?label {_pagina(max(1, min(int(limit), 200)), offset, meer)}"""
 
 
-def geldigheid(bwb_id: str, aanduiding: str | None = None, lid: str | None = None) -> str:
+def geldigheid(bwb_id: str, aanduiding: str | None = None, lid: str | None = None, limit: int = 50,
+               offset: int = 0, meer: bool = False) -> str:
     """Welke TOESTAND lees ik, en wanneer kreeg deze tekst zijn huidige inhoud?
 
     Per tekstdeel staan `inwerking`, `terugwerkendTot`, `wijzigingsbronnen`, `bron`, `effect` en
@@ -815,10 +807,11 @@ def geldigheid(bwb_id: str, aanduiding: str | None = None, lid: str | None = Non
   OPTIONAL {{ <{reg}> bwb:ondertekeningsdatum ?ondertekeningsdatum }}
   OPTIONAL {{ <{reg}> bwb:uitgiftedatum ?uitgiftedatum }}
   OPTIONAL {{ <{reg}> bwb:dossier ?dossier }}
-}} LIMIT 50"""
+}} ORDER BY ?wijzigingsbron ?bron ?effect ?status ?bepalingInwerking ?terugwerkendTot {_pagina(max(1, min(int(limit), 200)), offset, meer)}"""
 
 
-def bijlagen(bwb_id: str, sleutel: str | None = None) -> str:
+def bijlagen(bwb_id: str, sleutel: str | None = None, limit: int = 50, offset: int = 0,
+             meer: bool = False) -> str:
     """De bijlagen van een regeling, of de inhoud van één bijlage.
 
     `Bijlage` zit in de FTS-index en `heeftBijlage` in de ontologie, maar geen tool haalde ze op:
@@ -839,7 +832,7 @@ def bijlagen(bwb_id: str, sleutel: str | None = None) -> str:
   OPTIONAL {{ ?bijlage bwb:titel ?titel }}
   OPTIONAL {{ ?bijlage rdfs:label ?label }}
   OPTIONAL {{ ?bijlage bwb:jci ?jci }}
-}} ORDER BY ?bijlage"""
+}} ORDER BY ?bijlage ?nummer ?titel ?label ?jci {_pagina(max(1, min(int(limit), 200)), offset, meer)}"""
     lit = _lit(str(sleutel).strip())
     scope = f"{NS}{_bwb(bwb_id)}"
     return PREFIXES + f"""SELECT ?nummer ?titel ?label ?tekst ?jci ?deel ?deelnummer ?deeltekst WHERE {{
@@ -863,7 +856,7 @@ def bijlagen(bwb_id: str, sleutel: str | None = None) -> str:
     OPTIONAL {{ ?deel bwb:nummer ?deelnummer }}
     OPTIONAL {{ ?deel bwb:tekst ?deeltekst }}
   }}
-}} ORDER BY ?deel"""
+}} ORDER BY ?deel ?deelnummer ?deeltekst {_pagina(max(1, min(int(limit), 200)), offset, meer)}"""
 
 
 def ontologie() -> str:

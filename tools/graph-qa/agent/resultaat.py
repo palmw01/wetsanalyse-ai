@@ -118,6 +118,38 @@ def pagina(
     return tekst
 
 
+def per_eenheid(
+    eenheden: Sequence[dict[str, Any]],
+    *,
+    tool: str,
+    args: dict[str, Any],
+    offset: int,
+    toelichting: str = "",
+    extra: dict[str, Any] | None = None,
+    budget: int = BUDGET,
+) -> str:
+    """Pagineer over eenheden die al compleet zijn opgehaald (de leden van één artikel, de onderdelen
+    van één lid): vanaf `offset` zoveel hele eenheden als passen, met `vervolg` naar de volgende."""
+    rest = list(eenheden[offset:])
+    return pagina(rest, tool=tool, args=args, limit=len(rest), offset=offset, toelichting=toelichting,
+                  extra=extra, budget=budget)
+
+
+def geheel(
+    rijen: Sequence[dict[str, Any]],
+    *,
+    tool: str,
+    toelichting: str = "",
+    extra: dict[str, Any] | None = None,
+    budget: int = BUDGET,
+) -> str:
+    """Een resultaat dat van aard begrensd is (één regeling, één bepaling): alles, of een fout."""
+    tekst = resultaat([compact(r) for r in rijen], toelichting=toelichting, extra=extra)
+    if len(tekst) > budget:
+        raise TeGroot(f"{tool}: het resultaat is groter dan de begroting van {budget} tekens", omvang=len(tekst))
+    return tekst
+
+
 class TeGroot(ValueError):
     """Een ondeelbare eenheid (één rij, één lid, één structuurdeel) is groter dan de begroting.
 

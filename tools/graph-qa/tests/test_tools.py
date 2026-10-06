@@ -37,16 +37,18 @@ def test_dispatch_onbekende_tool():
 
 
 def test_dispatch_list_regelingen_voert_query_uit():
-    g = FakeGraph(result="resultaat")
-    out = tools.dispatch("list_regelingen", g, {})
-    assert out == "resultaat"
+    g = FakeGraph(result='?regeling\t?citeertitel\n<urn:bwb:BWBR0004770>\t"Invorderingswet 1990"\n')
+    out = json.loads(tools.dispatch("list_regelingen", g, {}))
+    assert out["resultaten"] == [{"regeling": "urn:bwb:BWBR0004770", "citeertitel": "Invorderingswet 1990"}]
     assert g.queries and "bwb:Regeling" in g.queries[0]
 
 
 def test_dispatch_get_artikel():
-    g = FakeGraph(result="artikel 9")
-    out = tools.dispatch("get_artikel", g, {"bwb_id": "BWBR0004770", "artikel": "9"})
-    assert out == "artikel 9"
+    lid = "urn:bwb:BWBR0004770:artikel:9:lid:1"
+    g = FakeGraph(result=f'?tekst\t?jci\t?lid\t?lidnummer\t?lidtekst\n\t"jci1.3:c:BWBR0004770&artikel=9"\t<{lid}>\t"1"\t"De ontvanger vordert in."\n')
+    out = json.loads(tools.dispatch("get_artikel", g, {"bwb_id": "BWBR0004770", "artikel": "9"}))
+    assert out["artikel"]["iri"] == "urn:bwb:BWBR0004770:artikel:9"
+    assert out["resultaten"] == [{"lid": lid, "nummer": "1", "tekst": "De ontvanger vordert in."}]
     assert ":artikel:9>" in g.queries[0]
 
 
@@ -72,15 +74,17 @@ def test_dispatch_vangt_transportfout_op():
 
 
 def test_dispatch_raw_sparql_forwards_query():
-    g = FakeGraph(result="rows")
-    tools.dispatch("raw_sparql", g, {"query": "SELECT ?s WHERE { ?s ?p ?o }"})
-    assert g.queries == ["SELECT ?s WHERE { ?s ?p ?o }"]
+    g = FakeGraph(result="?s\n<urn:bwb:BWBR0004770>\n")
+    query = "SELECT ?s WHERE { ?s ?p ?o } LIMIT 5"
+    out = json.loads(tools.dispatch("raw_sparql", g, {"query": query}))
+    assert g.queries == [query]
+    assert out["resultaten"] == [{"s": "urn:bwb:BWBR0004770"}]
 
 
 def test_dispatch_get_context():
-    g = FakeGraph(result="subgraaf")
-    out = tools.dispatch("get_context", g, {"bwb_id": "BWBR0004770", "artikel": "9"})
-    assert out == "subgraaf"
+    g = FakeGraph(result='?relatie\t?a\t?b\n"1-zelf-label"\t"Artikel 9"\t""\n')
+    out = json.loads(tools.dispatch("get_context", g, {"bwb_id": "BWBR0004770", "artikel": "9"}))
+    assert out["resultaten"] == [{"relatie": "1-zelf-label", "a": "Artikel 9"}]
     q = g.queries[0]
     assert "verwijzingDoor" in q and "heeftVerwijzing" in q
     assert "bwb:bevat" not in q and "bwb:heeftHoofdstuk" in q

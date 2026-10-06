@@ -27,7 +27,8 @@ from ..mcp_client import MCPError
 from ..ports import GraphPort
 from .jas_tools import JAS_TOOL_NAMEN, JAS_TOOLS  # noqa: F401 – re-exporteerd voor orchestrator
 from .annotatie_tools import ANNOTATIE_TOOLS, ANNOTATIE_TOOL_NAMEN, dispatch_annotatie
-from ..resultaat import BUDGET, TeGroot, compact, fout, pagina, voorproef
+from ..resultaat import BUDGET, TeGroot, compact, fout, geheel, pagina, per_eenheid, voorproef
+from ..graph.structuur import natuurlijke_sleutel
 
 logger = logging.getLogger("graph_qa.tools")
 
@@ -100,28 +101,91 @@ def _h_search(g: GraphPort, a: dict[str, Any]) -> str:
                   args={**a, "limit": limit}, limit=limit, offset=offset)
 
 
+def _zonder_datum(jci: str) -> str:
+    """Een jci zonder `&z=…&g=…`: die staart is per onderdeel herhaling van de toestand van het lid."""
+    return jci.split("&z=", 1)[0] if jci else jci
+
+
+def _onderdeelsleutel(iri: str) -> tuple:
+    """Documentvolgorde van (geneste) onderdelen uit hun IRI: a … z vóór aa, 2° vóór 10°, en een
+    genest onderdeel direct na zijn ouder. `ORDER BY ?o` is lexicaal (a, aa, ab, b)."""
+    delen = iri.split(":")
+    return tuple((len(delen[i + 1]), delen[i + 1]) for i in range(len(delen) - 1) if delen[i] == "o")
+
+
+def _offset(a: dict[str, Any]) -> int:
+    return _geheel(a.get("offset"), 0, 0, 100_000)
+
+
 def _h_get_artikel(g: GraphPort, a: dict[str, Any]) -> str:
-    return g.sparql(queries.get_artikel(a["bwb_id"], a["artikel"]))
+    rijen = parse_select(g.sparql(queries.get_artikel(a["bwb_id"], a["artikel"])))
+    kop = rijen[0] if rijen else {}
+    artikel = compact({"iri": queries.artikel_iri(a["bwb_id"], a["artikel"]), "tekst": kop.get("tekst", ""),
+                       "jci": kop.get("jci", "")})
+    # De leden (of de onderdelen direct onder een artikel zonder leden) als hele eenheden, in de
+    # volgorde van de query (numeriek op lidnummer). Een lid wordt nooit doorgeknipt.
+    eenheden, gezien = [], set()
+    for r in rijen:
+        for iri, rij in ((r.get("lid"), {"lid": r.get("lid"), "nummer": r.get("lidnummer"), "tekst": r.get("lidtekst")}),
+                         (r.get("o"), {"onderdeel": r.get("o"), "nummer": r.get("onderdeel"), "tekst": r.get("onderdeeltekst")})):
+            if iri and iri not in gezien:
+                gezien.add(iri)
+                eenheden.append(compact(rij))
+    return per_eenheid(eenheden, tool="get_artikel", args={k: v for k, v in a.items() if k != "offset"},
+                       offset=_offset(a), extra={"artikel": artikel},
+                       toelichting="Onderdelen onder een LID staan hier niet in: haal die op met get_lid.")
 
 
 def _h_get_lid(g: GraphPort, a: dict[str, Any]) -> str:
-    return g.sparql(queries.get_lid(a["bwb_id"], a["artikel"], a["lid"]))
+    rijen = parse_select(g.sparql(queries.get_lid(a["bwb_id"], a["artikel"], a["lid"])))
+    kop = rijen[0] if rijen else {}
+    lid = compact({"iri": queries.lid_iri(a["bwb_id"], a["artikel"], a["lid"]), "nummer": kop.get("nummer", ""),
+                   "tekst": kop.get("tekst", ""), "jci": kop.get("jci", "")})
+    onderdelen = {r["o"]: compact({"onderdeel": r["o"], "nummer": r.get("onummer"), "tekst": r.get("otekst"),
+                                   "jci": _zonder_datum(r.get("ojci", ""))}) for r in rijen if r.get("o")}
+    eenheden = [onderdelen[iri] for iri in sorted(onderdelen, key=_onderdeelsleutel)]
+    return per_eenheid(eenheden, tool="get_lid", args={k: v for k, v in a.items() if k != "offset"},
+                       offset=_offset(a), extra={"lid": lid},
+                       toelichting="Citeer de jci van het ONDERDEEL, niet die van het hele lid.")
 
 
 def _h_get_bepaling(g: GraphPort, a: dict[str, Any]) -> str:
-    return g.sparql(queries.get_bepaling(a["bwb_id"], a["nummer"]))
+    rijen = parse_select(g.sparql(queries.get_bepaling(a["bwb_id"], a["nummer"])))
+    if not rijen:
+        raise ValueError(f"Bepaling {a['nummer']!r} niet gevonden in {a['bwb_id']}.")
+    kop = rijen[0]
+    bepaling = compact({k: kop.get(k, "") for k in ("nummer", "soort", "label", "tekst", "jci")})
+    subs = {r["sub"]: compact({"sub": r["sub"], "nummer": r.get("subnummer"), "label": r.get("sublabel"),
+                               "begin": r.get("subbegin")}) for r in rijen if r.get("sub")}
+    eenheden = sorted(subs.values(), key=lambda r: (natuurlijke_sleutel(r.get("nummer", "")), r["sub"]))
+    return per_eenheid(eenheden, tool="get_bepaling", args={k: v for k, v in a.items() if k != "offset"},
+                       offset=_offset(a), extra={"bepaling": bepaling},
+                       toelichting="Subdivisies met het begin van hun tekst; de volledige tekst via "
+                                   "get_bepaling(nummer=<subnummer>).")
+
+
+def _lijst(g: GraphPort, a: dict[str, Any], tool: str, bouw: Callable[..., str], standaard: int, hoogste: int,
+           toelichting: str = "") -> str:
+    """Een gerangschikte lijst via SPARQL: limit + 1 rijen vanaf offset, en het contract erom."""
+    limit = _geheel(a.get("limit"), standaard, 1, hoogste)
+    offset = _offset(a)
+    rijen = parse_select(g.sparql(bouw(limit=limit, offset=offset, meer=True)))
+    return pagina(rijen, tool=tool, args={**a, "limit": limit}, limit=limit, offset=offset, toelichting=toelichting)
 
 
 def _h_list_regelingen(g: GraphPort, a: dict[str, Any]) -> str:
-    return g.sparql(queries.list_regelingen())
+    return _lijst(g, a, "list_regelingen", queries.list_regelingen, 100, 200)
 
 
 def _h_regeling_info(g: GraphPort, a: dict[str, Any]) -> str:
-    return g.sparql(queries.get_regeling_info(a["bwb_id"]))
+    # Een aggregatie over één regeling: precies één rij.
+    return geheel(parse_select(g.sparql(queries.get_regeling_info(a["bwb_id"])))[:1], tool="get_regeling_info",
+                  extra={"regeling": queries.regeling_iri(a["bwb_id"])})
 
 
 def _h_verwijzingen(g: GraphPort, a: dict[str, Any]) -> str:
-    return g.sparql(queries.follow_verwijzingen(a["bwb_id"], _aanduiding(a), a.get("lid")))
+    return _lijst(g, a, "follow_verwijzingen",
+                  lambda **p: queries.follow_verwijzingen(a["bwb_id"], _aanduiding(a), a.get("lid"), **p), 50, 200)
 
 
 def _h_verwijst_naar_deze(g: GraphPort, a: dict[str, Any]) -> str:
@@ -159,38 +223,86 @@ def _h_grondslagen(g: GraphPort, a: dict[str, Any]) -> str:
     # `_aanduiding` niet gebruiken: die EIST een aanduiding, en hier is 'geen' een geldige vraag
     # (de grondslag van de regeling als geheel).
     aanduiding = a.get("artikel") or a.get("nummer") or None
-    return g.sparql(queries.grondslagen(a["bwb_id"], aanduiding))
+    return _lijst(g, a, "grondslagen", lambda **p: queries.grondslagen(a["bwb_id"], aanduiding, **p), 50, 200)
 
 
 def _h_geldigheid(g: GraphPort, a: dict[str, Any]) -> str:
     aanduiding = a.get("artikel") or a.get("nummer") or None
-    return g.sparql(queries.geldigheid(a["bwb_id"], aanduiding, a.get("lid") or None))
+    return _lijst(g, a, "geldigheid",
+                  lambda **p: queries.geldigheid(a["bwb_id"], aanduiding, a.get("lid") or None, **p), 50, 200)
 
 
 def _h_bijlagen(g: GraphPort, a: dict[str, Any]) -> str:
     # `nummer` blijft de naam in het schema (dat is wat een jurist zegt), maar de query accepteert
     # ook een stuk van het label — niet elke bijlage draagt een nummer.
-    return g.sparql(queries.bijlagen(a["bwb_id"], a.get("nummer") or None))
+    sleutel = a.get("nummer") or None
+    if sleutel is None:
+        return _lijst(g, a, "bijlagen", lambda **p: queries.bijlagen(a["bwb_id"], None, **p), 50, 200)
+    limit, offset = _geheel(a.get("limit"), 50, 1, 200), _offset(a)
+    rijen = parse_select(g.sparql(queries.bijlagen(a["bwb_id"], sleutel, limit=limit, offset=offset, meer=True)))
+    if not rijen:
+        raise ValueError(f"Geen bijlage {sleutel!r} in {a['bwb_id']}.")
+    kop = rijen[0]
+    bijlage = compact({k: kop.get(k, "") for k in ("nummer", "titel", "label", "tekst", "jci")})
+    delen = [compact({"deel": r.get("deel"), "nummer": r.get("deelnummer"), "tekst": r.get("deeltekst")})
+             for r in rijen]
+    delen = [d for d in delen if d]
+    return pagina(delen, tool="bijlagen", args={**a, "limit": limit}, limit=limit, offset=offset,
+                  extra={"bijlage": bijlage})
 
 
 def _h_context(g: GraphPort, a: dict[str, Any]) -> str:
-    return g.sparql(queries.context(a["bwb_id"], _aanduiding(a), a.get("lid")))
+    return _lijst(g, a, "get_context",
+                  lambda **p: queries.context(a["bwb_id"], _aanduiding(a), a.get("lid"), **p), 100, 200)
 
 
 def _h_referenced_by(g: GraphPort, a: dict[str, Any]) -> str:
-    return g.sparql(queries.referenced_by(a["bwb_id"], _aanduiding(a)))
+    return _lijst(g, a, "referenced_by", lambda **p: queries.referenced_by(a["bwb_id"], _aanduiding(a), **p), 50, 200)
 
 
 def _h_resolve_begrip(g: GraphPort, a: dict[str, Any]) -> str:
-    return g.sparql(queries.resolve_begrip(a["term"]))
+    return _lijst(g, a, "resolve_begrip", lambda **p: queries.resolve_begrip(a["term"], **p), 25, 100)
 
 
 def _h_schema(g: GraphPort, a: dict[str, Any]) -> str:
-    return schema.graph_schema(g)
+    deel = schema.graph_schema(g)
+    # Omvang en vocabulaire als één reeks rijen, gepagineerd; de regelingen zelf staan in
+    # list_regelingen (hier alleen hun aantal), zodat dit resultaat niet meegroeit met de graaf.
+    rijen = ([compact({"deel": "aantal", **r}) for r in deel["aantallen"]]
+             + [compact({"deel": "vocabulaire", **r}) for r in deel["vocabulaire"]])
+    return per_eenheid(rijen, tool="graph_schema", args={}, offset=_offset(a),
+                       extra={"iri_patronen": deel["iri_patronen"], "regelingen": len(deel["regelingen"])},
+                       toelichting=deel["toelichting"] + " De regelingen zelf: list_regelingen.")
+
+
+# raw_sparql is de afgeschermde ontsnapping. Het contract geldt ook hier, maar vrije SPARQL
+# herschrijven is foutgevoelig (subqueries met hun eigen LIMIT, modifiers na een geneste groep). Dus
+# streng: alleen SELECT, met een eigen LIMIT op het hoogste niveau, en het hele antwoord binnen de
+# begroting – of een foutresultaat dat zegt hoe de query aan te passen. Nooit een half antwoord.
+_RAW_MAX = 200
+_STAART_RE = re.compile(r"\}\s*((?:GROUP\s+BY|HAVING|ORDER\s+BY)[^{}]*?)?\s*LIMIT\s+(\d+)(\s+OFFSET\s+\d+)?\s*$",
+                        re.IGNORECASE)
 
 
 def _h_raw_sparql(g: GraphPort, a: dict[str, Any]) -> str:
-    return g.sparql(a["query"])
+    query = str(a["query"]).strip()
+    zonder_prefix = re.sub(r"^\s*(PREFIX\s+\S*\s*<[^>]*>\s*)*", "", query, flags=re.IGNORECASE)
+    if not re.match(r"SELECT\b", zonder_prefix, re.IGNORECASE):
+        return fout("alleen_select", "raw_sparql neemt alleen SELECT-queries aan; het resultaat moet uit rijen bestaan.")
+    staart = _STAART_RE.search(query)
+    if staart is None:
+        return fout("limit_ontbreekt",
+                    f"Zet een LIMIT (≤ {_RAW_MAX}) aan het eind van de query, na de laatste }} – en voor "
+                    "meer rijen ORDER BY + OFFSET, zodat elke pagina een vaste volgorde heeft.")
+    if int(staart.group(2)) > _RAW_MAX:
+        return fout("limit_te_hoog", f"LIMIT is hoogstens {_RAW_MAX}; pagineer met ORDER BY + OFFSET.")
+    rijen = [compact(r) for r in parse_select(g.sparql(query))]
+    try:
+        return geheel(rijen, tool="raw_sparql",
+                      toelichting="Het resultaat van de query zoals geschreven; meer rijen via ORDER BY + OFFSET.")
+    except TeGroot as exc:
+        return fout("resultaat_te_groot", f"{len(rijen)} rijen passen niet binnen de begroting; verklein de LIMIT "
+                    "of selecteer minder kolommen.", omvang=exc.omvang, budget=BUDGET)
 
 
 # Twee verschillende oorzaken, voor het model dezelfde uitweg. Het onderscheid is er voor de mens
@@ -344,10 +456,10 @@ TOOLS: list[dict[str, Any]] = [
             "plus de onderdelen die rechtstreeks onder het artikel hangen (een opsomming bij "
             "een artikel zónder leden).\n"
             "LET OP: onderdelen die onder een LID hangen komen hier niet mee – bij een "
-            "definitieartikel zijn dat er tientallen en dan kapt de lengtelimiet het resultaat "
-            "af. Gebruik daarvoor get_lid, die ze wél levert."
+            "definitieartikel zijn dat er tientallen. Gebruik daarvoor get_lid, die ze wél levert."
+            + _CONTRACT
         ),
-        "input_schema": _obj({"bwb_id": _BWB, "artikel": _ART}, ["bwb_id", "artikel"]),
+        "input_schema": _obj({"bwb_id": _BWB, "artikel": _ART, "offset": _OFFSET}, ["bwb_id", "artikel"]),
         "handler": _h_get_artikel,
     },
     {
@@ -358,10 +470,11 @@ TOOLS: list[dict[str, Any]] = [
             "elk mét zijn eigen jci.\n"
             "Dit is de juiste tool voor een definitielid: de eigen tekst is dan vaak alleen de "
             "aanhef ('Deze wet verstaat onder:') en de definities zitten in de onderdelen. "
-            "Citeer de vindplaats van het ONDERDEEL, niet die van het hele lid."
+            "Citeer de vindplaats van het ONDERDEEL, niet die van het hele lid." + _CONTRACT
         ),
         "input_schema": _obj(
-            {"bwb_id": _BWB, "artikel": _ART, "lid": {"type": "string", "description": "Lidnummer, bijv. '1'."}},
+            {"bwb_id": _BWB, "artikel": _ART, "lid": {"type": "string", "description": "Lidnummer, bijv. '1'."},
+             "offset": _OFFSET},
             ["bwb_id", "artikel", "lid"],
         ),
         "handler": _h_get_lid,
@@ -371,10 +484,13 @@ TOOLS: list[dict[str, Any]] = [
         "description": (
             "Haal een bepaling op via haar NUMMER binnen een regeling – werkt voor artikelen ('9', "
             "'25', '22a') én voor beleidsregels/circulaires met decimale nummers zoals '9.1' (bv. de "
-            "Leidraad Invordering 2008), waar get_artikel/get_lid niet passen."
+            "Leidraad Invordering 2008), waar get_artikel/get_lid niet passen.\n"
+            "GEEFT TERUG: de bepaling (nummer, soort, label, tekst, jci) en, bij een container, haar "
+            "subdivisies met het begin van hun tekst." + _CONTRACT
         ),
         "input_schema": _obj(
-            {"bwb_id": _BWB, "nummer": {"type": "string", "description": "Bepaling-nummer, bijv. '9.1' of '22a'."}},
+            {"bwb_id": _BWB, "nummer": {"type": "string", "description": "Bepaling-nummer, bijv. '9.1' of '22a'."},
+             "offset": _OFFSET},
             ["bwb_id", "nummer"],
         ),
         "handler": _h_get_bepaling,
@@ -386,16 +502,16 @@ TOOLS: list[dict[str, Any]] = [
             "GEEFT TERUG: IRI, citeertitel, soort (wet/beleidsregel/ministeriele-regeling/…) en de "
             "officiële afkortingen per regeling.\n"
             "Gebruik dit om te zien wat er beschikbaar is voordat je zoekt, of om een BWB-id bij een "
-            "naam of afkorting te vinden ('Awb', 'Leidr. Inv.') — raad een BWB-id nooit."
+            "naam of afkorting te vinden ('Awb', 'Leidr. Inv.') — raad een BWB-id nooit." + _CONTRACT
         ),
-        "input_schema": _obj({}, []),
+        "input_schema": _obj({"limit": {"type": "integer", "description": "Max. aantal (1-200, default 100)."}, "offset": _OFFSET}, []),
         "handler": _h_list_regelingen,
     },
     {
         "name": "get_regeling_info",
         "description": (
             "Metadata van één regeling: citeertitel, opschrift, soort (wet/regeling/"
-            "beleidsregel), geldigheid, uitgevende organisatie en ondertekenaar."
+            "beleidsregel), geldigheid, uitgevende organisatie en ondertekenaar." + _CONTRACT
         ),
         "input_schema": _obj({"bwb_id": _BWB}, ["bwb_id"]),
         "handler": _h_regeling_info,
@@ -408,9 +524,10 @@ TOOLS: list[dict[str, Any]] = [
             "soort (intref/extref/tekstueel) en het doel mét label, jci, BWB-id en citeertitel – "
             "je hoeft het doel dus niet apart op te zoeken.\n"
             "Werkt op artikelen ('artikel') én op divisies van beleidsregels ('nummer', bijv. '25.1')."
+            + _CONTRACT
         ),
         "input_schema": _obj(
-            {"bwb_id": _BWB, "artikel": _ART, "nummer": _NUM, "lid": _LID},
+            {"bwb_id": _BWB, "artikel": _ART, "nummer": _NUM, "lid": _LID, "limit": {"type": "integer", "description": "Max. aantal (1-200, default 50)."}, "offset": _OFFSET},
             ["bwb_id"],
         ),
         "handler": _h_verwijzingen,
@@ -438,9 +555,10 @@ TOOLS: list[dict[str, Any]] = [
         "description": (
             "Welke REGELINGEN naar dit artikel verwijzen (WTI-relatie verwijzingDoor). Grofmazig "
             "overzicht; voor de citerende bepaling zelf is verwijst_naar_deze de juiste tool.\n"
-            "GEEFT TERUG: regeling-IRI en citeertitel."
+            "GEEFT TERUG: regeling-IRI en citeertitel." + _CONTRACT
         ),
-        "input_schema": _obj({"bwb_id": _BWB, "artikel": _ART, "nummer": _NUM}, ["bwb_id"]),
+        "input_schema": _obj({"bwb_id": _BWB, "artikel": _ART, "nummer": _NUM, "limit": {"type": "integer", "description": "Max. aantal (1-200, default 50)."},
+                              "offset": _OFFSET}, ["bwb_id"]),
         "handler": _h_referenced_by,
     },
     {
@@ -494,9 +612,10 @@ TOOLS: list[dict[str, Any]] = [
             "en 'bevoegdheid-voor' (regelingen die op DIT tekstdeel berusten), 'in-familie' "
             "(verwante regelingen) en 'berust-op-mij'.\n"
             "Gebruik dit bij vragen over delegatie, uitvoeringsregelingen en bevoegdheid. Laat "
-            "'artikel' weg voor de regeling als geheel."
+            "'artikel' weg voor de regeling als geheel." + _CONTRACT
         ),
-        "input_schema": _obj({"bwb_id": _BWB, "artikel": _ART, "nummer": _NUM}, ["bwb_id"]),
+        "input_schema": _obj({"bwb_id": _BWB, "artikel": _ART, "nummer": _NUM, "limit": {"type": "integer", "description": "Max. aantal (1-200, default 50)."},
+                              "offset": _OFFSET}, ["bwb_id"]),
         "handler": _h_grondslagen,
     },
     {
@@ -507,9 +626,11 @@ TOOLS: list[dict[str, Any]] = [
             "wijzigingsbron(nen), effect en status; voor de regeling: geldig vanaf/tot, "
             "toestand-URL, ondertekenings- en uitgiftedatum en dossiernummer.\n"
             "Gebruik dit bij vragen over peildatum, versies of terugwerkende kracht, en om te "
-            "melden op welke toestand een analyse berust."
+            "melden op welke toestand een analyse berust." + _CONTRACT
         ),
-        "input_schema": _obj({"bwb_id": _BWB, "artikel": _ART, "nummer": _NUM, "lid": _LID}, ["bwb_id"]),
+        "input_schema": _obj({"bwb_id": _BWB, "artikel": _ART, "nummer": _NUM, "lid": _LID,
+                              "limit": {"type": "integer", "description": "Max. aantal (1-200, default 50)."},
+                              "offset": _OFFSET}, ["bwb_id"]),
         "handler": _h_geldigheid,
     },
     {
@@ -517,14 +638,14 @@ TOOLS: list[dict[str, Any]] = [
         "description": (
             "De bijlagen van een regeling, of de inhoud van één bijlage (tarieftabellen, modellen, "
             "lijsten). Zonder 'nummer' krijg je de lijst; mét 'nummer' de tekst en de onderdelen.\n"
-            "GEEFT TERUG: nummer, titel, jci en – bij één bijlage – haar artikelen/onderdelen."
+            "GEEFT TERUG: nummer, titel, jci en – bij één bijlage – haar artikelen/onderdelen." + _CONTRACT
         ),
         "input_schema": _obj(
             {"bwb_id": _BWB, "nummer": {
                 "type": "string",
                 "description": "Bijlagenummer ('1') of een stuk van de titel ('artikel 1cb') – niet "
                                "elke bijlage heeft een nummer. Leeg = de lijst.",
-            }},
+            }, "limit": {"type": "integer", "description": "Max. aantal (1-200, default 50)."}, "offset": _OFFSET},
             ["bwb_id"],
         ),
         "handler": _h_bijlagen,
@@ -538,10 +659,10 @@ TOOLS: list[dict[str, Any]] = [
             "volgende bepaling in het document.\n"
             "GEEFT TERUG: rijen met ?relatie als sleutel (1-zelf-label … 9-gevolgd-door).\n"
             "Gebruik dit voor context- en samenhangvragen i.p.v. losse tools te combineren. Werkt "
-            "op artikelen ('artikel') én divisies ('nummer')."
+            "op artikelen ('artikel') én divisies ('nummer')." + _CONTRACT
         ),
         "input_schema": _obj(
-            {"bwb_id": _BWB, "artikel": _ART, "nummer": _NUM, "lid": _LID},
+            {"bwb_id": _BWB, "artikel": _ART, "nummer": _NUM, "lid": _LID, "limit": {"type": "integer", "description": "Max. aantal (1-200, default 100)."}, "offset": _OFFSET},
             ["bwb_id"],
         ),
         "handler": _h_context,
@@ -550,27 +671,34 @@ TOOLS: list[dict[str, Any]] = [
         "name": "resolve_begrip",
         "description": (
             "Zoek een juridisch begrip in de SKOS-thesaurus op label en geef het "
-            "concept-IRI plus gerelateerde begrippen."
+            "concept-IRI plus gerelateerde begrippen.\n"
+            "GEEFT TERUG per concept: IRI, label en gerelateerde begrippen." + _CONTRACT
         ),
-        "input_schema": _obj({"term": {"type": "string", "description": "Begrip of deel ervan."}}, ["term"]),
+        "input_schema": _obj({"term": {"type": "string", "description": "Begrip of deel ervan."},
+                              "limit": {"type": "integer", "description": "Max. aantal (1-100, default 25)."}, "offset": _OFFSET}, ["term"]),
         "handler": _h_resolve_begrip,
     },
     {
         "name": "graph_schema",
         "description": (
             "Geef de live omvang van de graaf (aantallen per type) en de lijst regelingen. "
-            "Gebruik dit bij twijfel over wat er in de graaf zit."
+            "Gebruik dit bij twijfel over wat er in de graaf zit.\n"
+            "GEEFT TERUG: aantallen per type, IRI-patronen en de regelingen, met de vocabulaire "
+            "(klassen, relaties, eigenschappen) als resultaten – de namen voor raw_sparql." + _CONTRACT
         ),
-        "input_schema": _obj({}, []),
+        "input_schema": _obj({"offset": _OFFSET}, []),
         "handler": _h_schema,
     },
     {
         "name": "raw_sparql",
         "description": (
-            "LAATSTE REDMIDDEL: voer een eigen read-only SPARQL-query (SELECT/CONSTRUCT/"
-            "DESCRIBE) uit als geen enkele andere tool volstaat. Updates worden geweigerd."
+            "LAATSTE REDMIDDEL: voer een eigen read-only SPARQL SELECT-query uit als geen enkele andere "
+            "tool volstaat. Eisen: alleen SELECT, met LIMIT (≤ 200) aan het eind na de laatste }; voor "
+            "meer rijen ORDER BY + OFFSET. Het hele resultaat moet binnen de begroting passen, anders "
+            "volgt een fout met de reden. Updates worden geweigerd.\n"
+            "GEEFT TERUG: de rijen van de query." + _CONTRACT
         ),
-        "input_schema": _obj({"query": {"type": "string", "description": "SPARQL SELECT/CONSTRUCT/DESCRIBE."}}, ["query"]),
+        "input_schema": _obj({"query": {"type": "string", "description": "SPARQL SELECT met LIMIT."}}, ["query"]),
         "handler": _h_raw_sparql,
     },
 ]
