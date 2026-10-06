@@ -44,6 +44,10 @@
     }
   },
   "detectie": {
+    "APPLICABILITY_CONSEQUENCE": {
+      "naam": "Toepasselijkheid als gevolg",
+      "uitleg": "De bepaling zegt dat een andere regel toepassing vindt. Dat is het gevolg zelf; de voorwaarde ervoor is een eigen markering."
+    },
     "ARITHMETIC": {
       "naam": "Rekenkundige bewerking",
       "uitleg": "'Vermeerderd met', 'verminderd met', 'de som van': een rekenkundige operator."
@@ -111,6 +115,10 @@
     "ENUMERATED_NP": {
       "naam": "Opsommingsonderdeel",
       "uitleg": "Een naamwoordgroep als onderdeel van een opsomming."
+    },
+    "LEGAL_EFFECT_CLAUSE": {
+      "naam": "Rechtsgevolg als hoofdzin",
+      "uitleg": "Het gezegde van de hoofdzin drukt zelf een rechtsgevolg uit ('de termijn vervalt', 'de schuld ontstaat'). Niet in een bijzin; de span is de eigen zin."
     },
     "LEGAL_EFFECT_PREDICATE": {
       "naam": "Rechtsgevolg in de norm",
@@ -777,5 +785,5 @@
       "uitleg": "Waarschuwing: hetzelfde fragment kreeg twee klassen."
     }
   },
-  "vocabulaire_versie": "382dff00545a"
+  "vocabulaire_versie": "ebe375d22209"
 }

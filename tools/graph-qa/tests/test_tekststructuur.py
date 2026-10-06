@@ -174,4 +174,4 @@ def test_versies_zijn_gelijk_bij_overslaan_en_nul_treffers(analyse):
     rs = detecteer_alles(BronTekst.van_tekst("test", "", analyse=analyse))
     assert not any(r.kandidaten for r in rs)
     assert {r.detector: r.versie for r in rs} == {d.naam: d.versie for d in standaard_detectoren()}
-    assert sum(r.overgeslagen for r in rs) == (0 if analyse and not analyse.gedegradeerd else 5)
+    assert sum(r.overgeslagen for r in rs) == (0 if analyse and not analyse.gedegradeerd else 6)

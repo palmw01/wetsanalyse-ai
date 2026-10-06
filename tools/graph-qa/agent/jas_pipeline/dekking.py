@@ -26,7 +26,7 @@ from .taal import bijzinnen
 DIMENSIES: dict[str, tuple[str, ...]] = {
     "actor": ("naamwoordgroep", "subject"),
     "object": ("naamwoordgroep",),
-    "normatieve relatie": ("norm",),
+    "normatieve relatie": ("norm", "gevolg"),
     "handeling/gebeurtenis": ("nominalisatie",),
     "voorwaarde": ("voorwaarde", "bijzin", "betekenis", "functie"),
     "berekening/afleiding": ("afleiding", "functie"),

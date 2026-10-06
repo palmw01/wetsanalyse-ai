@@ -171,6 +171,18 @@ def test_clausebereik_houdt_een_nevengeschikt_gevolg_apart():
     assert tekst[slice(*clausebereik(a, 6))] == "de boete vervalt"
 
 
+def test_clausebereik_laat_een_inversievoorwaarde_weg_ook_als_de_parse_haar_aan_het_predicaat_hangt():
+    #   Is de dagtekening 15 maart , vervalt de termijn op 15 april .
+    #   0  1  2           3  4     5 6       7  8       9  10 11    12
+    tekst = "Is de dagtekening 15 maart, vervalt de termijn op 15 april."
+    rijen = [("Is", "AUX", 6, "aux"), ("de", "DET", 2, "det"), ("dagtekening", "NOUN", 6, "nsubj"),
+             ("15", "NUM", 2, "appos"), ("maart", "PROPN", 3, "flat"), (",", "PUNCT", 2, "punct"),
+             ("vervalt", "VERB", -1, "root"), ("de", "DET", 8, "det"), ("termijn", "NOUN", 6, "nsubj"),
+             ("op", "ADP", 10, "case"), ("15", "NUM", 6, "obl"), ("april", "PROPN", 10, "flat"),
+             (".", "PUNCT", 6, "punct")]
+    assert tekst[slice(*clausebereik(_analyse(tekst, rijen), 6))] == "vervalt de termijn op 15 april"
+
+
 def test_clausebereik_zonder_parse_is_none():
     a = NullProvider().analyseer("Het besluit vervalt.")
     assert clausebereik(a, 0) is None
