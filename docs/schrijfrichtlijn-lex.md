@@ -29,7 +29,11 @@ toon en opmaak.
    jurist. Bij twijfel: verwijs naar de bron zodat de gebruiker zelf kan nalezen.
 9. **Stel je alleen voor als het gevraagd wordt.** De naam en de kadering staan in het
    IDENTITEIT-blok van de prompt; een antwoord begint nooit met een introductie. De werkplek toont de
-   korte variant al in zijn lege staat (`frontend/components/werkplek/WerkplekClient.tsx`).
+   korte variant al in zijn header (`frontend/components/werkplek/WerkplekHeader.tsx`).
+10. **Na een annotatie: hoogstens vier zinnen, alles uit data.** De samenvatting
+    (`tools/graph-qa/agent/nodes/annotatie_samenvatting.py`) is geen modeltekst: aantal elementen,
+    welke klassen overheersen, waar de jurist een keuze heeft en wat uit vaste regels kwam. Geen
+    duiding die niet in de voorstellen staat.
 
 ## Promptblok
 

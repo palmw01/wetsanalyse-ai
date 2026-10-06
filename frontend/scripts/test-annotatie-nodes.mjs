@@ -58,9 +58,12 @@ const trace = [
   { run_id: "r1", call_id: "call1", tool: "search_annotaties", phase: "start", status: "running" },
   { run_id: "r1", call_id: "call1", tool: "search_annotaties", phase: "end", status: "ok", aantal: 2, has_more: true },
 ];
+// De samenvatting zoals graph-qa hem bewaart: hoogstens vier zinnen, uit de data.
+const SAMENVATTING = "Ik heb artikel 9 lid 1 van de Invorderingswet 1990 geanalyseerd en één JAS-element gevonden. "
+  + "Geen voorstel vraagt om een keuze van jou. Alle voorstellen koos het model.";
 const berichten = [1, 2].flatMap((lid) => [
   { rol: "user", tekst: `Annoteer artikel 9 lid ${lid}`, denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "" },
-  { rol: "assistant", tekst: "", denk: "", bronnen: [], annotatie_slug: "zelfde-oude-laag", annotatie_titel: "Artikel 9", annotatie_doel: doel(lid),
+  { rol: "assistant", tekst: lid === 1 ? SAMENVATTING : "", denk: "", bronnen: [], annotatie_slug: "zelfde-oude-laag", annotatie_titel: "Artikel 9", annotatie_doel: doel(lid),
     tool_executions: trace, run_id: `r${lid}` },
 ]);
 await page.route("**/api/**", async (route) => {
@@ -203,6 +206,10 @@ try {
   assert.equal(await page.getByRole("button", { name: "Annotatie verwijderen", exact: true }).count(), 0);
   assert.equal(await page.getByRole("button", { name: "Annotatie afronden", exact: true }).count(), 0);
   await page.goto(`${base}/workbench?gesprek=g1`);
+  // Na herladen staat wat Lex over de annotatie zei boven de kaart; in een gesprek is de header compact.
+  assert.equal((await page.getByTestId("annotatie-samenvatting").first().innerText()).trim(), SAMENVATTING);
+  assert.equal(await page.getByTestId("werkplek-header").getAttribute("data-compact"), "ja");
+  await page.getByText("Juridische analyse met AI", { exact: true }).first().waitFor();
   await page.getByText("Invorderingswet – artikel 9 lid 1", { exact: true }).last().click();
   await wettekst().getByText("ontvanger", { exact: false }).waitFor();
   assert.equal(await wettekst().getByText("UITSLUITEND TWEE", { exact: false }).count(), 0);
@@ -226,5 +233,5 @@ try {
   await page.getByText("search_annotaties", { exact: true }).first().waitFor();
   assert.equal(await page.getByText("meer resultaten beschikbaar", { exact: false }).count() >= 1, true);
   assert.deepEqual(errors, []);
-  console.log("Browser OK: vertrouwd paneel op bronnodes, verwijderen met bevestiging, lidselectie, twee doelen, herladen toolspoor, Unicode/multiankers, klasse via palet, Vraag Lex/live SSE en mutatie/exportcontract.");
+  console.log("Browser OK: vertrouwd paneel op bronnodes, verwijderen met bevestiging, lidselectie, twee doelen, herladen toolspoor, Unicode/multiankers, klasse via palet, Vraag Lex/live SSE, mutatie/exportcontract en samenvatting van Lex na herladen.");
 } finally { await browser.close(); }

@@ -160,8 +160,14 @@ const beslissingen = (requests) => requests.filter((r) => r.pad.endsWith("/besli
   const { browser, page, errors, requests } = await nieuwePagina(chromium, { viewport: { width: 1440, height: 1000 } });
   try {
     await page.goto(`${base}/workbench`);
-    await page.getByPlaceholder("Stel een vraag of vraag een annotatie…").fill("annoteer artikel 9 lid 1");
+    // De lege werkplek: volledige header met een begroeting bij het uur (pas na het mounten gezet).
+    const kop = page.getByTestId("werkplek-header");
+    assert.equal(await kop.getAttribute("data-compact"), "nee");
+    await page.waitForFunction(() => [...document.querySelectorAll('[data-testid="werkplek-header"] h1')]
+      .some((h) => /^Goede(morgen|middag|avond|nacht)$/.test(h.textContent.trim())));
+    await page.getByPlaceholder("Stel een vraag of geef een opdracht aan Lex…").fill("annoteer artikel 9 lid 1");
     await page.keyboard.press("Enter");
+    await page.waitForFunction(() => document.querySelector('[data-testid="werkplek-header"]')?.getAttribute("data-compact") === "ja");
     await page.getByText("De brongraaf is tijdelijk niet beschikbaar", { exact: false }).waitFor();
     await page.getByText("Invorderingswet 1990 – art. 9 lid 9", { exact: false }).first().waitFor();
     // Ruim langer dan de eerste herstelpoging (1,5 s) – die mag er niet komen.
@@ -177,7 +183,7 @@ const beslissingen = (requests) => requests.filter((r) => r.pad.endsWith("/besli
   const { browser, page, errors } = await nieuwePagina(chromium, { viewport: { width: 1440, height: 1000 } });
   try {
     await page.goto(`${base}/workbench?gesprek=g2`);
-    await page.getByPlaceholder("Stel een vraag of vraag een annotatie…").fill("Nieuwe vraag");
+    await page.getByPlaceholder("Stel een vraag of geef een opdracht aan Lex…").fill("Nieuwe vraag");
     await page.keyboard.press("Enter");
     await page.getByText("Nieuw antwoord.", { exact: true }).waitFor();
     await page.getByText("Oud antwoord", { exact: true }).waitFor({ timeout: 10_000 });

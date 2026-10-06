@@ -160,40 +160,47 @@ export const ThreadRij = memo(function ThreadRij({
       </div>
     </div>
   ) : (
-    <div className="animate-rise">
-      {item.denk && <DenkProces tekst={item.denk} actief={false} label="Zo is dit tot stand gekomen" />}
-      <ToolSpoor events={item.tool_executions} />
-      <AnnotatieChip
-        doc={doc}
-        titel={item.titel}
-        aantal={doc?.elementen.filter((e) => !e.verouderd).length}
-        verwijderd={verwijderd}
-        onOpen={() => acties.openArtefact(item.slug, item.annotatie_doel)}
-      />
-      {(() => {
-        // De meting van de laatste ronde: wat er uitkwam, wat zonder zinsontleding ging en hoe lang
-        // het duurde. Uit het document, want de meting reist mee op elk element (`geproduceerd_door`).
-        const samenvatting = !verwijderd && doc ? beurtSamenvatting(laatsteRun(doc.elementen)?.instellingen?.meting) : "";
-        return samenvatting && <p className="mt-1 px-1 text-xs text-muted" data-testid="beurtsamenvatting">Laatste ronde van Lex: {samenvatting}</p>;
-      })()}
-      {(() => {
-        // Alleen op een gedeelde laag: een oud per-gebruiker-document kan niet worden
-        // aangevuld, en een verwijderde annotatie al helemaal niet.
-                  const opnieuwDoel = item.annotatie_doel ? {
-          bwbId: item.annotatie_doel.bwb_id || "", bron_iri: item.annotatie_doel.bron_iri,
-        } : doc?.laag_sleutel && !verwijderd
-          ? doelVoorOpnieuw(item.doel, doc) : undefined;
-        if (!item.hergebruik && !opnieuwDoel) return null;
-        return (
-          <HergebruikMelding
-            hergebruik={item.hergebruik}
-            uitgeschakeld={bezig || geblokkeerd || demo}
-            onOpnieuw={opnieuwDoel ? () => acties.verstuur(
-              `Annoteer ${item.annotatie_doel?.label || (doc ? annotatieTitel(doc) : "deze bepaling")} opnieuw`, opnieuwDoel, "opnieuw",
-            ) : undefined}
-          />
-        );
-      })()}
+    // Een annotatie is ook een beurt van Lex: zijn naam, wat hij erover zegt (hoogstens vier zinnen,
+    // door graph-qa uit de data opgebouwd), de kaart naar het artefact, en onderaan hoe het tot stand kwam.
+    <div className="group flex animate-rise gap-3">
+      <LexAvatar />
+      <div className="min-w-0 flex-1 text-sm text-ink">
+        <p className="mb-1 text-xs font-medium text-muted">Lex</p>
+        {item.tekst && <div className="mb-3" data-testid="annotatie-samenvatting"><Markdown tekst={item.tekst} /></div>}
+        <AnnotatieChip
+          doc={doc}
+          titel={item.titel}
+          aantal={doc?.elementen.filter((e) => !e.verouderd).length}
+          verwijderd={verwijderd}
+          onOpen={() => acties.openArtefact(item.slug, item.annotatie_doel)}
+        />
+        {(() => {
+          // De meting van de laatste ronde: wat er uitkwam, wat zonder zinsontleding ging en hoe lang
+          // het duurde. Uit het document, want de meting reist mee op elk element (`geproduceerd_door`).
+          const samenvatting = !verwijderd && doc ? beurtSamenvatting(laatsteRun(doc.elementen)?.instellingen?.meting) : "";
+          return samenvatting && <p className="mt-1 px-1 text-xs text-muted" data-testid="beurtsamenvatting">Laatste ronde van Lex: {samenvatting}</p>;
+        })()}
+        {(() => {
+          // Alleen op een gedeelde laag: een oud per-gebruiker-document kan niet worden
+          // aangevuld, en een verwijderde annotatie al helemaal niet.
+          const opnieuwDoel = item.annotatie_doel ? {
+            bwbId: item.annotatie_doel.bwb_id || "", bron_iri: item.annotatie_doel.bron_iri,
+          } : doc?.laag_sleutel && !verwijderd
+            ? doelVoorOpnieuw(item.doel, doc) : undefined;
+          if (!item.hergebruik && !opnieuwDoel) return null;
+          return (
+            <HergebruikMelding
+              hergebruik={item.hergebruik}
+              uitgeschakeld={bezig || geblokkeerd || demo}
+              onOpnieuw={opnieuwDoel ? () => acties.verstuur(
+                `Annoteer ${item.annotatie_doel?.label || (doc ? annotatieTitel(doc) : "deze bepaling")} opnieuw`, opnieuwDoel, "opnieuw",
+              ) : undefined}
+            />
+          );
+        })()}
+        {item.denk && <div className="mt-3"><DenkProces tekst={item.denk} actief={false} label="Zo is dit tot stand gekomen" /></div>}
+        <ToolSpoor events={item.tool_executions} />
+      </div>
     </div>
   );
 });
