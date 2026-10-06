@@ -16,10 +16,11 @@
   code: PERCENTAGE
   bewijs: zwak
   bron: "H2:91"
-  versie: 1
+  versie: 2
   patroon: '\b(?:\d+(?:,\d+)?\s?%|(?:\d+(?:,\d+)?|{TELWOORD})\s+procent)'
   tests:
-    positief: [{tekst: "vijftig procent van het berekende bedrag", span: "vijftig procent"}]
+    positief: [{tekst: "vijftig procent van het berekende bedrag", span: "vijftig procent"},
+               {tekst: "vijfentwintig procent van de schuld", span: "vijfentwintig procent"}]
     negatief: [{tekst: "procentueel", span: "procent"}]
     rand: [{tekst: "tegen 5,25%", span: "5,25%"}]
     overlap: [{tekst: "20% of vijftig procent", spans: ["20%", "vijftig procent"]}]

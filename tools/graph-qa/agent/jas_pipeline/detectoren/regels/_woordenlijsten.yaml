@@ -1,36 +1,6 @@
 # Woordenlijsten voor de regelpatronen ({NAAM}). Een item dat met "re:" begint is een regex;
 # de rest wordt letterlijk (ge-escaped) opgenomen. Langste eerst, dus "kalenderjaren" vóór "jaren".
-TELWOORD:
-  - "re:\\d+"
-  - één
-  - een
-  - twee
-  - drie
-  - vier
-  - vijf
-  - zes
-  - zeven
-  - acht
-  - negen
-  - tien
-  - elf
-  - twaalf
-  - dertien
-  - veertien
-  - vijftien
-  - zestien
-  - zeventien
-  - achttien
-  - negentien
-  - twintig
-  - dertig
-  - veertig
-  - vijftig
-  - zestig
-  - zeventig
-  - tachtig
-  - negentig
-  - honderd
+# TELWOORD staat niet hier: het is een opbouwregel, geen lijst (`taal/telwoorden.py`).
 PERIODE:
   - dag
   - dagen
