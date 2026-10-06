@@ -42,7 +42,7 @@ def zoekfilters(state: State) -> dict[str, Any]:
     resultaat, want dat levert stil te weinig treffers op.
     """
     filters: dict[str, Any] = {"limit": LIMIET}
-    klassen = klassen_in_tekst(state.get("question", "") or "")
+    klassen = klassen_in_tekst(state.get("zelfstandige_vraag") or state.get("question", "") or "")
     if klassen:
         filters["jas_klassen"] = klassen
     # Alleen wat de werkplek zelf meegaf: `search_annotaties` kent bron_iri en bwb_id, geen

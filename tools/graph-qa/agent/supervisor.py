@@ -33,6 +33,22 @@ SUPERVISOR_SYSTEM = (
     "SPECIALIST geldt alleen voor 'antwoord'."
 )
 
+# Alleen met een gesprek ervóór: dan moet de supervisor eerst weten waar een korte vervolgvraag
+# ("waarom?", "en lid 2?", "doe hetzelfde voor artikel 10") over gaat, vóór hij kiest. Zonder dit
+# blok routeerde hij de kale tekst – "waarom?" werd een afwijzing of een plan zonder onderwerp.
+VERVOLG_SYSTEM = (
+    "\n\nDIT IS EEN VERVOLGVRAAG in een lopend gesprek. Het gesprek tot nu toe en de GESPREKSCONTEXT "
+    "staan hieronder. Zet als EERSTE regel:\n"
+    "VRAAG: <de vraag zó herschreven dat hij zonder het gesprek te begrijpen is: vervang 'dat', "
+    "'die markering', 'dit artikel', 'lid 2', 'hetzelfde' door wat er bedoeld wordt – regeling, "
+    "artikel, lid, de markering met klasse en tekst. Verander niets aan wat er gevraagd wordt.>\n"
+    "Kies daarna WORKERS/SPECIALIST/PLAN voor die herschreven vraag. Een vraag óver een markering die al "
+    "gemaakt is (waarom deze klasse, leg uit, klopt dit, had het iets anders kunnen zijn) is 'antwoord' "
+    "met SPECIALIST duiding – niet 'annotatie'. Alleen een vraag om (opnieuw of verder) te annoteren of "
+    "te markeren, ook als 'doe hetzelfde voor lid 2', is 'annotatie'. Een vervolgvraag in een gesprek "
+    "over wetgeving wijs je niet af omdat hij op zichzelf kort of vaag is."
+)
+
 _QA_SPECIALISTS = ("definitie", "duiding", "algemeen")
 
 # De enige twee workers die bestaan. Alles daarbuiten is een verzinsel van het model en telt niet
@@ -43,6 +59,14 @@ _WORKERS = ("antwoord", "annotatie")
 # Meer dan twee schakels heeft geen enkele vraag nodig (annoteren en dan samenvatten is de langste
 # zinnige keten). Zonder plafond kan één supervisor-respons de beurt willekeurig lang maken.
 _MAX_WORKERS = 2
+
+
+def parse_vraag(text: str) -> str:
+    """De zelfstandig geformuleerde vraag uit een `VRAAG:`-regel; leeg als die er niet is."""
+    for line in text.splitlines():
+        if line.strip().upper().startswith("VRAAG:"):
+            return line.strip().split(":", 1)[1].strip()
+    return ""
 
 
 def parse_supervisor(text: str) -> tuple[list[str], str, bool]:

@@ -60,6 +60,29 @@ def beurt_start(messages: list[dict[str, Any]], vraag: str = "") -> int:
     return 0
 
 
+def eerdere_beurten(messages: list[dict[str, Any]], vraag: str = "", *, aantal: int = 3,
+                    per_bericht: int = 400) -> list[tuple[str, str]]:
+    """De laatste `aantal` afgeronde beurten vóór deze, als (vraag, antwoord) in platte tekst.
+
+    Voor wie het gesprek moet kennen zonder de tool-ruis: de supervisor. Per beurt de platte
+    user-vraag en de láátste assistent-tekst erna (het antwoord, of de geheugenregel van een
+    annotatie); tool-blokken en correctieberichten tellen niet."""
+    beurten: list[tuple[str, str]] = []
+    huidig: list[str] | None = None
+    for m in messages[:beurt_start(messages, vraag)]:
+        if _is_plain_user(m) and isinstance(m.get("content"), str) and not m["content"].startswith("Let op:"):
+            huidig = [m["content"], ""]
+            beurten.append(huidig)  # type: ignore[arg-type]
+        elif m.get("role") == "assistant" and huidig is not None:
+            c = m.get("content")
+            tekst = c if isinstance(c, str) else " ".join(
+                b.get("text", "") for b in c or [] if isinstance(b, dict) and b.get("type") == "text")
+            if tekst.strip():
+                huidig[1] = tekst.strip()
+    kort = lambda t: t if len(t) <= per_bericht else t[:per_bericht] + "…"  # noqa: E731
+    return [(kort(v), kort(a)) for v, a in beurten[-aantal:]]
+
+
 def beurt_berichten(messages: list[dict[str, Any]], vraag: str = "") -> list[dict[str, Any]]:
     """De berichten van de huidige beurt (zie `beurt_start`)."""
     return messages[beurt_start(messages, vraag):]

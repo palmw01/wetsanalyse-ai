@@ -18,24 +18,53 @@ from ..focus import bij_advies
 from ..narratie import _stap
 from ..state import State
 from ..methode import instructies
-from ..supervisor import SUPERVISOR_SYSTEM, parse_supervisor
+from ..berichten import eerdere_beurten
+from ..supervisor import SUPERVISOR_SYSTEM, VERVOLG_SYSTEM, parse_supervisor, parse_vraag
 from ..tools.annotatie_tools import is_leesvraag
 from .context import Bouw
 
 logger = logging.getLogger("graph_qa.orchestrator")
 
 
+def _vervolgcontext(b: Bouw, state: State) -> str:
+    """Het gesprek tot nu toe, voor de supervisor. Leeg bij de eerste vraag van een gesprek."""
+    beurten = eerdere_beurten(state.get("messages") or [], state.get("question", ""))
+    if not beurten:
+        return ""
+    regels = ["", "GESPREK TOT NU TOE (oudste eerst):"]
+    for vraag, antwoord in beurten:
+        regels += [f"Jurist: {vraag}", f"Lex: {antwoord or '(geen antwoord)'}"]
+    return "\n".join(regels)
+
+
+def _lees(writer, vraag: str) -> dict[str, Any]:
+    _stap(writer, "Lex", "raadpleegt bestaande annotaties")
+    return {"specialist": "annotaties_lezen", "worker_plan": ["annotaties_lezen"],
+            "worker_idx": 0, "plan": "bestaande annotaties raadplegen" + _herschreven(vraag),
+            "afwijzen": False, "annotaties_lezen": True}
+
+
+def _herschreven(vraag: str) -> str:
+    return f"\nDe vraag, zelfstandig geformuleerd: {vraag}" if vraag else ""
+
+
 def supervisor_node(b: Bouw, state: State) -> dict[str, Any]:
-    """Bepaalt de worker-keten (antwoord/annotatie) voor deze vraag; zet de eerste worker actief."""
+    """Bepaalt de worker-keten (antwoord/annotatie) voor deze vraag; zet de eerste worker actief.
+
+    In een lopend gesprek leest hij eerst het gesprek: een vervolgvraag wordt herschreven tot een
+    zelfstandige vraag (`zelfstandige_vraag`), en dáárop draaien de harde regels en de keuze. Bij de
+    eerste vraag van een gesprek is er niets te herschrijven en blijft alles zoals het was."""
     writer = get_stream_writer()
+    modus = state.get("modus", "auto")
 
-    if is_leesvraag(state.get("question", ""), state.get("modus", "auto")):
-        _stap(writer, "Lex", "raadpleegt bestaande annotaties")
-        return {"specialist": "annotaties_lezen", "worker_plan": ["annotaties_lezen"],
-                "worker_idx": 0, "plan": "bestaande annotaties raadplegen",
-                "afwijzen": False, "annotaties_lezen": True}
+    gesprek = _vervolgcontext(b, state)
+    leesvraag = is_leesvraag(state.get("question", ""), modus)
+    if leesvraag and (not gesprek or _heeft_opgegeven_doel(state)):
+        # Een leesvraag kan topologisch geen annotatie worden – ook niet met een doel erbij: dan is
+        # het doel het zoekbereik. Zonder gesprek valt er niets te herschrijven, dus geen LLM-call.
+        return _lees(writer, "")
 
-    if _heeft_opgegeven_doel(state) and state.get("modus") != "advies":
+    if _heeft_opgegeven_doel(state) and modus != "advies":
         # De aanroeper weet welke bepaling geannoteerd moet worden. Dan is er niets te kiezen en
         # niets te zoeken: geen supervisor-call, en `_entry_node` slaat de ophaal-agent over.
         # Wat de router zou beslissen is hier al bekend, en wat de ophaal-agent zou vinden staat
@@ -45,10 +74,10 @@ def supervisor_node(b: Bouw, state: State) -> dict[str, Any]:
         _stap(writer, "Lex", f"annoteert de aangewezen bepaling (art. {aanduiding})")
         return {
             "specialist": "annotatie", "worker_plan": ["annotatie"], "worker_idx": 0,
-            "plan": "annotatie van een aangewezen bepaling", "afwijzen": False,
+            "plan": "annotatie van een aangewezen bepaling", "afwijzen": False, "annotaties_lezen": False,
         }
 
-    if state.get("modus") == "advies":
+    if modus == "advies":
         # Een adviesvraag bij een bestaande annotatie: geen LLM-keuze, hard naar de
         # duiding-specialist. Dat is een topologische garantie in plaats van een belofte in een
         # prompt – de antwoord-route emit geen `doel`/`element`-events, dus advies vragen kán de
@@ -56,39 +85,53 @@ def supervisor_node(b: Bouw, state: State) -> dict[str, Any]:
         _stap(writer, "Lex", "advies bij een bestaande markering")
         return {
             "specialist": "duiding", "worker_plan": ["duiding"], "worker_idx": 0,
-            "plan": "adviesvraag bij een bestaande annotatie",
+            "plan": "adviesvraag bij een bestaande annotatie", "annotaties_lezen": False,
             # Het aangewezen element blijft het onderwerp, ook als de volgende vraag zonder chip komt.
             "focus": bij_advies(state.get("focus"), state.get("context")),
         }
 
     resp = b.llm.create(
         model=b.model_router,
-        max_tokens=300,
-        system=[SUPERVISOR_SYSTEM + "\n\n" + instructies("supervisor"), b.memory_context(state)],
+        max_tokens=400,
+        system=[SUPERVISOR_SYSTEM + "\n\n" + instructies("supervisor"),
+                b.memory_context(state) + ((VERVOLG_SYSTEM + "\n" + gesprek) if gesprek else "")],
         tools=[],
         messages=[{"role": "user", "content": state["question"]}],
     )
     text = "".join(b.text for b in resp.content if b.type == "text")
+    vraag = parse_vraag(text) if gesprek else ""
+    zelfstandig = vraag or state.get("question", "")
+    upd: dict[str, Any] = {"zelfstandige_vraag": vraag}
+    if vraag and vraag != state.get("question"):
+        _stap(writer, "Supervisor", f"leest de vraag als: {vraag[:120]}")
+
+    # De harde regel ná het lezen van het gesprek: "welke zijn er nog meer?" na een vraag over
+    # rechtssubjecten is pas als herschreven vraag herkenbaar als leesvraag.
+    if leesvraag or is_leesvraag(zelfstandig, modus):
+        return {**upd, **_lees(writer, vraag)}
+
     worker_plan, plan, afwijzen = parse_supervisor(text)
+    plan += _herschreven(vraag)
     if afwijzen:
         # Buiten de scope. Dit hoort hier te eindigen en niet als "AANPAK: AFWIJZEN" de
         # systeemprompt van een specialist in te gaan, waar een tweede modelbeslissing bepaalt
         # wat er gebeurt – dat kost minstens één extra call en is bovendien geen garantie.
         _stap(writer, "Supervisor", "buiten de wet- en regelgeving in de graaf")
-        return {"specialist": "", "plan": plan, "worker_plan": [], "worker_idx": 0,
-                "afwijzen": True}
+        return {**upd, "specialist": "", "plan": plan, "worker_plan": [], "worker_idx": 0,
+                "afwijzen": True, "annotaties_lezen": False}
     eerste = worker_plan[0]
     if eerste == "annotatie":
         # Eén artikel per annotatievraag. Meer artikelen is een werkgebied afbakenen – een andere
         # functie. Deterministisch en vóór de ophaal-agent: die zou er anders stil één uitkiezen.
-        aanwijzing = lees_aanwijzing(state.get("question", ""))
+        aanwijzing = lees_aanwijzing(zelfstandig)
         if aanwijzing.meerdere_artikelen:
             _stap(writer, "Lex", f"meer dan één artikel genoemd ({', '.join(aanwijzing.artikelen)})")
-            return {"specialist": "", "plan": plan, "worker_plan": [], "worker_idx": 0,
-                    "afwijzen": True, "afwijs_melding": melding_meerdere(aanwijzing.artikelen)}
-    _stap(writer, "Supervisor", f"kiest de {eerste}-worker · {plan[:80]}")
-    return {"specialist": eerste, "plan": plan, "worker_plan": worker_plan, "worker_idx": 0,
-            "afwijzen": False}
+            return {**upd, "specialist": "", "plan": plan, "worker_plan": [], "worker_idx": 0,
+                    "afwijzen": True, "afwijs_melding": melding_meerdere(aanwijzing.artikelen),
+                    "annotaties_lezen": False}
+    _stap(writer, "Supervisor", f"kiest de {eerste}-worker · {plan.splitlines()[0][:80]}")
+    return {**upd, "specialist": eerste, "plan": plan, "worker_plan": worker_plan, "worker_idx": 0,
+            "afwijzen": False, "annotaties_lezen": False}
 
 def _entry_node(b: Bouw, state: State) -> str:
     """Ingang voor de huidige worker: de annotatie-worker draait altijd de agent⇄tools-lus; een
