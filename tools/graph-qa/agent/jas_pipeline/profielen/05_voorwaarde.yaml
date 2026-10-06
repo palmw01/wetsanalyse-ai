@@ -29,6 +29,8 @@ confusable_classes:
   - {klasse: Operator, reden: "de vergelijking binnen een voorwaarde is zelf een operator (H2:62)"}
   - {klasse: Afleidingsregel, reden: "beslisregel tegenover losse eis"}
 negative_patterns:
+  - {patroon: "nominalisatie als referentiemoment ('één maand na de dagtekening van …')", reden: "het moment waarvan een termijn loopt; de tijdsaanduiding draagt de functie (regel jas.feit.nominalisatie_referentiemoment)"}
+  - {patroon: "nominalisatie als onderwerp of voorwerp binnen een voorwaardelijke bijzin ('Indien de toepassing van … niet leidt tot …')", reden: "de bijzin is de voorwaarde, niet het naamwoord erin (regel jas.feit.nominalisatie_in_voorwaarde)"}
   - {patroon: "'als bedoeld in' / 'als omschreven in'", reden: "verwijzing, geen voorwaardelijk voegwoord"}
   - {patroon: "'als' als vergelijking of hoedanigheid ('als bestuurder', 'even hoog als')", reden: "geen bijzin-inleider (geen mark)"}
 required_context:

@@ -1,0 +1,10 @@
+    geslaagd  D1  1 kandidaten
+    geslaagd  D2  1 kandidaten
+    geslaagd  D3  
+    geslaagd  D4  
+    geslaagd  D5  
+    geslaagd  D6  
+    geslaagd  D7  
+    geslaagd  D8  min 0.786 → 0.786
+
+04-D – de context van een nominalisatie: GESLAAGD

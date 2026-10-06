@@ -221,6 +221,14 @@ GROOTHEID:
   - waarde
 # Distributieve kwantoren: 'en elk van de volgende termijnen …' opent een eigen vervolgfunctie.
 # spaCy nl_core_news_md geeft hier PronType=Ind, niet Tot; daarom een lijst (NominalisatieDetector).
+# Voorzetsels die een referentiemoment inleiden ('na de dagtekening', 'sinds de bekendmaking'):
+# de nominalisatie erachter is dan het moment waarvan een termijn loopt, geen eigen voorwaarde.
+# Bewust niet 'tot' en 'voor': die leiden ook een doel of grens in ('voor de toepassing van').
+TIJDVOORZETSEL:
+  - na
+  - sinds
+  - vanaf
+  - vóór
 DISTRIBUTIEF:
   - elk
   - elke
