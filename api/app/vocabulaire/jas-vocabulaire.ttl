@@ -156,6 +156,11 @@
     skos:prefLabel "Afgekeurd bij de validatie"@nl ;
     jas:codeWaarde "VALIDATION_ERROR" .
 
+<urn:jas-ns:code:APPLICABILITY_CONSEQUENCE> a jas:Detectiecode ;
+    skos:definition "De bepaling zegt dat een andere regel toepassing vindt. Dat is het gevolg zelf; de voorwaarde ervoor is een eigen markering."@nl ;
+    skos:prefLabel "Toepasselijkheid als gevolg"@nl ;
+    jas:codeWaarde "APPLICABILITY_CONSEQUENCE" .
+
 <urn:jas-ns:code:CALCULATION_APPLICABILITY> a jas:Detectiecode ;
     skos:definition "Een voorwaardelijke uitspraak bepaalt welke aangewezen regel toepassing vindt. De verwijzing en de voorwaarde blijven bij elkaar."@nl ;
     skos:prefLabel "Keuze van toepasselijke regel"@nl ;
@@ -195,6 +200,11 @@
     skos:definition "Een naamwoordgroep als onderdeel van een opsomming."@nl ;
     skos:prefLabel "Opsommingsonderdeel"@nl ;
     jas:codeWaarde "ENUMERATED_NP" .
+
+<urn:jas-ns:code:LEGAL_EFFECT_CLAUSE> a jas:Detectiecode ;
+    skos:definition "Het gezegde van de hoofdzin drukt zelf een rechtsgevolg uit ('de termijn vervalt', 'de schuld ontstaat'). Niet in een bijzin; de span is de eigen zin."@nl ;
+    skos:prefLabel "Rechtsgevolg als hoofdzin"@nl ;
+    jas:codeWaarde "LEGAL_EFFECT_CLAUSE" .
 
 <urn:jas-ns:code:LEGAL_EFFECT_PREDICATE> a jas:Detectiecode ;
     skos:definition "Het normsegment noemt een rechtsgevolg (ontstaan, vervallen, verschuldigd, invorderbaar …); pas dan is Rechtsfeit een hypothese."@nl ;
@@ -903,5 +913,5 @@
     dcterms:source "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md" ;
     skos:prefLabel "Juridisch Analyseschema"@nl ;
     jas:jasVersie "1.0.10" ;
-    jas:vocabulaireVersie "382dff00545a" .
+    jas:vocabulaireVersie "ebe375d22209" .
 

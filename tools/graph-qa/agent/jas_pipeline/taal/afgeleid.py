@@ -129,12 +129,21 @@ def _eigen_predicaat(a: LinguisticAnalysis, i: int) -> bool:
         a.tokens[k].deprel in {"nsubj", "nsubj:pass", "cop"} for k in a.kinderen(i))
 
 
+def _persoonsvorm(a: LinguisticAnalysis, i: int) -> bool:
+    t = a.tokens[i]
+    return t.feat("VerbForm") == "Fin" or (t.upos == "AUX" and t.feat("VerbForm") in {"", "Fin"})
+
+
 def clausebereik(a: LinguisticAnalysis, kop: int) -> tuple[int, int] | None:
     """De eigen clause van een predicaat: zijn subboom zonder ingebedde functies.
 
     Weg gaan de bijwoordelijke bijzinnen en nevengeschakelde zinnen (`advcl`, `parataxis`), een
     `conj` met een eigen predicaat of onderwerp, en voegwoorden en leestekens aan de rand. In
     "Indien …, vindt het eerste lid toepassing." is dat "vindt het eerste lid toepassing".
+
+    Ook een voorafgaand stuk met een **eigen persoonsvorm**, afgesloten door een komma, gaat weg: in
+    een inversievoorwaarde ("Is de dagtekening 15 maart, vervalt de termijn op 15 april") hangt de
+    parse dat stuk vaak aan het predicaat, maar het is een eigen clause.
 
     Blijft er geen aaneengesloten stuk tekst over, dan is het antwoord `None`: dan is er geen
     brongetrouwe clausegrens, en de aanroeper valt zichtbaar terug op zijn eigen grens. Er wordt
@@ -148,6 +157,9 @@ def clausebereik(a: LinguisticAnalysis, kop: int) -> tuple[int, int] | None:
         if rel in _EIGEN_FUNCTIE or (rel == "conj" and _eigen_predicaat(a, k)):
             weg.update(a.subboom(k))
     tokens = sorted(set(a.subboom(kop)) - weg)
+    komma = [i for i in tokens if i < kop and a.tokens[i].tekst == ","]
+    if komma and any(_persoonsvorm(a, i) for i in tokens if i < komma[-1]):
+        tokens = [i for i in tokens if i > komma[-1]]
     while tokens and tokens[0] != kop and a.tokens[tokens[0]].deprel in _CLAUSERAND:
         tokens.pop(0)
     while tokens and tokens[-1] != kop and a.tokens[tokens[-1]].upos == "PUNCT":

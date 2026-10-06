@@ -83,5 +83,5 @@ def test_gehele_keten_bewaart_fragment_klasse_en_bijdragen(monkeypatch, tekst, f
     meting = next(e["run"]["instellingen"]["meting"] for e in events if e["type"] == "run")
     assert meting["tekstgrenzen_versie"] == meting["tekststructuur_versie"] == "1"
     overgeslagen = [r for r in meting["detectorresultaten"] if r["overgeslagen"]]
-    assert len(overgeslagen) == 5
+    assert len(overgeslagen) == 6
     assert all(r["versie"] == versies[r["detector"]] and r["reden"] and r["kandidaten"] == 0 for r in overgeslagen)

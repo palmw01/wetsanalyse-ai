@@ -6,7 +6,8 @@ import pytest
 from agent.jas_pipeline.detectoren import BronTekst, detecteer_alles, kandidaten_van
 from agent.jas_pipeline.detectoren.structuur import BetekenisDetector
 from agent.jas_pipeline.detectoren.syntactisch import (
-    BijzinDetector, LogischeOperatorDetector, NaamwoordgroepDetector, NominalisatieDetector, NormDetector,
+    BijzinDetector, GevolgDetector, LogischeOperatorDetector, NaamwoordgroepDetector, NominalisatieDetector,
+    NormDetector,
 )
 from agent.jas_pipeline.taal import NullProvider, SpacyProvider
 
@@ -30,7 +31,7 @@ def _grenzen(kandidaten):
 # --- geen stille terugval ----------------------------------------------------------------------
 
 @pytest.mark.parametrize("detector", [NaamwoordgroepDetector(), BijzinDetector(), NominalisatieDetector(),
-                                      LogischeOperatorDetector()], ids=lambda d: d.naam)
+                                      LogischeOperatorDetector(), GevolgDetector()], ids=lambda d: d.naam)
 def test_zonder_parse_slaat_een_parsedetector_zich_zichtbaar_over(detector):
     for bron in (_bron("De inspecteur stelt de aanslag vast."),
                  BronTekst.van_tekst("urn:test", "x", analyse=NullProvider().analyseer("x"))):
@@ -142,3 +143,51 @@ def test_naamwoordelijk_gezegde_is_geen_naamwoordgroep(parser):
 def test_gezegde_met_lidwoord_blijft_een_naamwoordgroep(parser):
     kandidaten = NaamwoordgroepDetector().detecteer(_bron("Belastingplichtige is de natuurlijke persoon.", parser)).kandidaten
     assert any("natuurlijke persoon" in g for g in _grenzen(kandidaten))
+
+
+# --- gevolgdetector: een rechtsgevolg als eigen hoofdzin -------------------------------------------
+
+def _gevolg(tekst, parser):
+    return [(k.span.tekst, k.possible_classes, k.evidence[0].code)
+            for k in GevolgDetector().detecteer(_bron(tekst, parser)).kandidaten]
+
+
+@pytest.mark.parametrize("tekst,verwacht", [
+    # positief
+    ("De vordering vervalt na vijf jaar.",
+     [("De vordering vervalt na vijf jaar", ("Rechtsbetrekking", "Rechtsfeit"), "LEGAL_EFFECT_CLAUSE")]),
+    ("De verplichting gaat over op de erfgenamen.",
+     [("De verplichting gaat over op de erfgenamen", ("Rechtsbetrekking", "Rechtsfeit"), "LEGAL_EFFECT_CLAUSE")]),
+    ("Artikel 4 vindt toepassing.", [("Artikel 4 vindt toepassing", ("Rechtsbetrekking",), "APPLICABILITY_CONSEQUENCE")]),
+    # negatief: in een bijzin is het een voorwaarde of beperking, geen gevolg van de bepaling
+    ("Indien de vordering vervalt, betaalt de ontvanger terug.", []),
+    ("De beschikking die vervalt, wordt ingetrokken.", []),
+    ("Hij betaalt de boete.", []),
+    # rand: ontkend of als schakelbepaling is het geen toepasselijkheidsgevolg
+    ("Artikel 4 vindt geen toepassing.", []),
+    ("Artikel 4 vindt overeenkomstige toepassing.", []),
+    # overlap: twee nevengeschikte gevolgen zijn twee kandidaten, niet één
+    ("De termijn vervalt en de schuld ontstaat.",
+     [("De termijn vervalt", ("Rechtsbetrekking", "Rechtsfeit"), "LEGAL_EFFECT_CLAUSE"),
+      ("de schuld ontstaat", ("Rechtsbetrekking", "Rechtsfeit"), "LEGAL_EFFECT_CLAUSE")]),
+])
+def test_gevolgdetector(parser, tekst, verwacht):
+    assert _gevolg(tekst, parser) == verwacht
+
+
+def test_gevolgclause_laat_de_voorwaarde_weg_en_biedt_segment_en_predicaat_als_optie(parser):
+    tekst = "Indien de aanslag is vastgesteld, vindt het eerste lid toepassing."
+    [k] = GevolgDetector().detecteer(_bron(tekst, parser)).kandidaten
+    assert k.span.tekst == "vindt het eerste lid toepassing"
+    assert {o.soort: o.span.tekst for o in k.span_options} == {"segment": tekst, "predicaat": "vindt"}
+
+
+def test_gevolgdetector_vindt_nooit_een_predicaat_in_een_bijzin(parser):
+    """Invariant over de ontwikkelcasussen: elke gevolgkandidaat hangt aan de hoofdzin."""
+    from agent.jas_pipeline.detectoren.syntactisch import _in_hoofdzin
+    from eval import casusbron
+    for c in [*casusbron.laad(), *casusbron.laad("concept")]:
+        a = parser.analyseer(c["tekst"])
+        for k in GevolgDetector().detecteer(BronTekst.van_tekst(c["id"], c["tekst"], analyse=a)).kandidaten:
+            koppen = [t.i for t in a.tokens if k.span.start <= t.start < k.span.eind and t.deprel in {"root", "conj", "parataxis"}]
+            assert any(_in_hoofdzin(a, i) for i in koppen), (c["id"], k.span.tekst)

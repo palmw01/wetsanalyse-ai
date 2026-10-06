@@ -6,6 +6,9 @@ labels als "c." die als onderwerp worden gelezen). Daarom:
 - **Rechtsbetrekking** herkent de uitdrukkingswijze (H2:46) lexicaal op tokens – een modaal
   hulpwerkwoord of een normatief predicaat – en werkt dus óók op een gedegradeerde analyse. De span
   is het normsegment tussen de leestekens (. ; :); de hele zin is een optie.
+- Een **rechtsgevolg als eigen hoofdzin** ('De eerste termijn vervalt …', '… vindt het eerste lid
+  toepassing') herkent de gevolgdetector op de parse: het predicaat moet in de hoofdzin staan, niet
+  in een bijzin, en de span is de eigen clause (`taal.clausebereik`).
 - De overige detectoren hebben dependencies nodig. Zonder parse slaan ze zich **zichtbaar** over
   (`DetectorResult.overgeslagen` + reden), ze vallen niet stil terug.
 
@@ -15,12 +18,13 @@ de volgorde is voorkeur, geen besluit.
 """
 from __future__ import annotations
 
+import json
 import re
 from functools import cache
 
 from ..kandidaten import BronSpan, Candidate, DetectorResult, Evidence, SpanOption
 from ..taal import LinguisticAnalysis, Token
-from ..taal.afgeleid import _BIJZIN, _KERN
+from ..taal.afgeleid import _BIJZIN, _KERN, clausebereik, predicaten
 from ..taal.grenzen import analyseer_grenzen
 from ..taal.verwijzingen import VERSIE as VERWIJZING_VERSIE
 from . import BronTekst, resultaat
@@ -327,6 +331,83 @@ class NominalisatieDetector:
         return resultaat(self, bron, kandidaten)
 
 
+# --- Rechtsbetrekking: een rechtsgevolg als eigen hoofdzin ------------------------------------
+
+def _in_hoofdzin(a: LinguisticAnalysis, i: int) -> bool:
+    """Staat predicaat `i` in de hoofdzin: de root, of nevengeschakeld aan de root – niet in een bijzin."""
+    gezien = set()
+    while a.tokens[i].deprel in {"conj", "parataxis"} and i not in gezien:
+        gezien.add(i)
+        i = a.tokens[i].head
+    return a.tokens[i].deprel == "root"
+
+
+def _predicaatvorm(a: LinguisticAnalysis, i: int) -> str:
+    """Het lemma met een scheidbaar partikel ervoor ('gaat … over' → 'overgaan') en 'in werking treden'."""
+    lemma = (a.tokens[i].lemma or a.tokens[i].tekst).lower()
+    prt = [a.tokens[k].tekst.lower() for k in a.kinderen(i) if a.tokens[k].deprel == "compound:prt"]
+    if lemma == "treden" and any((a.tokens[k].lemma or "").lower() == "werking" and any(
+            a.tokens[c].tekst.lower() == "in" for c in a.kinderen(k)) for k in a.kinderen(i)):
+        return "in werking treden"
+    return "".join(prt) + lemma
+
+
+class GevolgDetector:
+    """Een rechtsgevolg dat de bepaling zelf uitspreekt, als hoofdzin (H2:46, H2:53).
+
+    'De eerste termijn vervalt één maand na …' en '… vindt het eerste lid toepassing' zijn geen
+    modale normen, maar wel de uitspraak waar de bepaling om draait. De NormDetector ziet ze niet
+    (hij zoekt een modaal of normatief gezegde) en een lexicale treffer op 'vervalt' zou het hele
+    segment pakken, ook als het werkwoord in een bijzin staat. Hier dus op de parse:
+
+    - het predicaat staat in de hoofdzin (`_in_hoofdzin`), nooit in een voorwaarde of bijzin;
+    - de span is de eigen clause; het segment en het predicaat zelf zijn opties;
+    - de toepassingskeuze wordt herkend met dezelfde helper als in de functiedetector.
+
+    Zonder parse slaat hij zich zichtbaar over.
+    """
+    REGELS: tuple[str, ...] = ("jas.betrekking.rechtsgevolg_hoofdzin", "jas.betrekking.toepassingsgevolg")
+    CODES = ("LEGAL_EFFECT_CLAUSE", "APPLICABILITY_CONSEQUENCE")
+    naam = "gevolg"
+    versie = "1"
+
+    def detecteer(self, bron: BronTekst) -> DetectorResult:
+        from .functies import toepassingskeuze
+        a, reden = _parse_of_reden(bron)
+        if a is None:
+            return resultaat(self, bron, overgeslagen=True, reden=reden)
+        segmenten = analyseer_grenzen(bron.tekst).segmenten(bron.tekst)
+        kandidaten, gezien = [], set()
+        for p in predicaten(a):
+            if not _in_hoofdzin(a, p.kop):
+                continue
+            vorm = _predicaatvorm(a, p.kop)
+            keuze = toepassingskeuze(a, p.kop)
+            if keuze and not (keuze["ontkend"] or keuze["overeenkomstig"]):
+                code, regel, klassen = self.CODES[1], self.REGELS[1], [BETR]
+            elif _lijst("GEVOLGPREDICAAT").match(vorm):
+                code, regel, klassen = self.CODES[0], self.REGELS[0], [BETR, FEIT]
+            else:
+                continue
+            t = a.tokens[p.kop]
+            seg = next(((g.start, g.eind) for g in segmenten if g.start <= t.start < g.eind), None)
+            clause = clausebereik(a, p.kop)
+            span = clause or (seg and _trim(bron.tekst, *seg))
+            if not span or span[0] >= span[1] or _in_verwijzing(bron, *span) or span in gezien:
+                continue
+            gezien.add(span)
+            grenzen = [(span, "clause" if clause else "segment")]
+            if seg:
+                grenzen.append((_trim(bron.tekst, *seg), "segment"))
+            if a.aaneengesloten(p.tokens):
+                grenzen.append(((p.start, p.eind), "predicaat"))
+            detail = {"predicaat": vorm, **({} if clause else {"clause_onderbroken": True})}
+            kandidaten.append(_kandidaat(bron, grenzen, klassen, [Evidence(
+                detector=self.naam, code=code, regel=regel, relatie=t.deprel,
+                detail=json.dumps(detail, ensure_ascii=False, sort_keys=True))]))
+        return resultaat(self, bron, kandidaten)
+
+
 # --- Operator: nevenschikking tussen clauses en negatie ----------------------------------------
 
 class LogischeOperatorDetector:
@@ -366,5 +447,5 @@ class LogischeOperatorDetector:
 
 
 def syntactische_detectoren() -> list:
-    return [NormDetector(), NaamwoordgroepDetector(), BijzinDetector(), NominalisatieDetector(),
+    return [NormDetector(), GevolgDetector(), NaamwoordgroepDetector(), BijzinDetector(), NominalisatieDetector(),
             LogischeOperatorDetector()]

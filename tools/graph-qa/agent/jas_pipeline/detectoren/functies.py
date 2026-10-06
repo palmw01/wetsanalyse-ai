@@ -38,6 +38,35 @@ def _elliptisch() -> re.Pattern:
     return re.compile(rf"\bBij\s+(?:{woordenlijsten()['ELLIPTISCH']})\s+", re.IGNORECASE)
 
 
+def _lem(a, i) -> str:
+    return (a.tokens[i].lemma or a.tokens[i].tekst).lower()
+
+
+def toepassingskeuze(a, i: int) -> dict | None:
+    """'<regel> vindt (geen / overeenkomstige) toepassing' rond predicaat `i`, of None.
+
+    Gedeeld door de functiedetector (Afleidingsregel: welke regel geldt) en de gevolgdetector
+    (Rechtsbetrekking: dát hij geldt), zodat ze dezelfde constructie herkennen. Geeft de token-
+    indices van 'toepassing' en de regel, en of het ontkend, een schakelbepaling of voorwaardelijk is.
+    """
+    if _lem(a, i) != "vinden":
+        return None
+    toep = [j for j in a.subboom(i) if _lem(a, j) == "toepassing"
+            and not any(a.tokens[k].deprel == "advcl" and j in a.subboom(k) for k in a.kinderen(i))]
+    regel = [k for k in a.kinderen(i) if a.tokens[k].deprel == "nsubj"]
+    if not toep or not regel:
+        return None
+    t0 = toep[0]
+    return {
+        "toepassing": t0, "regel": regel[0],
+        "ontkend": any(_lem(a, c) in _ONTKENNING for c in (*a.kinderen(t0), *a.kinderen(i))),
+        "overeenkomstig": any(_lem(a, c).startswith("overeenkomstig") for c in a.kinderen(t0)),
+        "voorwaardelijk": any(_lem(a, m) in _VOORWAARDE for c in a.kinderen(i) if a.tokens[c].deprel == "advcl"
+                              for m in a.kinderen(c) if a.tokens[m].deprel == "mark")
+        or any(_lem(a, c) == "geval" for c in a.kinderen(i) if a.tokens[c].deprel == "obl"),
+    }
+
+
 class FunctieDetector:
     naam = "functie"
     # 3: afleiding en toepassingskeuze op hun eigen span, het segment als optie
@@ -76,10 +105,6 @@ class FunctieDetector:
             t = a.tokens[i]
             return next(((g.start, g.eind) for g in segmenten if g.start <= t.start < g.eind), None)
 
-        def onder_voorwaarde(i):
-            return any(lemma(m) in _VOORWAARDE for c in kind(i, "advcl") for m in kind(c, "mark")) \
-                or any(lemma(c) == "geval" for c in kind(i, "obl"))
-
         segmenten = analyseer_grenzen(bron.tekst).segmenten(bron.tekst)
         for t in a.tokens:
             # Passieve toewijzing: '<grootheid> wordt (op X) (vast)gesteld (op X)'.
@@ -91,24 +116,18 @@ class FunctieDetector:
                     voeg(*seg, AR, "CALCULATION_ASSIGNMENT", self.REGELS[0],
                          predicaat="stellen op", uitkomst=a.tokens[onderwerp[0]].tekst)
             # Toepassingskeuze: '(Indien …,) vindt <regel> toepassing', niet ontkend of overeenkomstig.
-            if lemma(t.i) == "vinden":
-                toep = [i for i in a.subboom(t.i) if lemma(i) == "toepassing"
-                        and not any(a.tokens[j].deprel == "advcl" and i in a.subboom(j) for j in a.kinderen(t.i))]
-                if toep and onder_voorwaarde(t.i):
-                    t0 = toep[0]
-                    ontkend = any(lemma(c) in _ONTKENNING for c in (*a.kinderen(t0), *a.kinderen(t.i)))
-                    overeenkomstig = any(lemma(c).startswith("overeenkomstig") for c in a.kinderen(t0))
-                    regel = [o for o in kind(t.i, "nsubj")]
-                    seg = segment_van(t.i)
-                    if not (ontkend or overeenkomstig) and regel and seg:
-                        ids = set(a.subboom(regel[0])) - set(a.subboom(t0))
-                        g = bereik(a, ids)
-                        clause = clausebereik(a, t.i)
-                        # Geen aaneengesloten clause: zichtbaar het segment, nooit een gegokte grens.
-                        extra = {} if clause else {"clause_onderbroken": True}
-                        voeg(*(clause or seg), AR, "CALCULATION_APPLICABILITY", self.REGELS[5], segment=seg,
-                             toepasselijke_regel={"start": g[0], "eind": g[1], "tekst": bron.tekst[g[0]:g[1]]}
-                             if g else None, **extra)
+            keuze = toepassingskeuze(a, t.i)
+            if keuze and keuze["voorwaardelijk"] and not (keuze["ontkend"] or keuze["overeenkomstig"]):
+                seg = segment_van(t.i)
+                if seg:
+                    ids = set(a.subboom(keuze["regel"])) - set(a.subboom(keuze["toepassing"]))
+                    g = bereik(a, ids)
+                    clause = clausebereik(a, t.i)
+                    # Geen aaneengesloten clause: zichtbaar het segment, nooit een gegokte grens.
+                    extra = {} if clause else {"clause_onderbroken": True}
+                    voeg(*(clause or seg), AR, "CALCULATION_APPLICABILITY", self.REGELS[5], segment=seg,
+                         toepasselijke_regel={"start": g[0], "eind": g[1], "tekst": bron.tekst[g[0]:g[1]]}
+                         if g else None, **extra)
 
         for segment in segmenten:
             s, e = segment.start, segment.eind

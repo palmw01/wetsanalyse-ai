@@ -218,6 +218,15 @@ VOORZETSELUITDRUKKING:
   - ter uitvoering van
   - in overeenstemming met
 # Rechtsgevolg in een normsegment (H2:53): alleen dan biedt NormDetector ook Rechtsfeit aan (audit D03).
+# Werkwoorden die zelf een rechtsgevolg uitdrukken als predicaat van een hoofdzin ('De termijn
+# vervalt …'). Lemma, met een scheidbaar partikel ervoor ('overgaan'); de gevolgdetector toetst ze op
+# de parse, niet op de tekst. RECHTSGEVOLG hieronder is breder en verrijkt alleen een normsegment.
+GEVOLGPREDICAAT:
+  - vervallen
+  - ontstaan
+  - eindigen
+  - overgaan
+  - in werking treden
 RECHTSGEVOLG:
   - ontstaat
   - ontstaan

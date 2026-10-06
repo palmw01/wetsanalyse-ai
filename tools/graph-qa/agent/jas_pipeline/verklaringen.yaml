@@ -49,6 +49,8 @@ detectie:
   MEANING_TERM: {naam: "Begrip met betekenis", uitleg: "Het begrip dat in een begripsbepaling een betekenis krijgt."}
   # zinsontleding (detectoren/syntactisch.py)
   NORMATIVE_PREDICATE: {naam: "Normatief gezegde", uitleg: "'Is verplicht', 'kan', 'heeft recht op', 'is bevoegd': een recht of plicht."}
+  LEGAL_EFFECT_CLAUSE: {naam: "Rechtsgevolg als hoofdzin", uitleg: "Het gezegde van de hoofdzin drukt zelf een rechtsgevolg uit ('de termijn vervalt', 'de schuld ontstaat'). Niet in een bijzin; de span is de eigen zin."}
+  APPLICABILITY_CONSEQUENCE: {naam: "Toepasselijkheid als gevolg", uitleg: "De bepaling zegt dat een andere regel toepassing vindt. Dat is het gevolg zelf; de voorwaarde ervoor is een eigen markering."}
   PARAMETER_NOUN: {naam: "Parameterwoord", uitleg: "'Tarief', 'drempel', 'vrijstelling': een woord dat een vaste waarde benoemt."}
   PROPERTY_NOUN: {naam: "Eigenschap", uitleg: "'De hoogte van', 'het bedrag van': een naamwoordgroep die een eigenschap noemt."}
   PERSON_PRONOUN: {naam: "Verwijzend voornaamwoord", uitleg: "'Hij', 'degene', 'een ieder': een voornaamwoord dat naar een persoon verwijst."}
