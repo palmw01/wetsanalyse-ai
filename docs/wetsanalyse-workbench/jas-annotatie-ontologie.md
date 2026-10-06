@@ -69,7 +69,7 @@ schemawijziging projecteert de reconcile-lus alle lagen opnieuw.
 | besluit | `prov:Activity`, `jas:Besluit` | `jas:beslistDoor` → `urn:jas-ns:besluit:*`, `jas:bewijs` → codes, `jas:regel` → regels, `jas:detector`, `jas:mogelijkeKlasse`, `jas:twijfel`, `jas:resolutieregel`, `jas:validatie`, `jas:modelvraag`, `jas:jasVersie`, `prov:wasInformedBy` → de ronde |
 | ronde | `prov:Activity`, `jas:AgentRonde` (`urn:jas:run:<hash>`) | `prov:wasAssociatedWith` → het model (`prov:SoftwareAgent`), `jas:agentVersie`, `jas:promptHash`, `jas:methodeVersie`, `jas:taalModel`, `jas:modus`, `prov:startedAtTime` |
 | beoordeling | `jas:Beoordeling` | `jas:soort` (approve/reject/heropen/comment/edit), `prov:atTime`, `jas:reden`, bij een klassewissel `jas:van`/`jas:naar` – **nooit** actor of commentaartekst |
-| dekking | `jas:Dekking` | `jas:bron`, `jas:dimensie` (`jas:naam`, `jas:stand`), `jas:ongedekt` (een `oa:SpecificResource` met selectors) |
+| dekking | `jas:Dekking` | `jas:bron`, `jas:dimensie` (`jas:naam`, `jas:stand`), `jas:ongedekt` en `jas:alleenAlsGeheel` (elk een `oa:SpecificResource` met selectors) |
 
 Een element met meerdere ankers draagt meerdere `oa:hasTarget`-nodes, in bronvolgorde; de eigenaar
 van de laag is de diepste gezamenlijke voorouder van die ankers. De IRI's van codes, regels en

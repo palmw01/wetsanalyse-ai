@@ -130,3 +130,10 @@ def test_dekking_met_aantallen_is_conform_en_zonder_aantallen_ook():
     fout = bouw_graaf(LAAG, [ELEMENT], dekking={BRON: {"dimensies": {"tijd": "uitgevoerd"}, "ongedekt": [],
                                                          "aangetroffen": {"tijd": -1}}})
     assert valideer(fout)["conform"] is False
+
+
+def test_alleen_als_geheel_wordt_geprojecteerd_en_is_conform():
+    meting = {BRON: {"dimensies": {"tijd": "uitgevoerd"}, "ongedekt": [],
+                     "alleen_als_geheel": [{"tekst": "Een aanslag is invorderbaar.", "start": 0, "eind": 28}]}}
+    g = bouw_graaf(LAAG, [ELEMENT], dekking=meting)
+    assert len(list(g.objects(None, JAS.alleenAlsGeheel))) == 1 and valideer(g)["conform"] is True

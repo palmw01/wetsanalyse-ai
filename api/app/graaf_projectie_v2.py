@@ -310,20 +310,26 @@ def _dekking(g: Graph, owner: URIRef, dekking: dict) -> None:
             # het draagt: een oudere laag zonder telling krijgt geen 0, want 0 betekent iets anders.
             if isinstance(aangetroffen.get(naam), int):
                 g.add((dim, JAS.aantal, Literal(aangetroffen[naam])))
-        for deel in meting.get("ongedekt") or []:
-            if not isinstance(deel, dict):
-                continue
-            o, pos, citaat = BNode(), BNode(), BNode()
-            g.add((d, JAS.ongedekt, o))
-            g.add((o, RDF.type, OA.SpecificResource))
-            g.add((o, OA.hasSource, URIRef(bron_iri)))
-            g.add((o, OA.hasSelector, pos))
-            g.add((pos, RDF.type, OA.TextPositionSelector))
-            g.add((pos, OA.start, Literal(int(deel["start"]))))
-            g.add((pos, OA.end, Literal(int(deel["eind"]))))
-            g.add((o, OA.hasSelector, citaat))
-            g.add((citaat, RDF.type, OA.TextQuoteSelector))
-            g.add((citaat, OA.exact, Literal(str(deel.get("tekst", "")))))
+        # Zinsdelen zonder treffer, en – als de meting het draagt – zinsdelen die alleen als geheel
+        # geraakt werden (een kandidaat over de hele zin; binnen de zin niets gevonden).
+        for predicaat, sleutel in ((JAS.ongedekt, "ongedekt"), (JAS.alleenAlsGeheel, "alleen_als_geheel")):
+            for deel in meting.get(sleutel) or []:
+                if isinstance(deel, dict):
+                    _zinsdeel(g, d, predicaat, bron_iri, deel)
+
+
+def _zinsdeel(g: Graph, dekking: BNode, predicaat: URIRef, bron_iri: str, deel: dict) -> None:
+    o, pos, citaat = BNode(), BNode(), BNode()
+    g.add((dekking, predicaat, o))
+    g.add((o, RDF.type, OA.SpecificResource))
+    g.add((o, OA.hasSource, URIRef(bron_iri)))
+    g.add((o, OA.hasSelector, pos))
+    g.add((pos, RDF.type, OA.TextPositionSelector))
+    g.add((pos, OA.start, Literal(int(deel["start"]))))
+    g.add((pos, OA.end, Literal(int(deel["eind"]))))
+    g.add((o, OA.hasSelector, citaat))
+    g.add((citaat, RDF.type, OA.TextQuoteSelector))
+    g.add((citaat, OA.exact, Literal(str(deel.get("tekst", "")))))
 
 
 def _lit(value: Any) -> str:
