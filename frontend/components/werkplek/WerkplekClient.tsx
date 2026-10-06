@@ -1138,11 +1138,9 @@ export function WerkplekClient({
                 Ik zoek bepalingen op, citeer letterlijk en stel JAS-markeringen voor. Wat ik voorstel,
                 beoordeel jij.
               </p>
-              <p className="mx-auto mt-3 max-w-md text-sm text-faint md:mt-0">
-                Stel een vraag over de wet- en regelgeving, of vraag een annotatie volgens het JAS.
-              </p>
+              {/* Wat je kunt vragen staat al in het invoerveld; hier geen tweede uitnodiging. */}
               {onRondleiding && (
-                <div className="mt-5">
+                <div className="mt-5 md:mt-0">
                   <button
                     type="button"
                     onClick={onRondleiding}

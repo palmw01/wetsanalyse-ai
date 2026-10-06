@@ -10,6 +10,12 @@ import type { ReactNode } from "react";
  *  gesprekken, geen account, geen uitloggen. Eén component voor alle drie de schermen, zodat dat
  *  niet opnieuw uiteen kan lopen.
  */
+/** Een iconenknop in de topbalk: zonder rand, net als de bel in de zijbalk – het klikvlak is groot
+ *  genoeg (40px, 44px op een aanraakscherm) en een zachte achtergrond bij hover laat zien dat het
+ *  een knop is. */
+export const TOPBAR_KNOP =
+  "focus-ring inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-button text-lint transition-colors hover:bg-surface coarse:h-11 coarse:w-11";
+
 export function MobieleTopbar({
   titel,
   onOpenSidebar,
@@ -28,9 +34,9 @@ export function MobieleTopbar({
         data-tour="sidebar-mobiel"
         onClick={onOpenSidebar}
         aria-label="Menu openen"
-        className="focus-ring inline-flex items-center justify-center rounded-lg border border-line p-2 text-lint transition-colors hover:bg-surface"
+        className={TOPBAR_KNOP}
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden>
           <line x1="3" y1="6" x2="21" y2="6" />
           <line x1="3" y1="12" x2="21" y2="12" />
           <line x1="3" y1="18" x2="21" y2="18" />
