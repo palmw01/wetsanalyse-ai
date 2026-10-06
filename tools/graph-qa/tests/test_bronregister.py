@@ -71,3 +71,11 @@ def test_een_verzonnen_citaat_blijft_ongegrond(tmp_path):
 def test_een_annotatie_onderbouwt_geen_wettekst():
     reg = bij([], [("search_annotaties", f'{{"resultaten": [{{"tekst": "{TEKST}"}}]}}')])
     assert reg == []
+
+
+def test_de_correctie_vraagt_een_nieuw_antwoord_geen_reactie(tmp_path):
+    """Het correctiebericht komt van de controle. Las het model het als de jurist, dan werd 'U heeft
+    gelijk …' het antwoord – en het laatste wat Lex in die beurt zei, waar de volgende vraag op aansloot."""
+    _, _, llm = _gesprek(tmp_path, 'De wet zegt: "de ontvanger mag altijd uitstel van betaling geven".')
+    melding = llm.calls[2]["messages"][-1]["content"]
+    assert "niet van de jurist" in melding and "VOLLEDIGE antwoord op de oorspronkelijke vraag" in melding

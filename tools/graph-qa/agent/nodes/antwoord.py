@@ -11,7 +11,7 @@ from typing import Any
 
 from langgraph.config import get_stream_writer
 
-from ..berichten import _parse_final, _schoon_messages, _trim_messages
+from ..berichten import CORRECTIE, _parse_final, _schoon_messages, _trim_messages
 from ..bronregister import bij, controletrace
 from ..focus import na_antwoord
 from ..grounding import check_grounding, curate_sources
@@ -212,11 +212,23 @@ def correct_node(b: Bouw, state: State) -> dict[str, Any]:
         ) if deel
     )
     _stap(writer, "Correctie", f"antwoord bijstellen op {wat}")
+    # Het bericht staat als user-bericht in de historie, maar komt van de controle. Zonder die
+    # afbakening antwoordde het model de jurist met "U heeft gelijk …" over het afgekeurde citaat:
+    # dat meta-antwoord werd het zichtbare antwoord én het laatste wat Lex in die beurt "zei", zodat
+    # een vervolgvraag ("en lid 2?") op het citaat werd betrokken in plaats van op de vraag.
     return {
-        "messages": [{"role": "user", "content": "Let op: " + " ".join(opdrachten)}],
+        "messages": [{"role": "user", "content": CORRECTIE + " ".join(opdrachten) + _HERSCHRIJF}],
         "corrected": True,
         "answer": "",
     }
+
+
+_HERSCHRIJF = (
+    "\n\nDit bericht komt van de brongetrouwheidscontrole, niet van de jurist; de jurist ziet het niet. "
+    "Schrijf je VOLLEDIGE antwoord op de oorspronkelijke vraag opnieuw, met deze correctie verwerkt – "
+    "je nieuwe antwoord vervangt het vorige. Reageer niet op deze melding: geen 'u heeft gelijk', geen "
+    "excuus, geen verwijzing naar het vorige antwoord."
+)
 
 def hergebruikte_bronnen(register, antwoord: str, al) -> list:
     """Bronnen uit het register waarvan het antwoord de regeling (BWB-id) noemt en die er nog niet staan."""

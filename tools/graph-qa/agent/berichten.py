@@ -45,6 +45,11 @@ def _is_plain_user(m: dict[str, Any]) -> bool:
     return m.get("role") == "user" and not _is_tool_result_user(m)
 
 
+#: Waarmee een correctiebericht van de brongetrouwheidscontrole begint (`correct_node`). Het staat als
+#: user-bericht in de historie, maar is geen vraag van de jurist.
+CORRECTIE = "Let op: "
+
+
 def beurt_start(messages: list[dict[str, Any]], vraag: str = "") -> int:
     """Index waar de huidige beurt begint: de laatste platte user-beurt met deze vraag.
 
@@ -70,7 +75,7 @@ def eerdere_beurten(messages: list[dict[str, Any]], vraag: str = "", *, aantal: 
     beurten: list[tuple[str, str]] = []
     huidig: list[str] | None = None
     for m in messages[:beurt_start(messages, vraag)]:
-        if _is_plain_user(m) and isinstance(m.get("content"), str) and not m["content"].startswith("Let op:"):
+        if _is_plain_user(m) and isinstance(m.get("content"), str) and not m["content"].startswith(CORRECTIE):
             huidig = [m["content"], ""]
             beurten.append(huidig)  # type: ignore[arg-type]
         elif m.get("role") == "assistant" and huidig is not None:
