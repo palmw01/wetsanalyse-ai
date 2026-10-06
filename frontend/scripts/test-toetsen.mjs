@@ -164,7 +164,7 @@ const beslissingen = (requests) => requests.filter((r) => r.pad.endsWith("/besli
     const kop = page.getByTestId("werkplek-header");
     assert.equal(await kop.getAttribute("data-compact"), "nee");
     await page.waitForFunction(() => [...document.querySelectorAll('[data-testid="werkplek-header"] h1')]
-      .some((h) => /^Goede(morgen|middag|avond|nacht)$/.test(h.textContent.trim())));
+      .some((h) => /^(Goedemorgen|Goedemiddag|Goedenavond|Goedenacht)$/.test(h.textContent.trim())));
     await page.getByPlaceholder("Stel een vraag of geef een opdracht aan Lex…").fill("annoteer artikel 9 lid 1");
     await page.keyboard.press("Enter");
     await page.waitForFunction(() => document.querySelector('[data-testid="werkplek-header"]')?.getAttribute("data-compact") === "ja");
