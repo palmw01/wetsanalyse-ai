@@ -32,6 +32,11 @@ class State(TypedDict, total=False):
     # markeringen, een aangewezen element, de bronnen van het vorige antwoord. Bewust NIET in de
     # per-beurt-reset van `answer_stream`: dit is het geheugen dat een vervolgvraag nodig heeft.
     focus: dict[str, Any]
+    # De vraag van deze beurt, door de supervisor zo herschreven dat hij zonder het gesprek te begrijpen
+    # is ("en lid 2?" → "Wat regelt artikel 9 lid 2 van de Invorderingswet 1990?"). Voedt de
+    # deterministische regels en filters; het user-bericht in de historie blijft de echte vraag.
+    # Per beurt gereset; leeg = de vraag zelf.
+    zelfstandige_vraag: str
     specialist: str
     plan: str
     worker_plan: list[str]   # geordende worker-keten (specialist-namen) die de supervisor koos

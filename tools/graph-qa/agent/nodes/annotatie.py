@@ -86,7 +86,7 @@ def _bereid_voor(b: Bouw, state: State, writer) -> dict[str, Any]:
     # "artikel 9 lid 1 en 3" of "9.1 en 9.5": één artikel, meerdere leden. Dan wordt het artikel
     # het doel en staan de genoemde leden vooraf aangevinkt op de kaart. Een meegestuurd doel (een
     # keuze op de kaart zelf) blijft precies wat de jurist aanwees.
-    genoemd = () if _heeft_opgegeven_doel(state) else lees_aanwijzing(state.get("question", "")).leden
+    genoemd = () if _heeft_opgegeven_doel(state) else lees_aanwijzing(state.get("zelfstandige_vraag") or state.get("question", "")).leden
     if len(genoemd) > 1 and not geheel:
         stam = str(doel.get("artikel") or doel.get("nummer") or "").split(".", 1)[0]
         doel = {"bwbId": doel.get("bwbId", ""), "artikel": stam, "lid": "", "nummer": "",

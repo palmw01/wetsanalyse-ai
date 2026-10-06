@@ -203,6 +203,7 @@ async def answer_stream(
         "hergebruikte_nodes": [],
         "annotatie_fout": "",
         "messages": [{"role": "user", "content": question}],
+        "zelfstandige_vraag": "",
         "modus": modus,
         "context": context.model_dump() if hasattr(context, "model_dump") else (context or {}),
         # Het doel dat de aanroeper meegaf – MOET mee in de reset, net als de annotatievelden

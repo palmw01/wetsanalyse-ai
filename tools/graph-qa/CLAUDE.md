@@ -64,8 +64,15 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
 ### De nodes van de antwoordketen
 
 - **`supervisor_node`** – één LLM-call (`SUPERVISOR_SYSTEM` in `agent/supervisor.py`, geen tools) die
-  worker(s), specialist en plan kiest; eerder geraadpleegde bepalingen gaan als context mee. Een
+  worker(s), specialist en plan kiest; de focus (GESPREKSCONTEXT) gaat als context mee. Een
   leesvraag (`is_leesvraag`), een meegegeven `doel` of `modus: "advies"` beslist hij zonder LLM-call.
+  **In een lopend gesprek leest hij eerst het gesprek** (`berichten.eerdere_beurten`: de laatste drie
+  beurten als vraag + antwoord, zonder tool-ruis, en `VERVOLG_SYSTEM`) en zet hij een `VRAAG:`-regel:
+  de vervolgvraag zelfstandig herschreven. Die `zelfstandige_vraag` voedt `is_leesvraag`,
+  `lees_aanwijzing`, het klassefilter van de leesroute en het plan van de specialist; het
+  user-bericht in de historie blijft de echte vraag. Een vraag óver een gemaakte markering is
+  `duiding`, geen `annotatie`. Bij de eerste vraag van een gesprek verandert er niets (geen extra
+  tekst, geen extra call).
 - **`agent_node`** – draait de specialist (`agent/specialists.py`): `SYSTEM_PROMPT` + methode-instructies
   (`agent/methode.py`, uit het gegenereerde `methodepakket.py`) + addendum + plan, met
   `anthropic_schemas(only=spec.tools)`. Op een beurtgrens (turns > 0) gaat vóór de eerste tekst-delta één
