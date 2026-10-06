@@ -198,6 +198,32 @@ def valideer_casus(c: dict[str, Any]) -> str:
     return c["referentie_status"]
 
 
+# Conceptcasussen (referentieset/concept/) dragen naast het schema hun herkomst en de vergelijking met
+# de export, en relaties in een voorgestelde vorm (kandidaat na V7). Die velden worden apart getoetst;
+# de rest moet het gewone casusschema volgen, zodat een concept zonder omzetting naar v<N+1> kan.
+CONCEPT_CASUSVELDEN = ("concept", "verwijderd_uit_export", "diagnostisch")
+CONCEPT_ELEMENTVELDEN = ("export_vergelijking",)
+CONCEPT_RELATIESOORTEN = ("uitkomst_van", "invoer_van", "vervalmoment_van", "voorwaarde_voor")
+
+
+def valideer_concept(c: dict[str, Any]) -> str:
+    """Een conceptcasus: het casusschema plus de conceptvelden; nooit verder dan `provisional`."""
+    waar = str(c.get("id", "?"))
+    if c.get("referentie_status") != "provisional":
+        raise ReferentieFout(f"{waar}: een concept is provisional, niet {c.get('referentie_status')!r}")
+    gids = {g.get("gid") for g in c.get("gold", [])}
+    for g in c.get("gold", []):
+        for r in g.get("relaties", []):
+            _velden(f"{waar}/{g.get('gid')}.relaties", r, ("soort", "doel"))
+            _keuze(f"{waar}/{g.get('gid')}.relaties.soort", r["soort"], CONCEPT_RELATIESOORTEN)
+            if r["doel"] not in gids:
+                raise ReferentieFout(f"{waar}/{g.get('gid')}.relaties: onbekende gid {r['doel']!r}")
+    kern_casus = {k: v for k, v in c.items() if k not in CONCEPT_CASUSVELDEN}
+    kern_casus["gold"] = [{**{k: v for k, v in g.items() if k not in CONCEPT_ELEMENTVELDEN}, "relaties": []}
+                          for g in c.get("gold", [])]
+    return valideer_casus(kern_casus)
+
+
 def valideer(cases: list[dict[str, Any]], manifest: dict[str, Any]) -> None:
     """Hele versie: elke casus, en het manifest dat bij precies deze casussen hoort."""
     _velden("manifest", manifest, MANIFEST_VELDEN)

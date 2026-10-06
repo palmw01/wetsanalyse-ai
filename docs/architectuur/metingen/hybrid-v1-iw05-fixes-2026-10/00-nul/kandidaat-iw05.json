@@ -1,0 +1,969 @@
+{
+  "referentie_status": "provisional",
+  "referenties": 17,
+  "kandidaten": 40,
+  "candidate_recall": 0.47058823529411764,
+  "candidate_recall_met_klasse": 0.47058823529411764,
+  "candidate_recall_incl_opties": 0.5882352941176471,
+  "candidate_precision": 0.2,
+  "kandidaten_per_referentie": 2.3529411764705883,
+  "per_klasse": {
+    "Afleidingsregel": {
+      "n": 1,
+      "candidate_recall": 0.0,
+      "met_klasse": 0.0
+    },
+    "Operator": {
+      "n": 2,
+      "candidate_recall": 1.0,
+      "met_klasse": 1.0
+    },
+    "Parameter en parameterwaarde": {
+      "n": 1,
+      "candidate_recall": 0.0,
+      "met_klasse": 0.0
+    },
+    "Rechtsbetrekking": {
+      "n": 3,
+      "candidate_recall": 0.3333333333333333,
+      "met_klasse": 0.3333333333333333
+    },
+    "Rechtsobject": {
+      "n": 4,
+      "candidate_recall": 0.25,
+      "met_klasse": 0.25
+    },
+    "Tijdsaanduiding": {
+      "n": 2,
+      "candidate_recall": 1.0,
+      "met_klasse": 1.0
+    },
+    "Variabele en variabelewaarde": {
+      "n": 2,
+      "candidate_recall": 0.5,
+      "met_klasse": 0.5
+    },
+    "Voorwaarde": {
+      "n": 2,
+      "candidate_recall": 0.5,
+      "met_klasse": 0.5
+    }
+  },
+  "unieke_bijdrage_per_detector": {
+    "logisch": 1,
+    "naamwoordgroep": 2,
+    "operator": 1,
+    "tijd": 2,
+    "voorwaarde": 1
+  },
+  "afgewezen_door_specificiteit": 0,
+  "gemengde_unies": 4,
+  "gemengde_unies_per_casus": {
+    "IW05": 4
+  },
+  "manifest": {
+    "schema_versie": 1,
+    "git_sha": "858a1de6c8bc5b6aa86a78a00c4ffd6adb18a2cd",
+    "werkkopie_schoon": true,
+    "python": "3.14.3",
+    "spacy": "3.8.16",
+    "casussen": "concept:IW05",
+    "diagnostisch": true,
+    "referentie": {
+      "docs/wetsanalyse/referentieset/concept/IW05.json": "754c28f3116943ceef55019e27f18f2e02fb0897d0b84bae7e58185177d3c0d0"
+    },
+    "detectoren": {
+      "afleiding": "2.2.2+grenzen.1",
+      "delegatie": "1",
+      "numeriek": "1.1.1+verwijzing.2",
+      "operator": "1.1.1+verwijzing.2",
+      "plaats": "1.1+verwijzing.2",
+      "subject": "1+verwijzing.2",
+      "tijd": "2.2.2.2.1.1.1.1.1+verwijzing.2",
+      "voorwaarde": "1.1.1.1+verwijzing.2",
+      "definitie": "2",
+      "betekenis": "2",
+      "norm": "3",
+      "naamwoordgroep": "2+verwijzing.2",
+      "bijzin": "2+verwijzing.2",
+      "nominalisatie": "4+verwijzing.2",
+      "logisch": "2",
+      "functie": "2+grenzen.1+verwijzing.2",
+      "fusie": "3"
+    },
+    "code": {
+      "tools/graph-qa/agent/jas_pipeline/__init__.py": "818b7b65a045330d4305de598f96ed9bef285ba20455f4027e2b3e95fe516b49",
+      "tools/graph-qa/agent/jas_pipeline/beslisregister.py": "96178c07ad8d09d983179f57a35fff4c30447e8aee9f42e1ff2cafe4ce578528",
+      "tools/graph-qa/agent/jas_pipeline/besluit.py": "075699da249bf84b6fd4fcec8e4f8c0e12ab3df692b01f159cd957160e897ff9",
+      "tools/graph-qa/agent/jas_pipeline/bewijssterkte.py": "ab7d3ad76c77817895918e754c5d73ea49f94a47fc96380b0a0565b6421e7b8b",
+      "tools/graph-qa/agent/jas_pipeline/broncontext.py": "4ac8d10f0968fb86844b6e2b9f0ca1f0c720d56e9cf6cdf7e6edf5d4d8375a37",
+      "tools/graph-qa/agent/jas_pipeline/classificatie.py": "6c7b362b7e895470b0b3dfbcd0d53f52b9648eabeff76212456ae10194e418e4",
+      "tools/graph-qa/agent/jas_pipeline/dekking.py": "1ebfa7aedb0d745075e0d04538f982fdd33566fd890a119835617cb188b38c8b",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/__init__.py": "17b11978d2d246d4e06c8546873e529d50f2cbc4dd25745f27ef9fe9c1c44765",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/functies.py": "4a47aa5a0be1eae5e712d3fd63f63d458b7aab33b10aaae5321d5943ffa8f24f",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/ontleding.py": "3f7d030f9eddefee85bb92d1d507846c3b300dcd20ffbcbf26d7e06b19880367",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels/_maskers.yaml": "793b626333191de55649d90c78495bfe8e1fca99a780784f0bd0a3661692f467",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels/_woordenlijsten.yaml": "7dc58d6f2788620b3916fdb8a5a361c45db879ca38936d137134a79ef09d3b90",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels/afleiding.yaml": "830089aeb05b21c5c249fb93b75e680b68557aebd97a3f0e97bff77985a52fa6",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels/delegatie.yaml": "dd66f48198587b55525814cf45a377f5921ad46535b0676b2a9f33f96c3a5c73",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels/numeriek.yaml": "ab01ff5a87f4d36eba0bbfc41fafee76af26f85a92f8a00064441e8993b3d51d",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels/operator.yaml": "4acae9e6b888f0973e499754fab765d6a057b1cb553af4dcb9136b6de073b43f",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels/plaats.yaml": "a4dfe3b1a2b8c8322679134225b01f5f4be87fe161d2677fa6a0ae5fa1039d1d",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels/subject.yaml": "86aa1532a7371df7301827f6ae2a878fbfcec42f7a282a87c08de345cc542773",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels/tijd.yaml": "55bdccef10595bc1b4788d8fc40569dcba4f47b8f8c73b76e7df5f75aba491f4",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels/voorwaarde.yaml": "1e5c91d749db5c052ac196138e59d72fe03c1add8dac88d060360bbd5c930139",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/regels.py": "3fb4e80fe6584400d2a47012f1cf0d4e1975609a85fa3c36243b23656c8a1fe4",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/structuur.py": "1ce578501b22665eb46e68c3fed2c58ce41af10395ded0b6cc3d256d55057821",
+      "tools/graph-qa/agent/jas_pipeline/detectoren/syntactisch.py": "fb4a4a3b49f80ea143093d9e1246a82ff4cbabf49c6981603227b5991c69b1bf",
+      "tools/graph-qa/agent/jas_pipeline/fusie.py": "ab805cf7077351a5bc89b230a5186e0228d4309b94cef102fc754cad00864717",
+      "tools/graph-qa/agent/jas_pipeline/kandidaten.py": "cd7031025b0e6873b526d52c673700c13455bbd30a031e928561015d95be1445",
+      "tools/graph-qa/agent/jas_pipeline/keten.py": "49b9ad39d5e5a934329843e4729f52b1db922491932687151b9fd8672471f8a1",
+      "tools/graph-qa/agent/jas_pipeline/onzekerheid.py": "a9ab0c6c1276cb2017bcec002d181f33466dc4d04a7d2bdca4e5698cc96deb16",
+      "tools/graph-qa/agent/jas_pipeline/profielen/01_rechtssubject.yaml": "07d3e3e02330521d3abc9e0263156fe4023fa89d1f08ebccd838a740d478fdfb",
+      "tools/graph-qa/agent/jas_pipeline/profielen/02_rechtsobject.yaml": "e27465af728bcbb20f0d1b681b8741b0b04bdbe8ff46ff48b4c3110e2964704d",
+      "tools/graph-qa/agent/jas_pipeline/profielen/03_rechtsbetrekking.yaml": "5d504d64ef6c747dac004d7c878b96ec910ab8326b2ae3f697998f4093238e0e",
+      "tools/graph-qa/agent/jas_pipeline/profielen/04_rechtsfeit.yaml": "7c61944a2db83ed76de6fa5d7aae99dc84c6754e507d54ec46a8b1620c5ed8f1",
+      "tools/graph-qa/agent/jas_pipeline/profielen/05_voorwaarde.yaml": "1f65d1e6c4a910a5392c595cfdf6bd8de3765eb13f0a9d1430b9fc3f33a28351",
+      "tools/graph-qa/agent/jas_pipeline/profielen/06_afleidingsregel.yaml": "7de9e6df0fb2b6e07d83f8f6159bde1913399035948ee496f452c89b174ee091",
+      "tools/graph-qa/agent/jas_pipeline/profielen/07_variabele.yaml": "08c709a12d8fa8d1dd81e39cba6b3ca298597806ae996e28025e1c5e8e6b3748",
+      "tools/graph-qa/agent/jas_pipeline/profielen/08_parameter.yaml": "bf226186c2b26217a4c8e065934b0b0e3f600debdea7cb3520a0d8971dad9552",
+      "tools/graph-qa/agent/jas_pipeline/profielen/09_operator.yaml": "950cf67f01eb84e74d8d2fa5b212714bcc7eb10bd0ebd0a7bbbdc36a3550ba6f",
+      "tools/graph-qa/agent/jas_pipeline/profielen/10_tijdsaanduiding.yaml": "197f283d8a49b706c637c9bbbc7e0ef1e5965a70507a1e19ad277be2ccb30e37",
+      "tools/graph-qa/agent/jas_pipeline/profielen/11_plaatsaanduiding.yaml": "b9edd04ae81cbc32a1250b656fc565e5e5ca434028073b9493ad1a9b799b5189",
+      "tools/graph-qa/agent/jas_pipeline/profielen/12_delegatie.yaml": "703296d23142027efb17e6cfdd0c2be78e7ed31229041b000fa62d29cbdb5654",
+      "tools/graph-qa/agent/jas_pipeline/profielen/13_brondefinitie.yaml": "bcfd7b350c273f7c698743a074a1764832d65e32146aa7f6aa419f894c85874d",
+      "tools/graph-qa/agent/jas_pipeline/profielen/__init__.py": "f2ac727989dd7d00abf223b679db229b1e23b121107297e570e7d0206876404f",
+      "tools/graph-qa/agent/jas_pipeline/resolver.py": "e91311cc8f48437767b6a0637979d2142b1073bf5b45163965f3ec59375f6f5f",
+      "tools/graph-qa/agent/jas_pipeline/review.py": "7c7057ae50627e0d6d53736ebcf20a7ce446ada7c0bff549ca9f552431149603",
+      "tools/graph-qa/agent/jas_pipeline/reviewload.py": "b1591ecfcf6fbaa740dc4a0e65f372fda307549c3aed6ea061f7f2540d18e460",
+      "tools/graph-qa/agent/jas_pipeline/specificiteit.py": "aa1533eea6ef8f0da177aa2718a3f7cd65cf91a3d7972a466e805de460bf0e61",
+      "tools/graph-qa/agent/jas_pipeline/subtype.py": "c15e294e00e9d66d1a9c43475877b6ac21081923c13ef34aae338ff0773fc996",
+      "tools/graph-qa/agent/jas_pipeline/taal/__init__.py": "0d2501143bf7f34b3a6541977c1aeccc8a5793dd98d59d6d2adb3df5cd5bae20",
+      "tools/graph-qa/agent/jas_pipeline/taal/afgeleid.py": "9d343c5430268f99cda0ae25da58575c31507667d4a8bedadcd737bcc4323fda",
+      "tools/graph-qa/agent/jas_pipeline/taal/grenzen.py": "519f1c6624c932be63a1780ac53252937ea567f2b18df9b9627c243ca3d8b15e",
+      "tools/graph-qa/agent/jas_pipeline/taal/model.py": "3371b6fa9fad67d66538b12083c6a699ea54cc31635203072e21f21564aac0f3",
+      "tools/graph-qa/agent/jas_pipeline/taal/provider.py": "5367901794a35dbe4b3ae2a9c9bac057fd6227dfd65565d04fc2303904f808aa",
+      "tools/graph-qa/agent/jas_pipeline/taal/structuur.py": "fe8b698abd9ae4be5917d99f240dfbbc51b178ac3d03a07a6c9c9dff315eb33c",
+      "tools/graph-qa/agent/jas_pipeline/taal/verwijzingen.py": "2f12865513651b57bb48290817bcad950fa1973a40d12e4faf1d3b8a8f902690",
+      "tools/graph-qa/agent/jas_pipeline/validatie.py": "b2c57e481bbfd9006c1377007476ee18b7a090675b2617ddbd7d2b8d88d3f6c8",
+      "tools/graph-qa/agent/jas_pipeline/verklaringen.py": "cc7f1dc8dac0d9239d0ce3dc95146fed908b5707b1d7048000ef8a03f1d7495d",
+      "tools/graph-qa/agent/jas_pipeline/verklaringen.yaml": "7a61472cb07d688f3b2712daca05dea055b7ad4e58102073cc5f94adb9c4ad97",
+      "tools/graph-qa/uv.lock": "30dd963440ca4bcea8f0bffd39168d50841ad0802e532a9a760b0d5efadddc62"
+    }
+  },
+  "elementen": {
+    "IW05/E01": {
+      "klasse": "Rechtsbetrekking",
+      "start": 0,
+      "eind": 433,
+      "core": true,
+      "optie": false,
+      "met_klasse": true,
+      "klassen": [
+        "Afleidingsregel",
+        "Rechtsbetrekking",
+        "Rechtsfeit"
+      ]
+    },
+    "IW05/E02": {
+      "klasse": "Rechtsobject",
+      "start": 35,
+      "eind": 114,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "IW05/E03": {
+      "klasse": "Rechtsobject",
+      "start": 118,
+      "eind": 179,
+      "core": false,
+      "optie": true,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "IW05/E04": {
+      "klasse": "Voorwaarde",
+      "start": 181,
+      "eind": 278,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "IW05/E05": {
+      "klasse": "Afleidingsregel",
+      "start": 296,
+      "eind": 433,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "IW05/E06": {
+      "klasse": "Variabele en variabelewaarde",
+      "start": 296,
+      "eind": 320,
+      "core": true,
+      "optie": false,
+      "met_klasse": true,
+      "klassen": [
+        "Rechtsobject",
+        "Rechtssubject",
+        "Variabele en variabelewaarde"
+      ]
+    },
+    "IW05/E07": {
+      "klasse": "Variabele en variabelewaarde",
+      "start": 397,
+      "eind": 421,
+      "core": false,
+      "optie": true,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "IW05/E08": {
+      "klasse": "Rechtsbetrekking",
+      "start": 435,
+      "eind": 567,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "IW05/E09": {
+      "klasse": "Rechtsobject",
+      "start": 435,
+      "eind": 452,
+      "core": true,
+      "optie": false,
+      "met_klasse": true,
+      "klassen": [
+        "Rechtsobject",
+        "Rechtssubject",
+        "Variabele en variabelewaarde"
+      ]
+    },
+    "IW05/E10": {
+      "klasse": "Tijdsaanduiding",
+      "start": 461,
+      "eind": 510,
+      "core": true,
+      "optie": false,
+      "met_klasse": true,
+      "klassen": [
+        "Tijdsaanduiding"
+      ]
+    },
+    "IW05/E11": {
+      "klasse": "Rechtsobject",
+      "start": 514,
+      "eind": 543,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "IW05/E12": {
+      "klasse": "Tijdsaanduiding",
+      "start": 544,
+      "eind": 567,
+      "core": true,
+      "optie": false,
+      "met_klasse": true,
+      "klassen": [
+        "Tijdsaanduiding"
+      ]
+    },
+    "IW05/E13": {
+      "klasse": "Voorwaarde",
+      "start": 569,
+      "eind": 646,
+      "core": true,
+      "optie": false,
+      "met_klasse": true,
+      "klassen": [
+        "Voorwaarde"
+      ]
+    },
+    "IW05/E14": {
+      "klasse": "Operator",
+      "start": 611,
+      "eind": 615,
+      "core": true,
+      "optie": false,
+      "met_klasse": true,
+      "klassen": [
+        "Operator"
+      ]
+    },
+    "IW05/E15": {
+      "klasse": "Operator",
+      "start": 626,
+      "eind": 634,
+      "core": true,
+      "optie": false,
+      "met_klasse": true,
+      "klassen": [
+        "Operator"
+      ]
+    },
+    "IW05/E16": {
+      "klasse": "Parameter en parameterwaarde",
+      "start": 635,
+      "eind": 646,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    },
+    "IW05/E17": {
+      "klasse": "Rechtsbetrekking",
+      "start": 648,
+      "eind": 679,
+      "core": false,
+      "optie": false,
+      "met_klasse": false,
+      "klassen": []
+    }
+  },
+  "kandidatenlijst": [
+    {
+      "bron": "IW05",
+      "start": 0,
+      "eind": 433,
+      "possible_classes": [
+        "Rechtsbetrekking",
+        "Rechtsfeit",
+        "Afleidingsregel"
+      ],
+      "detectors": [
+        "functie",
+        "norm"
+      ],
+      "opties": [],
+      "tekst": "In afwijking van het eerste lid is een voorlopige aanslag in de inkomstenbelasting of in de vennootschapsbelasting en een voorlopige conserverende aanslag in de inkomstenbelasting, waarvan het aanslagbiljet een dagtekening heeft die ligt in het jaar waarover deze is vastgesteld, invorderbaar in zoveel gelijke termijnen als er na de maand, die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven."
+    },
+    {
+      "bron": "IW05",
+      "start": 3,
+      "eind": 12,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          3,
+          31
+        ]
+      ],
+      "tekst": "afwijking"
+    },
+    {
+      "bron": "IW05",
+      "start": 35,
+      "eind": 57,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          3,
+          114
+        ]
+      ],
+      "tekst": "een voorlopige aanslag"
+    },
+    {
+      "bron": "IW05",
+      "start": 61,
+      "eind": 82,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "de inkomstenbelasting"
+    },
+    {
+      "bron": "IW05",
+      "start": 89,
+      "eind": 114,
+      "possible_classes": [
+        "Rechtsobject",
+        "Rechtssubject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "de vennootschapsbelasting"
+    },
+    {
+      "bron": "IW05",
+      "start": 118,
+      "eind": 154,
+      "possible_classes": [
+        "Rechtsobject",
+        "Rechtssubject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          118,
+          179
+        ]
+      ],
+      "tekst": "een voorlopige conserverende aanslag"
+    },
+    {
+      "bron": "IW05",
+      "start": 158,
+      "eind": 179,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "de inkomstenbelasting"
+    },
+    {
+      "bron": "IW05",
+      "start": 189,
+      "eind": 206,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "het aanslagbiljet"
+    },
+    {
+      "bron": "IW05",
+      "start": 207,
+      "eind": 222,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "een dagtekening"
+    },
+    {
+      "bron": "IW05",
+      "start": 238,
+      "eind": 249,
+      "possible_classes": [
+        "Tijdsaanduiding"
+      ],
+      "detectors": [
+        "tijd"
+      ],
+      "opties": [
+        [
+          241,
+          249
+        ]
+      ],
+      "tekst": "in het jaar"
+    },
+    {
+      "bron": "IW05",
+      "start": 241,
+      "eind": 278,
+      "possible_classes": [
+        "Voorwaarde",
+        "Rechtssubject",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "bijzin"
+      ],
+      "opties": [],
+      "tekst": "het jaar waarover deze is vastgesteld"
+    },
+    {
+      "bron": "IW05",
+      "start": 241,
+      "eind": 249,
+      "possible_classes": [
+        "Rechtsobject",
+        "Rechtssubject",
+        "Tijdsaanduiding"
+      ],
+      "detectors": [
+        "fusie",
+        "naamwoordgroep",
+        "specificiteit"
+      ],
+      "opties": [
+        [
+          241,
+          278
+        ]
+      ],
+      "tekst": "het jaar"
+    },
+    {
+      "bron": "IW05",
+      "start": 280,
+      "eind": 292,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "invorderbaar"
+    },
+    {
+      "bron": "IW05",
+      "start": 296,
+      "eind": 320,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "zoveel gelijke termijnen"
+    },
+    {
+      "bron": "IW05",
+      "start": 325,
+      "eind": 339,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "er na de maand"
+    },
+    {
+      "bron": "IW05",
+      "start": 328,
+      "eind": 339,
+      "possible_classes": [
+        "Tijdsaanduiding"
+      ],
+      "detectors": [
+        "tijd"
+      ],
+      "opties": [
+        [
+          331,
+          339
+        ]
+      ],
+      "tekst": "na de maand"
+    },
+    {
+      "bron": "IW05",
+      "start": 348,
+      "eind": 384,
+      "possible_classes": [
+        "Rechtsfeit",
+        "Voorwaarde",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "nominalisatie"
+      ],
+      "opties": [],
+      "tekst": "de dagtekening van het aanslagbiljet"
+    },
+    {
+      "bron": "IW05",
+      "start": 348,
+      "eind": 362,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          348,
+          384
+        ]
+      ],
+      "tekst": "de dagtekening"
+    },
+    {
+      "bron": "IW05",
+      "start": 367,
+      "eind": 384,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "het aanslagbiljet"
+    },
+    {
+      "bron": "IW05",
+      "start": 397,
+      "eind": 408,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          397,
+          421
+        ]
+      ],
+      "tekst": "nog maanden"
+    },
+    {
+      "bron": "IW05",
+      "start": 413,
+      "eind": 421,
+      "possible_classes": [
+        "Tijdsaanduiding",
+        "Rechtsobject",
+        "Rechtssubject"
+      ],
+      "detectors": [
+        "naamwoordgroep",
+        "specificiteit",
+        "tijd"
+      ],
+      "opties": [],
+      "tekst": "het jaar"
+    },
+    {
+      "bron": "IW05",
+      "start": 435,
+      "eind": 452,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "De eerste termijn"
+    },
+    {
+      "bron": "IW05",
+      "start": 461,
+      "eind": 510,
+      "possible_classes": [
+        "Tijdsaanduiding"
+      ],
+      "detectors": [
+        "tijd"
+      ],
+      "opties": [
+        [
+          461,
+          470
+        ]
+      ],
+      "tekst": "één maand na de dagtekening van het aanslagbiljet"
+    },
+    {
+      "bron": "IW05",
+      "start": 461,
+      "eind": 470,
+      "possible_classes": [
+        "Rechtsobject",
+        "Tijdsaanduiding"
+      ],
+      "detectors": [
+        "fusie",
+        "naamwoordgroep",
+        "specificiteit"
+      ],
+      "opties": [],
+      "tekst": "één maand"
+    },
+    {
+      "bron": "IW05",
+      "start": 474,
+      "eind": 510,
+      "possible_classes": [
+        "Rechtsfeit",
+        "Voorwaarde",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "nominalisatie"
+      ],
+      "opties": [],
+      "tekst": "de dagtekening van het aanslagbiljet"
+    },
+    {
+      "bron": "IW05",
+      "start": 474,
+      "eind": 488,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          474,
+          567
+        ]
+      ],
+      "tekst": "de dagtekening"
+    },
+    {
+      "bron": "IW05",
+      "start": 493,
+      "eind": 510,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "het aanslagbiljet"
+    },
+    {
+      "bron": "IW05",
+      "start": 522,
+      "eind": 543,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "de volgende termijnen"
+    },
+    {
+      "bron": "IW05",
+      "start": 544,
+      "eind": 567,
+      "possible_classes": [
+        "Tijdsaanduiding"
+      ],
+      "detectors": [
+        "tijd"
+      ],
+      "opties": [],
+      "tekst": "telkens een maand later"
+    },
+    {
+      "bron": "IW05",
+      "start": 544,
+      "eind": 561,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "telkens een maand"
+    },
+    {
+      "bron": "IW05",
+      "start": 552,
+      "eind": 561,
+      "possible_classes": [
+        "Tijdsaanduiding"
+      ],
+      "detectors": [
+        "tijd"
+      ],
+      "opties": [],
+      "tekst": "een maand"
+    },
+    {
+      "bron": "IW05",
+      "start": 569,
+      "eind": 679,
+      "possible_classes": [
+        "Afleidingsregel"
+      ],
+      "detectors": [
+        "functie"
+      ],
+      "opties": [],
+      "tekst": "Indien de toepassing van de eerste volzin niet leidt tot meer dan één termijn, vindt het eerste lid toepassing."
+    },
+    {
+      "bron": "IW05",
+      "start": 569,
+      "eind": 646,
+      "possible_classes": [
+        "Voorwaarde"
+      ],
+      "detectors": [
+        "voorwaarde"
+      ],
+      "opties": [],
+      "tekst": "Indien de toepassing van de eerste volzin niet leidt tot meer dan één termijn"
+    },
+    {
+      "bron": "IW05",
+      "start": 576,
+      "eind": 610,
+      "possible_classes": [
+        "Rechtsfeit",
+        "Voorwaarde",
+        "Rechtsobject"
+      ],
+      "detectors": [
+        "nominalisatie"
+      ],
+      "opties": [],
+      "tekst": "de toepassing van de eerste volzin"
+    },
+    {
+      "bron": "IW05",
+      "start": 576,
+      "eind": 589,
+      "possible_classes": [
+        "Rechtssubject",
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [
+        [
+          576,
+          610
+        ]
+      ],
+      "tekst": "de toepassing"
+    },
+    {
+      "bron": "IW05",
+      "start": 594,
+      "eind": 610,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "de eerste volzin"
+    },
+    {
+      "bron": "IW05",
+      "start": 611,
+      "eind": 615,
+      "possible_classes": [
+        "Operator"
+      ],
+      "detectors": [
+        "logisch"
+      ],
+      "opties": [],
+      "tekst": "niet"
+    },
+    {
+      "bron": "IW05",
+      "start": 626,
+      "eind": 646,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "meer dan één termijn"
+    },
+    {
+      "bron": "IW05",
+      "start": 626,
+      "eind": 634,
+      "possible_classes": [
+        "Operator"
+      ],
+      "detectors": [
+        "operator"
+      ],
+      "opties": [],
+      "tekst": "meer dan"
+    },
+    {
+      "bron": "IW05",
+      "start": 669,
+      "eind": 679,
+      "possible_classes": [
+        "Rechtsobject",
+        "Variabele en variabelewaarde"
+      ],
+      "detectors": [
+        "naamwoordgroep"
+      ],
+      "opties": [],
+      "tekst": "toepassing"
+    }
+  ]
+}

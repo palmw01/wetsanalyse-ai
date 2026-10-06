@@ -3,20 +3,19 @@
 S1 is een diagnostisch meetmodel: lege klassen zijn géén productie-Candidates.
 S2 verwijdert generieke bijdragen uit de juridische kandidaatruimte, zonder een
 nieuwe contextgenerator te simuleren. De syntactische spans blijven in S1 beschikbaar.
-Gebruik: python -m eval.detector_audit --json <bestand> [--vergelijk <voor.json>]
+De conceptcasussen (`referentieset/concept/`) lopen mee als diagnostiek: hun elementen staan apart in
+`diagnostiek_ankers` en tellen nooit mee in de v1-scenario's.
+Gebruik: python -m eval.detector_audit --json <bestand> [--vergelijk <voor.json>] [--concept concept[:ID]|geen]
 """
 from __future__ import annotations
 
 import argparse
-import hashlib
-import importlib.metadata
 import json
-import platform
-import subprocess
 from collections import Counter, defaultdict
 from pathlib import Path
 
 from agent.jas_pipeline.besluit import STERK_BEWIJS, deterministisch
+from agent.jas_pipeline.bewijssterkte import generiek_bewijs
 from agent.jas_pipeline.classificatie import batches, systeemprompt, toolschema, userprompt
 from agent.jas_pipeline.detectoren import BronTekst, detecteer_alles
 from agent.jas_pipeline.fusie import _samen, fuseer
@@ -26,17 +25,16 @@ from agent.jas_pipeline.taal import SpacyProvider
 from agent.jas_pipeline.taal.grenzen import VERSIE as GRENS_VERSIE
 from agent.jas_pipeline.taal.structuur import VERSIE as STRUCTUUR_VERSIE
 from agent.jas_pipeline.taal.verwijzingen import VERSIE as VERWIJZING_VERSIE
+from eval import casusbron, manifest
 from eval.kandidaat_eval import meet as kandidaatmeting
+from eval.manifest import sha
 from eval.metrieken import controleer_status, kern, laagste_status
-from eval.taal_benchmark import ontwikkelcasussen
 
-GENERIEK = frozenset({"SUBJECT_NP", "OBJECT_NP", "ENUMERATED_NP"})
-ROOT = Path(__file__).resolve().parents[3]
+# Uit de regeldefinities (`bewijs: generiek`), niet als losse lijst: een nieuwe generieke code verschuift
+# anders stil de ablatie van S2.
+GENERIEK = generiek_bewijs()
+ROOT = manifest.ROOT
 DIAGNOSTIEK = Path(__file__).resolve().parents[1] / "tests/fixtures/detector_audit_diagnostiek.json"
-
-
-def sha(data):
-    return hashlib.sha256(data).hexdigest()
 
 
 def generiek(k):
@@ -115,16 +113,21 @@ def samenvatting(rijen, refs, teksten):
             "classifier_batches_universeel": len({r["bron"] for r in rijen if r["route"] == "model"})}
 
 
-def meet():
-    provider = SpacyProvider("nl_core_news_md")
-    cases = ontwikkelcasussen()
-    status = laagste_status(controleer_status(c) for c in cases)
-    diagnostiek = json.loads(DIAGNOSTIEK.read_text())
-    teksten = {c["id"]: c["tekst"] for c in [*cases, *diagnostiek]}
-    refs = [{"id": c["id"] + "/" + g["gid"], "bron": c["id"], "klasse": g["klasse"],
+def ankers(cases):
+    return [{"id": c["id"] + "/" + g["gid"], "bron": c["id"], "klasse": g["klasse"],
              "start": kern(c["tekst"], g["start"], g["eind"])[0],
              "eind": kern(c["tekst"], g["start"], g["eind"])[1]}
             for c in cases for g in c["gold"]]
+
+
+def meet(concept: str = "concept"):
+    provider = SpacyProvider("nl_core_news_md")
+    cases = casusbron.laad()
+    status = laagste_status(controleer_status(c) for c in cases)
+    concepten = casusbron.laad(concept) if concept != "geen" else []
+    diagnostiek = json.loads(DIAGNOSTIEK.read_text()) + concepten
+    teksten = {c["id"]: c["tekst"] for c in [*cases, *diagnostiek]}
+    refs = ankers(cases)
     per_case = {}
     for c in [*cases, *diagnostiek]:
         a = provider.analyseer(c["tekst"])
@@ -138,7 +141,8 @@ def meet():
                    for b in batches(model, "universeel")]
         before = samen_voordat_specificiteit(rs)
         per_case[c["id"]] = {
-            "familie": c.get("familie"), "tekstsoort": c.get("tekstsoort"),
+            "familie": c.get("familie"), "tekstsoort": c.get("tekstsoort"), "tekst": c["tekst"],
+            "diagnostisch": bool(c.get("diagnostisch")),
             "bron_sha256": sha(c["tekst"].encode()), "raw": raw,
             "voor_specificiteit": [rij(k) for k in before.values()],
             "scenario": {s: scenario(rs, s) for s in ("S0", "S1", "S2")},
@@ -181,22 +185,27 @@ def meet():
         op = set().union(*(plekken(r, teksten, opts) for r in other))
         uniek["incl_opties" if opts else "core"] = [r["id"] for r in refs
                     if (r["bron"], r["start"], r["eind"]) in gp - op]
-    bestanden = list((ROOT / "tools/graph-qa/agent/jas_pipeline").rglob("*.py"))
-    bestanden += list((ROOT / "tools/graph-qa/agent/jas_pipeline").rglob("*.yaml"))
-    bestanden += [ROOT / "tools/graph-qa/uv.lock", ROOT / "docs/wetsanalyse/referentieset/v1/cases.json", DIAGNOSTIEK]
+    m = manifest.maak(casusbron.STANDAARD, extra=[DIAGNOSTIEK, *casusbron.bestanden(concept)] if concepten
+                      else [DIAGNOSTIEK])
+    concept_refs = ankers(concepten)
     return {
-        "schema_versie": 1, "git_sha": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
-        "python": platform.python_version(), "spacy": importlib.metadata.version("spacy"), "taalmodel": provider.model,
+        "schema_versie": 1, "manifest": m, "git_sha": m["git_sha"],
+        "python": m["python"], "spacy": m["spacy"], "taalmodel": provider.model,
         "referentie_status": status, "ontwikkeling": ids, "diagnostiek": [c["id"] for c in diagnostiek],
         "referentieankers": refs,
         "config": {"deterministisch_accepteren": True, "classifier_granulariteit": "universeel",
                    "classifier_spankeuze": False, "modelaanroepen": 0,
                    "tekstgrenzen_versie": GRENS_VERSIE, "tekststructuur_versie": STRUCTUUR_VERSIE,
                    "verwijzingen_versie": VERWIJZING_VERSIE},
-        "hashes": {str(p.relative_to(ROOT)): sha(p.read_bytes()) for p in sorted(bestanden)},
+        "hashes": {**m["code"], **m["referentie"]},
         "kandidaat_eval": kandidaatmeting(),
         "scenario": {s: samenvatting([r for cid in ids for r in per_case[cid]["scenario"][s]], refs, teksten)
                      for s in ("S0", "S1", "S2")},
+        # Diagnostisch: de conceptcasussen tegen hun eigen (niet beoordeelde) elementen. Nooit in een
+        # v1-totaal; S0 is wat de keten nu doet.
+        "diagnostiek_ankers": {"casussen": [c["id"] for c in concepten], "referentieankers": concept_refs,
+                               "S0": samenvatting([r for c in concepten for r in per_case[c["id"]]["scenario"]["S0"]],
+                                                  concept_refs, teksten) if concepten else None},
         "generic_np": {"raw_kandidaten": len(raw), "raw_generiek": len(generic),
                        "codes": dict(Counter(e["code"] for r in generic for e in r["bewijs"])),
                        "unieke_ankers": uniek, "kandidaten": details},
@@ -204,17 +213,46 @@ def meet():
     }
 
 
+def _per_plek(rijen, tekst):
+    """S0-kandidaten op kernpositie: id's veranderen mee met de span, posities zijn vergelijkbaar.
+    Oudere audits dragen de brontekst niet; daar is de ruwe positie de sleutel."""
+    uit = {}
+    for r in rijen:
+        s, e = kern(tekst, r["start"], r["eind"]) if tekst else (r["start"], r["eind"])
+        uit.setdefault((s, e), {"tekst": tekst[s:e] if tekst else r["tekst"], "klassen": set()})["klassen"].update(
+            r["possible_classes"])
+    return uit
+
+
+def klassenverschil(voor_rijen, na_rijen, tekst):
+    """Per kernpositie: nieuw, verdwenen, en welke klassen erbij of eraf gingen."""
+    v, n = _per_plek(voor_rijen, tekst), _per_plek(na_rijen, tekst)
+    uit = []
+    for plek in sorted(v.keys() | n.keys()):
+        a, b = v.get(plek), n.get(plek)
+        if a and b and a["klassen"] == b["klassen"]:
+            continue
+        uit.append({"start": plek[0], "eind": plek[1], "tekst": (a or b)["tekst"],
+                    "soort": "nieuw" if not a else "verdwenen" if not b else "klassen",
+                    "klassen_bij": sorted((b or {"klassen": set()})["klassen"] - (a or {"klassen": set()})["klassen"]),
+                    "klassen_af": sorted((a or {"klassen": set()})["klassen"] - (b or {"klassen": set()})["klassen"])})
+    return uit
+
+
 def vergelijk(voor, na):
     wijzigingen = {}
-    for cid in voor["per_casus"]:
+    for cid in voor["per_casus"].keys() & na["per_casus"].keys():
         v, n = voor["per_casus"][cid], na["per_casus"][cid]
         vr, nr = ({r["id"]: r for r in x["scenario"]["S0"]} for x in (v, n))
         verschillen = [{"id": kid, "voor": vr.get(kid), "na": nr.get(kid)} for kid in sorted(vr.keys() | nr.keys())
                        if vr.get(kid) != nr.get(kid)]
         wijzigingen[cid] = {"kandidaten": verschillen,
+                           "plekken": klassenverschil(v["scenario"]["S0"], n["scenario"]["S0"], n.get("tekst") or v.get("tekst")),
                            "classifier_input_gelijk": v["classifier_input_sha256"] == n["classifier_input_sha256"],
                            "parse_gelijk": v["parse_sha256"] == n["parse_sha256"]}
-    return {"voor": voor["scenario"], "na": na["scenario"], "per_casus": wijzigingen,
+    return {"voor": voor["scenario"], "na": na["scenario"], "per_casus": dict(sorted(wijzigingen.items())),
+            "alleen_voor": sorted(voor["per_casus"].keys() - na["per_casus"].keys()),
+            "alleen_na": sorted(na["per_casus"].keys() - voor["per_casus"].keys()),
             "verloren_devankers": sorted(set(voor["scenario"]["S0"]["gedekte_ankers"]) -
                                          set(na["scenario"]["S0"]["gedekte_ankers"]))}
 
@@ -223,8 +261,9 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--json", required=True)
     ap.add_argument("--vergelijk")
+    ap.add_argument("--concept", default="concept", help="concept[:ID,…] of 'geen'")
     args = ap.parse_args()
-    m = meet()
+    m = meet(args.concept)
     if args.vergelijk:
         m["vergelijking"] = vergelijk(json.loads(Path(args.vergelijk).read_text()), m)
     Path(args.json).write_text(json.dumps(m, ensure_ascii=False, indent=2) + "\n")

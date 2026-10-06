@@ -1,0 +1,17 @@
+naam: "04-D – de context van een nominalisatie"
+doel: >
+  Een nominalisatie als referentiemoment ('na de dagtekening van het aanslagbiljet') of als argument
+  binnen een voorwaardelijke bijzin ('Indien de toepassing van de eerste volzin …') is geen eigen
+  Voorwaarde. Elders blijft Voorwaarde mogelijk: de drie Voorwaarde-ankers van AWB02 houden hun
+  klasse. In v1 verandert alleen IW01.
+regels:
+  - {id: D1, soort: geen_klasse_op_tekst, casus: IW05, tekst: de toepassing van de eerste volzin, klasse: Voorwaarde}
+  - {id: D2, soort: geen_klasse_op_tekst, casus: IW05, tekst: de dagtekening van het aanslagbiljet, start: 474, klasse: Voorwaarde}
+  - {id: D3, soort: anker_klasse_behouden, klasse: Voorwaarde, ankers: [AWB02/E02, AWB02/E03, AWB02/E04]}
+  - {id: D4, soort: anker_klasse_behouden, klasse: Voorwaarde}
+  - {id: D5, soort: recall_niet_lager}
+  - {id: D6, soort: geen_verloren_ankers}
+  - id: D7
+    soort: alleen_toegestane_wijzigingen
+    toegestaan: {IW01: [zes weken na de dagtekening van het aanslagbiljet]}
+  - {id: D8, soort: model_min_niet_lager, metric: per_klasse_ankerdekking, klasse: Voorwaarde}

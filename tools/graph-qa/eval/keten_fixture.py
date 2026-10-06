@@ -5,28 +5,26 @@ script de keten en niet de bronophaling.
 """
 from __future__ import annotations
 
-import json
-from pathlib import Path
 from typing import Any
 
-ROOT = Path(__file__).resolve().parents[3]
-CASES = ROOT / 'docs/wetsanalyse/referentieset/v1/cases.json'
+from eval import casusbron
 
 
-def laad_cases(ids: list[str]) -> list[dict[str, Any]]:
-    """De gevraagde referentiecasussen, in de gevraagde volgorde; held-out wordt geweigerd."""
-    alle = {c['id']: c for c in json.loads(CASES.read_text())}
+def laad_cases(ids: list[str], bron: str = casusbron.STANDAARD) -> list[dict[str, Any]]:
+    """De gevraagde casussen uit `bron` (zie `eval.casusbron`), in de gevraagde volgorde; held-out wordt
+    geweigerd."""
+    alle = {c['id']: c for b in casusbron.bestanden(bron) for c in casusbron._lees(b)}
     onbekend = [i for i in ids if i not in alle]
     if onbekend:
         raise ValueError(f'onbekende casus: {", ".join(onbekend)}')
-    gekozen = [alle[i] for i in ids]
-    if any(c['split'] != 'ontwikkeling' for c in gekozen):
+    if any(alle[i].get('split') != 'ontwikkeling' for i in ids):
         raise ValueError('held-out casussen niet gebruiken voor ontwikkelmetingen')
-    return gekozen
+    geladen = {c['id']: c for c in casusbron.laad(bron)}
+    return [geladen[i] for i in ids]
 
 
-def ontwikkelcases() -> list[str]:
-    return [c['id'] for c in json.loads(CASES.read_text()) if c['split'] == 'ontwikkeling']
+def ontwikkelcases(bron: str = casusbron.STANDAARD) -> list[str]:
+    return [c['id'] for c in casusbron.laad(bron)]
 
 
 def ketensettings(settings: Any) -> Any:

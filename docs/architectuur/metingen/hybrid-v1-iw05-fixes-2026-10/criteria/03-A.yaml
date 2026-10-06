@@ -1,0 +1,18 @@
+naam: "03-A – een document of handeling is geen rechtssubject"
+doel: >
+  Een naamwoordgroep met een document of rechtshandeling als kern ('het aanslagbiljet',
+  'een belastingaanslag') of een genominaliseerde handeling ('de toepassing van …') krijgt geen
+  Rechtssubject meer als hypothese. Personen en rollen houden het: geen enkel v1-anker van
+  Rechtssubject verliest zijn klasse. In v1 verandert alleen IW01.
+regels:
+  - {id: A1, soort: geen_klasse_op_tekst, casus: IW05, tekst: het aanslagbiljet, klasse: Rechtssubject}
+  - {id: A2, soort: geen_klasse_op_tekst, casus: IW05, tekst: de toepassing, klasse: Rechtssubject}
+  - {id: A3, soort: geen_klasse_op_tekst, casus: IW01, tekst: Een belastingaanslag, klasse: Rechtssubject}
+  - {id: A4, soort: anker_klasse_behouden, klasse: Rechtssubject}
+  - {id: A5, soort: anker_klasse_behouden, klasse: Rechtsobject}
+  - {id: A6, soort: recall_niet_lager}
+  - {id: A7, soort: geen_verloren_ankers}
+  - id: A8
+    soort: alleen_toegestane_wijzigingen
+    toegestaan: {IW01: [Een belastingaanslag, het aanslagbiljet]}
+  - {id: A9, soort: model_min_niet_lager, metric: per_klasse_ankerdekking, klasse: Rechtssubject}
