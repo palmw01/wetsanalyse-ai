@@ -74,13 +74,45 @@ def test_synthetische_toewijzing_en_aantal(parser, tekst, ar):
 
 def test_berekening_en_nominalisatie_lid5(parser):
     ks = detect(CASES["IW-9-5"]["tekst"], parser).kandidaten
-    assert any(k.span.start == 0 and "Afleidingsregel" in k.possible_classes for k in ks)
+    # De afleiding is de constructie 'zoveel … als … overblijven', niet de hele volzin: anders valt ze
+    # samen met de normkandidaat van die volzin en krijgen ze samen één besluit (feedback 6 okt).
+    afleiding = next(k for k in ks if "Afleidingsregel" in k.possible_classes and k.span.tekst.startswith("zoveel"))
+    assert afleiding.span.tekst.endswith("nog maanden van het jaar overblijven")
+    assert [o.soort for o in afleiding.span_options] == ["segment"] and afleiding.span_options[0].span.start == 0
+    assert not any(k.span.start == 0 and "Afleidingsregel" in k.possible_classes for k in ks)
     n = [k for k in ks if k.span.start == 474 and any(e.code == "NOMINALIZED_ACTION" for e in k.evidence)]
     assert [k.span.tekst for k in n] == ["de dagtekening van het aanslagbiljet"]
     assert any(k.span.tekst == "telkens een maand later" and "Tijdsaanduiding" in k.possible_classes for k in ks)
     assert any(k.span.tekst.startswith("Indien") and "niet leidt tot meer dan één termijn" in k.span.tekst for k in ks)
-    assert any(k.span.tekst.startswith("Indien") and k.span.tekst.endswith("vindt het eerste lid toepassing.")
-               and "Afleidingsregel" in k.possible_classes for k in ks)
+    # De toepassingskeuze is de eigen clause van 'vindt'; de voorwaarde ervoor is een eigen kandidaat.
+    toepassing = next(k for k in ks if any(e.code == "CALCULATION_APPLICABILITY" for e in k.evidence))
+    assert toepassing.span.tekst == "vindt het eerste lid toepassing"
+    assert toepassing.span_options[0].span.tekst.startswith("Indien")
+
+
+def test_toepassingskeuze_valt_zichtbaar_terug_op_het_segment_als_de_clause_onderbroken_is():
+    """Een bijzin midden in de clause: er is geen brongetrouwe clausegrens, dus geen gegokte span."""
+    from agent.jas_pipeline.detectoren.functies import FunctieDetector
+    from agent.jas_pipeline.taal import LinguisticAnalysis, Token, Zin
+    tekst = "Indien hij betaalt, vindt artikel 4, tenzij hij weigert, toepassing."
+    rijen = [  # tekst, lemma, upos, head, deprel
+        ("Indien", "indien", "SCONJ", 2, "mark"), ("hij", "hij", "PRON", 2, "nsubj"),
+        ("betaalt", "betalen", "VERB", 4, "advcl"), (",", ",", "PUNCT", 2, "punct"),
+        ("vindt", "vinden", "VERB", -1, "root"), ("artikel", "artikel", "NOUN", 4, "nsubj"),
+        ("4", "4", "NUM", 5, "nummod"), (",", ",", "PUNCT", 10, "punct"),
+        ("tenzij", "tenzij", "SCONJ", 10, "mark"), ("hij", "hij", "PRON", 10, "nsubj"),
+        ("weigert", "weigeren", "VERB", 4, "advcl"), (",", ",", "PUNCT", 10, "punct"),
+        ("toepassing", "toepassing", "NOUN", 4, "obj"), (".", ".", "PUNCT", 4, "punct")]
+    tokens, pos = [], 0
+    for i, (w, lemma, upos, head, rel) in enumerate(rijen):
+        start = tekst.index(w, pos)
+        tokens.append(Token(i, w, start, start + len(w), 0, lemma, upos, "", (), head, rel))
+        pos = start + len(w)
+    a = LinguisticAnalysis(tekst, tuple(tokens), (Zin(0, 0, len(tekst), (0, len(tokens))),), "hand")
+    k = next(k for k in FunctieDetector().detecteer(BronTekst.van_tekst("urn:t", tekst, analyse=a)).kandidaten
+             if any(e.code == "CALCULATION_APPLICABILITY" for e in k.evidence))
+    assert k.span.tekst.startswith("Indien") and not k.span_options
+    assert json.loads(k.evidence[0].detail)["clause_onderbroken"] is True
 
 
 def test_nominalisatie_behoudt_gezamenlijke_start(parser):

@@ -1,0 +1,9 @@
+    geslaagd  C1  ['Afleidingsregel']
+    geslaagd  C2  ['Afleidingsregel']
+    geslaagd  C3  ['Rechtsbetrekking', 'Rechtsfeit']
+    geslaagd  C4  ['Voorwaarde']
+    geslaagd  C5  
+    geslaagd  C6  
+    geslaagd  C7  
+
+01-C – precieze spans voor de functiedetector: GESLAAGD

@@ -1,0 +1,55 @@
+{
+  "naam": "01-C – precieze spans voor de functiedetector",
+  "regels": [
+    {
+      "id": "C1",
+      "soort": "element_kandidaat",
+      "poort": true,
+      "uitslag": "geslaagd",
+      "detail": "['Afleidingsregel']"
+    },
+    {
+      "id": "C2",
+      "soort": "element_kandidaat",
+      "poort": true,
+      "uitslag": "geslaagd",
+      "detail": "['Afleidingsregel']"
+    },
+    {
+      "id": "C3",
+      "soort": "element_kandidaat",
+      "poort": true,
+      "uitslag": "geslaagd",
+      "detail": "['Rechtsbetrekking', 'Rechtsfeit']"
+    },
+    {
+      "id": "C4",
+      "soort": "element_kandidaat",
+      "poort": true,
+      "uitslag": "geslaagd",
+      "detail": "['Voorwaarde']"
+    },
+    {
+      "id": "C5",
+      "soort": "recall_niet_lager",
+      "poort": true,
+      "uitslag": "geslaagd",
+      "detail": ""
+    },
+    {
+      "id": "C6",
+      "soort": "geen_verloren_ankers",
+      "poort": true,
+      "uitslag": "geslaagd",
+      "detail": ""
+    },
+    {
+      "id": "C7",
+      "soort": "alleen_toegestane_wijzigingen",
+      "poort": true,
+      "uitslag": "geslaagd",
+      "detail": ""
+    }
+  ],
+  "geslaagd": true
+}
