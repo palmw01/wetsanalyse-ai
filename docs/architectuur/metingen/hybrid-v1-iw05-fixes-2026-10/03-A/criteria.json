@@ -1,0 +1,69 @@
+{
+  "naam": "03-A – een document of handeling is geen rechtssubject",
+  "regels": [
+    {
+      "id": "A1",
+      "soort": "geen_klasse_op_tekst",
+      "poort": true,
+      "uitslag": "geslaagd",
+      "detail": "3 kandidaten"
+    },
+    {
+      "id": "A2",
+      "soort": "geen_klasse_op_tekst",
+      "poort": true,
+      "uitslag": "geslaagd",
+      "detail": "1 kandidaten"
+    },
+    {
+      "id": "A3",
+      "soort": "geen_klasse_op_tekst",
+      "poort": true,
+      "uitslag": "geslaagd",
+      "detail": "1 kandidaten"
+    },
+    {
+      "id": "A4",
+      "soort": "anker_klasse_behouden",
+      "poort": true,
+      "uitslag": "geslaagd",
+      "detail": ""
+    },
+    {
+      "id": "A5",
+      "soort": "anker_klasse_behouden",
+      "poort": true,
+      "uitslag": "geslaagd",
+      "detail": ""
+    },
+    {
+      "id": "A6",
+      "soort": "recall_niet_lager",
+      "poort": true,
+      "uitslag": "geslaagd",
+      "detail": ""
+    },
+    {
+      "id": "A7",
+      "soort": "geen_verloren_ankers",
+      "poort": true,
+      "uitslag": "geslaagd",
+      "detail": ""
+    },
+    {
+      "id": "A8",
+      "soort": "alleen_toegestane_wijzigingen",
+      "poort": true,
+      "uitslag": "gezakt",
+      "detail": "IW01 klassen 'zes weken na de dagtekening van het aanslagbiljet' +[] -['Rechtssubject']; IW02 klassen 'de heffing' +[] -['Rechtssubject']"
+    },
+    {
+      "id": "A9",
+      "soort": "model_min_niet_lager",
+      "poort": true,
+      "uitslag": "geslaagd",
+      "detail": "min 0.917 → 0.917"
+    }
+  ],
+  "geslaagd": false
+}
