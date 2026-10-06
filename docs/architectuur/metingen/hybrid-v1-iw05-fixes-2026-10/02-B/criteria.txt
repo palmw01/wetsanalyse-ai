@@ -1,0 +1,9 @@
+    geslaagd  B1  ['Rechtsbetrekking', 'Rechtsfeit']
+    geslaagd  B2  ['Afleidingsregel', 'Rechtsbetrekking']
+    geslaagd  B3  ['Afleidingsregel']
+    geslaagd  B4  
+    geslaagd  B5  
+    geslaagd  B6  
+    geslaagd  B7 (waarneming)  min 0.753 → 0.753
+
+02-B – gevolgclauses als eigen kandidaat: GESLAAGD
