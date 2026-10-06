@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from .berichten import beurt_berichten
 from .graph import queries
 from .graph.results import parse_select
 from .state import State
@@ -148,6 +149,16 @@ def _doel_uit_toolcalls(messages: list[dict[str, Any]]) -> dict[str, str]:
     return doel
 
 
+def _deze_beurt(state: State) -> list[dict[str, Any]]:
+    """Alleen de ophaal-calls van deze beurt tellen.
+
+    De thread bewaart alle beurten. Las de doelbepaling de hele historie, dan won een bepaling uit
+    een eerdere beurt als deze beurt niets ophaalde (de leesroute filterde "andere annotaties" zo op
+    de wet van drie vragen terug), en gaf "annoteer artikel 10" na een beurt over artikel 9 van
+    dezelfde wet de melding dat er meer dan één artikel genoemd was."""
+    return beurt_berichten(state.get("messages", []), state.get("question", ""))
+
+
 def _meerdere_artikelen(state: State) -> list[str]:
     """Wees de ophaal-agent meer dan één artikel aan? Dan annoteren we niets.
 
@@ -168,9 +179,10 @@ def _meerdere_artikelen(state: State) -> list[str]:
                 return [str(x).strip() for x in data["meerdere"] if str(x).strip()] or ["?", "?"]
         except json.JSONDecodeError:
             pass
-    doel = _doel_uit_toolcalls(state.get("messages", []))
+    beurt = _deze_beurt(state)
+    doel = _doel_uit_toolcalls(beurt)
     stammen: list[str] = []
-    for msg in state.get("messages", []):
+    for msg in beurt:
         if msg.get("role") != "assistant" or not isinstance(msg.get("content"), list):
             continue
         for blok in msg["content"]:
@@ -204,7 +216,7 @@ def _bepaal_doel(state: State) -> dict[str, str]:
     if opgegeven.get("bron_iri"):
         return {**opgegeven, "bwbId": opgegeven.get("bwbId", ""),
                 "artikel": opgegeven.get("artikel", ""), "lid": opgegeven.get("lid", "")}
-    uit_tool = _doel_uit_toolcalls(state.get("messages", []))
+    uit_tool = _doel_uit_toolcalls(_deze_beurt(state))
     uit_json = _doel_uit_json(state.get("answer", ""))
     if uit_json.get("bron_iri") and not opgegeven:
         return uit_json

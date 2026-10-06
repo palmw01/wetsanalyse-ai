@@ -55,3 +55,31 @@ def test_zonder_enige_geldige_call_blijft_het_doel_leeg():
     assert doel["bwbId"] == ""
 
 
+
+
+def _vraag(tekst: str) -> dict:
+    return {"role": "user", "content": tekst}
+
+
+def test_een_bepaling_uit_een_eerdere_beurt_is_geen_doel():
+    """De thread bewaart alle beurten; het doel komt alleen uit deze beurt."""
+    from agent.doel import _bepaal_doel
+
+    messages = [_vraag("Wat regelt artikel 9?"), _call("get_artikel", bwb_id="BWBR0004770", artikel="9"),
+                _vraag("Welke rechtssubjecten ken je nog meer uit andere annotaties?")]
+    doel = _bepaal_doel({"messages": messages, "question": messages[-1]["content"]})
+    assert doel["bwbId"] == "" and doel["artikel"] == ""
+
+
+def test_een_tweede_annotatie_in_hetzelfde_gesprek_is_geen_tweede_artikel():
+    """"Annoteer artikel 10" na een beurt over artikel 9 van dezelfde wet."""
+    from agent.doel import _meerdere_artikelen
+
+    messages = [_vraag("annoteer artikel 9 lid 1 IW 1990"),
+                _call("get_lid", bwb_id="BWBR0004770", artikel="9", lid="1"),
+                _vraag("annoteer artikel 10 lid 1 IW 1990"),
+                _call("get_lid", bwb_id="BWBR0004770", artikel="10", lid="1")]
+    state = {"messages": messages, "question": messages[2]["content"], "answer": ""}
+    assert _meerdere_artikelen(state) == []
+    messages.append(_call("get_lid", bwb_id="BWBR0004770", artikel="11", lid="1"))
+    assert _meerdere_artikelen(state) == ["10", "11"], "binnen één beurt telt het nog steeds"

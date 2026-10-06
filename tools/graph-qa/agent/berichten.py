@@ -45,6 +45,26 @@ def _is_plain_user(m: dict[str, Any]) -> bool:
     return m.get("role") == "user" and not _is_tool_result_user(m)
 
 
+def beurt_start(messages: list[dict[str, Any]], vraag: str = "") -> int:
+    """Index waar de huidige beurt begint: de laatste platte user-beurt met deze vraag.
+
+    De checkpointer bewaart de hele thread, dus `messages` loopt over alle beurten heen. Wat over
+    DEZE beurt gaat – welke bepaling de agent net ophaalde, welk resultaat hij nu leest – hoort
+    alleen hier gezocht te worden. Met `vraag` telt een correctiebericht ("Let op: …") van
+    `correct_node` niet als begin: dat is een platte user-beurt midden in dezelfde beurt.
+    Zonder geschikte kandidaat: 0 (alles is deze beurt)."""
+    for i in range(len(messages) - 1, -1, -1):
+        m = messages[i]
+        if _is_plain_user(m) and (not vraag or m.get("content") == vraag):
+            return i
+    return 0
+
+
+def beurt_berichten(messages: list[dict[str, Any]], vraag: str = "") -> list[dict[str, Any]]:
+    """De berichten van de huidige beurt (zie `beurt_start`)."""
+    return messages[beurt_start(messages, vraag):]
+
+
 # Wat er van een oud tool-resultaat overblijft als het budget knelt. Ruim genoeg om te zien wát er
 # gevonden is (de eerste treffers, de kop van een SELECT), te krap om het venster te domineren.
 _TOOLRESULT_KRIMP = 800
@@ -65,10 +85,14 @@ def _krimp_oude_toolresultaten(messages: list[dict[str, Any]], max_chars: int) -
     if sum(_msg_lengte(m) for m in messages) <= max_chars:
         return messages
 
-    # Het recente deel dat we met rust laten: het achterste venster binnen de helft van het budget.
-    beschermd = len(messages)
+    # Het recente deel dat we met rust laten: het achterste venster binnen de helft van het budget,
+    # en hoe dan ook de lopende beurt. Dat laatste is geen luxe: was het verse resultaat alleen al
+    # groter dan dat halve budget, dan brak de lus meteen af en werd óók dat resultaat ingekort, met
+    # de noot "vraag het opnieuw op". Het model zocht dan opnieuw, kreeg weer een ingekort resultaat,
+    # en zo door tot de beurtlimiet – de zoeklus bij "welke rechtssubjecten ken je nog meer".
+    beschermd = beurt_start(messages)
     ruimte = max_chars // 2
-    for i in range(len(messages) - 1, -1, -1):
+    for i in range(beschermd - 1, -1, -1):
         ruimte -= _msg_lengte(messages[i])
         if ruimte < 0:
             break

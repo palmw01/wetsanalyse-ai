@@ -10,6 +10,17 @@ from .config import Settings
 from .wetsanalyse_api import TIMEOUT
 
 
+def _detail(response: httpx.Response) -> str:
+    try:
+        detail = response.json().get("detail")
+    except (ValueError, AttributeError):
+        return ""
+    if isinstance(detail, list):  # FastAPI-validatiefouten: [{"loc": [...], "msg": "..."}]
+        detail = "; ".join(f"{'.'.join(str(x) for x in d.get('loc', [])[1:])}: {d.get('msg', '')}"
+                           for d in detail if isinstance(d, dict))
+    return str(detail or "")[:300]
+
+
 class AnnotatieReadApi:
     def __init__(self, settings: Settings, user_id: str = "", *, transport=None):
         self.settings = settings
@@ -36,7 +47,10 @@ class AnnotatieReadApi:
                 return result
         except httpx.HTTPStatusError as exc:
             status = exc.response.status_code
-            return {"status": "invalid_request" if status in (400, 409, 422) else "unavailable", "volledig": False,
+            # Zonder de reden van de api weet het model niet wát er mis was aan zijn filters, en
+            # gaat het raden. Alleen bij een ongeldige vraag, en ingekort: de body is van de api.
+            detail = _detail(exc.response) if status in (400, 422) else ""
+            return {**({"detail": detail} if detail else {}),"status": "invalid_request" if status in (400, 409, 422) else "unavailable", "volledig": False,
                     "reden": ("zoekresultaten_gewijzigd_begin_opnieuw" if status == 409 else
                               "ongeldige_zoekargumenten" if status in (400, 422) else
                               "annotatie_niet_toegestaan" if status in (401, 403) else f"annotatie_api_{status}"),
