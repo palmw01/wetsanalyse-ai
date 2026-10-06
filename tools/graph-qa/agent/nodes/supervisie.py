@@ -14,6 +14,7 @@ from langgraph.config import get_stream_writer
 
 from ..aanwijzing import lees_aanwijzing, melding_meerdere
 from ..doel import _heeft_opgegeven_doel
+from ..focus import bij_advies
 from ..narratie import _stap
 from ..state import State
 from ..methode import instructies
@@ -56,6 +57,8 @@ def supervisor_node(b: Bouw, state: State) -> dict[str, Any]:
         return {
             "specialist": "duiding", "worker_plan": ["duiding"], "worker_idx": 0,
             "plan": "adviesvraag bij een bestaande annotatie",
+            # Het aangewezen element blijft het onderwerp, ook als de volgende vraag zonder chip komt.
+            "focus": bij_advies(state.get("focus"), state.get("context")),
         }
 
     resp = b.llm.create(

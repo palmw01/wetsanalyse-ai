@@ -93,6 +93,23 @@ samenvatting van de markeringen achter, zodat vervolgvragen context hebben. Back
 verplicht bij >1 replica) → `CHECKPOINT_DB_PATH` → `AsyncSqliteSaver` (per instance; de default is een
 **relatief** bestand in de graph-qa-root) → in-memory.
 
+**De focus: waar het gesprek over gaat** (`agent/focus.py`, `State.focus`). Naast de berichten houdt
+de thread een kleine, gestructureerde toestand bij:
+
+- na een annotatie: de bepaling (`bron_iri`, label) en haar markeringen als `id · klasse · tekst`;
+- na een antwoord: de geraadpleegde bronnen (de markeringen blijven staan);
+- bij advies: het aangewezen element.
+
+`focus.als_context` maakt er het GESPREKSCONTEXT-blok van. Dat gaat naar de supervisor én elke
+specialist (`Bouw.memory_context`), samen met de markeringen van de open bepaling
+(`context.bestaande_elementen`), die anders alleen bij advies werden gelezen. Het veld staat bewust
+**niet** in de per-beurt-reset.
+
+**De focus is context, geen filter.** Ze stuurt nooit zelf een doel of een zoekopdracht: "welke
+rechtssubjecten ken je nog meer uit andere annotaties" gaat juist over iets anders dan de focus. De
+geheugenregel na een annotatie draagt nu ook de bronnode en de element-id's, zodat `get_annotatie`
+bruikbaar is.
+
 > **Twee gescheiden stores op dezelfde `conversation_id`.** De UI-historie leeft in de api
 > (`/v1/gesprekken/*`), het agent-geheugen in deze checkpointer. Een gesprek verwijderen wist bewust
 > beide (de BFF roept de api-delete én `DELETE /v1/conversations/{id}` aan). Wordt één store gereset,
