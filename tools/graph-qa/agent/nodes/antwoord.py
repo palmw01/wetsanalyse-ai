@@ -18,6 +18,7 @@ from ..grounding import check_grounding, curate_sources, herstel_citaten
 from ..narratie import _grounding_melding, _stap, _toolregel
 from ..prompts import SYSTEM_PROMPT
 from ..provenance import collect_sources
+from ..regelingnamen import met_regelingnamen
 from ..specialists import DEFAULT as DEFAULT_SPECIALIST
 from ..specialists import get as get_specialist
 from ..state import State
@@ -289,6 +290,8 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
     sources += hergebruikte_bronnen(state.get("bronregister") or [], state.get("answer", ""), sources)
     if b.settings.curate_sources:
         sources = curate_sources(sources, state.get("answer", ""))
+    # Na het cureren: alleen de namen van regelingen die in de lijst blijven (één query per beurt).
+    sources = met_regelingnamen(b.graph, sources)
     src_dicts = [s.model_dump() for s in sources]
     _stap(writer, "Klaar", f"{len(src_dicts)} bron" + ("nen" if len(src_dicts) != 1 else ""))
     writer({"type": "sources", "sources": src_dicts})

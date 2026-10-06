@@ -85,8 +85,8 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   niet uit de graaf kwam) en `niet_letterlijk` (een citaat dat niet letterlijk in de opgehaalde tekst
   staat). Bij de citaten gaan de passages zelf mee (afgekapt) – zonder de tekst weet het model niet
   wélk citaat het moet herstellen.
-- **`finalize_node`** – `collect_sources` → `curate_sources` → emit `sources` + `grounding`; werkt
-  `entities_seen` bij.
+- **`finalize_node`** – `collect_sources` → `curate_sources` → `met_regelingnamen` → emit `sources` +
+  `grounding`; werkt `entities_seen` bij.
 
 ### Gespreksgeheugen (checkpointer)
 
@@ -220,6 +220,13 @@ hier vandaan maar uit `bronmodel.resolve` (zie §*De annotatieketen*).
 - `provenance.iter_refs` herkent vindplaatsen (BWB-IRI's, jci-strings, kale BWB-id's) in
   **tool-resultaten**; `collect_sources` bouwt de ontdubbelde bronnenlijst. Bronnen komen nooit uit de
   prozatekst van het model.
+- **Eén bepaling is één bron.** `collect_sources` ontdubbelt op de bronnode uit
+  `bronmodel.vindplaats` (dezelfde regels als de importer en `bronDoel` in de werkplek; de vectoren in
+  `frontend/lib/jci-vectoren.json` toetsen alle drie). `uri` is de graaf-IRI, `iri`/`jci` bewaren beide
+  vormen, `label` is leesbaar ("Artikel 26a, lid 2", "Hoofdstuk I") en `bron_iri`/`bwb_id`/`soort`
+  reizen mee. Een hoofdstuk valt dus niet samen met de regeling. `regelingnamen.met_regelingnamen`
+  zet daarna met één query per beurt de citeertitel in `regeling` (cache per proces; een fout kost
+  alleen de naam).
 - **Een annotatie is geen vindplaats.** `urn:jas…`-IRI's bevatten een BWB-id maar worden vóór het
   zoeken weggelaten (`_AFGELEID_RE`); anders lijkt een annotatie wettekst te onderbouwen die niet is
   opgehaald.

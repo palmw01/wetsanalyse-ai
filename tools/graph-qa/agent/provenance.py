@@ -20,6 +20,8 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable, Iterator
 
+from bronmodel.vindplaats import vindplaats
+
 from .models import Source
 from .namespace import vindplaats_patroon
 from .tools.annotatie_tools import ANNOTATIE_TOOL_NAMEN
@@ -85,17 +87,35 @@ def citations_in(text: str) -> list[str]:
 
 
 def collect_sources(entries: Iterable[tuple[str, str]]) -> list[Source]:
-    """Bouw een ontdubbelde bronnenlijst uit (tool_naam, resultaat_tekst)-paren."""
+    """Bouw een ontdubbelde bronnenlijst uit (tool_naam, resultaat_tekst)-paren.
+
+    Ontdubbeld op de bronnode (`bronmodel.vindplaats`), niet op de string: een zoektool levert per
+    treffer de graaf-IRI én de jci, en die waren twee bronnen met elk hun eigen label. Nu één, met
+    `uri` = de graaf-IRI, beide vormen in `iri`/`jci` en een leesbaar label. Een verwijzing zonder
+    vindplaats blijft zoals hij was, als vangnet.
+    """
     sources: list[Source] = []
-    seen: set[str] = set()
+    per_node: dict[str, Source] = {}
 
     for tool, text in entries:
         if not text or tool in ANNOTATIE_TOOL_NAMEN:
             continue
         for uri, iri, jci in iter_refs(text):
-            if uri in seen:
+            vp = vindplaats(uri)
+            sleutel = vp.bron_iri if vp else uri
+            if (bestaand := per_node.get(sleutel)) is not None:
+                bestaand.iri = bestaand.iri or iri
+                bestaand.jci = bestaand.jci or jci
                 continue
-            seen.add(uri)
-            sources.append(Source(label=uri, uri=uri, iri=iri, jci=jci, origin_tool=tool))
+            if vp is None:
+                bron = Source(label=uri, uri=uri, iri=iri, jci=jci, origin_tool=tool)
+            else:
+                # Een regeling heeft geen label in de verwijzing (de naam komt in finalize); een
+                # wet-lokale `id:`-node ook niet, en die houdt dan zijn IRI.
+                label = vp.label or (vp.bwb_id if vp.soort == "regeling" else vp.bron_iri)
+                bron = Source(label=label, uri=vp.bron_iri, iri=iri, jci=jci,
+                              origin_tool=tool, bron_iri=vp.bron_iri, bwb_id=vp.bwb_id, soort=vp.soort)
+            per_node[sleutel] = bron
+            sources.append(bron)
 
     return sources

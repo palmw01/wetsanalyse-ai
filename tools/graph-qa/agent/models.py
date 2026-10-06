@@ -141,6 +141,12 @@ class Source(BaseModel):
     iri: str | None = None
     jci: str | None = None
     origin_tool: str | None = None
+    # De bronnode volgens `bronmodel.vindplaats` (additief): één bepaling is één bron, of hij nu als
+    # graaf-IRI of als jci in de trace stond. `regeling` is de citeertitel, ingevuld in finalize.
+    bron_iri: str | None = None
+    bwb_id: str | None = None
+    soort: str | None = None
+    regeling: str | None = None
 
 
 # --- Annotatie (JAS) ---------------------------------------------------------
