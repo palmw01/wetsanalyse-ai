@@ -101,7 +101,8 @@ def test_elke_graaftool_zit_in_de_retrieval_smoke():
     # graaf ontbreekt; `raw_sparql` heeft geen vaste vorm om op te toetsen.
     # Deze expliciete annotatiezoektools lezen de canonieke API-projectie, niet GraphPort;
     # hun API/MCP-contracten worden in test_bronnode_keten getoetst.
-    buiten = {"semantic_search", "raw_sparql", "search_annotaties", "get_annotatie", "get_annotatiedekking"}
+    buiten = {"semantic_search", "raw_sparql", "search_annotaties", "overzicht_annotaties", "get_annotatie",
+              "get_annotatiedekking"}
     ongedekt = {t["name"] for t in tools.TOOLS} - gedekt - buiten
     assert not ongedekt, (
         f"deze tools worden nergens tegen de echte graaf geraakt: {sorted(ongedekt)}. "

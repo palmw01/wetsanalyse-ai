@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 
 import httpx
+import pytest
 
 from agent.annotatie_read import AnnotatieReadApi
 from agent.tools.annotatie_tools import dispatch_annotatie, vindplaats_label
@@ -62,8 +63,10 @@ def test_klassenamen_zoals_een_jurist_ze_zegt():
                                              "klasse": "rechtsobject"}, poort)
     assert poort.filters["jas_klassen"] == ["Rechtssubject", "Voorwaarde"]
     assert poort.filters["klasse"] == "Rechtsobject"
-    dispatch_annotatie("search_annotaties", {"jas_klassen": ["Onzin"]}, poort)
-    assert poort.filters["jas_klassen"] == ["Onzin"], "onherkenbaar blijft staan; de api weigert het"
+    poort.filters = None
+    with pytest.raises(ValueError):
+        dispatch_annotatie("search_annotaties", {"jas_klassen": ["Onzin"]}, poort)
+    assert poort.filters is None, "een onbekende klasse gaat niet naar de api"
 
 
 def test_vindplaats_label():

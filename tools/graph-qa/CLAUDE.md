@@ -148,7 +148,7 @@ bruikbaar is.
 
 ## Toollaag & queries
 
-- **`tools/__init__.py`** – `TOOLS` (22 declaraties: 19 graaftools plus de drie annotatieleestools uit
+- **`tools/__init__.py`** – `TOOLS` (23 declaraties: 19 graaftools plus de vier annotatieleestools uit
   `tools/annotatie_tools.py`), `anthropic_schemas(only=)` en `dispatch()` (vangt
   `ValueError`/`MCPError`/`KeyError` als tekst). Een tool met `needs_settings` krijgt `settings` mee.
   `tools/jas_tools.py` (`JAS_TOOLS`) is dispatchbaar maar wordt in de draaiende keten niet aangeroepen.
@@ -461,8 +461,12 @@ reviewer (`review.py`), de resolver (`resolver.py`), dekking, beslisregister en 
    `modus: "annotaties_lezen"`. Een kale klassenaam telt níét – *Voorwaarde* is ook gewone juridische
    taal. Een leesvraag kan zo topologisch geen annotatie worden; `annoteer` en `emit` weigeren
    bovendien expliciet in de leesroute.
-2. **Zoeken is een stap, geen keuze** (`nodes/annotatie_lezen.py`). `annotaties_zoeken` voert vóór de
-   eerste LLM-call zelf `search_annotaties` uit, met filters uit de vraag (`jas_klassen.klassen_in_tekst`)
+2. **Zoeken is een stap, geen keuze** (`nodes/annotatie_lezen.py`). Een overzichtsvraag mét klasse
+   ("welke rechtssubjecten kennen we al") wordt `overzicht_annotaties`: de verschillende teksten per
+   klasse met telling en vindplaatsen, gegroepeerd in graph-qa over dezelfde gecontroleerde
+   zoekroute (hoogstens vijf pagina's van 100; daarboven `volledig: false`). "Andere", "elders" en
+   "nog meer" zetten de bepaling uit de focus erbuiten (`uitgezonderd_bron_iri`). Anders voert
+   `annotaties_zoeken` vóór de eerste LLM-call zelf `search_annotaties` uit, met filters uit de vraag (`jas_klassen.klassen_in_tekst`)
    en het doel. Het resultaat gaat als echt `tool_use`/`tool_result`-paar de historie en de
    `source_trace` in; daarna formuleert de agent, met de tools beschikbaar voor verdieping. Laat je dit
    aan de vrije toolkeuze over, dan antwoordt het model soms zonder te zoeken dat het niet kon
@@ -483,7 +487,11 @@ de hele batch meedroeg. `get_annotatie` houdt het spoor (`trace`). Klassenamen w
 genormaliseerd ("rechtssubjecten" → `Rechtssubject`); een 400/422 geeft de reden van de api mee als
 `detail`. Een vraag met `modus: "advies"` is nooit een leesvraag.
 
-De drie annotatietools lopen via de api (`agent/annotatie_read.py`), niet via SPARQL: de api verifieert
+De duiding-specialist (ook de adviesroute) heeft `get_annotatie` en `jas_klasse_opvragen`: een vraag
+óver een markering moet het spoor en de alternatieven kunnen lezen. `jas_klassen` is in de schema's
+een enum, met een contracttest tegen de klassenlijst van de api.
+
+De annotatietools lopen via de api (`agent/annotatie_read.py`), niet via SPARQL: de api verifieert
 zijn graafkandidaten tegen Postgres, en die controle mag niet te omzeilen zijn. De actor is de
 rungebruiker; een CLI/MCP-client zet `ANNOTATIE_READ_USER_ID` uit vertrouwde configuratie – een
 toolargument bepaalt nooit namens wie er gelezen wordt. `aantal` in een `tool_execution` staat er alleen

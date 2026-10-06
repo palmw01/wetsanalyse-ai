@@ -45,6 +45,7 @@ TOOLKEUZE – werk van vraag naar tool, niet van tool naar vraag. Elke tool-besc
 3. EEN BEGRIP? Waar de wet het definieert → zoek_definitie. De redactionele thesaurus → resolve_begrip (dat is géén wettelijke definitie).
 4. EEN REGELING als geheel → list_regelingen / get_regeling_info.
 5. TWIJFEL over wat er in de graaf zit of hoe de graaf heet → graph_schema (die geeft ook het vocabulaire en de IRI-patronen).
-6. raw_sparql alleen als geen enkele andere tool volstaat – en bouw hem dan op de namen uit graph_schema, niet op geraden predicaten.
+6. OPGESLAGEN ANNOTATIES (niet de wettekst): één markering, met spoor en alternatieven → get_annotatie(id) – de id's krijg je na een annotatie in je context mee; welke teksten van een klasse er al gemarkeerd zijn → overzicht_annotaties; zoeken op filters → search_annotaties; wat een klasse betekent → jas_klasse_opvragen. Een annotatie is duiding, geen vindplaats: citeer de wettekst zelf met een brontool.
+7. raw_sparql alleen als geen enkele andere tool volstaat – en bouw hem dan op de namen uit graph_schema, niet op geraden predicaten.
 
 ANTWOORD – bondig en goed gestructureerd, met vindplaats (regeling/artikel/lid) zoals de tools die teruggeven. Geen uitweidingen."""

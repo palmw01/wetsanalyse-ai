@@ -5,7 +5,8 @@ import json
 import re
 from typing import Any
 
-ANNOTATIE_TOOL_NAMEN = frozenset({"search_annotaties", "get_annotatie", "get_annotatiedekking"})
+ANNOTATIE_TOOL_NAMEN = frozenset({"search_annotaties", "overzicht_annotaties", "get_annotatie",
+                                  "get_annotatiedekking"})
 
 
 def begrens_antwoord(answer: str, trace) -> str:
@@ -68,14 +69,34 @@ SS = {"type": "array", "items": S, "maxItems": 30}
 
 def keuzes(*waarden: str) -> dict:
     return {"type": "array", "items": {"type": "string", "enum": list(waarden)}, "maxItems": 30}
+
+
+def _d(basis: dict, beschrijving: str) -> dict:
+    return {**basis, "description": beschrijving}
+
+
+def _klassen() -> dict:
+    from ..jas_klassen import JAS_KLASSEN_VOLGORDE
+    return _d(keuzes(*JAS_KLASSEN_VOLGORDE), "JAS-klassen, exact zoals hier gespeld (meerdere = of).")
+
+
+BRON_IRI = _d(S, "Een bronnode, bv. 'urn:bwb:BWBR0004770:artikel:9:lid:1' (artikel: zonder ':lid:…').")
+BWB_ID = _d(S, "Alleen annotaties binnen deze regeling, bv. 'BWBR0004770'.")
+
 ANNOTATIE_TOOLS = [
     schema("search_annotaties", "Zoek opgeslagen JAS-annotaties, niet de wettekst. Filters zijn "
            "letterlijk en worden gecombineerd. Onvolledig/onbeschikbaar is geen bewijs dat er "
            "geen annotaties bestaan. Geen semantische fallback. Resultaten zijn afgeleide duiding. "
            "Herkomstfilters: `herkomst` (agent = voorstel van Lex, mens = door een jurist gemarkeerd), "
            "`aandacht` (geel = keuze voor de jurist, groen = bevestigd door review), `subtype`, "
-           "`beslist_door` (regel/model/specificiteit/terugval) en `met_twijfel`.",
-           {"bron_iri": S, "bwb_id": S, "klasse": S, "jas_klassen": SS, "tekst": S,
+           "`beslist_door` (regel/model/specificiteit/terugval) en `met_twijfel`. "
+           "GEEFT TERUG: status en volledig, dan per treffer id, klasse, tekst, vindplaats, bron_iri, "
+           "aandacht, lifecycle, alternatieven en een ingekorte toelichting; plus paginatie "
+           "(volgende_offset/cursor). Wil je weten WELKE teksten van een klasse er zijn, gebruik dan "
+           "overzicht_annotaties; voor het volledige spoor van één treffer get_annotatie.",
+           {"bron_iri": BRON_IRI, "bwb_id": BWB_ID,
+            "klasse": _d(S, "Eén JAS-klasse; liever jas_klassen."), "jas_klassen": _klassen(),
+            "tekst": _d(S, "Zoektekst in het citaat en/of de toelichting (zie tekstveld en match)."),
             "lifecycle": SS, "laagstatus": SS, "bronversie": S,
             "tekstveld": {"type": "string", "enum": ["citaat", "toelichting", "beide"]},
             "match": {"type": "string", "enum": ["exact", "bevat"]},
@@ -90,10 +111,24 @@ ANNOTATIE_TOOLS = [
             "offset": {"type": "integer", "minimum": 0}}),
     schema("get_annotatie", "Lees één opgeslagen annotatie inclusief eigenaar, alle lokale "
            "ankers en beoordeling. Dit is duiding; haal de bron apart op voor juridische claims.",
-           {"id": S}, ("id",)),
+           {"id": _d(S, "Het id van een annotatie, uit een zoekresultaat of de GESPREKSCONTEXT.")}, ("id",)),
     schema("get_annotatiedekking", "Controleer of een bronnode/subtree daadwerkelijk geannoteerd "
-           "is; aanwezigheid van enkele elementen bewijst geen volledige dekking.",
-           {"bron_iri": S, "bwb_id": S, "artikel": S, "lid": S}),
+           "is; aanwezigheid van enkele elementen bewijst geen volledige dekking. Geef bron_iri, of "
+           "bwb_id met artikel (en eventueel lid). GEEFT TERUG: status, voltooid, bereik (de "
+           "geannoteerde bronnodes) en peilmoment.",
+           {"bron_iri": BRON_IRI, "bwb_id": BWB_ID, "artikel": _d(S, "Artikelnummer, bij bwb_id."),
+            "lid": _d(S, "Lidnummer, optioneel.")}),
+    schema("overzicht_annotaties", "Overzicht van wat er al gemarkeerd is, per klasse: de "
+           "verschillende teksten met hoe vaak en waar ze voorkomen. Voor vragen als 'welke "
+           "rechtssubjecten kennen we al' of 'welke voorwaarden staan er nog meer in andere "
+           "annotaties'. Met uitgezonderd_bron_iri laat je de bepaling waar het gesprek over gaat "
+           "buiten beschouwing. GEEFT TERUG: status, volledig, het aantal bekeken markeringen en per "
+           "groep klasse, tekst, aantal, vindplaatsen en een voorbeeld-id (voor get_annotatie). "
+           "Leest via dezelfde gecontroleerde zoekroute als search_annotaties.",
+           {"jas_klassen": _klassen(), "bwb_id": BWB_ID, "bron_iri": BRON_IRI,
+            "uitgezonderd_bron_iri": _d(S, "Laat annotaties op deze bronnode (en eronder) weg."),
+            "max_groepen": {"type": "integer", "minimum": 1, "maximum": 100,
+                            "description": "Hoeveel groepen hoogstens (standaard 40)."}}),
 ]
 
 
@@ -172,6 +207,59 @@ def compacte_uitkomst(name: str, result: dict[str, Any]) -> dict[str, Any]:
     return {**kop, **rest}
 
 
+#: Zoveel markeringen leest een overzicht hoogstens (pagina's van 100). Daarboven zegt hij dat hij
+#: onvolledig is in plaats van stil een deel te laten zien.
+OVERZICHT_PAGINAS = 5
+
+
+def overzicht(args: dict[str, Any], port) -> dict[str, Any]:
+    """Groepeer de markeringen per klasse en (genormaliseerde) tekst.
+
+    "Welke rechtssubjecten kennen we al" is geen zoekvraag naar 25 losse records in willekeurige
+    volgorde, maar een vraag naar de verschillende teksten. Die groepering gebeurt hier, over
+    dezelfde gecontroleerde zoekroute als `search_annotaties` – geen eigen SPARQL, geen tweede
+    waarheid."""
+    filters = {k: args[k] for k in ("jas_klassen", "bwb_id", "bron_iri") if args.get(k)}
+    if filters.get("bron_iri"):
+        filters["scope"] = "subtree"
+    uitgezonderd = str(args.get("uitgezonderd_bron_iri") or "")
+    elementen: list[dict[str, Any]] = []
+    volledig, status, offset = True, "ok", 0
+    for _ in range(OVERZICHT_PAGINAS):
+        pagina = port.zoeken({**filters, "limit": 100, "offset": offset})
+        if pagina.get("status") not in ("ok", "partial"):
+            return {k: pagina[k] for k in ("status", "volledig", "reden", "detail") if k in pagina}
+        if pagina.get("status") != "ok" or pagina.get("volledig") is False:
+            volledig, status = False, "partial"
+        elementen += [e for e in pagina.get("resultaten") or [] if isinstance(e, dict)]
+        offset = pagina.get("volgende_offset")
+        if not offset:
+            break
+    else:
+        volledig, status = False, "partial"
+
+    from ..jas_klassen import JAS_KLASSEN_VOLGORDE
+    groepen: dict[tuple[str, str], dict[str, Any]] = {}
+    for e in elementen:
+        iri = e.get("eigenaar_iri") or (e.get("bronverwijzing") or {}).get("bron_iri") or ""
+        if uitgezonderd and (iri == uitgezonderd or iri.startswith(uitgezonderd + ":")):
+            continue
+        tekst = " ".join(str(e.get("tekst") or "").split())
+        sleutel = (str(e.get("klasse") or ""), tekst.casefold())
+        g = groepen.setdefault(sleutel, {"klasse": sleutel[0], "tekst": tekst, "aantal": 0,
+                                         "vindplaatsen": [], "voorbeeld_id": e.get("id", "")})
+        g["aantal"] += 1
+        plek = vindplaats_label(iri)
+        if plek and plek not in g["vindplaatsen"] and len(g["vindplaatsen"]) < 5:
+            g["vindplaatsen"].append(plek)
+    volgorde = {k: i for i, k in enumerate(JAS_KLASSEN_VOLGORDE)}
+    lijst = sorted(groepen.values(), key=lambda g: (volgorde.get(g["klasse"], 99), -g["aantal"], g["tekst"]))
+    maximum = int(args.get("max_groepen") or 40)
+    return {"status": status, "volledig": volledig and len(lijst) <= maximum,
+            "bekeken": len(elementen), "uitgezonderd": uitgezonderd or None,
+            "groepen": lijst[:maximum], "meer_groepen": max(0, len(lijst) - maximum)}
+
+
 def dispatch_annotatie(name: str, args: dict[str, Any], port) -> str:
     args = _normaliseer_klassen(args)
     definition = next(t for t in ANNOTATIE_TOOLS if t["name"] == name)["input_schema"]
@@ -189,6 +277,10 @@ def dispatch_annotatie(name: str, args: dict[str, Any], port) -> str:
             toegestaan = definition["properties"][key]["items"].get("enum")
             if toegestaan and set(value) - set(toegestaan):
                 raise ValueError("Onbekende filterkeuze")
+        elif definition["properties"][key]["type"] == "integer":
+            prop = definition["properties"][key]
+            if type(value) is not int or not prop.get("minimum", 0) <= value <= prop.get("maximum", 10**6):
+                raise ValueError(f"Ongeldige waarde voor {key}")
         elif definition["properties"][key]["type"] == "boolean":
             if type(value) is not bool:
                 raise ValueError("Ongeldige boolean")
@@ -202,6 +294,8 @@ def dispatch_annotatie(name: str, args: dict[str, Any], port) -> str:
         result = port.zoeken(args)
     elif name == "get_annotatie":
         result = port.element(args["id"])
+    elif name == "overzicht_annotaties":
+        result = overzicht(args, port)
     else:
         if not args.get("bron_iri") and not (args.get("bwb_id") and args.get("artikel")):
             raise ValueError("Geef een bronnode of regeling en bepaling")

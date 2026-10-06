@@ -585,7 +585,9 @@ def test_leesroute_zoekt_ook_als_het_model_geen_tool_aanroept(decomposition):
     assert [c[0] for c in api.calls] == ["zoeken"]
     assert api.calls[0][1]["jas_klassen"] == ["Rechtsobject"]   # klasse uit de vraag
     trace = [e for e in events if e["type"] == "tool_execution"]
-    assert [e["phase"] for e in trace] == ["start", "end"] and trace[0]["tool"] == "search_annotaties"
+    # "Welke … allemaal een rechtsobject" is een overzichtsvraag: de stap groepeert per tekst, over
+    # dezelfde gecontroleerde zoekroute (één `zoeken` bij de api hierboven).
+    assert [e["phase"] for e in trace] == ["start", "end"] and trace[0]["tool"] == "overzicht_annotaties"
     antwoord = " ".join(e.get("content", "") for e in events if e["type"] == "token")
     assert "rechtsobjecten" in antwoord and "niet in de opgeslagen annotaties gezocht" not in antwoord
 
