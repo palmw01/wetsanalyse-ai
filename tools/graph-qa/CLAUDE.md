@@ -508,6 +508,8 @@ cd tools/graph-qa && uv run python scripts/genereer_jas_klassen.py --check
 cd tools/graph-qa && .venv/bin/python eval/run_eval.py --offline               # QA-harnas, gescript
 cd tools/graph-qa && .venv/bin/python eval/run_eval.py --annotatie --offline   # annotatie-harnas
 cd tools/graph-qa && .venv/bin/python eval/run_eval.py --annotatie             # live (kost geld)
+cd tools/graph-qa && .venv/bin/python eval/run_eval.py --gesprek --offline     # gesprekken-harnas
+cd tools/graph-qa && .venv/bin/python eval/run_eval.py --gesprek               # live (kost geld)
 cd tools/graph-qa && .venv/bin/python eval/run_eval.py --retrieval-smoke       # live, alleen de graaf
 ```
 
@@ -543,8 +545,15 @@ wél op 100%. Niet vlak na een deploy draaien: de importjob loopt dan nog.
   bereikt budget heet **niet gemeten** en telt niet mee; de exitcode kijkt alleen naar gemeten cases, en
   zijn ze allemaal ongemeten, dan wordt de run rood.
 
-**Twee gouden sets.** `eval/golden.jsonl` meet antwoorden (citaat-faithfulness, bron-recall, refusal);
-`eval/golden_annotatie.jsonl` meet de annotatieketen. De annotatie-scorers splitsen:
+**Drie gouden sets.** `eval/golden.jsonl` meet antwoorden (citaat-faithfulness, bron-recall, refusal);
+`eval/golden_annotatie.jsonl` meet de annotatieketen; `eval/golden_gesprek.jsonl` meet
+**vervolgvragen**: gesprekken van een paar beurten in één thread (scenario A doorvragen op een
+antwoord, B vragen naar andere annotaties, C doorvragen op een element, R regressies), per beurt
+gescoord op route, tools en antwoord (`eval/gesprek.py`). De route komt uit de `status`-regels en de
+tools uit `tool_execution` – wat de jurist ziet, niet een apart eval-kanaal. Omdat de eval-job geen
+api heeft, annoteert en zoekt hij via `GesprekAnnotaties`: die onthoudt wat Lex in dat gesprek
+markeerde plus de `andere_annotaties` die de case zaait. De gesprekken zijn een trendmeting en tellen
+niet mee in de exitcode van de job. De annotatie-scorers splitsen:
 
 - **Garanties** (slaag/zak, horen op 1.0): elk fragment staat letterlijk in de bron, elke klasse
   bestaat, niets komt uit een niet-gevraagde bepaling (`verboden`), en een injectie in de opdracht wordt
