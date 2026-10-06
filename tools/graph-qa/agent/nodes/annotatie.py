@@ -22,6 +22,7 @@ from ..agent_common import truncate
 from ..annotatie import aanduiding_in_woorden
 from ..bron_annotatie import controleer_hergebruik, doel_event, lees_bron, lokale_elementen, stand_per_optie
 from ..aanwijzing import lees_aanwijzing, melding_meerdere
+from ..bronregister import bij
 from ..focus import na_annotatie
 from ..doel import _bepaal_doel, _heeft_opgegeven_doel, _kandidaten_uit_json, _meerdere_artikelen
 from ..jas_klassen import methode_versie
@@ -273,7 +274,12 @@ def emit_node(b: Bouw, state: State) -> dict[str, Any]:
     # vervolgvraag ("waarom Rechtssubject?") weet welke bepaling en welke markering bedoeld is.
     snapshot = state.get("bron_snapshot") or {}
     focus = na_annotatie(snapshot, plek, str(doel.get("citeertitel") or ""), voorstellen)
-    return {"answer": samenvatting, "focus": focus,
+    # De geannoteerde tekst kwam letterlijk uit de graaf (`bronmodel.resolve`); een vervolgvraag die
+    # eruit citeert ("waarom is 'zes weken na de dagtekening' een Tijdsaanduiding?") is daarmee
+    # onderbouwd, ook als de antwoordbeurt hem niet opnieuw ophaalt.
+    register = bij(state.get("bronregister"), [("get_bronnode", f"{focus['bron_iri']}\n{state.get('corpus', '')}")]
+                   if state.get("corpus") else [])
+    return {"answer": samenvatting, "focus": focus, "bronregister": register,
             "entities_seen": [focus["bron_iri"]] if focus["bron_iri"] else [],
             "messages": [{"role": "assistant", "content": _geheugenregel(focus, "")}]}
 

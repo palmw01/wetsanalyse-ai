@@ -37,6 +37,10 @@ class State(TypedDict, total=False):
     # deterministische regels en filters; het user-bericht in de historie blijft de echte vraag.
     # Per beurt gereset; leeg = de vraag zelf.
     zelfstandige_vraag: str
+    # Wat er eerder in dit gesprek letterlijk uit de graaf is opgehaald (`agent/bronregister.py`), als
+    # [toolnaam, resultaat]. De brongetrouwheidscontrole toetst ertegen, zodat een vervolgantwoord
+    # een eerder opgehaald citaat mag herhalen. Niet in de per-beurt-reset; begrensd.
+    bronregister: list[list[str]]
     specialist: str
     plan: str
     worker_plan: list[str]   # geordende worker-keten (specialist-namen) die de supervisor koos

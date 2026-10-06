@@ -12,6 +12,7 @@ from typing import Any
 from langgraph.config import get_stream_writer
 
 from ..berichten import _parse_final, _schoon_messages, _trim_messages
+from ..bronregister import bij, controletrace
 from ..focus import na_antwoord
 from ..grounding import check_grounding, curate_sources
 from ..narratie import _grounding_melding, _stap, _toolregel
@@ -152,7 +153,9 @@ def tools_node(b: Bouw, state: State) -> dict[str, Any]:
 
 def verify_node(b: Bouw, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
-    report = check_grounding(state.get("answer", ""), state.get("source_trace", []))
+    # Getoetst tegen deze beurt én wat eerder in het gesprek letterlijk is opgehaald: een vervolgantwoord
+    # dat een citaat uit het vorige antwoord herhaalt, is niet minder brongetrouw dan dat antwoord.
+    report = check_grounding(state.get("answer", ""), controletrace(state))
     # Deze controle heeft geen eigen narratie (geen LLM), dus zonder deze regel gebeurt er iets
     # wezenlijks – de brongetrouwheidstoets – zonder dat de jurist het ziet. De tijdlijn wordt
     # bij de beurt bewaard, dus dit is tegelijk het spoor waarop je achteraf terugvalt.
@@ -215,6 +218,18 @@ def correct_node(b: Bouw, state: State) -> dict[str, Any]:
         "answer": "",
     }
 
+def hergebruikte_bronnen(register, antwoord: str, al) -> list:
+    """Bronnen uit het register waarvan het antwoord de regeling (BWB-id) noemt en die er nog niet staan."""
+    from ..grounding import _BWB_RE
+
+    bwbs = set(_BWB_RE.findall(antwoord or ""))
+    if not bwbs:
+        return []
+    bekend = {s.uri for s in al}
+    return [s for s in collect_sources([(n, t) for n, t in register])
+            if s.uri not in bekend and (m := _BWB_RE.search(s.uri)) and m.group(0) in bwbs]
+
+
 def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
 
@@ -246,6 +261,9 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
         state = {**state, "answer": antwoord}
 
     sources = collect_sources(state.get("source_trace", []))
+    # Bronnen uit eerdere beurten alleen als het antwoord hun regeling noemt: anders vult elke
+    # vervolgvraag de lijst met alles wat het gesprek ooit ophaalde.
+    sources += hergebruikte_bronnen(state.get("bronregister") or [], state.get("answer", ""), sources)
     if b.settings.curate_sources:
         sources = curate_sources(sources, state.get("answer", ""))
     src_dicts = [s.model_dump() for s in sources]
@@ -263,6 +281,7 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
     existing = set(state.get("entities_seen") or [])
     new = [s["uri"] for s in src_dicts if s["uri"] not in existing]
     upd: dict[str, Any] = {"sources": src_dicts, "entities_seen": new,
+                           "bronregister": bij(state.get("bronregister"), state.get("source_trace")),
                            "focus": na_antwoord(state.get("focus"), state.get("specialist", ""),
                                                 [s["uri"] for s in src_dicts])}
     # In de decompositie-stroom stroomt het eind-antwoord uit synthesize_node en is het nog niet
