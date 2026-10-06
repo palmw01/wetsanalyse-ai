@@ -84,7 +84,9 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
 ### Gespreksgeheugen (checkpointer)
 
 `thread_id = conversation_id`; de agent krijgt per beurt de gepersisteerde `messages`-historie mee
-(getrimd op `MAX_HISTORY_CHARS`; de opslagrem `berichten.MAX_HISTORIE_CHARS` hoort ruim daarboven te
+(getrimd op `MAX_HISTORY_CHARS`; oudere tool-resultaten krimpen eerst, maar **de lopende beurt
+krimpt nooit** – `berichten.beurt_start` – anders leest het model zijn verse resultaat als
+"ingekort, vraag opnieuw op" en zoekt het in een lus; de opslagrem `berichten.MAX_HISTORIE_CHARS` hoort ruim daarboven te
 liggen, `Settings.controleer_historie_grens` waarschuwt). De annotatie-worker laat een korte
 samenvatting van de markeringen achter, zodat vervolgvragen context hebben. Backend
 (`agent.py:_checkpointer_ctx`, voorrang): `CHECKPOINT_DB_URL` → `AsyncPostgresSaver` (gedeeld,
@@ -438,6 +440,17 @@ reviewer (`review.py`), de resolver (`resolver.py`), dekking, beslisregister en 
    vervangt die het modelantwoord door een eerlijke melding, met een logregel. Die melding gaat **niet**
    in `messages`: anders leest het model zijn eigen "ik kon niet raadplegen" in de volgende beurt als
    feit.
+
+**Wat de doelbepaling leest is alleen deze beurt** (`doel._deze_beurt`). De thread bewaart alle
+beurten; las `_doel_uit_toolcalls` de hele historie, dan filterde de leesroute op de wet van een
+eerdere vraag en gaf "annoteer artikel 10" na artikel 9 een melding over meerdere artikelen.
+
+**Het model ziet een compacte uitkomst** (`annotatie_tools.compacte_uitkomst`): status en
+volledigheid vóórop, per treffer id, klasse, tekst, `vindplaats` ("BWBR… art. 9 lid 1"), aandacht,
+alternatieven en een ingekorte toelichting – zonder `geproduceerd_door`, die per element de run van
+de hele batch meedroeg. `get_annotatie` houdt het spoor (`trace`). Klassenamen worden vóór de api
+genormaliseerd ("rechtssubjecten" → `Rechtssubject`); een 400/422 geeft de reden van de api mee als
+`detail`. Een vraag met `modus: "advies"` is nooit een leesvraag.
 
 De drie annotatietools lopen via de api (`agent/annotatie_read.py`), niet via SPARQL: de api verifieert
 zijn graafkandidaten tegen Postgres, en die controle mag niet te omzeilen zijn. De actor is de

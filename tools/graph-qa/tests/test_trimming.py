@@ -75,3 +75,20 @@ def test_inkorten_maakt_ruimte_voor_meer_gesprek():
     # vraag er als eerste uit vallen; met inkorten past hij er nog bij.
     assert len(uit) > 3
     assert _TOOLRESULT_KRIMP < 30_000
+
+
+def test_een_vers_groot_resultaat_wordt_niet_ingekort():
+    """Het resultaat waar het model nú mee werkt, blijft heel – ook als het alleen al het halve
+    budget overschrijdt. Werd het ingekort met "vraag het opnieuw op", dan zocht het model opnieuw,
+    kreeg weer een ingekort resultaat, en zo door tot de beurtlimiet."""
+    msgs = [vraag("Eerste vraag"), *toolbeurt("t1", "y" * 25_000),
+            vraag("Welke rechtssubjecten ken je nog meer?"), *toolbeurt("t2", "z" * 30_000)]
+    uit = _trim_messages(msgs, 40_000)
+    vers = [blok for m in uit if isinstance(m.get("content"), list)
+            for blok in m["content"]
+            if blok.get("type") == "tool_result" and blok["tool_use_id"] == "t2"]
+    assert vers and vers[0]["content"] == "z" * 30_000
+    oud = [blok for m in uit if isinstance(m.get("content"), list)
+           for blok in m["content"]
+           if blok.get("type") == "tool_result" and blok["tool_use_id"] == "t1"]
+    assert oud and "ingekort" in oud[0]["content"], "het oude resultaat mag wel krimpen"
