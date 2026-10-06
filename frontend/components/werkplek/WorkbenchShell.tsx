@@ -1,5 +1,6 @@
 "use client";
 
+import { Opstellen } from "@/components/ui/Icoon";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
@@ -240,9 +241,7 @@ export function WorkbenchShell({
               aria-label="Nieuw gesprek"
               className="focus-ring inline-flex items-center justify-center rounded-lg border border-line p-2 text-lint transition-colors hover:bg-surface"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
-                <path d="M12 5v14M5 12h14" />
-              </svg>
+              <Opstellen className="text-xl" />
             </button>
           }
         />
