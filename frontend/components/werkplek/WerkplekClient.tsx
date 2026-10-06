@@ -49,6 +49,7 @@ import {
 import { useBreedScherm } from "@/lib/useBreedScherm";
 import { jasStyle } from "@/lib/jas";
 import type { ThreadItem } from "@/lib/threadItem";
+import { WerkplekHeader } from "./WerkplekHeader";
 import { parseHergebruik } from "@/lib/agentEvents";
 import {
   pasDemoBeslissingToe, voegDemoElementToe, wisDemoElement, zetDemoStatus, type DemoScene,
@@ -249,6 +250,8 @@ export function WerkplekClient({
               ? { id: uid(), type: "annotatie" as const, slug: b.annotatie_slug || b.annotatie_doel!.bron_iri,
                   titel: b.annotatie_doel?.label || b.annotatie_titel || undefined, annotatie_doel: b.annotatie_doel,
                   tool_executions: toolSpoorUit(b.tool_executions), denk: b.denk,
+                  // De samenvatting van Lex (hoogstens vier zinnen), zoals graph-qa hem bewaarde.
+                  tekst: b.tekst?.trim() || undefined,
                   // Na herladen moet nog te zien zijn dat er niets opnieuw is bekeken.
                   hergebruik: b.hergebruik ? parseHergebruik(b.hergebruik) : undefined }
               : { id: uid(), type: "antwoord" as const, tekst: b.tekst, denk: b.denk, bronnen: b.bronnen, tool_executions: toolSpoorUit(b.tool_executions) }];
@@ -697,7 +700,7 @@ export function WerkplekClient({
       // De agent heeft het vastgelegd. Nu alleen nog tonen wat er staat – de api is de bron.
       if (opgeslagen) {
         await toonVastgelegdeBeurt(opgeslagen, {
-          antId, denk, hergebruik, doel: doelInvoerVan(doelRef.d), tool_executions: toolExecutions,
+          antId, tekst, denk, hergebruik, doel: doelInvoerVan(doelRef.d), tool_executions: toolExecutions,
         });
         onGewijzigd();
         return;
@@ -792,8 +795,8 @@ export function WerkplekClient({
    */
   async function toonVastgelegdeBeurt(
     uitkomst: { annotatie_slug: string; annotatie_doel?: NodeDoel },
-    { antId, denk, hergebruik, doel, tool_executions }: {
-      antId: string; denk: string;
+    { antId, tekst, denk, hergebruik, doel, tool_executions }: {
+      antId: string; tekst?: string; denk: string;
       hergebruik?: AgentHergebruik; doel?: AgentDoelInvoer; tool_executions?: ToolExecution[];
     },
   ) {
@@ -802,7 +805,8 @@ export function WerkplekClient({
     } : undefined);
     if (!node) return; // een gewoon antwoord staat al in beeld
     setItems((xs) => xs.map((x) => x.id === antId ? { id: antId, type: "annotatie", slug: uitkomst.annotatie_slug || node.bron_iri,
-      annotatie_doel: node, titel: node.label, denk, hergebruik, doel, tool_executions } : x));
+      annotatie_doel: node, titel: node.label, tekst: tekst?.trim() || undefined, denk, hergebruik, doel,
+      tool_executions } : x));
     setArtefactSlug(undefined); setNodeDoel(node);
   }
 
@@ -1009,6 +1013,9 @@ export function WerkplekClient({
       <p className="sr-only" aria-live="polite">
         {stopt ? "Bezig met stoppen; de agent rondt zijn huidige stap af." : bezig ? "Bezig met antwoorden…" : melding}
       </p>
+      {/* Begroeting en silhouet: volledig in de lege werkplek, een smalle strook zodra er een gesprek
+          loopt. Buiten de scroller, zodat alleen de thread scrolt. */}
+      <WerkplekHeader compact={items.length > 0} />
       {/* De annotatie blijft bereikbaar. De chip in de thread scrolt weg zodra het gesprek doorloopt;
           dan is er geen weg terug naar het werk waar je middenin zat. */}
       {!nodeDoel && !artefactSlug && laatsteNodeAnnotatie && (
@@ -1120,20 +1127,18 @@ export function WerkplekClient({
       {/* Thread – enige scrollende gebied; berichten in een gecentreerde leeskolom */}
       <div data-tour="thread" ref={lijstRef} onScroll={onThreadScroll} className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto max-w-3xl space-y-6 px-4 py-8">
-          {/* Lex stelt zich hier kort voor. Dit is de KORTE variant van het IDENTITEIT-blok in
-              tools/graph-qa/agent/prompts.py – dezelfde kadering (hulpmiddel, de jurist beslist),
-              minder woorden. De volledige tekst komt uit de agent zelf zodra iemand ernaar vraagt;
-              verander je de een, verander dan de ander mee. Een afzenderloze "Waarmee kan ik
-              helpen?" liet de gebruiker niet weten met wát hij te maken had. */}
+          {/* De begroeting en wat Lex doet staan in de header (`WerkplekHeader`); die zin is de
+              KORTE variant van het IDENTITEIT-blok in tools/graph-qa/agent/prompts.py – dezelfde
+              kadering (hulpmiddel, de jurist beslist), minder woorden. Verander je de een, verander
+              dan de ander mee. Op een smal scherm toont de header alleen de groet; daar staat de
+              kadering hieronder. */}
           {items.length === 0 && (
-            <div className="pt-[10dvh] text-center">
-              <p className="font-display text-2xl font-semibold text-lint">Ik ben Lex</p>
-              <p className="mx-auto mt-2 max-w-md text-sm text-muted">
-                Het hulpmiddel voor wetsanalyse in deze werkplek: ik zoek bepalingen op in de
-                kennisgraaf, citeer letterlijk en stel markeringen in JAS-klassen voor. Wat ik
-                voorstel, beoordeel jij.
+            <div className="pt-[6dvh] text-center">
+              <p className="mx-auto max-w-md text-sm text-muted md:hidden">
+                Ik zoek bepalingen op, citeer letterlijk en stel JAS-markeringen voor. Wat ik voorstel,
+                beoordeel jij.
               </p>
-              <p className="mx-auto mt-3 max-w-md text-sm text-faint">
+              <p className="mx-auto mt-3 max-w-md text-sm text-faint md:mt-0">
                 Stel een vraag over de wet- en regelgeving, of vraag een annotatie volgens het JAS.
               </p>
               {onRondleiding && (
@@ -1282,7 +1287,7 @@ export function WerkplekClient({
                     ? "Je tokenbudget is op"
                     : vraagOver
                       ? "Wat wil je weten over deze markering?"
-                      : "Stel een vraag of vraag een annotatie…"
+                      : "Stel een vraag of geef een opdracht aan Lex…"
               }
               className="max-h-[200px] flex-1 resize-none bg-transparent px-2 py-2 text-sm text-ink placeholder:text-faint focus:outline-none"
             />

@@ -114,8 +114,11 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
 
 > **De agent heet Lex** in beeld: de paginatitel, het label boven elk antwoord (`ThreadRij`), *Vraag
 > Lex*, "voorstel van Lex", "Kanttekening van Lex". In de **code** heet alles `graph-qa` (map, image,
-> env-vars) en in het **berichtcontract** blijft de rol `assistant` – de naam is presentatie. De lege
-> thread draagt een korte zelfbeschrijving; de volledige staat in `tools/graph-qa/agent/prompts.py`
+> env-vars) en in het **berichtcontract** blijft de rol `assistant` – de naam is presentatie. De
+> **`WerkplekHeader`** draagt een begroeting bij het uur (`lib/begroeting.ts`, pas na het mounten –
+> de server kent de lokale tijd niet) en een korte zelfbeschrijving; volledig in de lege werkplek, een
+> smalle strook met silhouet (`Skyline`, eigen tekening) en tagline zodra er een gesprek is, en op een
+> smal scherm dan helemaal weg. De volledige zelfbeschrijving staat in `tools/graph-qa/agent/prompts.py`
 > (§IDENTITEIT), de toon in `docs/schrijfrichtlijn-lex.md`.
 
 `app/workbench/page.tsx` → `WerkplekVenster` → `components/werkplek/WorkbenchShell.tsx`: een
@@ -199,8 +202,10 @@ graph-qa stuurt per fase een `status`-regel met duur (supervisor → ophaal-agen
 Taalanalyse → Detectie → Besluit → Classificatie → Review → Resultaat → Klaar); `onStatus` plakt die
 als `· <regel>` aan `denk`, en `DenkProces` toont ze live. Onder de annotatiechip staat de **beurtsamenvatting** van de laatste
 ronde (`beurtSamenvatting` in `lib/waarom.ts`, uit `geproduceerd_door.instellingen.meting`):
-resultaat, bronnodes zonder zinsontleding en de totale duur. Het `annotatie`-item draagt ook een
-`denk`-veld: de tijdlijn staat ingeklapt boven de chip als *"Zo is dit tot stand gekomen"*, wordt met
+resultaat, bronnodes zonder zinsontleding en de totale duur. Het `annotatie`-item is een beurt van
+Lex: naam, zijn **samenvatting** (`tekst`, hoogstens vier zinnen, door graph-qa uit de data opgebouwd
+in `agent/nodes/annotatie_samenvatting.py` en als berichttekst bewaard), dan de chip. Het draagt ook
+een `denk`-veld: de tijdlijn staat ingeklapt onderaan als *"Zo is dit tot stand gekomen"*, wordt met
 de beurt bewaard en bij hydratatie teruggehaald. Achteraf moet te zien zijn hoe een annotatie tot
 stand kwam. `ToolSpoor` toont de graafaanroepen van de beurt (`tool_executions`), één regel per
 aanroep.

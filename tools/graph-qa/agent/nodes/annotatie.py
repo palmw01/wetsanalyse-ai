@@ -31,6 +31,7 @@ from ..jas_pipeline.broncontext import BronContext
 from ..models import AgentRun
 from ..narratie import _stap
 from ..state import State
+from .annotatie_samenvatting import samenvatting as annotatie_samenvatting
 from .context import Bouw
 
 logger = logging.getLogger("graph_qa.orchestrator")
@@ -258,16 +259,12 @@ def emit_node(b: Bouw, state: State) -> dict[str, Any]:
             "beslissingen": (state.get("analyse") or {}).get("beslissingen", []),
         }})
 
-    ter_keuze = 0
     for v in voorstellen:
-        ter_keuze += v.get("aandacht") == "geel"
         writer({"type": "element", "element": v})
 
     plek = f"artikel {aanduiding}" + (f" lid {doel['lid']}" if doel.get("lid") else "")
-    delen = [f"Ik heb {len(voorstellen)} JAS-elementen voorgesteld voor {plek}"]
-    if ter_keuze:
-        delen.append(f"{ter_keuze} met een keuze voor jou")
-    samenvatting = "; ".join(delen) + "."
+    # Hoogstens vier zinnen, alles uit de voorstellen zelf – geen modelaanroep, niets verzonnen.
+    samenvatting = annotatie_samenvatting(voorstellen, doel)
     _stap(writer, "Klaar", f"{len(voorstellen)} elementen ter beoordeling")
     writer({"type": "token", "content": samenvatting})
 

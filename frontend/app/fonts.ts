@@ -4,9 +4,12 @@ import { Fira_Sans, Fira_Mono } from "next/font/google";
 // Sans, Fira Mono dient voor tags/bronreferenties. Eén familie voor koppen én broodtekst.
 // Gedeeld zodat zowel de root-layout als de global-error-boundary dezelfde (self-hosted,
 // build-time gebundelde) font-instance gebruiken – geen dubbele subset.
+// Cursief alleen in 400 (de tagline in de werkplekheader); zonder deze stijl tekent de browser een
+// nagemaakte cursief.
 export const sans = Fira_Sans({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
   variable: "--font-sans",
   display: "swap",
 });

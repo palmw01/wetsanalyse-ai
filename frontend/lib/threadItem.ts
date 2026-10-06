@@ -24,6 +24,8 @@ export type ThreadItem = { tool_executions?: import("./annotatieNode").ToolExecu
   // key, dus na het verwijderen van het document is dit het enige dat de kaart nog kan benoemen.
   | {
       id: string; type: "annotatie"; slug: string; titel?: string;
+      /** Wat Lex over de annotatie zegt: hoogstens vier zinnen, door graph-qa uit de data opgebouwd. */
+      tekst?: string;
       denk?: string;
       /** Lex hergebruikte de laag (deels) in plaats van opnieuw te annoteren. */
       hergebruik?: AgentHergebruik;
