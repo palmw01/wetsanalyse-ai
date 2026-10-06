@@ -191,3 +191,54 @@ def test_gevolgdetector_vindt_nooit_een_predicaat_in_een_bijzin(parser):
         for k in GevolgDetector().detecteer(BronTekst.van_tekst(c["id"], c["tekst"], analyse=a)).kandidaten:
             koppen = [t.i for t in a.tokens if k.span.start <= t.start < k.span.eind and t.deprel in {"root", "conj", "parataxis"}]
             assert any(_in_hoofdzin(a, i) for i in koppen), (c["id"], k.span.tekst)
+
+
+# --- referent: een zaak of handeling is geen rechtssubject ------------------------------------------
+
+def test_zaak_en_rol_zijn_disjunct_ook_via_het_einde_van_het_lemma():
+    from agent.jas_pipeline.detectoren.regels import woordenlijsten
+    zaken = woordenlijsten()["ZAAK"].split("|")
+    rollen = woordenlijsten()["ROL"].split("|")
+    assert not [r for r in rollen if any(r.lower().endswith(z) for z in zaken)]
+
+
+@pytest.mark.parametrize("tekst,np,met_rs", [
+    ("Het aanslagbiljet vermeldt de dagtekening.", "Het aanslagbiljet", False),
+    ("Een belastingaanslag is invorderbaar.", "Een belastingaanslag", False),
+    ("De toepassing van het eerste lid leidt tot een bedrag.", "De toepassing", False),
+    ("De belastingschuldige is verplicht te betalen.", "De belastingschuldige", True),
+    ("De inspecteur is bevoegd de aanslag te verminderen.", "De inspecteur", True),
+    ("Hij is verplicht de aanslag te betalen.", "Hij", True),
+])
+def test_referent_bepaalt_of_rechtssubject_een_hypothese_is(parser, tekst, np, met_rs):
+    k = next(k for k in NaamwoordgroepDetector().detecteer(_bron(tekst, parser)).kandidaten if k.span.tekst == np)
+    assert ("Rechtssubject" in k.possible_classes) is met_rs
+    if not met_rs:
+        assert k.evidence[0].code in {"THING_NP", "ACTION_NP"} and "Rechtsobject" in k.possible_classes
+
+
+def test_beperkende_bijzin_bij_een_zaak_biedt_geen_rechtssubject_aan(parser):
+    zaak = BijzinDetector().detecteer(_bron("Het aanslagbiljet dat is verzonden, is geldig.", parser)).kandidaten
+    persoon = BijzinDetector().detecteer(_bron("De belanghebbende die bezwaar maakt, betaalt.", parser)).kandidaten
+    assert zaak and all("Rechtssubject" not in k.possible_classes for k in zaak)
+    assert all(e.regel == "jas.voorwaarde.beperkende_bijzin_bij_zaak" for k in zaak for e in k.evidence)
+    assert persoon and all("Rechtssubject" in k.possible_classes for k in persoon)
+
+
+def test_geen_fusiekandidaat_met_een_zaak_als_kop_krijgt_rechtssubject(parser):
+    """Invariant over v1, diagnostiek en concepten: de klassenunie lekt Rechtssubject niet terug,
+    tenzij een detector op dezelfde span een persoon zag."""
+    import json
+    from pathlib import Path
+
+    from agent.jas_pipeline.fusie import fuseer
+    from eval import casusbron
+    diag = json.loads((Path(__file__).parent / "fixtures/detector_audit_diagnostiek.json").read_text())
+    for c in [*casusbron.laad(), *casusbron.laad("concept"), *diag]:
+        f = fuseer(detecteer_alles(_bron(c["tekst"], parser)))
+        zaak = {b.kandidaat_id for b in f.bijdragen for e in b.bewijs if e.code in {"THING_NP", "ACTION_NP"}}
+        persoon = {b.kandidaat_id for b in f.bijdragen for e in b.bewijs
+                   if e.code in {"ROLE_NOUN", "PERSON_PRONOUN"} or e.detector == "subject"}
+        for k in f.kandidaten:
+            if k.id in zaak - persoon:
+                assert "Rechtssubject" not in k.possible_classes, (c["id"], k.span.tekst)

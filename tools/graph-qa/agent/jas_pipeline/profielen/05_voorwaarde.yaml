@@ -19,6 +19,7 @@ candidate_rules:
   - {id: jas.voorwaarde.voorwaardelijke_bijzin, status: geïmplementeerd}
   - {id: jas.voorwaarde.vaste_inleiding, status: geïmplementeerd}
   - {id: jas.voorwaarde.beperkende_bijzin, status: geïmplementeerd}
+  - {id: jas.voorwaarde.beperkende_bijzin_bij_zaak, status: geïmplementeerd}
   - {id: jas.voorwaarde.bijwoord, status: geïmplementeerd}
   - {id: jas.voorwaarde.als_bijzin, status: geïmplementeerd}
   - {id: jas.voorwaarde.wegens, status: geïmplementeerd}

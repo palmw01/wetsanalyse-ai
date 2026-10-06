@@ -154,15 +154,40 @@ def _nominaal(a: LinguisticAnalysis, t: Token) -> bool:
     return False
 
 
+PERSOON, ZAAK, HANDELING, ONBEKEND = "persoon", "zaak", "handeling", "onbekend"
+
+
+def referent(a: LinguisticAnalysis, t: Token, uitgesloten: list[tuple[int, int]]) -> str:
+    """Wat de kop van een naamwoordgroep aanduidt: een persoon, een zaak, een handeling of onbekend.
+
+    Een rol of persoonlijk voornaamwoord gaat voor (ROL is disjunct met ZAAK). Een document of
+    rechtshandeling als ding ('het aanslagbiljet', 'een belastingaanslag') is een zaak; een
+    genominaliseerde handeling ('de toepassing van …') een handeling. Geen van beide kan drager van
+    een recht of plicht zijn, dus geen Rechtssubject (profiel Rechtssubject, negative_patterns).
+    """
+    lemma = (t.lemma or t.tekst).lower()
+    if t.upos == "PRON" or _lijst("ROL").match(lemma) or _lijst("ROL").match(t.tekst):
+        return PERSOON
+    if any(lemma.endswith(w) for w in woordenlijsten()["ZAAK"].split("|")):
+        return ZAAK
+    if _nominalisatie(a, t, uitgesloten):
+        return HANDELING
+    return ONBEKEND
+
+
 class NaamwoordgroepDetector:
     REGELS: tuple[str, ...] = (
         "jas.parameter.beschrijving", "jas.variabele.uitvoer_van_afleiding", "jas.variabele.eigenschap_np",
-        "jas.subject.voornaamwoord", "jas.subject.rollexicon", "jas.subject.np_bij_normatief_predicaat",
+        "jas.subject.voornaamwoord", "jas.subject.rollexicon", "jas.object.zaak_als_kern",
+        "jas.object.handeling_als_kern", "jas.subject.np_bij_normatief_predicaat",
         "jas.subject.np", "jas.object.opsommingsonderdeel", "jas.object.np_bij_normatief_predicaat", "jas.object.np")
     naam = "naamwoordgroep"
-    # Grammaticale rol zonder juridische functie: blokkeert sterk patroonbewijs niet (audit D05).
-    BEWIJS = {"SUBJECT_NP": ("generiek", ""), "OBJECT_NP": ("generiek", ""), "ENUMERATED_NP": ("generiek", "")}
-    versie = f"2+verwijzing.{VERWIJZING_VERSIE}"  # D01: normcontext getoetst, niet verondersteld
+    # Grammaticale rol zonder juridische functie: blokkeert sterk patroonbewijs niet (audit D05). Een
+    # getypeerde zaak of handeling is net zo generiek: het zegt wat de groep níét is, geen functie.
+    BEWIJS = {"SUBJECT_NP": ("generiek", ""), "OBJECT_NP": ("generiek", ""), "ENUMERATED_NP": ("generiek", ""),
+              "THING_NP": ("generiek", ""), "ACTION_NP": ("generiek", "")}
+    # 3: een zaak of handeling als kop krijgt geen Rechtssubject (art. 9 lid 5 IW 1990)
+    versie = f"3+verwijzing.{VERWIJZING_VERSIE}"
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         a, reden = _parse_of_reden(bron)
@@ -170,6 +195,7 @@ class NaamwoordgroepDetector:
             return resultaat(self, bron, overgeslagen=True, reden=reden)
         kandidaten = []
         normen = _normsegmenten(bron.tekst)
+        uitgesloten = _vaste_uitdrukkingen(bron.tekst)
         for t in a.tokens:
             if not _nominaal(a, t) or t.deprel in {"fixed", "flat", "flat:name", "compound", "nmod:poss"}:
                 continue
@@ -188,16 +214,18 @@ class NaamwoordgroepDetector:
                 continue
             lemma = (t.lemma or t.tekst).lower()
             norm = any(s <= t.start < e for s, e in normen)
-            bewijs, klassen = self._classificeer_signaal(a, t, lemma, norm)
+            bewijs, klassen = self._classificeer_signaal(a, t, lemma, norm, referent(a, t, uitgesloten))
             kandidaten.append(_kandidaat(bron, grenzen, klassen, bewijs))
         return resultaat(self, bron, kandidaten)
 
-    def _classificeer_signaal(self, a: LinguisticAnalysis, t: Token, lemma: str, norm: bool = True):
+    def _classificeer_signaal(self, a: LinguisticAnalysis, t: Token, lemma: str, norm: bool = True,
+                              soort: str = ONBEKEND):
         """Welke klassen mogelijk zijn en waarom – signalen uit het profiel, geen besluit.
 
         Generieke onderwerp- en objectsignalen heten alleen 'bij normatief predicaat' als dat predicaat
         in hetzelfde beschermde segment staat (audit D01). Zonder normcontext is een lijdend onderwerp
-        of een object geen dragende partij: Rechtssubject vervalt daar als hypothese.
+        of een object geen dragende partij: Rechtssubject vervalt daar als hypothese. Hetzelfde geldt,
+        in elke zinsrol, voor een zaak of handeling als kop (`referent`).
         """
         rel = t.deprel
         if _lijst("PARAMETERWOORD").match(lemma) or _lijst("PARAMETERWOORD").match(t.tekst):
@@ -215,6 +243,12 @@ class NaamwoordgroepDetector:
         if _lijst("ROL").match(lemma) or _lijst("ROL").match(t.tekst):
             return [Evidence(detector=self.naam, code="ROLE_NOUN", regel="jas.subject.rollexicon",
                              relatie=rel, detail=t.tekst)], [SUBJ, OBJ]
+        if soort == ZAAK:
+            return [Evidence(detector=self.naam, code="THING_NP", regel="jas.object.zaak_als_kern",
+                             relatie=rel, detail=t.tekst)], [OBJ, VAR]
+        if soort == HANDELING:
+            return [Evidence(detector=self.naam, code="ACTION_NP", regel="jas.object.handeling_als_kern",
+                             relatie=rel, detail=t.tekst)], [OBJ, VAR]
         if rel in _ONDERWERP:
             regel = "jas.subject.np_bij_normatief_predicaat" if norm else "jas.subject.np"
             klassen = [OBJ, VAR] if (not norm and rel == "nsubj:pass") else [SUBJ, OBJ, VAR]
@@ -233,15 +267,18 @@ class NaamwoordgroepDetector:
 # --- bijzinnen: 'als'-voorwaarde en beperkende relatieve bijzin --------------------------------
 
 class BijzinDetector:
-    REGELS: tuple[str, ...] = ("jas.voorwaarde.als_bijzin", "jas.voorwaarde.beperkende_bijzin")
+    REGELS: tuple[str, ...] = ("jas.voorwaarde.als_bijzin", "jas.voorwaarde.beperkende_bijzin",
+                               "jas.voorwaarde.beperkende_bijzin_bij_zaak")
     naam = "bijzin"
-    versie = f"2+verwijzing.{VERWIJZING_VERSIE}"  # als-clause met eigen predicatie; T4 C037
+    # 3: een beperkende bijzin bij een zaak of handeling biedt geen Rechtssubject aan
+    versie = f"3+verwijzing.{VERWIJZING_VERSIE}"
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         a, reden = _parse_of_reden(bron)
         if a is None:
             return resultaat(self, bron, overgeslagen=True, reden=reden)
         kandidaten = []
+        uitgesloten = _vaste_uitdrukkingen(bron.tekst)
         for t in a.tokens:
             kinderen = a.kinderen(t.i)
             # Ook vergelijkend 'als dat van …' en 'als bestuurder' kunnen mark + advcl krijgen.
@@ -262,13 +299,47 @@ class BijzinDetector:
                                                 for i in a.subboom(k)}
                 g = _bereik(a, _zonder_randfunctie(a, geheel, t.i))
                 if g:
-                    kandidaten.append(_kandidaat(bron, [(g, "np_met_bijzin")], [VW, SUBJ, OBJ], [Evidence(
-                        detector=self.naam, code="RESTRICTIVE_RELATIVE", regel="jas.voorwaarde.beperkende_bijzin",
-                        relatie="acl:relcl", detail=t.tekst)]))
+                    persoonloos = referent(a, t, uitgesloten) in {ZAAK, HANDELING}
+                    kandidaten.append(_kandidaat(bron, [(g, "np_met_bijzin")],
+                                                 [VW, OBJ] if persoonloos else [VW, SUBJ, OBJ], [Evidence(
+                        detector=self.naam, code="RESTRICTIVE_RELATIVE",
+                        regel="jas.voorwaarde.beperkende_bijzin_bij_zaak" if persoonloos
+                        else "jas.voorwaarde.beperkende_bijzin", relatie="acl:relcl", detail=t.tekst)]))
         return resultaat(self, bron, kandidaten)
 
 
 # --- Rechtsfeit: nominalisatie ('het indienen van …', 'de dagtekening van …') -------------------
+
+_BEPALING = {"van", "door"}
+
+
+def _vaste_uitdrukkingen(tekst: str) -> list[tuple[int, int]]:
+    """Vaste voorzetseluitdrukkingen en regelingsvormen: daarin is een -ing-woord geen handeling."""
+    return [m.span() for naam in ("VOORZETSELUITDRUKKING", "REGELINGSVORM")
+            for m in re.finditer(rf"\b(?:{woordenlijsten()[naam]})\b", tekst, re.IGNORECASE)]
+
+
+def _nominalisatie(a: LinguisticAnalysis, t: Token, uitgesloten: list[tuple[int, int]]) -> bool:
+    """Is `t` de kop van een genominaliseerde handeling ('het indienen van', 'de toepassing van')?
+
+    Gedeeld door de nominalisatiedetector (Rechtsfeit-hypothese) en de typering van de referent van
+    een naamwoordgroep (een handeling is geen persoon).
+    """
+    kinderen = a.kinderen(t.i)
+
+    def bepaling(k: int) -> bool:
+        return a.tokens[k].deprel == "nmod" and any(
+            a.tokens[c].deprel == "case" and a.tokens[c].tekst.lower() in _BEPALING for c in a.kinderen(k))
+
+    infinitief = t.upos == "VERB" and t.feat("VerbForm") == "Inf" and any(
+        a.tokens[k].deprel == "det" and a.tokens[k].tekst.lower() == "het" for k in kinderen)
+    handeling = (t.upos == "NOUN" and t.tekst.lower().endswith("ing")
+                 and any(bepaling(k) for k in (
+                     *kinderen, *(j for c in kinderen if a.tokens[c].deprel == "conj"
+                                  and a.tokens[c].tekst.lower().endswith("ing") for j in a.kinderen(c))))
+                 and not any(s <= t.start and t.eind <= e for s, e in uitgesloten))
+    return infinitief or handeling
+
 
 class NominalisatieDetector:
     """Handeling of gebeurtenis als naamwoord: 'het indienen van …', 'de dagtekening van …' (H2:55).
@@ -283,30 +354,16 @@ class NominalisatieDetector:
     naam = "nominalisatie"
     versie = f"4+verwijzing.{VERWIJZING_VERSIE}"  # D04: van/door-bepaling, vaste uitdrukkingen, distributief
     _AAN_DE_RAND = {"case", "cc", "advmod", "mark", "punct"}
-    _BEPALING = {"van", "door"}
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         a, reden = _parse_of_reden(bron)
         if a is None:
             return resultaat(self, bron, overgeslagen=True, reden=reden)
-        uitgesloten = [m.span() for naam in ("VOORZETSELUITDRUKKING", "REGELINGSVORM")
-                       for m in re.finditer(rf"\b(?:{woordenlijsten()[naam]})\b", bron.tekst, re.IGNORECASE)]
-
-        def bepaling(k: int) -> bool:
-            return a.tokens[k].deprel == "nmod" and any(
-                a.tokens[c].deprel == "case" and a.tokens[c].tekst.lower() in self._BEPALING for c in a.kinderen(k))
-
+        uitgesloten = _vaste_uitdrukkingen(bron.tekst)
         kandidaten = []
         for t in a.tokens:
             kinderen = a.kinderen(t.i)
-            infinitief = t.upos == "VERB" and t.feat("VerbForm") == "Inf" and any(a.tokens[k].deprel == "det" and a.tokens[k].tekst.lower() == "het"
-                                                  for k in kinderen)
-            handeling = (t.upos == "NOUN" and t.tekst.lower().endswith("ing")
-                         and any(bepaling(k) for k in (
-                             *kinderen, *(j for c in kinderen if a.tokens[c].deprel == "conj"
-                                          and a.tokens[c].tekst.lower().endswith("ing") for j in a.kinderen(c))))
-                         and not any(s <= t.start and t.eind <= e for s, e in uitgesloten))
-            if not (infinitief or handeling):
+            if not _nominalisatie(a, t, uitgesloten):
                 continue
             weg = {i for k in kinderen if a.tokens[k].deprel in {"parataxis", *_BIJZIN} for i in a.subboom(k)}
             for i in a.subboom(t.i):

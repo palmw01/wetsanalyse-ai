@@ -1,0 +1,11 @@
+    geslaagd  A1  3 kandidaten
+    geslaagd  A2  1 kandidaten
+    geslaagd  A3  1 kandidaten
+    geslaagd  A4  
+    geslaagd  A5  
+    geslaagd  A6  
+    geslaagd  A7  
+      gezakt  A8  IW01 klassen 'zes weken na de dagtekening van het aanslagbiljet' +[] -['Rechtssubject']; IW02 klassen 'de heffing' +[] -['Rechtssubject']
+    geslaagd  A9  min 0.917 → 0.917
+
+03-A – een document of handeling is geen rechtssubject: NIET GESLAAGD

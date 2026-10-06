@@ -57,6 +57,8 @@ detectie:
   SUBJECT_NP: {naam: "Onderwerp bij een recht of plicht", uitleg: "Het onderwerp van een zin met een normatief gezegde – vaak de drager van het recht of de plicht."}
   ENUMERATED_NP: {naam: "Opsommingsonderdeel", uitleg: "Een naamwoordgroep als onderdeel van een opsomming."}
   OBJECT_NP: {naam: "Voorwerp bij een recht of plicht", uitleg: "Een naamwoordgroep als voorwerp bij een normatief gezegde."}
+  THING_NP: {naam: "Document of rechtshandeling als ding", uitleg: "De kern is een zaak ('het aanslagbiljet', 'een belastingaanslag'): geen drager van een recht of plicht, dus geen rechtssubject – ook niet als onderwerp."}
+  ACTION_NP: {naam: "Handeling als naamwoord", uitleg: "De kern is een genominaliseerde handeling ('de toepassing van …'): geen drager van een recht of plicht, dus geen rechtssubject."}
   RESTRICTIVE_RELATIVE: {naam: "Beperkende bijzin", uitleg: "Een betrekkelijke bijzin die de groep beperkt ('die …', 'waarvan …') – vaak een voorwaarde."}
   NOMINALIZED_ACTION: {naam: "Handeling als zelfstandig naamwoord", uitleg: "'Het indienen van', 'de dagtekening van': een handeling of gebeurtenis als naamwoord."}
   # fusie (specificiteit.py)

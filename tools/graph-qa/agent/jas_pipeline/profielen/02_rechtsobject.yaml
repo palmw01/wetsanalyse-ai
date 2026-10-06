@@ -16,6 +16,8 @@ candidate_rules:
   - {id: jas.object.np_bij_normatief_predicaat, status: geïmplementeerd}
   - {id: jas.object.np, status: geïmplementeerd}
   - {id: jas.object.opsommingsonderdeel, status: geïmplementeerd}
+  - {id: jas.object.zaak_als_kern, status: geïmplementeerd}
+  - {id: jas.object.handeling_als_kern, status: geïmplementeerd}
 confusable_classes:
   - {klasse: Rechtssubject, reden: "beide naamwoordgroep"}
   - {klasse: Variabele en variabelewaarde, reden: "een bedrag of toeslag kan de uitkomst van een afleiding zijn"}
