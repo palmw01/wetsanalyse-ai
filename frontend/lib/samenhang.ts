@@ -107,15 +107,44 @@ export function bronDoel(uri: string): NodeDoel | undefined {
     const m = ref.match(/^jci[\d.]+:c:(BWB[RV]\d+)(.*)$/i);
     if (!m) return undefined;
     bwb = m[1].toUpperCase();
-    paren = [...new URLSearchParams(m[2].replace(/^&?/, ""))].filter(([k]) => !["g", "z"].includes(k));
+    paren = jciPad([...new URLSearchParams(m[2].replace(/^&?/, ""))]);
   }
   if (!BWB.test(bwb) || !paren.length || paren.some(([k, v]) => !k || !v || k === "id")) return undefined;
   const waarde = Object.fromEntries(paren);
   return {
-    bron_iri: `urn:bwb:${bwb}:` + paren.map(([k, v]) => `${k}:${v}`).join(":"),
+    bron_iri: `urn:bwb:${bwb}:` + paren.map(([k, v]) => `${k}:${iriSegment(v)}`).join(":"),
     bwb_id: bwb, artikel: waarde.artikel, lid: waarde.lid,
     label: [waarde.artikel && `Artikel ${waarde.artikel}`, waarde.lid && `lid ${waarde.lid}`].filter(Boolean).join(", ") || undefined,
   };
+}
+
+const STRUCTUUR = new Set(["hoofdstuk", "titeldeel", "afdeling", "paragraaf"]);
+
+/** Het pad van een jci zoals de importer het als node-identiteit gebruikt
+ *  (`jci_node_ref_key` in tools/bwb-import/app/references.py):
+ *
+ *  - met een artikel: `artikel` (het laatste), `lid` (het laatste) en elke `o` – het structuurpad
+ *    ernaartoe hoort er níét in, want een artikel is binnen de regeling al uniek;
+ *  - zonder artikel: het volledige structuurpad (hoofdstuk, titeldeel, afdeling, paragraaf),
+ *    want "afdeling 1" komt in elk hoofdstuk terug.
+ *
+ *  De vectoren in `lib/jci-vectoren.json` toetsen beide kanten; wijkt dit af van de importer, dan
+ *  opent "Bekijk samenhang in 3D" een bronnode die niet bestaat. */
+function jciPad(paren: [string, string][]): [string, string][] {
+  const laatste = (k: string) => paren.filter(([n]) => n === k).at(-1)?.[1];
+  const artikel = laatste("artikel");
+  if (artikel) {
+    const lid = laatste("lid");
+    return [["artikel", artikel], ...(lid ? [["lid", lid] as [string, string]] : []),
+      ...paren.filter(([n]) => n === "o")];
+  }
+  return paren.filter(([n]) => STRUCTUUR.has(n));
+}
+
+/** Een waarde als IRI-segment, zoals de importer hem schrijft (`quote(s, safe="")`): een `:` in
+ *  een Awb-artikelnummer ("3:40") wordt `%3A`, anders leest hij als een extra segment. */
+function iriSegment(waarde: string): string {
+  return encodeURIComponent(waarde).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
 }
 
 /** Samenhang-antwoorden samenvoegen (uitgeklapte randknopen). Een knoop is pas rand als hij dat in

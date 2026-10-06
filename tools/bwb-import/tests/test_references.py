@@ -200,3 +200,23 @@ def test_node_ref_key_zonder_structuur_is_de_wet() -> None:
     assert jci_node_ref_key("jci1.3:c:BWBR0028093") == ("BWBR0028093", "wet")
     assert jci_node_ref_key(None) == (None, None)
     assert jci_node_ref_key("geen-jci") == (None, None)
+
+
+def test_jci_naar_bronnode_iri_volgt_de_gedeelde_vectoren() -> None:
+    """Dezelfde vectoren als `bronDoel` in de werkplek (frontend/lib/jci-vectoren.json): de jci van
+    een vindplaats moet in de werkplek op precies de IRI uitkomen die de importer schrijft."""
+    import json
+    from pathlib import Path
+
+    import pytest
+
+    from app.rdf_vocab import Vocab
+
+    pad = Path(__file__).resolve().parents[3] / "frontend" / "lib" / "jci-vectoren.json"
+    if not pad.exists():
+        pytest.skip("frontend niet aanwezig")
+    vocab = Vocab()
+    for v in json.loads(pad.read_text(encoding="utf-8"))["vectoren"]:
+        ref_key, soort = jci_node_ref_key(v["jci"])
+        iri = None if soort == "wet" else str(vocab.by_ref_key(ref_key))
+        assert iri == v["iri"], v["jci"]
