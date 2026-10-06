@@ -32,7 +32,8 @@
             "properties": {
               "dimensies": { "type": "object", "additionalProperties": { "enum": ["uitgevoerd", "gedeeltelijk", "overgeslagen"] } },
               "aangetroffen": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } },
-              "ongedekt": { "type": "array", "items": { "type": "object", "required": ["tekst", "start", "eind"] } }
+              "ongedekt": { "type": "array", "items": { "type": "object", "required": ["tekst", "start", "eind"] } },
+              "alleen_als_geheel": { "type": "array", "items": { "type": "object", "required": ["tekst", "start", "eind"] } }
             }
           }
         }

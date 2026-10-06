@@ -28,6 +28,10 @@ export function DekkingOverzicht({ dekking, volgorde, labelVan }: {
           {regels.length > 1 && <span className="font-semibold text-muted">{labelVan(r.bron_iri)}: </span>}
           <span className="text-ink">{r.bekeken} van {r.totaal} dimensies volledig bekeken</span>
           <span className="text-muted"> · {r.ongedekt} {r.ongedekt === 1 ? "zinsdeel" : "zinsdelen"} zonder treffer</span>
+          {/* Een kandidaat over de hele zin telt als treffer, terwijl er binnen de zin niets gevonden is. */}
+          {!!r.alleenGeheel && <span className="text-muted" data-testid="dekking-geheel"
+            title="Deze zinsdelen zijn alleen als geheel geraakt (bijvoorbeeld de hele normzin); binnen de zin vonden de detectoren niets.">
+            {" "}· {r.alleenGeheel} alleen als geheel geraakt</span>}
           {/* Gezocht is niet hetzelfde als gevonden: per dimensie wat er aangetroffen werd. */}
           {r.gevonden && <p className="mt-0.5 pl-3 text-muted" data-testid="dekking-gevonden">{gevondenTekst(r.gevonden)}</p>}
           {r.onvolledig.length > 0 && <p className="mt-0.5 pl-3 text-muted">

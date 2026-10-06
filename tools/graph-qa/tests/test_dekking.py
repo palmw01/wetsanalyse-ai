@@ -1,10 +1,14 @@
 """Dekkingsboekhouding (ADR-001): A is een invariant, B is zichtbaar, C staat hier niet."""
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 
 from agent.jas_pipeline.besluit import deterministisch, onzeker
-from agent.jas_pipeline.dekking import DIMENSIES, DekkingsFout, controleer_a, ongedekt, structureel
+from agent.jas_pipeline.dekking import (
+    DIMENSIES, DekkingsFout, alleen_als_geheel, controleer_a, ongedekt, structureel,
+)
 from agent.jas_pipeline.detectoren import BronTekst, detecteer_alles, standaard_detectoren
 from agent.jas_pipeline.fusie import fuseer
 from agent.jas_pipeline.taal import NullProvider, SpacyProvider
@@ -83,3 +87,28 @@ def test_aangetroffen_telt_per_dimensie_wat_er_voor_haar_klasse_gevonden_werd():
     # "binnen zes weken" en "indien hij daarom verzoekt" zijn gevonden; een plaats of een definitie niet.
     assert a["tijd"] >= 1 and a["voorwaarde"] >= 1 and a["actor"] >= 1
     assert a["plaats"] == 0 and a["definitie"] == 0 and a["delegatie"] == 0
+
+
+def _fusie(*spans):
+    return SimpleNamespace(kandidaten=[SimpleNamespace(span=SimpleNamespace(bron_iri="urn:t", start=s, eind=e))
+                                       for s, e in spans])
+
+
+def test_een_kandidaat_over_de_hele_zin_dekt_haar_delen_niet():
+    """Een normzin-kandidaat raakt de hele zin, en `ongedekt` telt elke overlap: zonder deze lijst
+    leek de zin onderzocht terwijl er binnen de zin niets gevonden was."""
+    tekst = "Een belastingaanslag is invorderbaar. De ontvanger beslist."
+    bron = BronTekst.van_tekst("urn:t", tekst, analyse=NullProvider().analyseer(tekst))
+    eerste = tekst.index(".") + 1
+    tweede_start = tekst.index("De ontvanger")
+    f = _fusie((0, eerste), (tweede_start, tweede_start + len("De ontvanger")))
+    assert ongedekt(f, bron) == [], "beide zinnen zijn geraakt"
+    geheel = alleen_als_geheel(f, bron)
+    assert [d["tekst"] for d in geheel] == ["Een belastingaanslag is invorderbaar."]
+    assert tekst[geheel[0]["start"]:geheel[0]["eind"]] == geheel[0]["tekst"]
+
+
+def test_alleen_als_geheel_staat_in_de_structurele_dekking():
+    bron, resultaten, f = _keten(NullProvider())
+    per_bron = structureel(f, [bron], {"urn:t": {r.detector for r in resultaten}})["urn:t"]
+    assert isinstance(per_bron["alleen_als_geheel"], list)

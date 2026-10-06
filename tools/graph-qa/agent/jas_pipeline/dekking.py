@@ -83,6 +83,7 @@ def structureel(fusie: Fusie, bronnen: list[Any], gedraaid: dict[str, set[str]])
             ok = [d for d in detectoren if d in ran and d not in skip]
             dims[dim] = "uitgevoerd" if len(ok) == len(detectoren) else ("gedeeltelijk" if ok else "overgeslagen")
         per_bron[bron.bron_iri] = {"dimensies": dims, "ongedekt": ongedekt(fusie, bron),
+                                   "alleen_als_geheel": alleen_als_geheel(fusie, bron),
                                    "aangetroffen": aangetroffen(fusie, bron.bron_iri)}
     return per_bron
 
@@ -103,6 +104,30 @@ def aangetroffen(fusie: Fusie, bron_iri: str) -> dict[str, int]:
     return uit
 
 
+def _delen(bron: Any) -> list[tuple[int, int]]:
+    """De zinnen en bijzinnen van een bron, als offsets; leeg zonder taalanalyse."""
+    if bron.analyse is None:
+        return []
+    return sorted({(z.start, z.eind) for z in bron.analyse.zinnen}
+                  | {(c.start, c.eind) for c in bijzinnen(bron.analyse)})
+
+
+def alleen_als_geheel(fusie: Fusie, bron: Any) -> list[dict[str, Any]]:
+    """Zinnen en bijzinnen die alleen geraakt worden door kandidaten die hen geheel omvatten.
+
+    `ongedekt` telt elke overlap. Een normzin-kandidaat over de hele zin maakt dan alles gedekt,
+    ook als binnen die zin niets gevonden is – geen eigenschap, geen hoeveelheid, geen rol. Deze
+    lijst maakt dat zichtbaar zonder `ongedekt` te veranderen: het is een signaal om te kijken, geen
+    fout (een korte zin kán terecht één element zijn) en geen uitspraak over recall."""
+    spans = [(k.span.start, k.span.eind) for k in fusie.kandidaten if k.span.bron_iri == bron.bron_iri]
+    uit = []
+    for s, e in _delen(bron):
+        raak = [(ks, ke) for ks, ke in spans if ks < e and s < ke]
+        if raak and all(ks <= s and ke >= e for ks, ke in raak) and bron.tekst[s:e].strip(" .,;:"):
+            uit.append({"tekst": bron.tekst[s:e], "start": s, "eind": e})
+    return uit
+
+
 def ongedekt(fusie: Fusie, bron: Any) -> list[dict[str, Any]]:
     """Zinnen en bijzinnen van deze bron waar geen enkele kandidaat mee overlapt, met hun offsets
     (codepoints binnen de bronnode), zodat de werkplek ze in de tekst kan aanwijzen."""
@@ -110,12 +135,8 @@ def ongedekt(fusie: Fusie, bron: Any) -> list[dict[str, Any]]:
 
     def raak(s: int, e: int) -> bool:
         return any(ks < e and s < ke for ks, ke in spans)
-    delen: list[tuple[int, int]] = []
-    if bron.analyse is not None:
-        delen += [(z.start, z.eind) for z in bron.analyse.zinnen]
-        delen += [(c.start, c.eind) for c in bijzinnen(bron.analyse)]
     uit = []
-    for s, e in sorted(set(delen)):
+    for s, e in _delen(bron):
         if not raak(s, e) and bron.tekst[s:e].strip(" .,;:"):
             uit.append({"tekst": bron.tekst[s:e], "start": s, "eind": e})
     return uit

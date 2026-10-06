@@ -32,6 +32,9 @@ export interface StructureleDekking {
   /** Per dimensie hoeveel kandidaten een hypothese voor haar klasse(n) droegen. Ontbreekt bij een
    *  oudere meting – dan is het onbekend, niet 0. */
   aangetroffen?: Record<string, number>;
+  /** Zinsdelen die alleen geraakt werden door een kandidaat over het geheel: binnen de zin niets
+   *  gevonden. Ontbreekt bij een oudere meting. */
+  alleen_als_geheel?: { tekst: string; start: number; eind: number }[];
 }
 export interface NodeDekking {
   voltooid?: boolean;

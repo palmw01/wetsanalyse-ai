@@ -24,6 +24,14 @@ describe("dekkingPerBron", () => {
     expect(gevondenTekst([{ dimensie: "tijd", aantal: 0 }])).toBe("Niets gevonden");
   });
 
+  it("telt wat alleen als geheel geraakt werd – en laat het weg bij een oudere meting", () => {
+    const [met] = dekkingPerBron({ structureel: { a: { dimensies: { tijd: "uitgevoerd" }, ongedekt: [],
+      alleen_als_geheel: [{ tekst: "Een aanslag is invorderbaar.", start: 0, eind: 28 }] } } }, ["a"]);
+    expect(met.alleenGeheel).toBe(1);
+    const [zonder] = dekkingPerBron({ structureel: { a: { dimensies: { tijd: "uitgevoerd" }, ongedekt: [] } } }, ["a"]);
+    expect(zonder.alleenGeheel).toBeUndefined();
+  });
+
   it("is leeg zonder meting", () => {
     expect(dekkingPerBron(undefined, [])).toEqual([]);
     expect(dekkingPerBron({}, [])).toEqual([]);

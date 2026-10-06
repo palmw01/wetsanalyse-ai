@@ -22,6 +22,8 @@ export interface DekkingRegel {
   /** Wat er per dimensie gevonden werd (alleen dimensies met een telling); `undefined` bij een oudere
    *  meting zonder telling – "gezocht" is dan bekend, "gevonden" niet. */
   gevonden?: { dimensie: string; aantal: number }[];
+  /** Zinsdelen die alleen als geheel geraakt werden; `undefined` bij een oudere meting. */
+  alleenGeheel?: number;
 }
 
 /** Per bronnode: hoeveel detectiedimensies volledig draaiden, welke niet, en hoeveel zinsdelen geen
@@ -41,6 +43,7 @@ export function dekkingPerBron(dekking: NodeDekking | undefined, volgorde: strin
         ongedekt: (m.ongedekt ?? []).length,
         ...(m.aangetroffen ? { gevonden: dims.filter(([d]) => typeof m.aangetroffen?.[d] === "number")
           .map(([dimensie]) => ({ dimensie, aantal: m.aangetroffen![dimensie] })) } : {}),
+        ...(m.alleen_als_geheel ? { alleenGeheel: m.alleen_als_geheel.length } : {}),
       };
     })
     .sort((a, b) => plek(a.bron_iri) - plek(b.bron_iri));

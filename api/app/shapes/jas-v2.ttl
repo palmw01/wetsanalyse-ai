@@ -130,6 +130,7 @@ jasv:DekkingShape a sh:NodeShape ;
   sh:property [ sh:path jas:bron ; sh:nodeKind sh:IRI ; sh:minCount 1 ; sh:maxCount 1 ;
                 sh:pattern "^urn:bwb:BWB[RV][0-9]+" ; sh:group jasv:JasModel ] ;
   sh:property [ sh:path jas:ongedekt ; sh:class oa:SpecificResource ; sh:group jasv:RdfStructuur ] ;
+  sh:property [ sh:path jas:alleenAlsGeheel ; sh:class oa:SpecificResource ; sh:group jasv:RdfStructuur ] ;
   sh:property [ sh:path jas:dimensie ; sh:node jasv:DimensieShape ; sh:group jasv:RdfStructuur ] .
 
 # Per dimensie: of ze bekeken is, en – als de meting het draagt – hoeveel er gevonden werd.

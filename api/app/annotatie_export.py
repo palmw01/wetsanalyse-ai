@@ -221,6 +221,9 @@ def pdf_regels(view: dict, verklaringen: dict) -> list[tuple[str, str]]:
                     f"{d} {gevonden[d] if gevonden.get(d) else 'niets'}" for d in dims if d in gevonden)))
             for deel in m.get("ongedekt") or []:
                 uit.append(("BodyText", f"Zonder detectortreffer: “{deel.get('tekst', '')}”"))
+            for deel in m.get("alleen_als_geheel") or []:
+                # Geraakt, maar alleen door een kandidaat over het geheel: binnen de zin niets gevonden.
+                uit.append(("BodyText", f"Alleen als geheel gemarkeerd: “{deel.get('tekst', '')}”"))
     if view.get("audit"):
         uit.append(("Heading2", "Historie"))
         for audit in view["audit"]:

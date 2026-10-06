@@ -525,7 +525,9 @@ draaiden en welke zinsdelen geen enkele kandidaat opleverden; de api geeft dat m
   hele deel: zelf markeren zonder de grenzen te trekken.
 - `DekkingOverzicht` in de `extra`-haak toont per bronnode hoeveel dimensies volledig draaiden en
   welke niet, en per dimensie wat er gevonden werd (`aangetroffen`, `gevondenTekst` in
-  `lib/dekking.ts`). Een oudere meting zonder telling toont geen regel: onbekend is geen 0.
+  `lib/dekking.ts`). Een oudere meting zonder telling toont geen regel: onbekend is geen 0. Ook het
+  aantal zinsdelen dat alleen als geheel geraakt werd (`alleen_als_geheel`, bv. alleen de hele
+  normzin) staat erbij: in `ongedekt` telt zo'n zin als geraakt.
 
 ### Zelf annoteren (tekstselectie)
 
