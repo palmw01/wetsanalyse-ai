@@ -117,6 +117,46 @@ def predicaten(a: LinguisticAnalysis) -> list[Constituent]:
     return uit
 
 
+# Wat níét bij de eigen clause van een predicaat hoort: een bijwoordelijke bijzin of een
+# nevengeschakelde zin drukt een eigen functie uit (een voorwaarde, een tweede gevolg).
+_EIGEN_FUNCTIE = {"advcl", "parataxis"}
+_CLAUSERAND = {"mark", "cc", "punct"}
+
+
+def _eigen_predicaat(a: LinguisticAnalysis, i: int) -> bool:
+    t = a.tokens[i]
+    return t.upos in {"VERB", "AUX"} or any(
+        a.tokens[k].deprel in {"nsubj", "nsubj:pass", "cop"} for k in a.kinderen(i))
+
+
+def clausebereik(a: LinguisticAnalysis, kop: int) -> tuple[int, int] | None:
+    """De eigen clause van een predicaat: zijn subboom zonder ingebedde functies.
+
+    Weg gaan de bijwoordelijke bijzinnen en nevengeschakelde zinnen (`advcl`, `parataxis`), een
+    `conj` met een eigen predicaat of onderwerp, en voegwoorden en leestekens aan de rand. In
+    "Indien …, vindt het eerste lid toepassing." is dat "vindt het eerste lid toepassing".
+
+    Blijft er geen aaneengesloten stuk tekst over, dan is het antwoord `None`: dan is er geen
+    brongetrouwe clausegrens, en de aanroeper valt zichtbaar terug op zijn eigen grens. Er wordt
+    nooit een span gegokt.
+    """
+    if a.gedegradeerd:
+        return None
+    weg = set()
+    for k in a.kinderen(kop):
+        rel = a.tokens[k].deprel
+        if rel in _EIGEN_FUNCTIE or (rel == "conj" and _eigen_predicaat(a, k)):
+            weg.update(a.subboom(k))
+    tokens = sorted(set(a.subboom(kop)) - weg)
+    while tokens and tokens[0] != kop and a.tokens[tokens[0]].deprel in _CLAUSERAND:
+        tokens.pop(0)
+    while tokens and tokens[-1] != kop and a.tokens[tokens[-1]].upos == "PUNCT":
+        tokens.pop()
+    if not tokens or not a.aaneengesloten(tuple(tokens)):
+        return None
+    return a.bereik(tokens)
+
+
 def spanopties(a: LinguisticAnalysis) -> set[tuple[int, int]]:
     """Alle grenzen die de parse aanreikt: elke subboom, elke (kern-)naamwoordgroep, elke bijzin,
     elk aaneengesloten predicaat en elke zin – zonder interpunctie aan de rand.

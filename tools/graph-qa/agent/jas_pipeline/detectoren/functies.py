@@ -4,12 +4,18 @@ Toewijzing en toepassingskeuze worden op dependencies getoetst, niet op woordvol
 'stellen op' telt alleen met een grootheid als lijdend onderwerp, een toepassingskeuze alleen onder
 een voorwaarde en niet ontkend of als schakelbepaling ('overeenkomstige toepassing'). Rekenkundige
 constructies gebruiken beschermde segmenten; de parse is vereist en wordt niet aangepast.
+
+De span is de constructie zelf, niet het segment eromheen: een afleiding 'zoveel … als …' loopt
+van 'zoveel' tot het einde van de invoer, een toepassingskeuze is de eigen clause van 'vindt'
+(`taal.clausebereik`). Het segment blijft beschikbaar als spanoptie `segment`. Anders valt een
+functie samen met de norm die hetzelfde segment draagt, en krijgen ze samen één besluit.
 """
 import json
 import re
 from functools import cache
 
-from ..kandidaten import Candidate, Evidence
+from ..kandidaten import BronSpan, Candidate, Evidence, SpanOption
+from ..taal.afgeleid import clausebereik
 from ..taal.grenzen import VERSIE as GRENS_VERSIE, analyseer_grenzen
 from ..taal.verwijzingen import VERSIE as VERWIJZING_VERSIE
 from . import resultaat
@@ -34,7 +40,8 @@ def _elliptisch() -> re.Pattern:
 
 class FunctieDetector:
     naam = "functie"
-    versie = f"2+grenzen.{GRENS_VERSIE}+verwijzing.{VERWIJZING_VERSIE}"  # toewijzing/toepassing op dependencies
+    # 3: afleiding en toepassingskeuze op hun eigen span, het segment als optie
+    versie = f"3+grenzen.{GRENS_VERSIE}+verwijzing.{VERWIJZING_VERSIE}"
     CODES = ("CALCULATION_ASSIGNMENT", "CALCULATION_QUANTITY", "CALCULATION_CALENDAR_POSITION",
              "TEMPORAL_DESCRIPTION", "CONDITIONAL_ELLIPSIS", "CALCULATION_APPLICABILITY")
     REGELS = ("jas.afleiding.passieve_toewijzing", "jas.afleiding.aantal_uit_restant",
@@ -47,15 +54,17 @@ class FunctieDetector:
             return resultaat(self, bron, overgeslagen=True, reden=reden)
         ks, gezien = [], set()
 
-        def voeg(s, e, klasse, code, regel, **bewijs):
+        def voeg(s, e, klasse, code, regel, segment=None, **bewijs):
             if code not in self.CODES:
                 raise ValueError(f"onbekende functiecode {code}")
             if (s, e, code) in gezien:          # twee predicaten in één segment: één hypothese
                 return
             gezien.add((s, e, code))
+            opties = [SpanOption(soort="segment", span=BronSpan.van(bron.span(*segment)))] \
+                if segment and segment != (s, e) else []
             ks.append(Candidate.maak(bron.span(s, e), [klasse], [Evidence(
                 detector=self.naam, code=code, regel=regel,
-                detail=json.dumps(bewijs, ensure_ascii=False, sort_keys=True))]))
+                detail=json.dumps(bewijs, ensure_ascii=False, sort_keys=True))], opties))
 
         def lemma(i):
             return (a.tokens[i].lemma or a.tokens[i].tekst).lower()
@@ -94,15 +103,18 @@ class FunctieDetector:
                     if not (ontkend or overeenkomstig) and regel and seg:
                         ids = set(a.subboom(regel[0])) - set(a.subboom(t0))
                         g = bereik(a, ids)
-                        voeg(*seg, AR, "CALCULATION_APPLICABILITY", self.REGELS[5],
+                        clause = clausebereik(a, t.i)
+                        # Geen aaneengesloten clause: zichtbaar het segment, nooit een gegokte grens.
+                        extra = {} if clause else {"clause_onderbroken": True}
+                        voeg(*(clause or seg), AR, "CALCULATION_APPLICABILITY", self.REGELS[5], segment=seg,
                              toepasselijke_regel={"start": g[0], "eind": g[1], "tekst": bron.tekst[g[0]:g[1]]}
-                             if g else None)
+                             if g else None, **extra)
 
         for segment in segmenten:
             s, e = segment.start, segment.eind
             tekst = bron.tekst[s:e]
             if m := _AANTAL.search(tekst):
-                voeg(s, e, AR, "CALCULATION_QUANTITY", self.REGELS[1],
+                voeg(s + m.start(), s + m.end("invoer"), AR, "CALCULATION_QUANTITY", self.REGELS[1], segment=(s, e),
                      **{naam: {"start": s + m.start(naam), "eind": s + m.end(naam), "tekst": m[naam]}
                         for naam in ("uitkomst", "invoer")})
             # Een ordinaliteitsvergelijking bij het bepalen van een vervaldatum, geen losse 'als'.

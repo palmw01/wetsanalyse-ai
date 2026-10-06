@@ -4,7 +4,7 @@ from __future__ import annotations
 import pytest
 
 from agent.jas_pipeline.taal import (
-    LinguisticAnalysis, Niveau, NullProvider, SpacyProvider, Token, Zin, bijzinnen, maak_provider,
+    LinguisticAnalysis, Niveau, NullProvider, SpacyProvider, Token, Zin, bijzinnen, clausebereik, maak_provider,
     naamwoordgroepen, predicaten, spanopties,
 )
 from agent.jas_pipeline.taal.provider import tokens_en_zinnen
@@ -23,13 +23,13 @@ _RIJEN = [  # tekst, upos, head, deprel
 ]
 
 
-def _analyse() -> LinguisticAnalysis:
+def _analyse(tekst: str = _TEKST, rijen=_RIJEN) -> LinguisticAnalysis:
     tokens, pos = [], 0
-    for i, (w, upos, head, rel) in enumerate(_RIJEN):
-        start = _TEKST.index(w, pos)
+    for i, (w, upos, head, rel) in enumerate(rijen):
+        start = tekst.index(w, pos)
         tokens.append(Token(i, w, start, start + len(w), 0, w.lower(), upos, "", (), head, rel))
         pos = start + len(w)
-    return LinguisticAnalysis(_TEKST, tuple(tokens), (Zin(0, 0, len(_TEKST), (0, len(tokens))),), "hand")
+    return LinguisticAnalysis(tekst, tuple(tokens), (Zin(0, 0, len(tekst), (0, len(tokens))),), "hand")
 
 
 def _teksten(a, cs):
@@ -139,3 +139,38 @@ def test_benchmark_gebruikt_alleen_de_ontwikkelsplit():
     casussen = ontwikkelcasussen()
     assert casussen and {c["split"] for c in casussen} == {"ontwikkeling"}
     assert not {c["familie"] for c in casussen} & {"BW6", "Omgevingswet"}
+
+
+# --- de eigen clause van een predicaat -----------------------------------------------------------
+
+def test_clausebereik_laat_de_voorwaarde_en_de_rand_weg():
+    a = _analyse()
+    assert a.tekst[slice(*clausebereik(a, 10))] == "is hij de boete verschuldigd"
+    assert a.tekst[slice(*clausebereik(a, 4))] == "de verzekerde niet betaalt"
+
+
+def test_clausebereik_gokt_niet_als_de_clause_onderbroken_is():
+    #   Hij is , indien hij niet betaalt , de boete verschuldigd .
+    #   0   1  2 3      4   5    6       7 8  9     10          11
+    tekst = "Hij is, indien hij niet betaalt, de boete verschuldigd."
+    rijen = [("Hij", "PRON", 10, "nsubj"), ("is", "AUX", 10, "cop"), (",", "PUNCT", 6, "punct"),
+             ("indien", "SCONJ", 6, "mark"), ("hij", "PRON", 6, "nsubj"), ("niet", "ADV", 6, "advmod"),
+             ("betaalt", "VERB", 10, "advcl"), (",", "PUNCT", 6, "punct"), ("de", "DET", 9, "det"),
+             ("boete", "NOUN", 10, "obj"), ("verschuldigd", "ADJ", -1, "root"), (".", "PUNCT", 10, "punct")]
+    assert clausebereik(_analyse(tekst, rijen), 10) is None
+
+
+def test_clausebereik_houdt_een_nevengeschikt_gevolg_apart():
+    #   De termijn vervalt en de boete vervalt .
+    tekst = "De termijn vervalt en de boete vervalt."
+    rijen = [("De", "DET", 1, "det"), ("termijn", "NOUN", 2, "nsubj"), ("vervalt", "VERB", -1, "root"),
+             ("en", "CCONJ", 6, "cc"), ("de", "DET", 5, "det"), ("boete", "NOUN", 6, "nsubj"),
+             ("vervalt", "VERB", 2, "conj"), (".", "PUNCT", 2, "punct")]
+    a = _analyse(tekst, rijen)
+    assert tekst[slice(*clausebereik(a, 2))] == "De termijn vervalt"
+    assert tekst[slice(*clausebereik(a, 6))] == "de boete vervalt"
+
+
+def test_clausebereik_zonder_parse_is_none():
+    a = NullProvider().analyseer("Het besluit vervalt.")
+    assert clausebereik(a, 0) is None
