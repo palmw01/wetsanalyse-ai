@@ -162,6 +162,35 @@ bruikbaar is.
 telkens **stille onvolledigheid**: geen fout, geen leeg resultaat, gewoon een antwoord dat minder weet
 dan de graaf.
 
+- **Elke graaftool levert het resultaatcontract** (`agent/resultaat.py`), dezelfde vorm als de
+  annotatie-leestools: `{status, volledig, aantal, totaal?, vervolg?, resultaten, toelichting?}`. De
+  tool begrenst zelf, op een natuurlijke grens (een rij, een lid, een structuurniveau), binnen
+  `resultaat.BUDGET`, gemeten op de exacte JSON die het model krijgt. **Er wordt niets afgeknipt**:
+  dat leverde een inhoudsopgave op IRI-volgorde, op 8000 tekens doorgesneden, waarin het model de
+  gaten met "…" vulde. De betekenis ligt vast:
+  - `volledig` = alles binnen de scope van déze aanroep staat erin (niet: alles over de bron);
+  - `vervolg` als en alleen als `volledig` false is – de aanroep die dezelfde set aanvult, mag een
+    andere tool zijn en is geldig tegen het schema van `vervolg.tool`;
+  - `openen` op een rij = verdieping buiten de scope (een ingeklapt deel), geen onvolledigheid;
+  - `aantal` = `len(resultaten)`; andere tellingen staan op de rij of in een eigen veld;
+  - `status` is `ok` of `error` + `reden`. Een ondeelbare eenheid boven de begroting
+    (`ondeelbare_eenheid_te_groot`) en een tool die zijn begroting overschrijdt
+    (`resultaatcontract_overschreden`, `tool_resultaat_te_groot` in log en event) zijn fouten: het model
+    krijgt dan zichtbaar géén resultaat, nooit een ingekort. `has_more` in het event is `not volledig`.
+  - Consumenten lezen de **waarden**, niet de JSON-tekst: `resultaat.waarden` voor grounding en
+    bronnen (anders valt een citaat over een `\n` in de JSON af).
+
+  `tests/test_resultaatcontract.py` draait elke graaftool tegen een worst-case graaf (honderden rijen,
+  lange teksten, LIMIT/OFFSET) en eist: contract-JSON binnen de begroting, geen lege velden, `vervolg`
+  en `openen` geldig tegen hun tool, ORDER BY bij paginering, en dat alle pagina's samen precies de
+  dataset zijn. Gerangschikte lijsten vragen `limit + 1` rijen op (`queries._pagina`).
+- **`inhoudsopgave` is een boom in documentvolgorde** (`agent/graph/structuur.py`): `bwb:volgtOp` met
+  een natuurlijke terugval (hoofdstukken Romeins), opeenvolgende artikelen zonder titel als één rij
+  met hun echte `nummers` (geen "32–35" dat een artikel 34 suggereert), zo diep als binnen de
+  begroting past en nooit een half niveau. Een ingeklapt deel draagt zijn tellingen en `openen`
+  (`vanaf` = zijn IRI; een nummer als "1" is dubbelzinnig: afdeling 1 komt in elk hoofdstuk terug). Past het bovenste niveau zelf niet (de Leidraad: ~800 divisies met
+  titel), dan pagineert hij dat met `offset`.
+
 - **Elke bepaling loopt via `queries.node_patroon`**, nooit rechtstreeks via `artikel_iri` (die weigert
   een punt en mist dan de divisies van een beleidsregel). De tools nemen `artikel` én `nummer` aan
   (`_aanduiding`).

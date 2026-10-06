@@ -58,7 +58,8 @@ opgeslagen annotaties (die lopen via de wetsanalyse-API, niet via SPARQL).
   met paginatie) en `semantic_search` (op betekenis, via een GraphDB-similarity-index).
 - **Ophalen** – `get_artikel`, `get_lid`, `get_bepaling`. Werken ook op divisies van een beleidsregel
   (`nummer: "25.1"`).
-- **Structuur** – `inhoudsopgave`: hoofdstukken, afdelingen, artikelen of divisies en waarin ze zitten.
+- **Structuur** – `inhoudsopgave`: de boom van een regeling in documentvolgorde, met artikelbereiken; een
+  ingeklapt deel opent met `vanaf=<iri>`.
 - **Regelingen** – `list_regelingen`, `get_regeling_info` (soort, geldigheid, organisatie en de
   WTI-velden), `bijlagen`.
 - **Verwijzingen** – `follow_verwijzingen` (uitgaand), `verwijst_naar_deze` (inkomend, op

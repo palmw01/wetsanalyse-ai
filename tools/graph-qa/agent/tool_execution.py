@@ -5,10 +5,15 @@ import json
 from time import monotonic
 from uuid import uuid4
 
+import logging
+
 from .agent_common import kap_toolresultaat
 from .annotatie_read import AnnotatieReadApi
 from .tools import dispatch
 from .tools.annotatie_tools import ANNOTATIE_TOOL_NAMEN
+from .resultaat import BUDGET, fout, is_contract
+
+logger = logging.getLogger(__name__)
 
 
 def read_port(b, state):
@@ -41,18 +46,36 @@ def execute_tool(b, state, writer, tool, *, operation=None):
         if not isinstance(data, dict):
             data = {}
         status = data.get("status", "error" if raw.startswith("Fout bij tool") else "ok")
+        contract = is_contract(raw) is not None and name not in ANNOTATIE_TOOL_NAMEN
+        te_groot = contract and len(raw) > BUDGET
+        omvang = len(raw)
+        if te_groot:
+            # Een graaftool begrenst zijn eigen resultaat (`agent/resultaat.py`); lukt dat niet, dan is
+            # dat een fout in die tool. Het model krijgt het NIET – ook niet ingekort: liever zichtbaar
+            # geen resultaat dan onzichtbaar halve juridische informatie.
+            logger.error("tool_resultaat_te_groot", extra={"tool": name, "omvang": omvang, "budget": BUDGET})
+            raw = fout("resultaatcontract_overschreden",
+                       f"Het resultaat van {name} past niet binnen de begroting; dit is een fout in de tool.",
+                       omvang=omvang, budget=BUDGET)
+            status = "error"
         results = data.get("resultaten") or ([] if not data.get("element") else [data["element"]])
         writer({**event, "phase": "end", "status": status,
                 # Alleen een antwoord dat een lijst of een element dráágt heeft een aantal. De dekking
                 # heeft geen van beide, en toonde daardoor altijd "0 resultaten".
-                "aantal": len(results) if (name in ANNOTATIE_TOOL_NAMEN and status in ("ok", "partial")
+                "aantal": len(results) if ((name in ANNOTATIE_TOOL_NAMEN or contract) and status in ("ok", "partial")
                                            and ("resultaten" in data or "element" in data)) else None,
-                "has_more": data.get("has_more", bool(data.get("cursor") or data.get("volgende_offset"))) if status in ("ok", "partial") else None,
+                # Bij een contract is er één waarheid: `volledig`. has_more is er een afleiding van.
+                "has_more": (not data.get("volledig", True)) if contract else
+                            data.get("has_more", bool(data.get("cursor") or data.get("volgende_offset")))
+                            if status in ("ok", "partial") else None,
                 "duur_ms": round((monotonic() - start) * 1000),
                 "actualiteit": {k: data[k] for k in ("snapshot_id", "peilmoment", "volledig") if k in data},
-                "foutcode": data.get("reden", "") if status not in ("ok", "partial") else ""})
-        # JSON-annotatieantwoorden nooit midden in een bewijsrecord afkappen.
-        return raw if name in ANNOTATIE_TOOL_NAMEN or operation else kap_toolresultaat(raw)
+                "foutcode": ("tool_resultaat_te_groot" if te_groot else data.get("reden", ""))
+                            if status not in ("ok", "partial") else "",
+                **({"omvang": omvang, "budget": BUDGET} if te_groot else {})})
+        # Contractresultaten (graaftools en annotatietools) zijn begrensd door de tool zelf en worden
+        # nooit afgeknipt. Alleen wat nog géén contract levert valt onder de oude kap.
+        return raw if name in ANNOTATIE_TOOL_NAMEN or operation or contract else kap_toolresultaat(raw)
     except Exception:
         writer({**event, "phase": "end", "status": "unavailable",
                 "duur_ms": round((monotonic() - start) * 1000), "foutcode": "tool_mislukt"})

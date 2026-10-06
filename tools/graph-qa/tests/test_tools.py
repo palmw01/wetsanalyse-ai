@@ -1,6 +1,8 @@
 """WP-D: de registry levert schema's en dispatcht naar de juiste bouwer."""
 from __future__ import annotations
 
+import json
+
 from agent import tools
 from agent.graph import schema
 from agent.mcp_client import MCPError
@@ -92,18 +94,24 @@ def test_semantic_search_zonder_index_degradeert():
 
 
 def test_semantic_search_met_index_roept_graaf():
-    g = FakeGraph(result="treffers")
+    # De index levert Turtle (subject + typen); de tool maakt er rijen van in het resultaatcontract.
+    turtle = ("@prefix bwb: <urn:bwb-ns:> .\n\n<urn:bwb:BWBR0004770:artikel:25> a bwb:Artikel, bwb:Citeerbaar .\n"
+              "<urn:bwb:BWBR0004770:artikel:19:lid:2:o:a> a bwb:Onderdeel .")
+    g = FakeGraph(result=turtle)
     settings = make_settings(similarity_index="bwb_similarity")
-    out = tools.dispatch("semantic_search", g, {"query": "belasting te laat"}, settings)
-    assert out == "treffers"
+    out = json.loads(tools.dispatch("semantic_search", g, {"query": "belasting te laat"}, settings))
+    assert out["volledig"] is True
+    assert out["resultaten"] == [{"node": "urn:bwb:BWBR0004770:artikel:25", "soort": "Artikel"},
+                                 {"node": "urn:bwb:BWBR0004770:artikel:19:lid:2:o:a", "soort": "Onderdeel"}]
     assert g.semantic_queries == ["belasting te laat"]
 
 
 def test_semantic_search_limit_geclampt():
-    # L5: limit clampen 1–50 en niet-int gracieus terugvallen op de default (10).
+    # L5: limit clampen 1–50 en niet-int gracieus terugvallen op de default (10). De index telt
+    # triples, niet treffers: de tool vraagt (offset + limit + 1) × _TRIPLES_PER_TREFFER op.
     from types import SimpleNamespace
 
-    from agent.tools import _h_semantic_search
+    from agent.tools import _TRIPLES_PER_TREFFER as T, _h_semantic_search
 
     captured: dict[str, int] = {}
 
@@ -114,11 +122,11 @@ def test_semantic_search_limit_geclampt():
 
     s = SimpleNamespace(similarity_index="bwb_similarity")
     _h_semantic_search(G(), {"query": "x", "limit": 100000}, s)
-    assert captured["limit"] == 50
+    assert captured["limit"] == (50 + 1) * T
     _h_semantic_search(G(), {"query": "x", "limit": 0}, s)
-    assert captured["limit"] == 1
+    assert captured["limit"] == (1 + 1) * T
     _h_semantic_search(G(), {"query": "x", "limit": "abc"}, s)
-    assert captured["limit"] == 10
+    assert captured["limit"] == (10 + 1) * T
 
 
 # ------------------------------------------------- de graaf is leeg opgekomen

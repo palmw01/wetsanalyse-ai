@@ -162,6 +162,14 @@ def is_artikelnummer(aanduiding: str) -> bool:
     return bool(_ART_RE.match(str(aanduiding).strip()))
 
 
+def _pagina(lim: int, offset: int, meer: bool) -> str:
+    """`LIMIT … OFFSET …` voor een pagina. Met `meer` één rij extra: die bewijst dat er een volgende
+    pagina is, zonder tweede telquery (zie `resultaat.pagina`). De ORDER BY van de aanroeper
+    moet deterministisch zijn, anders schuift een rij tussen pagina's."""
+    off = max(0, int(offset))
+    return f"LIMIT {lim + (1 if meer else 0)}" + (f" OFFSET {off}" if off else "")
+
+
 def node_patroon(bwb_id: str, aanduiding: str, lid: str | None = None) -> str:
     """Graafpatroon dat `?node` bindt aan één bepaling – artikel én divisie.
 
@@ -211,6 +219,7 @@ def fts(
     bwb_id: str | None = None,
     soort: str | None = None,
     offset: int = 0,
+    meer: bool = False,
 ) -> str:
     """Full-text search via de Lucene-index `inst:bwb_tekst`.
 
@@ -232,7 +241,6 @@ def fts(
     dezelfde rij op twee pagina's staan of op geen enkele.
     """
     lim = max(1, min(int(limit), 50))
-    off = max(0, int(offset))
     zoek = query
     if veld:
         v = str(veld).strip()
@@ -259,7 +267,7 @@ def fts(
   BIND(SUBSTR(STR(?node), {len(NS) + 1}) AS ?rest)
   BIND(IF(CONTAINS(?rest, "{SEP}"), STRBEFORE(?rest, "{SEP}"), ?rest) AS ?bwbId)
   OPTIONAL {{ ?reg a bwb:Regeling ; bwb:bwbId ?bwbId ; bwb:citeertitel ?citeertitel }}
-}} ORDER BY DESC(?score) ?node LIMIT {lim} OFFSET {off}"""
+}} ORDER BY DESC(?score) ?node {_pagina(lim, offset, meer)}"""
 
 
 def list_regelingen() -> str:
@@ -512,7 +520,8 @@ def follow_verwijzingen(bwb_id: str, artikel: str, lid: str | None = None) -> st
 }}"""
 
 
-def verwijst_naar_deze(bwb_id: str, artikel: str, lid: str | None = None, limit: int = 50) -> str:
+def verwijst_naar_deze(bwb_id: str, artikel: str, lid: str | None = None, limit: int = 50,
+                       offset: int = 0, meer: bool = False) -> str:
     """INKOMENDE verwijzingen op bepalingniveau: welke tekstdelen citeren dit artikel/lid?
 
     Dit is niet hetzelfde als `referenced_by`, en het verschil is het hele punt. `referenced_by`
@@ -545,7 +554,7 @@ def verwijst_naar_deze(bwb_id: str, artikel: str, lid: str | None = None, limit:
   OPTIONAL {{ ?bron bwb:doelLabel ?stubLabel }}
   BIND(COALESCE(?eigenLabel, ?stubLabel) AS ?bronLabel)
   OPTIONAL {{ ?bron bwb:jci ?bronJci }}
-}} ORDER BY ?bron LIMIT {lim}"""
+}} ORDER BY ?bron ?ankerTekst ?soort ?bronLabel ?bronJci {_pagina(lim, offset, meer)}"""
 
 
 def referenced_by(bwb_id: str, artikel: str) -> str:
@@ -664,7 +673,19 @@ def context(bwb_id: str, artikel: str, lid: str | None = None) -> str:
 # daar niet tegen, want de predicaatnamen stonden nergens waar het model ze kon lezen.
 # ------------------------------------------------------------------
 
-def inhoudsopgave(bwb_id: str, vanaf: str | None = None, diepte: int = 2) -> str:
+def _structuur_iri(bwb_id: str, iri: str) -> str:
+    """Een graaf-IRI als ingang voor `inhoudsopgave(vanaf=…)`, gecontroleerd: hij moet een bronnode
+    van déze regeling zijn (`bronmodel.vindplaats`). Een nummer als "1" is dubbelzinnig (afdeling 1
+    komt in elk hoofdstuk terug); de IRI die een ingeklapt deel in het resultaat draagt niet."""
+    from bronmodel.vindplaats import vindplaats
+
+    vp = vindplaats(iri)
+    if vp is None or vp.bwb_id != _bwb(bwb_id) or vp.soort == "regeling":
+        raise ValueError(f"Geen deel van {bwb_id}: {iri!r}")
+    return vp.bron_iri
+
+
+def inhoudsopgave(bwb_id: str, vanaf: str | None = None, diepte: int = 4) -> str:
     """De structuur van een regeling (of van één structuurdeel): wat zit waarin?
 
     Er was geen enkele manier om een regeling te verkennen. Een jurist die een werkgebied afbakent
@@ -685,7 +706,8 @@ def inhoudsopgave(bwb_id: str, vanaf: str | None = None, diepte: int = 2) -> str
     consument sorteert zelf numeriek.
     """
     d = max(1, min(int(diepte), 4))
-    wortel = node_patroon(bwb_id, vanaf) if vanaf else f'BIND(<{regeling_iri(bwb_id)}> AS ?node)'
+    wortel = (f"BIND(<{_structuur_iri(bwb_id, vanaf)}> AS ?node)" if vanaf and vanaf.startswith(NS)
+              else node_patroon(bwb_id, vanaf) if vanaf else f'BIND(<{regeling_iri(bwb_id)}> AS ?node)')
     takken = []
     for n in range(1, d + 1):
         pad = " . ".join(f"?t{i} {STRUCTUUR} ?t{i + 1}" for i in range(n))
@@ -696,19 +718,18 @@ def inhoudsopgave(bwb_id: str, vanaf: str | None = None, diepte: int = 2) -> str
             f"    FILTER(STRSTARTS(STR(?deel), \"{NS}\"))\n"
             f"    BIND(STR({ouder}) AS ?ouder) }}"
         )
-    return PREFIXES + f"""SELECT ?niveau ?ouder ?deel ?soort ?nummer ?titel ?label ?jci ?volgtOp WHERE {{
+    return PREFIXES + f"""SELECT ?niveau ?ouder ?deel ?soort ?nummer ?titel ?volgtOp WHERE {{
   {wortel}
 {chr(10).join('  UNION ' + t.lstrip() if i else t for i, t in enumerate(takken))}
   OPTIONAL {{ ?deel bwb:nummer ?nummer }}
   OPTIONAL {{ ?deel bwb:titel ?titel }}
-  OPTIONAL {{ ?deel rdfs:label ?label }}
-  OPTIONAL {{ ?deel bwb:jci ?jci }}
   OPTIONAL {{ ?deel bwb:volgtOp ?v . BIND(STR(?v) AS ?volgtOp) }}
   OPTIONAL {{ ?deel a ?t . FILTER(?t IN ({", ".join(CONCRETE_TYPES)})) BIND(STRAFTER(STR(?t), "{ONTOLOGIE}") AS ?soort) }}
 }} ORDER BY ?niveau ?deel"""
 
 
-def zoek_definitie(term: str, bwb_id: str | None = None, limit: int = 25) -> str:
+def zoek_definitie(term: str, bwb_id: str | None = None, limit: int = 25,
+                   offset: int = 0, meer: bool = False) -> str:
     """Waar DEFINIEERT de wet dit begrip? – via `bwb:definieertBegrip`.
 
     De parser haalt per lid en per onderdeel op welke begrippen daar worden gedefinieerd
@@ -736,7 +757,7 @@ def zoek_definitie(term: str, bwb_id: str | None = None, limit: int = 25) -> str
   BIND(SUBSTR(STR(?node), {len(NS) + 1}) AS ?rest)
   BIND(IF(CONTAINS(?rest, "{SEP}"), STRBEFORE(?rest, "{SEP}"), ?rest) AS ?bwbId)
   OPTIONAL {{ ?reg a bwb:Regeling ; bwb:bwbId ?bwbId ; bwb:citeertitel ?citeertitel }}
-}} ORDER BY ?node LIMIT {lim}"""
+}} ORDER BY ?node ?begrip ?inLabel {_pagina(lim, offset, meer)}"""
 
 
 def grondslagen(bwb_id: str, aanduiding: str | None = None) -> str:

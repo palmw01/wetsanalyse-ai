@@ -21,10 +21,13 @@ from typing import Any
 import httpx
 
 from ..graph import queries, schema
+from ..graph.results import parse_select
+from ..graph.structuur import inhoudsopgave_resultaat
 from ..mcp_client import MCPError
 from ..ports import GraphPort
 from .jas_tools import JAS_TOOL_NAMEN, JAS_TOOLS  # noqa: F401 – re-exporteerd voor orchestrator
 from .annotatie_tools import ANNOTATIE_TOOLS, ANNOTATIE_TOOL_NAMEN, dispatch_annotatie
+from ..resultaat import BUDGET, TeGroot, compact, fout, pagina, voorproef
 
 logger = logging.getLogger("graph_qa.tools")
 
@@ -60,17 +63,41 @@ def _aanduiding(a: dict[str, Any]) -> str:
     return str(waarde).strip()
 
 
+def _geheel(waarde: Any, standaard: int, laag: int, hoog: int) -> int:
+    """Een geheel getal uit de toolargumenten, begrensd; onzin wordt de standaard."""
+    try:
+        return max(laag, min(hoog, int(waarde)))
+    except (TypeError, ValueError):
+        return standaard
+
+
+# Een zoek- of definitietreffer draagt het begin van zijn tekst: genoeg om te kiezen en vaak om te
+# citeren, en de rij zegt zelf of het de hele tekst is (`tekst_volledig`). Zo blijft een pagina van
+# tien treffers binnen de begroting zonder dat één lange bepaling de rest verdringt.
+_VOORPROEF = 600
+_VOORPROEF_DEFINITIE = 1500
+
+
+def _met_voorproef(rij: dict[str, str], maximum: int) -> dict[str, Any]:
+    tekst = rij.get("tekst", "")
+    if not tekst:
+        return compact(rij)
+    begin, heel = voorproef(tekst, maximum)
+    return compact({**rij, "tekst": begin, "tekst_volledig": None if heel else False})
+
+
 def _h_search(g: GraphPort, a: dict[str, Any]) -> str:
-    return g.sparql(
-        queries.fts(
-            a["query"],
-            a.get("limit", 10),
-            veld=a.get("veld") or None,
-            bwb_id=a.get("bwb_id") or None,
-            soort=a.get("soort") or None,
-            offset=a.get("offset", 0),
-        )
-    )
+    limit, offset = _geheel(a.get("limit"), 10, 1, 50), _geheel(a.get("offset"), 0, 0, 10_000)
+    rijen = parse_select(g.sparql(queries.fts(
+        a["query"], limit, veld=a.get("veld") or None, bwb_id=a.get("bwb_id") or None,
+        soort=a.get("soort") or None, offset=offset, meer=True)))
+    for r in rijen:
+        try:
+            r["score"] = f"{float(r['score']):.3g}" if r.get("score") else ""
+        except ValueError:
+            pass  # geen getal: laat de waarde zoals de index hem gaf
+    return pagina([_met_voorproef(r, _VOORPROEF) for r in rijen], tool="search_wetgeving",
+                  args={**a, "limit": limit}, limit=limit, offset=offset)
 
 
 def _h_get_artikel(g: GraphPort, a: dict[str, Any]) -> str:
@@ -98,17 +125,34 @@ def _h_verwijzingen(g: GraphPort, a: dict[str, Any]) -> str:
 
 
 def _h_verwijst_naar_deze(g: GraphPort, a: dict[str, Any]) -> str:
-    return g.sparql(
-        queries.verwijst_naar_deze(a["bwb_id"], _aanduiding(a), a.get("lid"), a.get("limit", 50))
-    )
+    limit, offset = _geheel(a.get("limit"), 50, 1, 200), _geheel(a.get("offset"), 0, 0, 100_000)
+    rijen = parse_select(g.sparql(queries.verwijst_naar_deze(
+        a["bwb_id"], _aanduiding(a), a.get("lid"), limit, offset=offset, meer=True)))
+    return pagina(rijen, tool="verwijst_naar_deze", args={**a, "limit": limit}, limit=limit, offset=offset)
+
+
+# De querydiepte van de inhoudsopgave. Hoe diep het RESULTAAT gaat, kiest `structuur` binnen de
+# begroting; wat dieper ligt staat ingeklapt met een ingang (`vanaf` = de IRI van dat deel).
+_INHOUD_DIEPTE = 4
 
 
 def _h_inhoudsopgave(g: GraphPort, a: dict[str, Any]) -> str:
-    return g.sparql(queries.inhoudsopgave(a["bwb_id"], a.get("vanaf") or None, a.get("diepte", 2)))
+    bwb_id, vanaf = a["bwb_id"], a.get("vanaf") or None
+    rijen = parse_select(g.sparql(queries.inhoudsopgave(bwb_id, vanaf, _INHOUD_DIEPTE)))
+    if not rijen:
+        raise ValueError(f"Geen structuur gevonden voor {bwb_id}" + (f" vanaf {vanaf!r}" if vanaf else "")
+                         + ". Controleer het BWB-id (list_regelingen) of het deel.")
+    args = {k: v for k, v in a.items() if k != "offset"}
+    return inhoudsopgave_resultaat(rijen, bwb_id=bwb_id, wortel=rijen[0]["ouder"], args=args,
+                                   query_diepte=_INHOUD_DIEPTE, offset=_geheel(a.get("offset"), 0, 0, 100_000))
 
 
 def _h_zoek_definitie(g: GraphPort, a: dict[str, Any]) -> str:
-    return g.sparql(queries.zoek_definitie(a["term"], a.get("bwb_id") or None, a.get("limit", 25)))
+    limit, offset = _geheel(a.get("limit"), 25, 1, 100), _geheel(a.get("offset"), 0, 0, 100_000)
+    rijen = parse_select(g.sparql(queries.zoek_definitie(
+        a["term"], a.get("bwb_id") or None, limit, offset=offset, meer=True)))
+    return pagina([_met_voorproef(r, _VOORPROEF_DEFINITIE) for r in rijen], tool="zoek_definitie",
+                  args={**a, "limit": limit}, limit=limit, offset=offset)
 
 
 def _h_grondslagen(g: GraphPort, a: dict[str, Any]) -> str:
@@ -162,16 +206,37 @@ _INDEX_ONBRUIKBAAR = (
 )
 
 
+# De similarity-index levert Turtle: per treffer een subject met zijn typen, en `limit` telt TRIPLES,
+# niet treffers (één bepaling met drie typen kost er drie). Vraag daarom ruim op en lees de subjecten
+# in volgorde; zo bestaat er ook een echte `offset`.
+_SUBJECT_RE = re.compile(r"^<(urn:bwb:[^>\s]+)>\s+a\s+([^.]+)\.", re.MULTILINE)
+_TRIPLES_PER_TREFFER = 6
+
+
+def _semantische_treffers(turtle: str) -> list[dict[str, str]]:
+    uit, gezien = [], set()
+    for m in _SUBJECT_RE.finditer(turtle or ""):
+        iri = m.group(1)
+        if iri in gezien:
+            continue
+        gezien.add(iri)
+        soorten = [t.strip().removeprefix("bwb:") for t in m.group(2).split(",")]
+        soort = next((t for t in soorten if t in queries.FTS_TYPES), "")
+        uit.append(compact({"node": iri, "soort": soort}))
+    return uit
+
+
 def _h_semantic_search(g: GraphPort, a: dict[str, Any], settings: Any) -> str:
     if settings is None or not getattr(settings, "similarity_index", ""):
         return _NIET_GECONFIGUREERD
+    limit, offset = _geheel(a.get("limit"), 10, 1, 50), _geheel(a.get("offset"), 0, 0, 450)
     try:
-        limit = int(a.get("limit", 10))
-    except (TypeError, ValueError):
-        limit = 10
-    limit = max(1, min(50, limit))  # clamp zoals search_wetgeving (kosten/DoS begrenzen)
-    try:
-        return g.semantic_search(a["query"], limit)
+        treffers = _semantische_treffers(
+            g.semantic_search(a["query"], (offset + limit + 1) * _TRIPLES_PER_TREFFER))
+        return pagina(treffers[offset:], tool="semantic_search", args={**a, "limit": limit},
+                      limit=limit, offset=offset,
+                      toelichting="Gerangschikt op betekenis; alleen de vindplaats. Haal de tekst op met "
+                                  "get_artikel/get_lid/get_bepaling.")
     except MCPError as exc:
         # De index staat geconfigureerd maar bestaat niet in de graaf. Dat is de toestand vlak ná
         # een herstart: de GraphDB-opslag is niet-persistent. De importer bouwt hem zelf opnieuw
@@ -206,6 +271,13 @@ _NUM = {
                    "Gebruik dit i.p.v. 'artikel' als het nummer een punt bevat.",
 }
 _LID = {"type": "string", "description": "Optioneel lidnummer, bijv. '1'."}
+_OFFSET = {"type": "integer", "description": "Sla de eerste N over: neem dit over uit 'vervolg'."}
+# Elke graaftool levert hetzelfde contract (`agent/resultaat.py`); deze zin staat in elke beschrijving,
+# zodat het model weet dat een onvolledig resultaat zelf zegt hoe je de rest krijgt.
+_CONTRACT = (
+    "\nRESULTAAT: JSON met 'resultaten' en 'volledig'. Is 'volledig' false, dan staat in 'vervolg' de "
+    "exacte aanroep voor het volgende deel – vul niets aan dat je niet hebt opgehaald."
+)
 
 TOOLS: list[dict[str, Any]] = [
     {
@@ -219,7 +291,9 @@ TOOLS: list[dict[str, Any]] = [
             "AFBAKENEN loont: met 'veld' zoek je in één geïndexeerd veld (" + ", ".join(queries.FTS_VELDEN) + "), "
             "met 'bwb_id' binnen één regeling, met 'soort' op één knooptype. "
             "veld='definieertBegrip' vindt wáár de wet een begrip definieert i.p.v. elke bepaling "
-            "die het woord gebruikt; veld='citeertitel' vindt een regeling op naam."
+            "die het woord gebruikt; veld='citeertitel' vindt een regeling op naam.\n"
+            "Een lange tekst komt als begin mee met tekst_volledig=false: haal de bepaling dan op."
+            + _CONTRACT
         ),
         "input_schema": _obj(
             {
@@ -236,7 +310,7 @@ TOOLS: list[dict[str, Any]] = [
                     "description": "Beperk tot één knooptype, bijv. 'Artikel' of 'Onderdeel'.",
                 },
                 "limit": {"type": "integer", "description": "Max. aantal treffers (1-50, default 10)."},
-                "offset": {"type": "integer", "description": "Sla de eerste N treffers over (volgende pagina)."},
+                "offset": _OFFSET,
             },
             ["query"],
         ),
@@ -247,12 +321,15 @@ TOOLS: list[dict[str, Any]] = [
         "description": (
             "Semantisch (op betekenis) zoeken met vector-embeddings. Gebruik dit als de gebruiker "
             "een situatie omschrijft of andere woorden gebruikt dan de wettekst; search_wetgeving "
-            "is voor exacte termen. Combineer beide bij twijfel (hybride)."
+            "is voor exacte termen. Combineer beide bij twijfel (hybride).\n"
+            "GEEFT TERUG per treffer: de vindplaats (graaf-IRI) en het knooptype, gerangschikt op "
+            "betekenis – geen tekst; haal die op met get_artikel/get_lid/get_bepaling." + _CONTRACT
         ),
         "input_schema": _obj(
             {
                 "query": {"type": "string", "description": "Natuurlijke omschrijving van wat je zoekt."},
-                "limit": {"type": "integer", "description": "Max. aantal treffers (default 10)."},
+                "limit": {"type": "integer", "description": "Max. aantal treffers (1-50, default 10)."},
+                "offset": _OFFSET,
             },
             ["query"],
         ),
@@ -346,11 +423,12 @@ TOOLS: list[dict[str, Any]] = [
             "verwijst.\n"
             "VERSCHIL met referenced_by: die noemt alleen de REGELINGEN die ergens hierheen "
             "verwijzen (grofmazig, uit de WTI); deze noemt de bepaling zelf. Wil je weten wie een "
-            "artikel toepast of eraan refereert, gebruik dan deze."
+            "artikel toepast of eraan refereert, gebruik dan deze." + _CONTRACT
         ),
         "input_schema": _obj(
             {"bwb_id": _BWB, "artikel": _ART, "nummer": _NUM, "lid": _LID,
-             "limit": {"type": "integer", "description": "Max. aantal (1-200, default 50)."}},
+             "limit": {"type": "integer", "description": "Max. aantal (1-200, default 50)."},
+             "offset": _OFFSET},
             ["bwb_id"],
         ),
         "handler": _h_verwijst_naar_deze,
@@ -371,16 +449,17 @@ TOOLS: list[dict[str, Any]] = [
             "De STRUCTUUR van een regeling: welke hoofdstukken, afdelingen, paragrafen, artikelen "
             "of divisies zitten erin (en waarin zitten ze)? Gebruik dit om een regeling te "
             "verkennen of een werkgebied af te bakenen, vóór je gaat zoeken.\n"
-            "GEEFT TERUG per deel: niveau, ouder, soort, nummer, titel, label en jci. Laat 'vanaf' "
-            "weg voor de hele regeling, of geef een hoofdstuk-/artikelnummer om daar te beginnen.\n"
-            "LET OP: de rijen staan op IRI-volgorde, niet op documentvolgorde – sorteer nummers "
-            "zelf numeriek (artikel 10 komt ná artikel 2)."
+            "GEEFT TERUG de boom in DOCUMENTVOLGORDE: per deel niveau, soort, nummer en titel; "
+            "opeenvolgende artikelen zonder titel als 'bereik' (bijv. '32–48a', aantal 32). Zo diep "
+            "als past; een deel dat ingeklapt is draagt zijn 'iri' en tellingen – vraag het op met "
+            "vanaf=<die iri>. Ook de totale 'telling' per soort." + _CONTRACT
         ),
         "input_schema": _obj(
             {
                 "bwb_id": _BWB,
-                "vanaf": {"type": "string", "description": "Begin bij dit deel, bijv. '6' of '25.1'. Leeg = hele regeling."},
-                "diepte": {"type": "integer", "description": "Aantal niveaus (1-4, default 2)."},
+                "vanaf": {"type": "string", "description": "Begin bij dit deel: de 'iri' van een ingeklapt "
+                          "deel uit een eerder resultaat, of een nummer ('6', '25.1'). Leeg = hele regeling."},
+                "offset": _OFFSET,
             },
             ["bwb_id"],
         ),
@@ -394,13 +473,14 @@ TOOLS: list[dict[str, Any]] = [
             "GEEFT TERUG: het definiërende tekstdeel met zijn tekst, nummer, jci-vindplaats, BWB-id "
             "en citeertitel – dus een citeerbare wettelijke definitie.\n"
             "VERSCHIL met resolve_begrip: die zoekt in de SKOS-thesaurus (redactionele trefwoorden "
-            "bij een regeling) en levert geen wettelijke definitie. Begin bij deze tool."
+            "bij een regeling) en levert geen wettelijke definitie. Begin bij deze tool." + _CONTRACT
         ),
         "input_schema": _obj(
             {
                 "term": {"type": "string", "description": "Het begrip, bijv. 'bestuurder'."},
                 "bwb_id": {"type": "string", "description": "Optioneel: beperk tot één regeling."},
                 "limit": {"type": "integer", "description": "Max. aantal treffers (1-100, default 25)."},
+                "offset": _OFFSET,
             },
             ["term"],
         ),
@@ -544,6 +624,10 @@ def dispatch(name: str, graph: GraphPort, args: dict[str, Any] | None, settings:
         if tool.get("needs_settings"):
             return tool["handler"](graph, args or {}, settings)
         return tool["handler"](graph, args or {})
+    except TeGroot as exc:
+        # Eén ondeelbare eenheid past niet: zichtbaar geen resultaat, nooit een ingekort.
+        logger.error("ondeelbare_eenheid_te_groot", extra={"tool": name, "omvang": exc.omvang, "budget": BUDGET})
+        return fout("ondeelbare_eenheid_te_groot", str(exc), omvang=exc.omvang, budget=BUDGET)
     except (ValueError, MCPError, KeyError) as exc:
         if _graaf_is_weg(exc):
             # De repository bestaat niet. Niet "tijdelijk onbereikbaar" en geen tikfout in de query:

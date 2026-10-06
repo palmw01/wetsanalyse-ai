@@ -23,6 +23,7 @@ from collections.abc import Iterable, Iterator
 from bronmodel.vindplaats import vindplaats
 
 from .models import Source
+from .resultaat import waarden
 from .namespace import vindplaats_patroon
 from .tools.annotatie_tools import ANNOTATIE_TOOL_NAMEN
 
@@ -100,7 +101,8 @@ def collect_sources(entries: Iterable[tuple[str, str]]) -> list[Source]:
     for tool, text in entries:
         if not text or tool in ANNOTATIE_TOOL_NAMEN:
             continue
-        for uri, iri, jci in iter_refs(text):
+        # De waarden van een contractresultaat (`resultaat.waarden`), niet zijn JSON-tekst.
+        for uri, iri, jci in iter_refs(waarden(text)):
             vp = vindplaats(uri)
             sleutel = vp.bron_iri if vp else uri
             if (bestaand := per_node.get(sleutel)) is not None:
