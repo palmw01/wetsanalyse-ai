@@ -1093,8 +1093,10 @@ resource evalJob 'Microsoft.App/jobs@2024-03-01' = {
           ]
           command: ['sh', '-c']
           args: [
-            'rc=0; echo "=== RETRIEVAL-SMOKE ==="; python -u eval/run_eval.py --retrieval-smoke || rc=1; for i in 1 2 3; do echo "=== RUN $i VAN 3 ==="; python -u eval/run_eval.py --annotatie || rc=1; done; echo "=== KLAAR (rc=$rc) ==="; exit $rc'
+            'rc=0; echo "=== RETRIEVAL-SMOKE ==="; python -u eval/run_eval.py --retrieval-smoke || rc=1; for i in 1 2 3; do echo "=== RUN $i VAN 3 ==="; python -u eval/run_eval.py --annotatie || rc=1; done; for i in 1 2 3; do echo "=== GESPREK $i VAN 3 ==="; python -u eval/run_eval.py --gesprek || true; done; echo "=== KLAAR (rc=$rc) ==="; exit $rc'
           ]
+          // De gesprekken (vervolgvragen in één thread) zijn een trendmeting, geen garantie: ze tellen
+          // niet mee in de exitcode. Zie eval/gesprek.py.
           env: [
             { name: 'AZURE_FOUNDRY_BASE_URL', value: '${llmApiBase}/anthropic' }
             { name: 'AZURE_FOUNDRY_API_KEY_FILE', value: '/run/secrets/llm_api_key' }

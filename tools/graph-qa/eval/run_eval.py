@@ -389,6 +389,29 @@ def _offline_scenario():
     return [case], llm, graph
 
 
+def _offline_gesprek_scenario(db: str):
+    """Twee beurten in één thread met fakes: bewijst dat het harnas een gesprek volgt en per beurt
+    route en tools scoort. Of het échte model de vervolgvraag goed oppakt, meet alleen live."""
+    from tests.fakes import FakeGraph, FakeLLM, response, text_block, tool_block
+
+    graph = FakeGraph(result='?nummer\t?tekst\n"9"\t"Een belastingaanslag is invorderbaar zes weken na de dagtekening."')
+    llm = FakeLLM([
+        response([text_block("WORKERS: antwoord\nSPECIALIST: duiding\nPLAN: haal artikel 9 op")], "end_turn"),
+        response([tool_block("t1", "get_artikel", {"bwb_id": "BWBR0004770", "artikel": "9"})], "tool_use"),
+        response([text_block("Artikel 9 regelt wanneer een aanslag invorderbaar is.")], "end_turn"),
+        response([text_block("WORKERS: antwoord\nSPECIALIST: duiding\nPLAN: lid 2 van artikel 9")], "end_turn"),
+        response([tool_block("t2", "get_lid", {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "2"})], "tool_use"),
+        response([text_block("Lid 2 van artikel 9 regelt een afwijkende termijn.")], "end_turn"),
+    ])
+    case = {"id": "offline-doorvragen", "scenario": "A", "beurten": [
+        {"vraag": "Wat regelt artikel 9 van de Invorderingswet 1990?",
+         "verwacht": {"route": "duiding", "tools_wel": ["get_artikel"], "bevat": ["invorderbaar"]}},
+        {"vraag": "En lid 2?",
+         "verwacht": {"niet_route": ["afgewezen"], "tools_wel": ["get_lid"], "bevat": ["lid 2"]}},
+    ]}
+    return [case], llm, graph, Settings(checkpoint_db_path=db)
+
+
 def _laad_env() -> None:
     try:
         from dotenv import load_dotenv
@@ -404,6 +427,8 @@ def main() -> None:
     ap.add_argument("--golden", type=Path, default=GOLDEN, help="pad naar de golden set (jsonl)")
     ap.add_argument("--annotatie", action="store_true",
                     help="draai de annotatie-set (JAS-markeringen) in plaats van de QA-set")
+    ap.add_argument("--gesprek", action="store_true",
+                    help="draai de gesprekken-set (vervolgvragen in één thread)")
     ap.add_argument("--retrieval-smoke", action="store_true",
                     help="raak elke graaftool één keer tegen de ECHTE graaf en meld lege uitkomsten")
     args = ap.parse_args()
@@ -417,6 +442,20 @@ def main() -> None:
         uitkomsten, geslaagd = draai(Settings.from_env())
         rapporteer(uitkomsten, geslaagd)
         sys.exit(0 if geslaagd else 1)
+
+    if args.gesprek:
+        from eval.gesprek import GOLDEN_GESPREK, print_gesprek_report, run_gesprek_suite
+
+        if args.offline:
+            import tempfile
+
+            with tempfile.TemporaryDirectory() as tmp:
+                cases, llm, graph, settings = _offline_gesprek_scenario(str(Path(tmp) / "cp.db"))
+                resultaten = asyncio.run(run_gesprek_suite(cases, settings=settings, llm=llm, graph=graph))
+        else:
+            _laad_env()
+            resultaten = asyncio.run(run_gesprek_suite(load_golden(GOLDEN_GESPREK), settings=Settings.from_env()))
+        sys.exit(0 if print_gesprek_report(resultaten) else 1)
 
     if args.annotatie:
         if args.offline:
