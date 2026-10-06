@@ -292,6 +292,10 @@ async def _leg_vast(
             opgeslagen_doel = {"bron_iri": doel["bron_iri"], "label": doel.get("label", ""),
                                "snapshot_id": doel["snapshot_id"]}
             bericht |= {
+                # Wat Lex over de annotatie zei (hoogstens vier zinnen, `annotatie_samenvatting`).
+                # Zonder dit veld zag je hem alleen live: na herladen of op een ander apparaat
+                # stond er alleen de kaart.
+                "tekst": schrijver.tekst.strip(),
                 "annotatie_slug": slug,
                 "annotatie_titel": _titel(doel),
                 "denk": schrijver.denk,
