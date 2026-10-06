@@ -114,8 +114,18 @@ export function bronDoel(uri: string): NodeDoel | undefined {
   return {
     bron_iri: `urn:bwb:${bwb}:` + paren.map(([k, v]) => `${k}:${iriSegment(v)}`).join(":"),
     bwb_id: bwb, artikel: waarde.artikel, lid: waarde.lid,
-    label: [waarde.artikel && `Artikel ${waarde.artikel}`, waarde.lid && `lid ${waarde.lid}`].filter(Boolean).join(", ") || undefined,
+    label: vindplaatsLabel(paren) || undefined,
   };
+}
+
+/** Het leesbare label van een bronpad: "Artikel 2, lid 1, onderdeel aa, 1", "Hoofdstuk VI, afdeling 1".
+ *  Zelfde vorm als `vindplaats` in packages/bronmodel; de vectoren in `jci-vectoren.json` toetsen beide. */
+export function vindplaatsLabel(paren: [string, string][]): string {
+  const onderdelen = paren.filter(([k]) => k === "o").map(([, v]) => v);
+  const delen = paren.filter(([k]) => k !== "o").map(([k, v]) => `${k} ${v}`);
+  if (onderdelen.length) delen.push(`onderdeel ${onderdelen.join(", ")}`);
+  const tekst = delen.join(", ");
+  return tekst.charAt(0).toUpperCase() + tekst.slice(1);
 }
 
 const STRUCTUUR = new Set(["hoofdstuk", "titeldeel", "afdeling", "paragraaf"]);

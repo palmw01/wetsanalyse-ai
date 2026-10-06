@@ -1,12 +1,19 @@
 {
-  "uitleg": "jci → graaf-IRI van de bronnode. Eén set voor twee kanten: frontend/lib/samenhang.test.ts toetst bronDoel ertegen, tools/bwb-import/tests/test_references.py toetst de importer (jci_node_ref_key + by_ref_key). Lopen ze uiteen, dan opent 'Bekijk samenhang in 3D' een bronnode die niet bestaat.",
+  "uitleg": "Verwijzing (jci, graaf-IRI of kaal BWB-id) → bronnode. Eén set voor drie kanten: packages/bronmodel (`vindplaats`, getoetst in tools/graph-qa/tests/test_vindplaats.py), frontend/lib/samenhang.test.ts (`bronDoel`) en tools/bwb-import/tests/test_references.py (de importer: jci_node_ref_key + by_ref_key, alleen de jci's). `iri` is de bronnode-IRI; `soort` `regeling` betekent de hele regeling (geen bronnode om te openen), `soort` null dat de verwijzing geen node aanwijst. Lopen de kanten uiteen, dan staat één bepaling dubbel in de bronnen of opent 'Bekijk samenhang in 3D' een bronnode die niet bestaat.",
   "vectoren": [
-    {"jci": "jci1.3:c:BWBR0004770&hoofdstuk=I&artikel=2&lid=1&o=k", "iri": "urn:bwb:BWBR0004770:artikel:2:lid:1:o:k"},
-    {"jci": "jci1.3:c:BWBR0004770&hoofdstuk=I&artikel=2&lid=1&o=aa&o=1", "iri": "urn:bwb:BWBR0004770:artikel:2:lid:1:o:aa:o:1"},
-    {"jci": "jci1.3:c:BWBR0004770&artikel=9&lid=2&z=2026-01-01&g=2026-01-01", "iri": "urn:bwb:BWBR0004770:artikel:9:lid:2"},
-    {"jci": "jci1.3:c:BWBR0004770&hoofdstuk=IV&afdeling=2&artikel=25", "iri": "urn:bwb:BWBR0004770:artikel:25"},
-    {"jci": "jci1.3:c:BWBR0004770&hoofdstuk=VI&afdeling=1", "iri": "urn:bwb:BWBR0004770:hoofdstuk:VI:afdeling:1"},
-    {"jci": "jci1.3:c:BWBR0005537&artikel=3:40", "iri": "urn:bwb:BWBR0005537:artikel:3%3A40"},
-    {"jci": "jci1.3:c:BWBR0004770", "iri": null}
+    {"ref": "jci1.3:c:BWBR0004770&hoofdstuk=I&artikel=2&lid=1&o=k", "iri": "urn:bwb:BWBR0004770:artikel:2:lid:1:o:k", "soort": "onderdeel", "label": "Artikel 2, lid 1, onderdeel k"},
+    {"ref": "jci1.3:c:BWBR0004770&hoofdstuk=I&artikel=2&lid=1&o=aa&o=1", "iri": "urn:bwb:BWBR0004770:artikel:2:lid:1:o:aa:o:1", "soort": "onderdeel", "label": "Artikel 2, lid 1, onderdeel aa, 1"},
+    {"ref": "jci1.3:c:BWBR0004770&artikel=9&lid=2&z=2026-01-01&g=2026-01-01", "iri": "urn:bwb:BWBR0004770:artikel:9:lid:2", "soort": "lid", "label": "Artikel 9, lid 2"},
+    {"ref": "jci1.3:c:BWBR0004770&hoofdstuk=IV&afdeling=2&artikel=25", "iri": "urn:bwb:BWBR0004770:artikel:25", "soort": "artikel", "label": "Artikel 25"},
+    {"ref": "jci1.3:c:BWBR0004770&hoofdstuk=VI&afdeling=1", "iri": "urn:bwb:BWBR0004770:hoofdstuk:VI:afdeling:1", "soort": "afdeling", "label": "Hoofdstuk VI, afdeling 1"},
+    {"ref": "jci1.3:c:BWBR0004770&hoofdstuk=VIIa&z=2026-07-01&g=2026-07-01", "iri": "urn:bwb:BWBR0004770:hoofdstuk:VIIa", "soort": "hoofdstuk", "label": "Hoofdstuk VIIa"},
+    {"ref": "jci1.3:c:BWBR0005537&artikel=3:40", "iri": "urn:bwb:BWBR0005537:artikel:3%3A40", "soort": "artikel", "label": "Artikel 3:40"},
+    {"ref": "jci1.3:c:BWBR0004770", "iri": "urn:bwb:BWBR0004770", "soort": "regeling", "label": ""},
+    {"ref": "jci1.3:c:BWBR0005537&bijlage=1&o=a&z=2026-08-15&g=2026-08-15", "iri": null, "soort": null, "label": ""},
+    {"ref": "urn:bwb:BWBR0004770:artikel:26a:lid:2", "iri": "urn:bwb:BWBR0004770:artikel:26a:lid:2", "soort": "lid", "label": "Artikel 26a, lid 2"},
+    {"ref": "urn:bwb:BWBR0004770:hoofdstuk:I", "iri": "urn:bwb:BWBR0004770:hoofdstuk:I", "soort": "hoofdstuk", "label": "Hoofdstuk I"},
+    {"ref": "urn:bwb:BWBR0005537:artikel:4%3A94a", "iri": "urn:bwb:BWBR0005537:artikel:4%3A94a", "soort": "artikel", "label": "Artikel 4:94a"},
+    {"ref": "urn:bwb:BWBR0004770", "iri": "urn:bwb:BWBR0004770", "soort": "regeling", "label": ""},
+    {"ref": "BWBR0004770", "iri": "urn:bwb:BWBR0004770", "soort": "regeling", "label": ""}
   ]
 }

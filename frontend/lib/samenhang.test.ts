@@ -111,8 +111,12 @@ describe("bronDoel", () => {
     // Een graaf-IRI blijft heel, ook met een ge-escapete dubbele punt in het artikelnummer.
     expect(bronDoel("urn:bwb:BWBR0005537:artikel:3%3A40")?.bron_iri).toBe("urn:bwb:BWBR0005537:artikel:3%3A40");
   });
-  it.each(vectoren.vectoren)("jci $jci → $iri (zelfde regel als de importer)", ({ jci, iri }) => {
-    expect(bronDoel(jci)?.bron_iri).toBe(iri ?? undefined);
+  it.each(vectoren.vectoren)("$ref → $iri (zelfde regel als importer en agent)", ({ ref, iri, soort, label }) => {
+    const doel = bronDoel(ref);
+    // Een hele regeling of een verwijzing zonder eigen node is geen bronnode om te openen.
+    if (soort === null || soort === "regeling") return expect(doel).toBeUndefined();
+    expect(doel?.bron_iri).toBe(iri);
+    expect(doel?.label).toBe(label);
   });
   it("weigert een hele regeling, een id-knoop en vreemde bronnen", () => {
     expect(bronDoel("jci1.3:c:BWBR0004770")).toBeUndefined();
