@@ -109,6 +109,7 @@ def als_context(focus: dict[str, Any] | None, gezien: list[str] | None,
     return (
         "\n\nGESPREKSCONTEXT – waar dit gesprek tot nu toe over ging. Gebruik het om verwijzingen als "
         "'dat artikel', 'die markering' of 'lid 2' op te lossen; de details van een markering haal je "
-        "op met get_annotatie(id). Feiten over de wettekst verifieer je via de tools.\n"
+        "op met get_annotatie(id). Wettekst die je eerder in dit gesprek ophaalde mag je hergebruiken; wat je "
+        "nog niet ophaalde, haal je op.\n"
         + "\n".join(regels)
     )

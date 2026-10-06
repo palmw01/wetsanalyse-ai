@@ -229,6 +229,13 @@ hier vandaan maar uit `bronmodel.resolve` (zie §*De annotatieketen*).
   oordeel is `niveau`: **gegrond** / **ongegrond** / **onbepaald** (niets te controleren – géén
   goedkeuring). `grounded` blijft bestaan voor het event-contract en de eval: er is niets aangetroffen
   dat níét klopt.
+- **Getoetst wordt tegen het gesprek, niet alleen tegen deze beurt** (`agent/bronregister.py`,
+  `State.bronregister`). Het register bewaart over beurten heen de tool-resultaten zelf (begrensd:
+  24 items, 60k tekens), plus de geannoteerde brontekst na een annotatie. `verify_node` toetst tegen
+  register + trace, zodat een vervolgantwoord een eerder opgehaald citaat mag herhalen; zonder dit
+  haalde de correctieronde bij doorvragen juist de onderbouwing weg. Het register bevat nooit
+  modeltekst en nooit annotatieresultaten. Bronnen uit eerdere beurten komen alleen in de lijst als
+  het antwoord hun regeling noemt.
 - `curate_sources` snoeit tot aangehaalde regelingen, en binnen een regeling met een precieze
   vindplaats tot bronnen op het pad daarvan. Omhulsels (`hoofdstuk`, `afdeling`) en datums tellen niet
   mee in het pad: een jci draagt ze vaak, de graaf-IRI niet.
@@ -508,7 +515,8 @@ wie een oordeel velt over wetgeving hoort niet met een env-var te verzwakken.
 
 ## Kern-invarianten (niet breken)
 
-- **Brongetrouwheid.** Bronnen én grounding komen uit de tool-trace, nooit uit modeltekst. "Niets te
+- **Brongetrouwheid.** Bronnen én grounding komen uit tool-resultaten (de trace van deze beurt plus
+  het bronregister van het gesprek), nooit uit modeltekst. "Niets te
   controleren" is `onbepaald`, geen goedkeuring.
 - **Het annotatiecorpus is één bronnode**, gericht opgehaald via `bronmodel.resolve`. Reconstrueer het
   **niet** uit de tool-trace: die plakt alle fetch-resultaten aaneen en is afgekapt op 8000 tekens.
