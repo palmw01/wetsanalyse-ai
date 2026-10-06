@@ -12,6 +12,7 @@ from __future__ import annotations
 import pytest
 
 from agent import tools
+from agent.resultaat import is_contract
 from fakes import FakeGraph
 
 IW = "BWBR0004770"
@@ -27,11 +28,23 @@ NIEUW = [
 ]
 
 
+# Een rij zoals de graaf hem levert (SPARQL-TSV), met de kolommen die elke tool leest.
+_RIJ = ("?niveau\t?ouder\t?deel\t?soort\t?nummer\t?bron\t?node\n"
+        f'"1"\t"urn:bwb:{IW}"\t<urn:bwb:{IW}:hoofdstuk:VI>\t"Hoofdstuk"\t"VI"\t<urn:bwb:{IW}:artikel:2>\t<urn:bwb:{IW}:artikel:3>\n')
+
+
 @pytest.mark.parametrize(("naam", "args"), NIEUW, ids=[n for n, _ in NIEUW])
 def test_tool_levert_het_graafantwoord_terug(naam: str, args: dict):
-    g = FakeGraph(result="RIJEN")
-    assert tools.dispatch(naam, g, args) == "RIJEN"
+    g = FakeGraph(result=_RIJ)
+    uit = tools.dispatch(naam, g, args)
     assert len(g.queries) == 1, "één tool-aanroep hoort één graafquery te zijn"
+    data = is_contract(uit)
+    if data is None:
+        # Nog geen contract (PR 2 van het resultaatcontract): het antwoord gaat ongeschonden door.
+        assert uit == _RIJ
+        return
+    assert data["status"] == "ok" and data["resultaten"], uit
+    assert f"urn:bwb:{IW}" in uit, "de vindplaats moet in het resultaat staan (bronnen, grounding)"
 
 
 # --- het bepaling-pad: artikelnummer én decimaal nummer wijzen dezelfde soort node aan ---

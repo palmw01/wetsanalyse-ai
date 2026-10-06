@@ -24,6 +24,7 @@ import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from collections.abc import Callable
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -33,6 +34,7 @@ from agent.adapters.graphdb_graph import make_graph  # noqa: E402
 from agent.config import Settings  # noqa: E402
 from agent.graph import queries  # noqa: E402
 from agent.graph.results import parse_select  # noqa: E402
+from agent.resultaat import BUDGET, is_contract  # noqa: E402
 
 # Een regeling die er hoe dan ook is (Invorderingswet 1990) en een beleidsregel met divisies
 # (Leidraad Invordering 2008). Die tweede is er expliciet bij omdat het decimale pad een eigen tak
@@ -59,6 +61,10 @@ class Controle:
     min_rijen: int = 1
     max_rijen: int | None = None
     toelichting: str = ""
+    # Wat telt als "rij" bij een contractresultaat (`agent/resultaat.py`); standaard de resultaten.
+    tel: Callable[[dict[str, Any]], int] | None = None
+    # Eis op `volledig` van het contract: True/False, of None (geen eis).
+    volledig: bool | None = None
 
 
 CONTROLES: tuple[Controle, ...] = (
@@ -89,9 +95,17 @@ CONTROLES: tuple[Controle, ...] = (
     Controle("verwijst_naar_deze", {"bwb_id": IW, "artikel": "36"}, min_rijen=20,
              toelichting="inkomende citaties op bepalingniveau"),
     Controle("referenced_by", {"bwb_id": IW, "artikel": "36"}, hard=False),
-    Controle("inhoudsopgave", {"bwb_id": IW, "diepte": 1}, min_rijen=12, max_rijen=12,
-             toelichting="de IW heeft twaalf hoofdstukken; méér rijen betekent type-inflatie "
-                         "of een structuurdeel met meerdere ouders"),
+    Controle("inhoudsopgave", {"bwb_id": IW}, min_rijen=12, max_rijen=12, volledig=True,
+             tel=lambda d: sum(1 for r in d["resultaten"] if r.get("soort") == "Hoofdstuk"),
+             toelichting="de IW heeft twaalf hoofdstukken en past VOLLEDIG in één resultaat; méér "
+                         "betekent type-inflatie of een structuurdeel met meerdere ouders"),
+    Controle("inhoudsopgave", {"bwb_id": IW}, min_rijen=120, volledig=True,
+             tel=lambda d: len({n for r in d["resultaten"] if "nummers" in r for n in r["nummers"].split(", ")}),
+             toelichting="alle artikelen van de IW staan er met hun eigen nummer in (133 op 7 okt 2026); "
+                         "minder betekent dat de boom delen mist"),
+    Controle("inhoudsopgave", {"bwb_id": LEIDRAAD}, min_rijen=10, volledig=False,
+             toelichting="~800 divisies met eigen titel passen niet in één resultaat: het bovenste "
+                         "niveau wordt gepagineerd, met een vervolg"),
     Controle("zoek_definitie", {"term": "bestuurder"},
              toelichting="bwb:definieertBegrip – nieuw ontsloten"),
     Controle("grondslagen", {"bwb_id": LEIDRAAD}, hard=False,
@@ -107,8 +121,12 @@ CONTROLES: tuple[Controle, ...] = (
 )
 
 
-def _rijen(resultaat: str) -> int:
-    """Aantal datarijen in een SPARQL-TSV-antwoord; -1 als het geen tabel is."""
+def _rijen(resultaat: str, c: Controle | None = None) -> int:
+    """Aantal rijen: uit het resultaatcontract (of wat `c.tel` telt), anders uit SPARQL-TSV; -1 als
+    het geen van beide is."""
+    data = is_contract(resultaat)
+    if data is not None:
+        return c.tel(data) if c is not None and c.tel is not None else len(data["resultaten"])
     try:
         return len(parse_select(resultaat))
     except Exception:  # noqa: BLE001 – de smoke mag nooit op zijn eigen parser stuklopen
@@ -211,7 +229,7 @@ def draai(settings: Settings) -> tuple[list[dict[str, Any]], bool]:
         for c in CONTROLES:
             resultaat = tools.dispatch(c.tool, graph, dict(c.args), settings)
             fout = resultaat.startswith(f"Fout bij tool '{c.tool}'")
-            rijen = _rijen(resultaat)
+            rijen = _rijen(resultaat, c)
             oordeel = _beoordeel(c, resultaat, rijen, fout)
             geslaagd = geslaagd and oordeel["ok"]
             uitkomsten.append({"tool": c.tool, "args": c.args, "rijen": rijen, "hard": c.hard,
@@ -241,6 +259,14 @@ def _beoordeel(c: Controle, resultaat: str, rijen: int, fout: bool) -> dict[str,
     if c.max_rijen is not None and rijen > c.max_rijen:
         # Te veel is ALTIJD hard: het is nooit een eigenschap van de data maar van de query.
         return {"ok": False, "fout": "", "reden": f"te veel rijen: {rijen} > {c.max_rijen}"}
+    data = is_contract(resultaat)
+    if data is not None:
+        if len(resultaat) > BUDGET:
+            return {"ok": False, "fout": "", "reden": f"resultaat te groot: {len(resultaat)} > {BUDGET} tekens"}
+        if not data["volledig"] and "vervolg" not in data:
+            return {"ok": False, "fout": "", "reden": "onvolledig zonder vervolg"}
+        if c.volledig is not None and data["volledig"] is not c.volledig:
+            return {"ok": not c.hard, "fout": "", "reden": f"volledig={data['volledig']}, verwacht {c.volledig}"}
     return {"ok": True, "fout": "", "reden": ""}
 
 

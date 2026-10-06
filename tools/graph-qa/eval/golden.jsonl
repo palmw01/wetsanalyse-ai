@@ -23,3 +23,5 @@
 {"question": "Op welke wettelijke grondslag berust de Leidraad Invordering 2008?", "expected_sources": ["BWBR0024096"], "expected_contains": ["Invorderingswet"], "should_refuse": false}
 {"question": "Welke hoofdstukken heeft de Invorderingswet 1990?", "expected_sources": ["BWBR0004770"], "expected_contains": ["hoofdstuk"], "should_refuse": false}
 {"question": "Sinds wanneer geldt de huidige tekst van artikel 36 van de Invorderingswet 1990?", "expected_sources": ["BWBR0004770"], "should_refuse": false}
+{"question": "Welke hoofdstukken heeft de Invorderingswet 1990 en welke artikelen vallen eronder?", "expected_sources": ["BWBR0004770"], "expected_contains": ["Aansprakelijkheid", "32"], "verboden": ["…", "..."], "should_refuse": false}
+{"question": "Welke artikelen gaan over invordering?", "expected_sources": ["BWBR0004770"], "verboden": ["…"], "should_refuse": false}
