@@ -99,11 +99,15 @@ metingen `AGENT_VERSION` op de commit.
   normeenheid. De oorspronkelijke afwijzing blijft bewaard. Ontbreekt de gevraagde context, dan gaat
   het naar de mens.
 - **Onzekerheid** wordt uitgedrukt in codes en aandacht-niveau, nooit in een confidence-getal.
-- **Geen klasse gekozen** (abstain zonder bruikbaar reviewoordeel, `R-ABSTAIN-HUMAN`/`R-ONGELDIG`):
-  de resolver zet de eerste mogelijke klasse **voorlopig** neer, zodat de jurist een kaart heeft om
-  te kiezen. De beslisser is dan `terugval`, niet `model` – in het spoor, de graaf
-  (`besluit:terugval`), de export en het zoekfilter. Aanleiding: art. 9 lid 5 IW 1990, waar "één
-  maand" als Rechtsobject in de laag stond terwijl het model niets had gekozen.
+- **Geen klasse gekozen** (abstain zonder bruikbaar reviewoordeel, `R-ABSTAIN-HUMAN`/`R-ONGELDIG`,
+  of een centrale norm die het model afwees, `R-CENTRAAL-HUMAN`): het voorstel draagt **geen
+  klasse** (`klasse: ""`). De mogelijke klassen staan als alternatief, de beslisser is `terugval`.
+  In de graaf is het een vraag (`oa:motivatedBy oa:questioning`, zonder `jas:klasse`; SHACL eist
+  precies één van beide vormen), de export zegt "Nog geen klasse", de werkplek toont "Kies een
+  klasse" en akkoord kan pas na een keuze (de api weigert het ook). Kiest een latere ronde wél een
+  klasse, dan vervangt die het onbeoordeelde terugval-element op dezelfde ankers.
+  Aanleiding: art. 9 lid 5 IW 1990 ("één maand" als voorlopig Rechtsobject) en een externe review
+  van art. 9 lid 1, die een voorlopige Rechtsbetrekking las als een opgeslagen keuze.
 
 ## Broncontext
 

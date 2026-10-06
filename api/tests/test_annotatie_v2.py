@@ -679,3 +679,42 @@ async def test_zoeken_verifieert_de_herkomstfilters_in_postgres(monkeypatch):
     assert await gevonden(met_twijfel=False) == {ids["mens"]}
     with pytest.raises(ValueError):
         Zoekvraag(herkomst=["robot"])
+
+
+# --- terugval: geen klasse gekozen, geen klasseclaim -------------------------------------------------
+
+TERUGVAL = dict(klasse="", alternatieven=[{"klasse": "Rechtsbetrekking", "motivatie": ""},
+                                          {"klasse": "Rechtsfeit", "motivatie": ""}],
+                trace={"beslissing": {"door": "terugval", "status": "HUMAN_REVIEW"}})
+
+
+async def test_een_lege_klasse_mag_alleen_bij_een_terugval():
+    snap = snapshot(ONE)
+    with pytest.raises(HTTPException) as exc:
+        await store.batch(request(snap, [{**element(snap), "klasse": ""}]), snap, "lex")
+    assert exc.value.status_code == 422
+    uit = await store.batch(request(snap, [{**element(snap), **TERUGVAL}]), snap, "lex")
+    assert uit["elementen"][0]["klasse"] == ""
+
+
+async def test_akkoord_vraagt_eerst_een_klasse_en_een_edit_kiest_hem():
+    snap = snapshot(ONE)
+    eid = (await store.batch(request(snap, [{**element(snap), **TERUGVAL}]), snap, "lex"))["elementen"][0]["id"]
+    with pytest.raises(HTTPException) as exc:
+        await store.beslis(eid, Beslissing(type="approve", snapshot_id=snap["snapshot_id"],
+                                          verwachte_revisies={ONE: 1}), snap, "jurist")
+    assert exc.value.status_code == 422
+    r = await store.beslis(eid, Beslissing(type="edit", snapshot_id=snap["snapshot_id"], verwachte_revisies={ONE: 1},
+                                          wijziging={"klasse": "Rechtsfeit"}), snap, "jurist")
+    assert r["element"]["klasse"] == "Rechtsfeit" and r["element"]["id"] == eid
+
+
+async def test_een_latere_klassekeuze_vervangt_de_onbeoordeelde_terugval():
+    snap = snapshot(ONE)
+    eid = (await store.batch(request(snap, [{**element(snap), **TERUGVAL}], batch_id="r1"), snap, "lex"))["elementen"][0]["id"]
+    await store.batch(request(snap, [{**element(snap), "klasse": "Rechtsfeit"}], batch_id="r2", revisions={ONE: 1}), snap, "lex")
+    [el] = (await store.weergave(snap))["elementen"]
+    assert (el["id"], el["klasse"]) == (eid, "Rechtsfeit")
+    # Andersom laat een nieuwe terugval de gekozen klasse staan.
+    await store.batch(request(snap, [{**element(snap), **TERUGVAL}], batch_id="r3", revisions={ONE: 2}), snap, "lex")
+    assert [e["klasse"] for e in (await store.weergave(snap))["elementen"]] == ["Rechtsfeit"]

@@ -231,6 +231,7 @@ export function ArtefactInhoud({
 
       if (e.key === "a") {
         e.preventDefault();
+        if (!actiefEl.klasse) return;            // net als de knop: eerst een klasse kiezen
         // De fout staat al in de melding boven de lijst (`beslis`); hier alleen niet laten
         // doorlopen als onafgehandelde rejection – de knop vangt hem net zo af.
         keurGoed(actiefEl.id).catch(() => {});

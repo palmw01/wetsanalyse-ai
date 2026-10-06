@@ -1,7 +1,7 @@
 "use client";
 
 import { kleurstrip } from "@/lib/annotatieOverzicht";
-import { JAS_KLASSEN, jasStyle } from "@/lib/jas";
+import { JAS_KLASSEN, jasStyle, klasseLabel } from "@/lib/jas";
 
 /** De JAS-verdeling van een annotatie als gekleurde balk.
  *
@@ -21,7 +21,7 @@ export function KleurStrip({ perKlasse }: { perKlasse: Record<string, number> })
       {delen.map((d) => (
         <span
           key={d.klasse}
-          title={`${d.klasse}: ${d.aantal}`}
+          title={`${klasseLabel(d.klasse)}: ${d.aantal}`}
           style={{ flexGrow: d.aantal }}
           // Alleen de achtergrond uit de JAS-kleur; tekst en rand zijn hier niet aan de orde.
           className={`${jasStyle(d.klasse).split(" ")[0]} block h-full`}

@@ -47,9 +47,21 @@ jasv:MarkeringShape a sh:NodeShape ;
   sh:property [ sh:path oa:hasBody ; sh:qualifiedValueShape [ sh:class oa:TextualBody ] ;
                 sh:qualifiedMinCount 1 ; sh:qualifiedMaxCount 1 ; sh:group jasv:RdfStructuur ] ;
   sh:property [ sh:path oa:hasBody ; sh:maxCount 2 ; sh:group jasv:RdfStructuur ] ;
-  sh:property [ sh:path jas:klasse ; sh:nodeKind sh:IRI ; sh:minCount 1 ; sh:maxCount 1 ;
+  sh:property [ sh:path jas:klasse ; sh:nodeKind sh:IRI ; sh:maxCount 1 ;
                 sh:pattern "^urn:jas-ns:klasse:" ; sh:group jasv:JasModel ] ;
-  sh:property [ sh:path oa:motivatedBy ; sh:hasValue oa:classifying ; sh:maxCount 1 ; sh:group jasv:RdfStructuur ] ;
+  sh:property [ sh:path oa:motivatedBy ; sh:minCount 1 ; sh:maxCount 1 ; sh:in ( oa:classifying oa:questioning ) ;
+                sh:group jasv:RdfStructuur ] ;
+  # Precies één van beide: een classificatie draagt één klasse; een terugval (geen klasse gekozen) is
+  # een vraag aan de jurist – zonder klasse, met de mogelijke klassen als alternatief.
+  sh:xone (
+    [ sh:property [ sh:path oa:motivatedBy ; sh:hasValue oa:classifying ] ;
+      sh:property [ sh:path jas:klasse ; sh:minCount 1 ] ;
+      sh:property [ sh:path jas:klasseNaam ; sh:minCount 1 ] ]
+    [ sh:property [ sh:path oa:motivatedBy ; sh:hasValue oa:questioning ] ;
+      sh:property [ sh:path jas:klasse ; sh:maxCount 0 ] ;
+      sh:property [ sh:path jas:klasseNaam ; sh:maxCount 0 ] ;
+      sh:property [ sh:path jas:alternatief ; sh:minCount 1 ] ]
+  ) ;
   sh:property [ sh:path jas:herkomst ; sh:maxCount 1 ; sh:in ( "agent" "mens" "" ) ; sh:group jasv:JasModel ] ;
   sh:property [ sh:path jas:aandacht ; sh:maxCount 1 ; sh:in ( "groen" "geel" "rood" ) ; sh:group jasv:JasModel ] ;
   sh:property [ sh:path jas:alternatief ; sh:node jasv:AlternatiefShape ; sh:group jasv:RdfStructuur ] ;
@@ -57,7 +69,7 @@ jasv:MarkeringShape a sh:NodeShape ;
   sh:property [ sh:path jas:grensoptie ; sh:node jasv:GrensShape ; sh:group jasv:RdfStructuur ] ;
   sh:property [ sh:path oa:hasTarget ; sh:node jasv:DoelShape ; sh:minCount 1 ; sh:group jasv:RdfStructuur ] ;
   # De dertien canonieke namen (api/app/jas_klassen.py); test_shacl bewaakt dat deze lijst meeloopt.
-  sh:property [ sh:path jas:klasseNaam ; sh:minCount 1 ; sh:maxCount 1 ; sh:group jasv:JasModel ;
+  sh:property [ sh:path jas:klasseNaam ; sh:maxCount 1 ; sh:group jasv:JasModel ;
                 sh:in ( "Rechtssubject" "Rechtsobject" "Rechtsbetrekking" "Rechtsfeit" "Voorwaarde"
                         "Afleidingsregel" "Variabele en variabelewaarde" "Parameter en parameterwaarde"
                         "Operator" "Tijdsaanduiding" "Plaatsaanduiding"

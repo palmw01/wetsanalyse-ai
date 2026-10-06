@@ -353,10 +353,10 @@ function DecisionCard({
                 e.stopPropagation();
                 openRij(palet ? "geen" : "klasse");
               }}
-              title="Andere klasse kiezen"
+              title={el.klasse ? "Andere klasse kiezen" : "Nog geen klasse gekozen – kies er een"}
               className={`focus-ring inline-flex min-h-[24px] max-w-full items-center whitespace-normal rounded px-2 py-0.5 text-left text-xs font-semibold leading-tight transition hover:ring-1 hover:ring-lint coarse:min-h-[44px] disabled:opacity-50 ${jasStyle(el.klasse)}`}
             >
-              {el.klasse} <ChevronOmlaag className="ml-0.5 shrink-0 opacity-70" />
+              {el.klasse || "Kies een klasse"} <ChevronOmlaag className="ml-0.5 shrink-0 opacity-70" />
             </button>
           )}
         </span>
@@ -370,7 +370,9 @@ function DecisionCard({
           {!slot && (
             <button
               type="button"
-              disabled={bezig}
+              // Akkoord op een voorstel zonder klasse kan niet: er is nog niets om mee in te stemmen.
+              disabled={bezig || !el.klasse}
+              title={el.klasse ? undefined : "Kies eerst een klasse"}
               onClick={async () => {
                 setBezig(true);
                 try {

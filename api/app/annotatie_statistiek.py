@@ -87,7 +87,7 @@ def rapport(elementen: Iterable[dict[str, Any]], lagen: int = 0) -> ReviewStatis
 
         uitkomst = _uitkomst(el)
         setattr(st, uitkomst, getattr(st, uitkomst) + 1)
-        _bij(st.per_klasse, el.get("klasse", ""), uitkomst)
+        _bij(st.per_klasse, el.get("klasse") or "nog geen klasse", uitkomst)
 
         run = el.get("geproduceerd_door") or {}
         sleutel = " · ".join(x for x in (run.get("model"), run.get("agent_versie")) if x)

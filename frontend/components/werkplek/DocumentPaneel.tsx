@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 
-import { jasStyle } from "@/lib/jas";
+import { jasStyle, klasseLabel } from "@/lib/jas";
 import { lidUitOffset, offsetInBlok, snapSelectie, vindPositie, type LidRegel } from "@/lib/selectie";
 import { blokkenVan } from "@/lib/wetstructuur";
 import { bronVan } from "@/lib/annotatie";
@@ -317,7 +317,7 @@ export function DocumentPaneel({
           {gekozen ? (
             <>
               <span>
-                <span className="font-medium text-ink">{gekozen.klasse}</span> in beeld
+                <span className="font-medium text-ink">{klasseLabel(gekozen.klasse)}</span> in beeld
               </span>
               <button
                 type="button"
@@ -417,8 +417,8 @@ export function DocumentPaneel({
                     e.preventDefault();   // Space scrolt anders de tekst weg onder je vinger vandaan
                     onKies?.(s.id);
                   }}
-                  aria-label={`${s.klasse}: ${s.tekst}${s.herkomst === "mens" ? " – door jou gemarkeerd" : ""}`}
-                  title={s.herkomst === "mens" ? `${s.klasse} – door jou gemarkeerd` : s.klasse}
+                  aria-label={`${klasseLabel(s.klasse)}: ${s.tekst}${s.herkomst === "mens" ? " – door jou gemarkeerd" : ""}`}
+                  title={s.herkomst === "mens" ? `${klasseLabel(s.klasse)} – door jou gemarkeerd` : klasseLabel(s.klasse)}
                   className={`focus-ring box-decoration-clone cursor-pointer rounded px-0.5 ${jasStyle(s.klasse)} ${
                     s.herkomst === "mens" ? "underline decoration-dotted underline-offset-2" : ""
                   } ${actiefId && s.id === actiefId ? "ring-2 ring-lint" : ""}`}

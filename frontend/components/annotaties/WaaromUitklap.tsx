@@ -72,10 +72,10 @@ function WaaromInhoud({ el }: { el: WaaromBron }) {
           : "Bij dit voorstel is geen spoor bewaard."}</p>
       ) : w.besluit && (
         w.besluit.code === "terugval" ? (
-          // Geen keuze van het model: de klasse staat er voorlopig, de jurist kiest.
+          // Geen keuze van het model en geen klasse: de jurist kiest uit de mogelijke klassen.
           <p className="text-xs text-aandacht-geel-tekst">
             <span title={w.besluit.uitleg ? `${w.besluit.code} – ${w.besluit.uitleg}` : w.besluit.code} className="font-medium underline decoration-dotted underline-offset-2">Nog geen klasse gekozen</span>
-            : de klasse hierboven is voorlopig. Kies zelf.
+: kies zelf een van de mogelijke klassen.
           </p>
         ) : (
           <p className="text-xs text-ink">

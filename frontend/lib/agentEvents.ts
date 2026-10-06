@@ -99,13 +99,13 @@ const parseAlternatief: Parser<Alternatief> = (v) =>
 
 export const parseElement: Parser<VoorstelElement> = (v) => {
   if (!isObject(v)) return undefined;
-  // Zonder klasse of letterlijke tekst is er niets brongetrouws te markeren.
-  const klasse = eis(v.klasse);
+  // Zonder letterlijke tekst is er niets brongetrouws te markeren. Zonder klasse alleen als het een
+  // vraag is: een terugval draagt geen klasse maar wel de klassen waaruit de jurist kiest.
+  const klasse = tekst(v.klasse);
   const inhoud = eis(v.tekst);
-  if (!klasse || !inhoud) return undefined;
   const alternatieven =
     v.alternatieven === undefined ? [] : lijst(parseAlternatief)(v.alternatieven);
-  if (!alternatieven) return undefined;
+  if (!inhoud || !alternatieven || (!klasse && !alternatieven.length)) return undefined;
   const aandacht = aandachtVan(v.aandacht);
   return {
     ...(optioneel(v.id) !== undefined ? { id: optioneel(v.id) } : {}),

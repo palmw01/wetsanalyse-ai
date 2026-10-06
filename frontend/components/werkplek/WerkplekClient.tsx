@@ -47,7 +47,7 @@ import {
   schrijfLopendeRuns, standVanVorigeRun, vergeetRun, wachtMetWekker,
 } from "@/lib/lopendeRun";
 import { useBreedScherm } from "@/lib/useBreedScherm";
-import { jasStyle } from "@/lib/jas";
+import { jasStyle, klasseLabel } from "@/lib/jas";
 import type { ThreadItem } from "@/lib/threadItem";
 import { WerkplekHeader } from "./WerkplekHeader";
 import { parseHergebruik } from "@/lib/agentEvents";
@@ -1219,7 +1219,7 @@ export function WerkplekClient({
             <div className="mb-1.5 flex items-center gap-1.5">
               <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full border border-lint/30 bg-lint/5 px-2.5 py-1 text-xs text-lint">
                 <span className={`shrink-0 rounded px-1 text-[0.7rem] ${jasStyle(nodeVraag.element.klasse)}`}>
-                  {nodeVraag.element.klasse}
+                  {klasseLabel(nodeVraag.element.klasse)}
                 </span>
                 <span className="truncate">“{nodeVraag.element.tekst}”</span>
                 <button
@@ -1255,7 +1255,7 @@ export function WerkplekClient({
             <div className="mb-1.5 flex items-center gap-1.5">
               <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full border border-lint/30 bg-lint/5 px-2.5 py-1 text-xs text-lint">
                 <span className={`shrink-0 rounded px-1 text-[0.7rem] ${jasStyle(vraagOver.el.klasse)}`}>
-                  {vraagOver.el.klasse}
+                  {klasseLabel(vraagOver.el.klasse)}
                 </span>
                 <span className="truncate">“{vraagOver.el.tekst}”</span>
                 <button
