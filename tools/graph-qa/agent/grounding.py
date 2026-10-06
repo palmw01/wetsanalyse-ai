@@ -20,7 +20,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from .annotatie import komt_letterlijk_voor
+from .annotatie import _normaliseer, komt_letterlijk_voor
 from .models import Source
 from .provenance import _BWB_RE, citations_in, first_bwb
 from .tools.annotatie_tools import ANNOTATIE_TOOL_NAMEN
@@ -61,6 +61,44 @@ def _citaten(text: str) -> list[str]:
         if len(passage.split()) >= _MIN_WOORDEN:
             uit.append(passage)
     return uit
+
+
+_EIND_LEESTEKENS = " .,;:"
+
+
+def herstel_citaten(answer_text: str, source_trace: list[tuple[str, str]]) -> tuple[str, list[tuple[str, str]]]:
+    """Maak een bijna-letterlijk citaat letterlijk, met de tekst zoals die in de bron staat.
+
+    Het model citeert soms net niet letterlijk: een hoofdletter aan het begin ("Zes weken" waar de
+    bron "zes weken" heeft) of een punt binnen de aanhalingstekens waar de bron doorloopt. De
+    controle keurde dat terecht af, maar dan volgde een volledige correctieronde – en de jurist had
+    het afgekeurde antwoord al gezien. Zo'n afwijking is mechanisch te herstellen: zoek de passage
+    hoofdletter- en witruimte-ongevoelig, zonder leestekens aan het eind, en zet de BRONTEKST terug.
+    Een leesteken dat in het citaat stond maar niet in de bron, komt achter het aanhalingsteken.
+
+    Alleen bij één eenduidige vindplaats. Al het andere – weglatingen, eigen woorden, een andere
+    verbuiging – blijft een afwijking voor `check_grounding`. Het citaat wordt hier dus alleen
+    letterlijker, nooit losser. Geeft het herstelde antwoord en de paren (oud, nieuw)."""
+    trace_text = _normaliseer(
+        "\n".join(t for name, t in source_trace if t and name not in ANNOTATIE_TOOL_NAMEN))
+    hersteld: list[tuple[str, str]] = []
+    for citaat in _citaten(answer_text):
+        if "\\" in citaat or komt_letterlijk_voor(trace_text, citaat):
+            continue
+        kern = citaat.rstrip(_EIND_LEESTEKENS)
+        woorden = kern.split()
+        if len(woorden) < _MIN_WOORDEN:
+            continue
+        patroon = r"(?<!\w)" + r"\s+".join(re.escape(w) for w in woorden) + r"(?!\w)"
+        vindplaatsen = {m.group(0) for m in re.finditer(patroon, trace_text, re.IGNORECASE)}
+        if len(vindplaatsen) != 1:
+            continue
+        bron = vindplaatsen.pop()
+        staart = citaat[len(kern):].strip()
+        for open_, dicht in (('"', '"'), ("“", "”")):
+            answer_text = answer_text.replace(f"{open_}{citaat}{dicht}", f"{open_}{bron}{dicht}{staart}")
+        hersteld.append((citaat, bron))
+    return answer_text, hersteld
 
 
 def check_grounding(answer_text: str, source_trace: list[tuple[str, str]]) -> GroundingReport:

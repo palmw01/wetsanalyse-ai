@@ -14,7 +14,7 @@ from langgraph.config import get_stream_writer
 from ..berichten import CORRECTIE, _parse_final, _schoon_messages, _trim_messages
 from ..bronregister import bij, controletrace
 from ..focus import na_antwoord
-from ..grounding import check_grounding, curate_sources
+from ..grounding import check_grounding, curate_sources, herstel_citaten
 from ..narratie import _grounding_melding, _stap, _toolregel
 from ..prompts import SYSTEM_PROMPT
 from ..provenance import collect_sources
@@ -122,6 +122,17 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
                                                  if naam in ANNOTATIE_TOOL_NAMEN)},
                 )
             antwoord = begrensd
+        # Vóór het antwoord de deur uit gaat: een bijna-letterlijk citaat (hoofdletter, punt binnen de
+        # aanhalingstekens) wordt de brontekst. Anders zag de jurist het afgekeurde citaat al, en
+        # volgde er een volledige correctieronde voor een afwijking die mechanisch te herstellen is.
+        antwoord, hersteld = herstel_citaten(antwoord, controletrace(state))
+        if hersteld:
+            _stap(writer, "Controle", f"{len(hersteld)} citaat letterlijk gemaakt naar de bron"
+                  if len(hersteld) == 1 else f"{len(hersteld)} citaten letterlijk gemaakt naar de bron")
+            # Ook in de historie: de volgende beurt bouwt voort op het herstelde antwoord.
+            assistant_content = [{**blok, "text": herstel_citaten(blok["text"], controletrace(state))[0]}
+                                 if blok.get("type") == "text" else blok for blok in assistant_content]
+            upd["messages"] = [{"role": "assistant", "content": assistant_content}]
         upd["answer"] = antwoord
         if stream_naar_denk and antwoord:
             writer({"type": "token", "content": antwoord})

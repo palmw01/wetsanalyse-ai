@@ -236,6 +236,13 @@ hier vandaan maar uit `bronmodel.resolve` (zie §*De annotatieketen*).
   haalde de correctieronde bij doorvragen juist de onderbouwing weg. Het register bevat nooit
   modeltekst en nooit annotatieresultaten. Bronnen uit eerdere beurten komen alleen in de lijst als
   het antwoord hun regeling noemt.
+- **Een bijna-letterlijk citaat wordt de brontekst** (`grounding.herstel_citaten`, in `agent_node`
+  vóór het antwoord de deur uit gaat). Afwijkingen als een hoofdletter aan het begin of een punt
+  binnen de aanhalingstekens zoekt hij hoofdletter- en witruimte-ongevoelig op in register + trace.
+  Bij precies één vindplaats zet hij de brontekst terug, met een eventueel leesteken achter het
+  aanhalingsteken. Alles daarbuiten (een ander woord, een weglating, eigen woorden) blijft voor
+  `check_grounding` en de correctieronde. Een citaat wordt hier alleen letterlijker, nooit losser;
+  annotaties zijn geen bron.
 - `curate_sources` snoeit tot aangehaalde regelingen, en binnen een regeling met een precieze
   vindplaats tot bronnen op het pad daarvan. Omhulsels (`hoofdstuk`, `afdeling`) en datums tellen niet
   mee in het pad: een jci draagt ze vaak, de graaf-IRI niet.
