@@ -50,8 +50,8 @@ def controleer_status(referentie: dict[str, Any]) -> str:
     van `eval.referentieset`; de ankerset (`golden_annotatie.jsonl`) houdt het lichtere record.
     """
     if "gold" in referentie:
-        from eval.referentieset import valideer_casus   # lui: referentieset importeert deze module
-        return valideer_casus(referentie)
+        from eval.referentieset import valideer_casus, valideer_concept   # lui: importeert deze module
+        return (valideer_concept if referentie.get("diagnostisch") else valideer_casus)(referentie)
     status = referentie.get("referentie_status", "")
     if status not in STATUSSEN:
         raise ValueError(f"onbekende of ontbrekende referentie_status: {status!r}")

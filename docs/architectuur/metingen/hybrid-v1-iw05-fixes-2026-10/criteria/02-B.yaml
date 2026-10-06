@@ -1,0 +1,14 @@
+naam: "02-B – gevolgclauses als eigen kandidaat"
+doel: >
+  Een rechtsgevolg in de hoofdzin ('De eerste termijn vervalt …', IW05/E08) en het toepassingsgevolg
+  ('vindt het eerste lid toepassing', IW05/E17) worden kandidaten met Rechtsbetrekking. v1 bevat geen
+  gevolgpredicaten en verandert dus niet. Of het model daarna Rechtsbetrekking kiest is een
+  waarneming, geen poort.
+regels:
+  - {id: B1, soort: element_kandidaat, element: IW05/E08, klasse: Rechtsbetrekking}
+  - {id: B2, soort: element_kandidaat, element: IW05/E17, klasse: Rechtsbetrekking}
+  - {id: B3, soort: element_kandidaat, element: IW05/E05, klasse: Afleidingsregel}
+  - {id: B4, soort: recall_niet_lager}
+  - {id: B5, soort: geen_verloren_ankers}
+  - {id: B6, soort: alleen_toegestane_wijzigingen, toegestaan: {}}
+  - {id: B7, soort: model_min_niet_lager, metric: micro_ankerdekking, poort: false}

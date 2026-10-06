@@ -15,7 +15,13 @@ analyseerbaar. Per casus dezelfde bronpassage (`keten_fixture`), en per route en
 Een meting mag de gemeten toestand niet veranderen: geen api, geen checkpointer, lege
 annotatiepoort. Met `--offline` draait het tegen een nep-LLM (geen kosten, alleen de mechaniek).
 
-    python -m eval.compare_pipelines --output /pad/ab.json [--cases IW01 …] [--herhalingen 3] [--offline]
+Per metric staat naast het gemiddelde de **spreiding** over de rondes (min, max, mediaan): runs van
+dezelfde bepaling verschillen sterk, dus een verschil binnen die band is geen effect. Het rapport draagt
+een **manifest** (`eval.manifest`) zodat `eval.vergelijk_rapporten` kan weigeren wat niet vergelijkbaar
+is. Conceptcasussen (`--casussen concept:IW05`) zijn diagnostisch en worden nooit met v1 gemengd.
+
+    python -m eval.compare_pipelines --output /pad/ab.json [--casussen v1|concept:IW05] [--cases IW01 …]
+                                     [--herhalingen 3] [--offline]
     python -m eval.compare_pipelines --analyseer /pad/ab.json --md /pad/ab.md
 """
 from __future__ import annotations
@@ -23,11 +29,13 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import statistics
 import time
 from collections import Counter
 from pathlib import Path
 from typing import Any
 
+from eval import casusbron, manifest
 from eval.keten_fixture import (
     TOKENVELDEN, Capture, FixtureGraph, LegeAnnotaties, fixture_doel, ketensettings, laad_cases, ontwikkelcases,
 )
@@ -116,9 +124,12 @@ def _v1(c: dict[str, Any]) -> dict[str, Any]:
 
 
 def analyseer(rapport: dict[str, Any]) -> dict[str, Any]:
+    casusbron.controleer_niet_gemengd(rapport["casussen"])
     casussen = {c["id"]: _v1(c) for c in rapport["casussen"]}
     status = laagste_status(controleer_status(c) for c in rapport["casussen"])   # vóór de vertaling
-    uit: dict[str, Any] = {"referentie_status": status, "recall_heet": recall_naam(status), "routes": {}}
+    uit: dict[str, Any] = {"referentie_status": status, "recall_heet": recall_naam(status), "routes": {},
+                           "diagnostisch": any(c.get("diagnostisch") for c in rapport["casussen"]),
+                           "manifest": rapport.get("manifest")}
     for route in ROUTES:
         runs = [r for r in rapport["runs"] if r["route"] == route and not r["fout"]]
         if not runs:
@@ -132,9 +143,11 @@ def analyseer(rapport: dict[str, Any]) -> dict[str, Any]:
         def telt(p: Ref) -> bool:
             return (p.bron, p.start, p.eind) not in betwist
 
-        per_ronde, onbetwist, uitslagen = [], [], []
+        per_ronde, onbetwist, uitslagen, geel = [], [], [], []
         for ronde in sorted({r["ronde"] for r in runs}):
             deze = [r for r in runs if r["ronde"] == ronde]
+            alle = [e for r in deze for e in r["na_keten"]]
+            geel.append(_deel(sum(e.get("aandacht") == "geel" for e in alle), len(alle)))
             vs = [p for r in deze for p in _posities(r["na_keten"], casussen[r["casus"]]["tekst"], r["casus"])
                   if telt(p)]
             # Een geel voorstel is een vraag aan de jurist, geen uitspraak: apart meten wat de keten
@@ -171,6 +184,25 @@ def analyseer(rapport: dict[str, Any]) -> dict[str, Any]:
             "exact_span": _gem([m["exact_span"] for m in per_ronde]),
             "partieel_zelfde_klasse": _gem([m["partial_overlap_zelfde_klasse"] for m in per_ronde]),
             "per_klasse_f1": _per_klasse(per_ronde),
+            "geel_aandeel": _gem(geel),
+            # De band over de rondes: een verschil daarbinnen is geen effect (onderzoek §12.3).
+            "spreiding": {
+                **{naam: _band(waarden) for naam, waarden in (
+                    ("micro_f1", [m["micro"]["f1"] for m in per_ronde]),
+                    ("micro_precision", [m["micro"]["precision"] for m in per_ronde]),
+                    ("micro_ankerdekking", [m["micro"]["recall"] for m in per_ronde]),
+                    ("macro_f1", [m["macro_f1"] for m in per_ronde]),
+                    ("onbetwist_precision", [m["micro"]["precision"] for m in onbetwist]),
+                    ("onbetwist_ankerdekking", [m["micro"]["recall"] for m in onbetwist]),
+                    ("exact_span", [m["exact_span"] for m in per_ronde]),
+                    ("geel_aandeel", geel))},
+                "per_klasse_f1": {k: _band([m["per_klasse"].get(k, {}).get("f1") for m in per_ronde])
+                                  for k in sorted({k for m in per_ronde for k in m["per_klasse"]})},
+                "per_klasse_ankerdekking": {
+                    k: _band([m["per_klasse"].get(k, {}).get("recall") for m in per_ronde])
+                    for k in sorted({k for m in per_ronde for k in m["per_klasse"]})},
+            },
+            "elementen": _elementen(runs, casussen),
             "foutcategorieen": tel(uitslagen),
             "classifier_contract": contract,
             # Juridisch tegenover technisch (onderzoek §6): opgeteld over alle runs.
@@ -221,6 +253,36 @@ def _deel(a, b):
     return round(a / b, 3) if b else None
 
 
+def _band(xs):
+    xs = [x for x in xs if x is not None]
+    if not xs:
+        return None
+    return {"min": round(min(xs), 3), "max": round(max(xs), 3), "mediaan": round(statistics.median(xs), 3),
+            "n": len(xs)}
+
+
+def _elementen(runs: list[dict[str, Any]], casussen: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Per span (casus + kernpositie): in hoeveel rondes een voorstel, met welke klasse en aandacht.
+
+    Op positie, niet op kandidaat-id: een detectorwijziging die een span verschuift, verandert het id.
+    """
+    uit: dict[str, dict[str, Any]] = {}
+    rondes = Counter(r["casus"] for r in runs)
+    for r in runs:
+        tekst = casussen[r["casus"]]["tekst"]
+        for e in r["na_keten"]:
+            a = (e.get("ankers") or [None])[0]
+            if a is None:
+                continue
+            s, t = kern(tekst, a["start"], a["eind"])
+            x = uit.setdefault(f"{r['casus']}:{s}-{t}", {"casus": r["casus"], "start": s, "eind": t,
+                                                       "tekst": tekst[s:t], "rondes": rondes[r["casus"]],
+                                                       "klassen": Counter(), "geel": 0})
+            x["klassen"][e.get("klasse", "")] += 1
+            x["geel"] += e.get("aandacht") == "geel"
+    return {k: {**v, "klassen": dict(v["klassen"])} for k, v in sorted(uit.items())}
+
+
 def _per_klasse(per_ronde):
     klassen = sorted({k for m in per_ronde for k in m["per_klasse"]})
     return {k: _gem([m["per_klasse"].get(k, {}).get("f1") for m in per_ronde]) for k in klassen}
@@ -233,9 +295,15 @@ def markdown(a: dict[str, Any]) -> str:
         def f(x):
             return "–" if x is None else (f"{100 * x:.0f}%" if pct else str(x))
         return f"| {naam} | " + " | ".join(f(_pak(a["routes"][r], pad)) for r in routes) + " |"
-    regels = [f"Referentie: **{a['referentie_status']}** – recall heet hier *{a['recall_heet']}*, geen annotation recall.",
+
+    def band(naam: str, pad: str) -> str:
+        def f(b):
+            return "–" if not b else f"{100 * b['min']:.0f}–{100 * b['max']:.0f}%"
+        return f"| {naam} | " + " | ".join(f(_pak(a["routes"][r], pad)) for r in routes) + " |"
+    regels = [f"Referentie: **{a['referentie_status']}** – recall heet hier *{a['recall_heet']}*, geen annotation recall."
+              + (" **Diagnostisch** (conceptcasus): telt niet mee in een v1-totaal." if a.get("diagnostisch") else ""),
               "", "| maat | " + " | ".join(routes) + " |", "|---|" + "---:|" * len(routes),
-              rij("micro-F1", "micro_f1"), rij("micro-precisie", "micro_precision"),
+              rij("micro-F1", "micro_f1"), band("  min–max over rondes", "spreiding.micro_f1"), rij("micro-precisie", "micro_precision"),
               rij(a["recall_heet"], "micro_ankerdekking"), rij("macro-F1", "macro_f1"),
               rij("precisie, alleen onbetwist", "onbetwist_precision"),
               rij(a["recall_heet"] + ", alleen onbetwist", "onbetwist_ankerdekking"),
@@ -249,6 +317,7 @@ def markdown(a: dict[str, Any]) -> str:
               rij("elementen per run", "efficientie.elementen_per_run", pct=False),
               rij("beslissingen zonder model", "efficientie.zonder_model"),
               rij("human review", "efficientie.human_review"),
+              rij("geel aandeel", "geel_aandeel"), band("  min–max over rondes", "spreiding.geel_aandeel"),
               rij("  waarvan juridisch", "reviewload.juridisch", pct=False),
               rij("  waarvan technisch", "reviewload.technisch", pct=False),
               rij("contractfouten classifier", "classifier_contract.contract_error_rate"),
@@ -285,7 +354,8 @@ class _NepLLM:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--cases", nargs="+", default=None)
+    ap.add_argument("--casussen", default=casusbron.STANDAARD, help="v1 | concept[:ID,…] | pad:<bestand>")
+    ap.add_argument("--cases", nargs="+", default=None, help="een deelverzameling van --casussen")
     ap.add_argument("--herhalingen", type=int, default=3)
     ap.add_argument("--output", type=Path)
     ap.add_argument("--offline", action="store_true")
@@ -299,7 +369,7 @@ def main() -> int:
     else:
         if not args.output or args.output.exists():
             ap.error("--output moet een nieuw pad zijn")
-        cases = laad_cases(args.cases or ontwikkelcases())
+        cases = laad_cases(args.cases or ontwikkelcases(args.casussen), args.casussen)
         from agent.config import Settings
         from eval.run_eval import _laad_env
         _laad_env()
@@ -310,7 +380,10 @@ def main() -> int:
             from agent.adapters.anthropic_llm import AnthropicLLM
             maak = AnthropicLLM
         rapport = {"status": "bezig", "model": settings.llm_model, "offline": args.offline, "routes": args.routes,
-                   "herhalingen": args.herhalingen, "casussen": cases, "runs": []}
+                   "herhalingen": args.herhalingen, "casussen": cases, "runs": [],
+                   "manifest": {**manifest.maak(args.casussen, settings=settings),
+                                "casus_ids": [c["id"] for c in cases], "herhalingen": args.herhalingen,
+                                "offline": args.offline}}
         bewaar = lambda: args.output.write_text(json.dumps(rapport, ensure_ascii=False, indent=2))  # noqa: E731
         try:
             meet(cases, args.herhalingen, settings, maak, rapport, bewaar, tuple(args.routes))
