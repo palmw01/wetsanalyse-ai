@@ -78,3 +78,80 @@ Model `claude-sonnet-4-6` (zelfde als de baseline van 29 september), prompt `090
 | Stap | Criterium | Uitslag | Map |
 |---|---|---|---|
 | 0 | – | nulmeting | `00-nul/` |
+| 1 – C | 01-C | **geslaagd** | [`01-C/`](01-C/README.md) |
+| 2 – B | 02-B | **geslaagd** (waarneming B7 lager, variatie) | [`02-B/`](02-B/README.md) |
+| 3 – A | 03-A | **niet geslaagd op A8**: twee niet-voorziene, wel bedoelde v1-wijzigingen, geen anker verloren | [`03-A/`](03-A/README.md) |
+| 4 – D | 04-D | **geslaagd** | [`04-D/`](04-D/README.md) |
+| totaal | – | nulmeting tegen stap 4 | [`05-totaal/`](05-totaal/) |
+
+Elke stap is gemeten op de code van zijn eigen commit, in een aparte worktree. De meetcommits zijn
+codegelijk aan de PR-commits na de rebase (`git diff --quiet <meetcommit> <pr-commit> -- tools api
+packages`); alleen de docs verschillen.
+
+## Uitkomst (nulmeting → stap 4)
+
+**IW05, diagnostisch, × 5** (`05-totaal/vergelijk-iw05.md`):
+
+| maat | voor | na |
+|---|---|---|
+| micro-F1 | 29% | 37% |
+| ankerdekking | 41% | 53% |
+| exacte span | 47% | 65% |
+
+Alle drie liggen buiten de spreiding. Per fout in 5/5 runs:
+
+- volzin 1 is geen Afleidingsregel meer, "zoveel … als …" wel;
+- "het aanslagbiljet" is Rechtsobject;
+- "De eerste termijn vervalt …" wordt gemarkeerd, als Rechtsfeit, terwijl het concept
+  Rechtsbetrekking zegt;
+- "de toepassing van de eerste volzin" is Rechtsfeit in 4/5 runs, geen Voorwaarde meer.
+
+Dit is een conceptcasus: dat het model de conceptklasse vaker raakt, is geen juridisch oordeel.
+
+**v1, 16 × 3** (`05-totaal/vergelijk-v1.md`):
+
+| maat | voor | na |
+|---|---|---|
+| ankerdekking | 78% | 79% |
+| micro-precisie | 37% | 35% |
+| micro-F1 | 50% | 49% |
+
+- **Ankerdekking per klasse.** Het minimum is voor geen enkele klasse lager, en geen v1-anker gaat
+  verloren.
+- **Precisie** daalt met 2 procentpunt, buiten de band van drie rondes.
+
+**Bevinding over de spreiding.** Drie rondes onderschatten de variatie tussen runs. De
+controlegroep (`05-totaal/controlegroep.txt`) maakt dat zichtbaar:
+
+- De acht v1-casussen met **bit-identieke classifierinvoer** schommelen in precisie tussen 48,6%
+  en 50,0%.
+- In stap C en B is de code op v1 identiek aan de nulmeting. Toch verschuift de precisie in de
+  geraakte casussen daar al tussen 28,3% en 30,3%.
+- In A en D ligt ze op 27,6–28,1%, net onder die band.
+
+Een kleine precisiekost van ongeveer 1–2 procentpunt in de geraakte casussen (IW01–04, AWB01–03,
+WZT01) is dus niet uit te sluiten. Hij komt van extra Rechtsobject-voorstellen. Aantonen kan het pas
+met 5 rondes.
+
+**Lessen voor het harnas.** De vlag "buiten spreiding" is een signaal om uit te zoeken, geen bewijs.
+Een controlegroep met ongewijzigde invoer hoort bij elke vergelijking.
+
+**Gemengde unies.** Op IW05 verdwijnt de unie op volzin 1. Op E17 ("vindt het eerste lid
+toepassing") staan nu twee echte hypothesen: Afleidingsregel uit de functiedetector en
+Rechtsbetrekking uit de gevolgdetector. Het model kiest daar 5/5 Afleidingsregel.
+
+Of een klassegebonden bewijsmodel (EvidenceHypothesis) dat beter zou beslissen, hoort bij V7. Het is
+ook reviewvraag 1 van het concept.
+
+## Open na deze fixes
+
+- **Relaties.** De ALS→DAN-verbanden en de invoer en uitkomst van de afleiding ontbreken nog
+  (kandidaten 4 en 9).
+- **Generieke naamwoordgroepen.** "De eerste termijn", "het jaar" en "de inkomstenbelasting" houden
+  Rechtssubject als hypothese (kandidaat 2).
+- **Nesting.** "de dagtekening" is nog een eigen kandidaat binnen de tijdsaanduiding (kandidaat 10).
+- **"die in de dagtekening … is vermeld"** valt buiten de nominalisatiecontexten.
+- **Klassekeuze van het model.** Het kiest Rechtsfeit voor "vervalt …" en Afleidingsregel voor
+  "vindt … toepassing". Of dat juist is, beslist een jurist.
+- **Twijfel.** Geel kwam in geen enkele lokale run voor, op acceptatie wel. Dat verschil is niet
+  verklaard.

@@ -1,0 +1,5 @@
+nul invoer gelijk: P 0.495 (0.492–0.5) R 0.789 | invoer veranderd: P 0.302 (0.292–0.311) R 0.767
+C invoer gelijk: P 0.5 (0.475–0.517) R 0.772 | invoer veranderd: P 0.283 (0.266–0.304) R 0.798
+B invoer gelijk: P 0.486 (0.475–0.492) R 0.772 | invoer veranderd: P 0.303 (0.297–0.307) R 0.783
+A invoer gelijk: P 0.497 (0.475–0.508) R 0.772 | invoer veranderd: P 0.276 (0.268–0.281) R 0.775
+D invoer gelijk: P 0.5 (0.5–0.5) R 0.789 | invoer veranderd: P 0.281 (0.27–0.287) R 0.791
