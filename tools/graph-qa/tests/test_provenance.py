@@ -17,9 +17,33 @@ def test_iri_uit_toolresultaat_wordt_bron():
 
 
 def test_jci_vindplaats_wordt_bron():
+    # De jci wordt de bronnode: `uri` is de graaf-IRI, de jci blijft bewaard voor de link.
     sources = collect_sources([("graphdb_sparql", f'"{JCI}"')])
-    src = next(s for s in sources if s.uri == JCI)
-    assert src.jci == JCI
+    assert [s.uri for s in sources] == [f"{ART_IRI}:lid:1"]
+    assert sources[0].jci == JCI
+    assert (sources[0].label, sources[0].soort, sources[0].bwb_id) == ("Artikel 9, lid 1", "lid", "BWBR0004770")
+
+
+def test_iri_en_jci_van_dezelfde_bepaling_zijn_een_bron():
+    # Een zoektool levert per treffer de graaf-IRI én de jci; dat waren twee bronnen.
+    awb = "urn:bwb:BWBR0005537:artikel:4%3A94a"
+    jci = "jci1.3:c:BWBR0005537&artikel=4:94a&z=2026-08-15&g=2026-08-15"
+    sources = collect_sources([("search_wetgeving", f"<{awb}> {jci}"), ("get_artikel", jci)])
+    assert len(sources) == 1
+    assert (sources[0].uri, sources[0].iri, sources[0].jci) == (awb, awb, jci)
+    assert sources[0].label == "Artikel 4:94a"
+
+
+def test_hoofdstuk_valt_niet_samen_met_de_regeling():
+    hoofdstuk = "urn:bwb:BWBR0004770:hoofdstuk:I"
+    sources = collect_sources([("t", f"{hoofdstuk} jci1.3:c:BWBR0004770&hoofdstuk=I&z=2026-07-01&g=2026-07-01")])
+    assert [(s.uri, s.label) for s in sources] == [(hoofdstuk, "Hoofdstuk I")]
+
+
+def test_verwijzing_zonder_node_blijft_als_vangnet():
+    jci = "jci1.3:c:BWBR0005537&bijlage=1&o=a&z=2026-08-15&g=2026-08-15"
+    sources = collect_sources([("t", jci)])
+    assert [(s.uri, s.label, s.bron_iri) for s in sources] == [(jci, jci, None)]
 
 
 def test_prozatekst_is_geen_bron():
