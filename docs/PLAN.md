@@ -1,6 +1,6 @@
 # Plan — wetsanalyse-ai
 
-Soort: *plan* (zie [`README.md`](README.md)) · Bijgewerkt: 5 oktober 2026
+Soort: *plan* (zie [`README.md`](README.md)) · Bijgewerkt: 6 oktober 2026
 
 Dit is het **enige plan** van het project. Het vervangt de losse plannen voor de workbench, het
 herkomstspoor, werkgebieden en begrippen en de kennisbank. Hier staat wat er openstaat, niet wat er
@@ -60,6 +60,16 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
   herkomst, aandacht, subtype, beslist_door en twijfel; in SPARQL én opnieuw tegen Postgres.
 - **Citatie-chips** (spoor B PR 5c): een vindplaats in het antwoord van Lex die éénduidig bij een
   bron hoort, opent een bronkaart (`frontend/lib/citaties.ts`, `CitatieChip`).
+- **Uitleg en dekking verdiept** (#605, #606, #614): de toelichting in twee lagen met een reden per
+  alternatief, deterministisch uit het bewijs (`agent/jas_pipeline/uitleg.py`); per dimensie ook
+  wat er gevonden is (`jas:aantal`); zinsdelen die alleen als geheel geraakt werden
+  (`jas:alleenAlsGeheel`). Alles additief in projectie, SHACL en export-schema v3.
+- **Vervolgvragen in één gesprek** (#607–#612, #616): gespreksfocus (`agent/focus.py`), een
+  supervisor die een vervolgvraag zelfstandig herschrijft, grounding over het gesprek
+  (`agent/bronregister.py`), `overzicht_annotaties` en annotatietools voor `duiding`, en het
+  letterlijk maken van een bijna-letterlijk citaat (`grounding.herstel_citaten`). Gemeten met de
+  gesprekseval (`run_eval.py --gesprek`): 7–9 → 11–12 van 12 vervolgbeurten →
+  [`metingen/gesprek-vervolgvragen-2026-10-06/`](architectuur/metingen/gesprek-vervolgvragen-2026-10-06/README.md).
 - **Samenhangsgraaf** (#540–#546): `GET /v1/annotatie/samenhang` (`api/app/samenhang.py`,
   capability `samenhang`) en een 3D-krachtgraaf (`components/graaf/SamenhangGraaf.tsx`,
   `lib/samenhang.ts`). Die staat als tab *3D-graaf* in het annotatiepaneel en opent ook via
@@ -85,7 +95,7 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | Spoor | Onderwerp | Stand |
 |---|---|---|
 | A | Juridische validatie van `hybrid_v1` (V7) | Wacht op mensenwerk: 0 casussen `adjudicated` |
-| B | Herkomst zichtbaar in werkplek en exports | Af: alle PR's gebouwd; 5a–6a op productie in `v1.8.0`, de rest gaat mee in `v1.9.0` |
+| B | Herkomst zichtbaar in werkplek en exports | Af: alle PR's gebouwd en op productie (`v1.11.0`) |
 | C | Leerlus en knowledge-check | Te herijken |
 | D | Activiteit 3: werkgebieden en begrippen | Ontwerp klaar, niets gebouwd |
 | E | Kennisbank (tweede corpus) | Ontwerp klaar, niets gebouwd |
@@ -129,6 +139,10 @@ op IW05. Op v1 gaat geen anker verloren, maar de precisie is 2 procentpunt lager
 rondes niet van run-variatie te scheiden. Meting en criteria:
 [`metingen/hybrid-v1-iw05-fixes-2026-10/`](architectuur/metingen/hybrid-v1-iw05-fixes-2026-10/README.md).
 
+Valt eveneens onder deze uitzondering, omdat het een spellingsgat is en geen interpretatiekeuze:
+telwoorden als opbouwregel in plaats van een vaste lijst (#613; "eenentwintig dagen" werd geen
+Tijdsaanduiding). Ankerdekking gelijk (89%).
+
 **Kandidaten na V7** (alleen met de V7-baseline als vergelijkingspunt; zie ook de
 bekende beperkingen in [`architectuur/annotatieketen.md`](architectuur/annotatieketen.md)):
 1. Candidate- en EvidenceHypothesis: ondersteuning en tegenbewijs per klasse.
@@ -170,18 +184,9 @@ De samenhangsgraaf is de plek waar die herkomst ook ruimtelijk zichtbaar wordt, 
   graafcontrole-status komen onder "technisch detail" in de graafinspector en in de export.
 
 **UI-richting.** De huidige opzet blijft: een gespreksvenster met de annotatie als zijpaneel. Die
-volgt zo dicht mogelijk de patronen van Claude:
-- een ingeklapt stappenblok met fasen en duur;
-- het antwoord als proza met citatie-chips die een bronkaart openen;
-- een artefact-kaartje dat het zijpaneel opent, met revisiekiezer en de tabs *Tekst / Dekking /
-  3D-graaf*;
-- bij tekstselectie een zwevende balk *Markeer als… / Vraag Lex*, die een citaat-chip in de invoer
-  zet.
-
-Er staat al: de tabs *Tekst* en *3D-graaf*, *Vraag Lex* in `SelectiePopover`, en *Open brontekst* /
-*Vraag Lex hierover* in de graafinspector. Nog te bouwen: de tab *Dekking*, het stappenblok met duur,
-het artefact-kaartje met revisiekiezer, de citatie-chips met bronkaart en de citaat-chip in de
-invoer.
+volgt zo dicht mogelijk de patronen van Claude: een ingeklapt stappenblok met fasen en duur, het
+antwoord als proza met citatie-chips die een bronkaart openen, een zijpaneel met revisiehistorie en
+de tabs *Tekst / Dekking / 3D-graaf*, en bij tekstselectie *Markeer als… / Vraag Lex*.
 
 De huisstijl (lintblauw, Fira, JAS-kleuren) blijft.
 
@@ -538,7 +543,7 @@ blijft bij de wettekst.
 
 - **A** loopt los van de rest en is vooral werk voor beoordelaars. Het blokkeert alleen semantisch
   werk aan de annotatieketen, niet B, D of E.
-- **B**: 7, 8, 9, 10 en 5c staan los van elkaar; alle afhankelijkheden zijn geleverd. PR 6, 7 en 9 kunnen parallel.
+- **B** is af; vervolgwerk aan de herkomst volgt de werkwijze en verificatie van dat spoor.
 - **D** en **E** zijn onafhankelijk. D-levering 4 (Lex leest begrippen) en E-fase 3 (koppelen aan
   bepalingen) gebruiken allebei het projectie- en schrijfpad van de api. Ontwerp ze samen als ze
   tegelijk aan de orde komen.
@@ -554,10 +559,9 @@ blijft bij de wettekst.
 3. **D — kaders**: één begrippenkader per werkgebied als start (voorstel), met later expliciet
    hergebruik tussen kaders.
 4. **C**: blijft de leerlus een doel, en in welke vorm?
-5. **B — PR 9 en 10**: wel of niet bouwen.
-6. **A — scope**: horen relaties (operand, afleiding) en beleidsregels met rekenvoorbeelden bij
+5. **A — scope**: horen relaties (operand, afleiding) en beleidsregels met rekenvoorbeelden bij
    activiteit 2? Zie het onderzoek §17, punten 7 en 9.
-7. **A — Rechtsbetrekking zonder genoemde partijen** (jurist): telt een impliciete partij (de
+6. **A — Rechtsbetrekking zonder genoemde partijen** (jurist): telt een impliciete partij (de
    ontvanger, de belastingschuldige) voor een Rechtsbetrekking (H2:44: een relatie tussen twee
    rechtssubjecten), of is "Een belastingaanslag is invorderbaar …" een rechtsgevolg (Rechtsfeit)?
    Het model wijst de centrale norm hier af, de referentie (IW01, provisional) zegt Rechtsbetrekking.
