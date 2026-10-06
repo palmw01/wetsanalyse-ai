@@ -135,7 +135,7 @@ Leidraad wel. `herkomst=graaf` is een intern contract, geen cryptografisch bewij
 
 ## Detectoren
 
-Zestien actieve generators (`standaard_detectoren()`). Klassen: RS Rechtssubject, RO Rechtsobject,
+Zeventien actieve generators (`standaard_detectoren()`). Klassen: RS Rechtssubject, RO Rechtsobject,
 RB Rechtsbetrekking, RF Rechtsfeit, VW Voorwaarde, AR Afleidingsregel, V Variabele(waarde), P
 Parameter(waarde), O Operator, T Tijdsaanduiding, L Plaatsaanduiding, D Delegatie, B
 Brondefinitie. Actuele versies staan in de runmeting. De regels en hun vier testsoorten staan in
@@ -154,11 +154,12 @@ Brondefinitie. Actuele versies staan in de runmeting. De regels en hun vier test
 | definitie | *verstaan onder* + term:omschrijving | B | nee | varianten buiten het patroon |
 | betekenis | *betekent:* + term | VW/RO | nee | niet elke betekent-formule is een VW |
 | norm | modaal of normatief lexeme per segment | RB; RF alleen met rechtsgevolg (`LEGAL_EFFECT_PREDICATE`) | nee | impliciete normen |
-| naamwoordgroep | NP-kop, rol, eigenschap, grammaticale positie | P/V, V/RO, RS; generiek RS/RO/V, zonder normcontext geen RS bij object en lijdend onderwerp | ja | grammatica als juridische keuzeruimte; parsergrenzen |
-| bijzin | *als* + eigen predicatie; restrictieve relatieve bijzin | VW; relatief VW/RS/RO | ja | vergelijkend *als* met werkwoord; ellipsen |
-| nominalisatie | Inf + *het*, of -ing met van/door-bepaling | RF/VW/RO | ja | actienamen buiten -ing |
+| gevolg | rechtsgevolg als predicaat van de hoofdzin (*vervalt*, *ontstaat*, *gaat over*, *treedt in werking*); *vindt … toepassing* | RB/RF; toepassingsgevolg RB. Span = eigen clause, opties segment en predicaat | ja | alleen het lexicon `GEVOLGPREDICAAT`; een gevolg in een bijzin bewust niet |
+| naamwoordgroep | NP-kop, rol, eigenschap, grammaticale positie, referent (persoon, zaak, handeling) | P/V, V/RO, RS; generiek RS/RO/V. Geen RS zonder normcontext bij object en lijdend onderwerp, en nooit bij een zaak (`THING_NP`) of handeling (`ACTION_NP`) als kop | ja | grammatica als juridische keuzeruimte; generieke NP's ("de termijn", "het jaar") houden RS; parsergrenzen |
+| bijzin | *als* + eigen predicatie; restrictieve relatieve bijzin | VW; relatief VW/RS/RO, bij een zaak of handeling VW/RO | ja | vergelijkend *als* met werkwoord; ellipsen |
+| nominalisatie | Inf + *het*, of -ing met van/door-bepaling | RF/VW/RO; als referentiemoment achter een tijdvoorzetsel RF; als onderwerp of voorwerp in een voorwaardelijke bijzin RF/RO | ja | actienamen buiten -ing; andere contexten (*in de dagtekening … vermeld*) houden VW |
 | logisch | nevenschikking tussen predicaten, negatie in voorwaarde | O | ja | bereik en operanden ontbreken |
-| functie | datumtoewijzing (ook passief), aantalberekening (*zoveel … als*), kalenderpositie, relatieve datum, elliptische voorwaarde, toepassingskeuze | T/AR/VW (hypothesen) | ja | begrensde patronen, geen juridische redeneerder |
+| functie | datumtoewijzing (ook passief), aantalberekening (*zoveel … als*), kalenderpositie, relatieve datum, elliptische voorwaarde, toepassingskeuze | T/AR/VW (hypothesen). Aantal en toepassingskeuze op hun eigen span (de constructie, de clause van *vindt*), het segment als optie | ja | begrensde patronen, geen juridische redeneerder; toewijzing en kalenderpositie nog op het segment |
 
 ## Herkomst en registratie
 
@@ -200,6 +201,22 @@ eerste lid toepassing", de ALS zonder de DAN, en "zoveel … als" niet als aflei
 33 geneste overlappen waarvan een deel uit de detectoren voortkomt en niet uit juridische functie
 ("de dagtekening" als Rechtsobject binnen een tijdsaanduiding). Het concept zet per exportelement
 behouden, wijzigen of verwijderen; een jurist beoordeelt het voor het naar de referentieset gaat.
+
+Vier van deze fouten zijn in oktober 2026 in de detectoren hersteld (de uitzondering in
+[`../PLAN.md`](../PLAN.md), spoor A; meting in
+[`metingen/hybrid-v1-iw05-fixes-2026-10/`](metingen/hybrid-v1-iw05-fixes-2026-10/README.md)):
+
+- de afleiding en de toepassingskeuze krijgen hun eigen span;
+- een rechtsgevolg als hoofdzin wordt kandidaat;
+- een zaak of handeling als kop krijgt geen Rechtssubject;
+- een nominalisatie als referentiemoment of binnen een voorwaarde krijgt geen Voorwaarde.
+
+Open blijven:
+
+- de relaties (ALS→DAN, invoer en uitkomst van de afleiding);
+- generieke naamwoordgroepen met Rechtssubject ("de eerste termijn", "het jaar");
+- "de dagtekening" als Rechtsobject binnen een tijdsaanduiding (nesting);
+- de nominalisatie in "die in de dagtekening … is vermeld".
 
 Bewust **niet** te wijzigen: alle uitgebreide duurspans inkorten (N01: de startgebeurtenis hoort
 volgens het profiel bij T) en *dagtekening* als woord uitsluiten (N02: strijdig met de

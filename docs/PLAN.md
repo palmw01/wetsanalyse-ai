@@ -124,7 +124,9 @@ beperkt tot de detectoren:
 Er is geen promptwijziging, geen nieuwe agentrol en geen tegenbewijs-semantiek (dat is kandidaat
 1). Elke fix heeft een criterium dat vóór de nulmeting is vastgelegd. De meting claimt op v1
 uitsluitend "geen regressie". De winst geldt alleen voor de diagnostische conceptcasus `IW05`
-(onderzoek §18.6). Kandidaten 2, 3 en 10 blijven ná V7. Meting en criteria:
+(onderzoek §18.6). Kandidaten 2, 3 en 10 blijven ná V7. **Uitgevoerd**, met alle vier de fouten weg
+op IW05. Op v1 gaat geen anker verloren, maar de precisie is 2 procentpunt lager; dat is met drie
+rondes niet van run-variatie te scheiden. Meting en criteria:
 [`metingen/hybrid-v1-iw05-fixes-2026-10/`](architectuur/metingen/hybrid-v1-iw05-fixes-2026-10/README.md).
 
 **Kandidaten na V7** (alleen met de V7-baseline als vergelijkingspunt; zie ook de
