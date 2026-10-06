@@ -31,6 +31,7 @@ import yaml
 
 from ...jas_klassen import GELDIGE_JAS_KLASSEN
 from ..kandidaten import BronSpan, Candidate, DetectieBijdrage, DetectorResult, Evidence, SpanOption
+from ..taal.telwoorden import TELWOORD
 from ..taal.verwijzingen import PATRONEN, RANGTELWOORD, VERSIE as VERWIJZING_VERSIE
 from ..taal.grenzen import analyseer_grenzen, VERSIE as GRENS_VERSIE
 from . import BronTekst, resultaat
@@ -48,7 +49,7 @@ def woordenlijsten() -> dict[str, str]:
     lijsten = yaml.safe_load((MAP / "_woordenlijsten.yaml").read_text(encoding="utf-8"))
     return {naam: "|".join(sorted((re.escape(w) if not w.startswith("re:") else w[3:] for w in woorden),
                                   key=len, reverse=True))
-            for naam, woorden in lijsten.items()} | {"RANGTELWOORD": RANGTELWOORD}
+            for naam, woorden in lijsten.items()} | {"RANGTELWOORD": RANGTELWOORD, "TELWOORD": TELWOORD}
 
 
 def _vul_in(patroon: str) -> str:
