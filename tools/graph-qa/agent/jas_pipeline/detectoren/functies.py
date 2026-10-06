@@ -24,7 +24,8 @@ from .regels import woordenlijsten
 
 AR, T, VW = "Afleidingsregel", "Tijdsaanduiding", "Voorwaarde"
 _AANTAL = re.compile(r"\bzoveel\s+(?P<uitkomst>[\s\S]+?)\s+als\s+(?P<invoer>[\s\S]*\b(?:overblijven|resteren)\b)", re.I)
-_VOORWAARDE = {"indien", "als", "wanneer", "zodra"}
+# Voegwoorden van een voorwaardelijke bijzin; gedeeld met de nominalisatiedetector.
+VOORWAARDE_VOEGWOORDEN = frozenset({"indien", "als", "wanneer", "zodra"})
 _ONTKENNING = {"geen", "niet"}
 
 
@@ -61,7 +62,7 @@ def toepassingskeuze(a, i: int) -> dict | None:
         "toepassing": t0, "regel": regel[0],
         "ontkend": any(_lem(a, c) in _ONTKENNING for c in (*a.kinderen(t0), *a.kinderen(i))),
         "overeenkomstig": any(_lem(a, c).startswith("overeenkomstig") for c in a.kinderen(t0)),
-        "voorwaardelijk": any(_lem(a, m) in _VOORWAARDE for c in a.kinderen(i) if a.tokens[c].deprel == "advcl"
+        "voorwaardelijk": any(_lem(a, m) in VOORWAARDE_VOEGWOORDEN for c in a.kinderen(i) if a.tokens[c].deprel == "advcl"
                               for m in a.kinderen(c) if a.tokens[m].deprel == "mark")
         or any(_lem(a, c) == "geval" for c in a.kinderen(i) if a.tokens[c].deprel == "obl"),
     }

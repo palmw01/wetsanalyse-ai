@@ -82,6 +82,8 @@ def test_berekening_en_nominalisatie_lid5(parser):
     assert not any(k.span.start == 0 and "Afleidingsregel" in k.possible_classes for k in ks)
     n = [k for k in ks if k.span.start == 474 and any(e.code == "NOMINALIZED_ACTION" for e in k.evidence)]
     assert [k.span.tekst for k in n] == ["de dagtekening van het aanslagbiljet"]
+    # Achter 'na' is het een referentiemoment, geen eigen voorwaarde.
+    assert "Voorwaarde" not in n[0].possible_classes
     assert any(k.span.tekst == "telkens een maand later" and "Tijdsaanduiding" in k.possible_classes for k in ks)
     assert any(k.span.tekst.startswith("Indien") and "niet leidt tot meer dan één termijn" in k.span.tekst for k in ks)
     # De toepassingskeuze is de eigen clause van 'vindt'; de voorwaarde ervoor is een eigen kandidaat.

@@ -242,3 +242,25 @@ def test_geen_fusiekandidaat_met_een_zaak_als_kop_krijgt_rechtssubject(parser):
         for k in f.kandidaten:
             if k.id in zaak - persoon:
                 assert "Rechtssubject" not in k.possible_classes, (c["id"], k.span.tekst)
+
+
+# --- nominalisatie: de context bepaalt of Voorwaarde een hypothese is ----------------------------
+
+@pytest.mark.parametrize("tekst,np,klassen,regel", [
+    # referentiemoment achter een tijdvoorzetsel
+    ("De termijn vervalt één maand na de dagtekening van het aanslagbiljet.", "de dagtekening van het aanslagbiljet",
+     ("Rechtsfeit",), "jas.feit.nominalisatie_referentiemoment"),
+    ("Sinds de bekendmaking van het besluit loopt de termijn.", "de bekendmaking van het besluit",
+     ("Rechtsfeit",), "jas.feit.nominalisatie_referentiemoment"),
+    # onderwerp in een voorwaardelijke bijzin
+    ("Indien de toepassing van het eerste lid niet leidt tot een bedrag, vervalt de aanslag.",
+     "de toepassing van het eerste lid", ("Rechtsfeit", "Rechtsobject"), "jas.feit.nominalisatie_in_voorwaarde"),
+    # elders blijft Voorwaarde mogelijk ('tot' en 'voor' zijn bewust geen tijdvoorzetsel)
+    ("De last is gericht op het voorkomen van herhaling van een overtreding.", "het voorkomen van herhaling",
+     ("Rechtsfeit", "Voorwaarde", "Rechtsobject"), "jas.feit.nominalisatie_van"),
+    ("Nadere regels worden gesteld voor de toepassing van deze wet.", "de toepassing van deze wet",
+     ("Rechtsfeit", "Voorwaarde", "Rechtsobject"), "jas.feit.nominalisatie_van"),
+])
+def test_nominalisatiecontext(parser, tekst, np, klassen, regel):
+    k = next(k for k in NominalisatieDetector().detecteer(_bron(tekst, parser)).kandidaten if k.span.tekst.startswith(np))
+    assert k.possible_classes == klassen and k.evidence[0].regel == regel

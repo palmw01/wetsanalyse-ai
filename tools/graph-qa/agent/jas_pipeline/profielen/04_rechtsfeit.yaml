@@ -13,6 +13,8 @@ semantic_signals:
 structural_signals: []
 candidate_rules:
   - {id: jas.feit.nominalisatie_van, status: geïmplementeerd}
+  - {id: jas.feit.nominalisatie_referentiemoment, status: geïmplementeerd}
+  - {id: jas.feit.nominalisatie_in_voorwaarde, status: geïmplementeerd}
   - {id: jas.feit.rechtsgevolg_in_norm, status: geïmplementeerd}
   - {id: jas.feit.gebeurtenisbijzin, status: gepland}
 confusable_classes:

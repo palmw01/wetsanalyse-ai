@@ -349,10 +349,23 @@ class NominalisatieDetector:
     daar noemt het een verhouding of een regeling, geen handeling (audit D04). Een nevengeschikte
     tak met eigen predicaat, eigen onderwerp of distributieve kwantor is een eigen functie en
     valt buiten de span.
+
+    Welke klassen mogelijk zijn hangt af van de plek in de zin (`_context`). Een nominalisatie is
+    alleen géén eigen Voorwaarde waar de zin haar al een andere rol geeft:
+
+    - **referentiemoment** – achter een tijdvoorzetsel ('één maand na de dagtekening van …'): het
+      moment waarvan een termijn loopt; de tijdsaanduiding eromheen draagt de functie;
+    - **in een voorwaarde** – onderwerp of lijdend voorwerp van het gezegde van een voorwaardelijke
+      bijzin ('Indien de toepassing van … niet leidt tot …'): de bijzin is de voorwaarde, niet het
+      naamwoord erin.
+
+    Elders blijft Voorwaarde een hypothese ('gericht op het voorkomen van herhaling').
     """
-    REGELS: tuple[str, ...] = ("jas.feit.nominalisatie_van",)
+    REGELS: tuple[str, ...] = ("jas.feit.nominalisatie_van", "jas.feit.nominalisatie_referentiemoment",
+                               "jas.feit.nominalisatie_in_voorwaarde")
     naam = "nominalisatie"
-    versie = f"4+verwijzing.{VERWIJZING_VERSIE}"  # D04: van/door-bepaling, vaste uitdrukkingen, distributief
+    # 5: de context bepaalt of Voorwaarde een hypothese is (art. 9 lid 5 IW 1990)
+    versie = f"5+verwijzing.{VERWIJZING_VERSIE}"
     _AAN_DE_RAND = {"case", "cc", "advmod", "mark", "punct"}
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
@@ -382,10 +395,23 @@ class NominalisatieDetector:
             g = _bereik(a, tokens)
             if not g or _in_verwijzing(bron, *g):
                 continue
-            kandidaten.append(_kandidaat(bron, [(g, "np")], [FEIT, VW, OBJ], [Evidence(
-                detector=self.naam, code="NOMINALIZED_ACTION", regel="jas.feit.nominalisatie_van",
-                relatie=t.deprel, detail=t.tekst)]))
+            regel, klassen = self._context(a, t)
+            kandidaten.append(_kandidaat(bron, [(g, "np")], klassen, [Evidence(
+                detector=self.naam, code="NOMINALIZED_ACTION", regel=regel, relatie=t.deprel, detail=t.tekst)]))
         return resultaat(self, bron, kandidaten)
+
+    @staticmethod
+    def _context(a: LinguisticAnalysis, t: Token) -> tuple[str, list[str]]:
+        from .functies import VOORWAARDE_VOEGWOORDEN
+        if any(a.tokens[k].deprel == "case" and _lijst("TIJDVOORZETSEL").match(a.tokens[k].tekst)
+               for k in a.kinderen(t.i)):
+            return "jas.feit.nominalisatie_referentiemoment", [FEIT]
+        gezegde = a.tokens[t.head] if t.head >= 0 else None
+        if (t.deprel in {"nsubj", "nsubj:pass", "obj"} and gezegde is not None and gezegde.deprel == "advcl"
+                and any(a.tokens[m].deprel == "mark" and (a.tokens[m].lemma or a.tokens[m].tekst).lower()
+                        in VOORWAARDE_VOEGWOORDEN for m in a.kinderen(gezegde.i))):
+            return "jas.feit.nominalisatie_in_voorwaarde", [FEIT, OBJ]
+        return "jas.feit.nominalisatie_van", [FEIT, VW, OBJ]
 
 
 # --- Rechtsbetrekking: een rechtsgevolg als eigen hoofdzin ------------------------------------
