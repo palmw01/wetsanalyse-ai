@@ -125,3 +125,15 @@ async def test_markeringen_dragen_herkomst_aandacht_en_spoor(monkeypatch):
     assert (mens["herkomst"], mens["aandacht"], mens["beslist_door"], mens["twijfel"]) == ("mens", "", "", False)
     # Structuurknopen houden de lege standaardwaarden.
     assert all(k["herkomst"] == "" for k in g["knopen"] if k["soort"] != "markering")
+
+
+async def test_een_terugval_markeert_wel_maar_krijgt_geen_klasseknoop(monkeypatch):
+    from test_annotatie_v2 import TERUGVAL
+    snap = snapshot(ONE)
+    await store.batch(request(snap, [{**element(snap), **TERUGVAL}]), snap, "lex")
+    monkeypatch.setattr(samenhang, "_verwijzingen", rijen())
+    g = await samenhang.samenhang(snap)
+    [m] = [k for k in g["knopen"] if k["soort"] == "markering"]
+    assert m["klasse"] == "" and m["beslist_door"] == "terugval"
+    assert not any(k["soort"] == "klasse" for k in g["knopen"])
+    assert not any(r["soort"] == "heeft_klasse" for r in g["relaties"])

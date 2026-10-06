@@ -73,9 +73,11 @@ def _fout(v: dict[str, Any], b: Beslissing, k: Candidate | None, snapshot: dict[
         return "V_ANKER", str(exc)
     if v.get("tekst") != " ".join(a["tekst"] for a in ankers):
         return "V_ANKER", "tekst wijkt af van de ankers"
-    if v.get("klasse") not in GELDIGE_JAS_KLASSEN or v.get("klasse") != b.klasse:
+    # Een terugval draagt bewust geen klasse: de jurist kiest uit de mogelijke klassen.
+    zonder_klasse = b.door == "terugval" and b.status is CandidateStatus.HUMAN_REVIEW and not b.klasse
+    if v.get("klasse") != b.klasse or not (zonder_klasse or v.get("klasse") in GELDIGE_JAS_KLASSEN):
         return "V_KLASSE", str(v.get("klasse"))
-    if b.klasse not in k.possible_classes:
+    if not zonder_klasse and b.klasse not in k.possible_classes:
         return "V_KLASSE", f"{b.klasse} was voor {k.label} niet toegestaan"
     grens = (ankers[0]["bron_iri"], ankers[0]["start"], ankers[-1]["eind"])
     toegestaan = {k.span.sleutel(), *(o.span.sleutel() for o in k.span_options)}

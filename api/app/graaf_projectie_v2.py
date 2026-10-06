@@ -140,16 +140,23 @@ def bouw_graaf(laag: dict, elementen: list[dict], prov: bool = True, dekking: di
         g.add((e, RDF.type, JAS.Markering))
         g.add((e, RDF.type, OA.Annotation))
         g.add((e, JAS.inLaag, owner))
-        for p, value in ((JAS.elementId, element["id"]), (JAS.klasseNaam, element["klasse"]),
+        for p, value in ((JAS.elementId, element["id"]),
                          (JAS.lifecycle, element.get("lifecycle", "")),
                          (JAS.verouderd, bool(element.get("verouderd", False))),
                          (JAS.tekst, element.get("tekst", "")),
                          (JAS.toelichting, element.get("toelichting", "")),
                          (JAS.herkomst, element.get("herkomst", ""))):
             g.add((e, p, Literal(value)))
-        g.add((e, JAS.klasse, klasse_iri(element["klasse"])))
-        g.add((e, OA.motivatedBy, OA.classifying))
-        g.add((e, OA.hasBody, klasse_iri(element["klasse"])))
+        if element["klasse"]:
+            g.add((e, JAS.klasseNaam, Literal(element["klasse"])))
+            g.add((e, JAS.klasse, klasse_iri(element["klasse"])))
+            g.add((e, OA.motivatedBy, OA.classifying))
+            g.add((e, OA.hasBody, klasse_iri(element["klasse"])))
+        else:
+            # Terugval: geen klasse gekozen. Geen klasseclaim in de graaf – een voorlopige klasse las
+            # als een echte keuze – maar een vraag aan de jurist (W3C `oa:questioning`); de mogelijke
+            # klassen staan als `jas:alternatief`.
+            g.add((e, OA.motivatedBy, OA.questioning))
         if element.get("aandacht"):
             g.add((e, JAS.aandacht, Literal(element["aandacht"])))
         if element.get("jas_subtype"):
@@ -280,7 +287,8 @@ def _beoordelingen(g: Graph, e: URIRef, element: dict, spoor: dict) -> None:
             g.add((n, JAS.reden, Literal(str(b["review_reason"]))))
         nieuw = (b.get("wijziging") or {}).get("klasse")
         if nieuw and nieuw != klasse:
-            g.add((n, JAS.van, klasse_iri(klasse)))
+            if klasse:                       # na een terugval kiest de jurist; er was geen 'van'
+                g.add((n, JAS.van, klasse_iri(klasse)))
             g.add((n, JAS.naar, klasse_iri(nieuw)))
             klasse = nieuw
 
@@ -383,8 +391,9 @@ SELECT DISTINCT ?id WHERE {{
  GRAPH ?g {{
   ?laag jas:revisie ?rev ; jas:status ?laagstatus .
   ?e a jas:Markering ; jas:inLaag ?laag ; jas:elementId ?id ;
-     jas:klasseNaam ?klasse ; jas:lifecycle ?lifecycle ; jas:verouderd ?verouderd ;
+     jas:lifecycle ?lifecycle ; jas:verouderd ?verouderd ;
      jas:tekst ?tekst ; jas:toelichting ?toelichting .
+  OPTIONAL {{ ?e jas:klasseNaam ?klasse }}
   {' '.join(clauses)}
  }}
 }} ORDER BY ?id LIMIT {max(1, min(10001, int(limit)))}'''

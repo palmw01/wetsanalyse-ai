@@ -557,3 +557,9 @@ blijft bij de wettekst.
 5. **B — PR 9 en 10**: wel of niet bouwen.
 6. **A — scope**: horen relaties (operand, afleiding) en beleidsregels met rekenvoorbeelden bij
    activiteit 2? Zie het onderzoek §17, punten 7 en 9.
+7. **A — Rechtsbetrekking zonder genoemde partijen** (jurist): telt een impliciete partij (de
+   ontvanger, de belastingschuldige) voor een Rechtsbetrekking (H2:44: een relatie tussen twee
+   rechtssubjecten), of is "Een belastingaanslag is invorderbaar …" een rechtsgevolg (Rechtsfeit)?
+   Het model wijst de centrale norm hier af, de referentie (IW01, provisional) zegt Rechtsbetrekking.
+   Na het oordeel wordt het een deterministische regel (klasse-invariant), met een meting – niet
+   eerder, want anders legt de code een methodekeuze vast die nog open is.

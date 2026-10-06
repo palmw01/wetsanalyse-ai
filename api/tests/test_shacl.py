@@ -61,7 +61,8 @@ def test_een_markering_zonder_anker_is_een_rdf_fout():
 
 def test_de_klassenlijst_in_de_shapes_loopt_mee_met_de_api():
     tekst = SHAPES.read_text(encoding="utf-8")
-    blok = re.search(r"sh:path jas:klasseNaam.*?sh:in \((.*?)\)", tekst, re.S).group(1)
+    # Binnen één eigenschapsblok (`[ … ]`): jas:klasseNaam komt ook voor in de sh:xone zonder lijst.
+    blok = re.search(r"sh:path jas:klasseNaam[^\]]*?sh:in \((.*?)\)", tekst, re.S).group(1)
     assert re.findall(r'"([^"]+)"', blok) == list(JAS_KLASSEN_VOLGORDE)
     blok = re.search(r"sh:path jas:lifecycle.*?sh:in \((.*?)\)", tekst, re.S).group(1)
     assert set(re.findall(r'"([^"]+)"', blok)) == {l.value for l in Lifecycle}
@@ -91,3 +92,26 @@ def test_prov_projectie_is_conform_en_houdt_de_wettekst_schoon():
     assert valideer(g)["conform"] is True
     assert not any(str(s).startswith("urn:bwb:") for s in g.subjects())
     assert len(bouw_graaf(LAAG, [{**ELEMENT, "trace": spoor}], prov=False)) < len(g)   # PROV is standaard aan
+
+
+TERUGVAL = {"klasse": "", "alternatieven": [{"klasse": "Rechtsbetrekking", "motivatie": ""},
+                                            {"klasse": "Rechtsfeit", "motivatie": ""}],
+            "trace": {"beslissing": {"door": "terugval", "status": "HUMAN_REVIEW"}}}
+
+
+def test_een_terugval_is_een_vraag_zonder_klasse_en_conform():
+    g = _graaf(**TERUGVAL)
+    e = element_iri("e1")
+    assert (e, OA.motivatedBy, OA.questioning) in g
+    assert not list(g.objects(e, JAS.klasse)) and not list(g.objects(e, JAS.klasseNaam))
+    assert valideer(g)["conform"] is True
+
+
+def test_een_classificatie_zonder_klasse_of_een_vraag_zonder_alternatief_is_een_fout():
+    zonder_klasse = _graaf()
+    e = element_iri("e1")
+    for p in (JAS.klasse, JAS.klasseNaam):
+        for o in list(zonder_klasse.objects(e, p)):
+            zonder_klasse.remove((e, p, o))
+    assert valideer(zonder_klasse)["conform"] is False
+    assert valideer(_graaf(**{**TERUGVAL, "alternatieven": []}))["conform"] is False

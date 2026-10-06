@@ -48,8 +48,16 @@ def bereik_van(snapshot: dict, iri: str | None = None) -> set[str]:
     return {key for key in nodes if iri in keten(nodes, key)}
 
 
+def is_terugval(element: dict | Element) -> bool:
+    """Een voorstel waarbij geen klasse gekozen is: het draagt bewust geen klasse, de jurist kiest."""
+    trace = element.trace if isinstance(element, Element) else (element.get("trace") or {})
+    return ((trace or {}).get("beslissing") or {}).get("door") == "terugval"
+
+
 def valideer(element: Element, snapshot: dict, scope: set[str]) -> dict:
-    if element.klasse not in GELDIGE_JAS_KLASSEN or not element.tekst.strip():
+    # Een lege klasse mag alleen bij een terugval: daar doet het element bewust geen klasseclaim.
+    zonder_klasse = element.klasse == "" and is_terugval(element)
+    if not (zonder_klasse or element.klasse in GELDIGE_JAS_KLASSEN) or not element.tekst.strip():
         raise HTTPException(422, "Ongeldige klasse of leeg fragment.")
     nodes = nodes_van(snapshot)
     seen = set()
@@ -249,6 +257,25 @@ async def batch(req: Batch, snapshot: dict, actor: str, *, mens: bool = False) -
             if existing:
                 saved.append(existing)
                 continue  # nooit menselijke historie of afwijzingen met agentwerk overschrijven
+            # Een terugval (geen klasse) en een element mét klasse op dezelfde ankers zijn hetzelfde
+            # voorstel. Een nieuwe terugval laat een bestaande klasse staan; een nieuwe klassekeuze
+            # vervangt een terugval die nog niemand beoordeelde – anders staan ze naast elkaar.
+            zelfde = next((x for x in current.values() if not x.get("verouderd") and x["ankers"] == value["ankers"]
+                           and (x["klasse"] == "" or value["klasse"] == "")), None)
+            if zelfde and value["klasse"] == "":
+                saved.append(zelfde)
+                continue
+            if zelfde and not zelfde.get("beslissingen") and zelfde.get("herkomst") != "mens":
+                bijgewerkt = {**zelfde, **{k: v for k, v in value.items() if k not in {"id", "eigenaar_iri"}},
+                              "laag_id": touched[zelfde["eigenaar_iri"]]["id"] if zelfde["eigenaar_iri"] in touched
+                              else zelfde["laag_id"], "geproduceerd_door": req.run}
+                await conn.execute(update(db.annotatie_v2_elementen).where(
+                    db.annotatie_v2_elementen.c.id == zelfde["id"]).values(inhoud=bijgewerkt))
+                await _audit(conn, actor, "element-klasse-gekozen", {"batch_id": req.batch_id,
+                             "klasse": value["klasse"]}, zelfde["id"], bijgewerkt["laag_id"])
+                current[zelfde["id"]] = bijgewerkt
+                saved.append(bijgewerkt)
+                continue
             element_id = value["id"] or uuid.uuid4().hex
             if element_id in current:
                 raise HTTPException(409, "Element-ID bestaat al; gebruik de correctieroute.")
@@ -435,6 +462,8 @@ async def beslis(element_id: str, req: Beslissing, snapshot: dict, actor: str) -
                 touched[owner] = await _laag(conn, layers, owner, req.snapshot_id, req.verwachte_revisies)
             value.update(laag_id=touched[owner]["id"], lifecycle="edited", gewijzigd_door="mens")
         elif req.type != "comment":
+            if req.type == "approve" and not old.get("klasse"):
+                raise HTTPException(422, "Kies eerst een klasse: dit voorstel heeft er nog geen.")
             value["lifecycle"] = {"approve": "human_approved", "reject": "rejected", "heropen": "voorgesteld"}[req.type]
         # `voor` legt de oude waarden van een correctie vast; zonder die kant is niet te zien wat de
         # jurist anders zag dan de agent (`annotatie_statistiek`).

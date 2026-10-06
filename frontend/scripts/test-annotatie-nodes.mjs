@@ -40,6 +40,14 @@ function volledigeView(iri) {
         bewijs: [{ detector: "rol", code: "ROL_ACTOR", regel: "jas.subject.actor", detail: "ontvanger" }] },
         beslissing: { door: "model", klasse: "Rechtssubject" }, vraag: "k1 | ontvanger | Rechtssubject, Rechtsobject",
         twijfel: [{ reden: "DETECTOR_CONFLICT", alternatieven: ["Rechtsobject"] }], resolutie: [{ regel: "R-CONFLICT-KEEP" }] },
+    }] : iri === "urn:lid2" ? [{
+      // Een terugval: geen klasse gekozen, de mogelijke klassen als keuze (alleen in de lid-2-weergave).
+      id: "e2", eigenaar_iri: "urn:lid2", laag_id: "laag2", klasse: "", tekst: "UITSLUITEND",
+      toelichting: "Nog geen klasse gekozen; mogelijk: Rechtsbetrekking, Rechtsfeit.", lifecycle: "voorgesteld",
+      herkomst: "agent", aandacht: "geel", beslissingen: [],
+      ankers: [{ bron_iri: "urn:lid2", start: 0, eind: 11, tekst: "UITSLUITEND", bron_hash: "hash2" }],
+      alternatieven: [{ klasse: "Rechtsbetrekking", motivatie: "" }, { klasse: "Rechtsfeit", motivatie: "" }],
+      trace: { beslissing: { door: "terugval", status: "HUMAN_REVIEW" } },
     }] : [], verwijzingen: [],
     // Dekkingsmeting: in lid 2 vond geen detector iets bij "TWEE" (codepoints 12–16), en de
     // tijdsdimensie draaide niet.
@@ -235,6 +243,9 @@ try {
   await page.getByText("Invorderingswet – artikel 9 lid 2", { exact: true }).last().click();
   await wettekst().getByText("UITSLUITEND TWEE", { exact: false }).waitFor();
   assert.equal(await wettekst().getByText("ontvanger", { exact: false }).count(), 0);
+  // Een terugval draagt geen klasse: de kaart vraagt om een keuze, en akkoord kan pas daarna.
+  await page.getByRole("button", { name: "Kies een klasse" }).first().waitFor();
+  assert.equal(await page.getByRole("button", { name: "Akkoord", exact: true }).first().isDisabled(), true);
   await page.reload();
   await page.getByText("Graaf geraadpleegd · 1 aanroepen", { exact: true }).first().click();
   await page.getByText("search_annotaties", { exact: true }).first().waitFor();

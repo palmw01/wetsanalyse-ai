@@ -97,7 +97,8 @@ def test_abstain_human_legt_alle_klassen_voor():
     k = _k("C001", [V, F])
     tw = Twijfel(label="C001", reden="CLASSIFIER_ABSTAIN", alternatieven=(V, F))
     [v], [b], _ = _los([], [_b(k, CandidateStatus.UNCERTAIN)], [tw], [Oordeel(label="C001", actie="HUMAN_REVIEW")], [k])
-    assert v["aandacht"] == "geel" and [a["klasse"] for a in v["alternatieven"]] == [F]
+    # Geen voorlopige klasse: álle mogelijke klassen staan als keuze voor de jurist.
+    assert v["aandacht"] == "geel" and v["klasse"] == "" and [a["klasse"] for a in v["alternatieven"]] == [V, F]
     assert b.status is CandidateStatus.HUMAN_REVIEW
 
 
@@ -105,14 +106,22 @@ def test_abstain_human_legt_alle_klassen_voor():
 @pytest.mark.parametrize("oordeel", [Oordeel(label="C001", actie="HUMAN_REVIEW"),
                                      Oordeel(label="C001", actie="KEEP", geldig=False)])
 def test_zonder_gekozen_klasse_heet_de_beslisser_terugval(oordeel):
-    """Een voorlopige klasse die de resolver neerzette is geen keuze van het model (art. 9 lid 5
-    IW: 'één maand' als Rechtsobject na ABSTAIN + R-ONGELDIG). Graaf, export en zoekfilters moeten
-    dat kunnen zien."""
+    """Zonder gekozen klasse beslist niet het model maar de terugval, en die doet geen klasseclaim:
+    een voorlopige klasse las in graaf, export en zoeken als echte keuze (art. 9 lid 1 IW, review
+    6 okt 2026: 'toch Rechtsbetrekking opgeslagen')."""
     k = _k("C001", [V, F])
     tw = Twijfel(label="C001", reden="CLASSIFIER_ABSTAIN", alternatieven=(V, F))
     [v], [b], [tr] = _los([], [_b(k, CandidateStatus.UNCERTAIN)], [tw], [oordeel], [k])
-    assert (b.door, b.klasse, b.status) == ("terugval", V, CandidateStatus.HUMAN_REVIEW)
-    assert v["aandacht"] == "geel"
+    assert (b.door, b.klasse, b.status) == ("terugval", "", CandidateStatus.HUMAN_REVIEW)
+    assert v["aandacht"] == "geel" and v["klasse"] == ""
+
+
+def test_de_toelichting_van_een_terugval_noemt_de_mogelijke_klassen_en_geen_klasse():
+    from agent.jas_pipeline.besluit import Beslissing
+    from agent.jas_pipeline.keten import _toelichting
+    k = _k("C001", [V, F])
+    b = Beslissing(kandidaat_id=k.id, label="C001", status=CandidateStatus.HUMAN_REVIEW, klasse="", door="terugval")
+    assert _toelichting(k, b) == f"Nog geen klasse gekozen; mogelijk: {V}, {F}."
 
 
 def test_zelfde_span_change_houdt_een_functie_en_wijst_de_ander_af():

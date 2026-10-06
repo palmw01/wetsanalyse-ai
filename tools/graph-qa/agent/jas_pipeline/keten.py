@@ -129,6 +129,8 @@ def _grens(k: Candidate, optie: str) -> tuple[int, int]:
 
 def _toelichting(k: Candidate, b: Beslissing) -> str:
     """Eén zin voor de jurist: welke herkenningsvraag past, en waarop de kandidaat berustte."""
+    if not b.klasse:                                     # terugval: nog geen klasse gekozen
+        return "Nog geen klasse gekozen; mogelijk: " + ", ".join(k.possible_classes) + "."
     vraag = laad()[b.klasse].official_recognition_intent
     signalen = ", ".join(sorted({e.code.lower().replace("_", " ") for e in k.evidence if e.code != "PRIORITY_APPLIED"}))
     wie = "herkend aan een vast patroon" if b.door == "regel" else "gekozen uit de mogelijke klassen"

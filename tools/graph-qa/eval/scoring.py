@@ -139,10 +139,22 @@ def letterlijkheid(elementen: list[dict[str, Any]], corpus: str) -> float:
 
 def klassen_geldig(elementen: list[dict[str, Any]], geldige: set[str]) -> float:
     """Aandeel markeringen met een bestaande JAS-klasse. Hoort 1.0 te zijn – de drift-guard en
-    de enum in het classifierschema dwingen het af."""
+    de enum in het classifierschema dwingen het af.
+
+    Een terugval (geen klasse gekozen) doet bewust geen klasseclaim: die is geldig als hij geen
+    klasse draagt en elk alternatief een bestaande klasse is. Een lege klasse zónder terugval blijft
+    een fout."""
     if not elementen:
         return 1.0
-    return sum(1 for e in elementen if e.get("klasse") in geldige) / len(elementen)
+
+    def geldig(e: dict[str, Any]) -> bool:
+        if e.get("klasse") in geldige:
+            return True
+        door = (((e.get("trace") or {}).get("beslissing") or {}).get("door"))
+        alternatieven = [a.get("klasse") for a in e.get("alternatieven") or []]
+        return (not e.get("klasse") and door == "terugval" and bool(alternatieven)
+                and all(a in geldige for a in alternatieven))
+    return sum(geldig(e) for e in elementen) / len(elementen)
 
 
 def binnen_bereik(elementen: list[dict[str, Any]], verboden: list[str]) -> bool:

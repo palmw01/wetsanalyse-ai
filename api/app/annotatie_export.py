@@ -82,7 +82,7 @@ def herkomst_zin(regels: dict) -> str:
     if not regels["besloten_door"]:
         delen = ["door een jurist zelf gemarkeerd" if regels["herkomst"] == "mens" else "geen spoor bewaard"]
     else:
-        delen = [f"{regels['besloten_door']} – de klasse is voorlopig" if regels.get("terugval")
+        delen = [f"{regels['besloten_door']} – de jurist kiest uit de mogelijke klassen" if regels.get("terugval")
                  else f"besloten door {regels['besloten_door']}"]
         if regels["regels"]:
             delen.append("bewijs: " + ", ".join(regels["regels"]))
@@ -171,7 +171,9 @@ def pdf_regels(view: dict, verklaringen: dict) -> list[tuple[str, str]]:
         uit.append(("BodyText", segment.get("tekst", "")))
     uit.append(("Heading2", "Markeringen"))
     for e in view["elementen"]:
-        uit.append(("Heading4", f"{e['klasse']}: {e['tekst']} ({e['lifecycle']})"))
+        # Een terugval draagt geen klasse: zeg dat, en noem de keuze.
+        kop = e["klasse"] or "Nog geen klasse (" + ", ".join(a.get("klasse", "") for a in e.get("alternatieven") or []) + ")"
+        uit.append(("Heading4", f"{kop}: {e['tekst']} ({e['lifecycle']})"))
         uit.append(("BodyText", "Eigenaar: " + e["eigenaar_iri"]))
         if e.get("toelichting"):
             uit.append(("BodyText", e["toelichting"]))

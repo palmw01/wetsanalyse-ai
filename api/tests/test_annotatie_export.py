@@ -161,4 +161,8 @@ def test_een_terugval_heet_geen_besluit_van_het_model():
     v = {**V, "besluit": {**V["besluit"], "terugval": {"naam": "nog geen klasse gekozen"}}}
     r = export.herkomst_regels(el, v)
     assert r["terugval"] is True and r["besloten_door"] == "nog geen klasse gekozen"
-    assert export.herkomst_zin(r).startswith("nog geen klasse gekozen – de klasse is voorlopig")
+    assert export.herkomst_zin(r).startswith("nog geen klasse gekozen – de jurist kiest uit de mogelijke klassen")
+    # Geen klasse in de kop: de keuze staat erbij.
+    pdf = [t for _s, t in export.pdf_regels(_view([_element(klasse="", trace={**SPOOR, "beslissing": {"door": "terugval"}},
+                                                         alternatieven=[{"klasse": "Rechtsfeit"}, {"klasse": "Voorwaarde"}])]), v)]
+    assert "Nog geen klasse (Rechtsfeit, Voorwaarde): binnen zes weken (voorgesteld)" in pdf

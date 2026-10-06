@@ -22,6 +22,11 @@ export const JAS_KLASSEN = [
   "Brondefinitie",
 ] as const;
 
+/** De klasse zoals hij in beeld staat. Een terugval heeft geen klasse: dan staat er dat. */
+export function klasseLabel(klasse: string | undefined): string {
+  return klasse?.trim() || "Nog geen klasse";
+}
+
 // Tailwind-klassen per JAS-klasse (achtergrond + tekst + rand). De achtergrondkleuren zijn
 // de exacte labelkleuren uit de officiële JAS-tabel (docs/wetsanalyse/wa-table.png), per pixel gesampled;
 // de rand is dezelfde kleur ~22% donkerder. Tekst is text-ink (#1A1A1A, ≥ 5,4:1 op elke tint).

@@ -162,6 +162,8 @@ async def samenhang(snapshot: dict) -> dict:
                             twijfel=bool(spoor.get("twijfel")), **plaats(el["eigenaar_iri"]))
         for anker in {a["bron_iri"] for a in el["ankers"]} & knopen.keys():
             relaties.append(Relatie(bron=eid, doel=anker, soort="markeert", groep="annotaties"))
+        if not klasse:                       # terugval: nog geen klasse gekozen, dus geen klasseknoop
+            continue
         knopen.setdefault(f"klasse:{klasse}", Knoop(id=f"klasse:{klasse}", soort="klasse", label=klasse, klasse=klasse))
         relaties.append(Relatie(bron=eid, doel=f"klasse:{klasse}", soort="heeft_klasse", groep="annotaties"))
 

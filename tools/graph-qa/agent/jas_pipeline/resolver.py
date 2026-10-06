@@ -148,8 +148,9 @@ def los_op(voorstellen: list[dict[str, Any]], beslissingen: list[Beslissing], tw
                     v.update(aandacht="geel", review_uitleg=_uitleg(t, regel))
                     _alt(v, t.alternatieven, "ook mogelijk; kies in de review")
             else:                                        # geen klasse gekozen: leg het voor, met alle opties
-                eerste = k.possible_classes[0]
-                nb = b.model_copy(update={"status": CandidateStatus.HUMAN_REVIEW, "klasse": eerste, "reden": regel,
+                # Zonder klasse: een voorlopige klasse las in graaf, export en zoeken als een echte
+                # keuze. De mogelijke klassen staan allemaal als alternatief; de jurist kiest.
+                nb = b.model_copy(update={"status": CandidateStatus.HUMAN_REVIEW, "klasse": "", "reden": regel,
                                           "door": "terugval"})
                 nv = {**maak_voorstel(k, nb), "_label": t.label, "aandacht": "geel", "review_uitleg": _uitleg(t, regel)}
                 _alt(nv, k.possible_classes, "ook mogelijk; kies in de review")

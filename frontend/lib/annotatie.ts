@@ -1,6 +1,6 @@
 import { isApiError } from "./api";
 import { naamVan, vindplaatsLabel } from "./annotatieOverzicht";
-import { jasVolgorde } from "./jas";
+import { jasVolgorde, klasseLabel } from "./jas";
 import type { LidRegel } from "./selectie";
 import type {
   AgentContext,
@@ -330,7 +330,7 @@ export function eigenMarkeringenVoorContext(
  */
 export function vraagContextLabel(el: AnnotatieElement, doc?: AnnotatieDocument): string {
   const plek = doc ? ` (art. ${doc.artikel}${el.lid ? ` lid ${el.lid}` : ""})` : "";
-  return `${el.klasse} – “${el.tekst}”${plek}`;
+  return `${klasseLabel(el.klasse)} – “${el.tekst}”${plek}`;
 }
 
 /** Drie vragen bij een markering, als één klik – afhankelijk van de klasse.
@@ -347,6 +347,15 @@ export function vraagContextLabel(el: AnnotatieElement, doc?: AnnotatieDocument)
  *  Werkt voor beide elementvormen (het artikeldocument en de bronnode-weergave).
  */
 export function vraagSuggesties(el: { klasse: string; alternatieven?: { klasse: string }[] }): string[] {
+  if (!el.klasse) {
+    // Een terugval: nog geen klasse. De vragen gaan over de keuze zelf.
+    const opties = (el.alternatieven ?? []).map((a) => a.klasse).filter(Boolean);
+    return [
+      "Welke klasse past het best bij dit fragment?",
+      opties.length >= 2 ? `Wat is het verschil tussen ${opties[0]} en ${opties[1]} hier?` : "Waarom is de klasse hier onzeker?",
+      "Klopt de afbakening van dit fragment?",
+    ];
+  }
   const anders = el.alternatieven?.find((a) => a.klasse && a.klasse !== el.klasse)?.klasse;
   const eigen = KLASSEVRAAG[el.klasse];
   return [
