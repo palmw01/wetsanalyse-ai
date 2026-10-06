@@ -14,6 +14,13 @@ describe("vindVermeldingen", () => {
     const [eerste] = vindVermeldingen(tekst);
     expect(tekst.slice(eerste.start, eerste.eind)).toBe("artikel 9 lid 2");
   });
+  it("leest Awb-nummers en achtervoegsels helemaal, niet alleen het eerste getal", () => {
+    const tekst = "Artikel 4:94a Awb, artikel 31bis Awir, artikel 27quinquies en art. 3:40, tweede lid.";
+    expect(vindVermeldingen(tekst).map(({ artikel, lid }) => ({ artikel, lid }))).toEqual([
+      { artikel: "4:94a", lid: undefined }, { artikel: "31bis", lid: undefined },
+      { artikel: "27quinquies", lid: undefined }, { artikel: "3:40", lid: "2" },
+    ]);
+  });
 });
 
 describe("koppelBron", () => {

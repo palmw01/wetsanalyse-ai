@@ -15,9 +15,12 @@ const RANG = ["eerste", "tweede", "derde", "vierde", "vijfde", "zesde", "zevende
   "elfde", "twaalfde", "dertiende", "veertiende", "vijftiende", "zestiende", "zeventiende", "achttiende",
   "negentiende", "twintigste"];
 
-// "artikel 9", "art. 9a", "artikel 3.1", met optioneel "lid 2", ", lid 2", ", tweede lid" of " tweede lid".
+// "artikel 9", "art. 9a", "artikel 3.1", "artikel 4:94a" (Awb), "artikel 31bis", met optioneel "lid 2",
+// ", lid 2", ", tweede lid" of " tweede lid". Het nummer loopt door tot er geen letter of cijfer meer
+// volgt: anders werd "artikel 4:94a" artikel 4 en "artikel 31bis" artikel 31 – een chip naar de
+// verkeerde bepaling, juist in een antwoord over meerdere regelingen.
 const VERMELDING = new RegExp(
-  String.raw`\b(?:artikel|art\.)\s+(\d+[a-z]?(?:\.\d+[a-z]?)*)` +
+  String.raw`\b(?:artikel|art\.)\s+(\d+[a-z]*(?:[.:]\d+[a-z]*)*)(?![a-z0-9])` +
   String.raw`(?:,?\s+(?:lid\s+(\d+[a-z]?)|(${RANG.join("|")})\s+lid))?`,
   "gi",
 );
