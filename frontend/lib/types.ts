@@ -486,6 +486,13 @@ export interface AgentContext {
 export interface Bron {
   label: string;
   uri: string;
+  /** Sinds de canonieke bronnen van graph-qa (additief; oudere berichten hebben ze niet): de
+   *  bronnode volgens `bronmodel.vindplaats`, de jci voor de link en de naam van de regeling. */
+  bron_iri?: string;
+  jci?: string | null;
+  bwb_id?: string;
+  soort?: string;
+  regeling?: string | null;
 }
 
 /** De uitkomst van de brongetrouwheidstoets op één antwoord (graph-qa `grounding`-event).

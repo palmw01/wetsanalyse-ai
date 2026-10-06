@@ -89,33 +89,54 @@ export function samenhangBeschikbaar(): Promise<boolean> {
 }
 
 const BWB = /^BWB[RV]\d+$/;
-/** Een bron onder een antwoord (graaf-IRI of jci) als bronnode; de spiegel van `uitGraafIri` in
- *  `lib/url.ts`. Alleen een bepaling ónder een regeling telt: bij een hele wet is er geen artikel. */
-export function bronDoel(uri: string): NodeDoel | undefined {
-  const ref = uri.trim();
+const PADSLEUTELS = new Set(["hoofdstuk", "titeldeel", "afdeling", "paragraaf", "artikel", "lid", "o"]);
+
+/** De bronnode van een verwijzing (graaf-IRI, jci of kaal BWB-id): de spiegel van
+ *  `bronmodel.vindplaats` (packages/bronmodel). `soort` is `regeling`, een structuursoort, `artikel`,
+ *  `lid`, `onderdeel` of `node` (een wet-lokale `id:`-IRI, zonder label). De vectoren in
+ *  `jci-vectoren.json` toetsen beide kanten. */
+export interface Vindplaats { bron_iri: string; bwb_id: string; pad: [string, string][]; soort: string; label: string }
+
+export function vindplaatsVan(uri: string): Vindplaats | undefined {
+  const ref = uri.trim().replace(/[.,;\\]+$/, "");
   let bwb = "", paren: [string, string][] = [];
+  if (BWB.test(ref)) return { bron_iri: `urn:bwb:${ref}`, bwb_id: ref, pad: [], soort: "regeling", label: "" };
   if (ref.startsWith("urn:bwb:")) {
     // Veilig decoderen: dit draait tijdens het renderen van een antwoord, en één kapotte IRI uit de
     // tool-trace mag de werkplek niet onderuit halen.
     const delen = ref.slice("urn:bwb:".length).split(":").map(veiligDecoderen);
     if (delen.some((d) => d === undefined)) return undefined;
     const [id, ...rest] = delen as string[];
-    if (rest.length % 2) return undefined;
+    if (!BWB.test(id) || rest.length % 2 || rest.some((d) => !d)) return undefined;
     bwb = id;
     for (let i = 0; i < rest.length; i += 2) paren.push([rest[i], rest[i + 1]]);
+    if (paren.some(([k]) => k === "id")) return { bron_iri: ref, bwb_id: bwb, pad: paren, soort: "node", label: "" };
+    if (paren.some(([k]) => !PADSLEUTELS.has(k))) return undefined;
   } else if (/^jci/i.test(ref)) {
     const m = ref.match(/^jci[\d.]+:c:(BWB[RV]\d+)(.*)$/i);
     if (!m) return undefined;
     bwb = m[1].toUpperCase();
-    paren = jciPad([...new URLSearchParams(m[2].replace(/^&?/, ""))]);
-  }
-  if (!BWB.test(bwb) || !paren.length || paren.some(([k, v]) => !k || !v || k === "id")) return undefined;
-  const waarde = Object.fromEntries(paren);
+    const ruw = [...new URLSearchParams(m[2].replace(/^&?/, ""))]
+      .map(([k, v]) => [k.toLowerCase(), v] as [string, string]).filter(([k]) => k !== "z" && k !== "g");
+    if (ruw.some(([, v]) => !v)) return undefined;
+    paren = jciPad(ruw);
+    // Alleen `&bijlage=1&o=a`: geen artikel en geen structuur, dus geen eigen node.
+    if (ruw.length && !paren.length) return undefined;
+  } else return undefined;
+  const soort = paren.length ? (paren.at(-1)![0] === "o" ? "onderdeel" : paren.at(-1)![0]) : "regeling";
   return {
-    bron_iri: `urn:bwb:${bwb}:` + paren.map(([k, v]) => `${k}:${iriSegment(v)}`).join(":"),
-    bwb_id: bwb, artikel: waarde.artikel, lid: waarde.lid,
-    label: vindplaatsLabel(paren) || undefined,
+    bron_iri: `urn:bwb:${bwb}` + paren.map(([k, v]) => `:${k}:${iriSegment(v)}`).join(""),
+    bwb_id: bwb, pad: paren, soort, label: vindplaatsLabel(paren),
   };
+}
+
+/** Een bron onder een antwoord (graaf-IRI of jci) als bronnode; de spiegel van `uitGraafIri` in
+ *  `lib/url.ts`. Alleen een bepaling ónder een regeling telt: bij een hele wet is er geen artikel. */
+export function bronDoel(uri: string): NodeDoel | undefined {
+  const vp = vindplaatsVan(uri);
+  if (!vp || vp.soort === "regeling" || vp.soort === "node") return undefined;
+  const waarde = Object.fromEntries(vp.pad);
+  return { bron_iri: vp.bron_iri, bwb_id: vp.bwb_id, artikel: waarde.artikel, lid: waarde.lid, label: vp.label || undefined };
 }
 
 /** Het leesbare label van een bronpad: "Artikel 2, lid 1, onderdeel aa, 1", "Hoofdstuk VI, afdeling 1".

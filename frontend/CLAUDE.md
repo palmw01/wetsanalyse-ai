@@ -235,7 +235,12 @@ opent `CitatieChip` → een bronkaart via een portal (een `Popover` is een `div`
 alinea), met de wettekst (lui via `haalSamenhang`), een link naar wetten.overheid.nl en *Bekijk
 samenhang in 3D*. Geen chip bij twijfel: liever een vermelding zonder kaart dan een kaart bij de
 verkeerde bepaling. Werkt ook na herladen, want alleen `tekst` en `bronnen` zijn nodig. De lijst
-*Bronnen (n)* toont leesbare labels (`bronLabel`) in plaats van rauwe IRI's.
+*Bronnen (n)* is **één bron per bepaling, gegroepeerd per regeling** (`normaliseerBronnen` in
+`lib/bronnen.ts`): sleutel is de bronnode uit `vindplaatsVan` (`lib/samenhang.ts`, de spiegel van
+`bronmodel.vindplaats`; `jci-vectoren.json` toetst beide), de kop is de `regeling` die graph-qa
+meegeeft (anders het BWB-id), structuur staat vóór de artikelen en de link gaat bij voorkeur via de
+jci. Oudere berichten, met dezelfde bepaling als graaf-IRI én jci, worden zo ook ontdubbeld. Geef
+`Markdown` wél de ongenormaliseerde `bronnen`: `data-bron` van een citatie-chip is een index daarin.
 
 ### Annoteren op onderwerp
 
