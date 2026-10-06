@@ -1,6 +1,6 @@
 # Meetlogboek
 
-Soort: *meting* (zie [`../../README.md`](../../README.md)) · Bijgewerkt: 29 september 2026
+Soort: *meting* (zie [`../../README.md`](../../README.md)) · Bijgewerkt: 6 oktober 2026
 
 Hier staat per datum wat er gemeten is, op welke code, wat eruit kwam en waar de gegevens staan.
 Nieuwste bovenaan. De meetbestanden zelf zijn bewijs: **wijzig ze niet achteraf**. Een correctie
@@ -17,6 +17,7 @@ of herhaling krijgt een eigen map of rij. Hoe de keten nu werkt, staat in
 
 | Datum | Meting | Code | Uitkomst in één regel | Gegevens |
 |---|---|---|---|---|
+| 6 okt | **Detectorfixes art. 9 lid 5** (`IW05`, A–D): meetharnas, criteria vooraf, nulmeting v1 16×3 en IW05×5 | harnas op `f9ab073` | Nulmeting: de keten maakt op IW05 in 5/5 runs de fouten uit de export; v1 micro-F1 50% (50–51%). Uitslag per fix in de map | [`hybrid-v1-iw05-fixes-2026-10/`](hybrid-v1-iw05-fixes-2026-10/README.md) |
 | 29 sep | **Baseline `hybrid_v1`**, het huidige vertrekpunt. Deelmetingen WP1–WP4b (auditpunten D01, D03–D06) en een modelproef met vijf varianten (84 pogingen, 3 herhalingen) | R0 `e8c1603`, daarna `afdc343`…`8baab53` | Proef 1 afgekeurd (tokenbudget). Proef 2: `klasseverzameling` wordt de default (0 contractfouten tegen 9, 6/8 casussen stabiel, 1,45× kosten); broncontext blijft aan | [`hybrid-v1-baseline-2026-09-29/`](hybrid-v1-baseline-2026-09-29/README.md) |
 | 29 sep | **Invorderingsvervolg** A01–A10: datums zonder jaartal, termijnfuncties, tijdkern, centrale afwijzing, broncontext. 8 casussen × 3 varianten × 3 herhalingen (72 pogingen) | `b8117e2` → `b190841`, `4fb25f5`, `a0699a5` | Gemiste datum- en berekeningsfuncties zijn bereikbaar; B/C geven bij IW 9 lid 1 steeds dezelfde drie voorstellen. Geen bewijs van juridische winst | [`hybrid-v1-invordering-vervolg-2026-09-29/`](hybrid-v1-invordering-vervolg-2026-09-29/README.md) |
 | 29 sep | **Onderzoek invordering**: vier bepalingen (IW 9 lid 1 en 5, Leidraad §9.1 en §9.5), 60 conceptonderzoeksitems, eisenmatrix | onderzoeksvoorzieningen, geen productiewijziging | De centrale invorderbaarheidsuitspraak wordt gedetecteerd maar afgewezen zonder review; datums zonder jaar en termijnberekening ontbreken | [`../../wetsanalyse/onderzoek-invordering-2026-09-29/`](../../wetsanalyse/onderzoek-invordering-2026-09-29/README.md)¹ |
@@ -37,7 +38,9 @@ Vanuit `tools/graph-qa`:
 | Doel | Commando | Modelcalls |
 |---|---|---|
 | Detectie en fusie tegen een eerdere stand | `.venv/bin/python -m eval.detector_audit --json /tmp/x.json --vergelijk <meting.json>` | 0 |
-| Keten tegen referentie, met stabiliteit | `.venv/bin/python -m eval.compare_pipelines --output /tmp/ab.json [--cases …] [--herhalingen 3]`, daarna `--analyseer /tmp/ab.json --md /tmp/ab.md` | betaald; weigert held-out |
+| Vooraf vastgelegde criteria toetsen | `.venv/bin/python -m eval.criteria <criteria.yaml> --audit-voor … --audit-na … [--model-voor … --model-na …]` | 0 |
+| Twee modelrapporten vergelijken (met spreiding, weigert onvergelijkbare manifesten) | `.venv/bin/python -m eval.vergelijk_rapporten voor.json na.json --md uit.md` | 0 |
+| Keten tegen referentie, met stabiliteit | `.venv/bin/python -m eval.compare_pipelines --output /tmp/ab.json [--casussen v1\|concept:IW05] [--cases …] [--herhalingen 3]`, daarna `--analyseer /tmp/ab.json --md /tmp/ab.md` | betaald; weigert held-out |
 | Variantmatrix met een vooraf vastgelegd criterium | `.venv/bin/python -m eval.baseline_proef` (en `rapport`) | betaald |
 | Rapport per laag, familie en tekstsoort | `eval/laagrapport.py` op een run-set van `compare_pipelines` | 0 |
 | Referentieset controleren | `python -m eval.referentieset --check` / `--dekking` | 0 |

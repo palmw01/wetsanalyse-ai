@@ -112,6 +112,21 @@ contractproblemen. Pas dan gelden de beslispoorten (§15 van het onderzoek).
 onderzoek §18. Blijvend verboden zijn promptpatches als primaire oplossing, nieuwe agentrollen, een
 Critic, model voting, confidence-percentages en grotere modelvrijheid.
 
+**Uitzondering (6 okt 2026): vier aantoonbare detectorfouten in art. 9 lid 5.** De gebruiker
+besloot ze nu te herstellen, robuust en gemeten, in plaats van tot na V7 te wachten. De scope is
+beperkt tot de detectoren:
+
+- **C**: precieze functiespans;
+- **B**: een rechtsgevolg als hoofdzin;
+- **A**: een document of handeling is geen rechtssubject;
+- **D**: de context van een nominalisatie.
+
+Er is geen promptwijziging, geen nieuwe agentrol en geen tegenbewijs-semantiek (dat is kandidaat
+1). Elke fix heeft een criterium dat vóór de nulmeting is vastgelegd. De meting claimt op v1
+uitsluitend "geen regressie". De winst geldt alleen voor de diagnostische conceptcasus `IW05`
+(onderzoek §18.6). Kandidaten 2, 3 en 10 blijven ná V7. Meting en criteria:
+[`metingen/hybrid-v1-iw05-fixes-2026-10/`](architectuur/metingen/hybrid-v1-iw05-fixes-2026-10/README.md).
+
 **Kandidaten na V7** (alleen met de V7-baseline als vergelijkingspunt; zie ook de
 bekende beperkingen in [`architectuur/annotatieketen.md`](architectuur/annotatieketen.md)):
 1. Candidate- en EvidenceHypothesis: ondersteuning en tegenbewijs per klasse.
