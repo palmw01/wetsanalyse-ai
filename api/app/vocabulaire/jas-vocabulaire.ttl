@@ -387,14 +387,14 @@
     dcterms:source "H2:109" ;
     skos:prefLabel "Termijn"@nl ;
     jas:code <urn:jas-ns:code:TEMPORAL_DURATION> ;
-    jas:regelVersie 2 ;
+    jas:regelVersie 3 ;
     jas:wijstAan <urn:jas-ns:klasse:Tijdsaanduiding> .
 
 <urn:jas-ns:regel:jas.tijd.herhaling> a jas:Detectorregel ;
     dcterms:source "H2:109" ;
     skos:prefLabel "Relatieve of herhaalde termijn"@nl ;
     jas:code <urn:jas-ns:code:TEMPORAL_RECURRENCE> ;
-    jas:regelVersie 1 ;
+    jas:regelVersie 2 ;
     jas:wijstAan <urn:jas-ns:klasse:Tijdsaanduiding> .
 
 <urn:jas-ns:regel:jas.tijd.maandnaam> a jas:Detectorregel ;
@@ -408,7 +408,7 @@
     dcterms:source "H2:109" ;
     skos:prefLabel "Periode van"@nl ;
     jas:code <urn:jas-ns:code:TEMPORAL_PERIOD_OF> ;
-    jas:regelVersie 1 ;
+    jas:regelVersie 2 ;
     jas:wijstAan <urn:jas-ns:klasse:Tijdsaanduiding> .
 
 <urn:jas-ns:regel:jas.tijd.periodewoord> a jas:Detectorregel ;
@@ -422,7 +422,7 @@
     dcterms:source "H2:109" ;
     skos:prefLabel "Relatieve periode"@nl ;
     jas:code <urn:jas-ns:code:TEMPORAL_RELATIVE_PERIOD> ;
-    jas:regelVersie 2 ;
+    jas:regelVersie 3 ;
     jas:wijstAan <urn:jas-ns:klasse:Tijdsaanduiding> .
 
 <urn:jas-ns:regel:jas.tijd.tijdstip> a jas:Detectorregel ;
@@ -473,7 +473,7 @@
     dcterms:source "H2:91" ;
     skos:prefLabel "Percentage"@nl ;
     jas:code <urn:jas-ns:code:PERCENTAGE> ;
-    jas:regelVersie 1 ;
+    jas:regelVersie 2 ;
     jas:wijstAan <urn:jas-ns:klasse:ParameterEnParameterwaarde>,
         <urn:jas-ns:klasse:VariabeleEnVariabelewaarde> .
 
@@ -923,5 +923,5 @@
     dcterms:source "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md" ;
     skos:prefLabel "Juridisch Analyseschema"@nl ;
     jas:jasVersie "1.0.10" ;
-    jas:vocabulaireVersie "d3788c16ae3f" .
+    jas:vocabulaireVersie "d1136e004306" .
 

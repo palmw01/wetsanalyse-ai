@@ -19,15 +19,18 @@
   code: TEMPORAL_DURATION
   bewijs: sterk
   bron: "H2:109"
-  versie: 2
+  versie: 3
   patroon: '\b{TELWOORD}\s+{PERIODE}\b'
   links: '\b(?:binnen|gedurende|na|voor|vóór|uiterlijk|ten minste|ten hoogste|een termijn van|de periode van)\s+'
   # T3/IW art. 9 lid 5: de distributieve vervolgbepaling is geen startgebeurtenis.
   # Geen algemene stop op "en": "na de verzending en de bekendmaking" blijft heel.
   rechts: '\s+(?:na|vóór|voor|vanaf|te rekenen vanaf|nadat|voordat)\s+(?:(?!\s+en\s+(?:elk|ieder)\s+van\b)[^,.;:])+'
   tests:
-    positief: [{tekst: "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.", span: "zes weken na de dagtekening van het aanslagbiljet"}]
-    negatief: [{tekst: "de eerste van de twee bestuurders", span: "twee bestuurders"}]
+    positief: [{tekst: "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.", span: "zes weken na de dagtekening van het aanslagbiljet"},
+               {tekst: "De termijn bedraagt eenentwintig dagen.", span: "eenentwintig dagen"},
+               {tekst: "gedurende tweeëntwintig maanden", span: "gedurende tweeëntwintig maanden"}]
+    negatief: [{tekst: "de eerste van de twee bestuurders", span: "twee bestuurders"},
+               {tekst: "op de drieëntwintigste dag", span: "drieëntwintigste dag"}]
     rand: [{tekst: "binnen 14 dagen.", span: "binnen 14 dagen"}]
     overlap: [{tekst: "binnen zes weken en uiterlijk twee jaren", spans: ["binnen zes weken", "uiterlijk twee jaren"]}]
 - id: jas.tijd.relatief
@@ -35,7 +38,7 @@
   code: TEMPORAL_RELATIVE_PERIOD
   bewijs: sterk
   bron: "H2:109"
-  versie: 2
+  versie: 3
   patroon: '\b(?:de|het)\s+(?:eerste|daaropvolgende|volgende|overige|laatste|komende|voorafgaande)(?:\s+{TELWOORD})?\s+{PERIODE}\b'
   rechts: '\s+van\s+(?:de|het)\s+(?:kalender)?(?:maand|jaar|week)\b'
   tests:
@@ -61,7 +64,7 @@
   code: TEMPORAL_PERIOD_OF
   bewijs: sterk
   bron: "H2:109"
-  versie: 1
+  versie: 2
   patroon: '\b(?:de|een)\s+(?:periode|termijn)\s+van\s+{TELWOORD}\s+{PERIODE}\b'
   tests:
     positief: [{tekst: "dat de periode van drie jaren wordt geacht in te gaan", span: "de periode van drie jaren"}]
@@ -110,7 +113,7 @@
   code: TEMPORAL_RECURRENCE
   bewijs: sterk
   bron: "H2:109"
-  versie: 1
+  versie: 2
   patroon: '\b(?:telkens\s+)?{TELWOORD}\s+{PERIODE}\s+(?:later|eerder)\b'
   tests:
     positief: [{tekst: "telkens een maand later.", span: "telkens een maand later"}]
