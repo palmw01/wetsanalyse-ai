@@ -343,6 +343,12 @@ class GraphDbWriter:
                     iri = v.by_ref_key(ref_key)
                 else:
                     iri = v.by_id(wet.bwb_id, row["id"])
+                if iri == v.wet(wet.bwb_id) and entiteit != "Regeling":
+                    # Een deel op de regeling-IRI maakt de bronboom van de hele regeling
+                    # onleesbaar (bronmodel: "Dubbelzinnige bronnode"). Liever geen import.
+                    raise ValueError(
+                        f"{entiteit} {row['id']} krijgt de IRI van de regeling zelf ({iri})"
+                    )
                 iri_by_id[row["id"]] = iri
                 if row.get("label_id"):
                     label_iri[row["label_id"]] = iri

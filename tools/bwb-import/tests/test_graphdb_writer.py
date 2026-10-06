@@ -12,6 +12,7 @@ import json
 from dataclasses import replace
 from pathlib import Path
 
+import pytest
 import requests
 from rdflib import OWL, RDF, RDFS, XSD, Literal, URIRef
 
@@ -548,6 +549,31 @@ def test_bijlage_en_illustratie_nodes() -> None:
     assert len(illustraties) == 1
     assert (illustraties[0], V.ns.naam, Literal("123954.png")) in g
     assert any(g.subjects(V.ns.bevatIllustratie, illustraties[0]))
+
+
+def test_onderdeel_van_bijlage_krijgt_niet_de_regeling_iri() -> None:
+    """`&bijlage=1&o=a` heeft geen artikel; de jci-sleutel zou dan de hele regeling zijn.
+
+    Zo landden alle onderdelen van bijlage 1 van de Awb op `urn:bwb:BWBR0005537`, en weigerde de
+    werkplek de hele regeling ("Dubbelzinnige bronnode").
+    """
+    g, _ = _writer().build_graph(_bijlage_wet())
+    wet = V.wet("BWBR0005537")
+    assert (wet, RDF.type, V.klasse("Onderdeel")) not in g
+    assert (wet, V.ns.nummer, None) not in g
+    bijlage = next(g.subjects(RDF.type, V.ns.Bijlage))
+    onderdelen = list(g.objects(bijlage, V.ns.heeftOnderdeel))
+    assert len(onderdelen) == 1
+    assert onderdelen[0] != wet
+    assert (onderdelen[0], V.ns.nummer, Literal("a.")) in g
+
+
+def test_deel_op_de_regeling_iri_faalt_hard() -> None:
+    wet = _bijlage_wet()
+    batch, summary = collect(wet)
+    batch.nodes["Onderdeel"][0]["ref_key"] = wet.bwb_id
+    with pytest.raises(ValueError, match="IRI van de regeling"):
+        _writer().build_graph(wet, verzameld=(batch, summary))
 
 
 def test_ondertekenaar_iri_valt_over_wetten_samen() -> None:

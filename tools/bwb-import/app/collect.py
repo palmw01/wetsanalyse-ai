@@ -136,7 +136,11 @@ class _Collector:
         # `jci_node_ref_key` en niet `jci_doel_ref_key`: die tweede houdt alleen het laatste
         # structuursegment aan, waardoor elke "Afdeling 1" van een regeling op dezelfde IRI landde.
         # Zie de docstring daar voor de meting; kort: 16 van de 93 afdelingen waren samengevallen.
-        ref_key = jci_node_ref_key(deel.jci)[0]
+        ref_key, soort = jci_node_ref_key(deel.jci)
+        if soort == "wet":
+            # Een jci zonder eigen structuursegment (bv. alleen `&bijlage=1`) wijst de hele
+            # regeling aan; als identiteit zou dit deel op de regeling-IRI landen.
+            ref_key = None
         if ref_key is None and deel.nummer:
             # Geen jci van de redactie. Bouw de sleutel dan op het pad van de ouder, om precies
             # dezelfde reden: zonder dat is "paragraaf 1" van elk hoofdstuk dezelfde node.
@@ -356,7 +360,13 @@ class _Collector:
         """``erf_ref_key`` is de ref_key van de dichtstbijzijnde voorouder;
         onderdelen zonder eigen jci schrijven hun verwijzingen daaraan toe."""
         for onderdeel in onderdelen:
-            ref_key = jci_doel_ref_key(onderdeel.jci)[0]
+            ref_key, soort = jci_doel_ref_key(onderdeel.jci)
+            if soort != "onderdeel":
+                # Een onderdeel van een bijlage draagt `&bijlage=1&o=a`: geen artikel, dus de
+                # jci-sleutel valt terug op de hele regeling. Alle onderdelen van de bijlage
+                # landden zo op `urn:bwb:<bwb>` (Awb, Uitvoeringsregeling IW 1990). Dan de
+                # wet-lokale by_id-IRI, zoals de bijlage zelf.
+                ref_key = None
             self.batch.node(
                 "Onderdeel",
                 {
