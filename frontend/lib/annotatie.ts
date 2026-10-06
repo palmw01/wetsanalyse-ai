@@ -333,27 +333,50 @@ export function vraagContextLabel(el: AnnotatieElement, doc?: AnnotatieDocument)
   return `${el.klasse} – “${el.tekst}”${plek}`;
 }
 
-/** Drie vragen die bij het beoordelen van een markering het vaakst gesteld worden.
+/** Drie vragen bij een markering, als één klik – afhankelijk van de klasse.
  *
  *  Een leeg invoerveld met "Wat wil je weten over deze markering?" is een open vraag op het moment
- *  dat je juist snel wilt beoordelen. Deze drie zijn de vragen die een jurist bij een JAS-markering
- *  hoe dan ook stelt: klopt de klasse, klopt de afbakening, en – als er twijfel is – waarom die
- *  andere klasse dan niet.
+ *  dat je juist snel wilt beoordelen. Daarom:
  *
- *  De derde past zich aan, want daar zit het verschil per element. Bij een gedisambigueerd voorstel
- *  is "waarom geen Voorwaarde?" een scherpere vraag dan welke vaste formulering ook; zonder
- *  alternatieven is de samenhang met de rest van het artikel het eerstvolgende dat je wilt weten.
+ *  1. klopt de klasse ("Waarom is dit een …?");
+ *  2. de vraag die bij déze functie hoort (`KLASSEVRAAG`: bij een Tijdsaanduiding het startmoment,
+ *     bij een Afleidingsregel invoer en uitkomst, …);
+ *  3. bij twijfel het alternatief dat de agent zelf voorstelde ("Waarom geen Voorwaarde?") – een
+ *     scherpere vraag dan welke vaste formulering ook – en anders de afbakening.
+ *
+ *  Werkt voor beide elementvormen (het artikeldocument en de bronnode-weergave).
  */
-export function vraagSuggesties(el: AnnotatieElement): string[] {
-  const anders = el.alternatieven[0]?.klasse;
+export function vraagSuggesties(el: { klasse: string; alternatieven?: { klasse: string }[] }): string[] {
+  const anders = el.alternatieven?.find((a) => a.klasse && a.klasse !== el.klasse)?.klasse;
+  const eigen = KLASSEVRAAG[el.klasse];
   return [
     `Waarom is dit een ${el.klasse}?`,
-    "Klopt de afbakening van dit fragment?",
+    eigen ?? "Klopt de afbakening van dit fragment?",
     anders
       ? `Waarom geen ${anders}?`
-      : "Hoe verhoudt dit zich tot de rest van het artikel?",
+      : eigen ? "Klopt de afbakening van dit fragment?" : "Hoe verhoudt dit zich tot de rest van het artikel?",
   ];
 }
+
+/** Per JAS-klasse de vraag die de jurist bij die functie het eerst stelt – afgeleid van de
+ *  herkenningsvraag in het profiel van de klasse (`.claude/skills/wetsanalyse/references/
+ *  jas-klassen-referentie.md`), toegespitst op dít fragment. Elke klasse uit `JAS_KLASSEN` heeft er
+ *  een (`annotatie.test.ts`). */
+export const KLASSEVRAAG: Record<string, string> = {
+  Rechtssubject: "Welk recht of welke plicht heeft deze partij in deze bepaling?",
+  Rechtsobject: "Op welk recht of welke plicht heeft dit object betrekking?",
+  Rechtsbetrekking: "Tussen welke partijen bestaat deze rechtsbetrekking, en waarover?",
+  Rechtsfeit: "Welk rechtsgevolg verbindt de bepaling aan dit feit?",
+  Voorwaarde: "Voor welk rechtsgevolg geldt deze voorwaarde?",
+  Afleidingsregel: "Wat is de invoer en wat de uitkomst van deze afleiding?",
+  "Variabele en variabelewaarde": "Welke waarden kan deze variabele aannemen, en waar komen ze vandaan?",
+  "Parameter en parameterwaarde": "Wat is de waarde van deze parameter, en waar is die vastgesteld?",
+  Operator: "Wat zijn de operanden van deze operator?",
+  Tijdsaanduiding: "Vanaf welk moment loopt deze termijn, en wat gebeurt er als hij verstrijkt?",
+  Plaatsaanduiding: "Op welk gebied heeft deze plaatsaanduiding betrekking?",
+  "Delegatiebevoegdheid en delegatie-invulling": "Wie krijgt hier welke bevoegdheid, en is die al ingevuld?",
+  Brondefinitie: "Waar in de regeling wordt dit gedefinieerde begrip gebruikt?",
+};
 
 // --- een annotatie die er niet meer is ---------------------------------------------------------
 
