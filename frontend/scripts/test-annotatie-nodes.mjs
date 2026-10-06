@@ -219,7 +219,12 @@ try {
   await wettekst().click();
   await page.keyboard.press("j");
   await page.getByRole("button", { name: "Vraag Lex", exact: true }).click();
-  await page.getByRole("button", { name: "Versturen", exact: true }).click();
+  // Drie vragen per klasse als chips, het invoerveld blijft leeg; één klik verstuurt.
+  const suggesties = page.getByTestId("vraag-suggesties").getByRole("button");
+  assert.deepEqual(await suggesties.allTextContents(), ["Waarom is dit een Rechtssubject?",
+    "Welk recht of welke plicht heeft deze partij in deze bepaling?", "Waarom geen Rechtsobject?"]);
+  assert.equal(await page.getByPlaceholder("Stel een vraag of geef een opdracht aan Lex…").inputValue(), "");
+  await suggesties.first().click();
   await page.getByText("Het element betreft de handelende instantie.", { exact: true }).waitFor();
   const advice = requests.find((r) => r.path === "/api/annotatie/run").body;
   assert.equal(advice.modus, "advies"); assert.equal(advice.context.element_id, "e1");

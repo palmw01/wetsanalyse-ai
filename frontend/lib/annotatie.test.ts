@@ -1,3 +1,4 @@
+import { JAS_KLASSEN } from "./jas";
 import { describe, expect, it } from "vitest";
 import {
   bronVan,
@@ -10,6 +11,7 @@ import {
   vraagContextLabel,
   vraagContextVan,
   vraagSuggesties,
+  KLASSEVRAAG,
   overlaptSelectie,
   doelVanKandidaat,
   kandidaatLabel,
@@ -576,9 +578,25 @@ describe("vraagSuggesties", () => {
     expect(met[2]).toBe("Waarom geen Voorwaarde?");
   });
 
-  it("valt zonder alternatieven terug op de samenhang", () => {
+  it("stelt als tweede vraag die van de klasse, en zonder alternatief de afbakening", () => {
     const zonder = vraagSuggesties(el("a", { klasse: "Tijdsaanduiding", alternatieven: [] }));
-    expect(zonder[2]).toBe("Hoe verhoudt dit zich tot de rest van het artikel?");
+    expect(zonder[1]).toBe(KLASSEVRAAG.Tijdsaanduiding);
+    expect(zonder[2]).toBe("Klopt de afbakening van dit fragment?");
+  });
+
+  it("heeft voor elke JAS-klasse een eigen vraag", () => {
+    expect(JAS_KLASSEN.filter((k) => !KLASSEVRAAG[k])).toEqual([]);
+    expect(Object.keys(KLASSEVRAAG).sort()).toEqual([...JAS_KLASSEN].sort());
+  });
+
+  it("valt bij een onbekende klasse terug op afbakening en samenhang", () => {
+    expect(vraagSuggesties({ klasse: "Iets anders" }).slice(1)).toEqual([
+      "Klopt de afbakening van dit fragment?", "Hoe verhoudt dit zich tot de rest van het artikel?"]);
+  });
+
+  it("noemt een alternatief dat gelijk is aan de klasse niet", () => {
+    expect(vraagSuggesties({ klasse: "Voorwaarde", alternatieven: [{ klasse: "Voorwaarde" }] })[2])
+      .toBe("Klopt de afbakening van dit fragment?");
   });
 
   it("levert er altijd precies drie, en geen dubbele", () => {

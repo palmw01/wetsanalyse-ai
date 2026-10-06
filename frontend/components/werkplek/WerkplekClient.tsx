@@ -961,8 +961,9 @@ export function WerkplekClient({
     variant={breed ? "kolom" : "side"} onSluit={() => { setNodeDoel(undefined); setNodeReeks(undefined); }} beginTab={nodeTab}
     reeks={nodeReeksNav}
     onVraag={(element, view) => {
+      // Geen klaargezette vraag in het veld: de drie suggesties (per klasse) staan erboven als chips.
       setVraagOver(null); setNodeVraag({ element, view });
-      setInvoer(`Waarom is dit een ${element.klasse}?`);
+      setInvoer("");
       if (!breed) setNodeDoel(undefined);
       taRef.current?.focus();
     }}
@@ -1234,9 +1235,9 @@ export function WerkplekClient({
               </span>
             </div>
           )}
-          {vraagOver && !bezig && (
-            <div className="mb-1.5 flex flex-wrap gap-1.5">
-              {vraagSuggesties(vraagOver.el).map((vraag) => (
+          {(vraagOver || nodeVraag) && !bezig && (
+            <div className="mb-1.5 flex flex-wrap gap-1.5" data-testid="vraag-suggesties">
+              {vraagSuggesties(vraagOver ? vraagOver.el : nodeVraag!.element).map((vraag) => (
                 <button
                   key={vraag}
                   type="button"
