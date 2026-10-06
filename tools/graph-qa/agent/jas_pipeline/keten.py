@@ -24,6 +24,7 @@ from typing import Any
 
 from bronmodel import CorpusMap, Span
 
+from . import uitleg
 from ..annotatie import _maak_anker
 from ..models import AnnotatieAlternatief, AnnotatieVoorstel
 from .besluit import Beslissing, deterministisch, ontdubbel_tijd
@@ -39,7 +40,6 @@ from .validatie import valideer
 from .detectoren import BronTekst, detecteer_alles
 from .fusie import Fusie, fuseer, VERSIE as FUSIE_VERSIE
 from .kandidaten import Candidate, CandidateStatus
-from .profielen import laad
 from .taal import maak_provider
 from .taal.grenzen import VERSIE as GRENS_VERSIE
 from .taal.structuur import VERSIE as STRUCTUUR_VERSIE
@@ -127,30 +127,26 @@ def _grens(k: Candidate, optie: str) -> tuple[int, int]:
     return optie_ids(k)[optie] if optie else (k.span.start, k.span.eind)
 
 
-def _toelichting(k: Candidate, b: Beslissing) -> str:
-    """Eén zin voor de jurist: welke herkenningsvraag past, en waarop de kandidaat berustte."""
-    if not b.klasse:                                     # terugval: nog geen klasse gekozen
-        return "Nog geen klasse gekozen; mogelijk: " + ", ".join(k.possible_classes) + "."
-    vraag = laad()[b.klasse].official_recognition_intent
-    signalen = ", ".join(sorted({e.code.lower().replace("_", " ") for e in k.evidence if e.code != "PRIORITY_APPLIED"}))
-    wie = "herkend aan een vast patroon" if b.door == "regel" else "gekozen uit de mogelijke klassen"
-    return f"{b.klasse}, {wie} ({signalen}). Herkenningsvraag: {vraag}"
+def _toelichting(k: Candidate, b: Beslissing, bijdragen=()) -> str:
+    """Criterium en toepassing op dit fragment (`uitleg.toelichting`); geen modeltekst."""
+    return uitleg.toelichting(k, b.klasse, b.door, bijdragen)
 
 
 def _voorstel(k: Candidate, b: Beslissing, kaart: CorpusMap, corpus: str, lid: str, vindplaats: str,
-              spankeuze: bool = False) -> dict[str, Any]:
+              spankeuze: bool = False, bijdragen=()) -> dict[str, Any]:
     start, eind = _grens(k, b.optie)
     seg = kaart.segment(k.span.bron_iri)
     span = Span(k.span.bron_iri, start, eind, seg.tekst[start:eind], seg.bron_hash)
     c_start, c_eind = kaart.naar_corpus(span)
     anker = _maak_anker(corpus, c_start, c_eind, lid)
-    alternatieven = [AnnotatieAlternatief(klasse=c, motivatie="ook mogelijk volgens de detectie")
+    # Per alternatief de reden uit het bewijs van de detectoren die déze klasse aandroegen.
+    alternatieven = [AnnotatieAlternatief(klasse=c, motivatie=uitleg.reden_alternatief(c, b.klasse, bijdragen))
                      for c in k.possible_classes if c != b.klasse] if (b.door == "model" or len(k.possible_classes) > 1) else []
     return AnnotatieVoorstel(
         # Deterministisch: dezelfde span met dezelfde klasse krijgt in elke run hetzelfde id, dus de
         # api herkent het element bij een volgende ronde en de stabiliteitsmeting kan vergelijken.
         id=hashlib.sha256(f"{k.id}\x1f{b.klasse}\x1f{start}:{eind}".encode()).hexdigest()[:12],
-        klasse=b.klasse, tekst=span.tekst, lid=lid, toelichting=_toelichting(k, b),
+        klasse=b.klasse, tekst=span.tekst, lid=lid, toelichting=_toelichting(k, b, bijdragen),
         alternatieven=alternatieven, grounded=True, vindplaats=vindplaats,
         anker=anker, ankers=[span.anker()],
         jas_subtype=bepaal_subtype(b.klasse, (e.code for e in k.evidence)),
@@ -265,11 +261,16 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
 
     kaart = CorpusMap(corpus_segmenten)
     per_id = fusie.per_id()
+    # Per kandidaat wat elke detector aanbood – de bron van de uitleg per alternatief.
+    bijdragen: dict[str, list] = {}
+    for bijdrage in fusie.bijdragen:
+        bijdragen.setdefault(bijdrage.kandidaat_id, []).append(bijdrage)
     paren, gezien = [], set()
     for b in sorted(beslissingen, key=lambda b: b.label):
         if b.status is not CandidateStatus.ACCEPTED:
             continue
-        v = _voorstel(per_id[b.kandidaat_id], b, kaart, corpus, lid, vindplaats, settings.classifier_spankeuze)
+        v = _voorstel(per_id[b.kandidaat_id], b, kaart, corpus, lid, vindplaats, settings.classifier_spankeuze,
+                      bijdragen.get(b.kandidaat_id, ()))
         sleutel = (v["ankers"][0]["bron_iri"], v["ankers"][0]["start"], v["ankers"][0]["eind"], v["klasse"])
         if sleutel not in gezien:                 # twee kandidaten die op dezelfde optie uitkomen
             gezien.add(sleutel)
@@ -299,7 +300,8 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
         fasen.klaar("Review", f"{len(twijfels)} twijfelgeval(len), {len(te_reviewen)} naar de reviewer")
     voorstellen, beslissingen, transities = los_op(
         [{**v, "_label": label_van[v["id"]]} for v in voorstellen], beslissingen, twijfels, oordelen, per_label,
-        lambda k, b: _voorstel(k, b, kaart, corpus, lid, vindplaats, settings.classifier_spankeuze))
+        lambda k, b: _voorstel(k, b, kaart, corpus, lid, vindplaats, settings.classifier_spankeuze,
+                               bijdragen.get(k.id, ())))
     # Wat de resolver maakte of wijzigde, gaat opnieuw door dezelfde controles.
     per_b = {b.label: b for b in beslissingen}
     voorstellen, na = valideer([({k: x for k, x in v.items() if k != "_label"}, per_b[v["_label"]])
