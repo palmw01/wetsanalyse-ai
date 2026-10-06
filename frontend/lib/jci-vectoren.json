@@ -1,0 +1,12 @@
+{
+  "uitleg": "jci → graaf-IRI van de bronnode. Eén set voor twee kanten: frontend/lib/samenhang.test.ts toetst bronDoel ertegen, tools/bwb-import/tests/test_references.py toetst de importer (jci_node_ref_key + by_ref_key). Lopen ze uiteen, dan opent 'Bekijk samenhang in 3D' een bronnode die niet bestaat.",
+  "vectoren": [
+    {"jci": "jci1.3:c:BWBR0004770&hoofdstuk=I&artikel=2&lid=1&o=k", "iri": "urn:bwb:BWBR0004770:artikel:2:lid:1:o:k"},
+    {"jci": "jci1.3:c:BWBR0004770&hoofdstuk=I&artikel=2&lid=1&o=aa&o=1", "iri": "urn:bwb:BWBR0004770:artikel:2:lid:1:o:aa:o:1"},
+    {"jci": "jci1.3:c:BWBR0004770&artikel=9&lid=2&z=2026-01-01&g=2026-01-01", "iri": "urn:bwb:BWBR0004770:artikel:9:lid:2"},
+    {"jci": "jci1.3:c:BWBR0004770&hoofdstuk=IV&afdeling=2&artikel=25", "iri": "urn:bwb:BWBR0004770:artikel:25"},
+    {"jci": "jci1.3:c:BWBR0004770&hoofdstuk=VI&afdeling=1", "iri": "urn:bwb:BWBR0004770:hoofdstuk:VI:afdeling:1"},
+    {"jci": "jci1.3:c:BWBR0005537&artikel=3:40", "iri": "urn:bwb:BWBR0005537:artikel:3%3A40"},
+    {"jci": "jci1.3:c:BWBR0004770", "iri": null}
+  ]
+}
