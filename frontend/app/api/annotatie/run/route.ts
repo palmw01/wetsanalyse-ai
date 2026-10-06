@@ -14,8 +14,11 @@ import { pathSegment } from "@/lib/url";
 export const dynamic = "force-dynamic";
 
 // Starten is een korte call: de agent zet een achtergrondtaak weg en antwoordt meteen. Het lange
-// wachten gebeurt op de events-route, niet hier.
-const START_TIMEOUT_MS = 15_000;
+// wachten gebeurt op de events-route, niet hier. Behalve bij een koude start: graph-qa staat op
+// `minReplicas: 0`, en dan houdt Azure de request vast tot de replica de readiness-probe haalt.
+// Gemeten op acceptatie (6 okt 2026): ~15 s van request tot routering – precies op de oude grens
+// van 15 s, met "Agent onbereikbaar" als gevolg terwijl de agent net opkwam.
+const START_TIMEOUT_MS = 45_000;
 
 export async function POST(req: Request) {
   const userid = await sessionUserId();
