@@ -10,7 +10,7 @@
 // alleen het eigen document en de eigen vlaggen – niet de hele `docs`-map.
 
 import Link from "next/link";
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 
 import { GraafIcoon } from "@/components/graaf/GraafIcoon";
 import { ChevronOmlaag, Cirkel, Waarschuwing } from "@/components/ui/Icoon";
@@ -24,14 +24,13 @@ import {
 } from "@/lib/annotatie";
 import type { NodeDoel } from "@/lib/annotatieNode";
 import { doelenVanKandidaten, reeksPrompt } from "@/lib/reeks";
-import { bronLabel } from "@/lib/citaties";
+import { normaliseerBronnen } from "@/lib/bronnen";
 import { bronDoel } from "@/lib/samenhang";
 import { beurtSamenvatting, laatsteRun } from "@/lib/waarom";
 import type { ThreadItem } from "@/lib/threadItem";
 import type {
   AgentDoelInvoer, AgentGrounding, AgentKandidaat, AnnotatieDocument, Bron,
 } from "@/lib/types";
-import { bronHref } from "@/lib/url";
 
 /** Wat een rij kan laten gebeuren. Eén stabiel object per venster, zodat `memo` iets oplevert. */
 export interface ThreadActies {
@@ -489,6 +488,13 @@ function Brongetrouwheid({ grounding }: { grounding: AgentGrounding }) {
 
 function Bronnen({ bronnen }: { bronnen: Bron[] }) {
   const [open, setOpen] = useState(false);
+  // Eén bepaling is één bron, gegroepeerd per regeling (`lib/bronnen.ts`) – ook voor oudere
+  // berichten, waarin dezelfde bepaling nog als graaf-IRI én als jci kon staan.
+  const lijst = useMemo(() => normaliseerBronnen(bronnen), [bronnen]);
+  const link = (item: { label: string; href?: string }) => item.href ? (
+    <a href={item.href} target="_blank" rel="noopener noreferrer"
+      className="text-lint underline underline-offset-2 [overflow-wrap:anywhere]">{item.label}</a>
+  ) : item.label;
   return (
     <div data-tour="bronnen" className="mt-2">
       <button
@@ -497,33 +503,24 @@ function Bronnen({ bronnen }: { bronnen: Bron[] }) {
         className="inline-flex items-center gap-1.5 text-xs text-muted transition-colors hover:text-ink"
         aria-expanded={open}
       >
-        <span className="font-medium">Bronnen ({bronnen.length})</span>
+        <span className="font-medium">Bronnen ({lijst.aantal})</span>
         {/* De chevron wijst naar rechts (ingeklapt) en draait omlaag bij openen. */}
         <ChevronOmlaag className={`-rotate-90 transition-transform ${open ? "rotate-0" : ""}`} />
       </button>
       {open && (
-        <div className="mt-1.5 break-words rounded-kaart border border-line bg-surface px-3 py-2 text-xs text-muted [overflow-wrap:anywhere]">
-          {bronnen.map((b, i) => {
-            const href = bronHref(b.uri);
-            return (
-              <span key={i}>
-                {i > 0 && ", "}
-                {href ? (
-                  <a
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-lint underline underline-offset-2 [overflow-wrap:anywhere]"
-                  >
-                    {bronLabel(b)}
-                  </a>
-                ) : (
-                  bronLabel(b)
-                )}
-              </span>
-            );
-          })}
-        </div>
+        <ul className="mt-1.5 space-y-1 break-words rounded-kaart border border-line bg-surface px-3 py-2 text-xs text-muted [overflow-wrap:anywhere]">
+          {lijst.groepen.map((g) => (
+            <li key={g.bwb_id}>
+              <span className="font-medium text-ink">{link({ label: g.naam, href: g.href })}</span>
+              {g.items.length > 0 && <>{" – "}{g.items.map((item, i) => (
+                <span key={item.sleutel}>{i > 0 && ", "}{link(item)}</span>
+              ))}</>}
+            </li>
+          ))}
+          {lijst.overig.length > 0 && (
+            <li>{lijst.overig.map((item, i) => <span key={item.sleutel}>{i > 0 && ", "}{link(item)}</span>)}</li>
+          )}
+        </ul>
       )}
     </div>
   );

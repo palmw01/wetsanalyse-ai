@@ -8,7 +8,7 @@
 // `markeerPassages` een afgekeurd citaat.
 
 import type { HastKnoop } from "./markering";
-import { bronDoel } from "./samenhang";
+import { bronDoel, vindplaatsVan } from "./samenhang";
 import type { Bron } from "./types";
 
 const RANG = ["eerste", "tweede", "derde", "vierde", "vijfde", "zesde", "zevende", "achtste", "negende", "tiende",
@@ -80,5 +80,5 @@ export function markeerCitaties(bronnen: readonly Bron[]) {
 
 /** Het leesbare label van een bron, in plaats van de rauwe IRI. */
 export function bronLabel(b: Bron): string {
-  return bronDoel(b.uri)?.label ?? b.label;
+  return vindplaatsVan(b.bron_iri || b.uri)?.label || b.label;
 }

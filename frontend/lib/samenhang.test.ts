@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import vectoren from "./jci-vectoren.json";
-import { bouwGraaf, bronDoel, hoofdactie, isDubbelklik, relatieGroepen, samenvatting, uitklapbaar, voegSamen, zichtbareGraaf, zoekKnopen, type Samenhang, type SamenhangKnoop } from "./samenhang";
+import { bouwGraaf, bronDoel, hoofdactie, vindplaatsVan, isDubbelklik, relatieGroepen, samenvatting, uitklapbaar, voegSamen, zichtbareGraaf, zoekKnopen, type Samenhang, type SamenhangKnoop } from "./samenhang";
 
 const LAW = "urn:bwb:BWBR0004770", ART = `${LAW}:artikel:9`, L1 = `${ART}:lid:1`, L2 = `${ART}:lid:2`;
 const A10 = `${LAW}:artikel:10`;
@@ -117,6 +117,11 @@ describe("bronDoel", () => {
     if (soort === null || soort === "regeling") return expect(doel).toBeUndefined();
     expect(doel?.bron_iri).toBe(iri);
     expect(doel?.label).toBe(label);
+  });
+  it.each(vectoren.vectoren)("vindplaatsVan $ref (spiegel van bronmodel.vindplaats)", ({ ref, iri, soort, label }) => {
+    const vp = vindplaatsVan(ref);
+    if (soort === null) return expect(vp).toBeUndefined();
+    expect([vp?.bron_iri, vp?.soort, vp?.label]).toEqual([iri, soort, label]);
   });
   it("weigert een hele regeling, een id-knoop en vreemde bronnen", () => {
     expect(bronDoel("jci1.3:c:BWBR0004770")).toBeUndefined();
