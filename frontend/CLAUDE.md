@@ -289,6 +289,8 @@ kaart.
 - `WerkplekClient` houdt `vraagOver` (slug + element). Zolang dat staat, toont een **chip** boven het
   invoerveld waar de vraag over gaat en gaat de beurt met `modus: "advies"` + `vraagContextVan(...)`.
   De chip verdwijnt na het versturen – anders wordt je volgende vraag ongemerkt ook een adviesvraag.
+  Lex vergeet het element daarmee niet: graph-qa houdt het aangewezen element vast in zijn focus
+  (`agent/focus.py`), zodat een vervolgvraag zonder chip nog weet over welke markering het ging.
 - **Drie vragen staan klaar** (`vraagSuggesties` in `lib/annotatie.ts`): waarom deze klasse, klopt de
   afbakening, en – als de agent een alternatief voorstelde – waarom die andere klasse dan niet. Eén
   klik verstuurt; ze verdwijnen zolang er een beurt loopt, want een tweede vraag zou worden

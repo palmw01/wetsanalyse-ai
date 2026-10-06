@@ -73,6 +73,7 @@ from .narratie import (  # noqa: F401 – re-export, zie hierboven
     _stap,
     _toolregel,
 )
+from .focus import als_context as focus_als_context
 from .state import State
 from .config import Settings
 from .ports import GraphPort, LLMPort
@@ -99,15 +100,10 @@ def build_graph(
     def _memory_context(state: State) -> str:
         if not settings.enable_memory_context:
             return ""
-        seen = list(dict.fromkeys(state.get("entities_seen") or []))  # dedup, volgorde behouden
-        if not seen:
-            return ""
-        lijst = "\n".join(f"- {u}" for u in seen[-12:])
-        return (
-            "\n\nGESPREKSCONTEXT – eerder in dit gesprek geraadpleegde bepalingen (alléén als "
-            "aanknopingspunt voor verwijzingen als 'dat artikel'; verifieer elk feit opnieuw via "
-            f"de tools):\n{lijst}"
-        )
+        # Bij advies staan de open markeringen al in het adviesblok, mét de afbakening erbij.
+        open_elementen = [] if state.get("modus") == "advies" else \
+            (state.get("context") or {}).get("bestaande_elementen")
+        return focus_als_context(state.get("focus"), state.get("entities_seen"), open_elementen)
 
     def _corpus(state: State) -> str:
         """De tekst van deze annotatiebeurt. `annoteer_node` haalde hem gericht op en zette hem in de

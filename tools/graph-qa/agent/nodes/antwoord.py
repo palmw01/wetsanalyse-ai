@@ -12,6 +12,7 @@ from typing import Any
 from langgraph.config import get_stream_writer
 
 from ..berichten import _parse_final, _schoon_messages, _trim_messages
+from ..focus import na_antwoord
 from ..grounding import check_grounding, curate_sources
 from ..narratie import _grounding_melding, _stap, _toolregel
 from ..prompts import SYSTEM_PROMPT
@@ -261,7 +262,9 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
     # entiteit-tier: alleen nieuwe IRI's toevoegen (append-reducer + dedup).
     existing = set(state.get("entities_seen") or [])
     new = [s["uri"] for s in src_dicts if s["uri"] not in existing]
-    upd: dict[str, Any] = {"sources": src_dicts, "entities_seen": new}
+    upd: dict[str, Any] = {"sources": src_dicts, "entities_seen": new,
+                           "focus": na_antwoord(state.get("focus"), state.get("specialist", ""),
+                                                [s["uri"] for s in src_dicts])}
     # In de decompositie-stroom stroomt het eind-antwoord uit synthesize_node en is het nog niet
     # in het durabele messages-kanaal beland (agent_node doet dat in de één-loop-stroom). Voeg het
     # hier één keer toe zodat het gespreksgeheugen het antwoord onthoudt.

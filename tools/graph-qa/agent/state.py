@@ -28,6 +28,10 @@ class State(TypedDict, total=False):
     # een platte user-beurt – een losgeknipt tool_result zou de volgende beurt laten crashen.
     messages: Annotated[list[dict[str, Any]], _voeg_toe_en_snoei]
     entities_seen: Annotated[list[str], operator.add]            # semantisch/entiteit-tier
+    # Waar het gesprek over gaat (`agent/focus.py`): de laatst geannoteerde bepaling met haar
+    # markeringen, een aangewezen element, de bronnen van het vorige antwoord. Bewust NIET in de
+    # per-beurt-reset van `answer_stream`: dit is het geheugen dat een vervolgvraag nodig heeft.
+    focus: dict[str, Any]
     specialist: str
     plan: str
     worker_plan: list[str]   # geordende worker-keten (specialist-namen) die de supervisor koos

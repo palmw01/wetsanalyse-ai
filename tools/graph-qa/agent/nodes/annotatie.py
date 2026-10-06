@@ -22,6 +22,7 @@ from ..agent_common import truncate
 from ..annotatie import aanduiding_in_woorden
 from ..bron_annotatie import controleer_hergebruik, doel_event, lees_bron, lokale_elementen, stand_per_optie
 from ..aanwijzing import lees_aanwijzing, melding_meerdere
+from ..focus import na_annotatie
 from ..doel import _bepaal_doel, _heeft_opgegeven_doel, _kandidaten_uit_json, _meerdere_artikelen
 from ..jas_klassen import methode_versie
 from ..jas_pipeline.classificatie import promptversie
@@ -268,13 +269,24 @@ def emit_node(b: Bouw, state: State) -> dict[str, Any]:
     _stap(writer, "Klaar", f"{len(voorstellen)} elementen ter beoordeling")
     writer({"type": "token", "content": samenvatting})
 
-    # Geheugen: een leesbaar spoor van de annotatie, zodat een vervolgvraag ("waarom
-    # Rechtssubject?") context heeft.
-    elems = "; ".join(f"{v.get('klasse', '')}: '{truncate(str(v.get('tekst', '')), 80)}'" for v in voorstellen[:12])
-    geheugen = f"[Annotatie {plek}] Ik markeerde {len(voorstellen)} JAS-elementen: {elems}" + (
-        " (…)" if len(voorstellen) > 12 else "."
-    )
-    return {"answer": samenvatting, "messages": [{"role": "assistant", "content": geheugen}]}
+    # Geheugen: een leesbaar spoor in de historie én de focus als gestructureerde toestand, zodat een
+    # vervolgvraag ("waarom Rechtssubject?") weet welke bepaling en welke markering bedoeld is.
+    snapshot = state.get("bron_snapshot") or {}
+    focus = na_annotatie(snapshot, plek, str(doel.get("citeertitel") or ""), voorstellen)
+    return {"answer": samenvatting, "focus": focus,
+            "entities_seen": [focus["bron_iri"]] if focus["bron_iri"] else [],
+            "messages": [{"role": "assistant", "content": _geheugenregel(focus, "")}]}
+
+
+def _geheugenregel(focus: dict[str, Any], extra: str) -> str:
+    """Wat er van een annotatie in de historie blijft: bepaling, bronnode en per markering id ·
+    klasse · tekst. Het id maakt `get_annotatie` bruikbaar; zonder kon het model een markering
+    alleen bij naam noemen."""
+    elems = "; ".join(f"{e.get('id', '?')} · {e.get('klasse', '')} · '{e.get('tekst', '')}'"
+                      for e in focus["elementen"][:12])
+    meer = " (…)" if focus["aantal"] > 12 else "."
+    return (f"[Annotatie {focus['label']}{extra} – bronnode {focus['bron_iri']}] "
+            f"{focus['aantal']} JAS-elementen: {elems}{meer}")
 
 
 def _emit_hergebruik(
@@ -301,8 +313,8 @@ def _emit_hergebruik(
     _stap(writer, "Klaar", f"hergebruikt · {t['markeringen']} markeringen uit de laag")
     writer({"type": "token", "content": samenvatting})
     markeringen = hergebruik.get("markeringen") or []
-    elems = "; ".join(f"{m.get('klasse', '')}: '{truncate(m.get('tekst', ''), 80)}'"
-                      for m in markeringen[:12])
-    geheugen = (f"[Annotatie {plek}, hergebruikt] De laag bevat {len(markeringen)} JAS-elementen: "
-                f"{elems}" + (" (…)" if len(markeringen) > 12 else "."))
-    return {"answer": samenvatting, "messages": [{"role": "assistant", "content": geheugen}]}
+    focus = na_annotatie(state.get("bron_snapshot") or {}, plek, str(doel.get("citeertitel") or ""),
+                         markeringen, hergebruikt=True)
+    return {"answer": samenvatting, "focus": focus,
+            "entities_seen": [focus["bron_iri"]] if focus["bron_iri"] else [],
+            "messages": [{"role": "assistant", "content": _geheugenregel(focus, ", hergebruikt")}]}
