@@ -18,12 +18,13 @@ krimp-helpers kloppen.
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 from uuid import uuid4
 
 from langgraph.config import get_stream_writer
 
-from ..doel import _bepaal_doel
+from ..doel import _bepaal_doel, _heeft_opgegeven_doel
 from ..jas_klassen import klassen_in_tekst
 from ..narratie import _stap
 from ..state import State
@@ -32,6 +33,35 @@ from ..tools.annotatie_tools import dispatch_annotatie
 
 #: De api hanteert dezelfde standaard; expliciet meesturen maakt het event leesbaar.
 LIMIET = 25
+
+
+# "Welke rechtssubjecten kennen we" vraagt om de verschillende teksten, niet om 25 losse records;
+# "andere", "elders", "nog meer" zetten de bepaling waar het gesprek over gaat erbuiten.
+_OVERZICHT_RE = re.compile(r"\b(welke|wat voor|overzicht|alle|ken je|kennen we|nog meer|andere|elders)\b")
+_ANDERE_RE = re.compile(r"\b(andere|elders|nog meer|behalve|buiten)\b")
+
+
+def _vraag(state: State) -> str:
+    return (state.get("zelfstandige_vraag") or state.get("question", "") or "").casefold()
+
+
+def overzichtfilters(state: State) -> dict[str, Any] | None:
+    """De filters voor `overzicht_annotaties`, of None als de vraag geen overzichtsvraag is.
+
+    Alleen met een genoemde klasse: zonder klasse is "welke annotaties zijn er" een zoekvraag naar
+    records, en daar is `search_annotaties` voor."""
+    vraag = _vraag(state)
+    klassen = klassen_in_tekst(vraag)
+    if not klassen or not _OVERZICHT_RE.search(vraag):
+        return None
+    filters: dict[str, Any] = {"jas_klassen": klassen}
+    bron = (state.get("focus") or {}).get("bron_iri")
+    if bron and _ANDERE_RE.search(vraag) and not _heeft_opgegeven_doel(state):
+        filters["uitgezonderd_bron_iri"] = bron
+    doel = state.get("opgegeven_doel") or {}
+    if doel.get("bron_iri"):
+        filters["bron_iri"] = doel["bron_iri"]
+    return filters
 
 
 def zoekfilters(state: State) -> dict[str, Any]:
@@ -62,26 +92,34 @@ def _filterregel(filters: dict[str, Any]) -> str:
         delen.append(", ".join(filters["jas_klassen"]))
     if filters.get("bron_iri") or filters.get("bwb_id"):
         delen.append(str(filters.get("bron_iri") or filters.get("bwb_id")))
+    if filters.get("uitgezonderd_bron_iri"):
+        delen.append(f"behalve {filters['uitgezonderd_bron_iri']}")
     return " · ".join(delen) or "alle opgeslagen annotaties"
 
 
 def zoek_annotaties_node(b, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
-    filters = zoekfilters(state)
-    _stap(writer, "Annotaties", f"zoeken: {_filterregel(filters)}")
+    overzicht = overzichtfilters(state)
+    naam = "overzicht_annotaties" if overzicht is not None else "search_annotaties"
+    filters = overzicht if overzicht is not None else zoekfilters(state)
+    _stap(writer, "Annotaties", f"{'overzicht' if overzicht is not None else 'zoeken'}: {_filterregel(filters)}")
     call_id = uuid4().hex
-    tool = {"id": call_id, "name": "search_annotaties", "input": filters}
+    tool = {"id": call_id, "name": naam, "input": filters}
     port = read_port(b, state)
     # `operation` omzeilt de whitelistcheck van de leesroute (dit ís de leesroute) en levert echte
     # tool_execution-events, zodat het spoor in de werkplek klopt.
     raw = execute_tool(b, state, writer, tool,
-                       operation=lambda: dispatch_annotatie("search_annotaties", filters, port))
+                       operation=lambda: dispatch_annotatie(naam, filters, port))
     try:
         data = json.loads(raw)
     except ValueError:
         data = {}
-    aantal = len(data.get("resultaten") or []) if isinstance(data, dict) else 0
-    _stap(writer, "Annotaties", f"{aantal} treffer(s)")
+    if overzicht is not None:
+        aantal = len(data.get("groepen") or []) if isinstance(data, dict) else 0
+        _stap(writer, "Annotaties", f"{aantal} verschillende tekst(en)")
+    else:
+        aantal = len(data.get("resultaten") or []) if isinstance(data, dict) else 0
+        _stap(writer, "Annotaties", f"{aantal} treffer(s)")
     toelichting = (
         "Deze zoekopdracht is al voor je uitgevoerd; herhaal hem niet met dezelfde filters. "
         "Beantwoord de vraag op basis van dit resultaat en noem de gebruikte filters en de "
@@ -91,10 +129,10 @@ def zoek_annotaties_node(b, state: State) -> dict[str, Any]:
     return {
         # `execute_tool` vult de trace niet – dat doet alleen `tools_node`. Zonder deze regel ziet
         # `begrens_antwoord` geen bewijs en vervangt het antwoord alsnog.
-        "source_trace": [*state.get("source_trace", []), ("search_annotaties", raw)],
+        "source_trace": [*state.get("source_trace", []), (naam, raw)],
         "messages": [
             {"role": "assistant", "content": [{"type": "tool_use", "id": call_id,
-                                               "name": "search_annotaties", "input": filters}]},
+                                               "name": naam, "input": filters}]},
             {"role": "user", "content": [{"type": "tool_result", "tool_use_id": call_id,
                                           "content": raw},
                                          {"type": "text", "text": toelichting}]},

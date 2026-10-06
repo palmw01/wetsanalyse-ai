@@ -198,6 +198,11 @@ def test_search_annotaties_vraagt_niets_wat_de_api_niet_kent():
         enum = (definitie.get("items") or {}).get("enum")
         if not enum:
             continue
+        if naam == "jas_klassen":
+            # Geen Literal in Zoekvraag: de api valideert tegen zijn eigen klassenlijst.
+            api_klassen = re.search(r"JAS_KLASSEN_VOLGORDE[^=]*=\s*\((.*?)\)", (CONTRACT.parent / "jas_klassen.py").read_text(), re.S)
+            assert set(enum) == set(re.findall(r'"([^"]+)"', api_klassen.group(1))), naam
+            continue
         m = re.search(rf"^\s*{naam}\s*:\s*list\[Literal\[(.*?)\]\]", blok, re.S | re.M)
         assert m, f"{naam}: geen keuzelijst in Zoekvraag"
         assert set(enum) == set(re.findall(r'"([^"]+)"', m.group(1))), naam
