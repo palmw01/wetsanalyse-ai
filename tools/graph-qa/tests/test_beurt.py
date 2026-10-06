@@ -120,6 +120,7 @@ async def test_annotatiebeurt_schrijft_naar_de_gedeelde_laag(api):
         {"type": "doel", "doel": _doel()},
         {"type": "run", "run": {"model": "claude", "provider": "azure"}},
         {"type": "element", "element": {"id": "e1", "klasse": "Rechtssubject", "tekst": "de ontvanger"}},
+        {"type": "token", "content": "Ik heb artikel 9 lid 1 geanalyseerd en één JAS-element gevonden."},
         {"type": "done"},
     ])
 
@@ -135,6 +136,9 @@ async def test_annotatiebeurt_schrijft_naar_de_gedeelde_laag(api):
 
     _, bericht = api.berichten[0]
     assert bericht["annotatie_slug"] == "slug-1"
+    # De samenvatting van Lex hoort bij het bericht: anders is hij na herladen of op een ander
+    # apparaat weg.
+    assert bericht["tekst"] == "Ik heb artikel 9 lid 1 geanalyseerd en één JAS-element gevonden."
     # Het label reist mee zodat de kaart zichzelf kan benoemen als het document later weg is.
     assert bericht["annotatie_titel"] == "Invorderingswet 1990 – art. 9 lid 1"
 
