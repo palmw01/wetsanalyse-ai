@@ -44,6 +44,10 @@
     }
   },
   "detectie": {
+    "ACTION_NP": {
+      "naam": "Handeling als naamwoord",
+      "uitleg": "De kern is een genominaliseerde handeling ('de toepassing van …'): geen drager van een recht of plicht, dus geen rechtssubject."
+    },
     "APPLICABILITY_CONSEQUENCE": {
       "naam": "Toepasselijkheid als gevolg",
       "uitleg": "De bepaling zegt dat een andere regel toepassing vindt. Dat is het gevolg zelf; de voorwaarde ervoor is een eigen markering."
@@ -239,6 +243,10 @@
     "TEMPORAL_RELATIVE_PERIOD": {
       "naam": "Relatieve periode",
       "uitleg": "Een periode ten opzichte van iets anders: 'de eerste veertien dagen'."
+    },
+    "THING_NP": {
+      "naam": "Document of rechtshandeling als ding",
+      "uitleg": "De kern is een zaak ('het aanslagbiljet', 'een belastingaanslag'): geen drager van een recht of plicht, dus geen rechtssubject – ook niet als onderwerp."
     }
   },
   "jas_versie": "1.0.10",
@@ -785,5 +793,5 @@
       "uitleg": "Waarschuwing: hetzelfde fragment kreeg twee klassen."
     }
   },
-  "vocabulaire_versie": "ebe375d22209"
+  "vocabulaire_versie": "d3788c16ae3f"
 }

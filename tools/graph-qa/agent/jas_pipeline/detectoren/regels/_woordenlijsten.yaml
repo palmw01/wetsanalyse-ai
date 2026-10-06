@@ -101,6 +101,7 @@ GEBIED:
 # Rollen die in wetgeving als partij optreden (profiel Rechtssubject, lexical_signals). Lemma's.
 ROL:
   - belastingplichtige
+  - belastingschuldige
   - belanghebbende
   - inspecteur
   - ontvanger
@@ -130,6 +131,21 @@ ROL:
   - hij
   - zij
   - diegene
+# Documenten en rechtshandelingen als ding (profiel Rechtsobject): een naamwoordgroep met zo'n kern
+# is geen drager van een recht of plicht, ook niet als onderwerp ("het aanslagbiljet heeft een
+# dagtekening"). Matcht op het einde van het lemma ("belastingaanslag", "navorderingsaanslag").
+# Disjunct met ROL: een rol gaat altijd voor (tests/test_syntactische_detectoren.py).
+ZAAK:
+  - aanslagbiljet
+  - aanslag
+  - beschikking
+  - besluit
+  - aangifte
+  - aanvraag
+  - verzoek
+  - bezwaarschrift
+  - dwangbevel
+  - kennisgeving
 # Kenmerken die per geval verschillen (profiel Variabele, lexical_signals). Een woord eindigt vaak
 # op zo'n kern ("toetsingsinkomen"), daarom matcht de detector op het einde van het lemma.
 EIGENSCHAP:

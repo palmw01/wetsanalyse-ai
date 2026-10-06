@@ -24,6 +24,8 @@ confusable_classes:
 negative_patterns:
   - {patroon: "grammaticaal onderwerp van een passieve zin zonder dragende partij ('De aanslag wordt …')", reden: "projectregel markeren-fragmentgrenzen: een grammaticaal onderwerp is niet automatisch rechtssubject"}
   - {patroon: "persoon in een kwalificatie van een ander element", reden: "projectregel markeren-fragmentgrenzen: andere juridische functie"}
+  - {patroon: "document of rechtshandeling als kern ('het aanslagbiljet', 'een belastingaanslag')", reden: "een zaak draagt geen recht of plicht (H2:26); regel jas.object.zaak_als_kern biedt geen Rechtssubject aan"}
+  - {patroon: "genominaliseerde handeling als kern ('de toepassing van …')", reden: "een handeling draagt geen recht of plicht (H2:26); regel jas.object.handeling_als_kern biedt geen Rechtssubject aan"}
 required_context:
   - "het normatieve predicaat van de zin (wie heeft het recht of de plicht)"
   - "het antecedent van een voornaamwoord"

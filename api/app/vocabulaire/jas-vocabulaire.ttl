@@ -156,6 +156,11 @@
     skos:prefLabel "Afgekeurd bij de validatie"@nl ;
     jas:codeWaarde "VALIDATION_ERROR" .
 
+<urn:jas-ns:code:ACTION_NP> a jas:Detectiecode ;
+    skos:definition "De kern is een genominaliseerde handeling ('de toepassing van …'): geen drager van een recht of plicht, dus geen rechtssubject."@nl ;
+    skos:prefLabel "Handeling als naamwoord"@nl ;
+    jas:codeWaarde "ACTION_NP" .
+
 <urn:jas-ns:code:APPLICABILITY_CONSEQUENCE> a jas:Detectiecode ;
     skos:definition "De bepaling zegt dat een andere regel toepassing vindt. Dat is het gevolg zelf; de voorwaarde ervoor is een eigen markering."@nl ;
     skos:prefLabel "Toepasselijkheid als gevolg"@nl ;
@@ -270,6 +275,11 @@
     skos:definition "Deze exacte korte grens is als kern van een langere tijdsaanduiding geregistreerd. Het bewijs blijft herleidbaar."@nl ;
     skos:prefLabel "Kern van dezelfde tijdsfunctie"@nl ;
     jas:codeWaarde "TEMPORAL_KERNEL" .
+
+<urn:jas-ns:code:THING_NP> a jas:Detectiecode ;
+    skos:definition "De kern is een zaak ('het aanslagbiljet', 'een belastingaanslag'): geen drager van een recht of plicht, dus geen rechtssubject – ook niet als onderwerp."@nl ;
+    skos:prefLabel "Document of rechtshandeling als ding"@nl ;
+    jas:codeWaarde "THING_NP" .
 
 <urn:jas-ns:regel:JAS-PRIORITY-001> a jas:Methoderegel ;
     skos:definition "Indien een formulering zowel als tijdsaanduiding als variabele of parameter kan worden geclassificeerd, prevaleert tijdsaanduiding als de meest specifieke klasse."@nl ;
@@ -913,5 +923,5 @@
     dcterms:source "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md" ;
     skos:prefLabel "Juridisch Analyseschema"@nl ;
     jas:jasVersie "1.0.10" ;
-    jas:vocabulaireVersie "ebe375d22209" .
+    jas:vocabulaireVersie "d3788c16ae3f" .
 
