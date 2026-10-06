@@ -217,6 +217,8 @@ def test_jci_naar_bronnode_iri_volgt_de_gedeelde_vectoren() -> None:
         pytest.skip("frontend niet aanwezig")
     vocab = Vocab()
     for v in json.loads(pad.read_text(encoding="utf-8"))["vectoren"]:
-        ref_key, soort = jci_node_ref_key(v["jci"])
+        if not v["ref"].startswith("jci"):
+            continue
+        ref_key, soort = jci_node_ref_key(v["ref"])
         iri = None if soort == "wet" else str(vocab.by_ref_key(ref_key))
-        assert iri == v["iri"], v["jci"]
+        assert iri == (v["iri"] if v["soort"] not in (None, "regeling") else None), v["ref"]
