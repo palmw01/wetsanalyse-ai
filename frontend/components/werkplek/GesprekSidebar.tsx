@@ -1,5 +1,6 @@
 "use client";
 
+import { Opstellen } from "@/components/ui/Icoon";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -128,9 +129,7 @@ export function GesprekSidebar({
           onClick={onNieuw}
           className="flex min-h-[44px] w-full items-center gap-2 rounded-kaart border border-line bg-paper px-3 py-2.5 text-sm font-medium text-lint shadow-zacht transition-colors hover:bg-white hover:shadow-kaart focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lint"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
-            <path d="M12 5v14M5 12h14" />
-          </svg>
+          <Opstellen className="text-base" />
           Nieuw gesprek
         </button>
       </div>

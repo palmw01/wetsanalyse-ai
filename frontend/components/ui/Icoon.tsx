@@ -91,6 +91,18 @@ export function Plus({ className = "" }: IcoonProps) {
   return svg(<path d="M8 3v10M3 8h10" />, className);
 }
 
+/** Nieuw gesprek: een vel met een pen erop – je begint iets te schrijven. Het vel staat open waar
+ *  de pen het raakt, zodat beide vormen leesbaar blijven op 16px. */
+export function Opstellen({ className = "" }: IcoonProps) {
+  return svg(
+    <>
+      <path d="M7.5 2.5H4A1.5 1.5 0 0 0 2.5 4v8A1.5 1.5 0 0 0 4 13.5h8a1.5 1.5 0 0 0 1.5-1.5V8.5" />
+      <path d="M12.1 1.9a1.3 1.3 0 0 1 1.9 1.9L8.6 9.2 6.2 9.8l.6-2.4z" />
+    </>,
+    className,
+  );
+}
+
 /** Uitzoomen. */
 export function Min({ className = "" }: IcoonProps) {
   return svg(<path d="M3 8h10" />, className);
