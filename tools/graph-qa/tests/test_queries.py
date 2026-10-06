@@ -49,10 +49,11 @@ def test_get_lid_levert_de_onderdelen_mee():
     # daarvoor is `tests/test_artikel_onderdelen.py`, dat een graafantwoord naspeelt.
     assert "bwb:heeftOnderdeel+" in sparql, "onderdelen hangen aan heeftOnderdeel, en genest"
     assert "bwb:bevat" not in sparql, "bwb:bevat bestaat niet in deze graaf"
-    assert "GROUP_CONCAT" in sparql, "gebundeld, anders herhaalt de lidtekst per onderdeel"
-    assert "ORDER BY ?o" in sparql, "volgorde a, b, c, … moet vastliggen"
-    assert "bwb:jci ?oj" in sparql, "elk onderdeel krijgt zijn eigen vindplaats"
-    assert 'STRBEFORE(?oj, "&z=")' in sparql, "zonder de datumstaart; die staat al in de lid-jci"
+    # Eén rij per onderdeel: de handler pagineert op hele onderdelen (resultaatcontract). Een
+    # GROUP_CONCAT-cel kon niet op een onderdeelgrens worden voortgezet.
+    assert "GROUP_CONCAT" not in sparql
+    assert "ORDER BY ?o" in sparql, "deterministische volgorde; de documentvolgorde zet de handler"
+    assert "bwb:jci ?ojci" in sparql, "elk onderdeel krijgt zijn eigen vindplaats"
 
 
 def test_get_artikel_levert_directe_onderdelen_mee():

@@ -15,12 +15,11 @@ def _clear_cache():
 
 
 def test_graph_schema_bevat_tellingen_vocabulaire_en_regelingen():
-    g = FakeGraph(result="DATA")
+    g = FakeGraph(result="?x\n\"waarde\"\n")
     out = schema.graph_schema(g)
-    assert "AANTALLEN PER TYPE" in out
-    assert "REGELINGEN" in out
-    assert "VOCABULAIRE" in out, "zonder de T-Box moet het model predicaatnamen raden"
-    assert "IRI-PATRONEN" in out
+    assert set(out) >= {"aantallen", "vocabulaire", "regelingen", "iri_patronen", "toelichting"}
+    assert out["vocabulaire"], "zonder de T-Box moet het model predicaatnamen raden"
+    assert "urn:jas" in out["toelichting"], "annotaties zijn geen vindplaats – dat moet erbij staan"
     assert len(g.queries) == 3  # count_by_type + ontologie + list_regelingen
 
 

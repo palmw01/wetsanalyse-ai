@@ -39,10 +39,7 @@ def test_tool_levert_het_graafantwoord_terug(naam: str, args: dict):
     uit = tools.dispatch(naam, g, args)
     assert len(g.queries) == 1, "één tool-aanroep hoort één graafquery te zijn"
     data = is_contract(uit)
-    if data is None:
-        # Nog geen contract (PR 2 van het resultaatcontract): het antwoord gaat ongeschonden door.
-        assert uit == _RIJ
-        return
+    assert data is not None, uit[:200]
     assert data["status"] == "ok" and data["resultaten"], uit
     assert f"urn:bwb:{IW}" in uit, "de vindplaats moet in het resultaat staan (bronnen, grounding)"
 
@@ -119,16 +116,6 @@ def test_grondslagen_dekt_beide_richtingen():
 
 
 # --- afkapping ---
-
-def test_afkapping_zegt_hoeveel_er_wegviel():
-    """"Ingekort op 8000 tekens" zegt niet of je een regel of een derde van de bepaling mist."""
-    from agent.agent_common import kap_toolresultaat
-
-    uit = kap_toolresultaat("x" * 9000, 8000)
-    assert "1000 van 9000 tekens niet getoond" in uit
-    assert "offset" in uit, "het model moet weten dát er een uitweg is"
-    assert kap_toolresultaat("kort", 8000) == "kort"
-
 
 @pytest.mark.parametrize("naam", ["grondslagen", "geldigheid"])
 def test_ook_deze_tools_kennen_het_decimale_pad(naam: str):

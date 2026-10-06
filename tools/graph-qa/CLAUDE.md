@@ -179,6 +179,10 @@ dan de graaf.
     krijgt dan zichtbaar géén resultaat, nooit een ingekort. `has_more` in het event is `not volledig`.
   - Consumenten lezen de **waarden**, niet de JSON-tekst: `resultaat.waarden` voor grounding en
     bronnen (anders valt een citaat over een `\n` in de JSON af).
+  - `raw_sparql` is streng: alleen SELECT, een LIMIT (≤ 200) op het hoogste niveau, en het hele
+    resultaat binnen de begroting – anders een foutresultaat met de reden (`limit_ontbreekt`,
+    `alleen_select`, `resultaat_te_groot`). Vrije SPARQL herschrijven is foutgevoelig; weigeren met
+    uitleg niet.
 
   `tests/test_resultaatcontract.py` draait elke graaftool tegen een worst-case graaf (honderden rijen,
   lange teksten, LIMIT/OFFSET) en eist: contract-JSON binnen de begroting, geen lege velden, `vervolg`
@@ -227,9 +231,12 @@ hier vandaan maar uit `bronmodel.resolve` (zie §*De annotatieketen*).
 
 - **Onderdelen hangen aan `heeftOnderdeel`**, en dat is een boom (`aa.` onder het lid, `1°` onder `aa.`),
   vandaar `heeftOnderdeel+`.
-- **Tool-resultaten gaan door `truncate`** (8000 tekens). `get_artikel` laat de onderdelen onder een lid
-  daarom weg (een definitieartikel zou zijn staart verliezen); `get_lid` levert ze in één
-  `GROUP_CONCAT`-cel met per onderdeel zijn eigen jci.
+- **Structureel pagineren, op hele eenheden** (`resultaat.per_eenheid`). `get_artikel` levert de leden
+  (de onderdelen onder een lid horen bij `get_lid`), `get_lid` de onderdelen – één rij per onderdeel,
+  met zijn eigen jci, in documentvolgorde (a … z vóór aa, een genest onderdeel direct na zijn ouder;
+  `ORDER BY ?o` is lexicaal) – en `get_bepaling` de subdivisies, numeriek gesorteerd. Past het niet,
+  dan gaat `vervolg` verder bij de eerstvolgende eenheid; een lid of onderdeel wordt nooit
+  doorgeknipt. De gegevens van de bepaling zelf (tekst, jci) staan één keer apart in het resultaat.
 - **Decimale nummers ("25.1") lopen via `get_bepaling`** (op `bwb:nummer` binnen de regeling), want
   `artikel_iri` weigert een punt. `bwb:tekst` is daar optioneel: veel bepalingen hebben alleen
   onderdelen of subdivisies.
@@ -570,7 +577,7 @@ wie een oordeel velt over wetgeving hoort niet met een env-var te verzwakken.
   het bronregister van het gesprek), nooit uit modeltekst. "Niets te
   controleren" is `onbepaald`, geen goedkeuring.
 - **Het annotatiecorpus is één bronnode**, gericht opgehaald via `bronmodel.resolve`. Reconstrueer het
-  **niet** uit de tool-trace: die plakt alle fetch-resultaten aaneen en is afgekapt op 8000 tekens.
+  **niet** uit de tool-trace: die plakt alle fetch-resultaten aaneen en is gepagineerd.
 - **Offsets komen nooit van een model** (zie §*Wat `emit` uitstuurt*).
 - **`GRAPHDB_MCP_URL` en `GRAPHDB_TOKEN` zijn verplicht**, afgedwongen bij startup én per request
   (`make_graph → require_graph`). Maak het token niet optioneel: op Azure is de netwerkgrens het slot en

@@ -7,7 +7,6 @@ from uuid import uuid4
 
 import logging
 
-from .agent_common import kap_toolresultaat
 from .annotatie_read import AnnotatieReadApi
 from .tools import dispatch
 from .tools.annotatie_tools import ANNOTATIE_TOOL_NAMEN
@@ -73,9 +72,9 @@ def execute_tool(b, state, writer, tool, *, operation=None):
                 "foutcode": ("tool_resultaat_te_groot" if te_groot else data.get("reden", ""))
                             if status not in ("ok", "partial") else "",
                 **({"omvang": omvang, "budget": BUDGET} if te_groot else {})})
-        # Contractresultaten (graaftools en annotatietools) zijn begrensd door de tool zelf en worden
-        # nooit afgeknipt. Alleen wat nog géén contract levert valt onder de oude kap.
-        return raw if name in ANNOTATIE_TOOL_NAMEN or operation or contract else kap_toolresultaat(raw)
+        # Toolresultaten worden nooit afgeknipt: elke graaftool begrenst zelf (`agent/resultaat.py`),
+        # een te groot resultaat is hierboven al een foutresultaat geworden.
+        return raw
     except Exception:
         writer({**event, "phase": "end", "status": "unavailable",
                 "duur_ms": round((monotonic() - start) * 1000), "foutcode": "tool_mislukt"})

@@ -22,7 +22,7 @@ def _make():
     # de bronnen aantoonbaar maakt – niet omdat deze test over de correctieronde gaat. Met correctie
     # aan zou elke test hier een extra modelantwoord moeten meebrengen dat niets toevoegt.
     settings = make_settings(enable_planning=False, grounding_correct=False)
-    graph = FakeGraph(result=f"<{ART_IRI}> bwb:citeertitel \"Invorderingswet 1990\" .")
+    graph = FakeGraph(result=f'?regeling\t?citeertitel\n<{ART_IRI}>\t"Invorderingswet 1990"\n')
     llm = FakeLLM([
         # Het model kiest een GETYPEERDE tool, geen rauwe SPARQL.
         response(

@@ -12,6 +12,7 @@ slaan deze tests over in plaats van rood te worden — dezelfde lijn als `test_p
 from __future__ import annotations
 
 import asyncio
+import json
 
 import pytest
 
@@ -63,7 +64,8 @@ def test_call_tool_voert_de_echte_dispatch_uit(server_met_fake):
     params = CallToolRequestParams(name="list_regelingen", arguments={})
     resultaat = asyncio.run(_handler(server, "tools/call")(None, params))
 
-    assert resultaat.content[0].text == "?x\nrij"
+    # Exact de uitvoer van dispatch: het resultaatcontract over de rijen van de graaf.
+    assert json.loads(resultaat.content[0].text)["resultaten"] == [{"x": "rij"}]
     assert graaf.queries, "de tool heeft de graaf niet bevraagd"
     assert "bwb:Regeling" in graaf.queries[0]
 

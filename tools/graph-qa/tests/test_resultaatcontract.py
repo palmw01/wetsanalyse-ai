@@ -50,20 +50,14 @@ ARGS: dict[str, dict] = {
     "get_context": {"bwb_id": IW, "artikel": "36"},
     "resolve_begrip": {"term": "belasting"},
     "graph_schema": {},
-    "raw_sparql": {"query": "SELECT ?s WHERE { ?s ?p ?o }"},
+    "raw_sparql": {"query": "SELECT ?s WHERE { ?s ?p ?o } ORDER BY ?s LIMIT 20"},
 }
 
-# Tussenstand: deze tools volgen het contract nog niet (PR 2 van het resultaatcontract haalt ze over en
-# leegt deze lijst). Ze worden wél gedraaid, zodat een tool die het contract al haalt hier niet blijft staan.
-NOG_ZONDER_CONTRACT = {
-    "get_artikel", "get_lid", "get_bepaling", "list_regelingen", "get_regeling_info", "follow_verwijzingen",
-    "referenced_by", "grondslagen", "geldigheid", "bijlagen", "get_context", "resolve_begrip", "graph_schema",
-    "raw_sparql",
-}
 
 GRAAFTOOLS = [t["name"] for t in tools.TOOLS if t["name"] not in ANNOTATIE_TOOL_NAMEN]
 # Gerangschikte lijsten: via `vervolg` moet de hele (fake) dataset langskomen.
-PAGINEREND = {"search_wetgeving", "semantic_search", "verwijst_naar_deze", "zoek_definitie"}
+PAGINEREND = {"search_wetgeving", "semantic_search", "verwijst_naar_deze", "zoek_definitie", "list_regelingen",
+              "follow_verwijzingen", "referenced_by", "grondslagen", "get_context", "resolve_begrip"}
 
 
 def test_elke_graaftool_heeft_testargumenten():
@@ -142,9 +136,6 @@ def test_contract(naam: str):
     graaf = WorstCaseGraaf()
     uit = _aanroep(naam, ARGS[naam], graaf)
     data = is_contract(uit)
-    if naam in NOG_ZONDER_CONTRACT:
-        assert data is None, f"{naam} haalt het contract al: haal hem uit NOG_ZONDER_CONTRACT"
-        return
     assert data is not None, f"{naam} levert geen contract: {uit[:200]}"
 
     # Volg de vervolg-aanroepen: elke pagina haalt het contract, geen rij dubbel.
@@ -195,3 +186,22 @@ def test_een_ondeelbare_eenheid_boven_de_begroting_wordt_een_fout_geen_inkorting
     data = is_foutresultaat(uit)
     assert data is not None and data["reden"] == "ondeelbare_eenheid_te_groot", uit[:200]
     assert "x" * 100 not in uit, "geen ingekorte data in een foutresultaat"
+
+
+def test_raw_sparql_is_streng_en_geeft_nooit_een_half_antwoord():
+    from agent.resultaat import is_foutresultaat
+
+    def reden(query: str, graaf=None) -> str:
+        data = is_foutresultaat(_aanroep("raw_sparql", {"query": query}, graaf or WorstCaseGraaf()))
+        return data["reden"] if data else ""
+
+    assert reden("SELECT ?s WHERE { ?s ?p ?o }") == "limit_ontbreekt"
+    assert reden("SELECT ?s WHERE { { SELECT ?s WHERE { ?s ?p ?o } LIMIT 5 } }") == "limit_ontbreekt", \
+        "een LIMIT in een subquery begrenst het resultaat niet"
+    assert reden("SELECT ?s WHERE { ?s ?p ?o } LIMIT 500") == "limit_te_hoog"
+    assert reden("CONSTRUCT { ?s ?p ?o } WHERE { ?s ?p ?o } LIMIT 5") == "alleen_select"
+    # 200 rijen met lange waarden passen niet: een fout met de reden, geen ingekort antwoord.
+    assert reden("SELECT ?tekst WHERE { ?s ?p ?tekst } ORDER BY ?s LIMIT 200") == "resultaat_te_groot"
+    ok = is_contract(_aanroep("raw_sparql", {"query": "PREFIX bwb: <urn:bwb-ns:>\nSELECT ?s WHERE { ?s ?p ?o } "
+                                                       "ORDER BY ?s LIMIT 5 OFFSET 10"}, WorstCaseGraaf()))
+    assert ok is not None and ok["volledig"] is True and ok["aantal"] == 5
