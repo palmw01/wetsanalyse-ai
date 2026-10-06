@@ -207,7 +207,9 @@ try {
   assert.equal(await page.getByRole("button", { name: "Annotatie afronden", exact: true }).count(), 0);
   await page.goto(`${base}/workbench?gesprek=g1`);
   // Na herladen staat wat Lex over de annotatie zei boven de kaart; in een gesprek is de header compact.
-  assert.equal((await page.getByTestId("annotatie-samenvatting").first().innerText()).trim(), SAMENVATTING);
+  // `textContent`, niet `innerText`: de rij kan buiten beeld staan, en `content-visibility: auto`
+  // (thread-rij) slaat dan de rendering over – `innerText` is dan leeg.
+  assert.equal((await page.getByTestId("annotatie-samenvatting").first().textContent()).trim(), SAMENVATTING);
   assert.equal(await page.getByTestId("werkplek-header").getAttribute("data-compact"), "ja");
   await page.getByText("Juridische analyse met AI", { exact: true }).first().waitFor();
   await page.getByText("Invorderingswet – artikel 9 lid 1", { exact: true }).last().click();

@@ -10,7 +10,7 @@ import { AppSidebar } from "@/components/werkplek/AppSidebar";
 import { SkipLink, HOOFDINHOUD_ID } from "@/components/ui/SkipLink";
 import { leesStand, moetStarten } from "@/lib/rondleiding";
 import { maakDemoScene, type DemoScene } from "@/lib/rondleidingDemo";
-import { MobieleTopbar } from "@/components/werkplek/MobieleTopbar";
+import { MobieleTopbar, TOPBAR_KNOP } from "@/components/werkplek/MobieleTopbar";
 import { WerkplekClient } from "@/components/werkplek/WerkplekClient";
 import { getVerbruik } from "@/lib/api";
 import { resetdatum, tokensKort } from "@/lib/tokenbudget";
@@ -239,9 +239,9 @@ export function WorkbenchShell({
               type="button"
               onClick={nieuwGesprek}
               aria-label="Nieuw gesprek"
-              className="focus-ring inline-flex items-center justify-center rounded-lg border border-line p-2 text-lint transition-colors hover:bg-surface"
+              className={TOPBAR_KNOP}
             >
-              <Opstellen className="text-xl" />
+              <Opstellen className="text-2xl" />
             </button>
           }
         />

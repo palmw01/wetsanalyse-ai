@@ -8,6 +8,3 @@ export function begroeting(nu: Date): string {
   if (uur < 18) return "Goedemiddag";
   return "Goedenavond";
 }
-
-/** Wat er staat zolang de tijd van de gebruiker nog niet bekend is (server-render, eerste frame). */
-export const BEGROETING_ZONDER_TIJD = "Welkom";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BEGROETING_ZONDER_TIJD, begroeting } from "@/lib/begroeting";
+import { begroeting } from "@/lib/begroeting";
 import { Skyline } from "./Skyline";
 
 /** De regel rechts in de header. Eén plek, zodat de tekst te vervangen is zonder de opmaak te raken. */
@@ -19,10 +19,11 @@ export const TAGLINE = "Samen voor een rechtvaardige en werkende samenleving";
  *   mobiele topbar al, en elke regel hoogte telt.
  *
  * De begroeting komt pas na het mounten: de server kent de lokale tijd van de gebruiker niet, en
- * een groet die tussen server en browser verschilt geeft een hydratatiefout.
+ * een groet die tussen server en browser verschilt geeft een hydratatiefout. Tot dan is de kop leeg
+ * maar even hoog, en de groet vervaagt erin – geen tussenwoord dat daarna omspringt.
  */
 export function WerkplekHeader({ compact }: { compact: boolean }) {
-  const [groet, setGroet] = useState(BEGROETING_ZONDER_TIJD);
+  const [groet, setGroet] = useState<string | null>(null);
   useEffect(() => {
     const zet = () => setGroet(begroeting(new Date()));
     zet();
@@ -47,11 +48,11 @@ export function WerkplekHeader({ compact }: { compact: boolean }) {
         <>
           {/* Smal scherm: de compacte strook, met de begroeting als kop. */}
           <div className="relative flex h-12 items-center justify-between gap-3 px-4 md:hidden">
-            <h1 className="font-display text-lg font-semibold text-lint">{groet}</h1>
+            <Groet groet={groet} className="text-lg" />
           </div>
           <div className="relative mx-auto hidden max-w-5xl items-start justify-between gap-6 px-8 py-7 md:flex">
             <div className="min-w-0">
-              <h1 className="font-display text-3xl font-semibold text-lint">{groet}</h1>
+              <Groet groet={groet} className="text-3xl" />
               <p className="mt-1 text-lg text-lint">Waar kan ik je vandaag mee helpen?</p>
               <p className="mt-2 max-w-xl text-sm text-muted">
                 Ik zoek bepalingen op, citeer letterlijk en stel JAS-markeringen voor. Wat ik voorstel,
@@ -63,6 +64,14 @@ export function WerkplekHeader({ compact }: { compact: boolean }) {
         </>
       )}
     </header>
+  );
+}
+
+function Groet({ groet, className }: { groet: string | null; className: string }) {
+  return (
+    <h1 className={`font-display font-semibold text-lint transition-opacity duration-300 motion-reduce:transition-none ${groet ? "opacity-100" : "opacity-0"} ${className}`}>
+      {groet ?? "\u00a0"}
+    </h1>
   );
 }
 
