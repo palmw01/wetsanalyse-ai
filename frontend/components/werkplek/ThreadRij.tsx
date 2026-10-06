@@ -24,8 +24,7 @@ import {
 } from "@/lib/annotatie";
 import type { NodeDoel } from "@/lib/annotatieNode";
 import { doelenVanKandidaten, reeksPrompt } from "@/lib/reeks";
-import { normaliseerBronnen } from "@/lib/bronnen";
-import { bronDoel } from "@/lib/samenhang";
+import { normaliseerBronnen, samenhangDoelen, samenhangKnopTekst } from "@/lib/bronnen";
 import { beurtSamenvatting, laatsteRun } from "@/lib/waarom";
 import type { ThreadItem } from "@/lib/threadItem";
 import type {
@@ -36,8 +35,8 @@ import type {
 export interface ThreadActies {
   verstuur: (vast?: string, doel?: AgentDoelInvoer, hergebruik?: "opnieuw", doelen?: AgentDoelInvoer[]) => void;
   openArtefact: (slug: string, doel?: NodeDoel) => void;
-  /** De 3D-samenhang van een bron onder een antwoord. */
-  openSamenhang: (doel: NodeDoel) => void;
+  /** De 3D-samenhang van een bron onder een antwoord; `extra` zijn de andere genoemde artikelen. */
+  openSamenhang: (doel: NodeDoel, extra?: NodeDoel[]) => void;
   /** Eén lid uit een reeksblok openen, met bladeren door de rest van de reeks. */
   openReeksLid: (runId: string, doel: NodeDoel) => void;
   stop: () => void;
@@ -100,12 +99,14 @@ export const ThreadRij = memo(function ThreadRij({
           <Punten />
         )}
         {item.bronnen && item.bronnen.length > 0 && <Bronnen bronnen={item.bronnen} />}
-        {samenhangAan && !demo && (() => {
-          const doel = item.bronnen?.map((b) => bronDoel(b.uri)).find(Boolean);
+        {samenhangAan && !demo && !!item.bronnen?.length && (() => {
+          // De artikelen die het antwoord noemt, in tekstvolgorde (`samenhangDoelen`); de knop zegt wat hij opent.
+          const keuze = samenhangDoelen(item.tekst ?? "", item.bronnen);
+          const [doel, ...extra] = keuze.doelen;
           return doel && <button type="button"
-            onClick={() => acties.openSamenhang(doel)}
-            className="focus-ring mt-3 flex items-center gap-2 rounded-lg border border-lint/20 bg-lint/[0.03] px-3 py-2 text-xs font-medium text-lint transition-colors hover:bg-lint/10">
-            <GraafIcoon />Bekijk samenhang in 3D<span className="sr-only"> van {doel.label || "de bepaling"}</span>
+            onClick={() => acties.openSamenhang(doel, extra)}
+            className="focus-ring mt-3 flex items-center gap-2 rounded-lg border border-lint/20 bg-lint/[0.03] px-3 py-2 text-left text-xs font-medium text-lint transition-colors hover:bg-lint/10">
+            <GraafIcoon />{samenhangKnopTekst(keuze)} in 3D
           </button>;
         })()}
         {item.tekst && item.grounding && <Brongetrouwheid grounding={item.grounding} />}

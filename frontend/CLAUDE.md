@@ -595,8 +595,22 @@ JSON / RDF (TriG)**. De vorm staat in de api (`api/app/annotatie_export.py`); de
 ## De samenhangsgraaf (3D)
 
 `NodeAnnotatiePaneel` heeft naast *Tekst* een tab **3D-graaf** (`components/graaf/SamenhangGraaf.tsx`),
-en onder een antwoord met een bron naar een BWB-bepaling staat **Bekijk samenhang in 3D**, dat hetzelfde
-paneel op die tab opent. Beide verschijnen alleen als de API de capability `samenhang` meldt
+en onder een antwoord met een bron naar een BWB-bepaling staat een knop die hetzelfde paneel op die tab
+opent.
+
+- **De knop opent wat het antwoord noemt** (`samenhangDoelen` in `lib/bronnen.ts`): de vermeldingen in
+  de tekst die éénduidig bij een bron horen (`vindVermeldingen` + `koppelBron`, dezelfde regel als de
+  citatie-chips), in tekstvolgorde, één per artikel maar zo precies als de eerste vermelding, hoogstens
+  `MAX_SAMENHANG_DOELEN` (8). Zonder koppelbare vermelding: de eerste bepaling uit de bronnen. De
+  knoptekst zegt wat hij opent (`samenhangKnopTekst`: "… van Artikel 9, lid 2 Invorderingswet 1990" of
+  "… van de 9 genoemde artikelen (8 getoond)").
+- **Meerdere artikelen zijn meerdere clusters.** Het eerste doel is het doel van het paneel (tekst en
+  annotatie), de rest gaat als `extraDoelen` mee naar `useSamenhangStand` en laadt parallel
+  (`Promise.allSettled`); een artikel dat niet laadt is een melding, geen fout voor het geheel.
+- **Een knoop uit een ander artikel opent dat artikel in het paneel** (hoofdactie `wissel`, "Open in
+  het paneel", `paneelDoel`): *Toon in tekst* kan alleen voor het artikel dat het paneel toont. Dat geldt
+  ook voor een bijgeladen randartikel. `WerkplekClient` houdt de andere artikelen als `extraDoelen` mee,
+  zodat de kaart dezelfde blijft. Beide verschijnen alleen als de API de capability `samenhang` meldt
 (`samenhangBeschikbaar()`, één keer per pagina).
 
 - **Data**: `GET /v1/annotatie/samenhang` (`api/app/samenhang.py`) via de v2-proxy: bronstructuur van

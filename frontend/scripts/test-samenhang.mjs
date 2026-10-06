@@ -74,6 +74,17 @@ const berichten = [
     annotatie_slug: "", annotatie_titel: "" },
 ];
 
+// Een antwoord dat twee artikelen noemt, met de bronnen in de canonieke vorm van graph-qa.
+const berichtenTwee = [
+  { rol: "user", tekst: "Hoe verhouden artikel 9 en 10 zich?", denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "" },
+  { rol: "assistant", tekst: "Artikel 9 lid 2 verwijst naar artikel 10, dat uitstel regelt.", denk: "",
+    bronnen: [
+      { label: "Artikel 9, lid 2", uri: L2, bron_iri: L2, jci: "jci1.3:c:BWBR0004770&artikel=9&lid=2", bwb_id: "BWBR0004770", soort: "lid", regeling: "Invorderingswet 1990" },
+      { label: "Artikel 10", uri: A10, bron_iri: A10, bwb_id: "BWBR0004770", soort: "artikel", regeling: "Invorderingswet 1990" },
+      { label: "Invorderingswet 1990", uri: LAW, bron_iri: LAW, bwb_id: "BWBR0004770", soort: "regeling", regeling: "Invorderingswet 1990" }],
+    annotatie_slug: "", annotatie_titel: "" },
+];
+
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true,
   args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
 
@@ -103,6 +114,7 @@ async function nieuwePagina({ width = 1440, height = 1000, webgl = true } = {}) 
       turtle: "<urn:jas:element:e1> a <urn:jas-ns:Markering> .",
       graafcontrole: { laag_id: "laag1", revisie: 1, status: "achterstand", afwijkingen: [], shacl: null } } });
     if (url.pathname === "/api/gesprekken/g1") return route.fulfill({ json: { id: "g1", user_id: "browser-test", titel: "Samenhang", berichten } });
+    if (url.pathname === "/api/gesprekken/g2") return route.fulfill({ json: { id: "g2", user_id: "browser-test", titel: "Twee artikelen", berichten: berichtenTwee } });
     if (url.pathname === "/api/gesprekken") return route.fulfill({ json: [{ id: "g1", titel: "Samenhang", aantal_berichten: 2 }] });
     if (url.pathname.includes("/actief")) return route.fulfill({ status: 404, json: {} });
     if (url.pathname.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
@@ -153,7 +165,7 @@ async function detailsOpen(page) {
   assert.equal(await page.getByRole("button", { name: "artikel 10", exact: true }).count(), 0);
   await page.keyboard.press("Escape");
   await page.getByTestId("bronkaart").waitFor({ state: "detached" });
-  await page.getByRole("button", { name: /Bekijk samenhang in 3D/ }).first().click();
+  await page.getByRole("button", { name: /^Bekijk samenhang van/ }).first().click();
   await page.getByTestId("samenhang-graaf").waitFor();
   // StrictMode draait effecten in dev twee keer; tel daarom unieke aanvragen.
   assert.deepEqual([...new Set(log.samenhang)], [L2], "de graaf vraagt de samenhang van de geciteerde bepaling");
@@ -315,12 +327,32 @@ async function detailsOpen(page) {
   await page.close();
 }
 
+// 13b. Een antwoord dat twee artikelen noemt: de knop zegt het, de graaf opent beide als cluster,
+// de bronnenlijst staat per regeling, en een knoop uit het tweede artikel opent dát in het paneel.
+{
+  bijgewerkt = false;
+  const { page, log } = await nieuwePagina();
+  await page.goto(`${base}/workbench?gesprek=g2`);
+  await page.getByRole("button", { name: /^Bronnen \(3\)/ }).click();
+  assert.match(await page.locator('[data-tour="bronnen"]').innerText(), /Invorderingswet 1990 – Artikel 9, lid 2, Artikel 10/);
+  await page.getByRole("button", { name: "Bekijk samenhang van de 2 genoemde artikelen in 3D" }).click();
+  await page.getByTestId("samenhang-graaf").waitFor();
+  await page.getByText("Samenhang van 2 artikelen").waitFor();
+  assert.deepEqual([...new Set(log.samenhang)].sort(), [A10, L2].sort(), "beide genoemde artikelen geladen");
+  await zoekEnKies(page, "Artikel 10", A10);
+  await page.getByRole("button", { name: "Open in het paneel" }).waitFor();
+  await page.screenshot({ path: `${shots}/2b-twee-artikelen.png` });
+  assert.deepEqual(log.errors, []);
+  assert.deepEqual(log.console, [], "geen consolefouten");
+  await page.close();
+}
+
 // 14. Mobiel: inspector onder de graaf, in te klappen; zoeken werkt met het toetsenbord.
 {
   bijgewerkt = false;
   const { page, log } = await nieuwePagina({ width: 390, height: 844 });
   await page.goto(`${base}/workbench?gesprek=g1`);
-  await page.getByRole("button", { name: /Bekijk samenhang in 3D/ }).click();
+  await page.getByRole("button", { name: /^Bekijk samenhang van/ }).click();
   await page.getByTestId("samenhang-graaf").waitFor();
   await zoekveld(page).fill("lid 1");
   await page.keyboard.press("Enter");
@@ -341,7 +373,7 @@ async function detailsOpen(page) {
   bijgewerkt = false;
   const { page, log } = await nieuwePagina({ webgl: false });
   await page.goto(`${base}/workbench?gesprek=g1`);
-  await page.getByRole("button", { name: /Bekijk samenhang in 3D/ }).click();
+  await page.getByRole("button", { name: /^Bekijk samenhang van/ }).click();
   await page.getByText("Deze browser kan de 3D-weergave niet openen.").waitFor();
   await zoekEnKies(page, "lid 1", L1);
   assert.match(await detail(page).innerText(), /Artikel 9 · lid 1/);

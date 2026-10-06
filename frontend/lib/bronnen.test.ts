@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normaliseerBronnen } from "./bronnen";
+import { normaliseerBronnen, samenhangDoelen, samenhangKnopTekst } from "./bronnen";
 import type { Bron } from "./types";
 
 const IW = "BWBR0004770", AWB = "BWBR0005537", AWR = "BWBR0002320", AWIR = "BWBR0018472";
@@ -70,5 +70,41 @@ describe("normaliseerBronnen", () => {
     const lijst = normaliseerBronnen([oud(vreemd), oud(vreemd)]);
     expect(lijst.overig.map((i) => i.label)).toEqual([vreemd]);
     expect(lijst.aantal).toBe(1);
+  });
+});
+
+describe("samenhangDoelen", () => {
+  const tekst = "Artikel 4:94a Awb gaat over kwijtschelding. Zie ook artikel 4 en artikel 31bis Awir, "
+    + "en opnieuw artikel 4:94a. Artikel 26a, tweede lid noemt een termijn.";
+
+  it("neemt de artikelen die de tekst noemt, in tekstvolgorde, één per artikel en zo precies als genoemd", () => {
+    const { doelen, totaal } = samenhangDoelen(tekst, overzichtsantwoord());
+    expect(doelen.map((d) => d.bron_iri)).toEqual([
+      "urn:bwb:BWBR0005537:artikel:4%3A94a", "urn:bwb:BWBR0004770:artikel:4",
+      "urn:bwb:BWBR0018472:artikel:31bis", "urn:bwb:BWBR0004770:artikel:26a:lid:2",
+    ]);
+    expect(totaal).toBe(4);
+    expect(doelen[3].label).toBe("Artikel 26a, lid 2");
+  });
+
+  it("begrenst het aantal en meldt het totaal", () => {
+    const { doelen, totaal } = samenhangDoelen(tekst, overzichtsantwoord(), 2);
+    expect([doelen.length, totaal]).toEqual([2, 4]);
+    expect(samenhangKnopTekst({ doelen, totaal })).toBe("Bekijk samenhang van de 4 genoemde artikelen (2 getoond)");
+  });
+
+  it("valt terug op het eerste artikel uit de bronnen als de tekst niets koppelbaars noemt", () => {
+    const keuze = samenhangDoelen("Geen vindplaats in deze tekst.", [
+      { label: "x", uri: iri(IW, "hoofdstuk", "I") },
+      { label: "y", uri: iri(IW, "artikel", "9", "lid", "2"), regeling: "Invorderingswet 1990" },
+    ]);
+    expect(keuze.doelen.map((d) => d.bron_iri)).toEqual(["urn:bwb:BWBR0004770:artikel:9:lid:2"]);
+    expect(samenhangKnopTekst(keuze)).toBe("Bekijk samenhang van Artikel 9, lid 2 Invorderingswet 1990");
+  });
+
+  it("koppelt een dubbelzinnige vermelding niet", () => {
+    // "artikel 1" bestaat in twee regelingen: geen doel, dus de terugval.
+    const keuze = samenhangDoelen("Zie artikel 1.", [oud(iri(IW, "artikel", "1")), oud(iri(AWR, "artikel", "1"))]);
+    expect(keuze.doelen.map((d) => d.bron_iri)).toEqual(["urn:bwb:BWBR0004770:artikel:1"]);
   });
 });

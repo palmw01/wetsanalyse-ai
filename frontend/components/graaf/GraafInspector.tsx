@@ -46,7 +46,8 @@ export function GraafInspector({ knoop, element, laadElement, ongedekt, hoofdact
   </div>;
 
   const hoofdLabel = hoofdactie === "tekst" ? "Toon in tekst"
-    : hoofdactie === "openen" ? (laadt ? "Laden…" : "Artikel openen") : "";
+    : hoofdactie === "openen" ? (laadt ? "Laden…" : "Artikel openen")
+    : hoofdactie === "wissel" ? "Open in het paneel" : "";
   // De schakelaar is dezelfde handeling als dubbelklikken; weg als er niets te tonen of te verbergen is.
   const schakelaar = uitgeklapt || verborgenBuren > 0;
 

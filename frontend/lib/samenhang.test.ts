@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import vectoren from "./jci-vectoren.json";
-import { bouwGraaf, bronDoel, hoofdactie, vindplaatsVan, isDubbelklik, relatieGroepen, samenvatting, uitklapbaar, voegSamen, zichtbareGraaf, zoekKnopen, type Samenhang, type SamenhangKnoop } from "./samenhang";
+import { bouwGraaf, bronDoel, hoofdactie, paneelDoel, vindplaatsVan, isDubbelklik, relatieGroepen, samenvatting, uitklapbaar, voegSamen, zichtbareGraaf, zoekKnopen, type Samenhang, type SamenhangKnoop } from "./samenhang";
 
 const LAW = "urn:bwb:BWBR0004770", ART = `${LAW}:artikel:9`, L1 = `${ART}:lid:1`, L2 = `${ART}:lid:2`;
 const A10 = `${LAW}:artikel:10`;
@@ -230,6 +230,21 @@ describe("bediening", () => {
     expect(lid1.map((x) => x.naam)).toEqual(["Onderdeel van", "Markeringen", "Verwijst naar", "Wordt verwezen door"]);
     expect(lid1.find((x) => x.naam === "Verwijst naar")?.regels.map((r) => r.knoop.id)).toEqual([A10]);
     expect(lid1.find((x) => x.naam === "Wordt verwezen door")?.regels[0].anker_tekst).toBe("het eerste lid");
+  });
+  it("opent een knoop uit een ander geladen artikel in het paneel, niet in de tekst", () => {
+    const k = (id: string, soort: SamenhangKnoop["soort"] = "lid") => ({ id, soort, rand: false, bwb_id: "BWBR0004770" });
+    const inPaneel = new Set([ART, L1]);
+    expect(hoofdactie(k(L1), [ART, A10], inPaneel)).toBe("tekst");
+    expect(hoofdactie(k(`${A10}:lid:1`), [ART, A10], inPaneel)).toBe("wissel");
+    expect(hoofdactie(k(LAW, "regeling"), [ART, A10], inPaneel)).toBe(null);
+    // Zonder haak: het oude gedrag.
+    expect(hoofdactie(k(`${A10}:lid:1`), [ART, A10])).toBe("tekst");
+  });
+  it("paneelDoel: de bronnode zelf, of voor een markering zijn artikel", () => {
+    expect(paneelDoel({ id: L1, bwb_id: "BWBR0004770", artikel: "9", label: "Lid 1" })?.bron_iri).toBe(L1);
+    expect(paneelDoel({ id: "element:e1", bwb_id: "BWBR0005537", artikel: "4:94a", label: "x" })?.bron_iri)
+      .toBe("urn:bwb:BWBR0005537:artikel:4%3A94a");
+    expect(paneelDoel({ id: "klasse:Rechtssubject", bwb_id: "", artikel: "", label: "x" })).toBeUndefined();
   });
   it("kiest één hoofdactie per soort", () => {
     const k = (id: string) => g.nodes.find((n) => n.id === id)!;

@@ -174,7 +174,7 @@ function jciPad(paren: [string, string][]): [string, string][] {
 
 /** Een waarde als IRI-segment, zoals de importer hem schrijft (`quote(s, safe="")`): een `:` in
  *  een Awb-artikelnummer ("3:40") wordt `%3A`, anders leest hij als een extra segment. */
-function iriSegment(waarde: string): string {
+export function iriSegment(waarde: string): string {
   return encodeURIComponent(waarde).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
 }
 
@@ -439,14 +439,30 @@ export function relatieGroepen(graaf: GraafData, id: string): { naam: RelatieGro
   return volgorde.filter((n) => groepen.has(n)).map((naam) => ({ naam, regels: groepen.get(naam)! }));
 }
 
-export type Hoofdactie = "tekst" | "openen" | null;
-/** De ene handeling die bij deze knoop het meest voor de hand ligt. */
-export function hoofdactie(knoop: Pick<GraafKnoop, "soort" | "rand" | "bwb_id" | "id">, geopend: string[]): Hoofdactie {
+export type Hoofdactie = "tekst" | "openen" | "wissel" | null;
+/** De ene handeling die bij deze knoop het meest voor de hand ligt. `inPaneel` zijn de knopen van het
+ *  artikel dat het paneel als tekst toont: een knoop uit een ánder geladen artikel (bijgeladen, of
+ *  meegeopend vanuit een antwoord) kan daar niet in de tekst getoond worden; die opent het paneel
+ *  op zijn eigen artikel ("wissel"). Zonder `inPaneel` is elke knoop "tekst", zoals voorheen. */
+export function hoofdactie(knoop: Pick<GraafKnoop, "soort" | "rand" | "bwb_id" | "id">, geopend: string[],
+  inPaneel?: ReadonlySet<string>): Hoofdactie {
   // Een klasse staat al met haar markeringen in beeld (laag Annotaties); daar valt niets te openen.
   if (knoop.soort === "klasse") return null;
   if (knoop.rand) return uitklapbaar(knoop) && !geopend.includes(knoop.id) ? "openen" : null;
   if (knoop.soort === "extern") return null;
+  if (inPaneel && !inPaneel.has(knoop.id)) return knoop.soort === "regeling" ? null : "wissel";
   return "tekst";
+}
+
+/** Het doel waarop het paneel opent voor een knoop uit de graaf: de bronnode zelf, of voor een
+ *  markering het artikel waarin hij staat. */
+export function paneelDoel(knoop: Pick<GraafKnoop, "id" | "bwb_id" | "artikel" | "label">): NodeDoel | undefined {
+  if (knoop.id.startsWith("urn:bwb:")) return { bron_iri: knoop.id, bwb_id: knoop.bwb_id, label: knoop.label };
+  if (knoop.bwb_id && knoop.artikel) {
+    return { bron_iri: `urn:bwb:${knoop.bwb_id}:artikel:${iriSegment(knoop.artikel)}`, bwb_id: knoop.bwb_id,
+      artikel: knoop.artikel, label: `Artikel ${knoop.artikel}` };
+  }
+  return undefined;
 }
 
 /** Korte stand van zaken voor de inspector zonder selectie. */

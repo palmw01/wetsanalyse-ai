@@ -5,8 +5,10 @@
 // bepaling als graaf-IRI én als jci kan staan. Daarom normaliseert de werkplek zelf ook, met dezelfde
 // regels (`vindplaatsVan`, de spiegel van bronmodel): één weergave voor oud en nieuw.
 
+import type { NodeDoel } from "./annotatieNode";
+import { koppelBron, vindVermeldingen } from "./citaties";
 import { bronHref } from "./url";
-import { vindplaatsVan } from "./samenhang";
+import { bronDoel, iriSegment, vindplaatsVan } from "./samenhang";
 import type { Bron } from "./types";
 
 export interface BronItem {
@@ -108,4 +110,43 @@ export function normaliseerBronnen(bronnen: readonly Bron[]): Bronnenlijst {
     uit.push(groep);
   }
   return { groepen: uit, overig, aantal: gezien.size };
+}
+
+/** Hoeveel artikelen de 3D-graaf hoogstens tegelijk opent vanuit één antwoord. Meer wordt een
+ *  kaart van eilandjes, en elk artikel is een eigen request. */
+export const MAX_SAMENHANG_DOELEN = 8;
+
+/** De artikelen die het antwoord zelf noemt, in de volgorde van de tekst, als doelen voor de
+ *  3D-graaf. Alleen een éénduidige koppeling telt (`koppelBron`, dezelfde regel als de
+ *  citatie-chips). Eén doel per artikel, maar wel zo precies als de eerste vermelding: een genoemd lid
+ *  opent zijn artikel met dát lid gekozen. Noemt de tekst niets te koppelen, dan de eerste bepaling
+ *  uit de bronnen – het oude gedrag. */
+export function samenhangDoelen(tekst: string, bronnen: readonly Bron[], max = MAX_SAMENHANG_DOELEN): { doelen: NodeDoel[]; totaal: number } {
+  const gezien = new Map<string, NodeDoel>();
+  const voegToe = (b: Bron) => {
+    const doel = bronDoel(b.bron_iri || b.uri);
+    if (!doel?.artikel) return;
+    const artikel = `urn:bwb:${doel.bwb_id}:artikel:${iriSegment(doel.artikel)}`;
+    if (gezien.has(artikel)) return;
+    gezien.set(artikel, { ...doel, ...(b.regeling ? { citeertitel: b.regeling } : {}) });
+  };
+  for (const v of vindVermeldingen(tekst)) {
+    const i = koppelBron(v, bronnen);
+    if (i >= 0) voegToe(bronnen[i]);
+  }
+  if (!gezien.size) {
+    const eerste = bronnen.find((b) => bronDoel(b.bron_iri || b.uri)?.artikel);
+    if (eerste) voegToe(eerste);
+  }
+  const alle = [...gezien.values()];
+  return { doelen: alle.slice(0, max), totaal: alle.length };
+}
+
+/** De tekst op de knop: wat hij opent, niet alleen dát hij iets opent. */
+export function samenhangKnopTekst({ doelen, totaal }: { doelen: NodeDoel[]; totaal: number }): string {
+  if (doelen.length === 1) {
+    const d = doelen[0];
+    return `Bekijk samenhang van ${d.label ?? "de bepaling"}${d.citeertitel ? ` ${d.citeertitel}` : ""}`;
+  }
+  return `Bekijk samenhang van de ${totaal} genoemde artikelen${totaal > doelen.length ? ` (${doelen.length} getoond)` : ""}`;
 }

@@ -32,7 +32,12 @@ class CanvasGrens extends Component<{ children: ReactNode }, { fout: boolean }> 
 /** De toestand van de graaf. Leeft in het paneel (búiten de `Dialog`): vergroten wisselt de
  *  dialoogvorm en remount daarmee de inhoud, en zonder dit waren bijgeladen artikelen, uitklappingen,
  *  selectie en camera dan weg. `actief` laadt pas als de tab voor het eerst opengaat. */
-export function useSamenhangStand(doel: NodeDoel, actief: boolean) {
+export function useSamenhangStand(doel: NodeDoel, actief: boolean, extra: NodeDoel[] = []) {
+  // Een nieuwe array met dezelfde doelen mag niet opnieuw laden: vergelijk op de bron-IRI's.
+  const extraSleutel = extra.map((d) => d.bron_iri).join("|");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const extraDoelen = useMemo(() => extra, [extraSleutel]);
+  const [nietGeladen, setNietGeladen] = useState(0);
   // Delen en graaf samen: elke nieuwe stand wordt gerekend met de posities van de vorige, zodat een
   // annotatiewijziging of bijgeladen artikel de bestaande kaart niet verschuift.
   const [geladen, setGeladen] = useState<{ delen: Samenhang[]; graaf: GraafData }>();
@@ -58,12 +63,22 @@ export function useSamenhangStand(doel: NodeDoel, actief: boolean) {
   const laad = useCallback(async () => {
     setFout("");
     try {
-      const eerste = await haalSamenhang(doel);
+      // Het doel van het paneel eerst; de andere artikelen uit het antwoord (`extra`) tegelijk, elk
+      // als eigen cluster. Eén artikel dat niet laadt is een melding, geen fout voor het geheel.
+      const [eerste, ...rest] = await Promise.allSettled([doel, ...extraDoelen].map((d) => haalSamenhang(d)));
+      if (eerste.status === "rejected") throw eerste.reason;
+      const delen = [eerste.value];
+      for (const r of rest) {
+        if (r.status === "fulfilled" && !delen.some((d) => d.artikel_iri === r.value.artikel_iri)) delen.push(r.value);
+      }
+      setNietGeladen(rest.filter((r) => r.status === "rejected").length);
       // Een lid opent het hele artikel; alleen het gevraagde lid is uitgeklapt. Het artikel zelf
-      // uitklappen toont alle inkomende verwijzingen tegelijk – dat is een keuze, geen begin.
-      zetDelen(() => [eerste]);
+      // uitklappen toont alle inkomende verwijzingen tegelijk – dat is een keuze, geen begin. De
+      // extra artikelen staan uitgeklapt, zoals een bijgeladen artikel.
+      zetDelen(() => delen);
+      if (delen.length > 1) setUitgebreid([doel.bron_iri, ...delen.slice(1).map((d) => d.artikel_iri)]);
     } catch (e) { setFout(foutTekst(e, "De samenhang is niet geladen.")); }
-  }, [doel, zetDelen]);
+  }, [doel, extraDoelen, zetDelen]);
   useEffect(() => {
     // Externe request initialiseren; dezelfde actie dient ook de retryknop.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -105,7 +120,7 @@ export function useSamenhangStand(doel: NodeDoel, actief: boolean) {
     setVoorAlles((v) => v && !v.uitgebreid.includes(id) ? { ...v, uitgebreid: [...v.uitgebreid, id] } : v);
   }, []);
 
-  return { delen: geladen?.delen, alles: geladen?.graaf, zetDelen, ververs, fout, setFout, laadtUit, setLaadtUit,
+  return { delen: geladen?.delen, alles: geladen?.graaf, nietGeladen, zetDelen, ververs, fout, setFout, laadtUit, setLaadtUit,
     selectie, setSelectie, uitgebreid, setUitgebreid, filters, setFilters, voorAlles, setVoorAlles, zetWeergave, toon,
     ingeklapt, setIngeklapt, lagenOpen, setLagenOpen, aangeraakt, setAangeraakt, camera, laad, toonDekking, setToonDekking, markeringFilter, setMarkeringFilter };
 }
@@ -116,7 +131,7 @@ export type SamenhangStand = ReturnType<typeof useSamenhangStand>;
  *  erover zoals bij een kaart: zoeken en weergave boven, lagen en beeld onder. Wat een knoop is,
  *  staat in de inspector, met één hoofdactie. Leeft als tab naast de tekst in het annotatiepaneel;
  *  de gekozen markering is in beide tabs dezelfde. */
-export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, elementen, dekking, onKiesElement, onOpenTekst, onVraag }: {
+export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, elementen, dekking, onKiesElement, onOpenTekst, onWisselArtikel, onVraag }: {
   stand: SamenhangStand; zichtbaar: boolean; groot: boolean;
   actiefElementId?: string;
   /** De elementen van de weergave in het paneel: daaruit haalt de inspector het spoor van een markering. */
@@ -125,6 +140,9 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, eleme
   dekking?: Record<string, string[]>;
   onKiesElement: (elementId?: string) => void;
   onOpenTekst: (knoop: GraafKnoop) => void;
+  /** Een knoop uit een ander geladen artikel: het paneel opent op dat artikel. Zonder deze haak is
+   *  elke knoop "Toon in tekst", zoals voorheen. */
+  onWisselArtikel?: (knoop: GraafKnoop) => void;
   onVraag?: (knoop: GraafKnoop) => void;
 }) {
   const { delen, zetDelen, fout, setFout, laadtUit, setLaadtUit, selectie, setSelectie, uitgebreid, setUitgebreid,
@@ -155,6 +173,9 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, eleme
     .map((e) => e.source === id ? e.target : e.source).filter((b) => !data.nodes.some((n) => n.id === b))).size;
   const hoofd = delen?.[0];
   const geopend = delen?.map((d) => d.artikel_iri) ?? [];
+  // De knopen die het paneel als tekst kan tonen: die van het eigen artikel, niet de bijgeladen.
+  const inPaneel = useMemo(() => onWisselArtikel && hoofd ? new Set(hoofd.knopen.filter((k) => !k.rand).map((k) => k.id)) : undefined,
+    [hoofd, onWisselArtikel]);
 
   /** Kiezen: zichtbaar maken als hij verborgen was, selecteren en de camera laten vliegen. Een lege
    *  id – klik op de achtergrond – heft de selectie en daarmee het dimmen op. */
@@ -198,9 +219,10 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, eleme
     else wisselVerbindingen(id);
   }
   function doeHoofdactie(knoop: GraafKnoop) {
-    const actie = bepaalHoofdactie(knoop, geopend);
+    const actie = bepaalHoofdactie(knoop, geopend, inPaneel);
     if (actie === "tekst") onOpenTekst(knoop);
     else if (actie === "openen") void openArtikel(knoop);
+    else if (actie === "wissel") onWisselArtikel?.(knoop);
   }
 
   if (!delen) return <div className="space-y-3 p-5">
@@ -213,11 +235,14 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, eleme
   return <div className="flex min-h-0 flex-1 flex-col" data-testid="samenhang-graaf" data-vergroot={groot}>
     <div className="shrink-0 border-b border-line px-5 py-2.5">
       <h2 className="text-sm font-semibold text-lint">
-        Samenhang van {alles.nodes.find((n) => n.id === hoofd?.artikel_iri)?.label ?? "de bepaling"}
+        Samenhang van {delen.length > 1 ? `${delen.length} artikelen`
+          : alles.nodes.find((n) => n.id === hoofd?.artikel_iri)?.label ?? "de bepaling"}
         <span className="ml-2 text-xs font-normal text-muted">{data.nodes.length} knopen · {data.links.length} relaties</span>
       </h2>
       {hoofd && !hoofd.verwijzingen_beschikbaar && <p className="mt-1 text-xs text-muted">Verwijzingen zijn nu niet beschikbaar; je ziet de bronstructuur en de annotaties.</p>}
       {delen.some((d) => d.afgekapt) && <p className="mt-1 text-xs text-muted">Er zijn meer verwijzingen dan getoond; de eerste 200 per richting staan in beeld.</p>}
+      {delen.length > 1 && <p className="mt-1 text-xs text-muted">De tekst en de annotatie in het paneel gaan over {alles.nodes.find((n) => n.id === hoofd?.artikel_iri)?.label ?? "het eerste artikel"}; een knoop uit een ander artikel opent dat artikel in het paneel.</p>}
+      {stand.nietGeladen > 0 && <p className="mt-1 text-xs text-muted">{stand.nietGeladen === 1 ? "1 artikel is" : `${stand.nietGeladen} artikelen zijn`} niet geladen.</p>}
       {fout && <p role="alert" className="mt-1 text-xs text-fout">{fout}</p>}
     </div>
     <div className={`flex min-h-0 flex-1 ${groot ? "flex-col md:flex-row" : "flex-col"}`}>
@@ -251,7 +276,7 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, eleme
           element={geselecteerd?.element_id ? elementen?.find((e) => e.id === geselecteerd.element_id) : undefined}
           laadElement={geselecteerd?.element_id ? () => haalElement(geselecteerd.element_id) : undefined}
           ongedekt={toonDekking && geselecteerd ? dekking?.[geselecteerd.id] : undefined}
-          hoofdactie={geselecteerd ? bepaalHoofdactie(geselecteerd, geopend) : null}
+          hoofdactie={geselecteerd ? bepaalHoofdactie(geselecteerd, geopend, inPaneel) : null}
           uitgeklapt={!!geselecteerd && (uitgebreid.includes(geselecteerd.id) || tijdelijk === geselecteerd.id)}
           verborgenBuren={geselecteerd ? verborgenBuren(geselecteerd.id) : 0}
           laadt={!!geselecteerd && laadtUit === geselecteerd.id}
