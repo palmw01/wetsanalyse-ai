@@ -524,7 +524,8 @@ draaiden en welke zinsdelen geen enkele kandidaat opleverden; de api geeft dat m
   exact de regel. Een klik op een onderstreept zinsdeel opent dezelfde `SelectiePopover` met het
   hele deel: zelf markeren zonder de grenzen te trekken.
 - `DekkingOverzicht` in de `extra`-haak toont per bronnode hoeveel dimensies volledig draaiden en
-  welke niet (`lib/dekking.ts`).
+  welke niet, en per dimensie wat er gevonden werd (`aangetroffen`, `gevondenTekst` in
+  `lib/dekking.ts`). Een oudere meting zonder telling toont geen regel: onbekend is geen 0.
 
 ### Zelf annoteren (tekstselectie)
 

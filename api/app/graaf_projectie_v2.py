@@ -300,11 +300,16 @@ def _dekking(g: Graph, owner: URIRef, dekking: dict) -> None:
         g.add((owner, JAS.dekking, d))
         g.add((d, RDF.type, JAS.Dekking))
         g.add((d, JAS.bron, URIRef(bron_iri)))
+        aangetroffen = meting.get("aangetroffen") or {}
         for naam, stand in sorted((meting.get("dimensies") or {}).items()):
             dim = BNode()
             g.add((d, JAS.dimensie, dim))
             g.add((dim, JAS.naam, Literal(naam)))
             g.add((dim, JAS.stand, Literal(stand)))
+            # Wat er gevonden werd ('uitgevoerd' zegt alleen dát er gezocht is). Alleen als de meting
+            # het draagt: een oudere laag zonder telling krijgt geen 0, want 0 betekent iets anders.
+            if isinstance(aangetroffen.get(naam), int):
+                g.add((dim, JAS.aantal, Literal(aangetroffen[naam])))
         for deel in meting.get("ongedekt") or []:
             if not isinstance(deel, dict):
                 continue

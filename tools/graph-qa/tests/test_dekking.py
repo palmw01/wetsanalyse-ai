@@ -67,3 +67,19 @@ def test_hybride_meting_draagt_a_en_b(monkeypatch):
     assert sum(meting["per_status"].values()) == meting["kandidaten"]
     [(iri, b)] = meting["dekking"].items()
     assert iri.endswith(":lid:1") and len(b["dimensies"]) == 12
+
+
+def test_aangetroffen_telt_per_dimensie_wat_er_voor_haar_klasse_gevonden_werd():
+    from agent.jas_klassen import GELDIGE_JAS_KLASSEN
+    from agent.jas_pipeline.dekking import DIMENSIEKLASSEN
+    assert DIMENSIEKLASSEN.keys() == DIMENSIES.keys()
+    assert all(k in GELDIGE_JAS_KLASSEN for ks in DIMENSIEKLASSEN.values() for k in ks)
+    p = SpacyProvider("nl_core_news_md")
+    if p.analyseer("x").gedegradeerd:
+        pytest.skip("nl_core_news_md niet geïnstalleerd")
+    bron, resultaten, f = _keten(p)
+    a = structureel(f, [bron], {"urn:t": {r.detector for r in resultaten}})["urn:t"]["aangetroffen"]
+    assert a.keys() == DIMENSIES.keys()
+    # "binnen zes weken" en "indien hij daarom verzoekt" zijn gevonden; een plaats of een definitie niet.
+    assert a["tijd"] >= 1 and a["voorwaarde"] >= 1 and a["actor"] >= 1
+    assert a["plaats"] == 0 and a["definitie"] == 0 and a["delegatie"] == 0

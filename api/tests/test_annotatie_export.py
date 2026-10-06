@@ -166,3 +166,12 @@ def test_een_terugval_heet_geen_besluit_van_het_model():
     pdf = [t for _s, t in export.pdf_regels(_view([_element(klasse="", trace={**SPOOR, "beslissing": {"door": "terugval"}},
                                                          alternatieven=[{"klasse": "Rechtsfeit"}, {"klasse": "Voorwaarde"}])]), v)]
     assert "Nog geen klasse (Rechtsfeit, Voorwaarde): binnen zes weken (voorgesteld)" in pdf
+
+
+
+def test_pdf_en_json_dragen_wat_er_per_dimensie_gevonden_werd():
+    view = _view([_element()])
+    view["dekking"]["structureel"][ONE]["aangetroffen"] = {"tijd": 2, "plaats": 0}
+    teksten = [t for _s, t in export.pdf_regels(view, V)]
+    assert "Gevonden: tijd 2 · plaats niets" in teksten
+    jsonschema.validate(json.loads(export.json_export(view, V)), json.loads(export.SCHEMA_PAD.read_text(encoding="utf-8")))

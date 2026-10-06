@@ -29,6 +29,9 @@ export interface NodeElement {
 export interface StructureleDekking {
   dimensies: Record<string, "uitgevoerd" | "gedeeltelijk" | "overgeslagen">;
   ongedekt: { tekst: string; start: number; eind: number }[];
+  /** Per dimensie hoeveel kandidaten een hypothese voor haar klasse(n) droegen. Ontbreekt bij een
+   *  oudere meting – dan is het onbekend, niet 0. */
+  aangetroffen?: Record<string, number>;
 }
 export interface NodeDekking {
   voltooid?: boolean;
