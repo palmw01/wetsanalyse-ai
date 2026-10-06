@@ -38,6 +38,24 @@ DIMENSIES: dict[str, tuple[str, ...]] = {
     "definitie": ("definitie",),
 }
 
+# Dimensie → de JAS-klasse(n) waar haar detectoren een hypothese voor kunnen leveren. Nodig voor
+# `aangetroffen`: `naamwoordgroep` draagt actor, object én waarde, dus alleen tellen per detector
+# zou bij 'actor' elke naamwoordgroep meetellen.
+DIMENSIEKLASSEN: dict[str, frozenset[str]] = {
+    "actor": frozenset({"Rechtssubject"}),
+    "object": frozenset({"Rechtsobject"}),
+    "normatieve relatie": frozenset({"Rechtsbetrekking"}),
+    "handeling/gebeurtenis": frozenset({"Rechtsfeit"}),
+    "voorwaarde": frozenset({"Voorwaarde"}),
+    "berekening/afleiding": frozenset({"Afleidingsregel"}),
+    "waarde": frozenset({"Variabele en variabelewaarde", "Parameter en parameterwaarde"}),
+    "operator": frozenset({"Operator"}),
+    "tijd": frozenset({"Tijdsaanduiding"}),
+    "plaats": frozenset({"Plaatsaanduiding"}),
+    "delegatie": frozenset({"Delegatiebevoegdheid en delegatie-invulling"}),
+    "definitie": frozenset({"Brondefinitie"}),
+}
+
 
 class DekkingsFout(RuntimeError):
     """Een kandidaat kwam zonder beslissing uit de keten (UNHANDLED > 0)."""
@@ -64,8 +82,25 @@ def structureel(fusie: Fusie, bronnen: list[Any], gedraaid: dict[str, set[str]])
         for dim, detectoren in DIMENSIES.items():
             ok = [d for d in detectoren if d in ran and d not in skip]
             dims[dim] = "uitgevoerd" if len(ok) == len(detectoren) else ("gedeeltelijk" if ok else "overgeslagen")
-        per_bron[bron.bron_iri] = {"dimensies": dims, "ongedekt": ongedekt(fusie, bron)}
+        per_bron[bron.bron_iri] = {"dimensies": dims, "ongedekt": ongedekt(fusie, bron),
+                                   "aangetroffen": aangetroffen(fusie, bron.bron_iri)}
     return per_bron
+
+
+def aangetroffen(fusie: Fusie, bron_iri: str) -> dict[str, int]:
+    """Per dimensie hoeveel kandidaten in deze bronnode een hypothese voor haar klasse(n) dragen,
+    met bewijs van een van haar detectoren. 'Uitgevoerd' zegt dat er gezocht is; dit zegt wat er
+    gevonden werd – 0 is dan "gezocht, niets gevonden".
+
+    Niet optellen over dimensies: één kandidaat kan in meer dimensies tellen (een naamwoordgroep
+    met Rechtsobject én Variabele telt bij object en bij waarde)."""
+    uit = {}
+    for dim, detectoren in DIMENSIES.items():
+        uit[dim] = sum(1 for k in fusie.kandidaten
+                       if k.span.bron_iri == bron_iri and k.status is not CandidateStatus.REJECTED
+                       and DIMENSIEKLASSEN[dim] & set(k.possible_classes)
+                       and any(e.detector in detectoren for e in k.evidence))
+    return uit
 
 
 def ongedekt(fusie: Fusie, bron: Any) -> list[dict[str, Any]]:

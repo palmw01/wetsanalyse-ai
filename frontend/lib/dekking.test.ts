@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dekkingPerBron, ongedektPerBron } from "./dekking";
+import { dekkingPerBron, gevondenTekst, ongedektPerBron } from "./dekking";
 
 describe("dekkingPerBron", () => {
   it("telt per bronnode de volledig bekeken dimensies en de ongedekte zinsdelen, in tekstvolgorde", () => {
@@ -12,6 +12,16 @@ describe("dekkingPerBron", () => {
       { bron_iri: "b", bekeken: 1, totaal: 3, onvolledig: [
         { dimensie: "tijd", stand: "overgeslagen" }, { dimensie: "waarde", stand: "gedeeltelijk" }], ongedekt: 1 },
     ]);
+  });
+
+  it("draagt per dimensie wat er gevonden werd – en zonder telling niets (onbekend, geen 0)", () => {
+    const [met] = dekkingPerBron({ structureel: { a: { dimensies: { tijd: "uitgevoerd", plaats: "uitgevoerd", actor: "uitgevoerd" },
+      ongedekt: [], aangetroffen: { tijd: 2, plaats: 0, actor: 1 } } } }, ["a"]);
+    expect(gevondenTekst(met.gevonden)).toBe("Gevonden: tijd 2, actor 1 · niets: plaats");
+    const [zonder] = dekkingPerBron({ structureel: { a: { dimensies: { tijd: "uitgevoerd" }, ongedekt: [] } } }, ["a"]);
+    expect(zonder.gevonden).toBeUndefined();
+    expect(gevondenTekst(zonder.gevonden)).toBe("");
+    expect(gevondenTekst([{ dimensie: "tijd", aantal: 0 }])).toBe("Niets gevonden");
   });
 
   it("is leeg zonder meting", () => {

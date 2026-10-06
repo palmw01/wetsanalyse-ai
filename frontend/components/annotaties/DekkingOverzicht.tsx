@@ -2,7 +2,7 @@
 
 import { ChevronOmlaag } from "@/components/ui/Icoon";
 import type { NodeDekking } from "@/lib/annotatieNode";
-import { dekkingPerBron } from "@/lib/dekking";
+import { dekkingPerBron, gevondenTekst } from "@/lib/dekking";
 
 /** Wat de detectoren per bronnode bekeken: welke van de detectiedimensies volledig draaiden en
  *  hoeveel zinsdelen niets opleverden. Een meting, geen oordeel – vandaar de zin eronder en geen
@@ -28,6 +28,8 @@ export function DekkingOverzicht({ dekking, volgorde, labelVan }: {
           {regels.length > 1 && <span className="font-semibold text-muted">{labelVan(r.bron_iri)}: </span>}
           <span className="text-ink">{r.bekeken} van {r.totaal} dimensies volledig bekeken</span>
           <span className="text-muted"> · {r.ongedekt} {r.ongedekt === 1 ? "zinsdeel" : "zinsdelen"} zonder treffer</span>
+          {/* Gezocht is niet hetzelfde als gevonden: per dimensie wat er aangetroffen werd. */}
+          {r.gevonden && <p className="mt-0.5 pl-3 text-muted" data-testid="dekking-gevonden">{gevondenTekst(r.gevonden)}</p>}
           {r.onvolledig.length > 0 && <p className="mt-0.5 pl-3 text-muted">
             {r.onvolledig.map((o) => `${o.dimensie} ${o.stand}`).join(", ")}
           </p>}

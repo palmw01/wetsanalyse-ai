@@ -52,7 +52,8 @@ function volledigeView(iri) {
     // Dekkingsmeting: in lid 2 vond geen detector iets bij "TWEE" (codepoints 12–16), en de
     // tijdsdimensie draaide niet.
     dekking: ids.includes(2) ? { voltooid: true, structureel: { "urn:lid2": {
-      dimensies: { actor: "uitgevoerd", tijd: "overgeslagen" }, ongedekt: [{ tekst: "TWEE", start: 12, eind: 16 }] } } } : {} };
+      dimensies: { actor: "uitgevoerd", tijd: "overgeslagen" }, ongedekt: [{ tekst: "TWEE", start: 12, eind: 16 }],
+      aangetroffen: { actor: 1, tijd: 0 } } } } : {} };
 }
 const verklaringen = {
   besluit: { model: { naam: "model", uitleg: "Het model koos uit de klassen die het patroon toeliet." } },
@@ -203,6 +204,8 @@ try {
   assert.deepEqual(zelf.element.ankers, [{ bron_iri: "urn:lid2", start: 12, eind: 16, tekst: "TWEE", bron_hash: "hash2" }]);
   await page.getByTestId("dekking").locator("summary").click();
   await page.getByTestId("dekking").getByText("tijd overgeslagen", { exact: false }).waitFor();
+  // Gezocht is niet gevonden: per dimensie wat er aangetroffen werd.
+  assert.equal(await page.getByTestId("dekking-gevonden").first().textContent(), "Gevonden: actor 1 · niets: tijd");
   await page.getByTestId("dekking-balk").getByRole("button", { name: "Verbergen" }).click();
   assert.equal(await wettekst().locator("[data-ongedekt]").count(), 0);
   // Verwijderen: naast afronden, tweede klik bevestigt, alle lagen in beeld met hun revisie.

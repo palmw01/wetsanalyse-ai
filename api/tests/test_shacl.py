@@ -115,3 +115,18 @@ def test_een_classificatie_zonder_klasse_of_een_vraag_zonder_alternatief_is_een_
             zonder_klasse.remove((e, p, o))
     assert valideer(zonder_klasse)["conform"] is False
     assert valideer(_graaf(**{**TERUGVAL, "alternatieven": []}))["conform"] is False
+
+
+def test_dekking_met_aantallen_is_conform_en_zonder_aantallen_ook():
+    met = {BRON: {"dimensies": {"tijd": "uitgevoerd", "plaats": "uitgevoerd"}, "ongedekt": [],
+                  "aangetroffen": {"tijd": 2, "plaats": 0}}}
+    g = bouw_graaf(LAAG, [ELEMENT], dekking=met)
+    aantallen = sorted(int(o) for o in g.objects(None, JAS.aantal))
+    assert aantallen == [0, 2] and valideer(g)["conform"] is True
+    # Een oudere meting zonder telling: geen jas:aantal (0 zou iets anders betekenen), en conform.
+    zonder = bouw_graaf(LAAG, [ELEMENT], dekking={BRON: {"dimensies": {"tijd": "uitgevoerd"}, "ongedekt": []}})
+    assert not list(zonder.objects(None, JAS.aantal)) and valideer(zonder)["conform"] is True
+    # Een negatief aantal is een modelfout.
+    fout = bouw_graaf(LAAG, [ELEMENT], dekking={BRON: {"dimensies": {"tijd": "uitgevoerd"}, "ongedekt": [],
+                                                         "aangetroffen": {"tijd": -1}}})
+    assert valideer(fout)["conform"] is False

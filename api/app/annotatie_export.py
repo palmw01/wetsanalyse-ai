@@ -214,6 +214,11 @@ def pdf_regels(view: dict, verklaringen: dict) -> list[tuple[str, str]]:
             onvolledig = [f"{d} {s}" for d, s in dims.items() if s != "uitgevoerd"]
             uit.append(("BodyText", f"{bron_iri}: {sum(s == 'uitgevoerd' for s in dims.values())} van {len(dims)} "
                                     "dimensies volledig bekeken" + (f" ({', '.join(onvolledig)})" if onvolledig else "")))
+            gevonden = m.get("aangetroffen") or {}
+            if gevonden:
+                # Gezocht is niet hetzelfde als gevonden: per dimensie wat er aangetroffen werd.
+                uit.append(("BodyText", "Gevonden: " + " · ".join(
+                    f"{d} {gevonden[d] if gevonden.get(d) else 'niets'}" for d in dims if d in gevonden)))
             for deel in m.get("ongedekt") or []:
                 uit.append(("BodyText", f"Zonder detectortreffer: “{deel.get('tekst', '')}”"))
     if view.get("audit"):

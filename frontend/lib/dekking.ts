@@ -19,6 +19,9 @@ export interface DekkingRegel {
   /** Dimensies die niet volledig draaiden, met hun stand. */
   onvolledig: { dimensie: string; stand: "gedeeltelijk" | "overgeslagen" }[];
   ongedekt: number;
+  /** Wat er per dimensie gevonden werd (alleen dimensies met een telling); `undefined` bij een oudere
+   *  meting zonder telling – "gezocht" is dan bekend, "gevonden" niet. */
+  gevonden?: { dimensie: string; aantal: number }[];
 }
 
 /** Per bronnode: hoeveel detectiedimensies volledig draaiden, welke niet, en hoeveel zinsdelen geen
@@ -36,7 +39,18 @@ export function dekkingPerBron(dekking: NodeDekking | undefined, volgorde: strin
         onvolledig: dims.filter(([, s]) => s !== "uitgevoerd")
           .map(([dimensie, stand]) => ({ dimensie, stand: stand as "gedeeltelijk" | "overgeslagen" })),
         ongedekt: (m.ongedekt ?? []).length,
+        ...(m.aangetroffen ? { gevonden: dims.filter(([d]) => typeof m.aangetroffen?.[d] === "number")
+          .map(([dimensie]) => ({ dimensie, aantal: m.aangetroffen![dimensie] })) } : {}),
       };
     })
     .sort((a, b) => plek(a.bron_iri) - plek(b.bron_iri));
+}
+
+/** "Gevonden: tijd 2, voorwaarde 1 · niets: plaats, definitie" – leeg zonder telling. */
+export function gevondenTekst(gevonden: DekkingRegel["gevonden"]): string {
+  if (!gevonden) return "";
+  const wel = gevonden.filter((g) => g.aantal > 0).map((g) => `${g.dimensie} ${g.aantal}`);
+  const niets = gevonden.filter((g) => g.aantal === 0).map((g) => g.dimensie);
+  return [wel.length ? `Gevonden: ${wel.join(", ")}` : "Niets gevonden", niets.length && wel.length ? `niets: ${niets.join(", ")}` : ""]
+    .filter(Boolean).join(" · ");
 }
