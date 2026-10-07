@@ -89,9 +89,18 @@ async def run_annotatie_case(
     error: str | None = None
     fout_soort: str | None = None
 
+    annotaties = annotaties or getattr(graph, "annotaties", None)
+    if annotaties is None and not settings.legt_zelf_vast:
+        # De eval-job draagt bewust geen api (een meting mag de werkvoorraad niet veranderen). Zonder
+        # annotatiepoort is de dekking onleesbaar en stopt de keten vóór de eerste modelcall – elke
+        # case gaf dan 0 markeringen. Per case een verse api-loze poort, zoals de gesprekseval.
+        from eval.gesprek import GesprekAnnotaties, _poortgraaf
+
+        annotaties = GesprekAnnotaties((graph or _poortgraaf(settings)).sparql)
+
     async for ev in answer_stream(
         case["prompt"], settings=settings, llm=llm, graph=graph, meter=meter,
-        annotaties=annotaties or getattr(graph, "annotaties", None),
+        annotaties=annotaties,
         # Een casus als "artikel 36a" meet het hele artikel; zonder `geheel` levert dat nu een
         # keuzekaart op in plaats van markeringen. Bij een lid heeft de vlag geen effect.
         doel={"geheel": True},

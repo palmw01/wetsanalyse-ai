@@ -143,3 +143,25 @@ def test_alleen_de_garanties_bepalen_slagen():
 
     stuk = score_annotatie({"prompt": "p"}, [{"klasse": "Rechtsobject", "tekst": "verzonnen"}], CORPUS)
     assert stuk.passed is False, "een niet-letterlijk fragment is wél een gezakte eval"
+
+
+def test_annotatie_eval_zonder_api_krijgt_een_apiloze_poort(monkeypatch):
+    """Zonder annotatiepoort is de dekking onleesbaar en stopt de keten vóór de eerste modelcall: de
+    eval-job (bewust zonder api) gaf zo in elke case 0 markeringen, en dat las als een kwaliteitsval."""
+    import asyncio
+
+    from eval import run_eval
+    from eval.gesprek import GesprekAnnotaties
+    from fakes import FakeGraph, make_settings
+
+    gezien: dict = {}
+
+    async def nep_stream(*_a, **k):
+        gezien["annotaties"] = k.get("annotaties")
+        return
+        yield  # pragma: no cover – maakt hier een async generator van
+
+    monkeypatch.setattr(run_eval, "answer_stream", nep_stream)
+    case = {"prompt": "annoteer artikel 9 lid 1", "bron": "BWBR0004770/9/1", "verwacht": []}
+    asyncio.run(run_eval.run_annotatie_case(case, settings=make_settings(), graph=FakeGraph()))
+    assert isinstance(gezien["annotaties"], GesprekAnnotaties)
