@@ -73,6 +73,10 @@ CONTROLES: tuple[Controle, ...] = (
     Controle("get_regeling_info", {"bwb_id": IW}, min_rijen=1, max_rijen=1,
              toelichting="precies ÉÉN rij; meer betekent een cartesisch product over "
                          "meerwaardige velden (afkortingen x ondertekenaars)"),
+    Controle("semantic_search", {"query": "betalingsregeling weigeren door de ontvanger", "limit": 5},
+             hard=False, min_rijen=1, max_rijen=5,
+             toelichting="zacht: de similarity-index ontbreekt vlak na een GraphDB-herstart; leeg terwijl "
+                         "de index er is, betekent dat de Turtle niet gelezen wordt"),
     Controle("search_wetgeving", {"query": "aansprakelijk", "limit": 5}, min_rijen=2, max_rijen=5,
              toelichting="max 5 want limit=5; meer betekent dat een knoop meerdere types matcht"),
     Controle("search_wetgeving", {"query": "bestuurder", "veld": "definieertBegrip", "limit": 5},
