@@ -30,6 +30,8 @@ LEIDRAAD = "BWBR0024096"
 GEVALLEN: list[tuple[str, str]] = [
     ("fts", q.fts("aansprakelijk")),
     ("fts+veld+scope", q.fts("bestuurder", 5, veld="definieertBegrip", bwb_id=IW, soort="Onderdeel", offset=10)),
+    ("zoek_opbouw", q.zoek_opbouw("invordering")),
+    ("zoek_opbouw+scope", q.zoek_opbouw("uitstel van betaling", IW, 10, offset=10, meer=True)),
     ("list_regelingen", q.list_regelingen()),
     ("get_artikel", q.get_artikel(IW, "36")),
     ("get_lid", q.get_lid(IW, "2", "1")),
@@ -80,6 +82,6 @@ def test_elke_publieke_bouwer_wordt_getoetst():
         if not naam.startswith("_") and callable(getattr(q, naam)) and getattr(q, naam).__module__ == q.__name__
     }
     # Helpers die geen complete query opleveren.
-    helpers = {"regeling_iri", "artikel_iri", "lid_iri", "node_patroon", "is_artikelnummer"}
+    helpers = {"regeling_iri", "artikel_iri", "lid_iri", "node_patroon", "is_artikelnummer", "opbouw_lucene"}
     ontbreekt = publiek - getoetst - helpers
     assert not ontbreekt, f"deze query-bouwers staan niet in GEVALLEN: {sorted(ontbreekt)}"

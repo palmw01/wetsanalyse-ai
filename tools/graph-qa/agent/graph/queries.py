@@ -270,6 +270,75 @@ def fts(
 }} ORDER BY DESC(?score) ?node {_pagina(lim, offset, meer)}"""
 
 
+# De structuurniveaus waarvan het opschrift een onderwerp draagt. Een Divisie telt alleen mee als ze
+# zelf divisies bevat: de Leidraad heeft ~800 divisies met een titel, en de bladeren daarvan zijn
+# bepalingen, geen opbouw – zonder die eis overspoelen ze elk overzicht.
+OPBOUW_TYPES = ("Hoofdstuk", "Titeldeel", "Afdeling", "Paragraaf", "Divisie")
+
+# Woorden die in een onderwerp geen onderwerp zijn.
+_STOPWOORDEN = {"van", "het", "een", "der", "den", "voor", "over", "bij", "met", "aan", "door", "en", "of",
+                "de", "in", "op", "te", "tot", "welke", "artikelen", "bepalingen", "gaan"}
+# Achtervoegsels die de Nederlandse stemmer van de index afhaalt (Snowball, grofweg). Waarom zelf:
+# een wildcardterm wordt NIET geanalyseerd, en de index bevat stammen. `invordering*` vindt daardoor
+# "Invorderingsrente" wel, maar "Invordering in eerste aanleg" niet (die staat er als `invorder`), en
+# een samenstelling als "Dwanginvordering" alleen met een wildcard vooraan: `*invorder*`.
+_ACHTERVOEGSELS = ("ingen", "heden", "heid", "ing", "en", "e", "s")
+
+
+def _stam(woord: str) -> str:
+    for a in _ACHTERVOEGSELS:
+        if woord.endswith(a) and len(woord) - len(a) >= 5:
+            return woord[: -len(a)]
+    return woord
+
+
+def opbouw_lucene(onderwerp: str) -> str:
+    """De Lucene-query voor een onderwerp in de opschriften: per woord het woord zelf (geanalyseerd,
+    dus op de stam) óf de stam als deel van een samenstelling; alle woorden moeten voorkomen.
+
+    Deterministisch uit het onderwerp – het model hoeft de valkuil van stemmer en wildcard niet te
+    kennen, en dezelfde vraag geeft dezelfde query."""
+    woorden = [w for w in re.findall(r"[0-9a-zà-ÿ]+", str(onderwerp).lower())
+               if len(w) >= 3 and w not in _STOPWOORDEN]
+    if not woorden:
+        raise ValueError(f"Geen zoekbaar onderwerp in {onderwerp!r}: noem het onderwerp in één of enkele woorden.")
+    delen = [f"({w} OR *{_stam(w)}*)" if len(_stam(w)) >= 5 else w for w in dict.fromkeys(woorden)]
+    return "titel:(" + " AND ".join(delen) + ")"
+
+
+def zoek_opbouw(onderwerp: str, bwb_id: str | None = None, limit: int = 25, offset: int = 0,
+                meer: bool = False) -> str:
+    """Welke delen van de opbouw (hoofdstuk, titeldeel, afdeling, paragraaf, divisie) dragen het
+    onderwerp in hun opschrift – met per deel de bepalingen die erin staan.
+
+    Een overzichtsvraag ("welke artikelen gaan over invordering?") is een vraag naar de opbouw: de
+    wetgever heeft het onderwerp al in de opschriften gegroepeerd. Een tekstzoekactie levert in plaats
+    daarvan de bepalingen waarin het woord toevallig voorkomt (Iw art. 4, 63, 68) en mist de
+    hoofdstukken die er echt over gaan."""
+    lim = max(1, min(int(limit), 50))
+    scope = f'\n  FILTER(STRSTARTS(STR(?node), "{NS}{_bwb(bwb_id)}{SEP}"))' if bwb_id else ""
+    typen = ", ".join(f"bwb:{t}" for t in OPBOUW_TYPES)
+    return PREFIXES + f"""SELECT ?node ?score ?soort (SAMPLE(?lab) AS ?label) (SAMPLE(?j) AS ?jci) ?bwbId
+       (SAMPLE(?ct) AS ?citeertitel) (COUNT(DISTINCT ?b) AS ?aantal)
+       (GROUP_CONCAT(DISTINCT ?nr; separator="|") AS ?nummers) WHERE {{
+  {{ SELECT ?node ?score WHERE {{
+    [] a inst:bwb_tekst ; luc:query {_lit(opbouw_lucene(onderwerp))} ; luc:entities ?node .
+    ?node luc:score ?score . }} }}{scope}
+  ?node a ?t . FILTER(?t IN ({typen}))
+  FILTER(?t != bwb:Divisie || EXISTS {{ ?node bwb:heeftDivisie ?kind }})
+  BIND(STRAFTER(STR(?t), "{ONTOLOGIE}") AS ?soort)
+  OPTIONAL {{ ?node rdfs:label ?lab }}
+  OPTIONAL {{ ?node bwb:jci ?j }}
+  BIND(SUBSTR(STR(?node), {len(NS) + 1}) AS ?rest)
+  BIND(IF(CONTAINS(?rest, "{SEP}"), STRBEFORE(?rest, "{SEP}"), ?rest) AS ?bwbId)
+  OPTIONAL {{ ?reg a bwb:Regeling ; bwb:bwbId ?bwbId ; bwb:citeertitel ?ct }}
+  OPTIONAL {{
+    {{ ?node ({STRUCTUUR})+ ?b . ?b a bwb:Artikel }} UNION {{ ?node bwb:heeftDivisie ?b }}
+    ?b bwb:nummer ?nr
+  }}
+}} GROUP BY ?node ?score ?soort ?bwbId ORDER BY DESC(?score) ?node {_pagina(lim, offset, meer)}"""
+
+
 def list_regelingen(limit: int = 100, offset: int = 0, meer: bool = False) -> str:
     """Welke regelingen zitten in de graaf? – met hun officiële afkortingen.
 

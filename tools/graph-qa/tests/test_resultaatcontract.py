@@ -33,6 +33,7 @@ _LANG = "De ontvanger kan op verzoek uitstel van betaling verlenen onder door he
 # Minimale geldige argumenten per graaftool.
 ARGS: dict[str, dict] = {
     "search_wetgeving": {"query": "uitstel"},
+    "zoek_opbouw": {"onderwerp": "invordering"},
     "semantic_search": {"query": "uitstel van betaling"},
     "get_artikel": {"bwb_id": IW, "artikel": "9"},
     "get_lid": {"bwb_id": IW, "artikel": "9", "lid": "1"},
@@ -56,7 +57,7 @@ ARGS: dict[str, dict] = {
 
 GRAAFTOOLS = [t["name"] for t in tools.TOOLS if t["name"] not in ANNOTATIE_TOOL_NAMEN]
 # Gerangschikte lijsten: via `vervolg` moet de hele (fake) dataset langskomen.
-PAGINEREND = {"search_wetgeving", "semantic_search", "verwijst_naar_deze", "zoek_definitie", "list_regelingen",
+PAGINEREND = {"search_wetgeving", "zoek_opbouw", "semantic_search", "verwijst_naar_deze", "zoek_definitie", "list_regelingen",
               "follow_verwijzingen", "referenced_by", "grondslagen", "get_context", "resolve_begrip"}
 
 

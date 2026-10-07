@@ -195,6 +195,17 @@ export function voegSamen(delen: Samenhang[]): { knopen: SamenhangKnoop[]; relat
 
 const kort = (tekst: string) => tekst.length > 27 ? tekst.slice(0, 25) + "…" : tekst;
 
+/** Kolommen in het clusterraster. Vast, niet afgeleid van het aantal clusters: dan zou bijladen de
+ *  plek van eerdere clusters veranderen. */
+export const CLUSTER_KOLOMMEN = 3;
+
+/** Het middelpunt van artikelcluster `i`: een raster van links naar rechts, dan een rij omlaag. Op één
+ *  lijn werden acht artikelen een streep van 5000 eenheden, waarin elk cluster na het inpassen van de
+ *  camera tot een paar pixels kromp. */
+export function clusterPlek(i: number): [number, number] {
+  return [(i % CLUSTER_KOLOMMEN) * 760, -Math.floor(i / CLUSTER_KOLOMMEN) * 680];
+}
+
 /** Startposities per artikelcluster, radiaal: het artikel in het midden, leden in een ring en
  *  onderdelen verder naar buiten in het verlengde van hun lid (elk blad een eigen hoeksector naar
  *  gewicht), markeringen net buiten hun fragment, klassen in een kolom rechts. De structuur erboven
@@ -216,8 +227,8 @@ function startposities(delen: Samenhang[]): Map<string, [number, number, number]
   const punt = (r: number, hoek: number, z = 0): [number, number, number] => [r * Math.sin(hoek), r * Math.cos(hoek), z];
 
   delen.forEach((deel, cluster) => {
-    const dx = cluster * 760;
-    const verschuif = ([x, y, z]: [number, number, number]): [number, number, number] => [x + dx, y, z];
+    const [dx, dy] = clusterPlek(cluster);
+    const verschuif = ([x, y, z]: [number, number, number]): [number, number, number] => [x + dx, y + dy, z];
     const art = deel.artikel_iri;
     const eigen = new Set(deel.knopen.map((k) => k.id));
     // Structuur boven het artikel: links naast de ring, op middenhoogte en oplopend. Daar ligt

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import vectoren from "./jci-vectoren.json";
-import { bouwGraaf, bronDoel, hoofdactie, paneelDoel, vindplaatsVan, isDubbelklik, relatieGroepen, samenvatting, uitklapbaar, voegSamen, zichtbareGraaf, zoekKnopen, type Samenhang, type SamenhangKnoop } from "./samenhang";
+import { bouwGraaf, bronDoel, clusterPlek, hoofdactie, paneelDoel, vindplaatsVan, isDubbelklik, relatieGroepen, samenvatting, uitklapbaar, voegSamen, zichtbareGraaf, zoekKnopen, type Samenhang, type SamenhangKnoop } from "./samenhang";
 
 const LAW = "urn:bwb:BWBR0004770", ART = `${LAW}:artikel:9`, L1 = `${ART}:lid:1`, L2 = `${ART}:lid:2`;
 const A10 = `${LAW}:artikel:10`;
@@ -53,6 +53,21 @@ describe("bouwGraaf", () => {
     }
     expect(na.nodes.find((n) => n.id === A10)?.rand).toBe(false);
     expect(na.nodes.some((n) => n.id === `${A10}:lid:1`)).toBe(true);
+  });
+  it("legt veel losse artikelen in een raster, niet op één lijn", () => {
+    // "Welke artikelen gaan over invordering?" opende acht artikelen uit vier wetten zonder onderlinge
+    // relatie: op één lijn een streep van ruim 5000 eenheden, en na het inpassen elk cluster een stip.
+    const delen = Array.from({ length: 8 }, (_, i) => {
+      const art = `${LAW}:artikel:${100 + i}`;
+      return samenhang(art, { knopen: [knoop(art, "artikel", { artikel: String(100 + i) }),
+        knoop(`${art}:lid:1`, "lid", { lid: "1", artikel: String(100 + i) })],
+      relaties: [{ bron: art, doel: `${art}:lid:1`, soort: "bevat", groep: "structuur", anker_tekst: "" }] });
+    });
+    const g = bouwGraaf(delen);
+    const xs = g.nodes.map((n) => n.x), ys = g.nodes.map((n) => n.y);
+    const breed = Math.max(...xs) - Math.min(...xs), hoog = Math.max(...ys) - Math.min(...ys);
+    expect(breed / hoog).toBeLessThan(2.5);
+    expect(clusterPlek(4)).toEqual([760, -680]);
   });
   it("geeft een straal per soort", () => {
     const g = bouwGraaf([samenhang()]);

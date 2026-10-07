@@ -148,7 +148,7 @@ bruikbaar is.
 
 ## Toollaag & queries
 
-- **`tools/__init__.py`** – `TOOLS` (23 declaraties: 19 graaftools plus de vier annotatieleestools uit
+- **`tools/__init__.py`** – `TOOLS` (24 declaraties: 20 graaftools plus de vier annotatieleestools uit
   `tools/annotatie_tools.py`), `anthropic_schemas(only=)` en `dispatch()` (vangt
   `ValueError`/`MCPError`/`KeyError` als tekst). Een tool met `needs_settings` krijgt `settings` mee.
   `tools/jas_tools.py` (`JAS_TOOLS`) is dispatchbaar maar wordt in de draaiende keten niet aangeroepen.
@@ -195,6 +195,15 @@ dan de graaf.
   (`vanaf` = zijn IRI; een nummer als "1" is dubbelzinnig: afdeling 1 komt in elk hoofdstuk terug). Past het bovenste niveau zelf niet (de Leidraad: ~800 divisies met
   titel), dan pagineert hij dat met `offset`.
 
+- **Een overzichtsvraag is een vraag naar de opbouw** (`zoek_opbouw`, `queries.zoek_opbouw`). "Welke
+  artikelen gaan over invordering?" gaf met `search_wetgeving` de bepalingen waarin het woord toevallig
+  staat (Iw art. 4, 63, 68) en miste de hoofdstukken die er echt over gaan. `zoek_opbouw` zoekt in de
+  opschriften van hoofdstuk, titeldeel, afdeling, paragraaf en divisie (alleen een divisie mét
+  subdivisies; anders overspoelen de ~800 Leidraad-bladeren alles) en noemt per deel de bepalingen.
+  **De Lucene-query bouwt de tool zelf** (`opbouw_lucene`): de index bevat stammen en een wildcardterm
+  wordt niet geanalyseerd, dus `invordering*` mist "Invordering in eerste aanleg" (`invorder`) en
+  `invordering` mist "Dwanginvordering". Per woord gaat het woord zelf óf `*stam*` de query in.
+  Dezelfde vraag geeft zo dezelfde query, ongeacht wat het model als zoekterm verzint.
 - **Elke bepaling loopt via `queries.node_patroon`**, nooit rechtstreeks via `artikel_iri` (die weigert
   een punt en mist dan de divisies van een beleidsregel). De tools nemen `artikel` én `nummer` aan
   (`_aanduiding`).

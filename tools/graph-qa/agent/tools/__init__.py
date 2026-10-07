@@ -101,6 +101,34 @@ def _h_search(g: GraphPort, a: dict[str, Any]) -> str:
                   args={**a, "limit": limit}, limit=limit, offset=offset)
 
 
+# Tot zoveel bepalingen noemt een opbouwtreffer ze bij nummer; daarboven de telling en een `openen`
+# naar de inhoudsopgave van dat deel – een titeldeel van 60 artikelen is een verdieping, geen rij.
+_OPBOUW_NUMMERS = 30
+
+
+def _h_zoek_opbouw(g: GraphPort, a: dict[str, Any]) -> str:
+    limit, offset = _geheel(a.get("limit"), 25, 1, 50), _geheel(a.get("offset"), 0, 0, 10_000)
+    rijen = parse_select(g.sparql(queries.zoek_opbouw(
+        a["onderwerp"], a.get("bwb_id") or None, limit, offset=offset, meer=True)))
+    uit = []
+    for r in rijen:
+        nummers = sorted({n for n in (r.pop("nummers", "") or "").split("|") if n}, key=natuurlijke_sleutel)
+        rij = dict(r)
+        try:
+            rij["score"] = f"{float(r['score']):.3g}" if r.get("score") else ""
+        except ValueError:
+            pass  # geen getal: laat de waarde zoals de index hem gaf
+        if len(nummers) <= _OPBOUW_NUMMERS:
+            rij["bepalingen"] = ", ".join(nummers)
+        elif r.get("bwbId") and r.get("node"):
+            rij["openen"] = {"tool": "inhoudsopgave", "args": {"bwb_id": r["bwbId"], "vanaf": r["node"]}}
+        uit.append(rij)
+    return pagina(uit, tool="zoek_opbouw", args={**a, "limit": limit}, limit=limit, offset=offset,
+                  toelichting="Delen van de opbouw met het onderwerp in hun opschrift, met de bepalingen "
+                              "die erin staan. Bepalingen die het woord alleen in hun tekst noemen: "
+                              "search_wetgeving.")
+
+
 def _zonder_datum(jci: str) -> str:
     """Een jci zonder `&z=…&g=…`: die staart is per onderdeel herhaling van de toestand van het lid."""
     return jci.split("&z=", 1)[0] if jci else jci
@@ -454,6 +482,31 @@ TOOLS: list[dict[str, Any]] = [
             ["query"],
         ),
         "handler": _h_search,
+    },
+    {
+        "name": "zoek_opbouw",
+        "description": (
+            "OVERZICHTSVRAGEN: welke delen van de wetgeving gaan over een onderwerp ('welke artikelen "
+            "gaan over invordering', 'waar staat de aansprakelijkstelling geregeld')? Zoekt het onderwerp "
+            "in de OPSCHRIFTEN van hoofdstukken, titeldelen, afdelingen, paragrafen en divisies – daar "
+            "heeft de wetgever het onderwerp zelf gegroepeerd. Gebruik dit vóór search_wetgeving bij elke "
+            "vraag naar een overzicht; geef de onderwerpwoorden, zonder Lucene-syntax (de stam en "
+            "samenstellingen als 'dwanginvordering' regelt de tool zelf).\n"
+            "GEEFT TERUG per deel: soort, label met titel, BWB-id, citeertitel, jci, score en de "
+            "'bepalingen' die erin staan (artikel- of divisienummers); bij een groot deel in plaats "
+            "daarvan 'openen' naar de inhoudsopgave van dat deel." + _CONTRACT
+        ),
+        "input_schema": _obj(
+            {
+                "onderwerp": {"type": "string", "description": "Het onderwerp in één of enkele woorden, "
+                              "bijv. 'invordering' of 'uitstel van betaling'."},
+                "bwb_id": {"type": "string", "description": "Optioneel: beperk tot één regeling."},
+                "limit": {"type": "integer", "description": "Max. aantal delen (1-50, default 25)."},
+                "offset": _OFFSET,
+            },
+            ["onderwerp"],
+        ),
+        "handler": _h_zoek_opbouw,
     },
     {
         "name": "semantic_search",

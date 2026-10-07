@@ -24,4 +24,5 @@
 {"question": "Welke hoofdstukken heeft de Invorderingswet 1990?", "expected_sources": ["BWBR0004770"], "expected_contains": ["hoofdstuk"], "should_refuse": false}
 {"question": "Sinds wanneer geldt de huidige tekst van artikel 36 van de Invorderingswet 1990?", "expected_sources": ["BWBR0004770"], "should_refuse": false}
 {"question": "Welke hoofdstukken heeft de Invorderingswet 1990 en welke artikelen vallen eronder?", "expected_sources": ["BWBR0004770"], "expected_contains": ["Aansprakelijkheid", "32"], "verboden": ["…", "..."], "should_refuse": false}
-{"question": "Welke artikelen gaan over invordering?", "expected_sources": ["BWBR0004770"], "verboden": ["…"], "should_refuse": false}
+{"question": "Welke artikelen gaan over invordering?", "expected_sources": ["BWBR0004770", "BWBR0005537"], "expected_contains": ["Dwanginvordering", "Invordering in eerste aanleg", "4.4.4"], "verboden": ["…"], "should_refuse": false}
+{"question": "Welke bepalingen gaan over kwijtschelding?", "expected_sources": ["BWBR0004766", "BWBR0024096"], "expected_contains": ["Uitvoeringsregeling Invorderingswet 1990", "Leidraad Invordering 2008"], "verboden": ["…"], "should_refuse": false}

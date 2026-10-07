@@ -110,6 +110,10 @@ CONTROLES: tuple[Controle, ...] = (
     Controle("inhoudsopgave", {"bwb_id": LEIDRAAD}, min_rijen=10, volledig=False,
              toelichting="~800 divisies met eigen titel passen niet in één resultaat: het bovenste "
                          "niveau wordt gepagineerd, met een vervolg"),
+    Controle("zoek_opbouw", {"onderwerp": "invordering", "bwb_id": IW}, min_rijen=5, max_rijen=8,
+             tel=lambda d: sum(1 for r in d["resultaten"] if r.get("soort") == "Hoofdstuk"),
+             toelichting="de IW-hoofdstukken II, III, V, VII en VIIbis dragen invordering in hun opschrift; "
+                         "minder betekent dat stam of samenstelling ('Dwanginvordering') gemist wordt"),
     Controle("zoek_definitie", {"term": "bestuurder"},
              toelichting="bwb:definieertBegrip – nieuw ontsloten"),
     Controle("grondslagen", {"bwb_id": LEIDRAAD}, hard=False,
