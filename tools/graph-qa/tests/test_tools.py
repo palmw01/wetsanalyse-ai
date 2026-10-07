@@ -13,7 +13,7 @@ EXPECTED = {
     "search_wetgeving", "semantic_search", "get_artikel", "get_lid", "get_bepaling", "list_regelingen",
     "get_regeling_info", "follow_verwijzingen", "verwijst_naar_deze", "referenced_by",
     "inhoudsopgave", "zoek_definitie", "grondslagen", "geldigheid", "bijlagen", "get_context",
-    "resolve_begrip", "graph_schema", "raw_sparql",
+    "resolve_begrip", "graph_schema", "raw_sparql", "zoek_opbouw",
 }
 
 

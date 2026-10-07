@@ -55,7 +55,8 @@ Het model krijgt geen vrije SPARQL maar 22 getypeerde tools: 19 op de kennisgraa
 opgeslagen annotaties (die lopen via de wetsanalyse-API, niet via SPARQL).
 
 - **Zoeken** – `search_wetgeving` (full-text, veldgericht, te beperken tot één regeling of knooptype,
-  met paginatie) en `semantic_search` (op betekenis, via een GraphDB-similarity-index).
+  met paginatie), `semantic_search` (op betekenis, via een GraphDB-similarity-index) en `zoek_opbouw`
+  (een onderwerp in de opschriften van hoofdstukken, afdelingen en divisies – voor overzichtsvragen).
 - **Ophalen** – `get_artikel`, `get_lid`, `get_bepaling`. Werken ook op divisies van een beleidsregel
   (`nummer: "25.1"`).
 - **Structuur** – `inhoudsopgave`: de boom van een regeling in documentvolgorde, met artikelbereiken; een

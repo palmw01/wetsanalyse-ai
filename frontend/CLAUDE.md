@@ -623,7 +623,8 @@ opent.
   jci/graaf-IRI → bronnode, `hoofdactie`, `relatieGroepen`). De layout is een 3D-krachtsimulatie
   (`d3-force-3d`, dezelfde engine als de renderer) vanuit radiale startposities, per artikelcluster
   gerekend en daarna vast (`fx/fy/fz`): reproduceerbaar, en bijladen verschuift de bestaande kaart
-  niet. Hij draait in `lib/`, niet in de canvas – anders herrekent elke uitklapping alles.
+  niet. Clusters staan in een raster van `CLUSTER_KOLOMMEN` (3) breed (`clusterPlek`), vast op index:
+  op één lijn werden acht artikelen een streep waarin elk cluster na het inpassen een stip was. Hij draait in `lib/`, niet in de canvas – anders herrekent elke uitklapping alles.
 - **Weergave**: straal per soort, gebogen verbindingen met pijl, alles buiten de selectie gedimd, vaste
   labels alleen voor selectie en buren (de rest als tooltip, `.samenhang-tip` in `globals.css`, tekst
   altijd ge-escaped), camera vliegt naar de gekozen knoop.

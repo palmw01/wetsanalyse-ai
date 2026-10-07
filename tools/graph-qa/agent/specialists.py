@@ -50,7 +50,7 @@ _RETRIEVAL_SYSTEM = (
     "\n"
     "UITZONDERING – de gebruiker noemt GEEN bepaling maar een ONDERWERP ('alles over aansprakelijkheid "
     "van de bestuurder', 'de bepalingen over uitstel van betaling'). Kies er dan NIET zelf één uit: "
-    "zoek met semantic_search/search_wetgeving en leg de gevonden bepalingen als keuze voor. Haal in "
+    "zoek met zoek_opbouw en semantic_search/search_wetgeving en leg de gevonden bepalingen als keuze voor. Haal in "
     "dat geval GEEN tekst op en geef deze JSON terug:\n"
     '{"kandidaten": [{"bwbId": "<BWBR…>", "artikel": "<nr>", "lid": "<nr of leeg>", '
     '"citeertitel": "<regeling>", "fragment": "<eerste zin van de bepaling>"}]}\n'
@@ -115,7 +115,7 @@ SPECIALISTS: dict[str, Specialist] = {
             "get_context", "get_artikel", "get_lid", "get_bepaling", "follow_verwijzingen",
             "verwijst_naar_deze", "referenced_by", "inhoudsopgave", "grondslagen", "geldigheid",
             "bijlagen", "list_regelingen", "get_regeling_info",
-            "search_wetgeving", "semantic_search", "graph_schema", "raw_sparql",
+            "search_wetgeving", "semantic_search", "zoek_opbouw", "graph_schema", "raw_sparql",
             # Duiding is ook de rol voor vragen óver een gemaakte markering ("waarom deze klasse?",
             # advies). Zonder deze tools kon hij het spoor en de alternatieven van de markering niet
             # lezen, en de klasse-omschrijving alleen raden.
@@ -129,7 +129,7 @@ SPECIALISTS: dict[str, Specialist] = {
     "retrieval": Specialist(
         system=_RETRIEVAL_SYSTEM,
         tools=frozenset({
-            "search_wetgeving", "semantic_search", "get_context", "get_artikel", "get_lid",
+            "search_wetgeving", "semantic_search", "zoek_opbouw", "get_context", "get_artikel", "get_lid",
             "get_bepaling", "get_regeling_info", "list_regelingen", "resolve_begrip",
             "follow_verwijzingen",
             # `inhoudsopgave` hoort hier omdat een bepaling AANWIJZEN iets anders is dan zoeken:
