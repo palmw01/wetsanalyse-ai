@@ -171,3 +171,23 @@ def test_een_gewone_mcp_fout_blijft_een_gewone_fout():
     out = tools.dispatch("list_regelingen", FakeGraph(results=kapot), {})
     assert "niet beschikbaar" not in out
     assert out.startswith("Fout bij tool 'list_regelingen'")
+
+
+def test_semantic_search_leest_het_echte_turtle_antwoord():
+    """Zo antwoordt de index echt (fixture van 7 okt 2026): JSON-string-omhuld, het subject op een eigen
+    regel, typen over meerdere regels, en een blok zonder type met alleen structuurrelaties. Een
+    regex die `<iri> a …` op één regel verwachtte vond hier niets – 0 treffers, terwijl de index er
+    wel gaf (de golden-case 'Kan de ontvanger een betalingsregeling weigeren?' zakte erop)."""
+    from pathlib import Path
+
+    from agent.tools import _semantische_treffers
+
+    turtle = (Path(__file__).parent / "fixtures" / "semantic_search_turtle.txt").read_text(encoding="utf-8")
+    treffers = _semantische_treffers(turtle)
+    assert [t["node"] for t in treffers] == [
+        "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie36%2FCirculaire.divisie36.5%2F"
+        "Circulaire.divisie36.5.1%2FTekst%2FOnderdeel._1",
+        "urn:bwb:BWBR0004766:artikel:2:lid:3:o:a",
+    ], "rangorde van de index, zonder het structuurblok"
+    assert treffers[0]["soort"] == "Onderdeel" and treffers[0]["tekst"].startswith("onvoldoende liquide middelen")
+    assert treffers[1]["jci"].startswith("jci1.3:c:BWBR0004766&") and treffers[1]["label"] == "Onderdeel a."

@@ -318,23 +318,50 @@ _INDEX_ONBRUIKBAAR = (
 )
 
 
-# De similarity-index levert Turtle: per treffer een subject met zijn typen, en `limit` telt TRIPLES,
-# niet treffers (één bepaling met drie typen kost er drie). Vraag daarom ruim op en lees de subjecten
-# in volgorde; zo bestaat er ook een echte `offset`.
-_SUBJECT_RE = re.compile(r"^<(urn:bwb:[^>\s]+)>\s+a\s+([^.]+)\.", re.MULTILINE)
-_TRIPLES_PER_TREFFER = 6
+# De similarity-index levert Turtle (via de MCP als JSON-string): per treffer een blok met het subject
+# op een eigen regel, zijn typen (soms over meerdere regels), en label, tekst en jci; daartussen
+# blokken zonder type met alleen structuurrelaties. `limit` telt TRIPLES, niet treffers. Een
+# RDF-parser zou de rangorde van de index verliezen (een graaf is ongeordend), dus lezen we de blokken
+# in volgorde, met de literals volgens de Turtle-escapes.
+_BLOK_RE = re.compile(r"^<(urn:bwb:[^>\s]+)>", re.MULTILINE)
+_TYPEN_RE = re.compile(r"\A\s*a\s+([^;\"]+?)\s*[;.]\s*(?:\n|\Z)")
+_LITERAL = r'("""[\s\S]*?"""|"(?:[^"\\]|\\.)*")'
+_VELD_RE = {veld: re.compile(rf"{pred}\s+{_LITERAL}") for veld, pred in
+            (("label", "rdfs:label"), ("tekst", "bwb:tekst"), ("jci", "bwb:jci"))}
+_TRIPLES_PER_TREFFER = 12
+
+
+def _literal(ruw: str) -> str:
+    if ruw.startswith('"""'):
+        return ruw[3:-3]
+    # Turtle-escapes zijn die van JSON, plus \UXXXXXXXX.
+    tekst = re.sub(r"\\U([0-9A-Fa-f]{8})", lambda m: chr(int(m.group(1), 16)), ruw)
+    try:
+        return json.loads(tekst)
+    except ValueError:
+        return ruw[1:-1]
 
 
 def _semantische_treffers(turtle: str) -> list[dict[str, str]]:
+    tekst = turtle or ""
+    if tekst.startswith('"'):
+        try:
+            tekst = json.loads(tekst)
+        except ValueError:
+            pass
+    starts = list(_BLOK_RE.finditer(tekst))
     uit, gezien = [], set()
-    for m in _SUBJECT_RE.finditer(turtle or ""):
+    for n, m in enumerate(starts):
         iri = m.group(1)
-        if iri in gezien:
-            continue
+        blok = tekst[m.end():starts[n + 1].start() if n + 1 < len(starts) else len(tekst)]
+        typen = _TYPEN_RE.search(blok)
+        soorten = [t.strip().removeprefix("bwb:") for t in typen.group(1).split(",")] if typen else []
+        velden = {veld: _literal(v.group(1)) for veld, r in _VELD_RE.items() if (v := r.search(blok))}
+        if iri in gezien or not (soorten or velden.get("tekst")):
+            continue  # een blok met alleen structuurrelaties is context, geen treffer
         gezien.add(iri)
-        soorten = [t.strip().removeprefix("bwb:") for t in m.group(2).split(",")]
-        soort = next((t for t in soorten if t in queries.FTS_TYPES), "")
-        uit.append(compact({"node": iri, "soort": soort}))
+        rij = {"node": iri, "soort": next((t for t in soorten if t in queries.FTS_TYPES), ""), **velden}
+        uit.append(_met_voorproef(rij, _VOORPROEF))
     return uit
 
 
