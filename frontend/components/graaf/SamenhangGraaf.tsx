@@ -9,6 +9,7 @@ import { haalElement, type NodeDoel, type NodeElement } from "@/lib/annotatieNod
 import {
   bouwGraaf, haalSamenhang, hoofdactie as bepaalHoofdactie, relatieGroepen, samenvatting, uitklapbaar, zichtbareGraaf,
   type GraafData, type GraafKnoop, type MarkeringFilter, type RelatieGroep, type Samenhang,
+  clusterOmschrijving, isDeelCluster,
 } from "@/lib/samenhang";
 import type { CameraStand, GraafCameraBediening } from "./GraafCanvas";
 import { GraafBeeld } from "./GraafBeeld";
@@ -235,13 +236,13 @@ export function SamenhangGraaf({ stand, zichtbaar, groot, actiefElementId, eleme
   return <div className="flex min-h-0 flex-1 flex-col" data-testid="samenhang-graaf" data-vergroot={groot}>
     <div className="shrink-0 border-b border-line px-5 py-2.5">
       <h2 className="text-sm font-semibold text-lint">
-        Samenhang van {delen.length > 1 ? `${delen.length} artikelen`
+        Samenhang van {delen.length > 1 ? clusterOmschrijving(delen)
           : alles.nodes.find((n) => n.id === hoofd?.artikel_iri)?.label ?? "de bepaling"}
         <span className="ml-2 text-xs font-normal text-muted">{data.nodes.length} knopen · {data.links.length} relaties</span>
       </h2>
       {hoofd && !hoofd.verwijzingen_beschikbaar && <p className="mt-1 text-xs text-muted">Verwijzingen zijn nu niet beschikbaar; je ziet de bronstructuur en de annotaties.</p>}
       {delen.some((d) => d.afgekapt) && <p className="mt-1 text-xs text-muted">Er zijn meer verwijzingen dan getoond; de eerste 200 per richting staan in beeld.</p>}
-      {delen.length > 1 && <p className="mt-1 text-xs text-muted">De tekst en de annotatie in het paneel gaan over {alles.nodes.find((n) => n.id === hoofd?.artikel_iri)?.label ?? "het eerste artikel"}; een knoop uit een ander artikel opent dat artikel in het paneel.</p>}
+      {delen.length > 1 && <p className="mt-1 text-xs text-muted">De tekst en de annotatie in het paneel gaan over {alles.nodes.find((n) => n.id === hoofd?.artikel_iri)?.label ?? "het eerste artikel"}; een knoop uit een ander artikel opent dat artikel in het paneel.{delen.some(isDeelCluster) ? " Een hoofdstuk of afdeling staat er met zijn artikelen; open een artikel voor leden, annotaties en verwijzingen." : ""}</p>}
       {stand.nietGeladen > 0 && <p className="mt-1 text-xs text-muted">{stand.nietGeladen === 1 ? "1 artikel is" : `${stand.nietGeladen} artikelen zijn`} niet geladen.</p>}
       {fout && <p role="alert" className="mt-1 text-xs text-fout">{fout}</p>}
     </div>

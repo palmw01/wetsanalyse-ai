@@ -137,3 +137,29 @@ async def test_een_terugval_markeert_wel_maar_krijgt_geen_klasseknoop(monkeypatc
     assert m["klasse"] == "" and m["beslist_door"] == "terugval"
     assert not any(k["soort"] == "klasse" for k in g["knopen"])
     assert not any(r["soort"] == "heeft_klasse" for r in g["relaties"])
+
+
+async def test_structuurdeel_toont_zijn_artikelen_zonder_leden(monkeypatch):
+    """Een overzichtsantwoord noemt hoofdstukken; de samenhang daarvan is het deel met zijn artikelen.
+    Leden, markeringen en verwijzingen horen bij een geopend artikel."""
+    import hashlib
+
+    hfd = LAW + ":hoofdstuk:II"
+    nodes = [dict(bron_iri=LAW, parent_iri="", type="Wet", label="Wet", tekst=""),
+             dict(bron_iri=hfd, parent_iri=LAW, type="Hoofdstuk", label="Hoofdstuk II", tekst=""),
+             dict(bron_iri=ART, parent_iri=hfd, type="Artikel", label="Artikel 9", tekst=""),
+             dict(bron_iri=ONE, parent_iri=ART, type="Lid", label="Lid 1", tekst="Alfa"),
+             dict(bron_iri=ANDER, parent_iri=hfd, type="Artikel", label="Artikel 10", tekst="")]
+    for i, n in enumerate(nodes):
+        n.update(bron_hash=hashlib.sha256(n["tekst"].encode()).hexdigest(), volgorde=i, bwb_id="BWBR0004770")
+    snap = dict(snapshot_id=store.digest(nodes), doel=nodes[1], nodes=nodes)
+
+    async def niet_vragen(iris):
+        raise AssertionError("geen verwijzingsquery voor een structuurdeel")
+    monkeypatch.setattr(samenhang, "_verwijzingen", niet_vragen)
+    g = await samenhang.samenhang(snap)
+    ids = {k["id"]: k for k in g["knopen"]}
+    assert g["artikel_iri"] == hfd and g["verwijzingen_beschikbaar"]
+    assert set(ids) == {LAW, hfd, ART, ANDER}
+    assert ids[hfd]["soort"] == "deel" and ids[ART]["soort"] == "artikel" and not ids[ART]["rand"]
+    assert {(r["bron"], r["doel"]) for r in g["relaties"]} == {(LAW, hfd), (hfd, ART), (hfd, ANDER)}

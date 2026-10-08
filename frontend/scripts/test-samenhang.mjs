@@ -19,7 +19,14 @@ const A10 = `${LAW}:artikel:10`, A10L1 = `${A10}:lid:1`, STUB = "urn:bwb:BWBR000
 const knoop = (id, soort, extra = {}) => ({ id, soort, label: id, tekst: "", klasse: "", lifecycle: "", element_id: "",
   bwb_id: "BWBR0004770", artikel: "", lid: "", rand: false, ...extra });
 const rel = (bron, doel, soort, groep, anker_tekst = "") => ({ bron, doel, soort, groep, anker_tekst });
+const HII = `${LAW}:hoofdstuk:II`;
 function samenhang(iri) {
+  // Een structuurdeel: de api levert het deel met zijn artikelen, zonder leden (api/app/samenhang.py).
+  if (iri === HII) return { schema_versie: 1, doel: { bron_iri: iri }, snapshot_id: "s2", artikel_iri: HII,
+    verwijzingen_beschikbaar: true, afgekapt: false,
+    knopen: [knoop(LAW, "regeling", { label: "Invorderingswet 1990" }), knoop(HII, "deel", { label: "Hoofdstuk II" }),
+      knoop(ART, "artikel", { label: "Artikel 9", artikel: "9" }), knoop(A10, "artikel", { label: "Artikel 10", artikel: "10" })],
+    relaties: [rel(LAW, HII, "bevat", "structuur"), rel(HII, ART, "bevat", "structuur"), rel(HII, A10, "bevat", "structuur")] };
   if (iri.startsWith(A10)) return { schema_versie: 1, doel: { bron_iri: iri }, snapshot_id: "s10", artikel_iri: A10,
     verwijzingen_beschikbaar: true, afgekapt: false,
     knopen: [knoop(LAW, "regeling", { label: "Invorderingswet 1990" }), knoop(A10, "artikel", { label: "Artikel 10", artikel: "10" }),
@@ -85,6 +92,16 @@ const berichtenTwee = [
     annotatie_slug: "", annotatie_titel: "" },
 ];
 
+// Een overzichtsantwoord: een hoofdstuk bij zijn titel in een tabel, en één los artikel.
+const berichtenOverzicht = [
+  { rol: "user", tekst: "Welke artikelen gaan over invordering?", denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "" },
+  { rol: "assistant", tekst: "| Hoofdstuk | Onderwerp | Artikelen |\n|---|---|---|\n| II | Invordering in eerste aanleg | 9, 10 |\n\nDaarnaast artikel 4 Invorderingswet 1990.", denk: "",
+    bronnen: [
+      { label: "Hoofdstuk II – Invordering in eerste aanleg", uri: HII, bron_iri: HII, bwb_id: "BWBR0004770", soort: "hoofdstuk", regeling: "Invorderingswet 1990" },
+      { label: "Artikel 4", uri: `${LAW}:artikel:4`, bron_iri: `${LAW}:artikel:4`, bwb_id: "BWBR0004770", soort: "artikel", regeling: "Invorderingswet 1990" }],
+    annotatie_slug: "", annotatie_titel: "" },
+];
+
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true,
   args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
 
@@ -115,6 +132,7 @@ async function nieuwePagina({ width = 1440, height = 1000, webgl = true } = {}) 
       graafcontrole: { laag_id: "laag1", revisie: 1, status: "achterstand", afwijkingen: [], shacl: null } } });
     if (url.pathname === "/api/gesprekken/g1") return route.fulfill({ json: { id: "g1", user_id: "browser-test", titel: "Samenhang", berichten } });
     if (url.pathname === "/api/gesprekken/g2") return route.fulfill({ json: { id: "g2", user_id: "browser-test", titel: "Twee artikelen", berichten: berichtenTwee } });
+    if (url.pathname === "/api/gesprekken/g3") return route.fulfill({ json: { id: "g3", user_id: "browser-test", titel: "Overzicht", berichten: berichtenOverzicht } });
     if (url.pathname === "/api/gesprekken") return route.fulfill({ json: [{ id: "g1", titel: "Samenhang", aantal_berichten: 2 }] });
     if (url.pathname.includes("/actief")) return route.fulfill({ status: 404, json: {} });
     if (url.pathname.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
@@ -182,7 +200,9 @@ async function detailsOpen(page) {
     await page.waitForTimeout(40);
     // Niet wachten: zonder tooltip op deze plek meteen door naar de volgende.
     const tips = page.locator(".samenhang-tip");
-    tooltip = (await tips.count()) ? (await tips.first().textContent()) || "" : "";
+    // Kort lezen: de tooltip kan tussen tellen en lezen verdwijnen (de muis staat al op de volgende
+    // plek), en een gewone textContent wacht dan 30 s op een element dat niet terugkomt.
+    tooltip = (await tips.count()) ? (await tips.first().textContent({ timeout: 500 }).catch(() => "")) || "" : "";
   }
   assert.ok(tooltip.length > 0, "een knoop of verbinding toont een tooltip bij hover");
   // Met de laag Annotaties aan staan markeringen en hun JAS-klasse meteen in beeld.
@@ -342,6 +362,26 @@ async function detailsOpen(page) {
   await zoekEnKies(page, "Artikel 10", A10);
   await page.getByRole("button", { name: "Open in het paneel" }).waitFor();
   await page.screenshot({ path: `${shots}/2b-twee-artikelen.png` });
+  assert.deepEqual(log.errors, []);
+  assert.deepEqual(log.console, [], "geen consolefouten");
+  await page.close();
+}
+
+// 13c. Een overzichtsantwoord: de bronnenlijst noemt het hoofdstuk bij zijn titel, de knop opent het
+// hoofdstuk als cluster met zijn artikelen, en een artikel daaruit opent in het paneel.
+{
+  bijgewerkt = false;
+  const { page, log } = await nieuwePagina();
+  await page.goto(`${base}/workbench?gesprek=g3`);
+  await page.getByRole("button", { name: /^Bronnen \(2\)/ }).click();
+  assert.match(await page.locator('[data-tour="bronnen"]').innerText(), /Hoofdstuk II – Invordering in eerste aanleg/);
+  await page.getByRole("button", { name: "Bekijk samenhang van 1 deel en 1 artikel in 3D" }).click();
+  await page.getByTestId("samenhang-graaf").waitFor();
+  await page.getByRole("heading", { name: /^Samenhang van 1 deel en 1 artikel/ }).waitFor();
+  assert.ok([...new Set(log.samenhang)].includes(HII), "het hoofdstuk wordt als deel geladen");
+  await zoekEnKies(page, "Artikel 10", A10);
+  await page.getByRole("button", { name: "Open in het paneel" }).waitFor();
+  await page.screenshot({ path: `${shots}/2c-overzicht.png` });
   assert.deepEqual(log.errors, []);
   assert.deepEqual(log.console, [], "geen consolefouten");
   await page.close();
