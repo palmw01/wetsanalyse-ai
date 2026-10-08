@@ -1,4 +1,4 @@
-import { forceLink, forceManyBody, forceSimulation } from "d3-force-3d";
+import { forceCenter, forceLink, forceManyBody, forceSimulation } from "d3-force-3d";
 import { jasStyle } from "./jas";
 import { veiligDecoderen } from "./url";
 import { nodeRequest, type NodeDoel } from "./annotatieNode";
@@ -324,20 +324,68 @@ function reliëf(id: string): number {
 
 type SimKnoop = { id: string; x: number; y: number; z: number; fx?: number; fy?: number; fz?: number };
 
+/** Een deterministisch punt in een bol van straal `r`, uit de knoop-id: elke as een eigen hash. */
+function punt3d(id: string, r: number): [number, number, number] {
+  const as = (zaad: number) => {
+    let h = 2166136261 ^ zaad;
+    for (const c of id) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+    return (((h >>> 0) % 2001) / 1000 - 1) * r;
+  };
+  return [as(11), as(23), as(37)];
+}
+
+/** De layout van een overzicht: alle clusters in één 3D-krachtsimulatie, zodat de regelingen hubs
+ *  worden met hun delen eromheen en de bepalingen daaromheen. Per cluster leggen (`startposities`)
+ *  gaf een plat raster van losse schijven met lange lijnen naar een gedeelde regelingknoop: klein,
+ *  verspreid en plat. Gesorteerde knopen en startpunten uit de id: dezelfde delen, in welke volgorde
+ *  ook, geven dezelfde boom. */
+function boomPosities(knopen: SamenhangKnoop[], relaties: SamenhangRelatie[]): Map<string, [number, number, number]> {
+  const per = new Map(knopen.map((k) => [k.id, k]));
+  const sim: SimKnoop[] = [...per.keys()].sort().map((id) => {
+    const [x, y, z] = punt3d(id, 220);
+    return { id, x, y, z };
+  });
+  const links = relaties.filter((r) => per.has(r.bron) && per.has(r.doel))
+    .sort((a, b) => `${a.bron}|${a.soort}|${a.doel}`.localeCompare(`${b.bron}|${b.soort}|${b.doel}`))
+    .map((r) => ({ source: r.bron, target: r.doel, soort: r.soort }));
+  // Rustafstand naar niveau: een regeling houdt haar delen op afstand, een deel zijn bepalingen dichtbij.
+  const afstand = (l: (typeof links)[number]) => {
+    if (l.soort !== "bevat") return VEER[l.soort][0];
+    const van = per.get(typeof l.source === "string" ? l.source : (l.source as SimKnoop).id)?.soort;
+    return van === "regeling" ? 130 : van === "deel" ? 50 : 40;
+  };
+  forceSimulation(sim, 3)
+    .force("link", forceLink<SimKnoop, (typeof links)[number]>(links).id((n) => n.id)
+      .distance(afstand).strength((l) => (l.soort === "bevat" ? 0.9 : VEER[l.soort][1])))
+    .force("charge", forceManyBody().strength(-45).distanceMax(260))
+    .force("center", forceCenter(0, 0, 0))
+    .stop()
+    .tick(400);
+  return new Map(sim.map((n) => [n.id, [n.x, n.y, n.z] as [number, number, number]]));
+}
+
+export interface GraafOpties {
+  /** Een overzicht (delen van een onderwerp): één compacte boom in plaats van een raster van clusters. */
+  boom?: boolean;
+}
+
 /** De samenhang als 3D-graaf. Vaste startposities (radiaal per artikelcluster, zie hierboven) plus
  *  reliëf, daarna een krachtsimulatie per cluster met dezelfde engine als de renderer (d3-force-3d).
  *  Al geplaatste knopen van eerdere clusters liggen daarbij vast, zodat bijladen de bestaande kaart
  *  niet verschuift, en met `vast` (de vorige stand) behouden bestaande knopen hun plek na een
  *  annotatiewijziging. Zonder willekeur (d3 gebruikt een vaste lcg) is de uitkomst reproduceerbaar.
  *  Afstand en positie betekenen juridisch niets. */
-export function bouwGraaf(delen: Samenhang[], vast?: GraafData): GraafData {
+export function bouwGraaf(delen: Samenhang[], vast?: GraafData, opties: GraafOpties = {}): GraafData {
   const { knopen, relaties } = voegSamen(delen);
   const per = new Map(knopen.map((k) => [k.id, k]));
-  const start = startposities(delen);
+  // Een overzicht krijgt bij de eerste opbouw één boom; wat daarna wordt bijgeladen, gaat via het
+  // gewone pad hieronder en verschuift de boom niet (`vast`).
+  const start = opties.boom && !vast ? boomPosities(knopen, relaties) : startposities(delen);
   // Knopen uit een vorige stand (na een annotatiewijziging) houden hun plek; alleen wat nieuw is,
   // wordt door de krachten geplaatst. Zo springt de kaart niet bij elke markering.
   const eerder = new Map((vast?.nodes ?? []).filter((n) => per.has(n.id)).map((n) => [n.id, [n.x, n.y, n.z] as [number, number, number]]));
-  const geplaatst = new Map<string, [number, number, number]>(eerder);
+  // Bij de boom is de simulatie al gedaan: alle knopen staan, er valt per cluster niets meer te rekenen.
+  const geplaatst = new Map<string, [number, number, number]>(opties.boom && !vast ? start : eerder);
   delen.forEach((deel, cluster) => {
     const ids = new Set(deel.knopen.map((k) => k.id));
     const sim: SimKnoop[] = [...ids].filter((id) => per.has(id)).map((id) => {

@@ -131,6 +131,8 @@ Hieronder wat je moet weten om de code te wijzigen.
   doel een **structuurdeel** (hoofdstuk, titeldeel, afdeling, paragraaf), dan is het een overzicht: het
   deel met de structuur en artikelen eronder, zonder leden, onderdelen, markeringen en verwijzingen
   (die horen bij een geopend artikel; anders wordt een hoofdstuk een kluwen van honderden knopen).
+  Het label van een deel krijgt zijn nummer (`_label`: de bronboom draagt "Hoofdstuk" en "II" apart);
+  bewust hier en niet in `bronmodel`, waar het de snapshot-identiteit van bestaande lagen zou raken.
 
 ### Projectie naar de kennisgraaf
 

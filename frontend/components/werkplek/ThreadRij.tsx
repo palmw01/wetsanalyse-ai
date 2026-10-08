@@ -37,8 +37,9 @@ import type {
 export interface ThreadActies {
   verstuur: (vast?: string, doel?: AgentDoelInvoer, hergebruik?: "opnieuw", doelen?: AgentDoelInvoer[]) => void;
   openArtefact: (slug: string, doel?: NodeDoel) => void;
-  /** De 3D-samenhang van een bron onder een antwoord; `extra` zijn de andere genoemde artikelen. */
-  openSamenhang: (doel: NodeDoel, extra?: NodeDoel[]) => void;
+  /** De 3D-samenhang van een bron onder een antwoord; `extra` zijn de andere genoemde artikelen.
+   *  `boom`: het zijn de delen van een overzicht – één compacte boom in plaats van losse clusters. */
+  openSamenhang: (doel: NodeDoel, extra?: NodeDoel[], opties?: { boom?: boolean }) => void;
   /** Eén lid uit een reeksblok openen, met bladeren door de rest van de reeks. */
   openReeksLid: (runId: string, doel: NodeDoel) => void;
   stop: () => void;
@@ -102,7 +103,9 @@ export const ThreadRij = memo(function ThreadRij({
         )}
         {/* Het overzicht uit de graaf staat los van de tekst: dezelfde vraag, hetzelfde blok. */}
         {item.overzicht && <OverzichtBlok overzicht={item.overzicht} />}
-        {item.bronnen && item.bronnen.length > 0 && <Bronnen bronnen={item.bronnen} />}
+        {/* Bij een overzicht linkt het blok elke vindplaats: een bronnenlijst van 40–90 regels ernaast
+            zegt niets nieuws. De bronnen blijven in het bericht (herkomst, eval). */}
+        {!item.overzicht && item.bronnen && item.bronnen.length > 0 && <Bronnen bronnen={item.bronnen} />}
         {samenhangAan && !demo && (item.overzicht || !!item.bronnen?.length) && (() => {
           // Met een overzicht: de delen daarvan, in zijn eigen volgorde – los van hoe Lex formuleerde.
           // Anders: de artikelen die het antwoord noemt, in tekstvolgorde (`samenhangDoelen`).
@@ -110,7 +113,7 @@ export const ThreadRij = memo(function ThreadRij({
           const tekst = item.overzicht ? overzichtKnopTekst(keuze, item.overzicht) : samenhangKnopTekst(keuze);
           const [doel, ...extra] = keuze.doelen;
           return doel && <button type="button"
-            onClick={() => acties.openSamenhang(doel, extra)}
+            onClick={() => acties.openSamenhang(doel, extra, { boom: !!item.overzicht })}
             className="focus-ring mt-3 flex items-center gap-2 rounded-lg border border-lint/20 bg-lint/[0.03] px-3 py-2 text-left text-xs font-medium text-lint transition-colors hover:bg-lint/10">
             <GraafIcoon />{tekst} in 3D
           </button>;

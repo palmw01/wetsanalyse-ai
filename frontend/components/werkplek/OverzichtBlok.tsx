@@ -32,7 +32,8 @@ function Lijst({ bepalingen }: { bepalingen: OverzichtBepaling[] }) {
 }
 
 function OokGenoemd({ regeling }: { regeling: OverzichtRegeling }) {
-  const [open, setOpen] = useState(false);
+  // Heeft de regeling geen deel over het onderwerp, dan is dit alles wat je van haar ziet: open.
+  const [open, setOpen] = useState(regeling.delen.length === 0);
   if (!regeling.ook_genoemd.length) return null;
   return (
     <div className="mt-1">
@@ -75,7 +76,7 @@ export const OverzichtBlok = memo(function OverzichtBlok({ overzicht }: { overzi
           <span className="font-medium">Wettelijke definitie:</span>{" "}
           {overzicht.definities.map((d, i) => (
             <span key={d.iri}>{i > 0 && "; "}„{d.begrip}” – {d.citeertitel},{" "}
-              <Verwijzing label={d.label || "vindplaats"} iri={d.iri} jci={d.jci} /></span>
+              <Verwijzing label={d.vindplaats || d.label || "vindplaats"} iri={d.iri} jci={d.jci} /></span>
           ))}
         </p>
       )}

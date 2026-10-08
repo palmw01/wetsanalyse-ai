@@ -89,6 +89,17 @@ def artikel_van(nodes: dict[str, dict], iri: str) -> str:
     return iri
 
 
+def _label(node: dict) -> str:
+    """Het label van een bronknoop. De bronboom draagt `bwb:label`, en dat is bij een hoofdstuk of
+    afdeling alleen het woord ("Hoofdstuk"), met het nummer apart: zonder dit zeiden inspector en kop
+    van de graaf "gaan over Hoofdstuk". Hier en niet in `bronmodel`: daar raakt het label de
+    snapshot-identiteit van bestaande lagen."""
+    label, nummer = (node.get("label") or "").strip(), (node.get("nummer") or "").strip()
+    if nummer and label and node.get("type") in _OVERZICHT - {"Artikel", "Divisie"} and nummer not in label:
+        return f"{label} {nummer}"
+    return label
+
+
 def plaats(iri: str) -> dict[str, str]:
     """BWB-id, artikel en lid uit een bron-IRI; leeg als de IRI dat niet draagt."""
     m = _IRI.fullmatch(iri)
@@ -147,7 +158,7 @@ async def samenhang(snapshot: dict) -> dict:
 
     def bronknoop(iri: str, rand: bool = False) -> None:
         n = nodes[iri]
-        knopen[iri] = Knoop(id=iri, soort=_SOORT.get(n.get("type", ""), "deel"), label=n.get("label") or iri,
+        knopen[iri] = Knoop(id=iri, soort=_SOORT.get(n.get("type", ""), "deel"), label=_label(n) or iri,
                             tekst=n.get("tekst", ""), rand=rand, **plaats(iri))
 
     # Structuur: de keten van regeling naar artikel, en alles binnen het artikel.

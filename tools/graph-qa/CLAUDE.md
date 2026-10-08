@@ -35,7 +35,7 @@ ankerlogica die de api en de agent delen staat in `packages/bronmodel` (`wetsana
 | `nodes/decompositie.py` | decompose, solve, synthesize, resynth |
 | `nodes/annotatie.py` | annoteer (voorbereiding + `jas_pipeline.keten.analyseer`) en emit |
 | `nodes/annotatie_lezen.py` | de leesroute: eerst zoeken in de opgeslagen annotaties, dan formuleren |
-| `nodes/overzicht.py` | de overzichtsroute: eerst het overzicht uit de graaf bouwen, dan duiden |
+| `nodes/overzicht.py` | de overzichtsroute: overzicht en tekst uit de graaf, zonder model |
 | `nodes/context.py` | `Bouw` – wat een node buiten zijn state om nodig heeft |
 
 De nodes zijn gewone functies `(b: Bouw, state)`; `Bouw` draagt de poorten, de stopvlag, de drie
@@ -46,7 +46,7 @@ een andere aan, geef `b` dan expliciet door** – de suite wijst die valkuil aan
 supervisor ─┬─ antwoord-worker:  agent ⇄ tools → verify → (correct) → finalize → advance
             ├─ annotatie-worker: [agent ⇄ tools als ophaal-agent] → annoteer → emit → advance
             ├─ leesroute:        annotaties_zoeken → agent ⇄ tools → verify → finalize
-            ├─ overzichtsroute:  overzicht_bouwen → agent ⇄ tools → verify → finalize
+            ├─ overzichtsroute:  overzicht_bouwen → verify → finalize   (geen model; bij een bouwfout → agent)
             └─ afwijzen (geen wetgevingsvraag)
 ```
 
@@ -544,14 +544,21 @@ SPARQL was deterministisch; de keten eromheen niet. Nu is wat feitelijk is code 
    beleidsregel, `overzicht.RANG`), dan op aantal bepalingen in delen; delen en bepalingen in
    documentvolgorde (`padsleutel`, `natuurlijke_sleutel`). Dezelfde vraag, ook anders geformuleerd,
    geeft byte-voor-byte hetzelfde overzicht (gemeten: vier formuleringen, één hash).
-4. **Drie uitgangen:** een `overzicht`-event (de werkplek toont het als blok en bewaart het in
-   `Bericht.overzicht`); een `tool_use`/`tool_result`-paar met `voor_model` (opbouw en tellingen,
-   **zonder** nummerlijsten – het model duidt in 2–4 zinnen en typt niets over); en in de
-   `source_trace` de vindplaatsen (`bronrijen`).
-5. **Bronnen en controle uit het overzicht:** `finalize_node` neemt de bronnen uit het overzicht, niet
-   uit `curate_sources` op de proza; `check_grounding(..., overzicht=)` toetst elk genoemd artikel tegen
-   het overzicht (`vermeldingen_buiten`) – staat het er niet in, dan is het ongegrond en volgt de
-   correctieronde.
+4. **Geen model in de route.** Een modelduiding ging buiten het overzicht ("bevoegdheid, hoogte,
+   evenredigheid" bij de bestuurlijke boete – niets daarvan staat in de graaf) en wisselde van vorm.
+   De tekst is nu `samenvatting(ov)`: 2–4 vaste zinnen met de eigen koppen en getallen van het
+   overzicht (kern, verder, "ook genoemd", definitie, afbakening, ingekort onderwerp). Namen staan in de
+   data, op één plek: `kop` per deel ("28 – Invorderingsrente"), `naam` per bepaling ("art. 9"; een nummer
+   met een punt is een divisie en nooit "art."), `vindplaats` per definitie (`bronmodel.vindplaats`).
+5. **Uitgangen:** een `overzicht`-event (de werkplek toont het als blok en bewaart het in
+   `Bericht.overzicht`); de samenvatting als `token`, `answer` en assistent-bericht na het
+   `tool_use`/`tool_result`-paar (`voor_model`, voor vervolgvragen); in de `source_trace` de
+   vindplaatsen (`bronrijen`). Route `overzicht_bouwen → verify → finalize`; `route_after_verify` gaat
+   met een overzicht nooit naar een correctieronde (die zou het model alsnog laten schrijven).
+6. **Bronnen en controle uit het overzicht:** `finalize_node` neemt de bronnen uit het overzicht;
+   `check_grounding(..., overzicht=)` toetst elk genoemd artikel én deel ("Hoofdstuk II", "Titel 5.4")
+   tegen het overzicht, inclusief de bovenliggende delen (`opbouw`) – ook als het model de tool vrij
+   gebruikt.
 
 De tool `overzicht_onderwerp` levert hetzelfde overzicht buiten de route (MCP, vrije vragen) en
 pagineert per deel binnen de begroting. Bouwt het overzicht niet (graaf weg), dan krijgt het model een

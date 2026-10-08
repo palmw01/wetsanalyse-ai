@@ -34,15 +34,18 @@ export function overzichtKnopTekst({ doelen, totaal }: { doelen: NodeDoel[]; tot
   return totaal === 1 ? `Bekijk samenhang van ${doelen[0]?.label ?? "het deel"}` : `Bekijk samenhang van de ${totaal} ${soort}${getoond}`;
 }
 
-/** Een bepaling zoals de jurist haar leest: het nummer, met "art." bij een artikel. Een divisie van een
- *  beleidsregel ("28.3a") heet zo en niet anders. */
+/** Een bepaling zoals de jurist haar leest: "art. 9" voor een artikel, "28.3a" voor een divisie. graph-qa
+ *  zet de naam; een ouder bericht heeft hem niet, en dan dezelfde regel: op het nummer (een punt is een
+ *  divisie), niet op de IRI-vorm – een deel van de Leidraad-divisies heeft een `:artikel:`-IRI. */
 export function bepalingNaam(b: OverzichtBepaling): string {
-  return /:artikel:/.test(b.iri) && !/:id:/.test(b.iri) ? `art. ${b.nummer}` : b.nummer;
+  if (b.naam) return b.naam;
+  return b.nummer.includes(".") || b.iri.includes(":id:") ? b.nummer : `art. ${b.nummer}`;
 }
 
-/** De kop van een deel zonder de herhaling van zijn soort: "Hoofdstuk II – Invordering in eerste
- *  aanleg" blijft zo; een Leidraad-divisie ("Invorderingsrente") krijgt haar nummer ervoor. */
+/** De kop van een deel: "Hoofdstuk II – Invordering in eerste aanleg", "28 – Invorderingsrente". graph-qa
+ *  zet hem; een ouder bericht valt terug op het label, met het nummer uit de IRI waar dat kan. */
 export function deelKop(d: OverzichtDeel): string {
+  if (d.kop) return d.kop;
   if (d.label.includes(" – ") || !/:artikel:/.test(d.iri)) return d.label;
   const nummer = decodeURIComponent(d.iri.split(":artikel:")[1] ?? "");
   return nummer ? `${nummer} – ${d.label}` : d.label;
@@ -74,7 +77,7 @@ export function zoekverantwoording(ov: Overzicht): string {
 export function overzichtAlsMarkdown(ov: Overzicht): string {
   const regels: string[] = [];
   for (const d of ov.definities) {
-    regels.push(`Definitie: ${d.begrip} – ${d.citeertitel}, ${d.label}`);
+    regels.push(`Definitie: ${d.begrip} – ${d.citeertitel}, ${d.vindplaats || d.label}`);
   }
   if (ov.definities.length) regels.push("");
   for (const r of ov.regelingen) {

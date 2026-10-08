@@ -231,11 +231,13 @@ Op "welke artikelen gaan over X?" bouwt graph-qa een overzicht uit de graaf (`ag
 schrijft Lex er alleen een korte duiding bij. Het overzicht komt als `overzicht`-event
 (`parseOverzicht` in `lib/agentEvents.ts`, streng op bron-IRI's: één slechte rij en er is geen blok)
 en reist mee in het bericht (`Bericht.overzicht`), ook als de werkplek het bericht zelf vastlegt.
-**`OverzichtBlok`** toont het onder de duiding: per regeling de delen met **al** hun bepalingen
-(`bepalingNaam`: "art. 9", "28.3a" – nooit een bereik), ingeklapt wat het onderwerp verder noemt met
-zijn plek in de opbouw, de wettelijke definitie, het redactionele trefwoord en waarop er gezocht is
-(`zoekverantwoording`). De kopieerknop neemt het overzicht mee (`overzichtAlsMarkdown`). Rekenkern in
-`lib/overzicht.ts`.
+**`OverzichtBlok`** toont het onder de samenvatting (die graph-qa uit dezelfde data schrijft, zonder
+model): per regeling de delen met **al** hun bepalingen (`kop`/`naam` uit de data via `deelKop` en
+`bepalingNaam` – nooit een bereik, nooit "art." bij een divisie), wat het onderwerp verder noemt met zijn
+plek in de opbouw (ingeklapt; open als de regeling geen deel heeft), de wettelijke definitie met haar
+`vindplaats`, het redactionele trefwoord en waarop er gezocht is (`zoekverantwoording`). **Bij een
+overzicht staat er geen bronnenlijst**: het blok linkt elke vindplaats. De kopieerknop neemt het
+overzicht mee (`overzichtAlsMarkdown`). Rekenkern in `lib/overzicht.ts`.
 
 ### Citatie-chips onder en in het antwoord
 
@@ -613,8 +615,14 @@ opent.
 - **Een overzichtsantwoord opent de delen van zijn overzicht** (`overzichtDoelen` in
   `lib/overzicht.ts`): de delen in de volgorde van het overzicht, het eerste in het paneel (de api
   toont een hoofdstuk als weergave van zijn artikelen en in de samenhang als deel met zijn artikelen).
-  Niet uit de tekst: dezelfde vraag geeft dezelfde kaart, hoe Lex ook formuleert. Kop en knop zeggen
-  "N delen" (`clusterOmschrijving`, `overzichtKnopTekst`).
+  Niet uit de tekst: dezelfde vraag geeft dezelfde kaart. Kop en knop zeggen "N delen"
+  (`clusterOmschrijving`, `overzichtKnopTekst`). **De layout is één boom** (`openSamenhang(…, {boom})` →
+  `bouwGraaf(delen, vast, {boom: true})`, `boomPosities`): alle clusters in één 3D-krachtsimulatie,
+  regelingen als hubs met hun delen en bepalingen eromheen. Per cluster leggen gaf een plat raster van
+  losse schijven met lange lijnen naar de gedeelde regeling (8 delen: 1635 × 1464 × 114, langste lijn
+  1358 – nu 499 × 440 × 378, langste lijn 136). Gesorteerde knopen en startpunten uit de id: dezelfde
+  delen, in welke volgorde ook, geven dezelfde boom; bijladen gaat via het gewone pad en verschuift hem
+  niet.
 - **De knop opent wat het antwoord noemt** (`samenhangDoelen` in `lib/bronnen.ts`): de vermeldingen in
   de tekst die éénduidig bij een bron horen (`vindVermeldingen` + `koppelBron`, dezelfde regel als de
   citatie-chips), in tekstvolgorde, één per artikel maar zo precies als de eerste vermelding, hoogstens

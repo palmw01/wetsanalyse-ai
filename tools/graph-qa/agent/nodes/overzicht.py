@@ -62,13 +62,26 @@ def bouw_overzicht_node(b, state: State) -> dict[str, Any]:
     _stap(writer, "Overzicht", f"{delen} delen in {len(gebouwd['regelingen'])} regelingen, "
                                f"{ov_mod.aantal_bepalingen(gebouwd)} bepalingen")
     writer({"type": "overzicht", "overzicht": gebouwd})
+    # De tekst komt uit het overzicht, niet van het model: een modelduiding ging buiten het
+    # overzicht en wisselde van vorm per run. Dezelfde vraag geeft zo dezelfde tekst.
+    tekst = ov_mod.samenvatting(gebouwd)
+    writer({"type": "token", "content": tekst})
     return {
         "overzicht": gebouwd,
-        # De vindplaatsen van het hele overzicht, niet alleen wat het model las: daaruit komen de
-        # bronnen, en daartegen toetst de grounding.
+        "answer": tekst,
+        # De vindplaatsen van het hele overzicht: daaruit komen de bronnen, en daartegen toetst de
+        # controle de koppen en artikelen die de samenvatting noemt.
         "source_trace": [*state.get("source_trace", []), (TOOL, ov_mod.bronrijen(gebouwd))],
-        "messages": _paar(call_id, onderwerp, raw),
+        # Het paar plus het antwoord: een geldige historie, zodat een vervolgvraag ("en de Leidraad?")
+        # het overzicht kent.
+        "messages": [*_paar(call_id, onderwerp, raw), {"role": "assistant", "content": tekst}],
     }
+
+
+def route_na_overzicht(b, state: State) -> str:
+    """Met een overzicht: rechtstreeks naar de controle, geen modelcall. Zonder (de bouw faalde):
+    naar de agent, die zegt wat er misging."""
+    return "verify" if state.get("overzicht") else "agent"
 
 
 def _paar(call_id: str, onderwerp: str, raw: str) -> list[dict[str, Any]]:

@@ -37,11 +37,13 @@ export type PaneelTab = "tekst" | "graaf";
  *
  *  Met `onSluit` staat hij in dezelfde `Dialog`-schil als `ArtefactPaneel` (werkplek); zonder is
  *  het de kale inhoud voor een eigen pagina. */
-export function NodeAnnotatiePaneel({ doel, extraDoelen, onWisselDoel, onSluit, variant = "side", onVraag, onVraagOverBron, beginTab = "tekst", reeks }: {
+export function NodeAnnotatiePaneel({ doel, extraDoelen, boom, onWisselDoel, onSluit, variant = "side", onVraag, onVraagOverBron, beginTab = "tekst", reeks }: {
   doel: NodeDoel; onSluit?: () => void; variant?: DialogVariant;
   /** Andere artikelen die de 3D-graaf als eigen cluster meeopent (de artikelen die een antwoord
    *  noemt). Tekst en annotatie blijven over `doel`. */
   extraDoelen?: NodeDoel[];
+  /** De doelen zijn de delen van een overzicht: de graaf legt ze als één boom. */
+  boom?: boolean;
   /** Het paneel op een ander artikel openen, vanuit een knoop in de graaf die niet bij `doel` hoort. */
   onWisselDoel?: (doel: NodeDoel) => void;
   onVraag?: (element: NodeElement, view: NodeWeergave) => void;
@@ -59,7 +61,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, onWisselDoel, onSluit, 
   const [groot, setGroot] = useState(false);
   useEffect(() => { void samenhangBeschikbaar().then(setSamenhang); }, []);
   if (tab === "graaf" && !graafGeopend) setGraafGeopend(true);
-  const graafStand = useSamenhangStand(doel, graafGeopend && samenhang, extraDoelen);
+  const graafStand = useSamenhangStand(doel, graafGeopend && samenhang, extraDoelen, boom);
   const [laadFout, setLaadFout] = useState("");
   const [actiefId, setActiefId] = useState<string>();
   const [melding, setMelding] = useState("");

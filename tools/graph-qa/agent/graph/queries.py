@@ -440,7 +440,7 @@ def zoek_opbouw(onderwerp: str, bwb_id: str | None = None, limit: int = 25, offs
     lim = max(1, min(int(limit), 50))
     scope = f'\n  FILTER(STRSTARTS(STR(?node), "{NS}{_bwb(bwb_id)}{SEP}"))' if bwb_id else ""
     typen = ", ".join(f"bwb:{t}" for t in OPBOUW_TYPES)
-    return PREFIXES + f"""SELECT ?node ?score ?soort (SAMPLE(?lab) AS ?label) (SAMPLE(?j) AS ?jci) ?bwbId
+    return PREFIXES + f"""SELECT ?node ?score ?soort (SAMPLE(?lab) AS ?label) (SAMPLE(?dn) AS ?nummer) (SAMPLE(?j) AS ?jci) ?bwbId
        (SAMPLE(?ct) AS ?citeertitel) (COUNT(DISTINCT ?b) AS ?aantal)
        (GROUP_CONCAT(DISTINCT ?nr; separator="|") AS ?nummers) WHERE {{
   {{ SELECT ?node ?score WHERE {{
@@ -450,6 +450,7 @@ def zoek_opbouw(onderwerp: str, bwb_id: str | None = None, limit: int = 25, offs
   FILTER(?t != bwb:Divisie || EXISTS {{ ?node bwb:heeftDivisie ?kind }})
   BIND(STRAFTER(STR(?t), "{ONTOLOGIE}") AS ?soort)
   OPTIONAL {{ ?node rdfs:label ?lab }}
+  OPTIONAL {{ ?node bwb:nummer ?dn }}
   OPTIONAL {{ ?node bwb:jci ?j }}
   BIND(SUBSTR(STR(?node), {len(NS) + 1}) AS ?rest)
   BIND(IF(CONTAINS(?rest, "{SEP}"), STRBEFORE(?rest, "{SEP}"), ?rest) AS ?bwbId)
