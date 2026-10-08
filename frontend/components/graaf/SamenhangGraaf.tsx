@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { foutTekst } from "@/lib/api";
 import { haalElement, type NodeDoel, type NodeElement } from "@/lib/annotatieNode";
 import {
-  bouwGraaf, haalSamenhang, hoofdactie as bepaalHoofdactie, relatieGroepen, samenvatting, uitklapbaar, zichtbareGraaf,
+  bouwGraaf, haalSamenhang, haalSamenhangen, hoofdactie as bepaalHoofdactie, relatieGroepen, samenvatting, uitklapbaar, zichtbareGraaf,
   type GraafData, type GraafKnoop, type MarkeringFilter, type RelatieGroep, type Samenhang,
   clusterOmschrijving, isDeelCluster,
 } from "@/lib/samenhang";
@@ -66,20 +66,31 @@ export function useSamenhangStand(doel: NodeDoel, actief: boolean, extra: NodeDo
     try {
       // Het doel van het paneel eerst; de andere artikelen uit het antwoord (`extra`) tegelijk, elk
       // als eigen cluster. Eén artikel dat niet laadt is een melding, geen fout voor het geheel.
-      const [eerste, ...rest] = await Promise.allSettled([doel, ...extraDoelen].map((d) => haalSamenhang(d)));
-      if (eerste.status === "rejected") throw eerste.reason;
-      const delen = [eerste.value];
-      for (const r of rest) {
-        if (r.status === "fulfilled" && !delen.some((d) => d.artikel_iri === r.value.artikel_iri)) delen.push(r.value);
+      // De delen van een overzicht (`boom`) in één verzoek: één bronboom per regeling, niet per deel.
+      let geladenDelen: Samenhang[], nietGelukt: number;
+      if (boom && extraDoelen.length) {
+        const { resultaten, fouten } = await haalSamenhangen([doel, ...extraDoelen]);
+        if (fouten.some((f) => f.bron_iri === doel.bron_iri) || !resultaten.length) {
+          throw { status: 422, detail: fouten.find((f) => f.bron_iri === doel.bron_iri)?.reden ?? "De samenhang is niet geladen." };
+        }
+        geladenDelen = resultaten;
+        nietGelukt = fouten.length;
+      } else {
+        const [eerste, ...rest] = await Promise.allSettled([doel, ...extraDoelen].map((d) => haalSamenhang(d)));
+        if (eerste.status === "rejected") throw eerste.reason;
+        geladenDelen = [eerste.value, ...rest.flatMap((r) => (r.status === "fulfilled" ? [r.value] : []))];
+        nietGelukt = rest.filter((r) => r.status === "rejected").length;
       }
-      setNietGeladen(rest.filter((r) => r.status === "rejected").length);
+      const delen: Samenhang[] = [];
+      for (const d of geladenDelen) if (!delen.some((x) => x.artikel_iri === d.artikel_iri)) delen.push(d);
+      setNietGeladen(nietGelukt);
       // Een lid opent het hele artikel; alleen het gevraagde lid is uitgeklapt. Het artikel zelf
       // uitklappen toont alle inkomende verwijzingen tegelijk – dat is een keuze, geen begin. De
       // extra artikelen staan uitgeklapt, zoals een bijgeladen artikel.
       zetDelen(() => delen);
       if (delen.length > 1) setUitgebreid([doel.bron_iri, ...delen.slice(1).map((d) => d.artikel_iri)]);
     } catch (e) { setFout(foutTekst(e, "De samenhang is niet geladen.")); }
-  }, [doel, extraDoelen, zetDelen]);
+  }, [doel, extraDoelen, zetDelen, boom]);
   useEffect(() => {
     // Externe request initialiseren; dezelfde actie dient ook de retryknop.
     // eslint-disable-next-line react-hooks/set-state-in-effect

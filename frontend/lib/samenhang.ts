@@ -72,6 +72,16 @@ export async function haalSamenhang(doel: Pick<NodeDoel, "bron_iri">): Promise<S
   return nodeRequest(`samenhang?${new URLSearchParams({ bron_iri: doel.bron_iri })}`);
 }
 
+/** De samenhang van meerdere doelen in één verzoek – de delen van een overzicht. De api haalt per
+ *  regeling één keer de bronboom op in plaats van per deel; een doel dat niet resolvet staat in
+ *  `fouten`, de rest komt gewoon. Resultaten in de volgorde van de doelen. */
+export async function haalSamenhangen(doelen: Pick<NodeDoel, "bron_iri">[]): Promise<{
+  resultaten: Samenhang[]; fouten: { bron_iri: string; reden: string }[];
+}> {
+  const params = new URLSearchParams(doelen.map((d) => ["bron_iri", d.bron_iri]));
+  return nodeRequest(`samenhang/meer?${params}`);
+}
+
 let capabilities: Promise<boolean> | undefined;
 /** Heeft de API het samenhang-endpoint? Eén keer per pagina gevraagd.
  *

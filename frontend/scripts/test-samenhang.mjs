@@ -19,7 +19,7 @@ const A10 = `${LAW}:artikel:10`, A10L1 = `${A10}:lid:1`, STUB = "urn:bwb:BWBR000
 const knoop = (id, soort, extra = {}) => ({ id, soort, label: id, tekst: "", klasse: "", lifecycle: "", element_id: "",
   bwb_id: "BWBR0004770", artikel: "", lid: "", rand: false, ...extra });
 const rel = (bron, doel, soort, groep, anker_tekst = "") => ({ bron, doel, soort, groep, anker_tekst });
-const HII = `${LAW}:hoofdstuk:II`;
+const HII = `${LAW}:hoofdstuk:II`, HV = `${LAW}:hoofdstuk:V`, A28 = `${LAW}:artikel:28`;
 function samenhang(iri) {
   // Een structuurdeel: de api levert het deel met zijn artikelen, zonder leden (api/app/samenhang.py).
   if (iri === HII) return { schema_versie: 1, doel: { bron_iri: iri }, snapshot_id: "s2", artikel_iri: HII,
@@ -27,6 +27,11 @@ function samenhang(iri) {
     knopen: [knoop(LAW, "regeling", { label: "Invorderingswet 1990" }), knoop(HII, "deel", { label: "Hoofdstuk II" }),
       knoop(ART, "artikel", { label: "Artikel 9", artikel: "9" }), knoop(A10, "artikel", { label: "Artikel 10", artikel: "10" })],
     relaties: [rel(LAW, HII, "bevat", "structuur"), rel(HII, ART, "bevat", "structuur"), rel(HII, A10, "bevat", "structuur")] };
+  if (iri === HV) return { schema_versie: 1, doel: { bron_iri: iri }, snapshot_id: "s2", artikel_iri: HV,
+    verwijzingen_beschikbaar: true, afgekapt: false,
+    knopen: [knoop(LAW, "regeling", { label: "Invorderingswet 1990" }), knoop(HV, "deel", { label: "Hoofdstuk V" }),
+      knoop(A28, "artikel", { label: "Artikel 28", artikel: "28" })],
+    relaties: [rel(LAW, HV, "bevat", "structuur"), rel(HV, A28, "bevat", "structuur")] };
   if (iri.startsWith(A10)) return { schema_versie: 1, doel: { bron_iri: iri }, snapshot_id: "s10", artikel_iri: A10,
     verwijzingen_beschikbaar: true, afgekapt: false,
     knopen: [knoop(LAW, "regeling", { label: "Invorderingswet 1990" }), knoop(A10, "artikel", { label: "Artikel 10", artikel: "10" }),
@@ -102,7 +107,9 @@ const berichtenOverzicht = [
       definities: [], trefwoorden: [],
       regelingen: [{ bwb_id: "BWBR0004770", citeertitel: "Invorderingswet 1990", soort: "wet",
         delen: [{ iri: HII, soort: "Hoofdstuk", label: "Hoofdstuk II – Invordering in eerste aanleg", jci: "",
-          bepalingen: [{ iri: ART, nummer: "9", label: "Artikel 9" }, { iri: A10, nummer: "10", label: "Artikel 10" }], subdelen: [] }],
+          bepalingen: [{ iri: ART, nummer: "9", label: "Artikel 9" }, { iri: A10, nummer: "10", label: "Artikel 10" }], subdelen: [] },
+          { iri: HV, soort: "Hoofdstuk", label: "Hoofdstuk V – Invorderingsrente", jci: "",
+            bepalingen: [{ iri: A28, nummer: "28", label: "Artikel 28" }], subdelen: [] }],
         ook_genoemd: [{ iri: `${LAW}:artikel:4`, nummer: "4", label: "Artikel 4", in_deel: { iri: `${LAW}:hoofdstuk:I`, label: "Hoofdstuk I – Algemene bepalingen" } }] }],
     },
     bronnen: [
@@ -116,7 +123,7 @@ const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PAT
 
 async function nieuwePagina({ width = 1440, height = 1000, webgl = true } = {}) {
   const page = await browser.newPage({ viewport: { width, height } });
-  const log = { errors: [], console: [], samenhang: [], mutaties: [] };
+  const log = { errors: [], console: [], samenhang: [], samenhangMeer: [], mutaties: [] };
   page.on("pageerror", (e) => log.errors.push(e.message));
   // React meldt in dev dat de CSP geen eval toestaat; in productie gebruikt React geen eval.
   page.on("console", (m) => { if (m.type() === "error" && !/React will never use eval\(\) in production/.test(m.text())) log.console.push(m.text()); });
@@ -134,6 +141,11 @@ async function nieuwePagina({ width = 1440, height = 1000, webgl = true } = {}) 
     if (req.method() !== "GET") { log.mutaties.push(`${req.method()} ${url.pathname}`); bijgewerkt = true; }
     if (url.pathname.endsWith("/v2/capabilities")) return route.fulfill({ json: { schema_versie: 2, bronnodes_actief: true, samenhang: true } });
     if (url.pathname.endsWith("/v2/samenhang")) { log.samenhang.push(url.searchParams.get("bron_iri")); return route.fulfill({ json: samenhangNu(url.searchParams.get("bron_iri")) }); }
+    if (url.pathname.endsWith("/v2/samenhang/meer")) {
+      const iris = url.searchParams.getAll("bron_iri");
+      log.samenhangMeer.push(iris);
+      return route.fulfill({ json: { resultaten: iris.map(samenhangNu), fouten: [] } });
+    }
     if (url.pathname.endsWith("/v2/weergave")) return route.fulfill({ json: weergave(url.searchParams.get("bron_iri")) });
     if (url.pathname.endsWith("/v2/elementen/e1")) return route.fulfill({ json: { element: weergave(ART).elementen[0] } });
     if (url.pathname.endsWith("/v2/elementen/e1/graaf")) return route.fulfill({ json: { element_id: "e1", laag_id: "laag1",
@@ -394,10 +406,12 @@ async function detailsOpen(page) {
   assert.match(await blok.innerText(), /art\. 4 · in Hoofdstuk I – Algemene bepalingen/);
   // Het blok linkt elke vindplaats; een bronnenlijst ernaast zegt niets nieuws.
   assert.equal(await page.getByRole("button", { name: /^Bronnen \(/ }).count(), 0, "geen bronnenlijst bij een overzicht");
-  await page.getByRole("button", { name: "Bekijk samenhang van Hoofdstuk II – Invordering in eerste aanleg in 3D" }).click();
+  await page.getByRole("button", { name: "Bekijk samenhang van de 2 delen in 3D" }).click();
   await page.getByTestId("samenhang-graaf").waitFor();
-  await page.getByRole("heading", { name: /^Samenhang van Hoofdstuk II/ }).waitFor();
-  assert.deepEqual([...new Set(log.samenhang)], [HII], "alleen het deel uit het overzicht wordt geladen");
+  await page.getByRole("heading", { name: /^Samenhang van 2 delen/ }).waitFor();
+  // De delen van een overzicht komen in één verzoek (één bronboom per regeling), niet per deel.
+  assert.deepEqual(log.samenhang, [], "geen los verzoek per deel");
+  assert.deepEqual(log.samenhangMeer.at(-1), [HII, HV], "één verzoek met de delen in overzichtsvolgorde");
   // Het paneel toont het hoofdstuk zelf, en artikel 10 staat daarin: dus "Toon in tekst".
   await zoekEnKies(page, "Artikel 10", A10);
   await page.getByRole("button", { name: "Toon in tekst" }).waitFor();

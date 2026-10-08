@@ -164,15 +164,39 @@ def deel_kop(label: str, nummer: str) -> str:
     return f"{nummer} – {label}" if label else nummer
 
 
-def bepaling_naam(nummer: str, iri: str) -> str:
-    """"art. 9" voor een artikel, "28.3a" voor een divisie. Op het nummer, niet op de IRI-vorm: een deel
-    van de Leidraad-divisies heeft een `:artikel:`-IRI (79.5a) en een deel een `id:`-IRI (79.5), en de
-    oude regel gaf zo "79.5, art. 79.5a, art. 79.5b, 79.5c"."""
+def bepaling_naam(nummer: str, iri: str, bronlabel: str = "") -> str:
+    """Hoe de bron de bepaling zelf noemt (`bwb:label`): "Artikel 9" → "art. 9", "79.5" → "79.5".
+
+    Brongetrouw, ook waar de bron wisselt: in de Leidraad heet de later ingevoegde 79.5a "Artikel
+    79.5a" en de oorspronkelijke 79.5 alleen "79.5". Een uniforme weergave zou dat verschil wegpoetsen.
+    Zonder bronlabel (een ouder overzicht): een nummer met een punt is een divisie, anders een artikel."""
+    if bronlabel:
+        label = bronlabel.strip()
+        return f"art. {label[8:].strip()}" if label.casefold().startswith("artikel ") else label
     if not nummer:
         return ""
     if "." in nummer or ":id:" in iri:
         return nummer
     return f"art. {nummer}"
+
+
+# Hoe een deel heet, enkelvoud en meervoud – voor de samenvatting ("5 hoofdstukken met 35 artikelen").
+_SOORTWOORD = {"Hoofdstuk": "hoofdstuk", "Afdeling": "afdeling", "Titeldeel": "titel", "Paragraaf": "paragraaf"}
+_MEERVOUD = {"hoofdstuk": "hoofdstukken", "afdeling": "afdelingen", "titel": "titels", "paragraaf": "paragrafen",
+             "artikel": "artikelen", "onderdeel": "onderdelen", "deel": "delen", "bepaling": "bepalingen"}
+
+
+def soortwoord(soort: str, bronlabel: str) -> str:
+    """Het woord waarmee de bron een deel aanduidt, voor de telling. Een divisie heet naar haar eigen
+    label ("Artikel 28" → "artikel"). Draagt dat label alleen een nummer ("26.5"), dan ook "artikel":
+    zo verwijst de beleidsregel zelf naar haar divisies ("artikel 28.2 van deze leidraad"). De naam in
+    het blok blijft brongetrouw "26.5"; dit is alleen het woord waarmee geteld wordt."""
+    if soort in _SOORTWOORD:
+        return _SOORTWOORD[soort]
+    eerste = (bronlabel or "").strip().split(" ", 1)[0].casefold()
+    if eerste in _MEERVOUD:
+        return eerste
+    return "artikel" if soort == "Divisie" else "deel"
 
 
 def definitie_vindplaats(iri: str) -> str:
@@ -279,7 +303,7 @@ def bouw_overzicht(graph: GraphPort, vraag_of_onderwerp: str, *, onderwerp: str 
                 continue
             inhoud.setdefault(r["deel"], []).append(
                 {"iri": r["bepaling"], "nummer": r.get("nummer", ""), "label": r.get("label", ""),
-                 "naam": bepaling_naam(r.get("nummer", ""), r["bepaling"])})
+                 "naam": bepaling_naam(r.get("nummer", ""), r["bepaling"], r.get("bronlabel", ""))})
     binnen_delen = {b["iri"] for lijst in inhoud.values() for b in lijst} | gevonden
 
     regelingen: dict[str, dict[str, Any]] = {}
@@ -301,6 +325,7 @@ def bouw_overzicht(graph: GraphPort, vraag_of_onderwerp: str, *, onderwerp: str 
         regeling(_bwb(d["node"]), d.get("citeertitel", ""))["delen"].append({
             "iri": d["node"], "soort": d.get("soort", ""), "label": d.get("label", ""), "jci": d.get("jci", ""),
             "nummer": d.get("nummer", ""), "kop": deel_kop(d.get("label", ""), d.get("nummer", "")),
+            "soortwoord": soortwoord(d.get("soort", ""), d.get("bronlabel", "")),
             "bepalingen": bepalingen,
             "subdelen": [{"iri": s, "label": deel_kop(sub[s].get("label", ""), sub[s].get("nummer", ""))}
                          for s in subdelen],
@@ -314,7 +339,7 @@ def bouw_overzicht(graph: GraphPort, vraag_of_onderwerp: str, *, onderwerp: str 
         in_deel = _diepste(ouders, plaats.soorten, plaats.labels)
         regeling(t.get("bwbId") or _bwb(iri), t.get("citeertitel", ""))["ook_genoemd"].append({
             "iri": iri, "nummer": t.get("nummer", ""), "label": t.get("label", ""), "jci": t.get("jci", ""),
-            "naam": bepaling_naam(t.get("nummer", ""), iri),
+            "naam": bepaling_naam(t.get("nummer", ""), iri, t.get("bronlabel", "")),
             **({"in_deel": in_deel} if in_deel else {}),
         })
     for r in regelingen.values():
@@ -472,6 +497,23 @@ def _opsomming(delen: list[str]) -> str:
     return delen[0] if len(delen) == 1 else ", ".join(delen[:-1]) + " en " + delen[-1]
 
 
+def _delen_geteld(delen: list[dict[str, Any]]) -> str:
+    """"5 hoofdstukken", "4 hoofdstukken en 1 afdeling", "8 artikelen" – in de woorden van de bron, per
+    soort in de volgorde waarin ze voorkomen."""
+    tel: dict[str, int] = {}
+    for d in delen:
+        woord = d.get("soortwoord") or "deel"
+        tel[woord] = tel.get(woord, 0) + 1
+    return _opsomming([_meervoud(n, w, _MEERVOUD.get(w, w)) for w, n in tel.items()])
+
+
+def _bepalingen_geteld(delen: list[dict[str, Any]]) -> str:
+    """"35 artikelen" als de bron ze allemaal artikel noemt, anders "63 bepalingen"."""
+    alle = [b for d in delen for b in d["bepalingen"]]
+    artikelen = alle and all(b.get("naam", "").startswith("art. ") for b in alle)
+    return _meervoud(len(alle), "artikel", "artikelen") if artikelen else _meervoud(len(alle), "bepaling", "bepalingen")
+
+
 def _koppen(r: dict[str, Any], hoogstens: int = 3) -> str:
     koppen = [d.get("kop") or d["label"] for d in r["delen"]]
     rest = len(koppen) - hoogstens
@@ -494,15 +536,15 @@ def samenvatting(ov: dict[str, Any]) -> str:
     zinnen: list[str] = []
     if met_delen:
         kern = met_delen[0]
-        bepalingen = _meervoud(sum(len(d["bepalingen"]) for d in kern["delen"]), "bepaling", "bepalingen")
+        bepalingen = _bepalingen_geteld(kern["delen"])
         if namen_scope:
             zinnen.append(f"Binnen de {namen_scope} staat {onderwerp} vooral in {_koppen(kern)}: {bepalingen}.")
         else:
             zinnen.append(f"„{ov['gevraagd'][:1].upper()}{ov['gevraagd'][1:]}” staat vooral in de **{kern['citeertitel']}**: "
-                          f"{_meervoud(len(kern['delen']), 'deel', 'delen')} met {bepalingen} ({_koppen(kern)}).")
+                          f"{_delen_geteld(kern['delen'])} met {bepalingen} ({_koppen(kern)}).")
         overige = met_delen[1:]
         if overige:
-            delen = [f"de {r['citeertitel']} ({_koppen(r, 1) if len(r['delen']) == 1 else _meervoud(len(r['delen']), 'deel', 'delen')})"
+            delen = [f"de {r['citeertitel']} ({_koppen(r, 1) if len(r['delen']) == 1 else _delen_geteld(r['delen'])})"
                      for r in overige]
             zinnen.append(f"Verder in {_opsomming(delen)}.")
     else:

@@ -27,22 +27,22 @@ def _tsv(kop: list[str], rijen: list[list[str]]) -> str:
     return "\t".join(f"?{k}" for k in kop) + "\n" + "".join("\t".join(cel(v) for v in r) + "\n" for r in rijen)
 
 
-DELEN = _tsv(["node", "score", "soort", "label", "nummer", "jci", "bwbId", "citeertitel"], [
-    [L28, "2.7", "Divisie", "Invorderingsrente", "28", "", "BWBR0024096", "Leidraad Invordering 2008"],
-    [H5, "2.7", "Hoofdstuk", "Hoofdstuk V – Invorderingsrente", "V", "", "BWBR0004770", "Invorderingswet 1990"],
-    [H2, "3.0", "Hoofdstuk", "Hoofdstuk II – Invordering in eerste aanleg", "II", "", "BWBR0004770", "Invorderingswet 1990"],
-    [PAR, "3.4", "Paragraaf", "Paragraaf 4.4.4.2 – Invordering bij dwangbevel", "4.4.4.2", "", "BWBR0005537", "Algemene wet bestuursrecht"],
-    [AFD, "3.0", "Afdeling", "Afdeling 4.4.4 – Aanmaning en invordering bij dwangbevel", "4.4.4", "", "BWBR0005537", "Algemene wet bestuursrecht"],
-    [H7, "2.7", "Hoofdstuk", "Hoofdstuk VII – Verplichtingen ten behoeve van de invordering", "VII", "", "BWBR0004770", "Invorderingswet 1990"],
+DELEN = _tsv(["node", "score", "soort", "label", "nummer", "jci", "bwbId", "citeertitel", "bronlabel"], [
+    [L28, "2.7", "Divisie", "Invorderingsrente", "28", "", "BWBR0024096", "Leidraad Invordering 2008", "Artikel 28"],
+    [H5, "2.7", "Hoofdstuk", "Hoofdstuk V – Invorderingsrente", "V", "", "BWBR0004770", "Invorderingswet 1990", "Hoofdstuk"],
+    [H2, "3.0", "Hoofdstuk", "Hoofdstuk II – Invordering in eerste aanleg", "II", "", "BWBR0004770", "Invorderingswet 1990", "Hoofdstuk"],
+    [PAR, "3.4", "Paragraaf", "Paragraaf 4.4.4.2 – Invordering bij dwangbevel", "4.4.4.2", "", "BWBR0005537", "Algemene wet bestuursrecht", "Paragraaf"],
+    [AFD, "3.0", "Afdeling", "Afdeling 4.4.4 – Aanmaning en invordering bij dwangbevel", "4.4.4", "", "BWBR0005537", "Algemene wet bestuursrecht", "Afdeling"],
+    [H7, "2.7", "Hoofdstuk", "Hoofdstuk VII – Verplichtingen ten behoeve van de invordering", "VII", "", "BWBR0004770", "Invorderingswet 1990", "Hoofdstuk"],
 ])
-IN_DELEN = _tsv(["deel", "bepaling", "nummer", "label"], [
-    [H2, f"{IW}:artikel:10", "10", "Artikel 10"], [H2, f"{IW}:artikel:8", "8", "Artikel 8"],
-    [H2, f"{IW}:artikel:9", "9", "Artikel 9"],
-    [H5, f"{IW}:artikel:31", "31", "Artikel 31"], [H5, f"{IW}:artikel:27quinquies", "27quinquies", "Artikel 27quinquies"],
-    [H5, f"{IW}:artikel:27a", "27a", "Artikel 27a"],
-    [H7, f"{IW}:artikel:63", "63", "Artikel 63"],
-    [AFD, f"{AWB}:artikel:4%3A124", "4:124", "Artikel 4:124"], [AFD, f"{AWB}:artikel:4%3A112", "4:112", "Artikel 4:112"],
-    [L28, f"{LEIDRAAD}:artikel:28.3a", "28.3a", "Vermindering"], [L28, f"{LEIDRAAD}:id:x28.1", "28.1", "Cheque"],
+IN_DELEN = _tsv(["deel", "bepaling", "nummer", "label", "bronlabel"], [
+    [H2, f"{IW}:artikel:10", "10", "Artikel 10", "Artikel 10"], [H2, f"{IW}:artikel:8", "8", "Artikel 8", "Artikel 8"],
+    [H2, f"{IW}:artikel:9", "9", "Artikel 9", "Artikel 9"],
+    [H5, f"{IW}:artikel:31", "31", "Artikel 31", "Artikel 31"], [H5, f"{IW}:artikel:27quinquies", "27quinquies", "Artikel 27quinquies", "Artikel 27quinquies"],
+    [H5, f"{IW}:artikel:27a", "27a", "Artikel 27a", "Artikel 27a"],
+    [H7, f"{IW}:artikel:63", "63", "Artikel 63", "Artikel 63"],
+    [AFD, f"{AWB}:artikel:4%3A124", "4:124", "Artikel 4:124", "Artikel 4:124"], [AFD, f"{AWB}:artikel:4%3A112", "4:112", "Artikel 4:112", "Artikel 4:112"],
+    [L28, f"{LEIDRAAD}:artikel:28.3a", "28.3a", "Vermindering", "Artikel 28.3a"], [L28, f"{LEIDRAAD}:id:x28.1", "28.1", "Cheque", "28.1"],
 ])
 TREFFERS = _tsv(["bepaling", "beste", "label", "nummer", "jci", "bwbId", "citeertitel"], [
     [f"{IW}:artikel:31", "2.0", "Artikel 31", "31", "", "BWBR0004770", "Invorderingswet 1990"],
@@ -326,7 +326,8 @@ def test_namen_staan_in_de_data():
     per = _per_regeling(ov)
     leidraad = per["BWBR0024096"]["delen"][0]
     assert leidraad["kop"] == "28 – Invorderingsrente"
-    assert [b["naam"] for b in leidraad["bepalingen"]] == ["28.1", "28.3a"], "een divisie is nooit 'art.', ook met een :artikel:-IRI"
+    assert [b["naam"] for b in leidraad["bepalingen"]] == ["28.1", "art. 28.3a"], "zoals de bron ze noemt, ook waar die wisselt"
+    assert leidraad["soortwoord"] == "artikel" and per["BWBR0004770"]["delen"][0]["soortwoord"] == "hoofdstuk"
     assert per["BWBR0004770"]["delen"][0]["kop"] == "Hoofdstuk II – Invordering in eerste aanleg"
     assert [b["naam"] for b in per["BWBR0004770"]["delen"][0]["bepalingen"]] == ["art. 8", "art. 9", "art. 10"]
     assert per["BWBR0005537"]["ook_genoemd"][0]["naam"] == "art. 4:94a"
@@ -338,7 +339,7 @@ def test_de_samenvatting_komt_uit_de_data_en_doorstaat_de_controle():
 
     ov = overzicht.bouw_overzicht(Graaf(), "Welke artikelen gaan over invordering?")
     tekst = overzicht.samenvatting(ov)
-    assert tekst.startswith("„Invordering” staat vooral in de **Invorderingswet 1990**: 3 delen met 7 bepalingen "
+    assert tekst.startswith("„Invordering” staat vooral in de **Invorderingswet 1990**: 3 hoofdstukken met 7 artikelen "
                             "(Hoofdstuk II – Invordering in eerste aanleg; Hoofdstuk V – Invorderingsrente; "
                             "Hoofdstuk VII – Verplichtingen ten behoeve van de invordering).")
     assert "Verder in de Algemene wet bestuursrecht (Afdeling 4.4.4 – Aanmaning en invordering bij dwangbevel) " \
@@ -364,6 +365,21 @@ def test_samenvatting_zonder_delen_en_met_afbakening():
     assert "Het onderwerp staat wel in de tekst van 2 bepalingen in 2 regelingen" in tekst
     binnen = overzicht.bouw_overzicht(Graaf(), "Welke artikelen in de Awb gaan over invordering?")
     assert overzicht.samenvatting(binnen).startswith(
-        "Binnen de Algemene wet bestuursrecht staat „invordering” vooral in Afdeling 4.4.4 – Aanmaning en invordering bij dwangbevel: 2 bepalingen.")
+        "Binnen de Algemene wet bestuursrecht staat „invordering” vooral in Afdeling 4.4.4 – Aanmaning en invordering bij dwangbevel: 2 artikelen.")
     leeg = {**ov, "regelingen": []}
     assert overzicht.samenvatting(leeg) == "In de kennisgraaf staat geen deel of bepaling over „invordering”."
+
+
+def test_de_telling_spreekt_de_taal_van_de_bron():
+    from agent.overzicht import _bepalingen_geteld, _delen_geteld
+
+    deel = lambda woord, *namen: {"soortwoord": woord, "bepalingen": [{"naam": n} for n in namen]}
+    assert _delen_geteld([deel("hoofdstuk")] * 4 + [deel("afdeling")]) == "4 hoofdstukken en 1 afdeling"
+    assert _delen_geteld([deel("artikel")] * 8) == "8 artikelen"
+    assert _delen_geteld([deel("paragraaf")]) == "1 paragraaf"
+    from agent.overzicht import soortwoord
+    assert soortwoord("Divisie", "Artikel 28") == "artikel"
+    assert soortwoord("Divisie", "26.5") == "artikel", "een divisie met alleen een nummer telt als artikel"
+    assert soortwoord("Hoofdstuk", "Hoofdstuk") == "hoofdstuk"
+    assert _bepalingen_geteld([deel("hoofdstuk", "art. 8", "art. 9")]) == "2 artikelen"
+    assert _bepalingen_geteld([deel("artikel", "28.1", "art. 28.3a")]) == "2 bepalingen", "de Leidraad wisselt"
