@@ -53,6 +53,7 @@ class BeurtSchrijver:
         self.kandidaten: list[dict[str, Any]] = []
         self.hergebruik: dict[str, Any] = {}
         self.dekking: dict[str, Any] = {}
+        self.overzicht: dict[str, Any] = {}
         self.tekst = ""
         self.denk = ""
         self.bronnen: list[dict[str, Any]] = []
@@ -81,6 +82,8 @@ class BeurtSchrijver:
             self.hergebruik = event.get("hergebruik") or {}
         elif soort == "dekking":
             self.dekking = event.get("dekking") or {}
+        elif soort == "overzicht":
+            self.overzicht = event.get("overzicht") or {}
         elif soort == "tool_execution":
             self._voeg_tool_toe({k: v for k, v in event.items() if k != "type"})
 
@@ -316,6 +319,9 @@ async def _leg_vast(
                 "tekst": tekst or "(geen antwoord)",
                 "denk": schrijver.denk,
                 "bronnen": schrijver.bronnen,
+                # Het overzicht uit de graaf (`agent/overzicht.py`): zonder dit veld toonde de werkplek
+                # na herladen alleen de duiding, en het blok en de 3D-doelen waren weg.
+                **({"overzicht": schrijver.overzicht} if schrijver.overzicht else {}),
             }
 
         await api.voeg_bericht_toe(gesprek_id, bericht)

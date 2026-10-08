@@ -225,6 +225,18 @@ aanroep.
   letterlijk – wijkt de weergave af van wat de controle vergeleek, dan markeer je liever niets dan
   het verkeerde stuk. Logica in `lib/markering.ts`.
 
+### Het overzicht van een onderwerp
+
+Op "welke artikelen gaan over X?" bouwt graph-qa een overzicht uit de graaf (`agent/overzicht.py`) en
+schrijft Lex er alleen een korte duiding bij. Het overzicht komt als `overzicht`-event
+(`parseOverzicht` in `lib/agentEvents.ts`, streng op bron-IRI's: één slechte rij en er is geen blok)
+en reist mee in het bericht (`Bericht.overzicht`), ook als de werkplek het bericht zelf vastlegt.
+**`OverzichtBlok`** toont het onder de duiding: per regeling de delen met **al** hun bepalingen
+(`bepalingNaam`: "art. 9", "28.3a" – nooit een bereik), ingeklapt wat het onderwerp verder noemt met
+zijn plek in de opbouw, de wettelijke definitie, het redactionele trefwoord en waarop er gezocht is
+(`zoekverantwoording`). De kopieerknop neemt het overzicht mee (`overzichtAlsMarkdown`). Rekenkern in
+`lib/overzicht.ts`.
+
 ### Citatie-chips onder en in het antwoord
 
 Een vindplaats die Lex in gewone taal noemt ("artikel 9 lid 2", "art. 10a, derde lid") en die
@@ -598,12 +610,11 @@ JSON / RDF (TriG)**. De vorm staat in de api (`api/app/annotatie_export.py`); de
 en onder een antwoord met een bron naar een BWB-bepaling staat een knop die hetzelfde paneel op die tab
 opent.
 
-- **Een overzichtsantwoord opent zijn delen.** Een hoofdstuk, titeldeel, afdeling of paragraaf uit de
-  bronnen waarvan de titel in de tekst staat (graph-qa zet die in het label: "Hoofdstuk II – Invordering
-  in eerste aanleg") wordt een eigen cluster; de api toont zo'n deel met zijn artikelen, zonder leden,
-  markeringen en verwijzingen. Een deel binnen een ander gekozen deel valt weg. Het paneel krijgt een
-  artikel als dat er is (het eerste genoemde artikel gaat vooraan). De kop en de knop zeggen "N delen en
-  M artikelen" (`clusterOmschrijving`, `samenhangKnopTekst`).
+- **Een overzichtsantwoord opent de delen van zijn overzicht** (`overzichtDoelen` in
+  `lib/overzicht.ts`): de delen in de volgorde van het overzicht, het eerste in het paneel (de api
+  toont een hoofdstuk als weergave van zijn artikelen en in de samenhang als deel met zijn artikelen).
+  Niet uit de tekst: dezelfde vraag geeft dezelfde kaart, hoe Lex ook formuleert. Kop en knop zeggen
+  "N delen" (`clusterOmschrijving`, `overzichtKnopTekst`).
 - **De knop opent wat het antwoord noemt** (`samenhangDoelen` in `lib/bronnen.ts`): de vermeldingen in
   de tekst die éénduidig bij een bron horen (`vindVermeldingen` + `koppelBron`, dezelfde regel als de
   citatie-chips), in tekstvolgorde, één per artikel maar zo precies als de eerste vermelding, hoogstens

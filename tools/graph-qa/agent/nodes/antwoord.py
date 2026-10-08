@@ -16,6 +16,8 @@ from ..bronregister import bij, controletrace
 from ..focus import na_antwoord
 from ..grounding import check_grounding, curate_sources, herstel_citaten
 from ..narratie import _grounding_melding, _stap, _toolregel
+from ..overzicht import bronrijen as overzicht_bronrijen
+from .overzicht import TOOL as OVERZICHT_TOOL
 from ..prompts import SYSTEM_PROMPT
 from ..provenance import collect_sources
 from ..regelingnamen import met_regelingnamen
@@ -167,7 +169,7 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
     # Getoetst tegen deze beurt én wat eerder in het gesprek letterlijk is opgehaald: een vervolgantwoord
     # dat een citaat uit het vorige antwoord herhaalt, is niet minder brongetrouw dan dat antwoord.
-    report = check_grounding(state.get("answer", ""), controletrace(state))
+    report = check_grounding(state.get("answer", ""), controletrace(state), overzicht=state.get("overzicht") or None)
     # Deze controle heeft geen eigen narratie (geen LLM), dus zonder deze regel gebeurt er iets
     # wezenlijks – de brongetrouwheidstoets – zonder dat de jurist het ziet. De tijdlijn wordt
     # bij de beurt bewaard, dus dit is tegelijk het spoor waarop je achteraf terugvalt.
@@ -284,12 +286,17 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
         writer({"type": "token", "content": antwoord})
         state = {**state, "answer": antwoord}
 
-    sources = collect_sources(state.get("source_trace", []))
-    # Bronnen uit eerdere beurten alleen als het antwoord hun regeling noemt: anders vult elke
-    # vervolgvraag de lijst met alles wat het gesprek ooit ophaalde.
-    sources += hergebruikte_bronnen(state.get("bronregister") or [], state.get("answer", ""), sources)
-    if b.settings.curate_sources:
-        sources = curate_sources(sources, state.get("answer", ""))
+    if state.get("overzicht"):
+        # De overzichtsroute: de bronnen zijn de vindplaatsen van het overzicht, en hangen dus niet af
+        # van hoe de duiding geformuleerd is – geen cureren op de proza, geen bronnen van eerder.
+        sources = collect_sources([(OVERZICHT_TOOL, overzicht_bronrijen(state["overzicht"]))])
+    else:
+        sources = collect_sources(state.get("source_trace", []))
+        # Bronnen uit eerdere beurten alleen als het antwoord hun regeling noemt: anders vult elke
+        # vervolgvraag de lijst met alles wat het gesprek ooit ophaalde.
+        sources += hergebruikte_bronnen(state.get("bronregister") or [], state.get("answer", ""), sources)
+        if b.settings.curate_sources:
+            sources = curate_sources(sources, state.get("answer", ""))
     # Na het cureren: alleen de namen van regelingen die in de lijst blijven (één query per beurt).
     sources = met_regelingnamen(b.graph, sources)
     src_dicts = [s.model_dump() for s in sources]

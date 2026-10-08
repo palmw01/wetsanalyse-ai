@@ -59,9 +59,11 @@ overzien.
    (specialisten `definitie`/`duiding`/`algemeen`: agent ⇄ tools → verify → finalize), de
    **annotatie-worker** (`annoteer → emit`: de hybride keten uit ADR-001 met deterministische
    detectoren, een kleine classifier en een gerichte reviewer op twijfelgevallen, met aandacht-niveau
-   🟢🟡) of de **leesroute** voor vragen óver bestaande annotaties (`annotaties_zoeken`: eerst zelf
+   🟢🟡), de **leesroute** voor vragen óver bestaande annotaties (`annotaties_zoeken`: eerst zelf
    zoeken met `search_annotaties`, dan pas formuleren – zoeken is een stap in de keten, geen keuze
-   van het model).
+   van het model) of de **overzichtsroute** voor "welke artikelen gaan over X?" (`overzicht_bouwen`:
+   het overzicht komt deterministisch uit de graaf en de werkplek toont het als blok; het model duidt
+   alleen, zodat dezelfde vraag hetzelfde overzicht, dezelfde bronnen en dezelfde 3D-graaf geeft).
    Endpoints: `POST /v1/runs` (+ `/events`, `/cancel`; de weg van de werkplek – de beurt draait bij de
    agent, de browser kijkt mee), `POST /v1/chat` (SSE, aan de verbinding gekoppeld en **zonder
    eigenaarscontrole** – niet voor de webapp). De werkplek praat er **direct** mee

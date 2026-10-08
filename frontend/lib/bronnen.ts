@@ -119,43 +119,15 @@ export function normaliseerBronnen(bronnen: readonly Bron[]): Bronnenlijst {
  *  kaart van eilandjes, en elk artikel is een eigen request. */
 export const MAX_SAMENHANG_DOELEN = 8;
 
-const DEELSOORTEN = new Set(["hoofdstuk", "titeldeel", "afdeling", "paragraaf"]);
-
-/** De titel van een structuurbron: "Invordering in eerste aanleg" uit
- *  "Hoofdstuk II – Invordering in eerste aanleg" (graph-qa zet die erbij); leeg zonder titel. */
-function deelTitel(b: Bron): string {
-  const [, titel = ""] = (b.label ?? "").split(" – ", 2);
-  return titel.trim();
-}
-
-/** Wat het antwoord zelf noemt, als doelen voor de 3D-graaf.
+/** De artikelen die het antwoord zelf noemt, in de volgorde van de tekst, als doelen voor de
+ *  3D-graaf. Alleen een éénduidige koppeling telt (`koppelBron`, dezelfde regel als de
+ *  citatie-chips). Eén doel per artikel, maar wel zo precies als de eerste vermelding: een genoemd lid
+ *  opent zijn artikel met dát lid gekozen. Noemt de tekst niets te koppelen, dan de eerste bepaling
+ *  uit de bronnen.
  *
- *  - **Structuurdelen** (hoofdstuk, titeldeel, afdeling, paragraaf) waarvan de titel in de tekst staat –
- *    de kern van een overzichtsantwoord. De api toont zo'n deel met zijn artikelen. Een deel binnen een
- *    ander gekozen deel (paragraaf 4.4.4.2 in afdeling 4.4.4) valt weg.
- *  - **Artikelen** die de tekst noemt, in tekstvolgorde. Alleen een éénduidige koppeling telt
- *    (`koppelBron`, dezelfde regel als de citatie-chips); één doel per artikel, wel zo precies als de
- *    eerste vermelding: een genoemd lid opent zijn artikel met dát lid gekozen.
- *
- *  Het eerste doel opent ook in het paneel (tekst en annotatie); daarom gaat een artikel voor als er
- *  een is. Noemt de tekst niets te koppelen, dan de eerste bepaling uit de bronnen – het oude gedrag. */
+ *  Een overzichtsantwoord gaat hier niet langs: dat draagt zijn delen zelf (`overzichtDoelen` in
+ *  `lib/overzicht.ts`), zodat de kaart niet afhangt van hoe Lex formuleerde. */
 export function samenhangDoelen(tekst: string, bronnen: readonly Bron[], max = MAX_SAMENHANG_DOELEN): { doelen: NodeDoel[]; totaal: number } {
-  const laag = tekst.toLowerCase();
-  const delen: NodeDoel[] = [];
-  const posities = new Map<string, number>();
-  for (const b of bronnen) {
-    const vp = vindplaatsVan(b.bron_iri || b.uri);
-    const titel = deelTitel(b);
-    if (!vp || !DEELSOORTEN.has(vp.soort) || titel.length < 4) continue;
-    const plek = laag.indexOf(titel.toLowerCase());
-    if (plek < 0 || posities.has(vp.bron_iri)) continue;
-    posities.set(vp.bron_iri, plek);
-    delen.push({ bron_iri: vp.bron_iri, bwb_id: vp.bwb_id, label: b.label, ...(b.regeling ? { citeertitel: b.regeling } : {}) });
-  }
-  const binnen = (iri: string, ouder: string) => iri.startsWith(`${ouder}:`);
-  const kern = delen.filter((d) => !delen.some((o) => o !== d && binnen(d.bron_iri, o.bron_iri)))
-    .sort((a, b) => posities.get(a.bron_iri)! - posities.get(b.bron_iri)!);
-
   const gezien = new Map<string, NodeDoel>();
   const voegToe = (b: Bron) => {
     const doel = bronDoel(b.bron_iri || b.uri);
@@ -168,13 +140,11 @@ export function samenhangDoelen(tekst: string, bronnen: readonly Bron[], max = M
     const i = koppelBron(v, bronnen);
     if (i >= 0) voegToe(bronnen[i]);
   }
-  if (!gezien.size && !kern.length) {
+  if (!gezien.size) {
     const eerste = bronnen.find((b) => bronDoel(b.bron_iri || b.uri)?.artikel);
     if (eerste) voegToe(eerste);
   }
-  const artikelen = [...gezien.values()];
-  // Kern eerst, maar het paneel krijgt een artikel: het eerste genoemde artikel gaat vooraan.
-  const alle = artikelen.length && kern.length ? [artikelen[0], ...kern, ...artikelen.slice(1)] : [...kern, ...artikelen];
+  const alle = [...gezien.values()];
   return { doelen: alle.slice(0, max), totaal: alle.length };
 }
 
@@ -184,10 +154,5 @@ export function samenhangKnopTekst({ doelen, totaal }: { doelen: NodeDoel[]; tot
     const d = doelen[0];
     return `Bekijk samenhang van ${d.label ?? "de bepaling"}${d.citeertitel ? ` ${d.citeertitel}` : ""}`;
   }
-  const getoond = totaal > doelen.length ? ` (${doelen.length} getoond)` : "";
-  const delen = doelen.filter((d) => !d.artikel).length;
-  if (!delen) return `Bekijk samenhang van de ${totaal} genoemde artikelen${getoond}`;
-  const artikelen = doelen.length - delen;
-  const stuk = (n: number, een: string, meer: string) => `${n} ${n === 1 ? een : meer}`;
-  return `Bekijk samenhang van ${stuk(delen, "deel", "delen")}${artikelen ? ` en ${stuk(artikelen, "artikel", "artikelen")}` : ""}${getoond}`;
+  return `Bekijk samenhang van de ${totaal} genoemde artikelen${totaal > doelen.length ? ` (${doelen.length} getoond)` : ""}`;
 }

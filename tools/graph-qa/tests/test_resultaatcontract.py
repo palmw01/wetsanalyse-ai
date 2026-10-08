@@ -34,6 +34,7 @@ _LANG = "De ontvanger kan op verzoek uitstel van betaling verlenen onder door he
 ARGS: dict[str, dict] = {
     "search_wetgeving": {"query": "uitstel"},
     "zoek_opbouw": {"onderwerp": "invordering"},
+    "overzicht_onderwerp": {"onderwerp": "invordering"},
     "semantic_search": {"query": "uitstel van betaling"},
     "get_artikel": {"bwb_id": IW, "artikel": "9"},
     "get_lid": {"bwb_id": IW, "artikel": "9", "lid": "1"},
@@ -91,9 +92,12 @@ class WorstCaseGraaf:
     def sparql(self, query: str) -> str:
         self.queries.append(query)
         m = re.search(r"SELECT\s+(?:DISTINCT\s+)?(.*?)\s+WHERE", query, re.S | re.I)
-        variabelen = re.findall(r"\?(\w+)(?=\s|\)|$)", m.group(1)) if m else ["s"]
-        # `(EXPR AS ?x)` levert alleen ?x op.
-        variabelen = list(dict.fromkeys(re.findall(r"AS\s+\?(\w+)", m.group(1)) or variabelen)) if m and " AS " in m.group(1) else variabelen
+        # Gewone kolommen plus de `(EXPR AS ?x)`-kolommen, zoals GraphDB ze teruggeeft; de variabelen
+        # binnen een expressie zijn geen kolom.
+        kop = m.group(1) if m else "?s"
+        zonder_expressies = re.sub(r"\((?:[^()]|\([^()]*\))*\)", " ", kop)
+        variabelen = list(dict.fromkeys(
+            re.findall(r"\?(\w+)", zonder_expressies) + re.findall(r"AS\s+\?(\w+)", kop)))
         limit = re.search(r"LIMIT\s+(\d+)", query)
         offset = re.search(r"OFFSET\s+(\d+)", query)
         start = int(offset.group(1)) if offset else 0

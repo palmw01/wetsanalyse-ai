@@ -181,7 +181,8 @@ gebeurt in Python, want de elementen staan als JSON en de tests draaien op SQLit
 `actieve_userid`; 404 op andermans gesprek.
 
 - Een bericht verwijst via `annotatie_doel` naar de bronnode van zijn annotatie en draagt het
-  uitvoeringsspoor van de beurt (`tool_executions`).
+  uitvoeringsspoor van de beurt (`tool_executions`). Een antwoord op een overzichtsvraag draagt het
+  `overzicht` dat graph-qa uit de graaf bouwde, zodat het blok na herladen hetzelfde is.
   De review-state zelf blijft in het annotatiedomein. **Een veld dat graph-qa meestuurt moet in
   `BerichtInvoer` staan**, anders laat Pydantic het stil vallen en verdwijnen na het heropenen de
   chip naar het annotatiepaneel en het toolspoor. `tools/graph-qa/tests/test_contract_drift.py`

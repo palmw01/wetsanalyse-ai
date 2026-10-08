@@ -92,10 +92,19 @@ const berichtenTwee = [
     annotatie_slug: "", annotatie_titel: "" },
 ];
 
-// Een overzichtsantwoord: een hoofdstuk bij zijn titel in een tabel, en één los artikel.
+// Een overzichtsantwoord: de duiding van Lex plus het overzicht uit de graaf (graph-qa
+// `agent/overzicht.py`), zoals het in het bericht bewaard wordt.
 const berichtenOverzicht = [
   { rol: "user", tekst: "Welke artikelen gaan over invordering?", denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "" },
-  { rol: "assistant", tekst: "| Hoofdstuk | Onderwerp | Artikelen |\n|---|---|---|\n| II | Invordering in eerste aanleg | 9, 10 |\n\nDaarnaast artikel 4 Invorderingswet 1990.", denk: "",
+  { rol: "assistant", tekst: "De invordering staat vooral in de Invorderingswet 1990.", denk: "",
+    overzicht: {
+      gevraagd: "invordering", onderwerp_opbouw: "invordering", onderwerp_tekst: "invordering", scope: [], volledig: true,
+      definities: [], trefwoorden: [],
+      regelingen: [{ bwb_id: "BWBR0004770", citeertitel: "Invorderingswet 1990", soort: "wet",
+        delen: [{ iri: HII, soort: "Hoofdstuk", label: "Hoofdstuk II – Invordering in eerste aanleg", jci: "",
+          bepalingen: [{ iri: ART, nummer: "9", label: "Artikel 9" }, { iri: A10, nummer: "10", label: "Artikel 10" }], subdelen: [] }],
+        ook_genoemd: [{ iri: `${LAW}:artikel:4`, nummer: "4", label: "Artikel 4", in_deel: { iri: `${LAW}:hoofdstuk:I`, label: "Hoofdstuk I – Algemene bepalingen" } }] }],
+    },
     bronnen: [
       { label: "Hoofdstuk II – Invordering in eerste aanleg", uri: HII, bron_iri: HII, bwb_id: "BWBR0004770", soort: "hoofdstuk", regeling: "Invorderingswet 1990" },
       { label: "Artikel 4", uri: `${LAW}:artikel:4`, bron_iri: `${LAW}:artikel:4`, bwb_id: "BWBR0004770", soort: "artikel", regeling: "Invorderingswet 1990" }],
@@ -367,20 +376,27 @@ async function detailsOpen(page) {
   await page.close();
 }
 
-// 13c. Een overzichtsantwoord: de bronnenlijst noemt het hoofdstuk bij zijn titel, de knop opent het
-// hoofdstuk als cluster met zijn artikelen, en een artikel daaruit opent in het paneel.
+// 13c. Een overzichtsantwoord: het blok toont het overzicht uit het bericht (alle nummers, de plek van
+// wat het onderwerp verder noemt), de knop opent de delen uit dát overzicht – niet uit de tekst – en
+// een artikel daaruit opent in het paneel.
 {
   bijgewerkt = false;
   const { page, log } = await nieuwePagina();
   await page.goto(`${base}/workbench?gesprek=g3`);
+  const blok = page.getByTestId("overzicht");
+  await blok.waitFor();
+  assert.match(await blok.innerText(), /Hoofdstuk II – Invordering in eerste aanleg\s+art\. 9, art\. 10/);
+  await blok.getByRole("button", { name: /Noemt het onderwerp ook \(1\)/ }).click();
+  assert.match(await blok.innerText(), /art\. 4 · in Hoofdstuk I – Algemene bepalingen/);
   await page.getByRole("button", { name: /^Bronnen \(2\)/ }).click();
   assert.match(await page.locator('[data-tour="bronnen"]').innerText(), /Hoofdstuk II – Invordering in eerste aanleg/);
-  await page.getByRole("button", { name: "Bekijk samenhang van 1 deel en 1 artikel in 3D" }).click();
+  await page.getByRole("button", { name: "Bekijk samenhang van Hoofdstuk II – Invordering in eerste aanleg in 3D" }).click();
   await page.getByTestId("samenhang-graaf").waitFor();
-  await page.getByRole("heading", { name: /^Samenhang van 1 deel en 1 artikel/ }).waitFor();
-  assert.ok([...new Set(log.samenhang)].includes(HII), "het hoofdstuk wordt als deel geladen");
+  await page.getByRole("heading", { name: /^Samenhang van Hoofdstuk II/ }).waitFor();
+  assert.deepEqual([...new Set(log.samenhang)], [HII], "alleen het deel uit het overzicht wordt geladen");
+  // Het paneel toont het hoofdstuk zelf, en artikel 10 staat daarin: dus "Toon in tekst".
   await zoekEnKies(page, "Artikel 10", A10);
-  await page.getByRole("button", { name: "Open in het paneel" }).waitFor();
+  await page.getByRole("button", { name: "Toon in tekst" }).waitFor();
   await page.screenshot({ path: `${shots}/2c-overzicht.png` });
   assert.deepEqual(log.errors, []);
   assert.deepEqual(log.console, [], "geen consolefouten");

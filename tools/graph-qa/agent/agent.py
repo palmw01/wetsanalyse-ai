@@ -204,6 +204,10 @@ async def answer_stream(
         "annotatie_fout": "",
         "messages": [{"role": "user", "content": question}],
         "zelfstandige_vraag": "",
+        # Een overzicht hoort bij de vraag die erom vroeg: bleef het staan, dan kreeg de volgende
+        # vraag in dezelfde thread het blok en de bronnen van de vorige.
+        "overzicht_route": False,
+        "overzicht": {},
         "modus": modus,
         "context": context.model_dump() if hasattr(context, "model_dump") else (context or {}),
         # Het doel dat de aanroeper meegaf – MOET mee in de reset, net als de annotatievelden

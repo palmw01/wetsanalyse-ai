@@ -32,6 +32,11 @@ GEVALLEN: list[tuple[str, str]] = [
     ("fts+veld+scope", q.fts("bestuurder", 5, veld="definieertBegrip", bwb_id=IW, soort="Onderdeel", offset=10)),
     ("zoek_opbouw", q.zoek_opbouw("invordering")),
     ("zoek_opbouw+scope", q.zoek_opbouw("uitstel van betaling", IW, 10, offset=10, meer=True)),
+    ("plaats_in_opbouw", q.plaats_in_opbouw([f"urn:bwb:{IW}:artikel:4", "urn:bwb:BWBR0005537:artikel:4%3A94a"])),
+    ("bepalingen_in_delen", q.bepalingen_in_delen([f"urn:bwb:{IW}:hoofdstuk:II", f"urn:bwb:{LEIDRAAD}:artikel:28"])),
+    ("bepalingen_met_onderwerp", q.bepalingen_met_onderwerp("invordering")),
+    ("definities_van", q.definities_van("invordering")),
+    ("trefwoord_regelingen", q.trefwoord_regelingen("invordering")),
     ("list_regelingen", q.list_regelingen()),
     ("get_artikel", q.get_artikel(IW, "36")),
     ("get_lid", q.get_lid(IW, "2", "1")),
@@ -82,6 +87,6 @@ def test_elke_publieke_bouwer_wordt_getoetst():
         if not naam.startswith("_") and callable(getattr(q, naam)) and getattr(q, naam).__module__ == q.__name__
     }
     # Helpers die geen complete query opleveren.
-    helpers = {"regeling_iri", "artikel_iri", "lid_iri", "node_patroon", "is_artikelnummer", "opbouw_lucene"}
+    helpers = {"regeling_iri", "artikel_iri", "lid_iri", "node_patroon", "is_artikelnummer", "opbouw_lucene", "onderwerpwoorden", "is_bron_iri"}
     ontbreekt = publiek - getoetst - helpers
     assert not ontbreekt, f"deze query-bouwers staan niet in GEVALLEN: {sorted(ontbreekt)}"

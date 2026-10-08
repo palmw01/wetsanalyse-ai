@@ -578,6 +578,8 @@ export interface Bericht {
   /** Lex hergebruikte (een deel van) de gedeelde laag; zelfde vorm als het `hergebruik`-event
    *  (maar met de leden zoals graph-qa ze stuurde – zie `parseHergebruik`). */
   hergebruik?: unknown;
+  /** Het overzicht van een onderwerp; zelfde vorm als het `overzicht`-event (zie `parseOverzicht`). */
+  overzicht?: unknown;
   /** Van welke agent-run deze beurt de uitkomst is; de api gebruikt het als idempotentiesleutel,
    *  zodat twee meekijkende tabbladen niet elk hun eigen kopie wegschrijven. */
   run_id: string;
@@ -585,6 +587,29 @@ export interface Bericht {
    *  werkplek toont de berichten met dezelfde `reeks.run_id` samen als één reeksblok. */
   reeks?: ReeksPlek | null;
   created?: string;
+}
+
+/** Het overzicht van een onderwerp ("welke artikelen gaan over invordering?"), door graph-qa
+ *  deterministisch uit de graaf opgebouwd (`tools/graph-qa/agent/overzicht.py`). De werkplek toont
+ *  het zoals het is: geen bereiken, geen samenvatting – elk nummer met zijn eigen vindplaats. */
+export interface OverzichtBepaling { iri: string; nummer: string; label: string; jci?: string;
+  /** Alleen bij "ook genoemd": het meest specifieke deel waarin de bepaling staat. */
+  in_deel?: { iri: string; label: string } }
+export interface OverzichtDeel { iri: string; soort: string; label: string; jci: string;
+  bepalingen: OverzichtBepaling[]; subdelen: { iri: string; label: string }[] }
+export interface OverzichtRegeling { bwb_id: string; citeertitel: string; soort: string;
+  delen: OverzichtDeel[]; ook_genoemd: OverzichtBepaling[] }
+export interface Overzicht {
+  /** Wat er gevraagd werd, en waarop er in opschriften en tekst gezocht is (elk het langste begin
+   *  van het onderwerp dat iets opleverde). */
+  gevraagd: string; onderwerp_opbouw: string; onderwerp_tekst: string;
+  /** De regelingen die de vraag bij naam noemde (afbakening); leeg = alle. */
+  scope: string[];
+  /** False als het overzicht zijn plafond raakte. */
+  volledig: boolean;
+  definities: { iri: string; begrip: string; label: string; tekst: string; jci: string; bwb_id: string; citeertitel: string }[];
+  trefwoorden: { trefwoord: string; regelingen: { bwb_id: string; citeertitel: string }[] }[];
+  regelingen: OverzichtRegeling[];
 }
 
 /** Spiegelt `ReeksPlek` in api/app/gesprek_contracts.py. */

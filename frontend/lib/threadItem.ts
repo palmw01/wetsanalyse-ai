@@ -6,7 +6,7 @@
 
 import type { Reeks } from "./reeks";
 import type {
-  AgentDoelInvoer, AgentGrounding, AgentHergebruik, AgentKandidaat, AgentKeuze, Bron,
+  AgentDoelInvoer, AgentGrounding, AgentHergebruik, AgentKandidaat, AgentKeuze, Bron, Overzicht,
 } from "./types";
 
 export type ThreadItem = { tool_executions?: import("./annotatieNode").ToolExecution[] } & (
@@ -16,7 +16,10 @@ export type ThreadItem = { tool_executions?: import("./annotatieNode").ToolExecu
   | { id: string; type: "antwoord"; tekst: string; denk?: string; bronnen?: Bron[];
       // De brongetrouwheidstoets van déze beurt. Live; hij reist niet mee in het berichtcontract,
       // maar de statusregel ervan staat wél in `denk` en blijft dus na herladen terug te vinden.
-      grounding?: AgentGrounding }
+      grounding?: AgentGrounding;
+      // Het overzicht van een onderwerp, uit de graaf (graph-qa `agent/overzicht.py`): de werkplek
+      // toont het als blok onder de duiding, en de 3D-knop opent er de delen van.
+      overzicht?: Overzicht }
   // `denk` = de tijdlijn van het samenspel (supervisor → ophaal → annoteer → emit). Die blijft ook
   // bewaard als de beurt een annotatie blijkt; juist bij een annotatie wil je achteraf kunnen zien
   // hoe hij tot stand kwam.

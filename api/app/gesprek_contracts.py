@@ -64,6 +64,10 @@ class Bericht(BaseModel):
     # Wat de annotatieketen wel en niet kon bekijken (dimensies per bronnode, ongedekte zinsdelen met
     # offsets, procesdekking, de fasen met hun duur) – zodat een heropend gesprek het nog toont.
     dekking: dict = {}
+    # Het overzicht van een onderwerp ("welke artikelen gaan over X"), deterministisch uit de graaf
+    # opgebouwd door graph-qa: per regeling de delen met hun bepalingen, wat er verder over gaat, de
+    # definitie en het trefwoord. De werkplek toont het als blok en opent er de 3D-graaf mee.
+    overzicht: dict = {}
     # Bronnode-annotatie (contract 2): de verwijzing die `annotatie_slug` voor een artikeldocument is.
     annotatie_doel: AnnotatieDoel | None = None
     # Het uitvoeringsspoor van de beurt ("Graaf geraadpleegd · N aanroepen"), ook na herladen.
@@ -105,6 +109,7 @@ class BerichtInvoer(BaseModel):
     annotatie_titel: str = ""
     hergebruik: dict = {}
     dekking: dict = {}
+    overzicht: dict = {}
     annotatie_doel: AnnotatieDoel | None = None
     # Een beurt levert er hooguit enkele tientallen; de grens is een vangnet, geen verwachting.
     tool_executions: list[dict] = Field(default_factory=list, max_length=200)

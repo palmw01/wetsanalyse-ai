@@ -66,6 +66,22 @@ def zonder_verboden(answer: str, verboden: list[str]) -> bool:
     return not any(v.lower() in low for v in (verboden or []))
 
 
+def overzicht_ok(overzicht: dict[str, Any] | None, verwacht: dict[str, Any] | None) -> bool:
+    """Klopt het overzicht dat de keten bouwde (`agent/overzicht.py`)?
+
+    Een overzichtsvraag werd op proza gescoord ("staat 'Dwanginvordering' in het antwoord"), en die
+    proza wisselde per run. Het overzicht zelf is deterministisch en kan dus streng: de verwachte
+    delen staan erin (`delen`, IRI's), en wat binnen een deel valt staat niet ook los (`niet_los`) –
+    precies de fout die Lex maakte met art. 31 en 63 Iw."""
+    if not verwacht:
+        return True
+    if not overzicht:
+        return False
+    delen = {d["iri"] for r in overzicht.get("regelingen", []) for d in r.get("delen", [])}
+    los = {b["iri"] for r in overzicht.get("regelingen", []) for b in r.get("ook_genoemd", [])}
+    return set(verwacht.get("delen", [])) <= delen and not (set(verwacht.get("niet_los", [])) & los)
+
+
 def refusal_ok(sources: list[dict[str, Any]], should_refuse: bool) -> bool:
     refused = len(sources) == 0
     return refused if should_refuse else not refused
@@ -79,6 +95,7 @@ class CaseResult:
     contains_ok: bool
     refusal_ok: bool
     zonder_verboden_ok: bool = True
+    overzicht_ok: bool = True
     error: str | None = None
     passed: bool = field(init=False)
 
@@ -90,6 +107,7 @@ class CaseResult:
             and self.contains_ok
             and self.refusal_ok
             and self.zonder_verboden_ok
+            and self.overzicht_ok
         )
 
 
@@ -99,6 +117,7 @@ def score_case(
     sources: list[dict[str, Any]],
     grounding: dict[str, Any],
     error: str | None = None,
+    overzicht: dict[str, Any] | None = None,
 ) -> CaseResult:
     should_refuse = bool(case.get("should_refuse", False))
     return CaseResult(
@@ -108,6 +127,7 @@ def score_case(
         contains_ok=contains_ok(answer, case.get("expected_contains", [])),
         refusal_ok=refusal_ok(sources, should_refuse),
         zonder_verboden_ok=zonder_verboden(answer, case.get("verboden", [])),
+        overzicht_ok=overzicht_ok(overzicht, case.get("verwacht_overzicht")),
         error=error,
     )
 

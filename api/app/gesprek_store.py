@@ -29,6 +29,7 @@ def _bericht_uit_row(row) -> Bericht:
         run_id=inhoud.get("run_id", ""),
         hergebruik=inhoud.get("hergebruik", {}) or {},
         dekking=inhoud.get("dekking", {}) or {},
+        overzicht=inhoud.get("overzicht", {}) or {},
         annotatie_doel=inhoud.get("annotatie_doel") or None,
         tool_executions=inhoud.get("tool_executions", []) or [],
         reeks=inhoud.get("reeks") or None,
@@ -51,6 +52,8 @@ def _inhoud(inv: BerichtInvoer | Bericht) -> dict:
         inhoud["hergebruik"] = inv.hergebruik
     if inv.dekking:
         inhoud["dekking"] = inv.dekking
+    if inv.overzicht:
+        inhoud["overzicht"] = inv.overzicht
     if inv.annotatie_doel:
         inhoud["annotatie_doel"] = inv.annotatie_doel.model_dump()
     if inv.tool_executions:

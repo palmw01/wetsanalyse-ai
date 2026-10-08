@@ -27,6 +27,7 @@ import type {
   AgentDoel,
   AgentDoelInvoer,
   AgentHergebruik,
+  Overzicht,
   AgentKandidaat,
   AgentKeuze,
   AnnotatieDocument,
@@ -50,7 +51,7 @@ import { useBreedScherm } from "@/lib/useBreedScherm";
 import { jasStyle, klasseLabel } from "@/lib/jas";
 import type { ThreadItem } from "@/lib/threadItem";
 import { WerkplekHeader } from "./WerkplekHeader";
-import { parseHergebruik } from "@/lib/agentEvents";
+import { parseHergebruik, parseOverzicht } from "@/lib/agentEvents";
 import {
   pasDemoBeslissingToe, voegDemoElementToe, wisDemoElement, zetDemoStatus, type DemoScene,
 } from "@/lib/rondleidingDemo";
@@ -257,7 +258,9 @@ export function WerkplekClient({
                   tekst: b.tekst?.trim() || undefined,
                   // Na herladen moet nog te zien zijn dat er niets opnieuw is bekeken.
                   hergebruik: b.hergebruik ? parseHergebruik(b.hergebruik) : undefined }
-              : { id: uid(), type: "antwoord" as const, tekst: b.tekst, denk: b.denk, bronnen: b.bronnen, tool_executions: toolSpoorUit(b.tool_executions) }];
+              : { id: uid(), type: "antwoord" as const, tekst: b.tekst, denk: b.denk, bronnen: b.bronnen, tool_executions: toolSpoorUit(b.tool_executions),
+                  // Het overzicht zoals graph-qa het opbouwde: na herladen hetzelfde blok en dezelfde 3D-doelen.
+                  overzicht: b.overzicht ? parseOverzicht(b.overzicht) : undefined }];
         });
         // VÓÓR wat er al staat, niet in plaats daarvan. Verstuurde de jurist een vraag terwijl dit nog
         // laadde (een koude start duurt seconden), dan staan zijn vraag en het lopende antwoord al in
@@ -568,6 +571,7 @@ export function WerkplekClient({
     // Een reeks (meerdere onderdelen in één run): de stroom wordt per onderdeel ingedeeld.
     let reeks: Reeks | null = null;
     let hergebruik: AgentHergebruik | undefined;
+    let overzicht: Overzicht | undefined;
     let tekst = "";
     let denk = "";
     let bronnen: Bron[] = [];
@@ -634,6 +638,10 @@ export function WerkplekClient({
             updateItem(antId, { bronnen: b });
           },
           onGrounding: (g) => updateItem(antId, { grounding: g }),
+          onOverzicht: (o) => {
+            overzicht = o;
+            updateItem(antId, { overzicht: o });
+          },
           onToolExecution: (event) => {
             toolExecutions = mergeToolExecution(toolExecutions, event);
             updateItem(antId, { tool_executions: toolExecutions });
@@ -728,7 +736,8 @@ export function WerkplekClient({
         if (!tekst.trim()) updateItem(antId, { tekst: "(geen antwoord)" });
         // `run_id` maakt dit bericht idempotent: kijken er twee tabbladen mee, dan landt de
         // uitkomst van deze run toch maar één keer.
-        void persisteer(gid, "assistant", { tekst: tekst.trim() || "(geen antwoord)", denk, bronnen, run_id: id, tool_executions: toolExecutions });
+        void persisteer(gid, "assistant", { tekst: tekst.trim() || "(geen antwoord)", denk, bronnen, run_id: id,
+          tool_executions: toolExecutions, ...(overzicht ? { overzicht } : {}) });
       }
       onGewijzigd();
     } catch (e) {
