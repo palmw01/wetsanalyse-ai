@@ -20,6 +20,12 @@ describe("bouwCsp", () => {
     expect(scriptSrc(bouwCsp("x", false))).not.toContain("'unsafe-eval'");
   });
 
+  it("staat een worker van de eigen origin toe – 'strict-dynamic' maakt 'self' in script-src ongeldig", () => {
+    // De layout van de graaf rekent in een Web Worker; zonder `worker-src` valt de browser terug op
+    // `script-src` en weigert hij hem.
+    expect(bouwCsp("x", false)).toContain("worker-src 'self'");
+  });
+
   it("houdt de overige directives van de statische policy", () => {
     const csp = bouwCsp("x", false);
     for (const d of ["default-src 'self'", "img-src 'self' data:", "connect-src 'self'", "frame-ancestors 'none'", "base-uri 'self'", "form-action 'self'"]) {

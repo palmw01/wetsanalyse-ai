@@ -25,7 +25,7 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
 
 | Module | Rol |
 |---|---|
-| `main.py` | Routers, `/health`, `/ready`, lifespan: LLM-throttle, DB-init met bounded retry (`_init_db_met_retry`), seeding van profiel en budgetbeleid, start van de projectielussen als `GRAPHDB_URL` gezet is. |
+| `main.py` | Routers, `/health`, `/ready`, gzip voor grote antwoorden (`GZipMiddleware`, ≥1 kB; Starlette slaat `text/event-stream` over), lifespan: LLM-throttle, DB-init met bounded retry (`_init_db_met_retry`), seeding van profiel en budgetbeleid, start van de projectielussen als `GRAPHDB_URL` gezet is. |
 | `config.py` | `Settings` uit de env; `_read_secret` leest `NAAM` of `NAAM_FILE`. |
 | `db.py` | Async SQLAlchemy Core: engine en alle tabellen. Zie §*Schema*. |
 | `deps.py` | `get_gesprek_store`. |
@@ -39,7 +39,8 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
 | `bron_resolver.py` + `packages/bronmodel` | Bronboom ophalen uit de BWB-named graph, snapshot bouwen, ankers valideren. `bronmodel` is een lokaal pakket dat de API en graph-qa delen (één bronidentiteit en ankerbasis). |
 | `graaf_projectie_v2.py`, `vocabulaire/` | Projectie van de lagen naar GraphDB, en de JAS-vocabulaire. |
 | `graafcontrole.py`, `shacl.py`, `shapes/jas-v2.ttl` | Controle achteraf: klopt de graaf met Postgres? |
-| `samenhang.py` | Structuur, annotaties en verwijzingen van één artikel (of het overzicht van een structuurdeel), voor de 3D-weergave. |
+| `samenhang.py` | Structuur, annotaties en verwijzingen van één artikel (of het overzicht van een structuurdeel), voor de graafweergave; de bouwstenen (`bronknoop`, `markeringen`, `verwijzingen`) deelt hij met `graaf.py`. |
+| `graaf.py` | De complete graaf (`/graaf`): alle regelingen met structuur, verwijzingen en markeringen; structuur en verwijzingen gecachet per `(bwb_id, toestandUrl)`. |
 | `annotatie_statistiek.py`, `scripts/statistiek.py` | Reviewstatistiek over de elementen: uitkomst per klasse en per model, klasse-verschuivingen, aandacht tegenover correctie. |
 | `jas_klassen.py`, `validation.py` | De dertien JAS-klassen, volgorde en kleuren (canoniek); `GELDIGE_JAS_KLASSEN`, `JAS_KLASSE_KLEUREN`, `jas_sorteersleutel`. |
 | `ratelimit.py` | In-process rate limit per client. |
@@ -135,6 +136,12 @@ Hieronder wat je moet weten om de code te wijzigen.
   verzoek en haalt per regeling de bronboom één keer op (`bron_resolver.haal_bronrijen` +
   `snapshot_uit`); een doel dat niet resolvet staat in `fouten`. Een overzicht opent zo 15 delen met 4
   bronbomen in plaats van 15.
+  **`/graaf`** (`graaf.py`, `bwb_id` herhaalbaar, leeg = alle) levert de complete graaf in dezelfde
+  `Knoop`/`Relatie`-vorm, zonder tekst (≈2 MB JSON voor alles, gzip). Structuur (`haal_bronrijen`) en
+  uitgaande verwijzingen (uit de named graph van de regeling, zonder LIMIT) staan per proces in een
+  cache onder `(bwb_id, bwb:toestandUrl)`: een herimport met een nieuwe toestand ververst vanzelf.
+  Markeringen komen altijd vers (`store.actuele_elementen`). `versie` = hash van de toestanden; daarop
+  cachet de werkplek de layout. Een BWB-id gaat letterlijk een query in en wordt strikt gevalideerd.
   Het label van een deel krijgt zijn nummer (`_label`: de bronboom draagt "Hoofdstuk" en "II" apart);
   bewust hier en niet in `bronmodel`, waar het de snapshot-identiteit van bestaande lagen zou raken.
 
