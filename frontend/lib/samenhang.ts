@@ -476,6 +476,20 @@ export function paneelDoel(knoop: Pick<GraafKnoop, "id" | "bwb_id" | "artikel" |
   return undefined;
 }
 
+/** Is dit cluster een structuurdeel (hoofdstuk, afdeling …) in plaats van een artikel? */
+export function isDeelCluster(d: Samenhang): boolean {
+  return d.knopen.find((k) => k.id === d.artikel_iri)?.soort === "deel";
+}
+
+/** Wat de clusters zijn, voor de kop van de graaf: "8 artikelen", of bij een overzichtsantwoord
+ *  "7 delen en 1 artikel" (een deel – hoofdstuk, afdeling – toont de api met zijn artikelen). */
+export function clusterOmschrijving(delen: readonly Samenhang[]): string {
+  const n = delen.filter(isDeelCluster).length, m = delen.length - n;
+  const stuk = (x: number, een: string, meer: string) => `${x} ${x === 1 ? een : meer}`;
+  if (!n) return stuk(m, "artikel", "artikelen");
+  return stuk(n, "deel", "delen") + (m ? ` en ${stuk(m, "artikel", "artikelen")}` : "");
+}
+
 /** Korte stand van zaken voor de inspector zonder selectie. */
 export function samenvatting(graaf: GraafData): { leden: number; markeringen: number; verwijzingen: number } {
   return {

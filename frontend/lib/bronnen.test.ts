@@ -102,6 +102,37 @@ describe("samenhangDoelen", () => {
     expect(samenhangKnopTekst(keuze)).toBe("Bekijk samenhang van Artikel 9, lid 2 Invorderingswet 1990");
   });
 
+  it("opent bij een overzichtsantwoord de genoemde delen, met een artikel vooraan voor het paneel", () => {
+    // De vorm van het antwoord op 8 okt: hoofdstukken in een tabel bij hun titel, losse artikelen erna.
+    const bronnen: Bron[] = [
+      { label: "Hoofdstuk II – Invordering in eerste aanleg", uri: iri(IW, "hoofdstuk", "II"), regeling: "Invorderingswet 1990" },
+      { label: "Hoofdstuk III – Dwanginvordering", uri: iri(IW, "hoofdstuk", "III") },
+      { label: "Hoofdstuk 4, titeldeel 4.4, afdeling 4.4.4 – Aanmaning en invordering bij dwangbevel",
+        uri: iri(AWB, "hoofdstuk", "4", "titeldeel", "4.4", "afdeling", "4.4.4") },
+      { label: "Hoofdstuk 4, titeldeel 4.4, afdeling 4.4.4, paragraaf 4.4.4.2 – Invordering bij dwangbevel",
+        uri: iri(AWB, "hoofdstuk", "4", "titeldeel", "4.4", "afdeling", "4.4.4", "paragraaf", "4.4.4.2") },
+      { label: "Hoofdstuk VI – Aansprakelijkheid", uri: iri(IW, "hoofdstuk", "VI") },
+      { label: "Artikel 4", uri: iri(IW, "artikel", "4") },
+    ];
+    const tekst = "| II | Invordering in eerste aanleg | 8, 9, 10 |\n| III | Dwanginvordering | 11, 12 |\n"
+      + "| Afdeling 4.4.4 | Aanmaning en invordering bij dwangbevel |\n| § 4.4.4.2 | Invordering bij dwangbevel |\n"
+      + "Daarnaast artikel 4 Invorderingswet 1990.";
+    const keuze = samenhangDoelen(tekst, bronnen);
+    expect(keuze.doelen.map((d) => d.bron_iri)).toEqual([
+      iri(IW, "artikel", "4"), iri(IW, "hoofdstuk", "II"), iri(IW, "hoofdstuk", "III"),
+      iri(AWB, "hoofdstuk", "4", "titeldeel", "4.4", "afdeling", "4.4.4"),
+    ]);
+    expect(samenhangKnopTekst(keuze)).toBe("Bekijk samenhang van 3 delen en 1 artikel");
+  });
+
+  it("opent geen deel dat de tekst niet bij zijn titel noemt", () => {
+    const keuze = samenhangDoelen("Zie artikel 9 lid 2.", [
+      { label: "Hoofdstuk I – Algemene bepalingen", uri: iri(IW, "hoofdstuk", "I") },
+      { label: "y", uri: iri(IW, "artikel", "9", "lid", "2") },
+    ]);
+    expect(keuze.doelen.every((d) => d.artikel)).toBe(true);
+  });
+
   it("koppelt een dubbelzinnige vermelding niet", () => {
     // "artikel 1" bestaat in twee regelingen: geen doel, dus de terugval.
     const keuze = samenhangDoelen("Zie artikel 1.", [oud(iri(IW, "artikel", "1")), oud(iri(AWR, "artikel", "1"))]);

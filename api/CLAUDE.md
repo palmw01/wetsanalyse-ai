@@ -39,7 +39,7 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
 | `bron_resolver.py` + `packages/bronmodel` | Bronboom ophalen uit de BWB-named graph, snapshot bouwen, ankers valideren. `bronmodel` is een lokaal pakket dat de API en graph-qa delen (één bronidentiteit en ankerbasis). |
 | `graaf_projectie_v2.py`, `vocabulaire/` | Projectie van de lagen naar GraphDB, en de JAS-vocabulaire. |
 | `graafcontrole.py`, `shacl.py`, `shapes/jas-v2.ttl` | Controle achteraf: klopt de graaf met Postgres? |
-| `samenhang.py` | Structuur, annotaties en verwijzingen van één artikel, voor de 3D-weergave. |
+| `samenhang.py` | Structuur, annotaties en verwijzingen van één artikel (of het overzicht van een structuurdeel), voor de 3D-weergave. |
 | `annotatie_statistiek.py`, `scripts/statistiek.py` | Reviewstatistiek over de elementen: uitkomst per klasse en per model, klasse-verschuivingen, aandacht tegenover correctie. |
 | `jas_klassen.py`, `validation.py` | De dertien JAS-klassen, volgorde en kleuren (canoniek); `GELDIGE_JAS_KLASSEN`, `JAS_KLASSE_KLEUREN`, `jas_sorteersleutel`. |
 | `ratelimit.py` | In-process rate limit per client. |
@@ -127,7 +127,10 @@ Hieronder wat je moet weten om de code te wijzigen.
 - **`/samenhang`** (`samenhang.py`) geeft drie soorten relaties en niets anders: de bronboom, de
   letterlijke verwijzingen uit de BWB-import (één stap in en uit, max. `MAX_VERWIJZINGEN`) en de
   actuele markeringen. Er wordt niets afgeleid. Een markeringsknoop draagt herkomst, aandacht,
-  subtype, `beslist_door` en `twijfel` uit het element, zodat de werkplek erop kan filteren.
+  subtype, `beslist_door` en `twijfel` uit het element, zodat de werkplek erop kan filteren. Is het
+  doel een **structuurdeel** (hoofdstuk, titeldeel, afdeling, paragraaf), dan is het een overzicht: het
+  deel met de structuur en artikelen eronder, zonder leden, onderdelen, markeringen en verwijzingen
+  (die horen bij een geopend artikel; anders wordt een hoofdstuk een kluwen van honderden knopen).
 
 ### Projectie naar de kennisgraaf
 

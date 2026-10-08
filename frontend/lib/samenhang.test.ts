@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import vectoren from "./jci-vectoren.json";
-import { bouwGraaf, bronDoel, clusterPlek, hoofdactie, paneelDoel, vindplaatsVan, isDubbelklik, relatieGroepen, samenvatting, uitklapbaar, voegSamen, zichtbareGraaf, zoekKnopen, type Samenhang, type SamenhangKnoop } from "./samenhang";
+import { bouwGraaf, bronDoel, clusterOmschrijving, clusterPlek, hoofdactie, paneelDoel, vindplaatsVan, isDubbelklik, relatieGroepen, samenvatting, uitklapbaar, voegSamen, zichtbareGraaf, zoekKnopen, type Samenhang, type SamenhangKnoop } from "./samenhang";
 
 const LAW = "urn:bwb:BWBR0004770", ART = `${LAW}:artikel:9`, L1 = `${ART}:lid:1`, L2 = `${ART}:lid:2`;
 const A10 = `${LAW}:artikel:10`;
@@ -68,6 +68,13 @@ describe("bouwGraaf", () => {
     const breed = Math.max(...xs) - Math.min(...xs), hoog = Math.max(...ys) - Math.min(...ys);
     expect(breed / hoog).toBeLessThan(2.5);
     expect(clusterPlek(4)).toEqual([760, -680]);
+  });
+  it("omschrijft de clusters als delen en artikelen", () => {
+    const hfd = `${LAW}:hoofdstuk:II`;
+    const deel = samenhang(hfd, { knopen: [knoop(hfd, "deel"), knoop(ART, "artikel")], relaties: [] });
+    expect(clusterOmschrijving([samenhang(), samenhang(A10)])).toBe("2 artikelen");
+    expect(clusterOmschrijving([samenhang(), deel])).toBe("1 deel en 1 artikel");
+    expect(clusterOmschrijving([deel, deel])).toBe("2 delen");
   });
   it("geeft een straal per soort", () => {
     const g = bouwGraaf([samenhang()]);

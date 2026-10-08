@@ -23,7 +23,7 @@ from collections.abc import Iterable, Iterator
 from bronmodel.vindplaats import vindplaats
 
 from .models import Source
-from .resultaat import waarden
+from .resultaat import is_contract, waarden
 from .namespace import vindplaats_patroon
 from .tools.annotatie_tools import ANNOTATIE_TOOL_NAMEN
 
@@ -87,6 +87,34 @@ def citations_in(text: str) -> list[str]:
     return [uri for uri, _, _ in iter_refs(text)]
 
 
+def _labels(text: str) -> dict[str, str]:
+    """IRI → label uit de rijen van een contractresultaat. Een wet-lokale `id:`-node (een divisie van de
+    Leidraad) heeft geen label in zijn IRI, maar de tool die hem vond wél: zonder dit stond hij in de
+    bronnenlijst als `urn:bwb:BWBR0024096:id:…divisie26.5`."""
+    data = is_contract(text)
+    uit: dict[str, str] = {}
+    for rij in (data or {}).get("resultaten", []):
+        if isinstance(rij, dict) and isinstance(rij.get("label"), str) and rij["label"]:
+            for veld in ("node", "iri"):
+                if isinstance(rij.get(veld), str):
+                    uit.setdefault(rij[veld], rij["label"])
+    return uit
+
+
+def _met_titel(label: str, uit_tool: str) -> str:
+    """"Hoofdstuk II" + "Hoofdstuk II – Invordering in eerste aanleg" → het label mét titel.
+
+    Een structuurdeel heet in de vindplaats alleen naar zijn nummer; het antwoord noemt het juist naar
+    zijn titel. Met de titel erbij is de bronnenlijst leesbaar en herkent de werkplek het deel in de
+    tekst (de 3D-knop opent zo de hoofdstukken die het antwoord noemt). Alleen als het toollabel
+    hetzelfde deel aanduidt als het laatste segment van de vindplaats."""
+    kop, streep, titel = uit_tool.partition(" – ")
+    laatste = label.rsplit(", ", 1)[-1]
+    if streep and titel and " – " not in label and kop.strip().lower() == laatste.strip().lower():
+        return f"{label} – {titel.strip()}"
+    return label
+
+
 def collect_sources(entries: Iterable[tuple[str, str]]) -> list[Source]:
     """Bouw een ontdubbelde bronnenlijst uit (tool_naam, resultaat_tekst)-paren.
 
@@ -101,6 +129,7 @@ def collect_sources(entries: Iterable[tuple[str, str]]) -> list[Source]:
     for tool, text in entries:
         if not text or tool in ANNOTATIE_TOOL_NAMEN:
             continue
+        labels = _labels(text)
         # De waarden van een contractresultaat (`resultaat.waarden`), niet zijn JSON-tekst.
         for uri, iri, jci in iter_refs(waarden(text)):
             vp = vindplaats(uri)
@@ -113,8 +142,11 @@ def collect_sources(entries: Iterable[tuple[str, str]]) -> list[Source]:
                 bron = Source(label=uri, uri=uri, iri=iri, jci=jci, origin_tool=tool)
             else:
                 # Een regeling heeft geen label in de verwijzing (de naam komt in finalize); een
-                # wet-lokale `id:`-node ook niet, en die houdt dan zijn IRI.
-                label = vp.label or (vp.bwb_id if vp.soort == "regeling" else vp.bron_iri)
+                # wet-lokale `id:`-node ook niet: die krijgt het label uit het toolresultaat, en
+                # houdt alleen zonder dat zijn IRI.
+                label = vp.label or (vp.bwb_id if vp.soort == "regeling"
+                                     else labels.get(vp.bron_iri) or labels.get(uri) or vp.bron_iri)
+                label = _met_titel(label, labels.get(vp.bron_iri) or labels.get(uri) or "")
                 bron = Source(label=label, uri=vp.bron_iri, iri=iri, jci=jci,
                               origin_tool=tool, bron_iri=vp.bron_iri, bwb_id=vp.bwb_id, soort=vp.soort)
             per_node[sleutel] = bron

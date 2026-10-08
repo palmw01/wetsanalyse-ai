@@ -68,3 +68,39 @@ def test_kale_bwb_niet_dubbel_als_al_in_iri():
 def test_dedup_over_meerdere_rondes():
     sources = collect_sources([("t1", ART_IRI), ("t2", ART_IRI)])
     assert len([s for s in sources if s.uri == ART_IRI]) == 1
+
+
+def test_wet_lokale_id_node_krijgt_het_label_uit_het_toolresultaat():
+    """Leidraad 26.5 stond in de bronnenlijst als kale IRI: een `id:`-node draagt geen label in zijn
+    IRI, maar de rij van zoek_opbouw had het wel."""
+    from agent.resultaat import resultaat
+
+    iri = "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.5"
+    tekst = resultaat([{"node": iri, "soort": "Divisie", "bwbId": "BWBR0024096",
+                        "label": "Voortzetting van de invordering na afwijzing verzoek om kwijtschelding"}])
+    [bron] = collect_sources([("zoek_opbouw", tekst)])
+    assert bron.uri == iri
+    assert bron.label == "Voortzetting van de invordering na afwijzing verzoek om kwijtschelding"
+
+
+def test_id_node_zonder_label_houdt_zijn_iri():
+    iri = "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie26%2FCirculaire.divisie26.5"
+    [bron] = collect_sources([("raw_sparql", f"?s\n<{iri}>\n")])
+    assert bron.label == iri
+
+
+def test_structuurdeel_krijgt_zijn_titel_uit_het_toolresultaat():
+    from agent.resultaat import resultaat
+
+    hfd = "urn:bwb:BWBR0004770:hoofdstuk:II"
+    afd = "urn:bwb:BWBR0005537:hoofdstuk:4:titeldeel:4.4:afdeling:4.4.4"
+    tekst = resultaat([
+        {"node": hfd, "label": "Hoofdstuk II – Invordering in eerste aanleg"},
+        {"node": afd, "label": "Afdeling 4.4.4 – Aanmaning en invordering bij dwangbevel"},
+        # Een label dat een ánder deel aanduidt, telt niet.
+        {"node": "urn:bwb:BWBR0004770:hoofdstuk:III", "label": "Hoofdstuk IV – Iets anders"},
+    ])
+    labels = {b.uri: b.label for b in collect_sources([("zoek_opbouw", tekst)])}
+    assert labels[hfd] == "Hoofdstuk II – Invordering in eerste aanleg"
+    assert labels[afd] == "Hoofdstuk 4, titeldeel 4.4, afdeling 4.4.4 – Aanmaning en invordering bij dwangbevel"
+    assert labels["urn:bwb:BWBR0004770:hoofdstuk:III"] == "Hoofdstuk III"

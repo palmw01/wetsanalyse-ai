@@ -11,6 +11,11 @@ Voor de 3D-weergave in de werkplek. De graaf bestaat uit drie soorten relaties, 
 Er wordt niets afgeleid: geen juridische afhankelijkheid, geen gewicht, geen positie. De reikwijdte
 is het artikel (of de Leidraad-divisie) waartoe het gevraagde doel behoort, ook als een lid werd
 gevraagd, zodat een lid zijn broers en de verwijzing ertussen laat zien.
+
+Een **structuurdeel** als doel (hoofdstuk, titeldeel, afdeling, paragraaf) is een overzicht: het deel
+met de structuur en de artikelen eronder, zonder leden, onderdelen, markeringen en verwijzingen. Een
+overzichtsantwoord ("welke artikelen gaan over invordering?") noemt hoofdstukken; met alle leden en
+onderdelen erbij werd zo'n deel een kluwen van honderden knopen. Wie verder wil, opent een artikel.
 """
 from __future__ import annotations
 
@@ -28,6 +33,8 @@ logger = logging.getLogger(__name__)
 
 MAX_VERWIJZINGEN = 200
 _IRI = re.compile(r"urn:bwb:(BWB[RV]\d+)(?::[^<>\s\"{}|^`\\]*)?")
+# Wat in het overzicht van een structuurdeel staat; leden en onderdelen horen bij het artikel.
+_OVERZICHT = {"Hoofdstuk", "Titeldeel", "Afdeling", "Paragraaf", "Artikel", "Divisie"}
 _SOORT = {"Regeling": "regeling", "Artikel": "artikel", "Divisie": "artikel", "Lid": "lid", "Onderdeel": "onderdeel"}
 _PREFIXES = "PREFIX bwb: <urn:bwb-ns:>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n"
 
@@ -128,7 +135,12 @@ async def samenhang(snapshot: dict) -> dict:
     nodes = store.nodes_van(snapshot)
     artikel_iri = artikel_van(nodes, snapshot["doel"]["bron_iri"])
     scope = store.bereik_van(snapshot, artikel_iri)
-    weergave = await store.weergave({**snapshot, "doel": nodes[artikel_iri]})
+    deel = nodes[artikel_iri].get("type") not in {"Artikel", "Divisie"}
+    if deel:
+        scope = {i for i in scope if nodes[i].get("type") in _OVERZICHT}
+        weergave = {"elementen": []}
+    else:
+        weergave = await store.weergave({**snapshot, "doel": nodes[artikel_iri]})
 
     knopen: dict[str, Knoop] = {}
     relaties: list[Relatie] = []
@@ -168,7 +180,8 @@ async def samenhang(snapshot: dict) -> dict:
         relaties.append(Relatie(bron=eid, doel=f"klasse:{klasse}", soort="heeft_klasse", groep="annotaties"))
 
     # Verwijzingen: één stap, uitgaand en inkomend, alleen wat letterlijk in de bron staat.
-    rijen = await _verwijzingen(sorted(scope))
+    # Bij een structuurdeel geen verwijzingen: die hangen aan de leden, en die staan niet in het overzicht.
+    rijen = ([], []) if deel else await _verwijzingen(sorted(scope))
     afgekapt = False
     if rijen is not None:
         uit, inn = rijen
