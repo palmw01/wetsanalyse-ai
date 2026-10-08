@@ -150,7 +150,7 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
     `graphQaBaseUrl()` + `GRAPH_QA_TOKEN` en `X-User-Id` (`startRun`/`volgRun`/`stopRun`/
     `haalActieveRun`).
   - *Review-state via de API* – de catch-all `app/api/annotatie/v2/[...pad]/route.ts` → `/v1/annotatie/{weergave,elementen,lagen,
-    node-lagen,samenhang,capabilities,verklaringen}` (een allowlist op het eerste padsegment), met client-helpers in `lib/annotatieNode.ts`. De lagen zijn **gedeeld**,
+    node-lagen,samenhang,graaf,capabilities,verklaringen}` (een allowlist op het eerste padsegment), met client-helpers in `lib/annotatieNode.ts`. De lagen zijn **gedeeld**,
     niet per gebruiker; gesprekken zijn per gebruiker.
 
 ### De beurt is van de server, niet van dit tabblad
@@ -698,6 +698,27 @@ opent.
   `status`) `graafStand.ververs()` aan. Die haalt elk geladen deel opnieuw op (per artikel vervangen);
   `bouwGraaf(delen, vorige)` houdt bestaande knopen op hun plek.
 - Browserregressie: `scripts/test-samenhang.mjs`.
+
+### De opvolger in `lib/graaf/` (sigma.js, 2D)
+
+De 3D-graaf wordt vervangen door een 2D-graaf op **sigma.js v3 + graphology** die de hele kennisgraaf
+aankan (`/graaf`, ~6.500 knopen). De rekenkern staat er al; de tekenaar volgt. Lagen met één taak:
+
+- **`model.ts`** – één graphology-graaf uit `/samenhang`, `/samenhang/meer` of `/graaf` (zelfde vorm),
+  pure data met `naam`/`kort`; volgorde-onafhankelijk (gesorteerd), rand alleen als hij dat overal is.
+- **`layout.ts`** – deterministisch: een radiale boom per regeling als start, dan ForceAtlas2 met alleen
+  de opbouw (`bevat`) als veer en een `adjustSizes`-fase tegen overlap. **Verwijzingen trekken niet**
+  (ze trokken alle regelingen tot één kluwen); alleen een randbepaling hangt aan haar verwijzing.
+  Markeringen en klassen worden **afgeleid** (`plaatsAnnotaties`: bij hun anker, klassen op een ring),
+  dus een beoordeling verschuift niets en vraagt geen nieuwe layout. Geen `graphology-layout-noverlap`:
+  die gebruikt `Math.random`.
+- **`layout.worker.ts` + `rekenaar.ts`** – rekenen buiten de hoofdthread met voortgang (`layoutVoor`);
+  vereist `worker-src 'self'` in de CSP (`lib/csp.ts`).
+- **`cache.ts`** – posities in IndexedDB onder een SHA-256 van de structuur + `LAYOUT_VERSIE` (verhoog
+  die bij een layoutwijziging); elke toegang in try/catch, zonder opslag wordt er gewoon gerekend.
+- **`weergave.ts`** – het enige selectiemodel: *zichtbaar* = lagen + markeringsfilter (een klik
+  verandert dat nooit), *nadruk* = keuze met buren > focus "dit antwoord" > alles.
+- **`proefgraaf.ts`** – een gegenereerde graaf op kennisgraafformaat voor de schaaltests.
 
 ## Buiten de schil
 
