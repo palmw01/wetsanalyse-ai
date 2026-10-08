@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 
 from . import __version__, db, observability
 from .config import get_settings
@@ -123,6 +124,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Grote JSON-antwoorden comprimeren: de complete graaf (`/v1/annotatie/graaf`) is ~2 MB. Starlette
+# slaat `text/event-stream` zelf over, dus een stream wordt nooit gebufferd.
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 # Inkomende requests → spans (no-op zonder de otel-extra/endpoint).
 observability.instrument_fastapi(app)
 

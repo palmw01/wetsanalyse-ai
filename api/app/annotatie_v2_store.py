@@ -354,6 +354,22 @@ async def dekking(snapshot: dict, conn=None) -> dict:
             "structureel": {iri: m for iri, (_t, m) in sorted(structureel.items())}}
 
 
+def _met_veroudering(value: dict, nodes: dict) -> dict:
+    """Een element is verouderd als de tekst van een van zijn geankerde bronknopen sindsdien veranderde."""
+    value["verouderd"] = value.get("verouderd", False) or any(
+        a["bron_iri"] in nodes and nodes[a["bron_iri"]]["bron_hash"] != a["bron_hash"]
+        for a in value["ankers"])
+    return value
+
+
+async def actuele_elementen(nodes: dict) -> list[dict]:
+    """De elementen waarvan de eigenaar in `nodes` ligt (een of meer hele bronbomen), met
+    `verouderd` bepaald tegen die bronbomen – voor de complete graaf (`graaf.py`)."""
+    async with leestransactie() as conn:
+        rows = (await conn.execute(select(db.annotatie_v2_elementen.c.inhoud))).scalars().all()
+    return [_met_veroudering(dict(v), nodes) for v in rows if v["eigenaar_iri"] in nodes]
+
+
 async def weergave(snapshot: dict) -> dict:
     scope = bereik_van(snapshot)
     nodes = nodes_van(snapshot)
@@ -362,11 +378,8 @@ async def weergave(snapshot: dict) -> dict:
         rows = (await conn.execute(select(db.annotatie_v2_elementen))).mappings().all()
         elements, refs = [], []
         for row in rows:
-            value = dict(row["inhoud"])
+            value = _met_veroudering(dict(row["inhoud"]), nodes)
             anchor_ids = {a["bron_iri"] for a in value["ankers"]}
-            value["verouderd"] = value.get("verouderd", False) or any(
-                a["bron_iri"] in nodes and nodes[a["bron_iri"]]["bron_hash"] != a["bron_hash"]
-                for a in value["ankers"])
             if value["eigenaar_iri"] in scope:
                 elements.append(value)
             elif anchor_ids & scope:

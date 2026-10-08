@@ -23,6 +23,9 @@ export function maakNonce(): string {
  *  - `style-src` houdt bewust `'unsafe-inline'`: de server-render geeft `style="…"`-attributen mee
  *    (Popover, de 3D-graaf), en een nonce geldt alleen voor `<style>`-elementen, niet voor
  *    attributen. De XSS-winst zit in `script-src`; een stijl voert geen code uit.
+ *  - `worker-src 'self'`: de layout van de graaf rekent in een eigen Web Worker. Zonder `worker-src`
+ *    valt de browser terug op `script-src`, en daarin maakt `'strict-dynamic'` `'self'` ongeldig – dan
+ *    wordt ook een worker van de eigen origin geweigerd.
  *  - De overige directives zijn vast. */
 export function bouwCsp(nonce: string, dev: boolean): string {
   return [
@@ -32,6 +35,7 @@ export function bouwCsp(nonce: string, dev: boolean): string {
     "img-src 'self' data:",
     "font-src 'self'",
     "connect-src 'self'",
+    "worker-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

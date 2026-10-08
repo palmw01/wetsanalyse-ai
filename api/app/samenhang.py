@@ -142,6 +142,61 @@ async def _verwijzingen(iris: list[str]) -> tuple[list[dict], list[dict]] | None
         return None
 
 
+def bronknoop(node: dict, rand: bool = False) -> Knoop:
+    """Een bronknoop uit een knoop van de bronboom (snapshot)."""
+    iri = node["bron_iri"]
+    return Knoop(id=iri, soort=_SOORT.get(node.get("type", ""), "deel"), label=_label(node) or iri,
+                 tekst=node.get("tekst", ""), rand=rand, **plaats(iri))
+
+
+def markeringen(elementen: list[dict], aanwezig: set[str]) -> tuple[list[Knoop], list[Relatie]]:
+    """Actuele markeringen als knopen, met hun klasse en de bronknopen die ze markeren (alleen
+    `aanwezig`). Afgewezen en verouderde elementen blijven weg; een terugval zonder klasse krijgt geen
+    klasseknoop."""
+    knopen: dict[str, Knoop] = {}
+    relaties: list[Relatie] = []
+    for el in elementen:
+        if el.get("lifecycle") == "rejected" or el.get("verouderd"):
+            continue
+        eid, klasse = f"element:{el['id']}", el["klasse"]
+        spoor = el.get("trace") or {}
+        knopen[eid] = Knoop(id=eid, soort="markering", label=el["tekst"], tekst=el["tekst"], klasse=klasse,
+                            lifecycle=el.get("lifecycle", ""), element_id=el["id"],
+                            herkomst=el.get("herkomst") or "", aandacht=el.get("aandacht") or "",
+                            subtype=el.get("jas_subtype") or "",
+                            beslist_door=(spoor.get("beslissing") or {}).get("door") or "",
+                            twijfel=bool(spoor.get("twijfel")), **plaats(el["eigenaar_iri"]))
+        for anker in sorted({a["bron_iri"] for a in el["ankers"]} & aanwezig):
+            relaties.append(Relatie(bron=eid, doel=anker, soort="markeert", groep="annotaties"))
+        if not klasse:
+            continue
+        knopen.setdefault(f"klasse:{klasse}", Knoop(id=f"klasse:{klasse}", soort="klasse", label=klasse, klasse=klasse))
+        relaties.append(Relatie(bron=eid, doel=f"klasse:{klasse}", soort="heeft_klasse", groep="annotaties"))
+    return list(knopen.values()), relaties
+
+
+def verwijzingen(rijen: list[tuple[str, dict]], knopen: dict[str, Knoop]) -> list[Relatie]:
+    """Verwijzingsrelaties uit SPARQL-rijen, als `(richting, rij)` met richting "uit" of "in". Een doel
+    buiten `knopen` wordt een randknoop (geïmporteerd: artikel of lid; anders `extern`) – `knopen` wordt
+    daarvoor aangevuld. Elke verwijzing één keer."""
+    relaties: list[Relatie] = []
+    gezien: set[tuple[str, str]] = set()
+    for richting, r in rijen:
+        van, naar = r.get("van", ""), r.get("naar", "")
+        buiten = naar if richting == "uit" else van
+        if not van or not naar or not _IRI.fullmatch(buiten) or (van, naar) in gezien:
+            continue
+        gezien.add((van, naar))
+        if buiten not in knopen:
+            label = r.get("label") or r.get("stub") or buiten.removeprefix("urn:bwb:")
+            knopen[buiten] = Knoop(id=buiten, soort="extern" if not r.get("label") else
+                                   ("lid" if plaats(buiten)["lid"] else "artikel"),
+                                   label=label, rand=True, **plaats(buiten))
+        relaties.append(Relatie(bron=van, doel=naar, soort="verwijst_naar", groep="verwijzingen",
+                                anker_tekst=r.get("anker", "")))
+    return relaties
+
+
 async def samenhang(snapshot: dict) -> dict:
     nodes = store.nodes_van(snapshot)
     artikel_iri = artikel_van(nodes, snapshot["doel"]["bron_iri"])
@@ -156,15 +211,10 @@ async def samenhang(snapshot: dict) -> dict:
     knopen: dict[str, Knoop] = {}
     relaties: list[Relatie] = []
 
-    def bronknoop(iri: str, rand: bool = False) -> None:
-        n = nodes[iri]
-        knopen[iri] = Knoop(id=iri, soort=_SOORT.get(n.get("type", ""), "deel"), label=_label(n) or iri,
-                            tekst=n.get("tekst", ""), rand=rand, **plaats(iri))
-
     # Structuur: de keten van regeling naar artikel, en alles binnen het artikel.
     keten = store.keten(nodes, artikel_iri)
     for iri in [*reversed(keten), *sorted(scope - {artikel_iri}, key=lambda i: nodes[i].get("volgorde", 0))]:
-        bronknoop(iri)
+        knopen[iri] = bronknoop(nodes[iri])
         ouder = nodes[iri].get("parent_iri") or ""
         if ouder in knopen:
             relaties.append(Relatie(bron=ouder, doel=iri, soort="bevat", groep="structuur"))
@@ -172,23 +222,9 @@ async def samenhang(snapshot: dict) -> dict:
     knopen[regeling] = knopen[regeling].model_copy(update={"label": snapshot.get("citeertitel") or knopen[regeling].label})
 
     # Annotaties: actuele markeringen en hun klasse.
-    for el in weergave["elementen"]:
-        if el.get("lifecycle") == "rejected" or el.get("verouderd"):
-            continue
-        eid, klasse = f"element:{el['id']}", el["klasse"]
-        spoor = el.get("trace") or {}
-        knopen[eid] = Knoop(id=eid, soort="markering", label=el["tekst"], tekst=el["tekst"], klasse=klasse,
-                            lifecycle=el.get("lifecycle", ""), element_id=el["id"],
-                            herkomst=el.get("herkomst") or "", aandacht=el.get("aandacht") or "",
-                            subtype=el.get("jas_subtype") or "",
-                            beslist_door=(spoor.get("beslissing") or {}).get("door") or "",
-                            twijfel=bool(spoor.get("twijfel")), **plaats(el["eigenaar_iri"]))
-        for anker in {a["bron_iri"] for a in el["ankers"]} & knopen.keys():
-            relaties.append(Relatie(bron=eid, doel=anker, soort="markeert", groep="annotaties"))
-        if not klasse:                       # terugval: nog geen klasse gekozen, dus geen klasseknoop
-            continue
-        knopen.setdefault(f"klasse:{klasse}", Knoop(id=f"klasse:{klasse}", soort="klasse", label=klasse, klasse=klasse))
-        relaties.append(Relatie(bron=eid, doel=f"klasse:{klasse}", soort="heeft_klasse", groep="annotaties"))
+    m_knopen, m_relaties = markeringen(weergave["elementen"], set(knopen))
+    knopen.update({k.id: k for k in m_knopen})
+    relaties += m_relaties
 
     # Verwijzingen: één stap, uitgaand en inkomend, alleen wat letterlijk in de bron staat.
     # Bij een structuurdeel geen verwijzingen: die hangen aan de leden, en die staan niet in het overzicht.
@@ -197,21 +233,8 @@ async def samenhang(snapshot: dict) -> dict:
     if rijen is not None:
         uit, inn = rijen
         afgekapt = len(uit) > MAX_VERWIJZINGEN or len(inn) > MAX_VERWIJZINGEN
-        gezien = set()
-        for richting, rows in (("uit", uit[:MAX_VERWIJZINGEN]), ("in", inn[:MAX_VERWIJZINGEN])):
-            for r in rows:
-                van, naar = r.get("van", ""), r.get("naar", "")
-                buiten = naar if richting == "uit" else van
-                if not van or not naar or not _IRI.fullmatch(buiten) or (van, naar) in gezien:
-                    continue
-                gezien.add((van, naar))
-                if buiten not in knopen:
-                    label = r.get("label") or r.get("stub") or buiten.removeprefix("urn:bwb:")
-                    knopen[buiten] = Knoop(id=buiten, soort="extern" if not r.get("label") else
-                                           ("lid" if plaats(buiten)["lid"] else "artikel"),
-                                           label=label, rand=True, **plaats(buiten))
-                relaties.append(Relatie(bron=van, doel=naar, soort="verwijst_naar", groep="verwijzingen",
-                                        anker_tekst=r.get("anker", "")))
+        relaties += verwijzingen([("uit", r) for r in uit[:MAX_VERWIJZINGEN]]
+                                 + [("in", r) for r in inn[:MAX_VERWIJZINGEN]], knopen)
     return Samenhang(doel=snapshot["doel"], snapshot_id=snapshot["snapshot_id"], artikel_iri=artikel_iri,
                      knopen=list(knopen.values()), relaties=relaties,
                      verwijzingen_beschikbaar=rijen is not None, afgekapt=afgekapt).model_dump()
