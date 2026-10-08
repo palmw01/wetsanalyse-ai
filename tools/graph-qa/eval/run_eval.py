@@ -47,11 +47,14 @@ async def run_case(case: dict[str, Any], *, settings: Settings, llm=None, graph=
     sources: list[dict[str, Any]] = []
     grounding: dict[str, Any] = {"grounded": True, "cited": 0, "unsupported": []}
     error: str | None = None
+    overzicht: dict[str, Any] | None = None
 
     async for ev in answer_stream(case["question"], settings=settings, llm=llm, graph=graph):
         t = ev.get("type")
         if t == "token":
             parts.append(ev["content"])
+        elif t == "overzicht":
+            overzicht = ev["overzicht"]
         elif t == "sources":
             sources = ev["sources"]
         elif t == "grounding":
@@ -59,7 +62,7 @@ async def run_case(case: dict[str, Any], *, settings: Settings, llm=None, graph=
         elif t == "error":
             error = ev["message"]
 
-    return score_case(case, "".join(parts), sources, grounding, error)
+    return score_case(case, "".join(parts), sources, grounding, error, overzicht)
 
 
 async def run_suite(cases: list[dict[str, Any]], *, settings: Settings, llm=None, graph=None) -> list[CaseResult]:
@@ -201,7 +204,7 @@ async def run_annotatie_suite(
 
 
 def print_report(results: list[CaseResult]) -> bool:
-    print(f"\n{'faith':>6} {'recall':>6} {'cont':>4} {'refu':>4} {'schoon':>6}  vraag")
+    print(f"\n{'faith':>6} {'recall':>6} {'cont':>4} {'refu':>4} {'schoon':>6} {'ovz':>4}  vraag")
     print("-" * 80)
     for r in results:
         flag = "OK " if r.passed else "XX "
@@ -209,7 +212,7 @@ def print_report(results: list[CaseResult]) -> bool:
         print(
             f"{r.faithfulness:6.2f} {r.source_recall:6.2f} "
             f"{'ja' if r.contains_ok else 'nee':>4} {'ja' if r.refusal_ok else 'nee':>4} "
-            f"{'ja' if r.zonder_verboden_ok else 'NEE':>6}  "
+            f"{'ja' if r.zonder_verboden_ok else 'NEE':>6} {'ja' if r.overzicht_ok else 'NEE':>4}  "
             f"{flag}{r.question[:44]}{extra}"
         )
     passed = sum(r.passed for r in results)

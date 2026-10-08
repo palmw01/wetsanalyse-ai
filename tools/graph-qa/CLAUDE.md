@@ -35,6 +35,7 @@ ankerlogica die de api en de agent delen staat in `packages/bronmodel` (`wetsana
 | `nodes/decompositie.py` | decompose, solve, synthesize, resynth |
 | `nodes/annotatie.py` | annoteer (voorbereiding + `jas_pipeline.keten.analyseer`) en emit |
 | `nodes/annotatie_lezen.py` | de leesroute: eerst zoeken in de opgeslagen annotaties, dan formuleren |
+| `nodes/overzicht.py` | de overzichtsroute: eerst het overzicht uit de graaf bouwen, dan duiden |
 | `nodes/context.py` | `Bouw` – wat een node buiten zijn state om nodig heeft |
 
 De nodes zijn gewone functies `(b: Bouw, state)`; `Bouw` draagt de poorten, de stopvlag, de drie
@@ -45,6 +46,7 @@ een andere aan, geef `b` dan expliciet door** – de suite wijst die valkuil aan
 supervisor ─┬─ antwoord-worker:  agent ⇄ tools → verify → (correct) → finalize → advance
             ├─ annotatie-worker: [agent ⇄ tools als ophaal-agent] → annoteer → emit → advance
             ├─ leesroute:        annotaties_zoeken → agent ⇄ tools → verify → finalize
+            ├─ overzichtsroute:  overzicht_bouwen → agent ⇄ tools → verify → finalize
             └─ afwijzen (geen wetgevingsvraag)
 ```
 
@@ -148,7 +150,7 @@ bruikbaar is.
 
 ## Toollaag & queries
 
-- **`tools/__init__.py`** – `TOOLS` (24 declaraties: 20 graaftools plus de vier annotatieleestools uit
+- **`tools/__init__.py`** – `TOOLS` (25 declaraties: 21 graaftools plus de vier annotatieleestools uit
   `tools/annotatie_tools.py`), `anthropic_schemas(only=)` en `dispatch()` (vangt
   `ValueError`/`MCPError`/`KeyError` als tekst). Een tool met `needs_settings` krijgt `settings` mee.
   `tools/jas_tools.py` (`JAS_TOOLS`) is dispatchbaar maar wordt in de draaiende keten niet aangeroepen.
@@ -516,6 +518,46 @@ reviewer (`review.py`), de resolver (`resolver.py`), dekking, beslisregister en 
   treft. Dezelfde regel staat in `mergeVoorstellen` van de werkplek, bewaakt door
   `tests/test_ontdubbelsleutel.py`.
 
+## De overzichtsroute: "welke artikelen gaan over X?"
+
+Een overzichtsvraag liet de keten eerst over aan het model: het koos tool en zoekterm
+(`zoek_opbouw("invordering")` → 16 delen, `"invordering van belastingen"` → 0), stelde de opbouw zelf
+samen (art. 31 en 63 Iw "buiten de hoofdstukken", terwijl de graaf H V en H VII zegt), typte nummers
+en titels over (bereiken die 28.3a verbergen) en de bronnen en de 3D-graaf volgden uit die tekst. De
+SPARQL was deterministisch; de keten eromheen niet. Nu is wat feitelijk is code (`agent/overzicht.py`):
+
+1. **Herkenning is hard** (`is_overzichtsvraag`, op `zelfstandige_vraag` bij een vervolgvraag): "welke
+   artikelen/bepalingen/hoofdstukken … gaan over X", "… hebben betrekking op X", "… regelen X", "waar
+   is X geregeld", "overzicht van X". Leesvraag, doel en advies gaan vóór. Zonder gesprek geen
+   supervisor-call. `onderwerp_uit` haalt X eruit; een genoemde regeling ("in de Awb", bij
+   citeertitel of afkorting, `regelingen_in_vraag`) is de **afbakening**, geen zoekwoord.
+2. **Het overzicht bouwen** (`bouw_overzicht`, in `nodes/overzicht.py` vóór de eerste LLM-call):
+   delen met het onderwerp in hun opschrift (`zoek_opbouw`, alle pagina's) met hun bepalingen
+   (`bepalingen_in_delen`); bepalingen die het onderwerp in hun **tekst** noemen
+   (`bepalingen_met_onderwerp`, opgetild naar artikel of hoofddivisie); hun **plek in de opbouw**
+   (`plaats_in_opbouw`) – binnen een gevonden deel staat een bepaling niet ook los, anders krijgt ze
+   het meest specifieke deel mee; de **wettelijke definitie** (`definities_van`) en het
+   **redactionele trefwoord** (`trefwoord_regelingen`, `dct:subject`). Opbouw en tekst vallen elk apart
+   terug op het langste begin van het onderwerp dat iets oplevert. `semantic_search` doet bewust niet
+   mee: altijd k treffers, geen ondergrens.
+3. **Vaste volgorde, geen zoekscores:** regelingen op rang (wet → AMvB → ministeriële regeling →
+   beleidsregel, `overzicht.RANG`), dan op aantal bepalingen in delen; delen en bepalingen in
+   documentvolgorde (`padsleutel`, `natuurlijke_sleutel`). Dezelfde vraag, ook anders geformuleerd,
+   geeft byte-voor-byte hetzelfde overzicht (gemeten: vier formuleringen, één hash).
+4. **Drie uitgangen:** een `overzicht`-event (de werkplek toont het als blok en bewaart het in
+   `Bericht.overzicht`); een `tool_use`/`tool_result`-paar met `voor_model` (opbouw en tellingen,
+   **zonder** nummerlijsten – het model duidt in 2–4 zinnen en typt niets over); en in de
+   `source_trace` de vindplaatsen (`bronrijen`).
+5. **Bronnen en controle uit het overzicht:** `finalize_node` neemt de bronnen uit het overzicht, niet
+   uit `curate_sources` op de proza; `check_grounding(..., overzicht=)` toetst elk genoemd artikel tegen
+   het overzicht (`vermeldingen_buiten`) – staat het er niet in, dan is het ongegrond en volgt de
+   correctieronde.
+
+De tool `overzicht_onderwerp` levert hetzelfde overzicht buiten de route (MCP, vrije vragen) en
+pagineert per deel binnen de begroting. Bouwt het overzicht niet (graaf weg), dan krijgt het model een
+foutresultaat en zegt het dat; de werkplek toont dan geen blok. `tests/test_overzicht.py` legt
+herkenning, samenstelling, volgorde, de route en de eval-scorer vast.
+
 ## De leesroute: vragen óver bestaande annotaties
 
 1. **Herkenning is hard** (`tools/annotatie_tools.py:is_leesvraag`): een onderwerp (annotatie, markering,
@@ -660,7 +702,9 @@ wél op 100%. Niet vlak na een deploy draaien: de importjob loopt dan nog.
   bereikt budget heet **niet gemeten** en telt niet mee; de exitcode kijkt alleen naar gemeten cases, en
   zijn ze allemaal ongemeten, dan wordt de run rood.
 
-**Drie gouden sets.** `eval/golden.jsonl` meet antwoorden (citaat-faithfulness, bron-recall, refusal);
+**Drie gouden sets.** `eval/golden.jsonl` meet antwoorden (citaat-faithfulness, bron-recall, refusal,
+en bij een overzichtsvraag het overzicht zelf: `verwacht_overzicht` met de verwachte `delen` en wat
+`niet_los` mag staan – deterministisch, dus streng);
 `eval/golden_annotatie.jsonl` meet de annotatieketen; `eval/golden_gesprek.jsonl` meet
 **vervolgvragen**: gesprekken van een paar beurten in één thread (scenario A doorvragen op een
 antwoord, B vragen naar andere annotaties, C doorvragen op een element, R regressies), per beurt

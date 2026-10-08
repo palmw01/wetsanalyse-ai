@@ -7,6 +7,7 @@ import {
   parseDoel,
   parseElement,
   parseHergebruik,
+  parseOverzicht,
   parseKandidaten,
   parseKeuze,
   parseRun,
@@ -484,6 +485,8 @@ export type AgentHandlers = {
   onReeksEvent?: (event: Record<string, unknown>) => void;
   /** Lex hergebruikte (een deel van) de gedeelde laag in plaats van opnieuw te annoteren. */
   onHergebruik?: (h: AgentHergebruik) => void;
+  /** Het overzicht van een onderwerp, deterministisch uit de graaf; komt vóór de duiding. */
+  onOverzicht?: (o: import("./types").Overzicht) => void;
   /** Het volgnummer van het laatst verwerkte event. Daarmee haakt een client na een onderbreking
    *  weer aan op precies het juiste punt in plaats van vanaf het begin. */
   onSeq?: (seq: number) => void;
@@ -696,6 +699,7 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
               sources?: unknown;
               kandidaten?: unknown;
               hergebruik?: unknown;
+              overzicht?: unknown;
               seq?: number;
               weggevallen?: number;
               annotatie_slug?: string;
@@ -754,6 +758,10 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
         else if (ev.type === "kandidaten") {
           const kandidaten = geldig(parseKandidaten, ev.kandidaten ?? [], "kandidaten");
           if (kandidaten) handlers.onKandidaten?.(kandidaten, parseKeuze((ev as { keuze?: unknown }).keuze));
+        }
+        else if (ev.type === "overzicht" && ev.overzicht) {
+          const overzicht = geldig(parseOverzicht, ev.overzicht, "overzicht");
+          if (overzicht) handlers.onOverzicht?.(overzicht);
         }
         else if (ev.type === "hergebruik" && ev.hergebruik) {
           const hergebruik = geldig(parseHergebruik, ev.hergebruik, "hergebruik");

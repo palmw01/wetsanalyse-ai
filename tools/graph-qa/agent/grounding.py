@@ -102,8 +102,12 @@ def herstel_citaten(answer_text: str, source_trace: list[tuple[str, str]]) -> tu
     return answer_text, hersteld
 
 
-def check_grounding(answer_text: str, source_trace: list[tuple[str, str]]) -> GroundingReport:
-    """Markeer wat in het antwoord niet uit de trace te herleiden is: verwijzingen én citaten."""
+def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
+                    overzicht: dict | None = None) -> GroundingReport:
+    """Markeer wat in het antwoord niet uit de trace te herleiden is: verwijzingen én citaten.
+
+    Met een `overzicht` (de overzichtsroute) telt ook elk genoemd artikel dat niet in het overzicht
+    staat als onderbouwd-noch-opgehaald (`overzicht.vermeldingen_buiten`)."""
     # De waarden van een contractresultaat, niet zijn JSON-tekst: anders staat een newline in de
     # brontekst er als `\n` en valt een letterlijk citaat over die grens af (`resultaat.waarden`).
     trace_text = "\n".join(waarden(t) for name, t in source_trace if t and name not in ANNOTATIE_TOOL_NAMEN)
@@ -129,6 +133,14 @@ def check_grounding(answer_text: str, source_trace: list[tuple[str, str]]) -> Gr
         c for c in citaten
         if "\\" not in c and not komt_letterlijk_voor(trace_text, c)
     ]
+
+    if overzicht:
+        # Elke genoemde bepaling is getoetst tegen het overzicht: wat erin staat is gecontroleerd en
+        # goed, wat er niet in staat is ongegrond.
+        from .overzicht import vermeldingen, vermeldingen_buiten
+        buiten = vermeldingen_buiten(answer_text, overzicht)
+        unsupported += [v for v in buiten if v not in unsupported]
+        cited = [*cited, *(v for v in vermeldingen(answer_text) if v not in cited)]
 
     if unsupported:
         niveau = "ongegrond"

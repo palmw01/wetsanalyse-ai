@@ -114,6 +114,11 @@ CONTROLES: tuple[Controle, ...] = (
              tel=lambda d: sum(1 for r in d["resultaten"] if r.get("soort") == "Hoofdstuk"),
              toelichting="de IW-hoofdstukken II, III, V, VII en VIIbis dragen invordering in hun opschrift; "
                          "minder betekent dat stam of samenstelling ('Dwanginvordering') gemist wordt"),
+    Controle("overzicht_onderwerp", {"onderwerp": "invordering", "bwb_id": IW}, min_rijen=5, max_rijen=5,
+             volledig=True,
+             tel=lambda d: sum(1 for r in d["resultaten"] if r.get("deel", "").startswith("Hoofdstuk")),
+             toelichting="de IW heeft vijf hoofdstukken met invordering in het opschrift (II, III, V, VII, VIIbis); "
+                         "art. 31 en 63 vallen daarbinnen en tellen niet als 'ook genoemd'"),
     Controle("zoek_definitie", {"term": "bestuurder"},
              toelichting="bwb:definieertBegrip – nieuw ontsloten"),
     Controle("grondslagen", {"bwb_id": LEIDRAAD}, hard=False,

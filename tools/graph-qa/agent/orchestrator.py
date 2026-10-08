@@ -45,6 +45,7 @@ from .nodes.antwoord import (
 from .nodes.annotatie import annoteer_node, emit_node
 from .nodes.context import Bouw
 from .nodes.annotatie_lezen import zoek_annotaties_node
+from .nodes.overzicht import bouw_overzicht_node
 from .nodes.supervisie import (
     _entry_node,
     advance_node,
@@ -236,9 +237,12 @@ def build_graph(
         add("afwijzen", functools.partial(afwijs_node, b))
         _annoteer_entry = annotatieketen()
         entrymap = {"agent": "agent", "annoteer": _annoteer_entry, "decompose": "decompose",
-                    "annotaties_zoeken": "annotaties_zoeken", "afwijzen": "afwijzen"}
+                    "annotaties_zoeken": "annotaties_zoeken", "overzicht_bouwen": "overzicht_bouwen",
+                    "afwijzen": "afwijzen"}
         add("annotaties_zoeken", functools.partial(zoek_annotaties_node, b))
         g.add_edge("annotaties_zoeken", "agent")
+        add("overzicht_bouwen", functools.partial(bouw_overzicht_node, b))
+        g.add_edge("overzicht_bouwen", "agent")
         g.add_edge(START, "supervisor")
         g.add_edge("afwijzen", END)
         g.add_conditional_edges("supervisor", functools.partial(_entry_node, b), entrymap)
@@ -270,9 +274,12 @@ def build_graph(
         g.add_edge(START, "supervisor")
         add("annotaties_zoeken", functools.partial(zoek_annotaties_node, b))
         g.add_edge("annotaties_zoeken", "agent")
+        add("overzicht_bouwen", functools.partial(bouw_overzicht_node, b))
+        g.add_edge("overzicht_bouwen", "agent")
         g.add_conditional_edges("supervisor", functools.partial(_entry_node, b),
                                 {"agent": "agent", "annoteer": _annoteer_entry,
-                                 "annotaties_zoeken": "annotaties_zoeken", "afwijzen": "afwijzen"})
+                                 "annotaties_zoeken": "annotaties_zoeken",
+                                 "overzicht_bouwen": "overzicht_bouwen", "afwijzen": "afwijzen"})
         g.add_edge("afwijzen", END)
         g.add_conditional_edges(
             "agent", functools.partial(route_after_agent, b),
@@ -285,6 +292,7 @@ def build_graph(
         g.add_conditional_edges("advance", functools.partial(route_after_advance, b),
                                 {"agent": "agent", "annoteer": _annoteer_entry,
                                  "annotaties_zoeken": "annotaties_zoeken",
+                                 "overzicht_bouwen": "overzicht_bouwen",
                                  "afwijzen": "afwijzen", "einde": END})
         return g
 

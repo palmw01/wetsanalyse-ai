@@ -115,7 +115,7 @@ SPECIALISTS: dict[str, Specialist] = {
             "get_context", "get_artikel", "get_lid", "get_bepaling", "follow_verwijzingen",
             "verwijst_naar_deze", "referenced_by", "inhoudsopgave", "grondslagen", "geldigheid",
             "bijlagen", "list_regelingen", "get_regeling_info",
-            "search_wetgeving", "semantic_search", "zoek_opbouw", "graph_schema", "raw_sparql",
+            "search_wetgeving", "semantic_search", "zoek_opbouw", "overzicht_onderwerp", "graph_schema", "raw_sparql",
             # Duiding is ook de rol voor vragen óver een gemaakte markering ("waarom deze klasse?",
             # advies). Zonder deze tools kon hij het spoor en de alternatieven van de markering niet
             # lezen, en de klasse-omschrijving alleen raden.
@@ -129,7 +129,7 @@ SPECIALISTS: dict[str, Specialist] = {
     "retrieval": Specialist(
         system=_RETRIEVAL_SYSTEM,
         tools=frozenset({
-            "search_wetgeving", "semantic_search", "zoek_opbouw", "get_context", "get_artikel", "get_lid",
+            "search_wetgeving", "semantic_search", "zoek_opbouw", "overzicht_onderwerp", "get_context", "get_artikel", "get_lid",
             "get_bepaling", "get_regeling_info", "list_regelingen", "resolve_begrip",
             "follow_verwijzingen",
             # `inhoudsopgave` hoort hier omdat een bepaling AANWIJZEN iets anders is dan zoeken:

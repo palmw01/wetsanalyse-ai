@@ -134,6 +134,23 @@ def regeling_iri(bwb_id: str) -> str:
     return f"{NS}{_bwb(bwb_id)}"
 
 
+# Een bron-IRI zoals de importer hem schrijft: urn:bwb:BWB…, dan segmenten met alleen veilige tekens
+# (procentcodering voor de rest). Alles daarbuiten kan geen bronnode zijn – en zou in een VALUES-blok
+# de query openbreken.
+_BRON_IRI_RE = re.compile(rf"^{re.escape(NS)}BWB[RV]\d+(?:{re.escape(SEP)}[A-Za-z0-9._~%\-]+)*$")
+
+
+def is_bron_iri(iri: str) -> bool:
+    return bool(_BRON_IRI_RE.match(str(iri).strip()))
+
+
+def _iri_veilig(iri: str) -> str:
+    v = str(iri).strip()
+    if not _BRON_IRI_RE.match(v):
+        raise ValueError(f"Geen bron-IRI: {iri!r}.")
+    return v
+
+
 def _segment(waarde: str) -> str:
     """Eén IRI-segment, gecodeerd zoals de importer het schrijft.
 
@@ -292,18 +309,123 @@ def _stam(woord: str) -> str:
     return woord
 
 
-def opbouw_lucene(onderwerp: str) -> str:
-    """De Lucene-query voor een onderwerp in de opschriften: per woord het woord zelf (geanalyseerd,
-    dus op de stam) óf de stam als deel van een samenstelling; alle woorden moeten voorkomen.
+def onderwerpwoorden(onderwerp: str) -> list[str]:
+    """De zoekwoorden van een onderwerp: kleine letters, zonder stopwoorden en korte woorden, in
+    volgorde en zonder dubbelen. Eén plek, zodat de opbouw- en de tekstzoekactie hetzelfde lezen."""
+    woorden = [w for w in re.findall(r"[0-9a-zà-ÿ]+", str(onderwerp).lower())
+               if len(w) >= 3 and w not in _STOPWOORDEN]
+    return list(dict.fromkeys(woorden))
+
+
+def _lucene_term(woord: str) -> str:
+    return f"({woord} OR *{_stam(woord)}*)" if len(_stam(woord)) >= 5 else woord
+
+
+def opbouw_lucene(onderwerp: str, *, veld: str = "titel") -> str:
+    """De Lucene-query voor een onderwerp: per woord het woord zelf (geanalyseerd, dus op de stam) óf
+    de stam als deel van een samenstelling; alle woorden moeten voorkomen.
 
     Deterministisch uit het onderwerp – het model hoeft de valkuil van stemmer en wildcard niet te
     kennen, en dezelfde vraag geeft dezelfde query."""
-    woorden = [w for w in re.findall(r"[0-9a-zà-ÿ]+", str(onderwerp).lower())
-               if len(w) >= 3 and w not in _STOPWOORDEN]
+    if veld not in FTS_VELDEN:
+        raise ValueError(f"Onbekend zoekveld: {veld!r}.")
+    woorden = onderwerpwoorden(onderwerp)
     if not woorden:
         raise ValueError(f"Geen zoekbaar onderwerp in {onderwerp!r}: noem het onderwerp in één of enkele woorden.")
-    delen = [f"({w} OR *{_stam(w)}*)" if len(_stam(w)) >= 5 else w for w in dict.fromkeys(woorden)]
-    return "titel:(" + " AND ".join(delen) + ")"
+    return f"{veld}:(" + " AND ".join(_lucene_term(w) for w in woorden) + ")"
+
+
+def plaats_in_opbouw(iris: list[str]) -> str:
+    """Per bepaling de delen van de opbouw (hoofdstuk, titeldeel, afdeling, paragraaf) waarin ze staat.
+
+    Zo bepaalt de code – niet het model – of een bepaling binnen een gevonden deel valt. Lex schreef
+    dat art. 31 en 63 Iw "buiten de hoofdstukken" vielen; de graaf zegt H V en H VII."""
+    if not iris:
+        raise ValueError("Geen bepalingen om te plaatsen.")
+    waarden = " ".join(f"<{_iri_veilig(i)}>" for i in sorted(set(iris)))
+    return PREFIXES + f"""SELECT ?bepaling ?deel ?soort ?label WHERE {{
+  VALUES ?bepaling {{ {waarden} }}
+  ?deel ({STRUCTUUR})+ ?bepaling .
+  ?deel a ?t . FILTER(?t IN (bwb:Hoofdstuk, bwb:Titeldeel, bwb:Afdeling, bwb:Paragraaf, bwb:Divisie))
+  FILTER(STRSTARTS(STR(?deel), "{NS}"))
+  BIND(STRAFTER(STR(?t), "{ONTOLOGIE}") AS ?soort)
+  OPTIONAL {{ ?deel rdfs:label ?label }}
+}} ORDER BY ?bepaling ?deel"""
+
+
+def bepalingen_in_delen(delen: list[str]) -> str:
+    """De bepalingen (artikelen; bij een divisie haar subdivisies) binnen elk van deze delen, met
+    nummer en label – zodat het overzicht ze bij IRI kent en niet uit een nummer hoeft te raden."""
+    if not delen:
+        raise ValueError("Geen delen.")
+    waarden = " ".join(f"<{_iri_veilig(d)}>" for d in sorted(set(delen)))
+    return PREFIXES + f"""SELECT ?deel ?bepaling ?nummer ?label WHERE {{
+  VALUES ?deel {{ {waarden} }}
+  {{ ?deel ({STRUCTUUR})+ ?bepaling . ?bepaling a bwb:Artikel }} UNION {{ ?deel bwb:heeftDivisie ?bepaling }}
+  ?bepaling bwb:nummer ?nummer .
+  OPTIONAL {{ ?bepaling rdfs:label ?label }}
+}} ORDER BY ?deel ?bepaling"""
+
+
+def bepalingen_met_onderwerp(onderwerp: str, limit: int = 200) -> str:
+    """De bepalingen waarvan de tekst het onderwerp noemt, één rij per bepaling.
+
+    Een treffer in een lid of onderdeel telt voor zijn artikel; bij een beleidsregel voor de
+    hoofddivisie (een divisie waarvan de ouder geen divisie is). Anders noemt een overzicht 317
+    leden en onderdelen waar een jurist naar artikelen vroeg."""
+    lim = max(1, min(int(limit), 500))
+    return PREFIXES + f"""SELECT ?bepaling (MAX(?score) AS ?beste) (SAMPLE(?lab) AS ?label) (SAMPLE(?nr) AS ?nummer)
+       (SAMPLE(?j) AS ?jci) ?bwbId (SAMPLE(?ct) AS ?citeertitel) WHERE {{
+  {{ SELECT ?hit ?score WHERE {{
+    [] a inst:bwb_tekst ; luc:query {_lit(opbouw_lucene(onderwerp, veld="tekst"))} ; luc:entities ?hit .
+    ?hit luc:score ?score . }} }}
+  ?bepaling (bwb:heeftLid|bwb:heeftOnderdeel|bwb:heeftDivisie)* ?hit .
+  ?ouder ({STRUCTUUR}) ?bepaling .
+  {{ ?bepaling a bwb:Artikel }} UNION {{ ?bepaling a bwb:Divisie . FILTER NOT EXISTS {{ ?ouder a bwb:Divisie }} }}
+  FILTER(STRSTARTS(STR(?bepaling), "{NS}"))
+  OPTIONAL {{ ?bepaling rdfs:label ?lab }}
+  OPTIONAL {{ ?bepaling bwb:nummer ?nr }}
+  OPTIONAL {{ ?bepaling bwb:jci ?j }}
+  BIND(SUBSTR(STR(?bepaling), {len(NS) + 1}) AS ?rest)
+  BIND(IF(CONTAINS(?rest, "{SEP}"), STRBEFORE(?rest, "{SEP}"), ?rest) AS ?bwbId)
+  OPTIONAL {{ ?reg a bwb:Regeling ; bwb:bwbId ?bwbId ; bwb:citeertitel ?ct }}
+}} GROUP BY ?bepaling ?bwbId ORDER BY DESC(?beste) ?bepaling LIMIT {lim + 1}"""
+
+
+def definities_van(onderwerp: str, limit: int = 20) -> str:
+    """Waar de wet het onderwerp zelf als begrip definieert (`bwb:definieertBegrip`), via de index –
+    met dezelfde stamlogica als de opbouw. `zoek_definitie` zoekt met CONTAINS op de term en mist zo
+    "invorderen van rijksbelastingen" bij het onderwerp "invordering"."""
+    lim = max(1, min(int(limit), 50))
+    return PREFIXES + f"""SELECT ?node (SAMPLE(?b) AS ?begrip) (SAMPLE(?lab) AS ?label) (SAMPLE(?tk) AS ?tekst)
+       (SAMPLE(?j) AS ?jci) ?bwbId (SAMPLE(?ct) AS ?citeertitel) WHERE {{
+  [] a inst:bwb_tekst ; luc:query {_lit(opbouw_lucene(onderwerp, veld="definieertBegrip"))} ; luc:entities ?node .
+  ?node bwb:definieertBegrip ?b .
+  OPTIONAL {{ ?node rdfs:label ?lab }}
+  OPTIONAL {{ ?node bwb:tekst ?tk }}
+  OPTIONAL {{ ?node bwb:jci ?j }}
+  BIND(SUBSTR(STR(?node), {len(NS) + 1}) AS ?rest)
+  BIND(IF(CONTAINS(?rest, "{SEP}"), STRBEFORE(?rest, "{SEP}"), ?rest) AS ?bwbId)
+  OPTIONAL {{ ?reg a bwb:Regeling ; bwb:bwbId ?bwbId ; bwb:citeertitel ?ct }}
+}} GROUP BY ?node ?bwbId ORDER BY ?node LIMIT {lim + 1}"""
+
+
+def trefwoord_regelingen(onderwerp: str) -> str:
+    """Regelingen waaraan de redactie (WTI-thesaurus) een trefwoord met dit onderwerp hangt
+    (`dct:subject`). Een redactionele indeling, géén wettelijke duiding – zo hoort hij ook te heten."""
+    stammen = [_stam(w) for w in onderwerpwoorden(onderwerp)]
+    if not stammen:
+        raise ValueError(f"Geen zoekbaar onderwerp in {onderwerp!r}.")
+    filters = " && ".join(f"CONTAINS(LCASE(STR(?label)), {_lit(s)})" for s in stammen)
+    return PREFIXES + f"""PREFIX dct: <http://purl.org/dc/terms/>
+SELECT ?concept ?label ?regeling ?bwbId ?citeertitel WHERE {{
+  ?concept a skos:Concept .
+  FILTER(STRSTARTS(STR(?concept), "{NS}"))
+  ?concept skos:prefLabel ?label .
+  FILTER({filters})
+  ?regeling dct:subject ?concept ; a bwb:Regeling ; bwb:bwbId ?bwbId .
+  OPTIONAL {{ ?regeling bwb:citeertitel ?citeertitel }}
+}} ORDER BY ?concept ?bwbId LIMIT 100"""
 
 
 def zoek_opbouw(onderwerp: str, bwb_id: str | None = None, limit: int = 25, offset: int = 0,

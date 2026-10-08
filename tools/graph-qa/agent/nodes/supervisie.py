@@ -20,6 +20,7 @@ from ..state import State
 from ..methode import instructies
 from ..berichten import eerdere_beurten
 from ..supervisor import SUPERVISOR_SYSTEM, VERVOLG_SYSTEM, parse_supervisor, parse_vraag
+from ..overzicht import is_overzichtsvraag
 from ..tools.annotatie_tools import is_leesvraag
 from .context import Bouw
 
@@ -42,6 +43,17 @@ def _lees(writer, vraag: str) -> dict[str, Any]:
     return {"specialist": "annotaties_lezen", "worker_plan": ["annotaties_lezen"],
             "worker_idx": 0, "plan": "bestaande annotaties raadplegen" + _herschreven(vraag),
             "afwijzen": False, "annotaties_lezen": True}
+
+
+def _overzicht(writer, vraag: str) -> dict[str, Any]:
+    """Een overzichtsvraag: hard naar de overzichtsroute, zoals een leesvraag naar de leesroute. Het
+    overzicht bouwt `overzicht_bouwen` uit de graaf; de algemene specialist duidt het daarna."""
+    _stap(writer, "Lex", "overzicht van een onderwerp")
+    return {
+        "specialist": "algemeen", "worker_plan": ["algemeen"], "worker_idx": 0,
+        "plan": "overzicht van een onderwerp" + _herschreven(vraag), "afwijzen": False,
+        "annotaties_lezen": False, "overzicht_route": True,
+    }
 
 
 def _herschreven(vraag: str) -> str:
@@ -77,6 +89,10 @@ def supervisor_node(b: Bouw, state: State) -> dict[str, Any]:
             "plan": "annotatie van een aangewezen bepaling", "afwijzen": False, "annotaties_lezen": False,
         }
 
+    if modus != "advies" and not gesprek and is_overzichtsvraag(state.get("question", "")):
+        # Zonder gesprek valt er niets te herschrijven: geen LLM-call, de vorm van de vraag beslist.
+        return _overzicht(writer, "")
+
     if modus == "advies":
         # Een adviesvraag bij een bestaande annotatie: geen LLM-keuze, hard naar de
         # duiding-specialist. Dat is een topologische garantie in plaats van een belofte in een
@@ -109,6 +125,8 @@ def supervisor_node(b: Bouw, state: State) -> dict[str, Any]:
     # rechtssubjecten is pas als herschreven vraag herkenbaar als leesvraag.
     if leesvraag or is_leesvraag(zelfstandig, modus):
         return {**upd, **_lees(writer, vraag)}
+    if is_overzichtsvraag(zelfstandig):
+        return {**upd, **_overzicht(writer, vraag)}
 
     worker_plan, plan, afwijzen = parse_supervisor(text)
     plan += _herschreven(vraag)
@@ -140,6 +158,9 @@ def _entry_node(b: Bouw, state: State) -> str:
     Wees de vraag afgewezen, dan gaat er geen enkele worker draaien – dat is de hele winst."""
     if state.get("afwijzen"):
         return "afwijzen"
+    if state.get("overzicht_route"):
+        # Eerst het overzicht bouwen, dan duiden – ook met decompositie aan.
+        return "overzicht_bouwen"
     if state.get("annotaties_lezen"):
         # Eerst zoeken, dan formuleren – ook met decompositie aan: `solve_node` bouwt de agent-lus
         # na en zou de zoekstap dubbel doen.

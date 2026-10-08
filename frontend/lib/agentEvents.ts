@@ -34,6 +34,10 @@ import type {
   KandidaatStand,
   Alternatief,
   Bron,
+  Overzicht,
+  OverzichtBepaling,
+  OverzichtDeel,
+  OverzichtRegeling,
   RunStart,
   VoorstelElement,
 } from "./types";
@@ -172,6 +176,76 @@ export const parseKeuze: Parser<AgentKeuze> = (v) =>
   isObject(v) && (v.soort === "onderdeel" || v.soort === "bepaling")
     ? { soort: v.soort, ouder: tekst(v.ouder), alles: vlag(v.alles) }
     : undefined;
+
+/** Een bron-IRI uit de graaf. Een overzicht zonder geldige IRI kan niet naar zijn bron wijzen: dan
+ *  is die rij onbruikbaar en het hele overzicht verdacht (zie `lijst`). */
+const bronIri = (v: unknown): string | undefined =>
+  typeof v === "string" && /^urn:bwb:BWB[RV]\d+(?::[A-Za-z0-9._~%-]+)*$/.test(v) ? v : undefined;
+
+const parseDeelVerwijzing: Parser<{ iri: string; label: string }> = (v) => {
+  if (!isObject(v)) return undefined;
+  const iri = bronIri(v.iri);
+  return iri ? { iri, label: tekst(v.label) } : undefined;
+};
+
+const parseOverzichtBepaling: Parser<OverzichtBepaling> = (v) => {
+  if (!isObject(v)) return undefined;
+  const iri = bronIri(v.iri);
+  if (!iri) return undefined;
+  const inDeel = v.in_deel === undefined ? undefined : parseDeelVerwijzing(v.in_deel);
+  return { iri, nummer: tekst(v.nummer), label: tekst(v.label),
+    ...(optioneel(v.jci) ? { jci: tekst(v.jci) } : {}), ...(inDeel ? { in_deel: inDeel } : {}) };
+};
+
+const parseOverzichtDeel: Parser<OverzichtDeel> = (v) => {
+  if (!isObject(v)) return undefined;
+  const iri = bronIri(v.iri);
+  const bepalingen = lijst(parseOverzichtBepaling)(v.bepalingen ?? []);
+  const subdelen = lijst(parseDeelVerwijzing)(v.subdelen ?? []);
+  if (!iri || !bepalingen || !subdelen) return undefined;
+  return { iri, soort: tekst(v.soort), label: tekst(v.label), jci: tekst(v.jci), bepalingen, subdelen };
+};
+
+const parseOverzichtRegeling: Parser<OverzichtRegeling> = (v) => {
+  if (!isObject(v)) return undefined;
+  const bwb = eis(v.bwb_id);
+  const delen = lijst(parseOverzichtDeel)(v.delen ?? []);
+  const ook = lijst(parseOverzichtBepaling)(v.ook_genoemd ?? []);
+  if (!bwb || !delen || !ook) return undefined;
+  return { bwb_id: bwb, citeertitel: tekst(v.citeertitel, bwb), soort: tekst(v.soort), delen, ook_genoemd: ook };
+};
+
+/** Het overzicht van een onderwerp (`overzicht`-event of `Bericht.overzicht`). Klopt één regeling
+ *  niet, dan geen overzicht: een blok met gaten zou zich als volledig voordoen. */
+export const parseOverzicht: Parser<Overzicht> = (v) => {
+  if (!isObject(v)) return undefined;
+  const regelingen = lijst(parseOverzichtRegeling)(v.regelingen);
+  if (!regelingen) return undefined;
+  const definities = Array.isArray(v.definities)
+    ? v.definities.filter(isObject).flatMap((d) => {
+        const iri = bronIri(d.iri);
+        return iri ? [{ iri, begrip: tekst(d.begrip), label: tekst(d.label), tekst: tekst(d.tekst), jci: tekst(d.jci),
+                        bwb_id: tekst(d.bwb_id), citeertitel: tekst(d.citeertitel) }] : [];
+      })
+    : [];
+  const trefwoorden = Array.isArray(v.trefwoorden)
+    ? v.trefwoorden.filter(isObject).map((t) => ({
+        trefwoord: tekst(t.trefwoord),
+        regelingen: Array.isArray(t.regelingen)
+          ? t.regelingen.filter(isObject).map((r) => ({ bwb_id: tekst(r.bwb_id), citeertitel: tekst(r.citeertitel) }))
+          : [],
+      }))
+    : [];
+  const gevraagd = tekst(v.gevraagd, tekst(v.onderwerp));
+  return {
+    gevraagd,
+    onderwerp_opbouw: tekst(v.onderwerp_opbouw, gevraagd),
+    onderwerp_tekst: tekst(v.onderwerp_tekst, gevraagd),
+    scope: Array.isArray(v.scope) ? v.scope.filter((x): x is string => typeof x === "string") : [],
+    volledig: vlag(v.volledig, true),
+    definities, trefwoorden, regelingen,
+  };
+};
 
 /** Lex hergebruikte (een deel van) de gedeelde laag. De leden komen als `{lid, hash, iri}` binnen;
  *  voor de werkplek telt alleen welk lid. Zonder slug is het event onbruikbaar: dan is er niets om

@@ -17,6 +17,10 @@ class State(TypedDict, total=False):
     run_id: str
     user_id: str
     annotaties_lezen: bool
+    # De overzichtsroute (`agent/overzicht.py`): de supervisor herkende "welke artikelen gaan over X";
+    # `overzicht` is het deterministisch gebouwde overzicht. Beide per beurt gereset.
+    overzicht_route: bool
+    overzicht: dict[str, Any]
     bron_snapshot: dict[str, Any]
     annotatie_weergave: dict[str, Any]
     corpus_segmenten: list[dict[str, Any]]

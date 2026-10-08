@@ -29,6 +29,7 @@ from .jas_tools import JAS_TOOL_NAMEN, JAS_TOOLS  # noqa: F401 – re-exporteerd
 from .annotatie_tools import ANNOTATIE_TOOLS, ANNOTATIE_TOOL_NAMEN, dispatch_annotatie
 from ..resultaat import BUDGET, TeGroot, compact, fout, geheel, pagina, per_eenheid, voorproef
 from ..graph.structuur import natuurlijke_sleutel
+from .. import overzicht
 
 logger = logging.getLogger("graph_qa.tools")
 
@@ -127,6 +128,13 @@ def _h_zoek_opbouw(g: GraphPort, a: dict[str, Any]) -> str:
                   toelichting="Delen van de opbouw met het onderwerp in hun opschrift, met de bepalingen "
                               "die erin staan. Bepalingen die het woord alleen in hun tekst noemen: "
                               "search_wetgeving.")
+
+
+def _h_overzicht(g: GraphPort, a: dict[str, Any]) -> str:
+    bwb = a.get("bwb_id") or None
+    ov = overzicht.bouw_overzicht(g, a["onderwerp"], onderwerp=a["onderwerp"], scope=[bwb] if bwb else [])
+    return overzicht.voor_model(ov, offset=_geheel(a.get("offset"), 0, 0, 10_000),
+                                args={k: v for k, v in a.items() if k != "offset"})
 
 
 def _zonder_datum(jci: str) -> str:
@@ -482,6 +490,29 @@ TOOLS: list[dict[str, Any]] = [
             ["query"],
         ),
         "handler": _h_search,
+    },
+    {
+        "name": "overzicht_onderwerp",
+        "description": (
+            "HET OVERZICHT van een onderwerp: welke bepalingen gaan erover, in één aanroep en altijd "
+            "hetzelfde. Bouwt het uit de graaf: de delen (hoofdstuk, afdeling, paragraaf, divisie) met het "
+            "onderwerp in hun opschrift, de bepalingen die het onderwerp verder noemen met hun plek in de "
+            "opbouw (een bepaling binnen een gevonden deel staat er niet nog eens los), waar de wet het "
+            "begrip definieert en welke regelingen het als trefwoord dragen.\n"
+            "GEEFT TERUG per regeling: de delen met het aantal bepalingen, het aantal 'ook genoemd' en de "
+            "delen waarin die staan; plus definities en trefwoorden. De nummers zelf toont de werkplek."
+            + _CONTRACT
+        ),
+        "input_schema": _obj(
+            {
+                "onderwerp": {"type": "string", "description": "Het onderwerp in één of enkele woorden, "
+                              "bijv. 'invordering' of 'uitstel van betaling'."},
+                "bwb_id": {"type": "string", "description": "Optioneel: beperk tot één regeling."},
+                "offset": _OFFSET,
+            },
+            ["onderwerp"],
+        ),
+        "handler": _h_overzicht,
     },
     {
         "name": "zoek_opbouw",

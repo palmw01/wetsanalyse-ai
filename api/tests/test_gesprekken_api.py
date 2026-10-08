@@ -151,6 +151,27 @@ async def test_hergebruik_overleeft_het_opslaan(client):
     assert berichten[1]["hergebruik"] == {}
 
 
+async def test_overzicht_overleeft_het_opslaan(client):
+    """Het overzicht van een onderwerp (graph-qa `agent/overzicht.py`): zonder dit veld toonde de
+    werkplek na herladen alleen de duiding, zonder blok en zonder 3D-doelen."""
+    gid = await _maak(client)
+    overzicht = {"onderwerp": "invordering", "gevraagd": "invordering", "scope": [], "volledig": True,
+                 "definities": [], "trefwoorden": [],
+                 "regelingen": [{"bwb_id": "BWBR0004770", "citeertitel": "Invorderingswet 1990", "soort": "wet",
+                                 "delen": [{"iri": "urn:bwb:BWBR0004770:hoofdstuk:II", "soort": "Hoofdstuk",
+                                            "label": "Hoofdstuk II – Invordering in eerste aanleg", "jci": "",
+                                            "bepalingen": [{"iri": "urn:bwb:BWBR0004770:artikel:8", "nummer": "8",
+                                                            "label": "Artikel 8"}], "subdelen": []}],
+                                 "ook_genoemd": []}]}
+    await client.post(f"{BASIS}/{gid}/berichten", json={
+        "rol": "assistant", "tekst": "De invordering staat vooral in de Iw.", "overzicht": overzicht,
+    }, headers=A)
+    await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "assistant", "tekst": "gewoon"}, headers=A)
+    berichten = (await client.get(f"{BASIS}/{gid}", headers=A)).json()["berichten"]
+    assert berichten[0]["overzicht"] == overzicht
+    assert berichten[1]["overzicht"] == {}
+
+
 async def test_dekking_overleeft_het_opslaan(client):
     """Wat de annotatieketen wel en niet kon bekijken, met de fasen en hun duur – ook na herladen."""
     gid = await _maak(client)
