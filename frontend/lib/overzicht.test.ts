@@ -73,6 +73,16 @@ describe("overzicht", () => {
     expect(deelKop(iw.delen[0])).toBe("Hoofdstuk II – Invordering in eerste aanleg");
   });
 
+  it("leest de namen uit de data, en valt bij een ouder bericht terug op het nummer – nooit 'art.' bij een divisie", () => {
+    const divisie = { iri: `${LEIDRAAD}:artikel:79.5a`, nummer: "79.5a", label: "" };
+    expect(bepalingNaam(divisie)).toBe("79.5a");
+    expect(bepalingNaam({ ...divisie, naam: "79.5a" })).toBe("79.5a");
+    expect(bepalingNaam({ iri: `${IW}:artikel:9`, nummer: "9", label: "" })).toBe("art. 9");
+    const deel = { iri: `${LEIDRAAD}:id:BWBR0024096%2FCirculaire.divisie26.5`, soort: "Divisie", label: "Voortzetting", jci: "",
+      bepalingen: [], subdelen: [] };
+    expect(deelKop({ ...deel, kop: "26.5 – Voortzetting" })).toBe("26.5 – Voortzetting");
+  });
+
   it("telt en verantwoordt", () => {
     expect(telling(invordering())).toEqual({ regelingen: 3, delen: 4, bepalingen: 9, ookGenoemd: 1 });
     expect(zoekverantwoording(invordering())).toBe("Gezocht op „invordering” in de opschriften en in de wettekst.");

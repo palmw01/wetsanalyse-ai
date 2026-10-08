@@ -593,9 +593,13 @@ export interface Bericht {
  *  deterministisch uit de graaf opgebouwd (`tools/graph-qa/agent/overzicht.py`). De werkplek toont
  *  het zoals het is: geen bereiken, geen samenvatting – elk nummer met zijn eigen vindplaats. */
 export interface OverzichtBepaling { iri: string; nummer: string; label: string; jci?: string;
+  /** Zoals de jurist haar leest ("art. 9", "28.3a"), door graph-qa gezet; ontbreekt bij oudere berichten. */
+  naam?: string;
   /** Alleen bij "ook genoemd": het meest specifieke deel waarin de bepaling staat. */
   in_deel?: { iri: string; label: string } }
 export interface OverzichtDeel { iri: string; soort: string; label: string; jci: string;
+  /** "Hoofdstuk II – …", "28 – Invorderingsrente"; door graph-qa gezet, ontbreekt bij oudere berichten. */
+  kop?: string;
   bepalingen: OverzichtBepaling[]; subdelen: { iri: string; label: string }[] }
 export interface OverzichtRegeling { bwb_id: string; citeertitel: string; soort: string;
   delen: OverzichtDeel[]; ook_genoemd: OverzichtBepaling[] }
@@ -607,7 +611,9 @@ export interface Overzicht {
   scope: string[];
   /** False als het overzicht zijn plafond raakte. */
   volledig: boolean;
-  definities: { iri: string; begrip: string; label: string; tekst: string; jci: string; bwb_id: string; citeertitel: string }[];
+  definities: { iri: string; begrip: string; label: string; tekst: string; jci: string; bwb_id: string; citeertitel: string;
+    /** "Artikel 2, lid 2, onderdeel e" (graph-qa, uit `bronmodel.vindplaats`). */
+    vindplaats?: string }[];
   trefwoorden: { trefwoord: string; regelingen: { bwb_id: string; citeertitel: string }[] }[];
   regelingen: OverzichtRegeling[];
 }

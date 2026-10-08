@@ -183,6 +183,11 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
     }
 
 def route_after_verify(b: Bouw, state: State) -> str:
+    if state.get("overzicht"):
+        # De tekst komt uit het overzicht zelf; een correctieronde zou het model alsnog laten
+        # schrijven. Keurt de controle iets af, dan is dat een fout in `samenvatting` – zichtbaar in
+        # het grounding-event, niet stil weggepoetst.
+        return "finalize"
     if not state.get("grounded", True) and b.settings.grounding_correct and not state.get("corrected"):
         return "correct"
     return "finalize"

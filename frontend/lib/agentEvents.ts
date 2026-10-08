@@ -194,7 +194,8 @@ const parseOverzichtBepaling: Parser<OverzichtBepaling> = (v) => {
   if (!iri) return undefined;
   const inDeel = v.in_deel === undefined ? undefined : parseDeelVerwijzing(v.in_deel);
   return { iri, nummer: tekst(v.nummer), label: tekst(v.label),
-    ...(optioneel(v.jci) ? { jci: tekst(v.jci) } : {}), ...(inDeel ? { in_deel: inDeel } : {}) };
+    ...(optioneel(v.jci) ? { jci: tekst(v.jci) } : {}), ...(optioneel(v.naam) ? { naam: tekst(v.naam) } : {}),
+    ...(inDeel ? { in_deel: inDeel } : {}) };
 };
 
 const parseOverzichtDeel: Parser<OverzichtDeel> = (v) => {
@@ -203,7 +204,8 @@ const parseOverzichtDeel: Parser<OverzichtDeel> = (v) => {
   const bepalingen = lijst(parseOverzichtBepaling)(v.bepalingen ?? []);
   const subdelen = lijst(parseDeelVerwijzing)(v.subdelen ?? []);
   if (!iri || !bepalingen || !subdelen) return undefined;
-  return { iri, soort: tekst(v.soort), label: tekst(v.label), jci: tekst(v.jci), bepalingen, subdelen };
+  return { iri, soort: tekst(v.soort), label: tekst(v.label), jci: tekst(v.jci), bepalingen, subdelen,
+    ...(optioneel(v.kop) ? { kop: tekst(v.kop) } : {}) };
 };
 
 const parseOverzichtRegeling: Parser<OverzichtRegeling> = (v) => {
@@ -225,7 +227,8 @@ export const parseOverzicht: Parser<Overzicht> = (v) => {
     ? v.definities.filter(isObject).flatMap((d) => {
         const iri = bronIri(d.iri);
         return iri ? [{ iri, begrip: tekst(d.begrip), label: tekst(d.label), tekst: tekst(d.tekst), jci: tekst(d.jci),
-                        bwb_id: tekst(d.bwb_id), citeertitel: tekst(d.citeertitel) }] : [];
+                        bwb_id: tekst(d.bwb_id), citeertitel: tekst(d.citeertitel),
+                        ...(optioneel(d.vindplaats) ? { vindplaats: tekst(d.vindplaats) } : {}) }] : [];
       })
     : [];
   const trefwoorden = Array.isArray(v.trefwoorden)

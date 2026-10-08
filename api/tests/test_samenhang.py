@@ -145,8 +145,9 @@ async def test_structuurdeel_toont_zijn_artikelen_zonder_leden(monkeypatch):
     import hashlib
 
     hfd = LAW + ":hoofdstuk:II"
+    # Zoals de bronboom hem levert: `bwb:label` is alleen het woord, het nummer staat apart.
     nodes = [dict(bron_iri=LAW, parent_iri="", type="Wet", label="Wet", tekst=""),
-             dict(bron_iri=hfd, parent_iri=LAW, type="Hoofdstuk", label="Hoofdstuk II", tekst=""),
+             dict(bron_iri=hfd, parent_iri=LAW, type="Hoofdstuk", label="Hoofdstuk", nummer="II", tekst=""),
              dict(bron_iri=ART, parent_iri=hfd, type="Artikel", label="Artikel 9", tekst=""),
              dict(bron_iri=ONE, parent_iri=ART, type="Lid", label="Lid 1", tekst="Alfa"),
              dict(bron_iri=ANDER, parent_iri=hfd, type="Artikel", label="Artikel 10", tekst="")]
@@ -162,4 +163,5 @@ async def test_structuurdeel_toont_zijn_artikelen_zonder_leden(monkeypatch):
     assert g["artikel_iri"] == hfd and g["verwijzingen_beschikbaar"]
     assert set(ids) == {LAW, hfd, ART, ANDER}
     assert ids[hfd]["soort"] == "deel" and ids[ART]["soort"] == "artikel" and not ids[ART]["rand"]
+    assert ids[hfd]["label"] == "Hoofdstuk II", "het nummer hoort bij het label"
     assert {(r["bron"], r["doel"]) for r in g["relaties"]} == {(LAW, hfd), (hfd, ART), (hfd, ANDER)}

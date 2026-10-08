@@ -158,6 +158,8 @@ export function WerkplekClient({
   // De andere artikelen die de 3D-graaf meeopent: de artikelen die een antwoord noemt
   // (`samenhangDoelen`). Leeg zodra het paneel op een andere manier opent.
   const [nodeExtra, setNodeExtra] = useState<NodeDoel[]>([]);
+  // De 3D-graaf toont de delen van een overzicht: één boom (`bouwGraaf` met `boom`).
+  const [nodeBoom, setNodeBoom] = useState(false);
   const [samenhangAan, setSamenhangAan] = useState(false);
   useEffect(() => { void samenhangBeschikbaar().then(setSamenhangAan); }, []);
   const [nodeVraag, setNodeVraag] = useState<{ element: NodeElement; view: NodeWeergave }>();
@@ -371,7 +373,7 @@ export function WerkplekClient({
 
   async function openArtefact(slug: string, doel?: NodeDoel) {
     gevraagdArtefact.current = slug;
-    if (doel?.bron_iri) { setArtefactSlug(undefined); setNodeTab("tekst"); setNodeExtra([]); setNodeDoel(doel); return; }
+    if (doel?.bron_iri) { setArtefactSlug(undefined); setNodeTab("tekst"); setNodeExtra([]); setNodeBoom(false); setNodeDoel(doel); return; }
     setNodeDoel(undefined);
     // Zonder bronnode is er alleen het document van de rondleiding, dat al in het geheugen staat.
     // Elk ander slug-only bericht verwijst naar een annotatie die niet meer bestaat.
@@ -922,10 +924,11 @@ export function WerkplekClient({
     actiesRef.current = {
       verstuur: (...args) => void verstuur(...args),
       openArtefact: (slug, doel) => void openArtefact(slug, doel),
-      openSamenhang: (doel, extra = []) => {
+      openSamenhang: (doel, extra = [], opties = {}) => {
         setArtefactSlug(undefined);
         setNodeTab("graaf");
         setNodeExtra(extra);
+        setNodeBoom(!!opties.boom);
         setNodeDoel(doel);
       },
       openReeksLid: (reeksRun, doel) => {
@@ -938,7 +941,7 @@ export function WerkplekClient({
   const [acties] = useState<ThreadActies>(() => ({
     verstuur: (...args) => actiesRef.current?.verstuur(...args),
     openArtefact: (slug, doel) => actiesRef.current?.openArtefact(slug, doel),
-    openSamenhang: (doel, extra) => actiesRef.current?.openSamenhang(doel, extra),
+    openSamenhang: (doel, extra, opties) => actiesRef.current?.openSamenhang(doel, extra, opties),
     openReeksLid: (reeksRun, doel) => actiesRef.current?.openReeksLid(reeksRun, doel),
     stop: () => actiesRef.current?.stop(),
   }));
@@ -971,14 +974,14 @@ export function WerkplekClient({
     return nav ? { ...nav, onGa: (d: NodeDoel) => setNodeDoel(d) } : undefined;
   })();
   const artefact = nodeDoel ? <NodeAnnotatiePaneel key={`${nodeDoel.bron_iri}:${nodeDoel.snapshot_id ?? ""}:${nodeTab}:${nodeExtra.map((d) => d.bron_iri).join("|")}`} doel={nodeDoel}
-    extraDoelen={nodeExtra}
+    extraDoelen={nodeExtra} boom={nodeBoom}
     // Een knoop uit een meegeopend artikel: het paneel op dát artikel, de rest van de kaart blijft mee.
     onWisselDoel={nodeExtra.length ? (nieuw) => {
       setNodeExtra([nodeDoel, ...nodeExtra].filter((d) => d.bron_iri !== nieuw.bron_iri));
       setNodeTab("tekst");
       setNodeDoel(nieuw);
     } : undefined}
-    variant={breed ? "kolom" : "side"} onSluit={() => { setNodeDoel(undefined); setNodeReeks(undefined); setNodeExtra([]); }} beginTab={nodeTab}
+    variant={breed ? "kolom" : "side"} onSluit={() => { setNodeDoel(undefined); setNodeReeks(undefined); setNodeExtra([]); setNodeBoom(false); }} beginTab={nodeTab}
     reeks={nodeReeksNav}
     onVraag={(element, view) => {
       // Geen klaargezette vraag in het veld: de drie suggesties (per klasse) staan erboven als chips.

@@ -385,11 +385,15 @@ async function detailsOpen(page) {
   await page.goto(`${base}/workbench?gesprek=g3`);
   const blok = page.getByTestId("overzicht");
   await blok.waitFor();
+  // `.thread-rij` heeft content-visibility: auto – buiten beeld rendert de browser de inhoud nog niet en
+  // is innerText leeg. Eerst in beeld, dan lezen.
+  await blok.scrollIntoViewIfNeeded();
+  await blok.getByText("Hoofdstuk II – Invordering in eerste aanleg").waitFor();
   assert.match(await blok.innerText(), /Hoofdstuk II – Invordering in eerste aanleg\s+art\. 9, art\. 10/);
   await blok.getByRole("button", { name: /Noemt het onderwerp ook \(1\)/ }).click();
   assert.match(await blok.innerText(), /art\. 4 · in Hoofdstuk I – Algemene bepalingen/);
-  await page.getByRole("button", { name: /^Bronnen \(2\)/ }).click();
-  assert.match(await page.locator('[data-tour="bronnen"]').innerText(), /Hoofdstuk II – Invordering in eerste aanleg/);
+  // Het blok linkt elke vindplaats; een bronnenlijst ernaast zegt niets nieuws.
+  assert.equal(await page.getByRole("button", { name: /^Bronnen \(/ }).count(), 0, "geen bronnenlijst bij een overzicht");
   await page.getByRole("button", { name: "Bekijk samenhang van Hoofdstuk II – Invordering in eerste aanleg in 3D" }).click();
   await page.getByTestId("samenhang-graaf").waitFor();
   await page.getByRole("heading", { name: /^Samenhang van Hoofdstuk II/ }).waitFor();

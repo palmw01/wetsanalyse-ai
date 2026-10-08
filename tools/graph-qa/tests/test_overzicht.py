@@ -27,13 +27,13 @@ def _tsv(kop: list[str], rijen: list[list[str]]) -> str:
     return "\t".join(f"?{k}" for k in kop) + "\n" + "".join("\t".join(cel(v) for v in r) + "\n" for r in rijen)
 
 
-DELEN = _tsv(["node", "score", "soort", "label", "jci", "bwbId", "citeertitel"], [
-    [L28, "2.7", "Divisie", "Invorderingsrente", "", "BWBR0024096", "Leidraad Invordering 2008"],
-    [H5, "2.7", "Hoofdstuk", "Hoofdstuk V – Invorderingsrente", "", "BWBR0004770", "Invorderingswet 1990"],
-    [H2, "3.0", "Hoofdstuk", "Hoofdstuk II – Invordering in eerste aanleg", "", "BWBR0004770", "Invorderingswet 1990"],
-    [PAR, "3.4", "Paragraaf", "Paragraaf 4.4.4.2 – Invordering bij dwangbevel", "", "BWBR0005537", "Algemene wet bestuursrecht"],
-    [AFD, "3.0", "Afdeling", "Afdeling 4.4.4 – Aanmaning en invordering bij dwangbevel", "", "BWBR0005537", "Algemene wet bestuursrecht"],
-    [H7, "2.7", "Hoofdstuk", "Hoofdstuk VII – Verplichtingen ten behoeve van de invordering", "", "BWBR0004770", "Invorderingswet 1990"],
+DELEN = _tsv(["node", "score", "soort", "label", "nummer", "jci", "bwbId", "citeertitel"], [
+    [L28, "2.7", "Divisie", "Invorderingsrente", "28", "", "BWBR0024096", "Leidraad Invordering 2008"],
+    [H5, "2.7", "Hoofdstuk", "Hoofdstuk V – Invorderingsrente", "V", "", "BWBR0004770", "Invorderingswet 1990"],
+    [H2, "3.0", "Hoofdstuk", "Hoofdstuk II – Invordering in eerste aanleg", "II", "", "BWBR0004770", "Invorderingswet 1990"],
+    [PAR, "3.4", "Paragraaf", "Paragraaf 4.4.4.2 – Invordering bij dwangbevel", "4.4.4.2", "", "BWBR0005537", "Algemene wet bestuursrecht"],
+    [AFD, "3.0", "Afdeling", "Afdeling 4.4.4 – Aanmaning en invordering bij dwangbevel", "4.4.4", "", "BWBR0005537", "Algemene wet bestuursrecht"],
+    [H7, "2.7", "Hoofdstuk", "Hoofdstuk VII – Verplichtingen ten behoeve van de invordering", "VII", "", "BWBR0004770", "Invorderingswet 1990"],
 ])
 IN_DELEN = _tsv(["deel", "bepaling", "nummer", "label"], [
     [H2, f"{IW}:artikel:10", "10", "Artikel 10"], [H2, f"{IW}:artikel:8", "8", "Artikel 8"],
@@ -42,7 +42,7 @@ IN_DELEN = _tsv(["deel", "bepaling", "nummer", "label"], [
     [H5, f"{IW}:artikel:27a", "27a", "Artikel 27a"],
     [H7, f"{IW}:artikel:63", "63", "Artikel 63"],
     [AFD, f"{AWB}:artikel:4%3A124", "4:124", "Artikel 4:124"], [AFD, f"{AWB}:artikel:4%3A112", "4:112", "Artikel 4:112"],
-    [L28, f"{LEIDRAAD}:id:x28.3a", "28.3a", "Vermindering"], [L28, f"{LEIDRAAD}:id:x28.1", "28.1", "Cheque"],
+    [L28, f"{LEIDRAAD}:artikel:28.3a", "28.3a", "Vermindering"], [L28, f"{LEIDRAAD}:id:x28.1", "28.1", "Cheque"],
 ])
 TREFFERS = _tsv(["bepaling", "beste", "label", "nummer", "jci", "bwbId", "citeertitel"], [
     [f"{IW}:artikel:31", "2.0", "Artikel 31", "31", "", "BWBR0004770", "Invorderingswet 1990"],
@@ -255,36 +255,51 @@ def _een(events, soort):
     return next(e for e in events if e["type"] == soort)
 
 
-def test_de_route_bouwt_het_overzicht_voor_het_model_praat():
-    events, llm = _beurt("Welke artikelen gaan over invordering?",
-                         "De invordering staat vooral in de Invorderingswet 1990; artikel 4 noemt haar ook.")
-    assert len(llm.calls) == 1, "geen supervisor-call en geen tool-keuze: één duiding"
+def _tekst(events) -> str:
+    return "".join(e["content"] for e in events if e["type"] == "token")
+
+
+def test_de_route_bouwt_het_overzicht_zonder_model():
+    events, llm = _beurt("Welke artikelen gaan over invordering?")
+    assert len(llm.calls) == 0, "geen supervisor-call, geen tool-keuze en geen duiding door het model"
     ov = _een(events, "overzicht")["overzicht"]
     assert [r["bwb_id"] for r in ov["regelingen"]] == ["BWBR0004770", "BWBR0005537", "BWBR0024096"]
+    assert _tekst(events) == overzicht.samenvatting(ov)
     uitvoering = [e for e in events if e["type"] == "tool_execution" and e["tool"] == "overzicht_onderwerp"]
     assert {e["phase"] for e in uitvoering} == {"start", "end"}
     bronnen = {b["uri"] for b in _een(events, "sources")["sources"]}
     assert {H2, H5, H7, AFD, f"{IW}:artikel:4"} <= bronnen
-    assert _een(events, "grounding")["niveau"] == "gegrond"
-    # Het model kreeg de opbouw, niet de nummerlijsten.
-    gelezen = json.dumps(llm.calls[0]["messages"], ensure_ascii=False)
-    assert "Hoofdstuk II – Invordering in eerste aanleg" in gelezen and "27quinquies" not in gelezen
+    assert _een(events, "grounding")["niveau"] == "gegrond", "de koppen in de tekst zijn getoetst"
 
 
-def test_een_artikel_buiten_het_overzicht_gaat_de_correctie_in():
-    events, llm = _beurt("Welke artikelen gaan over invordering?",
-                         "Zie vooral artikel 99 van de Invorderingswet 1990.",
-                         "De invordering staat vooral in de Invorderingswet 1990.")
-    assert len(llm.calls) == 2, "één correctieronde"
-    assert "artikel 99" in json.dumps(llm.calls[1]["messages"], ensure_ascii=False)
-    assert _een(events, "grounding")["niveau"] != "ongegrond"
+def test_mislukt_het_bouwen_dan_zegt_het_model_dat():
+    import asyncio
+
+    from agent.agent import answer_stream
+    from fakes import FakeLLM, make_settings, response, text_block
+
+    class Kapot(Graaf):
+        def _antwoord(self, q: str) -> str:
+            if "titel:(" in q:
+                raise RuntimeError("graaf weg")
+            return super()._antwoord(q)
+
+    llm = FakeLLM([response([text_block("Het overzicht kon niet uit de graaf worden opgebouwd.")], "end_turn")])
+
+    async def run():
+        return [e async for e in answer_stream("Welke artikelen gaan over invordering?",
+                                               settings=make_settings(enable_decomposition=False), llm=llm, graph=Kapot())]
+    events = asyncio.run(run())
+    assert not [e for e in events if e["type"] == "overzicht"], "geen half overzicht"
+    assert len(llm.calls) == 1 and "overzicht_niet_opgebouwd" in json.dumps(llm.calls[0]["messages"])
+    assert _tekst(events) == "Het overzicht kon niet uit de graaf worden opgebouwd."
 
 
-def test_een_andere_duiding_verandert_overzicht_noch_bronnen():
-    a, _ = _beurt("Welke artikelen gaan over invordering?", "Kort: vooral de Invorderingswet 1990.")
-    b, _ = _beurt("Waar is de invordering geregeld?",
-                  "De Algemene wet bestuursrecht en de Leidraad Invordering 2008 regelen er ook veel van.")
+def test_andere_formulering_zelfde_overzicht_tekst_en_bronnen():
+    a, _ = _beurt("Welke artikelen gaan over invordering?")
+    b, _ = _beurt("Waar is de invordering geregeld?")
     assert _een(a, "overzicht") == _een(b, "overzicht")
+    assert _tekst(a) == _tekst(b)
     assert _een(a, "sources") == _een(b, "sources")
 
 
@@ -302,3 +317,53 @@ def test_de_eval_scoort_het_overzicht_zelf():
     assert not overzicht_ok(ov, {"niet_los": [f"{IW}:artikel:4"]}), "art. 4 staat wél los"
     assert not overzicht_ok(None, {"delen": [H2]}), "geen overzicht waar er een hoort"
     assert overzicht_ok(None, None), "een gewone vraag heeft geen eis"
+
+
+def test_namen_staan_in_de_data():
+    """Eén plek voor hoe een deel en een bepaling heten: het blok en de samenvatting lezen ze, en de
+    werkplek leidt niets meer af uit de IRI-vorm."""
+    ov = overzicht.bouw_overzicht(Graaf(), "Welke artikelen gaan over invordering?")
+    per = _per_regeling(ov)
+    leidraad = per["BWBR0024096"]["delen"][0]
+    assert leidraad["kop"] == "28 – Invorderingsrente"
+    assert [b["naam"] for b in leidraad["bepalingen"]] == ["28.1", "28.3a"], "een divisie is nooit 'art.', ook met een :artikel:-IRI"
+    assert per["BWBR0004770"]["delen"][0]["kop"] == "Hoofdstuk II – Invordering in eerste aanleg"
+    assert [b["naam"] for b in per["BWBR0004770"]["delen"][0]["bepalingen"]] == ["art. 8", "art. 9", "art. 10"]
+    assert per["BWBR0005537"]["ook_genoemd"][0]["naam"] == "art. 4:94a"
+    assert ov["definities"][0]["vindplaats"] == "Artikel 2, lid 2, onderdeel e"
+
+
+def test_de_samenvatting_komt_uit_de_data_en_doorstaat_de_controle():
+    from agent.grounding import check_grounding
+
+    ov = overzicht.bouw_overzicht(Graaf(), "Welke artikelen gaan over invordering?")
+    tekst = overzicht.samenvatting(ov)
+    assert tekst.startswith("„Invordering” staat vooral in de **Invorderingswet 1990**: 3 delen met 7 bepalingen "
+                            "(Hoofdstuk II – Invordering in eerste aanleg; Hoofdstuk V – Invorderingsrente; "
+                            "Hoofdstuk VII – Verplichtingen ten behoeve van de invordering).")
+    assert "Verder in de Algemene wet bestuursrecht (Afdeling 4.4.4 – Aanmaning en invordering bij dwangbevel) " \
+           "en de Leidraad Invordering 2008 (28 – Invorderingsrente)." in tekst
+    assert "De Invorderingswet 1990 definieert „invorderen van rijksbelastingen” in artikel 2, lid 2, onderdeel e." in tekst
+    assert overzicht.samenvatting(ov) == tekst, "dezelfde data, dezelfde tekst"
+    rapport = check_grounding(tekst, [("overzicht_onderwerp", overzicht.bronrijen(ov))], overzicht=ov)
+    assert rapport.niveau == "gegrond" and "Hoofdstuk II" in rapport.cited and "afdeling 4.4.4" in [c.casefold() for c in rapport.cited]
+
+
+def test_de_controle_toetst_ook_delen():
+    ov = overzicht.bouw_overzicht(Graaf(), "Welke artikelen gaan over invordering?")
+    assert overzicht.vermeldingen_buiten("Zie Hoofdstuk V en afdeling 4.4.4.", ov) == []
+    assert overzicht.vermeldingen_buiten("Zie Hoofdstuk I, waar art. 4 staat.", ov) == [], "het deel van 'ook genoemd'"
+    assert overzicht.vermeldingen_buiten("Zie Hoofdstuk XII en Titel 5.4.", ov) == ["Hoofdstuk XII", "Titel 5.4"]
+
+
+def test_samenvatting_zonder_delen_en_met_afbakening():
+    ov = overzicht.bouw_overzicht(Graaf(), "Welke artikelen gaan over invordering?")
+    zonder = {**ov, "regelingen": [{**r, "delen": []} for r in ov["regelingen"]]}
+    tekst = overzicht.samenvatting(zonder)
+    assert tekst.startswith("Geen hoofdstuk, afdeling, paragraaf of divisie draagt „invordering” in zijn opschrift.")
+    assert "Het onderwerp staat wel in de tekst van 2 bepalingen in 2 regelingen" in tekst
+    binnen = overzicht.bouw_overzicht(Graaf(), "Welke artikelen in de Awb gaan over invordering?")
+    assert overzicht.samenvatting(binnen).startswith(
+        "Binnen de Algemene wet bestuursrecht staat „invordering” vooral in Afdeling 4.4.4 – Aanmaning en invordering bij dwangbevel: 2 bepalingen.")
+    leeg = {**ov, "regelingen": []}
+    assert overzicht.samenvatting(leeg) == "In de kennisgraaf staat geen deel of bepaling over „invordering”."

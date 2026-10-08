@@ -62,8 +62,9 @@ overzien.
    🟢🟡), de **leesroute** voor vragen óver bestaande annotaties (`annotaties_zoeken`: eerst zelf
    zoeken met `search_annotaties`, dan pas formuleren – zoeken is een stap in de keten, geen keuze
    van het model) of de **overzichtsroute** voor "welke artikelen gaan over X?" (`overzicht_bouwen`:
-   het overzicht komt deterministisch uit de graaf en de werkplek toont het als blok; het model duidt
-   alleen, zodat dezelfde vraag hetzelfde overzicht, dezelfde bronnen en dezelfde 3D-graaf geeft).
+   overzicht én tekst komen deterministisch uit de graaf, zonder model, en de werkplek toont het als
+   blok – dezelfde vraag geeft hetzelfde overzicht, dezelfde tekst, dezelfde bronnen en dezelfde
+   3D-graaf).
    Endpoints: `POST /v1/runs` (+ `/events`, `/cancel`; de weg van de werkplek – de beurt draait bij de
    agent, de browser kijkt mee), `POST /v1/chat` (SSE, aan de verbinding gekoppeld en **zonder
    eigenaarscontrole** – niet voor de webapp). De werkplek praat er **direct** mee

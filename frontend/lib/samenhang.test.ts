@@ -69,6 +69,31 @@ describe("bouwGraaf", () => {
     expect(breed / hoog).toBeLessThan(2.5);
     expect(clusterPlek(4)).toEqual([760, -680]);
   });
+  it("legt een overzicht als één compacte, ruimtelijke boom", () => {
+    // Drie regelingen met samen acht delen van elk vijf artikelen, zoals een overzicht ze opent.
+    const regelingen = ["BWBR0004770", "BWBR0005537", "BWBR0024096"];
+    const delen: Samenhang[] = Array.from({ length: 8 }, (_, i) => {
+      const wet = `urn:bwb:${regelingen[i % 3]}`, deel = `${wet}:hoofdstuk:${i + 1}`;
+      const artikelen = Array.from({ length: 5 }, (_, j) => `${wet}:artikel:${i * 10 + j}`);
+      return samenhang(deel, {
+        knopen: [knoop(wet, "regeling"), knoop(deel, "deel"), ...artikelen.map((a) => knoop(a, "artikel"))],
+        relaties: [{ bron: wet, doel: deel, soort: "bevat", groep: "structuur", anker_tekst: "" },
+          ...artikelen.map((a) => ({ bron: deel, doel: a, soort: "bevat" as const, groep: "structuur" as const, anker_tekst: "" }))],
+      });
+    });
+    const g = bouwGraaf(delen, undefined, { boom: true });
+    const as = (k: "x" | "y" | "z") => { const v = g.nodes.map((n) => n[k]); return Math.max(...v) - Math.min(...v); };
+    const [bx, by, bz] = [as("x"), as("y"), as("z")];
+    expect(Math.min(bx, by, bz) / Math.max(bx, by, bz)).toBeGreaterThan(1 / 3);           // geen plaat
+    expect(Math.max(bx, by, bz)).toBeLessThan(1500);                                     // compact: het raster was > 2000
+    expect(bouwGraaf([...delen].reverse(), undefined, { boom: true }).nodes.find((n) => n.id === `urn:bwb:${regelingen[0]}`))
+      .toMatchObject({ x: g.nodes.find((n) => n.id === `urn:bwb:${regelingen[0]}`)!.x });  // volgorde maakt niet uit
+    // De regeling ligt tussen haar delen, niet bij één ervan.
+    const pos = (id: string) => g.nodes.find((n) => n.id === id)!;
+    const wet = pos(`urn:bwb:${regelingen[0]}`), haarDelen = [0, 3, 6].map((i) => pos(`urn:bwb:${regelingen[0]}:hoofdstuk:${i + 1}`));
+    const afstand = (a: { x: number; y: number; z: number }, b: { x: number; y: number; z: number }) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+    expect(Math.max(...haarDelen.map((d) => afstand(wet, d)))).toBeLessThan(400);
+  });
   it("omschrijft de clusters als delen en artikelen", () => {
     const hfd = `${LAW}:hoofdstuk:II`;
     const deel = samenhang(hfd, { knopen: [knoop(hfd, "deel"), knoop(ART, "artikel")], relaties: [] });

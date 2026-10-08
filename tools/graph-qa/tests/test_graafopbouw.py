@@ -51,9 +51,11 @@ def test_planning_is_de_standaardvorm():
         # De leesroute zoekt eerst zelf; pas daarna formuleert de agent (zie nodes/annotatie_lezen.py).
         ("supervisor", "annotaties_zoeken", "", True),
         ("annotaties_zoeken", "agent", "", False),
-        # Een overzichtsvraag: eerst het overzicht uit de graaf, dan duidt de agent (nodes/overzicht.py).
+        # Een overzichtsvraag: het overzicht en zijn tekst komen uit de graaf, zonder model; alleen als
+        # het bouwen faalt neemt de agent het over (nodes/overzicht.py).
         ("supervisor", "overzicht_bouwen", "", True),
-        ("overzicht_bouwen", "agent", "", False),
+        ("overzicht_bouwen", "verify", "", True),
+        ("overzicht_bouwen", "agent", "", True),
         ("afwijzen", EIND, "", False),
         ("agent", "tools", "", True),
         ("agent", "verify", "", True),
@@ -90,7 +92,8 @@ def test_decompositie_voegt_de_deelvraag_keten_toe():
     assert ("annotaties_zoeken", "agent", "", False) in edges
     # En de overzichtsroute bouwt eerst het overzicht, ook met decompositie.
     assert ("supervisor", "overzicht_bouwen", "", True) in edges
-    assert ("overzicht_bouwen", "agent", "", False) in edges
+    assert ("overzicht_bouwen", "verify", "", True) in edges
+    assert ("overzicht_bouwen", "agent", "", True) in edges
     assert ("advance", "decompose", "", True) in edges
 
 

@@ -30,6 +30,8 @@ import re
 from typing import Any
 from urllib.parse import unquote
 
+from bronmodel.vindplaats import vindplaats
+
 from .graph import queries
 from .graph.results import parse_select
 from .graph.structuur import natuurlijke_sleutel
@@ -153,6 +155,33 @@ def _zonder_regeling(onderwerp: str, graph: GraphPort, scope: list[str]) -> str:
 RANG = {"wet": 0, "amvb": 1, "algemene-maatregel-van-bestuur": 1, "ministeriele-regeling": 2,
         "beleidsregel": 3, "circulaire": 3}
 
+def deel_kop(label: str, nummer: str) -> str:
+    """De kop van een deel zoals de jurist hem leest. Een hoofdstuk of afdeling draagt zijn nummer al
+    ("Hoofdstuk II – Invordering in eerste aanleg"); een divisie van een beleidsregel heet alleen naar
+    haar titel ("Invorderingsrente") en krijgt haar nummer ervoor: "28 – Invorderingsrente"."""
+    if not nummer or " – " in label or label.startswith(nummer):
+        return label
+    return f"{nummer} – {label}" if label else nummer
+
+
+def bepaling_naam(nummer: str, iri: str) -> str:
+    """"art. 9" voor een artikel, "28.3a" voor een divisie. Op het nummer, niet op de IRI-vorm: een deel
+    van de Leidraad-divisies heeft een `:artikel:`-IRI (79.5a) en een deel een `id:`-IRI (79.5), en de
+    oude regel gaf zo "79.5, art. 79.5a, art. 79.5b, 79.5c"."""
+    if not nummer:
+        return ""
+    if "." in nummer or ":id:" in iri:
+        return nummer
+    return f"art. {nummer}"
+
+
+def definitie_vindplaats(iri: str) -> str:
+    """"Artikel 2, lid 2, onderdeel e" – de vindplaats uit de IRI, met dezelfde regels als de
+    bronnenlijst (`bronmodel.vindplaats`), in plaats van het kale "Onderdeel e."."""
+    vp = vindplaats(iri)
+    return vp.label if vp and vp.label else ""
+
+
 _DIEPTE = {"Paragraaf": 4, "Afdeling": 3, "Titeldeel": 2, "Hoofdstuk": 1, "Divisie": 0}
 
 
@@ -249,7 +278,8 @@ def bouw_overzicht(graph: GraphPort, vraag_of_onderwerp: str, *, onderwerp: str 
             if not (queries.is_bron_iri(r.get("bepaling", "")) and queries.is_bron_iri(r.get("deel", ""))):
                 continue
             inhoud.setdefault(r["deel"], []).append(
-                {"iri": r["bepaling"], "nummer": r.get("nummer", ""), "label": r.get("label", "")})
+                {"iri": r["bepaling"], "nummer": r.get("nummer", ""), "label": r.get("label", ""),
+                 "naam": bepaling_naam(r.get("nummer", ""), r["bepaling"])})
     binnen_delen = {b["iri"] for lijst in inhoud.values() for b in lijst} | gevonden
 
     regelingen: dict[str, dict[str, Any]] = {}
@@ -270,8 +300,10 @@ def bouw_overzicht(graph: GraphPort, vraag_of_onderwerp: str, *, onderwerp: str 
         subdelen = sorted((s for s in sub if d["node"] in plaats.get(s, set())), key=padsleutel)
         regeling(_bwb(d["node"]), d.get("citeertitel", ""))["delen"].append({
             "iri": d["node"], "soort": d.get("soort", ""), "label": d.get("label", ""), "jci": d.get("jci", ""),
+            "nummer": d.get("nummer", ""), "kop": deel_kop(d.get("label", ""), d.get("nummer", "")),
             "bepalingen": bepalingen,
-            "subdelen": [{"iri": s, "label": sub[s].get("label", "")} for s in subdelen],
+            "subdelen": [{"iri": s, "label": deel_kop(sub[s].get("label", ""), sub[s].get("nummer", ""))}
+                         for s in subdelen],
         })
 
     for t in treffers:
@@ -282,6 +314,7 @@ def bouw_overzicht(graph: GraphPort, vraag_of_onderwerp: str, *, onderwerp: str 
         in_deel = _diepste(ouders, plaats.soorten, plaats.labels)
         regeling(t.get("bwbId") or _bwb(iri), t.get("citeertitel", ""))["ook_genoemd"].append({
             "iri": iri, "nummer": t.get("nummer", ""), "label": t.get("label", ""), "jci": t.get("jci", ""),
+            "naam": bepaling_naam(t.get("nummer", ""), iri),
             **({"in_deel": in_deel} if in_deel else {}),
         })
     for r in regelingen.values():
@@ -289,7 +322,8 @@ def bouw_overzicht(graph: GraphPort, vraag_of_onderwerp: str, *, onderwerp: str 
 
     definities = [
         {"iri": r["node"], "begrip": r.get("begrip", ""), "label": r.get("label", ""), "tekst": r.get("tekst", ""),
-         "jci": r.get("jci", ""), "bwb_id": r.get("bwbId", ""), "citeertitel": r.get("citeertitel", "")}
+         "jci": r.get("jci", ""), "bwb_id": r.get("bwbId", ""), "citeertitel": r.get("citeertitel", ""),
+         "vindplaats": definitie_vindplaats(r["node"])}
         for r in _rijen(graph, queries.definities_van(in_opbouw))
         if queries.is_bron_iri(r.get("node", "")) and (not scope or r.get("bwbId") in scope)
     ]
@@ -316,6 +350,10 @@ def bouw_overzicht(graph: GraphPort, vraag_of_onderwerp: str, *, onderwerp: str 
         "definities": definities,
         "trefwoorden": list(trefwoorden.values()),
         "regelingen": sorted(regelingen.values(), key=gewicht),
+        # Alle delen van de opbouw die dit overzicht raakt, ook de bovenliggende ("Hoofdstuk IV" boven
+        # "Afdeling 3"): daartegen toetst de controle een genoemd deel.
+        "opbouw": sorted({lab for lab in plaats.labels.values() if lab}
+                         | {d.get("label", "") for d in delen if d.get("label")}),
     }
 
 
@@ -372,23 +410,123 @@ def nummers(ov: dict[str, Any]) -> set[str]:
     return {n.casefold() for n in uit}
 
 
+# "Hoofdstuk II", "Titel 5.4", "afdeling 4.4.4", "paragraaf 4.4.4.2", "Hoofdstuk VIIbis".
+_DEEL = re.compile(r"\b(hoofdstuk|titeldeel|titel|afdeling|paragraaf)\s+([IVXLC]+[a-z]*|\d+[a-z]*(?:\.\d+[a-z]*)*)\b",
+                   re.IGNORECASE)
+
+
+def _deel_sleutel(soort: str, nummer: str) -> str:
+    soort = "titel" if soort.casefold() in {"titel", "titeldeel"} else soort.casefold()
+    return f"{soort} {nummer.casefold()}"
+
+
+def delen_bekend(ov: dict[str, Any]) -> set[str]:
+    """Elk deel dat het overzicht kent, als "hoofdstuk ii": de gevonden delen, hun subdelen, de delen
+    boven een gevonden deel of bepaling (`opbouw`) en de `in_deel` van wat het onderwerp verder noemt."""
+    labels = list(ov.get("opbouw", []))
+    for r in ov.get("regelingen", []):
+        for d in r["delen"]:
+            labels += [d.get("kop", ""), d.get("label", ""), *(s["label"] for s in d["subdelen"])]
+        labels += [(b.get("in_deel") or {}).get("label", "") for b in r["ook_genoemd"]]
+    return {_deel_sleutel(m.group(1), m.group(2)) for lab in labels for m in _DEEL.finditer(lab or "")}
+
+
 def vermeldingen(tekst: str) -> list[str]:
-    """De artikelen die een tekst noemt, als "artikel N", in volgorde en zonder dubbelen."""
+    """De artikelen en delen die een tekst noemt ("artikel 4", "Hoofdstuk II"), in volgorde en zonder
+    dubbelen."""
     uit: list[str] = []
     for m in _VERMELDING.finditer(tekst or ""):
         for nummer in re.findall(_NUMMER, m.group(1) or m.group(2) or ""):
             if f"artikel {nummer}" not in uit:
                 uit.append(f"artikel {nummer}")
+    for m in _DEEL.finditer(tekst or ""):
+        naam = f"{m.group(1)} {m.group(2)}"
+        if naam not in uit:
+            uit.append(naam)
     return uit
 
 
 def vermeldingen_buiten(tekst: str, ov: dict[str, Any]) -> list[str]:
-    """De artikelen die de duiding noemt maar die niet in het overzicht staan.
+    """De artikelen en delen die een tekst noemt maar die niet in het overzicht staan.
 
-    De duiding hoort het overzicht te duiden, niet aan te vullen met een bepaling die het model zelf
-    bedacht of elders zag: zo'n vermelding is `ongegrond` en gaat de correctieronde in."""
-    bekend = nummers(ov)
-    return [v for v in vermeldingen(tekst) if v.removeprefix("artikel ").casefold() not in bekend]
+    Een tekst bij het overzicht hoort het overzicht te beschrijven, niet aan te vullen met een bepaling
+    of hoofdstuk dat het model zelf bedacht of elders zag: zo'n vermelding is `ongegrond`."""
+    bepalingen, delen = nummers(ov), delen_bekend(ov)
+    uit = []
+    for v in vermeldingen(tekst):
+        if v.startswith("artikel "):
+            if v.removeprefix("artikel ").casefold() not in bepalingen:
+                uit.append(v)
+        elif (m := _DEEL.match(v)) and _deel_sleutel(m.group(1), m.group(2)) not in delen:
+            uit.append(v)
+    return uit
+
+
+# --- Samenvatting ----------------------------------------------------------------------------------
+
+def _meervoud(n: int, een: str, meer: str) -> str:
+    return f"{n} {een if n == 1 else meer}"
+
+
+def _opsomming(delen: list[str]) -> str:
+    return delen[0] if len(delen) == 1 else ", ".join(delen[:-1]) + " en " + delen[-1]
+
+
+def _koppen(r: dict[str, Any], hoogstens: int = 3) -> str:
+    koppen = [d.get("kop") or d["label"] for d in r["delen"]]
+    rest = len(koppen) - hoogstens
+    return "; ".join(koppen[:hoogstens]) + (f"; en {rest} meer" if rest > 0 else "")
+
+
+def samenvatting(ov: dict[str, Any]) -> str:
+    """De tekst boven het overzicht, uit de data – geen model.
+
+    Een modelduiding ging buiten het overzicht ("bevoegdheid, hoogte, evenredigheid" bij de bestuurlijke
+    boete; niets daarvan staat in de graaf) en eindigde de ene keer met een wedervraag en de andere keer
+    niet. Hier staat alleen wat het overzicht zegt, met zijn eigen koppen en getallen: dezelfde vraag
+    geeft dezelfde tekst, en elke genoemde kop is getoetst (`vermeldingen`)."""
+    onderwerp = f"„{ov['gevraagd']}”"
+    regelingen = ov["regelingen"]
+    if not regelingen:
+        return f"In de kennisgraaf staat geen deel of bepaling over {onderwerp}."
+    namen_scope = _opsomming([r["citeertitel"] for r in regelingen]) if ov["scope"] else ""
+    met_delen = [r for r in regelingen if r["delen"]]
+    zinnen: list[str] = []
+    if met_delen:
+        kern = met_delen[0]
+        bepalingen = _meervoud(sum(len(d["bepalingen"]) for d in kern["delen"]), "bepaling", "bepalingen")
+        if namen_scope:
+            zinnen.append(f"Binnen de {namen_scope} staat {onderwerp} vooral in {_koppen(kern)}: {bepalingen}.")
+        else:
+            zinnen.append(f"„{ov['gevraagd'][:1].upper()}{ov['gevraagd'][1:]}” staat vooral in de **{kern['citeertitel']}**: "
+                          f"{_meervoud(len(kern['delen']), 'deel', 'delen')} met {bepalingen} ({_koppen(kern)}).")
+        overige = met_delen[1:]
+        if overige:
+            delen = [f"de {r['citeertitel']} ({_koppen(r, 1) if len(r['delen']) == 1 else _meervoud(len(r['delen']), 'deel', 'delen')})"
+                     for r in overige]
+            zinnen.append(f"Verder in {_opsomming(delen)}.")
+    else:
+        zinnen.append(f"Geen hoofdstuk, afdeling, paragraaf of divisie draagt {onderwerp} in zijn opschrift"
+                      + (f" binnen de {namen_scope}" if namen_scope else "") + ".")
+    los = [r for r in regelingen if r["ook_genoemd"]]
+    if los:
+        totaal = sum(len(r["ook_genoemd"]) for r in los)
+        meest = max(los, key=lambda r: (len(r["ook_genoemd"]), -regelingen.index(r)))
+        zin = (f"{'Daarnaast noemen' if met_delen else 'Het onderwerp staat wel in de tekst van'} "
+               f"{_meervoud(totaal, 'bepaling', 'bepalingen')}")
+        zin += (f" in {_meervoud(len(los), 'regeling', 'regelingen')}" if len(los) > 1 else f" in de {los[0]['citeertitel']}")
+        zin += " het onderwerp in hun tekst" if met_delen else ""
+        if len(los) > 1:
+            zin += f", de meeste in de {meest['citeertitel']} ({len(meest['ook_genoemd'])})"
+        zinnen.append(zin + ".")
+    for d in ov["definities"][:1]:
+        if d.get("vindplaats"):
+            zinnen.append(f"De {d['citeertitel']} definieert „{d['begrip']}” in {d['vindplaats'][0].lower()}{d['vindplaats'][1:]}.")
+    if ov["onderwerp_opbouw"] != ov["gevraagd"] or ov["onderwerp_tekst"] != ov["gevraagd"]:
+        zinnen.append(f"Gezocht is op „{ov['onderwerp_opbouw']}” in de opschriften"
+                      + ("" if ov["onderwerp_tekst"] == ov["onderwerp_opbouw"] else f" en op „{ov['onderwerp_tekst']}” in de wettekst")
+                      + ".")
+    return " ".join(zinnen)
 
 
 # --- Weergaven -------------------------------------------------------------------------------------

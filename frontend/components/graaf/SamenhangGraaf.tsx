@@ -33,7 +33,7 @@ class CanvasGrens extends Component<{ children: ReactNode }, { fout: boolean }> 
 /** De toestand van de graaf. Leeft in het paneel (búiten de `Dialog`): vergroten wisselt de
  *  dialoogvorm en remount daarmee de inhoud, en zonder dit waren bijgeladen artikelen, uitklappingen,
  *  selectie en camera dan weg. `actief` laadt pas als de tab voor het eerst opengaat. */
-export function useSamenhangStand(doel: NodeDoel, actief: boolean, extra: NodeDoel[] = []) {
+export function useSamenhangStand(doel: NodeDoel, actief: boolean, extra: NodeDoel[] = [], boom = false) {
   // Een nieuwe array met dezelfde doelen mag niet opnieuw laden: vergelijk op de bron-IRI's.
   const extraSleutel = extra.map((d) => d.bron_iri).join("|");
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -59,8 +59,8 @@ export function useSamenhangStand(doel: NodeDoel, actief: boolean, extra: NodeDo
   const camera = useRef<CameraStand | null>(null);
   const zetDelen = useCallback((maak: (oud: Samenhang[]) => Samenhang[]) => setGeladen((oud) => {
     const delen = maak(oud?.delen ?? []);
-    return { delen, graaf: bouwGraaf(delen, oud?.graaf) };
-  }), []);
+    return { delen, graaf: bouwGraaf(delen, oud?.graaf, { boom }) };
+  }), [boom]);
   const laad = useCallback(async () => {
     setFout("");
     try {
