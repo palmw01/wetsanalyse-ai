@@ -200,7 +200,9 @@ async function detailsOpen(page) {
     await page.waitForTimeout(40);
     // Niet wachten: zonder tooltip op deze plek meteen door naar de volgende.
     const tips = page.locator(".samenhang-tip");
-    tooltip = (await tips.count()) ? (await tips.first().textContent()) || "" : "";
+    // Kort lezen: de tooltip kan tussen tellen en lezen verdwijnen (de muis staat al op de volgende
+    // plek), en een gewone textContent wacht dan 30 s op een element dat niet terugkomt.
+    tooltip = (await tips.count()) ? (await tips.first().textContent({ timeout: 500 }).catch(() => "")) || "" : "";
   }
   assert.ok(tooltip.length > 0, "een knoop of verbinding toont een tooltip bij hover");
   // Met de laag Annotaties aan staan markeringen en hun JAS-klasse meteen in beeld.
