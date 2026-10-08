@@ -359,12 +359,13 @@ def bepalingen_in_delen(delen: list[str]) -> str:
     if not delen:
         raise ValueError("Geen delen.")
     waarden = " ".join(f"<{_iri_veilig(d)}>" for d in sorted(set(delen)))
-    return PREFIXES + f"""SELECT ?deel ?bepaling ?nummer ?label WHERE {{
+    return PREFIXES + f"""SELECT ?deel ?bepaling ?nummer (SAMPLE(?lab) AS ?label) (SAMPLE(?bl) AS ?bronlabel) WHERE {{
   VALUES ?deel {{ {waarden} }}
   {{ ?deel ({STRUCTUUR})+ ?bepaling . ?bepaling a bwb:Artikel }} UNION {{ ?deel bwb:heeftDivisie ?bepaling }}
   ?bepaling bwb:nummer ?nummer .
-  OPTIONAL {{ ?bepaling rdfs:label ?label }}
-}} ORDER BY ?deel ?bepaling"""
+  OPTIONAL {{ ?bepaling rdfs:label ?lab }}
+  OPTIONAL {{ ?bepaling bwb:label ?bl }}
+}} GROUP BY ?deel ?bepaling ?nummer ORDER BY ?deel ?bepaling"""
 
 
 def bepalingen_met_onderwerp(onderwerp: str, limit: int = 200) -> str:
@@ -375,7 +376,7 @@ def bepalingen_met_onderwerp(onderwerp: str, limit: int = 200) -> str:
     leden en onderdelen waar een jurist naar artikelen vroeg."""
     lim = max(1, min(int(limit), 500))
     return PREFIXES + f"""SELECT ?bepaling (MAX(?score) AS ?beste) (SAMPLE(?lab) AS ?label) (SAMPLE(?nr) AS ?nummer)
-       (SAMPLE(?j) AS ?jci) ?bwbId (SAMPLE(?ct) AS ?citeertitel) WHERE {{
+       (SAMPLE(?bl) AS ?bronlabel) (SAMPLE(?j) AS ?jci) ?bwbId (SAMPLE(?ct) AS ?citeertitel) WHERE {{
   {{ SELECT ?hit ?score WHERE {{
     [] a inst:bwb_tekst ; luc:query {_lit(opbouw_lucene(onderwerp, veld="tekst"))} ; luc:entities ?hit .
     ?hit luc:score ?score . }} }}
@@ -385,6 +386,7 @@ def bepalingen_met_onderwerp(onderwerp: str, limit: int = 200) -> str:
   FILTER(STRSTARTS(STR(?bepaling), "{NS}"))
   OPTIONAL {{ ?bepaling rdfs:label ?lab }}
   OPTIONAL {{ ?bepaling bwb:nummer ?nr }}
+  OPTIONAL {{ ?bepaling bwb:label ?bl }}
   OPTIONAL {{ ?bepaling bwb:jci ?j }}
   BIND(SUBSTR(STR(?bepaling), {len(NS) + 1}) AS ?rest)
   BIND(IF(CONTAINS(?rest, "{SEP}"), STRBEFORE(?rest, "{SEP}"), ?rest) AS ?bwbId)
@@ -440,7 +442,7 @@ def zoek_opbouw(onderwerp: str, bwb_id: str | None = None, limit: int = 25, offs
     lim = max(1, min(int(limit), 50))
     scope = f'\n  FILTER(STRSTARTS(STR(?node), "{NS}{_bwb(bwb_id)}{SEP}"))' if bwb_id else ""
     typen = ", ".join(f"bwb:{t}" for t in OPBOUW_TYPES)
-    return PREFIXES + f"""SELECT ?node ?score ?soort (SAMPLE(?lab) AS ?label) (SAMPLE(?dn) AS ?nummer) (SAMPLE(?j) AS ?jci) ?bwbId
+    return PREFIXES + f"""SELECT ?node ?score ?soort (SAMPLE(?lab) AS ?label) (SAMPLE(?dn) AS ?nummer) (SAMPLE(?dbl) AS ?bronlabel) (SAMPLE(?j) AS ?jci) ?bwbId
        (SAMPLE(?ct) AS ?citeertitel) (COUNT(DISTINCT ?b) AS ?aantal)
        (GROUP_CONCAT(DISTINCT ?nr; separator="|") AS ?nummers) WHERE {{
   {{ SELECT ?node ?score WHERE {{
@@ -451,6 +453,7 @@ def zoek_opbouw(onderwerp: str, bwb_id: str | None = None, limit: int = 25, offs
   BIND(STRAFTER(STR(?t), "{ONTOLOGIE}") AS ?soort)
   OPTIONAL {{ ?node rdfs:label ?lab }}
   OPTIONAL {{ ?node bwb:nummer ?dn }}
+  OPTIONAL {{ ?node bwb:label ?dbl }}
   OPTIONAL {{ ?node bwb:jci ?j }}
   BIND(SUBSTR(STR(?node), {len(NS) + 1}) AS ?rest)
   BIND(IF(CONTAINS(?rest, "{SEP}"), STRBEFORE(?rest, "{SEP}"), ?rest) AS ?bwbId)

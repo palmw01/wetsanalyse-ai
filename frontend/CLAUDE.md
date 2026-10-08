@@ -233,7 +233,7 @@ schrijft Lex er alleen een korte duiding bij. Het overzicht komt als `overzicht`
 en reist mee in het bericht (`Bericht.overzicht`), ook als de werkplek het bericht zelf vastlegt.
 **`OverzichtBlok`** toont het onder de samenvatting (die graph-qa uit dezelfde data schrijft, zonder
 model): per regeling de delen met **al** hun bepalingen (`kop`/`naam` uit de data via `deelKop` en
-`bepalingNaam` – nooit een bereik, nooit "art." bij een divisie), wat het onderwerp verder noemt met zijn
+`bepalingNaam` – nooit een bereik; de naam zoals de bron hem geeft, ook waar de Leidraad wisselt), wat het onderwerp verder noemt met zijn
 plek in de opbouw (ingeklapt; open als de regeling geen deel heeft), de wettelijke definitie met haar
 `vindplaats`, het redactionele trefwoord en waarop er gezocht is (`zoekverantwoording`). **Bij een
 overzicht staat er geen bronnenlijst**: het blok linkt elke vindplaats. De kopieerknop neemt het
@@ -615,7 +615,8 @@ opent.
 - **Een overzichtsantwoord opent de delen van zijn overzicht** (`overzichtDoelen` in
   `lib/overzicht.ts`): de delen in de volgorde van het overzicht, het eerste in het paneel (de api
   toont een hoofdstuk als weergave van zijn artikelen en in de samenhang als deel met zijn artikelen).
-  Niet uit de tekst: dezelfde vraag geeft dezelfde kaart. Kop en knop zeggen "N delen"
+  Niet uit de tekst: dezelfde vraag geeft dezelfde kaart. Alle delen, tot `MAX_OVERZICHT_DOELEN` (30),
+  in **één** verzoek (`haalSamenhangen` → `/samenhang/meer`: één bronboom per regeling). Kop en knop zeggen "N delen"
   (`clusterOmschrijving`, `overzichtKnopTekst`). **De layout is één boom** (`openSamenhang(…, {boom})` →
   `bouwGraaf(delen, vast, {boom: true})`, `boomPosities`): alle clusters in één 3D-krachtsimulatie,
   regelingen als hubs met hun delen en bepalingen eromheen. Per cluster leggen gaf een plat raster van

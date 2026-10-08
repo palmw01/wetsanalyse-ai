@@ -15,6 +15,7 @@ from . import annotatie_v2_store as store
 from . import samenhang as samenhang_mod
 from .annotatie_v2_contracts import Batch, Beslissing, Doel, Element, Zoekvraag
 from .auth import require_client
+from .bron_resolver import bwb_van, haal_bronrijen, snapshot_uit
 from .bron_resolver import resolve_bron as _resolve_bron
 from .routers.auth import actieve_userid
 from .graaf_projectie_v2 import verklaringen
@@ -67,6 +68,46 @@ async def get_samenhang(doel: dict = Depends(doel_query), actor: str = Depends(a
     """Bronstructuur, actuele annotaties en letterlijke verwijzingen (één stap) van het artikel
     waartoe het doel behoort – voor de 3D-weergave. Zie `samenhang.py`."""
     return await samenhang_mod.samenhang(await resolve_bron(doel))
+
+
+# Een overzicht opent hoogstens zoveel delen tegelijk; de werkplek blijft daaronder.
+MAX_SAMENHANG_MEER = 30
+
+
+@router.get("/samenhang/meer")
+async def get_samenhang_meer(bron_iri: list[str] = Query(default=[]), actor: str = Depends(actieve_userid)):
+    """De samenhang van meerdere doelen in één verzoek – de delen van een overzicht. Per regeling wordt
+    de bronboom één keer opgehaald: 15 delen in 4 regelingen waren 15 verzoeken die elk een hele
+    bronboom ophaalden (de Leidraad 8×, 1601 knopen per keer); nu 4. Een doel dat niet resolvet is een
+    regel in `fouten`, geen fout voor het geheel."""
+    doelen = list(dict.fromkeys(i for i in bron_iri if i))
+    if not doelen:
+        raise HTTPException(422, "Geef minstens één bron_iri.")
+    if len(doelen) > MAX_SAMENHANG_MEER:
+        raise HTTPException(422, f"Hoogstens {MAX_SAMENHANG_MEER} doelen per verzoek.")
+    per_bwb: dict[str, list[str]] = {}
+    fouten: list[dict] = []
+    for iri in doelen:
+        try:
+            per_bwb.setdefault(bwb_van({"bron_iri": iri}), []).append(iri)
+        except BronFout as exc:
+            fouten.append({"bron_iri": iri, "reden": str(exc)})
+    resultaten: dict[str, dict] = {}
+    for bwb, iris in per_bwb.items():
+        try:
+            rijen = await haal_bronrijen(bwb)
+        except (httpx.HTTPError, ConnectionError) as exc:
+            raise HTTPException(503, "De brongraaf is tijdelijk niet beschikbaar.") from exc
+        for iri in iris:
+            try:
+                resultaten[iri] = await samenhang_mod.samenhang(snapshot_uit(rijen, bwb, {"bron_iri": iri}))
+            except KeyError:
+                # `bouw_snapshot` kent de bronnode niet in deze bronboom (verouderd of verzonnen doel).
+                fouten.append({"bron_iri": iri, "reden": "Bronnode bestaat niet in deze bronstand."})
+            except (BronFout, HTTPException) as exc:
+                fouten.append({"bron_iri": iri, "reden": str(getattr(exc, "detail", exc))})
+    # In de volgorde van het verzoek: het eerste doel is dat van het paneel.
+    return {"resultaten": [resultaten[i] for i in doelen if i in resultaten], "fouten": fouten}
 
 
 @router.get("/dekking")

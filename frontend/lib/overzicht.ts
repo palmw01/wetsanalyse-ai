@@ -7,11 +7,12 @@
 // gaf zo een andere kaart. Nu geeft hetzelfde overzicht dezelfde kaart.
 
 import type { NodeDoel } from "./annotatieNode";
-import { MAX_SAMENHANG_DOELEN } from "./bronnen";
 import type { Overzicht, OverzichtBepaling, OverzichtDeel } from "./types";
 
-/** Hoeveel delen de 3D-graaf hoogstens tegelijk opent: dezelfde grens als voor genoemde artikelen. */
-export const MAX_OVERZICHT_DOELEN = MAX_SAMENHANG_DOELEN;
+/** Hoeveel delen de 3D-graaf van een overzicht hoogstens opent. Ruimer dan voor losse artikelen
+ *  (`MAX_SAMENHANG_DOELEN`): de delen vormen één compacte boom en komen in één verzoek, met één
+ *  bronboom per regeling. Gelijk aan de grens van `/samenhang/meer` in de api. */
+export const MAX_OVERZICHT_DOELEN = 30;
 
 /** De doelen voor de 3D-graaf: de delen van het overzicht in zijn eigen volgorde (rang, dan
  *  documentvolgorde), het eerste opent in het paneel. Zonder delen: de bepalingen die het onderwerp

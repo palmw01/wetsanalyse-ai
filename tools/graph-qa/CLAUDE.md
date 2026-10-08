@@ -547,9 +547,12 @@ SPARQL was deterministisch; de keten eromheen niet. Nu is wat feitelijk is code 
 4. **Geen model in de route.** Een modelduiding ging buiten het overzicht ("bevoegdheid, hoogte,
    evenredigheid" bij de bestuurlijke boete – niets daarvan staat in de graaf) en wisselde van vorm.
    De tekst is nu `samenvatting(ov)`: 2–4 vaste zinnen met de eigen koppen en getallen van het
-   overzicht (kern, verder, "ook genoemd", definitie, afbakening, ingekort onderwerp). Namen staan in de
-   data, op één plek: `kop` per deel ("28 – Invorderingsrente"), `naam` per bepaling ("art. 9"; een nummer
-   met een punt is een divisie en nooit "art."), `vindplaats` per definitie (`bronmodel.vindplaats`).
+   overzicht (kern, verder, "ook genoemd", definitie, afbakening, ingekort onderwerp), geteld in de
+   woorden van de bron: "5 hoofdstukken met 35 artikelen", "1 afdeling", "8 artikelen" (`soortwoord`:
+   een Leidraad-divisie telt als artikel, zoals de Leidraad zelf verwijst). Namen staan in de data, op
+   één plek: `kop` per deel ("28 – Invorderingsrente"), `naam` per bepaling **zoals de bron haar noemt**
+   (`bwb:label`: "Artikel 79.5a" → "art. 79.5a", "79.5" → "79.5" – de Leidraad wisselt zelf, en dat
+   verschil wordt niet weggepoetst), `vindplaats` per definitie (`bronmodel.vindplaats`).
 5. **Uitgangen:** een `overzicht`-event (de werkplek toont het als blok en bewaart het in
    `Bericht.overzicht`); de samenvatting als `token`, `answer` en assistent-bericht na het
    `tool_use`/`tool_result`-paar (`voor_model`, voor vervolgvragen); in de `source_trace` de

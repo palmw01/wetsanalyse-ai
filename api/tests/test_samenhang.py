@@ -165,3 +165,52 @@ async def test_structuurdeel_toont_zijn_artikelen_zonder_leden(monkeypatch):
     assert ids[hfd]["soort"] == "deel" and ids[ART]["soort"] == "artikel" and not ids[ART]["rand"]
     assert ids[hfd]["label"] == "Hoofdstuk II", "het nummer hoort bij het label"
     assert {(r["bron"], r["doel"]) for r in g["relaties"]} == {(LAW, hfd), (hfd, ART), (hfd, ANDER)}
+
+
+async def test_meer_doelen_in_een_regeling_halen_de_bronboom_een_keer_op(monkeypatch):
+    """Een overzicht opent zijn delen in één verzoek. Per deel een verzoek haalde per deel de hele
+    bronboom van de regeling op (de Leidraad: 1601 knopen, 8×); nu één keer per regeling."""
+    import hashlib
+
+    from httpx import ASGITransport, AsyncClient
+    from app import annotatie_v2
+    from app.config import get_settings
+    from conftest import maak_testgebruikers
+    monkeypatch.setenv("WETSANALYSE_AUTH_REQUIRED", "0")
+    get_settings.cache_clear()
+    await maak_testgebruikers("v2-samenhang-meer")
+    from app.main import app
+
+    h2, h5 = LAW + ":hoofdstuk:II", LAW + ":hoofdstuk:V"
+    nodes = [dict(bron_iri=LAW, parent_iri="", type="Wet", label="Wet", tekst=""),
+             dict(bron_iri=h2, parent_iri=LAW, type="Hoofdstuk", label="Hoofdstuk", nummer="II", tekst=""),
+             dict(bron_iri=ART, parent_iri=h2, type="Artikel", label="Artikel 9", tekst="Alfa"),
+             dict(bron_iri=h5, parent_iri=LAW, type="Hoofdstuk", label="Hoofdstuk", nummer="V", tekst=""),
+             dict(bron_iri=ANDER, parent_iri=h5, type="Artikel", label="Artikel 10", tekst="Beta")]
+    for i, n in enumerate(nodes):
+        n.update(bron_hash=hashlib.sha256(n["tekst"].encode()).hexdigest(), volgorde=i, bwb_id="BWBR0004770")
+    opgehaald: list[str] = []
+
+    async def haal(bwb):
+        opgehaald.append(bwb)
+        return nodes
+
+    def snapshot_uit(rijen, bwb, doel):
+        if doel["bron_iri"] not in {n["bron_iri"] for n in rijen}:
+            from bronmodel import BronFout
+            raise BronFout("Bronnode bestaat niet")
+        return dict(snapshot_id=store.digest(rijen), doel=next(n for n in rijen if n["bron_iri"] == doel["bron_iri"]), nodes=rijen)
+
+    monkeypatch.setattr(annotatie_v2, "haal_bronrijen", haal)
+    monkeypatch.setattr(annotatie_v2, "snapshot_uit", snapshot_uit)
+    onbekend = LAW + ":hoofdstuk:XX"
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        r = await client.get("/v1/annotatie/samenhang/meer", params=[("bron_iri", h5), ("bron_iri", h2), ("bron_iri", onbekend)],
+                             headers={"X-User-Id": "v2-samenhang-meer"})
+    assert r.status_code == 200
+    data = r.json()
+    assert opgehaald == ["BWBR0004770"], "één bronboom voor twee delen in dezelfde regeling"
+    assert [s["artikel_iri"] for s in data["resultaten"]] == [h5, h2], "in de volgorde van het verzoek"
+    assert [f["bron_iri"] for f in data["fouten"]] == [onbekend]
+    assert {k["id"]: k["label"] for k in data["resultaten"][0]["knopen"]}[h5] == "Hoofdstuk V"
+    get_settings.cache_clear()

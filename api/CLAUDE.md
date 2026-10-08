@@ -131,6 +131,10 @@ Hieronder wat je moet weten om de code te wijzigen.
   doel een **structuurdeel** (hoofdstuk, titeldeel, afdeling, paragraaf), dan is het een overzicht: het
   deel met de structuur en artikelen eronder, zonder leden, onderdelen, markeringen en verwijzingen
   (die horen bij een geopend artikel; anders wordt een hoofdstuk een kluwen van honderden knopen).
+  **`/samenhang/meer`** (hoogstens 30 `bron_iri`'s) geeft de samenhang van meerdere doelen in één
+  verzoek en haalt per regeling de bronboom één keer op (`bron_resolver.haal_bronrijen` +
+  `snapshot_uit`); een doel dat niet resolvet staat in `fouten`. Een overzicht opent zo 15 delen met 4
+  bronbomen in plaats van 15.
   Het label van een deel krijgt zijn nummer (`_label`: de bronboom draagt "Hoofdstuk" en "II" apart);
   bewust hier en niet in `bronmodel`, waar het de snapshot-identiteit van bestaande lagen zou raken.
 
