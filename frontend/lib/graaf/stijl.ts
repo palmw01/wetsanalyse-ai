@@ -18,6 +18,9 @@ export const GEDIMD = "#c3cdd8";
 export const GEDIMDE_LIJN = "#e2e8ef";
 /** Labels op de kaart: de broodtekstkleur (`--ink`). */
 export const LABELKLEUR = "#1a1a1a";
+/** Het label van een gedimde knoop: leesbaar om je op de kaart te oriënteren, maar duidelijk op de
+ *  achtergrond. Het krijgt alleen ruimte die de nadruk overlaat (`lib/graaf/labels.ts`). */
+export const GEDIMD_LABEL = "#7d8b9b";
 /** Een lijn van of naar de gekozen knoop. */
 export const NADRUK_LIJN = "#154273";
 

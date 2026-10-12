@@ -117,3 +117,8 @@ export function Richten({ className = "" }: IcoonProps) {
 export function Kruis({ className = "" }: IcoonProps) {
   return svg(<path d="m4 4 8 8M12 4l-8 8" />, className);
 }
+
+/** Terug naar het begin: een pijl die omkeert. */
+export function Terug({ className = "" }: IcoonProps) {
+  return svg(<path d="M5.5 3.5 2.5 6.5l3 3M2.5 6.5H10a3.5 3.5 0 0 1 0 7H7" />, className);
+}

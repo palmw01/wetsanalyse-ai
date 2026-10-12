@@ -8,8 +8,9 @@
  *    nooit**.
  *  - **Nadruk**, in deze volgorde: (1) de gekozen knoop met zijn directe buren; anders (2) de focus,
  *    de delen en bepalingen die het antwoord noemt; anders (3) alles. Wat geen nadruk heeft, is
- *    gedimd: het blijft als kaart staan, zonder label. Op de achtergrond klikken heft de keuze op en
- *    brengt de focus terug. */
+ *    gedimd: het blijft als kaart staan, zonder eigen label (`label: null`); de tekenaar geeft het
+ *    hooguit een grijs oriëntatielabel als er ruimte over is. Op de achtergrond klikken heft de keuze
+ *    op en brengt de focus terug. */
 import { pastBijMarkeringFilter, type MarkeringFilter } from "@/lib/samenhang";
 import { ankerVan, type GraafModel, type KnoopData, type RelatieData } from "./model";
 import {
@@ -47,23 +48,39 @@ export interface WeergaveStand {
   aangewezen?: string | null;
 }
 
-/** De focus voor een reeks doelen: de doelen, alles wat ze bevatten, en de markeringen daarop met hun
- *  klasse. Doelen die niet in het model staan, vallen weg. */
+/** Soorten waarvan de focus ook de verwijzingen meeneemt: een bepaling. Bij een regeling of een
+ *  hoofdstuk zouden dat er honderden zijn, en dan is de nadruk geen nadruk meer. */
+const BEPALING = new Set(["artikel", "lid", "onderdeel"]);
+
+/** De focus voor een reeks doelen: de doelen, alles wat ze bevatten, de markeringen daarop met hun
+ *  klasse, en – bij een bepaling – de bepalingen waarnaar ze verwijst of die naar haar verwijzen (één
+ *  stap). Doelen die niet in het model staan, vallen weg. */
 export function focusVan(g: GraafModel, doelen: Iterable<string>): Focus {
   const eigen = new Set([...doelen].filter((id) => g.hasNode(id)));
-  const bereik = new Set<string>();
-  const stapel = [...eigen];
-  while (stapel.length) {
-    const id = stapel.pop()!;
-    if (bereik.has(id)) continue;
-    bereik.add(id);
-    for (const e of g.outEdges(id)) if (g.getEdgeAttribute(e, "soort") === "bevat") stapel.push(g.target(e));
+  // De wettekst onder de doelen; de bepalingen daarin onthouden we apart voor hun verwijzingen.
+  const tekst = new Set<string>();
+  const bepalingen = new Set<string>();
+  for (const doel of eigen) {
+    const metVerwijzingen = BEPALING.has(g.getNodeAttribute(doel, "soort"));
+    const stapel = [doel];
+    while (stapel.length) {
+      const id = stapel.pop()!;
+      if (tekst.has(id) && (!metVerwijzingen || bepalingen.has(id))) continue;
+      tekst.add(id);
+      if (metVerwijzingen) bepalingen.add(id);
+      for (const e of g.outEdges(id)) if (g.getEdgeAttribute(e, "soort") === "bevat") stapel.push(g.target(e));
+    }
   }
+  const bereik = new Set(tekst);
+  // Alleen de markeringen op de eigen wettekst – niet die op een bepaling waarnaar verwezen wordt.
   for (const e of g.edges()) {
-    if (g.getEdgeAttribute(e, "soort") !== "markeert" || !bereik.has(g.target(e))) continue;
+    if (g.getEdgeAttribute(e, "soort") !== "markeert" || !tekst.has(g.target(e))) continue;
     const m = g.source(e);
     bereik.add(m);
     for (const k of g.outNeighbors(m)) if (g.getNodeAttribute(k, "soort") === "klasse") bereik.add(k);
+  }
+  for (const id of bepalingen) {
+    for (const e of g.edges(id)) if (g.getEdgeAttribute(e, "soort") === "verwijst_naar") bereik.add(g.opposite(id, e));
   }
   return { doelen: eigen, bereik };
 }
