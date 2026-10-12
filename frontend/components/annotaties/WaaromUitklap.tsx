@@ -37,8 +37,10 @@ function Regels({ kop, regels }: { kop: string; regels: WaaromRegel[] }) {
 /** Waarom staat dit element er? Eén uitklapper voor de reviewkaart en de graafinspector, zodat de
  *  twee plekken nooit iets anders vertellen. Ingeklapt is het één regel; de ruwe modelvraag zit nog
  *  een niveau dieper, onder "technisch detail". */
-export function WaaromUitklap({ el, laad }: {
+export function WaaromUitklap({ el, laad, beginOpen = false }: {
   el?: WaaromBron;
+  /** Meteen open (de graafinspector, die alles in één keer toont); in de reviewkaart dicht. */
+  beginOpen?: boolean;
   /** Haalt het element pas op bij openklappen, als de aanroeper het niet in handen heeft (een
    *  markering in de graaf buiten het lid dat in het paneel openstaat). */
   laad?: () => Promise<WaaromBron>;
@@ -46,7 +48,7 @@ export function WaaromUitklap({ el, laad }: {
   const [geladen, setGeladen] = useState<WaaromBron>();
   const [fout, setFout] = useState(false);
   const bron = el ?? geladen;
-  return <details className="group mt-1.5" data-testid="waarom" onClick={(e) => e.stopPropagation()}
+  return <details className="group mt-1.5" data-testid="waarom" open={beginOpen || undefined} onClick={(e) => e.stopPropagation()}
     onToggle={(e) => {
       if (!(e.currentTarget as HTMLDetailsElement).open || bron || !laad) return;
       setFout(false);

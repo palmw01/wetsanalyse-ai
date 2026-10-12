@@ -1,12 +1,12 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Component, useEffect, useMemo, useState, type ReactNode, type RefObject } from "react";
+import { Component, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { Melding } from "@/components/ui/Melding";
 import { Meter } from "@/components/ui/Meter";
-import { haalElement, type NodeDoel, type NodeElement } from "@/lib/annotatieNode";
+import type { NodeDoel, NodeWeergave } from "@/lib/annotatieNode";
 import { hoofdactie as bepaalHoofdactie, paneelDoel, relatieGroepen, telling, tellingTekst } from "@/lib/graaf/bediening";
-import { bouwModel, type KnoopData } from "@/lib/graaf/model";
+import { ankerVan, bouwModel, type KnoopData } from "@/lib/graaf/model";
 import { focusVan, lagenVoor, weergaveContext } from "@/lib/graaf/weergave";
 import { clusterOmschrijving, isDeelCluster } from "@/lib/samenhang";
 import { GraafBeeld } from "./GraafBeeld";
@@ -14,8 +14,10 @@ import { GraafHint } from "./GraafHint";
 import { GraafInspector } from "./GraafInspector";
 import { GraafLagen } from "./GraafLagen";
 import { GraafZoek } from "./GraafZoek";
+import { Terug } from "@/components/ui/Icoon";
 import type { GraafKoppeling } from "./koppeling";
 import type { Bereik, GraafStand } from "./useGraafStand";
+import { useKnoopDetail, useMarkeringElement } from "./useKnoopDetail";
 
 // sigma en WebGL laden pas als de graaf echt in beeld komt.
 const Tekenaar = dynamic(() => import("./GraafTekenaar").then((m) => m.GraafTekenaar), { ssr: false });
@@ -43,11 +45,12 @@ const LEEG = bouwModel([]);
  *
  *  Het selectiemodel staat in `lib/graaf/weergave.ts`: lagen bepalen wat zichtbaar is, een keuze
  *  bepaalt alleen de nadruk. */
-export function Graaf({ stand, zichtbaar, groot, actiefElementId, elementen, dekking, koppelingRef, onKiesElement, onOpenTekst, onWisselArtikel, onVraag }: {
+export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekking, koppelingRef, onKiesElement, onOpenTekst, onWisselArtikel, onVraag }: {
   stand: GraafStand; zichtbaar: boolean; groot: boolean;
   actiefElementId?: string;
-  /** De elementen van de weergave in het paneel: daaruit haalt de inspector het spoor van een markering. */
-  elementen?: NodeElement[];
+  /** De weergave in het paneel: daaruit haalt de inspector tekst, markeringen en hun spoor zonder
+   *  extra verzoek. */
+  weergave?: NodeWeergave;
   /** Per bron-IRI de zinsdelen zonder detectortreffer, uit het paneel (alleen de geopende bepaling). */
   dekking?: Record<string, string[]>;
   /** Waar de graaf zijn handelingen neerzet voor het overzichtsblok (`koppeling.ts`), zolang hij in
@@ -64,6 +67,7 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, elementen, dek
     lagenOpen, setLagenOpen, aangeraakt, setAangeraakt, camera, bediening, laadErbij, laadtBij,
     bereik, setBereik, focusIds, laadKennisgraaf } = stand;
   const [geenWebgl, setGeenWebgl] = useState(false);
+  const bedekking = useRef<HTMLDivElement>(null);
   const [aangewezen, setAangewezen] = useState<string | null>(null);
   const model = getekend?.model ?? LEEG;
   const ongedekt = useMemo(() => new Set(Object.keys(dekking ?? {})), [dekking]);
@@ -72,8 +76,14 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, elementen, dek
   // een annotatiewijziging kan een markering weg zijn).
   const actieveKnoop = actiefElementId ? `element:${actiefElementId}` : null;
   const gekozen = actieveKnoop && model.hasNode(actieveKnoop) ? actieveKnoop : selectie && model.hasNode(selectie) ? selectie : null;
-  // In de hele kennisgraaf krijgt wat het antwoord noemt de nadruk; in "dit antwoord" ís alles dat al.
-  const focus = useMemo(() => (getekend?.bereik === "kennisgraaf" ? focusVan(model, focusIds) : null), [getekend, model, focusIds]);
+  // Wat het antwoord noemt heeft de nadruk, in beide bereiken: dat is het begin, en waar een
+  // achtergrondklik of Escape naar terugkeert. Beslaat de focus het hele model (een heel artikel), dan
+  // is er niets te dimmen.
+  const focus = useMemo(() => {
+    if (!getekend) return null;
+    const f = focusVan(model, focusIds);
+    return f.bereik.size && f.bereik.size < model.order ? f : null;
+  }, [getekend, model, focusIds]);
   const context = useMemo(() => weergaveContext(model, { lagen, markering, selectie: gekozen, focus, ongedekt, aangewezen }),
     [model, lagen, markering, gekozen, focus, ongedekt, aangewezen]);
   // Een nieuwe kaart in beeld: op de keuze als die er is, anders op wat het antwoord noemt. De tekenaar
@@ -91,6 +101,14 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, elementen, dek
     [hoofd, onWisselArtikel]);
   const gekozenData = gekozen ? model.getNodeAttributes(gekozen) : undefined;
   const actie = gekozen && gekozenData ? bepaalHoofdactie(gekozenData, gekozen, inPaneel) : null;
+  // De tekst voor de inspector: van de gekozen bepaling, of bij een markering van haar anker. Alleen
+  // bepalingen: de tekst van een heel hoofdstuk of een regeling past niet in een inspector.
+  const tekstBron = !gekozen || !gekozenData ? null : gekozenData.soort === "markering" ? ankerVan(model, gekozen) ?? null
+    : ["artikel", "lid", "onderdeel"].includes(gekozenData.soort) ? gekozen : null;
+  const detail = useKnoopDetail(tekstBron, weergave, stand.detailCache);
+  const bekendeElementen = useMemo(() => [...(weergave?.elementen ?? []), ...(detail && typeof detail === "object" ? detail.elementen : [])],
+    [weergave, detail]);
+  const element = useMarkeringElement(gekozenData?.soort === "markering" ? gekozenData.element_id || undefined : undefined, bekendeElementen);
 
   /** Kiezen, of met `null` de keuze opheffen. Via zoeken of de inspector vliegt de camera mee; in de
    *  graaf zelf niet – daar staat de knoop al onder je muis. Een knoop die een laag verbergt, zet die
@@ -121,6 +139,12 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, elementen, dek
     return () => { koppelingRef.current = null; };
   });
 
+  /** Terug naar het begin: geen keuze, en wat het antwoord noemt in beeld. */
+  function naarAntwoord() {
+    kies(null);
+    requestAnimationFrame(() => bediening.current?.toon(focus ? [...focus.bereik] : []));
+  }
+
   function doeHoofdactie() {
     if (!gekozen || !gekozenData) return;
     if (actie === "tekst") onOpenTekst(gekozenData);
@@ -145,7 +169,7 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, elementen, dek
         {getekend && <span className="ml-2 text-xs font-normal text-muted" data-testid="graaf-telling">{tellingTekst(tel)}</span>}
       </h2>
       {focus && opBereik && <p className="mt-1 text-xs text-muted" data-testid="graaf-focus">Nadruk op wat het antwoord noemt
-        ({focus.doelen.size === 1 ? "1 deel of bepaling" : `${focus.doelen.size} delen en bepalingen`}, met wat eronder valt); de rest staat gedimd op de kaart.</p>}
+        ({focus.doelen.size === 1 ? "1 deel of bepaling" : `${focus.doelen.size} delen en bepalingen`}, met wat eronder valt en waarnaar het verwijst); de rest staat gedimd op de kaart.</p>}
       {hoofd && !hoofd.verwijzingen_beschikbaar && <p className="mt-1 text-xs text-muted">Verwijzingen zijn nu niet beschikbaar; je ziet de bronstructuur en de annotaties.</p>}
       {bronnen?.some((d) => d.afgekapt) && <p className="mt-1 text-xs text-muted">Er zijn meer verwijzingen dan getoond; de eerste 200 per richting staan in beeld.</p>}
       {bronnen && bronnen.length > 1 && bereik === "antwoord" && <p className="mt-1 text-xs text-muted">De tekst en de annotatie in het paneel gaan over {hoofdNaam}; een knoop uit een ander artikel opent dat artikel in het paneel.{bronnen.some(isDeelCluster) ? " Een hoofdstuk of afdeling staat er met zijn artikelen; open een artikel voor leden, annotaties en verwijzingen." : ""}</p>}
@@ -157,12 +181,13 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, elementen, dek
       <div className="relative min-h-[260px] min-w-0 flex-1 bg-[#f7f9fc]">
         {geenWebgl ? <CanvasMelding>{GEEN_WEBGL}</CanvasMelding>
           : getekend && <TekenGrens><Tekenaar model={getekend.model} posities={getekend.posities} context={context} zichtbaar={zichtbaar}
-            inpassen={inpassen ?? undefined} cameraRef={camera} bedieningRef={bediening} onKies={(id) => kies(id, false)} onFout={() => setGeenWebgl(true)} /></TekenGrens>}
+            inpassen={inpassen ?? undefined} cameraRef={camera} bedieningRef={bediening} bedekking={bedekking} onKies={(id) => kies(id, false)} onFout={() => setGeenWebgl(true)} /></TekenGrens>}
         {/* Bij een wissel van bereik blijft de vorige kaart zichtbaar onder de laadbalk. */}
         {!opBereik && !fout && <Laadbalk fase={laadfase} kennisgraaf={bereik === "kennisgraaf"} over={!!getekend} />}
         {/* Bediening zweeft over het canvas; de lege ruimte ertussen laat klikken door naar de graaf. */}
-        {getekend && <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-3">
-          <div className="flex items-start justify-between gap-2">
+        {getekend && <div ref={bedekking} className="pointer-events-none absolute inset-0 flex flex-col justify-between p-3">
+          <div className="flex flex-col items-start gap-2">
+          <div className="flex w-full items-start justify-between gap-2">
             <GraafZoek model={model} verborgen={context.verborgen} gekozen={gekozen} onKies={(id) => kies(id)} />
             <div role="group" aria-label="Wat de graaf toont" className="pointer-events-auto flex shrink-0 rounded-full border border-line bg-paper/95 p-0.5 shadow-kaart">
               {(["antwoord", "kennisgraaf"] as const).map((b) => <button key={b} type="button" aria-pressed={bereik === b}
@@ -171,19 +196,24 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, elementen, dek
                 {b === "antwoord" ? "Dit antwoord" : "Hele kennisgraaf"}</button>)}
             </div>
           </div>
+          {/* Zolang er een keuze is: de weg terug naar het begin, onder het zoekveld. */}
+          {gekozen && focus && <button type="button" onClick={naarAntwoord} data-testid="graaf-terug"
+            className="focus-ring pointer-events-auto flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border border-line bg-paper/95 px-3 text-xs text-lint shadow-kaart hover:bg-surface coarse:min-h-11">
+            <Terug />Terug naar het antwoord</button>}
+          </div>
           <div className="flex items-end justify-between gap-2">
             <GraafLagen lagen={lagen} open={lagenOpen} onOpen={setLagenOpen}
               onWissel={(l) => setLagen((oud) => ({ ...oud, [l]: !oud[l] }))}
               dekking={ongedekt.size > 0} markering={{ waarde: markering, onKies: setMarkering }} />
             <GraafHint klaar={aangeraakt} />
-            <GraafBeeld onPasIn={() => bediening.current?.pasIn()} onZoom={(f) => bediening.current?.zoom(f)} />
+            <GraafBeeld onPasIn={() => bediening.current?.pasIn()} onZoom={(f) => bediening.current?.zoom(f)}
+              onNaarAntwoord={focus ? naarAntwoord : undefined} />
           </div>
         </div>}
       </div>
       <div className={`shrink-0 border-t border-line bg-paper ${groot ? "max-h-[40dvh] overflow-y-auto md:max-h-none md:w-80 md:border-l md:border-t-0" : "flex max-h-[45%] flex-col"}`}>
-        <GraafInspector model={model} id={gekozen} smal={!groot}
-          element={gekozenData?.element_id ? elementen?.find((e) => e.id === gekozenData.element_id) : undefined}
-          laadElement={gekozenData?.element_id ? () => haalElement(gekozenData.element_id) : undefined}
+        <GraafInspector key={gekozen ?? ""} model={model} id={gekozen} smal={!groot}
+          detail={detail} element={element} doelen={focus ? [...focus.doelen] : hoofd ? [hoofd.doel.bron_iri] : []}
           ongedekt={lagen.dekking && gekozen ? dekking?.[gekozen] : undefined}
           hoofdactie={actie} laadt={!!gekozen && laadtBij === gekozen}
           groepen={groepen} telling={tel}

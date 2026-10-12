@@ -11,6 +11,7 @@ import { layoutVoor } from "@/lib/graaf/rekenaar";
 import { STANDAARD_LAGEN, type Lagen } from "@/lib/graaf/weergave";
 import { haalSamenhang, haalSamenhangen, type MarkeringFilter, type Samenhang } from "@/lib/samenhang";
 import type { GraafBediening } from "./GraafTekenaar";
+import type { DetailCache } from "./useKnoopDetail";
 
 /** Waar het laden is: de data ophalen (duur onbekend), de layout rekenen (met voortgang), klaar. */
 export type Laadfase = { fase: "ophalen" } | { fase: "layout"; fractie: number } | { fase: "klaar" };
@@ -46,9 +47,9 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, extra: NodeDoel[]
   const [fout, setFout] = useState("");
   const [laadfase, setLaadfase] = useState<Laadfase>({ fase: "ophalen" });
   const [getekend, setGetekend] = useState<Getekend>();
-  // In "dit antwoord" begint de keuze op het doel van het paneel. In de hele kennisgraaf niet: daar is
-  // de focus het begin – een keuze zou die overschrijven en de rest van het antwoord dimmen.
-  const [selectie, setSelectie] = useState<string | null>(opties.bereik === "kennisgraaf" ? null : doel.bron_iri);
+  // Geen beginkeuze: het begin is de focus (wat het antwoord noemt). Een keuze is wat je daarna
+  // aanklikt, en haar opheffen brengt het begin terug.
+  const [selectie, setSelectie] = useState<string | null>(null);
   const [lagen, setLagen] = useState<Lagen>(STANDAARD_LAGEN);
   const [markering, setMarkering] = useState<MarkeringFilter>("alle");
   const [lagenOpen, setLagenOpen] = useState(false);
@@ -56,6 +57,8 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, extra: NodeDoel[]
   const [laadtBij, setLaadtBij] = useState("");
   const camera = useRef<CameraState | null>(null);
   const bediening = useRef<GraafBediening | null>(null);
+  // De tekst van gekozen bepalingen voor de inspector, per paneel één keer opgehaald (`useKnoopDetail`).
+  const detailCache = useRef<DetailCache>(new Map());
 
   const laad = useCallback(async () => {
     setFout("");
@@ -132,6 +135,8 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, extra: NodeDoel[]
    *  lagen en camera blijven; de kaart verschuift niet. */
   const ververs = useCallback(async () => {
     if (!bronnen?.length) return;
+    // De markeringen in de opgehaalde teksten kunnen veranderd zijn.
+    detailCache.current = new Map();
     try {
       const [nieuw, kg] = await Promise.all([
         Promise.all(bronnen.map((d) => haalSamenhang({ bron_iri: d.doel.bron_iri }))),
@@ -157,7 +162,7 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, extra: NodeDoel[]
     bronnen, getekend, laadfase, nietGeladen, fout, setFout, laad, ververs, laadErbij, laadtBij,
     bereik, setBereik, focusIds, kennisgraaf, laadKennisgraaf,
     selectie, setSelectie, lagen, setLagen, markering, setMarkering, lagenOpen, setLagenOpen,
-    aangeraakt, setAangeraakt, camera, bediening,
+    aangeraakt, setAangeraakt, camera, bediening, detailCache,
   };
 }
 export type GraafStand = ReturnType<typeof useGraafStand>;

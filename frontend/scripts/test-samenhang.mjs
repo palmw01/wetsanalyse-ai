@@ -258,16 +258,19 @@ async function wachtGereed(page) {
   await wachtGereed(page);
   assert.equal(await page.getByTestId("graaf-tekenaar").getAttribute("data-knopen"), "8");
   assert.match(await page.getByTestId("graaf-telling").innerText(), /1 regeling · 3 bepalingen · 1 markering · 3 verwijzingen/);
-  assert.equal(await gekozen(page), L2, "het doel van het paneel is gekozen");
+  // Geen beginkeuze: het begin is de focus – lid 2 met wat erop ligt en waarnaar het verwijst.
+  assert.equal(await gekozen(page), "", "het begin is de focus, geen keuze");
+  assert.match(await page.getByTestId("graaf-focus").innerText(), /Nadruk op wat het antwoord noemt \(1 deel of bepaling/);
+  assert.match(await detail(page).innerText(), /Dit antwoord[\s\S]*Artikel 9 · lid 2/i);
   await page.getByTestId("graaf-hint").waitFor();
   await page.waitForTimeout(300);
   await page.screenshot({ path: `${shots}/1-graaf.png` });
 
-  // 2. Zoeken kiest een knoop; de inspector toont zijn relaties per soort; de hint verdwijnt.
+  // 2. Zoeken kiest een knoop; de inspector toont meteen de wettekst en de relaties per soort; de hint
+  // verdwijnt.
   await zoekEnKies(page, "lid 2", L2);
   await page.getByTestId("graaf-hint").waitFor({ state: "detached" });
-  await detailsOpen(page);
-  assert.match(await detail(page).innerText(), /Artikel 9 · lid 2[\s\S]*Verwijst naar/);
+  assert.match(await detail(page).innerText(), /Artikel 9 · lid 2[\s\S]*In afwijking van het eerste lid[\s\S]*Verwijst naar/);
 
   // 3. Een randbepaling kies je vanuit de inspector; de hoofdactie laadt haar erbij (één keer).
   await detail(page).getByRole("button", { name: /^Artikel 10\b/ }).click();
@@ -298,16 +301,28 @@ async function wachtGereed(page) {
   await page.mouse.click(doek.x + 8, doek.y + doek.height / 2);
   for (let i = 0; i < 20 && (await gekozen(page)) !== ""; i++) await page.waitForTimeout(100);
   assert.equal(await gekozen(page), "", "een klik op de achtergrond heft de keuze op");
+  assert.match(await detail(page).innerText(), /Dit antwoord/i, "en brengt het begin terug");
+  // "Terug naar het antwoord" staat er zolang er een keuze is, en brengt het begin terug.
+  assert.equal(await page.getByTestId("graaf-terug").count(), 0);
+  await zoekEnKies(page, "lid 1", L1);
+  await page.getByTestId("graaf-terug").click();
+  assert.equal(await gekozen(page), "", "terug naar het antwoord heft de keuze op");
+  assert.equal(await page.getByTestId("graaf-terug").count(), 0);
 
-  // 6. Markering: "Toon in tekst" wisselt naar de tekst met dezelfde keuze.
+  // 6. Markering: alles staat meteen in de inspector – de span in zijn lid, de toelichting en het
+  // waarom – zonder naar de tekst te gaan; "Beoordeel in de tekst" wisselt met dezelfde keuze.
   await zoekEnKies(page, "ontvanger", "element:e1");
   assert.match(await detail(page).innerText(), /Rechtssubject/);
-  await detail(page).getByText("Waarom?", { exact: true }).click();
+  await detail(page).getByText("Voert de invordering uit", { exact: false }).waitFor();
+  assert.equal(await detail(page).locator('mark[data-element="e1"]').innerText(), "ontvanger", "de span staat op zijn anker");
+  assert.match(await detail(page).getByTestId("graaf-knooptekst").innerText(), /De ontvanger vordert de belastingaanslag in\./);
   await detail(page).getByText("Handelende partij", { exact: true }).waitFor();
   await detail(page).getByText("vaste regel", { exact: true }).waitFor();
+  await page.screenshot({ path: `${shots}/1c-markering.png` });
   await detail(page).getByText("Technisch detail", { exact: true }).click();
   await detail(page).getByText("Nog niet in de graaf bijgewerkt", { exact: false }).waitFor();
-  await page.getByRole("button", { name: "Toon in tekst" }).click();
+  assert.equal(await page.getByRole("button", { name: "Tekst", exact: true }).getAttribute("aria-pressed"), "false", "je blijft in de graaf");
+  await page.getByRole("button", { name: "Beoordeel in de tekst" }).click();
   assert.equal(await page.getByRole("button", { name: "Tekst", exact: true }).getAttribute("aria-pressed"), "true");
   await page.locator("[data-artefact]").waitFor();
   await page.getByRole("button", { name: "Graaf", exact: true }).click();
@@ -320,7 +335,13 @@ async function wachtGereed(page) {
 
   // 7. ✕ heft de keuze op: de inspector zegt wat er geladen is en hoe kiezen werkt.
   await page.getByRole("button", { name: "Selectie opheffen" }).click();
-  assert.match(await detail(page).innerText(), /bepalingen[\s\S]*Kies een knoop/);
+  assert.match(await detail(page).innerText(), /bepalingen[\s\S]*Klik een knoop/);
+
+  // 7b. Een markering in de wettekst van de inspector aanklikken kiest haar in de graaf.
+  await zoekEnKies(page, "lid 1", L1);
+  await detail(page).locator('mark[data-element="e1"]').click();
+  assert.equal(await gekozen(page), "element:e1", "de span kiest de markering");
+  await page.getByRole("button", { name: "Selectie opheffen" }).click();
 
   // 8. Vergroten; Escape van binnen naar buiten: keuze op, dan verkleinen.
   await zoekEnKies(page, "lid 1", L1);
@@ -330,7 +351,7 @@ async function wachtGereed(page) {
   await page.waitForTimeout(300);
   await page.screenshot({ path: `${shots}/2-vergroot.png` });
   await page.keyboard.press("Escape");
-  assert.match(await detail(page).innerText(), /Kies een knoop/, "eerste Escape heft de keuze op");
+  assert.match(await detail(page).innerText(), /Klik een knoop/, "eerste Escape heft de keuze op");
   assert.equal(await graaf(page).getAttribute("data-vergroot"), "true");
   await page.keyboard.press("Escape");
   assert.equal(await graaf(page).getAttribute("data-vergroot"), "false");
@@ -431,7 +452,7 @@ async function wachtGereed(page) {
   assert.deepEqual(log.samenhangMeer.at(-1), [HII, HV], "één verzoek met de delen in overzichtsvolgorde");
   await wachtGereed(page);
   await zoekEnKies(page, "Artikel 10", A10);
-  await page.getByRole("button", { name: "Toon in tekst" }).waitFor();
+  await page.getByRole("button", { name: "Bekijk in de tekst" }).waitFor();
   await page.screenshot({ path: `${shots}/2c-overzicht.png` });
   assert.deepEqual(log.errors, []);
   assert.deepEqual(log.console, [], "geen consolefouten");
@@ -462,6 +483,20 @@ async function wachtGereed(page) {
   assert.match(await detail(page).innerText(), /7 regelingen · 6\.343 bepalingen/);
   await page.waitForTimeout(600);
   await page.screenshot({ path: `${shots}/5-kennisgraaf.png` });
+  // Labels: nooit over elkaar (`kiesLabels`), en meer naarmate je inzoomt.
+  const labels = async () => (await page.getByTestId("graaf-tekenaar").getAttribute("data-label-soorten")).split(",");
+  await page.getByRole("button", { name: "Alles in beeld" }).click();
+  await page.waitForTimeout(900);
+  const uitgezoomd = await labels();
+  await page.screenshot({ path: `${shots}/5a-kennisgraaf-uitgezoomd.png` });
+  for (let i = 0; i < 4; i++) { await page.getByRole("button", { name: "Inzoomen" }).click(); await page.waitForTimeout(350); }
+  await page.waitForTimeout(600);
+  const ingezoomd = await labels();
+  await page.screenshot({ path: `${shots}/5a-kennisgraaf-ingezoomd.png` });
+  assert.ok(uitgezoomd.includes("regeling") && !uitgezoomd.includes("artikel"), `uitgezoomd alleen de opbouw (${uitgezoomd})`);
+  assert.ok(ingezoomd.includes("artikel"), `ingezoomd ook artikelen (${ingezoomd})`);
+  await page.getByRole("button", { name: "Naar het antwoord" }).click();
+  await page.waitForTimeout(900);
 
   // Het blok is de inhoudsopgave van de kaart: aanwijzen licht uit, klikken kiest – geen nieuw tabblad.
   await blok.getByRole("link", { name: "art. 28" }).hover();
@@ -518,9 +553,8 @@ async function wachtGereed(page) {
   await wachtGereed(page);
   await zoekveld(page).fill("lid 1");
   await page.keyboard.press("Enter");
-  assert.match(await detail(page).innerText(), /Artikel 9 · lid 1/);
-  await page.getByRole("button", { name: "Details tonen" }).click();
-  assert.match(await detail(page).innerText(), /Onderdeel van/);
+  // De details staan meteen open; inklappen kan.
+  assert.match(await detail(page).innerText(), /Artikel 9 · lid 1[\s\S]*Onderdeel van/);
   await page.getByRole("button", { name: "Details inklappen" }).click();
   const hoogte = (await page.getByTestId("graaf-tekenaar").boundingBox()).height;
   assert.ok(hoogte >= 200, `het canvas houdt hoogte (${hoogte}px)`);

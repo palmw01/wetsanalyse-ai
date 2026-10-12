@@ -184,7 +184,7 @@ describe("weergave", () => {
 
   it("nadruk: de keuze met haar buren gaat voor de focus, de focus voor alles", () => {
     const focus = focusVan(g, [A9]);
-    expect([...focus.bereik].sort()).toEqual([A9, L1, L2, "element:1", "element:2", "klasse:Rechtsfeit", "klasse:Rechtssubject"].sort());
+    expect([...focus.bereik].sort()).toEqual([A9, L1, L2, AWB, "element:1", "element:2", "klasse:Rechtsfeit", "klasse:Rechtssubject"].sort());
     expect(weergaveContext(g, stand()).nadruk).toBeNull();
     expect(beeld(A10, stand({ focus })).gedimd).toBe(true);
     expect(beeld(L1, stand({ focus })).gedimd).toBe(false);
@@ -194,6 +194,22 @@ describe("weergave", () => {
     expect(beeld(L1, gekozen)).toMatchObject({ gedimd: true, kleur: GEDIMD, label: null });
     // De keuze opheffen (klik op de achtergrond) brengt de focus terug.
     expect(beeld(L1, stand({ focus, selectie: null })).gedimd).toBe(false);
+  });
+
+  it("de focus van een bepaling neemt haar verwijzingen mee, die van een hoofdstuk niet", () => {
+    expect(focusVan(g, [L2]).bereik).toEqual(new Set([L2]));
+    expect(focusVan(g, [L1]).bereik).toEqual(new Set([L1, AWB, "element:1", "element:2", "klasse:Rechtsfeit", "klasse:Rechtssubject"]));
+    expect(focusVan(g, [H]).bereik.has(AWB)).toBe(false);
+    // Hoort een bepaling ook bij een hoofdstuk-doel, dan houdt ze haar verwijzingen.
+    expect(focusVan(g, [H, A9]).bereik.has(AWB)).toBe(true);
+  });
+
+  it("zonder keuze is de focus het beeld; de keuze opheffen brengt het begin terug", () => {
+    const focus = focusVan(g, [L1]);
+    const begin = weergaveContext(g, stand({ focus }));
+    expect(begin.nadruk).toEqual(focus.bereik);
+    expect([...begin.vastLabel]).toEqual([L1]);
+    expect(weergaveContext(g, stand({ focus, selectie: null })).nadruk).toEqual(begin.nadruk);
   });
 
   it("een randbepaling heeft een omtrek, de laag Dekking een okeromtrek", () => {

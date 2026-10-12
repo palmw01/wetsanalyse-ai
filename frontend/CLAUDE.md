@@ -645,9 +645,26 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
     klik in de graaf verandert nooit wat zichtbaar is.** Wie via zoeken of de inspector een verborgen
     knoop kiest, krijgt de nodige laag aan (`lagenVoor`) – de zoeklijst zegt "laag staat uit".
   - *nadruk* = de keuze met haar buren > de focus > alles. De rest is gedimd (`GEDIMD`: zichtbaar als
-    kaart, zonder label); klik op de achtergrond heft de keuze op. De keuze en (tot 30) buren krijgen
-    altijd een label (`vastLabel`), de rest als er ruimte is.
+    kaart, zonder eigen label). **Er is geen beginkeuze: het begin is de focus**, in beide bereiken, en
+    een klik op de achtergrond of Escape heft de keuze op en brengt dat begin terug. De keuze en (tot
+    30) buren hebben voorrang op een label (`vastLabel`).
+  - de focus (`focusVan`): de doelen, alles eronder, de markeringen daarop met hun klasse, en bij een
+    bepaling ook haar verwijzingen (één stap, in- en uitgaand) – bij een hoofdstuk niet, dat zijn er
+    honderden.
   - lijnen naar een JAS-klasse alleen bij een gekozen markering of klasse.
+- **`lib/graaf/labels.ts`** – **welke knopen een label krijgen**: nooit twee over elkaar, en meer detail
+  naarmate je inzoomt. Sigma's eigen labelraster toetst de breedte van een label niet en zet
+  `forceLabel` ongetoetst bovenop; daarom staat het op nul (`labelDensity: 0`) en kiest `kiesLabels`
+  per beeld: gulzig op prioriteit (keuze/aangewezen > nadruk > gewoon > gedimd, dan de soort), een
+  label alleen als zijn rechthoek vrij ligt én helemaal in beeld past; wat vorig beeld stond wint bij
+  gelijke prioriteit (geen geflikker). De zwevende bediening telt als bezet. Detailniveau per soort
+  (`LABEL_VANAF`, `magLabel`) op een *effectieve* zoom die de grootte van de kaart meeweegt: uitgezoomd
+  alleen regelingen, hoofdstukken en klassen, dan artikelen, leden, en ten slotte onderdelen en
+  markeringen. Gedimde knopen dingen mee met een grijs oriëntatielabel (`GEDIMD_LABEL`). Uitgezoomd
+  zijn onderdelen en markeringen kleiner (`detailFactor`).
+- **`lib/graaf/spans.ts`** – de wettekst van een bronknoop met de markeringen erin, voor de inspector:
+  alleen op hun **ankers** (codepoints, met dezelfde `bron_hash`), nooit via tekstzoeken; bij overlap
+  de kortste bovenop; verworpen en verouderde markeringen niet.
 - **`lib/graaf/bediening.ts`** – zoeken (over het hele model, diakritiek-ongevoelig, natuurlijk op
   nummer), relatiegroepen, de ene `hoofdactie` (`tekst` / `wissel` / `laden` / niets), `paneelDoel` en de
   telling in gewone woorden. **`lib/graaf/stijl.ts`** – het palet; WebGL kent geen CSS-variabelen, dus
@@ -659,6 +676,11 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
   tekenvolgorde, dus `refresh()` zonder `skipIndexation`; een `ResizeObserver` doet `resize` én
   `refresh`; bij unmount wordt het **doel** van een lopende camerabeweging bewaard, niet de tussenstand
   (anders staat het vergrote beeld halverwege een vlucht); geen WebGL of contextverlies → `onFout`.
+  **De labelkeuze gebeurt bij het eerste label dat sigma tekent, niet in `beforeRender`**: daar zijn
+  de knoopdata (na een `refresh`) en de cameramatrix nog die van het vorige beeld. De reducer houdt per
+  knoop bij wat de keuze nodig heeft (`labelInfo`), zodat die geen 6.500 knoopdata hoeft te kopiëren.
+  Inpassen op één knoop zoomt niet dieper dan de kaart vraagt (`minRatio`), zodat de buurt in beeld
+  blijft.
   Twee klikken binnen sigma's dubbelklikvenster zijn een dubbelklik (zoomen), geen twee klikken.
 - **`components/graaf/useGraafStand.ts`** – data, laadfase, het getekende beeld (model + posities samen
   vervangen, nooit knopen zonder plek), keuze, lagen, camera. Leeft in het paneel (búiten de `Dialog`):
@@ -675,18 +697,26 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
 - **Een randbepaling** (buiten wat geladen is, als omtrek getekend) laad je erbij met *In de graaf laden*;
   de kaart blijft liggen. Een niet-geïmporteerde bepaling (`extern`) is niet te laden. Afstand en
   positie betekenen juridisch niets; dat staat in de legenda.
-- **De inspector** (`GraafInspector`): soort en naam, *Centreren* en ✕, precies één gevulde hoofdactie,
-  *Vraag Lex* (niet bij een klasse), relaties per soort als uitklapgroepen, voor een markering herkomst,
-  aandacht en de Waarom-uitklap. Zonder keuze: wat er geladen is en hoe kiezen werkt. Breed rechts, smal
-  onder de graaf en in te klappen.
+- **De inspector** (`GraafInspector`) **toont alles meteen, zonder de graaf te verlaten**: soort en naam,
+  *Centreren* en ✕, de wettekst met de markeringen erin in hun JAS-kleur (`KnoopTekst`; een klik op een
+  span kiest die markering in de graaf), bij een markering ook toelichting, review-uitleg,
+  alternatieven en de Waarom-uitklap (open), en de relaties per soort. Alleen lezen: beoordelen gebeurt
+  in de tekst. De gevulde knop is er alleen voor wat in de graaf blijft (*In de graaf laden*); *Bekijk
+  in de tekst* / *Beoordeel in de tekst* / *Open in het paneel* zijn rustige links. De tekst komt uit de
+  weergave van het paneel, en anders één keer per knoop via `GET weergave` (`useKnoopDetail`, cache
+  per paneel, leeg na `ververs`) – de hele kennisgraaf draagt bewust geen tekst. Het element van een
+  markering wordt bij het kiezen opgehaald (`useMarkeringElement`). Zonder keuze: *Dit antwoord* (de
+  doelen, klikbaar) en wat er geladen is. Breed rechts, smal onder de graaf: open, met eigen scroll, in
+  te klappen; per keuze een `key`, dus elke keuze begint open en bovenaan.
 - **Bediening als een kaart-app**: zoeken linksboven (`GraafZoek`, ook de toetsenbordroute), *Lagen*
   linksonder (`GraafLagen`: lagen, markeringsfilter en de legenda in één paneel), beeld rechtsonder
-  (`GraafBeeld`), een eenmalige hint (`GraafHint`). **Escape** van binnen naar buiten: zoeklijst → Lagen
+  (`GraafBeeld`: *Naar het antwoord*, *Alles in beeld*, zoomen), een eenmalige hint (`GraafHint`). Zolang
+  er een keuze is staat onder het zoekveld *Terug naar het antwoord*. **Escape** van binnen naar buiten: zoeklijst → Lagen
   → keuze → verkleinen → sluiten.
 - **Laadbalk**: "Graaf ophalen…" (onbepaald) → "Layout berekenen – n %" (`Meter`, met `percentage:
   null` voor onbepaald); hij verschijnt pas na 250 ms, zodat een layout uit de cache niet flitst.
-- **Eén keuze**: de gekozen markering is in tekst en graaf dezelfde (`actiefId` van het paneel). *Toon in
-  tekst* wisselt naar de tekst en scrolt naar het lid (`data-lid`).
+- **Eén keuze**: de gekozen markering is in tekst en graaf dezelfde (`actiefId` van het paneel). *Bekijk
+  in de tekst* wisselt naar de tekst en scrolt naar het lid (`data-lid`).
 - **Laag Dekking**: de zinsdelen zonder detectortreffer uit het paneel (`ongedektPerBron`) geven een lid
   of onderdeel een okeromtrek (`DEKKINGSKLEUR`) en in de inspector *Zonder detectortreffer*.
 - **Live bij een annotatiewijziging**: `NodeAnnotatiePaneel` roept na elke mutatie `graafStand.ververs()`
@@ -698,9 +728,10 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
   productiebuild: 4,6 s de eerste keer, 0,24 s daarna). Wisselen houdt keuze en lagen; bij een nieuwe kaart
   past de tekenaar de camera in (`inpassen`: de keuze, anders de focus). Na een annotatiewijziging wordt
   ook de kennisgraaf opnieuw opgehaald – de markeringen erin komen vers uit de api.
-- **Focus** (alleen in de hele kennisgraaf): wat het antwoord noemt, met alles eronder (`focusVan`), heeft
-  nadruk; de rest staat gedimd op de kaart. De kop zegt het ("Nadruk op wat het antwoord noemt (n …)").
-  Zonder expliciete focus zijn het de doelen van de knop.
+- **Focus** (in beide bereiken): wat het antwoord noemt (`focusVan`) heeft nadruk; de rest staat gedimd
+  op de kaart. De kop zegt het ("Nadruk op wat het antwoord noemt (n …)"). Zonder expliciete focus zijn
+  het de doelen van de knop. Beslaat de focus de hele kaart (het doel is een heel artikel), dan is er
+  geen focus en dus niets gedimd.
 - **Een overzicht opent de hele kennisgraaf** met als focus álles uit het overzicht (`overzichtFocus`:
   delen, subdelen, bepalingen en wat het onderwerp verder noemt – geen grens), zonder keuze: een keuze
   zou de focus overschrijven. De knop zegt het: "Bekijk de 4 delen in de kennisgraaf". *Dit antwoord*
@@ -712,7 +743,8 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
   handelingen in een ref (`koppelingRef`), de werkplek geeft via context een stabiel doorgeefluik aan de
   thread: zo rendert geen `ThreadRij` opnieuw als het paneel opent of sluit.
 - Browserregressie: `scripts/test-samenhang.mjs` (klikken via de canvasmidden na *Centreren*, kiezen
-  en lagen via de zoeklijst, `data-selectie`/`data-aangewezen`/`data-bereik`/`data-gereed` op de graaf;
+  en lagen via de zoeklijst, `data-selectie`/`data-aangewezen`/`data-bereik`/`data-gereed` op de graaf,
+  `data-labels`/`data-label-soorten` op de tekenaar;
   een gegenereerde kennisgraaf van ~6.500 knopen voor laadbalk, focus, koppeling en de cache).
 
 ## Buiten de schil
