@@ -64,6 +64,7 @@ zelf zijn lokaal.
 | Wat is de projectmethode en hoe landt die in de agents? | [`wetsanalyse/methode-onderzoek.md`](wetsanalyse/methode-onderzoek.md) + de skill | specificatie |
 | Wat is er gemeten? | [`architectuur/metingen/README.md`](architectuur/metingen/README.md) | meting |
 | Hoe valideren we juridisch? | [`architectuur/onderzoek-empirische-validatie.md`](architectuur/onderzoek-empirische-validatie.md) + [`wetsanalyse/referentieset/`](wetsanalyse/referentieset/README.md) | onderzoek |
+| Wat biedt INT-terminologie voor activiteit 2 en 3? | [Volledig onderzoek als HTML-pagina](wetsanalyse/onderzoek-int-terminologie-2026-10-08/index.html) · [dossier van 8 oktober 2026](wetsanalyse/onderzoek-int-terminologie-2026-10-08/README.md), met alle hulpmiddelen en relevante concepten | onderzoek |
 | Waarom is het zo ontworpen? | [ADR-001](architectuur/adr-001-hybride-jas-pijplijn.md), [ADR-002](architectuur/adr-002-taalprovider.md) | besluit |
 | Hoe praat Lex? | [`schrijfrichtlijn-lex.md`](schrijfrichtlijn-lex.md) | specificatie |
 

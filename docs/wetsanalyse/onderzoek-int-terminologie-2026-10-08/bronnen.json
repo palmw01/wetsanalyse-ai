@@ -1,0 +1,4750 @@
+{
+  "titel": "Bronnenregister INT terminologie en Wetsanalyse",
+  "onderzoeksdatum": "2026-10-08",
+  "afbakening": "18 sitemap-pagina’s in de terminologiesubboom, geredirecteerde rubriek Uitgelichte term, TermWerk en gerichte externe verdieping; geen volledige crawl van alle externe sites.",
+  "begrippen": "Werkdefinities en projectadviezen zijn eigen synthese; leesstatus geldt voor geraadpleegde onderdelen en niet voor een volledige productevaluatie.",
+  "respons_toelichting": "De hash betreft de opgehaalde HTTP-respons, mogelijk een foutpagina. Directe opvraag en inhoudelijk lezen via de webtool zijn afzonderlijk geregistreerd. Lokale responskopieën worden niet in git opgenomen. HTTP 000 betekent dat geen HTTP-respons werd ontvangen.",
+  "tellingen": {
+    "sitemap_paginas": 18,
+    "websitekaart_regels": 22,
+    "int_toolvermeldingen": 102,
+    "aanvullende_tools": 1,
+    "concepten": 66,
+    "bibliografische_records": 425,
+    "organisatievermeldingen": 87,
+    "externe_linkvermeldingen": 630,
+    "bronrecords": 206,
+    "int_productidentiteiten_na_twee_expliciete_dubbelen": 100
+  },
+  "bronnen": [
+    {
+      "id": "H001",
+      "titel": "AlignAssist Translation File AlignmentTool — INT linkbestemming",
+      "url": "https://alignassist.software.informer.com/1.5/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 403,
+        "eind_url": "https://alignassist.software.informer.com/1.5/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H001",
+          "vindplaats": "Alignering / AlignAssist"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H001.raw",
+      "respons_sha256": "45cded19355bd4e3bcfe1b32a51d76d4f8aa5874b9da9e00bb6fbb1c142fffac",
+      "respons_bytes": 5478
+    },
+    {
+      "id": "H002",
+      "titel": "AlignFactory en AlignFactory (Light) — INT linkbestemming",
+      "url": "https://terminotix.com/index.asp?content=item&item=11&lang=en",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://terminotix.com/alignfactory-desktop/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H002",
+          "vindplaats": "AlignFactory Desktop / Alignement de documents"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H002.raw",
+      "respons_sha256": "f0681931f8b731831dc6b9b70a6dcfc87ba8918db70903b5ddf0e8f70a4a68d4",
+      "respons_bytes": 214160
+    },
+    {
+      "id": "H003",
+      "titel": "HunAlign — INT linkbestemming",
+      "url": "https://mokk.bme.hu/en/resources/hunalign/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 0,
+        "eind_url": "https://mokk.bme.hu/en/resources/hunalign/"
+      },
+      "gebruikt_bij": []
+    },
+    {
+      "id": "H004",
+      "titel": "Twente Word Alignment — INT linkbestemming",
+      "url": "https://archive.is/CcSD",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 429,
+        "eind_url": "https://archive.is/CcSD"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H004",
+          "vindplaats": "Alignering / Twente Word Alignment"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H004.raw",
+      "respons_sha256": "48a2fd86e3c53a5104b4e518537fe95f31be645f243bf8452254eaba479e7c72",
+      "respons_bytes": 59074
+    },
+    {
+      "id": "H005",
+      "titel": "YouAlign — INT linkbestemming",
+      "url": "https://www.youalign.com/AlignDocs.aspx",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 404,
+        "eind_url": "https://youalign.com/AlignDocs.aspx"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/H005.raw",
+      "respons_sha256": "5d6138490fcc489b517e7c899e41b5a0ada86f843c8ed5275343b008f9776d44",
+      "respons_bytes": 1925
+    },
+    {
+      "id": "H006",
+      "titel": "Corsis — INT linkbestemming",
+      "url": "https://corsis.sourceforge.net/index.php/Main_Page",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 403,
+        "eind_url": "https://corsis.sourceforge.net/index.php/Main_Page"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H006",
+          "vindplaats": "Corpusanalyse / Corsis"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H006.raw",
+      "respons_sha256": "9390298f3fb0c5b160498935d79cb139aef28e1c47358b4bbba61862b9c26e59",
+      "respons_bytes": 2
+    },
+    {
+      "id": "H007",
+      "titel": "DIMAP — INT linkbestemming",
+      "url": "https://www.clres.com/DIMAP.html",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "toegangscontrole",
+      "beperking": "Bot-/toegangscontrole; geen inhoudelijke productbevestiging uit deze respons.",
+      "directe_opvraag": {
+        "http_status": 403,
+        "eind_url": "https://www.clres.com/DIMAP.html"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H007",
+          "vindplaats": "Corpusanalyse / DIMAP"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H007.raw",
+      "respons_sha256": "ba521b97fbcfb6443a827632b301b25f059a315d78ab0536130e00eccaf3c28d",
+      "respons_bytes": 4567
+    },
+    {
+      "id": "H008",
+      "titel": "FastR — INT linkbestemming",
+      "url": "https://www.limsi.fr/Individu/jacquemi/FASTR/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 404,
+        "eind_url": "https://perso.lisn.upsaclay.fr/jacquemi/FASTR/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H008",
+          "vindplaats": "Corpusanalyse / FastR"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H008.raw",
+      "respons_sha256": "80c3fe2ae1062abf56456f52518bd670f9ec3917b7f85e152b347ac6b6faf880",
+      "respons_bytes": 196
+    },
+    {
+      "id": "H009",
+      "titel": "Open Parallel Corpus — INT linkbestemming",
+      "url": "https://opus.nlpl.eu/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "appschil_gelezen",
+      "beperking": "Alleen publiek zichtbare appschil; geen ingelogde of interactieve inhoud beoordeeld.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://opus.nlpl.eu/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H009",
+          "vindplaats": "Corpusanalyse / Open Parallel Corpus"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H009.raw",
+      "respons_sha256": "f1ee019c6d986ddae685d8ed063832a55f96a6142247c96c0be12d306814b363",
+      "respons_bytes": 138355
+    },
+    {
+      "id": "H010",
+      "titel": "Plug Word Aligner — INT linkbestemming",
+      "url": "https://stp.ling.uu.se/plug/pwa/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 0,
+        "eind_url": "https://stp.ling.uu.se/plug/pwa/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H010",
+          "vindplaats": "Corpusanalyse / Plug Word Aligner"
+        }
+      ]
+    },
+    {
+      "id": "H011",
+      "titel": "WebReaper — INT linkbestemming",
+      "url": "https://www.softpedia.com/get/Internet/Offline-Browsers/WebReaper.shtml",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 403,
+        "eind_url": "https://www.softpedia.com/get/Internet/Offline-Browsers/WebReaper.shtml"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H011",
+          "vindplaats": "Corpusanalyse / WebReaper; project README"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H011.raw",
+      "respons_sha256": "3ddfae572156105cf9dc9bf39a12969cd5fd0153532a1ea22c65a5b5bef1f8de",
+      "respons_bytes": 5509
+    },
+    {
+      "id": "H012",
+      "titel": "WordNet — INT linkbestemming",
+      "url": "https://wordnet.princeton.edu/license-and-commercial-use",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 403,
+        "eind_url": "https://wordnet.princeton.edu/license-and-commercial-use"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H012",
+          "vindplaats": "Corpusanalyse / WordNet"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H012.raw",
+      "respons_sha256": "66133fed87e85637e1f72606cd7c60ddac2b75ea51c0592308bae54264fbb880",
+      "respons_bytes": 5468
+    },
+    {
+      "id": "H013",
+      "titel": "WordSmith Tools — INT linkbestemming",
+      "url": "https://lexically.net/wordsmith/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://lexically.net/wordsmith/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H013",
+          "vindplaats": "Homepage / System Requirements; Concord; KeyWords; WordList"
+        },
+        {
+          "record": "C035",
+          "vindplaats": "AntConc Cluster N-Gram Collocate; WordSmith"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H013.raw",
+      "respons_sha256": "2fe7e43380c0bdedaa41199b3a273cb85601a4760287bd05177f993ea79e5784",
+      "respons_bytes": 9004
+    },
+    {
+      "id": "H014",
+      "titel": "2Lingual — INT linkbestemming",
+      "url": "https://www.2lingual.com/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.2lingual.com/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H014",
+          "vindplaats": "Homepage / language selectors"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H014.raw",
+      "respons_sha256": "292a387ef2bbde1da00f4cec105632e1338d27adf00c57421c306b13e31e78bc",
+      "respons_bytes": 10120
+    },
+    {
+      "id": "H015",
+      "titel": "KwicFinder — INT linkbestemming",
+      "url": "https://www.kwicfinder.com/KWiCFinder.html",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 0,
+        "eind_url": "https://www.kwicfinder.com/KWiCFinder.html"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H015",
+          "vindplaats": "Online concordantie / KwicFinder"
+        }
+      ]
+    },
+    {
+      "id": "H016",
+      "titel": "Linguee — INT linkbestemming",
+      "url": "https://www.linguee.nl/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.linguee.nl/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H016",
+          "vindplaats": "Homepage / woordenboek en taalparen"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H016.raw",
+      "respons_sha256": "32eb337aae7c3255e237cbc1ad7238a2eabd39c760c20c20ae587ef8a9a8287a",
+      "respons_bytes": 29632
+    },
+    {
+      "id": "H017",
+      "titel": "MyMemory — INT linkbestemming",
+      "url": "https://mymemory.translated.net/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://mymemory.translated.net/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H017",
+          "vindplaats": "Homepage; Online concordantie / MyMemory"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H017.raw",
+      "respons_sha256": "eb143a851b0257166dc0eb812b81f4e8078ad725f0c3514c4abe7b8fdb1cdfbd",
+      "respons_bytes": 96839
+    },
+    {
+      "id": "H018",
+      "titel": "TradooIT — INT linkbestemming",
+      "url": "https://www.tradooit.com/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.tradooit.com/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H018",
+          "vindplaats": "Homepage / Concordancier bilingue; Mémoire; Termidoo"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H018.raw",
+      "respons_sha256": "c2fef0fe720c481c651aca2688ea03ff0f69a5baf5a6156ef241603997777b62",
+      "respons_bytes": 11700
+    },
+    {
+      "id": "H019",
+      "titel": "TransSearch — INT linkbestemming",
+      "url": "https://tsrali3.com/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 0,
+        "eind_url": "https://tsrali3.com/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H019",
+          "vindplaats": "Online concordantie / TransSearch"
+        }
+      ]
+    },
+    {
+      "id": "H020",
+      "titel": "WebCorp — INT linkbestemming",
+      "url": "https://www.webcorp.org.uk/live/guide.jsp",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 0,
+        "eind_url": "https://www.webcorp.org.uk/live/guide.jsp"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H020",
+          "vindplaats": "Online concordantie / WebCorp"
+        }
+      ]
+    },
+    {
+      "id": "H021",
+      "titel": "Anchovy — INT linkbestemming",
+      "url": "https://www.maxprograms.com/products/anchovy.html",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://maxprograms.com/products/anchovy.html"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H021",
+          "vindplaats": "Overview / What you can do; Subscription Benefits"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H021.raw",
+      "respons_sha256": "ee5e58bbda38872e7b7196b382ffa2024bc48df69351efcf8a3e604781f260dc",
+      "respons_bytes": 19354
+    },
+    {
+      "id": "H022",
+      "titel": "AntConc — INT linkbestemming",
+      "url": "https://www.laurenceanthony.net/software/antconc/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen_via_webtool",
+      "beperking": "Makerspagina met versie 4.4.2 gelezen via webtool; directe opvraag gaf 406.",
+      "directe_opvraag": {
+        "http_status": 406,
+        "eind_url": "https://www.laurenceanthony.net/software/antconc/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H022",
+          "vindplaats": "AntConc downloads; help / Overview of Tools"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H022.raw",
+      "respons_sha256": "80a265bed528211aa708dcd58f7a95db36eeb7f873c6fe4ddab0b3a1dc0973a4",
+      "respons_bytes": 226
+    },
+    {
+      "id": "H023",
+      "titel": "BibClassify — INT linkbestemming",
+      "url": "https://cds.cern.ch/help/admin/bibclassify-admin-guide?ln=it",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "toegangscontrole",
+      "beperking": "Bot-/toegangscontrole; geen inhoudelijke productbevestiging uit deze respons.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://cds.cern.ch/help/admin/bibclassify-admin-guide?ln=it"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H023",
+          "vindplaats": "Termextractie / BibClassify"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H023.raw",
+      "respons_sha256": "83a2817cdea0595e77ec4697171b8e1cdb21b3d6cbfcb38adf683ca717b3c5e3",
+      "respons_bytes": 7494
+    },
+    {
+      "id": "H024",
+      "titel": "Dandelion API — INT linkbestemming",
+      "url": "https://dandelion.eu/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://dandelion.eu/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H024",
+          "vindplaats": "Homepage / Semantic Text Analytics; Entity Extraction"
+        },
+        {
+          "record": "C041",
+          "vindplaats": "Dandelion Entity Extraction; BabelNet"
+        },
+        {
+          "record": "C045",
+          "vindplaats": "Spoor D / Verwerking; Dandelion similarity"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H024.raw",
+      "respons_sha256": "59ef08a1284ef80d73b5f7be148078ef28ca18fb7f38dd1cc272e4ae0bd83660",
+      "respons_bytes": 36575
+    },
+    {
+      "id": "H025",
+      "titel": "ExtPhr32 — INT linkbestemming",
+      "url": "https://extphr32.software.informer.com/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 403,
+        "eind_url": "https://extphr32.software.informer.com/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H025",
+          "vindplaats": "Termextractie / ExtPhr32"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H025.raw",
+      "respons_sha256": "1a9d04c2db5ca87040182f6f30cb714dc78f733dce75387220f8d5572b334bc6",
+      "respons_bytes": 5378
+    },
+    {
+      "id": "H026",
+      "titel": "Extractor — INT linkbestemming",
+      "url": "https://extractor.com/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 0,
+        "eind_url": "https://extractor.com/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H026",
+          "vindplaats": "Termextractie / Extractor"
+        }
+      ]
+    },
+    {
+      "id": "H027",
+      "titel": "fivefilters — INT linkbestemming",
+      "url": "https://fivefilters.org/term-extraction/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.fivefilters.org/term-extraction/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H027",
+          "vindplaats": "Term Extraction"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H027.raw",
+      "respons_sha256": "2592a1e2518c7fa85cc80c9262839049a2125152572bf26add5cc5b916f7cfb6",
+      "respons_bytes": 64405
+    },
+    {
+      "id": "H028",
+      "titel": "Lexical extractor for terminology and translation — INT linkbestemming",
+      "url": "https://github.com/LexTerm",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://github.com/LexTerm"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H028",
+          "vindplaats": "GitHub organisatie en LexTermServer README"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H028.raw",
+      "respons_sha256": "cca884c9a38b3b02a79a4eb76a2665be93cee982c12333fb1efa4d5747746ac6",
+      "respons_bytes": 220804
+    },
+    {
+      "id": "H029",
+      "titel": "LogiTerm — INT linkbestemming",
+      "url": "https://www.terminotix.com/index.asp?content=brand&brand=2&lang=en",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://terminotix.com/traduction/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H029",
+          "vindplaats": "Traduction / LogiTerm-producten"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H029.raw",
+      "respons_sha256": "fbbb98bc91afdcdcfcfb11a8c50f79bf63d51e8ca0276dc88774a1e2c303276b",
+      "respons_bytes": 186800
+    },
+    {
+      "id": "H030",
+      "titel": "maui-indexer — INT linkbestemming",
+      "url": "https://code.google.com/archive/p/maui-indexer/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://code.google.com/archive/p/maui-indexer/"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/H030.raw",
+      "respons_sha256": "8c35ebeff40b16e757ee873571f4adc3591d5fc51b5859e22973736c7de6370c",
+      "respons_bytes": 2438
+    },
+    {
+      "id": "H031",
+      "titel": "MultiTerm Extract — INT linkbestemming",
+      "url": "https://docs.rws.com/1117394/261588/multiterm-2022-sr2/welcome-to-------------multiterm-2022-sr2",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 403,
+        "eind_url": "https://docs.rws.com/1117394/261588/multiterm-2022-sr2/welcome-to-------------multiterm-2022-sr2"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H031",
+          "vindplaats": "Termextractie / MultiTerm Extract"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H031.raw",
+      "respons_sha256": "58bf2215b395dcac74c009aa98701854e43cbe54a1cd3a95fee6a647ca9910d4",
+      "respons_bytes": 118
+    },
+    {
+      "id": "H032",
+      "titel": "Olifant — INT linkbestemming",
+      "url": "https://okapi.sourceforge.net/Release/Olifant/Help/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 403,
+        "eind_url": "https://okapi.sourceforge.net/Release/Olifant/Help/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H032",
+          "vindplaats": "Termextractie / Olifant"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H032.raw",
+      "respons_sha256": "9390298f3fb0c5b160498935d79cb139aef28e1c47358b4bbba61862b9c26e59",
+      "respons_bytes": 2
+    },
+    {
+      "id": "H033",
+      "titel": "OneClick Terms — INT linkbestemming",
+      "url": "https://terms.sketchengine.eu/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "appschil_gelezen",
+      "beperking": "Alleen publiek zichtbare appschil; geen ingelogde of interactieve inhoud beoordeeld.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://terms.sketchengine.eu/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H033",
+          "vindplaats": "Termextractie / OneClick Terms; Sketch Engine guide"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H033.raw",
+      "respons_sha256": "26a5128c4fec59756567304ad80130c7753ebad240b700d15abfdacaf1164cd6",
+      "respons_bytes": 2537
+    },
+    {
+      "id": "H034",
+      "titel": "Prospector (bèta) — INT linkbestemming",
+      "url": "https://cloud.logrusglobal.com/#prospector",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "appschil_gelezen",
+      "beperking": "Alleen publiek zichtbare appschil; geen ingelogde of interactieve inhoud beoordeeld.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://cloud.logrusglobal.com/#prospector"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H034",
+          "vindplaats": "Termextractie / Prospector"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H034.raw",
+      "respons_sha256": "aff72c8b21872a6ab9e1c45965fa94c166e18c7611096223112fd195b902d350",
+      "respons_bytes": 3752
+    },
+    {
+      "id": "H035",
+      "titel": "Sketch Engine — INT linkbestemming",
+      "url": "https://www.sketchengine.eu/guide/keywords-and-term-extraction/#toggle-id-5-closed",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.sketchengine.eu/guide/keywords-and-term-extraction/#toggle-id-5-closed"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H033",
+          "vindplaats": "Termextractie / OneClick Terms; Sketch Engine guide"
+        },
+        {
+          "record": "H035",
+          "vindplaats": "Guide / Keywords and terms; Requirements; Simple maths"
+        },
+        {
+          "record": "C036",
+          "vindplaats": "Annotatieketen; spoor D / Verwerking; Sketch Engine guide"
+        },
+        {
+          "record": "C037",
+          "vindplaats": "Sketch Engine requirements; TerMine POS; annotatieketen"
+        },
+        {
+          "record": "C038",
+          "vindplaats": "Sketch Engine guide; TermoStat-vermelding"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H035.raw",
+      "respons_sha256": "499963b3f6db55c2355073c67242884bae2109cd47941458d176cf6a7d82a3fa",
+      "respons_bytes": 108291
+    },
+    {
+      "id": "H036",
+      "titel": "SynchroTerm — INT linkbestemming",
+      "url": "https://www.terminotix.com/index.asp?name=SynchroTerm&content=item&brand=4&item=7&lang=en",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://terminotix.com/synchroterm/?brand=4"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H036",
+          "vindplaats": "SynchroTerm / Extraction; talenlijst"
+        },
+        {
+          "record": "C033",
+          "vindplaats": "Hunalign README; SynchroTerm"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H036.raw",
+      "respons_sha256": "0821d28a91f82ad8c1cf0d360882ae1e16488d2b0cb6182787fc88bcfa21fc1c",
+      "respons_bytes": 189702
+    },
+    {
+      "id": "H037",
+      "titel": "TermFinder — INT linkbestemming",
+      "url": "https://rapidapi.com/translated/api/terminology-extraction",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://rapidapi.com/translated/api/terminology-extraction"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H037",
+          "vindplaats": "Termextractie / TermFinder"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H037.raw",
+      "respons_sha256": "678a7da37cb9b1724d79cea893ca5164e26889ad83406d2b600b7af56f0ed1ec",
+      "respons_bytes": 256813
+    },
+    {
+      "id": "H038",
+      "titel": "TerMine — INT linkbestemming",
+      "url": "https://www.nactem.ac.uk/software/termine/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.nactem.ac.uk/software/termine/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H038",
+          "vindplaats": "TerMine / Usage; Limitations; Background"
+        },
+        {
+          "record": "C011",
+          "vindplaats": "TerMine acronyms; TermWerk Termniveau; Begripskaart"
+        },
+        {
+          "record": "C037",
+          "vindplaats": "Sketch Engine requirements; TerMine POS; annotatieketen"
+        },
+        {
+          "record": "C039",
+          "vindplaats": "TerMine C-value; TermWerk termextractie; spoor D"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H038.raw",
+      "respons_sha256": "1d77f61966e0400f9eab2966f0bc12c3707c6626aa9508c26a38bde21b4c47f0",
+      "respons_bytes": 12431
+    },
+    {
+      "id": "H039",
+      "titel": "TermoStat Web 3.0 — INT linkbestemming",
+      "url": "https://termostat.ling.umontreal.ca/doc_termostat/doc_termostat_en.html",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "appschil_gelezen",
+      "beperking": "Alleen publiek zichtbare appschil; geen ingelogde of interactieve inhoud beoordeeld.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://termostat.ling.umontreal.ca/doc_termostat/doc_termostat_en.html"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H039",
+          "vindplaats": "Termextractie / TermoStat"
+        },
+        {
+          "record": "C038",
+          "vindplaats": "Sketch Engine guide; TermoStat-vermelding"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H039.raw",
+      "respons_sha256": "5be0d3a7d98a4ff9419522bc308cd0cf061abd1789d08ea15fb09fd6105ed76b",
+      "respons_bytes": 394
+    },
+    {
+      "id": "H040",
+      "titel": "TermTreffer — INT linkbestemming",
+      "url": "https://ivdnt.org/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/H040.raw",
+      "respons_sha256": "6dea5047b981e2ad97eceae211ccea70e2586dff57b02c044d5500282a4bdc7a",
+      "respons_bytes": 126654
+    },
+    {
+      "id": "H041",
+      "titel": "TexLexAn — INT linkbestemming",
+      "url": "https://texlexan.sourceforge.net/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 403,
+        "eind_url": "https://texlexan.sourceforge.net/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H041",
+          "vindplaats": "Termextractie / TexLexAn"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H041.raw",
+      "respons_sha256": "9390298f3fb0c5b160498935d79cb139aef28e1c47358b4bbba61862b9c26e59",
+      "respons_bytes": 2
+    },
+    {
+      "id": "H042",
+      "titel": "TextSTAT — INT linkbestemming",
+      "url": "https://neon.niederlandistik.fu-berlin.de/nl/textstat/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://neon.niederlandistik.fu-berlin.de/nl/textstat/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H042",
+          "vindplaats": "TextSTAT 3 / beschrijving; download; disclaimer"
+        },
+        {
+          "record": "C032",
+          "vindplaats": "AntConc KWIC en File; TextSTAT concordantie"
+        },
+        {
+          "record": "C034",
+          "vindplaats": "TextSTAT; AntConc Word"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H042.raw",
+      "respons_sha256": "bcda60677e9667dbf3537e8f1f109316c2de3fe1e0da2c238101393087d308c5",
+      "respons_bytes": 21357
+    },
+    {
+      "id": "H043",
+      "titel": "Tilde Terminology — INT linkbestemming",
+      "url": "https://term.tilde.com/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "appschil_gelezen",
+      "beperking": "Alleen publiek zichtbare appschil; geen ingelogde of interactieve inhoud beoordeeld.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://term.tilde.com/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H043",
+          "vindplaats": "Termextractie / Tilde Terminology"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H043.raw",
+      "respons_sha256": "18b771bfb5ea5dcf21b42b62dfa0ddfcdddc304768322d30e430f3c7389f849d",
+      "respons_bytes": 25235
+    },
+    {
+      "id": "H044",
+      "titel": "VocabGrabbler — INT linkbestemming",
+      "url": "https://www.visualthesaurus.com/vocabgrabber/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.visualthesaurus.com/vocabgrabber/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H044",
+          "vindplaats": "VocabGrabber / How does Vocabgrabber work"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H044.raw",
+      "respons_sha256": "56de0b232871d841eed8e4ac0768a274277655d1d4de87277f5ffb51502de28b",
+      "respons_bytes": 21982
+    },
+    {
+      "id": "H045",
+      "titel": "Wordle — INT linkbestemming",
+      "url": "https://www.wordle.net/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.wordle.net/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H045",
+          "vindplaats": "Termextractie / Wordle; waargenomen bestemmingspagina"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H045.raw",
+      "respons_sha256": "6177ea710637306645af8f824a64d2324459ba16e7b24e76cfd8d889b31cf74f",
+      "respons_bytes": 28646
+    },
+    {
+      "id": "H046",
+      "titel": "Acrolinx — INT linkbestemming",
+      "url": "https://www.acrolinx.com/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 403,
+        "eind_url": "https://www.acrolinx.com/"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/H046.raw",
+      "respons_sha256": "58815a63c32e227bcde084a0c0e404f0683493321c7770de561ad013614cff66",
+      "respons_bytes": 5492
+    },
+    {
+      "id": "H047",
+      "titel": "Anylexic — INT linkbestemming",
+      "url": "https://www.anylexic.com/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.anylexic.com/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H047",
+          "vindplaats": "Homepage / Main features"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H047.raw",
+      "respons_sha256": "6626b0e80f5fb7e721386ee0cf7dea6eded1d66188fc70e101504920a3474684",
+      "respons_bytes": 37610
+    },
+    {
+      "id": "H048",
+      "titel": "ApSIC Xbench — INT linkbestemming",
+      "url": "https://www.apsic.com/en/products_xbench.html",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.apsic.com/en/products_xbench.html"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/H048.raw",
+      "respons_sha256": "70e1ba42014b4521020a6e7a92d342fd00f234baa57326f874220cfa1b7670df",
+      "respons_bytes": 11451
+    },
+    {
+      "id": "H049",
+      "titel": "evoTerm — INT linkbestemming",
+      "url": "https://www.evoterm.net/Terminologie.aspx",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 0,
+        "eind_url": "https://www.evoterm.net/Terminologie.aspx"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H049",
+          "vindplaats": "Terminologiebeheer / evoTerm"
+        }
+      ]
+    },
+    {
+      "id": "H050",
+      "titel": "FAIRterm — INT linkbestemming",
+      "url": "https://yourterm.eu/toolbox/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen_via_webtool",
+      "beperking": "Projectbeschrijving via webtool; directe opvraag geblokkeerd.",
+      "directe_opvraag": {
+        "http_status": 403,
+        "eind_url": "https://yourterm.eu/toolbox/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H050",
+          "vindplaats": "YourTerm ToolBox / FAIRterm Application; tutorial"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H050.raw",
+      "respons_sha256": "2bfef3877f55f5f0306234e2e25ccc4c2ab1b40dd15315b64ccbb6c9db32e118",
+      "respons_bytes": 4546
+    },
+    {
+      "id": "H051",
+      "titel": "Inter Active Terminology for Europe — INT linkbestemming",
+      "url": "https://iate.europa.eu/home",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://iate.europa.eu/home"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H051",
+          "vindplaats": "Home / About IATE"
+        },
+        {
+          "record": "C030",
+          "vindplaats": "SKOS §10; IATE; spoor D / werkgebieden"
+        },
+        {
+          "record": "C063",
+          "vindplaats": "IATE; EuroVoc; Rechtspraak begrippen; spoor D / Bronselectie"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H051.raw",
+      "respons_sha256": "26b5b6818040e83bf5fb4ff9051e33ee9e632e99511eb24ac500694bd5c948c4",
+      "respons_bytes": 42950
+    },
+    {
+      "id": "H052",
+      "titel": "Kalcium Quickterm — INT linkbestemming",
+      "url": "https://kaleidoscope.at/en/products/quickterm/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://kaleidoscope.at/en/platform/quickterm/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H052",
+          "vindplaats": "Quickterm / At a Glance; platformbeschrijving"
+        },
+        {
+          "record": "C049",
+          "vindplaats": "Quickterm; Terminologue privileges; spoor D"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H052.raw",
+      "respons_sha256": "49361b4c2ae795fd9eaf582ddf4c36c20890a9ae21225e4aa0e0bf8dee9fbaa7",
+      "respons_bytes": 339520
+    },
+    {
+      "id": "H053",
+      "titel": "Lingo 4.0 — INT linkbestemming",
+      "url": "https://www.lexicool.com/soft_lingo2.asp",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.lexicool.com/soft_lingo2.asp"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H053",
+          "vindplaats": "Lingo 4.0 / Overview; evaluation"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H053.raw",
+      "respons_sha256": "5202f951f6e6ed4978ded8b1e77b19f00f376badfaa60bd6d08e091d430b5cc5",
+      "respons_bytes": 13251
+    },
+    {
+      "id": "H054",
+      "titel": "MoBiDic — INT linkbestemming",
+      "url": "https://www.morphologic.hu/content/view/212/106/lang,en/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.morphologic.hu/content/view/212/106/lang,en/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H054",
+          "vindplaats": "Terminologiebeheer / MoBiDic"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H054.raw",
+      "respons_sha256": "d18cf036ad306d0262d746572944b0bac54f46c194d44768f74d8ddd4de3d229",
+      "respons_bytes": 29115
+    },
+    {
+      "id": "H055",
+      "titel": "MultiTerm — INT linkbestemming",
+      "url": "https://www.sdl.com/solution/language/terminology-management/multiterm/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 202,
+        "eind_url": "https://www.rws.com:443/solution/language/terminology-management/multiterm/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H055",
+          "vindplaats": "Terminologiebeheer / MultiTerm"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H055.raw",
+      "respons_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "respons_bytes": 0
+    },
+    {
+      "id": "H056",
+      "titel": "MultiTes - Thesaurus and Taxonomy Authoring Tools — INT linkbestemming",
+      "url": "https://www.multites.com/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 404,
+        "eind_url": "https://www.multites.com/",
+        "log_toelichting": "Samengevoegde stdout/stderr-regel gereconstrueerd uit fetch.log."
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/H056.raw",
+      "respons_sha256": "ce7127c38e30e92a021ed2bd09287713c6a923db9ffdb43f126e8965d777fbf0",
+      "respons_bytes": 315
+    },
+    {
+      "id": "H057",
+      "titel": "MultiTrans TermBase — INT linkbestemming",
+      "url": "https://appstore.rws.com/plugin/87/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://appstore.rws.com/plugin/87/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H057",
+          "vindplaats": "Terminologiebeheer / MultiTrans TermBase"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H057.raw",
+      "respons_sha256": "b88201d2233174ce5df29bff18712c367f144c64f8c79818910501331daab900",
+      "respons_bytes": 677
+    },
+    {
+      "id": "H058",
+      "titel": "Ontoterminology Editor (Tedi) — INT linkbestemming",
+      "url": "https://ontoterminology.com/licence",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ontoterminology.com/licence"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H058",
+          "vindplaats": "Tedi / Conceptual dimension; Personal User Licence"
+        },
+        {
+          "record": "H078",
+          "vindplaats": "Tedi / product en licentie"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H058.raw",
+      "respons_sha256": "c23a3fe464a6a2939ee5da90914a8409f413670def57d87dc5f7ff4bf16f91b7",
+      "respons_bytes": 35478
+    },
+    {
+      "id": "H059",
+      "titel": "QTerm — INT linkbestemming",
+      "url": "https://www.memoq.com/en/qterm-professional-terminology-management",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 404,
+        "eind_url": "https://www.memoq.com/en/qterm-professional-terminology-management"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/H059.raw",
+      "respons_sha256": "460594fa0e14959d19f7d163dd076fff2f55417e5662247165aaed3c82098eaa",
+      "respons_bytes": 295305
+    },
+    {
+      "id": "H060",
+      "titel": "STAR WebTerm — INT linkbestemming",
+      "url": "https://shop.star-group.net/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 0,
+        "eind_url": "https://shop.star-group.net/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H060",
+          "vindplaats": "Terminologiebeheer / STAR WebTerm"
+        }
+      ]
+    },
+    {
+      "id": "H061",
+      "titel": "Term4Client — INT linkbestemming",
+      "url": "https://www.e-kern.com/en/technology/term4client/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.e-kern.com/en/technology/term4client/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H061",
+          "vindplaats": "term4client / online terminology portal"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H061.raw",
+      "respons_sha256": "bbc21b0023d367d9763abe48ff68c0d226e1fb49954e752999d90cd53e4bd997",
+      "respons_bytes": 367102
+    },
+    {
+      "id": "H062",
+      "titel": "Termbases — INT linkbestemming",
+      "url": "https://www.termbases.eu/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.termbases.eu/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H062",
+          "vindplaats": "Homepage; Terminologiebeheer / Termbases"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H062.raw",
+      "respons_sha256": "9b85fe894e2bac86417259f86b382e535ae1df8fdbf50f23733ef88e236db3e6",
+      "respons_bytes": 9613
+    },
+    {
+      "id": "H063",
+      "titel": "Terminologue — INT linkbestemming",
+      "url": "https://www.terminologue.org/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.terminologue.org/"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/H063.raw",
+      "respons_sha256": "5488bb0e715d07f2b41e25d960de5eac3f58658ea476e5fbcf708535036a2a84",
+      "respons_bytes": 5730
+    },
+    {
+      "id": "H064",
+      "titel": "TermStar — INT linkbestemming",
+      "url": "https://www.star-group.net/en/services/language-services.html?modAcc=3",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.star-group.net/en/services/language-services.html?modAcc=3"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H064",
+          "vindplaats": "TermStar / Terminology management"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H064.raw",
+      "respons_sha256": "34ed5566b3018f459ac3c868f84c541c9216f2cc13cd80d4fc17bb675eaa38cf",
+      "respons_bytes": 215984
+    },
+    {
+      "id": "H065",
+      "titel": "TermWeb — INT linkbestemming",
+      "url": "https://www.interverbumtech.com/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 403,
+        "eind_url": "https://www.interverbumtech.com/"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/H065.raw",
+      "respons_sha256": "7c0be293041014fa6ed405d6cdf5092e0c6732f6252d6e3b0434f5c1588bda2d",
+      "respons_bytes": 114608
+    },
+    {
+      "id": "H066",
+      "titel": "TermWiki Pro — INT linkbestemming",
+      "url": "https://pro.termwiki.com/terminology-management/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 403,
+        "eind_url": "https://pro.termwiki.com/terminology-management/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H066",
+          "vindplaats": "Terminologiebeheer / TermWiki Pro"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H066.raw",
+      "respons_sha256": "cd22ce4515117ee2242a63340fdd9cfcb3bb6f747a926fc4c53666138321905a",
+      "respons_bytes": 919
+    },
+    {
+      "id": "H067",
+      "titel": "TermXplorer — INT linkbestemming",
+      "url": "https://www.term-solutions.com/en/terminology-management/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 0,
+        "eind_url": "https://www.term-solutions.com/en/terminology-management/"
+      },
+      "gebruikt_bij": []
+    },
+    {
+      "id": "H068",
+      "titel": "TippyTerm — INT linkbestemming",
+      "url": "https://www.tippyterm.de/tippyterm/anwendung/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.tippyterm.de/tippyterm/anwendung/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H068",
+          "vindplaats": "Anwendung / Funktionsweise; Weitere Funktionalitäten"
+        },
+        {
+          "record": "C012",
+          "vindplaats": "TippyTerm; TermStar; NL-SBB §2.4.1.1"
+        },
+        {
+          "record": "C065",
+          "vindplaats": "Wat is terminologie; TippyTerm; brongetrouwheid project"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H068.raw",
+      "respons_sha256": "69d73d94a847f2f94869f500c1fa2c9c4dc7d1c46fb92b1dac6311efb6e94d3f",
+      "respons_bytes": 133768
+    },
+    {
+      "id": "H069",
+      "titel": "tlTerm Terminology Software — INT linkbestemming",
+      "url": "https://tshwanedje.com/tshwaneterm/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://tshwanedje.com/tshwaneterm/"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/H069.raw",
+      "respons_sha256": "9a1ba3a6bdec50d1272fa84387cc0b091333d6580a21ebfaec7ec1ea9305ebc6",
+      "respons_bytes": 438
+    },
+    {
+      "id": "H070",
+      "titel": "TManager — INT linkbestemming",
+      "url": "https://www.rafaelguzman.ie/tools/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 0,
+        "eind_url": "https://www.rafaelguzman.ie/tools/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H070",
+          "vindplaats": "Terminologiebeheer / TManager"
+        }
+      ]
+    },
+    {
+      "id": "H071",
+      "titel": "Trados Terminology — INT linkbestemming",
+      "url": "https://www.trados.com/pricing/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 202,
+        "eind_url": "https://www.trados.com/pricing/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H071",
+          "vindplaats": "Terminologiebeheer / Trados Terminology"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H071.raw",
+      "respons_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "respons_bytes": 0
+    },
+    {
+      "id": "H072",
+      "titel": "UniTerm Terminologie Management — INT linkbestemming",
+      "url": "https://www.acolada.de/UniTerm.htm",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "afbeelding_in_plaats_van_productpagina",
+      "beperking": "De oorspronkelijke INT-link redirect naar een afbeelding.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://acolada.de/wp-content/uploads/uniterm.jpg"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H072",
+          "vindplaats": "UniTerm Terminologieverwaltung"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H072.raw",
+      "respons_sha256": "bb29b9c52ddf1dadd95a67d5dee5a307e58d125d79468f7ee9c128253e94122e",
+      "respons_bytes": 9700
+    },
+    {
+      "id": "H073",
+      "titel": "Congree TermTiger Terminology System — INT linkbestemming",
+      "url": "https://www.congree.com/en/tools",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.congree.com/en/tools"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H073",
+          "vindplaats": "Tools / Authoring Assistance; Congree SDK"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H073.raw",
+      "respons_sha256": "cb32adcb209a69cc46500136a3e13906c9f1bed0312091f0a9281090bb101168",
+      "respons_bytes": 37933
+    },
+    {
+      "id": "H074",
+      "titel": "Coreon Multilingual Knowledge System — INT linkbestemming",
+      "url": "https://coreon.com/terminology-management/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://coreon.com/terminology-management/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H074",
+          "vindplaats": "Terminology Management / One System, One View; APIs"
+        },
+        {
+          "record": "C004",
+          "vindplaats": "Terminologue entries; Coreon concepten; TermWerk Conceptniveau"
+        },
+        {
+          "record": "C061",
+          "vindplaats": "Spoor D / API en Projectie; architectuur; Coreon APIs"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H074.raw",
+      "respons_sha256": "8587a9eb50c24a257f20a19256d591da24e9617b9d34d6ef2cca4f6aa5a91f4a",
+      "respons_bytes": 223656
+    },
+    {
+      "id": "H075",
+      "titel": "i-Term — INT linkbestemming",
+      "url": "https://www.danterm.dk/products/i-term-suite.html",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 455,
+        "eind_url": "https://www.danterm.dk/products/i-term-suite.html"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/H075.raw",
+      "respons_sha256": "d9aef79a4cab6d5f014cba6a758e5a9d92fb499b1754db76d47d2ab5960d5717",
+      "respons_bytes": 733
+    },
+    {
+      "id": "H076",
+      "titel": "LookUp (D.O.G.) — INT linkbestemming",
+      "url": "https://www.dog-gmbh.de/lookup-produkt/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.dog-gmbh.de/lookup-produkt/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H076",
+          "vindplaats": "LookUp Produkt / Hauptmerkmale"
+        },
+        {
+          "record": "C060",
+          "vindplaats": "TermWerk Export; QTerm TBX; LookUp formats"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H076.raw",
+      "respons_sha256": "181516bed106f6a743a6a728f6f58fabe4773ac025a2eee105002100d496272f",
+      "respons_bytes": 772053
+    },
+    {
+      "id": "H077",
+      "titel": "LookUp-Terminology Management Professional — INT linkbestemming",
+      "url": "https://www.lookup-web.de/index.php",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 0,
+        "eind_url": "https://www.lookup-web.de/index.php"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H077",
+          "vindplaats": "Terminologiebeheer met grafische relatieweergave / LookUp"
+        }
+      ]
+    },
+    {
+      "id": "H078",
+      "titel": "Ontoterminology Editor (Tedi) — INT linkbestemming",
+      "url": "https://ontoterminology.com/licence",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ontoterminology.com/licence"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/H078.raw",
+      "respons_sha256": "c23a3fe464a6a2939ee5da90914a8409f413670def57d87dc5f7ff4bf16f91b7",
+      "respons_bytes": 35478
+    },
+    {
+      "id": "H079",
+      "titel": "Protégé — INT linkbestemming",
+      "url": "https://protege.stanford.edu/software.php",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://protege.stanford.edu/software.php/"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/H079.raw",
+      "respons_sha256": "1256cb642d59f5ae855597952761de04a4473597cca0a9a3f5b6fd145d1fe9f2",
+      "respons_bytes": 321
+    },
+    {
+      "id": "H080",
+      "titel": "Synaptica Graphite — INT linkbestemming",
+      "url": "https://www.synaptica.com/synaptica-graphite/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://synaptica.com/synaptica-graphite/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H080",
+          "vindplaats": "Synaptica Graphite / benefits; RDF concept modeling"
+        },
+        {
+          "record": "C054",
+          "vindplaats": "TermWerk export/publicatie; Graphite; spoor D / export"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H080.raw",
+      "respons_sha256": "074dec222907ab6fc676c041d654d25ba965b4280bd07d752472983761b2ec1c",
+      "respons_bytes": 144161
+    },
+    {
+      "id": "H081",
+      "titel": "Déjà Vu X3 — INT linkbestemming",
+      "url": "https://atril.com/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://atril.com/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H081",
+          "vindplaats": "Homepage / Products; teams"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H081.raw",
+      "respons_sha256": "e5ff92cd40db36aaa264e4f83cff654699c4f7f72da64ba8d3c3fceec757009b",
+      "respons_bytes": 139940
+    },
+    {
+      "id": "H082",
+      "titel": "ESTeam Translator — INT linkbestemming",
+      "url": "https://www.esteam.se/solutions/translation-automation.html",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://esteam.se/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H082",
+          "vindplaats": "Vertaalgeheugens / ESTeam Translator"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H082.raw",
+      "respons_sha256": "72079d29da58a14297c87f9c4fdfcf2bcb5f996f762f5e4a443b389e798753dd",
+      "respons_bytes": 256065
+    },
+    {
+      "id": "H083",
+      "titel": "memoQ Translator Pro — INT linkbestemming",
+      "url": "https://www.memoq.com/en/memoq-translator-pro",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.memoq.com/product/memoq-translator-pro/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H083",
+          "vindplaats": "memoQ translator pro / Term base; Translation memory"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H083.raw",
+      "respons_sha256": "8f9ddbf6e7587c97cc7701579dd72becfd9282c822f20a9347e75a8c5e9a9ec7",
+      "respons_bytes": 367758
+    },
+    {
+      "id": "H084",
+      "titel": "MetaTexis — INT linkbestemming",
+      "url": "https://www.metatexis.net/dutch/index.htm",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 0,
+        "eind_url": "https://www.metatexis.net/dutch/index.htm"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H084",
+          "vindplaats": "Vertaalgeheugens / MetaTexis"
+        }
+      ]
+    },
+    {
+      "id": "H085",
+      "titel": "OmegaT — INT linkbestemming",
+      "url": "https://www.omegat.org/nl/omegat.html",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.omegat.org/nl/omegat.html"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/H085.raw",
+      "respons_sha256": "6b973c93d9e5cdcad25a145cd1dae3474b522d7fec32dae48f02456f7c251f26",
+      "respons_bytes": 405
+    },
+    {
+      "id": "H086",
+      "titel": "OpenTM2 — INT linkbestemming",
+      "url": "https://www.opentm2.org/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://opentm2.org/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H086",
+          "vindplaats": "Homepage / OpenTM2 description"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H086.raw",
+      "respons_sha256": "59b18c73fbd7c40e5c6ae08d94895494f7e8efc6c3911bfaf5b34a016aaba7e4",
+      "respons_bytes": 10460
+    },
+    {
+      "id": "H087",
+      "titel": "SDL Trados Studio — INT linkbestemming",
+      "url": "https://www.sdl.com/software-and-services/translation-software/sdl-trados-studio/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 202,
+        "eind_url": "https://www.rws.com:443/software-and-services/translation-software/sdl-trados-studio/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H087",
+          "vindplaats": "Vertaalgeheugens / SDL Trados Studio"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H087.raw",
+      "respons_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "respons_bytes": 0
+    },
+    {
+      "id": "H088",
+      "titel": "STAR TermStar — INT linkbestemming",
+      "url": "https://www.star-group.net/en/products/terminology-management.html",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.star-group.net/en/products/terminology-management.html"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H060",
+          "vindplaats": "Terminologiebeheer / STAR WebTerm"
+        },
+        {
+          "record": "H064",
+          "vindplaats": "TermStar / Terminology management"
+        },
+        {
+          "record": "H088",
+          "vindplaats": "TermStar / Terminology management"
+        },
+        {
+          "record": "C012",
+          "vindplaats": "TippyTerm; TermStar; NL-SBB §2.4.1.1"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H088.raw",
+      "respons_sha256": "881c43643a627a4340ee0bca222c93609ad9f2f5dc300fb5f5505550d897e514",
+      "respons_bytes": 182834
+    },
+    {
+      "id": "H089",
+      "titel": "STAR Transit NXT — INT linkbestemming",
+      "url": "https://www.star-group.net/en/products/translation-localization.html",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.star-group.net/en/products/translation-localization.html"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H089",
+          "vindplaats": "Transit / Translation and localization"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H089.raw",
+      "respons_sha256": "9599320a40d56e4e5cb5f8ae1893c6fa5c0ec44d52edfd7eeb93ab23f1220a05",
+      "respons_bytes": 185682
+    },
+    {
+      "id": "H090",
+      "titel": "WebWordSystem — INT linkbestemming",
+      "url": "https://www.webwordsystem.com/en/home.aspx",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.webwordsystem.com/en/home/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H090",
+          "vindplaats": "Homepage / Office integration"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H090.raw",
+      "respons_sha256": "07f4a04552f83a5627cb1814fd95ebce3419e4893a1a232912c6264a7c7b9560",
+      "respons_bytes": 33994
+    },
+    {
+      "id": "H091",
+      "titel": "Wordfast Classic — INT linkbestemming",
+      "url": "https://wordfast.com/products/wordfast_classic",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.wordfast.com/products/wordfast_classic"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H091",
+          "vindplaats": "Wordfast Classic / Benefits; Specifications"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H091.raw",
+      "respons_sha256": "f23c9cfa59d07318b80102d1b9e40e61dfe91b11094690739ca4a430378ac9a3",
+      "respons_bytes": 78452
+    },
+    {
+      "id": "H092",
+      "titel": "Across Language Server — INT linkbestemming",
+      "url": "https://www.across.net/en/across-language-server",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.across.net/en/service-portfolio/products/across-language-server/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H092",
+          "vindplaats": "Across Language Server / productbeschrijving"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H092.raw",
+      "respons_sha256": "ea5e08d8097c66bf2546b3e7b3ae1d1819386d798fa07e90fe2d7ee5061a92f1",
+      "respons_bytes": 30660
+    },
+    {
+      "id": "H093",
+      "titel": "GlobalLink — INT linkbestemming",
+      "url": "https://globallink.translations.com/products#all-products",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://globallink.transperfect.com/platform"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H093",
+          "vindplaats": "The Language Intelligence Platform"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H093.raw",
+      "respons_sha256": "982af7ebeebe4c46f2cc3e4deaf569f9355720f8832e6c60f71d532db5280d81",
+      "respons_bytes": 488243
+    },
+    {
+      "id": "H094",
+      "titel": "MultiTrans — INT linkbestemming",
+      "url": "https://www.trados.com/product/multitrans/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 202,
+        "eind_url": "https://www.trados.com/product/multitrans/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H094",
+          "vindplaats": "Vertaalprojectbeheer / MultiTrans"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H094.raw",
+      "respons_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "respons_bytes": 0
+    },
+    {
+      "id": "H095",
+      "titel": "Star Corporate Language Management — INT linkbestemming",
+      "url": "https://www.star-group.net/en/products/corporate-language-management.html?sKey=Y29ycG9yYXRlIGxhbmd1YWdl",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.star-group.net/en/products/corporate-language-management.html?sKey=Y29ycG9yYXRlIGxhbmd1YWdl"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H095",
+          "vindplaats": "STAR CLM / Manage language processes"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H095.raw",
+      "respons_sha256": "45988adcfcdd9527c0028c808882300781419b4f83e51cac9b1cd46f214d9354",
+      "respons_bytes": 185448
+    },
+    {
+      "id": "H096",
+      "titel": "Wordbee — INT linkbestemming",
+      "url": "https://www.wordbee.com/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.wordbee.com/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H096",
+          "vindplaats": "Homepage / platform en workflow"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H096.raw",
+      "respons_sha256": "68ef78c56570b0cf816b2699988cefa274867745a23617ef2032e5bd87864875",
+      "respons_bytes": 107525
+    },
+    {
+      "id": "H097",
+      "titel": "XTM Cloud Translation Management System — INT linkbestemming",
+      "url": "https://xtm.cloud/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://xtm.ai/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H097",
+          "vindplaats": "Homepage / composable platform"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H097.raw",
+      "respons_sha256": "413bf8e32e56356b0b59163caa56035024d33f43cc271b0ad91a6dce01657889",
+      "respons_bytes": 541071
+    },
+    {
+      "id": "H098",
+      "titel": "BabelNet — INT linkbestemming",
+      "url": "https://babelnet.org/download",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://babelnet.org/downloads"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H098",
+          "vindplaats": "Downloads; License"
+        },
+        {
+          "record": "C041",
+          "vindplaats": "Dandelion Entity Extraction; BabelNet"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H098.raw",
+      "respons_sha256": "6791356c6b5784edff3b4cfcc121ab83fc1e0f1b9bb26aa326b9968b719ef968",
+      "respons_bytes": 159032
+    },
+    {
+      "id": "H099",
+      "titel": "IntelliWebSearch — INT linkbestemming",
+      "url": "https://www.intelliwebsearch.com/version-5/register/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 999,
+        "eind_url": "https://www.intelliwebsearch.com/version-5/register/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H099",
+          "vindplaats": "Zoekapplicaties / IntelliWebSearch"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H099.raw",
+      "respons_sha256": "3d875ffa4deda0f1dd1bff0fd75642052ff3a87016f29f0a54191d52ed6977f5",
+      "respons_bytes": 4577
+    },
+    {
+      "id": "H100",
+      "titel": "Lexicool — INT linkbestemming",
+      "url": "https://www.lexicool.com/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.lexicool.com/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H100",
+          "vindplaats": "Homepage / Dictionaries and translation"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H100.raw",
+      "respons_sha256": "b04b565958eee638c07b1017959955fc25ff8e167d38a431987075d473dd912b",
+      "respons_bytes": 21052
+    },
+    {
+      "id": "H101",
+      "titel": "Tb-Scout v.3.0 — INT linkbestemming",
+      "url": "https://tbscout30.translationist.com/de/store.html",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 404,
+        "eind_url": "https://tbscout30.translationist.com/de/store.html",
+        "log_toelichting": "Onderbroken bestandspad gereconstrueerd uit fetch.log."
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H101",
+          "vindplaats": "Zoekapplicaties / Tb-Scout"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H101.raw",
+      "respons_sha256": "4c13d452dd5d49671bd93ca32f2b4f85c78e39b6ab0ad1f38d98ed267f8fd896",
+      "respons_bytes": 1251
+    },
+    {
+      "id": "H102",
+      "titel": "Term-minator — INT linkbestemming",
+      "url": "https://www.term-minator.it/index.html",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 0,
+        "eind_url": "https://www.term-minator.it/index.html"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H102",
+          "vindplaats": "Zoekapplicaties / Term-minator"
+        }
+      ]
+    },
+    {
+      "id": "INT00",
+      "titel": "Terminologie",
+      "url": "https://ivdnt.org/terminologie/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/terminologie/"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/INT00.raw",
+      "respons_sha256": "558b53089df3c5ae0dc7e5278958458396c35cdbc0c0eea0bc95ea91670504f9",
+      "respons_bytes": 122359
+    },
+    {
+      "id": "INT01",
+      "titel": "Wat is terminologie",
+      "url": "https://ivdnt.org/terminologie/wat-is-terminologie/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/terminologie/wat-is-terminologie/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "C001",
+          "vindplaats": "Wat is terminologie; NL-SBB §2.3; spoor D / Elementen groepen en begrippen"
+        },
+        {
+          "record": "C002",
+          "vindplaats": "Terminologische gegevens; spoor D / Begripskaart"
+        },
+        {
+          "record": "C005",
+          "vindplaats": "Terminologie en lexicografie; historische termenlijsten"
+        },
+        {
+          "record": "C009",
+          "vindplaats": "Terminologische gegevens; spoor D / Verwerking"
+        },
+        {
+          "record": "C010",
+          "vindplaats": "Wat is terminologie; boek h3 en h6; spoor D"
+        },
+        {
+          "record": "C042",
+          "vindplaats": "Wat is terminologie; spoor D / Verwerking"
+        },
+        {
+          "record": "C065",
+          "vindplaats": "Wat is terminologie; TippyTerm; brongetrouwheid project"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/INT01.raw",
+      "respons_sha256": "196604dca6ac2ca587f8544895495cd78d140f44f464fa357da9e0c53b9b0a1d",
+      "respons_bytes": 140321
+    },
+    {
+      "id": "INT02",
+      "titel": "Expertisecentrum",
+      "url": "https://ivdnt.org/terminologie/expertisecentrum/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/terminologie/expertisecentrum/"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/INT02.raw",
+      "respons_sha256": "1ace7ee871f829bb7ce7727c6302fe87b8a51ea02d28a0b57bd88d3f82816e1a",
+      "respons_bytes": 122278
+    },
+    {
+      "id": "INT03",
+      "titel": "Terminologieprojecten",
+      "url": "https://ivdnt.org/terminologie/terminologieprojecten/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/terminologie/terminologieprojecten/"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/INT03.raw",
+      "respons_sha256": "6ec8bab7f4f1d79ef3f1cf25fef2d07fdc5f1729be670acedff4cd35603b988b",
+      "respons_bytes": 122817
+    },
+    {
+      "id": "INT04",
+      "titel": "Vakliteratuur over terminologie",
+      "url": "https://ivdnt.org/terminologie/vakliteratuur-over-terminologie/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Elf rubrieken en 425 bibliografische records geïnventariseerd; geen claim dat alle publicaties zijn gelezen.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/terminologie/vakliteratuur-over-terminologie/"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/INT04.raw",
+      "respons_sha256": "41b325614cc38be33fb7d2101909278a45215246c4770990730c3e4b97e37b12",
+      "respons_bytes": 196638
+    },
+    {
+      "id": "INT05",
+      "titel": "Uitgelichte term",
+      "url": "https://ivdnt.org/terminologie/uitgelichte-term/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "index_gelezen",
+      "beperking": "Eerste overzichtspagina en paginering; achterliggende termartikelen niet integraal onderzocht.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/actueel/woorden-van-de-week/uitgelichte-term/"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/INT05.raw",
+      "respons_sha256": "24f4aa836a99baa03940e28f28b466e3892fc35c682afc8417682a1cea9d2a48",
+      "respons_bytes": 124399
+    },
+    {
+      "id": "INT06",
+      "titel": "Termenlijsten",
+      "url": "https://ivdnt.org/terminologie/termenlijsten/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/terminologie/termenlijsten/"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/INT06.raw",
+      "respons_sha256": "1d7e32dd397e06c01595d8c4dff20fb649bd95c3fb0911fe4d497b8b7f9f1a2a",
+      "respons_bytes": 268466
+    },
+    {
+      "id": "INT07",
+      "titel": "Historische termenlijsten",
+      "url": "https://ivdnt.org/terminologie/historische-termenlijsten/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/terminologie/historische-termenlijsten/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "C005",
+          "vindplaats": "Terminologie en lexicografie; historische termenlijsten"
+        },
+        {
+          "record": "C064",
+          "vindplaats": "Historische termenlijsten; spoor D / geldigheid"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/INT07.raw",
+      "respons_sha256": "49a401736dc116bf53b3e2cefba0f6ec92203175f1f990b88106e8643b262840",
+      "respons_bytes": 136143
+    },
+    {
+      "id": "INT08",
+      "titel": "Hulpmiddelen",
+      "url": "https://ivdnt.org/terminologie/hulpmiddelen/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/terminologie/hulpmiddelen/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H001",
+          "vindplaats": "Alignering / AlignAssist"
+        },
+        {
+          "record": "H004",
+          "vindplaats": "Alignering / Twente Word Alignment"
+        },
+        {
+          "record": "H006",
+          "vindplaats": "Corpusanalyse / Corsis"
+        },
+        {
+          "record": "H007",
+          "vindplaats": "Corpusanalyse / DIMAP"
+        },
+        {
+          "record": "H008",
+          "vindplaats": "Corpusanalyse / FastR"
+        },
+        {
+          "record": "H009",
+          "vindplaats": "Corpusanalyse / Open Parallel Corpus"
+        },
+        {
+          "record": "H010",
+          "vindplaats": "Corpusanalyse / Plug Word Aligner"
+        },
+        {
+          "record": "H011",
+          "vindplaats": "Corpusanalyse / WebReaper; project README"
+        },
+        {
+          "record": "H012",
+          "vindplaats": "Corpusanalyse / WordNet"
+        },
+        {
+          "record": "H015",
+          "vindplaats": "Online concordantie / KwicFinder"
+        },
+        {
+          "record": "H017",
+          "vindplaats": "Homepage; Online concordantie / MyMemory"
+        },
+        {
+          "record": "H019",
+          "vindplaats": "Online concordantie / TransSearch"
+        },
+        {
+          "record": "H020",
+          "vindplaats": "Online concordantie / WebCorp"
+        },
+        {
+          "record": "H023",
+          "vindplaats": "Termextractie / BibClassify"
+        },
+        {
+          "record": "H025",
+          "vindplaats": "Termextractie / ExtPhr32"
+        },
+        {
+          "record": "H026",
+          "vindplaats": "Termextractie / Extractor"
+        },
+        {
+          "record": "H028",
+          "vindplaats": "GitHub organisatie en LexTermServer README"
+        },
+        {
+          "record": "H031",
+          "vindplaats": "Termextractie / MultiTerm Extract"
+        },
+        {
+          "record": "H032",
+          "vindplaats": "Termextractie / Olifant"
+        },
+        {
+          "record": "H033",
+          "vindplaats": "Termextractie / OneClick Terms; Sketch Engine guide"
+        },
+        {
+          "record": "H034",
+          "vindplaats": "Termextractie / Prospector"
+        },
+        {
+          "record": "H037",
+          "vindplaats": "Termextractie / TermFinder"
+        },
+        {
+          "record": "H039",
+          "vindplaats": "Termextractie / TermoStat"
+        },
+        {
+          "record": "H040",
+          "vindplaats": "TermTreffer; TermWerk nieuws en handleiding"
+        },
+        {
+          "record": "H041",
+          "vindplaats": "Termextractie / TexLexAn"
+        },
+        {
+          "record": "H043",
+          "vindplaats": "Termextractie / Tilde Terminology"
+        },
+        {
+          "record": "H045",
+          "vindplaats": "Termextractie / Wordle; waargenomen bestemmingspagina"
+        },
+        {
+          "record": "H049",
+          "vindplaats": "Terminologiebeheer / evoTerm"
+        },
+        {
+          "record": "H054",
+          "vindplaats": "Terminologiebeheer / MoBiDic"
+        },
+        {
+          "record": "H055",
+          "vindplaats": "Terminologiebeheer / MultiTerm"
+        },
+        {
+          "record": "H057",
+          "vindplaats": "Terminologiebeheer / MultiTrans TermBase"
+        },
+        {
+          "record": "H060",
+          "vindplaats": "Terminologiebeheer / STAR WebTerm"
+        },
+        {
+          "record": "H062",
+          "vindplaats": "Homepage; Terminologiebeheer / Termbases"
+        },
+        {
+          "record": "H066",
+          "vindplaats": "Terminologiebeheer / TermWiki Pro"
+        },
+        {
+          "record": "H070",
+          "vindplaats": "Terminologiebeheer / TManager"
+        },
+        {
+          "record": "H071",
+          "vindplaats": "Terminologiebeheer / Trados Terminology"
+        },
+        {
+          "record": "H077",
+          "vindplaats": "Terminologiebeheer met grafische relatieweergave / LookUp"
+        },
+        {
+          "record": "H082",
+          "vindplaats": "Vertaalgeheugens / ESTeam Translator"
+        },
+        {
+          "record": "H084",
+          "vindplaats": "Vertaalgeheugens / MetaTexis"
+        },
+        {
+          "record": "H087",
+          "vindplaats": "Vertaalgeheugens / SDL Trados Studio"
+        },
+        {
+          "record": "H094",
+          "vindplaats": "Vertaalprojectbeheer / MultiTrans"
+        },
+        {
+          "record": "H099",
+          "vindplaats": "Zoekapplicaties / IntelliWebSearch"
+        },
+        {
+          "record": "H101",
+          "vindplaats": "Zoekapplicaties / Tb-Scout"
+        },
+        {
+          "record": "H102",
+          "vindplaats": "Zoekapplicaties / Term-minator"
+        },
+        {
+          "record": "C038",
+          "vindplaats": "Sketch Engine guide; TermoStat-vermelding"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/INT08.raw",
+      "respons_sha256": "2d0d63626478b4cf353b55f60f45b5d0c411b150b5bc5703a6c79bb3de031873",
+      "respons_bytes": 235075
+    },
+    {
+      "id": "INT09",
+      "titel": "Opleidingen",
+      "url": "https://ivdnt.org/terminologie/opleidingen/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/terminologie/opleidingen/"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/INT09.raw",
+      "respons_sha256": "abad178957f54c7a83b49c53e7b94a2557df8eab26911fead1d97ac2d4ba78a1",
+      "respons_bytes": 152044
+    },
+    {
+      "id": "INT10",
+      "titel": "Organisaties",
+      "url": "https://ivdnt.org/terminologie/organisaties/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "index_en_kaartmetadata",
+      "beperking": "87 organisaties uit de publieke kaartmetadata; organisatiesites niet allemaal bezocht.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/terminologie/organisaties/"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/INT10.raw",
+      "respons_sha256": "4a9421169bb93b7ff67bd85660d729f84400501c01ec6b20030f43d7345b9a16",
+      "respons_bytes": 173259
+    },
+    {
+      "id": "INT11",
+      "titel": "Evenementen",
+      "url": "https://ivdnt.org/terminologie/evenementen/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/terminologie/evenementen/"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/INT11.raw",
+      "respons_sha256": "e43b2b067836635ab5b6ef569d56d81269a44bc2923a4f96dba5645e9bed0d3d",
+      "respons_bytes": 122832
+    },
+    {
+      "id": "INT12",
+      "titel": "JuriTerm NL-VL",
+      "url": "https://ivdnt.org/terminologie/juriterm-nl-vl/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/terminologie/juriterm-nl-vl/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "C007",
+          "vindplaats": "JuriTerm; HOTNeV; spoor D / Methodische uitgangspunten"
+        },
+        {
+          "record": "C013",
+          "vindplaats": "JuriTerm; HOTNeV; aanbevelingen / equivalence"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/INT12.raw",
+      "respons_sha256": "7389a68ce73eb9b861b7c5ddb3939455378e8baa8c3c3ce57f2607a40e39f182",
+      "respons_bytes": 123268
+    },
+    {
+      "id": "INT13",
+      "titel": "HOTNeV onderwijsterminologie",
+      "url": "https://ivdnt.org/terminologie/onderwijsterminologie-hotnev/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/terminologie/onderwijsterminologie-hotnev/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "C007",
+          "vindplaats": "JuriTerm; HOTNeV; spoor D / Methodische uitgangspunten"
+        },
+        {
+          "record": "C013",
+          "vindplaats": "JuriTerm; HOTNeV; aanbevelingen / equivalence"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/INT13.raw",
+      "respons_sha256": "168f371b5705cf940ca99287de4abe08de99ee16ba45c2a5602e10110f0db0a6",
+      "respons_bytes": 129330
+    },
+    {
+      "id": "INT14",
+      "titel": "Nederlands als wetenschapstaal",
+      "url": "https://ivdnt.org/terminologie/nederlands-als-wetenschapstaal/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/terminologie/nederlands-als-wetenschapstaal/"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/INT14.raw",
+      "respons_sha256": "58fce93b32555dbc4ed6227f9bbbcf9f3c4f071b1053a2c696b9fa562a5eb4d8",
+      "respons_bytes": 122550
+    },
+    {
+      "id": "INT15",
+      "titel": "Terminologietool TermWerk",
+      "url": "https://ivdnt.org/actueel/nieuws/terminologietool-termwerk/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/actueel/nieuws/terminologietool-termwerk/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H040",
+          "vindplaats": "TermTreffer; TermWerk nieuws en handleiding"
+        },
+        {
+          "record": "H103",
+          "vindplaats": "Handleiding versie 01/10/2025, pp. 1, 17–24"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/INT15.raw",
+      "respons_sha256": "d1350203f09f64c0e0ba1c0c88cb4875df7ca2e150c05088dc562cfe6fdc462c",
+      "respons_bytes": 132230
+    },
+    {
+      "id": "INT16",
+      "titel": "TermWerk homepage",
+      "url": "https://termwerk.ivdnt.org/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://termwerk.ivdnt.org/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H103",
+          "vindplaats": "Handleiding versie 01/10/2025, pp. 1, 17–24"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/INT16.raw",
+      "respons_sha256": "61648e3965ae46c842057846240ddb350b1aa897889344099a8a7164a46f6a42",
+      "respons_bytes": 5842
+    },
+    {
+      "id": "INT17",
+      "titel": "TermWerk handleiding 1.0",
+      "url": "https://termwerk.ivdnt.org/images/termwerk_handleiding_1.0.pdf",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://termwerk.ivdnt.org/images/termwerk_handleiding_1.0.pdf"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H040",
+          "vindplaats": "TermTreffer; TermWerk nieuws en handleiding"
+        },
+        {
+          "record": "H103",
+          "vindplaats": "Handleiding versie 01/10/2025, pp. 1, 17–24"
+        },
+        {
+          "record": "C004",
+          "vindplaats": "Terminologue entries; Coreon concepten; TermWerk Conceptniveau"
+        },
+        {
+          "record": "C011",
+          "vindplaats": "TerMine acronyms; TermWerk Termniveau; Begripskaart"
+        },
+        {
+          "record": "C039",
+          "vindplaats": "TerMine C-value; TermWerk termextractie; spoor D"
+        },
+        {
+          "record": "C047",
+          "vindplaats": "TermWerk beschrijvingsniveaus; termXplorer pp. 1–2"
+        },
+        {
+          "record": "C052",
+          "vindplaats": "Spoor D / Elementen groepen en begrippen; TermWerk beheer"
+        },
+        {
+          "record": "C054",
+          "vindplaats": "TermWerk export/publicatie; Graphite; spoor D / export"
+        },
+        {
+          "record": "C056",
+          "vindplaats": "TBX Dialects; TermWerk Export; QTerm TBX API"
+        },
+        {
+          "record": "C060",
+          "vindplaats": "TermWerk Export; QTerm TBX; LookUp formats"
+        }
+      ],
+      "versie_of_datering": "Versie 1.0; 1 oktober 2025",
+      "lokale_respons": "bronnen-lokaal/INT17.raw",
+      "respons_sha256": "730c4ab8ba9b0dd07d94210c72367aa9100e4c4ef4caa8bce6cf3351eef2aad2",
+      "respons_bytes": 4025525
+    },
+    {
+      "id": "MAP01",
+      "titel": "MAP01 — aanvullende bron",
+      "url": "https://ivdnt.org/sitemap_index.xml",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "sitemap_geinventariseerd",
+      "beperking": "URL-inventaris; lastmod is geen bewijs voor actualiteit van alle inhoud.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/sitemap_index.xml"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/MAP01.raw",
+      "respons_sha256": "8f5ee612aade7ae5e0836cc9c9d3d15f45c40ff20fd235959b34491ecfff6d33",
+      "respons_bytes": 1981
+    },
+    {
+      "id": "SBB",
+      "titel": "NL-SBB vastgestelde versie 10 oktober 2024",
+      "url": "https://docs.geostandaarden.nl/nl-sbb/def-st-nl-sbb-20241010/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://docs.geostandaarden.nl/nl-sbb/def-st-nl-sbb-20241010/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "C001",
+          "vindplaats": "Wat is terminologie; NL-SBB §2.3; spoor D / Elementen groepen en begrippen"
+        },
+        {
+          "record": "C012",
+          "vindplaats": "TippyTerm; TermStar; NL-SBB §2.4.1.1"
+        },
+        {
+          "record": "C015",
+          "vindplaats": "Begriffe und Definitionen; NL-SBB §2.3; handleiding §3.5"
+        },
+        {
+          "record": "C016",
+          "vindplaats": "Aanbevelingen / definitie; NL-SBB §5.1.1"
+        },
+        {
+          "record": "C023",
+          "vindplaats": "NL-SBB §2.4.3.1; spoor D / Projectie"
+        },
+        {
+          "record": "C024",
+          "vindplaats": "NL-SBB §2.4.3.1; i-Model"
+        },
+        {
+          "record": "C025",
+          "vindplaats": "SKOS §8; NL-SBB thesaurus; spoor D / relaties"
+        },
+        {
+          "record": "C027",
+          "vindplaats": "NL-SBB §2.4; MultiTes producten"
+        },
+        {
+          "record": "C050",
+          "vindplaats": "NL-SBB §5.2; spoor D / Datamodel; annotatieketen"
+        },
+        {
+          "record": "C058",
+          "vindplaats": "NL-SBB §4–5; spoor D / Projectie"
+        }
+      ],
+      "versie_of_datering": "Vastgestelde versie 10 oktober 2024",
+      "lokale_respons": "bronnen-lokaal/SBB.raw",
+      "respons_sha256": "8c52ed1c898f8767ce014900a8545ad531c7c5ac048b3f3db9b871acaf6d825d",
+      "respons_bytes": 333782
+    },
+    {
+      "id": "SKOS",
+      "titel": "SKOS Reference 2009",
+      "url": "https://www.w3.org/TR/skos-reference/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.w3.org/TR/skos-reference/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "C025",
+          "vindplaats": "SKOS §8; NL-SBB thesaurus; spoor D / relaties"
+        },
+        {
+          "record": "C030",
+          "vindplaats": "SKOS §10; IATE; spoor D / werkgebieden"
+        },
+        {
+          "record": "C057",
+          "vindplaats": "SKOS §3–4 en §8; spoor D / Projectie"
+        }
+      ],
+      "versie_of_datering": "W3C Recommendation 18 augustus 2009",
+      "lokale_respons": "bronnen-lokaal/SKOS.raw",
+      "respons_sha256": "3aa00cd16ee4d86d3a19b75501bb317d0b0c134e1f4029e9f3098c4dd3669e4c",
+      "respons_bytes": 227150
+    },
+    {
+      "id": "MAP02",
+      "titel": "MAP02 — aanvullende bron",
+      "url": "https://ivdnt.org/page-sitemap.xml",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "sitemap_geinventariseerd",
+      "beperking": "URL-inventaris; lastmod is geen bewijs voor actualiteit van alle inhoud.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/page-sitemap.xml"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/MAP02.raw",
+      "respons_sha256": "bb279bcecdb8b89c7fc85e9ceaac8b16267b8301205fbde69b55d91a0addae0b",
+      "respons_bytes": 26288
+    },
+    {
+      "id": "MAP03",
+      "titel": "MAP03 — aanvullende bron",
+      "url": "https://ivdnt.org/post-sitemap.xml",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "sitemap_geinventariseerd",
+      "beperking": "URL-inventaris; lastmod is geen bewijs voor actualiteit van alle inhoud.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/post-sitemap.xml"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/MAP03.raw",
+      "respons_sha256": "1cfb2ba4101f0fca2077d70c9f0c2a2d96413aa747a681708f42dbab29692c9e",
+      "respons_bytes": 344249
+    },
+    {
+      "id": "MAP04",
+      "titel": "MAP04 — aanvullende bron",
+      "url": "https://ivdnt.org/post-sitemap2.xml",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "sitemap_geinventariseerd",
+      "beperking": "URL-inventaris; lastmod is geen bewijs voor actualiteit van alle inhoud.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/post-sitemap2.xml"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/MAP04.raw",
+      "respons_sha256": "02674402ab2e13375d3c606eb575978228130a0f86a37222a1a700b8eb898c7e",
+      "respons_bytes": 130784
+    },
+    {
+      "id": "INT18",
+      "titel": "Medische Pilot",
+      "url": "https://ivdnt.org/terminologie/medische-pilot-medpilot/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/terminologie/medische-pilot-medpilot/"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/INT18.raw",
+      "respons_sha256": "1251d7dd9ddb916f5653d99e2b714f5d477ebf888910d3a63b0afc6dd0e4469a",
+      "respons_bytes": 123570
+    },
+    {
+      "id": "INT19",
+      "titel": "Medische Termen Belgisch-Nederlands",
+      "url": "https://ivdnt.org/terminologie/medische-termen-belgisch-nederlands/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/terminologie/medische-termen-belgisch-nederlands/"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/INT19.raw",
+      "respons_sha256": "8e4307f609428c2f1ade888f89f8fc6cd336e355d1f9c10877407808d2671d54",
+      "respons_bytes": 120450
+    },
+    {
+      "id": "INT20",
+      "titel": "Archief evenementen terminologie",
+      "url": "https://ivdnt.org/terminologie/archief-evenementen-terminologie/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/terminologie/archief-evenementen-terminologie/"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/INT20.raw",
+      "respons_sha256": "59b12409d22abbb47d2f82ae0c8d7d31a011108abe021e5ed6c4a9a99c97a558",
+      "respons_bytes": 154233
+    },
+    {
+      "id": "E01",
+      "titel": "COTSOES publicaties",
+      "url": "https://www.cotsoes.org/en-publications",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.cotsoes.org/en-publications"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/E01.raw",
+      "respons_sha256": "09eaf787af3b26347b7ed68677740deb56927fe8ac86001984d626e235e2eba4",
+      "respons_bytes": 32878
+    },
+    {
+      "id": "E02",
+      "titel": "TermNet Terminology with ease",
+      "url": "https://termnet.eu/wp-content/uploads/2018/03/5-Steps-Action-Plan_Terminology-with-Ease-1.pdf",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://termnet.eu/wp-content/uploads/2018/03/5-Steps-Action-Plan_Terminology-with-Ease-1.pdf"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "C006",
+          "vindplaats": "TermNet / requirements; spoor D / Werkgebied als node"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/E02.raw",
+      "respons_sha256": "5582661a42078f91ce2ee8e9a888c16d74a51011e3f2fa13715d2d581c4c32f7",
+      "respons_bytes": 3541868
+    },
+    {
+      "id": "E03",
+      "titel": "TermTest productbeschrijving",
+      "url": "https://www.termcat.cat/en/recursos/productes-multimedia/termtest-dictionary-self-assessment-test",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "productbeschrijving_gelezen",
+      "beperking": "De interactieve TermTest-vragenlijst is niet doorlopen; geen concrete testvragen als bron gebruikt.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.termcat.cat/en/recursos/productes-multimedia/termtest-dictionary-self-assessment-test"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "C020",
+          "vindplaats": "Aanbevelingen / definitie; TermTest productbeschrijving; spoor D / Verwerking"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/E03.raw",
+      "respons_sha256": "74fa0b7e1f59d59a045e3b6baf66d42deab782021111923e772f217726262bd2",
+      "respons_bytes": 48613
+    },
+    {
+      "id": "E04",
+      "titel": "TermTest oude ingang",
+      "url": "https://www.termcat.cat/docs/termtest_terminological_test/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "productbeschrijving_gelezen",
+      "beperking": "De interactieve TermTest-vragenlijst is niet doorlopen; geen concrete testvragen als bron gebruikt.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.termcat.cat/en/recursos/productes-multimedia/termtest-dictionary-self-assessment-test"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/E04.raw",
+      "respons_sha256": "d7d00f14f370419a9abb7d3e8f3e24fbb63f573dffa29f06c97608716d4a691f",
+      "respons_bytes": 48546
+    },
+    {
+      "id": "E05",
+      "titel": "TBX Basic namespace",
+      "url": "https://www.tbxinfo.net/ns/dct/basic",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 406,
+        "eind_url": "https://www.tbxinfo.net/ns/dct/basic"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/E05.raw",
+      "respons_sha256": "80a265bed528211aa708dcd58f7a95db36eeb7f873c6fe4ddab0b3a1dc0973a4",
+      "respons_bytes": 226
+    },
+    {
+      "id": "E06",
+      "titel": "TBX Elements Reference",
+      "url": "https://www.tbxinfo.net/developer-resources/tbx-elements-reference/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 406,
+        "eind_url": "https://www.tbxinfo.net/developer-resources/tbx-elements-reference/"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/E06.raw",
+      "respons_sha256": "80a265bed528211aa708dcd58f7a95db36eeb7f873c6fe4ddab0b3a1dc0973a4",
+      "respons_bytes": 226
+    },
+    {
+      "id": "E07",
+      "titel": "TBX Dialects",
+      "url": "https://www.tbxinfo.net/tbx-dialects/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen_via_webtool",
+      "beperking": "Inhoud gelezen via webtool; directe opvraag gaf 406.",
+      "directe_opvraag": {
+        "http_status": 406,
+        "eind_url": "https://www.tbxinfo.net/tbx-dialects/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "C056",
+          "vindplaats": "TBX Dialects; TermWerk Export; QTerm TBX API"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/E07.raw",
+      "respons_sha256": "80a265bed528211aa708dcd58f7a95db36eeb7f873c6fe4ddab0b3a1dc0973a4",
+      "respons_bytes": 226
+    },
+    {
+      "id": "H003B",
+      "titel": "GitHub - danielvarga/hunalign: Sentence aligner · GitHub",
+      "url": "https://github.com/danielvarga/hunalign",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://github.com/danielvarga/hunalign"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H003",
+          "vindplaats": "README / Introduction; License"
+        },
+        {
+          "record": "C033",
+          "vindplaats": "Hunalign README; SynchroTerm"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H003B.raw",
+      "respons_sha256": "efa4ec7f678e309bbd815c735d65b33a08777ae5afe135a267b04b725ffe2732",
+      "respons_bytes": 322029
+    },
+    {
+      "id": "H004B",
+      "titel": "H004B — aanvullende bron",
+      "url": "https://sourceforge.net/projects/natools/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 403,
+        "eind_url": "https://sourceforge.net/projects/natools/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H004",
+          "vindplaats": "Alignering / Twente Word Alignment"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H004B.raw",
+      "respons_sha256": "9390298f3fb0c5b160498935d79cb139aef28e1c47358b4bbba61862b9c26e59",
+      "respons_bytes": 2
+    },
+    {
+      "id": "H005B",
+      "titel": "Bilingual Web Search",
+      "url": "https://youalign.com/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://youalign.com/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H005",
+          "vindplaats": "Homepage / YouAlign is no longer available"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H005B.raw",
+      "respons_sha256": "a728d2e9a8de0d107022e8dfd995e37b52910339f7ef3a3f9c3a97a62c894ac8",
+      "respons_bytes": 3356
+    },
+    {
+      "id": "H012B",
+      "titel": "Just a moment...",
+      "url": "https://wordnet.princeton.edu/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 403,
+        "eind_url": "https://wordnet.princeton.edu/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H012",
+          "vindplaats": "Corpusanalyse / WordNet"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H012B.raw",
+      "respons_sha256": "69221211758b9b5a094f8c872319013eedefc8f9db90e371e02d7135cf7fc7ae",
+      "respons_bytes": 5412
+    },
+    {
+      "id": "H015B",
+      "titel": "H015B — aanvullende bron",
+      "url": "https://www.kwicfinder.com/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 0,
+        "eind_url": "https://www.kwicfinder.com/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H015",
+          "vindplaats": "Online concordantie / KwicFinder"
+        }
+      ]
+    },
+    {
+      "id": "H020B",
+      "titel": "H020B — aanvullende bron",
+      "url": "https://www.webcorp.org.uk/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 0,
+        "eind_url": "https://www.webcorp.org.uk/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H020",
+          "vindplaats": "Online concordantie / WebCorp"
+        }
+      ]
+    },
+    {
+      "id": "H021B",
+      "titel": "Anchovy User Guide",
+      "url": "https://maxprograms.com/support/anchovy/anchovy.html",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://maxprograms.com/support/anchovy/anchovy.html"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H021",
+          "vindplaats": "Overview / What you can do; Subscription Benefits"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H021B.raw",
+      "respons_sha256": "9630d6497d0b484a73fbd1a6d84a9d7fd5b1cc3282c11d5ed4079d0070127e3e",
+      "respons_bytes": 3602
+    },
+    {
+      "id": "H022B",
+      "titel": "AntConc 4.4.0 handleiding mei 2026",
+      "url": "https://www.laurenceanthony.net/software/antconc/releases/AntConc440/docs/help.pdf",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.laurenceanthony.net/software/antconc/releases/AntConc440/docs/help.pdf"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H022",
+          "vindplaats": "AntConc downloads; help / Overview of Tools"
+        },
+        {
+          "record": "C031",
+          "vindplaats": "AntConc corpusfuncties; spoor D / Bronselectie"
+        },
+        {
+          "record": "C032",
+          "vindplaats": "AntConc KWIC en File; TextSTAT concordantie"
+        },
+        {
+          "record": "C034",
+          "vindplaats": "TextSTAT; AntConc Word"
+        },
+        {
+          "record": "C035",
+          "vindplaats": "AntConc Cluster N-Gram Collocate; WordSmith"
+        },
+        {
+          "record": "C040",
+          "vindplaats": "AntConc stoplists; annotatieketen; JAS Operator"
+        }
+      ],
+      "versie_of_datering": "AntConc 4.4.0; mei 2026",
+      "lokale_respons": "bronnen-lokaal/H022B.raw",
+      "respons_sha256": "e0242b2ccf3a29242f66a11c2d53799c2067457df21783abca1155152e964416",
+      "respons_bytes": 1924148
+    },
+    {
+      "id": "H028B",
+      "titel": "GitHub - LexTerm/LexTermServer: Lexicography and Terminology Management System · GitHub",
+      "url": "https://github.com/LexTerm/LexTermServer",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://github.com/LexTerm/LexTermServer"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H028",
+          "vindplaats": "GitHub organisatie en LexTermServer README"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H028B.raw",
+      "respons_sha256": "883821d83b6eba3cd9820e59a19171094f4d1628d315716320ad8d9405e94b31",
+      "respons_bytes": 293275
+    },
+    {
+      "id": "H030B",
+      "titel": "GitHub - zelandiya/maui · GitHub",
+      "url": "https://github.com/zelandiya/maui",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://github.com/zelandiya/maui"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H030",
+          "vindplaats": "README / Summary; tasks"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H030B.raw",
+      "respons_sha256": "0185635fabe774718b2f3e6f438df33480230d24d838887aac010f65bf2f37e3",
+      "respons_bytes": 249130
+    },
+    {
+      "id": "H033B",
+      "titel": "Page not found – Sketch Engine",
+      "url": "https://www.sketchengine.eu/oneclick-terms/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 404,
+        "eind_url": "https://www.sketchengine.eu/oneclick-terms/"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/H033B.raw",
+      "respons_sha256": "94f6e548660cb2ef3dec5597ce09b1234dc3332e36c845520d1a52efc1e23822",
+      "respons_bytes": 77153
+    },
+    {
+      "id": "H038B",
+      "titel": "TerMine — Web Demonstration | NaCTeM",
+      "url": "https://www.nactem.ac.uk/software/termine/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.nactem.ac.uk/software/termine/"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/H038B.raw",
+      "respons_sha256": "1d77f61966e0400f9eab2966f0bc12c3707c6626aa9508c26a38bde21b4c47f0",
+      "respons_bytes": 12431
+    },
+    {
+      "id": "H039B",
+      "titel": "TermoStat",
+      "url": "https://termostat.ling.umontreal.ca/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "appschil_gelezen",
+      "beperking": "Alleen publiek zichtbare appschil; geen ingelogde of interactieve inhoud beoordeeld.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://termostat.ling.umontreal.ca/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H039",
+          "vindplaats": "Termextractie / TermoStat"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H039B.raw",
+      "respons_sha256": "5be0d3a7d98a4ff9419522bc308cd0cf061abd1789d08ea15fb09fd6105ed76b",
+      "respons_bytes": 394
+    },
+    {
+      "id": "H048B",
+      "titel": "Xbench.net - Terminology and QA for Professional Translators",
+      "url": "https://www.xbench.net/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.xbench.net/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H048",
+          "vindplaats": "Highlights / QA Features; Terminology Features"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H048B.raw",
+      "respons_sha256": "dc5246b92496779b6e1a6bcf3d64fcb3d3be8fbe14996d9e464141a67a0e2830",
+      "respons_bytes": 31013
+    },
+    {
+      "id": "H050B",
+      "titel": "Attention Required! | Cloudflare",
+      "url": "https://yourterm.eu/wp-content/uploads/2022/05/FAIRterm-presentation-update.pdf",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen_via_webtool",
+      "beperking": "FAIRterm presentatie via webtool; directe opvraag geblokkeerd.",
+      "directe_opvraag": {
+        "http_status": 403,
+        "eind_url": "https://yourterm.eu/wp-content/uploads/2022/05/FAIRterm-presentation-update.pdf"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H050",
+          "vindplaats": "YourTerm ToolBox / FAIRterm Application; tutorial"
+        },
+        {
+          "record": "C062",
+          "vindplaats": "FAIRterm tutorial; BabelNet License; COTCOES Starter Guide"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H050B.raw",
+      "respons_sha256": "53ee6001c7f0a6c90ed133b3e00db147a5874f3c8599ae5a8f41702088f39881",
+      "respons_bytes": 4569
+    },
+    {
+      "id": "H055B",
+      "titel": "H055B — aanvullende bron",
+      "url": "https://www.trados.com/product/multiterm/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 202,
+        "eind_url": "https://www.trados.com/product/multiterm/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H031",
+          "vindplaats": "Termextractie / MultiTerm Extract"
+        },
+        {
+          "record": "H055",
+          "vindplaats": "Terminologiebeheer / MultiTerm"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H055B.raw",
+      "respons_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "respons_bytes": 0
+    },
+    {
+      "id": "H056B",
+      "titel": "Not Found",
+      "url": "https://multites.com/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 404,
+        "eind_url": "https://multites.com/"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/H056B.raw",
+      "respons_sha256": "ce7127c38e30e92a021ed2bd09287713c6a923db9ffdb43f126e8965d777fbf0",
+      "respons_bytes": 315
+    },
+    {
+      "id": "H058B",
+      "titel": "Tedi productbeschrijving",
+      "url": "https://ontoterminology.com/tedi",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ontoterminology.com/tedi"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H058",
+          "vindplaats": "Tedi / Conceptual dimension; Personal User Licence"
+        },
+        {
+          "record": "H078",
+          "vindplaats": "Tedi / product en licentie"
+        },
+        {
+          "record": "C028",
+          "vindplaats": "Protégé Software; Tedi / ontoterminology"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H058B.raw",
+      "respons_sha256": "48e9a239161510274b1fdf860a277f3a6bdf1ba29247a262e4a8f2f21a369150",
+      "respons_bytes": 31758
+    },
+    {
+      "id": "H059B",
+      "titel": "H059B — aanvullende bron",
+      "url": "https://docs.memoq.com/current/en/QTerm/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 404,
+        "eind_url": "https://docs.memoq.com/current/en/QTerm/"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/H059B.raw",
+      "respons_sha256": "90b2d35cd5e08370ed20db81197dd9da1a4dbb421f71293fd5733ea49eb7b3e1",
+      "respons_bytes": 103
+    },
+    {
+      "id": "H063B",
+      "titel": "Gentle introduction to Terminologue",
+      "url": "https://www.terminologue.org/docs/intro.en/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.terminologue.org/docs/intro.en/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H063",
+          "vindplaats": "Introduction / Term sharing; Entry status; History log; About"
+        },
+        {
+          "record": "C004",
+          "vindplaats": "Terminologue entries; Coreon concepten; TermWerk Conceptniveau"
+        },
+        {
+          "record": "C048",
+          "vindplaats": "Terminologue status; termXplorer; spoor D / accorderen"
+        },
+        {
+          "record": "C051",
+          "vindplaats": "Spoor D / Datamodel; Terminologue History"
+        },
+        {
+          "record": "C053",
+          "vindplaats": "Spoor D / Actualiteit; Terminologue status-reset"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H063B.raw",
+      "respons_sha256": "c9cd8fa3cbce759a0cacfc59f40defe20beb79d1d17a3c543209f0223fe3fdbc",
+      "respons_bytes": 18883
+    },
+    {
+      "id": "H063C",
+      "titel": "About Terminologue",
+      "url": "https://www.terminologue.org/docs/info.en/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.terminologue.org/docs/info.en/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H063",
+          "vindplaats": "Introduction / Term sharing; Entry status; History log; About"
+        },
+        {
+          "record": "C049",
+          "vindplaats": "Quickterm; Terminologue privileges; spoor D"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H063C.raw",
+      "respons_sha256": "7907bf063dd51e106301fab3c515b19c2b6aefdb0bd82640695e8ee4c9fbe3ef",
+      "respons_bytes": 9430
+    },
+    {
+      "id": "H069B",
+      "titel": "TshwaneDJe Software: tlTerm Terminology Software (Termbase)",
+      "url": "https://tshwanedje.com/terminology/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://tshwanedje.com/terminology/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H069",
+          "vindplaats": "tlTerm / productbeschrijving"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H069B.raw",
+      "respons_sha256": "0874314fd22ecd30f9f62f67efc9eb3975340bc7bc357a3dcf12a5ba114fe365",
+      "respons_bytes": 76389
+    },
+    {
+      "id": "H072B",
+      "titel": "Acolada - Content Language & Data Management Home",
+      "url": "https://acolada.de/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://acolada.de/"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/H072B.raw",
+      "respons_sha256": "7cad42033d34b26ea7142a5dd6f33c26d3312e63dfb015e4cf7f743e97f7ac6c",
+      "respons_bytes": 65657
+    },
+    {
+      "id": "H079B",
+      "titel": "Software - Protégé",
+      "url": "https://protege.stanford.edu/software",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://protege.stanford.edu/software/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H079",
+          "vindplaats": "Software / WebProtégé; Protégé Desktop"
+        },
+        {
+          "record": "C028",
+          "vindplaats": "Protégé Software; Tedi / ontoterminology"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H079B.raw",
+      "respons_sha256": "3001b875fbb8e2c142ecf849351668e8238c5fd996a59e46315a6313fb3c1bb0",
+      "respons_bytes": 22264
+    },
+    {
+      "id": "H085B",
+      "titel": "OmegaT - The Free Translation Memory Tool - OmegaT",
+      "url": "https://omegat.org/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://omegat.org/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H085",
+          "vindplaats": "Homepage / Professional features; Powerful tools; license"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H085B.raw",
+      "respons_sha256": "6979cd973979dfdae5bc3f127da7b33983ea9b6e8513047d609ef6e4559242a8",
+      "respons_bytes": 17805
+    },
+    {
+      "id": "H087B",
+      "titel": "H087B — aanvullende bron",
+      "url": "https://www.trados.com/product/studio/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 202,
+        "eind_url": "https://www.trados.com/product/studio/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H087",
+          "vindplaats": "Vertaalgeheugens / SDL Trados Studio"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H087B.raw",
+      "respons_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "respons_bytes": 0
+    },
+    {
+      "id": "H098B",
+      "titel": "License | BabelNet",
+      "url": "https://babelnet.org/license",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://babelnet.org/license"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H098",
+          "vindplaats": "Downloads; License"
+        },
+        {
+          "record": "C062",
+          "vindplaats": "FAIRterm tutorial; BabelNet License; COTCOES Starter Guide"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H098B.raw",
+      "respons_sha256": "2b457bfa7489ba000775816bd746aab9b75c7c28c11a40aaaacb0c039c9e7207",
+      "respons_bytes": 158898
+    },
+    {
+      "id": "H099B",
+      "titel": "IIS 10.0 Detailed Error - 999.0 - AW Special Error",
+      "url": "https://www.intelliwebsearch.com/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 999,
+        "eind_url": "https://www.intelliwebsearch.com/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H099",
+          "vindplaats": "Zoekapplicaties / IntelliWebSearch"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H099B.raw",
+      "respons_sha256": "ff68f25b9802ddffa73ae8f4c0ab9b163b29904930b825ff799c40b87545946d",
+      "respons_bytes": 4538
+    },
+    {
+      "id": "E08",
+      "titel": "Terminologie Epochen Schwerpunkte Umsetzungen",
+      "url": "https://www.bk.admin.ch/dam/bk/fr/dokumente/terminologie/publikation_25_jahre_rtd.pdf.download.pdf/Terminologie_Epochen,%20Schwerpunkte,%20Umsetzungen.pdf",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "niet_inhoudelijk_toegankelijk",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 502,
+        "eind_url": "https://www.bk.admin.ch/dam/bk/fr/dokumente/terminologie/publikation_25_jahre_rtd.pdf.download.pdf/Terminologie_Epochen,%20Schwerpunkte,%20Umsetzungen.pdf"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/E08.raw",
+      "respons_sha256": "3902a7dec2d75762d78a8211d47ce4fe3544c0959a196d26dd441d01d1fc1549",
+      "respons_bytes": 16
+    },
+    {
+      "id": "LIT01",
+      "titel": "LIT01 — aanvullende bron",
+      "url": "https://ivdnt.org/terminologie/vakliteratuur-over-terminologie/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "bibliografische_metadata",
+      "beperking": "Publieke tabeldata; de vermelde publicaties zijn hiermee niet inhoudelijk gelezen.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/terminologie/vakliteratuur-over-terminologie/"
+      },
+      "gebruikt_bij": [],
+      "publieke_tabel_id": "4497",
+      "lokale_respons": "bronnen-lokaal/LIT01.raw",
+      "respons_sha256": "bf655b480aaf5d52319354b2d4dda2109cd10f57635b6161fda0a0f7f8e973dd",
+      "respons_bytes": 27785
+    },
+    {
+      "id": "LIT02",
+      "titel": "LIT02 — aanvullende bron",
+      "url": "https://ivdnt.org/terminologie/vakliteratuur-over-terminologie/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "bibliografische_metadata",
+      "beperking": "Publieke tabeldata; de vermelde publicaties zijn hiermee niet inhoudelijk gelezen.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/terminologie/vakliteratuur-over-terminologie/"
+      },
+      "gebruikt_bij": [],
+      "publieke_tabel_id": "4499",
+      "lokale_respons": "bronnen-lokaal/LIT02.raw",
+      "respons_sha256": "356ef2af0cde2571c375934f219febaf636c8f72c713be341b711fe849541f90",
+      "respons_bytes": 2115
+    },
+    {
+      "id": "LIT03",
+      "titel": "LIT03 — aanvullende bron",
+      "url": "https://ivdnt.org/terminologie/vakliteratuur-over-terminologie/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "bibliografische_metadata",
+      "beperking": "Publieke tabeldata; de vermelde publicaties zijn hiermee niet inhoudelijk gelezen.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/terminologie/vakliteratuur-over-terminologie/"
+      },
+      "gebruikt_bij": [],
+      "publieke_tabel_id": "4502",
+      "lokale_respons": "bronnen-lokaal/LIT03.raw",
+      "respons_sha256": "0759a0224c25195dba0b3cfc10c7bc2d37eea166986e7927e243efa9cf1903a8",
+      "respons_bytes": 7721
+    },
+    {
+      "id": "LIT04",
+      "titel": "LIT04 — aanvullende bron",
+      "url": "https://ivdnt.org/terminologie/vakliteratuur-over-terminologie/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "bibliografische_metadata",
+      "beperking": "Publieke tabeldata; de vermelde publicaties zijn hiermee niet inhoudelijk gelezen.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/terminologie/vakliteratuur-over-terminologie/"
+      },
+      "gebruikt_bij": [],
+      "publieke_tabel_id": "4506",
+      "lokale_respons": "bronnen-lokaal/LIT04.raw",
+      "respons_sha256": "a2eda73cf10ac46223733af1858680e5f463a9f30a5b004534d934a2d137bb1f",
+      "respons_bytes": 2746
+    },
+    {
+      "id": "LIT05",
+      "titel": "LIT05 — aanvullende bron",
+      "url": "https://ivdnt.org/terminologie/vakliteratuur-over-terminologie/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "bibliografische_metadata",
+      "beperking": "Publieke tabeldata; de vermelde publicaties zijn hiermee niet inhoudelijk gelezen.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/terminologie/vakliteratuur-over-terminologie/"
+      },
+      "gebruikt_bij": [],
+      "publieke_tabel_id": "4532",
+      "lokale_respons": "bronnen-lokaal/LIT05.raw",
+      "respons_sha256": "8bfa6ecee295b13d2ec6f9ee0226add054ad06b7da0d5930faa322c6f0c8bbfd",
+      "respons_bytes": 8064
+    },
+    {
+      "id": "LIT06",
+      "titel": "LIT06 — aanvullende bron",
+      "url": "https://ivdnt.org/terminologie/vakliteratuur-over-terminologie/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "bibliografische_metadata",
+      "beperking": "Publieke tabeldata; de vermelde publicaties zijn hiermee niet inhoudelijk gelezen.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/terminologie/vakliteratuur-over-terminologie/"
+      },
+      "gebruikt_bij": [],
+      "publieke_tabel_id": "4534",
+      "lokale_respons": "bronnen-lokaal/LIT06.raw",
+      "respons_sha256": "b1a5ac73eed2d7e629edb11c593711f6081f86785c51fbe1cba863dc58f941d9",
+      "respons_bytes": 19608
+    },
+    {
+      "id": "LIT07",
+      "titel": "LIT07 — aanvullende bron",
+      "url": "https://ivdnt.org/terminologie/vakliteratuur-over-terminologie/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "bibliografische_metadata",
+      "beperking": "Publieke tabeldata; de vermelde publicaties zijn hiermee niet inhoudelijk gelezen.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/terminologie/vakliteratuur-over-terminologie/"
+      },
+      "gebruikt_bij": [],
+      "publieke_tabel_id": "4536",
+      "lokale_respons": "bronnen-lokaal/LIT07.raw",
+      "respons_sha256": "3ae4922cd206b68d69f623fac57bebd56af66c832cc2b406721de1a78a6b7dd5",
+      "respons_bytes": 40793
+    },
+    {
+      "id": "LIT08",
+      "titel": "LIT08 — aanvullende bron",
+      "url": "https://ivdnt.org/terminologie/vakliteratuur-over-terminologie/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "bibliografische_metadata",
+      "beperking": "Publieke tabeldata; de vermelde publicaties zijn hiermee niet inhoudelijk gelezen.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/terminologie/vakliteratuur-over-terminologie/"
+      },
+      "gebruikt_bij": [],
+      "publieke_tabel_id": "4539",
+      "lokale_respons": "bronnen-lokaal/LIT08.raw",
+      "respons_sha256": "2da5d3c71e8a6d4502d577ea6beaff5c1366c9a7c03af933bda5a1b70f8efa39",
+      "respons_bytes": 9142
+    },
+    {
+      "id": "LIT09",
+      "titel": "LIT09 — aanvullende bron",
+      "url": "https://ivdnt.org/terminologie/vakliteratuur-over-terminologie/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "bibliografische_metadata",
+      "beperking": "Publieke tabeldata; de vermelde publicaties zijn hiermee niet inhoudelijk gelezen.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/terminologie/vakliteratuur-over-terminologie/"
+      },
+      "gebruikt_bij": [],
+      "publieke_tabel_id": "4541",
+      "lokale_respons": "bronnen-lokaal/LIT09.raw",
+      "respons_sha256": "1da74425f264940c097823cae1e9b13bfa34fd432157c55786073d7e62c3c36c",
+      "respons_bytes": 8358
+    },
+    {
+      "id": "LIT10",
+      "titel": "LIT10 — aanvullende bron",
+      "url": "https://ivdnt.org/terminologie/vakliteratuur-over-terminologie/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "bibliografische_metadata",
+      "beperking": "Publieke tabeldata; de vermelde publicaties zijn hiermee niet inhoudelijk gelezen.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/terminologie/vakliteratuur-over-terminologie/"
+      },
+      "gebruikt_bij": [],
+      "publieke_tabel_id": "4543",
+      "lokale_respons": "bronnen-lokaal/LIT10.raw",
+      "respons_sha256": "e5b2f791e9467c65f672cede08b39d9e5686b88702c293e89f32075c509f87a4",
+      "respons_bytes": 3633
+    },
+    {
+      "id": "LIT11",
+      "titel": "LIT11 — aanvullende bron",
+      "url": "https://ivdnt.org/terminologie/vakliteratuur-over-terminologie/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "bibliografische_metadata",
+      "beperking": "Publieke tabeldata; de vermelde publicaties zijn hiermee niet inhoudelijk gelezen.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/terminologie/vakliteratuur-over-terminologie/"
+      },
+      "gebruikt_bij": [],
+      "publieke_tabel_id": "4547",
+      "lokale_respons": "bronnen-lokaal/LIT11.raw",
+      "respons_sha256": "760978eebe84bb93c369a58ee924f5874aab48708f703ac156729c5b90dfa99b",
+      "respons_bytes": 5571
+    },
+    {
+      "id": "INT21",
+      "titel": "Evenementen terminologie voor 2020",
+      "url": "https://ivdnt.org/terminologie/evenementen-terminologie-voor-2020/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://ivdnt.org/terminologie/evenementen-terminologie-voor-2020/"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/INT21.raw",
+      "respons_sha256": "c58e48dd78d3b8afefc98a069f589acf62e92b04696908a75c2b5801280e1234",
+      "respons_bytes": 192727
+    },
+    {
+      "id": "E09",
+      "titel": "KÜDES Empfehlungen für die Terminologiearbeit 2018",
+      "url": "https://www.cotsoes.org/sites/default/files/public_files/KUEDES_Empfehlungen_fuer_die_Terminologiearbeit_Bern_2018.pdf",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.cotsoes.org/sites/default/files/public_files/KUEDES_Empfehlungen_fuer_die_Terminologiearbeit_Bern_2018.pdf"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "C013",
+          "vindplaats": "JuriTerm; HOTNeV; aanbevelingen / equivalence"
+        },
+        {
+          "record": "C014",
+          "vindplaats": "Begriffe und Merkmale; handleiding §3.5; Begripskaart"
+        },
+        {
+          "record": "C015",
+          "vindplaats": "Begriffe und Definitionen; NL-SBB §2.3; handleiding §3.5"
+        },
+        {
+          "record": "C017",
+          "vindplaats": "Definitionsarten; handleiding §3.5"
+        }
+      ],
+      "versie_of_datering": "Editie 2018",
+      "lokale_respons": "bronnen-lokaal/E09.raw",
+      "respons_sha256": "3f8707a6ff954ef516e491f1499cce340fdf87cf1800552293d26ae50268a1ab",
+      "respons_bytes": 1131471
+    },
+    {
+      "id": "E10",
+      "titel": "CEOV Aanbevelingen voor terminologie 2002",
+      "url": "https://www.cotsoes.org/sites/default/files/public_files/CEOV_Aanbevelingen_voor_terminologie.pdf",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.cotsoes.org/sites/default/files/public_files/CEOV_Aanbevelingen_voor_terminologie.pdf"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "C002",
+          "vindplaats": "Terminologische gegevens; spoor D / Begripskaart"
+        },
+        {
+          "record": "C009",
+          "vindplaats": "Terminologische gegevens; spoor D / Verwerking"
+        },
+        {
+          "record": "C016",
+          "vindplaats": "Aanbevelingen / definitie; NL-SBB §5.1.1"
+        },
+        {
+          "record": "C020",
+          "vindplaats": "Aanbevelingen / definitie; TermTest productbeschrijving; spoor D / Verwerking"
+        }
+      ],
+      "versie_of_datering": "Tweede bewerkte en uitgebreide editie; copyright 2002",
+      "lokale_respons": "bronnen-lokaal/E10.raw",
+      "respons_sha256": "bec2221a8c710720e3fa7e28765254f5b174790acfe9a16eff608c1d1c4a1f65",
+      "respons_bytes": 671316
+    },
+    {
+      "id": "E11",
+      "titel": "COTCOES Terminology Management for Translation A Starter Guide 2017",
+      "url": "https://www.cotsoes.org/sites/default/files/public_files/COTCOES_Terminology_Management_for_Translation_A_Starter_Guide.pdf",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.cotsoes.org/sites/default/files/public_files/COTCOES_Terminology_Management_for_Translation_A_Starter_Guide.pdf"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "C062",
+          "vindplaats": "FAIRterm tutorial; BabelNet License; COTCOES Starter Guide"
+        }
+      ],
+      "versie_of_datering": "2017",
+      "lokale_respons": "bronnen-lokaal/E11.raw",
+      "respons_sha256": "9a6b36bfff1fe663de4ece94fa16948c721358b98492d383d6e72bf3f77efe1d",
+      "respons_bytes": 231924
+    },
+    {
+      "id": "H056C",
+      "titel": "Not Found",
+      "url": "https://www.multites.com/products.htm",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen_via_webtool",
+      "beperking": "Productbeschrijving via webtool; directe opvraag gaf 404. Actuele levering niet vastgesteld.",
+      "directe_opvraag": {
+        "http_status": 404,
+        "eind_url": "https://www.multites.com/products.htm"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H056",
+          "vindplaats": "Our Products"
+        },
+        {
+          "record": "C027",
+          "vindplaats": "NL-SBB §2.4; MultiTes producten"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H056C.raw",
+      "respons_sha256": "ce7127c38e30e92a021ed2bd09287713c6a923db9ffdb43f126e8965d777fbf0",
+      "respons_bytes": 315
+    },
+    {
+      "id": "H059C",
+      "titel": "memoQweb Qterm documentatie",
+      "url": "https://docs.memoq.com/current/en/memoQWeb-help/mqw-qterm.html",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://docs.memoq.com/current/en/memoQWeb-help/mqw-qterm.html"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H059",
+          "vindplaats": "Qterm; WS API / Term base in TBX format"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H059C.raw",
+      "respons_sha256": "1fc98d41d84de3d2342b79c11bdbb3fcc6bf274a30184c479ade93c345c99ff6",
+      "respons_bytes": 38357
+    },
+    {
+      "id": "H059D",
+      "titel": "memoQ WS API 11.3 TBX",
+      "url": "https://docs.memoq.com/11-3/api-docs/wsapi/memoqservices/tbservice.importexport.tbx.html",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://docs.memoq.com/11-3/api-docs/wsapi/memoqservices/tbservice.importexport.tbx.html"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H059",
+          "vindplaats": "Qterm; WS API / Term base in TBX format"
+        },
+        {
+          "record": "C056",
+          "vindplaats": "TBX Dialects; TermWerk Export; QTerm TBX API"
+        },
+        {
+          "record": "C060",
+          "vindplaats": "TermWerk Export; QTerm TBX; LookUp formats"
+        }
+      ],
+      "versie_of_datering": "API-documentatie 11.3",
+      "lokale_respons": "bronnen-lokaal/H059D.raw",
+      "respons_sha256": "e005657444d47e0cf9100a9cd02781215a51340226390177f173bd287c974903",
+      "respons_bytes": 147896
+    },
+    {
+      "id": "H065B",
+      "titel": "TermWeb 4 User and Administrator Guide 1.7.2",
+      "url": "https://www.interverbumtech.com/wp-content/uploads/2021/04/TermWeb-4-User-Administrator-Guide-v1.7.pdf",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "deels_gelezen_via_webtool",
+      "beperking": "Handleiding gedeeltelijk via webtool gelezen; versiehistorie en workflow-/rollenonderdelen. Directe opvraag gaf 403.",
+      "directe_opvraag": {
+        "http_status": 403,
+        "eind_url": "https://www.interverbumtech.com/wp-content/uploads/2021/04/TermWeb-4-User-Administrator-Guide-v1.7.pdf"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H065",
+          "vindplaats": "Guide / Workflow Conditions; User roles; revision history"
+        }
+      ],
+      "versie_of_datering": "Guide 1.7.2; 22 juni 2023",
+      "lokale_respons": "bronnen-lokaal/H065B.raw",
+      "respons_sha256": "7c0be293041014fa6ed405d6cdf5092e0c6732f6252d6e3b0434f5c1588bda2d",
+      "respons_bytes": 114608
+    },
+    {
+      "id": "H067B",
+      "titel": "termXplorer InfoSheet november 2018",
+      "url": "https://term-solutions.com/wp-content/uploads/2020/08/InfoSheet_termXplorer_TermSolutions.pdf",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen_via_webtool",
+      "beperking": "Productfiche van twee pagina’s via webtool gelezen; gedateerd november 2018. Directe opvraag mislukte.",
+      "directe_opvraag": {
+        "http_status": 0,
+        "eind_url": "https://term-solutions.com/wp-content/uploads/2020/08/InfoSheet_termXplorer_TermSolutions.pdf"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H067",
+          "vindplaats": "InfoSheet termXplorer, november 2018, pp. 1–2"
+        },
+        {
+          "record": "C047",
+          "vindplaats": "TermWerk beschrijvingsniveaus; termXplorer pp. 1–2"
+        },
+        {
+          "record": "C048",
+          "vindplaats": "Terminologue status; termXplorer; spoor D / accorderen"
+        }
+      ],
+      "versie_of_datering": "November 2018"
+    },
+    {
+      "id": "H072C",
+      "titel": "UniTerm - Terminologieverwaltung - Acolada.de",
+      "url": "https://acolada.de/produkte/uniterm-terminologieverwaltung/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://acolada.de/produkte/uniterm-terminologieverwaltung/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H072",
+          "vindplaats": "UniTerm Terminologieverwaltung"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H072C.raw",
+      "respons_sha256": "df11e7f412214ade2028aec5ca9dc8afd2c6a7c2aac631d4a041b773b41d9d1b",
+      "respons_bytes": 65522
+    },
+    {
+      "id": "H075B",
+      "titel": "i-Model",
+      "url": "https://www.danterm.dk/products/i-model.html",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen_via_webtool",
+      "beperking": "Makersbeschrijving via webtool gelezen; directe opvraag geblokkeerd.",
+      "directe_opvraag": {
+        "http_status": 455,
+        "eind_url": "https://www.danterm.dk/products/i-model.html"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H075",
+          "vindplaats": "i-Model; i-Term main"
+        },
+        {
+          "record": "C024",
+          "vindplaats": "NL-SBB §2.4.3.1; i-Model"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H075B.raw",
+      "respons_sha256": "d9aef79a4cab6d5f014cba6a758e5a9d92fb499b1754db76d47d2ab5960d5717",
+      "respons_bytes": 733
+    },
+    {
+      "id": "H075C",
+      "titel": "i-Term",
+      "url": "https://www.danterm.dk/products/i-term-main.html",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen_via_webtool",
+      "beperking": "Makersbeschrijving via webtool gelezen; directe opvraag geblokkeerd.",
+      "directe_opvraag": {
+        "http_status": 455,
+        "eind_url": "https://www.danterm.dk/products/i-term-main.html"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H075",
+          "vindplaats": "i-Model; i-Term main"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H075C.raw",
+      "respons_sha256": "d9aef79a4cab6d5f014cba6a758e5a9d92fb499b1754db76d47d2ab5960d5717",
+      "respons_bytes": 733
+    },
+    {
+      "id": "H046B",
+      "titel": "Attention Required! | Cloudflare",
+      "url": "https://www.acrolinx.com/translatability/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen_via_webtool",
+      "beperking": "Makersinformatie via webtool; directe opvraag geblokkeerd.",
+      "directe_opvraag": {
+        "http_status": 403,
+        "eind_url": "https://www.acrolinx.com/translatability/"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H046",
+          "vindplaats": "Translatability; Configure Term Sets"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H046B.raw",
+      "respons_sha256": "776c6dc0b39c0384717e54068490d52a412e9a578863a67e237f35421125d47b",
+      "respons_bytes": 5492
+    },
+    {
+      "id": "H046C",
+      "titel": "Just a moment...",
+      "url": "https://support.acrolinx.com/hc/en-us/articles/10211163344018-Configure-Term-Sets-in-the-Language-Configuration-File",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "deels_gelezen_via_webtool",
+      "beperking": "Beperkte makersdocumentatie via webtool; directe opvraag geblokkeerd.",
+      "directe_opvraag": {
+        "http_status": 403,
+        "eind_url": "https://support.markup.ai/hc/en-us/articles/10211163344018-Configure-Term-Sets-in-the-Language-Configuration-File"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "H046",
+          "vindplaats": "Translatability; Configure Term Sets"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/H046C.raw",
+      "respons_sha256": "9a4f1eed9f8493a7f410827bfb5d5d0dc5806a0479cf8ead1e079ad17c0a661e",
+      "respons_bytes": 5754
+    },
+    {
+      "id": "H043B",
+      "titel": "H043B — aanvullende bron",
+      "url": "https://term.tilde.com/assets/env.js",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "technische_inspectie",
+      "beperking": "Publieke appcode/configuratie oppervlakkig bekeken; geen bewijs voor functionerende analyse.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://term.tilde.com/assets/env.js"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/H043B.raw",
+      "respons_sha256": "427911de27dd22e7708d198eec5694e0345ff9f2e7c16e72c68ae686bab118a3",
+      "respons_bytes": 262
+    },
+    {
+      "id": "H039C",
+      "titel": "Termostat export",
+      "url": "https://termostat.ling.umontreal.ca/assets/index-Bc2Hb5u5.js",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "technische_inspectie",
+      "beperking": "Publieke appcode/configuratie oppervlakkig bekeken; geen bewijs voor functionerende analyse.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://termostat.ling.umontreal.ca/assets/index-Bc2Hb5u5.js"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/H039C.raw",
+      "respons_sha256": "ae80717165efd3f3a4a1e309397257ca303b5a643c23962625d3f907969a8cc2",
+      "respons_bytes": 1484024
+    },
+    {
+      "id": "H033C",
+      "titel": "TBX-Glossary",
+      "url": "https://terms.sketchengine.eu/bundle.min.js?v=1.49.2",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "technische_inspectie",
+      "beperking": "Publieke appcode/configuratie oppervlakkig bekeken; geen bewijs voor functionerende analyse.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://terms.sketchengine.eu/bundle.min.js?v=1.49.2"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/H033C.raw",
+      "respons_sha256": "a10ce4c4ffe5ce24f34f963b804b86132258b308fc897993cebfcdf4821c213c",
+      "respons_bytes": 182577
+    },
+    {
+      "id": "E12",
+      "titel": "EuroVoc EU Vocabularies",
+      "url": "https://op.europa.eu/en/web/eu-vocabularies/th-dataset/-/resource/dataset/eurovoc",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://op.europa.eu/en/web/eu-vocabularies/dataset/-/resource?uri=http://publications.europa.eu/resource/dataset/eurovoc"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "C063",
+          "vindplaats": "IATE; EuroVoc; Rechtspraak begrippen; spoor D / Bronselectie"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/E12.raw",
+      "respons_sha256": "87c37d3bf610e8a5e7a20528e6110948826e1c5840343b85e114735d66d03fdd",
+      "respons_bytes": 460285
+    },
+    {
+      "id": "E13",
+      "titel": "Rechtspraak Juridische begrippen",
+      "url": "https://www.rechtspraak.nl/juridische-begrippen",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.rechtspraak.nl/juridische-begrippen"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "C063",
+          "vindplaats": "IATE; EuroVoc; Rechtspraak begrippen; spoor D / Bronselectie"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/E13.raw",
+      "respons_sha256": "3aa934406e87d820a930d47a534b31608e8414ebb1b54619d55ae56d1112af68",
+      "respons_bytes": 612175
+    },
+    {
+      "id": "E14",
+      "titel": "Terminology for beginners ebookviewer",
+      "url": "https://indd.adobe.com/view/2e8446fc-54d9-41e9-845a-a5b945dac0a0",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "appschil_gelezen",
+      "beperking": "Alleen publiek zichtbare appschil; geen ingelogde of interactieve inhoud beoordeeld.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://indd.adobe.com/view/2e8446fc-54d9-41e9-845a-a5b945dac0a0"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/E14.raw",
+      "respons_sha256": "89e6bb7e8de8b16deeeb6128f241c0e938ac4ab41fadd0dd232f51701f50ca10",
+      "respons_bytes": 10161
+    },
+    {
+      "id": "E15",
+      "titel": "SKOS Primer",
+      "url": "https://www.w3.org/TR/skos-primer/",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.w3.org/TR/skos-primer/"
+      },
+      "gebruikt_bij": [],
+      "lokale_respons": "bronnen-lokaal/E15.raw",
+      "respons_sha256": "831f13262261737675a8ad35e619509cd3efb10ccb10ebac717f939a46f23126",
+      "respons_bytes": 114611
+    },
+    {
+      "id": "E16",
+      "titel": "SKOS-XL",
+      "url": "https://www.w3.org/TR/skos-reference/skos-xl.html",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "inhoud_gelezen",
+      "beperking": "Openbare documentatie; geen account, installatie of functieproef.",
+      "directe_opvraag": {
+        "http_status": 200,
+        "eind_url": "https://www.w3.org/TR/skos-reference/skos-xl.html"
+      },
+      "gebruikt_bij": [
+        {
+          "record": "C059",
+          "vindplaats": "SKOS-XL vocabulary"
+        }
+      ],
+      "lokale_respons": "bronnen-lokaal/E16.raw",
+      "respons_sha256": "ae36fec855dcffd6d403e352530a0647707f8517c4db0aba02a60962bfccce93",
+      "respons_bytes": 11511
+    },
+    {
+      "id": "P01",
+      "titel": "Projectplan spoor D",
+      "repo_pad": "docs/PLAN.md",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "relevante_onderdelen_gelezen",
+      "vindplaats": "Activiteit 3 werkgebieden en begrippen",
+      "lokaal_only": false,
+      "sha256": "ad2e613e6c154a79aa1d60b33992dedcc44359e6ae3dbd86c5212a7b36b774b6",
+      "gebruikt_bij": [
+        {
+          "record": "C001",
+          "vindplaats": "Wat is terminologie; NL-SBB §2.3; spoor D / Elementen groepen en begrippen"
+        },
+        {
+          "record": "C002",
+          "vindplaats": "Terminologische gegevens; spoor D / Begripskaart"
+        },
+        {
+          "record": "C003",
+          "vindplaats": "Annotatieketen; spoor D / Begripskoppeling"
+        },
+        {
+          "record": "C006",
+          "vindplaats": "TermNet / requirements; spoor D / Werkgebied als node"
+        },
+        {
+          "record": "C007",
+          "vindplaats": "JuriTerm; HOTNeV; spoor D / Methodische uitgangspunten"
+        },
+        {
+          "record": "C008",
+          "vindplaats": "Spoor D / Bronselectie en actualiteit; annotatieketen"
+        },
+        {
+          "record": "C009",
+          "vindplaats": "Terminologische gegevens; spoor D / Verwerking"
+        },
+        {
+          "record": "C010",
+          "vindplaats": "Wat is terminologie; boek h3 en h6; spoor D"
+        },
+        {
+          "record": "C011",
+          "vindplaats": "TerMine acronyms; TermWerk Termniveau; Begripskaart"
+        },
+        {
+          "record": "C014",
+          "vindplaats": "Begriffe und Merkmale; handleiding §3.5; Begripskaart"
+        },
+        {
+          "record": "C018",
+          "vindplaats": "JAS / Brondefinitie; spoor D / Methodische uitgangspunten"
+        },
+        {
+          "record": "C019",
+          "vindplaats": "Handleiding §3.5; spoor D / Begripskaart"
+        },
+        {
+          "record": "C020",
+          "vindplaats": "Aanbevelingen / definitie; TermTest productbeschrijving; spoor D / Verwerking"
+        },
+        {
+          "record": "C021",
+          "vindplaats": "Handleiding §3.5; leidraad Ad 3; Begripskaart"
+        },
+        {
+          "record": "C022",
+          "vindplaats": "Boek h3; spoor D / accorderen en open vragen"
+        },
+        {
+          "record": "C023",
+          "vindplaats": "NL-SBB §2.4.3.1; spoor D / Projectie"
+        },
+        {
+          "record": "C025",
+          "vindplaats": "SKOS §8; NL-SBB thesaurus; spoor D / relaties"
+        },
+        {
+          "record": "C026",
+          "vindplaats": "JAS / Rechtsbetrekking; spoor D / Projectie"
+        },
+        {
+          "record": "C029",
+          "vindplaats": "JAS; spoor D / Elementen en Projectie"
+        },
+        {
+          "record": "C030",
+          "vindplaats": "SKOS §10; IATE; spoor D / werkgebieden"
+        },
+        {
+          "record": "C031",
+          "vindplaats": "AntConc corpusfuncties; spoor D / Bronselectie"
+        },
+        {
+          "record": "C036",
+          "vindplaats": "Annotatieketen; spoor D / Verwerking; Sketch Engine guide"
+        },
+        {
+          "record": "C039",
+          "vindplaats": "TerMine C-value; TermWerk termextractie; spoor D"
+        },
+        {
+          "record": "C042",
+          "vindplaats": "Wat is terminologie; spoor D / Verwerking"
+        },
+        {
+          "record": "C043",
+          "vindplaats": "Handleiding §3.5; spoor D / API agent en graaf"
+        },
+        {
+          "record": "C045",
+          "vindplaats": "Spoor D / Verwerking; Dandelion similarity"
+        },
+        {
+          "record": "C046",
+          "vindplaats": "Empirische validatie; spoor D / Proefset"
+        },
+        {
+          "record": "C048",
+          "vindplaats": "Terminologue status; termXplorer; spoor D / accorderen"
+        },
+        {
+          "record": "C049",
+          "vindplaats": "Quickterm; Terminologue privileges; spoor D"
+        },
+        {
+          "record": "C050",
+          "vindplaats": "NL-SBB §5.2; spoor D / Datamodel; annotatieketen"
+        },
+        {
+          "record": "C051",
+          "vindplaats": "Spoor D / Datamodel; Terminologue History"
+        },
+        {
+          "record": "C052",
+          "vindplaats": "Spoor D / Elementen groepen en begrippen; TermWerk beheer"
+        },
+        {
+          "record": "C053",
+          "vindplaats": "Spoor D / Actualiteit; Terminologue status-reset"
+        },
+        {
+          "record": "C054",
+          "vindplaats": "TermWerk export/publicatie; Graphite; spoor D / export"
+        },
+        {
+          "record": "C055",
+          "vindplaats": "Spoor D / dekking; empirische validatie"
+        },
+        {
+          "record": "C057",
+          "vindplaats": "SKOS §3–4 en §8; spoor D / Projectie"
+        },
+        {
+          "record": "C058",
+          "vindplaats": "NL-SBB §4–5; spoor D / Projectie"
+        },
+        {
+          "record": "C061",
+          "vindplaats": "Spoor D / API en Projectie; architectuur; Coreon APIs"
+        },
+        {
+          "record": "C063",
+          "vindplaats": "IATE; EuroVoc; Rechtspraak begrippen; spoor D / Bronselectie"
+        },
+        {
+          "record": "C064",
+          "vindplaats": "Historische termenlijsten; spoor D / geldigheid"
+        },
+        {
+          "record": "C066",
+          "vindplaats": "Handleiding §3.4–3.5; leidraad Ad 2 en Ad 3; spoor D"
+        }
+      ]
+    },
+    {
+      "id": "P02",
+      "titel": "Project README",
+      "repo_pad": "README.md",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "relevante_onderdelen_gelezen",
+      "vindplaats": "Scope activiteit 2; architectuur; brongetrouwheid",
+      "lokaal_only": false,
+      "sha256": "35eee642a7678f5ccec3acb2624c7f9c97c8f7ae30306aa0990e9dc263961868",
+      "gebruikt_bij": [
+        {
+          "record": "H011",
+          "vindplaats": "Corpusanalyse / WebReaper; project README"
+        },
+        {
+          "record": "C061",
+          "vindplaats": "Spoor D / API en Projectie; architectuur; Coreon APIs"
+        },
+        {
+          "record": "C065",
+          "vindplaats": "Wat is terminologie; TippyTerm; brongetrouwheid project"
+        }
+      ]
+    },
+    {
+      "id": "P03",
+      "titel": "Annotatieketen",
+      "repo_pad": "docs/architectuur/annotatieketen.md",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "relevante_onderdelen_gelezen",
+      "vindplaats": "Actuele hybride annotatieketen",
+      "lokaal_only": false,
+      "sha256": "2218db024ef578dd2f57b0a2d73d428312a3f983d45195464d83ff65def4230e",
+      "gebruikt_bij": [
+        {
+          "record": "C003",
+          "vindplaats": "Annotatieketen; spoor D / Begripskoppeling"
+        },
+        {
+          "record": "C008",
+          "vindplaats": "Spoor D / Bronselectie en actualiteit; annotatieketen"
+        },
+        {
+          "record": "C036",
+          "vindplaats": "Annotatieketen; spoor D / Verwerking; Sketch Engine guide"
+        },
+        {
+          "record": "C037",
+          "vindplaats": "Sketch Engine requirements; TerMine POS; annotatieketen"
+        },
+        {
+          "record": "C040",
+          "vindplaats": "AntConc stoplists; annotatieketen; JAS Operator"
+        },
+        {
+          "record": "C044",
+          "vindplaats": "JAS Operator Voorwaarde; annotatieketen"
+        },
+        {
+          "record": "C050",
+          "vindplaats": "NL-SBB §5.2; spoor D / Datamodel; annotatieketen"
+        }
+      ]
+    },
+    {
+      "id": "P04",
+      "titel": "Empirische validatie",
+      "repo_pad": "docs/architectuur/onderzoek-empirische-validatie.md",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "relevante_onderdelen_gelezen",
+      "vindplaats": "Fouttaxonomie en adjudicatie",
+      "lokaal_only": false,
+      "sha256": "cfe4bad95a3ea919711746ec322ad87537b8e45c2909f5454d6d139558951aab",
+      "gebruikt_bij": [
+        {
+          "record": "C046",
+          "vindplaats": "Empirische validatie; spoor D / Proefset"
+        },
+        {
+          "record": "C055",
+          "vindplaats": "Spoor D / dekking; empirische validatie"
+        }
+      ]
+    },
+    {
+      "id": "M01",
+      "titel": "Wetsanalyse boek",
+      "repo_pad": "docs/wetsanalyse/wetsanalyse-boek.md",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "relevante_onderdelen_gelezen",
+      "vindplaats": "2021; hoofdstuk 3 stap 3 en hoofdstuk 6",
+      "lokaal_only": true,
+      "sha256": "e357d591c92a66a889a105005283d9c7f9f6fd102de790d0e3c34e36fa1e1176",
+      "gebruikt_bij": [
+        {
+          "record": "C010",
+          "vindplaats": "Wat is terminologie; boek h3 en h6; spoor D"
+        },
+        {
+          "record": "C022",
+          "vindplaats": "Boek h3; spoor D / accorderen en open vragen"
+        }
+      ]
+    },
+    {
+      "id": "M02",
+      "titel": "Handleiding Wetsanalyse in de praktijk",
+      "repo_pad": "docs/kennisbank/handleiding-wetsanalyse-in-de-praktijk-versie-1 (1).pdf",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "relevante_onderdelen_gelezen",
+      "vindplaats": "Versie 1.0 9 februari 2023; §3.4–3.5 pp. 31–46",
+      "lokaal_only": true,
+      "sha256": "6f4d923503a2ba1f05f1262c2231f73a300df2074361dd57796eff378d5e0f39",
+      "gebruikt_bij": [
+        {
+          "record": "C014",
+          "vindplaats": "Begriffe und Merkmale; handleiding §3.5; Begripskaart"
+        },
+        {
+          "record": "C015",
+          "vindplaats": "Begriffe und Definitionen; NL-SBB §2.3; handleiding §3.5"
+        },
+        {
+          "record": "C017",
+          "vindplaats": "Definitionsarten; handleiding §3.5"
+        },
+        {
+          "record": "C019",
+          "vindplaats": "Handleiding §3.5; spoor D / Begripskaart"
+        },
+        {
+          "record": "C021",
+          "vindplaats": "Handleiding §3.5; leidraad Ad 3; Begripskaart"
+        },
+        {
+          "record": "C043",
+          "vindplaats": "Handleiding §3.5; spoor D / API agent en graaf"
+        },
+        {
+          "record": "C066",
+          "vindplaats": "Handleiding §3.4–3.5; leidraad Ad 2 en Ad 3; spoor D"
+        }
+      ]
+    },
+    {
+      "id": "M03",
+      "titel": "Leidraad voor Wetsanalyse op maat",
+      "repo_pad": "docs/kennisbank/leidraad-voor-wetsanalyse-op-maat-versie-1.pdf",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "relevante_onderdelen_gelezen",
+      "vindplaats": "Versie 1.0 7 maart 2023; Ad 2 en Ad 3 pp. 11–13",
+      "lokaal_only": true,
+      "sha256": "00e1bbaa88617fc6ecd46e967ba44957be1e2ba33694ed548b52061f318fa4c3",
+      "gebruikt_bij": [
+        {
+          "record": "C021",
+          "vindplaats": "Handleiding §3.5; leidraad Ad 3; Begripskaart"
+        },
+        {
+          "record": "C066",
+          "vindplaats": "Handleiding §3.4–3.5; leidraad Ad 2 en Ad 3; spoor D"
+        }
+      ]
+    },
+    {
+      "id": "M04",
+      "titel": "Officieel Juridisch Analyseschema",
+      "repo_pad": "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md",
+      "geraadpleegd_op": "2026-10-08",
+      "leesstatus": "relevante_onderdelen_gelezen",
+      "vindplaats": "Lokale officiële bron; herkomst in BRON.md",
+      "lokaal_only": false,
+      "sha256": "12b6fb0d08a29457c49265778b566adb2557e998c1bcffc3ee24df78f0b3e0bf",
+      "gebruikt_bij": [
+        {
+          "record": "C018",
+          "vindplaats": "JAS / Brondefinitie; spoor D / Methodische uitgangspunten"
+        },
+        {
+          "record": "C026",
+          "vindplaats": "JAS / Rechtsbetrekking; spoor D / Projectie"
+        },
+        {
+          "record": "C029",
+          "vindplaats": "JAS; spoor D / Elementen en Projectie"
+        },
+        {
+          "record": "C040",
+          "vindplaats": "AntConc stoplists; annotatieketen; JAS Operator"
+        },
+        {
+          "record": "C044",
+          "vindplaats": "JAS Operator Voorwaarde; annotatieketen"
+        }
+      ]
+    }
+  ]
+}
