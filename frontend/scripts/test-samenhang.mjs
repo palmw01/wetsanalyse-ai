@@ -79,6 +79,21 @@ function weergave(iri) {
     dekking: segs.some((s) => s.bron_iri === L2) ? { voltooid: true, structureel: { [L2]: { dimensies: { actor: "uitgevoerd" },
       ongedekt: [{ tekst: "geldt artikel 10", start: 32, eind: 48 }] } } } : {} };
 }
+/** Wat de kennisgraaf over een knoop weet (api/app/knoopinfo.py): artikel 9 met geldigheid en "genoemd
+ *  in" (artikel 10 staat op de kaart, de AWR niet); lid 2 met een uit de tekst herkende verwijzing. */
+function knoopInfo(iri) {
+  const leeg = { schema_versie: 1, bron_iri: iri, beschikbaar: true, groepen: [], ruw: [], verwijzingen: [] };
+  if (iri === ART) return { ...leeg,
+    groepen: [
+      { naam: "Geldigheid", feiten: [{ eigenschap: "In werking", waarden: [{ tekst: "2026-07-01" }] }] },
+      { naam: "Genoemd in", feiten: [{ eigenschap: "Genoemd in", waarden: [
+        { tekst: "Algemene wet inzake rijksbelastingen", iri: "urn:bwb:BWBR0002320" }, { tekst: "Artikel 10", iri: A10 }] }] }],
+    ruw: [{ predicaat: "bwb:inwerking", waarde: "2026-07-01" }, { predicaat: "bwb:nummer", waarde: "9" }, { predicaat: "eli:has_part", waarde: L1, iri: L1 }] };
+  if (iri === L2) return { ...leeg, verwijzingen: [{ richting: "uit", van: L2, naar: A10, anker: "artikel 10", soort: "tekstueel",
+    doel_soort: "artikel", doel_pad: "", betrouwbaarheid: "laag" }] };
+  return leeg;
+}
+
 const berichten = [
   { rol: "user", tekst: "Wat regelt artikel 9 lid 2 van de Invorderingswet?", denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "" },
   { rol: "assistant", tekst: "Artikel 9 lid 2 wijkt af van het eerste lid en verwijst naar artikel 10.", denk: "",
@@ -188,6 +203,7 @@ async function nieuwePagina({ width = 1440, height = 1000, webgl = true } = {}) 
       return route.fulfill({ json: { resultaten: iris.map(samenhangNu), fouten: [] } });
     }
     if (url.pathname.endsWith("/v2/graaf")) { log.graaf.push(url.search); return route.fulfill({ json: kennisgraaf() }); }
+    if (url.pathname.endsWith("/v2/knoop")) return route.fulfill({ json: knoopInfo(url.searchParams.get("bron_iri")) });
     if (url.pathname.endsWith("/v2/weergave")) return route.fulfill({ json: weergave(url.searchParams.get("bron_iri")) });
     if (url.pathname.endsWith("/v2/elementen/e1")) return route.fulfill({ json: { element: weergave(ART).elementen[0] } });
     if (url.pathname.endsWith("/v2/elementen/e1/graaf")) return route.fulfill({ json: { element_id: "e1", laag_id: "laag1",
@@ -279,6 +295,9 @@ async function wachtGereed(page) {
   await zoekEnKies(page, "lid 2", L2);
   await page.getByTestId("graaf-hint").waitFor({ state: "detached" });
   assert.match(await detail(page).innerText(), /Artikel 9 · lid 2[\s\S]*In afwijking van het eerste lid[\s\S]*Verwijst naar/);
+  // De lijn naar artikel 10 is alleen uit de tekst herkend: dat staat bij de regel, met een badge.
+  await detail(page).getByTestId("graaf-verwijzing").first().waitFor();
+  assert.match(await detail(page).getByTestId("graaf-verwijzing").first().innerText(), /uit de tekst herkend · artikel[\s\S]*lage betrouwbaarheid/);
 
   // 3. Een randbepaling kies je vanuit de inspector; de hoofdactie laadt haar erbij (één keer).
   await detail(page).getByRole("button", { name: /^Artikel 10\b/ }).click();
@@ -364,6 +383,16 @@ async function wachtGereed(page) {
   await zoekEnKies(page, "artikel 9", ART);
   await detail(page).getByTestId("graaf-knooptekst").waitFor();
   assert.match(await detail(page).getByTestId("graaf-knooptekst").innerText(), /De ontvanger vordert[\s\S]*In afwijking van het eerste lid/);
+  // Uit de kennisgraaf: geldigheid in gewone woorden, "genoemd in" kiest wat op de kaart staat en linkt
+  // de rest, en het ruwe vangnet telt alle triples.
+  const feiten = detail(page).getByTestId("graaf-feiten");
+  await feiten.waitFor();
+  assert.match(await feiten.innerText(), /Geldigheid[\s\S]*In werking[\s\S]*1 juli 2026[\s\S]*Genoemd in/);
+  assert.equal(await feiten.getByRole("link", { name: "Algemene wet inzake rijksbelastingen" }).getAttribute("href"), "https://wetten.overheid.nl/BWBR0002320");
+  assert.match(await feiten.getByTestId("graaf-ruw").textContent(), /Alle eigenschappen uit de graaf \(3\)/);
+  await page.screenshot({ path: `${shots}/7a-kennisgraaf-feiten.png` });
+  await feiten.getByRole("button", { name: "Artikel 10" }).click();
+  assert.equal(await gekozen(page), A10, "een knoop uit 'genoemd in' die op de kaart staat, kies je in de graaf");
   await page.getByRole("button", { name: "Selectie opheffen" }).click();
 
   // 7b. Een markering in de wettekst van de inspector aanklikken kiest haar in de graaf.

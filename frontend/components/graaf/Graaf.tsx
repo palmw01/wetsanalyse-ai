@@ -17,7 +17,7 @@ import { GraafZoek } from "./GraafZoek";
 import { Terug } from "@/components/ui/Icoon";
 import type { GraafKoppeling } from "./koppeling";
 import type { Bereik, GraafStand } from "./useGraafStand";
-import { useKnoopDetail, useMarkeringElement } from "./useKnoopDetail";
+import { useKnoopDetail, useKnoopInfo, useMarkeringElement } from "./useKnoopDetail";
 
 // sigma en WebGL laden pas als de graaf echt in beeld komt.
 const Tekenaar = dynamic(() => import("./GraafTekenaar").then((m) => m.GraafTekenaar), { ssr: false });
@@ -111,6 +111,10 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
   const tekstBron = !gekozen || !gekozenData ? null : gekozenData.soort === "markering" ? ankerVan(model, gekozen) ?? null
     : ["artikel", "lid", "onderdeel"].includes(gekozenData.soort) ? gekozen : null;
   const detail = useKnoopDetail(tekstBron, weergave, stand.detailCache, stand.detailVersie);
+  // Wat de kennisgraaf over een bronknoop weet; een markering of klasse staat niet in de BWB-graaf,
+  // een niet-geïmporteerde bepaling evenmin.
+  const info = useKnoopInfo(gekozen && gekozenData && !["markering", "klasse", "extern"].includes(gekozenData.soort) ? gekozen : null,
+    stand.infoCache);
   const bekendeElementen = useMemo(() => [...(weergave?.elementen ?? []), ...(detail && typeof detail === "object" ? detail.elementen : [])],
     [weergave, detail]);
   // Zolang de tekst van het anker laadt, wachten: het element zit er meestal in.
@@ -244,7 +248,7 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
       </div>
       <div className={`shrink-0 border-t border-line bg-paper ${groot ? "max-h-[40dvh] overflow-y-auto md:max-h-none md:w-80 md:border-l md:border-t-0" : "flex max-h-[45%] flex-col"}`}>
         <GraafInspector key={gekozen ?? ""} model={model} id={gekozen} smal={!groot}
-          detail={detail} element={element} doelen={focus ? [...focus.doelen] : hoofd ? [hoofd.doel.bron_iri] : []}
+          detail={detail} info={info} element={element} doelen={focus ? [...focus.doelen] : hoofd ? [hoofd.doel.bron_iri] : []}
           ongedekt={lagen.dekking && gekozen ? dekking?.[gekozen] : undefined}
           hoofdactie={actie} laadt={!!gekozen && laadtBij === gekozen}
           groepen={groepen} telling={tel}

@@ -13,6 +13,7 @@ from bronmodel import BronFout
 from . import annotatie_export as export
 from . import annotatie_v2_store as store
 from . import graaf as graaf_mod
+from . import knoopinfo as knoopinfo_mod
 from . import samenhang as samenhang_mod
 from .annotatie_v2_contracts import Batch, Beslissing, Doel, Element, Zoekvraag
 from .auth import require_client
@@ -117,6 +118,19 @@ async def get_graaf(bwb_id: list[str] = Query(default=[]), actor: str = Depends(
     Zie `graaf.py`. Groot (~2 MB JSON voor alles); de api comprimeert."""
     try:
         return await graaf_mod.graaf(bwb_id)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    except (httpx.HTTPError, ConnectionError) as exc:
+        raise HTTPException(503, "De brongraaf is tijdelijk niet beschikbaar.") from exc
+
+
+@router.get("/knoop")
+async def get_knoop(bron_iri: str = "", actor: str = Depends(actieve_userid)):
+    """Wat de kennisgraaf over één knoop weet – geldigheid, herkomst, grondslag, "genoemd in",
+    begrippen, vindplaats, de verwijzingen van en naar hem, en alle triples ruw. Voor de inspector
+    van de graaf; zie `knoopinfo.py`."""
+    try:
+        return await knoopinfo_mod.knoop_info(bron_iri)
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
     except (httpx.HTTPError, ConnectionError) as exc:
