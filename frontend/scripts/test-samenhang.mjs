@@ -232,6 +232,14 @@ async function detailsOpen(page) {
   const knop = page.getByRole("button", { name: "Details tonen" });
   if (await knop.count()) await knop.click();
 }
+/** Een klik zoals een trackpad of een snelle muis hem geeft: een paar pixels trilling tussen indrukken
+ *  en loslaten. Sigma telt bewegingen in plaats van afstand en zag zo'n klik als slepen. */
+async function trilKlik(page, x, y) {
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  for (const [dx, dy] of [[1, 0], [1, 1], [0, 1], [-1, 1], [0, 0]]) await page.mouse.move(x + dx, y + dy);
+  await page.mouse.up();
+}
 async function wachtGereed(page) {
   await page.locator('[data-testid="samenhang-graaf"][data-gereed="true"]').waitFor({ timeout: 30000 });
   await page.getByTestId("graaf-tekenaar").waitFor();
@@ -292,15 +300,27 @@ async function wachtGereed(page) {
   await page.getByRole("button", { name: "Selectie opheffen" }).click();
   assert.equal(await gekozen(page), "");
   const doek = await page.getByTestId("graaf-tekenaar").boundingBox();
-  await page.mouse.click(doek.x + doek.width / 2, doek.y + doek.height / 2);
+  // De hover noemt de volledige naam, niet het kaartlabel "Lid 1".
+  await page.mouse.move(doek.x + doek.width / 2, doek.y + doek.height / 2);
+  for (let i = 0; i < 20 && !(await page.getByTestId("graaf-tekenaar").getAttribute("data-hover-naam")); i++) await page.waitForTimeout(100);
+  assert.equal(await page.getByTestId("graaf-tekenaar").getAttribute("data-hover-naam"), "Artikel 9 · lid 1");
+  await trilKlik(page, doek.x + doek.width / 2, doek.y + doek.height / 2);
   for (let i = 0; i < 20 && (await gekozen(page)) !== L1; i++) await page.waitForTimeout(100);
-  assert.equal(await gekozen(page), L1, "een klik op de knoop kiest hem");
+  assert.equal(await gekozen(page), L1, `een klik met wat trilling op de knoop kiest hem (${await gekozen(page)})`);
   await page.screenshot({ path: `${shots}/1b-keuze.png` });
   // Twee klikken binnen sigma's dubbelklikvenster tellen als dubbelklik (zoomen), niet als twee klikken.
   await page.waitForTimeout(500);
-  await page.mouse.click(doek.x + 8, doek.y + doek.height / 2);
+  // Slepen is geen klik: de keuze blijft staan.
+  await page.mouse.move(doek.x + 8, doek.y + doek.height / 2);
+  await page.mouse.down();
+  for (let i = 1; i <= 8; i++) await page.mouse.move(doek.x + 8 + i * 5, doek.y + doek.height / 2);
+  await page.mouse.up();
+  await page.waitForTimeout(400);
+  assert.equal(await gekozen(page), L1, "slepen kiest niets en heft niets op");
+  await page.waitForTimeout(400);
+  await trilKlik(page, doek.x + 8, doek.y + doek.height / 2);
   for (let i = 0; i < 20 && (await gekozen(page)) !== ""; i++) await page.waitForTimeout(100);
-  assert.equal(await gekozen(page), "", "een klik op de achtergrond heft de keuze op");
+  assert.equal(await gekozen(page), "", "een klik met wat trilling op de achtergrond heft de keuze op");
   assert.match(await detail(page).innerText(), /Dit antwoord/i, "en brengt het begin terug");
   // "Terug naar het antwoord" staat er zolang er een keuze is, en brengt het begin terug.
   assert.equal(await page.getByTestId("graaf-terug").count(), 0);
@@ -322,8 +342,11 @@ async function wachtGereed(page) {
   await detail(page).getByText("Technisch detail", { exact: true }).click();
   await detail(page).getByText("Nog niet in de graaf bijgewerkt", { exact: false }).waitFor();
   assert.equal(await page.getByRole("button", { name: "Tekst", exact: true }).getAttribute("aria-pressed"), "false", "je blijft in de graaf");
-  await page.getByRole("button", { name: "Beoordeel in de tekst" }).click();
-  assert.equal(await page.getByRole("button", { name: "Tekst", exact: true }).getAttribute("aria-pressed"), "true");
+  // Het paneel toont lid 2; e1 staat op lid 1. Naar de tekst springen zou niets tonen: dan opent het
+  // paneel op lid 1 in plaats daarvan.
+  assert.equal(await page.getByRole("button", { name: "Beoordeel in de tekst" }).count(), 0, "e1 staat niet in de tekst van het paneel");
+  await page.getByRole("button", { name: "Open in het paneel" }).waitFor();
+  await page.getByRole("button", { name: "Tekst", exact: true }).click();
   await page.locator("[data-artefact]").waitFor();
   await page.getByRole("button", { name: "Graaf", exact: true }).click();
   assert.match(await detail(page).innerText(), /ontvanger/, "keuze blijft na terugkeren");
@@ -336,6 +359,12 @@ async function wachtGereed(page) {
   // 7. ✕ heft de keuze op: de inspector zegt wat er geladen is en hoe kiezen werkt.
   await page.getByRole("button", { name: "Selectie opheffen" }).click();
   assert.match(await detail(page).innerText(), /bepalingen[\s\S]*Klik een knoop/);
+
+  // 7a. Artikel 9: de inspector toont de tekst van álle leden, niet alleen het lid van het paneel.
+  await zoekEnKies(page, "artikel 9", ART);
+  await detail(page).getByTestId("graaf-knooptekst").waitFor();
+  assert.match(await detail(page).getByTestId("graaf-knooptekst").innerText(), /De ontvanger vordert[\s\S]*In afwijking van het eerste lid/);
+  await page.getByRole("button", { name: "Selectie opheffen" }).click();
 
   // 7b. Een markering in de wettekst van de inspector aanklikken kiest haar in de graaf.
   await zoekEnKies(page, "lid 1", L1);

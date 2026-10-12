@@ -109,7 +109,7 @@ export function GraafInspector({ model, id, detail, element, ongedekt, hoofdacti
       </div>}
       {knoop.soort === "markering" && el && <MarkeringDetail el={el} />}
       <Wettekst detail={detail} knoop={knoop} gekozen={knoop.soort === "markering" ? knoop.element_id : undefined}
-        onKies={(e) => onKies(`element:${e}`)} />
+        kiesbaar={(e) => model.hasNode(`element:${e}`)} onKies={(e) => onKies(`element:${e}`)} />
       {knoop.soort === "markering" && element === "laden" && <p className="text-xs text-faint">Details ophalen…</p>}
       {knoop.soort === "markering" && element === "fout" && <p className="text-xs text-faint">De details van deze markering konden niet worden opgehaald.</p>}
       {knoop.soort === "markering" && el && <WaaromUitklap key={knoop.id} el={el} beginOpen />}
@@ -164,12 +164,12 @@ function markeringenOp(g: GraafModel, id: string): number {
 }
 
 /** De wettekst bij de keuze: met de markeringen erin als die er is, anders wat het model weet. */
-function Wettekst({ detail, knoop, gekozen, onKies }: {
-  detail: DetailStand; knoop: KnoopData; gekozen?: string; onKies: (elementId: string) => void;
+function Wettekst({ detail, knoop, gekozen, kiesbaar, onKies }: {
+  detail: DetailStand; knoop: KnoopData; gekozen?: string; kiesbaar: (elementId: string) => boolean; onKies: (elementId: string) => void;
 }) {
   if (detail === "laden") return <p className="border-l-2 border-lint/20 pl-3 text-xs text-faint">Tekst ophalen…</p>;
   if (detail && detail !== "fout" && detail.segmenten.some((s) => s.tekst.trim())) {
-    return <KnoopTekst segmenten={detail.segmenten} elementen={detail.elementen} gekozen={gekozen} onKies={onKies} />;
+    return <KnoopTekst segmenten={detail.segmenten} elementen={detail.elementen} gekozen={gekozen} kiesbaar={kiesbaar} onKies={onKies} />;
   }
   // Een markering zonder tekst eromheen: het fragment zelf, letterlijk.
   if (knoop.soort === "markering") return knoop.tekst ? <blockquote className="border-l-2 border-lint/20 pl-3 text-xs leading-relaxed text-ink">“{knoop.tekst}”</blockquote> : null;

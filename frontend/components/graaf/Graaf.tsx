@@ -5,7 +5,7 @@ import { Component, useEffect, useMemo, useRef, useState, type ReactNode, type R
 import { Melding } from "@/components/ui/Melding";
 import { Meter } from "@/components/ui/Meter";
 import type { NodeDoel, NodeWeergave } from "@/lib/annotatieNode";
-import { hoofdactie as bepaalHoofdactie, paneelDoel, relatieGroepen, telling, tellingTekst } from "@/lib/graaf/bediening";
+import { hoofdactie as bepaalHoofdactie, knopenInWeergave, paneelDoel, relatieGroepen, telling, tellingTekst } from "@/lib/graaf/bediening";
 import { ankerVan, bouwModel, type KnoopData } from "@/lib/graaf/model";
 import { focusVan, lagenVoor, weergaveContext } from "@/lib/graaf/weergave";
 import { clusterOmschrijving, isDeelCluster } from "@/lib/samenhang";
@@ -69,6 +69,9 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
   const [geenWebgl, setGeenWebgl] = useState(false);
   const bedekking = useRef<HTMLDivElement>(null);
   const [aangewezen, setAangewezen] = useState<string | null>(null);
+  // De markering die de graaf zelf koos (en aan het paneel doorgaf): een keuze uit de tekst is een
+  // andere, en die moet in beeld komen.
+  const eigenKeuze = useRef<string | undefined>(undefined);
   const model = getekend?.model ?? LEEG;
   const ongedekt = useMemo(() => new Set(Object.keys(dekking ?? {})), [dekking]);
 
@@ -96,25 +99,33 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
   const groepen = useMemo(() => (gekozen ? relatieGroepen(model, gekozen) : []), [model, gekozen]);
   const tel = useMemo(() => telling(model), [model]);
   const hoofd = bronnen?.[0];
-  // De knopen die het paneel als tekst kan tonen: die van het eigen artikel, niet de bijgeladen.
-  const inPaneel = useMemo(() => (onWisselArtikel && hoofd ? new Set(hoofd.knopen.filter((k) => !k.rand).map((k) => k.id)) : undefined),
-    [hoofd, onWisselArtikel]);
+  // De knopen die het paneel als tekst kan tonen: wat in zijn weergave staat (vaak één lid), niet het
+  // hele artikel dat de graaf laadt. Al het andere opent in het paneel in plaats van naar een tekst te
+  // springen die het niet bevat.
+  const inPaneel = useMemo(() => (onWisselArtikel && weergave ? knopenInWeergave(model, weergave) : undefined),
+    [model, weergave, onWisselArtikel]);
   const gekozenData = gekozen ? model.getNodeAttributes(gekozen) : undefined;
   const actie = gekozen && gekozenData ? bepaalHoofdactie(gekozenData, gekozen, inPaneel) : null;
   // De tekst voor de inspector: van de gekozen bepaling, of bij een markering van haar anker. Alleen
   // bepalingen: de tekst van een heel hoofdstuk of een regeling past niet in een inspector.
   const tekstBron = !gekozen || !gekozenData ? null : gekozenData.soort === "markering" ? ankerVan(model, gekozen) ?? null
     : ["artikel", "lid", "onderdeel"].includes(gekozenData.soort) ? gekozen : null;
-  const detail = useKnoopDetail(tekstBron, weergave, stand.detailCache);
+  const detail = useKnoopDetail(tekstBron, weergave, stand.detailCache, stand.detailVersie);
   const bekendeElementen = useMemo(() => [...(weergave?.elementen ?? []), ...(detail && typeof detail === "object" ? detail.elementen : [])],
     [weergave, detail]);
-  const element = useMarkeringElement(gekozenData?.soort === "markering" ? gekozenData.element_id || undefined : undefined, bekendeElementen);
+  // Zolang de tekst van het anker laadt, wachten: het element zit er meestal in.
+  const element = useMarkeringElement(gekozenData?.soort === "markering" ? gekozenData.element_id || undefined : undefined, bekendeElementen,
+    detail === "laden");
 
   /** Kiezen, of met `null` de keuze opheffen. Via zoeken of de inspector vliegt de camera mee; in de
    *  graaf zelf niet – daar staat de knoop al onder je muis. Een knoop die een laag verbergt, zet die
    *  laag aan (`lagenVoor`). */
   function kies(id: string | null, vlieg = true) {
+    // Een id dat niet op de kaart staat (een element uit de tekst dat de graaf niet kent) kiest niets:
+    // anders is er een onzichtbare keuze en doet de eerste Escape schijnbaar niets.
+    if (id && !model.hasNode(id)) return;
     setAangeraakt(true);
+    eigenKeuze.current = id && model.getNodeAttribute(id, "element_id") || undefined;
     setSelectie(id);
     onKiesElement(id && model.hasNode(id) ? model.getNodeAttribute(id, "element_id") || undefined : undefined);
     if (!id) return;
@@ -131,13 +142,28 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
       wijs: (id) => setAangewezen(id),
       kies: (id) => {
         setAangewezen(null);
-        if (model.hasNode(id)) kies(id);
-        else { setSelectie(id); setBereik("kennisgraaf"); }
+        if (model.hasNode(id)) { kies(id); return true; }
+        // Niet op deze kaart: de hele kennisgraaf erbij halen, en de keuze laten wachten tot hij er
+        // is. Staat die al open en kent hij de knoop ook niet, dan is het gewoon een link.
+        if (bereik === "kennisgraaf") return false;
+        setSelectie(id);
+        setBereik("kennisgraaf");
         return true;
       },
     };
     return () => { koppelingRef.current = null; };
   });
+
+  // Een markering die in de Tekst-tab gekozen is, staat in de graaf misschien buiten beeld: erheen
+  // vliegen zodra de graaf zichtbaar is. Niet bij een keuze uit de graaf zelf.
+  const getekendModel = getekend?.model;
+  useEffect(() => {
+    if (!zichtbaar || !actiefElementId || actiefElementId === eigenKeuze.current) return;
+    const id = `element:${actiefElementId}`;
+    if (!getekendModel?.hasNode(id)) return;
+    eigenKeuze.current = actiefElementId;
+    requestAnimationFrame(() => bediening.current?.focus(id));
+  }, [zichtbaar, actiefElementId, getekendModel, bediening]);
 
   /** Terug naar het begin: geen keuze, en wat het antwoord noemt in beeld. */
   function naarAntwoord() {
@@ -149,7 +175,12 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
     if (!gekozen || !gekozenData) return;
     if (actie === "tekst") onOpenTekst(gekozenData);
     else if (actie === "laden") void laadErbij(gekozen);
-    else if (actie === "wissel") { const d = paneelDoel(gekozen, gekozenData); if (d) onWisselArtikel?.(d); }
+    else if (actie === "wissel") {
+      // Een markering opent het paneel op haar anker (het lid), niet op het hele artikel.
+      const anker = gekozenData.soort === "markering" ? ankerVan(model, gekozen) : undefined;
+      const d = anker ? paneelDoel(anker, model.getNodeAttributes(anker)) : paneelDoel(gekozen, gekozenData);
+      if (d) onWisselArtikel?.(d);
+    }
   }
 
   const opBereik = getekend?.bereik === bereik;

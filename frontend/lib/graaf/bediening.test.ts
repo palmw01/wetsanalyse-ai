@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Samenhang, SamenhangKnoop } from "@/lib/samenhang";
-import { hoofdactie, paneelDoel, relatieGroepen, telling, tellingTekst, zoekKnopen } from "./bediening";
+import { hoofdactie, hoortBijWeergave, knopenInWeergave, paneelDoel, relatieGroepen, telling, tellingTekst, zoekKnopen } from "./bediening";
 import { bouwModel } from "./model";
 
 const LAW = "urn:bwb:BWBR0004770", ART = `${LAW}:artikel:9`, L1 = `${ART}:lid:1`, L2 = `${ART}:lid:2`;
@@ -77,5 +77,42 @@ describe("bediening", () => {
     expect(t).toEqual({ regelingen: 1, bepalingen: 3, markeringen: 1, verwijzingen: 2 });
     expect(tellingTekst(t)).toBe("1 regeling · 3 bepalingen · 1 markering · 2 verwijzingen");
     expect(tellingTekst({ regelingen: 7, bepalingen: 5513, markeringen: 0, verwijzingen: 3488 })).toBe("7 regelingen · 5.513 bepalingen · 3.488 verwijzingen");
+  });
+});
+
+describe("wat het paneel toont", () => {
+  // Het paneel staat op lid 1; de graaf heeft heel artikel 9.
+  const w = {
+    doel: { bron_iri: L1 },
+    segmenten: [{ bron_iri: L1, type: "Lid", label: "", tekst: "De ontvanger.", bron_hash: "h", volgorde: 1 }],
+    elementen: [{ id: "e1" }] as never[],
+  };
+
+  it("het doel, alles eronder en zijn markeringen horen erbij; het artikel en de andere leden niet", () => {
+    expect(hoortBijWeergave(L1, w)).toBe(true);
+    expect(hoortBijWeergave(`${L1}:onderdeel:a`, w)).toBe(true);
+    expect(hoortBijWeergave("element:e1", w)).toBe(true);
+    expect(hoortBijWeergave(ART, w)).toBe(false);
+    expect(hoortBijWeergave(L2, w)).toBe(false);
+    expect(hoortBijWeergave("element:e9", w)).toBe(false);
+    // "lid:1" is geen voorvoegsel van "lid:10".
+    expect(hoortBijWeergave(`${ART}:lid:10`, w)).toBe(false);
+  });
+
+  it("buiten de weergave wordt de hoofdactie: open in het paneel", () => {
+    const g = bouwModel([samenhang()]);
+    const inPaneel = knopenInWeergave(g, w);
+    expect([...inPaneel].sort()).toEqual([L1, "element:e1"].sort());
+    expect(hoofdactie(g.getNodeAttributes(L2), L2, inPaneel)).toBe("wissel");
+    expect(hoofdactie(g.getNodeAttributes(L1), L1, inPaneel)).toBe("tekst");
+  });
+
+  it("een paneel op een deel bevat de artikelen eronder, ook al hangen hun IRI's er niet onder", () => {
+    const H = `${LAW}:hoofdstuk:II`;
+    const rel = (bron: string, doel: string) => ({ bron, doel, soort: "bevat" as const, groep: "structuur" as const, anker_tekst: "" });
+    const g = bouwModel([{ knopen: [knoop(LAW, "regeling"), knoop(H, "deel"), knoop(ART, "artikel"), knoop(L1, "lid"), knoop(A10, "artikel")],
+      relaties: [rel(LAW, H), rel(H, ART), rel(ART, L1), rel(LAW, A10)] }]);
+    const opHoofdstuk = knopenInWeergave(g, { doel: { bron_iri: H }, segmenten: [], elementen: [] });
+    expect([...opHoofdstuk].sort()).toEqual([H, ART, L1].sort());
   });
 });
