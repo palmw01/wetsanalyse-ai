@@ -87,7 +87,8 @@ function knoopInfo(iri) {
     groepen: [
       { naam: "Geldigheid", feiten: [{ eigenschap: "In werking", waarden: [{ tekst: "2026-07-01" }] }] },
       { naam: "Genoemd in", feiten: [{ eigenschap: "Genoemd in", waarden: [
-        { tekst: "Algemene wet inzake rijksbelastingen", iri: "urn:bwb:BWBR0002320" }, { tekst: "Artikel 10", iri: A10 }] }] }],
+        { tekst: "Algemene wet inzake rijksbelastingen", iri: "urn:bwb:BWBR0002320" }, { tekst: "Artikel 10", iri: A10 }] }] },
+      { naam: "Vindplaats", feiten: [{ eigenschap: "JCI", waarden: [{ tekst: "jci1.3:c:BWBR0004770&hoofdstuk=II&artikel=9&lid=2&z=2026-10-01&g=2026-10-01" }] }] }],
     ruw: [{ predicaat: "bwb:inwerking", waarde: "2026-07-01" }, { predicaat: "bwb:nummer", waarde: "9" }, { predicaat: "eli:has_part", waarde: L1, iri: L1 }] };
   if (iri === L2) return { ...leeg, verwijzingen: [{ richting: "uit", van: L2, naar: A10, anker: "artikel 10", soort: "tekstueel",
     doel_soort: "artikel", doel_pad: "", betrouwbaarheid: "laag" }] };
@@ -388,6 +389,9 @@ async function wachtGereed(page) {
   const feiten = detail(page).getByTestId("graaf-feiten");
   await feiten.waitFor();
   assert.match(await feiten.innerText(), /Geldigheid[\s\S]*In werking[\s\S]*1 juli 2026[\s\S]*Genoemd in/);
+  // Een lange waarde zonder spaties (een JCI) breekt af in plaats van uit de inspector te lopen.
+  const breedte = await feiten.evaluate((el) => ({ scroll: el.scrollWidth, client: el.clientWidth }));
+  assert.ok(breedte.scroll <= breedte.client + 1, `niets loopt uit beeld (${breedte.scroll} > ${breedte.client})`);
   assert.equal(await feiten.getByRole("link", { name: "Algemene wet inzake rijksbelastingen" }).getAttribute("href"), "https://wetten.overheid.nl/BWBR0002320");
   assert.match(await feiten.getByTestId("graaf-ruw").textContent(), /Alle eigenschappen uit de graaf \(3\)/);
   await page.screenshot({ path: `${shots}/7a-kennisgraaf-feiten.png` });

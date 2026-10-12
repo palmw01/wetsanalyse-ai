@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { ChevronOmlaag } from "@/components/ui/Icoon";
 import { datumTekst, type KnoopInfo, type KnoopWaarde } from "@/lib/graaf/knoopinfo";
 import { bronHref } from "@/lib/url";
 
-const TEKSTKNOP = "focus-ring rounded px-1 py-0.5 text-left text-xs text-lint underline-offset-2 hover:underline coarse:min-h-11";
+const TEKSTKNOP = "focus-ring max-w-full rounded px-1 py-0.5 text-left text-xs text-lint underline-offset-2 [overflow-wrap:anywhere] hover:underline coarse:min-h-11";
 const ZICHTBAAR = 5;
 /** Langer dan dit (aanhef, considerans) staat ingeklapt. */
 const LANG = 220;
@@ -43,10 +43,10 @@ export function KnoopFeiten({ info, opKaart, onKies }: {
           const toon = allesOpen[sleutel] ? f.waarden : f.waarden.slice(0, ZICHTBAAR);
           // Een groep met één gelijknamige eigenschap ("Genoemd in") hoeft de naam niet twee keer.
           const zelfdeNaam = g.feiten.length === 1 && f.eigenschap === g.naam;
-          return <div key={f.eigenschap} className={zelfdeNaam ? "text-xs" : "grid grid-cols-[minmax(6rem,38%)_1fr] gap-x-2 text-xs"}>
+          return <div key={f.eigenschap} className={zelfdeNaam ? "text-xs" : "grid grid-cols-[minmax(6rem,38%)_minmax(0,1fr)] gap-x-2 text-xs"}>
             <dt className={zelfdeNaam ? "sr-only" : "text-faint"}>{f.eigenschap}{f.waarden.length > 1 ? ` (${f.waarden.length})` : ""}</dt>
-            <dd className="min-w-0 break-words text-ink">
-              <span className="flex flex-col items-start">{toon.map(waarde)}</span>
+            <dd className="min-w-0 text-ink [overflow-wrap:anywhere]">
+              <span className="flex min-w-0 flex-col items-start">{toon.map(waarde)}</span>
               {f.waarden.length > ZICHTBAAR && !allesOpen[sleutel] && <button type="button" className={TEKSTKNOP}
                 onClick={() => setAllesOpen((a) => ({ ...a, [sleutel]: true }))}>Alle {f.waarden.length} tonen</button>}
             </dd>
@@ -59,7 +59,7 @@ export function KnoopFeiten({ info, opKaart, onKies }: {
         <ChevronOmlaag className="-rotate-90 transition-transform group-open:rotate-0" />Alle eigenschappen uit de graaf <span className="font-normal text-faint">({info.ruw.length})</span>
       </summary>
       <dl className="mt-1 space-y-0.5 pl-4 font-mono text-[10px] leading-relaxed">
-        {info.ruw.map((r, i) => <div key={i} className="grid grid-cols-[minmax(7rem,38%)_1fr] gap-x-2">
+        {info.ruw.map((r, i) => <div key={i} className="grid grid-cols-[minmax(7rem,38%)_minmax(0,1fr)] gap-x-2">
           <dt className="text-faint">{r.predicaat}</dt>
           <dd className="min-w-0 break-all text-ink">{r.iri && opKaart(r.iri)
             ? <button type="button" className="focus-ring rounded text-left text-lint hover:underline" onClick={() => onKies(r.iri!)}>{r.waarde}</button>
@@ -70,10 +70,17 @@ export function KnoopFeiten({ info, opKaart, onKies }: {
   </section>;
 }
 
+/** Een lange waarde zonder spaties (een JCI, een sleutel) mag na `&`, `#` en `/` op een nieuwe regel:
+ *  zo breekt hij op een leesbare plek in plaats van midden in een woord. */
+function Breekbaar({ tekst }: { tekst: string }) {
+  if (/\s/.test(tekst) || tekst.length < 30) return <>{tekst}</>;
+  return <>{tekst.split(/(?<=[&#/])/).map((deel, i) => <Fragment key={i}>{i > 0 && <wbr />}{deel}</Fragment>)}</>;
+}
+
 /** Een tekstwaarde; een lange (aanhef, considerans) ingeklapt tot je hem opent. */
 function Tekst({ tekst }: { tekst: string }) {
   const [open, setOpen] = useState(false);
-  if (tekst.length <= LANG) return <span>{tekst}</span>;
+  if (tekst.length <= LANG) return <span className="max-w-full"><Breekbaar tekst={tekst} /></span>;
   return <span>{open ? tekst : `${tekst.slice(0, LANG - 20).trimEnd()}…`}{" "}
     <button type="button" className={TEKSTKNOP} onClick={() => setOpen((v) => !v)}>{open ? "minder" : "meer"}</button></span>;
 }
