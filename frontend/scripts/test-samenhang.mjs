@@ -86,6 +86,7 @@ function knoopInfo(iri) {
   if (iri === ART) return { ...leeg,
     groepen: [
       { naam: "Geldigheid", feiten: [{ eigenschap: "In werking", waarden: [{ tekst: "2026-07-01" }] }] },
+      { naam: "Herkomst van de tekst", feiten: [{ eigenschap: "Eerstverantwoordelijke", waarden: [{ tekst: "Financiën" }] }] },
       { naam: "Genoemd in", feiten: [{ eigenschap: "Genoemd in", waarden: [
         { tekst: "Algemene wet inzake rijksbelastingen", iri: "urn:bwb:BWBR0002320" }, { tekst: "Artikel 10", iri: A10 }] }] },
       { naam: "Vindplaats", feiten: [{ eigenschap: "JCI", waarden: [{ tekst: "jci1.3:c:BWBR0004770&hoofdstuk=II&artikel=9&lid=2&z=2026-10-01&g=2026-10-01" }] }] }],
@@ -418,6 +419,48 @@ async function wachtGereed(page) {
   await page.keyboard.press("Escape");
   assert.equal(await graaf(page).getAttribute("data-vergroot"), "false");
 
+  // 8a. In de smalle zijkolom van de vergrote graaf loopt geen label over zijn waarde.
+  await page.getByRole("button", { name: "Vergroten" }).click();
+  await wachtGereed(page);
+  await zoekEnKies(page, "artikel 9", ART);
+  await detail(page).getByTestId("graaf-feiten").waitFor();
+  const overloop = await detail(page).getByTestId("graaf-feiten").evaluate((el) =>
+    [...el.querySelectorAll("dt:not(.sr-only), dd")].filter((x) => x.scrollWidth > x.clientWidth + 1).map((x) => x.textContent));
+  assert.deepEqual(overloop, [], `geen label of waarde loopt uit zijn vak: ${JSON.stringify(overloop)}`);
+  await page.screenshot({ path: `${shots}/8a-feiten-vergroot.png` });
+  // Het muiswiel boven de inspector scrolt hem (er is één scrollvak; een tweede eromheen slikte het wiel).
+  await page.setViewportSize({ width: 1440, height: 560 });
+  await page.waitForTimeout(400);
+  const vak = await detail(page).boundingBox();
+  await page.mouse.move(vak.x + vak.width / 2, vak.y + Math.min(vak.height / 2, 200));
+  await page.mouse.wheel(0, 400);
+  await page.waitForTimeout(500);
+  const gescrold = await detail(page).evaluate((el) => Math.max(...[el, ...el.querySelectorAll("*")].map((k) => k.scrollTop)));
+  assert.ok(gescrold > 0, "het muiswiel scrolt de inspector");
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.waitForTimeout(300);
+
+  // De zijbalk is breder dan vroeger (320 px), en in te klappen tot een strook; de stand blijft.
+  const zijbalk = page.getByTestId("graaf-zijbalk"), doekVak = page.getByTestId("graaf-tekenaar");
+  const breed = (await zijbalk.boundingBox()).width, doekBreed = (await doekVak.boundingBox()).width;
+  assert.ok(breed >= 352, `zijbalk breed genoeg (${breed}px)`);
+  await page.getByRole("button", { name: "Zijbalk inklappen" }).click();
+  assert.equal(await graaf(page).getAttribute("data-zijbalk"), "in");
+  await page.waitForTimeout(400);
+  assert.ok((await zijbalk.boundingBox()).width <= 48, "ingeklapt is het een strook");
+  assert.ok((await doekVak.boundingBox()).width > doekBreed + 250, "het canvas krijgt de ruimte");
+  await page.getByTestId("graaf-zijbalk-keuze").waitFor();
+  await page.screenshot({ path: `${shots}/8a-zijbalk-ingeklapt.png` });
+  // Onthouden: verkleinen en weer vergroten (de graaf remount) houdt hem ingeklapt.
+  await page.getByRole("button", { name: "Verkleinen" }).click();
+  await page.getByRole("button", { name: "Vergroten" }).click();
+  await wachtGereed(page);
+  assert.equal(await graaf(page).getAttribute("data-zijbalk"), "in", "de ingeklapte stand blijft");
+  await page.getByRole("button", { name: "Zijbalk uitklappen" }).click();
+  await page.waitForTimeout(400);
+  assert.equal(Math.round((await zijbalk.boundingBox()).width), Math.round(breed), "uitgeklapt weer op breedte");
+  await page.getByRole("button", { name: "Verkleinen" }).click();
+
   // 8b. Laag Dekking: het lid met een zinsdeel zonder detectortreffer toont dat in de inspector.
   await zoekEnKies(page, "lid 2", L2);
   await detailsOpen(page);
@@ -621,6 +664,33 @@ async function wachtGereed(page) {
   const hoogte = (await page.getByTestId("graaf-tekenaar").boundingBox()).height;
   assert.ok(hoogte >= 200, `het canvas houdt hoogte (${hoogte}px)`);
   await page.screenshot({ path: `${shots}/3-mobiel.png` });
+  // Mobiel: artikel 9 met "Uit de kennisgraaf" – niets loopt horizontaal uit beeld, en de inspector
+  // scrolt; ook vergroot (dan staat hij onder de graaf).
+  await zoekEnKies(page, "artikel 9", ART);
+  await detail(page).getByTestId("graaf-feiten").waitFor();
+  const mobielBreed = async () => detail(page).evaluate((el) => ({ scroll: el.scrollWidth, client: el.clientWidth,
+    pagina: document.documentElement.scrollWidth, venster: window.innerWidth }));
+  let maat = await mobielBreed();
+  assert.ok(maat.scroll <= maat.client + 1 && maat.pagina <= maat.venster, `mobiel geen horizontale overloop (${JSON.stringify(maat)})`);
+  await page.screenshot({ path: `${shots}/3b-mobiel-artikel.png` });
+  const mobielScroll = async () => {
+    const vak = await detail(page).boundingBox();
+    await page.mouse.move(vak.x + vak.width / 2, vak.y + Math.min(vak.height - 10, 120));
+    await page.mouse.wheel(0, 300);
+    await page.waitForTimeout(400);
+    return detail(page).evaluate((el) => Math.max(...[el, ...el.querySelectorAll("*")].map((k) => k.scrollTop)));
+  };
+  assert.ok(await mobielScroll() > 0, "mobiel scrolt de inspector");
+  await page.getByRole("button", { name: "Vergroten" }).click();
+  await wachtGereed(page);
+  await detail(page).getByTestId("graaf-feiten").waitFor();
+  maat = await mobielBreed();
+  assert.ok(maat.scroll <= maat.client + 1 && maat.pagina <= maat.venster, `mobiel vergroot geen overloop (${JSON.stringify(maat)})`);
+  assert.equal(await page.getByRole("button", { name: "Zijbalk inklappen" }).isVisible(), false, "mobiel geen zijbalkgreep");
+  assert.ok(await mobielScroll() > 0, "mobiel vergroot scrolt de inspector");
+  const doekHoogte = (await page.getByTestId("graaf-tekenaar").boundingBox()).height;
+  assert.ok(doekHoogte >= 250, `mobiel vergroot houdt het canvas hoogte (${doekHoogte}px)`);
+  await page.screenshot({ path: `${shots}/3c-mobiel-vergroot.png` });
   assert.deepEqual(log.errors, []);
   assert.deepEqual(log.console, [], "geen consolefouten");
   await page.close();

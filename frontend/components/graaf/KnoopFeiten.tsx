@@ -41,10 +41,12 @@ export function KnoopFeiten({ info, opKaart, onKies }: {
         {g.feiten.map((f) => {
           const sleutel = `${g.naam}|${f.eigenschap}`;
           const toon = allesOpen[sleutel] ? f.waarden : f.waarden.slice(0, ZICHTBAAR);
-          // Een groep met één gelijknamige eigenschap ("Genoemd in") hoeft de naam niet twee keer.
+          // Een groep met één gelijknamige eigenschap ("Genoemd in") hoeft de naam niet twee keer. Het
+          // label staat bóven de waarde: naast elkaar liep een lang label ("Eerstverantwoordelijke") in
+          // de smalle zijkolom over zijn waarde heen.
           const zelfdeNaam = g.feiten.length === 1 && f.eigenschap === g.naam;
-          return <div key={f.eigenschap} className={zelfdeNaam ? "text-xs" : "grid grid-cols-[minmax(6rem,38%)_minmax(0,1fr)] gap-x-2 text-xs"}>
-            <dt className={zelfdeNaam ? "sr-only" : "text-faint"}>{f.eigenschap}{f.waarden.length > 1 ? ` (${f.waarden.length})` : ""}</dt>
+          return <div key={f.eigenschap} className="min-w-0 text-xs">
+            <dt className={zelfdeNaam ? "sr-only" : "text-[11px] text-faint [overflow-wrap:anywhere]"}>{f.eigenschap}{f.waarden.length > 1 ? ` (${f.waarden.length})` : ""}</dt>
             <dd className="min-w-0 text-ink [overflow-wrap:anywhere]">
               <span className="flex min-w-0 flex-col items-start">{toon.map(waarde)}</span>
               {f.waarden.length > ZICHTBAAR && !allesOpen[sleutel] && <button type="button" className={TEKSTKNOP}
@@ -58,9 +60,9 @@ export function KnoopFeiten({ info, opKaart, onKies }: {
       <summary className="focus-ring flex cursor-pointer list-none items-center gap-1.5 rounded py-0.5 text-[11px] font-semibold text-muted">
         <ChevronOmlaag className="-rotate-90 transition-transform group-open:rotate-0" />Alle eigenschappen uit de graaf <span className="font-normal text-faint">({info.ruw.length})</span>
       </summary>
-      <dl className="mt-1 space-y-0.5 pl-4 font-mono text-[10px] leading-relaxed">
-        {info.ruw.map((r, i) => <div key={i} className="grid grid-cols-[minmax(7rem,38%)_minmax(0,1fr)] gap-x-2">
-          <dt className="text-faint">{r.predicaat}</dt>
+      <dl className="mt-1 space-y-1 pl-4 font-mono text-[10px] leading-relaxed">
+        {info.ruw.map((r, i) => <div key={i} className="min-w-0">
+          <dt className="text-faint [overflow-wrap:anywhere]">{r.predicaat}</dt>
           <dd className="min-w-0 break-all text-ink">{r.iri && opKaart(r.iri)
             ? <button type="button" className="focus-ring rounded text-left text-lint hover:underline" onClick={() => onKies(r.iri!)}>{r.waarde}</button>
             : r.waarde}</dd>

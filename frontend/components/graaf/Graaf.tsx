@@ -14,7 +14,8 @@ import { GraafHint } from "./GraafHint";
 import { GraafInspector } from "./GraafInspector";
 import { GraafLagen } from "./GraafLagen";
 import { GraafZoek } from "./GraafZoek";
-import { Terug } from "@/components/ui/Icoon";
+import { ChevronOmlaag, Terug } from "@/components/ui/Icoon";
+import { eigenKleur } from "@/lib/graaf/stijl";
 import type { GraafKoppeling } from "./koppeling";
 import type { Bereik, GraafStand } from "./useGraafStand";
 import { useKnoopDetail, useKnoopInfo, useMarkeringElement } from "./useKnoopDetail";
@@ -36,6 +37,7 @@ class TekenGrens extends Component<{ children: ReactNode }, { fout: boolean }> {
 }
 
 const LEEG = bouwModel([]);
+const ZIJBALK = "wa_graaf_zijbalk";
 
 /** De samenhang als graaf: bronstructuur, letterlijke verwijzingen en de actuele markeringen met hun
  *  JAS-klasse, getekend met sigma.js. De graaf vult het vlak; de bediening zweeft erover zoals bij een
@@ -68,6 +70,20 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
     bereik, setBereik, focusIds, laadKennisgraaf } = stand;
   const [geenWebgl, setGeenWebgl] = useState(false);
   const bedekking = useRef<HTMLDivElement>(null);
+  // De zijbalk (inspector naast de vergrote graaf) in te klappen tot een strook; per kijker onthouden.
+  // Opslag kan ontbreken (privévenster): dan gewoon uitgeklapt.
+  const [zijbalkIn, setZijbalkIn] = useState(false);
+  useEffect(() => {
+    // Pas na de eerste render lezen: de server kent geen localStorage.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    try { setZijbalkIn(localStorage.getItem(ZIJBALK) === "in"); } catch { /* geen opslag */ }
+  }, []);
+  function wisselZijbalk() {
+    setZijbalkIn((v) => {
+      try { localStorage.setItem(ZIJBALK, v ? "uit" : "in"); } catch { /* geen opslag: alleen deze sessie */ }
+      return !v;
+    });
+  }
   const [aangewezen, setAangewezen] = useState<string | null>(null);
   // De markering die de graaf zelf koos (en aan het paneel doorgaf): een keuze uit de tekst is een
   // andere, en die moet in beeld komen.
@@ -197,14 +213,14 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
     : (hoofd && model.hasNode(hoofd.artikel_iri) ? model.getNodeAttribute(hoofd.artikel_iri, "naam") : hoofd?.doel.label) ?? "de bepaling";
   const hoofdNaam = hoofd && model.hasNode(hoofd.artikel_iri) ? model.getNodeAttribute(hoofd.artikel_iri, "naam") : "het eerste artikel";
   return <div className="flex min-h-0 flex-1 flex-col" data-testid="samenhang-graaf" data-vergroot={groot}
-    data-gereed={!!getekend && opBereik} data-bereik={bereik} data-selectie={gekozen ?? ""} data-aangewezen={aangewezen ?? ""}>
+    data-gereed={!!getekend && opBereik} data-bereik={bereik} data-zijbalk={groot && zijbalkIn ? "in" : "uit"} data-selectie={gekozen ?? ""} data-aangewezen={aangewezen ?? ""}>
     <div className="shrink-0 border-b border-line px-5 py-2.5">
       <h2 className="text-sm font-semibold text-lint">
         {bereik === "kennisgraaf" ? "De hele kennisgraaf" : `Samenhang van ${titel}`}
         {getekend && <span className="ml-2 text-xs font-normal text-muted" data-testid="graaf-telling">{tellingTekst(tel)}</span>}
       </h2>
       {focus && opBereik && <p className="mt-1 text-xs text-muted" data-testid="graaf-focus">Nadruk op wat het antwoord noemt
-        ({focus.doelen.size === 1 ? "1 deel of bepaling" : `${focus.doelen.size} delen en bepalingen`}, met wat eronder valt en waarnaar het verwijst); de rest staat gedimd op de kaart.</p>}
+        ({focus.doelen.size === 1 ? "1 deel of bepaling" : `${focus.doelen.size} delen en bepalingen`}<span className="hidden sm:inline">, met wat eronder valt en waarnaar het verwijst</span>)<span className="hidden sm:inline">; de rest staat gedimd op de kaart</span>.</p>}
       {hoofd && !hoofd.verwijzingen_beschikbaar && <p className="mt-1 text-xs text-muted">Verwijzingen zijn nu niet beschikbaar; je ziet de bronstructuur en de annotaties.</p>}
       {bronnen?.some((d) => d.afgekapt) && <p className="mt-1 text-xs text-muted">Er zijn meer verwijzingen dan getoond; de eerste 200 per richting staan in beeld.</p>}
       {bronnen && bronnen.length > 1 && bereik === "antwoord" && <p className="mt-1 text-xs text-muted">De tekst en de annotatie in het paneel gaan over {hoofdNaam}; een knoop uit een ander artikel opent dat artikel in het paneel.{bronnen.some(isDeelCluster) ? " Een hoofdstuk of afdeling staat er met zijn artikelen; open een artikel voor leden, annotaties en verwijzingen." : ""}</p>}
@@ -225,10 +241,13 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
           <div className="flex w-full items-start justify-between gap-2">
             <GraafZoek model={model} verborgen={context.verborgen} gekozen={gekozen} onKies={(id) => kies(id)} />
             <div role="group" aria-label="Wat de graaf toont" className="pointer-events-auto flex shrink-0 rounded-full border border-line bg-paper/95 p-0.5 shadow-kaart">
+              {/* Mobiel kort, zodat het zoekveld ernaast leesbaar blijft; de volle naam staat in het label. */}
               {(["antwoord", "kennisgraaf"] as const).map((b) => <button key={b} type="button" aria-pressed={bereik === b}
+                aria-label={b === "antwoord" ? "Dit antwoord" : "Hele kennisgraaf"}
                 onClick={() => wisselBereik(b)}
                 className={`focus-ring min-h-8 rounded-full px-3 text-xs coarse:min-h-11 ${bereik === b ? "bg-lint text-paper" : "text-muted hover:text-lint"}`}>
-                {b === "antwoord" ? "Dit antwoord" : "Hele kennisgraaf"}</button>)}
+                <span className="sm:hidden">{b === "antwoord" ? "Antwoord" : "Alles"}</span>
+                <span className="hidden sm:inline">{b === "antwoord" ? "Dit antwoord" : "Hele kennisgraaf"}</span></button>)}
             </div>
           </div>
           {/* Zolang er een keuze is: de weg terug naar het begin, onder het zoekveld. */}
@@ -246,7 +265,21 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
           </div>
         </div>}
       </div>
-      <div className={`shrink-0 border-t border-line bg-paper ${groot ? "max-h-[40dvh] overflow-y-auto md:max-h-none md:w-80 md:border-l md:border-t-0" : "flex max-h-[45%] flex-col"}`}>
+      {/* De inspector heeft één scrollvak (de details erin); deze schil geeft alleen de hoogte door. Een
+          tweede scrollvak eromheen slikte het muiswiel: met `overscroll-behavior: contain` op elke
+          scroller gaf het binnenste, dat niets te scrollen had, het wiel niet door. */}
+      <div data-testid="graaf-zijbalk" className={`relative flex shrink-0 flex-col border-t border-line bg-paper ${!groot ? "max-h-[45%]"
+        : `max-h-[40dvh] md:max-h-none md:border-l md:border-t-0 ${zijbalkIn ? "md:w-10" : "md:w-[22rem] lg:w-[26rem] xl:w-[28rem]"}`}`}>
+        {/* Breed: de zijbalk is in te klappen tot een strook, met een greep op zijn linkerrand. */}
+        {groot && <button type="button" onClick={wisselZijbalk} aria-expanded={!zijbalkIn}
+          aria-label={zijbalkIn ? "Zijbalk uitklappen" : "Zijbalk inklappen"} title={zijbalkIn ? "Zijbalk uitklappen" : "Zijbalk inklappen"}
+          className="focus-ring absolute -left-3 top-1/2 z-10 hidden h-12 w-6 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-paper text-muted shadow-kaart hover:text-lint md:flex">
+          <ChevronOmlaag className={zijbalkIn ? "rotate-90" : "-rotate-90"} /></button>}
+        {groot && zijbalkIn && gekozenData && <div className="hidden flex-col items-center pt-4 md:flex">
+          <span className="h-3 w-3 rounded-full border border-black/10" style={{ background: eigenKleur(gekozenData) }}
+            title={`Gekozen: ${gekozenData.naam}`} data-testid="graaf-zijbalk-keuze" />
+        </div>}
+        <div className={`flex min-h-0 flex-1 flex-col ${groot && zijbalkIn ? "md:hidden" : ""}`}>
         <GraafInspector key={gekozen ?? ""} model={model} id={gekozen} smal={!groot}
           detail={detail} info={info} element={element} doelen={focus ? [...focus.doelen] : hoofd ? [hoofd.doel.bron_iri] : []}
           ongedekt={lagen.dekking && gekozen ? dekking?.[gekozen] : undefined}
@@ -257,6 +290,7 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
           onHoofdactie={doeHoofdactie}
           onVraag={onVraag && gekozenData && gekozenData.soort !== "klasse" ? () => onVraag(gekozenData) : undefined}
           onKies={(id) => kies(id)} />
+        </div>
       </div>
     </div>
   </div>;
