@@ -40,7 +40,7 @@ export function GraafZoek({ model, verborgen, gekozen, onKies }: {
         onFocus={openLijst} onClick={openLijst}
         onBlur={() => { sluitTimer.current = setTimeout(() => setOpen(false), 120); }}
         onKeyDown={(e) => {
-          if (e.key === "ArrowDown") { e.preventDefault(); openLijst(); setActief((i) => Math.min(i + 1, resultaten.length - 1)); }
+          if (e.key === "ArrowDown") { e.preventDefault(); openLijst(); setActief((i) => Math.max(0, Math.min(i + 1, resultaten.length - 1))); }
           else if (e.key === "ArrowUp") { e.preventDefault(); setActief((i) => Math.max(i - 1, 0)); }
           else if (e.key === "Enter" && resultaten[actief]) { e.preventDefault(); kies(resultaten[actief]); }
           else if (e.key === "Escape" && (open || vraag)) { e.stopPropagation(); setOpen(false); setVraag(""); }

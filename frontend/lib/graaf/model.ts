@@ -33,7 +33,8 @@ export interface GraafBron {
 /** Het antwoord van `GET /v1/annotatie/graaf` (api/app/graaf.py). */
 export interface KennisgraafAntwoord extends GraafBron {
   schema_versie: 1;
-  /** Hash van de regelingtoestanden: verandert alleen bij een herimport. Sleutel van de layoutcache. */
+  /** Hash van de regelingtoestanden: verandert alleen bij een herimport. (De layoutcache gebruikt
+   *  een hash van de structuur zelf, `cache.ts:layoutSleutel`.) */
   versie: string;
   regelingen: { bwb_id: string; citeertitel: string; toestand: string }[];
 }
@@ -77,6 +78,15 @@ export function bouwModel(bronnen: readonly GraafBron[]): GraafModel {
     g.addDirectedEdgeWithKey(sleutel, r.bron, r.doel, { soort: r.soort, groep: r.groep, anker_tekst: r.anker_tekst ?? "" });
   }
   return g;
+}
+
+/** Voegt `waarde` toe aan de lijst onder `sleutel`, zonder de lijst te kopiëren: in de hete paden
+ *  (layout, labelkeuze per beeld, relaties van een klasse met honderden markeringen) werd
+ *  `[...oud, x]` kwadratisch. */
+export function voegToe<K, V>(map: Map<K, V[]>, sleutel: K, waarde: V): void {
+  const lijst = map.get(sleutel);
+  if (lijst) lijst.push(waarde);
+  else map.set(sleutel, [waarde]);
 }
 
 /** Een bronknoop (wettekst: regeling, deel, artikel, lid, onderdeel, extern) en geen annotatie. */

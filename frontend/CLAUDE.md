@@ -688,16 +688,32 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
   noemt de volledige `naam` ("Artikel 9 · lid 1"), niet het kaartlabel.
 - **`components/graaf/useGraafStand.ts`** – data, laadfase, het getekende beeld (model + posities samen
   vervangen, nooit knopen zonder plek), keuze, lagen, camera. Leeft in het paneel (búiten de `Dialog`):
-  vergroten remount de inhoud.
+  vergroten remount de inhoud. Het layout-effect zet niets meer na een abort: `layoutVoor` toetst het
+  `signal` na elke `await` (`blijfBijDeZaak`), anders zette een cache-lezing van een vervallen run een
+  oude kaart over een nieuwere heen.
+  **Twee foutkanalen.** `fout` blokkeert het tekenen in díe bron en dat bereik (samenhang, kennisgraaf,
+  layout), staat midden op het canvas en heeft zijn eigen herstel (*Opnieuw proberen*); `melding`
+  (verversen of bijladen mislukt) blokkeert niets en verdwijnt bij de volgende geslaagde handeling. Eén
+  gedeelde foutstring liet een melding uit het andere bereik staan en hield de laadbalk weg.
+  **`selectie` bevat alleen ids op de kaart.** Een keuze voor iets dat nog niet geladen is (het
+  overzichtsblok wijst een knoop uit de kennisgraaf aan) is een `wachtendeKeuze`; die wordt een gewone
+  `kies` (met `lagenVoor` en de melding aan het paneel) zodra de kaart er is. Een keuze die van de
+  kaart verdwijnt (verworpen markering) vervalt.
 
 **Data en gedrag**:
 
 - **De knop opent wat het antwoord noemt** (`samenhangDoelen` in `lib/bronnen.ts`, max.
   `MAX_SAMENHANG_DOELEN`) of de delen van een overzicht (`overzichtDoelen` in `lib/overzicht.ts`, max.
   `MAX_OVERZICHT_DOELEN`, uit het overzicht en niet uit de tekst: dezelfde vraag geeft dezelfde kaart).
-  Meer dan één doel gaat in **één** verzoek (`/samenhang/meer`, één bronboom per regeling). Het eerste
+  Meer dan één doel gaat in **één** verzoek (`/samenhang/meer`, één bronboom per regeling) – in
+  partijen van `MAX_SAMENHANG_MEER` (30, de grens van de api, die anders het hele verzoek weigert):
+  na een paar keer *Open in het paneel* vanuit een overzicht zijn het er al meer. Het eerste
   doel is het doel van het paneel (tekst en annotatie); een knoop uit een ander artikel – meegeladen of
-  uit de hele kennisgraaf – opent dát in het paneel (*Open in het paneel*), en bereik en focus gaan mee. Beide alleen als de API de capability `samenhang` meldt.
+  uit de hele kennisgraaf – opent dát in het paneel (*Open in het paneel*), en bereik en focus gaan mee:
+  `onWisselArtikel(doel, { bereik, kennisgraaf })` geeft het bereik van nú door, en de geladen
+  kennisgraaf als die actueel is (`kennisgraafActueel`), zodat het geremounte paneel hem niet opnieuw
+  ophaalt. `WerkplekClient` haalt die doorgegeven kennisgraaf weg bij elke andere doelwissel
+  (`zonderKennisgraaf`): na een beurt van Lex klopt hij niet meer. Beide alleen als de API de capability `samenhang` meldt.
 - **Een randbepaling** (buiten wat geladen is, als omtrek getekend) laad je erbij met *In de graaf laden*;
   de kaart blijft liggen. Een niet-geïmporteerde bepaling (`extern`) is niet te laden. Afstand en
   positie betekenen juridisch niets; dat staat in de legenda.
@@ -744,8 +760,12 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
   markering op haar anker. Een id dat niet op de kaart staat, kiest niets.
 - **Laag Dekking**: de zinsdelen zonder detectortreffer uit het paneel (`ongedektPerBron`) geven een lid
   of onderdeel een okeromtrek (`DEKKINGSKLEUR`) en in de inspector *Zonder detectortreffer*.
-- **Live bij een annotatiewijziging**: `NodeAnnotatiePaneel` roept na elke mutatie `graafStand.ververs()`
-  aan; elk geladen deel wordt opnieuw opgehaald, de kaart verschuift niet.
+- **Live bij een annotatiewijziging – verversen is een toestand.** `NodeAnnotatiePaneel` roept na elke
+  mutatie `graafStand.ververs()` aan, en dat noteert alleen dát de graaf achterloopt (`gevraagd` >
+  `gedaan`). Mutaties gebeuren op de Tekst-tab; pas als de graaf weer zichtbaar is, haalt hij op: alle
+  geladen delen in één `/samenhang/meer` en zo nodig de kennisgraaf. Eén ronde tegelijk; wat er tijdens
+  een ronde nog bijkomt, geeft daarna precies één ronde – dus nooit een ouder antwoord over een
+  nieuwer heen, en geen 2 MB per `a`-toets. De kaart verschuift niet.
 - **Bereik: *Dit antwoord* | *Hele kennisgraaf*** (schakelaar rechtsboven, `Bereik` in `useGraafStand`;
   mobiel "Antwoord" | "Alles" met de volle naam als `aria-label`, zodat het zoekveld ernaast leesbaar
   blijft – om dezelfde reden is de focusregel in de kop mobiel één korte zin).

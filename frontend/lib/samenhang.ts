@@ -49,8 +49,30 @@ export async function haalSamenhang(doel: Pick<NodeDoel, "bron_iri">): Promise<S
 export async function haalSamenhangen(doelen: Pick<NodeDoel, "bron_iri">[]): Promise<{
   resultaten: Samenhang[]; fouten: { bron_iri: string; reden: string }[];
 }> {
-  const params = new URLSearchParams(doelen.map((d) => ["bron_iri", d.bron_iri]));
-  return nodeRequest(`samenhang/meer?${params}`);
+  // De api neemt hoogstens `MAX_SAMENHANG_MEER` doelen per verzoek en weigert anders het geheel; na
+  // een paar keer "Open in het paneel" vanuit een overzicht zijn het er al meer. Dus in partijen, met
+  // de uitkomst in de volgorde van de doelen.
+  const partijen = await Promise.all(inPartijen(uniekeDoelen(doelen), MAX_SAMENHANG_MEER).map((partij) => {
+    const params = new URLSearchParams(partij.map((d) => ["bron_iri", d.bron_iri]));
+    return nodeRequest<{ resultaten: Samenhang[]; fouten: { bron_iri: string; reden: string }[] }>(`samenhang/meer?${params}`);
+  }));
+  return { resultaten: partijen.flatMap((p) => p.resultaten), fouten: partijen.flatMap((p) => p.fouten) };
+}
+
+/** Hoeveel doelen `/samenhang/meer` per verzoek aanneemt (`MAX_SAMENHANG_MEER` in
+ *  api/app/annotatie_v2.py). */
+export const MAX_SAMENHANG_MEER = 30;
+
+/** Een reeks in opeenvolgende partijen van hoogstens `grootte`. */
+export function inPartijen<T>(reeks: readonly T[], grootte: number): T[][] {
+  const uit: T[][] = [];
+  for (let i = 0; i < reeks.length; i += grootte) uit.push(reeks.slice(i, i + grootte));
+  return uit;
+}
+
+/** Elk doel één keer, in de volgorde van eerste voorkomen (de api ontdubbelt ook, maar per partij). */
+function uniekeDoelen<T extends Pick<NodeDoel, "bron_iri">>(doelen: readonly T[]): T[] {
+  return doelen.filter((d, i) => doelen.findIndex((x) => x.bron_iri === d.bron_iri) === i);
 }
 
 let capabilities: Promise<boolean> | undefined;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import vectoren from "./jci-vectoren.json";
-import { bronDoel, clusterOmschrijving, vindplaatsVan, type Samenhang, type SamenhangKnoop } from "./samenhang";
+import { bronDoel, clusterOmschrijving, inPartijen, MAX_SAMENHANG_MEER, vindplaatsVan, type Samenhang, type SamenhangKnoop } from "./samenhang";
 
 const LAW = "urn:bwb:BWBR0004770", ART = `${LAW}:artikel:9`, L1 = `${ART}:lid:1`, L2 = `${ART}:lid:2`;
 const A10 = `${LAW}:artikel:10`;
@@ -65,5 +65,17 @@ describe("bronDoel", () => {
     expect(bronDoel("jci1.3:c:BWBR0004770")).toBeUndefined();
     expect(bronDoel(`${LAW}:id:abc`)).toBeUndefined();
     expect(bronDoel("https://example.org")).toBeUndefined();
+  });
+});
+
+describe("inPartijen", () => {
+  it("knipt in opeenvolgende partijen en verliest niets", () => {
+    const reeks = Array.from({ length: 31 }, (_, i) => i);
+    const partijen = inPartijen(reeks, MAX_SAMENHANG_MEER);
+    expect(partijen.map((p) => p.length)).toEqual([30, 1]);
+    expect(partijen.flat()).toEqual(reeks);
+  });
+  it("geeft niets bij een lege reeks", () => {
+    expect(inPartijen([], 30)).toEqual([]);
   });
 });

@@ -79,6 +79,14 @@ function teBeoordelen(doc: AnnotatieDocument): number {
   return doc.elementen.filter((el) => !BESLIST_LIFECYCLES.includes(el.lifecycle)).length;
 }
 
+/** De graafopties zonder een doorgegeven kennisgraaf: die geldt alleen voor het paneel direct na een
+ *  wissel, niet als er intussen annotaties veranderden. */
+function zonderKennisgraaf(g: GraafOpties): GraafOpties {
+  if (!g.kennisgraaf) return g;
+  const { kennisgraaf: _weg, ...rest } = g;
+  return rest;
+}
+
 function uid(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
@@ -830,7 +838,8 @@ export function WerkplekClient({
     setItems((xs) => xs.map((x) => x.id === antId ? { id: antId, type: "annotatie", slug: uitkomst.annotatie_slug || node.bron_iri,
       annotatie_doel: node, titel: node.label, tekst: tekst?.trim() || undefined, denk, hergebruik, doel,
       tool_executions } : x));
-    setArtefactSlug(undefined); setNodeDoel(node);
+    // Deze beurt veranderde de annotaties: een kennisgraaf die een vorig paneel doorgaf, klopt niet meer.
+    setArtefactSlug(undefined); setNodeGraaf(zonderKennisgraaf); setNodeDoel(node);
   }
 
   /** Loopt er nog een beurt in dit gesprek? Haak er dan weer op aan.
@@ -980,14 +989,15 @@ export function WerkplekClient({
     if (!nodeDoel || !nodeReeks) return undefined;
     const item = items.find((x): x is Extract<Item, { type: "reeks" }> => x.type === "reeks" && x.reeks.runId === nodeReeks);
     const nav = item && reeksNavigatie(item.reeks, nodeDoel.bron_iri);
-    return nav ? { ...nav, onGa: (d: NodeDoel) => setNodeDoel(d) } : undefined;
+    return nav ? { ...nav, onGa: (d: NodeDoel) => { setNodeGraaf(zonderKennisgraaf); setNodeDoel(d); } } : undefined;
   })();
   const artefact = nodeDoel ? <NodeAnnotatiePaneel key={`${nodeDoel.bron_iri}:${nodeDoel.snapshot_id ?? ""}:${nodeTab}:${nodeGraaf.bereik ?? ""}:${nodeExtra.map((d) => d.bron_iri).join("|")}`} doel={nodeDoel}
     extraDoelen={nodeExtra} graaf={nodeGraaf} koppelingRef={graafKoppelingRef}
     // Een knoop uit een ander artikel (meegeopend, of uit de hele kennisgraaf): het paneel op dát
     // artikel; de rest van de kaart, het bereik en de nadruk blijven mee.
-    onWisselDoel={(nieuw) => {
+    onWisselDoel={(nieuw, graaf) => {
       setNodeExtra([nodeDoel, ...nodeExtra].filter((d) => d.bron_iri !== nieuw.bron_iri));
+      setNodeGraaf({ ...nodeGraaf, ...graaf });
       setNodeTab("tekst");
       setNodeDoel(nieuw);
     }}

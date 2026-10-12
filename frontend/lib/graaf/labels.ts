@@ -13,7 +13,7 @@
  *  - **Botsingstoets** (`kiesLabels`): gulzig op prioriteit; een label komt alleen als zijn rechthoek
  *    vrij ligt. Wat vorig beeld een label had, wint bij gelijke prioriteit, zodat labels tijdens zoomen
  *    en pannen niet heen en weer springen. */
-import type { KnoopSoort } from "./model";
+import { voegToe, type KnoopSoort } from "./model";
 
 /** De rechthoek van een label in schermpixels, met de prioriteit waarmee het om ruimte vraagt. */
 export interface LabelKandidaat {
@@ -62,13 +62,13 @@ export function kiesLabels(kandidaten: readonly LabelKandidaat[], beeld: {
   const gekozen = new Set<string>();
   for (const b of bezet) {
     const k = { ...b, id: "", prioriteit: 0 };
-    for (const c of cellen(k)) raster.set(c, [...(raster.get(c) ?? []), k]);
+    for (const c of cellen(k)) voegToe(raster, c, k);
   }
   for (const k of volgorde) {
     const mijn = cellen(k);
     if (!k.altijd && mijn.some((c) => raster.get(c)?.some((ander) => raakt(k, ander)))) continue;
     gekozen.add(k.id);
-    for (const c of mijn) raster.set(c, [...(raster.get(c) ?? []), k]);
+    for (const c of mijn) voegToe(raster, c, k);
   }
   return gekozen;
 }

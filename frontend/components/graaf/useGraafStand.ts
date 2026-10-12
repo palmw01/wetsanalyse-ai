@@ -25,12 +25,31 @@ export type Bereik = "antwoord" | "kennisgraaf";
 export interface Getekend { model: GraafModel; posities: Posities; bereik: Bereik }
 
 /** Hoe de graaf opent: met welk bereik, en wat in de kennisgraaf de nadruk krijgt (zonder: de doelen). */
-export interface GraafOpties { bereik?: Bereik; focus?: readonly string[] }
+export interface GraafOpties {
+  bereik?: Bereik;
+  focus?: readonly string[];
+  /** De kennisgraaf die het vorige paneel al had ("Open in het paneel" remount het paneel). Alleen
+   *  een actuele: wie hem doorgeeft, garandeert dat er sindsdien geen annotatie veranderde
+   *  (`kennisgraafActueel`). */
+  kennisgraaf?: KennisgraafAntwoord;
+}
+
+/** Wat het tekenen tegenhoudt, per bron, met de handeling die het herstelt. Een fout geldt in het
+ *  bereik waar hij optrad: een kennisgraaf die niet laadde, zegt niets over *Dit antwoord*. */
+interface Laadfouten {
+  samenhang?: string;
+  kennisgraaf?: string;
+  layout?: { bereik: Bereik; tekst: string };
+}
+
+/** Een fout die de graaf in dit bereik blokkeert, met *Opnieuw proberen*. */
+export interface GraafFout { tekst: string; herstel: () => void }
 
 /** De toestand van de graaf. Leeft in het paneel (búiten de `Dialog`): vergroten wisselt de
  *  dialoogvorm en remount daarmee de inhoud; zonder dit waren bijgeladen artikelen, selectie, lagen en
- *  camera dan weg. `actief` laadt pas als de tab voor het eerst opengaat. */
-export function useGraafStand(doel: NodeDoel, actief: boolean, extra: NodeDoel[] = [],
+ *  camera dan weg. `actief` laadt pas als de tab voor het eerst opengaat; `zichtbaar` = de tab staat
+ *  open (verversen wacht daarop). */
+export function useGraafStand(doel: NodeDoel, actief: boolean, zichtbaar: boolean, extra: NodeDoel[] = [],
   opties: GraafOpties = {}) {
   // Een nieuwe array met dezelfde doelen mag niet opnieuw laden: vergelijk op de bron-IRI's.
   const extraSleutel = extra.map((d) => d.bron_iri).join("|");
@@ -41,15 +60,20 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, extra: NodeDoel[]
   const focusSleutel = (opties.focus ?? [doel.bron_iri, ...extraDoelen.map((d) => d.bron_iri)]).join("|");
   const focusIds = useMemo(() => focusSleutel.split("|").filter(Boolean), [focusSleutel]);
   const [bereik, setBereik] = useState<Bereik>(opties.bereik ?? "antwoord");
-  const [kennisgraaf, setKennisgraaf] = useState<KennisgraafAntwoord>();
+  const [kennisgraaf, setKennisgraaf] = useState<KennisgraafAntwoord | undefined>(opties.kennisgraaf);
   const [bronnen, setBronnen] = useState<Samenhang[]>();
   const [nietGeladen, setNietGeladen] = useState(0);
-  const [fout, setFout] = useState("");
+  const [fouten, setFouten] = useState<Laadfouten>({});
+  // Wat niet blokkeert (verversen of bijladen mislukt): staat tot de volgende geslaagde handeling.
+  const [melding, setMelding] = useState("");
   const [laadfase, setLaadfase] = useState<Laadfase>({ fase: "ophalen" });
   const [getekend, setGetekend] = useState<Getekend>();
   // Geen beginkeuze: het begin is de focus (wat het antwoord noemt). Een keuze is wat je daarna
   // aanklikt, en haar opheffen brengt het begin terug.
   const [selectie, setSelectie] = useState<string | null>(null);
+  // Een keuze voor een knoop die nog niet op de kaart staat (het overzichtsblok wijst iets uit de
+  // kennisgraaf aan terwijl die nog laadt). `Graaf` maakt er een echte keuze van zodra hij er is.
+  const [wachtendeKeuze, setWachtendeKeuze] = useState<string | null>(null);
   const [lagen, setLagen] = useState<Lagen>(STANDAARD_LAGEN);
   const [markering, setMarkering] = useState<MarkeringFilter>("alle");
   const [lagenOpen, setLagenOpen] = useState(false);
@@ -60,44 +84,57 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, extra: NodeDoel[]
   // De tekst van gekozen bepalingen voor de inspector, per paneel één keer opgehaald (`useKnoopDetail`).
   const detailCache = useRef<DetailCache>(new Map());
   const infoCache = useRef<InfoCache>(new Map());
-  // Telt op bij elke `ververs`: de inspector haalt de tekst van de gekozen knoop dan opnieuw op.
+  // Telt op bij elke verversing: de inspector haalt de tekst van de gekozen knoop dan opnieuw op.
   const [detailVersie, setDetailVersie] = useState(0);
+  const levend = useRef(true);
+  // Ook bij de tweede montage van StrictMode weer aan: die doet eerst een cleanup.
+  useEffect(() => {
+    levend.current = true;
+    return () => { levend.current = false; };
+  }, []);
+
+  // Verversen is een toestand, geen handeling: `gevraagd` telt de annotatiewijzigingen, `gedaan` tot
+  // waar de geladen data bij is. Zie `ververs` hieronder.
+  const gevraagdRef = useRef(0);
+  const [gevraagd, setGevraagd] = useState(0);
+  const [gedaan, setGedaan] = useState(0);
+  const bijTot = useCallback((ronde: number) => setGedaan((g) => Math.max(g, ronde)), []);
 
   const laad = useCallback(async () => {
-    setFout("");
+    const ronde = gevraagdRef.current;
+    setFouten((f) => ({ ...f, samenhang: undefined }));
     setLaadfase({ fase: "ophalen" });
     try {
       // Het doel van het paneel eerst; de andere doelen uit het antwoord in één verzoek (één bronboom
-      // per regeling). Een doel dat niet laadt is een melding, geen fout voor het geheel.
-      let geladen: Samenhang[];
-      if (extraDoelen.length) {
-        const { resultaten, fouten } = await haalSamenhangen([doel, ...extraDoelen]);
-        const eigen = fouten.find((f) => f.bron_iri === doel.bron_iri);
-        if (eigen || !resultaten.length) throw { status: 422, detail: eigen?.reden ?? "De samenhang is niet geladen." };
-        geladen = resultaten;
-        setNietGeladen(fouten.length);
-      } else {
-        geladen = [await haalSamenhang(doel)];
-        setNietGeladen(0);
+      // per regeling). Een doel dat niet laadt is een melding, geen fout voor het geheel – behalve het
+      // doel van het paneel zelf.
+      const { resultaten, fouten: nietGelukt } = extraDoelen.length
+        ? await haalSamenhangen([doel, ...extraDoelen])
+        : { resultaten: [await haalSamenhang(doel)], fouten: [] };
+      const eigen = nietGelukt.find((f) => f.bron_iri === doel.bron_iri);
+      if (eigen || !resultaten.length) {
+        setFouten((f) => ({ ...f, samenhang: eigen?.reden ?? "De samenhang is niet geladen." }));
+        return;
       }
-      setBronnen(geladen.filter((d, i) => geladen.findIndex((x) => x.artikel_iri === d.artikel_iri) === i));
-    } catch (e) { setFout(foutTekst(e, "De samenhang is niet geladen.")); }
-  }, [doel, extraDoelen]);
+      setNietGeladen(nietGelukt.length);
+      setBronnen(resultaten.filter((d, i) => resultaten.findIndex((x) => x.artikel_iri === d.artikel_iri) === i));
+      bijTot(ronde);
+    } catch (e) { setFouten((f) => ({ ...f, samenhang: foutTekst(e, "De samenhang is niet geladen.") })); }
+  }, [doel, extraDoelen, bijTot]);
   useEffect(() => {
     // Externe request initialiseren; dezelfde actie dient ook de retryknop.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (actief) void laad();
   }, [laad, actief]);
 
   /** De hele kennisgraaf (`/graaf`), één keer per paneel; opnieuw na een annotatiewijziging, want de
    *  markeringen erin komen vers uit de api. */
   const laadKennisgraaf = useCallback(async () => {
-    setFout("");
+    setFouten((f) => ({ ...f, kennisgraaf: undefined }));
     setLaadfase({ fase: "ophalen" });
     try { setKennisgraaf(await haalKennisgraaf()); }
-    catch (e) { setFout(foutTekst(e, "De kennisgraaf is niet geladen.")); }
+    catch (e) { setFouten((f) => ({ ...f, kennisgraaf: foutTekst(e, "De kennisgraaf is niet geladen.") })); }
   }, []);
-  const kennisgraafGevraagd = useRef(false);
+  const kennisgraafGevraagd = useRef(!!opties.kennisgraaf);
   useEffect(() => {
     if (!actief || bereik !== "kennisgraaf" || kennisgraafGevraagd.current) return;
     kennisgraafGevraagd.current = true;
@@ -113,8 +150,9 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, extra: NodeDoel[]
 
   // De layout volgt het model, per bereik een eigen kaart. Een vorige stand van hetzelfde bereik ligt
   // vast: alleen nieuwe wettekst wordt geplaatst, en na een annotatiewijziging wordt er niets gerekend
-  // (`layoutVoor`). De hele kennisgraaf begint altijd vers – dan komt hij uit de cache.
+  // (`layoutVoor`). De eerste kaart van een bereik komt uit de cache of wordt gerekend.
   const vorige = useRef<Partial<Record<Bereik, Posities>>>({});
+  const [layoutPoging, setLayoutPoging] = useState(0);
   useEffect(() => {
     if (!model) return;
     const afbreken = new AbortController();
@@ -124,32 +162,59 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, extra: NodeDoel[]
       signal: afbreken.signal,
       opVoortgang: (fractie) => setLaadfase({ fase: "layout", fractie }),
     }).then(({ posities }) => {
+      // Een vervallen run (nieuw model, ander bereik) zet niets: anders komt een oude kaart over een
+      // nieuwere heen.
+      if (afbreken.signal.aborted) return;
       vorige.current[voor] = posities;
       setGetekend({ model, posities, bereik: voor });
       setLaadfase({ fase: "klaar" });
+      setFouten((f) => (f.layout?.bereik === voor ? { ...f, layout: undefined } : f));
     }).catch((e: unknown) => {
       if (afbreken.signal.aborted) return;
-      setFout(foutTekst(e, "De layout van de graaf kon niet worden berekend."));
+      setFouten((f) => ({ ...f, layout: { bereik: voor, tekst: foutTekst(e, "De layout van de graaf kon niet worden berekend.") } }));
     });
     return () => afbreken.abort();
-  }, [model, bereik]);
+  }, [model, bereik, layoutPoging]);
 
-  /** Na een annotatiewijziging: elk geladen deel opnieuw ophalen, per artikel vervangen. Selectie,
-   *  lagen en camera blijven; de kaart verschuift niet. */
-  const ververs = useCallback(async () => {
-    if (!bronnen?.length) return;
-    // De markeringen in de opgehaalde teksten kunnen veranderd zijn.
-    detailCache.current = new Map();
-    setDetailVersie((v) => v + 1);
-    try {
-      const [nieuw, kg] = await Promise.all([
-        Promise.all(bronnen.map((d) => haalSamenhang({ bron_iri: d.doel.bron_iri }))),
-        kennisgraaf ? haalKennisgraaf() : Promise.resolve(undefined),
-      ]);
-      setBronnen((oud) => oud?.map((d) => nieuw.find((n) => n.artikel_iri === d.artikel_iri) ?? d));
-      if (kg) setKennisgraaf(kg);
-    } catch (e) { setFout(foutTekst(e, "De graaf is niet bijgewerkt; herlaad om de laatste stand te zien.")); }
-  }, [bronnen, kennisgraaf]);
+  /** Na een annotatiewijziging. Mutaties gebeuren op de Tekst-tab, dus de graaf is dan niet te zien:
+   *  er wordt alleen genoteerd dát hij achterloopt. Ophalen gebeurt pas als hij zichtbaar is (het
+   *  effect hieronder) – één ronde, hoeveel beoordelingen er ook tussen zaten. */
+  const ververs = useCallback(() => {
+    gevraagdRef.current += 1;
+    setGevraagd(gevraagdRef.current);
+  }, []);
+
+  // Eén verversing tegelijk, dus antwoorden komen nooit in de verkeerde volgorde binnen. Kwam er
+  // tijdens een ronde nog een wijziging bij, dan volgt er daarna precies één.
+  const bezig = useRef(false);
+  useEffect(() => {
+    if (!zichtbaar || gevraagd <= gedaan || bezig.current || !bronnen?.length) return;
+    bezig.current = true;
+    const ronde = gevraagdRef.current;
+    const doelen = bronnen.map((d) => d.doel);
+    const metKennisgraaf = !!kennisgraaf;
+    void (async () => {
+      // De markeringen in de opgehaalde teksten kunnen veranderd zijn.
+      detailCache.current = new Map();
+      setDetailVersie((v) => v + 1);
+      try {
+        const [{ resultaten }, kg] = await Promise.all([
+          haalSamenhangen(doelen),
+          metKennisgraaf ? haalKennisgraaf() : Promise.resolve(undefined),
+        ]);
+        if (!levend.current) return;
+        setBronnen((oud) => oud?.map((d) => resultaten.find((n) => n.artikel_iri === d.artikel_iri) ?? d));
+        if (kg) setKennisgraaf(kg);
+        setMelding("");
+      } catch (e) {
+        if (levend.current) setMelding(foutTekst(e, "De graaf is niet bijgewerkt; herlaad om de laatste stand te zien."));
+      } finally {
+        bezig.current = false;
+        // Ook na een fout: anders probeert hij het eindeloos. De volgende wijziging probeert opnieuw.
+        if (levend.current) bijTot(ronde);
+      }
+    })();
+  }, [zichtbaar, gevraagd, gedaan, bronnen, kennisgraaf, bijTot]);
 
   /** Een bepaling buiten wat geladen is erbij laden, als eigen deel. De kaart blijft liggen; alleen
    *  het nieuwe wordt geplaatst. */
@@ -158,14 +223,26 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, extra: NodeDoel[]
     try {
       const nieuw = await haalSamenhang({ bron_iri: id });
       setBronnen((oud) => (oud?.some((d) => d.artikel_iri === nieuw.artikel_iri) ? oud : [...(oud ?? []), nieuw]));
-    } catch (e) { setFout(foutTekst(e, "Deze bepaling kon niet worden bijgeladen.")); }
+      setMelding("");
+    } catch (e) { setMelding(foutTekst(e, "Deze bepaling kon niet worden bijgeladen.")); }
     finally { setLaadtBij(""); }
   }, []);
 
+  // De fout die in dit bereik het tekenen tegenhoudt, met de handeling die hem herstelt.
+  const herberekenLayout = useCallback(() => setLayoutPoging((n) => n + 1), []);
+  const fout: GraafFout | null = fouten.samenhang ? { tekst: fouten.samenhang, herstel: () => void laad() }
+    : bereik === "kennisgraaf" && fouten.kennisgraaf ? { tekst: fouten.kennisgraaf, herstel: () => void laadKennisgraaf() }
+      : fouten.layout?.bereik === bereik ? { tekst: fouten.layout.tekst, herstel: herberekenLayout }
+        : null;
+
   return {
-    bronnen, getekend, laadfase, nietGeladen, fout, setFout, laad, ververs, laadErbij, laadtBij,
-    bereik, setBereik, focusIds, kennisgraaf, laadKennisgraaf,
-    selectie, setSelectie, lagen, setLagen, markering, setMarkering, lagenOpen, setLagenOpen,
+    bronnen, getekend, laadfase, nietGeladen, fout, melding, ververs, laadErbij, laadtBij,
+    bereik, setBereik, focusIds,
+    /** De geladen kennisgraaf, als er sinds het laden geen annotatie veranderde: die mag een volgend
+     *  paneel overnemen (`GraafOpties.kennisgraaf`). */
+    kennisgraafActueel: gevraagd <= gedaan ? kennisgraaf : undefined,
+    selectie, setSelectie, wachtendeKeuze, setWachtendeKeuze,
+    lagen, setLagen, markering, setMarkering, lagenOpen, setLagenOpen,
     aangeraakt, setAangeraakt, camera, bediening, detailCache, infoCache, detailVersie,
   };
 }

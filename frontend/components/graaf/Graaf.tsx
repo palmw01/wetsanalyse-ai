@@ -17,7 +17,7 @@ import { GraafZoek } from "./GraafZoek";
 import { ChevronOmlaag, Terug } from "@/components/ui/Icoon";
 import { eigenKleur } from "@/lib/graaf/stijl";
 import type { GraafKoppeling } from "./koppeling";
-import type { Bereik, GraafStand } from "./useGraafStand";
+import type { Bereik, GraafOpties, GraafStand } from "./useGraafStand";
 import { useKnoopDetail, useKnoopInfo, useMarkeringElement } from "./useKnoopDetail";
 
 // sigma en WebGL laden pas als de graaf echt in beeld komt.
@@ -25,9 +25,9 @@ const Tekenaar = dynamic(() => import("./GraafTekenaar").then((m) => m.GraafTeke
 
 const GEEN_WEBGL = "Deze browser kan de graaf niet tekenen. Zoeken, lagen en de details blijven beschikbaar.";
 /** Midden in het canvas, in dezelfde kaartvorm als de laadbalk: de bediening erboven blijft vrij. */
-function CanvasMelding({ children }: { children: ReactNode }) {
+function CanvasMelding({ children, rol = "status" }: { children: ReactNode; rol?: "status" | "alert" }) {
   return <div className="absolute inset-0 flex items-center justify-center p-6">
-    <p role="status" className="max-w-xs rounded-kaart border border-line bg-paper/95 p-4 text-sm text-muted shadow-kaart">{children}</p>
+    <p role={rol} className="max-w-xs rounded-kaart border border-line bg-paper/95 p-4 text-sm text-muted shadow-kaart">{children}</p>
   </div>;
 }
 class TekenGrens extends Component<{ children: ReactNode }, { fout: boolean }> {
@@ -60,14 +60,15 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
   koppelingRef?: RefObject<GraafKoppeling | null>;
   onKiesElement: (elementId?: string) => void;
   onOpenTekst: (knoop: KnoopData) => void;
-  /** Een knoop uit een ander geladen artikel: het paneel opent op dat artikel. Zonder deze haak is
-   *  elke knoop "Toon in tekst". */
-  onWisselArtikel?: (doel: NodeDoel) => void;
+  /** Een knoop uit een ander geladen artikel: het paneel opent op dat artikel, met het bereik van nu
+   *  en – als die actueel is – de kennisgraaf die al geladen is. Zonder deze haak is elke knoop "Toon
+   *  in tekst". */
+  onWisselArtikel?: (doel: NodeDoel, graaf: GraafOpties) => void;
   onVraag?: (knoop: KnoopData) => void;
 }) {
-  const { bronnen, getekend, laadfase, fout, laad, selectie, setSelectie, lagen, setLagen, markering, setMarkering,
-    lagenOpen, setLagenOpen, aangeraakt, setAangeraakt, camera, bediening, laadErbij, laadtBij,
-    bereik, setBereik, focusIds, laadKennisgraaf } = stand;
+  const { bronnen, getekend, laadfase, fout, melding, selectie, setSelectie, wachtendeKeuze, setWachtendeKeuze,
+    lagen, setLagen, markering, setMarkering, lagenOpen, setLagenOpen, aangeraakt, setAangeraakt, camera, bediening,
+    laadErbij, laadtBij, bereik, setBereik, focusIds } = stand;
   const [geenWebgl, setGeenWebgl] = useState(false);
   const bedekking = useRef<HTMLDivElement>(null);
   // De zijbalk (inspector naast de vergrote graaf) in te klappen tot een strook; per kijker onthouden.
@@ -145,9 +146,10 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
     // anders is er een onzichtbare keuze en doet de eerste Escape schijnbaar niets.
     if (id && !model.hasNode(id)) return;
     setAangeraakt(true);
-    eigenKeuze.current = id && model.getNodeAttribute(id, "element_id") || undefined;
+    const elementId = id ? model.getNodeAttribute(id, "element_id") || undefined : undefined;
+    eigenKeuze.current = elementId;
     setSelectie(id);
-    onKiesElement(id && model.hasNode(id) ? model.getNodeAttribute(id, "element_id") || undefined : undefined);
+    onKiesElement(elementId);
     if (!id) return;
     const nodig = lagenVoor(model, id, lagen, markering);
     if (nodig.lagen !== lagen) setLagen(nodig.lagen);
@@ -164,15 +166,34 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
         setAangewezen(null);
         if (model.hasNode(id)) { kies(id); return true; }
         // Niet op deze kaart: de hele kennisgraaf erbij halen, en de keuze laten wachten tot hij er
-        // is. Staat die al open en kent hij de knoop ook niet, dan is het gewoon een link.
+        // is (hieronder). Staat die al open en kent hij de knoop ook niet, dan is het gewoon een link.
         if (bereik === "kennisgraaf") return false;
-        setSelectie(id);
+        setAangeraakt(true);
+        setWachtendeKeuze(id);
         setBereik("kennisgraaf");
         return true;
       },
     };
     return () => { koppelingRef.current = null; };
   });
+
+  // Een wachtende keuze wordt een gewone keuze zodra de kaart van dit bereik er is – met de lagen die
+  // hij nodig heeft en de melding aan het paneel. Kent die kaart hem niet, dan vervalt hij.
+  const opBereik = getekend?.bereik === bereik;
+  useEffect(() => {
+    if (!wachtendeKeuze || !opBereik) return;
+    setWachtendeKeuze(null);
+    kies(wachtendeKeuze);
+    // `kies` leest de stand van deze render; alleen de komst van de kaart telt.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wachtendeKeuze, opBereik, getekend]);
+
+  // Een keuze die niet meer op de kaart staat (de markering is verworpen of verwijderd, of de keuze
+  // kwam uit een bereik dat meer bevat) vervalt: anders is er een onzichtbare keuze en doet de eerste
+  // Escape schijnbaar niets.
+  useEffect(() => {
+    if (selectie && opBereik && getekend && !getekend.model.hasNode(selectie)) setSelectie(null);
+  }, [selectie, opBereik, getekend, setSelectie]);
 
   // Een markering die in de Tekst-tab gekozen is, staat in de graaf misschien buiten beeld: erheen
   // vliegen zodra de graaf zichtbaar is. Niet bij een keuze uit de graaf zelf.
@@ -199,14 +220,13 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
       // Een markering opent het paneel op haar anker (het lid), niet op het hele artikel.
       const anker = gekozenData.soort === "markering" ? ankerVan(model, gekozen) : undefined;
       const d = anker ? paneelDoel(anker, model.getNodeAttributes(anker)) : paneelDoel(gekozen, gekozenData);
-      if (d) onWisselArtikel?.(d);
+      if (d) onWisselArtikel?.(d, { bereik, kennisgraaf: stand.kennisgraafActueel });
     }
   }
 
-  const opBereik = getekend?.bereik === bereik;
   if (!bronnen && fout) return <div className="p-5">
-    <Melding type="fout" titel="Niet geladen">{fout}{" "}
-      <button type="button" onClick={() => void laad()} className="underline">Opnieuw proberen</button></Melding>
+    <Melding type="fout" titel="Niet geladen">{fout.tekst}{" "}
+      <button type="button" onClick={fout.herstel} className="underline">Opnieuw proberen</button></Melding>
   </div>;
 
   const titel = bereik === "kennisgraaf" ? "de hele kennisgraaf" : bronnen && bronnen.length > 1 ? clusterOmschrijving(bronnen)
@@ -225,8 +245,7 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
       {bronnen?.some((d) => d.afgekapt) && <p className="mt-1 text-xs text-muted">Er zijn meer verwijzingen dan getoond; de eerste 200 per richting staan in beeld.</p>}
       {bronnen && bronnen.length > 1 && bereik === "antwoord" && <p className="mt-1 text-xs text-muted">De tekst en de annotatie in het paneel gaan over {hoofdNaam}; een knoop uit een ander artikel opent dat artikel in het paneel.{bronnen.some(isDeelCluster) ? " Een hoofdstuk of afdeling staat er met zijn artikelen; open een artikel voor leden, annotaties en verwijzingen." : ""}</p>}
       {stand.nietGeladen > 0 && <p className="mt-1 text-xs text-muted">{stand.nietGeladen === 1 ? "1 deel is" : `${stand.nietGeladen} delen zijn`} niet geladen.</p>}
-      {fout && bronnen && <p role="alert" className="mt-1 text-xs text-fout">{fout}{" "}
-        {bereik === "kennisgraaf" && !stand.kennisgraaf && <button type="button" onClick={() => void laadKennisgraaf()} className="underline">Opnieuw proberen</button>}</p>}
+      {melding && <p role="alert" className="mt-1 text-xs text-fout" data-testid="graaf-melding">{melding}</p>}
     </div>
     <div className={`flex min-h-0 flex-1 ${groot ? "flex-col md:flex-row" : "flex-col"}`}>
       <div className="relative min-h-[260px] min-w-0 flex-1 bg-[#f7f9fc]">
@@ -235,6 +254,9 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
             inpassen={inpassen ?? undefined} cameraRef={camera} bedieningRef={bediening} bedekking={bedekking} onKies={(id) => kies(id, false)} onFout={() => setGeenWebgl(true)} /></TekenGrens>}
         {/* Bij een wissel van bereik blijft de vorige kaart zichtbaar onder de laadbalk. */}
         {!opBereik && !fout && <Laadbalk fase={laadfase} kennisgraaf={bereik === "kennisgraaf"} over={!!getekend} />}
+        {/* Wat het tekenen in dit bereik tegenhoudt, midden op het canvas, met de weg terug. */}
+        {fout && <CanvasMelding rol="alert"><span data-testid="graaf-fout">{fout.tekst}</span>{" "}
+          <button type="button" onClick={fout.herstel} className="focus-ring rounded text-lint underline">Opnieuw proberen</button></CanvasMelding>}
         {/* Bediening zweeft over het canvas; de lege ruimte ertussen laat klikken door naar de graaf. */}
         {getekend && <div ref={bedekking} className="pointer-events-none absolute inset-0 flex flex-col justify-between p-3">
           <div className="flex flex-col items-start gap-2">

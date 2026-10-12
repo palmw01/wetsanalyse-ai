@@ -14,7 +14,7 @@
 import Graph from "graphology";
 import forceAtlas2 from "graphology-layout-forceatlas2";
 import { jasVolgorde, JAS_KLASSEN } from "@/lib/jas";
-import { ankerVan, isBron, type GraafModel, type KnoopSoort, type RelatieData } from "./model";
+import { ankerVan, isBron, voegToe, type GraafModel, type KnoopSoort, type RelatieData } from "./model";
 
 /** Verhoog bij elke wijziging die de uitkomst verandert: de cache onder de oude sleutel vervalt dan. */
 export const LAYOUT_VERSIE = 1;
@@ -62,7 +62,7 @@ export function startposities(s: Structuur, vast: Posities = new Map()): Positie
   for (const r of s.relaties) {
     if (r.soort !== "bevat" || ouder.has(r.doel)) continue;
     ouder.set(r.doel, r.bron);
-    kinderen.set(r.bron, [...(kinderen.get(r.bron) ?? []), r.doel]);
+    voegToe(kinderen, r.bron, r.doel);
   }
   for (const lijst of kinderen.values()) lijst.sort(natuurlijk);
   const bladen = new Map<string, number>();
@@ -134,8 +134,8 @@ export function startposities(s: Structuur, vast: Posities = new Map()): Positie
   // Losse knopen naast hun eerste geplaatste buur (in vaste volgorde), anders op een ring buitenom.
   const buren = new Map<string, string[]>();
   for (const r of s.relaties) {
-    buren.set(r.bron, [...(buren.get(r.bron) ?? []), r.doel]);
-    buren.set(r.doel, [...(buren.get(r.doel) ?? []), r.bron]);
+    voegToe(buren, r.bron, r.doel);
+    voegToe(buren, r.doel, r.bron);
   }
   const los = s.knopen.map((k) => k.id).filter((id) => !pos.has(id)).sort(natuurlijk);
   const buiten = Math.max(RING, ...[...pos.values()].map(([x, y]) => Math.hypot(x, y))) + TUSSENRUIMTE;
@@ -240,7 +240,7 @@ export function plaatsAnnotaties(g: GraafModel, bron: Posities): Posities {
   g.forEachNode((id, a) => {
     if (a.soort !== "markering") return;
     const anker = ankerVan(g, id);
-    if (anker && bron.has(anker)) perAnker.set(anker, [...(perAnker.get(anker) ?? []), id]);
+    if (anker && bron.has(anker)) voegToe(perAnker, anker, id);
     else zonderAnker.push(id);
   });
   for (const [anker, ids] of perAnker) {

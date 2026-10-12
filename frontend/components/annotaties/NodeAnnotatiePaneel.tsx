@@ -49,8 +49,9 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
   graaf?: GraafOpties;
   /** Waar de graaf zijn handelingen neerzet voor het overzichtsblok in de thread. */
   koppelingRef?: RefObject<GraafKoppeling | null>;
-  /** Het paneel op een ander artikel openen, vanuit een knoop in de graaf die niet bij `doel` hoort. */
-  onWisselDoel?: (doel: NodeDoel) => void;
+  /** Het paneel op een ander artikel openen, vanuit een knoop in de graaf die niet bij `doel` hoort;
+   *  `graaf` draagt het bereik van nu (en een actuele kennisgraaf) naar het nieuwe paneel. */
+  onWisselDoel?: (doel: NodeDoel, graaf: GraafOpties) => void;
   onVraag?: (element: NodeElement, view: NodeWeergave) => void;
   /** Een vraag over een bron- of randknoop uit de graaf; markeringen gaan via `onVraag`. */
   onVraagOverBron?: (knoop: KnoopData) => void;
@@ -66,7 +67,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
   const [groot, setGroot] = useState(false);
   useEffect(() => { void samenhangBeschikbaar().then(setSamenhang); }, []);
   if (tab === "graaf" && !graafGeopend) setGraafGeopend(true);
-  const graafStand = useGraafStand(doel, graafGeopend && samenhang, extraDoelen, graaf);
+  const graafStand = useGraafStand(doel, graafGeopend && samenhang, tab === "graaf", extraDoelen, graaf);
   const [laadFout, setLaadFout] = useState("");
   const [actiefId, setActiefId] = useState<string>();
   const [melding, setMelding] = useState("");
@@ -98,8 +99,8 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
       return await nodeRequest<Record<string, unknown>>(pad, body, method);
     } finally {
       await laad();
-      // De graaf toont dezelfde markeringen; zonder dit liep hij achter tot een refresh.
-      void graafStand.ververs();
+      // De graaf toont dezelfde markeringen; hij haalt ze opnieuw op zodra hij weer in beeld is.
+      graafStand.ververs();
     }
   }
 
@@ -146,7 +147,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
       }
     } finally {
       await laad();
-      void graafStand.ververs();
+      graafStand.ververs();
     }
     setMelding(nieuw === "geaccordeerd" ? "Annotatie afgerond." : "Annotatie heropend.");
   }
