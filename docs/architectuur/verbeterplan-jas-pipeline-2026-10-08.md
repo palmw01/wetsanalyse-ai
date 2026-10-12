@@ -1,16 +1,24 @@
 # Verbeterplan JAS: bewijs, context en beoordeelbare samenhang
 
-Soort: *los verbeterplan* · Aangescherpt: 8 oktober 2026 · Status: plan voor een proefimplementatie, nog niet uitgevoerd; PR 1 is op verzoek nog niet gestart. De aanvullingen hieronder verwerken de inhoudelijke reviews en een gerichte controle van de huidige kandidaat-, bewijs-, dekkings- en besliscode.
+Soort: *onderzoek* (onderzoeksontwerp, zie [`../README.md`](../README.md)) · Opgesteld 8 oktober 2026,
+bijgesteld 12 oktober 2026 · Status: niet gestart. Dit is de uitwerking van *Kandidaten na V7* in
+[`../PLAN.md`](../PLAN.md), spoor A, en start pas **na de V7-baseline**. Het document verwerkt de
+inhoudelijke reviews en een gerichte controle van de kandidaat-, bewijs-, dekkings- en besliscode.
+
+**Aanleiding.** Een voorstel om de keten op te bouwen uit negen lagen, waarbij elke laag de volgende
+voedt: brontekst, linguïstische analyse, grammaticaal frame, lexicale kennis, kandidaatdetectie,
+JAS-relaties, coherentie, compleetheid en AI voor de restgevallen. Dit document beoordeelt dat voorstel
+en zet het om in een bouwvolgorde.
 
 ## 1. Hoofdkeuze en kritische beoordeling
 
-**De voorgestelde richting is bruikbaar, maar ik zou de negen lagen niet als verplichte bouwvolgorde overnemen.** De eerste verbetering moet het model voor kandidaten en bewijs zijn. Daarna volgen gerichte grammaticale frames en juridische relaties. Een omvangrijke grammaticale tussenlaag vooraf bouwen heeft nog onvoldoende onderbouwing.
+**De voorgestelde richting is bruikbaar, maar de negen lagen worden geen verplichte bouwvolgorde.** De eerste verbetering moet het model voor kandidaten en bewijs zijn. Daarna volgen gerichte grammaticale frames en juridische relaties. Een omvangrijke grammaticale tussenlaag vooraf bouwen heeft nog onvoldoende onderbouwing.
 
 De [INT-analyse](../wetsanalyse/onderzoek-int-terminologie-2026-10-08/README.md) ondersteunt vooral het onderscheiden van **bronvoorkomen, betekenis, context, relatie en beoordeling**. Zij bevat geen praktijkbewijs dat de onderzochte hulpmiddelen de annotatie verbeteren. Ook die analyse blijft dus toetsbaar.
 
 De [metingen van oktober](metingen/hybrid-v1-iw05-fixes-2026-10/README.md) laten concrete problemen zien met kandidaatgrenzen, algemene naamwoordgroepen en concurrerende klassen. De referenties zijn nog niet juridisch vastgesteld. Meer gevonden kandidaten betekenen daarom nog geen betere juridische analyse.
 
-| Onderdeel van jouw voorstel | Kritisch oordeel en besluit |
+| Laag uit het voorstel | Kritisch oordeel en besluit |
 |---|---|
 | **1. Brontekst** | Behouden. Ook nieuw bewijs, frames en relaties moeten naar de juiste bronversie verwijzen. Impliciete partijen krijgen geen verzonnen tekstanker. |
 | **2. Linguïstische analyse** | Grotendeels aanwezig: er bestaat al een provideronafhankelijk UD-model. SpaCy vervangen vereist dus geen nieuwe ontkoppelingslaag. |
@@ -20,7 +28,7 @@ De [metingen van oktober](metingen/hybrid-v1-iw05-fixes-2026-10/README.md) laten
 | **6. JAS-relaties** | Opnemen, inclusief beoordeling. Onderscheid grammaticale afhankelijkheden, juridische annotatierelaties en begripsrelaties uit activiteit 3. De voorgestelde relatienamen zijn projectkeuzes, geen vanzelfsprekend officiële JAS-vocabulaire. |
 | **7. Coherentie** | Technische fouten hard afwijzen; ontbrekende juridische samenhang meestal als onderzoeksvraag behandelen. Een niet-genoemde partij maakt een rechtsbetrekking niet automatisch ongeldig. |
 | **8. Compleetheid** | Structurele dekking en onderzoek naar juridische functies afzonderlijk registreren. Een parser en een daarop gebaseerde detector kunnen hetzelfde missen; hun onderlinge overeenstemming bewijst geen volledigheid. Juridische volledigheid wordt per complete bepaling onafhankelijk beoordeeld. |
-| **9. AI-restgevallen** | Behouden met begrensde keuzes, maar voeg expliciet **onbeslist** toe. Onvoldoende context mag niet worden vertaald naar ‘geen annotatie’. |
+| **9. AI-restgevallen** | Behouden met begrensde keuzes, maar voeg expliciet **onbeslist** toe als keuze voor de classifier. Onvoldoende context mag niet worden vertaald naar ‘geen annotatie’. De uitkomstkant bestaat al (§1.2). |
 
 Een inhoudelijke correctie betreft de afleidingsregel: **de uitvoer is niet noodzakelijk een letterlijk genoemde Variabelewaarde**. De regel kan een uitvoervariabele bepalen, een beslissing beschrijven of een specialisatie afleiden. Annoteren is bovendien nog geen regel uitvoeren. Dat onderscheid volgt uit [H2-JAS](../wetsanalyse/wetsanalyse-rijk/H2-JAS.md).
 
@@ -32,13 +40,41 @@ De gepubliceerde JRM-specificatie onderscheidt Rechtsgevolg en Juridisch relevan
 
 De eerste vier PR's implementeren JAS-analyse en projectmatig getypeerde annotatierelaties. JRM-verrijking staat standaard uit. Als die later wordt toegevoegd, krijgt zij een eigen bronversie, profiel, bewijs en beoordeling; haar classificaties komen niet in de JAS-enum of JAS-kwaliteitscijfers. Een projectrelatie is niet alleen door haar naam een JRM-uitspraak. Leg in het runmanifest het classificatieschema, het relatieprofiel en het eventuele verrijkingsprofiel afzonderlijk vast. De lokaal gebruikte JRM-werkversie van 18 november 2024 en de openbare versie worden niet als identiek behandeld zonder vergelijking. Dit sluit aan op de bestaande [afspraak over JRM-verrijking](../../.claude/skills/wetsanalyse/references/jrm-verrijking.md).
 
+### 1.2 Wat er al is (stand 12 oktober 2026)
+
+Een deel van wat hieronder wordt gevraagd, is na of vlak vóór de eerste versie van dit plan al gebouwd.
+De beschrijving staat in [`annotatieketen.md`](annotatieketen.md). Het plan bouwt daarop voort en
+ontwerpt het niet opnieuw.
+
+| Wat | Waar | Raakt |
+|---|---|---|
+| Een terugval zonder klasse: het voorstel draagt geen klasse. In de graaf is het een vraag (`oa:questioning`), in de export staat "Nog geen klasse" en akkoord kan pas na een keuze (#604). | `jas_pipeline/resolver.py`, `jas_pipeline/keten.py`, api, werkplek | §1 laag 9, §2.3: *onbeslist* gebruikt deze vorm en krijgt geen nieuw opslagmodel |
+| Dekking per dimensie: wat er gevonden is (`aangetroffen`) en welke zinsdelen alleen als geheel geraakt werden (`alleen_als_geheel`) (#606, #614) | `jas_pipeline/dekking.py` | §2.1: de structurele dekking begint hier |
+| Een toelichting in twee lagen en een reden per alternatief, deterministisch uit het bewijs (#605) | `jas_pipeline/uitleg.py` | §3: de weergave van bewijs en alternatieven |
+| Een subtype binnen een samengevoegde klasse, alleen als het bewijs eenduidig is | `jas_pipeline/subtype.py` | §2.2: classificatie in de sleutel |
+| Bewijssterkte uit regelmetadata, zonder detectorstemmen | `jas_pipeline/bewijssterkte.py`, `jas_pipeline/besluit.py` | Stap B |
+
+**Verband met PLAN.md.** De PR's in §5.1 dekken deze *Kandidaten na V7*:
+
+| PR | Kandidaten na V7 (PLAN.md spoor A) |
+|---|---|
+| 1. Bewijsmodel en hypothesen | 1 (Candidate- en EvidenceHypothesis), 5 (regelgebonden bewijssterkte en routingpolicy) |
+| 2. Gerichte frames | 3 (NormFrame), 4 (Comparison- en DerivationFrame), 6 (connectieven) |
+| 3. Juridische relatievoorstellen | 9 (relaties tussen elementen) |
+| 4. Beoordelingsinterface | sluit aan op spoor B (herkomst in de werkplek) |
+
+Kandidaten 2, 7, 8 en 10 vallen buiten dit plan.
+
 ## 2. Bouwvolgorde
 
-**Stap A — Beoordelingsbasis vastleggen, gelijktijdig met de proefontwikkeling**
+**Stap A — Beoordelingsbasis vastleggen (dit is V7 uit PLAN.md spoor A)**
+
+Stap A gaat vooraf aan PR 1. Pas als de geadjudiceerde baseline er is, start de proefimplementatie.
+
 
 - Bevries de actuele pipeline, bronstanden, instellingen en versies als nulmeting.
 - Laat twee juristen onafhankelijk complete bepalingen beoordelen; leg verschillen en adjudicatie vast.
-- Gebruik de bestaande opzet van circa 27–30 casussen voor de eerste gecontroleerde proef. Minimaal twintig geadjudiceerde casussen én dekking van alle dertien platformklassen en de constructiematrix zijn een ondergrens voor de eerste beoordeling, geen bewijs van brede juridische kwaliteit of voldoende grond voor productie-invoering; zie §4.1.
+- Gebruik referentieset v1 voor de eerste gecontroleerde proef: 24 casussen in zes bronfamilies, plus het concept IW05. Op 12 oktober 2026 waren er 0 adjudicated. Minimaal twintig geadjudiceerde casussen én dekking van alle dertien platformklassen en de constructiematrix zijn een ondergrens voor de eerste beoordeling, geen bewijs van brede juridische kwaliteit of voldoende grond voor productie-invoering; zie §4.1.
 - Neem relaties en hun bewijs expliciet mee in de beoordeling. Leg vast wanneer samenhang impliciet, buiten bereik of juridisch onbeslist is.
 - Beoordeel JAS-classificatie en juridische samenhang in afzonderlijke beoordelingsonderdelen. Leg naast labels ook de toegestane juridische interpretaties vast: functie, bereik, deelnemers/rollen, relaties en benodigde context. Verschillen tussen beoordelaars blijven zichtbaar vóór adjudicatie.
 - Houd ontwikkelgevallen en een ongebruikte eindtoets gescheiden. Controleer eerdere blootstelling voordat bestaande casussen opnieuw ‘held-out’ worden genoemd.
@@ -55,7 +91,7 @@ De eerste vier PR's implementeren JAS-analyse en projectmatig getypeerde annotat
 - Behandel algemene naamwoordgroepen als taalkundige waarnemingen. Onderzoek met een vergelijking mét en zonder deze signalen wanneer zij zelfstandig juridische kandidaten mogen opleveren; verwijder ze niet blind.
 - Laat deterministische acceptatie afhangen van gevalideerd klassespecifiek bewijs. Conflicterend juridisch bewijs blijft zichtbaar en vraagt classificatie of beoordeling.
 
-De huidige code leidt bewijssterkte al af uit regelmetadata in `bewijssterkte.py`; `besluit.py` telt geen detectorstemmen op. De ingreep is daarom het expliciet maken van afhankelijkheden en klassespecifieke toepassingen, niet het vervangen van een aangetoond stemmechanisme. Bestaande `DetectieBijdrage`-records bewaren gezamenlijke steun voor een klasseverzameling. Migreer die als gezamenlijke steun; reconstrueer daaruit geen precieze klasse–bewijsrelatie die nooit is vastgelegd.
+De huidige code leidt bewijssterkte al af uit regelmetadata in `jas_pipeline/bewijssterkte.py`; `jas_pipeline/besluit.py` telt geen detectorstemmen op. De ingreep is daarom het expliciet maken van afhankelijkheden en klassespecifieke toepassingen, niet het vervangen van een aangetoond stemmechanisme. Bestaande `DetectieBijdrage`-records bewaren gezamenlijke steun voor een klasseverzameling. Migreer die als gezamenlijke steun; reconstrueer daaruit geen precieze klasse–bewijsrelatie die nooit is vastgelegd.
 
 **Stap C — Kleine frames en expliciete contextafhankelijkheden**
 
@@ -187,7 +223,7 @@ Verificatie omvat:
 
 ### 4.1 Omvang en uitbreiding van de juridische toetsing
 
-De eerste 27–30 casussen zijn een **pilotset** om het beoordelingsprotocol, de fouttaxonomie en de technische proef te toetsen. Zij onderbouwen geen brede kwaliteitsclaim over alle dertien klassen, complexe relaties of Nederlandse wetgeving. Rapporteer per klasse, constructie en relatietype het aantal onafhankelijke bepalingen, de aantallen beoordeelde gevallen en de onzekerheid; meerdere modelruns op dezelfde bepaling vergroten niet de juridische steekproef.
+De 24 casussen van referentieset v1 (plus IW05) zijn een **pilotset** om het beoordelingsprotocol, de fouttaxonomie en de technische proef te toetsen. Zij onderbouwen geen brede kwaliteitsclaim over alle dertien klassen, complexe relaties of Nederlandse wetgeving. Rapporteer per klasse, constructie en relatietype het aantal onafhankelijke bepalingen, de aantallen beoordeelde gevallen en de onzekerheid; meerdere modelruns op dezelfde bepaling vergroten niet de juridische steekproef.
 
 Breid daarna gericht uit met nieuw geadjudiceerde gevallen rond aangetoonde fouten, grensgevallen, weinig vertegenwoordigde klassen en extra bronfamilies. Die verzameling is ontwikkel- en regressiemateriaal, geen representatieve eindtoets. Neem ook correct verwerkte contrastgevallen op om overcorrectie zichtbaar te maken.
 
@@ -195,7 +231,7 @@ Houd voor de volgende fase een **nieuwe onafhankelijke eindtoets** apart. Leg se
 
 ## 5. Invoering en acceptatie
 
-Zoals gekozen groeit de nieuwe werking in een **afzonderlijke proefomgeving naast productie**, inclusief de beoordelingsinterface. Dat vervangt het eerdere ontwikkeluitstel voor deze proef; juridische validatie blijft vereist voor productie.
+De nieuwe werking groeit in een **proefroute achter een uitschakelbare vlag** in `config.py`, die standaard uit staat. Er komt geen aparte omgeving: acceptatie is de proeftuin. Daar staat de vlag aan, ook voor de beoordelingsinterface, en offline wordt er gemeten met `eval.compare_pipelines` en `eval.baseline_proef`. Productie houdt de vlag uit tot de acceptatietabel hieronder slaagt. Juridische validatie blijft vereist voor productie.
 
 Leg vóór de eerste proefwijziging de meetdefinities, referentieversie, vergelijkingsopzet en acceptatiecriteria vast. Een onderdeel wordt pas ingevoerd wanneer de volgende controles slagen:
 
@@ -216,12 +252,12 @@ Bij onbesliste resultaten blijft het onderdeel experimenteel en volgt aanvullend
 
 ### 5.1 Vier PR's voor de proefimplementatie
 
-Dit is uitsluitend de geplande werkverdeling; **nog geen PR beginnen** is de huidige uitvoeringsafspraak. Bij een latere start lopen de nulmeting, juridische beoordeling en meetinfrastructuur van stap A parallel aan deze PR's. Meetdefinities en het manifest staan vóór PR 1 vast. Iedere PR is afzonderlijk vergelijkbaar; de gecombineerde werking wordt daarna beoordeeld.
+Dit is uitsluitend de geplande werkverdeling. **PR 1 start na V7**: de nulmeting, de juridische beoordeling, de meetdefinities en het manifest uit stap A liggen dan vast. Iedere PR is afzonderlijk vergelijkbaar; de gecombineerde werking wordt daarna beoordeeld.
 
 | PR | Afbakening op de huidige implementatie | Aantoonbare oplevering |
 |---|---|---|
-| **1. Bewijsmodel en hypothesen** | Breid `kandidaten.py`, fusie en de bestaande regelmetadata uit met waarnemingsidentiteit, afhankelijkheden, klassegebonden toepassingen en contextblokkades. Implementeer de hypothese-identiteit en beslismatrix uit §2.2–2.3 en leg de herkomstmapping van §3.1 vast bij het voorstel. Behoud bestaande detectorpatronen zoveel mogelijk en markeer niet-toewijsbare historische steun als gezamenlijk. Gebruik `UNCERTAIN`/`HUMAN_REVIEW` en bied de classifier uitsluitend expliciete alternatieven plus onbeslist aan. | Trace en beslisregister bewaren ondersteuning, tegenbewijs en ontbrekende kennis. Duplicatie en herordening van bewijs veranderen de deterministische beslissing en canonieke classifierinvoer niet. Verschillende interpretaties blijven onderscheiden. Historische traces blijven leesbaar. Gedragswijzigingen draaien alleen in de proefroute. |
-| **2. Gerichte frames** | Bouw op `taal/model.py` en `taal/afgeleid.py`: predicaten, tijdsconstructies, ingebedde operatorscopes, negatie/uitzonderingen en gerichte contextafhankelijkheden. | IW01 en andere ontwikkelgevallen tonen operanden, bereik en alternatieven; parseruitval en benodigde context blijven zichtbaar. Klassen en gold-spans worden niet uit het voorbeeld afgedwongen. |
+| **1. Bewijsmodel en hypothesen** | Breid `jas_pipeline/kandidaten.py`, `jas_pipeline/fusie.py` en de bestaande regelmetadata uit met waarnemingsidentiteit, afhankelijkheden, klassegebonden toepassingen en contextblokkades. Implementeer de hypothese-identiteit en beslismatrix uit §2.2–2.3 en leg de herkomstmapping van §3.1 vast bij het voorstel. Behoud bestaande detectorpatronen zoveel mogelijk en markeer niet-toewijsbare historische steun als gezamenlijk. Gebruik `UNCERTAIN`/`HUMAN_REVIEW` en bied de classifier uitsluitend expliciete alternatieven plus onbeslist aan. | Trace en beslisregister bewaren ondersteuning, tegenbewijs en ontbrekende kennis. Duplicatie en herordening van bewijs veranderen de deterministische beslissing en canonieke classifierinvoer niet. Verschillende interpretaties blijven onderscheiden. Historische traces blijven leesbaar. Gedragswijzigingen draaien alleen achter de proefvlag. |
+| **2. Gerichte frames** | Bouw op `jas_pipeline/taal/model.py` en `jas_pipeline/taal/afgeleid.py`: predicaten, tijdsconstructies, ingebedde operatorscopes, negatie/uitzonderingen en gerichte contextafhankelijkheden. | IW01 en andere ontwikkelgevallen tonen operanden, bereik en alternatieven; parseruitval en benodigde context blijven zichtbaar. Klassen en gold-spans worden niet uit het voorbeeld afgedwongen. |
 | **3. Juridische relatievoorstellen** | Voeg getypeerde relaties en hun bewijs toe aan proefbatch, opslag, revisies en export. Houd juridische functie, relatierol en methodeprofiel gescheiden. | Relaties zijn herleidbaar tot hypothesen en actuele eindpunten. Correcties heropenen getroffen relaties, zonder historie te verliezen. Relatie-evaluatie is beschikbaar vóór de UI-oplevering. |
 | **4. Beoordelingsinterface en kwaliteitsdiagnose** | Breid het bestaande annotatiepaneel en de dekkingsweergave uit met bewijsafhankelijkheden, scope, relatiebeslissingen en onopgeloste functies. Sluit aan op de bestaande kandidaat- en structurele dekkingsregistratie. | Juristen kunnen classificatie en samenhang afzonderlijk beoordelen. Correcties, actieve beoordelingstijd en uitkomsten reizen door audit en export mee. Geen automatische productiepromotie. |
 

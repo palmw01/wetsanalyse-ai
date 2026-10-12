@@ -162,6 +162,10 @@ bekende beperkingen in [`architectuur/annotatieketen.md`](architectuur/annotatie
 10. Een **deterministische nestingregel** (validatie, géén Critic): een genest element moet een andere
     juridische functie hebben dan het element waarin het ligt.
 
+Kandidaten 1, 3–6 en 9 zijn uitgewerkt in
+[`architectuur/verbeterplan-jas-pipeline-2026-10-08.md`](architectuur/verbeterplan-jas-pipeline-2026-10-08.md):
+bewijs per hypothese, gerichte frames en relaties, in vier PR's achter een proefvlag. Dat werk start na V7.
+
 Kandidaten 2, 3, 4 en 6 hebben in art. 9 lid 5 een concreet voorbeeld: zie de casus onder *Bekende
 beperkingen* in [`architectuur/annotatieketen.md`](architectuur/annotatieketen.md) en de
 conceptcasus [`IW05`](wetsanalyse/referentieset/concept/IW05.json). Die concepten gaan pas mee in

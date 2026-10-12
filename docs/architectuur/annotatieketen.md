@@ -1,7 +1,7 @@
 # Annotatieketen `hybrid_v1`
 
-Soort: *specificatie* (zie [`../README.md`](../README.md)) · Stand: baseline 29 september 2026 ·
-JAS 1.0.10
+Soort: *specificatie* (zie [`../README.md`](../README.md)) · Stand: 12 oktober 2026 (baseline
+29 september 2026) · JAS 1.0.10
 
 Dit document beschrijft hoe de annotatieketen **nu** werkt: welke stap wat ontvangt, wat hij mag
 beslissen, hoe je hem instelt en waar zijn grenzen liggen. Het moet met de code meebewegen. Het
@@ -48,15 +48,15 @@ flowchart TD
 | **Reeks**: `reeks.py`, `bronmodel.gedeelde_bepaling` | `doelen` (onderdelen van één bepaling) → per onderdeel een gewone beurt | Stoppen en budget tussen onderdelen; een fout in één onderdeel stopt de rest niet | Elk onderdeel een eigen laag, batch, bericht en `run_id` `<run>.<n>`; events dragen `onderdeel` |
 | **Bronophaling**: `nodes/annotatie.py`, `bron_annotatie.lees_bron`, `bronmodel.resolve` | Doel → canonieke boom, snapshot-ID, node-IRI, eigen tekst, SHA-256, corpusmapping | Welke node of subboom wordt geanalyseerd; opmaak bepaalt geen offsets | Een bronfout stopt de beurt. Er is geen webterugval |
 | **Hergebruik**: `bron_annotatie.controleer_hergebruik` | Snapshot + bestaande lagen → hergebruikte nodes | Volledig hergebruik slaat detectie over. Door een mens afgeronde nodes worden niet overschreven | Hergebruik heeft eigen events en een eigen runmodus. Bronversies worden niet stil gemengd |
-| **Taalanalyse**: `jas_pipeline/keten._bronteksten`, `taal/provider.py` | Eigen tekst per node, oudertekst als apart veld; tokens, zinnen, lemma's, POS, dependencies, providerversie | Een volledige parser bepaalt zijn eigen zinnen en dependencies | Als de parse ontbreekt of faalt: `niveau=TOKENS`, `meting.gedegradeerd` en een waarschuwing voor de gebruiker. Parse-detectoren slaan zichtbaar over |
+| **Taalanalyse**: `jas_pipeline/keten._bronteksten`, `jas_pipeline/taal/provider.py` | Eigen tekst per node, oudertekst als apart veld; tokens, zinnen, lemma's, POS, dependencies, providerversie | Een volledige parser bepaalt zijn eigen zinnen en dependencies | Als de parse ontbreekt of faalt: `niveau=TOKENS`, `meting.gedegradeerd` en een waarschuwing voor de gebruiker. Parse-detectoren slaan zichtbaar over |
 | **Detectie**: `jas_pipeline/detectoren/*` | Exacte spans, alternatieve spans (opties), mogelijke klassen, bewijs, oorspronkelijke bijdragen | Fragmentgrenzen en hypotheseruimte. Verwijzingsmaskers onderdrukken interne treffers | Geen juridische acceptatie. Nul treffers betekent niet dat er niets is. De identiteit van het resultaat wordt gecontroleerd (`detecteer_alles`) |
-| **Fusie**: `fusie.py`, `specificiteit.py` | Eén kandidaat per bron/offsetpaar met de unie van bewijs en klassen, opties, overlaprelaties, labels. Een exacte tijdkern krijgt T als extra hypothese en verwijst naar de langere kandidaat (`TEMPORAL_KERNEL`, fusie v3) | Specificiteit (JAS-voorrang) beperkt klassen of wijst af | Overlap en nesting blijven aparte kandidaten. Fusie verlengt geen spans en vindt geen gemiste kandidaten. Oorspronkelijke bijdragen blijven intact |
-| **Besluit**: `besluit.py`, `bewijssterkte.py` | Kandidaat → vast regelbesluit of doorgeven aan het model | Zie *Beslisbeleid* | — |
-| **Classificatie**: `classificatie.py` | Batches met labels en de toegestane klassen; broncontext als apart blok | Een aangeboden klasse of `Geen annotatie`. Spankeuze staat uit, en ingeschakeld mag hij alleen uit bestaande opties kiezen | Een ongeldige keuze wordt `UNCERTAIN` met een code. Er wordt nooit een fragment verzonnen |
-| **Eerste validatie**: `validatie.py`, `keten._voorstel` | Voorstellen + corpusmapping + snapshot | Ankers, klasse, provenance en dubbele functies controleren; bij een fout `REJECTED` | De foutcode blijft bewaard. Offsets of tekst worden niet gegokt |
-| **Review**: `onzekerheid.py`, `review.py`, `resolver.py`, `reviewload.py` | Concrete conflicten, abstain en een afgewezen enige centrale norm | Reviewer: KEEP / CHANGE / HUMAN_REVIEW. De resolver voert een vaste tabel uit | Alleen binnen bestaande alternatieven. Een ongeldige reviewreactie gaat naar de mens. Bij een gedegradeerde parse gaat het direct naar de jurist |
-| **Tweede validatie en dekking**: `keten.py`, `dekking.py`, `besluit.ontdubbel_tijd` | Gewijzigde voorstellen gaan opnieuw door de controles; één eindbesluit per kandidaat | Geen kandidaat blijft `UNHANDLED`. Van korte en lange T voor dezelfde functie blijft de lange | Structurele dekking noemt de dimensies die zijn uitgevoerd of overgeslagen, per dimensie hoeveel kandidaten een hypothese voor haar klasse droegen (`aangetroffen`: gezocht is niet gevonden), de ongedekte zinsdelen, en de zinsdelen die alleen als geheel geraakt werden (`alleen_als_geheel`: een normzin-kandidaat over de hele zin telt in `ongedekt` als treffer, terwijl er binnen de zin niets gevonden is). Dat is geen recall |
-| **Registratie**: `beslisregister.py`, `nodes/annotatie.py` | Runmeting, voorstellen, besluiten, ruwe bijdragen → events `run`, `dekking`, `element` | Alleen voorstellen worden elementen | Afgewezen kandidaten blijven in het beslisregister met bewijs, klassen en bijdragen. De oorspronkelijke modelreden overleeft de resolver |
+| **Fusie**: `jas_pipeline/fusie.py`, `jas_pipeline/specificiteit.py` | Eén kandidaat per bron/offsetpaar met de unie van bewijs en klassen, opties, overlaprelaties, labels. Een exacte tijdkern krijgt T als extra hypothese en verwijst naar de langere kandidaat (`TEMPORAL_KERNEL`, fusie v3) | Specificiteit (JAS-voorrang) beperkt klassen of wijst af | Overlap en nesting blijven aparte kandidaten. Fusie verlengt geen spans en vindt geen gemiste kandidaten. Oorspronkelijke bijdragen blijven intact |
+| **Besluit**: `jas_pipeline/besluit.py`, `jas_pipeline/bewijssterkte.py` | Kandidaat → vast regelbesluit of doorgeven aan het model | Zie *Beslisbeleid* | — |
+| **Classificatie**: `jas_pipeline/classificatie.py` | Batches met labels en de toegestane klassen; broncontext als apart blok | Een aangeboden klasse of `Geen annotatie`. Spankeuze staat uit, en ingeschakeld mag hij alleen uit bestaande opties kiezen | Een ongeldige keuze wordt `UNCERTAIN` met een code. Er wordt nooit een fragment verzonnen |
+| **Eerste validatie**: `jas_pipeline/validatie.py`, `jas_pipeline/keten._voorstel` | Voorstellen + corpusmapping + snapshot | Ankers, klasse, provenance en dubbele functies controleren; bij een fout `REJECTED` | De foutcode blijft bewaard. Offsets of tekst worden niet gegokt |
+| **Review**: `jas_pipeline/onzekerheid.py`, `jas_pipeline/review.py`, `jas_pipeline/resolver.py`, `jas_pipeline/reviewload.py` | Concrete conflicten, abstain en een afgewezen enige centrale norm | Reviewer: KEEP / CHANGE / HUMAN_REVIEW. De resolver voert een vaste tabel uit | Alleen binnen bestaande alternatieven. Een ongeldige reviewreactie gaat naar de mens. Bij een gedegradeerde parse gaat het direct naar de jurist |
+| **Tweede validatie en dekking**: `jas_pipeline/keten.py`, `jas_pipeline/dekking.py`, `jas_pipeline/besluit.ontdubbel_tijd` | Gewijzigde voorstellen gaan opnieuw door de controles; één eindbesluit per kandidaat | Geen kandidaat blijft `UNHANDLED`. Van korte en lange T voor dezelfde functie blijft de lange | Structurele dekking noemt de dimensies die zijn uitgevoerd of overgeslagen, per dimensie hoeveel kandidaten een hypothese voor haar klasse droegen (`aangetroffen`: gezocht is niet gevonden), de ongedekte zinsdelen, en de zinsdelen die alleen als geheel geraakt werden (`alleen_als_geheel`: een normzin-kandidaat over de hele zin telt in `ongedekt` als treffer, terwijl er binnen de zin niets gevonden is). Dat is geen recall |
+| **Registratie**: `jas_pipeline/beslisregister.py`, `jas_pipeline/uitleg.py`, `jas_pipeline/subtype.py`, `nodes/annotatie.py` | Runmeting, voorstellen, besluiten, ruwe bijdragen, toelichting en subtype → events `run`, `dekking`, `element` | Alleen voorstellen worden elementen | Afgewezen kandidaten blijven in het beslisregister met bewijs, klassen en bijdragen. De oorspronkelijke modelreden overleeft de resolver |
 | **Opslag**: `beurt.py`, api `annotatie_v2_store.batch` | Batch met snapshot, revisies, elementen, run, dekking, beslisregister | Scope en ankers opnieuw valideren; idempotente transactie | Een conflict in snapshot of revisie geeft een fout. De menselijke historie wordt nooit overschreven |
 | **Mens**: api `annotatie_v2_store.beslis`, frontend `NodeAnnotatiePaneel.tsx` | Voorstellen, alternatieven, bron, historie | Goedkeuren, afwijzen, corrigeren, heropenen | Een gemiste detectie is een beoordelingsvraag. Die recall wordt niet automatisch hersteld |
 
@@ -71,6 +71,7 @@ set annotaties gefingeerd.
 | Instelling | Env | Standaard | Betekenis |
 |---|---|---|---|
 | `classifier_granulariteit` | `CLASSIFIER_GRANULARITEIT` | `klasseverzameling` | De tool-enum per batch is precies de toegestane klasseverzameling. Alternatieven: `universeel` (de oude freeze-default) en `familie`. De keuze is gemaakt met een vooraf vastgelegd criterium in de baselineproef |
+| `classifier_temperature` | `CLASSIFIER_TEMPERATURE` | leeg (providerdefault) | Geen stuurknop voor reproduceerbaarheid: die komt uit de beperkte keuze (enum op labels). De gebruikte waarde staat in de provenance van de beurt |
 | `classifier_parallel` | `CLASSIFIER_PARALLEL` | `4` | Hoeveel classificatiebatches tegelijk naar het model gaan. De batches zijn onafhankelijk; de beslissingen komen in batchvolgorde terug, dus de uitkomst is gelijk aan `1` (na elkaar). Vier batches van ~15 s duurden na elkaar een minuut. Staat als `classifier_parallel` in de meting en de run-instellingen |
 | `deterministisch_accepteren` | `DETERMINISTISCH_ACCEPTEREN` | `true` | Regelbesluiten zonder model (zie hieronder) |
 | `gerichte_review` | `GERICHTE_REVIEW` | `true` | Tweede modeloordeel op twijfelgevallen en centrale afwijzing |
@@ -88,7 +89,7 @@ metingen `AGENT_VERSION` op de commit.
 
 - **Deterministisch accepteren** vereist precies één mogelijke klasse en uitsluitend sterk bewijs.
   `PRIORITY_APPLIED` is administratief. De sterkte wordt **afgeleid uit de regeldefinities**
-  (`bewijssterkte.py`): elke regel verklaart haar sterkte in de YAML (`bewijs:`) of als `BEWIJS` op
+  (`jas_pipeline/bewijssterkte.py`): elke regel verklaart haar sterkte in de YAML (`bewijs:`) of als `BEWIJS` op
   een codedetector. Een code is alleen sterk als al haar regels sterk zijn en dezelfde klasse
   aanwijzen. Een klasse met determinisme `laag` in het profiel heeft geen sterke code.
 - **Sterk boven generiek**: generiek NP-bewijs (`SUBJECT_NP`, `OBJECT_NP`, `ENUMERATED_NP`)
@@ -111,7 +112,7 @@ metingen `AGENT_VERSION` op de commit.
 
 ## Broncontext
 
-`broncontext.py` levert alleen passages van ouders die de keten al heeft (`BronContext.ouders`). De
+`jas_pipeline/broncontext.py` levert alleen passages van ouders die de keten al heeft (`BronContext.ouders`). De
 runtime haalt zelf geen andere artikelen op. Het maximum is twintig unieke passages, met controle
 op de teksthash. Een passage met een afwijkende hash wordt als ontbrekend gemeld en stopt de
 annotatie niet. De context staat als eigen blok **ná** de afgesloten bepaling. Hij is nooit een
@@ -122,18 +123,25 @@ Leidraad wel. `herkomst=graaf` is een intern contract, geen cryptografisch bewij
 
 ## Gedeelde taalvoorzieningen
 
-- **`taal/grenzen.py`**: beschermde bereiken (verwijzingen, numerieke notaties, afkortingen,
+- **`jas_pipeline/taal/grenzen.py`**: beschermde bereiken (verwijzingen, numerieke notaties, afkortingen,
   onderdeelnummering) worden vóór de grenzen herkend. `. ! ?` sluiten een zin en segment, `; :`
   alleen een segment. Een regelovergang is tekstomloop, een lege regel is een alineagrens. De duizendpunt
   in `€ 1.000` is beschermd, maar het bedrag blijft kandidaat. Volledige parses worden niet
   aangepast.
-- **`taal/verwijzingen.py`**: de gedeelde verwijzingspatronen. Ook `artikel 9.1` en `artikel 3:4`
+- **`jas_pipeline/taal/telwoorden.py`**: hoofdtelwoorden als opbouwregel in plaats van een vaste
+  lijst, van 0 t/m 999 999 in woorden ("eenentwintig", "tweeëntwintig", "driehonderdvijftig") en in
+  cijfers, met `waarde()` voor de omrekening. Regels gebruiken het als `{TELWOORD}`. Breuken en
+  rangtelwoorden vallen erbuiten: die hebben een eigen functie en een eigen patroon.
+- **`jas_pipeline/taal/verwijzingen.py`**: de gedeelde verwijzingspatronen. Ook `artikel 9.1` en `artikel 3:4`
   vallen volledig binnen het masker. De masker-YAML verwijst ernaar via `herkenner`.
-- **`taal/structuur.py`**: een venster vanaf de eigen aanhef (of de bronstart als de aanhef in de
+- **`jas_pipeline/taal/structuur.py`**: een venster vanaf de eigen aanhef (of de bronstart als de aanhef in de
   ouder staat) tot de volgende aanhef of het einde van de node. Nummering begrenst onderdelen, ook
   op één regel. `_Venster.bereik` vertaalt terug naar eigen bronoffsets. Declaratieve regels met
   `bereik=segment` gebruiken dezelfde terugvertaling.
-- **Detectorresultaatcontract** (`detectoren/__init__.py`): naam en versie komen alleen van het
+- **`jas_pipeline/taal/afgeleid.py`**: naamwoordgroepen, bijzinnen en werkwoordgroepen, afgeleid uit
+  de UD-analyse. Dit zijn grammaticale eenheden en geen JAS-klassen; de detectoren gebruiken ze als
+  kandidaatgrenzen en spanopties. Bij een gedegradeerde parse leveren ze niets op, en dat is zichtbaar.
+- **Detectorresultaatcontract** (`jas_pipeline/detectoren/__init__.py`): naam en versie komen alleen van het
   detectorobject, ook bij nul treffers en overslag. `detecteer_alles` controleert naam, versie,
   bron, bewijs- en bijdrage-identiteit en geldige overslag.
 
@@ -175,6 +183,19 @@ met meerdere bewijsstukken betekent gezamenlijke ondersteuning, geen koppeling v
 aan één klasse. Oude registers zonder dit veld krijgen een lege lijst, wat "niet vastgelegd"
 betekent. De bewijsfingerprint is stabiel gedefinieerd. Leesbare verklaringen van alle codes staan
 in `jas_pipeline/verklaringen.yaml` en in de vocabulairegraaf.
+
+Twee velden worden deterministisch afgeleid uit wat de keten al weet. Er komt geen modeltekst aan te
+pas:
+
+- **Toelichting en reden per alternatief** (`jas_pipeline/uitleg.py`). De toelichting heeft twee lagen.
+  Het *criterium* is de eerste zin van de klasse-omschrijving uit `jas_klassen.py`. Het *hier* noemt
+  de bewijscodes van dit fragment met hun leesbare namen en zegt wie besliste. Elk alternatief krijgt
+  een reden: het bewijs van de bijdragen die die klasse aandroegen, aangevuld met de verwarringsreden
+  uit het profiel van de klasse. Bij een terugval blijft de reden leeg.
+- **Subtype** (`jas_pipeline/subtype.py`, veld `jas_subtype`). Dit is het onderscheid binnen een
+  samengevoegde klasse, zoals variabelewaarde binnen Variabele en variabelewaarde. Het wordt alleen
+  gezet als het bewijs het eenduidig maakt. Anders blijft het leeg, en dat betekent "onbepaald" en
+  niet "geraden".
 
 ## Bekende beperkingen
 
