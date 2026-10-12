@@ -3,7 +3,8 @@
  *  Geëxtraheerd uit `ReviewQueue`, die hem als eerste had; het tokenbudget is de tweede gebruiker en
  *  twee losse balken zouden vroeg of laat uit elkaar lopen. Wat er bij het extraheren is bijgekomen:
  *  een verplicht `label` (de oorspronkelijke `role="progressbar"` had geen toegankelijke naam) en de
- *  drempelkleuren.
+ *  drempelkleuren. Later: de onbepaalde stand (`percentage: null`), voor werk waarvan de duur niet
+ *  bekend is – de graaf ophalen, vóór de layout zijn voortgang meldt.
  */
 
 export type MeterToon = "voortgang" | "verbruik";
@@ -27,8 +28,10 @@ export function Meter({
   dun = false,
   className = "",
 }: {
-  /** 0–100. Wordt geklemd, zodat een overschrijding de balk niet buiten zijn baan duwt. */
-  percentage: number;
+  /** 0–100. Wordt geklemd, zodat een overschrijding de balk niet buiten zijn baan duwt. `null` =
+   *  onbepaald: er gebeurt iets, maar hoe ver het is valt niet te zeggen (zonder `aria-valuenow`, zoals
+   *  ARIA dat voor een onbepaalde voortgang voorschrijft). */
+  percentage: number | null;
   /** Toegankelijke naam, bv. "Tokenverbruik" of "Voortgang review". */
   label: string;
   /** `verbruik` kleurt mee met de drempels; `voortgang` blijft lintblauw (groen als afgerond). */
@@ -38,20 +41,23 @@ export function Meter({
   dun?: boolean;
   className?: string;
 }) {
-  const perc = Math.max(0, Math.min(100, Math.round(percentage)));
+  const onbepaald = percentage === null;
+  const perc = onbepaald ? 0 : Math.max(0, Math.min(100, Math.round(percentage)));
   return (
     <div
       className={`${dun ? "h-1" : "h-1.5"} overflow-hidden rounded-full bg-line/60 ${className}`}
       role="progressbar"
       aria-label={label}
-      aria-valuenow={perc}
+      aria-valuenow={onbepaald ? undefined : perc}
       aria-valuemin={0}
       aria-valuemax={100}
     >
-      <div
-        className={`h-full rounded-full transition-all ${vulkleur(perc, toon, afgerond)}`}
-        style={{ width: `${perc}%` }}
-      />
+      {onbepaald
+        ? <div className="h-full w-1/4 animate-onbepaald rounded-full bg-lint motion-reduce:w-full motion-reduce:animate-none motion-reduce:opacity-40" />
+        : <div
+          className={`h-full rounded-full transition-all ${vulkleur(perc, toon, afgerond)}`}
+          style={{ width: `${perc}%` }}
+        />}
     </div>
   );
 }

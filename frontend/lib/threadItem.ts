@@ -18,7 +18,7 @@ export type ThreadItem = { tool_executions?: import("./annotatieNode").ToolExecu
       // maar de statusregel ervan staat wél in `denk` en blijft dus na herladen terug te vinden.
       grounding?: AgentGrounding;
       // Het overzicht van een onderwerp, uit de graaf (graph-qa `agent/overzicht.py`): de werkplek
-      // toont het als blok onder de duiding, en de 3D-knop opent er de delen van.
+      // toont het als blok onder de duiding, en de graafknop opent er de delen van.
       overzicht?: Overzicht }
   // `denk` = de tijdlijn van het samenspel (supervisor → ophaal → annoteer → emit). Die blijft ook
   // bewaard als de beurt een annotatie blijkt; juist bij een annotatie wil je achteraf kunnen zien

@@ -4,7 +4,9 @@ import { useState } from "react";
 import { ChevronOmlaag, Kruis, Richten } from "@/components/ui/Icoon";
 import { LIFECYCLE_LABEL } from "@/lib/annotatie";
 import { jasStyle } from "@/lib/jas";
-import { SOORT_LABEL, type GraafKnoop, type Hoofdactie, type RelatieGroepNaam, type RelatieRegel } from "@/lib/samenhang";
+import { SOORT_LABEL, tellingTekst, type Hoofdactie, type RelatieGroepNaam, type RelatieRegel, type Telling } from "@/lib/graaf/bediening";
+import type { GraafModel, KnoopData } from "@/lib/graaf/model";
+import { eigenKleur } from "@/lib/graaf/stijl";
 import type { Lifecycle } from "@/lib/types";
 import type { WaaromBron } from "@/lib/waarom";
 import { WaaromUitklap } from "@/components/annotaties/WaaromUitklap";
@@ -15,50 +17,48 @@ const HOOFD = "focus-ring inline-flex min-h-9 items-center justify-center rounde
 const ZICHTBAAR_PER_GROEP = 5;
 
 /** Wat is dit? Eén kaart per gekozen knoop: naam, inhoud, één hoofdactie, rustige extra's en de
- *  relaties per soort. Zonder selectie een korte stand van zaken. Smal (zijpaneel) staat de kaart
+ *  relaties per soort. Zonder keuze: wat er geladen is en hoe je kiest. Smal (zijpaneel) staat de kaart
  *  onder de graaf en is hij in te klappen tot kop + hoofdactie, zodat het canvas zijn hoogte houdt. */
-export function GraafInspector({ knoop, element, laadElement, ongedekt, hoofdactie, uitgeklapt, verborgenBuren, laadt, groepen, samenvatting, smal,
-  onCentreer, onSluit, onHoofdactie, onVraag, onVerbindingen, onKies }: {
-  knoop?: GraafKnoop;
+export function GraafInspector({ model, id, element, laadElement, ongedekt, hoofdactie, laadt, groepen, telling, smal,
+  onCentreer, onSluit, onHoofdactie, onVraag, onKies }: {
+  model: GraafModel;
+  id: string | null;
   /** Het element achter een markeringsknoop, voor de Waarom-uitklap; de graaf zelf draagt het spoor niet. */
   element?: WaaromBron;
   /** Voor een markering buiten de weergave van het paneel: het element op aanvraag. */
   laadElement?: () => Promise<WaaromBron>;
   /** De zinsdelen zonder detectortreffer van deze bronknoop (de laag Dekking). */
   ongedekt?: string[];
-  hoofdactie: Hoofdactie; uitgeklapt: boolean; verborgenBuren: number; laadt: boolean;
+  hoofdactie: Hoofdactie; laadt: boolean;
   groepen: { naam: RelatieGroepNaam; regels: RelatieRegel[] }[];
-  samenvatting: { leden: number; markeringen: number; verwijzingen: number };
+  telling: Telling;
   smal: boolean;
   onCentreer: () => void; onSluit: () => void; onHoofdactie: () => void; onVraag?: () => void;
-  onVerbindingen: () => void; onKies: (id: string) => void;
+  onKies: (id: string) => void;
 }) {
   const [klapstand, setIngeklapt] = useState(true);
   // Inklappen bestaat alleen smal; vergroot je, dan staan de details altijd open.
   const ingeklapt = smal && klapstand;
   // "Alle n tonen" geldt per knoop en groep, niet voor de volgende knoop die je kiest.
   const [allesOpen, setAllesOpen] = useState<Record<string, boolean>>({});
+  const knoop: (KnoopData & { id: string }) | undefined = id && model.hasNode(id) ? { ...model.getNodeAttributes(id), id } : undefined;
   if (!knoop) return <div className="p-4 text-xs text-muted" data-testid="graaf-detail">
-    <p><span className="text-ink">{samenvatting.leden}</span> leden en onderdelen <span className="px-1 text-faint">·</span>
-      <span className="text-ink">{samenvatting.markeringen}</span> markeringen <span className="px-1 text-faint">·</span>
-      <span className="text-ink">{samenvatting.verwijzingen}</span> verwijzingen</p>
-    <p className="mt-1 text-faint">Kies een knoop in de graaf, of zoek er een.</p>
+    <p className="text-ink">{tellingTekst(telling) || "Nog niets geladen."}</p>
+    <p className="mt-1 text-faint">Kies een knoop in de graaf, of zoek er een. Je keuze en haar buren krijgen nadruk; klik op de achtergrond om de keuze op te heffen.</p>
   </div>;
 
   const hoofdLabel = hoofdactie === "tekst" ? "Toon in tekst"
-    : hoofdactie === "openen" ? (laadt ? "Laden…" : "Artikel openen")
+    : hoofdactie === "laden" ? (laadt ? "Laden…" : "In de graaf laden")
     : hoofdactie === "wissel" ? "Open in het paneel" : "";
-  // De schakelaar is dezelfde handeling als dubbelklikken; weg als er niets te tonen of te verbergen is.
-  const schakelaar = uitgeklapt || verborgenBuren > 0;
 
   return <div className="flex min-h-0 flex-col" data-testid="graaf-detail">
     <div className="flex items-start gap-2 px-4 pb-2 pt-3">
       <div className="min-w-0 flex-1">
         <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-faint">
-          <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: knoop.kleur }} />
-          {SOORT_LABEL[knoop.soort]}{knoop.rand && knoop.soort !== "extern" ? " · buiten dit artikel" : ""}
+          <span className="h-2 w-2 shrink-0 rounded-full border border-black/10" style={{ background: eigenKleur(knoop) }} />
+          {SOORT_LABEL[knoop.soort]}{knoop.rand && knoop.soort !== "extern" ? " · buiten wat geladen is" : ""}
         </p>
-        <h3 className="mt-0.5 text-sm font-semibold leading-snug text-ink">{knoop.label}</h3>
+        <h3 className="mt-0.5 text-sm font-semibold leading-snug text-ink">{knoop.naam}</h3>
       </div>
       <button type="button" className={ICOON} onClick={onCentreer} aria-label="Centreren" title="Centreren"><Richten /></button>
       {smal && <button type="button" className={ICOON} onClick={() => setIngeklapt((v) => !v)} aria-expanded={!ingeklapt}
@@ -70,13 +70,6 @@ export function GraafInspector({ knoop, element, laadElement, ongedekt, hoofdact
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pb-3">
       {hoofdactie && <button type="button" className={HOOFD} onClick={onHoofdactie} disabled={laadt}>{hoofdLabel}</button>}
       {onVraag && <button type="button" className={TEKSTKNOP} onClick={onVraag}>Vraag Lex</button>}
-      {schakelaar && <button type="button" role="switch" aria-checked={uitgeklapt} onClick={onVerbindingen}
-        className="focus-ring inline-flex items-center gap-2 rounded px-1 py-1 text-xs text-ink coarse:min-h-11">
-        <span aria-hidden="true" className={`relative h-4 w-7 rounded-full transition-colors ${uitgeklapt ? "bg-accent" : "bg-line"}`}>
-          <span className={`absolute top-0.5 h-3 w-3 rounded-full bg-paper shadow transition-all ${uitgeklapt ? "left-3.5" : "left-0.5"}`} />
-        </span>
-        Verbindingen tonen{!uitgeklapt && verborgenBuren > 0 ? ` (${verborgenBuren})` : ""}
-      </button>}
     </div>
 
     {!ingeklapt && <div className="min-h-0 space-y-3 overflow-y-auto border-t border-line px-4 py-3">
@@ -112,13 +105,13 @@ export function GraafInspector({ knoop, element, laadElement, ongedekt, hoofdact
             <ChevronOmlaag className="-rotate-90 transition-transform group-open:rotate-0" />{naam} <span className="font-normal text-faint">({regels.length})</span>
           </summary>
           <ul className="mt-1 space-y-0.5 pl-4">
-            {toon.map(({ knoop: ander, anker_tekst }) => <li key={ander.id}>
-              <button type="button" onClick={() => onKies(ander.id)} className="focus-ring flex w-full items-baseline gap-2 rounded px-1 py-0.5 text-left text-xs hover:bg-surface">
-                <span className="mt-1 h-2 w-2 shrink-0 self-start rounded-full" style={{ background: ander.kleur }} />
-                <span className="truncate text-lint">{ander.label}</span>
+            {toon.map(({ id: ander, anker_tekst }) => { const a = model.getNodeAttributes(ander); return <li key={ander}>
+              <button type="button" onClick={() => onKies(ander)} className="focus-ring flex w-full items-baseline gap-2 rounded px-1 py-0.5 text-left text-xs hover:bg-surface coarse:min-h-11">
+                <span className="mt-1 h-2 w-2 shrink-0 self-start rounded-full border border-black/10" style={{ background: eigenKleur(a) }} />
+                <span className="truncate text-lint">{a.naam}</span>
                 {anker_tekst && <span className="truncate text-faint">“{anker_tekst}”</span>}
               </button>
-            </li>)}
+            </li>; })}
           </ul>
           {regels.length > ZICHTBAAR_PER_GROEP && !allesOpen[sleutel] && <button type="button" className={`${TEKSTKNOP} ml-4`}
             onClick={() => setAllesOpen((a) => ({ ...a, [sleutel]: true }))}>Alle {regels.length} tonen</button>}

@@ -1,20 +1,19 @@
 // Het overzicht van een onderwerp, zoals graph-qa het uit de graaf opbouwt
-// (`tools/graph-qa/agent/overzicht.py`): de rekenkern achter `OverzichtBlok`, de 3D-knop en de
+// (`tools/graph-qa/agent/overzicht.py`): de rekenkern achter `OverzichtBlok`, de graafknop en de
 // kopieerknop.
 //
 // Alles hier leest het overzicht, niet de tekst van Lex. Dat is de reden van bestaan: de doelen van de
-// 3D-graaf en de nummers in het blok hingen eerst af van hoe het model formuleerde, en dezelfde vraag
+// graaf en de nummers in het blok hingen eerst af van hoe het model formuleerde, en dezelfde vraag
 // gaf zo een andere kaart. Nu geeft hetzelfde overzicht dezelfde kaart.
 
 import type { NodeDoel } from "./annotatieNode";
 import type { Overzicht, OverzichtBepaling, OverzichtDeel } from "./types";
 
-/** Hoeveel delen de 3D-graaf van een overzicht hoogstens opent. Ruimer dan voor losse artikelen
- *  (`MAX_SAMENHANG_DOELEN`): de delen vormen één compacte boom en komen in één verzoek, met één
- *  bronboom per regeling. Gelijk aan de grens van `/samenhang/meer` in de api. */
+/** Hoeveel delen de graaf van een overzicht hoogstens opent. Ruimer dan voor losse artikelen
+ *  (`MAX_SAMENHANG_DOELEN`): de delen komen in één verzoek, met één bronboom per regeling. Gelijk aan de grens van `/samenhang/meer` in de api. */
 export const MAX_OVERZICHT_DOELEN = 30;
 
-/** De doelen voor de 3D-graaf: de delen van het overzicht in zijn eigen volgorde (rang, dan
+/** De doelen voor de graaf: de delen van het overzicht in zijn eigen volgorde (rang, dan
  *  documentvolgorde), het eerste opent in het paneel. Zonder delen: de bepalingen die het onderwerp
  *  noemen. Geen tekst nodig – dus elke formulering van Lex geeft dezelfde kaart. */
 export function overzichtDoelen(ov: Overzicht, max = MAX_OVERZICHT_DOELEN): { doelen: NodeDoel[]; totaal: number } {

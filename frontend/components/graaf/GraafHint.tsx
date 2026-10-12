@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { Kruis } from "@/components/ui/Icoon";
 
-const SLEUTEL = "wa_graaf_hint";
+// Een nieuwe sleutel bij een nieuwe bediening: wie de 3D-uitleg wegklikte, krijgt deze één keer.
+const SLEUTEL = "wa_graaf_hint_2d";
 
 /** Eenmalige uitleg van de bediening, onder in het canvas. Verdwijnt bij de eerste eigen
  *  interactie (`klaar`) of met het kruisje, en blijft dan per kijker weg. Opslag kan ontbreken
@@ -23,7 +24,7 @@ export function GraafHint({ klaar }: { klaar: boolean }) {
   }, [klaar, gezien]);
   if (gezien) return null;
   return <p role="status" data-testid="graaf-hint" className="pointer-events-auto flex items-center gap-2 rounded-full border border-line bg-paper/95 py-1.5 pl-3 pr-1.5 text-[11px] text-muted shadow-kaart">
-    Sleep: draaien · scroll: zoomen · dubbelklik: verbindingen
+    Klik: kiezen · achtergrond: keuze opheffen · sleep en scroll: verschuiven en zoomen
     <button type="button" aria-label="Uitleg sluiten" onClick={() => { try { localStorage.setItem(SLEUTEL, "1"); } catch { /* */ } setGezien(true); }}
       className="focus-ring rounded-full p-1 hover:bg-surface hover:text-ink"><Kruis /></button>
   </p>;

@@ -1,6 +1,6 @@
 import type { NodeDekking } from "./annotatieNode";
 
-/** De kleur van de dekkingslaag in de 3D-graaf. Tussen de rand- en teksttint van aandacht-geel
+/** De kleur van de dekkingslaag in de graaf. Tussen de rand- en teksttint van aandacht-geel
  *  (`globals.css`) in: de randtint zelf is als draadmodel op het lichte doek te bleek. */
 export const DEKKINGSKLEUR = "#c4893f";
 

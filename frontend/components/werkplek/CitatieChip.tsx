@@ -74,7 +74,7 @@ function BronKaart({ doel, bron, rect, onSluit, onOpenSamenhang }: {
       {href && <a href={href} target="_blank" rel="noopener noreferrer" className="text-lint underline underline-offset-2">wetten.overheid.nl</a>}
       {onOpenSamenhang && <button type="button" onClick={() => { onSluit(); onOpenSamenhang(doel); }}
         className="focus-ring inline-flex items-center gap-1 rounded text-lint underline underline-offset-2 hover:no-underline">
-        <GraafIcoon />Bekijk samenhang in 3D</button>}
+        <GraafIcoon />Bekijk in de graaf</button>}
     </div>
   </div>;
 }

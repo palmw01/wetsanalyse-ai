@@ -71,9 +71,10 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
   gesprekseval (`run_eval.py --gesprek`): 7–9 → 11–12 van 12 vervolgbeurten →
   [`metingen/gesprek-vervolgvragen-2026-10-06/`](architectuur/metingen/gesprek-vervolgvragen-2026-10-06/README.md).
 - **Samenhangsgraaf** (#540–#546): `GET /v1/annotatie/samenhang` (`api/app/samenhang.py`,
-  capability `samenhang`) en een 3D-krachtgraaf (`components/graaf/SamenhangGraaf.tsx`,
-  `lib/samenhang.ts`). Die staat als tab *3D-graaf* in het annotatiepaneel en opent ook via
-  "Bekijk samenhang in 3D" onder chatbronnen. Hij toont de bronstructuur, markeringen met hun
+  capability `samenhang`) en de graaf in de werkplek, sinds okt 2026 een 2D-graaf op sigma.js +
+  graphology (`components/graaf/Graaf.tsx`, rekenkern `lib/graaf/`) in plaats van de 3D-krachtgraaf;
+  `GET /v1/annotatie/graaf` levert de hele kennisgraaf. Die staat als tab *Graaf* in het
+  annotatiepaneel en opent ook via "Bekijk … in de graaf" onder chatbronnen. Hij toont de bronstructuur, markeringen met hun
   JAS-klasse en de letterlijke verwijzingen één stap in en uit. Randknopen zijn bij te laden, en er
   zijn zoeken, lagen, een inspector met *Open brontekst* / *Vraag Lex hierover* en live bijwerken na
   een mutatie. Afstand en positie hebben geen juridische betekenis. Browsertest:
@@ -180,7 +181,7 @@ De samenhangsgraaf is de plek waar die herkomst ook ruimtelijk zichtbaar wordt, 
 - vrij selecteren blijft bestaan naast voorgestelde grenzen;
 - de exacte modelvraag komt in de JSON-export;
 - beoordelingen komen in de graaf **zonder personen**;
-- de 3D-samenhangsgraaf is dé graaftab van het paneel. De Turtle van een markering en de
+- de samenhangsgraaf is dé graaftab van het paneel. De Turtle van een markering en de
   graafcontrole-status komen onder "technisch detail" in de graafinspector en in de export.
 
 **UI-richting.** De huidige opzet blijft: een gespreksvenster met de annotatie als zijpaneel. Die
@@ -255,7 +256,7 @@ voor een afleidingsregel worden vastgelegd.
 **Uitgangssituatie.** Het werkgebied is nu een vrij tekstveld, in v2 leeg. Er zijn geen opgeslagen
 betekenisgroepen en geen analysebegrippen; de JAS-begrippen in de vocabulaire zijn classificaties.
 `tools/nl-sbb-begrip` is een los hulpmiddel. Samenhang zit in `api/app/samenhang.py` en
-`frontend/lib/samenhang.ts`: een 3D-samenhangsgraaf per bepaling (`/v1/annotatie/samenhang`), die
+`frontend/lib/graaf/`: een samenhangsgraaf per bepaling (`/v1/annotatie/samenhang`), die
 de tab *Samenhang* en de werkgebiedgraaf als basis kunnen hergebruiken. De runstore overleeft een procesuitval nog niet. De keten `hybrid_v1`
 hoeft niet te veranderen.
 
