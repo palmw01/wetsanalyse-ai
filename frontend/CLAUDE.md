@@ -150,7 +150,7 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
     `graphQaBaseUrl()` + `GRAPH_QA_TOKEN` en `X-User-Id` (`startRun`/`volgRun`/`stopRun`/
     `haalActieveRun`).
   - *Review-state via de API* – de catch-all `app/api/annotatie/v2/[...pad]/route.ts` → `/v1/annotatie/{weergave,elementen,lagen,
-    node-lagen,samenhang,graaf,capabilities,verklaringen}` (een allowlist op het eerste padsegment), met client-helpers in `lib/annotatieNode.ts`. De lagen zijn **gedeeld**,
+    node-lagen,samenhang,graaf,knoop,capabilities,verklaringen}` (een allowlist op het eerste padsegment), met client-helpers in `lib/annotatieNode.ts`. De lagen zijn **gedeeld**,
     niet per gebruiker; gesprekken zijn per gebruiker.
 
 ### De beurt is van de server, niet van dit tabblad
@@ -712,6 +712,16 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
   markering wordt bij het kiezen opgehaald (`useMarkeringElement`). Zonder keuze: *Dit antwoord* (de
   doelen, klikbaar) en wat er geladen is. Breed rechts, smal onder de graaf: open, met eigen scroll, in
   te klappen; per keuze een `key`, dus elke keuze begint open en bovenaan.
+- **Uit de kennisgraaf** (`KnoopFeiten`, `lib/graaf/knoopinfo.ts`, `GET knoop`, cache per paneel via
+  `useKnoopInfo`): bij een bronknoop wat de graaf er verder over weet – geldigheid, herkomst van de
+  tekst, regeling, grondslag en bevoegdheid, genoemd in, begrip, vindplaats – en ingeklapt alle
+  triples ruw. Een waarde die op de kaart staat kies je in de graaf; de rest wordt een link via
+  `bronHref` (een niet-BWB-IRI blijft tekst). Datums in gewone woorden (`datumTekst`). In *Verwijst
+  naar* / *Wordt verwezen door* staat per regel wat de verwijzing is (`verwijzingTekst`: binnen deze
+  regeling / naar een andere / uit de tekst herkend, soort doel, pad) en *lage betrouwbaarheid* bij een
+  alleen uit de tekst herkende verwijzing. **Lijnen zijn bewust niet klikbaar**: sigma's raakgebied is
+  de getekende dikte (1–1,7 px) op een picking-buffer met halve resolutie, en in de kennisgraaf liggen
+  ~10.000 lijnen over elkaar – een klik naast een knoop zou dan een lijn kiezen.
 - **Bediening als een kaart-app**: zoeken linksboven (`GraafZoek`, ook de toetsenbordroute), *Lagen*
   linksonder (`GraafLagen`: lagen, markeringsfilter en de legenda in één paneel), beeld rechtsonder
   (`GraafBeeld`: *Naar het antwoord*, *Alles in beeld*, zoomen), een eenmalige hint (`GraafHint`). Zolang

@@ -10,6 +10,8 @@ import { eigenKleur } from "@/lib/graaf/stijl";
 import type { Lifecycle } from "@/lib/types";
 import type { NodeElement } from "@/lib/annotatieNode";
 import { WaaromUitklap } from "@/components/annotaties/WaaromUitklap";
+import { verwijzingTekst, verwijzingVoor, type KnoopInfo } from "@/lib/graaf/knoopinfo";
+import { KnoopFeiten } from "./KnoopFeiten";
 import { KnoopTekst } from "./KnoopTekst";
 import type { DetailStand } from "./useKnoopDetail";
 
@@ -25,12 +27,14 @@ const ZICHTBAAR_PER_GROEP = 5;
  *
  *  Smal (zijpaneel) staat de kaart onder de graaf, met een eigen scroll, en is hij in te klappen. De
  *  aanroeper geeft hem per keuze een `key`: een nieuwe keuze begint open en bovenaan. */
-export function GraafInspector({ model, id, detail, element, ongedekt, hoofdactie, laadt, groepen, telling, doelen, smal,
+export function GraafInspector({ model, id, detail, info, element, ongedekt, hoofdactie, laadt, groepen, telling, doelen, smal,
   onCentreer, onSluit, onHoofdactie, onVraag, onKies }: {
   model: GraafModel;
   id: string | null;
   /** De wettekst van de gekozen bepaling, of voor een markering die van haar anker. */
   detail: DetailStand;
+  /** Wat de kennisgraaf over de knoop weet (`GET knoop`); `null` bij een markering of klasse. */
+  info: KnoopInfo | "laden" | "fout" | null;
   /** Het element achter een markeringsknoop: toelichting, alternatieven, spoor. */
   element?: NodeElement | "laden" | "fout";
   /** Wat het antwoord noemt, voor de inspector zonder keuze. */
@@ -127,7 +131,11 @@ export function GraafInspector({ model, id, detail, element, ongedekt, hoofdacti
         </div>;
       })()}
       {knoop.soort === "extern" && <p className="text-xs text-muted">Deze bepaling staat niet in de kennisgraaf; alleen de verwijzing ernaar is bekend.</p>}
+      {info && <KnoopFeiten info={info} opKaart={(iri) => model.hasNode(iri)} onKies={onKies} />}
       {groepen.map(({ naam, regels }) => {
+        // Een lijn draagt alleen de ankertekst; soort, doel en betrouwbaarheid staan op de verwijzing.
+        const richting = naam === "Verwijst naar" ? "uit" : naam === "Wordt verwezen door" ? "in" : undefined;
+        const verwijzingen = richting && info && typeof info === "object" ? info.verwijzingen : [];
         const sleutel = `${knoop.id}|${naam}`;
         const toon = allesOpen[sleutel] ? regels : regels.slice(0, ZICHTBAAR_PER_GROEP);
         return <details key={naam} open={regels.length <= ZICHTBAAR_PER_GROEP} className="group">
@@ -138,8 +146,20 @@ export function GraafInspector({ model, id, detail, element, ongedekt, hoofdacti
             {toon.map(({ id: ander, anker_tekst }) => { const a = model.getNodeAttributes(ander); return <li key={ander}>
               <button type="button" onClick={() => onKies(ander)} className="focus-ring flex w-full items-baseline gap-2 rounded px-1 py-0.5 text-left text-xs hover:bg-surface coarse:min-h-11">
                 <span className="mt-1 h-2 w-2 shrink-0 self-start rounded-full border border-black/10" style={{ background: eigenKleur(a) }} />
-                <span className="truncate text-lint">{a.naam}</span>
-                {anker_tekst && <span className="truncate text-faint">“{anker_tekst}”</span>}
+                <span className="min-w-0">
+                  <span className="flex items-baseline gap-2">
+                    <span className="truncate text-lint">{a.naam}</span>
+                    {anker_tekst && <span className="truncate text-faint">“{anker_tekst}”</span>}
+                  </span>
+                  {richting && (() => {
+                    const v = verwijzingVoor(verwijzingen, richting, ander, anker_tekst);
+                    if (!v) return null;
+                    return <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-faint" data-testid="graaf-verwijzing">
+                      {verwijzingTekst(v)}
+                      {v.betrouwbaarheid === "laag" && <span className="rounded-full border border-aandacht-geel-rand bg-aandacht-geel-bg px-1.5 text-aandacht-geel-tekst">lage betrouwbaarheid</span>}
+                    </span>;
+                  })()}
+                </span>
               </button>
             </li>; })}
           </ul>

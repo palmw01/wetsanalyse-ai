@@ -11,7 +11,7 @@ import { layoutVoor } from "@/lib/graaf/rekenaar";
 import { STANDAARD_LAGEN, type Lagen } from "@/lib/graaf/weergave";
 import { haalSamenhang, haalSamenhangen, type MarkeringFilter, type Samenhang } from "@/lib/samenhang";
 import type { GraafBediening } from "./GraafTekenaar";
-import type { DetailCache } from "./useKnoopDetail";
+import type { DetailCache, InfoCache } from "./useKnoopDetail";
 
 /** Waar het laden is: de data ophalen (duur onbekend), de layout rekenen (met voortgang), klaar. */
 export type Laadfase = { fase: "ophalen" } | { fase: "layout"; fractie: number } | { fase: "klaar" };
@@ -59,6 +59,7 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, extra: NodeDoel[]
   const bediening = useRef<GraafBediening | null>(null);
   // De tekst van gekozen bepalingen voor de inspector, per paneel één keer opgehaald (`useKnoopDetail`).
   const detailCache = useRef<DetailCache>(new Map());
+  const infoCache = useRef<InfoCache>(new Map());
   // Telt op bij elke `ververs`: de inspector haalt de tekst van de gekozen knoop dan opnieuw op.
   const [detailVersie, setDetailVersie] = useState(0);
 
@@ -165,7 +166,7 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, extra: NodeDoel[]
     bronnen, getekend, laadfase, nietGeladen, fout, setFout, laad, ververs, laadErbij, laadtBij,
     bereik, setBereik, focusIds, kennisgraaf, laadKennisgraaf,
     selectie, setSelectie, lagen, setLagen, markering, setMarkering, lagenOpen, setLagenOpen,
-    aangeraakt, setAangeraakt, camera, bediening, detailCache, detailVersie,
+    aangeraakt, setAangeraakt, camera, bediening, detailCache, infoCache, detailVersie,
   };
 }
 export type GraafStand = ReturnType<typeof useGraafStand>;

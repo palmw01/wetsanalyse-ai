@@ -44,6 +44,7 @@ zijn gedeeld tussen gebruikers; wie wat deed staat in de audit. Specificatie:
 | `GET` | `/v1/annotatie/verklaringen` | Leesbare namen en uitleg van alles wat in een `trace` kan staan |
 | `GET` | `/v1/annotatie/weergave` | De bepaling met segmenten, lagen, markeringen en dekking |
 | `GET` | `/v1/annotatie/samenhang` | Bronstructuur, annotaties en letterlijke verwijzingen van het artikel (3D-weergave) |
+| `GET` | `/v1/annotatie/knoop` | Wat de kennisgraaf over één knoop weet: geldigheid, herkomst, grondslag, genoemd in, begrip, vindplaats, verwijzingen en alle triples ruw |
 | `GET` | `/v1/annotatie/dekking` | Is deze bronnode (of subtree) daadwerkelijk behandeld? |
 | `POST` | `/v1/annotatie/lagen/batch` | De uitkomst van één agent-ronde, in één transactie (idempotent op `batch_id`) |
 | `POST` | `/v1/annotatie/elementen` | Eigen markering van de jurist toevoegen |

@@ -41,6 +41,7 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
 | `graafcontrole.py`, `shacl.py`, `shapes/jas-v2.ttl` | Controle achteraf: klopt de graaf met Postgres? |
 | `samenhang.py` | Structuur, annotaties en verwijzingen van één artikel (of het overzicht van een structuurdeel), voor de graafweergave; de bouwstenen (`bronknoop`, `markeringen`, `verwijzingen`) deelt hij met `graaf.py`. |
 | `graaf.py` | De complete graaf (`/graaf`): alle regelingen met structuur, verwijzingen en markeringen; structuur en verwijzingen gecachet per `(bwb_id, toestandUrl)`. |
+| `knoopinfo.py` | Wat de kennisgraaf over één knoop weet (`/knoop`), voor de inspector van de graaf. |
 | `annotatie_statistiek.py`, `scripts/statistiek.py` | Reviewstatistiek over de elementen: uitkomst per klasse en per model, klasse-verschuivingen, aandacht tegenover correctie. |
 | `jas_klassen.py`, `validation.py` | De dertien JAS-klassen, volgorde en kleuren (canoniek); `GELDIGE_JAS_KLASSEN`, `JAS_KLASSE_KLEUREN`, `jas_sorteersleutel`. |
 | `ratelimit.py` | In-process rate limit per client. |
@@ -144,6 +145,14 @@ Hieronder wat je moet weten om de code te wijzigen.
   cachet de werkplek de layout. Een BWB-id gaat letterlijk een query in en wordt strikt gevalideerd.
   Het label van een deel krijgt zijn nummer (`_label`: de bronboom draagt "Hoofdstuk" en "II" apart);
   bewust hier en niet in `bronmodel`, waar het de snapshot-identiteit van bestaande lagen zou raken.
+  **`/knoop`** (`knoopinfo.py`, `bron_iri`) geeft wat de BWB-import en de WTI-verrijking verder aan
+  één knoop hangen, letterlijk en zonder afleiding: de bekende predicaten in vaste groepen met een
+  Nederlandse naam (`FEITEN`: geldigheid – ook die van de regeling erboven –, herkomst, regeling,
+  grondslag en bevoegdheid – ook inkomend `heeftGrondslag` –, genoemd in, begrip, vindplaats), de
+  `bwb:Verwijzing`-knopen van en naar de knoop (soort, soort doel, pad, betrouwbaarheid: wat een lijn
+  in de graaf niet draagt), en **alle** uitgaande triples ruw, zodat er nooit iets ontbreekt. Een
+  nieuw predicaat verschijnt dus eerst alleen ruw; geef hem een plek in `FEITEN`. De IRI gaat
+  letterlijk een query in en moet `samenhang._IRI` volledig matchen (422); een haperende graaf 503.
 
 ### Projectie naar de kennisgraaf
 
