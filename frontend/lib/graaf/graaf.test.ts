@@ -5,7 +5,7 @@ import { berekenLayout, plaatsAnnotaties, startposities, structuurVan, type Posi
 import { bouwModel, type GraafBron } from "./model";
 import { proefgraaf } from "./proefgraaf";
 import { GEDIMD, NADRUK_LIJN } from "./stijl";
-import { focusVan, knoopBeeld, lijnBeeld, STANDAARD_LAGEN, verborgenKnopen, weergaveContext, type WeergaveStand } from "./weergave";
+import { focusVan, knoopBeeld, lagenVoor, lijnBeeld, STANDAARD_LAGEN, verborgenKnopen, weergaveContext, type WeergaveStand } from "./weergave";
 
 const IW = "urn:bwb:BWBR0004770";
 const H = `${IW}:hoofdstuk:II`, A9 = `${IW}:artikel:9`, L1 = `${A9}:lid:1`, L2 = `${A9}:lid:2`, A10 = `${IW}:artikel:10`;
@@ -190,7 +190,7 @@ describe("weergave", () => {
     expect(beeld(L1, stand({ focus })).gedimd).toBe(false);
     const gekozen = stand({ focus, selectie: A10 });
     expect(beeld(A10, gekozen)).toMatchObject({ gekozen: true, altijdLabel: true, niveau: 3 });
-    expect(beeld(H, gekozen).gedimd).toBe(false);
+    expect(beeld(H, gekozen)).toMatchObject({ gedimd: false, altijdLabel: true });
     expect(beeld(L1, gekozen)).toMatchObject({ gedimd: true, kleur: GEDIMD, label: null });
     // De keuze opheffen (klik op de achtergrond) brengt de focus terug.
     expect(beeld(L1, stand({ focus, selectie: null })).gedimd).toBe(false);
@@ -209,5 +209,13 @@ describe("weergave", () => {
     expect(lijn(klasse, stand({ selectie: "element:1" }))).toMatchObject({ verborgen: false, kleur: NADRUK_LIJN });
     expect(lijn(`${L1}|verwijst_naar|${AWB}`, stand()).pijl).toBe(true);
     expect(lijn(`${L1}|verwijst_naar|${AWB}`, stand({ lagen: { ...STANDAARD_LAGEN, verwijzingen: false } })).verborgen).toBe(true);
+  });
+
+  it("wie een verborgen knoop kiest (zoeken, inspector), zet alleen de nodige laag aan", () => {
+    const uit = { ...STANDAARD_LAGEN, leden: false, annotaties: false, verwijzingen: false };
+    expect(lagenVoor(g, "element:1", uit, "alle").lagen).toEqual({ ...uit, leden: true, annotaties: true });
+    expect(lagenVoor(g, AWB, uit, "alle").lagen).toEqual({ ...uit, verwijzingen: true });
+    expect(lagenVoor(g, "element:1", STANDAARD_LAGEN, "jurist")).toEqual({ lagen: STANDAARD_LAGEN, markering: "alle" });
+    expect(lagenVoor(g, A10, uit, "jurist")).toEqual({ lagen: uit, markering: "jurist" });
   });
 });

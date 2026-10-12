@@ -255,7 +255,9 @@ export function plaatsAnnotaties(g: GraafModel, bron: Posities): Posities {
   const midden: Punt = punten.length
     ? [punten.reduce((s, p) => s + p[0], 0) / punten.length, punten.reduce((s, p) => s + p[1], 0) / punten.length]
     : [0, 0];
-  const straal = Math.max(maat * 3, ...punten.map(([x, y]) => Math.hypot(x - midden[0], y - midden[1]))) + maat * 4;
+  // Net buiten de kaart: verder weg en de ring bepaalt de omvang van het beeld, zodat een kleine
+  // samenhang klein in een hoek van het canvas komt te staan.
+  const straal = Math.max(maat, ...punten.map(([x, y]) => Math.hypot(x - midden[0], y - midden[1]))) + maat * 1.5;
   const plekken = JAS_KLASSEN.length + 1;
   g.forEachNode((id, a) => {
     if (a.soort !== "klasse") return;

@@ -115,12 +115,12 @@ export function normaliseerBronnen(bronnen: readonly Bron[]): Bronnenlijst {
   return { groepen: uit, overig, aantal: gezien.size };
 }
 
-/** Hoeveel artikelen de 3D-graaf hoogstens tegelijk opent vanuit één antwoord. Meer wordt een
+/** Hoeveel artikelen de graaf hoogstens tegelijk opent vanuit één antwoord. Meer wordt een
  *  kaart van eilandjes, en elk artikel is een eigen request. */
 export const MAX_SAMENHANG_DOELEN = 8;
 
 /** De artikelen die het antwoord zelf noemt, in de volgorde van de tekst, als doelen voor de
- *  3D-graaf. Alleen een éénduidige koppeling telt (`koppelBron`, dezelfde regel als de
+ *  graaf. Alleen een éénduidige koppeling telt (`koppelBron`, dezelfde regel als de
  *  citatie-chips). Eén doel per artikel, maar wel zo precies als de eerste vermelding: een genoemd lid
  *  opent zijn artikel met dát lid gekozen. Noemt de tekst niets te koppelen, dan de eerste bepaling
  *  uit de bronnen.

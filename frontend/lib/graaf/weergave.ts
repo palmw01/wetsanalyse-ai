@@ -13,8 +13,7 @@
 import { pastBijMarkeringFilter, type MarkeringFilter } from "@/lib/samenhang";
 import { ankerVan, type GraafModel, type KnoopData, type RelatieData } from "./model";
 import {
-  BRONKLEUR, DEKKINGSKLEUR, GEDIMD, GEDIMDE_LIJN, GEKOZEN_FACTOR, GROOTTE, klasseKleur, LIJNDIKTE, LIJNKLEUR,
-  NADRUK_LIJN, RAND_VULLING, RANDKLEUR,
+  DEKKINGSKLEUR, eigenKleur, GEDIMD, GEDIMDE_LIJN, GEKOZEN_FACTOR, GROOTTE, LIJNDIKTE, LIJNKLEUR, NADRUK_LIJN, RANDKLEUR,
 } from "./stijl";
 
 export interface Lagen {
@@ -27,7 +26,7 @@ export interface Lagen {
   /** Een okeromtrek om leden en onderdelen met zinsdelen zonder detectortreffer. */
   dekking: boolean;
 }
-export const STANDAARD_LAGEN: Lagen = { leden: true, verwijzingen: true, annotaties: true, dekking: false };
+export const STANDAARD_LAGEN: Lagen = { leden: true, verwijzingen: true, annotaties: true, dekking: true };
 
 /** Wat het antwoord noemt: de `doelen` zelf (krijgen altijd een label) en hun `bereik` (de doelen met
  *  wat ze bevatten, plus de markeringen daarop). */
@@ -93,19 +92,29 @@ export interface WeergaveContext {
   verborgen: ReadonlySet<string>;
   /** Wat nadruk heeft; `null` = alles (geen keuze en geen focus). */
   nadruk: ReadonlySet<string> | null;
+  /** Wat altijd een label krijgt: de keuze, haar buren (als dat er niet te veel zijn) en de doelen van
+   *  de focus. De rest krijgt een label als er ruimte is. */
+  vastLabel: ReadonlySet<string>;
 }
+
+/** Tot hoeveel buren de keuze ze allemaal benoemt; daarboven (een regeling met honderden artikelen)
+ *  beslist de ruimte, anders wordt het een muur van tekst. */
+export const MAX_VASTE_LABELS = 30;
 
 export function weergaveContext(g: GraafModel, stand: WeergaveStand): WeergaveContext {
   const verborgen = verborgenKnopen(g, stand.lagen, stand.markering);
   let nadruk: Set<string> | null = null;
+  let vastLabel = new Set<string>();
   const sel = stand.selectie;
   if (sel && g.hasNode(sel) && !verborgen.has(sel)) {
     nadruk = new Set([sel, ...g.neighbors(sel).filter((n) => !verborgen.has(n))]);
+    vastLabel = nadruk.size <= MAX_VASTE_LABELS + 1 ? nadruk : new Set([sel]);
   } else if (stand.focus) {
     const zichtbaar = [...stand.focus.bereik].filter((id) => g.hasNode(id) && !verborgen.has(id));
     if (zichtbaar.length) nadruk = new Set(zichtbaar);
+    vastLabel = new Set([...stand.focus.doelen].filter((id) => !verborgen.has(id)));
   }
-  return { stand, verborgen, nadruk };
+  return { stand, verborgen, nadruk, vastLabel };
 }
 
 export interface KnoopBeeld {
@@ -116,7 +125,7 @@ export interface KnoopBeeld {
   grootte: number;
   /** `null` = geen label (gedimd). Of het getoond wordt, beslist de tekenaar naar ruimte. */
   label: string | null;
-  /** Altijd een label, ook als het ruimte kost: de keuze en de doelen van de focus. */
+  /** Altijd een label, ook als het ruimte kost (`vastLabel`). */
   altijdLabel: boolean;
   gedimd: boolean;
   gekozen: boolean;
@@ -129,16 +138,15 @@ export function knoopBeeld(id: string, a: KnoopData, ctx: WeergaveContext): Knoo
   const verborgen = ctx.verborgen.has(id);
   const gekozen = stand.selectie === id;
   const gedimd = !!nadruk && !nadruk.has(id);
-  const eigen = a.soort === "markering" || a.soort === "klasse" ? klasseKleur(a.klasse || a.label) : a.rand ? RAND_VULLING : BRONKLEUR[a.soort];
+  const eigen = eigenKleur(a);
   const dekking = stand.lagen.dekking && stand.ongedekt.has(id);
-  const doel = !stand.selectie && !!stand.focus?.doelen.has(id);
   return {
     verborgen,
     kleur: gedimd ? GEDIMD : eigen,
     omtrek: gedimd ? null : dekking ? DEKKINGSKLEUR : a.rand ? RANDKLEUR : null,
     grootte: GROOTTE[a.soort] * (gekozen ? GEKOZEN_FACTOR : 1),
     label: gedimd ? null : a.kort,
-    altijdLabel: gekozen || doel,
+    altijdLabel: ctx.vastLabel.has(id),
     gedimd,
     gekozen,
     niveau: gekozen ? 3 : gedimd ? 0 : nadruk ? 2 : 1,
@@ -169,4 +177,23 @@ export function lijnBeeld(a: RelatieData, bron: string, doel: string, ctx: Weerg
   if (raaktKeuze) return { verborgen: false, kleur: NADRUK_LIJN, dikte: LIJNDIKTE[a.soort] * 2, pijl, niveau: 2 };
   const gedimd = !!nadruk && !(nadruk.has(bron) && nadruk.has(doel));
   return { verborgen: false, kleur: gedimd ? GEDIMDE_LIJN : LIJNKLEUR[a.soort], dikte: LIJNDIKTE[a.soort], pijl, niveau: gedimd ? 0 : 1 };
+}
+
+/** De lagen (en het markeringsfilter) waarin `id` zichtbaar is: zoeken en de inspector kunnen een
+ *  knoop aanwijzen die een laag verbergt, en wie hem kiest wil hem zien. Alleen wat nodig is gaat aan;
+ *  de rest van de stand blijft. Een klik in de graaf raakt dit niet – daar is alles al zichtbaar. */
+export function lagenVoor(g: GraafModel, id: string, lagen: Lagen, markering: MarkeringFilter): { lagen: Lagen; markering: MarkeringFilter } {
+  if (!g.hasNode(id) || !verborgenKnopen(g, lagen, markering).has(id)) return { lagen, markering };
+  const a = g.getNodeAttributes(id);
+  const nieuw = { ...lagen };
+  const anker = a.soort === "markering" ? ankerVan(g, id) : undefined;
+  const raakt = (k: KnoopData) => {
+    if (k.soort === "markering" || k.soort === "klasse") nieuw.annotaties = true;
+    if (k.soort === "lid" || k.soort === "onderdeel") nieuw.leden = true;
+    if (k.rand || k.soort === "extern") nieuw.verwijzingen = true;
+  };
+  raakt(a);
+  if (anker) raakt(g.getNodeAttributes(anker));
+  const filterWeg = (a.soort === "markering" && !pastBijMarkeringFilter(a, markering)) || a.soort === "klasse";
+  return { lagen: nieuw, markering: filterWeg ? "alle" : markering };
 }

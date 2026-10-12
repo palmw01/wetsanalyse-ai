@@ -71,9 +71,21 @@ const config: Config = {
           "0%": { opacity: "0", transform: "translateY(8px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
+        // Verschijnen na een kort moment: een laadstand die er maar even is, flitst dan niet.
+        verschijn: {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        // De onbepaalde stand van `Meter`: een blok dat door de baan schuift.
+        onbepaald: {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(300%)" },
+        },
       },
       animation: {
         rise: "rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both",
+        onbepaald: "onbepaald 1.4s ease-in-out infinite",
+        verschijn: "verschijn 0.2s ease-out 0.25s both",
       },
     },
   },

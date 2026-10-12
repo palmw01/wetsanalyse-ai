@@ -71,7 +71,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
     `SelectiePopover`, `ExportKnop`).
   - `annotaties/` – het overzicht en de losse annotatiepagina (`AnnotatiesClient`, `AnnotatieKaart`,
     `NodeAnnotatiePaneel`, `AnnotatiePaginaSchil`).
-  - `graaf/` – de 3D-samenhangsgraaf.
+  - `graaf/` – de samenhangsgraaf (sigma); de rekenkern staat in `lib/graaf/`.
   - `admin/` – de beheertabs achter het admin-token: `ProfielenPanel` (+ `ProfileEditor`),
     `UsersPanel` (+ `BudgetBeleidBlok`), `RegistratiesPanel`, `ApiTokensPanel`,
     `BerichtenBeheerPanel` (+ `BerichtEditor`), `FeedbackLijstClient`.
@@ -247,7 +247,7 @@ Een vindplaats die Lex in gewone taal noemt ("artikel 9 lid 2", "art. 10a, derde
 vermelding in een `cite` – de tekst zelf verandert niet, net als bij `markeerPassages`. Een klik
 opent `CitatieChip` → een bronkaart via een portal (een `Popover` is een `div` en mag niet in een
 alinea), met de wettekst (lui via `haalSamenhang`), een link naar wetten.overheid.nl en *Bekijk
-samenhang in 3D*. Geen chip bij twijfel: liever een vermelding zonder kaart dan een kaart bij de
+in de graaf*. Geen chip bij twijfel: liever een vermelding zonder kaart dan een kaart bij de
 verkeerde bepaling. Werkt ook na herladen, want alleen `tekst` en `bronnen` zijn nodig. De lijst
 *Bronnen (n)* is **één bron per bepaling, gegroepeerd per regeling** (`normaliseerBronnen` in
 `lib/bronnen.ts`): sleutel is de bronnode uit `vindplaatsVan` (`lib/samenhang.ts`, de spiegel van
@@ -606,119 +606,94 @@ JSON / RDF (TriG)**. De vorm staat in de api (`api/app/annotatie_export.py`); de
   herkomstkolommen, PDF met een herkomstzin, beurtmeting en dekking, JSON v3 met schema
   (`GET export-schema`), TriG met de lagen zoals de kennisgraaf ze krijgt.
 
-## De samenhangsgraaf (3D)
+## De samenhangsgraaf (sigma.js)
 
-`NodeAnnotatiePaneel` heeft naast *Tekst* een tab **3D-graaf** (`components/graaf/SamenhangGraaf.tsx`),
-en onder een antwoord met een bron naar een BWB-bepaling staat een knop die hetzelfde paneel op die tab
-opent.
+`NodeAnnotatiePaneel` heeft naast *Tekst* een tab **Graaf** (`components/graaf/Graaf.tsx`), en onder een
+antwoord met een bron naar een BWB-bepaling staat een knop die hetzelfde paneel op die tab opent
+("Bekijk samenhang van … in de graaf"; in de bronkaart van een citatie-chip *Bekijk in de graaf*). Een
+2D-graaf op **sigma.js v3 + graphology**: WebGL, gebouwd om de hele kennisgraaf (~6.500 knopen, ~10.000
+lijnen) vloeiend te tekenen. Sigma 4 kwam uit op 8 okt 2026; de overstap raakt alleen `GraafTekenaar`.
 
-- **Een overzichtsantwoord opent de delen van zijn overzicht** (`overzichtDoelen` in
-  `lib/overzicht.ts`): de delen in de volgorde van het overzicht, het eerste in het paneel (de api
-  toont een hoofdstuk als weergave van zijn artikelen en in de samenhang als deel met zijn artikelen).
-  Niet uit de tekst: dezelfde vraag geeft dezelfde kaart. Alle delen, tot `MAX_OVERZICHT_DOELEN` (30),
-  in **één** verzoek (`haalSamenhangen` → `/samenhang/meer`: één bronboom per regeling). Kop en knop zeggen "N delen"
-  (`clusterOmschrijving`, `overzichtKnopTekst`). **De layout is één boom** (`openSamenhang(…, {boom})` →
-  `bouwGraaf(delen, vast, {boom: true})`, `boomPosities`): alle clusters in één 3D-krachtsimulatie,
-  regelingen als hubs met hun delen en bepalingen eromheen. Per cluster leggen gaf een plat raster van
-  losse schijven met lange lijnen naar de gedeelde regeling (8 delen: 1635 × 1464 × 114, langste lijn
-  1358 – nu 499 × 440 × 378, langste lijn 136). Gesorteerde knopen en startpunten uit de id: dezelfde
-  delen, in welke volgorde ook, geven dezelfde boom; bijladen gaat via het gewone pad en verschuift hem
-  niet.
-- **De knop opent wat het antwoord noemt** (`samenhangDoelen` in `lib/bronnen.ts`): de vermeldingen in
-  de tekst die éénduidig bij een bron horen (`vindVermeldingen` + `koppelBron`, dezelfde regel als de
-  citatie-chips), in tekstvolgorde, één per artikel maar zo precies als de eerste vermelding, hoogstens
-  `MAX_SAMENHANG_DOELEN` (8). Zonder koppelbare vermelding: de eerste bepaling uit de bronnen. De
-  knoptekst zegt wat hij opent (`samenhangKnopTekst`: "… van Artikel 9, lid 2 Invorderingswet 1990" of
-  "… van de 9 genoemde artikelen (8 getoond)").
-- **Meerdere artikelen zijn meerdere clusters.** Het eerste doel is het doel van het paneel (tekst en
-  annotatie), de rest gaat als `extraDoelen` mee naar `useSamenhangStand` en laadt parallel
-  (`Promise.allSettled`); een artikel dat niet laadt is een melding, geen fout voor het geheel.
-- **Een knoop uit een ander artikel opent dat artikel in het paneel** (hoofdactie `wissel`, "Open in
-  het paneel", `paneelDoel`): *Toon in tekst* kan alleen voor het artikel dat het paneel toont. Dat geldt
-  ook voor een bijgeladen randartikel. `WerkplekClient` houdt de andere artikelen als `extraDoelen` mee,
-  zodat de kaart dezelfde blijft. Beide verschijnen alleen als de API de capability `samenhang` meldt
-(`samenhangBeschikbaar()`, één keer per pagina).
+**Lagen met één taak** – houd ze gescheiden:
 
-- **Data**: `GET /v1/annotatie/samenhang` (`api/app/samenhang.py`) via de v2-proxy: bronstructuur van
-  het artikel, actuele markeringen met hun JAS-klasse, en de **letterlijke** verwijzingen uit de graaf,
-  één stap uit en in. Een doel buiten het artikel is een **randknoop** (gedempt); *Artikel openen*
-  haalt dat artikel erbij als eigen cluster. Een niet-geïmporteerd doel heet **extern** en is niet uit
-  te klappen. Er wordt niets afgeleid: afstand en positie betekenen juridisch niets, en dat staat in
-  beeld.
-- **Rekenkern in `lib/samenhang.ts`** (samenvoegen, layout, zichtbaarheid, filters, `bronDoel` voor
-  jci/graaf-IRI → bronnode, `hoofdactie`, `relatieGroepen`). De layout is een 3D-krachtsimulatie
-  (`d3-force-3d`, dezelfde engine als de renderer) vanuit radiale startposities, per artikelcluster
-  gerekend en daarna vast (`fx/fy/fz`): reproduceerbaar, en bijladen verschuift de bestaande kaart
-  niet. Clusters staan in een raster van `CLUSTER_KOLOMMEN` (3) breed (`clusterPlek`), vast op index:
-  op één lijn werden acht artikelen een streep waarin elk cluster na het inpassen een stip was. Hij draait in `lib/`, niet in de canvas – anders herrekent elke uitklapping alles.
-- **Weergave**: straal per soort, gebogen verbindingen met pijl, alles buiten de selectie gedimd, vaste
-  labels alleen voor selectie en buren (de rest als tooltip, `.samenhang-tip` in `globals.css`, tekst
-  altijd ge-escaped), camera vliegt naar de gekozen knoop.
-- **three.js laadt lui**: `SamenhangGraaf` en `GraafCanvas` via `next/dynamic` met `ssr: false`. Zonder
-  WebGL of na contextverlies blijven zoeken, Lagen en de inspector bruikbaar.
-- **Bediening als een kaart-app.** In de graaf: **klik** kiest, **dubbelklik** toont/verbergt de
-  verbindingen of opent een randknoop (`isDubbelklik`, 300 ms – de bibliotheek kent alleen
-  `onNodeClick`), **achtergrond** heft de selectie op, **hover** geeft de naam. Daarbuiten één vaste
-  plek per vraag, zwevend in het canvas: **zoeken** linksboven (`GraafZoek`, over alle knopen, ook
-  verborgen), **Omgeving | Alles** rechtsboven (terug naar Omgeving herstelt je stand), **Lagen**
-  linksonder (`GraafLagen`: filters en legenda), **Alles in beeld / in- / uitzoomen** rechtsonder
-  (`GraafBeeld`) en een eenmalige hint (`GraafHint`, `localStorage` in try/catch).
-- **De inspector** (`GraafInspector`): soort en naam, *Centreren* en ✕, en precies **één gevulde
-  hoofdactie** (`hoofdactie()`): *Toon in tekst* (bron of markering binnen het artikel), *Artikel
-  openen* (geïmporteerde randknoop), niets bij een klasse of extern. Daarnaast *Vraag Lex* (niet bij
-  een klasse) en *Verbindingen tonen (n)* (dezelfde handeling als dubbelklik). Relaties per soort als
-  uitklapgroepen. Breed staat hij rechts, smal onder de graaf en ingeklapt tot kop + hoofdactie.
-- **Annotaties staan er meteen.** Met de laag *Annotaties* aan (default) toont de omgeving naast de
-  bronstructuur alle markeringen met hun klasse; alleen verwijzingen naar buiten vragen om uitklappen.
-  De laag uitzetten is de weg naar rust.
-- **Kiezen klapt tijdelijk uit, dubbelklikken zet vast.** De omgeving is wat je zelf uitklapte
-  (`uitgebreid`). Een gekozen knoop die verborgen was, klapt uit zolang hij gekozen is; dat is
-  **afgeleid, niet opgeslagen** (`tijdelijk` in `SamenhangGraaf`) – sla het niet op in `uitgebreid`,
-  anders blijft elke ooit aangeklikte knoop voorgoed staan. De schakelaar klapt zo'n knoop in zolang
-  hij gekozen is (`ingeklapt`).
-- **Eén selectie**: de gekozen markering is in tekst en graaf dezelfde (`actiefId` van het paneel).
-  *Toon in tekst* wisselt naar de tekst en scrolt naar het lid (`data-lid` op de blokken van
-  `DocumentPaneel`). *Vraag Lex* gaat voor een markering via `onVraag`; voor een bron zet het een
-  gewone vraag met vindplaats klaar – geen eigen agentcontract.
-- **Vergroten** gebruikt de `Dialog`-variant `fullscreen`. De stand staat daarom in de hook
-  `useSamenhangStand` in het paneel, niet in de graaf: een variantwissel remount de inhoud. **Escape**
-  van binnen naar buiten: zoeklijst → Lagen → selectie → verkleinen → sluiten.
-- **Markeringsfilter** (in *Lagen*, alleen met de laag Annotaties aan): alle / nog te beoordelen /
-  keuze voor de jurist (geel) / door een jurist gemarkeerd / met twijfel. De markeringsknoop draagt
-  daarvoor `herkomst`, `aandacht`, `subtype`, `beslist_door` en `twijfel` (`api/app/samenhang.py`).
-  Een kijkfilter: hij verbergt markeringen en klassen die dan niets meer markeren
-  (`pastBijMarkeringFilter` in `zichtbareGraaf`), nooit structuur of verwijzingen. De inspector
-  toont herkomst en aandacht als pil.
-- **Laag Dekking**: de zinsdelen zonder detectortreffer uit het paneel (`ongedektPerBron` in
-  `lib/dekking.ts`, sleutel = bron-IRI = knoop-id) geven een lid of onderdeel een okerkleurige halo
-  (`DEKKINGSKLEUR`) en in de inspector een blok *Zonder detectortreffer*. Het is een kenmerk, geen
-  relatiegroep: `toonDekking` staat los van `filters` en raakt Omgeving/Alles niet. Alleen de
-  bronnodes van de geopende bepaling hebben een meting; de legenda zegt dat.
-- **Live bij een annotatiewijziging**: `NodeAnnotatiePaneel` roept na elke mutatie (`muteer`,
-  `status`) `graafStand.ververs()` aan. Die haalt elk geladen deel opnieuw op (per artikel vervangen);
-  `bouwGraaf(delen, vorige)` houdt bestaande knopen op hun plek.
-- Browserregressie: `scripts/test-samenhang.mjs`.
+```
+api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (worker + cache) ─► weergave (puur) ─► GraafTekenaar (sigma)
+                                                                       UI-schil: Graaf.tsx + useGraafStand ┘
+```
 
-### De opvolger in `lib/graaf/` (sigma.js, 2D)
+- **`lib/graaf/model.ts`** – één graphology-graaf uit wat de api levert (alle endpoints hebben dezelfde
+  `Knoop`/`Relatie`-vorm), pure data met `naam`/`kort` ("Artikel 9 · lid 2" / "Lid 2"). Gesorteerd, dus
+  volgorde-onafhankelijk; een knoop is pas rand als hij dat in élk antwoord is.
+- **`lib/graaf/layout.ts`** – deterministisch, twee lagen. *De wettekst*: een radiale boom per regeling
+  als start, dan ForceAtlas2 met **alleen de opbouw (`bevat`) als veer** en een `adjustSizes`-fase tegen
+  overlap; elke regeling wordt een eigen gebied met haar hoofdstukken erin. **Verwijzingen trekken
+  niet** (3.500 verwijzingen trokken alles tot één kluwen) – behalve aan een randbepaling, die anders
+  wegdrijft. *De annotaties* worden afgeleid (`plaatsAnnotaties`): een markering bij haar anker op een
+  plek uit haar eigen id, de JAS-klassen in tabelvolgorde op een ring net buiten de kaart. Een
+  beoordeling verschuift dus niets en vraagt geen nieuwe layout. Geen `graphology-layout-noverlap`:
+  die gebruikt `Math.random`. Verhoog `LAYOUT_VERSIE` bij elke wijziging die de uitkomst verandert.
+- **`lib/graaf/rekenaar.ts` + `layout.worker.ts`** – `layoutVoor(model, {vast})`: uit de cache, of in een
+  Web Worker met voortgang. Met `vast` (bijladen, annotatiewijziging) liggen bestaande knopen vast en
+  wordt er alleen gerekend als er nieuwe wettekst is. De worker vraagt `worker-src 'self'` in de CSP
+  (`lib/csp.ts`), anders blokkeert `'strict-dynamic'` hem. Turbopack bundelt hem via
+  `new Worker(new URL("./layout.worker.ts", import.meta.url))` – houd die vorm letterlijk.
+- **`lib/graaf/cache.ts`** – posities in IndexedDB onder een SHA-256 van de structuur; elke toegang in
+  try/catch, zonder opslag wordt er gewoon gerekend.
+- **`lib/graaf/weergave.ts`** – **het enige selectiemodel**, puur en getest:
+  - *zichtbaar* = lagen (*Leden en onderdelen*, *Verwijzingen*, *Annotaties*) + markeringsfilter. **Een
+    klik in de graaf verandert nooit wat zichtbaar is.** Wie via zoeken of de inspector een verborgen
+    knoop kiest, krijgt de nodige laag aan (`lagenVoor`) – de zoeklijst zegt "laag staat uit".
+  - *nadruk* = de keuze met haar buren > de focus > alles. De rest is gedimd (`GEDIMD`: zichtbaar als
+    kaart, zonder label); klik op de achtergrond heft de keuze op. De keuze en (tot 30) buren krijgen
+    altijd een label (`vastLabel`), de rest als er ruimte is.
+  - lijnen naar een JAS-klasse alleen bij een gekozen markering of klasse.
+- **`lib/graaf/bediening.ts`** – zoeken (over het hele model, diakritiek-ongevoelig, natuurlijk op
+  nummer), relatiegroepen, de ene `hoofdactie` (`tekst` / `wissel` / `laden` / niets), `paneelDoel` en de
+  telling in gewone woorden. **`lib/graaf/stijl.ts`** – het palet; WebGL kent geen CSS-variabelen, dus
+  concrete kleuren, afgestemd op de tokens.
+- **`components/graaf/GraafTekenaar.tsx`** – de **enige plek die sigma kent**: tekent het model op zijn
+  posities, vraagt per knoop/lijn het beeld op bij `weergave.ts` (reducers) en meldt klik/achtergrond
+  terug. Eén programma voor alle knopen (`@sigma/node-border`): omtrek = randbepaling of laag Dekking.
+  Lui geladen (`next/dynamic`). Valkuilen die hier opgelost zijn: een keuze verandert grootte en
+  tekenvolgorde, dus `refresh()` zonder `skipIndexation`; een `ResizeObserver` doet `resize` én
+  `refresh`; bij unmount wordt het **doel** van een lopende camerabeweging bewaard, niet de tussenstand
+  (anders staat het vergrote beeld halverwege een vlucht); geen WebGL of contextverlies → `onFout`.
+  Twee klikken binnen sigma's dubbelklikvenster zijn een dubbelklik (zoomen), geen twee klikken.
+- **`components/graaf/useGraafStand.ts`** – data, laadfase, het getekende beeld (model + posities samen
+  vervangen, nooit knopen zonder plek), keuze, lagen, camera. Leeft in het paneel (búiten de `Dialog`):
+  vergroten remount de inhoud.
 
-De 3D-graaf wordt vervangen door een 2D-graaf op **sigma.js v3 + graphology** die de hele kennisgraaf
-aankan (`/graaf`, ~6.500 knopen). De rekenkern staat er al; de tekenaar volgt. Lagen met één taak:
+**Data en gedrag**:
 
-- **`model.ts`** – één graphology-graaf uit `/samenhang`, `/samenhang/meer` of `/graaf` (zelfde vorm),
-  pure data met `naam`/`kort`; volgorde-onafhankelijk (gesorteerd), rand alleen als hij dat overal is.
-- **`layout.ts`** – deterministisch: een radiale boom per regeling als start, dan ForceAtlas2 met alleen
-  de opbouw (`bevat`) als veer en een `adjustSizes`-fase tegen overlap. **Verwijzingen trekken niet**
-  (ze trokken alle regelingen tot één kluwen); alleen een randbepaling hangt aan haar verwijzing.
-  Markeringen en klassen worden **afgeleid** (`plaatsAnnotaties`: bij hun anker, klassen op een ring),
-  dus een beoordeling verschuift niets en vraagt geen nieuwe layout. Geen `graphology-layout-noverlap`:
-  die gebruikt `Math.random`.
-- **`layout.worker.ts` + `rekenaar.ts`** – rekenen buiten de hoofdthread met voortgang (`layoutVoor`);
-  vereist `worker-src 'self'` in de CSP (`lib/csp.ts`).
-- **`cache.ts`** – posities in IndexedDB onder een SHA-256 van de structuur + `LAYOUT_VERSIE` (verhoog
-  die bij een layoutwijziging); elke toegang in try/catch, zonder opslag wordt er gewoon gerekend.
-- **`weergave.ts`** – het enige selectiemodel: *zichtbaar* = lagen + markeringsfilter (een klik
-  verandert dat nooit), *nadruk* = keuze met buren > focus "dit antwoord" > alles.
-- **`proefgraaf.ts`** – een gegenereerde graaf op kennisgraafformaat voor de schaaltests.
+- **De knop opent wat het antwoord noemt** (`samenhangDoelen` in `lib/bronnen.ts`, max.
+  `MAX_SAMENHANG_DOELEN`) of de delen van een overzicht (`overzichtDoelen` in `lib/overzicht.ts`, max.
+  `MAX_OVERZICHT_DOELEN`, uit het overzicht en niet uit de tekst: dezelfde vraag geeft dezelfde kaart).
+  Meer dan één doel gaat in **één** verzoek (`/samenhang/meer`, één bronboom per regeling). Het eerste
+  doel is het doel van het paneel (tekst en annotatie); een knoop uit een ander geladen artikel opent
+  dát in het paneel (*Open in het paneel*). Beide alleen als de API de capability `samenhang` meldt.
+- **Een randbepaling** (buiten wat geladen is, als omtrek getekend) laad je erbij met *In de graaf laden*;
+  de kaart blijft liggen. Een niet-geïmporteerde bepaling (`extern`) is niet te laden. Afstand en
+  positie betekenen juridisch niets; dat staat in de legenda.
+- **De inspector** (`GraafInspector`): soort en naam, *Centreren* en ✕, precies één gevulde hoofdactie,
+  *Vraag Lex* (niet bij een klasse), relaties per soort als uitklapgroepen, voor een markering herkomst,
+  aandacht en de Waarom-uitklap. Zonder keuze: wat er geladen is en hoe kiezen werkt. Breed rechts, smal
+  onder de graaf en in te klappen.
+- **Bediening als een kaart-app**: zoeken linksboven (`GraafZoek`, ook de toetsenbordroute), *Lagen*
+  linksonder (`GraafLagen`: lagen, markeringsfilter en de legenda in één paneel), beeld rechtsonder
+  (`GraafBeeld`), een eenmalige hint (`GraafHint`). **Escape** van binnen naar buiten: zoeklijst → Lagen
+  → keuze → verkleinen → sluiten.
+- **Laadbalk**: "Graaf ophalen…" (onbepaald) → "Layout berekenen – n %" (`Meter`, met `percentage:
+  null` voor onbepaald); hij verschijnt pas na 250 ms, zodat een layout uit de cache niet flitst.
+- **Eén keuze**: de gekozen markering is in tekst en graaf dezelfde (`actiefId` van het paneel). *Toon in
+  tekst* wisselt naar de tekst en scrolt naar het lid (`data-lid`).
+- **Laag Dekking**: de zinsdelen zonder detectortreffer uit het paneel (`ongedektPerBron`) geven een lid
+  of onderdeel een okeromtrek (`DEKKINGSKLEUR`) en in de inspector *Zonder detectortreffer*.
+- **Live bij een annotatiewijziging**: `NodeAnnotatiePaneel` roept na elke mutatie `graafStand.ververs()`
+  aan; elk geladen deel wordt opnieuw opgehaald, de kaart verschuift niet.
+- **`/graaf`** (de hele kennisgraaf, `lib/graaf/data.ts`) staat klaar in de api, het model en de layout;
+  de werkplek opent hem nog niet.
+- Browserregressie: `scripts/test-samenhang.mjs` (klikken via de canvasmidden na *Centreren*, kiezen
+  en lagen via de zoeklijst, `data-selectie`/`data-gereed` op de graaf).
 
 ## Buiten de schil
 
@@ -884,7 +859,7 @@ knop. Zie `docs/observability.md`.
     budget – een budget hoort bij wie er werkt, niet bij het model.
 - **CSP met een nonce per request, geen inline scripts.** `proxy.ts` zet de Content-Security-Policy
   (`lib/csp.ts`): `script-src 'self' 'nonce-…' 'strict-dynamic'`, zonder `'unsafe-inline'`. Next zet
-  het nonce zelf op zijn scripts; lui geladen chunks (`next/dynamic`, three.js) mogen via
+  het nonce zelf op zijn scripts; lui geladen chunks (`next/dynamic`, sigma) mogen via
   `'strict-dynamic'`.
   - **Geen eigen inline `<script>` en geen `next/script` met inline code**: die krijgt geen nonce en
     wordt in productie stil geblokkeerd. Nodig? Lees het nonce met `(await headers()).get("x-nonce")`
@@ -893,6 +868,8 @@ knop. Zie `docs/observability.md`.
     geen nonce krijgen.
   - `style-src` houdt `'unsafe-inline'`, omdat de server-render `style="…"`-attributen meegeeft en een
     nonce niet voor attributen geldt.
+  - `worker-src 'self'`: zonder die regel valt een worker terug op `script-src`, waar
+    `'strict-dynamic'` `'self'` ongeldig maakt – en dan weigert de browser de layout-worker van de graaf.
   - De CSP staat **niet** in `next.config.mjs` (dat zet alleen de overige security-headers): twee
     CSP-headers gelden allebei, en een statische versie zou inline scripts weer toelaten.
 

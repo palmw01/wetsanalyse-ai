@@ -20,12 +20,14 @@ import {
 } from "@/lib/annotatieNodeAdapter";
 import type { ReeksNavigatie } from "@/lib/reeks";
 import { metSpoor } from "@/lib/uiSpoor";
-import { paneelDoel, samenhangBeschikbaar, type GraafKnoop } from "@/lib/samenhang";
+import { samenhangBeschikbaar } from "@/lib/samenhang";
+import type { KnoopData } from "@/lib/graaf/model";
 import type { Anker, BeslissingInvoer } from "@/lib/types";
 import { GraafIcoon } from "@/components/graaf/GraafIcoon";
-import { SamenhangGraaf, useSamenhangStand } from "@/components/graaf/SamenhangGraaf";
+import { Graaf } from "@/components/graaf/Graaf";
+import { useGraafStand } from "@/components/graaf/useGraafStand";
 
-// three.js zit in `GraafCanvas`, dat `SamenhangGraaf` zelf lui laadt: pas als de tab opengaat.
+// sigma zit in `GraafTekenaar`, dat `Graaf` zelf lui laadt: pas als de tab opengaat.
 export type PaneelTab = "tekst" | "graaf";
 
 /** Een annotatie op een bronnode (contract 2), in het vertrouwde annotatiepaneel.
@@ -37,18 +39,16 @@ export type PaneelTab = "tekst" | "graaf";
  *
  *  Met `onSluit` staat hij in dezelfde `Dialog`-schil als `ArtefactPaneel` (werkplek); zonder is
  *  het de kale inhoud voor een eigen pagina. */
-export function NodeAnnotatiePaneel({ doel, extraDoelen, boom, onWisselDoel, onSluit, variant = "side", onVraag, onVraagOverBron, beginTab = "tekst", reeks }: {
+export function NodeAnnotatiePaneel({ doel, extraDoelen, onWisselDoel, onSluit, variant = "side", onVraag, onVraagOverBron, beginTab = "tekst", reeks }: {
   doel: NodeDoel; onSluit?: () => void; variant?: DialogVariant;
-  /** Andere artikelen die de 3D-graaf als eigen cluster meeopent (de artikelen die een antwoord
-   *  noemt). Tekst en annotatie blijven over `doel`. */
+  /** Andere bepalingen of delen die de graaf meeopent (wat een antwoord noemt). Tekst en annotatie
+   *  blijven over `doel`. */
   extraDoelen?: NodeDoel[];
-  /** De doelen zijn de delen van een overzicht: de graaf legt ze als één boom. */
-  boom?: boolean;
   /** Het paneel op een ander artikel openen, vanuit een knoop in de graaf die niet bij `doel` hoort. */
   onWisselDoel?: (doel: NodeDoel) => void;
   onVraag?: (element: NodeElement, view: NodeWeergave) => void;
   /** Een vraag over een bron- of randknoop uit de graaf; markeringen gaan via `onVraag`. */
-  onVraagOverBron?: (knoop: GraafKnoop) => void;
+  onVraagOverBron?: (knoop: KnoopData) => void;
   beginTab?: PaneelTab;
   /** Dit lid hoort bij een reeks: bladeren naar het vorige of volgende lid. Beoordelen, afronden en
    *  verwijderen blijven per lid – het paneel toont nooit meer lagen dan het ene lid. */
@@ -61,7 +61,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, boom, onWisselDoel, onS
   const [groot, setGroot] = useState(false);
   useEffect(() => { void samenhangBeschikbaar().then(setSamenhang); }, []);
   if (tab === "graaf" && !graafGeopend) setGraafGeopend(true);
-  const graafStand = useSamenhangStand(doel, graafGeopend && samenhang, extraDoelen, boom);
+  const graafStand = useGraafStand(doel, graafGeopend && samenhang, extraDoelen);
   const [laadFout, setLaadFout] = useState("");
   const [actiefId, setActiefId] = useState<string>();
   const [melding, setMelding] = useState("");
@@ -172,14 +172,14 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, boom, onWisselDoel, onS
   }
 
   /** Van graaf naar tekst: dezelfde markering blijft gekozen; bij een bron scrollt de tekst naar het lid. */
-  function openTekst(knoop: GraafKnoop) {
+  function openTekst(knoop: KnoopData) {
     setTab("tekst");
     setGroot(false);
     if (knoop.element_id) { setActiefId(knoop.element_id); return; }
     if (knoop.lid) requestAnimationFrame(() => document.querySelector(`[data-artefact] [data-lid="${CSS.escape(knoop.lid)}"]`)
       ?.scrollIntoView({ block: "center" }));
   }
-  function vraagOverKnoop(knoop: GraafKnoop) {
+  function vraagOverKnoop(knoop: KnoopData) {
     const el = view?.elementen.find((e) => e.id === knoop.element_id);
     setGroot(false);
     if (el && view && onVraag) onVraag(el, view);
@@ -192,7 +192,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, boom, onWisselDoel, onS
         {(["tekst", "graaf"] as const).map((waarde) => (
           <button key={waarde} type="button" aria-pressed={tab === waarde} onClick={() => { setTab(waarde); if (waarde === "tekst") setGroot(false); }}
             className={`focus-ring flex min-h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium ${tab === waarde ? "bg-paper text-lint shadow-zacht" : "text-muted hover:text-lint"}`}>
-            {waarde === "graaf" && <GraafIcoon />}{waarde === "tekst" ? "Tekst" : "3D-graaf"}
+            {waarde === "graaf" && <GraafIcoon />}{waarde === "tekst" ? "Tekst" : "Graaf"}
           </button>
         ))}
       </div>
@@ -240,9 +240,9 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, boom, onWisselDoel, onS
       {tabs}
       {toonTabs && graafGeopend && (
         <div className={tab === "graaf" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
-          <SamenhangGraaf stand={graafStand} zichtbaar={tab === "graaf"} groot={groot || !onSluit} actiefElementId={actiefId}
+          <Graaf stand={graafStand} zichtbaar={tab === "graaf"} groot={groot || !onSluit} actiefElementId={actiefId}
             elementen={view.elementen} dekking={dekkingPerKnoop} onKiesElement={setActiefId} onOpenTekst={openTekst}
-            onWisselArtikel={onWisselDoel ? (knoop) => { const d = paneelDoel(knoop); if (d) onWisselDoel(d); } : undefined}
+            onWisselArtikel={onWisselDoel}
             onVraag={onVraag || onVraagOverBron ? vraagOverKnoop : undefined} />
         </div>
       )}
@@ -278,7 +278,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, boom, onWisselDoel, onS
         // buiten: lagen dicht → selectie op → verkleinen → sluiten. (De zoeklijst vangt haar eigen Escape.)
         if (tab !== "graaf") return;
         if (graafStand.lagenOpen) graafStand.setLagenOpen(false);
-        else if (graafStand.selectie || actiefId) { graafStand.setSelectie(""); setActiefId(undefined); }
+        else if (graafStand.selectie || actiefId) { graafStand.setSelectie(null); setActiefId(undefined); }
         else if (groot) setGroot(false);
         else onSluit();
       } : undefined}>

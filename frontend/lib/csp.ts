@@ -18,10 +18,10 @@ export function maakNonce(): string {
 /** De policy voor één request.
  *
  *  - `script-src`: alleen scripts met dit nonce, en wat die zelf laden (`'strict-dynamic'`: de lui
- *    geladen chunks van `next/dynamic`, zoals three.js voor de 3D-graaf). In development komt er
+ *    geladen chunks van `next/dynamic`, zoals sigma voor de graaf). In development komt er
  *    `'unsafe-eval'` bij, omdat React daar `eval` gebruikt voor zijn foutmeldingen; in productie niet.
  *  - `style-src` houdt bewust `'unsafe-inline'`: de server-render geeft `style="…"`-attributen mee
- *    (Popover, de 3D-graaf), en een nonce geldt alleen voor `<style>`-elementen, niet voor
+ *    (Popover, de graaf), en een nonce geldt alleen voor `<style>`-elementen, niet voor
  *    attributen. De XSS-winst zit in `script-src`; een stijl voert geen code uit.
  *  - `worker-src 'self'`: de layout van de graaf rekent in een eigen Web Worker. Zonder `worker-src`
  *    valt de browser terug op `script-src`, en daarin maakt `'strict-dynamic'` `'self'` ongeldig – dan
