@@ -1,6 +1,6 @@
 /** De bediening van de graaf: zoeken, de relaties van een knoop, de ene hoofdactie en het doel waarop
  *  het paneel opent. Pure functies over het model, getest zonder DOM. */
-import type { NodeDoel } from "@/lib/annotatieNode";
+import type { NodeDoel, NodeWeergave } from "@/lib/annotatieNode";
 import { iriSegment } from "@/lib/samenhang";
 import type { GraafModel, KnoopData, KnoopSoort, RelatieData } from "./model";
 
@@ -64,6 +64,30 @@ export function hoofdactie(a: Pick<KnoopData, "soort" | "rand" | "bwb_id">, id: 
   if (a.rand) return a.bwb_id ? "laden" : null;
   if (inPaneel && !inPaneel.has(id)) return a.soort === "regeling" ? null : "wissel";
   return "tekst";
+}
+
+/** Hoort deze knoop bij de weergave die het paneel toont? Het paneel toont zijn doel (vaak één lid),
+ *  niet het hele artikel dat de graaf laadt: een bron hoort erbij als hij het doel is, er een segment
+ *  van is of een IRI eronder heeft (leden en onderdelen onder hun artikel); een markering als zij in
+ *  de elementen van de weergave staat. Zonder model: een artikel hangt in de IRI niet onder zijn
+ *  hoofdstuk – daarvoor is `knopenInWeergave`. */
+export function hoortBijWeergave(id: string, w: Pick<NodeWeergave, "doel" | "segmenten" | "elementen">): boolean {
+  if (id.startsWith("element:")) return w.elementen.some((e) => `element:${e.id}` === id);
+  const doel = w.doel.bron_iri;
+  return id === doel || id.startsWith(`${doel}:`) || w.segmenten.some((s) => s.bron_iri === id);
+}
+
+/** De knopen van het model die het paneel als tekst kan tonen: `hoortBijWeergave`, plus alles wat het
+ *  doel in de opbouw bevat (`bevat`) – bij een hoofdstuk zijn artikelen. */
+export function knopenInWeergave(g: GraafModel, w: Pick<NodeWeergave, "doel" | "segmenten" | "elementen">): Set<string> {
+  const uit = new Set(g.filterNodes((id) => hoortBijWeergave(id, w)));
+  const stapel = g.hasNode(w.doel.bron_iri) ? [w.doel.bron_iri] : [];
+  while (stapel.length) {
+    const id = stapel.pop()!;
+    uit.add(id);
+    g.forEachOutEdge(id, (_, a, __, doel) => { if (a.soort === "bevat" && !uit.has(doel)) stapel.push(doel); });
+  }
+  return uit;
 }
 
 /** Het doel waarop het paneel opent voor een knoop: de bronnode zelf, of voor een markering het

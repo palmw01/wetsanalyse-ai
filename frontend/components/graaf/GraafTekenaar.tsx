@@ -9,7 +9,7 @@
 import { createNodeBorderProgram } from "@sigma/node-border";
 import Graph from "graphology";
 import Sigma from "sigma";
-import { drawDiscNodeLabel, EdgeArrowProgram, EdgeRectangleProgram } from "sigma/rendering";
+import { drawDiscNodeHover, drawDiscNodeLabel, EdgeArrowProgram, EdgeRectangleProgram } from "sigma/rendering";
 import type { CameraState, NodeDisplayData } from "sigma/types";
 import { useEffect, useMemo, useRef, type RefObject } from "react";
 import type { Posities } from "@/lib/graaf/layout";
@@ -43,6 +43,9 @@ type LabelInfo = {
 };
 
 const LABELGROOTTE = 12;
+/** Een klik: losgelaten binnen zoveel pixels van waar je indrukte. Geen tijdgrens: wie lang drukt
+ *  zonder te bewegen, klikt ook. */
+const KLIK_AFSTAND = 5;
 const LABELGEWICHT = "500";
 
 /** Eén programma voor alle knopen: een cirkel met een rand van variabele dikte (0 = geen rand). Zo
@@ -135,6 +138,10 @@ export function GraafTekenaar({ model, posities, context, zichtbaar, inpassen, c
           if (teKiezen) { teKiezen = false; kiesDitBeeld(); }
           if (labels.current.has(data.key)) drawDiscNodeLabel(context, data, settings);
         },
+        // De hover noemt de volledige naam: op de kaart staat "Lid 1", en in de hele kennisgraaf zijn
+        // er honderden.
+        defaultDrawNodeHover: (context, data, settings) =>
+          drawDiscNodeHover(context, { ...data, label: (data as { naam?: string }).naam ?? data.label }, settings),
         // Bij de hele kennisgraaf: lijnen even weg tijdens het slepen, zodat pannen vloeiend blijft.
         hideEdgesOnMove: teken.size > 5000,
         // Een vaste schermgrootte, zoals op een kaart: inzoomen trekt knopen uit elkaar in plaats van ze
@@ -157,8 +164,8 @@ export function GraafTekenaar({ model, posities, context, zichtbaar, inpassen, c
               size, x: a.x, y: a.y, altijd: b.gekozen || b.aangewezen, vast: b.altijdLabel });
           } else labelInfo.current.delete(id);
           // `randDikte`/`randKleur` lezen de randen van `KnoopProgramma`; sigma geeft ze ongewijzigd door.
-          const beeld: Partial<NodeDisplayData> & { randDikte: number; randKleur: string; labelKleur: string } = {
-            x: a.x, y: a.y, size, color: b.kleur, label: a.kort, hidden: b.verborgen,
+          const beeld: Partial<NodeDisplayData> & { randDikte: number; randKleur: string; labelKleur: string; naam: string } = {
+            x: a.x, y: a.y, size, color: b.kleur, label: a.kort, naam: a.naam, hidden: b.verborgen,
             forceLabel: true, zIndex: b.niveau, highlighted: b.aangewezen,
             randDikte: b.omtrek ? 0.32 : 0, randKleur: b.omtrek ?? b.kleur,
             labelKleur: b.gedimd ? GEDIMD_LABEL : LABELKLEUR,
@@ -234,10 +241,25 @@ export function GraafTekenaar({ model, posities, context, zichtbaar, inpassen, c
     s.getCamera().on("updated", opCamera);
     zoom.current = effectieveZoom(s.getCamera().getState().ratio, s.getGraph().order);
 
-    s.on("clickNode", ({ node }) => handlers.current.onKies(node));
-    s.on("clickStage", () => handlers.current.onKies(null));
-    s.on("enterNode", () => { el.style.cursor = "pointer"; });
-    s.on("leaveNode", () => { el.style.cursor = ""; });
+    // Een klik zelf herkennen, op afstand. Sigma's `clickNode`/`clickStage` laten een klik
+    // alleen door bij minder dan 3 muisbewegingen tussen indrukken en loslaten – een telling, geen
+    // afstand – en een trackpad of snelle muis geeft die bij een gewone klik al: dan deed klikken
+    // niets. Ingedrukt op het ene en losgelaten op iets anders is geen klik.
+    let neer: { x: number; y: number; knoop: string | null } | null = null;
+    const omlaag = (knoop: string | null, e: { x: number; y: number }) => { neer = { x: e.x, y: e.y, knoop }; };
+    const omhoog = (knoop: string | null, e: { x: number; y: number }) => {
+      const begin = neer;
+      neer = null;
+      if (!begin || begin.knoop !== knoop) return;
+      if (Math.hypot(e.x - begin.x, e.y - begin.y) > KLIK_AFSTAND) return;
+      handlers.current.onKies(knoop);
+    };
+    s.on("downNode", ({ node, event }) => omlaag(node, event));
+    s.on("downStage", ({ event }) => omlaag(null, event));
+    s.on("upNode", ({ node, event }) => omhoog(node, event));
+    s.on("upStage", ({ event }) => omhoog(null, event));
+    s.on("enterNode", ({ node }) => { el.style.cursor = "pointer"; el.dataset.hoverNaam = s.getGraph().getNodeAttribute(node, "naam"); });
+    s.on("leaveNode", () => { el.style.cursor = ""; delete el.dataset.hoverNaam; });
     const opVerlies = (e: Event) => { e.preventDefault(); handlers.current.onFout(); };
     const doek = s.getCanvases();
     for (const c of Object.values(doek)) c.addEventListener("webglcontextlost", opVerlies);
@@ -273,7 +295,10 @@ export function GraafTekenaar({ model, posities, context, zichtbaar, inpassen, c
         const d = s.getNodeDisplayData(id);
         if (!d) return;
         const huidig = { ...s.getCamera().getState(), ...doelCamera };
-        beweeg({ x: d.x, y: d.y, ratio: Math.min(huidig.ratio, 0.4) }, beweging());
+        // Diep genoeg om de knoop met zijn buurt te zien – in de hele kennisgraaf veel dieper dan in één
+        // artikel, waar je niet hoeft in te zoomen.
+        const diepte = Math.min(1, Math.max(0.03, Math.sqrt(400 / Math.max(s.getGraph().order, 1))));
+        beweeg({ x: d.x, y: d.y, ratio: Math.min(huidig.ratio, diepte) }, beweging());
       },
     };
     if (!cameraRef.current && inpassenRef.current?.ids.length) {

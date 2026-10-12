@@ -59,6 +59,8 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, extra: NodeDoel[]
   const bediening = useRef<GraafBediening | null>(null);
   // De tekst van gekozen bepalingen voor de inspector, per paneel één keer opgehaald (`useKnoopDetail`).
   const detailCache = useRef<DetailCache>(new Map());
+  // Telt op bij elke `ververs`: de inspector haalt de tekst van de gekozen knoop dan opnieuw op.
+  const [detailVersie, setDetailVersie] = useState(0);
 
   const laad = useCallback(async () => {
     setFout("");
@@ -137,6 +139,7 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, extra: NodeDoel[]
     if (!bronnen?.length) return;
     // De markeringen in de opgehaalde teksten kunnen veranderd zijn.
     detailCache.current = new Map();
+    setDetailVersie((v) => v + 1);
     try {
       const [nieuw, kg] = await Promise.all([
         Promise.all(bronnen.map((d) => haalSamenhang({ bron_iri: d.doel.bron_iri }))),
@@ -162,7 +165,7 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, extra: NodeDoel[]
     bronnen, getekend, laadfase, nietGeladen, fout, setFout, laad, ververs, laadErbij, laadtBij,
     bereik, setBereik, focusIds, kennisgraaf, laadKennisgraaf,
     selectie, setSelectie, lagen, setLagen, markering, setMarkering, lagenOpen, setLagenOpen,
-    aangeraakt, setAangeraakt, camera, bediening, detailCache,
+    aangeraakt, setAangeraakt, camera, bediening, detailCache, detailVersie,
   };
 }
 export type GraafStand = ReturnType<typeof useGraafStand>;

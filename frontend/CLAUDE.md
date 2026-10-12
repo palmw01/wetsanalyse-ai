@@ -681,7 +681,11 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
   knoop bij wat de keuze nodig heeft (`labelInfo`), zodat die geen 6.500 knoopdata hoeft te kopiëren.
   Inpassen op één knoop zoomt niet dieper dan de kaart vraagt (`minRatio`), zodat de buurt in beeld
   blijft.
-  Twee klikken binnen sigma's dubbelklikvenster zijn een dubbelklik (zoomen), geen twee klikken.
+  **Een klik herkent de tekenaar zelf** (`downNode`/`downStage` → `upNode`/`upStage`, hoogstens 5 px
+  bewogen, zelfde knoop of achtergrond): sigma's `clickNode`/`clickStage` laten een klik alleen door
+  bij minder dan 3 muisbewegingen – een telling, geen afstand – en met een trackpad of snelle muis
+  deed klikken dan niets. Een dubbelklik zoomt nog steeds (sigma), en telt daarnaast als klik. De hover
+  noemt de volledige `naam` ("Artikel 9 · lid 1"), niet het kaartlabel.
 - **`components/graaf/useGraafStand.ts`** – data, laadfase, het getekende beeld (model + posities samen
   vervangen, nooit knopen zonder plek), keuze, lagen, camera. Leeft in het paneel (búiten de `Dialog`):
   vergroten remount de inhoud.
@@ -715,8 +719,12 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
   → keuze → verkleinen → sluiten.
 - **Laadbalk**: "Graaf ophalen…" (onbepaald) → "Layout berekenen – n %" (`Meter`, met `percentage:
   null` voor onbepaald); hij verschijnt pas na 250 ms, zodat een layout uit de cache niet flitst.
-- **Eén keuze**: de gekozen markering is in tekst en graaf dezelfde (`actiefId` van het paneel). *Bekijk
-  in de tekst* wisselt naar de tekst en scrolt naar het lid (`data-lid`).
+- **Eén keuze**: de gekozen markering is in tekst en graaf dezelfde (`actiefId` van het paneel); een
+  keuze uit de tekst vliegt in de graaf in beeld. *Bekijk in de tekst* wisselt naar de tekst en scrolt
+  naar het lid (`data-lid`) – alleen voor wat **in de weergave van het paneel** staat
+  (`knopenInWeergave`: het doel, wat het in de opbouw bevat, zijn segmenten en elementen). Het paneel
+  toont vaak één lid terwijl de graaf het hele artikel heeft; de rest krijgt *Open in het paneel*, een
+  markering op haar anker. Een id dat niet op de kaart staat, kiest niets.
 - **Laag Dekking**: de zinsdelen zonder detectortreffer uit het paneel (`ongedektPerBron`) geven een lid
   of onderdeel een okeromtrek (`DEKKINGSKLEUR`) en in de inspector *Zonder detectortreffer*.
 - **Live bij een annotatiewijziging**: `NodeAnnotatiePaneel` roept na elke mutatie `graafStand.ververs()`
