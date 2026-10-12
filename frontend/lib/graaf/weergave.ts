@@ -42,6 +42,9 @@ export interface WeergaveStand {
   focus: Focus | null;
   /** Bron-IRI's met zinsdelen zonder detectortreffer (de laag Dekking). */
   ongedekt: ReadonlySet<string>;
+  /** Van buiten de graaf aangewezen (hover over een kop of nummer in het overzichtsblok): uitgelicht
+   *  met label, ook als hij gedimd zou zijn. Raakt de keuze en de zichtbaarheid niet. */
+  aangewezen?: string | null;
 }
 
 /** De focus voor een reeks doelen: de doelen, alles wat ze bevatten, en de markeringen daarop met hun
@@ -129,7 +132,9 @@ export interface KnoopBeeld {
   altijdLabel: boolean;
   gedimd: boolean;
   gekozen: boolean;
-  /** Tekenvolgorde: gedimd 0, gewoon 1, nadruk 2, gekozen 3. */
+  /** Van buiten aangewezen (`WeergaveStand.aangewezen`): de tekenaar licht hem uit. */
+  aangewezen: boolean;
+  /** Tekenvolgorde: gedimd 0, gewoon 1, nadruk 2, gekozen of aangewezen 3. */
   niveau: number;
 }
 
@@ -137,7 +142,8 @@ export function knoopBeeld(id: string, a: KnoopData, ctx: WeergaveContext): Knoo
   const { stand, nadruk } = ctx;
   const verborgen = ctx.verborgen.has(id);
   const gekozen = stand.selectie === id;
-  const gedimd = !!nadruk && !nadruk.has(id);
+  const aangewezen = !!stand.aangewezen && stand.aangewezen === id;
+  const gedimd = !!nadruk && !nadruk.has(id) && !aangewezen;
   const eigen = eigenKleur(a);
   const dekking = stand.lagen.dekking && stand.ongedekt.has(id);
   return {
@@ -146,10 +152,11 @@ export function knoopBeeld(id: string, a: KnoopData, ctx: WeergaveContext): Knoo
     omtrek: gedimd ? null : dekking ? DEKKINGSKLEUR : a.rand ? RANDKLEUR : null,
     grootte: GROOTTE[a.soort] * (gekozen ? GEKOZEN_FACTOR : 1),
     label: gedimd ? null : a.kort,
-    altijdLabel: ctx.vastLabel.has(id),
+    altijdLabel: ctx.vastLabel.has(id) || aangewezen,
     gedimd,
     gekozen,
-    niveau: gekozen ? 3 : gedimd ? 0 : nadruk ? 2 : 1,
+    aangewezen,
+    niveau: gekozen || aangewezen ? 3 : gedimd ? 0 : nadruk ? 2 : 1,
   };
 }
 

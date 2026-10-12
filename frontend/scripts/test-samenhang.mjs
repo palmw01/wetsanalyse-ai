@@ -118,12 +118,53 @@ const berichtenOverzicht = [
     annotatie_slug: "", annotatie_titel: "" },
 ];
 
+/** De hele kennisgraaf (`/graaf`) op echte schaal: de Invorderingswet van de fixtures (zodat de focus van
+ *  een overzicht erin valt) plus gegenereerde regelingen tot ~6.500 knopen en ~2.000 verwijzingen.
+ *  Deterministisch (vaste reeks), één keer opgebouwd. */
+let kennisgraafCache;
+function kennisgraaf() {
+  if (kennisgraafCache) return kennisgraafCache;
+  let t = 7;
+  const r = () => (t = (Math.imul(t, 1103515245) + 12345) >>> 0) / 4294967296;
+  const knopen = [], relaties = [], bepalingen = [];
+  const voeg = (k) => knopen.push(k);
+  for (const k of [...samenhang(ART).knopen, ...samenhang(HII).knopen, ...samenhang(HV).knopen, ...samenhang(A10).knopen]) {
+    if (!knopen.some((x) => x.id === k.id) && k.soort !== "markering" && k.soort !== "klasse" && !k.rand) voeg({ ...k, tekst: "" });
+  }
+  for (const [a, b] of [[LAW, HII], [LAW, HV], [HII, ART], [HII, A10], [HV, A28], [ART, L1], [ART, L2], [A10, A10L1]]) relaties.push(rel(a, b, "bevat", "structuur"));
+  voeg(knoop(`${LAW}:hoofdstuk:I`, "deel", { label: "Hoofdstuk I" })); relaties.push(rel(LAW, `${LAW}:hoofdstuk:I`, "bevat", "structuur"));
+  voeg(knoop(`${LAW}:artikel:4`, "artikel", { label: "Artikel 4", artikel: "4" })); relaties.push(rel(`${LAW}:hoofdstuk:I`, `${LAW}:artikel:4`, "bevat", "structuur"));
+  for (let g = 1; g <= 6; g++) {
+    const bwb = `BWBR90000${g}0`, wortel = `urn:bwb:${bwb}`;
+    voeg(knoop(wortel, "regeling", { label: `Proefregeling ${g}`, bwb_id: bwb }));
+    for (let h = 1; h <= 8; h++) {
+      const hid = `${wortel}:hoofdstuk:${h}`;
+      voeg(knoop(hid, "deel", { label: `Hoofdstuk ${h}`, bwb_id: bwb })); relaties.push(rel(wortel, hid, "bevat", "structuur"));
+      for (let a = 1; a <= 44; a++) {
+        const nr = `${h}.${a}`, aid = `${wortel}:artikel:${nr}`;
+        voeg(knoop(aid, "artikel", { label: `Artikel ${nr}`, artikel: nr, bwb_id: bwb })); relaties.push(rel(hid, aid, "bevat", "structuur"));
+        bepalingen.push(aid);
+        for (let l = 1; l <= 2; l++) {
+          const lid = `${aid}:lid:${l}`;
+          voeg(knoop(lid, "lid", { label: `Lid ${l}`, artikel: nr, lid: String(l), bwb_id: bwb })); relaties.push(rel(aid, lid, "bevat", "structuur"));
+        }
+      }
+    }
+  }
+  for (let i = 0; i < 2000; i++) {
+    const a = bepalingen[Math.floor(r() * bepalingen.length)], b = bepalingen[Math.floor(r() * bepalingen.length)];
+    if (a !== b) relaties.push(rel(a, b, "verwijst_naar", "verwijzingen", "artikel"));
+  }
+  kennisgraafCache = { schema_versie: 1, versie: "proef", regelingen: [], knopen, relaties };
+  return kennisgraafCache;
+}
+
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true,
   args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
 
 async function nieuwePagina({ width = 1440, height = 1000, webgl = true } = {}) {
   const page = await browser.newPage({ viewport: { width, height } });
-  const log = { errors: [], console: [], samenhang: [], samenhangMeer: [], mutaties: [] };
+  const log = { errors: [], console: [], samenhang: [], samenhangMeer: [], mutaties: [], graaf: [] };
   page.on("pageerror", (e) => log.errors.push(e.message));
   // React meldt in dev dat de CSP geen eval toestaat; in productie gebruikt React geen eval.
   page.on("console", (m) => { if (m.type() === "error" && !/React will never use eval\(\) in production/.test(m.text())) log.console.push(m.text()); });
@@ -146,6 +187,7 @@ async function nieuwePagina({ width = 1440, height = 1000, webgl = true } = {}) 
       log.samenhangMeer.push(iris);
       return route.fulfill({ json: { resultaten: iris.map(samenhangNu), fouten: [] } });
     }
+    if (url.pathname.endsWith("/v2/graaf")) { log.graaf.push(url.search); return route.fulfill({ json: kennisgraaf() }); }
     if (url.pathname.endsWith("/v2/weergave")) return route.fulfill({ json: weergave(url.searchParams.get("bron_iri")) });
     if (url.pathname.endsWith("/v2/elementen/e1")) return route.fulfill({ json: { element: weergave(ART).elementen[0] } });
     if (url.pathname.endsWith("/v2/elementen/e1/graaf")) return route.fulfill({ json: { element_id: "e1", laag_id: "laag1",
@@ -366,8 +408,8 @@ async function wachtGereed(page) {
   await page.close();
 }
 
-// 14. Een overzichtsantwoord: het blok toont het overzicht uit het bericht, de knop opent de delen uit
-// dát overzicht – niet uit de tekst – in één verzoek.
+// 14. Een overzichtsantwoord: het blok toont het overzicht uit het bericht; "Dit antwoord" laadt de delen
+// uit dát overzicht – niet uit de tekst – in één verzoek.
 {
   bijgewerkt = false;
   const { page, log } = await nieuwePagina();
@@ -381,8 +423,9 @@ async function wachtGereed(page) {
   await blok.getByRole("button", { name: /Noemt het onderwerp ook \(1\)/ }).click();
   assert.match(await blok.innerText(), /art\. 4 · in Hoofdstuk I – Algemene bepalingen/);
   assert.equal(await page.getByRole("button", { name: /^Bronnen \(/ }).count(), 0, "geen bronnenlijst bij een overzicht");
-  await page.getByRole("button", { name: "Bekijk samenhang van de 2 delen in de graaf" }).click();
+  await page.getByRole("button", { name: "Bekijk de 2 delen in de kennisgraaf" }).click();
   await graaf(page).waitFor();
+  await page.getByRole("button", { name: "Dit antwoord" }).click();
   await page.getByRole("heading", { name: /^Samenhang van 2 delen/ }).waitFor();
   assert.deepEqual(log.samenhang, [], "geen los verzoek per deel");
   assert.deepEqual(log.samenhangMeer.at(-1), [HII, HV], "één verzoek met de delen in overzichtsvolgorde");
@@ -390,6 +433,77 @@ async function wachtGereed(page) {
   await zoekEnKies(page, "Artikel 10", A10);
   await page.getByRole("button", { name: "Toon in tekst" }).waitFor();
   await page.screenshot({ path: `${shots}/2c-overzicht.png` });
+  assert.deepEqual(log.errors, []);
+  assert.deepEqual(log.console, [], "geen consolefouten");
+  await page.close();
+}
+
+// 14b. Een overzicht opent de hele kennisgraaf (~6.500 knopen) met de nadruk op alles uit het overzicht;
+// koppen en nummers in het blok wijzen hun knoop aan en kiezen hem; de tweede keer komt de layout uit de
+// cache.
+{
+  bijgewerkt = false;
+  const { page, log } = await nieuwePagina();
+  await page.goto(`${base}/workbench?gesprek=g3`);
+  const blok = page.getByTestId("overzicht");
+  await blok.waitFor();
+  await blok.scrollIntoViewIfNeeded();
+  const begin = Date.now();
+  await page.getByRole("button", { name: "Bekijk de 2 delen in de kennisgraaf" }).click();
+  await page.getByRole("heading", { name: /^De hele kennisgraaf/ }).waitFor();
+  await page.getByTestId("graaf-laadbalk").waitFor();
+  await page.locator('[data-testid="samenhang-graaf"][data-gereed="true"]').waitFor({ timeout: 60000 });
+  const eerste = Date.now() - begin;
+  assert.equal(log.graaf.length, 1, "de kennisgraaf één keer opgehaald");
+  assert.ok(Number(await page.getByTestId("graaf-tekenaar").getAttribute("data-knopen")) > 6000, "de hele kennisgraaf staat erin");
+  assert.equal(await page.getByRole("button", { name: "Hele kennisgraaf" }).getAttribute("aria-pressed"), "true");
+  assert.match(await page.getByTestId("graaf-focus").innerText(), /Nadruk op wat het antwoord noemt \(6 delen en bepalingen/);
+  assert.equal(await gekozen(page), "", "geen keuze bij het openen: de focus is het begin");
+  assert.match(await detail(page).innerText(), /7 regelingen · 6\.343 bepalingen/);
+  await page.waitForTimeout(600);
+  await page.screenshot({ path: `${shots}/5-kennisgraaf.png` });
+
+  // Het blok is de inhoudsopgave van de kaart: aanwijzen licht uit, klikken kiest – geen nieuw tabblad.
+  await blok.getByRole("link", { name: "art. 28" }).hover();
+  assert.equal(await graaf(page).getAttribute("data-aangewezen"), A28);
+  await blok.getByRole("link", { name: "art. 28" }).click();
+  for (let i = 0; i < 20 && (await gekozen(page)) !== A28; i++) await page.waitForTimeout(100);
+  assert.equal(await gekozen(page), A28, "een klik in het blok kiest de knoop in de graaf");
+  assert.equal(page.context().pages().length, 1, "geen link geopend");
+  await page.mouse.move(5, 5);
+  assert.equal(await graaf(page).getAttribute("data-aangewezen"), "");
+  await page.waitForTimeout(600);
+  await page.screenshot({ path: `${shots}/5b-kennisgraaf-keuze.png` });
+
+  // Wisselen naar "Dit antwoord" en terug: de keuze blijft, de kennisgraaf wordt niet opnieuw opgehaald.
+  await page.getByRole("button", { name: "Dit antwoord" }).click();
+  await page.locator('[data-testid="samenhang-graaf"][data-bereik="antwoord"][data-gereed="true"]').waitFor({ timeout: 20000 });
+  await page.getByRole("heading", { name: /^Samenhang van 2 delen/ }).waitFor();
+  assert.equal(await gekozen(page), A28, "de keuze blijft bij een wissel");
+  await page.getByRole("button", { name: "Hele kennisgraaf" }).click();
+  await page.locator('[data-testid="samenhang-graaf"][data-bereik="kennisgraaf"][data-gereed="true"]').waitFor({ timeout: 20000 });
+  assert.equal(log.graaf.length, 1, "terugwisselen haalt niets opnieuw op");
+
+  // De layout staat in IndexedDB; een tweede keer openen rekent niet opnieuw.
+  const opgeslagen = await page.evaluate(() => new Promise((klaar) => {
+    const v = indexedDB.open("wetsanalyse-graaf");
+    v.onsuccess = () => { const t = v.result.transaction("layouts").objectStore("layouts").count(); t.onsuccess = () => klaar(t.result); };
+    v.onerror = () => klaar(-1);
+  }));
+  assert.ok(opgeslagen >= 2, `layouts bewaard (${opgeslagen})`);
+  await page.getByRole("button", { name: "Sluiten" }).last().click();
+  await page.getByTestId("samenhang-graaf").waitFor({ state: "detached" });
+  const tweedeBegin = Date.now();
+  let layoutGezien = false;
+  await page.getByRole("button", { name: "Bekijk de 2 delen in de kennisgraaf" }).click();
+  for (let i = 0; i < 600; i++) {
+    if (await page.locator('[data-testid="samenhang-graaf"][data-gereed="true"]').count()) break;
+    if (/Layout berekenen/.test(await page.getByTestId("graaf-laadbalk").innerText().catch(() => ""))) layoutGezien = true;
+    await page.waitForTimeout(50);
+  }
+  const tweede = Date.now() - tweedeBegin;
+  assert.ok(!layoutGezien, "de tweede keer wordt er niets gerekend");
+  console.log(`kennisgraaf: eerste keer ${eerste} ms, uit de cache ${tweede} ms`);
   assert.deepEqual(log.errors, []);
   assert.deepEqual(log.console, [], "geen consolefouten");
   await page.close();

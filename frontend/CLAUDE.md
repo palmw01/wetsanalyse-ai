@@ -237,7 +237,8 @@ model): per regeling de delen met **al** hun bepalingen (`kop`/`naam` uit de dat
 plek in de opbouw (ingeklapt; open als de regeling geen deel heeft), de wettelijke definitie met haar
 `vindplaats`, het redactionele trefwoord en waarop er gezocht is (`zoekverantwoording`). **Bij een
 overzicht staat er geen bronnenlijst**: het blok linkt elke vindplaats. De kopieerknop neemt het
-overzicht mee (`overzichtAlsMarkdown`). Rekenkern in `lib/overzicht.ts`.
+overzicht mee (`overzichtAlsMarkdown`). Met de graaf open zijn koppen en nummers aanwijsbaar in de
+graaf (zie §*De samenhangsgraaf*). Rekenkern in `lib/overzicht.ts`.
 
 ### Citatie-chips onder en in het antwoord
 
@@ -669,8 +670,8 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
   `MAX_SAMENHANG_DOELEN`) of de delen van een overzicht (`overzichtDoelen` in `lib/overzicht.ts`, max.
   `MAX_OVERZICHT_DOELEN`, uit het overzicht en niet uit de tekst: dezelfde vraag geeft dezelfde kaart).
   Meer dan één doel gaat in **één** verzoek (`/samenhang/meer`, één bronboom per regeling). Het eerste
-  doel is het doel van het paneel (tekst en annotatie); een knoop uit een ander geladen artikel opent
-  dát in het paneel (*Open in het paneel*). Beide alleen als de API de capability `samenhang` meldt.
+  doel is het doel van het paneel (tekst en annotatie); een knoop uit een ander artikel – meegeladen of
+  uit de hele kennisgraaf – opent dát in het paneel (*Open in het paneel*), en bereik en focus gaan mee. Beide alleen als de API de capability `samenhang` meldt.
 - **Een randbepaling** (buiten wat geladen is, als omtrek getekend) laad je erbij met *In de graaf laden*;
   de kaart blijft liggen. Een niet-geïmporteerde bepaling (`extern`) is niet te laden. Afstand en
   positie betekenen juridisch niets; dat staat in de legenda.
@@ -690,10 +691,29 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
   of onderdeel een okeromtrek (`DEKKINGSKLEUR`) en in de inspector *Zonder detectortreffer*.
 - **Live bij een annotatiewijziging**: `NodeAnnotatiePaneel` roept na elke mutatie `graafStand.ververs()`
   aan; elk geladen deel wordt opnieuw opgehaald, de kaart verschuift niet.
-- **`/graaf`** (de hele kennisgraaf, `lib/graaf/data.ts`) staat klaar in de api, het model en de layout;
-  de werkplek opent hem nog niet.
+- **Bereik: *Dit antwoord* | *Hele kennisgraaf*** (schakelaar rechtsboven, `Bereik` in `useGraafStand`).
+  De hele kennisgraaf (`/graaf`, `lib/graaf/data.ts`, ~6.500 knopen) wordt één keer per paneel opgehaald
+  en samengevoegd met de geladen samenhang – die eerst, want zij draagt de wettekst. Elk bereik heeft een
+  eigen layout; de kennisgraaf begint altijd vers en komt dus uit de cache (gemeten tegen de
+  productiebuild: 4,6 s de eerste keer, 0,24 s daarna). Wisselen houdt keuze en lagen; bij een nieuwe kaart
+  past de tekenaar de camera in (`inpassen`: de keuze, anders de focus). Na een annotatiewijziging wordt
+  ook de kennisgraaf opnieuw opgehaald – de markeringen erin komen vers uit de api.
+- **Focus** (alleen in de hele kennisgraaf): wat het antwoord noemt, met alles eronder (`focusVan`), heeft
+  nadruk; de rest staat gedimd op de kaart. De kop zegt het ("Nadruk op wat het antwoord noemt (n …)").
+  Zonder expliciete focus zijn het de doelen van de knop.
+- **Een overzicht opent de hele kennisgraaf** met als focus álles uit het overzicht (`overzichtFocus`:
+  delen, subdelen, bepalingen en wat het onderwerp verder noemt – geen grens), zonder keuze: een keuze
+  zou de focus overschrijven. De knop zegt het: "Bekijk de 4 delen in de kennisgraaf". *Dit antwoord*
+  laadt daar de delen zelf (`/samenhang/meer`, hoogstens `MAX_OVERZICHT_DOELEN`).
+- **Het overzichtsblok is de inhoudsopgave van de kaart** (`components/graaf/koppeling.ts`). Staat de
+  graaf open, dan licht aanwijzen (hover of focus) van een kop of nummer de knoop uit
+  (`WeergaveStand.aangewezen`) en kiest een klik hem – met Ctrl/⌘/Shift, of zonder open graaf, is het
+  de gewone link. Een knoop die alleen in de kennisgraaf staat, schakelt daarheen. De graaf zet zijn
+  handelingen in een ref (`koppelingRef`), de werkplek geeft via context een stabiel doorgeefluik aan de
+  thread: zo rendert geen `ThreadRij` opnieuw als het paneel opent of sluit.
 - Browserregressie: `scripts/test-samenhang.mjs` (klikken via de canvasmidden na *Centreren*, kiezen
-  en lagen via de zoeklijst, `data-selectie`/`data-gereed` op de graaf).
+  en lagen via de zoeklijst, `data-selectie`/`data-aangewezen`/`data-bereik`/`data-gereed` op de graaf;
+  een gegenereerde kennisgraaf van ~6.500 knopen voor laadbalk, focus, koppeling en de cache).
 
 ## Buiten de schil
 

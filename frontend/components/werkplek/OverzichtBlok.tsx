@@ -7,9 +7,12 @@
 // De inhoud komt uit de graaf (graph-qa `agent/overzicht.py`), niet uit de tekst van het model: elk
 // nummer staat er zoals de graaf het heeft, nooit als bereik, en dezelfde vraag geeft hetzelfde blok –
 // ook na herladen, want het reist mee in het bericht. De rekenkern staat in `lib/overzicht.ts`.
+// Met de graaf open is het blok de inhoudsopgave van de kaart: koppen en nummers wijzen hun knoop aan
+// (`components/graaf/koppeling.ts`).
 
 import { memo, useState } from "react";
 
+import { useGraafKoppeling } from "@/components/graaf/koppeling";
 import { ChevronOmlaag } from "@/components/ui/Icoon";
 import { bepalingNaam, deelKop, telling, zoekverantwoording } from "@/lib/overzicht";
 import type { Overzicht, OverzichtBepaling, OverzichtRegeling } from "@/lib/types";
@@ -19,8 +22,13 @@ function Verwijzing({ label, iri, jci }: { label: string; iri: string; jci?: str
   // Bij voorkeur de jci (die kent wetten.overheid.nl), anders de graaf-IRI; `bronHref` weigert al het
   // andere, en dan is het platte tekst.
   const href = bronHref(jci || iri);
+  // Staat de graaf open, dan is elke kop en elk nummer daar aanwijsbaar: aanwijzen licht de knoop uit,
+  // klikken kiest hem. Zonder graaf, of met Ctrl/⌘/Shift, is het de gewone link.
+  const graaf = useGraafKoppeling();
+  const wijs = { onMouseEnter: () => graaf.wijs(iri), onMouseLeave: () => graaf.wijs(null), onFocus: () => graaf.wijs(iri), onBlur: () => graaf.wijs(null) };
   return href ? (
-    <a href={href} target="_blank" rel="noopener noreferrer"
+    <a href={href} target="_blank" rel="noopener noreferrer" data-graaf-iri={iri} {...wijs}
+      onClick={(e) => { if (!e.metaKey && !e.ctrlKey && !e.shiftKey && graaf.kies(iri)) e.preventDefault(); }}
       className="text-lint underline underline-offset-2 [overflow-wrap:anywhere]">{label}</a>
   ) : <span>{label}</span>;
 }

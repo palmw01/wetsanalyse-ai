@@ -26,7 +26,8 @@ import {
 import type { NodeDoel } from "@/lib/annotatieNode";
 import { doelenVanKandidaten, reeksPrompt } from "@/lib/reeks";
 import { normaliseerBronnen, samenhangDoelen, samenhangKnopTekst } from "@/lib/bronnen";
-import { overzichtAlsMarkdown, overzichtDoelen, overzichtKnopTekst } from "@/lib/overzicht";
+import { overzichtAlsMarkdown, overzichtDoelen, overzichtFocus, overzichtKnopTekst } from "@/lib/overzicht";
+import type { GraafOpties } from "@/components/graaf/useGraafStand";
 import { beurtSamenvatting, laatsteRun } from "@/lib/waarom";
 import type { ThreadItem } from "@/lib/threadItem";
 import type {
@@ -38,8 +39,9 @@ export interface ThreadActies {
   verstuur: (vast?: string, doel?: AgentDoelInvoer, hergebruik?: "opnieuw", doelen?: AgentDoelInvoer[]) => void;
   openArtefact: (slug: string, doel?: NodeDoel) => void;
   /** De samenhang van een bron onder een antwoord in de graaf; `extra` zijn de andere genoemde
-   *  artikelen, of de andere delen van een overzicht. */
-  openSamenhang: (doel: NodeDoel, extra?: NodeDoel[]) => void;
+   *  artikelen, of de andere delen van een overzicht. `graaf`: met welk bereik hij opent en wat de
+   *  nadruk krijgt (een overzicht: de hele kennisgraaf, met alles uit het overzicht). */
+  openSamenhang: (doel: NodeDoel, extra?: NodeDoel[], graaf?: GraafOpties) => void;
   /** Eén lid uit een reeksblok openen, met bladeren door de rest van de reeks. */
   openReeksLid: (runId: string, doel: NodeDoel) => void;
   stop: () => void;
@@ -109,13 +111,14 @@ export const ThreadRij = memo(function ThreadRij({
         {samenhangAan && !demo && (item.overzicht || !!item.bronnen?.length) && (() => {
           // Met een overzicht: de delen daarvan, in zijn eigen volgorde – los van hoe Lex formuleerde.
           // Anders: de artikelen die het antwoord noemt, in tekstvolgorde (`samenhangDoelen`).
-          const keuze = item.overzicht ? overzichtDoelen(item.overzicht) : samenhangDoelen(item.tekst ?? "", item.bronnen ?? []);
-          const tekst = item.overzicht ? overzichtKnopTekst(keuze, item.overzicht) : samenhangKnopTekst(keuze);
+          const ov = item.overzicht;
+          const keuze = ov ? overzichtDoelen(ov) : samenhangDoelen(item.tekst ?? "", item.bronnen ?? []);
+          const tekst = ov ? overzichtKnopTekst(ov) : `${samenhangKnopTekst(keuze)} in de graaf`;
           const [doel, ...extra] = keuze.doelen;
           return doel && <button type="button"
-            onClick={() => acties.openSamenhang(doel, extra)}
+            onClick={() => acties.openSamenhang(doel, extra, ov ? { bereik: "kennisgraaf", focus: overzichtFocus(ov) } : undefined)}
             className="focus-ring mt-3 flex items-center gap-2 rounded-lg border border-lint/20 bg-lint/[0.03] px-3 py-2 text-left text-xs font-medium text-lint transition-colors hover:bg-lint/10">
-            <GraafIcoon />{tekst} in de graaf
+            <GraafIcoon />{tekst}
           </button>;
         })()}
         {item.tekst && item.grounding && <Brongetrouwheid grounding={item.grounding} />}
