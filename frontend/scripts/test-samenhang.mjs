@@ -135,6 +135,19 @@ const berichtenOverzicht = [
     annotatie_slug: "", annotatie_titel: "" },
 ];
 
+// Een overzicht met de grens van 30 delen (`MAX_OVERZICHT_DOELEN`): de twee hoofdstukken van de Iw en 28
+// hoofdstukken uit de proefregelingen van de kennisgraaf hieronder.
+const PROEFDELEN = Array.from({ length: 28 }, (_, i) => `urn:bwb:BWBR90000${1 + Math.floor(i / 8)}0:hoofdstuk:${1 + (i % 8)}`);
+const berichtenOverzicht30 = [
+  { rol: "user", tekst: "Welke delen gaan over termijnen?", denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "" },
+  { rol: "assistant", tekst: "Termijnen staan op veel plaatsen.", denk: "",
+    overzicht: { ...berichtenOverzicht[1].overzicht, gevraagd: "termijnen",
+      regelingen: [berichtenOverzicht[1].overzicht.regelingen[0], { bwb_id: "BWBR9000010", citeertitel: "Proefregelingen", soort: "wet",
+        delen: PROEFDELEN.map((iri) => ({ iri, soort: "Hoofdstuk", label: `Hoofdstuk ${iri.split(":").at(-1)}`, jci: "", bepalingen: [], subdelen: [] })),
+        ook_genoemd: [] }] },
+    bronnen: [], annotatie_slug: "", annotatie_titel: "" },
+];
+
 /** De hele kennisgraaf (`/graaf`) op echte schaal: de Invorderingswet van de fixtures (zodat de focus van
  *  een overzicht erin valt) plus gegenereerde regelingen tot ~6.500 knopen en ~2.000 verwijzingen.
  *  Deterministisch (vaste reeks), één keer opgebouwd. */
@@ -202,6 +215,8 @@ async function nieuwePagina({ width = 1440, height = 1000, webgl = true } = {}) 
     if (url.pathname.endsWith("/v2/samenhang/meer")) {
       const iris = url.searchParams.getAll("bron_iri");
       log.samenhangMeer.push(iris);
+      // Zoals de api (`MAX_SAMENHANG_MEER`): meer dan 30 doelen weigert het hele verzoek.
+      if (iris.length > 30) return route.fulfill({ status: 422, json: { detail: "Hoogstens 30 doelen per verzoek." } });
       return route.fulfill({ json: { resultaten: iris.map(samenhangNu), fouten: [] } });
     }
     if (url.pathname.endsWith("/v2/graaf")) { log.graaf.push(url.search); return route.fulfill({ json: kennisgraaf() }); }
@@ -214,6 +229,7 @@ async function nieuwePagina({ width = 1440, height = 1000, webgl = true } = {}) 
     if (url.pathname === "/api/gesprekken/g1") return route.fulfill({ json: { id: "g1", user_id: "browser-test", titel: "Samenhang", berichten } });
     if (url.pathname === "/api/gesprekken/g2") return route.fulfill({ json: { id: "g2", user_id: "browser-test", titel: "Twee artikelen", berichten: berichtenTwee } });
     if (url.pathname === "/api/gesprekken/g3") return route.fulfill({ json: { id: "g3", user_id: "browser-test", titel: "Overzicht", berichten: berichtenOverzicht } });
+    if (url.pathname === "/api/gesprekken/g4") return route.fulfill({ json: { id: "g4", user_id: "browser-test", titel: "Dertig delen", berichten: berichtenOverzicht30 } });
     if (url.pathname === "/api/gesprekken") return route.fulfill({ json: [{ id: "g1", titel: "Samenhang", aantal_berichten: 2 }] });
     if (url.pathname.includes("/actief")) return route.fulfill({ status: 404, json: {} });
     if (url.pathname.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
@@ -499,14 +515,18 @@ async function wachtGereed(page) {
   assert.match(await page.locator("textarea").inputValue(), /Hoe hangt Artikel 10 · lid 1 \(BWBR0004770, artikel 10, lid 1\)/);
   assert.deepEqual(log.mutaties, [], "de graaf muteert niets");
 
-  // 12. Een annotatiewijziging werkt de graaf bij zonder herladen, en de kaart verschuift niet.
-  const voor = log.samenhang.filter((i) => i === L2).length;
+  // 12. Een annotatiewijziging werkt de graaf bij zonder herladen, en de kaart verschuift niet. Zolang
+  // de Tekst-tab openstaat, haalt de graaf niets op; terug op de graaf precies één ronde.
+  const voor = log.samenhangMeer.length;
   await page.getByRole("button", { name: "Tekst", exact: true }).click();
   await page.getByRole("button", { name: /afronden/i }).first().click();
+  await page.waitForTimeout(800);
+  assert.equal(log.samenhangMeer.length, voor, "met de graaf onzichtbaar wordt er niets opgehaald");
   await page.getByRole("button", { name: "Graaf", exact: true }).click();
   for (let i = 0; i < 40 && !(await zoekStand(page, "Rechtsobject", "element:e2")).er; i++) await page.waitForTimeout(250);
   assert.ok((await zoekStand(page, "Rechtsobject", "element:e2")).er, "de nieuwe markering staat in de graaf");
-  assert.ok(log.samenhang.filter((i) => i === L2).length > voor, "de graaf haalt de samenhang opnieuw op");
+  assert.equal(log.samenhangMeer.length, voor + 1, "terug op de graaf: één verversing");
+  assert.deepEqual([...log.samenhangMeer.at(-1)].sort(), [A10, L2].sort(), "alle geladen delen in één verzoek");
   assert.ok((await zoekStand(page, "lid 1", A10L1)).er, "het bijgeladen artikel blijft");
   assert.deepEqual(log.errors, []);
   assert.deepEqual(log.console, [], "geen consolefouten");
@@ -646,6 +666,59 @@ async function wachtGereed(page) {
   console.log(`kennisgraaf: eerste keer ${eerste} ms, uit de cache ${tweede} ms`);
   assert.deepEqual(log.errors, []);
   assert.deepEqual(log.console, [], "geen consolefouten");
+  await page.close();
+}
+
+// 14c. Een overzicht op de grens van 30 delen, in de hele kennisgraaf: een knoop die alleen daarin staat
+// opent in het paneel. Daarna zijn het 31 doelen – die gaan in partijen naar de api, het bereik blijft de
+// hele kennisgraaf, en de kennisgraaf wordt niet opnieuw opgehaald.
+{
+  bijgewerkt = false;
+  const { page, log } = await nieuwePagina();
+  await page.goto(`${base}/workbench?gesprek=g4`);
+  await page.getByTestId("overzicht").scrollIntoViewIfNeeded();
+  await page.getByRole("button", { name: "Bekijk de 30 delen in de kennisgraaf" }).click();
+  await page.locator('[data-testid="samenhang-graaf"][data-bereik="kennisgraaf"][data-gereed="true"]').waitFor({ timeout: 60000 });
+  assert.equal(log.graaf.length, 1);
+  const ver = "urn:bwb:BWBR9000060:artikel:8.44";
+  await zoekEnKies(page, "Artikel 8.44", ver);
+  await page.getByRole("button", { name: "Open in het paneel" }).click();
+  await page.getByRole("button", { name: "Graaf", exact: true }).click();
+  await page.locator('[data-testid="samenhang-graaf"][data-gereed="true"]').waitFor({ timeout: 60000 });
+  assert.equal(await graaf(page).getAttribute("data-bereik"), "kennisgraaf", "het bereik gaat mee naar het nieuwe paneel");
+  assert.equal(log.graaf.length, 1, "de kennisgraaf gaat mee en wordt niet opnieuw opgehaald");
+  assert.ok(log.samenhangMeer.every((iris) => iris.length <= 30), "geen verzoek boven de grens van de api");
+  assert.equal(new Set(log.samenhangMeer.slice(-2).flat()).size, 31, "alle 31 doelen gevraagd, in twee partijen");
+  assert.equal(await page.getByTestId("graaf-fout").count(), 0, "geen fout");
+  assert.deepEqual(log.errors, []);
+  assert.deepEqual(log.console, [], "geen consolefouten");
+  await page.close();
+}
+
+// 14d. Een kennisgraaf die niet laadt: de melding staat op het canvas met "Opnieuw proberen", en terug
+// in "Dit antwoord" is hij weg – hij gold alleen voor de kennisgraaf.
+{
+  bijgewerkt = false;
+  const { page, log } = await nieuwePagina();
+  let graafFaalt = true;
+  await page.route("**/api/annotatie/v2/graaf*", (route) => graafFaalt
+    ? route.fulfill({ status: 503, json: { detail: "De brongraaf is tijdelijk niet beschikbaar." } })
+    : route.fallback());
+  await page.goto(`${base}/workbench?gesprek=g1`);
+  await page.getByRole("button", { name: /^Bekijk samenhang van .* in de graaf$/ }).first().click();
+  await wachtGereed(page);
+  await page.getByRole("button", { name: "Hele kennisgraaf" }).click();
+  await page.getByTestId("graaf-fout").waitFor();
+  assert.match(await page.getByTestId("graaf-fout").innerText(), /tijdelijk niet beschikbaar/);
+  await page.getByRole("button", { name: "Dit antwoord" }).click();
+  await page.getByTestId("graaf-fout").waitFor({ state: "detached" });
+  await page.getByRole("button", { name: "Hele kennisgraaf" }).click();
+  graafFaalt = false;
+  await page.getByRole("button", { name: "Opnieuw proberen" }).click();
+  await page.locator('[data-testid="samenhang-graaf"][data-bereik="kennisgraaf"][data-gereed="true"]').waitFor({ timeout: 60000 });
+  assert.equal(await page.getByTestId("graaf-fout").count(), 0, "na herstel geen melding meer");
+  assert.equal(log.graaf.length, 1, "één geslaagde lading");
+  assert.deepEqual(log.errors, []);
   await page.close();
 }
 

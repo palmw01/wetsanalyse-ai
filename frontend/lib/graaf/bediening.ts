@@ -2,7 +2,7 @@
  *  het paneel opent. Pure functies over het model, getest zonder DOM. */
 import type { NodeDoel, NodeWeergave } from "@/lib/annotatieNode";
 import { iriSegment } from "@/lib/samenhang";
-import type { GraafModel, KnoopData, KnoopSoort, RelatieData } from "./model";
+import { voegToe, type GraafModel, type KnoopData, type KnoopSoort, type RelatieData } from "./model";
 
 export const SOORT_LABEL: Record<KnoopSoort, string> = {
   regeling: "Regeling", deel: "Structuur", artikel: "Artikel", lid: "Lid", onderdeel: "Onderdeel",
@@ -41,8 +41,7 @@ const VOLGORDE: RelatieGroepNaam[] = ["Onderdeel van", "Bevat", "Markeringen", "
 export function relatieGroepen(g: GraafModel, id: string): { naam: RelatieGroepNaam; regels: RelatieRegel[] }[] {
   if (!g.hasNode(id)) return [];
   const groepen = new Map<RelatieGroepNaam, RelatieRegel[]>();
-  const voeg = (naam: RelatieGroepNaam, ander: string, anker_tekst: string) =>
-    groepen.set(naam, [...(groepen.get(naam) ?? []), { id: ander, anker_tekst }]);
+  const voeg = (naam: RelatieGroepNaam, ander: string, anker_tekst: string) => voegToe(groepen, naam, { id: ander, anker_tekst });
   g.forEachOutEdge(id, (_, a, __, doel) => voeg(UIT[a.soort], doel, a.anker_tekst));
   g.forEachInEdge(id, (_, a, bron) => voeg(IN[a.soort], bron, a.anker_tekst));
   const opNaam = (x: RelatieRegel, y: RelatieRegel) =>

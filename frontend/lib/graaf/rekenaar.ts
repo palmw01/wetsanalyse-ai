@@ -13,6 +13,12 @@ export type LayoutBericht =
   | { soort: "klaar"; ids: string[]; xy: Float64Array }
   | { soort: "fout"; reden: string };
 
+/** Na elke `await`: is de vraag intussen vervallen, dan houdt het hier op. Anders komt een uitkomst
+ *  uit de cache (IndexedDB) ná een nieuwere binnen en zet de UI een oude kaart in beeld. */
+function blijfBijDeZaak(signal?: AbortSignal): void {
+  if (signal?.aborted) throw new DOMException("Afgebroken", "AbortError");
+}
+
 function rekenInWorker(verzoek: LayoutVerzoek, opVoortgang?: (f: number) => void, signal?: AbortSignal): Promise<Posities> {
   return new Promise((klaar, faal) => {
     if (signal?.aborted) return faal(new DOMException("Afgebroken", "AbortError"));
@@ -62,21 +68,24 @@ export interface LayoutResultaat {
  *
  *  Markeringen en klassen worden daarna afgeleid (`plaatsAnnotaties`). */
 export async function layoutVoor(g: GraafModel, opties: { vast?: Posities; opVoortgang?: (f: number) => void; signal?: AbortSignal } = {}): Promise<LayoutResultaat> {
+  const { vast, signal } = opties;
+  blijfBijDeZaak(signal);
   const structuur = structuurVan(g);
-  const { vast } = opties;
   if (vast) {
     const nieuw = structuur.knopen.some((k) => !vast.has(k.id));
     const posities = nieuw
-      ? await rekenInWorker({ structuur, vast: naarReeksen(new Map(structuur.knopen.filter((k) => vast.has(k.id)).map((k) => [k.id, vast.get(k.id)!]))) }, opties.opVoortgang, opties.signal)
+      ? await rekenInWorker({ structuur, vast: naarReeksen(new Map(structuur.knopen.filter((k) => vast.has(k.id)).map((k) => [k.id, vast.get(k.id)!]))) }, opties.opVoortgang, signal)
       : new Map(structuur.knopen.map((k) => [k.id, vast.get(k.id)!]));
     return { posities: plaatsAnnotaties(g, posities), uitCache: !nieuw };
   }
   const sleutel = await layoutSleutel(structuur);
+  blijfBijDeZaak(signal);
   const bewaard = await leesLayout(sleutel);
+  blijfBijDeZaak(signal);
   if (bewaard && structuur.knopen.every((k) => bewaard.has(k.id))) {
     return { posities: plaatsAnnotaties(g, bewaard), uitCache: true };
   }
-  const posities = await rekenInWorker({ structuur }, opties.opVoortgang, opties.signal);
+  const posities = await rekenInWorker({ structuur }, opties.opVoortgang, signal);
   void bewaarLayout(sleutel, posities);
   return { posities: plaatsAnnotaties(g, posities), uitCache: false };
 }

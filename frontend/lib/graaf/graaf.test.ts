@@ -4,6 +4,7 @@ import { layoutSleutel, leesLayout, naarReeksen, uitReeksen } from "./cache";
 import { berekenLayout, plaatsAnnotaties, startposities, structuurVan, type Posities } from "./layout";
 import { bouwModel, type GraafBron } from "./model";
 import { proefgraaf } from "./proefgraaf";
+import { layoutVoor } from "./rekenaar";
 import { GEDIMD, NADRUK_LIJN } from "./stijl";
 import { focusVan, knoopBeeld, lagenVoor, lijnBeeld, STANDAARD_LAGEN, verborgenKnopen, weergaveContext, type WeergaveStand } from "./weergave";
 
@@ -161,6 +162,23 @@ describe("cache", () => {
 
   it("zonder opslag is lezen gewoon een misser", async () => {
     expect(await leesLayout("bestaat-niet")).toBeUndefined();
+  });
+
+  it("een vervallen vraag levert niets op, ook niet na het wachten op de cache", async () => {
+    // Afgebroken terwijl de sleutel en de cache nog lopen: daarna geen uitkomst, maar een AbortError –
+    // anders zet een oude run zijn kaart over een nieuwere heen.
+    const afbreken = new AbortController();
+    const belofte = layoutVoor(bouwModel([BRON]), { signal: afbreken.signal });
+    afbreken.abort();
+    await expect(belofte).rejects.toMatchObject({ name: "AbortError" });
+  });
+
+  it("een vaste stand zonder nieuwe wettekst rekent niets en verschuift niets", async () => {
+    const g = bouwModel([BRON]);
+    const vast = berekenLayout(structuurVan(g));
+    const { posities, uitCache } = await layoutVoor(g, { vast });
+    expect(uitCache).toBe(true);
+    for (const [id, p] of vast) expect(posities.get(id)).toEqual(p);
   });
 });
 
