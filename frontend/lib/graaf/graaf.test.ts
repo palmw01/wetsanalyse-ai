@@ -218,4 +218,10 @@ describe("weergave", () => {
     expect(lagenVoor(g, "element:1", STANDAARD_LAGEN, "jurist")).toEqual({ lagen: STANDAARD_LAGEN, markering: "alle" });
     expect(lagenVoor(g, A10, uit, "jurist")).toEqual({ lagen: uit, markering: "jurist" });
   });
+
+  it("een van buiten aangewezen knoop wordt uitgelicht, ook als hij gedimd zou zijn", () => {
+    const focus = focusVan(g, [A9]);
+    expect(beeld(A10, stand({ focus, aangewezen: A10 }))).toMatchObject({ gedimd: false, aangewezen: true, altijdLabel: true, niveau: 3 });
+    expect(beeld(A10, stand({ focus })).aangewezen).toBe(false);
+  });
 });

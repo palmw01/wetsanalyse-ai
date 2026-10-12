@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type RefObject } from "react";
 
 import { DekkingOverzicht } from "@/components/annotaties/DekkingOverzicht";
 import { ongedektPerBron } from "@/lib/dekking";
@@ -25,7 +25,8 @@ import type { KnoopData } from "@/lib/graaf/model";
 import type { Anker, BeslissingInvoer } from "@/lib/types";
 import { GraafIcoon } from "@/components/graaf/GraafIcoon";
 import { Graaf } from "@/components/graaf/Graaf";
-import { useGraafStand } from "@/components/graaf/useGraafStand";
+import { useGraafStand, type GraafOpties } from "@/components/graaf/useGraafStand";
+import type { GraafKoppeling } from "@/components/graaf/koppeling";
 
 // sigma zit in `GraafTekenaar`, dat `Graaf` zelf lui laadt: pas als de tab opengaat.
 export type PaneelTab = "tekst" | "graaf";
@@ -39,11 +40,15 @@ export type PaneelTab = "tekst" | "graaf";
  *
  *  Met `onSluit` staat hij in dezelfde `Dialog`-schil als `ArtefactPaneel` (werkplek); zonder is
  *  het de kale inhoud voor een eigen pagina. */
-export function NodeAnnotatiePaneel({ doel, extraDoelen, onWisselDoel, onSluit, variant = "side", onVraag, onVraagOverBron, beginTab = "tekst", reeks }: {
+export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, onWisselDoel, onSluit, variant = "side", onVraag, onVraagOverBron, beginTab = "tekst", reeks }: {
   doel: NodeDoel; onSluit?: () => void; variant?: DialogVariant;
   /** Andere bepalingen of delen die de graaf meeopent (wat een antwoord noemt). Tekst en annotatie
    *  blijven over `doel`. */
   extraDoelen?: NodeDoel[];
+  /** Met welk bereik de graaf opent en wat de nadruk krijgt (`GraafOpties`). */
+  graaf?: GraafOpties;
+  /** Waar de graaf zijn handelingen neerzet voor het overzichtsblok in de thread. */
+  koppelingRef?: RefObject<GraafKoppeling | null>;
   /** Het paneel op een ander artikel openen, vanuit een knoop in de graaf die niet bij `doel` hoort. */
   onWisselDoel?: (doel: NodeDoel) => void;
   onVraag?: (element: NodeElement, view: NodeWeergave) => void;
@@ -61,7 +66,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, onWisselDoel, onSluit, 
   const [groot, setGroot] = useState(false);
   useEffect(() => { void samenhangBeschikbaar().then(setSamenhang); }, []);
   if (tab === "graaf" && !graafGeopend) setGraafGeopend(true);
-  const graafStand = useGraafStand(doel, graafGeopend && samenhang, extraDoelen);
+  const graafStand = useGraafStand(doel, graafGeopend && samenhang, extraDoelen, graaf);
   const [laadFout, setLaadFout] = useState("");
   const [actiefId, setActiefId] = useState<string>();
   const [melding, setMelding] = useState("");
@@ -241,7 +246,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, onWisselDoel, onSluit, 
       {toonTabs && graafGeopend && (
         <div className={tab === "graaf" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
           <Graaf stand={graafStand} zichtbaar={tab === "graaf"} groot={groot || !onSluit} actiefElementId={actiefId}
-            elementen={view.elementen} dekking={dekkingPerKnoop} onKiesElement={setActiefId} onOpenTekst={openTekst}
+            elementen={view.elementen} dekking={dekkingPerKnoop} koppelingRef={koppelingRef} onKiesElement={setActiefId} onOpenTekst={openTekst}
             onWisselArtikel={onWisselDoel}
             onVraag={onVraag || onVraagOverBron ? vraagOverKnoop : undefined} />
         </div>

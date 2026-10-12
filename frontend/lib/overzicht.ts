@@ -9,8 +9,9 @@
 import type { NodeDoel } from "./annotatieNode";
 import type { Overzicht, OverzichtBepaling, OverzichtDeel } from "./types";
 
-/** Hoeveel delen de graaf van een overzicht hoogstens opent. Ruimer dan voor losse artikelen
- *  (`MAX_SAMENHANG_DOELEN`): de delen komen in één verzoek, met één bronboom per regeling. Gelijk aan de grens van `/samenhang/meer` in de api. */
+/** Hoeveel delen de graaf in "Dit antwoord" hoogstens laadt (één verzoek, één bronboom per regeling;
+ *  gelijk aan de grens van `/samenhang/meer` in de api). De hele kennisgraaf kent geen grens: daar
+ *  benadrukt hij alles uit het overzicht (`overzichtFocus`). */
 export const MAX_OVERZICHT_DOELEN = 30;
 
 /** De doelen voor de graaf: de delen van het overzicht in zijn eigen volgorde (rang, dan
@@ -26,12 +27,23 @@ export function overzichtDoelen(ov: Overzicht, max = MAX_OVERZICHT_DOELEN): { do
   return { doelen: alle.slice(0, max), totaal: alle.length };
 }
 
-/** "Bekijk samenhang van de 8 delen (6 getoond)" – zegt wat de knop opent. */
-export function overzichtKnopTekst({ doelen, totaal }: { doelen: NodeDoel[]; totaal: number }, ov: Overzicht): string {
-  const zijnDelen = ov.regelingen.some((r) => r.delen.length);
-  const soort = zijnDelen ? (totaal === 1 ? "deel" : "delen") : (totaal === 1 ? "bepaling" : "bepalingen");
-  const getoond = totaal > doelen.length ? ` (${doelen.length} getoond)` : "";
-  return totaal === 1 ? `Bekijk samenhang van ${doelen[0]?.label ?? "het deel"}` : `Bekijk samenhang van de ${totaal} ${soort}${getoond}`;
+/** Wat de graaf in de hele kennisgraaf benadrukt: álle delen (met hun subdelen) en bepalingen van het
+ *  overzicht, en wat het onderwerp verder noemt – zonder grens, in de volgorde van het overzicht. */
+export function overzichtFocus(ov: Overzicht): string[] {
+  const ids = ov.regelingen.flatMap((r) => [
+    ...r.delen.flatMap((d) => [d.iri, ...d.subdelen.map((s) => s.iri), ...d.bepalingen.map((b) => b.iri)]),
+    ...r.ook_genoemd.map((b) => b.iri),
+  ]);
+  return [...new Set(ids)];
+}
+
+/** "Bekijk de 4 delen in de kennisgraaf" – zegt wat de knop opent. */
+export function overzichtKnopTekst(ov: Overzicht): string {
+  const delen = ov.regelingen.flatMap((r) => r.delen);
+  if (delen.length === 1) return `Bekijk ${deelKop(delen[0])} in de kennisgraaf`;
+  if (delen.length) return `Bekijk de ${delen.length} delen in de kennisgraaf`;
+  const bepalingen = ov.regelingen.flatMap((r) => r.ook_genoemd);
+  return bepalingen.length === 1 ? `Bekijk ${bepalingNaam(bepalingen[0])} in de kennisgraaf` : `Bekijk de ${bepalingen.length} bepalingen in de kennisgraaf`;
 }
 
 /** Een bepaling zoals de jurist haar leest: "art. 9" voor een artikel, "28.3a" voor een divisie. graph-qa

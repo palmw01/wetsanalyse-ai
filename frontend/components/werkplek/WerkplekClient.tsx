@@ -7,6 +7,8 @@ import { ThreadRij, type ThreadActies } from "@/components/werkplek/ThreadRij";
 import { reeksNavigatie, reeksUitBerichten, verwerkReeksEvent, type Reeks } from "@/lib/reeks";
 import { mergeToolExecution, toolSpoorUit, type NodeDoel, type ToolExecution, type NodeElement, type NodeWeergave } from "@/lib/annotatieNode";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { GraafKoppelingContext, type GraafKoppeling } from "@/components/graaf/koppeling";
+import type { GraafOpties } from "@/components/graaf/useGraafStand";
 
 import { ArtefactPaneel } from "@/components/werkplek/ArtefactPaneel";
 import { Melding } from "@/components/ui/Melding";
@@ -158,6 +160,15 @@ export function WerkplekClient({
   // Wat de graaf verder meeopent: de artikelen die een antwoord noemt (`samenhangDoelen`) of de delen
   // van een overzicht (`overzichtDoelen`). Leeg zodra het paneel op een andere manier opent.
   const [nodeExtra, setNodeExtra] = useState<NodeDoel[]>([]);
+  // Met welk bereik de graaf opent en wat de nadruk krijgt (een overzicht: de hele kennisgraaf).
+  const [nodeGraaf, setNodeGraaf] = useState<GraafOpties>({});
+  // De graaf in het paneel zet hier zijn handelingen neer; het overzichtsblok in de thread bereikt hem
+  // via de context hieronder, zonder dat een rij opnieuw rendert als het paneel opent of sluit.
+  const graafKoppelingRef = useRef<GraafKoppeling | null>(null);
+  const [graafKoppeling] = useState<GraafKoppeling>(() => ({
+    wijs: (id) => graafKoppelingRef.current?.wijs(id),
+    kies: (id) => graafKoppelingRef.current?.kies(id) ?? false,
+  }));
   const [samenhangAan, setSamenhangAan] = useState(false);
   useEffect(() => { void samenhangBeschikbaar().then(setSamenhangAan); }, []);
   const [nodeVraag, setNodeVraag] = useState<{ element: NodeElement; view: NodeWeergave }>();
@@ -371,7 +382,7 @@ export function WerkplekClient({
 
   async function openArtefact(slug: string, doel?: NodeDoel) {
     gevraagdArtefact.current = slug;
-    if (doel?.bron_iri) { setArtefactSlug(undefined); setNodeTab("tekst"); setNodeExtra([]); setNodeDoel(doel); return; }
+    if (doel?.bron_iri) { setArtefactSlug(undefined); setNodeTab("tekst"); setNodeExtra([]); setNodeGraaf({}); setNodeDoel(doel); return; }
     setNodeDoel(undefined);
     // Zonder bronnode is er alleen het document van de rondleiding, dat al in het geheugen staat.
     // Elk ander slug-only bericht verwijst naar een annotatie die niet meer bestaat.
@@ -922,10 +933,11 @@ export function WerkplekClient({
     actiesRef.current = {
       verstuur: (...args) => void verstuur(...args),
       openArtefact: (slug, doel) => void openArtefact(slug, doel),
-      openSamenhang: (doel, extra = []) => {
+      openSamenhang: (doel, extra = [], graaf = {}) => {
         setArtefactSlug(undefined);
         setNodeTab("graaf");
         setNodeExtra(extra);
+        setNodeGraaf(graaf);
         setNodeDoel(doel);
       },
       openReeksLid: (reeksRun, doel) => {
@@ -938,7 +950,7 @@ export function WerkplekClient({
   const [acties] = useState<ThreadActies>(() => ({
     verstuur: (...args) => actiesRef.current?.verstuur(...args),
     openArtefact: (slug, doel) => actiesRef.current?.openArtefact(slug, doel),
-    openSamenhang: (doel, extra) => actiesRef.current?.openSamenhang(doel, extra),
+    openSamenhang: (doel, extra, graaf) => actiesRef.current?.openSamenhang(doel, extra, graaf),
     openReeksLid: (reeksRun, doel) => actiesRef.current?.openReeksLid(reeksRun, doel),
     stop: () => actiesRef.current?.stop(),
   }));
@@ -970,15 +982,16 @@ export function WerkplekClient({
     const nav = item && reeksNavigatie(item.reeks, nodeDoel.bron_iri);
     return nav ? { ...nav, onGa: (d: NodeDoel) => setNodeDoel(d) } : undefined;
   })();
-  const artefact = nodeDoel ? <NodeAnnotatiePaneel key={`${nodeDoel.bron_iri}:${nodeDoel.snapshot_id ?? ""}:${nodeTab}:${nodeExtra.map((d) => d.bron_iri).join("|")}`} doel={nodeDoel}
-    extraDoelen={nodeExtra}
-    // Een knoop uit een meegeopend artikel: het paneel op dát artikel, de rest van de kaart blijft mee.
-    onWisselDoel={nodeExtra.length ? (nieuw) => {
+  const artefact = nodeDoel ? <NodeAnnotatiePaneel key={`${nodeDoel.bron_iri}:${nodeDoel.snapshot_id ?? ""}:${nodeTab}:${nodeGraaf.bereik ?? ""}:${nodeExtra.map((d) => d.bron_iri).join("|")}`} doel={nodeDoel}
+    extraDoelen={nodeExtra} graaf={nodeGraaf} koppelingRef={graafKoppelingRef}
+    // Een knoop uit een ander artikel (meegeopend, of uit de hele kennisgraaf): het paneel op dát
+    // artikel; de rest van de kaart, het bereik en de nadruk blijven mee.
+    onWisselDoel={(nieuw) => {
       setNodeExtra([nodeDoel, ...nodeExtra].filter((d) => d.bron_iri !== nieuw.bron_iri));
       setNodeTab("tekst");
       setNodeDoel(nieuw);
-    } : undefined}
-    variant={breed ? "kolom" : "side"} onSluit={() => { setNodeDoel(undefined); setNodeReeks(undefined); setNodeExtra([]); }} beginTab={nodeTab}
+    }}
+    variant={breed ? "kolom" : "side"} onSluit={() => { setNodeDoel(undefined); setNodeReeks(undefined); setNodeExtra([]); setNodeGraaf({}); }} beginTab={nodeTab}
     reeks={nodeReeksNav}
     onVraag={(element, view) => {
       // Geen klaargezette vraag in het veld: de drie suggesties (per klasse) staan erboven als chips.
@@ -1028,6 +1041,7 @@ export function WerkplekClient({
   );
 
   return (
+    <GraafKoppelingContext.Provider value={graafKoppeling}>
     <div className="flex min-h-0 min-w-0 flex-1">
     <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
       {/* Beknopte statusmelding voor schermlezers (niet de hele thread live maken → geen token-spam). */}
@@ -1357,6 +1371,7 @@ export function WerkplekClient({
       <div className="hidden w-[min(34rem,42vw)] shrink-0 xl:block">{artefact}</div>
     )}
     </div>
+    </GraafKoppelingContext.Provider>
   );
 }
 

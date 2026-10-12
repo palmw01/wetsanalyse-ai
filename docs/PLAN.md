@@ -73,7 +73,8 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 - **Samenhangsgraaf** (#540–#546): `GET /v1/annotatie/samenhang` (`api/app/samenhang.py`,
   capability `samenhang`) en de graaf in de werkplek, sinds okt 2026 een 2D-graaf op sigma.js +
   graphology (`components/graaf/Graaf.tsx`, rekenkern `lib/graaf/`) in plaats van de 3D-krachtgraaf;
-  `GET /v1/annotatie/graaf` levert de hele kennisgraaf. Die staat als tab *Graaf* in het
+  `GET /v1/annotatie/graaf` levert de hele kennisgraaf (schakelaar *Dit antwoord | Hele kennisgraaf*,
+  met de nadruk op wat het antwoord noemt; een overzicht opent hem direct). Die staat als tab *Graaf* in het
   annotatiepaneel en opent ook via "Bekijk … in de graaf" onder chatbronnen. Hij toont de bronstructuur, markeringen met hun
   JAS-klasse en de letterlijke verwijzingen één stap in en uit. Randknopen zijn bij te laden, en er
   zijn zoeken, lagen, een inspector met *Open brontekst* / *Vraag Lex hierover* en live bijwerken na

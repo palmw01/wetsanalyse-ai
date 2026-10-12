@@ -24,6 +24,8 @@ export interface GraafBediening {
   focus: (id: string) => void;
   /** < 1 zoomt in, > 1 zoomt uit. */
   zoom: (factor: number) => void;
+  /** Een groep knopen in beeld (de focus van het antwoord); leeg of onbekend = alles in beeld. */
+  toon: (ids: Iterable<string>) => void;
 }
 
 type TekenKnoop = KnoopData & { x: number; y: number };
@@ -39,12 +41,16 @@ const KnoopProgramma = createNodeBorderProgram<TekenKnoop, RelatieData>({
 
 const beweging = () => (typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 400);
 
-export function GraafTekenaar({ model, posities, context, zichtbaar, cameraRef, bedieningRef, onKies, onFout }: {
+export function GraafTekenaar({ model, posities, context, zichtbaar, inpassen, cameraRef, bedieningRef, onKies, onFout }: {
   model: GraafModel;
   posities: Posities;
   context: WeergaveContext;
   /** Staat de graaf in beeld? Een verborgen tab heeft geen afmeting; bij terugkomst opnieuw meten. */
   zichtbaar: boolean;
+  /** Wat in beeld hoort als er een nieuwe kaart komt (`sleutel` verandert): de focus van het antwoord,
+   *  of de keuze. Declaratief, zodat het ook werkt als sigma nog aan het laden was. Een bewaarde
+   *  camerastand (vergroten) gaat voor. */
+  inpassen?: { sleutel: string; ids: readonly string[] };
   /** De camerastand buiten deze component: vergroten remount hem, en dan blijft het beeld staan. */
   cameraRef: RefObject<CameraState | null>;
   bedieningRef: RefObject<GraafBediening | null>;
@@ -56,6 +62,8 @@ export function GraafTekenaar({ model, posities, context, zichtbaar, cameraRef, 
   const houder = useRef<HTMLDivElement>(null);
   const sigma = useRef<Sigma<TekenKnoop, RelatieData> | null>(null);
   const ctx = useRef(context);
+  const inpassenRef = useRef(inpassen);
+  const ingepast = useRef<string | undefined>(undefined);
   const handlers = useRef({ onKies, onFout });
   useEffect(() => { handlers.current = { onKies, onFout }; });
 
@@ -96,6 +104,10 @@ export function GraafTekenaar({ model, posities, context, zichtbaar, cameraRef, 
         labelRenderedSizeThreshold: 3,
         // Bij de hele kennisgraaf: lijnen even weg tijdens het slepen, zodat pannen vloeiend blijft.
         hideEdgesOnMove: teken.size > 5000,
+        // Een vaste schermgrootte, zoals op een kaart: inzoomen trekt knopen uit elkaar in plaats van ze
+        // op te blazen (sigma's standaard groeit mee met de wortel van de zoom – en dan wordt een
+        // ingezoomde regeling een kluwen overlappende schijven).
+        zoomToSizeRatioFunction: () => 1,
         minCameraRatio: 0.01,
         maxCameraRatio: 3,
         stagePadding: 24,
@@ -104,7 +116,7 @@ export function GraafTekenaar({ model, posities, context, zichtbaar, cameraRef, 
           // `randDikte`/`randKleur` lezen de randen van `KnoopProgramma`; sigma geeft ze ongewijzigd door.
           const beeld: Partial<NodeDisplayData> & { randDikte: number; randKleur: string } = {
             x: a.x, y: a.y, size: b.grootte, color: b.kleur, label: b.label, hidden: b.verborgen,
-            forceLabel: b.altijdLabel, zIndex: b.niveau,
+            forceLabel: b.altijdLabel, zIndex: b.niveau, highlighted: b.aangewezen,
             randDikte: b.omtrek ? 0.32 : 0, randKleur: b.omtrek ?? b.kleur,
           };
           return beeld;
@@ -120,7 +132,11 @@ export function GraafTekenaar({ model, posities, context, zichtbaar, cameraRef, 
       return;
     }
     sigma.current = s;
-    if (cameraRef.current) s.getCamera().setState(cameraRef.current);
+    // Een bewaarde stand (vergroten) gaat voor; anders meteen – zonder animatie – op wat in beeld hoort.
+    if (cameraRef.current) {
+      s.getCamera().setState(cameraRef.current);
+      ingepast.current = inpassenRef.current?.sleutel;
+    }
 
     s.on("clickNode", ({ node }) => handlers.current.onKies(node));
     s.on("clickStage", () => handlers.current.onKies(null));
@@ -137,8 +153,19 @@ export function GraafTekenaar({ model, posities, context, zichtbaar, cameraRef, 
       doelCamera = naar;
       void s.getCamera().animate(naar, { duration: duur }).then(() => { if (doelCamera === naar) doelCamera = null; });
     };
+    const toon = (ids: Iterable<string>, duur = beweging()) => {
+      const punten = [...ids].map((id) => s.getNodeDisplayData(id)).filter((d) => d && !d.hidden) as NodeDisplayData[];
+      if (!punten.length) return beweeg({ x: 0.5, y: 0.5, ratio: 1, angle: 0 }, duur);
+      const xs = punten.map((d) => d.x), ys = punten.map((d) => d.y);
+      const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+      // Camerastand in genormaliseerde coördinaten: ratio 1 is de hele graaf. Wat marge rond de groep; een
+      // kleine groep in de hele kennisgraaf vraagt diep inzoomen, maar één knoop niet tot op de pixel.
+      const ratio = Math.min(1, Math.max(0.03, Math.max(x1 - x0, y1 - y0) * 1.4));
+      beweeg({ x: (x0 + x1) / 2, y: (y0 + y1) / 2, ratio }, duur);
+    };
     bedieningRef.current = {
       pasIn: () => beweeg({ x: 0.5, y: 0.5, ratio: 1, angle: 0 }, beweging()),
+      toon,
       zoom: (factor) => {
         const cam = s.getCamera();
         const huidig = { ...cam.getState(), ...doelCamera };
@@ -151,6 +178,10 @@ export function GraafTekenaar({ model, posities, context, zichtbaar, cameraRef, 
         beweeg({ x: d.x, y: d.y, ratio: Math.min(huidig.ratio, 0.4) }, beweging());
       },
     };
+    if (!cameraRef.current && inpassenRef.current?.ids.length) {
+      toon(inpassenRef.current.ids, 0);
+      ingepast.current = inpassenRef.current.sleutel;
+    }
     // Een nieuwe maat (vergroten, de inspector die in- of uitklapt): opnieuw meten én tekenen.
     const meet = new ResizeObserver(() => s.resize(true).refresh());
     meet.observe(el);
@@ -173,6 +204,14 @@ export function GraafTekenaar({ model, posities, context, zichtbaar, cameraRef, 
       s.setGraph(teken);
     }
   }, [teken]);
+
+  // Na de nieuwe graaf: een nieuwe kaart (andere sleutel) in beeld brengen.
+  useEffect(() => {
+    inpassenRef.current = inpassen;
+    if (!inpassen || ingepast.current === inpassen.sleutel || !sigma.current) return;
+    ingepast.current = inpassen.sleutel;
+    bedieningRef.current?.toon(inpassen.ids);
+  }, [inpassen, bedieningRef]);
 
   useEffect(() => {
     ctx.current = context;
