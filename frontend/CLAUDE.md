@@ -710,8 +710,15 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
   weergave van het paneel, en anders één keer per knoop via `GET weergave` (`useKnoopDetail`, cache
   per paneel, leeg na `ververs`) – de hele kennisgraaf draagt bewust geen tekst. Het element van een
   markering wordt bij het kiezen opgehaald (`useMarkeringElement`). Zonder keuze: *Dit antwoord* (de
-  doelen, klikbaar) en wat er geladen is. Breed rechts, smal onder de graaf: open, met eigen scroll, in
-  te klappen; per keuze een `key`, dus elke keuze begint open en bovenaan.
+  doelen, klikbaar) en wat er geladen is. Smal onder de graaf (details in te klappen); vergroot een
+  **zijbalk** rechts (`md:w-[22rem] lg:w-[26rem] xl:w-[28rem]`), in te klappen tot een strook met een
+  greep op zijn linkerrand – de stand per kijker in `localStorage` (`wa_graaf_zijbalk`, in try/catch),
+  ingeklapt blijft ingeklapt bij een nieuwe keuze, de strook toont de kleur van de keuze. Per keuze
+  een `key`, dus elke keuze begint bovenaan. **Eén scrollvak**: de schil geeft alleen hoogte door, het
+  detailblok scrolt. Twee scrollvakken in elkaar slikken het muiswiel, want `overscroll-behavior:
+  contain` (`globals.css`) laat het binnenste, dat niets te scrollen heeft, het wiel niet doorgeven.
+  In *Uit de kennisgraaf* staat het label **boven** de waarde: naast elkaar liep een lang woord
+  ("Eerstverantwoordelijke") in de zijbalk over zijn waarde.
 - **Uit de kennisgraaf** (`KnoopFeiten`, `lib/graaf/knoopinfo.ts`, `GET knoop`, cache per paneel via
   `useKnoopInfo`): bij een bronknoop wat de graaf er verder over weet – geldigheid, herkomst van de
   tekst, regeling, grondslag en bevoegdheid, genoemd in, begrip, vindplaats – en ingeklapt alle
@@ -739,7 +746,9 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
   of onderdeel een okeromtrek (`DEKKINGSKLEUR`) en in de inspector *Zonder detectortreffer*.
 - **Live bij een annotatiewijziging**: `NodeAnnotatiePaneel` roept na elke mutatie `graafStand.ververs()`
   aan; elk geladen deel wordt opnieuw opgehaald, de kaart verschuift niet.
-- **Bereik: *Dit antwoord* | *Hele kennisgraaf*** (schakelaar rechtsboven, `Bereik` in `useGraafStand`).
+- **Bereik: *Dit antwoord* | *Hele kennisgraaf*** (schakelaar rechtsboven, `Bereik` in `useGraafStand`;
+  mobiel "Antwoord" | "Alles" met de volle naam als `aria-label`, zodat het zoekveld ernaast leesbaar
+  blijft – om dezelfde reden is de focusregel in de kop mobiel één korte zin).
   De hele kennisgraaf (`/graaf`, `lib/graaf/data.ts`, ~6.500 knopen) wordt één keer per paneel opgehaald
   en samengevoegd met de geladen samenhang – die eerst, want zij draagt de wettekst. Elk bereik heeft een
   eigen layout; de kennisgraaf begint altijd vers en komt dus uit de cache (gemeten tegen de

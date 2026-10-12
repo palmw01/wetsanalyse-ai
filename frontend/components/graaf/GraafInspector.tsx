@@ -79,7 +79,7 @@ export function GraafInspector({ model, id, detail, info, element, ongedekt, hoo
     : hoofdactie === "wissel" ? "Open in het paneel" : "";
   const el = typeof element === "object" ? element : undefined;
 
-  return <div className="flex min-h-0 flex-col" data-testid="graaf-detail">
+  return <div className="flex min-h-0 flex-1 flex-col" data-testid="graaf-detail">
     <div className="flex items-start gap-2 px-4 pb-2 pt-3">
       <div className="min-w-0 flex-1">
         <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-faint">
