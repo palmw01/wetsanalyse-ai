@@ -1,0 +1,16 @@
+# Leesbare verklaring per code van de begrippenketen (ADR-004). Elke code die de keten in een
+# bewijsstuk of beslissing zet, staat hier; tests/test_begrippen_signalen.py weigert een code
+# zonder verklaring en een verklaring zonder code.
+signalen:
+  ZELFDE_TERM: {naam: "Zelfde term", uitleg: "Beide formuleringen hebben dezelfde term (zonder lidwoord, kern als lemma). Alleen een aanleiding om te vergelijken."}
+  WETTELIJKE_TERM: {naam: "Wettelijke term", uitleg: "De wet legt deze term vast in een definitie of opsomming, en de formulering staat binnen het bereik daarvan."}
+  UITBREIDING_MEDE: {naam: "Uitbreiding van de definitie", uitleg: "'Verstaat mede onder' breidt dezelfde term uit; het blijft één begrip."}
+  ANDERE_DEFINITIE: {naam: "Andere definitie", uitleg: "Dezelfde term heeft elders een eigen definitie: mogelijk een ander begrip."}
+  BUITEN_BEREIK: {naam: "Buiten het bereik", uitleg: "De term wordt gebruikt buiten het bereik waarvoor zijn definitie geldt."}
+  BEREIK_ONBEKEND: {naam: "Bereik onbekend", uitleg: "De definitie noemt geen herkenbaar bereik (bijv. 'dit hoofdstuk'); of zij hier geldt, is niet vastgesteld."}
+  AFWIJKENDE_KWALIFICATIE: {naam: "Afwijkende kwalificatie", uitleg: "'In afwijking van … geldt … als': hier wordt de term anders afgebakend dan in de definitie."}
+  OPSOMMING_IN_DEFINITIE: {naam: "Opsomming in definitie", uitleg: "De definitie somt soorten op; elk onderdeel is een soort van de gedefinieerde term."}
+  BEPERKTE_TERM: {naam: "Beperkte term", uitleg: "De formulering beperkt een wettelijke term met een bijzin of voorzetselgroep: een soort, geen synoniem."}
+  MEDE_VERSTAAN: {naam: "Mede verstaan", uitleg: "Onder de term wordt mede verstaan wat de definitie noemt: het bereik wordt groter."}
+  BEDOELD_IN: {naam: "Bedoeld in", uitleg: "'Bedoeld in …' wijst de formulering met dezelfde kern in de genoemde bepaling aan."}
+  AANWIJZEND: {naam: "Aanwijzend", uitleg: "'Die …' of 'deze …' wijst terug naar een eerdere formulering, direct of via 'als bedoeld in'."}
