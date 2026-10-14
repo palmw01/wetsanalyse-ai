@@ -1,6 +1,7 @@
 import { AnnotatiePaginaSchil } from "@/components/annotaties/AnnotatiePaginaSchil";
 import { NodeAnnotatiePaneel } from "@/components/annotaties/NodeAnnotatiePaneel";
 import { Melding } from "@/components/ui/Melding";
+import { OpnemenInWerkgebied } from "@/components/werkgebieden/OpnemenInWerkgebied";
 
 export const metadata = { title: "Annotatie · Wetsanalyse" };
 
@@ -10,7 +11,7 @@ export default async function NodeAnnotatiePagina({ searchParams }: {
 }) {
   const { bron_iri, snapshot_id } = await searchParams;
   return (
-    <AnnotatiePaginaSchil titel="Annotatie">
+    <AnnotatiePaginaSchil titel="Annotatie" actie={bron_iri ? <OpnemenInWerkgebied bronIri={bron_iri} /> : undefined}>
       {bron_iri ? (
         // Een `key` per bronnode: een link naar een andere bepaling (bv. "overspant meerdere
         // bepalingen") is een soft navigation naar dezelfde pagina. Zonder key bleef het paneel

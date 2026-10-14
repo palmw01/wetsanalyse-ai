@@ -25,6 +25,28 @@ const audit = [];
 let volgendeConflict = false;
 const IRI9 = "urn:bwb:BWBR0004770:artikel9";
 const IRI3 = "urn:bwb:BWBR0002320:artikel3";
+const IRI10 = "urn:bwb:BWBR0004770:artikel10";
+const LABELS = { [IRI9]: "Invorderingswet 1990 – artikel 9", [IRI3]: "Algemene wet inzake rijksbelastingen – artikel 3",
+  [IRI10]: "Invorderingswet 1990 – artikel 10" };
+// De samenhang zoals api/app/samenhang.py hem levert: artikel 9 met een lid dat naar artikel 10 (rand)
+// en naar een niet-geïmporteerde bepaling verwijst; artikel 10 en artikel 3 los.
+const knoop = (id, soort, label, over = {}) => ({ id, soort, label, tekst: "", klasse: "", lifecycle: "", element_id: "",
+  bwb_id: id.split(":")[2] ?? "", artikel: "", lid: "", rand: false, ...over });
+function samenhang(iri) {
+  const regeling = iri.split(":")[2];
+  const reg = knoop(`urn:bwb:${regeling}`, "regeling", regeling === "BWBR0004770" ? "Invorderingswet 1990" : "Algemene wet inzake rijksbelastingen");
+  const knopen = [reg, knoop(iri, "artikel", `Artikel ${iri.split("artikel")[1]}`)];
+  const relaties = [{ bron: reg.id, doel: iri, soort: "bevat", groep: "structuur", anker_tekst: "" }];
+  if (iri === IRI9) {
+    knopen.push(knoop(`${IRI9}:lid1`, "lid", "Lid 1", { artikel: "9", lid: "1" }),
+      knoop(IRI10, "artikel", "Artikel 10", { rand: true }), knoop("extern:bw6", "extern", "Burgerlijk Wetboek 6, artikel 44", { rand: true, bwb_id: "" }));
+    relaties.push({ bron: IRI9, doel: `${IRI9}:lid1`, soort: "bevat", groep: "structuur", anker_tekst: "" },
+      { bron: `${IRI9}:lid1`, doel: IRI10, soort: "verwijst_naar", groep: "verwijzingen", anker_tekst: "artikel 10" },
+      { bron: `${IRI9}:lid1`, doel: "extern:bw6", soort: "verwijst_naar", groep: "verwijzingen", anker_tekst: "artikel 6:44 BW" });
+  }
+  return { schema_versie: 1, doel: { bron_iri: iri }, snapshot_id: "snap", artikel_iri: iri, knopen, relaties,
+    verwijzingen_beschikbaar: true, afgekapt: false };
+}
 const uit = () => ({ ...wg, bronnen: wg.bronnen.filter((b) => !b.weg) });
 function mutatie(route, verwacht, actie, detail, doe) {
   if (volgendeConflict || verwacht !== wg.revisie) {
@@ -56,12 +78,13 @@ await page.route("**/api/**", async (route) => {
   if (p === "/api/werkgebieden/wg1/bronnen" && m === "POST") {
     const b = req.postDataJSON();
     const iri = b.bron_iri || (b.bwb_id === "BWBR0004770" ? IRI9 : b.bwb_id === "BWBR0002320" ? IRI3 : null);
+    if (volgendeConflict) return mutatie(route, -1, "", {}, () => {});
     if (!iri) return route.fulfill({ status: 422, json: { detail: "Bepaling niet gevonden in de graaf." } });
     const bestaand = wg.bronnen.find((s) => s.bron_iri === iri && !s.weg);
     if (bestaand && bestaand.rol === b.rol) return route.fulfill({ status: 200, json: { selectie: bestaand, werkgebied: uit() } });
     if (bestaand) return route.fulfill({ status: 409, json: { detail: { fout: "al_opgenomen", selectie: bestaand } } });
     const s = { id: `s${wg.bronnen.length + 1}`, bron_iri: iri, bereik: b.bereik, rol: b.rol, reden: b.reden,
-      label: iri === IRI9 ? "Invorderingswet 1990 – artikel 9" : "Algemene wet inzake rijksbelastingen – artikel 3",
+      label: LABELS[iri],
       bwb_id: iri.split(":")[2], snapshot_id: "snap", bron_hash: "h", toegevoegd_door: "browser-test", toegevoegd: nu };
     const r = mutatie(route, b.verwachte_revisie, "bron-toegevoegd", { bron_iri: iri, rol: b.rol }, () => wg.bronnen.push(s));
     return r ?? route.fulfill({ status: 201, json: { selectie: s, werkgebied: uit() } });
@@ -94,6 +117,10 @@ await page.route("**/api/**", async (route) => {
         laag_id: "l2", ankers: [], rol: "analyseren", selecties: ["s1"], deels_buiten: true },
     ] } });
   if (p === "/api/werkgebieden/wg1/audit") return route.fulfill({ json: { audit } });
+  if (p === "/api/annotatie/v2/samenhang") return route.fulfill({ json: samenhang(url.searchParams.get("bron_iri")) });
+  if (p === "/api/annotatie/v2/samenhang/meer")
+    return route.fulfill({ json: { resultaten: url.searchParams.getAll("bron_iri").map(samenhang), fouten: [] } });
+  if (p.startsWith("/api/annotatie/v2/")) return route.fulfill({ status: 404, json: { detail: "Niet in deze test." } });
   if (p === "/api/gesprekken") return route.fulfill({ json: [] });
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
   return route.fulfill({ status: 200, json: {} });
@@ -186,20 +213,61 @@ try {
   await melding("Werkgebied aangemaakt");
   await foto("werkgebied-historie");
 
+  // Samenhang: de graaf van de bronnen, en wat ze noemen zonder erin te staan als suggestie.
+  await page.getByRole("tab", { name: "Samenhang" }).click();
+  await page.locator('[data-testid="samenhang-graaf"][data-gereed="true"]').waitFor({ timeout: 30000 });
+  const suggesties = page.getByRole("list", { name: "Verwijzingen buiten dit werkgebied" });
+  await suggesties.getByText("Genoemd in Artikel 9 · lid 1").first().waitFor();
+  await suggesties.getByText("Open punt: niet in de graaf").waitFor();
+  // In de inspector: een opgenomen bepaling zegt dat, een randbepaling is op te nemen.
+  await page.getByRole("combobox", { name: "Zoek in de graaf" }).fill("Artikel 9");
+  await page.locator(`[role="option"][data-knoop-id="${IRI9}"]`).click();
+  await page.getByText("Staat in dit werkgebied").waitFor();
+  await foto("werkgebied-samenhang");
+  await suggesties.locator("li", { hasText: "Artikel 10" }).getByRole("button", { name: "Opnemen", exact: true }).click();
+  await melding("Artikel 10 opgenomen als analyseren.");
+  assert.equal(requests.filter((r) => r.m === "POST" && r.p.endsWith("/bronnen")).at(-1).body.bron_iri, IRI10);
+  await page.getByRole("tab", { name: "Bronnen (3)" }).waitFor();
+  await page.locator('[data-testid="samenhang-graaf"][data-gereed="true"]').waitFor({ timeout: 30000 });
+  assert.equal(await suggesties.locator("li", { hasText: "Artikel 10" }).count(), 0);
+
   // Weghalen vraagt een tweede klik; de bepaling verdwijnt uit het werkgebied.
   await page.getByRole("tab", { name: /^Bronnen/ }).click();
   const weg = page.getByRole("button", { name: "Weghalen" }).first();
   await weg.click();
   await page.getByRole("button", { name: "Weghalen?" }).click();
   await melding("De annotaties van de bepaling blijven staan.");
-  await page.getByRole("tab", { name: "Bronnen (1)" }).waitFor();
+  await page.getByRole("tab", { name: "Bronnen (2)" }).waitFor();
   const del = requests.filter((r) => r.m === "DELETE").at(-1);
   assert.match(del.q, /verwachte_revisie=\d+/);
 
+  // Vanaf de annotatie: opnemen in een werkgebied dat daar niet in beeld is. Iemand anders wijzigt het
+  // tussendoor (412); de pagina haalt de revisie opnieuw op en probeert het één keer opnieuw.
+  // Artikel 9 is net weggehaald; artikel 3 staat er al als contextbron, dus dat geeft de 409-melding.
+  await page.goto(`${base}/annotaties/node?bron_iri=${encodeURIComponent(IRI3)}`);
+  await page.getByRole("button", { name: "Opnemen in werkgebied" }).click();
+  await page.getByRole("list", { name: "Werkgebieden" }).getByRole("button", { name: /Invordering bij nalatigheid/ }).click();
+  await melding("met een andere rol of een ander bereik");
+  await page.goto(`${base}/annotaties/node?bron_iri=${encodeURIComponent(IRI9)}`);
+  await page.getByRole("button", { name: "Opnemen in werkgebied" }).click();
+  await page.getByRole("list", { name: "Werkgebieden" }).getByRole("button", { name: /Invordering bij nalatigheid/ }).waitFor();
+  volgendeConflict = true;
+  const voor = requests.filter((r) => r.m === "POST" && r.p.endsWith("/bronnen")).length;
+  await page.getByRole("list", { name: "Werkgebieden" }).getByRole("button", { name: /Invordering bij nalatigheid/ }).click();
+  await melding("Opgenomen in Invordering bij nalatigheid.");
+  assert.equal(requests.filter((r) => r.m === "POST" && r.p.endsWith("/bronnen")).length - voor, 2);
+  await page.getByRole("link", { name: "Naar het werkgebied" }).waitFor();
+  await foto("annotatie-opnemen");
+
   // Smal scherm: geen horizontale scroll, en de drawer is te openen.
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`${base}/werkgebieden/wg1`);
+  await page.getByRole("tab", { name: "Bronnen (3)" }).waitFor();
   await foto("werkgebied-mobiel");
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
   assert.deepEqual(errors, []);
-  console.log("Browser OK: werkgebied aanmaken, bron opnemen (ongeldig/idempotent/422/context), rol wijzigen, revisieconflict, inventaris met open punt en signalen, tab in de URL, historie, weghalen met bevestiging, smal scherm.");
+  console.log("Browser OK: werkgebied aanmaken, bron opnemen (ongeldig/idempotent/422/context), rol wijzigen, revisieconflict, inventaris met open punt en signalen, tab in de URL, historie, samenhang met suggesties en opnemen, weghalen met bevestiging, opnemen vanaf een annotatie met herkansing na 412, smal scherm.");
+} catch (e) {
+  await foto("fout");
+  throw e;
 } finally { await browser.close(); }

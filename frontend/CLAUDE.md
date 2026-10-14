@@ -72,7 +72,8 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   - `annotaties/` – het overzicht en de losse annotatiepagina (`AnnotatiesClient`, `AnnotatieKaart`,
     `NodeAnnotatiePaneel`, `AnnotatiePaginaSchil`).
   - `werkgebieden/` – overzicht en pagina van een werkgebied (`WerkgebiedenClient`,
-    `WerkgebiedClient`, de tabs `BronnenTab`/`ElementenTab`/`HistorieTab`, `WerkgebiedSchil`).
+    `WerkgebiedClient`, de tabs `BronnenTab`/`ElementenTab`/`SamenhangTab`/`HistorieTab`,
+    `WerkgebiedSchil`, en `OpnemenInWerkgebied` voor de annotatiepagina).
   - `graaf/` – de samenhangsgraaf (sigma); de rekenkern staat in `lib/graaf/`.
   - `admin/` – de beheertabs achter het admin-token: `ProfielenPanel` (+ `ProfileEditor`),
     `UsersPanel` (+ `BudgetBeleidBlok`), `RegistratiesPanel`, `ApiTokensPanel`,
@@ -467,8 +468,17 @@ bestaat los van de gesprekken.
   telt alleen de werkvoorraad en zegt niets over juridische dekking.
 - **De tab staat in de URL** (`?tab=elementen`, via `replace`); `Tabs` is `lazy`, zodat de inventaris
   pas laadt als je hem opent, en opnieuw bij elke nieuwe revisie (`key`).
-- Nog niet: de tabs *Begrippen* en *Samenhang* (levering 1 rest en 2), en bronnen toevoegen vanuit een
-  annotatie of de graaf.
+- **Samenhang** is de samenhangsgraaf met de bronselecties als doelen en focus (`useGraafStand` met
+  stabiele doelen – een nieuw doel-object per render laadt eindeloos opnieuw) en `benaming` op het
+  werkgebied in plaats van het antwoord. Onder de graaf staan de **verwijzingen buiten het werkgebied**
+  als suggestie (`verwijzingSuggesties` in `lib/werkgebied.ts`: vanuit de scope van de selecties,
+  zonder wat de selectie zelf omvat, meest genoemd eerst); een niet-geïmporteerde bepaling is een open
+  punt. Opnemen kan daar en in de inspector (`bijKnoop`), altijd met een rol.
+- **Opnemen vanuit een annotatie**: *Opnemen in werkgebied* in de kop van `/annotaties/node`
+  (`OpnemenInWerkgebied`). Daar is geen revisie in beeld; `neemOpInWerkgebied` haalt hem op en
+  probeert bij een 412 één keer opnieuw – de bedoeling hangt niet af van de rest van het werkgebied,
+  en opnemen is idempotent.
+- Nog niet: de tab *Begrippen* (levering 2).
 - Browserregressie: `scripts/test-werkgebieden.mjs` (een mock die revisies bijhoudt zoals de api).
 
 ## De artefact-werkbank
@@ -821,6 +831,10 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
   de gewone link. Een knoop die alleen in de kennisgraaf staat, schakelt daarheen. De graaf zet zijn
   handelingen in een ref (`koppelingRef`), de werkplek geeft via context een stabiel doorgeefluik aan de
   thread: zo rendert geen `ThreadRij` opnieuw als het paneel opent of sluit.
+- **Buiten het paneel** draagt `Graaf` twee haken: `benaming` (`GraafContext`: hoe de doelen heten in
+  de bereikschakelaar, *Terug naar …*, de focusregel en de inspector; standaard het antwoord) en
+  `bijKnoop` (een extra handeling in de inspector). De uitleg over "de tekst en de annotatie in het
+  paneel" staat er alleen mét `weergave`. Gebruikt door de tab Samenhang van een werkgebied.
 - Browserregressie: `scripts/test-samenhang.mjs` (klikken via de canvasmidden na *Centreren*, kiezen
   en lagen via de zoeklijst, `data-selectie`/`data-aangewezen`/`data-bereik`/`data-gereed` op de graaf,
   `data-labels`/`data-label-soorten` op de tekenaar;

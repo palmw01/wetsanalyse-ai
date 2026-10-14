@@ -15,6 +15,7 @@ import { Tabs } from "@/components/ui/Tabs";
 import { BronnenTab } from "@/components/werkgebieden/BronnenTab";
 import { ElementenTab } from "@/components/werkgebieden/ElementenTab";
 import { HistorieTab } from "@/components/werkgebieden/HistorieTab";
+import { SamenhangTab } from "@/components/werkgebieden/SamenhangTab";
 import { WerkgebiedSchil } from "@/components/werkgebieden/WerkgebiedSchil";
 import { archiveerWerkgebied, foutTekst, haalWerkgebied, isApiError, wijzigWerkgebied } from "@/lib/api";
 import type { Werkgebied, WerkgebiedStatus } from "@/lib/types";
@@ -29,7 +30,7 @@ export interface MutatieOpties {
 }
 export type Mutatie = (actie: (revisie: number) => Promise<Werkgebied>, opties?: MutatieOpties) => Promise<boolean>;
 
-/** Eén werkgebied: de gegevens, en de tabs Bronnen · Elementen · Historie.
+/** Eén werkgebied: de gegevens, en de tabs Bronnen · Elementen · Samenhang · Historie.
  *
  *  Werkgebieden zijn gedeeld, dus elke mutatie stuurt de revisie in beeld mee. Wijzigde iemand
  *  anders het werkgebied intussen (412), dan laadt de pagina de nieuwste stand en zegt dat – de
@@ -204,6 +205,8 @@ export function WerkgebiedClient({ id, beginTab }: { id: string; beginTab: Werkg
                 ) : t.key === "elementen" ? (
                   // Opnieuw ophalen bij elke nieuwe revisie: een andere selectie is een andere inventaris.
                   <ElementenTab key={wg.revisie} id={id} />
+                ) : t.key === "samenhang" ? (
+                  <SamenhangTab wg={wg} muteer={muteer} />
                 ) : (
                   <HistorieTab key={wg.revisie} id={id} bronnen={wg.bronnen} />
                 ),
