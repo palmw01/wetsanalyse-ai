@@ -272,6 +272,16 @@ class Betekenisgroep(_Vast):
                    conflicten=tuple(sorted(conflicten)), aandacht=aandacht, uitleg=tuple(uitleg))
 
 
+class Vraag(_Vast):
+    """Een paar waarover de keten niet beslist: mogelijk hetzelfde begrip (possible link)."""
+
+    kandidaat_id: str
+    van: str
+    naar: str
+    regel: str                         # de rij van de beslistabel
+    uitleg: tuple[str, ...] = ()
+
+
 class Relatie(_Vast):
     """Een getypeerd verband tussen twee formuleringen dat géén samenvoeging is."""
 

@@ -263,6 +263,8 @@ def variant_keten(manifest: Manifest) -> Voorspelling:
     aandacht: dict[str, int] = defaultdict(int)
     for x in (*uit.groepen, *uit.relaties):
         aandacht[x.aandacht.value] += 1
+    if uit.vragen:
+        aandacht["geel"] += len(uit.vragen)                # een vraag is altijd geel
     return Voorspelling(groepen=groepen, relaties=relaties, aandacht=dict(aandacht))
 
 
