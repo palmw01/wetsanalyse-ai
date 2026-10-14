@@ -393,7 +393,8 @@ plan mag verouderen.
   (deterministische detectie → kandidaten → kleine classifier → gerichte review); de enige route.
   Lees het vóór je aan de detectoren, de classifier of de eval werkt: het legt vast welke kennis in
   regels en tests hoort in plaats van in prompts. `adr-002-taalprovider.md` legt de taalanalyse
-  (spaCy) vast.
+  (spaCy) vast. `adr-003-nl-sbb-begrippencontract.md` maakt NL-SBB het datacontract voor
+  begrippen (activiteit 3), niet alleen het exportformaat.
 - `docs/architectuur/annotatieketen.md` – hoe de annotatieketen **nu** werkt: stappen,
   configuratie (`CLASSIFIER_GRANULARITEIT` e.d.), beslisbeleid, detectoren en bekende beperkingen.
   `docs/architectuur/metingen/README.md` is het meetlogboek: welke meting bij welke code hoort.
