@@ -28,7 +28,8 @@ status altijd. Tegen een provisional set heten de cijfers een trendmeting, geen 
     python -m eval.begrippen_eval --check
     python -m eval.begrippen_eval --bijwerken          # herbereken de hash (niet-bevroren versie)
     python -m eval.begrippen_eval --variant lemma      # nulmeting zonder taalanalyse
-    python -m eval.begrippen_eval --variant keten      # de begrippenketen (vanaf ADR-004 PR 7)
+    python -m eval.begrippen_eval --variant keten      # de begrippenketen
+    python -m eval.begrippen_eval --variant keten_zonder_parse   # idem, zonder spaCy
 """
 from __future__ import annotations
 
@@ -254,10 +255,10 @@ def variant_lemma(manifest: Manifest) -> Voorspelling:
     return Voorspelling(groepen=groepen, relaties=(), aandacht={"groen": len(groepen), "geel": 0})
 
 
-def variant_keten(manifest: Manifest) -> Voorspelling:
-    from agent.begrippen_pipeline import keten          # bestaat vanaf ADR-004 PR 7
+def variant_keten(manifest: Manifest, provider: Any = None) -> Voorspelling:
+    from agent.begrippen_pipeline import keten
 
-    uit = keten.analyseer(manifest)
+    uit = keten.analyseer(manifest, provider)
     groepen = tuple(sorted(g.leden for g in uit.groepen))
     relaties = tuple(sorted((r.hypothese.value, r.van, r.naar) for r in uit.relaties))
     aandacht: dict[str, int] = defaultdict(int)
@@ -268,8 +269,14 @@ def variant_keten(manifest: Manifest) -> Voorspelling:
     return Voorspelling(groepen=groepen, relaties=relaties, aandacht=dict(aandacht))
 
 
+def variant_keten_zonder_parse(manifest: Manifest) -> Voorspelling:
+    """De keten met de null-provider: wat er overblijft zonder spaCy."""
+    from agent.jas_pipeline.taal.provider import NullProvider
+    return variant_keten(manifest, NullProvider())
+
+
 VARIANTEN: dict[str, Callable[[Manifest], Voorspelling]] = {
-    "lemma": variant_lemma, "keten": variant_keten}
+    "lemma": variant_lemma, "keten": variant_keten, "keten_zonder_parse": variant_keten_zonder_parse}
 
 
 def meet(variant: str, versie: str = ACTUELE_VERSIE) -> dict[str, Any]:
