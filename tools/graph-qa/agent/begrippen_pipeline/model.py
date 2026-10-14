@@ -137,6 +137,21 @@ class Manifest(_Vast):
         return next(f for f in self.formuleringen if f.element_id == element_id)
 
 
+class Taalanalyse(_Vast):
+    """Wat de taalstap over één formulering vaststelt. Alles herleidbaar tot tokens in de bron."""
+
+    element_id: str
+    kern: str                          # lemma van de kern ("belastingaanslag", "termijn")
+    kernvorm: str = ""                 # de kern zoals hij in de tekst staat
+    term: str                          # kern + vaste modificeerders, zonder lidwoord, kleine letters
+    kop: str = ""                      # kop van de samenstelling, als die elders als kern voorkomt
+    beperkt: bool = False              # de formulering beperkt de kern (bijzin, voorzetselgroep)
+    aanwijzend: bool = False           # begint met "die", "deze", "dat", "dit"
+    antecedent_start: int | None = None  # waar een aanwijzende formulering naar terugwijst
+    antecedent_eind: int | None = None
+    gedegradeerd: bool = False         # zonder volledige parse vastgesteld
+
+
 # ---------------------------------------------------------------------------------------------
 # Bewijs en kandidaten
 # ---------------------------------------------------------------------------------------------
