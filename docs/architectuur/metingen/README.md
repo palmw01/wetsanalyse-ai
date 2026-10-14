@@ -1,6 +1,6 @@
 # Meetlogboek
 
-Soort: *meting* (zie [`../../README.md`](../../README.md)) · Bijgewerkt: 6 oktober 2026
+Soort: *meting* (zie [`../../README.md`](../../README.md)) · Bijgewerkt: 14 oktober 2026
 
 Hier staat per datum wat er gemeten is, op welke code, wat eruit kwam en waar de gegevens staan.
 Nieuwste bovenaan. De meetbestanden zelf zijn bewijs: **wijzig ze niet achteraf**. Een correctie
@@ -17,6 +17,7 @@ of herhaling krijgt een eigen map of rij. Hoe de keten nu werkt, staat in
 
 | Datum | Meting | Code | Uitkomst in één regel | Gegevens |
 |---|---|---|---|---|
+| 14 okt | **Begrippenketen, deterministische kern** (ADR-004): `lemma`, `keten` en `keten_zonder_parse` op referentieset-begrippen v1 (25 formuleringen, 22 paren, provisional), 0 modelcalls | `55ae08f` | Nulmeting voegt de homoniem en de afwijkende kwalificatie samen en vindt geen relaties; de keten scheidt ze en vindt alle relaties (1,0 op een **ontwikkel**set – zegt niets over generalisatie; held-out set nodig) | [`begrippen-kern-2026-10-14/`](begrippen-kern-2026-10-14/README.md) |
 | 6 okt | **Vervolgvragen in één gesprek** (`--gesprek`, 9 gesprekken / 12 vervolgbeurten), 4 reeksen × 3 runs, lokaal tegen de graaf van acceptatie | vóór `bd50657`, na `6d43a8b` en `d06b849` (#608–#612) | Op dezelfde set 7–9 → 11–12 van 12 vervolgbeurten; afwijzen van 'waarom?', 'meer dan één artikel' en de gemiste andere wet weg in alle runs. Open: niet-letterlijk citeren bij C | [`gesprek-vervolgvragen-2026-10-06/`](gesprek-vervolgvragen-2026-10-06/README.md) |
 | 6 okt | **Detectorfixes art. 9 lid 5** (`IW05`, A–D): meetharnas, criteria vooraf, nulmeting en vier stappen, elk v1 16×3 en IW05×5 | harnas op `f9ab073`, stappen `e341d5b`, `1be399b`, `d7c6db8`, `3f8842f` | IW05: F1 29% → 37%, alle vier de fouten weg in ≥ 4/5 runs. v1: geen anker verloren, precisie −2 pp, niet van run-variatie te scheiden (controlegroep). Criterium A8 gezakt op twee niet-voorziene, wel bedoelde wijzigingen | [`hybrid-v1-iw05-fixes-2026-10/`](hybrid-v1-iw05-fixes-2026-10/README.md) |
 | 29 sep | **Baseline `hybrid_v1`**, het huidige vertrekpunt. Deelmetingen WP1–WP4b (auditpunten D01, D03–D06) en een modelproef met vijf varianten (84 pogingen, 3 herhalingen) | R0 `e8c1603`, daarna `afdc343`…`8baab53` | Proef 1 afgekeurd (tokenbudget). Proef 2: `klasseverzameling` wordt de default (0 contractfouten tegen 9, 6/8 casussen stabiel, 1,45× kosten); broncontext blijft aan | [`hybrid-v1-baseline-2026-09-29/`](hybrid-v1-baseline-2026-09-29/README.md) |
