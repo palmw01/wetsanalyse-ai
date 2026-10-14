@@ -295,6 +295,12 @@ jobs:
             echo "Skill-wijziging gezien: graph-qa-tests draaien voor de methode-drift-guard."
             graph_qa=true
           fi
+          # De referentiesets (JAS en begrippen) zijn data waar graph-qa-tests op toetsen: hash,
+          # ankers, bevroren versies. Een wijziging alleen daar moet die tests dus ook draaien.
+          if [ "$(heeft 'docs/wetsanalyse/referentieset')" = true ]; then
+            echo "Referentieset gewijzigd: graph-qa-tests draaien."
+            graph_qa=true
+          fi
           {
             echo "frontend=$(heeft 'frontend/')"
             echo "graph_qa=$graph_qa"
