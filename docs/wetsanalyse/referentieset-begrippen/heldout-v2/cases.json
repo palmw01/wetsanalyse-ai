@@ -273,6 +273,14 @@
       "relatie": "verschillend",
       "categorie": "kop_van_samenstelling",
       "motivatie": "De aanslag is een soort belastingaanslag, geen synoniem."
+    },
+    {
+      "id": "H16",
+      "van": "k16",
+      "naar": "k20",
+      "relatie": "hierarchie",
+      "categorie": "opsomming_in_definitie",
+      "motivatie": "De aanslag is een soort belastingaanslag (opsomming in onderdeel d). Toegevoegd ná de blinde meting van 14 okt 2026: het paar ontbrak, in strijd met de eigen regel uit v1 (f01→f03) en met de motivatie van het verschillend-paar k16~k20."
     }
   ]
 }
