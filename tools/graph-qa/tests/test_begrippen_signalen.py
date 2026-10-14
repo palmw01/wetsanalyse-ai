@@ -126,6 +126,8 @@ def test_alle_codes_hebben_een_verklaring_en_omgekeerd():
                     and isinstance(node.args[0], ast.Constant):
                 gebruikt.add(node.args[0].value)
     assert gebruikt, "geen codes gevonden – is de helper hernoemd?"
+    from agent.begrippen_pipeline.patronen import alle_regels
+    gebruikt |= {r.code for r in alle_regels()}
     assert gebruikt <= set(verkl), f"zonder verklaring: {gebruikt - set(verkl)}"
     assert set(verkl) <= gebruikt, f"verklaring zonder code: {set(verkl) - gebruikt}"
     assert all(re.fullmatch(r"[A-Z_]+", c) for c in verkl)

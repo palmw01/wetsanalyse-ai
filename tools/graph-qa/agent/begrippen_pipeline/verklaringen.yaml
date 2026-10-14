@@ -14,3 +14,7 @@ signalen:
   MEDE_VERSTAAN: {naam: "Mede verstaan", uitleg: "Onder de term wordt mede verstaan wat de definitie noemt: het bereik wordt groter."}
   BEDOELD_IN: {naam: "Bedoeld in", uitleg: "'Bedoeld in …' wijst de formulering met dezelfde kern in de genoemde bepaling aan."}
   AANWIJZEND: {naam: "Aanwijzend", uitleg: "'Die …' of 'deze …' wijst terug naar een eerdere formulering, direct of via 'als bedoeld in'."}
+  KWALIFICATIE: {naam: "Kwalificatie", uitleg: "'Geldt als', 'wordt aangemerkt als' of 'gelijkgesteld met': het een wordt als het ander behandeld, zonder dat het hetzelfde begrip wordt."}
+  NIET_VERSTAAN: {naam: "Niet verstaan", uitleg: "'Onder X wordt niet verstaan Y': Y valt buiten het begrip X. Tegenbewijs tegen samenvoegen."}
+  HEARST: {naam: "Soortaanduiding", uitleg: "'X, zoals Y' of 'X, waaronder Y': Y wordt genoemd als soort van X."}
+  KOP_VAN_SAMENSTELLING: {naam: "Kop van samenstelling", uitleg: "De samenstelling eindigt op een term die elders zelf voorkomt; mogelijk een soort daarvan. Zwak: de wet kan het anders regelen."}
