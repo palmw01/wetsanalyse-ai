@@ -50,12 +50,21 @@ import type {
   BerichtOut,
   BerichtPublicatieIn,
   Bron,
+  Bronselectie,
+  BronselectieInvoer,
+  BronRol,
   DocumentSamenvatting,
   Gesprek,
   GesprekSamenvatting,
+  Inventaris,
   OngelezenAantalOut,
   RunStart,
   VoorstelElement,
+  Werkgebied,
+  WerkgebiedAuditRegel,
+  WerkgebiedInvoer,
+  WerkgebiedSamenvatting,
+  WerkgebiedWijziging,
 } from "./types";
 import { pathSegment } from "./url";
 
@@ -954,4 +963,70 @@ export async function zetPublicatie(id: number, gepubliceerd: boolean): Promise<
 export async function verwijderBericht(id: number): Promise<void> {
   const res = await fetch(`/api/admin/berichten/${id}`, { method: "DELETE" });
   if (!res.ok) throw await parseError(res);
+}
+
+// --- Werkgebieden (gedeeld; de BFF zet de sessie-gebruiker als actor) --------
+
+const wg = (id: string, ...rest: string[]) =>
+  `/api/werkgebieden/${[id, ...rest].map(pathSegment).join("/")}`;
+const jsonInit = (method: string, body: unknown): RequestInit => ({
+  method,
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body),
+});
+
+export async function lijstWerkgebieden(gearchiveerd = false): Promise<WerkgebiedSamenvatting[]> {
+  const qs = gearchiveerd ? "?gearchiveerd=true" : "";
+  const res = await fetch(`/api/werkgebieden${qs}`, { cache: "no-store" });
+  return (await json<{ werkgebieden: WerkgebiedSamenvatting[] }>(res)).werkgebieden;
+}
+
+export async function maakWerkgebied(invoer: WerkgebiedInvoer): Promise<Werkgebied> {
+  return json<Werkgebied>(await fetch("/api/werkgebieden", jsonInit("POST", invoer)));
+}
+
+export async function haalWerkgebied(id: string): Promise<Werkgebied> {
+  return json<Werkgebied>(await fetch(wg(id), { cache: "no-store" }));
+}
+
+export async function wijzigWerkgebied(id: string, wijziging: WerkgebiedWijziging): Promise<Werkgebied> {
+  return json<Werkgebied>(await fetch(wg(id), jsonInit("PATCH", wijziging)));
+}
+
+export async function archiveerWerkgebied(id: string, verwachteRevisie: number): Promise<Werkgebied> {
+  const qs = new URLSearchParams({ verwachte_revisie: String(verwachteRevisie) });
+  return json<Werkgebied>(await fetch(`${wg(id)}?${qs}`, { method: "DELETE" }));
+}
+
+/** Neemt een bepaling op. `nieuw` is false als dezelfde bron met dezelfde rol en hetzelfde bereik er
+ *  al stond (de api antwoordt dan 200 in plaats van 201, zonder revisiesprong). */
+export async function voegBronToe(
+  id: string,
+  invoer: BronselectieInvoer,
+): Promise<{ selectie: Bronselectie; werkgebied: Werkgebied; nieuw: boolean }> {
+  const res = await fetch(wg(id, "bronnen"), jsonInit("POST", invoer));
+  const body = await json<{ selectie: Bronselectie; werkgebied: Werkgebied }>(res);
+  return { ...body, nieuw: res.status === 201 };
+}
+
+export async function wijzigBron(
+  id: string,
+  selectieId: string,
+  wijziging: { verwachte_revisie: number; rol?: BronRol; reden?: string },
+): Promise<Werkgebied> {
+  return json<Werkgebied>(await fetch(wg(id, "bronnen", selectieId), jsonInit("PATCH", wijziging)));
+}
+
+export async function verwijderBron(id: string, selectieId: string, verwachteRevisie: number): Promise<Werkgebied> {
+  const qs = new URLSearchParams({ verwachte_revisie: String(verwachteRevisie) });
+  return json<Werkgebied>(await fetch(`${wg(id, "bronnen", selectieId)}?${qs}`, { method: "DELETE" }));
+}
+
+export async function haalInventaris(id: string): Promise<Inventaris> {
+  return json<Inventaris>(await fetch(wg(id, "elementen"), { cache: "no-store" }));
+}
+
+export async function haalWerkgebiedAudit(id: string, limit = 100): Promise<WerkgebiedAuditRegel[]> {
+  const res = await fetch(`${wg(id, "audit")}?limit=${limit}`, { cache: "no-store" });
+  return (await json<{ audit: WerkgebiedAuditRegel[] }>(res)).audit;
 }
