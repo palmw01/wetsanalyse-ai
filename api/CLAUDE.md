@@ -17,6 +17,8 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
 5. **Tokenbudget** (`/v1/verbruik/*`, `/v1/admin/budget`, `/v1/admin/verbruik`).
 6. **Berichten** (release notes, `/v1/berichten/*` + `/v1/admin/berichten/*`) met leesbewijzen per
    (bericht, gebruiker), en **gebruikersfeedback** (`/v1/feedback` + `/v1/admin/feedback/*`).
+7. **Werkgebieden** (`/v1/werkgebieden/*`, spoor D levering 1): benoemde analyses met
+   bronselecties en een inventaris van de geannoteerde elementen – zie §*Werkgebieden*.
 
 > **De wettekst komt uit de graaf.** De API leest uit GraphDB de **bronboom** (`bron_resolver.py`):
 > daarmee toetst hij ankers, legt hij snapshots vast en levert hij de segmenten van de weergave.
@@ -42,6 +44,7 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
 | `samenhang.py` | Structuur, annotaties en verwijzingen van één artikel (of het overzicht van een structuurdeel), voor de graafweergave; de bouwstenen (`bronknoop`, `markeringen`, `verwijzingen`) deelt hij met `graaf.py`. |
 | `graaf.py` | De complete graaf (`/graaf`): alle regelingen met structuur, verwijzingen en markeringen; structuur en verwijzingen gecachet per `(bwb_id, toestandUrl)`. |
 | `knoopinfo.py` | Wat de kennisgraaf over één knoop weet (`/knoop`), voor de inspector van de graaf. |
+| `werkgebieden.py` (router), `werkgebied_store.py`, `werkgebied_contracts.py`, `werkgebied_inventaris.py` | Werkgebieden: bronselecties, revisies, audit en de inventaris. |
 | `annotatie_statistiek.py`, `scripts/statistiek.py` | Reviewstatistiek over de elementen: uitkomst per klasse en per model, klasse-verschuivingen, aandacht tegenover correctie. |
 | `jas_klassen.py`, `validation.py` | De dertien JAS-klassen, volgorde en kleuren (canoniek); `GELDIGE_JAS_KLASSEN`, `JAS_KLASSE_KLEUREN`, `jas_sorteersleutel`. |
 | `ratelimit.py` | In-process rate limit per client. |
@@ -196,6 +199,31 @@ en per aandacht-niveau hoe vaak de jurist corrigeerde. Twee ingangen op dezelfde
 `GET /v1/admin/annotatie-statistiek` (de `limit` laatst gewijzigde lagen, achter het admin-token
 omdat het een meting van de agent is) en `scripts/statistiek.py` over JSON-exports. Aggregeren
 gebeurt in Python, want de elementen staan als JSON en de tests draaien op SQLite.
+
+## Werkgebieden
+
+`werkgebieden.py`, `werkgebied_store.py`, `werkgebied_inventaris.py`; het ontwerp staat in PLAN
+spoor D (*Werkgebied als node*).
+
+- **Gedeeld**, zoals de annotaties: elke actieve gebruiker ziet en wijzigt alle werkgebieden; wie
+  wat deed staat in `werkgebied_audit` (alleen inserts).
+- **Eén schrijfpad per mutatie** (`werkgebied_store._gewijzigd`): rij-lock op het werkgebied
+  (`FOR UPDATE`), `verwachte_revisie` → 412 `{fout: "revisie_conflict", revisie}`, revisie +1,
+  auditregel. Het annotatieslot (`annotatie_v2_state`) blijft erbuiten: een werkgebied schrijft
+  geen annotaties.
+- **Een bronselectie wordt geverifieerd** via de bronresolver (`bron_iri`, of `bwb_id` + `artikel`
+  (+ `lid`)); de canonieke `bron_iri`, het label, `snapshot_id` en `bron_hash` worden bewaard.
+  Dezelfde bron met dezelfde rol en hetzelfde bereik opnieuw toevoegen is idempotent (200, geen
+  revisiesprong); met een andere rol of ander bereik 409.
+- **Soft**: archiveren en een selectie weghalen zetten een tijdstip. De annotaties van de bron
+  blijven altijd staan.
+- **De inventaris** (`GET {id}/elementen`) leest per regeling één bronboom en de actuele
+  elementen. Elk element staat één keer in de inventaris; `analyseren` wint van `context`;
+  `deels_buiten` als een anker buiten de selecties valt; afgewezen elementen worden alleen geteld.
+  Per selectie is `bron_gewijzigd` een signaal, geen ongeldigverklaring. Een onbereikbare bron geeft
+  `onbereikbaar` en `volledig: false`, nooit een stil kleinere inventaris.
+- Tests: `tests/test_werkgebieden.py` (SQLite) en `tests/test_werkgebieden_postgres.py` (het
+  rij-slot, met `ANNOTATIE_TEST_DSN`).
 
 ## Gesprekken
 
@@ -379,5 +407,6 @@ niet vullen. `POST /v1/auth/registratie` heeft een eigen rate limit.
 ## Nog niet gebouwd
 
 - **Externe IdP/OIDC.** De API is zelf de identiteitsbron.
-- **Begrippen (activiteit 3) en RegelSpraak-formalisering.** Die komen later, op agentische basis en
-  buiten deze API.
+- **Begrippen (activiteit 3).** Het werkgebied bestaat; betekenisgroepen, begrippen en de
+  NL-SBB-opslag volgen (PLAN spoor D, ADR-003/004).
+- **RegelSpraak-formalisering.** Komt later.
