@@ -66,7 +66,7 @@ zelf zijn lokaal.
 | Hoe valideren we juridisch? | [`architectuur/onderzoek-empirische-validatie.md`](architectuur/onderzoek-empirische-validatie.md) + [`wetsanalyse/referentieset/`](wetsanalyse/referentieset/README.md) | onderzoek |
 | Wat biedt INT-terminologie voor activiteit 2 en 3? | [Volledig onderzoek als HTML-pagina](wetsanalyse/onderzoek-int-terminologie-2026-10-08/index.html) · [dossier van 8 oktober 2026](wetsanalyse/onderzoek-int-terminologie-2026-10-08/README.md), met alle hulpmiddelen en relevante concepten | onderzoek |
 | Hoe vindt een werkgebied zijn bronnen, en welke taalpatronen helpen bij begrippen? | [`architectuur/onderzoek-werkgebied-en-begrippen-2026-10.md`](architectuur/onderzoek-werkgebied-en-begrippen-2026-10.md) | onderzoek |
-| Waarom is het zo ontworpen? | [ADR-001](architectuur/adr-001-hybride-jas-pijplijn.md), [ADR-002](architectuur/adr-002-taalprovider.md), [ADR-003](architectuur/adr-003-nl-sbb-begrippencontract.md) | besluit |
+| Waarom is het zo ontworpen? | [ADR-001](architectuur/adr-001-hybride-jas-pijplijn.md), [ADR-002](architectuur/adr-002-taalprovider.md), [ADR-003](architectuur/adr-003-nl-sbb-begrippencontract.md), [ADR-004](architectuur/adr-004-begrippenketen.md) | besluit |
 | Hoe praat Lex? | [`schrijfrichtlijn-lex.md`](schrijfrichtlijn-lex.md) | specificatie |
 
 Toelichting bij enkele documenten:
@@ -84,7 +84,8 @@ Toelichting bij enkele documenten:
   graaf is een projectie.
 - **ADR-001** is uitgevoerd: de hybride keten is de enige annotatieroute. **ADR-002** legt de
   taalprovider vast (spaCy, `nl_core_news_md`). **ADR-003** maakt NL-SBB het datacontract
-  voor begrippen vanaf levering 2 van spoor D; nog niet gebouwd.
+  voor begrippen vanaf levering 2 van spoor D; nog niet gebouwd. **ADR-004** ontwerpt de
+  begrippenketen die betekenisgroepen voorstelt; in uitvoering.
 - **`onderzoek-empirische-validatie.md`** bevat de fouttaxonomie v2, de metrics, het
   adjudicatieprotocol en de stopcriteria (§18). V1–V6 zijn uitgevoerd, V7 is open.
 - **`architectuur/metingen/`** is bewijs: meetbestanden worden niet achteraf gewijzigd. Het

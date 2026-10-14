@@ -474,13 +474,18 @@ andere herhaling geeft een conflict met een bruikbare vergelijking.
    context. Normalisatie bepaalt nooit zelf de identiteit van een begrip.
 3. Per groep worden de volledige passages, bovenliggende context, brondefinities en bestaande
    begrippen opgehaald.
-4. Het model levert getypeerde voorstellen en voert geen element-ID's of vindplaatsen in die niet
-   bestaan.
+4. Een deterministische beslistabel zet de signalen om in voorstellen. Alleen twijfelparen gaan
+   naar een klein model, dat kiest op kandidaat-ID en geen element-ID's of vindplaatsen invoert die
+   niet bestaan.
 5. Deterministische controles op ID's, bereik, hashes en verplichte velden. Inhoudelijke signalen
    zijn onder meer tegengestelde contexten, circulaire definities en voorbeelden die niet bij de
    definitie passen. De mens beslist.
 6. De api bewaart per afgeronde batch en SSE meldt echte voortgang. Na herladen zijn de voorstellen
    er nog.
+
+Hoe Lex groepen voorstelt staat in [ADR-004](architectuur/adr-004-begrippenketen.md): een
+hybride keten zoals `hybrid_v1`, met signalen met bewijs en richting, een vaste beslistabel en een
+model alleen bij twijfel.
 
 Grote werkgebieden gaan in begrensde batches, gevolgd door een vergelijking tussen batches. Een
 gedeeltelijk resultaat wordt als gedeeltelijk gemeld, met het behandelde bereik. **Nieuw nodig:**
