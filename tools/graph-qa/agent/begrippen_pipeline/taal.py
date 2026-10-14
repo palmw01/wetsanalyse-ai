@@ -4,16 +4,16 @@ Bouwt op de taallaag van de JAS-keten (`jas_pipeline/taal`, ADR-002): één `Lin
 bronnode, met offsets in die bron. Een formulering wordt daarbinnen opgezocht; er wordt niets
 opnieuw getokeniseerd en niets aan de brontekst veranderd.
 
-- **Kern**: het eerste token in de span waarvan het hoofd buiten de span ligt, met voorrang voor
-  een zelfstandig naamwoord. ("Belastingschuldige" heet bij spaCy een bijvoeglijk naamwoord; als
-  er geen naamwoord is, telt dat.)
+- **Kern**: het syntactische hoofd van de span (het hoofd ligt erbuiten), met voorrang voor een
+  zelfstandig naamwoord, dan een voornaamwoord of bijvoeglijk naamwoord ("degene die …";
+  "belastingschuldige" heet bij spaCy een bijvoeglijk naamwoord).
 - **Term**: de kern met haar vaste modificeerders (bijvoeglijk naamwoord, samenstelling), zonder
   lidwoord of aanwijzend woord, in kleine letters, met de kern als lemma. "Een voorlopige
   aanslag" → "voorlopige aanslag".
 - **Beperkt**: de span draagt een bijzin of voorzetselgroep aan de kern ("een belastingaanslag
   die een uit te betalen bedrag behelst"). Dat wijst op een soort, niet op een synoniem. Een
-  nevenschikking ("beschikking of uitspraak") en een verwijzing ("bedoeld in onderdeel c") beperken
-  niet.
+  nevenschikking ("beschikking of uitspraak"), een verwijzing ("bedoeld in onderdeel c") en een
+  van-complement ("partner van de belanghebbende", "Minister van Financiën") beperken niet.
 - **Kop van de samenstelling**: corpusgebonden. Is een andere kern in het manifest een staart van
   deze kern ("navorderingsaanslag" eindigt op "aanslag"), dan is dat de kop. Een algemeen
   woordenboek komt pas als de meting erom vraagt; zo kan deze stap geen kop verzinnen die in het
@@ -34,7 +34,7 @@ from ..jas_pipeline.taal.model import LinguisticAnalysis
 from ..jas_pipeline.taal.provider import TaalProvider
 from .model import Formulering, Manifest, Taalanalyse
 
-VERSIE = "1"
+VERSIE = "2"
 _NAAMWOORD = ("NOUN", "PROPN")
 _AANWIJZEND = {"die", "deze", "dat", "dit"}
 _LIDWOORD = {"de", "het", "een", "'t"}
@@ -46,11 +46,18 @@ def _tokens_in(a: LinguisticAnalysis, f: Formulering) -> list[int]:
 
 
 def _kern(a: LinguisticAnalysis, binnen: list[int]) -> int | None:
+    """Het syntactische hoofd: een token in de span waarvan het hoofd erbuiten ligt.
+
+    Voorrang: een zelfstandig naamwoord, dan een voornaamwoord of bijvoeglijk naamwoord
+    ("degene die …", "belastingschuldige"). Pas als geen hoofd nominaal is, het eerste
+    zelfstandig naamwoord in de span.
+    """
     span = set(binnen)
     buiten = [i for i in binnen if a.tokens[i].head not in span and a.tokens[i].upos != "PUNCT"]
-    for i in buiten:
-        if a.tokens[i].upos in _NAAMWOORD:
-            return i
+    for soorten in (_NAAMWOORD, ("PRON", "ADJ")):
+        for i in buiten:
+            if a.tokens[i].upos in soorten:
+                return i
     naamwoorden = [i for i in binnen if a.tokens[i].upos in _NAAMWOORD]
     if naamwoorden:
         return naamwoorden[0]
@@ -83,9 +90,17 @@ def _beperkt(a: LinguisticAnalysis, kern: int, binnen: list[int]) -> bool:
         t = a.tokens[k]
         if k not in span:
             continue
+        if t.deprel == "nmod" and _relatum(a, k):
+            continue
         if t.deprel in ("acl:relcl", "nmod") or (t.deprel == "acl" and t.lemma != "bedoelen"):
             return True
     return False
+
+
+def _relatum(a: LinguisticAnalysis, k: int) -> bool:
+    """"Partner van de belanghebbende", "Minister van Financiën": een van-complement noemt bij
+    wie of wat de kern hoort, en maakt er geen soort van."""
+    return any(a.tokens[c].deprel == "case" and a.tokens[c].lemma == "van" for c in a.kinderen(k))
 
 
 def _term(a: LinguisticAnalysis, kern: int, binnen: list[int]) -> str:
@@ -97,7 +112,7 @@ def _term(a: LinguisticAnalysis, kern: int, binnen: list[int]) -> str:
     woorden = []
     for i in sorted(vast):
         t = a.tokens[i]
-        if t.upos == "DET" or t.tekst.lower() in _LIDWOORD | _AANWIJZEND:
+        if t.upos in ("DET", "ADP") or t.tekst.lower() in _LIDWOORD | _AANWIJZEND:
             continue
         woorden.append((t.lemma or t.tekst) if i == kern else t.tekst)
     return " ".join(woorden).lower()

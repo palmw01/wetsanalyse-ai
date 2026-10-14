@@ -106,7 +106,8 @@ def _formulering(manifest: Manifest, taal: dict[str, Taalanalyse], wts: list[Wet
                        key=lambda f: f.eind - f.start)
     if omvattend:
         return omvattend[0].element_id
-    for t in wts:
+    voorrang = {"definitie": 0, "mede": 1, "opsomming": 2, "niet": 3}
+    for t in sorted(wts, key=lambda t: voorrang.get(t.soort, 9)):
         if t.term == w and t.anker and t.bereik.omvat(bron_iri):
             return t.anker
     return ""
