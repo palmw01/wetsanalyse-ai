@@ -830,3 +830,116 @@ export interface WerkgebiedAuditRegel {
   detail: Record<string, unknown>;
   tijdstip: string;
 }
+
+// --- Begrippen (spoor D, levering 2) – afgeleid van api/app/begrip_contracts.py en de vormen in
+// begrip_store.py ---
+
+export type DefinitieHerkomst = "letterlijk" | "samengesteld" | "geformuleerd";
+export type VoorbeeldOordeel = "wel" | "niet" | "onzeker";
+export type KoppelRol = "duiding" | "definitie" | "context";
+export type KoppelBeoordeling = "open" | "akkoord" | "afgewezen";
+export type Actualiteit = "actueel" | "gewijzigd" | "verworpen" | "verdwenen";
+export type BegripStatus = "concept" | "geaccordeerd";
+
+export interface Voorbeeld {
+  tekst: string;
+  oordeel: VoorbeeldOordeel;
+  toelichting: string;
+}
+
+export interface BegripInhoud {
+  naam: string;
+  alternatieve_termen: string[];
+  context: string;
+  jas_klasse: string;
+  jas_subtype: string;
+  geldigheid: string;
+  definitie: string;
+  definitie_herkomst: DefinitieHerkomst | null;
+  uitleg: string;
+  onderbouwing: string;
+  voorbeelden: Voorbeeld[];
+  eigenschappen: Record<string, string>;
+  open_vragen: string[];
+}
+
+/** De bewaarde bewijsstand van een passage: zo zag het element eruit toen het gekoppeld werd. */
+export interface Bewijs {
+  tekst: string;
+  klasse: string;
+  jas_subtype?: string;
+  ankers: { bron_iri: string; start: number; eind: number; tekst?: string; bron_hash?: string }[];
+  eigenaar_iri: string;
+  laag_id: string;
+  snapshot_id: string;
+  lifecycle: string;
+  vindplaats: string;
+  element_hash: string;
+}
+
+export interface Koppeling {
+  id: string;
+  begrip_id: string;
+  element_id: string;
+  rol: KoppelRol;
+  motivatie: string;
+  bewijs: Bewijs;
+  beoordeling: KoppelBeoordeling;
+  beoordeeld_door: string | null;
+  beoordeeld_op: string | null;
+  toegevoegd_door: string;
+  toegevoegd: string;
+  /** Bij het lezen bepaald, tegen het element zoals het nu is. */
+  actualiteit: Actualiteit;
+  lifecycle_nu: string | null;
+  annotatie_beoordeeld: boolean;
+}
+
+export interface Poort {
+  mag: boolean;
+  redenen: string[];
+}
+
+interface BegripBasis {
+  id: string;
+  iri: string;
+  werkgebied_id: string;
+  kader_iri: string;
+  status: BegripStatus;
+  revisie: number;
+  inhoud: BegripInhoud;
+  aangemaakt_door: string;
+  aangemaakt: string;
+  gewijzigd: string;
+  geaccordeerd_door: string | null;
+  geaccordeerd_op: string | null;
+  geaccordeerd_revisie: number | null;
+  accorderen: Poort;
+  aandachtspunten: string[];
+}
+
+export interface Begrip extends BegripBasis {
+  koppelingen: Koppeling[];
+}
+
+export interface BegripSamenvatting extends BegripBasis {
+  aantal_koppelingen: number;
+  element_ids: string[];
+}
+
+export interface BegrippenLijst {
+  kader_iri: string;
+  begrippen: BegripSamenvatting[];
+  /** Per element het begrip dat het primair aanduidt. */
+  primair: Record<string, { begrip_id: string; naam: string }>;
+}
+
+export interface BegripRevisie {
+  revisie: number;
+  actie: string;
+  detail: Record<string, unknown>;
+  status: BegripStatus;
+  inhoud: BegripInhoud;
+  actor: string;
+  tijdstip: string;
+}

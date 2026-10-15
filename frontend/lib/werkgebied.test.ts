@@ -115,7 +115,8 @@ it("tabUitParam valt terug op Bronnen", async () => {
   const { tabUitParam } = await import("./werkgebied");
   expect(tabUitParam("elementen")).toBe("elementen");
   expect(tabUitParam(undefined)).toBe("bronnen");
-  expect(tabUitParam("begrippen")).toBe("bronnen");
+  expect(tabUitParam("begrippen")).toBe("begrippen");
+  expect(tabUitParam("onbekend")).toBe("bronnen");
 });
 
 describe("verwijzingSuggesties", async () => {
@@ -158,4 +159,35 @@ describe("verwijzingSuggesties", async () => {
     expect(verwijzingSuggesties(g, [{ bron_iri: "a9l2", bereik: "onderliggend" }]).map((x) => x.id)).toEqual(["a10", "awr3", "x"]);
     expect(verwijzingSuggesties(g, [{ bron_iri: "a9l1", bereik: "onderliggend" }]).map((x) => x.id)).toEqual(["a9l2", "a10"]);
   });
+});
+
+describe("isWerkgebiedRoute", async () => {
+  const { isWerkgebiedRoute } = await import("./werkgebied");
+  it.each([
+    [["w"]], [["w", "bronnen"]], [["w", "bronnen", "s"]], [["w", "elementen"]], [["w", "audit"]],
+    [["w", "begrippen"]], [["w", "begrippen", "export"]], [["w", "begrippen", "b"]],
+    [["w", "begrippen", "b", "koppelingen"]], [["w", "begrippen", "b", "accorderen"]],
+    [["w", "begrippen", "b", "heropenen"]], [["w", "begrippen", "b", "revisies"]],
+    [["w", "begrippen", "b", "koppelingen", "k"]],
+  ])("laat %j door", (pad) => expect(isWerkgebiedRoute(pad)).toBe(true));
+  it.each([
+    [[]], [["w", "onbekend"]], [["w", "elementen", "x"]], [["w", "bronnen", "s", "x"]],
+    [["w", "begrippen", "export", "x"]], [["w", "begrippen", "b", "iets"]],
+    [["w", "begrippen", "b", "accorderen", "x"]], [["w", "begrippen", "b", "koppelingen", "k", "x"]],
+  ])("weigert %j", (pad) => expect(isWerkgebiedRoute(pad)).toBe(false));
+});
+
+it("auditZin noemt een begrip bij naam", async () => {
+  const { auditZin } = await import("./werkgebied");
+  const r = (actie: string, detail: Record<string, unknown>) => ({ id: 1, actor: "a", actie, detail, tijdstip: "" });
+  expect(auditZin(r("begrip-aangemaakt", { naam: "Ontvanger", element_ids: ["x"] }), new Map()))
+    .toBe('Begrip "Ontvanger": aangemaakt (1 passage)');
+  expect(auditZin(r("begrip-geaccordeerd", { begrip_id: "b1" }), new Map(), new Map([["b1", "Aanslag"]])))
+    .toBe('Begrip "Aanslag": geaccordeerd');
+  expect(auditZin(r("koppeling-verwijderd", { begrip_id: "weg" }), new Map())).toBe("Een begrip: passage losgemaakt");
+});
+
+it("annotatieHref neemt het element mee", async () => {
+  const { annotatieHref } = await import("./werkgebied");
+  expect(annotatieHref("urn:x", "e1")).toBe("/annotaties/node?bron_iri=urn%3Ax&element=e1");
 });

@@ -49,6 +49,10 @@ import type {
   BerichtInvoer,
   BerichtOut,
   BerichtPublicatieIn,
+  Begrip,
+  BegripInhoud,
+  BegripRevisie,
+  BegrippenLijst,
   Bron,
   Bronselectie,
   BronselectieInvoer,
@@ -57,6 +61,8 @@ import type {
   Gesprek,
   GesprekSamenvatting,
   Inventaris,
+  KoppelBeoordeling,
+  KoppelRol,
   OngelezenAantalOut,
   RunStart,
   VoorstelElement,
@@ -1048,4 +1054,76 @@ export async function neemOpInWerkgebied(
       if (poging > 0 || !(isApiError(e) && e.status === 412)) throw e;
     }
   }
+}
+
+// --- Begrippen (per werkgebied; elke mutatie stuurt de revisie van het begrip in beeld mee) -----
+
+export async function lijstBegrippen(id: string): Promise<BegrippenLijst> {
+  return json<BegrippenLijst>(await fetch(wg(id, "begrippen"), { cache: "no-store" }));
+}
+
+export async function maakBegrip(
+  id: string,
+  invoer: { inhoud: Partial<BegripInhoud> & { naam: string }; element_ids?: string[]; rol?: KoppelRol },
+): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen"), jsonInit("POST", invoer)));
+}
+
+export async function haalBegrip(id: string, begripId: string): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", begripId), { cache: "no-store" }));
+}
+
+/** De api vervangt de hele inhoud; een veld weglaten maakt het leeg. */
+export async function wijzigBegrip(id: string, begripId: string, verwachteRevisie: number, inhoud: BegripInhoud): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", begripId),
+    jsonInit("PATCH", { verwachte_revisie: verwachteRevisie, inhoud })));
+}
+
+export async function verwijderBegrip(id: string, begripId: string, verwachteRevisie: number): Promise<void> {
+  const qs = new URLSearchParams({ verwachte_revisie: String(verwachteRevisie) });
+  await json<unknown>(await fetch(`${wg(id, "begrippen", begripId)}?${qs}`, { method: "DELETE" }));
+}
+
+export async function koppelElementen(
+  id: string,
+  begripId: string,
+  invoer: { verwachte_revisie: number; element_ids: string[]; rol?: KoppelRol; motivatie?: string },
+): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "koppelingen"), jsonInit("POST", invoer)));
+}
+
+export async function wijzigKoppeling(
+  id: string,
+  begripId: string,
+  koppelingId: string,
+  wijziging: { verwachte_revisie: number; rol?: KoppelRol; motivatie?: string; beoordeling?: KoppelBeoordeling },
+): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "koppelingen", koppelingId), jsonInit("PATCH", wijziging)));
+}
+
+export async function ontkoppel(id: string, begripId: string, koppelingId: string, verwachteRevisie: number): Promise<Begrip> {
+  const qs = new URLSearchParams({ verwachte_revisie: String(verwachteRevisie) });
+  return json<Begrip>(await fetch(`${wg(id, "begrippen", begripId, "koppelingen", koppelingId)}?${qs}`, { method: "DELETE" }));
+}
+
+export async function accordeerBegrip(id: string, begripId: string, verwachteRevisie: number): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "accorderen"),
+    jsonInit("POST", { verwachte_revisie: verwachteRevisie })));
+}
+
+export async function heropenBegrip(id: string, begripId: string, verwachteRevisie: number): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "heropenen"),
+    jsonInit("POST", { verwachte_revisie: verwachteRevisie })));
+}
+
+export async function haalBegripRevisies(id: string, begripId: string): Promise<BegripRevisie[]> {
+  const res = await fetch(wg(id, "begrippen", begripId, "revisies"), { cache: "no-store" });
+  return (await json<{ revisies: BegripRevisie[] }>(res)).revisies;
+}
+
+/** Het begrippenkader van het werkgebied als bestand; de naam komt van de server. */
+export async function exporteerBegrippen(id: string, formaat: "json" | "csv"): Promise<void> {
+  const res = await fetch(`${wg(id, "begrippen", "export")}?formaat=${formaat}`, { cache: "no-store" });
+  if (!res.ok) throw await parseError(res);
+  await downloadAntwoord(res, `begrippen.${formaat}`);
 }

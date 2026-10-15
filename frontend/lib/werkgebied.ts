@@ -2,6 +2,7 @@
 // een bepaling en de indeling van de inventaris. Puur, zodat vitest (node-env) het kan toetsen.
 
 import { isApiError } from "./api";
+import { revisieZin } from "./begrippen";
 import { ouderVan, type GraafModel } from "./graaf/model";
 import { jasVolgorde, klasseLabel } from "./jas";
 import type {
@@ -45,9 +46,25 @@ export function isAlOpgenomen(e: unknown): boolean {
   return isApiError(e) && e.status === 409 && e.data?.fout === "al_opgenomen";
 }
 
+/** De vormen die de BFF onder `/v1/werkgebieden/` doorlaat – geen generieke proxy. `pad` is na het
+ *  werkgebied-id: `[id, ...rest]`. */
+export function isWerkgebiedRoute(pad: readonly string[]): boolean {
+  const [id, deel, a, b, c] = pad;
+  if (!id || pad.length > 5) return false;
+  if (pad.length === 1) return true;
+  if (deel === "bronnen") return pad.length <= 3;
+  if (deel === "elementen" || deel === "audit") return pad.length === 2;
+  if (deel !== "begrippen") return false;
+  if (pad.length <= 3) return true;                                   // lijst, export, één begrip
+  if (a === "export") return false;
+  if (pad.length === 4) return ["koppelingen", "accorderen", "heropenen", "revisies"].includes(b);
+  return b === "koppelingen" && !!c;                                  // één koppeling
+}
+
 export const TABS = [
   { key: "bronnen", label: "Bronnen" },
   { key: "elementen", label: "Elementen" },
+  { key: "begrippen", label: "Begrippen" },
   { key: "samenhang", label: "Samenhang" },
   { key: "historie", label: "Historie" },
 ] as const;
@@ -157,9 +174,17 @@ const VELD_LABEL: Record<string, string> = {
   reden: "reden",
 };
 
-/** Eén regel uit de audit als zin. `labels` vertaalt een bron-IRI naar wat de analist kent. */
-export function auditZin(regel: WerkgebiedAuditRegel, labels: Map<string, string>): string {
+/** Eén regel uit de audit als zin. `labels` vertaalt een bron-IRI naar wat de analist kent,
+ *  `begrippen` een begrip-id naar zijn naam (een verwijderd begrip staat er niet in). */
+export function auditZin(regel: WerkgebiedAuditRegel, labels: Map<string, string>,
+  begrippen: Map<string, string> = new Map()): string {
   const d = regel.detail ?? {};
+  if (regel.actie.startsWith("begrip-") || regel.actie.startsWith("koppeling-")) {
+    const naam = typeof d.naam === "string" ? d.naam
+      : typeof d.begrip_id === "string" ? begrippen.get(d.begrip_id) : undefined;
+    const wie = naam ? `Begrip "${naam}"` : "Een begrip";
+    return `${wie}: ${revisieZin(regel).toLowerCase()}`;
+  }
   const bron = typeof d.bron_iri === "string" ? (labels.get(d.bron_iri) ?? d.bron_iri) : "een bron";
   const velden = Array.isArray(d.velden) ? (d.velden as string[]).map((v) => VELD_LABEL[v] ?? v) : [];
   switch (regel.actie) {
@@ -182,8 +207,8 @@ export function auditZin(regel: WerkgebiedAuditRegel, labels: Map<string, string
 
 /** De link naar de bronnode-annotatie van een element. Via `URLSearchParams`, want een IRI bevat
  *  `:` en `#`. */
-export function annotatieHref(bronIri: string): string {
-  return `/annotaties/node?${new URLSearchParams({ bron_iri: bronIri })}`;
+export function annotatieHref(bronIri: string, elementId?: string): string {
+  return `/annotaties/node?${new URLSearchParams({ bron_iri: bronIri, ...(elementId ? { element: elementId } : {}) })}`;
 }
 
 // --- Samenhang: verwijzingen naar bepalingen buiten het werkgebied ---------

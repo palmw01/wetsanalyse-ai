@@ -117,6 +117,7 @@ await page.route("**/api/**", async (route) => {
         laag_id: "l2", ankers: [], rol: "analyseren", selecties: ["s1"], deels_buiten: true },
     ] } });
   if (p === "/api/werkgebieden/wg1/audit") return route.fulfill({ json: { audit } });
+  if (p === "/api/werkgebieden/wg1/begrippen") return route.fulfill({ json: { kader_iri: "urn:wa:kader:wg1", begrippen: [], primair: {} } });
   if (p === "/api/annotatie/v2/samenhang") return route.fulfill({ json: samenhang(url.searchParams.get("bron_iri")) });
   if (p === "/api/annotatie/v2/samenhang/meer")
     return route.fulfill({ json: { resultaten: url.searchParams.getAll("bron_iri").map(samenhang), fouten: [] } });

@@ -40,7 +40,7 @@ export type PaneelTab = "tekst" | "graaf";
  *
  *  Met `onSluit` staat hij in dezelfde `Dialog`-schil als `ArtefactPaneel` (werkplek); zonder is
  *  het de kale inhoud voor een eigen pagina. */
-export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, onWisselDoel, onSluit, variant = "side", onVraag, onVraagOverBron, beginTab = "tekst", reeks }: {
+export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, onWisselDoel, onSluit, variant = "side", onVraag, onVraagOverBron, beginTab = "tekst", reeks, beginElement }: {
   doel: NodeDoel; onSluit?: () => void; variant?: DialogVariant;
   /** Andere bepalingen of delen die de graaf meeopent (wat een antwoord noemt). Tekst en annotatie
    *  blijven over `doel`. */
@@ -59,6 +59,8 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
   /** Dit lid hoort bij een reeks: bladeren naar het vorige of volgende lid. Beoordelen, afronden en
    *  verwijderen blijven per lid – het paneel toont nooit meer lagen dan het ene lid. */
   reeks?: ReeksNavigatie & { onGa: (doel: NodeDoel) => void };
+  /** Het element dat bij openen gekozen is (een passage van een begrip terugvinden). */
+  beginElement?: string;
 }) {
   const [view, setView] = useState<NodeWeergave>();
   const [samenhang, setSamenhang] = useState(false);
@@ -69,7 +71,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
   if (tab === "graaf" && !graafGeopend) setGraafGeopend(true);
   const graafStand = useGraafStand(doel, graafGeopend && samenhang, tab === "graaf", extraDoelen, graaf);
   const [laadFout, setLaadFout] = useState("");
-  const [actiefId, setActiefId] = useState<string>();
+  const [actiefId, setActiefId] = useState<string | undefined>(beginElement);
   const [melding, setMelding] = useState("");
 
   const laad = useCallback(async () => {
