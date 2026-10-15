@@ -150,6 +150,7 @@ class Taalanalyse(_Vast):
     antecedent_start: int | None = None  # waar een aanwijzende formulering naar terugwijst
     antecedent_eind: int | None = None
     gedegradeerd: bool = False         # zonder volledige parse vastgesteld
+    zin: bool = False                  # de span draagt een persoonsvorm: een zin, geen naamwoordgroep
 
 
 # ---------------------------------------------------------------------------------------------

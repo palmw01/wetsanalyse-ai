@@ -6,7 +6,8 @@ gebeurt, beslist de beslistabel; hier wordt alleen waargenomen.
 
 | code | hypothese | richting, sterkte | wanneer |
 |---|---|---|---|
-| `ZELFDE_TERM` | zelfde betekenis | steun, zwak | dezelfde genormaliseerde term, geen van beide beperkt |
+| `ZELFDE_TERM` | zelfde betekenis | steun, zwak | dezelfde genormaliseerde term, geen van beide beperkt of een zin |
+| `ZELFDE_BEPALING` | zelfde betekenis | steun, sterk | idem, en in dezelfde bronnode: één betekenis per bepaling (een aanname – de groep wordt geel) |
 | `WETTELIJKE_TERM` | zelfde betekenis | steun, sterk | een term die de wet vastlegt, gebruikt binnen het bereik van die definitie |
 | `UITBREIDING_MEDE` | zelfde betekenis | steun, sterk | "verstaat mede onder X" naast de definitie van X |
 | `ANDERE_DEFINITIE` | zelfde betekenis | tegen, sterk | twee definities van dezelfde term met elk een eigen bron |
@@ -31,7 +32,7 @@ from .definities import (
 )
 from .model import Bewijs, Hypothese, Manifest, Polariteit, Sterkte, Taalanalyse
 
-VERSIE = "2"
+VERSIE = "3"
 
 _AFWIJKING = re.compile(r"\bin afwijking\b.*?\b(?:lid|leden|artikel|artikelen)\b", re.IGNORECASE | re.DOTALL)
 _GELDT_ALS = re.compile(r"\bgeldt\b.*?\bals\s+(?P<term>[\w-]+)", re.IGNORECASE | re.DOTALL)
@@ -57,10 +58,14 @@ def _zelfde(van: str, naar: str, bewijs: Bewijs) -> Signaal:
 
 
 def zelfde_term(manifest: Manifest, taal: dict[str, Taalanalyse]) -> list[Signaal]:
+    """Dezelfde term is een aanleiding om te vergelijken (zwak). Binnen één bronnode is het meer: in
+    één lid of onderdeel draagt hetzelfde woord dezelfde betekenis, tenzij iets dat doorbreekt
+    ("one sense per discourse", ADR-004). Dat is sterke steun, maar geen wet: de groep wordt geel
+    (`groeperen.AANNAMES`), en tegenbewijs wint zoals altijd."""
     per: dict[str, list[str]] = {}
     for f in manifest.formuleringen:
         t = taal[f.element_id]
-        if not t.beperkt:
+        if not t.beperkt and not t.zin:
             per.setdefault(t.term, []).append(f.element_id)
     uit = []
     for term, ids in sorted(per.items()):
@@ -69,6 +74,10 @@ def zelfde_term(manifest: Manifest, taal: dict[str, Taalanalyse]) -> list[Signaa
             for b in ids[i + 1:]:
                 uit.append(_zelfde(a, b, _b("ZELFDE_TERM", Polariteit.STEUN, Sterkte.ZWAK,
                                             "begrip.term.gelijk", term)))
+                bron = manifest.formulering(a).bron_iri
+                if bron == manifest.formulering(b).bron_iri:
+                    uit.append(_zelfde(a, b, _b("ZELFDE_BEPALING", Polariteit.STEUN, Sterkte.STERK,
+                                                "begrip.term.zelfde_bepaling", term, bron)))
     return uit
 
 

@@ -20,7 +20,7 @@ from bronmodel import BronFout, annotatie_eenheden, subtree
 from sqlalchemy import select
 
 from . import annotatie_v2_store as store, db, verbruik
-from .werkgebied_inventaris import Resolver, bronbomen, bwb_van
+from .werkgebied_inventaris import Resolver, bronbomen, bwb_van, nodes_met_titel
 
 SCHATTING_BASIS = 20                    # de laatste n annotatiebeurten
 _BEOORDEELD = {"human_approved", "edited"}
@@ -132,7 +132,7 @@ async def werkvoorraad(selecties: list[dict], resolve: Resolver, userid: str) ->
                 "De bepaling staat niet (meer) in de actuele bronstand."
             open_punten.append(f"{sel['label'] or sel['bron_iri']}: {regel['onbereikbaar']}")
             continue
-        nodes = store.nodes_van(snap)
+        nodes = nodes_met_titel(snap)
         for iri in iris:
             if iri not in eenheden:
                 bereik = {n["bron_iri"] for n in subtree(lijst, iri)}

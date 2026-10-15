@@ -538,6 +538,12 @@ manifest → taal.py → definities.py + signalen.py + patronen.py → kandidate
 - **Een woord is geen begrip.** Sterk bewijs komt uit wat de wet zelf vastlegt: een wettelijke
   term (definitie of onderdeel van een opsommende definitie) binnen het bereik van de definitie, of
   een verwijzing ("bedoeld in", "die X"). Een gelijke term zonder meer is zwak en wordt een vraag.
+  Eén uitzondering: **dezelfde term in dezelfde bronnode** (`ZELFDE_BEPALING`, one sense per
+  discourse) is sterke steun en vormt een groep – maar geel, want het is een aanname en geen wet
+  (`groeperen.AANNAMES`). Zonder die regel werd elk voorkomen in één lid een eigen vraag
+  (acceptatie 15 okt: 17 vragen voor IW art. 9 lid 1 en 5, nu 5 gele groepen en 2 vragen).
+  Een **zin** als formulering (een persoonsvorm in de span, `Taalanalyse.zin`) doet niet mee aan
+  "zelfde term": haar kern is het onderwerp, geen term.
 - **Bewijs heeft een richting en een ordinale sterkte, geen getal.** De beslistabel (`TABEL`, rij-id
   in elke beslissing) kent link / non-link / possible link. Sterk tegenbewijs wint altijd; zwak bewijs
   alleen levert géén relatievoorstel op.

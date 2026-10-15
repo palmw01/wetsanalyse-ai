@@ -254,3 +254,18 @@ async def test_samen_bij_een_twijfelvraag_maakt_een_begrip_ook_met_een_losse_pas
     # Een passage buiten het manifest van de voorstellen, of helemaal niets: geweigerd.
     assert (await client.post(base, json={"groep_ids": [], "naam": "X", "element_ids": ["verzonnen"]})).status_code == 422
     assert (await client.post(base, json={"groep_ids": [], "naam": "X"})).status_code == 422
+
+
+def test_de_vindplaats_noemt_de_regeling_bij_naam():
+    """De wortel van de bronboom heet in de graaf kaal "Regeling"; de vindplaats in de voorstellen en
+    de werkvoorraad gebruikt de citeertitel (acceptatie 15 okt 2026: "Artikel 9 · Lid 5 – Regeling")."""
+    from app.werkgebied_inventaris import nodes_met_titel
+    snap = {"doel": {"citeertitel": "Invorderingswet 1990"}, "nodes": [
+        {"bron_iri": "urn:bwb:B", "parent_iri": "", "type": "Regeling", "label": "Regeling"},
+        {"bron_iri": "urn:bwb:B:artikel:9", "parent_iri": "urn:bwb:B", "type": "Artikel", "label": "Artikel 9"},
+        {"bron_iri": "urn:bwb:B:artikel:9:lid:5", "parent_iri": "urn:bwb:B:artikel:9", "type": "Lid", "label": "Lid 5"}]}
+    nodes = nodes_met_titel(snap)
+    assert begrip_manifest._vindplaats(nodes, "urn:bwb:B:artikel:9:lid:5") == "Artikel 9 · Lid 5 – Invorderingswet 1990"
+    assert snap["nodes"][0]["label"] == "Regeling"                 # de snapshot zelf blijft ongemoeid
+    from app.werkgebied_werkvoorraad import _regeling
+    assert _regeling(nodes, "urn:bwb:B:artikel:9:lid:5") == "Invorderingswet 1990"

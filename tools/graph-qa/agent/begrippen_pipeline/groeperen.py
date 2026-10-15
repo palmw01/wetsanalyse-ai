@@ -11,6 +11,9 @@
   vraag vervalt als beide al in één groep staan, of als er tussen hun groepen al sterk tegenbewijs
   ligt: dan is de vraag beantwoord.
 
+Een groep die alleen op een aanname rust (`AANNAMES`: dezelfde term in dezelfde bepaling), is geel:
+sterke steun, maar niet doordat de wet het zegt.
+
 Een link of non-link van het model (fase C, `verdieping.py`) loopt door dezelfde functie. Een groep
 die op een model-link rust, is altijd geel: het model stelt voor, de jurist beslist.
 """
@@ -19,11 +22,21 @@ from __future__ import annotations
 from collections import defaultdict
 
 from .model import (
-    Aandacht, Besluit, Beslissing, Betekenisgroep, Hypothese, Kandidaat, Relatie, Vraag,
+    Aandacht, Besluit, Beslissing, Betekenisgroep, Hypothese, Kandidaat, Polariteit, Relatie, Sterkte, Vraag,
 )
 from .uitleg import uitleg
 
-VERSIE = "1"
+VERSIE = "2"
+
+
+# Codes die een groep vormen zonder dat de wet het verband legt.
+AANNAMES = frozenset({"ZELFDE_BEPALING"})
+
+
+def _op_aanname(k: Kandidaat) -> bool:
+    """De link rust alleen op een aanname: geen sterke steun buiten `AANNAMES`."""
+    sterk = {b.code for b in k.bewijs if b.polariteit is Polariteit.STEUN and b.sterkte is Sterkte.STERK}
+    return bool(sterk) and sterk <= AANNAMES
 
 
 class _UnionFind:
@@ -64,7 +77,7 @@ def groepeer(element_ids: list[str], kandidaten: list[Kandidaat], beslissingen: 
         conflicten = [k for k in tegen if uf.wortel(k.van) == wortel and uf.wortel(k.naar) == wortel]
         groepen.append(Betekenisgroep.maak(
             ids, [k.id for k in links], [k.id for k in conflicten],
-            Aandacht.GEEL if conflicten or any(beslissingen[k.id].door == "model" for k in links)
+            Aandacht.GEEL if conflicten or any(beslissingen[k.id].door == "model" or _op_aanname(k) for k in links)
             else Aandacht.GROEN,
             uitleg([*links, *conflicten], beslissingen)))
 

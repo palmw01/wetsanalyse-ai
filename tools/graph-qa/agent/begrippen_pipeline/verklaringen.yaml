@@ -3,6 +3,7 @@
 # zonder verklaring en een verklaring zonder code.
 signalen:
   ZELFDE_TERM: {naam: "Zelfde term", uitleg: "Beide formuleringen hebben dezelfde term (zonder lidwoord, kern als lemma). Alleen een aanleiding om te vergelijken."}
+  ZELFDE_BEPALING: {naam: "Zelfde term in dezelfde bepaling", uitleg: "Binnen één lid of onderdeel draagt hetzelfde woord in beginsel dezelfde betekenis. Een aanname, geen wet: het voorstel staat geel."}
   WETTELIJKE_TERM: {naam: "Wettelijke term", uitleg: "De wet legt deze term vast in een definitie of opsomming, en de formulering staat binnen het bereik daarvan."}
   UITBREIDING_MEDE: {naam: "Uitbreiding van de definitie", uitleg: "'Verstaat mede onder' breidt dezelfde term uit; het blijft één begrip."}
   ANDERE_DEFINITIE: {naam: "Andere definitie", uitleg: "Dezelfde term heeft elders een eigen definitie: mogelijk een ander begrip."}
