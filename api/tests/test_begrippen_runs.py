@@ -228,3 +228,7 @@ async def test_een_twijfelvraag_beantwoorden(client):
     assert (await client.post(f"{base}/P9", json={"antwoord": "samen"})).status_code == 404
     r = await client.post(f"{base}/P1", json={"antwoord": "apart"})
     assert r.json()["vragen_besluiten"]["P1"]["antwoord"] == "apart"
+    # De werkplek toont de vraag letterlijk: ook passages buiten een groep komen mee.
+    g = (await client.get(f"/v1/werkgebieden/{wg['id']}/groepen")).json()
+    assert set(g["passages"]) == {ids["alfa1"], ids["beta"]}
+    assert (g["passages"][ids["beta"]]["tekst"], g["passages"][ids["beta"]]["vindplaats"]) == ("Beta", "Artikel 9 · Lid 2 – Wet")

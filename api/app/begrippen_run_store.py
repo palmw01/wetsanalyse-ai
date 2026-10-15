@@ -206,7 +206,7 @@ async def groepen(werkgebied_id: str) -> dict:
         run = (await conn.execute(select(r).where(r.c.werkgebied_id == werkgebied_id, r.c.status == "klaar")
                                   .order_by(r.c.gestart.desc()).limit(1))).first()
         if run is None:
-            return {"run": None, "groepen": []}
+            return {"run": None, "groepen": [], "passages": {}}
         ids = run.uitkomst.get("groep_ids", [])
         rows = {x.id: x for x in (await conn.execute(select(g).where(
             g.c.werkgebied_id == werkgebied_id, g.c.id.in_(ids)))).all()} if ids else {}
@@ -227,11 +227,19 @@ async def groepen(werkgebied_id: str) -> dict:
         uit.append({"id": x.id, "aandacht": x.aandacht, "voorstel": x.voorstel, "uitleg": x.uitleg,
                     "conflicten": x.conflicten, "besluit": x.besluit, "reden": x.reden, "begrip_id": x.begrip_id,
                     "besloten_door": x.besloten_door,
-                    "leden": [{"element_id": e, "tekst": passages[e]["tekst"], "jas_klasse": passages[e]["jas_klasse"],
-                               "review_status": passages[e]["review_status"], "bron_iri": passages[e]["bron_iri"],
-                               "vindplaats": labels.get(passages[e]["bron_iri"], "")} for e in x.leden if e in passages],
+                    "leden": [_passage(passages[e], labels) for e in x.leden if e in passages],
                     "lijkt_op": lijkt})
-    return {"run": _run(run), "groepen": uit}
+    # Twijfelvragen en relaties noemen ook elementen buiten een groep; de werkplek toont ze letterlijk.
+    genoemd = {e for x in (*run.uitkomst.get("vragen", []), *run.uitkomst.get("relaties", []))
+               for e in (x["van"], x["naar"])}
+    return {"run": _run(run), "groepen": uit,
+            "passages": {e: _passage(passages[e], labels) for e in sorted(genoemd) if e in passages}}
+
+
+def _passage(f: dict, labels: dict[str, str]) -> dict:
+    return {"element_id": f["element_id"], "tekst": f["tekst"], "jas_klasse": f["jas_klasse"],
+            "review_status": f["review_status"], "bron_iri": f["bron_iri"],
+            "vindplaats": labels.get(f["bron_iri"], "")}
 
 
 async def _groepen_rij(conn, werkgebied_id: str, groep_ids: list[str]):
