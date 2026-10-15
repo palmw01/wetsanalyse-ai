@@ -19,6 +19,8 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
    (bericht, gebruiker), en **gebruikersfeedback** (`/v1/feedback` + `/v1/admin/feedback/*`).
 7. **Werkgebieden** (`/v1/werkgebieden/*`, spoor D levering 1): benoemde analyses met
    bronselecties en een inventaris van de geannoteerde elementen – zie §*Werkgebieden*.
+8. **Begrippen** (`/v1/werkgebieden/{id}/begrippen/*`, spoor D levering 2): begrippen per werkgebied
+   met koppelingen naar annotatie-elementen, beoordeling, revisies en export – zie §*Begrippen*.
 
 > **De wettekst komt uit de graaf.** De API leest uit GraphDB de **bronboom** (`bron_resolver.py`):
 > daarmee toetst hij ankers, legt hij snapshots vast en levert hij de segmenten van de weergave.
@@ -45,6 +47,7 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
 | `graaf.py` | De complete graaf (`/graaf`): alle regelingen met structuur, verwijzingen en markeringen; structuur en verwijzingen gecachet per `(bwb_id, toestandUrl)`. |
 | `knoopinfo.py` | Wat de kennisgraaf over één knoop weet (`/knoop`), voor de inspector van de graaf. |
 | `werkgebieden.py` (router), `werkgebied_store.py`, `werkgebied_contracts.py`, `werkgebied_inventaris.py` | Werkgebieden: bronselecties, revisies, audit en de inventaris. |
+| `begrippen.py` (router), `begrip_store.py`, `begrip_contracts.py` | Begrippen: inhoud, koppelingen met bewijsstand, actualiteit, de accorderingspoort, revisies en export. |
 | `annotatie_statistiek.py`, `scripts/statistiek.py` | Reviewstatistiek over de elementen: uitkomst per klasse en per model, klasse-verschuivingen, aandacht tegenover correctie. |
 | `jas_klassen.py`, `validation.py` | De dertien JAS-klassen, volgorde en kleuren (canoniek); `GELDIGE_JAS_KLASSEN`, `JAS_KLASSE_KLEUREN`, `jas_sorteersleutel`. |
 | `ratelimit.py` | In-process rate limit per client. |
@@ -224,6 +227,49 @@ spoor D (*Werkgebied als node*).
   `onbereikbaar` en `volledig: false`, nooit een stil kleinere inventaris.
 - Tests: `tests/test_werkgebieden.py` (SQLite) en `tests/test_werkgebieden_postgres.py` (het
   rij-slot, met `ANNOTATIE_TEST_DSN`).
+
+## Begrippen
+
+`begrippen.py`, `begrip_store.py`, `begrip_contracts.py`; het ontwerp staat in PLAN spoor D
+(*Elementen, groepen en begrippen*, *Datamodel*).
+
+- **Eén kader per werkgebied, impliciet.** Een begrip hangt aan een werkgebied; het kader heeft geen
+  tabel, alleen een afgeleide IRI (`urn:wa:kader:<werkgebied>`). Begrippen zijn analyse-uitkomsten,
+  nooit wettelijke definities; de export zegt dat ook.
+- **Tabellen**: `begrippen` (inhoud als JSON, status `concept`/`geaccordeerd`, revisie, soft delete),
+  `begrip_revisies` (per revisie een **volledige kopie** van de inhoud, plus actie en detail – anders
+  dan bij de annotatielagen bewaren we de oude inhoud wél) en `begrip_koppelingen`. De audit gaat in
+  `werkgebied_audit` (acties `begrip-*`, `koppeling-*`), zodat het werkgebied één tijdlijn heeft.
+- **Eén schrijfpad** (`begrip_store._gewijzigd`): eerst de rij-lock op het werkgebied, dan die op het
+  begrip – altijd in die volgorde, anders kunnen twee transacties elkaar vastzetten. Daarna
+  `verwachte_revisie` → 412, revisie +1, revisiekopie en auditregel. De revisie van het werkgebied gaat
+  niet omhoog: die gaat over de scope. Zonder echte wijziging (dezelfde inhoud, een element dat al
+  gekoppeld is) gebeurt er niets, ook geen revisie.
+- **Elke mutatie behalve accorderen maakt een geaccordeerd begrip weer een concept.**
+- **Een koppeling draagt haar bewijsstand** (tekst, klasse, ankers met `bron_hash`, eigenaar, laag,
+  snapshot, vindplaats, `element_hash`). Annotatie-elementen worden **hard** verwijderd
+  (`annotatie_v2_store.verwijder`/`verwijder_weergave`), dus er is geen foreign key en geen cascade.
+  Koppelen kan alleen met elementen uit de inventaris van het werkgebied (`bewijzen`: actueel, niet
+  verworpen, binnen de selecties; anders 422 `element_buiten_werkgebied`). Dat vraagt de graaf, en
+  gebeurt dus vóór de schrijftransactie.
+- **Actualiteit bij het lezen**, uit Postgres zonder graaf: `actueel`, `gewijzigd` (`element_hash`
+  over tekst, klasse, subtype en ankers wijkt af, of het element is verouderd; een oordeel van een
+  jurist telt niet als wijziging), `verworpen` of `verdwenen`. Plus `annotatie_beoordeeld`
+  (lifecycle `human_approved`/`edited`/`published`).
+- **Eén primaire duiding per element per werkgebied**: een tweede `duiding` van hetzelfde element
+  aan een ander begrip geeft 409 `al_primair` (met de naam van dat begrip). Ook bij het ombuigen van
+  een rol. Het werkgebiedslot maakt dit race-vrij; `GET …/begrippen` geeft per element het primaire
+  begrip mee (`primair`).
+- **De poort** (`begrip_store.poort`) staat bij elke GET als `accorderen: {mag, redenen}`; accorderen
+  zonder geeft 409 `{fout: "poort", redenen}`. Voorwaarden: definitie, herkomst van de definitie,
+  context, minstens één aanduidende passage, en elke dragende koppeling (`duiding`/`definitie`, niet
+  afgewezen) beoordeeld, actueel en op een door een jurist beoordeelde annotatie. Een voorbeeld is
+  geen voorwaarde. Elke analist mag accorderen; de revisie en de audit leggen vast wie.
+- **Export** (`GET …/begrippen/export?formaat=json|csv`): JSON (`begrippen-export-v1`) met de
+  volledige begrippen en koppelingen. CSV heeft één rij per koppeling met vindplaats en bron-IRI, zodat
+  elke passage terug te vinden is; cellen krijgen dezelfde formuleverdediging als de annotatie-export.
+- Tests: `tests/test_begrippen.py` (SQLite, met de acceptatie uit PLAN) en
+  `tests/test_begrippen_postgres.py` (de sloten, met `ANNOTATIE_TEST_DSN`).
 
 ## Gesprekken
 
@@ -407,6 +453,7 @@ niet vullen. `POST /v1/auth/registratie` heeft een eigen rate limit.
 ## Nog niet gebouwd
 
 - **Externe IdP/OIDC.** De API is zelf de identiteitsbron.
-- **Begrippen (activiteit 3).** Het werkgebied bestaat; betekenisgroepen, begrippen en de
-  NL-SBB-opslag volgen (PLAN spoor D, ADR-003/004).
+- **Activiteit 3, verder.** Werkgebieden en begrippen bestaan; betekenisgroepen en voorstellen van
+  Lex, begripsrelaties, de projectie naar de graaf (NL-SBB) en RDF-export volgen (PLAN spoor D,
+  leveringen 3 en 4).
 - **RegelSpraak-formalisering.** Komt later.
