@@ -713,3 +713,233 @@ export interface BerichtAanmakenIn {
 export interface BerichtPublicatieIn {
   gepubliceerd: boolean;
 }
+
+// --- Werkgebieden (spoor D, levering 1) – afgeleid van api/app/werkgebied_contracts.py en de
+// vormen in werkgebied_store.py / werkgebied_inventaris.py ---
+
+export type WerkgebiedStatus = "in_voorbereiding" | "actief" | "afgerond";
+export type BronBereik = "node" | "onderliggend";
+export type BronRol = "analyseren" | "context";
+
+export interface Bronselectie {
+  id: string;
+  bron_iri: string;
+  bereik: BronBereik;
+  rol: BronRol;
+  reden: string;
+  label: string;
+  bwb_id: string;
+  snapshot_id: string;
+  bron_hash: string;
+  toegevoegd_door: string;
+  toegevoegd: string;
+}
+
+export interface WerkgebiedSamenvatting {
+  id: string;
+  naam: string;
+  analysevraag: string;
+  afbakening: string;
+  peildatum: string | null;
+  status: WerkgebiedStatus;
+  revisie: number;
+  aangemaakt_door: string;
+  aangemaakt: string;
+  gewijzigd: string;
+  gearchiveerd: string | null;
+  /** Alleen in de lijst. */
+  aantal_bronnen?: number;
+}
+
+export interface Werkgebied extends WerkgebiedSamenvatting {
+  bronnen: Bronselectie[];
+}
+
+export interface WerkgebiedInvoer {
+  naam: string;
+  analysevraag?: string;
+  afbakening?: string;
+  peildatum?: string | null;
+}
+
+export interface WerkgebiedWijziging {
+  verwachte_revisie: number;
+  naam?: string;
+  analysevraag?: string;
+  afbakening?: string;
+  peildatum?: string | null;
+  status?: WerkgebiedStatus;
+}
+
+/** Een bepaling opnemen: via de bron-IRI, of via regeling + artikel (+ lid). */
+export interface BronselectieInvoer {
+  verwachte_revisie: number;
+  bron_iri?: string;
+  bwb_id?: string;
+  artikel?: string;
+  lid?: string;
+  bereik?: BronBereik;
+  rol?: BronRol;
+  reden?: string;
+}
+
+/** Per selectie in de inventaris. `onbereikbaar` is een open punt, geen kleinere inventaris. */
+export interface InventarisSelectie {
+  id: string;
+  bron_iri: string;
+  label: string;
+  rol: BronRol;
+  bereik: BronBereik;
+  aantal: number;
+  afgewezen: number;
+  bron_gewijzigd: boolean;
+  onbereikbaar: string | null;
+}
+
+export interface InventarisElement {
+  id: string;
+  klasse: string;
+  tekst: string;
+  lifecycle: Lifecycle;
+  aandacht?: Aandacht;
+  jas_subtype?: string;
+  eigenaar_iri: string;
+  laag_id: string;
+  ankers: { bron_iri: string; start: number; eind: number; tekst?: string }[];
+  verouderd?: boolean;
+  toelichting?: string;
+  /** `analyseren` als een analyse-selectie het element dekt, anders `context`. */
+  rol: BronRol;
+  selecties: string[];
+  /** Een anker valt buiten de selecties: gemeld, niet stil verbreed. */
+  deels_buiten: boolean;
+}
+
+export interface Inventaris {
+  werkgebied_id: string;
+  revisie: number;
+  selecties: InventarisSelectie[];
+  elementen: InventarisElement[];
+  volledig: boolean;
+}
+
+export interface WerkgebiedAuditRegel {
+  id: number;
+  actor: string;
+  actie: string;
+  detail: Record<string, unknown>;
+  tijdstip: string;
+}
+
+// --- Begrippen (spoor D, levering 2) – afgeleid van api/app/begrip_contracts.py en de vormen in
+// begrip_store.py ---
+
+export type DefinitieHerkomst = "letterlijk" | "samengesteld" | "geformuleerd";
+export type VoorbeeldOordeel = "wel" | "niet" | "onzeker";
+export type KoppelRol = "duiding" | "definitie" | "context";
+export type KoppelBeoordeling = "open" | "akkoord" | "afgewezen";
+export type Actualiteit = "actueel" | "gewijzigd" | "verworpen" | "verdwenen";
+export type BegripStatus = "concept" | "geaccordeerd";
+
+export interface Voorbeeld {
+  tekst: string;
+  oordeel: VoorbeeldOordeel;
+  toelichting: string;
+}
+
+export interface BegripInhoud {
+  naam: string;
+  alternatieve_termen: string[];
+  context: string;
+  jas_klasse: string;
+  jas_subtype: string;
+  geldigheid: string;
+  definitie: string;
+  definitie_herkomst: DefinitieHerkomst | null;
+  uitleg: string;
+  onderbouwing: string;
+  voorbeelden: Voorbeeld[];
+  eigenschappen: Record<string, string>;
+  open_vragen: string[];
+}
+
+/** De bewaarde bewijsstand van een passage: zo zag het element eruit toen het gekoppeld werd. */
+export interface Bewijs {
+  tekst: string;
+  klasse: string;
+  jas_subtype?: string;
+  ankers: { bron_iri: string; start: number; eind: number; tekst?: string; bron_hash?: string }[];
+  eigenaar_iri: string;
+  laag_id: string;
+  snapshot_id: string;
+  lifecycle: string;
+  vindplaats: string;
+  element_hash: string;
+}
+
+export interface Koppeling {
+  id: string;
+  begrip_id: string;
+  element_id: string;
+  rol: KoppelRol;
+  motivatie: string;
+  bewijs: Bewijs;
+  beoordeling: KoppelBeoordeling;
+  beoordeeld_door: string | null;
+  beoordeeld_op: string | null;
+  toegevoegd_door: string;
+  toegevoegd: string;
+  /** Bij het lezen bepaald, tegen het element zoals het nu is. */
+  actualiteit: Actualiteit;
+  lifecycle_nu: string | null;
+  annotatie_beoordeeld: boolean;
+}
+
+export interface Poort {
+  mag: boolean;
+  redenen: string[];
+}
+
+interface BegripBasis {
+  id: string;
+  iri: string;
+  werkgebied_id: string;
+  kader_iri: string;
+  status: BegripStatus;
+  revisie: number;
+  inhoud: BegripInhoud;
+  aangemaakt_door: string;
+  aangemaakt: string;
+  gewijzigd: string;
+  geaccordeerd_door: string | null;
+  geaccordeerd_op: string | null;
+  geaccordeerd_revisie: number | null;
+  accorderen: Poort;
+  aandachtspunten: string[];
+}
+
+export interface Begrip extends BegripBasis {
+  koppelingen: Koppeling[];
+}
+
+export interface BegripSamenvatting extends BegripBasis {
+  aantal_koppelingen: number;
+  element_ids: string[];
+}
+
+export interface BegrippenLijst {
+  kader_iri: string;
+  begrippen: BegripSamenvatting[];
+  /** Per element het begrip dat het primair aanduidt. */
+  primair: Record<string, { begrip_id: string; naam: string }>;
+}
+
+export interface BegripRevisie {
+  revisie: number;
+  actie: string;
+  detail: Record<string, unknown>;
+  status: BegripStatus;
+  inhoud: BegripInhoud;
+  actor: string;
+  tijdstip: string;
+}

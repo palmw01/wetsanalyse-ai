@@ -17,10 +17,14 @@ letterlijk, en houd elke markering/annotatie herleidbaar naar artikel + lid + `b
 beoordeelt en corrigeert; interpretatiekeuzes (incl. twijfel en aannames) worden expliciet gemaakt in
 plaats van schijnzekerheid.
 
-> **Scope: activiteit 2.** Het platform levert het markeren + classificeren in JAS-klassen; alle
-> contracten dragen `scope: "act2"`. Begrippen (activiteit 3) en de RegelSpraak-formalisering horen
-> niet tot de huidige functionaliteit – die worden later op agentische basis gebouwd. graph-qa's
-> begrip-definitie-QA (de `definitie`-specialist over de graaf) staat daar los van.
+> **Scope: activiteit 2, en het begin van activiteit 3.** Het platform levert het markeren +
+> classificeren in JAS-klassen; de annotatiecontracten dragen `scope: "act2"`. Van activiteit 3
+> (PLAN spoor D) staan de **werkgebieden** er: bepalingen samenbrengen rond één analysevraag, met
+> bronselecties (rol *analyseren* of *context*) en een inventaris van de geannoteerde elementen.
+> Daarop formuleert de analist **begrippen**: een begripskaart, gekoppeld aan de annotatiepassages
+> die het begrip dragen, met beoordeling, historie en export. Voorstellen van Lex voor begrippen,
+> begripsrelaties en de RegelSpraak-formalisering horen nog niet tot de functionaliteit. graph-qa's begrip-definitie-QA (de `definitie`-specialist
+> over de graaf) staat daar los van.
 
 ### Platform-componenten
 
@@ -37,11 +41,15 @@ overzien.
    het **LLM-modelprofielbeheer** (`/v1/admin/*`; de env-`LLM_*`-waarden seeden alleen het eerste
    default-profiel), het **tokenbudget per gebruiker** (`/v1/verbruik/*`: meten, tonen, begrenzen —
    verbruik is een append-only journaal en de stand een som over het huidige venster, zodat werk
-   weggooien geen tokens teruggeeft en de reset geen cronjob vraagt). Gesprekken zijn **per gebruiker gescopet**; annotatielagen juist **gedeeld** –
-   ze dragen het werk van meerdere juristen, en wie wat deed staat in de audit.
+   weggooien geen tokens teruggeeft en de reset geen cronjob vraagt) en de **werkgebieden**
+   (`/v1/werkgebieden/*`: bronselecties met revisies en audit, de inventaris, en de begrippen met
+   hun koppelingen naar annotatiepassages). Gesprekken zijn
+   **per gebruiker gescopet**; annotatielagen en werkgebieden juist **gedeeld** – ze dragen het werk
+   van meerdere juristen, en wie wat deed staat in de audit.
 2. **`frontend/`** – Next.js-webapp (BFF) bovenop de API. De app **is de werkplek** (`/workbench`, de
    *Lex-pagina*): één chat-achtig gespreksvenster voor **vragen én JAS-annotatie**, live tegen
-   graph-qa (SSE); de home leidt daarheen door. Account, beheer en instellingen openen als
+   graph-qa (SSE); de home leidt daarheen door. Naast de werkplek staan in de sidebar de
+   **annotaties** (`/annotaties`) en de **werkgebieden** (`/werkgebieden`). Account, beheer en instellingen openen als
    **dialoog over de werkplek heen** (`/instellingen/*`, intercepting routes); `/beheer` is alleen
    nog een doorverwijzing daarheen. De beheertab (modelprofielen, gebruikers, aanvragen, API-tokens)
    zit achter een apart admin-token.
