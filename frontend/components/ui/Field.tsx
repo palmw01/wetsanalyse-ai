@@ -25,7 +25,9 @@ export function Field({ label, hint, required, error, children }: FieldProps) {
 const inputBase =
   "w-full min-h-[40px] coarse:min-h-[48px] rounded-field border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-faint focus:border-lint focus:outline-none focus:ring-2 focus:ring-lint/30";
 
-export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
+// `ComponentProps<"input">` en niet `InputHTMLAttributes`: met React 19 is `ref` een gewone prop, en zo
+// kan een aanroeper het veld focussen.
+export function Input(props: React.ComponentProps<"input">) {
   return <input {...props} className={`${inputBase} ${props.className ?? ""}`} />;
 }
 

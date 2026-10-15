@@ -9,7 +9,7 @@ import type { Mutatie } from "@/components/werkgebieden/WerkgebiedClient";
 import { voegBronToe } from "@/lib/api";
 import { isBron, type KnoopData } from "@/lib/graaf/model";
 import type { BronRol, Werkgebied } from "@/lib/types";
-import { ROL_LABEL, annotatieHref, scopeInModel, verwijzingSuggesties, type Suggestie } from "@/lib/werkgebied";
+import { ROL_LABEL, annotatieHref, scopeInModel } from "@/lib/werkgebied";
 
 const WERKGEBIED: GraafContext = {
   naam: "Dit werkgebied", kort: "Werkgebied", terug: "het werkgebied", focus: "de bronnen van dit werkgebied",
@@ -18,11 +18,9 @@ const WERKGEBIED: GraafContext = {
 const KNOP =
   "focus-ring inline-flex min-h-[24px] items-center rounded-full border border-line px-2.5 py-0.5 text-[11px] font-medium text-lint transition-colors hover:bg-surface disabled:opacity-50 coarse:min-h-[44px]";
 
-/** De samenhang van het werkgebied: de bestaande samenhangsgraaf met de bronselecties als doelen,
- *  en daaronder de bepalingen waarnaar het werkgebied verwijst maar die er niet in staan.
- *
- *  Een suggestie is een suggestie: opnemen is een handeling van de analist, met een rol. Een
- *  niet-geïmporteerde bepaling is niet op te nemen en blijft een open punt. */
+/** De samenhang van het werkgebied: de bestaande samenhangsgraaf met de bronselecties als doelen.
+ *  Opnemen kan vanuit de inspector, altijd met een rol; een niet-geïmporteerde bepaling is niet op te
+ *  nemen. Wat er verder bij kan horen, zoekt Lex op de tab Bronnen (fase A). */
 export function SamenhangTab({ wg, muteer }: { wg: Werkgebied; muteer: Mutatie }) {
   if (wg.bronnen.length === 0)
     return <p className="text-sm text-muted">Nog geen bronnen, dus nog geen samenhang. Neem eerst een bepaling op.</p>;
@@ -49,7 +47,6 @@ function SamenhangGraaf({ wg, muteer }: { wg: Werkgebied; muteer: Mutatie }) {
   const stand = useGraafStand(doel, true, true, extra, opties);
   const model = stand.getekend?.model;
   const scope = useMemo(() => (model ? scopeInModel(model, wg.bronnen) : new Set<string>()), [model, wg.bronnen]);
-  const suggesties = useMemo(() => (model ? verwijzingSuggesties(model, wg.bronnen) : []), [model, wg.bronnen]);
 
   function neemOp(bronIri: string, naam: string, rol: BronRol) {
     return muteer(async (r) => (await voegBronToe(wg.id, { bron_iri: bronIri, rol, verwachte_revisie: r })).werkgebied, {
@@ -75,7 +72,7 @@ function SamenhangGraaf({ wg, muteer }: { wg: Werkgebied; muteer: Mutatie }) {
   }
 
   return (
-    <div className="space-y-5">
+    <div>
       {/* De graaf vult zijn doos; zonder vaste hoogte heeft het canvas er geen. */}
       <div className="flex h-[70vh] min-h-[28rem] flex-col overflow-hidden rounded-button border border-line bg-paper">
         <Graaf
@@ -88,55 +85,6 @@ function SamenhangGraaf({ wg, muteer }: { wg: Werkgebied; muteer: Mutatie }) {
           bijKnoop={opneemActie}
         />
       </div>
-      <Suggesties suggesties={suggesties} geladen={!!model} onNeemOp={neemOp} />
     </div>
-  );
-}
-
-function Suggesties({ suggesties, geladen, onNeemOp }: {
-  suggesties: Suggestie[];
-  geladen: boolean;
-  onNeemOp: (bronIri: string, naam: string, rol: BronRol) => Promise<boolean>;
-}) {
-  if (!geladen) return null;
-  return (
-    <section aria-labelledby="suggesties-kop">
-      <h3 id="suggesties-kop" className="font-display text-sm font-semibold text-lint">
-        Verwijzingen buiten dit werkgebied
-      </h3>
-      <p className="mb-3 mt-0.5 text-xs text-muted">
-        Bepalingen waarnaar de bronnen van dit werkgebied verwijzen. Opnemen is een keuze, geen vanzelfsprekendheid.
-      </p>
-      {suggesties.length === 0 ? (
-        <p className="text-sm text-muted">Geen verwijzingen naar bepalingen buiten het werkgebied.</p>
-      ) : (
-        <ul className="space-y-2" aria-label="Verwijzingen buiten dit werkgebied">
-          {suggesties.map((s) => (
-            <li key={s.id} className="rounded-kaart border border-line bg-paper px-3 py-2">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0">
-                  <p className="text-sm text-ink">
-                    {s.naam} <span className="text-xs text-muted">· {s.regeling || "onbekende regeling"}</span>
-                  </p>
-                  <p className="text-xs text-muted">Genoemd in {s.vanuit.join(", ")}</p>
-                </div>
-                {s.beschikbaar ? (
-                  <div className="flex shrink-0 gap-1.5">
-                    <button type="button" className={KNOP} onClick={() => void onNeemOp(s.id, s.naam, "analyseren")}>
-                      Opnemen
-                    </button>
-                    <button type="button" className={KNOP} onClick={() => void onNeemOp(s.id, s.naam, "context")}>
-                      Als contextbron
-                    </button>
-                  </div>
-                ) : (
-                  <span className="shrink-0 text-xs text-aandacht-geel-tekst">Open punt: niet in de graaf</span>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
   );
 }

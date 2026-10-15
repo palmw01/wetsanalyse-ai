@@ -8,12 +8,13 @@ import { haalWerkgebied } from "@/lib/api";
 
 /** De balk boven de chat als de werkplek in de context van een werkgebied staat (`?werkgebied=`).
  *
- *  Hij noemt het werkgebied (PLAN §GUI: je moet zien in welke analyse je werkt), biedt *Stel begrippen
- *  voor* – een gewone beurt, die graph-qa naar de begrippenroute stuurt – en laat je uit de context
- *  stappen. De naam laden mag mislukken: dan staat er "Werkgebied" en werkt de rest gewoon. */
-export function WerkgebiedBalk({ id, uitgeschakeld, onBegrippen, onVerlaat }: {
+ *  Hij noemt het werkgebied (PLAN §GUI: je moet zien in welke analyse je werkt), biedt *Zoek
+ *  bepalingen* en *Stel begrippen voor* – gewone beurten, die graph-qa naar de bronnen- of
+ *  begrippenroute stuurt – en laat je uit de context stappen. De naam laden mag mislukken: dan staat er "Werkgebied" en werkt de rest gewoon. */
+export function WerkgebiedBalk({ id, uitgeschakeld, onBronnen, onBegrippen, onVerlaat }: {
   id: string;
   uitgeschakeld: boolean;
+  onBronnen: () => void;
   onBegrippen: () => void;
   onVerlaat: () => void;
 }) {
@@ -35,6 +36,9 @@ export function WerkgebiedBalk({ id, uitgeschakeld, onBegrippen, onVerlaat }: {
         {" "}· Lex werkt binnen deze analyse
       </p>
       <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
+        <Button size="sm" variant="secondary" className="w-full sm:w-auto" disabled={uitgeschakeld} onClick={onBronnen}>
+          Zoek bepalingen
+        </Button>
         <Button size="sm" className="w-full sm:w-auto" disabled={uitgeschakeld} onClick={onBegrippen}>
           Stel begrippen voor
         </Button>

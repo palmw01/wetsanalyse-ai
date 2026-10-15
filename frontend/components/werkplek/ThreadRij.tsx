@@ -32,7 +32,7 @@ import type { GraafOpties } from "@/components/graaf/useGraafStand";
 import { beurtSamenvatting, laatsteRun } from "@/lib/waarom";
 import type { ThreadItem } from "@/lib/threadItem";
 import type {
-  AgentDoelInvoer, AgentGrounding, AgentKandidaat, AnnotatieDocument, Bron,
+  AgentDoelInvoer, AgentGrounding, AgentKandidaat, AnnotatieDocument, Bron, Overzicht,
 } from "@/lib/types";
 
 /** Wat een rij kan laten gebeuren. Eén stabiel object per venster, zodat `memo` iets oplevert. */
@@ -48,6 +48,8 @@ export interface ThreadActies {
   /** Eén lid uit een reeksblok openen, met bladeren door de rest van de reeks. */
   openReeksLid: (runId: string, doel: NodeDoel) => void;
   stop: () => void;
+  /** *Maak hier een werkgebied van* onder een overzicht (spoor D, fase A). */
+  maakWerkgebied: (overzicht: Overzicht) => void;
 }
 
 interface Props {
@@ -108,6 +110,12 @@ export const ThreadRij = memo(function ThreadRij({
         )}
         {/* Het overzicht uit de graaf staat los van de tekst: dezelfde vraag, hetzelfde blok. */}
         {item.overzicht && <OverzichtBlok overzicht={item.overzicht} />}
+        {item.overzicht && !demo && item.overzicht.regelingen.length > 0 && (
+          <button type="button" onClick={() => acties.maakWerkgebied(item.overzicht!)}
+            className="focus-ring mt-3 flex items-center gap-2 rounded-lg border border-lint/20 bg-lint/[0.03] px-3 py-2 text-left text-xs font-medium text-lint transition-colors hover:bg-lint/10">
+            Maak hier een werkgebied van
+          </button>
+        )}
         {/* Bij een overzicht linkt het blok elke vindplaats: een bronnenlijst van 40–90 regels ernaast
             zegt niets nieuws. De bronnen blijven in het bericht (herkomst, eval). */}
         {!item.overzicht && item.bronnen && item.bronnen.length > 0 && <Bronnen bronnen={item.bronnen} />}

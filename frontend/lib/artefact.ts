@@ -9,7 +9,7 @@
 import type { NodeDoel } from "./annotatieNode";
 import type { Bericht } from "./types";
 
-export type ArtefactSoort = "annotatie" | "begrippen" | "regels";
+export type ArtefactSoort = "annotatie" | "begrippen" | "bronnen" | "regels";
 
 export interface Artefact {
   soort: ArtefactSoort;
@@ -17,19 +17,22 @@ export interface Artefact {
   titel: string;
 }
 
-/** Wat een begrippenartefact aanwijst: de voorstellen van één run op één werkgebied. */
-export interface BegrippenRef { werkgebied_id: string; run_id: string; titel: string }
+/** Wat een artefact van een werkgebied aanwijst: de begripsvoorstellen of de gevonden bepalingen van
+ *  één run op één werkgebied. */
+export interface WerkgebiedArtefact { soort: "begrippen" | "bronnen"; werkgebied_id: string; run_id: string; titel: string }
 
 /** Hoe de chip de soort noemt. */
 export const ARTEFACT_SOORT_LABEL: Record<ArtefactSoort, string> = {
   annotatie: "JAS-annotatie",
   begrippen: "Begripsvoorstellen",
+  bronnen: "Gevonden bepalingen",
   regels: "Afleidingsregels",
 };
 
 const VERPLICHT: Record<ArtefactSoort, string[]> = {
   annotatie: ["bron_iri"],
   begrippen: ["werkgebied_id", "run_id"],
+  bronnen: ["werkgebied_id", "run_id"],
   regels: [],
 };
 
@@ -41,7 +44,7 @@ export function parseArtefact(ruw: unknown): Artefact | undefined {
   if (!ruw || typeof ruw !== "object") return undefined;
   const r = ruw as Record<string, unknown>;
   const soort = r.soort;
-  if (soort !== "annotatie" && soort !== "begrippen" && soort !== "regels") return undefined;
+  if (soort !== "annotatie" && soort !== "begrippen" && soort !== "bronnen" && soort !== "regels") return undefined;
   const ref = r.ref && typeof r.ref === "object" && !Array.isArray(r.ref) ? (r.ref as Record<string, unknown>) : undefined;
   if (!ref || VERPLICHT[soort].some((k) => !tekst(ref[k]))) return undefined;
   return { soort, ref, titel: tekst(r.titel) };
@@ -69,11 +72,11 @@ export function annotatieDoelVan(a: Artefact | undefined): NodeDoel | undefined 
   };
 }
 
-/** Werkgebied en run van een begrippenartefact. */
-export function begrippenRefVan(a: Artefact | undefined): BegrippenRef | undefined {
-  if (a?.soort !== "begrippen") return undefined;
+/** Werkgebied en run van een begrippen- of bronnenartefact. */
+export function werkgebiedArtefactVan(a: Artefact | undefined): WerkgebiedArtefact | undefined {
+  if (a?.soort !== "begrippen" && a?.soort !== "bronnen") return undefined;
   const werkgebied_id = tekst(a.ref.werkgebied_id), run_id = tekst(a.ref.run_id);
-  return werkgebied_id && run_id ? { werkgebied_id, run_id, titel: a.titel } : undefined;
+  return werkgebied_id && run_id ? { soort: a.soort, werkgebied_id, run_id, titel: a.titel } : undefined;
 }
 
 /** Kan de werkplek dit artefact openen? Afleidingsregels zijn gereserveerd, nog niet gebouwd. */

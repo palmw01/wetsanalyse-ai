@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseOverzicht } from "./agentEvents";
-import { bepalingNaam, deelKop, overzichtAlsMarkdown, overzichtDoelen, overzichtFocus, overzichtKnopTekst, telling, zoekverantwoording } from "./overzicht";
+import { bepalingNaam, bepalingenVanOverzicht, deelKop, overzichtAlsMarkdown, overzichtDoelen, overzichtFocus, overzichtKnopTekst, telling, zoekverantwoording } from "./overzicht";
 import type { Overzicht } from "./types";
 
 const IW = "urn:bwb:BWBR0004770", AWB = "urn:bwb:BWBR0005537", LEIDRAAD = "urn:bwb:BWBR0024096";
@@ -112,4 +112,15 @@ describe("overzicht", () => {
     // Geen bereik: elk nummer staat er zelf.
     expect(md).not.toMatch(/\d+\s*(–|t\/m)\s*\d+/);
   });
+});
+
+it("bepalingenVanOverzicht: delen en wat verder genoemd wordt, uniek, met de regeling", () => {
+  const b = bepalingenVanOverzicht(invordering());
+  expect(b.map((x) => x.naam)).toEqual([
+    "art. 8 – Invorderingswet 1990", "art. 9 – Invorderingswet 1990", "art. 10 – Invorderingswet 1990",
+    "art. 27a – Invorderingswet 1990", "art. 27quinquies – Invorderingswet 1990", "art. 31 – Invorderingswet 1990",
+    "art. 4 – Invorderingswet 1990", "art. 4:112 – Algemene wet bestuursrecht",
+    "28.1 – Leidraad Invordering 2008", "28.3a – Leidraad Invordering 2008",
+  ]);
+  expect(new Set(b.map((x) => x.iri)).size).toBe(b.length);
 });

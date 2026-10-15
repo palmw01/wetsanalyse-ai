@@ -119,9 +119,9 @@ it("tabUitParam valt terug op Bronnen", async () => {
   expect(tabUitParam("onbekend")).toBe("bronnen");
 });
 
-describe("verwijzingSuggesties", async () => {
+describe("scopeInModel", async () => {
   const { bouwModel } = await import("./graaf/model");
-  const { verwijzingSuggesties, scopeInModel } = await import("./werkgebied");
+  const { scopeInModel } = await import("./werkgebied");
   const k = (id: string, soort: string, over: Record<string, unknown> = {}) => ({
     id, soort, label: id, tekst: "", klasse: "", lifecycle: "", element_id: "", bwb_id: "BWBR1", artikel: "", lid: "",
     rand: false, ...over,
@@ -145,20 +145,6 @@ describe("verwijzingSuggesties", async () => {
     expect([...scopeInModel(g, [{ bron_iri: "a9", bereik: "onderliggend" }])].sort()).toEqual(["a9", "a9l1", "a9l2"]);
     expect([...scopeInModel(g, [{ bron_iri: "a9", bereik: "node" }])]).toEqual(["a9"]);
   });
-
-  it("noemt verwijzingen naar buiten, meest genoemd eerst, zonder interne of omvattende doelen", () => {
-    const s = verwijzingSuggesties(g, [{ bron_iri: "a9", bereik: "onderliggend" }]);
-    expect(s.map((x) => x.id)).toEqual(["a10", "awr3", "x"]);
-    expect(s[0]).toMatchObject({ regeling: "Invorderingswet 1990", beschikbaar: true });
-    expect(s[0].vanuit).toHaveLength(2);
-    expect(s[1].regeling).toBe("BWBR2");
-    expect(s[2].beschikbaar).toBe(false);
-  });
-
-  it("met een selectie op één lid tellen alleen diens verwijzingen", () => {
-    expect(verwijzingSuggesties(g, [{ bron_iri: "a9l2", bereik: "onderliggend" }]).map((x) => x.id)).toEqual(["a10", "awr3", "x"]);
-    expect(verwijzingSuggesties(g, [{ bron_iri: "a9l1", bereik: "onderliggend" }]).map((x) => x.id)).toEqual(["a9l2", "a10"]);
-  });
 });
 
 describe("isWerkgebiedRoute", async () => {
@@ -172,6 +158,9 @@ describe("isWerkgebiedRoute", async () => {
     [["w", "begrippen-runs", "laatste"]], [["w", "begrippen-runs", "r"]], [["w", "begrippen-runs", "r", "vragen", "P1"]],
     [["w", "groepen"]], [["w", "groepen", "overnemen"]], [["w", "groepen", "G1", "koppelen"]],
     [["w", "groepen", "G1", "afwijzen"]], [["w", "groepen", "G1", "parkeren"]], [["w", "groepen", "G1", "heropenen"]],
+    [["w", "bronnen-runs", "laatste"]], [["w", "bronnen-runs", "r"]], [["w", "kandidaten"]],
+    [["w", "kandidaten", "K1", "opnemen"]], [["w", "kandidaten", "K1", "later"]],
+    [["w", "kandidaten", "K1", "uitsluiten"]], [["w", "kandidaten", "K1", "heropenen"]],
   ])("laat %j door", (pad) => expect(isWerkgebiedRoute(pad)).toBe(true));
   it.each([
     [[]], [["w", "onbekend"]], [["w", "elementen", "x"]], [["w", "bronnen", "s", "x"]],
@@ -181,6 +170,9 @@ describe("isWerkgebiedRoute", async () => {
     [["w", "begrippen-runs"]], [["w", "begrippen-runs", "r", "uitkomst"]], [["w", "begrippen-runs", "r", "loopt"]],
     [["w", "begrippen-runs", "r", "mislukt"]], [["w", "begrippen-runs", "r", "vragen"]],
     [["w", "groepen", "G1"]], [["w", "groepen", "G1", "verwijderen"]], [["w", "groepen", "overnemen", "x"]],
+    // Ook bij de bronnen: starten via /api/bronnen-run, de rest is van graph-qa.
+    [["w", "bronnen-runs"]], [["w", "bronnen-runs", "r", "uitkomst"]], [["w", "bronnen-runs", "r", "loopt"]],
+    [["w", "bronnen-runs", "r", "mislukt"]], [["w", "kandidaten", "K1"]], [["w", "kandidaten", "K1", "wissen"]],
   ])("weigert %j", (pad) => expect(isWerkgebiedRoute(pad)).toBe(false));
 });
 

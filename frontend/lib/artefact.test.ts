@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { annotatieDoelVan, artefactVanBericht, begrippenRefVan, isTeOpenen, parseArtefact } from "./artefact";
+import { annotatieDoelVan, artefactVanBericht, werkgebiedArtefactVan, isTeOpenen, parseArtefact } from "./artefact";
 
 const IRI = "urn:bwb:BWBR0004770:artikel:9:lid:1";
 
@@ -24,7 +24,10 @@ describe("parseArtefact", () => {
 describe("artefactVanBericht", () => {
   it("leest het artefactveld", () => {
     const a = artefactVanBericht({ artefact: { soort: "begrippen", ref: { werkgebied_id: "w", run_id: "r" }, titel: "Invordering" } });
-    expect(begrippenRefVan(a)).toEqual({ werkgebied_id: "w", run_id: "r", titel: "Invordering" });
+    expect(werkgebiedArtefactVan(a)).toEqual({ soort: "begrippen", werkgebied_id: "w", run_id: "r", titel: "Invordering" });
+    const b = artefactVanBericht({ artefact: { soort: "bronnen", ref: { werkgebied_id: "w", run_id: "r2" }, titel: "Inv" } });
+    expect(werkgebiedArtefactVan(b)?.soort).toBe("bronnen");
+    expect(parseArtefact({ soort: "bronnen", ref: { werkgebied_id: "w" } })).toBeUndefined();
   });
 
   it("maakt van een ouder bericht met alleen een bronnode een annotatie-artefact", () => {
@@ -39,11 +42,11 @@ describe("artefactVanBericht", () => {
   });
 });
 
-describe("annotatieDoelVan en begrippenRefVan", () => {
+describe("annotatieDoelVan en werkgebiedArtefactVan", () => {
   it("geven alleen iets voor hun eigen soort", () => {
     const begrippen = parseArtefact({ soort: "begrippen", ref: { werkgebied_id: "w", run_id: "r" } });
     expect(annotatieDoelVan(begrippen)).toBeUndefined();
-    expect(begrippenRefVan(parseArtefact({ soort: "annotatie", ref: { bron_iri: IRI } }))).toBeUndefined();
+    expect(werkgebiedArtefactVan(parseArtefact({ soort: "annotatie", ref: { bron_iri: IRI } }))).toBeUndefined();
   });
 
   it("de titel is het label als de ref er geen draagt", () => {
