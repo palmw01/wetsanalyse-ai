@@ -252,27 +252,36 @@ async def _gewijzigd(werkgebied_id: str, begrip_id: str, verwacht: int, actor: s
     De aanroeper muteert via `stand`: `inhoud` en `status` en extra kolommen in `waarden`. Zet hij
     `geen_wijziging`, dan gebeurt er niets (idempotent). `detail` wordt pas ná het blok gelezen, dus
     de aanroeper mag het daarin nog aanvullen."""
-    b = db.begrippen
     async with db.get_engine().begin() as conn:
-        await _werkgebied_bestaat(conn, werkgebied_id, slot=True)
-        row = (await conn.execute(select(b).where(b.c.id == begrip_id, b.c.werkgebied_id == werkgebied_id,
-                                                  b.c.verwijderd.is_(None)).with_for_update())).first()
-        if row is None:
-            raise HTTPException(404, "Begrip bestaat niet.")
-        if row.revisie != verwacht:
-            raise HTTPException(412, {"fout": "revisie_conflict", "revisie": row.revisie,
-                                      "melding": "Iemand anders wijzigde dit begrip intussen; laad het opnieuw."})
-        stand = {"inhoud": row.inhoud, "status": None, "waarden": {}, "geen_wijziging": False}
-        yield conn, row, stand
-        if stand["geen_wijziging"]:
-            return
-        status = stand["status"] or ("concept" if row.status == "geaccordeerd" else row.status)
-        nieuw, nu = row.revisie + 1, db.utcnow()
-        await conn.execute(update(b).where(b.c.id == begrip_id).values(
-            revisie=nieuw, gewijzigd=nu, status=status, inhoud=stand["inhoud"], **stand["waarden"]))
-        await _revisieregel(conn, begrip_id, nieuw, actie, detail, status, stand["inhoud"], actor, nu)
-        await werkgebied_audit(conn, werkgebied_id, actor, actie,
-                               {**detail, "begrip_id": begrip_id, "begrip_revisie": nieuw})
+        async with _gewijzigd_in(conn, werkgebied_id, begrip_id, verwacht, actor, actie, detail) as uit:
+            yield uit
+
+
+@asynccontextmanager
+async def _gewijzigd_in(conn, werkgebied_id: str, begrip_id: str, verwacht: int, actor: str, actie: str,
+                        detail: dict):
+    """`_gewijzigd` binnen een transactie van de aanroeper: zo kan een besluit over een voorstel (fase D)
+    begrip, koppelingen, accorderen en groepsbesluit samen vastleggen of samen laten mislukken."""
+    b = db.begrippen
+    await _werkgebied_bestaat(conn, werkgebied_id, slot=True)
+    row = (await conn.execute(select(b).where(b.c.id == begrip_id, b.c.werkgebied_id == werkgebied_id,
+                                              b.c.verwijderd.is_(None)).with_for_update())).first()
+    if row is None:
+        raise HTTPException(404, "Begrip bestaat niet.")
+    if row.revisie != verwacht:
+        raise HTTPException(412, {"fout": "revisie_conflict", "revisie": row.revisie,
+                                  "melding": "Iemand anders wijzigde dit begrip intussen; laad het opnieuw."})
+    stand = {"inhoud": row.inhoud, "status": None, "waarden": {}, "geen_wijziging": False}
+    yield conn, row, stand
+    if stand["geen_wijziging"]:
+        return
+    status = stand["status"] or ("concept" if row.status == "geaccordeerd" else row.status)
+    nieuw, nu = row.revisie + 1, db.utcnow()
+    await conn.execute(update(b).where(b.c.id == begrip_id).values(
+        revisie=nieuw, gewijzigd=nu, status=status, inhoud=stand["inhoud"], **stand["waarden"]))
+    await _revisieregel(conn, begrip_id, nieuw, actie, detail, status, stand["inhoud"], actor, nu)
+    await werkgebied_audit(conn, werkgebied_id, actor, actie,
+                           {**detail, "begrip_id": begrip_id, "begrip_revisie": nieuw})
 
 
 async def _revisieregel(conn, begrip_id, revisie, actie, detail, status, inhoud, actor, tijdstip):
@@ -282,9 +291,12 @@ async def _revisieregel(conn, begrip_id, revisie, actie, detail, status, inhoud,
 
 
 async def _koppel(conn, werkgebied_id: str, begrip_id: str, bewijs: dict[str, dict], rol: str,
-                  motivatie: str, actor: str) -> list[str]:
+                  motivatie: str, actor: str, beoordeling: str = "open") -> list[str]:
     """Voegt de koppelingen toe die er nog niet zijn; geeft de nieuwe element-id's terug. Draait onder
-    het werkgebiedslot: daarop rust de regel van één primaire duiding per element."""
+    het werkgebiedslot: daarop rust de regel van één primaire duiding per element.
+
+    `beoordeling: akkoord` alleen als de jurist de passages zelf zag en goedkeurde: het akkoord op een
+    voorstel van Lex (fase D) – dan staat de beoordelaar er meteen bij."""
     k = db.begrip_koppelingen
     bestaand = set((await conn.execute(select(k.c.element_id).where(
         k.c.begrip_id == begrip_id, k.c.rol == rol, k.c.verwijderd.is_(None)))).scalars().all())
@@ -295,25 +307,34 @@ async def _koppel(conn, werkgebied_id: str, begrip_id: str, bewijs: dict[str, di
     for eid in nieuw:
         await conn.execute(insert(k).values(
             id=str(uuid.uuid4()), begrip_id=begrip_id, werkgebied_id=werkgebied_id, element_id=eid, rol=rol,
-            motivatie=motivatie, bewijs=bewijs[eid], beoordeling="open", toegevoegd_door=actor, toegevoegd=nu))
+            motivatie=motivatie, bewijs=bewijs[eid], beoordeling=beoordeling, toegevoegd_door=actor, toegevoegd=nu,
+            **({"beoordeeld_door": actor, "beoordeeld_op": nu} if beoordeling != "open" else {})))
     return nieuw
 
 
 async def maak(werkgebied: dict, invoer: BegripInvoer, actor: str, resolve: Resolver) -> dict:
     bewijs = await bewijzen(werkgebied, invoer.element_ids, resolve) if invoer.element_ids else {}
-    bid, nu = str(uuid.uuid4()), db.utcnow()
-    inhoud = invoer.inhoud.model_dump(mode="json")
     async with db.get_engine().begin() as conn:
-        await _werkgebied_bestaat(conn, werkgebied["id"], slot=True)
-        await conn.execute(insert(db.begrippen).values(
-            id=bid, werkgebied_id=werkgebied["id"], status="concept", revisie=1, inhoud=inhoud,
-            aangemaakt_door=actor, aangemaakt=nu, gewijzigd=nu))
-        nieuw = await _koppel(conn, werkgebied["id"], bid, bewijs, invoer.rol.value, "", actor)
-        detail = {"naam": inhoud["naam"], "element_ids": nieuw, "rol": invoer.rol.value}
-        await _revisieregel(conn, bid, 1, "begrip-aangemaakt", detail, "concept", inhoud, actor, nu)
-        await werkgebied_audit(conn, werkgebied["id"], actor, "begrip-aangemaakt",
-                               {**detail, "begrip_id": bid, "begrip_revisie": 1})
+        bid = await maak_in(conn, werkgebied["id"], invoer.inhoud.model_dump(mode="json"), bewijs,
+                            invoer.rol.value, actor)
     return await haal(werkgebied["id"], bid)
+
+
+async def maak_in(conn, werkgebied_id: str, inhoud: dict, bewijs: dict[str, dict], rol: str, actor: str,
+                  beoordeling: str = "open") -> str:
+    """Een nieuw begrip (revisie 1, concept) binnen de transactie van de aanroeper; geeft het id."""
+    bid, nu = str(uuid.uuid4()), db.utcnow()
+    await _werkgebied_bestaat(conn, werkgebied_id, slot=True)
+    await conn.execute(insert(db.begrippen).values(
+        id=bid, werkgebied_id=werkgebied_id, status="concept", revisie=1, inhoud=inhoud,
+        aangemaakt_door=actor, aangemaakt=nu, gewijzigd=nu))
+    nieuw = await _koppel(conn, werkgebied_id, bid, bewijs, rol, "", actor, beoordeling)
+    detail = {"naam": inhoud["naam"], "element_ids": nieuw, "rol": rol,
+              **({"beoordeling": beoordeling} if beoordeling != "open" else {})}
+    await _revisieregel(conn, bid, 1, "begrip-aangemaakt", detail, "concept", inhoud, actor, nu)
+    await werkgebied_audit(conn, werkgebied_id, actor, "begrip-aangemaakt",
+                           {**detail, "begrip_id": bid, "begrip_revisie": 1})
+    return bid
 
 
 async def wijzig(werkgebied_id: str, begrip_id: str, w: BegripWijziging, actor: str) -> dict:
@@ -342,13 +363,21 @@ async def verwijder(werkgebied_id: str, begrip_id: str, verwacht: int, actor: st
 
 async def koppel(werkgebied: dict, begrip_id: str, invoer: KoppelInvoer, actor: str, resolve: Resolver) -> dict:
     bewijs = await bewijzen(werkgebied, invoer.element_ids, resolve)
-    detail = {"rol": invoer.rol.value}
-    async with _gewijzigd(werkgebied["id"], begrip_id, invoer.verwachte_revisie, actor, "begrip-gekoppeld",
-                          detail) as (conn, _, stand):
-        nieuw = await _koppel(conn, werkgebied["id"], begrip_id, bewijs, invoer.rol.value, invoer.motivatie, actor)
+    async with db.get_engine().begin() as conn:
+        await koppel_in(conn, werkgebied["id"], begrip_id, invoer.verwachte_revisie, bewijs, invoer.rol.value,
+                        invoer.motivatie, actor)
+    return await haal(werkgebied["id"], begrip_id)
+
+
+async def koppel_in(conn, werkgebied_id: str, begrip_id: str, verwacht: int, bewijs: dict[str, dict], rol: str,
+                    motivatie: str, actor: str, beoordeling: str = "open") -> list[str]:
+    detail = {"rol": rol, **({"beoordeling": beoordeling} if beoordeling != "open" else {})}
+    async with _gewijzigd_in(conn, werkgebied_id, begrip_id, verwacht, actor, "begrip-gekoppeld",
+                             detail) as (_, __, stand):
+        nieuw = await _koppel(conn, werkgebied_id, begrip_id, bewijs, rol, motivatie, actor, beoordeling)
         detail["element_ids"] = nieuw
         stand["geen_wijziging"] = not nieuw
-    return await haal(werkgebied["id"], begrip_id)
+    return nieuw
 
 
 async def wijzig_koppeling(werkgebied_id: str, begrip_id: str, koppeling_id: str, w: KoppelWijziging,
@@ -416,15 +445,27 @@ async def ontkoppel(werkgebied_id: str, begrip_id: str, koppeling_id: str, verwa
 
 
 async def accordeer(werkgebied_id: str, begrip_id: str, verwacht: int, actor: str) -> dict:
-    async with _gewijzigd(werkgebied_id, begrip_id, verwacht, actor, "begrip-geaccordeerd", {}) as (conn, row, stand):
+    async with db.get_engine().begin() as conn:
+        p = await accordeer_in(conn, werkgebied_id, begrip_id, verwacht, actor)
+    if not p["mag"]:
+        raise HTTPException(409, {"fout": "poort", "redenen": p["redenen"],
+                                  "melding": "Nog niet te accorderen: " + " ".join(p["redenen"])})
+    return await haal(werkgebied_id, begrip_id)
+
+
+async def accordeer_in(conn, werkgebied_id: str, begrip_id: str, verwacht: int, actor: str) -> dict:
+    """Accorderen als de poort het toelaat, binnen de transactie van de aanroeper. Mag het niet, dan
+    verandert er niets en komen de redenen terug: de aanroeper beslist of dat een fout is."""
+    async with _gewijzigd_in(conn, werkgebied_id, begrip_id, verwacht, actor, "begrip-geaccordeerd",
+                             {}) as (_, row, stand):
         p = poort(row.inhoud, await _koppelingen_van(conn, werkgebied_id, begrip_id))
         if not p["mag"]:
-            raise HTTPException(409, {"fout": "poort", "redenen": p["redenen"],
-                                      "melding": "Nog niet te accorderen: " + " ".join(p["redenen"])})
-        stand["status"] = "geaccordeerd"
-        stand["waarden"] = {"geaccordeerd_door": actor, "geaccordeerd_op": db.utcnow(),
-                            "geaccordeerd_revisie": row.revisie + 1}
-    return await haal(werkgebied_id, begrip_id)
+            stand["geen_wijziging"] = True
+        else:
+            stand["status"] = "geaccordeerd"
+            stand["waarden"] = {"geaccordeerd_door": actor, "geaccordeerd_op": db.utcnow(),
+                                "geaccordeerd_revisie": row.revisie + 1}
+    return p
 
 
 async def heropen(werkgebied_id: str, begrip_id: str, verwacht: int, actor: str) -> dict:

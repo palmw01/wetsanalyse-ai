@@ -170,9 +170,18 @@ async def test_combineren_en_splitsen(client):
     assert r.status_code == 422
     r = await client.post(f"{base}/overnemen", json={"groep_ids": ["Gbbb222"], "naam": "Beta", "element_ids": [ids["beta"]]})
     assert [k["element_id"] for k in r.json()["koppelingen"]] == [ids["beta"]]
-    # Combineren: twee groepen worden één begrip – hier niet meer mogelijk voor Gbbb222 (al overgenomen).
+    # Splitsen laat de rest staan (fase D): Gbbb222 blijft open met alleen de AWR-passage.
+    g = {x["id"]: x for x in (await client.get(base)).json()["groepen"]}
+    assert (g["Gbbb222"]["besluit"], [x["element_id"] for x in g["Gbbb222"]["leden"]]) == ("open", [ids["awr"]])
+    assert g["Gbbb222"]["afgehandeld"] == 1
+    # Een passage die al een begrip werd, kan dat niet nog eens.
+    r = await client.post(f"{base}/overnemen", json={"groep_ids": ["Gbbb222"], "naam": "Beta", "element_ids": [ids["beta"]]})
+    assert r.status_code == 409 and r.json()["detail"]["element_ids"] == [ids["beta"]]
+    # Combineren neemt de rest: daarna zijn beide groepen overgenomen.
     r = await client.post(f"{base}/overnemen", json={"groep_ids": ["Gaaa111", "Gbbb222"], "naam": "Samen"})
-    assert r.status_code == 409
+    assert r.status_code == 201
+    assert {k["element_id"] for k in r.json()["koppelingen"]} == {ids["alfa1"], ids["alfa2"], ids["awr"]}
+    assert {x["besluit"] for x in (await client.get(base)).json()["groepen"]} == {"overgenomen"}
 
 
 async def test_combineren_van_twee_open_groepen(client):
