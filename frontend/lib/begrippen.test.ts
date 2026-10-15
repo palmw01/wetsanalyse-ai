@@ -1,0 +1,64 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  LEGE_INHOUD, begripUitParam, gewijzigdeVelden, inhoudGewijzigd, isAlPrimair, isPoortFout, revisieZin,
+  sorteerKoppelingen, volledigeInhoud,
+} from "./begrippen";
+import type { Koppeling } from "./types";
+
+const inhoud = (over = {}) => ({ ...LEGE_INHOUD, naam: "Belastingschuldige", ...over });
+
+describe("inhoudGewijzigd", () => {
+  it("ziet een echte wijziging, en niets bij lege regels of een andere sleutelvolgorde", () => {
+    const oud = inhoud({ eigenschappen: { a: "1", b: "2" }, alternatieve_termen: ["schuldenaar"] });
+    expect(inhoudGewijzigd(oud, { ...oud, definitie: "Wie de belasting verschuldigd is." })).toBe(true);
+    expect(inhoudGewijzigd(oud, { ...oud, alternatieve_termen: ["schuldenaar", "  "] })).toBe(false);
+    expect(inhoudGewijzigd(oud, { ...oud, eigenschappen: { b: "2", a: "1" } })).toBe(false);
+    expect(inhoudGewijzigd(oud, { ...oud, naam: " Belastingschuldige " })).toBe(false);
+    expect(gewijzigdeVelden(oud, { ...oud, context: "x", definitie_herkomst: "letterlijk" }))
+      .toEqual(["context", "definitie_herkomst"]);
+  });
+
+  it("vult een onvolledige inhoud van de api aan", () => {
+    expect(volledigeInhoud({ naam: "X" }).voorbeelden).toEqual([]);
+    expect(inhoudGewijzigd({ naam: "X" } as never, volledigeInhoud({ naam: "X" }))).toBe(false);
+  });
+});
+
+it("sorteert passages op rol, dan natuurlijk op vindplaats", () => {
+  const k = (id: string, rol: Koppeling["rol"], vindplaats: string) =>
+    ({ id, rol, bewijs: { vindplaats, tekst: id } }) as unknown as Koppeling;
+  expect(sorteerKoppelingen([k("c", "context", "A"), k("b", "duiding", "Artikel 10"), k("a", "duiding", "Artikel 9"),
+    k("d", "definitie", "A")]).map((x) => x.id)).toEqual(["a", "b", "d", "c"]);
+});
+
+it("herkent de begripsfouten aan status en fout", () => {
+  expect(isAlPrimair({ status: 409, detail: "x", data: { fout: "al_primair" } })).toBe(true);
+  expect(isPoortFout({ status: 409, detail: "x", data: { fout: "poort", redenen: [] } })).toBe(true);
+  expect(isPoortFout({ status: 409, detail: "x", data: { fout: "al_primair" } })).toBe(false);
+});
+
+it("begripUitParam laat alleen een id door", () => {
+  expect(begripUitParam("3f2a-9c")).toBe("3f2a-9c");
+  expect(begripUitParam("../x")).toBeUndefined();
+  expect(begripUitParam(undefined)).toBeUndefined();
+});
+
+describe("revisieZin", () => {
+  it("noemt de gewijzigde velden in gewone woorden", () => {
+    expect(revisieZin({ actie: "begrip-gewijzigd", detail: { velden: ["definitie", "definitie_herkomst"] } }))
+      .toBe("Gewijzigd: definitie, herkomst van de definitie");
+  });
+  it("telt passages en zegt het oordeel", () => {
+    expect(revisieZin({ actie: "begrip-aangemaakt", detail: { element_ids: ["a", "b"] } })).toBe("Aangemaakt (2 passages)");
+    expect(revisieZin({ actie: "begrip-gekoppeld", detail: { element_ids: [] } })).toBe("Passages gekoppeld");
+    expect(revisieZin({ actie: "koppeling-gewijzigd", detail: { beoordeling: "akkoord" } })).toBe("Passage beoordeeld: akkoord");
+    expect(revisieZin({ actie: "iets-nieuws", detail: {} })).toBe("iets-nieuws");
+  });
+});
+
+it("eigenschappen gaan heen en terug als rijen, zonder lege sleutels", async () => {
+  const { naarRijen, uitRijen } = await import("./begrippen");
+  expect(naarRijen({ a: "1", b: "2" })).toEqual([["a", "1"], ["b", "2"]]);
+  expect(uitRijen([["a", "1"], ["  ", "weg"], [" b ", "2"], ["a", "3"]])).toEqual({ a: "3", b: "2" });
+});

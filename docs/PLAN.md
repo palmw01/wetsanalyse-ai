@@ -1,6 +1,6 @@
 # Plan — wetsanalyse-ai
 
-Soort: *plan* (zie [`README.md`](README.md)) · Bijgewerkt: 6 oktober 2026
+Soort: *plan* (zie [`README.md`](README.md)) · Bijgewerkt: 14 oktober 2026
 
 Dit is het **enige plan** van het project. Het vervangt de losse plannen voor de workbench, het
 herkomstspoor, werkgebieden en begrippen en de kennisbank. Hier staat wat er openstaat, niet wat er
@@ -241,7 +241,12 @@ Bronnen:
 - het boek, hoofdstuk 3, stap 3.
 
 Alle drie zijn lokaal-only. Daarnaast is gebruikt:
-[NL-SBB 10 okt 2024](https://docs.geostandaarden.nl/nl-sbb/def-st-nl-sbb-20241010/).
+[NL-SBB 10 okt 2024](https://docs.geostandaarden.nl/nl-sbb/def-st-nl-sbb-20241010/), vastgelegd als
+begrippencontract in [ADR-003](architectuur/adr-003-nl-sbb-begrippencontract.md). Het onderzoek
+naar bronselectie, taalpatronen en retrieval staat in
+[`onderzoek-werkgebied-en-begrippen-2026-10.md`](architectuur/onderzoek-werkgebied-en-begrippen-2026-10.md);
+het INT-terminologieonderzoek in
+[`onderzoek-int-terminologie-2026-10-08/`](wetsanalyse/onderzoek-int-terminologie-2026-10-08/README.md).
 
 **Methodische uitgangspunten.**
 1. Verschillende formuleringen kunnen één begrip aanduiden, ook over artikelen en regelingen heen.
@@ -264,6 +269,18 @@ betekenisgroepen en geen analysebegrippen; de JAS-begrippen in de vocabulaire zi
 `frontend/lib/graaf/`: een samenhangsgraaf per bepaling (`/v1/annotatie/samenhang`), die
 de tab *Samenhang* en de werkgebiedgraaf als basis kunnen hergebruiken. De runstore overleeft een procesuitval nog niet. De keten `hybrid_v1`
 hoeft niet te veranderen.
+
+Voor het vinden van bronnen ligt er al het volgende:
+- `overzicht_bouwen` (`tools/graph-qa/agent/overzicht.py`) zoekt deterministisch op tekst, opbouw,
+  definities en trefwoorden. Hij volgt geen verwijzingen, gebruikt geen semantiek en geeft geen rol
+  of bewijs per bepaling.
+- De graaf kent verwijzingen (`bwb:verwijstNaar`, gereïficeerd als `bwb:Verwijzing`) met
+  `queries.follow_verwijzingen` en `referenced_by`. Ze zijn **niet getypeerd naar functie**:
+  `soort` is alleen INTERN, EXTERN of TEKSTUEEL.
+- `bwb_similarity` is SemanticVectors op alleen `bwb:tekst`, zonder context.
+- De graaf houdt één toestand per regeling. Een peildatum is in de praktijk dus de actuele
+  toestand.
+- Er is geen retrieval-benchmark: `eval/retrieval_smoke.py` toetst alleen of er iets terugkomt.
 
 #### Werkgebied als node
 
@@ -288,6 +305,47 @@ revisie. Het heeft een eigen begrippenkader en bronselecties.
   projectie komt er een named graph `urn:wa:graph:werkgebied:<uuid>`. Voor publiceerbare HTTP-URI's
   moet later een eigen domein gekozen worden.
 
+#### Bronnen vinden voor een werkgebied
+
+Lex stelt bepalingen voor, de analist neemt ze op. Een voorstel is een **kandidaatbepaling**, een
+eigen object naast de bronselectie:
+
+- **Herkomst en bewijs per methode**: welke methode vond hem, en waarop (verwijzings-ID,
+  definitie, zoekhit). Vinden meerdere methoden dezelfde bepaling, dan is dat één kandidaat met
+  meerdere bewijsgronden.
+- **Rol**: *kern* (regelt het onderwerp zelf), *afhankelijkheid* (nodig om een kernbepaling te
+  begrijpen of toe te passen: definitie, uitzondering, termijn) of *aanverwant* (mogelijk
+  relevant, noodzaak niet aangetoond).
+- **Status**: voorgesteld, opgenomen (wordt een bronselectie met rol analyseren of contextbron),
+  later, of **uitgesloten met reden**. Een uitgesloten kandidaat stelt Lex niet opnieuw voor.
+
+Ontdekmethoden, van sterk naar zwak bewijs, allemaal zonder model:
+
+1. handmatig, vanuit zoeken, een annotatie of de graaf;
+2. verwijzingen in en uit (`queries.follow_verwijzingen`, `referenced_by`);
+3. definities van termen die in de selectie voorkomen (`bwb:definieertBegrip`);
+4. tekst en opbouw: de queries achter `overzicht_bouwen`;
+5. `bwb_similarity`, als zwakste signaal. Semantische gelijkenis is geen bewijs van juridische
+   toepasselijkheid.
+
+**Verwijzingen gericht volgen**, volgens het beleid in de skill
+([`verwijzingen-volgen.md`](../.claude/skills/wetsanalyse/references/verwijzingen-volgen.md)):
+diepte 1 vanaf de kernbepalingen, verder alleen langs een concrete afhankelijkheid. Blind
+uitbreiden langs de graaf maakt de selectie aantoonbaar slechter (zie het onderzoek). **Nieuw
+nodig:** de functie van een verwijzing deterministisch afleiden uit de context van haar anker, bijv.
+een anker in een brondefinitie → *definitie*, na "in afwijking van" → *uitzondering*. Dat is een
+afleiding in de leeslaag, geen importwijziging. Zolang die er niet is, toont de werkplek "functie
+onbekend".
+
+**Analysevraag en deelvragen** (optioneel). De analist kan de analysevraag opdelen in deelvragen
+("welke termijn geldt?", "wat is het startmoment?"). Een kandidaat kan een deelvraag dekken. De
+**dekkingscheck** toont welke deelvragen, en welke JAS-bouwstenen van de kernbepalingen (subject,
+object, rechtsfeit, voorwaarde, tijd, uitzondering), nog zonder bron zijn. Dat is een onderbouwde
+volledigheidsindicatie binnen de vraag, geen garantie.
+
+Uitbreiden en afbakenen horen bij elkaar: een selectie van honderd bepalingen waar er twaalf nodig
+zijn is onbruikbaar, ook als ze alles bevat.
+
 #### Elementen, groepen en begrippen
 
 | Object | Betekenis |
@@ -307,6 +365,18 @@ revisie. Het heeft een eigen begrippenkader en bronselecties.
 - Een element kan in meerdere kandidaatgroepen staan. Als duiding heeft het binnen één werkgebied en
   geldigheidscontext in beginsel één **primair** begrip. Andere rollen worden apart vastgelegd.
 - Verschillende JAS-klassen in één groep zijn een controlesignaal, geen verbod.
+- **Een term is nog geen begrip.** Een termkandidaat (een formulering met lemma en woordgroep) mag
+  zonder begrip blijven staan, als "zwevende term" zoals in TermWerk. De begrippenwerkplek heeft
+  daarvoor een lijst *Termkandidaten*.
+- **Kwalificatie is geen synoniem.** "X geldt als Y" en "X wordt aangemerkt als Y" leveren een
+  kwalificatie- of fictierelatie op, nooit automatisch één begrip. "Onder X wordt mede verstaan"
+  is een inclusie, "onder X wordt niet verstaan" een uitsluiting en dus negatief bewijs.
+- **Bewijs heeft een richting.** Elk signaal bij een kandidaatkoppeling is *steun*, *tegen* of
+  *onbeslist*. Er is geen gecombineerde score. De uitkomst van een vergelijking is een van: zelfde
+  betekenis, verwant maar ander begrip, betekenisverschil, onbeslist.
+- **Begripstype als werkindeling**: entiteit, actor, toestand, gebeurtenis, eigenschap, relatie.
+  Dat helpt bij het kiezen van een definitiepatroon en is geen nieuwe JAS-klasse. Een waarde als
+  "zes weken" is een tijdsaanduiding of parameterwaarde, geen begrip.
 
 #### Werkwijze voor de gebruiker
 
@@ -363,6 +433,8 @@ De verdeling over tabellen en JSON-velden wordt bij de implementatie bepaald.
 |---|---|
 | `Werkgebied` | ID/IRI, naam, analysevraag, afbakening, peildatum, status, revisie, maker, tijdstippen |
 | `Bronselectie` | werkgebied, canonieke bron-IRI, node/subtree, analyse/context, reden, snapshot, geverifieerde bronstand |
+| `Kandidaatbepaling` | werkgebied, bron-IRI, methoden met bewijs, rol (kern/afhankelijkheid/aanverwant), gedekte deelvragen, status, reden bij uitsluiten |
+| `Deelvraag` | werkgebied, vraag, volgorde, dekkingsstand |
 | `Begrippenkader` | ID/IRI, werkgebied, naam, revisie; eerst één per werkgebied |
 | `Analysemanifest` | onwijzigbare run-input: scope-revisie, bronstanden, element-ID's en -hashes, laagrevisies, context |
 | `Betekenisgroep` | manifest/run, kandidaatleden, motivatie, aandachtspunten, voorgesteld begrip, status |
@@ -385,6 +457,7 @@ nieuw begrip op met een opvolgingsrelatie; een tekstuele verbetering blijft een 
 |---|---|
 | `/` en `/{id}` | aanmaken, lijst, detail, wijzigen met revisiecontrole |
 | `/{id}/bronnen`, `/{id}/elementen` | scope onderhouden; volledige, gepagineerde inventaris |
+| `/{id}/kandidaten`, `/{id}/deelvragen` | kandidaatbepalingen met bewijs; opnemen, uitsluiten met reden; dekkingscheck |
 | `/{id}/begrippen-runs` | starten met manifest, status, stoppen, gerichte herstart |
 | `/{id}/groepen` | voorstellen lezen; leden wijzigen, splitsen, combineren |
 | `/{id}/begrippen` | zoeken, concepten, revisies, beoordelingen |
@@ -401,13 +474,18 @@ andere herhaling geeft een conflict met een bruikbare vergelijking.
    context. Normalisatie bepaalt nooit zelf de identiteit van een begrip.
 3. Per groep worden de volledige passages, bovenliggende context, brondefinities en bestaande
    begrippen opgehaald.
-4. Het model levert getypeerde voorstellen en voert geen element-ID's of vindplaatsen in die niet
-   bestaan.
+4. Een deterministische beslistabel zet de signalen om in voorstellen. Alleen twijfelparen gaan
+   naar een klein model, dat kiest op kandidaat-ID en geen element-ID's of vindplaatsen invoert die
+   niet bestaan.
 5. Deterministische controles op ID's, bereik, hashes en verplichte velden. Inhoudelijke signalen
    zijn onder meer tegengestelde contexten, circulaire definities en voorbeelden die niet bij de
    definitie passen. De mens beslist.
 6. De api bewaart per afgeronde batch en SSE meldt echte voortgang. Na herladen zijn de voorstellen
    er nog.
+
+Hoe Lex groepen voorstelt staat in [ADR-004](architectuur/adr-004-begrippenketen.md): een
+hybride keten zoals `hybrid_v1`, met signalen met bewijs en richting, een vaste beslistabel en een
+model alleen bij twijfel.
 
 Grote werkgebieden gaan in begrensde batches, gevolgd door een vergelijking tussen batches. Een
 gedeeltelijk resultaat wordt als gedeeltelijk gemeld, met het behandelde bereik. **Nieuw nodig:**
@@ -415,8 +493,10 @@ persistente batches/checkpoints en herstart op hetzelfde manifest.
 
 **Projectie** na commit, zoals bij annotaties: `skos:Concept`/`prefLabel`/`definition`/`inScheme`,
 `skos:ConceptScheme` voor het kader, bronverwijzingen volgens het NL-SBB-profiel, en werkgebied,
-selectie en review als eigen uitbreidingen. Dit is een beoogde mapping, nog geen claim van
-conformiteit. JAS-classificatie en begripsrelaties krijgen eigen predicaten. Een JAS-label maakt een
+selectie en review als eigen uitbreidingen. NL-SBB is vanaf levering 2 het datacontract van
+begrippen, niet alleen het exportformaat
+([ADR-003](architectuur/adr-003-nl-sbb-begrippencontract.md)). Conform heet alleen wat tegen de
+SHACL van de vastgepinde versie gevalideerd is. JAS-classificatie en begripsrelaties krijgen eigen predicaten. Een JAS-label maakt een
 begrip geen `skos:narrower` van het methodebegrip. Juridische relaties worden niet platgeslagen tot
 `skos:related`. Later krijgt Lex getypeerde begripsleestools (filters: werkgebied, status,
 geldigheid). Begrippen zijn analyse-uitkomsten en nooit wettelijke definities.
@@ -440,10 +520,17 @@ geldigheid). Begrippen zijn analyse-uitkomsten en nooit wettelijke definities.
 
 | Levering | Resultaat | Acceptatie |
 |---|---|---|
-| 1. Werkgebied en scope | node, bronselecties, api-opslag, tabs Bronnen/Elementen, eenvoudige samenhang | hetzelfde artikel in twee werkgebieden; een wijziging in de ene selectie raakt de andere niet |
-| 2. Begrippenwerkplek | begripskaart, elementselectie, koppelingen, beoordeling, historie, JSON/CSV-export | uit meerdere annotaties één begrip maken en elke passage terugvinden |
-| 3. Voorstellen van Lex | groeperen, formuleren, bestaand begrip zoeken, splitsen/combineren, hervatbare batches | verschillende formuleringen met gelijke betekenis gekoppeld; gelijke woorden met andere betekenis gescheiden |
+| 1. Werkgebied en scope | node, bronselecties, api-opslag, tabs Bronnen/Elementen, eenvoudige samenhang; kandidaten uit verwijzingen en definities, uitsluiten met reden | hetzelfde artikel in twee werkgebieden; een wijziging in de ene selectie raakt de andere niet; een uitgesloten kandidaat komt niet terug |
+| 2. Begrippenwerkplek | begripskaart volgens NL-SBB (ADR-003), elementselectie, koppelingen, beoordeling, historie, JSON/CSV-export | uit meerdere annotaties één begrip maken en elke passage terugvinden |
+| 3. Voorstellen van Lex | groeperen, formuleren, bestaand begrip zoeken, splitsen/combineren, hervatbare batches; patroonregister voor begripsrelaties (kwalificatie, inclusie, uitsluiting, hiërarchie) en termkandidaten op de bestaande taalprovider (ADR-002); kandidaten uit tekst en semantiek met dekkingscheck | verschillende formuleringen met gelijke betekenis gekoppeld; gelijke woorden met andere betekenis gescheiden; elk voorstel noemt patroon-ID en bronfragment |
 | 4. Onderhoud en uitwisseling | gerichte herbeoordeling, relaties, begrippengraaf, RDF-export, Lex leest begrippen | een gewijzigde dragende passage verschijnt bij de geraakte begrippen; de oude bewijsstand blijft |
+
+**Stand (15 okt 2026).** Levering 1 is gebouwd (#659 api, #660 pagina, #661 samenhang en opnemen
+vanuit graaf en annotatie). Levering 2 is in bouw: de api in PR D, de werkplek in PR E. Besloten:
+elke analist mag een begrip accorderen (de audit legt vast wie). De poort vraagt naam, definitie met
+herkomst, context, minstens één aanduidende passage, en dragende koppelingen die beoordeeld en
+actueel zijn en op een door een jurist beoordeelde annotatie rusten. Een voorbeeld is een
+kwaliteitssignaal, geen voorwaarde.
 
 **Eerste bouwopdracht:** levering 1 en 2 als één werkend pad met twee artikelen uit verschillende
 regelingen, bestaande annotaties en één beoordeeld begrip met meerdere koppelingen. Buiten deze reeks
@@ -463,7 +550,12 @@ automatische samenvoeging tussen werkgebieden.
 - **Projectie**: reconstrueerbaar uit PostgreSQL.
 - **Proefset**: dezelfde term in een andere context, andere termen met dezelfde betekenis, een
   definitie buiten de scope, en subject/object/voorwaarde. Juristen beoordelen groepering én
-  definitie.
+  definitie. Ook: kwalificatie tegenover synoniem ("geldt als"), inclusie en uitsluiting, en een
+  verwijzing naar een definitie buiten het werkgebied, die als kandidaat moet verschijnen.
+- **Bronselectie**: een door een jurist vastgestelde referentieset van werkgebieden, eerst
+  *Invorderbaarheid van belastingaanslagen*. Meet recall@k én het aandeel overbodige bepalingen,
+  per ontdekmethode apart (ablatie, zie het onderzoek). Een methode die niet aantoonbaar helpt,
+  staat niet standaard aan.
 
 ---
 
@@ -560,16 +652,25 @@ blijft bij de wettekst.
 
 1. **D — bediening**: Lex stelt standaard voor (voorstel van dit plan), de analist begint vanuit een
    eigen selectie, of beide even prominent.
-2. **D — toegang**: gedeelde werkgebieden zoals de annotaties (voorstel), of afgeschermde dossiers
-   met leden en rollen. Dat laatste moet vóór levering 1 besloten zijn.
-3. **D — kaders**: één begrippenkader per werkgebied als start (voorstel), met later expliciet
-   hergebruik tussen kaders.
-4. **C**: blijft de leerlus een doel, en in welke vorm?
-5. **A — scope**: horen relaties (operand, afleiding) en beleidsregels met rekenvoorbeelden bij
+2. **D — toegang**: *besloten 14 okt 2026* – gedeelde werkgebieden, zoals de annotaties.
+3. **D — kaders**: *besloten 15 okt 2026* – één begrippenkader per werkgebied, impliciet: geen eigen
+   object, de IRI `urn:wa:kader:<werkgebied>` is afgeleid. Hergebruik tussen kaders komt later en
+   vraagt dan wel een eigen object.
+4. **D — deelvragen**: optioneel bij een werkgebied (voorstel), of verplicht zodat de
+   dekkingscheck altijd iets heeft om tegen te meten.
+5. **D — SHACL bij accorderen**: blokkerend of diagnostisch zoals bij de JAS-projectie (zie
+   ADR-003).
+6. **C**: blijft de leerlus een doel, en in welke vorm?
+7. **A — scope**: horen relaties (operand, afleiding) en beleidsregels met rekenvoorbeelden bij
    activiteit 2? Zie het onderzoek §17, punten 7 en 9.
-6. **A — Rechtsbetrekking zonder genoemde partijen** (jurist): telt een impliciete partij (de
+8. **A — Rechtsbetrekking zonder genoemde partijen** (jurist): telt een impliciete partij (de
    ontvanger, de belastingschuldige) voor een Rechtsbetrekking (H2:44: een relatie tussen twee
    rechtssubjecten), of is "Een belastingaanslag is invorderbaar …" een rechtsgevolg (Rechtsfeit)?
    Het model wijst de centrale norm hier af, de referentie (IW01, provisional) zegt Rechtsbetrekking.
    Na het oordeel wordt het een deterministische regel (klasse-invariant), met een meting – niet
    eerder, want anders legt de code een methodekeuze vast die nog open is.
+9. **GraphDB-licentie**: de Free-sleutel volstaat voor de proeftuin. Voor gebruik in een
+   organisatie moet Graphwise de licentievorm bevestigen; Enterprise geeft meer gelijktijdige
+   queries, enterprise-authenticatie en clustering. Overstappen naar Jena/Fuseki is geen doel: dan
+   vervallen de ingebouwde MCP-server, de Lucene-connector en de similarity-plugin waar graph-qa
+   en de importer op leunen.

@@ -49,13 +49,28 @@ import type {
   BerichtInvoer,
   BerichtOut,
   BerichtPublicatieIn,
+  Begrip,
+  BegripInhoud,
+  BegripRevisie,
+  BegrippenLijst,
   Bron,
+  Bronselectie,
+  BronselectieInvoer,
+  BronRol,
   DocumentSamenvatting,
   Gesprek,
   GesprekSamenvatting,
+  Inventaris,
+  KoppelBeoordeling,
+  KoppelRol,
   OngelezenAantalOut,
   RunStart,
   VoorstelElement,
+  Werkgebied,
+  WerkgebiedAuditRegel,
+  WerkgebiedInvoer,
+  WerkgebiedSamenvatting,
+  WerkgebiedWijziging,
 } from "./types";
 import { pathSegment } from "./url";
 
@@ -954,4 +969,161 @@ export async function zetPublicatie(id: number, gepubliceerd: boolean): Promise<
 export async function verwijderBericht(id: number): Promise<void> {
   const res = await fetch(`/api/admin/berichten/${id}`, { method: "DELETE" });
   if (!res.ok) throw await parseError(res);
+}
+
+// --- Werkgebieden (gedeeld; de BFF zet de sessie-gebruiker als actor) --------
+
+const wg = (id: string, ...rest: string[]) =>
+  `/api/werkgebieden/${[id, ...rest].map(pathSegment).join("/")}`;
+const jsonInit = (method: string, body: unknown): RequestInit => ({
+  method,
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body),
+});
+
+export async function lijstWerkgebieden(gearchiveerd = false): Promise<WerkgebiedSamenvatting[]> {
+  const qs = gearchiveerd ? "?gearchiveerd=true" : "";
+  const res = await fetch(`/api/werkgebieden${qs}`, { cache: "no-store" });
+  return (await json<{ werkgebieden: WerkgebiedSamenvatting[] }>(res)).werkgebieden;
+}
+
+export async function maakWerkgebied(invoer: WerkgebiedInvoer): Promise<Werkgebied> {
+  return json<Werkgebied>(await fetch("/api/werkgebieden", jsonInit("POST", invoer)));
+}
+
+export async function haalWerkgebied(id: string): Promise<Werkgebied> {
+  return json<Werkgebied>(await fetch(wg(id), { cache: "no-store" }));
+}
+
+export async function wijzigWerkgebied(id: string, wijziging: WerkgebiedWijziging): Promise<Werkgebied> {
+  return json<Werkgebied>(await fetch(wg(id), jsonInit("PATCH", wijziging)));
+}
+
+export async function archiveerWerkgebied(id: string, verwachteRevisie: number): Promise<Werkgebied> {
+  const qs = new URLSearchParams({ verwachte_revisie: String(verwachteRevisie) });
+  return json<Werkgebied>(await fetch(`${wg(id)}?${qs}`, { method: "DELETE" }));
+}
+
+/** Neemt een bepaling op. `nieuw` is false als dezelfde bron met dezelfde rol en hetzelfde bereik er
+ *  al stond (de api antwoordt dan 200 in plaats van 201, zonder revisiesprong). */
+export async function voegBronToe(
+  id: string,
+  invoer: BronselectieInvoer,
+): Promise<{ selectie: Bronselectie; werkgebied: Werkgebied; nieuw: boolean }> {
+  const res = await fetch(wg(id, "bronnen"), jsonInit("POST", invoer));
+  const body = await json<{ selectie: Bronselectie; werkgebied: Werkgebied }>(res);
+  return { ...body, nieuw: res.status === 201 };
+}
+
+export async function wijzigBron(
+  id: string,
+  selectieId: string,
+  wijziging: { verwachte_revisie: number; rol?: BronRol; reden?: string },
+): Promise<Werkgebied> {
+  return json<Werkgebied>(await fetch(wg(id, "bronnen", selectieId), jsonInit("PATCH", wijziging)));
+}
+
+export async function verwijderBron(id: string, selectieId: string, verwachteRevisie: number): Promise<Werkgebied> {
+  const qs = new URLSearchParams({ verwachte_revisie: String(verwachteRevisie) });
+  return json<Werkgebied>(await fetch(`${wg(id, "bronnen", selectieId)}?${qs}`, { method: "DELETE" }));
+}
+
+export async function haalInventaris(id: string): Promise<Inventaris> {
+  return json<Inventaris>(await fetch(wg(id, "elementen"), { cache: "no-store" }));
+}
+
+export async function haalWerkgebiedAudit(id: string, limit = 100): Promise<WerkgebiedAuditRegel[]> {
+  const res = await fetch(`${wg(id, "audit")}?limit=${limit}`, { cache: "no-store" });
+  return (await json<{ audit: WerkgebiedAuditRegel[] }>(res)).audit;
+}
+
+/** Neemt één bepaling op in een werkgebied vanaf een plek waar dat werkgebied niet in beeld is (de
+ *  annotatiepagina). Er is dus geen revisie in beeld: de actuele wordt opgehaald. Bij een 412 – iemand
+ *  wijzigde het werkgebied tussen ophalen en opnemen – één keer opnieuw, want de bedoeling ("deze
+ *  bepaling, met deze rol, erbij") hangt niet af van de rest van het werkgebied, en opnemen is
+ *  idempotent. Een tweede 412 gaat als fout terug. */
+export async function neemOpInWerkgebied(
+  id: string,
+  invoer: { bron_iri: string; rol: BronRol },
+): Promise<{ werkgebied: Werkgebied; nieuw: boolean }> {
+  for (let poging = 0; ; poging++) {
+    const { revisie } = await haalWerkgebied(id);
+    try {
+      return await voegBronToe(id, { ...invoer, verwachte_revisie: revisie });
+    } catch (e) {
+      if (poging > 0 || !(isApiError(e) && e.status === 412)) throw e;
+    }
+  }
+}
+
+// --- Begrippen (per werkgebied; elke mutatie stuurt de revisie van het begrip in beeld mee) -----
+
+export async function lijstBegrippen(id: string): Promise<BegrippenLijst> {
+  return json<BegrippenLijst>(await fetch(wg(id, "begrippen"), { cache: "no-store" }));
+}
+
+export async function maakBegrip(
+  id: string,
+  invoer: { inhoud: Partial<BegripInhoud> & { naam: string }; element_ids?: string[]; rol?: KoppelRol },
+): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen"), jsonInit("POST", invoer)));
+}
+
+export async function haalBegrip(id: string, begripId: string): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", begripId), { cache: "no-store" }));
+}
+
+/** De api vervangt de hele inhoud; een veld weglaten maakt het leeg. */
+export async function wijzigBegrip(id: string, begripId: string, verwachteRevisie: number, inhoud: BegripInhoud): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", begripId),
+    jsonInit("PATCH", { verwachte_revisie: verwachteRevisie, inhoud })));
+}
+
+export async function verwijderBegrip(id: string, begripId: string, verwachteRevisie: number): Promise<void> {
+  const qs = new URLSearchParams({ verwachte_revisie: String(verwachteRevisie) });
+  await json<unknown>(await fetch(`${wg(id, "begrippen", begripId)}?${qs}`, { method: "DELETE" }));
+}
+
+export async function koppelElementen(
+  id: string,
+  begripId: string,
+  invoer: { verwachte_revisie: number; element_ids: string[]; rol?: KoppelRol; motivatie?: string },
+): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "koppelingen"), jsonInit("POST", invoer)));
+}
+
+export async function wijzigKoppeling(
+  id: string,
+  begripId: string,
+  koppelingId: string,
+  wijziging: { verwachte_revisie: number; rol?: KoppelRol; motivatie?: string; beoordeling?: KoppelBeoordeling },
+): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "koppelingen", koppelingId), jsonInit("PATCH", wijziging)));
+}
+
+export async function ontkoppel(id: string, begripId: string, koppelingId: string, verwachteRevisie: number): Promise<Begrip> {
+  const qs = new URLSearchParams({ verwachte_revisie: String(verwachteRevisie) });
+  return json<Begrip>(await fetch(`${wg(id, "begrippen", begripId, "koppelingen", koppelingId)}?${qs}`, { method: "DELETE" }));
+}
+
+export async function accordeerBegrip(id: string, begripId: string, verwachteRevisie: number): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "accorderen"),
+    jsonInit("POST", { verwachte_revisie: verwachteRevisie })));
+}
+
+export async function heropenBegrip(id: string, begripId: string, verwachteRevisie: number): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "heropenen"),
+    jsonInit("POST", { verwachte_revisie: verwachteRevisie })));
+}
+
+export async function haalBegripRevisies(id: string, begripId: string): Promise<BegripRevisie[]> {
+  const res = await fetch(wg(id, "begrippen", begripId, "revisies"), { cache: "no-store" });
+  return (await json<{ revisies: BegripRevisie[] }>(res)).revisies;
+}
+
+/** Het begrippenkader van het werkgebied als bestand; de naam komt van de server. */
+export async function exporteerBegrippen(id: string, formaat: "json" | "csv"): Promise<void> {
+  const res = await fetch(`${wg(id, "begrippen", "export")}?formaat=${formaat}`, { cache: "no-store" });
+  if (!res.ok) throw await parseError(res);
+  await downloadAntwoord(res, `begrippen.${formaat}`);
 }
