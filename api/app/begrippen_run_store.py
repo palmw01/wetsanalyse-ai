@@ -206,8 +206,15 @@ async def groepen(werkgebied_id: str) -> dict:
         run = (await conn.execute(select(r).where(r.c.werkgebied_id == werkgebied_id, r.c.status == "klaar")
                                   .order_by(r.c.gestart.desc()).limit(1))).first()
         if run is None:
-            return {"run": None, "groepen": [], "passages": {}}
+            return {"run": None, "groepen": [], "passages": {}, "verdieping": None}
         ids = run.uitkomst.get("groep_ids", [])
+        verdieping = run.verdieping
+        if verdieping:
+            # Na de verdieping gelden de groepen na hergroeperen (fase C). Een groep van de keten
+            # met een besluit blijft zichtbaar, ook als het model haar in een grotere opnam.
+            besloten = [x.id for x in (await conn.execute(select(g.c.id).where(
+                g.c.werkgebied_id == werkgebied_id, g.c.id.in_(ids), g.c.besluit != "open"))).all()] if ids else []
+            ids = list(dict.fromkeys([*verdieping["groep_ids"], *besloten]))
         rows = {x.id: x for x in (await conn.execute(select(g).where(
             g.c.werkgebied_id == werkgebied_id, g.c.id.in_(ids)))).all()} if ids else {}
     passages = {f["element_id"]: f for f in run.manifest["formuleringen"]}
@@ -219,21 +226,25 @@ async def groepen(werkgebied_id: str) -> dict:
         if x is None:
             continue
         leden = set(x.leden)
+        termen = {_norm(x.voorstel["naam"]), *(_norm(t) for t in (x.kaart or {}).get("alternatieve_termen", []))}
         lijkt = [{"begrip_id": b["id"], "naam": b["inhoud"]["naam"],
                   "gedeeld": sorted(leden & set(b["element_ids"]))}
                  for b in begrippen
-                 if leden & set(b["element_ids"]) or _norm(x.voorstel["naam"]) in
+                 if leden & set(b["element_ids"]) or termen &
                  {_norm(b["inhoud"]["naam"]), *(_norm(t) for t in b["inhoud"].get("alternatieve_termen", []))}]
         uit.append({"id": x.id, "aandacht": x.aandacht, "voorstel": x.voorstel, "uitleg": x.uitleg,
                     "conflicten": x.conflicten, "besluit": x.besluit, "reden": x.reden, "begrip_id": x.begrip_id,
-                    "besloten_door": x.besloten_door,
+                    "besloten_door": x.besloten_door, "door": x.door or "regel", "kaart": x.kaart,
                     "leden": [_passage(passages[e], labels) for e in x.leden if e in passages],
                     "lijkt_op": lijkt})
     # Twijfelvragen en relaties noemen ook elementen buiten een groep; de werkplek toont ze letterlijk.
     genoemd = {e for x in (*run.uitkomst.get("vragen", []), *run.uitkomst.get("relaties", []))
                for e in (x["van"], x["naar"])}
     return {"run": _run(run), "groepen": uit,
-            "passages": {e: _passage(passages[e], labels) for e in sorted(genoemd) if e in passages}}
+            "passages": {e: _passage(passages[e], labels) for e in sorted(genoemd) if e in passages},
+            # De oordelen van het model per twijfelvraag, en welke vragen na de verdieping open zijn.
+            "verdieping": {"vragen_open": verdieping["vragen"], "oordelen": verdieping["oordelen"],
+                           "model": verdieping["model"], "op": verdieping.get("op")} if verdieping else None}
 
 
 def _passage(f: dict, labels: dict[str, str]) -> dict:
@@ -289,19 +300,50 @@ async def overnemen(werkgebied: dict, o: Overname, actor: str, resolve: Resolver
         # Een groep overnemen zonder één van haar eigen passages is geen overname van die groep.
         raise HTTPException(422, "Kies minstens één passage uit de gekozen groepen.")
     inhoud: dict = {"naam": o.naam}
-    # De letterlijke brondefinitie gaat alleen mee als er precies één is: bij combineren kiest de
-    # analist zelf.
-    definities = {(x.voorstel.get("definitie") or "", x.voorstel.get("definitie_vindplaats") or "")
-                  for x in rows if x.voorstel.get("definitie")}
+    # De kaart van de verdieping (fase C) vult het begrip; zonder kaart de letterlijke definitie van
+    # de keten. Een definitie gaat alleen mee als er precies één is: bij combineren kiest de analist.
+    kaarten = [x.kaart for x in rows if x.kaart]
+    if len(kaarten) == 1:
+        k = kaarten[0]
+        inhoud.update(alternatieve_termen=[t for t in k.get("alternatieve_termen", []) if t != o.naam],
+                      context=k.get("context", ""), begripstype=k.get("begripstype") or "")
+    labels: dict[str, str] = {}
+    if kaarten:
+        r = db.begrippen_runs
+        async with db.get_engine().connect() as conn:
+            run = (await conn.execute(select(r.c.manifest).where(r.c.werkgebied_id == werkgebied["id"], r.c.status == "klaar")
+                                      .order_by(r.c.gestart.desc()).limit(1))).first()
+        labels = {b["bron_iri"]: b.get("label", "") for b in (run.manifest["bronnen"] if run else [])}
+    definities = {_definitie_uit(x, labels) for x in rows} - {None}
     if o.met_definitie and len(definities) == 1:
-        definitie, vindplaats = definities.pop()
-        inhoud.update(definitie=definitie, definitie_herkomst="letterlijk",
-                      onderbouwing=f"Letterlijk uit {vindplaats}." if vindplaats else "")
+        definitie, herkomst, onderbouwing = definities.pop()
+        inhoud.update(definitie=definitie, definitie_herkomst=herkomst, onderbouwing=onderbouwing)
     begrip = await begrip_store.maak(werkgebied, BegripInvoer(inhoud=BegripInhoud(**inhoud), element_ids=leden,
                                                               rol=KoppelRol.duiding), actor, resolve)
     if o.groep_ids:
         await _besluit(werkgebied["id"], o.groep_ids, "overgenomen", actor, begrip_id=begrip["id"])
     return begrip
+
+
+def _definitie_uit(x, labels: dict[str, str]) -> tuple[str, str, str] | None:
+    """(definitie, herkomst, onderbouwing) van een groep: uit de kaart als die er is, anders het
+    letterlijke voorstel van de keten."""
+    k = x.kaart or {}
+    if k.get("definitie"):
+        frs = k.get("fragmenten") or []
+        if k["herkomst"] == "letterlijk":
+            onderbouwing = f"Letterlijk uit {k.get('definitie_vindplaats')}." if k.get("definitie_vindplaats") else ""
+        else:
+            delen = "; ".join(f"“{f['tekst']}” ({labels.get(f['bron_iri']) or f['bron_iri']})" for f in frs)
+            onderbouwing = ("Samengesteld uit de bron: " if k["herkomst"] == "samengesteld"
+                            else "Geformuleerd door Lex, op grond van: ") + delen + "."
+            if k.get("motivatie"):
+                onderbouwing += f" Toelichting van Lex: {k['motivatie']}"
+        return k["definitie"], k["herkomst"], onderbouwing[:8000]
+    if x.voorstel.get("definitie"):
+        vindplaats = x.voorstel.get("definitie_vindplaats") or ""
+        return x.voorstel["definitie"], "letterlijk", f"Letterlijk uit {vindplaats}." if vindplaats else ""
+    return None
 
 
 async def koppelen(werkgebied: dict, groep_id: str, k: GroepKoppeling, actor: str, resolve: Resolver) -> dict:

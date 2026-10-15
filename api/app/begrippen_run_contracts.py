@@ -87,3 +87,89 @@ class GroepBesluit(BaseModel):
 
 class VraagBesluit(BaseModel):
     antwoord: Literal["samen", "apart"]
+
+
+# --- de verdieping: het model op twijfelparen en kaarten (fase C) --------------------------------
+# De vorm volgt graph-qa `begrippen_pipeline.model` (`ModelOordeel`, `Fragment`, `Kaart`);
+# `tools/graph-qa/tests/test_begrippen_verdieping_run.py` leest deze klassen uit de bron.
+
+Begripstype = Literal["entiteit", "actor", "toestand", "gebeurtenis", "eigenschap", "relatie"]
+
+
+class ModelOordeel(BaseModel):
+    kandidaat_id: str = Field(min_length=1, max_length=64)
+    oordeel: Literal["zelfde_betekenis", "verwant_ander_begrip", "betekenisverschil", "onbeslist"]
+    motivatie: str = Field(default="", max_length=2000)
+    reden: str = Field(default="", max_length=200)
+
+
+class KaartFragment(BaseModel):
+    id: str = Field(pattern=r"^F[0-9a-f]{10}$")
+    bron_iri: str
+    start: int = Field(ge=0)
+    eind: int = Field(gt=0)
+    tekst: str = Field(min_length=1, max_length=8000)
+
+
+class Kaart(BaseModel):
+    groep_id: str = Field(pattern=r"^G[0-9a-f]{6,64}$")
+    naam: str = Field(min_length=1, max_length=200)
+    alternatieve_termen: list[str] = Field(default_factory=list, max_length=50)
+    begripstype: Begripstype | None = None
+    begripstype_door: Literal["regel", "model", ""] = ""
+    context: str = Field(default="", max_length=4000)
+    definitie: str = Field(default="", max_length=8000)
+    herkomst: Literal["letterlijk", "samengesteld", "geformuleerd"] | None = None
+    definitie_bron_iri: str = ""
+    definitie_vindplaats: str = ""
+    fragmenten: list[KaartFragment] = Field(default_factory=list, max_length=60)
+    motivatie: str = Field(default="", max_length=2000)
+    aandacht: Literal["groen", "geel"] = "geel"
+    aandachtspunten: list[str] = Field(default_factory=list, max_length=20)
+
+    @model_validator(mode="after")
+    def _vorm(self) -> "Kaart":
+        if bool(self.definitie) != (self.herkomst is not None):
+            raise ValueError("een definitie heeft een herkomst, en een herkomst een definitie")
+        if self.herkomst in ("samengesteld", "geformuleerd") and not self.fragmenten:
+            raise ValueError("een samengestelde of geformuleerde definitie noemt haar fragmenten")
+        if self.herkomst == "geformuleerd" and self.aandacht != "geel":
+            raise ValueError("een geformuleerde definitie is altijd geel")
+        return self
+
+
+class BatchInvoer(BaseModel):
+    """Eén afgeronde batch: oordelen over twijfelparen óf kaarten."""
+
+    soort: Literal["vraag", "kaart"]
+    ids: list[str] = Field(min_length=1, max_length=50)
+    model: str = Field(min_length=1, max_length=128)
+    promptversie: str = Field(min_length=1, max_length=32)
+    tokens: int = Field(default=0, ge=0)
+    oordelen: list[ModelOordeel] = Field(default_factory=list, max_length=50)
+    kaarten: list[Kaart] = Field(default_factory=list, max_length=50)
+
+    @model_validator(mode="after")
+    def _passend(self) -> "BatchInvoer":
+        if self.soort == "vraag" and ({o.kandidaat_id for o in self.oordelen} != set(self.ids) or self.kaarten):
+            raise ValueError("een vraagbatch heeft precies één oordeel per kandidaat-id, en geen kaarten")
+        if self.soort == "kaart" and ({k.groep_id for k in self.kaarten} != set(self.ids) or self.oordelen):
+            raise ValueError("een kaartbatch heeft precies één kaart per groep-id, en geen oordelen")
+        return self
+
+
+class VerdiepingGroep(UitkomstGroep):
+    door: Literal["regel", "model"] = "regel"
+
+
+class VerdiepingInvoer(BaseModel):
+    """De uitkomst na alle batches: de groepen na hergroeperen, een kaart per groep, alle oordelen en
+    de twijfelvragen die open blijven."""
+
+    manifest_id: str
+    groepen: list[VerdiepingGroep] = Field(default_factory=list, max_length=5000)
+    kaarten: list[Kaart] = Field(default_factory=list, max_length=5000)
+    oordelen: list[ModelOordeel] = Field(default_factory=list, max_length=5000)
+    vragen: list[str] = Field(default_factory=list, max_length=5000)
+    model: str = Field(min_length=1, max_length=128)
+    meting: dict = Field(default_factory=dict)

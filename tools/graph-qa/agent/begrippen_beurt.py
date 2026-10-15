@@ -69,6 +69,28 @@ def samenvatting(naam: str, open_groepen: int, passages: int, vragen: int, al_ge
     return zin + " Open de voorstellen om ze te beoordelen."
 
 
+async def meedenk_aanbod(api: WetsanalyseApi, werkgebied_id: str) -> tuple[str, dict[str, Any] | None]:
+    """Fase C: kan het model meedenken (twijfelpunten, begrippen zonder definitie), dan een zin en een
+    bevestiging erbij – nooit meteen starten. Lukt het ophalen niet, dan geen aanbod: de voorstellen
+    zelf staan er wel."""
+    from .begrippen_verdieping import voorstel_tekst
+    try:
+        wv = await api.haal_verdieping(werkgebied_id)
+    except Exception:  # noqa: BLE001 – een aanbod is bijzaak
+        logger.warning("begrippenbeurt: verdieping niet op te halen", exc_info=True)
+        return "", None
+    if wv.get("verdiept") or not int(wv.get("aantal") or 0):
+        return "", None
+    _, bevestiging = voorstel_tekst("", {"werkgebied_id": werkgebied_id, **wv})
+    vragen, kaarten = len(wv.get("vragen") or []), len(wv.get("kaarten") or [])
+    delen = [x for x in (f"{vragen} {'twijfelpunt' if vragen == 1 else 'twijfelpunten'}" if vragen else "",
+                         f"{kaarten} {'begrip' if kaarten == 1 else 'begrippen'} zonder definitie" if kaarten else "") if x]
+    schat = wv.get("schatting")
+    kosten = f" (naar schatting ~{schat['totaal']:,} tokens)".replace(",", ".") if schat else ""
+    return (f" Wil je dat ik meedenk over {' en '.join(delen)}{kosten}? Dat kost tokens; bevestig als je dat wilt.",
+            bevestiging)
+
+
 async def zonder_api() -> AsyncIterator[dict[str, Any]]:
     """Zonder koppeling met de api is er geen werkgebied en niets om naar terug te schrijven."""
     yield {"type": "error", "message": "Zonder koppeling met de wetsanalyse-api kan Lex geen begrippen voorstellen.",
@@ -95,6 +117,7 @@ async def begrippen_beurt(request: Any, run: Any, *, settings: Settings, user_id
     api = WetsanalyseApi(settings, user_id)
     try:
         artefact: dict[str, Any] | None = None
+        bevestiging: dict[str, Any] | None = None
         try:
             wg = await api.haal_werkgebied(werkgebied_id)
             naam = str(wg.get("naam") or "zonder naam")
@@ -122,19 +145,22 @@ async def begrippen_beurt(request: Any, run: Any, *, settings: Settings, user_id
                 tekst = samenvatting(naam, open_groepen, int(api_run.get("aantal_formuleringen") or 0), vragen,
                                      al_gerekend=uitkomst)
                 artefact = begrippen_artefact(werkgebied_id, str(api_run["id"]), naam)
+                aanbod, bevestiging = await meedenk_aanbod(api, werkgebied_id)
+                tekst += aanbod
 
         if run is not None and run.stop_gevraagd:
             yield {"type": "done"}
             return
         yield {"type": "token", "content": tekst}
-        bericht = {"rol": "assistant", "tekst": tekst, "denk": "\n".join(denk), "run_id": run_id,
-                   **({"artefact": artefact} if artefact else {})}
+        extra = {**({"artefact": artefact} if artefact else {}),
+                 **({"bevestiging": bevestiging} if bevestiging else {})}
+        bericht = {"rol": "assistant", "tekst": tekst, "denk": "\n".join(denk), "run_id": run_id, **extra}
         try:
             await api.voeg_bericht_toe(gesprek_id, bericht)
         except GesprekVerdwenen:
             yield {"type": "done"}
             return
-        yield {"type": "opgeslagen", "run_id": run_id, **({"artefact": artefact} if artefact else {})}
+        yield {"type": "opgeslagen", "run_id": run_id, **extra}
         yield {"type": "done"}
     except WetsanalyseApiFout as fout:
         logger.error("begrippenbeurt: api-fout", extra={"categorie": "technisch", "run_id": run_id,

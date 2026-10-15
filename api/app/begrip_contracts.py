@@ -52,6 +52,8 @@ class BegripInhoud(BaseModel):
     # Dezelfde vaste lijst als bij een annotatie-element (`annotatie_v2_contracts.Element`).
     jas_subtype: str = Field(default="", pattern=r"^(|variabele|variabelewaarde|parameter|parameterwaarde|delegatiebevoegdheid|delegatie-invulling)$")
     geldigheid: str = Field(default="", max_length=1000)
+    # Werkindeling (PLAN §D), geen JAS-klasse: entiteit, actor, toestand, gebeurtenis, eigenschap, relatie.
+    begripstype: str = Field(default="", pattern=r"^(|entiteit|actor|toestand|gebeurtenis|eigenschap|relatie)$")
     definitie: str = Field(default="", max_length=8000)
     definitie_herkomst: Herkomst | None = None
     uitleg: str = Field(default="", max_length=8000)

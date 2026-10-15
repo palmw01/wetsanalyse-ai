@@ -330,6 +330,31 @@ bouwt de invoer, toetst en bewaart de uitkomst, en legt de besluiten vast.
   `groep-*`, `vraag-beantwoord`). Een besluit wijzigt nooit annotaties.
 - Bekend: overnemen maakt eerst het begrip en legt daarna het besluit vast, in twee transacties.
 
+**De verdieping** (`begrippen_verdieping.py`, fase C): het model op twijfelparen en kaarten, bovenop de
+laatste klare run. graph-qa rekent (`agent/begrippen_verdieping.py`), de api bewaart en toetst.
+
+- `GET …/verdieping` is de **werkvoorraad**: twijfelvragen (behalve `Z-RELATIE-GAAT-VOOR`) en groepen
+  zonder definitie, min wat in een klare batch zit; plus de klare batches, een schatting (mediaan
+  tokens per item over de laatste 20 batches van de gebruiker; anders `null`) en het budget. `aantal`
+  is wat een `bevestiging` (`soort: "begrippen_verdiepen"`) noemt.
+- `PUT …/begrippen-runs/{run}/batches/{batch_id}` bewaart **één afgeronde batch** (`begrippen_batches`;
+  alleen klare batches staan erin, dus een herstart doet de rest). Idempotent op (run, batch-id) +
+  inhoud; een andere inhoud onder dezelfde id 409. Een vraagbatch noemt alleen twijfelvragen van de run.
+- `PUT …/begrippen-runs/{run}/verdieping` zet de uitkomst: de groepen na hergroeperen (ook nieuwe,
+  `door: model`) met hun kaart, de oordelen en de vragen die open blijven, in `begrippen_runs.verdieping`.
+  Idempotent op inhoud; daarna geen batches meer.
+- **De garanties toetst de api zelf** tegen het manifest (`garanties`, dezelfde codes als graph-qa
+  `toetsen.garanties`): fragment-id volgt uit bron en offsets (`fragment_id`, zelfde hash), de tekst
+  staat letterlijk op de offsets, een letterlijke definitie staat in haar bron, een samengestelde is
+  precies haar fragmenten (`SCHEIDING`). Anders 422 `garantie` en wordt er niets bewaard.
+- `GET …/groepen` geeft na de verdieping de groepen ná hergroeperen, plus elke groep van de keten met
+  een besluit; per groep `door` en `kaart`, en bovenaan `verdieping` (open vragen, oordelen, model).
+  `lijkt_op` kijkt ook naar de alternatieve termen van de kaart.
+- **Overnemen** vult het begrip uit de kaart: alternatieve termen, context, `begripstype` en de
+  definitie met haar herkomst; de onderbouwing noemt de fragmenten met vindplaats en de toelichting van
+  Lex. Een definitie gaat alleen mee als er precies één is.
+- Tests: `tests/test_begrippen_verdieping.py`.
+
 ## Bronnen vinden met Lex
 
 `bronnen_runs.py`, `bronnen_run_store.py`, `bronnen_run_contracts.py`; het ontwerp staat in PLAN
@@ -374,7 +399,7 @@ invoer vast, toetst en bewaart de kandidaten, en legt de besluiten vast.
   (`tool_executions`). Een antwoord op een overzichtsvraag draagt het
   `overzicht` dat graph-qa uit de graaf bouwde, zodat het blok na herladen hetzelfde is.
   Een voorstel dat Lex niet zonder akkoord start (fase B: het werkgebied annoteren) draagt een
-  **`bevestiging`** `{soort: "werkgebied_annoteren", werkgebied_id, aantal, schatting}`; de werkplek
+  **`bevestiging`** `{soort: "werkgebied_annoteren" | "begrippen_verdiepen", werkgebied_id, aantal, schatting}`; de werkplek
   toont er een knop bij, ook na herladen. `reeks.totaal` mag 1 zijn: een werkgebied kan één nieuwe
   bepaling hebben.
   De review-state zelf blijft in het annotatiedomein. **Een veld dat graph-qa meestuurt moet in
@@ -553,6 +578,6 @@ niet vullen. `POST /v1/auth/registratie` heeft een eigen rate limit.
 
 - **Externe IdP/OIDC.** De API is zelf de identiteitsbron.
 - **Activiteit 3, verder.** Werkgebieden, begrippen en de deterministische voorstellen van Lex
-  bestaan; het model voor twijfelparen en definitievoorstellen (L3b), begripsrelaties, de projectie
+  bestaan, en het model voor twijfelparen en definitievoorstellen (fase C); begripsrelaties, de projectie
   naar de graaf (NL-SBB) en RDF-export volgen (PLAN spoor D, leveringen 3b en 4).
 - **RegelSpraak-formalisering.** Komt later.

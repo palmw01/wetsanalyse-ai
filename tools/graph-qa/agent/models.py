@@ -63,7 +63,7 @@ class AgentDoel(BaseModel):
 
 
 # Routes op een werkgebied die in werkgebied en gesprek schrijven; alleen via `POST /v1/runs`.
-WERKGEBIED_MODI = ("begrippen", "bronnen", "werkgebied_annoteren")
+WERKGEBIED_MODI = ("begrippen", "bronnen", "werkgebied_annoteren", "begrippen_verdiepen")
 
 
 class ChatRequest(BaseModel):
@@ -77,7 +77,10 @@ class ChatRequest(BaseModel):
     # (`agent/begrippen_beurt.py`, `agent/bronnen_run.py`).
     # "werkgebied_annoteren" = de nieuwe bepalingen van het werkgebied annoteren (fase B,
     # `agent/werkgebied_annotatie.py`); zonder `bevestigd` alleen het voorstel.
-    modus: Literal["auto", "advies", "annotaties_lezen", "begrippen", "bronnen", "werkgebied_annoteren"] = "auto"
+    # "begrippen_verdiepen" = het model op twijfelparen en kaarten (fase C,
+    # `agent/begrippen_verdieping.py`); zonder `bevestigd` alleen het voorstel.
+    modus: Literal["auto", "advies", "annotaties_lezen", "begrippen", "bronnen", "werkgebied_annoteren",
+                   "begrippen_verdiepen"] = "auto"
     context: ChatContext | None = None
     # Een al geannoteerd artikel wordt hergebruikt (`auto`), tenzij de jurist expliciet om een nieuwe
     # ronde vraagt (`opnieuw`). Die voegt toe aan de gedeelde laag; wat beoordeeld is blijft staan.
@@ -100,6 +103,12 @@ class ChatRequest(BaseModel):
             or (self.modus == "auto" and is_werkgebied_annoteervraag(self.question)))
 
     @property
+    def is_begrippen_verdieping(self) -> bool:
+        from .begrippen_verdieping import is_verdiepvraag
+        return bool(self.werkgebied_id) and self.doel is None and self.doelen is None and (
+            self.modus == "begrippen_verdiepen" or (self.modus == "auto" and is_verdiepvraag(self.question)))
+
+    @property
     def is_begrippenbeurt(self) -> bool:
         from .begrippen_beurt import is_begrippenvraag
         return bool(self.werkgebied_id) and self.doel is None and self.doelen is None and (
@@ -117,8 +126,8 @@ class ChatRequest(BaseModel):
             raise ValueError(f"modus '{self.modus}' vraagt een werkgebied_id")
         if self.modus in WERKGEBIED_MODI and (self.doel is not None or self.doelen is not None):
             raise ValueError(f"de route '{self.modus}' kiest zelf wat ze doet; geef geen 'doel' of 'doelen'")
-        if self.bevestigd is not None and self.modus != "werkgebied_annoteren":
-            raise ValueError("'bevestigd' hoort bij modus 'werkgebied_annoteren'")
+        if self.bevestigd is not None and self.modus not in ("werkgebied_annoteren", "begrippen_verdiepen"):
+            raise ValueError("'bevestigd' hoort bij modus 'werkgebied_annoteren' of 'begrippen_verdiepen'")
         return self
 
     @model_validator(mode="after")

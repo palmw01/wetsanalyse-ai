@@ -72,7 +72,8 @@ class Bevestiging(BaseModel):
     bij, ook na herladen. Klikken start de run met `bevestigd: aantal`; is de werkvoorraad intussen
     veranderd, dan weigert graph-qa en komt er een nieuwe bevestiging."""
 
-    soort: Literal["werkgebied_annoteren"]
+    # `begrippen_verdiepen` (fase C): het model op twijfelparen en kaarten; `aantal` telt die samen.
+    soort: Literal["werkgebied_annoteren", "begrippen_verdiepen"]
     werkgebied_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
     aantal: int = Field(ge=0, le=100_000)
     schatting: int | None = Field(default=None, ge=0)
