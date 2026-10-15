@@ -713,3 +713,120 @@ export interface BerichtAanmakenIn {
 export interface BerichtPublicatieIn {
   gepubliceerd: boolean;
 }
+
+// --- Werkgebieden (spoor D, levering 1) – afgeleid van api/app/werkgebied_contracts.py en de
+// vormen in werkgebied_store.py / werkgebied_inventaris.py ---
+
+export type WerkgebiedStatus = "in_voorbereiding" | "actief" | "afgerond";
+export type BronBereik = "node" | "onderliggend";
+export type BronRol = "analyseren" | "context";
+
+export interface Bronselectie {
+  id: string;
+  bron_iri: string;
+  bereik: BronBereik;
+  rol: BronRol;
+  reden: string;
+  label: string;
+  bwb_id: string;
+  snapshot_id: string;
+  bron_hash: string;
+  toegevoegd_door: string;
+  toegevoegd: string;
+}
+
+export interface WerkgebiedSamenvatting {
+  id: string;
+  naam: string;
+  analysevraag: string;
+  afbakening: string;
+  peildatum: string | null;
+  status: WerkgebiedStatus;
+  revisie: number;
+  aangemaakt_door: string;
+  aangemaakt: string;
+  gewijzigd: string;
+  gearchiveerd: string | null;
+  /** Alleen in de lijst. */
+  aantal_bronnen?: number;
+}
+
+export interface Werkgebied extends WerkgebiedSamenvatting {
+  bronnen: Bronselectie[];
+}
+
+export interface WerkgebiedInvoer {
+  naam: string;
+  analysevraag?: string;
+  afbakening?: string;
+  peildatum?: string | null;
+}
+
+export interface WerkgebiedWijziging {
+  verwachte_revisie: number;
+  naam?: string;
+  analysevraag?: string;
+  afbakening?: string;
+  peildatum?: string | null;
+  status?: WerkgebiedStatus;
+}
+
+/** Een bepaling opnemen: via de bron-IRI, of via regeling + artikel (+ lid). */
+export interface BronselectieInvoer {
+  verwachte_revisie: number;
+  bron_iri?: string;
+  bwb_id?: string;
+  artikel?: string;
+  lid?: string;
+  bereik?: BronBereik;
+  rol?: BronRol;
+  reden?: string;
+}
+
+/** Per selectie in de inventaris. `onbereikbaar` is een open punt, geen kleinere inventaris. */
+export interface InventarisSelectie {
+  id: string;
+  bron_iri: string;
+  label: string;
+  rol: BronRol;
+  bereik: BronBereik;
+  aantal: number;
+  afgewezen: number;
+  bron_gewijzigd: boolean;
+  onbereikbaar: string | null;
+}
+
+export interface InventarisElement {
+  id: string;
+  klasse: string;
+  tekst: string;
+  lifecycle: Lifecycle;
+  aandacht?: Aandacht;
+  jas_subtype?: string;
+  eigenaar_iri: string;
+  laag_id: string;
+  ankers: { bron_iri: string; start: number; eind: number; tekst?: string }[];
+  verouderd?: boolean;
+  toelichting?: string;
+  /** `analyseren` als een analyse-selectie het element dekt, anders `context`. */
+  rol: BronRol;
+  selecties: string[];
+  /** Een anker valt buiten de selecties: gemeld, niet stil verbreed. */
+  deels_buiten: boolean;
+}
+
+export interface Inventaris {
+  werkgebied_id: string;
+  revisie: number;
+  selecties: InventarisSelectie[];
+  elementen: InventarisElement[];
+  volledig: boolean;
+}
+
+export interface WerkgebiedAuditRegel {
+  id: number;
+  actor: string;
+  actie: string;
+  detail: Record<string, unknown>;
+  tijdstip: string;
+}

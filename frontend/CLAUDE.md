@@ -6,7 +6,7 @@ opslag, de [wetsanalyse-API](../api). De app **is de werkplek**: `/workbench` (d
 leidt daarheen door.
 
 > **Scope: chat-werkruimte.** De app bestaat uit de werkplek, het annotatie-overzicht, de
-> login-flow en het instellingenvenster (account, verbruik, berichten, en voor beheerders
+> werkgebieden, de login-flow en het instellingenvenster (account, verbruik, berichten, en voor beheerders
 > modelprofielen, gebruikers, aanvragen, API-tokens, berichtenbeheer en feedback).
 
 Lees ook de projectroot-`CLAUDE.md` en `../api/CLAUDE.md` – de API is de bron van waarheid voor de
@@ -44,8 +44,8 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   (`parseError` → `ApiError` met `retryAfter`); gebruik `isApiError()` en `foutTekst()` in de UI.
 - **`lib/agentEvents.ts`** – validatie van de SSE-stroom van de agent: een ongeldig event slaat
   over, het beëindigt de run niet.
-- **`lib/types.ts`** – met de hand afgeleid van `../api/app/annotatie_v2_contracts.py` en
-  `gesprek_contracts.py`; de bron van waarheid aan de TS-kant. `AnnotatieDocument` is het
+- **`lib/types.ts`** – met de hand afgeleid van `../api/app/annotatie_v2_contracts.py`,
+  `gesprek_contracts.py` en `werkgebied_contracts.py`; de bron van waarheid aan de TS-kant. `AnnotatieDocument` is het
   weergavemodel van het artefact, gevuld door `lib/annotatieNodeAdapter.ts`. Wijzigt
   het API-contract, werk dit bij (controle met `openapi-typescript`, zie de README).
   **`lib/jas.ts`** is de presentatie-helper voor de JAS-klassen (kleur, label, `jasVolgorde`); de
@@ -54,7 +54,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   klassen bij.
 - **De rekenkern staat in `lib/`**, niet in componenten: vitest draait node-env zonder DOM, dus alleen
   pure helpers zijn testbaar (`selectie`, `annotatie`, `annotatieOverzicht`, `reeks`, `samenhang`,
-  `markering`, `popover`, `wetstructuur`, `lopendeRun`, `rondleiding`, …).
+  `markering`, `popover`, `wetstructuur`, `lopendeRun`, `rondleiding`, `werkgebied`, …).
 - **`app/**/page.tsx`** (Server Components) – data via `lib/server.ts`, interactie in een
   `*Client.tsx`. `app/page.tsx` doet `redirect("/workbench")`. De werkplek zit in
   `app/workbench/page.tsx` én in `app/default.tsx` (de default van het children-slot); beide renderen
@@ -71,6 +71,8 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
     `SelectiePopover`, `ExportKnop`).
   - `annotaties/` – het overzicht en de losse annotatiepagina (`AnnotatiesClient`, `AnnotatieKaart`,
     `NodeAnnotatiePaneel`, `AnnotatiePaginaSchil`).
+  - `werkgebieden/` – overzicht en pagina van een werkgebied (`WerkgebiedenClient`,
+    `WerkgebiedClient`, de tabs `BronnenTab`/`ElementenTab`/`HistorieTab`, `WerkgebiedSchil`).
   - `graaf/` – de samenhangsgraaf (sigma); de rekenkern staat in `lib/graaf/`.
   - `admin/` – de beheertabs achter het admin-token: `ProfielenPanel` (+ `ProfileEditor`),
     `UsersPanel` (+ `BudgetBeleidBlok`), `RegistratiesPanel`, `ApiTokensPanel`,
@@ -438,6 +440,36 @@ heropenen kan altijd. Afronden **bevriest de hele annotatie** (`isDocumentVergre
 vallen stil, de selectie-popover verdwijnt, `a`/`x`/`c` doen niets en een melding boven de lijst legt
 het uit. De API weigert die mutaties toch met een 409, maar de UI laat het slot zien in plaats van die
 fout af te wachten.
+
+## Werkgebieden (`/werkgebieden`)
+
+Spoor D, levering 1 (zie `docs/PLAN.md` en `../api/CLAUDE.md` §*Werkgebieden*). Een werkgebied brengt
+bepalingen samen rond één analysevraag; het is, net als een annotatie, een ingang in de sidebar en
+bestaat los van de gesprekken.
+
+- **BFF**: `app/api/werkgebieden/route.ts` (lijst, aanmaken) en `…/[...pad]/route.ts` met een vaste
+  vorm: `{id}`, `{id}/bronnen[/{selectie}]`, `{id}/elementen`, `{id}/audit` – geen generieke proxy.
+  De query gaat ongewijzigd mee (`verwachte_revisie` bij DELETE). De inventaris krijgt 90 s, want de
+  api haalt per regeling de bronboom uit de graaf.
+- **Gedeeld, dus elke mutatie draagt de revisie in beeld.** Alle mutaties lopen via één `muteer` in
+  `WerkgebiedClient`. Een 412 (`revisie_conflict`) laadt de nieuwste stand en zegt dat iemand anders
+  het werkgebied wijzigde; de handeling wordt **niet** stil opnieuw uitgevoerd, want op de nieuwe stand
+  kan ze iets anders betekenen. Een fout die over de invoer gaat (409 `al_opgenomen`, 422 van de
+  graaf) vangt het formulier zelf af via `opFout`.
+- **Bronnen**: opnemen met regeling (BWB-id) + artikel (+ lid) of een graaf-IRI (`bronInvoer` in
+  `lib/werkgebied.ts` leest "artikel 9" als "9"; de api verifieert tegen de graaf). Dezelfde bron met
+  dezelfde rol nog eens is idempotent en wordt zo gemeld. Weghalen is een `BevestigKnop` en laat de
+  bepaling en haar annotaties staan.
+- **Elementen** toont wat de api meldt in plaats van het weg te poetsen: `volledig: false` en
+  `onbereikbaar` als open punt, `bron_gewijzigd` als signaal, `deels_buiten` bij het element, en een
+  onbeoordeeld element (voorstel van Lex, hergebruik) met zichtbaar voorbehoud (`isBeoordeeld`). Elk
+  element staat één keer, onder de eerste selectie die het dekt (`groepeerPerSelectie`). De voortgang
+  telt alleen de werkvoorraad en zegt niets over juridische dekking.
+- **De tab staat in de URL** (`?tab=elementen`, via `replace`); `Tabs` is `lazy`, zodat de inventaris
+  pas laadt als je hem opent, en opnieuw bij elke nieuwe revisie (`key`).
+- Nog niet: de tabs *Begrippen* en *Samenhang* (levering 1 rest en 2), en bronnen toevoegen vanuit een
+  annotatie of de graaf.
+- Browserregressie: `scripts/test-werkgebieden.mjs` (een mock die revisies bijhoudt zoals de api).
 
 ## De artefact-werkbank
 
@@ -985,8 +1017,8 @@ npm test             # vitest (node-env, geen DOM)
 npm run test:browser # Playwright op de echte Next-UI met gemockte BFF (scripts/test-*.mjs)
 ```
 
-`test:browser` draait `scripts/test-annotatie-nodes.mjs`, `test-samenhang.mjs`, `test-reeks.mjs` en
-`test-toetsen.mjs`, en verwacht een devserver op poort 3109
+`test:browser` draait `scripts/test-annotatie-nodes.mjs`, `test-samenhang.mjs`, `test-reeks.mjs`,
+`test-toetsen.mjs` en `test-werkgebieden.mjs`, en verwacht een devserver op poort 3109
 (`AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109`).
 Praat met **`localhost`**, niet met `127.0.0.1`: Next 16 weigert dev-assets aan een andere origin,
 waarna de pagina niet hydrateert en elke stap zonder duidelijke fout time-out.
