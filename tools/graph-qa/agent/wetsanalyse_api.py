@@ -154,6 +154,30 @@ class WetsanalyseApi:
                                      api_reden(antwoord))
         return antwoord.json()
 
+    # -- bronnen vinden met Lex (spoor D, fase A) -----------------------------------------------------
+
+    def _bronnen_pad(self, werkgebied_id: str, run_id: str) -> str:
+        return f"{self._werkgebied_pad(werkgebied_id)}/bronnen-runs/{quote(run_id, safe='')}"
+
+    async def start_bronnen_run(self, werkgebied_id: str) -> dict[str, Any]:
+        return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/bronnen-runs", {})
+
+    async def haal_bronnen_run(self, werkgebied_id: str, run_id: str) -> dict[str, Any]:
+        """De run met zijn invoer: de selectie zoals de api hem vastlegde."""
+        return await self._haal(self._bronnen_pad(werkgebied_id, run_id), invoer="true")
+
+    async def meld_bronnen_loopt(self, werkgebied_id: str, run_id: str) -> dict[str, Any]:
+        return await self._post(f"{self._bronnen_pad(werkgebied_id, run_id)}/loopt", {})
+
+    async def zet_bronnen_uitkomst(self, werkgebied_id: str, run_id: str, uitkomst: dict[str, Any]) -> dict[str, Any]:
+        return await self._verstuur("PUT", f"{self._bronnen_pad(werkgebied_id, run_id)}/uitkomst", uitkomst)
+
+    async def meld_bronnen_mislukt(self, werkgebied_id: str, run_id: str, reden: str) -> dict[str, Any]:
+        return await self._post(f"{self._bronnen_pad(werkgebied_id, run_id)}/mislukt", {"reden": reden[:2000]})
+
+    async def haal_kandidaten(self, werkgebied_id: str) -> dict[str, Any]:
+        return await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/kandidaten")
+
     async def haal_groepen(self, werkgebied_id: str) -> dict[str, Any]:
         """De betekenisgroepen van de laatste klare run, met hun besluiten."""
         return await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/groepen")
