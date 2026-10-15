@@ -149,6 +149,19 @@ def _definitie(bron: Bron) -> _Definitie | None:
     return None
 
 
+def definiens(bron: Bron) -> str | None:
+    """De letterlijke definiens van een begripsbepaling – de tekst na de term –, of None.
+
+    Alleen bij een echte definitie (niet "mede", "niet" of een opsomming): dat is wat een analist als
+    letterlijke brondefinitie kan overnemen. De keten zelf gebruikt dit niet; de run in graph-qa
+    (`agent/begrippen_run.py`) zet het bij een groep als voorstel."""
+    d = _definitie(bron)
+    if d is None or d.soort != "definitie":
+        return None
+    rest = bron.tekst[d.term_eind:].strip().lstrip(":").strip().rstrip(";").strip()
+    return rest or None
+
+
 def wettelijke_termen(manifest: Manifest, taal: dict[str, Taalanalyse]) -> list[WettelijkeTerm]:
     """Alle termen die de wet in dit manifest vastlegt, met bereik en (waar aanwezig) anker."""
     uit: list[WettelijkeTerm] = []

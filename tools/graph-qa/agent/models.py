@@ -118,6 +118,17 @@ class ChatRequest(BaseModel):
         return self
 
 
+class BegrippenRunVerzoek(BaseModel):
+    """Start de begrippenketen op een run die de api al heeft aangemaakt (spoor D, levering 3a).
+
+    De api is de bron van het manifest; hier staan alleen de verwijzingen ernaar. Geen vraag, geen
+    gesprek: de run hangt aan het werkgebied (`werkgebied:<id>` in de runstore), zodat de 409 "loopt
+    al" per werkgebied geldt."""
+
+    werkgebied_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
+    run_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
+
+
 class RunStart(BaseModel):
     """Wat een client van een run weet zónder mee te kijken.
 

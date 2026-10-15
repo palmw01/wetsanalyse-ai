@@ -94,6 +94,7 @@ werk door en legt de agent de uitkomst zelf vast.
 |---|---|
 | `GET /health` | Liveness (geen auth). |
 | `POST /v1/runs` | Start een beurt; geeft `run_id`. **409 + het lopende run_id** als er al een run voor dit gesprek is. Body: `question`, `conversation_id?`, optioneel `doel` (dan slaat de keten het zoeken over), `doelen` (2–60 onderdelen van één artikel, na elkaar geannoteerd), `modus` (`auto`/`advies`/`annotaties_lezen`), `context` en `hergebruik` (`auto`/`opnieuw`). |
+| `POST /v1/begrippen-runs` | Start de begrippenketen op een run die de api al aanmaakte (`werkgebied_id`, `run_id`); volgen en stoppen via de `/v1/runs/{id}/…`-routes hieronder. **409** als er voor dit werkgebied al een loopt, **503** zonder api-koppeling. Geen model, dus geen budgetcheck. |
 | `GET /v1/runs/{id}/events?vanaf=<seq>` | **SSE**: eerst replay vanaf `vanaf`, dan live. Elk frame draagt zijn `seq`. |
 | `POST /v1/runs/{id}/cancel` | 202 – stoppen is een verzoek: de lopende stap maakt zichzelf af. |
 | `GET /v1/conversations/{id}/run` | De run waar je op kunt aanhaken, of `null`. |

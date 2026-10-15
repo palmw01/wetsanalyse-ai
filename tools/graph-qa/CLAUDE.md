@@ -521,8 +521,9 @@ reviewer (`review.py`), de resolver (`resolver.py`), dekking, beslisregister en 
 ## De begrippenketen (`agent/begrippen_pipeline/`, ADR-004)
 
 Stelt voor welke geannoteerde formuleringen één begrip aanduiden (betekenisgroepen) en welke in een
-relatie staan (kwalificatie, inclusie, uitsluiting, hiërarchie). Zuiver en deterministisch, nog
-zonder node, api of model: `keten.analyseer(manifest, provider, melding)`.
+relatie staan (kwalificatie, inclusie, uitsluiting, hiërarchie). Zuiver en deterministisch, zonder
+model: `keten.analyseer(manifest, provider, melding)`. Hij draait als **begrippenrun** (hieronder),
+niet als node in de LangGraph-graaf.
 
 ```
 manifest → taal.py → definities.py + signalen.py + patronen.py → kandidaten
@@ -544,6 +545,31 @@ manifest → taal.py → definities.py + signalen.py + patronen.py → kandidate
   manifest.
 - Meten: `python -m eval.begrippen_eval --variant lemma|keten|keten_zonder_parse` op
   `docs/wetsanalyse/referentieset-begrippen/` (provisional, en een ontwikkelset – zie het meetlogboek).
+
+### De begrippenrun (`agent/begrippen_run.py`, spoor D levering 3a)
+
+`POST /v1/begrippen-runs {werkgebied_id, run_id}` → `begrippen_stroom`: haal de run met manifest bij
+de api (`GET …/begrippen-runs/{id}?manifest=true`), meld `…/loopt`, draai de keten in een thread met
+de fasen als `status`-events (`Lex · Taalanalyse: … (n ms)`), zet de uitkomst terug (`PUT …/uitkomst`)
+en eindig met `opgeslagen` + `done`.
+
+- **De api is de bron van het manifest**, graph-qa rekent alleen. Het manifest valideert tegen
+  `Manifest` (letterlijkheid, geen dubbelen); klopt het niet, dan `mislukt` en een `error`.
+- **De runstore-sleutel is `werkgebied:<id>`**: de 409 "loopt al" geldt per werkgebied, en
+  `/v1/runs/{id}/events` en `/cancel` werken ongewijzigd. Stoppen kijkt vóór en ná de keten (de keten
+  zelf is één synchrone stap).
+- **Per groep een voorstel** (`voorstel`): de naam is de term die de leden het vaakst dragen; is een lid
+  de term van een begripsbepaling, dan de letterlijke definiens (`definities.definiens`) met vindplaats.
+  Een geformuleerde definitie en de classifier voor twijfelparen zijn L3b.
+- **Geen model, dus geen tokens en geen budgetpoort.** Een herstart op hetzelfde manifest levert
+  dezelfde groep-id's; de api schrijft idempotent.
+- **Elk faalpad is zichtbaar**: api onbereikbaar, ongeldig manifest, de keten faalt, de api weigert de
+  uitkomst → `error` met `soort` (`api`/`manifest`/`keten`) en `…/mislukt` bij de api (best-effort; anders
+  ziet de api de run na vijf minuten als vastgelopen).
+- **Contract**: `naar_uitkomst` volgt `api/app/begrippen_run_contracts.py`;
+  `tests/test_begrippen_run.py` leest die klassen uit de bron (zoals `test_contract_drift.py`), en
+  `tests/test_begrippen_manifest_drift.py` bewaakt manifest-id en veldnamen via
+  `manifest-id.vectoren.json`.
 
 ## De overzichtsroute: "welke artikelen gaan over X?"
 
