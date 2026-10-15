@@ -80,3 +80,15 @@ async def test_twee_gelijktijdige_wijzigingen_van_een_begrip_precies_een_412():
     fouten = [r for r in results if isinstance(r, HTTPException)]
     assert len(fouten) == 1 and fouten[0].status_code == 412
     assert (await store.haal(wg["id"], b["id"]))["revisie"] == 2
+
+
+async def test_twee_gelijktijdige_starts_op_hetzelfde_manifest_geven_een_run():
+    from app import begrippen_run_store as runs
+    from test_annotatie_v2 import TWO
+
+    snap = snapshot()
+    await annotaties.batch(request(snap, [element(snap, TWO, 0, 4)], batch_id="tweede", revisions={}), snap, "lex")
+    wg, _ = await _opzet()
+    uit = await asyncio.gather(runs.start(wg, "a", resolve), runs.start(wg, "b", resolve))
+    assert uit[0][0]["id"] == uit[1][0]["id"]
+    assert sorted(n for _, n in uit) == [False, True]

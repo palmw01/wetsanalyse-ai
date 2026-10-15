@@ -28,6 +28,12 @@ _VELDEN = ("id", "klasse", "tekst", "lifecycle", "aandacht", "jas_subtype", "eig
 
 
 async def inventaris(selecties: list[dict], resolve: Resolver) -> dict:
+    return (await inventaris_met_bronbomen(selecties, resolve))[0]
+
+
+async def inventaris_met_bronbomen(selecties: list[dict], resolve: Resolver) -> tuple[dict, dict[str, dict]]:
+    """De inventaris, plus de bronboom per regeling die ervoor is opgehaald – zodat wie daarna de
+    teksten nodig heeft (het manifest van de begrippenketen) de graaf niet opnieuw vraagt."""
     per_bwb: dict[str, dict] = {}
     fouten: dict[str, str] = {}
     for sel in selecties:
@@ -93,4 +99,4 @@ async def inventaris(selecties: list[dict], resolve: Resolver) -> dict:
 
     uit.sort(key=sleutel)
     return {"selecties": samenvatting, "elementen": uit,
-            "volledig": not any(r["onbereikbaar"] for r in samenvatting)}
+            "volledig": not any(r["onbereikbaar"] for r in samenvatting)}, per_bwb

@@ -525,8 +525,13 @@ geldigheid). Begrippen zijn analyse-uitkomsten en nooit wettelijke definities.
 | 3. Voorstellen van Lex | groeperen, formuleren, bestaand begrip zoeken, splitsen/combineren, hervatbare batches; patroonregister voor begripsrelaties (kwalificatie, inclusie, uitsluiting, hiërarchie) en termkandidaten op de bestaande taalprovider (ADR-002); kandidaten uit tekst en semantiek met dekkingscheck | verschillende formuleringen met gelijke betekenis gekoppeld; gelijke woorden met andere betekenis gescheiden; elk voorstel noemt patroon-ID en bronfragment |
 | 4. Onderhoud en uitwisseling | gerichte herbeoordeling, relaties, begrippengraaf, RDF-export, Lex leest begrippen | een gewijzigde dragende passage verschijnt bij de geraakte begrippen; de oude bewijsstand blijft |
 
-**Stand (15 okt 2026).** Levering 1 is gebouwd (#659 api, #660 pagina, #661 samenhang en opnemen
-vanuit graaf en annotatie). Levering 2 is in bouw: de api in PR D, de werkplek in PR E. Besloten:
+**Stand (15 okt 2026).** Levering 1 en 2 zijn gebouwd en op acceptatie geaccepteerd (#659–#663).
+Levering 3 is gesplitst. **L3a** (in bouw): de deterministische begrippenketen van ADR-004 (#655–#658)
+draait op het manifest van een werkgebied en levert groepen, relaties en twijfelvragen als voorstel;
+het definitievoorstel is alleen letterlijk uit een brondefinitie; overnemen, combineren, splitsen,
+koppelen aan een bestaand begrip, afwijzen en parkeren. **L3b**: het model voor twijfelparen en een
+geformuleerd definitievoorstel, met hervatbare batches en een eigen meting – pas met modelstappen
+hebben batches zin, want de keten groepeert globaal. Besloten:
 elke analist mag een begrip accorderen (de audit legt vast wie). De poort vraagt naam, definitie met
 herkomst, context, minstens één aanduidende passage, en dragende koppelingen die beoordeeld en
 actueel zijn en op een door een jurist beoordeelde annotatie rusten. Een voorbeeld is een
@@ -650,8 +655,8 @@ blijft bij de wettekst.
 
 ## Open keuzes
 
-1. **D — bediening**: Lex stelt standaard voor (voorstel van dit plan), de analist begint vanuit een
-   eigen selectie, of beide even prominent.
+1. **D — bediening**: *besloten 15 okt 2026* – beide: zelf een begrip maken (levering 2) blijft, en op
+   de tab Begrippen staat een eigen strook *Voorstellen van Lex* met *Stel begrippen voor*.
 2. **D — toegang**: *besloten 14 okt 2026* – gedeelde werkgebieden, zoals de annotaties.
 3. **D — kaders**: *besloten 15 okt 2026* – één begrippenkader per werkgebied, impliciet: geen eigen
    object, de IRI `urn:wa:kader:<werkgebied>` is afgeleid. Hergebruik tussen kaders komt later en
