@@ -14,6 +14,7 @@ from .werkgebied_contracts import (
     BronselectieInvoer, BronselectieWijziging, WerkgebiedInvoer, WerkgebiedWijziging,
 )
 from .werkgebied_inventaris import inventaris
+from .werkgebied_werkvoorraad import werkvoorraad
 
 router = APIRouter(prefix="/werkgebieden", tags=["werkgebieden"],
                    dependencies=[Depends(require_client)])
@@ -89,6 +90,15 @@ async def get_elementen(werkgebied_id: str, actor: str = Depends(actieve_userid)
     wg = await store.haal(werkgebied_id)
     return {"werkgebied_id": werkgebied_id, "revisie": wg["revisie"],
             **await inventaris(wg["bronnen"], resolve_bron)}
+
+
+@router.get("/{werkgebied_id}/annotatie-werkvoorraad")
+async def get_annotatie_werkvoorraad(werkgebied_id: str, actor: str = Depends(actieve_userid)):
+    """Wat Lex in dit werkgebied nog moet annoteren (fase B): de eenheden van de analysebronnen met
+    hun stand, de schatting voor deze gebruiker en zijn budget. Alleen lezen."""
+    wg = await store.haal(werkgebied_id)
+    return {"werkgebied_id": werkgebied_id, "revisie": wg["revisie"], "naam": wg["naam"],
+            **await werkvoorraad(wg["bronnen"], resolve_bron, actor)}
 
 
 @router.get("/{werkgebied_id}/audit")

@@ -160,3 +160,23 @@ def test_reeks_moet_onder_een_bepaling_hangen():
                  [ROOT + ":id:a", ROOT + ":id:aa"]):        # onderdelen zijn niet kiesbaar
         with pytest.raises(BronFout):
             gedeelde_bepaling(nodes, fout)
+
+
+def test_annotatie_eenheden_volgen_de_keuzekaart():
+    from bronmodel import annotatie_eenheden
+    rows = fixture() + [{"node": ROOT + ":hoofdstuk:2", "type": "urn:bwb-ns:Hoofdstuk", "parent": ROOT},
+                        {"node": ROOT + ":artikel:10", "type": "urn:bwb-ns:Artikel",
+                         "parent": ROOT + ":hoofdstuk:2", "nummer": "10", "tekst": "Zonder leden."}]
+    nodes = bouw_snapshot(rows, bwb_id=BWB)["nodes"]
+    leden = [ROOT + ":id:lid-een", ROOT + ":artikel:9:lid:2"]
+    assert annotatie_eenheden(nodes, ROOT + ":artikel:9") == leden            # per lid
+    assert annotatie_eenheden(nodes, ROOT + ":artikel:10") == [ROOT + ":artikel:10"]
+    assert annotatie_eenheden(nodes, ROOT + ":id:lid-een") == [ROOT + ":id:lid-een"]
+    assert annotatie_eenheden(nodes, ROOT + ":id:a") == [ROOT + ":id:a"]
+    hele = annotatie_eenheden(nodes, ROOT)                                    # de hele regeling
+    assert sorted(hele) == sorted([*leden, ROOT + ":artikel:10"]) and len(hele) == 3
+    assert annotatie_eenheden(nodes, ROOT + ":hoofdstuk:2", onderliggend=False) == []
+    leidraad = bouw_snapshot(_leidraad(), bwb_id=BWB)["nodes"]
+    assert annotatie_eenheden(leidraad, ROOT) == [ROOT + ":d:9.1", ROOT + ":d:9.2"]
+    with pytest.raises(BronFout):
+        annotatie_eenheden(nodes, ROOT + ":bestaat:niet")

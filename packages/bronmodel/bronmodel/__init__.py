@@ -89,6 +89,40 @@ def gedeelde_bepaling(nodes: list[dict], iris: list[str]) -> dict:
     return ouder
 
 
+_BEPALING = {"Artikel", "Divisie"}
+
+
+def annotatie_eenheden(nodes: list[dict], bron_iri: str, *, onderliggend: bool = True) -> list[str]:
+    """De bronnodes waarin het werk onder `bron_iri` uiteenvalt, in documentvolgorde.
+
+    Dezelfde regel als de keuzekaart: een artikel (of divisie) met meer dan één kiesbaar onderdeel
+    gaat per lid (of subbepaling), anders is hij zelf de eenheid; een lid of onderdeel blijft zichzelf.
+    Een structuurdeel (regeling, hoofdstuk, afdeling …) levert met `onderliggend` de bepalingen die er
+    direct onder vallen, zonder `onderliggend` alleen zichzelf – en dan alleen als het eigen tekst heeft.
+    """
+    by_id = {n["bron_iri"]: n for n in nodes}
+    if bron_iri not in by_id:
+        raise BronFout("De gevraagde bronnode bestaat niet")
+
+    def uitgesplitst(node: dict) -> list[str]:
+        kinderen = _kiesbare_kinderen(nodes, node)
+        return [k["bron_iri"] for k in kinderen] if len(kinderen) > 1 else [node["bron_iri"]]
+
+    node = by_id[bron_iri]
+    if node["type"] in _BEPALING:
+        return uitgesplitst(node)
+    if node["type"] in {"Lid", "Onderdeel"}:
+        return [bron_iri]
+    if not onderliggend:
+        return [bron_iri] if (node.get("tekst") or "").strip() else []
+    uit: list[str] = []
+    for n in subtree(nodes, bron_iri):
+        ouder = by_id.get(n.get("parent_iri") or "")
+        if n["type"] in _BEPALING and not (ouder and ouder["type"] in _BEPALING):
+            uit.extend(uitgesplitst(n))
+    return uit
+
+
 def onderdelen_om_te_kiezen(snapshot: dict) -> list[dict]:
     """De leden of subbepalingen waartussen de jurist kiest vóór er geannoteerd wordt.
 
