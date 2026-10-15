@@ -22,8 +22,10 @@ plaats van schijnzekerheid.
 > (PLAN spoor D) staan de **werkgebieden** er: bepalingen samenbrengen rond één analysevraag, met
 > bronselecties (rol *analyseren* of *context*) en een inventaris van de geannoteerde elementen.
 > Daarop formuleert de analist **begrippen**: een begripskaart, gekoppeld aan de annotatiepassages
-> die het begrip dragen, met beoordeling, historie en export. Voorstellen van Lex voor begrippen,
-> begripsrelaties en de RegelSpraak-formalisering horen nog niet tot de functionaliteit. graph-qa's begrip-definitie-QA (de `definitie`-specialist
+> die het begrip dragen, met beoordeling, historie en export. Lex stelt betekenisgroepen voor
+> (deterministisch, ADR-004), ook vanuit het gesprek: wat een beurt oplevert is een **artefact**
+> (annotatie, begripsvoorstellen; afleidingsregels gereserveerd). Begripsdefinities door een model,
+> begripsrelaties als objecten en de RegelSpraak-formalisering horen nog niet tot de functionaliteit. graph-qa's begrip-definitie-QA (de `definitie`-specialist
 > over de graaf) staat daar los van.
 
 ### Platform-componenten

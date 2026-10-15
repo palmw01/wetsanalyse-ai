@@ -10,7 +10,9 @@
  *    annotatie, en het sluit het begrippenpaneel – er staat er één open;
  *  - afleidingsregels zijn gereserveerd: de kaart staat er, maar is geen knop;
  *  - de balk boven de chat brengt het laatste artefact terug, ook als dat begrippen zijn;
- *  - een live beurt waarvan het `opgeslagen`-event een begrippenartefact draagt, opent dat paneel.
+ *  - een live beurt waarvan het `opgeslagen`-event een begrippenartefact draagt, opent dat paneel;
+ *  - vanuit een werkgebied (`?werkgebied=`): de balk noemt het werkgebied, *Stel begrippen voor* stuurt
+ *    een beurt mét `werkgebied_id`, en na *Verlaten* draagt een beurt het niet meer (fase AF2).
  */
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
@@ -19,7 +21,7 @@ import { sessieCookies } from "./sessie.mjs";
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-const errors = [];
+const errors = [], runs = [];
 page.on("pageerror", (e) => errors.push(e.message));
 await page.context().addCookies(await sessieCookies(base));
 await page.addInitScript(() => localStorage.setItem("wa_rondleiding", JSON.stringify({ versie: 999, gezien: true })));
@@ -58,6 +60,7 @@ await page.route("**/api/**", async (route) => {
   if (p.startsWith("/api/auth/")) return route.continue();
   if (p === "/api/annotatie/run") {
     if (m === "GET") return route.fulfill({ json: null });
+    runs.push(req.postDataJSON());
     return route.fulfill({ json: { run_id: "live", conversation_id: req.postDataJSON().conversation_id, status: "loopt" } });
   }
   if (p === "/api/annotatie/run/live/events") {
@@ -67,6 +70,7 @@ await page.route("**/api/**", async (route) => {
       { type: "done" }]) });
   }
   if (p.endsWith("/weergave")) return route.fulfill({ json: view });
+  if (p === "/api/werkgebieden/wg1") return route.fulfill({ json: { id: "wg1", naam: "Invordering", revisie: 1, bronnen: [] } });
   if (p === "/api/werkgebieden/wg1/begrippen-runs/laatste") return route.fulfill({ json: { run } });
   if (p === "/api/werkgebieden/wg1/groepen") return route.fulfill({ json: { run, groepen: [groep], passages: {} } });
   if (p === "/api/begrippen-run") return route.fulfill({ json: null });
@@ -124,8 +128,26 @@ try {
   await page.getByRole("region", { name: "Begripsvoorstellen: Live voorstellen" }).waitFor();
   await page.locator('button[data-artefact-soort="begrippen"]', { hasText: "Live voorstellen" }).waitFor();
 
+  // --- Vanuit een werkgebied: de context reist mee met elke beurt ---
+  runs.length = 0;
+  await page.goto(`${base}/workbench?werkgebied=wg1`);
+  const balk2 = page.locator("[data-werkgebied=wg1]");
+  await balk2.getByRole("link", { name: "Invordering" }).waitFor();
+  await balk2.getByRole("button", { name: "Stel begrippen voor" }).click();
+  await page.getByRole("region", { name: "Begripsvoorstellen: Live voorstellen" }).waitFor();
+  assert.equal(runs[0]?.werkgebied_id, "wg1", "de beurt hoort het werkgebied te dragen");
+  assert.equal(runs[0]?.question, "Stel begrippen voor");
+  await balk2.getByRole("button", { name: /Uit de context/ }).click();
+  await balk2.waitFor({ state: "detached" });
+  assert.ok(!new URL(page.url()).searchParams.has("werkgebied"), "verlaten haalt het werkgebied uit de URL");
+  const invoer2 = page.getByRole("textbox").last();
+  await invoer2.fill("Stel begrippen voor");
+  await invoer2.press("Enter");
+  for (let i = 0; i < 50 && runs.length < 2; i++) await page.waitForTimeout(100);
+  assert.equal(runs[1]?.werkgebied_id, undefined, "na verlaten draagt een beurt geen werkgebied meer");
+
   assert.deepEqual(errors, []);
-  console.log("Browser OK: begrippenartefact na herladen en live, één artefact tegelijk, laatste-artefactbalk, regels gereserveerd.");
+  console.log("Browser OK: begrippenartefact na herladen en live, één artefact tegelijk, laatste-artefactbalk, regels gereserveerd, werkgebiedcontext in de werkplek.");
 } finally {
   await browser.close();
 }

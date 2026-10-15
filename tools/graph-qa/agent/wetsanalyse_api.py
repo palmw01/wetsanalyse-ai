@@ -31,6 +31,8 @@ logger = logging.getLogger("graph_qa.api")
 # Ruim genoeg voor een batch met tientallen elementen, krap genoeg dat een hangende api de run niet
 # eindeloos ophoudt.
 TIMEOUT = httpx.Timeout(connect=5.0, read=30.0, write=30.0, pool=5.0)
+# Zelfde grens als de BFF bij het starten van begrippen (`MANIFEST_TIMEOUT_MS`).
+MANIFEST_TIMEOUT = httpx.Timeout(connect=5.0, read=90.0, write=30.0, pool=5.0)
 
 
 #: De agent gebruikt de lege string voor "geen aandacht" (`aandacht: str = ""`), de api `None`. De
@@ -128,6 +130,33 @@ class WetsanalyseApi:
 
     def _run_pad(self, werkgebied_id: str, run_id: str) -> str:
         return f"/v1/werkgebieden/{quote(werkgebied_id, safe='')}/begrippen-runs/{quote(run_id, safe='')}"
+
+    def _werkgebied_pad(self, werkgebied_id: str) -> str:
+        return f"/v1/werkgebieden/{quote(werkgebied_id, safe='')}"
+
+    async def _haal(self, pad: str, **params: str) -> dict[str, Any]:
+        antwoord = await self._client.get(f"{self._basis}{pad}", params=params or None, headers=self._headers)
+        if antwoord.status_code >= 400:
+            raise WetsanalyseApiFout(f"GET {pad} → {antwoord.status_code}", antwoord.status_code, api_reden(antwoord))
+        return antwoord.json()
+
+    async def haal_werkgebied(self, werkgebied_id: str) -> dict[str, Any]:
+        return await self._haal(self._werkgebied_pad(werkgebied_id))
+
+    async def start_begrippen_run(self, werkgebied_id: str) -> dict[str, Any]:
+        """Manifest vastleggen en de run maken, of de bestaande op dezelfde stand (`nieuw: false`).
+
+        Het manifest vraagt per regeling de bronboom uit de graaf; vandaar de ruimere leestijd."""
+        antwoord = await self._client.post(f"{self._basis}{self._werkgebied_pad(werkgebied_id)}/begrippen-runs",
+                                           json={}, headers=self._headers, timeout=MANIFEST_TIMEOUT)
+        if antwoord.status_code >= 400:
+            raise WetsanalyseApiFout(f"POST begrippen-runs → {antwoord.status_code}", antwoord.status_code,
+                                     api_reden(antwoord))
+        return antwoord.json()
+
+    async def haal_groepen(self, werkgebied_id: str) -> dict[str, Any]:
+        """De betekenisgroepen van de laatste klare run, met hun besluiten."""
+        return await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/groepen")
 
     async def haal_begrippen_run(self, werkgebied_id: str, run_id: str) -> dict[str, Any]:
         """De run met zijn manifest: de vaste invoer die de api heeft vastgelegd."""

@@ -152,6 +152,12 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
     dezelfde `BegripVoorstellen` als op de tab Begrippen (`inklapbaar={false}`), met een link naar het
     werkgebied. Eén inhoud, twee schillen.
   - **regels** – gereserveerd voor de afleidingsregels: de kaart staat er, maar is geen knop.
+  - **Vanuit een werkgebied** (`/workbench?werkgebied=<id>`, de knop *Bespreek met Lex* op de tab
+    Begrippen): `WorkbenchShell` leest de parameter, `WerkgebiedBalk` boven de chat noemt het werkgebied
+    en biedt *Stel begrippen voor* (een gewone beurt) en *Verlaten*. Elke beurt draagt dan
+    `werkgebied_id`; graph-qa stuurt een vraag om begrippen naar de begrippenroute, die het
+    begrippenartefact vastlegt. *Verlaten* haalt de parameter weg en houdt dat ook in state bij – de
+    native `replaceState` alleen werkte `useSearchParams` hier niet bij.
   - `artefactVanBericht` maakt van een ouder bericht met alleen `annotatie_doel` een
     annotatie-artefact; `parseArtefact` is streng (onbekende soort of ref zonder verplichte sleutels:
     geen chip). Het `opgeslagen`-event draagt het artefact, `toonVastgelegdeBeurt` opent het.

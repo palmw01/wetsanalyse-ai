@@ -69,7 +69,8 @@ class ChatRequest(BaseModel):
     # "advies" = een vraag bij een bestaande annotatie. De supervisor kiest dan niet zelf, maar
     # routeert hard naar de antwoord-worker: zo kan een adviesvraag structureel geen annotatie
     # wijzigen (die route emit simpelweg geen doel/element-events).
-    modus: Literal["auto", "advies", "annotaties_lezen"] = "auto"
+    # "begrippen" = de begrippenroute op het werkgebied (`agent/begrippen_beurt.py`).
+    modus: Literal["auto", "advies", "annotaties_lezen", "begrippen"] = "auto"
     context: ChatContext | None = None
     # Een al geannoteerd artikel wordt hergebruikt (`auto`), tenzij de jurist expliciet om een nieuwe
     # ronde vraagt (`opnieuw`). Die voegt toe aan de gedeelde laag; wat beoordeeld is blijft staan.
@@ -77,6 +78,23 @@ class ChatRequest(BaseModel):
     # Meerdere onderdelen van één artikel, gekozen op de keuzekaart: één run die ze na elkaar
     # annoteert, elk met een eigen laag, batch en review (`agent/reeks.py`). Sluit `doel` uit.
     doelen: list[AgentDoel] | None = Field(default=None, min_length=2, max_length=60)
+    # De werkplek is geopend vanuit een werkgebied (spoor D, fase AF2). Een vraag om begrippen gaat
+    # dan de begrippenroute in; voor de andere routes is het (nog) alleen context.
+    werkgebied_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9-]{1,64}$")
+
+    @property
+    def is_begrippenbeurt(self) -> bool:
+        from .begrippen_beurt import is_begrippenvraag
+        return bool(self.werkgebied_id) and self.doel is None and self.doelen is None and (
+            self.modus == "begrippen" or (self.modus == "auto" and is_begrippenvraag(self.question)))
+
+    @model_validator(mode="after")
+    def _begrippen_horen_bij_een_werkgebied(self) -> "ChatRequest":
+        if self.modus == "begrippen" and not self.werkgebied_id:
+            raise ValueError("modus 'begrippen' vraagt een werkgebied_id")
+        if self.modus == "begrippen" and (self.doel is not None or self.doelen is not None):
+            raise ValueError("de begrippenroute annoteert niet; geef geen 'doel' of 'doelen'")
+        return self
 
     @model_validator(mode="after")
     def _advies_heeft_een_onderwerp(self) -> "ChatRequest":

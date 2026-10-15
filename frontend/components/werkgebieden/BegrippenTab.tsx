@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { Button } from "@/components/ui/Button";
+import { Button, LinkButton } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
 import { ChevronOmlaag } from "@/components/ui/Icoon";
 import { Melding } from "@/components/ui/Melding";
@@ -95,6 +95,15 @@ export function BegrippenTab({ id, gekozen, onKies, onbewaard, onOnbewaard }: {
           }}
         />
       )}
+
+      {/* De werkplek in de context van dit werkgebied: daar vraag je Lex om begrippen, en de
+          voorstellen openen als artefact naast het gesprek. */}
+      <div className="flex justify-end">
+        <LinkButton href={`/workbench?werkgebied=${encodeURIComponent(id)}`} variant="secondary" size="sm"
+          className="w-full sm:w-auto">
+          Bespreek met Lex
+        </LinkButton>
+      </div>
 
       <BegripVoorstellen
         id={id}

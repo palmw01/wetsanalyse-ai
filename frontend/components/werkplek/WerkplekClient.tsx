@@ -12,6 +12,7 @@ import type { GraafOpties } from "@/components/graaf/useGraafStand";
 
 import { ArtefactPaneel } from "@/components/werkplek/ArtefactPaneel";
 import { BegrippenArtefactPaneel } from "@/components/werkplek/BegrippenArtefactPaneel";
+import { WerkgebiedBalk } from "@/components/werkplek/WerkgebiedBalk";
 import { annotatieDoelVan, artefactVanBericht, begrippenRefVan, type Artefact, type BegrippenRef } from "@/lib/artefact";
 import { Melding } from "@/components/ui/Melding";
 import {
@@ -132,6 +133,10 @@ interface Props {
   /** De eigen verbruiksstand: bij een vol budget gaat de invoer dicht. `null` = onbekend, en dan
    *  blijft alles gewoon werken – een meter die niet laadt mag het werk niet stilleggen. */
   verbruik?: Verbruiksstand | null;
+  /** De werkplek staat in de context van dit werkgebied (`?werkgebied=`): een balk boven de chat
+   *  noemt het, en elke beurt draagt het mee (`werkgebied_id`). */
+  werkgebiedId?: string | null;
+  onVerlaatWerkgebied?: () => void;
   /** Roept terug zodra een beurt is afgerond, zodat de stand meteen ververst. */
   onBeurtKlaar?: () => void;
   /** Start de rondleiding vanuit de lege staat – precies het moment waarop iemand hem nodig heeft. */
@@ -141,7 +146,7 @@ interface Props {
 export function WerkplekClient({
   initialGesprekId, onGesprekAangemaakt, onGewijzigd, demo, onDemoBeslissing,
   onDemoArtefact, demoOpenSignaal = 0, demoSluitSignaal = 0, onRondleiding,
-  verbruik = null, onBeurtKlaar,
+  verbruik = null, onBeurtKlaar, werkgebiedId = null, onVerlaatWerkgebied,
 }: Props) {
   // Budget op? Dan gaat de invoer dicht. Alleen bij een actieve begrenzing – staat die uit, dan is
   // `geblokkeerd` per definitie false en verandert er niets.
@@ -523,7 +528,7 @@ export function WerkplekClient({
 
     let gestart;
     try {
-      gestart = await startRun(prompt, gid, extra);
+      gestart = await startRun(prompt, gid, werkgebiedId ? { ...extra, werkgebied_id: werkgebiedId } : extra);
     } catch (e) {
       // Er liep al een beurt (bijvoorbeeld in een ander tabblad). Deze vraag is dus NIET aangenomen:
       // zet hem terug in het invoerveld en haal de optimistische bubbels weg, zodat er niets
@@ -1101,6 +1106,10 @@ export function WerkplekClient({
       <WerkplekHeader compact={items.length > 0} />
       {/* De annotatie blijft bereikbaar. De chip in de thread scrolt weg zodra het gesprek doorloopt;
           dan is er geen weg terug naar het werk waar je middenin zat. */}
+      {werkgebiedId && !demo && (
+        <WerkgebiedBalk id={werkgebiedId} uitgeschakeld={bezig || geblokkeerd}
+          onBegrippen={() => void verstuur("Stel begrippen voor")} onVerlaat={() => onVerlaatWerkgebied?.()} />
+      )}
       {!nodeDoel && !artefactSlug && !begrippenDoel && laatsteBegrippen && (
         <button
           type="button"

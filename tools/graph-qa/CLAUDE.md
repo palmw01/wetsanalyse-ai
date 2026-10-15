@@ -355,8 +355,8 @@ bronnode: `POST /v1/annotatie/lagen/batch` met `batch_id` (= run_id), `bron_iri`
 
 - **Het bericht draagt het artefact** (`annotatie_artefact`: `{soort: "annotatie", titel, ref:
   {bron_iri, label, snapshot_id}}`, naast het oudere `annotatie_doel`), en het `opgeslagen`-event
-  draagt het ook; de werkplek opent het daarmee. De titel is het `label` van het doel. Een
-  begrippenartefact (`soort: "begrippen"`, ref `{werkgebied_id, run_id}`) volgt in fase AF2.
+  draagt het ook; de werkplek opent het daarmee. De titel is het `label` van het doel. Het
+  begrippenartefact legt de begrippenroute vast (hieronder).
 - **`done` gaat er pas uit ná het wegschrijven** – anders ziet een client die dan herlaadt noch de run,
   noch het bericht.
 - **Er wordt pas aan het eind geschreven.** `emit` is terminaal; een laag die al bij het `doel`-event
@@ -574,6 +574,27 @@ en eindig met `opgeslagen` + `done`.
   `tests/test_begrippen_run.py` leest die klassen uit de bron (zoals `test_contract_drift.py`), en
   `tests/test_begrippen_manifest_drift.py` bewaakt manifest-id en veldnamen via
   `manifest-id.vectoren.json`.
+
+### De begrippenroute in het gesprek (`agent/begrippen_beurt.py`, fase AF2)
+
+Staat de werkplek in de context van een werkgebied, dan draagt `POST /v1/runs` een `werkgebied_id`.
+Een vraag om begrippen (`is_begrippenvraag`: "begrippen" plus een handeling als *stel*, *maak*,
+*welke*; **niet** "wat betekent het begrip X?") of `modus: "begrippen"` gaat dan een **harde route** in,
+vóór de supervisor en zonder model – dezelfde plek als de reeks (`_stroom_voor` in `api/main.py`).
+
+- `begrippen_beurt`: werkgebied ophalen → `POST …/begrippen-runs` bij de api (manifest + run, of de
+  bestaande op dezelfde stand) → de keten via `begrippen_stroom` als de run nieuw is, wachten (peilen,
+  hoogstens 3 min) als een ander hem al draait, niets als hij al klaar is → de groepen tellen → een
+  samenvatting als `token`, het bericht met het **begrippenartefact** (`begrippen_artefact`:
+  `{soort: "begrippen", ref: {werkgebied_id, run_id}, titel: <werkgebiednaam>}`) en `opgeslagen` met
+  datzelfde artefact.
+- **Een weigering van de api is een antwoord**, geen storing: 404 (werkgebied weg) en 409
+  (`te_weinig_passages`, `inventaris_onvolledig`, in de woorden van `WEIGERING`) worden een bewaard
+  bericht zónder artefact. Een andere api-fout is een `error`; een verwijderd gesprek eindigt stil.
+- `/v1/chat` weigert `modus: "begrippen"` (422): de route schrijft in werkgebied en gesprek.
+- Voor de andere routes is `werkgebied_id` nog alleen context; Lex gebruikt het daar nog niet.
+- Tests: `tests/test_begrippen_beurt.py` (herkenning, request-model, verloop tegen een nep-api, de
+  endpoints).
 
 ## De overzichtsroute: "welke artikelen gaan over X?"
 

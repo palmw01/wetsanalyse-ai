@@ -4,6 +4,7 @@ import { Opstellen } from "@/components/ui/Icoon";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 
 import { AppSidebar } from "@/components/werkplek/AppSidebar";
@@ -37,6 +38,14 @@ export function WorkbenchShell({
 } = {}) {
   const [gesprekken, setGesprekken] = useState<GesprekSamenvatting[]>([]);
   const [activeId, setActiveId] = useState<string | null>(beginGesprekId);
+  // Geopend vanuit een werkgebied (`?werkgebied=<id>`, de knop *Bespreek met Lex*): elke beurt draagt
+  // dat werkgebied, en een vraag om begrippen gaat de begrippenroute in. Uit de URL, zodat herladen
+  // de context houdt. *Verlaten* zet `verlaten` en haalt de parameter met `replaceState` weg; op die
+  // native aanroep alleen leunen bleek niet genoeg (de balk bleef staan).
+  const zoek = useSearchParams();
+  const [verlaten, setVerlaten] = useState<string | null>(null);
+  const uitUrl = werkgebiedUitUrl(zoek.get("werkgebied"));
+  const werkgebiedId = uitUrl && uitUrl !== verlaten ? uitUrl : null;
   const [mountKey, setMountKey] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
   // Verhoogd zodra de chat een gesprek aanmaakte: de sidebar bezit de lijst en haalt hem dan opnieuw.
@@ -141,6 +150,14 @@ export function WorkbenchShell({
    *  `replace` en geen `push`: van gesprek wisselen is geen stap die je met Terug ongedaan maakt, net
    *  als de weergavewissel op `/annotaties`. Een meegekomen `?annotatie=` hoort bij het vorige
    *  gesprek en gaat weg. */
+  /** Uit de context van het werkgebied stappen: de beurten dragen het dan niet meer. */
+  function verlaatWerkgebied() {
+    setVerlaten(werkgebiedId);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("werkgebied");
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+  }
+
   function zetGesprekInUrl(id: string | null) {
     const url = new URL(window.location.href);
     url.searchParams.delete("annotatie");
@@ -265,6 +282,8 @@ export function WorkbenchShell({
           <WerkplekClient
             key={mountKey}
             initialGesprekId={activeId}
+            werkgebiedId={werkgebiedId}
+            onVerlaatWerkgebied={verlaatWerkgebied}
             onGesprekAangemaakt={gesprekAangemaakt}
             onGewijzigd={() => setVerversSignaal((n) => n + 1)}
             onRondleiding={startRondleiding}
@@ -291,4 +310,9 @@ export function WorkbenchShell({
       )}
     </div>
   );
+}
+
+/** Alleen een geldig werkgebied-id; al het andere is geen context (de api kent de vorm ook zo). */
+function werkgebiedUitUrl(waarde: string | null): string | null {
+  return waarde && /^[A-Za-z0-9-]{1,64}$/.test(waarde) ? waarde : null;
 }
