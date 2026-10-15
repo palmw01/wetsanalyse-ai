@@ -1,0 +1,113 @@
+{
+  "_herkomst": {
+    "bron": "Algemene wet inkomensafhankelijke regelingen (BWBR0018472), kennisgraaf acceptatie (repository inning), opgehaald 2026-10-14 via de GraphDB-MCP-proxy",
+    "let_op": "Letterlijke wettekst (art. 11 Aw). Niet overtypen; bron_hash is sha256 van de tekst en is tegen SHA256() in de graaf gecontroleerd.",
+    "held_out": "Niet gebruiken om regels te ontwikkelen of af te stellen. Een regel die na het zien van deze set verandert, wordt op een nieuwe held-out set gemeten."
+  },
+  "bronnen": [
+    {
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:1:lid:1",
+      "label": "art. 1 lid 1 Awir",
+      "aanhef": "",
+      "regeling": "BWBR0018472",
+      "tekst": "Deze wet geldt voor inkomensafhankelijke regelingen.",
+      "bron_hash": "01161a3d638131d8b30e5ce0cf5b19c5206353364ab22ed8d73774c17d1b83a0"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:1:lid:3",
+      "label": "art. 1 lid 3 Awir",
+      "aanhef": "",
+      "regeling": "BWBR0018472",
+      "tekst": "Onder inkomensafhankelijke regelingen worden verstaan bij of krachtens wet vastgestelde regelingen die natuurlijke personen aanspraak geven op een financiële bijdrage van het Rijk in kosten of bijdrageverplichtingen, waarbij de hoogte van de bijdrage in die regelingen afhankelijk is gesteld van draagkracht.",
+      "bron_hash": "12b327dd7cc4c34d61d9c10cf546a5a93e2966b54b48aa5fcf7ba37c543ed7bd"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:2:lid:1:o:b",
+      "label": "art. 2 lid 1 onderdeel b Awir",
+      "aanhef": "In deze wet en de daarop berustende bepalingen, alsmede in inkomensafhankelijke regelingen, wordt verstaan onder:",
+      "regeling": "BWBR0018472",
+      "tekst": "berekeningsjaar: het kalenderjaar waarop de tegemoetkoming betrekking heeft;",
+      "bron_hash": "50e15b98e95534403306c00b49453ba1b73404ee2ca4f9fd5b709932ea914fbe"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:2:lid:1:o:e",
+      "label": "art. 2 lid 1 onderdeel e Awir",
+      "aanhef": "In deze wet en de daarop berustende bepalingen, alsmede in inkomensafhankelijke regelingen, wordt verstaan onder:",
+      "regeling": "BWBR0018472",
+      "tekst": "medebewoner: de persoon die als ingezetene op hetzelfde woonadres is ingeschreven in de basisregistratie personen als de belanghebbende, met dien verstande dat als medebewoner niet wordt aangemerkt:",
+      "bron_hash": "6c79b7d1299187d9eefc7e345763ed1d1080547ec310b4ef758bb003de997013"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:2:lid:1:o:e:o:1",
+      "label": "art. 2 lid 1 onderdeel e, 1° Awir",
+      "aanhef": "medebewoner: de persoon die als ingezetene op hetzelfde woonadres is ingeschreven in de basisregistratie personen als de belanghebbende, met dien verstande dat als medebewoner niet wordt aangemerkt:",
+      "regeling": "BWBR0018472",
+      "tekst": "de partner van de belanghebbende,",
+      "bron_hash": "6287856288a78b076af71d3e37d5cab86ee72e74717b1c4d18ff0ca1528093d7"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:2:lid:1:o:f",
+      "label": "art. 2 lid 1 onderdeel f Awir",
+      "aanhef": "In deze wet en de daarop berustende bepalingen, alsmede in inkomensafhankelijke regelingen, wordt verstaan onder:",
+      "regeling": "BWBR0018472",
+      "tekst": "partner: de persoon bedoeld in artikel 3;",
+      "bron_hash": "5854a2e80bb4517eee5160ab5033d8c98f0bd33d3ab9c604b59276b37203ef77"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:2:lid:1:o:h",
+      "label": "art. 2 lid 1 onderdeel h Awir",
+      "aanhef": "In deze wet en de daarop berustende bepalingen, alsmede in inkomensafhankelijke regelingen, wordt verstaan onder:",
+      "regeling": "BWBR0018472",
+      "tekst": "tegemoetkoming: een financiële bijdrage van het Rijk op grond van een inkomensafhankelijke regeling;",
+      "bron_hash": "bf122bb2dd3bdace0ca073b5d94232cd5bd7f5c76c3189d18a95cab2d59d50eb"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:2:lid:2:o:a",
+      "label": "art. 2 lid 2 onderdeel a Awir",
+      "aanhef": "In deze wet en de daarop berustende bepalingen wordt verstaan onder:",
+      "regeling": "BWBR0018472",
+      "tekst": "Onze Minister: Onze Minister van Financiën;",
+      "bron_hash": "22f182b9ef956967ab2052742f0d35b7aa61238cfd6b51b072d6d31fd43c5ec4"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:3:lid:1",
+      "label": "art. 3 lid 1 Awir",
+      "aanhef": "",
+      "regeling": "BWBR0018472",
+      "tekst": "Partner van de belanghebbende is degene die ingevolge artikel 5a, eerste lid en derde tot en met zevende lid, van de Algemene wet inzake rijksbelastingen als partner wordt aangemerkt. Artikel 2, zesde lid, van de Algemene wet inzake rijksbelastingen is van overeenkomstige toepassing.",
+      "bron_hash": "99734a36b166f481fe59d3cfa4a4782140a3602d456c714d4cb231d1b892be8e"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:3:lid:2",
+      "label": "art. 3 lid 2 Awir",
+      "aanhef": "",
+      "regeling": "BWBR0018472",
+      "tekst": "In aanvulling op het eerste lid wordt voor de toepassing van deze wet en de daarop berustende bepalingen onder partner mede verstaan degene die als ingezetene op hetzelfde woonadres is ingeschreven in de basisregistratie personen als de belanghebbende en:",
+      "bron_hash": "bbb8aaaa6673f545ef0bc1a613a8fccb44635bf175227467e28d6b6a993e0350"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:3:lid:3",
+      "label": "art. 3 lid 3 Awir",
+      "aanhef": "",
+      "regeling": "BWBR0018472",
+      "tekst": "Degene die ingevolge het eerste of tweede lid voor een deel van het berekeningsjaar als partner wordt aangemerkt, wordt vanaf de dag waarop het partnerschap ingevolge het eerste of tweede lid is ontstaan, ook als partner aangemerkt in de daaropvolgende perioden van het berekeningsjaar, voor zover hij in die perioden als ingezetene op hetzelfde woonadres is ingeschreven in de basisregistratie personen als de belanghebbende.",
+      "bron_hash": "67c47c4476f6e922ef3ed1bb3419fd822ec4f4319db9d1cebef3f6bdb076ee77"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:3:lid:7",
+      "label": "art. 3 lid 7 Awir",
+      "aanhef": "",
+      "regeling": "BWBR0018472",
+      "tekst": "Voor de toepassing van deze wet en de daarop berustende bepalingen worden twee ongehuwde personen die met toepassing van de vorige leden als elkaars partners worden aangemerkt of aangemerkt zijn geweest, voor de bepaling van aanverwantschap gelijkgesteld met gehuwden, onderscheidenlijk voormalige gehuwden.",
+      "bron_hash": "c42c1842eeec70dadd772ce25ed4a197bb39782a3131168cb8d16eb5aefb8efd"
+    },
+    {
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:3:lid:8",
+      "label": "art. 3 lid 8 Awir",
+      "aanhef": "",
+      "regeling": "BWBR0018472",
+      "tekst": "Onder partner wordt niet verstaan degene die uitsluitend ingevolge het tweede lid, onderdeel e, als partner wordt aangemerkt en woont in een accommodatie van een instelling die opvang als bedoeld in artikel 1.1.1 van de Wet maatschappelijke ondersteuning 2015 biedt, mits de belanghebbende een afschrift van de beschikkingen, bedoeld in artikel 2.3.5, tweede lid, van die wet, tot het treffen van een maatwerkvoorziening voor hem en voor de persoon, bedoeld in het tweede lid, onderdeel e, ten behoeve van opvang overlegt.",
+      "bron_hash": "b2ea38a13863953ce251fb041e9cfdd779ccefac6fb607ff4322a8e1a27feb68"
+    }
+  ]
+}

@@ -1,0 +1,286 @@
+{
+  "formuleringen": [
+    {
+      "element_id": "k01",
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:2:lid:1:o:b",
+      "start": 0,
+      "eind": 8,
+      "tekst": "lichamen",
+      "jas_klasse": "Brondefinitie"
+    },
+    {
+      "element_id": "k02",
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:2:lid:1:o:b",
+      "start": 10,
+      "eind": 22,
+      "tekst": "verenigingen",
+      "jas_klasse": "Rechtssubject"
+    },
+    {
+      "element_id": "k03",
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:2:lid:1:o:b",
+      "start": 26,
+      "eind": 47,
+      "tekst": "andere rechtspersonen",
+      "jas_klasse": "Rechtssubject"
+    },
+    {
+      "element_id": "k04",
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:2:lid:2:o:a",
+      "start": 4,
+      "eind": 14,
+      "tekst": "vereniging",
+      "jas_klasse": "Rechtssubject"
+    },
+    {
+      "element_id": "k05",
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:2:lid:2:o:a",
+      "start": 38,
+      "eind": 152,
+      "tekst": "de samenwerkingsvorm zonder rechtspersoonlijkheid die met een vereniging maatschappelijk gelijk kan worden gesteld",
+      "jas_klasse": "Rechtssubject"
+    },
+    {
+      "element_id": "k06",
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:2:lid:2:o:d",
+      "start": 4,
+      "eind": 9,
+      "tekst": "staat",
+      "jas_klasse": "Rechtssubject"
+    },
+    {
+      "element_id": "k07",
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:2:lid:2:o:d",
+      "start": 41,
+      "eind": 51,
+      "tekst": "Mogendheid",
+      "jas_klasse": "Rechtssubject"
+    },
+    {
+      "element_id": "k08",
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:2:lid:2:o:c",
+      "start": 4,
+      "eind": 14,
+      "tekst": "Mogendheid",
+      "jas_klasse": "Rechtssubject"
+    },
+    {
+      "element_id": "k09",
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:2:lid:2:o:c",
+      "start": 46,
+      "eind": 96,
+      "tekst": "een daarmee gelijk te stellen bestuurlijke eenheid",
+      "jas_klasse": "Rechtssubject"
+    },
+    {
+      "element_id": "k10",
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:2:lid:3:o:b",
+      "start": 11,
+      "eind": 21,
+      "tekst": "inspecteur",
+      "jas_klasse": "Brondefinitie"
+    },
+    {
+      "element_id": "k11",
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:5a:lid:7",
+      "start": 573,
+      "eind": 586,
+      "tekst": "de inspecteur",
+      "jas_klasse": "Rechtssubject"
+    },
+    {
+      "element_id": "k12",
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:2:lid:3:o:l",
+      "start": 0,
+      "eind": 7,
+      "tekst": "partner",
+      "jas_klasse": "Brondefinitie"
+    },
+    {
+      "element_id": "k13",
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:5a:lid:2",
+      "start": 75,
+      "eind": 82,
+      "tekst": "partner",
+      "jas_klasse": "Rechtssubject"
+    },
+    {
+      "element_id": "k14",
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:5a:lid:1:o:a",
+      "start": 0,
+      "eind": 13,
+      "tekst": "de echtgenoot",
+      "jas_klasse": "Rechtssubject"
+    },
+    {
+      "element_id": "k16",
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:2:lid:3:o:d",
+      "start": 0,
+      "eind": 16,
+      "tekst": "belastingaanslag",
+      "jas_klasse": "Brondefinitie"
+    },
+    {
+      "element_id": "k17",
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:2:lid:3:o:d",
+      "start": 53,
+      "eind": 75,
+      "tekst": "de navorderingsaanslag",
+      "jas_klasse": "Rechtsobject"
+    },
+    {
+      "element_id": "k18",
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:2:lid:5",
+      "start": 129,
+      "eind": 148,
+      "tekst": "navorderingsaanslag",
+      "jas_klasse": "Rechtsobject"
+    },
+    {
+      "element_id": "k19",
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:2:lid:5",
+      "start": 118,
+      "eind": 125,
+      "tekst": "aanslag",
+      "jas_klasse": "Rechtsobject"
+    },
+    {
+      "element_id": "k20",
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:2:lid:3:o:d",
+      "start": 41,
+      "eind": 51,
+      "tekst": "de aanslag",
+      "jas_klasse": "Rechtsobject"
+    }
+  ],
+  "paren": [
+    {
+      "id": "H01",
+      "van": "k01",
+      "naar": "k02",
+      "relatie": "hierarchie",
+      "categorie": "opsomming_in_definitie",
+      "motivatie": "Verenigingen zijn een soort lichamen."
+    },
+    {
+      "id": "H02",
+      "van": "k01",
+      "naar": "k03",
+      "relatie": "hierarchie",
+      "categorie": "opsomming_in_definitie",
+      "motivatie": "Andere rechtspersonen zijn een soort lichamen."
+    },
+    {
+      "id": "H03",
+      "van": "k02",
+      "naar": "k04",
+      "relatie": "zelfde_betekenis",
+      "categorie": "enkelvoud_meervoud",
+      "motivatie": "'Verenigingen' en 'vereniging' duiden hetzelfde begrip aan."
+    },
+    {
+      "id": "H04",
+      "van": "k04",
+      "naar": "k05",
+      "relatie": "inclusie",
+      "categorie": "daaronder_begrepen",
+      "motivatie": "Waar de belastingwet spreekt van vereniging, is daaronder begrepen de samenwerkingsvorm zonder rechtspersoonlijkheid."
+    },
+    {
+      "id": "H05",
+      "van": "k06",
+      "naar": "k07",
+      "relatie": "inclusie",
+      "categorie": "daaronder_mede_begrepen",
+      "motivatie": "Onder staat wordt mede begrepen Mogendheid."
+    },
+    {
+      "id": "H06",
+      "van": "k07",
+      "naar": "k08",
+      "relatie": "zelfde_betekenis",
+      "categorie": "zelfde_term",
+      "motivatie": "Zelfde term Mogendheid in onderdeel c en d."
+    },
+    {
+      "id": "H07",
+      "van": "k08",
+      "naar": "k09",
+      "relatie": "inclusie",
+      "categorie": "daaronder_mede_begrepen",
+      "motivatie": "Onder Mogendheid wordt mede begrepen een daarmee gelijk te stellen bestuurlijke eenheid."
+    },
+    {
+      "id": "H08",
+      "van": "k10",
+      "naar": "k11",
+      "relatie": "zelfde_betekenis",
+      "categorie": "meervoudige_definitie",
+      "motivatie": "'Inspecteur' is een van de drie termen van onderdeel b; art. 5a lid 7 gebruikt hem."
+    },
+    {
+      "id": "H09",
+      "van": "k12",
+      "naar": "k13",
+      "relatie": "zelfde_betekenis",
+      "categorie": "zelfde_term",
+      "motivatie": "Gedefinieerde term partner, gebruikt in art. 5a lid 2."
+    },
+    {
+      "id": "H10",
+      "van": "k14",
+      "naar": "k12",
+      "relatie": "kwalificatie",
+      "categorie": "aangemerkt_als_lijst",
+      "motivatie": "Als partner wordt aangemerkt: de echtgenoot."
+    },
+    {
+      "id": "H11",
+      "van": "k14",
+      "naar": "k12",
+      "relatie": "verschillend",
+      "categorie": "kwalificatie",
+      "motivatie": "Echtgenoot en partner zijn verschillende begrippen; de echtgenoot geldt als partner."
+    },
+    {
+      "id": "H12",
+      "van": "k16",
+      "naar": "k17",
+      "relatie": "hierarchie",
+      "categorie": "opsomming_in_definitie",
+      "motivatie": "De navorderingsaanslag is een soort belastingaanslag."
+    },
+    {
+      "id": "H13",
+      "van": "k17",
+      "naar": "k18",
+      "relatie": "zelfde_betekenis",
+      "categorie": "variant_lidwoord",
+      "motivatie": "Zelfde term navorderingsaanslag."
+    },
+    {
+      "id": "H14",
+      "van": "k19",
+      "naar": "k20",
+      "relatie": "zelfde_betekenis",
+      "categorie": "variant_lidwoord",
+      "motivatie": "'Aanslag' in lid 5 is de aanslag uit de opsomming van onderdeel d (naast voorlopige aanslag en navorderingsaanslag)."
+    },
+    {
+      "id": "H15",
+      "van": "k16",
+      "naar": "k20",
+      "relatie": "verschillend",
+      "categorie": "kop_van_samenstelling",
+      "motivatie": "De aanslag is een soort belastingaanslag, geen synoniem."
+    },
+    {
+      "id": "H16",
+      "van": "k16",
+      "naar": "k20",
+      "relatie": "hierarchie",
+      "categorie": "opsomming_in_definitie",
+      "motivatie": "De aanslag is een soort belastingaanslag (opsomming in onderdeel d). Toegevoegd ná de blinde meting van 14 okt 2026: het paar ontbrak, in strijd met de eigen regel uit v1 (f01→f03) en met de motivatie van het verschillend-paar k16~k20."
+    }
+  ]
+}

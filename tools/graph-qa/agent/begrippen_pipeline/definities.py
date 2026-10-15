@@ -15,8 +15,9 @@ de houder of in de bepaling zelf:
 | "in dit artikel", "voor de toepassing van artikel N" | dat artikel |
 | "in dit lid" | dat lid |
 | "in dit hoofdstuk / deze afdeling / deze paragraaf …" | **onbekend**: de opbouw staat niet in de IRI |
+| geen formule | de regeling: zonder beperking geldt een begripsbepaling voor de hele regeling |
 
-Een definitie zonder herkenbare formule heeft geen bereik en levert alleen een onbeslist signaal.
+Een definitie is ook "onder X wordt (mede/niet) verstaan …", met of zonder dubbele punt.
 
 Definities buiten het werkgebied komen als contextbron in het manifest; deze module doet zelf
 geen graafverkeer.
@@ -28,12 +29,17 @@ from dataclasses import dataclass
 
 from .model import Bron, Formulering, Manifest, Taalanalyse
 
-VERSIE = "1"
+VERSIE = "2"
 
 _DEF_AANHEF = re.compile(r"\b(?:verstaat|wordt|worden)\s+(?:(mede|niet)\s+)?(?:verstaan\s+)?onder\s*:?\s*$",
                          re.IGNORECASE)
 _DEF_INLINE = re.compile(r"\bwordt\s+(?:(mede|niet)\s+)?verstaan\s+onder\s+([^:]{1,80}?)\s*:\s*",
                          re.IGNORECASE)
+# "Onder X wordt/worden (mede/niet) verstaan …", ook zonder dubbele punt en met "wordt" eerder in de
+# zin ("In aanvulling op … wordt … onder partner mede verstaan degene die …").
+_DEF_ONDER = re.compile(r"\bonder\s+(?P<term>[^:,;]{1,60}?)\s+(?:(?:wordt|worden)\s+)?"
+                        r"(?:(?P<soort>mede|niet|tevens|ook)\s+)?verstaan\b\s*:?\s*", re.IGNORECASE)
+_WORDT = re.compile(r"\b(?:wordt|worden)\b", re.IGNORECASE)
 _TERM_DUBBELPUNT = re.compile(r"^([^:]{1,80}?):\s+")
 
 _REGELING = re.compile(r"\b(?:deze|dit)\s+(?:wet|besluit|regeling|rijkswet)\b", re.IGNORECASE)
@@ -102,7 +108,8 @@ def bereik_uit(formule: str, bron_iri: str) -> Bereik:
         return Bereik("onbekend", "", m.group(0))
     if m := _REGELING.search(formule):
         return Bereik("regeling", regeling_van(bron_iri), m.group(0))
-    return Bereik("onbekend", "", "")
+    # Geen formule: een begripsbepaling geldt dan voor de hele regeling (Aanwijzingen).
+    return Bereik("regeling", regeling_van(bron_iri), "")
 
 
 def _termen(ruw: str) -> list[str]:
@@ -131,6 +138,14 @@ def _definitie(bron: Bron) -> _Definitie | None:
         return _Definitie(bron, tuple(_termen(m.group(2))), m.end(),
                           "definitie" if soort == "definitie" else soort,
                           bereik_uit(bron.tekst[:m.start()] + " " + m.group(0), bron.bron_iri))
+    for m in _DEF_ONDER.finditer(bron.tekst):
+        zin_begin = max(bron.tekst.rfind(".", 0, m.start()), 0)
+        if not (_WORDT.search(m.group(0)) or _WORDT.search(bron.tekst[zin_begin:m.start()])):
+            continue
+        soort = {"tevens": "mede", "ook": "mede"}.get((m.group("soort") or "").lower(),
+                                                       (m.group("soort") or "definitie").lower())
+        return _Definitie(bron, tuple(_termen(m.group("term"))), m.end(), soort,
+                          bereik_uit(bron.tekst[zin_begin:m.end()], bron.bron_iri))
     return None
 
 
@@ -145,17 +160,22 @@ def wettelijke_termen(manifest: Manifest, taal: dict[str, Taalanalyse]) -> list[
         if d is None:
             continue
         fs = sorted(per_bron.get(bron.bron_iri, []), key=lambda f: (f.start, -f.eind))
-        ankers = {taal[f.element_id].term: f.element_id for f in fs
-                  if f.eind <= d.term_eind and f.element_id in taal}
-        for term in d.termen:
-            uit.append(WettelijkeTerm(term, bron.bron_iri, d.bereik, d.soort, ankers.get(term, "")))
+        voor_term = [f for f in fs if f.eind <= d.term_eind and f.element_id in taal]
+        ankers = {taal[f.element_id].term: f.element_id for f in voor_term}
+        for ruw in d.termen:
+            # De term zoals de taalstap hem normaliseert (meervoud → lemma), via zijn anker.
+            anker = next((f.element_id for f in voor_term if " ".join(f.tekst.lower().split()) == ruw), "")
+            term = taal[anker].term if anker else ruw
+            uit.append(WettelijkeTerm(term, bron.bron_iri, d.bereik, d.soort, anker or ankers.get(term, "")))
+        ankers |= {w.term: w.anker for w in uit if w.bron_iri == bron.bron_iri and w.anker}
         # Een opsommende definitie: twee of meer niet-overlappende formuleringen in de definiens,
         # en een lijstteken. Die onderdelen zijn zelf wettelijke termen (soorten van de term).
         definiens = [f for f in fs if f.start >= d.term_eind]
         los = [f for i, f in enumerate(definiens) if all(
             g.eind <= f.start or g.start >= f.eind for g in definiens[:i])]
         if d.soort == "definitie" and len(los) >= 2 and "," in bron.tekst[d.term_eind:]:
-            boven = ankers.get(d.termen[0], "") if len(d.termen) == 1 else ""
+            boven = next((w.anker for w in uit if w.bron_iri == bron.bron_iri and w.soort == "definitie"),
+                         "") if len(d.termen) == 1 else ""
             for f in los:
                 t = taal.get(f.element_id)
                 if t and not t.beperkt:

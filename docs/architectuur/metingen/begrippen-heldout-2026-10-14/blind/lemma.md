@@ -1,0 +1,18 @@
+# Begrippenketen – variant `lemma`
+
+Referentie heldout-v1 (status **provisional**, sha256 `73321cce8192`): 19 formuleringen, 14 paren. Manifest `M7ef63ab2afc3653d`.
+
+Tegen een provisional set is dit een trendmeting, geen kwaliteitsoordeel.
+
+| relatie | voorspeld | goud | tp | precisie | recall |
+|---|---:|---:|---:|---:|---:|
+| zelfde_betekenis | 7 | 16 | 7 | 1.0 | 0.4375 |
+| kwalificatie | 0 | 1 | 0 | – | 0.0 |
+| inclusie | 0 | 1 | 0 | – | 0.0 |
+| uitsluiting | 0 | 2 | 0 | – | 0.0 |
+| hierarchie | 0 | 0 | 0 | – | – |
+
+BCubed groepen: precisie 1.0, recall 0.7509, F 0.8577.
+Verschillend maar samengevoegd: 0.
+Aandacht: {'groen': 5, 'geel': 0}. Deterministisch: ja.
+

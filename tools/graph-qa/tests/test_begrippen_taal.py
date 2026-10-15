@@ -43,7 +43,7 @@ def test_term(taal, eid, term):
 
 @pytest.mark.parametrize("eid, beperkt", [
     ("f20", True),    # "… die een uit te betalen bedrag behelst"
-    ("f11", True),    # "… van de beschikking of de uitspraak"
+    ("f11", False),   # van-complement: de kennisgeving ván iets is geen soort kennisgeving
     ("f21", True),    # "met een belastingaanslag gelijkgestelde …"
     ("f09", False),   # nevenschikking beperkt niet
     ("f25", False),   # "bedoeld in onderdeel c" is een verwijzing

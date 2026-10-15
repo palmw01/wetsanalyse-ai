@@ -61,7 +61,8 @@ def analyseer(manifest: Manifest, provider: TaalProvider | None = None,
     t = time.perf_counter()
     wts = definities.wettelijke_termen(manifest, taal)
     sigs = [*signalen.zelfde_term(manifest, taal), *signalen.uit_definities(manifest, taal, wts),
-            *signalen.afwijkende_kwalificatie(manifest, taal, wts), *signalen.uit_verwijzingen(manifest, taal),
+            *signalen.afwijkende_kwalificatie(manifest, taal, wts),
+            *signalen.uitsluiting_in_aanhef(manifest, taal, wts), *signalen.uit_verwijzingen(manifest, taal),
             *patronen.toepassen(manifest, taal, wts), *patronen.kopsignalen(manifest, taal)]
     kandidaten = _kandidaten(sigs)
     fase("Signalen", t, f"{len(wts)} wettelijke termen, {len(sigs)} signalen, {len(kandidaten)} kandidaten")

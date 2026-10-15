@@ -15,6 +15,18 @@ in een andere relatie, en welke lijken op elkaar maar zijn het níét. Per versi
 Controle en meten: `cd tools/graph-qa && uv run python -m eval.begrippen_eval --check` en
 `--variant lemma|keten`. Zie de docstring van `eval/begrippen_eval.py` voor de maten.
 
+## Sets
+
+| set | regeling | rol | status |
+|---|---|---|---|
+| `v1` | Invorderingswet 1990 | ontwikkelset (regels erop gebouwd) | provisional |
+| `heldout-v1` | Awir | blind gemeten, daarna **ontwikkelset** (reparaties erop gebaseerd) | provisional |
+| `heldout-v2` | AWR | held-out, **één keer** blind gemeten na de Awir-reparaties; één gouden paar daarna gecorrigeerd | provisional |
+
+Een set die gebruikt is om regels te verbeteren, zegt daarna niets meer over generalisatie. Wie
+regels toevoegt op basis van `heldout-v2`, maakt een nieuwe held-out set. De metingen staan in
+[`../../architectuur/metingen/begrippen-heldout-2026-10-14/`](../../architectuur/metingen/begrippen-heldout-2026-10-14/README.md).
+
 ## v1 (14 okt 2026) — status `provisional`
 
 25 formuleringen uit art. 2 en 9 Invorderingswet 1990 en 22 paren. De teksten komen uit de

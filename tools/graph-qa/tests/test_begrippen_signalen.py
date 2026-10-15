@@ -40,11 +40,39 @@ def _codes(sigs) -> set[tuple[str, str, str, str]]:
     ("Voor de toepassing van artikel 9 wordt verstaan onder:", "artikel", W + "9"),
     ("In dit lid wordt verstaan onder:", "lid", W + "2:lid:1"),
     ("In dit hoofdstuk wordt verstaan onder:", "onbekend", ""),
-    ("Het volgende geldt:", "onbekend", ""),
+    ("Het volgende geldt:", "regeling", "urn:bwb:BWBR0004770"),     # geen formule: de regeling
 ])
 def test_bereik_volgt_de_formule(formule, soort, prefix):
     b = definities.bereik_uit(formule, W + "2:lid:1:o:m")
     assert (b.soort, b.prefix) == (soort, prefix)
+
+
+@pytest.mark.parametrize("tekst, term, soort", [
+    ("Onder inkomensafhankelijke regelingen worden verstaan bij of krachtens wet vastgestelde regelingen.",
+     "inkomensafhankelijke regelingen", "definitie"),
+    ("In aanvulling op het eerste lid wordt voor de toepassing van deze wet onder partner mede verstaan degene die",
+     "partner", "mede"),
+    ("Onder partner wordt niet verstaan degene die uitsluitend als partner wordt aangemerkt.", "partner", "niet"),
+])
+def test_definitie_met_onder_ook_zonder_dubbele_punt(tekst, term, soort):
+    d = definities._definitie(Bron(bron_iri=W + "1:lid:3", tekst=tekst, bron_hash="h"))
+    assert d and d.termen == (term,) and d.soort == soort and d.bereik.soort == "regeling"
+
+
+def test_onder_zonder_wordt_is_geen_definitie():
+    assert definities._definitie(Bron(bron_iri=W + "1", tekst="Hij valt onder de regeling.", bron_hash="h")) is None
+
+
+def test_uitsluiting_in_aanhef_van_een_opsomming():
+    defb = Bron(bron_iri=W + "2:lid:1:o:e", aanhef="Deze wet verstaat onder:", bron_hash="h1",
+                tekst="medebewoner: de persoon, met dien verstande dat als medebewoner niet wordt aangemerkt:")
+    item = Bron(bron_iri=W + "2:lid:1:o:e:o:1", aanhef=defb.tekst, bron_hash="h2",
+                tekst="de partner van de belanghebbende,")
+    fs = (_f("m", defb, "medebewoner"), _f("p", item, "de partner van de belanghebbende"))
+    taal = {"m": _t("m", "medebewoner"), "p": _t("p", "partner")}
+    s = _codes(signalen.alle(Manifest(bronnen=(defb, item), formuleringen=fs), taal))
+    assert ("uitsluiting", "m", "p", "NIET_AANGEMERKT") in s
+    assert ("zelfde_betekenis", "m", "p", "NIET_AANGEMERKT") in s
 
 
 def test_bereik_omvat():

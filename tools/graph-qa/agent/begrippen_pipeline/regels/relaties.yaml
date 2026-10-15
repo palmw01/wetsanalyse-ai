@@ -71,12 +71,12 @@
   sterkte: sterk
   bron: "Aanwijzingen voor de regelgeving (begripsbepalingen)"
   versie: 1
-  patroon: '\bonder\s+(?:{LW}\s+)?(?P<van>[\w-]+)\s+(?:wordt|worden)\s+(?:mede|tevens|ook)\s+verstaan\s+(?:{LW}\s+)?(?P<naar>[\w-]+)'
+  patroon: '\bonder\s+(?:{LW}\s+)?(?P<van>[\w-]+)\s+(?:(?:wordt|worden)\s+)?(?:mede|tevens|ook)\s+verstaan\s+(?:{LW}\s+)?(?P<naar>[\w-]+)'
   tests:
     positief: [{tekst: "Onder belasting wordt mede verstaan de rente.", van: "belasting", naar: "rente"}]
     negatief: [{tekst: "Onder belasting wordt verstaan de rente."}]
     rand: [{tekst: "onder een werknemer worden tevens verstaan de bestuurders", van: "werknemer", naar: "bestuurders"}]
-    overlap: [{tekst: "Onder belasting wordt mede verstaan de rente en de kosten.", van: "belasting", naar: "rente"}]
+    overlap: [{tekst: "wordt voor de toepassing van deze wet onder partner mede verstaan degene die", van: "partner", naar: "degene"}]
 
 - id: begrip.uitsluiting.niet_verstaan
   hypothese: uitsluiting
@@ -85,12 +85,12 @@
   sterkte: sterk
   bron: "Aanwijzingen voor de regelgeving (begripsbepalingen)"
   versie: 1
-  patroon: '\bonder\s+(?:{LW}\s+)?(?P<van>[\w-]+)\s+(?:wordt|worden)\s+niet\s+verstaan\s+(?:{LW}\s+)?(?P<naar>[\w-]+)'
+  patroon: '\bonder\s+(?:{LW}\s+)?(?P<van>[\w-]+)\s+(?:(?:wordt|worden)\s+)?niet\s+verstaan\s+(?:{LW}\s+)?(?P<naar>[\w-]+)'
   tests:
     positief: [{tekst: "Onder werknemer wordt niet verstaan de bestuurder.", van: "werknemer", naar: "bestuurder"}]
     negatief: [{tekst: "Onder werknemer wordt mede verstaan de bestuurder."}]
     rand: [{tekst: "onder een lichaam worden niet verstaan de stichtingen", van: "lichaam", naar: "stichtingen"}]
-    overlap: [{tekst: "Onder werknemer wordt niet verstaan de bestuurder of de commissaris.", van: "werknemer", naar: "bestuurder"}]
+    overlap: [{tekst: "wordt in dat geval onder werknemer niet verstaan de bestuurder", van: "werknemer", naar: "bestuurder"}]
 
 - id: begrip.hierarchie.zoals
   hypothese: hierarchie

@@ -18,6 +18,7 @@ gebeurt, beslist de beslistabel; hier wordt alleen waargenomen.
 | `MEDE_VERSTAAN` | inclusie | steun, sterk | "onder X wordt mede verstaan Y" |
 | `BEDOELD_IN` | zelfde betekenis | steun, sterk | "Y, bedoeld in onderdeel c" wijst de formulering met dezelfde kern daar aan |
 | `AANWIJZEND` | zelfde betekenis | steun, sterk | "die X" wijst terug naar X (direct, of via "als bedoeld in") |
+| `NIET_AANGEMERKT` | uitsluiting (+ tegen zelfde) | steun, sterk | aanhef "… als X niet wordt aangemerkt:" boven een opsomming |
 """
 from __future__ import annotations
 
@@ -30,7 +31,7 @@ from .definities import (
 )
 from .model import Bewijs, Hypothese, Manifest, Polariteit, Sterkte, Taalanalyse
 
-VERSIE = "1"
+VERSIE = "2"
 
 _AFWIJKING = re.compile(r"\bin afwijking\b.*?\b(?:lid|leden|artikel|artikelen)\b", re.IGNORECASE | re.DOTALL)
 _GELDT_ALS = re.compile(r"\bgeldt\b.*?\bals\s+(?P<term>[\w-]+)", re.IGNORECASE | re.DOTALL)
@@ -160,6 +161,34 @@ def afwijkende_kwalificatie(manifest: Manifest, taal: dict[str, Taalanalyse],
     return uit
 
 
+_NIET_AANGEMERKT = re.compile(r"\bals\s+(?P<term>[\w-]+)\s+(?:niet\s+wordt|wordt\s+niet)\s+aangemerkt\s*:\s*$",
+                              re.IGNORECASE)
+
+
+def uitsluiting_in_aanhef(manifest: Manifest, taal: dict[str, Taalanalyse],
+                          wts: list[WettelijkeTerm]) -> list[Signaal]:
+    """"… met dien verstande dat als medebewoner niet wordt aangemerkt: 1° de partner …"."""
+    uit = []
+    for bron in manifest.bronnen:
+        if not (m := _NIET_AANGEMERKT.search(bron.aanhef)):
+            continue
+        term = m.group("term").lower()
+        boven = next((w.anker for w in sorted(wts, key=lambda w: w.soort != "definitie")
+                      if w.term == term and w.anker and w.bereik.omvat(bron.bron_iri)), "")
+        items = sorted((f for f in manifest.formuleringen if f.bron_iri == bron.bron_iri and f.start <= 4),
+                       key=lambda f: (f.start, -f.eind))
+        if not boven or not items:
+            continue
+        item = items[0].element_id
+        uit.append(Signaal(Hypothese.UITSLUITING, boven, item, _b(
+            "NIET_AANGEMERKT", Polariteit.STEUN, Sterkte.STERK, "begrip.uitsluiting.aanhef",
+            m.group(0), bron.bron_iri)))
+        uit.append(_zelfde(boven, item, _b(
+            "NIET_AANGEMERKT", Polariteit.TEGEN, Sterkte.STERK, "begrip.uitsluiting.aanhef",
+            m.group(0), bron.bron_iri)))
+    return uit
+
+
 def _aangewezen(manifest: Manifest, taal: dict[str, Taalanalyse], doel: str, kern: str,
                 term: str) -> list[str]:
     """Formuleringen in de doelbron(nen) met dezelfde kern of term."""
@@ -212,4 +241,5 @@ def alle(manifest: Manifest, taal: dict[str, Taalanalyse]) -> list[Signaal]:
     """Alle signalen van deze stap, in vaste volgorde."""
     wts = wettelijke_termen(manifest, taal)
     return [*zelfde_term(manifest, taal), *uit_definities(manifest, taal, wts),
-            *afwijkende_kwalificatie(manifest, taal, wts), *uit_verwijzingen(manifest, taal)]
+            *afwijkende_kwalificatie(manifest, taal, wts), *uitsluiting_in_aanhef(manifest, taal, wts),
+            *uit_verwijzingen(manifest, taal)]

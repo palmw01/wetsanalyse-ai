@@ -18,3 +18,4 @@ signalen:
   NIET_VERSTAAN: {naam: "Niet verstaan", uitleg: "'Onder X wordt niet verstaan Y': Y valt buiten het begrip X. Tegenbewijs tegen samenvoegen."}
   HEARST: {naam: "Soortaanduiding", uitleg: "'X, zoals Y' of 'X, waaronder Y': Y wordt genoemd als soort van X."}
   KOP_VAN_SAMENSTELLING: {naam: "Kop van samenstelling", uitleg: "De samenstelling eindigt op een term die elders zelf voorkomt; mogelijk een soort daarvan. Zwak: de wet kan het anders regelen."}
+  NIET_AANGEMERKT: {naam: "Niet aangemerkt", uitleg: "De aanhef zegt dat het opgesomde niet als deze term wordt aangemerkt: een uitsluiting, en tegenbewijs tegen samenvoegen."}
