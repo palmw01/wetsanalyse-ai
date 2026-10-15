@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { ChevronOmlaag, Kruis, Richten } from "@/components/ui/Icoon";
 import { LIFECYCLE_LABEL } from "@/lib/annotatie";
 import { jasStyle } from "@/lib/jas";
@@ -28,7 +28,7 @@ const ZICHTBAAR_PER_GROEP = 5;
  *  Smal (zijpaneel) staat de kaart onder de graaf, met een eigen scroll, en is hij in te klappen. De
  *  aanroeper geeft hem per keuze een `key`: een nieuwe keuze begint open en bovenaan. */
 export function GraafInspector({ model, id, detail, info, element, ongedekt, hoofdactie, laadt, groepen, telling, doelen, smal,
-  onCentreer, onSluit, onHoofdactie, onVraag, onKies }: {
+  onCentreer, onSluit, onHoofdactie, onVraag, onKies, doelenKop = "Dit antwoord", extra }: {
   model: GraafModel;
   id: string | null;
   /** De wettekst van de gekozen bepaling, of voor een markering die van haar anker. */
@@ -47,6 +47,9 @@ export function GraafInspector({ model, id, detail, info, element, ongedekt, hoo
   smal: boolean;
   onCentreer: () => void; onSluit: () => void; onHoofdactie: () => void; onVraag?: () => void;
   onKies: (id: string) => void;
+  doelenKop?: string;
+  /** Een extra handeling naast de hoofdactie, van de pagina die de graaf toont. */
+  extra?: ReactNode;
 }) {
   const [klapstand, setIngeklapt] = useState(false);
   // Inklappen bestaat alleen smal; vergroot je, dan staan de details altijd open.
@@ -58,7 +61,7 @@ export function GraafInspector({ model, id, detail, info, element, ongedekt, hoo
     const genoemd = doelen.filter((d) => model.hasNode(d));
     return <div className="min-h-0 overflow-y-auto p-4 text-xs text-muted" data-testid="graaf-detail">
       {genoemd.length > 0 && <>
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-faint">Dit antwoord</p>
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-faint">{doelenKop}</p>
         <ul className="mb-3 mt-1 space-y-0.5">
           {genoemd.map((d) => { const a = model.getNodeAttributes(d); const n = markeringenOp(model, d); return <li key={d}>
             <button type="button" onClick={() => onKies(d)} className="focus-ring flex w-full items-baseline gap-2 rounded px-1 py-0.5 text-left text-xs hover:bg-surface coarse:min-h-11">
@@ -95,10 +98,11 @@ export function GraafInspector({ model, id, detail, info, element, ongedekt, hoo
       <button type="button" className={ICOON} onClick={onSluit} aria-label="Selectie opheffen" title="Selectie opheffen"><Kruis /></button>
     </div>
 
-    {(hoofdactie || onVraag) && <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pb-3">
+    {(hoofdactie || onVraag || extra) && <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pb-3">
       {hoofdactie === "laden" && <button type="button" className={HOOFD} onClick={onHoofdactie} disabled={laadt}>{laadt ? "Laden…" : "In de graaf laden"}</button>}
       {tekstLabel && <button type="button" className={TEKSTKNOP} onClick={onHoofdactie}>{tekstLabel}</button>}
       {onVraag && <button type="button" className={TEKSTKNOP} onClick={onVraag}>Vraag Lex</button>}
+      {extra}
     </div>}
 
     {!ingeklapt && <div className="min-h-0 space-y-3 overflow-y-auto border-t border-line px-4 py-3">
