@@ -14,7 +14,7 @@
  *    aantal; de parameter verdwijnt uit de URL;
  *  - na het meedenken: advies bij de twijfelvraag (die blijft staan), een groep op advies van Lex, de
  *    herkomst van de definitie en de aandachtspunten; het aanbod is weg;
- *  - overnemen met een definitie die Lex formuleerde, met de herkomst in het vinkje;
+ *  - akkoord op een groep met een definitie die Lex formuleerde (de review van fase D);
  *  - de knop bij een voorstel van Lex in het gesprek;
  *  - op een smal scherm een sheet binnen het scherm.
  */
@@ -84,7 +84,7 @@ await context.route("**/api/**", async (route) => {
   if (p === "/api/werkgebieden/wg1/verdieping") return route.fulfill({ json: werkvoorraad() });
   if (p === "/api/werkgebieden/wg1/groepen") return route.fulfill({ json: groepenAntwoord() });
   if (p === "/api/werkgebieden/wg1/begrippen-runs/laatste") return route.fulfill({ json: { run: { ...run, verouderd: false } } });
-  if (p === "/api/werkgebieden/wg1/groepen/overnemen") {
+  if (p === "/api/werkgebieden/wg1/groepen/akkoord") {
     overname = body;
     return route.fulfill({ status: 409, json: { detail: { fout: "test", melding: "Overname vastgelegd door de test." } } });
   }
@@ -140,21 +140,23 @@ try {
   // --- Na het meedenken: advies, groep op advies van Lex, herkomst en aandachtspunten ---
   await page.goto(`${base}/werkgebieden/wg1?tab=begrippen`);
   await zie("Lex dacht mee");
+  // De review: de twijfelvraag die open bleef, met het advies van Lex.
+  assert.deepEqual(await page.locator("[data-review-item]").evaluateAll((els) => els.map((e) => e.dataset.reviewItem)),
+    ["GM", "G1", "P1"], "alleen de vraag die open bleef staat in de review");
+  await page.locator('[data-review-item="P1"]').click();
   await zie("Advies van Lex: verwant, maar een ander begrip");
   await zie("Lid 10 noemt alle termijnen.");
-  assert.equal(await page.locator("[data-advies]").count(), 1, "alleen de vraag die open bleef");
+  assert.equal(await page.locator("[data-advies]").count(), 1);
   await zie("samengevoegd op advies van Lex");
+  await page.locator('[data-review-item="G1"]').click();
   await zie("Definitie, geformuleerd door Lex:");
   await zie("De definitie is door Lex geformuleerd; toets haar aan de passages.");
   assert.equal(await page.locator("[data-meedenk-aanbod]").count(), 0, "het aanbod is weg");
   await page.getByText("Rust op 1 passage uit de bron").click();
   await zie("“de beschikking”");
 
-  // --- Overnemen met de definitie van Lex; de herkomst staat in het vinkje ---
-  await page.getByRole("button", { name: "Neem groep “aanslagbiljet” over als begrip" }).click();
-  const vink = page.getByRole("checkbox", { name: "Neem de definitie over (geformuleerd door Lex)" });
-  assert.equal(await vink.isChecked(), true);
-  await page.getByRole("button", { name: "Overnemen", exact: true }).click();
+  // --- Akkoord op de groep: de definitie van Lex gaat mee ---
+  await page.getByRole("button", { name: "Akkoord: groep “aanslagbiljet”" }).click();
   await zie("Overname vastgelegd door de test.");
   assert.deepEqual([overname.groep_ids, overname.met_definitie], [["G1"], true]);
 
@@ -179,7 +181,7 @@ try {
   assert.equal(await smal.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, "geen horizontale scroll");
 
   assert.deepEqual(errors, []);
-  console.log("Browser OK: aanbod en bevestiging met schatting en budget, start in een vers gesprek met het bevestigde aantal, advies bij de open twijfelvraag, groep op advies van Lex, herkomst en aandachtspunten van de kaart, overnemen met een geformuleerde definitie, knop in het gesprek, sheet op een smal scherm.");
+  console.log("Browser OK: aanbod en bevestiging met schatting en budget, start in een vers gesprek met het bevestigde aantal, advies bij de open twijfelvraag, groep op advies van Lex, herkomst en aandachtspunten van de kaart, akkoord met een geformuleerde definitie, knop in het gesprek, sheet op een smal scherm.");
 } finally {
   await browser.close();
 }

@@ -153,6 +153,15 @@ export async function haalElement(id: string): Promise<NodeElement> {
   if (!element) throw new Error("Geen element in het antwoord.");
   return element;
 }
+/** "Annotatie akkoord" vanuit de begrippenreview (spoor D, fase D): een aparte, expliciete beslissing op
+ *  het element, tegen de laagrevisie en bronstand van nu – nooit stil meegenomen in een begripsakkoord. */
+export async function keurElementGoed(id: string): Promise<void> {
+  const d = await nodeRequest<{ element: NodeElement; laag: { revisie: number }; snapshot_id: string }>(
+    `elementen/${pathSegment(id)}`);
+  await nodeRequest(`elementen/${pathSegment(id)}/beslissing`, {
+    type: "approve", snapshot_id: d.snapshot_id, verwachte_revisies: { [d.element.eigenaar_iri]: d.laag.revisie },
+  });
+}
 /** Technisch detail van één markering: haar RDF zoals de projectie hem schrijft, en de graafcontrole
  *  van haar laag (`GET elementen/{id}/graaf`). */
 export interface LaagGraafcontrole {

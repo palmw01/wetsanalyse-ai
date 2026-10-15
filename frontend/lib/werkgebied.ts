@@ -71,7 +71,7 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   }
   if (deel === "groepen") {
     if (pad.length === 2) return true;
-    if (pad.length === 3) return a === "overnemen";
+    if (pad.length === 3) return a === "overnemen" || a === "akkoord";
     return pad.length === 4 && ["koppelen", "afwijzen", "parkeren", "heropenen"].includes(b);
   }
   if (deel !== "begrippen") return false;
@@ -232,6 +232,24 @@ export function auditZin(regel: WerkgebiedAuditRegel, labels: Map<string, string
       return `Voorstel van Lex uitgesloten: ${bron}${typeof d.reden === "string" ? ` – ${d.reden}` : ""}`;
     case "kandidaat-voorgesteld":
       return `Voorstel van Lex heropend: ${bron}`;
+    case "groep-akkoord":
+    case "groep-overgenomen":
+    case "groep-gekoppeld": {
+      const naam = typeof d.begrip_id === "string" ? begrippen.get(d.begrip_id) : undefined;
+      const wie = naam ? `begrip "${naam}"` : "een begrip";
+      const deels = Array.isArray(d.deels) && d.deels.length ? " (een deel van de passages)" : "";
+      if (regel.actie === "groep-gekoppeld") return `Voorstel van Lex gekoppeld aan ${wie}${deels}`;
+      if (regel.actie === "groep-overgenomen") return `Voorstel van Lex overgenomen als ${wie}${deels}`;
+      return `Akkoord op een voorstel van Lex: ${wie}${d.geaccordeerd ? " geaccordeerd" : ", nog een concept"}${deels}`;
+    }
+    case "groep-afgewezen":
+      return `Voorstel van Lex afgewezen${typeof d.reden === "string" && d.reden ? ` – ${d.reden}` : ""}`;
+    case "groep-geparkeerd":
+      return `Voorstel van Lex geparkeerd${typeof d.reden === "string" && d.reden ? ` – ${d.reden}` : ""}`;
+    case "groep-open":
+      return "Voorstel van Lex heropend";
+    case "vraag-beantwoord":
+      return `Twijfelvraag beantwoord: ${d.antwoord === "samen" ? "samen" : "apart"}`;
     default:
       return regel.actie;
   }

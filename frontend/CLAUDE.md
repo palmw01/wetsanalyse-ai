@@ -559,13 +559,29 @@ bestaat los van de gesprekken.
   - **De allowlist** (`isWerkgebiedRoute`) laat `groepen/*`, `begrippen-runs/laatste|{run}` en
     `…/vragen/{kid}` door, maar nooit `…/uitkomst`, `…/loopt`, `…/mislukt` (van graph-qa) of een kale
     POST op `begrippen-runs` (één weg: de startroute).
-  - **Een groepkaart** (`VoorstelKaart`) toont naam, aandacht als tekst (`AANDACHT_LABEL`), de letterlijke
-    brondefinitie, elke passage letterlijk met vindplaats en voorbehoud, de uitleg van de keten en
-    conflicten. Leden uitvinken = splitsen; kaarten kiezen = combineren (`overnameVoor` in
-    `lib/begripVoorstellen.ts`); *Lijkt op* koppelt aan een bestaand begrip. Na een overname opent het
-    begrip in de werkplek van levering 2. Twijfelvragen en relaties staan letterlijk (`passages` uit de
-    api); *Samen* zet de betrokken open groepen klaar om te combineren.
-  - Browserregressie: `scripts/test-begripvoorstellen.mjs`. Let op: een label om een tekstveld neemt de
+  - **De review** (`BegripReview`, fase D; api §*Voorstellen van Lex* – akkoord) is de vorm van de
+    annotatiereview: groepen én open twijfelvragen in één lijst (`reviewItems` in
+    `lib/begripVoorstellen.ts`: geel, de vragen, groen; besluiten alleen bij *Alles*), voortgang
+    (`reviewVoortgang`, parkeren telt als besluit), filters, en alleen het actieve item uitgeklapt.
+    - **Akkoord** (`a`) gaat via `POST …/groepen/akkoord`: begrip, beoordeelde koppelingen en accorderen in
+      één handeling. De knop zegt vooraf of het een concept blijft (`akkoordLabel` uit `poort_vooraf`).
+      Blijft het een concept, dan staat het bovenaan met de redenen en de oplossing ter plekke:
+      *Annotatie akkoord* per onbeoordeelde passage (`keurElementGoed` in `lib/annotatieNode.ts` – een
+      aparte beslissing op de annotatie, met haar laagrevisie) en *Definitie toevoegen*; daarna probeert de
+      review opnieuw te accorderen.
+    - **Aanpassen** (`e`): naam, definitie met herkomst, context, begripstype; alleen wat veranderde gaat
+      mee (`aanpassingUit`), en de werkplek toont welke herkomst het wordt (`herkomstNaAanpassing`, zoals
+      de api). Enter in een veld of Ctrl+Enter in een tekstvak = akkoord.
+    - **Splitsen** met de vinkjes; de rest van de groep blijft staan ("n al een begrip"). Na elk besluit
+      vervalt de vinkjeskeuze. **Combineren**: `m` markeert, vanaf twee groepen staat de vergelijking
+      bovenaan (`vergelijk`: definities naast elkaar, kies er één of geen, signalen ertegen).
+      **Afwijzen** (`x`) en **parkeren** (`p`) vragen een reden; *Koppelen aan …* (bij *lijkt op*) koppelt
+      met `akkoord: true`. Een vraag: `s` samen (één begrip, de vraag gaat met het akkoord mee) of `n` apart.
+    - **Toetsen** alleen met de focus in de strook, in het artefactpaneel of nergens; nooit vanuit de chat
+      of een tekstveld (een vinkje of keuzerondje telt niet als tekstveld). Na een besluit springt de
+      selectie naar het volgende open item (`naBesluit`). Een 409 `al_besloten` opent het bestaande begrip.
+  - Browserregressie: `scripts/test-begripvoorstellen.mjs` (de volledige review met alleen het toetsenbord)
+    en de toetsen in het paneel in `test-artefacten.mjs`. Let op: een label om een tekstveld neemt de
     **inhoud** van het veld op in de toegankelijke naam – zoek een gevuld veld op een prefix.
 - **Lex annoteert het werkgebied** (fase B; api §*Werkgebieden* – de annotatie-werkvoorraad, graph-qa
   §*Lex annoteert het werkgebied*). Lex begint nooit zonder akkoord.
@@ -599,7 +615,7 @@ bestaat los van de gesprekken.
     (`groepDefinitie`: letterlijk heet "Brondefinitie", anders "Definitie, samengesteld uit de bron /
     geformuleerd door Lex", met de fragmenten en de toelichting ingeklapt); de aandachtspunten in tekst
     (`AANDACHTSPUNT`, gelijk aan graph-qa `toetsen.TEKST` – `begripVoorstellen.test.ts` leest die bron).
-    Overnemen noemt de herkomst in het vinkje; de api vult het begrip uit de kaart.
+    Bij akkoord vult de api het begrip uit de kaart.
   - `BegripKaart` heeft het veld **begripstype** (werkindeling, geen JAS-klasse). "Geformuleerd" heet nu
     "door de analist of door Lex": de onderbouwing zegt wie.
   - De allowlist laat `verdieping` (lezen) door, nooit `…/batches/*` of `…/verdieping` op een run.
