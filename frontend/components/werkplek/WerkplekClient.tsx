@@ -11,6 +11,8 @@ import { GraafKoppelingContext, type GraafKoppeling } from "@/components/graaf/k
 import type { GraafOpties } from "@/components/graaf/useGraafStand";
 
 import { ArtefactPaneel } from "@/components/werkplek/ArtefactPaneel";
+import { BegrippenArtefactPaneel } from "@/components/werkplek/BegrippenArtefactPaneel";
+import { annotatieDoelVan, artefactVanBericht, begrippenRefVan, type Artefact, type BegrippenRef } from "@/lib/artefact";
 import { Melding } from "@/components/ui/Melding";
 import {
   foutTekst,
@@ -161,6 +163,9 @@ export function WerkplekClient({
   const [bezig, setBezig] = useState(false);
   const [actiefId, setActiefId] = useState<string | undefined>();
   const [nodeDoel, setNodeDoel] = useState<NodeDoel>();
+  /** Het open begrippenartefact (de voorstellen van Lex voor een werkgebied). Er staat hoogstens één
+   *  artefact open: wie een annotatie opent, sluit dit, en andersom. */
+  const [begrippenDoel, setBegrippenDoel] = useState<BegrippenRef>();
   /** De reeks (run-id) waaruit de open annotatie is geopend; het paneel bladert dan door de leden. */
   const [nodeReeks, setNodeReeks] = useState<string>();
   // Opent het node-paneel op de graaf (knop onder een antwoord) of op de tekst (annotatie).
@@ -267,11 +272,17 @@ export function WerkplekClient({
             const reeks = groep[0] === b ? reeksUitBerichten(groep) : null;
             return reeks ? [{ id: uid(), type: "reeks", reeks }] : [];
           }
+          // Het artefact van de beurt; een ouder bericht met alleen een bronnode wordt er een.
+          const art = b.rol === "user" ? undefined : artefactVanBericht(b);
+          const annotatieDoel = annotatieDoelVan(art);
+          if (art && !annotatieDoel) {
+            return [{ id: uid(), type: "artefact" as const, artefact: art, tekst: b.tekst?.trim() || undefined, denk: b.denk }];
+          }
           return [b.rol === "user"
             ? { id: uid(), type: "user" as const, tekst: b.tekst }
-            : b.annotatie_slug || b.annotatie_doel
-              ? { id: uid(), type: "annotatie" as const, slug: b.annotatie_slug || b.annotatie_doel!.bron_iri,
-                  titel: b.annotatie_doel?.label || b.annotatie_titel || undefined, annotatie_doel: b.annotatie_doel,
+            : annotatieDoel || b.annotatie_slug
+              ? { id: uid(), type: "annotatie" as const, slug: annotatieDoel?.bron_iri || b.annotatie_slug!,
+                  titel: art?.titel || b.annotatie_titel || undefined, annotatie_doel: annotatieDoel,
                   tool_executions: toolSpoorUit(b.tool_executions), denk: b.denk,
                   // De samenvatting van Lex (hoogstens vier zinnen), zoals graph-qa hem bewaarde.
                   tekst: b.tekst?.trim() || undefined,
@@ -287,7 +298,7 @@ export function WerkplekClient({
         setItems((xs) => [...geschiedenis, ...xs]);
         // Een bericht met alleen een slug en geen bronnode verwijst naar een annotatie die niet meer
         // bestaat: de kaart wordt een tombstone.
-        const weg = g.berichten.filter((b) => b.annotatie_slug && !b.annotatie_doel);
+        const weg = g.berichten.filter((b) => b.annotatie_slug && !artefactVanBericht(b));
         if (weg.length) setVerwijderd((m) => ({ ...m, ...Object.fromEntries(weg.map((b) => [b.annotatie_slug!, true as const])) }));
         // Liep hier nog een beurt terwijl je ergens anders keek? Pak hem weer op. De run-ids uit de
         // geschiedenis gaan mee: daarmee is "afgerond terwijl je weg was" te onderscheiden van
@@ -390,6 +401,7 @@ export function WerkplekClient({
 
   async function openArtefact(slug: string, doel?: NodeDoel) {
     gevraagdArtefact.current = slug;
+    setBegrippenDoel(undefined);
     if (doel?.bron_iri) { setArtefactSlug(undefined); setNodeTab("tekst"); setNodeExtra([]); setNodeGraaf({}); setNodeDoel(doel); return; }
     setNodeDoel(undefined);
     // Zonder bronnode is er alleen het document van de rondleiding, dat al in het geheugen staat.
@@ -597,7 +609,7 @@ export function WerkplekClient({
     // Heeft de agent de beurt zelf vastgelegd? Dan schrijft de werkplek niets meer weg – anders
     // staat alles er twee keer. Blijft dit leeg, dan legt de client het bericht zelf vast; zo werkt
     // een graph-qa zonder api-koppeling gewoon door.
-    let opgeslagen: { annotatie_slug: string; run_id: string; annotatie_doel?: NodeDoel } | null = null;
+    let opgeslagen: { run_id: string; artefact?: Artefact; annotatie_doel?: NodeDoel } | null = null;
     let toolExecutions: ToolExecution[] = [];
     // De verbinding viel weg terwijl de run doorliep. Buiten de `try` gezet omdat het opnieuw
     // aanhaken ná de `finally` moet gebeuren: die reset `bezig`/`afbrekenRef`, en een nieuwe lus
@@ -825,21 +837,29 @@ export function WerkplekClient({
    *  bron van waarheid en groeit het eventcontract niet mee met het datamodel.
    */
   async function toonVastgelegdeBeurt(
-    uitkomst: { annotatie_slug: string; annotatie_doel?: NodeDoel },
+    uitkomst: { artefact?: Artefact; annotatie_doel?: NodeDoel },
     { antId, tekst, denk, hergebruik, doel, tool_executions }: {
       antId: string; tekst?: string; denk: string;
       hergebruik?: AgentHergebruik; doel?: AgentDoelInvoer; tool_executions?: ToolExecution[];
     },
   ) {
-    const node = uitkomst.annotatie_doel ?? (doel?.bron_iri ? {
+    // Een ander artefact dan een annotatie (begripsvoorstellen): de chip, en het paneel open.
+    const begrippen = begrippenRefVan(uitkomst.artefact);
+    if (uitkomst.artefact && begrippen) {
+      const artefact = uitkomst.artefact;
+      setItems((xs) => xs.map((x) => x.id === antId ? { id: antId, type: "artefact", artefact, tekst: tekst?.trim() || undefined, denk } : x));
+      setArtefactSlug(undefined); setNodeDoel(undefined); setBegrippenDoel(begrippen);
+      return;
+    }
+    const node = annotatieDoelVan(uitkomst.artefact) ?? uitkomst.annotatie_doel ?? (doel?.bron_iri ? {
       bron_iri: doel.bron_iri, label: doel.label, snapshot_id: doel.snapshot_id,
     } : undefined);
     if (!node) return; // een gewoon antwoord staat al in beeld
-    setItems((xs) => xs.map((x) => x.id === antId ? { id: antId, type: "annotatie", slug: uitkomst.annotatie_slug || node.bron_iri,
-      annotatie_doel: node, titel: node.label, tekst: tekst?.trim() || undefined, denk, hergebruik, doel,
+    setItems((xs) => xs.map((x) => x.id === antId ? { id: antId, type: "annotatie", slug: node.bron_iri,
+      annotatie_doel: node, titel: uitkomst.artefact?.titel || node.label, tekst: tekst?.trim() || undefined, denk, hergebruik, doel,
       tool_executions } : x));
     // Deze beurt veranderde de annotaties: een kennisgraaf die een vorig paneel doorgaf, klopt niet meer.
-    setArtefactSlug(undefined); setNodeGraaf(zonderKennisgraaf); setNodeDoel(node);
+    setArtefactSlug(undefined); setBegrippenDoel(undefined); setNodeGraaf(zonderKennisgraaf); setNodeDoel(node);
   }
 
   /** Loopt er nog een beurt in dit gesprek? Haak er dan weer op aan.
@@ -942,8 +962,13 @@ export function WerkplekClient({
     actiesRef.current = {
       verstuur: (...args) => void verstuur(...args),
       openArtefact: (slug, doel) => void openArtefact(slug, doel),
+      openArtefactVan: (artefact) => {
+        const ref = begrippenRefVan(artefact);
+        if (!ref) return;
+        setArtefactSlug(undefined); setNodeDoel(undefined); setBegrippenDoel(ref);
+      },
       openSamenhang: (doel, extra = [], graaf = {}) => {
-        setArtefactSlug(undefined);
+        setArtefactSlug(undefined); setBegrippenDoel(undefined);
         setNodeTab("graaf");
         setNodeExtra(extra);
         setNodeGraaf(graaf);
@@ -959,6 +984,7 @@ export function WerkplekClient({
   const [acties] = useState<ThreadActies>(() => ({
     verstuur: (...args) => actiesRef.current?.verstuur(...args),
     openArtefact: (slug, doel) => actiesRef.current?.openArtefact(slug, doel),
+    openArtefactVan: (artefact) => actiesRef.current?.openArtefactVan(artefact),
     openSamenhang: (doel, extra, graaf) => actiesRef.current?.openSamenhang(doel, extra, graaf),
     openReeksLid: (reeksRun, doel) => actiesRef.current?.openReeksLid(reeksRun, doel),
     stop: () => actiesRef.current?.stop(),
@@ -978,11 +1004,16 @@ export function WerkplekClient({
   // annotatie staat die wél bestaat.
   // Eén "laatste", over beide soorten heen: de node-annotatie ging eerst altijd voor, ook als er
   // daarna nog een artikeldocument in het gesprek stond.
+  // Ook over de soorten artefacten heen: stelde Lex na een annotatie begrippen voor, dan is dát het
+  // laatste werk. Een artefact dat de werkplek (nog) niet kan openen, telt niet mee.
   const laatsteItem = [...items]
     .reverse()
-    .find((x): x is Extract<Item, { type: "annotatie" }> => x.type === "annotatie" && !verwijderd[x.slug]);
-  const laatsteNodeAnnotatie = laatsteItem?.annotatie_doel ? laatsteItem : undefined;
-  const laatsteAnnotatie = laatsteItem && !laatsteItem.annotatie_doel ? laatsteItem.slug : undefined;
+    .find((x): x is Extract<Item, { type: "annotatie" | "artefact" }> =>
+      (x.type === "annotatie" && !verwijderd[x.slug]) || (x.type === "artefact" && !!begrippenRefVan(x.artefact)));
+  const laatsteAnnotatieItem = laatsteItem?.type === "annotatie" ? laatsteItem : undefined;
+  const laatsteNodeAnnotatie = laatsteAnnotatieItem?.annotatie_doel ? laatsteAnnotatieItem : undefined;
+  const laatsteAnnotatie = laatsteAnnotatieItem && !laatsteAnnotatieItem.annotatie_doel ? laatsteAnnotatieItem.slug : undefined;
+  const laatsteBegrippen = laatsteItem?.type === "artefact" ? begrippenRefVan(laatsteItem.artefact) : undefined;
 
   // Hoort de open annotatie bij een reeks in dit gesprek, dan bladert het paneel door de leden.
   const nodeReeksNav = (() => {
@@ -1048,7 +1079,14 @@ export function WerkplekClient({
       }}
       onSluit={() => setArtefactSlug(undefined)}
     />
-  );
+  ) || (begrippenDoel && (
+    <BegrippenArtefactPaneel
+      key={`${begrippenDoel.werkgebied_id}:${begrippenDoel.run_id}`}
+      doel={begrippenDoel}
+      variant={breed ? "kolom" : "side"}
+      onSluit={() => setBegrippenDoel(undefined)}
+    />
+  ));
 
   return (
     <GraafKoppelingContext.Provider value={graafKoppeling}>
@@ -1063,7 +1101,17 @@ export function WerkplekClient({
       <WerkplekHeader compact={items.length > 0} />
       {/* De annotatie blijft bereikbaar. De chip in de thread scrolt weg zodra het gesprek doorloopt;
           dan is er geen weg terug naar het werk waar je middenin zat. */}
-      {!nodeDoel && !artefactSlug && laatsteNodeAnnotatie && (
+      {!nodeDoel && !artefactSlug && !begrippenDoel && laatsteBegrippen && (
+        <button
+          type="button"
+          onClick={() => setBegrippenDoel(laatsteBegrippen)}
+          className="focus-ring flex w-full shrink-0 items-center gap-2 border-b border-line bg-surface px-4 py-2 text-left text-xs text-muted transition hover:bg-surface-2"
+        >
+          <span className="truncate"><span className="font-medium text-ink">{laatsteBegrippen.titel || "Begripsvoorstellen"}</span> · begripsvoorstellen</span>
+          <span className="ml-auto shrink-0 font-medium text-lint">Openen</span>
+        </button>
+      )}
+      {!nodeDoel && !artefactSlug && !begrippenDoel && laatsteNodeAnnotatie && (
         <button
           type="button"
           onClick={() => void openArtefact(laatsteNodeAnnotatie.slug, laatsteNodeAnnotatie.annotatie_doel)}
@@ -1073,7 +1121,7 @@ export function WerkplekClient({
           <span className="ml-auto shrink-0 font-medium text-lint">Openen</span>
         </button>
       )}
-      {!nodeDoel && !artefactSlug && laatsteAnnotatie && docs[laatsteAnnotatie] && (
+      {!nodeDoel && !artefactSlug && !begrippenDoel && laatsteAnnotatie && docs[laatsteAnnotatie] && (
         <button
           type="button"
           onClick={() => void openArtefact(laatsteAnnotatie)}

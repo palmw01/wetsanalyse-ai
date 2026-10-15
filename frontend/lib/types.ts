@@ -558,14 +558,16 @@ export interface RunStart {
 
 export type Rol = "user" | "assistant";
 
-/** Eén beurt in een gesprek. Assistent-berichten dragen optioneel denkproces/bronnen, of een
- *  verwijzing naar een annotatie (`annotatie_slug`, of `annotatie_doel` voor een bronnode).
+/** Eén beurt in een gesprek. Assistent-berichten dragen optioneel denkproces/bronnen, of het
+ *  **artefact** dat de beurt opleverde (`artefact`: annotatie, begripsvoorstellen, later regels –
+ *  zie `lib/artefact.ts`). Het artefact draagt een eigen `titel`: wordt wat erachter zit later
+ *  verwijderd, dan blijft er in de thread een leesbare kaart staan in plaats van een naamloze
+ *  verwijzing.
  *
- *  `annotatie_titel` is het leesbare label van dat document op het moment van de beurt. Het bericht
- *  beschrijft zichzelf dus: wordt het document later verwijderd, dan blijft er in de thread een
- *  leesbare kaart staan in plaats van een naamloze verwijzing. Berichten van vóór dit veld leveren
- *  `""` – dat is een lege terugval, geen fout. */
+ *  Oudere berichten verwijzen nog via `annotatie_doel` (een bronnode) of alleen een
+ *  `annotatie_slug` (een annotatie die niet meer bestaat: de tombstone). */
 export interface Bericht {
+  artefact?: import("./artefact").Artefact | null;
   annotatie_doel?: import("./annotatieNode").NodeDoel;
   tool_executions?: import("./annotatieNode").ToolExecution[];
   id?: number;
@@ -573,8 +575,8 @@ export interface Bericht {
   tekst: string;
   denk: string;
   bronnen: Bron[];
-  annotatie_slug: string;
-  annotatie_titel: string;
+  annotatie_slug?: string;
+  annotatie_titel?: string;
   /** Lex hergebruikte (een deel van) de gedeelde laag; zelfde vorm als het `hergebruik`-event
    *  (maar met de leden zoals graph-qa ze stuurde – zie `parseHergebruik`). */
   hergebruik?: unknown;
@@ -646,6 +648,7 @@ export interface GesprekSamenvatting {
 
 /** Eén toe te voegen bericht (append). */
 export interface BerichtInvoer {
+  artefact?: import("./artefact").Artefact;
   annotatie_doel?: import("./annotatieNode").NodeDoel;
   tool_executions?: import("./annotatieNode").ToolExecution[];
   rol: Rol;

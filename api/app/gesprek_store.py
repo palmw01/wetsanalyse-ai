@@ -33,6 +33,7 @@ def _bericht_uit_row(row) -> Bericht:
         annotatie_doel=inhoud.get("annotatie_doel") or None,
         tool_executions=inhoud.get("tool_executions", []) or [],
         reeks=inhoud.get("reeks") or None,
+        artefact=inhoud.get("artefact") or None,
         created=db.aware(d["created"]),
     )
 
@@ -62,6 +63,8 @@ def _inhoud(inv: BerichtInvoer | Bericht) -> dict:
         inhoud["run_id"] = inv.run_id
     if inv.reeks:
         inhoud["reeks"] = inv.reeks.model_dump()
+    if inv.artefact:
+        inhoud["artefact"] = inv.artefact.model_dump()
     return inhoud
 
 
@@ -188,11 +191,8 @@ class GesprekStore:
                 .values(updated=now)
             )
             nieuw_id = result.inserted_primary_key[0] if result.inserted_primary_key else None
-        return Bericht(
-            id=nieuw_id, rol=inv.rol, tekst=inv.tekst, denk=inv.denk, bronnen=inv.bronnen,
-            annotatie_slug=inv.annotatie_slug, annotatie_titel=inv.annotatie_titel,
-            run_id=inv.run_id, created=db.aware(now),
-        )
+        # Het hele bericht terug, niet een deel: wie het antwoord gebruikt, krijgt wat er staat.
+        return Bericht(id=nieuw_id, created=db.aware(now), **inv.model_dump())
 
     async def hernoem_gesprek(self, gesprek_id: str, titel: str) -> None:
         async with db.get_engine().begin() as conn:

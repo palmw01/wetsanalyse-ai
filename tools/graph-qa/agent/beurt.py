@@ -34,13 +34,23 @@ logger = logging.getLogger("graph_qa.beurt")
 
 
 def _titel(doel: dict[str, Any]) -> str:
-    """Het leesbare label van de annotatie, zoals de werkplek het toont.
+    """Het leesbare label van de annotatie, zoals de werkplek het toont: het label van de bronnode,
+    anders opgebouwd uit regeling, artikel en lid.
 
-    Reist mee met het bericht zodat de kaart in het gesprek zichzelf kan benoemen als het document
+    Reist mee met het bericht zodat de chip in het gesprek zichzelf kan benoemen als de annotatie
     later verwijderd wordt – er is geen foreign key die dat afdwingt."""
+    if doel.get("label"):
+        return str(doel["label"])
     naam = doel.get("citeertitel") or doel.get("bwbId") or ""
     lid = doel.get("lid") or ""
     return f"{naam} – art. {doel.get('artikel', '')}" + (f" lid {lid}" if lid else "")
+
+
+def annotatie_artefact(doel: dict[str, Any], titel: str) -> dict[str, Any]:
+    """Het artefact van een annotatiebeurt: de bronnode in de vorm van `api/app/gesprek_contracts.Artefact`."""
+    return {"soort": "annotatie", "titel": titel,
+            "ref": {"bron_iri": doel["bron_iri"], "label": doel.get("label", ""),
+                    "snapshot_id": doel.get("snapshot_id", "")}}
 
 
 class BeurtSchrijver:
@@ -263,7 +273,6 @@ async def _leg_vast(
         bericht: dict[str, Any] = {"rol": "assistant", "run_id": run.run_id,
                                  "tool_executions": schrijver.tool_executions,
                                  **({"reeks": reeks} if reeks else {})}
-        slug = ""
         annotatie_bewaard = False
         opgeslagen_doel = None
 
@@ -290,7 +299,6 @@ async def _leg_vast(
                 # lijst.
                 "beslissingen": schrijver.dekking.get("beslissingen") or [],
             })
-            slug = str(laag.get("slug", ""))
             annotatie_bewaard = True
             opgeslagen_doel = {"bron_iri": doel["bron_iri"], "label": doel.get("label", ""),
                                "snapshot_id": doel["snapshot_id"]}
@@ -299,14 +307,14 @@ async def _leg_vast(
                 # Zonder dit veld zag je hem alleen live: na herladen of op een ander apparaat
                 # stond er alleen de kaart.
                 "tekst": schrijver.tekst.strip(),
-                "annotatie_slug": slug,
-                "annotatie_titel": _titel(doel),
                 "denk": schrijver.denk,
                 **({"hergebruik": schrijver.hergebruik} if schrijver.hergebruik else {}),
                 # Zonder het beslisregister: dat hoort bij de batch, niet in de gespreksgeschiedenis.
                 **({"dekking": {k: v for k, v in schrijver.dekking.items() if k != "beslissingen"}}
                    if schrijver.dekking else {}),
+                # Het doel blijft naast het artefact staan: de reeks en "opnieuw annoteren" lezen het.
                 "annotatie_doel": opgeslagen_doel,
+                "artefact": annotatie_artefact(opgeslagen_doel, _titel(doel)),
             }
         else:
             tekst = schrijver.tekst.strip()
@@ -328,12 +336,13 @@ async def _leg_vast(
         logger.info(
             "beurt vastgelegd",
             extra={"categorie": "functioneel", "run_id": run.run_id,
-                   "chat_session_id": gesprek_id, "annotatie_slug": slug},
+                   "chat_session_id": gesprek_id},
         )
-        # De client hoeft de inhoud niet mee te krijgen: hij haalt het document bij de api op. Zo
-        # blijft er één bron van waarheid en groeit het SSE-contract niet mee met het datamodel.
-        yield {"type": "opgeslagen", "annotatie_slug": slug, "run_id": run.run_id,
-               **({"annotatie_doel": bericht["annotatie_doel"]} if bericht.get("annotatie_doel") else {})}
+        # De client hoeft de inhoud niet mee te krijgen: hij haalt hem bij de api op. Zo blijft er
+        # één bron van waarheid en groeit het SSE-contract niet mee met het datamodel.
+        yield {"type": "opgeslagen", "run_id": run.run_id,
+               **({"annotatie_doel": bericht["annotatie_doel"]} if bericht.get("annotatie_doel") else {}),
+               **({"artefact": bericht["artefact"]} if bericht.get("artefact") else {})}
     except GesprekVerdwenen:
         # De jurist verwijderde het gesprek terwijl de beurt liep. Dat is geen fout om over te
         # klagen – alarm slaan over iemands eigen handeling leert mensen meldingen negeren.
@@ -347,22 +356,21 @@ async def _leg_vast(
     except (WetsanalyseApiFout, Exception) as exc:
         logger.exception(
             "beurt niet vastgelegd",
-            extra={"categorie": "technisch", "run_id": run.run_id, "chat_session_id": gesprek_id,
-                   "annotatie_slug": slug},
+            extra={"categorie": "technisch", "run_id": run.run_id, "chat_session_id": gesprek_id},
         )
         # Zichtbaar falen: de jurist moet weten dat dit werk niet bewaard is, niet later ontdekken
         # dat het gesprek een gat heeft. Wél eerlijk zijn over wat er al staat: "probeer opnieuw" is
         # een slecht advies als de annotatie er al is.
         #
         # Het geval "document bestaat, markeringen niet" is er niet meer: de laag en haar
-        # markeringen gaan in één PUT. Mislukt die, dan is er geen slug en valt dit in de laatste tak.
+        # markeringen gaan in één PUT. Mislukt die, dan valt dit in de laatste tak.
         if annotatie_bewaard:
             yield {
                 "type": "error",
                 "message": ("De annotatie is bewaard, alleen het bericht in dit gesprek niet. "
                             "Je vindt hem terug bij Annotaties."),
-                "annotatie_slug": slug,
-                **({"annotatie_doel": opgeslagen_doel} if opgeslagen_doel else {}),
+                **({"annotatie_doel": opgeslagen_doel,
+                    "artefact": annotatie_artefact(opgeslagen_doel, _titel(opgeslagen_doel))} if opgeslagen_doel else {}),
             }
         elif isinstance(exc, WetsanalyseApiFout) and exc.status == 409 and "Heropen" in exc.reden:
             # De laag werd afgerond terwijl de beurt liep (vooraf controleert de annotatie-route

@@ -32,14 +32,18 @@ const datum = (iso: string) =>
  *  groepen voor: formuleringen die mogelijk één begrip aanduiden. De jurist beslist per groep:
  *  overnemen (ook splitsen of combineren), koppelen aan een bestaand begrip, afwijzen of parkeren.
  *  Een voorstel is geen begrip, en geen besluit wijzigt een annotatie. */
-export function BegripVoorstellen({ id, onBegrip, onGewijzigd }: {
+export function BegripVoorstellen({ id, onBegrip, onGewijzigd, inklapbaar = true }: {
   id: string;
+  /** Op de tab Begrippen een strook die je kunt inklappen; in het artefactpaneel is hij de hele
+   *  inhoud en staat hij altijd open. */
+  inklapbaar?: boolean;
   /** Een overgenomen of gekoppeld begrip openen in de werkplek. */
   onBegrip: (begripId: string) => void;
   /** De begrippenlijst ernaast is veranderd (een overname maakt een begrip). */
   onGewijzigd: () => void;
 }) {
-  const [ingeklapt, setIngeklapt] = useState(false);
+  const [ingeklaptBewaard, setIngeklapt] = useState(false);
+  const ingeklapt = inklapbaar && ingeklaptBewaard;
   const [data, setData] = useState<GroepenAntwoord | null>(null);
   const [laatste, setLaatste] = useState<BegrippenRun | null>(null);
   const [fout, setFout] = useState<string | null>(null);
@@ -144,12 +148,19 @@ export function BegripVoorstellen({ id, onBegrip, onGewijzigd }: {
   return (
     <section className="rounded-button border border-line bg-paper" aria-labelledby="voorstellen-kop">
       <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <button type="button" onClick={wisselIngeklapt} aria-expanded={!ingeklapt}
-          className="focus-ring flex items-center gap-1.5 rounded text-left">
-          <ChevronOmlaag className={`transition-transform ${ingeklapt ? "-rotate-90" : ""}`} />
-          <span id="voorstellen-kop" className="font-display text-sm font-semibold text-lint">Voorstellen van Lex</span>
-          {open.length > 0 && <span className="text-xs text-muted">· {open.length} open</span>}
-        </button>
+        {inklapbaar ? (
+          <button type="button" onClick={wisselIngeklapt} aria-expanded={!ingeklapt}
+            className="focus-ring flex items-center gap-1.5 rounded text-left">
+            <ChevronOmlaag className={`transition-transform ${ingeklapt ? "-rotate-90" : ""}`} />
+            <span id="voorstellen-kop" className="font-display text-sm font-semibold text-lint">Voorstellen van Lex</span>
+            {open.length > 0 && <span className="text-xs text-muted">· {open.length} open</span>}
+          </button>
+        ) : (
+          <p className="flex items-center gap-1.5">
+            <span id="voorstellen-kop" className="font-display text-sm font-semibold text-lint">Voorstellen van Lex</span>
+            {open.length > 0 && <span className="text-xs text-muted">· {open.length} open</span>}
+          </p>
+        )}
         {agentRun ? (
           <Button size="sm" variant="secondary" className="w-full sm:w-auto" onClick={() => void stopRun(agentRun)}>
             Stoppen

@@ -316,3 +316,36 @@ async def test_berichten_zonder_run_id_blijven_naast_elkaar_bestaan(client):
 
     gesprek = await store.laad_gesprek("g-leeg")
     assert len(gesprek.berichten) == 3
+
+
+# --- het artefact (spoor D, fase AF) ---------------------------------------------------------------
+
+ARTEFACTEN = [
+    {"soort": "annotatie", "ref": {"bron_iri": "urn:bwb:BWBR0004770:artikel:9", "label": "Artikel 9"},
+     "titel": "Invorderingswet 1990 – artikel 9"},
+    {"soort": "begrippen", "ref": {"werkgebied_id": "wg1", "run_id": "r1"}, "titel": "Begrippen in Invordering"},
+]
+
+
+async def test_een_artefact_overleeft_het_heropenen_en_komt_terug_in_de_respons(client):
+    gid = await _maak(client)
+    for i, a in enumerate(ARTEFACTEN):
+        r = await client.post(f"{BASIS}/{gid}/berichten", json={
+            "rol": "assistant", "tekst": "klaar", "run_id": f"run{i}", "artefact": a,
+            "tool_executions": [{"call_id": "c", "tool": "t"}]}, headers=A)
+        assert r.status_code == 201, r.text
+        # De respons draagt het hele bericht, niet een deel.
+        assert r.json()["artefact"] == a and r.json()["tool_executions"] == [{"call_id": "c", "tool": "t"}]
+    doc = (await client.get(f"{BASIS}/{gid}", headers=A)).json()
+    assert [b["artefact"] for b in doc["berichten"]] == ARTEFACTEN
+
+
+@pytest.mark.parametrize("artefact", [
+    {"soort": "annotatie", "ref": {}},
+    {"soort": "begrippen", "ref": {"werkgebied_id": "wg1"}},
+    {"soort": "onbekend", "ref": {"x": "y"}},
+])
+async def test_een_artefact_zonder_geldige_verwijzing_wordt_geweigerd(client, artefact):
+    gid = await _maak(client)
+    r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "assistant", "artefact": artefact}, headers=A)
+    assert r.status_code == 422

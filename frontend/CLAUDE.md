@@ -55,7 +55,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
 - **De rekenkern staat in `lib/`**, niet in componenten: vitest draait node-env zonder DOM, dus alleen
   pure helpers zijn testbaar (`selectie`, `annotatie`, `annotatieOverzicht`, `reeks`, `samenhang`,
   `markering`, `popover`, `wetstructuur`, `lopendeRun`, `rondleiding`, `werkgebied`, `begrippen`,
-  `begripVoorstellen`, …).
+  `begripVoorstellen`, `artefact`, …).
 - **`app/**/page.tsx`** (Server Components) – data via `lib/server.ts`, interactie in een
   `*Client.tsx`. `app/page.tsx` doet `redirect("/workbench")`. De werkplek zit in
   `app/workbench/page.tsx` én in `app/default.tsx` (de default van het children-slot); beide renderen
@@ -142,9 +142,19 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
   naar de API (`/v1/gesprekken/*`). De shell remount het venster (via `key`) alleen bij echt van
   gesprek wisselen, niet wanneer een verse chat bij de eerste beurt zijn id krijgt – anders breekt de
   stream. De graph-qa `conversation_id` (thread_id) is het `gesprekId`.
-- **De annotatie is een artefact**: een annotatiebeurt toont een chip in de thread die het
-  **`ArtefactPaneel`** opent. `DocumentPaneel` toont de wettekst met de **letterlijke** fragmenten
-  (`segmenteer` + `lib/jas.ts:jasStyle`), `ReviewQueue` de beslissingskaarten.
+- **Wat Lex oplevert is een artefact** (`Bericht.artefact`, `lib/artefact.ts`): `{soort, ref, titel}`
+  met soort `annotatie`, `begrippen` of `regels`. Elke soort heeft een chip in de thread en een paneel
+  in dezelfde schil (kolom vanaf 1280px, anders een sheet); er staat er hoogstens één open.
+  - **annotatie** – het `annotatie`-item met `AnnotatieChip`, dat het **`ArtefactPaneel`** /
+    `NodeAnnotatiePaneel` opent. `DocumentPaneel` toont de wettekst met de **letterlijke** fragmenten
+    (`segmenteer` + `lib/jas.ts:jasStyle`), `ReviewQueue` de beslissingskaarten.
+  - **begrippen** – het `artefact`-item met `ArtefactChip`, dat **`BegrippenArtefactPaneel`** opent:
+    dezelfde `BegripVoorstellen` als op de tab Begrippen (`inklapbaar={false}`), met een link naar het
+    werkgebied. Eén inhoud, twee schillen.
+  - **regels** – gereserveerd voor de afleidingsregels: de kaart staat er, maar is geen knop.
+  - `artefactVanBericht` maakt van een ouder bericht met alleen `annotatie_doel` een
+    annotatie-artefact; `parseArtefact` is streng (onbekende soort of ref zonder verplichte sleutels:
+    geen chip). Het `opgeslagen`-event draagt het artefact, `toonVastgelegdeBeurt` opent het.
 - **Drie backends, de frontend orkestreert:**
   - *Chatgeschiedenis via de API* – `app/api/gesprekken/*` → `/v1/gesprekken/*` via `proxy()`, met
     `X-User-Id` uit de sessie (`lijstGesprekken`/`maakGesprek`/`haalGesprek`/`voegBerichtToe`/
@@ -344,11 +354,12 @@ kaart.
   iets wat niet meer bestaat: de chip wordt een **tombstone** (grijs, doorgestreepte titel, "Deze
   annotatie is verwijderd", link naar `/annotaties`) met een neutrale `Melding type="uitleg"` zonder
   *Opnieuw proberen*. Een bronnode-annotatie die intussen is verwijderd, meldt het paneel zelf
-  (`verwijderd: {op}`). De kaart benoemt zichzelf via **`annotatie_titel`** in het berichtcontract
-  (zonder dat veld: "Annotatie"). Bewust geen cascade server-side: het gesprek is een verslag van
+  (`verwijderd: {op}`). De kaart benoemt zichzelf via **`artefact.titel`** in het berichtcontract
+  (bij oude berichten `annotatie_titel`; zonder beide: "Annotatie"). Bewust geen cascade server-side: het gesprek is een verslag van
   wat er gebeurde.
-- **De laatste annotatie blijft bereikbaar** via een balk boven de chat (titel · *Openen*) zodra het
-  paneel dicht is; verwijderde annotaties slaat die balk over.
+- **Het laatste artefact blijft bereikbaar** via een balk boven de chat (titel · *Openen*) zodra het
+  paneel dicht is, over de soorten heen (stelde Lex na een annotatie begrippen voor, dan zijn dát het
+  laatste werk); verwijderde annotaties en afleidingsregels slaat die balk over.
 - **Een knop die een call doet, toont dat.** `BevestigKnop` await't `onBevestig`, staat zolang op
   `Bezig…` en is uitgeschakeld; `AppSidebar`/`AnnotatiesClient` halen een rij meteen weg en zetten hem
   bij een fout terug. Anders is een trage call (de BFF belt bij het verwijderen van een gesprek
@@ -1085,7 +1096,8 @@ npm run test:browser # Playwright op de echte Next-UI met gemockte BFF (scripts/
 ```
 
 `test:browser` draait `scripts/test-annotatie-nodes.mjs`, `test-samenhang.mjs`, `test-reeks.mjs`,
-`test-toetsen.mjs`, `test-werkgebieden.mjs`, `test-begrippen.mjs` en `test-begripvoorstellen.mjs`, en verwacht een devserver op poort 3109
+`test-toetsen.mjs`, `test-werkgebieden.mjs`, `test-begrippen.mjs`, `test-begripvoorstellen.mjs` en
+`test-artefacten.mjs` (de soorten artefacten in de werkplek), en verwacht een devserver op poort 3109
 (`AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109`).
 Praat met **`localhost`**, niet met `127.0.0.1`: Next 16 weigert dev-assets aan een andere origin,
 waarna de pagina niet hydrateert en elke stap zonder duidelijke fout time-out.
