@@ -1,0 +1,98 @@
+"""Werkgebieden-API (spoor D, levering 1). Gedeeld tussen analisten; elke route vraagt een actieve
+gebruiker, die als actor in de audit komt."""
+from __future__ import annotations
+
+import httpx
+from bronmodel import BronFout
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
+
+from . import annotatie_v2_store, werkgebied_store as store
+from .auth import require_client
+from .bron_resolver import resolve_bron as _resolve_bron
+from .routers.auth import actieve_userid
+from .werkgebied_contracts import (
+    BronselectieInvoer, BronselectieWijziging, WerkgebiedInvoer, WerkgebiedWijziging,
+)
+from .werkgebied_inventaris import inventaris
+
+router = APIRouter(prefix="/werkgebieden", tags=["werkgebieden"],
+                   dependencies=[Depends(require_client)])
+
+
+async def resolve_bron(doel: dict) -> dict:
+    """Zelfde foutvertaling als de annotatie-API: ongeldige bron 422, graaf weg 503."""
+    try:
+        return await _resolve_bron(doel)
+    except BronFout as exc:
+        raise HTTPException(422, str(exc)) from exc
+    except (httpx.HTTPError, ConnectionError) as exc:
+        raise HTTPException(503, "De brongraaf is tijdelijk niet beschikbaar.") from exc
+
+
+@router.get("")
+async def get_lijst(gearchiveerd: bool = False, actor: str = Depends(actieve_userid)):
+    return {"werkgebieden": await store.lijst(gearchiveerd)}
+
+
+@router.post("", status_code=201)
+async def post_werkgebied(req: WerkgebiedInvoer, actor: str = Depends(actieve_userid)):
+    return await store.maak(req, actor)
+
+
+@router.get("/{werkgebied_id}")
+async def get_werkgebied(werkgebied_id: str, actor: str = Depends(actieve_userid)):
+    return await store.haal(werkgebied_id)
+
+
+@router.patch("/{werkgebied_id}")
+async def patch_werkgebied(werkgebied_id: str, req: WerkgebiedWijziging,
+                           actor: str = Depends(actieve_userid)):
+    return await store.wijzig(werkgebied_id, req, actor)
+
+
+@router.delete("/{werkgebied_id}")
+async def delete_werkgebied(werkgebied_id: str, verwachte_revisie: int = Query(ge=1),
+                            actor: str = Depends(actieve_userid)):
+    return await store.archiveer(werkgebied_id, verwachte_revisie, actor)
+
+
+@router.post("/{werkgebied_id}/bronnen")
+async def post_bron(werkgebied_id: str, req: BronselectieInvoer, response: Response,
+                    actor: str = Depends(actieve_userid)):
+    await store.haal(werkgebied_id)                     # 404 vóór de graaf wordt gevraagd
+    snapshot = await resolve_bron({"bron_iri": req.bron_iri, "bwb_id": req.bwb_id,
+                                   "artikel": req.artikel, "lid": req.lid})
+    doel = snapshot["doel"]
+    node = annotatie_v2_store.nodes_van(snapshot).get(doel["bron_iri"], {})
+    bron = {"bron_iri": doel["bron_iri"], "label": doel.get("label") or node.get("label", ""),
+            "bwb_id": doel.get("bwb_id") or node.get("bwb_id", ""),
+            "snapshot_id": snapshot.get("snapshot_id", ""), "bron_hash": node.get("bron_hash", "")}
+    selectie, nieuw = await store.voeg_bron_toe(werkgebied_id, req, bron, actor)
+    response.status_code = 201 if nieuw else 200
+    return {"selectie": selectie, "werkgebied": await store.haal(werkgebied_id)}
+
+
+@router.patch("/{werkgebied_id}/bronnen/{selectie_id}")
+async def patch_bron(werkgebied_id: str, selectie_id: str, req: BronselectieWijziging,
+                     actor: str = Depends(actieve_userid)):
+    return await store.wijzig_bron(werkgebied_id, selectie_id, req, actor)
+
+
+@router.delete("/{werkgebied_id}/bronnen/{selectie_id}")
+async def delete_bron(werkgebied_id: str, selectie_id: str, verwachte_revisie: int = Query(ge=1),
+                      actor: str = Depends(actieve_userid)):
+    return await store.verwijder_bron(werkgebied_id, selectie_id, verwachte_revisie, actor)
+
+
+@router.get("/{werkgebied_id}/elementen")
+async def get_elementen(werkgebied_id: str, actor: str = Depends(actieve_userid)):
+    wg = await store.haal(werkgebied_id)
+    return {"werkgebied_id": werkgebied_id, "revisie": wg["revisie"],
+            **await inventaris(wg["bronnen"], resolve_bron)}
+
+
+@router.get("/{werkgebied_id}/audit")
+async def get_audit(werkgebied_id: str, limit: int = Query(100, ge=1, le=500),
+                    actor: str = Depends(actieve_userid)):
+    await store.haal(werkgebied_id, met_gearchiveerd=True)
+    return {"audit": await store.audit(werkgebied_id, limit)}

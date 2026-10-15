@@ -11,8 +11,10 @@ import { SkipLink, HOOFDINHOUD_ID } from "@/components/ui/SkipLink";
 
 /** De paginaschil om één annotatie op eigen benen (`/annotaties/node`): sidebar (met de mobiele
  *  drawer), een kop met de weg terug naar het overzicht, en het hoofdgebied. */
-export function AnnotatiePaginaSchil({ titel, werkplekHref, onFout, children }: {
+export function AnnotatiePaginaSchil({ titel, werkplekHref, actie, onFout, children }: {
   titel: string;
+  /** Een extra handeling in de kop, naast *Openen in de werkplek* (bv. opnemen in een werkgebied). */
+  actie?: ReactNode;
   /** Knop "Openen in de werkplek"; weglaten als er geen werkplek-ingang voor deze annotatie is. */
   werkplekHref?: string;
   onFout?: (melding: string) => void;
@@ -49,6 +51,7 @@ export function AnnotatiePaginaSchil({ titel, werkplekHref, onFout, children }: 
               </Link>
               <p className="truncate text-sm font-medium text-lint">{titel}</p>
             </div>
+            {actie && <div className="ml-auto shrink-0">{actie}</div>}
             {werkplekHref && (
               <Link
                 href={werkplekHref}

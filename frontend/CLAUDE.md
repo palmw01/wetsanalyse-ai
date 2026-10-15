@@ -6,7 +6,7 @@ opslag, de [wetsanalyse-API](../api). De app **is de werkplek**: `/workbench` (d
 leidt daarheen door.
 
 > **Scope: chat-werkruimte.** De app bestaat uit de werkplek, het annotatie-overzicht, de
-> login-flow en het instellingenvenster (account, verbruik, berichten, en voor beheerders
+> werkgebieden, de login-flow en het instellingenvenster (account, verbruik, berichten, en voor beheerders
 > modelprofielen, gebruikers, aanvragen, API-tokens, berichtenbeheer en feedback).
 
 Lees ook de projectroot-`CLAUDE.md` en `../api/CLAUDE.md` – de API is de bron van waarheid voor de
@@ -44,8 +44,8 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   (`parseError` → `ApiError` met `retryAfter`); gebruik `isApiError()` en `foutTekst()` in de UI.
 - **`lib/agentEvents.ts`** – validatie van de SSE-stroom van de agent: een ongeldig event slaat
   over, het beëindigt de run niet.
-- **`lib/types.ts`** – met de hand afgeleid van `../api/app/annotatie_v2_contracts.py` en
-  `gesprek_contracts.py`; de bron van waarheid aan de TS-kant. `AnnotatieDocument` is het
+- **`lib/types.ts`** – met de hand afgeleid van `../api/app/annotatie_v2_contracts.py`,
+  `gesprek_contracts.py`, `werkgebied_contracts.py` en `begrip_contracts.py`; de bron van waarheid aan de TS-kant. `AnnotatieDocument` is het
   weergavemodel van het artefact, gevuld door `lib/annotatieNodeAdapter.ts`. Wijzigt
   het API-contract, werk dit bij (controle met `openapi-typescript`, zie de README).
   **`lib/jas.ts`** is de presentatie-helper voor de JAS-klassen (kleur, label, `jasVolgorde`); de
@@ -54,7 +54,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   klassen bij.
 - **De rekenkern staat in `lib/`**, niet in componenten: vitest draait node-env zonder DOM, dus alleen
   pure helpers zijn testbaar (`selectie`, `annotatie`, `annotatieOverzicht`, `reeks`, `samenhang`,
-  `markering`, `popover`, `wetstructuur`, `lopendeRun`, `rondleiding`, …).
+  `markering`, `popover`, `wetstructuur`, `lopendeRun`, `rondleiding`, `werkgebied`, `begrippen`, …).
 - **`app/**/page.tsx`** (Server Components) – data via `lib/server.ts`, interactie in een
   `*Client.tsx`. `app/page.tsx` doet `redirect("/workbench")`. De werkplek zit in
   `app/workbench/page.tsx` én in `app/default.tsx` (de default van het children-slot); beide renderen
@@ -71,6 +71,10 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
     `SelectiePopover`, `ExportKnop`).
   - `annotaties/` – het overzicht en de losse annotatiepagina (`AnnotatiesClient`, `AnnotatieKaart`,
     `NodeAnnotatiePaneel`, `AnnotatiePaginaSchil`).
+  - `werkgebieden/` – overzicht en pagina van een werkgebied (`WerkgebiedenClient`,
+    `WerkgebiedClient`, de tabs `BronnenTab`/`ElementenTab`/`BegrippenTab`/`SamenhangTab`/`HistorieTab`,
+    de begrippenwerkplek `BegripWerk`/`BegripKaart`/`BegripPassages`, `WerkgebiedSchil`, en
+    `OpnemenInWerkgebied` voor de annotatiepagina).
   - `graaf/` – de samenhangsgraaf (sigma); de rekenkern staat in `lib/graaf/`.
   - `admin/` – de beheertabs achter het admin-token: `ProfielenPanel` (+ `ProfileEditor`),
     `UsersPanel` (+ `BudgetBeleidBlok`), `RegistratiesPanel`, `ApiTokensPanel`,
@@ -439,6 +443,75 @@ vallen stil, de selectie-popover verdwijnt, `a`/`x`/`c` doen niets en een meldin
 het uit. De API weigert die mutaties toch met een 409, maar de UI laat het slot zien in plaats van die
 fout af te wachten.
 
+## Werkgebieden (`/werkgebieden`)
+
+Spoor D, levering 1 (zie `docs/PLAN.md` en `../api/CLAUDE.md` §*Werkgebieden*). Een werkgebied brengt
+bepalingen samen rond één analysevraag; het is, net als een annotatie, een ingang in de sidebar en
+bestaat los van de gesprekken.
+
+- **BFF**: `app/api/werkgebieden/route.ts` (lijst, aanmaken) en `…/[...pad]/route.ts`. Die laatste
+  laat alleen de vormen uit `isWerkgebiedRoute` (`lib/werkgebied.ts`, getest) door – geen generieke
+  proxy; een nieuwe api-route vraagt daar een regel. De query gaat ongewijzigd mee
+  (`verwachte_revisie` bij DELETE). De inventaris en elke POST onder `begrippen` (koppelen toetst
+  tegen de inventaris) krijgen 90 s, want de api haalt per regeling de bronboom uit de graaf.
+- **Gedeeld, dus elke mutatie draagt de revisie in beeld.** Alle mutaties lopen via één `muteer` in
+  `WerkgebiedClient`. Een 412 (`revisie_conflict`) laadt de nieuwste stand en zegt dat iemand anders
+  het werkgebied wijzigde; de handeling wordt **niet** stil opnieuw uitgevoerd, want op de nieuwe stand
+  kan ze iets anders betekenen. Een fout die over de invoer gaat (409 `al_opgenomen`, 422 van de
+  graaf) vangt het formulier zelf af via `opFout`.
+- **Bronnen**: opnemen met regeling (BWB-id) + artikel (+ lid) of een graaf-IRI (`bronInvoer` in
+  `lib/werkgebied.ts` leest "artikel 9" als "9"; de api verifieert tegen de graaf). Dezelfde bron met
+  dezelfde rol nog eens is idempotent en wordt zo gemeld. Weghalen is een `BevestigKnop` en laat de
+  bepaling en haar annotaties staan.
+- **Elementen** toont wat de api meldt in plaats van het weg te poetsen: `volledig: false` en
+  `onbereikbaar` als open punt, `bron_gewijzigd` als signaal, `deels_buiten` bij het element, en een
+  onbeoordeeld element (voorstel van Lex, hergebruik) met zichtbaar voorbehoud (`isBeoordeeld`). Elk
+  element staat één keer, onder de eerste selectie die het dekt (`groepeerPerSelectie`). De voortgang
+  telt alleen de werkvoorraad en zegt niets over juridische dekking.
+- **De tab staat in de URL** (`?tab=elementen`, via `replace`); `Tabs` is `lazy`, zodat de inventaris
+  pas laadt als je hem opent, en opnieuw bij elke nieuwe revisie (`key`).
+- **Samenhang** is de samenhangsgraaf met de bronselecties als doelen en focus (`useGraafStand` met
+  stabiele doelen – een nieuw doel-object per render laadt eindeloos opnieuw) en `benaming` op het
+  werkgebied in plaats van het antwoord. Onder de graaf staan de **verwijzingen buiten het werkgebied**
+  als suggestie (`verwijzingSuggesties` in `lib/werkgebied.ts`: vanuit de scope van de selecties,
+  zonder wat de selectie zelf omvat, meest genoemd eerst); een niet-geïmporteerde bepaling is een open
+  punt. Opnemen kan daar en in de inspector (`bijKnoop`), altijd met een rol.
+- **Opnemen vanuit een annotatie**: *Opnemen in werkgebied* in de kop van `/annotaties/node`
+  (`OpnemenInWerkgebied`). Daar is geen revisie in beeld; `neemOpInWerkgebied` haalt hem op en
+  probeert bij een 412 één keer opnieuw – de bedoeling hangt niet af van de rest van het werkgebied,
+  en opnemen is idempotent.
+- **Begrippen** (levering 2; api in `../api/CLAUDE.md` §*Begrippen*). De tab staat tussen Elementen en
+  Samenhang; het gekozen begrip staat in de URL (`?tab=begrippen&begrip=<id>`, via `kiesBegrip` in
+  `WerkgebiedClient`, ook vanuit de tab Elementen). `BegrippenTab` is de lijst (met export en *Nieuw
+  begrip*); `BegripWerk` laadt één begrip en draagt `muteer` – dezelfde vorm als bij het werkgebied:
+  revisie in beeld, 412 laadt opnieuw en zegt het, een fout met een `melding` van de api (`al_primair`,
+  `poort`, `element_buiten_werkgebied`) verschijnt zoals de api hem formuleert. Kaart en passages staan
+  vanaf `xl` naast elkaar, daaronder wissel je; de schil is op deze tab breed (`max-w-7xl`).
+  - **`BegripKaart` is één formulier met *Opslaan*, geen autosave**: elke bewaring is een revisie. De
+    kaart werkt op een concept naast de serverstand (`basis`). Verandert de inhoud op de server terwijl
+    er niets onbewaard is, dan neemt hij die over; mét onbewaarde wijzigingen zegt hij dat en blijft
+    jouw tekst staan (*Nieuwe versie overnemen* of opslaan). Of er iets onbewaard is, bepaalt
+    `inhoudGewijzigd` (`lib/begrippen.ts`: genormaliseerd, sleutelvolgorde telt niet). Met onbewaarde
+    wijzigingen vraagt een wissel van begrip **én van tab** eerst bevestiging (`OnbewaardMelding`, geen
+    systeemvenster): de tabs renderen lazy, dus een tabwissel gooide het concept anders stil weg. Het
+    signaal staat daarom in `WerkgebiedClient`. Herladen of sluiten vangt `beforeunload`; een link in de
+    sidebar (client-side navigatie) nog niet.
+  - **De poort rekent de server.** *Accorderen* staat uit zolang `accorderen.mag` onwaar is, met de
+    redenen letterlijk eronder; met onbewaarde wijzigingen ook (de poort kijkt naar wat bewaard is).
+  - **Elke knop per passage noemt zijn passage** (`aria-label`, "Akkoord met “…”"): dezelfde knoppen
+    staan bij elke passage, en een schermlezer moet horen bij welke.
+  - **`BegripPassages` toont elke passage apart**, met de bewaarde bewijstekst, vindplaats, rol,
+    beoordeling en wat er nu mee is (`ACTUALITEIT_LABEL`, *annotatie nog niet door een jurist
+    beoordeeld*). *Bekijk in de annotatie* gaat naar `/annotaties/node?bron_iri=…&element=<id>`; de
+    pagina geeft `element` als `beginElement` aan `NodeAnnotatiePaneel`, dat die markering kiest.
+  - **Elementselectie** in `ElementenTab`: selectievakjes en een balk met *Nieuw begrip uit selectie*
+    en *Koppelen*; een element dat al een begrip aanduidt, noemt dat begrip (`primair` uit de lijst).
+- **Tabs scrollen.** Vijf tabs passen niet naast elkaar op een telefoon; de horizontale `Tabs` scrollt
+  (`overflow-x-auto`, tabs `whitespace-nowrap`). Een afgekapte tab is onbereikbaar, en een toets op
+  horizontale scroll van de pagina ziet dat niet.
+- Browserregressie: `scripts/test-werkgebieden.mjs` en `scripts/test-begrippen.mjs` (mocks die revisies,
+  de poort en de primaire duiding bijhouden zoals de api; de tweede loopt de acceptatie van levering 2).
+
 ## De artefact-werkbank
 
 Vanaf **1280px** (`lib/useBreedScherm.ts`) staat het artefact als **eigen kolom naast de chat**:
@@ -789,6 +862,10 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
   de gewone link. Een knoop die alleen in de kennisgraaf staat, schakelt daarheen. De graaf zet zijn
   handelingen in een ref (`koppelingRef`), de werkplek geeft via context een stabiel doorgeefluik aan de
   thread: zo rendert geen `ThreadRij` opnieuw als het paneel opent of sluit.
+- **Buiten het paneel** draagt `Graaf` twee haken: `benaming` (`GraafContext`: hoe de doelen heten in
+  de bereikschakelaar, *Terug naar …*, de focusregel en de inspector; standaard het antwoord) en
+  `bijKnoop` (een extra handeling in de inspector). De uitleg over "de tekst en de annotatie in het
+  paneel" staat er alleen mét `weergave`. Gebruikt door de tab Samenhang van een werkgebied.
 - Browserregressie: `scripts/test-samenhang.mjs` (klikken via de canvasmidden na *Centreren*, kiezen
   en lagen via de zoeklijst, `data-selectie`/`data-aangewezen`/`data-bereik`/`data-gereed` op de graaf,
   `data-labels`/`data-label-soorten` op de tekenaar;
@@ -985,8 +1062,8 @@ npm test             # vitest (node-env, geen DOM)
 npm run test:browser # Playwright op de echte Next-UI met gemockte BFF (scripts/test-*.mjs)
 ```
 
-`test:browser` draait `scripts/test-annotatie-nodes.mjs`, `test-samenhang.mjs`, `test-reeks.mjs` en
-`test-toetsen.mjs`, en verwacht een devserver op poort 3109
+`test:browser` draait `scripts/test-annotatie-nodes.mjs`, `test-samenhang.mjs`, `test-reeks.mjs`,
+`test-toetsen.mjs`, `test-werkgebieden.mjs` en `test-begrippen.mjs`, en verwacht een devserver op poort 3109
 (`AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109`).
 Praat met **`localhost`**, niet met `127.0.0.1`: Next 16 weigert dev-assets aan een andere origin,
 waarna de pagina niet hydrateert en elke stap zonder duidelijke fout time-out.

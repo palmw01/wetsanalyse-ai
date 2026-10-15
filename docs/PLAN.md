@@ -525,6 +525,13 @@ geldigheid). Begrippen zijn analyse-uitkomsten en nooit wettelijke definities.
 | 3. Voorstellen van Lex | groeperen, formuleren, bestaand begrip zoeken, splitsen/combineren, hervatbare batches; patroonregister voor begripsrelaties (kwalificatie, inclusie, uitsluiting, hiërarchie) en termkandidaten op de bestaande taalprovider (ADR-002); kandidaten uit tekst en semantiek met dekkingscheck | verschillende formuleringen met gelijke betekenis gekoppeld; gelijke woorden met andere betekenis gescheiden; elk voorstel noemt patroon-ID en bronfragment |
 | 4. Onderhoud en uitwisseling | gerichte herbeoordeling, relaties, begrippengraaf, RDF-export, Lex leest begrippen | een gewijzigde dragende passage verschijnt bij de geraakte begrippen; de oude bewijsstand blijft |
 
+**Stand (15 okt 2026).** Levering 1 is gebouwd (#659 api, #660 pagina, #661 samenhang en opnemen
+vanuit graaf en annotatie). Levering 2 is in bouw: de api in PR D, de werkplek in PR E. Besloten:
+elke analist mag een begrip accorderen (de audit legt vast wie). De poort vraagt naam, definitie met
+herkomst, context, minstens één aanduidende passage, en dragende koppelingen die beoordeeld en
+actueel zijn en op een door een jurist beoordeelde annotatie rusten. Een voorbeeld is een
+kwaliteitssignaal, geen voorwaarde.
+
 **Eerste bouwopdracht:** levering 1 en 2 als één werkend pad met twee artikelen uit verschillende
 regelingen, bestaande annotaties en één beoordeeld begrip met meerdere koppelingen. Buiten deze reeks
 vallen een regelmodel-editor, een scenario-editor, een organisatiebrede begrippenbibliotheek en
@@ -645,10 +652,10 @@ blijft bij de wettekst.
 
 1. **D — bediening**: Lex stelt standaard voor (voorstel van dit plan), de analist begint vanuit een
    eigen selectie, of beide even prominent.
-2. **D — toegang**: gedeelde werkgebieden zoals de annotaties (voorstel), of afgeschermde dossiers
-   met leden en rollen. Dat laatste moet vóór levering 1 besloten zijn.
-3. **D — kaders**: één begrippenkader per werkgebied als start (voorstel), met later expliciet
-   hergebruik tussen kaders.
+2. **D — toegang**: *besloten 14 okt 2026* – gedeelde werkgebieden, zoals de annotaties.
+3. **D — kaders**: *besloten 15 okt 2026* – één begrippenkader per werkgebied, impliciet: geen eigen
+   object, de IRI `urn:wa:kader:<werkgebied>` is afgeleid. Hergebruik tussen kaders komt later en
+   vraagt dan wel een eigen object.
 4. **D — deelvragen**: optioneel bij een werkgebied (voorstel), of verplicht zodat de
    dekkingscheck altijd iets heeft om tegen te meten.
 5. **D — SHACL bij accorderen**: blokkerend of diagnostisch zoals bij de JAS-projectie (zie
