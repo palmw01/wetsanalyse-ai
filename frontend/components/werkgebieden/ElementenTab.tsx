@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { AnnoterenDoorLex } from "@/components/werkgebieden/AnnoterenDoorLex";
 import { LIFECYCLE_LABEL } from "@/lib/annotatie";
 import { foutTekst, haalBegrip, haalInventaris, koppelElementen, lijstBegrippen, maakBegrip } from "@/lib/api";
 import { KOPPELROL_LABEL } from "@/lib/begrippen";
@@ -98,6 +99,7 @@ export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (
 
   return (
     <div className="space-y-5">
+      <AnnoterenDoorLex id={id} />
       {selectie.size > 0 && (
         <SelectieBalk
           id={id}

@@ -13,6 +13,7 @@ import Link from "next/link";
 import { memo, useEffect, useMemo, useState } from "react";
 
 import { GraafIcoon } from "@/components/graaf/GraafIcoon";
+import { Button } from "@/components/ui/Button";
 import { ChevronOmlaag, Cirkel, Waarschuwing } from "@/components/ui/Icoon";
 import { HergebruikMelding } from "@/components/werkplek/HergebruikMelding";
 import { KeuzeKaart } from "@/components/werkplek/KeuzeKaart";
@@ -31,13 +32,18 @@ import { overzichtAlsMarkdown, overzichtDoelen, overzichtFocus, overzichtKnopTek
 import type { GraafOpties } from "@/components/graaf/useGraafStand";
 import { beurtSamenvatting, laatsteRun } from "@/lib/waarom";
 import type { ThreadItem } from "@/lib/threadItem";
+import { ANNOTEER_PROMPT, PLAFOND, bepalingen } from "@/lib/werkgebiedAnnoteren";
 import type {
   AgentDoelInvoer, AgentGrounding, AgentKandidaat, AnnotatieDocument, Bron, Overzicht,
 } from "@/lib/types";
 
+/** Lex het werkgebied laten annoteren (fase B); `bevestigd` = het aantal dat de analist zag. */
+export interface WerkgebiedAnnoteren { werkgebiedId: string; bevestigd?: number }
+
 /** Wat een rij kan laten gebeuren. Eén stabiel object per venster, zodat `memo` iets oplevert. */
 export interface ThreadActies {
-  verstuur: (vast?: string, doel?: AgentDoelInvoer, hergebruik?: "opnieuw", doelen?: AgentDoelInvoer[]) => void;
+  verstuur: (vast?: string, doel?: AgentDoelInvoer, hergebruik?: "opnieuw", doelen?: AgentDoelInvoer[],
+    annoteren?: WerkgebiedAnnoteren) => void;
   openArtefact: (slug: string, doel?: NodeDoel) => void;
   /** Een artefact dat geen annotatie is (begripsvoorstellen) in het artefactpaneel openen. */
   openArtefactVan: (artefact: Artefact) => void;
@@ -132,6 +138,15 @@ export const ThreadRij = memo(function ThreadRij({
             <GraafIcoon />{tekst}
           </button>;
         })()}
+        {/* Lex begint niet zonder akkoord: het voorstel noemt aantal en kosten, de knop start. */}
+        {item.bevestiging && item.bevestiging.aantal > 0 && !demo && (
+          <Button size="sm" className="mt-3 w-full sm:w-auto" disabled={bezig || geblokkeerd}
+            data-bevestiging={item.bevestiging.aantal}
+            onClick={() => acties.verstuur(ANNOTEER_PROMPT, undefined, undefined, undefined,
+              { werkgebiedId: item.bevestiging!.werkgebied_id, bevestigd: item.bevestiging!.aantal })}>
+            Laat Lex annoteren ({bepalingen(Math.min(item.bevestiging.aantal, PLAFOND))})
+          </Button>
+        )}
         {item.tekst && item.grounding && <Brongetrouwheid grounding={item.grounding} />}
         {item.tekst && <KopieerKnop tekst={item.overzicht ? `${item.tekst}\n\n${overzichtAlsMarkdown(item.overzicht)}` : item.tekst} />}
       </div>
@@ -165,7 +180,6 @@ export const ThreadRij = memo(function ThreadRij({
       <LexAvatar />
       <div className="min-w-0 flex-1 text-sm text-ink">
         <p className="mb-1 text-xs font-medium text-muted">Lex</p>
-        {item.tekst && <Markdown tekst={item.tekst} />}
         <ReeksBlok
           reeks={item.reeks}
           loopt={loopt}
@@ -180,6 +194,8 @@ export const ThreadRij = memo(function ThreadRij({
             </>
           )}
         />
+        {/* De samenvatting van een werkgebied-run komt ná de bepalingen. */}
+        {item.tekst && <div className="mt-3"><Markdown tekst={item.tekst} /></div>}
       </div>
     </div>
   ) : item.type === "artefact" ? (

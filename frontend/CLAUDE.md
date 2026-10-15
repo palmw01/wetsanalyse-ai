@@ -567,6 +567,22 @@ bestaat los van de gesprekken.
     api); *Samen* zet de betrokken open groepen klaar om te combineren.
   - Browserregressie: `scripts/test-begripvoorstellen.mjs`. Let op: een label om een tekstveld neemt de
     **inhoud** van het veld op in de toegankelijke naam – zoek een gevuld veld op een prefix.
+- **Lex annoteert het werkgebied** (fase B; api §*Werkgebieden* – de annotatie-werkvoorraad, graph-qa
+  §*Lex annoteert het werkgebied*). Lex begint nooit zonder akkoord.
+  - **Tab Elementen**: bovenaan `AnnoterenDoorLex` – per analysebron de stand (`standRegel`) en *Laat Lex
+    annoteren (n bepalingen)*. Die opent `AnnoterenBevestiging` (aantal, schatting, budget, wat niet
+    meegaat; `bevestigingInhoud` in `lib/werkgebiedAnnoteren.ts`; op een smal scherm een sheet). *Start*
+    gaat naar `/workbench?werkgebied=<id>&annoteer=<n>`: `WorkbenchShell` leest `annoteer` één keer en
+    haalt hem uit de URL, en `WerkplekClient` start in dat verse gesprek de run (`startAnnoteren`).
+  - **Werkgebiedbalk**: *Annoteer werkgebied* opent dezelfde bevestiging en start in het open gesprek.
+  - **In het gesprek**: een antwoord met `bevestiging` (`parseBevestiging`; ook na herladen) krijgt de
+    knop *Laat Lex annoteren*. Alle drie gaan via `verstuur(…, annoteren)` →
+    `startRun({modus: "werkgebied_annoteren", werkgebied_id, bevestigd})`. Is de werkvoorraad intussen
+    veranderd, dan begint graph-qa niet en komt er een nieuwe bevestiging.
+  - De voortgang is het gewone `ReeksBlok` (labels met de regeling erbij); de samenvatting van de run
+    staat eronder (`item.tekst` van het reeksitem). Een blok dat de werkvoorraad niet kan lezen
+    (`isWerkvoorraad`) zegt dat en laat de inventaris eronder staan.
+  - Browserregressie: `scripts/test-werkgebied-annoteren.mjs`.
 - **Tabs scrollen.** Vijf tabs passen niet naast elkaar op een telefoon; de horizontale `Tabs` scrollt
   (`overflow-x-auto`, tabs `whitespace-nowrap`). Een afgekapte tab is onbereikbaar, en een toets op
   horizontale scroll van de pagina ziet dat niet.
@@ -1125,7 +1141,8 @@ npm run test:browser # Playwright op de echte Next-UI met gemockte BFF (scripts/
 
 `test:browser` draait `scripts/test-annotatie-nodes.mjs`, `test-samenhang.mjs`, `test-reeks.mjs`,
 `test-toetsen.mjs`, `test-werkgebieden.mjs`, `test-begrippen.mjs`, `test-begripvoorstellen.mjs` en
-`test-artefacten.mjs` (de soorten artefacten in de werkplek) en `test-bronkandidaten.mjs`, en verwacht een devserver op poort 3109
+`test-artefacten.mjs` (de soorten artefacten in de werkplek), `test-bronkandidaten.mjs` en
+`test-werkgebied-annoteren.mjs`, en verwacht een devserver op poort 3109
 (`AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109`).
 Praat met **`localhost`**, niet met `127.0.0.1`: Next 16 weigert dev-assets aan een andere origin,
 waarna de pagina niet hydrateert en elke stap zonder duidelijke fout time-out.

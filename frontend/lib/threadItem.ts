@@ -19,7 +19,9 @@ export type ThreadItem = { tool_executions?: import("./annotatieNode").ToolExecu
       grounding?: AgentGrounding;
       // Het overzicht van een onderwerp, uit de graaf (graph-qa `agent/overzicht.py`): de werkplek
       // toont het als blok onder de duiding, en de graafknop opent er de delen van.
-      overzicht?: Overzicht }
+      overzicht?: Overzicht;
+      // Lex stelt voor het werkgebied te annoteren (fase B): de knop eronder start de run.
+      bevestiging?: import("./types").Bevestiging }
   // `denk` = de tijdlijn van het samenspel (supervisor → ophaal → annoteer → emit). Die blijft ook
   // bewaard als de beurt een annotatie blijkt; juist bij een annotatie wil je achteraf kunnen zien
   // hoe hij tot stand kwam.

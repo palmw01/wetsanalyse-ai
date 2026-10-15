@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { NodeAnnotatiePaneel } from "@/components/annotaties/NodeAnnotatiePaneel";
 import { samenhangBeschikbaar } from "@/lib/samenhang";
-import { ThreadRij, type ThreadActies } from "@/components/werkplek/ThreadRij";
+import { ThreadRij, type ThreadActies, type WerkgebiedAnnoteren } from "@/components/werkplek/ThreadRij";
+import { AnnoterenBevestiging } from "@/components/werkgebieden/AnnoterenBevestiging";
 import { reeksNavigatie, reeksUitBerichten, verwerkReeksEvent, type Reeks } from "@/lib/reeks";
 import { mergeToolExecution, toolSpoorUit, type NodeDoel, type ToolExecution, type NodeElement, type NodeWeergave } from "@/lib/annotatieNode";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -40,10 +41,12 @@ import type {
   BeslissingInvoer,
   BeslissingType,
   Bron,
+  Bevestiging,
   GraafArtikel,
   Verbruiksstand,
   VoorstelElement,
 } from "@/lib/types";
+import { ANNOTEER_PROMPT, parseBevestiging } from "@/lib/werkgebiedAnnoteren";
 import {
   BESLIST_LIFECYCLES, doelInvoerVan,
   eigenMarkeringenVoorContext, isVerwijderd, kandidatenAlsTekst, mergeVoorstellen, vraagContextLabel,
@@ -142,6 +145,9 @@ interface Props {
   onKiesWerkgebied?: (id: string) => void;
   /** Roept terug zodra een beurt is afgerond, zodat de stand meteen ververst. */
   onBeurtKlaar?: () => void;
+  /** Geopend vanaf de tab Elementen met een bevestigd aantal (`?annoteer=<n>`): dit verse gesprek
+   *  start meteen de werkgebied-run (fase B). Eén keer, bij binnenkomst. */
+  startAnnoteren?: number | null;
   /** Start de rondleiding vanuit de lege staat – precies het moment waarop iemand hem nodig heeft. */
   onRondleiding?: () => void;
 }
@@ -150,6 +156,7 @@ export function WerkplekClient({
   initialGesprekId, onGesprekAangemaakt, onGewijzigd, demo, onDemoBeslissing,
   onDemoArtefact, demoOpenSignaal = 0, demoSluitSignaal = 0, onRondleiding,
   verbruik = null, onBeurtKlaar, werkgebiedId = null, onVerlaatWerkgebied, onKiesWerkgebied,
+  startAnnoteren = null,
 }: Props) {
   // Budget op? Dan gaat de invoer dicht. Alleen bij een actieve begrenzing – staat die uit, dan is
   // `geblokkeerd` per definitie false en verandert er niets.
@@ -178,6 +185,8 @@ export function WerkplekClient({
   const [wgUitOverzicht, setWgUitOverzicht] = useState<Overzicht>();
   /** Wat er bij het maken misging (een bepaling die de api niet kon opnemen): zichtbaar, niet stil. */
   const [wgMelding, setWgMelding] = useState<string | null>(null);
+  /** De bevestiging vóór Lex het werkgebied annoteert staat open (de knop in de werkgebiedbalk). */
+  const [annoterenOpen, setAnnoterenOpen] = useState(false);
   /** De reeks (run-id) waaruit de open annotatie is geopend; het paneel bladert dan door de leden. */
   const [nodeReeks, setNodeReeks] = useState<string>();
   // Opent het node-paneel op de graaf (knop onder een antwoord) of op de tekst (annotatie).
@@ -302,7 +311,8 @@ export function WerkplekClient({
                   hergebruik: b.hergebruik ? parseHergebruik(b.hergebruik) : undefined }
               : { id: uid(), type: "antwoord" as const, tekst: b.tekst, denk: b.denk, bronnen: b.bronnen, tool_executions: toolSpoorUit(b.tool_executions),
                   // Het overzicht zoals graph-qa het opbouwde: na herladen hetzelfde blok en dezelfde graafdoelen.
-                  overzicht: b.overzicht ? parseOverzicht(b.overzicht) : undefined }];
+                  overzicht: b.overzicht ? parseOverzicht(b.overzicht) : undefined,
+                  bevestiging: parseBevestiging(b.bevestiging) }];
         });
         // VÓÓR wat er al staat, niet in plaats daarvan. Verstuurde de jurist een vraag terwijl dit nog
         // laadde (een koude start duurt seconden), dan staan zijn vraag en het lopende antwoord al in
@@ -442,7 +452,8 @@ export function WerkplekClient({
   /** @param doel de bepaling, als die al vaststaat (zie `startRun`).
    *  @param hergebruik "opnieuw" = de jurist vraagt expliciet om een nieuwe ronde op een al
    *    geannoteerd artikel; zonder doel betekent dat niets (de agent weet dan nog niet welk). */
-  async function verstuur(vast?: string, doel?: AgentDoelInvoer, hergebruik?: "opnieuw", doelen?: AgentDoelInvoer[]) {
+  async function verstuur(vast?: string, doel?: AgentDoelInvoer, hergebruik?: "opnieuw", doelen?: AgentDoelInvoer[],
+    annoteren?: WerkgebiedAnnoteren) {
     // In de rondleiding is dit venster een voorbeeld: er gaat niets naar de agent. De invoerbalk is
     // ook uitgeschakeld, dit is het vangnet voor Enter en de voorbeeldknoppen.
     if (demo) return;
@@ -535,7 +546,12 @@ export function WerkplekClient({
 
     let gestart;
     try {
-      gestart = await startRun(prompt, gid, werkgebiedId ? { ...extra, werkgebied_id: werkgebiedId } : extra);
+      // Het werkgebied annoteren (fase B) is een eigen opdracht: geen context, geen doel, het werkgebied
+      // uit de bevestiging (een oud gesprek kan buiten de context van dat werkgebied staan).
+      gestart = await startRun(prompt, gid, annoteren
+        ? { modus: "werkgebied_annoteren", werkgebied_id: annoteren.werkgebiedId,
+            ...(annoteren.bevestigd !== undefined ? { bevestigd: annoteren.bevestigd } : {}) }
+        : werkgebiedId ? { ...extra, werkgebied_id: werkgebiedId } : extra);
     } catch (e) {
       // Er liep al een beurt (bijvoorbeeld in een ander tabblad). Deze vraag is dus NIET aangenomen:
       // zet hem terug in het invoerveld en haal de optimistische bubbels weg, zodat er niets
@@ -621,7 +637,7 @@ export function WerkplekClient({
     // Heeft de agent de beurt zelf vastgelegd? Dan schrijft de werkplek niets meer weg – anders
     // staat alles er twee keer. Blijft dit leeg, dan legt de client het bericht zelf vast; zo werkt
     // een graph-qa zonder api-koppeling gewoon door.
-    let opgeslagen: { run_id: string; artefact?: Artefact; annotatie_doel?: NodeDoel } | null = null;
+    let opgeslagen: { run_id: string; artefact?: Artefact; annotatie_doel?: NodeDoel; bevestiging?: Bevestiging } | null = null;
     let toolExecutions: ToolExecution[] = [];
     // De verbinding viel weg terwijl de run doorliep. Buiten de `try` gezet omdat het opnieuw
     // aanhaken ná de `finally` moet gebeuren: die reset `bezig`/`afbrekenRef`, en een nieuwe lus
@@ -849,7 +865,7 @@ export function WerkplekClient({
    *  bron van waarheid en groeit het eventcontract niet mee met het datamodel.
    */
   async function toonVastgelegdeBeurt(
-    uitkomst: { artefact?: Artefact; annotatie_doel?: NodeDoel },
+    uitkomst: { artefact?: Artefact; annotatie_doel?: NodeDoel; bevestiging?: Bevestiging },
     { antId, tekst, denk, hergebruik, doel, tool_executions }: {
       antId: string; tekst?: string; denk: string;
       hergebruik?: AgentHergebruik; doel?: AgentDoelInvoer; tool_executions?: ToolExecution[];
@@ -866,6 +882,8 @@ export function WerkplekClient({
     const node = annotatieDoelVan(uitkomst.artefact) ?? uitkomst.annotatie_doel ?? (doel?.bron_iri ? {
       bron_iri: doel.bron_iri, label: doel.label, snapshot_id: doel.snapshot_id,
     } : undefined);
+    // Een voorstel om het werkgebied te annoteren: het antwoord staat al in beeld, de knop erbij.
+    if (!node && uitkomst.bevestiging) updateItem(antId, { bevestiging: uitkomst.bevestiging });
     if (!node) return; // een gewoon antwoord staat al in beeld
     setItems((xs) => xs.map((x) => x.id === antId ? { id: antId, type: "annotatie", slug: node.bron_iri,
       annotatie_doel: node, titel: uitkomst.artefact?.titel || node.label, tekst: tekst?.trim() || undefined, denk, hergebruik, doel,
@@ -969,6 +987,16 @@ export function WerkplekClient({
   // De handelingen van de thread-rijen, als één object dat nooit verandert. `ThreadRij` is een
   // `memo`: een verse callback per render zou elke rij toch weer laten renderen. De ref wijst naar
   // de handlers van de laatste render (die lezen actuele state), het object zelf blijft gelijk.
+  // Vanaf de tab Elementen bevestigd (`?annoteer=<n>`): dit verse gesprek start de werkgebied-run.
+  // Eén keer – een ref, want een effect kan in de ontwikkelmodus twee keer draaien.
+  const annoterenGestart = useRef(false);
+  useEffect(() => {
+    if (annoterenGestart.current || demo || !startAnnoteren || !werkgebiedId || initialGesprekId) return;
+    annoterenGestart.current = true;
+    void verstuur(ANNOTEER_PROMPT, undefined, undefined, undefined, { werkgebiedId, bevestigd: startAnnoteren });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startAnnoteren, werkgebiedId, initialGesprekId, demo]);
+
   const actiesRef = useRef<ThreadActies | null>(null);
   useLayoutEffect(() => {
     actiesRef.current = {
@@ -1124,9 +1152,17 @@ export function WerkplekClient({
             setWgMelding(mislukt.length ? `Niet opgenomen (niet in de graaf of niet te verifiëren): ${mislukt.join(", ")}.` : null);
           }} />
       )}
+      {annoterenOpen && werkgebiedId && (
+        <AnnoterenBevestiging werkgebiedId={werkgebiedId} onSluit={() => setAnnoterenOpen(false)}
+          onBevestig={(aantal) => {
+            setAnnoterenOpen(false);
+            void verstuur(ANNOTEER_PROMPT, undefined, undefined, undefined, { werkgebiedId, bevestigd: aantal });
+          }} />
+      )}
       {werkgebiedId && !demo && (
         <WerkgebiedBalk id={werkgebiedId} uitgeschakeld={bezig || geblokkeerd}
-          onBegrippen={() => void verstuur("Stel begrippen voor")} onBronnen={() => void verstuur("Zoek bepalingen")} onVerlaat={() => onVerlaatWerkgebied?.()} />
+          onBegrippen={() => void verstuur("Stel begrippen voor")} onBronnen={() => void verstuur("Zoek bepalingen")}
+          onAnnoteren={() => setAnnoterenOpen(true)} onVerlaat={() => onVerlaatWerkgebied?.()} />
       )}
       {wgMelding && (
         <div className="shrink-0 px-4 py-2">

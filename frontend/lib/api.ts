@@ -34,6 +34,8 @@ import type {
   Verbruiksstand,
 } from "./types";
 import type {
+  AnnotatieWerkvoorraad,
+  Bevestiging,
   AdminBerichtenPaginaOut,
   AdminBerichtOut,
   AgentContext,
@@ -79,6 +81,7 @@ import type {
 } from "./types";
 import { parseArtefact } from "./artefact";
 import { pathSegment } from "./url";
+import { parseBevestiging } from "./werkgebiedAnnoteren";
 
 export async function parseError(res: Response): Promise<ApiError> {
   let detail = res.statusText;
@@ -524,6 +527,7 @@ export type AgentHandlers = {
    *  `annotatie_doel` is de oudere vorm van een annotatie-artefact. */
   onOpgeslagen?: (uitkomst: {
     run_id: string; artefact?: import("./artefact").Artefact; annotatie_doel?: import("./annotatieNode").NodeDoel;
+    bevestiging?: Bevestiging;
   }) => void;
   /** De beurt slaagde, maar niet alles is bewaard – bv. een markering die de api niet accepteerde.
    *  Geen fout (het meeste staat er wél), maar de jurist hoort te weten dat er iets ontbreekt. */
@@ -551,7 +555,10 @@ export async function startRun(
   prompt: string,
   conversationId?: string,
   extra?: {
-    modus?: "auto" | "advies";
+    /** "werkgebied_annoteren": de nieuwe bepalingen van het werkgebied (fase B). Zonder `bevestigd`
+     *  noemt Lex alleen wat er te doen is; met `bevestigd` (het aantal dat de analist zag) begint hij. */
+    modus?: "auto" | "advies" | "werkgebied_annoteren";
+    bevestigd?: number;
     context?: AgentContext;
     doel?: AgentDoelInvoer;
     /** "opnieuw" = de jurist vraagt expliciet om een nieuwe ronde op een al geannoteerd artikel.
@@ -579,6 +586,7 @@ export async function startRun(
       ...(extra?.hergebruik ? { hergebruik: extra.hergebruik } : {}),
       ...(extra?.doelen ? { doelen: extra.doelen } : {}),
       ...(extra?.werkgebied_id ? { werkgebied_id: extra.werkgebied_id } : {}),
+      ...(typeof extra?.bevestigd === "number" ? { bevestigd: extra.bevestigd } : {}),
     }),
   });
   if (res.status === 409) {
@@ -732,6 +740,7 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
               seq?: number;
               weggevallen?: number;
               artefact?: unknown;
+              bevestiging?: unknown;
               annotatie_doel?: import("./annotatieNode").NodeDoel;
               run_id?: string;
               // grounding: `niveau` is nieuw; een oudere agent stuurt alleen `grounded`.
@@ -803,7 +812,8 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
         }
         else if (ev.type === "opgeslagen")
           handlers.onOpgeslagen?.({ run_id: ev.run_id ?? "", annotatie_doel: ev.annotatie_doel,
-            ...(parseArtefact(ev.artefact) ? { artefact: parseArtefact(ev.artefact) } : {}) });
+            ...(parseArtefact(ev.artefact) ? { artefact: parseArtefact(ev.artefact) } : {}),
+            ...(parseBevestiging(ev.bevestiging) ? { bevestiging: parseBevestiging(ev.bevestiging) } : {}) });
         else if (ev.type === "waarschuwing") handlers.onWaarschuwing?.(ev.message ?? "");
         // `agentFout` onderscheidt dit van een 502 die zegt "de BFF kon graph-qa niet bereiken":
         // die is tijdelijk en mag opnieuw, deze is een uitkomst van de beurt zelf.
@@ -1045,6 +1055,11 @@ export async function verwijderBron(id: string, selectieId: string, verwachteRev
 
 export async function haalInventaris(id: string): Promise<Inventaris> {
   return json<Inventaris>(await fetch(wg(id, "elementen"), { cache: "no-store" }));
+}
+
+/** Wat Lex in dit werkgebied nog moet annoteren, met de schatting en het budget (fase B). */
+export async function haalAnnotatieWerkvoorraad(id: string): Promise<AnnotatieWerkvoorraad> {
+  return json<AnnotatieWerkvoorraad>(await fetch(wg(id, "annotatie-werkvoorraad"), { cache: "no-store" }));
 }
 
 export async function haalWerkgebiedAudit(id: string, limit = 100): Promise<WerkgebiedAuditRegel[]> {

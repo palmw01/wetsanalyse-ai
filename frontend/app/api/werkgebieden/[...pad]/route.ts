@@ -22,7 +22,9 @@ async function forward(req: Request, { params }: Params) {
     // De inventaris haalt per regeling de bronboom uit de graaf; bij een paar grote wetten duurt
     // dat langer dan de standaard 30 s. Koppelen (ook een nieuw begrip uit een selectie) toetst de
     // elementen tegen diezelfde inventaris.
-    ...(pad[1] === "elementen" || (pad[1] === "begrippen" && req.method === "POST") ? { timeoutMs: 90_000 } : {}),
+    // De annotatie-werkvoorraad (fase B) haalt dezelfde bronbomen op.
+    ...(pad[1] === "elementen" || pad[1] === "annotatie-werkvoorraad" || (pad[1] === "begrippen" && req.method === "POST")
+      ? { timeoutMs: 90_000 } : {}),
   });
 }
 export const GET = forward;
