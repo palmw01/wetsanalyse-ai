@@ -45,6 +45,15 @@ export function WorkbenchShell({
   const zoek = useSearchParams();
   const [gekozenWg, setGekozenWg] = useState<{ id: string | null } | null>(null);
   const werkgebiedId = gekozenWg ? gekozenWg.id : werkgebiedUitUrl(zoek.get("werkgebied"));
+  // Vanaf de tab Elementen bevestigd: `?annoteer=<n>` start in dit verse gesprek de werkgebied-run
+  // (fase B). Eén keer gelezen en meteen uit de URL gehaald – herladen mag hem niet opnieuw starten.
+  const [startAnnoteren] = useState(() => aantalUitUrl(zoek.get("annoteer")));
+  useEffect(() => {
+    if (startAnnoteren === null) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete("annoteer");
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+  }, [startAnnoteren]);
   const [mountKey, setMountKey] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
   // Verhoogd zodra de chat een gesprek aanmaakte: de sidebar bezit de lijst en haalt hem dan opnieuw.
@@ -283,6 +292,8 @@ export function WorkbenchShell({
             key={mountKey}
             initialGesprekId={activeId}
             werkgebiedId={werkgebiedId}
+            // Alleen het venster waarmee de pagina opende; een nieuw gesprek start niets.
+            startAnnoteren={mountKey === 0 && !beginGesprekId ? startAnnoteren : null}
             onVerlaatWerkgebied={() => zetWerkgebied(null)}
             onKiesWerkgebied={zetWerkgebied}
             onGesprekAangemaakt={gesprekAangemaakt}
@@ -311,6 +322,12 @@ export function WorkbenchShell({
       )}
     </div>
   );
+}
+
+/** Een positief geheel aantal, of niets. */
+function aantalUitUrl(waarde: string | null): number | null {
+  const n = Number(waarde);
+  return waarde && Number.isInteger(n) && n > 0 && n <= 100_000 ? n : null;
 }
 
 /** Alleen een geldig werkgebied-id; al het andere is geen context (de api kent de vorm ook zo). */

@@ -161,6 +161,7 @@ describe("isWerkgebiedRoute", async () => {
     [["w", "bronnen-runs", "laatste"]], [["w", "bronnen-runs", "r"]], [["w", "kandidaten"]],
     [["w", "kandidaten", "K1", "opnemen"]], [["w", "kandidaten", "K1", "later"]],
     [["w", "kandidaten", "K1", "uitsluiten"]], [["w", "kandidaten", "K1", "heropenen"]],
+    [["w", "annotatie-werkvoorraad"]],
   ])("laat %j door", (pad) => expect(isWerkgebiedRoute(pad)).toBe(true));
   it.each([
     [[]], [["w", "onbekend"]], [["w", "elementen", "x"]], [["w", "bronnen", "s", "x"]],
@@ -173,6 +174,7 @@ describe("isWerkgebiedRoute", async () => {
     // Ook bij de bronnen: starten via /api/bronnen-run, de rest is van graph-qa.
     [["w", "bronnen-runs"]], [["w", "bronnen-runs", "r", "uitkomst"]], [["w", "bronnen-runs", "r", "loopt"]],
     [["w", "bronnen-runs", "r", "mislukt"]], [["w", "kandidaten", "K1"]], [["w", "kandidaten", "K1", "wissen"]],
+    [["w", "annotatie-werkvoorraad", "x"]],
   ])("weigert %j", (pad) => expect(isWerkgebiedRoute(pad)).toBe(false));
 });
 

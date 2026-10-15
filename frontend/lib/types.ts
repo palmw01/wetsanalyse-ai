@@ -588,7 +588,49 @@ export interface Bericht {
   /** Dit bericht is één onderdeel van een reeks (meerdere leden van één artikel in één run). De
    *  werkplek toont de berichten met dezelfde `reeks.run_id` samen als één reeksblok. */
   reeks?: ReeksPlek | null;
+  /** Een opdracht die Lex niet zonder akkoord start (fase B): de werkplek toont er een knop bij. */
+  bevestiging?: Bevestiging | null;
   created?: string;
+}
+
+/** Lex stelt voor het werkgebied te annoteren; klikken start de run met `bevestigd: aantal`. Is de
+ *  werkvoorraad intussen veranderd, dan weigert graph-qa en komt er een nieuwe bevestiging. */
+export interface Bevestiging {
+  soort: "werkgebied_annoteren";
+  werkgebied_id: string;
+  aantal: number;
+  /** Tokens voor deze run, of `null` zonder eerdere annotatiebeurten om op te baseren. */
+  schatting: number | null;
+}
+
+/** Stand van één annotatie-eenheid (een lid, of een artikel zonder leden) in een werkgebied. */
+export type EenheidStatus = "nieuw" | "te_beoordelen" | "beoordeeld" | "zonder_markeringen" | "afgerond";
+
+export interface WerkvoorraadEenheid {
+  bron_iri: string;
+  /** Het pad onder de regeling: "Artikel 9, Lid 1". */
+  label: string;
+  regeling: string;
+  bwb_id: string;
+  stand: { status: EenheidStatus; voorstellen: number; te_beoordelen: number };
+  selecties: string[];
+}
+
+/** `GET /v1/werkgebieden/{id}/annotatie-werkvoorraad` (api `werkgebied_werkvoorraad.py`). */
+export interface AnnotatieWerkvoorraad {
+  werkgebied_id: string;
+  revisie: number;
+  naam: string;
+  selecties: { id: string; bron_iri: string; label: string; bereik: BronBereik; eenheden: number;
+    per_stand: Partial<Record<EenheidStatus, number>>; onbereikbaar: string | null }[];
+  eenheden: WerkvoorraadEenheid[];
+  te_annoteren: string[];
+  context_niet_meegenomen: number;
+  volledig: boolean;
+  open_punten: string[];
+  schatting: { per_bepaling: number; basis: number; totaal: number } | null;
+  schatting_toelichting: string;
+  budget: { resterend: number; budget: number; actief: boolean; geblokkeerd: boolean };
 }
 
 /** Het overzicht van een onderwerp ("welke artikelen gaan over invordering?"), door graph-qa

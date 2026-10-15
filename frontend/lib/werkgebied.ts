@@ -53,7 +53,7 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   if (!id || pad.length > 5) return false;
   if (pad.length === 1) return true;
   if (deel === "bronnen") return pad.length <= 3;
-  if (deel === "elementen" || deel === "audit") return pad.length === 2;
+  if (deel === "elementen" || deel === "audit" || deel === "annotatie-werkvoorraad") return pad.length === 2;
   // Voorstellen van Lex. Starten gaat alleen via `/api/begrippen-run` (één weg), en `loopt`,
   // `uitkomst` en `mislukt` zijn van graph-qa: die laat de werkplek nooit door.
   if (deel === "begrippen-runs") {
