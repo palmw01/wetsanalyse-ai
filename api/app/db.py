@@ -307,6 +307,42 @@ begrip_koppelingen = Table("begrip_koppelingen", metadata,
     Column("toegevoegd", _DT, nullable=False),
     Column("verwijderd", _DT, nullable=True))
 
+# --- Bronnen vinden met Lex (spoor D, fase A) ---------------------------------
+# Een bronnenrun past de ontdekmethoden van graph-qa toe op de selectie van een werkgebied. De api
+# legt de invoer vast (kern- en contextbronnen, analysevraag), graph-qa zoekt en zet de kandidaten
+# terug. Idempotent op (werkgebied, invoer): dezelfde selectie geeft dezelfde run.
+# Een kandidaat is per (werkgebied, bron_iri) één rij: vinden meer methoden dezelfde bepaling, dan
+# groeit zijn bewijs. Zijn besluit (later, uitgesloten met reden, opgenomen) blijft staan als een
+# latere run hem opnieuw vindt – een uitgesloten kandidaat stelt Lex niet opnieuw voor.
+bronnen_runs = Table("bronnen_runs", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("werkgebied_id", String(64), nullable=False, index=True),
+    Column("invoer_id", String(32), nullable=False),
+    Column("invoer", _JSON, nullable=False),
+    Column("status", String(16), nullable=False, default="wacht"),
+    Column("meting", _JSON, nullable=True),
+    Column("uitkomst_hash", String(64), nullable=True),
+    Column("reden", Text, nullable=False, default=""),
+    Column("gestart_door", String(64), nullable=False),
+    Column("gestart", _DT, nullable=False),
+    Column("gewijzigd", _DT, nullable=False),
+    Index("ix_bronnen_runs_invoer", "werkgebied_id", "invoer_id"))
+bron_kandidaten = Table("bron_kandidaten", metadata,
+    Column("werkgebied_id", String(64), primary_key=True),
+    Column("id", String(64), primary_key=True),
+    Column("bron_iri", Text, nullable=False),
+    Column("label", Text, nullable=False, default=""),
+    Column("bwb_id", String(32), nullable=False, default=""),
+    Column("rol", String(16), nullable=False),
+    Column("bewijs", _JSON, nullable=False),
+    Column("run_id", String(64), nullable=False),
+    Column("status", String(16), nullable=False, default="voorgesteld"),
+    Column("reden", Text, nullable=False, default=""),
+    Column("besloten_door", String(64), nullable=True),
+    Column("besloten_op", _DT, nullable=True),
+    Column("voorgesteld", _DT, nullable=False),
+    Column("gewijzigd", _DT, nullable=False))
+
 # --- Voorstellen van Lex (spoor D, levering 3; ADR-004) -----------------------
 # Een run is één toepassing van de begrippenketen op het manifest van een werkgebied. De api bouwt en
 # bewaart het manifest (de vaste invoer), graph-qa rekent en zet de uitkomst terug. Idempotent op

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import uuid
 from contextlib import asynccontextmanager
+from typing import Any, Awaitable, Callable
 
 from fastapi import HTTPException
 from sqlalchemy import func, insert, select, update
@@ -122,13 +123,16 @@ async def archiveer(werkgebied_id: str, verwacht: int, actor: str) -> dict:
     return await haal(werkgebied_id, met_gearchiveerd=True)
 
 
-async def voeg_bron_toe(werkgebied_id: str, invoer: BronselectieInvoer, bron: dict, actor: str
-                        ) -> tuple[dict, bool]:
+async def voeg_bron_toe(werkgebied_id: str, invoer: BronselectieInvoer, bron: dict, actor: str,
+                        binnen: Callable[[Any], Awaitable[None]] | None = None) -> tuple[dict, bool]:
     """Neemt een geverifieerde bron op. Geeft (selectie, nieuw) terug.
 
     `bron` komt uit de resolver: {bron_iri, label, bwb_id, snapshot_id, bron_hash}. Staat dezelfde
     bron er al met dezelfde rol en hetzelfde bereik, dan is dit idempotent: de bestaande selectie,
     zonder revisiesprong. Met een andere rol of ander bereik: 409 – wijzig dan de bestaande.
+
+    `binnen(conn)` draait in dezelfde transactie, na het opnemen: zo landt een kandidaat die wordt
+    opgenomen samen met zijn selectie, of geen van beide (`bronnen_run_store.opnemen`).
     """
     s = db.werkgebied_bronselecties
     async with db.get_engine().connect() as conn:
@@ -154,6 +158,8 @@ async def voeg_bron_toe(werkgebied_id: str, invoer: BronselectieInvoer, bron: di
             rol=invoer.rol.value, reden=invoer.reden, label=bron.get("label", ""),
             bwb_id=bron.get("bwb_id", ""), snapshot_id=bron.get("snapshot_id", ""),
             bron_hash=bron.get("bron_hash", ""), toegevoegd_door=actor, toegevoegd=db.utcnow()))
+        if binnen is not None:
+            await binnen(conn)
     async with db.get_engine().connect() as conn:
         return _selectie((await conn.execute(select(s).where(s.c.id == sid))).first()), True
 
@@ -187,6 +193,12 @@ async def verwijder_bron(werkgebied_id: str, selectie_id: str, verwacht: int, ac
                           {"selectie": selectie_id, "bron_iri": bron_iri or ""}) as (conn, _):
         await _selectie_onder_slot(conn, werkgebied_id, selectie_id)
         await conn.execute(update(s).where(s.c.id == selectie_id).values(verwijderd=db.utcnow()))
+        # Kwam de bron uit een voorstel van Lex, dan is hij weer een voorstel (fase A). Geen nieuwe run
+        # nodig: de vorige vond hem al, met zijn bewijs.
+        k = db.bron_kandidaten
+        await conn.execute(update(k).where(k.c.werkgebied_id == werkgebied_id, k.c.bron_iri == (bron_iri or ""),
+                                           k.c.status == "opgenomen")
+                           .values(status="voorgesteld", besloten_door=None, besloten_op=None, gewijzigd=db.utcnow()))
     return await haal(werkgebied_id)
 
 
