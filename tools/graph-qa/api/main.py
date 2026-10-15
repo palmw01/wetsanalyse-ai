@@ -60,11 +60,12 @@ from agent import observability  # noqa: E402
 from agent.agent import answer_stream, delete_conversation  # noqa: E402
 from agent.beurt import voer_beurt_uit  # noqa: E402
 from agent.reeks import reeks_run  # noqa: E402
+from agent.werkgebied_annotatie import werkgebied_annotatie_beurt  # noqa: E402
 from agent.config import Settings  # noqa: E402
 from agent.begrippen_beurt import begrippen_beurt, zonder_api  # noqa: E402
 from agent.begrippen_run import begrippen_stroom  # noqa: E402
 from agent.bronnen_run import bronnen_beurt, bronnen_stroom  # noqa: E402
-from agent.models import BegrippenRunVerzoek, ChatRequest, RunStart, Verbruiksmeter  # noqa: E402
+from agent.models import WERKGEBIED_MODI, BegrippenRunVerzoek, ChatRequest, RunStart, Verbruiksmeter  # noqa: E402
 from agent.runstore import Run, RunBestaatAl, RunStore  # noqa: E402
 from agent.runstore.geheugen import GeheugenStore  # noqa: E402
 from agent.wetsanalyse_api import WetsanalyseApi  # noqa: E402
@@ -260,10 +261,10 @@ async def chat(
     Bouw hier geen nieuwe client op zonder die controle in de aanroeper. Wie het toch nodig heeft
     (een script, een eval-run), gebruikt het met een eigen conversation_id.
     """
-    if request.modus in ("begrippen", "bronnen"):
+    if request.modus in WERKGEBIED_MODI:
         # Deze routes schrijven in het werkgebied en in het gesprek; dat kan alleen een run.
         raise HTTPException(status_code=422,
-                            detail="Begrippen of bronnen voorstellen kan alleen via POST /v1/runs.")
+                            detail="Werken op een werkgebied kan alleen via POST /v1/runs.")
     logger.info(
         "chat ontvangen",
         extra={
@@ -332,6 +333,11 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
     chatbericht). Daarmee hangt een beurt niet af van een browser die blijft kijken. Is er geen api
     geconfigureerd, dan is hij een doorgeefluik."""
     def maak(run: Run) -> AsyncIterator[dict]:
+        if request.is_werkgebied_annotatie:
+            # De nieuwe bepalingen van het werkgebied: eerst het voorstel, na bevestiging de reeks.
+            if not settings.legt_zelf_vast:
+                return zonder_api()
+            return werkgebied_annotatie_beurt(request, run, settings=settings, user_id=gebruiker)
         if request.is_bronnenbeurt:
             # Bepalingen zoeken binnen een werkgebied: de ontdekmethoden, geen supervisor en geen model.
             if not settings.legt_zelf_vast:

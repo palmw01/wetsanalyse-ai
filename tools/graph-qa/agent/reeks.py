@@ -5,8 +5,9 @@ run met `doelen`. Hier draait per onderdeel de gewone beurt – dezelfde keten, 
 vastleggen – zodat elk lid een eigen laag, batch, review en hergebruik houdt. Wat de reeks zelf
 toevoegt:
 
-- **Eén artikel.** Vooraf toetst `bronmodel.gedeelde_bepaling` tegen de brongraaf dat alle doelen
-  onderdelen van dezelfde bepaling zijn. Meer artikelen samen is een werkgebied, een andere functie.
+- **Eén artikel** (`reeks_run`). Vooraf toetst `bronmodel.gedeelde_bepaling` tegen de brongraaf dat
+  alle doelen onderdelen van dezelfde bepaling zijn. Meer artikelen samen is een werkgebied: dat is
+  `agent/werkgebied_annotatie.py`, die dezelfde `reeks_stroom` en `beurt_fabriek` gebruikt.
 - **Indeling van de eventstroom.** `reeks` (start/eind) om het geheel, `onderdeel` (start/eind) om
   elk lid, en elk event daartussen draagt `onderdeel: <bron_iri>`. De tussentijdse `done` van een
   beurt wordt ingeslikt; de reeks eindigt met één `done`.
@@ -134,10 +135,6 @@ async def reeks_run(
     `/v1/chat` niet – dezelfde verdeling als bij een gewone beurt. `graph`, `llm` en `annotaties`
     zijn er voor tests; in productie bouwt elke beurt ze zelf.
     """
-    from .agent import answer_stream
-    from .beurt import voer_beurt_uit
-    from .models import Verbruiksmeter
-
     doelen = [d.model_dump() if hasattr(d, "model_dump") else dict(d) for d in request.doelen]
     run_id = getattr(run, "run_id", "") or ""
     stop = (lambda: bool(run.stop_gevraagd)) if run is not None else (lambda: False)
@@ -165,25 +162,40 @@ async def reeks_run(
     if budget_toegestaan is None and legt_vast and settings.legt_zelf_vast and user_id:
         budget_toegestaan = _budget_poort(settings, user_id)
 
+    beurt = beurt_fabriek(run, gesprek_id=request.conversation_id, hergebruik=request.hergebruik,
+                          totaal=len(doelen), ouder=ouder.get("label", ""), settings=settings,
+                          user_id=user_id, legt_vast=legt_vast, graph=graph, llm=llm, annotaties=annotaties)
+    async for event in reeks_stroom(doelen, run_id=run_id, beurt=beurt, ouder=ouder,
+                                    stop_gevraagd=stop, budget_toegestaan=budget_toegestaan):
+        yield event
+
+
+def beurt_fabriek(run, *, gesprek_id: str | None, hergebruik: str, totaal: int, ouder: str, settings,
+                  user_id: str = "", legt_vast: bool = True, graph=None, llm=None, annotaties=None) -> BeurtFabriek:
+    """Eén gewone annotatiebeurt per onderdeel, met een eigen run-id (`DeelRun`) en – als hij
+    vastlegt – `reeks: {run_id, index, totaal, ouder}` in het bericht."""
+    from .agent import answer_stream
+    from .beurt import voer_beurt_uit
+    from .models import Verbruiksmeter
+
+    run_id = getattr(run, "run_id", "") or ""
+    stop = (lambda: bool(run.stop_gevraagd)) if run is not None else (lambda: False)
+
     def beurt(doel: dict[str, Any], index: int) -> AsyncIterator[dict[str, Any]]:
         deel = DeelRun(run, index) if run is not None else None
         meter = Verbruiksmeter()
         stroom = answer_stream(
-            f"Annoteer {_label(doel)}", request.conversation_id,
-            doel=doel, hergebruik=request.hergebruik, settings=settings, llm=llm, graph=graph,
+            f"Annoteer {_label(doel)}", gesprek_id,
+            doel=doel, hergebruik=hergebruik, settings=settings, llm=llm, graph=graph,
             annotaties=annotaties, user_id=user_id, run_id=deel.run_id if deel else "",
             stop_check=stop, meter=meter,
         )
         if not legt_vast or deel is None:
             return stroom
-        return voer_beurt_uit(stroom, settings=settings, run=deel, gesprek_id=request.conversation_id or "",
+        return voer_beurt_uit(stroom, settings=settings, run=deel, gesprek_id=gesprek_id or "",
                               user_id=user_id, meter=meter,
-                              reeks={"run_id": run_id, "index": index, "totaal": len(doelen),
-                                     "ouder": ouder.get("label", "")})
-
-    async for event in reeks_stroom(doelen, run_id=run_id, beurt=beurt, ouder=ouder,
-                                    stop_gevraagd=stop, budget_toegestaan=budget_toegestaan):
-        yield event
+                              reeks={"run_id": run_id, "index": index, "totaal": totaal, "ouder": ouder})
+    return beurt
 
 
 def _budget_poort(settings, user_id: str) -> Callable[[], Awaitable[bool]]:

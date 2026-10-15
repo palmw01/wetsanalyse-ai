@@ -56,14 +56,26 @@ class Artefact(BaseModel):
 
 
 class ReeksPlek(BaseModel):
-    """Waar dit bericht staat in een reeks: meerdere leden van één artikel, geannoteerd in één run
-    (graph-qa `agent/reeks.py`). Elk lid krijgt een eigen bericht met een eigen `run_id`
+    """Waar dit bericht staat in een reeks: meerdere leden van één artikel, of de nieuwe bepalingen
+    van een werkgebied, geannoteerd in één run (graph-qa `agent/reeks.py`). Elk lid krijgt een eigen bericht met een eigen `run_id`
     (`<run>.<n>`); dit veld laat de werkplek ze na herladen weer als één reeks tonen."""
 
     run_id: str = Field(min_length=1, max_length=128)
     index: int = Field(ge=0, le=59)
-    totaal: int = Field(ge=2, le=60)
+    # Een werkgebied kan één nieuwe bepaling hebben; een reeks van de keuzekaart heeft er minstens twee.
+    totaal: int = Field(ge=1, le=60)
     ouder: str = Field(default="", max_length=300)
+
+
+class Bevestiging(BaseModel):
+    """Een opdracht die Lex niet zonder akkoord start (spoor D, fase B): de werkplek toont er een knop
+    bij, ook na herladen. Klikken start de run met `bevestigd: aantal`; is de werkvoorraad intussen
+    veranderd, dan weigert graph-qa en komt er een nieuwe bevestiging."""
+
+    soort: Literal["werkgebied_annoteren"]
+    werkgebied_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
+    aantal: int = Field(ge=0, le=100_000)
+    schatting: int | None = Field(default=None, ge=0)
 
 
 class Bericht(BaseModel):
@@ -103,6 +115,7 @@ class Bericht(BaseModel):
     # Wat deze beurt opleverde om te beoordelen (chip + artefactpaneel). Oudere annotatieberichten
     # hebben alleen `annotatie_doel`; de werkplek leidt daar zelf een annotatie-artefact uit af.
     artefact: Artefact | None = None
+    bevestiging: Bevestiging | None = None
     created: datetime | None = None
 
 
@@ -143,6 +156,7 @@ class BerichtInvoer(BaseModel):
     run_id: str = ""
     reeks: ReeksPlek | None = None
     artefact: Artefact | None = None
+    bevestiging: Bevestiging | None = None
 
 
 class GesprekSamenvatting(BaseModel):

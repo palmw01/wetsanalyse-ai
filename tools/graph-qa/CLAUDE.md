@@ -443,7 +443,8 @@ emit één `kandidaten`-event en stopt. Welke bepaling de werkvoorraad in gaat, 
 `doel._meerdere_artikelen` vangen de rest. "Artikel 9 lid 1 en 3" wordt het artikel met die leden
 vooraf aangevinkt op de keuzekaart.
 
-**Meerdere onderdelen zijn één run: een reeks** (`agent/reeks.py`). `doelen` (2–60, elk met `bron_iri`,
+**Meerdere onderdelen zijn één run: een reeks** (`agent/reeks.py`; de werkgebied-run hieronder gebruikt
+dezelfde stroom over meerdere artikelen). `doelen` (2–60, elk met `bron_iri`,
 sluit `doel` uit) → vooraf toetst `bronmodel.gedeelde_bepaling` dat alle doelen kiesbare onderdelen van
 dezelfde bepaling zijn → per doel de gewone beurt, na elkaar, met eigen `run_id` `<run>.<n>` en een eigen
 bericht met `reeks: {run_id, index, totaal, ouder}`. De stroom krijgt `reeks`- en `onderdeel`-events
@@ -634,6 +635,29 @@ horen; de api bewaart de kandidaten en de besluiten (`api/app/bronnen_run_store.
   ook binnen een werkgebied. Een weigering van de api (`geen_vertrekpunt`) is een antwoord.
 - Tests: `tests/test_bronnen_vinden.py` (functiepatronen, methoden tegen een nep-graaf, het
   api-contract uit de bron, run, route, endpoint).
+
+### Lex annoteert het werkgebied (`agent/werkgebied_annotatie.py`, fase B)
+
+Binnen een werkgebied annoteert Lex in één run de bepalingen die nog **nieuw** zijn – alleen van
+bronnen met rol *analyseren*, per lid zoals de keuzekaart. Ingang: `POST /v1/runs` met `werkgebied_id`
+en `modus: "werkgebied_annoteren"`, of in het gesprek "annoteer het werkgebied" / "annoteer wat nog niet
+geannoteerd is" (`is_werkgebied_annoteervraag`; "annoteer alles over X" blijft de onderwerproute). De
+check staat in `_stroom_voor` vóór de bronnen- en begrippenroute.
+
+- **De werkvoorraad komt van de api** (`GET …/annotatie-werkvoorraad`), nooit van de browser.
+- **Nooit starten zonder bevestiging.** Zonder `bevestigd` antwoordt Lex met aantal, schatting
+  (mediaan van eerdere annotatiebeurten, of eerlijk "nog geen"), budget en wat er niet meegaat, en het
+  bericht draagt een `bevestiging` (`{soort, werkgebied_id, aantal, schatting}`) waar de werkplek een
+  knop bij toont. Met `bevestigd: n` draait hij alleen als `n` gelijk is aan de actuele werkvoorraad;
+  anders "de werkvoorraad veranderde" met een nieuwe bevestiging.
+- **Dezelfde stroom als een reeks** (`reeks_stroom` + `beurt_fabriek`): per eenheid de gewone beurt met
+  `hergebruik: auto`, eigen `run_id` `<run>.<n>`, events en berichten zoals op de keuzekaart; `ouder` is
+  `{bron_iri: "urn:wa:werkgebied:<id>", label: "werkgebied <naam>"}`. Stop en budget tussen eenheden;
+  een fout in één eenheid stopt de rest niet. Hoogstens `PLAFOND` (40) per run.
+- **Aan het eind** een samenvatting (geannoteerd, mislukt, niet aan bod gekomen en waarom, wat buiten
+  het plafond bleef) als gewoon bericht met het `run_id` van de hele run.
+- `/v1/chat` weigert de modus (422), net als `begrippen` en `bronnen` (`WERKGEBIED_MODI`).
+- Tests: `tests/test_werkgebied_annotatie.py`.
 
 ## De overzichtsroute: "welke artikelen gaan over X?"
 

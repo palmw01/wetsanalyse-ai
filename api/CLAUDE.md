@@ -373,6 +373,10 @@ invoer vast, toetst en bewaart de kandidaten, en legt de besluiten vast.
   schrijft beide voor een annotatie. Het bericht draagt ook het uitvoeringsspoor van de beurt
   (`tool_executions`). Een antwoord op een overzichtsvraag draagt het
   `overzicht` dat graph-qa uit de graaf bouwde, zodat het blok na herladen hetzelfde is.
+  Een voorstel dat Lex niet zonder akkoord start (fase B: het werkgebied annoteren) draagt een
+  **`bevestiging`** `{soort: "werkgebied_annoteren", werkgebied_id, aantal, schatting}`; de werkplek
+  toont er een knop bij, ook na herladen. `reeks.totaal` mag 1 zijn: een werkgebied kan één nieuwe
+  bepaling hebben.
   De review-state zelf blijft in het annotatiedomein. **Een veld dat graph-qa meestuurt moet in
   `BerichtInvoer` staan**, anders laat Pydantic het stil vallen en verdwijnen na het heropenen de
   chip naar het annotatiepaneel en het toolspoor. `tools/graph-qa/tests/test_contract_drift.py`

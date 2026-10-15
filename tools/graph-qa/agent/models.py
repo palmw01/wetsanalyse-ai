@@ -62,6 +62,10 @@ class AgentDoel(BaseModel):
     geheel: bool = False
 
 
+# Routes op een werkgebied die in werkgebied en gesprek schrijven; alleen via `POST /v1/runs`.
+WERKGEBIED_MODI = ("begrippen", "bronnen", "werkgebied_annoteren")
+
+
 class ChatRequest(BaseModel):
     question: str
     conversation_id: str | None = None  # stuur mee voor gespreksgeheugen
@@ -71,7 +75,9 @@ class ChatRequest(BaseModel):
     # wijzigen (die route emit simpelweg geen doel/element-events).
     # "begrippen" / "bronnen" = de begrippen- of bronnenroute op het werkgebied
     # (`agent/begrippen_beurt.py`, `agent/bronnen_run.py`).
-    modus: Literal["auto", "advies", "annotaties_lezen", "begrippen", "bronnen"] = "auto"
+    # "werkgebied_annoteren" = de nieuwe bepalingen van het werkgebied annoteren (fase B,
+    # `agent/werkgebied_annotatie.py`); zonder `bevestigd` alleen het voorstel.
+    modus: Literal["auto", "advies", "annotaties_lezen", "begrippen", "bronnen", "werkgebied_annoteren"] = "auto"
     context: ChatContext | None = None
     # Een al geannoteerd artikel wordt hergebruikt (`auto`), tenzij de jurist expliciet om een nieuwe
     # ronde vraagt (`opnieuw`). Die voegt toe aan de gedeelde laag; wat beoordeeld is blijft staan.
@@ -82,6 +88,16 @@ class ChatRequest(BaseModel):
     # De werkplek is geopend vanuit een werkgebied (spoor D, fase AF2). Een vraag om begrippen gaat
     # dan de begrippenroute in; voor de andere routes is het (nog) alleen context.
     werkgebied_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9-]{1,64}$")
+    # Het aantal bepalingen dat de analist bevestigde (fase B). Wijkt de actuele werkvoorraad af,
+    # dan begint de run niet; zonder dit veld noemt Lex alleen wat er te doen is.
+    bevestigd: int | None = Field(default=None, ge=0, le=100_000)
+
+    @property
+    def is_werkgebied_annotatie(self) -> bool:
+        from .werkgebied_annotatie import is_werkgebied_annoteervraag
+        return bool(self.werkgebied_id) and self.doel is None and self.doelen is None and (
+            self.modus == "werkgebied_annoteren"
+            or (self.modus == "auto" and is_werkgebied_annoteervraag(self.question)))
 
     @property
     def is_begrippenbeurt(self) -> bool:
@@ -97,10 +113,12 @@ class ChatRequest(BaseModel):
 
     @model_validator(mode="after")
     def _begrippen_horen_bij_een_werkgebied(self) -> "ChatRequest":
-        if self.modus in ("begrippen", "bronnen") and not self.werkgebied_id:
+        if self.modus in WERKGEBIED_MODI and not self.werkgebied_id:
             raise ValueError(f"modus '{self.modus}' vraagt een werkgebied_id")
-        if self.modus in ("begrippen", "bronnen") and (self.doel is not None or self.doelen is not None):
-            raise ValueError(f"de {self.modus}route annoteert niet; geef geen 'doel' of 'doelen'")
+        if self.modus in WERKGEBIED_MODI and (self.doel is not None or self.doelen is not None):
+            raise ValueError(f"de route '{self.modus}' kiest zelf wat ze doet; geef geen 'doel' of 'doelen'")
+        if self.bevestigd is not None and self.modus != "werkgebied_annoteren":
+            raise ValueError("'bevestigd' hoort bij modus 'werkgebied_annoteren'")
         return self
 
     @model_validator(mode="after")
