@@ -232,3 +232,25 @@ async def test_een_twijfelvraag_beantwoorden(client):
     g = (await client.get(f"/v1/werkgebieden/{wg['id']}/groepen")).json()
     assert set(g["passages"]) == {ids["alfa1"], ids["beta"]}
     assert (g["passages"][ids["beta"]]["tekst"], g["passages"][ids["beta"]]["vindplaats"]) == ("Beta", "Artikel 9 · Lid 2 – Wet")
+
+
+async def test_samen_bij_een_twijfelvraag_maakt_een_begrip_ook_met_een_losse_passage(client):
+    """Een twijfelvraag gaat meestal over passages die de keten níét groepeerde. "Samen" moet dan
+    toch een begrip kunnen worden: de groep van de ene passage plus de andere, losse passage."""
+    ids = await _annoteer()
+    wg = await _werkgebied(client)
+    run = await _start(client, wg)
+    await _uitkomst(client, wg, run, [_groep("Gaaa111", [ids["alfa1"], ids["alfa2"]])],
+                    vragen=[{"kandidaat_id": "P1", "van": ids["alfa1"], "naar": ids["beta"]}])
+    base = f"/v1/werkgebieden/{wg['id']}/groepen/overnemen"
+    r = await client.post(base, json={"groep_ids": ["Gaaa111"], "naam": "Alfa",
+                                      "element_ids": [ids["alfa1"], ids["alfa2"], ids["beta"]]})
+    assert r.status_code == 201, r.text
+    assert {k["element_id"] for k in r.json()["koppelingen"]} == {ids["alfa1"], ids["alfa2"], ids["beta"]}
+    assert (await client.get(f"/v1/werkgebieden/{wg['id']}/groepen")).json()["groepen"][0]["besluit"] == "overgenomen"
+    # Zonder groep: twee losse passages uit de voorstellen.
+    r = await client.post(base, json={"groep_ids": [], "naam": "Deze", "element_ids": [ids["awr"]]})
+    assert r.status_code == 201, r.text
+    # Een passage buiten het manifest van de voorstellen, of helemaal niets: geweigerd.
+    assert (await client.post(base, json={"groep_ids": [], "naam": "X", "element_ids": ["verzonnen"]})).status_code == 422
+    assert (await client.post(base, json={"groep_ids": [], "naam": "X"})).status_code == 422

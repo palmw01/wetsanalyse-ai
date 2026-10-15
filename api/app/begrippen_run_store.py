@@ -272,8 +272,22 @@ async def overnemen(werkgebied: dict, o: Overname, actor: str, resolve: Resolver
                                   "melding": "Een van deze groepen is al overgenomen of gekoppeld."})
     alle = [e for x in rows for e in x.leden]
     leden = list(dict.fromkeys(o.element_ids if o.element_ids is not None else alle))
-    if not leden or set(leden) - set(alle):
-        raise HTTPException(422, "Kies passages uit de gekozen groepen.")
+    buiten = set(leden) - set(alle)
+    if buiten:
+        # Een passage buiten de gekozen groepen ("samen" bij een twijfelvraag) mag, als ze in de
+        # voorstellen staat die de jurist in beeld heeft: het manifest van de laatste klare run.
+        r = db.begrippen_runs
+        async with db.get_engine().connect() as conn:
+            run = (await conn.execute(select(r.c.manifest).where(r.c.werkgebied_id == werkgebied["id"], r.c.status == "klaar")
+                                      .order_by(r.c.gestart.desc()).limit(1))).first()
+        in_manifest = {f["element_id"] for f in run.manifest["formuleringen"]} if run else set()
+        if buiten - in_manifest:
+            raise HTTPException(422, "Kies passages uit de voorstellen van dit werkgebied.")
+    if not leden:
+        raise HTTPException(422, "Kies minstens één passage.")
+    if rows and not set(leden) & set(alle):
+        # Een groep overnemen zonder één van haar eigen passages is geen overname van die groep.
+        raise HTTPException(422, "Kies minstens één passage uit de gekozen groepen.")
     inhoud: dict = {"naam": o.naam}
     # De letterlijke brondefinitie gaat alleen mee als er precies één is: bij combineren kiest de
     # analist zelf.
@@ -285,7 +299,8 @@ async def overnemen(werkgebied: dict, o: Overname, actor: str, resolve: Resolver
                       onderbouwing=f"Letterlijk uit {vindplaats}." if vindplaats else "")
     begrip = await begrip_store.maak(werkgebied, BegripInvoer(inhoud=BegripInhoud(**inhoud), element_ids=leden,
                                                               rol=KoppelRol.duiding), actor, resolve)
-    await _besluit(werkgebied["id"], o.groep_ids, "overgenomen", actor, begrip_id=begrip["id"])
+    if o.groep_ids:
+        await _besluit(werkgebied["id"], o.groep_ids, "overgenomen", actor, begrip_id=begrip["id"])
     return begrip
 
 

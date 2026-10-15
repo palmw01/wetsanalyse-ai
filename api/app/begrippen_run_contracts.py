@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class Voorstel(BaseModel):
@@ -60,13 +60,20 @@ class MisluktInvoer(BaseModel):
 
 
 class Overname(BaseModel):
-    """Eén begrip uit één of meer groepen. Meer groepen = combineren; een deel van de leden =
-    splitsen of een element eruit halen."""
+    """Eén begrip uit nul of meer groepen. Meer groepen = combineren; een deel van de leden =
+    splitsen of een element eruit halen; een passage buiten de groepen (uit dezelfde voorstellen) =
+    het antwoord "samen" op een twijfelvraag."""
 
-    groep_ids: list[str] = Field(min_length=1, max_length=50)
+    groep_ids: list[str] = Field(default_factory=list, max_length=50)
     naam: str = Field(min_length=1, max_length=200)
     element_ids: list[str] | None = Field(default=None, max_length=500)
     met_definitie: bool = True
+
+    @model_validator(mode="after")
+    def _iets(self) -> "Overname":
+        if not self.groep_ids and not self.element_ids:
+            raise ValueError("kies groepen of passages")
+        return self
 
 
 class GroepKoppeling(BaseModel):
