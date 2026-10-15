@@ -29,10 +29,12 @@ const STAND_VOLGORDE: EenheidStatus[] = ["nieuw", "te_beoordelen", "beoordeeld",
 export function parseBevestiging(ruw: unknown): Bevestiging | undefined {
   if (!ruw || typeof ruw !== "object") return undefined;
   const r = ruw as Record<string, unknown>;
-  if (r.soort !== "werkgebied_annoteren" || typeof r.werkgebied_id !== "string" || !r.werkgebied_id) return undefined;
+  // Een soort die deze werkplek niet kent, krijgt geen knop: liever niets dan een knop die iets anders start.
+  if (r.soort !== "werkgebied_annoteren" && r.soort !== "begrippen_verdiepen") return undefined;
+  if (typeof r.werkgebied_id !== "string" || !r.werkgebied_id) return undefined;
   if (typeof r.aantal !== "number" || !Number.isInteger(r.aantal) || r.aantal < 0) return undefined;
   const schatting = typeof r.schatting === "number" && Number.isFinite(r.schatting) ? r.schatting : null;
-  return { soort: "werkgebied_annoteren", werkgebied_id: r.werkgebied_id, aantal: r.aantal, schatting };
+  return { soort: r.soort, werkgebied_id: r.werkgebied_id, aantal: r.aantal, schatting };
 }
 
 /** Heeft het antwoord de vorm van een werkvoorraad? Een blok dat er niet op kan rekenen, mag de rest

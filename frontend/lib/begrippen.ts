@@ -17,6 +17,7 @@ export const LEGE_INHOUD: BegripInhoud = {
   naam: "",
   alternatieve_termen: [],
   context: "",
+  begripstype: "",
   jas_klasse: "",
   jas_subtype: "",
   geldigheid: "",
@@ -72,7 +73,8 @@ function stabiel(v: unknown): string {
 export const HERKOMST_LABEL: Record<DefinitieHerkomst, string> = {
   letterlijk: "Letterlijk uit de bron",
   samengesteld: "Samengesteld uit bronpassages",
-  geformuleerd: "Door de analist geformuleerd",
+  // Ook een definitie die Lex formuleerde en de analist overnam (fase C); de onderbouwing zegt wie.
+  geformuleerd: "Geformuleerd (door de analist of door Lex)",
 };
 
 export const OORDEEL_LABEL: Record<VoorbeeldOordeel, string> = {
@@ -133,6 +135,7 @@ const VELD: Record<keyof BegripInhoud, string> = {
   naam: "naam",
   alternatieve_termen: "alternatieve termen",
   context: "context",
+  begripstype: "begripstype",
   jas_klasse: "JAS-duiding",
   jas_subtype: "subtype",
   geldigheid: "geldigheid",

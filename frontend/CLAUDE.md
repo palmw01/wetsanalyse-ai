@@ -583,6 +583,27 @@ bestaat los van de gesprekken.
     staat eronder (`item.tekst` van het reeksitem). Een blok dat de werkvoorraad niet kan lezen
     (`isWerkvoorraad`) zegt dat en laat de inventaris eronder staan.
   - Browserregressie: `scripts/test-werkgebied-annoteren.mjs`.
+- **Lex denkt mee** (fase C; api §*Voorstellen van Lex* – de verdieping, graph-qa §*Lex denkt mee*).
+  Lex begint nooit zonder akkoord; het model geeft advies en kaarten, de jurist beslist.
+  - **Aanbod** boven de voorstellen (`BegripVoorstellen`, ook in het artefactpaneel): uit `GET …/verdieping`
+    (`haalVerdieping`; faalt stil, de voorstellen staan er dan gewoon) – *Laat Lex meedenken (n)* opent
+    `MeedenkBevestiging` (omvang, schatting, budget; `meedenkInhoud` in `lib/begripVoorstellen.ts`). *Start*
+    gaat op de tab naar `/workbench?werkgebied=<id>&meedenk=<n>` (`WorkbenchShell` leest `meedenk` één keer,
+    `WerkplekClient` start met `startMeedenken`); in het artefactpaneel start het in het open gesprek
+    (`onMeedenken`), want een werkplek die al open is leest de URL niet opnieuw.
+  - **In het gesprek**: een `bevestiging` met `soort: "begrippen_verdiepen"` geeft *Laat Lex meedenken (n)*.
+    Alle wegen gaan via `verstuur(MEEDENK_PROMPT, …, {werkgebiedId, bevestigd, modus: "begrippen_verdiepen"})`.
+    `parseBevestiging` kent beide soorten; een onbekende soort krijgt geen knop.
+  - **Na het meedenken**: twijfelvragen tonen alleen wat open bleef (`openVragen`), met *Advies van Lex*;
+    een groep `door: "model"` zegt "samengevoegd op advies van Lex"; de definitie komt uit de kaart
+    (`groepDefinitie`: letterlijk heet "Brondefinitie", anders "Definitie, samengesteld uit de bron /
+    geformuleerd door Lex", met de fragmenten en de toelichting ingeklapt); de aandachtspunten in tekst
+    (`AANDACHTSPUNT`, gelijk aan graph-qa `toetsen.TEKST` – `begripVoorstellen.test.ts` leest die bron).
+    Overnemen noemt de herkomst in het vinkje; de api vult het begrip uit de kaart.
+  - `BegripKaart` heeft het veld **begripstype** (werkindeling, geen JAS-klasse). "Geformuleerd" heet nu
+    "door de analist of door Lex": de onderbouwing zegt wie.
+  - De allowlist laat `verdieping` (lezen) door, nooit `…/batches/*` of `…/verdieping` op een run.
+  - Browserregressie: `scripts/test-begrippen-verdieping.mjs`.
 - **Tabs scrollen.** Vijf tabs passen niet naast elkaar op een telefoon; de horizontale `Tabs` scrollt
   (`overflow-x-auto`, tabs `whitespace-nowrap`). Een afgekapte tab is onbereikbaar, en een toets op
   horizontale scroll van de pagina ziet dat niet.
@@ -1141,8 +1162,8 @@ npm run test:browser # Playwright op de echte Next-UI met gemockte BFF (scripts/
 
 `test:browser` draait `scripts/test-annotatie-nodes.mjs`, `test-samenhang.mjs`, `test-reeks.mjs`,
 `test-toetsen.mjs`, `test-werkgebieden.mjs`, `test-begrippen.mjs`, `test-begripvoorstellen.mjs` en
-`test-artefacten.mjs` (de soorten artefacten in de werkplek), `test-bronkandidaten.mjs` en
-`test-werkgebied-annoteren.mjs`, en verwacht een devserver op poort 3109
+`test-artefacten.mjs` (de soorten artefacten in de werkplek), `test-bronkandidaten.mjs`,
+`test-werkgebied-annoteren.mjs` en `test-begrippen-verdieping.mjs`, en verwacht een devserver op poort 3109
 (`AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109`).
 Praat met **`localhost`**, niet met `127.0.0.1`: Next 16 weigert dev-assets aan een andere origin,
 waarna de pagina niet hydrateert en elke stap zonder duidelijke fout time-out.

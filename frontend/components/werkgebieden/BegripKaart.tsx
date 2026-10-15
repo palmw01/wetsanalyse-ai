@@ -16,9 +16,10 @@ import {
   HERKOMST_LABEL, OORDEEL_LABEL, inhoudGewijzigd, naarRijen, regels, revisieZin, uitRegels, uitRijen,
   volledigeInhoud,
 } from "@/lib/begrippen";
+import { BEGRIPSTYPE_LABEL } from "@/lib/begripVoorstellen";
 import { JAS_KLASSEN } from "@/lib/jas";
 import type {
-  Begrip, BegripInhoud, BegripRevisie, DefinitieHerkomst, Voorbeeld, VoorbeeldOordeel,
+  Begrip, BegripInhoud, BegripRevisie, Begripstype, DefinitieHerkomst, Voorbeeld, VoorbeeldOordeel,
 } from "@/lib/types";
 
 const KNOP_KLEIN =
@@ -142,6 +143,14 @@ export function BegripKaart({ id, begrip, muteer, onOnbewaard, onVerwijder }: {
               <option value="">Geen</option>
               {JAS_KLASSEN.map((k) => (
                 <option key={k} value={k}>{k}</option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Begripstype" hint="werkindeling, geen JAS-klasse">
+            <Select value={concept.inhoud.begripstype ?? ""} onChange={(e) => zet("begripstype", e.target.value as Begripstype | "")}>
+              <option value="">Nog niet ingedeeld</option>
+              {(Object.keys(BEGRIPSTYPE_LABEL) as Begripstype[]).map((t) => (
+                <option key={t} value={t}>{BEGRIPSTYPE_LABEL[t]}</option>
               ))}
             </Select>
           </Field>

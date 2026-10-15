@@ -47,6 +47,7 @@ import type {
   VoorstelElement,
 } from "@/lib/types";
 import { ANNOTEER_PROMPT, parseBevestiging } from "@/lib/werkgebiedAnnoteren";
+import { MEEDENK_PROMPT } from "@/lib/begripVoorstellen";
 import {
   BESLIST_LIFECYCLES, doelInvoerVan,
   eigenMarkeringenVoorContext, isVerwijderd, kandidatenAlsTekst, mergeVoorstellen, vraagContextLabel,
@@ -148,6 +149,8 @@ interface Props {
   /** Geopend vanaf de tab Elementen met een bevestigd aantal (`?annoteer=<n>`): dit verse gesprek
    *  start meteen de werkgebied-run (fase B). Eén keer, bij binnenkomst. */
   startAnnoteren?: number | null;
+  /** Idem voor het meedenken over de begrippen (`?meedenk=<n>`, fase C), vanaf de voorstellen. */
+  startMeedenken?: number | null;
   /** Start de rondleiding vanuit de lege staat – precies het moment waarop iemand hem nodig heeft. */
   onRondleiding?: () => void;
 }
@@ -156,7 +159,7 @@ export function WerkplekClient({
   initialGesprekId, onGesprekAangemaakt, onGewijzigd, demo, onDemoBeslissing,
   onDemoArtefact, demoOpenSignaal = 0, demoSluitSignaal = 0, onRondleiding,
   verbruik = null, onBeurtKlaar, werkgebiedId = null, onVerlaatWerkgebied, onKiesWerkgebied,
-  startAnnoteren = null,
+  startAnnoteren = null, startMeedenken = null,
 }: Props) {
   // Budget op? Dan gaat de invoer dicht. Alleen bij een actieve begrenzing – staat die uit, dan is
   // `geblokkeerd` per definitie false en verandert er niets.
@@ -549,7 +552,7 @@ export function WerkplekClient({
       // Het werkgebied annoteren (fase B) is een eigen opdracht: geen context, geen doel, het werkgebied
       // uit de bevestiging (een oud gesprek kan buiten de context van dat werkgebied staan).
       gestart = await startRun(prompt, gid, annoteren
-        ? { modus: "werkgebied_annoteren", werkgebied_id: annoteren.werkgebiedId,
+        ? { modus: annoteren.modus ?? "werkgebied_annoteren", werkgebied_id: annoteren.werkgebiedId,
             ...(annoteren.bevestigd !== undefined ? { bevestigd: annoteren.bevestigd } : {}) }
         : werkgebiedId ? { ...extra, werkgebied_id: werkgebiedId } : extra);
     } catch (e) {
@@ -996,6 +999,15 @@ export function WerkplekClient({
     void verstuur(ANNOTEER_PROMPT, undefined, undefined, undefined, { werkgebiedId, bevestigd: startAnnoteren });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startAnnoteren, werkgebiedId, initialGesprekId, demo]);
+  // Vanaf de voorstellen bevestigd (`?meedenk=<n>`, fase C): dit verse gesprek start het meedenken.
+  const meedenkenGestart = useRef(false);
+  useEffect(() => {
+    if (meedenkenGestart.current || demo || !startMeedenken || !werkgebiedId || initialGesprekId) return;
+    meedenkenGestart.current = true;
+    void verstuur(MEEDENK_PROMPT, undefined, undefined, undefined,
+      { werkgebiedId, bevestigd: startMeedenken, modus: "begrippen_verdiepen" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startMeedenken, werkgebiedId, initialGesprekId, demo]);
 
   const actiesRef = useRef<ThreadActies | null>(null);
   useLayoutEffect(() => {
@@ -1127,6 +1139,12 @@ export function WerkplekClient({
       doel={wgArtefact}
       variant={breed ? "kolom" : "side"}
       onSluit={() => setWgArtefact(undefined)}
+      onMeedenken={demo ? undefined : (wgId, aantal) => {
+        // Op een smal scherm ligt het paneel over de chat: sluiten, zodat je het meedenken ziet lopen.
+        if (!breed) setWgArtefact(undefined);
+        void verstuur(MEEDENK_PROMPT, undefined, undefined, undefined,
+          { werkgebiedId: wgId, bevestigd: aantal, modus: "begrippen_verdiepen" });
+      }}
     />
   ));
 

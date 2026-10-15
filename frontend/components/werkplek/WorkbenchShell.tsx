@@ -48,12 +48,15 @@ export function WorkbenchShell({
   // Vanaf de tab Elementen bevestigd: `?annoteer=<n>` start in dit verse gesprek de werkgebied-run
   // (fase B). Eén keer gelezen en meteen uit de URL gehaald – herladen mag hem niet opnieuw starten.
   const [startAnnoteren] = useState(() => aantalUitUrl(zoek.get("annoteer")));
+  // Idem `?meedenk=<n>` (fase C): vanaf de voorstellen bevestigd, Lex denkt mee in een vers gesprek.
+  const [startMeedenken] = useState(() => aantalUitUrl(zoek.get("meedenk")));
   useEffect(() => {
-    if (startAnnoteren === null) return;
+    if (startAnnoteren === null && startMeedenken === null) return;
     const url = new URL(window.location.href);
     url.searchParams.delete("annoteer");
+    url.searchParams.delete("meedenk");
     window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
-  }, [startAnnoteren]);
+  }, [startAnnoteren, startMeedenken]);
   const [mountKey, setMountKey] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
   // Verhoogd zodra de chat een gesprek aanmaakte: de sidebar bezit de lijst en haalt hem dan opnieuw.
@@ -294,6 +297,7 @@ export function WorkbenchShell({
             werkgebiedId={werkgebiedId}
             // Alleen het venster waarmee de pagina opende; een nieuw gesprek start niets.
             startAnnoteren={mountKey === 0 && !beginGesprekId ? startAnnoteren : null}
+            startMeedenken={mountKey === 0 && !beginGesprekId ? startMeedenken : null}
             onVerlaatWerkgebied={() => zetWerkgebied(null)}
             onKiesWerkgebied={zetWerkgebied}
             onGesprekAangemaakt={gesprekAangemaakt}

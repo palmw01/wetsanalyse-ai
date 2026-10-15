@@ -66,6 +66,7 @@ import type {
   Gesprek,
   GesprekSamenvatting,
   GroepenAntwoord,
+  VerdiepingWerkvoorraad,
   KandidatenAntwoord,
   Inventaris,
   KoppelBeoordeling,
@@ -555,9 +556,10 @@ export async function startRun(
   prompt: string,
   conversationId?: string,
   extra?: {
-    /** "werkgebied_annoteren": de nieuwe bepalingen van het werkgebied (fase B). Zonder `bevestigd`
+    /** "werkgebied_annoteren": de nieuwe bepalingen van het werkgebied (fase B); "begrippen_verdiepen":
+     *  Lex denkt mee over twijfelpunten en begrippen zonder definitie (fase C). Zonder `bevestigd`
      *  noemt Lex alleen wat er te doen is; met `bevestigd` (het aantal dat de analist zag) begint hij. */
-    modus?: "auto" | "advies" | "werkgebied_annoteren";
+    modus?: "auto" | "advies" | "werkgebied_annoteren" | "begrippen_verdiepen";
     bevestigd?: number;
     context?: AgentContext;
     doel?: AgentDoelInvoer;
@@ -1176,6 +1178,11 @@ export async function haalActieveBegrippenRun(id: string): Promise<RunStart | nu
 
 export async function haalLaatsteBegrippenRun(id: string): Promise<BegrippenRun | null> {
   return (await json<{ run: BegrippenRun | null }>(await fetch(wg(id, "begrippen-runs", "laatste"), { cache: "no-store" }))).run;
+}
+
+/** Wat Lex nog kan verdiepen (fase C): twijfelpunten en begrippen zonder definitie, met schatting en budget. */
+export async function haalVerdieping(id: string): Promise<VerdiepingWerkvoorraad> {
+  return json<VerdiepingWerkvoorraad>(await fetch(wg(id, "verdieping"), { cache: "no-store" }));
 }
 
 export async function haalGroepen(id: string): Promise<GroepenAntwoord> {

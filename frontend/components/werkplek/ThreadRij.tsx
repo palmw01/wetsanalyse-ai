@@ -33,12 +33,18 @@ import type { GraafOpties } from "@/components/graaf/useGraafStand";
 import { beurtSamenvatting, laatsteRun } from "@/lib/waarom";
 import type { ThreadItem } from "@/lib/threadItem";
 import { ANNOTEER_PROMPT, PLAFOND, bepalingen } from "@/lib/werkgebiedAnnoteren";
+import { MEEDENK_PROMPT } from "@/lib/begripVoorstellen";
 import type {
   AgentDoelInvoer, AgentGrounding, AgentKandidaat, AnnotatieDocument, Bron, Overzicht,
 } from "@/lib/types";
 
-/** Lex het werkgebied laten annoteren (fase B); `bevestigd` = het aantal dat de analist zag. */
-export interface WerkgebiedAnnoteren { werkgebiedId: string; bevestigd?: number }
+/** Een werkgebiedopdracht die Lex pas na akkoord start: het werkgebied annoteren (fase B, de default)
+ *  of meedenken over de begripsvoorstellen (fase C). `bevestigd` = het aantal dat de analist zag. */
+export interface WerkgebiedAnnoteren {
+  werkgebiedId: string;
+  bevestigd?: number;
+  modus?: "werkgebied_annoteren" | "begrippen_verdiepen";
+}
 
 /** Wat een rij kan laten gebeuren. Eén stabiel object per venster, zodat `memo` iets oplevert. */
 export interface ThreadActies {
@@ -140,12 +146,22 @@ export const ThreadRij = memo(function ThreadRij({
         })()}
         {/* Lex begint niet zonder akkoord: het voorstel noemt aantal en kosten, de knop start. */}
         {item.bevestiging && item.bevestiging.aantal > 0 && !demo && (
-          <Button size="sm" className="mt-3 w-full sm:w-auto" disabled={bezig || geblokkeerd}
-            data-bevestiging={item.bevestiging.aantal}
-            onClick={() => acties.verstuur(ANNOTEER_PROMPT, undefined, undefined, undefined,
-              { werkgebiedId: item.bevestiging!.werkgebied_id, bevestigd: item.bevestiging!.aantal })}>
-            Laat Lex annoteren ({bepalingen(Math.min(item.bevestiging.aantal, PLAFOND))})
-          </Button>
+          item.bevestiging.soort === "begrippen_verdiepen" ? (
+            <Button size="sm" className="mt-3 w-full sm:w-auto" disabled={bezig || geblokkeerd}
+              data-bevestiging={item.bevestiging.aantal}
+              onClick={() => acties.verstuur(MEEDENK_PROMPT, undefined, undefined, undefined,
+                { werkgebiedId: item.bevestiging!.werkgebied_id, bevestigd: item.bevestiging!.aantal,
+                  modus: "begrippen_verdiepen" })}>
+              Laat Lex meedenken ({item.bevestiging.aantal})
+            </Button>
+          ) : (
+            <Button size="sm" className="mt-3 w-full sm:w-auto" disabled={bezig || geblokkeerd}
+              data-bevestiging={item.bevestiging.aantal}
+              onClick={() => acties.verstuur(ANNOTEER_PROMPT, undefined, undefined, undefined,
+                { werkgebiedId: item.bevestiging!.werkgebied_id, bevestigd: item.bevestiging!.aantal })}>
+              Laat Lex annoteren ({bepalingen(Math.min(item.bevestiging.aantal, PLAFOND))})
+            </Button>
+          )
         )}
         {item.tekst && item.grounding && <Brongetrouwheid grounding={item.grounding} />}
         {item.tekst && <KopieerKnop tekst={item.overzicht ? `${item.tekst}\n\n${overzichtAlsMarkdown(item.overzicht)}` : item.tekst} />}
