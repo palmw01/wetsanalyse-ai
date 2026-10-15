@@ -1,0 +1,460 @@
+{
+  "variant": "keten_model",
+  "model": "claude-sonnet-4-6",
+  "referentie_versie": "v1",
+  "referentie_status": "provisional",
+  "referentie_sha256": "a04035a02eec63ce17947aa0819754341ece1d5ee0794444923a0815292684c2",
+  "manifest_id": "Mdbc3d345df135d71",
+  "formuleringen": 25,
+  "paren": 22,
+  "zonder_model": {
+    "per_relatie": {
+      "zelfde_betekenis": {
+        "tp": 22,
+        "voorspeld": 22,
+        "goud": 22,
+        "precisie": 1.0,
+        "recall": 1.0
+      },
+      "kwalificatie": {
+        "tp": 1,
+        "voorspeld": 1,
+        "goud": 1,
+        "precisie": 1.0,
+        "recall": 1.0
+      },
+      "inclusie": {
+        "tp": 2,
+        "voorspeld": 2,
+        "goud": 2,
+        "precisie": 1.0,
+        "recall": 1.0
+      },
+      "uitsluiting": {
+        "tp": 0,
+        "voorspeld": 0,
+        "goud": 0,
+        "precisie": null,
+        "recall": null
+      },
+      "hierarchie": {
+        "tp": 5,
+        "voorspeld": 5,
+        "goud": 5,
+        "precisie": 1.0,
+        "recall": 1.0
+      }
+    },
+    "bcubed": {
+      "precisie": 1.0,
+      "recall": 1.0,
+      "f": 1.0
+    },
+    "samengevoegd_verschillend": [],
+    "aandacht": {
+      "groen": 13,
+      "geel": 2
+    }
+  },
+  "runs": [
+    {
+      "per_relatie": {
+        "zelfde_betekenis": {
+          "tp": 22,
+          "voorspeld": 22,
+          "goud": 22,
+          "precisie": 1.0,
+          "recall": 1.0
+        },
+        "kwalificatie": {
+          "tp": 1,
+          "voorspeld": 1,
+          "goud": 1,
+          "precisie": 1.0,
+          "recall": 1.0
+        },
+        "inclusie": {
+          "tp": 2,
+          "voorspeld": 2,
+          "goud": 2,
+          "precisie": 1.0,
+          "recall": 1.0
+        },
+        "uitsluiting": {
+          "tp": 0,
+          "voorspeld": 0,
+          "goud": 0,
+          "precisie": null,
+          "recall": null
+        },
+        "hierarchie": {
+          "tp": 5,
+          "voorspeld": 5,
+          "goud": 5,
+          "precisie": 1.0,
+          "recall": 1.0
+        }
+      },
+      "bcubed": {
+        "precisie": 1.0,
+        "recall": 1.0,
+        "f": 1.0
+      },
+      "samengevoegd_verschillend": [],
+      "aandacht": {
+        "groen": 13,
+        "geel": 2
+      },
+      "vragen_naar_model": 1,
+      "oordelen": {
+        "verwant_ander_begrip": 1
+      },
+      "kaarten": 6,
+      "herkomst": {
+        "letterlijk": 1,
+        "geen": 3,
+        "samengesteld": 2
+      },
+      "aandachtspunten": {
+        "MODEL_GEEN_DEFINITIE": 3,
+        "GEEN_DEFINITIE": 3,
+        "CIRCULAIR": 1
+      },
+      "garantiefouten": 0,
+      "llm_calls": 2,
+      "promptversie": {
+        "vraag": "315b1c53355e",
+        "kaart": "87195b3c92a6"
+      },
+      "kaartvoorbeelden": [
+        {
+          "naam": "aanslagbiljet",
+          "herkomst": "samengesteld",
+          "definitie": "de kennisgeving van de beschikking of de uitspraak, bedoeld in onderdeel c",
+          "begripstype": "entiteit",
+          "aandachtspunten": []
+        },
+        {
+          "naam": "belastingaanslag",
+          "herkomst": "letterlijk",
+          "definitie": "de voorlopige aanslag, de aanslag, de uitnodiging tot betaling, de navorderingsaanslag en de naheffingsaanslag, alsmede de voorlopige conserverende aanslag, de conserverende aanslag en de conserverende navorderingsaanslag in de inkomstenbelasting en in de schenk- en erfbelasting",
+          "begripstype": "entiteit",
+          "aandachtspunten": []
+        },
+        {
+          "naam": "beschikking of uitspraak",
+          "herkomst": "samengesteld",
+          "definitie": "een ingevolge de Algemene wet inzake rijksbelastingen dan wel Algemene douanewet of enige andere wettelijke regeling betreffende de heffing van rijksbelastingen vastgestelde beschikking of uitspraak strekkende tot - al dan niet nadere - vaststelling van een ingevolge die regelingen verschuldigd of terug te geven bedrag",
+          "begripstype": "entiteit",
+          "aandachtspunten": [
+            "CIRCULAIR"
+          ]
+        },
+        {
+          "naam": "naheffingsaanslag",
+          "herkomst": "",
+          "definitie": "",
+          "begripstype": "entiteit",
+          "aandachtspunten": [
+            "MODEL_GEEN_DEFINITIE",
+            "GEEN_DEFINITIE"
+          ]
+        },
+        {
+          "naam": "navorderingsaanslag",
+          "herkomst": "",
+          "definitie": "",
+          "begripstype": "entiteit",
+          "aandachtspunten": [
+            "MODEL_GEEN_DEFINITIE",
+            "GEEN_DEFINITIE"
+          ]
+        },
+        {
+          "naam": "voorlopige aanslag",
+          "herkomst": "",
+          "definitie": "",
+          "begripstype": "entiteit",
+          "aandachtspunten": [
+            "MODEL_GEEN_DEFINITIE",
+            "GEEN_DEFINITIE"
+          ]
+        }
+      ],
+      "oordeelvoorbeelden": [
+        {
+          "kandidaat_id": "P724c52d81cb3",
+          "oordeel": "verwant_ander_begrip",
+          "motivatie": "In lid 5 verwijst 'termijnen' naar specifieke betalingstermijnen voor een voorlopige aanslag: concrete, gelijkmatig verdeelde vervaldagen binnen een belastingjaar, bepaald door de dagtekening van het aanslagbiljet. In lid 10 verwijst 'termijnen' naar alle in de voorgaande leden gestelde termijnen (een verzamelbegrip), waarbij de Algemene termijnenwet buiten toepassing wordt verklaard — dit is een procedurele/uitsluitingsregel over de berekeningswijze van die termijnen, niet een afzonderlijke oms",
+          "reden": ""
+        }
+      ]
+    },
+    {
+      "per_relatie": {
+        "zelfde_betekenis": {
+          "tp": 22,
+          "voorspeld": 22,
+          "goud": 22,
+          "precisie": 1.0,
+          "recall": 1.0
+        },
+        "kwalificatie": {
+          "tp": 1,
+          "voorspeld": 1,
+          "goud": 1,
+          "precisie": 1.0,
+          "recall": 1.0
+        },
+        "inclusie": {
+          "tp": 2,
+          "voorspeld": 2,
+          "goud": 2,
+          "precisie": 1.0,
+          "recall": 1.0
+        },
+        "uitsluiting": {
+          "tp": 0,
+          "voorspeld": 0,
+          "goud": 0,
+          "precisie": null,
+          "recall": null
+        },
+        "hierarchie": {
+          "tp": 5,
+          "voorspeld": 5,
+          "goud": 5,
+          "precisie": 1.0,
+          "recall": 1.0
+        }
+      },
+      "bcubed": {
+        "precisie": 1.0,
+        "recall": 1.0,
+        "f": 1.0
+      },
+      "samengevoegd_verschillend": [],
+      "aandacht": {
+        "groen": 13,
+        "geel": 2
+      },
+      "vragen_naar_model": 1,
+      "oordelen": {
+        "verwant_ander_begrip": 1
+      },
+      "kaarten": 6,
+      "herkomst": {
+        "letterlijk": 1,
+        "geen": 3,
+        "samengesteld": 2
+      },
+      "aandachtspunten": {
+        "MODEL_GEEN_DEFINITIE": 3,
+        "GEEN_DEFINITIE": 3,
+        "CIRCULAIR": 1
+      },
+      "garantiefouten": 0,
+      "llm_calls": 2,
+      "promptversie": {
+        "vraag": "315b1c53355e",
+        "kaart": "87195b3c92a6"
+      },
+      "kaartvoorbeelden": [
+        {
+          "naam": "aanslagbiljet",
+          "herkomst": "samengesteld",
+          "definitie": "de kennisgeving van de beschikking of de uitspraak, bedoeld in onderdeel c",
+          "begripstype": "entiteit",
+          "aandachtspunten": []
+        },
+        {
+          "naam": "belastingaanslag",
+          "herkomst": "letterlijk",
+          "definitie": "de voorlopige aanslag, de aanslag, de uitnodiging tot betaling, de navorderingsaanslag en de naheffingsaanslag, alsmede de voorlopige conserverende aanslag, de conserverende aanslag en de conserverende navorderingsaanslag in de inkomstenbelasting en in de schenk- en erfbelasting",
+          "begripstype": "entiteit",
+          "aandachtspunten": []
+        },
+        {
+          "naam": "beschikking of uitspraak",
+          "herkomst": "samengesteld",
+          "definitie": "een ingevolge de Algemene wet inzake rijksbelastingen dan wel Algemene douanewet of enige andere wettelijke regeling betreffende de heffing van rijksbelastingen vastgestelde beschikking of uitspraak strekkende tot - al dan niet nadere - vaststelling van een ingevolge die regelingen verschuldigd of terug te geven bedrag",
+          "begripstype": "entiteit",
+          "aandachtspunten": [
+            "CIRCULAIR"
+          ]
+        },
+        {
+          "naam": "naheffingsaanslag",
+          "herkomst": "",
+          "definitie": "",
+          "begripstype": "entiteit",
+          "aandachtspunten": [
+            "MODEL_GEEN_DEFINITIE",
+            "GEEN_DEFINITIE"
+          ]
+        },
+        {
+          "naam": "navorderingsaanslag",
+          "herkomst": "",
+          "definitie": "",
+          "begripstype": "entiteit",
+          "aandachtspunten": [
+            "MODEL_GEEN_DEFINITIE",
+            "GEEN_DEFINITIE"
+          ]
+        },
+        {
+          "naam": "voorlopige aanslag",
+          "herkomst": "",
+          "definitie": "",
+          "begripstype": "entiteit",
+          "aandachtspunten": [
+            "MODEL_GEEN_DEFINITIE",
+            "GEEN_DEFINITIE"
+          ]
+        }
+      ],
+      "oordeelvoorbeelden": [
+        {
+          "kandidaat_id": "P724c52d81cb3",
+          "oordeel": "verwant_ander_begrip",
+          "motivatie": "In lid 5 verwijst 'termijnen' naar de specifieke betalingstermijnen van een voorlopige aanslag (maandelijkse vervaltermijnen berekend naar het resterende deel van het belastingjaar), dus een inhoudelijk omschreven betalingsregeling. In lid 10 verwijst 'termijnen' naar alle in de voorgaande leden gestelde termijnen als categorie, waaronder die van lid 5, maar ook overige leden — het is een overkoepelend begrip dat de toepasselijkheid van de Algemene termijnenwet uitsluit; de ene is een onderdeel ",
+          "reden": ""
+        }
+      ]
+    },
+    {
+      "per_relatie": {
+        "zelfde_betekenis": {
+          "tp": 22,
+          "voorspeld": 22,
+          "goud": 22,
+          "precisie": 1.0,
+          "recall": 1.0
+        },
+        "kwalificatie": {
+          "tp": 1,
+          "voorspeld": 1,
+          "goud": 1,
+          "precisie": 1.0,
+          "recall": 1.0
+        },
+        "inclusie": {
+          "tp": 2,
+          "voorspeld": 2,
+          "goud": 2,
+          "precisie": 1.0,
+          "recall": 1.0
+        },
+        "uitsluiting": {
+          "tp": 0,
+          "voorspeld": 0,
+          "goud": 0,
+          "precisie": null,
+          "recall": null
+        },
+        "hierarchie": {
+          "tp": 5,
+          "voorspeld": 5,
+          "goud": 5,
+          "precisie": 1.0,
+          "recall": 1.0
+        }
+      },
+      "bcubed": {
+        "precisie": 1.0,
+        "recall": 1.0,
+        "f": 1.0
+      },
+      "samengevoegd_verschillend": [],
+      "aandacht": {
+        "groen": 13,
+        "geel": 2
+      },
+      "vragen_naar_model": 1,
+      "oordelen": {
+        "verwant_ander_begrip": 1
+      },
+      "kaarten": 6,
+      "herkomst": {
+        "letterlijk": 1,
+        "geen": 3,
+        "samengesteld": 2
+      },
+      "aandachtspunten": {
+        "MODEL_GEEN_DEFINITIE": 3,
+        "GEEN_DEFINITIE": 3,
+        "CIRCULAIR": 1
+      },
+      "garantiefouten": 0,
+      "llm_calls": 2,
+      "promptversie": {
+        "vraag": "315b1c53355e",
+        "kaart": "87195b3c92a6"
+      },
+      "kaartvoorbeelden": [
+        {
+          "naam": "aanslagbiljet",
+          "herkomst": "samengesteld",
+          "definitie": "de kennisgeving van de beschikking of de uitspraak, bedoeld in onderdeel c",
+          "begripstype": "entiteit",
+          "aandachtspunten": []
+        },
+        {
+          "naam": "belastingaanslag",
+          "herkomst": "letterlijk",
+          "definitie": "de voorlopige aanslag, de aanslag, de uitnodiging tot betaling, de navorderingsaanslag en de naheffingsaanslag, alsmede de voorlopige conserverende aanslag, de conserverende aanslag en de conserverende navorderingsaanslag in de inkomstenbelasting en in de schenk- en erfbelasting",
+          "begripstype": "entiteit",
+          "aandachtspunten": []
+        },
+        {
+          "naam": "beschikking of uitspraak",
+          "herkomst": "samengesteld",
+          "definitie": "een ingevolge de Algemene wet inzake rijksbelastingen dan wel Algemene douanewet of enige andere wettelijke regeling betreffende de heffing van rijksbelastingen vastgestelde beschikking of uitspraak strekkende tot - al dan niet nadere - vaststelling van een ingevolge die regelingen verschuldigd of terug te geven bedrag",
+          "begripstype": "entiteit",
+          "aandachtspunten": [
+            "CIRCULAIR"
+          ]
+        },
+        {
+          "naam": "naheffingsaanslag",
+          "herkomst": "",
+          "definitie": "",
+          "begripstype": "entiteit",
+          "aandachtspunten": [
+            "MODEL_GEEN_DEFINITIE",
+            "GEEN_DEFINITIE"
+          ]
+        },
+        {
+          "naam": "navorderingsaanslag",
+          "herkomst": "",
+          "definitie": "",
+          "begripstype": "entiteit",
+          "aandachtspunten": [
+            "MODEL_GEEN_DEFINITIE",
+            "GEEN_DEFINITIE"
+          ]
+        },
+        {
+          "naam": "voorlopige aanslag",
+          "herkomst": "",
+          "definitie": "",
+          "begripstype": "entiteit",
+          "aandachtspunten": [
+            "MODEL_GEEN_DEFINITIE",
+            "GEEN_DEFINITIE"
+          ]
+        }
+      ],
+      "oordeelvoorbeelden": [
+        {
+          "kandidaat_id": "P724c52d81cb3",
+          "oordeel": "verwant_ander_begrip",
+          "motivatie": "In lid 5 verwijst 'termijnen' naar specifieke betalingstermijnen voor een voorlopige aanslag die maandelijks vervallen binnen het belastingjaar — een inhoudelijk omschreven deelbegrip. In lid 10 verwijst 'termijnen' naar alle in de voorgaande leden gestelde termijnen als generieke categorie waarop de Algemene termijnenwet buiten toepassing wordt verklaard; dit is een ruimere, overkoepelende verwijzing die ook de termijnen uit lid 5 omvat, maar daartoe niet beperkt is.",
+          "reden": ""
+        }
+      ]
+    }
+  ]
+}
