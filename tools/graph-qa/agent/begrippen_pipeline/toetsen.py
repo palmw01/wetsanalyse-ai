@@ -33,6 +33,7 @@ TEKST: dict[str, str] = {
     "GEEN_BEGRIP": "De passages zijn tijdsaanduidingen, parameters of operatoren; dat is meestal geen begrip.",
     "GEEN_DEFINITIE": "Er is nog geen definitie voorgesteld.",
     "MODEL_GEEN_DEFINITIE": "Lex gaf voor deze groep geen bruikbare definitie.",
+    "CIRCULAIR_VERWORPEN": "Lex formuleerde een definitie met de naam van het begrip zelf; die is niet overgenomen.",
     "DOOR_LEX_GEFORMULEERD": "De definitie is door Lex geformuleerd; toets haar aan de passages.",
 }
 

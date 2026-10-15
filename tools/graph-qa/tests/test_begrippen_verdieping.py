@@ -326,3 +326,12 @@ def test_signalen_bekritiseren_de_wet_niet():
     assert toetsen.signalen(k, ["Rechtssubject"]) == []
     jaar = k.model_copy(update={"naam": "berekeningsjaar", "definitie": "het kalenderjaar"})
     assert toetsen.signalen(jaar, ["Tijdsaanduiding"]) == []
+
+
+def test_een_geformuleerde_cirkel_wordt_niet_overgenomen(manifest, uitkomst):
+    k, o = _opdracht(manifest, uitkomst)
+    [uit] = kaart.valideer(manifest, [o], [{"groep": k.groep_id, "herkomst": "geformuleerd",
+                                             "fragmenten": [o.fragmenten[0].id],
+                                             "definitie": "Een aanslag is een aanslag als bedoeld in de wet.",
+                                             "begripstype": "", "motivatie": "m"}], {k.groep_id: True})
+    assert uit.definitie == "" and "CIRCULAIR_VERWORPEN" in uit.aandachtspunten

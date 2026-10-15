@@ -231,7 +231,12 @@ def _uit_item(manifest: Manifest, o: Opdracht, item: dict[str, Any] | None) -> t
         update.update(definitie=toetsen.scheiding([f.tekst for f in frs]), herkomst=Herkomst.SAMENGESTELD,
                       fragmenten=frs, motivatie=motivatie)
     elif herkomst == "geformuleerd" and frs and (tekst := " ".join(str(item.get("definitie") or "").split())):
-        update.update(definitie=tekst[:1000], herkomst=Herkomst.GEFORMULEERD, fragmenten=frs, motivatie=motivatie)
+        voorstel = k.model_copy(update={**update, "definitie": tekst[:1000], "herkomst": Herkomst.GEFORMULEERD,
+                                        "fragmenten": frs, "motivatie": motivatie})
+        # Een zelf geformuleerde cirkel voegt niets toe; bij letterlijke tekst zegt de wet het zelf zo.
+        if "CIRCULAIR" in toetsen.signalen(voorstel, []):
+            return k.model_copy(update={**update, "motivatie": motivatie}), ["CIRCULAIR_VERWORPEN"]
+        return voorstel, []
     else:
         return k.model_copy(update={**update, "motivatie": motivatie}), ["MODEL_GEEN_DEFINITIE"]
     return k.model_copy(update=update), []
