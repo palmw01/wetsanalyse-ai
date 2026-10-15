@@ -52,7 +52,8 @@ async def _gewijzigd(werkgebied_id: str, verwacht: int, actor: str, actie: str, 
         if row is None or row.gearchiveerd is not None:
             raise HTTPException(404, "Werkgebied bestaat niet.")
         if row.revisie != verwacht:
-            raise HTTPException(412, {"fout": "revisie_conflict", "revisie": row.revisie})
+            raise HTTPException(412, {"fout": "revisie_conflict", "revisie": row.revisie,
+                                      "melding": "Iemand anders wijzigde dit werkgebied intussen; laad het opnieuw."})
         yield conn, row
         await conn.execute(update(t).where(t.c.id == werkgebied_id).values(
             revisie=row.revisie + 1, gewijzigd=db.utcnow()))

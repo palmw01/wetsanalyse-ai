@@ -246,6 +246,12 @@ spoor D (*Werkgebied als node*).
   niet omhoog: die gaat over de scope. Zonder echte wijziging (dezelfde inhoud, een element dat al
   gekoppeld is) gebeurt er niets, ook geen revisie.
 - **Elke mutatie behalve accorderen maakt een geaccordeerd begrip weer een concept.**
+- **Een 412 draagt een `melding`**, net als de 409's (`al_primair`, `al_gekoppeld`, `poort`): de
+  werkplek toont die tekst waar hij de fout niet zelf afhandelt, in plaats van ruwe JSON. Dat geldt ook
+  voor de werkgebieden.
+- **Per begrip één koppeling per element en rol.** Bij koppelen idempotent; een rol ombuigen naar een
+  rol die dat element bij dit begrip al heeft geeft 409 `al_gekoppeld`. Een wijziging die niets
+  verandert, is geen revisie.
 - **Een koppeling draagt haar bewijsstand** (tekst, klasse, ankers met `bron_hash`, eigenaar, laag,
   snapshot, vindplaats, `element_hash`). Annotatie-elementen worden **hard** verwijderd
   (`annotatie_v2_store.verwijder`/`verwijder_weergave`), dus er is geen foreign key en geen cascade.

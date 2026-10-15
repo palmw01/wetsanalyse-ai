@@ -49,7 +49,8 @@ class BegripInhoud(BaseModel):
     alternatieve_termen: list[str] = Field(default_factory=list, max_length=50)
     context: str = Field(default="", max_length=4000)
     jas_klasse: str = ""
-    jas_subtype: str = Field(default="", max_length=64)
+    # Dezelfde vaste lijst als bij een annotatie-element (`annotatie_v2_contracts.Element`).
+    jas_subtype: str = Field(default="", pattern=r"^(|variabele|variabelewaarde|parameter|parameterwaarde|delegatiebevoegdheid|delegatie-invulling)$")
     geldigheid: str = Field(default="", max_length=1000)
     definitie: str = Field(default="", max_length=8000)
     definitie_herkomst: Herkomst | None = None

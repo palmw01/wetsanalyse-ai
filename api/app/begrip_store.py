@@ -260,7 +260,8 @@ async def _gewijzigd(werkgebied_id: str, begrip_id: str, verwacht: int, actor: s
         if row is None:
             raise HTTPException(404, "Begrip bestaat niet.")
         if row.revisie != verwacht:
-            raise HTTPException(412, {"fout": "revisie_conflict", "revisie": row.revisie})
+            raise HTTPException(412, {"fout": "revisie_conflict", "revisie": row.revisie,
+                                      "melding": "Iemand anders wijzigde dit begrip intussen; laad het opnieuw."})
         stand = {"inhoud": row.inhoud, "status": None, "waarden": {}, "geen_wijziging": False}
         yield conn, row, stand
         if stand["geen_wijziging"]:
@@ -353,25 +354,36 @@ async def koppel(werkgebied: dict, begrip_id: str, invoer: KoppelInvoer, actor: 
 async def wijzig_koppeling(werkgebied_id: str, begrip_id: str, koppeling_id: str, w: KoppelWijziging,
                            actor: str) -> dict:
     k = db.begrip_koppelingen
-    velden = {f: (v.value if hasattr(v, "value") else v) for f in ("rol", "motivatie", "beoordeling")
-              if (v := getattr(w, f)) is not None}
-    detail = {"koppeling": koppeling_id, "velden": sorted(velden)}
-    if "beoordeling" in velden:
-        detail["beoordeling"] = velden["beoordeling"]
+    gevraagd = {f: (v.value if hasattr(v, "value") else v) for f in ("rol", "motivatie", "beoordeling")
+                if (v := getattr(w, f)) is not None}
+    # `_gewijzigd` leest `detail` pas na het blok: wat er echt verandert is pas onder het slot bekend.
+    detail: dict = {"koppeling": koppeling_id}
     async with _gewijzigd(werkgebied_id, begrip_id, w.verwachte_revisie, actor, "koppeling-gewijzigd",
                           detail) as (conn, _, stand):
         row = (await conn.execute(select(k).where(k.c.id == koppeling_id, k.c.begrip_id == begrip_id,
                                                   k.c.verwijderd.is_(None)))).first()
         if row is None:
             raise HTTPException(404, "Koppeling bestaat niet.")
-        if velden.get("rol") == "duiding" and row.rol != "duiding":
-            # Dezelfde regel als bij koppelen: hooguit één primaire duiding per element.
-            await _toets_primair(conn, werkgebied_id, begrip_id, [row.element_id])
+        velden = {f: v for f, v in gevraagd.items() if getattr(row, f) != v}
+        detail["velden"] = sorted(velden)
         if "beoordeling" in velden:
-            velden.update(beoordeeld_door=actor, beoordeeld_op=db.utcnow())
+            detail["beoordeling"] = velden["beoordeling"]
+        if "rol" in velden:
+            # Dezelfde regels als bij koppelen: per begrip één koppeling per element en rol, en
+            # hooguit één primaire duiding per element.
+            dubbel = (await conn.execute(select(k.c.id).where(
+                k.c.begrip_id == begrip_id, k.c.element_id == row.element_id, k.c.rol == velden["rol"],
+                k.c.verwijderd.is_(None)))).first()
+            if dubbel is not None:
+                raise HTTPException(409, {"fout": "al_gekoppeld", "melding": "Deze passage staat al met die rol "
+                                                                            "bij dit begrip."})
+            if velden["rol"] == "duiding":
+                await _toets_primair(conn, werkgebied_id, begrip_id, [row.element_id])
         if not velden:
             stand["geen_wijziging"] = True
         else:
+            if "beoordeling" in velden:
+                velden.update(beoordeeld_door=actor, beoordeeld_op=db.utcnow())
             await conn.execute(update(k).where(k.c.id == koppeling_id).values(**velden))
     return await haal(werkgebied_id, begrip_id)
 
