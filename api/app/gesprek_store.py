@@ -34,6 +34,7 @@ def _bericht_uit_row(row) -> Bericht:
         tool_executions=inhoud.get("tool_executions", []) or [],
         reeks=inhoud.get("reeks") or None,
         artefact=inhoud.get("artefact") or None,
+        bevestiging=inhoud.get("bevestiging") or None,
         created=db.aware(d["created"]),
     )
 
@@ -65,6 +66,8 @@ def _inhoud(inv: BerichtInvoer | Bericht) -> dict:
         inhoud["reeks"] = inv.reeks.model_dump()
     if inv.artefact:
         inhoud["artefact"] = inv.artefact.model_dump()
+    if inv.bevestiging:
+        inhoud["bevestiging"] = inv.bevestiging.model_dump()
     return inhoud
 
 

@@ -124,7 +124,7 @@ async def test_reeksplek_overleeft_het_heropenen(client):
     berichten = (await client.get(f"{BASIS}/{gid}", headers=A)).json()["berichten"]
     assert [(b["run_id"], b["reeks"]["index"]) for b in berichten] == [("run-1.1", 0), ("run-1.2", 1)]
     fout = await client.post(f"{BASIS}/{gid}/berichten", json={
-        "rol": "assistant", "reeks": {"run_id": "run-1", "index": 0, "totaal": 1}}, headers=A)
+        "rol": "assistant", "reeks": {"run_id": "run-1", "index": 0, "totaal": 0}}, headers=A)
     assert fout.status_code == 422
 
 
@@ -349,3 +349,25 @@ async def test_een_artefact_zonder_geldige_verwijzing_wordt_geweigerd(client, ar
     gid = await _maak(client)
     r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "assistant", "artefact": artefact}, headers=A)
     assert r.status_code == 422
+
+
+async def test_een_bevestiging_overleeft_het_heropenen(client):
+    """Fase B: de knop *Laat Lex annoteren* staat na herladen nog bij het bericht."""
+    gid = await _maak(client)
+    b = {"soort": "werkgebied_annoteren", "werkgebied_id": "wg-1", "aantal": 7, "schatting": 21000}
+    r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "assistant", "tekst": "7 bepalingen",
+                                                            "run_id": "rb", "bevestiging": b}, headers=A)
+    assert r.status_code == 201 and r.json()["bevestiging"] == b
+    doc = (await client.get(f"{BASIS}/{gid}", headers=A)).json()
+    assert doc["berichten"][-1]["bevestiging"] == b
+    fout = await client.post(f"{BASIS}/{gid}/berichten", json={
+        "rol": "assistant", "bevestiging": {**b, "soort": "iets_anders"}}, headers=A)
+    assert fout.status_code == 422
+
+
+async def test_een_werkgebied_reeks_mag_een_onderdeel_hebben(client):
+    gid = await _maak(client)
+    r = await client.post(f"{BASIS}/{gid}/berichten", json={
+        "rol": "assistant", "run_id": "w.1", "reeks": {"run_id": "w", "index": 0, "totaal": 1, "ouder": "WG"}},
+        headers=A)
+    assert r.status_code == 201, r.text

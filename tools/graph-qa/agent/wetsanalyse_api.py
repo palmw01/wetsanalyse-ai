@@ -154,6 +154,15 @@ class WetsanalyseApi:
                                      api_reden(antwoord))
         return antwoord.json()
 
+    async def haal_annotatie_werkvoorraad(self, werkgebied_id: str) -> dict[str, Any]:
+        """Wat Lex in het werkgebied nog moet annoteren (fase B). De api vraagt per regeling de
+        bronboom uit de graaf; vandaar de ruimere leestijd."""
+        pad = f"{self._werkgebied_pad(werkgebied_id)}/annotatie-werkvoorraad"
+        antwoord = await self._client.get(f"{self._basis}{pad}", headers=self._headers, timeout=MANIFEST_TIMEOUT)
+        if antwoord.status_code >= 400:
+            raise WetsanalyseApiFout(f"GET {pad} → {antwoord.status_code}", antwoord.status_code, api_reden(antwoord))
+        return antwoord.json()
+
     # -- bronnen vinden met Lex (spoor D, fase A) -----------------------------------------------------
 
     def _bronnen_pad(self, werkgebied_id: str, run_id: str) -> str:
