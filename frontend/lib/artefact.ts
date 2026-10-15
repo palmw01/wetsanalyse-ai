@@ -1,0 +1,82 @@
+// Het artefact van een beurt: wat Lex in het gesprek oplevert om te beoordelen – een annotatie, de
+// begripsvoorstellen van een werkgebied, of (later) afleidingsregels. Het bericht verwijst ernaar
+// (`Bericht.artefact`, api `gesprek_contracts.Artefact`); de inhoud leeft in de api.
+//
+// Eén vorm voor alle soorten, zodat chip, paneel en de laatste-artefactbalk niet per soort een
+// eigen weg krijgen. `ref` hangt af van de soort; de api toetst dat bij het bewaren, en
+// `parseArtefact` doet het nog eens voor wat er via de SSE-stroom binnenkomt.
+
+import type { NodeDoel } from "./annotatieNode";
+import type { Bericht } from "./types";
+
+export type ArtefactSoort = "annotatie" | "begrippen" | "regels";
+
+export interface Artefact {
+  soort: ArtefactSoort;
+  ref: Record<string, unknown>;
+  titel: string;
+}
+
+/** Wat een begrippenartefact aanwijst: de voorstellen van één run op één werkgebied. */
+export interface BegrippenRef { werkgebied_id: string; run_id: string; titel: string }
+
+/** Hoe de chip de soort noemt. */
+export const ARTEFACT_SOORT_LABEL: Record<ArtefactSoort, string> = {
+  annotatie: "JAS-annotatie",
+  begrippen: "Begripsvoorstellen",
+  regels: "Afleidingsregels",
+};
+
+const VERPLICHT: Record<ArtefactSoort, string[]> = {
+  annotatie: ["bron_iri"],
+  begrippen: ["werkgebied_id", "run_id"],
+  regels: [],
+};
+
+const tekst = (v: unknown) => (typeof v === "string" ? v : "");
+
+/** Streng: een onbekende soort of een ref zonder de verplichte sleutels is géén artefact. Liever geen
+ *  chip dan een chip die een leeg paneel opent. */
+export function parseArtefact(ruw: unknown): Artefact | undefined {
+  if (!ruw || typeof ruw !== "object") return undefined;
+  const r = ruw as Record<string, unknown>;
+  const soort = r.soort;
+  if (soort !== "annotatie" && soort !== "begrippen" && soort !== "regels") return undefined;
+  const ref = r.ref && typeof r.ref === "object" && !Array.isArray(r.ref) ? (r.ref as Record<string, unknown>) : undefined;
+  if (!ref || VERPLICHT[soort].some((k) => !tekst(ref[k]))) return undefined;
+  return { soort, ref, titel: tekst(r.titel) };
+}
+
+/** Het artefact van een bewaard bericht. Berichten van vóór het artefactveld dragen alleen
+ *  `annotatie_doel`; die worden een annotatie-artefact. */
+export function artefactVanBericht(b: Pick<Bericht, "artefact" | "annotatie_doel" | "annotatie_titel">): Artefact | undefined {
+  const a = parseArtefact(b.artefact);
+  if (a) return a;
+  const d = b.annotatie_doel;
+  if (!d?.bron_iri) return undefined;
+  return { soort: "annotatie", ref: { ...d }, titel: d.label || b.annotatie_titel || "" };
+}
+
+/** De bronnode van een annotatie-artefact. */
+export function annotatieDoelVan(a: Artefact | undefined): NodeDoel | undefined {
+  if (a?.soort !== "annotatie" || !tekst(a.ref.bron_iri)) return undefined;
+  const r = a.ref;
+  return {
+    bron_iri: tekst(r.bron_iri),
+    ...(tekst(r.label) || a.titel ? { label: tekst(r.label) || a.titel } : {}),
+    ...(tekst(r.snapshot_id) ? { snapshot_id: tekst(r.snapshot_id) } : {}),
+    ...(tekst(r.bwb_id) ? { bwb_id: tekst(r.bwb_id) } : {}),
+  };
+}
+
+/** Werkgebied en run van een begrippenartefact. */
+export function begrippenRefVan(a: Artefact | undefined): BegrippenRef | undefined {
+  if (a?.soort !== "begrippen") return undefined;
+  const werkgebied_id = tekst(a.ref.werkgebied_id), run_id = tekst(a.ref.run_id);
+  return werkgebied_id && run_id ? { werkgebied_id, run_id, titel: a.titel } : undefined;
+}
+
+/** Kan de werkplek dit artefact openen? Afleidingsregels zijn gereserveerd, nog niet gebouwd. */
+export function isTeOpenen(a: Artefact): boolean {
+  return a.soort !== "regels";
+}

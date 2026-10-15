@@ -58,12 +58,13 @@ describe("verwerkSseStroom – via volgRun", () => {
     const execution = { type: "tool_execution", run_id: "r", call_id: "c", tool: "search_annotaties",
       phase: "end", status: "ok", aantal: 2, has_more: true, actualiteit: { volledig: true } };
     const doel = { bron_iri: "urn:lid1", snapshot_id: "v1", label: "Artikel 9 lid 1" };
-    const events = [execution, { type: "opgeslagen", run_id: "r", annotatie_doel: doel }, { type: "done" }];
+    const artefact = { soort: "annotatie", ref: doel, titel: "Artikel 9 lid 1" };
+    const events = [execution, { type: "opgeslagen", run_id: "r", annotatie_doel: doel, artefact }, { type: "done" }];
     vi.stubGlobal("fetch", vi.fn(async () => sseResponse(events.map((e) => `data: ${JSON.stringify(e)}\n\n`))));
     const tool = vi.fn(), opgeslagen = vi.fn();
     await volgRun("r", { onToolExecution: tool, onOpgeslagen: opgeslagen });
     expect(tool).toHaveBeenCalledWith(expect.objectContaining({ call_id: "c", phase: "completed", aantal: 2, has_more: true }));
-    expect(opgeslagen).toHaveBeenCalledWith({ annotatie_slug: "", run_id: "r", annotatie_doel: doel });
+    expect(opgeslagen).toHaveBeenCalledWith({ run_id: "r", annotatie_doel: doel, artefact });
   });
 
   it("splitst token/sources/doel/element-frames (incl. \\r\\n) naar de juiste handlers", async () => {

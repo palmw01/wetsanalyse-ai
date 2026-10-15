@@ -74,6 +74,7 @@ import type {
   WerkgebiedSamenvatting,
   WerkgebiedWijziging,
 } from "./types";
+import { parseArtefact } from "./artefact";
 import { pathSegment } from "./url";
 
 export async function parseError(res: Response): Promise<ApiError> {
@@ -516,7 +517,11 @@ export type AgentHandlers = {
   onGat?: (aantal: number) => void;
   /** De agent heeft de uitkomst zelf vastgelegd (bericht + eventueel annotatiedocument). Komt vlak
    *  vóór het einde. Blijft hij uit, dan legt de werkplek het bericht zelf vast. */
-  onOpgeslagen?: (uitkomst: { annotatie_slug: string; run_id: string; annotatie_doel?: import("./annotatieNode").NodeDoel }) => void;
+  /** De agent legde de beurt vast. `artefact`: wat hij opleverde (annotatie, begripsvoorstellen);
+   *  `annotatie_doel` is de oudere vorm van een annotatie-artefact. */
+  onOpgeslagen?: (uitkomst: {
+    run_id: string; artefact?: import("./artefact").Artefact; annotatie_doel?: import("./annotatieNode").NodeDoel;
+  }) => void;
   /** De beurt slaagde, maar niet alles is bewaard – bv. een markering die de api niet accepteerde.
    *  Geen fout (het meeste staat er wél), maar de jurist hoort te weten dat er iets ontbreekt. */
   onWaarschuwing?: (bericht: string) => void;
@@ -719,7 +724,7 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
               overzicht?: unknown;
               seq?: number;
               weggevallen?: number;
-              annotatie_slug?: string;
+              artefact?: unknown;
               annotatie_doel?: import("./annotatieNode").NodeDoel;
               run_id?: string;
               // grounding: `niveau` is nieuw; een oudere agent stuurt alleen `grounded`.
@@ -790,7 +795,8 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
           if (execution) handlers.onToolExecution?.(execution);
         }
         else if (ev.type === "opgeslagen")
-          handlers.onOpgeslagen?.({ annotatie_slug: ev.annotatie_slug ?? "", run_id: ev.run_id ?? "", annotatie_doel: ev.annotatie_doel });
+          handlers.onOpgeslagen?.({ run_id: ev.run_id ?? "", annotatie_doel: ev.annotatie_doel,
+            ...(parseArtefact(ev.artefact) ? { artefact: parseArtefact(ev.artefact) } : {}) });
         else if (ev.type === "waarschuwing") handlers.onWaarschuwing?.(ev.message ?? "");
         // `agentFout` onderscheidt dit van een 502 die zegt "de BFF kon graph-qa niet bereiken":
         // die is tijdelijk en mag opnieuw, deze is een uitkomst van de beurt zelf.

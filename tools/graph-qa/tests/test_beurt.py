@@ -37,7 +37,7 @@ class NepApi:
         if self.faalt == "elementen":
             raise WetsanalyseApiFout("POST /v1/annotatie/lagen/batch → 422", 422)
         self.batches.append(payload)
-        return {"slug": "slug-1"}
+        return {"lagen": [], "elementen": []}          # zoals de api: geen slug
 
     async def voeg_bericht_toe(self, gesprek_id: str, bericht: dict[str, Any]) -> dict[str, Any]:
         if self.faalt == "verdwenen":
@@ -135,18 +135,21 @@ async def test_annotatiebeurt_schrijft_naar_de_gedeelde_laag(api):
     assert batch["run"] == {"model": "claude", "provider": "azure"}
 
     _, bericht = api.berichten[0]
-    assert bericht["annotatie_slug"] == "slug-1"
+    # Geen slug meer: een bronnode-laag heeft er geen, en de nep-api gaf er ten onrechte een.
+    assert "annotatie_slug" not in bericht and "annotatie_titel" not in bericht
     # De samenvatting van Lex hoort bij het bericht: anders is hij na herladen of op een ander
     # apparaat weg.
     assert bericht["tekst"] == "Ik heb artikel 9 lid 1 geanalyseerd en één JAS-element gevonden."
-    # Het label reist mee zodat de kaart zichzelf kan benoemen als het document later weg is.
-    assert bericht["annotatie_titel"] == "Invorderingswet 1990 – art. 9 lid 1"
+    # Het artefact benoemt zichzelf (het label van de bronnode), ook als de annotatie later weg is.
+    assert bericht["artefact"] == {"soort": "annotatie", "titel": "Invorderingswet 1990, art. 9 lid 1",
+                                   "ref": {"bron_iri": LID1, "label": "Invorderingswet 1990, art. 9 lid 1",
+                                           "snapshot_id": "snap-1"}}
 
     assert bericht["annotatie_doel"] == {"bron_iri": LID1, "label": "Invorderingswet 1990, art. 9 lid 1",
                                          "snapshot_id": "snap-1"}
 
     opgeslagen = [e for e in uit if e["type"] == "opgeslagen"][0]
-    assert opgeslagen["annotatie_slug"] == "slug-1"
+    assert opgeslagen["artefact"] == bericht["artefact"] and "annotatie_slug" not in opgeslagen
 
 
 @asyncio_test
@@ -315,7 +318,7 @@ async def test_half_vastgelegde_annotatie_zegt_wat_er_wel_staat(monkeypatch):
 
     fout = next(e for e in uit if e["type"] == "error")
     assert "annotatie is bewaard" in fout["message"].lower()
-    assert fout["annotatie_slug"] == "slug-1", "zodat de client er meteen heen kan wijzen"
+    assert fout["artefact"]["ref"]["bron_iri"] == LID1, "zodat de client er meteen heen kan wijzen"
     assert "opnieuw" not in fout["message"]
     # De laag is wél geschreven – dat is precies waarom de melding anders is.
     assert nep.batches

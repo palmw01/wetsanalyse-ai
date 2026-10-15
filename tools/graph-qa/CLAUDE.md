@@ -353,6 +353,10 @@ bronnode: `POST /v1/annotatie/lagen/batch` met `batch_id` (= run_id), `bron_iri`
 `verwachte_revisies`, elementen, dekking, `run` en het beslisregister. Het contract staat in
 `docs/architectuur/annotatie-bronnodes.md`.
 
+- **Het bericht draagt het artefact** (`annotatie_artefact`: `{soort: "annotatie", titel, ref:
+  {bron_iri, label, snapshot_id}}`, naast het oudere `annotatie_doel`), en het `opgeslagen`-event
+  draagt het ook; de werkplek opent het daarmee. De titel is het `label` van het doel. Een
+  begrippenartefact (`soort: "begrippen"`, ref `{werkgebied_id, run_id}`) volgt in fase AF2.
 - **`done` gaat er pas uit ná het wegschrijven** – anders ziet een client die dan herlaadt noch de run,
   noch het bericht.
 - **Er wordt pas aan het eind geschreven.** `emit` is terminaal; een laag die al bij het `doel`-event

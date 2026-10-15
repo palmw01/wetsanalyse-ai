@@ -23,7 +23,7 @@ export type ThreadItem = { tool_executions?: import("./annotatieNode").ToolExecu
   // `denk` = de tijdlijn van het samenspel (supervisor → ophaal → annoteer → emit). Die blijft ook
   // bewaard als de beurt een annotatie blijkt; juist bij een annotatie wil je achteraf kunnen zien
   // hoe hij tot stand kwam.
-  // `titel` komt uit het bericht zelf (`annotatie_titel`), niet uit het document: er is geen foreign
+  // `titel` komt uit het bericht zelf (de titel van het artefact), niet uit het document: er is geen foreign
   // key, dus na het verwijderen van het document is dit het enige dat de kaart nog kan benoemen.
   | {
       id: string; type: "annotatie"; slug: string; titel?: string;
@@ -36,6 +36,10 @@ export type ThreadItem = { tool_executions?: import("./annotatieNode").ToolExecu
       doel?: AgentDoelInvoer;
       annotatie_doel?: import("./annotatieNode").NodeDoel;
     }
+  // Een ander artefact dan een annotatie (begripsvoorstellen, later afleidingsregels): een beurt van
+  // Lex met een chip die het artefactpaneel van die soort opent (`lib/artefact.ts`). Een annotatie
+  // blijft hierboven, met haar eigen hergebruik, opnieuw-knop en meting.
+  | { id: string; type: "artefact"; artefact: import("./artefact").Artefact; tekst?: string; denk?: string }
   // De vraag noemde een onderwerp: de agent vond bepalingen, de jurist kiest er één.
   // `keuze` gezet: de onderdelen van één bepaling (leden, subbepalingen) of een dubbelzinnig nummer.
   | { id: string; type: "kandidaten"; tekst: string; kandidaten: AgentKandidaat[]; keuze?: AgentKeuze }

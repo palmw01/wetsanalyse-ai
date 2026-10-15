@@ -11,6 +11,7 @@
 // een misvormd event slaat over, het breekt de reeks niet af.
 
 import { parseHergebruik } from "./agentEvents";
+import { annotatieDoelVan, artefactVanBericht } from "./artefact";
 import type { NodeDoel, ToolExecution } from "./annotatieNode";
 import { mergeToolExecution, parseToolExecution, toolSpoorUit } from "./annotatieNode";
 import type { AgentDoelInvoer, AgentHergebruik, AgentKandidaat, Bericht } from "./types";
@@ -159,11 +160,12 @@ export function reeksUitBerichten(berichten: Bericht[]): Reeks | null {
       onderdelen.push({ ...nieuwOnderdeel(`onbekend:${i}`, `Onderdeel ${i + 1}`), status: "overgeslagen" });
       continue;
     }
-    const doel = b.annotatie_doel;
+    const art = artefactVanBericht(b);
+    const doel = annotatieDoelVan(art);
     const hergebruik = b.hergebruik ? parseHergebruik(b.hergebruik) : undefined;
     onderdelen.push({
       bron_iri: doel?.bron_iri ?? `onbekend:${i}`,
-      label: doel?.label || b.annotatie_titel || `Onderdeel ${i + 1}`,
+      label: doel?.label || art?.titel || b.annotatie_titel || `Onderdeel ${i + 1}`,
       status: doel ? (hergebruik?.volledig ? "hergebruik" : "klaar") : "fout",
       voorstellen: 0,
       ...(doel ? {} : { fout: b.tekst || "Niet vastgelegd." }),

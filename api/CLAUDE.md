@@ -322,15 +322,20 @@ bouwt de invoer, toetst en bewaart de uitkomst, en legt de besluiten vast.
 `gesprek_contracts.py`, `gesprek_store.py`, `routers/gesprekken.py`. Per gebruiker gescopet via
 `actieve_userid`; 404 op andermans gesprek.
 
-- Een bericht verwijst via `annotatie_doel` naar de bronnode van zijn annotatie en draagt het
-  uitvoeringsspoor van de beurt (`tool_executions`). Een antwoord op een overzichtsvraag draagt het
+- Een bericht verwijst via **`artefact`** naar wat de beurt opleverde: `{soort, ref, titel}` met
+  `soort` `annotatie` (ref `{bron_iri, label?, snapshot_id?}`), `begrippen` (ref
+  `{werkgebied_id, run_id}`) of `regels` (gereserveerd, nog niet in gebruik). `Artefact` toetst de
+  verplichte ref-sleutels per soort (422). Oudere berichten verwijzen via `annotatie_doel`; graph-qa
+  schrijft beide voor een annotatie. Het bericht draagt ook het uitvoeringsspoor van de beurt
+  (`tool_executions`). Een antwoord op een overzichtsvraag draagt het
   `overzicht` dat graph-qa uit de graaf bouwde, zodat het blok na herladen hetzelfde is.
   De review-state zelf blijft in het annotatiedomein. **Een veld dat graph-qa meestuurt moet in
   `BerichtInvoer` staan**, anders laat Pydantic het stil vallen en verdwijnen na het heropenen de
   chip naar het annotatiepaneel en het toolspoor. `tools/graph-qa/tests/test_contract_drift.py`
   toetst dat.
 - De verwijzing heeft **geen foreign key**, dus draagt het bericht een eigen label
-  (`annotatie_titel`). Een annotatie verwijderen raakt de berichten niet: het gesprek is een verslag.
+  (`artefact.titel`; bij oude berichten `annotatie_titel`). Een annotatie verwijderen raakt de
+  berichten niet: het gesprek is een verslag.
 - **`run_id` is een idempotentiesleutel.** Een agent-beurt hangt niet aan één browserverbinding en
   meerdere tabbladen kunnen op dezelfde run meekijken. `voeg_bericht_toe` geeft bij een bekend
   `run_id` het bestaande bericht terug; de partiële unieke index `ux_gesprek_berichten_run` dekt de

@@ -24,6 +24,7 @@ import {
   annotatieTitel, doelVanKandidaat, doelVoorOpnieuw, kandidaatLabel, kandidaatPrompt,
 } from "@/lib/annotatie";
 import type { NodeDoel } from "@/lib/annotatieNode";
+import { ARTEFACT_SOORT_LABEL, isTeOpenen, type Artefact } from "@/lib/artefact";
 import { doelenVanKandidaten, reeksPrompt } from "@/lib/reeks";
 import { normaliseerBronnen, samenhangDoelen, samenhangKnopTekst } from "@/lib/bronnen";
 import { overzichtAlsMarkdown, overzichtDoelen, overzichtFocus, overzichtKnopTekst } from "@/lib/overzicht";
@@ -38,6 +39,8 @@ import type {
 export interface ThreadActies {
   verstuur: (vast?: string, doel?: AgentDoelInvoer, hergebruik?: "opnieuw", doelen?: AgentDoelInvoer[]) => void;
   openArtefact: (slug: string, doel?: NodeDoel) => void;
+  /** Een artefact dat geen annotatie is (begripsvoorstellen) in het artefactpaneel openen. */
+  openArtefactVan: (artefact: Artefact) => void;
   /** De samenhang van een bron onder een antwoord in de graaf; `extra` zijn de andere genoemde
    *  artikelen, of de andere delen van een overzicht. `graaf`: met welk bereik hij opent en wat de
    *  nadruk krijgt (een overzicht: de hele kennisgraaf, met alles uit het overzicht). */
@@ -171,6 +174,18 @@ export const ThreadRij = memo(function ThreadRij({
         />
       </div>
     </div>
+  ) : item.type === "artefact" ? (
+    // Een ander artefact (begripsvoorstellen): dezelfde vorm als een annotatie – naam, wat Lex erover
+    // zegt, de chip naar het paneel, en hoe het tot stand kwam.
+    <div className="group flex animate-rise gap-3">
+      <LexAvatar />
+      <div className="min-w-0 flex-1 text-sm text-ink">
+        <p className="mb-1 text-xs font-medium text-muted">Lex</p>
+        {item.tekst && <div className="mb-3"><Markdown tekst={item.tekst} /></div>}
+        <ArtefactChip artefact={item.artefact} onOpen={() => acties.openArtefactVan(item.artefact)} />
+        {item.denk && <div className="mt-3"><DenkProces tekst={item.denk} actief={false} label="Zo is dit tot stand gekomen" /></div>}
+      </div>
+    </div>
   ) : (
     // Een annotatie is ook een beurt van Lex: zijn naam, wat hij erover zegt (hoogstens vier zinnen,
     // door graph-qa uit de data opgebouwd), de kaart naar het artefact, en onderaan hoe het tot stand kwam.
@@ -216,6 +231,47 @@ export const ThreadRij = memo(function ThreadRij({
     </div>
   );
 });
+
+/** De chip van een artefact dat geen annotatie is. Afleidingsregels zijn gereserveerd: de kaart staat
+ *  er, maar opent nog niets – en zegt dat, in plaats van een knop die niets doet. */
+function ArtefactChip({ artefact, onOpen }: { artefact: Artefact; onOpen: () => void }) {
+  const soort = ARTEFACT_SOORT_LABEL[artefact.soort];
+  const titel = artefact.titel || soort;
+  if (!isTeOpenen(artefact)) {
+    return (
+      <div className="flex w-full items-center gap-3 rounded-kaart border border-dashed border-line bg-surface px-4 py-3" data-artefact-soort={artefact.soort}>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium text-ink">{titel}</span>
+          <span className="block text-xs text-muted">{soort} · nog niet te openen in de werkplek</span>
+        </span>
+      </div>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      data-artefact-soort={artefact.soort}
+      className="flex w-full items-center gap-3 rounded-kaart border border-line bg-surface px-4 py-3 text-left shadow-zacht transition-all hover:-translate-y-0.5 hover:border-lint/40 hover:shadow-kaart focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lint"
+    >
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-lint/10 text-lint" aria-hidden>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="6" cy="6" r="3" /><circle cx="18" cy="18" r="3" /><circle cx="18" cy="6" r="3" />
+          <path d="M9 6h6M18 9v6M8.2 8.2l7.6 7.6" />
+        </svg>
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-medium text-ink">{titel}</span>
+        <span className="block text-xs text-muted">{soort} · beoordelen</span>
+      </span>
+      <span className="shrink-0 text-muted" aria-hidden>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m9 18 6-6-6-6" />
+        </svg>
+      </span>
+    </button>
+  );
+}
 
 /** Compacte kaart in de chatstroom die naar het annotatie-artefact leidt (opent het slide-in paneel). */
 function AnnotatieChip({

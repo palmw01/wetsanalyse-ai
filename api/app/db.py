@@ -415,8 +415,9 @@ gesprekken = Table(
     Index("ix_gesprekken_user_updated", "user_id", "updated"),
 )
 
-# De berichten binnen een gesprek. `inhoud` (JSON) draagt de heterogene payload van één beurt:
-# {tekst, denk?, bronnen?, annotatie_slug?, annotatie_titel?, ontbrekend?}. De tijdlijn = ORDER BY id.
+# De berichten binnen een gesprek. `inhoud` (JSON) draagt de heterogene payload van één beurt – de
+# velden van `gesprek_contracts.BerichtInvoer` die niet leeg zijn (tekst, denk, bronnen, artefact,
+# annotatie_doel, reeks, …; zie `gesprek_store._inhoud`). De tijdlijn = ORDER BY id.
 gesprek_berichten = Table(
     "gesprek_berichten",
     metadata,

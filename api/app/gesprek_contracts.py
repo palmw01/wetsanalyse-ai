@@ -12,8 +12,9 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
+from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class Rol(str, Enum):
@@ -29,6 +30,27 @@ class AnnotatieDoel(BaseModel):
     bron_iri: str
     label: str = ""
     snapshot_id: str = ""
+
+
+class Artefact(BaseModel):
+    """Wat een beurt van Lex oplevert om te beoordelen: een annotatie, de begripsvoorstellen van een
+    werkgebied, of (later) afleidingsregels. De werkplek toont het als chip en opent het in het
+    artefactpaneel naast de chat; de inhoud zelf leeft in de api, het bericht verwijst ernaar.
+
+    `ref` hangt af van de soort – annotatie: `{bron_iri, label?, snapshot_id?}`; begrippen:
+    `{werkgebied_id, run_id}`; regels: nog niet in gebruik (gereserveerd)."""
+
+    soort: Literal["annotatie", "begrippen", "regels"]
+    ref: dict
+    titel: str = Field(default="", max_length=300)
+
+    @model_validator(mode="after")
+    def _ref(self) -> "Artefact":
+        nodig = {"annotatie": ("bron_iri",), "begrippen": ("werkgebied_id", "run_id"), "regels": ()}[self.soort]
+        ontbreekt = [k for k in nodig if not isinstance(self.ref.get(k), str) or not self.ref.get(k)]
+        if ontbreekt:
+            raise ValueError(f"ref van een {self.soort}-artefact mist {', '.join(ontbreekt)}")
+        return self
 
 
 class ReeksPlek(BaseModel):
@@ -76,6 +98,9 @@ class Bericht(BaseModel):
     # maar één assistent-bericht opleveren, ook als er twee tabbladen meekeken.
     run_id: str = ""
     reeks: ReeksPlek | None = None
+    # Wat deze beurt opleverde om te beoordelen (chip + artefactpaneel). Oudere annotatieberichten
+    # hebben alleen `annotatie_doel`; de werkplek leidt daar zelf een annotatie-artefact uit af.
+    artefact: Artefact | None = None
     created: datetime | None = None
 
 
@@ -115,6 +140,7 @@ class BerichtInvoer(BaseModel):
     tool_executions: list[dict] = Field(default_factory=list, max_length=200)
     run_id: str = ""
     reeks: ReeksPlek | None = None
+    artefact: Artefact | None = None
 
 
 class GesprekSamenvatting(BaseModel):
