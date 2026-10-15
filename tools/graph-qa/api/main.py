@@ -63,6 +63,7 @@ from agent.reeks import reeks_run  # noqa: E402
 from agent.config import Settings  # noqa: E402
 from agent.begrippen_beurt import begrippen_beurt, zonder_api  # noqa: E402
 from agent.begrippen_run import begrippen_stroom  # noqa: E402
+from agent.bronnen_run import bronnen_beurt, bronnen_stroom  # noqa: E402
 from agent.models import BegrippenRunVerzoek, ChatRequest, RunStart, Verbruiksmeter  # noqa: E402
 from agent.runstore import Run, RunBestaatAl, RunStore  # noqa: E402
 from agent.runstore.geheugen import GeheugenStore  # noqa: E402
@@ -259,10 +260,10 @@ async def chat(
     Bouw hier geen nieuwe client op zonder die controle in de aanroeper. Wie het toch nodig heeft
     (een script, een eval-run), gebruikt het met een eigen conversation_id.
     """
-    if request.modus == "begrippen":
-        # De begrippenroute schrijft in het werkgebied en in het gesprek; dat kan alleen een run.
+    if request.modus in ("begrippen", "bronnen"):
+        # Deze routes schrijven in het werkgebied en in het gesprek; dat kan alleen een run.
         raise HTTPException(status_code=422,
-                            detail="Begrippen voorstellen kan alleen via POST /v1/runs.")
+                            detail="Begrippen of bronnen voorstellen kan alleen via POST /v1/runs.")
     logger.info(
         "chat ontvangen",
         extra={
@@ -331,6 +332,11 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
     chatbericht). Daarmee hangt een beurt niet af van een browser die blijft kijken. Is er geen api
     geconfigureerd, dan is hij een doorgeefluik."""
     def maak(run: Run) -> AsyncIterator[dict]:
+        if request.is_bronnenbeurt:
+            # Bepalingen zoeken binnen een werkgebied: de ontdekmethoden, geen supervisor en geen model.
+            if not settings.legt_zelf_vast:
+                return zonder_api()
+            return bronnen_beurt(request, run, settings=settings, user_id=gebruiker)
         if request.is_begrippenbeurt:
             # Begrippen binnen een werkgebied: de keten van ADR-004, geen supervisor en geen model.
             if not settings.legt_zelf_vast:
@@ -463,6 +469,38 @@ async def start_begrippen_run(
             detail={"reden": "run_loopt_al", "run_id": al.run_id},
         ) from al
     logger.info("begrippenrun gestart", extra={"categorie": "functioneel", "run_id": run.run_id})
+    return RunStart(**run.samenvatting())
+
+
+@app.post("/v1/bronnen-runs", status_code=status.HTTP_201_CREATED)
+async def start_bronnen_run(
+    request: BegrippenRunVerzoek,
+    gebruiker: str = Depends(_aanroeper),
+    _rl: None = Depends(_rate_limit),
+    _auth: None = Depends(_check_auth),
+) -> RunStart:
+    """Zoek bepalingen voor een werkgebied op de invoer die de api voor deze run vastlegde (fase A).
+
+    Zelfde vorm als `/v1/begrippen-runs` (werkgebied + api-run); volgen en stoppen via de gewone
+    run-routes. De runstore-sleutel is `werkgebied:<id>:bronnen`, zodat zoeken en begrippen voorstellen
+    naast elkaar kunnen lopen. Geen model, dus geen budgetcheck; zonder api 503."""
+    if not settings.legt_zelf_vast:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                            detail="Zonder koppeling met de wetsanalyse-api kan Lex geen bepalingen zoeken.")
+    try:
+        run = await runs.start(
+            conversation_id=f"werkgebied:{request.werkgebied_id}:bronnen",
+            vraag="Zoek bepalingen",
+            maak_stroom=lambda run: bronnen_stroom(request.werkgebied_id, request.run_id, run,
+                                                   settings=settings, user_id=gebruiker),
+            user_id=gebruiker,
+        )
+    except RunBestaatAl as al:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"reden": "run_loopt_al", "run_id": al.run_id},
+        ) from al
+    logger.info("bronnenrun gestart", extra={"categorie": "functioneel", "run_id": run.run_id})
     return RunStart(**run.samenvatting())
 
 

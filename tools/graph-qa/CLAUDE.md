@@ -596,6 +596,39 @@ vóór de supervisor en zonder model – dezelfde plek als de reeks (`_stroom_vo
 - Tests: `tests/test_begrippen_beurt.py` (herkenning, request-model, verloop tegen een nep-api, de
   endpoints).
 
+### Bronnen vinden met Lex (`agent/bronnen_vinden.py`, `agent/bronnen_run.py`, fase A)
+
+Vanaf de selectie van een werkgebied (kern = rol *analyseren*) zoekt Lex bepalingen die erbij kunnen
+horen; de api bewaart de kandidaten en de besluiten (`api/app/bronnen_run_store.py`).
+
+- **Methoden, zonder model** (`METHODEN`, `STANDAARD`): `overzicht` (op de analysevraag, anders de
+  naam; rol kern), `verwijzing_uit` (diepte 1 vanaf de kern en haar leden/onderdelen; afhankelijkheid
+  bij een bekende functie, anders aanverwant), `verwijzing_in` (aanverwant), `definitie` (een
+  `bwb:definieertBegrip` in de regeling van de kern waarvan de term letterlijk in de kern staat;
+  afhankelijkheid), `opbouw` (de andere artikelen in hetzelfde deel; aanverwant) en `gelijkenis`
+  (`bwb_similarity`, zwakste signaal – **standaard uit** tot de meting van A4 zegt dat hij helpt).
+- **De queries gaan op bron-IRI's** (`q_uitgaand`, `q_inkomend`, `q_teksten`, `q_definities`,
+  `q_opbouw`), niet op bwb-id + artikel: een selectie kan een lid, onderdeel of Leidraad-divisie zijn.
+  Alleen geïmporteerde doelen (`?naar a ?type`): een verwijzing naar een regeling buiten de graaf is
+  niet op te nemen.
+- **De functie van een verwijzing** (`verwijzingsfunctie`): een vast patroon direct vóór het anker
+  (`bwb:ankerTekst`) in de tekst van de verwijzende node – *definitie* (de node definieert een begrip),
+  *uitzondering*, *delegatie*, *toepassing* – anders *onbekend*. Liever geen functie dan een geraden.
+- **Eén kandidaat per bepaling** (`Verzameling`), sterkste rol wint; wat gelijk is aan, binnen of rond
+  een selectie valt (`in_selectie`, op de IRI-vorm), wordt geen kandidaat. Het label is de vindplaats
+  uit de IRI plus de citeertitel (`_benoem`).
+- **Niets valt stil weg**: elke methode heeft een plafond (`MAX_*`) en meldt `aantal`, `volledig`,
+  `ms`. Een falende methode wordt `volledig: false` en laat de rest staan; falen ze **allemaal**, dan
+  is de run mislukt (`error` met `soort: "graaf"`), geen lege uitkomst.
+- **Twee ingangen**: `POST /v1/bronnen-runs {werkgebied_id, run_id}` (runstore-sleutel
+  `werkgebied:<id>:bronnen`, naast die van de begrippen) en **de bronnenroute in het gesprek**
+  (`bronnen_beurt`): binnen een werkgebied gaat "zoek bepalingen" / "welke bepalingen horen erbij?" /
+  "wat ontbreekt?" (`is_bronnenvraag`) of `modus: "bronnen"` een harde route in, vóór de supervisor –
+  het bericht draagt een `bronnen`-artefact. "Welke artikelen gaan over X?" blijft de overzichtsroute,
+  ook binnen een werkgebied. Een weigering van de api (`geen_vertrekpunt`) is een antwoord.
+- Tests: `tests/test_bronnen_vinden.py` (functiepatronen, methoden tegen een nep-graaf, het
+  api-contract uit de bron, run, route, endpoint).
+
 ## De overzichtsroute: "welke artikelen gaan over X?"
 
 Een overzichtsvraag liet de keten eerst over aan het model: het koos tool en zoekterm
