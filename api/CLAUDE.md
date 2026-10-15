@@ -23,6 +23,9 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
    met koppelingen naar annotatie-elementen, beoordeling, revisies en export – zie §*Begrippen*.
 9. **Voorstellen van Lex** (`/v1/werkgebieden/{id}/begrippen-runs/*`, `…/groepen/*`, levering 3a):
    het manifest voor de begrippenketen, runs en de betekenisgroepen – zie §*Voorstellen van Lex*.
+10. **Bronnen vinden met Lex** (`/v1/werkgebieden/{id}/bronnen-runs/*`, `…/kandidaten/*`, fase A):
+   kandidaatbepalingen met rol en bewijs per ontdekmethode, en de besluiten erover – zie §*Bronnen
+   vinden met Lex*.
 
 > **De wettekst komt uit de graaf.** De API leest uit GraphDB de **bronboom** (`bron_resolver.py`):
 > daarmee toetst hij ankers, legt hij snapshots vast en levert hij de segmenten van de weergave.
@@ -51,6 +54,7 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
 | `werkgebieden.py` (router), `werkgebied_store.py`, `werkgebied_contracts.py`, `werkgebied_inventaris.py` | Werkgebieden: bronselecties, revisies, audit en de inventaris. |
 | `begrippen.py` (router), `begrip_store.py`, `begrip_contracts.py` | Begrippen: inhoud, koppelingen met bewijsstand, actualiteit, de accorderingspoort, revisies en export. |
 | `begrippen_runs.py` (router), `begrippen_run_store.py`, `begrippen_run_contracts.py`, `begrip_manifest.py` | Voorstellen van Lex: manifest voor de begrippenketen, runs, betekenisgroepen en besluiten. |
+| `bronnen_runs.py` (router), `bronnen_run_store.py`, `bronnen_run_contracts.py` | Bronnen vinden met Lex: runs van de ontdekmethoden, kandidaatbepalingen en hun besluiten. |
 | `annotatie_statistiek.py`, `scripts/statistiek.py` | Reviewstatistiek over de elementen: uitkomst per klasse en per model, klasse-verschuivingen, aandacht tegenover correctie. |
 | `jas_klassen.py`, `validation.py` | De dertien JAS-klassen, volgorde en kleuren (canoniek); `GELDIGE_JAS_KLASSEN`, `JAS_KLASSE_KLEUREN`, `jas_sorteersleutel`. |
 | `ratelimit.py` | In-process rate limit per client. |
@@ -317,6 +321,36 @@ bouwt de invoer, toetst en bewaart de uitkomst, en legt de besluiten vast.
   `groep-*`, `vraag-beantwoord`). Een besluit wijzigt nooit annotaties.
 - Bekend: overnemen maakt eerst het begrip en legt daarna het besluit vast, in twee transacties.
 
+## Bronnen vinden met Lex
+
+`bronnen_runs.py`, `bronnen_run_store.py`, `bronnen_run_contracts.py`; het ontwerp staat in PLAN
+spoor D (*Bronnen vinden voor een werkgebied*, fase A). De methoden draaien in graph-qa; de api legt de
+invoer vast, toetst en bewaart de kandidaten, en legt de besluiten vast.
+
+- **De invoer is de selectie** (`invoer_van`): kern = bronselecties met rol *analyseren*, context = de
+  rest, plus naam en analysevraag. Zonder kern én zonder analysevraag: 409 `geen_vertrekpunt`.
+  **Idempotent op (werkgebied, invoer)** (`invoer_id`, een inhoudshash); `laatste` meldt `verouderd`
+  als de selectie of de analysevraag intussen veranderde. Een run die `VERLOPEN` (5 min) stil was,
+  telt als `mislukt` en mag opnieuw.
+- **Eén kandidaat per bepaling**: sleutel (werkgebied, `kandidaat_id(bron_iri)`), over runs heen.
+  Vinden meer methoden haar, dan groeit het bewijs (`methode`, `vanuit`, `detail`) en wint de sterkste
+  rol (`kern` > `afhankelijkheid` > `aanverwant`). Wat bij `PUT …/uitkomst` al in de selectie staat,
+  wordt geen kandidaat.
+- **Het besluit hoort bij de kandidaat**: een latere run werkt bewijs, rol en `run_id` bij en laat de
+  status staan. **Een uitgesloten kandidaat komt dus niet terug** (de acceptatie van L1). Uitsluiten
+  vraagt een reden (422 zonder). `later`, `uitsluiten` en `heropenen` nemen het slot op het werkgebied
+  maar dragen geen revisie: ze wijzigen de scope niet.
+- **Opnemen** wijzigt de scope en draagt daarom `verwachte_revisie` (412). De api verifieert de bron
+  zoals bij zelf opnemen en schrijft selectie én kandidaatstatus in één transactie
+  (`werkgebied_store.voeg_bron_toe(..., binnen=…)`). Rol: *analyseren* bij een kernkandidaat, anders
+  *context*, tenzij de analist kiest. Haalt de analist die selectie weer weg
+  (`verwijder_bron`), dan wordt de kandidaat in dezelfde transactie weer `voorgesteld`.
+- `GET …/kandidaten` geeft de laatste run en de kandidaten (sterkste rol eerst), met `in_laatste_run`
+  en `in_selectie` (intussen met de hand opgenomen). `…/uitkomst`, `…/loopt` en `…/mislukt` zijn voor
+  graph-qa.
+- Het artefact van een bronnenbeurt is `{soort: "bronnen", ref: {werkgebied_id, run_id}}`.
+- Tests: `tests/test_bronnen_runs.py` (SQLite) en het slot in `tests/test_werkgebieden_postgres.py`.
+
 ## Gesprekken
 
 `gesprek_contracts.py`, `gesprek_store.py`, `routers/gesprekken.py`. Per gebruiker gescopet via
@@ -324,7 +358,8 @@ bouwt de invoer, toetst en bewaart de uitkomst, en legt de besluiten vast.
 
 - Een bericht verwijst via **`artefact`** naar wat de beurt opleverde: `{soort, ref, titel}` met
   `soort` `annotatie` (ref `{bron_iri, label?, snapshot_id?}`), `begrippen` (ref
-  `{werkgebied_id, run_id}`) of `regels` (gereserveerd, nog niet in gebruik). `Artefact` toetst de
+  `{werkgebied_id, run_id}`), `bronnen` (ref `{werkgebied_id, run_id}`, fase A) of `regels`
+  (gereserveerd, nog niet in gebruik). `Artefact` toetst de
   verplichte ref-sleutels per soort (422). Oudere berichten verwijzen via `annotatie_doel`; graph-qa
   schrijft beide voor een annotatie. Het bericht draagt ook het uitvoeringsspoor van de beurt
   (`tool_executions`). Een antwoord op een overzichtsvraag draagt het
