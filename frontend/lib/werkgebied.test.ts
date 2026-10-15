@@ -161,7 +161,7 @@ describe("isWerkgebiedRoute", async () => {
     [["w", "bronnen-runs", "laatste"]], [["w", "bronnen-runs", "r"]], [["w", "kandidaten"]],
     [["w", "kandidaten", "K1", "opnemen"]], [["w", "kandidaten", "K1", "later"]],
     [["w", "kandidaten", "K1", "uitsluiten"]], [["w", "kandidaten", "K1", "heropenen"]],
-    [["w", "annotatie-werkvoorraad"]],
+    [["w", "annotatie-werkvoorraad"]], [["w", "verdieping"]],
   ])("laat %j door", (pad) => expect(isWerkgebiedRoute(pad)).toBe(true));
   it.each([
     [[]], [["w", "onbekend"]], [["w", "elementen", "x"]], [["w", "bronnen", "s", "x"]],
@@ -175,6 +175,8 @@ describe("isWerkgebiedRoute", async () => {
     [["w", "bronnen-runs"]], [["w", "bronnen-runs", "r", "uitkomst"]], [["w", "bronnen-runs", "r", "loopt"]],
     [["w", "bronnen-runs", "r", "mislukt"]], [["w", "kandidaten", "K1"]], [["w", "kandidaten", "K1", "wissen"]],
     [["w", "annotatie-werkvoorraad", "x"]],
+    // De verdieping (fase C): lezen mag, de batches en de uitkomst zijn van graph-qa.
+    [["w", "verdieping", "x"]], [["w", "begrippen-runs", "r", "batches", "B1"]], [["w", "begrippen-runs", "r", "verdieping"]],
   ])("weigert %j", (pad) => expect(isWerkgebiedRoute(pad)).toBe(false));
 });
 

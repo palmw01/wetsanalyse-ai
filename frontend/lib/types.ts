@@ -593,10 +593,12 @@ export interface Bericht {
   created?: string;
 }
 
-/** Lex stelt voor het werkgebied te annoteren; klikken start de run met `bevestigd: aantal`. Is de
- *  werkvoorraad intussen veranderd, dan weigert graph-qa en komt er een nieuwe bevestiging. */
+/** Een opdracht die Lex niet zonder akkoord start; klikken start de run met `bevestigd: aantal`. Is de
+ *  werkvoorraad intussen veranderd, dan weigert graph-qa en komt er een nieuwe bevestiging.
+ *  `werkgebied_annoteren` (fase B): de nieuwe bepalingen annoteren. `begrippen_verdiepen` (fase C):
+ *  meedenken over twijfelpunten en begrippen zonder definitie; `aantal` telt die samen. */
 export interface Bevestiging {
-  soort: "werkgebied_annoteren";
+  soort: "werkgebied_annoteren" | "begrippen_verdiepen";
   werkgebied_id: string;
   aantal: number;
   /** Tokens voor deze run, of `null` zonder eerdere annotatiebeurten om op te baseren. */
@@ -892,10 +894,15 @@ export interface Voorbeeld {
   toelichting: string;
 }
 
+/** Werkindeling (PLAN §D), geen JAS-klasse. */
+export type Begripstype = "entiteit" | "actor" | "toestand" | "gebeurtenis" | "eigenschap" | "relatie";
+
 export interface BegripInhoud {
   naam: string;
   alternatieve_termen: string[];
   context: string;
+  /** Leeg = nog niet ingedeeld. Oudere begrippen hebben het veld niet. */
+  begripstype?: Begripstype | "";
   jas_klasse: string;
   jas_subtype: string;
   geldigheid: string;
@@ -1038,9 +1045,67 @@ export interface BegrippenRun {
   verouderd?: boolean | null;
 }
 
+// --- De verdieping (fase C) – afgeleid van api/app/begrippen_run_contracts.py ----------------------
+
+export type ModelOordeelSoort = "zelfde_betekenis" | "verwant_ander_begrip" | "betekenisverschil" | "onbeslist";
+
+/** Het advies van Lex bij een twijfelvraag; de jurist beslist. */
+export interface ModelOordeel {
+  kandidaat_id: string;
+  oordeel: ModelOordeelSoort;
+  motivatie: string;
+  /** Waarom er geen bruikbaar oordeel is (een code), anders leeg. */
+  reden: string;
+}
+
+/** Een letterlijk stuk brontekst waar een definitie op rust. */
+export interface KaartFragment {
+  id: string;
+  bron_iri: string;
+  start: number;
+  eind: number;
+  tekst: string;
+}
+
+/** De concept-kaart bij een groep: een voorstel, nooit een begrip. */
+export interface ConceptKaart {
+  groep_id: string;
+  naam: string;
+  alternatieve_termen: string[];
+  begripstype: Begripstype | null;
+  begripstype_door: "regel" | "model" | "";
+  context: string;
+  definitie: string;
+  herkomst: DefinitieHerkomst | null;
+  definitie_bron_iri: string;
+  definitie_vindplaats: string;
+  fragmenten: KaartFragment[];
+  motivatie: string;
+  aandacht: "groen" | "geel";
+  /** Codes uit graph-qa `toetsen.TEKST`; de werkplek zet ze om (`AANDACHTSPUNT`). */
+  aandachtspunten: string[];
+}
+
+/** `GET …/verdieping`: wat het model nog moet doen voor de laatste klare run. */
+export interface VerdiepingWerkvoorraad {
+  run: BegrippenRun | null;
+  verdiept: boolean;
+  aantal: number;
+  vragen: string[];
+  kaarten: string[];
+  batches: { id: string; soort: "vraag" | "kaart"; ids: string[] }[];
+  schatting: { per_item: number; basis: number; totaal: number } | null;
+  schatting_toelichting?: string;
+  budget: { resterend: number; budget: number; actief: boolean; geblokkeerd: boolean } | null;
+}
+
 export interface Betekenisgroep {
   id: string;
   aandacht: "groen" | "geel";
+  /** Wie de groep vormde: de beslistabel, of een oordeel van Lex (fase C; altijd geel). */
+  door?: "regel" | "model";
+  /** De concept-kaart van de verdieping (fase C); `null` zolang er niet is meegedacht. */
+  kaart?: ConceptKaart | null;
   voorstel: { naam: string; definitie?: string; definitie_bron_iri?: string; definitie_vindplaats?: string };
   uitleg: string[];
   conflicten: string[];
@@ -1106,4 +1171,6 @@ export interface GroepenAntwoord {
   groepen: Betekenisgroep[];
   /** De passages die twijfelvragen en relaties noemen, ook buiten een groep. */
   passages: Record<string, Passage>;
+  /** Na de verdieping (fase C): de vragen die open blijven en het advies van Lex per vraag. */
+  verdieping?: { vragen_open: string[]; oordelen: Record<string, ModelOordeel>; model: string; op?: string } | null;
 }

@@ -1,21 +1,24 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
 import { ChevronOmlaag } from "@/components/ui/Icoon";
 import { Melding } from "@/components/ui/Melding";
+import { MeedenkBevestiging } from "@/components/werkgebieden/MeedenkBevestiging";
 import {
   beantwoordVraag, besluitGroep, foutTekst, haalActieveBegrippenRun, haalGroepen, haalLaatsteBegrippenRun,
-  koppelGroep, neemGroepenOver, startBegrippenRun, stopRun, volgRun,
+  haalVerdieping, koppelGroep, neemGroepenOver, startBegrippenRun, stopRun, volgRun,
 } from "@/lib/api";
 import {
-  AANDACHT_LABEL, BESLUIT_LABEL, HYPOTHESE_LABEL, enigeDefinitie, isBeslisbaar, overnameVoor,
-  passageTekst, samenOvername, sorteerGroepen, voortgangsregel,
+  AANDACHT_LABEL, BEGRIPSTYPE_LABEL, BESLUIT_LABEL, HERKOMST_LABEL, HYPOTHESE_LABEL, OORDEEL_LABEL, aandachtspunten,
+  enigeDefinitie, isBeslisbaar, meedenkOmvang, openVragen, overnameVoor, passageTekst, samenOvername,
+  sorteerGroepen, voortgangsregel,
 } from "@/lib/begripVoorstellen";
 import { jasStyle, klasseLabel } from "@/lib/jas";
-import type { Betekenisgroep, BegrippenRun, GroepenAntwoord } from "@/lib/types";
+import type { Betekenisgroep, BegrippenRun, GroepenAntwoord, VerdiepingWerkvoorraad } from "@/lib/types";
 
 const KNOP =
   "focus-ring inline-flex min-h-[24px] items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors disabled:opacity-50 coarse:min-h-[44px]";
@@ -32,8 +35,11 @@ const datum = (iso: string) =>
  *  groepen voor: formuleringen die mogelijk één begrip aanduiden. De jurist beslist per groep:
  *  overnemen (ook splitsen of combineren), koppelen aan een bestaand begrip, afwijzen of parkeren.
  *  Een voorstel is geen begrip, en geen besluit wijzigt een annotatie. */
-export function BegripVoorstellen({ id, onBegrip, onGewijzigd, inklapbaar = true }: {
+export function BegripVoorstellen({ id, onBegrip, onGewijzigd, inklapbaar = true, onMeedenken }: {
   id: string;
+  /** Na de bevestiging om mee te denken (fase C). Zonder: de werkplek opent in dit werkgebied met een
+   *  vers gesprek en start daar (`/workbench?werkgebied=<id>&meedenk=<n>`), zoals annoteren in fase B. */
+  onMeedenken?: (aantal: number) => void;
   /** Op de tab Begrippen een strook die je kunt inklappen; in het artefactpaneel is hij de hele
    *  inhoud en staat hij altijd open. */
   inklapbaar?: boolean;
@@ -46,6 +52,10 @@ export function BegripVoorstellen({ id, onBegrip, onGewijzigd, inklapbaar = true
   const ingeklapt = inklapbaar && ingeklaptBewaard;
   const [data, setData] = useState<GroepenAntwoord | null>(null);
   const [laatste, setLaatste] = useState<BegrippenRun | null>(null);
+  const router = useRouter();
+  // Wat Lex nog kan verdiepen (fase C). Lukt dat niet, dan geen aanbod: de voorstellen staan er wel.
+  const [verdieping, setVerdieping] = useState<VerdiepingWerkvoorraad | null>(null);
+  const [meedenkOpen, setMeedenkOpen] = useState(false);
   const [fout, setFout] = useState<string | null>(null);
   const [melding, setMelding] = useState<string | null>(null);
   const [voortgang, setVoortgang] = useState<string[]>([]);
@@ -63,9 +73,11 @@ export function BegripVoorstellen({ id, onBegrip, onGewijzigd, inklapbaar = true
 
   const laad = useCallback(async () => {
     try {
-      const [g, l] = await Promise.all([haalGroepen(id), haalLaatsteBegrippenRun(id)]);
+      const [g, l, v] = await Promise.all([haalGroepen(id), haalLaatsteBegrippenRun(id),
+        haalVerdieping(id).catch(() => null)]);
       setData(g);
       setLaatste(l);
+      setVerdieping(v && Array.isArray(v.vragen) && Array.isArray(v.batches) ? v : null);
     } catch (e) {
       setFout(foutTekst(e, "De voorstellen konden niet worden geladen."));
     }
@@ -142,7 +154,9 @@ export function BegripVoorstellen({ id, onBegrip, onGewijzigd, inklapbaar = true
   const open = groepen.filter(isBeslisbaar);
   const combi = groepen.filter((g) => gekozen.has(g.id));
   const run = laatste ?? data?.run ?? null;
-  const vragen = data?.run?.uitkomst?.vragen ?? [];
+  const vragen = openVragen(data);
+  const oordelen = data?.verdieping?.oordelen ?? {};
+  const kanMeedenken = !!verdieping && !verdieping.verdiept && verdieping.aantal > 0 && !agentRun;
   const relaties = data?.run?.uitkomst?.relaties ?? [];
 
   return (
@@ -189,6 +203,10 @@ export function BegripVoorstellen({ id, onBegrip, onGewijzigd, inklapbaar = true
                 {telling(data?.groepen.length ?? 0, "groep", "groepen")} · {telling(vragen.length, "vraag", "vragen")}
                 {run.status === "mislukt" && <span className="text-aandacht-geel-tekst"> · mislukt: {run.reden || "onbekend"}</span>}
               </p>
+              {data?.verdieping && (
+                <p>Lex dacht mee{data.verdieping.op ? ` op ${datum(data.verdieping.op)}` : ""}: advies bij de twijfelvragen en
+                  een kaart per groep. Een definitie die Lex formuleerde, staat geel.</p>
+              )}
               {laatste?.verouderd && (
                 <p className="text-aandacht-geel-tekst">
                   Gebaseerd op een oudere stand van het werkgebied (er kwamen passages of bronnen bij). Stel opnieuw voor om ze mee te nemen.
@@ -205,6 +223,27 @@ export function BegripVoorstellen({ id, onBegrip, onGewijzigd, inklapbaar = true
                 </details>
               )}
             </div>
+          )}
+
+          {kanMeedenken && verdieping && (
+            <div className="flex flex-col gap-2 rounded-kaart border border-line bg-surface/40 p-3 sm:flex-row sm:items-center sm:justify-between"
+              data-meedenk-aanbod={verdieping.aantal}>
+              <p className="text-sm text-ink">
+                Lex kan meedenken over {meedenkOmvang({ vragen: verdieping.vragen.length, kaarten: verdieping.kaarten.length })}:
+                advies bij twijfel, en een definitie uit de bron of door Lex geformuleerd. Dat kost tokens.
+              </p>
+              <Button size="sm" className="w-full shrink-0 sm:w-auto" onClick={() => setMeedenkOpen(true)}>
+                Laat Lex meedenken ({verdieping.aantal})
+              </Button>
+            </div>
+          )}
+          {meedenkOpen && verdieping && (
+            <MeedenkBevestiging werkvoorraad={verdieping} onSluit={() => setMeedenkOpen(false)}
+              onBevestig={(aantal) => {
+                setMeedenkOpen(false);
+                if (onMeedenken) onMeedenken(aantal);
+                else router.push(`/workbench?werkgebied=${encodeURIComponent(id)}&meedenk=${aantal}`);
+              }} />
           )}
 
           {!run && !agentRun && data && (
@@ -262,6 +301,12 @@ export function BegripVoorstellen({ id, onBegrip, onGewijzigd, inklapbaar = true
                   return (
                     <li key={v.kandidaat_id} className="rounded-kaart border border-line px-3 py-2 text-sm">
                       <p className="text-ink">{vraagZin}</p>
+                      {oordelen[v.kandidaat_id] && !oordelen[v.kandidaat_id].reden && (
+                        <p className="mt-0.5 text-xs text-ink" data-advies={oordelen[v.kandidaat_id].oordeel}>
+                          <span className="font-medium">Advies van Lex: {OORDEEL_LABEL[oordelen[v.kandidaat_id].oordeel]}</span>
+                          {oordelen[v.kandidaat_id].motivatie && <> – {oordelen[v.kandidaat_id].motivatie}</>}
+                        </p>
+                      )}
                       {v.uitleg.map((u) => <p key={u} className="text-xs text-muted">{u}</p>)}
                       {samen[v.kandidaat_id] !== undefined ? (
                         <form
@@ -365,6 +410,8 @@ function VoorstelKaart({ groep: g, gekozen, onKies, onOvernemen, onKoppelen, onB
           <p className="text-[11px] text-muted">
             <span className={g.aandacht === "geel" ? "text-aandacht-geel-tekst" : ""}>{AANDACHT_LABEL[g.aandacht]}</span>
             {" · "}{g.leden.length} passages
+            {g.door === "model" && " · samengevoegd op advies van Lex"}
+            {g.kaart?.begripstype && ` · ${BEGRIPSTYPE_LABEL[g.kaart.begripstype]}`}
             {!beslisbaar || g.besluit === "geparkeerd" ? ` · ${BESLUIT_LABEL[g.besluit]}` : ""}
           </p>
         </div>
@@ -378,9 +425,31 @@ function VoorstelKaart({ groep: g, gekozen, onKies, onOvernemen, onKoppelen, onB
       </div>
 
       {definitie && (
-        <p className="mt-1 text-xs text-ink">
-          <span className="text-muted">Brondefinitie ({definitie.vindplaats}): </span>“{definitie.tekst}”
-        </p>
+        <div className="mt-1 text-xs text-ink" data-herkomst={definitie.herkomst}>
+          <p>
+            <span className={definitie.herkomst === "geformuleerd" ? "text-aandacht-geel-tekst" : "text-muted"}>
+              {definitie.herkomst === "letterlijk" ? "Brondefinitie" : `Definitie, ${HERKOMST_LABEL[definitie.herkomst]}`}
+              {definitie.vindplaats ? ` (${definitie.vindplaats})` : ""}:{" "}
+            </span>
+            {definitie.herkomst === "geformuleerd" ? definitie.tekst : `“${definitie.tekst}”`}
+          </p>
+          {definitie.fragmenten.length > 0 && (
+            <details className="mt-0.5">
+              <summary className="focus-ring cursor-pointer rounded text-muted">
+                Rust op {definitie.fragmenten.length === 1 ? "1 passage" : `${definitie.fragmenten.length} passages`} uit de bron
+              </summary>
+              <ul className="mt-1 space-y-0.5 pl-4">
+                {definitie.fragmenten.map((f) => <li key={f.id}>“{f.tekst}”</li>)}
+              </ul>
+              {g.kaart?.motivatie && <p className="mt-1 text-muted">Toelichting van Lex: {g.kaart.motivatie}</p>}
+            </details>
+          )}
+        </div>
+      )}
+      {g.kaart && aandachtspunten(g.kaart.aandachtspunten).length > 0 && (
+        <ul className="mt-1 space-y-0.5 text-xs text-aandacht-geel-tekst" aria-label={`Aandachtspunten bij ${naamVoorLabel}`}>
+          {aandachtspunten(g.kaart.aandachtspunten).map((a) => <li key={a}>{a}</li>)}
+        </ul>
       )}
 
       <ul className="mt-2 space-y-1" aria-label={`Passages van ${naamVoorLabel}`}>
@@ -427,7 +496,8 @@ function VoorstelKaart({ groep: g, gekozen, onKies, onOvernemen, onKoppelen, onB
             {definitie && (
               <label className="flex items-center gap-1.5 text-xs text-ink">
                 <input type="checkbox" checked={metDef} onChange={(e) => setMetDef(e.target.checked)} className="focus-ring accent-lint" />
-                Neem de brondefinitie letterlijk over
+                {definitie.herkomst === "letterlijk" ? "Neem de brondefinitie letterlijk over"
+                  : `Neem de definitie over (${HERKOMST_LABEL[definitie.herkomst]})`}
               </label>
             )}
             <div className="flex flex-col gap-2 sm:flex-row">

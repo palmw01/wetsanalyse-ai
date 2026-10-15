@@ -145,4 +145,5 @@ deterministisch), LKIF Core (te zwaar voor deze stap), BlackLab (tweede index).
 | 7 | Groeperen, besluit, resolver, uitleg, trace; eerste meting |
 | L3a | Api-domein (manifest, runs, groepen, besluiten), de run in graph-qa en de werkplek; letterlijk definitievoorstel (spoor D, levering 3a) |
 | C1 | Model-laag in de keten: twijfelparen (alleen *zelfde betekenis* wordt een – gele – groep), concept-kaart met definitie letterlijk > samengesteld > geformuleerd, toetsen, inhoudelijke batch-id's; meting `metingen/begrippen-model-2026-10-15` |
-| C2–C3 | Api-batches en hervatbare run; de werkplek |
+| C2 | Api-batches (de api toetst de garanties opnieuw) en de hervatbare verdiepingsrun met bevestiging |
+| C3 | De werkplek: aanbod, bevestiging, advies bij twijfelvragen, kaart met herkomst en aandachtspunten |

@@ -18,10 +18,13 @@ const TAB: Record<WerkgebiedArtefact["soort"], string> = { begrippen: "begrippen
  *  - **bronnen** – de bepalingen die Lex vond (`BronKandidaten`), dezelfde inhoud als op de tab Bronnen.
  *
  *  Eén inhoud, twee schillen. */
-export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit }: {
+export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onMeedenken }: {
   doel: WerkgebiedArtefact;
   variant?: DialogVariant;
   onSluit: () => void;
+  /** Lex laten meedenken (fase C) in het gesprek dat hier open staat; zonder deze haak navigeert de
+   *  strook naar een vers gesprek, en dat start niet in een werkplek die al open is. */
+  onMeedenken?: (werkgebiedId: string, aantal: number) => void;
 }) {
   const router = useRouter();
   const naarWerkgebied = `/werkgebieden/${encodeURIComponent(doel.werkgebied_id)}?tab=${TAB[doel.soort]}`;
@@ -54,6 +57,7 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit }: {
             <BegripVoorstellen
               id={doel.werkgebied_id}
               inklapbaar={false}
+              onMeedenken={onMeedenken ? (aantal) => onMeedenken(doel.werkgebied_id, aantal) : undefined}
               onBegrip={(b) => router.push(`${naarWerkgebied}&begrip=${encodeURIComponent(b)}`)}
               // Er staat hier geen begrippenlijst naast die ververst moet worden.
               onGewijzigd={() => {}}
