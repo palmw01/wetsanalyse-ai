@@ -518,6 +518,33 @@ reviewer (`review.py`), de resolver (`resolver.py`), dekking, beslisregister en 
   treft. Dezelfde regel staat in `mergeVoorstellen` van de werkplek, bewaakt door
   `tests/test_ontdubbelsleutel.py`.
 
+## De begrippenketen (`agent/begrippen_pipeline/`, ADR-004)
+
+Stelt voor welke geannoteerde formuleringen één begrip aanduiden (betekenisgroepen) en welke in een
+relatie staan (kwalificatie, inclusie, uitsluiting, hiërarchie). Zuiver en deterministisch, nog
+zonder node, api of model: `keten.analyseer(manifest, provider, melding)`.
+
+```
+manifest → taal.py → definities.py + signalen.py + patronen.py → kandidaten
+         → besluit.py (beslistabel) → groeperen.py (groepen / relaties / vragen) → uitleg.py
+```
+
+- **Een woord is geen begrip.** Sterk bewijs komt uit wat de wet zelf vastlegt: een wettelijke
+  term (definitie of onderdeel van een opsommende definitie) binnen het bereik van de definitie, of
+  een verwijzing ("bedoeld in", "die X"). Een gelijke term zonder meer is zwak en wordt een vraag.
+- **Bewijs heeft een richting en een ordinale sterkte, geen getal.** De beslistabel (`TABEL`, rij-id
+  in elke beslissing) kent link / non-link / possible link. Sterk tegenbewijs wint altijd; zwak bewijs
+  alleen levert géén relatievoorstel op.
+- **Relaties worden geen groepen, en conflicten worden gemarkeerd, niet geknipt.**
+- **Het bereik van een definitie** komt uit de aanhef ("Deze wet verstaat onder", "in dit artikel");
+  "dit hoofdstuk" is onbekend, omdat de opbouw niet in de IRI staat.
+- **Patronen** staan in `regels/relaties.yaml` met groepen `van`/`naar` en vier verplichte
+  testsoorten (`tests/test_begrippen_patronen.py`); elke code heeft een regel in `verklaringen.yaml`.
+- **Geen graafverkeer in de keten.** Definities buiten het werkgebied horen als contextbron in het
+  manifest.
+- Meten: `python -m eval.begrippen_eval --variant lemma|keten|keten_zonder_parse` op
+  `docs/wetsanalyse/referentieset-begrippen/` (provisional, en een ontwikkelset – zie het meetlogboek).
+
 ## De overzichtsroute: "welke artikelen gaan over X?"
 
 Een overzichtsvraag liet de keten eerst over aan het model: het koos tool en zoekterm
