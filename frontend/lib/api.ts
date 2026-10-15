@@ -51,6 +51,7 @@ import type {
   BerichtPublicatieIn,
   Begrip,
   BegripInhoud,
+  BegrippenRun,
   BegripRevisie,
   BegrippenLijst,
   Bron,
@@ -60,6 +61,7 @@ import type {
   DocumentSamenvatting,
   Gesprek,
   GesprekSamenvatting,
+  GroepenAntwoord,
   Inventaris,
   KoppelBeoordeling,
   KoppelRol,
@@ -1126,4 +1128,54 @@ export async function exporteerBegrippen(id: string, formaat: "json" | "csv"): P
   const res = await fetch(`${wg(id, "begrippen", "export")}?formaat=${formaat}`, { cache: "no-store" });
   if (!res.ok) throw await parseError(res);
   await downloadAntwoord(res, `begrippen.${formaat}`);
+}
+
+// --- Voorstellen van Lex (spoor D, levering 3a) -----------------------------------------------
+
+/** Laat Lex begrippen voorstellen. `agent_run_id` is null als de voorstellen voor deze stand van het
+ *  werkgebied er al zijn: dan valt er niets te rekenen. */
+export async function startBegrippenRun(id: string): Promise<{ run: BegrippenRun; agent_run_id: string | null }> {
+  return json(await fetch("/api/begrippen-run", jsonInit("POST", { werkgebied_id: id })));
+}
+
+/** De lopende begrippenrun om op aan te haken, `null` als er niets loopt, `"onbekend"` bij een storing. */
+export async function haalActieveBegrippenRun(id: string): Promise<RunStart | null | "onbekend"> {
+  const res = await fetch(`/api/begrippen-run?${new URLSearchParams({ werkgebied: id })}`, { cache: "no-store" });
+  if (!res.ok) return "onbekend";
+  const run = (await res.json()) as RunStart | null;
+  return run && run.status === "loopt" ? run : null;
+}
+
+export async function haalLaatsteBegrippenRun(id: string): Promise<BegrippenRun | null> {
+  return (await json<{ run: BegrippenRun | null }>(await fetch(wg(id, "begrippen-runs", "laatste"), { cache: "no-store" }))).run;
+}
+
+export async function haalGroepen(id: string): Promise<GroepenAntwoord> {
+  return json<GroepenAntwoord>(await fetch(wg(id, "groepen"), { cache: "no-store" }));
+}
+
+/** Eén begrip uit één of meer groepen: meer groepen is combineren, een deel van de leden splitsen. */
+export async function neemGroepenOver(
+  id: string,
+  overname: { groep_ids: string[]; naam: string; element_ids?: string[]; met_definitie?: boolean },
+): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "groepen", "overnemen"), jsonInit("POST", overname)));
+}
+
+export async function koppelGroep(id: string, groepId: string, begripId: string, elementIds?: string[]): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "groepen", groepId, "koppelen"),
+    jsonInit("POST", { begrip_id: begripId, ...(elementIds ? { element_ids: elementIds } : {}) })));
+}
+
+export async function besluitGroep(
+  id: string,
+  groepId: string,
+  besluit: "afwijzen" | "parkeren" | "heropenen",
+  reden = "",
+): Promise<GroepenAntwoord> {
+  return json<GroepenAntwoord>(await fetch(wg(id, "groepen", groepId, besluit), jsonInit("POST", { reden })));
+}
+
+export async function beantwoordVraag(id: string, runId: string, kandidaatId: string, antwoord: "samen" | "apart"): Promise<BegrippenRun> {
+  return json<BegrippenRun>(await fetch(wg(id, "begrippen-runs", runId, "vragen", kandidaatId), jsonInit("POST", { antwoord })));
 }

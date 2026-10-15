@@ -46,14 +46,25 @@ export function isAlOpgenomen(e: unknown): boolean {
   return isApiError(e) && e.status === 409 && e.data?.fout === "al_opgenomen";
 }
 
-/** De vormen die de BFF onder `/v1/werkgebieden/` doorlaat – geen generieke proxy. `pad` is na het
- *  werkgebied-id: `[id, ...rest]`. */
+/** De vormen die de BFF onder `/v1/werkgebieden/` doorlaat – geen generieke proxy. `pad` begint met
+ *  het werkgebied-id: `[id, ...rest]`. */
 export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   const [id, deel, a, b, c] = pad;
   if (!id || pad.length > 5) return false;
   if (pad.length === 1) return true;
   if (deel === "bronnen") return pad.length <= 3;
   if (deel === "elementen" || deel === "audit") return pad.length === 2;
+  // Voorstellen van Lex. Starten gaat alleen via `/api/begrippen-run` (één weg), en `loopt`,
+  // `uitkomst` en `mislukt` zijn van graph-qa: die laat de werkplek nooit door.
+  if (deel === "begrippen-runs") {
+    if (pad.length === 3) return !!a;                                 // `laatste` of één run (lezen)
+    return pad.length === 5 && b === "vragen" && !!c;                 // een twijfelvraag beantwoorden
+  }
+  if (deel === "groepen") {
+    if (pad.length === 2) return true;
+    if (pad.length === 3) return a === "overnemen";
+    return pad.length === 4 && ["koppelen", "afwijzen", "parkeren", "heropenen"].includes(b);
+  }
   if (deel !== "begrippen") return false;
   if (pad.length <= 3) return true;                                   // lijst, export, één begrip
   if (a === "export") return false;

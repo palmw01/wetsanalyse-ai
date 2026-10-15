@@ -943,3 +943,73 @@ export interface BegripRevisie {
   actor: string;
   tijdstip: string;
 }
+
+// --- Voorstellen van Lex (spoor D, levering 3a) – afgeleid van api/app/begrippen_run_contracts.py
+// en de vormen in begrippen_run_store.py ---
+
+export type BegrippenRunStatus = "wacht" | "loopt" | "klaar" | "mislukt";
+export type GroepBesluit = "open" | "overgenomen" | "gekoppeld" | "afgewezen" | "geparkeerd";
+
+export interface Passage {
+  element_id: string;
+  tekst: string;
+  jas_klasse: string;
+  review_status: string;
+  bron_iri: string;
+  vindplaats: string;
+}
+
+export interface Relatie {
+  kandidaat_id: string;
+  hypothese: "zelfde_betekenis" | "kwalificatie" | "inclusie" | "uitsluiting" | "hierarchie" | string;
+  van: string;
+  naar: string;
+  aandacht: "groen" | "geel";
+  uitleg: string[];
+}
+
+export interface TwijfelVraag {
+  kandidaat_id: string;
+  van: string;
+  naar: string;
+  regel: string;
+  uitleg: string[];
+}
+
+export interface BegrippenRun {
+  id: string;
+  werkgebied_id: string;
+  manifest_id: string;
+  status: BegrippenRunStatus;
+  reden: string;
+  overgeslagen: { element_id: string; tekst: string; reden: string }[];
+  aantal_formuleringen: number;
+  uitkomst: { groep_ids: string[]; relaties: Relatie[]; vragen: TwijfelVraag[]; meting: Record<string, unknown> } | null;
+  vragen_besluiten: Record<string, { antwoord: "samen" | "apart"; door: string; op: string }>;
+  gestart_door: string;
+  gestart: string;
+  gewijzigd: string;
+  /** Alleen bij `laatste`: geeft het werkgebied nu een ander manifest? `null` = onbekend (graaf weg). */
+  verouderd?: boolean | null;
+}
+
+export interface Betekenisgroep {
+  id: string;
+  aandacht: "groen" | "geel";
+  voorstel: { naam: string; definitie?: string; definitie_bron_iri?: string; definitie_vindplaats?: string };
+  uitleg: string[];
+  conflicten: string[];
+  besluit: GroepBesluit;
+  reden: string;
+  begrip_id: string | null;
+  besloten_door: string | null;
+  leden: Passage[];
+  lijkt_op: { begrip_id: string; naam: string; gedeeld: string[] }[];
+}
+
+export interface GroepenAntwoord {
+  run: BegrippenRun | null;
+  groepen: Betekenisgroep[];
+  /** De passages die twijfelvragen en relaties noemen, ook buiten een groep. */
+  passages: Record<string, Passage>;
+}
