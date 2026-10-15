@@ -21,8 +21,9 @@ plaats van schijnzekerheid.
 > classificeren in JAS-klassen; de annotatiecontracten dragen `scope: "act2"`. Van activiteit 3
 > (PLAN spoor D) staan de **werkgebieden** er: bepalingen samenbrengen rond één analysevraag, met
 > bronselecties (rol *analyseren* of *context*) en een inventaris van de geannoteerde elementen.
-> Begrippen zelf (begripskaart, koppelingen, voorstellen van Lex) en de RegelSpraak-formalisering
-> horen nog niet tot de functionaliteit. graph-qa's begrip-definitie-QA (de `definitie`-specialist
+> Daarop formuleert de analist **begrippen**: een begripskaart, gekoppeld aan de annotatiepassages
+> die het begrip dragen, met beoordeling, historie en export. Voorstellen van Lex voor begrippen,
+> begripsrelaties en de RegelSpraak-formalisering horen nog niet tot de functionaliteit. graph-qa's begrip-definitie-QA (de `definitie`-specialist
 > over de graaf) staat daar los van.
 
 ### Platform-componenten
@@ -41,7 +42,8 @@ overzien.
    default-profiel), het **tokenbudget per gebruiker** (`/v1/verbruik/*`: meten, tonen, begrenzen —
    verbruik is een append-only journaal en de stand een som over het huidige venster, zodat werk
    weggooien geen tokens teruggeeft en de reset geen cronjob vraagt) en de **werkgebieden**
-   (`/v1/werkgebieden/*`: bronselecties met revisies en audit, en de inventaris). Gesprekken zijn
+   (`/v1/werkgebieden/*`: bronselecties met revisies en audit, de inventaris, en de begrippen met
+   hun koppelingen naar annotatiepassages). Gesprekken zijn
    **per gebruiker gescopet**; annotatielagen en werkgebieden juist **gedeeld** – ze dragen het werk
    van meerdere juristen, en wie wat deed staat in de audit.
 2. **`frontend/`** – Next.js-webapp (BFF) bovenop de API. De app **is de werkplek** (`/workbench`, de

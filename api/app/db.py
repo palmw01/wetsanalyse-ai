@@ -264,6 +264,49 @@ werkgebied_audit = Table("werkgebied_audit", metadata,
     Column("tijdstip", _DT, nullable=False),
     Index("ix_werkgebied_audit_werkgebied", "werkgebied_id", "id"))
 
+# --- Begrippen (spoor D, levering 2) ------------------------------------------
+# Een begrip hoort bij één werkgebied (het begrippenkader is impliciet: één per werkgebied). De inhoud
+# staat als JSON; `begrip_revisies` bewaart per revisie een volledige kopie, want historie is hier een
+# eis. Een koppeling verwijst naar een annotatie-element ZONDER foreign key en draagt haar eigen
+# bewijsstand: elementen worden hard verwijderd, en een begrip mag zijn onderbouwing daar niet mee
+# verliezen. Weghalen is soft (tijdstip).
+begrippen = Table("begrippen", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("werkgebied_id", String(64), nullable=False, index=True),
+    Column("status", String(16), nullable=False, default="concept"),
+    Column("revisie", Integer, nullable=False, default=1),
+    Column("inhoud", _JSON, nullable=False),
+    Column("aangemaakt_door", String(64), nullable=False),
+    Column("aangemaakt", _DT, nullable=False),
+    Column("gewijzigd", _DT, nullable=False),
+    Column("geaccordeerd_door", String(64), nullable=True),
+    Column("geaccordeerd_op", _DT, nullable=True),
+    Column("geaccordeerd_revisie", Integer, nullable=True),
+    Column("verwijderd", _DT, nullable=True))
+begrip_revisies = Table("begrip_revisies", metadata,
+    Column("begrip_id", String(64), primary_key=True),
+    Column("revisie", Integer, primary_key=True),
+    Column("actie", String(40), nullable=False),
+    Column("detail", _JSON, nullable=False),
+    Column("status", String(16), nullable=False),
+    Column("inhoud", _JSON, nullable=False),
+    Column("actor", String(64), nullable=False),
+    Column("tijdstip", _DT, nullable=False))
+begrip_koppelingen = Table("begrip_koppelingen", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("begrip_id", String(64), nullable=False, index=True),
+    Column("werkgebied_id", String(64), nullable=False, index=True),
+    Column("element_id", String(64), nullable=False, index=True),
+    Column("rol", String(16), nullable=False),
+    Column("motivatie", Text, nullable=False, default=""),
+    Column("bewijs", _JSON, nullable=False),
+    Column("beoordeling", String(16), nullable=False, default="open"),
+    Column("beoordeeld_door", String(64), nullable=True),
+    Column("beoordeeld_op", _DT, nullable=True),
+    Column("toegevoegd_door", String(64), nullable=False),
+    Column("toegevoegd", _DT, nullable=False),
+    Column("verwijderd", _DT, nullable=True))
+
 # --- Tokenbudget --------------------------------------------------------------
 # Verbruik is een JOURNAAL, geen teller. Eén rij per LLM-call; de stand van nu is een som over het
 # huidige venster. Dat heeft drie eigenschappen die een teller niet heeft:

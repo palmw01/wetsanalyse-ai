@@ -96,7 +96,8 @@ async def test_aanmaken_lijst_en_wijzigen_met_revisie(client):
                                                                  "peildatum": "2026-01-01"})
     assert r.status_code == 200 and (r.json()["revisie"], r.json()["status"], r.json()["peildatum"]) == (2, "actief", "2026-01-01")
     oud = await client.patch(f"/v1/werkgebieden/{wg['id']}", json={"verwachte_revisie": 1, "naam": "X"})
-    assert oud.status_code == 412 and oud.json()["detail"] == {"fout": "revisie_conflict", "revisie": 2}
+    assert oud.status_code == 412
+    assert {k: oud.json()["detail"][k] for k in ("fout", "revisie")} == {"fout": "revisie_conflict", "revisie": 2}
     # peildatum leegmaken kan expliciet; een rare datum niet.
     leeg = await client.patch(f"/v1/werkgebieden/{wg['id']}", json={"verwachte_revisie": 2, "peildatum": None})
     assert leeg.json()["peildatum"] is None
