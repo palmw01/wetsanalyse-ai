@@ -76,9 +76,44 @@ class Overname(BaseModel):
         return self
 
 
+class Aanpassing(BaseModel):
+    """Wat de jurist bij een akkoord anders wil dan het voorstel (fase D). Alleen wat hij meestuurt
+    telt; de rest komt uit het voorstel. Een gewijzigde definitie is niet meer letterlijk of
+    samengesteld: de api zet de herkomst dan op `geformuleerd`, tenzij de jurist `letterlijk` kiest
+    en de tekst zo in de bron staat."""
+
+    definitie: str | None = Field(default=None, max_length=8000)
+    definitie_herkomst: Literal["letterlijk", "samengesteld", "geformuleerd"] | None = None
+    context: str | None = Field(default=None, max_length=4000)
+    begripstype: str | None = Field(default=None, pattern=r"^(|entiteit|actor|toestand|gebeurtenis|eigenschap|relatie)$")
+    alternatieve_termen: list[str] | None = Field(default=None, max_length=50)
+
+
+class Akkoord(Overname):
+    """Akkoord op een voorstel (fase D): het begrip, de koppelingen als beoordeeld, het groepsbesluit
+    en – als de poort het toelaat – accorderen, in één transactie. Combineren, splitsen en "samen"
+    gaan zoals bij `Overname`."""
+
+    aanpassing: Aanpassing | None = None
+    # Bij combineren: de groep waarvan de definitie (en de kaart) meegaat. Zonder keuze gaat er
+    # alleen een definitie mee als de groepen er samen precies één hebben.
+    definitie_van: str | None = None
+    # "Samen" bij een twijfelvraag: de vraag wordt met dit akkoord beantwoord.
+    kandidaat_id: str | None = None
+
+    @model_validator(mode="after")
+    def _definitie_van(self) -> "Akkoord":
+        if self.definitie_van and self.definitie_van not in self.groep_ids:
+            raise ValueError("definitie_van moet een van de gekozen groepen zijn")
+        return self
+
+
 class GroepKoppeling(BaseModel):
     begrip_id: str
     element_ids: list[str] | None = Field(default=None, max_length=500)
+    # Vanuit de review (fase D): de jurist zag de passages en keurt de koppelingen meteen goed; een
+    # geaccordeerd begrip wordt dan opnieuw geaccordeerd als de poort het toelaat.
+    akkoord: bool = False
 
 
 class GroepBesluit(BaseModel):

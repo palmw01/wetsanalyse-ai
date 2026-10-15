@@ -382,7 +382,10 @@ betekenisgroepen = Table("betekenisgroepen", metadata,
     Column("besloten_op", _DT, nullable=True),
     # Fase C: wie de groep vormde (de beslistabel of een oordeel van het model) en de concept-kaart.
     Column("door", String(8), nullable=False, server_default="regel"),
-    Column("kaart", _JSON, nullable=True))
+    Column("kaart", _JSON, nullable=True),
+    # Fase D: leden die al een begrip werden terwijl de groep open bleef (splitsen). De groep toont
+    # alleen de rest; zijn alle leden afgehandeld, dan is de groep overgenomen.
+    Column("afgehandeld", _JSON, nullable=True))
 # Eén afgeronde batch van de verdieping (fase C). Er staat alleen wat klaar is: een herstart doet de
 # batches die hier ontbreken. De sleutel is inhoudelijk (graph-qa `verdieping.batch_id`), dus
 # dezelfde batch met hetzelfde model en dezelfde prompt draait één keer.

@@ -318,17 +318,40 @@ bouwt de invoer, toetst en bewaart de uitkomst, en legt de besluiten vast.
   door.
 - **Een besluit hoort bij de groep** (`betekenisgroepen`, sleutel werkgebied + groep-id = de inhoudshash
   van de keten). Komt dezelfde groep in een latere run terug, dan blijft een afwijzing staan.
-- **Overnemen** (`POST groepen/overnemen`) maakt via `begrip_store.maak` één begrip (concept) met de
-  gekozen leden als `duiding` – meer groepen is combineren, een deel van de leden splitsen. De
-  letterlijke brondefinitie gaat alleen mee als er precies één is (herkomst `letterlijk`). Een
-  passage buiten de gekozen groepen mag mee (het antwoord *samen* op een twijfelvraag), mits ze in het
-  manifest van de laatste klare run staat; `groep_ids` mag dan leeg zijn. Bij gekozen groepen moet
-  minstens één eigen passage van die groepen meegaan. Koppelen aan
-  een bestaand begrip gaat via `begrip_store.koppel` met de actuele revisie. `lijkt_op` per groep:
-  begrippen die een passage delen of de voorgestelde naam als naam of alternatieve term dragen.
+- **Overnemen** (`POST groepen/overnemen`) maakt één begrip (concept) met de gekozen leden als
+  `duiding` – meer groepen is combineren, een deel van de leden splitsen. De letterlijke
+  brondefinitie gaat alleen mee als er precies één is (herkomst `letterlijk`). Zonder kaart komt de
+  context uit de vindplaatsen (`context_uit`, de tweeling van graph-qa `kaart._context`; een
+  drift-test in `test_begrippen_akkoord.py` bewaakt de zin). Een passage buiten de gekozen groepen mag
+  mee (het antwoord *samen* op een twijfelvraag), mits ze in het manifest van de laatste klare run
+  staat; `groep_ids` mag dan leeg zijn. Uit elke gekozen groep moet minstens één eigen passage mee.
+  `lijkt_op` per groep: begrippen die een passage delen of de voorgestelde naam als naam of
+  alternatieve term dragen.
+- **Akkoord** (`POST groepen/akkoord`, fase D) is overnemen plus het oordeel van de jurist, in **één
+  transactie** (`_neem_over`): begrip, koppelingen met `beoordeling: akkoord`, accorderen als de poort
+  het toelaat (`begrip_store.accordeer_in`), groepsbesluit en – met `kandidaat_id` – de twijfelvraag
+  als *samen*. Antwoord `{begrip, geaccordeerd, poort}`: lukt accorderen niet, dan blijft het een
+  concept en noemt de poort wat er openstaat. Met `aanpassing` wijzigt de jurist naam, definitie,
+  context, begripstype of alternatieve termen; een gewijzigde definitie wordt `geformuleerd` en de
+  onderbouwing noemt het voorstel, behalve bij de keuze `letterlijk` als de tekst zo in een bron van
+  het manifest staat (anders 422 `niet_letterlijk`). Bij combineren kiest `definitie_van` welke
+  groep zijn definitie en kaart meegeeft. Een tweede akkoord geeft 409 `al_besloten` met
+  `begrippen: {groep: begrip}`.
+- **Splitsen laat de rest staan.** Worden niet alle leden van een groep een begrip, dan blijft de
+  groep open met de overige leden (kolom `afgehandeld`); pas als alle leden zijn afgehandeld is ze
+  `overgenomen` of `gekoppeld`. Een afgehandelde passage nog eens kiezen geeft 409.
+- **Koppelen** aan een bestaand begrip (`POST groepen/{id}/koppelen`) gaat langs hetzelfde pad, in
+  één transactie; met `akkoord: true` zijn de koppelingen beoordeeld en wordt een geaccordeerd begrip
+  opnieuw geaccordeerd als de poort het toelaat.
+- `GET …/groepen` geeft per open groep **`poort_vooraf`**: de poort op de inhoud en de koppelingen
+  zoals een akkoord ze nu zou maken. Per passage staat de stand van de annotatie nú
+  (`lifecycle`, `annotatie_beoordeeld`), want het manifest is de stand bij de run.
+- **Sloten**: altijd eerst het werkgebied, dan de groepen, dan het begrip. De `*_in`-varianten in
+  `begrip_store` (`maak_in`, `koppel_in`, `accordeer_in`, `_gewijzigd_in`) draaien in de transactie
+  van de aanroeper.
 - Besluiten en runs komen in `werkgebied_audit` (`begrippen-run-gestart`, `begrippen-voorgesteld`,
-  `groep-*`, `vraag-beantwoord`). Een besluit wijzigt nooit annotaties.
-- Bekend: overnemen maakt eerst het begrip en legt daarna het besluit vast, in twee transacties.
+  `groep-*` – waaronder `groep-akkoord` met `geaccordeerd` en de aangepaste velden –,
+  `vraag-beantwoord`). Een besluit wijzigt nooit annotaties.
 
 **De verdieping** (`begrippen_verdieping.py`, fase C): het model op twijfelparen en kaarten, bovenop de
 laatste klare run. graph-qa rekent (`agent/begrippen_verdieping.py`), de api bewaart en toetst.

@@ -10,6 +10,11 @@
   komt dezelfde groep in een latere run terug, dan blijft een afwijzing of overname staan.
 - **Een besluit wijzigt nooit annotaties.** Overnemen maakt een begrip (concept) via `begrip_store`,
   met dezelfde regels als zelf maken: inventaris, bewijsstand, primaire duiding.
+- **Akkoord is één transactie** (fase D): begrip, koppelingen als beoordeeld, accorderen als de poort
+  het toelaat, groepsbesluit en eventueel de twijfelvraag – samen vastgelegd of samen niet. Overnemen
+  en koppelen gaan langs hetzelfde pad, zonder het akkoord.
+- **Splitsen laat de rest staan.** Worden niet alle leden van een groep een begrip, dan blijft de groep
+  open met de overige leden (`afgehandeld`); pas als alle leden zijn afgehandeld is hij overgenomen.
 """
 from __future__ import annotations
 
@@ -21,11 +26,12 @@ from datetime import timedelta
 from typing import Awaitable, Callable
 
 from fastapi import HTTPException
+from pydantic import ValidationError
 from sqlalchemy import insert, select, update
 
 from . import begrip_manifest, begrip_store, db
-from .begrip_contracts import BegripInhoud, BegripInvoer, KoppelInvoer, KoppelRol
-from .begrippen_run_contracts import GroepKoppeling, Overname, UitkomstInvoer
+from .begrip_contracts import BegripInhoud
+from .begrippen_run_contracts import Aanpassing, Akkoord, GroepKoppeling, Overname, UitkomstInvoer
 from .werkgebied_store import _audit as werkgebied_audit
 
 Resolver = Callable[[dict], Awaitable[dict]]
@@ -197,14 +203,26 @@ def _norm(s: str) -> str:
     return _LIDWOORD.sub("", s.strip().lower())
 
 
+async def _laatste_klare(conn, werkgebied_id: str):
+    r = db.begrippen_runs
+    return (await conn.execute(select(r).where(r.c.werkgebied_id == werkgebied_id, r.c.status == "klaar")
+                               .order_by(r.c.gestart.desc()).limit(1))).first()
+
+
+def _rest(x) -> list[str]:
+    """De leden van een groep die nog geen begrip werden."""
+    weg = set(x.afgehandeld or [])
+    return [e for e in x.leden if e not in weg]
+
+
 async def groepen(werkgebied_id: str) -> dict:
     """De groepen van de laatste klare run, met hun passages, besluit en de bestaande begrippen die
-    erop lijken (deelt een passage, of draagt dezelfde naam als term)."""
-    r, g = db.begrippen_runs, db.betekenisgroepen
+    erop lijken (deelt een passage, of draagt dezelfde naam als term). Per open groep ook wat de poort
+    na een akkoord nog zou tegenhouden (`poort_vooraf`, fase D), zodat de werkplek dat vooraf zegt."""
+    g = db.betekenisgroepen
     async with db.get_engine().connect() as conn:
         await _werkgebied(conn, werkgebied_id)
-        run = (await conn.execute(select(r).where(r.c.werkgebied_id == werkgebied_id, r.c.status == "klaar")
-                                  .order_by(r.c.gestart.desc()).limit(1))).first()
+        run = await _laatste_klare(conn, werkgebied_id)
         if run is None:
             return {"run": None, "groepen": [], "passages": {}, "verdieping": None}
         ids = run.uitkomst.get("groep_ids", [])
@@ -217,6 +235,11 @@ async def groepen(werkgebied_id: str) -> dict:
             ids = list(dict.fromkeys([*verdieping["groep_ids"], *besloten]))
         rows = {x.id: x for x in (await conn.execute(select(g).where(
             g.c.werkgebied_id == werkgebied_id, g.c.id.in_(ids)))).all()} if ids else {}
+        # Twijfelvragen en relaties noemen ook elementen buiten een groep; de werkplek toont ze letterlijk.
+        genoemd = {e for x in (*run.uitkomst.get("vragen", []), *run.uitkomst.get("relaties", []))
+                   for e in (x["van"], x["naar"])}
+        huidig = await begrip_store._huidige_elementen(
+            conn, {e for x in rows.values() for e in x.leden} | genoemd)
     passages = {f["element_id"]: f for f in run.manifest["formuleringen"]}
     labels = {b["bron_iri"]: b["label"] for b in run.manifest["bronnen"]}
     begrippen = await begrip_store.lijst(werkgebied_id)
@@ -225,37 +248,54 @@ async def groepen(werkgebied_id: str) -> dict:
         x = rows.get(gid)
         if x is None:
             continue
-        leden = set(x.leden)
+        rest = [e for e in _rest(x) if e in passages]
+        leden = set(rest)
         termen = {_norm(x.voorstel["naam"]), *(_norm(t) for t in (x.kaart or {}).get("alternatieve_termen", []))}
         lijkt = [{"begrip_id": b["id"], "naam": b["inhoud"]["naam"],
                   "gedeeld": sorted(leden & set(b["element_ids"]))}
                  for b in begrippen
                  if leden & set(b["element_ids"]) or termen &
                  {_norm(b["inhoud"]["naam"]), *(_norm(t) for t in b["inhoud"].get("alternatieve_termen", []))}]
+        vooraf = None
+        if x.besluit in ("open", "geparkeerd") and rest:
+            inhoud = _inhoud([x], Overname(groep_ids=[x.id], naam=x.voorstel["naam"]), run.manifest, rest)
+            vooraf = begrip_store.poort(inhoud, [_als_akkoord(huidig.get(e)) for e in rest])
         uit.append({"id": x.id, "aandacht": x.aandacht, "voorstel": x.voorstel, "uitleg": x.uitleg,
                     "conflicten": x.conflicten, "besluit": x.besluit, "reden": x.reden, "begrip_id": x.begrip_id,
                     "besloten_door": x.besloten_door, "door": x.door or "regel", "kaart": x.kaart,
-                    "leden": [_passage(passages[e], labels) for e in x.leden if e in passages],
-                    "lijkt_op": lijkt})
-    # Twijfelvragen en relaties noemen ook elementen buiten een groep; de werkplek toont ze letterlijk.
-    genoemd = {e for x in (*run.uitkomst.get("vragen", []), *run.uitkomst.get("relaties", []))
-               for e in (x["van"], x["naar"])}
+                    "leden": [_passage(passages[e], labels, huidig.get(e)) for e in rest],
+                    "afgehandeld": len(x.afgehandeld or []),
+                    "lijkt_op": lijkt, "poort_vooraf": vooraf})
     return {"run": _run(run), "groepen": uit,
-            "passages": {e: _passage(passages[e], labels) for e in sorted(genoemd) if e in passages},
+            "passages": {e: _passage(passages[e], labels, huidig.get(e)) for e in sorted(genoemd) if e in passages},
             # De oordelen van het model per twijfelvraag, en welke vragen na de verdieping open zijn.
             "verdieping": {"vragen_open": verdieping["vragen"], "oordelen": verdieping["oordelen"],
                            "model": verdieping["model"], "op": verdieping.get("op")} if verdieping else None}
 
 
-def _passage(f: dict, labels: dict[str, str]) -> dict:
-    return {"element_id": f["element_id"], "tekst": f["tekst"], "jas_klasse": f["jas_klasse"],
-            "review_status": f["review_status"], "bron_iri": f["bron_iri"],
-            "vindplaats": labels.get(f["bron_iri"], "")}
+def _als_akkoord(huidig: dict | None) -> dict:
+    """Een koppeling zoals een akkoord haar nu zou maken: duiding, beoordeeld, met de bewijsstand van nu."""
+    k = {"rol": "duiding", "beoordeling": "akkoord",
+         "bewijs": {"element_hash": begrip_store.element_hash(huidig) if huidig else ""}}
+    return begrip_store.actualiteit(k, huidig)
 
 
-async def _groepen_rij(conn, werkgebied_id: str, groep_ids: list[str]):
+def _passage(f: dict, labels: dict[str, str], huidig: dict | None = None) -> dict:
+    uit = {"element_id": f["element_id"], "tekst": f["tekst"], "jas_klasse": f["jas_klasse"],
+           "review_status": f["review_status"], "bron_iri": f["bron_iri"],
+           "vindplaats": labels.get(f["bron_iri"], "")}
+    if huidig is not None:
+        # De stand van de annotatie nú (het manifest is de stand bij de run): een jurist kan haar
+        # intussen hebben beoordeeld, en de poort vraagt dat (fase D: "Annotatie akkoord" ter plekke).
+        uit.update(lifecycle=huidig.get("lifecycle", ""),
+                   annotatie_beoordeeld=huidig.get("lifecycle") in begrip_store.BEOORDEELD)
+    return uit
+
+
+async def _groepen_rij(conn, werkgebied_id: str, groep_ids: list[str], slot: bool = False):
     g = db.betekenisgroepen
-    rows = (await conn.execute(select(g).where(g.c.werkgebied_id == werkgebied_id, g.c.id.in_(groep_ids)))).all()
+    q = select(g).where(g.c.werkgebied_id == werkgebied_id, g.c.id.in_(groep_ids))
+    rows = (await conn.execute(q.with_for_update() if slot else q)).all()
     if len(rows) != len(set(groep_ids)):
         raise HTTPException(404, "Niet elke groep bestaat.")
     return rows
@@ -273,56 +313,194 @@ async def _besluit(werkgebied_id: str, groep_ids: list[str], besluit: str, actor
                                {"groepen": groep_ids, "reden": reden, **({"begrip_id": begrip_id} if begrip_id else {})})
 
 
-async def overnemen(werkgebied: dict, o: Overname, actor: str, resolve: Resolver) -> dict:
-    """Eén begrip uit de gekozen groepen; de gekozen leden duiden het aan."""
-    async with db.get_engine().connect() as conn:
-        rows = await _groepen_rij(conn, werkgebied["id"], o.groep_ids)
-    afgehandeld = [x.id for x in rows if x.besluit in ("overgenomen", "gekoppeld")]
-    if afgehandeld:
-        raise HTTPException(409, {"fout": "al_besloten", "groepen": afgehandeld,
+# --- een voorstel wordt een begrip: overnemen, akkoord, koppelen ------------------------------------
+
+def _niet_al_besloten(rows) -> None:
+    """Een overgenomen of gekoppelde groep kan geen tweede begrip worden. De 409 noemt het begrip,
+    zodat de werkplek dat opent in plaats van een fout te tonen (een dubbele klik, een tweede tabblad)."""
+    besloten = {x.id: x.begrip_id for x in rows if x.besluit in ("overgenomen", "gekoppeld")}
+    if besloten:
+        raise HTTPException(409, {"fout": "al_besloten", "groepen": sorted(besloten), "begrippen": besloten,
                                   "melding": "Een van deze groepen is al overgenomen of gekoppeld."})
-    alle = [e for x in rows for e in x.leden]
-    leden = list(dict.fromkeys(o.element_ids if o.element_ids is not None else alle))
+
+
+def _kies_leden(rows, element_ids: list[str] | None, run) -> list[str]:
+    """De passages die het begrip aanduiden: standaard de rest van de gekozen groepen."""
+    alle = [e for x in rows for e in _rest(x)]
+    leden = list(dict.fromkeys(element_ids if element_ids is not None else alle))
+    if not leden:
+        raise HTTPException(422, "Kies minstens één passage.")
+    al = {e for x in rows for e in (x.afgehandeld or [])} & set(leden)
+    if al:
+        raise HTTPException(409, {"fout": "al_besloten", "element_ids": sorted(al),
+                                  "melding": "Een van deze passages werd al een begrip."})
     buiten = set(leden) - set(alle)
     if buiten:
         # Een passage buiten de gekozen groepen ("samen" bij een twijfelvraag) mag, als ze in de
         # voorstellen staat die de jurist in beeld heeft: het manifest van de laatste klare run.
-        r = db.begrippen_runs
-        async with db.get_engine().connect() as conn:
-            run = (await conn.execute(select(r.c.manifest).where(r.c.werkgebied_id == werkgebied["id"], r.c.status == "klaar")
-                                      .order_by(r.c.gestart.desc()).limit(1))).first()
         in_manifest = {f["element_id"] for f in run.manifest["formuleringen"]} if run else set()
         if buiten - in_manifest:
             raise HTTPException(422, "Kies passages uit de voorstellen van dit werkgebied.")
-    if not leden:
-        raise HTTPException(422, "Kies minstens één passage.")
-    if rows and not set(leden) & set(alle):
-        # Een groep overnemen zonder één van haar eigen passages is geen overname van die groep.
-        raise HTTPException(422, "Kies minstens één passage uit de gekozen groepen.")
+    if any(not set(leden) & set(_rest(x)) for x in rows):
+        # Een groep overnemen of combineren zonder één van haar eigen passages is geen besluit over die groep.
+        raise HTTPException(422, "Kies uit elke gekozen groep minstens één passage.")
+    return leden
+
+
+def _definitie_vindplaats(x) -> str:
+    return (x.kaart or {}).get("definitie_vindplaats") or x.voorstel.get("definitie_vindplaats") or ""
+
+
+def context_uit(manifest: dict, leden: list[str], definitie_vindplaats: str = "") -> str:
+    """De context van een begrip zonder concept-kaart: waar de passages staan. Dezelfde zin als
+    graph-qa `begrippen_pipeline/kaart.py:_context` (drift-test in `test_begrippen_akkoord.py`)."""
+    bron_van = {f["element_id"]: f["bron_iri"] for f in manifest["formuleringen"]}
+    labels = {b["bron_iri"]: b.get("label") or b["bron_iri"] for b in manifest["bronnen"]}
+    plekken = list(dict.fromkeys(labels.get(bron_van[e], bron_van[e]) for e in leden if e in bron_van))
+    if not plekken:
+        return ""
+    zin = "Komt voor in " + "; ".join(plekken) + "."
+    if definitie_vindplaats:
+        zin += f" Wettelijke definitie in {definitie_vindplaats}."
+    return zin
+
+
+def _inhoud(rows, o: Overname, manifest: dict | None, leden: list[str]) -> dict:
+    """De inhoud van het begrip zoals het voorstel hem draagt: de kaart van de verdieping (fase C) als
+    die er is, anders de letterlijke definitie van de keten, en de context uit de vindplaatsen."""
+    labels = {b["bron_iri"]: b.get("label", "") for b in manifest["bronnen"]} if manifest else {}
     inhoud: dict = {"naam": o.naam}
-    # De kaart van de verdieping (fase C) vult het begrip; zonder kaart de letterlijke definitie van
-    # de keten. Een definitie gaat alleen mee als er precies één is: bij combineren kiest de analist.
+    gekozen = getattr(o, "definitie_van", None)
+    bron = next((x for x in rows if x.id == gekozen), None) if gekozen else None
     kaarten = [x.kaart for x in rows if x.kaart]
-    if len(kaarten) == 1:
-        k = kaarten[0]
+    # Een definitie of kaart gaat alleen mee als er precies één is, of als de jurist bij combineren koos.
+    k = bron.kaart if bron is not None else (kaarten[0] if len(kaarten) == 1 else None)
+    if k:
         inhoud.update(alternatieve_termen=[t for t in k.get("alternatieve_termen", []) if t != o.naam],
                       context=k.get("context", ""), begripstype=k.get("begripstype") or "")
-    labels: dict[str, str] = {}
-    if kaarten:
-        r = db.begrippen_runs
-        async with db.get_engine().connect() as conn:
-            run = (await conn.execute(select(r.c.manifest).where(r.c.werkgebied_id == werkgebied["id"], r.c.status == "klaar")
-                                      .order_by(r.c.gestart.desc()).limit(1))).first()
-        labels = {b["bron_iri"]: b.get("label", "") for b in (run.manifest["bronnen"] if run else [])}
-    definities = {_definitie_uit(x, labels) for x in rows} - {None}
-    if o.met_definitie and len(definities) == 1:
-        definitie, herkomst, onderbouwing = definities.pop()
-        inhoud.update(definitie=definitie, definitie_herkomst=herkomst, onderbouwing=onderbouwing)
-    begrip = await begrip_store.maak(werkgebied, BegripInvoer(inhoud=BegripInhoud(**inhoud), element_ids=leden,
-                                                              rol=KoppelRol.duiding), actor, resolve)
-    if o.groep_ids:
-        await _besluit(werkgebied["id"], o.groep_ids, "overgenomen", actor, begrip_id=begrip["id"])
-    return begrip
+    if bron is not None:
+        definitie, vindplaats = _definitie_uit(bron, labels), _definitie_vindplaats(bron)
+    else:
+        metdef = [x for x in rows if _definitie_uit(x, labels)]
+        definities = {_definitie_uit(x, labels) for x in metdef}
+        definitie = definities.pop() if len(definities) == 1 else None
+        vindplaats = _definitie_vindplaats(metdef[0]) if definitie else ""
+    if o.met_definitie and definitie:
+        inhoud.update(zip(("definitie", "definitie_herkomst", "onderbouwing"), definitie))
+    else:
+        vindplaats = ""
+    if not inhoud.get("context") and manifest:
+        inhoud["context"] = context_uit(manifest, leden, vindplaats)
+    return inhoud
+
+
+def _pas_aan(inhoud: dict, a: Aanpassing | None, manifest: dict | None) -> tuple[dict, list[str]]:
+    """De aanpassing van de jurist over het voorstel heen; geeft ook de gewijzigde velden.
+
+    Een andere definitietekst is niet meer letterlijk of samengesteld, dus `geformuleerd` – tenzij de
+    jurist `letterlijk` kiest; dan moet de tekst zo in een bron van het manifest staan."""
+    if a is None:
+        return inhoud, []
+    w = {k: v for k, v in a.model_dump(exclude_unset=True).items() if v is not None}
+    uit = dict(inhoud)
+    for veld in ("context", "begripstype", "alternatieve_termen"):
+        if veld in w:
+            uit[veld] = w[veld]
+    if "definitie" in w or "definitie_herkomst" in w:
+        oud = inhoud.get("definitie", "")
+        nieuw = w.get("definitie", oud).strip()
+        gevraagd = w.get("definitie_herkomst")
+        if not nieuw:
+            for veld in ("definitie", "definitie_herkomst", "onderbouwing"):
+                uit.pop(veld, None)
+        else:
+            if gevraagd == "letterlijk":
+                if not any(nieuw in b.get("tekst", "") for b in (manifest or {}).get("bronnen", [])):
+                    raise HTTPException(422, {"fout": "niet_letterlijk",
+                                              "melding": "Deze definitie staat niet zo in een bron van dit werkgebied; "
+                                                         "kies ‘geformuleerd’."})
+                herkomst = "letterlijk"
+            elif nieuw != oud or gevraagd == "geformuleerd" or not inhoud.get("definitie_herkomst"):
+                herkomst = "geformuleerd"
+            else:
+                herkomst = inhoud["definitie_herkomst"]
+            uit.update(definitie=nieuw, definitie_herkomst=herkomst)
+            if nieuw != oud and oud:
+                vorig = f"Aangepast door de analist; het voorstel was “{oud}” ({inhoud.get('definitie_herkomst')})."
+                uit["onderbouwing"] = (vorig + (" " + inhoud["onderbouwing"] if inhoud.get("onderbouwing") else ""))[:8000]
+    velden = sorted(k for k in set(uit) | set(inhoud) if uit.get(k) != inhoud.get(k))
+    return uit, velden
+
+
+async def _verwerk(conn, werkgebied_id: str, rows, leden: list[str], actor: str, begrip_id: str, besluit: str,
+                   actie: str, detail: dict) -> None:
+    """Het groepsbesluit na een overname, akkoord of koppeling. Een groep waarvan alle leden een begrip
+    werden is `besluit`; anders blijft ze open met de rest (splitsen)."""
+    g = db.betekenisgroepen
+    gekozen, nu = set(leden), db.utcnow()
+    volledig, deels = [], []
+    for x in rows:
+        klaar = list(dict.fromkeys([*(x.afgehandeld or []), *(e for e in x.leden if e in gekozen)]))
+        waarden: dict = {"afgehandeld": klaar}
+        if set(x.leden) <= set(klaar):
+            waarden.update(besluit=besluit, reden="", begrip_id=begrip_id, besloten_door=actor, besloten_op=nu)
+            volledig.append(x.id)
+        else:
+            deels.append(x.id)
+        await conn.execute(update(g).where(g.c.werkgebied_id == werkgebied_id, g.c.id == x.id).values(**waarden))
+    await werkgebied_audit(conn, werkgebied_id, actor, actie,
+                           {"groepen": volledig, **({"deels": deels} if deels else {}), "begrip_id": begrip_id,
+                            "element_ids": leden, **detail})
+
+
+async def overnemen(werkgebied: dict, o: Overname, actor: str, resolve: Resolver) -> dict:
+    """Eén begrip (concept) uit de gekozen groepen; de gekozen leden duiden het aan."""
+    return (await _neem_over(werkgebied, o, actor, resolve, akkoord=False))["begrip"]
+
+
+async def akkoord(werkgebied: dict, a: Akkoord, actor: str, resolve: Resolver) -> dict:
+    """Akkoord op een voorstel (fase D): het begrip met beoordeelde koppelingen, en geaccordeerd als de
+    poort het toelaat. `{begrip, geaccordeerd, poort}`: de poort noemt wat er nog openstaat."""
+    return await _neem_over(werkgebied, a, actor, resolve, akkoord=True)
+
+
+async def _neem_over(werkgebied: dict, o: Overname, actor: str, resolve: Resolver, akkoord: bool) -> dict:
+    wid = werkgebied["id"]
+    async with db.get_engine().connect() as conn:
+        rows = await _groepen_rij(conn, wid, o.groep_ids) if o.groep_ids else []
+        run = await _laatste_klare(conn, wid)
+    _niet_al_besloten(rows)
+    leden = _kies_leden(rows, o.element_ids, run)
+    manifest = run.manifest if run else None
+    inhoud = _inhoud(rows, o, manifest, leden)
+    velden: list[str] = []
+    if akkoord:
+        inhoud, velden = _pas_aan(inhoud, o.aanpassing, manifest)
+        if o.kandidaat_id and (run is None or o.kandidaat_id not in {v["kandidaat_id"] for v in run.uitkomst.get("vragen", [])}):
+            raise HTTPException(404, "Deze vraag staat niet in de voorstellen.")
+    try:
+        inhoud = BegripInhoud(**inhoud).model_dump(mode="json")
+    except ValidationError as e:
+        raise HTTPException(422, {"fout": "inhoud", "melding": "; ".join(f"{'.'.join(map(str, x['loc']))}: {x['msg']}"
+                                                                         for x in e.errors())}) from e
+    # Het bewijs vraagt de graaf (de inventaris); dat gebeurt vóór de schrijftransactie.
+    bewijs = await begrip_store.bewijzen(werkgebied, leden, resolve)
+    async with db.get_engine().begin() as conn:
+        await _werkgebied(conn, wid, slot=True)
+        # Opnieuw onder het slot: een tweede akkoord tegelijk ziet het besluit van het eerste.
+        rows = await _groepen_rij(conn, wid, o.groep_ids, slot=True) if o.groep_ids else []
+        _niet_al_besloten(rows)
+        _kies_leden(rows, leden, run)
+        bid = await begrip_store.maak_in(conn, wid, inhoud, bewijs, "duiding", actor,
+                                         "akkoord" if akkoord else "open")
+        p = await begrip_store.accordeer_in(conn, wid, bid, 1, actor) if akkoord else None
+        detail = {"geaccordeerd": p["mag"], **({"aangepast": velden} if velden else {})} if akkoord else {}
+        await _verwerk(conn, wid, rows, leden, actor, bid, "overgenomen",
+                       "groep-akkoord" if akkoord else "groep-overgenomen", detail)
+        if akkoord and o.kandidaat_id:
+            await _vraag_in(conn, wid, run.id, o.kandidaat_id, "samen", actor)
+    begrip = await begrip_store.haal(wid, bid)
+    return {"begrip": begrip, "geaccordeerd": begrip["status"] == "geaccordeerd", "poort": begrip["accorderen"]}
 
 
 def _definitie_uit(x, labels: dict[str, str]) -> tuple[str, str, str] | None:
@@ -347,16 +525,31 @@ def _definitie_uit(x, labels: dict[str, str]) -> tuple[str, str, str] | None:
 
 
 async def koppelen(werkgebied: dict, groep_id: str, k: GroepKoppeling, actor: str, resolve: Resolver) -> dict:
+    """De passages van een groep aan een bestaand begrip. Met `akkoord` (vanuit de review) zijn de
+    koppelingen meteen beoordeeld, en wordt een geaccordeerd begrip opnieuw geaccordeerd als het mag."""
+    wid = werkgebied["id"]
     async with db.get_engine().connect() as conn:
-        [row] = await _groepen_rij(conn, werkgebied["id"], [groep_id])
-    leden = k.element_ids if k.element_ids is not None else list(row.leden)
-    if not leden or set(leden) - set(row.leden):
-        raise HTTPException(422, "Kies passages uit deze groep.")
-    huidig = await begrip_store.haal(werkgebied["id"], k.begrip_id)
-    begrip = await begrip_store.koppel(werkgebied, k.begrip_id, KoppelInvoer(
-        verwachte_revisie=huidig["revisie"], element_ids=leden), actor, resolve)
-    await _besluit(werkgebied["id"], [groep_id], "gekoppeld", actor, begrip_id=k.begrip_id)
-    return begrip
+        [row] = await _groepen_rij(conn, wid, [groep_id])
+    _niet_al_besloten([row])
+    leden = _kies_leden([row], k.element_ids, None)
+    bewijs = await begrip_store.bewijzen(werkgebied, leden, resolve)
+    b = db.begrippen
+    async with db.get_engine().begin() as conn:
+        await _werkgebied(conn, wid, slot=True)
+        [row] = await _groepen_rij(conn, wid, [groep_id], slot=True)
+        _niet_al_besloten([row])
+        _kies_leden([row], leden, None)
+        q = select(b.c.revisie, b.c.status).where(b.c.id == k.begrip_id, b.c.werkgebied_id == wid, b.c.verwijderd.is_(None))
+        voor = (await conn.execute(q)).first()
+        if voor is None:
+            raise HTTPException(404, "Begrip bestaat niet.")
+        await begrip_store.koppel_in(conn, wid, k.begrip_id, voor.revisie, bewijs, "duiding", "", actor,
+                                     "akkoord" if k.akkoord else "open")
+        if k.akkoord and voor.status == "geaccordeerd":
+            await begrip_store.accordeer_in(conn, wid, k.begrip_id, (await conn.execute(q)).first().revisie, actor)
+        await _verwerk(conn, wid, [row], leden, actor, k.begrip_id, "gekoppeld", "groep-gekoppeld",
+                       {"akkoord": True} if k.akkoord else {})
+    return await begrip_store.haal(wid, k.begrip_id)
 
 
 async def besluit(werkgebied_id: str, groep_id: str, soort: str, reden: str, actor: str) -> None:
@@ -366,21 +559,25 @@ async def besluit(werkgebied_id: str, groep_id: str, soort: str, reden: str, act
 async def vraag(werkgebied_id: str, run_id: str, kandidaat_id: str, antwoord: str, actor: str) -> dict:
     """Een twijfelvraag beantwoorden. "Samen" maakt nog niets: de werkplek biedt daarna de overname
     van beide aan. Het antwoord ligt vast, met wie en wanneer."""
-    r = db.begrippen_runs
     async with db.get_engine().begin() as conn:
         await _werkgebied(conn, werkgebied_id, slot=True)
-        row = (await conn.execute(select(r).where(r.c.id == run_id, r.c.werkgebied_id == werkgebied_id)
-                                  .with_for_update())).first()
-        if row is None or not row.uitkomst:
-            raise HTTPException(404, "Run bestaat niet of heeft nog geen uitkomst.")
-        if kandidaat_id not in {v["kandidaat_id"] for v in row.uitkomst.get("vragen", [])}:
-            raise HTTPException(404, "Deze vraag staat niet in de run.")
-        besluiten = {**row.vragen_besluiten, kandidaat_id: {"antwoord": antwoord, "door": actor,
-                                                            "op": db.utcnow().isoformat()}}
-        await conn.execute(update(r).where(r.c.id == run_id).values(vragen_besluiten=besluiten))
-        await werkgebied_audit(conn, werkgebied_id, actor, "vraag-beantwoord",
-                               {"run": run_id, "kandidaat": kandidaat_id, "antwoord": antwoord})
+        await _vraag_in(conn, werkgebied_id, run_id, kandidaat_id, antwoord, actor)
     return await haal(werkgebied_id, run_id)
+
+
+async def _vraag_in(conn, werkgebied_id: str, run_id: str, kandidaat_id: str, antwoord: str, actor: str) -> None:
+    r = db.begrippen_runs
+    row = (await conn.execute(select(r).where(r.c.id == run_id, r.c.werkgebied_id == werkgebied_id)
+                              .with_for_update())).first()
+    if row is None or not row.uitkomst:
+        raise HTTPException(404, "Run bestaat niet of heeft nog geen uitkomst.")
+    if kandidaat_id not in {v["kandidaat_id"] for v in row.uitkomst.get("vragen", [])}:
+        raise HTTPException(404, "Deze vraag staat niet in de run.")
+    besluiten = {**row.vragen_besluiten, kandidaat_id: {"antwoord": antwoord, "door": actor,
+                                                        "op": db.utcnow().isoformat()}}
+    await conn.execute(update(r).where(r.c.id == run_id).values(vragen_besluiten=besluiten))
+    await werkgebied_audit(conn, werkgebied_id, actor, "vraag-beantwoord",
+                           {"run": run_id, "kandidaat": kandidaat_id, "antwoord": antwoord})
 
 
 async def heropen_groep(werkgebied_id: str, groep_id: str, actor: str) -> None:

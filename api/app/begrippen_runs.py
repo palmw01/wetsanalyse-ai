@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, Response
 from . import begrippen_run_store as store, begrippen_verdieping as verdieping, werkgebied_store
 from .auth import require_client
 from .begrippen_run_contracts import (
-    BatchInvoer, GroepBesluit, GroepKoppeling, MisluktInvoer, Overname, UitkomstInvoer, VerdiepingInvoer, VraagBesluit,
+    Akkoord, BatchInvoer, GroepBesluit, GroepKoppeling, MisluktInvoer, Overname, UitkomstInvoer, VerdiepingInvoer, VraagBesluit,
 )
 from .routers.auth import actieve_userid
 from .werkgebieden import resolve_bron
@@ -87,6 +87,13 @@ async def get_groepen(werkgebied_id: str, actor: str = Depends(actieve_userid)):
 @router.post("/groepen/overnemen", status_code=201)
 async def post_overnemen(werkgebied_id: str, req: Overname, actor: str = Depends(actieve_userid)):
     return await store.overnemen(await werkgebied_store.haal(werkgebied_id), req, actor, resolve_bron)
+
+
+@router.post("/groepen/akkoord", status_code=201)
+async def post_akkoord(werkgebied_id: str, req: Akkoord, actor: str = Depends(actieve_userid)):
+    """Akkoord op een voorstel (fase D): begrip, beoordeelde koppelingen, groepsbesluit en – als de poort
+    het toelaat – accorderen, in één transactie. `{begrip, geaccordeerd, poort}`."""
+    return await store.akkoord(await werkgebied_store.haal(werkgebied_id), req, actor, resolve_bron)
 
 
 @router.post("/groepen/{groep_id}/koppelen")

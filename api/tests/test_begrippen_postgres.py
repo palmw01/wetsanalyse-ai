@@ -92,3 +92,28 @@ async def test_twee_gelijktijdige_starts_op_hetzelfde_manifest_geven_een_run():
     uit = await asyncio.gather(runs.start(wg, "a", resolve), runs.start(wg, "b", resolve))
     assert uit[0][0]["id"] == uit[1][0]["id"]
     assert sorted(n for _, n in uit) == [False, True]
+
+
+async def test_twee_gelijktijdige_akkoorden_op_een_groep_maken_een_begrip():
+    """Fase D: akkoord is één transactie onder het werkgebiedslot. Twee jurists tegelijk op dezelfde
+    groep: één begrip, de ander krijgt 409 met dat begrip – geen tweede begrip, geen halve stand."""
+    from app import begrippen_run_store as runs
+    from app.begrippen_run_contracts import Akkoord, UitkomstInvoer
+    from test_annotatie_v2 import TWO
+
+    snap = snapshot()
+    tweede = await annotaties.batch(request(snap, [element(snap, TWO, 0, 4)], batch_id="tweede", revisions={}),
+                                    snap, "lex")
+    wg, eid = await _opzet()
+    run, _ = await runs.start(wg, "a", resolve)
+    leden = [eid, tweede["elementen"][0]["id"]]
+    await runs.zet_uitkomst(wg["id"], run["id"], UitkomstInvoer(manifest_id=run["manifest_id"], groepen=[
+        {"id": "Gaaa111", "leden": leden, "aandacht": "groen", "voorstel": {"naam": "alfa"}}]), "graph-qa")
+    akkoord = Akkoord(groep_ids=["Gaaa111"], naam="Alfa")
+    uit = await asyncio.gather(runs.akkoord(wg, akkoord, "a", resolve), runs.akkoord(wg, akkoord, "b", resolve),
+                               return_exceptions=True)
+    fouten = [u for u in uit if isinstance(u, HTTPException)]
+    goed = [u for u in uit if isinstance(u, dict)]
+    assert len(goed) == 1 and len(fouten) == 1 and fouten[0].status_code == 409
+    assert fouten[0].detail["begrippen"] == {"Gaaa111": goed[0]["begrip"]["id"]}
+    assert [b["id"] for b in await store.lijst(wg["id"])] == [goed[0]["begrip"]["id"]]
