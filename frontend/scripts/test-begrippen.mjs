@@ -155,6 +155,10 @@ await page.route("**/api/**", async (route) => {
         Object.assign(b, { status: "geaccordeerd", geaccordeerd_door: "browser-test", geaccordeerd_op: nu, geaccordeerd_revisie: b.revisie + 1 });
       });
   }
+  // De strook "Voorstellen van Lex" staat op dezelfde tab; hier zonder voorstellen.
+  if (p === "/api/werkgebieden/wg1/groepen") return route.fulfill({ json: { run: null, groepen: [], passages: {} } });
+  if (p === "/api/werkgebieden/wg1/begrippen-runs/laatste") return route.fulfill({ json: { run: null } });
+  if (p === "/api/begrippen-run") return route.fulfill({ json: null });
   if (p === "/api/gesprekken") return route.fulfill({ json: [] });
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
   return route.fulfill({ status: 404, json: { detail: "Niet in deze test." } });

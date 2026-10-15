@@ -169,11 +169,18 @@ describe("isWerkgebiedRoute", async () => {
     [["w", "begrippen", "b", "koppelingen"]], [["w", "begrippen", "b", "accorderen"]],
     [["w", "begrippen", "b", "heropenen"]], [["w", "begrippen", "b", "revisies"]],
     [["w", "begrippen", "b", "koppelingen", "k"]],
+    [["w", "begrippen-runs", "laatste"]], [["w", "begrippen-runs", "r"]], [["w", "begrippen-runs", "r", "vragen", "P1"]],
+    [["w", "groepen"]], [["w", "groepen", "overnemen"]], [["w", "groepen", "G1", "koppelen"]],
+    [["w", "groepen", "G1", "afwijzen"]], [["w", "groepen", "G1", "parkeren"]], [["w", "groepen", "G1", "heropenen"]],
   ])("laat %j door", (pad) => expect(isWerkgebiedRoute(pad)).toBe(true));
   it.each([
     [[]], [["w", "onbekend"]], [["w", "elementen", "x"]], [["w", "bronnen", "s", "x"]],
     [["w", "begrippen", "export", "x"]], [["w", "begrippen", "b", "iets"]],
     [["w", "begrippen", "b", "accorderen", "x"]], [["w", "begrippen", "b", "koppelingen", "k", "x"]],
+    // Alleen graph-qa schrijft de uitkomst; starten gaat via /api/begrippen-run.
+    [["w", "begrippen-runs"]], [["w", "begrippen-runs", "r", "uitkomst"]], [["w", "begrippen-runs", "r", "loopt"]],
+    [["w", "begrippen-runs", "r", "mislukt"]], [["w", "begrippen-runs", "r", "vragen"]],
+    [["w", "groepen", "G1"]], [["w", "groepen", "G1", "verwijderen"]], [["w", "groepen", "overnemen", "x"]],
   ])("weigert %j", (pad) => expect(isWerkgebiedRoute(pad)).toBe(false));
 });
 

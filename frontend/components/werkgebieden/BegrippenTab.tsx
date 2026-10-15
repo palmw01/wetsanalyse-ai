@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/Field";
 import { ChevronOmlaag } from "@/components/ui/Icoon";
 import { Melding } from "@/components/ui/Melding";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { BegripVoorstellen } from "@/components/werkgebieden/BegripVoorstellen";
 import { BegripWerk } from "@/components/werkgebieden/BegripWerk";
 import { OnbewaardMelding } from "@/components/werkgebieden/OnbewaardMelding";
 import { ExportKnop } from "@/components/werkplek/ExportKnop";
@@ -94,6 +95,15 @@ export function BegrippenTab({ id, gekozen, onKies, onbewaard, onOnbewaard }: {
           }}
         />
       )}
+
+      <BegripVoorstellen
+        id={id}
+        onGewijzigd={laadLijst}
+        onBegrip={(b) => {
+          // Na een overname staat het nieuwe begrip er pas na het verversen van de lijst.
+          void laadLijst().then(() => kies(b));
+        }}
+      />
 
       <div className="gap-5 lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]">
         {/* Op een smal scherm de lijst óf het begrip; vanaf lg naast elkaar. */}

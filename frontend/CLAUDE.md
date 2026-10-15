@@ -54,7 +54,8 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   klassen bij.
 - **De rekenkern staat in `lib/`**, niet in componenten: vitest draait node-env zonder DOM, dus alleen
   pure helpers zijn testbaar (`selectie`, `annotatie`, `annotatieOverzicht`, `reeks`, `samenhang`,
-  `markering`, `popover`, `wetstructuur`, `lopendeRun`, `rondleiding`, `werkgebied`, `begrippen`, …).
+  `markering`, `popover`, `wetstructuur`, `lopendeRun`, `rondleiding`, `werkgebied`, `begrippen`,
+  `begripVoorstellen`, …).
 - **`app/**/page.tsx`** (Server Components) – data via `lib/server.ts`, interactie in een
   `*Client.tsx`. `app/page.tsx` doet `redirect("/workbench")`. De werkplek zit in
   `app/workbench/page.tsx` én in `app/default.tsx` (de default van het children-slot); beide renderen
@@ -506,6 +507,27 @@ bestaat los van de gesprekken.
     pagina geeft `element` als `beginElement` aan `NodeAnnotatiePaneel`, dat die markering kiest.
   - **Elementselectie** in `ElementenTab`: selectievakjes en een balk met *Nieuw begrip uit selectie*
     en *Koppelen*; een element dat al een begrip aanduidt, noemt dat begrip (`primair` uit de lijst).
+- **Voorstellen van Lex** (levering 3a; api §*Voorstellen van Lex*, graph-qa §*De begrippenrun*):
+  de strook `BegripVoorstellen` bovenaan de tab Begrippen, naast zelf een begrip maken.
+  - **Starten** gaat via de statische route `app/api/begrippen-run` (POST): eerst de api (manifest en
+    run, of de bestaande op dezelfde stand), dan graph-qa `POST /v1/begrippen-runs`. `agent_run_id: null`
+    betekent "voor deze stand al gerekend" – de strook zegt dat. Een 409 van graph-qa is aanhaken.
+    Statisch, omdat een `app/api/werkgebieden/[id]/…` naast de catch-all `[...pad]` de routestructuur
+    breekt (`app/routes.test.ts`). `GET ?werkgebied=` vindt een lopende run (sleutel `werkgebied:<id>`)
+    om na herladen weer aan te haken.
+  - **Volgen en stoppen** met de gewone `volgRun`/`stopRun` over `/api/annotatie/run/{id}/…`: het is een
+    graph-qa-run als elke andere. De fasen staan als voortgang in beeld; een `error` wordt een melding.
+  - **De allowlist** (`isWerkgebiedRoute`) laat `groepen/*`, `begrippen-runs/laatste|{run}` en
+    `…/vragen/{kid}` door, maar nooit `…/uitkomst`, `…/loopt`, `…/mislukt` (van graph-qa) of een kale
+    POST op `begrippen-runs` (één weg: de startroute).
+  - **Een groepkaart** (`VoorstelKaart`) toont naam, aandacht als tekst (`AANDACHT_LABEL`), de letterlijke
+    brondefinitie, elke passage letterlijk met vindplaats en voorbehoud, de uitleg van de keten en
+    conflicten. Leden uitvinken = splitsen; kaarten kiezen = combineren (`overnameVoor` in
+    `lib/begripVoorstellen.ts`); *Lijkt op* koppelt aan een bestaand begrip. Na een overname opent het
+    begrip in de werkplek van levering 2. Twijfelvragen en relaties staan letterlijk (`passages` uit de
+    api); *Samen* zet de betrokken open groepen klaar om te combineren.
+  - Browserregressie: `scripts/test-begripvoorstellen.mjs`. Let op: een label om een tekstveld neemt de
+    **inhoud** van het veld op in de toegankelijke naam – zoek een gevuld veld op een prefix.
 - **Tabs scrollen.** Vijf tabs passen niet naast elkaar op een telefoon; de horizontale `Tabs` scrollt
   (`overflow-x-auto`, tabs `whitespace-nowrap`). Een afgekapte tab is onbereikbaar, en een toets op
   horizontale scroll van de pagina ziet dat niet.
@@ -1063,7 +1085,7 @@ npm run test:browser # Playwright op de echte Next-UI met gemockte BFF (scripts/
 ```
 
 `test:browser` draait `scripts/test-annotatie-nodes.mjs`, `test-samenhang.mjs`, `test-reeks.mjs`,
-`test-toetsen.mjs`, `test-werkgebieden.mjs` en `test-begrippen.mjs`, en verwacht een devserver op poort 3109
+`test-toetsen.mjs`, `test-werkgebieden.mjs`, `test-begrippen.mjs` en `test-begripvoorstellen.mjs`, en verwacht een devserver op poort 3109
 (`AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109`).
 Praat met **`localhost`**, niet met `127.0.0.1`: Next 16 weigert dev-assets aan een andere origin,
 waarna de pagina niet hydrateert en elke stap zonder duidelijke fout time-out.
