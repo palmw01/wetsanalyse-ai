@@ -8,8 +8,11 @@ dezelfde conflictcontrole:
   of non-link van de beslistabel nooit;
 - ook niet als de wet het paar al als relatie noemt (`Z-RELATIE-GAAT-VOOR`): zo'n paar gaat niet
   eens naar het model (`te_vergelijken`);
-- `zelfde_betekenis` → link door het model, `verwant_ander_begrip` en `betekenisverschil` → non-link
-  door het model, `onbeslist` → de vraag blijft.
+- `zelfde_betekenis` → link door het model: een gele groep, die de jurist ziet en kan splitsen;
+- `verwant_ander_begrip`, `betekenisverschil` en `onbeslist` → de vraag **blijft**, met het oordeel
+  erbij als advies. Een scheiding door het model zou de vraag laten verdwijnen; een foute scheiding
+  is dan onzichtbaar, een foute samenvoeging niet. Gemeten: op de AWR-set scheidde het model in 2 van
+  3 runs een paar dat volgens de set hetzelfde begrip is.
 
 Zuiver: dezelfde uitkomst en dezelfde oordelen geven dezelfde groepen.
 """
@@ -27,18 +30,14 @@ from .model import (
 
 VERSIE = "1"
 
-_NAAR_BESLUIT = {
-    Oordeel.ZELFDE_BETEKENIS: (Besluit.LINK, "M-ZELFDE"),
-    Oordeel.VERWANT_ANDER_BEGRIP: (Besluit.NON_LINK, "M-VERWANT"),
-    Oordeel.BETEKENISVERSCHIL: (Besluit.NON_LINK, "M-VERSCHIL"),
-}
+_NAAR_BESLUIT = {Oordeel.ZELFDE_BETEKENIS: (Besluit.LINK, "M-ZELFDE")}
 
 
 @dataclass(frozen=True)
 class Hergroepering:
     groepen: tuple[Betekenisgroep, ...]
     relaties: tuple[Relatie, ...]
-    vragen: tuple[Vraag, ...]                  # wat na het model nog open is
+    vragen: tuple[Vraag, ...]                  # wat na het model nog open is (met advies in `oordelen`)
     oordelen: tuple[ModelOordeel, ...]         # alle oordelen, ook onbeslist en ongeldig
 
 

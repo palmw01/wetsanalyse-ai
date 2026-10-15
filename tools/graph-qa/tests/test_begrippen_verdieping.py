@@ -103,10 +103,12 @@ def test_zelfde_betekenis_van_het_model_maakt_een_gele_groep(manifest, uitkomst)
 
 
 @pytest.mark.parametrize("oordeel", [Oordeel.BETEKENISVERSCHIL, Oordeel.VERWANT_ANDER_BEGRIP])
-def test_een_verschil_beantwoordt_de_vraag_zonder_groep(manifest, uitkomst, oordeel):
+def test_een_verschil_van_het_model_laat_de_vraag_staan_met_advies(manifest, uitkomst, oordeel):
+    """Een foute scheiding mag niet onzichtbaar worden: de jurist houdt de vraag."""
     vid = uitkomst.vragen[0].kandidaat_id
     her = verdieping.hergroepeer(manifest, uitkomst, [ModelOordeel(kandidaat_id=vid, oordeel=oordeel)])
-    assert not her.groepen and not her.vragen
+    assert not her.groepen and [v.kandidaat_id for v in her.vragen] == [vid]
+    assert [o.oordeel for o in her.oordelen] == [oordeel]
 
 
 def test_onbeslist_laat_de_vraag_staan(manifest, uitkomst):
