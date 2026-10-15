@@ -594,7 +594,7 @@ en eindig met `opgeslagen` + `done`.
   zelf is één synchrone stap).
 - **Per groep een voorstel** (`voorstel`): de naam is de term die de leden het vaakst dragen; is een lid
   de term van een begripsbepaling, dan de letterlijke definiens (`definities.definiens`) met vindplaats.
-  De model-laag (twijfelparen, kaart) staat hierboven; de run met batches volgt in fase C2.
+  De model-laag (twijfelparen, kaart) staat hierboven; de run met batches is de verdieping (fase C2).
 - **Geen model, dus geen tokens en geen budgetpoort.** Een herstart op hetzelfde manifest levert
   dezelfde groep-id's; de api schrijft idempotent.
 - **Elk faalpad is zichtbaar**: api onbereikbaar, ongeldig manifest, de keten faalt, de api weigert de
@@ -604,6 +604,28 @@ en eindig met `opgeslagen` + `done`.
   `tests/test_begrippen_run.py` leest die klassen uit de bron (zoals `test_contract_drift.py`), en
   `tests/test_begrippen_manifest_drift.py` bewaakt manifest-id en veldnamen via
   `manifest-id.vectoren.json`.
+
+### Lex denkt mee: de verdieping als beurt (`agent/begrippen_verdieping.py`, fase C2)
+
+De model-laag hierboven, uitgevoerd in batches met de api als geheugen. Ingang: `POST /v1/runs` met
+`werkgebied_id` en `modus: "begrippen_verdiepen"`, of in het gesprek "denk mee over de begrippen" /
+"stel definities voor" (`is_verdiepvraag`). De begrippenroute biedt het ook aan: na de voorstellen een
+zin en een `bevestiging` (`meedenk_aanbod`) als er twijfelpunten of begrippen zonder definitie zijn.
+
+- **De werkvoorraad komt van de api** (`GET …/verdieping`), met schatting en budget. Zonder
+  `bevestigd`: alleen het voorstel en een `bevestiging` (`soort: "begrippen_verdiepen"`). Met
+  `bevestigd: n` alleen als `n` het actuele `aantal` is. Is er niets voor het model, dan rekent hij
+  meteen, zonder model (kaarten zoals de keten ze geeft).
+- **De keten draait opnieuw** op het bewaarde manifest; wijken groepen of vragen af van wat de api
+  bewaarde, dan stopt hij ("vraag eerst opnieuw om begrippen").
+- **Per batch** (`verdieping.batch_id`): klaar bij de api → teruglezen (hervatten, ook zonder
+  bevestiging); anders – alleen na bevestiging – stop en budget, het model in een thread met een eigen
+  `AnthropicLLM` (meter), het verbruik geboekt op `<run>.v<n>`, en `PUT …/batches/{id}`. Een fout in één
+  batch stopt de rest niet, maar dan blijft de verdieping open en zegt Lex hoeveel er klaar is.
+- **Alles klaar** → hergroeperen, kaarten, `PUT …/verdieping` (groepen met `door`, kaarten, oordelen,
+  open vragen), en een samenvatting met het begrippenartefact.
+- `/v1/chat` weigert de modus (422), zoals de andere `WERKGEBIED_MODI`.
+- Tests: `tests/test_begrippen_verdieping_run.py` (nep-api en nep-model; het api-contract uit de bron).
 
 ### De begrippenroute in het gesprek (`agent/begrippen_beurt.py`, fase AF2)
 

@@ -210,6 +210,21 @@ class WetsanalyseApi:
     async def meld_begrippen_mislukt(self, werkgebied_id: str, run_id: str, reden: str) -> dict[str, Any]:
         return await self._post(f"{self._run_pad(werkgebied_id, run_id)}/mislukt", {"reden": reden[:2000]})
 
+    # -- de verdieping: het model op twijfelparen en kaarten (fase C) ------------------------------
+
+    async def haal_verdieping(self, werkgebied_id: str) -> dict[str, Any]:
+        """Werkvoorraad, klare batches, schatting en budget voor de laatste klare run."""
+        return await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/verdieping")
+
+    async def zet_begrippen_batch(self, werkgebied_id: str, run_id: str, batch_id: str,
+                                  batch: dict[str, Any]) -> dict[str, Any]:
+        """Idempotent aan de api-kant; de api toetst de garanties opnieuw (422 bij een gebroken)."""
+        return await self._verstuur("PUT", f"{self._run_pad(werkgebied_id, run_id)}/batches/{quote(batch_id, safe='')}",
+                                    batch)
+
+    async def zet_verdieping(self, werkgebied_id: str, run_id: str, verdieping: dict[str, Any]) -> dict[str, Any]:
+        return await self._verstuur("PUT", f"{self._run_pad(werkgebied_id, run_id)}/verdieping", verdieping)
+
     # -- gesprekken-domein -----------------------------------------------------------------------
 
     async def voeg_bericht_toe(self, gesprek_id: str, bericht: dict[str, Any]) -> dict[str, Any]:

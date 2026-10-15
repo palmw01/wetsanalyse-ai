@@ -63,6 +63,7 @@ from agent.reeks import reeks_run  # noqa: E402
 from agent.werkgebied_annotatie import werkgebied_annotatie_beurt  # noqa: E402
 from agent.config import Settings  # noqa: E402
 from agent.begrippen_beurt import begrippen_beurt, zonder_api  # noqa: E402
+from agent.begrippen_verdieping import verdieping_beurt  # noqa: E402
 from agent.begrippen_run import begrippen_stroom  # noqa: E402
 from agent.bronnen_run import bronnen_beurt, bronnen_stroom  # noqa: E402
 from agent.models import WERKGEBIED_MODI, BegrippenRunVerzoek, ChatRequest, RunStart, Verbruiksmeter  # noqa: E402
@@ -338,6 +339,11 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
             if not settings.legt_zelf_vast:
                 return zonder_api()
             return werkgebied_annotatie_beurt(request, run, settings=settings, user_id=gebruiker)
+        if request.is_begrippen_verdieping:
+            # Het model op twijfelparen en kaarten (fase C): eerst het voorstel, na bevestiging de batches.
+            if not settings.legt_zelf_vast:
+                return zonder_api()
+            return verdieping_beurt(request, run, settings=settings, user_id=gebruiker)
         if request.is_bronnenbeurt:
             # Bepalingen zoeken binnen een werkgebied: de ontdekmethoden, geen supervisor en geen model.
             if not settings.legt_zelf_vast:

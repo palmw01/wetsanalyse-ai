@@ -363,6 +363,8 @@ begrippen_runs = Table("begrippen_runs", metadata,
     Column("gestart_door", String(64), nullable=False),
     Column("gestart", _DT, nullable=False),
     Column("gewijzigd", _DT, nullable=False),
+    # De model-laag (fase C): groepen, kaarten en oordelen na de verdieping; NULL = nog niet verdiept.
+    Column("verdieping", _JSON, nullable=True),
     Index("ix_begrippen_runs_manifest", "werkgebied_id", "manifest_id"))
 betekenisgroepen = Table("betekenisgroepen", metadata,
     Column("werkgebied_id", String(64), primary_key=True),
@@ -377,7 +379,25 @@ betekenisgroepen = Table("betekenisgroepen", metadata,
     Column("reden", Text, nullable=False, default=""),
     Column("begrip_id", String(64), nullable=True),
     Column("besloten_door", String(64), nullable=True),
-    Column("besloten_op", _DT, nullable=True))
+    Column("besloten_op", _DT, nullable=True),
+    # Fase C: wie de groep vormde (de beslistabel of een oordeel van het model) en de concept-kaart.
+    Column("door", String(8), nullable=False, server_default="regel"),
+    Column("kaart", _JSON, nullable=True))
+# Eén afgeronde batch van de verdieping (fase C). Er staat alleen wat klaar is: een herstart doet de
+# batches die hier ontbreken. De sleutel is inhoudelijk (graph-qa `verdieping.batch_id`), dus
+# dezelfde batch met hetzelfde model en dezelfde prompt draait één keer.
+begrippen_batches = Table("begrippen_batches", metadata,
+    Column("run_id", String(64), primary_key=True),
+    Column("id", String(64), primary_key=True),
+    Column("werkgebied_id", String(64), nullable=False, index=True),
+    Column("soort", String(8), nullable=False),          # vraag | kaart
+    Column("ids", _JSON, nullable=False),                # kandidaat- of groep-id's
+    Column("resultaat", _JSON, nullable=False),
+    Column("model", String(128), nullable=False),
+    Column("promptversie", String(32), nullable=False),
+    Column("tokens", Integer, nullable=False, default=0),
+    Column("gemaakt_door", String(64), nullable=False),
+    Column("gemaakt", _DT, nullable=False))
 
 # --- Tokenbudget --------------------------------------------------------------
 # Verbruik is een JOURNAAL, geen teller. Eén rij per LLM-call; de stand van nu is een som over het

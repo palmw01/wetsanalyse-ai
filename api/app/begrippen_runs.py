@@ -2,16 +2,18 @@
 begrippenketen en de betekenisgroepen. Gedeeld zoals de werkgebieden; elke route vraagt een actieve
 gebruiker, die als actor in de audit komt.
 
-De routes `…/uitkomst`, `…/loopt` en `…/mislukt` zijn voor graph-qa; de BFF van de werkplek laat ze
+De routes `…/uitkomst`, `…/loopt`, `…/mislukt`, `…/batches/{id}` en `…/verdieping` (PUT) zijn voor graph-qa; de BFF van de werkplek laat ze
 niet door (`frontend/lib/werkgebied.ts:isWerkgebiedRoute`), en de api toetst de uitkomst tegen het
 eigen manifest."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Response
 
-from . import begrippen_run_store as store, werkgebied_store
+from . import begrippen_run_store as store, begrippen_verdieping as verdieping, werkgebied_store
 from .auth import require_client
-from .begrippen_run_contracts import GroepBesluit, GroepKoppeling, MisluktInvoer, Overname, UitkomstInvoer, VraagBesluit
+from .begrippen_run_contracts import (
+    BatchInvoer, GroepBesluit, GroepKoppeling, MisluktInvoer, Overname, UitkomstInvoer, VerdiepingInvoer, VraagBesluit,
+)
 from .routers.auth import actieve_userid
 from .werkgebieden import resolve_bron
 
@@ -50,6 +52,25 @@ async def put_uitkomst(werkgebied_id: str, run_id: str, req: UitkomstInvoer, act
 @router.post("/begrippen-runs/{run_id}/mislukt")
 async def post_mislukt(werkgebied_id: str, run_id: str, req: MisluktInvoer, actor: str = Depends(actieve_userid)):
     return await store.mislukt(werkgebied_id, run_id, req.reden)
+
+
+# --- de verdieping (fase C): het model op twijfelparen en kaarten ----------------------------------
+
+@router.get("/verdieping")
+async def get_verdieping(werkgebied_id: str, actor: str = Depends(actieve_userid)):
+    """Wat het model nog moet doen voor de laatste klare run, met de klare batches, schatting en budget."""
+    return await verdieping.werkvoorraad(werkgebied_id, actor)
+
+
+@router.put("/begrippen-runs/{run_id}/batches/{batch_id}")
+async def put_batch(werkgebied_id: str, run_id: str, batch_id: str, req: BatchInvoer,
+                    actor: str = Depends(actieve_userid)):
+    return await verdieping.zet_batch(werkgebied_id, run_id, batch_id, req, actor)
+
+
+@router.put("/begrippen-runs/{run_id}/verdieping")
+async def put_verdieping(werkgebied_id: str, run_id: str, req: VerdiepingInvoer, actor: str = Depends(actieve_userid)):
+    return await verdieping.zet_verdieping(werkgebied_id, run_id, req, actor)
 
 
 @router.post("/begrippen-runs/{run_id}/vragen/{kandidaat_id}")
