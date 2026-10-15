@@ -8,9 +8,9 @@ Methoden, van sterk naar zwak bewijs (PLAN §D *Bronnen vinden*):
 
 | methode | wat | rol |
 |---|---|---|
-| `overzicht` | het overzicht op de analysevraag (`overzicht.bouw_overzicht`) | kern |
+| `overzicht` | het overzicht op de analysevraag (`overzicht.bouw_overzicht`); standaard alleen zonder kern | kern |
 | `verwijzing_uit` | waar de kern naar verwijst, diepte 1 | afhankelijkheid bij een bekende functie, anders aanverwant |
-| `verwijzing_in` | wat naar de kern verwijst, diepte 1 | aanverwant |
+| `verwijzing_in` | wat naar de kern verwijst, diepte 1 – standaard uit (meting) | aanverwant |
 | `definitie` | waar de wet een term definieert die letterlijk in de kern staat | afhankelijkheid |
 | `opbouw` | de andere artikelen in hetzelfde deel als een kernartikel | aanverwant |
 | `gelijkenis` | `bwb_similarity` op de tekst van de kern – zwakste signaal, geen bewijs | aanverwant |
@@ -34,8 +34,18 @@ from .ports import GraphPort
 logger = logging.getLogger(__name__)
 
 METHODEN = ("overzicht", "verwijzing_uit", "verwijzing_in", "definitie", "opbouw", "gelijkenis")
-#: Wat standaard draait. `gelijkenis` staat uit tot de meting (A4) laat zien dat hij helpt.
-STANDAARD = ("overzicht", "verwijzing_uit", "verwijzing_in", "definitie", "opbouw")
+#: Wat standaard draait als er een kern is – gekozen op de meting van 15 okt 2026
+#: (`docs/architectuur/metingen/bronselectie-2026-10-15/`): met een kern voegde het overzicht geen
+#: recall toe maar wel 36 onbeoordeelde "kern"-kandidaten, en `verwijzing_in` leverde alle uitgesloten
+#: bepalingen (rente, verrekening) voor één aanverwant Leidraad-onderdeel. `gelijkenis` voegde niets toe.
+#: Een methode die niet aantoonbaar helpt, staat niet standaard aan.
+STANDAARD = ("verwijzing_uit", "definitie", "opbouw")
+#: Zonder kern is de analysevraag het enige vertrekpunt: dan het overzicht.
+ZONDER_KERN = ("overzicht",)
+
+
+def standaard_voor(invoer: dict[str, Any]) -> tuple[str, ...]:
+    return STANDAARD if invoer.get("kern") else ZONDER_KERN
 
 MAX_PER_METHODE = 60
 MAX_OVERZICHT = 40
@@ -203,10 +213,15 @@ def q_opbouw(kern: list[str]) -> str:
 def _overzicht(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tuple[int, bool]:
     from .overzicht import bouw_overzicht, onderwerp_uit
 
-    vraag = (invoer.get("analysevraag") or "").strip() or (invoer.get("naam") or "").strip()
-    if not vraag:
+    vraag = (invoer.get("analysevraag") or "").strip()
+    naam = (invoer.get("naam") or "").strip()
+    # Het onderwerp uit de analysevraag ("welke artikelen gaan over X?"); lukt dat niet ("Wanneer is een
+    # aanslag invorderbaar?"), dan de naam van het werkgebied. De hele vraag als onderwerp leverde ruis
+    # op (gemeten: `docs/architectuur/metingen/bronselectie-2026-10-15/`).
+    onderwerp = (onderwerp_uit(vraag) if vraag else "") or naam or vraag
+    vraag = vraag or naam
+    if not onderwerp:
         return 0, True
-    onderwerp = onderwerp_uit(vraag) or vraag
     try:
         ov = bouw_overzicht(graph, vraag, onderwerp=onderwerp)
     except ValueError:                          # geen onderwerp te vinden: niets, maar wel volledig
@@ -316,11 +331,13 @@ UITVOERING: dict[str, Callable[[GraphPort, dict[str, Any], Verzameling], tuple[i
 }
 
 
-def vind(graph: GraphPort, invoer: dict[str, Any], methoden: tuple[str, ...] = STANDAARD,
+def vind(graph: GraphPort, invoer: dict[str, Any], methoden: tuple[str, ...] | None = None,
          melding: Callable[[str, int, bool, int], None] | None = None) -> dict[str, Any]:
-    """Alle methoden op de invoer van een bronnenrun (`api/app/bronnen_run_store.invoer_van`).
+    """De methoden op de invoer van een bronnenrun (`api/app/bronnen_run_store.invoer_van`); zonder
+    `methoden` de standaard voor die invoer (`standaard_voor`).
 
     Een methode die faalt, laat de rest niet vallen: haar meting zegt `volledig: false`."""
+    methoden = methoden or standaard_voor(invoer)
     selectie = [b["bron_iri"] for b in invoer.get("kern", []) + invoer.get("context", [])]
     v = Verzameling(selectie)
     meting: dict[str, dict[str, Any]] = {}

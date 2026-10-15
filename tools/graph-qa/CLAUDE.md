@@ -601,12 +601,18 @@ vóór de supervisor en zonder model – dezelfde plek als de reeks (`_stroom_vo
 Vanaf de selectie van een werkgebied (kern = rol *analyseren*) zoekt Lex bepalingen die erbij kunnen
 horen; de api bewaart de kandidaten en de besluiten (`api/app/bronnen_run_store.py`).
 
-- **Methoden, zonder model** (`METHODEN`, `STANDAARD`): `overzicht` (op de analysevraag, anders de
-  naam; rol kern), `verwijzing_uit` (diepte 1 vanaf de kern en haar leden/onderdelen; afhankelijkheid
-  bij een bekende functie, anders aanverwant), `verwijzing_in` (aanverwant), `definitie` (een
-  `bwb:definieertBegrip` in de regeling van de kern waarvan de term letterlijk in de kern staat;
-  afhankelijkheid), `opbouw` (de andere artikelen in hetzelfde deel; aanverwant) en `gelijkenis`
-  (`bwb_similarity`, zwakste signaal – **standaard uit** tot de meting van A4 zegt dat hij helpt).
+- **Methoden, zonder model** (`METHODEN`): `overzicht` (onderwerp uit de analysevraag, anders de naam
+  van het werkgebied; rol kern), `verwijzing_uit` (diepte 1 vanaf de kern en haar leden/onderdelen;
+  afhankelijkheid bij een bekende functie, anders aanverwant), `verwijzing_in` (aanverwant),
+  `definitie` (een `bwb:definieertBegrip` in de regeling van de kern waarvan de term letterlijk in de
+  kern staat; afhankelijkheid), `opbouw` (de andere artikelen in hetzelfde deel; aanverwant) en
+  `gelijkenis` (`bwb_similarity`).
+- **De standaard volgt de meting** (`standaard_voor`, meetlogboek `bronselectie-2026-10-15`): met een
+  kern `STANDAARD` = verwijzing uit, definitie, opbouw; zonder kern `ZONDER_KERN` = het overzicht.
+  Overzicht (met kern), `verwijzing_in` en `gelijkenis` hielpen niet aantoonbaar en staan uit. Wijzig
+  je een methode, meet dan opnieuw: `uv run python -m eval.bronselectie_eval` (offline, tegen de
+  opname naast de set) en `--opnemen` (live); `tests/test_bronselectie_eval.py` bewaakt dat de standaard
+  alles vindt wat nodig is en niets uitgeslotens voorstelt.
 - **De queries gaan op bron-IRI's** (`q_uitgaand`, `q_inkomend`, `q_teksten`, `q_definities`,
   `q_opbouw`), niet op bwb-id + artikel: een selectie kan een lid, onderdeel of Leidraad-divisie zijn.
   Alleen geïmporteerde doelen (`?naar a ?type`): een verwijzing naar een regeling buiten de graaf is

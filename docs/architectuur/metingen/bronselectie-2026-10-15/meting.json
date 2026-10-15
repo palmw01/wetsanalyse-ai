@@ -1,0 +1,343 @@
+{
+ "set": "invorderbaarheid-concept",
+ "status": "concept",
+ "rapport": {
+  "alleen overzicht": {
+   "aantal": 40,
+   "recall_nodig": 0.429,
+   "recall": 0.25,
+   "recall_exact": 0.0,
+   "recall@10": 0.083,
+   "recall@20": 0.25,
+   "overbodig": 0.05,
+   "overbodig_iris": [
+    "urn:bwb:BWBR0004770:artikel:28",
+    "urn:bwb:BWBR0004770:artikel:28b"
+   ],
+   "onbeoordeeld": 36,
+   "rol_juist": 0.333,
+   "gemist": [
+    "urn:bwb:BWBR0004770:artikel:2:lid:1:o:m",
+    "urn:bwb:BWBR0004770:artikel:2:lid:2:o:c",
+    "urn:bwb:BWBR0004770:artikel:2:lid:2:o:d",
+    "urn:bwb:BWBR0004770:artikel:2:lid:1:o:k",
+    "urn:bwb:BWBR0004770:artikel:2:lid:1:o:i",
+    "urn:bwb:BWBR0004770:artikel:3:lid:1",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   ],
+   "onvolledig": [
+    "overzicht"
+   ]
+  },
+  "alleen verwijzing_uit": {
+   "aantal": 1,
+   "recall_nodig": 0.571,
+   "recall": 0.417,
+   "recall_exact": 0.0,
+   "recall@10": 0.417,
+   "recall@20": 0.417,
+   "overbodig": 0.0,
+   "overbodig_iris": [],
+   "onbeoordeeld": 0,
+   "rol_juist": 0.8,
+   "gemist": [
+    "urn:bwb:BWBR0004770:artikel:10:lid:1",
+    "urn:bwb:BWBR0004770:artikel:8:lid:1",
+    "urn:bwb:BWBR0004770:artikel:8:lid:5",
+    "urn:bwb:BWBR0004770:artikel:3:lid:1",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   ],
+   "onvolledig": []
+  },
+  "alleen verwijzing_in": {
+   "aantal": 29,
+   "recall_nodig": 0.143,
+   "recall": 0.167,
+   "recall_exact": 0.167,
+   "recall@10": 0.083,
+   "recall@20": 0.083,
+   "overbodig": 0.241,
+   "overbodig_iris": [
+    "urn:bwb:BWBR0002320:artikel:30f:lid:2",
+    "urn:bwb:BWBR0002320:artikel:30fb:lid:1",
+    "urn:bwb:BWBR0004770:artikel:24:lid:2",
+    "urn:bwb:BWBR0004770:artikel:28:lid:2",
+    "urn:bwb:BWBR0004770:artikel:28b:lid:2",
+    "urn:bwb:BWBR0004770:artikel:3a:lid:2",
+    "urn:bwb:BWBR0004770:artikel:52:lid:1"
+   ],
+   "onbeoordeeld": 20,
+   "rol_juist": 0.5,
+   "gemist": [
+    "urn:bwb:BWBR0004770:artikel:8:lid:1",
+    "urn:bwb:BWBR0004770:artikel:8:lid:5",
+    "urn:bwb:BWBR0004770:artikel:2:lid:1:o:m",
+    "urn:bwb:BWBR0004770:artikel:2:lid:2:o:c",
+    "urn:bwb:BWBR0004770:artikel:2:lid:2:o:d",
+    "urn:bwb:BWBR0004770:artikel:2:lid:1:o:k",
+    "urn:bwb:BWBR0004770:artikel:2:lid:1:o:i",
+    "urn:bwb:BWBR0004770:artikel:3:lid:1",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   ],
+   "onvolledig": []
+  },
+  "alleen definitie": {
+   "aantal": 7,
+   "recall_nodig": 0.571,
+   "recall": 0.333,
+   "recall_exact": 0.333,
+   "recall@10": 0.333,
+   "recall@20": 0.333,
+   "overbodig": 0.0,
+   "overbodig_iris": [],
+   "onbeoordeeld": 3,
+   "rol_juist": 1.0,
+   "gemist": [
+    "urn:bwb:BWBR0004770:artikel:10:lid:1",
+    "urn:bwb:BWBR0004770:artikel:8:lid:1",
+    "urn:bwb:BWBR0004770:artikel:8:lid:5",
+    "urn:bwb:BWBR0004770:artikel:2:lid:1:o:i",
+    "urn:bwb:BWBR0004770:artikel:3:lid:1",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   ],
+   "onvolledig": []
+  },
+  "alleen opbouw": {
+   "aantal": 2,
+   "recall_nodig": 0.429,
+   "recall": 0.25,
+   "recall_exact": 0.0,
+   "recall@10": 0.25,
+   "recall@20": 0.25,
+   "overbodig": 0.0,
+   "overbodig_iris": [],
+   "onbeoordeeld": 0,
+   "rol_juist": 0.0,
+   "gemist": [
+    "urn:bwb:BWBR0004770:artikel:2:lid:1:o:m",
+    "urn:bwb:BWBR0004770:artikel:2:lid:2:o:c",
+    "urn:bwb:BWBR0004770:artikel:2:lid:2:o:d",
+    "urn:bwb:BWBR0004770:artikel:2:lid:1:o:k",
+    "urn:bwb:BWBR0004770:artikel:2:lid:1:o:i",
+    "urn:bwb:BWBR0004770:artikel:3:lid:1",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   ],
+   "onvolledig": []
+  },
+  "alleen gelijkenis": {
+   "aantal": 3,
+   "recall_nodig": 0.0,
+   "recall": 0.0,
+   "recall_exact": 0.0,
+   "recall@10": 0.0,
+   "recall@20": 0.0,
+   "overbodig": 0.0,
+   "overbodig_iris": [],
+   "onbeoordeeld": 3,
+   "rol_juist": null,
+   "gemist": [
+    "urn:bwb:BWBR0004770:artikel:10:lid:1",
+    "urn:bwb:BWBR0004770:artikel:8:lid:1",
+    "urn:bwb:BWBR0004770:artikel:8:lid:5",
+    "urn:bwb:BWBR0004770:artikel:2:lid:1:o:m",
+    "urn:bwb:BWBR0004770:artikel:2:lid:2:o:c",
+    "urn:bwb:BWBR0004770:artikel:2:lid:2:o:d",
+    "urn:bwb:BWBR0004770:artikel:2:lid:1:o:k",
+    "urn:bwb:BWBR0004770:artikel:2:lid:1:o:i",
+    "urn:bwb:BWBR0004770:artikel:3:lid:1",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   ],
+   "onvolledig": []
+  },
+  "standaard": {
+   "aantal": 10,
+   "recall_nodig": 1.0,
+   "recall": 0.667,
+   "recall_exact": 0.333,
+   "recall@10": 0.667,
+   "recall@20": 0.667,
+   "overbodig": 0.0,
+   "overbodig_iris": [],
+   "onbeoordeeld": 3,
+   "rol_juist": 0.5,
+   "gemist": [
+    "urn:bwb:BWBR0004770:artikel:3:lid:1",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   ],
+   "onvolledig": []
+  },
+  "standaard zonder verwijzing_uit": {
+   "aantal": 9,
+   "recall_nodig": 1.0,
+   "recall": 0.583,
+   "recall_exact": 0.333,
+   "recall@10": 0.583,
+   "recall@20": 0.583,
+   "overbodig": 0.0,
+   "overbodig_iris": [],
+   "onbeoordeeld": 3,
+   "rol_juist": 0.571,
+   "gemist": [
+    "urn:bwb:BWBR0004770:artikel:2:lid:1:o:i",
+    "urn:bwb:BWBR0004770:artikel:3:lid:1",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   ],
+   "onvolledig": []
+  },
+  "standaard zonder definitie": {
+   "aantal": 3,
+   "recall_nodig": 1.0,
+   "recall": 0.667,
+   "recall_exact": 0.0,
+   "recall@10": 0.667,
+   "recall@20": 0.667,
+   "overbodig": 0.0,
+   "overbodig_iris": [],
+   "onbeoordeeld": 0,
+   "rol_juist": 0.5,
+   "gemist": [
+    "urn:bwb:BWBR0004770:artikel:3:lid:1",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   ],
+   "onvolledig": []
+  },
+  "standaard zonder opbouw": {
+   "aantal": 8,
+   "recall_nodig": 0.571,
+   "recall": 0.417,
+   "recall_exact": 0.333,
+   "recall@10": 0.417,
+   "recall@20": 0.417,
+   "overbodig": 0.0,
+   "overbodig_iris": [],
+   "onbeoordeeld": 3,
+   "rol_juist": 0.8,
+   "gemist": [
+    "urn:bwb:BWBR0004770:artikel:10:lid:1",
+    "urn:bwb:BWBR0004770:artikel:8:lid:1",
+    "urn:bwb:BWBR0004770:artikel:8:lid:5",
+    "urn:bwb:BWBR0004770:artikel:3:lid:1",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   ],
+   "onvolledig": []
+  },
+  "standaard + overzicht": {
+   "aantal": 48,
+   "recall_nodig": 1.0,
+   "recall": 0.667,
+   "recall_exact": 0.333,
+   "recall@10": 0.25,
+   "recall@20": 0.25,
+   "overbodig": 0.042,
+   "overbodig_iris": [
+    "urn:bwb:BWBR0004770:artikel:28",
+    "urn:bwb:BWBR0004770:artikel:28b"
+   ],
+   "onbeoordeeld": 39,
+   "rol_juist": 0.625,
+   "gemist": [
+    "urn:bwb:BWBR0004770:artikel:3:lid:1",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   ],
+   "onvolledig": [
+    "overzicht"
+   ]
+  },
+  "standaard + verwijzing_in": {
+   "aantal": 39,
+   "recall_nodig": 1.0,
+   "recall": 0.75,
+   "recall_exact": 0.5,
+   "recall@10": 0.417,
+   "recall@20": 0.5,
+   "overbodig": 0.179,
+   "overbodig_iris": [
+    "urn:bwb:BWBR0002320:artikel:30f:lid:2",
+    "urn:bwb:BWBR0002320:artikel:30fb:lid:1",
+    "urn:bwb:BWBR0004770:artikel:24:lid:2",
+    "urn:bwb:BWBR0004770:artikel:28:lid:2",
+    "urn:bwb:BWBR0004770:artikel:28b:lid:2",
+    "urn:bwb:BWBR0004770:artikel:3a:lid:2",
+    "urn:bwb:BWBR0004770:artikel:52:lid:1"
+   ],
+   "onbeoordeeld": 23,
+   "rol_juist": 0.556,
+   "gemist": [
+    "urn:bwb:BWBR0004770:artikel:3:lid:1",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   ],
+   "onvolledig": []
+  },
+  "standaard + gelijkenis": {
+   "aantal": 13,
+   "recall_nodig": 1.0,
+   "recall": 0.667,
+   "recall_exact": 0.333,
+   "recall@10": 0.417,
+   "recall@20": 0.667,
+   "overbodig": 0.0,
+   "overbodig_iris": [],
+   "onbeoordeeld": 6,
+   "rol_juist": 0.5,
+   "gemist": [
+    "urn:bwb:BWBR0004770:artikel:3:lid:1",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.1",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   ],
+   "onvolledig": []
+  },
+  "alles": {
+   "aantal": 80,
+   "recall_nodig": 1.0,
+   "recall": 0.75,
+   "recall_exact": 0.5,
+   "recall@10": 0.25,
+   "recall@20": 0.25,
+   "overbodig": 0.113,
+   "overbodig_iris": [
+    "urn:bwb:BWBR0004770:artikel:28",
+    "urn:bwb:BWBR0004770:artikel:28b",
+    "urn:bwb:BWBR0002320:artikel:30f:lid:2",
+    "urn:bwb:BWBR0002320:artikel:30fb:lid:1",
+    "urn:bwb:BWBR0004770:artikel:24:lid:2",
+    "urn:bwb:BWBR0004770:artikel:28:lid:2",
+    "urn:bwb:BWBR0004770:artikel:28b:lid:2",
+    "urn:bwb:BWBR0004770:artikel:3a:lid:2",
+    "urn:bwb:BWBR0004770:artikel:52:lid:1"
+   ],
+   "onbeoordeeld": 62,
+   "rol_juist": 0.667,
+   "gemist": [
+    "urn:bwb:BWBR0004770:artikel:3:lid:1",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.4",
+    "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie9%2FCirculaire.divisie9.5"
+   ],
+   "onvolledig": [
+    "overzicht"
+   ]
+  }
+ }
+}
