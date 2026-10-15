@@ -21,6 +21,8 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
    bronselecties en een inventaris van de geannoteerde elementen – zie §*Werkgebieden*.
 8. **Begrippen** (`/v1/werkgebieden/{id}/begrippen/*`, spoor D levering 2): begrippen per werkgebied
    met koppelingen naar annotatie-elementen, beoordeling, revisies en export – zie §*Begrippen*.
+9. **Voorstellen van Lex** (`/v1/werkgebieden/{id}/begrippen-runs/*`, `…/groepen/*`, levering 3a):
+   het manifest voor de begrippenketen, runs en de betekenisgroepen – zie §*Voorstellen van Lex*.
 
 > **De wettekst komt uit de graaf.** De API leest uit GraphDB de **bronboom** (`bron_resolver.py`):
 > daarmee toetst hij ankers, legt hij snapshots vast en levert hij de segmenten van de weergave.
@@ -48,6 +50,7 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
 | `knoopinfo.py` | Wat de kennisgraaf over één knoop weet (`/knoop`), voor de inspector van de graaf. |
 | `werkgebieden.py` (router), `werkgebied_store.py`, `werkgebied_contracts.py`, `werkgebied_inventaris.py` | Werkgebieden: bronselecties, revisies, audit en de inventaris. |
 | `begrippen.py` (router), `begrip_store.py`, `begrip_contracts.py` | Begrippen: inhoud, koppelingen met bewijsstand, actualiteit, de accorderingspoort, revisies en export. |
+| `begrippen_runs.py` (router), `begrippen_run_store.py`, `begrippen_run_contracts.py`, `begrip_manifest.py` | Voorstellen van Lex: manifest voor de begrippenketen, runs, betekenisgroepen en besluiten. |
 | `annotatie_statistiek.py`, `scripts/statistiek.py` | Reviewstatistiek over de elementen: uitkomst per klasse en per model, klasse-verschuivingen, aandacht tegenover correctie. |
 | `jas_klassen.py`, `validation.py` | De dertien JAS-klassen, volgorde en kleuren (canoniek); `GELDIGE_JAS_KLASSEN`, `JAS_KLASSE_KLEUREN`, `jas_sorteersleutel`. |
 | `ratelimit.py` | In-process rate limit per client. |
@@ -277,6 +280,40 @@ spoor D (*Werkgebied als node*).
 - Tests: `tests/test_begrippen.py` (SQLite, met de acceptatie uit PLAN) en
   `tests/test_begrippen_postgres.py` (de sloten, met `ANNOTATIE_TEST_DSN`).
 
+## Voorstellen van Lex
+
+`begrippen_runs.py`, `begrippen_run_store.py`, `begrip_manifest.py`; het ontwerp is ADR-004 en
+PLAN spoor D (*Verwerking*). De keten zelf draait in graph-qa (`agent/begrippen_run.py`); de api
+bouwt de invoer, toetst en bewaart de uitkomst, en legt de besluiten vast.
+
+- **Het manifest** (`begrip_manifest.bouw`) komt uit dezelfde inventaris als de tab Elementen
+  (`inventaris_met_bronbomen`), dus met contextbronnen: een definitie buiten de analyseselectie
+  hoort juist mee. Vorm = `Bron`/`Formulering` van `begrippen_pipeline.model`; `aanhef` is de tekst
+  van de directe ouder (de houder: "Deze wet verstaat onder:"), `label` de vindplaats. Een element met
+  meer dan één anker, of dat verouderd is, staat in `overgeslagen` met reden – nooit stil weg.
+- **`manifest_id` rekent zoals `Manifest.id`.** Twee diensten, dus geen import:
+  `docs/wetsanalyse/referentieset-begrippen/manifest-id.vectoren.json` legt id's en veldnamen vast,
+  en zowel `tests/test_begrippen_runs.py` als graph-qa `tests/test_begrippen_manifest_drift.py`
+  toetsen ertegen. Wijzigt het model van de keten, laat de vectoren dan door de keten herberekenen.
+- **Runs zijn idempotent op (werkgebied, manifest)**: een tweede start geeft de bestaande run (200,
+  `nieuw: false`). Een run in `wacht`/`loopt` die `VERLOPEN` (5 min) niets van zich liet horen, telt
+  als `mislukt` en mag opnieuw; graph-qa meldt `…/loopt` bij de start. Een onvolledige inventaris of
+  minder dan twee passages: 409 met melding, geen run.
+- **De uitkomst wordt getoetst** (`PUT …/uitkomst`): zelfde `manifest_id`, en elk genoemd element-id
+  staat in het manifest (422 `onbekend_element`). Dezelfde uitkomst nog eens is idempotent; een andere
+  op een klare run 409. `…/uitkomst`, `…/loopt` en `…/mislukt` zijn voor graph-qa; de BFF laat ze niet
+  door.
+- **Een besluit hoort bij de groep** (`betekenisgroepen`, sleutel werkgebied + groep-id = de inhoudshash
+  van de keten). Komt dezelfde groep in een latere run terug, dan blijft een afwijzing staan.
+- **Overnemen** (`POST groepen/overnemen`) maakt via `begrip_store.maak` één begrip (concept) met de
+  gekozen leden als `duiding` – meer groepen is combineren, een deel van de leden splitsen. De
+  letterlijke brondefinitie gaat alleen mee als er precies één is (herkomst `letterlijk`). Koppelen aan
+  een bestaand begrip gaat via `begrip_store.koppel` met de actuele revisie. `lijkt_op` per groep:
+  begrippen die een passage delen of de voorgestelde naam als naam of alternatieve term dragen.
+- Besluiten en runs komen in `werkgebied_audit` (`begrippen-run-gestart`, `begrippen-voorgesteld`,
+  `groep-*`, `vraag-beantwoord`). Een besluit wijzigt nooit annotaties.
+- Bekend: overnemen maakt eerst het begrip en legt daarna het besluit vast, in twee transacties.
+
 ## Gesprekken
 
 `gesprek_contracts.py`, `gesprek_store.py`, `routers/gesprekken.py`. Per gebruiker gescopet via
@@ -459,7 +496,7 @@ niet vullen. `POST /v1/auth/registratie` heeft een eigen rate limit.
 ## Nog niet gebouwd
 
 - **Externe IdP/OIDC.** De API is zelf de identiteitsbron.
-- **Activiteit 3, verder.** Werkgebieden en begrippen bestaan; betekenisgroepen en voorstellen van
-  Lex, begripsrelaties, de projectie naar de graaf (NL-SBB) en RDF-export volgen (PLAN spoor D,
-  leveringen 3 en 4).
+- **Activiteit 3, verder.** Werkgebieden, begrippen en de deterministische voorstellen van Lex
+  bestaan; het model voor twijfelparen en definitievoorstellen (L3b), begripsrelaties, de projectie
+  naar de graaf (NL-SBB) en RDF-export volgen (PLAN spoor D, leveringen 3b en 4).
 - **RegelSpraak-formalisering.** Komt later.

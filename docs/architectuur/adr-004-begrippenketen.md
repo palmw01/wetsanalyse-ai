@@ -143,4 +143,5 @@ deterministisch), LKIF Core (te zwaar voor deze stap), BlackLab (tweede index).
 | 5 | Definitiesignalen met bereik, verwijzingssignalen |
 | 6 | Patroonregister (kwalificatie, inclusie, uitsluiting, hiërarchie, tegenbewijs) |
 | 7 | Groeperen, besluit, resolver, uitleg, trace; eerste meting |
-| later | Classifier voor possible link; definitievoorstel; api-domein en werkplek |
+| L3a | Api-domein (manifest, runs, groepen, besluiten), de run in graph-qa en de werkplek; letterlijk definitievoorstel (spoor D, levering 3a) |
+| later (L3b) | Classifier voor possible link; geformuleerd definitievoorstel; hervatbare batches |

@@ -1,0 +1,37 @@
+{
+  "_toelichting": "Het manifest-id van de begrippenketen (Manifest.id in tools/graph-qa/agent/begrippen_pipeline/model.py) en van de api (begrip_manifest.manifest_id) moet voor dezelfde invoer gelijk zijn. Beide kanten toetsen tegen deze vectoren. Niet met de hand aanpassen: na een bewuste wijziging opnieuw laten berekenen door de keten.",
+  "vectoren": [
+    {
+      "set": "v1",
+      "manifest_id": "Mdbc3d345df135d71"
+    },
+    {
+      "set": "heldout-v1",
+      "manifest_id": "M7ef63ab2afc3653d"
+    },
+    {
+      "set": "heldout-v2",
+      "manifest_id": "M26a195ffc06078dd"
+    }
+  ],
+  "velden": {
+    "bron": [
+      "aanhef",
+      "bron_hash",
+      "bron_iri",
+      "label",
+      "regeling",
+      "tekst"
+    ],
+    "formulering": [
+      "bron_iri",
+      "eind",
+      "element_id",
+      "jas_klasse",
+      "jas_subtype",
+      "review_status",
+      "start",
+      "tekst"
+    ]
+  }
+}

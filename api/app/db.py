@@ -307,6 +307,42 @@ begrip_koppelingen = Table("begrip_koppelingen", metadata,
     Column("toegevoegd", _DT, nullable=False),
     Column("verwijderd", _DT, nullable=True))
 
+# --- Voorstellen van Lex (spoor D, levering 3; ADR-004) -----------------------
+# Een run is één toepassing van de begrippenketen op het manifest van een werkgebied. De api bouwt en
+# bewaart het manifest (de vaste invoer), graph-qa rekent en zet de uitkomst terug. Idempotent op
+# (werkgebied, manifest): dezelfde invoer geeft dezelfde groepen, dus een tweede start rekent niet
+# opnieuw. Een groep-id is de inhoudshash van de keten (`G…`); een besluit over een groep (afgewezen,
+# overgenomen) blijft daardoor staan als dezelfde groep in een latere run terugkomt.
+begrippen_runs = Table("begrippen_runs", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("werkgebied_id", String(64), nullable=False, index=True),
+    Column("manifest_id", String(32), nullable=False),
+    Column("manifest", _JSON, nullable=False),
+    Column("overgeslagen", _JSON, nullable=False),
+    Column("status", String(16), nullable=False, default="wacht"),
+    Column("uitkomst", _JSON, nullable=True),
+    Column("uitkomst_hash", String(64), nullable=True),
+    Column("vragen_besluiten", _JSON, nullable=False),
+    Column("reden", Text, nullable=False, default=""),
+    Column("gestart_door", String(64), nullable=False),
+    Column("gestart", _DT, nullable=False),
+    Column("gewijzigd", _DT, nullable=False),
+    Index("ix_begrippen_runs_manifest", "werkgebied_id", "manifest_id"))
+betekenisgroepen = Table("betekenisgroepen", metadata,
+    Column("werkgebied_id", String(64), primary_key=True),
+    Column("id", String(64), primary_key=True),
+    Column("run_id", String(64), nullable=False),
+    Column("leden", _JSON, nullable=False),
+    Column("aandacht", String(8), nullable=False),
+    Column("voorstel", _JSON, nullable=False),
+    Column("uitleg", _JSON, nullable=False),
+    Column("conflicten", _JSON, nullable=False),
+    Column("besluit", String(16), nullable=False, default="open"),
+    Column("reden", Text, nullable=False, default=""),
+    Column("begrip_id", String(64), nullable=True),
+    Column("besloten_door", String(64), nullable=True),
+    Column("besloten_op", _DT, nullable=True))
+
 # --- Tokenbudget --------------------------------------------------------------
 # Verbruik is een JOURNAAL, geen teller. Eén rij per LLM-call; de stand van nu is een som over het
 # huidige venster. Dat heeft drie eigenschappen die een teller niet heeft:

@@ -58,7 +58,8 @@ async def get_verklaringen(actor: str = Depends(actieve_userid)):
 async def capabilities(actor: str = Depends(actieve_userid)):
     """Wat deze api kan; de werkplek toont de samenhangsgraaf alleen als `samenhang` waar is, en
     de werkgebieden alleen als `werkgebieden` waar is, de begrippen alleen als `begrippen` waar is."""
-    return {"schema_versie": 2, "samenhang": True, "werkgebieden": True, "begrippen": True}
+    return {"schema_versie": 2, "samenhang": True, "werkgebieden": True, "begrippen": True,
+            "begrippen_voorstellen": True}
 
 
 @router.get("/weergave")
