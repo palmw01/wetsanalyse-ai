@@ -37,6 +37,22 @@ export function overzichtFocus(ov: Overzicht): string[] {
   return [...new Set(ids)];
 }
 
+/** De bepalingen van een overzicht als begin van een werkgebied (fase A, *Maak hier een werkgebied
+ *  van*): die in de gevonden delen én wat het onderwerp verder noemt, uniek, in de volgorde van het
+ *  overzicht. De naam is zoals de jurist haar leest, met de regeling erbij. */
+export function bepalingenVanOverzicht(ov: Overzicht): { iri: string; naam: string }[] {
+  const gezien = new Set<string>();
+  const uit: { iri: string; naam: string }[] = [];
+  for (const r of ov.regelingen) {
+    for (const b of [...r.delen.flatMap((d) => d.bepalingen), ...r.ook_genoemd]) {
+      if (gezien.has(b.iri)) continue;
+      gezien.add(b.iri);
+      uit.push({ iri: b.iri, naam: `${bepalingNaam(b)} – ${r.citeertitel || r.bwb_id}` });
+    }
+  }
+  return uit;
+}
+
 /** "Bekijk de 4 delen in de kennisgraaf" – zegt wat de knop opent. */
 export function overzichtKnopTekst(ov: Overzicht): string {
   const delen = ov.regelingen.flatMap((r) => r.delen);

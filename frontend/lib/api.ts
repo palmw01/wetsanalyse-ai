@@ -52,6 +52,8 @@ import type {
   Begrip,
   BegripInhoud,
   BegrippenRun,
+  BronKandidaat,
+  BronnenRun,
   BegripRevisie,
   BegrippenLijst,
   Bron,
@@ -62,6 +64,7 @@ import type {
   Gesprek,
   GesprekSamenvatting,
   GroepenAntwoord,
+  KandidatenAntwoord,
   Inventaris,
   KoppelBeoordeling,
   KoppelRol,
@@ -1188,4 +1191,51 @@ export async function besluitGroep(
 
 export async function beantwoordVraag(id: string, runId: string, kandidaatId: string, antwoord: "samen" | "apart"): Promise<BegrippenRun> {
   return json<BegrippenRun>(await fetch(wg(id, "begrippen-runs", runId, "vragen", kandidaatId), jsonInit("POST", { antwoord })));
+}
+
+// --- Bronnen vinden met Lex (spoor D, fase A) ---------------------------------------------------
+
+/** Laat Lex bepalingen zoeken. `agent_run_id` is null als er voor deze selectie al gezocht is. */
+export async function startBronnenRun(id: string): Promise<{ run: BronnenRun; agent_run_id: string | null }> {
+  return json(await fetch("/api/bronnen-run", jsonInit("POST", { werkgebied_id: id })));
+}
+
+/** De lopende zoekopdracht om op aan te haken, `null` als er niets loopt, `"onbekend"` bij een storing. */
+export async function haalActieveBronnenRun(id: string): Promise<RunStart | null | "onbekend"> {
+  const res = await fetch(`/api/bronnen-run?${new URLSearchParams({ werkgebied: id })}`, { cache: "no-store" });
+  if (!res.ok) return "onbekend";
+  const run = (await res.json()) as RunStart | null;
+  return run && run.status === "loopt" ? run : null;
+}
+
+export async function haalLaatsteBronnenRun(id: string): Promise<BronnenRun | null> {
+  return (await json<{ run: BronnenRun | null }>(await fetch(wg(id, "bronnen-runs", "laatste"), { cache: "no-store" }))).run;
+}
+
+export async function haalKandidaten(id: string): Promise<KandidatenAntwoord> {
+  return json<KandidatenAntwoord>(await fetch(wg(id, "kandidaten"), { cache: "no-store" }));
+}
+
+export async function besluitKandidaat(
+  id: string, kandidaatId: string, besluit: "later" | "uitsluiten" | "heropenen", reden = "",
+): Promise<BronKandidaat> {
+  return json<BronKandidaat>(await fetch(wg(id, "kandidaten", kandidaatId, besluit),
+    jsonInit("POST", besluit === "uitsluiten" ? { reden } : {})));
+}
+
+/** Een kandidaat opnemen als bronselectie. Opnemen wijzigt de scope en draagt de revisie; die haalt
+ *  deze helper zelf op en probeert bij een 412 één keer opnieuw – net als `neemOpInWerkgebied`: de
+ *  bedoeling hangt niet af van de rest van het werkgebied. */
+export async function neemKandidaatOp(
+  id: string, kandidaatId: string, rol?: BronRol,
+): Promise<{ kandidaat: BronKandidaat; selectie: Bronselectie; werkgebied: Werkgebied }> {
+  for (let poging = 0; ; poging++) {
+    const { revisie } = await haalWerkgebied(id);
+    try {
+      return await json(await fetch(wg(id, "kandidaten", kandidaatId, "opnemen"),
+        jsonInit("POST", { verwachte_revisie: revisie, ...(rol ? { rol } : {}) })));
+    } catch (e) {
+      if (poging > 0 || !(isApiError(e) && e.status === 412)) throw e;
+    }
+  }
 }

@@ -214,23 +214,23 @@ try {
   await melding("Werkgebied aangemaakt");
   await foto("werkgebied-historie");
 
-  // Samenhang: de graaf van de bronnen, en wat ze noemen zonder erin te staan als suggestie.
+  // Samenhang: de graaf van de bronnen. Opnemen kan vanuit de inspector (de suggestielijst eronder is
+  // vervangen door de kandidaten van Lex op de tab Bronnen, fase A).
   await page.getByRole("tab", { name: "Samenhang" }).click();
   await page.locator('[data-testid="samenhang-graaf"][data-gereed="true"]').waitFor({ timeout: 30000 });
-  const suggesties = page.getByRole("list", { name: "Verwijzingen buiten dit werkgebied" });
-  await suggesties.getByText("Genoemd in Artikel 9 · lid 1").first().waitFor();
-  await suggesties.getByText("Open punt: niet in de graaf").waitFor();
+  assert.equal(await page.getByRole("list", { name: "Verwijzingen buiten dit werkgebied" }).count(), 0);
   // In de inspector: een opgenomen bepaling zegt dat, een randbepaling is op te nemen.
-  await page.getByRole("combobox", { name: "Zoek in de graaf" }).fill("Artikel 9");
+  const zoek = page.getByRole("combobox", { name: "Zoek in de graaf" });
+  await zoek.fill("Artikel 9");
   await page.locator(`[role="option"][data-knoop-id="${IRI9}"]`).click();
   await page.getByText("Staat in dit werkgebied").waitFor();
   await foto("werkgebied-samenhang");
-  await suggesties.locator("li", { hasText: "Artikel 10" }).getByRole("button", { name: "Opnemen", exact: true }).click();
+  await zoek.fill("Artikel 10");
+  await page.locator(`[role="option"][data-knoop-id="${IRI10}"]`).click();
+  await page.getByRole("button", { name: "Opnemen in werkgebied" }).click();
   await melding("Artikel 10 opgenomen als analyseren.");
   assert.equal(requests.filter((r) => r.m === "POST" && r.p.endsWith("/bronnen")).at(-1).body.bron_iri, IRI10);
   await page.getByRole("tab", { name: "Bronnen (3)" }).waitFor();
-  await page.locator('[data-testid="samenhang-graaf"][data-gereed="true"]').waitFor({ timeout: 30000 });
-  assert.equal(await suggesties.locator("li", { hasText: "Artikel 10" }).count(), 0);
 
   // Weghalen vraagt een tweede klik; de bepaling verdwijnt uit het werkgebied.
   await page.getByRole("tab", { name: /^Bronnen/ }).click();
@@ -267,7 +267,7 @@ try {
   await foto("werkgebied-mobiel");
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
   assert.deepEqual(errors, []);
-  console.log("Browser OK: werkgebied aanmaken, bron opnemen (ongeldig/idempotent/422/context), rol wijzigen, revisieconflict, inventaris met open punt en signalen, tab in de URL, historie, samenhang met suggesties en opnemen, weghalen met bevestiging, opnemen vanaf een annotatie met herkansing na 412, smal scherm.");
+  console.log("Browser OK: werkgebied aanmaken, bron opnemen (ongeldig/idempotent/422/context), rol wijzigen, revisieconflict, inventaris met open punt en signalen, tab in de URL, historie, samenhang met opnemen vanuit de inspector, weghalen met bevestiging, opnemen vanaf een annotatie met herkansing na 412, smal scherm.");
 } catch (e) {
   await foto("fout");
   throw e;

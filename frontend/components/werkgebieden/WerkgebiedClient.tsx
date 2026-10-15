@@ -247,7 +247,7 @@ export function WerkgebiedClient({ id, beginTab, beginBegrip }: {
               label: t.key === "bronnen" ? `${t.label} (${wg.bronnen.length})` : t.label,
               content:
                 t.key === "bronnen" ? (
-                  <BronnenTab wg={wg} muteer={muteer} />
+                  <BronnenTab wg={wg} muteer={muteer} onHerlaad={laad} />
                 ) : t.key === "elementen" ? (
                   // Opnieuw ophalen bij elke nieuwe revisie: een andere selectie is een andere inventaris.
                   <ElementenTab key={wg.revisie} id={id} onNaarBegrip={kiesBegrip} />

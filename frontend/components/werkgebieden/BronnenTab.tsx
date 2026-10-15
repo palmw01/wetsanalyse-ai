@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { BevestigKnop } from "@/components/ui/BevestigKnop";
 import { Button } from "@/components/ui/Button";
 import { ButtonRow } from "@/components/ui/ButtonRow";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
+import { BronKandidaten } from "@/components/werkgebieden/BronKandidaten";
 import type { Mutatie } from "@/components/werkgebieden/WerkgebiedClient";
 import { foutTekst, isApiError, verwijderBron, voegBronToe, wijzigBron } from "@/lib/api";
 import type { BronBereik, BronRol, Bronselectie, Werkgebied } from "@/lib/types";
@@ -21,9 +22,12 @@ const ROLLEN: BronRol[] = ["analyseren", "context"];
  *
  *  Een selectie is een eigen object, geen kopie van de bron: dezelfde bepaling kan in een ander
  *  werkgebied staan met een andere rol, en weghalen laat de bepaling en haar annotaties staan. */
-export function BronnenTab({ wg, muteer }: { wg: Werkgebied; muteer: Mutatie }) {
+export function BronnenTab({ wg, muteer, onHerlaad }: { wg: Werkgebied; muteer: Mutatie; onHerlaad: () => void }) {
+  const labels = useMemo(() => new Map(wg.bronnen.map((b) => [b.bron_iri, b.label || b.bron_iri])), [wg.bronnen]);
   return (
     <div className="space-y-6">
+      {/* Lex zoekt bepalingen die erbij kunnen horen (fase A); opnemen maakt een selectie hieronder. */}
+      <BronKandidaten id={wg.id} labels={labels} onGewijzigd={onHerlaad} />
       {wg.bronnen.length === 0 ? (
         <p className="rounded-kaart border border-dashed border-line px-3 py-6 text-center text-sm text-muted">
           Nog geen bronnen. Neem hieronder een bepaling op.

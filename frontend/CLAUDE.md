@@ -55,7 +55,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
 - **De rekenkern staat in `lib/`**, niet in componenten: vitest draait node-env zonder DOM, dus alleen
   pure helpers zijn testbaar (`selectie`, `annotatie`, `annotatieOverzicht`, `reeks`, `samenhang`,
   `markering`, `popover`, `wetstructuur`, `lopendeRun`, `rondleiding`, `werkgebied`, `begrippen`,
-  `begripVoorstellen`, `artefact`, …).
+  `begripVoorstellen`, `artefact`, `bronKandidaten`, …).
 - **`app/**/page.tsx`** (Server Components) – data via `lib/server.ts`, interactie in een
   `*Client.tsx`. `app/page.tsx` doet `redirect("/workbench")`. De werkplek zit in
   `app/workbench/page.tsx` én in `app/default.tsx` (de default van het children-slot); beide renderen
@@ -148,13 +148,14 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
   - **annotatie** – het `annotatie`-item met `AnnotatieChip`, dat het **`ArtefactPaneel`** /
     `NodeAnnotatiePaneel` opent. `DocumentPaneel` toont de wettekst met de **letterlijke** fragmenten
     (`segmenteer` + `lib/jas.ts:jasStyle`), `ReviewQueue` de beslissingskaarten.
-  - **begrippen** – het `artefact`-item met `ArtefactChip`, dat **`BegrippenArtefactPaneel`** opent:
-    dezelfde `BegripVoorstellen` als op de tab Begrippen (`inklapbaar={false}`), met een link naar het
-    werkgebied. Eén inhoud, twee schillen.
+  - **begrippen** en **bronnen** – het `artefact`-item met `ArtefactChip`, dat
+    **`WerkgebiedArtefactPaneel`** opent: dezelfde `BegripVoorstellen` (`inklapbaar={false}`) of
+    `BronKandidaten` als op de tab Begrippen of Bronnen, met een link naar het werkgebied. Eén inhoud,
+    twee schillen (`werkgebiedArtefactVan` in `lib/artefact.ts`).
   - **regels** – gereserveerd voor de afleidingsregels: de kaart staat er, maar is geen knop.
   - **Vanuit een werkgebied** (`/workbench?werkgebied=<id>`, de knop *Bespreek met Lex* op de tab
     Begrippen): `WorkbenchShell` leest de parameter, `WerkgebiedBalk` boven de chat noemt het werkgebied
-    en biedt *Stel begrippen voor* (een gewone beurt) en *Verlaten*. Elke beurt draagt dan
+    en biedt *Zoek bepalingen* en *Stel begrippen voor* (gewone beurten) en *Verlaten*. Elke beurt draagt dan
     `werkgebied_id`; graph-qa stuurt een vraag om begrippen naar de begrippenroute, die het
     begrippenartefact vastlegt. *Verlaten* haalt de parameter weg en houdt dat ook in state bij – de
     native `replaceState` alleen werkte `useSearchParams` hier niet bij.
@@ -490,10 +491,31 @@ bestaat los van de gesprekken.
   pas laadt als je hem opent, en opnieuw bij elke nieuwe revisie (`key`).
 - **Samenhang** is de samenhangsgraaf met de bronselecties als doelen en focus (`useGraafStand` met
   stabiele doelen – een nieuw doel-object per render laadt eindeloos opnieuw) en `benaming` op het
-  werkgebied in plaats van het antwoord. Onder de graaf staan de **verwijzingen buiten het werkgebied**
-  als suggestie (`verwijzingSuggesties` in `lib/werkgebied.ts`: vanuit de scope van de selecties,
-  zonder wat de selectie zelf omvat, meest genoemd eerst); een niet-geïmporteerde bepaling is een open
-  punt. Opnemen kan daar en in de inspector (`bijKnoop`), altijd met een rol.
+  werkgebied in plaats van het antwoord. Opnemen kan in de inspector (`bijKnoop`), altijd met een rol.
+  De suggestielijst die hier stond, is vervangen door de kandidaten van Lex op de tab Bronnen.
+- **Bronnen vinden met Lex** (fase A; api §*Bronnen vinden met Lex*, graph-qa §*Bronnen vinden met
+  Lex*): `BronKandidaten` bovenaan de tab Bronnen én als artefact naast het gesprek – één inhoud, twee
+  schillen.
+  - **Starten** via de statische route `app/api/bronnen-run`; die deelt zijn vorm met
+    `app/api/begrippen-run` in `app/api/_lib/werkgebiedRun.ts` (api-run maken of hergebruiken, dan
+    graph-qa; `agent_run_id: null` = voor deze selectie al gezocht). Runstore-sleutel bij graph-qa:
+    `werkgebied:<id>:bronnen`.
+  - **Per kandidaat** de rol als badge (kern / afhankelijkheid / aanverwant, met uitleg) en het bewijs
+    per methode in gewone woorden (`bewijsZin` in `lib/bronKandidaten.ts`: "verwezen vanuit Artikel 9,
+    lid 1 (“artikel 8”) – uitzondering"). Per methode de telling en "onvolledig" als ze haar plafond
+    raakte. Filters open / later / uitgesloten / opgenomen (`filterVan`: met de hand opgenomen telt als
+    opgenomen).
+  - **Besluiten**: *Opnemen als …* (de voorgestelde rol eerst: `standaardRol`, kern → analyseren,
+    anders contextbron) – `neemKandidaatOp` haalt de revisie zelf op en probeert bij een 412 één keer
+    opnieuw; *Later*; *Uitsluiten* opent een redenveld (verplicht, krijgt de focus); *Heropenen*.
+  - **Toetsenbord** alleen met de focus in de lijst: `j`/`k`, `a` opnemen, `x` uitsluiten.
+  - De allowlist (`isWerkgebiedRoute`) laat `kandidaten/*` en `bronnen-runs/laatste|{run}` door, nooit
+    een kale POST op `bronnen-runs` of `…/uitkomst|loopt|mislukt`.
+  - **Werkgebied vanuit een overzicht**: onder `OverzichtBlok` de knop *Maak hier een werkgebied van*
+    (`WerkgebiedUitOverzicht`): naam en analysevraag vooringevuld, de bepalingen uit het overzicht
+    (`bepalingenVanOverzicht`) voorgeselecteerd. Daarna staat de werkplek in dat werkgebied; wat niet
+    kon worden opgenomen staat in een zichtbare melding onder de balk.
+  - Browserregressie: `scripts/test-bronkandidaten.mjs`.
 - **Opnemen vanuit een annotatie**: *Opnemen in werkgebied* in de kop van `/annotaties/node`
   (`OpnemenInWerkgebied`). Daar is geen revisie in beeld; `neemOpInWerkgebied` haalt hem op en
   probeert bij een 412 één keer opnieuw – de bedoeling hangt niet af van de rest van het werkgebied,
@@ -1103,7 +1125,7 @@ npm run test:browser # Playwright op de echte Next-UI met gemockte BFF (scripts/
 
 `test:browser` draait `scripts/test-annotatie-nodes.mjs`, `test-samenhang.mjs`, `test-reeks.mjs`,
 `test-toetsen.mjs`, `test-werkgebieden.mjs`, `test-begrippen.mjs`, `test-begripvoorstellen.mjs` en
-`test-artefacten.mjs` (de soorten artefacten in de werkplek), en verwacht een devserver op poort 3109
+`test-artefacten.mjs` (de soorten artefacten in de werkplek) en `test-bronkandidaten.mjs`, en verwacht een devserver op poort 3109
 (`AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109`).
 Praat met **`localhost`**, niet met `127.0.0.1`: Next 16 weigert dev-assets aan een andere origin,
 waarna de pagina niet hydrateert en elke stap zonder duidelijke fout time-out.

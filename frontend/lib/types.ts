@@ -1010,6 +1010,55 @@ export interface Betekenisgroep {
   lijkt_op: { begrip_id: string; naam: string; gedeeld: string[] }[];
 }
 
+// --- Bronnen vinden met Lex (spoor D, fase A) – afgeleid van api/app/bronnen_run_contracts.py ---
+
+export type BronMethode = "overzicht" | "verwijzing_uit" | "verwijzing_in" | "definitie" | "opbouw" | "gelijkenis";
+export type KandidaatRol = "kern" | "afhankelijkheid" | "aanverwant";
+export type KandidaatStatus = "voorgesteld" | "opgenomen" | "later" | "uitgesloten";
+
+/** Waarom één methode deze bepaling vond. `detail` per methode: verwijzingen `{anker, functie}`,
+ *  definitie `{begrip}`, overzicht `{onderwerp}`, opbouw `{deel}`, gelijkenis `{score}`. */
+export interface KandidaatBewijs {
+  methode: BronMethode;
+  vanuit: string;
+  detail: { anker?: string; functie?: string; begrip?: string; onderwerp?: string; deel?: string; score?: string };
+}
+
+export interface BronKandidaat {
+  id: string;
+  bron_iri: string;
+  label: string;
+  bwb_id: string;
+  rol: KandidaatRol;
+  bewijs: KandidaatBewijs[];
+  status: KandidaatStatus;
+  reden: string;
+  run_id: string;
+  in_laatste_run: boolean;
+  /** Intussen met de hand opgenomen: geen open voorstel meer. */
+  in_selectie: boolean;
+  besloten_door: string | null;
+  besloten_op: string | null;
+}
+
+export interface BronnenRun {
+  id: string;
+  werkgebied_id: string;
+  invoer_id: string;
+  status: "wacht" | "loopt" | "klaar" | "mislukt";
+  reden: string;
+  meting: Partial<Record<BronMethode, { aantal: number; volledig: boolean; ms?: number }>> | null;
+  aantal_kern: number;
+  gestart: string;
+  /** Alleen bij `laatste`: veranderde de selectie of de analysevraag sinds deze run? */
+  verouderd?: boolean;
+}
+
+export interface KandidatenAntwoord {
+  run: BronnenRun | null;
+  kandidaten: BronKandidaat[];
+}
+
 export interface GroepenAntwoord {
   run: BegrippenRun | null;
   groepen: Betekenisgroep[];
