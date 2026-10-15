@@ -135,6 +135,8 @@ try {
   // 1. Zonder voorstellen: uitleg en de knop. Starten → stroom → groepen.
   await page.goto(`${base}/werkgebieden/wg1?tab=begrippen`);
   await zie("Een voorstel is een vraag aan jou, geen begrip.");
+  // De tweede weg: met Lex in de werkplek, in de context van dit werkgebied (fase AF2).
+  assert.equal(await page.getByRole("link", { name: "Bespreek met Lex" }).getAttribute("href"), "/workbench?werkgebied=wg1");
   await page.getByRole("button", { name: "Stel begrippen voor" }).click();
   await kaarten().waitFor();
   assert.equal(await kaarten().getByRole("listitem").filter({ has: page.getByRole("list") }).count(), 4);

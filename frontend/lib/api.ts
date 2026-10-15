@@ -557,6 +557,9 @@ export async function startRun(
     /** Meerdere onderdelen van één bepaling, gekozen op de keuzekaart: één run, elk onderdeel
      *  een eigen laag (graph-qa `agent/reeks.py`). Sluit `doel` uit. */
     doelen?: AgentDoelInvoer[];
+    /** De werkplek staat in de context van een werkgebied: een vraag om begrippen gaat dan de
+     *  begrippenroute in (graph-qa `agent/begrippen_beurt.py`). */
+    werkgebied_id?: string;
   },
 ): Promise<RunStart> {
   const res = await fetch("/api/annotatie/run", {
@@ -572,6 +575,7 @@ export async function startRun(
       ...(extra?.doel ? { doel: extra.doel } : {}),
       ...(extra?.hergebruik ? { hergebruik: extra.hergebruik } : {}),
       ...(extra?.doelen ? { doelen: extra.doelen } : {}),
+      ...(extra?.werkgebied_id ? { werkgebied_id: extra.werkgebied_id } : {}),
     }),
   });
   if (res.status === 409) {
