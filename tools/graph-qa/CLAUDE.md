@@ -551,6 +551,35 @@ manifest → taal.py → definities.py + signalen.py + patronen.py → kandidate
 - Meten: `python -m eval.begrippen_eval --variant lemma|keten|keten_zonder_parse` op
   `docs/wetsanalyse/referentieset-begrippen/` (provisional, en een ontwikkelset – zie het meetlogboek).
 
+### De model-laag: twijfelparen en concept-kaart (fase C)
+
+Bovenop de uitkomst van de keten, nooit erin: de deterministische groepen, id's en uitleg blijven
+wat ze zijn. Zuiver, in dezelfde map (`classificatie.py`, `verdieping.py`, `kaart.py`,
+`fragmenten.py`, `toetsen.py`); het model komt binnen als `llm` met `create()`, zoals bij de
+JAS-classifier, en draait op `LLM_MODEL` (een oordeel, dus geen eigen modelknop).
+
+- **Alleen twijfelparen gaan naar het model** (`verdieping.te_vergelijken`): de vragen van de keten,
+  behalve een paar dat de wet al als relatie noemt. Het kiest per kandidaat-id `zelfde_betekenis` /
+  `verwant_ander_begrip` / `betekenisverschil` / `onbeslist` via een strict tool; ongeldig wordt
+  `onbeslist` met een reden.
+- **Alleen `zelfde_betekenis` verandert iets**: een link `door: "model"`, en de groep die erop rust is
+  altijd geel. De andere oordelen laten de vraag staan, met het oordeel als advies – een foute
+  scheiding zou anders onzichtbaar zijn (gemeten: `metingen/begrippen-model-2026-10-15`).
+  `hergroepeer` gebruikt dezelfde `groeperen.groepeer`, dus dezelfde conflictcontrole.
+- **De concept-kaart** (`kaart.basis` zonder model, `kaart.vul` met): naam, alternatieve termen,
+  begripstype (uit de JAS-klasse; het model kiest alleen bij gemengde klassen), context, en een
+  definitie: *letterlijk* (de definiens, zonder model) > *samengesteld* (het model kiest fragmenten op
+  id, code plakt ze aan elkaar) > *geformuleerd* (het model schrijft, noemt zijn fragmenten, altijd
+  geel; een cirkel wordt verworpen). Voorbeelden horen bij fase E.
+- **Fragmenten** (`fragmenten.knip`): zinsdelen met een id uit bron en offsets. Het model typt nooit
+  brontekst over.
+- **Toetsen** (`toetsen.py`): garanties (id bestaat, tekst letterlijk op offsets) halen een definitie
+  weg; signalen (circulair, rekenregel, gemengde klassen, geen begrip) maken haar geel. Signalen gaan
+  over wat Lex voorstelt, niet over de wet. Elke code heeft een tekst in `TEKST`.
+- **Batches** zijn inhoudelijk (`verdieping.batch_id`: soort, id's, promptversie, model): dezelfde batch
+  draait één keer, dus een herstart is hervatbaar én reproduceerbaar.
+- Meten: `python -m eval.begrippen_eval --model --versie <set>` (drie herhalingen, kost geld).
+
 ### De begrippenrun (`agent/begrippen_run.py`, spoor D levering 3a)
 
 `POST /v1/begrippen-runs {werkgebied_id, run_id}` → `begrippen_stroom`: haal de run met manifest bij
@@ -565,7 +594,7 @@ en eindig met `opgeslagen` + `done`.
   zelf is één synchrone stap).
 - **Per groep een voorstel** (`voorstel`): de naam is de term die de leden het vaakst dragen; is een lid
   de term van een begripsbepaling, dan de letterlijke definiens (`definities.definiens`) met vindplaats.
-  Een geformuleerde definitie en de classifier voor twijfelparen zijn L3b.
+  De model-laag (twijfelparen, kaart) staat hierboven; de run met batches volgt in fase C2.
 - **Geen model, dus geen tokens en geen budgetpoort.** Een herstart op hetzelfde manifest levert
   dezelfde groep-id's; de api schrijft idempotent.
 - **Elk faalpad is zichtbaar**: api onbereikbaar, ongeldig manifest, de keten faalt, de api weigert de

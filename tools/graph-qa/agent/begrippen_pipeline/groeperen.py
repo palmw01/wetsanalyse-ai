@@ -10,6 +10,9 @@
 - **Vragen**: zelfde-betekenis-kandidaten met uitkomst *possible link*, één per paar groepen. Een
   vraag vervalt als beide al in één groep staan, of als er tussen hun groepen al sterk tegenbewijs
   ligt: dan is de vraag beantwoord.
+
+Een link of non-link van het model (fase C, `verdieping.py`) loopt door dezelfde functie. Een groep
+die op een model-link rust, is altijd geel: het model stelt voor, de jurist beslist.
 """
 from __future__ import annotations
 
@@ -61,7 +64,8 @@ def groepeer(element_ids: list[str], kandidaten: list[Kandidaat], beslissingen: 
         conflicten = [k for k in tegen if uf.wortel(k.van) == wortel and uf.wortel(k.naar) == wortel]
         groepen.append(Betekenisgroep.maak(
             ids, [k.id for k in links], [k.id for k in conflicten],
-            Aandacht.GEEL if conflicten else Aandacht.GROEN,
+            Aandacht.GEEL if conflicten or any(beslissingen[k.id].door == "model" for k in links)
+            else Aandacht.GROEN,
             uitleg([*links, *conflicten], beslissingen)))
 
     # Relaties: één per (hypothese, groep van, groep naar).

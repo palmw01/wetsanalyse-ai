@@ -1,0 +1,430 @@
+{
+  "variant": "keten_model",
+  "model": "claude-sonnet-4-6",
+  "referentie_versie": "heldout-v2",
+  "referentie_status": "provisional",
+  "referentie_sha256": "e681f270d277cc65e0be00ddbf55898c520bd1b68f9691e8b31faf9e4c7d1965",
+  "manifest_id": "M26a195ffc06078dd",
+  "formuleringen": 19,
+  "paren": 16,
+  "zonder_model": {
+    "per_relatie": {
+      "zelfde_betekenis": {
+        "tp": 5,
+        "voorspeld": 5,
+        "goud": 6,
+        "precisie": 1.0,
+        "recall": 0.8333
+      },
+      "kwalificatie": {
+        "tp": 0,
+        "voorspeld": 0,
+        "goud": 1,
+        "precisie": null,
+        "recall": 0.0
+      },
+      "inclusie": {
+        "tp": 0,
+        "voorspeld": 0,
+        "goud": 3,
+        "precisie": null,
+        "recall": 0.0
+      },
+      "uitsluiting": {
+        "tp": 0,
+        "voorspeld": 0,
+        "goud": 0,
+        "precisie": null,
+        "recall": null
+      },
+      "hierarchie": {
+        "tp": 4,
+        "voorspeld": 4,
+        "goud": 4,
+        "precisie": 1.0,
+        "recall": 1.0
+      }
+    },
+    "bcubed": {
+      "precisie": 1.0,
+      "recall": 0.9474,
+      "f": 0.973
+    },
+    "samengevoegd_verschillend": [],
+    "aandacht": {
+      "groen": 9,
+      "geel": 1
+    }
+  },
+  "runs": [
+    {
+      "per_relatie": {
+        "zelfde_betekenis": {
+          "tp": 5,
+          "voorspeld": 5,
+          "goud": 6,
+          "precisie": 1.0,
+          "recall": 0.8333
+        },
+        "kwalificatie": {
+          "tp": 0,
+          "voorspeld": 0,
+          "goud": 1,
+          "precisie": null,
+          "recall": 0.0
+        },
+        "inclusie": {
+          "tp": 0,
+          "voorspeld": 0,
+          "goud": 3,
+          "precisie": null,
+          "recall": 0.0
+        },
+        "uitsluiting": {
+          "tp": 0,
+          "voorspeld": 0,
+          "goud": 0,
+          "precisie": null,
+          "recall": null
+        },
+        "hierarchie": {
+          "tp": 4,
+          "voorspeld": 4,
+          "goud": 4,
+          "precisie": 1.0,
+          "recall": 1.0
+        }
+      },
+      "bcubed": {
+        "precisie": 1.0,
+        "recall": 0.9474,
+        "f": 0.973
+      },
+      "samengevoegd_verschillend": [],
+      "aandacht": {
+        "groen": 9,
+        "geel": 1
+      },
+      "vragen_naar_model": 1,
+      "oordelen": {
+        "betekenisverschil": 1
+      },
+      "kaarten": 5,
+      "herkomst": {
+        "samengesteld": 1,
+        "letterlijk": 2,
+        "geen": 2
+      },
+      "aandachtspunten": {
+        "CIRCULAIR": 1,
+        "MODEL_GEEN_DEFINITIE": 2,
+        "GEEN_DEFINITIE": 2
+      },
+      "garantiefouten": 0,
+      "llm_calls": 2,
+      "promptversie": {
+        "vraag": "315b1c53355e",
+        "kaart": "87195b3c92a6"
+      },
+      "kaartvoorbeelden": [
+        {
+          "naam": "aanslag",
+          "herkomst": "",
+          "definitie": "",
+          "begripstype": "entiteit",
+          "aandachtspunten": [
+            "MODEL_GEEN_DEFINITIE",
+            "GEEN_DEFINITIE"
+          ]
+        },
+        {
+          "naam": "inspecteur",
+          "herkomst": "letterlijk",
+          "definitie": "de functionaris die als zodanig bij ministeriële regeling is aangewezen",
+          "begripstype": "actor",
+          "aandachtspunten": []
+        },
+        {
+          "naam": "navorderingsaanslag",
+          "herkomst": "",
+          "definitie": "",
+          "begripstype": "entiteit",
+          "aandachtspunten": [
+            "MODEL_GEEN_DEFINITIE",
+            "GEEN_DEFINITIE"
+          ]
+        },
+        {
+          "naam": "partner",
+          "herkomst": "letterlijk",
+          "definitie": "persoon als bedoeld in artikel 5a",
+          "begripstype": "actor",
+          "aandachtspunten": []
+        },
+        {
+          "naam": "vereniging",
+          "herkomst": "samengesteld",
+          "definitie": "van vereniging, is daaronder begrepen de samenwerkingsvorm zonder rechtspersoonlijkheid die met een vereniging maatschappelijk gelijk kan worden gesteld",
+          "begripstype": "actor",
+          "aandachtspunten": [
+            "CIRCULAIR"
+          ]
+        }
+      ],
+      "oordeelvoorbeelden": [
+        {
+          "kandidaat_id": "P88a2f4dde71b",
+          "oordeel": "betekenisverschil",
+          "motivatie": "In A is 'Mogendheid' een begrip dat gelijkgesteld wordt aan 'staat' (uitbreiding van het begrip 'staat'); in B is 'Mogendheid' zélf de definiendum waarvan de reikwijdte wordt uitgebreid met gelijkgestelde bestuurlijke eenheden. Hetzelfde woord vervult in beide bepalingen een wezenlijk andere juridische rol.",
+          "reden": ""
+        }
+      ]
+    },
+    {
+      "per_relatie": {
+        "zelfde_betekenis": {
+          "tp": 5,
+          "voorspeld": 5,
+          "goud": 6,
+          "precisie": 1.0,
+          "recall": 0.8333
+        },
+        "kwalificatie": {
+          "tp": 0,
+          "voorspeld": 0,
+          "goud": 1,
+          "precisie": null,
+          "recall": 0.0
+        },
+        "inclusie": {
+          "tp": 0,
+          "voorspeld": 0,
+          "goud": 3,
+          "precisie": null,
+          "recall": 0.0
+        },
+        "uitsluiting": {
+          "tp": 0,
+          "voorspeld": 0,
+          "goud": 0,
+          "precisie": null,
+          "recall": null
+        },
+        "hierarchie": {
+          "tp": 4,
+          "voorspeld": 4,
+          "goud": 4,
+          "precisie": 1.0,
+          "recall": 1.0
+        }
+      },
+      "bcubed": {
+        "precisie": 1.0,
+        "recall": 0.9474,
+        "f": 0.973
+      },
+      "samengevoegd_verschillend": [],
+      "aandacht": {
+        "groen": 9,
+        "geel": 1
+      },
+      "vragen_naar_model": 1,
+      "oordelen": {
+        "betekenisverschil": 1
+      },
+      "kaarten": 5,
+      "herkomst": {
+        "samengesteld": 1,
+        "letterlijk": 2,
+        "geen": 2
+      },
+      "aandachtspunten": {
+        "CIRCULAIR": 1,
+        "MODEL_GEEN_DEFINITIE": 2,
+        "GEEN_DEFINITIE": 2
+      },
+      "garantiefouten": 0,
+      "llm_calls": 2,
+      "promptversie": {
+        "vraag": "315b1c53355e",
+        "kaart": "87195b3c92a6"
+      },
+      "kaartvoorbeelden": [
+        {
+          "naam": "aanslag",
+          "herkomst": "",
+          "definitie": "",
+          "begripstype": "entiteit",
+          "aandachtspunten": [
+            "MODEL_GEEN_DEFINITIE",
+            "GEEN_DEFINITIE"
+          ]
+        },
+        {
+          "naam": "inspecteur",
+          "herkomst": "letterlijk",
+          "definitie": "de functionaris die als zodanig bij ministeriële regeling is aangewezen",
+          "begripstype": "actor",
+          "aandachtspunten": []
+        },
+        {
+          "naam": "navorderingsaanslag",
+          "herkomst": "",
+          "definitie": "",
+          "begripstype": "entiteit",
+          "aandachtspunten": [
+            "MODEL_GEEN_DEFINITIE",
+            "GEEN_DEFINITIE"
+          ]
+        },
+        {
+          "naam": "partner",
+          "herkomst": "letterlijk",
+          "definitie": "persoon als bedoeld in artikel 5a",
+          "begripstype": "actor",
+          "aandachtspunten": []
+        },
+        {
+          "naam": "vereniging",
+          "herkomst": "samengesteld",
+          "definitie": "van vereniging, is daaronder begrepen de samenwerkingsvorm zonder rechtspersoonlijkheid die met een vereniging maatschappelijk gelijk kan worden gesteld",
+          "begripstype": "actor",
+          "aandachtspunten": [
+            "CIRCULAIR"
+          ]
+        }
+      ],
+      "oordeelvoorbeelden": [
+        {
+          "kandidaat_id": "P88a2f4dde71b",
+          "oordeel": "betekenisverschil",
+          "motivatie": "In A fungeert 'Mogendheid' als medeomvattend begrip onder 'staat' (het definieert de reikwijdte van 'staat'), terwijl 'Mogendheid' in B zelf het definiendum is waaronder een gelijkgestelde bestuurlijke eenheid valt. Dezelfde term vervult in elk onderdeel een structureel andere definitierol, zodat de juridische inhoud per formulering verschilt.",
+          "reden": ""
+        }
+      ]
+    },
+    {
+      "per_relatie": {
+        "zelfde_betekenis": {
+          "tp": 5,
+          "voorspeld": 5,
+          "goud": 6,
+          "precisie": 1.0,
+          "recall": 0.8333
+        },
+        "kwalificatie": {
+          "tp": 0,
+          "voorspeld": 0,
+          "goud": 1,
+          "precisie": null,
+          "recall": 0.0
+        },
+        "inclusie": {
+          "tp": 0,
+          "voorspeld": 0,
+          "goud": 3,
+          "precisie": null,
+          "recall": 0.0
+        },
+        "uitsluiting": {
+          "tp": 0,
+          "voorspeld": 0,
+          "goud": 0,
+          "precisie": null,
+          "recall": null
+        },
+        "hierarchie": {
+          "tp": 4,
+          "voorspeld": 4,
+          "goud": 4,
+          "precisie": 1.0,
+          "recall": 1.0
+        }
+      },
+      "bcubed": {
+        "precisie": 1.0,
+        "recall": 0.9474,
+        "f": 0.973
+      },
+      "samengevoegd_verschillend": [],
+      "aandacht": {
+        "groen": 9,
+        "geel": 1
+      },
+      "vragen_naar_model": 1,
+      "oordelen": {
+        "verwant_ander_begrip": 1
+      },
+      "kaarten": 5,
+      "herkomst": {
+        "geen": 3,
+        "letterlijk": 2
+      },
+      "aandachtspunten": {
+        "CIRCULAIR_VERWORPEN": 1,
+        "GEEN_DEFINITIE": 3,
+        "MODEL_GEEN_DEFINITIE": 2
+      },
+      "garantiefouten": 0,
+      "llm_calls": 2,
+      "promptversie": {
+        "vraag": "315b1c53355e",
+        "kaart": "87195b3c92a6"
+      },
+      "kaartvoorbeelden": [
+        {
+          "naam": "aanslag",
+          "herkomst": "",
+          "definitie": "",
+          "begripstype": "entiteit",
+          "aandachtspunten": [
+            "MODEL_GEEN_DEFINITIE",
+            "GEEN_DEFINITIE"
+          ]
+        },
+        {
+          "naam": "inspecteur",
+          "herkomst": "letterlijk",
+          "definitie": "de functionaris die als zodanig bij ministeriële regeling is aangewezen",
+          "begripstype": "actor",
+          "aandachtspunten": []
+        },
+        {
+          "naam": "navorderingsaanslag",
+          "herkomst": "",
+          "definitie": "",
+          "begripstype": "entiteit",
+          "aandachtspunten": [
+            "MODEL_GEEN_DEFINITIE",
+            "GEEN_DEFINITIE"
+          ]
+        },
+        {
+          "naam": "partner",
+          "herkomst": "letterlijk",
+          "definitie": "persoon als bedoeld in artikel 5a",
+          "begripstype": "actor",
+          "aandachtspunten": []
+        },
+        {
+          "naam": "vereniging",
+          "herkomst": "",
+          "definitie": "",
+          "begripstype": "actor",
+          "aandachtspunten": [
+            "CIRCULAIR_VERWORPEN",
+            "GEEN_DEFINITIE"
+          ]
+        }
+      ],
+      "oordeelvoorbeelden": [
+        {
+          "kandidaat_id": "P88a2f4dde71b",
+          "oordeel": "verwant_ander_begrip",
+          "motivatie": "In A is 'mogendheid' de term die onder het ruimere begrip 'staat' wordt geschaard (uitbreidingsbegrip), terwijl in B 'mogendheid' het zelfstandige ankerbegrip is waarvan de reikwijdte wordt uitgebreid met gelijkgestelde bestuurlijke eenheden. Dezelfde term vervult structureel een andere juridische rol: in A een subcategorie van 'staat', in B een zelfstandig begrip met eigen bereik.",
+          "reden": ""
+        }
+      ]
+    }
+  ]
+}

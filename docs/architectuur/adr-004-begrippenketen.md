@@ -144,4 +144,5 @@ deterministisch), LKIF Core (te zwaar voor deze stap), BlackLab (tweede index).
 | 6 | Patroonregister (kwalificatie, inclusie, uitsluiting, hiërarchie, tegenbewijs) |
 | 7 | Groeperen, besluit, resolver, uitleg, trace; eerste meting |
 | L3a | Api-domein (manifest, runs, groepen, besluiten), de run in graph-qa en de werkplek; letterlijk definitievoorstel (spoor D, levering 3a) |
-| later (L3b) | Classifier voor possible link; geformuleerd definitievoorstel; hervatbare batches |
+| C1 | Model-laag in de keten: twijfelparen (alleen *zelfde betekenis* wordt een – gele – groep), concept-kaart met definitie letterlijk > samengesteld > geformuleerd, toetsen, inhoudelijke batch-id's; meting `metingen/begrippen-model-2026-10-15` |
+| C2–C3 | Api-batches en hervatbare run; de werkplek |
