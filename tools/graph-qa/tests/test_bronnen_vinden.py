@@ -112,8 +112,16 @@ def _per_iri(uit: dict) -> dict:
     return {k["bron_iri"]: k for k in uit["kandidaten"]}
 
 
+ALLE = ("overzicht", "verwijzing_uit", "verwijzing_in", "definitie", "opbouw")
+
+
+def test_de_standaard_volgt_de_meting():
+    assert bronnen_vinden.standaard_voor(INVOER) == ("verwijzing_uit", "definitie", "opbouw")
+    assert bronnen_vinden.standaard_voor({**INVOER, "kern": []}) == ("overzicht",)
+
+
 def test_elke_methode_levert_kandidaten_met_bewijs(geen_overzicht):
-    uit = vind(Graaf(), INVOER)
+    uit = vind(Graaf(), INVOER, methoden=ALLE)
     k = _per_iri(uit)
     assert L1 not in k and ART9 not in k                                    # in de selectie: weg
     # Artikel 8: verwezen met "in afwijking van" (afhankelijkheid) én in hetzelfde deel (aanverwant).
@@ -130,7 +138,7 @@ def test_elke_methode_levert_kandidaten_met_bewijs(geen_overzicht):
     assert k[ART2K]["rol"] == "afhankelijkheid" and k[ART2K]["bewijs"][0]["detail"] == {"begrip": "belastingaanslag"}
     assert f"{IW}:artikel:2:lid:1:o:i" not in k
     assert all(m["volledig"] for m in uit["meting"].values())
-    assert set(uit["meting"]) == set(bronnen_vinden.STANDAARD) and "gelijkenis" not in uit["meting"]
+    assert set(uit["meting"]) == set(ALLE)
     # Sterkste rol eerst.
     assert [x["rol"] for x in uit["kandidaten"]] == sorted((x["rol"] for x in uit["kandidaten"]),
                                                            key=bronnen_vinden.ROL_VOLGORDE.get)
@@ -144,7 +152,11 @@ def test_het_overzicht_levert_kernbepalingen(monkeypatch):
     monkeypatch.setattr(overzicht, "bouw_overzicht", lambda g, vraag, **kw: gevraagd.update(vraag=vraag, **kw) or ov)
     uit = vind(Graaf(), INVOER, methoden=("overzicht",))
     assert gevraagd["vraag"] == INVOER["analysevraag"]
+    # Geen onderwerp in "Wanneer is … invorderbaar?": de naam van het werkgebied is het onderwerp.
+    assert gevraagd["onderwerp"] == "Invorderbaarheid"
     assert _per_iri(uit)[ART8]["rol"] == "kern" and ART9 not in _per_iri(uit)
+    vind(Graaf(), {**INVOER, "analysevraag": "Welke artikelen gaan over invorderingsrente?"}, methoden=("overzicht",))
+    assert gevraagd["onderwerp"] == "invorderingsrente"
 
 
 def test_een_geraakt_plafond_is_onvolledig(geen_overzicht, monkeypatch):
@@ -154,7 +166,7 @@ def test_een_geraakt_plafond_is_onvolledig(geen_overzicht, monkeypatch):
 
 
 def test_een_falende_methode_laat_de_rest_staan(geen_overzicht):
-    uit = vind(Graaf(faal="inkomend"), INVOER)
+    uit = vind(Graaf(faal="inkomend"), INVOER, methoden=ALLE)
     assert (uit["meting"]["verwijzing_in"]["aantal"], uit["meting"]["verwijzing_in"]["volledig"]) == (0, False)
     assert ART8 in _per_iri(uit)
 
@@ -302,8 +314,8 @@ def test_een_onbereikbare_graaf_is_een_mislukte_run(nep, monkeypatch):
 
 def test_een_falende_methode_haalt_de_run_niet_onderuit(nep):
     api = nep()
-    _stroom(Run(run_id="x", conversation_id="c"), graph=Graaf(faal="inkomend"))
-    assert api.uitkomst["meting"]["verwijzing_in"]["volledig"] is False
+    _stroom(Run(run_id="x", conversation_id="c"), graph=Graaf(faal="opbouw"))
+    assert api.uitkomst["meting"]["opbouw"]["volledig"] is False
     assert all("fout" not in m for m in api.uitkomst["meting"].values())
 
 

@@ -1,6 +1,6 @@
 # Meetlogboek
 
-Soort: *meting* (zie [`../../README.md`](../../README.md)) · Bijgewerkt: 14 oktober 2026
+Soort: *meting* (zie [`../../README.md`](../../README.md)) · Bijgewerkt: 15 oktober 2026
 
 Hier staat per datum wat er gemeten is, op welke code, wat eruit kwam en waar de gegevens staan.
 Nieuwste bovenaan. De meetbestanden zelf zijn bewijs: **wijzig ze niet achteraf**. Een correctie
@@ -17,6 +17,7 @@ of herhaling krijgt een eigen map of rij. Hoe de keten nu werkt, staat in
 
 | Datum | Meting | Code | Uitkomst in één regel | Gegevens |
 |---|---|---|---|---|
+| 15 okt | **Bronnen vinden met Lex, ablatie per methode** op de conceptset *Invorderbaarheid* (kern IW art. 9), live tegen de graaf van acceptatie en opgenomen, 0 modelcalls | branch `feat/bronselectie-meting` | Oude standaard: 41 kandidaten, 17% overbodig; nieuwe standaard (verwijzing uit, definitie, opbouw; overzicht alleen zonder kern): 10 kandidaten, alles wat nodig is gevonden, 0 overbodig. Mist aanverwant beleid (Leidraad) | [`bronselectie-2026-10-15/`](bronselectie-2026-10-15/README.md) |
 | 14 okt | **Begrippenketen, held-out** (Awir blind → reparatie → AWR blind, één keer), 0 modelcalls | `48db5d9` → `e98c5d5` | Blind op de Awir slechter dan de nulmeting (overfit); na reparatie van vijf algemene oorzaken op de onbekende AWR: zelfde betekenis P 1,0 R 0,83 (gelijk aan nulmeting), nooit fout samengevoegd, 4/8 relaties (na correctie van één gouden paar). Mist alleen formules die hij niet kent | [`begrippen-heldout-2026-10-14/`](begrippen-heldout-2026-10-14/README.md) |
 | 14 okt | **Begrippenketen, deterministische kern** (ADR-004): `lemma`, `keten` en `keten_zonder_parse` op referentieset-begrippen v1 (25 formuleringen, 22 paren, provisional), 0 modelcalls | `55ae08f` | Nulmeting voegt de homoniem en de afwijkende kwalificatie samen en vindt geen relaties; de keten scheidt ze en vindt alle relaties (1,0 op een **ontwikkel**set – zegt niets over generalisatie; held-out set nodig) | [`begrippen-kern-2026-10-14/`](begrippen-kern-2026-10-14/README.md) |
 | 6 okt | **Vervolgvragen in één gesprek** (`--gesprek`, 9 gesprekken / 12 vervolgbeurten), 4 reeksen × 3 runs, lokaal tegen de graaf van acceptatie | vóór `bd50657`, na `6d43a8b` en `d06b849` (#608–#612) | Op dezelfde set 7–9 → 11–12 van 12 vervolgbeurten; afwijzen van 'waarom?', 'meer dan één artikel' en de gemiste andere wet weg in alle runs. Open: niet-letterlijk citeren bij C | [`gesprek-vervolgvragen-2026-10-06/`](gesprek-vervolgvragen-2026-10-06/README.md) |

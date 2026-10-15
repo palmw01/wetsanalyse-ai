@@ -20,7 +20,7 @@ import logging
 import re
 from typing import Any, AsyncIterator
 
-from .bronnen_vinden import STANDAARD, vind
+from .bronnen_vinden import vind
 from .config import Settings
 from .ports import GraphPort
 from .wetsanalyse_api import GesprekVerdwenen, WetsanalyseApi, WetsanalyseApiFout
@@ -81,7 +81,7 @@ def _graaf(settings: Settings) -> GraphPort:
 
 
 async def bronnen_stroom(werkgebied_id: str, api_run_id: str, run: Any, *, settings: Settings, user_id: str,
-                         graph: GraphPort | None = None, methoden: tuple[str, ...] = STANDAARD
+                         graph: GraphPort | None = None, methoden: tuple[str, ...] | None = None
                          ) -> AsyncIterator[dict[str, Any]]:
     api = WetsanalyseApi(settings, user_id)
     eigen_graaf = graph is None
