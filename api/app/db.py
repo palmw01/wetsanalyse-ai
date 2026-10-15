@@ -224,6 +224,46 @@ annotatie_v2_audit = Table("annotatie_v2_audit", metadata,
     Column("laag_id", String(64), nullable=True),
     Index("ix_annotatie_v2_audit_laag", "laag_id", "id"))
 
+# --- Werkgebieden (spoor D, levering 1) ---------------------------------------
+# Een werkgebied is een benoemde analyse met bronselecties. Gedeeld tussen analisten, net als de
+# annotaties; wie wat deed staat in `werkgebied_audit`. Een werkgebied schrijft nooit annotaties:
+# de inventaris leest de bestaande lagen. Archiveren en een selectie weghalen zijn soft (tijdstip),
+# zodat de historie blijft kloppen.
+werkgebieden = Table("werkgebieden", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("naam", String(200), nullable=False),
+    Column("analysevraag", Text, nullable=False, default=""),
+    Column("afbakening", Text, nullable=False, default=""),
+    Column("peildatum", String(10), nullable=True),
+    Column("status", String(24), nullable=False, default="in_voorbereiding"),
+    Column("revisie", Integer, nullable=False, default=1),
+    Column("aangemaakt_door", String(64), nullable=False),
+    Column("aangemaakt", _DT, nullable=False),
+    Column("gewijzigd", _DT, nullable=False),
+    Column("gearchiveerd", _DT, nullable=True))
+werkgebied_bronselecties = Table("werkgebied_bronselecties", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("werkgebied_id", String(64), nullable=False, index=True),
+    Column("bron_iri", Text, nullable=False),
+    Column("bereik", String(16), nullable=False, default="onderliggend"),
+    Column("rol", String(16), nullable=False, default="analyseren"),
+    Column("reden", Text, nullable=False, default=""),
+    Column("label", Text, nullable=False, default=""),
+    Column("bwb_id", String(32), nullable=False, default=""),
+    Column("snapshot_id", String(128), nullable=False, default=""),
+    Column("bron_hash", String(64), nullable=False, default=""),
+    Column("toegevoegd_door", String(64), nullable=False),
+    Column("toegevoegd", _DT, nullable=False),
+    Column("verwijderd", _DT, nullable=True))
+werkgebied_audit = Table("werkgebied_audit", metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("werkgebied_id", String(64), nullable=False),
+    Column("actor", String(64), nullable=False),
+    Column("actie", String(40), nullable=False),
+    Column("detail", _JSON, nullable=False),
+    Column("tijdstip", _DT, nullable=False),
+    Index("ix_werkgebied_audit_werkgebied", "werkgebied_id", "id"))
+
 # --- Tokenbudget --------------------------------------------------------------
 # Verbruik is een JOURNAAL, geen teller. Eén rij per LLM-call; de stand van nu is een som over het
 # huidige venster. Dat heeft drie eigenschappen die een teller niet heeft:

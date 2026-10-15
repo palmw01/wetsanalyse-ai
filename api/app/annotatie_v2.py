@@ -56,8 +56,9 @@ async def get_verklaringen(actor: str = Depends(actieve_userid)):
 
 @router.get("/capabilities")
 async def capabilities(actor: str = Depends(actieve_userid)):
-    """Wat deze api kan; de werkplek toont de samenhangsgraaf alleen als `samenhang` waar is."""
-    return {"schema_versie": 2, "samenhang": True}
+    """Wat deze api kan; de werkplek toont de samenhangsgraaf alleen als `samenhang` waar is, en
+    de werkgebieden alleen als `werkgebieden` waar is."""
+    return {"schema_versie": 2, "samenhang": True, "werkgebieden": True}
 
 
 @router.get("/weergave")
