@@ -298,3 +298,94 @@ class Relatie(_Vast):
         if h is Hypothese.ZELFDE_BETEKENIS:
             raise ValueError("zelfde betekenis is een groep, geen relatie")
         return h
+
+
+# ---------------------------------------------------------------------------------------------
+# De model-laag (spoor D, fase C): bovenop de uitkomst, nooit erin
+# ---------------------------------------------------------------------------------------------
+
+
+class Oordeel(str, Enum):
+    """Wat het model over een twijfelpaar zegt (PLAN §D: de uitkomst van een vergelijking)."""
+
+    ZELFDE_BETEKENIS = "zelfde_betekenis"
+    VERWANT_ANDER_BEGRIP = "verwant_ander_begrip"
+    BETEKENISVERSCHIL = "betekenisverschil"
+    ONBESLIST = "onbeslist"
+
+
+class ModelOordeel(_Vast):
+    """Het oordeel over één twijfelvraag. `onbeslist` met een reden is ook wat ongeldige uitvoer wordt."""
+
+    kandidaat_id: str
+    oordeel: Oordeel
+    motivatie: str = ""
+    reden: str = ""                    # waarom er geen bruikbaar oordeel is (code), anders leeg
+
+
+class Herkomst(str, Enum):
+    """Waar een voorgestelde definitie vandaan komt; dezelfde waarden als `begrip_contracts.Herkomst`."""
+
+    LETTERLIJK = "letterlijk"          # de definiens van een begripsbepaling, zonder model
+    SAMENGESTELD = "samengesteld"      # letterlijke fragmenten, door het model gekozen op id
+    GEFORMULEERD = "geformuleerd"      # door het model geschreven, rustend op genoemde fragmenten
+
+
+class Begripstype(str, Enum):
+    """Werkindeling (PLAN §D), geen JAS-klasse."""
+
+    ENTITEIT = "entiteit"
+    ACTOR = "actor"
+    TOESTAND = "toestand"
+    GEBEURTENIS = "gebeurtenis"
+    EIGENSCHAP = "eigenschap"
+    RELATIE = "relatie"
+
+
+def fragment_id(bron_iri: str, start: int, eind: int) -> str:
+    return "F" + _hash(bron_iri, str(start), str(eind))[:10]
+
+
+class Fragment(_Vast):
+    """Een letterlijk stuk brontekst (zin of zinsdeel) dat het model op id kan kiezen."""
+
+    id: str
+    bron_iri: str
+    start: int = Field(ge=0)
+    eind: int = Field(gt=0)
+    tekst: str
+
+    @model_validator(mode="after")
+    def _id(self) -> Fragment:
+        if self.id != fragment_id(self.bron_iri, self.start, self.eind):
+            raise ValueError("fragment-id volgt niet uit bron en offsets")
+        return self
+
+
+class Kaart(_Vast):
+    """De concept-kaart bij een groep: een voorstel, nooit een begrip."""
+
+    groep_id: str
+    naam: str
+    alternatieve_termen: tuple[str, ...] = ()
+    begripstype: Begripstype | None = None
+    begripstype_door: str = ""         # "regel" | "model" | ""
+    context: str = ""
+    definitie: str = ""
+    herkomst: Herkomst | None = None
+    definitie_bron_iri: str = ""       # alleen bij letterlijk
+    definitie_vindplaats: str = ""
+    fragmenten: tuple[Fragment, ...] = ()   # bij samengesteld: de delen; bij geformuleerd: de onderbouwing
+    motivatie: str = ""                # van het model, bij samengesteld/geformuleerd
+    aandacht: Aandacht = Aandacht.GEEL
+    aandachtspunten: tuple[str, ...] = ()
+
+    @model_validator(mode="after")
+    def _vorm(self) -> Kaart:
+        if bool(self.definitie) != (self.herkomst is not None):
+            raise ValueError("een definitie heeft een herkomst, en een herkomst een definitie")
+        if self.herkomst in (Herkomst.SAMENGESTELD, Herkomst.GEFORMULEERD) and not self.fragmenten:
+            raise ValueError("een samengestelde of geformuleerde definitie noemt haar fragmenten")
+        if self.herkomst is Herkomst.GEFORMULEERD and self.aandacht is not Aandacht.GEEL:
+            raise ValueError("een geformuleerde definitie is altijd geel")
+        return self

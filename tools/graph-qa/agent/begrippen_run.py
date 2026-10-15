@@ -16,10 +16,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections import Counter
 from typing import Any, AsyncIterator
 
 from .begrippen_pipeline import definities
+from .begrippen_pipeline.kaart import naam_en_letterlijk
 from .begrippen_pipeline.keten import Uitkomst, analyseer
 from .begrippen_pipeline.model import Bron, Formulering, Manifest
 from .jas_pipeline.taal.provider import TaalProvider
@@ -38,18 +38,7 @@ def manifest_uit(data: dict[str, Any]) -> Manifest:
 def voorstel(manifest: Manifest, uitkomst: Uitkomst, leden: tuple[str, ...]) -> dict[str, str]:
     """Naam en (als die er letterlijk is) definitie bij een groep."""
     taal = {t.element_id: t for t in uitkomst.taal}
-    termen = [taal[e].term for e in leden if e in taal and taal[e].term]
-    # Meest gedragen term; bij gelijke stand de eerste in de volgorde van de leden.
-    naam = Counter(termen).most_common(1)[0][0] if termen else manifest.formulering(leden[0]).tekst.lower()
-    uit = {"naam": naam[:200]}
-    wts = definities.wettelijke_termen(manifest, taal)
-    for wt in wts:
-        if wt.soort == "definitie" and wt.anker in leden:
-            bron = manifest.bron(wt.bron_iri)
-            if tekst := definities.definiens(bron):
-                uit.update(definitie=tekst, definitie_bron_iri=bron.bron_iri, definitie_vindplaats=bron.label)
-                break
-    return uit
+    return naam_en_letterlijk(manifest, taal, definities.wettelijke_termen(manifest, taal), leden)
 
 
 def naar_uitkomst(manifest: Manifest, uitkomst: Uitkomst) -> dict[str, Any]:

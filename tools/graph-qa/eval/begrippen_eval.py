@@ -30,6 +30,11 @@ status altijd. Tegen een provisional set heten de cijfers een trendmeting, geen 
     python -m eval.begrippen_eval --variant lemma      # nulmeting zonder taalanalyse
     python -m eval.begrippen_eval --variant keten      # de begrippenketen
     python -m eval.begrippen_eval --variant keten_zonder_parse   # idem, zonder spaCy
+    python -m eval.begrippen_eval --model [--herhalingen 3]      # keten + model (fase C; kost geld)
+
+De modelvariant draait de keten één keer en daarna het model `--herhalingen` keer (default 3): het
+model geeft per run een andere uitkomst, dus lees de maten als bandbreedte. De garanties (id's,
+letterlijkheid) en `samengevoegd_verschillend` horen in élke run op 100% respectievelijk 0.
 """
 from __future__ import annotations
 
@@ -153,6 +158,7 @@ class Voorspelling:
     groepen: tuple[tuple[str, ...], ...]                    # elk gesorteerd
     relaties: tuple[tuple[str, str, str], ...]              # (hypothese, van, naar)
     aandacht: dict[str, int] = field(default_factory=dict)  # {"groen": n, "geel": m}
+    extra: dict[str, Any] = field(default_factory=dict, compare=False)  # niet in de vergelijking
 
     def json(self) -> str:
         return json.dumps({"groepen": sorted(self.groepen), "relaties": sorted(self.relaties),
@@ -275,6 +281,82 @@ def variant_keten_zonder_parse(manifest: Manifest) -> Voorspelling:
     return variant_keten(manifest, NullProvider())
 
 
+def variant_keten_model(manifest: Manifest, llm: Any, model: str, uit: Any = None) -> Voorspelling:
+    """De keten, daarna het model op twijfelparen en kaarten (`begrippen_pipeline.verdieping`)."""
+    from agent.begrippen_pipeline import keten, toetsen, verdieping
+
+    uit = uit or keten.analyseer(manifest)
+    v = verdieping.verdiep(manifest, uit, llm, model)
+    her = v.hergroepering
+    aandacht: dict[str, int] = defaultdict(int)
+    for x in (*her.groepen, *her.relaties):
+        aandacht[x.aandacht.value] += 1
+    aandacht["geel"] += len(her.vragen)
+    herkomst: dict[str, int] = defaultdict(int)
+    signalen: dict[str, int] = defaultdict(int)
+    garanties = 0
+    for k in v.kaarten.values():
+        herkomst[k.herkomst.value if k.herkomst else "geen"] += 1
+        garanties += len(toetsen.garanties(manifest, k))
+        for p in k.aandachtspunten:
+            signalen[p] += 1
+    oordelen: dict[str, int] = defaultdict(int)
+    for o in her.oordelen:
+        oordelen[o.reden.split(":")[0] if o.reden else o.oordeel.value] += 1
+    return Voorspelling(
+        groepen=tuple(sorted(g.leden for g in her.groepen)),
+        relaties=tuple(sorted((r.hypothese.value, r.van, r.naar) for r in her.relaties)),
+        aandacht=dict(aandacht),
+        extra={"vragen_naar_model": len(verdieping.te_vergelijken(uit)), "oordelen": dict(oordelen),
+               "kaarten": len(v.kaarten), "herkomst": dict(herkomst), "aandachtspunten": dict(signalen),
+               "garantiefouten": garanties, "llm_calls": v.meting["llm_calls"],
+               "promptversie": v.meting["promptversie"],
+               "kaartvoorbeelden": [{"naam": k.naam, "herkomst": k.herkomst.value if k.herkomst else "",
+                                     "definitie": k.definitie, "begripstype": k.begripstype.value
+                                     if k.begripstype else "", "aandachtspunten": list(k.aandachtspunten)}
+                                    for k in sorted(v.kaarten.values(), key=lambda k: k.naam)],
+               "oordeelvoorbeelden": [o.model_dump(mode="json") for o in her.oordelen]})
+
+
+def meet_model(versie: str, herhalingen: int, llm: Any, model: str) -> dict[str, Any]:
+    from agent.begrippen_pipeline import keten
+
+    bronnen, cases, manifest = laad(versie)
+    m = manifest_uit(bronnen, cases)
+    uit = keten.analyseer(m)
+    nul = variant_keten(m)
+    runs = []
+    for _ in range(herhalingen):
+        v = variant_keten_model(m, llm, model, uit)
+        runs.append({**scoor(v, cases), **v.extra})
+    return {"variant": "keten_model", "model": model, "referentie_versie": manifest["referentie_versie"],
+            "referentie_status": manifest["referentie_status"], "referentie_sha256": manifest["sha256"],
+            "manifest_id": m.id, "formuleringen": len(m.formuleringen), "paren": len(cases["paren"]),
+            "zonder_model": scoor(nul, cases), "runs": runs}
+
+
+def rapport_model(r: dict[str, Any]) -> str:
+    z = r["zonder_model"]["per_relatie"]["zelfde_betekenis"]
+    regels = [
+        f"# Begrippenketen + model – {r['model']}",
+        "",
+        f"Referentie {r['referentie_versie']} (status **{r['referentie_status']}**, "
+        f"sha256 `{r['referentie_sha256'][:12]}`): {r['formuleringen']} formuleringen, {r['paren']} paren.",
+        "Tegen een provisional set is dit een trendmeting, geen kwaliteitsoordeel.",
+        "",
+        "| run | zelfde P | zelfde R | BCubed F | samengevoegd verschillend | garantiefouten | open vragen (geel) | kaarten (herkomst) | modelcalls |",
+        "|---|---:|---:|---:|---:|---:|---:|---|---:|",
+        f"| zonder model | {z['precisie']} | {z['recall']} | {r['zonder_model']['bcubed']['f']} | "
+        f"{len(r['zonder_model']['samengevoegd_verschillend'])} | – | – | – | 0 |",
+    ]
+    for i, x in enumerate(r["runs"], 1):
+        s = x["per_relatie"]["zelfde_betekenis"]
+        regels.append(f"| {i} | {s['precisie']} | {s['recall']} | {x['bcubed']['f']} | "
+                      f"{len(x['samengevoegd_verschillend'])} | {x['garantiefouten']} | {x['aandacht'].get('geel', 0)} | "
+                      f"{x['herkomst']} | {x['llm_calls']} |")
+    return "\n".join(regels) + "\n"
+
+
 VARIANTEN: dict[str, Callable[[Manifest], Voorspelling]] = {
     "lemma": variant_lemma, "keten": variant_keten, "keten_zonder_parse": variant_keten_zonder_parse}
 
@@ -323,6 +405,8 @@ def main() -> int:
     ap.add_argument("--bijwerken", action="store_true")
     ap.add_argument("--variant", choices=sorted(VARIANTEN))
     ap.add_argument("--json", action="store_true", help="rapport als JSON")
+    ap.add_argument("--model", action="store_true", help="keten + model op twijfelparen en kaarten (kost geld)")
+    ap.add_argument("--herhalingen", type=int, default=3)
     args = ap.parse_args()
     if args.bijwerken:
         bronnen, cases, manifest = _lees(args.versie)
@@ -338,6 +422,14 @@ def main() -> int:
     if args.variant:
         r = meet(args.variant, args.versie)
         print(json.dumps(r, ensure_ascii=False, indent=2) if args.json else rapport(r))
+    if args.model:
+        from agent.adapters.anthropic_llm import AnthropicLLM
+        from agent.config import Settings
+        from eval.run_eval import _laad_env
+        _laad_env()
+        settings = Settings.from_env()
+        r = meet_model(args.versie, args.herhalingen, AnthropicLLM(settings), settings.llm_model)
+        print(json.dumps(r, ensure_ascii=False, indent=2) if args.json else rapport_model(r))
     return 0
 
 
