@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Melding } from "@/components/ui/Melding";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { foutTekst, haalWerkgebiedAudit } from "@/lib/api";
+import { foutTekst, haalWerkgebiedAudit, lijstBegrippen } from "@/lib/api";
 import type { Bronselectie, WerkgebiedAuditRegel } from "@/lib/types";
 import { auditZin } from "@/lib/werkgebied";
 
@@ -15,12 +15,16 @@ const tijd = (iso: string) =>
 export function HistorieTab({ id, bronnen }: { id: string; bronnen: Bronselectie[] }) {
   const [regels, setRegels] = useState<WerkgebiedAuditRegel[] | null>(null);
   const [fout, setFout] = useState<string | null>(null);
+  const [begrippen, setBegrippen] = useState<Map<string, string>>(new Map());
   // Een weggehaalde bron staat niet meer in `bronnen`; die regels tonen dan de IRI.
   const labels = useMemo(() => new Map(bronnen.map((b) => [b.bron_iri, b.label || b.bron_iri])), [bronnen]);
 
   const laad = useCallback(async () => {
     try {
-      setRegels(await haalWerkgebiedAudit(id));
+      // De namen van de begrippen maken de regels leesbaar; zonder ze staat er "een begrip".
+      const [audit, lijst] = await Promise.all([haalWerkgebiedAudit(id), lijstBegrippen(id).catch(() => null)]);
+      setRegels(audit);
+      if (lijst) setBegrippen(new Map(lijst.begrippen.map((b) => [b.id, b.inhoud.naam])));
     } catch (e) {
       setFout(foutTekst(e, "De historie kon niet worden geladen."));
     }
@@ -45,7 +49,7 @@ export function HistorieTab({ id, bronnen }: { id: string; bronnen: Bronselectie
         <li key={r.id} className="flex flex-col gap-0.5 border-b border-line pb-2 text-sm sm:flex-row sm:items-baseline sm:gap-3">
           <span className="shrink-0 text-xs text-muted sm:w-40">{tijd(r.tijdstip)}</span>
           <span className="min-w-0 text-ink">
-            {auditZin(r, labels)} <span className="text-xs text-muted">· {r.actor}</span>
+            {auditZin(r, labels, begrippen)} <span className="text-xs text-muted">· {r.actor}</span>
           </span>
         </li>
       ))}

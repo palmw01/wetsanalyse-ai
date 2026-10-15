@@ -9,9 +9,11 @@ import { SkipLink, HOOFDINHOUD_ID } from "@/components/ui/SkipLink";
 
 /** De paginaschil van de werkgebieden: sidebar (met de mobiele drawer), topbar en een scrollend
  *  hoofdgebied – dezelfde opbouw als het annotatie-overzicht. */
-export function WerkgebiedSchil({ titel, onFout, children }: {
+export function WerkgebiedSchil({ titel, onFout, breed = false, children }: {
   titel: string;
   onFout: (melding: string) => void;
+  /** Ruimer dan de leesbreedte: voor de begrippen (drie kolommen) en de graaf. */
+  breed?: boolean;
   children: ReactNode;
 }) {
   const router = useRouter();
@@ -33,7 +35,7 @@ export function WerkgebiedSchil({ titel, onFout, children }: {
         <div className="flex min-w-0 flex-1 flex-col">
           <MobieleTopbar titel={titel} onOpenSidebar={() => setDrawerOpen(true)} />
           <main id={HOOFDINHOUD_ID} tabIndex={-1} className="min-w-0 flex-1 overflow-y-auto">
-            <div className="mx-auto w-full max-w-5xl px-5 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+            <div className={`mx-auto w-full ${breed ? "max-w-7xl" : "max-w-5xl"} px-5 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]`}>
               {children}
             </div>
           </main>

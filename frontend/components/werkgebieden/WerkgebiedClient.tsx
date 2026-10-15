@@ -13,6 +13,7 @@ import { Melding } from "@/components/ui/Melding";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Tabs } from "@/components/ui/Tabs";
 import { BronnenTab } from "@/components/werkgebieden/BronnenTab";
+import { BegrippenTab } from "@/components/werkgebieden/BegrippenTab";
 import { ElementenTab } from "@/components/werkgebieden/ElementenTab";
 import { HistorieTab } from "@/components/werkgebieden/HistorieTab";
 import { SamenhangTab } from "@/components/werkgebieden/SamenhangTab";
@@ -30,19 +31,25 @@ export interface MutatieOpties {
 }
 export type Mutatie = (actie: (revisie: number) => Promise<Werkgebied>, opties?: MutatieOpties) => Promise<boolean>;
 
-/** Eén werkgebied: de gegevens, en de tabs Bronnen · Elementen · Samenhang · Historie.
+/** Eén werkgebied: de gegevens, en de tabs Bronnen · Elementen · Begrippen · Samenhang · Historie.
  *
  *  Werkgebieden zijn gedeeld, dus elke mutatie stuurt de revisie in beeld mee. Wijzigde iemand
  *  anders het werkgebied intussen (412), dan laadt de pagina de nieuwste stand en zegt dat – de
  *  handeling wordt niet stil opnieuw uitgevoerd, want die kan op de nieuwe stand iets anders
  *  betekenen. */
-export function WerkgebiedClient({ id, beginTab }: { id: string; beginTab: WerkgebiedTab }) {
+export function WerkgebiedClient({ id, beginTab, beginBegrip }: {
+  id: string;
+  beginTab: WerkgebiedTab;
+  beginBegrip?: string;
+}) {
   const router = useRouter();
   const [wg, setWg] = useState<Werkgebied | null>(null);
   const [nietGevonden, setNietGevonden] = useState(false);
   const [fout, setFout] = useState<string | null>(null);
   const [melding, setMelding] = useState<{ type: "bevestiging" | "waarschuwing"; tekst: string } | null>(null);
   const [tab, setTab] = useState<WerkgebiedTab>(beginTab);
+  // Het gekozen begrip op de tab Begrippen; staat ook in de URL.
+  const [begrip, setBegrip] = useState<string | undefined>(beginBegrip);
   const [bewerken, setBewerken] = useState(false);
 
   const laad = useCallback(async () => {
@@ -84,12 +91,27 @@ export function WerkgebiedClient({ id, beginTab }: { id: string; beginTab: Werkg
     [wg, laad],
   );
 
+  function zetUrl(t: WerkgebiedTab, b: string | undefined) {
+    // `replace`: een tab- of begripwissel is geen stap in de geschiedenis.
+    const qs = new URLSearchParams();
+    if (t !== "bronnen") qs.set("tab", t);
+    if (t === "begrippen" && b) qs.set("begrip", b);
+    const pad = `/werkgebieden/${encodeURIComponent(id)}`;
+    router.replace(qs.size ? `${pad}?${qs}` : pad, { scroll: false });
+  }
+
   function kiesTab(nieuw: string) {
     setTab(nieuw as WerkgebiedTab);
     setMelding(null);
-    // `replace`: een tabwissel is geen stap in de geschiedenis.
-    const pad = `/werkgebieden/${encodeURIComponent(id)}`;
-    router.replace(nieuw === "bronnen" ? pad : `${pad}?tab=${nieuw}`, { scroll: false });
+    zetUrl(nieuw as WerkgebiedTab, begrip);
+  }
+
+  /** Naar de tab Begrippen, op dit begrip (of de lijst) – ook vanuit de tab Elementen. */
+  function kiesBegrip(b: string | undefined) {
+    setBegrip(b);
+    setTab("begrippen");
+    setMelding(null);
+    zetUrl("begrippen", b);
   }
 
   async function archiveer() {
@@ -114,7 +136,7 @@ export function WerkgebiedClient({ id, beginTab }: { id: string; beginTab: Werkg
     );
 
   return (
-    <WerkgebiedSchil titel={wg?.naam ?? "Werkgebied"} onFout={setFout}>
+    <WerkgebiedSchil titel={wg?.naam ?? "Werkgebied"} onFout={setFout} breed={tab === "begrippen" || tab === "samenhang"}>
       {terug}
       {wg === null ? (
         fout ? (
@@ -204,7 +226,9 @@ export function WerkgebiedClient({ id, beginTab }: { id: string; beginTab: Werkg
                   <BronnenTab wg={wg} muteer={muteer} />
                 ) : t.key === "elementen" ? (
                   // Opnieuw ophalen bij elke nieuwe revisie: een andere selectie is een andere inventaris.
-                  <ElementenTab key={wg.revisie} id={id} />
+                  <ElementenTab key={wg.revisie} id={id} onNaarBegrip={kiesBegrip} />
+                ) : t.key === "begrippen" ? (
+                  <BegrippenTab id={id} gekozen={begrip} onKies={kiesBegrip} />
                 ) : t.key === "samenhang" ? (
                   <SamenhangTab wg={wg} muteer={muteer} />
                 ) : (
