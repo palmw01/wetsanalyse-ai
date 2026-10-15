@@ -149,3 +149,44 @@ def test_zonder_parser_draait_de_keten_gedegradeerd_en_zegt_dat(manifest):
     u = keten.analyseer(manifest, NullProvider())
     assert u.meting["gedegradeerd"] == len(manifest.formuleringen)
     assert not _samen(u, "f18", "f19") and not _samen(u, "f01", "f22")
+
+
+# --- acceptatie 15 okt 2026: dezelfde term in dezelfde bepaling, en zinnen ---------------------
+
+def test_iw_art_9_zelfde_term_in_een_lid_wordt_een_gele_groep_en_zinnen_doen_niet_mee():
+    """Op acceptatie gaf werkgebied *Termijnen* (IW art. 9 lid 1 en 5) 0 groepen en 17 twijfelvragen:
+    elk paar met dezelfde term was een vraag, ook binnen één lid, en hele zinnen deden mee als term.
+    Nu: één gele groep per term per lid, en alleen tussen de leden nog een vraag."""
+    import hashlib
+    import re as _re
+    from agent.begrippen_pipeline.model import Bron, Formulering, Manifest
+    from agent.jas_pipeline.taal.provider import SpacyProvider
+    pytest.importorskip("spacy")
+    p = SpacyProvider("nl_core_news_md")
+    if p.analyseer("x").gedegradeerd:
+        pytest.skip("nl_core_news_md niet geïnstalleerd (uv sync --extra nlp)")
+    bronnen, _, _ = be.laad("v1")
+    L1, L5 = "urn:bwb:BWBR0004770:artikel:9:lid:1", "urn:bwb:BWBR0004770:artikel:9:lid:5"
+    tekst = {b["bron_iri"]: b["tekst"] for b in bronnen["bronnen"] if b["bron_iri"] in (L1, L5)}
+    spec = [(L1, "het aanslagbiljet", 0), (L5, "het aanslagbiljet", 0), (L5, "het aanslagbiljet", 1),
+            (L5, "het aanslagbiljet", 2), (L5, "de inkomstenbelasting", 0), (L5, "de inkomstenbelasting", 1),
+            (L5, "de toepassing van de eerste volzin", 0),
+            (L5, "Indien de toepassing van de eerste volzin niet leidt tot meer dan één termijn", 0),
+            (L5, "De eerste termijn vervalt één maand na de dagtekening van het aanslagbiljet", 0),
+            (L5, "De eerste termijn", 0), (L5, "de dagtekening van het aanslagbiljet", 0), (L1, "de dagtekening", 0)]
+    fs = []
+    for i, (iri, deel, n) in enumerate(spec):
+        s = [m.start() for m in _re.finditer(_re.escape(deel), tekst[iri])][n]
+        fs.append(Formulering(element_id=f"e{i:02d}", bron_iri=iri, start=s, eind=s + len(deel), tekst=deel,
+                              jas_klasse="Rechtsobject"))
+    m = Manifest(bronnen=tuple(Bron(bron_iri=i, tekst=t, bron_hash=hashlib.sha256(t.encode()).hexdigest())
+                               for i, t in tekst.items()), formuleringen=tuple(fs))
+    uit = keten.analyseer(m, p)
+    groepen = {g.leden: g for g in uit.groepen}
+    assert set(groepen) == {("e01", "e02", "e03"), ("e04", "e05")}
+    assert all(g.aandacht is Aandacht.GEEL for g in uit.groepen)          # een aanname, geen wet
+    assert any("Zelfde term in dezelfde bepaling" in r for r in groepen[("e01", "e02", "e03")].uitleg)
+    # Tussen de leden blijft het een vraag; de zinnen (e07, e08) komen nergens in voor.
+    assert {(v.van, v.naar) for v in uit.vragen} == {("e00", "e01"), ("e10", "e11")}
+    genoemd = {e for v in uit.vragen for e in (v.van, v.naar)} | {e for g in uit.groepen for e in g.leden}
+    assert not genoemd & {"e07", "e08"}

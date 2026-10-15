@@ -18,6 +18,9 @@ opnieuw getokeniseerd en niets aan de brontekst veranderd.
   deze kern ("navorderingsaanslag" eindigt op "aanslag"), dan is dat de kop. Een algemeen
   woordenboek komt pas als de meting erom vraagt; zo kan deze stap geen kop verzinnen die in het
   werkgebied niet voorkomt.
+- **Zin**: draagt de span een persoonsvorm ("De eerste termijn vervalt …", "Indien … leidt …"),
+  dan is het een zin en geen term. De kern is dan het onderwerp, en dat met een losse naamwoordgroep
+  vergelijken als "zelfde term" geeft vragen die nergens over gaan. Zonder parse onbekend (`False`).
 - **Aanwijzend**: begint de formulering met "die", "deze", "dat" of "dit", dan wijst ze terug naar
   de dichtstbijzijnde voorafgaande naamwoordgroep met dezelfde kern in dezelfde bron. Losse
   voornaamwoorden ("hij", "deze" zonder naamwoord) blijven buiten beschouwing.
@@ -34,7 +37,7 @@ from ..jas_pipeline.taal.model import LinguisticAnalysis
 from ..jas_pipeline.taal.provider import TaalProvider
 from .model import Formulering, Manifest, Taalanalyse
 
-VERSIE = "2"
+VERSIE = "3"
 _NAAMWOORD = ("NOUN", "PROPN")
 _AANWIJZEND = {"die", "deze", "dat", "dit"}
 _LIDWOORD = {"de", "het", "een", "'t"}
@@ -167,10 +170,11 @@ def analyseer(manifest: Manifest, provider: TaalProvider) -> dict[str, Taalanaly
         lemma = (kt.lemma or kt.tekst).lower()
         term, beperkt = _term(a, kern, binnen), _beperkt(a, kern, binnen)
         aanwijzend = a.tokens[binnen[0]].tekst.lower() in _AANWIJZEND
+        zin = any(a.tokens[i].upos in ("VERB", "AUX") and a.tokens[i].feat("VerbForm") == "Fin" for i in binnen)
         ante = _antecedent(a, lemma, f.start) if aanwijzend else None
         uit[f.element_id] = Taalanalyse(
             element_id=f.element_id, kern=lemma, kernvorm=kt.tekst, term=term, beperkt=beperkt,
-            aanwijzend=aanwijzend, antecedent_start=ante[0] if ante else None,
+            aanwijzend=aanwijzend, zin=zin, antecedent_start=ante[0] if ante else None,
             antecedent_eind=ante[1] if ante else None)
     for eid, kop in _koppen(uit).items():
         uit[eid] = uit[eid].model_copy(update={"kop": kop})

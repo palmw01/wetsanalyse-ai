@@ -27,6 +27,17 @@ _VELDEN = ("id", "klasse", "tekst", "lifecycle", "aandacht", "jas_subtype", "eig
            "laag_id", "ankers", "verouderd", "toelichting")
 
 
+def nodes_met_titel(snapshot: dict) -> dict[str, dict]:
+    """De nodes van een bronboom, met de citeertitel op de wortel. In de graaf heet de wortel kaal
+    "Regeling"; een vindplaats als "Artikel 9 · Lid 5 – Regeling" zegt dan niets."""
+    nodes = dict(store.nodes_van(snapshot))
+    titel = (snapshot.get("doel") or {}).get("citeertitel") or ""
+    for iri, n in nodes.items():
+        if titel and n.get("type") == "Regeling" and not n.get("parent_iri"):
+            nodes[iri] = {**n, "label": titel}
+    return nodes
+
+
 def bwb_van(sel: dict) -> str:
     return sel["bwb_id"] or sel["bron_iri"].split(":")[2]
 

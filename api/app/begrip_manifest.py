@@ -17,8 +17,7 @@ from __future__ import annotations
 import hashlib
 from typing import Awaitable, Callable
 
-from . import annotatie_v2_store as annotaties
-from .werkgebied_inventaris import inventaris_met_bronbomen
+from .werkgebied_inventaris import inventaris_met_bronbomen, nodes_met_titel
 
 Resolver = Callable[[dict], Awaitable[dict]]
 
@@ -48,7 +47,7 @@ async def bouw(werkgebied: dict, resolve: Resolver) -> dict:
     inv, per_bwb = await inventaris_met_bronbomen(werkgebied["bronnen"], resolve)
     nodes: dict[str, dict] = {}
     for snap in per_bwb.values():
-        nodes.update(annotaties.nodes_van(snap))
+        nodes.update(nodes_met_titel(snap))
 
     bronnen: dict[str, dict] = {}
     formuleringen: list[dict] = []
