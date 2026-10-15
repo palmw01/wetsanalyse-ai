@@ -253,3 +253,48 @@ async def test_ongeldige_inhoud_geeft_422(client, inhoud):
     wg = await _werkgebied(client)
     r = await client.post(f"/v1/werkgebieden/{wg['id']}/begrippen", json={"inhoud": inhoud})
     assert r.status_code == 422
+
+
+# --- review 15 okt: randgevallen ------------------------------------------------------------------
+
+async def test_een_rol_ombuigen_naar_een_rol_die_er_al_is_geeft_409(client):
+    ids = await _annoteer()
+    wg = await _werkgebied(client)
+    b = await _begrip(client, wg, [ids["lid1"]])
+    b = (await client.post(_url(wg, b, "koppelingen"), json={"verwachte_revisie": b["revisie"],
+                                                             "element_ids": [ids["lid1"]], "rol": "definitie"})).json()
+    definitie = next(k for k in b["koppelingen"] if k["rol"] == "definitie")
+    r = await client.patch(_url(wg, b, "koppelingen", definitie["id"]),
+                           json={"verwachte_revisie": b["revisie"], "rol": "duiding"})
+    assert r.status_code == 409 and r.json()["detail"]["fout"] == "al_gekoppeld"
+    assert len((await client.get(_url(wg, b))).json()["koppelingen"]) == 2
+
+
+async def test_een_koppeling_opslaan_zonder_wijziging_is_geen_revisie(client):
+    ids = await _annoteer()
+    wg = await _werkgebied(client)
+    b = await _begrip(client, wg, [ids["lid1"]])
+    k = b["koppelingen"][0]
+    r = await client.patch(_url(wg, b, "koppelingen", k["id"]),
+                           json={"verwachte_revisie": b["revisie"], "rol": "duiding", "motivatie": ""})
+    assert r.status_code == 200 and r.json()["revisie"] == b["revisie"]
+
+
+async def test_een_revisieconflict_draagt_een_leesbare_melding(client):
+    wg = await _werkgebied(client)
+    b = await _begrip(client, wg)
+    await client.patch(_url(wg, b), json={"verwachte_revisie": b["revisie"], "inhoud": {"naam": "Y"}})
+    r = await client.patch(_url(wg, b), json={"verwachte_revisie": b["revisie"], "inhoud": {"naam": "Z"}})
+    assert r.status_code == 412 and "Iemand anders" in r.json()["detail"]["melding"]
+    r = await client.patch(f"/v1/werkgebieden/{wg['id']}", json={"verwachte_revisie": 1, "naam": "Q"})
+    assert r.status_code == 412 and "Iemand anders" in r.json()["detail"]["melding"]
+
+
+async def test_het_subtype_volgt_de_vaste_lijst(client):
+    wg = await _werkgebied(client)
+    r = await client.post(f"/v1/werkgebieden/{wg['id']}/begrippen",
+                          json={"inhoud": {"naam": "X", "jas_subtype": "verzonnen"}})
+    assert r.status_code == 422
+    r = await client.post(f"/v1/werkgebieden/{wg['id']}/begrippen",
+                          json={"inhoud": {"naam": "X", "jas_klasse": "Variabele en variabelewaarde", "jas_subtype": "variabele"}})
+    assert r.status_code == 201
