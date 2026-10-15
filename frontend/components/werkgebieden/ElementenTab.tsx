@@ -15,8 +15,8 @@ import type {
   BegripSamenvatting, BegrippenLijst, BronRol, Inventaris, InventarisElement, KoppelRol,
 } from "@/lib/types";
 import {
-  ROL_LABEL, annotatieHref, filterElementen, groepeerPerSelectie, isBeoordeeld, klasseTelling, voortgang,
-  type ElementFilter,
+  ROL_LABEL, annotatieHref, filterElementen, groepeerPerSelectie, isBeoordeeld, isRevisieConflict, klasseTelling,
+  voortgang, type ElementFilter,
 } from "@/lib/werkgebied";
 
 const ROL_KNOPPEN: { waarde: BronRol | "alle"; label: string }[] = [
@@ -297,9 +297,18 @@ function SelectieBalk({ id, selectie, begrippen, onWis, onKlaar }: {
     }
   }
 
+  /** Hier is geen revisie van het begrip in beeld: haal hem op. Wijzigde iemand het begrip daartussen
+   *  (412), dan één keer opnieuw – de bedoeling ("deze passages erbij") hangt niet af van de rest van
+   *  het begrip, en koppelen is idempotent. */
   async function koppel() {
-    const huidig = await haalBegrip(id, doel);
-    return koppelElementen(id, doel, { verwachte_revisie: huidig.revisie, element_ids: selectie, rol });
+    for (let poging = 0; ; poging++) {
+      const huidig = await haalBegrip(id, doel);
+      try {
+        return await koppelElementen(id, doel, { verwachte_revisie: huidig.revisie, element_ids: selectie, rol });
+      } catch (e) {
+        if (poging > 0 || !isRevisieConflict(e)) throw e;
+      }
+    }
   }
 
   const aantal = selectie.length === 1 ? "1 element" : `${selectie.length} elementen`;

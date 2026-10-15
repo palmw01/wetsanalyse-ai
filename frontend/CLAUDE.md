@@ -491,10 +491,15 @@ bestaat los van de gesprekken.
     kaart werkt op een concept naast de serverstand (`basis`). Verandert de inhoud op de server terwijl
     er niets onbewaard is, dan neemt hij die over; mét onbewaarde wijzigingen zegt hij dat en blijft
     jouw tekst staan (*Nieuwe versie overnemen* of opslaan). Of er iets onbewaard is, bepaalt
-    `inhoudGewijzigd` (`lib/begrippen.ts`: genormaliseerd, sleutelvolgorde telt niet). Wisselen van
-    begrip met onbewaarde wijzigingen vraagt eerst bevestiging in de tab – geen systeemvenster.
+    `inhoudGewijzigd` (`lib/begrippen.ts`: genormaliseerd, sleutelvolgorde telt niet). Met onbewaarde
+    wijzigingen vraagt een wissel van begrip **én van tab** eerst bevestiging (`OnbewaardMelding`, geen
+    systeemvenster): de tabs renderen lazy, dus een tabwissel gooide het concept anders stil weg. Het
+    signaal staat daarom in `WerkgebiedClient`. Herladen of sluiten vangt `beforeunload`; een link in de
+    sidebar (client-side navigatie) nog niet.
   - **De poort rekent de server.** *Accorderen* staat uit zolang `accorderen.mag` onwaar is, met de
     redenen letterlijk eronder; met onbewaarde wijzigingen ook (de poort kijkt naar wat bewaard is).
+  - **Elke knop per passage noemt zijn passage** (`aria-label`, "Akkoord met “…”"): dezelfde knoppen
+    staan bij elke passage, en een schermlezer moet horen bij welke.
   - **`BegripPassages` toont elke passage apart**, met de bewaarde bewijstekst, vindplaats, rol,
     beoordeling en wat er nu mee is (`ACTUALITEIT_LABEL`, *annotatie nog niet door een jurist
     beoordeeld*). *Bekijk in de annotatie* gaat naar `/annotaties/node?bron_iri=…&element=<id>`; de

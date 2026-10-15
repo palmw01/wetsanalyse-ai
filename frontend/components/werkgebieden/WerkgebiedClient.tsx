@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Tabs } from "@/components/ui/Tabs";
 import { BronnenTab } from "@/components/werkgebieden/BronnenTab";
 import { BegrippenTab } from "@/components/werkgebieden/BegrippenTab";
+import { OnbewaardMelding } from "@/components/werkgebieden/OnbewaardMelding";
 import { ElementenTab } from "@/components/werkgebieden/ElementenTab";
 import { HistorieTab } from "@/components/werkgebieden/HistorieTab";
 import { SamenhangTab } from "@/components/werkgebieden/SamenhangTab";
@@ -50,6 +51,10 @@ export function WerkgebiedClient({ id, beginTab, beginBegrip }: {
   const [tab, setTab] = useState<WerkgebiedTab>(beginTab);
   // Het gekozen begrip op de tab Begrippen; staat ook in de URL.
   const [begrip, setBegrip] = useState<string | undefined>(beginBegrip);
+  // De begripskaart draagt niet-bewaarde wijzigingen: een tabwissel zou ze stil weggooien (de tabs
+  // renderen lazy), dus die wacht eerst op bevestiging.
+  const [onbewaard, setOnbewaard] = useState(false);
+  const [wachtendeTab, setWachtendeTab] = useState<WerkgebiedTab | null>(null);
   const [bewerken, setBewerken] = useState(false);
 
   const laad = useCallback(async () => {
@@ -101,6 +106,11 @@ export function WerkgebiedClient({ id, beginTab, beginBegrip }: {
   }
 
   function kiesTab(nieuw: string) {
+    if (onbewaard && tab === "begrippen" && nieuw !== "begrippen") {
+      setWachtendeTab(nieuw as WerkgebiedTab);
+      return;
+    }
+    setWachtendeTab(null);
     setTab(nieuw as WerkgebiedTab);
     setMelding(null);
     zetUrl(nieuw as WerkgebiedTab, begrip);
@@ -210,6 +220,20 @@ export function WerkgebiedClient({ id, beginTab, beginBegrip }: {
               {melding.tekst}
             </Melding>
           )}
+          {wachtendeTab && (
+            <OnbewaardMelding
+              className="mb-4"
+              onBlijf={() => setWachtendeTab(null)}
+              onToch={() => {
+                const naar = wachtendeTab;
+                setOnbewaard(false);
+                setWachtendeTab(null);
+                setTab(naar);
+                setMelding(null);
+                zetUrl(naar, begrip);
+              }}
+            />
+          )}
 
           {/* `lazy`: de inventaris en de historie halen bij mount data op, en de inventaris vraagt
               per regeling de bronboom uit de graaf. Alleen de tab in beeld laadt. */}
@@ -228,7 +252,7 @@ export function WerkgebiedClient({ id, beginTab, beginBegrip }: {
                   // Opnieuw ophalen bij elke nieuwe revisie: een andere selectie is een andere inventaris.
                   <ElementenTab key={wg.revisie} id={id} onNaarBegrip={kiesBegrip} />
                 ) : t.key === "begrippen" ? (
-                  <BegrippenTab id={id} gekozen={begrip} onKies={kiesBegrip} />
+                  <BegrippenTab id={id} gekozen={begrip} onKies={kiesBegrip} onbewaard={onbewaard} onOnbewaard={setOnbewaard} />
                 ) : t.key === "samenhang" ? (
                   <SamenhangTab wg={wg} muteer={muteer} />
                 ) : (

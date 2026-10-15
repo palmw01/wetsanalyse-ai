@@ -6,7 +6,7 @@ import { Melding } from "@/components/ui/Melding";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { BegripKaart } from "@/components/werkgebieden/BegripKaart";
 import { BegripPassages } from "@/components/werkgebieden/BegripPassages";
-import { foutTekst, haalBegrip, isApiError } from "@/lib/api";
+import { foutTekst, haalBegrip, verwijderBegrip } from "@/lib/api";
 import type { Begrip } from "@/lib/types";
 import { isRevisieConflict } from "@/lib/werkgebied";
 
@@ -75,6 +75,26 @@ export function BegripWerk({ id, begripId, primair, onGewijzigd, onOnbewaard, on
     [begrip, laad, onGewijzigd],
   );
 
+  async function verwijder() {
+    if (!begrip) return;
+    setFout(null);
+    setMelding(null);
+    try {
+      await verwijderBegrip(id, begrip.id, begrip.revisie);
+      await onWeg();
+    } catch (e) {
+      if (isRevisieConflict(e)) {
+        await laad();
+        setMelding({
+          type: "waarschuwing",
+          tekst: "Iemand anders wijzigde dit begrip net. Bekijk de nieuwe stand voordat je het verwijdert.",
+        });
+      } else {
+        setFout(foutTekst(e, "Verwijderen is niet gelukt."));
+      }
+    }
+  }
+
   if (!begrip)
     return fout ? (
       <Melding type="fout">{fout}</Melding>
@@ -116,8 +136,7 @@ export function BegripWerk({ id, begripId, primair, onGewijzigd, onOnbewaard, on
             begrip={begrip}
             muteer={muteer}
             onOnbewaard={onOnbewaard}
-            onWeg={onWeg}
-            onVerwijderFout={(e) => setFout(isApiError(e) ? foutTekst(e) : "Verwijderen is niet gelukt.")}
+            onVerwijder={verwijder}
           />
         </div>
         <div className={kant === "bronnen" ? "" : "hidden xl:block"}>

@@ -6,10 +6,11 @@ import { BevestigKnop } from "@/components/ui/BevestigKnop";
 import { Button } from "@/components/ui/Button";
 import { ButtonRow } from "@/components/ui/ButtonRow";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
+import { ChevronOmlaag } from "@/components/ui/Icoon";
 import { Melding } from "@/components/ui/Melding";
 import type { BegripMutatie } from "@/components/werkgebieden/BegripWerk";
 import {
-  accordeerBegrip, foutTekst, haalBegripRevisies, heropenBegrip, verwijderBegrip, wijzigBegrip,
+  accordeerBegrip, foutTekst, haalBegripRevisies, heropenBegrip, wijzigBegrip,
 } from "@/lib/api";
 import {
   HERKOMST_LABEL, OORDEEL_LABEL, inhoudGewijzigd, naarRijen, regels, revisieZin, uitRegels, uitRijen,
@@ -47,13 +48,13 @@ function naarInhoud(c: Concept): BegripInhoud {
 /** De begripskaart: één formulier met *Opslaan* (geen autosave – elke bewaring is een revisie).
  *  Definitie, de herkomst ervan en de uitleg staan apart, want een begripsdefinitie is iets anders
  *  dan de letterlijke brondefinitie of de toelichting op een interpretatie. */
-export function BegripKaart({ id, begrip, muteer, onOnbewaard, onWeg, onVerwijderFout }: {
+export function BegripKaart({ id, begrip, muteer, onOnbewaard, onVerwijder }: {
   id: string;
   begrip: Begrip;
   muteer: BegripMutatie;
   onOnbewaard: (onbewaard: boolean) => void;
-  onWeg: () => Promise<void>;
-  onVerwijderFout: (e: unknown) => void;
+  /** Verwijderen, met de revisie in beeld; `BegripWerk` handelt een conflict af. */
+  onVerwijder: () => Promise<void>;
 }) {
   const [concept, setConcept] = useState<Concept>(() => uitBegrip(begrip.inhoud));
   // De serverstand waarop het concept rust. Verandert de inhoud op de server (iemand anders sloeg op),
@@ -74,6 +75,13 @@ export function BegripKaart({ id, begrip, muteer, onOnbewaard, onWeg, onVerwijde
     onOnbewaard(onbewaard);
   }, [onbewaard, onOnbewaard]);
   useEffect(() => () => onOnbewaard(false), [onOnbewaard]);
+  // Herladen of het venster sluiten: dat kan de pagina niet zelf tegenhouden, de browser wel.
+  useEffect(() => {
+    if (!onbewaard) return;
+    const waarschuw = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", waarschuw);
+    return () => window.removeEventListener("beforeunload", waarschuw);
+  }, [onbewaard]);
 
   const zet = <K extends keyof BegripInhoud>(veld: K, waarde: BegripInhoud[K]) =>
     setConcept((c) => ({ ...c, inhoud: { ...c.inhoud, [veld]: waarde } }));
@@ -232,14 +240,7 @@ export function BegripKaart({ id, begrip, muteer, onOnbewaard, onWeg, onVerwijde
         <BevestigKnop
           bevestigTekst="Begrip verwijderen?"
           titel="Het begrip en zijn koppelingen gaan weg; de annotaties blijven staan."
-          onBevestig={async () => {
-            try {
-              await verwijderBegrip(id, begrip.id, begrip.revisie);
-              await onWeg();
-            } catch (e) {
-              onVerwijderFout(e);
-            }
-          }}
+          onBevestig={onVerwijder}
           className="focus-ring inline-flex min-h-[32px] items-center rounded-button border border-line px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface hover:text-ink coarse:min-h-[44px]"
           bevestigClassName="border-fout/40 text-fout"
         >
@@ -321,10 +322,15 @@ function Historie({ id, begrip }: { id: string; begrip: Begrip }) {
   }, [open, id, begrip.id, begrip.revisie]);
 
   return (
-    <details onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)} className="text-sm">
-      <summary className="focus-ring cursor-pointer rounded text-sm font-medium text-lint">Historie</summary>
+    // Zelfde vorm als de historie van een annotatie (`RevisieHistorie`).
+    <details className="group rounded-kaart border border-line bg-surface/60 px-3 py-2 text-sm"
+      onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}>
+      <summary className="focus-ring flex cursor-pointer list-none items-center gap-1.5 rounded text-xs font-medium text-muted">
+        <ChevronOmlaag className="-rotate-90 transition-transform group-open:rotate-0" />
+        Historie <span className="font-normal text-faint">({begrip.revisie} {begrip.revisie === 1 ? "revisie" : "revisies"})</span>
+      </summary>
       {fout ? (
-        <p className="mt-2 text-xs text-fout">{fout}</p>
+        <p className="mt-2 text-xs text-aandacht-rood-tekst">{fout}</p>
       ) : !revisies ? (
         <p className="mt-2 text-xs text-muted">Laden…</p>
       ) : (

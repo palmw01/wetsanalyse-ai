@@ -66,6 +66,8 @@ function Passage({ id, begrip, koppeling: k, muteer }: {
 }) {
   const beoordeel = (b: KoppelBeoordeling) =>
     muteer((r) => wijzigKoppeling(id, begrip.id, k.id, { verwachte_revisie: r, beoordeling: b }));
+  // Elke passage heeft dezelfde knoppen; voor een schermlezer zegt de naam bij welke passage ze horen.
+  const bij = `“${k.bewijs.tekst}”`;
   return (
     <li className={`rounded-kaart border bg-paper px-3 py-2 ${k.beoordeling === "afgewezen" ? "border-line opacity-70" : "border-line"}`}>
       <div className="flex flex-wrap items-center gap-1.5">
@@ -95,10 +97,10 @@ function Passage({ id, begrip, koppeling: k, muteer }: {
         </Select>
         {k.beoordeling === "open" ? (
           <div className="flex gap-1.5">
-            <button type="button" className={`${KNOP} border-lint text-lint hover:bg-surface`} onClick={() => void beoordeel("akkoord")}>
+            <button type="button" aria-label={`Akkoord met ${bij}`} className={`${KNOP} border-lint text-lint hover:bg-surface`} onClick={() => void beoordeel("akkoord")}>
               Akkoord
             </button>
-            <button type="button" className={`${KNOP} border-line text-muted hover:bg-surface hover:text-ink`} onClick={() => void beoordeel("afgewezen")}>
+            <button type="button" aria-label={`Wijs ${bij} af`} className={`${KNOP} border-line text-muted hover:bg-surface hover:text-ink`} onClick={() => void beoordeel("afgewezen")}>
               Afwijzen
             </button>
           </div>
@@ -106,17 +108,18 @@ function Passage({ id, begrip, koppeling: k, muteer }: {
           <span className="text-xs text-muted">
             {BEOORDELING_LABEL[k.beoordeling]}
             {k.beoordeeld_door && ` · ${k.beoordeeld_door}`}{" "}
-            <button type="button" className="focus-ring rounded underline hover:text-ink" onClick={() => void beoordeel("open")}>
+            <button type="button" aria-label={`Beoordeling van ${bij} terugzetten`} className="focus-ring rounded underline hover:text-ink" onClick={() => void beoordeel("open")}>
               terugzetten
             </button>
           </span>
         )}
         <span className="flex gap-1.5 sm:ml-auto">
-          <Link href={annotatieHref(k.bewijs.eigenaar_iri, k.element_id)} className={`${KNOP} border-line text-lint hover:bg-surface`}>
+          <Link href={annotatieHref(k.bewijs.eigenaar_iri, k.element_id)} aria-label={`Bekijk ${bij} in de annotatie`} className={`${KNOP} border-line text-lint hover:bg-surface`}>
             Bekijk in de annotatie
           </Link>
           <BevestigKnop
             bevestigTekst="Losmaken?"
+            ariaLabel={`Maak ${bij} los van dit begrip`}
             titel="Haalt de passage bij dit begrip weg; de annotatie blijft staan."
             onBevestig={async () => { await muteer((r) => ontkoppel(id, begrip.id, k.id, r)); }}
             className={`${KNOP} border-line text-muted hover:bg-surface hover:text-ink`}

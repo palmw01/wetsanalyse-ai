@@ -209,10 +209,19 @@ try {
   assert.equal(await kaart().getByLabel(/^Onderbouwing/).inputValue(), "Van een ander");
   assert.equal(await kaart().getByLabel(/^Uitleg/).inputValue(), "");
 
+  // Een tabwissel met onbewaarde wijzigingen vraagt eerst bevestiging (de tabs renderen lazy).
+  await kaart().getByLabel(/^Uitleg/).fill("Nog niet bewaard");
+  await page.getByRole("tab", { name: "Elementen" }).click();
+  await zie("Niet-bewaarde wijzigingen");
+  await page.getByRole("button", { name: "Blijf hier" }).click();
+  await page.getByRole("tab", { name: "Begrippen", selected: true }).waitFor();
+  assert.equal(await kaart().getByLabel(/^Uitleg/).inputValue(), "Nog niet bewaard");
+  await page.getByRole("button", { name: "Wijzigingen weggooien" }).click();
+
   // 3. De passages beoordelen; de jurist keurt intussen de laatste annotatie goed.
   for (let i = 0; i < 3; i++) {
     if (i === 2) elementen.e2.lifecycle = "human_approved";
-    await page.getByRole("button", { name: "Akkoord", exact: true }).first().click();
+    await page.getByRole("button", { name: /^Akkoord met “/ }).first().click();
     await page.waitForFunction((n) => document.querySelectorAll("button").length && [...document.querySelectorAll("button")]
       .filter((b) => b.textContent === "Akkoord").length === n, 2 - i);
   }
@@ -222,7 +231,7 @@ try {
   await foto("begrip-geaccordeerd");
 
   // 4. Elke passage terugvinden: de link naar de annotatie wijst het element aan, en de export draagt ze alle drie.
-  const href = await passages.first().getByRole("link", { name: "Bekijk in de annotatie" }).getAttribute("href");
+  const href = await passages.first().getByRole("link", { name: /^Bekijk “.*” in de annotatie$/ }).getAttribute("href");
   assert.match(href, /^\/annotaties\/node\?bron_iri=.+&element=e\d$/);
   await page.getByRole("button", { name: "Exporteren" }).click();
   const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: /^CSV/ }).click()]);
@@ -249,7 +258,7 @@ try {
   await page.waitForTimeout(300);
   await foto("begrip-mobiel");
   assert.deepEqual(errors, []);
-  console.log("Browser OK: begrip uit passages in twee regelingen (met al_primair), poort met redenen, opslaan met revisie, 412 met behoud van invoer, beoordelen, accorderen, link naar het element, CSV-export met elke passage, herladen, historie, smal scherm.");
+  console.log("Browser OK: begrip uit passages in twee regelingen (met al_primair), poort met redenen, opslaan met revisie, 412 met behoud van invoer, tabwissel bewaakt, beoordelen, accorderen, link naar het element, CSV-export met elke passage, herladen, historie, smal scherm.");
 } catch (e) {
   await foto("begrippen-fout");
   throw e;

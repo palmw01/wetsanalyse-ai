@@ -8,6 +8,7 @@ import { ChevronOmlaag } from "@/components/ui/Icoon";
 import { Melding } from "@/components/ui/Melding";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { BegripWerk } from "@/components/werkgebieden/BegripWerk";
+import { OnbewaardMelding } from "@/components/werkgebieden/OnbewaardMelding";
 import { ExportKnop } from "@/components/werkplek/ExportKnop";
 import { exporteerBegrippen, foutTekst, lijstBegrippen, maakBegrip } from "@/lib/api";
 import type { BegrippenLijst } from "@/lib/types";
@@ -22,17 +23,20 @@ const EXPORT_FORMATEN = [
  *
  *  Het gekozen begrip staat in de URL (via `onKies`). Wie wisselt terwijl de kaart wijzigingen draagt
  *  die nog niet bewaard zijn, krijgt eerst de vraag of dat de bedoeling is – zonder systeemvenster. */
-export function BegrippenTab({ id, gekozen, onKies }: {
+export function BegrippenTab({ id, gekozen, onKies, onbewaard, onOnbewaard }: {
   id: string;
   gekozen?: string;
   onKies: (begripId: string | undefined) => void;
+  /** Draagt de kaart niet-bewaarde wijzigingen? Staat in `WerkgebiedClient`, dat ook een tabwissel
+   *  ermee bewaakt. */
+  onbewaard: boolean;
+  onOnbewaard: (onbewaard: boolean) => void;
 }) {
   const [lijst, setLijst] = useState<BegrippenLijst | null>(null);
   const [fout, setFout] = useState<string | null>(null);
   const [nieuweNaam, setNieuweNaam] = useState("");
   const [bezig, setBezig] = useState(false);
-  // De kaart meldt of er niet-bewaarde wijzigingen zijn; dan wacht een wissel op bevestiging.
-  const [onbewaard, setOnbewaard] = useState(false);
+  // Met niet-bewaarde wijzigingen wacht een wissel van begrip op bevestiging.
   const [wachtendeKeuze, setWachtendeKeuze] = useState<string | null | undefined>(undefined);
 
   const laadLijst = useCallback(async () => {
@@ -80,26 +84,15 @@ export function BegrippenTab({ id, gekozen, onKies }: {
     <div className="space-y-4">
       {fout && <Melding type="fout">{fout}</Melding>}
       {wachtendeKeuze !== undefined && (
-        <Melding type="waarschuwing" titel="Niet-bewaarde wijzigingen">
-          <p>Op de kaart staan wijzigingen die nog niet zijn opgeslagen. Wisselen gooit ze weg.</p>
-          <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-            <Button size="sm" variant="secondary" onClick={() => setWachtendeKeuze(undefined)}>
-              Blijf bij dit begrip
-            </Button>
-            <Button
-              size="sm"
-              variant="danger"
-              onClick={() => {
-                const doel = wachtendeKeuze ?? undefined;
-                setWachtendeKeuze(undefined);
-                setOnbewaard(false);
-                onKies(doel);
-              }}
-            >
-              Toch wisselen
-            </Button>
-          </div>
-        </Melding>
+        <OnbewaardMelding
+          onBlijf={() => setWachtendeKeuze(undefined)}
+          onToch={() => {
+            const doel = wachtendeKeuze ?? undefined;
+            setWachtendeKeuze(undefined);
+            onOnbewaard(false);
+            onKies(doel);
+          }}
+        />
       )}
 
       <div className="gap-5 lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]">
@@ -183,9 +176,9 @@ export function BegrippenTab({ id, gekozen, onKies }: {
                 begripId={gekozen!}
                 primair={lijst?.primair ?? {}}
                 onGewijzigd={laadLijst}
-                onOnbewaard={setOnbewaard}
+                onOnbewaard={onOnbewaard}
                 onWeg={async () => {
-                  setOnbewaard(false);
+                  onOnbewaard(false);
                   await laadLijst();
                   onKies(undefined);
                 }}
