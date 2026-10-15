@@ -51,7 +51,7 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
 | `samenhang.py` | Structuur, annotaties en verwijzingen van één artikel (of het overzicht van een structuurdeel), voor de graafweergave; de bouwstenen (`bronknoop`, `markeringen`, `verwijzingen`) deelt hij met `graaf.py`. |
 | `graaf.py` | De complete graaf (`/graaf`): alle regelingen met structuur, verwijzingen en markeringen; structuur en verwijzingen gecachet per `(bwb_id, toestandUrl)`. |
 | `knoopinfo.py` | Wat de kennisgraaf over één knoop weet (`/knoop`), voor de inspector van de graaf. |
-| `werkgebieden.py` (router), `werkgebied_store.py`, `werkgebied_contracts.py`, `werkgebied_inventaris.py` | Werkgebieden: bronselecties, revisies, audit en de inventaris. |
+| `werkgebieden.py` (router), `werkgebied_store.py`, `werkgebied_contracts.py`, `werkgebied_inventaris.py`, `werkgebied_werkvoorraad.py` | Werkgebieden: bronselecties, revisies, audit, de inventaris en de annotatie-werkvoorraad. |
 | `begrippen.py` (router), `begrip_store.py`, `begrip_contracts.py` | Begrippen: inhoud, koppelingen met bewijsstand, actualiteit, de accorderingspoort, revisies en export. |
 | `begrippen_runs.py` (router), `begrippen_run_store.py`, `begrippen_run_contracts.py`, `begrip_manifest.py` | Voorstellen van Lex: manifest voor de begrippenketen, runs, betekenisgroepen en besluiten. |
 | `bronnen_runs.py` (router), `bronnen_run_store.py`, `bronnen_run_contracts.py` | Bronnen vinden met Lex: runs van de ontdekmethoden, kandidaatbepalingen en hun besluiten. |
@@ -232,8 +232,17 @@ spoor D (*Werkgebied als node*).
   `deels_buiten` als een anker buiten de selecties valt; afgewezen elementen worden alleen geteld.
   Per selectie is `bron_gewijzigd` een signaal, geen ongeldigverklaring. Een onbereikbare bron geeft
   `onbereikbaar` en `volledig: false`, nooit een stil kleinere inventaris.
-- Tests: `tests/test_werkgebieden.py` (SQLite) en `tests/test_werkgebieden_postgres.py` (het
-  rij-slot, met `ANNOTATIE_TEST_DSN`).
+- **De annotatie-werkvoorraad** (`GET {id}/annotatie-werkvoorraad`, `werkgebied_werkvoorraad.py`,
+  fase B) zegt wat Lex nog moet annoteren. Alleen selecties met rol *analyseren*; contextbronnen
+  worden geteld. De eenheden volgen `bronmodel.annotatie_eenheden` – de regel van de keuzekaart, dus
+  een artikel met leden per lid – en staan elk één keer. De stand per eenheid komt uit Postgres
+  (lagen, elementen, dekking): `afgerond`, `te_beoordelen`, `beoordeeld`, `zonder_markeringen`
+  (geannoteerd, niets gevonden – telt dus niet als nieuw) of `nieuw`; `te_annoteren` is de lijst
+  `nieuw`. De schatting is de mediaan van het verbruik van de laatste 20 annotatiebeurten van de
+  gebruiker (run met een annotatie-artefact of `annotatie_doel`) keer het aantal; zonder geschiedenis
+  `null`, nooit een verzonnen getal. Een onbereikbare bron: `volledig: false` plus een open punt.
+- Tests: `tests/test_werkgebieden.py` en `tests/test_werkgebied_werkvoorraad.py` (SQLite) en
+  `tests/test_werkgebieden_postgres.py` (het rij-slot, met `ANNOTATIE_TEST_DSN`).
 
 ## Begrippen
 

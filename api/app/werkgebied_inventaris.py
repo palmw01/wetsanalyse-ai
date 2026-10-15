@@ -27,6 +27,26 @@ _VELDEN = ("id", "klasse", "tekst", "lifecycle", "aandacht", "jas_subtype", "eig
            "laag_id", "ankers", "verouderd", "toelichting")
 
 
+def bwb_van(sel: dict) -> str:
+    return sel["bwb_id"] or sel["bron_iri"].split(":")[2]
+
+
+async def bronbomen(selecties: list[dict], resolve: Resolver) -> tuple[dict[str, dict], dict[str, str]]:
+    """Eén bronboom per regeling (`_resolve_bron` levert altijd de hele regeling), en per regeling
+    die niet op te halen was de reden."""
+    per_bwb: dict[str, dict] = {}
+    fouten: dict[str, str] = {}
+    for sel in selecties:
+        bwb = bwb_van(sel)
+        if bwb in per_bwb or bwb in fouten:
+            continue
+        try:
+            per_bwb[bwb] = await resolve({"bron_iri": sel["bron_iri"]})
+        except HTTPException as exc:
+            fouten[bwb] = str(exc.detail)
+    return per_bwb, fouten
+
+
 async def inventaris(selecties: list[dict], resolve: Resolver) -> dict:
     return (await inventaris_met_bronbomen(selecties, resolve))[0]
 
@@ -34,23 +54,14 @@ async def inventaris(selecties: list[dict], resolve: Resolver) -> dict:
 async def inventaris_met_bronbomen(selecties: list[dict], resolve: Resolver) -> tuple[dict, dict[str, dict]]:
     """De inventaris, plus de bronboom per regeling die ervoor is opgehaald – zodat wie daarna de
     teksten nodig heeft (het manifest van de begrippenketen) de graaf niet opnieuw vraagt."""
-    per_bwb: dict[str, dict] = {}
-    fouten: dict[str, str] = {}
-    for sel in selecties:
-        bwb = sel["bwb_id"] or sel["bron_iri"].split(":")[2]
-        if bwb in per_bwb or bwb in fouten:
-            continue
-        try:
-            per_bwb[bwb] = await resolve({"bron_iri": sel["bron_iri"]})
-        except HTTPException as exc:
-            fouten[bwb] = str(exc.detail)
+    per_bwb, fouten = await bronbomen(selecties, resolve)
 
     alle_nodes: dict[str, dict] = {}
     volgorde: dict[str, int] = {}
     scopes: dict[str, set[str]] = {}
     samenvatting = []
     for sel in selecties:
-        bwb = sel["bwb_id"] or sel["bron_iri"].split(":")[2]
+        bwb = bwb_van(sel)
         regel = {"id": sel["id"], "bron_iri": sel["bron_iri"], "label": sel["label"], "rol": sel["rol"],
                  "bereik": sel["bereik"], "aantal": 0, "afgewezen": 0, "bron_gewijzigd": False,
                  "onbereikbaar": None}
