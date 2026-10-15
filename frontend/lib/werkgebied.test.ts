@@ -117,3 +117,45 @@ it("tabUitParam valt terug op Bronnen", async () => {
   expect(tabUitParam(undefined)).toBe("bronnen");
   expect(tabUitParam("begrippen")).toBe("bronnen");
 });
+
+describe("verwijzingSuggesties", async () => {
+  const { bouwModel } = await import("./graaf/model");
+  const { verwijzingSuggesties, scopeInModel } = await import("./werkgebied");
+  const k = (id: string, soort: string, over: Record<string, unknown> = {}) => ({
+    id, soort, label: id, tekst: "", klasse: "", lifecycle: "", element_id: "", bwb_id: "BWBR1", artikel: "", lid: "",
+    rand: false, ...over,
+  });
+  const r = (bron: string, soort: string, doel: string) => ({ bron, soort, doel, groep: "structuur", anker_tekst: "" });
+  const g = bouwModel([{
+    knopen: [
+      k("reg", "regeling", { label: "Invorderingswet 1990" }), k("h1", "deel"), k("a9", "artikel"), k("a9l1", "lid"),
+      k("a9l2", "lid"), k("a10", "artikel", { rand: true }), k("a11", "artikel", { rand: true }),
+      k("awr3", "artikel", { rand: true, bwb_id: "BWBR2" }), k("x", "extern", { rand: true, bwb_id: "" }),
+    ] as never,
+    relaties: [
+      r("reg", "bevat", "h1"), r("h1", "bevat", "a9"), r("a9", "bevat", "a9l1"), r("a9", "bevat", "a9l2"),
+      r("a9l1", "verwijst_naar", "a10"), r("a9l2", "verwijst_naar", "a10"), r("a9l2", "verwijst_naar", "awr3"),
+      r("a9l1", "verwijst_naar", "a9l2"), r("a9l1", "verwijst_naar", "h1"), r("a9l2", "verwijst_naar", "x"),
+      r("a11", "verwijst_naar", "a10"),
+    ] as never,
+  }]);
+
+  it("dekt bij `onderliggend` alles eronder, bij `node` alleen de knoop", () => {
+    expect([...scopeInModel(g, [{ bron_iri: "a9", bereik: "onderliggend" }])].sort()).toEqual(["a9", "a9l1", "a9l2"]);
+    expect([...scopeInModel(g, [{ bron_iri: "a9", bereik: "node" }])]).toEqual(["a9"]);
+  });
+
+  it("noemt verwijzingen naar buiten, meest genoemd eerst, zonder interne of omvattende doelen", () => {
+    const s = verwijzingSuggesties(g, [{ bron_iri: "a9", bereik: "onderliggend" }]);
+    expect(s.map((x) => x.id)).toEqual(["a10", "awr3", "x"]);
+    expect(s[0]).toMatchObject({ regeling: "Invorderingswet 1990", beschikbaar: true });
+    expect(s[0].vanuit).toHaveLength(2);
+    expect(s[1].regeling).toBe("BWBR2");
+    expect(s[2].beschikbaar).toBe(false);
+  });
+
+  it("met een selectie op één lid tellen alleen diens verwijzingen", () => {
+    expect(verwijzingSuggesties(g, [{ bron_iri: "a9l2", bereik: "onderliggend" }]).map((x) => x.id)).toEqual(["a10", "awr3", "x"]);
+    expect(verwijzingSuggesties(g, [{ bron_iri: "a9l1", bereik: "onderliggend" }]).map((x) => x.id)).toEqual(["a9l2", "a10"]);
+  });
+});

@@ -1030,3 +1030,22 @@ export async function haalWerkgebiedAudit(id: string, limit = 100): Promise<Werk
   const res = await fetch(`${wg(id, "audit")}?limit=${limit}`, { cache: "no-store" });
   return (await json<{ audit: WerkgebiedAuditRegel[] }>(res)).audit;
 }
+
+/** Neemt één bepaling op in een werkgebied vanaf een plek waar dat werkgebied niet in beeld is (de
+ *  annotatiepagina). Er is dus geen revisie in beeld: de actuele wordt opgehaald. Bij een 412 – iemand
+ *  wijzigde het werkgebied tussen ophalen en opnemen – één keer opnieuw, want de bedoeling ("deze
+ *  bepaling, met deze rol, erbij") hangt niet af van de rest van het werkgebied, en opnemen is
+ *  idempotent. Een tweede 412 gaat als fout terug. */
+export async function neemOpInWerkgebied(
+  id: string,
+  invoer: { bron_iri: string; rol: BronRol },
+): Promise<{ werkgebied: Werkgebied; nieuw: boolean }> {
+  for (let poging = 0; ; poging++) {
+    const { revisie } = await haalWerkgebied(id);
+    try {
+      return await voegBronToe(id, { ...invoer, verwachte_revisie: revisie });
+    } catch (e) {
+      if (poging > 0 || !(isApiError(e) && e.status === 412)) throw e;
+    }
+  }
+}

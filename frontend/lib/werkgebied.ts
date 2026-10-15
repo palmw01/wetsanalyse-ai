@@ -2,6 +2,7 @@
 // een bepaling en de indeling van de inventaris. Puur, zodat vitest (node-env) het kan toetsen.
 
 import { isApiError } from "./api";
+import { ouderVan, type GraafModel } from "./graaf/model";
 import { jasVolgorde, klasseLabel } from "./jas";
 import type {
   BronBereik,
@@ -47,6 +48,7 @@ export function isAlOpgenomen(e: unknown): boolean {
 export const TABS = [
   { key: "bronnen", label: "Bronnen" },
   { key: "elementen", label: "Elementen" },
+  { key: "samenhang", label: "Samenhang" },
   { key: "historie", label: "Historie" },
 ] as const;
 export type WerkgebiedTab = (typeof TABS)[number]["key"];
@@ -182,4 +184,67 @@ export function auditZin(regel: WerkgebiedAuditRegel, labels: Map<string, string
  *  `:` en `#`. */
 export function annotatieHref(bronIri: string): string {
   return `/annotaties/node?${new URLSearchParams({ bron_iri: bronIri })}`;
+}
+
+// --- Samenhang: verwijzingen naar bepalingen buiten het werkgebied ---------
+
+/** Wat de selecties dekken in het geladen model: de bronnode zelf, en bij `onderliggend` alles wat
+ *  zij via `bevat` bevat. */
+export function scopeInModel(g: GraafModel, selecties: { bron_iri: string; bereik: BronBereik }[]): Set<string> {
+  const scope = new Set<string>();
+  for (const s of selecties) {
+    if (!g.hasNode(s.bron_iri)) continue;
+    const stapel = [s.bron_iri];
+    while (stapel.length) {
+      const id = stapel.pop()!;
+      if (scope.has(id)) continue;
+      scope.add(id);
+      if (s.bereik === "node") continue;
+      g.forEachOutEdge(id, (_, a, __, doel) => { if (a.soort === "bevat") stapel.push(doel); });
+    }
+  }
+  return scope;
+}
+
+export interface Suggestie {
+  /** De bron-IRI van de bepaling waarnaar verwezen wordt. */
+  id: string;
+  naam: string;
+  /** De citeertitel als de regeling geladen is, anders het BWB-id. */
+  regeling: string;
+  /** In de graaf, dus op te nemen. Een niet-geïmporteerde bepaling blijft een open punt. */
+  beschikbaar: boolean;
+  /** Vanuit welke bepalingen in het werkgebied er verwezen wordt (namen, uniek, gesorteerd). */
+  vanuit: string[];
+}
+
+const opNummer = (a: string, b: string) => a.localeCompare(b, "nl", { numeric: true });
+
+/** De bepalingen waarnaar het werkgebied verwijst maar die er niet in staan – een suggestie, geen
+ *  automatische uitbreiding. Een verwijzing naar iets wat de selectie zelf omvat (het eigen hoofdstuk)
+ *  telt niet. Meest genoemd eerst, dan op naam. */
+export function verwijzingSuggesties(g: GraafModel, selecties: { bron_iri: string; bereik: BronBereik }[]): Suggestie[] {
+  const scope = scopeInModel(g, selecties);
+  const omvattend = new Set<string>();
+  for (const s of selecties) {
+    for (let o = g.hasNode(s.bron_iri) ? ouderVan(g, s.bron_iri) : undefined; o; o = ouderVan(g, o)) omvattend.add(o);
+  }
+  const regelingNaam = new Map<string, string>();
+  g.forEachNode((_, a) => { if (a.soort === "regeling" && a.bwb_id) regelingNaam.set(a.bwb_id, a.naam); });
+
+  const per = new Map<string, Set<string>>();
+  g.forEachEdge((_, a, bron, doel) => {
+    if (a.soort !== "verwijst_naar" || !scope.has(bron) || scope.has(doel) || omvattend.has(doel)) return;
+    if (!per.has(doel)) per.set(doel, new Set());
+    per.get(doel)!.add(g.getNodeAttribute(bron, "naam"));
+  });
+  return [...per.entries()]
+    .map(([id, vanuit]) => {
+      const k = g.getNodeAttributes(id);
+      return {
+        id, naam: k.naam, regeling: regelingNaam.get(k.bwb_id) ?? k.bwb_id,
+        beschikbaar: k.soort !== "extern" && !!k.bwb_id, vanuit: [...vanuit].sort(opNummer),
+      };
+    })
+    .sort((a, b) => b.vanuit.length - a.vanuit.length || opNummer(a.naam, b.naam));
 }
