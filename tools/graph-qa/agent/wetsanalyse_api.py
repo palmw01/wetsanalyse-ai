@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
@@ -122,6 +123,30 @@ class WetsanalyseApi:
     async def zet_bronnode_batch(self, payload: dict[str, Any]) -> dict[str, Any]:
         data = {**payload, "elementen": [naar_contract(e) for e in payload.get("elementen", [])]}
         return await self._post("/v1/annotatie/lagen/batch", data)
+
+    # -- begrippen: voorstellen van Lex (spoor D, levering 3a) --------------------------------------
+
+    def _run_pad(self, werkgebied_id: str, run_id: str) -> str:
+        return f"/v1/werkgebieden/{quote(werkgebied_id, safe='')}/begrippen-runs/{quote(run_id, safe='')}"
+
+    async def haal_begrippen_run(self, werkgebied_id: str, run_id: str) -> dict[str, Any]:
+        """De run met zijn manifest: de vaste invoer die de api heeft vastgelegd."""
+        antwoord = await self._client.get(f"{self._basis}{self._run_pad(werkgebied_id, run_id)}",
+                                          params={"manifest": "true"}, headers=self._headers)
+        if antwoord.status_code >= 400:
+            raise WetsanalyseApiFout(f"GET begrippen-run → {antwoord.status_code}", antwoord.status_code,
+                                     api_reden(antwoord))
+        return antwoord.json()
+
+    async def meld_begrippen_loopt(self, werkgebied_id: str, run_id: str) -> dict[str, Any]:
+        return await self._post(f"{self._run_pad(werkgebied_id, run_id)}/loopt", {})
+
+    async def zet_begrippen_uitkomst(self, werkgebied_id: str, run_id: str, uitkomst: dict[str, Any]) -> dict[str, Any]:
+        """Idempotent aan de api-kant: dezelfde uitkomst nog eens geeft de run terug."""
+        return await self._verstuur("PUT", f"{self._run_pad(werkgebied_id, run_id)}/uitkomst", uitkomst)
+
+    async def meld_begrippen_mislukt(self, werkgebied_id: str, run_id: str, reden: str) -> dict[str, Any]:
+        return await self._post(f"{self._run_pad(werkgebied_id, run_id)}/mislukt", {"reden": reden[:2000]})
 
     # -- gesprekken-domein -----------------------------------------------------------------------
 
