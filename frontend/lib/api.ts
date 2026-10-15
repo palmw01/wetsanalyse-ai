@@ -51,6 +51,8 @@ import type {
   BerichtInvoer,
   BerichtOut,
   BerichtPublicatieIn,
+  AkkoordAntwoord,
+  AkkoordInvoer,
   Begrip,
   BegripInhoud,
   BegrippenRun,
@@ -1197,9 +1199,19 @@ export async function neemGroepenOver(
   return json<Begrip>(await fetch(wg(id, "groepen", "overnemen"), jsonInit("POST", overname)));
 }
 
-export async function koppelGroep(id: string, groepId: string, begripId: string, elementIds?: string[]): Promise<Begrip> {
+/** Akkoord op een voorstel (fase D): het begrip met beoordeelde koppelingen, geaccordeerd als de poort
+ *  het toelaat – anders een concept, en `poort` noemt wat er openstaat. */
+export async function akkoordGroep(id: string, invoer: AkkoordInvoer): Promise<AkkoordAntwoord> {
+  return json<AkkoordAntwoord>(await fetch(wg(id, "groepen", "akkoord"), jsonInit("POST", invoer)));
+}
+
+/** Passages van een groep aan een bestaand begrip. `akkoord` vanuit de review: de koppelingen zijn dan
+ *  meteen beoordeeld, en een geaccordeerd begrip blijft geaccordeerd als de poort het toelaat. */
+export async function koppelGroep(
+  id: string, groepId: string, begripId: string, elementIds?: string[], akkoord = false,
+): Promise<Begrip> {
   return json<Begrip>(await fetch(wg(id, "groepen", groepId, "koppelen"),
-    jsonInit("POST", { begrip_id: begripId, ...(elementIds ? { element_ids: elementIds } : {}) })));
+    jsonInit("POST", { begrip_id: begripId, ...(elementIds ? { element_ids: elementIds } : {}), ...(akkoord ? { akkoord } : {}) })));
 }
 
 export async function besluitGroep(

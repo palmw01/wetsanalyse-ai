@@ -105,6 +105,15 @@ try {
     "/werkgebieden/wg1?tab=begrippen");
   assert.equal(await begrippenPaneel().locator('button[aria-expanded]').filter({ hasText: "Voorstellen van Lex" }).count(), 0,
     "in het paneel is de strook niet in te klappen");
+  // De review werkt in het paneel met het toetsenbord (fase D) – maar niet zolang de focus in het gesprek
+  // staat (op de chip): pas met de focus in het paneel kiest j het eerste voorstel en klapt het uit.
+  await page.keyboard.press("j");
+  assert.equal(await begrippenPaneel().locator("[data-review-item][aria-current=true]").count(), 0,
+    "een toets vanuit het gesprek doet niets in het paneel");
+  await begrippenPaneel().getByText(/^Review – /).click();
+  await page.keyboard.press("j");
+  await begrippenPaneel().locator('[data-review-item="G1"][aria-current=true]').waitFor();
+  await begrippenPaneel().getByRole("button", { name: /^Akkoord.*groep “belastingschuldige”/ }).waitFor();
 
   // --- Een annotatie openen sluit de begrippen: er staat één artefact open ---
   await page.locator("button", { hasText: "Invorderingswet – artikel 9 lid 1" }).first().click();

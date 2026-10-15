@@ -1006,10 +1006,16 @@ export interface Passage {
   element_id: string;
   tekst: string;
   jas_klasse: string;
+  /** De stand van de annotatie bij de run (het manifest). */
   review_status: string;
   bron_iri: string;
   vindplaats: string;
+  /** De stand van de annotatie nú (fase D); ontbreekt bij een verdwenen element. */
+  lifecycle?: string;
+  annotatie_beoordeeld?: boolean;
 }
+
+
 
 export interface Relatie {
   kandidaat_id: string;
@@ -1113,8 +1119,39 @@ export interface Betekenisgroep {
   reden: string;
   begrip_id: string | null;
   besloten_door: string | null;
+  /** De leden die nog geen begrip werden; na splitsen blijft de groep open met de rest. */
   leden: Passage[];
+  /** Hoeveel leden al een begrip werden (splitsen, fase D). */
+  afgehandeld?: number;
   lijkt_op: { begrip_id: string; naam: string; gedeeld: string[] }[];
+  /** Wat de poort na een akkoord nog zou tegenhouden (alleen bij een open of geparkeerde groep). */
+  poort_vooraf?: Poort | null;
+}
+
+/** Wat de jurist bij een akkoord anders wil dan het voorstel (api `Aanpassing`). */
+export interface Aanpassing {
+  definitie?: string;
+  definitie_herkomst?: DefinitieHerkomst;
+  context?: string;
+  begripstype?: Begripstype | "";
+  alternatieve_termen?: string[];
+}
+
+/** `POST …/groepen/akkoord` (fase D). */
+export interface AkkoordInvoer {
+  groep_ids: string[];
+  naam: string;
+  element_ids?: string[];
+  met_definitie?: boolean;
+  aanpassing?: Aanpassing;
+  definitie_van?: string;
+  kandidaat_id?: string;
+}
+
+export interface AkkoordAntwoord {
+  begrip: Begrip;
+  geaccordeerd: boolean;
+  poort: Poort;
 }
 
 // --- Bronnen vinden met Lex (spoor D, fase A) – afgeleid van api/app/bronnen_run_contracts.py ---

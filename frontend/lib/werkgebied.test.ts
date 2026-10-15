@@ -156,7 +156,7 @@ describe("isWerkgebiedRoute", async () => {
     [["w", "begrippen", "b", "heropenen"]], [["w", "begrippen", "b", "revisies"]],
     [["w", "begrippen", "b", "koppelingen", "k"]],
     [["w", "begrippen-runs", "laatste"]], [["w", "begrippen-runs", "r"]], [["w", "begrippen-runs", "r", "vragen", "P1"]],
-    [["w", "groepen"]], [["w", "groepen", "overnemen"]], [["w", "groepen", "G1", "koppelen"]],
+    [["w", "groepen"]], [["w", "groepen", "overnemen"]], [["w", "groepen", "akkoord"]], [["w", "groepen", "G1", "koppelen"]],
     [["w", "groepen", "G1", "afwijzen"]], [["w", "groepen", "G1", "parkeren"]], [["w", "groepen", "G1", "heropenen"]],
     [["w", "bronnen-runs", "laatste"]], [["w", "bronnen-runs", "r"]], [["w", "kandidaten"]],
     [["w", "kandidaten", "K1", "opnemen"]], [["w", "kandidaten", "K1", "later"]],
@@ -170,7 +170,7 @@ describe("isWerkgebiedRoute", async () => {
     // Alleen graph-qa schrijft de uitkomst; starten gaat via /api/begrippen-run.
     [["w", "begrippen-runs"]], [["w", "begrippen-runs", "r", "uitkomst"]], [["w", "begrippen-runs", "r", "loopt"]],
     [["w", "begrippen-runs", "r", "mislukt"]], [["w", "begrippen-runs", "r", "vragen"]],
-    [["w", "groepen", "G1"]], [["w", "groepen", "G1", "verwijderen"]], [["w", "groepen", "overnemen", "x"]],
+    [["w", "groepen", "G1"]], [["w", "groepen", "G1", "verwijderen"]], [["w", "groepen", "overnemen", "x"]], [["w", "groepen", "akkoord", "x"]],
     // Ook bij de bronnen: starten via /api/bronnen-run, de rest is van graph-qa.
     [["w", "bronnen-runs"]], [["w", "bronnen-runs", "r", "uitkomst"]], [["w", "bronnen-runs", "r", "loopt"]],
     [["w", "bronnen-runs", "r", "mislukt"]], [["w", "kandidaten", "K1"]], [["w", "kandidaten", "K1", "wissen"]],
@@ -188,6 +188,18 @@ it("auditZin noemt een begrip bij naam", async () => {
   expect(auditZin(r("begrip-geaccordeerd", { begrip_id: "b1" }), new Map(), new Map([["b1", "Aanslag"]])))
     .toBe('Begrip "Aanslag": geaccordeerd');
   expect(auditZin(r("koppeling-verwijderd", { begrip_id: "weg" }), new Map())).toBe("Een begrip: passage losgemaakt");
+});
+
+it("auditZin noemt het besluit over een voorstel van Lex", async () => {
+  const { auditZin } = await import("./werkgebied");
+  const r = (actie: string, detail: Record<string, unknown>) => ({ id: 1, actor: "a", actie, detail, tijdstip: "" });
+  const namen = new Map([["b1", "Aanslag"]]);
+  expect(auditZin(r("groep-akkoord", { begrip_id: "b1", geaccordeerd: true }), new Map(), namen))
+    .toBe('Akkoord op een voorstel van Lex: begrip "Aanslag" geaccordeerd');
+  expect(auditZin(r("groep-akkoord", { begrip_id: "b1", geaccordeerd: false, deels: ["G1"] }), new Map(), namen))
+    .toBe('Akkoord op een voorstel van Lex: begrip "Aanslag", nog een concept (een deel van de passages)');
+  expect(auditZin(r("groep-afgewezen", { reden: "andere betekenis" }), new Map()))
+    .toBe("Voorstel van Lex afgewezen – andere betekenis");
 });
 
 it("annotatieHref neemt het element mee", async () => {
