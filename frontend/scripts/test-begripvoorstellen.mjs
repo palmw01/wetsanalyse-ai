@@ -148,14 +148,15 @@ try {
   await zie("“de aansprakelijkgestelde” (Artikel 24 · Lid 1 – IW 1990) geldt als “de belastingschuldige”");
   await foto("voorstellen");
 
-  // 2. Twijfelvraag "Samen" zet beide groepen klaar → combineren tot één begrip.
+  // 2. Twijfelvraag "Samen" levert meteen een begrip op: beide passages plus hun open groepen.
   await page.getByRole("button", { name: /^Samen: Horen/ }).click();
-  await zie("2 groepen samen als één begrip");
-  await page.getByRole("textbox", { name: "Naam van het gecombineerde begrip" }).fill("Aanslag");
-  await page.getByRole("button", { name: "Samen als één begrip" }).click();
+  const naamVeld = page.getByRole("textbox", { name: /^Naam van het begrip uit: Horen/ });
+  assert.equal(await naamVeld.inputValue(), "aanslag");                     // de naam van de groep
+  await naamVeld.fill("Aanslag");
+  await page.getByRole("button", { name: "Maak er één begrip van" }).click();
   await page.waitForURL(/begrip=b\d/);
   const combi = laatsteBody("/groepen/overnemen");
-  assert.deepEqual([combi.groep_ids, combi.naam, combi.element_ids], [["G2", "G3"], "Aanslag", undefined]);
+  assert.deepEqual([combi.groep_ids, combi.naam, combi.element_ids], [["G2", "G3"], "Aanslag", ["e3", "e4", "e6", "e7"]]);
   assert.equal(laatsteBody("/vragen/P1").antwoord, "samen");
   await page.getByRole("article", { name: "Begrip Aanslag" }).waitFor();
 
@@ -200,7 +201,7 @@ try {
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
   await foto("voorstellen-mobiel");
   assert.deepEqual(errors, []);
-  console.log("Browser OK: voorstellen starten en volgen, groepen met definitie en aandacht, twijfelvraag en relatie letterlijk, samen → combineren, splitsen met letterlijke definitie, afwijzen en heropenen, geen herberekening op dezelfde stand, verouderd, aanhaken na herladen, fout van Lex zichtbaar, smal scherm.");
+  console.log("Browser OK: voorstellen starten en volgen, groepen met definitie en aandacht, twijfelvraag en relatie letterlijk, samen → één begrip, splitsen met letterlijke definitie, afwijzen en heropenen, geen herberekening op dezelfde stand, verouderd, aanhaken na herladen, fout van Lex zichtbaar, smal scherm.");
 } catch (e) {
   await foto("voorstellen-fout");
   throw e;

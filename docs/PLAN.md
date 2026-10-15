@@ -516,26 +516,45 @@ geldigheid). Begrippen zijn analyse-uitkomsten en nooit wettelijke definities.
 - Dekking telt elk element één keer: te verwerken / voorstel / geaccordeerd gekoppeld / bewust
   buiten behandeling.
 
-#### Leveringen
+#### Leveringen en fasen
 
-| Levering | Resultaat | Acceptatie |
+**Gebouwd** (op acceptatie):
+
+| Levering | Resultaat |
+|---|---|
+| 1. Werkgebied en scope (#659–#661) | node, bronselecties, api-opslag, tabs Bronnen/Elementen/Samenhang, verwijzingen als suggestie, opnemen vanuit graaf en annotatie |
+| 2. Begrippenwerkplek (#662–#663) | begripskaart, elementselectie, koppelingen met bewijsstand, beoordeling, poort, historie, JSON/CSV-export |
+| 3a. Deterministische voorstellen (#655–#658, #664–#666) | de keten van ADR-004 op het manifest van een werkgebied: groepen, relaties, twijfelvragen; overnemen, splitsen, combineren, koppelen, afwijzen |
+
+**Herzien op 15 okt 2026: een Lex-gedreven stroom.** Na gebruik bleek het vooral handwerk: bronnen,
+elementen en begrippen vult de analist zelf, en de voorstellen staan los van de werkplek. Besloten: op
+elk punt waar de analist nu handwerk doet, doet Lex een voorstel met bewijs, en de analist beoordeelt
+het – in dezelfde vorm als bij annoteren. Wat er staat, blijft het fundament.
+
+```
+vraag aan Lex ─► werkgebied: Lex stelt bepalingen voor ─► Lex annoteert wat ontbreekt
+             ─► Lex stelt begrippen voor mét concept-kaart ─► review als artefact ─► begrip
+             ─► Lex naast de kaart ─► accorderen ─► onderhoud en uitwisseling
+```
+
+| Fase | Resultaat | Acceptatie |
 |---|---|---|
-| 1. Werkgebied en scope | node, bronselecties, api-opslag, tabs Bronnen/Elementen, eenvoudige samenhang; kandidaten uit verwijzingen en definities, uitsluiten met reden | hetzelfde artikel in twee werkgebieden; een wijziging in de ene selectie raakt de andere niet; een uitgesloten kandidaat komt niet terug |
-| 2. Begrippenwerkplek | begripskaart volgens NL-SBB (ADR-003), elementselectie, koppelingen, beoordeling, historie, JSON/CSV-export | uit meerdere annotaties één begrip maken en elke passage terugvinden |
-| 3. Voorstellen van Lex | groeperen, formuleren, bestaand begrip zoeken, splitsen/combineren, hervatbare batches; patroonregister voor begripsrelaties (kwalificatie, inclusie, uitsluiting, hiërarchie) en termkandidaten op de bestaande taalprovider (ADR-002); kandidaten uit tekst en semantiek met dekkingscheck | verschillende formuleringen met gelijke betekenis gekoppeld; gelijke woorden met andere betekenis gescheiden; elk voorstel noemt patroon-ID en bronfragment |
-| 4. Onderhoud en uitwisseling | gerichte herbeoordeling, relaties, begrippengraaf, RDF-export, Lex leest begrippen | een gewijzigde dragende passage verschijnt bij de geraakte begrippen; de oude bewijsstand blijft |
+| AF. Eén artefactmodel | `Bericht.artefact {soort: annotatie \| begrippen \| regels, ref, titel}`; chip en artefactpaneel per soort; de werkplek opent vanuit een werkgebied en toont dat; supervisor-route *begrippen*. `regels` (afleidingsregels) wordt alleen gereserveerd | begrippen voorstellen vanuit de chat levert een artefact dat na herladen terugkomt |
+| A. Bronnen vinden met Lex | kandidaatbepalingen (herkomst en bewijs per methode, rol kern/afhankelijkheid/aanverwant, uitsluiten met reden); werkgebied vanuit een overzicht; verwijzingen diepte 1, definities, opbouw, similarity als zwakste; functie van een verwijzing; deelvragen en dekkingscheck | een uitgesloten kandidaat komt niet terug; ablatie per methode op de referentieset bronselectie |
+| B. Lex annoteert het werkgebied | werkgebied-annotatierun over de bepalingen die nog niet af zijn, met budgetbevestiging en voortgang | na de run staan de elementen in de inventaris; hergebruik slaat afgeronde bepalingen over |
+| C. Lex formuleert begrippen (was L3b) | model voor twijfelparen; concept-kaart per groep (naam, begripstype, context, definitie met herkomst, dragende passages, voorbeelden) met deterministische toetsen; bestaand begrip zoeken; hervatbare batches | verschillende formuleringen met gelijke betekenis gekoppeld, gelijke woorden met andere betekenis gescheiden; garanties (letterlijkheid, id's) op 100% |
+| D. Beoordelen als artefact | reviewlijst zoals bij annoteren (akkoord, aanpassen, afwijzen, splitsen, combineren met vergelijking, toetsenbord), in het artefactpaneel én op de tab Begrippen | uit voorstellen een geaccordeerd begrip, zonder leeg formulier |
+| E. Lex naast de kaart | scherpere definitie, betekenisverschil, brondefinitie – als voorstel per veld | niets wordt stil overschreven; herkomst gaat mee |
+| F. Onderhoud en uitwisseling (was L4) | gerichte herbeoordeling, voorstel tot herkoppeling, begripsrelaties en opvolging, begrippengraaf, dekking, NL-SBB-projectie en RDF-export, Lex leest begrippen | een gewijzigde dragende passage verschijnt bij de geraakte begrippen; de oude bewijsstand blijft |
 
-**Stand (15 okt 2026).** Levering 1 en 2 zijn gebouwd en op acceptatie geaccepteerd (#659–#663).
-Levering 3 is gesplitst. **L3a** (in bouw): de deterministische begrippenketen van ADR-004 (#655–#658)
-draait op het manifest van een werkgebied en levert groepen, relaties en twijfelvragen als voorstel;
-het definitievoorstel is alleen letterlijk uit een brondefinitie; overnemen, combineren, splitsen,
-koppelen aan een bestaand begrip, afwijzen en parkeren. **L3b**: het model voor twijfelparen en een
-geformuleerd definitievoorstel, met hervatbare batches en een eigen meting – pas met modelstappen
-hebben batches zin, want de keten groepeert globaal. Besloten:
-elke analist mag een begrip accorderen (de audit legt vast wie). De poort vraagt naam, definitie met
-herkomst, context, minstens één aanduidende passage, en dragende koppelingen die beoordeeld en
-actueel zijn en op een door een jurist beoordeelde annotatie rusten. Een voorbeeld is een
-kwaliteitssignaal, geen voorwaarde.
+Volgorde: AF → A → B → C → D → E → F. Afleidingsregels (RegelSpraak) vallen erbuiten; AF legt alleen
+hun plek in het artefactmodel vast.
+
+**Besloten (14–15 okt 2026).** Werkgebieden zijn gedeeld. Elke analist mag een begrip accorderen (de
+audit legt vast wie). De poort vraagt naam, definitie met herkomst, context, minstens één aanduidende
+passage, en dragende koppelingen die beoordeeld en actueel zijn en op een door een jurist beoordeelde
+annotatie rusten; een voorbeeld is een kwaliteitssignaal, geen voorwaarde. Eén begrippenkader per
+werkgebied, impliciet. Bediening: Lex stelt voor en zelf maken blijft mogelijk.
 
 **Eerste bouwopdracht:** levering 1 en 2 als één werkend pad met twee artikelen uit verschillende
 regelingen, bestaande annotaties en één beoordeeld begrip met meerdere koppelingen. Buiten deze reeks
@@ -655,8 +674,8 @@ blijft bij de wettekst.
 
 ## Open keuzes
 
-1. **D — bediening**: *besloten 15 okt 2026* – beide: zelf een begrip maken (levering 2) blijft, en op
-   de tab Begrippen staat een eigen strook *Voorstellen van Lex* met *Stel begrippen voor*.
+1. **D — bediening**: *besloten 15 okt 2026* – Lex stelt voor (de Lex-gedreven stroom, zie
+   *Leveringen en fasen*); zelf een begrip maken blijft mogelijk.
 2. **D — toegang**: *besloten 14 okt 2026* – gedeelde werkgebieden, zoals de annotaties.
 3. **D — kaders**: *besloten 15 okt 2026* – één begrippenkader per werkgebied, impliciet: geen eigen
    object, de IRI `urn:wa:kader:<werkgebied>` is afgeleid. Hergebruik tussen kaders komt later en

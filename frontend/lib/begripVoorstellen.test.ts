@@ -59,3 +59,12 @@ it("passageTekst en voortgangsregel", () => {
   expect(passageTekst("weg", {})).toBe("weg");
   expect(voortgangsregel("Lex · Groeperen: 3 groepen (12 ms)")).toBe("Groeperen: 3 groepen (12 ms)");
 });
+
+it("samenOvername neemt beide passages en de open groep van een ervan", async () => {
+  const { samenOvername } = await import("./begripVoorstellen");
+  const vraag = { kandidaat_id: "P", van: "a1", naar: "x", regel: "", uitleg: [] };
+  const o = samenOvername(vraag, [groep("Ga", ["a1", "a2"], { voorstel: { naam: "alfa" } })], {});
+  expect(o).toEqual({ groep_ids: ["Ga"], naam: "alfa", element_ids: ["a1", "a2", "x"], met_definitie: true });
+  const los = samenOvername({ ...vraag, van: "y" }, [], { y: { ...lid("y", "De Aanslag") } });
+  expect([los.groep_ids, los.naam, los.element_ids]).toEqual([[], "aanslag", ["y", "x"]]);
+});

@@ -307,7 +307,10 @@ bouwt de invoer, toetst en bewaart de uitkomst, en legt de besluiten vast.
   van de keten). Komt dezelfde groep in een latere run terug, dan blijft een afwijzing staan.
 - **Overnemen** (`POST groepen/overnemen`) maakt via `begrip_store.maak` één begrip (concept) met de
   gekozen leden als `duiding` – meer groepen is combineren, een deel van de leden splitsen. De
-  letterlijke brondefinitie gaat alleen mee als er precies één is (herkomst `letterlijk`). Koppelen aan
+  letterlijke brondefinitie gaat alleen mee als er precies één is (herkomst `letterlijk`). Een
+  passage buiten de gekozen groepen mag mee (het antwoord *samen* op een twijfelvraag), mits ze in het
+  manifest van de laatste klare run staat; `groep_ids` mag dan leeg zijn. Bij gekozen groepen moet
+  minstens één eigen passage van die groepen meegaan. Koppelen aan
   een bestaand begrip gaat via `begrip_store.koppel` met de actuele revisie. `lijkt_op` per groep:
   begrippen die een passage delen of de voorgestelde naam als naam of alternatieve term dragen.
 - Besluiten en runs komen in `werkgebied_audit` (`begrippen-run-gestart`, `begrippen-voorgesteld`,

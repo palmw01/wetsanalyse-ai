@@ -92,3 +92,18 @@ export function passageTekst(e: string, passages: Record<string, Passage>, groep
 export function voortgangsregel(bericht: string): string {
   return bericht.replace(/^Lex\s*·\s*/, "");
 }
+
+/** "Samen" bij een twijfelvraag wordt één begrip: beide passages, plus de leden van een open groep
+ *  waar een van de twee in zit. De naam: die van zo'n groep, anders de tekst van de eerste passage. */
+export function samenOvername(
+  vraag: TwijfelVraag,
+  groepen: readonly Betekenisgroep[],
+  passages: Record<string, Passage>,
+): { groep_ids: string[]; naam: string; element_ids: string[]; met_definitie: boolean } {
+  const ids = groepenVanVraag(vraag, groepen);
+  const gekozen = groepen.filter((g) => ids.includes(g.id));
+  const leden = [...new Set([...gekozen.flatMap((g) => g.leden.map((l) => l.element_id)), vraag.van, vraag.naar])];
+  const tekst = passages[vraag.van]?.tekst ?? groepen.flatMap((g) => g.leden).find((l) => l.element_id === vraag.van)?.tekst ?? "";
+  const naam = gekozen[0]?.voorstel.naam ?? tekst.replace(/^(de|het|een|die|deze|dat|dit)\s+/i, "").toLowerCase();
+  return { groep_ids: ids, naam, element_ids: leden, met_definitie: true };
+}

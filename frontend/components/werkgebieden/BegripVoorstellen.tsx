@@ -11,8 +11,8 @@ import {
   koppelGroep, neemGroepenOver, startBegrippenRun, stopRun, volgRun,
 } from "@/lib/api";
 import {
-  AANDACHT_LABEL, BESLUIT_LABEL, HYPOTHESE_LABEL, enigeDefinitie, groepenVanVraag, isBeslisbaar, overnameVoor,
-  passageTekst, sorteerGroepen, voortgangsregel,
+  AANDACHT_LABEL, BESLUIT_LABEL, HYPOTHESE_LABEL, enigeDefinitie, isBeslisbaar, overnameVoor,
+  passageTekst, samenOvername, sorteerGroepen, voortgangsregel,
 } from "@/lib/begripVoorstellen";
 import { jasStyle, klasseLabel } from "@/lib/jas";
 import type { Betekenisgroep, BegrippenRun, GroepenAntwoord } from "@/lib/types";
@@ -48,6 +48,8 @@ export function BegripVoorstellen({ id, onBegrip, onGewijzigd }: {
   const [agentRun, setAgentRun] = useState<string | null>(null);
   const [gekozen, setGekozen] = useState<Set<string>>(new Set());     // groepen om te combineren
   const [combiNaam, setCombiNaam] = useState("");
+  // Na "samen" bij een twijfelvraag: de naam van het begrip dat ervan gemaakt kan worden.
+  const [samen, setSamen] = useState<Record<string, string>>({});
   const kijker = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -250,15 +252,47 @@ export function BegripVoorstellen({ id, onBegrip, onGewijzigd }: {
                     <li key={v.kandidaat_id} className="rounded-kaart border border-line px-3 py-2 text-sm">
                       <p className="text-ink">{vraagZin}</p>
                       {v.uitleg.map((u) => <p key={u} className="text-xs text-muted">{u}</p>)}
-                      {antwoord ? (
-                        <p className="mt-1 text-xs text-muted">Beantwoord: {antwoord.antwoord} · {antwoord.door}</p>
+                      {samen[v.kandidaat_id] !== undefined ? (
+                        <form
+                          className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center"
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            const overname = { ...samenOvername(v, groepen, data.passages), naam: samen[v.kandidaat_id] };
+                            void besluit(() => neemGroepenOver(id, overname), (b) => {
+                              setSamen(({ [v.kandidaat_id]: _, ...rest }) => rest);
+                              onBegrip((b as { id: string }).id);
+                            });
+                          }}
+                        >
+                          <Input value={samen[v.kandidaat_id]} maxLength={200}
+                            onChange={(e) => setSamen((s) => ({ ...s, [v.kandidaat_id]: e.target.value }))}
+                            aria-label={`Naam van het begrip uit: ${vraagZin}`} className="sm:w-56" />
+                          <Button type="submit" size="sm" disabled={!samen[v.kandidaat_id].trim()}>Maak er één begrip van</Button>
+                          <button type="button" className="focus-ring rounded text-xs text-muted underline"
+                            onClick={() => setSamen(({ [v.kandidaat_id]: _, ...rest }) => rest)}>Niet nu</button>
+                        </form>
+                      ) : antwoord ? (
+                        <p className="mt-1 text-xs text-muted">
+                          Beantwoord: {antwoord.antwoord} · {antwoord.door}
+                          {antwoord.antwoord === "samen" && (
+                            <>
+                              {" · "}
+                              <button type="button" className="focus-ring rounded text-lint underline"
+                                onClick={() => setSamen((s) => ({ ...s, [v.kandidaat_id]: samenOvername(v, groepen, data.passages).naam }))}>
+                                maak er één begrip van
+                              </button>
+                            </>
+                          )}
+                        </p>
                       ) : (
                         <div className="mt-1 flex gap-1.5">
                           {(["samen", "apart"] as const).map((a) => (
                             <button key={a} type="button" className={`${KNOP} border-line text-lint hover:bg-surface`}
                               aria-label={`${a === "samen" ? "Samen" : "Apart"}: ${vraagZin}`}
                               onClick={() => void besluit(() => beantwoordVraag(id, data.run!.id, v.kandidaat_id, a), () => {
-                                if (a === "samen") setGekozen((s) => new Set([...s, ...groepenVanVraag(v, groepen)]));
+                                // "Samen" moet iets opleveren: meteen het aanbod om er één begrip van te maken.
+                                if (a === "samen")
+                                  setSamen((s) => ({ ...s, [v.kandidaat_id]: samenOvername(v, groepen, data.passages).naam }));
                               })}>
                               {a === "samen" ? "Samen" : "Apart"}
                             </button>
