@@ -141,6 +141,7 @@ const VELD: Record<keyof BegripInhoud, string> = {
   geldigheid: "geldigheid",
   definitie: "definitie",
   definitie_herkomst: "herkomst van de definitie",
+  definitie_door: "voorgesteld door",
   uitleg: "uitleg",
   onderbouwing: "onderbouwing",
   voorbeelden: "voorbeelden",
@@ -169,6 +170,11 @@ export function revisieZin(r: Pick<BegripRevisie, "actie" | "detail">): string {
     const n = Array.isArray(d.element_ids) ? d.element_ids.length : 0;
     const basis = ACTIE[r.actie];
     return n ? `${basis} (${n === 1 ? "1 passage" : `${n} passages`})` : basis;
+  }
+  if (r.actie === "voorstel-overgenomen") {
+    // Lex naast de kaart (fase E): het voorstel, en of de analist het aanpaste.
+    const veld = typeof d.veld === "string" ? (VELD[d.veld as keyof BegripInhoud] ?? d.veld).toLowerCase() : "";
+    return `${d.aangepast ? "Aangepast overgenomen" : "Overgenomen"} van Lex${veld ? `: ${veld}` : ""}`;
   }
   if (r.actie === "koppeling-gewijzigd" && typeof d.beoordeling === "string") {
     return `Passage beoordeeld: ${BEOORDELING_LABEL[d.beoordeling as KoppelBeoordeling] ?? d.beoordeling}`;

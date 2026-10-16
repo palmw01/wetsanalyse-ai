@@ -24,9 +24,12 @@ plaats van schijnzekerheid.
 > Daarop formuleert de analist **begrippen**: een begripskaart, gekoppeld aan de annotatiepassages
 > die het begrip dragen, met beoordeling, historie en export. Lex stelt betekenisgroepen voor
 > (deterministisch, ADR-004), ook vanuit het gesprek: wat een beurt oplevert is een **artefact**
-> (annotatie, begripsvoorstellen; afleidingsregels gereserveerd). Begripsdefinities door een model,
-> begripsrelaties als objecten en de RegelSpraak-formalisering horen nog niet tot de functionaliteit. graph-qa's begrip-definitie-QA (de `definitie`-specialist
-> over de graaf) staat daar los van.
+> (annotatie, begripsvoorstellen; afleidingsregels gereserveerd). Lex denkt mee met een model bij
+> twijfel en stelt definities voor (geel, met de fragmenten waarop ze rusten), en staat **naast de
+> begripskaart**: brondefinitie zoeken, een scherpere definitie, het betekenisverschil en voorbeelden,
+> elk als voorstel per veld dat de analist overneemt, aanpast of afwijst. Begripsrelaties als objecten
+> en de RegelSpraak-formalisering horen nog niet tot de functionaliteit. graph-qa's begrip-definitie-QA
+> (de `definitie`-specialist over de graaf) staat daar los van.
 
 ### Platform-componenten
 

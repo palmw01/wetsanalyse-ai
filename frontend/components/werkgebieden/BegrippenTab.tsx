@@ -194,6 +194,7 @@ export function BegrippenTab({ id, gekozen, onKies, onbewaard, onOnbewaard }: {
                 id={id}
                 begripId={gekozen!}
                 primair={lijst?.primair ?? {}}
+                andere={lijst?.begrippen ?? []}
                 onGewijzigd={laadLijst}
                 onOnbewaard={onOnbewaard}
                 onWeg={async () => {

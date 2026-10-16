@@ -111,6 +111,11 @@ async def test_een_veranderde_definitie_wordt_niet_stil_overschreven(client):
         "voorstel_verouderd", "", "eigen tekst", "iemand die als eerste genoemd wordt")
     nu = (await client.get(_pad(wg, b))).json()
     assert (nu["revisie"], nu["inhoud"]["definitie"]) == (2, "eigen tekst")
+    # Vervangen kan alleen bewust: met de definitie die de analist naast het voorstel zag.
+    r = await _neem_over(client, wg, b, v, revisie=2, nu_gezien="andere tekst")
+    assert r.status_code == 409
+    r = await _neem_over(client, wg, b, v, revisie=2, nu_gezien="eigen tekst")
+    assert r.status_code == 200 and r.json()["inhoud"]["definitie"] == "iemand die als eerste genoemd wordt"
 
 
 async def test_een_412_als_de_kaart_een_oude_revisie_had(client):

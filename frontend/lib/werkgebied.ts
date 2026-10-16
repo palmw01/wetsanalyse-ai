@@ -50,7 +50,7 @@ export function isAlOpgenomen(e: unknown): boolean {
  *  het werkgebied-id: `[id, ...rest]`. */
 export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   const [id, deel, a, b, c] = pad;
-  if (!id || pad.length > 5) return false;
+  if (!id || pad.length > 6) return false;
   if (pad.length === 1) return true;
   if (deel === "bronnen") return pad.length <= 3;
   // `verdieping` (fase C) is alleen lezen; de batches en de uitkomst zet graph-qa, niet de werkplek.
@@ -77,6 +77,13 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   if (deel !== "begrippen") return false;
   if (pad.length <= 3) return true;                                   // lijst, export, één begrip
   if (a === "export") return false;
+  // Lex naast de kaart (fase E): voorstellen lezen en besluiten. Een kaartrun starten gaat alleen via
+  // `/api/kaart-run`; de run zelf (met invoer), `loopt`, `uitkomst` en `mislukt` zijn van graph-qa.
+  if (b === "voorstellen") {
+    if (pad.length === 4) return true;
+    return pad.length === 6 && !!c && (pad[5] === "overnemen" || pad[5] === "afwijzen");
+  }
+  if (pad.length === 6) return false;
   if (pad.length === 4) return ["koppelingen", "accorderen", "heropenen", "revisies"].includes(b);
   return b === "koppelingen" && !!c;                                  // één koppeling
 }

@@ -34,6 +34,10 @@ import type {
   Verbruiksstand,
 } from "./types";
 import type {
+  KaartActie,
+  KaartRun,
+  KaartVoorstellenAntwoord,
+  VoorbeeldOordeel,
   AnnotatieWerkvoorraad,
   Bevestiging,
   AdminBerichtenPaginaOut,
@@ -1225,6 +1229,44 @@ export async function besluitGroep(
 
 export async function beantwoordVraag(id: string, runId: string, kandidaatId: string, antwoord: "samen" | "apart"): Promise<BegrippenRun> {
   return json<BegrippenRun>(await fetch(wg(id, "begrippen-runs", runId, "vragen", kandidaatId), jsonInit("POST", { antwoord })));
+}
+
+// --- Lex naast de kaart (spoor D, fase E) ---------------------------------------------------------
+
+/** Laat Lex één actie doen op een begrip. `agent_run_id` is null als er voor deze stand van het begrip
+ *  al voorstellen open staan: dan valt er niets te rekenen. */
+export async function startKaartRun(
+  id: string, begripId: string, actie: KaartActie, anderBegripId?: string,
+): Promise<{ run: KaartRun; agent_run_id: string | null }> {
+  return json(await fetch("/api/kaart-run", jsonInit("POST", {
+    werkgebied_id: id, begrip_id: begripId, actie, ...(anderBegripId ? { ander_begrip_id: anderBegripId } : {}) })));
+}
+
+/** De lopende actie op dit begrip om op aan te haken, `null` als er niets loopt, `"onbekend"` bij een storing. */
+export async function haalActieveKaartRun(begripId: string): Promise<RunStart | null | "onbekend"> {
+  const res = await fetch(`/api/kaart-run?${new URLSearchParams({ begrip: begripId })}`, { cache: "no-store" });
+  if (!res.ok) return "onbekend";
+  const run = (await res.json()) as RunStart | null;
+  return run && run.status === "loopt" ? run : null;
+}
+
+export async function haalKaartVoorstellen(id: string, begripId: string): Promise<KaartVoorstellenAntwoord> {
+  return json<KaartVoorstellenAntwoord>(await fetch(wg(id, "begrippen", begripId, "voorstellen"), { cache: "no-store" }));
+}
+
+/** Een voorstel in het begrip. Met `aanpassing` is het van de analist; een veranderde definitie geeft
+ *  409 `voorstel_verouderd` met toen, nu en voorstel – er wordt nooit stil overschreven. */
+export async function neemKaartVoorstelOver(
+  id: string, begripId: string, voorstelId: string, revisie: number,
+  extra: { aanpassing?: string; oordeel?: VoorbeeldOordeel; nu_gezien?: string } = {},
+): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "voorstellen", voorstelId, "overnemen"),
+    jsonInit("POST", { verwachte_revisie: revisie, ...extra })));
+}
+
+export async function wijsKaartVoorstelAf(id: string, begripId: string, voorstelId: string, reden = ""): Promise<KaartVoorstellenAntwoord> {
+  return json<KaartVoorstellenAntwoord>(await fetch(wg(id, "begrippen", begripId, "voorstellen", voorstelId, "afwijzen"),
+    jsonInit("POST", { reden })));
 }
 
 // --- Bronnen vinden met Lex (spoor D, fase A) ---------------------------------------------------

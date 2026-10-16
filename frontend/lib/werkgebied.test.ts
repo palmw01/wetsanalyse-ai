@@ -162,6 +162,9 @@ describe("isWerkgebiedRoute", async () => {
     [["w", "kandidaten", "K1", "opnemen"]], [["w", "kandidaten", "K1", "later"]],
     [["w", "kandidaten", "K1", "uitsluiten"]], [["w", "kandidaten", "K1", "heropenen"]],
     [["w", "annotatie-werkvoorraad"]], [["w", "verdieping"]],
+    // Lex naast de kaart (fase E): voorstellen lezen en besluiten.
+    [["w", "begrippen", "b", "voorstellen"]], [["w", "begrippen", "b", "voorstellen", "v", "overnemen"]],
+    [["w", "begrippen", "b", "voorstellen", "v", "afwijzen"]],
   ])("laat %j door", (pad) => expect(isWerkgebiedRoute(pad)).toBe(true));
   it.each([
     [[]], [["w", "onbekend"]], [["w", "elementen", "x"]], [["w", "bronnen", "s", "x"]],
@@ -177,6 +180,11 @@ describe("isWerkgebiedRoute", async () => {
     [["w", "annotatie-werkvoorraad", "x"]],
     // De verdieping (fase C): lezen mag, de batches en de uitkomst zijn van graph-qa.
     [["w", "verdieping", "x"]], [["w", "begrippen-runs", "r", "batches", "B1"]], [["w", "begrippen-runs", "r", "verdieping"]],
+    // Een kaartrun start alleen via /api/kaart-run; de run zelf (met invoer) en zijn uitkomst zijn van graph-qa.
+    [["w", "begrippen", "b", "kaart-runs"]], [["w", "begrippen", "b", "kaart-runs", "r"]],
+    [["w", "begrippen", "b", "kaart-runs", "r", "uitkomst"]], [["w", "begrippen", "b", "kaart-runs", "r", "loopt"]],
+    [["w", "begrippen", "b", "voorstellen", "v"]], [["w", "begrippen", "b", "voorstellen", "v", "wissen"]],
+    [["w", "begrippen", "b", "voorstellen", "v", "overnemen", "x"]], [["w", "begrippen", "b", "koppelingen", "k", "x", "y"]],
   ])("weigert %j", (pad) => expect(isWerkgebiedRoute(pad)).toBe(false));
 });
 
