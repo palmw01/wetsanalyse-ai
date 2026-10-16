@@ -165,6 +165,10 @@ describe("isWerkgebiedRoute", async () => {
     // Lex naast de kaart (fase E): voorstellen lezen en besluiten.
     [["w", "begrippen", "b", "voorstellen"]], [["w", "begrippen", "b", "voorstellen", "v", "overnemen"]],
     [["w", "begrippen", "b", "voorstellen", "v", "afwijzen"]],
+    // Onderhoud (fase F1): herbeoordelen, herkoppelen, bevestigen en de dekking.
+    [["w", "herbeoordelingen"]], [["w", "begrippen", "b", "koppelingen", "k", "herkoppelen"]],
+    [["w", "begrippen", "b", "koppelingen", "k", "bevestigen"]], [["w", "dekking"]],
+    [["w", "dekking", "buiten-behandeling"]], [["w", "dekking", "buiten-behandeling", "e"]],
   ])("laat %j door", (pad) => expect(isWerkgebiedRoute(pad)).toBe(true));
   it.each([
     [[]], [["w", "onbekend"]], [["w", "elementen", "x"]], [["w", "bronnen", "s", "x"]],
@@ -185,6 +189,8 @@ describe("isWerkgebiedRoute", async () => {
     [["w", "begrippen", "b", "kaart-runs", "r", "uitkomst"]], [["w", "begrippen", "b", "kaart-runs", "r", "loopt"]],
     [["w", "begrippen", "b", "voorstellen", "v"]], [["w", "begrippen", "b", "voorstellen", "v", "wissen"]],
     [["w", "begrippen", "b", "voorstellen", "v", "overnemen", "x"]], [["w", "begrippen", "b", "koppelingen", "k", "x", "y"]],
+    [["w", "herbeoordelingen", "x"]], [["w", "dekking", "x"]], [["w", "dekking", "buiten-behandeling", "e", "x"]],
+    [["w", "begrippen", "b", "koppelingen", "k", "wissen"]], [["w", "begrippen", "b", "voorstellen", "v", "herkoppelen"]],
   ])("weigert %j", (pad) => expect(isWerkgebiedRoute(pad)).toBe(false));
 });
 

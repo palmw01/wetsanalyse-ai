@@ -8,10 +8,12 @@ import { BegripKaart, type LexBijKaart } from "@/components/werkgebieden/BegripK
 import { BegripLex } from "@/components/werkgebieden/BegripLex";
 import { BegripPassages } from "@/components/werkgebieden/BegripPassages";
 import {
-  foutTekst, haalBegrip, haalKaartVoorstellen, neemKaartVoorstelOver, verwijderBegrip, wijsKaartVoorstelAf,
+  foutTekst, haalBegrip, haalHerbeoordelingen, haalKaartVoorstellen, neemKaartVoorstelOver, verwijderBegrip,
+  wijsKaartVoorstelAf,
 } from "@/lib/api";
+import { geraaktPerKoppeling } from "@/lib/herbeoordeling";
 import { verouderdUit, type Verouderd } from "@/lib/begripLex";
-import type { Begrip, BegripSamenvatting, KaartVoorstellenAntwoord } from "@/lib/types";
+import type { Begrip, BegripSamenvatting, Herbeoordelingen, KaartVoorstellenAntwoord } from "@/lib/types";
 import { isRevisieConflict } from "@/lib/werkgebied";
 
 export interface BegripMutatieOpties {
@@ -45,6 +47,9 @@ export function BegripWerk({ id, begripId, primair, andere = [], onGewijzigd, on
   const [lex, setLex] = useState<KaartVoorstellenAntwoord | null>(null);
   const [verouderd, setVerouderd] = useState<Verouderd | null>(null);
   const [onbewaard, setOnbewaard] = useState(false);
+  // Herbeoordelen (fase F1): welke dragende passages veranderden. Vraagt de bronboom, dus los van het
+  // begrip geladen; faalt stil – de passages staan er dan zoals de api ze zonder graaf ziet.
+  const [herbeoordeling, setHerbeoordeling] = useState<Herbeoordelingen | null>(null);
   const meldOnbewaard = useCallback((o: boolean) => {
     setOnbewaard(o);
     onOnbewaard(o);
@@ -65,6 +70,15 @@ export function BegripWerk({ id, begripId, primair, andere = [], onGewijzigd, on
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void laadLex();
   }, [laadLex, revisie]);
+
+  // Ook bij elke revisie: na herkoppelen of bevestigen hoort de passage uit de herbeoordeling te gaan.
+  useEffect(() => {
+    let levend = true;
+    haalHerbeoordelingen(id, begripId)
+      .then((h) => levend && setHerbeoordeling(h))
+      .catch(() => levend && setHerbeoordeling(null));
+    return () => { levend = false; };
+  }, [id, begripId, revisie]);
 
   const laad = useCallback(async () => {
     try {
@@ -200,7 +214,8 @@ export function BegripWerk({ id, begripId, primair, andere = [], onGewijzigd, on
           />
         </div>
         <div className={kant === "bronnen" ? "" : "hidden xl:block"}>
-          <BegripPassages id={id} begrip={begrip} primair={primair} muteer={muteer} />
+          <BegripPassages id={id} begrip={begrip} primair={primair} muteer={muteer}
+            geraakt={geraaktPerKoppeling(herbeoordeling, begrip.id)} />
         </div>
       </div>
     </div>

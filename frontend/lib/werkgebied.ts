@@ -54,8 +54,11 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   if (pad.length === 1) return true;
   if (deel === "bronnen") return pad.length <= 3;
   // `verdieping` (fase C) is alleen lezen; de batches en de uitkomst zet graph-qa, niet de werkplek.
-  if (deel === "elementen" || deel === "audit" || deel === "annotatie-werkvoorraad" || deel === "verdieping")
+  if (deel === "elementen" || deel === "audit" || deel === "annotatie-werkvoorraad" || deel === "verdieping"
+      || deel === "herbeoordelingen")
     return pad.length === 2;
+  // Dekking (fase F1): lezen, en een element buiten behandeling zetten of terughalen.
+  if (deel === "dekking") return pad.length === 2 || (a === "buiten-behandeling" && pad.length <= 4);
   // Voorstellen van Lex. Starten gaat alleen via `/api/begrippen-run` (één weg), en `loopt`,
   // `uitkomst` en `mislukt` zijn van graph-qa: die laat de werkplek nooit door.
   if (deel === "begrippen-runs") {
@@ -83,7 +86,8 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
     if (pad.length === 4) return true;
     return pad.length === 6 && !!c && (pad[5] === "overnemen" || pad[5] === "afwijzen");
   }
-  if (pad.length === 6) return false;
+  // Herbeoordelen (fase F1): een koppeling herkoppelen aan haar opvolger, of bevestigen.
+  if (pad.length === 6) return b === "koppelingen" && !!c && (pad[5] === "herkoppelen" || pad[5] === "bevestigen");
   if (pad.length === 4) return ["koppelingen", "accorderen", "heropenen", "revisies"].includes(b);
   return b === "koppelingen" && !!c;                                  // één koppeling
 }
@@ -257,6 +261,12 @@ export function auditZin(regel: WerkgebiedAuditRegel, labels: Map<string, string
       return "Voorstel van Lex heropend";
     case "vraag-beantwoord":
       return `Twijfelvraag beantwoord: ${d.antwoord === "samen" ? "samen" : "apart"}`;
+    case "element-buiten-behandeling": {
+      const n = Array.isArray(d.element_ids) ? d.element_ids.length : 0;
+      return `${n === 1 ? "1 element" : `${n} elementen`} buiten behandeling gezet${typeof d.reden === "string" && d.reden ? ` – ${d.reden}` : ""}`;
+    }
+    case "element-in-behandeling":
+      return "Element weer in behandeling";
     default:
       return regel.actie;
   }

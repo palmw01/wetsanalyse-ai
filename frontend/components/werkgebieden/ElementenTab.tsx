@@ -9,11 +9,15 @@ import { Melding } from "@/components/ui/Melding";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { AnnoterenDoorLex } from "@/components/werkgebieden/AnnoterenDoorLex";
 import { LIFECYCLE_LABEL } from "@/lib/annotatie";
-import { foutTekst, haalBegrip, haalInventaris, koppelElementen, lijstBegrippen, maakBegrip } from "@/lib/api";
+import {
+  foutTekst, haalBegrip, haalDekking, haalInventaris, koppelElementen, lijstBegrippen, maakBegrip, zetBuitenBehandeling,
+  zetTerugInBehandeling,
+} from "@/lib/api";
 import { KOPPELROL_LABEL } from "@/lib/begrippen";
+import { DEKKING_LABEL, DEKKING_VOLGORDE } from "@/lib/herbeoordeling";
 import { jasStyle, klasseLabel } from "@/lib/jas";
 import type {
-  BegripSamenvatting, BegrippenLijst, BronRol, Inventaris, InventarisElement, KoppelRol,
+  BegripSamenvatting, BegrippenLijst, BronRol, Dekking, DekkingElement, Inventaris, InventarisElement, KoppelRol,
 } from "@/lib/types";
 import {
   ROL_LABEL, annotatieHref, filterElementen, groepeerPerSelectie, isBeoordeeld, isRevisieConflict, klasseTelling,
@@ -35,6 +39,9 @@ const ROL_KNOPPEN: { waarde: BronRol | "alle"; label: string }[] = [
 export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (begripId: string) => void }) {
   const [inv, setInv] = useState<Inventaris | null>(null);
   const [begrippen, setBegrippen] = useState<BegrippenLijst | null>(null);
+  // Dekking (fase F1): per element te verwerken / voorstel / gekoppeld / buiten behandeling.
+  const [dekking, setDekking] = useState<Dekking | null>(null);
+  const [dekkingFout, setDekkingFout] = useState<string | null>(null);
   const [fout, setFout] = useState<string | null>(null);
   const [filter, setFilter] = useState<ElementFilter>({ rol: "alle", klasse: "alle", term: "" });
   // De gekozen elementen, voor "nieuw begrip uit selectie" of "koppelen aan begrip".
@@ -46,9 +53,12 @@ export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (
     try {
       // De begrippen zijn bijzaak (wie welk element aanduidt): mislukt dat, dan staat de inventaris er
       // toch, alleen zonder die regel.
-      const [i, b] = await Promise.all([haalInventaris(id), lijstBegrippen(id).catch(() => null)]);
+      const [i, b, d] = await Promise.all([
+        haalInventaris(id), lijstBegrippen(id).catch(() => null), haalDekking(id).catch(() => null),
+      ]);
       setInv(i);
       setBegrippen(b);
+      setDekking(d);
     } catch (e) {
       setFout(foutTekst(e, "De inventaris kon niet worden geladen."));
     }
@@ -67,6 +77,10 @@ export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (
     // eslint-disable-next-line react-hooks/set-state-in-effect
     laad();
   }, [laad]);
+
+  const laadDekking = useCallback(async () => {
+    setDekking(await haalDekking(id).catch(() => null));
+  }, [id]);
 
   if (fout)
     return (
@@ -96,6 +110,7 @@ export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (
   const { totaal, beoordeeld } = voortgang(inv.elementen);
   const afgewezen = inv.selecties.reduce((n, s) => n + s.afgewezen, 0);
   const klassen = klasseTelling(inv.elementen);
+  const dekkingPer = new Map((dekking?.elementen ?? []).map((d) => [d.element_id, d]));
 
   return (
     <div className="space-y-5">
@@ -107,6 +122,10 @@ export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (
           begrippen={begrippen?.begrippen ?? []}
           onWis={() => setSelectie(new Set())}
           onKlaar={onNaarBegrip}
+          onBuiten={async () => {
+            setSelectie(new Set());
+            await laadDekking();
+          }}
         />
       )}
       {!inv.volledig && (
@@ -122,6 +141,9 @@ export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (
         {beoordeeld} van {totaal} in de werkvoorraad beoordeeld
         {afgewezen > 0 && <span className="text-muted"> · {afgewezen} verworpen (niet getoond)</span>}
       </p>
+
+      {dekking && <DekkingBalk dekking={dekking} />}
+      {dekkingFout && <Melding type="fout" compact>{dekkingFout}</Melding>}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div role="group" aria-label="Rol" className="flex gap-1.5">
@@ -198,6 +220,16 @@ export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (
                     onWissel={() => wissel(e.id)}
                     primair={begrippen?.primair[e.id]}
                     onNaarBegrip={onNaarBegrip}
+                    dekking={dekkingPer.get(e.id)}
+                    onTerug={async () => {
+                      setDekkingFout(null);
+                      try {
+                        await zetTerugInBehandeling(id, e.id);
+                      } catch (err) {
+                        setDekkingFout(foutTekst(err, "Terughalen is niet gelukt."));
+                      }
+                      await laadDekking();
+                    }}
                   />
                 ))}
               </ul>
@@ -209,13 +241,36 @@ export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (
   );
 }
 
-function ElementRij({ element: e, gekozen, onWissel, primair, onNaarBegrip }: {
+/** De dekking van het werkgebied: elk element één keer. Een voortgang, geen juridische dekking. */
+function DekkingBalk({ dekking: d }: { dekking: Dekking }) {
+  return (
+    <section aria-label="Dekking" className="rounded-kaart border border-line bg-paper px-3 py-2">
+      <p className="text-xs font-medium text-ink">Dekking door begrippen</p>
+      <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+        {DEKKING_VOLGORDE.map((st) => (
+          <li key={st}><span className="font-semibold text-ink">{d.totalen[st]}</span> {DEKKING_LABEL[st]}</li>
+        ))}
+      </ul>
+      {d.nieuw_sinds_run > 0 && (
+        <p className="mt-1 text-xs text-aandacht-geel-tekst">
+          {d.nieuw_sinds_run === 1 ? "1 element zag" : `${d.nieuw_sinds_run} elementen zagen`} de laatste
+          begrippenronde van Lex nog niet; laat Lex op de tab Begrippen opnieuw voorstellen.
+        </p>
+      )}
+      <p className="mt-1 text-[11px] text-faint">Dit zegt hoeveel er verwerkt is, niet of de analyse juridisch volledig is.</p>
+    </section>
+  );
+}
+
+function ElementRij({ element: e, gekozen, onWissel, primair, onNaarBegrip, dekking, onTerug }: {
   element: InventarisElement;
   gekozen: boolean;
   onWissel: () => void;
   /** Het begrip dat dit element primair aanduidt, als er een is. */
   primair?: { begrip_id: string; naam: string };
   onNaarBegrip: (begripId: string) => void;
+  dekking?: DekkingElement;
+  onTerug: () => Promise<void>;
 }) {
   const beoordeeld = isBeoordeeld(e);
   return (
@@ -249,6 +304,18 @@ function ElementRij({ element: e, gekozen, onWissel, primair, onNaarBegrip }: {
                 Valt deels buiten de selecties van dit werkgebied; het werkgebied is niet stil verbreed.
               </p>
             )}
+            {dekking?.nieuw_sinds_run && (
+              <p className="text-xs text-aandacht-geel-tekst">Nieuw sinds de laatste begrippenronde van Lex.</p>
+            )}
+            {dekking?.buiten_behandeling && (
+              <p className="text-xs text-muted">
+                Bewust buiten behandeling: {dekking.buiten_behandeling.reden} ({dekking.buiten_behandeling.door}){" "}
+                <button type="button" onClick={() => void onTerug()} aria-label={`Haal "${e.tekst}" terug in behandeling`}
+                  className="focus-ring rounded text-lint underline">
+                  terughalen
+                </button>
+              </p>
+            )}
             {primair && (
               <p className="text-xs text-muted">
                 Duidt het begrip{" "}
@@ -273,13 +340,16 @@ function ElementRij({ element: e, gekozen, onWissel, primair, onNaarBegrip }: {
 
 /** Wat er met de gekozen elementen kan: een nieuw begrip ervan maken, of ze aan een bestaand begrip
  *  koppelen. Daarna opent de tab Begrippen op dat begrip. */
-function SelectieBalk({ id, selectie, begrippen, onWis, onKlaar }: {
+function SelectieBalk({ id, selectie, begrippen, onWis, onKlaar, onBuiten }: {
   id: string;
   selectie: string[];
   begrippen: BegripSamenvatting[];
   onWis: () => void;
   onKlaar: (begripId: string) => void;
+  /** Na *Buiten behandeling*: de selectie gaat leeg en de dekking ververst. */
+  onBuiten: () => Promise<void>;
 }) {
+  const [reden, setReden] = useState("");
   const [naam, setNaam] = useState("");
   const [doel, setDoel] = useState("");
   const [rol, setRol] = useState<KoppelRol>("duiding");
@@ -357,6 +427,25 @@ function SelectieBalk({ id, selectie, begrippen, onWis, onKlaar }: {
           </div>
         )}
       </div>
+      <form
+        className="flex flex-col gap-2 sm:flex-row"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!reden.trim() || bezig) return;
+          setBezig(true);
+          setFout(null);
+          zetBuitenBehandeling(id, { element_ids: selectie, reden: reden.trim() })
+            .then(async () => { setReden(""); await onBuiten(); })
+            .catch((err) => setFout(foutTekst(err, "Dat is niet gelukt.")))
+            .finally(() => setBezig(false));
+        }}
+      >
+        <Input value={reden} onChange={(e) => setReden(e.target.value)} placeholder="Waarom geen begrip nodig is"
+          aria-label="Reden om buiten behandeling te zetten" maxLength={2000} />
+        <Button type="submit" size="sm" variant="secondary" disabled={bezig || !reden.trim()} className="w-full sm:w-auto">
+          Buiten behandeling
+        </Button>
+      </form>
       {fout && <Melding type="fout" compact>{fout}</Melding>}
     </section>
   );

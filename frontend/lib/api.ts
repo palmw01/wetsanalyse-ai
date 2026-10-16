@@ -68,10 +68,12 @@ import type {
   Bronselectie,
   BronselectieInvoer,
   BronRol,
+  Dekking,
   DocumentSamenvatting,
   Gesprek,
   GesprekSamenvatting,
   GroepenAntwoord,
+  Herbeoordelingen,
   VerdiepingWerkvoorraad,
   KandidatenAntwoord,
   Inventaris,
@@ -87,6 +89,7 @@ import type {
   WerkgebiedWijziging,
 } from "./types";
 import { parseArtefact } from "./artefact";
+import { isDekking, isHerbeoordelingen } from "./herbeoordeling";
 import { pathSegment } from "./url";
 import { parseBevestiging } from "./werkgebiedAnnoteren";
 
@@ -1142,6 +1145,43 @@ export async function wijzigKoppeling(
 export async function ontkoppel(id: string, begripId: string, koppelingId: string, verwachteRevisie: number): Promise<Begrip> {
   const qs = new URLSearchParams({ verwachte_revisie: String(verwachteRevisie) });
   return json<Begrip>(await fetch(`${wg(id, "begrippen", begripId, "koppelingen", koppelingId)}?${qs}`, { method: "DELETE" }));
+}
+
+// --- Onderhoud van begrippen (fase F1) ---------------------------------------------------------
+
+/** De begrippen met een geraakte dragende passage (annotatie of wettekst veranderd), per koppeling met
+ *  toen, nu, de opvolgers en wat kan. Vraagt de bronboom, dus net zo traag als de inventaris. */
+export async function haalHerbeoordelingen(id: string, begripId?: string): Promise<Herbeoordelingen | null> {
+  const qs = begripId ? `?${new URLSearchParams({ begrip_id: begripId })}` : "";
+  const h = await json<unknown>(await fetch(`${wg(id, "herbeoordelingen")}${qs}`, { cache: "no-store" }));
+  return isHerbeoordelingen(h) ? h : null;
+}
+
+/** De passage vervangen door haar opvolger; de oude koppeling blijft als historie. */
+export async function herkoppel(id: string, begripId: string, koppelingId: string,
+  body: { verwachte_revisie: number; element_id: string; motivatie?: string }): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "koppelingen", koppelingId, "herkoppelen"),
+    jsonInit("POST", body)));
+}
+
+/** De passage veranderde, maar het begrip klopt nog: een nieuwe bewijsstand naast de oude. */
+export async function bevestigKoppeling(id: string, begripId: string, koppelingId: string,
+  body: { verwachte_revisie: number; motivatie?: string }): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "koppelingen", koppelingId, "bevestigen"),
+    jsonInit("POST", body)));
+}
+
+export async function haalDekking(id: string): Promise<Dekking | null> {
+  const d = await json<unknown>(await fetch(wg(id, "dekking"), { cache: "no-store" }));
+  return isDekking(d) ? d : null;
+}
+
+export async function zetBuitenBehandeling(id: string, body: { element_ids: string[]; reden: string }): Promise<{ element_ids: string[] }> {
+  return json(await fetch(wg(id, "dekking", "buiten-behandeling"), jsonInit("POST", body)));
+}
+
+export async function zetTerugInBehandeling(id: string, elementId: string): Promise<{ element_id: string }> {
+  return json(await fetch(wg(id, "dekking", "buiten-behandeling", elementId), { method: "DELETE" }));
 }
 
 export async function accordeerBegrip(id: string, begripId: string, verwachteRevisie: number): Promise<Begrip> {
