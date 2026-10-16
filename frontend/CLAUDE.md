@@ -55,7 +55,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
 - **De rekenkern staat in `lib/`**, niet in componenten: vitest draait node-env zonder DOM, dus alleen
   pure helpers zijn testbaar (`selectie`, `annotatie`, `annotatieOverzicht`, `reeks`, `samenhang`,
   `markering`, `popover`, `wetstructuur`, `lopendeRun`, `rondleiding`, `werkgebied`, `begrippen`,
-  `begripVoorstellen`, `begripLex`, `artefact`, `bronKandidaten`, …).
+  `begripVoorstellen`, `begripLex`, `herbeoordeling`, `artefact`, `bronKandidaten`, …).
 - **`app/**/page.tsx`** (Server Components) – data via `lib/server.ts`, interactie in een
   `*Client.tsx`. `app/page.tsx` doet `redirect("/workbench")`. De werkplek zit in
   `app/workbench/page.tsx` én in `app/default.tsx` (de default van het children-slot); beide renderen
@@ -646,6 +646,26 @@ bestaat los van de gesprekken.
   - De allowlist laat `…/voorstellen` (lezen) en `…/voorstellen/{id}/overnemen|afwijzen` door, nooit
     `…/kaart-runs/*`.
   - Browserregressie: `scripts/test-begriplex.mjs`.
+- **Herbeoordelen en dekking** (fase F1; api §*Onderhoud van begrippen*). Acceptatie: een gewijzigde
+  dragende passage verschijnt bij de geraakte begrippen; de oude bewijsstand blijft.
+  - **Tab Begrippen**: de strook *Herbeoordelen* (`strookKop` in `lib/herbeoordeling.ts`) noemt de
+    begrippen met een geraakte passage, de lijst links ook; een klik opent het begrip. Het antwoord komt
+    van `GET …/herbeoordelingen` en vraagt de bronboom: het laadt los van de lijst en faalt stil
+    (`isHerbeoordelingen`; zonder antwoord staan de begrippen er gewoon).
+  - **Bij de passage** (`Herbeoordeling` in `BegripPassages`, uit `BegripWerk` dat per revisie
+    `?begrip_id=` opnieuw vraagt): de redenen van de api, *toen* (het bewijs) naast *nu*, de wettekst van
+    nu met het fragment aangewezen (`markeer`) of de zin dat het er niet meer staat, de opvolgers met hun
+    signalen (teken + `sr-only`-richting, nooit een score). *Herkoppelen* en *Begrip klopt nog*
+    (bevestigen) lopen via `muteer`, met een optionele toelichting; zonder opvolger en met een
+    veranderde tekst op de plek een link om de bepaling opnieuw te annoteren. Een herkoppelde passage
+    toont *Vervangt een eerdere passage* met het oude bewijs; een bevestigde zegt door wie.
+  - **Tab Elementen**: `DekkingBalk` (te verwerken / voorstel / gekoppeld / buiten behandeling, plus
+    *nieuw sinds de laatste begrippenronde*); per element de reden van *buiten behandeling* met
+    *terughalen*, en in de selectiebalk *Buiten behandeling* met een verplichte reden. Een fout bij
+    terughalen is een eigen melding, niet de fout van de tab.
+  - De allowlist laat `herbeoordelingen`, `dekking`, `dekking/buiten-behandeling[/{element}]` en
+    `…/koppelingen/{k}/herkoppelen|bevestigen` door; herbeoordelingen en dekking krijgen 90 s.
+  - Browserregressie: `scripts/test-herbeoordeling.mjs`.
 - **Tabs scrollen.** Vijf tabs passen niet naast elkaar op een telefoon; de horizontale `Tabs` scrollt
   (`overflow-x-auto`, tabs `whitespace-nowrap`). Een afgekapte tab is onbereikbaar, en een toets op
   horizontale scroll van de pagina ziet dat niet.
@@ -1205,7 +1225,7 @@ npm run test:browser # Playwright op de echte Next-UI met gemockte BFF (scripts/
 `test:browser` draait `scripts/test-annotatie-nodes.mjs`, `test-samenhang.mjs`, `test-reeks.mjs`,
 `test-toetsen.mjs`, `test-werkgebieden.mjs`, `test-begrippen.mjs`, `test-begripvoorstellen.mjs` en
 `test-artefacten.mjs` (de soorten artefacten in de werkplek), `test-bronkandidaten.mjs`,
-`test-werkgebied-annoteren.mjs`, `test-begrippen-verdieping.mjs` en `test-begriplex.mjs`, en verwacht een devserver op poort 3109
+`test-werkgebied-annoteren.mjs`, `test-begrippen-verdieping.mjs`, `test-begriplex.mjs` en `test-herbeoordeling.mjs`, en verwacht een devserver op poort 3109
 (`AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109`).
 Praat met **`localhost`**, niet met `127.0.0.1`: Next 16 weigert dev-assets aan een andere origin,
 waarna de pagina niet hydrateert en elke stap zonder duidelijke fout time-out.

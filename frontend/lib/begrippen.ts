@@ -157,6 +157,8 @@ const ACTIE: Record<string, string> = {
   "begrip-geaccordeerd": "Geaccordeerd",
   "begrip-heropend": "Heropend",
   "begrip-verwijderd": "Verwijderd",
+  "koppeling-herkoppeld": "Passage herkoppeld aan haar opvolger",
+  "koppeling-bevestigd": "Veranderde passage bevestigd",
 };
 
 /** Eén revisie als zin, voor de historie op de kaart. */

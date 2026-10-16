@@ -947,6 +947,90 @@ export interface Koppeling {
   actualiteit: Actualiteit;
   lifecycle_nu: string | null;
   annotatie_beoordeeld: boolean;
+  /** Herbeoordeling (fase F1): de analist zag de veranderde passage en het begrip klopt nog. Het
+   *  bewijs zelf verandert nooit; de nieuwste bevestiging is de stand waartegen de api rekent. */
+  bevestigingen?: KoppelBevestiging[];
+  /** Deze koppeling verving een eerdere bij herkoppelen; diens bewijs blijft zo leesbaar. */
+  vervangt?: { koppeling_id: string; element_id: string; bewijs: Bewijs; vervangen_op: string | null };
+}
+
+export interface KoppelBevestiging {
+  element_hash: string;
+  tekst: string;
+  klasse: string;
+  door: string;
+  op: string;
+  motivatie: string;
+}
+
+// --- Onderhoud van begrippen (spoor D, fase F1) ------------------------------------------------
+
+export type Richting = "steun" | "tegen" | "onbeslist";
+
+export interface BronSignaal {
+  bron_iri: string;
+  vindplaats: string;
+  fragment: string;
+  /** `onbekend`: de regeling was niet op te halen – een open punt, geen "ongewijzigd". */
+  stand: "ongewijzigd" | "gewijzigd" | "weg" | "onbekend";
+  tekst_nu?: string;
+  fragment_gelijk?: boolean;
+}
+
+export interface Opvolger {
+  element_id: string;
+  tekst: string;
+  klasse: string;
+  lifecycle: string;
+  annotatie_beoordeeld: boolean;
+  signalen: { richting: Richting; uitleg: string }[];
+}
+
+export type HerbeoordelingsActie = "herkoppelen" | "bevestigen" | "loskoppelen";
+
+export interface GeraakteKoppeling {
+  koppeling_id: string;
+  element_id: string;
+  rol: KoppelRol;
+  actualiteit: Actualiteit;
+  redenen: string[];
+  toen: Pick<Bewijs, "tekst" | "klasse" | "ankers" | "vindplaats" | "lifecycle" | "snapshot_id" | "eigenaar_iri"> & { jas_subtype?: string };
+  bevestigingen: KoppelBevestiging[];
+  nu: { tekst: string; klasse: string; jas_subtype: string; ankers: Bewijs["ankers"]; lifecycle: string; verouderd: boolean } | null;
+  bron: BronSignaal[];
+  opvolgers: Opvolger[];
+  opnieuw_annoteren: string[];
+  acties: HerbeoordelingsActie[];
+}
+
+export interface Herbeoordelingen {
+  werkgebied_id: string;
+  begrippen: { begrip_id: string; naam: string; status: BegripStatus; revisie: number; koppelingen: GeraakteKoppeling[] }[];
+  volledig: boolean;
+  open_punten: { bron_iri: string; label: string; melding: string }[];
+}
+
+export type DekkingStand = "te_verwerken" | "voorstel" | "gekoppeld" | "buiten_behandeling";
+
+export interface DekkingElement {
+  element_id: string;
+  tekst: string;
+  klasse: string;
+  rol: BronRol;
+  stand: DekkingStand;
+  begrippen: { begrip_id: string; naam: string; rol: KoppelRol }[];
+  buiten_behandeling: { reden: string; door: string; op: string } | null;
+  nieuw_sinds_run: boolean;
+}
+
+export interface Dekking {
+  werkgebied_id: string;
+  totalen: Record<DekkingStand, number>;
+  totaal: number;
+  nieuw_sinds_run: number;
+  laatste_run: string | null;
+  elementen: DekkingElement[];
+  volledig: boolean;
 }
 
 export interface Poort {

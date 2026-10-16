@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
 import type { BegripMutatie } from "@/components/werkgebieden/BegripWerk";
+import { Herbeoordeling } from "@/components/werkgebieden/Herbeoordeling";
 import { foutTekst, haalInventaris, koppelElementen, ontkoppel, wijzigKoppeling } from "@/lib/api";
 import { ACTUALITEIT_LABEL, BEOORDELING_LABEL, KOPPELROL_LABEL, sorteerKoppelingen } from "@/lib/begrippen";
 import { jasStyle, klasseLabel } from "@/lib/jas";
-import type { Begrip, InventarisElement, KoppelBeoordeling, KoppelRol, Koppeling } from "@/lib/types";
+import type { Begrip, GeraakteKoppeling, InventarisElement, KoppelBeoordeling, KoppelRol, Koppeling } from "@/lib/types";
 import { annotatieHref, filterElementen } from "@/lib/werkgebied";
 
 const KNOP =
@@ -20,11 +21,13 @@ const ROLLEN = Object.keys(KOPPELROL_LABEL) as KoppelRol[];
 
 /** De bronpassages van het begrip, elk apart: de letterlijke tekst zoals die gekoppeld werd, waar
  *  hij staat, en hoe het er nu mee staat. Een samenvatting vervangt de passages nooit. */
-export function BegripPassages({ id, begrip, primair, muteer }: {
+export function BegripPassages({ id, begrip, primair, muteer, geraakt }: {
   id: string;
   begrip: Begrip;
   primair: Record<string, { begrip_id: string; naam: string }>;
   muteer: BegripMutatie;
+  /** Herbeoordelen (fase F1): de passages die veranderden, op koppeling-id. */
+  geraakt?: Map<string, GeraakteKoppeling>;
 }) {
   const [kiezerOpen, setKiezerOpen] = useState(false);
   const passages = sorteerKoppelingen(begrip.koppelingen);
@@ -50,7 +53,7 @@ export function BegripPassages({ id, begrip, primair, muteer }: {
       ) : (
         <ul className="space-y-2" aria-label="Passages van dit begrip">
           {passages.map((k) => (
-            <Passage key={k.id} id={id} begrip={begrip} koppeling={k} muteer={muteer} />
+            <Passage key={k.id} id={id} begrip={begrip} koppeling={k} muteer={muteer} geraakt={geraakt?.get(k.id)} />
           ))}
         </ul>
       )}
@@ -58,11 +61,12 @@ export function BegripPassages({ id, begrip, primair, muteer }: {
   );
 }
 
-function Passage({ id, begrip, koppeling: k, muteer }: {
+function Passage({ id, begrip, koppeling: k, muteer, geraakt }: {
   id: string;
   begrip: Begrip;
   koppeling: Koppeling;
   muteer: BegripMutatie;
+  geraakt?: GeraakteKoppeling;
 }) {
   const beoordeel = (b: KoppelBeoordeling) =>
     muteer((r) => wijzigKoppeling(id, begrip.id, k.id, { verwachte_revisie: r, beoordeling: b }));
@@ -77,7 +81,21 @@ function Passage({ id, begrip, koppeling: k, muteer }: {
         <span className="text-xs text-muted">{k.bewijs.vindplaats}</span>
       </div>
       <blockquote className="mt-1 text-sm text-ink">“{k.bewijs.tekst}”</blockquote>
-      {(k.actualiteit !== "actueel" || !k.annotatie_beoordeeld) && (
+      {k.vervangt && (
+        <details className="mt-1 text-xs text-muted">
+          <summary className="focus-ring cursor-pointer rounded">Vervangt een eerdere passage</summary>
+          <p className="mt-0.5">
+            Toen: “{k.vervangt.bewijs.tekst}” · {klasseLabel(k.vervangt.bewijs.klasse)} · {k.vervangt.bewijs.vindplaats}
+          </p>
+        </details>
+      )}
+      {(k.bevestigingen?.length ?? 0) > 0 && (
+        <p className="mt-1 text-xs text-muted">
+          Na een wijziging bevestigd door {k.bevestigingen!.at(-1)!.door}; de stand van het koppelen blijft bewaard.
+        </p>
+      )}
+      {geraakt && <Herbeoordeling id={id} begrip={begrip} geraakt={geraakt} muteer={muteer} />}
+      {!geraakt && (k.actualiteit !== "actueel" || !k.annotatie_beoordeeld) && (
         <p className="mt-1 text-xs text-aandacht-geel-tekst">
           {[k.actualiteit !== "actueel" && ACTUALITEIT_LABEL[k.actualiteit],
             k.actualiteit === "actueel" && !k.annotatie_beoordeeld && "annotatie nog niet door een jurist beoordeeld"]

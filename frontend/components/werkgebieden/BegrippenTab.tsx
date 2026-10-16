@@ -11,8 +11,9 @@ import { BegripVoorstellen } from "@/components/werkgebieden/BegripVoorstellen";
 import { BegripWerk } from "@/components/werkgebieden/BegripWerk";
 import { OnbewaardMelding } from "@/components/werkgebieden/OnbewaardMelding";
 import { ExportKnop } from "@/components/werkplek/ExportKnop";
-import { exporteerBegrippen, foutTekst, lijstBegrippen, maakBegrip } from "@/lib/api";
-import type { BegrippenLijst } from "@/lib/types";
+import { exporteerBegrippen, foutTekst, haalHerbeoordelingen, lijstBegrippen, maakBegrip } from "@/lib/api";
+import { geraakteBegrippen, herbeoordelingZin, strookKop } from "@/lib/herbeoordeling";
+import type { BegrippenLijst, Herbeoordelingen } from "@/lib/types";
 
 const EXPORT_FORMATEN = [
   { formaat: "csv" as const, label: "CSV", uitleg: "één rij per passage, met vindplaats en bron" },
@@ -34,6 +35,9 @@ export function BegrippenTab({ id, gekozen, onKies, onbewaard, onOnbewaard }: {
   onOnbewaard: (onbewaard: boolean) => void;
 }) {
   const [lijst, setLijst] = useState<BegrippenLijst | null>(null);
+  // Herbeoordelen (fase F1): begrippen waarvan een dragende passage veranderde. Vraagt de bronboom en
+  // is dus trager dan de lijst; faalt stil, de lijst staat er dan gewoon.
+  const [herbeoordeling, setHerbeoordeling] = useState<Herbeoordelingen | null>(null);
   const [fout, setFout] = useState<string | null>(null);
   const [nieuweNaam, setNieuweNaam] = useState("");
   const [bezig, setBezig] = useState(false);
@@ -41,6 +45,7 @@ export function BegrippenTab({ id, gekozen, onKies, onbewaard, onOnbewaard }: {
   const [wachtendeKeuze, setWachtendeKeuze] = useState<string | null | undefined>(undefined);
 
   const laadLijst = useCallback(async () => {
+    void haalHerbeoordelingen(id).then(setHerbeoordeling, () => setHerbeoordeling(null));
     try {
       setLijst(await lijstBegrippen(id));
     } catch (e) {
@@ -80,6 +85,7 @@ export function BegrippenTab({ id, gekozen, onKies, onbewaard, onOnbewaard }: {
   }
 
   const gekozenBestaat = !!gekozen && !!lijst?.begrippen.some((b) => b.id === gekozen);
+  const geraakt = geraakteBegrippen(herbeoordeling);
 
   return (
     <div className="space-y-4">
@@ -113,6 +119,35 @@ export function BegrippenTab({ id, gekozen, onKies, onbewaard, onOnbewaard }: {
           void laadLijst().then(() => kies(b));
         }}
       />
+
+      {herbeoordeling && herbeoordeling.begrippen.length > 0 && (
+        <section aria-label="Herbeoordelen" className="rounded-kaart border border-aandacht-geel-rand bg-aandacht-geel-bg/40 px-3 py-2">
+          <p className="text-sm font-medium text-aandacht-geel-tekst">{strookKop(herbeoordeling)}</p>
+          <p className="mt-0.5 text-xs text-ink">
+            De wettekst of de annotatie onder een dragende passage veranderde. De oude bewijsstand blijft; jij
+            beslist of het begrip nog klopt, herkoppelt of de passage losmaakt.
+          </p>
+          <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="Begrippen om te herbeoordelen">
+            {herbeoordeling.begrippen.map((b) => (
+              <li key={b.begrip_id}>
+                <button
+                  type="button"
+                  onClick={() => kies(b.begrip_id)}
+                  aria-current={b.begrip_id === gekozen ? "true" : undefined}
+                  className="focus-ring inline-flex min-h-[24px] items-center rounded-full border border-aandacht-geel-rand bg-paper px-2.5 py-0.5 text-[11px] font-medium text-ink hover:bg-surface coarse:min-h-[44px]"
+                >
+                  {b.naam} · {herbeoordelingZin(b.koppelingen.length)}
+                </button>
+              </li>
+            ))}
+          </ul>
+          {!herbeoordeling.volledig && (
+            <p className="mt-1.5 text-xs text-muted">
+              Niet elke bron kon worden opgehaald; wat daar veranderde staat er niet bij.
+            </p>
+          )}
+        </section>
+      )}
 
       <div className="gap-5 lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]">
         {/* Op een smal scherm de lijst óf het begrip; vanaf lg naast elkaar. */}
@@ -167,7 +202,11 @@ export function BegrippenTab({ id, gekozen, onKies, onbewaard, onOnbewaard }: {
                     <span className="block text-xs text-muted">
                       {b.aantal_koppelingen === 1 ? "1 passage" : `${b.aantal_koppelingen} passages`}
                     </span>
-                    {b.aandachtspunten[0] && (
+                    {geraakt.has(b.id) ? (
+                      <span className="mt-0.5 block text-xs text-aandacht-geel-tekst">
+                        Herbeoordelen: {herbeoordelingZin(geraakt.get(b.id)!)}
+                      </span>
+                    ) : b.aandachtspunten[0] && (
                       <span className="mt-0.5 block text-xs text-aandacht-geel-tekst">{b.aandachtspunten[0]}</span>
                     )}
                   </button>

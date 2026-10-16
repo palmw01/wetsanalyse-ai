@@ -22,8 +22,10 @@ async function forward(req: Request, { params }: Params) {
     // De inventaris haalt per regeling de bronboom uit de graaf; bij een paar grote wetten duurt
     // dat langer dan de standaard 30 s. Koppelen (ook een nieuw begrip uit een selectie) toetst de
     // elementen tegen diezelfde inventaris.
-    // De annotatie-werkvoorraad (fase B) haalt dezelfde bronbomen op.
-    ...(pad[1] === "elementen" || pad[1] === "annotatie-werkvoorraad" || (pad[1] === "begrippen" && req.method === "POST")
+    // De annotatie-werkvoorraad (fase B) haalt dezelfde bronbomen op, net als herbeoordelen en de
+    // dekking (fase F1).
+    ...(["elementen", "annotatie-werkvoorraad", "herbeoordelingen", "dekking"].includes(pad[1])
+      || (pad[1] === "begrippen" && req.method === "POST")
       ? { timeoutMs: 90_000 } : {}),
   });
 }

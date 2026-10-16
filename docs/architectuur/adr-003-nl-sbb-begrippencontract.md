@@ -45,8 +45,8 @@ Er is nog niets van spoor D gebouwd. Dit is het moment om het te beslissen.
 - Een begrip heet alleen **NL-SBB-conform** als het tegen die shapes gevalideerd is. Een
   conforme kaart is daarmee nog niet juridisch juist: de juridische review blijft een aparte
   beoordeling.
-- **Open:** valideert de api blokkerend bij *accorderen*, of diagnostisch zoals bij de
-  JAS-projectie? Dat wordt bij levering 2 besloten (PLAN, open keuzes).
+- **Besloten (16 okt 2026):** diagnostisch, zoals bij de JAS-projectie. Accorderen kan; kaart en
+  export tonen of een begrip conform is (PLAN, open keuze 5; bouw in fase F3).
 
 ## Gevolgen
 
