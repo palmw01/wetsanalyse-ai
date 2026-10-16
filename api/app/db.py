@@ -402,6 +402,49 @@ begrippen_batches = Table("begrippen_batches", metadata,
     Column("gemaakt_door", String(64), nullable=False),
     Column("gemaakt", _DT, nullable=False))
 
+# --- Lex naast de kaart (spoor D, fase E) -------------------------------------
+# Een kaartrun is één actie van Lex op één begrip (brondefinitie zoeken, scherpere definitie,
+# betekenisverschil, voorbeelden). De api legt de invoer vast – het begrip op zijn revisie, de dragende
+# passages en het manifest van het werkgebied –, graph-qa rekent en zet de voorstellen terug. Een
+# voorstel is een eigen rij, geen wijziging: pas overnemen door de analist raakt het begrip, en `basis`
+# bewaart de waarde van het veld waarop het voorstel rust, zodat niets stil wordt overschreven.
+begrip_kaartruns = Table("begrip_kaartruns", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("werkgebied_id", String(64), nullable=False, index=True),
+    Column("begrip_id", String(64), nullable=False, index=True),
+    Column("actie", String(24), nullable=False),
+    Column("invoer_id", String(32), nullable=False),
+    Column("invoer", _JSON, nullable=False),
+    Column("status", String(16), nullable=False, default="wacht"),
+    Column("melding", Text, nullable=False, default=""),
+    Column("meting", _JSON, nullable=True),
+    Column("uitkomst_hash", String(64), nullable=True),
+    Column("reden", Text, nullable=False, default=""),
+    Column("gestart_door", String(64), nullable=False),
+    Column("gestart", _DT, nullable=False),
+    Column("gewijzigd", _DT, nullable=False),
+    Index("ix_begrip_kaartruns_invoer", "begrip_id", "actie", "invoer_id"))
+begrip_voorstellen = Table("begrip_voorstellen", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("werkgebied_id", String(64), nullable=False, index=True),
+    Column("begrip_id", String(64), nullable=False, index=True),
+    Column("run_id", String(64), nullable=False, index=True),
+    Column("actie", String(24), nullable=False),
+    Column("veld", String(16), nullable=False),           # definitie | uitleg | open_vragen | voorbeelden
+    Column("volgorde", Integer, nullable=False, default=0),
+    Column("basis", _JSON, nullable=False),               # {revisie, definitie, definitie_herkomst}
+    Column("waarde", _JSON, nullable=False),
+    Column("motivatie", Text, nullable=False, default=""),
+    Column("aandacht", String(8), nullable=False, default="geel"),
+    Column("aandachtspunten", _JSON, nullable=False),
+    Column("door", _JSON, nullable=False),                # {bron: model|graaf, model, promptversie}
+    Column("status", String(16), nullable=False, default="open"),
+    Column("reden", Text, nullable=False, default=""),
+    Column("besloten_door", String(64), nullable=True),
+    Column("besloten_op", _DT, nullable=True),
+    Column("begrip_revisie", Integer, nullable=True),     # de revisie die het overnemen opleverde
+    Column("gemaakt", _DT, nullable=False))
+
 # --- Tokenbudget --------------------------------------------------------------
 # Verbruik is een JOURNAAL, geen teller. Eén rij per LLM-call; de stand van nu is een som over het
 # huidige venster. Dat heeft drie eigenschappen die een teller niet heeft:

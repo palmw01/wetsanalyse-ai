@@ -23,7 +23,9 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
    met koppelingen naar annotatie-elementen, beoordeling, revisies en export – zie §*Begrippen*.
 9. **Voorstellen van Lex** (`/v1/werkgebieden/{id}/begrippen-runs/*`, `…/groepen/*`, levering 3a):
    het manifest voor de begrippenketen, runs en de betekenisgroepen – zie §*Voorstellen van Lex*.
-10. **Bronnen vinden met Lex** (`/v1/werkgebieden/{id}/bronnen-runs/*`, `…/kandidaten/*`, fase A):
+10. **Lex naast de kaart** (`/v1/werkgebieden/{id}/begrippen/{begrip_id}/kaart-runs/*`, `…/voorstellen/*`,
+   fase E): voorstellen per veld van een begrip en de besluiten erover – zie §*Lex naast de kaart*.
+11. **Bronnen vinden met Lex** (`/v1/werkgebieden/{id}/bronnen-runs/*`, `…/kandidaten/*`, fase A):
    kandidaatbepalingen met rol en bewijs per ontdekmethode, en de besluiten erover – zie §*Bronnen
    vinden met Lex*.
 
@@ -54,6 +56,7 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
 | `werkgebieden.py` (router), `werkgebied_store.py`, `werkgebied_contracts.py`, `werkgebied_inventaris.py`, `werkgebied_werkvoorraad.py` | Werkgebieden: bronselecties, revisies, audit, de inventaris en de annotatie-werkvoorraad. |
 | `begrippen.py` (router), `begrip_store.py`, `begrip_contracts.py` | Begrippen: inhoud, koppelingen met bewijsstand, actualiteit, de accorderingspoort, revisies en export. |
 | `begrippen_runs.py` (router), `begrippen_run_store.py`, `begrippen_run_contracts.py`, `begrip_manifest.py` | Voorstellen van Lex: manifest voor de begrippenketen, runs, betekenisgroepen en besluiten. |
+| `begrip_voorstellen.py` (router), `begrip_voorstel_store.py`, `begrip_voorstel_contracts.py` | Lex naast de kaart: kaartruns en voorstellen per veld, overnemen en afwijzen. |
 | `bronnen_runs.py` (router), `bronnen_run_store.py`, `bronnen_run_contracts.py` | Bronnen vinden met Lex: runs van de ontdekmethoden, kandidaatbepalingen en hun besluiten. |
 | `annotatie_statistiek.py`, `scripts/statistiek.py` | Reviewstatistiek over de elementen: uitkomst per klasse en per model, klasse-verschuivingen, aandacht tegenover correctie. |
 | `jas_klassen.py`, `validation.py` | De dertien JAS-klassen, volgorde en kleuren (canoniek); `GELDIGE_JAS_KLASSEN`, `JAS_KLASSE_KLEUREN`, `jas_sorteersleutel`. |
@@ -377,6 +380,38 @@ laatste klare run. graph-qa rekent (`agent/begrippen_verdieping.py`), de api bew
   definitie met haar herkomst; de onderbouwing noemt de fragmenten met vindplaats en de toelichting van
   Lex. Een definitie gaat alleen mee als er precies één is.
 - Tests: `tests/test_begrippen_verdieping.py`.
+
+## Lex naast de kaart
+
+`begrip_voorstellen.py`, `begrip_voorstel_store.py`, `begrip_voorstel_contracts.py`; PLAN spoor D, fase E.
+Vier acties op één begrip: `brondefinitie` (een graafquery, geen model), `scherper`, `betekenisverschil`
+(met een ander begrip, `ander_begrip_id`) en `voorbeelden`. graph-qa rekent, de api legt vast en toetst.
+
+- **Een voorstel is geen wijziging.** `begrip_voorstellen` is een eigen tabel; Lex schrijft nooit in het
+  begrip. `POST …/voorstellen/{id}/overnemen` loopt door `begrip_store._gewijzigd_in` (revisie, kopie,
+  audit `voorstel-overgenomen` met voorstel-id, actie en model) en zet het besluit in dezelfde
+  transactie. Sloten: werkgebied → begrip → voorstel.
+- **Niets stil overschreven.** Een definitievoorstel bewaart `basis` (de definitie en herkomst bij het
+  starten). Wijkt het begrip daarvan af, dan 409 `voorstel_verouderd` met `toen`, `nu` en `voorstel`;
+  `GET …/voorstellen` meldt het vooraf als `verouderd`. Uitleg, open vragen en voorbeelden worden
+  toegevoegd, nooit vervangen; wat er al staat, geeft geen revisie (wel het besluit).
+- **Herkomst gaat mee.** `BegripInhoud.definitie_door` (`lex` | `analist` | leeg) zet de api, nooit de
+  client (`begrip_store.met_door`): een ongewijzigde definitie houdt wie haar voorstelde, een nieuwe of
+  andere tekst of herkomst is van de analist. Overnemen zet `lex` plus een `onderbouwing` met
+  vindplaats of fragmenten; met `aanpassing` wordt het `geformuleerd` + `analist` en noemt de
+  onderbouwing het voorstel. Het akkoordpad van fase D zet `lex` (of `analist` bij een aanpassing).
+  Het afgeleide veld telt niet als gewijzigd veld in de revisie.
+- **De run**: `POST …/kaart-runs` legt de invoer vast (begrip op zijn revisie, de actuele dragende
+  passages die in het manifest staan, het manifest, de selecties). Idempotent op (actie, revisie van
+  begrip en ander begrip, manifest): een lopende run, of een klare met open voorstellen, komt terug;
+  anders een nieuwe. `voorbeelden` zonder definitie en `scherper`/`betekenisverschil` zonder passages: 409.
+- **De garanties toetst de api zelf** (`begrippen_verdieping.definitie_fouten`/`fragment_fouten`):
+  fragmenten letterlijk in het manifest, samengesteld = precies de fragmenten, letterlijk = in de bron.
+  Een brondefinitie buiten het manifest wordt tegen de bronboom uit de graaf getoetst. Een veld dat
+  niet bij de actie hoort: 422 `VELD_HOORT_NIET_BIJ_ACTIE`. Een geformuleerde definitie is nooit groen.
+- `GET …/voorstellen` geeft ook per model-actie een schatting (mediaan tokens van de laatste 20 klare
+  runs van de gebruiker) en het budget, voor de knoppen.
+- Tests: `tests/test_begrip_voorstellen.py`.
 
 ## Bronnen vinden met Lex
 

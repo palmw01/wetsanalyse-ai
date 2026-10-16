@@ -41,21 +41,36 @@ def fragment_id(bron_iri: str, start: int, eind: int) -> str:
     return "F" + hashlib.sha256("\x1f".join((bron_iri, str(start), str(eind))).encode()).hexdigest()[:10]
 
 
-def garanties(manifest: dict, kaart: Kaart) -> list[str]:
-    """De codes van graph-qa `toetsen.garanties`, hier opnieuw getoetst tegen het bewaarde manifest."""
+def fragment_fouten(manifest: dict, fragmenten) -> list[str]:
+    """Elk fragment bestaat in het manifest (id uit bron en offsets) en staat letterlijk op zijn plek."""
     bronnen = {b["bron_iri"]: b["tekst"] for b in manifest["bronnen"]}
     fouten: list[str] = []
-    for f in kaart.fragmenten:
+    for f in fragmenten:
         tekst = bronnen.get(f.bron_iri)
         if tekst is None or f.id != fragment_id(f.bron_iri, f.start, f.eind):
             fouten.append("FRAGMENT_ONBEKEND")
         elif tekst[f.start:f.eind] != f.tekst:
             fouten.append("FRAGMENT_NIET_LETTERLIJK")
-    if kaart.herkomst == "letterlijk" and kaart.definitie not in bronnen.get(kaart.definitie_bron_iri, ""):
+    return fouten
+
+
+def definitie_fouten(manifest: dict, definitie: str, herkomst: str | None, bron_iri: str, fragmenten,
+                     brontekst: str | None = None) -> list[str]:
+    """De garanties op één definitie. `brontekst` is de tekst van de bron als die buiten het manifest
+    ligt (een brondefinitie elders in de graaf, fase E); anders komt hij uit het manifest."""
+    fouten = fragment_fouten(manifest, fragmenten)
+    if brontekst is None:
+        brontekst = next((b["tekst"] for b in manifest["bronnen"] if b["bron_iri"] == bron_iri), "")
+    if herkomst == "letterlijk" and definitie not in brontekst:
         fouten.append("LETTERLIJK_NIET_IN_BRON")
-    if kaart.herkomst == "samengesteld" and kaart.definitie != SCHEIDING.join(f.tekst for f in kaart.fragmenten):
+    if herkomst == "samengesteld" and definitie != SCHEIDING.join(f.tekst for f in fragmenten):
         fouten.append("SAMENGESTELD_NIET_UIT_FRAGMENTEN")
     return list(dict.fromkeys(fouten))
+
+
+def garanties(manifest: dict, kaart: Kaart) -> list[str]:
+    """De codes van graph-qa `toetsen.garanties`, hier opnieuw getoetst tegen het bewaarde manifest."""
+    return definitie_fouten(manifest, kaart.definitie, kaart.herkomst, kaart.definitie_bron_iri, kaart.fragmenten)
 
 
 def _toets_kaarten(manifest: dict, kaarten: list[Kaart], groep_ids: set[str]) -> None:

@@ -6,6 +6,7 @@ houdt definitie, letterlijke herkomst en toelichting uit elkaar (PLAN D, uitgang
 from __future__ import annotations
 
 from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -56,6 +57,10 @@ class BegripInhoud(BaseModel):
     begripstype: str = Field(default="", pattern=r"^(|entiteit|actor|toestand|gebeurtenis|eigenschap|relatie)$")
     definitie: str = Field(default="", max_length=8000)
     definitie_herkomst: Herkomst | None = None
+    # Wie de definitie voorstelde (fase E): `lex` als ze van een voorstel van Lex komt en ongewijzigd
+    # is overgenomen, `analist` zodra een mens de tekst schreef of aanpaste; leeg = onbekend of geen
+    # definitie. De api zet dit veld; wat een client meestuurt telt niet (`begrip_store.met_door`).
+    definitie_door: Literal["", "analist", "lex"] = ""
     uitleg: str = Field(default="", max_length=8000)
     onderbouwing: str = Field(default="", max_length=8000)
     voorbeelden: list[Voorbeeld] = Field(default_factory=list, max_length=100)
