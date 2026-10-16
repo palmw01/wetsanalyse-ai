@@ -253,7 +253,7 @@ async def groepen(werkgebied_id: str) -> dict:
         termen = {_norm(x.voorstel["naam"]), *(_norm(t) for t in (x.kaart or {}).get("alternatieve_termen", []))}
         lijkt = [{"begrip_id": b["id"], "naam": b["inhoud"]["naam"],
                   "gedeeld": sorted(leden & set(b["element_ids"]))}
-                 for b in begrippen
+                 for b in begrippen if b["status"] != "vervangen"
                  if leden & set(b["element_ids"]) or termen &
                  {_norm(b["inhoud"]["naam"]), *(_norm(t) for t in b["inhoud"].get("alternatieve_termen", []))}]
         vooraf = None

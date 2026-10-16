@@ -31,6 +31,8 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
 12. **Onderhoud van begrippen** (`/v1/werkgebieden/{id}/herbeoordelingen`, `…/koppelingen/{k}/herkoppelen`
    en `/bevestigen`, `…/dekking/*`, fase F1): geraakte dragende passages, opvolgers na herannotatie en de
    dekking van het werkgebied – zie §*Onderhoud van begrippen*.
+13. **Begripsrelaties en opvolging** (`/v1/werkgebieden/{id}/relaties/*`, `…/begrippen/{b}/nieuwe-betekenis`
+   en `/combineren`, fase F2) – zie §*Begripsrelaties en opvolging*.
 
 > **De wettekst komt uit de graaf.** De API leest uit GraphDB de **bronboom** (`bron_resolver.py`):
 > daarmee toetst hij ankers, legt hij snapshots vast en levert hij de segmenten van de weergave.
@@ -62,6 +64,7 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
 | `begrip_voorstellen.py` (router), `begrip_voorstel_store.py`, `begrip_voorstel_contracts.py` | Lex naast de kaart: kaartruns en voorstellen per veld, overnemen en afwijzen. |
 | `bronnen_runs.py` (router), `bronnen_run_store.py`, `bronnen_run_contracts.py` | Bronnen vinden met Lex: runs van de ontdekmethoden, kandidaatbepalingen en hun besluiten. |
 | `begrip_onderhoud.py` (router), `begrip_onderhoud_store.py`, `begrip_onderhoud_contracts.py` | Onderhoud van begrippen: herbeoordelingen, opvolgers, herkoppelen, bevestigen en dekking. |
+| `begrip_relaties.py` (router), `begrip_relatie_store.py`, `begrip_relatie_contracts.py` | Begripsrelaties (voorstellen uit de keten, vastleggen, afwijzen, doorwerking) en opvolging: nieuwe betekenis, combineren. |
 | `annotatie_statistiek.py`, `scripts/statistiek.py` | Reviewstatistiek over de elementen: uitkomst per klasse en per model, klasse-verschuivingen, aandacht tegenover correctie. |
 | `jas_klassen.py`, `validation.py` | De dertien JAS-klassen, volgorde en kleuren (canoniek); `GELDIGE_JAS_KLASSEN`, `JAS_KLASSE_KLEUREN`, `jas_sorteersleutel`. |
 | `ratelimit.py` | In-process rate limit per client. |
@@ -270,6 +273,7 @@ spoor D (*Werkgebied als node*).
   gekoppeld is) gebeurt er niets, ook geen revisie.
 - **Elke mutatie behalve accorderen maakt een geaccordeerd begrip weer een concept** – met één
   uitzondering: herkoppelen en bevestigen (fase F1) laten de inhoud staan en het begrip geaccordeerd.
+  Een **vervangen** begrip (fase F2) is alleen-lezen: elke mutatie 409 `vervangen`.
 - **Een 412 draagt een `melding`**, net als de 409's (`al_primair`, `al_gekoppeld`, `poort`): de
   werkplek toont die tekst waar hij de fout niet zelf afhandelt, in plaats van ruwe JSON. Dat geldt ook
   voor de werkgebieden.
@@ -452,6 +456,38 @@ Acceptatie: *een gewijzigde dragende passage verschijnt bij de geraakte begrippe
   `werkgebied_element_besluiten`) en `DELETE …/buiten-behandeling/{element_id}` (soft). Audit
   `element-buiten-behandeling` / `element-in-behandeling`; geen revisie, het raakt de scope niet.
 - Tests: `tests/test_begrip_onderhoud.py`.
+
+## Begripsrelaties en opvolging
+
+`begrip_relaties.py`, `begrip_relatie_store.py`, `begrip_relatie_contracts.py`; PLAN spoor D, fase F2.
+
+- **Tabel `begrip_relaties`**: van, naar, `type` (`kwalificatie`, `inclusie`, `uitsluiting`, `hierarchie`,
+  `verwant`, `opvolging`), `herkomst` (`lex` | `analist` | `systeem`), bewijs, toelichting, `beoordeling`
+  (`akkoord` | `afgewezen`), `stand_van`/`stand_naar` (hash van definitie + context bij het vastleggen),
+  soft delete. Audit `relatie-*`, `begrip-vervangen`, `begrip-opgevolgd`, `begrip-gecombineerd`,
+  `begrip-hersteld`. Geen platslaan tot "verwant": de typen houden hun juridische betekenis.
+- **Voorstellen worden afgeleid** (`_voorstellen`): een relatie tussen twee elementen uit de laatste klare
+  run (`uitkomst.relaties`), die elk primair een ander, niet vervangen begrip aanduiden. Id
+  `R<hash(van, naar, type)>`. Lezen schrijft niets; `POST …/relaties {voorstel_id}` legt vast (herkomst
+  `lex`), `POST …/relaties/voorstellen/{id}/afwijzen {reden}` schrijft een afgewezen rij, en die sleutel
+  komt niet terug. Een voorstel dat er niet meer is: 409 `voorstel_weg`.
+- **Zelf vastleggen**: `{van_begrip, naar_begrip, type}`; `verwant` vraagt een toelichting (422);
+  `opvolging` kan niet (422); naar zichzelf 422 `zelfde_begrip`; dezelfde actieve relatie 409
+  `al_vastgelegd`; een vervangen begrip 409 `vervangen`. `DELETE …/relaties/{id}` (opvolging niet: 409).
+- **Doorwerking** (`doorwerking`): wijkt de stand van één kant af van wat bij het vastleggen gold, dan staat
+  de relatie bij het begrip aan de andere kant in `GET …/herbeoordelingen` (`relaties`), en in
+  `GET …/relaties` als `veranderd`. `POST …/relaties/{id}/bevestigen` legt de stand van nu vast.
+- **Nieuwe betekenis** (`POST …/begrippen/{b}/nieuwe-betekenis {verwachte_revisie, reden}`), één
+  transactie: het begrip wordt `vervangen`, een nieuw concept krijgt de inhoud en alle niet-afgewezen
+  koppelingen (met hun bewaarde bewijs, opnieuw `open`), plus een relatie `opvolging` met de vorige status
+  in het bewijs. **Combineren** (`POST …/begrippen/{b}/combineren {verwachte_revisie, ander_begrip_id,
+  ander_revisie, reden}`): de ander wordt vervangen, `b` krijgt diens passages (open) en naam als
+  alternatieve term. Beide begrippen dragen hun revisie (412).
+- **Een vervangen begrip** houdt geen primaire duiding vast (`_toets_primair`, `primaire_duidingen`),
+  telt niet in de dekking en de herbeoordeling, en staat niet bij `lijkt_op`. `GET` van een begrip geeft
+  `vervangen_door` en `vervangt`. **De opvolger verwijderen** zet het vervangen begrip terug op zijn vorige
+  status (`_herstel_voorgangers`, revisie `begrip-hersteld`) en neemt zijn relaties mee.
+- Tests: `tests/test_begrip_relaties.py`.
 
 ## Bronnen vinden met Lex
 
@@ -677,6 +713,6 @@ niet vullen. `POST /v1/auth/registratie` heeft een eigen rate limit.
 - **Externe IdP/OIDC.** De API is zelf de identiteitsbron.
 - **Activiteit 3, verder.** Werkgebieden, begrippen en de deterministische voorstellen van Lex
   bestaan, het model voor twijfelparen en definitievoorstellen (fase C), Lex naast de kaart (fase E) en
-  herbeoordeling en dekking (fase F1); begripsrelaties, de projectie
+  herbeoordeling en dekking (fase F1), begripsrelaties en opvolging (fase F2); de projectie
   naar de graaf (NL-SBB) en RDF-export volgen (PLAN spoor D, leveringen 3b en 4).
 - **RegelSpraak-formalisering.** Komt later.

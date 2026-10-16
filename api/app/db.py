@@ -443,6 +443,28 @@ begrip_kaartruns = Table("begrip_kaartruns", metadata,
     Column("gestart", _DT, nullable=False),
     Column("gewijzigd", _DT, nullable=False),
     Index("ix_begrip_kaartruns_invoer", "begrip_id", "actie", "invoer_id"))
+# --- Begripsrelaties (spoor D, fase F2) ----------------------------------------
+# Een relatie tussen twee begrippen van één werkgebied, met type, richting en bewijs. Voorstellen van Lex
+# (uit de relaties tussen elementen van de laatste klare begrippenrun) worden bij het lezen afgeleid; pas
+# een besluit schrijft een rij, zodat een afgewezen voorstel niet terugkomt. `stand_van`/`stand_naar` =
+# de hash van definitie + context van beide kanten bij het vastleggen: wijkt die af, dan staat de relatie
+# in de herbeoordeling. `opvolging` (nieuwe betekenis, combineren) draagt in `bewijs` de vorige status
+# van het vervangen begrip, zodat het verwijderen van de opvolger hem terugzet.
+begrip_relaties = Table("begrip_relaties", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("werkgebied_id", String(64), nullable=False, index=True),
+    Column("van_begrip", String(64), nullable=False, index=True),
+    Column("naar_begrip", String(64), nullable=False, index=True),
+    Column("type", String(16), nullable=False),
+    Column("herkomst", String(16), nullable=False),          # lex | analist | systeem
+    Column("bewijs", _JSON, nullable=False),
+    Column("toelichting", Text, nullable=False, default=""),
+    Column("beoordeling", String(16), nullable=False),       # akkoord | afgewezen
+    Column("stand_van", String(64), nullable=False, default=""),
+    Column("stand_naar", String(64), nullable=False, default=""),
+    Column("door", String(64), nullable=False),
+    Column("op", _DT, nullable=False),
+    Column("verwijderd", _DT, nullable=True))
 begrip_voorstellen = Table("begrip_voorstellen", metadata,
     Column("id", String(64), primary_key=True),
     Column("werkgebied_id", String(64), nullable=False, index=True),
