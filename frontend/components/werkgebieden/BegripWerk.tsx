@@ -4,10 +4,14 @@ import { useCallback, useEffect, useState } from "react";
 
 import { Melding } from "@/components/ui/Melding";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { BegripKaart } from "@/components/werkgebieden/BegripKaart";
+import { BegripKaart, type LexBijKaart } from "@/components/werkgebieden/BegripKaart";
+import { BegripLex } from "@/components/werkgebieden/BegripLex";
 import { BegripPassages } from "@/components/werkgebieden/BegripPassages";
-import { foutTekst, haalBegrip, verwijderBegrip } from "@/lib/api";
-import type { Begrip } from "@/lib/types";
+import {
+  foutTekst, haalBegrip, haalKaartVoorstellen, neemKaartVoorstelOver, verwijderBegrip, wijsKaartVoorstelAf,
+} from "@/lib/api";
+import { verouderdUit, type Verouderd } from "@/lib/begripLex";
+import type { Begrip, BegripSamenvatting, KaartVoorstellenAntwoord } from "@/lib/types";
 import { isRevisieConflict } from "@/lib/werkgebied";
 
 export interface BegripMutatieOpties {
@@ -21,10 +25,12 @@ export type BegripMutatie = (actie: (revisie: number) => Promise<Begrip>, opties
  *  Wijzigde iemand anders het begrip intussen (412), dan komt de nieuwe stand in beeld en zegt de
  *  pagina dat; de handeling wordt niet stil herhaald. Een fout met een leesbare melding van de api
  *  (`al_primair`, `poort`, `element_buiten_werkgebied`) verschijnt zoals de api hem formuleert. */
-export function BegripWerk({ id, begripId, primair, onGewijzigd, onOnbewaard, onWeg }: {
+export function BegripWerk({ id, begripId, primair, andere = [], onGewijzigd, onOnbewaard, onWeg }: {
   id: string;
   begripId: string;
   primair: Record<string, { begrip_id: string; naam: string }>;
+  /** De andere begrippen van het werkgebied: om mee te vergelijken (*Verklaar het betekenisverschil*). */
+  andere?: readonly BegripSamenvatting[];
   /** Na elke geslaagde mutatie: de lijst ververst haar tellingen en aandachtspunten. */
   onGewijzigd: () => void;
   onOnbewaard: (onbewaard: boolean) => void;
@@ -35,6 +41,30 @@ export function BegripWerk({ id, begripId, primair, onGewijzigd, onOnbewaard, on
   const [melding, setMelding] = useState<{ type: "bevestiging" | "waarschuwing"; tekst: string } | null>(null);
   // Op een smal scherm één van de twee; vanaf xl naast elkaar.
   const [kant, setKant] = useState<"begrip" | "bronnen">("begrip");
+  // Lex naast de kaart (fase E): de voorstellen per veld, en welke er verouderd bleek bij overnemen.
+  const [lex, setLex] = useState<KaartVoorstellenAntwoord | null>(null);
+  const [verouderd, setVerouderd] = useState<Verouderd | null>(null);
+  const [onbewaard, setOnbewaard] = useState(false);
+  const meldOnbewaard = useCallback((o: boolean) => {
+    setOnbewaard(o);
+    onOnbewaard(o);
+  }, [onOnbewaard]);
+
+  const laadLex = useCallback(async () => {
+    try {
+      setLex(await haalKaartVoorstellen(id, begripId));
+    } catch {
+      // Faalt stil: zonder voorstellen werkt de kaart gewoon; de strook zegt dan niets over eerdere runs.
+    }
+  }, [id, begripId]);
+
+  // Opnieuw bij elke revisie: een eigen wijziging kan een open voorstel verouderd maken, en de kaart
+  // hoort dat te zeggen vóórdat iemand op *Overnemen* klikt.
+  const revisie = begrip?.revisie;
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void laadLex();
+  }, [laadLex, revisie]);
 
   const laad = useCallback(async () => {
     try {
@@ -95,6 +125,34 @@ export function BegripWerk({ id, begripId, primair, onGewijzigd, onOnbewaard, on
     }
   }
 
+  const bijKaart: LexBijKaart = {
+    voorstellen: lex?.voorstellen ?? [],
+    verouderd,
+    overnemen: async (v, extra) => {
+      const gelukt = await muteer((r) => neemKaartVoorstelOver(id, begripId, v.id, r, extra), {
+        gelukt: "Overgenomen van Lex; dat is een nieuwe revisie.",
+        opFout: (e) => {
+          const oud = verouderdUit(e, v.id);
+          if (!oud) return false;
+          setVerouderd(oud);
+          return true;
+        },
+      });
+      if (gelukt) setVerouderd(null);
+      await laadLex();
+      return gelukt;
+    },
+    afwijzen: async (v, reden) => {
+      try {
+        setLex(await wijsKaartVoorstelAf(id, begripId, v.id, reden));
+        return true;
+      } catch (e) {
+        setFout(foutTekst(e, "Afwijzen is niet gelukt."));
+        return false;
+      }
+    },
+  };
+
   if (!begrip)
     return fout ? (
       <Melding type="fout">{fout}</Melding>
@@ -130,13 +188,15 @@ export function BegripWerk({ id, begripId, primair, onGewijzigd, onOnbewaard, on
         ))}
       </div>
       <div className="gap-5 xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <div className={kant === "begrip" ? "" : "hidden xl:block"}>
+        <div className={`space-y-4 ${kant === "begrip" ? "" : "hidden xl:block"}`}>
+          <BegripLex id={id} begrip={begrip} andere={andere} onbewaard={onbewaard} data={lex} onVernieuw={laadLex} />
           <BegripKaart
             id={id}
             begrip={begrip}
             muteer={muteer}
-            onOnbewaard={onOnbewaard}
+            onOnbewaard={meldOnbewaard}
             onVerwijder={verwijder}
+            lex={bijKaart}
           />
         </div>
         <div className={kant === "bronnen" ? "" : "hidden xl:block"}>

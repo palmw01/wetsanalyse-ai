@@ -55,7 +55,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
 - **De rekenkern staat in `lib/`**, niet in componenten: vitest draait node-env zonder DOM, dus alleen
   pure helpers zijn testbaar (`selectie`, `annotatie`, `annotatieOverzicht`, `reeks`, `samenhang`,
   `markering`, `popover`, `wetstructuur`, `lopendeRun`, `rondleiding`, `werkgebied`, `begrippen`,
-  `begripVoorstellen`, `artefact`, `bronKandidaten`, …).
+  `begripVoorstellen`, `begripLex`, `artefact`, `bronKandidaten`, …).
 - **`app/**/page.tsx`** (Server Components) – data via `lib/server.ts`, interactie in een
   `*Client.tsx`. `app/page.tsx` doet `redirect("/workbench")`. De werkplek zit in
   `app/workbench/page.tsx` én in `app/default.tsx` (de default van het children-slot); beide renderen
@@ -620,6 +620,32 @@ bestaat los van de gesprekken.
     "door de analist of door Lex": de onderbouwing zegt wie.
   - De allowlist laat `verdieping` (lezen) door, nooit `…/batches/*` of `…/verdieping` op een run.
   - Browserregressie: `scripts/test-begrippen-verdieping.mjs`.
+- **Lex naast de kaart** (fase E; api §*Lex naast de kaart*, graph-qa §*Lex naast de kaart*). Boven de
+  begripskaart staat `BegripLex`: vier knoppen (`ACTIES` in `lib/begripLex.ts`) – *Zoek de brondefinitie*
+  (zonder model), *Stel een scherpere definitie voor*, *Verklaar het betekenisverschil* (met een ander
+  begrip, voorgevuld via `vergelijkKandidaten`) en *Bedenk voorbeelden*. De klik is de bevestiging; de
+  knop noemt de schatting, en `waaromNiet` zegt waarom hij uit staat (onbewaarde wijzigingen, budget op,
+  geen definitie, geen actuele passage).
+  - **Starten** via de statische route `app/api/kaart-run` (api `…/begrippen/{id}/kaart-runs`, dan
+    graph-qa `POST /v1/kaart-runs`; runstore-sleutel `begrip:<id>:kaart`, `GET ?begrip=` om aan te
+    haken). Volgen en stoppen met `volgRun`/`stopRun`. `agent_run_id: null` = voor deze stand staan de
+    voorstellen er al.
+  - **Een voorstel staat onder zijn veld** (`KaartVoorstelKaart` in `BegripKaart`, via `lex` uit
+    `BegripWerk`): de tekst, de herkomst (`herkomstLabel`), de fragmenten, de aandachtspunten
+    (`AANDACHTSPUNT_LEX`, gelijk aan graph-qa `kaartacties.TEKST` – de test leest die bron), en
+    *Overnemen · Aanpassen · Afwijzen*. Alle knoppen zijn `type="button"` en Enter in het redenveld doet
+    `preventDefault`: de kaart staat ín het formulier van het begrip.
+  - **Niets stil overschreven.** Overnemen staat uit zolang de kaart onbewaarde wijzigingen heeft.
+    `BegripWerk` laadt de voorstellen opnieuw bij elke revisie, zodat een eigen wijziging een open
+    definitievoorstel meteen `verouderd` maakt: dan staan toen, nu en voorstel naast elkaar, en *Toch
+    overnemen* stuurt `nu_gezien` mee (de api weigert anders met 409 `voorstel_verouderd`; `verouderdUit`
+    leest die). Overnemen loopt via `muteer`, dus een 412 laadt opnieuw zoals elke mutatie.
+  - **Herkomst**: bij het veld Definitie staat *Van Lex overgenomen* of *Door de analist*
+    (`definitieDoor`, uit `definitie_door` dat de api zet); de historie noemt "Overgenomen van Lex: …"
+    (`revisieZin`); besloten voorstellen staan ingeklapt onder *Eerdere voorstellen van Lex*.
+  - De allowlist laat `…/voorstellen` (lezen) en `…/voorstellen/{id}/overnemen|afwijzen` door, nooit
+    `…/kaart-runs/*`.
+  - Browserregressie: `scripts/test-begriplex.mjs`.
 - **Tabs scrollen.** Vijf tabs passen niet naast elkaar op een telefoon; de horizontale `Tabs` scrollt
   (`overflow-x-auto`, tabs `whitespace-nowrap`). Een afgekapte tab is onbereikbaar, en een toets op
   horizontale scroll van de pagina ziet dat niet.
@@ -1179,7 +1205,7 @@ npm run test:browser # Playwright op de echte Next-UI met gemockte BFF (scripts/
 `test:browser` draait `scripts/test-annotatie-nodes.mjs`, `test-samenhang.mjs`, `test-reeks.mjs`,
 `test-toetsen.mjs`, `test-werkgebieden.mjs`, `test-begrippen.mjs`, `test-begripvoorstellen.mjs` en
 `test-artefacten.mjs` (de soorten artefacten in de werkplek), `test-bronkandidaten.mjs`,
-`test-werkgebied-annoteren.mjs` en `test-begrippen-verdieping.mjs`, en verwacht een devserver op poort 3109
+`test-werkgebied-annoteren.mjs`, `test-begrippen-verdieping.mjs` en `test-begriplex.mjs`, en verwacht een devserver op poort 3109
 (`AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109`).
 Praat met **`localhost`**, niet met `127.0.0.1`: Next 16 weigert dev-assets aan een andere origin,
 waarna de pagina niet hydrateert en elke stap zonder duidelijke fout time-out.

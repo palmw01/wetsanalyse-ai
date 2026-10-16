@@ -147,3 +147,6 @@ deterministisch), LKIF Core (te zwaar voor deze stap), BlackLab (tweede index).
 | C1 | Model-laag in de keten: twijfelparen (alleen *zelfde betekenis* wordt een – gele – groep), concept-kaart met definitie letterlijk > samengesteld > geformuleerd, toetsen, inhoudelijke batch-id's; meting `metingen/begrippen-model-2026-10-15` |
 | C2 | Api-batches (de api toetst de garanties opnieuw) en de hervatbare verdiepingsrun met bevestiging |
 | C3 | De werkplek: aanbod, bevestiging, advies bij twijfelvragen, kaart met herkomst en aandachtspunten |
+| E1 | Kaartvoorstellen in de api: een voorstel per veld als eigen object, overnemen in één transactie met basis-toets (409 `voorstel_verouderd`, bewust vervangen met `nu_gezien`), `definitie_door` |
+| E2 | De vier kaartacties in graph-qa (`kaartacties.py`, `begrip_kaart.py`): brondefinitie zonder model met plaats, scherper / betekenisverschil / voorbeelden met het model, dezelfde toetsen; meting `metingen/kaartacties-2026-10-16` |
+| E3 | De werkplek: strook *Lex naast de kaart* en het voorstel onder zijn veld |

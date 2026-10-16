@@ -9,6 +9,7 @@ import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { ChevronOmlaag } from "@/components/ui/Icoon";
 import { Melding } from "@/components/ui/Melding";
 import type { BegripMutatie } from "@/components/werkgebieden/BegripWerk";
+import { KaartVoorstelKaart } from "@/components/werkgebieden/KaartVoorstel";
 import {
   accordeerBegrip, foutTekst, haalBegripRevisies, heropenBegrip, wijzigBegrip,
 } from "@/lib/api";
@@ -16,11 +17,21 @@ import {
   HERKOMST_LABEL, OORDEEL_LABEL, inhoudGewijzigd, naarRijen, regels, revisieZin, uitRegels, uitRijen,
   volledigeInhoud,
 } from "@/lib/begrippen";
+import { definitieDoor, openPerVeld, type Verouderd } from "@/lib/begripLex";
 import { BEGRIPSTYPE_LABEL } from "@/lib/begripVoorstellen";
 import { JAS_KLASSEN } from "@/lib/jas";
 import type {
-  Begrip, BegripInhoud, BegripRevisie, Begripstype, DefinitieHerkomst, Voorbeeld, VoorbeeldOordeel,
+  Begrip, BegripInhoud, BegripRevisie, Begripstype, DefinitieHerkomst, KaartVeld, KaartVoorstel, Voorbeeld,
+  VoorbeeldOordeel,
 } from "@/lib/types";
+
+/** Wat Lex naast de kaart heeft staan (fase E), en hoe de kaart erover besluit. `BegripWerk` draagt het. */
+export interface LexBijKaart {
+  voorstellen: readonly KaartVoorstel[];
+  verouderd: Verouderd | null;
+  overnemen: (v: KaartVoorstel, extra: { aanpassing?: string; oordeel?: VoorbeeldOordeel; nu_gezien?: string }) => Promise<boolean>;
+  afwijzen: (v: KaartVoorstel, reden: string) => Promise<boolean>;
+}
 
 const KNOP_KLEIN =
   "focus-ring inline-flex min-h-[24px] items-center rounded-full border border-line px-2.5 py-0.5 text-[11px] font-medium text-lint transition-colors hover:bg-surface coarse:min-h-[44px]";
@@ -49,13 +60,14 @@ function naarInhoud(c: Concept): BegripInhoud {
 /** De begripskaart: één formulier met *Opslaan* (geen autosave – elke bewaring is een revisie).
  *  Definitie, de herkomst ervan en de uitleg staan apart, want een begripsdefinitie is iets anders
  *  dan de letterlijke brondefinitie of de toelichting op een interpretatie. */
-export function BegripKaart({ id, begrip, muteer, onOnbewaard, onVerwijder }: {
+export function BegripKaart({ id, begrip, muteer, onOnbewaard, onVerwijder, lex }: {
   id: string;
   begrip: Begrip;
   muteer: BegripMutatie;
   onOnbewaard: (onbewaard: boolean) => void;
   /** Verwijderen, met de revisie in beeld; `BegripWerk` handelt een conflict af. */
   onVerwijder: () => Promise<void>;
+  lex?: LexBijKaart;
 }) {
   const [concept, setConcept] = useState<Concept>(() => uitBegrip(begrip.inhoud));
   // De serverstand waarop het concept rust. Verandert de inhoud op de server (iemand anders sloeg op),
@@ -96,6 +108,17 @@ export function BegripKaart({ id, begrip, muteer, onOnbewaard, onVerwijder }: {
   }
 
   const voorbeelden = concept.inhoud.voorbeelden;
+  const perVeld = openPerVeld(lex?.voorstellen ?? []);
+  const vanLex = (veld: KaartVeld) => lex && perVeld[veld].length > 0 && (
+    <div className="space-y-2" aria-label={`Voorstellen van Lex bij ${veld}`}>
+      {perVeld[veld].map((v) => (
+        <KaartVoorstelKaart key={v.id} v={v} onbewaard={onbewaard} geaccordeerd={begrip.status === "geaccordeerd"}
+          verouderd={lex.verouderd?.voorstelId === v.id ? lex.verouderd : null}
+          onOvernemen={(extra) => lex.overnemen(v, extra)} onAfwijzen={(reden) => lex.afwijzen(v, reden)} />
+      ))}
+    </div>
+  );
+  const door = definitieDoor(begrip.inhoud);
   const zetVoorbeeld = (i: number, v: Partial<Voorbeeld>) =>
     zet("voorbeelden", voorbeelden.map((x, j) => (j === i ? { ...x, ...v } : x)));
 
@@ -159,9 +182,10 @@ export function BegripKaart({ id, begrip, muteer, onOnbewaard, onVerwijder }: {
           </Field>
         </div>
 
-        <Field label="Definitie">
+        <Field label="Definitie" hint={door || undefined}>
           <Textarea value={concept.inhoud.definitie} onChange={(e) => zet("definitie", e.target.value)} rows={3} maxLength={8000} />
         </Field>
+        {vanLex("definitie")}
         <fieldset>
           <legend className="mb-1 text-sm font-medium text-ink">Herkomst van de definitie</legend>
           <div className="flex flex-col gap-1.5 sm:flex-row sm:gap-4">
@@ -182,6 +206,7 @@ export function BegripKaart({ id, begrip, muteer, onOnbewaard, onVerwijder }: {
         <Field label="Uitleg" hint="toelichting op de interpretatie">
           <Textarea value={concept.inhoud.uitleg} onChange={(e) => zet("uitleg", e.target.value)} rows={2} maxLength={8000} />
         </Field>
+        {vanLex("uitleg")}
         <Field label="Onderbouwing">
           <Textarea value={concept.inhoud.onderbouwing} onChange={(e) => zet("onderbouwing", e.target.value)} rows={2} maxLength={8000} />
         </Field>
@@ -208,6 +233,7 @@ export function BegripKaart({ id, begrip, muteer, onOnbewaard, onVerwijder }: {
           <button type="button" className={KNOP_KLEIN} onClick={() => zet("voorbeelden", [...voorbeelden, { tekst: "", oordeel: "wel", toelichting: "" }])}>
             Voorbeeld toevoegen
           </button>
+          {vanLex("voorbeelden")}
         </fieldset>
 
         <fieldset className="space-y-2">
@@ -229,6 +255,7 @@ export function BegripKaart({ id, begrip, muteer, onOnbewaard, onVerwijder }: {
         <Field label="Open vragen" hint="één per regel">
           <Textarea value={concept.vragen} onChange={(e) => setConcept((c) => ({ ...c, vragen: e.target.value }))} rows={2} />
         </Field>
+        {vanLex("open_vragen")}
 
         <ButtonRow align="start">
           <Button type="submit" disabled={!onbewaard || bezig || !inhoud.naam.trim()}>

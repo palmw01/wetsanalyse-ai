@@ -393,7 +393,8 @@ Vier acties op één begrip: `brondefinitie` (een graafquery, geen model), `sche
   transactie. Sloten: werkgebied → begrip → voorstel.
 - **Niets stil overschreven.** Een definitievoorstel bewaart `basis` (de definitie en herkomst bij het
   starten). Wijkt het begrip daarvan af, dan 409 `voorstel_verouderd` met `toen`, `nu` en `voorstel`;
-  `GET …/voorstellen` meldt het vooraf als `verouderd`. Uitleg, open vragen en voorbeelden worden
+  `GET …/voorstellen` meldt het vooraf als `verouderd`. Vervangen kan dan alleen bewust: met
+  `nu_gezien` = de definitie die de analist naast het voorstel zag (klopt die niet meer: weer 409). Uitleg, open vragen en voorbeelden worden
   toegevoegd, nooit vervangen; wat er al staat, geeft geen revisie (wel het besluit).
 - **Herkomst gaat mee.** `BegripInhoud.definitie_door` (`lex` | `analist` | leeg) zet de api, nooit de
   client (`begrip_store.met_door`): een ongewijzigde definitie houdt wie haar voorstelde, een nieuwe of
@@ -636,6 +637,6 @@ niet vullen. `POST /v1/auth/registratie` heeft een eigen rate limit.
 
 - **Externe IdP/OIDC.** De API is zelf de identiteitsbron.
 - **Activiteit 3, verder.** Werkgebieden, begrippen en de deterministische voorstellen van Lex
-  bestaan, en het model voor twijfelparen en definitievoorstellen (fase C); begripsrelaties, de projectie
+  bestaan, het model voor twijfelparen en definitievoorstellen (fase C) en Lex naast de kaart (fase E); begripsrelaties, de projectie
   naar de graaf (NL-SBB) en RDF-export volgen (PLAN spoor D, leveringen 3b en 4).
 - **RegelSpraak-formalisering.** Komt later.

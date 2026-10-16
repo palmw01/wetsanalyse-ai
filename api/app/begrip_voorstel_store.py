@@ -353,7 +353,8 @@ def _neem_veld_over(inhoud: dict, row, o: VoorstelOvername) -> tuple[dict, bool]
     w = row.waarde
     uit = dict(inhoud)
     if row.veld == "definitie":
-        if _definitie_stand(inhoud) != _definitie_stand(row.basis):
+        gezien = o.nu_gezien is not None and o.nu_gezien == (inhoud.get("definitie") or "")
+        if _definitie_stand(inhoud) != _definitie_stand(row.basis) and not gezien:
             raise HTTPException(409, {
                 "fout": "voorstel_verouderd", "toen": _definitie_stand(row.basis), "nu": _definitie_stand(inhoud),
                 "voorstel": {"definitie": w["definitie"], "definitie_herkomst": w["herkomst"]},

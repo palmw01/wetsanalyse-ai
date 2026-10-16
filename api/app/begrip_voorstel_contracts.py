@@ -108,6 +108,9 @@ class VoorstelOvername(BaseModel):
     # het voorstel `aangepast` en de definitie van de analist.
     aanpassing: str | None = Field(default=None, max_length=8000)
     oordeel: Oordeel | None = None       # alleen bij een voorbeeld
+    # Bij een verouderd definitievoorstel: de definitie die de analist naast het voorstel zag. Klopt die
+    # nog, dan is vervangen een bewuste keuze en mag het; anders weer 409 – nooit stil overschrijven.
+    nu_gezien: str | None = Field(default=None, max_length=8000)
 
 
 class VoorstelAfwijzing(BaseModel):

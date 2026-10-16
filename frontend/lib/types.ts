@@ -908,6 +908,8 @@ export interface BegripInhoud {
   geldigheid: string;
   definitie: string;
   definitie_herkomst: DefinitieHerkomst | null;
+  /** Wie de definitie voorstelde (fase E); de api zet het, nooit de client. Oudere begrippen missen het. */
+  definitie_door?: "" | "analist" | "lex";
   uitleg: string;
   onderbouwing: string;
   voorbeelden: Voorbeeld[];
@@ -1210,4 +1212,84 @@ export interface GroepenAntwoord {
   passages: Record<string, Passage>;
   /** Na de verdieping (fase C): de vragen die open blijven en het advies van Lex per vraag. */
   verdieping?: { vragen_open: string[]; oordelen: Record<string, ModelOordeel>; model: string; op?: string } | null;
+}
+
+// --- Lex naast de kaart (spoor D, fase E) ------------------------------------------------------
+
+export type KaartActie = "brondefinitie" | "scherper" | "betekenisverschil" | "voorbeelden";
+export type KaartVeld = "definitie" | "uitleg" | "open_vragen" | "voorbeelden";
+export type VindplaatsSoort = "" | "werkgebied" | "regeling" | "definitieverwijzing" | "elders";
+
+/** Een definitie zoals Lex haar voorstelt (`api/app/begrip_voorstel_contracts.DefinitieWaarde`). */
+export interface DefinitieWaarde {
+  definitie: string;
+  herkomst: DefinitieHerkomst;
+  fragmenten: KaartFragment[];
+  definitie_bron_iri: string;
+  definitie_vindplaats: string;
+  vindplaats_soort: VindplaatsSoort;
+}
+
+/** De waarde van een voorstel voor uitleg, een open vraag of een voorbeeld. */
+export interface TekstWaarde {
+  tekst: string;
+  fragmenten: KaartFragment[];
+  oordeel?: VoorbeeldOordeel;
+  toelichting?: string;
+  vergelijking?: "zelfde_betekenis" | "verwant" | "verschil" | "onbeslist";
+}
+
+export interface KaartVoorstel {
+  id: string;
+  begrip_id: string;
+  run_id: string;
+  actie: KaartActie;
+  veld: KaartVeld;
+  volgorde: number;
+  basis: { revisie: number; definitie: string; definitie_herkomst: DefinitieHerkomst | null };
+  waarde: DefinitieWaarde | TekstWaarde;
+  motivatie: string;
+  aandacht: "groen" | "geel";
+  aandachtspunten: string[];
+  door: { bron: "model" | "graaf"; model: string; promptversie: string };
+  status: "open" | "overgenomen" | "aangepast" | "afgewezen";
+  reden: string;
+  besloten_door: string | null;
+  besloten_op: string | null;
+  begrip_revisie: number | null;
+  gemaakt: string;
+  /** Alleen bij een open definitievoorstel: is de definitie veranderd sinds Lex het voorstelde? */
+  verouderd?: boolean;
+  nu?: { definitie: string; definitie_herkomst: DefinitieHerkomst | null };
+}
+
+export interface KaartRun {
+  id: string;
+  begrip_id: string;
+  actie: KaartActie;
+  status: "wacht" | "loopt" | "klaar" | "mislukt";
+  melding: string;
+  reden: string;
+  basis_revisie: number;
+  ander_begrip_id: string | null;
+  gestart_door: string;
+  gestart: string;
+  gewijzigd: string;
+}
+
+export interface KaartVoorstellenAntwoord {
+  voorstellen: KaartVoorstel[];
+  /** Per actie de laatste run. */
+  runs: Partial<Record<KaartActie, KaartRun>>;
+  schatting?: Partial<Record<KaartActie, { tokens: number; basis: number }>>;
+  budget?: { resterend: number; budget: number; actief: boolean; geblokkeerd: boolean };
+}
+
+/** De 409 bij een verouderd voorstel: wat er stond, wat er nu staat, en wat Lex voorstelde. */
+export interface VoorstelVerouderd {
+  fout: "voorstel_verouderd";
+  toen: { definitie: string; definitie_herkomst: DefinitieHerkomst | null };
+  nu: { definitie: string; definitie_herkomst: DefinitieHerkomst | null };
+  voorstel: { definitie: string; definitie_herkomst: DefinitieHerkomst };
+  melding: string;
 }
