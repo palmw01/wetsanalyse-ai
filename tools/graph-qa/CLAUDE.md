@@ -633,6 +633,33 @@ zin en een `bevestiging` (`meedenk_aanbod`) als er twijfelpunten of begrippen zo
 - `/v1/chat` weigert de modus (422), zoals de andere `WERKGEBIED_MODI`.
 - Tests: `tests/test_begrippen_verdieping_run.py` (nep-api en nep-model; het api-contract uit de bron).
 
+### Lex naast de kaart (`agent/begrip_kaart.py`, `begrippen_pipeline/kaartacties.py`, fase E)
+
+Vier acties op één begrip, elk een voorstel per veld; de api bewaart ze als eigen object en het begrip
+verandert pas als de analist overneemt (`api/app/begrip_voorstel_store.py`). Ingang:
+`POST /v1/kaart-runs {werkgebied_id, begrip_id, run_id}` (runstore-sleutel `begrip:<id>:kaart`, dus één
+actie per begrip tegelijk) → `kaart_stroom`: run met invoer ophalen, `…/loopt`, rekenen, `PUT …/uitkomst`.
+
+- **Zoek de brondefinitie** – geen model, geen budgetpoort. `q_brondefinities` zoekt
+  `bwb:definieertBegrip` op naam en alternatieve termen (`LCASE … IN`), met de aanhef van de ouder;
+  `plaats` geeft elke treffer *werkgebied* (`in_selectie`), *regeling*, *definitieverwijzing* (een
+  regeling waar een begripsbepaling uit de regelingen van het werkgebied naar verwijst, `q_verwezen`)
+  of *elders*. `kaartacties.brondefinities` neemt alleen een echte definitie letterlijk over
+  (`definities.definiens`; "verstaat mede/niet onder" niet – dat zegt `geen_definitie_melding`), de
+  sterkste plaats eerst, hoogstens vijf; buiten het werkgebied is het voorstel geel.
+- **Scherper, betekenisverschil, voorbeelden** – met het model (`LLM_MODEL`), elk één `strict` tool:
+  fragmenten op id uit de bronnen van de passages en de begripsbepalingen van de term
+  (`fragmenten_voor`); daarna `toetsen` in code. Een ongeldig antwoord, een onbekend fragment of geen
+  verbetering levert een `melding` en geen voorstel; een geformuleerde cirkel wordt verworpen.
+  Betekenisverschil (met `ander` uit de invoer) levert een alinea `uitleg` en bij twijfel een open
+  vraag; voorbeelden zijn altijd geel en zonder bronanker, met een signaal zonder tegenvoorbeeld.
+- **Budget** vóór een model-actie (`reeks._budget_poort`); het verbruik op `kaart-<run>`, ook bij een fout.
+- **Codes**: de aandachtspunten van deze acties staan in `kaartacties.TEKST`, los van `toetsen.TEKST`
+  (de werkplek leest die laatste letterlijk mee; een nieuwe code daar breekt de frontend-drift-test).
+- **Contract**: `tests/test_begrip_kaart.py` leest `api/app/begrip_voorstel_contracts.py` uit de bron.
+- Meten: `uv run python -m eval.kaartacties_eval` (live tegen de graaf, geen model; een ontwikkelset,
+  meetlogboek `kaartacties-2026-10-16`).
+
 ### De begrippenroute in het gesprek (`agent/begrippen_beurt.py`, fase AF2)
 
 Staat de werkplek in de context van een werkgebied, dan draagt `POST /v1/runs` een `werkgebied_id`.

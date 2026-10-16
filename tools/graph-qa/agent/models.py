@@ -181,6 +181,17 @@ class BegrippenRunVerzoek(BaseModel):
     run_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
 
 
+class KaartRunVerzoek(BaseModel):
+    """Start een actie van Lex op één begrip (spoor D, fase E) op een run die de api al aanmaakte.
+
+    De api legt de invoer vast; hier staan alleen de verwijzingen. De runstore-sleutel is
+    `begrip:<id>:kaart`, zodat er per begrip één actie tegelijk loopt."""
+
+    werkgebied_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
+    begrip_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
+    run_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
+
+
 class RunStart(BaseModel):
     """Wat een client van een run weet zónder mee te kijken.
 

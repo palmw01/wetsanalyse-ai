@@ -149,6 +149,18 @@ def _definitie(bron: Bron) -> _Definitie | None:
     return None
 
 
+def soort_van(bron: Bron) -> str | None:
+    """`definitie`, `mede`, `niet` – wat voor bepaling dit is –, of None als het er geen is."""
+    d = _definitie(bron)
+    return d.soort if d else None
+
+
+def gedefinieerde_termen(bron: Bron) -> tuple[str, ...]:
+    """De termen die deze bron definieert (elke soort), genormaliseerd; leeg als ze geen definitie is."""
+    d = _definitie(bron)
+    return d.termen if d else ()
+
+
 def definiens(bron: Bron) -> str | None:
     """De letterlijke definiens van een begripsbepaling – de tekst na de term –, of None.
 
