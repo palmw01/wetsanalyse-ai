@@ -66,7 +66,10 @@ from agent.begrippen_beurt import begrippen_beurt, zonder_api  # noqa: E402
 from agent.begrippen_verdieping import verdieping_beurt  # noqa: E402
 from agent.begrippen_run import begrippen_stroom  # noqa: E402
 from agent.bronnen_run import bronnen_beurt, bronnen_stroom  # noqa: E402
-from agent.models import WERKGEBIED_MODI, BegrippenRunVerzoek, ChatRequest, RunStart, Verbruiksmeter  # noqa: E402
+from agent.begrip_kaart import kaart_stroom  # noqa: E402
+from agent.models import (  # noqa: E402
+    WERKGEBIED_MODI, BegrippenRunVerzoek, ChatRequest, KaartRunVerzoek, RunStart, Verbruiksmeter,
+)
 from agent.runstore import Run, RunBestaatAl, RunStore  # noqa: E402
 from agent.runstore.geheugen import GeheugenStore  # noqa: E402
 from agent.wetsanalyse_api import WetsanalyseApi  # noqa: E402
@@ -513,6 +516,37 @@ async def start_bronnen_run(
             detail={"reden": "run_loopt_al", "run_id": al.run_id},
         ) from al
     logger.info("bronnenrun gestart", extra={"categorie": "functioneel", "run_id": run.run_id})
+    return RunStart(**run.samenvatting())
+
+
+@app.post("/v1/kaart-runs", status_code=status.HTTP_201_CREATED)
+async def start_kaart_run(
+    request: KaartRunVerzoek,
+    gebruiker: str = Depends(_aanroeper),
+    _rl: None = Depends(_rate_limit),
+    _auth: None = Depends(_check_auth),
+) -> RunStart:
+    """Lex naast de kaart (spoor D, fase E): één actie op één begrip, op de invoer die de api voor deze
+    run vastlegde. Volgen en stoppen via de gewone run-routes; runstore-sleutel `begrip:<id>:kaart`.
+    De budgetpoort zit in de stroom, alleen voor de model-acties: de brondefinitie zoeken is gratis.
+    Zonder api 503."""
+    if not settings.legt_zelf_vast:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                            detail="Zonder koppeling met de wetsanalyse-api kan Lex geen voorstellen doen.")
+    try:
+        run = await runs.start(
+            conversation_id=f"begrip:{request.begrip_id}:kaart",
+            vraag="Lex naast de kaart",
+            maak_stroom=lambda run: kaart_stroom(request.werkgebied_id, request.begrip_id, request.run_id, run,
+                                                 settings=settings, user_id=gebruiker),
+            user_id=gebruiker,
+        )
+    except RunBestaatAl as al:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"reden": "run_loopt_al", "run_id": al.run_id},
+        ) from al
+    logger.info("kaartrun gestart", extra={"categorie": "functioneel", "run_id": run.run_id})
     return RunStart(**run.samenvatting())
 
 

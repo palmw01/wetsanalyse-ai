@@ -1,6 +1,6 @@
 # Meetlogboek
 
-Soort: *meting* (zie [`../../README.md`](../../README.md)) · Bijgewerkt: 15 oktober 2026
+Soort: *meting* (zie [`../../README.md`](../../README.md)) · Bijgewerkt: 16 oktober 2026
 
 Hier staat per datum wat er gemeten is, op welke code, wat eruit kwam en waar de gegevens staan.
 Nieuwste bovenaan. De meetbestanden zelf zijn bewijs: **wijzig ze niet achteraf**. Een correctie
@@ -17,6 +17,7 @@ of herhaling krijgt een eigen map of rij. Hoe de keten nu werkt, staat in
 
 | Datum | Meting | Code | Uitkomst in één regel | Gegevens |
 |---|---|---|---|---|
+| 16 okt | **Lex naast de kaart: *Zoek de brondefinitie*** (fase E2), acht cases rond IW art. 2/9 en AWR art. 2, live tegen de graaf van acceptatie, 0 modelcalls; een **ontwikkel**set | branch `feat/fase-e2-kaartacties` | Recall, plaats, volgorde en letterlijkheid 1,00. Eerste run 0,25 door twee fouten in de set; een "verstaat mede onder" is terecht geen definitie, en Lex zegt dat nu | [`kaartacties-2026-10-16/`](kaartacties-2026-10-16/README.md) |
 | 15 okt | **Begrippenketen: zelfde term in dezelfde bepaling, zinnen geen term** (na acceptatie van fase C), keten zonder model op de drie begrippensets + de situatie van acceptatie (IW art. 9 lid 1 en 5) | branch `fix/begrippen-zelfde-bepaling` | Sets ongewijzigd (P/R, BCubed, 0 fout samengevoegd: de sets hebben zulke paren niet – geen dekking, geen regressie). Acceptatiesituatie: 0 groepen en 17 vragen → 5 gele groepen en 2 vragen; vastgelegd in `tests/test_begrippen_keten.py` | `test_iw_art_9_zelfde_term_in_een_lid_wordt_een_gele_groep_en_zinnen_doen_niet_mee` |
 | 15 okt | **Begrippenketen + model** (fase C1): twijfelparen en concept-kaarten op de drie begrippensets, 3 runs elk, `claude-sonnet-4-6` | `b6fded1` | Garanties 100% in 9/9 runs, nooit fout samengevoegd; geen recall-winst (gemiste paren zijn meestal geen vraag); 1 van 2 twijfelparen goed. Drie ontwerpwijzigingen uit de meting: hele bepaling in de prompt, een scheiding door het model laat de vraag staan, cirkeldefinities worden verworpen | [`begrippen-model-2026-10-15/`](begrippen-model-2026-10-15/README.md) |
 | 15 okt | **Bronnen vinden met Lex, ablatie per methode** op de conceptset *Invorderbaarheid* (kern IW art. 9), live tegen de graaf van acceptatie en opgenomen, 0 modelcalls | branch `feat/bronselectie-meting` | Oude standaard: 41 kandidaten, 17% overbodig; nieuwe standaard (verwijzing uit, definitie, opbouw; overzicht alleen zonder kern): 10 kandidaten, alles wat nodig is gevonden, 0 overbodig. Mist aanverwant beleid (Leidraad) | [`bronselectie-2026-10-15/`](bronselectie-2026-10-15/README.md) |

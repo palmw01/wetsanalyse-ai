@@ -1,0 +1,87 @@
+{
+  "toelichting": "Ontwikkelset voor 'Zoek de brondefinitie' (spoor D, fase E), opgesteld bij de bouw op 16 okt 2026 uit de graaf op acceptatie; niet door een jurist vastgesteld. Per case: het werkgebied (selecties), het begrip, en per verwachte definitie de plaats die Lex haar moet geven.",
+  "cases": [
+    {
+      "id": "iw9-belastingaanslag",
+      "naam": "belastingaanslag",
+      "selecties": [
+        "urn:bwb:BWBR0004770:artikel:9"
+      ],
+      "verwacht": {
+        "urn:bwb:BWBR0004770:artikel:2:lid:1:o:m": "regeling",
+        "urn:bwb:BWBR0002320:artikel:2:lid:3:o:d": "definitieverwijzing"
+      }
+    },
+    {
+      "id": "iw9-aanslagbiljet-alleen-mede",
+      "naam": "aanslagbiljet",
+      "selecties": [
+        "urn:bwb:BWBR0004770:artikel:9"
+      ],
+      "verwacht": {},
+      "toelichting": "IW art. 2 lid 2 is 'verstaat mede onder': een uitbreiding, geen definitie om over te nemen."
+    },
+    {
+      "id": "iw9-belastingschuldige",
+      "naam": "Belastingschuldige",
+      "selecties": [
+        "urn:bwb:BWBR0004770:artikel:9"
+      ],
+      "verwacht": {
+        "urn:bwb:BWBR0004770:artikel:2:lid:1:o:k": "regeling"
+      }
+    },
+    {
+      "id": "iw9-belastingwet",
+      "naam": "belastingwet",
+      "selecties": [
+        "urn:bwb:BWBR0004770:artikel:9"
+      ],
+      "verwacht": {
+        "urn:bwb:BWBR0002320:artikel:2:lid:1:o:a": "definitieverwijzing"
+      }
+    },
+    {
+      "id": "iw9-ontvanger",
+      "naam": "ontvanger",
+      "selecties": [
+        "urn:bwb:BWBR0004770:artikel:9"
+      ],
+      "verwacht": {
+        "urn:bwb:BWBR0018472:artikel:2:lid:1:o:n": "elders"
+      }
+    },
+    {
+      "id": "iw2-belastingaanslag",
+      "naam": "belastingaanslag",
+      "selecties": [
+        "urn:bwb:BWBR0004770:artikel:2"
+      ],
+      "verwacht": {
+        "urn:bwb:BWBR0004770:artikel:2:lid:1:o:m": "werkgebied",
+        "urn:bwb:BWBR0002320:artikel:2:lid:3:o:d": "definitieverwijzing"
+      }
+    },
+    {
+      "id": "iw9-alternatieve-term",
+      "naam": "aanslag",
+      "alternatieve_termen": [
+        "belastingaanslag"
+      ],
+      "selecties": [
+        "urn:bwb:BWBR0004770:artikel:9"
+      ],
+      "verwacht": {
+        "urn:bwb:BWBR0004770:artikel:2:lid:1:o:m": "regeling"
+      }
+    },
+    {
+      "id": "iw9-geen-definitie",
+      "naam": "dagtekening",
+      "selecties": [
+        "urn:bwb:BWBR0004770:artikel:9"
+      ],
+      "verwacht": {}
+    }
+  ]
+}

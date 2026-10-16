@@ -210,6 +210,32 @@ class WetsanalyseApi:
     async def meld_begrippen_mislukt(self, werkgebied_id: str, run_id: str, reden: str) -> dict[str, Any]:
         return await self._post(f"{self._run_pad(werkgebied_id, run_id)}/mislukt", {"reden": reden[:2000]})
 
+    # -- Lex naast de kaart: voorstellen per veld op één begrip (fase E) ---------------------------
+
+    def _kaart_pad(self, werkgebied_id: str, begrip_id: str, run_id: str) -> str:
+        return (f"{self._werkgebied_pad(werkgebied_id)}/begrippen/{quote(begrip_id, safe='')}"
+                f"/kaart-runs/{quote(run_id, safe='')}")
+
+    async def haal_kaartrun(self, werkgebied_id: str, begrip_id: str, run_id: str) -> dict[str, Any]:
+        """De run met zijn invoer: het begrip op zijn revisie, de passages en het manifest."""
+        antwoord = await self._client.get(f"{self._basis}{self._kaart_pad(werkgebied_id, begrip_id, run_id)}",
+                                          params={"invoer": "true"}, headers=self._headers, timeout=MANIFEST_TIMEOUT)
+        if antwoord.status_code >= 400:
+            raise WetsanalyseApiFout(f"GET kaart-run → {antwoord.status_code}", antwoord.status_code,
+                                     api_reden(antwoord))
+        return antwoord.json()
+
+    async def meld_kaart_loopt(self, werkgebied_id: str, begrip_id: str, run_id: str) -> dict[str, Any]:
+        return await self._post(f"{self._kaart_pad(werkgebied_id, begrip_id, run_id)}/loopt", {})
+
+    async def zet_kaart_uitkomst(self, werkgebied_id: str, begrip_id: str, run_id: str,
+                                 uitkomst: dict[str, Any]) -> dict[str, Any]:
+        """De api toetst de garanties opnieuw (422 bij een gebroken) en bewaart de voorstellen."""
+        return await self._verstuur("PUT", f"{self._kaart_pad(werkgebied_id, begrip_id, run_id)}/uitkomst", uitkomst)
+
+    async def meld_kaart_mislukt(self, werkgebied_id: str, begrip_id: str, run_id: str, reden: str) -> dict[str, Any]:
+        return await self._post(f"{self._kaart_pad(werkgebied_id, begrip_id, run_id)}/mislukt", {"reden": reden[:2000]})
+
     # -- de verdieping: het model op twijfelparen en kaarten (fase C) ------------------------------
 
     async def haal_verdieping(self, werkgebied_id: str) -> dict[str, Any]:
