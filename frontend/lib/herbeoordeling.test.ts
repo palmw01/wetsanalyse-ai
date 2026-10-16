@@ -19,7 +19,7 @@ const h: Herbeoordelingen = {
 
 describe("herbeoordeling", () => {
   it("telt per begrip en noemt het in de kop", () => {
-    expect(geraakteBegrippen(h)).toEqual(new Map([["A", 2], ["B", 1]]));
+    expect(geraakteBegrippen(h)).toEqual(new Map([["A", { passages: 2, relaties: 0 }], ["B", { passages: 1, relaties: 0 }]]));
     expect(strookKop(h)).toBe("2 begrippen herbeoordelen · 3 passages veranderden");
     expect(strookKop({ ...h, begrippen: [h.begrippen[1]] })).toBe("1 begrip herbeoordelen · 1 passage veranderde");
   });
@@ -42,4 +42,10 @@ it("een ander antwoord is geen herbeoordeling of dekking", () => {
   expect(isHerbeoordelingen(h)).toBe(true);
   expect(isDekking({})).toBe(false);
   expect(isDekking({ elementen: [], totalen: { te_verwerken: 0 } })).toBe(true);
+});
+
+it("noemt ook relaties die aandacht vragen", () => {
+  const met: Herbeoordelingen = { ...h, begrippen: [{ ...h.begrippen[1], koppelingen: [],
+    relaties: [{ relatie_id: "r", type: "inclusie", ander: { begrip_id: "A", naam: "A" }, reden: "" }] }] };
+  expect(strookKop(met)).toBe("1 begrip herbeoordelen · 1 relatie vraagt aandacht");
 });

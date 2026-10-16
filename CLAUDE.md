@@ -27,8 +27,12 @@ plaats van schijnzekerheid.
 > (annotatie, begripsvoorstellen; afleidingsregels gereserveerd). Lex denkt mee met een model bij
 > twijfel en stelt definities voor (geel, met de fragmenten waarop ze rusten), en staat **naast de
 > begripskaart**: brondefinitie zoeken, een scherpere definitie, het betekenisverschil en voorbeelden,
-> elk als voorstel per veld dat de analist overneemt, aanpast of afwijst. Begripsrelaties als objecten
-> en de RegelSpraak-formalisering horen nog niet tot de functionaliteit. graph-qa's begrip-definitie-QA
+> elk als voorstel per veld dat de analist overneemt, aanpast of afwijst. Begrippen worden **onderhouden**:
+> een veranderde dragende passage verschijnt in de herbeoordeling (toen naast nu, opvolger na
+> herannotatie), begrippen krijgen **relaties** met type en richting (kwalificatie, inclusie, uitsluiting,
+> soort van, verwant; Lex stelt ze voor) en een betekeniswijziging of combinatie levert een opvolger op
+> (het oude begrip wordt vervangen). De NL-SBB-projectie en de RegelSpraak-formalisering horen nog niet
+> tot de functionaliteit. graph-qa's begrip-definitie-QA
 > (de `definitie`-specialist over de graaf) staat daar los van.
 
 ### Platform-componenten

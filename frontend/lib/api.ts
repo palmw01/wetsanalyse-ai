@@ -74,6 +74,8 @@ import type {
   GesprekSamenvatting,
   GroepenAntwoord,
   Herbeoordelingen,
+  RelatiesAntwoord,
+  RelatieType,
   VerdiepingWerkvoorraad,
   KandidatenAntwoord,
   Inventaris,
@@ -89,6 +91,7 @@ import type {
   WerkgebiedWijziging,
 } from "./types";
 import { parseArtefact } from "./artefact";
+import { isRelatiesAntwoord } from "./begripRelaties";
 import { isDekking, isHerbeoordelingen } from "./herbeoordeling";
 import { pathSegment } from "./url";
 import { parseBevestiging } from "./werkgebiedAnnoteren";
@@ -1182,6 +1185,44 @@ export async function zetBuitenBehandeling(id: string, body: { element_ids: stri
 
 export async function zetTerugInBehandeling(id: string, elementId: string): Promise<{ element_id: string }> {
   return json(await fetch(wg(id, "dekking", "buiten-behandeling", elementId), { method: "DELETE" }));
+}
+
+// --- Begripsrelaties en opvolging (fase F2) ---------------------------------------------------
+
+export async function haalRelaties(id: string, begripId?: string): Promise<RelatiesAntwoord | null> {
+  const qs = begripId ? `?${new URLSearchParams({ begrip_id: begripId })}` : "";
+  const r = await json<unknown>(await fetch(`${wg(id, "relaties")}${qs}`, { cache: "no-store" }));
+  return isRelatiesAntwoord(r) ? r : null;
+}
+
+/** Een relatie vastleggen: als akkoord op een voorstel van Lex, of zelf. */
+export async function legRelatieVast(id: string, body: { voorstel_id: string } |
+  { van_begrip: string; naar_begrip: string; type: Exclude<RelatieType, "opvolging">; toelichting?: string }): Promise<RelatiesAntwoord> {
+  return json<RelatiesAntwoord>(await fetch(wg(id, "relaties"), jsonInit("POST", body)));
+}
+
+export async function wijsRelatieAf(id: string, voorstelId: string, reden: string): Promise<RelatiesAntwoord> {
+  return json<RelatiesAntwoord>(await fetch(wg(id, "relaties", "voorstellen", voorstelId, "afwijzen"),
+    jsonInit("POST", { reden })));
+}
+
+export async function bevestigRelatie(id: string, relatieId: string): Promise<RelatiesAntwoord> {
+  return json<RelatiesAntwoord>(await fetch(wg(id, "relaties", relatieId, "bevestigen"), { method: "POST" }));
+}
+
+export async function verwijderRelatie(id: string, relatieId: string): Promise<RelatiesAntwoord> {
+  return json<RelatiesAntwoord>(await fetch(wg(id, "relaties", relatieId), { method: "DELETE" }));
+}
+
+/** Het begrip krijgt een opvolger met inhoud en passages; het zelf wordt vervangen. Geeft de opvolger. */
+export async function geefNieuweBetekenis(id: string, begripId: string, body: { verwachte_revisie: number; reden: string }): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "nieuwe-betekenis"), jsonInit("POST", body)));
+}
+
+/** `begripId` blijft; `ander_begrip_id` wordt vervangen. */
+export async function combineerBegrippen(id: string, begripId: string,
+  body: { verwachte_revisie: number; ander_begrip_id: string; ander_revisie: number; reden: string }): Promise<Begrip> {
+  return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "combineren"), jsonInit("POST", body)));
 }
 
 export async function accordeerBegrip(id: string, begripId: string, verwachteRevisie: number): Promise<Begrip> {
