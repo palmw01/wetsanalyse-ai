@@ -11,8 +11,9 @@ import { Melding } from "@/components/ui/Melding";
 import type { BegripMutatie } from "@/components/werkgebieden/BegripWerk";
 import { KaartVoorstelKaart } from "@/components/werkgebieden/KaartVoorstel";
 import {
-  accordeerBegrip, foutTekst, haalBegripRevisies, heropenBegrip, wijzigBegrip,
+  accordeerBegrip, foutTekst, haalBegripRevisies, haalConformiteit, heropenBegrip, wijzigBegrip,
 } from "@/lib/api";
+import { conformZin, veldVanPad, type Conformiteit } from "@/lib/begripGraaf";
 import {
   HERKOMST_LABEL, OORDEEL_LABEL, inhoudGewijzigd, naarRijen, regels, revisieZin, uitRegels, uitRijen,
   volledigeInhoud,
@@ -311,6 +312,7 @@ function Accorderen({ id, begrip, onbewaard, muteer }: {
         {begrip.aandachtspunten.map((a) => (
           <p key={a} className="text-xs text-aandacht-geel-tekst">{a}</p>
         ))}
+        <NlSbbStand id={id} begrip={begrip} />
         <Button size="sm" variant="secondary" disabled={bezig} onClick={() => void doe((r) => heropenBegrip(id, begrip.id, r), "Heropend.")}>
           Heropenen
         </Button>
@@ -334,10 +336,44 @@ function Accorderen({ id, begrip, onbewaard, muteer }: {
       ) : (
         <p className="text-xs text-ink">Alles is er: naam, definitie, context en beoordeelde, actuele passages.</p>
       )}
+      <NlSbbStand id={id} begrip={begrip} />
       <Button size="sm" disabled={!mag || onbewaard || bezig} onClick={() => void doe((r) => accordeerBegrip(id, begrip.id, r), "Geaccordeerd.")}>
         Accorderen
       </Button>
     </section>
+  );
+}
+
+/** Is het begrip NL-SBB-conform (fase F3)? Diagnostisch: het houdt accorderen niet tegen, en een
+ *  conforme kaart is daarmee nog niet juridisch juist. Opnieuw gevraagd bij elke revisie; faalt stil. */
+function NlSbbStand({ id, begrip }: { id: string; begrip: Begrip }) {
+  const [c, setC] = useState<Conformiteit | null>(null);
+  useEffect(() => {
+    let levend = true;
+    haalConformiteit(id).then((x) => levend && setC(x)).catch(() => levend && setC(null));
+    return () => { levend = false; };
+  }, [id, begrip.id, begrip.revisie]);
+  const stand = c?.begrippen[begrip.id];
+  const zin = c ? conformZin(stand, c.nl_sbb_versie) : null;
+  if (!zin || !stand) return null;
+  const meldingen = stand.meldingen;
+  return (
+    <div className="text-xs" data-testid="nl-sbb-stand">
+      <p className={stand.conform ? "text-muted" : "text-aandacht-geel-tekst"}>{zin}</p>
+      {meldingen.length > 0 && (
+        <details className="mt-1">
+          <summary className="focus-ring cursor-pointer text-[11px] text-muted">Meldingen ({meldingen.length})</summary>
+          <ul className="mt-1 space-y-0.5 pl-4 text-[11px] text-muted">
+            {meldingen.map((m, i) => (
+              <li key={i}>
+                {m.laag === "nl_sbb" ? "NL-SBB" : "Platform"} · {m.ernst} · {veldVanPad(m.pad) || "begrip"}{m.melding ? `: ${m.melding}` : ""}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1 text-[10px] text-faint">Een diagnose, geen blokkade: conform zegt iets over de vorm, niet over de juridische juistheid.</p>
+        </details>
+      )}
+    </div>
   );
 }
 

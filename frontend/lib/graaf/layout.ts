@@ -163,7 +163,7 @@ function vormend(r: Structuur["relaties"][number], inBoom: ReadonlySet<string>):
 
 /** De ruimte die een knoop in de layout inneemt (voor `adjustSizes`), in layout-eenheden. */
 const RUIMTE: Record<KnoopSoort, number> = {
-  regeling: 3, deel: 1.6, artikel: 0.9, lid: 0.6, onderdeel: 0.45, extern: 0.45, markering: 0.4, klasse: 1,
+  regeling: 3, deel: 1.6, artikel: 0.9, lid: 0.6, onderdeel: 0.45, extern: 0.45, markering: 0.4, klasse: 1, begrip: 0.8,
 };
 
 /** Hoeveel iteraties, naar grootte: genoeg om uit te kristalliseren, begrensd zodat de hele
@@ -271,5 +271,17 @@ export function plaatsAnnotaties(g: GraafModel, bron: Posities): Posities {
     const [dx, dy] = pool(maat, 2 * Math.PI * hash01(id, 9));
     pos.set(id, [kx + dx, ky + dy]);
   }
+  // Een begrip (fase F3) staat bij de passages die het dragen: iets buiten hun zwaartepunt, op een plek
+  // die alleen van zijn eigen id afhangt. Zonder geplaatste passage op een binnenring.
+  g.forEachNode((id, a) => {
+    if (a.soort !== "begrip") return;
+    const passages = g.outNeighbors(id).filter((n) => g.getNodeAttribute(n, "soort") === "markering")
+      .map((n) => pos.get(n)).filter((p): p is Punt => !!p);
+    const [cx, cy] = passages.length
+      ? [passages.reduce((s, p) => s + p[0], 0) / passages.length, passages.reduce((s, p) => s + p[1], 0) / passages.length]
+      : midden;
+    const [dx, dy] = pool(passages.length ? maat * 1.2 : straal * 0.6, 2 * Math.PI * hash01(id, 17));
+    pos.set(id, [cx + dx, cy + dy]);
+  });
   return pos;
 }

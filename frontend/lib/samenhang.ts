@@ -2,13 +2,17 @@ import { veiligDecoderen } from "./url";
 import { nodeRequest, type NodeDoel } from "./annotatieNode";
 
 /** Het antwoord van `GET /v1/annotatie/samenhang` (api/app/samenhang.py). */
-export type KnoopSoort = "regeling" | "deel" | "artikel" | "lid" | "onderdeel" | "markering" | "klasse" | "extern";
-export type RelatieGroep = "structuur" | "verwijzingen" | "annotaties";
+export type KnoopSoort = "regeling" | "deel" | "artikel" | "lid" | "onderdeel" | "markering" | "klasse" | "extern"
+  /** Een begrip van het werkgebied (fase F3): alleen op de tab Samenhang, uit `lib/begripGraaf.ts`. */
+  | "begrip";
+export type RelatieGroep = "structuur" | "verwijzingen" | "annotaties" | "begrippen";
 export interface SamenhangKnoop {
   id: string; soort: KnoopSoort; label: string; tekst: string; klasse: string; lifecycle: string;
   element_id: string; bwb_id: string; artikel: string; lid: string; rand: boolean;
   /** Alleen bij een markering (api ≥ PR 10; bij een oudere api ontbreken ze). */
   herkomst?: string; aandacht?: string; subtype?: string; beslist_door?: string; twijfel?: boolean;
+  /** Alleen bij een begrip: concept, geaccordeerd of vervangen (de definitie staat in `tekst`). */
+  status?: string;
 }
 
 /** Welke markeringen in beeld blijven. Een kijkfilter: hij verbergt markeringen (en klassen die
@@ -31,7 +35,10 @@ export function pastBijMarkeringFilter(k: Pick<SamenhangKnoop, "lifecycle" | "aa
   }
 }
 export interface SamenhangRelatie {
-  bron: string; doel: string; soort: "bevat" | "verwijst_naar" | "markeert" | "heeft_klasse";
+  bron: string; doel: string;
+  /** `duidt`: een begrip en een passage die het draagt; `begripsrelatie` en `begripsvoorstel`: een
+   *  vastgelegde en een voorgestelde relatie tussen twee begrippen (fase F3), de zin in `anker_tekst`. */
+  soort: "bevat" | "verwijst_naar" | "markeert" | "heeft_klasse" | "duidt" | "begripsrelatie" | "begripsvoorstel";
   groep: RelatieGroep; anker_tekst: string;
 }
 export interface Samenhang {

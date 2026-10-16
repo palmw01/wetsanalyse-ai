@@ -13,6 +13,7 @@ import {
   parseRun,
   parseRunStart,
 } from "./agentEvents";
+import { isBegripSamenhang, isConformiteit, type BegripSamenhang, type Conformiteit } from "./begripGraaf";
 import type {
   ApiError,
   ApiTokenCreated,
@@ -842,7 +843,9 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
 }
 
 /** Exportformaten van een annotatie. */
-export type ExportFormaat = "pdf" | "csv" | "json" | "trig";
+export type ExportFormaat = "pdf" | "csv" | "json" | "trig"
+  /** Begrippen (fase F3): NL-SBB als Turtle, standaard alleen geaccordeerd; `ttl-alle` met de rest. */
+  | "ttl" | "ttl-alle";
 
 /** Bied een bestandsantwoord aan als download: Blob → `createObjectURL` → `<a download>`.
  *
@@ -1241,10 +1244,25 @@ export async function haalBegripRevisies(id: string, begripId: string): Promise<
 }
 
 /** Het begrippenkader van het werkgebied als bestand; de naam komt van de server. */
-export async function exporteerBegrippen(id: string, formaat: "json" | "csv"): Promise<void> {
-  const res = await fetch(`${wg(id, "begrippen", "export")}?formaat=${formaat}`, { cache: "no-store" });
+/** `ttl` is de NL-SBB-export (fase F3): standaard alleen geaccordeerde begrippen, `ttl-alle` ook de rest. */
+export async function exporteerBegrippen(id: string, formaat: "json" | "csv" | "ttl" | "ttl-alle"): Promise<void> {
+  const qs = formaat === "ttl-alle" ? new URLSearchParams({ formaat: "ttl", inclusief: "alle" })
+    : new URLSearchParams({ formaat });
+  const res = await fetch(`${wg(id, "begrippen", "export")}?${qs}`, { cache: "no-store" });
   if (!res.ok) throw await parseError(res);
-  await downloadAntwoord(res, `begrippen.${formaat}`);
+  await downloadAntwoord(res, `begrippen.${formaat === "ttl-alle" ? "ttl" : formaat}`);
+}
+
+/** De begrippen voor de samenhangsgraaf (fase F3); `null` als het antwoord niet de verwachte vorm heeft. */
+export async function haalBegripSamenhang(id: string): Promise<BegripSamenhang | null> {
+  const s = await json<unknown>(await fetch(wg(id, "begrippen", "samenhang"), { cache: "no-store" }));
+  return isBegripSamenhang(s) ? s : null;
+}
+
+/** NL-SBB-conformiteit per begrip (fase F3, diagnostisch); `null` als het antwoord niet klopt. */
+export async function haalConformiteit(id: string): Promise<Conformiteit | null> {
+  const c = await json<unknown>(await fetch(wg(id, "begrippen", "conformiteit"), { cache: "no-store" }));
+  return isConformiteit(c) ? c : null;
 }
 
 // --- Voorstellen van Lex (spoor D, levering 3a) -----------------------------------------------

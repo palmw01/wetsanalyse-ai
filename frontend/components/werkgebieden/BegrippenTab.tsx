@@ -18,6 +18,8 @@ import type { BegrippenLijst, Herbeoordelingen } from "@/lib/types";
 const EXPORT_FORMATEN = [
   { formaat: "csv" as const, label: "CSV", uitleg: "één rij per passage, met vindplaats en bron" },
   { formaat: "json" as const, label: "JSON", uitleg: "alle begrippen met hun koppelingen en bewijsstand" },
+  { formaat: "ttl" as const, label: "Turtle (NL-SBB)", uitleg: "de geaccordeerde begrippen als begrippenkader, met conformiteit per begrip" },
+  { formaat: "ttl-alle" as const, label: "Turtle, alle begrippen", uitleg: "ook concepten en vervangen begrippen, met hun status" },
 ];
 
 /** De begrippen van het werkgebied: links de lijst, daarnaast het gekozen begrip (kaart en
@@ -168,7 +170,7 @@ export function BegrippenTab({ id, gekozen, onKies, onbewaard, onOnbewaard }: {
             <ExportKnop
               formaten={EXPORT_FORMATEN}
               onFout={setFout}
-              onDownload={(f) => exporteerBegrippen(id, f as "csv" | "json")}
+              onDownload={(f) => exporteerBegrippen(id, f as (typeof EXPORT_FORMATEN)[number]["formaat"])}
             />
           )}
           {lijst === null ? (

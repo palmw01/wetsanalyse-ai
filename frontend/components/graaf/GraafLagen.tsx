@@ -2,11 +2,11 @@
 
 import { useId } from "react";
 import { Lagen as LagenIcoon } from "@/components/ui/Icoon";
-import { BRONKLEUR, DEKKINGSKLEUR, GEDIMD, LIJNKLEUR, RANDKLEUR, klasseKleur } from "@/lib/graaf/stijl";
+import { BEGRIPKLEUR, BRONKLEUR, DEKKINGSKLEUR, GEDIMD, LIJNKLEUR, RANDKLEUR, VOORSTELKLEUR, klasseKleur } from "@/lib/graaf/stijl";
 import type { Lagen } from "@/lib/graaf/weergave";
 import { MARKERING_FILTERS, type MarkeringFilter } from "@/lib/samenhang";
 
-type Laag = Exclude<keyof Lagen, "dekking">;
+type Laag = Exclude<keyof Lagen, "dekking" | "begrippen">;
 const LAGEN: { laag: Laag; naam: string; uitleg: string; kleur: string; voorbeeld: React.ReactNode }[] = [
   { laag: "leden", naam: "Leden en onderdelen", uitleg: "uit: de kaart tot op artikelniveau", kleur: BRONKLEUR.lid,
     voorbeeld: <><circle cx="4" cy="6" r="3" fill={BRONKLEUR.artikel} /><path d="M7 6h10" stroke={LIJNKLEUR.bevat} strokeWidth="1.6" /><circle cx="20" cy="6" r="2.2" fill={BRONKLEUR.lid} /></> },
@@ -24,11 +24,13 @@ const SOORTEN: { naam: string; kleur: string; r: number }[] = [
 
 /** Wat er in beeld staat: lagen, markeringsfilter en legenda in één paneel, linksonder in het canvas.
  *  De legenda zegt ook wat gedimd betekent, zodat de keuze in de graaf geen raadsel is. */
-export function GraafLagen({ lagen, onWissel, open, onOpen, dekking, markering }: {
+export function GraafLagen({ lagen, onWissel, open, onOpen, dekking, begrippen = false, markering }: {
   lagen: Lagen; onWissel: (laag: keyof Lagen) => void;
   open: boolean; onOpen: (open: boolean) => void;
   /** Is er een meting van de detectoren (alleen voor de geopende bepaling)? Anders geen laag Dekking. */
   dekking: boolean;
+  /** Staan er begrippen op de kaart (tab Samenhang van een werkgebied)? Anders geen laag Begrippen. */
+  begrippen?: boolean;
   markering: { waarde: MarkeringFilter; onKies: (f: MarkeringFilter) => void };
 }) {
   const kiesId = useId();
@@ -55,6 +57,17 @@ export function GraafLagen({ lagen, onWissel, open, onOpen, dekking, markering }
           <span className="block text-[10px] text-faint">okeromtrek: zinsdelen zonder detectortreffer (geopende bepaling)</span>
         </span>
       </label>}
+      {begrippen && <label className={rij}>
+        <input type="checkbox" checked={lagen.begrippen} onChange={() => onWissel("begrippen")} className="h-3.5 w-3.5 shrink-0 accent-lint" />
+        <svg viewBox="0 0 24 12" className="h-3 w-6 shrink-0" aria-hidden="true">
+          <circle cx="4" cy="6" r="3.4" fill={BEGRIPKLEUR.geaccordeerd} /><path d="M7.5 6h9" stroke={LIJNKLEUR.begripsrelatie} strokeWidth="1.4" />
+          <circle cx="20" cy="6" r="3.4" fill={BEGRIPKLEUR.concept} />
+        </svg>
+        <span className="min-w-0">
+          <span className={`block text-xs ${lagen.begrippen ? "text-ink" : "text-faint"}`}>Begrippen</span>
+          <span className="block text-[10px] text-faint">met hun passages en relaties; analyse-uitkomsten, geen wettelijke definities</span>
+        </span>
+      </label>}
       {lagen.annotaties && <div className="flex items-center gap-2 px-2 py-1.5">
         <label htmlFor={kiesId} className="shrink-0 text-xs text-ink">Markeringen</label>
         <select id={kiesId} value={markering.waarde} onChange={(e) => markering.onKies(e.target.value as MarkeringFilter)}
@@ -72,6 +85,20 @@ export function GraafLagen({ lagen, onWissel, open, onOpen, dekking, markering }
             <svg viewBox="0 0 10 10" className="h-2.5 w-2.5" aria-hidden="true"><circle cx="5" cy="5" r="3.6" fill="#fff" stroke={RANDKLEUR} strokeWidth="1.4" /></svg>
             Omtrek: buiten wat geladen is
           </li>
+          {begrippen && <>
+            <li className="flex items-center gap-1">
+              <svg viewBox="0 0 10 10" className="h-2.5 w-2.5" aria-hidden="true"><circle cx="5" cy="5" r="3.8" fill={BEGRIPKLEUR.geaccordeerd} /></svg>
+              Begrip, geaccordeerd
+            </li>
+            <li className="flex items-center gap-1">
+              <svg viewBox="0 0 10 10" className="h-2.5 w-2.5" aria-hidden="true"><circle cx="5" cy="5" r="3.8" fill={BEGRIPKLEUR.concept} /></svg>
+              Begrip, concept
+            </li>
+            <li className="flex items-center gap-1">
+              <svg viewBox="0 0 14 10" className="h-2.5 w-3.5" aria-hidden="true"><path d="M1 5h12" stroke={VOORSTELKLEUR} strokeWidth="1.6" /></svg>
+              Relatie voorgesteld door Lex
+            </li>
+          </>}
           <li className="flex items-center gap-1">
             <svg viewBox="0 0 10 10" className="h-2.5 w-2.5" aria-hidden="true"><circle cx="5" cy="5" r="3.6" fill={GEDIMD} /></svg>
             Gedimd: niet verbonden met je keuze
@@ -86,6 +113,7 @@ export function GraafLagen({ lagen, onWissel, open, onOpen, dekking, markering }
       <span className="flex gap-0.5" aria-hidden="true">
         {LAGEN.map((l) => <span key={l.laag} className={`h-1.5 w-1.5 rounded-full ${lagen[l.laag] ? "" : "opacity-25"}`} style={{ backgroundColor: l.kleur }} />)}
         {dekking && <span className={`h-1.5 w-1.5 rounded-full ${lagen.dekking ? "" : "opacity-25"}`} style={{ backgroundColor: DEKKINGSKLEUR }} />}
+        {begrippen && <span className={`h-1.5 w-1.5 rounded-full ${lagen.begrippen ? "" : "opacity-25"}`} style={{ backgroundColor: BEGRIPKLEUR.geaccordeerd }} />}
       </span>
     </button>
   </div>;
