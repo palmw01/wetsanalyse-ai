@@ -27,7 +27,7 @@
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "server-only": "^0.0.1",
-    "sigma": "^3.0.3"
+    "sigma": "^4.0.0"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
