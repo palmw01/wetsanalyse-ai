@@ -28,6 +28,9 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
 11. **Bronnen vinden met Lex** (`/v1/werkgebieden/{id}/bronnen-runs/*`, `…/kandidaten/*`, fase A):
    kandidaatbepalingen met rol en bewijs per ontdekmethode, en de besluiten erover – zie §*Bronnen
    vinden met Lex*.
+12. **Onderhoud van begrippen** (`/v1/werkgebieden/{id}/herbeoordelingen`, `…/koppelingen/{k}/herkoppelen`
+   en `/bevestigen`, `…/dekking/*`, fase F1): geraakte dragende passages, opvolgers na herannotatie en de
+   dekking van het werkgebied – zie §*Onderhoud van begrippen*.
 
 > **De wettekst komt uit de graaf.** De API leest uit GraphDB de **bronboom** (`bron_resolver.py`):
 > daarmee toetst hij ankers, legt hij snapshots vast en levert hij de segmenten van de weergave.
@@ -58,6 +61,7 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
 | `begrippen_runs.py` (router), `begrippen_run_store.py`, `begrippen_run_contracts.py`, `begrip_manifest.py` | Voorstellen van Lex: manifest voor de begrippenketen, runs, betekenisgroepen en besluiten. |
 | `begrip_voorstellen.py` (router), `begrip_voorstel_store.py`, `begrip_voorstel_contracts.py` | Lex naast de kaart: kaartruns en voorstellen per veld, overnemen en afwijzen. |
 | `bronnen_runs.py` (router), `bronnen_run_store.py`, `bronnen_run_contracts.py` | Bronnen vinden met Lex: runs van de ontdekmethoden, kandidaatbepalingen en hun besluiten. |
+| `begrip_onderhoud.py` (router), `begrip_onderhoud_store.py`, `begrip_onderhoud_contracts.py` | Onderhoud van begrippen: herbeoordelingen, opvolgers, herkoppelen, bevestigen en dekking. |
 | `annotatie_statistiek.py`, `scripts/statistiek.py` | Reviewstatistiek over de elementen: uitkomst per klasse en per model, klasse-verschuivingen, aandacht tegenover correctie. |
 | `jas_klassen.py`, `validation.py` | De dertien JAS-klassen, volgorde en kleuren (canoniek); `GELDIGE_JAS_KLASSEN`, `JAS_KLASSE_KLEUREN`, `jas_sorteersleutel`. |
 | `ratelimit.py` | In-process rate limit per client. |
@@ -264,7 +268,8 @@ spoor D (*Werkgebied als node*).
   `verwachte_revisie` → 412, revisie +1, revisiekopie en auditregel. De revisie van het werkgebied gaat
   niet omhoog: die gaat over de scope. Zonder echte wijziging (dezelfde inhoud, een element dat al
   gekoppeld is) gebeurt er niets, ook geen revisie.
-- **Elke mutatie behalve accorderen maakt een geaccordeerd begrip weer een concept.**
+- **Elke mutatie behalve accorderen maakt een geaccordeerd begrip weer een concept** – met één
+  uitzondering: herkoppelen en bevestigen (fase F1) laten de inhoud staan en het begrip geaccordeerd.
 - **Een 412 draagt een `melding`**, net als de 409's (`al_primair`, `al_gekoppeld`, `poort`): de
   werkplek toont die tekst waar hij de fout niet zelf afhandelt, in plaats van ruwe JSON. Dat geldt ook
   voor de werkgebieden.
@@ -413,6 +418,40 @@ Vier acties op één begrip: `brondefinitie` (een graafquery, geen model), `sche
 - `GET …/voorstellen` geeft ook per model-actie een schatting (mediaan tokens van de laatste 20 klare
   runs van de gebruiker) en het budget, voor de knoppen.
 - Tests: `tests/test_begrip_voorstellen.py`.
+
+## Onderhoud van begrippen
+
+`begrip_onderhoud.py`, `begrip_onderhoud_store.py`, `begrip_onderhoud_contracts.py`; PLAN spoor D, fase F1.
+Acceptatie: *een gewijzigde dragende passage verschijnt bij de geraakte begrippen; de oude bewijsstand blijft.*
+
+- **Twee bronnen van verandering.** `begrip_store.actualiteit` ziet alleen Postgres: een gewijzigde,
+  verworpen, verdwenen of door herannotatie verouderde annotatie. Een nieuwe wettekst zonder herannotatie
+  ziet hij niet. `GET …/herbeoordelingen` (`?begrip_id=`) vraagt daarom ook de bronboom
+  (`inventaris_met_bronbomen`) en zet per anker `bron_signalen`: `ongewijzigd`, `gewijzigd` (met
+  `fragment_gelijk`: staat het gemarkeerde fragment nog letterlijk op zijn offsets), `weg` of `onbekend`
+  (regeling niet op te halen – een open punt, nooit "ongewijzigd").
+- **Het bewijs verandert nooit.** Per geraakte koppeling: `toen` (het bewijs), `nu` (het element),
+  `bron`, `redenen` (zinnen voor de werkplek), `opvolgers`, `opnieuw_annoteren` en `acties`.
+- **Opvolgers** (`opvolgers`, zuiver): herannotatie maakt een nieuw element met een nieuw id. Kandidaat =
+  actueel element op een bronnode van de oude ankers of met dezelfde eigenaar; signalen met richting
+  (klasse, tekst, plek, al elders primair). Geen score: de volgorde is plek → tekst → positie.
+- **Herkoppelen** (`POST …/koppelingen/{k}/herkoppelen {verwachte_revisie, element_id}`): nieuwe koppeling
+  met de rol van de oude en `beoordeling: akkoord` (de analist zag toen en nu), de oude krijgt
+  `verwijderd` + `vervangen_door`. De nieuwe draagt bij het lezen `vervangt` met het oude bewijs. Dezelfde
+  passage: 422 `zelfde_passage`; buiten het werkgebied 422; al primair elders 409 `al_primair`.
+- **Bevestigen** (`POST …/bevestigen`): voegt aan `bevestigingen` een stand toe (`element_hash`, ankers
+  met de bron-hash van nu); daarna rekent de actualiteit daartegen (`referentie_hash`). Alleen als de
+  annotatie bestaat, niet verworpen en niet verouderd is (422 `niet_te_bevestigen`), en elk fragment
+  letterlijk op zijn plek staat (422 `fragment_weg`). Niets te bevestigen: geen revisie.
+- **Geaccordeerd blijft geaccordeerd** bij herkoppelen en bevestigen (besloten 16 okt 2026). Wat dan nog
+  openstaat, noemt `aandachtspunten` (ook een dragende annotatie die een jurist nog niet beoordeelde).
+- **Dekking** (`GET …/dekking`): elk element van de inventaris één keer, voorrang `gekoppeld` (dragend
+  aan een geaccordeerd begrip) → `buiten_behandeling` → `voorstel` (concept-begrip of open groep van de
+  laatste klare run) → `te_verwerken`; plus `nieuw_sinds_run` (niet in manifest of `overgeslagen` van die
+  run). `POST …/dekking/buiten-behandeling {element_ids, reden}` (reden verplicht, idempotent, tabel
+  `werkgebied_element_besluiten`) en `DELETE …/buiten-behandeling/{element_id}` (soft). Audit
+  `element-buiten-behandeling` / `element-in-behandeling`; geen revisie, het raakt de scope niet.
+- Tests: `tests/test_begrip_onderhoud.py`.
 
 ## Bronnen vinden met Lex
 
@@ -637,6 +676,7 @@ niet vullen. `POST /v1/auth/registratie` heeft een eigen rate limit.
 
 - **Externe IdP/OIDC.** De API is zelf de identiteitsbron.
 - **Activiteit 3, verder.** Werkgebieden, begrippen en de deterministische voorstellen van Lex
-  bestaan, het model voor twijfelparen en definitievoorstellen (fase C) en Lex naast de kaart (fase E); begripsrelaties, de projectie
+  bestaan, het model voor twijfelparen en definitievoorstellen (fase C), Lex naast de kaart (fase E) en
+  herbeoordeling en dekking (fase F1); begripsrelaties, de projectie
   naar de graaf (NL-SBB) en RDF-export volgen (PLAN spoor D, leveringen 3b en 4).
 - **RegelSpraak-formalisering.** Komt later.

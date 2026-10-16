@@ -132,12 +132,13 @@ observability.instrument_fastapi(app)
 
 app.include_router(admin.router, prefix="/v1")
 app.include_router(auth.router, prefix="/v1")
-from . import annotatie_v2, begrip_voorstellen, begrippen, begrippen_runs, bronnen_runs, werkgebieden
+from . import annotatie_v2, begrip_onderhoud, begrip_voorstellen, begrippen, begrippen_runs, bronnen_runs, werkgebieden
 app.include_router(annotatie_v2.router, prefix="/v1")
 app.include_router(werkgebieden.router, prefix="/v1")
 app.include_router(begrippen.router, prefix="/v1")
 app.include_router(begrippen_runs.router, prefix="/v1")
 app.include_router(begrip_voorstellen.router, prefix="/v1")
+app.include_router(begrip_onderhoud.router, prefix="/v1")
 app.include_router(bronnen_runs.router, prefix="/v1")
 app.include_router(berichten.router, prefix="/v1")
 app.include_router(feedback.router, prefix="/v1")
