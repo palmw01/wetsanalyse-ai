@@ -116,6 +116,9 @@ export function GraafInspector({ model, id, detail, info, element, ongedekt, hoo
         {knoop.aandacht === "groen" && <span className="rounded-full border border-aandacht-groen-rand bg-aandacht-groen-bg px-2 py-0.5 text-[11px] text-aandacht-groen-tekst">Bevestigd door review</span>}
       </div>}
       {knoop.soort === "markering" && el && <MarkeringDetail el={el} />}
+      {knoop.soort === "begrip" && <p className="text-[11px] text-muted" data-testid="graaf-begrip">
+        {BEGRIP_STATUS[knoop.status ?? ""] ?? "Begrip"} · een analyse-uitkomst van dit werkgebied, geen wettelijke definitie.
+        {!knoop.tekst && " Er is nog geen definitie."}</p>}
       <Wettekst detail={detail} knoop={knoop} gekozen={knoop.soort === "markering" ? knoop.element_id : undefined}
         kiesbaar={(e) => model.hasNode(`element:${e}`)} onKies={(e) => onKies(`element:${e}`)} />
       {knoop.soort === "markering" && element === "laden" && <p className="text-xs text-faint">Details ophalen…</p>}
@@ -186,6 +189,8 @@ function markeringenOp(g: GraafModel, id: string): number {
   }
   return n;
 }
+
+const BEGRIP_STATUS: Record<string, string> = { geaccordeerd: "Geaccordeerd", concept: "Concept", vervangen: "Vervangen" };
 
 /** De wettekst bij de keuze: met de markeringen erin als die er is, anders wat het model weet. */
 function Wettekst({ detail, knoop, gekozen, kiesbaar, onKies }: {

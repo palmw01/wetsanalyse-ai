@@ -1,12 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Graaf, type GraafContext } from "@/components/graaf/Graaf";
 import { useGraafStand } from "@/components/graaf/useGraafStand";
 import type { Mutatie } from "@/components/werkgebieden/WerkgebiedClient";
-import { voegBronToe } from "@/lib/api";
+import { haalBegripSamenhang, voegBronToe } from "@/lib/api";
+import { begripBron, begripIdVan } from "@/lib/begripGraaf";
+import type { GraafBron } from "@/lib/graaf/model";
 import { isBron, type KnoopData } from "@/lib/graaf/model";
 import type { BronRol, Werkgebied } from "@/lib/types";
 import { ROL_LABEL, annotatieHref, scopeInModel } from "@/lib/werkgebied";
@@ -18,18 +20,25 @@ const WERKGEBIED: GraafContext = {
 const KNOP =
   "focus-ring inline-flex min-h-[24px] items-center rounded-full border border-line px-2.5 py-0.5 text-[11px] font-medium text-lint transition-colors hover:bg-surface disabled:opacity-50 coarse:min-h-[44px]";
 
-/** De samenhang van het werkgebied: de bestaande samenhangsgraaf met de bronselecties als doelen.
+/** De samenhang van het werkgebied: de bestaande samenhangsgraaf met de bronselecties als doelen, en
+ *  de begrippen erbij (fase F3: laag *Begrippen*, lijnen naar hun passages en relaties met type).
  *  Opnemen kan vanuit de inspector, altijd met een rol; een niet-geïmporteerde bepaling is niet op te
  *  nemen. Wat er verder bij kan horen, zoekt Lex op de tab Bronnen (fase A). */
-export function SamenhangTab({ wg, muteer }: { wg: Werkgebied; muteer: Mutatie }) {
+export function SamenhangTab({ wg, muteer, onKiesBegrip }: {
+  wg: Werkgebied; muteer: Mutatie;
+  /** Naar de tab Begrippen op dit begrip. */
+  onKiesBegrip?: (begripId: string) => void;
+}) {
   if (wg.bronnen.length === 0)
     return <p className="text-sm text-muted">Nog geen bronnen, dus nog geen samenhang. Neem eerst een bepaling op.</p>;
   // Opnieuw laden als de verzameling bronnen verandert; een andere rol of reden verandert de kaart niet.
   const sleutel = wg.bronnen.map((b) => `${b.bron_iri}:${b.bereik}`).sort().join("|");
-  return <SamenhangGraaf key={sleutel} wg={wg} muteer={muteer} />;
+  return <SamenhangGraaf key={sleutel} wg={wg} muteer={muteer} onKiesBegrip={onKiesBegrip} />;
 }
 
-function SamenhangGraaf({ wg, muteer }: { wg: Werkgebied; muteer: Mutatie }) {
+function SamenhangGraaf({ wg, muteer, onKiesBegrip }: {
+  wg: Werkgebied; muteer: Mutatie; onKiesBegrip?: (begripId: string) => void;
+}) {
   const router = useRouter();
   // Stabiele doelen: `useGraafStand` laadt opnieuw zodra het doel een ander object is. De bronnen zelf
   // veranderen hier niet (de ouder geeft een nieuwe `key` als ze dat wel doen).
@@ -44,7 +53,15 @@ function SamenhangGraaf({ wg, muteer }: { wg: Werkgebied; muteer: Mutatie }) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const stand = useGraafStand(doel, true, true, extra, opties);
+  // De begrippen uit Postgres (niet uit de projectie): faalt stil, de graaf staat er dan zonder.
+  const [begrippen, setBegrippen] = useState<GraafBron>();
+  useEffect(() => {
+    let levend = true;
+    haalBegripSamenhang(wg.id).then((s) => { if (levend && s?.begrippen.length) setBegrippen(begripBron(s)); })
+      .catch(() => {});
+    return () => { levend = false; };
+  }, [wg.id]);
+  const stand = useGraafStand(doel, true, true, extra, opties, begrippen);
   const model = stand.getekend?.model;
   const scope = useMemo(() => (model ? scopeInModel(model, wg.bronnen) : new Set<string>()), [model, wg.bronnen]);
 
@@ -55,6 +72,9 @@ function SamenhangGraaf({ wg, muteer }: { wg: Werkgebied; muteer: Mutatie }) {
   }
 
   function opneemActie(k: KnoopData & { id: string }) {
+    const begripId = begripIdVan(k.id);
+    if (begripId) return onKiesBegrip
+      ? <button type="button" className={KNOP} onClick={() => onKiesBegrip(begripId)}>Open de begripskaart</button> : null;
     if (!isBron(k) || k.soort === "regeling") return null;
     if (doelen.includes(k.id)) return <span className="text-[11px] text-muted">Staat in dit werkgebied</span>;
     if (scope.has(k.id)) return <span className="text-[11px] text-muted">Valt binnen dit werkgebied</span>;

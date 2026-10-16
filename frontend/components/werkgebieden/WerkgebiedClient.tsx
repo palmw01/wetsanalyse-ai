@@ -254,7 +254,7 @@ export function WerkgebiedClient({ id, beginTab, beginBegrip }: {
                 ) : t.key === "begrippen" ? (
                   <BegrippenTab id={id} gekozen={begrip} onKies={kiesBegrip} onbewaard={onbewaard} onOnbewaard={setOnbewaard} />
                 ) : t.key === "samenhang" ? (
-                  <SamenhangTab wg={wg} muteer={muteer} />
+                  <SamenhangTab wg={wg} muteer={muteer} onKiesBegrip={kiesBegrip} />
                 ) : (
                   <HistorieTab key={wg.revisie} id={id} bronnen={wg.bronnen} />
                 ),

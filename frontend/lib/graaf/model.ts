@@ -90,7 +90,7 @@ export function voegToe<K, V>(map: Map<K, V[]>, sleutel: K, waarde: V): void {
 }
 
 /** Een bronknoop (wettekst: regeling, deel, artikel, lid, onderdeel, extern) en geen annotatie. */
-export const isBron = (k: Pick<SamenhangKnoop, "soort">) => k.soort !== "markering" && k.soort !== "klasse";
+export const isBron = (k: Pick<SamenhangKnoop, "soort">) => k.soort !== "markering" && k.soort !== "klasse" && k.soort !== "begrip";
 
 /** De ouder in de bronboom (`bevat`), of `undefined` voor een wortel of een randknoop. */
 export function ouderVan(g: GraafModel, id: string): string | undefined {

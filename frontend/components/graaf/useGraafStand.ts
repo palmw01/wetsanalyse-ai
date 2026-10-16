@@ -6,7 +6,7 @@ import { foutTekst } from "@/lib/api";
 import type { NodeDoel } from "@/lib/annotatieNode";
 import type { Posities } from "@/lib/graaf/layout";
 import { haalKennisgraaf } from "@/lib/graaf/data";
-import { bouwModel, type GraafModel, type KennisgraafAntwoord } from "@/lib/graaf/model";
+import { bouwModel, type GraafBron, type GraafModel, type KennisgraafAntwoord } from "@/lib/graaf/model";
 import { layoutVoor } from "@/lib/graaf/rekenaar";
 import { STANDAARD_LAGEN, type Lagen } from "@/lib/graaf/weergave";
 import { haalSamenhang, haalSamenhangen, type MarkeringFilter, type Samenhang } from "@/lib/samenhang";
@@ -50,7 +50,11 @@ export interface GraafFout { tekst: string; herstel: () => void }
  *  camera dan weg. `actief` laadt pas als de tab voor het eerst opengaat; `zichtbaar` = de tab staat
  *  open (verversen wacht daarop). */
 export function useGraafStand(doel: NodeDoel, actief: boolean, zichtbaar: boolean, extra: NodeDoel[] = [],
-  opties: GraafOpties = {}) {
+  opties: GraafOpties = {},
+  /** Knopen en relaties die niet uit de graaf komen maar erbij horen: de begrippen van een werkgebied
+   *  (tab Samenhang, fase F3). Een nieuwe toevoeging bouwt het model opnieuw; de wettekst blijft liggen
+   *  en de begrippen worden afgeleid geplaatst, dus er wordt niets gerekend. Stabiel houden (memo). */
+  toevoeging?: GraafBron) {
   // Een nieuwe array met dezelfde doelen mag niet opnieuw laden: vergelijk op de bron-IRI's.
   const extraSleutel = extra.map((d) => d.bron_iri).join("|");
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -144,9 +148,12 @@ export function useGraafStand(doel: NodeDoel, actief: boolean, zichtbaar: boolea
 
   // In de kennisgraaf komen de geladen samenhangen eerst: die dragen de wettekst van wat het antwoord
   // noemt, en een knoop houdt bij het samenvoegen de gegevens van het eerste antwoord dat hem levert.
-  const model = useMemo(() => bereik === "kennisgraaf"
-    ? (kennisgraaf && bronnen ? bouwModel([...bronnen, kennisgraaf]) : undefined)
-    : (bronnen ? bouwModel(bronnen) : undefined), [bereik, bronnen, kennisgraaf]);
+  const model = useMemo(() => {
+    const extraBron = toevoeging ? [toevoeging] : [];
+    return bereik === "kennisgraaf"
+      ? (kennisgraaf && bronnen ? bouwModel([...bronnen, kennisgraaf, ...extraBron]) : undefined)
+      : (bronnen ? bouwModel([...bronnen, ...extraBron]) : undefined);
+  }, [bereik, bronnen, kennisgraaf, toevoeging]);
 
   // De layout volgt het model, per bereik een eigen kaart. Een vorige stand van hetzelfde bereik ligt
   // vast: alleen nieuwe wettekst wordt geplaatst, en na een annotatiewijziging wordt er niets gerekend

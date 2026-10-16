@@ -259,3 +259,39 @@ describe("weergave", () => {
     expect(beeld(A10, stand({ focus })).aangewezen).toBe(false);
   });
 });
+
+describe("begrippen (fase F3)", () => {
+  const begrippen: GraafBron = {
+    knopen: [knoop("begrip:a", "begrip", "ontvanger", { bwb_id: "", status: "geaccordeerd" }),
+      knoop("begrip:b", "begrip", "invordering", { bwb_id: "", status: "concept" })],
+    relaties: [
+      { bron: "begrip:a", doel: "element:1", soort: "duidt", groep: "begrippen", anker_tekst: "duidt het begrip aan" },
+      { bron: "begrip:a", doel: "begrip:b", soort: "begripsrelatie", groep: "begrippen", anker_tekst: "ontvanger omvat ook invordering" },
+    ],
+  };
+  const g = bouwModel([BRON, begrippen]);
+  const stand = (s: Partial<WeergaveStand> = {}): WeergaveStand =>
+    ({ lagen: STANDAARD_LAGEN, markering: "alle", selectie: null, focus: null, ongedekt: new Set(), ...s });
+
+  it("een begrip is geen wettekst: de layout van de bron verandert er niet door", () => {
+    expect(structuurVan(g)).toEqual(structuurVan(bouwModel([BRON])));
+    const bron = berekenLayout(structuurVan(g));
+    const pos = plaatsAnnotaties(g, bron);
+    const [ax, ay] = pos.get("begrip:a")!, [mx, my] = pos.get("element:1")!, [ix, iy] = pos.get(IW)!;
+    // Bij zijn passage, niet ergens op de kaart; een begrip zonder passage krijgt ook een plek.
+    expect(Math.hypot(ax - mx, ay - my)).toBeLessThan(Math.hypot(ax - ix, ay - iy));
+    expect(pos.get("begrip:b")).toBeDefined();
+    expect(plaatsAnnotaties(g, bron).get("begrip:a")).toEqual(pos.get("begrip:a"));      // deterministisch
+  });
+
+  it("de laag Begrippen verbergt begrippen en hun lijnen; kiezen zet hem aan", () => {
+    const uit = { ...STANDAARD_LAGEN, begrippen: false };
+    expect(verborgenKnopen(g, uit, "alle")).toEqual(new Set(["begrip:a", "begrip:b"]));
+    const lijn = (sleutel: string, s: WeergaveStand) => lijnBeeld(g.getEdgeAttributes(sleutel), g.source(sleutel), g.target(sleutel), weergaveContext(g, s));
+    expect(lijn("begrip:a|begripsrelatie|begrip:b", stand())).toMatchObject({ verborgen: false, pijl: true });
+    expect(lijn("begrip:a|begripsrelatie|begrip:b", stand({ lagen: uit })).verborgen).toBe(true);
+    // Een begrip op een verborgen markering blijft staan, zijn lijn ernaar niet.
+    expect(lijn("begrip:a|duidt|element:1", stand({ lagen: { ...STANDAARD_LAGEN, annotaties: false } })).verborgen).toBe(true);
+    expect(lagenVoor(g, "begrip:a", uit, "alle").lagen).toEqual(STANDAARD_LAGEN);
+  });
+});

@@ -74,9 +74,10 @@ describe("bediening", () => {
 
   it("telt wat geladen is, zonder randbepalingen, in gewone woorden", () => {
     const t = telling(g);
-    expect(t).toEqual({ regelingen: 1, bepalingen: 3, markeringen: 1, verwijzingen: 2 });
+    expect(t).toEqual({ regelingen: 1, bepalingen: 3, markeringen: 1, verwijzingen: 2, begrippen: 0 });
     expect(tellingTekst(t)).toBe("1 regeling · 3 bepalingen · 1 markering · 2 verwijzingen");
     expect(tellingTekst({ regelingen: 7, bepalingen: 5513, markeringen: 0, verwijzingen: 3488 })).toBe("7 regelingen · 5.513 bepalingen · 3.488 verwijzingen");
+    expect(tellingTekst({ regelingen: 1, bepalingen: 2, markeringen: 1, verwijzingen: 0, begrippen: 2 })).toBe("1 regeling · 2 bepalingen · 1 markering · 2 begrippen");
   });
 });
 

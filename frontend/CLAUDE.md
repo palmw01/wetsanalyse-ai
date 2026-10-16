@@ -55,7 +55,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
 - **De rekenkern staat in `lib/`**, niet in componenten: vitest draait node-env zonder DOM, dus alleen
   pure helpers zijn testbaar (`selectie`, `annotatie`, `annotatieOverzicht`, `reeks`, `samenhang`,
   `markering`, `popover`, `wetstructuur`, `lopendeRun`, `rondleiding`, `werkgebied`, `begrippen`,
-  `begripVoorstellen`, `begripLex`, `herbeoordeling`, `begripRelaties`, `artefact`, `bronKandidaten`, …).
+  `begripVoorstellen`, `begripLex`, `herbeoordeling`, `begripRelaties`, `begripGraaf`, `artefact`, `bronKandidaten`, …).
 - **`app/**/page.tsx`** (Server Components) – data via `lib/server.ts`, interactie in een
   `*Client.tsx`. `app/page.tsx` doet `redirect("/workbench")`. De werkplek zit in
   `app/workbench/page.tsx` én in `app/default.tsx` (de default van het children-slot); beide renderen
@@ -685,6 +685,28 @@ bestaat los van de gesprekken.
   - De allowlist laat `relaties`, `relaties/{id}`, `relaties/{id}/bevestigen`,
     `relaties/voorstellen/{id}/afwijzen` en `begrippen/{id}/nieuwe-betekenis|combineren` door.
   - Browserregressie: `scripts/test-begriprelaties.mjs`.
+- **Begrippen in de graaf en NL-SBB** (fase F3; api §*Begrippen naar de kennisgraaf*).
+  - **Tab Samenhang**: `SamenhangTab` haalt `GET …/begrippen/samenhang` op (faalt stil) en geeft
+    `begripBron` (`lib/begripGraaf.ts`) als **toevoeging** aan `useGraafStand` – het zesde argument, apart
+    van de stabiele `opties`. Een begrip is een knoop `begrip:<id>` (soort `begrip`, kleur per status in
+    `BEGRIPKLEUR`), met `duidt` naar zijn markeringen (`element:<id>`) en per relatie een lijn met de zin
+    als ankertekst (`relatieZin`): `begripsrelatie` (vastgelegd) of `begripsvoorstel` (geel, "voorstel van
+    Lex: …"). Een afgewezen koppeling gaat niet mee; een lijn naar een niet-geladen markering valt in
+    `bouwModel` weg.
+  - **Geen wettekst**: `isBron` sluit begrippen uit, dus de layout van de bron verandert niet en er wordt
+    niets gerekend; `plaatsAnnotaties` zet een begrip bij het zwaartepunt van zijn markeringen (zonder
+    passage op een binnenring), op een plek uit zijn eigen id. Laag **Begrippen** (`Lagen.begrippen`) staat
+    alleen in het lagenpaneel als er begrippen op de kaart zijn (`GraafLagen begrippen`).
+  - **Inspector**: status en definitie ("een analyse-uitkomst … geen wettelijke definitie"), de groepen
+    *Dragende passages*, *Relaties met begrippen* en *Voorgestelde relaties*; geen *Vraag Lex*, geen
+    hoofdactie. `bijKnoop` geeft *Open de begripskaart* (`kiesBegrip` uit `WerkgebiedClient`).
+  - **Kaart**: `NlSbbStand` in het blok Accorderen/Status (`GET …/begrippen/conformiteit`, opnieuw per
+    revisie, faalt stil): "NL-SBB-conform (profiel 1.0.0)" of "Niet NL-SBB-conform: definitie ontbreekt …"
+    (`conformZin`), met de meldingen uitklapbaar. Diagnostisch: accorderen volgt alleen de poort.
+  - **Export**: naast CSV en JSON *Turtle (NL-SBB)* (`formaat=ttl`, alleen geaccordeerd) en *Turtle, alle
+    begrippen* (`inclusief=alle`); `exporteerBegrippen` vertaalt `ttl-alle`. De allowlist laat
+    `begrippen/samenhang` en `begrippen/conformiteit` al door (pad van lengte 3).
+  - Browserregressie: `scripts/test-begrippengraaf.mjs`.
 - **Tabs scrollen.** Vijf tabs passen niet naast elkaar op een telefoon; de horizontale `Tabs` scrollt
   (`overflow-x-auto`, tabs `whitespace-nowrap`). Een afgekapte tab is onbereikbaar, en een toets op
   horizontale scroll van de pagina ziet dat niet.
@@ -1244,7 +1266,7 @@ npm run test:browser # Playwright op de echte Next-UI met gemockte BFF (scripts/
 `test:browser` draait `scripts/test-annotatie-nodes.mjs`, `test-samenhang.mjs`, `test-reeks.mjs`,
 `test-toetsen.mjs`, `test-werkgebieden.mjs`, `test-begrippen.mjs`, `test-begripvoorstellen.mjs` en
 `test-artefacten.mjs` (de soorten artefacten in de werkplek), `test-bronkandidaten.mjs`,
-`test-werkgebied-annoteren.mjs`, `test-begrippen-verdieping.mjs`, `test-begriplex.mjs`, `test-herbeoordeling.mjs` en `test-begriprelaties.mjs`, en verwacht een devserver op poort 3109
+`test-werkgebied-annoteren.mjs`, `test-begrippen-verdieping.mjs`, `test-begriplex.mjs`, `test-herbeoordeling.mjs`, `test-begriprelaties.mjs` en `test-begrippengraaf.mjs`, en verwacht een devserver op poort 3109
 (`AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109`).
 Praat met **`localhost`**, niet met `127.0.0.1`: Next 16 weigert dev-assets aan een andere origin,
 waarna de pagina niet hydrateert en elke stap zonder duidelijke fout time-out.
