@@ -33,6 +33,9 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
    dekking van het werkgebied – zie §*Onderhoud van begrippen*.
 13. **Begripsrelaties en opvolging** (`/v1/werkgebieden/{id}/relaties/*`, `…/begrippen/{b}/nieuwe-betekenis`
    en `/combineren`, fase F2) – zie §*Begripsrelaties en opvolging*.
+14. **Begrippen naar de kennisgraaf** (`…/begrippen/export?formaat=ttl`, `…/begrippen/conformiteit`,
+   `…/begrippen/samenhang`, fase F3): NL-SBB-projectie per werkgebied, conformiteit en Turtle-export –
+   zie §*Begrippen naar de kennisgraaf*.
 
 > **De wettekst komt uit de graaf.** De API leest uit GraphDB de **bronboom** (`bron_resolver.py`):
 > daarmee toetst hij ankers, legt hij snapshots vast en levert hij de segmenten van de weergave.
@@ -65,6 +68,7 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
 | `bronnen_runs.py` (router), `bronnen_run_store.py`, `bronnen_run_contracts.py` | Bronnen vinden met Lex: runs van de ontdekmethoden, kandidaatbepalingen en hun besluiten. |
 | `begrip_onderhoud.py` (router), `begrip_onderhoud_store.py`, `begrip_onderhoud_contracts.py` | Onderhoud van begrippen: herbeoordelingen, opvolgers, herkoppelen, bevestigen en dekking. |
 | `begrip_relaties.py` (router), `begrip_relatie_store.py`, `begrip_relatie_contracts.py` | Begripsrelaties (voorstellen uit de keten, vastleggen, afwijzen, doorwerking) en opvolging: nieuwe betekenis, combineren. |
+| `begrip_projectie.py`, `shapes/nl-sbb-1.0.0.ttl`, `shapes/begrippen-wa.ttl` | Begrippen naar de kennisgraaf (NL-SBB), conformiteit per begrip en de Turtle-export. |
 | `annotatie_statistiek.py`, `scripts/statistiek.py` | Reviewstatistiek over de elementen: uitkomst per klasse en per model, klasse-verschuivingen, aandacht tegenover correctie. |
 | `jas_klassen.py`, `validation.py` | De dertien JAS-klassen, volgorde en kleuren (canoniek); `GELDIGE_JAS_KLASSEN`, `JAS_KLASSE_KLEUREN`, `jas_sorteersleutel`. |
 | `ratelimit.py` | In-process rate limit per client. |
@@ -299,7 +303,7 @@ spoor D (*Werkgebied als node*).
   context, minstens één aanduidende passage, en elke dragende koppeling (`duiding`/`definitie`, niet
   afgewezen) beoordeeld, actueel en op een door een jurist beoordeelde annotatie. Een voorbeeld is
   geen voorwaarde. Elke analist mag accorderen; de revisie en de audit leggen vast wie.
-- **Export** (`GET …/begrippen/export?formaat=json|csv`): JSON (`begrippen-export-v1`) met de
+- **Export** (`GET …/begrippen/export?formaat=json|csv|ttl`; Turtle zie §*Begrippen naar de kennisgraaf*): JSON (`begrippen-export-v1`) met de
   volledige begrippen en koppelingen. CSV heeft één rij per koppeling met vindplaats en bron-IRI, zodat
   elke passage terug te vinden is; cellen krijgen dezelfde formuleverdediging als de annotatie-export.
 - Tests: `tests/test_begrippen.py` (SQLite, met de acceptatie uit PLAN) en
@@ -488,6 +492,56 @@ Acceptatie: *een gewijzigde dragende passage verschijnt bij de geraakte begrippe
   `vervangen_door` en `vervangt`. **De opvolger verwijderen** zet het vervangen begrip terug op zijn vorige
   status (`_herstel_voorgangers`, revisie `begrip-hersteld`) en neemt zijn relaties mee.
 - Tests: `tests/test_begrip_relaties.py`.
+
+## Begrippen naar de kennisgraaf
+
+`begrip_projectie.py`, `shapes/`; PLAN spoor D, fase F3; ADR-003 (NL-SBB is het datacontract).
+
+- **Per werkgebied één named graph** `urn:wa:graph:werkgebied:<id>`, register
+  `urn:wa:graph:register:begrippen` (`wa:werkgebiedId`, `wa:projectieHash`, `wa:inGraaf`). Kader =
+  `skos:ConceptScheme` met `dct:title` en de toelichting "analyse-uitkomst, geen wettelijke definitie";
+  begrip = `skos:Concept` (`prefLabel`, `altLabel`, `definition`, `rdfs:comment` = uitleg, `scopeNote` =
+  context, `example` = voorbeelden met oordeel *wel*, `inScheme`, `dct:source` → `foaf:Document` met
+  vindplaats). Eigen predicaten onder `urn:wa-ns:`: status, revisie, herkomst en `definitieDoor`,
+  JAS-klasse (IRI uit de vocabulaire), geaccordeerd-op, en per koppeling (`urn:wa:koppeling:<id>`) rol,
+  beoordeling, element (`urn:jas:element:<id>`), `elementHash` (de bewijsstand, of de laatste bevestiging)
+  en de bronnode. **Alle begrippen met hun status**, ook concepten en vervangen begrippen.
+- **Relaties houden hun type**: `wa:kwalificeert`, `wa:omvat`, `wa:omvatNiet`, `wa:heeftSoort`,
+  `wa:verwantMet`, plus een `wa:Begripsrelatie` met herkomst. Alleen een hiërarchie krijgt ook
+  `isothes:broaderGeneric` (de soort → de bredere term); opvolging is `dct:isReplacedBy`/`dct:replaces`.
+  Alleen relaties met beoordeling *akkoord*.
+- **Postgres is de waarheid.** `invoer(conn, werkgebied_id)` leest alles wat de graph draagt;
+  `bouw_graaf` is zuiver en de projectie hangt niet van de brongraaf af. `invoer_hash` is de stand in
+  het register. Geen personen, en geen subject onder `urn:bwb:` (een bronnode is alleen object).
+- **Direct na de commit**: `werkgebied_store._audit` noteert het werkgebied op de verbinding
+  (`db.noteer_na_commit`); het `commit`-event van de engine geeft het aan `begrip_projectie.na_mutatie`
+  (`db.na_commit_haak`), een rollback gooit het weg. Elke audited werkgebiedmutatie projecteert dus,
+  zonder dat een schrijfpad eraan hoeft te denken. Het event valt **vóór** de COMMIT: `projecteer`
+  neemt daarom eerst een leesslot (`FOR SHARE`) op het werkgebied, dat de schrijver afwacht
+  (`test_begrippen_postgres.py` bewijst dat). Wat dit proces al zo schreef, slaat hij over.
+- **De lus** (`graaf_projectie_v2.lus`, zelfde interval) roept `begrip_projectie.reconcile` aan met een
+  eigen vangnet: projecteert wat afwijkt van de hash in het register of wiens graph ontbreekt, en haalt
+  graphs weg van gearchiveerde of lege werkgebieden.
+- **Conformiteit** (`conformiteit`, `GET …/begrippen/conformiteit`): diagnostisch, nooit in het
+  schrijfpad. Twee lagen: `nl_sbb` (het vastgepinde profiel `shapes/nl-sbb-1.0.0.ttl`, letterlijk uit
+  `geonovum/NL-SBB`, CC-BY 4.0; herkomst en hash in `shapes/BRON.md`) en `eigen`
+  (`shapes/begrippen-wa.ttl`: herkomst van de definitie, geaccordeerd-op, koppeling → element +
+  hash, bron bij een dragende passage, schone wettekst). Een begrip is **conform** als het profiel geen
+  Violation geeft op het begrip of zijn bronnen; waarschuwingen en eigen meldingen staan erbij. Zonder
+  pyshacl `conform: null`, nooit `true`.
+- **Turtle-export** (`GET …/begrippen/export?formaat=ttl[&inclusief=alle]`): dezelfde `bouw_graaf`,
+  standaard alleen geaccordeerde begrippen (en relaties tussen twee die meegaan), met `dct:conformsTo`
+  NL-SBB, `wa:nlSbbVersie`, `prov:generatedAtTime` en per begrip `wa:nlSbbConform`. `foaf:page` komt
+  best-effort uit de brongraaf (`owl:sameAs` = de jci, anders `bwb:bronUrl`); zonder graaf ontbreekt
+  hij, de bron-IRI staat er altijd.
+- **`GET …/begrippen/samenhang`**: begrippen, koppelingen (rol, beoordeling, actualiteit) en relaties
+  (vastgelegd en voorgesteld) voor de samenhangsgraaf van de werkplek, uit Postgres.
+- **Graafcontrole** (`graafcontrole.controleer` → `begrippen`): achterstand (hash wijkt af), afwijkingen
+  (graph ontbreekt, inhoud niet isomorf), verweesde graphs, de invariant en – met SHACL – het aantal
+  niet-conforme begrippen (telt niet mee voor `in_orde`: een concept zonder definitie is gewoon nog niet af).
+- **Een nieuwe NL-SBB-versie** is een bewuste overstap: nieuw shapesbestand, nieuwe hash in de test,
+  `NL_SBB_VERSIE` en `NL_SBB` mee.
+- Tests: `tests/test_begrip_projectie.py` en het slot in `tests/test_begrippen_postgres.py`.
 
 ## Bronnen vinden met Lex
 
@@ -713,6 +767,6 @@ niet vullen. `POST /v1/auth/registratie` heeft een eigen rate limit.
 - **Externe IdP/OIDC.** De API is zelf de identiteitsbron.
 - **Activiteit 3, verder.** Werkgebieden, begrippen en de deterministische voorstellen van Lex
   bestaan, het model voor twijfelparen en definitievoorstellen (fase C), Lex naast de kaart (fase E) en
-  herbeoordeling en dekking (fase F1), begripsrelaties en opvolging (fase F2); de projectie
-  naar de graaf (NL-SBB) en RDF-export volgen (PLAN spoor D, leveringen 3b en 4).
+  herbeoordeling en dekking (fase F1), begripsrelaties en opvolging (fase F2), de NL-SBB-projectie en
+  Turtle-export (fase F3); Lex leest begrippen nog niet (fase F4).
 - **RegelSpraak-formalisering.** Komt later.

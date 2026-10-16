@@ -89,16 +89,20 @@ async def lifespan(app: FastAPI):
     # elke hook een no-op; Postgres blijft hoe dan ook de waarheid.
     projectie_taak = None
     if settings.graphdb_url:
+        from . import begrip_projectie
         from .graaf_projectie_v2 import activeer, lus
 
-        # Direct na elke commit projecteren, met de lus als vangnet.
+        # Direct na elke commit projecteren, met de lus als vangnet – de lagen én de begrippen.
         activeer(True)
+        begrip_projectie.activeer(True)
         projectie_taak = asyncio.create_task(lus(settings.jas_projectie_interval_s))
     yield
     if projectie_taak is not None:
+        from . import begrip_projectie
         from .graaf_projectie_v2 import stop
 
         await stop()
+        await begrip_projectie.stop()
         projectie_taak.cancel()
         try:
             await projectie_taak

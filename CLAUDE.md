@@ -31,8 +31,9 @@ plaats van schijnzekerheid.
 > een veranderde dragende passage verschijnt in de herbeoordeling (toen naast nu, opvolger na
 > herannotatie), begrippen krijgen **relaties** met type en richting (kwalificatie, inclusie, uitsluiting,
 > soort van, verwant; Lex stelt ze voor) en een betekeniswijziging of combinatie levert een opvolger op
-> (het oude begrip wordt vervangen). De NL-SBB-projectie en de RegelSpraak-formalisering horen nog niet
-> tot de functionaliteit. graph-qa's begrip-definitie-QA
+> (het oude begrip wordt vervangen). Begrippen gaan als **NL-SBB-begrippenkader** de kennisgraaf in (per
+> werkgebied een named graph, conformiteit diagnostisch, Turtle-export). De RegelSpraak-formalisering
+> hoort nog niet tot de functionaliteit. graph-qa's begrip-definitie-QA
 > (de `definitie`-specialist over de graaf) staat daar los van.
 
 ### Platform-componenten
@@ -112,6 +113,10 @@ overzien.
    niet opnieuw door het model) en om ze te doorzoeken (`search_annotaties`, met verificatie tegen
    Postgres). Zie `docs/architectuur/annotatie-bronnodes.md` voor het contract en
    `docs/wetsanalyse-workbench/jas-annotatie-ontologie.md` voor het RDF-model.
+
+   Op dezelfde manier projecteert de api de **begrippen** per werkgebied als NL-SBB-begrippenkader
+   (`urn:wa:graph:werkgebied:<id>`, register `urn:wa:graph:register:begrippen`); zie `api/CLAUDE.md`
+   §*Begrippen naar de kennisgraaf*.
 
    **GraphDB draait op Azure zonder eigen security, en de netwerkgrens is de enige beveiliging:**
    `external: false`, alleen bereikbaar binnen de Container Apps Environment. Het `GRAPHDB_TOKEN` dat

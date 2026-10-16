@@ -7,7 +7,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, Query, Response
 
-from . import begrip_store as store, werkgebied_store
+from . import begrip_projectie, begrip_relatie_store, begrip_store as store, werkgebied_store
 from .auth import require_client
 from .begrip_contracts import BegripInvoer, BegripWijziging, KoppelInvoer, KoppelWijziging, Revisie
 from .routers.auth import actieve_userid
@@ -16,7 +16,7 @@ from .werkgebieden import resolve_bron
 router = APIRouter(prefix="/werkgebieden/{werkgebied_id}/begrippen", tags=["begrippen"],
                    dependencies=[Depends(require_client)])
 
-_MIME = {"json": "application/json", "csv": "text/csv; charset=utf-8"}
+_MIME = {"json": "application/json", "csv": "text/csv; charset=utf-8", "ttl": "text/turtle; charset=utf-8"}
 
 
 @router.get("")
@@ -33,12 +33,35 @@ async def post_begrip(werkgebied_id: str, req: BegripInvoer, actor: str = Depend
 
 # Vóór `/{begrip_id}`, anders leest de router "export" als een begrip-id.
 @router.get("/export")
-async def get_export(werkgebied_id: str, formaat: Literal["json", "csv"] = "json",
+async def get_export(werkgebied_id: str, formaat: Literal["json", "csv", "ttl"] = "json",
+                     inclusief: Literal["geaccordeerd", "alle"] = "geaccordeerd",
                      actor: str = Depends(actieve_userid)):
-    data = await store.export(werkgebied_id, actor)
-    body = store.json_export(data) if formaat == "json" else store.csv_export(data)
+    """JSON en CSV bevatten alle begrippen. Turtle (NL-SBB, fase F3) standaard alleen de geaccordeerde –
+    wat uitwisselbaar is –, met `inclusief=alle` ook concepten en vervangen begrippen."""
+    if formaat == "ttl":
+        body = await begrip_projectie.export_turtle(werkgebied_id, alles=inclusief == "alle")
+    else:
+        data = await store.export(werkgebied_id, actor)
+        body = store.json_export(data) if formaat == "json" else store.csv_export(data)
     return Response(body, media_type=_MIME[formaat],
                     headers={"Content-Disposition": f'attachment; filename="begrippen.{formaat}"'})
+
+
+@router.get("/conformiteit")
+async def get_conformiteit(werkgebied_id: str, actor: str = Depends(actieve_userid)):
+    """Per begrip: NL-SBB-conform ja/nee met de meldingen (diagnostisch; accorderen blijft mogelijk)."""
+    await werkgebied_store.haal(werkgebied_id)
+    return await begrip_projectie.conformiteit_van(werkgebied_id)
+
+
+@router.get("/samenhang")
+async def get_samenhang(werkgebied_id: str, actor: str = Depends(actieve_userid)):
+    """De begrippen voor de samenhangsgraaf van de werkplek: begrippen, hun koppelingen met rol en de
+    relaties (vastgelegd en voorgesteld). Uit Postgres, zodat de werkplek niet op de projectie wacht."""
+    rel = await begrip_relatie_store.lijst(werkgebied_id)
+    return {**await store.samenhang(werkgebied_id),
+            "relaties": [r for r in rel["relaties"] if r["beoordeling"] == "akkoord"],
+            "voorstellen": rel["voorstellen"]}
 
 
 @router.get("/{begrip_id}")

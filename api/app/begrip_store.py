@@ -235,6 +235,20 @@ async def lijst(werkgebied_id: str) -> list[dict]:
     return uit
 
 
+async def samenhang(werkgebied_id: str) -> dict:
+    """Begrippen en hun koppelingen, zonder bewijs: wat de samenhangsgraaf tekent (fase F3)."""
+    b = db.begrippen
+    async with db.get_engine().connect() as conn:
+        await _werkgebied_bestaat(conn, werkgebied_id)
+        rows = (await conn.execute(select(b).where(b.c.werkgebied_id == werkgebied_id, b.c.verwijderd.is_(None))
+                                   .order_by(b.c.aangemaakt, b.c.id))).all()
+        koppelingen = await _koppelingen_van(conn, werkgebied_id)
+    return {"begrippen": [{"id": r.id, "iri": begrip_iri(r.id), "naam": r.inhoud.get("naam", ""), "status": r.status,
+                           "definitie": r.inhoud.get("definitie", "")} for r in rows],
+            "koppelingen": [{"begrip_id": k["begrip_id"], "element_id": k["element_id"], "rol": k["rol"],
+                             "beoordeling": k["beoordeling"], "actualiteit": k["actualiteit"]} for k in koppelingen]}
+
+
 async def primaire_duidingen(werkgebied_id: str) -> dict[str, dict]:
     """Per element het begrip dat het primair aanduidt – voor de inventaris in de werkplek."""
     k, b = db.begrip_koppelingen, db.begrippen
