@@ -478,6 +478,9 @@ async def _neem_over(werkgebied: dict, o: Overname, actor: str, resolve: Resolve
         inhoud, velden = _pas_aan(inhoud, o.aanpassing, manifest)
         if o.kandidaat_id and (run is None or o.kandidaat_id not in {v["kandidaat_id"] for v in run.uitkomst.get("vragen", [])}):
             raise HTTPException(404, "Deze vraag staat niet in de voorstellen.")
+    if inhoud.get("definitie"):
+        # Een definitie uit het voorstel is van Lex; heeft de jurist haar aangepast, dan is ze van hem.
+        inhoud["definitie_door"] = "analist" if {"definitie", "definitie_herkomst"} & set(velden) else "lex"
     try:
         inhoud = BegripInhoud(**inhoud).model_dump(mode="json")
     except ValidationError as e:

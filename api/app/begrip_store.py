@@ -312,10 +312,23 @@ async def _koppel(conn, werkgebied_id: str, begrip_id: str, bewijs: dict[str, di
     return nieuw
 
 
+def met_door(oud: dict | None, nieuw: dict) -> dict:
+    """`definitie_door` rekent de api, nooit de client: een ongewijzigde definitie houdt wie ze
+    voorstelde, een nieuwe of andere tekst (of herkomst) is van de analist, geen definitie = leeg."""
+    if not (nieuw.get("definitie") or "").strip():
+        door = ""
+    elif oud is not None and (oud.get("definitie"), oud.get("definitie_herkomst")) == \
+            (nieuw.get("definitie"), nieuw.get("definitie_herkomst")):
+        door = oud.get("definitie_door") or ""
+    else:
+        door = "analist"
+    return {**nieuw, "definitie_door": door}
+
+
 async def maak(werkgebied: dict, invoer: BegripInvoer, actor: str, resolve: Resolver) -> dict:
     bewijs = await bewijzen(werkgebied, invoer.element_ids, resolve) if invoer.element_ids else {}
     async with db.get_engine().begin() as conn:
-        bid = await maak_in(conn, werkgebied["id"], invoer.inhoud.model_dump(mode="json"), bewijs,
+        bid = await maak_in(conn, werkgebied["id"], met_door(None, invoer.inhoud.model_dump(mode="json")), bewijs,
                             invoer.rol.value, actor)
     return await haal(werkgebied["id"], bid)
 
@@ -343,7 +356,10 @@ async def wijzig(werkgebied_id: str, begrip_id: str, w: BegripWijziging, actor: 
     detail: dict = {}
     async with _gewijzigd(werkgebied_id, begrip_id, w.verwachte_revisie, actor, "begrip-gewijzigd",
                           detail) as (_, row, stand):
-        detail["velden"] = sorted(k for k in nieuw if nieuw.get(k) != row.inhoud.get(k))
+        nieuw = met_door(row.inhoud, nieuw)
+        # `definitie_door` volgt uit de definitie en is dus geen eigen wijziging (een begrip van vóór
+        # fase E mist het veld; opslaan zonder wijziging mag daar geen revisie van maken).
+        detail["velden"] = sorted(k for k in nieuw if k != "definitie_door" and nieuw.get(k) != row.inhoud.get(k))
         stand["inhoud"] = nieuw
         stand["geen_wijziging"] = not detail["velden"]
     return await haal(werkgebied_id, begrip_id)
@@ -479,9 +495,10 @@ async def heropen(werkgebied_id: str, begrip_id: str, verwacht: int, actor: str)
 # --- export ------------------------------------------------------------------------------------
 
 EXPORT_SCHEMA = "begrippen-export-v1"
+# Nieuwe kolommen komen achteraan, zodat wie de export al inleest niet breekt.
 _KOLOMMEN = ["begrip_iri", "begrip", "status", "revisie", "definitie", "definitie_herkomst", "context",
              "jas_klasse", "alternatieve_termen", "rol", "beoordeling", "actualiteit", "annotatie_beoordeeld",
-             "passage", "klasse_passage", "vindplaats", "bron_iri", "element_id", "motivatie"]
+             "passage", "klasse_passage", "vindplaats", "bron_iri", "element_id", "motivatie", "definitie_door"]
 
 
 def _cel(value) -> str:
@@ -520,13 +537,14 @@ def csv_export(data: dict) -> bytes:
         kop = [b["iri"], i["naam"], b["status"], b["revisie"], i.get("definitie", ""),
                i.get("definitie_herkomst") or "", i.get("context", ""), i.get("jas_klasse", ""),
                "; ".join(i.get("alternatieve_termen", []))]
+        door = i.get("definitie_door") or ""
         if not b["koppelingen"]:
-            w.writerow([_cel(v) for v in kop] + [""] * (len(_KOLOMMEN) - len(kop)))
+            w.writerow([_cel(v) for v in kop] + [""] * (len(_KOLOMMEN) - len(kop) - 1) + [_cel(door)])
         for k in b["koppelingen"]:
             bron = k["bewijs"].get("ankers", [{}])[0].get("bron_iri", "") if k["bewijs"].get("ankers") \
                 else k["bewijs"].get("eigenaar_iri", "")
             w.writerow([_cel(v) for v in kop + [
                 k["rol"], k["beoordeling"], k["actualiteit"], "ja" if k["annotatie_beoordeeld"] else "nee",
                 k["bewijs"].get("tekst", ""), k["bewijs"].get("klasse", ""), k["bewijs"].get("vindplaats", ""),
-                bron, k["element_id"], k["motivatie"]]])
+                bron, k["element_id"], k["motivatie"], door]])
     return tekst.getvalue().encode("utf-8-sig")
