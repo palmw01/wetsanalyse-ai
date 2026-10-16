@@ -638,4 +638,13 @@ async def lus(interval: float = 30, controle_elke: int = 10) -> None:
             raise
         except Exception as exc:
             logger.warning("annotatie_v2_projectie_uitgesteld", extra={"fouttype": type(exc).__name__})
+        # De begrippengraphs (fase F3) lopen in dezelfde lus mee, met een eigen vangnet: een fout in
+        # de ene projectie houdt de andere niet op.
+        try:
+            from .begrip_projectie import reconcile as begrippen_reconcile
+            await begrippen_reconcile()
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            logger.warning("begrippen_projectie_uitgesteld", extra={"fouttype": type(exc).__name__})
         await asyncio.sleep(interval)

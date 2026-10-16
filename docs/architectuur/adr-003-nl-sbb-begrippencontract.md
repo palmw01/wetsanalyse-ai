@@ -47,6 +47,11 @@ Er is nog niets van spoor D gebouwd. Dit is het moment om het te beslissen.
   beoordeling.
 - **Besloten (16 okt 2026):** diagnostisch, zoals bij de JAS-projectie. Accorderen kan; kaart en
   export tonen of een begrip conform is (PLAN, open keuze 5; bouw in fase F3).
+- **Gebouwd (fase F3a, 16 okt 2026):** `api/app/begrip_projectie.py`. De shapes van NL-SBB staan
+  letterlijk in `api/app/shapes/nl-sbb-1.0.0.ttl` (toepassingsprofiel `skosapnl:` 1.0.0 uit
+  `geonovum/NL-SBB`, CC-BY 4.0, hash getoetst), de eigen shapes in `shapes/begrippen-wa.ttl`.
+  "Conform" betekent: geen Violation van het NL-SBB-profiel op het begrip of zijn bronnen;
+  waarschuwingen en meldingen van de eigen shapes staan erbij maar beslissen dat niet.
 
 ## Gevolgen
 

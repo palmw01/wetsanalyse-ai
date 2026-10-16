@@ -40,6 +40,9 @@ def _selectie(row) -> dict:
 
 
 async def _audit(conn, werkgebied_id: str, actor: str, actie: str, detail: dict) -> None:
+    # Wat geaudit wordt, kan de begrippengraaf raken: na de commit projecteren (fase F3). Een mutatie
+    # die niets aan de graph verandert, kost alleen het lezen en vergelijken (`begrip_projectie.projecteer`).
+    db.noteer_na_commit(conn, "werkgebieden", werkgebied_id)
     await conn.execute(insert(db.werkgebied_audit).values(
         werkgebied_id=werkgebied_id, actor=actor, actie=actie, detail=detail, tijdstip=db.utcnow()))
 

@@ -11,6 +11,8 @@ zonder verbinding importeerbaar blijven.
 
 from __future__ import annotations
 
+import logging
+from collections.abc import Callable
 from datetime import datetime, timezone
 
 from sqlalchemy import (
@@ -29,6 +31,7 @@ from sqlalchemy import (
     Text,
     text,
 )
+from sqlalchemy import event
 from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
@@ -608,7 +611,43 @@ def init_engine(url: str, **kwargs) -> AsyncEngine:
     elif not url.startswith("sqlite"):
         kwargs.setdefault("pool_pre_ping", True)
     _engine = create_async_engine(url, **kwargs)
+    event.listen(_engine.sync_engine, "commit", _na_commit)
+    event.listen(_engine.sync_engine, "rollback", _na_rollback)
     return _engine
+
+
+# --- Na de commit -----------------------------------------------------------------------------
+# Een schrijfpad noteert op de verbinding wat er na de commit moet gebeuren (`noteer_na_commit`); een
+# geregistreerde haak (`na_commit_haak`) krijgt het na de commit, een rollback gooit het weg. Zo hoeft
+# niet elk schrijfpad zelf aan de projectie te denken (fase F3: elke audited werkgebiedmutatie). Het
+# `commit`-event valt vóór de COMMIT op de database: een haak plant dus alleen werk in, en dat werk
+# wacht met een leesslot tot de transactie echt klaar is (`begrip_projectie.projecteer`).
+_NA_COMMIT = "wa_na_commit"
+_haken: dict[str, Callable[[set], None]] = {}
+
+
+def na_commit_haak(sleutel: str, haak: Callable[[set], None]) -> None:
+    _haken[sleutel] = haak
+
+
+def noteer_na_commit(conn, sleutel: str, waarde: str) -> None:
+    """`conn` is een (Async)Connection; de notitie hangt aan de onderliggende DBAPI-verbinding."""
+    sync = getattr(conn, "sync_connection", None) or conn
+    sync.info.setdefault(_NA_COMMIT, {}).setdefault(sleutel, set()).add(waarde)
+
+
+def _na_commit(conn) -> None:
+    for sleutel, waarden in (conn.info.pop(_NA_COMMIT, None) or {}).items():
+        haak = _haken.get(sleutel)
+        if haak is not None:
+            try:
+                haak(waarden)
+            except Exception:  # noqa: BLE001 – een haak mag een commit nooit laten falen
+                logging.getLogger(__name__).warning("na_commit_haak_mislukt", extra={"sleutel": sleutel})
+
+
+def _na_rollback(conn) -> None:
+    conn.info.pop(_NA_COMMIT, None)
 
 
 def get_engine() -> AsyncEngine:

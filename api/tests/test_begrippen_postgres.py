@@ -117,3 +117,46 @@ async def test_twee_gelijktijdige_akkoorden_op_een_groep_maken_een_begrip():
     assert len(goed) == 1 and len(fouten) == 1 and fouten[0].status_code == 409
     assert fouten[0].detail["begrippen"] == {"Gaaa111": goed[0]["begrip"]["id"]}
     assert [b["id"] for b in await store.lijst(wg["id"])] == [goed[0]["begrip"]["id"]]
+
+
+
+async def test_projectie_wacht_op_een_lopende_schrijftransactie(monkeypatch):
+    """Het `commit`-event valt vóór de COMMIT, dus de projectie kan starten terwijl de schrijver nog bezig
+    is (fase F3). Ze wacht met een leesslot op het werkgebied en projecteert dan de nieuwe stand."""
+    from rdflib import Literal
+
+    from app import begrip_projectie as bp
+    from graafdb_fake import installeer
+
+    nep = installeer(monkeypatch)
+    wg, _eid = await _opzet()
+    b = await store.maak(wg, BegripInvoer(inhoud=BegripInhoud(naam="Oud")), "a", resolve)
+    async with store._gewijzigd(wg["id"], b["id"], b["revisie"], "a", "begrip-gewijzigd", {}) as (_c, _r, stand):
+        stand["inhoud"] = {**stand["inhoud"], "naam": "Nieuw"}
+        taak = asyncio.create_task(bp.projecteer(wg["id"]))
+        await asyncio.sleep(0.5)
+        assert not taak.done()                          # wacht op het slot van de schrijver
+    await taak
+    g = nep.ds.graph(bp.graph_iri(wg["id"]))
+    assert (bp.begrip_iri(b["id"]), bp.SKOS.prefLabel, Literal("Nieuw", lang="nl")) in g
+    assert (bp.begrip_iri(b["id"]), bp.SKOS.prefLabel, Literal("Oud", lang="nl")) not in g
+
+
+async def test_projectie_direct_na_de_commit(monkeypatch):
+    from rdflib import Literal
+
+    from app import begrip_projectie as bp
+    from graafdb_fake import installeer
+
+    nep = installeer(monkeypatch)
+    wg, _eid = await _opzet()
+    b = await store.maak(wg, BegripInvoer(inhoud=BegripInhoud(naam="Oud")), "a", resolve)
+    bp._geschreven.clear()
+    bp.activeer(True)
+    try:
+        await store.wijzig(wg["id"], b["id"], BegripWijziging(verwachte_revisie=b["revisie"],
+                                                              inhoud=BegripInhoud(naam="Nieuw")), "a")
+        await asyncio.gather(*list(bp._taken))
+    finally:
+        await bp.stop()
+    assert (bp.begrip_iri(b["id"]), bp.SKOS.prefLabel, Literal("Nieuw", lang="nl")) in nep.ds.graph(bp.graph_iri(wg["id"]))
