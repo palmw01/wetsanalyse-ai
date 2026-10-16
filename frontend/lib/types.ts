@@ -886,7 +886,8 @@ export type VoorbeeldOordeel = "wel" | "niet" | "onzeker";
 export type KoppelRol = "duiding" | "definitie" | "context";
 export type KoppelBeoordeling = "open" | "akkoord" | "afgewezen";
 export type Actualiteit = "actueel" | "gewijzigd" | "verworpen" | "verdwenen";
-export type BegripStatus = "concept" | "geaccordeerd";
+/** `vervangen` (fase F2): alleen-lezen, opgevolgd door een ander begrip (nieuwe betekenis, combineren). */
+export type BegripStatus = "concept" | "geaccordeerd" | "vervangen";
 
 export interface Voorbeeld {
   tekst: string;
@@ -1005,9 +1006,51 @@ export interface GeraakteKoppeling {
 
 export interface Herbeoordelingen {
   werkgebied_id: string;
-  begrippen: { begrip_id: string; naam: string; status: BegripStatus; revisie: number; koppelingen: GeraakteKoppeling[] }[];
+  begrippen: {
+    begrip_id: string; naam: string; status: BegripStatus; revisie: number; koppelingen: GeraakteKoppeling[];
+    /** Doorwerking (fase F2): vastgelegde relaties waarvan de andere kant veranderde. */
+    relaties?: GeraakteRelatie[];
+  }[];
   volledig: boolean;
   open_punten: { bron_iri: string; label: string; melding: string }[];
+}
+
+export interface GeraakteRelatie {
+  relatie_id: string;
+  type: RelatieType;
+  ander: { begrip_id: string; naam: string };
+  reden: string;
+}
+
+// --- Begripsrelaties (spoor D, fase F2) ---------------------------------------------------------
+
+export type RelatieType = "kwalificatie" | "inclusie" | "uitsluiting" | "hierarchie" | "verwant" | "opvolging";
+
+export interface BegripRelatie {
+  id: string;
+  van_begrip: string;
+  naar_begrip: string;
+  van_naam: string;
+  naar_naam: string;
+  type: RelatieType;
+  herkomst: "lex" | "analist" | "systeem";
+  beoordeling: "akkoord" | "afgewezen" | "voorgesteld";
+  toelichting: string;
+  bewijs: {
+    run_id?: string; kandidaat_id?: string; aandacht?: "groen" | "geel"; uitleg?: string[];
+    van?: { element_id: string; tekst: string; vindplaats: string } | null;
+    naar?: { element_id: string; tekst: string; vindplaats: string } | null;
+    soort?: string; vorige_status?: string;
+  };
+  door?: string;
+  op?: string;
+  /** Een kant veranderde sinds het vastleggen (doorwerking). */
+  veranderd?: boolean;
+}
+
+export interface RelatiesAntwoord {
+  relaties: BegripRelatie[];
+  voorstellen: BegripRelatie[];
 }
 
 export type DekkingStand = "te_verwerken" | "voorstel" | "gekoppeld" | "buiten_behandeling";
@@ -1054,6 +1097,15 @@ interface BegripBasis {
   geaccordeerd_revisie: number | null;
   accorderen: Poort;
   aandachtspunten: string[];
+  /** Opvolging (fase F2). Een oudere api laat ze weg. */
+  vervangen_door?: BegripVerwijzing | null;
+  vervangt?: BegripVerwijzing[];
+}
+
+export interface BegripVerwijzing {
+  begrip_id: string;
+  naam: string;
+  reden: string;
 }
 
 export interface Begrip extends BegripBasis {

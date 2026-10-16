@@ -159,6 +159,10 @@ const ACTIE: Record<string, string> = {
   "begrip-verwijderd": "Verwijderd",
   "koppeling-herkoppeld": "Passage herkoppeld aan haar opvolger",
   "koppeling-bevestigd": "Veranderde passage bevestigd",
+  "begrip-vervangen": "Vervangen door een opvolger",
+  "begrip-gecombineerd": "Gecombineerd met een ander begrip",
+  "begrip-hersteld": "Teruggezet: de opvolger is verwijderd",
+  "begrip-opgevolgd": "Opvolger gemaakt (nieuwe betekenis)",
 };
 
 /** Eén revisie als zin, voor de historie op de kaart. */

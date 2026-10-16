@@ -2,6 +2,7 @@
 // een bepaling en de indeling van de inventaris. Puur, zodat vitest (node-env) het kan toetsen.
 
 import { isApiError } from "./api";
+import { TYPE_LABEL } from "./begripRelaties";
 import { revisieZin } from "./begrippen";
 import type { GraafModel } from "./graaf/model";
 import { jasVolgorde, klasseLabel } from "./jas";
@@ -11,6 +12,7 @@ import type {
   BronselectieInvoer,
   InventarisElement,
   InventarisSelectie,
+  RelatieType,
   WerkgebiedAuditRegel,
   WerkgebiedStatus,
 } from "./types";
@@ -57,6 +59,12 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   if (deel === "elementen" || deel === "audit" || deel === "annotatie-werkvoorraad" || deel === "verdieping"
       || deel === "herbeoordelingen")
     return pad.length === 2;
+  // Relaties (fase F2): lezen en vastleggen, één relatie weghalen of bevestigen, een voorstel afwijzen.
+  if (deel === "relaties") {
+    if (pad.length <= 3) return true;
+    if (pad.length === 4) return b === "bevestigen";
+    return pad.length === 5 && a === "voorstellen" && !!b && c === "afwijzen";
+  }
   // Dekking (fase F1): lezen, en een element buiten behandeling zetten of terughalen.
   if (deel === "dekking") return pad.length === 2 || (a === "buiten-behandeling" && pad.length <= 4);
   // Voorstellen van Lex. Starten gaat alleen via `/api/begrippen-run` (één weg), en `loopt`,
@@ -88,7 +96,8 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   }
   // Herbeoordelen (fase F1): een koppeling herkoppelen aan haar opvolger, of bevestigen.
   if (pad.length === 6) return b === "koppelingen" && !!c && (pad[5] === "herkoppelen" || pad[5] === "bevestigen");
-  if (pad.length === 4) return ["koppelingen", "accorderen", "heropenen", "revisies"].includes(b);
+  if (pad.length === 4)
+    return ["koppelingen", "accorderen", "heropenen", "revisies", "nieuwe-betekenis", "combineren"].includes(b);
   return b === "koppelingen" && !!c;                                  // één koppeling
 }
 
@@ -267,6 +276,14 @@ export function auditZin(regel: WerkgebiedAuditRegel, labels: Map<string, string
     }
     case "element-in-behandeling":
       return "Element weer in behandeling";
+    case "relatie-vastgelegd":
+      return `Relatie vastgelegd (${TYPE_LABEL[d.type as RelatieType] ?? d.type}${d.herkomst === "lex" ? ", voorstel van Lex" : ""})`;
+    case "relatie-afgewezen":
+      return `Voorstel voor een relatie afgewezen${typeof d.reden === "string" && d.reden ? ` – ${d.reden}` : ""}`;
+    case "relatie-verwijderd":
+      return "Relatie weggehaald";
+    case "relatie-bevestigd":
+      return "Relatie bevestigd na een wijziging";
     default:
       return regel.actie;
   }

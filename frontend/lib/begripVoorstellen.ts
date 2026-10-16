@@ -124,15 +124,6 @@ export const BESLUIT_LABEL: Record<GroepBesluit, string> = {
   geparkeerd: "geparkeerd",
 };
 
-/** De relaties van de keten in gewone woorden: "X geldt als Y". */
-export const HYPOTHESE_LABEL: Record<string, string> = {
-  zelfde_betekenis: "betekent hetzelfde als",
-  kwalificatie: "geldt als",
-  inclusie: "omvat ook",
-  uitsluiting: "omvat niet",
-  hierarchie: "is een soort",
-};
-
 const OPEN = (g: Betekenisgroep) => g.besluit === "open" || g.besluit === "geparkeerd";
 
 /** Wat nog een besluit vraagt eerst (open, dan geparkeerd), daarbinnen geel vóór groen en meer leden

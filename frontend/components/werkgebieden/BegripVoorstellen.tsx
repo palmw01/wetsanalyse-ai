@@ -12,8 +12,9 @@ import {
   foutTekst, haalActieveBegrippenRun, haalGroepen, haalLaatsteBegrippenRun, haalVerdieping, startBegrippenRun, stopRun,
   volgRun,
 } from "@/lib/api";
+import { hypotheseZin } from "@/lib/begripRelaties";
 import {
-  AANDACHT_LABEL, HYPOTHESE_LABEL, meedenkOmvang, openVragen, passageTekst, reviewVoortgang, voortgangsregel,
+  AANDACHT_LABEL, meedenkOmvang, openVragen, passageTekst, reviewVoortgang, voortgangsregel,
 } from "@/lib/begripVoorstellen";
 import type { BegrippenRun, GroepenAntwoord, VerdiepingWerkvoorraad } from "@/lib/types";
 
@@ -241,8 +242,8 @@ export function BegripVoorstellen({ id, onBegrip, onGewijzigd, inklapbaar = true
               <ul className="mt-2 space-y-1 text-xs text-ink">
                 {relaties.map((r) => (
                   <li key={r.kandidaat_id}>
-                    {passageTekst(r.van, data.passages, data.groepen)} {HYPOTHESE_LABEL[r.hypothese] ?? r.hypothese}{" "}
-                    {passageTekst(r.naar, data.passages, data.groepen)}
+                    {hypotheseZin(r.hypothese, passageTekst(r.van, data.passages, data.groepen),
+                      passageTekst(r.naar, data.passages, data.groepen)).join(" ")}
                     {r.aandacht === "geel" && <span className="text-aandacht-geel-tekst"> · {AANDACHT_LABEL.geel}</span>}
                   </li>
                 ))}

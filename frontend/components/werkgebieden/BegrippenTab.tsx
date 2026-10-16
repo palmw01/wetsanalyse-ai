@@ -136,7 +136,7 @@ export function BegrippenTab({ id, gekozen, onKies, onbewaard, onOnbewaard }: {
                   aria-current={b.begrip_id === gekozen ? "true" : undefined}
                   className="focus-ring inline-flex min-h-[24px] items-center rounded-full border border-aandacht-geel-rand bg-paper px-2.5 py-0.5 text-[11px] font-medium text-ink hover:bg-surface coarse:min-h-[44px]"
                 >
-                  {b.naam} · {herbeoordelingZin(b.koppelingen.length)}
+                  {b.naam} · {herbeoordelingZin(b.koppelingen.length, b.relaties?.length ?? 0)}
                 </button>
               </li>
             ))}
@@ -182,8 +182,9 @@ export function BegrippenTab({ id, gekozen, onKies, onbewaard, onOnbewaard }: {
               begrip ontstaat.
             </p>
           ) : (
+            <>
             <ul className="space-y-1.5" aria-label="Begrippen in dit werkgebied">
-              {lijst.begrippen.map((b) => (
+              {lijst.begrippen.filter((b) => b.status !== "vervangen").map((b) => (
                 <li key={b.id}>
                   <button
                     type="button"
@@ -204,7 +205,7 @@ export function BegrippenTab({ id, gekozen, onKies, onbewaard, onOnbewaard }: {
                     </span>
                     {geraakt.has(b.id) ? (
                       <span className="mt-0.5 block text-xs text-aandacht-geel-tekst">
-                        Herbeoordelen: {herbeoordelingZin(geraakt.get(b.id)!)}
+                        Herbeoordelen: {herbeoordelingZin(geraakt.get(b.id)!.passages, geraakt.get(b.id)!.relaties)}
                       </span>
                     ) : b.aandachtspunten[0] && (
                       <span className="mt-0.5 block text-xs text-aandacht-geel-tekst">{b.aandachtspunten[0]}</span>
@@ -213,6 +214,25 @@ export function BegrippenTab({ id, gekozen, onKies, onbewaard, onOnbewaard }: {
                 </li>
               ))}
             </ul>
+            {lijst.begrippen.some((b) => b.status === "vervangen") && (
+              <details className="text-xs text-muted">
+                <summary className="focus-ring cursor-pointer rounded">
+                  Vervangen ({lijst.begrippen.filter((b) => b.status === "vervangen").length})
+                </summary>
+                <ul className="mt-1.5 space-y-1" aria-label="Vervangen begrippen">
+                  {lijst.begrippen.filter((b) => b.status === "vervangen").map((b) => (
+                    <li key={b.id}>
+                      <button type="button" onClick={() => kies(b.id)} aria-current={b.id === gekozen ? "true" : undefined}
+                        className="focus-ring w-full rounded px-2 py-1 text-left hover:bg-surface coarse:min-h-[44px]">
+                        <span className="line-through">{b.inhoud.naam}</span>
+                        {b.vervangen_door && <span className="block">vervangen door {b.vervangen_door.naam}</span>}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+            </>
           )}
         </aside>
 
@@ -236,6 +256,10 @@ export function BegrippenTab({ id, gekozen, onKies, onbewaard, onOnbewaard }: {
                 andere={lijst?.begrippen ?? []}
                 onGewijzigd={laadLijst}
                 onOnbewaard={onOnbewaard}
+                onNaarBegrip={(b) => {
+                  onOnbewaard(false);
+                  void laadLijst().then(() => onKies(b));
+                }}
                 onWeg={async () => {
                   onOnbewaard(false);
                   await laadLijst();

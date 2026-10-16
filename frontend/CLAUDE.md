@@ -55,7 +55,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
 - **De rekenkern staat in `lib/`**, niet in componenten: vitest draait node-env zonder DOM, dus alleen
   pure helpers zijn testbaar (`selectie`, `annotatie`, `annotatieOverzicht`, `reeks`, `samenhang`,
   `markering`, `popover`, `wetstructuur`, `lopendeRun`, `rondleiding`, `werkgebied`, `begrippen`,
-  `begripVoorstellen`, `begripLex`, `herbeoordeling`, `artefact`, `bronKandidaten`, …).
+  `begripVoorstellen`, `begripLex`, `herbeoordeling`, `begripRelaties`, `artefact`, `bronKandidaten`, …).
 - **`app/**/page.tsx`** (Server Components) – data via `lib/server.ts`, interactie in een
   `*Client.tsx`. `app/page.tsx` doet `redirect("/workbench")`. De werkplek zit in
   `app/workbench/page.tsx` én in `app/default.tsx` (de default van het children-slot); beide renderen
@@ -666,6 +666,25 @@ bestaat los van de gesprekken.
   - De allowlist laat `herbeoordelingen`, `dekking`, `dekking/buiten-behandeling[/{element}]` en
     `…/koppelingen/{k}/herkoppelen|bevestigen` door; herbeoordelingen en dekking krijgen 90 s.
   - Browserregressie: `scripts/test-herbeoordeling.mjs`.
+- **Relaties en opvolging** (fase F2; api §*Begripsrelaties en opvolging*). Onder de begripskaart staat
+  `BegripRelaties` (buiten het formulier van de kaart).
+  - **Een relatie is een zin met richting** (`relatieZin` in `lib/begripRelaties.ts`): "belastingaanslag
+    omvat ook navorderingsaanslag", nooit alleen een lijn of "verwant". Bij `hierarchie` wijst de keten van
+    de bredere term naar de soort, dus draait de zin om ("Y is een soort X"); ook de relaties "ter
+    informatie" in *Voorstellen van Lex* gebruiken die zin (`hypotheseZin`).
+  - **Voorstellen van Lex** staan geel met de passages waarop ze rusten: *Akkoord* (`legRelatieVast` met
+    `voorstel_id`) of *Afwijzen* met reden. **Zelf toevoegen** vanuit dit begrip (`KEUZES`: geldt als, omvat
+    ook, omvat niet, is een soort, heeft als soort, is verwant aan); `relatieInvoer` zet de richting,
+    `magVastleggen` eist een toelichting bij verwant. Een relatie waarvan een kant veranderde staat geel met
+    *Klopt nog*; *Weghalen* is een `BevestigKnop`.
+  - **Nieuwe betekenis** (reden verplicht) en **Combineren met…** (vergelijking van de definities vooraf,
+    een keuzerondje welk begrip blijft) leveren een ander begrip op; `onNaarBegrip` opent dat. Een vervangen
+    begrip toont *Vervangen door …*, heeft geen *Lex naast de kaart* en geen opvolgknoppen; in de lijst staat
+    het ingeklapt onder *Vervangen (n)*.
+  - Herbeoordelen telt de relaties mee (`herbeoordelingZin(passages, relaties)`).
+  - De allowlist laat `relaties`, `relaties/{id}`, `relaties/{id}/bevestigen`,
+    `relaties/voorstellen/{id}/afwijzen` en `begrippen/{id}/nieuwe-betekenis|combineren` door.
+  - Browserregressie: `scripts/test-begriprelaties.mjs`.
 - **Tabs scrollen.** Vijf tabs passen niet naast elkaar op een telefoon; de horizontale `Tabs` scrollt
   (`overflow-x-auto`, tabs `whitespace-nowrap`). Een afgekapte tab is onbereikbaar, en een toets op
   horizontale scroll van de pagina ziet dat niet.
@@ -1225,7 +1244,7 @@ npm run test:browser # Playwright op de echte Next-UI met gemockte BFF (scripts/
 `test:browser` draait `scripts/test-annotatie-nodes.mjs`, `test-samenhang.mjs`, `test-reeks.mjs`,
 `test-toetsen.mjs`, `test-werkgebieden.mjs`, `test-begrippen.mjs`, `test-begripvoorstellen.mjs` en
 `test-artefacten.mjs` (de soorten artefacten in de werkplek), `test-bronkandidaten.mjs`,
-`test-werkgebied-annoteren.mjs`, `test-begrippen-verdieping.mjs`, `test-begriplex.mjs` en `test-herbeoordeling.mjs`, en verwacht een devserver op poort 3109
+`test-werkgebied-annoteren.mjs`, `test-begrippen-verdieping.mjs`, `test-begriplex.mjs`, `test-herbeoordeling.mjs` en `test-begriprelaties.mjs`, en verwacht een devserver op poort 3109
 (`AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109`).
 Praat met **`localhost`**, niet met `127.0.0.1`: Next 16 weigert dev-assets aan een andere origin,
 waarna de pagina niet hydrateert en elke stap zonder duidelijke fout time-out.

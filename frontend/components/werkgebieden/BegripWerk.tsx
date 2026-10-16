@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { BegripKaart, type LexBijKaart } from "@/components/werkgebieden/BegripKaart";
 import { BegripLex } from "@/components/werkgebieden/BegripLex";
 import { BegripPassages } from "@/components/werkgebieden/BegripPassages";
+import { BegripRelaties } from "@/components/werkgebieden/BegripRelaties";
 import {
   foutTekst, haalBegrip, haalHerbeoordelingen, haalKaartVoorstellen, neemKaartVoorstelOver, verwijderBegrip,
   wijsKaartVoorstelAf,
@@ -27,7 +28,7 @@ export type BegripMutatie = (actie: (revisie: number) => Promise<Begrip>, opties
  *  Wijzigde iemand anders het begrip intussen (412), dan komt de nieuwe stand in beeld en zegt de
  *  pagina dat; de handeling wordt niet stil herhaald. Een fout met een leesbare melding van de api
  *  (`al_primair`, `poort`, `element_buiten_werkgebied`) verschijnt zoals de api hem formuleert. */
-export function BegripWerk({ id, begripId, primair, andere = [], onGewijzigd, onOnbewaard, onWeg }: {
+export function BegripWerk({ id, begripId, primair, andere = [], onGewijzigd, onOnbewaard, onWeg, onNaarBegrip }: {
   id: string;
   begripId: string;
   primair: Record<string, { begrip_id: string; naam: string }>;
@@ -37,6 +38,8 @@ export function BegripWerk({ id, begripId, primair, andere = [], onGewijzigd, on
   onGewijzigd: () => void;
   onOnbewaard: (onbewaard: boolean) => void;
   onWeg: () => Promise<void>;
+  /** Na *Nieuwe betekenis* of *Combineren* (fase F2): open het begrip dat het werk draagt. */
+  onNaarBegrip?: (begripId: string) => void;
 }) {
   const [begrip, setBegrip] = useState<Begrip | null>(null);
   const [fout, setFout] = useState<string | null>(null);
@@ -203,7 +206,9 @@ export function BegripWerk({ id, begripId, primair, andere = [], onGewijzigd, on
       </div>
       <div className="gap-5 xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className={`space-y-4 ${kant === "begrip" ? "" : "hidden xl:block"}`}>
-          <BegripLex id={id} begrip={begrip} andere={andere} onbewaard={onbewaard} data={lex} onVernieuw={laadLex} />
+          {begrip.status !== "vervangen" && (
+            <BegripLex id={id} begrip={begrip} andere={andere} onbewaard={onbewaard} data={lex} onVernieuw={laadLex} />
+          )}
           <BegripKaart
             id={id}
             begrip={begrip}
@@ -212,6 +217,8 @@ export function BegripWerk({ id, begripId, primair, andere = [], onGewijzigd, on
             onVerwijder={verwijder}
             lex={bijKaart}
           />
+          <BegripRelaties id={id} begrip={begrip} andere={andere} onGewijzigd={() => { void laad(); onGewijzigd(); }}
+            onNaarBegrip={onNaarBegrip} />
         </div>
         <div className={kant === "bronnen" ? "" : "hidden xl:block"}>
           <BegripPassages id={id} begrip={begrip} primair={primair} muteer={muteer}

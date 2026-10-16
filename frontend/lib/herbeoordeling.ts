@@ -34,20 +34,25 @@ export function geraaktPerKoppeling(h: Herbeoordelingen | null, begripId: string
   return new Map((b?.koppelingen ?? []).map((k) => [k.koppeling_id, k]));
 }
 
-/** Per begrip het aantal geraakte passages – voor de lijst links. */
-export function geraakteBegrippen(h: Herbeoordelingen | null): Map<string, number> {
-  return new Map((h?.begrippen ?? []).map((b) => [b.begrip_id, b.koppelingen.length]));
+/** Per begrip het aantal geraakte passages en relaties (fase F2) – voor de lijst links. */
+export function geraakteBegrippen(h: Herbeoordelingen | null): Map<string, { passages: number; relaties: number }> {
+  return new Map((h?.begrippen ?? []).map((b) => [b.begrip_id, { passages: b.koppelingen.length, relaties: b.relaties?.length ?? 0 }]));
 }
 
-export function herbeoordelingZin(n: number): string {
-  return n === 1 ? "1 passage veranderde" : `${n} passages veranderden`;
+export function herbeoordelingZin(passages: number, relaties = 0): string {
+  const delen = [
+    passages ? (passages === 1 ? "1 passage veranderde" : `${passages} passages veranderden`) : "",
+    relaties ? (relaties === 1 ? "1 relatie vraagt aandacht" : `${relaties} relaties vragen aandacht`) : "",
+  ].filter(Boolean);
+  return delen.join(", ");
 }
 
-/** De kop boven de strook: hoeveel begrippen, hoeveel passages. */
+/** De kop boven de strook: hoeveel begrippen, hoeveel passages en relaties. */
 export function strookKop(h: Herbeoordelingen): string {
   const passages = h.begrippen.reduce((n, b) => n + b.koppelingen.length, 0);
+  const relaties = h.begrippen.reduce((n, b) => n + (b.relaties?.length ?? 0), 0);
   const begrippen = h.begrippen.length === 1 ? "1 begrip" : `${h.begrippen.length} begrippen`;
-  return `${begrippen} herbeoordelen · ${herbeoordelingZin(passages)}`;
+  return `${begrippen} herbeoordelen · ${herbeoordelingZin(passages, relaties)}`;
 }
 
 /** Wat de analist kan, als knoptekst. Volgorde zoals de api ze geeft. */
