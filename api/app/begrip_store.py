@@ -161,8 +161,9 @@ def _aandacht(status: str, p: dict, koppelingen: list[dict]) -> list[str]:
     return p["redenen"]
 
 
-def _begrip(row, koppelingen: list[dict]) -> dict:
+def _begrip(row, koppelingen: list[dict], opvolging: dict | None = None) -> dict:
     p = poort(row.inhoud, koppelingen)
+    o = (opvolging or {}).get(row.id, {})
     return {"id": row.id, "iri": begrip_iri(row.id), "werkgebied_id": row.werkgebied_id,
             "kader_iri": kader_iri(row.werkgebied_id), "status": row.status, "revisie": row.revisie,
             "inhoud": row.inhoud, "aangemaakt_door": row.aangemaakt_door,
@@ -170,7 +171,29 @@ def _begrip(row, koppelingen: list[dict]) -> dict:
             "geaccordeerd_door": row.geaccordeerd_door,
             "geaccordeerd_op": db.aware(row.geaccordeerd_op).isoformat() if row.geaccordeerd_op else None,
             "geaccordeerd_revisie": row.geaccordeerd_revisie,
-            "koppelingen": koppelingen, "accorderen": p, "aandachtspunten": _aandacht(row.status, p, koppelingen)}
+            "koppelingen": koppelingen, "accorderen": p,
+            "aandachtspunten": [] if row.status == "vervangen" else _aandacht(row.status, p, koppelingen),
+            # Opvolging (fase F2): door welk begrip dit vervangen is, en welke dit vervangt.
+            "vervangen_door": o.get("vervangen_door"), "vervangt": o.get("vervangt", [])}
+
+
+async def _opvolging(conn, werkgebied_id: str) -> dict[str, dict]:
+    """Per begrip `vervangen_door` en `vervangt` ({begrip_id, naam, reden}) uit de opvolgingsrelaties."""
+    r, b = db.begrip_relaties, db.begrippen
+    rows = (await conn.execute(select(r).where(r.c.werkgebied_id == werkgebied_id, r.c.type == "opvolging",
+                                               r.c.verwijderd.is_(None)))).all()
+    if not rows:
+        return {}
+    namen = {x.id: x.inhoud.get("naam", "") for x in (await conn.execute(select(b.c.id, b.c.inhoud).where(
+        b.c.id.in_({x.van_begrip for x in rows} | {x.naar_begrip for x in rows})))).all()}
+    uit: dict[str, dict] = {}
+    for x in rows:
+        uit.setdefault(x.van_begrip, {})["vervangen_door"] = {"begrip_id": x.naar_begrip,
+                                                               "naam": namen.get(x.naar_begrip, ""),
+                                                               "reden": x.toelichting}
+        uit.setdefault(x.naar_begrip, {}).setdefault("vervangt", []).append(
+            {"begrip_id": x.van_begrip, "naam": namen.get(x.van_begrip, ""), "reden": x.toelichting})
+    return uit
 
 
 async def _werkgebied_bestaat(conn, werkgebied_id: str, slot: bool = False):
@@ -190,7 +213,7 @@ async def haal(werkgebied_id: str, begrip_id: str) -> dict:
                                                   b.c.verwijderd.is_(None)))).first()
         if row is None:
             raise HTTPException(404, "Begrip bestaat niet.")
-        return _begrip(row, await _koppelingen_van(conn, werkgebied_id, begrip_id))
+        return _begrip(row, await _koppelingen_van(conn, werkgebied_id, begrip_id), await _opvolging(conn, werkgebied_id))
 
 
 async def lijst(werkgebied_id: str) -> list[dict]:
@@ -201,10 +224,11 @@ async def lijst(werkgebied_id: str) -> list[dict]:
         rows = (await conn.execute(select(b).where(b.c.werkgebied_id == werkgebied_id, b.c.verwijderd.is_(None))
                                    .order_by(b.c.aangemaakt, b.c.id))).all()
         alle = await _koppelingen_van(conn, werkgebied_id)
+        opvolging = await _opvolging(conn, werkgebied_id)
     uit = []
     for row in rows:
         ks = [k for k in alle if k["begrip_id"] == row.id]
-        volledig = _begrip(row, ks)
+        volledig = _begrip(row, ks, opvolging)
         uit.append({**{k: v for k, v in volledig.items() if k != "koppelingen"},
                     "aantal_koppelingen": len(ks),
                     "element_ids": sorted({k["element_id"] for k in ks})})
@@ -217,7 +241,8 @@ async def primaire_duidingen(werkgebied_id: str) -> dict[str, dict]:
     async with db.get_engine().connect() as conn:
         rows = (await conn.execute(select(k.c.element_id, b.c.id, b.c.inhoud).join_from(k, b, k.c.begrip_id == b.c.id)
                                    .where(k.c.werkgebied_id == werkgebied_id, k.c.rol == "duiding",
-                                          k.c.verwijderd.is_(None), b.c.verwijderd.is_(None)))).all()
+                                          k.c.verwijderd.is_(None), b.c.verwijderd.is_(None),
+                                          b.c.status != "vervangen"))).all()
     return {r.element_id: {"begrip_id": r.id, "naam": r.inhoud.get("naam", "")} for r in rows}
 
 
@@ -267,20 +292,22 @@ async def bewijzen(werkgebied: dict, element_ids: list[str], resolve: Resolver) 
 # --- schrijven ---------------------------------------------------------------------------------
 
 @asynccontextmanager
-async def _gewijzigd(werkgebied_id: str, begrip_id: str, verwacht: int, actor: str, actie: str, detail: dict):
+async def _gewijzigd(werkgebied_id: str, begrip_id: str, verwacht: int, actor: str, actie: str, detail: dict,
+                     mag_vervangen: bool = False):
     """Werkgebiedslot, begripslot, revisietoets; daarna revisie +1, revisiekopie en audit.
 
     De aanroeper muteert via `stand`: `inhoud` en `status` en extra kolommen in `waarden`. Zet hij
     `geen_wijziging`, dan gebeurt er niets (idempotent). `detail` wordt pas ná het blok gelezen, dus
     de aanroeper mag het daarin nog aanvullen."""
     async with db.get_engine().begin() as conn:
-        async with _gewijzigd_in(conn, werkgebied_id, begrip_id, verwacht, actor, actie, detail) as uit:
+        async with _gewijzigd_in(conn, werkgebied_id, begrip_id, verwacht, actor, actie, detail,
+                                 mag_vervangen) as uit:
             yield uit
 
 
 @asynccontextmanager
 async def _gewijzigd_in(conn, werkgebied_id: str, begrip_id: str, verwacht: int, actor: str, actie: str,
-                        detail: dict):
+                        detail: dict, mag_vervangen: bool = False):
     """`_gewijzigd` binnen een transactie van de aanroeper: zo kan een besluit over een voorstel (fase D)
     begrip, koppelingen, accorderen en groepsbesluit samen vastleggen of samen laten mislukken."""
     b = db.begrippen
@@ -289,6 +316,9 @@ async def _gewijzigd_in(conn, werkgebied_id: str, begrip_id: str, verwacht: int,
                                               b.c.verwijderd.is_(None)).with_for_update())).first()
     if row is None:
         raise HTTPException(404, "Begrip bestaat niet.")
+    if row.status == "vervangen" and not mag_vervangen:
+        raise HTTPException(409, {"fout": "vervangen", "melding": "Dit begrip is vervangen door een opvolger en "
+                                  "is alleen nog te lezen. Verwijder de opvolger om het terug te zetten."})
     if row.revisie != verwacht:
         raise HTTPException(412, {"fout": "revisie_conflict", "revisie": row.revisie,
                                   "melding": "Iemand anders wijzigde dit begrip intussen; laad het opnieuw."})
@@ -389,13 +419,42 @@ async def wijzig(werkgebied_id: str, begrip_id: str, w: BegripWijziging, actor: 
 async def verwijder(werkgebied_id: str, begrip_id: str, verwacht: int, actor: str) -> dict:
     """Soft: het begrip en zijn koppelingen krijgen een tijdstip; de annotaties blijven onaangeroerd.
     Daarmee is een primaire duiding weer vrij."""
-    async with _gewijzigd(werkgebied_id, begrip_id, verwacht, actor, "begrip-verwijderd", {}) as (conn, _, stand):
+    hersteld: list[str] = []
+    async with _gewijzigd(werkgebied_id, begrip_id, verwacht, actor, "begrip-verwijderd",
+                          {"hersteld": hersteld}) as (conn, _, stand):
         nu = db.utcnow()
         stand["waarden"] = {"verwijderd": nu}
         await conn.execute(update(db.begrip_koppelingen).where(
             db.begrip_koppelingen.c.begrip_id == begrip_id, db.begrip_koppelingen.c.verwijderd.is_(None))
             .values(verwijderd=nu))
-    return {"verwijderd": begrip_id}
+        hersteld += await _herstel_voorgangers(conn, werkgebied_id, begrip_id, actor, nu)
+    return {"verwijderd": begrip_id, "hersteld": hersteld}
+
+
+async def _herstel_voorgangers(conn, werkgebied_id: str, begrip_id: str, actor: str, nu) -> list[str]:
+    """Een verwijderd begrip neemt zijn relaties mee; was het de opvolger van een vervangen begrip (fase
+    F2), dan krijgt dat zijn vorige status terug – met een eigen revisie, zodat de historie het zegt."""
+    r, b = db.begrip_relaties, db.begrippen
+    rels = (await conn.execute(select(r).where(
+        r.c.werkgebied_id == werkgebied_id, r.c.verwijderd.is_(None),
+        (r.c.van_begrip == begrip_id) | (r.c.naar_begrip == begrip_id)))).all()
+    hersteld = []
+    for x in rels:
+        await conn.execute(update(r).where(r.c.id == x.id).values(verwijderd=nu))
+        if x.type != "opvolging" or x.naar_begrip != begrip_id:
+            continue
+        oud = (await conn.execute(select(b).where(b.c.id == x.van_begrip, b.c.verwijderd.is_(None))
+                                  .with_for_update())).first()
+        if oud is None or oud.status != "vervangen":
+            continue
+        status = x.bewijs.get("vorige_status") or "concept"
+        await conn.execute(update(b).where(b.c.id == oud.id).values(status=status, revisie=oud.revisie + 1, gewijzigd=nu))
+        await _revisieregel(conn, oud.id, oud.revisie + 1, "begrip-hersteld", {"opvolger": begrip_id}, status,
+                            oud.inhoud, actor, nu)
+        await werkgebied_audit(conn, werkgebied_id, actor, "begrip-hersteld",
+                               {"begrip_id": oud.id, "begrip_revisie": oud.revisie + 1, "opvolger": begrip_id})
+        hersteld.append(oud.id)
+    return hersteld
 
 
 async def koppel(werkgebied: dict, begrip_id: str, invoer: KoppelInvoer, actor: str, resolve: Resolver) -> dict:
@@ -460,6 +519,7 @@ async def _toets_primair(conn, werkgebied_id: str, begrip_id: str, element_ids: 
     elders = (await conn.execute(select(k.c.element_id, b.c.id, b.c.inhoud).join_from(k, b, k.c.begrip_id == b.c.id)
                                  .where(k.c.werkgebied_id == werkgebied_id, k.c.rol == "duiding",
                                         k.c.verwijderd.is_(None), k.c.begrip_id != begrip_id,
+                                        b.c.status != "vervangen",       # een vervangen begrip houdt niets vast
                                         k.c.element_id.in_(element_ids)))).first()
     if elders is not None:
         naam = elders.inhoud.get("naam", "")

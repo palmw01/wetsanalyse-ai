@@ -28,7 +28,7 @@ import uuid
 from fastapi import HTTPException
 from sqlalchemy import insert, select, update
 
-from . import begrip_store, begrippen_run_store, db
+from . import begrip_relatie_store, begrip_store, begrippen_run_store, db
 from .begrip_manifest import _vindplaats
 from .begrip_onderhoud_contracts import Bevestiging, BuitenBehandeling, Herkoppeling
 from .werkgebied_inventaris import Resolver, inventaris, inventaris_met_bronbomen, nodes_met_titel
@@ -171,9 +171,14 @@ async def herbeoordelingen(werkgebied: dict, resolve: Resolver, begrip_id: str |
             raise HTTPException(404, "Begrip bestaat niet.")
         koppelingen = await begrip_store._koppelingen_van(conn, werkgebied["id"], begrip_id)
         huidig = await begrip_store._huidige_elementen(conn, {k["element_id"] for k in koppelingen})
+        # Doorwerking (fase F2): vastgelegde relaties waarvan de andere kant veranderde.
+        relaties = begrip_relatie_store.doorwerking(await begrip_relatie_store._rijen(conn, werkgebied["id"]),
+                                                    await begrip_relatie_store._begrippen(conn, werkgebied["id"]))
     primair = await begrip_store.primaire_duidingen(werkgebied["id"])
     uit = []
     for row in rows:
+        if row.status == "vervangen":
+            continue                                 # alleen-lezen; de opvolger draagt het werk
         geraakt = []
         for k in koppelingen:
             if k["begrip_id"] != row.id or k["rol"] not in begrip_store.DRAGEND or k["beoordeling"] == "afgewezen":
@@ -203,9 +208,9 @@ async def herbeoordelingen(werkgebied: dict, resolve: Resolver, begrip_id: str |
                 "opnieuw_annoteren": opnieuw if not opv else [],
                 "acties": [a for a, mag in (("herkoppelen", bool(opv)), ("bevestigen", kan_bevestigen),
                                             ("loskoppelen", True)) if mag]})
-        if geraakt:
+        if geraakt or relaties.get(row.id):
             uit.append({"begrip_id": row.id, "naam": row.inhoud.get("naam", ""), "status": row.status,
-                        "revisie": row.revisie, "koppelingen": geraakt})
+                        "revisie": row.revisie, "koppelingen": geraakt, "relaties": relaties.get(row.id, [])})
     return {"werkgebied_id": werkgebied["id"], "begrippen": uit, "volledig": inv["volledig"],
             "open_punten": [{"bron_iri": s["bron_iri"], "label": s["label"], "melding": s["onbereikbaar"]}
                             for s in inv["selecties"] if s["onbereikbaar"]]}
@@ -316,7 +321,8 @@ async def dekking(werkgebied: dict, resolve: Resolver) -> dict:
     async with db.get_engine().connect() as conn:
         await begrip_store._werkgebied_bestaat(conn, werkgebied["id"])
         status = {r.id: (r.status, r.inhoud.get("naam", "")) for r in (await conn.execute(select(b.c.id, b.c.status, b.c.inhoud)
-                  .where(b.c.werkgebied_id == werkgebied["id"], b.c.verwijderd.is_(None)))).all()}
+                  .where(b.c.werkgebied_id == werkgebied["id"], b.c.verwijderd.is_(None),
+                         b.c.status != "vervangen"))).all()}
         koppelingen = await begrip_store._koppelingen_van(conn, werkgebied["id"])
         besluiten = await _besluiten(conn, werkgebied["id"])
         run = await begrippen_run_store._laatste_klare(conn, werkgebied["id"])
