@@ -63,7 +63,15 @@ def _koppeling(row) -> dict:
             "motivatie": row.motivatie, "bewijs": row.bewijs, "beoordeling": row.beoordeling,
             "beoordeeld_door": row.beoordeeld_door,
             "beoordeeld_op": db.aware(row.beoordeeld_op).isoformat() if row.beoordeeld_op else None,
-            "toegevoegd_door": row.toegevoegd_door, "toegevoegd": db.aware(row.toegevoegd).isoformat()}
+            "toegevoegd_door": row.toegevoegd_door, "toegevoegd": db.aware(row.toegevoegd).isoformat(),
+            "bevestigingen": row.bevestigingen or []}
+
+
+def referentie_hash(k: dict) -> str:
+    """De stand waartegen de actualiteit rekent: de nieuwste bevestiging (fase F1), anders het bewijs
+    van het koppelen. Het bewijs zelf verandert nooit."""
+    bev = k.get("bevestigingen") or []
+    return bev[-1]["element_hash"] if bev else k["bewijs"].get("element_hash", "")
 
 
 def actualiteit(k: dict, huidig: dict | None) -> dict:
@@ -72,7 +80,7 @@ def actualiteit(k: dict, huidig: dict | None) -> dict:
         stand = "verdwenen"
     elif huidig.get("lifecycle") == "rejected":
         stand = "verworpen"
-    elif huidig.get("verouderd") or element_hash(huidig) != k["bewijs"].get("element_hash"):
+    elif huidig.get("verouderd") or element_hash(huidig) != referentie_hash(k):
         stand = "gewijzigd"
     else:
         stand = "actueel"
@@ -126,6 +134,13 @@ async def _koppelingen_van(conn, werkgebied_id: str, begrip_id: str | None = Non
     if begrip_id:
         q = q.where(k.c.begrip_id == begrip_id)
     rows = [_koppeling(r) for r in (await conn.execute(q.order_by(k.c.toegevoegd, k.c.id))).all()]
+    # Wat een koppeling verving (herkoppelen, fase F1): de oude bewijsstand blijft zo bij de nieuwe te lezen.
+    vervangen = {r.vervangen_door: r for r in (await conn.execute(select(k).where(
+        k.c.vervangen_door.in_([r["id"] for r in rows])))).all()} if rows else {}
+    for r in rows:
+        if (oud := vervangen.get(r["id"])) is not None:
+            r["vervangt"] = {"koppeling_id": oud.id, "element_id": oud.element_id, "bewijs": oud.bewijs,
+                             "vervangen_op": db.aware(oud.verwijderd).isoformat() if oud.verwijderd else None}
     huidig = await _huidige_elementen(conn, {r["element_id"] for r in rows})
     return [actualiteit(r, huidig.get(r["element_id"])) for r in rows]
 
@@ -133,10 +148,16 @@ async def _koppelingen_van(conn, werkgebied_id: str, begrip_id: str | None = Non
 def _aandacht(status: str, p: dict, koppelingen: list[dict]) -> list[str]:
     """Wat de lijst bij een begrip noemt. Bij een geaccordeerd begrip: alleen wat sindsdien veranderde."""
     if status == "geaccordeerd":
-        weg = [k for k in koppelingen if k["rol"] in DRAGEND and k["beoordeling"] != "afgewezen"
-               and k["actualiteit"] != "actueel"]
-        return [_meervoud(len(weg), "Herbeoordelen: 1 dragende passage veranderde na het accorderen.",
-                          "Herbeoordelen: {n} dragende passages veranderden na het accorderen.")] if weg else []
+        dragend = [k for k in koppelingen if k["rol"] in DRAGEND and k["beoordeling"] != "afgewezen"]
+        weg = [k for k in dragend if k["actualiteit"] != "actueel"]
+        uit = [_meervoud(len(weg), "Herbeoordelen: 1 dragende passage veranderde na het accorderen.",
+                         "Herbeoordelen: {n} dragende passages veranderden na het accorderen.")] if weg else []
+        # Na herkoppelen (fase F1) kan een dragende passage op een nog niet beoordeelde annotatie rusten.
+        open_ = sum(k["actualiteit"] == "actueel" and not k["annotatie_beoordeeld"] for k in dragend)
+        if open_:
+            uit.append(_meervoud(open_, "1 dragende annotatie is nog niet door een jurist beoordeeld.",
+                                 "{n} dragende annotaties zijn nog niet door een jurist beoordeeld."))
+        return uit
     return p["redenen"]
 
 

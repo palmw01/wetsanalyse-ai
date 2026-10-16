@@ -305,7 +305,26 @@ begrip_koppelingen = Table("begrip_koppelingen", metadata,
     Column("beoordeeld_op", _DT, nullable=True),
     Column("toegevoegd_door", String(64), nullable=False),
     Column("toegevoegd", _DT, nullable=False),
-    Column("verwijderd", _DT, nullable=True))
+    Column("verwijderd", _DT, nullable=True),
+    # Herbeoordeling (fase F1). `bewijs` blijft de stand van het koppelen en verandert nooit. Herkoppelen
+    # aan een opvolger haalt deze koppeling weg en noemt de nieuwe hier; zo blijft de oude bewijsstand
+    # als historie leesbaar. `bevestigingen` = [{element_hash, bron_hashes, door, op, motivatie}]: de
+    # analist zag de veranderde passage en het begrip klopt nog – de nieuwste is de stand waartegen de
+    # actualiteit daarna rekent. Additief, dus `reconcile_schema` zet ze bij.
+    Column("vervangen_door", String(64), nullable=True),
+    Column("bevestigingen", _JSON, nullable=True))
+# Een element bewust buiten behandeling (fase F1, dekking): geen begrip nodig, met reden. Gedeeld zoals
+# het werkgebied; terugdraaien is soft (tijdstip), zodat de audit en de rij het besluit bewaren.
+werkgebied_element_besluiten = Table("werkgebied_element_besluiten", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("werkgebied_id", String(64), nullable=False),
+    Column("element_id", String(64), nullable=False),
+    Column("stand", String(24), nullable=False, default="buiten_behandeling"),
+    Column("reden", Text, nullable=False, default=""),
+    Column("besloten_door", String(64), nullable=False),
+    Column("besloten_op", _DT, nullable=False),
+    Column("verwijderd", _DT, nullable=True),
+    Index("ix_werkgebied_element_besluiten", "werkgebied_id", "element_id"))
 
 # --- Bronnen vinden met Lex (spoor D, fase A) ---------------------------------
 # Een bronnenrun past de ontdekmethoden van graph-qa toe op de selectie van een werkgebied. De api
