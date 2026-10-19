@@ -37,6 +37,8 @@ export type ThreadItem = { tool_executions?: import("./annotatieNode").ToolExecu
       /** De bepaling, zodat "Lex opnieuw laten annoteren" hem kan meegeven. */
       doel?: AgentDoelInvoer;
       annotatie_doel?: import("./annotatieNode").NodeDoel;
+      /** De meting van deze ronde: live uit het `run`-event, na herladen uit `Bericht.dekking`. */
+      meting?: import("./types").BeurtMeting;
     }
   // Een ander artefact dan een annotatie (begripsvoorstellen, later afleidingsregels): een beurt van
   // Lex met een chip die het artefactpaneel van die soort opent (`lib/artefact.ts`). Een annotatie

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { AgentRun, ElementTrace } from "./types";
 import { beurtSamenvatting, graafStatusTekst, laatsteJuristBeslissing, laatsteRun, redenVoorAlternatief, waaromVan } from "./waarom";
+import { metingUitDekking } from "./agentEvents";
 import { verklaar, type Verklaringen } from "./verklaringen";
 
 const V: Verklaringen = {
@@ -138,5 +139,22 @@ describe("graafStatusTekst", () => {
     const af = graafStatusTekst(gc("afwijking", { afwijkingen: [{ soort: "inhoud_wijkt_af" }],
       shacl: { beschikbaar: true, conform: false, aantal: 2 } }));
     expect(af).toEqual({ tekst: "De graaf wijkt af van de database: 1 afwijking, 2 SHACL-bevindingen.", ernst: "aandacht" });
+  });
+});
+
+describe("metingUitDekking", () => {
+  it("leest de fasen en de gedegradeerde bronnodes uit het bewaarde bericht", () => {
+    const meting = metingUitDekking({
+      per_bron: {}, gedegradeerd: ["urn:bwb:x"],
+      fasen: [{ fase: "Detectie", samenvatting: "12 kandidaten", ms: 400 }, { fase: "Resultaat", samenvatting: "7 voorgesteld", ms: 600 }],
+    });
+    expect(beurtSamenvatting(meting)).toBe("7 voorgesteld · 1 bronnode zonder zinsontleding · 1,0 s");
+  });
+
+  it("een andere vorm levert niets op", () => {
+    expect(metingUitDekking(undefined)).toBeUndefined();
+    expect(metingUitDekking({})).toBeUndefined();
+    expect(metingUitDekking("x")).toBeUndefined();
+    expect(beurtSamenvatting(metingUitDekking({ fasen: [{ ms: 3 }] }))).toBe("");
   });
 });

@@ -242,9 +242,10 @@ export const ThreadRij = memo(function ThreadRij({
           onOpen={() => acties.openArtefact(item.slug, item.annotatie_doel)}
         />
         {(() => {
-          // De meting van de laatste ronde: wat er uitkwam, wat zonder zinsontleding ging en hoe lang
-          // het duurde. Uit het document, want de meting reist mee op elk element (`geproduceerd_door`).
-          const samenvatting = !verwijderd && doc ? beurtSamenvatting(laatsteRun(doc.elementen)?.instellingen?.meting) : "";
+          // De meting van deze ronde: wat er uitkwam, wat zonder zinsontleding ging en hoe lang het
+          // duurde. Uit het bericht zelf; een oud artikeldocument draagt hem nog op zijn elementen.
+          const meting = item.meting ?? (doc ? laatsteRun(doc.elementen)?.instellingen?.meting : undefined);
+          const samenvatting = !verwijderd ? beurtSamenvatting(meting) : "";
           return samenvatting && <p className="mt-1 px-1 text-xs text-muted" data-testid="beurtsamenvatting">Laatste ronde van Lex: {samenvatting}</p>;
         })()}
         {(() => {

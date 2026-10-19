@@ -32,8 +32,11 @@ const datum = (iso: string) =>
  *  voortgang, het aanbod om mee te denken (fase C) en de relaties; het beoordelen zelf is de
  *  reviewlijst `BegripReview` (fase D). Een voorstel is geen begrip, en geen besluit wijzigt een
  *  annotatie. */
-export function BegripVoorstellen({ id, onBegrip, onGewijzigd, inklapbaar = true, onMeedenken }: {
+export function BegripVoorstellen({ id, runId, onBegrip, onGewijzigd, inklapbaar = true, onMeedenken }: {
   id: string;
+  /** De ronde waar een artefact in het gesprek naar wijst. De voorstellen zijn altijd die van de
+   *  laatste ronde – daar wordt verder beoordeeld –, maar is dat een andere, dan zegt de strook dat. */
+  runId?: string;
   /** Na de bevestiging om mee te denken (fase C). Zonder: de werkplek opent in dit werkgebied met een
    *  vers gesprek en start daar (`/workbench?werkgebied=<id>&meedenk=<n>`), zoals annoteren in fase B. */
   onMeedenken?: (aantal: number) => void;
@@ -172,6 +175,12 @@ export function BegripVoorstellen({ id, onBegrip, onGewijzigd, inklapbaar = true
           )}
           {fout && <Melding type="fout" compact>{fout}</Melding>}
           {melding && <Melding type="uitleg" compact>{melding}</Melding>}
+          {runId && laatste && laatste.id !== runId && !agentRun && (
+            <Melding type="uitleg" compact>
+              Dit gesprek wijst naar een eerdere ronde van Lex. Hieronder staan de voorstellen van de laatste
+              ronde ({datum(laatste.gewijzigd)}): daar beoordeel je verder.
+            </Melding>
+          )}
 
           {run && !agentRun && (
             <div className="space-y-1 text-xs text-muted">
