@@ -9,7 +9,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-Methode = Literal["overzicht", "verwijzing_uit", "verwijzing_in", "definitie", "opbouw", "gelijkenis"]
+Methode = Literal["overzicht", "deelvraag", "verwijzing_uit", "verwijzing_in", "definitie", "opbouw", "gelijkenis"]
 KandidaatRol = Literal["kern", "afhankelijkheid", "aanverwant"]
 
 #: Sterk naar zwak: bij samenvoegen wint de sterkste rol.
@@ -19,7 +19,8 @@ ROL_VOLGORDE: dict[str, int] = {"kern": 0, "afhankelijkheid": 1, "aanverwant": 2
 class Bewijs(BaseModel):
     """Waarom één methode deze bepaling vond. `vanuit` is de bepaling in de selectie (leeg bij het
     overzicht: dat zoekt op de analysevraag); `detail` draagt wat de methode zelf weet –
-    verwijzings-id, ankertekst en functie, het gedefinieerde begrip, of de zoekterm."""
+    verwijzings-id, ankertekst en functie, het gedefinieerde begrip, of de zoekterm. Bij `deelvraag` (het
+    overzicht op één deelvraag) staan `deelvraag_id` en `vraag` in `detail`."""
 
     methode: Methode
     vanuit: str = Field(default="", max_length=500)

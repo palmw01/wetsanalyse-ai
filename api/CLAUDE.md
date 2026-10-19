@@ -39,6 +39,8 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
 15. **Begrippen over werkgebieden heen** (`/v1/begrippen`, `/v1/begrippen/verifieer`, `/v1/begrippen/{id}`,
    fase F4): het overzicht in de webapp en de verificatie van wat Lex in de graaf vond – zie §*Begrippen
    lezen*.
+16. **Deelvragen** (`/v1/werkgebieden/{id}/deelvragen/*`, vervolg op F): optionele deelvragen bij een
+   werkgebied, voorstellen van Lex en de dekkingscheck per deelvraag – zie §*Deelvragen*.
 
 > **De wettekst komt uit de graaf.** De API leest uit GraphDB de **bronboom** (`bron_resolver.py`):
 > daarmee toetst hij ankers, legt hij snapshots vast en levert hij de segmenten van de weergave.
@@ -65,6 +67,7 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
 | `graaf.py` | De complete graaf (`/graaf`): alle regelingen met structuur, verwijzingen en markeringen; structuur en verwijzingen gecachet per `(bwb_id, toestandUrl)`. |
 | `knoopinfo.py` | Wat de kennisgraaf over één knoop weet (`/knoop`), voor de inspector van de graaf. |
 | `werkgebieden.py` (router), `werkgebied_store.py`, `werkgebied_contracts.py`, `werkgebied_inventaris.py`, `werkgebied_werkvoorraad.py` | Werkgebieden: bronselecties, revisies, audit, de inventaris en de annotatie-werkvoorraad. |
+| `werkgebied_deelvragen.py` | Deelvragen: opslag, voorstellen van Lex, koppelingen en de dekkingscheck. |
 | `begrippen.py` (router), `begrip_store.py`, `begrip_contracts.py` | Begrippen: inhoud, koppelingen met bewijsstand, actualiteit, de accorderingspoort, revisies en export. |
 | `begrippen_runs.py` (router), `begrippen_run_store.py`, `begrippen_run_contracts.py`, `begrip_manifest.py` | Voorstellen van Lex: manifest voor de begrippenketen, runs, betekenisgroepen en besluiten. |
 | `begrip_voorstellen.py` (router), `begrip_voorstel_store.py`, `begrip_voorstel_contracts.py` | Lex naast de kaart: kaartruns en voorstellen per veld, overnemen en afwijzen. |
@@ -595,6 +598,32 @@ invoer vast, toetst en bewaart de kandidaten, en legt de besluiten vast.
   graph-qa.
 - Het artefact van een bronnenbeurt is `{soort: "bronnen", ref: {werkgebied_id, run_id}}`.
 - Tests: `tests/test_bronnen_runs.py` (SQLite) en het slot in `tests/test_werkgebieden_postgres.py`.
+
+## Deelvragen
+
+`werkgebied_deelvragen.py`, routes in `werkgebieden.py`; open keuze 4 is besloten op **optioneel**: een
+werkgebied zonder deelvragen werkt zoals altijd.
+
+- **Tabellen** `werkgebied_deelvragen` (vraag, volgorde, `status` `actief` | `voorgesteld` | `afgewezen`,
+  `herkomst` `analist` | `lex`, reden, soft delete) en `werkgebied_deelvraag_koppelingen` (een set per
+  deelvraag, `soort` `bron` | `begrip`, zonder foreign key; wat niet meer bestaat valt bij het lezen weg).
+  `GET /v1/werkgebieden/{id}` draagt `deelvragen` (actief en voorgesteld, met hun geldige koppelingen).
+- **Een actieve deelvraag hoort bij de scope**: toevoegen, wijzigen (tekst, volgorde, overnemen met
+  `status: actief`, afwijzen met verplichte reden), weghalen en koppelen lopen door
+  `werkgebied_store._gewijzigd` (revisie, 412, audit `deelvraag-*`). Dezelfde vraag nog eens (genormaliseerd:
+  hoofdletters, diakrieten, leestekens) geeft 409 `al_gesteld`; koppelen aan iets buiten het werkgebied 422
+  `buiten_werkgebied`; een voorstel koppelen 409 `niet_actief`.
+- **Voorstellen van Lex** (`POST …/deelvragen/voorstellen {vragen, model}`, graph-qa): geen revisie, alleen
+  het slot en een auditregel `deelvragen-voorgesteld`. Wat er al staat, is afgewezen of weggehaald, komt er
+  niet bij (`overgeslagen` met de reden).
+- **Dekking** (`GET …/deelvragen/dekking`): per actieve deelvraag `gedekt` (een gekoppeld geaccordeerd
+  begrip), `geen_begrip` (wel bronnen of begrippen, geen geaccordeerd) of `geen_bron`; uit Postgres, zonder
+  graaf. Een vervangen begrip dekt niets meer.
+- **De bronnenrun zoekt per deelvraag**: `bronnen_run_store.invoer_van` neemt de actieve deelvragen op (alleen
+  met deelvragen een sleutel, zodat de `invoer_id` van een werkgebied zonder deelvragen gelijk blijft); met
+  alleen deelvragen is er ook een vertrekpunt. Bewijs van de methode `deelvraag` draagt `deelvraag_id`;
+  opnemen koppelt de nieuwe selectie in dezelfde transactie aan die deelvragen (`koppel_bron_in`).
+- Tests: `tests/test_werkgebied_deelvragen.py`.
 
 ## Gesprekken
 

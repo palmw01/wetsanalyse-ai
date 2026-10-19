@@ -6,12 +6,13 @@ import httpx
 from bronmodel import BronFout
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
-from . import annotatie_v2_store, werkgebied_store as store
+from . import annotatie_v2_store, werkgebied_deelvragen as deelvragen, werkgebied_store as store
 from .auth import require_client
 from .bron_resolver import resolve_bron as _resolve_bron
 from .routers.auth import actieve_userid
 from .werkgebied_contracts import (
-    BronselectieInvoer, BronselectieWijziging, WerkgebiedInvoer, WerkgebiedWijziging,
+    BronselectieInvoer, BronselectieWijziging, DeelvraagInvoer, DeelvraagKoppelingen, DeelvraagVoorstellen,
+    DeelvraagWijziging, WerkgebiedInvoer, WerkgebiedWijziging,
 )
 from .werkgebied_inventaris import inventaris
 from .werkgebied_werkvoorraad import werkvoorraad
@@ -83,6 +84,45 @@ async def patch_bron(werkgebied_id: str, selectie_id: str, req: BronselectieWijz
 async def delete_bron(werkgebied_id: str, selectie_id: str, verwachte_revisie: int = Query(ge=1),
                       actor: str = Depends(actieve_userid)):
     return await store.verwijder_bron(werkgebied_id, selectie_id, verwachte_revisie, actor)
+
+
+# --- Deelvragen (optioneel; open keuze 4) -----------------------------------------------------------
+# Elke wijziging draagt de revisie van het werkgebied en geeft het werkgebied terug, zoals de bronnen.
+# `voorstellen` is voor graph-qa: geen revisie, het raakt de scope pas na overnemen.
+
+@router.post("/{werkgebied_id}/deelvragen", status_code=201)
+async def post_deelvraag(werkgebied_id: str, req: DeelvraagInvoer, actor: str = Depends(actieve_userid)):
+    return await deelvragen.maak(werkgebied_id, req, actor)
+
+
+# Vóór `/deelvragen/{deelvraag_id}`, anders leest de router "dekking" en "voorstellen" als een id.
+@router.get("/{werkgebied_id}/deelvragen/dekking")
+async def get_deelvragen_dekking(werkgebied_id: str, actor: str = Depends(actieve_userid)):
+    return await deelvragen.dekking(werkgebied_id)
+
+
+@router.post("/{werkgebied_id}/deelvragen/voorstellen")
+async def post_deelvraag_voorstellen(werkgebied_id: str, req: DeelvraagVoorstellen,
+                                     actor: str = Depends(actieve_userid)):
+    return await deelvragen.stel_voor(werkgebied_id, req, actor)
+
+
+@router.patch("/{werkgebied_id}/deelvragen/{deelvraag_id}")
+async def patch_deelvraag(werkgebied_id: str, deelvraag_id: str, req: DeelvraagWijziging,
+                          actor: str = Depends(actieve_userid)):
+    return await deelvragen.wijzig(werkgebied_id, deelvraag_id, req, actor)
+
+
+@router.put("/{werkgebied_id}/deelvragen/{deelvraag_id}/koppelingen")
+async def put_deelvraag_koppelingen(werkgebied_id: str, deelvraag_id: str, req: DeelvraagKoppelingen,
+                                    actor: str = Depends(actieve_userid)):
+    return await deelvragen.koppel(werkgebied_id, deelvraag_id, req, actor)
+
+
+@router.delete("/{werkgebied_id}/deelvragen/{deelvraag_id}")
+async def delete_deelvraag(werkgebied_id: str, deelvraag_id: str, verwachte_revisie: int = Query(ge=1),
+                           actor: str = Depends(actieve_userid)):
+    return await deelvragen.verwijder(werkgebied_id, deelvraag_id, verwachte_revisie, actor)
 
 
 @router.get("/{werkgebied_id}/elementen")

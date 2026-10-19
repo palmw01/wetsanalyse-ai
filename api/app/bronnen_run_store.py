@@ -25,7 +25,7 @@ from datetime import timedelta
 from fastapi import HTTPException
 from sqlalchemy import insert, select, update
 
-from . import db, werkgebied_store
+from . import db, werkgebied_deelvragen, werkgebied_store
 from .bronnen_run_contracts import ROL_VOLGORDE, BronnenUitkomst, Opnemen
 from .werkgebied_contracts import Bereik, BronselectieInvoer, Rol
 from .werkgebied_store import _audit as werkgebied_audit
@@ -45,9 +45,16 @@ def invoer_van(werkgebied: dict) -> dict:
     def bron(s: dict) -> dict:
         return {"bron_iri": s["bron_iri"], "label": s["label"], "bwb_id": s["bwb_id"], "bereik": s["bereik"]}
     sel = sorted(werkgebied["bronnen"], key=lambda s: s["bron_iri"])
-    return {"naam": werkgebied["naam"], "analysevraag": werkgebied.get("analysevraag", ""),
-            "kern": [bron(s) for s in sel if s["rol"] == "analyseren"],
-            "context": [bron(s) for s in sel if s["rol"] != "analyseren"]}
+    invoer = {"naam": werkgebied["naam"], "analysevraag": werkgebied.get("analysevraag", ""),
+              "kern": [bron(s) for s in sel if s["rol"] == "analyseren"],
+              "context": [bron(s) for s in sel if s["rol"] != "analyseren"]}
+    # Alleen met actieve deelvragen een sleutel: zo blijft de invoer (en dus `invoer_id`) van een
+    # werkgebied zonder deelvragen wat hij was.
+    deelvragen = [{"id": d["id"], "vraag": d["vraag"]} for d in werkgebied.get("deelvragen", [])
+                  if d["status"] == "actief"]
+    if deelvragen:
+        invoer["deelvragen"] = deelvragen
+    return invoer
 
 
 def invoer_id(invoer: dict) -> str:
@@ -94,7 +101,7 @@ async def _werkgebied(conn, werkgebied_id: str, slot: bool = False):
 async def start(werkgebied: dict, actor: str) -> tuple[dict, bool]:
     """De run op de huidige selectie: de bestaande als die er al is, anders een nieuwe. (run, nieuw)."""
     invoer = invoer_van(werkgebied)
-    if not invoer["kern"] and not invoer["analysevraag"].strip():
+    if not invoer["kern"] and not invoer["analysevraag"].strip() and not invoer.get("deelvragen"):
         raise HTTPException(409, {"fout": "geen_vertrekpunt",
                                   "melding": "Geef het werkgebied een analysevraag of neem minstens één bepaling op "
                                              "om te analyseren; daar zoekt Lex vanuit."})
@@ -300,12 +307,21 @@ async def opnemen(werkgebied_id: str, kid: str, req: Opnemen, bron: dict, actor:
                                 bereik=Bereik.onderliggend, rol=Rol(rol),
                                 reden=req.reden or f"Voorgesteld door Lex ({row.rol}).")
 
+    # Vond Lex de bepaling bij een deelvraag, dan hoort de nieuwe selectie bij die deelvraag.
+    deelvraag_ids = sorted({str((b.get("detail") or {}).get("deelvraag_id", "")) for b in row.bewijs
+                            if b.get("methode") == "deelvraag"} - {""})
+
     async def markeer(conn) -> None:
         nu = db.utcnow()
         await conn.execute(update(k).where(k.c.werkgebied_id == werkgebied_id, k.c.id == kid).values(
             status="opgenomen", reden="", besloten_door=actor, besloten_op=nu, gewijzigd=nu))
         await werkgebied_audit(conn, werkgebied_id, actor, "kandidaat-opgenomen",
                                {"kandidaat": kid, "bron_iri": row.bron_iri, "rol": rol})
+        s = db.werkgebied_bronselecties
+        sid = (await conn.execute(select(s.c.id).where(s.c.werkgebied_id == werkgebied_id, s.c.bron_iri == row.bron_iri,
+                                                       s.c.verwijderd.is_(None)))).scalar()
+        if sid:
+            await werkgebied_deelvragen.koppel_bron_in(conn, werkgebied_id, sid, deelvraag_ids, actor)
 
     selectie, nieuw = await werkgebied_store.voeg_bron_toe(werkgebied_id, invoer, bron, actor, binnen=markeer)
     if not nieuw:

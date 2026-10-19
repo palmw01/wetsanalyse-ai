@@ -90,3 +90,71 @@ class BronselectieWijziging(BaseModel):
     verwachte_revisie: int = Field(ge=1)
     rol: Rol | None = None
     reden: str | None = Field(default=None, max_length=2000)
+
+
+# --- Deelvragen (vervolg op F, open keuze 4: optioneel) ---------------------------------------------
+
+class DeelvraagStatus(str, Enum):
+    actief = "actief"                  # hoort bij de analyse; de dekkingscheck meet ertegen
+    voorgesteld = "voorgesteld"        # een voorstel van Lex, nog niet overgenomen
+    afgewezen = "afgewezen"            # Lex stelt hem niet opnieuw voor
+
+
+def _vraag(v: str) -> str:
+    v = " ".join(v.split())
+    if not v:
+        raise ValueError("vraag is verplicht")
+    return v
+
+
+class DeelvraagInvoer(BaseModel):
+    verwachte_revisie: int = Field(ge=1)
+    vraag: str = Field(min_length=1, max_length=1000)
+
+    @field_validator("vraag")
+    @classmethod
+    def _v(cls, v: str) -> str:
+        return _vraag(v)
+
+
+class DeelvraagWijziging(BaseModel):
+    """Tekst of volgorde aanpassen, een voorstel overnemen (`status: actief`) of afwijzen (met reden)."""
+
+    verwachte_revisie: int = Field(ge=1)
+    vraag: str | None = Field(default=None, min_length=1, max_length=1000)
+    volgorde: int | None = Field(default=None, ge=0, le=1000)
+    status: DeelvraagStatus | None = None
+    reden: str = Field(default="", max_length=2000)
+
+    @field_validator("vraag")
+    @classmethod
+    def _v(cls, v: str | None) -> str | None:
+        return None if v is None else _vraag(v)
+
+    @model_validator(mode="after")
+    def _afwijzen(self) -> DeelvraagWijziging:
+        if self.status == DeelvraagStatus.afgewezen and not self.reden.strip():
+            raise ValueError("afwijzen vraagt een reden")
+        return self
+
+
+class DeelvraagKoppelingen(BaseModel):
+    """De bronselecties en begrippen die deze deelvraag beantwoorden – de hele set, niet een verschil."""
+
+    verwachte_revisie: int = Field(ge=1)
+    bronnen: list[str] = Field(default_factory=list, max_length=200)
+    begrippen: list[str] = Field(default_factory=list, max_length=200)
+
+
+class DeelvraagVoorstellen(BaseModel):
+    """Van graph-qa: Lex splitst de analysevraag. Een voorstel draagt geen revisie; het raakt de scope pas
+    als de analist het overneemt."""
+
+    vragen: list[str] = Field(min_length=1, max_length=12)
+    model: str = Field(default="", max_length=200)
+
+    @field_validator("vragen")
+    @classmethod
+    def _v(cls, v: list[str]) -> list[str]:
+        uit = [" ".join(x.split())[:1000] for x in v]
+        return [x for x in uit if x]
