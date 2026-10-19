@@ -168,12 +168,16 @@ export function TourBubbel({
   const gat = zichtbaar ? uitsnede(zichtbaar, GAT_MARGE) : null;
   const bedienbaar = Boolean(klikGat(stap, actiefVak, GAT_MARGE));
 
+  // Centreren zonder `transform`: de bubbel draait `animate-rise`, en die animatie houdt (fill-mode
+  // `both`) haar eigen `transform: translateY(0)` vast. Een `translate(-50%, -50%)` hier viel daardoor
+  // weg, en de linkerbovenhoek van de bubbel stond op het midden van het scherm – op een telefoon met
+  // *Volgende* buiten beeld, waarna de rondleiding niet verder kon.
   const stijl: React.CSSProperties =
     plaatsing.modus === "midden"
       ? {
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
+          inset: 0,
+          margin: "auto",
+          height: "fit-content",
           width: BUBBEL_BREEDTE,
           maxWidth: "calc(100vw - 1.5rem)",
         }

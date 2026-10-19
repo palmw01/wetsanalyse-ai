@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Dialog } from "@/components/ui/Dialog";
 import { GesprekSidebar } from "@/components/werkplek/GesprekSidebar";
@@ -48,13 +48,23 @@ export function AppSidebar({
   const [gesprekken, setGesprekken] = useState<GesprekSamenvatting[]>(demoGesprekken ?? []);
   const [laden, setLaden] = useState(!demoGesprekken);
   const demo = Boolean(demoGesprekken);
+  // Elke ophaalronde krijgt een nummer; alleen het antwoord van de laatste telt. De rondleiding
+  // start bij een eerste bezoek vlak na het openen van de werkplek, terwijl de echte lijst nog
+  // onderweg is. Kwam dat (lege) antwoord daarna binnen, dan overschreef het de voorbeeldlijst, en
+  // wees "Je werk terugvinden" naar "Nog geen gesprekken".
+  const ronde = useRef(0);
+  useEffect(() => {
+    if (demo) ronde.current++;
+  }, [demo]);
 
   const verversLijst = useCallback(() => {
     // In de rondleiding is deze lijst een voorbeeld; ophalen zou hem overschrijven met de (vaak
     // lege) echte lijst.
     if (demo) return;
+    const deze = ++ronde.current;
     lijstGesprekken()
       .then((lijst) => {
+        if (deze !== ronde.current) return;
         setGesprekken(lijst);
         onLijst?.(lijst);
       })

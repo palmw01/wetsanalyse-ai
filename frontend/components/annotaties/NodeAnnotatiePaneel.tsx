@@ -10,10 +10,10 @@ import { Dialog, type DialogVariant } from "@/components/ui/Dialog";
 import { Melding } from "@/components/ui/Melding";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ArtefactInhoud, focusBijArtefact } from "@/components/werkplek/ArtefactInhoud";
-import { downloadAntwoord, foutTekst, type ExportFormaat } from "@/lib/api";
+import { foutTekst, type ExportFormaat } from "@/lib/api";
 import {
-  haalNodeWeergave, nodeError, nodeLink, nodeRequest, verwachteRevisies,
-  type NodeDoel, type NodeElement, type NodeWeergave,
+  apiOpslag, nodeLink, verwachteRevisies,
+  type NodeDoel, type NodeElement, type NodeOpslag, type NodeWeergave,
 } from "@/lib/annotatieNode";
 import {
   beslissingNaarNode, documentVanNode, nodeAnkersUitSelectie, nodeBronVan, nogOngedekt, ongedektVanNode, tekstVanAnkers,
@@ -40,7 +40,7 @@ export type PaneelTab = "tekst" | "graaf";
  *
  *  Met `onSluit` staat hij in dezelfde `Dialog`-schil als `ArtefactPaneel` (werkplek); zonder is
  *  het de kale inhoud voor een eigen pagina. */
-export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, onWisselDoel, onSluit, variant = "side", onVraag, onVraagOverBron, beginTab = "tekst", reeks, beginElement }: {
+export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, onWisselDoel, onSluit, variant = "side", onVraag, onVraagOverBron, beginTab = "tekst", reeks, beginElement, opslag = apiOpslag, onBeslist }: {
   doel: NodeDoel; onSluit?: () => void; variant?: DialogVariant;
   /** Andere bepalingen of delen die de graaf meeopent (wat een antwoord noemt). Tekst en annotatie
    *  blijven over `doel`. */
@@ -61,13 +61,19 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
   reeks?: ReeksNavigatie & { onGa: (doel: NodeDoel) => void };
   /** Het element dat bij openen gekozen is (een passage van een begrip terugvinden). */
   beginElement?: string;
+  /** Waar de weergave vandaan komt; standaard de api. De rondleiding geeft haar voorbeeld mee. */
+  opslag?: NodeOpslag;
+  /** Na elke geslaagde beslissing op een kaart, met het soort beslissing. */
+  onBeslist?: (type: BeslissingInvoer["type"]) => void;
 }) {
   const [view, setView] = useState<NodeWeergave>();
   const [samenhang, setSamenhang] = useState(false);
   const [tab, setTab] = useState<PaneelTab>(beginTab);
   const [graafGeopend, setGraafGeopend] = useState(beginTab === "graaf");
   const [groot, setGroot] = useState(false);
-  useEffect(() => { void samenhangBeschikbaar().then(setSamenhang); }, []);
+  useEffect(() => {
+    if (opslag.levend) void samenhangBeschikbaar().then(setSamenhang);
+  }, [opslag]);
   if (tab === "graaf" && !graafGeopend) setGraafGeopend(true);
   const graafStand = useGraafStand(doel, graafGeopend && samenhang, tab === "graaf", extraDoelen, graaf);
   const [laadFout, setLaadFout] = useState("");
@@ -76,9 +82,9 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
 
   const laad = useCallback(async () => {
     setLaadFout("");
-    try { setView(await haalNodeWeergave(doel)); }
+    try { setView(await opslag.weergave(doel)); }
     catch (e) { setLaadFout(foutTekst(e, "De annotatie is niet geladen.")); }
-  }, [doel]);
+  }, [doel, opslag]);
   useEffect(() => {
     // Een externe API-request initialiseren; dezelfde laadactie dient ook de retryknop.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -96,9 +102,9 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
   /** Elke mutatie: versturen, daarna altijd opnieuw laden – ook na een fout, want een 412 betekent
    *  juist dat de stand in beeld niet meer klopt. De fout gaat dóór naar `ArtefactInhoud`, die hem
    *  bij de kaart toont. */
-  async function muteer(pad: string, body: unknown, method = "POST") {
+  async function muteer<T>(handeling: () => Promise<T>): Promise<T> {
     try {
-      return await nodeRequest<Record<string, unknown>>(pad, body, method);
+      return await handeling();
     } finally {
       await laad();
       // De graaf toont dezelfde markeringen; hij haalt ze opnieuw op zodra hij weer in beeld is.
@@ -109,23 +115,24 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
   async function beslissing(elementId: string, req: BeslissingInvoer) {
     if (!view || !nb || !doc) return;
     const huidig = doc.elementen.find((e) => e.id === elementId);
-    await metSpoor("review_beslissing", () => muteer(`elementen/${encodeURIComponent(elementId)}/beslissing`, {
+    await metSpoor("review_beslissing", () => muteer(() => opslag.beslis(elementId, {
       ...beslissingNaarNode(req, nb, huidig),
       snapshot_id: view.snapshot_id, verwachte_revisies: verwachteRevisies(view),
-    }));
+    })));
     setMelding("Wijziging opgeslagen.");
+    onBeslist?.(req.type);
   }
 
   async function eigenMarkering(invoer: { klasse: string; toelichting: string; anker: Anker }) {
     if (!view || !nb) return;
     const ankers = nodeAnkersUitSelectie(nb, invoer.anker.start, invoer.anker.eind);
     if (!ankers.length) throw new Error("Deze selectie bevat geen wettekst om te markeren.");
-    const uit = await muteer("elementen", {
+    const uit = await muteer(() => opslag.markeer({
       doel: { bron_iri: view.doel.bron_iri }, snapshot_id: view.snapshot_id,
       verwachte_revisies: verwachteRevisies(view),
       element: { klasse: invoer.klasse, toelichting: invoer.toelichting, tekst: tekstVanAnkers(ankers), ankers },
-    });
-    const nieuw = (uit?.element as { id?: string } | undefined)?.id;
+    }));
+    const nieuw = uit?.element?.id;
     if (nieuw) setActiefId(nieuw);
     setMelding(`Gemarkeerd als ${invoer.klasse}.`);
   }
@@ -134,7 +141,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
     if (!view) return;
     const el = view.elementen.find((e) => e.id === elementId);
     const revisie = view.lagen.find((l) => l.bron_iri === el?.eigenaar_iri)?.revisie ?? 0;
-    await muteer(`elementen/${encodeURIComponent(elementId)}?verwachte_revisie=${revisie}`, {}, "DELETE");
+    await muteer(() => opslag.wis(elementId, revisie));
     setActiefId((huidig) => (huidig === elementId ? undefined : huidig));
     setMelding("Markering gewist.");
   }
@@ -145,7 +152,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
     if (!view) return;
     try {
       for (const laag of view.lagen.filter((l) => l.status !== nieuw)) {
-        await nodeRequest(`lagen/${encodeURIComponent(laag.id)}/status`, { status: nieuw, verwachte_revisie: laag.revisie });
+        await opslag.status(laag.id, { status: nieuw, verwachte_revisie: laag.revisie });
       }
     } finally {
       await laad();
@@ -159,9 +166,9 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
    *  intussen iets) laat de actuele stand zien in plaats van blind te verwijderen. */
   async function verwijder() {
     if (!view) return;
-    const uit = await metSpoor("annotatie_verwijderen", () => muteer("weergave/verwijder", {
+    const uit = await metSpoor("annotatie_verwijderen", () => muteer(() => opslag.verwijder({
       bron_iri: view.doel.bron_iri, snapshot_id: view.snapshot_id, verwachte_revisies: verwachteRevisies(view),
-    })) as { graaf?: string } | undefined;
+    })));
     setActiefId(undefined);
     setMelding(uit?.graaf === "volgt"
       ? "Annotatie verwijderd. De kennisgraaf volgt binnen een minuut."
@@ -170,13 +177,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
 
   async function exporteer(formaat: ExportFormaat) {
     if (!view) return;
-    const response = await fetch("/api/annotatie/v2/weergave/export", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ bron_iri: view.doel.bron_iri, snapshot_id: view.snapshot_id, formaat }),
-    });
-    if (!response.ok) throw await nodeError(response);
-    // Hetzelfde downloadpatroon als de artikelexport: bestandsnaam van de server, link in het document.
-    await downloadAntwoord(response, `annotatie.${formaat}`);
+    await opslag.exporteer({ bron_iri: view.doel.bron_iri, snapshot_id: view.snapshot_id, formaat });
   }
 
   /** Van graaf naar tekst: dezelfde markering blijft gekozen; bij een bron scrollt de tekst naar het lid. */
@@ -270,7 +271,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, koppelingRef, on
         onVerwijder={view.lagen.length ? verwijder : undefined}
         onSluiten={onSluit}
         onExport={exporteer}
-        extra={<NodeExtra view={view} doel={doel} onKies={setActiefId} />}
+        extra={<NodeExtra view={view} doel={doel} onKies={setActiefId} historie={opslag.levend} />}
         ongedekt={ongedekt}
       />}
     </div>
@@ -315,11 +316,15 @@ function ReeksBalk({ reeks, label }: { reeks: ReeksNavigatie & { onGa: (doel: No
 
 /** Wat alleen een bronnode-annotatie kent: een gewijzigde bronstand, markeringen die over deze
  *  bepaling heen lopen, en de voortgang per laag als de bepaling er meer dan één draagt. */
-function NodeExtra({ view, doel, onKies }: { view: NodeWeergave; doel: NodeDoel; onKies: (elementId: string) => void }) {
+function NodeExtra({ view, doel, onKies, historie }: {
+  view: NodeWeergave; doel: NodeDoel; onKies: (elementId: string) => void;
+  /** De revisiehistorie komt van de api; zonder (de rondleiding) valt er niets op te halen. */
+  historie: boolean;
+}) {
   const labelVan = (iri: string) => view.segmenten.find((s) => s.bron_iri === iri)?.label || view.doel.label || iri;
   return (
     <>
-      {view.lagen.length > 0 && <RevisieHistorie lagen={view.lagen} labelVan={labelVan} elementen={view.elementen} onKies={onKies} />}
+      {historie && view.lagen.length > 0 && <RevisieHistorie lagen={view.lagen} labelVan={labelVan} elementen={view.elementen} onKies={onKies} />}
       <DekkingOverzicht dekking={view.dekking} labelVan={labelVan}
         volgorde={[...view.segmenten].sort((a, b) => a.volgorde - b.volgorde).map((x) => x.bron_iri)} />
       {view.verwijderd && (

@@ -6,7 +6,7 @@
  * Alle andere browserscripts zetten de rondleiding uit; dit script is de enige die hem doorloopt.
  *
  * Bewaakt, op een breed scherm en op een telefoon:
- *  - de rondleiding biedt zich aan bij een lege `wa_rondleiding`;
+ *  - de rondleiding biedt zich aan bij een lege `wa_rondleiding`, en de bubbel staat in beeld;
  *  - "De annotatie openen" wacht op de gebruiker: zonder klik gebeurt er niets, en een klik op de kaart
  *    opent het paneel en gaat door naar de wettekst (eerst opende een timer het paneel vanzelf);
  *  - Enter op *Vorige* gaat terug in plaats van vooruit;
@@ -14,6 +14,7 @@
  *    bevestiging staat er na terug- en vooruitbladeren nog;
  *  - Escape in het klassepalet sluit alleen het palet;
  *  - herladen halverwege biedt *Verder bij stap n*;
+ *  - de voorbeeldannotatie staat in het bronnodepaneel, net als echt werk;
  *  - er gaat niets muterends naar de api.
  */
 import assert from "node:assert/strict";
@@ -60,6 +61,18 @@ async function start(page) {
   await page.goto(`${base}/workbench`);
   await page.getByRole("button", { name: "Start de rondleiding" }).click();
   await bubbel(page).waitFor();
+  await binnenBeeld(page);
+}
+
+/** De bubbel staat helemaal in beeld. Een gecentreerde bubbel stond met zijn linkerbovenhoek op het
+ *  midden van het scherm (de animatie overschreef de `transform`), en op een telefoon viel *Volgende*
+ *  dan buiten beeld. */
+async function binnenBeeld(page) {
+  await page.waitForTimeout(600); // de animatie van de bubbel
+  const r = await bubbel(page).boundingBox();
+  const { width, height } = page.viewportSize();
+  assert.ok(r && r.x >= 0 && r.y >= 0 && r.x + r.width <= width && r.y + r.height <= height,
+    `de bubbel valt buiten beeld: ${JSON.stringify(r)} in ${width}×${height}`);
 }
 
 /** De openen-stap: zonder klik blijft alles staan, met een klik gaat het paneel open. */
@@ -93,6 +106,9 @@ try {
   assert.equal(await titel(page), eerste, "Enter op Vorige hoort terug te gaan");
 
   await openenWachtOpKlik(page);
+  await binnenBeeld(page);
+  // De demo staat in hetzelfde paneel als echt werk (`NodeAnnotatiePaneel`): alleen dat kent Verwijderen.
+  await page.locator('[data-tour="artefact-acties"]').getByRole("button", { name: /verwijderen/i }).waitFor();
 
   // "Jij beslist": Enter op Akkoord beslist, en de rondleiding blijft staan.
   await naarStap(page, "Jij beslist");

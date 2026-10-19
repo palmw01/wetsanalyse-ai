@@ -1,4 +1,4 @@
-import { naarInloggen } from "./api";
+import { downloadAntwoord, naarInloggen, type ExportFormaat } from "./api";
 import { pathSegment } from "./url";
 
 /** Canonieke bronnodeweergave. Posities zijn Unicode-codepunten, niet UTF-16. */
@@ -178,3 +178,40 @@ export async function haalNodeWeergave(doel: NodeDoel): Promise<NodeWeergave> {
   return nodeRequest(`weergave?${new URLSearchParams({ bron_iri: doel.bron_iri,
     ...(doel.snapshot_id ? { snapshot_id: doel.snapshot_id } : {}) })}`);
 }
+
+/** Waar `NodeAnnotatiePaneel` zijn weergave vandaan haalt en zijn handelingen heen stuurt.
+ *
+ *  Gewoon is dat de api (`apiOpslag`). De rondleiding geeft een opslag in het geheugen mee
+ *  (`lib/rondleidingDemo.ts`), zodat de voorbeeldannotatie in hetzelfde paneel staat als echt werk,
+ *  zonder één verzoek naar de api. Zo kan de rondleiding niet meer achterlopen op het paneel. De
+ *  lichamen zijn die van de api: wat de demo ontvangt, is precies wat de api zou krijgen. */
+export interface NodeOpslag {
+  weergave(doel: NodeDoel): Promise<NodeWeergave>;
+  beslis(elementId: string, body: Record<string, unknown>): Promise<unknown>;
+  markeer(body: Record<string, unknown>): Promise<{ element?: { id?: string } } | undefined>;
+  wis(elementId: string, verwachteRevisie: number): Promise<unknown>;
+  status(laagId: string, body: { status: string; verwachte_revisie: number }): Promise<unknown>;
+  verwijder(body: Record<string, unknown>): Promise<{ graaf?: string } | undefined>;
+  exporteer(body: { bron_iri: string; snapshot_id: string; formaat: ExportFormaat }): Promise<void>;
+  /** Hoort er een kennisgraaf en een revisiehistorie achter? Zonder (de rondleiding) toont het
+   *  paneel geen Graaf-tab en geen Historie: daar is niets op te halen. */
+  levend: boolean;
+}
+
+export const apiOpslag: NodeOpslag = {
+  weergave: haalNodeWeergave,
+  beslis: (id, body) => nodeRequest(`elementen/${encodeURIComponent(id)}/beslissing`, body),
+  markeer: (body) => nodeRequest("elementen", body),
+  wis: (id, revisie) => nodeRequest(`elementen/${encodeURIComponent(id)}?verwachte_revisie=${revisie}`, {}, "DELETE"),
+  status: (laagId, body) => nodeRequest(`lagen/${encodeURIComponent(laagId)}/status`, body),
+  verwijder: (body) => nodeRequest("weergave/verwijder", body),
+  async exporteer(body) {
+    const response = await fetch("/api/annotatie/v2/weergave/export", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+    });
+    if (!response.ok) throw await nodeError(response);
+    // Hetzelfde downloadpatroon als de artikelexport: bestandsnaam van de server, link in het document.
+    await downloadAntwoord(response, `annotatie.${body.formaat}`);
+  },
+  levend: true,
+};

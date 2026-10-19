@@ -1,9 +1,8 @@
 import { isApiError } from "./api";
 import { naamVan, vindplaatsLabel } from "./annotatieOverzicht";
-import { jasVolgorde, klasseLabel } from "./jas";
+import { jasVolgorde } from "./jas";
 import type { LidRegel } from "./selectie";
 import type {
-  AgentContext,
   AgentDoel,
   AgentDoelInvoer,
   AgentHergebruik,
@@ -267,71 +266,6 @@ export function volgendeElement(
 }
 
 // --- een vraag over één markering ------------------------------------------------------------------
-
-/** Hoeveel andere markeringen er hoogstens meegaan. Een bepaling kan er tientallen hebben; dan is de
- *  lijst geen hulp meer maar promptvulling. */
-const MAX_BUREN = 20;
-
-/** Bouw het contextblok voor een adviesvraag bij een element.
- *
- *  De agent kan niet in het document kijken; deze context vertelt hem waar de vraag over gaat. `lid`
- *  valt terug op het document als het element zelf er geen heeft (bij een artikel zonder leden), en
- *  het corpus is de getoonde artikeltekst – dezelfde die de jurist voor zich ziet.
- */
-export function vraagContextVan(
-  slug: string,
-  doc: AnnotatieDocument | undefined,
-  info: GraafArtikel | undefined,
-  el: AnnotatieElement,
-): AgentContext {
-  return {
-    slug,
-    bwbId: doc?.bwbId,
-    artikel: doc?.artikel,
-    lid: el.lid || doc?.lid,
-    element_id: el.id,
-    klasse: el.klasse,
-    fragment: el.tekst,
-    corpus: info?.leden_teksten.map((l) => l.tekst).join("\n\n"),
-    // De overige markeringen gaan mee, zodat de agent er bij de onderbouwing naar kan verwijzen
-    // (samenhang, afbakening) zonder ervoor terug te vallen op het gespreksgeheugen. Zou hij dat wel
-    // doen, dan verschilt het antwoord op dezelfde vraag per gesprek. Verworpen elementen blijven
-    // eruit – die zijn juist afgekeurd – en het gevraagde element ook: dat staat al als `fragment`.
-    bestaande_elementen: (doc?.elementen ?? [])
-      .filter((e) => e.id !== el.id && e.lifecycle !== "rejected")
-      .slice(0, MAX_BUREN)
-      .map((e) => ({ id: e.id, klasse: e.klasse, tekst: e.tekst, lid: e.lid, herkomst: e.herkomst })),
-  };
-}
-
-
-/** De eigen markeringen die als context meegaan met een ANNOTATIE-beurt.
- *
- *  Eigen werk als context heeft alleen zin over de bepaling die de beurt voor zich heeft, dus gaat
- *  hier één document in – niet alles wat er in het gesprek is geopend
- *  (`Object.values(docs).flatMap(...)`); anders wordt een markering bij artikel 36 gelezen tegen de
- *  tekst van artikel 8.
- *
- *  Verworpen markeringen blijven eruit en de lijst is begrensd, net als bij `vraagContextVan`.
- */
-export function eigenMarkeringenVoorContext(
-  doc: AnnotatieDocument | undefined,
-): NonNullable<AgentContext["bestaande_elementen"]> {
-  return (doc?.elementen ?? [])
-    .filter((e) => e.herkomst === "mens" && e.lifecycle !== "rejected")
-    .slice(0, MAX_BUREN)
-    .map((e) => ({ id: e.id, klasse: e.klasse, tekst: e.tekst, lid: e.lid, herkomst: e.herkomst }));
-}
-
-/** Korte aanduiding van waar een vraag over gaat, voor de chip én voor het bewaarde bericht.
- *
- *  Zonder deze regel leest een herladen gesprek als een losse vraag zonder onderwerp: de chip is
- *  UI-state en gaat niet mee naar de api.
- */
-export function vraagContextLabel(el: AnnotatieElement, doc?: AnnotatieDocument): string {
-  const plek = doc ? ` (art. ${doc.artikel}${el.lid ? ` lid ${el.lid}` : ""})` : "";
-  return `${klasseLabel(el.klasse)} – “${el.tekst}”${plek}`;
-}
 
 /** Drie vragen bij een markering, als één klik – afhankelijk van de klasse.
  *
