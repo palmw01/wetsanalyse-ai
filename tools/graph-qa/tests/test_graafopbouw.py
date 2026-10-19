@@ -41,7 +41,7 @@ def test_planning_is_de_standaardvorm():
     nodes, edges = structuur(enable_planning=True)
     assert nodes == {
         "supervisor", "agent", "tools", "verify", "correct", "finalize", "annotaties_zoeken",
-        "overzicht_bouwen", "annoteer", "emit", "advance", "afwijzen",
+        "begrippen_zoeken", "overzicht_bouwen", "annoteer", "emit", "advance", "afwijzen",
     }
     assert edges == {
         (START, "supervisor", "", False),
@@ -51,6 +51,9 @@ def test_planning_is_de_standaardvorm():
         # De leesroute zoekt eerst zelf; pas daarna formuleert de agent (zie nodes/annotatie_lezen.py).
         ("supervisor", "annotaties_zoeken", "", True),
         ("annotaties_zoeken", "agent", "", False),
+        # Idem voor vastgelegde begrippen (nodes/begrippen_lezen.py, fase F4).
+        ("supervisor", "begrippen_zoeken", "", True),
+        ("begrippen_zoeken", "agent", "", False),
         # Een overzichtsvraag: het overzicht en zijn tekst komen uit de graaf, zonder model; alleen als
         # het bouwen faalt neemt de agent het over (nodes/overzicht.py).
         ("supervisor", "overzicht_bouwen", "", True),
@@ -68,6 +71,7 @@ def test_planning_is_de_standaardvorm():
         ("advance", "agent", "", True),
         ("advance", "annoteer", "", True),
         ("advance", "annotaties_zoeken", "", True),
+        ("advance", "begrippen_zoeken", "", True),
         ("advance", "overzicht_bouwen", "", True),
         ("advance", "afwijzen", "", True),
         ("advance", EIND, "einde", True),
@@ -90,6 +94,7 @@ def test_decompositie_voegt_de_deelvraag_keten_toe():
     assert ("supervisor", "decompose", "", True) in edges
     # Ook met decompositie gaat de leesroute eerst langs de eigen zoekstap, niet langs decompose.
     assert ("annotaties_zoeken", "agent", "", False) in edges
+    assert ("begrippen_zoeken", "agent", "", False) in edges
     # En de overzichtsroute bouwt eerst het overzicht, ook met decompositie.
     assert ("supervisor", "overzicht_bouwen", "", True) in edges
     assert ("overzicht_bouwen", "verify", "", True) in edges
@@ -124,5 +129,5 @@ def test_stopbewaking_zit_om_elke_node():
     assert nodes == {
         "supervisor", "decompose", "solve", "synthesize", "resynth", "agent", "tools",
         "annoteer", "emit", "advance", "afwijzen", "verify", "finalize", "annotaties_zoeken",
-        "overzicht_bouwen",
+        "begrippen_zoeken", "overzicht_bouwen",
     }

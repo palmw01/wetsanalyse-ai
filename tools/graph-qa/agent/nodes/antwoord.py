@@ -27,6 +27,7 @@ from ..state import State
 from ..tools import anthropic_schemas
 from ..tool_execution import execute_tool
 from ..tools.annotatie_tools import ANNOTATIE_TOOL_NAMEN, begrens_antwoord
+from ..tools.begrip_tools import begrens_begrippen_antwoord
 from .context import Bouw
 
 logger = logging.getLogger("graph_qa.orchestrator")
@@ -124,6 +125,12 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
                            "annotatietools": sum(1 for naam, _ in state.get("source_trace", [])
                                                  if naam in ANNOTATIE_TOOL_NAMEN)},
                 )
+            antwoord = begrensd
+        elif state.get("begrippen_lezen"):
+            begrensd = begrens_begrippen_antwoord(antwoord, state.get("source_trace", []))
+            if begrensd != antwoord:
+                logger.warning("leesroute begrippen: antwoord begrensd",
+                               extra={"categorie": "functioneel", "run_id": state.get("run_id", "")})
             antwoord = begrensd
         # Vóór het antwoord de deur uit gaat: een bijna-letterlijk citaat (hoofdletter, punt binnen de
         # aanhalingstekens) wordt de brontekst. Anders zag de jurist het afgekeurde citaat al, en

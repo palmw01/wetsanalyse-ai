@@ -17,6 +17,11 @@ class State(TypedDict, total=False):
     run_id: str
     user_id: str
     annotaties_lezen: bool
+    # De leesroute voor begrippen (fase F4): de supervisor herkende een vraag naar vastgelegde begrippen.
+    begrippen_lezen: bool
+    # Het werkgebied van waaruit de werkplek het gesprek opende (of leeg). Zijn begrippen staan vooraan
+    # bij `search_begrippen`; het is context, geen filter. Komt elke beurt opnieuw van het verzoek.
+    werkgebied_id: str
     # De overzichtsroute (`agent/overzicht.py`): de supervisor herkende "welke artikelen gaan over X";
     # `overzicht` is het deterministisch gebouwde overzicht. Beide per beurt gereset.
     overzicht_route: bool

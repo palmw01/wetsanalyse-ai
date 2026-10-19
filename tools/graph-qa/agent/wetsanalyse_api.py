@@ -236,6 +236,29 @@ class WetsanalyseApi:
     async def meld_kaart_mislukt(self, werkgebied_id: str, begrip_id: str, run_id: str, reden: str) -> dict[str, Any]:
         return await self._post(f"{self._kaart_pad(werkgebied_id, begrip_id, run_id)}/mislukt", {"reden": reden[:2000]})
 
+    async def start_kaart_run(self, werkgebied_id: str, begrip_id: str, actie: str,
+                              ander_begrip_id: str | None = None) -> dict[str, Any]:
+        """Een kaartactie vanuit het gesprek (fase F4), zoals de knop op de kaart: de api legt de invoer vast,
+        of geeft de lopende run (of een klare met open voorstellen) terug (`nieuw: false`). Het manifest
+        vraagt de bronboom uit de graaf; vandaar de ruimere leestijd."""
+        pad = f"{self._werkgebied_pad(werkgebied_id)}/begrippen/{quote(begrip_id, safe='')}/kaart-runs"
+        antwoord = await self._client.post(
+            f"{self._basis}{pad}", headers=self._headers, timeout=MANIFEST_TIMEOUT,
+            json={"actie": actie, **({"ander_begrip_id": ander_begrip_id} if ander_begrip_id else {})})
+        if antwoord.status_code >= 400:
+            raise WetsanalyseApiFout(f"POST kaart-runs → {antwoord.status_code}", antwoord.status_code,
+                                     api_reden(antwoord))
+        return antwoord.json()
+
+    async def haal_kaartrun_stand(self, werkgebied_id: str, begrip_id: str, run_id: str) -> dict[str, Any]:
+        """De run zonder invoer: alleen status en melding, om op een lopende run te wachten."""
+        return await self._haal(self._kaart_pad(werkgebied_id, begrip_id, run_id))
+
+    # -- begrippen over werkgebieden heen (fase F4) ------------------------------------------------
+
+    async def zoek_begrippen(self, q: str, eerst: str = "", limit: int = 20) -> dict[str, Any]:
+        return await self._haal("/v1/begrippen", q=q, limit=str(limit), **({"eerst": eerst} if eerst else {}))
+
     # -- de verdieping: het model op twijfelparen en kaarten (fase C) ------------------------------
 
     async def haal_verdieping(self, werkgebied_id: str) -> dict[str, Any]:

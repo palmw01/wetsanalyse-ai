@@ -23,7 +23,7 @@ import pytest
 
 from agent import tools
 from agent.resultaat import BUDGET, is_contract
-from agent.tools.annotatie_tools import ANNOTATIE_TOOL_NAMEN
+from agent.tools.begrip_tools import AFGELEIDE_TOOL_NAMEN
 from fakes import make_settings
 
 IW = "BWBR0004770"
@@ -56,7 +56,7 @@ ARGS: dict[str, dict] = {
 }
 
 
-GRAAFTOOLS = [t["name"] for t in tools.TOOLS if t["name"] not in ANNOTATIE_TOOL_NAMEN]
+GRAAFTOOLS = [t["name"] for t in tools.TOOLS if t["name"] not in AFGELEIDE_TOOL_NAMEN]
 # Gerangschikte lijsten: via `vervolg` moet de hele (fake) dataset langskomen.
 PAGINEREND = {"search_wetgeving", "zoek_opbouw", "semantic_search", "verwijst_naar_deze", "zoek_definitie", "list_regelingen",
               "follow_verwijzingen", "referenced_by", "grondslagen", "get_context", "resolve_begrip"}
