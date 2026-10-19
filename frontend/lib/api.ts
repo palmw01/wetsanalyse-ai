@@ -14,6 +14,7 @@ import {
   parseRunStart,
 } from "./agentEvents";
 import { isBegripSamenhang, isConformiteit, type BegripSamenhang, type Conformiteit } from "./begripGraaf";
+import type { BegrippenOverzicht } from "./begrippenOverzicht";
 import type {
   ApiError,
   ApiTokenCreated,
@@ -1101,6 +1102,15 @@ export async function neemOpInWerkgebied(
       if (poging > 0 || !(isApiError(e) && e.status === 412)) throw e;
     }
   }
+}
+
+// --- Begrippen over werkgebieden heen (fase F4; alleen lezen) -----------------------------------
+
+export async function zoekBegrippen(params: URLSearchParams): Promise<BegrippenOverzicht> {
+  const qs = params.toString();
+  const uit = await json<BegrippenOverzicht>(await fetch(`/api/begrippen${qs ? `?${qs}` : ""}`, { cache: "no-store" }));
+  if (!Array.isArray(uit?.resultaten)) throw new Error("Onverwacht antwoord van de begrippen.");
+  return uit;
 }
 
 // --- Begrippen (per werkgebied; elke mutatie stuurt de revisie van het begrip in beeld mee) -----

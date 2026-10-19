@@ -105,32 +105,37 @@ describe("de voorbeeldscène", () => {
       expect(Array.from(segment.tekst).slice(a.start, a.eind).join("")).toBe(el.tekst);
     }
     // En via de adapter staat elke markering in het paneel op haar plek: geen zwevende.
-    const bezet: { start: number; eind: number }[] = [];
     for (const el of doc.elementen) {
       expect(el.anker, `${el.klasse} – "${el.tekst}"`).not.toBeNull();
-      const pos = vindPositie(nb.bron, el.tekst, el.anker, bezet);
-      expect(pos, `${el.klasse} – "${el.tekst}"`).toBeGreaterThanOrEqual(0);
-      bezet.push({ start: pos, eind: pos + el.tekst.length });
+      expect(vindPositie(nb.bron, el.tekst, el.anker, []), `${el.klasse} – "${el.tekst}"`).toBeGreaterThanOrEqual(0);
     }
   });
 
-  it("laat de markeringen niet overlappen", () => {
-    const bereiken = alsPaneel().doc.elementen.map((el) => el.anker!).sort((a, b) => a.start - b.start);
-    for (let i = 1; i < bereiken.length; i++) {
-      expect(bereiken[i].start).toBeGreaterThanOrEqual(bereiken[i - 1].eind);
-    }
+  it("is de annotatie van artikel 9 lid 1 op acceptatie, met één gele kaart", () => {
+    // Alleen lid 1: een beurt annoteert één lid. De markeringen overlappen zoals bij echt werk – het
+    // Rechtsfeit is de hele zin, de andere drie liggen erbinnen.
+    const view = maakDemoWeergave();
+    expect(view.segmenten.map((s) => s.nummer)).toEqual(["1"]);
+    expect(view.elementen.map((e) => [e.klasse, e.tekst])).toEqual([
+      ["Rechtsfeit", DEMO_LEDEN[0].tekst],
+      ["Rechtsobject", "Een belastingaanslag"],
+      ["Tijdsaanduiding", "zes weken na de dagtekening van het aanslagbiljet"],
+      ["Rechtsobject", "het aanslagbiljet"],
+    ]);
+    expect(view.elementen.filter((e) => e.aandacht === "geel").map((e) => e.klasse)).toEqual(["Rechtsfeit"]);
+    expect(view.elementen.every((e) => (e.alternatieven ?? []).length > 0)).toBe(true);
   });
 
   it("begint met alles nog te beoordelen", () => {
     const { doc } = alsPaneel();
-    expect(doc.elementen.length).toBeGreaterThan(5);
+    expect(doc.elementen.length).toBe(4);
     expect(doc.elementen.every((el) => !BESLIST_LIFECYCLES.includes(el.lifecycle))).toBe(true);
     expect(doc.status).toBe("in_review");
   });
 
-  it("toont de aandacht zoals de keten haar zet: geen badge, geel en groen, nooit rood", () => {
+  it("toont de aandacht zoals de keten haar zet: geen badge en geel, nooit rood", () => {
     const niveaus = new Set(maakDemoWeergave().elementen.map((el) => el.aandacht));
-    expect(niveaus).toEqual(new Set([null, "geel", "groen"]));
+    expect(niveaus).toEqual(new Set([null, "geel"]));
   });
 
   it("vat de voorstellen samen zoals graph-qa dat doet", () => {
@@ -142,19 +147,20 @@ describe("de voorbeeldscène", () => {
     const model = els.filter((e) => door(e) === "model").length;
     const getal = ["", "één", "twee", "drie", "vier", "vijf", "zes", "zeven", "acht", "negen", "tien", "elf"];
     expect(DEMO_SAMENVATTING).toContain(`${getal[els.length]} JAS-elementen gevonden`);
-    expect(DEMO_SAMENVATTING.toLowerCase()).toContain(`${getal[keuze]} voorstellen hebben een plausibel alternatief`);
-    expect(DEMO_SAMENVATTING.toLowerCase()).toContain(`${getal[vast]} voorstellen volgen rechtstreeks uit vaste regels, ${getal[model]} koos het model`);
+    expect(keuze).toBe(1);
+    expect(DEMO_SAMENVATTING).toContain("Eén voorstel heeft een plausibel alternatief");
+    expect([vast, model]).toEqual([0, els.length]);
+    expect(DEMO_SAMENVATTING).toContain("Alle voorstellen koos het model.");
+    // Hoogstens twee klassen, elk minstens twee keer (zoals graph-qa).
     const telling = new Map<string, number>();
     for (const e of els) telling.set(e.klasse, (telling.get(e.klasse) ?? 0) + 1);
-    const top = [...telling.entries()].sort((a, b) => b[1] - a[1]).slice(0, 2).map(([k]) => k);
-    expect(DEMO_SAMENVATTING).toContain(`vooral ${top.join(" en ")}`);
+    const top = [...telling.entries()].sort((a, b) => b[1] - a[1]).slice(0, 2).filter(([, n]) => n >= 2).map(([k]) => k);
+    expect(DEMO_SAMENVATTING).toContain(`vooral ${top.join(" en ")}.`);
   });
 
-  it("geeft het paneel een ongedekt zinsdeel dat letterlijk in de tekst staat", () => {
+  it("heeft, zoals op acceptatie, geen ongedekt zinsdeel", () => {
     const { view, nb, doc } = alsPaneel();
-    const delen = nogOngedekt(ongedektVanNode(view, nb), doc.elementen, nb.bron);
-    expect(delen.map((d) => d.tekst)).toEqual(["invorderbaar"]);
-    expect(delen[0].lid).toBe("2");
+    expect(nogOngedekt(ongedektVanNode(view, nb), doc.elementen, nb.bron)).toEqual([]);
   });
 
   it("biedt bij een termijn een andere grens aan", () => {

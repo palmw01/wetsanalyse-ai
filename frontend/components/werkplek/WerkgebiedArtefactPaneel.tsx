@@ -2,11 +2,15 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { Dialog, type DialogVariant } from "@/components/ui/Dialog";
 import { BegripVoorstellen } from "@/components/werkgebieden/BegripVoorstellen";
+import { BegripWerk } from "@/components/werkgebieden/BegripWerk";
 import { BronKandidaten } from "@/components/werkgebieden/BronKandidaten";
-import { ARTEFACT_SOORT_LABEL, type WerkgebiedArtefact } from "@/lib/artefact";
+import { lijstBegrippen } from "@/lib/api";
+import { werkgebiedLabel, type WerkgebiedArtefact } from "@/lib/artefact";
+import type { BegrippenLijst } from "@/lib/types";
 
 const TAB: Record<WerkgebiedArtefact["soort"], string> = { begrippen: "begrippen", bronnen: "bronnen" };
 
@@ -16,6 +20,8 @@ const TAB: Record<WerkgebiedArtefact["soort"], string> = { begrippen: "begrippen
  *  - **begrippen** – de voorstellen van Lex (`BegripVoorstellen`), dezelfde inhoud als op de tab
  *    Begrippen. Een overgenomen begrip opent in het werkgebied: daar staan de kaart en de passages.
  *  - **bronnen** – de bepalingen die Lex vond (`BronKandidaten`), dezelfde inhoud als op de tab Bronnen.
+ *  - **één begrip** (`begrip_id`, een kaartactie vanuit het gesprek, fase F4) – de kaart met Lex ernaast
+ *    (`BegripWerk`), dezelfde als op de tab Begrippen; de voorstellen staan onder hun veld.
  *
  *  Eén inhoud, twee schillen. */
 export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onMeedenken }: {
@@ -27,8 +33,9 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onMe
   onMeedenken?: (werkgebiedId: string, aantal: number) => void;
 }) {
   const router = useRouter();
-  const naarWerkgebied = `/werkgebieden/${encodeURIComponent(doel.werkgebied_id)}?tab=${TAB[doel.soort]}`;
-  const soort = ARTEFACT_SOORT_LABEL[doel.soort];
+  const naarWerkgebied = `/werkgebieden/${encodeURIComponent(doel.werkgebied_id)}?tab=${TAB[doel.soort]}` +
+    (doel.begrip_id ? `&begrip=${encodeURIComponent(doel.begrip_id)}` : "");
+  const soort = werkgebiedLabel(doel);
   const titel = doel.titel || soort;
   return (
     <Dialog label={`${soort}: ${titel}`} variant={variant} onSluit={onSluit}>
@@ -53,7 +60,10 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onMe
           </button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-          {doel.soort === "begrippen" ? (
+          {doel.begrip_id ? (
+            <EenBegrip werkgebiedId={doel.werkgebied_id} begripId={doel.begrip_id} onSluit={onSluit}
+              onNaarBegrip={(b) => router.push(`/werkgebieden/${encodeURIComponent(doel.werkgebied_id)}?tab=begrippen&begrip=${encodeURIComponent(b)}`)} />
+          ) : doel.soort === "begrippen" ? (
             <BegripVoorstellen
               id={doel.werkgebied_id}
               inklapbaar={false}
@@ -69,5 +79,35 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onMe
         </div>
       </div>
     </Dialog>
+  );
+}
+
+/** Eén begrip in het paneel: de kaart zoals op de tab Begrippen. De lijst van het werkgebied levert de
+ *  primaire duidingen en de andere begrippen (om mee te vergelijken); faalt die, dan werkt de kaart
+ *  zonder. */
+function EenBegrip({ werkgebiedId, begripId, onSluit, onNaarBegrip }: {
+  werkgebiedId: string;
+  begripId: string;
+  onSluit: () => void;
+  onNaarBegrip: (begripId: string) => void;
+}) {
+  const [lijst, setLijst] = useState<BegrippenLijst | null>(null);
+  useEffect(() => {
+    let levend = true;
+    lijstBegrippen(werkgebiedId).then((l) => { if (levend) setLijst(l); }).catch(() => {});
+    return () => { levend = false; };
+  }, [werkgebiedId]);
+  return (
+    <BegripWerk
+      id={werkgebiedId}
+      begripId={begripId}
+      primair={lijst?.primair ?? {}}
+      andere={(lijst?.begrippen ?? []).filter((b) => b.id !== begripId)}
+      onGewijzigd={() => {}}
+      onOnbewaard={() => {}}
+      // Verwijderd: er valt hier niets meer te tonen.
+      onWeg={async () => onSluit()}
+      onNaarBegrip={onNaarBegrip}
+    />
   );
 }

@@ -3,10 +3,13 @@
 //
 // Vier regels waar deze module zich aan houdt:
 //
-//  1. **De wettekst is echt.** `DEMO_LEDEN` is de letterlijke tekst van artikel 9, leden 1 en 2 van
-//     de Invorderingswet 1990, overgenomen uit de officiële XML bij
+//  1. **De wettekst is echt.** `DEMO_LEDEN` is de letterlijke tekst van artikel 9, lid 1 van de
+//     Invorderingswet 1990, overgenomen uit de officiële XML bij
 //     `repository.officiele-overheidspublicaties.nl/bwb/BWBR0004770/`. In een platform dat om
 //     brongetrouwheid draait is een verzonnen wettekst een grotere fout dan een lelijke rondleiding.
+//     De markeringen zijn die van de echte annotatie van dat lid op acceptatie (export 19 okt 2026),
+//     met één bewuste afwijking: de Rechtsfeit-kaart staat op *Keuze voor jou*, zodat de stap over de
+//     badges iets aan te wijzen heeft.
 //  2. **De ankers worden gerekend, niet geteld.** Elk anker komt uit `segmentAnker` over de tekst van
 //     zijn eigen lid, in codepoints, net als bij de api. Met de hand ingetypte offsets zouden bij de
 //     eerste komma verschuiven en de markeringen laten zweven.
@@ -40,25 +43,20 @@ function lidIri(lid: string): string {
   return `${ARTIKEL_IRI}:lid:${lid}`;
 }
 
-/** Artikel 9, leden 1 en 2 van de Invorderingswet 1990 – letterlijk uit de officiële publicatie. */
+/** Artikel 9, lid 1 van de Invorderingswet 1990 – letterlijk uit de officiële publicatie. Eén lid,
+ *  zoals een annotatiebeurt er één annoteert: de keuzekaart legt een artikel met leden per lid voor. */
 export const DEMO_LEDEN: { lid: string; tekst: string }[] = [
   { lid: "1", tekst: "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet." },
-  {
-    lid: "2",
-    tekst:
-      "In afwijking van het eerste lid is een navorderingsaanslag, alsmede een conserverende " +
-      "navorderingsaanslag invorderbaar één maand na de dagtekening van het aanslagbiljet en een " +
-      "naheffingsaanslag invorderbaar veertien dagen na de dagtekening van het aanslagbiljet.",
-  },
 ];
 
 /** Het doel van de voorbeeldannotatie, zoals de chip in de thread hem meegeeft aan het paneel. */
 export const DEMO_DOEL: NodeDoel = {
-  bron_iri: ARTIKEL_IRI,
-  type: "Artikel",
-  label: `${DEMO_LABEL} · Invorderingswet 1990 – artikel 9`,
+  bron_iri: lidIri("1"),
+  type: "Lid",
+  label: `${DEMO_LABEL} · Invorderingswet 1990 – artikel 9, lid 1`,
   bwb_id: BWB_ID,
   artikel: "9",
+  lid: "1",
   citeertitel: `${DEMO_LABEL} · Invorderingswet 1990`,
   snapshot_id: SNAPSHOT,
 };
@@ -66,7 +64,7 @@ export const DEMO_DOEL: NodeDoel = {
 /** De agent-ronde die de voorbeeldvoorstellen "maakte". Ook een demo hoort een herkomst te dragen. */
 const DEMO_RUN: AgentRun = {
   ronde: 1,
-  model: "voorbeeld",
+  model: "claude-sonnet-4-6",
   provider: "rondleiding",
   agent_versie: "demo",
   stop_reden: "klaar",
@@ -91,7 +89,7 @@ interface DemoSpec {
   door: "regel" | "model" | "terugval";
   /** Het bewijs van de detectoren: [detector, code]. */
   bewijs: [string, string][];
-  alternatief?: { klasse: string; motivatie: string };
+  alternatieven?: { klasse: string; motivatie: string }[];
   review_uitleg?: string;
   twijfel?: string;
   resolutie?: string;
@@ -99,84 +97,57 @@ interface DemoSpec {
   grens?: string;
 }
 
+// De vier elementen van de annotatie op acceptatie, met hun toelichting, bewijs en alternatieven.
 const DEMO_SPECS: DemoSpec[] = [
   {
-    fragment: "Een belastingaanslag", klasse: "Rechtsobject", lid: "1", aandacht: null, door: "regel",
-    bewijs: [["naamwoordgroep", "THING_NP"]],
-    toelichting: "Het voorwerp waarover de betalingsverplichting loopt.",
-  },
-  {
-    fragment: "is invorderbaar", klasse: "Rechtsbetrekking", lid: "1", aandacht: "geel", door: "model",
-    bewijs: [["gevolg", "LEGAL_EFFECT_PREDICATE"]],
-    toelichting: "De juridische toestand die tussen de ontvanger en de belastingschuldige ontstaat.",
-    alternatief: {
-      klasse: "Rechtsfeit",
-      motivatie: "Je kunt het invorderbaar wórden ook lezen als de gebeurtenis die de betalingsplicht opeisbaar maakt.",
-    },
-    review_uitleg: "Werkwoordsvorm duidt op een rechtsbetrekking, maar het tijdsverloop maakt een rechtsfeit verdedigbaar.",
+    fragment: "Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet.",
+    klasse: "Rechtsfeit", lid: "1", aandacht: "geel", door: "model",
+    bewijs: [["norm", "NORMATIVE_PREDICATE"], ["norm", "LEGAL_EFFECT_PREDICATE"]],
+    toelichting:
+      "Een rechtsfeit is een handeling of gebeurtenis die, of tijdsverloop dat een wijziging in de juridische " +
+      "toestand teweegbrengt. Hier: het verstrijken van zes weken maakt de aanslag invorderbaar.",
+    alternatieven: [{
+      klasse: "Rechtsbetrekking",
+      motivatie: "aangedragen door Normatief gezegde (“invorderbaar”); Rechtsgevolg in de norm (“invorderbaar”)",
+    }],
+    review_uitleg:
+      "Je kunt de zin lezen als het tijdsverloop dat de aanslag invorderbaar maakt (Rechtsfeit) of als de " +
+      "norm zelf (Rechtsbetrekking). Beide lezingen zijn verdedigbaar; de keuze is aan jou.",
     twijfel: "DETECTOR_CONFLICT", resolutie: "R-CONFLICT-HUMAN",
   },
   {
+    fragment: "Een belastingaanslag", klasse: "Rechtsobject", lid: "1", aandacht: null, door: "model",
+    bewijs: [["naamwoordgroep", "THING_NP"]],
+    toelichting: "Een rechtsobject is het voorwerp van een rechtsbetrekking en/of rechtsfeit. Hier: “Een belastingaanslag”.",
+    alternatieven: [{
+      klasse: "Variabele en variabelewaarde",
+      motivatie: "aangedragen door Document of rechtshandeling als ding (“belastingaanslag”) – bedrag of toeslag als voorwerp",
+    }],
+  },
+  {
     fragment: "zes weken na de dagtekening van het aanslagbiljet", klasse: "Tijdsaanduiding", lid: "1",
-    aandacht: null, door: "regel", bewijs: [["tijd", "TEMPORAL_DURATION"]], grens: "zes weken",
-    toelichting: "Het tijdvak waarna de aanslag invorderbaar is.",
+    aandacht: null, door: "model", grens: "zes weken",
+    bewijs: [["tijd", "TEMPORAL_DURATION"], ["naamwoordgroep", "ACTION_NP"], ["nominalisatie", "NOMINALIZED_ACTION"],
+             ["specificiteit", "PRIORITY_APPLIED"]],
+    toelichting:
+      "Een tijdsaanduiding is een omschrijving van een tijdstip of tijdvak. Hier: “zes weken na de dagtekening " +
+      "van het aanslagbiljet” – Termijn (“zes weken”).",
+    alternatieven: [
+      { klasse: "Rechtsobject", motivatie: "aangedragen door Handeling als naamwoord (“dagtekening”)" },
+      { klasse: "Rechtsfeit",
+        motivatie: "aangedragen door Handeling als zelfstandig naamwoord (“dagtekening”) – tijdsverloop of een startgebeurtenis in een termijn" },
+    ],
   },
   {
-    fragment: "In afwijking van het eerste lid", klasse: "Voorwaarde", lid: "2", aandacht: "groen", door: "model",
-    bewijs: [["voorwaarde", "CONDITIONAL_FORMULA"]],
-    toelichting: "Bakent af wanneer de hoofdregel van lid 1 niet geldt.",
-    alternatief: {
-      klasse: "Operator",
-      motivatie: "De formulering verbindt twee bepalingen; dat kan ook als logische uitzondering worden gelezen.",
-    },
-    review_uitleg: "Een vaste voorwaardeformule: de afwijking begrenst wanneer de termijn van lid 1 geldt.",
-    twijfel: "DETECTOR_CONFLICT", resolutie: "R-CONFLICT-CHANGE",
-  },
-  {
-    fragment: "een navorderingsaanslag", klasse: "Rechtsobject", lid: "2", aandacht: null, door: "regel",
+    fragment: "het aanslagbiljet", klasse: "Rechtsobject", lid: "1", aandacht: null, door: "model",
     bewijs: [["naamwoordgroep", "THING_NP"]],
-    toelichting: "Het voorwerp waarvoor de afwijkende termijn geldt.",
-  },
-  {
-    fragment: "alsmede", klasse: "Operator", lid: "2", aandacht: null, door: "regel",
-    bewijs: [["logisch", "LOGICAL"]],
-    toelichting: "Logische conjunctie: beide aanslagen vallen onder dezelfde termijn.",
-  },
-  {
-    fragment: "een conserverende navorderingsaanslag", klasse: "Rechtsobject", lid: "2", aandacht: null,
-    door: "regel", bewijs: [["naamwoordgroep", "THING_NP"]],
-    toelichting: "Tweede voorwerp waarvoor de termijn van één maand geldt.",
-  },
-  {
-    // Bewust een misser: het model gaf geen keuze, en de klasse die er voorlopig staat klopt niet. Zo
-    // ziet de gebruiker waarom "Keuze voor jou" serieus genomen moet worden.
-    fragment: "invorderbaar", klasse: "Rechtsobject", lid: "2", aandacht: "geel", door: "terugval",
-    bewijs: [["gevolg", "LEGAL_EFFECT_PREDICATE"]],
-    toelichting: "",
-    review_uitleg: "Dit is een werkwoordsvorm, geen voorwerp. Hoort vrijwel zeker bij Rechtsbetrekking.",
-    alternatief: { klasse: "Rechtsbetrekking", motivatie: "Werkwoord dat de plicht tot betaling uitdrukt." },
-    twijfel: "CLASSIFIER_ABSTAIN", resolutie: "R-ABSTAIN-HUMAN",
-  },
-  {
-    fragment: "één maand na de dagtekening van het aanslagbiljet", klasse: "Tijdsaanduiding", lid: "2",
-    aandacht: null, door: "regel", bewijs: [["tijd", "TEMPORAL_DURATION"]],
-    toelichting: "Afwijkende termijn voor de (conserverende) navorderingsaanslag.",
-  },
-  {
-    fragment: "een naheffingsaanslag", klasse: "Rechtsobject", lid: "2", aandacht: null, door: "regel",
-    bewijs: [["naamwoordgroep", "THING_NP"]],
-    toelichting: "Het voorwerp waarvoor de kortste termijn geldt.",
-  },
-  {
-    fragment: "veertien dagen na de dagtekening van het aanslagbiljet", klasse: "Tijdsaanduiding", lid: "2",
-    aandacht: null, door: "regel", bewijs: [["tijd", "TEMPORAL_DURATION"]],
-    toelichting: "Afwijkende termijn voor de naheffingsaanslag.",
+    toelichting: "Een rechtsobject is het voorwerp van een rechtsbetrekking en/of rechtsfeit. Hier: “het aanslagbiljet”.",
+    alternatieven: [{
+      klasse: "Variabele en variabelewaarde",
+      motivatie: "aangedragen door Document of rechtshandeling als ding (“aanslagbiljet”) – bedrag of toeslag als voorwerp",
+    }],
   },
 ];
-
-/** Wat de keten in lid 2 niet zag: het tweede "invorderbaar" (vóór "veertien dagen"). Het paneel
- *  onderstreept het gestippeld, en één klik erop markeert het – de stap "Zelf markeren". */
-const DEMO_ONGEDEKT = { lid: "2", fragment: "invorderbaar", voorkomen: 2 };
 
 /** De twaalf detectiedimensies van de keten (`jas_pipeline/dekking.py`). */
 const DIMENSIES = [
@@ -213,7 +184,7 @@ function spoorVan(spec: DemoSpec, segment: NodeSegment, start: number): ElementT
   const grens = spec.grens && start >= 0 ? segment.tekst.indexOf(spec.grens, start) : -1;
   const kandidaat = {
     label: spec.fragment,
-    mogelijke_klassen: [spec.klasse, ...(spec.alternatief ? [spec.alternatief.klasse] : [])],
+    mogelijke_klassen: [spec.klasse, ...(spec.alternatieven ?? []).map((a) => a.klasse)],
     bewijs: spec.bewijs.map(([detector, code]) => ({ detector, code })),
     ...(grens >= 0 && start >= 0 ? {
       span: { bron_iri: segment.bron_iri },
@@ -228,7 +199,7 @@ function spoorVan(spec: DemoSpec, segment: NodeSegment, start: number): ElementT
     kandidaat,
     beslissing: { status: "voorgesteld", klasse: spec.klasse, door: spec.door },
     ...(spec.twijfel ? { twijfel: [{
-      reden: spec.twijfel, huidig: spec.klasse, alternatieven: spec.alternatief ? [spec.alternatief.klasse] : [],
+      reden: spec.twijfel, huidig: spec.klasse, alternatieven: (spec.alternatieven ?? []).map((a) => a.klasse),
     }] } : {}),
     ...(spec.resolutie ? { resolutie: [{ regel: spec.resolutie }] } : {}),
   };
@@ -249,7 +220,7 @@ function elementVan(spec: DemoSpec, index: number, segment: NodeSegment): NodeEl
     ankers,
     lifecycle: "voorgesteld",
     herkomst: "agent",
-    alternatieven: spec.alternatief ? [spec.alternatief] : [],
+    alternatieven: spec.alternatieven ?? [],
     aandacht: spec.aandacht,
     review_uitleg: spec.review_uitleg,
     trace: spoorVan(spec, segment, start),
@@ -258,21 +229,13 @@ function elementVan(spec: DemoSpec, index: number, segment: NodeSegment): NodeEl
   };
 }
 
-/** De dekking zoals de keten haar meet: alle dimensies gedraaid, en in lid 2 één zinsdeel zonder
- *  treffer. */
+/** De dekking zoals de keten haar mat: alle dimensies gedraaid, en – zoals op acceptatie – geen zinsdeel
+ *  zonder treffer. */
 function demoDekking(segmenten: NodeSegment[]) {
-  const structureel = Object.fromEntries(segmenten.map((segment) => {
-    const ongedekt = [];
-    if (segment.nummer === DEMO_ONGEDEKT.lid) {
-      const start = positieVan(segment.tekst, DEMO_ONGEDEKT.fragment, DEMO_ONGEDEKT.voorkomen);
-      const a = segmentAnker(segment, start, start + DEMO_ONGEDEKT.fragment.length);
-      ongedekt.push({ tekst: a.tekst, start: a.start, eind: a.eind });
-    }
-    return [segment.bron_iri, {
-      dimensies: Object.fromEntries(DIMENSIES.map((d) => [d, "uitgevoerd" as const])),
-      ongedekt,
-    }];
-  }));
+  const structureel = Object.fromEntries(segmenten.map((segment) => [segment.bron_iri, {
+    dimensies: Object.fromEntries(DIMENSIES.map((d) => [d, "uitgevoerd" as const])),
+    ongedekt: [] as { tekst: string; start: number; eind: number }[],
+  }]));
   return { voltooid: true, structureel };
 }
 
@@ -422,10 +385,10 @@ export function maakDemoOpslag(): NodeOpslag {
 
 /** Wat Lex onder de annotatie zegt. Elke zin volgt uit `DEMO_SPECS`, zoals bij graph-qa. */
 export const DEMO_SAMENVATTING =
-  "Ik heb artikel 9 van de Invorderingswet 1990 geanalyseerd en elf JAS-elementen gevonden. " +
-  "De markeringen zijn vooral Rechtsobject en Tijdsaanduiding. " +
-  "Twee voorstellen hebben een plausibel alternatief en verdienen daarom extra aandacht. " +
-  "Acht voorstellen volgen rechtstreeks uit vaste regels, twee koos het model.";
+  "Ik heb artikel 9 lid 1 van de Invorderingswet 1990 geanalyseerd en vier JAS-elementen gevonden. " +
+  "De markeringen zijn vooral Rechtsobject. " +
+  "Eén voorstel heeft een plausibel alternatief en verdient daarom extra aandacht. " +
+  "Alle voorstellen koos het model.";
 
 /** De twee beurten die in de thread staan: een vraag met bronnen, en de annotatie met zijn tijdlijn. */
 function maakDemoItems(): ThreadItem[] {
@@ -462,7 +425,7 @@ function maakDemoItems(): ThreadItem[] {
         niet_letterlijk: ["degene te wiens name de belastingaanslag is gesteld"],
       },
     },
-    { id: "demo-3", type: "user", tekst: "Annoteer artikel 9 van de Invorderingswet 1990" },
+    { id: "demo-3", type: "user", tekst: "Annoteer artikel 9 lid 1 van de Invorderingswet 1990" },
     {
       id: "demo-4",
       type: "annotatie",
@@ -474,14 +437,14 @@ function maakDemoItems(): ThreadItem[] {
       tekst: DEMO_SAMENVATTING,
       // De fasen van de annotatieketen, in de vorm van `agent/narratie.py`: één regel per stap.
       denk: [
-        `· Bron · artikel 9 van de Invorderingswet 1990 (${DEMO_LEDEN.reduce((n, l) => n + l.tekst.length, 0)} tekens)`,
-        "· Taalanalyse · nl_core_news_md, 2 zin(nen) (0,6 s)",
-        "· Detectie · 15 kandidaten uit 9 detectoren (0,2 s)",
-        "· Besluit · 8 op vaste regels, 3 naar het model (0,0 s)",
-        "· Classificatie · 3 kandidaten in 1 modelaanroep(en) (3,8 s)",
-        "· Review · 3 twijfelgeval(len), 3 naar de reviewer (4,6 s)",
-        "· Resultaat · 11 voorgesteld, 2 ter keuze aan de jurist (0,1 s)",
-        "· Klaar · 11 elementen ter beoordeling",
+        `· Bron · artikel 9 lid 1 van de Invorderingswet 1990 (${DEMO_LEDEN.reduce((n, l) => n + l.tekst.length, 0)} tekens)`,
+        "· Taalanalyse · nl_core_news_md, 1 zin(nen) (0,4 s)",
+        "· Detectie · 5 kandidaten uit 6 detectoren (0,1 s)",
+        "· Besluit · 0 op vaste regels, 5 naar het model (0,0 s)",
+        "· Classificatie · 5 kandidaten in 1 modelaanroep(en) (3,2 s)",
+        "· Review · 1 twijfelgeval(len), 1 naar de reviewer (2,9 s)",
+        "· Resultaat · 4 voorgesteld, 1 ter keuze aan de jurist (0,1 s)",
+        "· Klaar · 4 elementen ter beoordeling",
       ].join("\n"),
     },
   ];
@@ -497,7 +460,7 @@ function maakDemoGesprekken(): GesprekSamenvatting[] {
   // Vaste tijdstippen, aflopend: een demo die "3 minuten geleden" zegt omdat hij nu gestart wordt,
   // suggereert werk dat de gebruiker nooit gedaan heeft.
   return [
-    { id: "demo-gesprek-1", titel: `${DEMO_LABEL} – Invorderingswet 1990, artikel 9`,
+    { id: "demo-gesprek-1", titel: `${DEMO_LABEL} – Invorderingswet 1990, artikel 9 lid 1`,
       aantal_berichten: 4, updated: "2026-03-17T10:12:00Z" },
     { id: "demo-gesprek-2", titel: `${DEMO_LABEL} – Wat betekent 'belastingschuldige'?`,
       aantal_berichten: 2, updated: "2026-03-16T15:40:00Z" },

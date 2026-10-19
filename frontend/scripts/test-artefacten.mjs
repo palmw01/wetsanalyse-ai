@@ -45,7 +45,20 @@ const gesprekken = {
     { rol: "assistant", tekst: "Ik stel 1 begrip voor.", ...leeg, run_id: "b1", artefact: begrippenArtefact },
     { rol: "assistant", tekst: "", ...leeg, run_id: "c1", artefact: { soort: "regels", ref: {}, titel: "Regels bij invordering" } },
   ],
+  // Een kaartactie vanuit het gesprek (fase F4): het artefact wijst naar één begrip.
+  g3: [
+    { rol: "user", tekst: "Geef voorbeelden van termijn", ...leeg },
+    { rol: "assistant", tekst: "Voorbeelden voor *Termijn*: 2 voorstellen staan bij de voorbeelden op de begripskaart.", ...leeg,
+      run_id: "k1", artefact: { soort: "begrippen", titel: "Termijn",
+        ref: { werkgebied_id: "wg1", begrip_id: "b9", kaart_run_id: "kr1", actie: "voorbeelden" } } },
+  ],
 };
+const LEEG = { naam: "", alternatieve_termen: [], context: "", jas_klasse: "", jas_subtype: "", geldigheid: "", definitie: "",
+  definitie_herkomst: null, definitie_door: "", uitleg: "", onderbouwing: "", voorbeelden: [], eigenschappen: {}, open_vragen: [] };
+const termijn = { id: "b9", iri: "urn:wa:begrip:b9", werkgebied_id: "wg1", kader_iri: "urn:wa:kader:wg1", status: "concept", revisie: 1,
+  inhoud: { ...LEEG, naam: "Termijn", definitie: "Een tijdvak." }, koppelingen: [], aangemaakt_door: "t", aangemaakt: nu, gewijzigd: nu,
+  geaccordeerd_door: null, geaccordeerd_op: null, geaccordeerd_revisie: null,
+  accorderen: { mag: false, redenen: ["De context ontbreekt."] }, aandachtspunten: [], vervangen_door: null, vervangt: [] };
 const P = (id, tekst) => ({ element_id: id, tekst, jas_klasse: "Rechtssubject", review_status: "human_approved", bron_iri: "urn:x",
   vindplaats: "Artikel 9 · Lid 1 – IW 1990" });
 const groep = { id: "G1", aandacht: "groen", voorstel: { naam: "belastingschuldige" }, uitleg: [], conflicten: [],
@@ -74,6 +87,12 @@ await page.route("**/api/**", async (route) => {
   if (p === "/api/werkgebieden/wg1/begrippen-runs/laatste") return route.fulfill({ json: { run } });
   if (p === "/api/werkgebieden/wg1/groepen") return route.fulfill({ json: { run, groepen: [groep], passages: {} } });
   if (p === "/api/begrippen-run") return route.fulfill({ json: null });
+  if (p === "/api/werkgebieden/wg1/begrippen" && m === "GET")
+    return route.fulfill({ json: { kader_iri: "urn:wa:kader:wg1", begrippen: [], primair: {} } });
+  if (p === "/api/werkgebieden/wg1/begrippen/b9") return route.fulfill({ json: termijn });
+  if (p === "/api/werkgebieden/wg1/begrippen/b9/voorstellen")
+    return route.fulfill({ json: { voorstellen: [], runs: {}, schatting: {}, budget: null } });
+  if (p === "/api/kaart-run") return route.fulfill({ json: null });
   const gesprek = p.match(/^\/api\/gesprekken\/(g\d)$/);
   if (gesprek) return route.fulfill({ json: { id: gesprek[1], titel: "Test", berichten: gesprekken[gesprek[1]] ?? [] } });
   if (p === "/api/gesprekken" && m === "POST") return route.fulfill({ status: 201, json: { id: "g2", titel: "", berichten: [] } });
@@ -128,6 +147,20 @@ try {
   await begrippenPaneel().waitFor();
   await begrippenPaneel().getByRole("button", { name: "Sluiten" }).click();
   await balk.waitFor();
+
+  // --- Eén begrip (fase F4): de chip heet "Begrip" en opent de kaart in het paneel ---
+  await page.goto(`${base}/workbench?gesprek=g3`);
+  const begripChip = page.locator('button[data-artefact-soort="begrippen"]', { hasText: "Termijn" });
+  await begripChip.waitFor();
+  assert.match(await begripChip.innerText(), /Termijn[\s\S]*Begrip · beoordelen/);
+  await begripChip.click();
+  const begripPaneel = page.getByRole("region", { name: "Begrip: Termijn" });
+  await begripPaneel.waitFor();
+  await begripPaneel.getByRole("button", { name: /Bedenk voorbeelden/ }).waitFor();
+  assert.equal(await begripPaneel.getByRole("link", { name: "Open het werkgebied" }).getAttribute("href"),
+    "/werkgebieden/wg1?tab=begrippen&begrip=b9");
+  await begripPaneel.getByRole("button", { name: "Sluiten" }).first().click();
+  await page.locator("button", { hasText: "· begrip" }).waitFor();
 
   // --- Live: een beurt die begrippen oplevert, opent het paneel ---
   await page.goto(`${base}/workbench`);

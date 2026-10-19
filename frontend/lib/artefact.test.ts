@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { annotatieDoelVan, artefactVanBericht, werkgebiedArtefactVan, isTeOpenen, parseArtefact } from "./artefact";
+import {
+  annotatieDoelVan, artefactLabel, artefactSleutel, artefactVanBericht, isTeOpenen, parseArtefact, werkgebiedArtefactVan,
+  werkgebiedLabel,
+} from "./artefact";
 
 const IRI = "urn:bwb:BWBR0004770:artikel:9:lid:1";
 
@@ -57,4 +60,27 @@ describe("annotatieDoelVan en werkgebiedArtefactVan", () => {
 it("afleidingsregels zijn gereserveerd en nog niet te openen", () => {
   expect(isTeOpenen({ soort: "regels", ref: {}, titel: "" })).toBe(false);
   expect(isTeOpenen({ soort: "begrippen", ref: { werkgebied_id: "w", run_id: "r" }, titel: "" })).toBe(true);
+});
+
+describe("een artefact dat naar één begrip wijst (fase F4)", () => {
+  const ruw = { soort: "begrippen", titel: "Termijn",
+    ref: { werkgebied_id: "w", begrip_id: "b1", kaart_run_id: "k", actie: "voorbeelden" } };
+
+  it("is geldig zonder run_id, maar niet zonder werkgebied", () => {
+    const a = parseArtefact(ruw)!;
+    expect(a.ref.begrip_id).toBe("b1");
+    expect(parseArtefact({ soort: "begrippen", ref: { begrip_id: "b1" } })).toBeUndefined();
+    expect(parseArtefact({ soort: "bronnen", ref: { werkgebied_id: "w", begrip_id: "b1" } })).toBeUndefined();
+  });
+
+  it("opent als één begrip, met een eigen label en sleutel", () => {
+    const a = parseArtefact(ruw)!;
+    const w = werkgebiedArtefactVan(a)!;
+    expect(w).toEqual({ soort: "begrippen", werkgebied_id: "w", run_id: "", begrip_id: "b1", titel: "Termijn" });
+    expect(artefactLabel(a)).toBe("Begrip");
+    expect(werkgebiedLabel(w)).toBe("Begrip");
+    const voorstellen = werkgebiedArtefactVan(parseArtefact({ soort: "begrippen", ref: { werkgebied_id: "w", run_id: "r" } }))!;
+    expect(werkgebiedLabel(voorstellen)).toBe("Begripsvoorstellen");
+    expect(artefactSleutel(w)).not.toBe(artefactSleutel(voorstellen));
+  });
 });

@@ -198,9 +198,9 @@ export const STAPPEN: Stap[] = [
     fase: "beoordelen",
     titel: "Zelf markeren",
     tekst:
-      "Miste Lex iets? Een gestippeld onderstreept stuk tekst leverde geen enkele treffer op; klik " +
-      "erop en kies zelf een klasse. Je kunt ook zelf tekst selecteren. Een markering korter of " +
-      "langer maken: klik hem aan en selecteer opnieuw, of kies op de kaart een andere grens.",
+      "Miste Lex iets? Selecteer zelf tekst en kies een klasse. Leverde een stuk tekst geen enkele " +
+      "treffer op, dan staat het gestippeld onderstreept; één klik erop markeert het. Een markering " +
+      "korter of langer maken: klik hem aan en selecteer opnieuw, of kies op de kaart een andere grens.",
     waarom: "Wat jij vastlegt blijft staan. Een volgende ronde van Lex laat het met rust.",
   },
   {
