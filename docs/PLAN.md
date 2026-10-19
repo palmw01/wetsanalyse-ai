@@ -579,7 +579,7 @@ rondleiding.
 |---|---|
 | G0. Reparaties in de werkplek – **gebouwd** (#698) | onbewaarde begripswijzigingen ook bewaakt bij een link in de sidebar en in het artefactpaneel (`useOnbewaardBewaker`); het begrippenpaneel zegt het als de chip naar een eerdere ronde wijst; de beurtsamenvatting onder de annotatiechip komt uit het bericht |
 | G1. Deelvragen en dekkingscheck – **gebouwd** (#699 api, #700 graph-qa, #701 werkplek) | deelvragen bij een werkgebied, optioneel; Lex stelt ze voor uit de analysevraag (overnemen of afwijzen met reden); per deelvraag bronnen en begrippen, en de stand *gedekt* / *nog geen geaccordeerd begrip* / *nog geen bron*; bronnen vinden zoekt ook per deelvraag (methode `deelvraag`, nog niet gemeten) |
-| G3. Lex en rondleiding – **gebouwd** (#702, G3b) | Lex en het overzicht *Begrippen* noemen een geaccordeerd begrip waarvan een dragende passage veranderde (`herbeoordelen`); de rondleiding (versie 4) eindigt bij *Werkgebieden* en *Begrippen* |
+| G3. Lex meldt herbeoordeling – **gebouwd** (#702) | Lex en het overzicht *Begrippen* noemen een geaccordeerd begrip waarvan een dragende passage veranderde (`herbeoordelen`). Werkgebieden en begrippen komen bewust niet in de rondleiding (besloten 19 okt 2026) |
 | G2. Meten en valideren – **open** | de referentieset bronselectie *Invorderbaarheid* door een jurist laten vaststellen (nu een concept), daarna de ablatie opnieuw, ook voor `deelvraag`; een nieuwe held-out begrippenset met dezelfde term in één bepaling, synoniem/homoniem, "geldt als", inclusie/uitsluiting en een definitie buiten het werkgebied |
 
 Nog niet gedaan: de dekking per deelvraag in de werkgebiedbalk van de werkplek. Buiten deze reeks blijven

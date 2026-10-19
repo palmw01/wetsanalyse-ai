@@ -134,15 +134,6 @@ try {
   await page.waitForTimeout(200);
   assert.equal(await bubbel(page).count(), 1, "Escape in het palet hoort de rondleiding open te laten");
 
-  // De slotstap wijst Werkgebieden en Begrippen in de sidebar aan; terug naar de vorige opent het paneel weer.
-  await naarStap(page, "Verder: werkgebieden en begrippen");
-  await page.locator('[data-tour="werkgebieden"]').waitFor();
-  await binnenBeeld(page);
-  await bubbel(page).getByRole("button", { name: "Vorige" }).click();
-  await page.waitForFunction(() =>
-    document.querySelector("[data-rondleiding-bubbel] p")?.textContent?.trim() === "Afronden en exporteren");
-  await page.locator('[data-tour="wettekst"]').waitFor();
-
   // Herladen halverwege: hervatten.
   const waar = await titel(page);
   await page.reload();
