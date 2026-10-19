@@ -87,6 +87,7 @@ import type {
   RunStart,
   VoorstelElement,
   Werkgebied,
+  DeelvragenDekking,
   WerkgebiedAuditRegel,
   WerkgebiedInvoer,
   WerkgebiedSamenvatting,
@@ -1069,6 +1070,53 @@ export async function wijzigBron(
 export async function verwijderBron(id: string, selectieId: string, verwachteRevisie: number): Promise<Werkgebied> {
   const qs = new URLSearchParams({ verwachte_revisie: String(verwachteRevisie) });
   return json<Werkgebied>(await fetch(`${wg(id, "bronnen", selectieId)}?${qs}`, { method: "DELETE" }));
+}
+
+// --- Deelvragen (optioneel; open keuze 4) -------------------------------------------------------------
+// Elke wijziging draagt de revisie in beeld en geeft het werkgebied terug, zoals de bronnen; gebruik ze
+// dus via `muteer` in `WerkgebiedClient`.
+
+export async function maakDeelvraag(id: string, vraag: string, verwachteRevisie: number): Promise<Werkgebied> {
+  return json<Werkgebied>(await fetch(wg(id, "deelvragen"), jsonInit("POST", { vraag, verwachte_revisie: verwachteRevisie })));
+}
+
+export async function wijzigDeelvraag(
+  id: string, deelvraagId: string,
+  wijziging: { vraag?: string; volgorde?: number; status?: "actief" | "afgewezen"; reden?: string },
+  verwachteRevisie: number,
+): Promise<Werkgebied> {
+  return json<Werkgebied>(await fetch(wg(id, "deelvragen", deelvraagId),
+    jsonInit("PATCH", { ...wijziging, verwachte_revisie: verwachteRevisie })));
+}
+
+export async function verwijderDeelvraag(id: string, deelvraagId: string, verwachteRevisie: number): Promise<Werkgebied> {
+  const qs = new URLSearchParams({ verwachte_revisie: String(verwachteRevisie) });
+  return json<Werkgebied>(await fetch(`${wg(id, "deelvragen", deelvraagId)}?${qs}`, { method: "DELETE" }));
+}
+
+/** De hele set: welke bronselecties en begrippen bij deze deelvraag horen. */
+export async function koppelDeelvraag(
+  id: string, deelvraagId: string, koppelingen: { bronnen: string[]; begrippen: string[] }, verwachteRevisie: number,
+): Promise<Werkgebied> {
+  return json<Werkgebied>(await fetch(wg(id, "deelvragen", deelvraagId, "koppelingen"),
+    jsonInit("PUT", { ...koppelingen, verwachte_revisie: verwachteRevisie })));
+}
+
+export async function haalDeelvragenDekking(id: string): Promise<DeelvragenDekking> {
+  return json<DeelvragenDekking>(await fetch(wg(id, "deelvragen", "dekking"), { cache: "no-store" }));
+}
+
+/** Lex de analysevraag laten uiteenleggen: een graph-qa-run, te volgen met `volgRun`. */
+export async function startDeelvragenRun(id: string): Promise<RunStart> {
+  return json<RunStart>(await fetch("/api/deelvragen-run", jsonInit("POST", { werkgebied_id: id })));
+}
+
+/** De lopende run om op aan te haken, `null` als er niets loopt, `"onbekend"` bij een storing. */
+export async function haalActieveDeelvragenRun(id: string): Promise<RunStart | null | "onbekend"> {
+  const res = await fetch(`/api/deelvragen-run?${new URLSearchParams({ werkgebied: id })}`, { cache: "no-store" });
+  if (!res.ok) return "onbekend";
+  const run = (await res.json()) as RunStart | null;
+  return run && run.status === "loopt" ? run : null;
 }
 
 export async function haalInventaris(id: string): Promise<Inventaris> {

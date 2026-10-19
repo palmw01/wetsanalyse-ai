@@ -19,8 +19,9 @@ const INVOER_TIMEOUT_MS = 90_000;
 const ID = /^[A-Za-z0-9-]{1,64}$/;
 
 export interface RunSoort {
-  /** Het pad onder `/v1/werkgebieden/{id}/` bij de api, en onder `/v1/` bij graph-qa. */
-  pad: "begrippen-runs" | "bronnen-runs";
+  /** Het pad onder `/v1/werkgebieden/{id}/` bij de api, en onder `/v1/` bij graph-qa. Deelvragen hebben
+   *  geen run bij de api (`app/api/deelvragen-run` start zelf); daar telt alleen de sleutel. */
+  pad: "begrippen-runs" | "bronnen-runs" | "deelvragen-runs";
   /** De runstore-sleutel bij graph-qa, om na herladen aan te haken. */
   sleutel: (werkgebied: string) => string;
   naam: string;

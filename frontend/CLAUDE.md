@@ -55,7 +55,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
 - **De rekenkern staat in `lib/`**, niet in componenten: vitest draait node-env zonder DOM, dus alleen
   pure helpers zijn testbaar (`selectie`, `annotatie`, `annotatieOverzicht`, `reeks`, `samenhang`,
   `markering`, `popover`, `wetstructuur`, `lopendeRun`, `rondleiding`, `werkgebied`, `begrippen`,
-  `begripVoorstellen`, `begripLex`, `herbeoordeling`, `begripRelaties`, `begripGraaf`, `begrippenOverzicht`, `artefact`, `bronKandidaten`, …).
+  `begripVoorstellen`, `begripLex`, `herbeoordeling`, `begripRelaties`, `begripGraaf`, `begrippenOverzicht`, `artefact`, `bronKandidaten`, `deelvragen`, `onbewaard`, …).
 - **`app/**/page.tsx`** (Server Components) – data via `lib/server.ts`, interactie in een
   `*Client.tsx`. `app/page.tsx` doet `redirect("/workbench")`. De werkplek zit in
   `app/workbench/page.tsx` én in `app/default.tsx` (de default van het children-slot); beide renderen
@@ -523,6 +523,22 @@ bestaat los van de gesprekken.
     (`bepalingenVanOverzicht`) voorgeselecteerd. Daarna staat de werkplek in dat werkgebied; wat niet
     kon worden opgenomen staat in een zichtbare melding onder de balk.
   - Browserregressie: `scripts/test-bronkandidaten.mjs`.
+- **Deelvragen** (optioneel, open keuze 4; api §*Deelvragen*, graph-qa §*Lex stelt deelvragen voor*):
+  `Deelvragen` bovenaan de tab Bronnen. Zonder deelvragen verandert er niets.
+  - Een deelvraag hoort bij de scope: toevoegen, bewerken, weghalen (`BevestigKnop`) en *Bronnen en
+    begrippen* (vinkjes, één keer opslaan, de hele set) lopen via `muteer` met de revisie in beeld.
+  - *Laat Lex deelvragen voorstellen* (uit zonder analysevraag) start via de statische route
+    `app/api/deelvragen-run` direct een graph-qa-run (de api maakt hier geen run; runstore-sleutel
+    `werkgebied:<id>:deelvragen`), gevolgd met `volgRun`; de samenvatting van Lex staat erna als melding.
+    Een voorstel staat geel met *Overnemen* of *Afwijzen…* (reden verplicht; Lex stelt het niet opnieuw voor).
+  - De stand per deelvraag komt uit `GET …/deelvragen/dekking` (per revisie, faalt stil,
+    `isDeelvragenDekking`): *Gedekt* (groen), *Nog geen geaccordeerd begrip* (geel), *Nog geen bron*.
+    Rekenkern in `lib/deelvragen.ts`.
+  - Een kandidaat die Lex bij een deelvraag vond, zegt dat (`bewijsZin`: "gevonden bij de deelvraag …");
+    opnemen koppelt hem aan die deelvraag (api).
+  - De allowlist laat `deelvragen`, `deelvragen/{id}`, `deelvragen/dekking` en `deelvragen/{id}/koppelingen`
+    door, nooit `deelvragen/voorstellen` (van graph-qa).
+  - Browserregressie: `scripts/test-deelvragen.mjs`.
 - **Opnemen vanuit een annotatie**: *Opnemen in werkgebied* in de kop van `/annotaties/node`
   (`OpnemenInWerkgebied`). Daar is geen revisie in beeld; `neemOpInWerkgebied` haalt hem op en
   probeert bij een 412 één keer opnieuw – de bedoeling hangt niet af van de rest van het werkgebied,
@@ -1295,7 +1311,7 @@ npm run test:browser # Playwright op de echte Next-UI met gemockte BFF (scripts/
 `test:browser` draait `scripts/test-annotatie-nodes.mjs`, `test-samenhang.mjs`, `test-reeks.mjs`,
 `test-toetsen.mjs`, `test-werkgebieden.mjs`, `test-begrippen.mjs`, `test-begripvoorstellen.mjs` en
 `test-artefacten.mjs` (de soorten artefacten in de werkplek), `test-bronkandidaten.mjs`,
-`test-werkgebied-annoteren.mjs`, `test-begrippen-verdieping.mjs`, `test-begriplex.mjs`, `test-herbeoordeling.mjs`, `test-begriprelaties.mjs`, `test-begrippengraaf.mjs`, `test-begrippenoverzicht.mjs` en `test-rondleiding.mjs`, en verwacht een devserver op poort 3109
+`test-werkgebied-annoteren.mjs`, `test-begrippen-verdieping.mjs`, `test-begriplex.mjs`, `test-herbeoordeling.mjs`, `test-begriprelaties.mjs`, `test-begrippengraaf.mjs`, `test-begrippenoverzicht.mjs`, `test-deelvragen.mjs` en `test-rondleiding.mjs`, en verwacht een devserver op poort 3109
 (`AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109`).
 Praat met **`localhost`**, niet met `127.0.0.1`: Next 16 weigert dev-assets aan een andere origin,
 waarna de pagina niet hydrateert en elke stap zonder duidelijke fout time-out.

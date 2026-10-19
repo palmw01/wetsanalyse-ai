@@ -803,6 +803,39 @@ export interface WerkgebiedSamenvatting {
 
 export interface Werkgebied extends WerkgebiedSamenvatting {
   bronnen: Bronselectie[];
+  /** Optioneel (open keuze 4): actieve deelvragen en open voorstellen van Lex. Een oudere api stuurt
+   *  het veld niet; lees het daarom als `wg.deelvragen ?? []`. */
+  deelvragen?: Deelvraag[];
+}
+
+/** Gelijk aan `api/app/werkgebied_deelvragen.py:_deelvraag`. `bronnen` en `begrippen` zijn de id's van
+ *  bronselecties en begrippen die bij deze deelvraag horen (alleen wat nog bestaat). */
+export interface Deelvraag {
+  id: string;
+  vraag: string;
+  volgorde: number;
+  status: "actief" | "voorgesteld";
+  herkomst: "analist" | "lex";
+  reden: string;
+  aangemaakt_door: string;
+  aangemaakt: string;
+  bronnen: string[];
+  begrippen: string[];
+}
+
+export type DeelvraagStand = "gedekt" | "geen_begrip" | "geen_bron";
+
+/** `GET …/deelvragen/dekking`: per actieve deelvraag of er een bron en een geaccordeerd begrip bij hoort. */
+export interface DeelvragenDekking {
+  deelvragen: {
+    id: string;
+    vraag: string;
+    stand: DeelvraagStand;
+    bronnen: { id: string; label: string }[];
+    begrippen: { id: string; naam: string; status: BegripStatus }[];
+  }[];
+  telling: Record<DeelvraagStand, number>;
+  totaal: number;
 }
 
 export interface WerkgebiedInvoer {
@@ -1297,7 +1330,7 @@ export interface AkkoordAntwoord {
 
 // --- Bronnen vinden met Lex (spoor D, fase A) – afgeleid van api/app/bronnen_run_contracts.py ---
 
-export type BronMethode = "overzicht" | "verwijzing_uit" | "verwijzing_in" | "definitie" | "opbouw" | "gelijkenis";
+export type BronMethode = "overzicht" | "deelvraag" | "verwijzing_uit" | "verwijzing_in" | "definitie" | "opbouw" | "gelijkenis";
 export type KandidaatRol = "kern" | "afhankelijkheid" | "aanverwant";
 export type KandidaatStatus = "voorgesteld" | "opgenomen" | "later" | "uitgesloten";
 
@@ -1306,7 +1339,8 @@ export type KandidaatStatus = "voorgesteld" | "opgenomen" | "later" | "uitgeslot
 export interface KandidaatBewijs {
   methode: BronMethode;
   vanuit: string;
-  detail: { anker?: string; functie?: string; begrip?: string; onderwerp?: string; deel?: string; score?: string };
+  detail: { anker?: string; functie?: string; begrip?: string; onderwerp?: string; deel?: string; score?: string;
+    deelvraag_id?: string; vraag?: string };
 }
 
 export interface BronKandidaat {
