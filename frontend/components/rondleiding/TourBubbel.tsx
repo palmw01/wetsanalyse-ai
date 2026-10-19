@@ -232,6 +232,7 @@ export function TourBubbel({
 
       <div
         ref={bubbelRef}
+        data-rondleiding-bubbel=""
         role="dialog"
         aria-label={`Rondleiding, stap ${nummer} van ${totaal}: ${stap.titel}`}
         className={`fixed z-[61] rounded-kaart border bg-paper p-4 shadow-kaart animate-rise transition-[border-color,box-shadow,transform] duration-200 motion-reduce:animate-none motion-reduce:transition-none ${

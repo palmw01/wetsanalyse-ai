@@ -27,8 +27,10 @@ export interface Stap {
   fase: Fase;
   /** Moet het annotatie-artefact openstaan voordat deze stap iets kan aanwijzen? */
   artefactOpen?: boolean;
-  /** Deze stap nodigt uit tot een echte handeling en wacht daarop. */
-  interactie?: "akkoord";
+  /** Deze stap nodigt uit tot een echte handeling en laat het aangewezen element bedienen.
+   *  `openen`: de gebruiker opent het artefact zelf, en daarmee gaat de rondleiding verder.
+   *  `akkoord`: de gebruiker beslist over een kaart; de bubbel bevestigt wat hij deed. */
+  interactie?: "akkoord" | "openen";
   alleenBeheerder?: boolean;
 }
 
@@ -104,11 +106,13 @@ export const STAPPEN: Stap[] = [
   {
     id: "artefact-openen",
     anker: "chip",
+    interactie: "openen",
     fase: "beoordelen",
     titel: "De annotatie openen",
     tekst:
-      "De uitkomst is een document dat je kunt beoordelen. Klik de kaart aan. Op een breed scherm " +
-      "komt hij naast je gesprek te staan, zodat je kunt blijven vragen terwijl je leest.",
+      "De uitkomst is een document dat je kunt beoordelen. Klik de kaart aan om hem te openen. Op " +
+      "een breed scherm komt hij naast je gesprek te staan, zodat je kunt blijven vragen terwijl je " +
+      "leest.",
   },
   {
     id: "wettekst",
@@ -209,6 +213,41 @@ export function indexVan(stappen: Stap[], id: string | undefined): number {
 export function hervatIndex(stappen: Stap[], gestoptBij: string | undefined): number {
   const i = indexVan(stappen, gestoptBij);
   return i === -1 ? 0 : i;
+}
+
+/** Waar de focus stond toen er een toets werd ingedrukt. */
+export interface ToetsContext {
+  key: string;
+  /** Staat de focus in de bubbel van de rondleiding? */
+  inBubbel: boolean;
+  /** Staat de focus nergens in het bijzonder (`body`)? */
+  nergens: boolean;
+  /** Is het focuselement een knop, link of veld – iets dat Enter zelf afhandelt? */
+  opBediening: boolean;
+  /** Vraagt deze stap om een handeling in de werkplek? */
+  interactief: boolean;
+  /** Heeft iets anders de toets al afgevangen (`defaultPrevented`)? */
+  alAfgevangen: boolean;
+}
+
+/** Wat een toets met de rondleiding doet; `null` = niets, laat hem aan wie de focus heeft.
+ *
+ *  Eerst luisterde de rondleiding op het hele venster. Enter op *Vorige* of *Overslaan* ging dan een
+ *  stap vooruit (de `preventDefault` hield de klik op de knop zelf tegen), en in "Jij beslist" sprong
+ *  Enter op *Akkoord* door naar de volgende stap in plaats van te beslissen. Escape in het
+ *  klassepalet sloot de hele rondleiding. De regel is nu: een knop of veld handelt zijn eigen toetsen
+ *  af, en buiten de bubbel stuurt de rondleiding alleen in een stap waar er verder niets te doen is. */
+export function toetsActie(t: ToetsContext): "volgende" | "vorige" | "sluiten" | null {
+  if (t.alAfgevangen) return null;
+  // Buiten de bubbel alleen als de focus nergens staat, en niet in een stap waar je in de werkplek
+  // bezig bent: daar betekenen de toetsen iets voor wat je aan het doen bent.
+  const magHier = t.inBubbel || (t.nergens && !t.interactief);
+  if (t.key === "Escape") return t.inBubbel || t.nergens ? "sluiten" : null;
+  if (!magHier) return null;
+  if (t.key === "Enter") return t.opBediening ? null : "volgende";
+  if (t.key === "ArrowRight") return "volgende";
+  if (t.key === "ArrowLeft") return "vorige";
+  return null;
 }
 
 /** Moet het artefact openstaan om van `van` naar `naar` te kunnen? */

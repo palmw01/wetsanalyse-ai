@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   artefactActie, BUBBEL_MARGE, domineert, heeftOmvang, hervatIndex, indexVan, klikGat, LEGE_STAND,
-  maskRechthoeken, moetStarten, uitsnede, zichtbaarDeel,
+  maskRechthoeken, moetStarten, toetsActie, uitsnede, zichtbaarDeel, type ToetsContext,
   plaatsBubbel, RONDLEIDING_VERSIE, STAPPEN, vraagtArtefact, zichtbareStappen, type Vak,
 } from "./rondleiding";
 import {
@@ -521,5 +521,71 @@ describe("de dimlaag laat het gat echt door", () => {
   it("animeert de dimvlakken niet", () => {
     // Een vlak dat 150 ms lang naar zijn nieuwe plek beweegt, dekt in die tijd nog de oude af.
     expect(bubbel).not.toMatch(/pointer-events-auto absolute bg-ink\/55 transition/);
+  });
+});
+
+describe("de openen-stap", () => {
+  const openen = STAPPEN.find((s) => s.id === "artefact-openen")!;
+
+  it("laat de kaart zelf aanklikken", () => {
+    // Zonder interactie lag er een klikvanger over de kaart, terwijl de tekst om een klik vroeg; een
+    // timer opende het paneel daarna vanzelf. Dat was de rondleiding die "zelf doorliep".
+    expect(openen.interactie).toBe("openen");
+    expect(klikGat(openen, { top: 400, left: 300, breedte: 500, hoogte: 60 }, 14)).not.toBeNull();
+  });
+
+  it("opent het paneel zelf nog niet", () => {
+    expect(openen.artefactOpen).toBeUndefined();
+  });
+
+  it("heeft geen timer meer in de motor", () => {
+    const motor = readFileSync(
+      new URL("../components/rondleiding/Rondleiding.tsx", import.meta.url).pathname,
+      "utf-8",
+    );
+    expect(motor).not.toMatch(/setTimeout\(onOpenArtefact/);
+  });
+});
+
+describe("welke toets de rondleiding stuurt", () => {
+  const basis: ToetsContext = {
+    key: "Enter", inBubbel: false, nergens: true, opBediening: false, interactief: false,
+    alAfgevangen: false,
+  };
+  const t = (extra: Partial<ToetsContext>) => toetsActie({ ...basis, ...extra });
+
+  it("gaat verder met Enter op de kop van de bubbel of zonder focus", () => {
+    expect(t({ inBubbel: true, nergens: false })).toBe("volgende");
+    expect(t({})).toBe("volgende");
+  });
+
+  it("laat Enter op een knop aan die knop", () => {
+    // Enter op *Vorige* ging een stap vooruit, en Enter op *Overslaan* sloeg niets over.
+    expect(t({ inBubbel: true, nergens: false, opBediening: true })).toBeNull();
+  });
+
+  it("bladert met de pijltjes, ook als een knop in de bubbel de focus heeft", () => {
+    expect(t({ key: "ArrowRight", inBubbel: true, nergens: false, opBediening: true })).toBe("volgende");
+    expect(t({ key: "ArrowLeft", inBubbel: true, nergens: false, opBediening: true })).toBe("vorige");
+  });
+
+  it("blijft in een interactieve stap van de werkplek af", () => {
+    // In "Jij beslist" keurde Enter op *Akkoord* niets goed: de rondleiding sprong door.
+    const inWerkplek = { nergens: false, interactief: true, opBediening: true };
+    expect(t({ ...inWerkplek })).toBeNull();
+    expect(t({ ...inWerkplek, key: "ArrowRight" })).toBeNull();
+    expect(t({ ...inWerkplek, key: "Escape" })).toBeNull();
+    // Zonder focus ook niet: daar typ je net j, k of a.
+    expect(t({ interactief: true, key: "ArrowRight" })).toBeNull();
+  });
+
+  it("sluit met Escape vanuit de bubbel, maar niet als iemand anders hem al afving", () => {
+    expect(t({ key: "Escape", inBubbel: true, nergens: false })).toBe("sluiten");
+    // Het klassepalet en een scherpe BevestigKnop vangen Escape in de capture-fase.
+    expect(t({ key: "Escape", inBubbel: true, nergens: false, alAfgevangen: true })).toBeNull();
+  });
+
+  it("negeert andere toetsen", () => {
+    expect(t({ key: "a", inBubbel: true, nergens: false })).toBeNull();
   });
 });
