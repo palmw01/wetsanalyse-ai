@@ -573,6 +573,18 @@ als de knop, met de budgetpoort van de kaart-run. Het overzicht *Begrippen* in d
 leesingang (`GET /v1/begrippen`, uit Postgres); werkgebieden en begrippen komen (nog) niet in de
 rondleiding.
 
+**Na F (19 okt 2026).** Wat na fase F openstond, in leveringen G0–G3:
+
+| Levering | Resultaat |
+|---|---|
+| G0. Reparaties in de werkplek – **gebouwd** (#698) | onbewaarde begripswijzigingen ook bewaakt bij een link in de sidebar en in het artefactpaneel (`useOnbewaardBewaker`); het begrippenpaneel zegt het als de chip naar een eerdere ronde wijst; de beurtsamenvatting onder de annotatiechip komt uit het bericht |
+| G1. Deelvragen en dekkingscheck – **gebouwd** (#699 api, #700 graph-qa, #701 werkplek) | deelvragen bij een werkgebied, optioneel; Lex stelt ze voor uit de analysevraag (overnemen of afwijzen met reden); per deelvraag bronnen en begrippen, en de stand *gedekt* / *nog geen geaccordeerd begrip* / *nog geen bron*; bronnen vinden zoekt ook per deelvraag (methode `deelvraag`, nog niet gemeten) |
+| G3. Lex en rondleiding – **gebouwd** (#702, G3b) | Lex en het overzicht *Begrippen* noemen een geaccordeerd begrip waarvan een dragende passage veranderde (`herbeoordelen`); de rondleiding (versie 4) eindigt bij *Werkgebieden* en *Begrippen* |
+| G2. Meten en valideren – **open** | de referentieset bronselectie *Invorderbaarheid* door een jurist laten vaststellen (nu een concept), daarna de ablatie opnieuw, ook voor `deelvraag`; een nieuwe held-out begrippenset met dezelfde term in één bepaling, synoniem/homoniem, "geldt als", inclusie/uitsluiting en een definitie buiten het werkgebied |
+
+Nog niet gedaan: de dekking per deelvraag in de werkgebiedbalk van de werkplek. Buiten deze reeks blijven
+hergebruik tussen begrippenkaders, publiceerbare HTTP-URI's en afleidingsregels.
+
 **Besloten (14–15 okt 2026).** Werkgebieden zijn gedeeld. Elke analist mag een begrip accorderen (de
 audit legt vast wie). De poort vraagt naam, definitie met herkomst, context, minstens één aanduidende
 passage, en dragende koppelingen die beoordeeld en actueel zijn en op een door een jurist beoordeelde
@@ -703,8 +715,8 @@ blijft bij de wettekst.
 3. **D — kaders**: *besloten 15 okt 2026* – één begrippenkader per werkgebied, impliciet: geen eigen
    object, de IRI `urn:wa:kader:<werkgebied>` is afgeleid. Hergebruik tussen kaders komt later en
    vraagt dan wel een eigen object.
-4. **D — deelvragen**: optioneel bij een werkgebied (voorstel), of verplicht zodat de
-   dekkingscheck altijd iets heeft om tegen te meten.
+4. **D — deelvragen**: *besloten 19 okt 2026* – optioneel; Lex stelt ze voor uit de analysevraag. Zonder
+   deelvragen werkt alles zoals daarvoor; de dekkingscheck per deelvraag verschijnt alleen als ze er zijn.
 5. **D — SHACL bij accorderen**: *besloten 16 okt 2026* – diagnostisch, zoals bij de JAS-projectie:
    accorderen kan, kaart en export tonen of een begrip NL-SBB-conform is (zie ADR-003, fase F3).
 6. **C**: blijft de leerlus een doel, en in welke vorm?

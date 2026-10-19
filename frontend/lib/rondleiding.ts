@@ -9,7 +9,7 @@
 // afgeronde annotatie) en dat verhaal lees je alleen als de zinnen bij elkaar staan, niet verspreid
 // over veertien componenten.
 
-export const RONDLEIDING_VERSIE = 3;
+export const RONDLEIDING_VERSIE = 4;
 
 /** Waar in het verhaal een stap hoort. Alleen voor de voortgangsweergave; de volgorde is de lijst. */
 export type Fase = "orientatie" | "opdracht" | "beoordelen" | "afronding";
@@ -215,6 +215,21 @@ export const STAPPEN: Stap[] = [
       "maakte. Afronden zet de annotatie vast; heropenen kan daarna nog steeds. Verwijderen haalt de " +
       "annotatie van deze bepaling voor iedereen weg.",
     waarom: "Alle kaarten beslissen is iets anders dan klaar zijn. Dat oordeel blijft aan jou.",
+  },
+  {
+    id: "werkgebieden",
+    anker: "werkgebieden",
+    ankerSmal: "sidebar-mobiel",
+    fase: "afronding",
+    titel: "Verder: werkgebieden en begrippen",
+    tekst:
+      "Annoteren is één bepaling tegelijk. Onder Werkgebieden breng je bepalingen samen rond één " +
+      "analysevraag, eventueel met deelvragen. Lex zoekt bepalingen die erbij horen, annoteert wat nog " +
+      "ontbreekt en stelt begrippen voor, die jij beoordeelt. Onder Begrippen vind je de begrippen van " +
+      "alle werkgebieden, met hun status.",
+    waarom:
+      "Een begrip blijft verbonden met de passages waarop het rust. Verandert zo'n passage, dan zie je " +
+      "dat bij het begrip terug.",
   },
 ];
 

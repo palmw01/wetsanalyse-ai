@@ -155,36 +155,38 @@ export function GesprekSidebar({
           Annotaties
         </Link>
         {/* Een werkgebied brengt bepalingen samen rond één analysevraag; net als de annotaties
-            bestaat het los van de gesprekken. */}
-        <Link
-          href="/werkgebieden"
-          onClick={onSluit}
-          aria-current={werkgebiedenActief ? "page" : undefined}
-          className={`focus-ring mt-0.5 flex min-h-[36px] items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors coarse:min-h-[44px] ${
-            werkgebiedenActief ? "bg-lint/10 font-medium text-lint" : "text-ink hover:bg-paper"
-          }`}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <rect x="3" y="4" width="18" height="16" rx="2" />
-            <path d="M3 9h18M9 9v11" />
-          </svg>
-          Werkgebieden
-        </Link>
-        {/* De begrippen over alle werkgebieden heen: een leesingang, het werk gebeurt op de kaart. */}
-        <Link
-          href="/begrippen"
-          onClick={onSluit}
-          aria-current={begrippenActief ? "page" : undefined}
-          className={`focus-ring mt-0.5 flex min-h-[36px] items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors coarse:min-h-[44px] ${
-            begrippenActief ? "bg-lint/10 font-medium text-lint" : "text-ink hover:bg-paper"
-          }`}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M4 6a2 2 0 0 1 2-2h9l5 5v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
-            <path d="M8 11h8M8 15h5" />
-          </svg>
-          Begrippen
-        </Link>
+            bestaat het los van de gesprekken. De rondleiding wijst beide ingangen samen aan. */}
+        <div data-tour="werkgebieden">
+          <Link
+            href="/werkgebieden"
+            onClick={onSluit}
+            aria-current={werkgebiedenActief ? "page" : undefined}
+            className={`focus-ring mt-0.5 flex min-h-[36px] items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors coarse:min-h-[44px] ${
+              werkgebiedenActief ? "bg-lint/10 font-medium text-lint" : "text-ink hover:bg-paper"
+            }`}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <rect x="3" y="4" width="18" height="16" rx="2" />
+              <path d="M3 9h18M9 9v11" />
+            </svg>
+            Werkgebieden
+          </Link>
+          {/* De begrippen over alle werkgebieden heen: een leesingang, het werk gebeurt op de kaart. */}
+          <Link
+            href="/begrippen"
+            onClick={onSluit}
+            aria-current={begrippenActief ? "page" : undefined}
+            className={`focus-ring mt-0.5 flex min-h-[36px] items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors coarse:min-h-[44px] ${
+              begrippenActief ? "bg-lint/10 font-medium text-lint" : "text-ink hover:bg-paper"
+            }`}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M4 6a2 2 0 0 1 2-2h9l5 5v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
+              <path d="M8 11h8M8 15h5" />
+            </svg>
+            Begrippen
+          </Link>
+        </div>
       </div>
 
       {/* Chatgeschiedenis (scrollt) */}
