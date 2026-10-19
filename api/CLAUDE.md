@@ -36,6 +36,9 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
 14. **Begrippen naar de kennisgraaf** (`…/begrippen/export?formaat=ttl`, `…/begrippen/conformiteit`,
    `…/begrippen/samenhang`, fase F3): NL-SBB-projectie per werkgebied, conformiteit en Turtle-export –
    zie §*Begrippen naar de kennisgraaf*.
+15. **Begrippen over werkgebieden heen** (`/v1/begrippen`, `/v1/begrippen/verifieer`, `/v1/begrippen/{id}`,
+   fase F4): het overzicht in de webapp en de verificatie van wat Lex in de graaf vond – zie §*Begrippen
+   lezen*.
 
 > **De wettekst komt uit de graaf.** De API leest uit GraphDB de **bronboom** (`bron_resolver.py`):
 > daarmee toetst hij ankers, legt hij snapshots vast en levert hij de segmenten van de weergave.
@@ -69,6 +72,7 @@ projectroot-`CLAUDE.md`. Endpoints, env-vars met defaults en lokaal draaien staa
 | `begrip_onderhoud.py` (router), `begrip_onderhoud_store.py`, `begrip_onderhoud_contracts.py` | Onderhoud van begrippen: herbeoordelingen, opvolgers, herkoppelen, bevestigen en dekking. |
 | `begrip_relaties.py` (router), `begrip_relatie_store.py`, `begrip_relatie_contracts.py` | Begripsrelaties (voorstellen uit de keten, vastleggen, afwijzen, doorwerking) en opvolging: nieuwe betekenis, combineren. |
 | `begrip_projectie.py`, `shapes/nl-sbb-1.0.0.ttl`, `shapes/begrippen-wa.ttl` | Begrippen naar de kennisgraaf (NL-SBB), conformiteit per begrip en de Turtle-export. |
+| `begrippen_overzicht.py` (router) | Begrippen over werkgebieden heen: zoeken, verifiëren voor Lex, één begrip. |
 | `annotatie_statistiek.py`, `scripts/statistiek.py` | Reviewstatistiek over de elementen: uitkomst per klasse en per model, klasse-verschuivingen, aandacht tegenover correctie. |
 | `jas_klassen.py`, `validation.py` | De dertien JAS-klassen, volgorde en kleuren (canoniek); `GELDIGE_JAS_KLASSEN`, `JAS_KLASSE_KLEUREN`, `jas_sorteersleutel`. |
 | `ratelimit.py` | In-process rate limit per client. |
@@ -543,6 +547,25 @@ Acceptatie: *een gewijzigde dragende passage verschijnt bij de geraakte begrippe
   `NL_SBB_VERSIE` en `NL_SBB` mee.
 - Tests: `tests/test_begrip_projectie.py` en het slot in `tests/test_begrippen_postgres.py`.
 
+## Begrippen lezen
+
+`begrippen_overzicht.py`; PLAN spoor D, fase F4. Alleen lezend, uit Postgres, over alle actieve
+werkgebieden. Een begrip in een gearchiveerd werkgebied of een verwijderd begrip bestaat hier niet.
+
+- **`GET /v1/begrippen`** (`q`, `status` herhaalbaar, `werkgebied_id`, `eerst`, `limit`, `offset`) is het
+  overzicht van de webapp. Zoeken gebeurt in Python (de inhoud is JSON, de tests draaien op SQLite):
+  zonder hoofdletters en diakrieten, rangorde exacte naam → exacte term → in de naam → in een term →
+  in de definitie → alle woorden ergens; daarna het werkgebied `eerst`, dan geaccordeerd → concept →
+  vervangen. Een rij noemt het werkgebied, `vervangen_door` en `aantal_dragend`. Het contract is
+  `BegripZoekvraag`; graph-qa (`search_begrippen`) vraagt niets wat daar niet in staat.
+- **Lex zoekt in de graaf, de api bevestigt** (`POST /v1/begrippen/verifieer {ids, werkgebieden}`), net
+  als bij `search_annotaties`: per id de rij van nu of `null`, en per werkgebied de `projectie_hash`
+  die `begrip_projectie.invoer_hash` nu zou geven. Wijkt die af van `wa:projectieHash` op het kader in
+  de graaf, dan loopt de projectie achter en meldt Lex dat zijn resultaat onvolledig kan zijn.
+- **`GET /v1/begrippen/{id}`**: `{werkgebied: {id, naam}, begrip: <kaart>, relaties: <akkoord>}`, zonder
+  dat de vrager het werkgebied hoeft te kennen (`get_begrip` van Lex, de werkplek).
+- Tests: `tests/test_begrippen_overzicht.py`.
+
 ## Bronnen vinden met Lex
 
 `bronnen_runs.py`, `bronnen_run_store.py`, `bronnen_run_contracts.py`; het ontwerp staat in PLAN
@@ -580,7 +603,8 @@ invoer vast, toetst en bewaart de kandidaten, en legt de besluiten vast.
 
 - Een bericht verwijst via **`artefact`** naar wat de beurt opleverde: `{soort, ref, titel}` met
   `soort` `annotatie` (ref `{bron_iri, label?, snapshot_id?}`), `begrippen` (ref
-  `{werkgebied_id, run_id}`), `bronnen` (ref `{werkgebied_id, run_id}`, fase A) of `regels`
+  `{werkgebied_id, run_id}`, of `{werkgebied_id, begrip_id, kaart_run_id?, actie?}` voor één begrip – een
+  kaartactie vanuit het gesprek, fase F4), `bronnen` (ref `{werkgebied_id, run_id}`, fase A) of `regels`
   (gereserveerd, nog niet in gebruik). `Artefact` toetst de
   verplichte ref-sleutels per soort (422). Oudere berichten verwijzen via `annotatie_doel`; graph-qa
   schrijft beide voor een annotatie. Het bericht draagt ook het uitvoeringsspoor van de beurt
@@ -768,5 +792,5 @@ niet vullen. `POST /v1/auth/registratie` heeft een eigen rate limit.
 - **Activiteit 3, verder.** Werkgebieden, begrippen en de deterministische voorstellen van Lex
   bestaan, het model voor twijfelparen en definitievoorstellen (fase C), Lex naast de kaart (fase E) en
   herbeoordeling en dekking (fase F1), begripsrelaties en opvolging (fase F2), de NL-SBB-projectie en
-  Turtle-export (fase F3); Lex leest begrippen nog niet (fase F4).
+  Turtle-export (fase F3) en het lezen over werkgebieden heen (fase F4).
 - **RegelSpraak-formalisering.** Komt later.
