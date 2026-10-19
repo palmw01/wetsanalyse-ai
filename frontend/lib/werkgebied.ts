@@ -55,6 +55,13 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   if (!id || pad.length > 6) return false;
   if (pad.length === 1) return true;
   if (deel === "bronnen") return pad.length <= 3;
+  // Deelvragen (optioneel): toevoegen, wijzigen, weghalen, koppelen en de dekking. `voorstellen` zet
+  // graph-qa; Lex laten voorstellen gaat via `/api/deelvragen-run`.
+  if (deel === "deelvragen") {
+    if (pad.length === 2) return true;
+    if (pad.length === 3) return !!a && a !== "voorstellen";
+    return pad.length === 4 && !!a && a !== "dekking" && a !== "voorstellen" && b === "koppelingen";
+  }
   // `verdieping` (fase C) is alleen lezen; de batches en de uitkomst zet graph-qa, niet de werkplek.
   if (deel === "elementen" || deel === "audit" || deel === "annotatie-werkvoorraad" || deel === "verdieping"
       || deel === "herbeoordelingen")
@@ -284,6 +291,22 @@ export function auditZin(regel: WerkgebiedAuditRegel, labels: Map<string, string
       return "Relatie weggehaald";
     case "relatie-bevestigd":
       return "Relatie bevestigd na een wijziging";
+    case "deelvraag-toegevoegd":
+      return `Deelvraag toegevoegd${typeof d.vraag === "string" ? `: ${d.vraag}` : ""}`;
+    case "deelvraag-gewijzigd":
+      return "Deelvraag gewijzigd";
+    case "deelvraag-overgenomen":
+      return "Deelvraag van Lex overgenomen";
+    case "deelvraag-afgewezen":
+      return "Deelvraag van Lex afgewezen";
+    case "deelvraag-verwijderd":
+      return "Deelvraag weggehaald";
+    case "deelvraag-gekoppeld":
+      return `Bij een deelvraag ${d.bronnen ?? 0} ${d.bronnen === 1 ? "bron" : "bronnen"} en ${d.begrippen ?? 0} ${d.begrippen === 1 ? "begrip" : "begrippen"} vastgelegd`;
+    case "deelvragen-voorgesteld": {
+      const n = Array.isArray(d.nieuw) ? d.nieuw.length : 0;
+      return `Lex stelde ${n === 1 ? "1 deelvraag" : `${n} deelvragen`} voor`;
+    }
     default:
       return regel.actie;
   }

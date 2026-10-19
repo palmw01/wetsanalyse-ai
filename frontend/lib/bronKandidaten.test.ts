@@ -32,6 +32,8 @@ describe("bewijsZin", () => {
     expect(bewijsZin({ methode: "overzicht", vanuit: "", detail: { onderwerp: "invorderbaar" } }))
       .toBe("in het overzicht op “invorderbaar”");
     expect(bewijsZin({ methode: "gelijkenis", vanuit: L1, detail: {} })).toMatch(/zwak signaal/);
+    expect(bewijsZin({ methode: "deelvraag", vanuit: "", detail: { deelvraag_id: "d1", vraag: "Wie betaalt?" } }))
+      .toBe("gevonden bij de deelvraag “Wie betaalt?”");
   });
 });
 

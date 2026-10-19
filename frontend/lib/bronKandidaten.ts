@@ -19,6 +19,7 @@ export const KANDIDAAT_ROL_UITLEG: Record<KandidaatRol, string> = {
 
 export const METHODE_LABEL: Record<BronMethode, string> = {
   overzicht: "overzicht op de analysevraag",
+  deelvraag: "overzicht per deelvraag",
   verwijzing_uit: "verwijzingen vanuit de kern",
   verwijzing_in: "verwijzingen naar de kern",
   definitie: "definities van termen",
@@ -73,6 +74,8 @@ export function bewijsZin(b: KandidaatBewijs, labels: Map<string, string> = new 
   switch (b.methode) {
     case "overzicht":
       return d.onderwerp ? `in het overzicht op “${d.onderwerp}”` : "in het overzicht op de analysevraag";
+    case "deelvraag":
+      return d.vraag ? `gevonden bij de deelvraag “${d.vraag}”` : "gevonden bij een deelvraag";
     case "verwijzing_uit":
       return `verwezen vanuit ${vanuit || "de kern"}${d.anker ? ` (“${d.anker}”)` : ""} – ${FUNCTIE_LABEL[d.functie ?? "onbekend"] ?? d.functie}`;
     case "verwijzing_in":

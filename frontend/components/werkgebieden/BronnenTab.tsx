@@ -9,6 +9,7 @@ import { ButtonRow } from "@/components/ui/ButtonRow";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
 import { BronKandidaten } from "@/components/werkgebieden/BronKandidaten";
+import { Deelvragen } from "@/components/werkgebieden/Deelvragen";
 import type { Mutatie } from "@/components/werkgebieden/WerkgebiedClient";
 import { foutTekst, isApiError, verwijderBron, voegBronToe, wijzigBron } from "@/lib/api";
 import type { BronBereik, BronRol, Bronselectie, Werkgebied } from "@/lib/types";
@@ -26,6 +27,8 @@ export function BronnenTab({ wg, muteer, onHerlaad }: { wg: Werkgebied; muteer: 
   const labels = useMemo(() => new Map(wg.bronnen.map((b) => [b.bron_iri, b.label || b.bron_iri])), [wg.bronnen]);
   return (
     <div className="space-y-6">
+      {/* Optioneel: de analysevraag in deelvragen; Lex zoekt daarna ook per deelvraag. */}
+      <Deelvragen wg={wg} muteer={muteer} onHerlaad={onHerlaad} />
       {/* Lex zoekt bepalingen die erbij kunnen horen (fase A); opnemen maakt een selectie hieronder. */}
       <BronKandidaten id={wg.id} labels={labels} onGewijzigd={onHerlaad} />
       {wg.bronnen.length === 0 ? (

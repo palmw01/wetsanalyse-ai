@@ -173,6 +173,9 @@ describe("isWerkgebiedRoute", async () => {
     [["w", "relaties"]], [["w", "relaties", "r"]], [["w", "relaties", "r", "bevestigen"]],
     [["w", "relaties", "voorstellen", "R1", "afwijzen"]], [["w", "begrippen", "b", "nieuwe-betekenis"]],
     [["w", "begrippen", "b", "combineren"]],
+    // Deelvragen (optioneel).
+    [["w", "deelvragen"]], [["w", "deelvragen", "d"]], [["w", "deelvragen", "dekking"]],
+    [["w", "deelvragen", "d", "koppelingen"]],
   ])("laat %j door", (pad) => expect(isWerkgebiedRoute(pad)).toBe(true));
   it.each([
     [[]], [["w", "onbekend"]], [["w", "elementen", "x"]], [["w", "bronnen", "s", "x"]],
@@ -196,6 +199,9 @@ describe("isWerkgebiedRoute", async () => {
     [["w", "herbeoordelingen", "x"]], [["w", "dekking", "x"]], [["w", "dekking", "buiten-behandeling", "e", "x"]],
     [["w", "begrippen", "b", "koppelingen", "k", "wissen"]], [["w", "begrippen", "b", "voorstellen", "v", "herkoppelen"]],
     [["w", "relaties", "r", "wissen"]], [["w", "relaties", "voorstellen", "R1", "akkoord"]], [["w", "relaties", "r", "x", "y"]],
+    // Voorstellen van deelvragen zet graph-qa; Lex laten voorstellen gaat via /api/deelvragen-run.
+    [["w", "deelvragen", "voorstellen"]], [["w", "deelvragen", "d", "x"]], [["w", "deelvragen", "dekking", "koppelingen"]],
+    [["w", "deelvragen", "d", "koppelingen", "x"]],
   ])("weigert %j", (pad) => expect(isWerkgebiedRoute(pad)).toBe(false));
 });
 
