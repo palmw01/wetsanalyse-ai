@@ -9,7 +9,7 @@
 import type { NodeDoel } from "./annotatieNode";
 import type { Bericht } from "./types";
 
-export type ArtefactSoort = "annotatie" | "begrippen" | "bronnen" | "regels";
+export type ArtefactSoort = "annotatie" | "begrippen" | "bronnen" | "werkgebied" | "regels";
 
 export interface Artefact {
   soort: ArtefactSoort;
@@ -19,9 +19,10 @@ export interface Artefact {
 
 /** Wat een artefact van een werkgebied aanwijst: de begripsvoorstellen of de gevonden bepalingen van
  *  één run op één werkgebied – of, bij een kaartactie vanuit het gesprek (fase F4), één begrip
- *  (`begrip_id`, en dan is `run_id` leeg). */
+ *  (`begrip_id`, en dan is `run_id` leeg). Soort `werkgebied` is het werkgebied zelf, dat Lex in het
+ *  gesprek samenstelde (activiteit 1): alleen `werkgebied_id`. */
 export interface WerkgebiedArtefact {
-  soort: "begrippen" | "bronnen";
+  soort: "begrippen" | "bronnen" | "werkgebied";
   werkgebied_id: string;
   run_id: string;
   begrip_id?: string;
@@ -33,6 +34,7 @@ export const ARTEFACT_SOORT_LABEL: Record<ArtefactSoort, string> = {
   annotatie: "JAS-annotatie",
   begrippen: "Begripsvoorstellen",
   bronnen: "Gevonden bepalingen",
+  werkgebied: "Werkgebied",
   regels: "Afleidingsregels",
 };
 
@@ -41,6 +43,7 @@ const VERPLICHT: Record<ArtefactSoort, string[]> = {
   // Of `begrip_id` in plaats van `run_id` – zie `parseArtefact`.
   begrippen: ["werkgebied_id", "run_id"],
   bronnen: ["werkgebied_id", "run_id"],
+  werkgebied: ["werkgebied_id"],
   regels: [],
 };
 
@@ -52,7 +55,8 @@ export function parseArtefact(ruw: unknown): Artefact | undefined {
   if (!ruw || typeof ruw !== "object") return undefined;
   const r = ruw as Record<string, unknown>;
   const soort = r.soort;
-  if (soort !== "annotatie" && soort !== "begrippen" && soort !== "bronnen" && soort !== "regels") return undefined;
+  if (soort !== "annotatie" && soort !== "begrippen" && soort !== "bronnen" && soort !== "werkgebied"
+    && soort !== "regels") return undefined;
   const ref = r.ref && typeof r.ref === "object" && !Array.isArray(r.ref) ? (r.ref as Record<string, unknown>) : undefined;
   if (!ref) return undefined;
   const nodig = soort === "begrippen" && tekst(ref.begrip_id) ? ["werkgebied_id", "begrip_id"] : VERPLICHT[soort];
@@ -82,8 +86,12 @@ export function annotatieDoelVan(a: Artefact | undefined): NodeDoel | undefined 
   };
 }
 
-/** Werkgebied en run (of begrip) van een begrippen- of bronnenartefact. */
+/** Werkgebied en run (of begrip) van een begrippen- of bronnenartefact; of het werkgebied zelf. */
 export function werkgebiedArtefactVan(a: Artefact | undefined): WerkgebiedArtefact | undefined {
+  if (a?.soort === "werkgebied") {
+    const werkgebied_id = tekst(a.ref.werkgebied_id);
+    return werkgebied_id ? { soort: "werkgebied", werkgebied_id, run_id: "", titel: a.titel } : undefined;
+  }
   if (a?.soort !== "begrippen" && a?.soort !== "bronnen") return undefined;
   const werkgebied_id = tekst(a.ref.werkgebied_id), run_id = tekst(a.ref.run_id);
   const begrip_id = a.soort === "begrippen" ? tekst(a.ref.begrip_id) : "";

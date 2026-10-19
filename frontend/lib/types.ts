@@ -593,6 +593,8 @@ export interface Bericht {
   reeks?: ReeksPlek | null;
   /** Een opdracht die Lex niet zonder akkoord start (fase B): de werkplek toont er een knop bij. */
   bevestiging?: Bevestiging | null;
+  /** Een vraag van Lex bij het samenstellen van een werkgebied (activiteit 1); zie `lib/vraagkaart.ts`. */
+  vraagkaart?: unknown;
   created?: string;
 }
 

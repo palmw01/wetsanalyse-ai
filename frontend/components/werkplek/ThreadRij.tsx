@@ -21,6 +21,7 @@ import { Markdown, StreamendeTekst } from "@/components/werkplek/Markdown";
 import { OverzichtBlok } from "@/components/werkplek/OverzichtBlok";
 import { ReeksBlok } from "@/components/werkplek/ReeksBlok";
 import { ToolSpoor } from "@/components/werkplek/ToolSpoor";
+import { VraagKaart } from "@/components/werkplek/VraagKaart";
 import {
   annotatieTitel, doelVanKandidaat, doelVoorOpnieuw, kandidaatLabel, kandidaatPrompt,
 } from "@/lib/annotatie";
@@ -34,6 +35,7 @@ import { beurtSamenvatting, laatsteRun } from "@/lib/waarom";
 import type { ThreadItem } from "@/lib/threadItem";
 import { ANNOTEER_PROMPT, PLAFOND, bepalingen } from "@/lib/werkgebiedAnnoteren";
 import { MEEDENK_PROMPT } from "@/lib/begripVoorstellen";
+import { antwoordTekst, type IntakeActie } from "@/lib/vraagkaart";
 import type {
   AgentDoelInvoer, AgentGrounding, AgentKandidaat, AnnotatieDocument, Bron, Overzicht,
 } from "@/lib/types";
@@ -49,7 +51,7 @@ export interface WerkgebiedAnnoteren {
 /** Wat een rij kan laten gebeuren. Eén stabiel object per venster, zodat `memo` iets oplevert. */
 export interface ThreadActies {
   verstuur: (vast?: string, doel?: AgentDoelInvoer, hergebruik?: "opnieuw", doelen?: AgentDoelInvoer[],
-    annoteren?: WerkgebiedAnnoteren) => void;
+    annoteren?: WerkgebiedAnnoteren, intake?: IntakeActie) => void;
   openArtefact: (slug: string, doel?: NodeDoel) => void;
   /** Een artefact dat geen annotatie is (begripsvoorstellen) in het artefactpaneel openen. */
   openArtefactVan: (artefact: Artefact) => void;
@@ -79,11 +81,13 @@ interface Props {
   doc?: AnnotatieDocument;
   /** Een annotatiekaart: het document bestaat niet meer. */
   verwijderd: boolean;
+  /** Een vraagkaartje (activiteit 1): is dit het kaartje dat nog te beantwoorden is? */
+  vraagActief: boolean;
   acties: ThreadActies;
 }
 
 export const ThreadRij = memo(function ThreadRij({
-  item, streamt, bezig, geblokkeerd, demo, samenhangAan, loopt, doc, verwijderd, acties,
+  item, streamt, bezig, geblokkeerd, demo, samenhangAan, loopt, doc, verwijderd, vraagActief, acties,
 }: Props) {
   return item.type === "user" ? (
     <div className="flex animate-rise flex-col items-end gap-1">
@@ -162,6 +166,12 @@ export const ThreadRij = memo(function ThreadRij({
               Laat Lex annoteren ({bepalingen(Math.min(item.bevestiging.aantal, PLAFOND))})
             </Button>
           )
+        )}
+        {/* Het samenstellen van een werkgebied: één vraag per kaartje, de klik is de volgende beurt. */}
+        {item.vraagkaart && (
+          <VraagKaart key={`${item.vraagkaart.intake_id}:${item.vraagkaart.stap}`} kaart={item.vraagkaart}
+            actief={vraagActief && !demo} uitgeschakeld={bezig || geblokkeerd || demo}
+            onActie={(a) => acties.verstuur(antwoordTekst(item.vraagkaart!, a), undefined, undefined, undefined, undefined, a)} />
         )}
         {item.tekst && item.grounding && <Brongetrouwheid grounding={item.grounding} />}
         {item.tekst && <KopieerKnop tekst={item.overzicht ? `${item.tekst}\n\n${overzichtAlsMarkdown(item.overzicht)}` : item.tekst} />}
@@ -303,7 +313,7 @@ function ArtefactChip({ artefact, onOpen }: { artefact: Artefact; onOpen: () => 
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-medium text-ink">{titel}</span>
-        <span className="block text-xs text-muted">{soort} · beoordelen</span>
+        <span className="block text-xs text-muted">{soort} · {artefact.soort === "werkgebied" ? "bekijken" : "beoordelen"}</span>
       </span>
       <span className="shrink-0 text-muted" aria-hidden>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

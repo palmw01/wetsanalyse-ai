@@ -43,6 +43,7 @@ import type {
 } from "@/lib/types";
 import { metingUitDekking } from "@/lib/agentEvents";
 import { ANNOTEER_PROMPT, parseBevestiging } from "@/lib/werkgebiedAnnoteren";
+import { actiefKaartje, parseVraagkaart, type IntakeActie, type Vraagkaart } from "@/lib/vraagkaart";
 import { MEEDENK_PROMPT } from "@/lib/begripVoorstellen";
 import {
   doelInvoerVan, isVerwijderd, kandidatenAlsTekst, mergeVoorstellen, vraagSuggesties,
@@ -283,7 +284,9 @@ export function WerkplekClient({
               : { id: uid(), type: "antwoord" as const, tekst: b.tekst, denk: b.denk, bronnen: b.bronnen, tool_executions: toolSpoorUit(b.tool_executions),
                   // Het overzicht zoals graph-qa het opbouwde: na herladen hetzelfde blok en dezelfde graafdoelen.
                   overzicht: b.overzicht ? parseOverzicht(b.overzicht) : undefined,
-                  bevestiging: parseBevestiging(b.bevestiging) }];
+                  bevestiging: parseBevestiging(b.bevestiging),
+                  // Het kaartje van het samenstellen: na herladen nog te beantwoorden als het het laatste is.
+                  vraagkaart: parseVraagkaart(b.vraagkaart) }];
         });
         // VÓÓR wat er al staat, niet in plaats daarvan. Verstuurde de jurist een vraag terwijl dit nog
         // laadde (een koude start duurt seconden), dan staan zijn vraag en het lopende antwoord al in
@@ -417,7 +420,7 @@ export function WerkplekClient({
    *  @param hergebruik "opnieuw" = de jurist vraagt expliciet om een nieuwe ronde op een al
    *    geannoteerd artikel; zonder doel betekent dat niets (de agent weet dan nog niet welk). */
   async function verstuur(vast?: string, doel?: AgentDoelInvoer, hergebruik?: "opnieuw", doelen?: AgentDoelInvoer[],
-    annoteren?: WerkgebiedAnnoteren) {
+    annoteren?: WerkgebiedAnnoteren, intake?: IntakeActie) {
     // In de rondleiding is dit venster een voorbeeld: er gaat niets naar de agent. De invoerbalk is
     // ook uitgeschakeld, dit is het vangnet voor Enter en de voorbeeldknoppen.
     if (demo) return;
@@ -498,6 +501,8 @@ export function WerkplekClient({
       gestart = await startRun(prompt, gid, annoteren
         ? { modus: annoteren.modus ?? "werkgebied_annoteren", werkgebied_id: annoteren.werkgebiedId,
             ...(annoteren.bevestigd !== undefined ? { bevestigd: annoteren.bevestigd } : {}) }
+        // Een klik op een vraagkaartje: geen context en geen doel; het werkgebied van het gesprek mag mee.
+        : intake ? { intake_actie: intake, ...(werkgebiedId ? { werkgebied_id: werkgebiedId } : {}) }
         : werkgebiedId ? { ...extra, werkgebied_id: werkgebiedId } : extra);
     } catch (e) {
       // Er liep al een beurt (bijvoorbeeld in een ander tabblad). Deze vraag is dus NIET aangenomen:
@@ -579,6 +584,7 @@ export function WerkplekClient({
     let hergebruik: AgentHergebruik | undefined;
     let meting: BeurtMeting | undefined;
     let overzicht: Overzicht | undefined;
+    let vraagkaart: Vraagkaart | undefined;
     let tekst = "";
     let denk = "";
     let bronnen: Bron[] = [];
@@ -648,6 +654,10 @@ export function WerkplekClient({
           onOverzicht: (o) => {
             overzicht = o;
             updateItem(antId, { overzicht: o });
+          },
+          onVraagkaart: (k) => {
+            vraagkaart = k;
+            updateItem(antId, { vraagkaart: k });
           },
           onToolExecution: (event) => {
             toolExecutions = mergeToolExecution(toolExecutions, event);
@@ -745,7 +755,7 @@ export function WerkplekClient({
         // `run_id` maakt dit bericht idempotent: kijken er twee tabbladen mee, dan landt de
         // uitkomst van deze run toch maar één keer.
         void persisteer(gid, "assistant", { tekst: tekst.trim() || "(geen antwoord)", denk, bronnen, run_id: id,
-          tool_executions: toolExecutions, ...(overzicht ? { overzicht } : {}) });
+          tool_executions: toolExecutions, ...(overzicht ? { overzicht } : {}), ...(vraagkaart ? { vraagkaart } : {}) });
       }
       onGewijzigd();
     } catch (e) {
@@ -827,6 +837,9 @@ export function WerkplekClient({
       const artefact = uitkomst.artefact;
       setItems((xs) => xs.map((x) => x.id === antId ? { id: antId, type: "artefact", artefact, tekst: tekst?.trim() || undefined, denk } : x));
       setNodeDoel(undefined); setWgArtefact(begrippen);
+      // Een werkgebied dat Lex met je samenstelde: de werkplek gaat erin verder (de werkgebiedbalk
+      // biedt bepalingen zoeken en begrippen voorstellen), het paneel ernaast toont wat er staat.
+      if (begrippen.soort === "werkgebied") onKiesWerkgebied?.(begrippen.werkgebied_id);
       return;
     }
     const node = annotatieDoelVan(uitkomst.artefact) ?? uitkomst.annotatie_doel ?? (doel?.bron_iri ? {
@@ -978,6 +991,11 @@ export function WerkplekClient({
   const laatsteAnnotatieItem = laatsteItem?.type === "annotatie" ? laatsteItem : undefined;
   const laatsteNodeAnnotatie = laatsteAnnotatieItem?.annotatie_doel ? laatsteAnnotatieItem : undefined;
   const laatsteWgArtefact = laatsteItem?.type === "artefact" ? werkgebiedArtefactVan(laatsteItem.artefact) : undefined;
+  // Het vraagkaartje dat nog te beantwoorden is: het laatste, tot er een werkgebied uit is aangemaakt.
+  const actiefVraag = actiefKaartje(items.map((x) => ({
+    id: x.id, vraagkaart: x.type === "antwoord" ? x.vraagkaart : undefined,
+    werkgebiedAangemaakt: x.type === "artefact" && x.artefact.soort === "werkgebied",
+  })));
 
   // Hoort de open annotatie bij een reeks in dit gesprek, dan bladert het paneel door de leden.
   const nodeReeksNav = (() => {
@@ -1224,6 +1242,7 @@ export function WerkplekClient({
             <div key={item.id} className="thread-rij">
               <ThreadRij
                 item={item}
+                vraagActief={item.id === actiefVraag}
                 // Alleen de laatste beurt kan aan het streamen zijn.
                 streamt={bezig && i === items.length - 1}
                 bezig={bezig}

@@ -101,6 +101,7 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | C | Leerlus en knowledge-check | Te herijken |
 | D | Activiteit 3: werkgebieden en begrippen | Ontwerp klaar, niets gebouwd |
 | E | Kennisbank (tweede corpus) | Ontwerp klaar, niets gebouwd |
+| F | Activiteit 1 in het gesprek: werkgebied bepalen | F0 gebouwd (vraagkaarten → werkgebied); vervolg open |
 
 ---
 
@@ -693,6 +694,38 @@ blijft bij de wettekst.
 - *Verouderd beleid als waarheid*: versie en datum verplicht, `geldig_tot`, intrekken.
 - *Scope-creep naar documentanalyse*: het gaat om retrieval, niet om JAS-annotatie van documenten.
 - *Modelwissel*: vraagt volledig herindexeren.
+
+---
+
+### F. Activiteit 1 in het gesprek: werkgebied bepalen
+
+**Doel.** Een wetsanalyse begint in het gesprek met Lex, niet met een formulier. "Kunnen we een
+werkgebied samenstellen?" of "ik wil een wetsanalyse uitvoeren" start activiteit 1 van de Leidraad
+(*werkgebied bepalen*). Lex stelt de vragen zoals Claude dat doet: één per kaartje, met voorstellen
+en een eigen antwoord. Na de samenvatting staat het werkgebied bij Werkgebieden, met een eigen paneel
+naast het gesprek (zoals een annotatie, maar los ervan).
+
+**F0 – vraagkaarten → werkgebied** (gebouwd, okt 2026; besluiten van de gebruiker op 19 okt 2026):
+
+- De volgorde is vast: naam (verplicht), analysevraag, en de afbakening in drie gerichte vragen –
+  regeling(en), onderdelen, wat valt erbuiten – en een samenvatting met *Aanmaken*. Geen
+  peildatum-kaartje.
+- Een **worker onder de supervisor** (`werkgebied`), met een deterministische stapmachine; het model
+  stelt alleen voor (naam, analysevraag, onderwerp). Regelingen en onderdelen komen uit de graaf.
+- **Bronnen zijn vaak nog niet bekend**: "Weet ik (nog) niet" staat altijd bij regelingen en
+  onderdelen. Alleen een gekozen onderdeel wordt een bronselectie (rol *analyseren*, bereik
+  *onderliggend*); *de hele regeling* blijft tekst.
+- Een tussenvraag laat de intake open; wat de eerste zin al zegt staat voorgeselecteerd, nooit stil
+  aangenomen. Aanmaken is idempotent (`intake_id`).
+- PR's: api (#706), graph-qa (#707), werkplek.
+
+**Vervolg (open, eigen plan):**
+
+- **Lex helpt de bronnen vinden** als de analist ze nog niet kent – nu valt dat buiten F0 (de
+  bestaande bronnenrun en deelvragen staan klaar als volgende stap na het aanmaken).
+- De rest van activiteit 1 uit de Leidraad: praktijkvoorbeeld, juridische scenario's, deelvragen in de
+  intake en ze verbinden met gebeurtenissen.
+- De doorstap naar activiteit 2 (annoteren) en 3 (begrippen) vanuit hetzelfde gesprek.
 
 ---
 

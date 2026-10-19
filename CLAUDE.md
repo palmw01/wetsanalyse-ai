@@ -17,6 +17,11 @@ letterlijk, en houd elke markering/annotatie herleidbaar naar artikel + lid + `b
 beoordeelt en corrigeert; interpretatiekeuzes (incl. twijfel en aannames) worden expliciet gemaakt in
 plaats van schijnzekerheid.
 
+> **Activiteit 1 in het gesprek (PLAN spoor F).** "Kunnen we een werkgebied samenstellen?" of "ik wil
+> een wetsanalyse uitvoeren" laat Lex het werkgebied bepalen met vraagkaarten – naam, analysevraag,
+> regeling(en), onderdelen, wat valt erbuiten – en een samenvatting met *Aanmaken*; daarna staat het
+> werkgebied bij Werkgebieden en in een eigen paneel naast het gesprek.
+
 > **Scope: activiteit 2, en het begin van activiteit 3.** Het platform levert het markeren +
 > classificeren in JAS-klassen; de annotatiecontracten dragen `scope: "act2"`. Van activiteit 3
 > (PLAN spoor D) staan de **werkgebieden** er: bepalingen samenbrengen rond één analysevraag, met
@@ -79,7 +84,8 @@ overzien.
    (specialisten `definitie`/`duiding`/`algemeen`: agent ⇄ tools → verify → finalize), de
    **annotatie-worker** (`annoteer → emit`: de hybride keten uit ADR-001 met deterministische
    detectoren, een kleine classifier en een gerichte reviewer op twijfelgevallen, met aandacht-niveau
-   🟢🟡), de **leesroute** voor vragen óver bestaande annotaties (`annotaties_zoeken`: eerst zelf
+   🟢🟡), de **werkgebied-worker** (`werkgebied_intake`: een werkgebied samenstellen met vraagkaarten,
+   activiteit 1 – een vaste stapmachine, het model stelt alleen voor), de **leesroute** voor vragen óver bestaande annotaties (`annotaties_zoeken`: eerst zelf
    zoeken met `search_annotaties`, dan pas formuleren – zoeken is een stap in de keten, geen keuze
    van het model) of de **overzichtsroute** voor "welke artikelen gaan over X?" (`overzicht_bouwen`:
    overzicht én tekst komen deterministisch uit de graaf, zonder model, en de werkplek toont het als
