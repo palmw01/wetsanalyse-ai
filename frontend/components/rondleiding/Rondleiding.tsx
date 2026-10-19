@@ -300,7 +300,7 @@ export function Rondleiding({
           <p className="mt-3 text-sm leading-6 text-ink">
             Hier laat je wetsartikelen duiden volgens het JAS. Ik loop met je langs de werkstroom, van
             vraag tot beoordeelde annotatie. Je hoeft niets in te vullen: ik gebruik een voorbeeld.
-            In {stappen.length} stappen, ongeveer twee minuten.
+            In {stappen.length} stappen, ongeveer drie minuten.
           </p>
           {hervatBij !== null && (
             <p className="mt-3 text-sm leading-6 text-ink">

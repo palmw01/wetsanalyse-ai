@@ -9,12 +9,12 @@ import {
   plaatsBubbel, RONDLEIDING_VERSIE, STAPPEN, vraagtArtefact, zichtbareStappen, type Vak,
 } from "./rondleiding";
 import {
-  DEMO_DOEL, DEMO_LEDEN, DEMO_SLUG, maakDemoOpslag, maakDemoScene, maakDemoWeergave,
+  DEMO_DOEL, DEMO_LEDEN, DEMO_SAMENVATTING, DEMO_SLUG, maakDemoOpslag, maakDemoScene, maakDemoWeergave,
   pasDemoBeslissingToe, voegDemoElementToe, wisDemoElement, zetDemoStatus,
 } from "./rondleidingDemo";
 import { vindPositie } from "./selectie";
 import { BESLIST_LIFECYCLES } from "./annotatie";
-import { documentVanNode, nodeBronVan } from "./annotatieNodeAdapter";
+import { documentVanNode, nodeBronVan, nogOngedekt, ongedektVanNode } from "./annotatieNodeAdapter";
 import { segmentAnker } from "./annotatieNode";
 
 describe("de stappenlijst", () => {
@@ -128,9 +128,56 @@ describe("de voorbeeldscène", () => {
     expect(doc.status).toBe("in_review");
   });
 
-  it("toont alle drie de aandachtniveaus", () => {
+  it("toont de aandacht zoals de keten haar zet: geen badge, geel en groen, nooit rood", () => {
     const niveaus = new Set(maakDemoWeergave().elementen.map((el) => el.aandacht));
-    expect(niveaus).toEqual(new Set(["groen", "geel", "rood"]));
+    expect(niveaus).toEqual(new Set([null, "geel", "groen"]));
+  });
+
+  it("vat de voorstellen samen zoals graph-qa dat doet", () => {
+    // Dezelfde tellingen als `agent/nodes/annotatie_samenvatting.py`, uit de demo zelf.
+    const els = maakDemoWeergave().elementen;
+    const door = (e: (typeof els)[number]) => e.trace?.beslissing?.door;
+    const keuze = els.filter((e) => e.aandacht === "geel" || door(e) === "terugval").length;
+    const vast = els.filter((e) => door(e) === "regel").length;
+    const model = els.filter((e) => door(e) === "model").length;
+    const getal = ["", "één", "twee", "drie", "vier", "vijf", "zes", "zeven", "acht", "negen", "tien", "elf"];
+    expect(DEMO_SAMENVATTING).toContain(`${getal[els.length]} JAS-elementen gevonden`);
+    expect(DEMO_SAMENVATTING.toLowerCase()).toContain(`${getal[keuze]} voorstellen hebben een plausibel alternatief`);
+    expect(DEMO_SAMENVATTING.toLowerCase()).toContain(`${getal[vast]} voorstellen volgen rechtstreeks uit vaste regels, ${getal[model]} koos het model`);
+    const telling = new Map<string, number>();
+    for (const e of els) telling.set(e.klasse, (telling.get(e.klasse) ?? 0) + 1);
+    const top = [...telling.entries()].sort((a, b) => b[1] - a[1]).slice(0, 2).map(([k]) => k);
+    expect(DEMO_SAMENVATTING).toContain(`vooral ${top.join(" en ")}`);
+  });
+
+  it("geeft het paneel een ongedekt zinsdeel dat letterlijk in de tekst staat", () => {
+    const { view, nb, doc } = alsPaneel();
+    const delen = nogOngedekt(ongedektVanNode(view, nb), doc.elementen, nb.bron);
+    expect(delen.map((d) => d.tekst)).toEqual(["invorderbaar"]);
+    expect(delen[0].lid).toBe("2");
+  });
+
+  it("biedt bij een termijn een andere grens aan", () => {
+    const { doc } = alsPaneel();
+    const termijn = doc.elementen.find((e) => e.tekst.startsWith("zes weken"))!;
+    expect(termijn.grensopties?.map((o) => o.tekst)).toEqual(["zes weken"]);
+  });
+
+  it("draagt in elk spoor alleen codes die de keten kent", () => {
+    const yaml = readFileSync(
+      new URL("../../tools/graph-qa/agent/jas_pipeline/verklaringen.yaml", import.meta.url).pathname,
+      "utf-8",
+    );
+    for (const el of maakDemoWeergave().elementen) {
+      const t = el.trace!;
+      const codes = [
+        ...(t.kandidaat?.bewijs ?? []).map((b) => b.code),
+        ...(t.twijfel ?? []).map((x) => x.reden),
+        ...(t.resolutie ?? []).map((r) => r.regel),
+        t.beslissing?.door ?? "",
+      ];
+      for (const code of codes) expect(yaml, `${el.tekst}: ${code}`).toMatch(new RegExp(`^  ${code}:`, "m"));
+    }
   });
 
   it("levert een thread met een annotatie die het paneel op de voorbeeldweergave opent", () => {

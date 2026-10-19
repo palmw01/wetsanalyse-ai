@@ -35,6 +35,7 @@ export function WerkplekHeader({ compact }: { compact: boolean }) {
   return (
     <header
       data-testid="werkplek-header"
+      data-tour="header"
       data-compact={compact ? "ja" : "nee"}
       className={`relative shrink-0 overflow-hidden ${compact ? "max-md:hidden " : ""}border-b border-lint/10 bg-gradient-to-r from-info/[0.04] via-info/[0.07] to-info/[0.12]`}
     >
