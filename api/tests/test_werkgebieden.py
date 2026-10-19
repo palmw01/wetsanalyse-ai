@@ -105,6 +105,23 @@ async def test_aanmaken_lijst_en_wijzigen_met_revisie(client):
                                json={"verwachte_revisie": 3, "peildatum": "1-1-2026"})).status_code == 422
 
 
+async def test_aanmaken_vanuit_een_intake_is_idempotent(client):
+    """Activiteit 1: een tweede *Aanmaken* in het gesprek levert hetzelfde werkgebied op."""
+    invoer = {"naam": "Box 3", "analysevraag": "Wie is belastingplichtig?", "intake_id": "ik-1"}
+    eerste = await client.post("/v1/werkgebieden", json=invoer)
+    tweede = await client.post("/v1/werkgebieden", json={**invoer, "naam": "Anders"})
+    assert eerste.status_code == tweede.status_code == 201
+    assert tweede.json()["id"] == eerste.json()["id"] and tweede.json()["naam"] == "Box 3"
+    ander = await client.post("/v1/werkgebieden", json={**invoer, "intake_id": "ik-2"})
+    assert ander.json()["id"] != eerste.json()["id"]
+    # Zonder intake blijft elk verzoek een nieuw werkgebied.
+    assert (await _nieuw(client))["id"] != (await _nieuw(client))["id"]
+    assert (await client.post("/v1/werkgebieden", json={**invoer, "intake_id": "met spatie"})).status_code == 422
+    audit = (await client.get(f"/v1/werkgebieden/{eerste.json()['id']}/audit")).json()
+    regels = audit if isinstance(audit, list) else next(iter(audit.values()))
+    assert [r["actie"] for r in regels].count("aangemaakt") == 1
+
+
 async def test_gedeeld_tussen_analisten_en_de_audit_zegt_wie(client):
     wg = await _nieuw(client)
     r = await client.patch(f"/v1/werkgebieden/{wg['id']}", headers={"X-User-Id": "jurist-b"},

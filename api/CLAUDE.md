@@ -242,6 +242,10 @@ spoor D (*Werkgebied als node*).
   (`FOR UPDATE`), `verwachte_revisie` → 412 `{fout: "revisie_conflict", revisie}`, revisie +1,
   auditregel. Het annotatieslot (`annotatie_v2_state`) blijft erbuiten: een werkgebied schrijft
   geen annotaties.
+- **Aanmaken vanuit het gesprek is idempotent** (activiteit 1): graph-qa stuurt de `intake_id` mee,
+  en een tweede `POST` met dezelfde id geeft hetzelfde werkgebied terug (unieke index
+  `ux_werkgebieden_intake`; de race tussen replica's vangt de `IntegrityError`). Zonder `intake_id`
+  is elk verzoek een nieuw werkgebied.
 - **Een bronselectie wordt geverifieerd** via de bronresolver (`bron_iri`, of `bwb_id` + `artikel`
   (+ `lid`)); de canonieke `bron_iri`, het label, `snapshot_id` en `bron_hash` worden bewaard.
   Dezelfde bron met dezelfde rol en hetzelfde bereik opnieuw toevoegen is idempotent (200, geen
@@ -636,15 +640,20 @@ werkgebied zonder deelvragen werkt zoals altijd.
 - Een bericht verwijst via **`artefact`** naar wat de beurt opleverde: `{soort, ref, titel}` met
   `soort` `annotatie` (ref `{bron_iri, label?, snapshot_id?}`), `begrippen` (ref
   `{werkgebied_id, run_id}`, of `{werkgebied_id, begrip_id, kaart_run_id?, actie?}` voor één begrip – een
-  kaartactie vanuit het gesprek, fase F4), `bronnen` (ref `{werkgebied_id, run_id}`, fase A) of `regels`
-  (gereserveerd, nog niet in gebruik). `Artefact` toetst de
+  kaartactie vanuit het gesprek, fase F4), `bronnen` (ref `{werkgebied_id, run_id}`, fase A),
+  `werkgebied` (ref `{werkgebied_id}`: een werkgebied dat Lex in het gesprek samenstelde, activiteit 1)
+  of `regels` (gereserveerd, nog niet in gebruik). `Artefact` toetst de
   verplichte ref-sleutels per soort (422). Oudere berichten verwijzen via `annotatie_doel`; graph-qa
   schrijft beide voor een annotatie. Het bericht draagt ook het uitvoeringsspoor van de beurt
   (`tool_executions`). Een antwoord op een overzichtsvraag draagt het
   `overzicht` dat graph-qa uit de graaf bouwde, zodat het blok na herladen hetzelfde is.
   Een voorstel dat Lex niet zonder akkoord start (fase B: het werkgebied annoteren) draagt een
   **`bevestiging`** `{soort: "werkgebied_annoteren" | "begrippen_verdiepen", werkgebied_id, aantal, schatting}`; de werkplek
-  toont er een knop bij, ook na herladen. `reeks.totaal` mag 1 zijn: een werkgebied kan één nieuwe
+  toont er een knop bij, ook na herladen. Bij het samenstellen van een werkgebied (activiteit 1) draagt
+  elke vraag van Lex een **`vraagkaart`** `{intake_id, soort: vraag|samenvatting, stap, nr, totaal,
+  vraag, opties[{label, waarde, bron}], meerkeuze, vrije_tekst, overslaanbaar, vooringevuld,
+  samenvatting}`; de stappen zijn `naam`, `analysevraag`, `regelingen`, `onderdelen`, `buiten`,
+  `samenvatting`. `reeks.totaal` mag 1 zijn: een werkgebied kan één nieuwe
   bepaling hebben.
   De review-state zelf blijft in het annotatiedomein. **Een veld dat graph-qa meestuurt moet in
   `BerichtInvoer` staan**, anders laat Pydantic het stil vallen en verdwijnen na het heropenen de

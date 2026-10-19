@@ -324,6 +324,7 @@ ARTEFACTEN = [
     {"soort": "annotatie", "ref": {"bron_iri": "urn:bwb:BWBR0004770:artikel:9", "label": "Artikel 9"},
      "titel": "Invorderingswet 1990 – artikel 9"},
     {"soort": "begrippen", "ref": {"werkgebied_id": "wg1", "run_id": "r1"}, "titel": "Begrippen in Invordering"},
+    {"soort": "werkgebied", "ref": {"werkgebied_id": "wg2"}, "titel": "Box 3"},
 ]
 
 
@@ -343,6 +344,7 @@ async def test_een_artefact_overleeft_het_heropenen_en_komt_terug_in_de_respons(
 @pytest.mark.parametrize("artefact", [
     {"soort": "annotatie", "ref": {}},
     {"soort": "begrippen", "ref": {"werkgebied_id": "wg1"}},
+    {"soort": "werkgebied", "ref": {}},
     {"soort": "onbekend", "ref": {"x": "y"}},
 ])
 async def test_een_artefact_zonder_geldige_verwijzing_wordt_geweigerd(client, artefact):
@@ -363,6 +365,34 @@ async def test_een_bevestiging_overleeft_het_heropenen(client):
     fout = await client.post(f"{BASIS}/{gid}/berichten", json={
         "rol": "assistant", "bevestiging": {**b, "soort": "iets_anders"}}, headers=A)
     assert fout.status_code == 422
+
+
+VRAAGKAART = {
+    "intake_id": "ik-1", "soort": "vraag", "stap": "regelingen", "nr": 3, "totaal": 5,
+    "vraag": "Welke regeling(en) horen bij het werkgebied?", "toelichting": "",
+    "opties": [{"label": "Wet inkomstenbelasting 2001", "waarde": "BWBR0011353",
+                "bron": {"bwb_id": "BWBR0011353"}}],
+    "meerkeuze": True, "vrije_tekst": True, "overslaanbaar": True, "vooringevuld": ["BWBR0011353"],
+    "samenvatting": {},
+}
+
+
+async def test_een_vraagkaart_overleeft_het_heropenen(client):
+    """Activiteit 1: het kaartje waarmee Lex een werkgebied samenstelt staat na herladen nog."""
+    gid = await _maak(client)
+    r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "assistant", "tekst": "Welke regeling?",
+                                                            "run_id": "rv", "vraagkaart": VRAAGKAART}, headers=A)
+    assert r.status_code == 201 and r.json()["vraagkaart"] == VRAAGKAART
+    doc = (await client.get(f"{BASIS}/{gid}", headers=A)).json()
+    assert doc["berichten"][-1]["vraagkaart"] == VRAAGKAART
+
+
+@pytest.mark.parametrize("fout", [{"stap": "peildatum"}, {"intake_id": "met spatie"}, {"nr": 0}, {"vraag": ""}])
+async def test_een_ongeldige_vraagkaart_wordt_geweigerd(client, fout):
+    gid = await _maak(client)
+    r = await client.post(f"{BASIS}/{gid}/berichten", json={
+        "rol": "assistant", "vraagkaart": {**VRAAGKAART, **fout}}, headers=A)
+    assert r.status_code == 422
 
 
 async def test_een_werkgebied_reeks_mag_een_onderdeel_hebben(client):
