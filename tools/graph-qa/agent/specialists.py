@@ -74,6 +74,18 @@ SPECIALISTS: dict[str, Specialist] = {
         tools=frozenset({"search_annotaties", "overzicht_annotaties", "get_annotatie", "get_annotatiedekking",
                          "get_artikel", "get_lid", "get_bepaling", "list_regelingen", "inhoudsopgave"}),
     ),
+    "begrippen_lezen": Specialist(
+        system=("Je raadpleegt de begrippen die juristen in werkgebieden vastlegden. De eerste zoekopdracht is al "
+                "voor je uitgevoerd en staat als toolresultaat in dit gesprek; bouw je antwoord daarop. Gebruik "
+                "get_begrip voor de passages en relaties van één begrip, of search_begrippen met een ándere "
+                "zoekterm of status – herhaal niet dezelfde zoekopdracht. Maak of wijzig nooit een begrip. "
+                "Noem per begrip de status en het werkgebied; bij een vervangen begrip de opvolger. Een begrip is "
+                "een analyse-uitkomst, geen wettelijke definitie: zet de definitie niet tussen aanhalingstekens, "
+                "en haal bij inhoudelijke wetsclaims de bepaling afzonderlijk op met een brontool. Een toolfout "
+                "of onvolledig resultaat betekent niet dat een begrip niet bestaat."),
+        tools=frozenset({"search_begrippen", "get_begrip", "zoek_definitie", "get_artikel", "get_lid",
+                         "get_bepaling", "list_regelingen"}),
+    ),
     "definitie": Specialist(
         system=(
             "Je bent de DEFINITIE-specialist. Je herleidt en verklaart juridische begrippen. "
@@ -93,6 +105,8 @@ SPECIALISTS: dict[str, Specialist] = {
         tools=frozenset({
             "zoek_definitie", "resolve_begrip", "search_wetgeving", "semantic_search",
             "get_artikel", "get_lid", "verwijst_naar_deze", "graph_schema", "raw_sparql",
+            # Een vastgelegd begrip (fase F4) naast de wettelijke definitie – gescheiden gehouden.
+            "search_begrippen", "get_begrip",
         }),
     ),
     "duiding": Specialist(
@@ -148,5 +162,5 @@ def get(name: str | None) -> Specialist:
     rol = (name or "").strip().lower()
     rol = rol if rol in SPECIALISTS else DEFAULT
     spec = SPECIALISTS[rol]
-    methode_rol = "algemeen" if rol == "annotaties_lezen" else rol
+    methode_rol = "algemeen" if rol in ("annotaties_lezen", "begrippen_lezen") else rol
     return Specialist(system=instructies(methode_rol) + "\n\n" + spec.system, tools=spec.tools)

@@ -140,6 +140,8 @@ async def answer_stream(
     user_id: str = "",
     run_id: str = "",
     annotaties=None,
+    begrippen=None,
+    werkgebied_id: str = "",
 ) -> AsyncIterator[dict[str, Any]]:
     """
     Async generator die SSE-events yield:
@@ -184,7 +186,7 @@ async def answer_stream(
 
     from .orchestrator import build_graph
 
-    builder = build_graph(settings, llm, graph, stop_check=stop_check, annotaties=annotaties)
+    builder = build_graph(settings, llm, graph, stop_check=stop_check, annotaties=annotaties, begrippen=begrippen)
     thread_id = conversation_id or uuid.uuid4().hex
     config = {
         "configurable": {"thread_id": thread_id},
@@ -197,6 +199,8 @@ async def answer_stream(
         "user_id": user_id,
         "annotaties_lezen": is_leesvraag(question, modus),
         "specialist": "annotaties_lezen" if is_leesvraag(question, modus) else "",
+        "begrippen_lezen": False,
+        "werkgebied_id": werkgebied_id or "",
         "bron_snapshot": {},
         "annotatie_weergave": {},
         "corpus_segmenten": [],

@@ -46,6 +46,7 @@ een andere aan, geef `b` dan expliciet door** – de suite wijst die valkuil aan
 supervisor ─┬─ antwoord-worker:  agent ⇄ tools → verify → (correct) → finalize → advance
             ├─ annotatie-worker: [agent ⇄ tools als ophaal-agent] → annoteer → emit → advance
             ├─ leesroute:        annotaties_zoeken → agent ⇄ tools → verify → finalize
+            ├─ begrippen lezen:  begrippen_zoeken → agent ⇄ tools → verify → finalize
             ├─ overzichtsroute:  overzicht_bouwen → verify → finalize   (geen model; bij een bouwfout → agent)
             └─ afwijzen (geen wetgevingsvraag)
 ```
@@ -150,8 +151,8 @@ bruikbaar is.
 
 ## Toollaag & queries
 
-- **`tools/__init__.py`** – `TOOLS` (25 declaraties: 21 graaftools plus de vier annotatieleestools uit
-  `tools/annotatie_tools.py`), `anthropic_schemas(only=)` en `dispatch()` (vangt
+- **`tools/__init__.py`** – `TOOLS` (27 declaraties: 21 graaftools, de vier annotatieleestools uit
+  `tools/annotatie_tools.py` en de twee begrippenleestools uit `tools/begrip_tools.py`), `anthropic_schemas(only=)` en `dispatch()` (vangt
   `ValueError`/`MCPError`/`KeyError` als tekst). Een tool met `needs_settings` krijgt `settings` mee.
   `tools/jas_tools.py` (`JAS_TOOLS`) is dispatchbaar maar wordt in de draaiende keten niet aangeroepen.
 - **`graph/queries.py`** – de SPARQL-bouwers (o.a. `context()` = de GraphRAG-UNION).
@@ -677,7 +678,8 @@ vóór de supervisor en zonder model – dezelfde plek als de reeks (`_stroom_vo
   (`te_weinig_passages`, `inventaris_onvolledig`, in de woorden van `WEIGERING`) worden een bewaard
   bericht zónder artefact. Een andere api-fout is een `error`; een verwijderd gesprek eindigt stil.
 - `/v1/chat` weigert `modus: "begrippen"` (422): de route schrijft in werkgebied en gesprek.
-- Voor de andere routes is `werkgebied_id` nog alleen context; Lex gebruikt het daar nog niet.
+- In de antwoordroute gaat `werkgebied_id` mee als `State.werkgebied_id`: de begrippen van dat werkgebied
+  staan vooraan bij `search_begrippen` (fase F4, hieronder).
 - Tests: `tests/test_begrippen_beurt.py` (herkenning, request-model, verloop tegen een nep-api, de
   endpoints).
 
@@ -742,6 +744,40 @@ check staat in `_stroom_voor` vóór de bronnen- en begrippenroute.
   het plafond bleef) als gewoon bericht met het `run_id` van de hele run.
 - `/v1/chat` weigert de modus (422), net als `begrippen` en `bronnen` (`WERKGEBIED_MODI`).
 - Tests: `tests/test_werkgebied_annotatie.py`.
+
+### Lex leest begrippen (`tools/begrip_tools.py`, `nodes/begrippen_lezen.py`, `agent/kaart_beurt.py`, fase F4)
+
+Wat juristen in werkgebieden als begrip vastlegden, over alle werkgebieden heen; het werkgebied van het
+gesprek staat vooraan. **Een begrip is een analyse-uitkomst** met een status, geen wettelijke definitie en
+geen vindplaats: de tools staan met de annotatietools in `AFGELEIDE_TOOL_NAMEN`, dus hun resultaten tellen
+niet als bron, niet in de grounding en niet in het bronregister. De prompt (TOOLKEUZE 7) zegt: noem status
+en werkgebied, geen aanhalingstekens om een begripsdefinitie, wettekst apart ophalen.
+
+- **`search_begrippen` zoekt in de graaf, de api bevestigt** – de vorm van `search_annotaties`.
+  `q_begrippen` vraagt kandidaat-id's uit de NL-SBB-projectie (`urn:wa:graph:werkgebied:*`: `prefLabel`,
+  `altLabel`, `definition`, `wa:status`), `Q_REGISTER` de projectiehash per werkgebied; daarna
+  `POST /v1/begrippen/verifieer` (`agent/begrip_read.py`). Wat de api niet meer kent valt af, status en
+  werkgebied gelden zoals de api ze nu kent, en wijkt de hash van een werkgebied af van wat de api nu zou
+  projecteren, dan is het resultaat `partial`/`volledig: false`. Een haperende graaf of api is nooit een
+  lege lijst (`begrens_begrippen_antwoord`). `tests/test_begrip_tools.py` draait de query tegen een
+  nagebouwde projectie en leest `BegripStatus`/`BegripVerificatie` uit de api-bron.
+- **`get_begrip`** leest altijd bij de api (`GET /v1/begrippen/{id}`): kaart, passages met actualiteit,
+  relaties. De poort draagt `werkgebied_id` uit de state (`tool_execution.begrip_port`); de actor is
+  de rungebruiker, nooit een toolargument.
+- **De leesroute** (`is_begrip_leesvraag`: begrip(pen) plus een aanwijzing dat het om wat er al ligt gaat –
+  *al, vastgelegd, geaccordeerd, hebben we, als begrip, status* – en geen handeling) → `begrippen_zoeken`
+  zoekt vóór de eerste LLM-call, met een zoekterm alleen als de vraag hem aanwijst ("het begrip X",
+  "X als begrip", tussen aanhalingstekens) en een status uit de vraag. `is_begrippenvraag` (nieuwe
+  voorstellen) wijkt voor een leesvraag: "welke begrippen zitten hierin?" blijft een voorstel.
+- **Kaartacties vanuit het gesprek** (`kaart_beurt`, harde route in `_stroom_voor` vóór de
+  begrippenroute): "zoek de brondefinitie van termijn", "maak de definitie van X scherper", "geef
+  voorbeelden van X", "betekenisverschil tussen X en Y" – binnen een werkgebied, of met het woord
+  "begrip". Het begrip komt uit `GET /v1/begrippen` (exacte naam of alternatieve term, werkgebied van het
+  gesprek eerst); meer kandidaten → Lex vraagt welke, alleen een vervangen begrip → de opvolger, geen
+  begrip en geen "begrip" in de vraag → de gewone beurt (`terugval`). Starten gaat **direct**, zoals de
+  knop (besloten 19 okt 2026): `POST …/kaart-runs` en `begrip_kaart.kaart_stroom`, met zijn budgetpoort;
+  loopt dezelfde actie al, dan wacht de beurt. Het bericht draagt een begrippenartefact met
+  `ref: {werkgebied_id, begrip_id, kaart_run_id, actie}`.
 
 ## De overzichtsroute: "welke artikelen gaan over X?"
 

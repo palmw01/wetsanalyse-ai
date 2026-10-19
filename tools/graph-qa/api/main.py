@@ -67,6 +67,7 @@ from agent.begrippen_verdieping import verdieping_beurt  # noqa: E402
 from agent.begrippen_run import begrippen_stroom  # noqa: E402
 from agent.bronnen_run import bronnen_beurt, bronnen_stroom  # noqa: E402
 from agent.begrip_kaart import kaart_stroom  # noqa: E402
+from agent.kaart_beurt import kaart_beurt  # noqa: E402
 from agent.models import (  # noqa: E402
     WERKGEBIED_MODI, BegrippenRunVerzoek, ChatRequest, KaartRunVerzoek, RunStart, Verbruiksmeter,
 )
@@ -337,6 +338,32 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
     chatbericht). Daarmee hangt een beurt niet af van een browser die blijft kijken. Is er geen api
     geconfigureerd, dan is hij een doorgeefluik."""
     def maak(run: Run) -> AsyncIterator[dict]:
+        def gewone_beurt() -> AsyncIterator[dict]:
+            # Eén meter per beurt, hier gemaakt zodat beide kanten hem kennen: de agent telt erin, de
+            # beurt-driver boekt hem daarna bij de api. Dat werkt ook als de beurt op een fout of een
+            # stopverzoek eindigt – die tokens zijn dan wél verbruikt.
+            meter = Verbruiksmeter()
+            return voer_beurt_uit(
+                answer_stream(
+                    request.question, request.conversation_id,
+                    modus=request.modus, context=request.context, doel=request.doel,
+                    hergebruik=request.hergebruik,
+                    user_id=gebruiker, run_id=run.run_id,
+                    # Stoppen loopt via deze vlag: de graaf betreedt dan geen nieuwe node meer. Bewust
+                    # geen taak-annulering – de nodes zijn synchroon en de MCP-verbinding wordt in een
+                    # `finally` gesloten.
+                    stop_check=lambda: run.stop_gevraagd,
+                    meter=meter,
+                    # Het werkgebied van het gesprek: zijn begrippen staan vooraan (fase F4).
+                    werkgebied_id=request.werkgebied_id or "",
+                ),
+                settings=settings,
+                run=run,
+                gesprek_id=request.conversation_id or "",
+                user_id=gebruiker,
+                meter=meter,
+            )
+
         if request.is_werkgebied_annotatie:
             # De nieuwe bepalingen van het werkgebied: eerst het voorstel, na bevestiging de reeks.
             if not settings.legt_zelf_vast:
@@ -352,6 +379,10 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
             if not settings.legt_zelf_vast:
                 return zonder_api()
             return bronnen_beurt(request, run, settings=settings, user_id=gebruiker)
+        if request.is_kaartbeurt and settings.legt_zelf_vast:
+            # Een kaartactie op een begrip (fase F4): dezelfde kaart-run als de knop op de begripskaart.
+            # Is de term geen vastgelegd begrip, dan neemt de gewone beurt het over.
+            return kaart_beurt(request, run, settings=settings, user_id=gebruiker, terugval=gewone_beurt)
         if request.is_begrippenbeurt:
             # Begrippen binnen een werkgebied: de keten van ADR-004, geen supervisor en geen model.
             if not settings.legt_zelf_vast:
@@ -360,28 +391,7 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
         if request.doelen:
             # Meerdere onderdelen van één artikel: per onderdeel deze zelfde beurt, na elkaar.
             return reeks_run(request, run, settings=settings, user_id=gebruiker)
-        # Eén meter per beurt, hier gemaakt zodat beide kanten hem kennen: de agent telt erin, de
-        # beurt-driver boekt hem daarna bij de api. Dat werkt ook als de beurt op een fout of een
-        # stopverzoek eindigt – die tokens zijn dan wél verbruikt.
-        meter = Verbruiksmeter()
-        return voer_beurt_uit(
-            answer_stream(
-                request.question, request.conversation_id,
-                modus=request.modus, context=request.context, doel=request.doel,
-                hergebruik=request.hergebruik,
-                user_id=gebruiker, run_id=run.run_id,
-                # Stoppen loopt via deze vlag: de graaf betreedt dan geen nieuwe node meer. Bewust
-                # geen taak-annulering – de nodes zijn synchroon en de MCP-verbinding wordt in een
-                # `finally` gesloten.
-                stop_check=lambda: run.stop_gevraagd,
-                meter=meter,
-            ),
-            settings=settings,
-            run=run,
-            gesprek_id=request.conversation_id or "",
-            user_id=gebruiker,
-            meter=meter,
-        )
+        return gewone_beurt()
     return maak
 
 

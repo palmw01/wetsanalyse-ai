@@ -22,6 +22,7 @@ from ..berichten import eerdere_beurten
 from ..supervisor import SUPERVISOR_SYSTEM, VERVOLG_SYSTEM, parse_supervisor, parse_vraag
 from ..overzicht import is_overzichtsvraag
 from ..tools.annotatie_tools import is_leesvraag
+from ..tools.begrip_tools import is_begrip_leesvraag
 from .context import Bouw
 
 logger = logging.getLogger("graph_qa.orchestrator")
@@ -43,6 +44,13 @@ def _lees(writer, vraag: str) -> dict[str, Any]:
     return {"specialist": "annotaties_lezen", "worker_plan": ["annotaties_lezen"],
             "worker_idx": 0, "plan": "bestaande annotaties raadplegen" + _herschreven(vraag),
             "afwijzen": False, "annotaties_lezen": True}
+
+
+def _begrippen_lees(writer, vraag: str) -> dict[str, Any]:
+    _stap(writer, "Lex", "raadpleegt vastgelegde begrippen")
+    return {"specialist": "begrippen_lezen", "worker_plan": ["begrippen_lezen"],
+            "worker_idx": 0, "plan": "vastgelegde begrippen raadplegen" + _herschreven(vraag),
+            "afwijzen": False, "annotaties_lezen": False, "begrippen_lezen": True}
 
 
 def _overzicht(writer, vraag: str) -> dict[str, Any]:
@@ -70,6 +78,11 @@ def supervisor_node(b: Bouw, state: State) -> dict[str, Any]:
     modus = state.get("modus", "auto")
 
     gesprek = _vervolgcontext(b, state)
+    # Vóór de annotatie-leesvraag: "welke begrippen hebben we" noemt geen annotatie, maar "welke
+    # begrippen rusten op deze markering" wel – het begrip is dan het onderwerp.
+    begripvraag = modus == "auto" and is_begrip_leesvraag(state.get("question", ""))
+    if begripvraag and not gesprek:
+        return _begrippen_lees(writer, "")
     leesvraag = is_leesvraag(state.get("question", ""), modus)
     if leesvraag and (not gesprek or _heeft_opgegeven_doel(state)):
         # Een leesvraag kan topologisch geen annotatie worden – ook niet met een doel erbij: dan is
@@ -123,6 +136,8 @@ def supervisor_node(b: Bouw, state: State) -> dict[str, Any]:
 
     # De harde regel ná het lezen van het gesprek: "welke zijn er nog meer?" na een vraag over
     # rechtssubjecten is pas als herschreven vraag herkenbaar als leesvraag.
+    if begripvraag or (modus == "auto" and is_begrip_leesvraag(zelfstandig)):
+        return {**upd, **_begrippen_lees(writer, vraag)}
     if leesvraag or is_leesvraag(zelfstandig, modus):
         return {**upd, **_lees(writer, vraag)}
     if is_overzichtsvraag(zelfstandig):
@@ -161,6 +176,8 @@ def _entry_node(b: Bouw, state: State) -> str:
     if state.get("overzicht_route"):
         # Eerst het overzicht bouwen, dan duiden – ook met decompositie aan.
         return "overzicht_bouwen"
+    if state.get("begrippen_lezen"):
+        return "begrippen_zoeken"
     if state.get("annotaties_lezen"):
         # Eerst zoeken, dan formuleren – ook met decompositie aan: `solve_node` bouwt de agent-lus
         # na en zou de zoekstap dubbel doen.

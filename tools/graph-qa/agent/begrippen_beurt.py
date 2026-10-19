@@ -46,7 +46,9 @@ _HANDELING = re.compile(r"\b(stel|stelt|voorstel\w*|maak|geef|welke|vind|zoek|fo
 def is_begrippenvraag(vraag: str) -> bool:
     """"Stel begrippen voor", "welke begrippen zitten hierin?" – maar niet "wat betekent het begrip X?":
     dat is een definitievraag over de graaf, en die hoort bij de antwoord-worker."""
-    return bool(_BEGRIPPEN.search(vraag) and _HANDELING.search(vraag))
+    from .tools.begrip_tools import is_begrip_leesvraag
+    # "Welke begrippen hebben we al geaccordeerd?" vraagt naar wat er ligt, niet om nieuwe voorstellen.
+    return bool(_BEGRIPPEN.search(vraag) and _HANDELING.search(vraag)) and not is_begrip_leesvraag(vraag)
 
 
 def begrippen_artefact(werkgebied_id: str, run_id: str, titel: str) -> dict[str, Any]:

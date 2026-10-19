@@ -89,7 +89,8 @@ class ChatRequest(BaseModel):
     # annoteert, elk met een eigen laag, batch en review (`agent/reeks.py`). Sluit `doel` uit.
     doelen: list[AgentDoel] | None = Field(default=None, min_length=2, max_length=60)
     # De werkplek is geopend vanuit een werkgebied (spoor D, fase AF2). Een vraag om begrippen gaat
-    # dan de begrippenroute in; voor de andere routes is het (nog) alleen context.
+    # dan de begrippenroute in; in de antwoordroute staan de begrippen van dit werkgebied vooraan
+    # (`search_begrippen`, fase F4).
     werkgebied_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9-]{1,64}$")
     # Het aantal bepalingen dat de analist bevestigde (fase B). Wijkt de actuele werkvoorraad af,
     # dan begint de run niet; zonder dit veld noemt Lex alleen wat er te doen is.
@@ -113,6 +114,14 @@ class ChatRequest(BaseModel):
         from .begrippen_beurt import is_begrippenvraag
         return bool(self.werkgebied_id) and self.doel is None and self.doelen is None and (
             self.modus == "begrippen" or (self.modus == "auto" and is_begrippenvraag(self.question)))
+
+    @property
+    def is_kaartbeurt(self) -> bool:
+        """Een kaartactie op een begrip vanuit het gesprek (fase F4): binnen een werkgebied, of als de vraag
+        het woord "begrip" noemt (`kaart_beurt.is_kaartvraag`)."""
+        from .kaart_beurt import is_kaartvraag
+        return self.modus == "auto" and self.doel is None and self.doelen is None and is_kaartvraag(
+            self.question, self.werkgebied_id)
 
     @property
     def is_bronnenbeurt(self) -> bool:

@@ -27,6 +27,7 @@ from ..mcp_client import MCPError
 from ..ports import GraphPort
 from .jas_tools import JAS_TOOL_NAMEN, JAS_TOOLS  # noqa: F401 – re-exporteerd voor orchestrator
 from .annotatie_tools import ANNOTATIE_TOOLS, ANNOTATIE_TOOL_NAMEN, dispatch_annotatie
+from .begrip_tools import BEGRIP_TOOLS, BEGRIP_TOOL_NAMEN, dispatch_begrip
 from ..resultaat import BUDGET, TeGroot, compact, fout, geheel, pagina, per_eenheid, voorproef
 from ..graph.structuur import natuurlijke_sleutel
 from .. import overzicht
@@ -815,6 +816,7 @@ TOOLS: list[dict[str, Any]] = [
 ]
 
 TOOLS += ANNOTATIE_TOOLS
+TOOLS += BEGRIP_TOOLS
 _BY_NAME: dict[str, dict[str, Any]] = {t["name"]: t for t in TOOLS + JAS_TOOLS}
 
 
@@ -846,7 +848,7 @@ def _graaf_is_weg(exc: Exception) -> bool:
 
 
 def dispatch(name: str, graph: GraphPort, args: dict[str, Any] | None, settings: Any = None,
-             *, annotaties=None) -> str:
+             *, annotaties=None, begrippen=None) -> str:
     tool = _BY_NAME.get(name)
     if tool is None:
         return f"Onbekende tool: {name}"
@@ -857,6 +859,15 @@ def dispatch(name: str, graph: GraphPort, args: dict[str, Any] | None, settings:
                 annotaties = AnnotatieReadApi(settings, getattr(settings, "annotatie_read_user_id", ""))
             try:
                 return dispatch_annotatie(name, args or {}, annotaties)
+            except (ValueError, TypeError, KeyError) as exc:
+                return json.dumps({"status": "invalid_request", "volledig": False,
+                                   "reden": "ongeldige_argumenten", "melding": str(exc)}, ensure_ascii=False)
+        if name in BEGRIP_TOOL_NAMEN:
+            if begrippen is None and settings is not None:
+                from ..begrip_read import BegripReadApi
+                begrippen = BegripReadApi(settings, getattr(settings, "annotatie_read_user_id", ""))
+            try:
+                return dispatch_begrip(name, args or {}, graph, begrippen)
             except (ValueError, TypeError, KeyError) as exc:
                 return json.dumps({"status": "invalid_request", "volledig": False,
                                    "reden": "ongeldige_argumenten", "melding": str(exc)}, ensure_ascii=False)

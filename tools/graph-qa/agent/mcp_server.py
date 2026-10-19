@@ -46,6 +46,7 @@ from agent.adapters.graphdb_graph import make_graph
 from agent.config import Settings
 from agent.ports import GraphPort
 from agent.annotatie_read import AnnotatieReadApi
+from agent.begrip_read import BegripReadApi
 
 logger = logging.getLogger("graph_qa.mcp_server")
 
@@ -53,7 +54,8 @@ logger = logging.getLogger("graph_qa.mcp_server")
 def dispatch_mcp(name: str, arguments: dict, graph: GraphPort, settings: Settings) -> str:
     """De actor komt uitsluitend uit vertrouwde serverconfiguratie, nooit uit de toolcall."""
     return tools.dispatch(name, graph, arguments, settings,
-                          annotaties=AnnotatieReadApi(settings, settings.annotatie_read_user_id))
+                          annotaties=AnnotatieReadApi(settings, settings.annotatie_read_user_id),
+                          begrippen=BegripReadApi(settings, settings.annotatie_read_user_id))
 
 
 def _bouw_server() -> tuple[Any, Settings, GraphPort]:
