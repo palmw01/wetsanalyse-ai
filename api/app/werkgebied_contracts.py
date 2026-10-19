@@ -39,6 +39,8 @@ class WerkgebiedInvoer(BaseModel):
     analysevraag: str = Field(default="", max_length=4000)
     afbakening: str = Field(default="", max_length=4000)
     peildatum: str | None = None
+    # Gezet door graph-qa bij het samenstellen in het gesprek: maak is dan idempotent op deze id.
+    intake_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9-]{1,64}$")
 
     @field_validator("peildatum")
     @classmethod

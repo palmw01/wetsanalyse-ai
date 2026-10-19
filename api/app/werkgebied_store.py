@@ -16,6 +16,7 @@ from typing import Any, Awaitable, Callable
 
 from fastapi import HTTPException
 from sqlalchemy import func, insert, select, update
+from sqlalchemy.exc import IntegrityError
 
 from . import db
 from .werkgebied_contracts import (
@@ -64,14 +65,31 @@ async def _gewijzigd(werkgebied_id: str, verwacht: int, actor: str, actie: str, 
         await _audit(conn, werkgebied_id, actor, actie, {**detail, "revisie": row.revisie + 1})
 
 
+async def _van_intake(intake_id: str) -> str | None:
+    t = db.werkgebieden
+    async with db.get_engine().connect() as conn:
+        return (await conn.execute(select(t.c.id).where(t.c.intake_id == intake_id))).scalar()
+
+
 async def maak(invoer: WerkgebiedInvoer, actor: str) -> dict:
+    """Een nieuw werkgebied. Met een `intake_id` idempotent: bestaat er al een uit die intake, dan
+    komt dat terug (ook als het intussen gewijzigd is; gearchiveerd geeft 404)."""
+    if invoer.intake_id and (bestaand := await _van_intake(invoer.intake_id)):
+        return await haal(bestaand)
     nu, wid = db.utcnow(), str(uuid.uuid4())
-    async with db.get_engine().begin() as conn:
-        await conn.execute(insert(db.werkgebieden).values(
-            id=wid, naam=invoer.naam, analysevraag=invoer.analysevraag, afbakening=invoer.afbakening,
-            peildatum=invoer.peildatum, status="in_voorbereiding", revisie=1, aangemaakt_door=actor,
-            aangemaakt=nu, gewijzigd=nu))
-        await _audit(conn, wid, actor, "aangemaakt", {"naam": invoer.naam, "revisie": 1})
+    try:
+        async with db.get_engine().begin() as conn:
+            await conn.execute(insert(db.werkgebieden).values(
+                id=wid, naam=invoer.naam, analysevraag=invoer.analysevraag, afbakening=invoer.afbakening,
+                peildatum=invoer.peildatum, status="in_voorbereiding", revisie=1, aangemaakt_door=actor,
+                aangemaakt=nu, gewijzigd=nu, intake_id=invoer.intake_id))
+            await _audit(conn, wid, actor, "aangemaakt", {"naam": invoer.naam, "revisie": 1,
+                                                          **({"intake_id": invoer.intake_id} if invoer.intake_id else {})})
+    except IntegrityError:
+        # Twee gelijktijdige klikken (of replica's): de unieke index besliste, de ander wint.
+        if invoer.intake_id and (bestaand := await _van_intake(invoer.intake_id)):
+            return await haal(bestaand)
+        raise
     return await haal(wid)
 
 

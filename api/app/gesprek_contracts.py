@@ -40,16 +40,18 @@ class Artefact(BaseModel):
     `ref` hangt af van de soort – annotatie: `{bron_iri, label?, snapshot_id?}`; begrippen:
     `{werkgebied_id, run_id}` (de voorstellen van een run) of `{werkgebied_id, begrip_id, kaart_run_id?,
     actie?}` (één begrip, fase F4: een kaartactie vanuit het gesprek); bronnen (kandidaatbepalingen van een bronnenrun): `{werkgebied_id,
-    run_id}`; regels: nog niet in gebruik (gereserveerd)."""
+    run_id}`; werkgebied (een werkgebied dat Lex in het gesprek samenstelde, activiteit 1):
+    `{werkgebied_id}`; regels: nog niet in gebruik (gereserveerd)."""
 
-    soort: Literal["annotatie", "begrippen", "bronnen", "regels"]
+    soort: Literal["annotatie", "begrippen", "bronnen", "werkgebied", "regels"]
     ref: dict
     titel: str = Field(default="", max_length=300)
 
     @model_validator(mode="after")
     def _ref(self) -> "Artefact":
         nodig = {"annotatie": ("bron_iri",), "begrippen": ("werkgebied_id", "run_id"),
-                 "bronnen": ("werkgebied_id", "run_id"), "regels": ()}[self.soort]
+                 "bronnen": ("werkgebied_id", "run_id"), "werkgebied": ("werkgebied_id",),
+                 "regels": ()}[self.soort]
         if self.soort == "begrippen" and self.ref.get("begrip_id"):
             nodig = ("werkgebied_id", "begrip_id")
         ontbreekt = [k for k in nodig if not isinstance(self.ref.get(k), str) or not self.ref.get(k)]
@@ -80,6 +82,39 @@ class Bevestiging(BaseModel):
     werkgebied_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
     aantal: int = Field(ge=0, le=100_000)
     schatting: int | None = Field(default=None, ge=0)
+
+
+class VraagOptie(BaseModel):
+    """Eén voorstel op een vraagkaart. `bron` draagt bij een regeling of onderdeel waar het in de graaf
+    staat (`{bwb_id, iri?, label?}`): zo'n optie komt uit de graaf, nooit uit het model."""
+
+    label: str = Field(min_length=1, max_length=300)
+    waarde: str = Field(min_length=1, max_length=4000)
+    bron: dict = {}
+
+
+class Vraagkaart(BaseModel):
+    """Een vraag van Lex bij het samenstellen van een werkgebied (activiteit 1): één stap, met
+    voorstellen en een eigen antwoord. De werkplek toont hem als kaartje, ook na herladen; een klik
+    start de volgende run met `intake_actie`. De stapvolgorde is van graph-qa, niet van het model.
+
+    `vooringevuld` zijn de waarden die Lex uit de eerste zin haalde: voorgeselecteerd, nooit stil
+    aangenomen. Een samenvattingskaart (`soort: samenvatting`) draagt in `samenvatting` wat er
+    aangemaakt wordt: `{naam, analysevraag, afbakening, bronnen[]}`."""
+
+    intake_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
+    soort: Literal["vraag", "samenvatting"] = "vraag"
+    stap: Literal["naam", "analysevraag", "regelingen", "onderdelen", "buiten", "samenvatting"]
+    nr: int = Field(ge=1, le=10)
+    totaal: int = Field(ge=1, le=10)
+    vraag: str = Field(min_length=1, max_length=500)
+    toelichting: str = Field(default="", max_length=1000)
+    opties: list[VraagOptie] = Field(default_factory=list, max_length=20)
+    meerkeuze: bool = False
+    vrije_tekst: bool = True
+    overslaanbaar: bool = True
+    vooringevuld: list[str] = Field(default_factory=list, max_length=20)
+    samenvatting: dict = {}
 
 
 class Bericht(BaseModel):
@@ -120,6 +155,7 @@ class Bericht(BaseModel):
     # hebben alleen `annotatie_doel`; de werkplek leidt daar zelf een annotatie-artefact uit af.
     artefact: Artefact | None = None
     bevestiging: Bevestiging | None = None
+    vraagkaart: Vraagkaart | None = None
     created: datetime | None = None
 
 
@@ -161,6 +197,7 @@ class BerichtInvoer(BaseModel):
     reeks: ReeksPlek | None = None
     artefact: Artefact | None = None
     bevestiging: Bevestiging | None = None
+    vraagkaart: Vraagkaart | None = None
 
 
 class GesprekSamenvatting(BaseModel):

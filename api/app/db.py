@@ -243,7 +243,11 @@ werkgebieden = Table("werkgebieden", metadata,
     Column("aangemaakt_door", String(64), nullable=False),
     Column("aangemaakt", _DT, nullable=False),
     Column("gewijzigd", _DT, nullable=False),
-    Column("gearchiveerd", _DT, nullable=True))
+    Column("gearchiveerd", _DT, nullable=True),
+    # Het samenstellen in het gesprek (activiteit 1) maakt een werkgebied met de id van die intake:
+    # een tweede klik op *Aanmaken*, of een herhaling na een storing, levert hetzelfde werkgebied op.
+    Column("intake_id", String(64), nullable=True),
+    Index("ux_werkgebieden_intake", "intake_id", unique=True))
 werkgebied_bronselecties = Table("werkgebied_bronselecties", metadata,
     Column("id", String(64), primary_key=True),
     Column("werkgebied_id", String(64), nullable=False, index=True),
