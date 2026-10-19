@@ -9,9 +9,12 @@ import { SkipLink, HOOFDINHOUD_ID } from "@/components/ui/SkipLink";
 
 /** De paginaschil van de werkgebieden: sidebar (met de mobiele drawer), topbar en een scrollend
  *  hoofdgebied – dezelfde opbouw als het annotatie-overzicht. */
-export function WerkgebiedSchil({ titel, onFout, breed = false, children }: {
+export function WerkgebiedSchil({ titel, onFout, breed = false, bewaak = (doe) => doe(), children }: {
   titel: string;
   onFout: (melding: string) => void;
+  /** Laat een navigatie vanuit de sidebar eerst langs de vraag over niet-bewaarde wijzigingen gaan
+   *  (`useOnbewaardBewaker`); links vangt die zelf. */
+  bewaak?: (doe: () => void) => void;
   /** Ruimer dan de leesbreedte: voor de begrippen (drie kolommen) en de graaf. */
   breed?: boolean;
   children: ReactNode;
@@ -26,8 +29,8 @@ export function WerkgebiedSchil({ titel, onFout, breed = false, children }: {
       <div className="flex min-h-0 flex-1">
         <AppSidebar
           activeId={null}
-          onNieuw={() => router.push("/workbench")}
-          onOpen={(id) => router.push(`/workbench?gesprek=${encodeURIComponent(id)}`)}
+          onNieuw={() => bewaak(() => router.push("/workbench"))}
+          onOpen={(id) => bewaak(() => router.push(`/workbench?gesprek=${encodeURIComponent(id)}`))}
           onFout={onFout}
           drawerOpen={drawerOpen}
           onDrawerSluit={() => setDrawerOpen(false)}

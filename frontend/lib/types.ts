@@ -582,6 +582,9 @@ export interface Bericht {
   hergebruik?: unknown;
   /** Het overzicht van een onderwerp; zelfde vorm als het `overzicht`-event (zie `parseOverzicht`). */
   overzicht?: unknown;
+  /** Wat de annotatieketen kon bekijken, met de fasen en hun duur; de werkplek leest er alleen de
+   *  meting uit (`metingUitDekking`). */
+  dekking?: unknown;
   /** Van welke agent-run deze beurt de uitkomst is; de api gebruikt het als idempotentiesleutel,
    *  zodat twee meekijkende tabbladen niet elk hun eigen kopie wegschrijven. */
   run_id: string;

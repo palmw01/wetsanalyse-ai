@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { BevestigKnop } from "@/components/ui/BevestigKnop";
 import { Button } from "@/components/ui/Button";
@@ -21,6 +21,7 @@ import { SamenhangTab } from "@/components/werkgebieden/SamenhangTab";
 import { WerkgebiedSchil } from "@/components/werkgebieden/WerkgebiedSchil";
 import { archiveerWerkgebied, foutTekst, haalWerkgebied, isApiError, wijzigWerkgebied } from "@/lib/api";
 import type { Werkgebied, WerkgebiedStatus } from "@/lib/types";
+import { useOnbewaardBewaker } from "@/lib/useOnbewaardBewaker";
 import { STATUS_LABEL, TABS, isRevisieConflict, type WerkgebiedTab } from "@/lib/werkgebied";
 
 export interface MutatieOpties {
@@ -55,6 +56,13 @@ export function WerkgebiedClient({ id, beginTab, beginBegrip }: {
   // renderen lazy), dus die wacht eerst op bevestiging.
   const [onbewaard, setOnbewaard] = useState(false);
   const [wachtendeTab, setWachtendeTab] = useState<WerkgebiedTab | null>(null);
+  // Hetzelfde voor een navigatie weg van de pagina: een link (de sidebar, "Alle werkgebieden") of een
+  // gesprek openen. De vraag staat bovenaan; wie onderaan de kaart klikte, moet hem ook zien.
+  const bewaker = useOnbewaardBewaker(onbewaard);
+  const vraagRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (bewaker.wachtend) vraagRef.current?.scrollIntoView({ block: "nearest" });
+  }, [bewaker.wachtend]);
   const [bewerken, setBewerken] = useState(false);
 
   const laad = useCallback(async () => {
@@ -146,7 +154,8 @@ export function WerkgebiedClient({ id, beginTab, beginBegrip }: {
     );
 
   return (
-    <WerkgebiedSchil titel={wg?.naam ?? "Werkgebied"} onFout={setFout} breed={tab === "begrippen" || tab === "samenhang"}>
+    <WerkgebiedSchil titel={wg?.naam ?? "Werkgebied"} onFout={setFout} breed={tab === "begrippen" || tab === "samenhang"}
+      bewaak={bewaker.bewaak}>
       {terug}
       {wg === null ? (
         fout ? (
@@ -219,6 +228,19 @@ export function WerkgebiedClient({ id, beginTab, beginBegrip }: {
             <Melding type={melding.type} compact className="mb-4">
               {melding.tekst}
             </Melding>
+          )}
+          {bewaker.wachtend && (
+            <div ref={vraagRef}>
+              <OnbewaardMelding
+                className="mb-4"
+                handeling="verlaten"
+                onBlijf={bewaker.blijf}
+                onToch={() => {
+                  setOnbewaard(false);
+                  bewaker.toch();
+                }}
+              />
+            </div>
           )}
           {wachtendeTab && (
             <OnbewaardMelding
