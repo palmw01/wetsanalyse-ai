@@ -9,6 +9,7 @@ Methoden, van sterk naar zwak bewijs (PLAN §D *Bronnen vinden*):
 | methode | wat | rol |
 |---|---|---|
 | `overzicht` | het overzicht op de analysevraag (`overzicht.bouw_overzicht`); standaard alleen zonder kern | kern |
+| `deelvraag` | het overzicht per actieve deelvraag van het werkgebied; alleen met deelvragen | kern zonder kern, anders aanverwant |
 | `verwijzing_uit` | waar de kern naar verwijst, diepte 1 | afhankelijkheid bij een bekende functie, anders aanverwant |
 | `verwijzing_in` | wat naar de kern verwijst, diepte 1 – standaard uit (meting) | aanverwant |
 | `definitie` | waar de wet een term definieert die letterlijk in de kern staat | afhankelijkheid |
@@ -33,7 +34,7 @@ from .ports import GraphPort
 
 logger = logging.getLogger(__name__)
 
-METHODEN = ("overzicht", "verwijzing_uit", "verwijzing_in", "definitie", "opbouw", "gelijkenis")
+METHODEN = ("overzicht", "deelvraag", "verwijzing_uit", "verwijzing_in", "definitie", "opbouw", "gelijkenis")
 #: Wat standaard draait als er een kern is – gekozen op de meting van 15 okt 2026
 #: (`docs/architectuur/metingen/bronselectie-2026-10-15/`): met een kern voegde het overzicht geen
 #: recall toe maar wel 36 onbeoordeelde "kern"-kandidaten, en `verwijzing_in` leverde alle uitgesloten
@@ -45,12 +46,16 @@ ZONDER_KERN = ("overzicht",)
 
 
 def standaard_voor(invoer: dict[str, Any]) -> tuple[str, ...]:
-    return STANDAARD if invoer.get("kern") else ZONDER_KERN
+    """Met deelvragen (optioneel, ze staan alleen in de invoer als het werkgebied ze heeft) zoekt Lex
+    ook per deelvraag: de analist vroeg er zelf om, en de dekkingscheck meet ertegen."""
+    basis = STANDAARD if invoer.get("kern") else ZONDER_KERN
+    return basis + ("deelvraag",) if invoer.get("deelvragen") else basis
 
 MAX_PER_METHODE = 60
 MAX_OVERZICHT = 40
 MAX_OPBOUW_PER_KERN = 30
 MAX_GELIJKENIS = 10
+MAX_PER_DEELVRAAG = 15
 
 ROL_VOLGORDE = {"kern": 0, "afhankelijkheid": 1, "aanverwant": 2}
 
@@ -238,6 +243,60 @@ def _overzicht(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tupl
     return n, volledig
 
 
+# "Wanneer is een aanslag invorderbaar?" noemt geen onderwerp in de vorm van een overzichtsvraag; het
+# vraagwoord vooraan eraf laat "een aanslag invorderbaar" over, en `onderwerpwoorden` haalt de stopwoorden
+# weg. Alleen vooraan: een vraagwoord midden in de zin kan bij het onderwerp horen.
+_VRAAGBEGIN = re.compile(
+    r"^\s*(?:in welke gevallen|onder welke voorwaarden|in hoeverre|op welke wijze|wanneer|wie|wat|welke?|hoe|"
+    r"waar|waarom|waardoor|waarover|is|zijn|kan|kunnen|mag|mogen|moet|moeten|geldt|gelden)\b\s*", re.I)
+
+
+def onderwerp_van_deelvraag(vraag: str) -> str:
+    """Het zoekonderwerp van een deelvraag: als overzichtsvraag ("welke artikelen gaan over X?") het
+    onderwerp, anders de vraag zonder vraagwoord vooraan; leeg als er niets zoekbaars overblijft."""
+    from .overzicht import onderwerp_uit
+
+    o = onderwerp_uit(vraag)
+    if o:
+        return o
+    rest = vraag.strip()
+    while (kaler := _VRAAGBEGIN.sub("", rest, count=1)) != rest:
+        rest = kaler
+    rest = rest.rstrip("?.! ")
+    return rest if queries.onderwerpwoorden(rest) else ""
+
+
+def _deelvraag(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tuple[int, bool]:
+    """Het overzicht per deelvraag. Zonder kern zijn de treffers kern (zoals het overzicht op de
+    analysevraag); met een kern aanverwant: het overzicht naast een kern gaf in de meting van 15 okt
+    2026 vooral onbeoordeelde ruis, en de analist beslist wat bij de deelvraag hoort."""
+    from .overzicht import bouw_overzicht
+
+    rol = "aanverwant" if invoer.get("kern") else "kern"
+    n_totaal, volledig = 0, True
+    for d in invoer.get("deelvragen") or []:
+        onderwerp = onderwerp_van_deelvraag(d.get("vraag", ""))
+        if not onderwerp:
+            continue
+        try:
+            ov = bouw_overzicht(graph, d["vraag"], onderwerp=onderwerp)
+        except ValueError:
+            continue
+        volledig = volledig and bool(ov.get("volledig", True))
+        n = 0
+        for r in ov.get("regelingen", []):
+            for b in [b for deel in r.get("delen", []) for b in deel.get("bepalingen", [])] + r.get("ook_genoemd", []):
+                if n >= MAX_PER_DEELVRAAG:
+                    volledig = False
+                    break
+                if v.voeg(b["iri"], rol=rol, methode="deelvraag", label=b.get("label") or b.get("naam", ""),
+                          detail={"deelvraag_id": d.get("id", ""), "vraag": d.get("vraag", ""),
+                                  "onderwerp": ov.get("onderwerp_tekst") or onderwerp}):
+                    n += 1
+        n_totaal += n
+    return n_totaal, volledig
+
+
 def _verwijzing_uit(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tuple[int, bool]:
     kern = [k["bron_iri"] for k in invoer.get("kern", [])]
     if not kern:
@@ -326,7 +385,7 @@ def _gelijkenis(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tup
 
 
 UITVOERING: dict[str, Callable[[GraphPort, dict[str, Any], Verzameling], tuple[int, bool]]] = {
-    "overzicht": _overzicht, "verwijzing_uit": _verwijzing_uit, "verwijzing_in": _verwijzing_in,
+    "overzicht": _overzicht, "deelvraag": _deelvraag, "verwijzing_uit": _verwijzing_uit, "verwijzing_in": _verwijzing_in,
     "definitie": _definitie, "opbouw": _opbouw, "gelijkenis": _gelijkenis,
 }
 

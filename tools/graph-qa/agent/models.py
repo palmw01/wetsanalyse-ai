@@ -190,6 +190,14 @@ class BegrippenRunVerzoek(BaseModel):
     run_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
 
 
+class DeelvragenRunVerzoek(BaseModel):
+    """Lex legt de analysevraag van een werkgebied uiteen in deelvragen (vervolg op spoor D fase F). Geen
+    run bij de api: de uitkomst zijn voorstellen, die de api bewaart. Runstore-sleutel
+    `werkgebied:<id>:deelvragen`."""
+
+    werkgebied_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
+
+
 class KaartRunVerzoek(BaseModel):
     """Start een actie van Lex op één begrip (spoor D, fase E) op een run die de api al aanmaakte.
 

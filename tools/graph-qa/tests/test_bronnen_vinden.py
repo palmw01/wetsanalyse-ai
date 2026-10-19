@@ -159,6 +159,40 @@ def test_het_overzicht_levert_kernbepalingen(monkeypatch):
     assert gevraagd["onderwerp"] == "invorderingsrente"
 
 
+@pytest.mark.parametrize("vraag, onderwerp", [
+    ("Wanneer is een aanslag invorderbaar?", "een aanslag invorderbaar"),
+    ("Wie is de belastingschuldige?", "de belastingschuldige"),
+    ("Onder welke voorwaarden kan uitstel worden verleend?", "uitstel worden verleend"),
+    ("Welke artikelen gaan over invorderingsrente?", "invorderingsrente"),
+    ("Wat?", ""),
+])
+def test_het_onderwerp_van_een_deelvraag(vraag, onderwerp):
+    assert bronnen_vinden.onderwerp_van_deelvraag(vraag) == onderwerp
+
+
+def test_met_deelvragen_zoekt_lex_ook_per_deelvraag(monkeypatch):
+    dv = [{"id": "d1", "vraag": "Wanneer is een aanslag invorderbaar?"}, {"id": "d2", "vraag": "Wat?"}]
+    assert bronnen_vinden.standaard_voor({**INVOER, "deelvragen": dv})[-1] == "deelvraag"
+    assert bronnen_vinden.standaard_voor({**INVOER, "kern": [], "deelvragen": dv}) == ("overzicht", "deelvraag")
+    ov = {"volledig": True, "onderwerp_tekst": "aanslag invorderbaar", "regelingen": [
+        {"delen": [{"bepalingen": [{"iri": ART8, "label": "Artikel 8"}, {"iri": ART9, "label": "Artikel 9"}]}],
+         "ook_genoemd": [{"iri": ART10, "label": "Artikel 10"}]}]}
+    gevraagd: list[str] = []
+    monkeypatch.setattr(overzicht, "bouw_overzicht", lambda g, vraag, **kw: gevraagd.append(kw["onderwerp"]) or ov)
+    uit = vind(Graaf(), {**INVOER, "deelvragen": dv}, methoden=("deelvraag",))
+    assert gevraagd == ["een aanslag invorderbaar"], "een deelvraag zonder onderwerp zoekt niets"
+    k = _per_iri(uit)
+    # Met een kern: aanverwant, met de deelvraag in het bewijs; de selectie zelf valt weg.
+    assert ART9 not in k and k[ART8]["rol"] == "aanverwant"
+    assert k[ART8]["bewijs"][0]["detail"] == {"deelvraag_id": "d1", "vraag": dv[0]["vraag"],
+                                              "onderwerp": "aanslag invorderbaar"}
+    assert uit["meting"]["deelvraag"] == {"aantal": 2, "volledig": True, "ms": uit["meting"]["deelvraag"]["ms"]}
+    # Zonder kern: kern, en het plafond per deelvraag maakt de methode onvolledig.
+    monkeypatch.setattr(bronnen_vinden, "MAX_PER_DEELVRAAG", 1)
+    uit = vind(Graaf(), {**INVOER, "kern": [], "deelvragen": dv}, methoden=("deelvraag",))
+    assert [x["rol"] for x in uit["kandidaten"]] == ["kern"] and uit["meting"]["deelvraag"]["volledig"] is False
+
+
 def test_een_geraakt_plafond_is_onvolledig(geen_overzicht, monkeypatch):
     monkeypatch.setattr(bronnen_vinden, "MAX_PER_METHODE", 1)
     uit = vind(Graaf(), INVOER, methoden=("verwijzing_uit",))
@@ -190,6 +224,9 @@ def test_de_uitkomst_past_in_het_api_contract(geen_overzicht):
         sys.path.pop(0)
     uit = vind(Graaf(), INVOER)
     BronnenUitkomst(invoer_id="I1", **uit)
+    # De methode deelvraag kent de api ook.
+    BronnenUitkomst(invoer_id="I1", kandidaten=[{"bron_iri": ART8, "rol": "aanverwant", "bewijs": [
+        {"methode": "deelvraag", "detail": {"deelvraag_id": "d1"}}]}], meting={"deelvraag": {"aantal": 1}})
     Artefact(**bronnen_artefact("wg1", "r1", "Invorderbaarheid"))
 
 
