@@ -545,7 +545,7 @@ vraag aan Lex ─► werkgebied: Lex stelt bepalingen voor ─► Lex annoteert 
 | C. Lex formuleert begrippen (was L3b) – **gebouwd** (C1 #677, C2 #678, C3; meting `metingen/begrippen-model-2026-10-15`) | model voor twijfelparen (alleen *zelfde betekenis* wordt een – gele – groep, ander advies laat de vraag staan); concept-kaart per groep (naam, begripstype, context, definitie met herkomst, dragende passages, voorbeelden) met deterministische toetsen; bestaand begrip zoeken; hervatbare batches | verschillende formuleringen met gelijke betekenis gekoppeld, gelijke woorden met andere betekenis gescheiden; garanties (letterlijkheid, id's) op 100% |
 | D. Beoordelen als artefact – **gebouwd** (D1 #681, D2) | reviewlijst zoals bij annoteren (akkoord, aanpassen, afwijzen, splitsen, combineren met vergelijking, toetsenbord), in het artefactpaneel én op de tab Begrippen; akkoord is één transactie (begrip, beoordeelde koppelingen, accorderen als de poort mag), splitsen laat de rest van de groep staan, een onbeoordeelde annotatie keur je ter plekke goed | uit voorstellen een geaccordeerd begrip, zonder leeg formulier |
 | E. Lex naast de kaart – **gebouwd** (E1 #683, E2 #684, E3; meting `metingen/kaartacties-2026-10-16`) | vier knoppen op de begripskaart – brondefinitie (zonder model, met plaats: werkgebied, regeling, definitieverwijzing, elders), scherpere definitie, betekenisverschil met een ander begrip, voorbeelden – elk als voorstel onder zijn veld; overnemen, aanpassen of afwijzen; `definitie_door` op het begrip | niets wordt stil overschreven (een veranderde definitie toont toen, nu en voorstel; vervangen is een bewuste keuze); herkomst gaat mee |
-| F. Onderhoud en uitwisseling (was L4) – **F1 gebouwd** (#686, #687), **F2 gebouwd** (#688, #689), **F3 gebouwd** (#690 api, F3b werkplek) | in vier deelleveringen: **F1** gerichte herbeoordeling (annotatie én wettekst onder het anker, toen naast nu), voorstel tot herkoppeling (opvolgers na herannotatie, signalen met richting), bevestigen met een tweede bewijsstand, dekking met *buiten behandeling*; **F2** begripsrelaties en opvolging; **F3** NL-SBB-projectie, RDF-export en begrippengraaf; **F4** Lex leest begrippen, overzicht over werkgebieden heen en de chat-ingang voor Lex naast de kaart | een gewijzigde dragende passage verschijnt bij de geraakte begrippen; de oude bewijsstand blijft |
+| F. Onderhoud en uitwisseling (was L4) – **gebouwd**: F1 (#686, #687), F2 (#688, #689), F3 (#690, #691), F4 (#695 api, #696 graph-qa, F4c werkplek) | in vier deelleveringen: **F1** gerichte herbeoordeling (annotatie én wettekst onder het anker, toen naast nu), voorstel tot herkoppeling (opvolgers na herannotatie, signalen met richting), bevestigen met een tweede bewijsstand, dekking met *buiten behandeling*; **F2** begripsrelaties en opvolging; **F3** NL-SBB-projectie, RDF-export en begrippengraaf; **F4** Lex leest begrippen, overzicht over werkgebieden heen en de chat-ingang voor Lex naast de kaart | een gewijzigde dragende passage verschijnt bij de geraakte begrippen; de oude bewijsstand blijft |
 
 Volgorde: AF → A → B → C → D → E → F. Voorbeelden op de concept-kaart zijn van C naar E verschoven:
 ze hebben geen bronanker en horen als voorstel per veld bij Lex naast de kaart. Afleidingsregels (RegelSpraak) vallen erbuiten; AF legt alleen
@@ -562,6 +562,16 @@ begrippen met hun status (concept, geaccordeerd, vervangen); de Turtle-export st
 geaccordeerde (`inclusief=alle` voor de rest); de NL-SBB-shapes (profiel 1.0.0, CC-BY 4.0) staan
 gevendord in `api/app/shapes/` met een hashtoets; de begrippengraaf komt op de tab *Samenhang*, met
 data uit Postgres.
+
+**Besloten voor F4 (19 okt 2026).** Lex leest de begrippen van **alle** werkgebieden; opent de werkplek
+vanuit een werkgebied, dan staan diens begrippen vooraan. Hij noemt **alle** begrippen met hun status
+(concept, geaccordeerd, vervangen met opvolger), geaccordeerd eerst. `search_begrippen` zoekt met SPARQL
+in de F3-projectie en laat de kandidaten door de api bevestigen (`POST /v1/begrippen/verifieer`); loopt
+de projectie achter, dan is het resultaat onvolledig. Een begrip is afgeleide duiding: geen bron, geen
+grounding. Kaartacties vanuit het gesprek ("zoek de brondefinitie van termijn") starten **direct**, net
+als de knop, met de budgetpoort van de kaart-run. Het overzicht *Begrippen* in de sidebar is een
+leesingang (`GET /v1/begrippen`, uit Postgres); werkgebieden en begrippen komen (nog) niet in de
+rondleiding.
 
 **Besloten (14–15 okt 2026).** Werkgebieden zijn gedeeld. Elke analist mag een begrip accorderen (de
 audit legt vast wie). De poort vraagt naam, definitie met herkomst, context, minstens één aanduidende

@@ -32,7 +32,9 @@ plaats van schijnzekerheid.
 > herannotatie), begrippen krijgen **relaties** met type en richting (kwalificatie, inclusie, uitsluiting,
 > soort van, verwant; Lex stelt ze voor) en een betekeniswijziging of combinatie levert een opvolger op
 > (het oude begrip wordt vervangen). Begrippen gaan als **NL-SBB-begrippenkader** de kennisgraaf in (per
-> werkgebied een named graph, conformiteit diagnostisch, Turtle-export). De RegelSpraak-formalisering
+> werkgebied een named graph, conformiteit diagnostisch, Turtle-export). Lex **leest** de begrippen (zoeken in
+> die projectie, bevestigd door de api) en voert de kaartacties ook vanuit het gesprek uit; de sidebar
+> heeft een overzicht *Begrippen* over alle werkgebieden heen. De RegelSpraak-formalisering
 > hoort nog niet tot de functionaliteit. graph-qa's begrip-definitie-QA
 > (de `definitie`-specialist over de graaf) staat daar los van.
 

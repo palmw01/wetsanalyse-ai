@@ -25,7 +25,7 @@ import {
   annotatieTitel, doelVanKandidaat, doelVoorOpnieuw, kandidaatLabel, kandidaatPrompt,
 } from "@/lib/annotatie";
 import type { NodeDoel } from "@/lib/annotatieNode";
-import { ARTEFACT_SOORT_LABEL, isTeOpenen, type Artefact } from "@/lib/artefact";
+import { artefactLabel, isTeOpenen, type Artefact } from "@/lib/artefact";
 import { doelenVanKandidaten, reeksPrompt } from "@/lib/reeks";
 import { normaliseerBronnen, samenhangDoelen, samenhangKnopTekst } from "@/lib/bronnen";
 import { overzichtAlsMarkdown, overzichtDoelen, overzichtFocus, overzichtKnopTekst } from "@/lib/overzicht";
@@ -275,7 +275,7 @@ export const ThreadRij = memo(function ThreadRij({
 /** De chip van een artefact dat geen annotatie is. Afleidingsregels zijn gereserveerd: de kaart staat
  *  er, maar opent nog niets – en zegt dat, in plaats van een knop die niets doet. */
 function ArtefactChip({ artefact, onOpen }: { artefact: Artefact; onOpen: () => void }) {
-  const soort = ARTEFACT_SOORT_LABEL[artefact.soort];
+  const soort = artefactLabel(artefact);
   const titel = artefact.titel || soort;
   if (!isTeOpenen(artefact)) {
     return (

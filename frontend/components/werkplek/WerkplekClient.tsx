@@ -14,7 +14,7 @@ import type { GraafOpties } from "@/components/graaf/useGraafStand";
 import { WerkgebiedArtefactPaneel } from "@/components/werkplek/WerkgebiedArtefactPaneel";
 import { WerkgebiedBalk } from "@/components/werkplek/WerkgebiedBalk";
 import { WerkgebiedUitOverzicht } from "@/components/werkplek/WerkgebiedUitOverzicht";
-import { ARTEFACT_SOORT_LABEL, annotatieDoelVan, artefactVanBericht, werkgebiedArtefactVan, type Artefact, type WerkgebiedArtefact } from "@/lib/artefact";
+import { annotatieDoelVan, artefactSleutel, werkgebiedLabel, artefactVanBericht, werkgebiedArtefactVan, type Artefact, type WerkgebiedArtefact } from "@/lib/artefact";
 import { Melding } from "@/components/ui/Melding";
 import {
   foutTekst,
@@ -1014,7 +1014,7 @@ export function WerkplekClient({
       requestAnimationFrame(() => taRef.current?.focus());
     }} /> : (wgArtefact && (
     <WerkgebiedArtefactPaneel
-      key={`${wgArtefact.soort}:${wgArtefact.werkgebied_id}:${wgArtefact.run_id}`}
+      key={artefactSleutel(wgArtefact)}
       doel={wgArtefact}
       variant={breed ? "kolom" : "side"}
       onSluit={() => setWgArtefact(undefined)}
@@ -1078,7 +1078,7 @@ export function WerkplekClient({
           onClick={() => setWgArtefact(laatsteWgArtefact)}
           className="focus-ring flex w-full shrink-0 items-center gap-2 border-b border-line bg-surface px-4 py-2 text-left text-xs text-muted transition hover:bg-surface-2"
         >
-          <span className="truncate"><span className="font-medium text-ink">{laatsteWgArtefact.titel || ARTEFACT_SOORT_LABEL[laatsteWgArtefact.soort]}</span> · {ARTEFACT_SOORT_LABEL[laatsteWgArtefact.soort].toLowerCase()}</span>
+          <span className="truncate"><span className="font-medium text-ink">{laatsteWgArtefact.titel || werkgebiedLabel(laatsteWgArtefact)}</span> · {werkgebiedLabel(laatsteWgArtefact).toLowerCase()}</span>
           <span className="ml-auto shrink-0 font-medium text-lint">Openen</span>
         </button>
       )}

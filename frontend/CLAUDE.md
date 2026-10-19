@@ -6,7 +6,7 @@ opslag, de [wetsanalyse-API](../api). De app **is de werkplek**: `/workbench` (d
 leidt daarheen door.
 
 > **Scope: chat-werkruimte.** De app bestaat uit de werkplek, het annotatie-overzicht, de
-> werkgebieden, de login-flow en het instellingenvenster (account, verbruik, berichten, en voor beheerders
+> werkgebieden, het begrippenoverzicht, de login-flow en het instellingenvenster (account, verbruik, berichten, en voor beheerders
 > modelprofielen, gebruikers, aanvragen, API-tokens, berichtenbeheer en feedback).
 
 Lees ook de projectroot-`CLAUDE.md` en `../api/CLAUDE.md` – de API is de bron van waarheid voor de
@@ -55,7 +55,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
 - **De rekenkern staat in `lib/`**, niet in componenten: vitest draait node-env zonder DOM, dus alleen
   pure helpers zijn testbaar (`selectie`, `annotatie`, `annotatieOverzicht`, `reeks`, `samenhang`,
   `markering`, `popover`, `wetstructuur`, `lopendeRun`, `rondleiding`, `werkgebied`, `begrippen`,
-  `begripVoorstellen`, `begripLex`, `herbeoordeling`, `begripRelaties`, `begripGraaf`, `artefact`, `bronKandidaten`, …).
+  `begripVoorstellen`, `begripLex`, `herbeoordeling`, `begripRelaties`, `begripGraaf`, `begrippenOverzicht`, `artefact`, `bronKandidaten`, …).
 - **`app/**/page.tsx`** (Server Components) – data via `lib/server.ts`, interactie in een
   `*Client.tsx`. `app/page.tsx` doet `redirect("/workbench")`. De werkplek zit in
   `app/workbench/page.tsx` én in `app/default.tsx` (de default van het children-slot); beide renderen
@@ -152,6 +152,11 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
     **`WerkgebiedArtefactPaneel`** opent: dezelfde `BegripVoorstellen` (`inklapbaar={false}`) of
     `BronKandidaten` als op de tab Begrippen of Bronnen, met een link naar het werkgebied. Eén inhoud,
     twee schillen (`werkgebiedArtefactVan` in `lib/artefact.ts`).
+  - **één begrip** (fase F4) – een kaartactie vanuit het gesprek ("geef voorbeelden van termijn") levert
+    een begrippenartefact met `ref: {werkgebied_id, begrip_id, kaart_run_id?, actie?}` en zonder `run_id`.
+    De chip heet *Begrip* (`artefactLabel`/`werkgebiedLabel`), het paneel toont `BegripWerk` (kaart met Lex
+    ernaast, de voorstellen onder hun veld) en *Open het werkgebied* gaat naar `?tab=begrippen&begrip=<id>`.
+    `parseArtefact` eist dan `begrip_id` in plaats van `run_id`, net als de api.
   - **regels** – gereserveerd voor de afleidingsregels: de kaart staat er, maar is geen knop.
   - **Vanuit een werkgebied** (`/workbench?werkgebied=<id>`, de knop *Bespreek met Lex* op de tab
     Begrippen): `WorkbenchShell` leest de parameter, `WerkgebiedBalk` boven de chat noemt het werkgebied
@@ -707,6 +712,14 @@ bestaat los van de gesprekken.
     begrippen* (`inclusief=alle`); `exporteerBegrippen` vertaalt `ttl-alle`. De allowlist laat
     `begrippen/samenhang` en `begrippen/conformiteit` al door (pad van lengte 3).
   - Browserregressie: `scripts/test-begrippengraaf.mjs`.
+- **Begrippen over werkgebieden heen** (fase F4; api §*Begrippen lezen*): het sidebar-item *Begrippen*
+  opent `/begrippen` (`BegrippenOverzichtClient` in `WerkgebiedSchil`, binnen een `Suspense` omdat de
+  filters via `useSearchParams` in de URL staan). Een leesingang: zoeken (na 300 ms), status-knoppen en een
+  werkgebiedkeuze; `filtersUitParams`/`paramsVan` in `lib/begrippenOverzicht.ts` (de pagina heet het
+  `werkgebied`, de api `werkgebied_id`). Een rij noemt naam, status, werkgebied, alternatieve termen,
+  definitie en *vervangen door*; een klik gaat naar de kaart (`kaartUrl`). BFF: de statische
+  `app/api/begrippen/route.ts` geeft de query ongewijzigd door; `zoekBegrippen` toetst de vorm. Werk aan
+  een begrip gebeurt op de kaart, niet hier. Browserregressie: `scripts/test-begrippenoverzicht.mjs`.
 - **Tabs scrollen.** Vijf tabs passen niet naast elkaar op een telefoon; de horizontale `Tabs` scrollt
   (`overflow-x-auto`, tabs `whitespace-nowrap`). Een afgekapte tab is onbereikbaar, en een toets op
   horizontale scroll van de pagina ziet dat niet.
@@ -1114,7 +1127,10 @@ leest als "hij laadt", niet als "log eerst in".
   die de handeling overneemt – en de toetsen volgen `toetsActie` (een knop of veld handelt zijn eigen
   Enter af). Alle andere browserscripts zetten de rondleiding uit; `scripts/test-rondleiding.mjs`
   loopt hem door. De voorbeeldscène in `lib/rondleidingDemo.ts` is een v2-weergave met letterlijke
-  wettekst en ankers die per lid berekend zijn (`segmentAnker`). Hij staat in **hetzelfde
+  wettekst en ankers die per lid berekend zijn (`segmentAnker`): artikel 9 **lid 1** van de
+  Invorderingswet 1990 met de vier markeringen van de echte annotatie op acceptatie (Rechtsfeit over de
+  hele zin, dus overlappend zoals bij echt werk), en één bewuste afwijking: Rechtsfeit staat op *Keuze voor
+  jou*, zodat de badge-stap iets aanwijst. Werkgebieden en begrippen horen (nog) niet in de rondleiding. Hij staat in **hetzelfde
   `NodeAnnotatiePaneel` als echt werk**, via de prop `opslag` (`NodeOpslag` in `lib/annotatieNode.ts`;
   standaard `apiOpslag`): een opslag in het geheugen die de lichamen van de api krijgt en niets
   verstuurt. Zo kan de rondleiding niet meer achterlopen op het paneel; een eigen documentvorm in een
@@ -1274,7 +1290,7 @@ npm run test:browser # Playwright op de echte Next-UI met gemockte BFF (scripts/
 `test:browser` draait `scripts/test-annotatie-nodes.mjs`, `test-samenhang.mjs`, `test-reeks.mjs`,
 `test-toetsen.mjs`, `test-werkgebieden.mjs`, `test-begrippen.mjs`, `test-begripvoorstellen.mjs` en
 `test-artefacten.mjs` (de soorten artefacten in de werkplek), `test-bronkandidaten.mjs`,
-`test-werkgebied-annoteren.mjs`, `test-begrippen-verdieping.mjs`, `test-begriplex.mjs`, `test-herbeoordeling.mjs`, `test-begriprelaties.mjs`, `test-begrippengraaf.mjs` en `test-rondleiding.mjs`, en verwacht een devserver op poort 3109
+`test-werkgebied-annoteren.mjs`, `test-begrippen-verdieping.mjs`, `test-begriplex.mjs`, `test-herbeoordeling.mjs`, `test-begriprelaties.mjs`, `test-begrippengraaf.mjs`, `test-begrippenoverzicht.mjs` en `test-rondleiding.mjs`, en verwacht een devserver op poort 3109
 (`AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109`).
 Praat met **`localhost`**, niet met `127.0.0.1`: Next 16 weigert dev-assets aan een andere origin,
 waarna de pagina niet hydrateert en elke stap zonder duidelijke fout time-out.
