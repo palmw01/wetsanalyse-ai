@@ -172,6 +172,11 @@ export function BegrippenOverzichtClient() {
                   {b.vervangen_door && (
                     <p className="mt-1 text-xs text-muted">Vervangen door {b.vervangen_door.naam}</p>
                   )}
+                  {!!b.herbeoordelen && (
+                    <p className="mt-1 text-xs text-aandacht-geel-tekst" data-herbeoordelen>
+                      Herbeoordelen: {b.herbeoordelen === 1 ? "1 dragende passage veranderde" : `${b.herbeoordelen} dragende passages veranderden`} na het accorderen.
+                    </p>
+                  )}
                 </Link>
               </li>
             ))}

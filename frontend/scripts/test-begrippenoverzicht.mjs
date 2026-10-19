@@ -26,7 +26,7 @@ const rij = (id, naam, wg, wgNaam, status, extra = {}) => ({
 });
 const BEGRIPPEN = [
   rij("b1", "Termijn", "wg1", "Termijnen", "geaccordeerd", { definitie: "Een tijdvak waarbinnen betaald moet worden.",
-    alternatieve_termen: ["tijdvak"] }),
+    alternatieve_termen: ["tijdvak"], herbeoordelen: 1 }),
   rij("b2", "Uitstel van betaling", "wg1", "Termijnen", "concept"),
   rij("b3", "Belastingschuldige", "wg2", "Invordering", "vervangen", { vervangen_door: { begrip_id: "b4", naam: "Belastingschuldige (ruim)" } }),
 ];
@@ -67,6 +67,9 @@ try {
   assert.match(await termijn.innerText(), /Geaccordeerd/);
   assert.match(await termijn.innerText(), /Termijnen · ook: tijdvak/);
   assert.match(await lijst.locator("li", { hasText: "Belastingschuldige" }).innerText(), /Vervangen door Belastingschuldige \(ruim\)/);
+  // Geaccordeerd, maar een dragende passage veranderde: het overzicht zegt het.
+  assert.match(await lijst.locator("li", { hasText: "Termijn" }).first().innerText(), /Herbeoordelen: 1 dragende passage veranderde/);
+  assert.equal(await lijst.locator("[data-herbeoordelen]").count(), 1);
 
   // Zoeken: de term staat in de URL én gaat ongewijzigd naar de BFF.
   await page.getByRole("searchbox", { name: "Zoeken in begrippen" }).fill("termijn");

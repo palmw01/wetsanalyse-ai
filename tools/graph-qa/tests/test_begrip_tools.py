@@ -193,6 +193,15 @@ def test_status_telt_zoals_de_api_hem_nu_kent():
     assert out["resultaten"][0]["vervangen_door"] == {"begrip_id": "b9", "naam": "Termijn"}
 
 
+def test_een_te_herbeoordelen_begrip_draagt_dat_mee():
+    port = Port([rij("b1", "Termijn", status="geaccordeerd", herbeoordelen=2), rij("b2", "Uitstel", herbeoordelen=0)])
+    out = json.loads(dispatch_begrip("search_begrippen", {}, graaf([("b1", WG), ("b2", WG)], {}), port))
+    per = {r["id"]: r for r in out["resultaten"]}
+    assert per["b1"]["herbeoordelen"] == 2 and "herbeoordelen" not in per["b2"]
+    from agent.prompts import SYSTEM_PROMPT
+    assert "`herbeoordelen`" in SYSTEM_PROMPT, "de prompt zegt Lex wat hij ermee doet"
+
+
 def test_een_achterlopende_projectie_is_onvolledig():
     port = Port([rij("b1", "Termijn")], hashes={WG: "nieuw"})
     out = json.loads(dispatch_begrip("search_begrippen", {}, graaf([("b1", WG)], {WG: "oud"}), port))

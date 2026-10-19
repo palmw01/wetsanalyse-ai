@@ -147,6 +147,9 @@ def _rij(r: dict[str, Any]) -> dict[str, Any]:
     if r.get("alternatieve_termen"):
         uit["alternatieve_termen"] = r["alternatieve_termen"]
     uit["aantal_dragend"] = r.get("aantal_dragend", 0)
+    # Geaccordeerd, maar een dragende passage veranderde sindsdien: Lex zegt het (prompt, TOOLKEUZE 7).
+    if r.get("herbeoordelen"):
+        uit["herbeoordelen"] = r["herbeoordelen"]
     if r.get("vervangen_door"):
         uit["vervangen_door"] = r["vervangen_door"]
     return uit

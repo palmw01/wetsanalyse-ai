@@ -738,7 +738,8 @@ bestaat los van de gesprekken.
   filters via `useSearchParams` in de URL staan). Een leesingang: zoeken (na 300 ms), status-knoppen en een
   werkgebiedkeuze; `filtersUitParams`/`paramsVan` in `lib/begrippenOverzicht.ts` (de pagina heet het
   `werkgebied`, de api `werkgebied_id`). Een rij noemt naam, status, werkgebied, alternatieve termen,
-  definitie en *vervangen door*; een klik gaat naar de kaart (`kaartUrl`). BFF: de statische
+  definitie, *vervangen door* en – bij een geaccordeerd begrip met een veranderde dragende passage – geel
+  *Herbeoordelen* (`herbeoordelen` van de api); een klik gaat naar de kaart (`kaartUrl`). BFF: de statische
   `app/api/begrippen/route.ts` geeft de query ongewijzigd door; `zoekBegrippen` toetst de vorm. Werk aan
   een begrip gebeurt op de kaart, niet hier. Browserregressie: `scripts/test-begrippenoverzicht.mjs`.
 - **Tabs scrollen.** Vijf tabs passen niet naast elkaar op een telefoon; de horizontale `Tabs` scrollt

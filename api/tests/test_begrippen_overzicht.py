@@ -141,3 +141,20 @@ def test_artefact_met_een_begrip():
         Artefact(soort="begrippen", ref={"werkgebied_id": "w"})
     with pytest.raises(ValidationError):
         Artefact(soort="begrippen", ref={"begrip_id": "b"})
+
+
+async def test_een_geaccordeerd_begrip_met_een_veranderde_passage_vraagt_herbeoordeling(client):
+    ids = await _annoteer()
+    await _beslis(ids["lid1"], "approve", snapshot())
+    wg = await _werkgebied(client)
+    b = await _geaccordeerd(client, wg, [ids["lid1"]])
+    concept = await _begrip(client, wg, [ids["lid2"]], naam="Ander")
+    assert {x["id"]: x["herbeoordelen"] for x in (await _zoek(client))["resultaten"]} == {b["id"]: 0, concept["id"]: 0}
+    # De jurist past de annotatie aan: de dragende passage is niet meer wat er geaccordeerd werd.
+    await _beslis(ids["lid1"], "heropen", snapshot())
+    await _beslis(ids["lid1"], "edit", snapshot(), wijziging={"klasse": "Rechtsobject"})
+    rijen = {x["id"]: x for x in (await _zoek(client))["resultaten"]}
+    assert rijen[b["id"]]["herbeoordelen"] == 1
+    assert rijen[concept["id"]]["herbeoordelen"] == 0, "alleen een geaccordeerd begrip vraagt herbeoordeling"
+    v = (await client.post("/v1/begrippen/verifieer", json={"ids": [b["id"]]})).json()
+    assert v["begrippen"][b["id"]]["herbeoordelen"] == 1
