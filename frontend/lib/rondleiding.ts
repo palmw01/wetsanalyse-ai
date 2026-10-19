@@ -9,7 +9,7 @@
 // afgeronde annotatie) en dat verhaal lees je alleen als de zinnen bij elkaar staan, niet verspreid
 // over veertien componenten.
 
-export const RONDLEIDING_VERSIE = 2;
+export const RONDLEIDING_VERSIE = 3;
 
 /** Waar in het verhaal een stap hoort. Alleen voor de voortgangsweergave; de volgorde is de lijst. */
 export type Fase = "orientatie" | "opdracht" | "beoordelen" | "afronding";
@@ -36,6 +36,18 @@ export interface Stap {
 
 export const STAPPEN: Stap[] = [
   {
+    id: "lex",
+    anker: "header",
+    fase: "orientatie",
+    titel: "Dit is Lex",
+    tekst:
+      "Lex helpt je bij wetsanalyse. Hij zoekt bepalingen op in de kennisgraaf, citeert letterlijk en " +
+      "stelt JAS-markeringen voor. Wat hij voorstelt, beoordeel jij.",
+    waarom:
+      "Lex is een hulpmiddel, geen vervanger. Twijfel maakt hij zichtbaar in plaats van haar weg te " +
+      "poetsen, zodat het oordeel bij jou blijft.",
+  },
+  {
     id: "gespreksvenster",
     anker: "thread",
     fase: "orientatie",
@@ -54,10 +66,12 @@ export const STAPPEN: Stap[] = [
     fase: "orientatie",
     titel: "Je werk terugvinden",
     tekst:
-      "Je gesprekken staan hier. Onder Annotaties vind je alle bepalingen die je hebt laten " +
-      "annoteren, met de onbeoordeelde bovenaan.",
+      "Je gesprekken staan hier. Onder Annotaties vind je alle geannoteerde bepalingen, met wat nog " +
+      "te beoordelen is bovenaan. Onderin staat hoeveel van je tokenbudget je gebruikt, en de bel " +
+      "bovenin meldt wat er nieuw is.",
     waarom:
-      "Een annotatie blijft bestaan als je het gesprek verwijdert. Opruimen kost je dus geen werk.",
+      "Een annotatie is gedeeld werk en blijft bestaan als je het gesprek verwijdert. Opruimen kost je " +
+      "dus geen werk.",
   },
   {
     id: "invoerveld",
@@ -67,7 +81,8 @@ export const STAPPEN: Stap[] = [
     tekst:
       "Twee soorten opdracht, één veld. Vraag je “Wat betekent 'belastingschuldige'?”, dan krijg je " +
       "een antwoord met bronnen. Vraag je “Annoteer artikel 9 van de Invorderingswet 1990”, dan " +
-      "krijg je een JAS-annotatie om te beoordelen.",
+      "krijg je een JAS-annotatie om te beoordelen. Noem je een onderwerp of een artikel met leden, " +
+      "dan legt Lex je eerst voor waaruit je kunt kiezen.",
     waarom: "Je kiest vooraf niets. Lex leidt uit je zin af wat je bedoelt.",
   },
   {
@@ -76,8 +91,9 @@ export const STAPPEN: Stap[] = [
     fase: "opdracht",
     titel: "Een antwoord met bronnen",
     tekst:
-      "Onder elk antwoord staan de vindplaatsen waarop het steunt. Klap ze uit en klik door naar de " +
-      "wettekst op wetten.overheid.nl.",
+      "Onder elk antwoord staan de vindplaatsen waarop het steunt, per regeling. Noemt Lex een " +
+      "artikel in de tekst, dan kun je het vaak aanklikken: je ziet de wettekst en een link naar " +
+      "wetten.overheid.nl.",
     waarom: "Je moet alles kunnen nazoeken. Daarom noemt Lex altijd waar iets vandaan komt.",
   },
   {
@@ -97,8 +113,9 @@ export const STAPPEN: Stap[] = [
     fase: "opdracht",
     titel: "Een annotatie duurt even",
     tekst:
-      "Reken op 60 tot 90 seconden. Onder “Zo is dit tot stand gekomen” volg je live wat Lex doet: " +
-      "de tekst ophalen, markeren, en het resultaat langs de tegenlezer halen.",
+      "Onder “Zo is dit tot stand gekomen” volg je live elke stap: de bron ophalen, de taalanalyse, " +
+      "de detectie, het besluit op vaste regels, de keuze van het model en de review van de " +
+      "twijfelgevallen. Daarboven zegt Lex in een paar zinnen wat hij vond.",
     waarom:
       "De beurt draait op de server. Je kunt herladen, van gesprek wisselen of even weglopen zonder " +
       "iets te verliezen.",
@@ -122,7 +139,8 @@ export const STAPPEN: Stap[] = [
     titel: "De wettekst",
     tekst:
       "Dit is de letterlijke tekst uit de kennisgraaf. Kies hiernaast een markering en je ziet " +
-      "meteen waar die staat.",
+      "meteen waar die staat. Bij echt werk staat naast Tekst ook Graaf: de bepaling met haar " +
+      "samenhang in de kennisgraaf.",
     waarom:
       "Elke markering wijst een stuk van deze tekst aan. Dat anker blijft kloppen als de wet " +
       "opnieuw wordt ingelezen.",
@@ -146,11 +164,10 @@ export const STAPPEN: Stap[] = [
     fase: "beoordelen",
     titel: "Wat een kaart je vertelt",
     tekst:
-      "Elke kaart is één markering: het letterlijke fragment, de JAS-klasse in zijn eigen kleur, en " +
-      "een oordeel. Dat oordeel luidt Geen bezwaar, Even kijken of Waarschijnlijk fout.",
-    waarom:
-      "Het oordeel komt uit concrete signalen, zoals twijfel tussen twee klassen. Gebruik het om te " +
-      "prioriteren.",
+      "Elke kaart is één markering: het letterlijke fragment en de JAS-klasse in zijn eigen kleur. " +
+      "Zonder badge is het een gewoon voorstel. Keuze voor jou betekent twijfel die de review niet " +
+      "kon beslissen; Bevestigd door review is een twijfelgeval dat de review wel besliste.",
+    waarom: "Begin bij Keuze voor jou: daar heeft Lex jouw oordeel echt nodig.",
   },
   {
     id: "beslissen",
@@ -166,9 +183,10 @@ export const STAPPEN: Stap[] = [
     fase: "beoordelen",
     titel: "Jij beslist",
     tekst:
-      "Probeer het: klik de kaart aan en dan op Akkoord. Je kunt ook op de klassebadge klikken om te " +
-      "corrigeren, of een voorstel verwerpen met × (met reden). Met het toetsenbord gaat het " +
-      "sneller: j en k door de lijst, a voor akkoord, x voor verwerpen, c voor klasse.",
+      "Probeer het: klik de kaart aan. Hij klapt open, met onder Waarom? hoe Lex tot het voorstel " +
+      "kwam. Klik dan op Akkoord, kies via de klassebadge een andere klasse, of verwerp het voorstel " +
+      "met × (met reden). Sneller gaat het met j en k door de lijst, a voor akkoord, x voor verwerpen " +
+      "en c voor klasse.",
     waarom:
       "Elke beslissing komt in het auditspoor. Een voorstel dat je verwerpt blijft zichtbaar, met " +
       "jouw reden erbij.",
@@ -180,8 +198,9 @@ export const STAPPEN: Stap[] = [
     fase: "beoordelen",
     titel: "Zelf markeren",
     tekst:
-      "Miste Lex iets? Selecteer het in de wettekst en kies zelf een klasse. Een bestaande markering " +
-      "korter of langer maken kan ook: klik hem aan en selecteer opnieuw.",
+      "Miste Lex iets? Een gestippeld onderstreept stuk tekst leverde geen enkele treffer op; klik " +
+      "erop en kies zelf een klasse. Je kunt ook zelf tekst selecteren. Een markering korter of " +
+      "langer maken: klik hem aan en selecteer opnieuw, of kies op de kaart een andere grens.",
     waarom: "Wat jij vastlegt blijft staan. Een volgende ronde van Lex laat het met rust.",
   },
   {
@@ -191,9 +210,10 @@ export const STAPPEN: Stap[] = [
     fase: "afronding",
     titel: "Afronden en exporteren",
     tekst:
-      "Exporteren kan altijd, ook halverwege: als PDF, CSV of JSON. Het bestand vermeldt hoeveel er " +
-      "nog openstaat en bevat het volledige spoor, inclusief het model waarmee Lex de voorstellen " +
-      "maakte. Afronden zet het document vast; heropenen kan daarna nog steeds.",
+      "Exporteren kan altijd, ook halverwege: als PDF, CSV, JSON of RDF. Het bestand vermeldt hoeveel " +
+      "er nog openstaat en bevat het volledige spoor, inclusief het model waarmee Lex de voorstellen " +
+      "maakte. Afronden zet de annotatie vast; heropenen kan daarna nog steeds. Verwijderen haalt de " +
+      "annotatie van deze bepaling voor iedereen weg.",
     waarom: "Alle kaarten beslissen is iets anders dan klaar zijn. Dat oordeel blijft aan jou.",
   },
 ];

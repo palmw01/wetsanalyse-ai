@@ -1037,7 +1037,8 @@ export function WerkplekClient({
       </p>
       {/* Begroeting en silhouet: volledig in de lege werkplek, een smalle strook zodra er een gesprek
           loopt. Buiten de scroller, zodat alleen de thread scrolt. */}
-      <WerkplekHeader compact={items.length > 0} />
+      {/* In de rondleiding volledig: de eerste stap stelt Lex voor aan de hand van deze header. */}
+      <WerkplekHeader compact={items.length > 0 && !demo} />
       {/* De annotatie blijft bereikbaar. De chip in de thread scrolt weg zodra het gesprek doorloopt;
           dan is er geen weg terug naar het werk waar je middenin zat. */}
       {wgUitOverzicht && (

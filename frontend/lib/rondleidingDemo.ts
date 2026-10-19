@@ -22,7 +22,7 @@ import {
   type NodeWeergave,
 } from "./annotatieNode";
 import type { ThreadItem } from "./threadItem";
-import type { Aandacht, AgentRun, Beslissing, BeslissingType, GesprekSamenvatting } from "./types";
+import type { Aandacht, AgentRun, Beslissing, BeslissingType, ElementTrace, GesprekSamenvatting } from "./types";
 
 /** De slug van de voorbeeldannotatie. Begint met `demo-` zodat hij nooit met een echte slug botst. */
 export const DEMO_SLUG = "demo-rondleiding-iw1990-art9";
@@ -73,76 +73,115 @@ const DEMO_RUN: AgentRun = {
   tijd: "2026-01-01T09:00:00Z",
 };
 
-/** Eén voorgenomen markering. `voorkomen` telt vanaf 1 binnen het lid en kiest wélke treffer het is. */
+/** Eén voorgenomen markering. `voorkomen` telt vanaf 1 binnen het lid en kiest wélke treffer het is.
+ *
+ *  De aandacht volgt de keten van nu: geen badge is een gewoon voorstel, geel ("Keuze voor jou") is
+ *  twijfel die de reviewer niet besliste, groen ("Bevestigd door review") een twijfelgeval dat hij
+ *  wél besliste. Rood zet de keten niet, dus de demo ook niet. Het spoor (`door`, `spoor`) gebruikt
+ *  de codes uit `tools/graph-qa/agent/jas_pipeline/verklaringen.yaml`, zodat *Waarom?* er net zo
+ *  uitziet als bij echt werk. */
 interface DemoSpec {
   fragment: string;
   voorkomen?: number;
   klasse: string;
   lid: string;
-  aandacht: Aandacht;
+  aandacht: Aandacht | null;
   toelichting: string;
+  /** Wie besliste: een vaste regel, het model, of niemand (`terugval`: de jurist kiest). */
+  door: "regel" | "model" | "terugval";
+  /** Het bewijs van de detectoren: [detector, code]. */
+  bewijs: [string, string][];
   alternatief?: { klasse: string; motivatie: string };
   review_uitleg?: string;
+  twijfel?: string;
+  resolutie?: string;
+  /** Een kortere grens die de keten ook overwoog, als tekst binnen het fragment ("Andere grens"). */
+  grens?: string;
 }
 
 const DEMO_SPECS: DemoSpec[] = [
   {
-    fragment: "Een belastingaanslag", klasse: "Rechtsobject", lid: "1", aandacht: "groen",
+    fragment: "Een belastingaanslag", klasse: "Rechtsobject", lid: "1", aandacht: null, door: "regel",
+    bewijs: [["naamwoordgroep", "THING_NP"]],
     toelichting: "Het voorwerp waarover de betalingsverplichting loopt.",
   },
   {
-    fragment: "is invorderbaar", klasse: "Rechtsbetrekking", lid: "1", aandacht: "geel",
+    fragment: "is invorderbaar", klasse: "Rechtsbetrekking", lid: "1", aandacht: "geel", door: "model",
+    bewijs: [["gevolg", "LEGAL_EFFECT_PREDICATE"]],
     toelichting: "De juridische toestand die tussen de ontvanger en de belastingschuldige ontstaat.",
     alternatief: {
       klasse: "Rechtsfeit",
       motivatie: "Je kunt het invorderbaar wórden ook lezen als de gebeurtenis die de betalingsplicht opeisbaar maakt.",
     },
     review_uitleg: "Werkwoordsvorm duidt op een rechtsbetrekking, maar het tijdsverloop maakt een rechtsfeit verdedigbaar.",
+    twijfel: "DETECTOR_CONFLICT", resolutie: "R-CONFLICT-HUMAN",
   },
   {
     fragment: "zes weken na de dagtekening van het aanslagbiljet", klasse: "Tijdsaanduiding", lid: "1",
-    aandacht: "groen", toelichting: "Het tijdvak waarna de aanslag invorderbaar is.",
+    aandacht: null, door: "regel", bewijs: [["tijd", "TEMPORAL_DURATION"]], grens: "zes weken",
+    toelichting: "Het tijdvak waarna de aanslag invorderbaar is.",
   },
   {
-    fragment: "In afwijking van het eerste lid", klasse: "Voorwaarde", lid: "2", aandacht: "geel",
+    fragment: "In afwijking van het eerste lid", klasse: "Voorwaarde", lid: "2", aandacht: "groen", door: "model",
+    bewijs: [["voorwaarde", "CONDITIONAL_FORMULA"]],
     toelichting: "Bakent af wanneer de hoofdregel van lid 1 niet geldt.",
     alternatief: {
       klasse: "Operator",
       motivatie: "De formulering verbindt twee bepalingen; dat kan ook als logische uitzondering worden gelezen.",
     },
-    review_uitleg: "Uitzonderingsformule – Voorwaarde of Operator is hier een echte interpretatiekeuze.",
+    review_uitleg: "Een vaste voorwaardeformule: de afwijking begrenst wanneer de termijn van lid 1 geldt.",
+    twijfel: "DETECTOR_CONFLICT", resolutie: "R-CONFLICT-CHANGE",
   },
   {
-    fragment: "een navorderingsaanslag", klasse: "Rechtsobject", lid: "2", aandacht: "groen",
+    fragment: "een navorderingsaanslag", klasse: "Rechtsobject", lid: "2", aandacht: null, door: "regel",
+    bewijs: [["naamwoordgroep", "THING_NP"]],
     toelichting: "Het voorwerp waarvoor de afwijkende termijn geldt.",
   },
   {
-    fragment: "alsmede", klasse: "Operator", lid: "2", aandacht: "groen",
+    fragment: "alsmede", klasse: "Operator", lid: "2", aandacht: null, door: "regel",
+    bewijs: [["logisch", "LOGICAL"]],
     toelichting: "Logische conjunctie: beide aanslagen vallen onder dezelfde termijn.",
   },
   {
-    fragment: "een conserverende navorderingsaanslag", klasse: "Rechtsobject", lid: "2", aandacht: "groen",
+    fragment: "een conserverende navorderingsaanslag", klasse: "Rechtsobject", lid: "2", aandacht: null,
+    door: "regel", bewijs: [["naamwoordgroep", "THING_NP"]],
     toelichting: "Tweede voorwerp waarvoor de termijn van één maand geldt.",
   },
   {
-    // Bewust een misser: het toont hoe een rood oordeel eruitziet en waarom je zelf corrigeert.
-    fragment: "invorderbaar", klasse: "Rechtsobject", lid: "2", aandacht: "rood",
+    // Bewust een misser: het model gaf geen keuze, en de klasse die er voorlopig staat klopt niet. Zo
+    // ziet de gebruiker waarom "Keuze voor jou" serieus genomen moet worden.
+    fragment: "invorderbaar", klasse: "Rechtsobject", lid: "2", aandacht: "geel", door: "terugval",
+    bewijs: [["gevolg", "LEGAL_EFFECT_PREDICATE"]],
     toelichting: "",
     review_uitleg: "Dit is een werkwoordsvorm, geen voorwerp. Hoort vrijwel zeker bij Rechtsbetrekking.",
     alternatief: { klasse: "Rechtsbetrekking", motivatie: "Werkwoord dat de plicht tot betaling uitdrukt." },
+    twijfel: "CLASSIFIER_ABSTAIN", resolutie: "R-ABSTAIN-HUMAN",
   },
   {
     fragment: "één maand na de dagtekening van het aanslagbiljet", klasse: "Tijdsaanduiding", lid: "2",
-    aandacht: "groen", toelichting: "Afwijkende termijn voor de (conserverende) navorderingsaanslag.",
+    aandacht: null, door: "regel", bewijs: [["tijd", "TEMPORAL_DURATION"]],
+    toelichting: "Afwijkende termijn voor de (conserverende) navorderingsaanslag.",
   },
   {
-    fragment: "een naheffingsaanslag", klasse: "Rechtsobject", lid: "2", aandacht: "groen",
+    fragment: "een naheffingsaanslag", klasse: "Rechtsobject", lid: "2", aandacht: null, door: "regel",
+    bewijs: [["naamwoordgroep", "THING_NP"]],
     toelichting: "Het voorwerp waarvoor de kortste termijn geldt.",
   },
   {
     fragment: "veertien dagen na de dagtekening van het aanslagbiljet", klasse: "Tijdsaanduiding", lid: "2",
-    aandacht: "groen", toelichting: "Afwijkende termijn voor de naheffingsaanslag.",
+    aandacht: null, door: "regel", bewijs: [["tijd", "TEMPORAL_DURATION"]],
+    toelichting: "Afwijkende termijn voor de naheffingsaanslag.",
   },
+];
+
+/** Wat de keten in lid 2 niet zag: het tweede "invorderbaar" (vóór "veertien dagen"). Het paneel
+ *  onderstreept het gestippeld, en één klik erop markeert het – de stap "Zelf markeren". */
+const DEMO_ONGEDEKT = { lid: "2", fragment: "invorderbaar", voorkomen: 2 };
+
+/** De twaalf detectiedimensies van de keten (`jas_pipeline/dekking.py`). */
+const DIMENSIES = [
+  "actor", "object", "normatieve relatie", "handeling/gebeurtenis", "voorwaarde", "berekening/afleiding",
+  "waarde", "operator", "tijd", "plaats", "delegatie", "definitie",
 ];
 
 /** De segmenten van de weergave: één per lid, met de letterlijke tekst. */
@@ -167,6 +206,34 @@ function laagId(lid: string): string {
   return `demo-laag-${lid}`;
 }
 
+/** Het herkomstspoor van een demo-element, in de vorm van de keten. Posities in codepoints binnen
+ *  het lid, net als de ankers. */
+function spoorVan(spec: DemoSpec, segment: NodeSegment, start: number): ElementTrace {
+  const cp = (utf16: number) => Array.from(segment.tekst.slice(0, utf16)).length;
+  const grens = spec.grens && start >= 0 ? segment.tekst.indexOf(spec.grens, start) : -1;
+  const kandidaat = {
+    label: spec.fragment,
+    mogelijke_klassen: [spec.klasse, ...(spec.alternatief ? [spec.alternatief.klasse] : [])],
+    bewijs: spec.bewijs.map(([detector, code]) => ({ detector, code })),
+    ...(grens >= 0 && start >= 0 ? {
+      span: { bron_iri: segment.bron_iri },
+      spanopties: [
+        { soort: "volledig", start: cp(start), eind: cp(start + spec.fragment.length) },
+        { soort: "kern", start: cp(grens), eind: cp(grens + spec.grens!.length) },
+      ],
+    } : {}),
+  };
+  return {
+    pijplijn: "hybrid_v1",
+    kandidaat,
+    beslissing: { status: "voorgesteld", klasse: spec.klasse, door: spec.door },
+    ...(spec.twijfel ? { twijfel: [{
+      reden: spec.twijfel, huidig: spec.klasse, alternatieven: spec.alternatief ? [spec.alternatief.klasse] : [],
+    }] } : {}),
+    ...(spec.resolutie ? { resolutie: [{ regel: spec.resolutie }] } : {}),
+  };
+}
+
 function elementVan(spec: DemoSpec, index: number, segment: NodeSegment): NodeElement {
   const start = positieVan(segment.tekst, spec.fragment, spec.voorkomen ?? 1);
   // Een fragment dat niet in de tekst staat, hoort ook in de demo niet stilzwijgend te verdwijnen:
@@ -185,9 +252,28 @@ function elementVan(spec: DemoSpec, index: number, segment: NodeSegment): NodeEl
     alternatieven: spec.alternatief ? [spec.alternatief] : [],
     aandacht: spec.aandacht,
     review_uitleg: spec.review_uitleg,
+    trace: spoorVan(spec, segment, start),
     beslissingen: [],
     geproduceerd_door: DEMO_RUN,
   };
+}
+
+/** De dekking zoals de keten haar meet: alle dimensies gedraaid, en in lid 2 één zinsdeel zonder
+ *  treffer. */
+function demoDekking(segmenten: NodeSegment[]) {
+  const structureel = Object.fromEntries(segmenten.map((segment) => {
+    const ongedekt = [];
+    if (segment.nummer === DEMO_ONGEDEKT.lid) {
+      const start = positieVan(segment.tekst, DEMO_ONGEDEKT.fragment, DEMO_ONGEDEKT.voorkomen);
+      const a = segmentAnker(segment, start, start + DEMO_ONGEDEKT.fragment.length);
+      ongedekt.push({ tekst: a.tekst, start: a.start, eind: a.eind });
+    }
+    return [segment.bron_iri, {
+      dimensies: Object.fromEntries(DIMENSIES.map((d) => [d, "uitgevoerd" as const])),
+      ongedekt,
+    }];
+  }));
+  return { voltooid: true, structureel };
 }
 
 /** De weergave van de voorbeeldannotatie, vers opgebouwd. Elke start krijgt een schone lei. */
@@ -202,7 +288,7 @@ export function maakDemoWeergave(): NodeWeergave {
     lagen: DEMO_LEDEN.map(({ lid }) => ({ id: laagId(lid), bron_iri: lidIri(lid), revisie: 1, status: "in_review" })),
     elementen: DEMO_SPECS.map((spec, i) => elementVan(spec, i, segmentVan(spec.lid))),
     verwijzingen: [],
-    dekking: {},
+    dekking: demoDekking(segmenten),
   };
 }
 
@@ -334,6 +420,13 @@ export function maakDemoOpslag(): NodeOpslag {
 
 // --- de thread en de sidebar ----------------------------------------------------------------
 
+/** Wat Lex onder de annotatie zegt. Elke zin volgt uit `DEMO_SPECS`, zoals bij graph-qa. */
+export const DEMO_SAMENVATTING =
+  "Ik heb artikel 9 van de Invorderingswet 1990 geanalyseerd en elf JAS-elementen gevonden. " +
+  "De markeringen zijn vooral Rechtsobject en Tijdsaanduiding. " +
+  "Twee voorstellen hebben een plausibel alternatief en verdienen daarom extra aandacht. " +
+  "Acht voorstellen volgen rechtstreeks uit vaste regels, twee koos het model.";
+
 /** De twee beurten die in de thread staan: een vraag met bronnen, en de annotatie met zijn tijdlijn. */
 function maakDemoItems(): ThreadItem[] {
   return [
@@ -350,7 +443,11 @@ function maakDemoItems(): ThreadItem[] {
         "belastingaanslag is gesteld (artikel 2, eerste lid, onderdeel k). Het begrip bepaalt wie de " +
         "ontvanger kan aanspreken voor de betaling.\n\n" +
         `_(${DEMO_LABEL}: dit antwoord hoort bij de rondleiding.)_`,
-      denk: "· supervisor koos de definitie-specialist · begrip opgezocht in de graaf · antwoord onderbouwd",
+      denk: [
+        "· Supervisor · een vraag naar een begrip: de definitie-specialist (0,6 s)",
+        "· Graaf · begripsbepaling opgehaald uit artikel 2 van de Invorderingswet 1990 (0,4 s)",
+        "· Controle · 1 citaat niet letterlijk in de opgehaalde tekst (0,1 s)",
+      ].join("\n"),
       bronnen: [
         { label: "Invorderingswet 1990, artikel 2", uri: "jci1.3:c:BWBR0004770&artikel=2" },
         { label: "Invorderingswet 1990, artikel 9", uri: "jci1.3:c:BWBR0004770&artikel=9" },
@@ -372,9 +469,20 @@ function maakDemoItems(): ThreadItem[] {
       slug: DEMO_SLUG,
       titel: DEMO_DOEL.label,
       annotatie_doel: DEMO_DOEL,
-      denk:
-        "· supervisor koos de annotatie-worker · bepaling opgehaald uit de graaf · " +
-        "11 markeringen voorgesteld · 1 modelaanroep · 3 ter keuze · vastgelegd",
+      // Zoals graph-qa haar uit de voorstellen opbouwt (`agent/nodes/annotatie_samenvatting.py`); de
+      // test houdt de telling gelijk met `DEMO_SPECS`.
+      tekst: DEMO_SAMENVATTING,
+      // De fasen van de annotatieketen, in de vorm van `agent/narratie.py`: één regel per stap.
+      denk: [
+        `· Bron · artikel 9 van de Invorderingswet 1990 (${DEMO_LEDEN.reduce((n, l) => n + l.tekst.length, 0)} tekens)`,
+        "· Taalanalyse · nl_core_news_md, 2 zin(nen) (0,6 s)",
+        "· Detectie · 15 kandidaten uit 9 detectoren (0,2 s)",
+        "· Besluit · 8 op vaste regels, 3 naar het model (0,0 s)",
+        "· Classificatie · 3 kandidaten in 1 modelaanroep(en) (3,8 s)",
+        "· Review · 3 twijfelgeval(len), 3 naar de reviewer (4,6 s)",
+        "· Resultaat · 11 voorgesteld, 2 ter keuze aan de jurist (0,1 s)",
+        "· Klaar · 11 elementen ter beoordeling",
+      ].join("\n"),
     },
   ];
 }
