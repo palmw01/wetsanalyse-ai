@@ -38,7 +38,8 @@ class Artefact(BaseModel):
     artefactpaneel naast de chat; de inhoud zelf leeft in de api, het bericht verwijst ernaar.
 
     `ref` hangt af van de soort – annotatie: `{bron_iri, label?, snapshot_id?}`; begrippen:
-    `{werkgebied_id, run_id}`; bronnen (kandidaatbepalingen van een bronnenrun): `{werkgebied_id,
+    `{werkgebied_id, run_id}` (de voorstellen van een run) of `{werkgebied_id, begrip_id, kaart_run_id?,
+    actie?}` (één begrip, fase F4: een kaartactie vanuit het gesprek); bronnen (kandidaatbepalingen van een bronnenrun): `{werkgebied_id,
     run_id}`; regels: nog niet in gebruik (gereserveerd)."""
 
     soort: Literal["annotatie", "begrippen", "bronnen", "regels"]
@@ -49,6 +50,8 @@ class Artefact(BaseModel):
     def _ref(self) -> "Artefact":
         nodig = {"annotatie": ("bron_iri",), "begrippen": ("werkgebied_id", "run_id"),
                  "bronnen": ("werkgebied_id", "run_id"), "regels": ()}[self.soort]
+        if self.soort == "begrippen" and self.ref.get("begrip_id"):
+            nodig = ("werkgebied_id", "begrip_id")
         ontbreekt = [k for k in nodig if not isinstance(self.ref.get(k), str) or not self.ref.get(k)]
         if ontbreekt:
             raise ValueError(f"ref van een {self.soort}-artefact mist {', '.join(ontbreekt)}")

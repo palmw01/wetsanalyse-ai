@@ -116,3 +116,30 @@ class KoppelWijziging(BaseModel):
 
 class Revisie(BaseModel):
     verwachte_revisie: int = Field(ge=1)
+
+
+# --- Lezen over werkgebieden heen (fase F4) -----------------------------------------------------
+
+class BegripStatus(str, Enum):
+    concept = "concept"
+    geaccordeerd = "geaccordeerd"
+    vervangen = "vervangen"
+
+
+class BegripZoekvraag(BaseModel):
+    """Zoeken in de begrippen van alle actieve werkgebieden (`GET /v1/begrippen`). graph-qa
+    (`search_begrippen`) vraagt niets wat hier niet staat – `tests/test_contract_drift.py` daar."""
+
+    q: str = Field(default="", max_length=200)
+    status: list[BegripStatus] = Field(default_factory=list, max_length=3)
+    werkgebied_id: str | None = Field(default=None, max_length=64)
+    # Het werkgebied van de vrager: zijn begrippen staan bij een gelijke treffer vooraan.
+    eerst: str | None = Field(default=None, max_length=64)
+
+
+class BegripVerificatie(BaseModel):
+    """Kandidaten uit de graaf laten bevestigen (`POST /v1/begrippen/verifieer`). `werkgebieden`: ook van
+    deze werkgebieden de projectiehash van nu, als er geen begrip van gevonden is."""
+
+    ids: list[str] = Field(default_factory=list, max_length=50)
+    werkgebieden: list[str] = Field(default_factory=list, max_length=50)
