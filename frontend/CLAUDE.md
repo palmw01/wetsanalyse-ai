@@ -55,7 +55,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
 - **De rekenkern staat in `lib/`**, niet in componenten: vitest draait node-env zonder DOM, dus alleen
   pure helpers zijn testbaar (`selectie`, `annotatie`, `annotatieOverzicht`, `reeks`, `samenhang`,
   `markering`, `popover`, `wetstructuur`, `lopendeRun`, `rondleiding`, `werkgebied`, `begrippen`,
-  `begripVoorstellen`, `begripLex`, `herbeoordeling`, `begripRelaties`, `begripGraaf`, `begrippenOverzicht`, `artefact`, `bronKandidaten`, `deelvragen`, `onbewaard`, …).
+  `begripVoorstellen`, `begripLex`, `herbeoordeling`, `begripRelaties`, `begripGraaf`, `begrippenOverzicht`, `artefact`, `bronKandidaten`, `deelvragen`, `onbewaard`, `vraagkaart`, …).
 - **`app/**/page.tsx`** (Server Components) – data via `lib/server.ts`, interactie in een
   `*Client.tsx`. `app/page.tsx` doet `redirect("/workbench")`. De werkplek zit in
   `app/workbench/page.tsx` én in `app/default.tsx` (de default van het children-slot); beide renderen
@@ -67,7 +67,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   redirects naar de bijbehorende tab.
 - **`components/`**:
   - `werkplek/` – de hele chat-werkruimte: schil, sidebar, thread (`ThreadRij`, `ToolSpoor`,
-    `KeuzeKaart`, `ReeksBlok`, `HergebruikMelding`, `Markdown`) en het annotatiegereedschap in het
+    `KeuzeKaart`, `VraagKaart`, `ReeksBlok`, `HergebruikMelding`, `Markdown`) en het annotatiegereedschap in het
     artefactpaneel (`ArtefactInhoud`, `DocumentPaneel`, `ReviewQueue`,
     `SelectiePopover`, `ExportKnop`).
   - `annotaties/` – het overzicht en de losse annotatiepagina (`AnnotatiesClient`, `AnnotatieKaart`,
@@ -143,7 +143,7 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
   gesprek wisselen, niet wanneer een verse chat bij de eerste beurt zijn id krijgt – anders breekt de
   stream. De graph-qa `conversation_id` (thread_id) is het `gesprekId`.
 - **Wat Lex oplevert is een artefact** (`Bericht.artefact`, `lib/artefact.ts`): `{soort, ref, titel}`
-  met soort `annotatie`, `begrippen` of `regels`. Elke soort heeft een chip in de thread en een paneel
+  met soort `annotatie`, `begrippen`, `bronnen`, `werkgebied` of `regels`. Elke soort heeft een chip in de thread en een paneel
   in dezelfde schil (kolom vanaf 1280px, anders een sheet); er staat er hoogstens één open.
   - **annotatie** – het `annotatie`-item met `AnnotatieChip`, dat **`NodeAnnotatiePaneel`** opent
     (een bericht zonder bronnode wijst naar een verwijderde annotatie: een tombstone). `DocumentPaneel` toont de wettekst met de **letterlijke** fragmenten
@@ -158,6 +158,11 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
     De chip heet *Begrip* (`artefactLabel`/`werkgebiedLabel`), het paneel toont `BegripWerk` (kaart met Lex
     ernaast, de voorstellen onder hun veld) en *Open het werkgebied* gaat naar `?tab=begrippen&begrip=<id>`.
     `parseArtefact` eist dan `begrip_id` in plaats van `run_id`, net als de api.
+  - **werkgebied** (activiteit 1) – een werkgebied dat Lex met de analist samenstelde: ref
+    `{werkgebied_id}`. De chip heet *Werkgebied · bekijken* en opent hetzelfde `WerkgebiedArtefactPaneel`
+    met eigen inhoud (`WerkgebiedInhoud`: analysevraag, afbakening, de bronnen met rol *analyseren*,
+    *Open het werkgebied*) – los van het annotatiepaneel. Komt het binnen via `opgeslagen`, dan opent het
+    paneel én gaat de werkplek verder in dat werkgebied (`onKiesWerkgebied`, de werkgebiedbalk).
   - **regels** – gereserveerd voor de afleidingsregels: de kaart staat er, maar is geen knop.
   - **Vanuit een werkgebied** (`/workbench?werkgebied=<id>`, de knop *Bespreek met Lex* op de tab
     Begrippen): `WorkbenchShell` leest de parameter, `WerkgebiedBalk` boven de chat noemt het werkgebied
@@ -302,6 +307,26 @@ kandidaten zitten niet in het berichtcontract; na herladen blijft de opsomming u
 **Geen keuzemenu's – het is chat op de graaf.** Je kiest geen wet uit een lijst: je stelt je vraag en
 de agent vindt de bepaling (het `doel`-event levert `bwbId`/`artikel`/`citeertitel`). Een keuze die de
 agent ná je vraag voorlegt uit wat hij vond (kandidaten, `KeuzeKaart`) is een antwoord, geen menu.
+
+### Een werkgebied samenstellen met vraagkaarten (activiteit 1)
+
+"Kunnen we een werkgebied samenstellen?" of "ik wil een wetsanalyse uitvoeren" laat Lex één vraag per
+kaartje stellen (graph-qa `agent/werkgebied_intake.py`): naam, analysevraag, regeling(en), onderdelen,
+wat valt erbuiten, en een samenvatting met *Werkgebied aanmaken*. Het kaartje komt als
+`vraagkaart`-event (`parseVraagkaart` in `lib/vraagkaart.ts`) en staat op het bewaarde bericht
+(`Bericht.vraagkaart`), dus het overleeft een herlaadbeurt.
+
+- **`VraagKaart`** volgt `KeuzeKaart`: de voorstellen als listbox, een eigen antwoord eronder, en pas
+  *Volgende* (of Enter) stuurt in. **Een klik op een voorstel selecteert alleen** – geen beurt op een
+  misklik. Wat Lex uit de eerste zin haalde staat voorgeselecteerd (`beginstand`), nooit stil
+  aangenomen. "Weet ik (nog) niet" sluit de andere keuzes uit, en andersom.
+- **Een klik is een gewone beurt met `intake_actie`** (`verstuur(…, intake)` → `startRun`); de leesbare
+  tekst (`antwoordTekst`) staat als vraag in het gesprek, graph-qa leest de actie. De volgorde van de
+  vragen is van graph-qa – de werkplek bedenkt geen stap.
+- **Alleen het laatste kaartje is te bedienen** (`actiefKaartje`), en geen meer zodra er een
+  werkgebied uit is aangemaakt; eerdere kaartjes tonen alleen de vraag. Een tussenvraag laat het
+  kaartje open: graph-qa bewaart de intake.
+- Browserregressie: `scripts/test-werkgebied-intake.mjs`.
 
 ### Kiezen binnen één artikel, en de reeks
 

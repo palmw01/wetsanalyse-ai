@@ -21,7 +21,9 @@ export type ThreadItem = { tool_executions?: import("./annotatieNode").ToolExecu
       // toont het als blok onder de duiding, en de graafknop opent er de delen van.
       overzicht?: Overzicht;
       // Lex stelt voor het werkgebied te annoteren (fase B): de knop eronder start de run.
-      bevestiging?: import("./types").Bevestiging }
+      bevestiging?: import("./types").Bevestiging;
+      // Een vraag van Lex bij het samenstellen van een werkgebied (activiteit 1): het kaartje eronder.
+      vraagkaart?: import("./vraagkaart").Vraagkaart }
   // `denk` = de tijdlijn van het samenspel (supervisor → ophaal → annoteer → emit). Die blijft ook
   // bewaard als de beurt een annotatie blijkt; juist bij een annotatie wil je achteraf kunnen zien
   // hoe hij tot stand kwam.

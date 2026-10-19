@@ -84,3 +84,14 @@ describe("een artefact dat naar één begrip wijst (fase F4)", () => {
     expect(artefactSleutel(w)).not.toBe(artefactSleutel(voorstellen));
   });
 });
+
+describe("het werkgebied als artefact (activiteit 1)", () => {
+  it("wijst alleen het werkgebied aan en opent in het werkgebiedpaneel", () => {
+    const a = parseArtefact({ soort: "werkgebied", ref: { werkgebied_id: "wg1" }, titel: "Box 3" });
+    expect(a?.soort).toBe("werkgebied");
+    expect(werkgebiedArtefactVan(a)).toEqual({ soort: "werkgebied", werkgebied_id: "wg1", run_id: "", titel: "Box 3" });
+    expect(artefactLabel(a!)).toBe("Werkgebied");
+    expect(isTeOpenen(a!)).toBe(true);
+    expect(parseArtefact({ soort: "werkgebied", ref: {} })).toBeUndefined();
+  });
+});

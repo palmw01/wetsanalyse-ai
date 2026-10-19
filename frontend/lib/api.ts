@@ -98,6 +98,7 @@ import { isRelatiesAntwoord } from "./begripRelaties";
 import { isDekking, isHerbeoordelingen } from "./herbeoordeling";
 import { pathSegment } from "./url";
 import { parseBevestiging } from "./werkgebiedAnnoteren";
+import { parseVraagkaart } from "./vraagkaart";
 
 export async function parseError(res: Response): Promise<ApiError> {
   let detail = res.statusText;
@@ -525,6 +526,8 @@ export type AgentHandlers = {
   onReeksEvent?: (event: Record<string, unknown>) => void;
   /** Lex hergebruikte (een deel van) de gedeelde laag in plaats van opnieuw te annoteren. */
   onHergebruik?: (h: AgentHergebruik) => void;
+  /** Een vraag van Lex bij het samenstellen van een werkgebied (activiteit 1). */
+  onVraagkaart?: (k: import("./vraagkaart").Vraagkaart) => void;
   /** Het overzicht van een onderwerp, deterministisch uit de graaf; komt vóór de duiding. */
   onOverzicht?: (o: import("./types").Overzicht) => void;
   /** Het volgnummer van het laatst verwerkte event. Daarmee haakt een client na een onderbreking
@@ -587,6 +590,8 @@ export async function startRun(
     /** De werkplek staat in de context van een werkgebied: een vraag om begrippen gaat dan de
      *  begrippenroute in (graph-qa `agent/begrippen_beurt.py`). */
     werkgebied_id?: string;
+    /** Een klik op een vraagkaartje bij het samenstellen van een werkgebied (activiteit 1). */
+    intake_actie?: import("./vraagkaart").IntakeActie;
   },
 ): Promise<RunStart> {
   const res = await fetch("/api/annotatie/run", {
@@ -604,6 +609,7 @@ export async function startRun(
       ...(extra?.doelen ? { doelen: extra.doelen } : {}),
       ...(extra?.werkgebied_id ? { werkgebied_id: extra.werkgebied_id } : {}),
       ...(typeof extra?.bevestigd === "number" ? { bevestigd: extra.bevestigd } : {}),
+      ...(extra?.intake_actie ? { intake_actie: extra.intake_actie } : {}),
     }),
   });
   if (res.status === 409) {
@@ -817,6 +823,10 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
         else if (ev.type === "overzicht" && ev.overzicht) {
           const overzicht = geldig(parseOverzicht, ev.overzicht, "overzicht");
           if (overzicht) handlers.onOverzicht?.(overzicht);
+        }
+        else if (ev.type === "vraagkaart") {
+          const kaart = geldig(parseVraagkaart, (ev as { vraagkaart?: unknown }).vraagkaart, "vraagkaart");
+          if (kaart) handlers.onVraagkaart?.(kaart);
         }
         else if (ev.type === "hergebruik" && ev.hergebruik) {
           const hergebruik = geldig(parseHergebruik, ev.hergebruik, "hergebruik");
