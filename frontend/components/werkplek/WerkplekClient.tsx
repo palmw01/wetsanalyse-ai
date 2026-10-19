@@ -31,6 +31,7 @@ import type {
   AgentDoel,
   AgentDoelInvoer,
   AgentHergebruik,
+  BeurtMeting,
   Overzicht,
   AgentKandidaat,
   AgentKeuze,
@@ -40,6 +41,7 @@ import type {
   Verbruiksstand,
   VoorstelElement,
 } from "@/lib/types";
+import { metingUitDekking } from "@/lib/agentEvents";
 import { ANNOTEER_PROMPT, parseBevestiging } from "@/lib/werkgebiedAnnoteren";
 import { MEEDENK_PROMPT } from "@/lib/begripVoorstellen";
 import {
@@ -276,7 +278,8 @@ export function WerkplekClient({
                   // De samenvatting van Lex (hoogstens vier zinnen), zoals graph-qa hem bewaarde.
                   tekst: b.tekst?.trim() || undefined,
                   // Na herladen moet nog te zien zijn dat er niets opnieuw is bekeken.
-                  hergebruik: b.hergebruik ? parseHergebruik(b.hergebruik) : undefined }
+                  hergebruik: b.hergebruik ? parseHergebruik(b.hergebruik) : undefined,
+                  meting: metingUitDekking(b.dekking) }
               : { id: uid(), type: "antwoord" as const, tekst: b.tekst, denk: b.denk, bronnen: b.bronnen, tool_executions: toolSpoorUit(b.tool_executions),
                   // Het overzicht zoals graph-qa het opbouwde: na herladen hetzelfde blok en dezelfde graafdoelen.
                   overzicht: b.overzicht ? parseOverzicht(b.overzicht) : undefined,
@@ -574,6 +577,7 @@ export function WerkplekClient({
     // Een reeks (meerdere onderdelen in één run): de stroom wordt per onderdeel ingedeeld.
     let reeks: Reeks | null = null;
     let hergebruik: AgentHergebruik | undefined;
+    let meting: BeurtMeting | undefined;
     let overzicht: Overzicht | undefined;
     let tekst = "";
     let denk = "";
@@ -661,6 +665,7 @@ export function WerkplekClient({
             setItems((xs) => xs.map((x) => (x.id === antId ? { id: antId, type: "reeks", reeks: r, tekst } : x)));
           },
           onHergebruik: (h) => (hergebruik = h),
+          onRun: (r) => (meting = r.instellingen?.meting),
           // De eventlog van de run is gecapt: er is narratie weggevallen. Benoem dat, in plaats van
           // een tekst te tonen die compleet lijkt maar het niet is.
           // Er viel narratie weg doordat de eventlog gecapt is. Zet de markering in het spoor waar
@@ -714,7 +719,7 @@ export function WerkplekClient({
       // De agent heeft het vastgelegd. Nu alleen nog tonen wat er staat – de api is de bron.
       if (opgeslagen) {
         await toonVastgelegdeBeurt(opgeslagen, {
-          antId, tekst, denk, hergebruik, doel: doelInvoerVan(doelRef.d), tool_executions: toolExecutions,
+          antId, tekst, denk, hergebruik, doel: doelInvoerVan(doelRef.d), tool_executions: toolExecutions, meting,
         });
         onGewijzigd();
         return;
@@ -810,9 +815,10 @@ export function WerkplekClient({
    */
   async function toonVastgelegdeBeurt(
     uitkomst: { artefact?: Artefact; annotatie_doel?: NodeDoel; bevestiging?: Bevestiging },
-    { antId, tekst, denk, hergebruik, doel, tool_executions }: {
+    { antId, tekst, denk, hergebruik, doel, tool_executions, meting }: {
       antId: string; tekst?: string; denk: string;
       hergebruik?: AgentHergebruik; doel?: AgentDoelInvoer; tool_executions?: ToolExecution[];
+      meting?: BeurtMeting;
     },
   ) {
     // Een artefact van een werkgebied (begripsvoorstellen, gevonden bepalingen): de chip, en het paneel open.
@@ -831,7 +837,7 @@ export function WerkplekClient({
     if (!node) return; // een gewoon antwoord staat al in beeld
     setItems((xs) => xs.map((x) => x.id === antId ? { id: antId, type: "annotatie", slug: node.bron_iri,
       annotatie_doel: node, titel: uitkomst.artefact?.titel || node.label, tekst: tekst?.trim() || undefined, denk, hergebruik, doel,
-      tool_executions } : x));
+      tool_executions, meting } : x));
     // Deze beurt veranderde de annotaties: een kennisgraaf die een vorig paneel doorgaf, klopt niet meer.
     setWgArtefact(undefined); setNodeGraaf(zonderKennisgraaf); setNodeDoel(node);
   }

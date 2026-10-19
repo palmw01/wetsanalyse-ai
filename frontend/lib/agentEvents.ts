@@ -31,6 +31,7 @@ import type {
   AgentKandidaat,
   AgentKeuze,
   AgentRun,
+  BeurtMeting,
   KandidaatStand,
   Alternatief,
   Bron,
@@ -125,6 +126,23 @@ export const parseElement: Parser<VoorstelElement> = (v) => {
   };
 };
 
+/** De meting van een annotatiebeurt – uit het bewaarde bericht (`Bericht.dekking`) of uit
+ *  `instellingen.meting` van het `run`-event; beide dragen dezelfde vorm. Alleen de fasen en wat zonder
+ *  zinsontleding ging, de delen die `beurtSamenvatting` leest. Een andere vorm
+ *  levert niets op – dan staat er geen samenvatting, geen verzonnen. */
+export function metingUitDekking(dekking: unknown): BeurtMeting | undefined {
+  if (!dekking || typeof dekking !== "object") return undefined;
+  const { fasen, gedegradeerd } = dekking as { fasen?: unknown; gedegradeerd?: unknown };
+  if (!Array.isArray(fasen)) return undefined;
+  const geldig = fasen.filter((f): f is { fase: string; samenvatting: string; ms: number } =>
+    !!f && typeof f === "object" && typeof (f as { fase?: unknown }).fase === "string");
+  return {
+    fasen: geldig.map((f) => ({ fase: f.fase, samenvatting: typeof f.samenvatting === "string" ? f.samenvatting : "",
+      ms: typeof f.ms === "number" ? f.ms : 0 })),
+    gedegradeerd: Array.isArray(gedegradeerd) ? gedegradeerd.filter((g): g is string => typeof g === "string") : [],
+  };
+}
+
 export const parseRun: Parser<AgentRun> = (v) =>
   isObject(v)
     ? {
@@ -134,6 +152,9 @@ export const parseRun: Parser<AgentRun> = (v) =>
         agent_versie: tekst(v.agent_versie),
         stop_reden: tekst(v.stop_reden),
         tijd: tekst(v.tijd),
+        // De meting van de beurt; de werkplek maakt er de beurtsamenvatting onder de chip van.
+        ...(isObject(v.instellingen) && metingUitDekking(v.instellingen.meting)
+          ? { instellingen: { meting: metingUitDekking(v.instellingen.meting) } } : {}),
       }
     : undefined;
 

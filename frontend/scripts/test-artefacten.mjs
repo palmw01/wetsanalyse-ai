@@ -120,6 +120,8 @@ try {
   await begrippenChip().click();
   await begrippenPaneel().waitFor();
   await begrippenPaneel().getByText("belastingschuldige", { exact: true }).first().waitFor();
+  assert.equal(await begrippenPaneel().getByText("eerdere ronde van Lex", { exact: false }).count(), 0,
+    "de chip wijst naar de laatste ronde: geen melding");
   assert.equal(await begrippenPaneel().getByRole("link", { name: "Open het werkgebied" }).getAttribute("href"),
     "/werkgebieden/wg1?tab=begrippen");
   assert.equal(await begrippenPaneel().locator('button[aria-expanded]').filter({ hasText: "Voorstellen van Lex" }).count(), 0,
@@ -143,8 +145,12 @@ try {
   await page.getByRole("button", { name: "Sluiten" }).first().click();
   const balk = page.locator("button", { hasText: "· begripsvoorstellen" });
   await balk.waitFor();
+  // Intussen deed Lex een nieuwe ronde: het paneel toont die, en zegt dat de chip ouder is.
+  run.id = "r2";
   await balk.click();
   await begrippenPaneel().waitFor();
+  await begrippenPaneel().getByText("Dit gesprek wijst naar een eerdere ronde van Lex", { exact: false }).waitFor();
+  run.id = "r1";
   await begrippenPaneel().getByRole("button", { name: "Sluiten" }).click();
   await balk.waitFor();
 
@@ -159,7 +165,13 @@ try {
   await begripPaneel.getByRole("button", { name: /Bedenk voorbeelden/ }).waitFor();
   assert.equal(await begripPaneel.getByRole("link", { name: "Open het werkgebied" }).getAttribute("href"),
     "/werkgebieden/wg1?tab=begrippen&begrip=b9");
+  // Onbewaarde wijzigingen op de kaart: sluiten vraagt eerst, net als een tabwissel in het werkgebied.
+  await begripPaneel.getByLabel(/^Uitleg/).fill("Nog niet bewaard");
   await begripPaneel.getByRole("button", { name: "Sluiten" }).first().click();
+  await begripPaneel.getByRole("button", { name: "Blijf hier" }).click();
+  assert.equal(await begripPaneel.getByLabel(/^Uitleg/).inputValue(), "Nog niet bewaard");
+  await begripPaneel.getByRole("button", { name: "Sluiten" }).first().click();
+  await begripPaneel.getByRole("button", { name: "Toch sluiten" }).click();
   await page.locator("button", { hasText: "· begrip" }).waitFor();
 
   // --- Live: een beurt die begrippen oplevert, opent het paneel ---

@@ -34,7 +34,9 @@ const view = (lid) => ({ schema_versie: 2, doel: doel(lid), snapshot_id: "snapsh
 const gesprekken = {
   g1: [1, 2].flatMap((lid) => [
     { rol: "user", tekst: `Annoteer artikel 9 lid ${lid}`, denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "" },
-    { rol: "assistant", tekst: "", denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "", annotatie_doel: doel(lid), run_id: `r${lid}` },
+    { rol: "assistant", tekst: "", denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "", annotatie_doel: doel(lid), run_id: `r${lid}`,
+      // De meting die graph-qa met het bericht bewaart: daaruit komt de beurtsamenvatting onder de chip.
+      dekking: { fasen: [{ fase: "Resultaat", samenvatting: `${lid} voorgesteld`, ms: 1500 }], gedegradeerd: [] } },
   ]),
   g2: [
     { rol: "user", tekst: "Oude vraag", denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "" },
@@ -44,6 +46,8 @@ const gesprekken = {
 const stromen = {
   // F1: de beurt is vastgelegd, maar de wettekst komt niet binnen.
   f1: [{ type: "status", message: "Resultaat" },
+    { type: "run", run: { model: "m", provider: "p", agent_versie: "v", stop_reden: "", tijd: "2026-10-19T10:00:00Z",
+      instellingen: { meting: { fasen: [{ fase: "Resultaat", samenvatting: "3 voorgesteld", ms: 900 }] } } } },
     { type: "opgeslagen", run_id: "f1", annotatie_slug: "", annotatie_doel: { ...doel(9), label: "Invorderingswet 1990 – art. 9 lid 9" } },
     { type: "done" }],
   f2: [{ type: "token", content: "Nieuw antwoord." }, { type: "done" }],
@@ -101,6 +105,8 @@ const beslissingen = (requests) => requests.filter((r) => r.pad.endsWith("/besli
   const { browser, page, errors, requests } = await nieuwePagina(chromium, { viewport: { width: 1440, height: 1000 } });
   try {
     await page.goto(`${base}/workbench?gesprek=g1`);
+    // Na herladen: de beurtsamenvatting uit het bewaarde bericht.
+    await page.getByTestId("beurtsamenvatting").getByText("Laatste ronde van Lex: 1 voorgesteld · 1,5 s").waitFor();
     await chip(page, 1).click();
     await wettekst(page).getByText("ontvanger", { exact: false }).waitFor();
     await wettekst(page).click({ position: { x: 4, y: 4 } });
@@ -170,6 +176,8 @@ const beslissingen = (requests) => requests.filter((r) => r.pad.endsWith("/besli
     await page.waitForFunction(() => document.querySelector('[data-testid="werkplek-header"]')?.getAttribute("data-compact") === "ja");
     await page.getByText("De brongraaf is tijdelijk niet beschikbaar", { exact: false }).waitFor();
     await page.getByText("Invorderingswet 1990 – art. 9 lid 9", { exact: false }).first().waitFor();
+    // Live: de beurtsamenvatting uit het run-event.
+    await page.getByTestId("beurtsamenvatting").getByText("Laatste ronde van Lex: 3 voorgesteld · 0,9 s").waitFor();
     // Ruim langer dan de eerste herstelpoging (1,5 s) – die mag er niet komen.
     await page.waitForTimeout(4000);
     assert.equal(requests.filter((r) => r.pad === "/api/annotatie/run/f1/events").length, 1, "de afgeronde run is opnieuw gevolgd");

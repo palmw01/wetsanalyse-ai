@@ -151,7 +151,8 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
   - **begrippen** en **bronnen** – het `artefact`-item met `ArtefactChip`, dat
     **`WerkgebiedArtefactPaneel`** opent: dezelfde `BegripVoorstellen` (`inklapbaar={false}`) of
     `BronKandidaten` als op de tab Begrippen of Bronnen, met een link naar het werkgebied. Eén inhoud,
-    twee schillen (`werkgebiedArtefactVan` in `lib/artefact.ts`).
+    twee schillen (`werkgebiedArtefactVan` in `lib/artefact.ts`). De voorstellen zijn altijd die van de
+    laatste ronde; wijst de chip naar een eerdere (`ref.run_id`), dan zegt het paneel dat.
   - **één begrip** (fase F4) – een kaartactie vanuit het gesprek ("geef voorbeelden van termijn") levert
     een begrippenartefact met `ref: {werkgebied_id, begrip_id, kaart_run_id?, actie?}` en zonder `run_id`.
     De chip heet *Begrip* (`artefactLabel`/`werkgebiedLabel`), het paneel toont `BegripWerk` (kaart met Lex
@@ -228,7 +229,8 @@ wie dat gesprek is, zoals `app/api/annotatie/run/route.ts`. Zet er geen tweede i
 graph-qa stuurt per fase een `status`-regel met duur (supervisor → ophaal-agent → Bron →
 Taalanalyse → Detectie → Besluit → Classificatie → Review → Resultaat → Klaar); `onStatus` plakt die
 als `· <regel>` aan `denk`, en `DenkProces` toont ze live. Onder de annotatiechip staat de **beurtsamenvatting** van de laatste
-ronde (`beurtSamenvatting` in `lib/waarom.ts`, uit `geproduceerd_door.instellingen.meting`):
+ronde (`beurtSamenvatting` in `lib/waarom.ts`; de meting komt live uit `instellingen.meting` van het
+`run`-event en na herladen uit `Bericht.dekking`, via `metingUitDekking` in `lib/agentEvents.ts`):
 resultaat, bronnodes zonder zinsontleding en de totale duur. Het `annotatie`-item is een beurt van
 Lex: naam, zijn **samenvatting** (`tekst`, hoogstens vier zinnen, door graph-qa uit de data opgebouwd
 in `agent/nodes/annotatie_samenvatting.py` en als berichttekst bewaard), dan de chip. Het draagt ook
@@ -539,8 +541,11 @@ bestaat los van de gesprekken.
     `inhoudGewijzigd` (`lib/begrippen.ts`: genormaliseerd, sleutelvolgorde telt niet). Met onbewaarde
     wijzigingen vraagt een wissel van begrip **én van tab** eerst bevestiging (`OnbewaardMelding`, geen
     systeemvenster): de tabs renderen lazy, dus een tabwissel gooide het concept anders stil weg. Het
-    signaal staat daarom in `WerkgebiedClient`. Herladen of sluiten vangt `beforeunload`; een link in de
-    sidebar (client-side navigatie) nog niet.
+    signaal staat daarom in `WerkgebiedClient`. Herladen of sluiten vangt `beforeunload`; een link
+    elders (sidebar, *Alle werkgebieden*) en een knop die zelf navigeert (een gesprek openen) vangt
+    `useOnbewaardBewaker` (`lib/useOnbewaardBewaker.ts`: links in de capture-fase op `document`, knoppen
+    via `bewaak`; `/instellingen/*` opent over de pagina en telt niet). Het artefactpaneel van één begrip
+    in de werkplek gebruikt dezelfde bewaker, ook voor sluiten.
   - **De poort rekent de server.** *Accorderen* staat uit zolang `accorderen.mag` onwaar is, met de
     redenen letterlijk eronder; met onbewaarde wijzigingen ook (de poort kijkt naar wat bewaard is).
   - **Elke knop per passage noemt zijn passage** (`aria-label`, "Akkoord met “…”"): dezelfde knoppen

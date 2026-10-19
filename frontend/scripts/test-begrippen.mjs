@@ -220,7 +220,19 @@ try {
   await page.getByRole("button", { name: "Blijf hier" }).click();
   await page.getByRole("tab", { name: "Begrippen", selected: true }).waitFor();
   assert.equal(await kaart().getByLabel(/^Uitleg/).inputValue(), "Nog niet bewaard");
+  // Ook een link in de sidebar (client-side navigatie) wacht op die vraag.
+  const voor = page.url();
+  await page.locator("aside").getByRole("link", { name: /^Werkgebieden/ }).click();
+  await page.getByRole("button", { name: "Toch verlaten" }).waitFor();
+  await page.getByRole("button", { name: "Blijf hier" }).click();
+  assert.equal(page.url(), voor);
+  assert.equal(await kaart().getByLabel(/^Uitleg/).inputValue(), "Nog niet bewaard");
   await page.getByRole("button", { name: "Wijzigingen weggooien" }).click();
+  // Zonder wijzigingen gaat dezelfde link gewoon.
+  await page.locator("aside").getByRole("link", { name: /^Werkgebieden/ }).click();
+  await page.waitForURL(/\/werkgebieden$/);
+  await page.goBack();
+  await kaart().getByLabel(/^Uitleg/).waitFor();
 
   // 3. De passages beoordelen; de jurist keurt intussen de laatste annotatie goed.
   for (let i = 0; i < 3; i++) {
