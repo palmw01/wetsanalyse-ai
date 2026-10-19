@@ -25,7 +25,7 @@ from bronmodel.vindplaats import vindplaats
 from .models import Source
 from .resultaat import is_contract, waarden
 from .namespace import vindplaats_patroon
-from .tools.annotatie_tools import ANNOTATIE_TOOL_NAMEN
+from .tools.begrip_tools import AFGELEIDE_TOOL_NAMEN
 
 # Backslash uitgesloten uit de char-class zodat een naijlende escape (bv. "...g=2026-07-01\\")
 # niet mee in de IRI/jci wordt gezogen.
@@ -127,7 +127,7 @@ def collect_sources(entries: Iterable[tuple[str, str]]) -> list[Source]:
     per_node: dict[str, Source] = {}
 
     for tool, text in entries:
-        if not text or tool in ANNOTATIE_TOOL_NAMEN:
+        if not text or tool in AFGELEIDE_TOOL_NAMEN:
             continue
         labels = _labels(text)
         # De waarden van een contractresultaat (`resultaat.waarden`), niet zijn JSON-tekst.

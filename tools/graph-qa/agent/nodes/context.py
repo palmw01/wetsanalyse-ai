@@ -38,3 +38,4 @@ class Bouw:
     corpus: Callable[[State], str]
     advies_context: Callable[[State], str]
     annotaties: object | None = None
+    begrippen: object | None = None
