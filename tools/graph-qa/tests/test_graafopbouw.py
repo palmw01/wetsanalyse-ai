@@ -42,6 +42,7 @@ def test_planning_is_de_standaardvorm():
     assert nodes == {
         "supervisor", "agent", "tools", "verify", "correct", "finalize", "annotaties_zoeken",
         "begrippen_zoeken", "overzicht_bouwen", "annoteer", "emit", "advance", "afwijzen",
+        "werkgebied_intake",
     }
     assert edges == {
         (START, "supervisor", "", False),
@@ -60,6 +61,10 @@ def test_planning_is_de_standaardvorm():
         ("overzicht_bouwen", "verify", "", True),
         ("overzicht_bouwen", "agent", "", True),
         ("afwijzen", EIND, "", False),
+        # Een werkgebied samenstellen (activiteit 1): één stap van de intake per beurt, zonder
+        # verify/finalize – er wordt niets over wetgeving beweerd (nodes/werkgebied.py).
+        ("supervisor", "werkgebied_intake", "", True),
+        ("werkgebied_intake", EIND, "", False),
         ("agent", "tools", "", True),
         ("agent", "verify", "", True),
         ("agent", "annoteer", "", True),
@@ -74,6 +79,7 @@ def test_planning_is_de_standaardvorm():
         ("advance", "begrippen_zoeken", "", True),
         ("advance", "overzicht_bouwen", "", True),
         ("advance", "afwijzen", "", True),
+        ("advance", "werkgebied_intake", "", True),
         ("advance", EIND, "einde", True),
     } | ANNOTATIEKETEN
 
@@ -100,6 +106,8 @@ def test_decompositie_voegt_de_deelvraag_keten_toe():
     assert ("overzicht_bouwen", "verify", "", True) in edges
     assert ("overzicht_bouwen", "agent", "", True) in edges
     assert ("advance", "decompose", "", True) in edges
+    assert ("supervisor", "werkgebied_intake", "", True) in edges
+    assert ("werkgebied_intake", EIND, "", False) in edges
 
 
 def test_de_kale_tak_heeft_geen_annotatie_en_geen_supervisor():
@@ -129,5 +137,5 @@ def test_stopbewaking_zit_om_elke_node():
     assert nodes == {
         "supervisor", "decompose", "solve", "synthesize", "resynth", "agent", "tools",
         "annoteer", "emit", "advance", "afwijzen", "verify", "finalize", "annotaties_zoeken",
-        "begrippen_zoeken", "overzicht_bouwen",
+        "begrippen_zoeken", "overzicht_bouwen", "werkgebied_intake",
     }

@@ -19,10 +19,11 @@ from ..narratie import _stap
 from ..state import State
 from ..methode import instructies
 from ..berichten import eerdere_beurten
-from ..supervisor import SUPERVISOR_SYSTEM, VERVOLG_SYSTEM, parse_supervisor, parse_vraag
+from ..supervisor import INTAKE_SYSTEM, SUPERVISOR_SYSTEM, VERVOLG_SYSTEM, parse_supervisor, parse_vraag
 from ..overzicht import is_overzichtsvraag
 from ..tools.annotatie_tools import is_leesvraag
 from ..tools.begrip_tools import is_begrip_leesvraag
+from ..werkgebied_intake import is_open, is_werkgebiedvraag, kaart
 from .context import Bouw
 
 logger = logging.getLogger("graph_qa.orchestrator")
@@ -64,6 +65,23 @@ def _overzicht(writer, vraag: str) -> dict[str, Any]:
     }
 
 
+def _werkgebied(writer, waarom: str) -> dict[str, Any]:
+    """Samenstellen van een werkgebied (activiteit 1): de werkgebied-worker, geen specialist."""
+    _stap(writer, "Lex", waarom)
+    return {"specialist": "werkgebied", "worker_plan": ["werkgebied"], "worker_idx": 0,
+            "plan": "een werkgebied samenstellen", "afwijzen": False, "annotaties_lezen": False}
+
+
+def _open_kaartje(state: State) -> str:
+    intake = state.get("intake") or {}
+    if not is_open(intake):
+        return ""
+    try:
+        return INTAKE_SYSTEM.format(vraag=kaart(intake)["vraag"])
+    except Exception:  # noqa: BLE001 – een onleesbare intake is geen reden om de beurt te laten vallen
+        return ""
+
+
 def _herschreven(vraag: str) -> str:
     return f"\nDe vraag, zelfstandig geformuleerd: {vraag}" if vraag else ""
 
@@ -76,6 +94,13 @@ def supervisor_node(b: Bouw, state: State) -> dict[str, Any]:
     eerste vraag van een gesprek is er niets te herschrijven en blijft alles zoals het was."""
     writer = get_stream_writer()
     modus = state.get("modus", "auto")
+
+    # Een klik op een vraagkaartje, of een verzoek om een werkgebied samen te stellen: vóór alles en
+    # zonder modelaanroep. De klik weet al waar hij bij hoort; de startzin heeft een vaste vorm.
+    if state.get("intake_actie"):
+        return _werkgebied(writer, "verwerkt het antwoord op het kaartje")
+    if modus == "auto" and is_werkgebiedvraag(state.get("question", "")):
+        return _werkgebied(writer, "stelt met je een werkgebied samen")
 
     gesprek = _vervolgcontext(b, state)
     # Vóór de annotatie-leesvraag: "welke begrippen hebben we" noemt geen annotatie, maar "welke
@@ -123,7 +148,8 @@ def supervisor_node(b: Bouw, state: State) -> dict[str, Any]:
         model=b.model_router,
         max_tokens=400,
         system=[SUPERVISOR_SYSTEM + "\n\n" + instructies("supervisor"),
-                b.memory_context(state) + ((VERVOLG_SYSTEM + "\n" + gesprek) if gesprek else "")],
+                b.memory_context(state) + ((VERVOLG_SYSTEM + "\n" + gesprek) if gesprek else "")
+                + _open_kaartje(state)],
         tools=[],
         messages=[{"role": "user", "content": state["question"]}],
     )
@@ -153,6 +179,8 @@ def supervisor_node(b: Bouw, state: State) -> dict[str, Any]:
         return {**upd, "specialist": "", "plan": plan, "worker_plan": [], "worker_idx": 0,
                 "afwijzen": True, "annotaties_lezen": False}
     eerste = worker_plan[0]
+    if eerste == "werkgebied":
+        return {**upd, **_werkgebied(writer, "stelt met je een werkgebied samen")}
     if eerste == "annotatie":
         # Eén artikel per annotatievraag. Meer artikelen is een werkgebied afbakenen – een andere
         # functie. Deterministisch en vóór de ophaal-agent: die zou er anders stil één uitkiezen.
@@ -173,6 +201,8 @@ def _entry_node(b: Bouw, state: State) -> str:
     Wees de vraag afgewezen, dan gaat er geen enkele worker draaien – dat is de hele winst."""
     if state.get("afwijzen"):
         return "afwijzen"
+    if state.get("specialist") == "werkgebied":
+        return "werkgebied_intake"
     if state.get("overzicht_route"):
         # Eerst het overzicht bouwen, dan duiden – ook met decompositie aan.
         return "overzicht_bouwen"

@@ -143,6 +143,14 @@ class WetsanalyseApi:
     async def haal_werkgebied(self, werkgebied_id: str) -> dict[str, Any]:
         return await self._haal(self._werkgebied_pad(werkgebied_id))
 
+    async def maak_werkgebied(self, invoer: dict[str, Any]) -> dict[str, Any]:
+        """Een werkgebied uit het gesprek (activiteit 1); met `intake_id` idempotent bij de api."""
+        return await self._post("/v1/werkgebieden", invoer)
+
+    async def voeg_bron_toe(self, werkgebied_id: str, bron: dict[str, Any]) -> dict[str, Any]:
+        """Een bronselectie; geeft `{selectie, werkgebied}` terug (met de nieuwe revisie)."""
+        return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/bronnen", bron)
+
     async def start_begrippen_run(self, werkgebied_id: str) -> dict[str, Any]:
         """Manifest vastleggen en de run maken, of de bestaande op dezelfde stand (`nieuw: false`).
 

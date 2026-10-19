@@ -36,6 +36,7 @@ ankerlogica die de api en de agent delen staat in `packages/bronmodel` (`wetsana
 | `nodes/annotatie.py` | annoteer (voorbereiding + `jas_pipeline.keten.analyseer`) en emit |
 | `nodes/annotatie_lezen.py` | de leesroute: eerst zoeken in de opgeslagen annotaties, dan formuleren |
 | `nodes/overzicht.py` | de overzichtsroute: overzicht en tekst uit de graaf, zonder model |
+| `nodes/werkgebied.py` | de werkgebied-worker: één stap van het samenstellen van een werkgebied (activiteit 1) |
 | `nodes/context.py` | `Bouw` – wat een node buiten zijn state om nodig heeft |
 
 De nodes zijn gewone functies `(b: Bouw, state)`; `Bouw` draagt de poorten, de stopvlag, de drie
@@ -48,6 +49,7 @@ supervisor ─┬─ antwoord-worker:  agent ⇄ tools → verify → (correct) 
             ├─ leesroute:        annotaties_zoeken → agent ⇄ tools → verify → finalize
             ├─ begrippen lezen:  begrippen_zoeken → agent ⇄ tools → verify → finalize
             ├─ overzichtsroute:  overzicht_bouwen → verify → finalize   (geen model; bij een bouwfout → agent)
+            ├─ werkgebied-worker: werkgebied_intake → einde              (één stap van het samenstellen)
             └─ afwijzen (geen wetgevingsvraag)
 ```
 
@@ -762,6 +764,45 @@ check staat in `_stroom_voor` vóór de bronnen- en begrippenroute.
 - `/v1/chat` weigert de modus (422), net als `begrippen` en `bronnen` (`WERKGEBIED_MODI`).
 - Tests: `tests/test_werkgebied_annotatie.py`.
 
+### Lex stelt een werkgebied samen (`agent/werkgebied_intake.py`, `nodes/werkgebied.py`, activiteit 1)
+
+"Kunnen we een werkgebied samenstellen?" of "ik wil een wetsanalyse uitvoeren" (`is_werkgebiedvraag`)
+start een **intake**: één vraag per kaartje – naam, analysevraag, regeling(en), onderdelen, wat valt
+erbuiten – en een samenvatting met *Aanmaken*. De werkgebied-worker staat onder de supervisor, naast
+`antwoord` en `annotatie`, en ketent met niets.
+
+- **Routering.** Een klik op een kaartje (`ChatRequest.intake_actie`) en een startzin gaan zonder
+  modelaanroep naar de worker, vóór elke andere regel; `_stroom_voor` laat een klik nooit een harde
+  werkgebiedroute in. Een getypt antwoord op het open kaartje herkent de supervisor met het model
+  (`INTAKE_SYSTEM`, "OPEN KAARTJE"); een andere vraag krijgt gewoon antwoord.
+- **`State.intake` staat niet in de per-beurt-reset**: een tussenvraag laat de intake en het open
+  kaartje staan. `intake_actie` wél.
+- **De volgorde is een stapmachine** (`verwerk`), nooit het model. Een klik op een kaartje dat al
+  beantwoord is (`stap` ≠ de huidige) verandert niets: Lex toont het huidige opnieuw. Een kaartje van
+  een andere intake: "loopt niet meer". De naam is verplicht; de rest is over te slaan.
+- **Het model stelt alleen voor** (`stel_voor`, op `LLM_MODEL_ROUTER`, één strict tool): naam en
+  analysevraag uit wat de analist zei, en een onderwerp om mee te zoeken. Een startzin zonder inhoud
+  (`inhoud`) kost geen aanroep; een storing levert een kaartje zonder voorstellen.
+- **Regelingen en onderdelen komen uit de graaf** (`regeling_opties`: eerst wat de analist bij naam
+  noemde, dan het overzicht van het onderwerp in zijn vaste volgorde; de delen per regeling worden de
+  opties van het onderdelen-kaartje). Eigen tekst bij de regelingen is een nieuwe zoekopdracht.
+  **"Weet ik (nog) niet"** (`ONBEKEND`) staat altijd bij regelingen en onderdelen; bij de regelingen
+  slaat het de onderdelen over.
+- **Alleen een gekozen onderdeel wordt een bronselectie** (rol *analyseren*, bereik *onderliggend*),
+  plus artikelen uit eigen tekst als er precies één regeling is (`artikelen_in`: "5.2" is een artikel,
+  geen lid). "De hele regeling" en een regeling zonder onderdeel staan alleen in de afbakeningstekst
+  (`afbakening`, deterministisch).
+- **Aanmaken doet de beurt-driver** (`beurt._maak_werkgebied`), na het `werkgebied_aanmaken`-event:
+  `POST /v1/werkgebieden` met de `intake_id` (idempotent bij de api), dan per bron
+  `POST …/bronnen` met de revisie uit het vorige antwoord. Een geweigerde bron laat het werkgebied staan
+  en Lex noemt hem; mislukt het werkgebied zelf, dan `error` met `foutcode: werkgebied_niet_aangemaakt`
+  en geen bericht – opnieuw klikken mag (`verwerk` staat aanmaken vanuit `klaar` toe). Het bericht
+  draagt het artefact `{soort: "werkgebied", ref: {werkgebied_id}}`.
+- **Het kaartje reist mee**: een `vraagkaart`-event (vorm `api/app/gesprek_contracts.Vraagkaart`) en
+  het veld `vraagkaart` op het bericht, zodat het na herladen nog te beantwoorden is.
+- Tests: `tests/test_werkgebied_intake.py` (herkenning, stapmachine, het api-contract uit de bron, een
+  gesprek over meerdere beurten met een tussenvraag, de driver met een nep-api).
+
 ### Lex leest begrippen (`tools/begrip_tools.py`, `nodes/begrippen_lezen.py`, `agent/kaart_beurt.py`, fase F4)
 
 Wat juristen in werkgebieden als begrip vastlegden, over alle werkgebieden heen; het werkgebied van het
@@ -899,7 +940,7 @@ gaat**. Of een bepaalde regeling in de graaf zit weet de supervisor niet (hij he
 zo'n vraag gaat naar de antwoord-worker, die zoekt en zelf zegt als er niets is. Een afwijzing kost
 niets, een onterechte kost het antwoord. De vlag hoort in de per-beurt-reset van `answer_stream`,
 anders wijst één afgewezen vraag de hele thread af. De workerlijst is een **allowlist**
-(`antwoord`/`annotatie`) met een cap van twee: een onbekende naam zou anders een extra antwoord-worker
+(`antwoord`/`annotatie`/`werkgebied`; `werkgebied` staat altijd alleen) met een cap van twee: een onbekende naam zou anders een extra antwoord-worker
 worden.
 
 **Advies bij twijfel** (`modus: "advies"`, op `/v1/runs` én `/v1/chat`): de supervisor routeert hard naar

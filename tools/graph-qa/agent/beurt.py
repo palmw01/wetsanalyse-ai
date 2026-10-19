@@ -53,6 +53,51 @@ def annotatie_artefact(doel: dict[str, Any], titel: str) -> dict[str, Any]:
                     "snapshot_id": doel.get("snapshot_id", "")}}
 
 
+def werkgebied_artefact(werkgebied: dict[str, Any]) -> dict[str, Any]:
+    """Het artefact van een werkgebied dat Lex in het gesprek samenstelde (activiteit 1)."""
+    return {"soort": "werkgebied", "titel": str(werkgebied.get("naam", ""))[:300],
+            "ref": {"werkgebied_id": werkgebied["id"]}}
+
+
+def werkgebied_tekst(werkgebied: dict[str, Any], gelukt: list[str], mislukt: list[str]) -> str:
+    """Wat Lex zegt na het aanmaken; uit de getallen, geen model."""
+    naam = werkgebied.get("naam", "")
+    if gelukt:
+        zin = (f"Werkgebied *{naam}* is aangemaakt met {len(gelukt)} "
+               f"{'bron' if len(gelukt) == 1 else 'bronnen'}; je vindt het bij Werkgebieden.")
+    else:
+        zin = (f"Werkgebied *{naam}* is aangemaakt, nog zonder bronnen; je vindt het bij Werkgebieden. "
+               "Bronnen voeg je toe op de tab Bronnen.")
+    if mislukt:
+        zin += f" Niet toegevoegd, omdat ik ze niet in de wet- en regelgeving kon terugvinden: {', '.join(mislukt)}."
+    if werkgebied.get("analysevraag"):
+        zin += " Een volgende stap: laat me deelvragen voorstellen bij de analysevraag, of bepalingen zoeken die erbij horen."
+    return zin
+
+
+async def _maak_werkgebied(api: WetsanalyseApi, verzoek: dict[str, Any]) -> tuple[dict[str, Any], list[str], list[str]]:
+    """Werkgebied en bronselecties bij de api. Het werkgebied is idempotent op de intake-id, een bron op
+    bron + rol + bereik: een herhaling na een storing maakt niets dubbel."""
+    from .werkgebied_intake import REDEN
+
+    werkgebied = await api.maak_werkgebied(verzoek["werkgebied"])
+    gelukt, mislukt = [], []
+    for bron in verzoek.get("bronnen") or []:
+        label = bron.get("label", "")
+        invoer = {k: v for k, v in bron.items() if k in ("bron_iri", "bwb_id", "artikel", "lid")}
+        try:
+            uit = await api.voeg_bron_toe(werkgebied["id"], {**invoer, "verwachte_revisie": werkgebied["revisie"],
+                                                              "rol": "analyseren", "bereik": "onderliggend",
+                                                              "reden": REDEN})
+            werkgebied = uit.get("werkgebied") or werkgebied
+            gelukt.append(label)
+        except WetsanalyseApiFout as fout:
+            logger.warning("intake: bron niet toegevoegd",
+                           extra={"categorie": "functioneel", "http_status": fout.status})
+            mislukt.append(label)
+    return werkgebied, gelukt, mislukt
+
+
 class BeurtSchrijver:
     """Verzamelt wat er in één beurt binnenkomt en legt het aan het eind vast."""
 
@@ -68,6 +113,8 @@ class BeurtSchrijver:
         self.denk = ""
         self.bronnen: list[dict[str, Any]] = []
         self.tool_executions: list[dict[str, Any]] = []
+        self.vraagkaart: dict[str, Any] = {}
+        self.aanmaken: dict[str, Any] = {}
 
     def verwerk(self, event: dict[str, Any]) -> None:
         """Eén event bijhouden. Dezelfde toewijzing als de handlers in de werkplek."""
@@ -94,6 +141,10 @@ class BeurtSchrijver:
             self.dekking = event.get("dekking") or {}
         elif soort == "overzicht":
             self.overzicht = event.get("overzicht") or {}
+        elif soort == "vraagkaart":
+            self.vraagkaart = event.get("vraagkaart") or {}
+        elif soort == "werkgebied_aanmaken":
+            self.aanmaken = {k: v for k, v in event.items() if k != "type"}
         elif soort == "tool_execution":
             self._voeg_tool_toe({k: v for k, v in event.items() if k != "type"})
 
@@ -207,6 +258,9 @@ async def voer_beurt_uit(
         async for na in _leg_vast(schrijver, settings=settings, run=run, reeks=reeks,
                                   gesprek_id=gesprek_id, gestopt=gestopt, user_id=user_id):
             yield na
+    elif schrijver.aanmaken:
+        yield {"type": "error",
+               "message": "Het werkgebied is niet aangemaakt: deze agent heeft geen verbinding met de wetsanalyse-API."}
     elif schrijver.is_annotatie:
         logger.warning(
             "beurt: markeringen niet vastgelegd (geen schrijfpad)",
@@ -316,6 +370,21 @@ async def _leg_vast(
                 "annotatie_doel": opgeslagen_doel,
                 "artefact": annotatie_artefact(opgeslagen_doel, _titel(doel)),
             }
+        elif schrijver.aanmaken:
+            # Activiteit 1: het werkgebied dat Lex met de analist samenstelde. Mislukt het aanmaken, dan
+            # blijft het samenvattingskaartje werken: opnieuw klikken maakt niets dubbel.
+            try:
+                werkgebied, gelukt, mislukt = await _maak_werkgebied(api, schrijver.aanmaken)
+            except WetsanalyseApiFout:
+                logger.exception("intake: werkgebied niet aangemaakt",
+                                 extra={"categorie": "technisch", "run_id": run.run_id})
+                yield {"type": "error", "foutcode": "werkgebied_niet_aangemaakt",
+                       "message": "Het werkgebied kon niet worden aangemaakt. Klik opnieuw op Aanmaken; "
+                                  "er ontstaat dan geen dubbel werkgebied."}
+                return
+            tekst = werkgebied_tekst(werkgebied, gelukt, mislukt)
+            yield {"type": "token", "content": tekst}
+            bericht |= {"tekst": tekst, "denk": schrijver.denk, "artefact": werkgebied_artefact(werkgebied)}
         else:
             tekst = schrijver.tekst.strip()
             if gestopt:
@@ -330,6 +399,8 @@ async def _leg_vast(
                 # Het overzicht uit de graaf (`agent/overzicht.py`): zonder dit veld toonde de werkplek
                 # na herladen alleen de duiding, en het blok en de 3D-doelen waren weg.
                 **({"overzicht": schrijver.overzicht} if schrijver.overzicht else {}),
+                # Het kaartje van het samenstellen (activiteit 1): ook na herladen te beantwoorden.
+                **({"vraagkaart": schrijver.vraagkaart} if schrijver.vraagkaart else {}),
             }
 
         await api.voeg_bericht_toe(gesprek_id, bericht)
