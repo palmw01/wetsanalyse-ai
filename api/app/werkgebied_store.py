@@ -103,7 +103,9 @@ async def haal(werkgebied_id: str, met_gearchiveerd: bool = False) -> dict:
         row = (await conn.execute(select(t).where(t.c.id == werkgebied_id))).first()
     if row is None or (row.gearchiveerd is not None and not met_gearchiveerd):
         raise HTTPException(404, "Werkgebied bestaat niet.")
-    return {**_werkgebied(row), "bronnen": await selecties(werkgebied_id)}
+    from . import werkgebied_deelvragen  # leest dit schrijfpad zelf; dus hier, niet bovenaan
+    return {**_werkgebied(row), "bronnen": await selecties(werkgebied_id),
+            "deelvragen": await werkgebied_deelvragen.lijst(werkgebied_id)}
 
 
 async def wijzig(werkgebied_id: str, w: WerkgebiedWijziging, actor: str) -> dict:

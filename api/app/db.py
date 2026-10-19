@@ -328,6 +328,29 @@ werkgebied_element_besluiten = Table("werkgebied_element_besluiten", metadata,
     Column("besloten_op", _DT, nullable=False),
     Column("verwijderd", _DT, nullable=True),
     Index("ix_werkgebied_element_besluiten", "werkgebied_id", "element_id"))
+# Deelvragen (vervolg op F, open keuze 4: optioneel). Een deelvraag splitst de analysevraag; ze is
+# `actief`, of een `voorgesteld` voorstel van Lex dat de analist overneemt of `afgewezen` (dan stelt Lex
+# hem niet opnieuw voor). Een actieve deelvraag hoort bij de scope en draagt dus de revisie van het
+# werkgebied; een voorstel niet. Koppelingen naar bronselecties en begrippen zijn een set per deelvraag
+# (`soort` bron | begrip), zonder foreign key, zoals de begripskoppelingen. Weghalen is soft.
+werkgebied_deelvragen = Table("werkgebied_deelvragen", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("werkgebied_id", String(64), nullable=False, index=True),
+    Column("vraag", Text, nullable=False),
+    Column("volgorde", Integer, nullable=False, default=0),
+    Column("status", String(16), nullable=False, default="actief"),
+    Column("herkomst", String(16), nullable=False, default="analist"),
+    Column("reden", Text, nullable=False, default=""),
+    Column("aangemaakt_door", String(64), nullable=False),
+    Column("aangemaakt", _DT, nullable=False),
+    Column("gewijzigd", _DT, nullable=False),
+    Column("verwijderd", _DT, nullable=True))
+werkgebied_deelvraag_koppelingen = Table("werkgebied_deelvraag_koppelingen", metadata,
+    Column("deelvraag_id", String(64), primary_key=True),
+    Column("soort", String(16), primary_key=True),
+    Column("doel_id", String(64), primary_key=True),
+    Column("gekoppeld_door", String(64), nullable=False),
+    Column("gekoppeld", _DT, nullable=False))
 
 # --- Bronnen vinden met Lex (spoor D, fase A) ---------------------------------
 # Een bronnenrun past de ontdekmethoden van graph-qa toe op de selectie van een werkgebied. De api
