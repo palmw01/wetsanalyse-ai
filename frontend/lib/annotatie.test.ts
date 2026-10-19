@@ -2,14 +2,11 @@ import { JAS_KLASSEN } from "./jas";
 import { describe, expect, it } from "vitest";
 import {
   bronVan,
-  eigenMarkeringenVoorContext,
   documentStatusLabel,
   regelsVan,
   pastInFilter,
   sorteerReview,
   volgendeElement,
-  vraagContextLabel,
-  vraagContextVan,
   vraagSuggesties,
   KLASSEVRAAG,
   overlaptSelectie,
@@ -25,7 +22,7 @@ import {
   isDocumentVergrendeld,
   alGemarkeerd,
 } from "./annotatie";
-import type { AnnotatieDocument, AnnotatieElement, GraafArtikel, VoorstelElement } from "./types";
+import type { AnnotatieElement, GraafArtikel, VoorstelElement } from "./types";
 
 describe("documentStatusLabel", () => {
   it("mapt de drie documentstatussen naar NL-labels", () => {
@@ -366,86 +363,6 @@ describe("volgendeElement", () => {
   });
 });
 
-// --- een vraag over één markering -----------------------------------------------------------------
-
-describe("vraagContextVan", () => {
-  const doc = {
-    slug: "abc", bwbId: "BWBR0004770", artikel: "36", lid: "2", elementen: [],
-  } as unknown as AnnotatieDocument;
-  const info = {
-    bwbId: "BWBR0004770", artikel: "36", citeertitel: "IW 1990", opschrift: "",
-    leden_teksten: [{ lid: "1", tekst: "Eerste lid." }, { lid: "2", tekst: "Tweede lid." }],
-  };
-
-  it("vult waar de vraag over gaat", () => {
-    const ctx = vraagContextVan("abc", doc, info, el("e1", { klasse: "Rechtsobject", tekst: "aanslag", lid: "1" }));
-    expect(ctx).toMatchObject({
-      slug: "abc", bwbId: "BWBR0004770", artikel: "36", lid: "1",
-      element_id: "e1", klasse: "Rechtsobject", fragment: "aanslag",
-    });
-  });
-
-  it("levert altijd een onderwerp: de agent weigert een adviesvraag zonder", () => {
-    // graph-qa valideert dit sinds kort (ChatRequest._advies_heeft_een_onderwerp): modus "advies"
-    // zonder fragment én zonder bwbId is een 422. Deze test bewaakt dat de werkplek daar niet
-    // tegenaan loopt — anders is een stille fout een luide geworden zonder dat iemand het merkte.
-    const ctx = vraagContextVan("abc", doc, info, el("e1", { tekst: "aanslag" }));
-    expect(ctx.fragment || ctx.bwbId).toBeTruthy();
-  });
-
-  it("valt terug op het lid van het document als het element er geen heeft", () => {
-    // Bij een artikel zonder leden staat het lid alleen op het document; zonder terugval zou de
-    // agent de verkeerde (of geen) bepaling voor zich krijgen.
-    const ctx = vraagContextVan("abc", doc, info, el("e2", { lid: "" }));
-    expect(ctx.lid).toBe("2");
-  });
-
-  it("stuurt de andere markeringen mee, zonder het gevraagde element", () => {
-    // Meesturen in plaats van op het gespreksgeheugen leunen: anders verschilt het antwoord op
-    // dezelfde vraag per gesprek.
-    const metElementen = {
-      ...doc,
-      elementen: [
-        el("e1", { klasse: "Rechtsobject", tekst: "aanslag" }),
-        el("e2", { klasse: "Tijdsaanduiding", tekst: "zes weken" }),
-        el("e3", { klasse: "Voorwaarde", tekst: "indien", lifecycle: "rejected" }),
-      ],
-    } as unknown as AnnotatieDocument;
-
-    const ctx = vraagContextVan("abc", metElementen, info, el("e1", { klasse: "Rechtsobject", tekst: "aanslag" }));
-    expect(ctx.bestaande_elementen?.map((b) => b.id)).toEqual(["e2"]);
-  });
-
-  it("begrenst het aantal meegestuurde markeringen", () => {
-    const veel = {
-      ...doc,
-      elementen: Array.from({ length: 30 }, (_, i) => el(`x${i}`)),
-    } as unknown as AnnotatieDocument;
-    expect(vraagContextVan("abc", veel, info, el("anders")).bestaande_elementen).toHaveLength(20);
-  });
-
-  it("geeft de getoonde artikeltekst als corpus", () => {
-    const ctx = vraagContextVan("abc", doc, info, el("e1"));
-    expect(ctx.corpus).toBe("Eerste lid.\n\nTweede lid.");
-  });
-});
-
-describe("vraagContextLabel", () => {
-  it("benoemt klasse, fragment en vindplaats", () => {
-    // Deze regel wordt ook opgeslagen bij het bericht: de chip is UI-state en reist niet mee.
-    const label = vraagContextLabel(el("e1", { klasse: "Voorwaarde", tekst: "indien", lid: "1" }), {
-      artikel: "36",
-    } as AnnotatieDocument);
-    expect(label).toBe("Voorwaarde – “indien” (art. 36 lid 1)");
-  });
-
-  it("laat de vindplaats weg als het document onbekend is", () => {
-    expect(vraagContextLabel(el("e1", { klasse: "Voorwaarde", tekst: "indien" }))).toBe(
-      "Voorwaarde – “indien”",
-    );
-  });
-});
-
 // --- de brontekst en de lidnummers -----------------------------------------------------------------
 
 describe("regelsVan", () => {
@@ -475,49 +392,6 @@ describe("regelsVan", () => {
     const bron = bronVan(regels);
     expect(bron).toBe("1. Eerste.\n\n2. Tweede.");
     expect(bron.indexOf("Tweede")).toBe("1. Eerste.\n\n2. ".length);
-  });
-});
-
-describe("eigenMarkeringenVoorContext", () => {
-  const el = (p: Partial<AnnotatieElement>): AnnotatieElement =>
-    ({
-      id: "e1", klasse: "Rechtssubject", tekst: "de ontvanger", lid: "1", toelichting: "",
-      vindplaats: "", herkomst: "agent", lifecycle: "proposed", alternatieven: [],
-      aandacht: null, review_uitleg: "", anker: null, ...p,
-    }) as AnnotatieElement;
-
-  const doc = (elementen: AnnotatieElement[]): AnnotatieDocument =>
-    ({
-      slug: "iw-art8", bwbId: "BWBR0004770", artikel: "8", lid: "1", werkgebied: "IW 1990",
-      status: "in_review", elementen,
-    }) as AnnotatieDocument;
-
-  it("neemt alleen de markeringen van de jurist mee", () => {
-    const uit = eigenMarkeringenVoorContext(
-      doc([el({ id: "a", herkomst: "agent" }), el({ id: "m", herkomst: "mens" })]),
-    );
-    expect(uit.map((e) => e.id)).toEqual(["m"]);
-  });
-
-  it("laat verworpen markeringen weg", () => {
-    const uit = eigenMarkeringenVoorContext(
-      doc([
-        el({ id: "m1", herkomst: "mens" }),
-        el({ id: "m2", herkomst: "mens", lifecycle: "rejected" }),
-      ]),
-    );
-    expect(uit.map((e) => e.id)).toEqual(["m1"]);
-  });
-
-  it("geeft niets terug zonder document", () => {
-    // Een verse annotatie-opdracht heeft nog geen document; dan is er ook geen eigen werk om mee te
-    // sturen – en zeker niet de markeringen van álle geopende documenten.
-    expect(eigenMarkeringenVoorContext(undefined)).toEqual([]);
-  });
-
-  it("begrenst de lijst", () => {
-    const veel = Array.from({ length: 40 }, (_, i) => el({ id: `m${i}`, herkomst: "mens" }));
-    expect(eigenMarkeringenVoorContext(doc(veel))).toHaveLength(20);
   });
 });
 

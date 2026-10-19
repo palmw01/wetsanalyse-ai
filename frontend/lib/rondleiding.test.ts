@@ -9,11 +9,13 @@ import {
   plaatsBubbel, RONDLEIDING_VERSIE, STAPPEN, vraagtArtefact, zichtbareStappen, type Vak,
 } from "./rondleiding";
 import {
-  DEMO_SLUG, demoBron, maakDemoDocument, maakDemoScene, pasDemoBeslissingToe,
-  voegDemoElementToe, wisDemoElement, zetDemoStatus,
+  DEMO_DOEL, DEMO_LEDEN, DEMO_SLUG, maakDemoOpslag, maakDemoScene, maakDemoWeergave,
+  pasDemoBeslissingToe, voegDemoElementToe, wisDemoElement, zetDemoStatus,
 } from "./rondleidingDemo";
 import { vindPositie } from "./selectie";
 import { BESLIST_LIFECYCLES } from "./annotatie";
+import { documentVanNode, nodeBronVan } from "./annotatieNodeAdapter";
+import { segmentAnker } from "./annotatieNode";
 
 describe("de stappenlijst", () => {
   it("heeft unieke ids", () => {
@@ -81,55 +83,81 @@ describe("moetStarten", () => {
 });
 
 describe("de voorbeeldscène", () => {
+  /** De weergave zoals het paneel hem ziet: door dezelfde adapter als echt werk. */
+  const alsPaneel = () => {
+    const view = maakDemoWeergave();
+    const nb = nodeBronVan(view);
+    return { view, nb, doc: documentVanNode(view, nb) };
+  };
+
+  it("draagt de letterlijke wettekst per lid", () => {
+    const { view } = alsPaneel();
+    expect(view.segmenten.map((s) => s.tekst)).toEqual(DEMO_LEDEN.map((l) => l.tekst));
+  });
+
   it("markeert uitsluitend fragmenten die letterlijk in de wettekst staan", () => {
-    const doc = maakDemoDocument();
-    const bron = demoBron();
+    const { view, nb, doc } = alsPaneel();
+    // Elk anker raakt in zijn eigen lid precies de tekst van het element, in codepoints.
+    for (const el of view.elementen) {
+      expect(el.ankers, `${el.klasse} – "${el.tekst}"`).toHaveLength(1);
+      const [a] = el.ankers;
+      const segment = view.segmenten.find((s) => s.bron_iri === a.bron_iri)!;
+      expect(Array.from(segment.tekst).slice(a.start, a.eind).join("")).toBe(el.tekst);
+    }
+    // En via de adapter staat elke markering in het paneel op haar plek: geen zwevende.
     const bezet: { start: number; eind: number }[] = [];
     for (const el of doc.elementen) {
       expect(el.anker, `${el.klasse} – "${el.tekst}"`).not.toBeNull();
-      // Zelfde terugvindweg als het documentpaneel: staat de markering niet, dan zweeft hij.
-      const pos = vindPositie(bron, el.tekst, el.anker, bezet);
+      const pos = vindPositie(nb.bron, el.tekst, el.anker, bezet);
       expect(pos, `${el.klasse} – "${el.tekst}"`).toBeGreaterThanOrEqual(0);
       bezet.push({ start: pos, eind: pos + el.tekst.length });
     }
   });
 
   it("laat de markeringen niet overlappen", () => {
-    const bereiken = maakDemoDocument()
-      .elementen.map((el) => el.anker!)
-      .sort((a, b) => a.start - b.start);
+    const bereiken = alsPaneel().doc.elementen.map((el) => el.anker!).sort((a, b) => a.start - b.start);
     for (let i = 1; i < bereiken.length; i++) {
       expect(bereiken[i].start).toBeGreaterThanOrEqual(bereiken[i - 1].eind);
     }
   });
 
   it("begint met alles nog te beoordelen", () => {
-    const doc = maakDemoDocument();
+    const { doc } = alsPaneel();
     expect(doc.elementen.length).toBeGreaterThan(5);
     expect(doc.elementen.every((el) => !BESLIST_LIFECYCLES.includes(el.lifecycle))).toBe(true);
+    expect(doc.status).toBe("in_review");
   });
 
   it("toont alle drie de aandachtniveaus", () => {
-    const niveaus = new Set(maakDemoDocument().elementen.map((el) => el.aandacht));
+    const niveaus = new Set(maakDemoWeergave().elementen.map((el) => el.aandacht));
     expect(niveaus).toEqual(new Set(["groen", "geel", "rood"]));
   });
 
-  it("levert een thread met een annotatie die naar het voorbeelddocument wijst", () => {
+  it("levert een thread met een annotatie die het paneel op de voorbeeldweergave opent", () => {
     const scene = maakDemoScene();
     const chip = scene.items.find((i) => i.type === "annotatie");
     expect(chip).toBeDefined();
     expect(chip!.type === "annotatie" && chip!.slug).toBe(DEMO_SLUG);
-    expect(scene.docs[DEMO_SLUG]).toBeDefined();
-    expect(scene.infos[DEMO_SLUG]).toBeDefined();
+    // Met een bronnode: dan opent het echte paneel (`NodeAnnotatiePaneel`), niet het oude slug-pad.
+    expect(chip!.type === "annotatie" && chip!.annotatie_doel).toEqual(DEMO_DOEL);
+    expect(scene.opslag.levend).toBe(false);
   });
 
   it("draagt overal het voorbeeld-label", () => {
     const scene = maakDemoScene();
-    expect(scene.docs[DEMO_SLUG].citeertitel).toContain("VOORBEELD");
+    expect(alsPaneel().doc.citeertitel).toContain("VOORBEELD");
+    expect(DEMO_DOEL.label).toContain("VOORBEELD");
     const chip = scene.items.find((i) => i.type === "annotatie");
     expect(chip!.type === "annotatie" && chip!.titel).toContain("VOORBEELD");
     // Ook de sidebar-lijst: die staat naast de echte gesprekken van de gebruiker.
     for (const g of scene.gesprekken) expect(g.titel).toContain("VOORBEELD");
+  });
+
+  it("wijst een eigen iri aan, nooit een uit de graaf", () => {
+    const view = maakDemoWeergave();
+    for (const iri of [view.doel.bron_iri, ...view.segmenten.map((s) => s.bron_iri)]) {
+      expect(iri.startsWith("demo:")).toBe(true);
+    }
   });
 
   it("levert een gevulde gesprekkenlijst voor de sidebar", () => {
@@ -141,53 +169,74 @@ describe("de voorbeeldscène", () => {
   });
 
   it("bouwt elke keer een schone lei", () => {
-    const eerste = maakDemoDocument();
-    const beslist = pasDemoBeslissingToe(eerste, eerste.elementen[0].id, { type: "approve", comment: "" });
+    const eerste = maakDemoWeergave();
+    const beslist = pasDemoBeslissingToe(eerste, eerste.elementen[0].id, { type: "approve" });
     expect(beslist.elementen[0].lifecycle).toBe("human_approved");
     // Het origineel blijft ongemoeid, en een volgende start begint weer bij nul.
     expect(eerste.elementen[0].lifecycle).toBe("voorgesteld");
-    expect(maakDemoDocument().elementen[0].lifecycle).toBe("voorgesteld");
+    expect(maakDemoWeergave().elementen[0].lifecycle).toBe("voorgesteld");
   });
 });
 
 describe("de demo-mutaties", () => {
   it("verwerpt een voorstel zonder het te wissen", () => {
-    const doc = maakDemoDocument();
-    const na = pasDemoBeslissingToe(doc, doc.elementen[1].id, {
-      type: "reject", comment: "", review_reason: "verkeerde_klasse",
-    });
-    expect(na.elementen).toHaveLength(doc.elementen.length);
+    const view = maakDemoWeergave();
+    const na = pasDemoBeslissingToe(view, view.elementen[1].id, { type: "reject", review_reason: "verkeerde_klasse" });
+    expect(na.elementen).toHaveLength(view.elementen.length);
     expect(na.elementen[1].lifecycle).toBe("rejected");
+    expect(na.elementen[1].beslissingen?.at(-1)?.type).toBe("reject");
   });
 
-  it("neemt een klassewijziging over", () => {
-    const doc = maakDemoDocument();
-    const na = pasDemoBeslissingToe(doc, doc.elementen[0].id, {
-      type: "edit", comment: "", wijziging: { klasse: "Rechtssubject" },
-    });
+  it("neemt een klassewijziging over en verhoogt de revisie van de laag", () => {
+    const view = maakDemoWeergave();
+    const el = view.elementen[0];
+    const na = pasDemoBeslissingToe(view, el.id, { type: "edit", wijziging: { klasse: "Rechtssubject" } });
     expect(na.elementen[0].klasse).toBe("Rechtssubject");
     expect(na.elementen[0].lifecycle).toBe("edited");
     expect(na.elementen[0].gewijzigd_door).toBe("mens");
+    const revisie = (v: typeof view) => v.lagen.find((l) => l.bron_iri === el.eigenaar_iri)!.revisie;
+    expect(revisie(na)).toBe(revisie(view) + 1);
   });
 
   it("zet een eigen markering er meteen goedgekeurd bij en wist hem weer", () => {
-    const doc = maakDemoDocument();
-    const bron = demoBron();
-    const { doc: bij, id } = voegDemoElementToe(doc, {
-      klasse: "Rechtsobject", tekst: "het aanslagbiljet", lid: "1", toelichting: "",
-      anker: { lid: "1", start: 0, eind: 16, voor: "", na: "", bron_hash: "" },
+    const view = maakDemoWeergave();
+    const lid1 = view.segmenten[0];
+    const start = lid1.tekst.indexOf("het aanslagbiljet");
+    const anker = segmentAnker(lid1, start, start + "het aanslagbiljet".length);
+    const { view: bij, id } = voegDemoElementToe(view, {
+      klasse: "Rechtsobject", toelichting: "", tekst: anker.tekst, ankers: [anker],
     });
-    expect(bron.length).toBeGreaterThan(0);
-    expect(bij.elementen).toHaveLength(doc.elementen.length + 1);
+    expect(bij.elementen).toHaveLength(view.elementen.length + 1);
     expect(bij.elementen.at(-1)!.lifecycle).toBe("human_approved");
     expect(bij.elementen.at(-1)!.herkomst).toBe("mens");
-    expect(wisDemoElement(bij, id).elementen).toHaveLength(doc.elementen.length);
+    expect(bij.elementen.at(-1)!.eigenaar_iri).toBe(lid1.bron_iri);
+    expect(wisDemoElement(bij, id).elementen).toHaveLength(view.elementen.length);
   });
 
-  it("rondt af en heropent", () => {
-    const doc = maakDemoDocument();
-    expect(zetDemoStatus(doc, "geaccordeerd").status).toBe("geaccordeerd");
-    expect(zetDemoStatus(zetDemoStatus(doc, "geaccordeerd"), "in_review").status).toBe("in_review");
+  it("rondt een laag af en heropent hem", () => {
+    const view = maakDemoWeergave();
+    const laag = view.lagen[0].id;
+    expect(zetDemoStatus(view, laag, "geaccordeerd").lagen[0].status).toBe("geaccordeerd");
+    expect(zetDemoStatus(zetDemoStatus(view, laag, "geaccordeerd"), laag, "in_review").lagen[0].status).toBe("in_review");
+  });
+
+  it("houdt de stand vast in de opslag en geeft kopieën", async () => {
+    const opslag = maakDemoOpslag();
+    const voor = await opslag.weergave(DEMO_DOEL);
+    await opslag.beslis(voor.elementen[0].id, { type: "approve" });
+    const na = await opslag.weergave(DEMO_DOEL);
+    expect(na.elementen[0].lifecycle).toBe("human_approved");
+    // Wat het paneel kreeg, verandert niet onder zijn handen.
+    expect(voor.elementen[0].lifecycle).toBe("voorgesteld");
+  });
+
+  it("toont na verwijderen een verwijderde annotatie", async () => {
+    const opslag = maakDemoOpslag();
+    await opslag.verwijder({});
+    const na = await opslag.weergave(DEMO_DOEL);
+    expect(na.elementen).toEqual([]);
+    expect(na.lagen).toEqual([]);
+    expect(na.verwijderd?.op).toBeTruthy();
   });
 });
 

@@ -68,7 +68,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
 - **`components/`**:
   - `werkplek/` – de hele chat-werkruimte: schil, sidebar, thread (`ThreadRij`, `ToolSpoor`,
     `KeuzeKaart`, `ReeksBlok`, `HergebruikMelding`, `Markdown`) en het annotatiegereedschap in het
-    artefactpaneel (`ArtefactInhoud`, `ArtefactPaneel`, `DocumentPaneel`, `ReviewQueue`,
+    artefactpaneel (`ArtefactInhoud`, `DocumentPaneel`, `ReviewQueue`,
     `SelectiePopover`, `ExportKnop`).
   - `annotaties/` – het overzicht en de losse annotatiepagina (`AnnotatiesClient`, `AnnotatieKaart`,
     `NodeAnnotatiePaneel`, `AnnotatiePaginaSchil`).
@@ -145,8 +145,8 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
 - **Wat Lex oplevert is een artefact** (`Bericht.artefact`, `lib/artefact.ts`): `{soort, ref, titel}`
   met soort `annotatie`, `begrippen` of `regels`. Elke soort heeft een chip in de thread en een paneel
   in dezelfde schil (kolom vanaf 1280px, anders een sheet); er staat er hoogstens één open.
-  - **annotatie** – het `annotatie`-item met `AnnotatieChip`, dat het **`ArtefactPaneel`** /
-    `NodeAnnotatiePaneel` opent. `DocumentPaneel` toont de wettekst met de **letterlijke** fragmenten
+  - **annotatie** – het `annotatie`-item met `AnnotatieChip`, dat **`NodeAnnotatiePaneel`** opent
+    (een bericht zonder bronnode wijst naar een verwijderde annotatie: een tombstone). `DocumentPaneel` toont de wettekst met de **letterlijke** fragmenten
     (`segmenteer` + `lib/jas.ts:jasStyle`), `ReviewQueue` de beslissingskaarten.
   - **begrippen** en **bronnen** – het `artefact`-item met `ArtefactChip`, dat
     **`WerkgebiedArtefactPaneel`** opent: dezelfde `BegripVoorstellen` (`inklapbaar={false}`) of
@@ -430,8 +430,8 @@ sidebar blijft staan.
   geen chatveld om een vraag in klaar te zetten – daarvoor is *Openen in de werkplek*.
 
 **Eén inhoud, twee schillen.** `components/werkplek/ArtefactInhoud.tsx` draagt de wettekst, de
-reviewlijst en alle handlers; `ArtefactPaneel` is de `Dialog`-schil eromheen en de annotatiepagina
-de tweede schil (hetzelfde patroon als `DisclaimerClient` en `InstellingenInhoud`). Een
+reviewlijst en alle handlers; `NodeAnnotatiePaneel` zet hem in de `Dialog`-schil en de annotatiepagina
+is de tweede schil (hetzelfde patroon als `DisclaimerClient` en `InstellingenInhoud`). Een
 **bronnode-annotatie** gebruikt dezelfde inhoud: `NodeAnnotatiePaneel` haalt de v2-weergave op en
 vertaalt die via `lib/annotatieNodeAdapter.ts` (codepoints per bronnode ⇄ UTF-16 in de samengestelde
 bron). **Bouw geen tweede weergave, breid de adapter uit** – een eigen paneel verliest alle opmaak en
@@ -441,7 +441,7 @@ bepaling). De paginaschil (sidebar, mobiele topbar, terug naar het overzicht) is
 `components/annotaties/AnnotatiePaginaSchil.tsx`.
 
 **Escape handelt de inhoud zelf af** (selectie → bedieningsrij → gekozen element → `onSluiten`),
-want de `Dialog`-schil is er niet altijd. `ArtefactPaneel` geeft `Dialog` daarom een **no-op**
+want de `Dialog`-schil is er niet altijd. `NodeAnnotatiePaneel` geeft `Dialog` daarom (op de Tekst-tab) een **no-op**
 `onEscape`; reageert die ook, dan springt Escape in één klap door alle lagen heen.
 
 **Het kruisje staat altijd rechtsboven.** De kop van `ArtefactInhoud` is twee vaste regels: titel +
@@ -739,7 +739,7 @@ de markering (`DocumentPaneel`) en de kaart (`ReviewQueue`), met respect voor
   `Escape` loslaten. De listener doet **niets zolang de focus in een invoerveld staat** – anders keur
   je iets goed door "a" te typen. Na *Akkoord* springt de selectie naar het volgende dat aandacht
   vraagt; knop en toets lopen via dezelfde `onAkkoord`.
-- **Volgorde en open bedieningsrij leven in `ArtefactPaneel`/`ArtefactInhoud`**, niet in de lijst:
+- **Volgorde en open bedieningsrij leven in `ArtefactInhoud`**, niet in de lijst:
   zo doorloopt het toetsenbord dezelfde volgorde als je ziet, en staat er nooit op twee kaarten
   tegelijk een rij open.
 
@@ -1113,8 +1113,12 @@ leest als "hij laadt", niet als "log eerst in".
   een handeling vraagt (`interactie`) laat het aangewezen element bedienen en wacht erop – geen timer
   die de handeling overneemt – en de toetsen volgen `toetsActie` (een knop of veld handelt zijn eigen
   Enter af). Alle andere browserscripts zetten de rondleiding uit; `scripts/test-rondleiding.mjs`
-  loopt hem door. De voorbeeldscène in `lib/rondleidingDemo.ts` gebruikt letterlijke wettekst,
-  ankers die met `maakAnker` over dezelfde brontekst berekend zijn, en raakt de API niet. Het type
+  loopt hem door. De voorbeeldscène in `lib/rondleidingDemo.ts` is een v2-weergave met letterlijke
+  wettekst en ankers die per lid berekend zijn (`segmentAnker`). Hij staat in **hetzelfde
+  `NodeAnnotatiePaneel` als echt werk**, via de prop `opslag` (`NodeOpslag` in `lib/annotatieNode.ts`;
+  standaard `apiOpslag`): een opslag in het geheugen die de lichamen van de api krijgt en niets
+  verstuurt. Zo kan de rondleiding niet meer achterlopen op het paneel; een eigen documentvorm in een
+  eigen paneel deed dat wel. Het type
   `ThreadItem` staat daarom in `lib/threadItem.ts`, zodat `lib/` geen component hoeft te importeren.
 
 ## Toegankelijkheid (WCAG 2.2 AA, NLDS-niveau)
