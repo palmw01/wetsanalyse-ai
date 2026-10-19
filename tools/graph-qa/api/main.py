@@ -67,9 +67,11 @@ from agent.begrippen_verdieping import verdieping_beurt  # noqa: E402
 from agent.begrippen_run import begrippen_stroom  # noqa: E402
 from agent.bronnen_run import bronnen_beurt, bronnen_stroom  # noqa: E402
 from agent.begrip_kaart import kaart_stroom  # noqa: E402
+from agent.deelvragen import deelvragen_stroom  # noqa: E402
 from agent.kaart_beurt import kaart_beurt  # noqa: E402
 from agent.models import (  # noqa: E402
-    WERKGEBIED_MODI, BegrippenRunVerzoek, ChatRequest, KaartRunVerzoek, RunStart, Verbruiksmeter,
+    WERKGEBIED_MODI, BegrippenRunVerzoek, ChatRequest, DeelvragenRunVerzoek, KaartRunVerzoek, RunStart,
+    Verbruiksmeter,
 )
 from agent.runstore import Run, RunBestaatAl, RunStore  # noqa: E402
 from agent.runstore.geheugen import GeheugenStore  # noqa: E402
@@ -526,6 +528,37 @@ async def start_bronnen_run(
             detail={"reden": "run_loopt_al", "run_id": al.run_id},
         ) from al
     logger.info("bronnenrun gestart", extra={"categorie": "functioneel", "run_id": run.run_id})
+    return RunStart(**run.samenvatting())
+
+
+@app.post("/v1/deelvragen-runs", status_code=status.HTTP_201_CREATED)
+async def start_deelvragen_run(
+    request: DeelvragenRunVerzoek,
+    gebruiker: str = Depends(_aanroeper),
+    _rl: None = Depends(_rate_limit),
+    _auth: None = Depends(_check_auth),
+    _budget: None = Depends(_budget_check),
+) -> RunStart:
+    """Lex legt de analysevraag van een werkgebied uiteen in deelvragen; de api bewaart ze als voorstel.
+    Volgen en stoppen via de gewone run-routes; runstore-sleutel `werkgebied:<id>:deelvragen`. Eén
+    modelaanroep, dus de budgetcheck vooraf. Zonder api 503."""
+    if not settings.legt_zelf_vast:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                            detail="Zonder koppeling met de wetsanalyse-api kan Lex geen deelvragen voorstellen.")
+    try:
+        run = await runs.start(
+            conversation_id=f"werkgebied:{request.werkgebied_id}:deelvragen",
+            vraag="Stel deelvragen voor",
+            maak_stroom=lambda run: deelvragen_stroom(request.werkgebied_id, run, settings=settings,
+                                                      user_id=gebruiker),
+            user_id=gebruiker,
+        )
+    except RunBestaatAl as al:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"reden": "run_loopt_al", "run_id": al.run_id},
+        ) from al
+    logger.info("deelvragenrun gestart", extra={"categorie": "functioneel", "run_id": run.run_id})
     return RunStart(**run.samenvatting())
 
 

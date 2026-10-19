@@ -30,7 +30,8 @@ logger = logging.getLogger(__name__)
 WACHT_OP_ANDERE_RUN_S = 120.0
 PEIL_S = 2.0
 
-METHODE_NAAM = {"overzicht": "Overzicht op de analysevraag", "verwijzing_uit": "Verwijzingen vanuit de kern",
+METHODE_NAAM = {"overzicht": "Overzicht op de analysevraag", "deelvraag": "Overzicht per deelvraag",
+                "verwijzing_uit": "Verwijzingen vanuit de kern",
                 "verwijzing_in": "Verwijzingen naar de kern", "definitie": "Definities van termen",
                 "opbouw": "Opbouw van de wet", "gelijkenis": "Tekstuele gelijkenis"}
 

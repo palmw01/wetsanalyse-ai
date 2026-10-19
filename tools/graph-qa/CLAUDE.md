@@ -692,14 +692,19 @@ horen; de api bewaart de kandidaten en de besluiten (`api/app/bronnen_run_store.
   van het werkgebied; rol kern), `verwijzing_uit` (diepte 1 vanaf de kern en haar leden/onderdelen;
   afhankelijkheid bij een bekende functie, anders aanverwant), `verwijzing_in` (aanverwant),
   `definitie` (een `bwb:definieertBegrip` in de regeling van de kern waarvan de term letterlijk in de
-  kern staat; afhankelijkheid), `opbouw` (de andere artikelen in hetzelfde deel; aanverwant) en
-  `gelijkenis` (`bwb_similarity`).
+  kern staat; afhankelijkheid), `opbouw` (de andere artikelen in hetzelfde deel; aanverwant),
+  `gelijkenis` (`bwb_similarity`) en `deelvraag` (het overzicht per actieve deelvraag, met
+  `onderwerp_van_deelvraag`: het vraagwoord vooraan eraf; kern zonder kern, anders aanverwant, hoogstens
+  `MAX_PER_DEELVRAAG`; het bewijs draagt `deelvraag_id`, zodat de api een opgenomen bron aan de
+  deelvraag koppelt).
 - **De standaard volgt de meting** (`standaard_voor`, meetlogboek `bronselectie-2026-10-15`): met een
   kern `STANDAARD` = verwijzing uit, definitie, opbouw; zonder kern `ZONDER_KERN` = het overzicht.
   Overzicht (met kern), `verwijzing_in` en `gelijkenis` hielpen niet aantoonbaar en staan uit. Wijzig
   je een methode, meet dan opnieuw: `uv run python -m eval.bronselectie_eval` (offline, tegen de
   opname naast de set) en `--opnemen` (live); `tests/test_bronselectie_eval.py` bewaakt dat de standaard
-  alles vindt wat nodig is en niets uitgeslotens voorstelt.
+  alles vindt wat nodig is en niets uitgeslotens voorstelt. Heeft het werkgebied deelvragen (ze staan
+  alleen dan in de invoer), dan komt `deelvraag` erbij: de analist vroeg er zelf om. Die methode is nog
+  niet gemeten.
 - **De queries gaan op bron-IRI's** (`q_uitgaand`, `q_inkomend`, `q_teksten`, `q_definities`,
   `q_opbouw`), niet op bwb-id + artikel: een selectie kan een lid, onderdeel of Leidraad-divisie zijn.
   Alleen geïmporteerde doelen (`?naar a ?type`): een verwijzing naar een regeling buiten de graaf is
@@ -721,6 +726,18 @@ horen; de api bewaart de kandidaten en de besluiten (`api/app/bronnen_run_store.
   ook binnen een werkgebied. Een weigering van de api (`geen_vertrekpunt`) is een antwoord.
 - Tests: `tests/test_bronnen_vinden.py` (functiepatronen, methoden tegen een nep-graaf, het
   api-contract uit de bron, run, route, endpoint).
+
+### Lex stelt deelvragen voor (`agent/deelvragen.py`, vervolg op fase F)
+
+Deelvragen bij een werkgebied zijn optioneel (open keuze 4); de api bewaart ze
+(`api/app/werkgebied_deelvragen.py`). `POST /v1/deelvragen-runs {werkgebied_id}` (runstore-sleutel
+`werkgebied:<id>:deelvragen`, budgetcheck vooraf zoals `/v1/runs`) → `deelvragen_stroom`: werkgebied
+ophalen, zonder analysevraag een `error` (`soort: "invoer"`) zonder modelaanroep, dan één aanroep op
+`LLM_MODEL` met een strict tool (`stel_deelvragen_voor`; bestaande deelvragen gaan mee, zodat Lex er geen
+variant van bedenkt), `valideer` (alleen vragen met een vraagteken, ontdubbeld, hoogstens
+`MAX_DEELVRAGEN`), `POST …/deelvragen/voorstellen`. Het verbruik op `deelvragen-<run>`, ook als opslaan
+faalt. Events: `status`, `token` (samenvatting), `opgeslagen`, `done`. De api laat weg wat er al staat of
+is afgewezen. Tests: `tests/test_deelvragen.py` (het contract `DeelvraagVoorstellen` uit de api-bron).
 
 ### Lex annoteert het werkgebied (`agent/werkgebied_annotatie.py`, fase B)
 
