@@ -776,7 +776,9 @@ en werkgebied, geen aanhalingstekens om een begripsdefinitie, wettekst apart oph
   `POST /v1/begrippen/verifieer` (`agent/begrip_read.py`). Wat de api niet meer kent valt af, status en
   werkgebied gelden zoals de api ze nu kent, en wijkt de hash van een werkgebied af van wat de api nu zou
   projecteren, dan is het resultaat `partial`/`volledig: false`. Een haperende graaf of api is nooit een
-  lege lijst (`begrens_begrippen_antwoord`). `tests/test_begrip_tools.py` draait de query tegen een
+  lege lijst (`begrens_begrippen_antwoord`). Een rij met `herbeoordelen` (geaccordeerd, maar een dragende
+  passage veranderde) noemt Lex zo (TOOLKEUZE 7): niet als vaststaand, met de vraag het op de kaart te
+  herbeoordelen. `tests/test_begrip_tools.py` draait de query tegen een
   nagebouwde projectie en leest `BegripStatus`/`BegripVerificatie` uit de api-bron.
 - **`get_begrip`** leest altijd bij de api (`GET /v1/begrippen/{id}`): kaart, passages met actualiteit,
   relaties. De poort draagt `werkgebied_id` uit de state (`tool_execution.begrip_port`); de actor is

@@ -82,12 +82,22 @@ async def _rijen(conn, ids: list[str] | None = None, werkgebied_id: str | None =
     namen = {x.id: x.inhoud.get("naam", "") for x in (await conn.execute(select(b.c.id, b.c.inhoud).where(
         b.c.id.in_({o.naar_begrip for o in opvolgers})))).all()} if opvolgers else {}
     door = {o.van_begrip: {"begrip_id": o.naar_begrip, "naam": namen.get(o.naar_begrip, "")} for o in opvolgers}
+    # Een geaccordeerd begrip waarvan een dragende passage veranderde (de aandachtspunten van de kaart,
+    # uit Postgres): Lex en het overzicht noemen het. Een nieuwe wettekst zonder herannotatie ziet alleen
+    # `GET …/herbeoordelingen` (die vraagt de bronboom); dit is de lichte stand.
+    herbeoordelen: dict[str, int] = {}
+    for wid in sorted({x.werkgebied_id for x in rows if x.status == "geaccordeerd"}):
+        for kp in await begrip_store._koppelingen_van(conn, wid):
+            if (kp["begrip_id"] in bids and kp["rol"] in begrip_store.DRAGEND and kp["beoordeling"] != "afgewezen"
+                    and kp["actualiteit"] != "actueel"):
+                herbeoordelen[kp["begrip_id"]] = herbeoordelen.get(kp["begrip_id"], 0) + 1
     return [{"id": x.id, "iri": begrip_store.begrip_iri(x.id), "werkgebied_id": x.werkgebied_id,
              "werkgebied_naam": x.wg_naam, "naam": x.inhoud.get("naam", ""),
              "alternatieve_termen": x.inhoud.get("alternatieve_termen") or [], "status": x.status,
              "revisie": x.revisie, "definitie": x.inhoud.get("definitie", ""),
              "definitie_herkomst": x.inhoud.get("definitie_herkomst"),
              "vervangen_door": door.get(x.id), "aantal_dragend": dragend.get(x.id, 0),
+             "herbeoordelen": herbeoordelen.get(x.id, 0) if x.status == "geaccordeerd" else 0,
              "geaccordeerd_op": db.aware(x.geaccordeerd_op).isoformat() if x.geaccordeerd_op else None,
              "gewijzigd": db.aware(x.gewijzigd).isoformat()} for x in rows]
 

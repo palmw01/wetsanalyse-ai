@@ -559,7 +559,10 @@ werkgebieden. Een begrip in een gearchiveerd werkgebied of een verwijderd begrip
   overzicht van de webapp. Zoeken gebeurt in Python (de inhoud is JSON, de tests draaien op SQLite):
   zonder hoofdletters en diakrieten, rangorde exacte naam → exacte term → in de naam → in een term →
   in de definitie → alle woorden ergens; daarna het werkgebied `eerst`, dan geaccordeerd → concept →
-  vervangen. Een rij noemt het werkgebied, `vervangen_door` en `aantal_dragend`. Het contract is
+  vervangen. Een rij noemt het werkgebied, `vervangen_door`, `aantal_dragend` en bij een geaccordeerd begrip
+  `herbeoordelen`: het aantal dragende passages dat sinds het accorderen veranderde (de actualiteit uit
+  Postgres, zoals de aandachtspunten van de kaart; een nieuwe wettekst zonder herannotatie ziet alleen
+  `…/herbeoordelingen`). Ook in `verifieer`, zodat Lex het kan noemen. Het contract is
   `BegripZoekvraag`; graph-qa (`search_begrippen`) vraagt niets wat daar niet in staat.
 - **Lex zoekt in de graaf, de api bevestigt** (`POST /v1/begrippen/verifieer {ids, werkgebieden}`), net
   als bij `search_annotaties`: per id de rij van nu of `null`, en per werkgebied de `projectie_hash`

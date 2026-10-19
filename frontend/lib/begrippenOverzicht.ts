@@ -16,6 +16,8 @@ export interface BegripOverzichtRij {
   definitie_herkomst: string | null;
   vervangen_door: { begrip_id: string; naam: string } | null;
   aantal_dragend: number;
+  /** Geaccordeerd, maar zoveel dragende passages veranderden sindsdien (een oudere api stuurt het niet). */
+  herbeoordelen?: number;
   geaccordeerd_op: string | null;
   gewijzigd: string;
 }
