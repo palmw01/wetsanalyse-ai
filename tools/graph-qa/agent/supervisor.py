@@ -16,7 +16,7 @@ SUPERVISOR_SYSTEM = (
     "Je bent de supervisor van een juridische agent over een kennisgraaf met Nederlandse wet- en "
     "regelgeving (invordering/belastingen). Bepaal welke agent(s) de vraag nodig heeft en in welke "
     "volgorde. Antwoord in EXACT dit formaat, drie regels:\n"
-    "WORKERS: <komma-gescheiden uit: antwoord, annotatie>\n"
+    "WORKERS: <komma-gescheiden uit: antwoord, annotatie, werkgebied>\n"
     "SPECIALIST: <definitie|duiding|algemeen>\n"
     "PLAN: <1-2 zinnen aanpak, of AFWIJZEN als de vraag niet over Nederlandse wet- en regelgeving "
     "gaat>\n"
@@ -30,7 +30,18 @@ SUPERVISOR_SYSTEM = (
     "juridische elementen markeren en classificeren). Kies anders 'antwoord' (een vraag beantwoorden, "
     "duiden of een begrip definiëren) met de passende SPECIALIST: 'definitie' voor begrip-/definitie"
     "vragen, 'duiding' voor betekenis/structuur/samenhang van een bepaling, anders 'algemeen'. "
-    "SPECIALIST geldt alleen voor 'antwoord'."
+    "SPECIALIST geldt alleen voor 'antwoord'. Kies 'werkgebied' (alleen) als de gebruiker een "
+    "werkgebied wil samenstellen of een wetsanalyse wil beginnen, of als het bericht een antwoord is "
+    "op een open vraag van het samenstellen (zie OPEN KAARTJE)."
+)
+
+# Alleen als er een samenstelling loopt: het kaartje dat open staat. Een getypt antwoord in het
+# invoerveld ("Box 3", "geen overgangsrecht") is dan een antwoord op dat kaartje, geen nieuwe vraag.
+INTAKE_SYSTEM = (
+    "\n\nOPEN KAARTJE: Lex stelt met de gebruiker een werkgebied samen en vroeg zojuist: \"{vraag}\". "
+    "Is het bericht een antwoord op die vraag (een naam, een vraag, een regeling, wat erbuiten valt), "
+    "kies dan WORKERS: werkgebied. Is het een andere vraag over wetgeving, kies dan zoals altijd; het "
+    "kaartje blijft open staan."
 )
 
 # Alleen met een gesprek ervóór: dan moet de supervisor eerst weten waar een korte vervolgvraag
@@ -54,7 +65,7 @@ _QA_SPECIALISTS = ("definitie", "duiding", "algemeen")
 # De enige twee workers die bestaan. Alles daarbuiten is een verzinsel van het model en telt niet
 # mee: werd élke onbekende naam stilzwijgend een extra ANTWOORD-worker, dan beantwoordde "WORKERS:
 # antwoord, samenvatten" dezelfde vraag twee keer – dubbele kosten, twee antwoorden.
-_WORKERS = ("antwoord", "annotatie")
+_WORKERS = ("antwoord", "annotatie", "werkgebied")
 
 # Meer dan twee schakels heeft geen enkele vraag nodig (annoteren en dan samenvatten is de langste
 # zinnige keten). Zonder plafond kan één supervisor-respons de beurt willekeurig lang maken.
@@ -98,5 +109,8 @@ def parse_supervisor(text: str) -> tuple[list[str], str, bool]:
     # Alleen bekende workers, en nooit meer dan het plafond. Blijft er niets over, dan is
     # 'antwoord' de veilige terugval – een beurt zonder worker zou niets doen.
     workers = [w.strip() for w in workers_raw.split(",") if w.strip() in _WORKERS][:_MAX_WORKERS]
+    if "werkgebied" in workers:
+        # Samenstellen is een eigen gesprek van vragen en kaartjes; het ketent met niets.
+        return ["werkgebied"], plan, False
     plan_spec = ["annotatie" if w == "annotatie" else qa_specialist for w in workers or ["antwoord"]]
     return plan_spec, plan, plan.strip().upper().startswith("AFWIJZEN")

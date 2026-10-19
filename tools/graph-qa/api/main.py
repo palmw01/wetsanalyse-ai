@@ -285,7 +285,7 @@ async def chat(
         stroom = (reeks_run(request, settings=settings, legt_vast=False) if request.doelen else answer_stream(
             request.question, request.conversation_id,
             modus=request.modus, context=request.context, doel=request.doel,
-            hergebruik=request.hergebruik,
+            hergebruik=request.hergebruik, intake_actie=request.intake_actie,
         ))
         async for event in stroom:
             yield {"data": json.dumps(event, ensure_ascii=False)}
@@ -358,6 +358,7 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
                     meter=meter,
                     # Het werkgebied van het gesprek: zijn begrippen staan vooraan (fase F4).
                     werkgebied_id=request.werkgebied_id or "",
+                    intake_actie=request.intake_actie,
                 ),
                 settings=settings,
                 run=run,
@@ -366,6 +367,10 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
                 meter=meter,
             )
 
+        if request.intake_actie is not None:
+            # Een klik op een vraagkaartje (activiteit 1): altijd de werkgebied-worker, ook als de
+            # leesbare tekst van het antwoord op een vraag voor een harde route lijkt.
+            return gewone_beurt()
         if request.is_werkgebied_annotatie:
             # De nieuwe bepalingen van het werkgebied: eerst het voorstel, na bevestiging de reeks.
             if not settings.legt_zelf_vast:

@@ -78,6 +78,12 @@ class State(TypedDict, total=False):
     # die route, want een ophaal-agent die de verkeerde bepaling kiest levert werk op dat
     # brongetrouw én verkeerd is.
     opgegeven_doel: dict[str, str]
+    # Het samenstellen van een werkgebied (activiteit 1, `agent/werkgebied_intake.py`): stap,
+    # antwoorden en voorstellen. Bewust NIET in de per-beurt-reset: een tussenvraag laat de intake
+    # staan, zodat het open kaartje daarna nog werkt.
+    intake: dict[str, Any]
+    # De klik op een kaartje van deze beurt; per beurt gereset.
+    intake_actie: dict[str, Any]
     # De tekst waarop deze annotatiebeurt draait: de niet-lege bronsegmenten van de snapshot,
     # samengevoegd (`bronmodel.CorpusMap`). Eén ophaalactie, en alles daarna leest deze tekst.
     corpus: str

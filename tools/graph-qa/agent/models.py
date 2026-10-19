@@ -62,6 +62,20 @@ class AgentDoel(BaseModel):
     geheel: bool = False
 
 
+class IntakeActie(BaseModel):
+    """Een klik op een vraagkaartje bij het samenstellen van een werkgebied (activiteit 1,
+    `agent/werkgebied_intake.py`). `stap` is de stap waarop geklikt werd: hoort die niet meer bij de
+    intake, dan toont Lex het huidige kaartje opnieuw in plaats van stil iets anders te doen."""
+
+    intake_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
+    stap: Literal["naam", "analysevraag", "regelingen", "onderdelen", "buiten", "samenvatting"]
+    actie: Literal["antwoord", "overslaan", "wijzig", "aanmaken", "afbreken"] = "antwoord"
+    keuzes: list[str] = Field(default_factory=list, max_length=20)
+    tekst: str = Field(default="", max_length=4000)
+    # Bij `wijzig` vanaf de samenvatting: naar welke stap.
+    naar: str = ""
+
+
 # Routes op een werkgebied die in werkgebied en gesprek schrijven; alleen via `POST /v1/runs`.
 WERKGEBIED_MODI = ("begrippen", "bronnen", "werkgebied_annoteren", "begrippen_verdiepen")
 
@@ -95,6 +109,9 @@ class ChatRequest(BaseModel):
     # Het aantal bepalingen dat de analist bevestigde (fase B). Wijkt de actuele werkvoorraad af,
     # dan begint de run niet; zonder dit veld noemt Lex alleen wat er te doen is.
     bevestigd: int | None = Field(default=None, ge=0, le=100_000)
+    # Een klik op een vraagkaartje (activiteit 1): de supervisor stuurt de beurt dan zonder modelaanroep
+    # naar de werkgebied-worker, en geen van de harde werkgebiedroutes neemt hem over.
+    intake_actie: IntakeActie | None = None
 
     @property
     def is_werkgebied_annotatie(self) -> bool:

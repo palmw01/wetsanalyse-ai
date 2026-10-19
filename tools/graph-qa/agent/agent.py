@@ -142,6 +142,7 @@ async def answer_stream(
     annotaties=None,
     begrippen=None,
     werkgebied_id: str = "",
+    intake_actie: Any = None,
 ) -> AsyncIterator[dict[str, Any]]:
     """
     Async generator die SSE-events yield:
@@ -218,6 +219,9 @@ async def answer_stream(
         # hieronder: bleef het staan, dan annoteert de vólgende vraag in dezelfde thread opnieuw
         # de vorige bepaling zonder dat iemand daarom vroeg.
         "opgegeven_doel": doel.model_dump() if hasattr(doel, "model_dump") else (doel or {}),
+        # Een klik op een vraagkaartje geldt alleen deze beurt; de intake zelf blijft staan.
+        "intake_actie": (intake_actie.model_dump() if hasattr(intake_actie, "model_dump")
+                         else (intake_actie or {})),
         "source_trace": [],
         "turns": 0,
         "corrected": False,
