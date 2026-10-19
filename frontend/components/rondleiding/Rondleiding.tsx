@@ -7,16 +7,16 @@ import { Dialog } from "@/components/ui/Dialog";
 import type { BeslissingType } from "@/lib/types";
 import { TourBubbel } from "@/components/rondleiding/TourBubbel";
 import {
-  artefactActie, domineert, heeftOmvang, hervatIndex, RONDLEIDING_VERSIE, schrijfStand, SMAL,
-  vakVan, zichtbareStappen, type Stap,
+  artefactActie, domineert, heeftOmvang, hervatIndex, indexVan, leesStand, RONDLEIDING_VERSIE,
+  schrijfStand, SMAL, toetsActie, vakVan, zichtbareStappen, type Stap,
 } from "@/lib/rondleiding";
 import { BREED } from "@/lib/useBreedScherm";
 
 /** Waar de rondleiding thuishoort. Buiten dit pad wijst hij niets aan, dus dan pauzeert hij. */
 const THUIS = "/workbench";
 
-/** Hoe lang de rondleiding wacht tot de gebruiker in stap "De annotatie openen" zelf klikt. */
-const WACHT_OP_KLIK_MS = 6000;
+/** Waar de bubbel aan te herkennen is, voor de toetsregel (`toetsActie`). */
+const BUBBEL_ATTRIBUUT = "data-rondleiding-bubbel";
 
 /** Wat de bubbel bevestigt na een handeling in een interactieve stap – per soort beslissing.
  *
@@ -40,7 +40,8 @@ interface Props {
   isBeheerder: boolean;
   /** Staat het annotatie-artefact open? De rondleiding wacht daarop bij de reviewstappen. */
   artefactOpen: boolean;
-  /** Het voorbeeldartefact openen (stap 7 doet dat als de gebruiker niet zelf klikt). */
+  /** Het voorbeeldartefact openen: bij *Volgende* in de stap "De annotatie openen", of bij
+   *  hervatten op een stap die het paneel nodig heeft. */
   onOpenArtefact: () => void;
   /** Het voorbeeldartefact sluiten. Nodig bij teruglopen: de stappen vóór de review wijzen naar de
    *  thread, en met het paneel ervoor is daar niets van te zien. */
@@ -66,7 +67,15 @@ export function Rondleiding({
   const [fase, setFase] = useState<TourFase>("welkom");
   const [index, setIndex] = useState(0);
   const [doel, setDoel] = useState<Element | null>(null);
-  const [gedaan, setGedaan] = useState<string | undefined>();
+  // De bevestiging per stap. Eén string, die bij elke stapwissel werd gewist, liet de bevestiging
+  // verdwijnen zodra je terugbladerde naar de stap waarin je het deed.
+  const [gedaan, setGedaan] = useState<Record<string, string>>({});
+  // Waar een eerder onderbroken rondleiding stopte. Eén keer gelezen: dit component laadt pas in de
+  // browser (`ssr: false`), dus `localStorage` bestaat hier al.
+  const [hervatBij] = useState(() => {
+    const i = indexVan(stappen, leesStand().gestoptBij);
+    return i > 0 ? i : null;
+  });
   const pad = usePathname();
   const beginPad = useRef(pad);
 
@@ -82,10 +91,12 @@ export function Rondleiding({
   }, [stap?.id]);
   useEffect(() => {
     if (!stap?.interactie) return;
+    if (stap.interactie !== "akkoord") return;
     if (beslissingen > beslissingenBijStart.current) {
-      setGedaan(INTERACTIE_BEVESTIGING[laatsteBeslissing ?? "approve"]);
+      const tekst = INTERACTIE_BEVESTIGING[laatsteBeslissing ?? "approve"];
+      setGedaan((g) => ({ ...g, [stap.id]: tekst }));
     }
-  }, [beslissingen, laatsteBeslissing, stap?.interactie]);
+  }, [beslissingen, laatsteBeslissing, stap?.interactie, stap?.id]);
 
   // Het slot volgt de stap. Bij afsluiten of unmounten gaat het er hoe dan ook af: een werkplek die
   // inert blijft staan is erger dan een rondleiding die te vroeg loslaat.
@@ -219,16 +230,6 @@ export function Rondleiding({
     };
   }, [fase, stap, artefactOpen]);
 
-  // Stap 7 laat de gebruiker zélf de annotatie openen. Doet hij dat niet, dan opent de rondleiding
-  // hem alsnog – anders loopt hij vast op een handeling die hij misschien niet herkent.
-  useEffect(() => {
-    if (fase !== "stappen" || !stap || artefactOpen) return;
-    const volgendeVraagtArtefact = stappen[index + 1]?.artefactOpen;
-    if (!volgendeVraagtArtefact) return;
-    const timer = setTimeout(onOpenArtefact, WACHT_OP_KLIK_MS);
-    return () => clearTimeout(timer);
-  }, [fase, stap, index, stappen, artefactOpen, onOpenArtefact]);
-
   const naar = useCallback(
     (nieuw: number) => {
       if (nieuw >= stappen.length) {
@@ -240,34 +241,56 @@ export function Rondleiding({
       const actie = artefactActie(artefactOpen, doelStap);
       if (actie === "openen") onOpenArtefact();
       else if (actie === "sluiten") onSluitArtefact();
-      setGedaan(undefined);
       setIndex(Math.max(0, nieuw));
       schrijfStand({ versie: RONDLEIDING_VERSIE, gezien: false, gestoptBij: doelStap?.id });
     },
     [stappen, artefactOpen, onOpenArtefact, onSluitArtefact],
   );
 
-  // Toetsenbordbediening. Pijltjes en Enter sturen de rondleiding, Escape sluit hem – behalve
-  // terwijl je in een invoerveld staat, want daar betekenen die toetsen iets anders.
+  // De stap "De annotatie openen" vraagt de gebruiker de kaart zelf aan te klikken. Gaat het paneel
+  // in die stap open, dan is dat zijn klik, en dan gaat de rondleiding mee naar de wettekst.
+  //
+  // Hier stond eerst een timer die het paneel na zes seconden zelf opende. Over de kaart lag toen
+  // nog een klikvanger (de stap was niet interactief), dus klikken kón niet – en dan schoof het
+  // paneel er na een tijdje vanzelf in. Dat voelde als een rondleiding die zonder je doorloopt.
+  const wasOpen = useRef(artefactOpen);
+  useEffect(() => {
+    const zojuistGeopend = artefactOpen && !wasOpen.current;
+    wasOpen.current = artefactOpen;
+    if (fase === "stappen" && stap?.interactie === "openen" && zojuistGeopend) naar(index + 1);
+  }, [artefactOpen, fase, stap?.interactie, index, naar]);
+
+  // Toetsenbordbediening: pijltjes en Enter sturen de rondleiding, Escape sluit hem. Wanneer dat
+  // mag, staat in `toetsActie`: een knop of veld handelt zijn eigen toetsen af.
   useEffect(() => {
     if (fase !== "stappen") return;
     const opToets = (e: KeyboardEvent) => {
-      const doelEl = e.target as HTMLElement | null;
-      if (doelEl?.closest("input, textarea, [contenteditable='true']")) return;
-      if (e.key === "Escape") {
-        e.preventDefault();
-        sluit(false);
-      } else if (e.key === "ArrowRight" || e.key === "Enter") {
-        e.preventDefault();
-        naar(index + 1);
-      } else if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        naar(index - 1);
-      }
+      const doelEl = e.target instanceof Element ? e.target : null;
+      const actie = toetsActie({
+        key: e.key,
+        inBubbel: Boolean(doelEl?.closest(`[${BUBBEL_ATTRIBUUT}]`)),
+        nergens: !doelEl || doelEl === document.body || doelEl === document.documentElement,
+        opBediening: Boolean(
+          doelEl?.closest("button, a[href], input, textarea, select, [contenteditable='true'], [role='button']"),
+        ),
+        interactief: Boolean(stap?.interactie),
+        alAfgevangen: e.defaultPrevented,
+      });
+      if (!actie) return;
+      e.preventDefault();
+      if (actie === "sluiten") sluit(false);
+      else naar(actie === "volgende" ? index + 1 : index - 1);
     };
     window.addEventListener("keydown", opToets);
     return () => window.removeEventListener("keydown", opToets);
-  }, [fase, index, naar, sluit]);
+  }, [fase, index, naar, sluit, stap?.interactie]);
+
+  /** Van het welkomstvenster naar de stappen, bij `bij` (0 = vooraan). Via `naar`, zodat een stap
+   *  die het paneel nodig heeft het ook krijgt. */
+  const begin = (bij: number) => {
+    setFase("stappen");
+    naar(bij);
+  };
 
   if (fase === "welkom") {
     return (
@@ -279,6 +302,11 @@ export function Rondleiding({
             vraag tot beoordeelde annotatie. Je hoeft niets in te vullen: ik gebruik een voorbeeld.
             In {stappen.length} stappen, ongeveer twee minuten.
           </p>
+          {hervatBij !== null && (
+            <p className="mt-3 text-sm leading-6 text-ink">
+              Je was de vorige keer gebleven bij stap {hervatBij + 1}: {stappen[hervatBij].titel}.
+            </p>
+          )}
           <p className="mt-3 text-[0.8125rem] leading-5 text-muted">
             Let op: dit is een testomgeving. Analyses kunnen verloren gaan.
           </p>
@@ -290,15 +318,21 @@ export function Rondleiding({
             >
               Nu even niet
             </button>
+            {hervatBij !== null && (
+              <button
+                type="button"
+                onClick={() => begin(0)}
+                className="focus-ring min-h-[40px] rounded-button border border-line px-4 text-sm text-ink transition-colors hover:bg-surface coarse:min-h-[48px]"
+              >
+                Opnieuw beginnen
+              </button>
+            )}
             <button
               type="button"
-              onClick={() => {
-                setFase("stappen");
-                setIndex(hervatIndex(stappen, undefined));
-              }}
+              onClick={() => begin(hervatIndex(stappen, hervatBij === null ? undefined : stappen[hervatBij].id))}
               className="focus-ring min-h-[40px] rounded-button bg-accent px-4 text-sm font-medium text-paper transition-opacity hover:opacity-90 coarse:min-h-[48px]"
             >
-              Start de rondleiding
+              {hervatBij !== null ? `Verder bij stap ${hervatBij + 1}` : "Start de rondleiding"}
             </button>
           </div>
         </div>
@@ -346,7 +380,7 @@ export function Rondleiding({
         nummer={index + 1}
         totaal={stappen.length}
         doel={doel}
-        gedaan={gedaan}
+        gedaan={gedaan[stap.id]}
         onVorige={index > 0 ? () => naar(index - 1) : undefined}
         onVolgende={() => naar(index + 1)}
         onSluit={() => sluit(false)}

@@ -1109,7 +1109,11 @@ leest als "hij laadt", niet als "log eerst in".
   werkplek niet blokkeren.
 - **Rondleiding** – `components/rondleiding/` loopt langs elementen met `data-tour="<anker>"` in de
   werkplek. Stappen, teksten en de opgeslagen stand (`localStorage`, faalt stil) staan in
-  `lib/rondleiding.ts`; de voorbeeldscène in `lib/rondleidingDemo.ts` gebruikt letterlijke wettekst,
+  `lib/rondleiding.ts`. De rondleiding doet alleen iets als de gebruiker iets doet: een stap die om
+  een handeling vraagt (`interactie`) laat het aangewezen element bedienen en wacht erop – geen timer
+  die de handeling overneemt – en de toetsen volgen `toetsActie` (een knop of veld handelt zijn eigen
+  Enter af). Alle andere browserscripts zetten de rondleiding uit; `scripts/test-rondleiding.mjs`
+  loopt hem door. De voorbeeldscène in `lib/rondleidingDemo.ts` gebruikt letterlijke wettekst,
   ankers die met `maakAnker` over dezelfde brontekst berekend zijn, en raakt de API niet. Het type
   `ThreadItem` staat daarom in `lib/threadItem.ts`, zodat `lib/` geen component hoeft te importeren.
 
@@ -1266,7 +1270,7 @@ npm run test:browser # Playwright op de echte Next-UI met gemockte BFF (scripts/
 `test:browser` draait `scripts/test-annotatie-nodes.mjs`, `test-samenhang.mjs`, `test-reeks.mjs`,
 `test-toetsen.mjs`, `test-werkgebieden.mjs`, `test-begrippen.mjs`, `test-begripvoorstellen.mjs` en
 `test-artefacten.mjs` (de soorten artefacten in de werkplek), `test-bronkandidaten.mjs`,
-`test-werkgebied-annoteren.mjs`, `test-begrippen-verdieping.mjs`, `test-begriplex.mjs`, `test-herbeoordeling.mjs`, `test-begriprelaties.mjs` en `test-begrippengraaf.mjs`, en verwacht een devserver op poort 3109
+`test-werkgebied-annoteren.mjs`, `test-begrippen-verdieping.mjs`, `test-begriplex.mjs`, `test-herbeoordeling.mjs`, `test-begriprelaties.mjs`, `test-begrippengraaf.mjs` en `test-rondleiding.mjs`, en verwacht een devserver op poort 3109
 (`AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109`).
 Praat met **`localhost`**, niet met `127.0.0.1`: Next 16 weigert dev-assets aan een andere origin,
 waarna de pagina niet hydrateert en elke stap zonder duidelijke fout time-out.
