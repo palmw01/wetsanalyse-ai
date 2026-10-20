@@ -36,6 +36,7 @@ def _bericht_uit_row(row) -> Bericht:
         artefact=inhoud.get("artefact") or None,
         bevestiging=inhoud.get("bevestiging") or None,
         vraagkaart=inhoud.get("vraagkaart") or None,
+        intake_antwoord=inhoud.get("intake_antwoord") or None,
         created=db.aware(d["created"]),
     )
 
@@ -71,6 +72,8 @@ def _inhoud(inv: BerichtInvoer | Bericht) -> dict:
         inhoud["bevestiging"] = inv.bevestiging.model_dump()
     if inv.vraagkaart:
         inhoud["vraagkaart"] = inv.vraagkaart.model_dump()
+    if inv.intake_antwoord:
+        inhoud["intake_antwoord"] = inv.intake_antwoord.model_dump()
     return inhoud
 
 

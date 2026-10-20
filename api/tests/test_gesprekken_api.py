@@ -371,9 +371,9 @@ VRAAGKAART = {
     "intake_id": "ik-1", "soort": "vraag", "stap": "regelingen", "nr": 3, "totaal": 5,
     "vraag": "Welke regeling(en) horen bij het werkgebied?", "toelichting": "",
     "opties": [{"label": "Wet inkomstenbelasting 2001", "waarde": "BWBR0011353",
-                "bron": {"bwb_id": "BWBR0011353"}}],
+                "bron": {"bwb_id": "BWBR0011353"}, "omschrijving": "wet · 2 hoofdstukken"}],
     "meerkeuze": True, "vrije_tekst": True, "overslaanbaar": True, "vooringevuld": ["BWBR0011353"],
-    "samenvatting": {},
+    "samenvatting": {}, "terug": True, "beantwoord": False,
 }
 
 
@@ -393,6 +393,19 @@ async def test_een_ongeldige_vraagkaart_wordt_geweigerd(client, fout):
     r = await client.post(f"{BASIS}/{gid}/berichten", json={
         "rol": "assistant", "vraagkaart": {**VRAAGKAART, **fout}}, headers=A)
     assert r.status_code == 422
+
+
+async def test_een_antwoord_op_een_kaartje_draagt_zijn_intake(client):
+    """Zo bundelt de werkplek na herladen de antwoorden in één Vragen-kaart."""
+    gid = await _maak(client)
+    ia = {"intake_id": "ik-1", "stap": "naam", "actie": "antwoord"}
+    r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "user", "tekst": "Box 3", "intake_antwoord": ia}, headers=A)
+    assert r.status_code == 201 and r.json()["intake_antwoord"] == ia
+    doc = (await client.get(f"{BASIS}/{gid}", headers=A)).json()
+    assert doc["berichten"][-1]["intake_antwoord"] == ia
+    fout = await client.post(f"{BASIS}/{gid}/berichten", json={
+        "rol": "user", "tekst": "x", "intake_antwoord": {**ia, "stap": "peildatum"}}, headers=A)
+    assert fout.status_code == 422
 
 
 async def test_een_werkgebied_reeks_mag_een_onderdeel_hebben(client):
