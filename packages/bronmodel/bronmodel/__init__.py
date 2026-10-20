@@ -299,6 +299,18 @@ def _kies_lid(nodes: dict[str, dict], ordered: list[dict], children: dict[str, l
     raise BronFout("Het gevraagde lid bestaat niet of is dubbelzinnig")
 
 
+def _kaal(n: dict) -> bool:
+    """De importer schrijft bij een structuurdeel alleen het woord als label ("Hoofdstuk", "Afdeling");
+    het nummer en het opschrift staan apart. Een artikel draagt zijn nummer al ("Artikel 22bis.5")."""
+    return bool(n["nummer"]) and n["label"] == n["type"]
+
+
+def _kop(n: dict) -> str:
+    """Het leesbare label van een node in de detailkop: "Hoofdstuk V" in plaats van "Hoofdstuk". Alleen
+    voor de kop; de nodes zelf (en daarmee de snapshot-id) blijven ongewijzigd."""
+    return f"{n['label']} {n['nummer']}" if _kaal(n) else n["label"]
+
+
 def bouw_snapshot(rows: list[dict], *, bron_iri: str = "", bwb_id: str,
                   artikel: str = "", lid: str = "") -> dict:
     nodes: dict[str, dict] = {}
@@ -380,7 +392,11 @@ def bouw_snapshot(rows: list[dict], *, bron_iri: str = "", bwb_id: str,
     # Detailkop: wet + concrete vindplaats, niet alleen "Lid 1". Bronlabels zelf
     # blijven los van de tekst waar de ankers tegen worden gecontroleerd.
     begin = next((i for i, n in enumerate(path) if n["type"] in {"Artikel", "Divisie"}), 0)
-    label = titel + (" – " + ", ".join(n["label"] for n in path[begin:]) if path else "")
+    label = titel + (" – " + ", ".join(_kop(n) for n in path[begin:]) if path else "")
+    # Een structuurdeel als doel draagt zijn opschrift: "Hoofdstuk V – Invorderingsrente".
+    if path and _kaal(target) and (opschrift := next((r.get("titel") for r in rows
+                                                     if r.get("node") == bron_iri and r.get("titel")), "")):
+        label += f" – {opschrift}"
     return {"schema_versie": 2, "snapshot_id": tekst_hash(canonical),
             "doel": {**target, "artikel": article, "lid": lidnummer, "label": label,
                      "citeertitel": titel, "bronpad": [n["bron_iri"] for n in path]},
