@@ -101,7 +101,7 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | C | Leerlus en knowledge-check | Te herijken |
 | D | Activiteit 3: werkgebieden en begrippen | Ontwerp klaar, niets gebouwd |
 | E | Kennisbank (tweede corpus) | Ontwerp klaar, niets gebouwd |
-| F | Activiteit 1 in het gesprek: werkgebied bepalen | F0 gebouwd (vraagkaarten → werkgebied); vervolg open |
+| F | Activiteit 1 in het gesprek: werkgebied bepalen | F0 en F1 gebouwd (vraagkaarten zoals Claude → werkgebied); vervolg open |
 
 ---
 
@@ -718,6 +718,11 @@ naast het gesprek (zoals een annotatie, maar los ervan).
 - Een tussenvraag laat de intake open; wat de eerste zin al zegt staat voorgeselecteerd, nooit stil
   aangenomen. Aanmaken is idempotent (`intake_id`).
 - PR's: api (#706), graph-qa (#707), werkplek.
+
+**F1 – vraagkaarten zoals Claude** (20 okt 2026): de open vraag onderaan in plaats van het
+invoerveld (✕ wegklikken, "● Een vraag stellen ›" in de thread), beantwoorde vragen in één
+Vragen-kaart zonder bubbels (`intake_antwoord` op het bericht), opties met een omschrijving uit de
+graaf, eigen tekst als laatste regel, pilknoppen, en terugbladeren met ‹ n van 5 ›.
 
 **Vervolg (open, eigen plan):**
 

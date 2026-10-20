@@ -20,15 +20,17 @@ const sizes: Record<Size, string> = {
 };
 
 const base =
-  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-button border font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lint";
+  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap border font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lint";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   size?: Size;
+  /** Een pil (volledig rond), zoals de vraagkaart van Lex; anders de Rijkshuisstijl-knopradius. */
+  pil?: boolean;
 }
 
-export function Button({ variant = "primary", size = "md", className = "", ...props }: ButtonProps) {
-  return <button className={`${base} ${sizes[size]} ${variants[variant]} ${className}`} {...props} />;
+export function Button({ variant = "primary", size = "md", pil = false, className = "", ...props }: ButtonProps) {
+  return <button className={`${base} ${pil ? "rounded-full px-5" : "rounded-button"} ${sizes[size]} ${variants[variant]} ${className}`} {...props} />;
 }
 
 interface LinkButtonProps {
@@ -49,7 +51,7 @@ export function LinkButton({
   children,
 }: LinkButtonProps) {
   return (
-    <Link href={href} onClick={onClick} className={`${base} ${sizes[size]} ${variants[variant]} ${className}`}>
+    <Link href={href} onClick={onClick} className={`${base} rounded-button ${sizes[size]} ${variants[variant]} ${className}`}>
       {children}
     </Link>
   );

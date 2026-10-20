@@ -37,8 +37,8 @@ function svg(pad: React.ReactNode, className = "", extra?: { fill?: boolean }) {
   );
 }
 
-/** Uitklapper of dropdown. Draai hem met een `rotate-*`-klasse: `-rotate-90` wijst naar links
- *  (terug), `-rotate-180` naar boven (ingeklapt). */
+/** Uitklapper of dropdown. Draai hem met een `rotate-*`-klasse: `-rotate-90` wijst naar rechts
+ *  (ingeklapt, verder), `rotate-90` naar links (terug), `-rotate-180` naar boven. */
 export function ChevronOmlaag({ className = "" }: IcoonProps) {
   return svg(<path d="M4 6l4 4 4-4" />, className);
 }
@@ -114,6 +114,11 @@ export function Richten({ className = "" }: IcoonProps) {
 }
 
 /** Sluiten of wissen (klein kruis, voor in een regel). */
+/** Verder: een pijl naar rechts (*Volgende →*). */
+export function PijlRechts({ className = "" }: IcoonProps) {
+  return svg(<path d="M3 8h10M9 4l4 4-4 4" />, className);
+}
+
 export function Kruis({ className = "" }: IcoonProps) {
   return svg(<path d="m4 4 8 8M12 4l-8 8" />, className);
 }
