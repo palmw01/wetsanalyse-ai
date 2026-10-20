@@ -372,7 +372,7 @@ VRAAGKAART = {
     "vraag": "Welke regeling(en) horen bij het werkgebied?", "toelichting": "",
     "opties": [{"label": "Wet inkomstenbelasting 2001", "waarde": "BWBR0011353",
                 "bron": {"bwb_id": "BWBR0011353"}, "omschrijving": "wet · 2 hoofdstukken"}],
-    "meerkeuze": True, "vrije_tekst": True, "overslaanbaar": True, "vooringevuld": ["BWBR0011353"],
+    "meerkeuze": True, "vrije_tekst": True, "meer_tekst": False, "overslaanbaar": True, "vooringevuld": ["BWBR0011353"],
     "samenvatting": {}, "terug": True, "beantwoord": False,
 }
 
