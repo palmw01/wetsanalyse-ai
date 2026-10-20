@@ -80,7 +80,7 @@ class IntakeActie(BaseModel):
 
 
 # Routes op een werkgebied die in werkgebied en gesprek schrijven; alleen via `POST /v1/runs`.
-WERKGEBIED_MODI = ("begrippen", "bronnen", "werkgebied_annoteren", "begrippen_verdiepen")
+WERKGEBIED_MODI = ("werkgebied_annoteren", "begrippen_verdiepen")
 
 _ID = r"^[A-Za-z0-9-]{1,64}$"
 
@@ -107,15 +107,30 @@ class Onderwerp(BaseModel):
         return self
 
 
-# Een klik op een suggestie bij *Vraag Lex* (F3b): een vaste handeling die zonder model naar haar route
-# gaat. Nu de routes op een werkgebied die er al waren; de agents van F3c krijgen er hun taken bij.
-ACTIE_MODUS: dict[str, str] = {
-    "werkgebied_annoteren": "werkgebied_annoteren",
-    "bronnen_zoeken": "bronnen",
-    "begrippen_voorstellen": "begrippen",
-    "begrippen_meedenken": "begrippen_verdiepen",
+# Een klik op een suggestie bij *Vraag Lex* (F3b, F3c): een vaste handeling die zonder model naar haar agent en
+# taak gaat (`agents/register.py`). `werkgebied_annoteren` met `bevestigd` is de reeks over het werkgebied: die
+# loopt als eigen stroom (`werkgebied_annotatie_beurt`); zonder `bevestigd` is het de taak `werkgebied`.
+ACTIE_TAAK: dict[str, tuple[str, str]] = {
+    "werkgebied_annoteren": ("annotatie", "werkgebied"),
+    "deelvragen_voorstellen": ("deelvragen", "voorstellen"),
+    "deelvraag_herformuleren": ("deelvragen", "verbeteren"),
+    "deelvraag_splitsen": ("deelvragen", "verbeteren"),
+    "bronnen_zoeken": ("deelvragen", "bronnen_zoeken"),
+    "dekking": ("deelvragen", "dekking"),
+    "begrippen_voorstellen": ("begrippen", "voorstellen"),
+    "begrippen_meedenken": ("begrippen", "meedenken"),
+    "brondefinitie": ("begrippen", "brondefinitie"),
+    "scherper": ("begrippen", "scherper"),
+    "voorbeelden": ("begrippen", "voorbeelden"),
+    "betekenisverschil": ("begrippen", "betekenisverschil"),
+    "begrip_uitwerken": ("begrippen", "uitwerken"),
+    "relaties": ("begrippen", "relaties"),
 }
-Actie = Literal["werkgebied_annoteren", "bronnen_zoeken", "begrippen_voorstellen", "begrippen_meedenken"]
+Actie = Literal["werkgebied_annoteren", "deelvragen_voorstellen", "deelvraag_herformuleren", "deelvraag_splitsen",
+                "bronnen_zoeken", "dekking", "begrippen_voorstellen", "begrippen_meedenken", "brondefinitie",
+                "scherper", "voorbeelden", "betekenisverschil", "begrip_uitwerken", "relaties"]
+# Acties die eerst om een bevestiging vragen; alleen daar hoort `bevestigd` bij.
+BEVESTIG_ACTIES = ("werkgebied_annoteren", "begrippen_meedenken")
 
 
 class ChatRequest(BaseModel):
@@ -125,14 +140,11 @@ class ChatRequest(BaseModel):
     # "advies" = een vraag bij een bestaande annotatie. De supervisor kiest dan niet zelf, maar
     # routeert hard naar de antwoord-worker: zo kan een adviesvraag structureel geen annotatie
     # wijzigen (die route emit simpelweg geen doel/element-events).
-    # "begrippen" / "bronnen" = de begrippen- of bronnenroute op het werkgebied
-    # (`agent/begrippen_beurt.py`, `agent/bronnen_run.py`).
     # "werkgebied_annoteren" = de nieuwe bepalingen van het werkgebied annoteren (fase B,
     # `agent/werkgebied_annotatie.py`); zonder `bevestigd` alleen het voorstel.
-    # "begrippen_verdiepen" = het model op twijfelparen en kaarten (fase C,
-    # `agent/begrippen_verdieping.py`); zonder `bevestigd` alleen het voorstel.
-    modus: Literal["auto", "advies", "annotaties_lezen", "begrippen", "bronnen", "werkgebied_annoteren",
-                   "begrippen_verdiepen"] = "auto"
+    # "begrippen_verdiepen" = het model op twijfelparen en kaarten (fase C); de werkplek stuurt het nog
+    # bij de bevestigingsknop. Het wordt de actie `begrippen_meedenken` (de begrippen-agent).
+    modus: Literal["auto", "advies", "annotaties_lezen", "werkgebied_annoteren", "begrippen_verdiepen"] = "auto"
     context: ChatContext | None = None
     # Een al geannoteerd artikel wordt hergebruikt (`auto`), tenzij de jurist expliciet om een nieuwe
     # ronde vraagt (`opnieuw`). Die voegt toe aan de gedeelde laag; wat beoordeeld is blijft staan.
@@ -140,9 +152,8 @@ class ChatRequest(BaseModel):
     # Meerdere onderdelen van één artikel, gekozen op de keuzekaart: één run die ze na elkaar
     # annoteert, elk met een eigen laag, batch en review (`agent/reeks.py`). Sluit `doel` uit.
     doelen: list[AgentDoel] | None = Field(default=None, min_length=2, max_length=60)
-    # De werkplek is geopend vanuit een werkgebied (spoor D, fase AF2). Een vraag om begrippen gaat
-    # dan de begrippenroute in; in de antwoordroute staan de begrippen van dit werkgebied vooraan
-    # (`search_begrippen`, fase F4).
+    # De werkplek is geopend vanuit een werkgebied (spoor D, fase AF2): de context van de beurt, het
+    # werkgebied van de agents, en in de antwoordroute staan zijn begrippen vooraan (`search_begrippen`).
     werkgebied_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9-]{1,64}$")
     # Het aantal bepalingen dat de analist bevestigde (fase B). Wijkt de actuele werkvoorraad af,
     # dan begint de run niet; zonder dit veld noemt Lex alleen wat er te doen is.
@@ -152,13 +163,19 @@ class ChatRequest(BaseModel):
     intake_actie: IntakeActie | None = None
     # Waar de analist *Vraag Lex* op koos (F3b); de beurt krijgt het object als contextblok mee.
     onderwerp: Onderwerp | None = None
-    # Een klik op een suggestie (F3b): een vaste handeling, zonder model gerouteerd (`ACTIE_MODUS`).
+    # Een klik op een suggestie (F3b): een vaste handeling, zonder model gerouteerd (`ACTIE_TAAK`).
     actie: Actie | None = None
 
     @model_validator(mode="after")
     def _actie_kiest_de_route(self) -> "ChatRequest":
-        """Een actie is een vaste route: hij zet de modus, en de harde routes van `_stroom_voor` nemen
-        hem over. Staat vóór de andere validators, zodat die de modus toetsen die de actie koos."""
+        """Een actie is een vaste handeling: de supervisor kiest er zonder model agent en taak bij. Alleen
+        `werkgebied_annoteren` zet de modus: met `bevestigd` is dat de reeks (`_stroom_voor`). De modus
+        `begrippen_verdiepen` van de bevestigingsknop wordt de actie `begrippen_meedenken`. Staat vóór de
+        andere validators, zodat die de modus toetsen die de actie koos."""
+        if self.modus == "begrippen_verdiepen" and self.actie is None:
+            self.actie, self.modus = "begrippen_meedenken", "auto"
+            if not self.werkgebied_id:
+                raise ValueError("modus 'begrippen_verdiepen' vraagt een werkgebied_id")
         if self.actie is None:
             return self
         if self.modus != "auto":
@@ -167,41 +184,19 @@ class ChatRequest(BaseModel):
             raise ValueError("een actie kiest zelf wat ze doet; geef geen 'doel', 'doelen' of 'intake_actie'")
         if not self.werkgebied_id and self.onderwerp is not None:
             self.werkgebied_id = self.onderwerp.werkgebied_id
-        self.modus = ACTIE_MODUS[self.actie]
+        if not self.werkgebied_id:
+            raise ValueError(f"de actie '{self.actie}' vraagt een werkgebied_id of een onderwerp")
+        if self.bevestigd is not None and self.actie not in BEVESTIG_ACTIES:
+            raise ValueError("'bevestigd' hoort bij een actie die om bevestiging vraagt")
+        if self.actie == "werkgebied_annoteren":
+            self.modus = "werkgebied_annoteren"
         return self
 
     @property
     def is_werkgebied_annotatie(self) -> bool:
-        from .werkgebied_annotatie import is_werkgebied_annoteervraag
-        return bool(self.werkgebied_id) and self.doel is None and self.doelen is None and (
-            self.modus == "werkgebied_annoteren"
-            or (self.modus == "auto" and is_werkgebied_annoteervraag(self.question)))
-
-    @property
-    def is_begrippen_verdieping(self) -> bool:
-        from .begrippen_verdieping import is_verdiepvraag
-        return bool(self.werkgebied_id) and self.doel is None and self.doelen is None and (
-            self.modus == "begrippen_verdiepen" or (self.modus == "auto" and is_verdiepvraag(self.question)))
-
-    @property
-    def is_begrippenbeurt(self) -> bool:
-        from .begrippen_beurt import is_begrippenvraag
-        return bool(self.werkgebied_id) and self.doel is None and self.doelen is None and (
-            self.modus == "begrippen" or (self.modus == "auto" and is_begrippenvraag(self.question)))
-
-    @property
-    def is_kaartbeurt(self) -> bool:
-        """Een kaartactie op een begrip vanuit het gesprek (fase F4): binnen een werkgebied, of als de vraag
-        het woord "begrip" noemt (`kaart_beurt.is_kaartvraag`)."""
-        from .kaart_beurt import is_kaartvraag
-        return self.modus == "auto" and self.doel is None and self.doelen is None and is_kaartvraag(
-            self.question, self.werkgebied_id)
-
-    @property
-    def is_bronnenbeurt(self) -> bool:
-        from .bronnen_run import is_bronnenvraag
-        return bool(self.werkgebied_id) and self.doel is None and self.doelen is None and (
-            self.modus == "bronnen" or (self.modus == "auto" and is_bronnenvraag(self.question)))
+        """De reeks over het werkgebied (fase B): de modus of de actie, nooit een tekstpatroon. Zonder
+        `bevestigd` levert hij het voorstel, met `bevestigd` de annotaties."""
+        return bool(self.werkgebied_id) and self.modus == "werkgebied_annoteren"
 
     @model_validator(mode="after")
     def _begrippen_horen_bij_een_werkgebied(self) -> "ChatRequest":
@@ -209,8 +204,8 @@ class ChatRequest(BaseModel):
             raise ValueError(f"modus '{self.modus}' vraagt een werkgebied_id")
         if self.modus in WERKGEBIED_MODI and (self.doel is not None or self.doelen is not None):
             raise ValueError(f"de route '{self.modus}' kiest zelf wat ze doet; geef geen 'doel' of 'doelen'")
-        if self.bevestigd is not None and self.modus not in ("werkgebied_annoteren", "begrippen_verdiepen"):
-            raise ValueError("'bevestigd' hoort bij modus 'werkgebied_annoteren' of 'begrippen_verdiepen'")
+        if self.bevestigd is not None and self.modus != "werkgebied_annoteren" and self.actie not in BEVESTIG_ACTIES:
+            raise ValueError("'bevestigd' hoort bij modus 'werkgebied_annoteren' of een actie die om bevestiging vraagt")
         return self
 
     @model_validator(mode="after")

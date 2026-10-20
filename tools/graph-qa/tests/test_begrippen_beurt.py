@@ -1,11 +1,11 @@
-"""De begrippenroute in het gesprek (spoor D, fase AF2): "stel begrippen voor" binnen een werkgebied.
+"""Begrippen voorstellen (spoor D, fase AF2; sinds F3c de taak `voorstellen` van de begrippen-agent).
 
 Bewaakt:
-1. welke vragen de route ingaan – en dat "wat betekent het begrip X?" dat niet doet;
-2. het verloop tegen een nep-api: werkgebied → run (nieuw, al klaar of al lopend) → keten → bericht
-   met een begrippenartefact → `opgeslagen` met hetzelfde artefact → `done`;
-3. een weigering van de api is een antwoord van Lex (bewaard, zonder artefact), geen storing;
-4. het artefact heeft de vorm van `api/app/gesprek_contracts.Artefact` en het request-model de regels.
+1. het verloop tegen een nep-api: werkgebied → run (nieuw, al klaar of al lopend) → keten → een uitkomst
+   met een begrippenartefact en de fasen van de keten als meldingen;
+2. een weigering van de api is een antwoord van Lex (zonder artefact), geen storing;
+3. het artefact heeft de vorm van `api/app/gesprek_contracts.Artefact`, en de route bestaat niet meer
+   als tekstpatroon: alleen de supervisor of een actie kiest haar.
 """
 from __future__ import annotations
 
@@ -16,34 +16,19 @@ import httpx
 import pytest
 
 from agent import begrippen_beurt, begrippen_run
-from agent.begrippen_beurt import begrippen_artefact, is_begrippenvraag, samenvatting
+from agent.begrippen_beurt import begrippen_artefact, samenvatting
 from agent.jas_pipeline.taal.provider import NullProvider
 from agent.models import ChatRequest
-from agent.runstore import Run
-from fakes import make_settings
+from fakes import agent_ctx, make_settings
 from test_begrippen_run import _als_api, _v1
 
 
-@pytest.mark.parametrize("vraag", ["Stel begrippen voor", "welke begrippen zitten in dit werkgebied?",
-                                   "Maak de begrippen", "Kun je begrippen voorstellen?"])
-def test_vragen_om_begrippen(vraag):
-    assert is_begrippenvraag(vraag)
-
-
-@pytest.mark.parametrize("vraag", ["Wat betekent het begrip 'belastingschuldige'?", "Annoteer artikel 9",
-                                   "Begrippen", "Hoe verhouden de begrippen zich tot de wet"])
-def test_geen_vraag_om_begrippen(vraag):
-    assert not is_begrippenvraag(vraag)
-
-
 def test_het_request_model():
-    assert ChatRequest(question="Stel begrippen voor", werkgebied_id="wg1").is_begrippenbeurt
-    assert ChatRequest(question="iets anders", werkgebied_id="wg1", modus="begrippen").is_begrippenbeurt
-    # Zonder werkgebied gewoon een vraag, en met een werkgebied blijft een andere vraag een gewone beurt.
-    assert not ChatRequest(question="Stel begrippen voor").is_begrippenbeurt
-    assert not ChatRequest(question="Wat regelt artikel 9?", werkgebied_id="wg1").is_begrippenbeurt
+    # Een getypte vraag om begrippen is geen harde route meer; de actie is een klik op een suggestie.
+    r = ChatRequest(question="Stel begrippen voor", actie="begrippen_voorstellen", werkgebied_id="wg1")
+    assert r.actie == "begrippen_voorstellen" and r.modus == "auto"
     with pytest.raises(ValueError):
-        ChatRequest(question="x", modus="begrippen")
+        ChatRequest(question="x", modus="begrippen", werkgebied_id="wg1")
     with pytest.raises(ValueError):
         ChatRequest(question="x", werkgebied_id="../wg")
 
@@ -128,108 +113,59 @@ def nep(monkeypatch):
     return maak
 
 
-def _events(gesprek: str = "g1", run: Run | None = None) -> list[dict]:
-    request = ChatRequest(question="Stel begrippen voor", conversation_id=gesprek, werkgebied_id="wg1")
-    run = run or Run(run_id="beurt1", conversation_id=gesprek)
+def _uit(gestopt: bool = False):
     settings = make_settings(wetsanalyse_api_url="http://api.test", wetsanalyse_api_token="t", qa_api_token="q")
 
-    async def verzamel() -> list[dict]:
-        return [e async for e in begrippen_beurt.begrippen_beurt(request, run, settings=settings, user_id="jurist",
-                                                                  provider=NullProvider())]
-    return asyncio.run(verzamel())
+    async def draai():
+        api = begrippen_beurt.WetsanalyseApi(settings, "jurist")
+        try:
+            ctx = agent_ctx(api, settings=settings, run_id="beurt1", gestopt=gestopt, provider=NullProvider())
+            return await begrippen_beurt.begrippen_kern(ctx, "wg1"), ctx.meldingen
+        finally:
+            await api.aclose()
+    return asyncio.run(draai())
 
 
-def test_een_nieuwe_run_rekent_en_legt_een_begrippenartefact_vast(nep):
+def test_een_nieuwe_run_rekent_en_geeft_een_begrippenartefact(nep):
     api = nep()
-    events = _events()
-    soorten = [e["type"] for e in events]
-    assert soorten[-3:] == ["token", "opgeslagen", "done"] and "status" in soorten
-    assert any("Groeperen" in e.get("message", "") for e in events)      # de fasen van de keten, live
-    artefact = {"soort": "begrippen", "titel": "Invordering", "ref": {"werkgebied_id": "wg1", "run_id": "r1"}}
-    assert events[-2] == {"type": "opgeslagen", "run_id": "beurt1", "artefact": artefact}
-    assert api.uitkomst is not None
-    [bericht] = api.berichten
-    assert bericht["artefact"] == artefact and bericht["run_id"] == "beurt1" and bericht["rol"] == "assistant"
-    assert "**2** begrippen" in bericht["tekst"] and "1 twijfelpunt " in bericht["tekst"]
-    assert "Groeperen" in bericht["denk"]
+    uit, meldingen = _uit()
+    assert any("Groeperen" in m for m in meldingen)      # de fasen van de keten, live
+    assert uit.status == "ok" and uit.artefact == {"soort": "begrippen", "titel": "Invordering",
+                                                   "ref": {"werkgebied_id": "wg1", "run_id": "r1"}}
+    assert api.uitkomst is not None and uit.voorstellen == ["G1", "G2"] and uit.meting["model"] is False
+    assert "**2** begrippen" in uit.tekst and "1 twijfelpunt " in uit.tekst
 
 
 def test_al_klaar_op_deze_stand_rekent_niet_opnieuw(nep):
     api = nep(run_status="klaar")
-    events = _events()
+    uit, _ = _uit()
     assert api.uitkomst is None and not any(p.endswith("/loopt") for _, p in api.aanroepen)
-    assert events[-2]["artefact"]["ref"]["run_id"] == "r1"
-    assert "al gerekend" in api.berichten[0]["tekst"]
+    assert uit.artefact["ref"]["run_id"] == "r1" and "al gerekend" in uit.tekst
 
 
 def test_een_lopende_run_van_een_ander_wordt_afgewacht(nep):
     api = nep(run_status="loopt")
-    events = _events()
-    assert api.uitkomst is None and api.peilingen == 2
-    assert events[-2]["type"] == "opgeslagen" and "artefact" in events[-2]
+    uit, _ = _uit()
+    assert api.uitkomst is None and api.peilingen == 2 and uit.artefact
 
 
 def test_een_weigering_is_een_antwoord_zonder_artefact(nep):
-    api = nep(weiger=(409, {"fout": "te_weinig_passages", "melding": "…"}))
-    events = _events()
-    assert events[-2] == {"type": "opgeslagen", "run_id": "beurt1"}
-    [bericht] = api.berichten
-    assert "artefact" not in bericht and "minder dan twee" in bericht["tekst"]
+    nep(weiger=(409, {"fout": "te_weinig_passages", "melding": "…"}))
+    uit, _ = _uit()
+    assert uit.status == "geweigerd" and uit.artefact is None and "minder dan twee" in uit.gesprekstekst
 
 
-def test_een_storing_van_de_api_is_een_zichtbare_fout(nep):
+def test_een_storing_van_de_api_is_een_fout_voor_de_node(nep):
+    from agent.wetsanalyse_api import WetsanalyseApiFout
     nep(weiger=(500, {}))
-    events = _events()
-    assert events[-2]["type"] == "error" and events[-1] == {"type": "done"}
+    with pytest.raises(WetsanalyseApiFout):
+        _uit()
 
 
-def test_een_verwijderd_gesprek_eindigt_stil(nep):
-    api = nep()
-    events = _events(gesprek="weg")
-    assert events[-1] == {"type": "done"} and not any(e["type"] in ("opgeslagen", "error") for e in events)
-    assert api.berichten == []
-
-
-# --- de endpoints ----------------------------------------------------------------------------------
-
-@pytest.fixture
-def client(monkeypatch):
+def test_de_begrippenroute_niet_via_chat():
     from fastapi.testclient import TestClient
 
     import api.main as main
-
-    gestart: list[str] = []
-
-    async def nep_beurt(request, run, **_kw):
-        gestart.append(request.werkgebied_id)
-        yield {"type": "done"}
-
-    monkeypatch.setattr(main.settings, "graphdb_token", "test", raising=False)
-    monkeypatch.setattr(main.settings, "graphdb_mcp_url", "https://graaf.test/mcp", raising=False)
-    monkeypatch.setattr(main, "begrippen_beurt", nep_beurt)
-    monkeypatch.setattr(main, "runs", type(main.runs)())
     with TestClient(main.app) as c:
-        yield c, main, gestart
-
-
-def test_een_vraag_om_begrippen_in_een_werkgebied_gaat_de_begrippenroute_in(client, monkeypatch):
-    c, main, gestart = client
-    # Pas na de start: met schrijfpad en zonder QA_API_TOKEN weigert de dienst op te starten.
-    monkeypatch.setattr(type(main.settings), "legt_zelf_vast", property(lambda _s: True))
-    main.app.dependency_overrides[main._budget_check] = lambda: None
-    try:
-        r = c.post("/v1/runs", json={"question": "Stel begrippen voor", "conversation_id": "g1", "werkgebied_id": "wg1"})
-        assert r.status_code == 201
-        for _ in range(50):
-            if gestart:
-                break
-            asyncio.run(asyncio.sleep(0.02))
-        assert gestart == ["wg1"]
-    finally:
-        main.app.dependency_overrides.clear()
-
-
-def test_de_begrippenroute_niet_via_chat(client):
-    c, _main, _ = client
-    r = c.post("/v1/chat", json={"question": "x", "modus": "begrippen", "werkgebied_id": "wg1"})
+        r = c.post("/v1/chat", json={"question": "x", "actie": "begrippen_voorstellen", "werkgebied_id": "wg1"})
     assert r.status_code == 422

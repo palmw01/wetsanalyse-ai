@@ -20,7 +20,7 @@ from agent.begrippen_pipeline import classificatie, kaart, keten, verdieping as 
 from agent.begrippen_pipeline.model import Bron, Formulering, Manifest
 from agent.jas_pipeline.taal.provider import NullProvider
 from agent.models import ChatRequest, Verbruiksmeter
-from fakes import make_settings, response, tool_block
+from fakes import agent_ctx, response, tool_block
 
 API_CONTRACT = Path(__file__).resolve().parents[3] / "api" / "app" / "begrippen_run_contracts.py"
 
@@ -124,38 +124,25 @@ def _leeg():
 
 
 def _draai(api, bevestigd=None, maak=None, budget=None, stop=False):
-    req = ChatRequest(question="denk mee", werkgebied_id="wg1", modus="begrippen_verdiepen",
-                      conversation_id="g1", bevestigd=bevestigd)
-    run = SimpleNamespace(run_id="run9", stop_gevraagd=stop)
-
-    async def verzamel():
-        return [ev async for ev in bv.verdieping_beurt(req, run, settings=make_settings(), user_id="u", api=api,
-                                                        maak_llm=maak or (lambda s: NepModel()),
-                                                        provider=NullProvider(), budget_toegestaan=budget)]
-    return asyncio.run(verzamel())
+    ctx = agent_ctx(api, gestopt=stop, maak_llm=maak or (lambda s: NepModel()), provider=NullProvider(),
+                    budget_toegestaan=budget)
+    return asyncio.run(bv.verdieping_kern(ctx, "wg1", bevestigd))
 
 
-def _tekst(evs):
-    return "".join(e.get("content", "") for e in evs if e["type"] == "token")
+def _tekst(u):
+    return u.gesprekstekst
 
 
-# --- herkenning en request ---------------------------------------------------------------------
+# --- het verzoek -------------------------------------------------------------------------------
 
-@pytest.mark.parametrize("vraag", ["Denk mee over de begrippen", "verdiep de voorstellen", "Stel definities voor"])
-def test_vragen_om_mee_te_denken(vraag):
-    assert bv.is_verdiepvraag(vraag)
-    assert ChatRequest(question=vraag, werkgebied_id="wg1").is_begrippen_verdieping
-
-
-@pytest.mark.parametrize("vraag", ["Stel begrippen voor", "Wat is de definitie van aanslag?", "Verdiep je in artikel 9"])
-def test_geen_vraag_om_mee_te_denken(vraag):
-    assert not bv.is_verdiepvraag(vraag)
-
-
-def test_bevestigd_hoort_bij_de_modus():
-    assert ChatRequest(question="x", werkgebied_id="wg1", modus="begrippen_verdiepen", bevestigd=2).bevestigd == 2
+def test_de_bevestigingsknop_wordt_de_actie_meedenken():
+    """De werkplek stuurt bij de knop nog `modus: begrippen_verdiepen`; dat is de taak `meedenken`."""
+    r = ChatRequest(question="x", werkgebied_id="wg1", modus="begrippen_verdiepen", bevestigd=2)
+    assert (r.actie, r.modus, r.bevestigd) == ("begrippen_meedenken", "auto", 2)
     with pytest.raises(ValueError):
-        ChatRequest(question="x", werkgebied_id="wg1", modus="begrippen", bevestigd=2)
+        ChatRequest(question="x", modus="begrippen_verdiepen")
+    with pytest.raises(ValueError):
+        ChatRequest(question="x", werkgebied_id="wg1", bevestigd=2)
 
 
 # --- het verloop -------------------------------------------------------------------------------
@@ -164,9 +151,8 @@ def test_zonder_bevestiging_alleen_het_voorstel():
     api = NepApi()
     evs = _draai(api)
     assert NepModel.aanroepen == [] and not api.batches and api.verdieping is None
-    [bericht] = api.berichten
-    assert bericht["bevestiging"] == {"soort": "begrippen_verdiepen", "werkgebied_id": "wg1", "aantal": 1,
-                                      "schatting": None}
+    assert evs.status == "bevestiging" and evs.bevestiging == {"soort": "begrippen_verdiepen", "werkgebied_id": "wg1",
+                                                               "aantal": 1, "schatting": None}
     assert "1 twijfelpunt" in _tekst(evs) and "50.000 tokens" in _tekst(evs)
 
 
@@ -174,7 +160,7 @@ def test_een_gewijzigde_werkvoorraad_start_niet():
     api = NepApi(aantal=1)
     evs = _draai(api, bevestigd=3)
     assert NepModel.aanroepen == [] and "De werkvoorraad veranderde: nu 1 in plaats van 3" in _tekst(evs)
-    assert api.berichten[0]["bevestiging"]["aantal"] == 1
+    assert evs.bevestiging["aantal"] == 1
 
 
 def test_met_bevestiging_batches_en_uitkomst():
@@ -189,8 +175,8 @@ def test_met_bevestiging_batches_en_uitkomst():
     assert groep["door"] == "model" and groep["aandacht"] == "geel" and groep["leden"] == ["e1", "e2"]
     assert v["kaarten"][0]["herkomst"] == "samengesteld" and v["vragen"] == []
     assert v["oordelen"][0]["oordeel"] == "zelfde_betekenis"
-    assert api.berichten[-1]["artefact"]["soort"] == "begrippen"
-    assert "Klaar met meedenken" in _tekst(evs) and evs[-1]["type"] == "done"
+    assert evs.artefact["soort"] == "begrippen" and evs.status == "ok" and evs.meting["model"]
+    assert "Klaar met meedenken" in _tekst(evs)
 
 
 def test_een_klare_batch_wordt_hervat_niet_opnieuw_gerekend():

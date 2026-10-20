@@ -94,7 +94,9 @@ Voor conceptvoorbeelden en de gezamenlijke beoordelingsprocedure:
 
 [Agentrollen](references/agentrollen.md) beschrijft de beperkte runtime-uitvoering.
 `agentrollen.json` koppelt rollen aan stabiele sectie-ID’s en M/P-bronnen: supervisor,
-ophaalagent, specialisten, decompositie en synthese. De annotatie gebruikt geen methodeprompt meer.
+ophaalagent, specialisten, decompositie en synthese, en de deelvragen- en begrippen-agent
+([deelvragen en bronnen](references/deelvragen-en-bronnen.md), [begrippen](references/begrippen.md)).
+De annotatie gebruikt geen methodeprompt meer.
 Die werkt met detectieprofielen en regels in `tools/graph-qa/agent/jas_pipeline/`, die naar
 dezelfde klassenreferentie (`H2:NN`) verwijzen (ADR-001).
 Genereer beide Pythonbestanden met `tools/graph-qa/scripts/genereer_jas_klassen.py`.

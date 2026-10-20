@@ -594,7 +594,7 @@ export async function startRun(
     intake_actie?: import("./vraagkaart").IntakeActie;
     /** Het object waarop de analist *Vraag Lex* koos (F3b): alleen soort en id's (`lib/vraagLex.ts`). */
     onderwerp?: Extract<import("./vraagLex").OnderwerpVerzoek, { onderwerp: unknown }>["onderwerp"];
-    /** Een klik op een suggestie: een vaste route, zonder model (graph-qa `models.ACTIE_MODUS`). */
+    /** Een klik op een suggestie: een taak van een agent, zonder model gekozen (graph-qa `models.ACTIE_TAAK`). */
     actie?: import("./vraagLex").VraagLexActie;
   },
 ): Promise<RunStart> {

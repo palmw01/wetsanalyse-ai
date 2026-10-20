@@ -30,6 +30,15 @@ class State(TypedDict, total=False):
     # (`focus.bij_onderwerp`) voor vervolgvragen.
     onderwerp: dict[str, Any]
     onderwerp_context: str
+    # Een klik op een suggestie (F3b/F3c): de handeling, en bij een bevestiging het aantal. Per beurt gereset.
+    actie: str
+    bevestigd: int | None
+    # Wat de supervisor een agent liet doen (F3c, `nodes/agent_taak.py`): {agent, taak, parameters}, en de
+    # uitkomst (`agents.Uitkomst` als dict). Per beurt gereset.
+    agent_taak: dict[str, Any]
+    agent_uitkomst: dict[str, Any]
+    # Het gesprek van deze beurt (= de thread); de agents boeken er hun eigen verbruik onder.
+    gesprek_id: str
     # De overzichtsroute (`agent/overzicht.py`): de supervisor herkende "welke artikelen gaan over X";
     # `overzicht` is het deterministisch gebouwde overzicht. Beide per beurt gereset.
     overzicht_route: bool

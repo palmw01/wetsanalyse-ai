@@ -216,6 +216,11 @@ class WetsanalyseApi:
         return await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/begrippen/"
                                 f"{quote(begrip_id, safe='')}/voorstellen")
 
+    async def haal_relaties(self, werkgebied_id: str, begrip_id: str = "") -> dict[str, Any]:
+        """De relaties van een werkgebied (of één begrip): vastgelegd, en voorgesteld door de keten (fase F2)."""
+        return await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/relaties",
+                                **({"begrip_id": begrip_id} if begrip_id else {}))
+
     async def haal_kandidaten(self, werkgebied_id: str) -> dict[str, Any]:
         return await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/kandidaten")
 

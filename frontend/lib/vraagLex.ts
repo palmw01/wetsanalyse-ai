@@ -13,8 +13,8 @@ import type { AgentContext } from "./types";
  *    werkplek al stuurde (`vraagLex.test.ts` bewaakt het). graph-qa routeert die hard naar de duiding.
  *  - **de rest** stuurt alleen soort en id's (`onderwerp`); graph-qa haalt het object bij de api
  *    (`agent/onderwerp.py`) en zet het als context naast de vraag. Context, geen filter.
- *  - **Een suggestie met een `actie`** is een vaste handeling: graph-qa routeert hem zonder model
- *    (`models.ACTIE_MODUS`). Wat duur is vraagt daar eerst een bevestiging, zoals altijd. */
+ *  - **Een suggestie met een `actie`** is een vaste handeling: graph-qa kiest er zonder model een agent
+ *    en een taak bij (`models.ACTIE_TAAK`). Wat duur is vraagt daar eerst een bevestiging, zoals altijd. */
 
 export type OnderwerpSoort = "markering" | "deelvraag" | "bron" | "kandidaat" | "begrip" | "werkgebied";
 export type ObjectSoort = Exclude<OnderwerpSoort, "markering">;
@@ -23,8 +23,13 @@ export type Onderwerp =
   | { soort: "markering"; element: NodeElement; view: NodeWeergave }
   | { soort: ObjectSoort; werkgebied_id: string; id: string; label: string };
 
-/** De acties die graph-qa kent (`agent/models.py`, `ACTIE_MODUS`); `vraagLex.test.ts` leest die bron. */
-export const ACTIES = ["werkgebied_annoteren", "bronnen_zoeken", "begrippen_voorstellen", "begrippen_meedenken"] as const;
+/** De acties die graph-qa kent (`agent/models.py`, `ACTIE_TAAK`: elke actie is een taak van een agent);
+ *  `vraagLex.test.ts` leest die bron. */
+export const ACTIES = [
+  "werkgebied_annoteren", "deelvragen_voorstellen", "deelvraag_herformuleren", "deelvraag_splitsen",
+  "bronnen_zoeken", "dekking", "begrippen_voorstellen", "begrippen_meedenken", "brondefinitie", "scherper",
+  "voorbeelden", "betekenisverschil", "begrip_uitwerken", "relaties",
+] as const;
 export type VraagLexActie = (typeof ACTIES)[number];
 
 export interface Suggestie {

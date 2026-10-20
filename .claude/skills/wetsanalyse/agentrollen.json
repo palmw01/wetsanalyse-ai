@@ -69,6 +69,22 @@
         "P09",
         "P12"
       ]
+    },
+    "deelvragen": {
+      "bestand": "references/deelvragen-en-bronnen.md",
+      "bronnen": [
+        "M03",
+        "P13",
+        "P14"
+      ]
+    },
+    "begrippen": {
+      "bestand": "references/begrippen.md",
+      "bronnen": [
+        "M01",
+        "M04",
+        "P15"
+      ]
     }
   },
   "rollen": {
@@ -98,6 +114,14 @@
     ],
     "algemeen": [
       "basis"
+    ],
+    "deelvragen": [
+      "basis",
+      "deelvragen"
+    ],
+    "begrippen": [
+      "basis",
+      "begrippen"
     ]
   }
 }

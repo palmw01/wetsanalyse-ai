@@ -137,6 +137,9 @@ class BeurtSchrijver:
         self.tool_executions: list[dict[str, Any]] = []
         self.vraagkaart: dict[str, Any] = {}
         self.aanmaken: dict[str, Any] = {}
+        # Wat een agent-taak opleverde (F3c, `nodes/agent_taak.py`): het paneel en de knop.
+        self.artefact: dict[str, Any] = {}
+        self.bevestiging: dict[str, Any] = {}
 
     def verwerk(self, event: dict[str, Any]) -> None:
         """Eén event bijhouden. Dezelfde toewijzing als de handlers in de werkplek."""
@@ -167,6 +170,10 @@ class BeurtSchrijver:
             self.vraagkaart = event.get("vraagkaart") or {}
         elif soort == "werkgebied_aanmaken":
             self.aanmaken = {k: v for k, v in event.items() if k != "type"}
+        elif soort == "artefact":
+            self.artefact = event.get("artefact") or {}
+        elif soort == "bevestiging":
+            self.bevestiging = event.get("bevestiging") or {}
         elif soort == "tool_execution":
             self._voeg_tool_toe({k: v for k, v in event.items() if k != "type"})
 
@@ -423,6 +430,9 @@ async def _leg_vast(
                 **({"overzicht": schrijver.overzicht} if schrijver.overzicht else {}),
                 # Het kaartje van het samenstellen (activiteit 1): ook na herladen te beantwoorden.
                 **({"vraagkaart": schrijver.vraagkaart} if schrijver.vraagkaart else {}),
+                # Wat een agent opleverde (F3c): het paneel en, bij duur werk, de knop – ook na herladen.
+                **({"artefact": schrijver.artefact} if schrijver.artefact else {}),
+                **({"bevestiging": schrijver.bevestiging} if schrijver.bevestiging else {}),
             }
 
         await api.voeg_bericht_toe(gesprek_id, bericht)
@@ -435,7 +445,8 @@ async def _leg_vast(
         # één bron van waarheid en groeit het SSE-contract niet mee met het datamodel.
         yield {"type": "opgeslagen", "run_id": run.run_id,
                **({"annotatie_doel": bericht["annotatie_doel"]} if bericht.get("annotatie_doel") else {}),
-               **({"artefact": bericht["artefact"]} if bericht.get("artefact") else {})}
+               **({"artefact": bericht["artefact"]} if bericht.get("artefact") else {}),
+               **({"bevestiging": bericht["bevestiging"]} if bericht.get("bevestiging") else {})}
     except GesprekVerdwenen:
         # De jurist verwijderde het gesprek terwijl de beurt liep. Dat is geen fout om over te
         # klagen – alarm slaan over iemands eigen handeling leert mensen meldingen negeren.

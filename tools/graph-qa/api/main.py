@@ -60,15 +60,12 @@ from agent import observability  # noqa: E402
 from agent.agent import answer_stream, delete_conversation  # noqa: E402
 from agent.beurt import voer_beurt_uit  # noqa: E402
 from agent.reeks import reeks_run  # noqa: E402
-from agent.werkgebied_annotatie import werkgebied_annotatie_beurt  # noqa: E402
+from agent.werkgebied_annotatie import werkgebied_annotatie_beurt, zonder_api  # noqa: E402
 from agent.config import Settings  # noqa: E402
-from agent.begrippen_beurt import begrippen_beurt, zonder_api  # noqa: E402
-from agent.begrippen_verdieping import verdieping_beurt  # noqa: E402
 from agent.begrippen_run import begrippen_stroom  # noqa: E402
-from agent.bronnen_run import bronnen_beurt, bronnen_stroom  # noqa: E402
+from agent.bronnen_run import bronnen_stroom  # noqa: E402
 from agent.begrip_kaart import kaart_stroom  # noqa: E402
 from agent.deelvragen import deelvragen_stroom  # noqa: E402
-from agent.kaart_beurt import kaart_beurt  # noqa: E402
 from agent.models import (  # noqa: E402
     WERKGEBIED_MODI, BegrippenRunVerzoek, ChatRequest, DeelvragenRunVerzoek, KaartRunVerzoek, RunStart,
     Verbruiksmeter,
@@ -268,7 +265,7 @@ async def chat(
     Bouw hier geen nieuwe client op zonder die controle in de aanroeper. Wie het toch nodig heeft
     (een script, een eval-run), gebruikt het met een eigen conversation_id.
     """
-    if request.modus in WERKGEBIED_MODI:
+    if request.modus in WERKGEBIED_MODI or request.actie is not None:
         # Deze routes schrijven in het werkgebied en in het gesprek; dat kan alleen een run.
         raise HTTPException(status_code=422,
                             detail="Werken op een werkgebied kan alleen via POST /v1/runs.")
@@ -360,6 +357,9 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
                     werkgebied_id=request.werkgebied_id or "",
                     intake_actie=request.intake_actie,
                     onderwerp=request.onderwerp,
+                    # Een klik op een suggestie: de supervisor kiest er zonder model agent en taak bij (F3c).
+                    actie=request.actie or "",
+                    bevestigd=request.bevestigd,
                 ),
                 settings=settings,
                 run=run,
@@ -369,33 +369,15 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
             )
 
         if request.intake_actie is not None:
-            # Een klik op een vraagkaartje (activiteit 1): altijd de werkgebied-worker, ook als de
-            # leesbare tekst van het antwoord op een vraag voor een harde route lijkt.
+            # Een klik op een vraagkaartje (activiteit 1): altijd de werkgebied-worker.
             return gewone_beurt()
         if request.is_werkgebied_annotatie:
-            # De nieuwe bepalingen van het werkgebied: eerst het voorstel, na bevestiging de reeks.
+            # Het werkgebied annoteren, als modus of actie: zonder `bevestigd` het voorstel, met de reeks
+            # over de nieuwe bepalingen – per bepaling een gewone beurt, dus een eigen stroom en geen taak
+            # in een node. Getypt gaat het langs de supervisor (de annotatie-agent, taak `werkgebied`).
             if not settings.legt_zelf_vast:
                 return zonder_api()
             return werkgebied_annotatie_beurt(request, run, settings=settings, user_id=gebruiker)
-        if request.is_begrippen_verdieping:
-            # Het model op twijfelparen en kaarten (fase C): eerst het voorstel, na bevestiging de batches.
-            if not settings.legt_zelf_vast:
-                return zonder_api()
-            return verdieping_beurt(request, run, settings=settings, user_id=gebruiker)
-        if request.is_bronnenbeurt:
-            # Bepalingen zoeken binnen een werkgebied: de ontdekmethoden, geen supervisor en geen model.
-            if not settings.legt_zelf_vast:
-                return zonder_api()
-            return bronnen_beurt(request, run, settings=settings, user_id=gebruiker)
-        if request.is_kaartbeurt and settings.legt_zelf_vast:
-            # Een kaartactie op een begrip (fase F4): dezelfde kaart-run als de knop op de begripskaart.
-            # Is de term geen vastgelegd begrip, dan neemt de gewone beurt het over.
-            return kaart_beurt(request, run, settings=settings, user_id=gebruiker, terugval=gewone_beurt)
-        if request.is_begrippenbeurt:
-            # Begrippen binnen een werkgebied: de keten van ADR-004, geen supervisor en geen model.
-            if not settings.legt_zelf_vast:
-                return zonder_api()
-            return begrippen_beurt(request, run, settings=settings, user_id=gebruiker)
         if request.doelen:
             # Meerdere onderdelen van één artikel: per onderdeel deze zelfde beurt, na elkaar.
             return reeks_run(request, run, settings=settings, user_id=gebruiker)

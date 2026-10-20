@@ -77,28 +77,28 @@ def _tekst(events) -> str:
 
 # --- herkenning en verzoek -------------------------------------------------------------------------
 
-@pytest.mark.parametrize("vraag, ja", [
-    ("Annoteer het werkgebied", True),
-    ("annoteer wat nog niet geannoteerd is", True),
-    ("Annoteer alle nieuwe bepalingen", True),
-    ("annoteer alles", True),
-    ("annoteer alles over aansprakelijkheid van de bestuurder", False),   # de onderwerproute
-    ("Annoteer artikel 9 lid 1", False),
-    ("Welke bepalingen horen bij het werkgebied?", False),
-])
-def test_herkenning(vraag, ja):
-    assert wa.is_werkgebied_annoteervraag(vraag) is ja
-
-
 def test_verzoek_alleen_binnen_een_werkgebied_en_bevestigd_alleen_bij_die_modus():
-    assert ChatRequest(question="Annoteer het werkgebied", werkgebied_id="wg1").is_werkgebied_annotatie
-    assert not ChatRequest(question="Annoteer het werkgebied").is_werkgebied_annotatie
+    # Geen tekstpatroon meer: de modus of de actie (de knop), en getypt de supervisor.
+    assert ChatRequest(question="x", werkgebied_id="wg1", modus="werkgebied_annoteren").is_werkgebied_annotatie
+    assert not ChatRequest(question="Annoteer het werkgebied", werkgebied_id="wg1").is_werkgebied_annotatie
     with pytest.raises(ValidationError):
         ChatRequest(question="x", modus="werkgebied_annoteren")
     with pytest.raises(ValidationError):
         ChatRequest(question="x", werkgebied_id="wg1", bevestigd=2)
     with pytest.raises(ValidationError):
         ChatRequest(question="x", werkgebied_id="wg1", modus="werkgebied_annoteren", doel={"bron_iri": L1})
+
+
+def test_getypt_levert_de_annotatie_agent_het_voorstel_met_een_knop():
+    from agent.agents import annotatie, register
+    from fakes import agent_ctx
+
+    wapi = WerkgebiedApi(_werkvoorraad(L1, ART8, al=1))
+    invoer = register.invoer("annotatie", "werkgebied", register.parameters("annotatie", "werkgebied", werkgebied_id="wg1"))
+    uit = asyncio.run(annotatie.voer_uit(invoer, agent_ctx(wapi)))
+    assert uit.status == "bevestiging" and "**2** bepalingen" in uit.tekst and uit.meting["model"] is False
+    assert uit.bevestiging == {"soort": "werkgebied_annoteren", "werkgebied_id": "wg1", "aantal": 2, "schatting": 6000}
+    assert wapi.berichten == []                    # vastleggen doet de beurt-driver
 
 
 # --- het voorstel ------------------------------------------------------------------------------------
