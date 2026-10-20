@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react"
 
 import { Button } from "@/components/ui/Button";
 import { ChevronOmlaag, Kruis, PijlRechts, Vinkje } from "@/components/ui/Icoon";
+import { Regel, Regels } from "@/components/ui/Lijst";
 import {
   ONBEKEND, antwoordActie, beginstand, isLaatsteVraag, vorigeStap, type IntakeActie, type Vraagkaart,
 } from "@/lib/vraagkaart";
@@ -106,7 +107,7 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
         {kaart.toelichting && <p className="mt-1 text-sm text-muted">{kaart.toelichting}</p>}
 
         {kaart.soort === "samenvatting" && kaart.samenvatting ? (
-          <dl className="mt-3 divide-y divide-line text-[15px]">
+          <Regels className="mt-3 text-[15px]">
             <Regel naam="Naam">{kaart.samenvatting.naam}</Regel>
             {(["aanleiding", "context", "doel"] as const).map((v) => (
               <Regel key={v} naam={DOSSIER_NAAM[v]}>
@@ -132,7 +133,7 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
                 ? <ul className="space-y-0.5">{kaart.samenvatting.bronnen.map((b) => <li key={b}>{b}</li>)}</ul>
                 : <span className="text-muted">nog geen – die voeg je later toe</span>}
             </Regel>
-          </dl>
+          </Regels>
         ) : (
           <ul
             ref={lijst}
@@ -261,15 +262,6 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
 const LANG = new Set<string>(["context", "praktijkvoorbeeld"]);
 
 const DOSSIER_NAAM = { aanleiding: "Aanleiding", context: "Context", doel: "Doel" } as const;
-
-function Regel({ naam, children }: { naam: string; children: React.ReactNode }) {
-  return (
-    <div className="grid gap-0.5 py-2.5 sm:grid-cols-[8rem_1fr] sm:gap-3">
-      <dt className="text-sm text-muted">{naam}</dt>
-      <dd className="min-w-0 break-words text-ink">{children}</dd>
-    </div>
-  );
-}
 
 /** De zichtbare hoogte boven het toetsenbord (`visualViewport`), of `null` zonder die API. */
 function useZichtbareHoogte(): number | null {

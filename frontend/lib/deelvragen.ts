@@ -14,11 +14,12 @@ export const STAND_UITLEG: Record<DeelvraagStand, string> = {
   geen_bron: "Er hoort nog geen bron en geen begrip bij deze deelvraag.",
 };
 
-/** Kleur draagt hier een oordeel: gedekt groen, half geel, niets neutraal – met tekst erbij. */
-export const STAND_KLASSE: Record<DeelvraagStand, string> = {
-  gedekt: "border-aandacht-groen-rand bg-aandacht-groen-bg text-aandacht-groen-tekst",
-  geen_begrip: "border-aandacht-geel-rand bg-aandacht-geel-bg text-aandacht-geel-tekst",
-  geen_bron: "border-line bg-surface text-muted",
+/** Kleur draagt hier een oordeel: gedekt groen, half geel, niets neutraal – met tekst erbij
+ *  (`StatusLabel`). */
+export const STAND_TOON: Record<DeelvraagStand, "groen" | "geel" | "neutraal"> = {
+  gedekt: "groen",
+  geen_begrip: "geel",
+  geen_bron: "neutraal",
 };
 
 /** Actieve deelvragen in hun volgorde, de voorstellen van Lex apart. */

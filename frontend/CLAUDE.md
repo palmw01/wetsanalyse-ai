@@ -114,6 +114,13 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
 - **Kleur betekent iets, of hij hoort er niet.** Kleur is voor wat een oordeel draagt
   (aandacht-badge, JAS-badges, accentrand). Knoppen volgen de app: primair lintblauw (`bg-accent`),
   tweede keuze outline – geen volvlak statuskleuren.
+- **Lijsten zijn rijen met een scheidingslijn, geen stapel boxen** (F3a, `components/ui/Lijst.tsx`):
+  `Sectie` (kop, telling, toelichting, acties; geen rand), `Lijst` + `LijstRij` (titel, meta, status
+  rechts, acties eronder), `Voorstel` (een voorstel van Lex: gele rand links mét de tekst "Voorstel van
+  Lex"), `StatusLabel` (pil met tekst; `toon` groen/geel/neutraal alleen als hij een oordeel draagt) en
+  `Regels` + `Regel` (naam en waarde, zoals de samenvatting op de vraagkaart). Het voorbeeld is de
+  vraagkaart. Geef een rij geen negatieve marge: de scheidingslijn loopt dan buiten de kolom. In gebruik
+  bij de werkgebieden (deelvragen, kandidaten, bronselecties); de rest van de app volgt later.
 
 ## Werkplek – de Lex-pagina (`/workbench`)
 
@@ -160,10 +167,12 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
     `parseArtefact` eist dan `begrip_id` in plaats van `run_id`, net als de api.
   - **werkgebied** (activiteit 1) – een werkgebied dat Lex met de analist samenstelde: ref
     `{werkgebied_id}`. De chip heet *Werkgebied · bekijken* en opent hetzelfde `WerkgebiedArtefactPaneel`
-    met eigen inhoud (`WerkgebiedInhoud`: het dossier in de volgorde van `DOSSIER_VELDEN` – aanleiding,
-    context, doel, analysevraag, praktijkvoorbeeld, afbakening –, de actieve deelvragen met hun stand uit
-    `GET …/deelvragen/dekking` (faalt stil), de bronnen met rol *analyseren*, *Open het werkgebied*) – los
-    van het annotatiepaneel. Komt het binnen via `opgeslagen`, dan opent het
+    met eigen inhoud (`WerkgebiedInhoud`: status en revisie, de **`WerkgebiedSamenvatting`** en *Open het
+    werkgebied*) – los van het annotatiepaneel. De samenvatting staat ook bovenaan de werkgebiedpagina
+    (één component, F3a): het dossier in de volgorde van `DOSSIER_VELDEN` – aanleiding, context, doel,
+    analysevraag, praktijkvoorbeeld, afbakening, een leeg veld als "Nog geen …" –, de actieve deelvragen
+    met hun stand (`useDeelvragenDekking`: `GET …/deelvragen/dekking` per revisie, faalt stil) en de
+    bronnen met rol *analyseren*. Komt het binnen via `opgeslagen`, dan opent het
     paneel én gaat de werkplek verder in dat werkgebied (`onKiesWerkgebied`, de werkgebiedbalk).
   - **regels** – gereserveerd voor de afleidingsregels: de kaart staat er, maar is geen knop.
   - **Vanuit een werkgebied** (`/workbench?werkgebied=<id>`, de knop *Bespreek met Lex* op de tab
@@ -522,9 +531,9 @@ bestaat los van de gesprekken.
   proxy; een nieuwe api-route vraagt daar een regel. De query gaat ongewijzigd mee
   (`verwachte_revisie` bij DELETE). De inventaris en elke POST onder `begrippen` (koppelen toetst
   tegen de inventaris) krijgen 90 s, want de api haalt per regeling de bronboom uit de graaf.
-- **Het dossier** (F2): de kop van de pagina toont de gevulde velden van `DOSSIER_VELDEN`
-  (`dossierRegels` in `lib/werkgebied.ts`), en *Gegevens bewerken* bewerkt ze allemaal. Eén lijst voor
-  kop, formulier en paneel naast het gesprek; een oudere api zonder de velden leest als leeg.
+- **Het dossier** (F2, F3a): de kop van de pagina toont de `WerkgebiedSamenvatting`, dezelfde als in het
+  paneel naast het gesprek, en *Gegevens bewerken* bewerkt de velden van `DOSSIER_VELDEN`. Eén lijst voor
+  samenvatting en formulier; een oudere api zonder de velden leest als leeg.
 - **Gedeeld, dus elke mutatie draagt de revisie in beeld.** Alle mutaties lopen via één `muteer` in
   `WerkgebiedClient`. Een 412 (`revisie_conflict`) laadt de nieuwste stand en zegt dat iemand anders
   het werkgebied wijzigde; de handeling wordt **niet** stil opnieuw uitgevoerd, want op de nieuwe stand
@@ -577,7 +586,8 @@ bestaat los van de gesprekken.
     `werkgebied:<id>:deelvragen`), gevolgd met `volgRun`; de samenvatting van Lex staat erna als melding.
     Een voorstel staat geel met *Overnemen* of *Afwijzen…* (reden verplicht; Lex stelt het niet opnieuw voor).
   - De stand per deelvraag komt uit `GET …/deelvragen/dekking` (per revisie, faalt stil,
-    `isDeelvragenDekking`): *Gedekt* (groen), *Nog geen geaccordeerd begrip* (geel), *Nog geen bron*.
+    `isDeelvragenDekking`, via `useDeelvragenDekking`): *Gedekt* (groen), *Nog geen geaccordeerd
+    begrip* (geel), *Nog geen bron* – een `StatusLabel` met `STAND_TOON`.
     Rekenkern in `lib/deelvragen.ts`.
   - Een kandidaat die Lex bij een deelvraag vond, zegt dat (`bewijsZin`: "gevonden bij de deelvraag …");
     opnemen koppelt hem aan die deelvraag (api).

@@ -9,13 +9,13 @@ import { BegripVoorstellen } from "@/components/werkgebieden/BegripVoorstellen";
 import { BegripWerk } from "@/components/werkgebieden/BegripWerk";
 import { BronKandidaten } from "@/components/werkgebieden/BronKandidaten";
 import { OnbewaardMelding } from "@/components/werkgebieden/OnbewaardMelding";
+import { WerkgebiedSamenvatting } from "@/components/werkgebieden/WerkgebiedSamenvatting";
 import { Melding } from "@/components/ui/Melding";
 import { SkeletonCard } from "@/components/ui/Skeleton";
-import { foutTekst, haalDeelvragenDekking, haalWerkgebied, lijstBegrippen } from "@/lib/api";
+import { foutTekst, haalWerkgebied, lijstBegrippen } from "@/lib/api";
 import { werkgebiedLabel, type WerkgebiedArtefact } from "@/lib/artefact";
-import { STAND_KLASSE, STAND_LABEL, STAND_UITLEG, dekkingZin, isDeelvragenDekking, splits } from "@/lib/deelvragen";
-import type { BegrippenLijst, DeelvragenDekking, Werkgebied } from "@/lib/types";
-import { DOSSIER_VELDEN, STATUS_LABEL } from "@/lib/werkgebied";
+import type { BegrippenLijst, Werkgebied } from "@/lib/types";
+import { STATUS_LABEL } from "@/lib/werkgebied";
 import { useOnbewaardBewaker } from "@/lib/useOnbewaardBewaker";
 
 const TAB: Record<WerkgebiedArtefact["soort"], string> = { begrippen: "begrippen", bronnen: "bronnen", werkgebied: "" };
@@ -28,8 +28,8 @@ const TAB: Record<WerkgebiedArtefact["soort"], string> = { begrippen: "begrippen
  *  - **bronnen** – de bepalingen die Lex vond (`BronKandidaten`), dezelfde inhoud als op de tab Bronnen.
  *  - **één begrip** (`begrip_id`, een kaartactie vanuit het gesprek, fase F4) – de kaart met Lex ernaast
  *    (`BegripWerk`), dezelfde als op de tab Begrippen; de voorstellen staan onder hun veld.
- *  - **werkgebied** – het werkgebied dat Lex met de analist samenstelde (activiteit 1): naam,
- *    analysevraag, afbakening en bronnen, en de weg naar de pagina van het werkgebied.
+ *  - **werkgebied** – het werkgebied dat Lex met de analist samenstelde (activiteit 1): de
+ *    `WerkgebiedSamenvatting` (dezelfde als bovenaan de pagina) en de weg naar die pagina.
  *
  *  Eén inhoud, twee schillen. Net als op de tab vraagt het paneel eerst bevestiging als de kaart
  *  niet-bewaarde wijzigingen draagt: bij sluiten (kruisje, Escape, achtergrond) en bij een link weg. */
@@ -110,19 +110,15 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onMe
   );
 }
 
-/** Het werkgebied zelf: wat er met Lex is samengesteld, zoals het nu bij de api staat – het dossier
- *  (startactiviteit a, analysevraag, praktijkvoorbeeld, afbakening), de deelvragen met hun dekking en
- *  de bronnen. */
+/** Het werkgebied zelf: wat er met Lex is samengesteld, zoals het nu bij de api staat – dezelfde
+ *  samenvatting als bovenaan de werkgebiedpagina. */
 function WerkgebiedInhoud({ id, naarWerkgebied }: { id: string; naarWerkgebied: string }) {
   const [wg, setWg] = useState<Werkgebied | null>(null);
-  const [dekking, setDekking] = useState<DeelvragenDekking | null>(null);
   const [fout, setFout] = useState<string | null>(null);
   const [poging, setPoging] = useState(0);
   useEffect(() => {
     let levend = true;
     haalWerkgebied(id).then((w) => { if (levend) setWg(w); }).catch((e) => { if (levend) setFout(foutTekst(e)); });
-    // De dekking is een hint: faalt ze, dan staan de deelvragen er zonder stand.
-    haalDeelvragenDekking(id).then((d) => { if (levend && isDeelvragenDekking(d)) setDekking(d); }).catch(() => {});
     return () => { levend = false; };
   }, [id, poging]);
   if (fout) {
@@ -136,55 +132,10 @@ function WerkgebiedInhoud({ id, naarWerkgebied }: { id: string; naarWerkgebied: 
     );
   }
   if (!wg) return <SkeletonCard regels={4} />;
-  const analyse = wg.bronnen.filter((b) => b.rol === "analyseren");
-  const deelvragen = splits(wg.deelvragen).actief;
   return (
-    <div data-werkgebied-inhoud className="space-y-5 text-sm text-ink">
+    <div data-werkgebied-inhoud className="space-y-4 text-sm text-ink">
       <p className="text-xs text-muted">{STATUS_LABEL[wg.status]} · revisie {wg.revisie}</p>
-      {DOSSIER_VELDEN.map(({ veld, label }) => (
-        <section key={veld} data-dossier-veld={veld}>
-          <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-muted">{label}</h3>
-          {(wg[veld] ?? "").trim()
-            ? <p className="whitespace-pre-line">{wg[veld]}</p>
-            : <p className="text-muted">{`Nog geen ${label.toLowerCase()}.`}</p>}
-        </section>
-      ))}
-      <section data-deelvragen>
-        <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-muted">
-          Deelvragen ({deelvragen.length}){dekkingZin(dekking) && ` · ${dekkingZin(dekking)}`}
-        </h3>
-        {deelvragen.length ? (
-          <ol className="space-y-1">
-            {deelvragen.map((d, i) => {
-              const stand = dekking?.deelvragen.find((x) => x.id === d.id)?.stand;
-              return (
-                <li key={d.id} className="flex items-start gap-2 rounded-lg border border-line px-3 py-1.5">
-                  <span className="tabular-nums text-muted">{i + 1}.</span>
-                  <span className="min-w-0 flex-1">{d.vraag}</span>
-                  {stand && (
-                    <span title={STAND_UITLEG[stand]}
-                      className={`shrink-0 rounded-full border px-2 py-0.5 text-xs ${STAND_KLASSE[stand]}`}>
-                      {STAND_LABEL[stand]}
-                    </span>
-                  )}
-                </li>
-              );
-            })}
-          </ol>
-        ) : (
-          <p className="text-muted">Geen deelvragen. Je kunt ze toevoegen op de tab Bronnen, of Lex laten voorstellen.</p>
-        )}
-      </section>
-      <section>
-        <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-muted">Bronnen ({analyse.length})</h3>
-        {analyse.length ? (
-          <ul className="space-y-1">
-            {analyse.map((b) => <li key={b.id} className="rounded-lg border border-line px-3 py-1.5">{b.label || b.bron_iri}</li>)}
-          </ul>
-        ) : (
-          <p className="text-muted">Nog geen bronnen. Voeg ze toe op de tab Bronnen, of laat Lex bepalingen zoeken.</p>
-        )}
-      </section>
+      <WerkgebiedSamenvatting wg={wg} />
       <Link href={naarWerkgebied}
         className="focus-ring inline-flex w-full items-center justify-center rounded-button bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent/90 sm:w-auto">
         Open het werkgebied

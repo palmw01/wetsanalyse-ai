@@ -5,17 +5,19 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { BevestigKnop } from "@/components/ui/BevestigKnop";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
+import { Lijst, LijstRij, Sectie, StatusLabel, Voorstel as VoorstelRij } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import type { Mutatie } from "@/components/werkgebieden/WerkgebiedClient";
 import {
-  foutTekst, haalActieveDeelvragenRun, haalDeelvragenDekking, koppelDeelvraag, lijstBegrippen, maakDeelvraag,
+  foutTekst, haalActieveDeelvragenRun, koppelDeelvraag, lijstBegrippen, maakDeelvraag,
   startDeelvragenRun, stopRun, verwijderDeelvraag, volgRun, wijzigDeelvraag,
 } from "@/lib/api";
 import { voortgangsregel } from "@/lib/bronKandidaten";
 import {
-  STAND_KLASSE, STAND_LABEL, STAND_UITLEG, dekkingZin, isDeelvragenDekking, splits, wissel, zelfdeSet,
+  STAND_LABEL, STAND_TOON, STAND_UITLEG, dekkingZin, splits, wissel, zelfdeSet,
 } from "@/lib/deelvragen";
 import type { BegripSamenvatting, Deelvraag, DeelvragenDekking, Werkgebied } from "@/lib/types";
+import { useDeelvragenDekking } from "@/lib/useDeelvragenDekking";
 
 /** Deelvragen bij een werkgebied, bovenaan de tab Bronnen (optioneel; open keuze 4).
  *
@@ -26,22 +28,12 @@ import type { BegripSamenvatting, Deelvraag, DeelvragenDekking, Werkgebied } fro
  *  scope; Lex zoekt bij een volgende ronde ook per deelvraag naar bepalingen. */
 export function Deelvragen({ wg, muteer, onHerlaad }: { wg: Werkgebied; muteer: Mutatie; onHerlaad: () => void }) {
   const { actief, voorgesteld } = splits(wg.deelvragen);
-  const [dekking, setDekking] = useState<DeelvragenDekking | null>(null);
+  const stand = useDeelvragenDekking(wg.id, wg.revisie, actief.length);
   const [nieuw, setNieuw] = useState("");
   const [lex, setLex] = useState<{ runId: string; voortgang: string[] } | null>(null);
   const [melding, setMelding] = useState<string | null>(null);
   const [fout, setFout] = useState<string | null>(null);
   const kijker = useRef<AbortController | null>(null);
-
-  // De dekking per revisie: een nieuwe koppeling of een geaccordeerd begrip elders verandert haar. Faalt
-  // ze, dan staan de deelvragen er gewoon, zonder stand.
-  useEffect(() => {
-    if (!actief.length) return;
-    let levend = true;
-    haalDeelvragenDekking(wg.id).then((d) => { if (levend) setDekking(isDeelvragenDekking(d) ? d : null); })
-      .catch(() => { if (levend) setDekking(null); });
-    return () => { levend = false; };
-  }, [wg.id, wg.revisie, actief.length]);
 
   const volg = useCallback(async (runId: string) => {
     kijker.current?.abort();
@@ -89,77 +81,77 @@ export function Deelvragen({ wg, muteer, onHerlaad }: { wg: Werkgebied; muteer: 
   }
 
   const zonderAnalysevraag = !wg.analysevraag.trim();
-  // Zonder actieve deelvragen is een eerder opgehaalde dekking niet meer van toepassing.
-  const stand = actief.length ? dekking : null;
   const perId = new Map((stand?.deelvragen ?? []).map((d) => [d.id, d]));
 
   return (
-    <section data-deelvragen aria-labelledby="deelvragen-kop" className="rounded-button border border-line bg-paper">
-      <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <h2 id="deelvragen-kop" className="font-display text-sm font-semibold text-lint">Deelvragen</h2>
-          <p className="text-xs text-muted">
-            Optioneel. {dekkingZin(stand) || "Splits de analysevraag; per deelvraag zie je of er een bron en een geaccordeerd begrip bij hoort."}
-          </p>
+    <Sectie data-deelvragen titel="Deelvragen" telling={actief.length}
+      toelichting={<>Optioneel. {dekkingZin(stand) || "Splits de analysevraag; per deelvraag zie je of er een bron en een geaccordeerd begrip bij hoort."}</>}
+      acties={lex ? (
+        <Button size="sm" variant="secondary" className="w-full sm:w-auto" onClick={() => void stopRun(lex.runId)}>
+          Stoppen
+        </Button>
+      ) : (
+        <Button size="sm" variant="secondary" className="w-full sm:w-auto" disabled={zonderAnalysevraag}
+          title={zonderAnalysevraag ? "Geef het werkgebied eerst een analysevraag." : undefined}
+          onClick={() => void laatLexVoorstellen()}>
+          Laat Lex deelvragen voorstellen
+        </Button>
+      )}>
+      {lex && (
+        <ol className="space-y-0.5 text-xs text-muted" aria-live="polite" aria-label="Voortgang van Lex">
+          {lex.voortgang.length === 0 ? <li>Lex begint…</li> : lex.voortgang.map((v, i) => <li key={i}>{v}</li>)}
+        </ol>
+      )}
+      {fout && <Melding type="fout" compact>{fout}</Melding>}
+      {melding && <Melding type="uitleg" compact>{melding}</Melding>}
+
+      {(voorgesteld.length > 0 || actief.length > 0) && (
+        <div>
+          {voorgesteld.length > 0 && (
+            <Lijst label="Voorstellen van Lex">
+              {voorgesteld.map((d) => <Voorstel key={d.id} wgId={wg.id} deelvraag={d} muteer={muteer} />)}
+            </Lijst>
+          )}
+          {actief.length > 0 && (
+            <Lijst genummerd label="Deelvragen">
+              {actief.map((d, i) => (
+                <DeelvraagRij key={d.id} nummer={i + 1} wg={wg} deelvraag={d} dekking={perId.get(d.id)} muteer={muteer} />
+              ))}
+            </Lijst>
+          )}
         </div>
-        {lex ? (
-          <Button size="sm" variant="secondary" className="w-full sm:w-auto" onClick={() => void stopRun(lex.runId)}>
-            Stoppen
-          </Button>
-        ) : (
-          <Button size="sm" variant="secondary" className="w-full sm:w-auto" disabled={zonderAnalysevraag}
-            title={zonderAnalysevraag ? "Geef het werkgebied eerst een analysevraag." : undefined}
-            onClick={() => void laatLexVoorstellen()}>
-            Laat Lex deelvragen voorstellen
-          </Button>
-        )}
-      </div>
+      )}
 
-      <div className="space-y-3 border-t border-line px-4 py-3">
-        {lex && (
-          <ol className="space-y-0.5 text-xs text-muted" aria-live="polite" aria-label="Voortgang van Lex">
-            {lex.voortgang.length === 0 ? <li>Lex begint…</li> : lex.voortgang.map((v, i) => <li key={i}>{v}</li>)}
-          </ol>
-        )}
-        {fout && <Melding type="fout" compact>{fout}</Melding>}
-        {melding && <Melding type="uitleg" compact>{melding}</Melding>}
-
-        {voorgesteld.length > 0 && (
-          <ul className="space-y-2" aria-label="Voorstellen van Lex">
-            {voorgesteld.map((d) => <Voorstel key={d.id} wgId={wg.id} deelvraag={d} muteer={muteer} />)}
-          </ul>
-        )}
-
-        {actief.length > 0 && (
-          <ol className="space-y-2" aria-label="Deelvragen">
-            {actief.map((d) => (
-              <DeelvraagRij key={d.id} wg={wg} deelvraag={d} dekking={perId.get(d.id)} muteer={muteer} />
-            ))}
-          </ol>
-        )}
-
-        <form onSubmit={voegToe} className="flex flex-col gap-2 sm:flex-row">
-          <label className="sr-only" htmlFor="nieuwe-deelvraag">Nieuwe deelvraag</label>
-          <Input id="nieuwe-deelvraag" value={nieuw} onChange={(e) => setNieuw(e.target.value)} maxLength={1000}
-            placeholder="Bijvoorbeeld: Wanneer vervalt de betalingstermijn?" />
-          <Button type="submit" size="sm" variant="secondary" className="w-full sm:w-auto" disabled={!nieuw.trim()}>
-            Toevoegen
-          </Button>
-        </form>
-      </div>
-    </section>
+      <form onSubmit={voegToe} className="flex flex-col gap-2 sm:flex-row">
+        <label className="sr-only" htmlFor="nieuwe-deelvraag">Nieuwe deelvraag</label>
+        <Input id="nieuwe-deelvraag" value={nieuw} onChange={(e) => setNieuw(e.target.value)} maxLength={1000}
+          placeholder="Bijvoorbeeld: Wanneer vervalt de betalingstermijn?" />
+        <Button type="submit" size="sm" variant="secondary" className="w-full sm:w-auto" disabled={!nieuw.trim()}>
+          Toevoegen
+        </Button>
+      </form>
+    </Sectie>
   );
 }
 
-/** Een voorstel van Lex: overnemen of afwijzen met een reden. Geel, want het is een voorstel. */
+/** Een voorstel van Lex: overnemen of afwijzen met een reden. */
 function Voorstel({ wgId, deelvraag: d, muteer }: { wgId: string; deelvraag: Deelvraag; muteer: Mutatie }) {
   const [afwijzen, setAfwijzen] = useState(false);
   const [reden, setReden] = useState("");
   return (
-    <li className="rounded-button border border-aandacht-geel-rand bg-aandacht-geel-bg/40 px-3 py-2">
-      <p className="text-sm text-ink">{d.vraag}</p>
-      <p className="text-xs text-aandacht-geel-tekst">Voorstel van Lex</p>
-      {afwijzen ? (
+    <VoorstelRij titel={d.vraag} acties={!afwijzen && (
+      <>
+        <Button size="sm" className="w-full sm:w-auto" aria-label={`Overnemen: ${d.vraag}`}
+          onClick={() => void muteer((r) => wijzigDeelvraag(wgId, d.id, { status: "actief" }, r), { gelukt: "Deelvraag overgenomen." })}>
+          Overnemen
+        </Button>
+        <Button size="sm" variant="secondary" className="w-full sm:w-auto" aria-label={`Afwijzen: ${d.vraag}`}
+          onClick={() => setAfwijzen(true)}>
+          Afwijzen…
+        </Button>
+      </>
+    )}>
+      {afwijzen && (
         <form className="mt-2 flex flex-col gap-2 sm:flex-row" onSubmit={(e) => {
           e.preventDefault();
           if (!reden.trim()) return;
@@ -176,23 +168,13 @@ function Voorstel({ wgId, deelvraag: d, muteer }: { wgId: string; deelvraag: Dee
             Annuleren
           </Button>
         </form>
-      ) : (
-        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-          <Button size="sm" className="w-full sm:w-auto" aria-label={`Overnemen: ${d.vraag}`}
-            onClick={() => void muteer((r) => wijzigDeelvraag(wgId, d.id, { status: "actief" }, r), { gelukt: "Deelvraag overgenomen." })}>
-            Overnemen
-          </Button>
-          <Button size="sm" variant="secondary" className="w-full sm:w-auto" aria-label={`Afwijzen: ${d.vraag}`}
-            onClick={() => setAfwijzen(true)}>
-            Afwijzen…
-          </Button>
-        </div>
       )}
-    </li>
+    </VoorstelRij>
   );
 }
 
-function DeelvraagRij({ wg, deelvraag: d, dekking, muteer }: {
+function DeelvraagRij({ nummer, wg, deelvraag: d, dekking, muteer }: {
+  nummer: number;
   wg: Werkgebied;
   deelvraag: Deelvraag;
   dekking?: DeelvragenDekking["deelvragen"][number];
@@ -203,38 +185,33 @@ function DeelvraagRij({ wg, deelvraag: d, dekking, muteer }: {
   const [koppelen, setKoppelen] = useState(false);
   const bronnen = wg.bronnen.filter((b) => d.bronnen.includes(b.id));
   return (
-    <li className="rounded-button border border-line px-3 py-2" data-deelvraag={d.id}>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-        {bewerken ? (
-          <form className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row" onSubmit={async (e) => {
-            e.preventDefault();
-            if (!tekst.trim() || tekst.trim() === d.vraag) return setBewerken(false);
-            if (await muteer((r) => wijzigDeelvraag(wg.id, d.id, { vraag: tekst.trim() }, r), { gelukt: "Deelvraag gewijzigd." }))
-              setBewerken(false);
-          }}>
-            <label className="sr-only" htmlFor={`vraag-${d.id}`}>Deelvraag</label>
-            <Input id={`vraag-${d.id}`} value={tekst} onChange={(e) => setTekst(e.target.value)} autoFocus maxLength={1000} />
-            <Button type="submit" size="sm" className="w-full sm:w-auto">Opslaan</Button>
-          </form>
-        ) : (
-          <div className="min-w-0">
-            <p className="text-sm text-ink">{d.vraag}</p>
-            <p className="text-xs text-muted">
-              {d.herkomst === "lex" ? "Voorgesteld door Lex" : `Door ${d.aangemaakt_door}`}
-              {bronnen.length > 0 && ` · bronnen: ${bronnen.map((b) => b.label || b.bron_iri).join(", ")}`}
-              {dekking && dekking.begrippen.length > 0 && ` · begrippen: ${dekking.begrippen.map((b) => b.naam || "naamloos").join(", ")}`}
-            </p>
-          </div>
-        )}
-        {dekking && (
-          <span title={STAND_UITLEG[dekking.stand]} data-stand={dekking.stand}
-            className={`inline-flex shrink-0 items-center self-start rounded-field border px-2 py-0.5 text-xs font-medium ${STAND_KLASSE[dekking.stand]}`}>
-            {STAND_LABEL[dekking.stand]}
-          </span>
-        )}
-      </div>
-      {!bewerken && (
-        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+    <LijstRij data-deelvraag={d.id} voor={`${nummer}.`}
+      titel={bewerken ? (
+        <form className="flex flex-col gap-2 sm:flex-row" onSubmit={async (e) => {
+          e.preventDefault();
+          if (!tekst.trim() || tekst.trim() === d.vraag) return setBewerken(false);
+          if (await muteer((r) => wijzigDeelvraag(wg.id, d.id, { vraag: tekst.trim() }, r), { gelukt: "Deelvraag gewijzigd." }))
+            setBewerken(false);
+        }}>
+          <label className="sr-only" htmlFor={`vraag-${d.id}`}>Deelvraag</label>
+          <Input id={`vraag-${d.id}`} value={tekst} onChange={(e) => setTekst(e.target.value)} autoFocus maxLength={1000} />
+          <Button type="submit" size="sm" className="w-full sm:w-auto">Opslaan</Button>
+        </form>
+      ) : d.vraag}
+      meta={!bewerken && (
+        <>
+          {d.herkomst === "lex" ? "Voorgesteld door Lex" : `Door ${d.aangemaakt_door}`}
+          {bronnen.length > 0 && ` · bronnen: ${bronnen.map((b) => b.label || b.bron_iri).join(", ")}`}
+          {dekking && dekking.begrippen.length > 0 && ` · begrippen: ${dekking.begrippen.map((b) => b.naam || "naamloos").join(", ")}`}
+        </>
+      )}
+      status={dekking && (
+        <StatusLabel toon={STAND_TOON[dekking.stand]} uitleg={STAND_UITLEG[dekking.stand]} data-stand={dekking.stand}>
+          {STAND_LABEL[dekking.stand]}
+        </StatusLabel>
+      )}
+      acties={!bewerken && (
+        <>
           <Button size="sm" variant="secondary" className="w-full sm:w-auto" aria-expanded={koppelen}
             aria-label={`Bronnen en begrippen bij: ${d.vraag}`} onClick={() => setKoppelen((k) => !k)}>
             Bronnen en begrippen
@@ -249,10 +226,10 @@ function DeelvraagRij({ wg, deelvraag: d, dekking, muteer }: {
             bevestigClassName="text-fout">
             Weghalen
           </BevestigKnop>
-        </div>
-      )}
+        </>
+      )}>
       {koppelen && <Koppelen wg={wg} deelvraag={d} muteer={muteer} onKlaar={() => setKoppelen(false)} />}
-    </li>
+    </LijstRij>
   );
 }
 
@@ -274,7 +251,7 @@ function Koppelen({ wg, deelvraag: d, muteer, onKlaar }: {
   }, [wg.id]);
   const ongewijzigd = zelfdeSet(bronnen, d.bronnen) && zelfdeSet(begrippen, d.begrippen);
   return (
-    <div className="mt-3 grid gap-3 rounded-field border border-line bg-surface p-3 sm:grid-cols-2">
+    <div className="mt-3 grid gap-3 rounded-field bg-surface p-3 sm:grid-cols-2">
       <fieldset>
         <legend className="mb-1 text-xs font-medium text-muted">Bronnen</legend>
         {wg.bronnen.length === 0 ? <p className="text-xs text-muted">Nog geen bronnen in dit werkgebied.</p> : (

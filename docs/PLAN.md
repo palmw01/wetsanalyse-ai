@@ -777,9 +777,107 @@ gebruiker op 20 okt 2026). Getoetst aan Leidraad §2.2 (startactiviteiten) en §
 - **PR's:** api (F2a: velden, deelvragen bij aanmaken, de werkgebiedcontext), graph-qa (F2b: de
   intake met het dossier, de werkgebiedcontext in deelvragenrun, bronnenrun en gesprek), werkplek (F2c).
 
+**F3 – Lex kiest de juiste agent, de werkplek is voor raadplegen** (gepland 20 okt 2026; besluiten
+van de gebruiker op 20 okt 2026).
+
+- **Waarom.**
+  - De supervisor kent alleen `antwoord`, `annotatie` en `werkgebied`. Bronnen zoeken, begrippen
+    voorstellen, meedenken en kaartacties zijn harde routes vóór de supervisor, gekozen op
+    tekstpatronen (`_stroom_voor`). Een vraag als "is deelvraag 3 gedekt?" heeft geen agent.
+  - Op de werkgebiedpagina starten zes knoppen Lex buiten het gesprek om. De vier kaartacties
+    blokkeren elkaar.
+  - "Vraag Lex" bestaat alleen voor markeringen (`nodeVraag`, `_advies_context`).
+  - De intake biedt regelingen en hoofdstukken aan, nooit artikelen of leden.
+    `regeling_opties` gooit de bepalingen weg, en `bepalingen_met_onderwerp` tilt een treffer op naar
+    het artikel.
+  - Deelvragen en bronnen staan overal in omrande boxen. De stijl van de vraagkaart (rijen met een
+    scheidingslijn) is het voorbeeld.
+- **Drie plekken, elk met één taak.**
+  - **Gesprek:** alle redeneerwerk. De supervisor kiest uit vijf agents: antwoord, annotatie,
+    werkgebied, **deelvragen** en **begrippen**.
+  - **Zijpaneel:** het resultaat beoordelen (overnemen, aanpassen, afwijzen).
+  - **Werkgebiedpagina:** raadplegen en kleine handmatige wijzigingen, zonder Lex-knoppen.
+
+  Vanuit elk object – markering, deelvraag, bron, kandidaat, begrip, werkgebied – leidt één
+  generieke **Vraag Lex** naar het gesprek, met suggesties die bij dat object passen. Elk resultaat
+  opent als paneel: werkgebied, deelvraag met bronnen, begrip.
+- **Nette agents.** Elke agent is een Python-module met:
+  - een vaste lijst `Taak`;
+  - per taak een Pydantic-`Invoer` en -`Uitkomst` (status, voorstellen, artefact, tekst uit code,
+    meting);
+  - een keten van gewone functies.
+
+  Een model komt alleen in een stap die een oordeel of formulering vraagt. Die stap is één `strict`
+  tool met validatie in code, zoals de classifier. Er is geen vrije tool-lus: zoeken, koppelen,
+  dekking, rangschikken en opslaan is code. Een uitlegvraag over een object gaat naar de
+  antwoord-worker (`duiding`), met de context van het object en de grounding.
+- **Routering.**
+  - Getypte tekst gaat altijd langs de supervisor (agent + taak); de tekstpatronen verdwijnen.
+  - Een klik op een suggestie stuurt een `actie` mee en gaat zonder model naar de agent en de taak.
+  - Wat duur is, vraagt eerst een bevestiging, zoals nu.
+  - Lex stelt voor, de analist beslist.
+- **Deelvragen-agent:**
+  - `voorstellen` en `verbeteren` (herformuleren of splitsen): één modelstap elk;
+  - `bronnen_zoeken`: per deelvraag, op lidniveau, met verwijzingen op diepte 1, als kandidaten met
+    `deelvraag_id`. Geen model;
+  - `dekking`: geen model.
+
+  De methode (wat een goede deelvraag is, van deelvraag naar bronnen, wat dekking betekent) komt als
+  agentrol in de skill (`references/deelvragen-en-bronnen.md`, in eigen woorden).
+- **Begrippen-agent:**
+  - zonder model: `voorstellen` (keten ADR-004), `brondefinitie`, `relaties`;
+  - met model: `meedenken` (met bevestiging), `scherper`, `voorbeelden`, `betekenisverschil`, en
+    `uitwerken`.
+
+  `uitwerken` doet eerst de brondefinitie, dan een definitievoorstel, en voorbeelden pas op een
+  overgenomen definitie. De begrippenkennis komt als agentrol in de skill.
+- **Intake.** `onderdelen` wordt `bepalingen`, met één kaart per deelvraag: gerichte artikelen en
+  leden binnen de gekozen regelingen.
+  - De kandidaten komen zonder model uit:
+    - de termen van de deelvraag;
+    - de dossiertermen;
+    - `fts` op Lid/Artikel;
+    - `bepalingen_met_onderwerp` met het lid erbij.
+  - Ze zijn vast gerangschikt, hoogstens 8 per kaart, met een letterlijk tekstbegin en het label uit
+    de graaf.
+  - Een keuze wordt meteen aan die deelvraag gekoppeld.
+  - De intake blijft een eigen stapmachine; ze deelt alleen de zoekfunctie met de deelvragen-agent.
+  - Twee fixes gaan mee:
+    - een uitsluiting filtert niet meer stil: wat geraakt wordt, staat achteraan, gemarkeerd, en
+      wordt nooit vooringevuld;
+    - de afrondingstekst noemt alleen wat er echt gekoppeld is.
+- **Werkgebiedpagina.**
+  - Bovenaan dezelfde samenvatting als het zijpaneel.
+  - De tabbladen Bronnen, Elementen, Begrippen, Samenhang en Historie in lijststijl.
+  - Weg zijn alle Lex-knoppen: deelvragen voorstellen, zoeken/opnieuw zoeken, *Laat Lex annoteren*,
+    *Stel begrippen voor*, *Laat Lex meedenken*, en de kaartacties.
+  - Elke rij krijgt een Vraag Lex-knop.
+  - Handmatige beslissingen blijven: kandidaten opnemen of uitsluiten, groepvoorstellen, en
+    kaartvoorstellen overnemen.
+- **PR's**, gestapeld:
+  - **F3a** frontend: lijststijl (`Lijst`/`LijstRij`/`Sectie`/`StatusLabel`/`Voorstel`) en de
+    gedeelde `WerkgebiedSamenvatting` – **gebouwd** (20 okt 2026): in het paneel en bovenaan de pagina,
+    en de deelvragen, kandidaten en bronselecties in lijststijl;
+  - **F3b**: het Vraag Lex-contract (`onderwerp` + `actie`, `agent/onderwerp.py`). Het
+    markeringsadvies blijft byte-gelijk;
+  - **F3c** graph-qa + skill: de twee agents onder de supervisor, de agentrollen, ADR-005, en
+    routeringscases in `golden_gesprek.jsonl`, 3× gemeten;
+  - **F3d**: suggesties per object, en de artefacten/panelen `deelvraag` en `begrip`;
+  - **F3e**: de werkgebiedpagina wordt raadplegen; de ongebruikte BFF-run-routes gaan eruit;
+  - **F3f**: de intake met bepalingen per deelvraag en de twee fixes, met een meting op een **nieuwe**
+    set.
+- **Technisch risico.** De bestaande stromen zijn async; de LangGraph-nodes draaien synchroon. De
+  agent draait op de event loop van de beurt. Stopvlag en runstore-sleutels blijven daarbij gelden.
+  Een spike-test komt als eerste.
+- **Later.**
+  - Een toetsstap in de intake: een uitsluiting die de analysevraag tegenspreekt.
+  - Een juridische verkenning: heffing op aangifte vs. aanslag, betalings- vs. aanslagtermijn, uit de
+    graaf met bronnen.
+  - De rest van de app in de lijststijl.
+
 **Vervolg (open, eigen plan):**
 
-- **Lex helpt de bronnen vinden** als de analist ze nog niet kent – nu valt dat buiten F0 (de
+- **Lex helpt de bronnen vinden** (nu uitgewerkt in F3) als de analist ze nog niet kent – nu valt dat buiten F0 (de
   bestaande bronnenrun en deelvragen staan klaar als volgende stap na het aanmaken).
 - De rest van activiteit 1 uit de Leidraad: juridische scenario's met gebeurtenissen (1c) en die
   verbinden met de deelvragen (1e) – de controle die volgens de Handleiding de afbakening scherp maakt.
