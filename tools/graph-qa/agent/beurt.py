@@ -70,7 +70,10 @@ def werkgebied_tekst(werkgebied: dict[str, Any], gelukt: list[str], mislukt: lis
                "Bronnen voeg je toe op de tab Bronnen.")
     if mislukt:
         zin += f" Niet toegevoegd, omdat ik ze niet in de wet- en regelgeving kon terugvinden: {', '.join(mislukt)}."
-    if werkgebied.get("analysevraag"):
+    if (n := len(werkgebied.get("deelvragen") or [])):
+        zin += f" Het heeft {n} {'deelvraag' if n == 1 else 'deelvragen'}; de bronnen die ik erbij vond, staan eraan gekoppeld."
+        zin += " Een volgende stap: laat me bepalingen zoeken die erbij horen, ook per deelvraag."
+    elif werkgebied.get("analysevraag"):
         zin += " Een volgende stap: laat me deelvragen voorstellen bij de analysevraag, of bepalingen zoeken die erbij horen."
     return zin
 
@@ -80,8 +83,11 @@ async def _maak_werkgebied(api: WetsanalyseApi, verzoek: dict[str, Any]) -> tupl
     bron + rol + bereik: een herhaling na een storing maakt niets dubbel."""
     from .werkgebied_intake import REDEN
 
+    from .werkgebied_intake import normaliseer
+
     werkgebied = await api.maak_werkgebied(verzoek["werkgebied"])
     gelukt, mislukt = [], []
+    per_deelvraag: dict[str, list[str]] = {}
     for bron in verzoek.get("bronnen") or []:
         label = bron.get("label", "")
         invoer = {k: v for k, v in bron.items() if k in ("bron_iri", "bwb_id", "artikel", "lid")}
@@ -91,10 +97,26 @@ async def _maak_werkgebied(api: WetsanalyseApi, verzoek: dict[str, Any]) -> tupl
                                                               "reden": REDEN})
             werkgebied = uit.get("werkgebied") or werkgebied
             gelukt.append(label)
+            if (sid := (uit.get("selectie") or {}).get("id")):
+                for vraag in bron.get("deelvragen") or []:
+                    per_deelvraag.setdefault(normaliseer(vraag), []).append(sid)
         except WetsanalyseApiFout as fout:
             logger.warning("intake: bron niet toegevoegd",
                            extra={"categorie": "functioneel", "http_status": fout.status})
             mislukt.append(label)
+    # Een bron die Lex bij een deelvraag vond, hoort bij die deelvraag (Handleiding 1g): de dekkingscheck
+    # ziet het dan meteen. Een set, dus een herhaling na een storing koppelt niets dubbel.
+    for d in list(werkgebied.get("deelvragen") or []):
+        nieuw = per_deelvraag.get(normaliseer(d["vraag"]))
+        if not nieuw or d.get("status") != "actief" or set(nieuw) <= set(d.get("bronnen") or []):
+            continue
+        try:
+            werkgebied = await api.koppel_deelvraag(werkgebied["id"], d["id"], {
+                "verwachte_revisie": werkgebied["revisie"], "bronnen": list(dict.fromkeys([*d.get("bronnen", []), *nieuw])),
+                "begrippen": list(d.get("begrippen") or [])}) or werkgebied
+        except WetsanalyseApiFout as fout:
+            logger.warning("intake: deelvraag niet gekoppeld",
+                           extra={"categorie": "functioneel", "http_status": fout.status})
     return werkgebied, gelukt, mislukt
 
 

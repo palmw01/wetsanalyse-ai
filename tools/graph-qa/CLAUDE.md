@@ -735,8 +735,8 @@ Deelvragen bij een werkgebied zijn optioneel (open keuze 4); de api bewaart ze
 (`api/app/werkgebied_deelvragen.py`). `POST /v1/deelvragen-runs {werkgebied_id}` (runstore-sleutel
 `werkgebied:<id>:deelvragen`, budgetcheck vooraf zoals `/v1/runs`) → `deelvragen_stroom`: werkgebied
 ophalen, zonder analysevraag een `error` (`soort: "invoer"`) zonder modelaanroep, dan één aanroep op
-`LLM_MODEL` met een strict tool (`stel_deelvragen_voor`; bestaande deelvragen gaan mee, zodat Lex er geen
-variant van bedenkt), `valideer` (alleen vragen met een vraagteken, ontdubbeld, hoogstens
+`LLM_MODEL` met een strict tool (`stel_deelvragen_voor`; het hele dossier van het werkgebied gaat mee via
+`werkgebied_context.context_tekst`, en de bestaande deelvragen, zodat Lex er geen variant van bedenkt), `valideer` (alleen vragen met een vraagteken, ontdubbeld, hoogstens
 `MAX_DEELVRAGEN`), `POST …/deelvragen/voorstellen`. Het verbruik op `deelvragen-<run>`, ook als opslaan
 faalt. Events: `status`, `token` (samenvatting), `opgeslagen`, `done`. De api laat weg wat er al staat of
 is afgewezen. Tests: `tests/test_deelvragen.py` (het contract `DeelvraagVoorstellen` uit de api-bron).
@@ -767,9 +767,10 @@ check staat in `_stroom_voor` vóór de bronnen- en begrippenroute.
 ### Lex stelt een werkgebied samen (`agent/werkgebied_intake.py`, `nodes/werkgebied.py`, activiteit 1)
 
 "Kunnen we een werkgebied samenstellen?" of "ik wil een wetsanalyse uitvoeren" (`is_werkgebiedvraag`)
-start een **intake**: één vraag per kaartje – naam, analysevraag, regeling(en), onderdelen, wat valt
-erbuiten – en een samenvatting met *Aanmaken*. De werkgebied-worker staat onder de supervisor, naast
-`antwoord` en `annotatie`, en ketent met niets.
+start een **intake**: één vraag per kaartje in de volgorde van de methode (spoor F, F2) – naam, dan
+startactiviteit a (aanleiding, context, doel), analysevraag, praktijkvoorbeeld, deelvragen, wat valt
+erbuiten, en pas dan regeling(en) en onderdelen – en een samenvatting met *Aanmaken*. De
+werkgebied-worker staat onder de supervisor, naast `antwoord` en `annotatie`, en ketent met niets.
 
 - **Routering.** Een klik op een kaartje (`ChatRequest.intake_actie`) en een startzin gaan zonder
   modelaanroep naar de worker, vóór elke andere regel; `_stroom_voor` laat een klik nooit een harde
@@ -777,35 +778,61 @@ erbuiten – en een samenvatting met *Aanmaken*. De werkgebied-worker staat onde
   (`INTAKE_SYSTEM`, "OPEN KAARTJE"); een andere vraag krijgt gewoon antwoord.
 - **`State.intake` staat niet in de per-beurt-reset**: een tussenvraag laat de intake en het open
   kaartje staan. `intake_actie` wél.
-- **Terugbladeren** (‹ n van 5 ›): `wijzig` mag vanaf elke stap naar een eerdere, vanaf de samenvatting
-  naar elke stap. Het kaartje draagt `terug`/`beantwoord`, en `vooringevuld` komt dan uit het eerdere
-  antwoord (`eerder_antwoord`), zodat je ziet wat je koos. Elke optie heeft een `omschrijving` uit de
-  graaf ("wet · 2 delen over ‘box 3’"), nooit van het model.
+- **Alles wat er ligt, is de context van Lex** (besluit van de gebruiker, 20 okt 2026). `dossier` (de
+  startzin plus `werkgebied_context.context_tekst` over `als_werkgebied`) gaat mee in **elke**
+  voorstelaanroep en zoekopdracht. Een stap bereidt zijn kaartje opnieuw voor zodra de hash van het
+  dossier veranderde (`voorbereid` per stap, `dossier_hash`); het model draait één keer per stand van
+  het dossier (`model_hash`), gedeeld door de stappen. Terugbladeren zonder iets te wijzigen kost dus
+  niets; een gewijzigd antwoord geeft nieuwe voorstellen, en wat de analist al koos blijft kiesbaar
+  ("eerder gekozen"). De tests eisen het dossier in de modelinvoer.
+- **Terugbladeren** (‹ n van 10 ›): `wijzig` mag vanaf elke stap naar een eerdere, vanaf de
+  samenvatting naar elke stap. Het kaartje draagt `terug`/`beantwoord`, en `vooringevuld` komt dan uit
+  het eerdere antwoord (`eerder_antwoord`).
 - **De volgorde is een stapmachine** (`verwerk`), nooit het model. Een klik op een kaartje dat al
   beantwoord is (`stap` ≠ de huidige) verandert niets: Lex toont het huidige opnieuw. Een kaartje van
   een andere intake: "loopt niet meer". De naam is verplicht; de rest is over te slaan.
-- **Het model stelt alleen voor** (`stel_voor`, op `LLM_MODEL_ROUTER`, één strict tool): naam en
-  analysevraag uit wat de analist zei, en een onderwerp om mee te zoeken. Een startzin zonder inhoud
-  (`inhoud`) kost geen aanroep; een storing levert een kaartje zonder voorstellen.
-- **Regelingen en onderdelen komen uit de graaf** (`regeling_opties`: eerst wat de analist bij naam
-  noemde, dan het overzicht van het onderwerp in zijn vaste volgorde; de delen per regeling worden de
-  opties van het onderdelen-kaartje). Eigen tekst bij de regelingen is een nieuwe zoekopdracht.
+- **Aanleiding en doel** zijn de vaste lijsten van de Leidraad in eigen woorden (`AANLEIDINGEN`,
+  `DOELEN`; de Leidraad is BRM-materiaal en hoort niet letterlijk in deze publieke repo), plus eigen
+  tekst; doel is meerkeuze. Context en praktijkvoorbeeld zijn vrije tekst, zonder voorstel – een
+  praktijkvoorbeeld verzint Lex niet.
+- **Het model stelt alleen voor** (`stel_voor`, op `LLM_MODEL_ROUTER`, één strict tool): naam,
+  voorselectie van aanleiding en doel (enum-sleutels; een onbekende valt weg), analysevraag en een
+  onderwerp om mee te zoeken. Een startzin zonder inhoud kost bij de naam geen aanroep; een storing
+  levert een kaartje zonder voorstellen.
+- **Deelvragen** stelt Lex voor met `deelvragen.vraag_model` op `LLM_MODEL` (zelfde prompt als de
+  deelvragenrun, met het hele dossier); zonder analysevraag niet, en dat staat op het kaartje. Het
+  kaartje is meerkeuze met `meer_tekst`: eigen deelvragen komen als `teksten`. Elke vraag één keer
+  (`normaliseer`, gelijk aan de api), met herkomst `lex` of `analist`.
+- **Regelingen en onderdelen komen uit de graaf** (`regeling_opties`): eerst wat het dossier bij naam
+  noemt (niet wat erbuiten valt), dan het overzicht van het onderwerp, dan het overzicht per deelvraag
+  (hoogstens `MAX_DEELVRAAG_ZOEK`; `onderwerp_van_deelvraag`). Per deel onthoudt de intake bij welke
+  deelvragen het gevonden werd; de omschrijving zegt het ("deelvraag 2"). Een deel waarvan de kop
+  raakt aan wat buiten het werkgebied valt (`werkgebied_context.uitsluitstammen`/`valt_buiten`) valt
+  weg en de toelichting noemt het. Eigen tekst bij de regelingen is een nieuwe zoekopdracht.
   **"Weet ik (nog) niet"** (`ONBEKEND`) staat altijd bij regelingen en onderdelen; bij de regelingen
-  slaat het de onderdelen over.
+  gaat het dan meteen naar de samenvatting.
 - **Alleen een gekozen onderdeel wordt een bronselectie** (rol *analyseren*, bereik *onderliggend*),
-  plus artikelen uit eigen tekst als er precies één regeling is (`artikelen_in`: "5.2" is een artikel,
-  geen lid). "De hele regeling" en een regeling zonder onderdeel staan alleen in de afbakeningstekst
-  (`afbakening`, deterministisch).
+  plus artikelen uit eigen tekst als er precies één regeling is (`artikelen_in`). "De hele regeling"
+  en een regeling zonder onderdeel staan alleen in de afbakeningstekst (`afbakening`).
 - **Aanmaken doet de beurt-driver** (`beurt._maak_werkgebied`), na het `werkgebied_aanmaken`-event:
-  `POST /v1/werkgebieden` met de `intake_id` (idempotent bij de api), dan per bron
-  `POST …/bronnen` met de revisie uit het vorige antwoord. Een geweigerde bron laat het werkgebied staan
-  en Lex noemt hem; mislukt het werkgebied zelf, dan `error` met `foutcode: werkgebied_niet_aangemaakt`
-  en geen bericht – opnieuw klikken mag (`verwerk` staat aanmaken vanuit `klaar` toe). Het bericht
-  draagt het artefact `{soort: "werkgebied", ref: {werkgebied_id}}`.
+  `POST /v1/werkgebieden` met het dossier, de deelvragen en de `intake_id` (idempotent bij de api),
+  per bron `POST …/bronnen`, en daarna per deelvraag `PUT …/koppelingen` met de bronnen die Lex erbij
+  vond (een set, dus een herhaling koppelt niets dubbel). Een geweigerde bron laat het werkgebied staan
+  en Lex noemt hem; mislukt het werkgebied zelf, dan `error` met `foutcode: werkgebied_niet_aangemaakt`.
+  Het bericht draagt het artefact `{soort: "werkgebied", ref: {werkgebied_id}}`.
 - **Het kaartje reist mee**: een `vraagkaart`-event (vorm `api/app/gesprek_contracts.Vraagkaart`) en
   het veld `vraagkaart` op het bericht, zodat het na herladen nog te beantwoorden is.
-- Tests: `tests/test_werkgebied_intake.py` (herkenning, stapmachine, het api-contract uit de bron, een
-  gesprek over meerdere beurten met een tussenvraag, de driver met een nep-api).
+- Tests: `tests/test_werkgebied_intake.py` en `tests/test_werkgebied_context.py`.
+
+### Het werkgebied als context in het gesprek (`agent/werkgebied_context.py`)
+
+Draagt een beurt een `werkgebied_id`, dan haalt `answer_stream` het werkgebied bij de api
+(`_werkgebied_blok`, per beurt vers) en zet `als_blok` het in `State.werkgebied_context`;
+`memory_context` geeft het naast de focus aan de supervisor en elke specialist – ook met
+`ENABLE_MEMORY_CONTEXT` uit. Context, geen filter; zonder api of bij een storing leeg. Dezelfde
+`context_tekst` voedt de intake en de deelvragenrun. De bronnenrun krijgt het dossier al in zijn
+invoer (`invoer.dossier`, api), maar de methoden gebruiken het nog niet: dat verandert een methode en
+vraagt eerst een meting (PLAN spoor F, *Vervolg*).
 
 ### Lex leest begrippen (`tools/begrip_tools.py`, `nodes/begrippen_lezen.py`, `agent/kaart_beurt.py`, fase F4)
 

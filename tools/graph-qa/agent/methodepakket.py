@@ -3,7 +3,7 @@
 PAKKET = {'bronbestanden': {'SKILL.md': '02af01e08aa15828c094ff0ac880a10416d6c72537322bf31764e2b94a643254',
                    'agentrollen.json': 'a46fda930fc9e646c69497c1962f9b2d11454f3a4bc0d2c5e7ca7fcdeb3ebdbd',
                    'references/agentrollen.md': 'f46b17b5d7f7054bed32767a063b3212428956ee7c85aa78de68887035291787',
-                   'references/bronnen.md': '3a4bbbbc2ce4eaa054f0055b16ca5646c004db3a9fab3c96ba00f85e5a6f8afc',
+                   'references/bronnen.md': '8d9d52cd2c10738f7bbb800cec9ddde3dbd4e8aa696cf574acc36bb182e03667',
                    'references/jas-klassen-referentie.md': '5fe94a8c3718eb3d0f21a04cda9e89d9c35db4260b39f1900ead19a86ee91a95'},
  'rollen': {'algemeen': ['basis'],
             'decompositie': ['basis', 'decompositie'],
@@ -102,5 +102,5 @@ PAKKET = {'bronbestanden': {'SKILL.md': '02af01e08aa15828c094ff0ac880a10416d6c72
                                    'interpretatieverschillen zichtbaar; presenteer ze niet als '
                                    'vaststaande conclusies. Voeg zonder beschikbare bronnen geen '
                                    'nieuw juridisch feit toe.'}},
- 'sha256': '8ed090655579c6f5b94fd7c0de40edbbbd4a723975ea6c570e4a3f0b64aa1aca',
+ 'sha256': 'ed4a5b970ab207cea2258a442bae2b7a6a09b45df8db89b8270cd4d1a5a587a0',
  'versie': '2.1'}

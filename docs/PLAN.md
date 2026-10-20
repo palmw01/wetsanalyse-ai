@@ -742,11 +742,12 @@ gebruiker op 20 okt 2026). Getoetst aan Leidraad §2.2 (startactiviteiten) en §
     voorselectie van aanleiding en doel. Een test eist dat geen stap minder krijgt.
   - *Terugbladeren* en een eerder antwoord wijzigen maakt de voorstellen van de stappen erna opnieuw;
     wat de analist al koos blijft voorgeselecteerd, nooit stil vervangen.
-  - *Na het aanmaken* is het werkgebied zelf het dossier: één `werkgebiedcontext` (alle velden,
-    actieve deelvragen, wat erbuiten valt, de bronselecties) uit de api, per revisie vers. Die voedt de
-    deelvragenrun (nu alleen naam, analysevraag en afbakening), het zoeken van bronnen (de invoer van
-    de bronnenrun) en **het gesprek**: met een `werkgebied_id` gaat het als contextblok naar de
-    supervisor en de specialisten, naast de focus. Context, geen filter – net als de focus.
+  - *Na het aanmaken* is het werkgebied zelf het dossier: één `werkgebied_context.context_tekst`
+    (alle velden, actieve deelvragen, de afbakening, de bronselecties) uit de api, per beurt vers. Die
+    voedt de deelvragenrun en **het gesprek**: met een `werkgebied_id` gaat het als contextblok naar de
+    supervisor en de specialisten, naast de focus. Context, geen filter – net als de focus. De
+    bronnenrun krijgt het dossier in haar invoer (`dossier`), maar haar methoden gebruiken het pas in
+    de iteratie over de bronvoorstellen: een methode wijzigen vraagt eerst een meting.
   - Elke bewaarde wijziging (een veld, een deelvraag, een opgenomen of uitgesloten bron) verhoogt de
     revisie, en de volgende beurt leest de nieuwe stand.
 - **Volgorde van de kaartjes:** naam → aanleiding → context → doel → analysevraag → praktijkvoorbeeld
@@ -782,6 +783,9 @@ gebruiker op 20 okt 2026). Getoetst aan Leidraad §2.2 (startactiviteiten) en §
   bestaande bronnenrun en deelvragen staan klaar als volgende stap na het aanmaken).
 - De rest van activiteit 1 uit de Leidraad: juridische scenario's met gebeurtenissen (1c) en die
   verbinden met de deelvragen (1e) – de controle die volgens de Handleiding de afbakening scherp maakt.
+- **Minder en betere bronvoorstellen** (de volgende iteratie, volgens de gebruiker): de bronnenrun het
+  dossier laten gebruiken – wat erbuiten valt weglaten zoals de intake dat al doet, zoeken met
+  aanleiding en praktijkvoorbeeld – met een meting op de referentieset bronselectie ervoor en erna.
 - Startactiviteit b (projecttypologie), c (hoofd- en deelactiviteiten) en d (het team): bewust nog niet
   (besloten 20 okt 2026); ze sturen vooral keuzes die het platform nog niet maakt.
 - De doorstap naar activiteit 2 (annoteren) en 3 (begrippen) vanuit hetzelfde gesprek.

@@ -36,6 +36,7 @@ De oorspronkelijke bronbestanden worden niet aangepast bij een wijziging van de 
 | P10 | Bronverankering | M10; bestaand Anker-contract | Bestaande offsets/context/hash behouden; versie apart in document vastleggen. |
 | P11 | Runtimeprotocol | P02–P05/P09; huidige beperkte API | Compacte secties genereren naar prompts; ontbrekende context melden, geen brononderzoek veinzen. |
 | P12 | Agentimport | P01–P11 | Selectie per bestaande rol, stabiele sectie-ID’s, generatie, hashes en technische logging; geen uitbreiding van tools of uitvoercontracten. |
+| P13 | Werkgebied samenstellen in het gesprek (graph-qa, PLAN spoor F) | Leidraad 1.0 §2.2 startactiviteit a en §2.4 activiteit 1 (p.5–11); Handleiding 1.0 §3.3 deelactiviteiten 1a–1g | Volgorde naam → aanleiding, context, doel → analysevraag → praktijkvoorbeeld → deelvragen → wat erbuiten valt → bronnen (1f: bronnen pas na vraag en deelvragen). De vaste lijsten van aanleidingen en doelen staan in eigen woorden in de code. Juridische scenario's en gebeurtenissen (1c/1e) nog niet: de "deelvragen eerst"-variant die de Leidraad toestaat. Startactiviteit b–d bewust niet. |
 
 ## Onderhoud
 
