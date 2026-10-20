@@ -234,8 +234,8 @@ try {
   // F2: het hele dossier en de deelvragen met hun dekking, ook naast het gesprek.
   await paneel.locator("[data-dossier-veld=context]").getByText("De aangifte 2026 moet blijven werken.").waitFor();
   await paneel.locator("[data-dossier-veld=doel]").getByText("Nog geen doel.").waitFor();
-  await paneel.locator("[data-deelvragen]").getByText("Nog geen bron").waitFor();
-  await paneel.locator("[data-deelvragen]").getByText("0 van 1 deelvraag gedekt", { exact: false }).waitFor();
+  await paneel.locator("[data-samenvatting=deelvragen]").getByText("Nog geen bron").waitFor();
+  await paneel.locator("[data-samenvatting=deelvragen]").getByText("0 van 1 deelvraag gedekt", { exact: false }).waitFor();
   assert.equal(await paneel.getByRole("link", { name: "Open het werkgebied" }).first().getAttribute("href"), "/werkgebieden/wg5");
   for (let i = 0; i < 40 && new URL(page.url()).searchParams.get("werkgebied") !== "wg5"; i++) await page.waitForTimeout(50);
   assert.equal(new URL(page.url()).searchParams.get("werkgebied"), "wg5");

@@ -18,12 +18,13 @@ import { OnbewaardMelding } from "@/components/werkgebieden/OnbewaardMelding";
 import { ElementenTab } from "@/components/werkgebieden/ElementenTab";
 import { HistorieTab } from "@/components/werkgebieden/HistorieTab";
 import { SamenhangTab } from "@/components/werkgebieden/SamenhangTab";
+import { WerkgebiedSamenvatting } from "@/components/werkgebieden/WerkgebiedSamenvatting";
 import { WerkgebiedSchil } from "@/components/werkgebieden/WerkgebiedSchil";
 import { archiveerWerkgebied, foutTekst, haalWerkgebied, isApiError, wijzigWerkgebied } from "@/lib/api";
 import type { Werkgebied, WerkgebiedStatus } from "@/lib/types";
 import { useOnbewaardBewaker } from "@/lib/useOnbewaardBewaker";
 import {
-  DOSSIER_VELDEN, STATUS_LABEL, TABS, dossierRegels, isRevisieConflict, type DossierVeld, type WerkgebiedTab,
+  DOSSIER_VELDEN, STATUS_LABEL, TABS, isRevisieConflict, type DossierVeld, type WerkgebiedTab,
 } from "@/lib/werkgebied";
 
 export interface MutatieOpties {
@@ -202,16 +203,7 @@ export function WerkgebiedClient({ id, beginTab, beginBegrip }: {
                   </BevestigKnop>
                 </ButtonRow>
               </div>
-              {dossierRegels(wg).length > 0 && (
-                <dl data-dossier className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-                  {dossierRegels(wg).map((r) => (
-                    <div key={r.veld}>
-                      <dt className="text-xs font-medium text-muted">{r.label}</dt>
-                      <dd className="whitespace-pre-line text-ink">{r.tekst}</dd>
-                    </div>
-                  ))}
-                </dl>
-              )}
+              <WerkgebiedSamenvatting wg={wg} className="mt-3" />
             </header>
           )}
 

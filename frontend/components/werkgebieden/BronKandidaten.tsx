@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
+import { Lijst, LijstRij, Sectie } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import {
   besluitKandidaat, foutTekst, haalActieveBronnenRun, haalKandidaten, haalLaatsteBronnenRun, neemKandidaatOp,
@@ -53,7 +54,7 @@ export function BronKandidaten({ id, labels, onGewijzigd }: {
   const [uitsluiten, setUitsluiten] = useState<string | null>(null);   // kandidaat-id met open redenveld
   const [bezig, setBezig] = useState<string | null>(null);
   const kijker = useRef<AbortController | null>(null);
-  const lijstRef = useRef<HTMLUListElement>(null);
+  const lijstRef = useRef<HTMLUListElement & HTMLOListElement>(null);
 
   const laad = useCallback(async () => {
     try {
@@ -153,83 +154,73 @@ export function BronKandidaten({ id, labels, onGewijzigd }: {
   }, [actief]);
 
   return (
-    <section className="rounded-button border border-line bg-paper" aria-labelledby="kandidaten-kop" data-bronkandidaten>
-      <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 id="kandidaten-kop" className="font-display text-sm font-semibold text-lint">Bepalingen gevonden door Lex</h2>
-          <p className="text-xs text-muted">
-            {run?.status === "klaar"
-              ? `Gezocht vanuit ${run.aantal_kern} ${run.aantal_kern === 1 ? "bepaling" : "bepalingen"}${run.verouderd ? " – de selectie is sindsdien veranderd" : ""}.`
-              : "Lex zoekt vanuit de bepalingen die je analyseert en de analysevraag, zonder model."}
-          </p>
+    <Sectie data-bronkandidaten titel="Bepalingen gevonden door Lex"
+      toelichting={run?.status === "klaar"
+        ? `Gezocht vanuit ${run.aantal_kern} ${run.aantal_kern === 1 ? "bepaling" : "bepalingen"}${run.verouderd ? " – de selectie is sindsdien veranderd" : ""}.`
+        : "Lex zoekt vanuit de bepalingen die je analyseert en de analysevraag, zonder model."}
+      acties={agentRun ? (
+        <Button size="sm" variant="secondary" className="w-full sm:w-auto" onClick={() => void stopRun(agentRun)}>
+          Stoppen
+        </Button>
+      ) : (
+        <Button size="sm" className="w-full sm:w-auto" onClick={() => void start()}>
+          {run ? "Opnieuw zoeken" : "Lex, zoek bepalingen"}
+        </Button>
+      )}>
+      {agentRun && (
+        <div aria-live="polite" className="space-y-0.5 text-xs text-muted">
+          <p className="font-medium text-ink">Lex zoekt…</p>
+          {voortgang.map((v, i) => <p key={i}>· {v}</p>)}
         </div>
-        {agentRun ? (
-          <Button size="sm" variant="secondary" className="w-full sm:w-auto" onClick={() => void stopRun(agentRun)}>
-            Stoppen
-          </Button>
-        ) : (
-          <Button size="sm" className="w-full sm:w-auto" onClick={() => void start()}>
-            {run ? "Opnieuw zoeken" : "Lex, zoek bepalingen"}
-          </Button>
-        )}
-      </div>
+      )}
+      {fout && <Melding type="fout" compact>{fout}</Melding>}
+      {melding && <Melding type="uitleg" compact>{melding}</Melding>}
 
-      <div className="space-y-3 border-t border-line px-4 py-3">
-        {agentRun && (
-          <div aria-live="polite" className="space-y-0.5 text-xs text-muted">
-            <p className="font-medium text-ink">Lex zoekt…</p>
-            {voortgang.map((v, i) => <p key={i}>· {v}</p>)}
-          </div>
-        )}
-        {fout && <Melding type="fout" compact>{fout}</Melding>}
-        {melding && <Melding type="uitleg" compact>{melding}</Melding>}
+      {run?.status === "klaar" && run.meting && (
+        <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted" aria-label="Per methode">
+          {(Object.entries(run.meting) as [BronMethode, { aantal: number; volledig: boolean }][]).map(([m, x]) => (
+            <li key={m}>
+              {METHODE_LABEL[m]}: {x.aantal}
+              {!x.volledig && <span className="text-aandacht-geel-tekst"> (onvolledig)</span>}
+            </li>
+          ))}
+        </ul>
+      )}
 
-        {run?.status === "klaar" && run.meting && (
-          <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted" aria-label="Per methode">
-            {(Object.entries(run.meting) as [BronMethode, { aantal: number; volledig: boolean }][]).map(([m, x]) => (
-              <li key={m}>
-                {METHODE_LABEL[m]}: {x.aantal}
-                {!x.volledig && <span className="text-aandacht-geel-tekst"> (onvolledig)</span>}
-              </li>
-            ))}
-          </ul>
-        )}
+      {alle.length > 0 && (
+        <div role="tablist" aria-label="Filter" className="flex flex-wrap gap-1.5">
+          {FILTERS.map((f) => (
+            <button key={f} type="button" role="tab" aria-selected={filter === f}
+              onClick={() => { setFilter(f); setActief(0); }}
+              className={`${KNOP} ${filter === f ? "border-lint bg-lint text-white" : "border-line text-ink hover:bg-surface"}`}>
+              {FILTER_LABEL[f]} ({telling[f]})
+            </button>
+          ))}
+        </div>
+      )}
 
-        {alle.length > 0 && (
-          <div role="tablist" aria-label="Filter" className="flex flex-wrap gap-1.5">
-            {FILTERS.map((f) => (
-              <button key={f} type="button" role="tab" aria-selected={filter === f}
-                onClick={() => { setFilter(f); setActief(0); }}
-                className={`${KNOP} ${filter === f ? "border-lint bg-lint text-white" : "border-line text-ink hover:bg-surface"}`}>
-                {FILTER_LABEL[f]} ({telling[f]})
-              </button>
-            ))}
-          </div>
-        )}
+      {data && alle.length === 0 && !agentRun && (
+        <p className="text-sm text-muted">Nog niets gevonden. Laat Lex zoeken vanuit de selectie en de analysevraag.</p>
+      )}
+      {alle.length > 0 && getoond.length === 0 && <p className="text-sm text-muted">Geen kandidaten in dit filter.</p>}
 
-        {data && alle.length === 0 && !agentRun && (
-          <p className="text-sm text-muted">Nog niets gevonden. Laat Lex zoeken vanuit de selectie en de analysevraag.</p>
-        )}
-        {alle.length > 0 && getoond.length === 0 && <p className="text-sm text-muted">Geen kandidaten in dit filter.</p>}
-
-        {getoond.length > 0 && (
-          <ul ref={lijstRef} className="space-y-2" aria-label={`Kandidaten – ${FILTER_LABEL[filter].toLowerCase()}`}
-            tabIndex={0} onKeyDown={opToets}>
-            {getoond.map((k, i) => (
-              <KandidaatKaart key={k.id} k={k} index={i} actief={i === actief} labels={labels} bezig={bezig === k.id}
-                uitsluitenOpen={uitsluiten === k.id}
-                onKies={() => setActief(i)}
-                onOpnemen={(rol) => void opnemen(k, rol)}
-                onLater={() => void besluit(k, () => besluitKandidaat(id, k.id, "later"), "Voor later bewaard.")}
-                onHeropenen={() => void besluit(k, () => besluitKandidaat(id, k.id, "heropenen"), "Weer een open voorstel.")}
-                onUitsluitenOpen={(open) => setUitsluiten(open ? k.id : null)}
-                onUitsluiten={(reden) => besluit(k, () => besluitKandidaat(id, k.id, "uitsluiten", reden),
-                  "Uitgesloten; Lex stelt deze bepaling niet opnieuw voor.")} />
-            ))}
-          </ul>
-        )}
-      </div>
-    </section>
+      {getoond.length > 0 && (
+        <Lijst ref={lijstRef} label={`Kandidaten – ${FILTER_LABEL[filter].toLowerCase()}`}
+          tabIndex={0} onKeyDown={opToets} className="focus-ring rounded-lg">
+          {getoond.map((k, i) => (
+            <KandidaatKaart key={k.id} k={k} index={i} actief={i === actief} labels={labels} bezig={bezig === k.id}
+              uitsluitenOpen={uitsluiten === k.id}
+              onKies={() => setActief(i)}
+              onOpnemen={(rol) => void opnemen(k, rol)}
+              onLater={() => void besluit(k, () => besluitKandidaat(id, k.id, "later"), "Voor later bewaard.")}
+              onHeropenen={() => void besluit(k, () => besluitKandidaat(id, k.id, "heropenen"), "Weer een open voorstel.")}
+              onUitsluitenOpen={(open) => setUitsluiten(open ? k.id : null)}
+              onUitsluiten={(reden) => besluit(k, () => besluitKandidaat(id, k.id, "uitsluiten", reden),
+                "Uitgesloten; Lex stelt deze bepaling niet opnieuw voor.")} />
+          ))}
+        </Lijst>
+      )}
+    </Sectie>
   );
 }
 
@@ -251,30 +242,33 @@ function KandidaatKaart({ k, index, actief, labels, bezig, uitsluitenOpen, onKie
   }, [uitsluitenOpen]);
 
   return (
-    <li data-index={index} data-kandidaat={k.bron_iri} onClick={onKies}
-      className={`rounded-kaart border px-3 py-2 ${actief ? "border-lint/50 bg-lint/5" : "border-line bg-paper"}`}>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <p className="flex flex-wrap items-center gap-2 text-sm">
-            <span title={KANDIDAAT_ROL_UITLEG[k.rol]}
-              className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${ROL_STIJL[k.rol]}`}>
-              {KANDIDAAT_ROL_LABEL[k.rol]}
-            </span>
-            <Link href={annotatieHref(k.bron_iri)} className="focus-ring rounded font-medium text-lint hover:underline">
-              {naam}
-            </Link>
-          </p>
-          <ul className="mt-1 space-y-0.5 text-xs text-muted" aria-label={`Bewijs voor ${naam}`}>
+    <LijstRij data-index={index} data-kandidaat={k.bron_iri} onClick={onKies} actief={actief}
+      titel={
+        <Link href={annotatieHref(k.bron_iri)} className="focus-ring rounded font-medium text-lint hover:underline">
+          {naam}
+        </Link>
+      }
+      status={
+        <span title={KANDIDAAT_ROL_UITLEG[k.rol]}
+          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${ROL_STIJL[k.rol]}`}>
+          {KANDIDAAT_ROL_LABEL[k.rol]}
+        </span>
+      }
+      meta={
+        <>
+          <ul className="space-y-0.5" aria-label={`Bewijs voor ${naam}`}>
             {k.bewijs.map((b, i) => <li key={i}>· {bewijsZin(b, labels)}</li>)}
           </ul>
           {k.status === "uitgesloten" && k.reden && (
-            <p className="mt-1 text-xs text-ink">Uitgesloten{k.besloten_door ? ` door ${k.besloten_door}` : ""}: {k.reden}</p>
+            <p className="mt-1 text-ink">Uitgesloten{k.besloten_door ? ` door ${k.besloten_door}` : ""}: {k.reden}</p>
           )}
           {!k.in_laatste_run && f === "open" && (
-            <p className="mt-1 text-xs text-aandacht-geel-tekst">Niet meer gevonden bij de laatste zoekopdracht.</p>
+            <p className="mt-1 text-aandacht-geel-tekst">Niet meer gevonden bij de laatste zoekopdracht.</p>
           )}
-        </div>
-        <div className="flex shrink-0 flex-wrap gap-1.5">
+        </>
+      }
+      acties={f !== "opgenomen" && (
+        <div className="flex flex-wrap gap-1.5">
           {(f === "open" || f === "later") && (
             <>
               <button type="button" disabled={bezig} className={`${KNOP} border-lint bg-lint text-white hover:bg-lint/90`}
@@ -302,7 +296,7 @@ function KandidaatKaart({ k, index, actief, labels, bezig, uitsluitenOpen, onKie
               aria-label={`Heropenen: ${naam}`} onClick={onHeropenen}>Heropenen</button>
           )}
         </div>
-      </div>
+      )}>
       {uitsluitenOpen && (
         <form className="mt-2 flex flex-col gap-2 sm:flex-row" onClick={(e) => e.stopPropagation()}
           onSubmit={(e) => { e.preventDefault(); if (reden.trim()) void onUitsluiten(reden.trim()).then((ok) => ok && setReden("")); }}>
@@ -313,6 +307,6 @@ function KandidaatKaart({ k, index, actief, labels, bezig, uitsluitenOpen, onKie
           <Button type="submit" size="sm" disabled={bezig || !reden.trim()} className="w-full sm:w-auto">Uitsluiten</Button>
         </form>
       )}
-    </li>
+    </LijstRij>
   );
 }

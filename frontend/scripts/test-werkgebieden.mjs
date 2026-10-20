@@ -143,7 +143,7 @@ try {
   await page.getByRole("button", { name: "Aanmaken" }).click();
   await page.waitForURL("**/werkgebieden/wg1");
   await page.getByRole("heading", { name: "Invordering bij nalatigheid" }).waitFor();
-  await page.getByText("Nog geen bronnen", { exact: false }).waitFor();
+  await page.getByText("Nog geen bronnen. Neem hieronder", { exact: false }).waitFor();
 
   // Een ongeldige regeling komt niet bij de api; een geldige wel, met de revisie in beeld.
   await page.getByLabel("Regeling of bron-IRI").fill("Invorderingswet");

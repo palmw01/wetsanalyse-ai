@@ -24,8 +24,8 @@ export const STATUS_LABEL: Record<WerkgebiedStatus, string> = {
 };
 
 /** Het dossier van een werkgebied in de volgorde van de methode: startactiviteit a, de analysevraag, het
- *  praktijkvoorbeeld en de afbakening (spoor F, F2). Eén lijst voor de kop van de pagina, het
- *  formulier en het paneel naast het gesprek. */
+ *  praktijkvoorbeeld en de afbakening (spoor F, F2). Eén lijst voor de samenvatting (kop van de pagina
+ *  en paneel naast het gesprek) en het formulier. */
 export const DOSSIER_VELDEN = [
   { veld: "aanleiding", label: "Aanleiding" },
   { veld: "context", label: "Context" },
@@ -36,14 +36,6 @@ export const DOSSIER_VELDEN = [
 ] as const;
 
 export type DossierVeld = (typeof DOSSIER_VELDEN)[number]["veld"];
-
-/** De gevulde velden van het dossier, met hun label; een leeg veld staat er niet. */
-export function dossierRegels(wg: Partial<Record<DossierVeld, string>>): { veld: DossierVeld; label: string; tekst: string }[] {
-  return DOSSIER_VELDEN.flatMap(({ veld, label }) => {
-    const tekst = (wg[veld] ?? "").trim();
-    return tekst ? [{ veld, label, tekst }] : [];
-  });
-}
 
 export const ROL_LABEL: Record<BronRol, string> = {
   analyseren: "Analyseren",
