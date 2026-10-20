@@ -22,7 +22,9 @@ import { WerkgebiedSchil } from "@/components/werkgebieden/WerkgebiedSchil";
 import { archiveerWerkgebied, foutTekst, haalWerkgebied, isApiError, wijzigWerkgebied } from "@/lib/api";
 import type { Werkgebied, WerkgebiedStatus } from "@/lib/types";
 import { useOnbewaardBewaker } from "@/lib/useOnbewaardBewaker";
-import { STATUS_LABEL, TABS, isRevisieConflict, type WerkgebiedTab } from "@/lib/werkgebied";
+import {
+  DOSSIER_VELDEN, STATUS_LABEL, TABS, dossierRegels, isRevisieConflict, type DossierVeld, type WerkgebiedTab,
+} from "@/lib/werkgebied";
 
 export interface MutatieOpties {
   /** De bevestiging na afloop; een functie als die van de uitkomst afhangt. */
@@ -200,20 +202,14 @@ export function WerkgebiedClient({ id, beginTab, beginBegrip }: {
                   </BevestigKnop>
                 </ButtonRow>
               </div>
-              {(wg.analysevraag || wg.afbakening) && (
-                <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-                  {wg.analysevraag && (
-                    <div>
-                      <dt className="text-xs font-medium text-muted">Analysevraag</dt>
-                      <dd className="whitespace-pre-line text-ink">{wg.analysevraag}</dd>
+              {dossierRegels(wg).length > 0 && (
+                <dl data-dossier className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+                  {dossierRegels(wg).map((r) => (
+                    <div key={r.veld}>
+                      <dt className="text-xs font-medium text-muted">{r.label}</dt>
+                      <dd className="whitespace-pre-line text-ink">{r.tekst}</dd>
                     </div>
-                  )}
-                  {wg.afbakening && (
-                    <div>
-                      <dt className="text-xs font-medium text-muted">Afbakening</dt>
-                      <dd className="whitespace-pre-line text-ink">{wg.afbakening}</dd>
-                    </div>
-                  )}
+                  ))}
                 </dl>
               )}
             </header>
@@ -288,14 +284,23 @@ export function WerkgebiedClient({ id, beginTab, beginBegrip }: {
   );
 }
 
+// Startactiviteit a en activiteit 1b: wat de velden vragen, in de woorden van de vraagkaarten.
+const DOSSIER_HINT: Partial<Record<DossierVeld, string>> = {
+  aanleiding: "waarom we analyseren",
+  context: "de situatie eromheen",
+  doel: "wat de analyse moet opleveren",
+  praktijkvoorbeeld: "hoe een burger of bedrijf het doorloopt",
+};
+
 function GegevensFormulier({ wg, onBewaar, onAnnuleer }: {
   wg: Werkgebied;
-  onBewaar: (w: { naam: string; analysevraag: string; afbakening: string; peildatum: string | null; status: WerkgebiedStatus }) => Promise<void>;
+  onBewaar: (w: { naam: string; peildatum: string | null; status: WerkgebiedStatus } & Record<DossierVeld, string>) => Promise<void>;
   onAnnuleer: () => void;
 }) {
   const [naam, setNaam] = useState(wg.naam);
-  const [vraag, setVraag] = useState(wg.analysevraag);
-  const [afbakening, setAfbakening] = useState(wg.afbakening);
+  // Het dossier in één toestand: dezelfde velden en volgorde als de kop (`DOSSIER_VELDEN`).
+  const [dossier, setDossier] = useState<Record<DossierVeld, string>>(
+    () => Object.fromEntries(DOSSIER_VELDEN.map(({ veld }) => [veld, wg[veld] ?? ""])) as Record<DossierVeld, string>);
   const [peildatum, setPeildatum] = useState(wg.peildatum ?? "");
   const [status, setStatus] = useState<WerkgebiedStatus>(wg.status);
   const [bezig, setBezig] = useState(false);
@@ -304,7 +309,7 @@ function GegevensFormulier({ wg, onBewaar, onAnnuleer }: {
     e.preventDefault();
     if (!naam.trim() || bezig) return;
     setBezig(true);
-    await onBewaar({ naam: naam.trim(), analysevraag: vraag, afbakening, peildatum: peildatum || null, status });
+    await onBewaar({ naam: naam.trim(), ...dossier, peildatum: peildatum || null, status });
     setBezig(false);
   }
 
@@ -313,12 +318,12 @@ function GegevensFormulier({ wg, onBewaar, onAnnuleer }: {
       <Field label="Naam" required>
         <Input value={naam} onChange={(e) => setNaam(e.target.value)} maxLength={200} required autoFocus />
       </Field>
-      <Field label="Analysevraag">
-        <Textarea value={vraag} onChange={(e) => setVraag(e.target.value)} rows={2} maxLength={4000} />
-      </Field>
-      <Field label="Afbakening">
-        <Textarea value={afbakening} onChange={(e) => setAfbakening(e.target.value)} rows={2} maxLength={4000} />
-      </Field>
+      {DOSSIER_VELDEN.map(({ veld, label }) => (
+        <Field key={veld} label={label} hint={DOSSIER_HINT[veld]}>
+          <Textarea value={dossier[veld]} rows={2} maxLength={4000}
+            onChange={(e) => setDossier((d) => ({ ...d, [veld]: e.target.value }))} />
+        </Field>
+      ))}
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Gewenste peildatum" hint="de wettekst zelf komt uit de actuele graaf">
           <Input type="date" value={peildatum} onChange={(e) => setPeildatum(e.target.value)} />

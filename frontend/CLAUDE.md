@@ -160,8 +160,10 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
     `parseArtefact` eist dan `begrip_id` in plaats van `run_id`, net als de api.
   - **werkgebied** (activiteit 1) – een werkgebied dat Lex met de analist samenstelde: ref
     `{werkgebied_id}`. De chip heet *Werkgebied · bekijken* en opent hetzelfde `WerkgebiedArtefactPaneel`
-    met eigen inhoud (`WerkgebiedInhoud`: analysevraag, afbakening, de bronnen met rol *analyseren*,
-    *Open het werkgebied*) – los van het annotatiepaneel. Komt het binnen via `opgeslagen`, dan opent het
+    met eigen inhoud (`WerkgebiedInhoud`: het dossier in de volgorde van `DOSSIER_VELDEN` – aanleiding,
+    context, doel, analysevraag, praktijkvoorbeeld, afbakening –, de actieve deelvragen met hun stand uit
+    `GET …/deelvragen/dekking` (faalt stil), de bronnen met rol *analyseren*, *Open het werkgebied*) – los
+    van het annotatiepaneel. Komt het binnen via `opgeslagen`, dan opent het
     paneel én gaat de werkplek verder in dat werkgebied (`onKiesWerkgebied`, de werkgebiedbalk).
   - **regels** – gereserveerd voor de afleidingsregels: de kaart staat er, maar is geen knop.
   - **Vanuit een werkgebied** (`/workbench?werkgebied=<id>`, de knop *Bespreek met Lex* op de tab
@@ -311,19 +313,27 @@ agent ná je vraag voorlegt uit wat hij vond (kandidaten, `KeuzeKaart`) is een a
 ### Een werkgebied samenstellen met vraagkaarten (activiteit 1)
 
 "Kunnen we een werkgebied samenstellen?" of "ik wil een wetsanalyse uitvoeren" laat Lex één vraag per
-kaartje stellen (graph-qa `agent/werkgebied_intake.py`): naam, analysevraag, regeling(en), onderdelen,
-wat valt erbuiten, en een samenvatting met *Werkgebied aanmaken*. Het kaartje komt als
+kaartje stellen (graph-qa `agent/werkgebied_intake.py`), in de volgorde van de methode (F2): naam,
+aanleiding, context, doel (startactiviteit a), analysevraag, praktijkvoorbeeld, deelvragen, wat valt
+erbuiten, regeling(en), onderdelen, en een samenvatting met *Werkgebied aanmaken*. Het kaartje komt als
 `vraagkaart`-event (`parseVraagkaart` in `lib/vraagkaart.ts`) en staat op het bewaarde bericht
 (`Bericht.vraagkaart`). De vorm volgt hoe Claude een vraag stelt (F1):
 
 - **De open vraag staat onderaan, op de plek van het invoerveld** (`VraagDock`, mobiel en desktop):
-  ‹ n van 5 › (‹ = `wijzig` naar de vorige stap; › alleen als de stap al beantwoord was), ✕ klapt hem weg
+  ‹ n van 10 › (‹ = `wijzig` naar de vorige stap; › alleen als de stap al beantwoord was), ✕ klapt hem weg
   en geeft het invoerveld terug (UI-state, niets beantwoord). De hoogte volgt `visualViewport`, zodat de
   sheet boven het mobiele toetsenbord past.
 - **Opties zijn regels met titel en omschrijving** (uit de graaf); een klik selecteert alleen, pas
   *Volgende* / *Verzend* (laatste vraag) / *Werkgebied aanmaken* stuurt in. "Typ je antwoord…" is de
   laatste regel: met tekst erin krijgt hij het vinkje en vervangt hij bij één keuze een gekozen optie.
-  "Weet ik (nog) niet" sluit de andere keuzes uit. Knoppen zijn pillen (`Button pil`).
+  "Weet ik (nog) niet" sluit de andere keuzes uit. Knoppen zijn pillen (`Button pil`). Context en
+  praktijkvoorbeeld krijgen een hoger veld (Shift+Enter voor een nieuwe regel).
+- **De deelvragen** (`meer_tekst`): naast de voorstellen van Lex is elke eigen deelvraag een regel;
+  Enter in een gevulde regel of *+ Nog een deelvraag* opent de volgende, Ctrl/⌘+Enter of *Volgende*
+  stuurt in. Ze gaan als `teksten` mee (`antwoordActie`), lege regels niet. Na terugbladeren staat elke
+  eigen deelvraag weer op een eigen regel (`beginstand`).
+- **De samenvatting** toont het hele dossier: aanleiding, context, doel, analysevraag,
+  praktijkvoorbeeld, de deelvragen, afbakening en bronnen.
 - **In de thread één Vragen-kaart per reeks** (`groepeerVragen`, `VragenKaart`): per vraag de vraag
   (grijs) en je antwoord, "Vraag" bij één en "Vragen" bij meer, daaronder "● Een vraag stellen ›" (opent
   de dock weer) of "Nadenken…" terwijl Lex de volgende voorbereidt. De antwoordbubbels en de zinnen van
@@ -512,6 +522,9 @@ bestaat los van de gesprekken.
   proxy; een nieuwe api-route vraagt daar een regel. De query gaat ongewijzigd mee
   (`verwachte_revisie` bij DELETE). De inventaris en elke POST onder `begrippen` (koppelen toetst
   tegen de inventaris) krijgen 90 s, want de api haalt per regeling de bronboom uit de graaf.
+- **Het dossier** (F2): de kop van de pagina toont de gevulde velden van `DOSSIER_VELDEN`
+  (`dossierRegels` in `lib/werkgebied.ts`), en *Gegevens bewerken* bewerkt ze allemaal. Eén lijst voor
+  kop, formulier en paneel naast het gesprek; een oudere api zonder de velden leest als leeg.
 - **Gedeeld, dus elke mutatie draagt de revisie in beeld.** Alle mutaties lopen via één `muteer` in
   `WerkgebiedClient`. Een 412 (`revisie_conflict`) laadt de nieuwste stand en zegt dat iemand anders
   het werkgebied wijzigde; de handeling wordt **niet** stil opnieuw uitgevoerd, want op de nieuwe stand

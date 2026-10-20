@@ -33,17 +33,39 @@ describe("parseVraagkaart", () => {
     expect(parseVraagkaart(null)).toBeUndefined();
   });
 
-  it("leest de samenvatting alleen bij een samenvattingskaart", () => {
+  it("leest de samenvatting alleen bij een samenvattingskaart, met het hele dossier", () => {
     const s = kaart({ soort: "samenvatting", stap: "samenvatting",
-      samenvatting: { naam: "Box 3", analysevraag: "Wie?", afbakening: "Regelingen: nog te bepalen.", bronnen: ["Afd. 5.1", 3] } });
-    expect(s.samenvatting).toEqual({ naam: "Box 3", analysevraag: "Wie?", afbakening: "Regelingen: nog te bepalen.", bronnen: ["Afd. 5.1"] });
+      samenvatting: { naam: "Box 3", aanleiding: "Wetswijziging.", doel: "Webservices.", analysevraag: "Wie?",
+        deelvragen: ["Wat telt mee?", 7], afbakening: "Regelingen: nog te bepalen.", bronnen: ["Afd. 5.1", 3] } });
+    expect(s.samenvatting).toEqual({ naam: "Box 3", aanleiding: "Wetswijziging.", context: "", doel: "Webservices.",
+      analysevraag: "Wie?", praktijkvoorbeeld: "", deelvragen: ["Wat telt mee?"],
+      afbakening: "Regelingen: nog te bepalen.", bronnen: ["Afd. 5.1"] });
+  });
+
+  it("kent de stappen van startactiviteit a en de deelvragen", () => {
+    for (const stap of ["aanleiding", "context", "doel", "praktijkvoorbeeld", "deelvragen"]) {
+      expect(kaart({ stap }).stap).toBe(stap);
+    }
+    expect(kaart({ meer_tekst: true }).meer_tekst).toBe(true);
+    expect(kaart().meer_tekst).toBe(false);
   });
 });
 
 describe("het antwoord", () => {
   it("begint met wat Lex vooraf invulde: een optie geselecteerd, de rest als eigen tekst", () => {
-    expect(beginstand(kaart())).toEqual({ gekozen: ["BWBR0011353"], eigen: "Awir" });
+    expect(beginstand(kaart())).toEqual({ gekozen: ["BWBR0011353"], eigen: "Awir", teksten: [] });
     expect(beginstand(kaart({ meerkeuze: false, vooringevuld: ["BWBR0011353", ONBEKEND] })).gekozen).toEqual(["BWBR0011353"]);
+  });
+
+  it("bij meer eigen antwoorden krijgt elk een regel, met een lege erachter", () => {
+    const k = kaart({ stap: "deelvragen", meer_tekst: true, opties: [{ label: "Wie?", waarde: "Wie?", bron: {} }],
+      vooringevuld: ["Wie?", "Eigen een?", "Eigen twee?"] });
+    expect(beginstand(k)).toEqual({ gekozen: ["Wie?"], eigen: "", teksten: ["Eigen een?", "Eigen twee?", ""] });
+    const a = antwoordActie(k, ["Wie?"], "", [" Eigen een? ", "", "Eigen twee?"]);
+    expect(a).toEqual({ intake_id: "ik1", stap: "deelvragen", actie: "antwoord", keuzes: ["Wie?"],
+      teksten: ["Eigen een?", "Eigen twee?"] });
+    expect(antwoordActie(k, [], "", ["", " "])).toBeUndefined();
+    expect(antwoordTekst(k, a!)).toBe("Wie?; Eigen een?; Eigen twee?");
   });
 
   it("zonder keuze en zonder tekst is er geen antwoord", () => {
@@ -81,10 +103,12 @@ describe("parse van de nieuwe velden", () => {
 
 describe("bladeren", () => {
   it("‹ gaat naar de vorige stap, vanaf de samenvatting naar de laatste vraag", () => {
-    expect(vorigeStap(kaart({ terug: true }))).toBe("analysevraag");
+    // De bronnen komen pas na de deelvragen en wat erbuiten valt (Handleiding 1f).
+    expect(vorigeStap(kaart({ terug: true }))).toBe("buiten");
+    expect(vorigeStap(kaart({ stap: "analysevraag", terug: true }))).toBe("doel");
     expect(vorigeStap(kaart({ terug: false }))).toBeUndefined();
-    expect(vorigeStap(kaart({ stap: "samenvatting", soort: "samenvatting", terug: true }))).toBe("buiten");
-    expect(isLaatsteVraag(kaart({ stap: "buiten" }))).toBe(true);
+    expect(vorigeStap(kaart({ stap: "samenvatting", soort: "samenvatting", terug: true }))).toBe("onderdelen");
+    expect(isLaatsteVraag(kaart({ stap: "onderdelen" }))).toBe(true);
     expect(isLaatsteVraag(kaart())).toBe(false);
   });
 });

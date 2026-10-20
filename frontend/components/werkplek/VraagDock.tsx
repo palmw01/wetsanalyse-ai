@@ -18,7 +18,9 @@ import {
  *  - **Opties** zijn regels met een titel en een omschrijving; een klik selecteert alleen, pas
  *    *Volgende* (of Enter) stuurt in. "Weet ik (nog) niet" sluit de andere keuzes uit, en andersom.
  *  - **"Typ je antwoord…"** is de laatste regel: met tekst erin krijgt hij het vinkje. Bij één keuze
- *    vervangt hij een gekozen optie; bij de regelingen is hij een zoekopdracht.
+ *    vervangt hij een gekozen optie; bij de regelingen is hij een zoekopdracht. Bij de deelvragen
+ *    (`meer_tekst`) is elke eigen deelvraag een regel: Enter of *+ Nog een deelvraag* opent de
+ *    volgende, *Volgende* stuurt alles in.
  *  - **Toetsenbord op mobiel**: de hoogte volgt `visualViewport`, zodat de sheet boven het toetsenbord
  *    past; kop en vraag scrollen mee, de knoppen ‹ › en ✕ blijven staan. */
 export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
@@ -31,6 +33,9 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
   const begin = beginstand(kaart);
   const [gekozen, setGekozen] = useState<string[]>(begin.gekozen);
   const [eigen, setEigen] = useState(begin.eigen);
+  const [teksten, setTeksten] = useState<string[]>(begin.teksten);
+  // Welke eigen regel de focus krijgt nadat er een bij kwam.
+  const [nieuweRegel, setNieuweRegel] = useState<number | null>(null);
   const [cursor, setCursor] = useState(0);
   const lijstId = useId();
   const lijst = useRef<HTMLUListElement>(null);
@@ -58,7 +63,11 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
   }
 
   const basis = { intake_id: kaart.intake_id, stap: kaart.stap };
-  const actie = antwoordActie(kaart, gekozen, eigen);
+  const actie = antwoordActie(kaart, gekozen, eigen, teksten);
+  const regelErbij = (na: number) => {
+    setTeksten((t) => [...t.slice(0, na + 1), "", ...t.slice(na + 1)]);
+    setNieuweRegel(na + 1);
+  };
   const stuur = (a: IntakeActie | undefined) => { if (!uitgeschakeld && a) onActie(a); };
   const vorige = vorigeStap(kaart);
   const zoekt = kaart.stap === "regelingen" && !!eigen.trim() && !gekozen.length;
@@ -99,7 +108,20 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
         {kaart.soort === "samenvatting" && kaart.samenvatting ? (
           <dl className="mt-3 divide-y divide-line text-[15px]">
             <Regel naam="Naam">{kaart.samenvatting.naam}</Regel>
+            {(["aanleiding", "context", "doel"] as const).map((v) => (
+              <Regel key={v} naam={DOSSIER_NAAM[v]}>
+                {kaart.samenvatting?.[v] || <span className="text-muted">geen</span>}
+              </Regel>
+            ))}
             <Regel naam="Analysevraag">{kaart.samenvatting.analysevraag || <span className="text-muted">geen</span>}</Regel>
+            <Regel naam="Praktijkvoorbeeld">
+              {kaart.samenvatting.praktijkvoorbeeld || <span className="text-muted">geen</span>}
+            </Regel>
+            <Regel naam="Deelvragen">
+              {kaart.samenvatting.deelvragen.length
+                ? <ol className="list-decimal space-y-0.5 pl-5">{kaart.samenvatting.deelvragen.map((d) => <li key={d}>{d}</li>)}</ol>
+                : <span className="text-muted">geen</span>}
+            </Regel>
             <Regel naam="Afbakening">
               {kaart.samenvatting.afbakening
                 ? <span className="whitespace-pre-line">{kaart.samenvatting.afbakening}</span>
@@ -149,16 +171,51 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
                 </li>
               );
             })}
-            {kaart.vrije_tekst && (
+            {kaart.vrije_tekst && kaart.meer_tekst && (
+              <li className="py-2" role="presentation">
+                <ul className="space-y-1" aria-label="Je eigen deelvragen">
+                  {teksten.map((t, i) => (
+                    <li key={i} className="flex items-center gap-3 py-1.5">
+                      <label className="min-w-0 flex-1">
+                        <span className="sr-only">{`Eigen deelvraag ${i + 1}`}</span>
+                        <textarea
+                          rows={1}
+                          value={t}
+                          disabled={uitgeschakeld}
+                          maxLength={1000}
+                          autoFocus={nieuweRegel === i}
+                          placeholder={i === 0 ? "Typ een eigen deelvraag…" : "Nog een deelvraag…"}
+                          onChange={(e) => setTeksten((ts) => ts.map((x, j) => (j === i ? e.target.value : x)))}
+                          onKeyDown={(e) => {
+                            if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) return;
+                            e.preventDefault();
+                            // Ctrl/⌘+Enter stuurt in; Enter in een gevulde regel opent de volgende.
+                            if (e.ctrlKey || e.metaKey) stuur(actie);
+                            else if (t.trim()) regelErbij(i);
+                          }}
+                          className="block w-full resize-none border-0 bg-transparent p-0 text-[15px] text-ink placeholder:text-faint focus:outline-none focus:ring-0 disabled:opacity-50"
+                        />
+                      </label>
+                      {t.trim() && <Vinkje className="text-lg text-lint" />}
+                    </li>
+                  ))}
+                </ul>
+                <button type="button" disabled={uitgeschakeld} onClick={() => regelErbij(teksten.length - 1)}
+                  className="focus-ring mt-1 rounded text-sm font-medium text-lint hover:underline disabled:opacity-50">
+                  + Nog een deelvraag
+                </button>
+              </li>
+            )}
+            {kaart.vrije_tekst && !kaart.meer_tekst && (
               <li className="flex items-center gap-3 py-3" role="presentation">
                 <label className="min-w-0 flex-1">
                   <span className="sr-only">Typ je antwoord</span>
                   <textarea
                     ref={veld}
-                    rows={1}
+                    rows={LANG.has(kaart.stap) ? 3 : 1}
                     value={eigen}
                     disabled={uitgeschakeld}
-                    maxLength={kaart.stap === "naam" ? 200 : 2000}
+                    maxLength={kaart.stap === "naam" ? 200 : LANG.has(kaart.stap) ? 4000 : 2000}
                     placeholder={kaart.stap === "regelingen" ? "Zoek een regeling op naam of onderwerp…" : "Typ je antwoord…"}
                     onChange={(e) => {
                       setEigen(e.target.value);
@@ -199,6 +256,11 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
     </section>
   );
 }
+
+// Vrije tekst die meer dan een regel vraagt (Shift+Enter voor een nieuwe regel).
+const LANG = new Set<string>(["context", "praktijkvoorbeeld"]);
+
+const DOSSIER_NAAM = { aanleiding: "Aanleiding", context: "Context", doel: "Doel" } as const;
 
 function Regel({ naam, children }: { naam: string; children: React.ReactNode }) {
   return (

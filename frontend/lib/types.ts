@@ -794,6 +794,12 @@ export interface WerkgebiedSamenvatting {
   naam: string;
   analysevraag: string;
   afbakening: string;
+  /** Startactiviteit a (aanleiding, context, doel) en een praktijkvoorbeeld (activiteit 1b): het dossier
+   *  waarop Lex zijn voorstellen baseert (spoor F, F2). Een oudere api stuurt ze niet: lees `?? ""`. */
+  aanleiding?: string;
+  context?: string;
+  doel?: string;
+  praktijkvoorbeeld?: string;
   peildatum: string | null;
   status: WerkgebiedStatus;
   revisie: number;
@@ -854,6 +860,10 @@ export interface WerkgebiedWijziging {
   naam?: string;
   analysevraag?: string;
   afbakening?: string;
+  aanleiding?: string;
+  context?: string;
+  doel?: string;
+  praktijkvoorbeeld?: string;
   peildatum?: string | null;
   status?: WerkgebiedStatus;
 }
