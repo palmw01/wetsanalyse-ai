@@ -26,7 +26,9 @@ from .werkgebied_contracts import (
 
 def _werkgebied(row) -> dict:
     return {"id": row.id, "naam": row.naam, "analysevraag": row.analysevraag,
-            "afbakening": row.afbakening, "peildatum": row.peildatum, "status": row.status,
+            "afbakening": row.afbakening, "aanleiding": row.aanleiding, "context": row.context,
+            "doel": row.doel, "praktijkvoorbeeld": row.praktijkvoorbeeld,
+            "peildatum": row.peildatum, "status": row.status,
             "revisie": row.revisie, "aangemaakt_door": row.aangemaakt_door,
             "aangemaakt": db.aware(row.aangemaakt).isoformat(),
             "gewijzigd": db.aware(row.gewijzigd).isoformat(),
@@ -73,7 +75,10 @@ async def _van_intake(intake_id: str) -> str | None:
 
 async def maak(invoer: WerkgebiedInvoer, actor: str) -> dict:
     """Een nieuw werkgebied. Met een `intake_id` idempotent: bestaat er al een uit die intake, dan
-    komt dat terug (ook als het intussen gewijzigd is; gearchiveerd geeft 404)."""
+    komt dat terug (ook als het intussen gewijzigd is; gearchiveerd geeft 404).
+
+    De deelvragen uit het samenstellen komen in dezelfde transactie mee, actief en op volgorde;
+    dezelfde vraag twee keer (genormaliseerd) telt één keer."""
     if invoer.intake_id and (bestaand := await _van_intake(invoer.intake_id)):
         return await haal(bestaand)
     nu, wid = db.utcnow(), str(uuid.uuid4())
@@ -81,16 +86,33 @@ async def maak(invoer: WerkgebiedInvoer, actor: str) -> dict:
         async with db.get_engine().begin() as conn:
             await conn.execute(insert(db.werkgebieden).values(
                 id=wid, naam=invoer.naam, analysevraag=invoer.analysevraag, afbakening=invoer.afbakening,
+                aanleiding=invoer.aanleiding, context=invoer.context, doel=invoer.doel,
+                praktijkvoorbeeld=invoer.praktijkvoorbeeld,
                 peildatum=invoer.peildatum, status="in_voorbereiding", revisie=1, aangemaakt_door=actor,
                 aangemaakt=nu, gewijzigd=nu, intake_id=invoer.intake_id))
+            deelvragen = await _deelvragen_bij_aanmaken(conn, wid, invoer, actor, nu)
             await _audit(conn, wid, actor, "aangemaakt", {"naam": invoer.naam, "revisie": 1,
-                                                          **({"intake_id": invoer.intake_id} if invoer.intake_id else {})})
+                                                          **({"intake_id": invoer.intake_id} if invoer.intake_id else {}),
+                                                          **({"deelvragen": deelvragen} if deelvragen else {})})
     except IntegrityError:
         # Twee gelijktijdige klikken (of replica's): de unieke index besliste, de ander wint.
         if invoer.intake_id and (bestaand := await _van_intake(invoer.intake_id)):
             return await haal(bestaand)
         raise
     return await haal(wid)
+
+
+async def _deelvragen_bij_aanmaken(conn, wid: str, invoer: WerkgebiedInvoer, actor: str, nu) -> int:
+    from .werkgebied_deelvragen import normaliseer  # die module leest dit schrijfpad zelf
+    gezien: set[str] = set()
+    for d in invoer.deelvragen:
+        if (sleutel := normaliseer(d.vraag)) in gezien:
+            continue
+        gezien.add(sleutel)
+        await conn.execute(insert(db.werkgebied_deelvragen).values(
+            id=str(uuid.uuid4()), werkgebied_id=wid, vraag=d.vraag, volgorde=len(gezien) - 1, status="actief",
+            herkomst=d.herkomst, reden="", aangemaakt_door=actor, aangemaakt=nu, gewijzigd=nu))
+    return len(gezien)
 
 
 async def lijst(gearchiveerd: bool = False) -> list[dict]:

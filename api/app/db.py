@@ -237,6 +237,12 @@ werkgebieden = Table("werkgebieden", metadata,
     Column("naam", String(200), nullable=False),
     Column("analysevraag", Text, nullable=False, default=""),
     Column("afbakening", Text, nullable=False, default=""),
+    # Startactiviteit a van de Leidraad (aanleiding, context, doel) en een gangbaar praktijkvoorbeeld
+    # (activiteit 1b): het dossier waarop Lex zijn voorstellen voor dit werkgebied baseert.
+    Column("aanleiding", Text, nullable=False, server_default="", default=""),
+    Column("context", Text, nullable=False, server_default="", default=""),
+    Column("doel", Text, nullable=False, server_default="", default=""),
+    Column("praktijkvoorbeeld", Text, nullable=False, server_default="", default=""),
     Column("peildatum", String(10), nullable=True),
     Column("status", String(24), nullable=False, default="in_voorbereiding"),
     Column("revisie", Integer, nullable=False, default=1),

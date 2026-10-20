@@ -95,6 +95,12 @@ class VraagOptie(BaseModel):
     omschrijving: str = Field(default="", max_length=300)
 
 
+# De stappen van het samenstellen, in de volgorde van graph-qa (`agent/werkgebied_intake.STAPPEN`):
+# startactiviteit a, dan activiteit 1 – de bronnen pas als vraag en deelvragen er zijn (Handleiding 1f).
+IntakeStap = Literal["naam", "aanleiding", "context", "doel", "analysevraag", "praktijkvoorbeeld",
+                     "deelvragen", "buiten", "regelingen", "onderdelen", "samenvatting"]
+
+
 class Vraagkaart(BaseModel):
     """Een vraag van Lex bij het samenstellen van een werkgebied (activiteit 1): één stap, met
     voorstellen en een eigen antwoord. De werkplek toont hem als kaartje, ook na herladen; een klik
@@ -102,13 +108,14 @@ class Vraagkaart(BaseModel):
 
     `vooringevuld` zijn de waarden die Lex uit de eerste zin haalde: voorgeselecteerd, nooit stil
     aangenomen. Een samenvattingskaart (`soort: samenvatting`) draagt in `samenvatting` wat er
-    aangemaakt wordt: `{naam, analysevraag, afbakening, bronnen[]}`."""
+    aangemaakt wordt: `{naam, aanleiding, context, doel, analysevraag, praktijkvoorbeeld,
+    deelvragen[], afbakening, bronnen[]}`."""
 
     intake_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
     soort: Literal["vraag", "samenvatting"] = "vraag"
-    stap: Literal["naam", "analysevraag", "regelingen", "onderdelen", "buiten", "samenvatting"]
-    nr: int = Field(ge=1, le=10)
-    totaal: int = Field(ge=1, le=10)
+    stap: IntakeStap
+    nr: int = Field(ge=1, le=20)
+    totaal: int = Field(ge=1, le=20)
     vraag: str = Field(min_length=1, max_length=500)
     toelichting: str = Field(default="", max_length=1000)
     opties: list[VraagOptie] = Field(default_factory=list, max_length=20)
@@ -128,7 +135,7 @@ class IntakeAntwoord(BaseModel):
     antwoord, en onderscheidt hij het van een getypte tussenvraag (die de "Vragen"-kaart onderbreekt)."""
 
     intake_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
-    stap: Literal["naam", "analysevraag", "regelingen", "onderdelen", "buiten", "samenvatting"]
+    stap: IntakeStap
     actie: Literal["antwoord", "overslaan", "wijzig", "aanmaken", "afbreken"] = "antwoord"
 
 

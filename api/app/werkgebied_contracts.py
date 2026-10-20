@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import re
 from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -34,13 +35,32 @@ def _peildatum(v: str | None) -> str | None:
     return v
 
 
+class DeelvraagBijAanmaken(BaseModel):
+    """Een deelvraag die bij het samenstellen al gekozen is: actief, met wie hem bedacht."""
+
+    vraag: str = Field(min_length=1, max_length=1000)
+    herkomst: Literal["analist", "lex"] = "analist"
+
+    @field_validator("vraag")
+    @classmethod
+    def _v(cls, v: str) -> str:
+        return _vraag(v)
+
+
 class WerkgebiedInvoer(BaseModel):
     naam: str = Field(min_length=1, max_length=200)
     analysevraag: str = Field(default="", max_length=4000)
     afbakening: str = Field(default="", max_length=4000)
+    # Startactiviteit a (Leidraad §2.2) en een praktijkvoorbeeld (activiteit 1b); vrije tekst – een keuze
+    # uit de vaste lijst staat er als haar omschrijving in.
+    aanleiding: str = Field(default="", max_length=4000)
+    context: str = Field(default="", max_length=4000)
+    doel: str = Field(default="", max_length=4000)
+    praktijkvoorbeeld: str = Field(default="", max_length=4000)
     peildatum: str | None = None
     # Gezet door graph-qa bij het samenstellen in het gesprek: maak is dan idempotent op deze id.
     intake_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9-]{1,64}$")
+    deelvragen: list[DeelvraagBijAanmaken] = Field(default_factory=list, max_length=20)
 
     @field_validator("peildatum")
     @classmethod
@@ -60,6 +80,10 @@ class WerkgebiedWijziging(BaseModel):
     naam: str | None = Field(default=None, min_length=1, max_length=200)
     analysevraag: str | None = Field(default=None, max_length=4000)
     afbakening: str | None = Field(default=None, max_length=4000)
+    aanleiding: str | None = Field(default=None, max_length=4000)
+    context: str | None = Field(default=None, max_length=4000)
+    doel: str | None = Field(default=None, max_length=4000)
+    praktijkvoorbeeld: str | None = Field(default=None, max_length=4000)
     peildatum: str | None = None
     status: Status | None = None
 

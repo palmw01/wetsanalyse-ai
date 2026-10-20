@@ -724,12 +724,66 @@ invoerveld (✕ wegklikken, "● Een vraag stellen ›" in de thread), beantwoor
 Vragen-kaart zonder bubbels (`intake_antwoord` op het bericht), opties met een omschrijving uit de
 graaf, eigen tekst als laatste regel, pilknoppen, en terugbladeren met ‹ n van 5 ›.
 
+**F2 – startactiviteit a en de volgorde van activiteit 1** (gepland 20 okt 2026; besluiten van de
+gebruiker op 20 okt 2026). Getoetst aan Leidraad §2.2 (startactiviteiten) en §2.4, en aan Handleiding
+§3.3 (activiteit 1).
+
+- **Waarom.** De startactiviteiten gaan vooraf aan hoofdactiviteit 1–6 (Leidraad §2.2), en
+  startactiviteit a – aanleiding, context en doel(en) – ontbrak. De hoofdvraag "bepaalt het doel van
+  de Wetsanalyse en de afbakening van het werkgebied" (Handleiding 1a) en volgt dus uit a. En de
+  bronnen horen pas te komen "als de hoofdvraag/hoofdopdracht en deelvragen bekend zijn" (1f): F0
+  vroeg ze te vroeg, en zocht daardoor op te weinig.
+- **Uitgangspunt: alles wat er ligt, is de context van Lex – en die wordt steeds scherper.** Elk
+  antwoord en elke toevoeging aan het werkgebied voedt de volgende voorstellen; Lex vraagt nooit iets
+  wat hij al weet en stelt niets voor op minder dan wat er ligt. Concreet:
+  - *In de intake* bouwt één functie het dossier uit alle antwoorden tot nu toe (startzin, naam,
+    aanleiding, context, doel, analysevraag, praktijkvoorbeeld, deelvragen, wat erbuiten valt), en
+    **elke** voorstelaanroep en elke zoekopdracht krijgt dat hele dossier – ook de naam en de
+    voorselectie van aanleiding en doel. Een test eist dat geen stap minder krijgt.
+  - *Terugbladeren* en een eerder antwoord wijzigen maakt de voorstellen van de stappen erna opnieuw;
+    wat de analist al koos blijft voorgeselecteerd, nooit stil vervangen.
+  - *Na het aanmaken* is het werkgebied zelf het dossier: één `werkgebiedcontext` (alle velden,
+    actieve deelvragen, wat erbuiten valt, de bronselecties) uit de api, per revisie vers. Die voedt de
+    deelvragenrun (nu alleen naam, analysevraag en afbakening), het zoeken van bronnen (de invoer van
+    de bronnenrun) en **het gesprek**: met een `werkgebied_id` gaat het als contextblok naar de
+    supervisor en de specialisten, naast de focus. Context, geen filter – net als de focus.
+  - Elke bewaarde wijziging (een veld, een deelvraag, een opgenomen of uitgesloten bron) verhoogt de
+    revisie, en de volgende beurt leest de nieuwe stand.
+- **Volgorde van de kaartjes:** naam → aanleiding → context → doel → analysevraag → praktijkvoorbeeld
+  → deelvragen → wat valt erbuiten → regeling(en) → onderdelen → samenvatting met *Aanmaken*. Alleen
+  de naam is verplicht.
+- **Aanleiding en doel** zijn elk een kaartje met de vaste lijst uit de Leidraad plus eigen tekst;
+  **context** is vrije tekst (de Leidraad: voor de context helpt een lijst niet). De lijsten staan
+  **in eigen woorden** in de repo – de Leidraad is BRM-materiaal en lokaal-only – met een verwijzing
+  in `references/bronnen.md`. Lex mag uit de startzin voorselecteren, nooit stil aannemen.
+- **Analysevraag** = hoofdvraag óf hoofdtaak (1a); Lex stelt haar voor uit aanleiding, context en doel.
+- **Praktijkvoorbeeld** (1b), optioneel en vrije tekst: één gangbaar voorbeeld, als voeding voor
+  deelvragen en bronzoeken. Geen juridische scenario's en gebeurtenissen (1c/1e): dat is de
+  "deelvragen eerst"-variant die de Leidraad toestaat – een bewuste afwijking, zie *Vervolg*.
+- **Deelvragen** (1d): Lex stelt er een paar voor uit alles hierboven (de prompt van
+  `agent/deelvragen.py`, op `LLM_MODEL`); de analist kiest er één of meer, voegt er zelf één of meer
+  toe, of kiest "Geen deelvragen (nu)" (open keuze 4: optioneel). Alleen de vraag, geen soort
+  direct/indirect.
+- **Wat valt erbuiten** komt na de deelvragen en vóór de bronnen.
+- **Regelingen en onderdelen** zoeken met alles wat er dan ligt: de analysevraag en per deelvraag
+  (`onderwerp_van_deelvraag`), met wat erbuiten valt als uitsluiting. Een onderdeel dat bij een
+  deelvraag werd gevonden, wordt bij het aanmaken aan die deelvraag gekoppeld (1g, de dekkingscheck
+  uit G1). Minder en betere bronvoorstellen is een volgende iteratie.
+- **Het werkgebied draagt alles**: aanleiding (keuze + toelichting), context, doel (keuze +
+  toelichting) en praktijkvoorbeeld als velden met revisie en audit; de deelvragen komen bij het
+  aanmaken mee (actief, herkomst `analist` of `lex`, idempotent op `intake_id`). Het werkgebiedpaneel
+  naast het gesprek en de werkgebiedpagina tonen alles, de pagina bewerkt het ook.
+- **PR's:** api (F2a: velden, deelvragen bij aanmaken, de werkgebiedcontext), graph-qa (F2b: de
+  intake met het dossier, de werkgebiedcontext in deelvragenrun, bronnenrun en gesprek), werkplek (F2c).
+
 **Vervolg (open, eigen plan):**
 
 - **Lex helpt de bronnen vinden** als de analist ze nog niet kent – nu valt dat buiten F0 (de
   bestaande bronnenrun en deelvragen staan klaar als volgende stap na het aanmaken).
-- De rest van activiteit 1 uit de Leidraad: praktijkvoorbeeld, juridische scenario's, deelvragen in de
-  intake en ze verbinden met gebeurtenissen.
+- De rest van activiteit 1 uit de Leidraad: juridische scenario's met gebeurtenissen (1c) en die
+  verbinden met de deelvragen (1e) – de controle die volgens de Handleiding de afbakening scherp maakt.
+- Startactiviteit b (projecttypologie), c (hoofd- en deelactiviteiten) en d (het team): bewust nog niet
+  (besloten 20 okt 2026); ze sturen vooral keuzes die het platform nog niet maakt.
 - De doorstap naar activiteit 2 (annoteren) en 3 (begrippen) vanuit hetzelfde gesprek.
 
 ---
