@@ -22,6 +22,9 @@ class State(TypedDict, total=False):
     # Het werkgebied van waaruit de werkplek het gesprek opende (of leeg). Zijn begrippen staan vooraan
     # bij `search_begrippen`; het is context, geen filter. Komt elke beurt opnieuw van het verzoek.
     werkgebied_id: str
+    # Het dossier van dat werkgebied als contextblok (`werkgebied_context.als_blok`), per beurt opgehaald;
+    # `memory_context` zet het naast de focus. Context, geen filter.
+    werkgebied_context: str
     # De overzichtsroute (`agent/overzicht.py`): de supervisor herkende "welke artikelen gaan over X";
     # `overzicht` is het deterministisch gebouwde overzicht. Beide per beurt gereset.
     overzicht_route: bool

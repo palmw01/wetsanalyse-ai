@@ -1,8 +1,8 @@
 """De werkgebied-worker: Lex stelt met de analist een werkgebied samen (activiteit 1).
 
 Eén beurt is één stap van de intake (`agent/werkgebied_intake.py`): de klik op een kaartje verwerken,
-het volgende kaartje voorbereiden – voorstellen uit de graaf en, waar het helpt, één kleine
-modelaanroep – en het uitsturen als `vraagkaart`-event naast een korte zin. Bij *Aanmaken* stuurt de
+het volgende kaartje voorbereiden – voorstellen uit de graaf en, waar het helpt, een modelaanroep,
+altijd met het hele dossier, en opnieuw zodra dat veranderde – en het uitsturen als `vraagkaart`-event naast een korte zin. Bij *Aanmaken* stuurt de
 node alleen een `werkgebied_aanmaken`-event: het schrijven doet de beurt-driver, aan het eind van de
 beurt, zoals bij een annotatie.
 
@@ -23,60 +23,130 @@ logger = logging.getLogger("graph_qa.werkgebied")
 
 _ZIN = {
     "naam": "Laten we het werkgebied samen bepalen; ik stel je een paar korte vragen.",
+    "aanleiding": "Eerst waarom we analyseren: de aanleiding.",
+    "context": "En de situatie eromheen.",
+    "doel": "Wat moet de analyse opleveren?",
     "analysevraag": "Dan de vraag die het werkgebied moet beantwoorden.",
-    "regelingen": "Nu de afbakening: om welke wet- en regelgeving gaat het?",
-    "onderdelen": "Welke delen daarvan horen erbij?",
+    "praktijkvoorbeeld": "Een voorbeeld uit de praktijk helpt om scherp te krijgen wat erbij hoort.",
+    "deelvragen": "Nu maken we de analysevraag concreet.",
     "buiten": "Is er iets dat je bewust buiten het werkgebied laat?",
+    "regelingen": "Nu de bronnen: om welke wet- en regelgeving gaat het?",
+    "onderdelen": "Welke delen daarvan horen erbij?",
     "samenvatting": "Dit is het werkgebied zoals we het hebben samengesteld.",
 }
 
 
-def _voorstellen(b, intake: dict[str, Any], writer) -> dict[str, Any]:
-    """Het model vraagt om voorstellen (naam, analysevraag, onderwerp) en neemt ze op in de intake."""
-    _stap(writer, "Lex", "stelt voorstellen op")
-    vs = wi.stel_voor(b.llm, b.model_router, intake)
-    voorstellen = dict(intake.get("voorstellen") or {})
-    vooringevuld = dict(intake.get("vooringevuld") or {})
-    a = intake.get("antwoorden") or {}
-    if vs["naam"] and "naam" not in a:
-        voorstellen["naam"] = wi.tekst_opties(vs["naam"])
-        vooringevuld["naam"] = vs["naam"][:1]
-    if vs["analysevraag"] and "analysevraag" not in a:
-        voorstellen["analysevraag"] = wi.tekst_opties(vs["analysevraag"])
-    return {**intake, "voorstellen": voorstellen, "vooringevuld": vooringevuld,
-            "onderwerp": vs["onderwerp"] or intake.get("onderwerp", "")}
+def _model(b, intake: dict[str, Any], writer) -> dict[str, Any]:
+    """De voorstellen van het model bij het dossier zoals het nu is: één aanroep per stand van het
+    dossier, gedeeld door de stappen die hem nodig hebben."""
+    h = wi.dossier_hash(intake)
+    if intake.get("model_hash") == h:
+        return intake
+    _stap(writer, "Lex", "stelt voorstellen op bij wat er ligt")
+    return {**intake, "model": wi.stel_voor(b.llm, b.model_router, intake), "model_hash": h}
 
 
-def _regelingen(b, intake: dict[str, Any], zoek: str, writer) -> dict[str, Any]:
+def _met(intake: dict[str, Any], sleutel: str, stap: str, waarde: Any) -> dict[str, Any]:
+    return {**intake, sleutel: {**(intake.get(sleutel) or {}), stap: waarde}}
+
+
+def _deelvragen(b, intake: dict[str, Any], writer) -> dict[str, Any]:
+    """Voorstellen voor deelvragen uit het hele dossier (`agent/deelvragen.py`, op het sterke model). Wat
+    de analist al koos van Lex blijft kiesbaar; zijn eigen deelvragen staan in het tekstveld."""
+    from .. import deelvragen as dv
+
     a = intake.get("antwoorden") or {}
-    genoemd_in = " ".join([intake.get("eerste_zin", ""), a.get("naam", ""), a.get("analysevraag", "")])
-    _stap(writer, "Lex", f"zoekt regelingen bij: {zoek[:80]}" if zoek else "zoekt de genoemde regelingen")
+    vragen: list[str] = []
+    if not (a.get("analysevraag") or "").strip():
+        intake = _met(intake, "meldingen", "deelvragen",
+                      "Zonder analysevraag stel ik geen deelvragen voor; je kunt ze wel zelf toevoegen.")
+    else:
+        _stap(writer, "Lex", "stelt deelvragen voor bij de analysevraag")
+        try:
+            vragen = dv.vraag_model(b.llm, b.model, wi.als_werkgebied(intake), {})
+        except Exception:  # noqa: BLE001 – een voorstel is een gemak, geen voorwaarde
+            logger.warning("intake: geen deelvragen van het model", exc_info=True)
+            intake = _met(intake, "meldingen", "deelvragen",
+                          "Ik kon nu geen deelvragen voorstellen; voeg ze zelf toe of sla deze stap over.")
+    opties = wi.tekst_opties(vragen, "voorstel van Lex")
+    nieuw = {wi.normaliseer(v) for v in vragen}
+    eerder = [d["vraag"] for d in a.get("deelvragen") or []
+              if d["herkomst"] == "lex" and wi.normaliseer(d["vraag"]) not in nieuw]
+    return _met(intake, "voorstellen", "deelvragen", wi.tekst_opties(eerder, "eerder gekozen") + opties)
+
+
+def _regelingen(b, intake: dict[str, Any], zoek: str, writer, *, per_deelvraag: bool) -> dict[str, Any]:
+    """Regelingen uit de graaf, gezocht met wat er ligt: het onderwerp, de deelvragen, de regelingen die
+    het dossier bij naam noemt, en zonder wat buiten het werkgebied valt."""
+    from ..bronnen_vinden import onderwerp_van_deelvraag
+    from ..werkgebied_context import uitsluitstammen
+
+    a = intake.get("antwoorden") or {}
+    wg = wi.als_werkgebied(intake)
+    # Waar een regeling bij naam genoemd kan zijn – niet in wat erbuiten valt.
+    genoemd_in = " ".join([intake.get("eerste_zin", ""), *(wg[k] for k in ("naam", "aanleiding", "context", "doel",
+                                                                        "analysevraag", "praktijkvoorbeeld")),
+                           *(d["vraag"] for d in wg["deelvragen"])])
+    deelvragen = [(d["vraag"], o) for d in wg["deelvragen"] if (o := onderwerp_van_deelvraag(d["vraag"]))] \
+        if per_deelvraag else []
+    _stap(writer, "Lex", f"zoekt regelingen bij: {zoek[:80]}" + (
+        f" en {len(deelvragen)} {'deelvraag' if len(deelvragen) == 1 else 'deelvragen'}" if deelvragen else "")
+          if zoek or deelvragen else "zoekt de genoemde regelingen")
     try:
-        opties, delen, voorop = wi.regeling_opties(b.graph, zoek, genoemd_in=genoemd_in)
+        opties, delen, voorop, weg = wi.regeling_opties(b.graph, zoek, genoemd_in=genoemd_in, deelvragen=deelvragen,
+                                                        buiten=uitsluitstammen(a.get("buiten", "")))
     except Exception:  # noqa: BLE001 – geen graaf: dan alleen eigen tekst en "weet ik niet"
         logger.warning("intake: regelingen niet opgehaald", exc_info=True)
-        opties, delen, voorop = [], {}, []
+        opties, delen, voorop, weg = [], {}, [], []
+    # Wat de analist al koos, blijft te kiezen: een nieuwe zoekronde vervangt het niet stil.
+    gevonden = {o["waarde"] for o in opties}
+    opties = [{"label": r["label"], "waarde": r["bwb_id"], "bron": {"bwb_id": r["bwb_id"]}, "omschrijving": "eerder gekozen"}
+              for r in a.get("regelingen") or [] if r["bwb_id"] not in gevonden] + opties
     melding = "" if opties else (
         f"Ik vond geen regeling bij ‘{zoek}’." if zoek else "Ik kon nog geen regeling voorstellen.")
-    return {**intake, "melding": melding,
-            "voorstellen": {**intake.get("voorstellen", {}), "regelingen": opties},
-            "vooringevuld": {**intake.get("vooringevuld", {}), "regelingen": voorop},
+    if weg:
+        melding = (f"{melding} Ik liet {len(weg)} {'deel' if len(weg) == 1 else 'delen'} weg die raken aan wat buiten "
+                   f"het werkgebied valt ({', '.join(weg[:3])}{' …' if len(weg) > 3 else ''}).").strip()
+    intake = _met(intake, "meldingen", "regelingen", melding)
+    return {**_met(_met(intake, "voorstellen", "regelingen", opties), "vooringevuld", "regelingen", voorop),
             "delen": {**intake.get("delen", {}), **delen}}
 
 
+def _onderdelen(intake: dict[str, Any]) -> dict[str, Any]:
+    a = intake.get("antwoorden") or {}
+    opties = wi.onderdeel_opties(a.get("regelingen") or [], intake.get("delen") or {},
+                                 [d["vraag"] for d in a.get("deelvragen") or []])
+    gevonden = {o["waarde"] for o in opties}
+    eerder = [{"label": o["label"], "waarde": o["bron_iri"], "bron": {"bwb_id": o.get("bwb_id", ""), "iri": o["bron_iri"]},
+               "omschrijving": "eerder gekozen"} for o in a.get("onderdelen") or [] if o["bron_iri"] not in gevonden]
+    return _met(intake, "voorstellen", "onderdelen", eerder + opties)
+
+
 def _bereid_voor(b, intake: dict[str, Any], writer) -> dict[str, Any]:
-    """Wat het kaartje van de huidige stap nodig heeft."""
-    stap, a = intake["stap"], intake.get("antwoorden") or {}
-    intake = {**intake, "melding": ""}
-    if stap == "analysevraag" and not intake.get("voorstellen", {}).get("analysevraag") and a.get("naam"):
-        intake = _voorstellen(b, intake, writer)
+    """Wat het kaartje van de huidige stap nodig heeft – opnieuw zodra het dossier veranderde, anders
+    niet (terugbladeren zonder iets te wijzigen kost geen aanroep)."""
+    stap, h = intake["stap"], wi.dossier_hash(intake)
+    if stap not in wi.STAPPEN or (intake.get("voorbereid") or {}).get(stap) == h:
+        return intake
+    intake = _met(_met(intake, "voorbereid", stap, h), "meldingen", stap, "")
+    a = intake.get("antwoorden") or {}
+    if stap == "naam" and wi.inhoud(intake.get("eerste_zin", "")):
+        intake = _model(b, intake, writer)
+        if (namen := intake["model"].get("naam")):
+            intake = _met(_met(intake, "voorstellen", "naam", wi.tekst_opties(namen)), "vooringevuld", "naam", namen[:1])
+    elif stap in ("aanleiding", "doel"):
+        intake = _model(b, intake, writer)
+        intake = _met(intake, "vooringevuld", stap, list(intake["model"].get(stap) or []))
+    elif stap == "analysevraag":
+        intake = _model(b, intake, writer)
+        intake = _met(intake, "voorstellen", "analysevraag", wi.tekst_opties(intake["model"].get("analysevraag") or []))
+    elif stap == "deelvragen":
+        intake = _deelvragen(b, intake, writer)
     elif stap == "regelingen":
-        if a.get("analysevraag") and not intake.get("onderwerp_uit_vraag"):
-            intake = {**_voorstellen(b, intake, writer), "onderwerp_uit_vraag": True}
-        intake = _regelingen(b, intake, intake.get("onderwerp") or a.get("naam", ""), writer)
+        intake = _model(b, intake, writer)
+        intake = _regelingen(b, intake, intake["model"].get("onderwerp") or a.get("naam", ""), writer, per_deelvraag=True)
     elif stap == "onderdelen":
-        opties = wi.onderdeel_opties(a.get("regelingen") or [], intake.get("delen") or {})
-        intake = {**intake, "voorstellen": {**intake.get("voorstellen", {}), "onderdelen": opties}}
+        intake = _onderdelen(intake)
     return intake
 
 
@@ -92,8 +162,6 @@ def werkgebied_intake_node(b, state: State) -> dict[str, Any]:
         _stap(writer, "Lex", "begint met het samenstellen van een werkgebied")
         if wi.is_wetsanalysevraag(vraag):
             zinnen.append(wi.UITLEG)
-        if wi.inhoud(vraag):
-            intake = _voorstellen(b, intake, writer)
         uitkomst = "verder"
     else:
         if not actie:
@@ -127,7 +195,7 @@ def werkgebied_intake_node(b, state: State) -> dict[str, Any]:
     elif uitkomst == "naam_nodig":
         zinnen.append("Een werkgebied heeft een naam nodig; die kan ik niet overslaan.")
     elif uitkomst == "zoek":
-        intake = _regelingen(b, intake, intake.get("zoekterm", ""), writer)
+        intake = _regelingen(b, intake, intake.get("zoekterm", ""), writer, per_deelvraag=False)
         zinnen.append(f"Dit vond ik bij ‘{intake.get('zoekterm', '')}’." if intake["voorstellen"]["regelingen"]
                       else "Probeer een andere naam of een ander onderwerp, of kies ‘Weet ik (nog) niet’.")
 

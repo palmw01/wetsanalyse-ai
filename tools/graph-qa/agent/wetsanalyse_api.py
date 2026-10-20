@@ -151,6 +151,11 @@ class WetsanalyseApi:
         """Een bronselectie; geeft `{selectie, werkgebied}` terug (met de nieuwe revisie)."""
         return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/bronnen", bron)
 
+    async def koppel_deelvraag(self, werkgebied_id: str, deelvraag_id: str, koppelingen: dict[str, Any]) -> dict[str, Any]:
+        """De bronselecties en begrippen bij een deelvraag – de hele set; geeft het werkgebied terug."""
+        return await self._verstuur("PUT", f"{self._werkgebied_pad(werkgebied_id)}/deelvragen/"
+                                           f"{quote(deelvraag_id, safe='')}/koppelingen", koppelingen)
+
     async def start_begrippen_run(self, werkgebied_id: str) -> dict[str, Any]:
         """Manifest vastleggen en de run maken, of de bestaande op dezelfde stand (`nieuw: false`).
 

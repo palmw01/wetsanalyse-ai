@@ -19,6 +19,7 @@ from typing import Any, AsyncIterator, Callable
 
 from .begrippen_pipeline.kaartacties import lees
 from .config import Settings
+from .werkgebied_context import context_tekst
 from .wetsanalyse_api import WetsanalyseApi, WetsanalyseApiFout
 
 logger = logging.getLogger(__name__)
@@ -26,11 +27,12 @@ logger = logging.getLogger(__name__)
 MAX_DEELVRAGEN = 8
 TOOL = "stel_deelvragen_voor"
 SYSTEEM = (
-    "Je helpt een jurist bij een wetsanalyse (activiteit 3: een werkgebied rond één analysevraag). Leg de "
-    "analysevraag uiteen in de deelvragen die apart beantwoord moeten worden om de hele vraag te dekken: "
-    "wie (rechtssubjecten), wat (rechtsobjecten, rechtsbetrekkingen), wanneer en onder welke voorwaarden "
-    "(rechtsfeiten, voorwaarden, termijnen), welke uitzonderingen, en welke gevolgen – maar alleen wat in "
-    "de vraag en de afbakening besloten ligt. Verzin geen onderwerpen die er niet in staan, en noem geen "
+    "Je helpt een jurist bij een wetsanalyse (activiteit 1: het werkgebied bepalen, rond één analysevraag). "
+    "Leg de analysevraag uiteen in de deelvragen die apart beantwoord moeten worden om de hele vraag te "
+    "dekken: wie (rechtssubjecten), wat (rechtsobjecten, rechtsbetrekkingen), wanneer en onder welke "
+    "voorwaarden (rechtsfeiten, voorwaarden, termijnen), welke uitzonderingen, en welke gevolgen – maar "
+    "alleen wat in het dossier besloten ligt: de vraag, de aanleiding, context en doel, het "
+    "praktijkvoorbeeld en de afbakening. Wat buiten het werkgebied valt, krijgt geen deelvraag. Verzin geen onderwerpen die er niet in staan, en noem geen "
     "artikelen: welke bepalingen erbij horen, zoekt Lex daarna in de wet. Elke deelvraag is één korte, "
     "zelfstandige vraag in gewone taal, eindigend op een vraagteken. Herhaal geen deelvraag die al bestaat "
     "en bedenk er geen variant van. Een enkelvoudige vraag levert één of twee deelvragen op. "
@@ -47,11 +49,10 @@ def schema() -> dict[str, Any]:
 
 
 def prompt(werkgebied: dict[str, Any]) -> str:
+    """Het hele dossier van het werkgebied (`werkgebied_context.context_tekst`, ook bij het samenstellen),
+    en de deelvragen die er al staan – ook de voorstellen, zodat Lex er geen variant van bedenkt."""
     bestaand = [d["vraag"] for d in werkgebied.get("deelvragen") or []]
-    delen = [f"Werkgebied: {werkgebied.get('naam', '')}",
-             f"Analysevraag: {werkgebied.get('analysevraag', '').strip()}"]
-    if (werkgebied.get("afbakening") or "").strip():
-        delen.append(f"Afbakening: {werkgebied['afbakening'].strip()}")
+    delen = [context_tekst(werkgebied, deelvragen=False)]
     delen.append("Bestaande deelvragen:\n" + ("\n".join(f"- {v}" for v in bestaand) if bestaand else "(geen)"))
     return "\n\n".join(delen)
 

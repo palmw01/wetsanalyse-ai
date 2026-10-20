@@ -124,6 +124,24 @@ async def delete_conversation(conversation_id: str, *, settings: Settings | None
         await saver.adelete_thread(conversation_id)
 
 
+async def _werkgebied_blok(settings: Settings, user_id: str, werkgebied_id: str) -> str:
+    """Het contextblok van het werkgebied (`werkgebied_context.als_blok`). Zonder api of bij een storing
+    leeg: het dossier is context, geen voorwaarde om te antwoorden."""
+    if not settings.legt_zelf_vast:
+        return ""
+    from .werkgebied_context import als_blok
+    from .wetsanalyse_api import WetsanalyseApi
+
+    api = WetsanalyseApi(settings, user_id)
+    try:
+        return als_blok(await api.haal_werkgebied(werkgebied_id))
+    except Exception:  # noqa: BLE001
+        logger.warning("werkgebiedcontext niet opgehaald", extra={"categorie": "technisch"}, exc_info=True)
+        return ""
+    finally:
+        await api.aclose()
+
+
 async def answer_stream(
     question: str,
     conversation_id: str | None = None,
@@ -202,6 +220,8 @@ async def answer_stream(
         "specialist": "annotaties_lezen" if is_leesvraag(question, modus) else "",
         "begrippen_lezen": False,
         "werkgebied_id": werkgebied_id or "",
+        # Het dossier van dat werkgebied, per beurt vers uit de api: elke bewaarde wijziging telt meteen.
+        "werkgebied_context": await _werkgebied_blok(settings, user_id, werkgebied_id) if werkgebied_id else "",
         "bron_snapshot": {},
         "annotatie_weergave": {},
         "corpus_segmenten": [],

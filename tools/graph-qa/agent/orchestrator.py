@@ -102,12 +102,14 @@ def build_graph(
     model_ophaal = settings.model_voor("ophaal")
 
     def _memory_context(state: State) -> str:
+        # Het werkgebied van het gesprek: wat de analist vastlegde, ook zonder gespreksgeheugen.
+        werkgebied = state.get("werkgebied_context") or ""
         if not settings.enable_memory_context:
-            return ""
+            return werkgebied
         # Bij advies staan de open markeringen al in het adviesblok, mét de afbakening erbij.
         open_elementen = [] if state.get("modus") == "advies" else \
             (state.get("context") or {}).get("bestaande_elementen")
-        return focus_als_context(state.get("focus"), state.get("entities_seen"), open_elementen)
+        return focus_als_context(state.get("focus"), state.get("entities_seen"), open_elementen) + werkgebied
 
     def _corpus(state: State) -> str:
         """De tekst van deze annotatiebeurt. `annoteer_node` haalde hem gericht op en zette hem in de

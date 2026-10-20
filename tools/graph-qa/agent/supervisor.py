@@ -39,7 +39,8 @@ SUPERVISOR_SYSTEM = (
 # invoerveld ("Box 3", "geen overgangsrecht") is dan een antwoord op dat kaartje, geen nieuwe vraag.
 INTAKE_SYSTEM = (
     "\n\nOPEN KAARTJE: Lex stelt met de gebruiker een werkgebied samen en vroeg zojuist: \"{vraag}\". "
-    "Is het bericht een antwoord op die vraag (een naam, een vraag, een regeling, wat erbuiten valt), "
+    "Is het bericht een antwoord op die vraag (een naam, een aanleiding, context of doel, een vraag, een "
+    "praktijkvoorbeeld, deelvragen, wat erbuiten valt, een regeling), "
     "kies dan WORKERS: werkgebied. Is het een andere vraag over wetgeving, kies dan zoals altijd; het "
     "kaartje blijft open staan."
 )

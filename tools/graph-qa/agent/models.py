@@ -68,10 +68,13 @@ class IntakeActie(BaseModel):
     intake, dan toont Lex het huidige kaartje opnieuw in plaats van stil iets anders te doen."""
 
     intake_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
-    stap: Literal["naam", "analysevraag", "regelingen", "onderdelen", "buiten", "samenvatting"]
+    stap: Literal["naam", "aanleiding", "context", "doel", "analysevraag", "praktijkvoorbeeld", "deelvragen",
+                  "buiten", "regelingen", "onderdelen", "samenvatting"]
     actie: Literal["antwoord", "overslaan", "wijzig", "aanmaken", "afbreken"] = "antwoord"
     keuzes: list[str] = Field(default_factory=list, max_length=20)
     tekst: str = Field(default="", max_length=4000)
+    # Meer dan één eigen antwoord (de deelvragen, `meer_tekst` op het kaartje).
+    teksten: list[str] = Field(default_factory=list, max_length=20)
     # Bij `wijzig` vanaf de samenvatting: naar welke stap.
     naar: str = ""
 
