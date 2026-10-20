@@ -777,6 +777,10 @@ erbuiten – en een samenvatting met *Aanmaken*. De werkgebied-worker staat onde
   (`INTAKE_SYSTEM`, "OPEN KAARTJE"); een andere vraag krijgt gewoon antwoord.
 - **`State.intake` staat niet in de per-beurt-reset**: een tussenvraag laat de intake en het open
   kaartje staan. `intake_actie` wél.
+- **Terugbladeren** (‹ n van 5 ›): `wijzig` mag vanaf elke stap naar een eerdere, vanaf de samenvatting
+  naar elke stap. Het kaartje draagt `terug`/`beantwoord`, en `vooringevuld` komt dan uit het eerdere
+  antwoord (`eerder_antwoord`), zodat je ziet wat je koos. Elke optie heeft een `omschrijving` uit de
+  graaf ("wet · 2 delen over ‘box 3’"), nooit van het model.
 - **De volgorde is een stapmachine** (`verwerk`), nooit het model. Een klik op een kaartje dat al
   beantwoord is (`stap` ≠ de huidige) verandert niets: Lex toont het huidige opnieuw. Een kaartje van
   een andere intake: "loopt niet meer". De naam is verplicht; de rest is over te slaan.

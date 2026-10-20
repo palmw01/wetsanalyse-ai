@@ -118,7 +118,8 @@ def test_weet_ik_niet_slaat_de_onderdelen_over_en_maakt_geen_bron():
     assert wi.afbakening(i["antwoorden"]) == "Regelingen: nog te bepalen."
     assert wi.bronnen(i["antwoorden"]) == []
     kaart = wi.kaart({**i, "stap": "regelingen", "voorstellen": {"regelingen": OPTIES}})
-    assert kaart["opties"][-1] == {"label": "Weet ik (nog) niet", "waarde": wi.ONBEKEND, "bron": {}}
+    assert kaart["opties"][-1] == {"label": "Weet ik (nog) niet", "waarde": wi.ONBEKEND, "bron": {},
+                                   "omschrijving": wi.ONBEKEND_OMSCHRIJVING}
 
 
 def test_ook_bij_onderdelen_kan_weet_ik_niet():
@@ -210,7 +211,8 @@ def test_regelingen_komen_uit_het_overzicht_en_genoemde_staan_voorop(monkeypatch
          "delen": [{"iri": H2, "kop": "Hoofdstuk 2 – Belastingplicht"}, {"iri": "", "kop": "zonder iri"}]}]})
     opties, delen, voorop = wi.regeling_opties(FakeGraph(), "belastingplicht", genoemd_in="volgens de AWR")
     assert [o["waarde"] for o in opties] == ["BWBR0002320", IB]
-    assert voorop == ["BWBR0002320"] and delen == {IB: [{"iri": H2, "kop": "Hoofdstuk 2 – Belastingplicht"}]}
+    assert voorop == ["BWBR0002320"] and delen == {IB: [{"iri": H2, "kop": "Hoofdstuk 2 – Belastingplicht", "bepalingen": 0}]}
+    assert opties[0]["omschrijving"] == "genoemd in je vraag"
 
 
 # --- Het gesprek ------------------------------------------------------------------------------------
@@ -413,3 +415,49 @@ def test_de_supervisor_kent_de_werkgebied_worker_en_ketent_hem_niet():
 def test_artikelnummers_in_eigen_tekst():
     assert wi.artikelen_in("artikel 5.2 en 5.3, art. 7a") == ["5.2", "5.3", "7a"]
     assert wi.artikelen_in("hoofdstuk 5") == []
+
+
+# --- Terugbladeren (F1: ‹ n van 5 ›) -----------------------------------------------------------------
+
+def _tot_onderdelen():
+    i = wi.nieuwe_intake("x")
+    i, _ = wi.verwerk(i, _klik(i, "naam", tekst="Box 3"))
+    i, _ = wi.verwerk(i, _klik(i, "analysevraag", tekst="Wie?"))
+    i = {**i, "voorstellen": {"regelingen": OPTIES}}
+    i, _ = wi.verwerk(i, _klik(i, "regelingen", keuzes=[IB]))
+    return i
+
+
+def test_terug_naar_een_eerdere_stap_met_het_antwoord_ingevuld():
+    i = _tot_onderdelen()
+    assert i["stap"] == "onderdelen"
+    terug, u = wi.verwerk(i, {"intake_id": i["id"], "stap": "onderdelen", "actie": "wijzig", "naar": "naam"})
+    assert (u, terug["stap"]) == ("verder", "naam")
+    k = wi.kaart(terug)
+    assert (k["vooringevuld"], k["beantwoord"], k["terug"]) == (["Box 3"], True, False)
+    k = wi.kaart({**terug, "stap": "regelingen"})
+    assert (k["vooringevuld"], k["beantwoord"], k["terug"]) == ([IB], True, True)
+    # Vooruit met hetzelfde antwoord: de andere antwoorden blijven staan.
+    verder, _ = wi.verwerk(terug, _klik(terug, "naam", tekst="Box 3"))
+    assert verder["stap"] == "analysevraag" and verder["antwoorden"]["regelingen"] == [{"bwb_id": IB, "label": OPTIES[0]["label"]}]
+
+
+def test_terug_mag_niet_naar_een_latere_stap_of_vanaf_een_oud_kaartje():
+    i = _tot_onderdelen()
+    assert wi.verwerk(i, {"intake_id": i["id"], "stap": "onderdelen", "actie": "wijzig", "naar": "buiten"})[1] == "verouderd"
+    assert wi.verwerk(i, {"intake_id": i["id"], "stap": "naam", "actie": "wijzig", "naar": "naam"})[1] == "verouderd"
+
+
+def test_een_nieuwe_stap_is_nog_niet_beantwoord():
+    i = _tot_onderdelen()
+    k = wi.kaart(i)
+    assert (k["beantwoord"], k["terug"]) == (False, True)
+    assert wi.eerder_antwoord({"onderdelen_onbekend": True}, "onderdelen") == [wi.ONBEKEND]
+
+
+def test_omschrijving_van_een_regeling_en_een_onderdeel_uit_het_overzicht():
+    r = {"soort": "wet", "delen": [{}, {}], "ook_genoemd": [{}]}
+    assert wi._omschrijving_regeling(r, "box 3") == "wet · 2 delen over ‘box 3’ · 1 bepaling noemt het"
+    opties = wi.onderdeel_opties([{"bwb_id": IB, "label": "Wet IB 2001"}],
+                                 {IB: [{"iri": AFD, "kop": "Afdeling 5.1", "bepalingen": 12}]})
+    assert [o["omschrijving"] for o in opties] == ["Wet IB 2001 · 12 bepalingen", wi.HELE_OMSCHRIJVING]
