@@ -91,6 +91,8 @@ class VraagOptie(BaseModel):
     label: str = Field(min_length=1, max_length=300)
     waarde: str = Field(min_length=1, max_length=4000)
     bron: dict = {}
+    # De tweede regel onder de optie ("wet · 2 hoofdstukken over box 3"): uit de graaf, nooit van het model.
+    omschrijving: str = Field(default="", max_length=300)
 
 
 class Vraagkaart(BaseModel):
@@ -115,6 +117,19 @@ class Vraagkaart(BaseModel):
     overslaanbaar: bool = True
     vooringevuld: list[str] = Field(default_factory=list, max_length=20)
     samenvatting: dict = {}
+    # Bladeren zoals bij Claude (‹ n van 5 ›): `terug` = er is een eerdere stap, `beantwoord` = deze stap
+    # had al een antwoord (na terugbladeren), dus › mag.
+    terug: bool = False
+    beantwoord: bool = False
+
+
+class IntakeAntwoord(BaseModel):
+    """Op het user-bericht van een klik op een vraagkaartje: daaraan herkent de werkplek na herladen een
+    antwoord, en onderscheidt hij het van een getypte tussenvraag (die de "Vragen"-kaart onderbreekt)."""
+
+    intake_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
+    stap: Literal["naam", "analysevraag", "regelingen", "onderdelen", "buiten", "samenvatting"]
+    actie: Literal["antwoord", "overslaan", "wijzig", "aanmaken", "afbreken"] = "antwoord"
 
 
 class Bericht(BaseModel):
@@ -156,6 +171,7 @@ class Bericht(BaseModel):
     artefact: Artefact | None = None
     bevestiging: Bevestiging | None = None
     vraagkaart: Vraagkaart | None = None
+    intake_antwoord: IntakeAntwoord | None = None
     created: datetime | None = None
 
 
@@ -198,6 +214,7 @@ class BerichtInvoer(BaseModel):
     artefact: Artefact | None = None
     bevestiging: Bevestiging | None = None
     vraagkaart: Vraagkaart | None = None
+    intake_antwoord: IntakeAntwoord | None = None
 
 
 class GesprekSamenvatting(BaseModel):

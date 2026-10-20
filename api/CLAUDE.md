@@ -651,9 +651,11 @@ werkgebied zonder deelvragen werkt zoals altijd.
   **`bevestiging`** `{soort: "werkgebied_annoteren" | "begrippen_verdiepen", werkgebied_id, aantal, schatting}`; de werkplek
   toont er een knop bij, ook na herladen. Bij het samenstellen van een werkgebied (activiteit 1) draagt
   elke vraag van Lex een **`vraagkaart`** `{intake_id, soort: vraag|samenvatting, stap, nr, totaal,
-  vraag, opties[{label, waarde, bron}], meerkeuze, vrije_tekst, overslaanbaar, vooringevuld,
-  samenvatting}`; de stappen zijn `naam`, `analysevraag`, `regelingen`, `onderdelen`, `buiten`,
-  `samenvatting`. `reeks.totaal` mag 1 zijn: een werkgebied kan één nieuwe
+  vraag, opties[{label, waarde, bron, omschrijving}], meerkeuze, vrije_tekst, overslaanbaar,
+  vooringevuld, samenvatting, terug, beantwoord}`; de stappen zijn `naam`, `analysevraag`,
+  `regelingen`, `onderdelen`, `buiten`, `samenvatting`. Het user-bericht van een klik draagt
+  **`intake_antwoord`** `{intake_id, stap, actie}`: zo bundelt de werkplek na herladen de antwoorden
+  in één Vragen-kaart en onderscheidt hij ze van een getypte tussenvraag. `reeks.totaal` mag 1 zijn: een werkgebied kan één nieuwe
   bepaling hebben.
   De review-state zelf blijft in het annotatiedomein. **Een veld dat graph-qa meestuurt moet in
   `BerichtInvoer` staan**, anders laat Pydantic het stil vallen en verdwijnen na het heropenen de
