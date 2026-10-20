@@ -21,7 +21,7 @@ import { Markdown, StreamendeTekst } from "@/components/werkplek/Markdown";
 import { OverzichtBlok } from "@/components/werkplek/OverzichtBlok";
 import { ReeksBlok } from "@/components/werkplek/ReeksBlok";
 import { ToolSpoor } from "@/components/werkplek/ToolSpoor";
-import { VraagKaart } from "@/components/werkplek/VraagKaart";
+import { VragenKaart } from "@/components/werkplek/VragenKaart";
 import {
   annotatieTitel, doelVanKandidaat, doelVoorOpnieuw, kandidaatLabel, kandidaatPrompt,
 } from "@/lib/annotatie";
@@ -35,7 +35,7 @@ import { beurtSamenvatting, laatsteRun } from "@/lib/waarom";
 import type { ThreadItem } from "@/lib/threadItem";
 import { ANNOTEER_PROMPT, PLAFOND, bepalingen } from "@/lib/werkgebiedAnnoteren";
 import { MEEDENK_PROMPT } from "@/lib/begripVoorstellen";
-import { antwoordTekst, type IntakeActie } from "@/lib/vraagkaart";
+import type { IntakeActie, VragenGroep } from "@/lib/vraagkaart";
 import type {
   AgentDoelInvoer, AgentGrounding, AgentKandidaat, AnnotatieDocument, Bron, Overzicht,
 } from "@/lib/types";
@@ -64,6 +64,8 @@ export interface ThreadActies {
   stop: () => void;
   /** *Maak hier een werkgebied van* onder een overzicht (spoor D, fase A). */
   maakWerkgebied: (overzicht: Overzicht) => void;
+  /** "Een vraag stellen ›": de weggeklikte vraag onderaan weer openen (activiteit 1). */
+  openVraag: () => void;
 }
 
 interface Props {
@@ -81,14 +83,27 @@ interface Props {
   doc?: AnnotatieDocument;
   /** Een annotatiekaart: het document bestaat niet meer. */
   verwijderd: boolean;
-  /** Een vraagkaartje (activiteit 1): is dit het kaartje dat nog te beantwoorden is? */
-  vraagActief: boolean;
+  /** Het eerste item van een reeks vragen (activiteit 1): de Vragen-kaart die het draagt. */
+  vragen?: VragenGroep;
   acties: ThreadActies;
 }
 
 export const ThreadRij = memo(function ThreadRij({
-  item, streamt, bezig, geblokkeerd, demo, samenhangAan, loopt, doc, verwijderd, vraagActief, acties,
+  item, streamt, bezig, geblokkeerd, demo, samenhangAan, loopt, doc, verwijderd, vragen, acties,
 }: Props) {
+  if (vragen) {
+    // Het samenstellen van een werkgebied: wat Lex bij de eerste vraag zei, en de vragen met je antwoorden.
+    return (
+      <div className="group flex animate-rise gap-3">
+        <LexAvatar />
+        <div className="min-w-0 flex-1 text-sm text-ink">
+          <p className="mb-1 text-xs font-medium text-muted">Lex</p>
+          {vragen.tekst && <div className="mb-2"><Markdown tekst={vragen.tekst} /></div>}
+          <VragenKaart groep={vragen} onOpen={acties.openVraag} />
+        </div>
+      </div>
+    );
+  }
   return item.type === "user" ? (
     <div className="flex animate-rise flex-col items-end gap-1">
       {item.over && (
@@ -166,12 +181,6 @@ export const ThreadRij = memo(function ThreadRij({
               Laat Lex annoteren ({bepalingen(Math.min(item.bevestiging.aantal, PLAFOND))})
             </Button>
           )
-        )}
-        {/* Het samenstellen van een werkgebied: één vraag per kaartje, de klik is de volgende beurt. */}
-        {item.vraagkaart && (
-          <VraagKaart key={`${item.vraagkaart.intake_id}:${item.vraagkaart.stap}`} kaart={item.vraagkaart}
-            actief={vraagActief && !demo} uitgeschakeld={bezig || geblokkeerd || demo}
-            onActie={(a) => acties.verstuur(antwoordTekst(item.vraagkaart!, a), undefined, undefined, undefined, undefined, a)} />
         )}
         {item.tekst && item.grounding && <Brongetrouwheid grounding={item.grounding} />}
         {item.tekst && <KopieerKnop tekst={item.overzicht ? `${item.tekst}\n\n${overzichtAlsMarkdown(item.overzicht)}` : item.tekst} />}
@@ -281,7 +290,15 @@ export const ThreadRij = memo(function ThreadRij({
       </div>
     </div>
   );
-});
+}, zelfdeRij);
+
+/** De `memo`-vergelijking: alles op identiteit, behalve de Vragen-kaart – die wordt elke render opnieuw
+ *  gegroepeerd (`groepeerVragen`) en telt als gelijk zolang de inhoud gelijk is. */
+function zelfdeRij(a: Props, b: Props): boolean {
+  const sleutels = Object.keys(b) as (keyof Props)[];
+  if (Object.keys(a).length !== sleutels.length) return false;
+  return sleutels.every((k) => k === "vragen" ? JSON.stringify(a.vragen) === JSON.stringify(b.vragen) : a[k] === b[k]);
+}
 
 /** De chip van een artefact dat geen annotatie is. Afleidingsregels zijn gereserveerd: de kaart staat
  *  er, maar opent nog niets – en zegt dat, in plaats van een knop die niets doet. */

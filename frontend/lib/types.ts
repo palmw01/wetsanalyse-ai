@@ -595,6 +595,8 @@ export interface Bericht {
   bevestiging?: Bevestiging | null;
   /** Een vraag van Lex bij het samenstellen van een werkgebied (activiteit 1); zie `lib/vraagkaart.ts`. */
   vraagkaart?: unknown;
+  /** Op het user-bericht van een klik op een vraagkaartje (zie `lib/vraagkaart.ts:parseAntwoordOp`). */
+  intake_antwoord?: unknown;
   created?: string;
 }
 

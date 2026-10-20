@@ -7,7 +7,7 @@ import { ThreadRij, type ThreadActies, type WerkgebiedAnnoteren } from "@/compon
 import { AnnoterenBevestiging } from "@/components/werkgebieden/AnnoterenBevestiging";
 import { reeksNavigatie, reeksUitBerichten, verwerkReeksEvent, type Reeks } from "@/lib/reeks";
 import { mergeToolExecution, toolSpoorUit, type NodeDoel, type ToolExecution, type NodeElement, type NodeWeergave } from "@/lib/annotatieNode";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { GraafKoppelingContext, type GraafKoppeling } from "@/components/graaf/koppeling";
 import type { GraafOpties } from "@/components/graaf/useGraafStand";
 
@@ -43,7 +43,10 @@ import type {
 } from "@/lib/types";
 import { metingUitDekking } from "@/lib/agentEvents";
 import { ANNOTEER_PROMPT, parseBevestiging } from "@/lib/werkgebiedAnnoteren";
-import { actiefKaartje, parseVraagkaart, type IntakeActie, type Vraagkaart } from "@/lib/vraagkaart";
+import {
+  antwoordTekst, groepeerVragen, openVraag, parseAntwoordOp, parseVraagkaart, type IntakeActie, type Vraagkaart,
+} from "@/lib/vraagkaart";
+import { VraagDock } from "@/components/werkplek/VraagDock";
 import { MEEDENK_PROMPT } from "@/lib/begripVoorstellen";
 import {
   doelInvoerVan, isVerwijderd, kandidatenAlsTekst, mergeVoorstellen, vraagSuggesties,
@@ -142,6 +145,8 @@ export function WerkplekClient({
   const geblokkeerd = Boolean(verbruik?.actief && verbruik.geblokkeerd);
   const [gesprekId, setGesprekId] = useState<string | null>(initialGesprekId);
   const [items, setItems] = useState<Item[]>(demo?.items ?? []);
+  // De open vraag die je met ✕ wegklikte (het item-id); "Een vraag stellen ›" opent hem weer.
+  const [weggeklikt, setWeggeklikt] = useState<string | null>(null);
   // Slugs van berichten die naar een annotatie zonder bronnode wijzen: die bestaat niet meer. Dat is
   // een tóéstand, geen fout – opnieuw proberen kan per definitie niet lukken.
   const [verwijderd, setVerwijderd] = useState<Record<string, true>>({});
@@ -271,7 +276,7 @@ export function WerkplekClient({
             return [{ id: uid(), type: "artefact" as const, artefact: art, tekst: b.tekst?.trim() || undefined, denk: b.denk }];
           }
           return [b.rol === "user"
-            ? { id: uid(), type: "user" as const, tekst: b.tekst }
+            ? { id: uid(), type: "user" as const, tekst: b.tekst, antwoordOp: parseAntwoordOp(b.intake_antwoord) }
             : annotatieDoel || b.annotatie_slug
               ? { id: uid(), type: "annotatie" as const, slug: annotatieDoel?.bron_iri || b.annotatie_slug!,
                   titel: art?.titel || b.annotatie_titel || undefined, annotatie_doel: annotatieDoel,
@@ -447,7 +452,8 @@ export function WerkplekClient({
     const vraagId = uid();
     setItems((xs) => [
       ...xs,
-      { id: vraagId, type: "user", tekst: prompt, over: contextLabel || undefined },
+      { id: vraagId, type: "user", tekst: prompt, over: contextLabel || undefined,
+        ...(intake ? { antwoordOp: { intake_id: intake.intake_id, stap: intake.stap, actie: intake.actie } } : {}) },
       { id: antId, type: "antwoord", tekst: "" },
     ]);
     setBezig(true);
@@ -480,7 +486,9 @@ export function WerkplekClient({
     // Bewust GEAWAIT: de vraag moet vastliggen vóórdat de run begint. De volgorde in de thread is de
     // autoincrement-id, dus een snelle beurt zou anders vóór zijn eigen vraag kunnen landen – en bij
     // het aanhaken na een herlaadbeurt is deze regel de user-bubbel waar het antwoord onder hoort.
-    await persisteer(gid, "user", { tekst: contextLabel ? `Bij ${contextLabel}: ${prompt}` : prompt });
+    await persisteer(gid, "user", { tekst: contextLabel ? `Bij ${contextLabel}: ${prompt}` : prompt,
+      // Een klik op een vraagkaartje: zo staat het antwoord na herladen weer in de Vragen-kaart.
+      ...(intake ? { intake_antwoord: { intake_id: intake.intake_id, stap: intake.stap, actie: intake.actie } } : {}) });
 
     const basis = nodeContext ? { modus: "advies" as const, context: {
       bron_iri: nodeContext.element.eigenaar_iri, snapshot_id: nodeContext.view.snapshot_id,
@@ -956,6 +964,7 @@ export function WerkplekClient({
       },
       stop: () => void stop(),
       maakWerkgebied: (ov) => setWgUitOverzicht(ov),
+      openVraag: () => setWeggeklikt(null),
     };
   });
   const [acties] = useState<ThreadActies>(() => ({
@@ -966,6 +975,7 @@ export function WerkplekClient({
     openReeksLid: (reeksRun, doel) => actiesRef.current?.openReeksLid(reeksRun, doel),
     stop: () => actiesRef.current?.stop(),
     maakWerkgebied: (ov) => actiesRef.current?.maakWerkgebied(ov),
+    openVraag: () => actiesRef.current?.openVraag(),
   }));
 
   function opToets(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -991,11 +1001,11 @@ export function WerkplekClient({
   const laatsteAnnotatieItem = laatsteItem?.type === "annotatie" ? laatsteItem : undefined;
   const laatsteNodeAnnotatie = laatsteAnnotatieItem?.annotatie_doel ? laatsteAnnotatieItem : undefined;
   const laatsteWgArtefact = laatsteItem?.type === "artefact" ? werkgebiedArtefactVan(laatsteItem.artefact) : undefined;
-  // Het vraagkaartje dat nog te beantwoorden is: het laatste, tot er een werkgebied uit is aangemaakt.
-  const actiefVraag = actiefKaartje(items.map((x) => ({
-    id: x.id, vraagkaart: x.type === "antwoord" ? x.vraagkaart : undefined,
-    werkgebiedAangemaakt: x.type === "artefact" && x.artefact.soort === "werkgebied",
-  })));
+  // Het samenstellen van een werkgebied (activiteit 1): de vragen per reeks als één kaart, de open vraag
+  // onderaan in plaats van het invoerveld.
+  const { groepen: vraagGroepen, verborgen: verborgenItems } = useStabieleGroepen(items, bezig);
+  const open = openVraag(vraagGroepen);
+  const toonDock = !!open?.open && !bezig && !demo && weggeklikt !== open.openId;
 
   // Hoort de open annotatie bij een reeks in dit gesprek, dan bladert het paneel door de leden.
   const nodeReeksNav = (() => {
@@ -1235,14 +1245,14 @@ export function WerkplekClient({
             </div>
           )}
 
-          {items.map((item, i) => (
+          {items.map((item, i) => verborgenItems.has(item.id) ? null : (
             // `thread-rij` laat de browser layout en paint overslaan voor beurten buiten beeld
             // (`content-visibility`, zie globals.css); de DOM blijft staan, dus zoeken, schermlezers
             // en het meescrollen blijven kloppen.
             <div key={item.id} className="thread-rij">
               <ThreadRij
                 item={item}
-                vraagActief={item.id === actiefVraag}
+                vragen={vraagGroepen.get(item.id)}
                 // Alleen de laatste beurt kan aan het streamen zijn.
                 streamt={bezig && i === items.length - 1}
                 bezig={bezig}
@@ -1275,6 +1285,11 @@ export function WerkplekClient({
       {/* Invoerbalk – gepind onderaan, gecentreerd, auto-groeiend */}
       <div className="shrink-0 bg-paper">
         <div className="mx-auto max-w-3xl px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
+          {toonDock && open?.open ? (
+            <VraagDock key={open.openId} kaart={open.open} uitgeschakeld={geblokkeerd}
+              onSluit={() => setWeggeklikt(open.openId ?? null)}
+              onActie={(a) => void verstuur(antwoordTekst(open.open!, a), undefined, undefined, undefined, undefined, a)} />
+          ) : (<>
           {/* Waar de volgende vraag over gaat. Zichtbaar zolang hij geldt, want anders stel je
               ongemerkt een adviesvraag over een element dat je allang niet meer voor je hebt. */}
           {/* De vragen die bij een markering hoe dan ook gesteld worden, als één klik. Een leeg veld
@@ -1369,6 +1384,7 @@ export function WerkplekClient({
                 ? `Je tokenbudget is op. Je kunt weer verder op ${resetdatum(verbruik.reset_op)}.`
                 : "De agent bevraagt de kennisgraaf – controleer altijd de bron."}
           </p>
+          </>)}
         </div>
       </div>
 
@@ -1383,6 +1399,17 @@ export function WerkplekClient({
     </div>
     </GraafKoppelingContext.Provider>
   );
+}
+
+/** De Vragen-kaarten van de thread. `ThreadRij` vergelijkt een groep op inhoud (zijn `memo`), dus een vers
+ *  object per frame laat een kaart niet opnieuw renderen. */
+function useStabieleGroepen(items: Item[], bezig: boolean) {
+  return useMemo(() => groepeerVragen(
+    items.map((x) => ({ id: x.id, type: x.type, tekst: "tekst" in x ? x.tekst : undefined,
+      vraagkaart: x.type === "antwoord" ? x.vraagkaart : undefined,
+      antwoordOp: x.type === "user" ? x.antwoordOp : undefined })),
+    bezig,
+  ), [items, bezig]);
 }
 
 const VOORBEELDEN = [

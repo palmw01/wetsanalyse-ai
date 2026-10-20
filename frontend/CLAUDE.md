@@ -67,7 +67,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   redirects naar de bijbehorende tab.
 - **`components/`**:
   - `werkplek/` – de hele chat-werkruimte: schil, sidebar, thread (`ThreadRij`, `ToolSpoor`,
-    `KeuzeKaart`, `VraagKaart`, `ReeksBlok`, `HergebruikMelding`, `Markdown`) en het annotatiegereedschap in het
+    `KeuzeKaart`, `VraagDock`, `VragenKaart`, `ReeksBlok`, `HergebruikMelding`, `Markdown`) en het annotatiegereedschap in het
     artefactpaneel (`ArtefactInhoud`, `DocumentPaneel`, `ReviewQueue`,
     `SelectiePopover`, `ExportKnop`).
   - `annotaties/` – het overzicht en de losse annotatiepagina (`AnnotatiesClient`, `AnnotatieKaart`,
@@ -314,18 +314,25 @@ agent ná je vraag voorlegt uit wat hij vond (kandidaten, `KeuzeKaart`) is een a
 kaartje stellen (graph-qa `agent/werkgebied_intake.py`): naam, analysevraag, regeling(en), onderdelen,
 wat valt erbuiten, en een samenvatting met *Werkgebied aanmaken*. Het kaartje komt als
 `vraagkaart`-event (`parseVraagkaart` in `lib/vraagkaart.ts`) en staat op het bewaarde bericht
-(`Bericht.vraagkaart`), dus het overleeft een herlaadbeurt.
+(`Bericht.vraagkaart`). De vorm volgt hoe Claude een vraag stelt (F1):
 
-- **`VraagKaart`** volgt `KeuzeKaart`: de voorstellen als listbox, een eigen antwoord eronder, en pas
-  *Volgende* (of Enter) stuurt in. **Een klik op een voorstel selecteert alleen** – geen beurt op een
-  misklik. Wat Lex uit de eerste zin haalde staat voorgeselecteerd (`beginstand`), nooit stil
-  aangenomen. "Weet ik (nog) niet" sluit de andere keuzes uit, en andersom.
-- **Een klik is een gewone beurt met `intake_actie`** (`verstuur(…, intake)` → `startRun`); de leesbare
-  tekst (`antwoordTekst`) staat als vraag in het gesprek, graph-qa leest de actie. De volgorde van de
-  vragen is van graph-qa – de werkplek bedenkt geen stap.
-- **Alleen het laatste kaartje is te bedienen** (`actiefKaartje`), en geen meer zodra er een
-  werkgebied uit is aangemaakt; eerdere kaartjes tonen alleen de vraag. Een tussenvraag laat het
-  kaartje open: graph-qa bewaart de intake.
+- **De open vraag staat onderaan, op de plek van het invoerveld** (`VraagDock`, mobiel en desktop):
+  ‹ n van 5 › (‹ = `wijzig` naar de vorige stap; › alleen als de stap al beantwoord was), ✕ klapt hem weg
+  en geeft het invoerveld terug (UI-state, niets beantwoord). De hoogte volgt `visualViewport`, zodat de
+  sheet boven het mobiele toetsenbord past.
+- **Opties zijn regels met titel en omschrijving** (uit de graaf); een klik selecteert alleen, pas
+  *Volgende* / *Verzend* (laatste vraag) / *Werkgebied aanmaken* stuurt in. "Typ je antwoord…" is de
+  laatste regel: met tekst erin krijgt hij het vinkje en vervangt hij bij één keuze een gekozen optie.
+  "Weet ik (nog) niet" sluit de andere keuzes uit. Knoppen zijn pillen (`Button pil`).
+- **In de thread één Vragen-kaart per reeks** (`groepeerVragen`, `VragenKaart`): per vraag de vraag
+  (grijs) en je antwoord, "Vraag" bij één en "Vragen" bij meer, daaronder "● Een vraag stellen ›" (opent
+  de dock weer) of "Nadenken…" terwijl Lex de volgende voorbereidt. De antwoordbubbels en de zinnen van
+  Lex per stap renderen niet; een getypte tussenvraag breekt de reeks. Opnieuw beantwoorden na ‹
+  vervangt het paar en wat erna kwam.
+- **Een klik is een gewone beurt met `intake_actie`**; het user-bericht draagt **`intake_antwoord`**
+  (`parseAntwoordOp`), zodat de kaart na herladen hetzelfde is. De volgorde is van graph-qa.
+- `ThreadRij` vergelijkt `vragen` op inhoud in zijn `memo` (`zelfdeRij`): de groepering is elke render
+  vers.
 - Browserregressie: `scripts/test-werkgebied-intake.mjs`.
 
 ### Kiezen binnen één artikel, en de reeks
