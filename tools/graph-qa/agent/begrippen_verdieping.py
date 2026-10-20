@@ -5,7 +5,7 @@ model-laag zelf is zuiver (`begrippen_pipeline/verdieping.py`, `classificatie.py
 module voert hem uit in batches, met de api als geheugen:
 
 1. **Zonder `bevestigd`** noemt Lex wat er te doen is – twijfelpunten en begrippen zonder
-   definitie –, de schatting en het budget, en legt een bericht vast met een `bevestiging`. Kost het
+   definitie –, de schatting en het budget, en de uitkomst draagt een `bevestiging`. Kost het
    model niets (geen twijfelpunten, elke definitie letterlijk), dan rekent hij meteen, zonder model.
 2. **Met `bevestigd: n`** alleen als `n` de actuele werkvoorraad van de api is.
 3. **Per batch**: stop- en budgetcontrole, het model in een thread, het verbruik geboekt op
@@ -18,33 +18,27 @@ module voert hem uit in batches, met de api als geheugen:
 
 De keten draait hier opnieuw op het bewaarde manifest (deterministisch); wijken de groepen of vragen af
 van wat de api bewaarde – andere code sinds de voorstellen –, dan stopt hij met die melding.
+
+Sinds F3c is dit de taak `meedenken` van de begrippen-agent (`verdieping_kern`, `agents/begrippen.py`):
+de supervisor kiest hem, of een klik op de suggestie of de bevestigingsknop. Er is geen tekstpatroon meer.
 """
 from __future__ import annotations
 
 import asyncio
 import logging
-import re
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import Callable
 from typing import Any
 
+from .agents import Context, Uitkomst, geweigerd
 from .begrippen_beurt import begrippen_artefact
 from .begrippen_pipeline import classificatie, kaart as kaart_mod, verdieping as vd
 from .begrippen_pipeline.keten import analyseer
 from .begrippen_pipeline.model import Aandacht, Kaart, ModelOordeel, Oordeel
 from .begrippen_run import manifest_uit, voorstel
-from .jas_pipeline.taal.provider import TaalProvider
 from .reeks import _budget_poort
-from .wetsanalyse_api import GesprekVerdwenen, WetsanalyseApi, WetsanalyseApiFout
+from .wetsanalyse_api import WetsanalyseApi, WetsanalyseApiFout
 
 logger = logging.getLogger("graph_qa.begrippen_verdieping")
-
-_VERDIEP = re.compile(r"\b(verdiep\w*|denk\w* mee|meedenken|definities? voor|stel definities?)\b", re.I)
-_ONDERWERP = re.compile(r"\b(begrip\w*|definitie\w*|twijfel\w*|voorstel\w*)\b", re.I)
-
-
-def is_verdiepvraag(vraag: str) -> bool:
-    """"Denk mee over de begrippen", "verdiep de voorstellen", "stel definities voor"."""
-    return bool(_VERDIEP.search(vraag) and _ONDERWERP.search(vraag))
 
 
 def _getal(n: int) -> str:
@@ -99,184 +93,139 @@ def _groep_contract(g, manifest, uitkomst, model_links: set[str]) -> dict[str, A
             "door": "model" if set(g.kandidaten) & model_links else "regel"}
 
 
-async def verdieping_beurt(request: Any, run: Any, *, settings, user_id: str, api: WetsanalyseApi | None = None,
-                           maak_llm: Callable[[Any], Any] | None = None, provider: TaalProvider | None = None,
-                           budget_toegestaan: Callable[[], Awaitable[bool]] | None = None
-                           ) -> AsyncIterator[dict[str, Any]]:
-    """De eventstroom van de verdieping; legt zelf vast. `api`, `maak_llm`, `provider` en
-    `budget_toegestaan` zijn er voor tests."""
-    werkgebied_id: str = request.werkgebied_id
-    gesprek_id: str = request.conversation_id or ""
-    run_id: str = getattr(run, "run_id", "") or ""
-    eigen_api = api is None
-    api = api or WetsanalyseApi(settings, user_id)
-    denk: list[str] = []
-
-    def status(bericht: str) -> dict[str, Any]:
-        denk.append(f"· {bericht}")
-        return {"type": "status", "message": f"Lex · {bericht}"}
-
-    async def leg_vast(tekst: str, *, artefact: dict | None = None, bevestiging: dict | None = None
-                       ) -> AsyncIterator[dict[str, Any]]:
-        yield {"type": "token", "content": tekst}
-        extra = {**({"artefact": artefact} if artefact else {}), **({"bevestiging": bevestiging} if bevestiging else {})}
-        try:
-            await api.voeg_bericht_toe(gesprek_id, {"rol": "assistant", "tekst": tekst, "denk": "\n".join(denk),
-                                                    "run_id": run_id, **extra})
-        except GesprekVerdwenen:
-            yield {"type": "done"}
-            return
-        yield {"type": "opgeslagen", "run_id": run_id, **extra}
-        yield {"type": "done"}
-
+async def verdieping_kern(ctx: Context, werkgebied_id: str, bevestigd: int | None = None) -> Uitkomst:
+    """Meedenken (taak `meedenken` van de begrippen-agent). Zonder `bevestigd` het voorstel met een
+    bevestiging; met `bevestigd` gelijk aan de werkvoorraad de batches. Is er niets voor het model, dan
+    rekent hij meteen, zonder model."""
+    api, taak = ctx.api, "meedenken"
+    settings, run_id, gesprek_id = ctx.settings, ctx.run_id, ctx.gesprek_id
     try:
+        naam = str((await api.haal_werkgebied(werkgebied_id)).get("naam") or "zonder naam")
+        ctx.melding(f"Werkgebied {naam}: wat er te verdiepen is")
+        wv = {"werkgebied_id": werkgebied_id, **await api.haal_verdieping(werkgebied_id)}
+    except WetsanalyseApiFout as fout:
+        if fout.status != 404:
+            raise
+        return geweigerd(taak, "Dit werkgebied bestaat niet (meer).")
+    api_run = wv.get("run")
+    if not api_run:
+        return geweigerd(taak, f"In werkgebied *{naam}* zijn nog geen begripsvoorstellen om over mee te denken. "
+                               "Vraag eerst om begrippen.")
+    artefact = begrippen_artefact(werkgebied_id, str(api_run["id"]), naam)
+    if wv.get("verdiept"):
+        return Uitkomst(taak=taak, artefact=artefact, tekst=f"Over de voorstellen in werkgebied *{naam}* heb ik al "
+                                                            "meegedacht; open ze om ze te beoordelen.")
+    aantal = int(wv.get("aantal") or 0)
+    met_model = bevestigd is not None and bevestigd == aantal
+    if aantal and not met_model:
+        tekst, bevestiging = voorstel_tekst(naam, wv)
+        if bevestigd is not None:
+            tekst = f"De werkvoorraad veranderde: nu {aantal} in plaats van {bevestigd}. Ik ben niet begonnen. " + tekst
+        return Uitkomst(taak=taak, status="bevestiging", tekst=tekst, bevestiging=bevestiging,
+                        meting={"aantal": aantal, "model": False})
+
+    # -- rekenen ------------------------------------------------------------------------------
+    data = await api.haal_begrippen_run(werkgebied_id, str(api_run["id"]))
+    manifest = manifest_uit(data["manifest"])
+    ctx.melding(f"De keten opnieuw op {len(manifest.formuleringen)} passages")
+    uitkomst = await asyncio.to_thread(analyseer, manifest, ctx.provider)
+    bewaard = data.get("uitkomst") or {}
+    if sorted(g.id for g in uitkomst.groepen) != sorted(bewaard.get("groep_ids", [])) or \
+            sorted(v.kandidaat_id for v in uitkomst.vragen) != sorted(v["kandidaat_id"] for v in bewaard.get("vragen", [])):
+        return Uitkomst(taak=taak, status="fout", reden="De begrippenketen geeft nu andere voorstellen dan toen ze "
+                        "werden gemaakt. Vraag eerst opnieuw om begrippen; daarna kan ik meedenken.")
+
+    model = settings.llm_model
+    klaar = {b["id"]: b for b in wv.get("batches") or []}
+    budget_toegestaan = ctx.budget_toegestaan
+    if budget_toegestaan is None and settings.legt_zelf_vast and ctx.user_id:
+        budget_toegestaan = _budget_poort(settings, ctx.user_id)
+    teller = {"n": len(klaar), "fout": 0, "gestopt": "", "nieuw": 0}
+
+    async def batch(soort: str, ids: list[str], versie: str, reken: Callable[[Any], Any],
+                    bewaar: Callable[[Any], dict[str, Any]], lees: Callable[[dict], Any]) -> Any | None:
+        """Eén batch: uit de api als hij klaar is, anders rekenen, boeken en bewaren. None = niet gedaan."""
+        bid = vd.batch_id(soort, ids, versie, model)
+        if bid in klaar:
+            return lees(klaar[bid]["resultaat"])
+        if not met_model or teller["gestopt"]:
+            return None
+        if ctx.gestopt():
+            teller["gestopt"] = "gestopt"
+            return None
+        if budget_toegestaan is not None and not await budget_toegestaan():
+            teller["gestopt"] = "budget_op"
+            return None
+        llm = (ctx.maak_llm or _anthropic)(settings)
         try:
-            naam = str((await api.haal_werkgebied(werkgebied_id)).get("naam") or "zonder naam")
-            yield status(f"Werkgebied {naam}: wat er te verdiepen is")
-            wv = {"werkgebied_id": werkgebied_id, **await api.haal_verdieping(werkgebied_id)}
-        except WetsanalyseApiFout as fout:
-            if fout.status != 404:
-                raise
-            async for ev in leg_vast("Dit werkgebied bestaat niet (meer)."):
-                yield ev
-            return
-        api_run = wv.get("run")
-        if not api_run:
-            async for ev in leg_vast(f"In werkgebied *{naam}* zijn nog geen begripsvoorstellen om over mee te "
-                                     "denken. Vraag eerst om begrippen."):
-                yield ev
-            return
-        artefact = begrippen_artefact(werkgebied_id, str(api_run["id"]), naam)
-        if wv.get("verdiept"):
-            async for ev in leg_vast(f"Over de voorstellen in werkgebied *{naam}* heb ik al meegedacht; open ze om "
-                                     "ze te beoordelen.", artefact=artefact):
-                yield ev
-            return
-        aantal = int(wv.get("aantal") or 0)
-        bevestigd = getattr(request, "bevestigd", None)
-        met_model = bevestigd is not None and bevestigd == aantal
-        if aantal and not met_model:
-            tekst, bevestiging = voorstel_tekst(naam, wv)
-            if bevestigd is not None:
-                tekst = (f"De werkvoorraad veranderde: nu {aantal} in plaats van {bevestigd}. Ik ben niet begonnen. "
-                         + tekst)
-            async for ev in leg_vast(tekst, bevestiging=bevestiging):
-                yield ev
-            return
-
-        # -- rekenen ------------------------------------------------------------------------------
-        data = await api.haal_begrippen_run(werkgebied_id, str(api_run["id"]))
-        manifest = manifest_uit(data["manifest"])
-        yield status(f"De keten opnieuw op {len(manifest.formuleringen)} passages")
-        uitkomst = await asyncio.to_thread(analyseer, manifest, provider)
-        bewaard = data.get("uitkomst") or {}
-        if sorted(g.id for g in uitkomst.groepen) != sorted(bewaard.get("groep_ids", [])) or \
-                sorted(v.kandidaat_id for v in uitkomst.vragen) != sorted(v["kandidaat_id"] for v in bewaard.get("vragen", [])):
-            async for ev in leg_vast("De begrippenketen geeft nu andere voorstellen dan toen ze werden gemaakt. "
-                                     "Vraag eerst opnieuw om begrippen; daarna kan ik meedenken."):
-                yield ev
-            return
-
-        model = settings.llm_model
-        klaar = {b["id"]: b for b in wv.get("batches") or []}
-        if budget_toegestaan is None and settings.legt_zelf_vast and user_id:
-            budget_toegestaan = _budget_poort(settings, user_id)
-        teller = {"n": len(klaar), "fout": 0, "gestopt": "", "nieuw": 0}
-
-        async def batch(soort: str, ids: list[str], versie: str, reken: Callable[[Any], Any],
-                        bewaar: Callable[[Any], dict[str, Any]], lees: Callable[[dict], Any]) -> Any | None:
-            """Eén batch: uit de api als hij klaar is, anders rekenen, boeken en bewaren. None = niet gedaan."""
-            bid = vd.batch_id(soort, ids, versie, model)
-            if bid in klaar:
-                return lees(klaar[bid]["resultaat"])
-            if not met_model or teller["gestopt"]:
-                return None
-            if run is not None and run.stop_gevraagd:
-                teller["gestopt"] = "gestopt"
-                return None
-            if budget_toegestaan is not None and not await budget_toegestaan():
-                teller["gestopt"] = "budget_op"
-                return None
-            llm = (maak_llm or _anthropic)(settings)
-            try:
-                uit = await asyncio.to_thread(reken, llm)
-            except Exception:  # noqa: BLE001 – een fout in één batch stopt de rest niet
-                logger.exception("verdieping: batch faalde", extra={"categorie": "technisch", "run_id": run_id})
-                teller["fout"] += 1
-                await _boek(api, llm, model, gesprek_id, f"{run_id}.v{teller['n']}")
-                teller["n"] += 1
-                return None
-            tokens = await _boek(api, llm, model, gesprek_id, f"{run_id}.v{teller['n']}")
+            uit = await asyncio.to_thread(reken, llm)
+        except Exception:  # noqa: BLE001 – een fout in één batch stopt de rest niet
+            logger.exception("verdieping: batch faalde", extra={"categorie": "technisch", "run_id": run_id})
+            teller["fout"] += 1
+            await _boek(api, llm, model, gesprek_id, f"{run_id}.v{teller['n']}")
             teller["n"] += 1
-            await api.zet_begrippen_batch(werkgebied_id, str(api_run["id"]), bid,
-                                          {"soort": soort, "ids": ids, "model": model, "promptversie": versie,
-                                           "tokens": tokens, **bewaar(uit)})
-            teller["nieuw"] += 1
-            return uit
+            return None
+        tokens = await _boek(api, llm, model, gesprek_id, f"{run_id}.v{teller['n']}")
+        teller["n"] += 1
+        await api.zet_begrippen_batch(werkgebied_id, str(api_run["id"]), bid,
+                                      {"soort": soort, "ids": ids, "model": model, "promptversie": versie,
+                                       "tokens": tokens, **bewaar(uit)})
+        teller["nieuw"] += 1
+        return uit
 
-        # Klare batches leest hij altijd terug; nieuw rekenen alleen na bevestiging. Zonder model blijft
-        # een vraag zonder oordeel en een kaart zoals de keten haar gaf – dat is dan geen onvolledigheid.
-        oordelen: list[ModelOordeel] = []
-        compleet = True
-        vbatches = classificatie.batches(vd.te_vergelijken(uitkomst))
-        for i, b in enumerate(vbatches, 1):
+    # Klare batches leest hij altijd terug; nieuw rekenen alleen na bevestiging. Zonder model blijft
+    # een vraag zonder oordeel en een kaart zoals de keten haar gaf – dat is dan geen onvolledigheid.
+    oordelen: list[ModelOordeel] = []
+    compleet = True
+    vbatches = classificatie.batches(vd.te_vergelijken(uitkomst))
+    for i, b in enumerate(vbatches, 1):
+        if met_model:
+            ctx.melding(f"Twijfelpunten {i}/{len(vbatches)}")
+        uit = await batch("vraag", [v.kandidaat_id for v in b], classificatie.promptversie(),
+                          lambda llm, b=b: classificatie.vergelijk(llm, model, manifest, b),
+                          lambda os_: {"oordelen": [o.model_dump(mode="json") for o in os_]},
+                          lambda r: [ModelOordeel(**o) for o in r["oordelen"]])
+        if uit is not None:
+            oordelen += uit
+        elif met_model:
+            compleet = False
+    her = vd.hergroepeer(manifest, uitkomst, oordelen) if compleet else None
+    kaarten: dict[str, Any] = {}
+    if her is not None:
+        kaarten, opdrachten = vd.kaartopdrachten(manifest, uitkomst, her.groepen)
+        geel = {g.id: g.aandacht is Aandacht.GEEL for g in her.groepen}
+        kbatches = kaart_mod.batches(opdrachten)
+        for i, b in enumerate(kbatches, 1):
             if met_model:
-                yield status(f"Twijfelpunten {i}/{len(vbatches)}")
-            uit = await batch("vraag", [v.kandidaat_id for v in b], classificatie.promptversie(),
-                              lambda llm, b=b: classificatie.vergelijk(llm, model, manifest, b),
-                              lambda os_: {"oordelen": [o.model_dump(mode="json") for o in os_]},
-                              lambda r: [ModelOordeel(**o) for o in r["oordelen"]])
+                ctx.melding(f"Begripskaarten {i}/{len(kbatches)}")
+            uit = await batch("kaart", [o.kaart.groep_id for o in b], kaart_mod.promptversie(),
+                              lambda llm, b=b: kaart_mod.vul(llm, model, manifest, b, geel),
+                              lambda ks: {"kaarten": [k.model_dump(mode="json") for k in ks]},
+                              lambda r: [Kaart(**k) for k in r["kaarten"]])
             if uit is not None:
-                oordelen += uit
+                kaarten.update({k.groep_id: k for k in uit})
             elif met_model:
                 compleet = False
-        her = vd.hergroepeer(manifest, uitkomst, oordelen) if compleet else None
-        kaarten: dict[str, Any] = {}
-        if her is not None:
-            kaarten, opdrachten = vd.kaartopdrachten(manifest, uitkomst, her.groepen)
-            geel = {g.id: g.aandacht is Aandacht.GEEL for g in her.groepen}
-            kbatches = kaart_mod.batches(opdrachten)
-            for i, b in enumerate(kbatches, 1):
-                if met_model:
-                    yield status(f"Begripskaarten {i}/{len(kbatches)}")
-                uit = await batch("kaart", [o.kaart.groep_id for o in b], kaart_mod.promptversie(),
-                                  lambda llm, b=b: kaart_mod.vul(llm, model, manifest, b, geel),
-                                  lambda ks: {"kaarten": [k.model_dump(mode="json") for k in ks]},
-                                  lambda r: [Kaart(**k) for k in r["kaarten"]])
-                if uit is not None:
-                    kaarten.update({k.groep_id: k for k in uit})
-                elif met_model:
-                    compleet = False
 
-        if not compleet or her is None:
-            waarom = {"budget_op": " – je tokenbudget is op", "gestopt": " – gestopt op verzoek"}.get(teller["gestopt"], "")
-            fout = f" {_meervoud(teller['fout'], 'batch mislukte', 'batches mislukten')}." if teller["fout"] else ""
-            tekst = (f"Ik ben niet helemaal klaar{waarom}: {teller['nieuw']} nieuwe batches bewaard.{fout} "
-                     "Vraag het opnieuw; ik ga verder waar ik bleef.")
-            async for ev in leg_vast(tekst, artefact=artefact):
-                yield ev
-            return
+    meting = {"batches": teller["n"], "nieuw": teller["nieuw"], "model": met_model}
+    if not compleet or her is None:
+        waarom = {"budget_op": " – je tokenbudget is op", "gestopt": " – gestopt op verzoek"}.get(teller["gestopt"], "")
+        fout = f" {_meervoud(teller['fout'], 'batch mislukte', 'batches mislukten')}." if teller["fout"] else ""
+        return Uitkomst(taak=taak, artefact=artefact, meting=meting,
+                        tekst=(f"Ik ben niet helemaal klaar{waarom}: {teller['nieuw']} nieuwe batches bewaard.{fout} "
+                               "Vraag het opnieuw; ik ga verder waar ik bleef."))
 
-        model_links = {o.kandidaat_id for o in oordelen if o.oordeel is Oordeel.ZELFDE_BETEKENIS}
-        await api.zet_verdieping(werkgebied_id, str(api_run["id"]), {
-            "manifest_id": manifest.id, "model": model,
-            "groepen": [_groep_contract(g, manifest, uitkomst, model_links) for g in her.groepen],
-            "kaarten": [k.model_dump(mode="json") for k in kaarten.values()],
-            "oordelen": [o.model_dump(mode="json") for o in her.oordelen],
-            "vragen": [v.kandidaat_id for v in her.vragen],
-            "meting": {"batches": teller["n"], "nieuw": teller["nieuw"], "met_model": met_model,
-                       "promptversie": {"vraag": classificatie.promptversie(), "kaart": kaart_mod.promptversie()}}})
-        async for ev in leg_vast(samenvatting(naam, her, kaarten), artefact=artefact):
-            yield ev
-    except WetsanalyseApiFout as fout:
-        logger.error("verdieping: api-fout", extra={"categorie": "technisch", "run_id": run_id,
-                                                     "http_status": fout.status})
-        yield {"type": "error", "message": "De verdieping kon niet worden opgehaald of bewaard; probeer het opnieuw. "
-               "Wat al klaar was, blijft bewaard.", "soort": "api", "status": fout.status}
-        yield {"type": "done"}
-    finally:
-        if eigen_api:
-            await api.aclose()
+    model_links = {o.kandidaat_id for o in oordelen if o.oordeel is Oordeel.ZELFDE_BETEKENIS}
+    await api.zet_verdieping(werkgebied_id, str(api_run["id"]), {
+        "manifest_id": manifest.id, "model": model,
+        "groepen": [_groep_contract(g, manifest, uitkomst, model_links) for g in her.groepen],
+        "kaarten": [k.model_dump(mode="json") for k in kaarten.values()],
+        "oordelen": [o.model_dump(mode="json") for o in her.oordelen],
+        "vragen": [v.kandidaat_id for v in her.vragen],
+        "meting": {"batches": teller["n"], "nieuw": teller["nieuw"], "met_model": met_model,
+                   "promptversie": {"vraag": classificatie.promptversie(), "kaart": kaart_mod.promptversie()}}})
+    return Uitkomst(taak=taak, artefact=artefact, tekst=samenvatting(naam, her, kaarten), meting=meting,
+                    voorstellen=[g.id for g in her.groepen])
 
 
 def _anthropic(settings) -> Any:

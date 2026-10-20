@@ -17,7 +17,8 @@ from eval.gesprek import (
     GOLDEN_GESPREK, Beurt, GesprekAnnotaties, routes_uit_status, run_gesprek_suite, score_beurt,
 )
 
-ROUTES = {"annotaties_lezen", "annotatie", "advies", "afgewezen", "definitie", "duiding", "algemeen"}
+ROUTES = {"annotaties_lezen", "annotatie", "advies", "afgewezen", "definitie", "duiding", "algemeen",
+          "deelvragen", "begrippen"}
 VELDEN = {"route", "niet_route", "tools_wel", "tools_niet", "max_tools", "bevat", "bevat_een",
           "verboden", "niet_ongegrond"}
 
@@ -38,6 +39,20 @@ def test_routes_uit_status_volgt_de_supervisorregels():
     assert routes_uit_status(["Supervisor · buiten de wet- en regelgeving in de graaf"]) == ["afgewezen"]
     assert routes_uit_status(["Lex · meer dan één artikel genoemd (9, 10)"]) == ["afgewezen"]
     assert routes_uit_status(["Supervisor · kiest de annotatie-worker · annoteer"]) == ["annotatie"]
+    # De agents op een werkgebied (F3c), getypt of als suggestie.
+    assert routes_uit_status(["Supervisor · kiest de deelvragen-agent · taak dekking"]) == ["deelvragen"]
+    assert routes_uit_status(["Supervisor · kiest de begrippen-agent · taak voorbeelden (suggestie)"]) == ["begrippen"]
+    assert routes_uit_status(["Supervisor · kiest de annotatie-agent · taak werkgebied"]) == ["annotatie"]
+
+
+def test_de_routeringscases_naar_de_agents_staan_in_de_set():
+    """F3c: getypte vragen naar deelvragen en begrippen, een vervolgvraag, en de negatieven."""
+    f = [c for c in _cases() if c.get("scenario") == "F"]
+    routes = {b["verwacht"].get("route") for c in f for b in c["beurten"]}
+    assert {"deelvragen", "begrippen", "annotatie"} <= routes
+    # De negatieven: een wetsvraag, een uitleg en een overzicht binnen een werkgebied blijven bij de antwoordroute.
+    assert sum(1 for c in f for b in c["beurten"] if "deelvragen" in (b["verwacht"].get("niet_route") or [])) >= 3
+    assert any(len(c["beurten"]) > 1 for c in f) and any("onderwerp" in b for c in f for b in c["beurten"])
 
 
 def test_score_beurt_noemt_elke_afwijking():
@@ -76,7 +91,7 @@ def test_gouden_gesprekken_zijn_geldig():
     cases = _cases()
     assert len({c["id"] for c in cases}) == len(cases)
     for c in cases:
-        assert c["scenario"] in {"A", "B", "C", "R"}, c["id"]
+        assert c["scenario"] in {"A", "B", "C", "R", "F"}, c["id"]
         assert len(c["beurten"]) >= 2, f"{c['id']}: een gesprek heeft een vervolgbeurt nodig"
         for e in c.get("andere_annotaties") or []:
             assert e["klasse"] in GELDIGE_JAS_KLASSEN, e

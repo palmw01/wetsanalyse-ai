@@ -9,7 +9,8 @@ import pytest
 from pydantic import ValidationError
 
 from agent.focus import als_context, bij_advies, bij_onderwerp
-from agent.models import ACTIE_MODUS, ChatRequest, Onderwerp
+from agent.agents import register
+from agent.models import ACTIE_TAAK, ChatRequest, Onderwerp
 from agent.onderwerp import als_blok, haal
 from fakes import FakeGraph, FakeLLM, make_settings, response, text_block
 
@@ -87,13 +88,16 @@ def test_een_onderwerp_draagt_soort_en_ids_en_een_object_heeft_een_id():
         Onderwerp(soort="bron", werkgebied_id="../x", id="s9")
 
 
-@pytest.mark.parametrize("actie,modus", sorted(ACTIE_MODUS.items()))
-def test_een_actie_kiest_zonder_model_de_bestaande_route(actie, modus):
+@pytest.mark.parametrize("actie", sorted(ACTIE_TAAK))
+def test_een_actie_is_een_taak_van_een_agent(actie):
+    agent, taak = ACTIE_TAAK[actie]
+    assert register.is_taak(agent, taak)
     r = ChatRequest(question="Zoek bepalingen", actie=actie, werkgebied_id="wg1")
-    assert r.modus == modus
+    # Alleen het werkgebied annoteren is een eigen stroom; de rest gaat langs de supervisor.
+    assert r.modus == ("werkgebied_annoteren" if actie == "werkgebied_annoteren" else "auto")
     # Met het werkgebied uit het onderwerp, als de werkplek er niet al in staat.
     r = ChatRequest(question="…", actie=actie, onderwerp={"soort": "werkgebied", "werkgebied_id": "wg2"})
-    assert (r.modus, r.werkgebied_id) == (modus, "wg2")
+    assert r.werkgebied_id == "wg2"
 
 
 def test_een_actie_sluit_modus_doel_en_kaartje_uit_en_vraagt_een_werkgebied():
@@ -104,6 +108,8 @@ def test_een_actie_sluit_modus_doel_en_kaartje_uit_en_vraagt_een_werkgebied():
                     doel={"bwbId": "BWBR0004770", "artikel": "9"})
     with pytest.raises(ValidationError, match="werkgebied_id"):
         ChatRequest(question="x", actie="werkgebied_annoteren")
+    with pytest.raises(ValidationError, match="werkgebied_id"):
+        ChatRequest(question="x", actie="dekking")
     with pytest.raises(ValidationError):
         ChatRequest(question="x", actie="iets_anders", werkgebied_id="wg1")
 
@@ -111,16 +117,15 @@ def test_een_actie_sluit_modus_doel_en_kaartje_uit_en_vraagt_een_werkgebied():
 def test_bevestigd_mag_bij_de_acties_die_bevestiging_vragen():
     r = ChatRequest(question="x", actie="werkgebied_annoteren", werkgebied_id="wg1", bevestigd=3)
     assert r.is_werkgebied_annotatie and r.bevestigd == 3
-    assert ChatRequest(question="x", actie="begrippen_meedenken", werkgebied_id="wg1", bevestigd=2).is_begrippen_verdieping
+    assert ChatRequest(question="x", actie="begrippen_meedenken", werkgebied_id="wg1", bevestigd=2).bevestigd == 2
     with pytest.raises(ValidationError, match="bevestigd"):
         ChatRequest(question="x", actie="bronnen_zoeken", werkgebied_id="wg1", bevestigd=1)
 
 
-def test_een_actie_gaat_de_harde_route_in():
-    assert ChatRequest(question="hallo", actie="bronnen_zoeken", werkgebied_id="wg1").is_bronnenbeurt
-    assert ChatRequest(question="hallo", actie="begrippen_voorstellen", werkgebied_id="wg1").is_begrippenbeurt
-    # Zonder actie is "hallo" geen bronnenvraag: de route komt van de actie, niet van de tekst.
-    assert not ChatRequest(question="hallo", werkgebied_id="wg1").is_bronnenbeurt
+def test_alleen_het_werkgebied_annoteren_is_nog_een_harde_route():
+    assert ChatRequest(question="hallo", actie="werkgebied_annoteren", werkgebied_id="wg1").is_werkgebied_annotatie
+    # Een getypte vraag is nooit een harde route meer: de supervisor kiest.
+    assert not ChatRequest(question="Annoteer het werkgebied", werkgebied_id="wg1").is_werkgebied_annotatie
 
 
 @pytest.fixture
@@ -129,21 +134,21 @@ def client(monkeypatch):
 
     import api.main as main
 
-    gestart: list[tuple[str, str]] = []
+    gestart: list[dict] = []
 
-    async def nep_beurt(request, run, **_kw):
-        gestart.append((request.modus, request.werkgebied_id))
+    async def nep_stroom(question, conversation_id=None, **kw):
+        gestart.append({"vraag": question, **kw})
         yield {"type": "done"}
 
     monkeypatch.setattr(main.settings, "graphdb_token", "test", raising=False)
     monkeypatch.setattr(main.settings, "graphdb_mcp_url", "https://graaf.test/mcp", raising=False)
-    monkeypatch.setattr(main, "begrippen_beurt", nep_beurt)
+    monkeypatch.setattr(main, "answer_stream", nep_stroom)
     monkeypatch.setattr(main, "runs", type(main.runs)())
     with TestClient(main.app) as c:
         yield c, main, gestart
 
 
-def test_een_klik_op_een_suggestie_start_de_route_ook_met_een_vrije_tekst(client, monkeypatch):
+def test_een_klik_op_een_suggestie_gaat_met_zijn_actie_de_beurt_in(client, monkeypatch):
     c, main, gestart = client
     monkeypatch.setattr(type(main.settings), "legt_zelf_vast", property(lambda _s: True))
     main.app.dependency_overrides[main._budget_check] = lambda: None
@@ -156,7 +161,8 @@ def test_een_klik_op_een_suggestie_start_de_route_ook_met_een_vrije_tekst(client
             if gestart:
                 break
             asyncio.run(asyncio.sleep(0.02))
-        assert gestart == [("begrippen", "wg1")]
+        [beurt] = gestart
+        assert (beurt["actie"], beurt["werkgebied_id"], beurt["modus"]) == ("begrippen_voorstellen", "wg1", "auto")
     finally:
         main.app.dependency_overrides.clear()
 

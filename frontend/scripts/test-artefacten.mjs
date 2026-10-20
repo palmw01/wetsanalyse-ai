@@ -12,7 +12,8 @@
  *  - de balk boven de chat brengt het laatste artefact terug, ook als dat begrippen zijn;
  *  - een live beurt waarvan het `opgeslagen`-event een begrippenartefact draagt, opent dat paneel;
  *  - vanuit een werkgebied (`?werkgebied=`): de balk noemt het werkgebied, *Stel begrippen voor* stuurt
- *    een beurt mét `werkgebied_id`, en na *Verlaten* draagt een beurt het niet meer (fase AF2).
+ *    een beurt mét `werkgebied_id` en de actie `begrippen_voorstellen`, en na *Verlaten* draagt een beurt
+ *    het niet meer (fase AF2, F3c).
  */
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
@@ -191,6 +192,7 @@ try {
   await page.getByRole("region", { name: "Begripsvoorstellen: Live voorstellen" }).waitFor();
   assert.equal(runs[0]?.werkgebied_id, "wg1", "de beurt hoort het werkgebied te dragen");
   assert.equal(runs[0]?.question, "Stel begrippen voor");
+  assert.equal(runs[0]?.actie, "begrippen_voorstellen", "de knop is een vaste handeling, geen tekstpatroon (F3c)");
   await balk2.getByRole("button", { name: /Uit de context/ }).click();
   await balk2.waitFor({ state: "detached" });
   assert.ok(!new URL(page.url()).searchParams.has("werkgebied"), "verlaten haalt het werkgebied uit de URL");

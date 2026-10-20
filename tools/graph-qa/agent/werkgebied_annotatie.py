@@ -7,9 +7,9 @@ de keuzekaart. Per eenheid draait de gewone annotatiebeurt – dezelfde `reeks_s
 
 Twee stappen, en nooit meteen starten:
 
-1. **Zonder `bevestigd`** (de chatvraag "annoteer het werkgebied", of de knop die eerst wil weten
-   wat het kost): Lex noemt het aantal, de schatting, het budget en wat er niet meegaat, en legt een
-   bericht vast met een `bevestiging` – de werkplek toont er de knop bij, ook na herladen.
+1. **Zonder `bevestigd`** (de getypte vraag via de supervisor, `werkgebied_voorstel`, of de knop die
+   eerst wil weten wat het kost): Lex noemt het aantal, de schatting, het budget en wat er niet
+   meegaat, en het bericht draagt een `bevestiging` – de werkplek toont er de knop bij, ook na herladen.
 2. **Met `bevestigd: n`**: alleen als `n` gelijk is aan de actuele werkvoorraad. Anders is het
    antwoord "de werkvoorraad veranderde", met een nieuwe bevestiging – nooit stil iets anders doen dan
    wat bevestigd is.
@@ -20,27 +20,16 @@ eenheden houden stop en budget de run tegen. Aan het eind volgt een samenvatting
 from __future__ import annotations
 
 import logging
-import re
 from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Any
 
+from .agents import Context, Uitkomst, geweigerd
 from .reeks import _budget_poort, beurt_fabriek, reeks_stroom
 from .wetsanalyse_api import GesprekVerdwenen, WetsanalyseApi, WetsanalyseApiFout
 
 logger = logging.getLogger("graph_qa.werkgebied_annotatie")
 
 PLAFOND = 40
-
-# "annoteer het werkgebied", "annoteer wat nog niet geannoteerd is", "annoteer alles" – binnen een
-# werkgebied. "annoteer artikel 9" blijft de gewone annotatieroute, en "annoteer alles over X" de
-# onderwerproute (een keuze uit kandidaten).
-_ANNOTEER = re.compile(r"\bannoteer\b|\bannoteren\b", re.I)
-_GEHEEL = re.compile(r"\bwerkgebied\b|\bnog niet geannoteerd\b|\balle (nieuwe )?bepalingen\b"
-                     r"|^\s*annoteer alles\s*[.!?]?\s*$", re.I)
-
-
-def is_werkgebied_annoteervraag(vraag: str) -> bool:
-    return bool(_ANNOTEER.search(vraag) and _GEHEEL.search(vraag))
 
 
 def _getal(n: int) -> str:
@@ -114,6 +103,31 @@ def samenvatting(naam: str, uitkomsten: dict[str, str], eind: dict[str, Any], re
     if gedaan:
         tekst += " Beoordeel de voorstellen per bepaling via *Open ›*, of op de tab Elementen van het werkgebied."
     return tekst
+
+
+async def zonder_api() -> AsyncIterator[dict[str, Any]]:
+    """Zonder koppeling met de api is er geen werkgebied en niets om naar terug te schrijven."""
+    yield {"type": "error", "message": "Zonder koppeling met de wetsanalyse-api kan Lex het werkgebied niet annoteren.",
+           "soort": "api"}
+    yield {"type": "done"}
+
+
+async def werkgebied_voorstel(ctx: Context, werkgebied_id: str) -> Uitkomst:
+    """Stap 1 als taak (`werkgebied` van de annotatie-agent, `agents/annotatie.py`): de getypte vraag
+    "annoteer wat nog niet geannoteerd is" levert het voorstel met de bevestiging. Starten doet de
+    bevestigingsknop, met `bevestigd` (de reeks hieronder)."""
+    taak = "werkgebied"
+    ctx.melding("Werkvoorraad van het werkgebied bepalen")
+    try:
+        wv = await ctx.api.haal_annotatie_werkvoorraad(werkgebied_id)
+    except WetsanalyseApiFout as fout:
+        if fout.status != 404:
+            raise
+        return geweigerd(taak, "Dit werkgebied bestaat niet (meer).")
+    wv = {"werkgebied_id": werkgebied_id, **wv}
+    tekst, bevestiging = voorstel(str(wv.get("naam") or "zonder naam"), wv)
+    return Uitkomst(taak=taak, status="bevestiging" if bevestiging else "ok", tekst=tekst, bevestiging=bevestiging,
+                    meting={"te_annoteren": len(wv.get("te_annoteren") or []), "model": False})
 
 
 async def werkgebied_annotatie_beurt(

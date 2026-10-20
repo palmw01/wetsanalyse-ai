@@ -1,12 +1,16 @@
 # Gegenereerd uit de wetsanalyse-skill; niet handmatig bewerken.
 # Draai scripts/genereer_jas_klassen.py.
-PAKKET = {'bronbestanden': {'SKILL.md': '02af01e08aa15828c094ff0ac880a10416d6c72537322bf31764e2b94a643254',
-                   'agentrollen.json': 'a46fda930fc9e646c69497c1962f9b2d11454f3a4bc0d2c5e7ca7fcdeb3ebdbd',
+PAKKET = {'bronbestanden': {'SKILL.md': '0e4b6783a5d8d3efe3bb62d7efdc32e7877dd036c0853ccc0d4315653a58c17f',
+                   'agentrollen.json': '811ce91d94f8abca30b360f5dd5f9f5f08bc68be8ac2f2bc3b59974d293f76aa',
                    'references/agentrollen.md': 'f46b17b5d7f7054bed32767a063b3212428956ee7c85aa78de68887035291787',
-                   'references/bronnen.md': '8d9d52cd2c10738f7bbb800cec9ddde3dbd4e8aa696cf574acc36bb182e03667',
+                   'references/begrippen.md': '9116dc40369b1d4258d1de61dbb44ca5854c5148e2c43782e63b8c9e43927b16',
+                   'references/bronnen.md': 'fff5dc1c7a33a88219d2767986882b0f7552b0e99a1ba8c4c52c7aa9ace46b36',
+                   'references/deelvragen-en-bronnen.md': '3f1297e0e4852a27adcacb843ff185cd89be9ce58e8ebe87bf0173cbb8204053',
                    'references/jas-klassen-referentie.md': '5fe94a8c3718eb3d0f21a04cda9e89d9c35db4260b39f1900ead19a86ee91a95'},
  'rollen': {'algemeen': ['basis'],
+            'begrippen': ['basis', 'begrippen'],
             'decompositie': ['basis', 'decompositie'],
+            'deelvragen': ['basis', 'deelvragen'],
             'definitie': ['basis', 'definitie'],
             'duiding': ['basis', 'duiding'],
             'retrieval': ['basis', 'retrieval'],
@@ -26,6 +30,34 @@ PAKKET = {'bronbestanden': {'SKILL.md': '02af01e08aa15828c094ff0ac880a10416d6c72
                                 'of opslag van een dossier zonder uitvoering. Volg het bestaande '
                                 'uitvoercontract van je rol; deze methoderegels verlenen geen '
                                 'extra tools of bevoegdheden.'},
+             'begrippen': {'bestand': 'references/begrippen.md',
+                           'bronnen': ['M01', 'M04', 'P15'],
+                           'sha256': 'fa16b2ceea0780a598bd4f87003ae4c39d11977886fdbda86bf18e8e7f396028',
+                           'tekst': 'Een begrip is een analyse-uitkomst, geen wettelijke '
+                                    'definitie: het brengt de formuleringen samen die in het '
+                                    'werkgebied hetzelfde aanduiden, met een naam, een definitie, '
+                                    'context en de passages waarop het rust. Een gelijk woord '
+                                    'bewijst geen gelijke betekenis; sterk bewijs is wat de wet '
+                                    'zelf vastlegt – een begripsbepaling binnen haar bereik, of '
+                                    'een verwijzing. Houd de wettelijke definitie en het '
+                                    'vastgelegde begrip uit elkaar.\n'
+                                    'Een definitie noemt het soortbegrip en het onderscheidende '
+                                    'kenmerk, dekt wat de passages aanduiden en niet meer, '
+                                    'gebruikt de naam van het begrip niet als eigen soortbegrip en '
+                                    'is geen rekenregel. De herkomst telt: letterlijk uit de bron '
+                                    'gaat voor samengesteld uit bronfragmenten, en dat gaat voor '
+                                    'zelf geformuleerd. Een geformuleerde definitie is altijd een '
+                                    'voorstel om te beoordelen, met de fragmenten waarop ze rust.\n'
+                                    'Voorbeelden toetsen een definitie. Ze komen pas als er een '
+                                    'overgenomen definitie is, en een grensgeval of tegenvoorbeeld '
+                                    'hoort erbij. Een betekenisverschil leg je uit met de context '
+                                    'van beide begrippen, niet met het woord alleen.\n'
+                                    'Relaties houden hun type – kwalificatie, inclusie, '
+                                    'uitsluiting, soort van, verwant – en hun richting. Een begrip '
+                                    'met een andere betekenis wordt een opvolger, het oude wordt '
+                                    'vervangen. Het begrippenkader volgt NL-SBB.\n'
+                                    'Lex stelt voor; de analist neemt over, past aan of wijst af, '
+                                    'en alleen de analist accordeert.'},
              'decompositie': {'bestand': 'references/agentrollen.md',
                               'bronnen': ['M03', 'P01', 'P03', 'P12'],
                               'sha256': 'a2bf53ae5c9cbe9f5c1991eb256e59c32459b3a6f7eda065f8061e4ff50dfde6',
@@ -35,6 +67,38 @@ PAKKET = {'bronbestanden': {'SKILL.md': '02af01e08aa15828c094ff0ac880a10416d6c72
                                        'deelvragen. Verzin geen onderzoeksresultaten of nieuwe '
                                        'opdracht. Houd je aan het bestaande aantal deelvragen en '
                                        'contract met genummerde regels.'},
+             'deelvragen': {'bestand': 'references/deelvragen-en-bronnen.md',
+                            'bronnen': ['M03', 'P13', 'P14'],
+                            'sha256': '94df726fe1d5ca3ff7bc1576edff5a1e520feb4c50e0eb3ebd075f0ce6b3a7da',
+                            'tekst': 'Een deelvraag maakt de analysevraag concreet. Samen dekken '
+                                     'de deelvragen de hele analysevraag, en elke deelvraag gaat '
+                                     'over één onderwerp: wie (een rechtssubject), wat (een '
+                                     'rechtsobject of rechtsbetrekking), wanneer en onder welke '
+                                     'voorwaarden (een rechtsfeit, voorwaarde of termijn), welke '
+                                     'uitzondering, of welk gevolg. Een goede deelvraag is '
+                                     'toetsbaar aan het praktijkvoorbeeld en valt binnen de '
+                                     'afbakening; wat het dossier buiten het werkgebied plaatst, '
+                                     'krijgt geen deelvraag. Verzin geen onderwerp dat niet in het '
+                                     'dossier besloten ligt.\n'
+                                     'Vraagt een deelvraag naar meer dan één ding, splits haar dan '
+                                     'zo dat de delen samen precies hetzelfde dekken. Overlappen '
+                                     'twee deelvragen, stel dan één voor in plaats van twee. Een '
+                                     'scherpere formulering verandert niet waar de vraag over '
+                                     'gaat. Noem in een deelvraag geen artikelen: welke bepalingen '
+                                     'erbij horen, volgt pas daarna.\n'
+                                     'Van deelvraag naar bronnen: zoek de bepalingen die de '
+                                     'deelvraag beantwoorden, waar het kan op het niveau van het '
+                                     'lid, en volg hun verwijzingen één stap als die voor de '
+                                     'deelvraag ertoe doen – een definitie, een uitzondering, een '
+                                     'delegatie. Een bron hoort bij de deelvraag die hij helpt '
+                                     'beantwoorden.\n'
+                                     'Dekking betekent dat elke deelvraag een bron heeft om te '
+                                     'analyseren en uiteindelijk een geaccordeerd begrip. Een '
+                                     'deelvraag met alleen contextbronnen, alleen open of '
+                                     'uitgesloten kandidaten, of zonder bron is nog open; zeg dat, '
+                                     'in plaats van de dekking mooier te maken dan ze is.\n'
+                                     'Lex stelt voor – deelvragen, formuleringen, kandidaatbronnen '
+                                     '– en de analist beslist: overnemen, aanpassen of afwijzen.'},
              'definitie': {'bestand': 'references/agentrollen.md',
                            'bronnen': ['M01', 'M04', 'P03', 'P06', 'P12'],
                            'sha256': 'fd8a133c78e98bbaeb4a5f92202e5ae9aed9456c585599541d395899c514186d',
@@ -102,5 +166,5 @@ PAKKET = {'bronbestanden': {'SKILL.md': '02af01e08aa15828c094ff0ac880a10416d6c72
                                    'interpretatieverschillen zichtbaar; presenteer ze niet als '
                                    'vaststaande conclusies. Voeg zonder beschikbare bronnen geen '
                                    'nieuw juridisch feit toe.'}},
- 'sha256': 'ed4a5b970ab207cea2258a442bae2b7a6a09b45df8db89b8270cd4d1a5a587a0',
+ 'sha256': '6b1b77487430692c1f2f69e906f29d0625c4af427349e2bf76c85e61bf65f87f',
  'versie': '2.1'}

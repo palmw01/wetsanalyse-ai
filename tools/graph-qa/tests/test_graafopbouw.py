@@ -42,7 +42,7 @@ def test_planning_is_de_standaardvorm():
     assert nodes == {
         "supervisor", "agent", "tools", "verify", "correct", "finalize", "annotaties_zoeken",
         "begrippen_zoeken", "overzicht_bouwen", "annoteer", "emit", "advance", "afwijzen",
-        "werkgebied_intake",
+        "werkgebied_intake", "agent_taak",
     }
     assert edges == {
         (START, "supervisor", "", False),
@@ -65,6 +65,10 @@ def test_planning_is_de_standaardvorm():
         # verify/finalize – er wordt niets over wetgeving beweerd (nodes/werkgebied.py).
         ("supervisor", "werkgebied_intake", "", True),
         ("werkgebied_intake", EIND, "", False),
+        # Een taak van een agent op het werkgebied (F3c): deelvragen, begrippen, het werkgebied
+        # annoteren. Eén taak per beurt, zonder verify/finalize (nodes/agent_taak.py).
+        ("supervisor", "agent_taak", "", True),
+        ("agent_taak", EIND, "", False),
         ("agent", "tools", "", True),
         ("agent", "verify", "", True),
         ("agent", "annoteer", "", True),
@@ -80,6 +84,7 @@ def test_planning_is_de_standaardvorm():
         ("advance", "overzicht_bouwen", "", True),
         ("advance", "afwijzen", "", True),
         ("advance", "werkgebied_intake", "", True),
+        ("advance", "agent_taak", "", True),
         ("advance", EIND, "einde", True),
     } | ANNOTATIEKETEN
 
@@ -108,6 +113,8 @@ def test_decompositie_voegt_de_deelvraag_keten_toe():
     assert ("advance", "decompose", "", True) in edges
     assert ("supervisor", "werkgebied_intake", "", True) in edges
     assert ("werkgebied_intake", EIND, "", False) in edges
+    assert ("supervisor", "agent_taak", "", True) in edges
+    assert ("agent_taak", EIND, "", False) in edges
 
 
 def test_de_kale_tak_heeft_geen_annotatie_en_geen_supervisor():
@@ -137,5 +144,5 @@ def test_stopbewaking_zit_om_elke_node():
     assert nodes == {
         "supervisor", "decompose", "solve", "synthesize", "resynth", "agent", "tools",
         "annoteer", "emit", "advance", "afwijzen", "verify", "finalize", "annotaties_zoeken",
-        "begrippen_zoeken", "overzicht_bouwen", "werkgebied_intake",
+        "begrippen_zoeken", "overzicht_bouwen", "werkgebied_intake", "agent_taak",
     }

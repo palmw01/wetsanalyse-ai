@@ -37,6 +37,7 @@ ankerlogica die de api en de agent delen staat in `packages/bronmodel` (`wetsana
 | `nodes/annotatie_lezen.py` | de leesroute: eerst zoeken in de opgeslagen annotaties, dan formuleren |
 | `nodes/overzicht.py` | de overzichtsroute: overzicht en tekst uit de graaf, zonder model |
 | `nodes/werkgebied.py` | de werkgebied-worker: één stap van het samenstellen van een werkgebied (activiteit 1) |
+| `nodes/agent_taak.py` | één taak van een agent op een werkgebied (deelvragen, begrippen, het werkgebied annoteren; F3c) |
 | `nodes/context.py` | `Bouw` – wat een node buiten zijn state om nodig heeft |
 
 De nodes zijn gewone functies `(b: Bouw, state)`; `Bouw` draagt de poorten, de stopvlag, de drie
@@ -50,6 +51,7 @@ supervisor ─┬─ antwoord-worker:  agent ⇄ tools → verify → (correct) 
             ├─ begrippen lezen:  begrippen_zoeken → agent ⇄ tools → verify → finalize
             ├─ overzichtsroute:  overzicht_bouwen → verify → finalize   (geen model; bij een bouwfout → agent)
             ├─ werkgebied-worker: werkgebied_intake → einde              (één stap van het samenstellen)
+            ├─ agents:           agent_taak → einde                        (deelvragen, begrippen; F3c)
             └─ afwijzen (geen wetgevingsvraag)
 ```
 
@@ -616,10 +618,11 @@ en eindig met `opgeslagen` + `done`.
 
 ### Lex denkt mee: de verdieping als beurt (`agent/begrippen_verdieping.py`, fase C2)
 
-De model-laag hierboven, uitgevoerd in batches met de api als geheugen. Ingang: `POST /v1/runs` met
-`werkgebied_id` en `modus: "begrippen_verdiepen"`, of in het gesprek "denk mee over de begrippen" /
-"stel definities voor" (`is_verdiepvraag`). De begrippenroute biedt het ook aan: na de voorstellen een
-zin en een `bevestiging` (`meedenk_aanbod`) als er twijfelpunten of begrippen zonder definitie zijn.
+De model-laag hierboven, uitgevoerd in batches met de api als geheugen. Sinds F3c de taak `meedenken` van
+de begrippen-agent (`verdieping_kern`): de supervisor kiest hem, of de actie `begrippen_meedenken` (ook
+`modus: "begrippen_verdiepen"` van de bevestigingsknop). Het voorstellen van begrippen biedt het ook aan:
+na de voorstellen een zin en een `bevestiging` (`meedenk_aanbod`) als er twijfelpunten of begrippen
+zonder definitie zijn.
 
 - **De werkvoorraad komt van de api** (`GET …/verdieping`), met schatting en budget. Zonder
   `bevestigd`: alleen het voorstel en een `bevestiging` (`soort: "begrippen_verdiepen"`). Met
@@ -663,27 +666,24 @@ actie per begrip tegelijk) → `kaart_stroom`: run met invoer ophalen, `…/loop
 - Meten: `uv run python -m eval.kaartacties_eval` (live tegen de graaf, geen model; een ontwikkelset,
   meetlogboek `kaartacties-2026-10-16`).
 
-### De begrippenroute in het gesprek (`agent/begrippen_beurt.py`, fase AF2)
+### Begrippen voorstellen in het gesprek (`agent/begrippen_beurt.py`, fase AF2)
 
-Staat de werkplek in de context van een werkgebied, dan draagt `POST /v1/runs` een `werkgebied_id`.
-Een vraag om begrippen (`is_begrippenvraag`: "begrippen" plus een handeling als *stel*, *maak*,
-*welke*; **niet** "wat betekent het begrip X?") of `modus: "begrippen"` gaat dan een **harde route** in,
-vóór de supervisor en zonder model – dezelfde plek als de reeks (`_stroom_voor` in `api/main.py`).
+Staat de werkplek in de context van een werkgebied, dan draagt `POST /v1/runs` een `werkgebied_id`. Een
+vraag om begrippen is sinds F3c de taak `voorstellen` van de begrippen-agent (supervisor of actie
+`begrippen_voorstellen`); geen tekstpatroon, geen harde route.
 
-- `begrippen_beurt`: werkgebied ophalen → `POST …/begrippen-runs` bij de api (manifest + run, of de
+- `begrippen_kern`: werkgebied ophalen → `POST …/begrippen-runs` bij de api (manifest + run, of de
   bestaande op dezelfde stand) → de keten via `begrippen_stroom` als de run nieuw is, wachten (peilen,
   hoogstens 3 min) als een ander hem al draait, niets als hij al klaar is → de groepen tellen → een
-  samenvatting als `token`, het bericht met het **begrippenartefact** (`begrippen_artefact`:
-  `{soort: "begrippen", ref: {werkgebied_id, run_id}, titel: <werkgebiednaam>}`) en `opgeslagen` met
-  datzelfde artefact.
+  uitkomst met het **begrippenartefact** (`begrippen_artefact`:
+  `{soort: "begrippen", ref: {werkgebied_id, run_id}, titel: <werkgebiednaam>}`).
 - **Een weigering van de api is een antwoord**, geen storing: 404 (werkgebied weg) en 409
-  (`te_weinig_passages`, `inventaris_onvolledig`, in de woorden van `WEIGERING`) worden een bewaard
-  bericht zónder artefact. Een andere api-fout is een `error`; een verwijderd gesprek eindigt stil.
-- `/v1/chat` weigert `modus: "begrippen"` (422): de route schrijft in werkgebied en gesprek.
+  (`te_weinig_passages`, `inventaris_onvolledig`, in de woorden van `WEIGERING`) worden `geweigerd`
+  zónder artefact. Een andere api-fout wordt in de node een zin (`STORING`).
+- `/v1/chat` weigert een actie (422): de taak schrijft in werkgebied en gesprek.
 - In de antwoordroute gaat `werkgebied_id` mee als `State.werkgebied_id`: de begrippen van dat werkgebied
   staan vooraan bij `search_begrippen` (fase F4, hieronder).
-- Tests: `tests/test_begrippen_beurt.py` (herkenning, request-model, verloop tegen een nep-api, de
-  endpoints).
+- Tests: `tests/test_begrippen_beurt.py` (request-model, verloop tegen een nep-api).
 
 ### Bronnen vinden met Lex (`agent/bronnen_vinden.py`, `agent/bronnen_run.py`, fase A)
 
@@ -721,11 +721,9 @@ horen; de api bewaart de kandidaten en de besluiten (`api/app/bronnen_run_store.
   `ms`. Een falende methode wordt `volledig: false` en laat de rest staan; falen ze **allemaal**, dan
   is de run mislukt (`error` met `soort: "graaf"`), geen lege uitkomst.
 - **Twee ingangen**: `POST /v1/bronnen-runs {werkgebied_id, run_id}` (runstore-sleutel
-  `werkgebied:<id>:bronnen`, naast die van de begrippen) en **de bronnenroute in het gesprek**
-  (`bronnen_beurt`): binnen een werkgebied gaat "zoek bepalingen" / "welke bepalingen horen erbij?" /
-  "wat ontbreekt?" (`is_bronnenvraag`) of `modus: "bronnen"` een harde route in, vóór de supervisor –
-  het bericht draagt een `bronnen`-artefact. "Welke artikelen gaan over X?" blijft de overzichtsroute,
-  ook binnen een werkgebied. Een weigering van de api (`geen_vertrekpunt`) is een antwoord.
+  `werkgebied:<id>:bronnen`, naast die van de begrippen) en **in het gesprek** de taak `bronnen_zoeken`
+  van de deelvragen-agent (`bronnen_kern`, F3c) – de uitkomst draagt een `bronnen`-artefact. "Welke
+  artikelen gaan over X?" blijft de overzichtsroute, ook binnen een werkgebied. Een weigering van de api (`geen_vertrekpunt`) is een antwoord.
 - Tests: `tests/test_bronnen_vinden.py` (functiepatronen, methoden tegen een nep-graaf, het
   api-contract uit de bron, run, route, endpoint).
 
@@ -745,9 +743,9 @@ is afgewezen. Tests: `tests/test_deelvragen.py` (het contract `DeelvraagVoorstel
 
 Binnen een werkgebied annoteert Lex in één run de bepalingen die nog **nieuw** zijn – alleen van
 bronnen met rol *analyseren*, per lid zoals de keuzekaart. Ingang: `POST /v1/runs` met `werkgebied_id`
-en `modus: "werkgebied_annoteren"`, of in het gesprek "annoteer het werkgebied" / "annoteer wat nog niet
-geannoteerd is" (`is_werkgebied_annoteervraag`; "annoteer alles over X" blijft de onderwerproute). De
-check staat in `_stroom_voor` vóór de bronnen- en begrippenroute.
+en `modus: "werkgebied_annoteren"` of de actie `werkgebied_annoteren` (de reeks, in `_stroom_voor`). Getypt
+("annoteer wat nog niet geannoteerd is") kiest de supervisor de annotatie-agent met taak `werkgebied`:
+het voorstel met de bevestiging (`werkgebied_voorstel`, F3c).
 
 - **De werkvoorraad komt van de api** (`GET …/annotatie-werkvoorraad`), nooit van de browser.
 - **Nooit starten zonder bevestiging.** Zonder `bevestigd` antwoordt Lex met aantal, schatting
@@ -851,15 +849,62 @@ kandidaten, het begrip met zijn open kaartvoorstellen) en zet het blok in `State
 - **Niets valt stil weg.** Een object dat de api niet (meer) kent, of een storing, geeft het label uit de
   werkplek met de zin dat de gegevens niet op te halen waren. De kop is *AANGEWEZEN IN DE WERKPLEK*,
   niet "ONDERWERP" (dat woord draagt de onderwerp-afbakening in de systeemprompt).
-- **`actie`** (`ACTIE_MODUS`): een klik op een suggestie is een vaste handeling. De validator
-  `_actie_kiest_de_route` zet de modus (`bronnen_zoeken` → `bronnen`, `begrippen_voorstellen` →
-  `begrippen`, `begrippen_meedenken` → `begrippen_verdiepen`, `werkgebied_annoteren`), neemt het
-  werkgebied uit het onderwerp als het verzoek er geen draagt, en sluit `modus`, `doel`, `doelen` en
-  `intake_actie` uit. Daarna neemt de harde route in `_stroom_voor` het over, ongeacht de tekst; wat
-  bevestiging vraagt, vraagt die nog steeds. `/v1/chat` weigert een actie (422), net als de modi. De
-  agents van F3c krijgen er hun taken bij.
+- **`actie`** (`ACTIE_TAAK`, F3c): een klik op een suggestie is een vaste handeling – een taak van een
+  agent, zonder model gekozen (zie *De agents onder de supervisor*). De validator `_actie_kiest_de_route`
+  neemt het werkgebied uit het onderwerp als het verzoek er geen draagt, eist er een, sluit `modus`,
+  `doel`, `doelen` en `intake_actie` uit, en laat `bevestigd` alleen toe bij `BEVESTIG_ACTIES`. Alleen
+  `werkgebied_annoteren` zet een modus (de reeks). `/v1/chat` weigert een actie (422).
 - Tests: `tests/test_onderwerp.py` (contract, blok per soort tegen een nep-api, focus, de beurt, de
   api-routes uit de bron).
+
+### De agents onder de supervisor (`agent/agents/`, `nodes/agent_taak.py`, F3c, ADR-005)
+
+Naast `antwoord`, `annotatie` en `werkgebied` kiest de supervisor **`deelvragen`** en **`begrippen`**, met
+een `TAAK:`-regel uit een vaste lijst (`agents/register.py`; `parse_taak`). De tekstpatronen die vroeger
+harde routes vóór de supervisor kozen (`is_bronnenvraag`, `is_begrippenvraag`, `is_kaartvraag`,
+`is_verdiepvraag`, `is_werkgebied_annoteervraag`) zijn **weg**: getypte tekst gaat altijd langs de
+supervisor. `_stroom_voor` kent alleen nog `intake_actie`, het werkgebied annoteren als modus/actie (de
+reeks) en `doelen`.
+
+- **Een `actie` kiest zonder model** (`models.ACTIE_TAAK`: actie → agent + taak), net als een `doel`. De
+  werkplek stuurt hem bij een klik op een suggestie of een knop in de werkgebiedbalk. `modus:
+  "begrippen_verdiepen"` (de bevestigingsknop) wordt de actie `begrippen_meedenken`.
+- **De vorm** (`agents/__init__.py`): per agent een `Taak`-enum, een Pydantic-`Invoer` en de gedeelde
+  `Uitkomst` (`status` ok/bevestiging/geweigerd/fout, `reden`, `voorstellen`, `artefact`, `bevestiging`,
+  `tekst` uit code, `meting`), en `async voer_uit(invoer, ctx)`. Een model alleen in een stap die een
+  oordeel of formulering vraagt, als één strict tool (`MODEL_TAKEN`); de rest draait aantoonbaar zonder
+  (`tests/test_agents.py` met `FakeLLM([])`).
+- **De parameters** komen uit wat er ligt (`register.parameters`): het werkgebied, het aangewezen object
+  (of dat de focus vasthoudt), en wat code uit de vraag leest – "deelvraag 2" (`deelvraag_nr`, de n-de
+  actieve) en de term van een begrip (`kaart_beurt.termen_uit`). Nooit uit modeltekst.
+- **De deelvragen-agent** (`agents/deelvragen.py`): `voorstellen` en `verbeteren` (herformuleren of
+  splitsen, `deelvragen.verbeteren_kern`: één strict tool, `valideer_verbetering` – precies één nieuwe
+  vraag of 2–4, anders `geen`) landen als voorstel bij de api; `bronnen_zoeken` is de bronnenrun
+  (`bronnen_run.bronnen_kern`, met wat er bij de aangewezen deelvraag hoort); `dekking` per actieve
+  deelvraag uit de api (stand, bronnen met rol, open kandidaten). De systeemtekst draagt de skillrol
+  `deelvragen` (`deelvragen.systeem`), ook in de intake.
+- **De begrippen-agent** (`agents/begrippen.py`): `voorstellen` (`begrippen_beurt.begrippen_kern`),
+  `meedenken` (`begrippen_verdieping.verdieping_kern`; zonder `bevestigd` het voorstel met bevestiging),
+  de vier kaartacties (`kaart_beurt.kaart_kern`, dezelfde kaart-run als de knop), `uitwerken`
+  (brondefinitie → zonder definitie een definitievoorstel → voorbeelden pas op een overgenomen definitie)
+  en `relaties` (`GET …/relaties`, zonder model). Het begrip komt van het onderwerp (`als_rij`) of uit de
+  term (`los_op`). Skillrol `begrippen`.
+- **De annotatie-agent** heeft één taak hier: `werkgebied` (`werkgebied_annotatie.werkgebied_voorstel`), het
+  voorstel met de bevestiging. Met `bevestigd` blijft het de eigen reeks, want die draait per bepaling een
+  gewone beurt.
+- **Uitvoering**: `agent_taak` draait de async agent op de event loop van de beurt
+  (`agents/uitvoering.draai`, `Bouw.loop`), events via een thread-veilige wachtrij; stoppen via
+  `Context.gestopt`. Hij emit `status`, de tekst als `token`, en `artefact`/`bevestiging`; de beurt-driver
+  legt die op het bericht en het `opgeslagen`-event. Een storing wordt een zin in het gesprek
+  (`STORING`), zonder api `ZONDER_API`. Een onbekende taak: Lex vraagt wat hij moet doen.
+- **Kaartacties en verdieping boeken zelf** (eigen run bij de api); `voorstellen`/`verbeteren` van de
+  deelvragen gebruiken het model van de beurt en tellen mee in het verbruik van de beurt.
+- **Endpoints blijven** (`/v1/bronnen-runs`, `/v1/begrippen-runs`, `/v1/kaart-runs`,
+  `/v1/deelvragen-runs`) zolang de werkgebiedpagina ze gebruikt (tot F3e).
+- Tests: `tests/test_agent_uitvoering.py` (de spike), `tests/test_agents.py`, `tests/test_agent_contracten.py`,
+  en per kern de bestaande `test_begrippen_beurt`, `test_bronnen_vinden`, `test_begrip_tools`,
+  `test_begrippen_verdieping_run`, `test_werkgebied_annotatie`. Routering meten: scenario F in
+  `eval/golden_gesprek.jsonl`.
 
 ### Lex leest begrippen (`tools/begrip_tools.py`, `nodes/begrippen_lezen.py`, `agent/kaart_beurt.py`, fase F4)
 
@@ -885,16 +930,15 @@ en werkgebied, geen aanhalingstekens om een begripsdefinitie, wettekst apart oph
 - **De leesroute** (`is_begrip_leesvraag`: begrip(pen) plus een aanwijzing dat het om wat er al ligt gaat –
   *al, vastgelegd, geaccordeerd, hebben we, als begrip, status* – en geen handeling) → `begrippen_zoeken`
   zoekt vóór de eerste LLM-call, met een zoekterm alleen als de vraag hem aanwijst ("het begrip X",
-  "X als begrip", tussen aanhalingstekens) en een status uit de vraag. `is_begrippenvraag` (nieuwe
-  voorstellen) wijkt voor een leesvraag: "welke begrippen zitten hierin?" blijft een voorstel.
-- **Kaartacties vanuit het gesprek** (`kaart_beurt`, harde route in `_stroom_voor` vóór de
-  begrippenroute): "zoek de brondefinitie van termijn", "maak de definitie van X scherper", "geef
-  voorbeelden van X", "betekenisverschil tussen X en Y" – binnen een werkgebied, of met het woord
-  "begrip". Het begrip komt uit `GET /v1/begrippen` (exacte naam of alternatieve term, werkgebied van het
-  gesprek eerst); meer kandidaten → Lex vraagt welke, alleen een vervangen begrip → de opvolger, geen
-  begrip en geen "begrip" in de vraag → de gewone beurt (`terugval`). Starten gaat **direct**, zoals de
-  knop (besloten 19 okt 2026): `POST …/kaart-runs` en `begrip_kaart.kaart_stroom`, met zijn budgetpoort;
-  loopt dezelfde actie al, dan wacht de beurt. Het bericht draagt een begrippenartefact met
+  "X als begrip", tussen aanhalingstekens) en een status uit de vraag. Om nieuwe voorstellen vragen is
+  een taak van de begrippen-agent; de leesvraag gaat vóór de supervisor.
+- **Kaartacties vanuit het gesprek** (sinds F3c taken van de begrippen-agent, `kaart_beurt.kaart_kern`):
+  "zoek de brondefinitie van termijn", "maak de definitie van X scherper", "geef voorbeelden van X",
+  "betekenisverschil tussen X en Y". Het begrip komt van het onderwerp, of uit `GET /v1/begrippen` (exacte
+  naam of alternatieve term, werkgebied van het gesprek eerst); meer kandidaten → Lex vraagt welke,
+  alleen een vervangen begrip → de opvolger. Starten gaat **direct**, zoals de knop (besloten 19 okt
+  2026): `POST …/kaart-runs` en `begrip_kaart.kaart_stroom`, met zijn budgetpoort; loopt dezelfde actie
+  al, dan wacht Lex. De uitkomst draagt een begrippenartefact met
   `ref: {werkgebied_id, begrip_id, kaart_run_id, actie}`.
 
 ## De overzichtsroute: "welke artikelen gaan over X?"
@@ -998,7 +1042,7 @@ gaat**. Of een bepaalde regeling in de graaf zit weet de supervisor niet (hij he
 zo'n vraag gaat naar de antwoord-worker, die zoekt en zelf zegt als er niets is. Een afwijzing kost
 niets, een onterechte kost het antwoord. De vlag hoort in de per-beurt-reset van `answer_stream`,
 anders wijst één afgewezen vraag de hele thread af. De workerlijst is een **allowlist**
-(`antwoord`/`annotatie`/`werkgebied`; `werkgebied` staat altijd alleen) met een cap van twee: een onbekende naam zou anders een extra antwoord-worker
+(`antwoord`/`annotatie`/`werkgebied`/`deelvragen`/`begrippen`; de laatste drie staan altijd alleen) met een cap van twee: een onbekende naam zou anders een extra antwoord-worker
 worden.
 
 **Advies bij twijfel** (`modus: "advies"`, op `/v1/runs` én `/v1/chat`): de supervisor routeert hard naar

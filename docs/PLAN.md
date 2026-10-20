@@ -864,7 +864,11 @@ van de gebruiker op 20 okt 2026).
     `?vraag=`, en de handelingen op het werkgebied als suggestie met een actie (die nu de bestaande harde
     routes kiest). `annoteer=`/`meedenk=` blijven tot F3e, met de paginaknoppen die ze gebruiken;
   - **F3c** graph-qa + skill: de twee agents onder de supervisor, de agentrollen, ADR-005, en
-    routeringscases in `golden_gesprek.jsonl`, 3× gemeten;
+    routeringscases in `golden_gesprek.jsonl`, 3× gemeten – **gebouwd** (21 okt 2026): `agent/agents/`
+    (deelvragen, begrippen, en de werkgebied-taak van de annotatie-agent), de node `agent_taak` op de event
+    loop van de beurt, `TAAK:` in de supervisor, `ACTIE_TAAK` (elke taak is een actie), de tekstpatronen weg,
+    de skillrollen `deelvragen` en `begrippen` (P14, P15), scenario F in de gesprekseval. Nog open: de
+    meting (3×) en `vervangt` bij een verbeterde deelvraag (met het paneel in F3d);
   - **F3d**: suggesties per object, en de artefacten/panelen `deelvraag` en `begrip`;
   - **F3e**: de werkgebiedpagina wordt raadplegen; de ongebruikte BFF-run-routes gaan eruit;
   - **F3f**: de intake met bepalingen per deelvraag en de twee fixes, met een meting op een **nieuwe**

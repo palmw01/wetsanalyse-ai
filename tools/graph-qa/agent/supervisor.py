@@ -6,6 +6,10 @@ De supervisor bepaalt per vraag WELKE worker-agents nodig zijn en in welke volgo
 het JAS markeren). Hij mag ketenen (bv. eerst annoteren, dan samenvatten). Retrieval (get_lid/
 get_artikel) is een gedeelde tool die de gekozen worker zelf aanroept.
 
+Sinds F3c (ADR-005) kiest hij ook de agents op een werkgebied – `deelvragen` en `begrippen` – met een
+`TAAK:` uit een vaste lijst (`agents/register.py`); een klik op een suggestie (`actie`) kiest agent en taak
+zonder model. `werkgebied` (samenstellen), `deelvragen` en `begrippen` ketenen met niets.
+
 Backward-compatible met het oude router-formaat: een respons met alleen `SPECIALIST:`/`PLAN:` (zonder
 `WORKERS:`) wordt gelezen als één `antwoord`-worker met die specialist – zo blijven de bestaande
 QA-flows/tests ongewijzigd.
@@ -15,9 +19,11 @@ from __future__ import annotations
 SUPERVISOR_SYSTEM = (
     "Je bent de supervisor van een juridische agent over een kennisgraaf met Nederlandse wet- en "
     "regelgeving (invordering/belastingen). Bepaal welke agent(s) de vraag nodig heeft en in welke "
-    "volgorde. Antwoord in EXACT dit formaat, drie regels:\n"
-    "WORKERS: <komma-gescheiden uit: antwoord, annotatie, werkgebied>\n"
+    "volgorde. Antwoord in EXACT dit formaat, vier regels:\n"
+    "WORKERS: <komma-gescheiden uit: antwoord, annotatie, werkgebied, deelvragen, begrippen>\n"
     "SPECIALIST: <definitie|duiding|algemeen>\n"
+    "TAAK: <alleen bij deelvragen, begrippen of het hele werkgebied annoteren: één taak uit de lijsten "
+    "hieronder; anders leeg>\n"
     "PLAN: <1-2 zinnen aanpak, of AFWIJZEN als de vraag niet over Nederlandse wet- en regelgeving "
     "gaat>\n"
     "AFWIJZEN is alleen voor vragen die BUITEN de wetgeving vallen: het weer, actualiteit, "
@@ -32,7 +38,24 @@ SUPERVISOR_SYSTEM = (
     "vragen, 'duiding' voor betekenis/structuur/samenhang van een bepaling, anders 'algemeen'. "
     "SPECIALIST geldt alleen voor 'antwoord'. Kies 'werkgebied' (alleen) als de gebruiker een "
     "werkgebied wil samenstellen of een wetsanalyse wil beginnen, of als het bericht een antwoord is "
-    "op een open vraag van het samenstellen (zie OPEN KAARTJE)."
+    "op een open vraag van het samenstellen (zie OPEN KAARTJE).\n"
+    "Kies 'deelvragen' (alleen) als de gebruiker in een werkgebied iets met de deelvragen of de bronnen wil "
+    "laten DOEN. TAAK: voorstellen (deelvragen opstellen bij de analysevraag), verbeteren (één deelvraag "
+    "scherper formuleren of splitsen), bronnen_zoeken (bepalingen zoeken die bij het werkgebied of een "
+    "deelvraag horen, of wat er nog ontbreekt), dekking (is een deelvraag, of zijn de deelvragen, gedekt).\n"
+    "Kies 'begrippen' (alleen) als de gebruiker in een werkgebied iets met de begrippen wil laten DOEN. TAAK: "
+    "voorstellen (begrippen voorstellen uit de annotaties), meedenken (meedenken over twijfelpunten en "
+    "definities), brondefinitie (de definitie van een vastgelegd begrip in de wet zoeken), scherper (een "
+    "scherpere definitie), voorbeelden (voorbeelden bij een begrip), betekenisverschil (het verschil tussen "
+    "twee begrippen), uitwerken (een begrip volledig uitwerken), relaties (de relaties van een begrip).\n"
+    "Kies 'annotatie' met TAAK: werkgebied als de gebruiker het hele werkgebied wil laten annoteren ('annoteer "
+    "wat nog niet geannoteerd is'); één artikel of lid annoteren is 'annotatie' zonder taak.\n"
+    "Een vraag om UITLEG over een deelvraag, bron of begrip ('waarom hoort artikel 9 bij deelvraag 2?', 'wat "
+    "betekent dit begrip?') is 'antwoord' met SPECIALIST duiding. De wettelijke definitie van een term, zonder "
+    "dat het om een vastgelegd begrip van een werkgebied gaat, is 'antwoord' met SPECIALIST definitie. 'Welke "
+    "artikelen gaan over X?' is 'antwoord'. Heeft de analist een object aangewezen in de werkplek, dan gaat de "
+    "vraag daar meestal over: bij een deelvraag of bron ligt 'deelvragen' voor de hand, bij een begrip 'begrippen' – "
+    "maar alleen als er om een van hun taken gevraagd wordt."
 )
 
 # Alleen als er een samenstelling loopt: het kaartje dat open staat. Een getypt antwoord in het
@@ -63,10 +86,12 @@ VERVOLG_SYSTEM = (
 
 _QA_SPECIALISTS = ("definitie", "duiding", "algemeen")
 
-# De enige twee workers die bestaan. Alles daarbuiten is een verzinsel van het model en telt niet
+# De workers die bestaan. Alles daarbuiten is een verzinsel van het model en telt niet
 # mee: werd élke onbekende naam stilzwijgend een extra ANTWOORD-worker, dan beantwoordde "WORKERS:
 # antwoord, samenvatten" dezelfde vraag twee keer – dubbele kosten, twee antwoorden.
-_WORKERS = ("antwoord", "annotatie", "werkgebied")
+_WORKERS = ("antwoord", "annotatie", "werkgebied", "deelvragen", "begrippen")
+# Workers die met niets ketenen: een eigen gesprek van kaartjes, of één taak van een agent.
+_ALLEEN = ("werkgebied", "deelvragen", "begrippen")
 
 # Meer dan twee schakels heeft geen enkele vraag nodig (annoteren en dan samenvatten is de langste
 # zinnige keten). Zonder plafond kan één supervisor-respons de beurt willekeurig lang maken.
@@ -78,6 +103,15 @@ def parse_vraag(text: str) -> str:
     for line in text.splitlines():
         if line.strip().upper().startswith("VRAAG:"):
             return line.strip().split(":", 1)[1].strip()
+    return ""
+
+
+def parse_taak(text: str) -> str:
+    """De taak uit een `TAAK:`-regel, in kleine letters; leeg als die er niet is. Of de taak bij de agent
+    hoort, toetst de aanroeper (`agents.register.is_taak`)."""
+    for line in text.splitlines():
+        if line.strip().upper().startswith("TAAK:"):
+            return line.strip().split(":", 1)[1].strip().strip(".`'\"").lower()
     return ""
 
 
@@ -110,8 +144,10 @@ def parse_supervisor(text: str) -> tuple[list[str], str, bool]:
     # Alleen bekende workers, en nooit meer dan het plafond. Blijft er niets over, dan is
     # 'antwoord' de veilige terugval – een beurt zonder worker zou niets doen.
     workers = [w.strip() for w in workers_raw.split(",") if w.strip() in _WORKERS][:_MAX_WORKERS]
-    if "werkgebied" in workers:
-        # Samenstellen is een eigen gesprek van vragen en kaartjes; het ketent met niets.
-        return ["werkgebied"], plan, False
+    for alleen in _ALLEEN:
+        if alleen in workers:
+            # Samenstellen is een eigen gesprek van vragen en kaartjes, en een agent doet één taak: ze
+            # ketenen met niets.
+            return [alleen], plan, False
     plan_spec = ["annotatie" if w == "annotatie" else qa_specialist for w in workers or ["antwoord"]]
     return plan_spec, plan, plan.strip().upper().startswith("AFWIJZEN")

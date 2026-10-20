@@ -177,9 +177,9 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
   - **regels** – gereserveerd voor de afleidingsregels: de kaart staat er, maar is geen knop.
   - **Vanuit een werkgebied** (`/workbench?werkgebied=<id>`, de knop *Bespreek met Lex* op de tab
     Begrippen): `WorkbenchShell` leest de parameter, `WerkgebiedBalk` boven de chat noemt het werkgebied
-    en biedt *Zoek bepalingen* en *Stel begrippen voor* (gewone beurten) en *Verlaten*. Elke beurt draagt dan
-    `werkgebied_id`; graph-qa stuurt een vraag om begrippen naar de begrippenroute, die het
-    begrippenartefact vastlegt. *Verlaten* haalt de parameter weg en houdt dat ook in state bij – de
+    en biedt *Zoek bepalingen* en *Stel begrippen voor* (beurten met de actie `bronnen_zoeken` /
+    `begrippen_voorstellen`, tot F3d) en *Verlaten*. Elke beurt draagt dan `werkgebied_id`; een getypte
+    vraag kiest graph-qa's supervisor de agent, de actie doet dat zonder model. *Verlaten* haalt de parameter weg en houdt dat ook in state bij – de
     native `replaceState` alleen werkte `useSearchParams` hier niet bij.
   - `artefactVanBericht` maakt van een ouder bericht met alleen `annotatie_doel` een
     annotatie-artefact; `parseArtefact` is streng (onbekende soort of ref zonder verplichte sleutels:
@@ -390,9 +390,9 @@ begrip, werkgebied), met per soort een module in `MODULES` (`chip`, `suggesties`
 
 - **Markering** blijft de adviesvraag, byte-gelijk (`vraagLex.test.ts` bevat de oude constructie). De
   rest gaat als `onderwerp` (alleen soort en id's; graph-qa haalt het object bij de api,
-  `agent/onderwerp.py`). Een suggestie met een **`actie`** (`ACTIES`, gelijk aan graph-qa `ACTIE_MODUS`;
+  `agent/onderwerp.py`). Een suggestie met een **`actie`** (`ACTIES`, gelijk aan graph-qa `ACTIE_TAAK`;
   de test leest die bron) stuurt `actie` + `onderwerp` + het `werkgebied_id` van het onderwerp, zonder
-  modus, context of doel – graph-qa routeert hem zonder model. Het werkgebied heeft vier suggesties met
+  modus, context of doel – graph-qa kiest er zonder model een agent en taak bij (F3c, ADR-005). Het werkgebied heeft vier suggesties met
   een actie (bepalingen zoeken, begrippen voorstellen, meedenken, annoteren); de andere soorten krijgen
   hun suggesties met de agents (F3d).
 - **`VraagLexKnop`** (`components/werkplek/VraagLexKnop.tsx`): binnen de werkplek zet hij het onderwerp

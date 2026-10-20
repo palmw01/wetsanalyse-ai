@@ -88,7 +88,10 @@ overzien.
    **annotatie-worker** (`annoteer → emit`: de hybride keten uit ADR-001 met deterministische
    detectoren, een kleine classifier en een gerichte reviewer op twijfelgevallen, met aandacht-niveau
    🟢🟡), de **werkgebied-worker** (`werkgebied_intake`: een werkgebied samenstellen met vraagkaarten,
-   activiteit 1 – een vaste stapmachine, het model stelt alleen voor), de **leesroute** voor vragen óver bestaande annotaties (`annotaties_zoeken`: eerst zelf
+   activiteit 1 – een vaste stapmachine, het model stelt alleen voor), de **deelvragen-agent** en de
+   **begrippen-agent** (`agent/agents/`, ADR-005: één taak per beurt – deelvragen opstellen en verbeteren,
+   bronnen zoeken, dekking; begrippen voorstellen, uitwerken, vergelijken, meedenken – met een model alleen
+   in een strict stap; een klik op een suggestie (`actie`) kiest agent en taak zonder model), de **leesroute** voor vragen óver bestaande annotaties (`annotaties_zoeken`: eerst zelf
    zoeken met `search_annotaties`, dan pas formuleren – zoeken is een stap in de keten, geen keuze
    van het model) of de **overzichtsroute** voor "welke artikelen gaan over X?" (`overzicht_bouwen`:
    overzicht én tekst komen deterministisch uit de graaf, zonder model, en de werkplek toont het als
@@ -428,7 +431,8 @@ plan mag verouderen.
   regels en tests hoort in plaats van in prompts. `adr-002-taalprovider.md` legt de taalanalyse
   (spaCy) vast. `adr-003-nl-sbb-begrippencontract.md` maakt NL-SBB het datacontract voor
   begrippen (activiteit 3), niet alleen het exportformaat. `adr-004-begrippenketen.md` ontwerpt
-  de keten die betekenisgroepen voorstelt, in de vorm van `hybrid_v1`.
+  de keten die betekenisgroepen voorstelt, in de vorm van `hybrid_v1`. `adr-005-vraag-lex-en-agents.md`
+  legt Vraag Lex en de agents onder de supervisor vast (F3).
 - `docs/architectuur/annotatieketen.md` – hoe de annotatieketen **nu** werkt: stappen,
   configuratie (`CLASSIFIER_GRANULARITEIT` e.d.), beslisbeleid, detectoren en bekende beperkingen.
   `docs/architectuur/metingen/README.md` is het meetlogboek: welke meting bij welke code hoort.

@@ -14,7 +14,7 @@ DOEL = ROOT / 'tools/graph-qa/agent/methodepakket.py'
 # Geen annotatierollen: de annotatieketen (ADR-001) gebruikt geen generatieve prompts met
 # methodetekst.
 ROLLEN = frozenset({'supervisor', 'retrieval', 'definitie', 'duiding', 'algemeen',
-                    'decompositie', 'synthese'})
+                    'decompositie', 'synthese', 'deelvragen', 'begrippen'})
 
 
 def sha(tekst: str) -> str:

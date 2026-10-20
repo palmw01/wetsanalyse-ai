@@ -17,6 +17,7 @@ zodat de blocking LLM-/MCP-calls de event-loop niet blokkeren.
 """
 from __future__ import annotations
 
+import asyncio
 import functools
 import logging
 from collections.abc import Callable
@@ -48,6 +49,7 @@ from .nodes.annotatie_lezen import zoek_annotaties_node
 from .nodes.begrippen_lezen import zoek_begrippen_node
 from .nodes.overzicht import bouw_overzicht_node, route_na_overzicht
 from .nodes.werkgebied import werkgebied_intake_node
+from .nodes.agent_taak import agent_taak_node
 from .nodes.supervisie import (
     _entry_node,
     advance_node,
@@ -85,6 +87,14 @@ logger = logging.getLogger("graph_qa.orchestrator")
 
 
 
+def _lopende_loop():
+    """De event loop van de beurt, waarop de agents draaien (`nodes/agent_taak.py`); None buiten een loop."""
+    try:
+        return asyncio.get_running_loop()
+    except RuntimeError:
+        return None
+
+
 def build_graph(
     settings: Settings,
     llm: LLMPort,
@@ -92,6 +102,7 @@ def build_graph(
     stop_check: Callable[[], bool] | None = None,
     annotaties=None,
     begrippen=None,
+    agent_api=None,
 ) -> StateGraph:
     """Bouw de (ongecompileerde) toestandsgraaf; de wrapper compileert 'm met een checkpointer."""
     # `model` is het sterke model: de annotatie-classifier, de reviewer en de QA-specialisten. De router
@@ -189,7 +200,7 @@ def build_graph(
         settings=settings, llm=llm, graph=graph, stop_check=stop_check,
         model=model, model_router=model_router, model_ophaal=model_ophaal,
         memory_context=_memory_context, corpus=_corpus, advies_context=_advies_context,
-        annotaties=annotaties, begrippen=begrippen,
+        annotaties=annotaties, begrippen=begrippen, loop=_lopende_loop(), agent_api=agent_api,
     )
 
 
@@ -245,9 +256,11 @@ def build_graph(
         entrymap = {"agent": "agent", "annoteer": _annoteer_entry, "decompose": "decompose",
                     "annotaties_zoeken": "annotaties_zoeken", "begrippen_zoeken": "begrippen_zoeken",
                     "overzicht_bouwen": "overzicht_bouwen", "werkgebied_intake": "werkgebied_intake",
-                    "afwijzen": "afwijzen"}
+                    "agent_taak": "agent_taak", "afwijzen": "afwijzen"}
         add("werkgebied_intake", functools.partial(werkgebied_intake_node, b))
         g.add_edge("werkgebied_intake", END)
+        add("agent_taak", functools.partial(agent_taak_node, b))
+        g.add_edge("agent_taak", END)
         add("annotaties_zoeken", functools.partial(zoek_annotaties_node, b))
         g.add_edge("annotaties_zoeken", "agent")
         add("begrippen_zoeken", functools.partial(zoek_begrippen_node, b))
@@ -293,11 +306,13 @@ def build_graph(
                                 {"verify": "verify", "agent": "agent"})
         add("werkgebied_intake", functools.partial(werkgebied_intake_node, b))
         g.add_edge("werkgebied_intake", END)
+        add("agent_taak", functools.partial(agent_taak_node, b))
+        g.add_edge("agent_taak", END)
         g.add_conditional_edges("supervisor", functools.partial(_entry_node, b),
                                 {"agent": "agent", "annoteer": _annoteer_entry,
                                  "annotaties_zoeken": "annotaties_zoeken", "begrippen_zoeken": "begrippen_zoeken",
                                  "overzicht_bouwen": "overzicht_bouwen", "werkgebied_intake": "werkgebied_intake",
-                                 "afwijzen": "afwijzen"})
+                                 "agent_taak": "agent_taak", "afwijzen": "afwijzen"})
         g.add_edge("afwijzen", END)
         g.add_conditional_edges(
             "agent", functools.partial(route_after_agent, b),
@@ -311,7 +326,7 @@ def build_graph(
                                 {"agent": "agent", "annoteer": _annoteer_entry,
                                  "annotaties_zoeken": "annotaties_zoeken", "begrippen_zoeken": "begrippen_zoeken",
                                  "overzicht_bouwen": "overzicht_bouwen", "werkgebied_intake": "werkgebied_intake",
-                                 "afwijzen": "afwijzen", "einde": END})
+                                 "agent_taak": "agent_taak", "afwijzen": "afwijzen", "einde": END})
         return g
 
     # Geen classificatie (planning off, decomp off): pure QA-agent, ongewijzigd (geen annotatie-route).

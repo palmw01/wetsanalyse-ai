@@ -87,8 +87,7 @@ def test_inhoud_van_de_startzin():
 def test_een_startzin_binnen_een_werkgebied_gaat_niet_een_harde_route_in():
     for vraag in ("Kunnen we een werkgebied samenstellen?", "Ik wil een wetsanalyse uitvoeren"):
         r = ChatRequest(question=vraag, werkgebied_id="wg1")
-        assert not (r.is_werkgebied_annotatie or r.is_begrippen_verdieping or r.is_bronnenbeurt
-                    or r.is_kaartbeurt or r.is_begrippenbeurt), vraag
+        assert not r.is_werkgebied_annotatie and r.actie is None, vraag
 
 
 # --- De stapmachine --------------------------------------------------------------------------------

@@ -1,18 +1,18 @@
-"""Lex naast de kaart, vanuit het gesprek (spoor D, fase F4): "zoek de brondefinitie van termijn".
+"""Lex naast de kaart, vanuit het gesprek (spoor D, fase F4; sinds F3c de kaarttaken van de
+begrippen-agent, `agents/begrippen.py`).
 
-Een harde route, zoals de begrippenroute: wie in het gesprek om een kaartactie op een begrip vraagt, komt
-uit bij dezelfde kaart-run als de knop op de begripskaart (fase E, `begrip_kaart.kaart_stroom`). De
-voorstellen landen onder hun veld op de kaart; het bericht draagt een begrippenartefact dat naar dát
-begrip wijst (`ref: {werkgebied_id, begrip_id, kaart_run_id, actie}`).
+Een kaartactie uit het gesprek komt uit bij dezelfde kaart-run als de knop op de begripskaart (fase E,
+`begrip_kaart.kaart_stroom`). De voorstellen landen onder hun veld op de kaart; de uitkomst draagt een
+begrippenartefact dat naar dát begrip wijst (`ref: {werkgebied_id, begrip_id, kaart_run_id, actie}`).
 
-- **Herkennen** (`kaartactie_uit`): een van de vier acties plus de term (of twee termen bij
-  betekenisverschil). De route geldt binnen een werkgebied, of als de vraag het woord "begrip" noemt.
-- **Het begrip oplossen** via de api (`GET /v1/begrippen`, het werkgebied van het gesprek eerst): alleen
-  een exacte naam of alternatieve term telt. Eén treffer → starten. Meer → Lex noemt ze en vraagt welke.
-  Alleen een vervangen begrip → Lex noemt de opvolger en start niet. Geen → zonder het woord "begrip" is
-  het een gewone vraag (de antwoordroute neemt het over); mét het woord zegt Lex dat hij het niet vond.
+- **Welk begrip.** Het begrip dat de analist met *Vraag Lex* aanwees (`als_rij`), anders de term(en) uit de
+  vraag (`termen_uit`) opgelost via de api (`los_op`: `GET /v1/begrippen`, het werkgebied van het gesprek
+  eerst; alleen een exacte naam of alternatieve term telt). Meer kandidaten → Lex noemt ze en vraagt
+  welke. Alleen een vervangen begrip → Lex noemt de opvolger en start niet.
+- **Welke actie** kiest de supervisor (de taak), of een klik op een suggestie – geen tekstpatroon meer.
+  `kaartactie_uit` blijft voor de metingen en de tests van de term.
 - **Starten gaat direct**, net als een klik op de knop (besloten 19 okt 2026); de budgetpoort van de
-  kaart-run blijft gelden. Loopt dezelfde actie al (de knop), dan wacht deze beurt op de uitkomst.
+  kaart-run blijft gelden. Loopt dezelfde actie al (de knop), dan wacht Lex op de uitkomst.
 """
 from __future__ import annotations
 
@@ -20,11 +20,11 @@ import asyncio
 import logging
 import re
 import unicodedata
-from typing import Any, AsyncIterator, Callable
+from typing import Any
 
-from .begrip_kaart import NAAM, kaart_stroom
-from .config import Settings
-from .wetsanalyse_api import GesprekVerdwenen, WetsanalyseApi, WetsanalyseApiFout
+from .agents import Context, Uitkomst, geweigerd
+from .begrip_kaart import MODEL_ACTIES, NAAM, kaart_stroom
+from .wetsanalyse_api import WetsanalyseApiFout
 
 logger = logging.getLogger("graph_qa.kaart_beurt")
 
@@ -40,8 +40,11 @@ _ACTIES = (
 _AANHALING = re.compile(r"[\"“”'‘’]([^\"“”'‘’]{2,80})[\"“”'‘’]")
 _TUSSEN = re.compile(r"\btussen\s+(.+?)\s+en\s+(.+?)\s*[?.!]*$")
 _VAN = re.compile(r"\b(?:van|bij|voor|op)\s+(.+?)\s*[?.!]*$")
+# "wat is het betekenisverschil met betalingstermijn?" – bij een aangewezen begrip één term: het andere.
+_MET = re.compile(r"\bmet\s+(.+?)\s*[?.!]*$")
+# "werk het begrip termijn volledig uit": één woord na "het begrip", als niets anders de term noemt.
+_HET_BEGRIP = re.compile(r"\bhet\s+begrip\s+(?!volledig\b|uit\b)([\w-]+)")
 _LIDWOORD = re.compile(r"^(?:het\s+begrip|de\s+term|het|de|een)\s+")
-_BEGRIP = re.compile(r"\bbegrip\w*\b")
 # "maak de definitie van termijn scherper": de handeling hoort niet bij de term.
 _STAART = re.compile(r"\s+(?:scherper|scherp|aanscherpen|verscherpen|aan te scherpen|maken)$")
 
@@ -62,32 +65,44 @@ def _term(t: str) -> str:
     return " ".join(t.split()[:6])
 
 
-def kaartactie_uit(vraag: str) -> tuple[str, list[str]] | None:
-    """De actie en de term(en), of None. Bij betekenisverschil twee termen."""
+def termen_uit(vraag: str, actie: str) -> list[str]:
+    """De term(en) waar een kaartactie over gaat, uit de getypte vraag: tussen aanhalingstekens, na
+    "tussen … en …" (betekenisverschil, twee termen) of na "van/bij/voor/op". Leeg als er geen staat."""
     q = (vraag or "").casefold()
-    actie = next((a for a, patroon in _ACTIES if patroon.search(q)), None)
-    if actie is None:
-        return None
     citaten = [c.strip() for c in _AANHALING.findall(vraag or "")]
     if actie == "betekenisverschil":
         if len(citaten) >= 2:
             termen = citaten[:2]
         elif m := _TUSSEN.search(q):
             termen = [m.group(1), m.group(2)]
+        elif len(citaten) == 1:
+            termen = citaten
+        elif m := _MET.search(q):
+            termen = [m.group(1)]
         else:
-            return None
+            return []
     elif citaten:
         termen = citaten[:1]
     elif m := _VAN.search(q):
         termen = [m.group(1)]
+    elif m := _HET_BEGRIP.search(q):
+        termen = [m.group(1)]
     else:
-        return None
+        return []
     termen = [_term(t) for t in termen]
-    return (actie, termen) if all(termen) else None
+    return termen if all(termen) else []
 
 
-def is_kaartvraag(vraag: str, werkgebied_id: str | None) -> bool:
-    return kaartactie_uit(vraag) is not None and (bool(werkgebied_id) or bool(_BEGRIP.search((vraag or "").casefold())))
+def kaartactie_uit(vraag: str) -> tuple[str, list[str]] | None:
+    """De actie en de term(en), of None. Bij betekenisverschil twee termen."""
+    q = (vraag or "").casefold()
+    actie = next((a for a, patroon in _ACTIES if patroon.search(q)), None)
+    if actie is None:
+        return None
+    termen = termen_uit(vraag, actie)
+    if actie == "betekenisverschil" and len(termen) < 2:
+        return None
+    return (actie, termen) if termen else None
 
 
 def begrip_artefact(werkgebied_id: str, begrip_id: str, naam: str, kaart_run_id: str = "", actie: str = "") -> dict[str, Any]:
@@ -123,10 +138,6 @@ def kies(term: str, rijen: list[dict[str, Any]], eerst: str) -> tuple[dict[str, 
     return None, ""
 
 
-def _status(bericht: str) -> dict[str, Any]:
-    return {"type": "status", "message": f"Lex · {bericht}"}
-
-
 def samenvatting(actie: str, naam: str, werkgebied: str, aantal: int, melding: str, al_gedaan: bool) -> str:
     plek = {"brondefinitie": "onder de definitie", "scherper": "onder de definitie",
             "betekenisverschil": "bij de uitleg", "voorbeelden": "bij de voorbeelden"}.get(actie, "op de kaart")
@@ -139,104 +150,91 @@ def samenvatting(actie: str, naam: str, werkgebied: str, aantal: int, melding: s
     return f"{kop}: geen voorstel. {melding}".strip()
 
 
-async def kaart_beurt(request: Any, run: Any, *, settings: Settings, user_id: str,
-                      terugval: Callable[[], AsyncIterator[dict[str, Any]]],
-                      api: WetsanalyseApi | None = None, stroom=kaart_stroom) -> AsyncIterator[dict[str, Any]]:
-    """De eventstroom van een kaartactie uit het gesprek; legt zelf vast, zoals `begrippen_beurt`."""
-    actie, termen = kaartactie_uit(request.question) or ("", [])
-    eerst = request.werkgebied_id or ""
-    gesprek_id: str = request.conversation_id or ""
-    run_id: str = getattr(run, "run_id", "") or ""
-    noemt_begrip = bool(_BEGRIP.search(request.question.casefold()))
-    denk: list[str] = []
-
-    def status(bericht: str) -> dict[str, Any]:
-        denk.append(f"· {bericht}")
-        return _status(bericht)
-
-    eigen_api = api is None
-    api = api or WetsanalyseApi(settings, user_id)
+async def als_rij(ctx: Context, werkgebied_id: str, begrip_id: str) -> dict[str, Any] | None:
+    """Een begrip dat de analist aanwees (het onderwerp), in de vorm van een rij uit `GET /v1/begrippen`.
+    None als de api het niet (meer) kent."""
     try:
-        artefact: dict[str, Any] | None = None
-        gekozen: list[dict[str, Any]] = []
-        tekst = ""
-        for term in termen:
-            rijen = (await api.zoek_begrippen(term, eerst)).get("resultaten") or []
-            begrip, zin = kies(term, rijen, eerst)
-            if begrip is None:
-                if not zin and not noemt_begrip:
-                    # Geen vastgelegd begrip en de vraag noemt er ook geen: een gewone vraag over de wet.
-                    async for ev in terugval():
-                        yield ev
-                    return
-                tekst = zin or f"Ik vond geen vastgelegd begrip “{term}”. Begrippen staan per werkgebied op de tab Begrippen."
-                break
-            gekozen.append(begrip)
-        if not tekst and actie == "betekenisverschil" and gekozen[0]["werkgebied_id"] != gekozen[1]["werkgebied_id"]:
-            tekst = (f"*{gekozen[0]['naam']}* en *{gekozen[1]['naam']}* staan in verschillende werkgebieden; ik vergelijk "
-                     "alleen begrippen binnen één werkgebied.")
-        if not tekst:
-            b = gekozen[0]
-            wid, naam, wg_naam = b["werkgebied_id"], b["naam"], b.get("werkgebied_naam", "")
-            yield status(f"{NAAM.get(actie, actie)} voor “{naam}” (werkgebied {wg_naam})")
-            try:
-                kr = await api.start_kaart_run(wid, b["id"], actie, gekozen[1]["id"] if len(gekozen) > 1 else None)
-            except WetsanalyseApiFout as fout:
-                if fout.status not in (404, 409, 422):
-                    raise
-                tekst = WEIGERING.get(fout.reden) or (fout.reden if fout.status == 404 else
-                                                      "De api weigerde deze actie op dit begrip.")
-            else:
-                aantal, melding, al_gedaan = 0, "", False
-                if kr.get("status") == "klaar":
-                    al_gedaan = True
-                elif not kr.get("nieuw"):
-                    # Dezelfde actie loopt al (de knop op de kaart): wacht op die uitkomst.
-                    yield status("Deze actie loopt al; ik wacht op de uitkomst")
-                    wacht, stand = 0.0, kr
-                    while stand.get("status") not in ("klaar", "mislukt") and wacht < WACHT_OP_ANDERE_RUN_S:
-                        if run is not None and run.stop_gevraagd:
-                            break
-                        await asyncio.sleep(PEIL_S)
-                        wacht += PEIL_S
-                        stand = await api.haal_kaartrun_stand(wid, b["id"], kr["id"])
-                    if stand.get("status") != "klaar":
-                        tekst = "De actie die al liep, is niet afgerond. Vraag het straks nog eens."
-                    melding = stand.get("melding") or ""
-                    al_gedaan = stand.get("status") == "klaar"
-                else:
-                    async for ev in stroom(wid, b["id"], kr["id"], run, settings=settings, user_id=user_id, api=api):
-                        if ev.get("type") == "status":
-                            denk.append("· " + str(ev.get("message", "")).removeprefix("Lex · "))
-                            yield ev
-                        elif ev.get("type") == "opgeslagen":
-                            aantal, melding = int(ev.get("voorstellen") or 0), str(ev.get("melding") or "")
-                        elif ev.get("type") == "error":
-                            yield ev
-                            yield {"type": "done"}
-                            return
-                if not tekst:
-                    tekst = samenvatting(actie, naam, wg_naam, aantal, melding, al_gedaan)
-                artefact = begrip_artefact(wid, b["id"], naam, kr["id"], actie)
-
-        if run is not None and run.stop_gevraagd:
-            yield {"type": "done"}
-            return
-        yield {"type": "token", "content": tekst}
-        extra = {"artefact": artefact} if artefact else {}
-        bericht = {"rol": "assistant", "tekst": tekst, "denk": "\n".join(denk), "run_id": run_id, **extra}
-        try:
-            await api.voeg_bericht_toe(gesprek_id, bericht)
-        except GesprekVerdwenen:
-            yield {"type": "done"}
-            return
-        yield {"type": "opgeslagen", "run_id": run_id, **extra}
-        yield {"type": "done"}
+        b = await ctx.api.haal_begrip(werkgebied_id, begrip_id)
     except WetsanalyseApiFout as fout:
-        logger.error("kaartbeurt: api-fout", extra={"categorie": "technisch", "run_id": run_id, "http_status": fout.status})
-        yield {"type": "error", "message": "De actie op het begrip kon niet worden gestart of bewaard; probeer het opnieuw.",
-               "soort": "api", "status": fout.status}
-        yield {"type": "done"}
-    finally:
-        if eigen_api:
-            await api.aclose()
+        if fout.status == 404:
+            return None
+        raise
+    try:
+        wg_naam = str((await ctx.api.haal_werkgebied(werkgebied_id)).get("naam") or "")
+    except WetsanalyseApiFout:
+        wg_naam = ""
+    inhoud = b.get("inhoud") or {}
+    return {"id": begrip_id, "naam": inhoud.get("naam") or "naamloos", "werkgebied_id": werkgebied_id,
+            "werkgebied_naam": wg_naam, "status": b.get("status", ""), "definitie": inhoud.get("definitie") or "",
+            "vervangen_door": b.get("vervangen_door") or {}}
+
+
+async def los_op(ctx: Context, termen: list[str], eerst: str) -> tuple[list[dict[str, Any]], str]:
+    """De begrippen bij deze termen (exacte naam of alternatieve term, het werkgebied `eerst` voorop). Lukt
+    het niet, dan een lege lijst met de zin die Lex dan zegt."""
+    gekozen: list[dict[str, Any]] = []
+    for term in termen:
+        rijen = (await ctx.api.zoek_begrippen(term, eerst)).get("resultaten") or []
+        begrip, zin = kies(term, rijen, eerst)
+        if begrip is None:
+            return [], zin or (f"Ik vond geen vastgelegd begrip “{term}”. Begrippen staan per werkgebied op de "
+                               "tab Begrippen; open het gesprek vanuit het begrip of noem het precies.")
+        gekozen.append(begrip)
+    return gekozen, ""
+
+
+async def kaart_kern(ctx: Context, actie: str, b: dict[str, Any], ander: dict[str, Any] | None = None) -> Uitkomst:
+    """Eén kaartactie op één begrip, als de knop op de begripskaart: `POST …/kaart-runs` en
+    `begrip_kaart.kaart_stroom` (met zijn budgetpoort), of wachten als dezelfde actie al loopt. `b` en
+    `ander` zijn rijen in de vorm van `GET /v1/begrippen`."""
+    if b.get("status") == "vervangen":
+        opvolger = (b.get("vervangen_door") or {}).get("naam", "")
+        return geweigerd(actie, f"Het begrip *{b['naam']}* is vervangen" + (f" door *{opvolger}*" if opvolger else "")
+                         + "; ik doe niets op een vervangen begrip. Vraag het voor de opvolger.")
+    if actie == "betekenisverschil":
+        if ander is None:
+            return geweigerd(actie, f"Met welk begrip wil je *{b['naam']}* vergelijken? Noem het, of vraag het "
+                                    "vanuit het andere begrip.")
+        if ander["werkgebied_id"] != b["werkgebied_id"]:
+            return geweigerd(actie, f"*{b['naam']}* en *{ander['naam']}* staan in verschillende werkgebieden; ik "
+                                    "vergelijk alleen begrippen binnen één werkgebied.")
+    wid, naam, wg_naam = b["werkgebied_id"], b["naam"], b.get("werkgebied_naam", "")
+    ctx.melding(f"{NAAM.get(actie, actie)} voor “{naam}” (werkgebied {wg_naam})")
+    try:
+        kr = await ctx.api.start_kaart_run(wid, b["id"], actie, ander["id"] if ander else None)
+    except WetsanalyseApiFout as fout:
+        if fout.status not in (404, 409, 422):
+            raise
+        return geweigerd(actie, WEIGERING.get(fout.reden) or (fout.reden if fout.status == 404 else
+                                                             "De api weigerde deze actie op dit begrip."))
+    artefact = begrip_artefact(wid, b["id"], naam, kr["id"], actie)
+    aantal, melding, al_gedaan = 0, "", False
+    if kr.get("status") == "klaar":
+        al_gedaan = True
+    elif not kr.get("nieuw"):
+        # Dezelfde actie loopt al (de knop op de kaart): wacht op die uitkomst.
+        ctx.melding("Deze actie loopt al; ik wacht op de uitkomst")
+        wacht, stand = 0.0, kr
+        while stand.get("status") not in ("klaar", "mislukt") and wacht < WACHT_OP_ANDERE_RUN_S:
+            if ctx.gestopt():
+                break
+            await asyncio.sleep(PEIL_S)
+            wacht += PEIL_S
+            stand = await ctx.api.haal_kaartrun_stand(wid, b["id"], kr["id"])
+        if stand.get("status") != "klaar":
+            return Uitkomst(taak=actie, status="fout", artefact=artefact,
+                            reden="De actie die al liep, is niet afgerond. Vraag het straks nog eens.")
+        melding, al_gedaan = stand.get("melding") or "", True
+    else:
+        async for ev in kaart_stroom(wid, b["id"], kr["id"], ctx.run, settings=ctx.settings, user_id=ctx.user_id,
+                                     api=ctx.api):
+            if ev.get("type") == "status":
+                ctx.melding(str(ev.get("message", "")).removeprefix("Lex · "))
+            elif ev.get("type") == "opgeslagen":
+                aantal, melding = int(ev.get("voorstellen") or 0), str(ev.get("melding") or "")
+            elif ev.get("type") == "error":
+                return Uitkomst(taak=actie, status="fout", artefact=artefact,
+                                reden=str(ev.get("message") or "De actie op het begrip mislukte; probeer het opnieuw."))
+    return Uitkomst(taak=actie, tekst=samenvatting(actie, naam, wg_naam, aantal, melding, al_gedaan),
+                    artefact=artefact, voorstellen=[kr["id"]] if aantal else [],
+                    meting={"voorstellen": aantal, "model": actie in MODEL_ACTIES and not al_gedaan})

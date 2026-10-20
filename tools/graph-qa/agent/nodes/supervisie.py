@@ -14,12 +14,14 @@ from langgraph.config import get_stream_writer
 
 from ..aanwijzing import lees_aanwijzing, melding_meerdere
 from ..doel import _heeft_opgegeven_doel
+from ..models import ACTIE_TAAK
 from ..focus import bij_advies, bij_onderwerp
 from ..narratie import _stap
 from ..state import State
 from ..methode import instructies
 from ..berichten import eerdere_beurten
-from ..supervisor import INTAKE_SYSTEM, SUPERVISOR_SYSTEM, VERVOLG_SYSTEM, parse_supervisor, parse_vraag
+from ..agents import register
+from ..supervisor import INTAKE_SYSTEM, SUPERVISOR_SYSTEM, VERVOLG_SYSTEM, parse_supervisor, parse_taak, parse_vraag
 from ..overzicht import is_overzichtsvraag
 from ..tools.annotatie_tools import is_leesvraag
 from ..tools.begrip_tools import is_begrip_leesvraag
@@ -72,6 +74,20 @@ def _werkgebied(writer, waarom: str) -> dict[str, Any]:
             "plan": "een werkgebied samenstellen", "afwijzen": False, "annotaties_lezen": False}
 
 
+def _agent(writer, state: State, agent: str, taak: str, vraag: str, *, actie: str = "") -> dict[str, Any]:
+    """Eén taak van een agent (F3c): de node `agent_taak` voert hem uit. De parameters komen uit wat er
+    ligt – werkgebied, het aangewezen object (of dat in de focus), en wat code uit de vraag kan lezen."""
+    onderwerp = state.get("onderwerp") or (state.get("focus") or {}).get("onderwerp") or {}
+    parameters = register.parameters(agent, taak, vraag=vraag or state.get("question", ""), onderwerp=onderwerp,
+                                     werkgebied_id=state.get("werkgebied_id", ""), actie=actie,
+                                     bevestigd=state.get("bevestigd"))
+    _stap(writer, "Supervisor", f"kiest de {register.NAAM.get(agent, agent)} · taak {taak or '?'}"
+          + (" (suggestie)" if actie else ""))
+    return {"specialist": "agent_taak", "worker_plan": ["agent_taak"], "worker_idx": 0,
+            "plan": f"{agent}: {taak}", "afwijzen": False, "annotaties_lezen": False,
+            "agent_taak": {"agent": agent, "taak": taak, "parameters": parameters}}
+
+
 def _open_kaartje(state: State) -> str:
     intake = state.get("intake") or {}
     if not is_open(intake):
@@ -109,6 +125,10 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
     # zonder modelaanroep. De klik weet al waar hij bij hoort; de startzin heeft een vaste vorm.
     if state.get("intake_actie"):
         return _werkgebied(writer, "verwerkt het antwoord op het kaartje")
+    if (actie := state.get("actie")) and actie in ACTIE_TAAK:
+        # Een klik op een suggestie: agent en taak liggen vast, dus geen modelaanroep – net als een doel.
+        agent, taak = ACTIE_TAAK[actie]
+        return _agent(writer, state, agent, taak, "", actie=actie)
     if modus == "auto" and is_werkgebiedvraag(state.get("question", "")):
         return _werkgebied(writer, "stelt met je een werkgebied samen")
 
@@ -191,6 +211,9 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
     eerste = worker_plan[0]
     if eerste == "werkgebied":
         return {**upd, **_werkgebied(writer, "stelt met je een werkgebied samen")}
+    taak = parse_taak(text)
+    if eerste in ("deelvragen", "begrippen") or (eerste == "annotatie" and taak == "werkgebied"):
+        return {**upd, **_agent(writer, state, "annotatie" if eerste == "annotatie" else eerste, taak, zelfstandig)}
     if eerste == "annotatie":
         # Eén artikel per annotatievraag. Meer artikelen is een werkgebied afbakenen – een andere
         # functie. Deterministisch en vóór de ophaal-agent: die zou er anders stil één uitkiezen.
@@ -213,6 +236,8 @@ def _entry_node(b: Bouw, state: State) -> str:
         return "afwijzen"
     if state.get("specialist") == "werkgebied":
         return "werkgebied_intake"
+    if state.get("specialist") == "agent_taak":
+        return "agent_taak"
     if state.get("overzicht_route"):
         # Eerst het overzicht bouwen, dan duiden – ook met decompositie aan.
         return "overzicht_bouwen"

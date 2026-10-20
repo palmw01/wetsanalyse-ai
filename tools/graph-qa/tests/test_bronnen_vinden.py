@@ -19,11 +19,11 @@ import httpx
 import pytest
 
 from agent import bronnen_run, bronnen_vinden, overzicht
-from agent.bronnen_run import bronnen_artefact, is_bronnenvraag, samenvatting
+from agent.bronnen_run import bronnen_artefact, samenvatting
 from agent.bronnen_vinden import vind, verwijzingsfunctie
 from agent.models import ChatRequest
 from agent.runstore import Run
-from fakes import FakeGraph, make_settings
+from fakes import FakeGraph, agent_ctx, make_settings
 
 IW = "urn:bwb:BWBR0004770"
 ART9, L1 = f"{IW}:artikel:9", f"{IW}:artikel:9:lid:1"
@@ -232,25 +232,14 @@ def test_de_uitkomst_past_in_het_api_contract(geen_overzicht):
 
 # --- 4. run en route --------------------------------------------------------------------------------
 
-@pytest.mark.parametrize("vraag", ["Zoek bepalingen", "Welke bepalingen horen erbij?", "Welke bronnen ontbreken nog?",
-                                   "Vind artikelen die erbij horen"])
-def test_vragen_om_bronnen(vraag):
-    assert is_bronnenvraag(vraag)
-
-
-@pytest.mark.parametrize("vraag", ["Welke artikelen gaan over invordering?", "Zoek bepalingen over termijnen",
-                                   "Annoteer artikel 9", "Stel begrippen voor", "Wat regelt artikel 9?"])
-def test_geen_vraag_om_bronnen(vraag):
-    assert not is_bronnenvraag(vraag)
-
-
 def test_het_request_model():
-    assert ChatRequest(question="Zoek bepalingen", werkgebied_id="wg1").is_bronnenbeurt
-    assert not ChatRequest(question="Zoek bepalingen", werkgebied_id="wg1").is_begrippenbeurt
-    assert ChatRequest(question="x", werkgebied_id="wg1", modus="bronnen").is_bronnenbeurt
-    assert not ChatRequest(question="Zoek bepalingen").is_bronnenbeurt
+    # Geen tekstpatroon meer: zoeken is een taak van de deelvragen-agent, of een klik op de suggestie.
+    r = ChatRequest(question="Zoek bepalingen", actie="bronnen_zoeken", werkgebied_id="wg1")
+    assert r.actie == "bronnen_zoeken" and r.modus == "auto"
     with pytest.raises(ValueError):
-        ChatRequest(question="x", modus="bronnen")
+        ChatRequest(question="x", modus="bronnen", werkgebied_id="wg1")
+    with pytest.raises(ValueError):
+        ChatRequest(question="x", actie="bronnen_zoeken")
 
 
 def test_de_samenvatting_telt_open_voorstellen_en_noemt_onvolledig():
@@ -356,31 +345,41 @@ def test_een_falende_methode_haalt_de_run_niet_onderuit(nep):
     assert all("fout" not in m for m in api.uitkomst["meting"].values())
 
 
-def test_de_route_legt_een_bronnenartefact_vast(nep):
-    api = nep()
-    request = ChatRequest(question="Zoek bepalingen", conversation_id="g1", werkgebied_id="wg1")
+def _kern(deelvraag_id: str = ""):
+    async def draai():
+        api = bronnen_run.WetsanalyseApi(_settings(), "jurist")
+        try:
+            ctx = agent_ctx(api, settings=_settings(), run_id="b1", graph=Graaf())
+            return await bronnen_run.bronnen_kern(ctx, "wg1", deelvraag_id), ctx.meldingen
+        finally:
+            await api.aclose()
+    return asyncio.run(draai())
 
-    async def verzamel():
-        return [e async for e in bronnen_run.bronnen_beurt(request, Run(run_id="b1", conversation_id="g1"),
-                                                           settings=_settings(), user_id="jurist", graph=Graaf())]
-    events = asyncio.run(verzamel())
-    artefact = {"soort": "bronnen", "titel": "Invorderbaarheid", "ref": {"werkgebied_id": "wg1", "run_id": "r1"}}
-    assert events[-2] == {"type": "opgeslagen", "run_id": "b1", "artefact": artefact}
-    [bericht] = api.berichten
-    assert bericht["artefact"] == artefact and "bepalingen voor in werkgebied" in bericht["tekst"]
-    assert "Verwijzingen vanuit de kern" in bericht["denk"]
+
+def test_de_taak_geeft_een_bronnenartefact(nep):
+    nep()
+    uit, meldingen = _kern()
+    assert uit.status == "ok" and uit.artefact == {"soort": "bronnen", "titel": "Invorderbaarheid",
+                                                   "ref": {"werkgebied_id": "wg1", "run_id": "r1"}}
+    assert "bepalingen voor in werkgebied" in uit.tekst and uit.meting["model"] is False
+    assert any("Verwijzingen vanuit de kern" in m for m in meldingen)
 
 
 def test_zonder_vertrekpunt_een_antwoord_zonder_artefact(nep):
-    api = nep(weiger=(409, {"fout": "geen_vertrekpunt", "melding": "…"}))
-    request = ChatRequest(question="Zoek bepalingen", conversation_id="g1", werkgebied_id="wg1")
+    nep(weiger=(409, {"fout": "geen_vertrekpunt", "melding": "…"}))
+    uit, _ = _kern()
+    assert uit.status == "geweigerd" and "analysevraag" in uit.reden and uit.artefact is None
 
-    async def verzamel():
-        return [e async for e in bronnen_run.bronnen_beurt(request, Run(run_id="b1", conversation_id="g1"),
-                                                           settings=_settings(), user_id="jurist", graph=Graaf())]
-    events = asyncio.run(verzamel())
-    assert events[-2] == {"type": "opgeslagen", "run_id": "b1"}
-    assert "analysevraag" in api.berichten[0]["tekst"] and "artefact" not in api.berichten[0]
+
+def test_bij_een_deelvraag_noemt_lex_wat_daarbij_hoort():
+    wg = {"deelvragen": [{"id": "d1", "vraag": "Wanneer is de aanslag invorderbaar?"}]}
+    ks = [{"id": "k1", "label": "art. 8 Iw", "status": "voorgesteld",
+           "bewijs": [{"methode": "deelvraag", "detail": {"deelvraag_id": "d1"}}]},
+          {"id": "k2", "label": "art. 10 Iw", "status": "voorgesteld", "bewijs": [{"methode": "opbouw"}]}]
+    assert bronnen_run.bij_deelvraag(wg, ks, "d1") == ("Bij de deelvraag “Wanneer is de aanslag invorderbaar?” stel "
+                                                        "ik 1 voor: art. 8 Iw.")
+    assert "geen nieuwe" in bronnen_run.bij_deelvraag(wg, ks[1:], "d1")
+    assert "ken ik niet" in bronnen_run.bij_deelvraag(wg, ks, "d9")
 
 
 # --- het endpoint ----------------------------------------------------------------------------------
@@ -410,4 +409,4 @@ def test_een_bronnenrun_per_werkgebied_naast_begrippen(client, monkeypatch):
     eerste = c.post("/v1/bronnen-runs", json={"werkgebied_id": "wg1", "run_id": "r1"})
     assert eerste.status_code == 201 and eerste.json()["conversation_id"] == "werkgebied:wg1:bronnen"
     assert c.post("/v1/bronnen-runs", json={"werkgebied_id": "wg1", "run_id": "r2"}).status_code == 409
-    assert c.post("/v1/chat", json={"question": "x", "modus": "bronnen", "werkgebied_id": "wg1"}).status_code == 422
+    assert c.post("/v1/chat", json={"question": "x", "actie": "bronnen_zoeken", "werkgebied_id": "wg1"}).status_code == 422

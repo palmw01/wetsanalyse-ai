@@ -177,6 +177,9 @@ async def answer_stream(
     werkgebied_id: str = "",
     intake_actie: Any = None,
     onderwerp: Any = None,
+    actie: str = "",
+    bevestigd: int | None = None,
+    agent_api: Any = None,
 ) -> AsyncIterator[dict[str, Any]]:
     """
     Async generator die SSE-events yield:
@@ -221,7 +224,8 @@ async def answer_stream(
 
     from .orchestrator import build_graph
 
-    builder = build_graph(settings, llm, graph, stop_check=stop_check, annotaties=annotaties, begrippen=begrippen)
+    builder = build_graph(settings, llm, graph, stop_check=stop_check, annotaties=annotaties, begrippen=begrippen,
+                          agent_api=agent_api)
     thread_id = conversation_id or uuid.uuid4().hex
     onderwerp_dict = onderwerp.model_dump() if hasattr(onderwerp, "model_dump") else dict(onderwerp or {})
     config = {
@@ -242,6 +246,12 @@ async def answer_stream(
         # Waar de analist *Vraag Lex* op koos: alleen deze beurt; het object blijft in de focus.
         "onderwerp": onderwerp_dict,
         "onderwerp_context": await _onderwerp_blok(settings, user_id, onderwerp_dict) if onderwerp_dict else "",
+        # Een klik op een suggestie, en wat de agent deed (F3c): alleen deze beurt.
+        "actie": actie or "",
+        "bevestigd": bevestigd,
+        "agent_taak": {},
+        "agent_uitkomst": {},
+        "gesprek_id": conversation_id or "",
         "bron_snapshot": {},
         "annotatie_weergave": {},
         "corpus_segmenten": [],

@@ -6,16 +6,13 @@ import asyncio
 import json
 import re
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 from rdflib import Dataset
 
 from agent import tools
 from agent.agent import answer_stream
-from agent.begrippen_beurt import is_begrippenvraag
-from agent.kaart_beurt import begrip_artefact, is_kaartvraag, kaart_beurt, kaartactie_uit, kies
-from agent.models import ChatRequest
+from agent.kaart_beurt import begrip_artefact, kaartactie_uit, kies, termen_uit
 from agent.nodes.begrippen_lezen import zoekfilters, zoekterm_uit
 from agent.provenance import collect_sources
 from agent.tools.begrip_tools import (
@@ -23,7 +20,7 @@ from agent.tools.begrip_tools import (
     q_begrippen,
 )
 from agent.wetsanalyse_api import WetsanalyseApiFout
-from fakes import FakeGraph, FakeLLM, make_settings, response, text_block
+from fakes import FakeGraph, FakeLLM, agent_ctx, make_settings, response, text_block
 
 API = Path(__file__).resolve().parents[3] / "api" / "app"
 WG, WG2 = "wg-termijnen", "wg-invordering"
@@ -83,7 +80,6 @@ def graaf(kandidaten, register):
                                    "staat termijn als begrip in het werkgebied?", "welke begrippen kennen we?"])
 def test_leesvraag_over_vastgelegde_begrippen(vraag):
     assert is_begrip_leesvraag(vraag)
-    assert not is_begrippenvraag(vraag)          # geen nieuwe voorstellen
 
 
 @pytest.mark.parametrize("vraag", ["welke begrippen zitten in dit werkgebied?", "Stel begrippen voor",
@@ -106,14 +102,12 @@ def test_kaartactie_uit(vraag, verwacht):
     assert kaartactie_uit(vraag) == verwacht
 
 
-def test_kaartvraag_vraagt_een_werkgebied_of_het_woord_begrip():
-    assert is_kaartvraag("geef voorbeelden van termijn", WG)
-    assert not is_kaartvraag("geef voorbeelden van termijn", None)
-    assert is_kaartvraag("geef voorbeelden van het begrip termijn", None)
-    req = ChatRequest(question="zoek de brondefinitie van termijn", werkgebied_id=WG)
-    assert req.is_kaartbeurt and not req.is_begrippenbeurt
-    assert not ChatRequest(question="zoek de brondefinitie van termijn", werkgebied_id=WG, modus="advies",
-                           context={"fragment": "x"}).is_kaartbeurt
+def test_de_term_bij_een_gegeven_taak():
+    """De supervisor kiest de taak; code leest de term uit de vraag."""
+    assert termen_uit("wat is het betekenisverschil met betalingstermijn?", "betekenisverschil") == ["betalingstermijn"]
+    assert termen_uit("werk het begrip termijn volledig uit", "brondefinitie") == ["termijn"]
+    assert termen_uit("werk het begrip volledig uit", "brondefinitie") == []
+    assert termen_uit("zoek de brondefinitie van 'termijn'", "brondefinitie") == ["termijn"]
 
 
 def test_zoekterm_en_status_uit_de_vraag():
@@ -296,13 +290,21 @@ def test_kies_exact_eigen_werkgebied_vervangen():
 
 
 class KaartApi:
-    def __init__(self, rijen, start=None, standen=()):
-        self.rijen, self.start, self.standen = rijen, start, list(standen)
-        self.berichten, self.calls = [], []
+    def __init__(self, rijen, start=None, standen=(), begrip=None):
+        self.rijen, self.start, self.standen, self.begrip = rijen, start, list(standen), begrip
+        self.calls = []
 
     async def zoek_begrippen(self, q, eerst=""):
         self.calls.append(("zoek", q, eerst))
         return {"resultaten": [r for r in self.rijen if q.casefold() in r["naam"].casefold()]}
+
+    async def haal_begrip(self, wid, bid):
+        if self.begrip is None:
+            raise WetsanalyseApiFout("404", 404, "")
+        return self.begrip
+
+    async def haal_werkgebied(self, wid):
+        return {"id": wid, "naam": "Invordering"}
 
     async def start_kaart_run(self, wid, bid, actie, ander=None):
         self.calls.append(("start", wid, bid, actie, ander))
@@ -313,15 +315,13 @@ class KaartApi:
     async def haal_kaartrun_stand(self, wid, bid, rid):
         return self.standen.pop(0)
 
-    async def voeg_bericht_toe(self, gesprek_id, bericht):
-        self.berichten.append(bericht)
+    async def haal_relaties(self, wid, bid=""):
+        return {"relaties": [{"id": "x1", "van_naam": "Termijn", "naar_naam": "Betalingstermijn", "type": "hierarchie",
+                              "beoordeling": "akkoord"}],
+                "voorstellen": [{"id": "R1", "van_naam": "Termijn", "naar_naam": "Aanslag", "type": "kwalificatie"}]}
 
     async def aclose(self):
         pass
-
-
-def _req(vraag, wg=WG):
-    return ChatRequest(question=vraag, werkgebied_id=wg, conversation_id="g1")
 
 
 async def _stroom(wid, bid, rid, run, **_):
@@ -330,69 +330,86 @@ async def _stroom(wid, bid, rid, run, **_):
     yield {"type": "done"}
 
 
-async def _geen_terugval():
-    raise AssertionError("terugval hoort niet")
-    yield  # pragma: no cover
+@pytest.fixture(autouse=True)
+def _nep_kaartrun(monkeypatch):
+    from agent import kaart_beurt as kb
+    monkeypatch.setattr(kb, "kaart_stroom", _stroom)
+    monkeypatch.setattr(kb, "PEIL_S", 0)
+
+
+def _taak(api, taak, vraag="", wg=WG, **invoer):
+    from agent.agents import begrippen as ba, register
+    params = {**register.parameters("begrippen", taak, vraag=vraag, werkgebied_id=wg or ""), **invoer}
+    return asyncio.run(ba.voer_uit(register.invoer("begrippen", taak, params), agent_ctx(api)))
 
 
 def test_kaartactie_start_de_kaartrun_en_wijst_naar_het_begrip():
     api = KaartApi([rij("b1", "Termijn")])
-    events = run(kaart_beurt(_req("geef voorbeelden van termijn"), SimpleNamespace(run_id="r1", stop_gevraagd=False),
-                             settings=make_settings(), user_id="jurist", terugval=_geen_terugval, api=api, stroom=_stroom))
+    uit = _taak(api, "voorbeelden", "geef voorbeelden van termijn")
     assert ("start", WG, "b1", "voorbeelden", None) in api.calls
-    [bericht] = api.berichten
-    assert bericht["artefact"] == {"soort": "begrippen", "titel": "Termijn", "ref": {
+    assert uit.artefact == {"soort": "begrippen", "titel": "Termijn", "ref": {
         "werkgebied_id": WG, "begrip_id": "b1", "kaart_run_id": "k1", "actie": "voorbeelden"}}
-    assert "2 voorstellen staan bij de voorbeelden" in bericht["tekst"]
-    assert events[-1] == {"type": "done"} and any(e["type"] == "opgeslagen" for e in events)
+    assert "2 voorstellen staan bij de voorbeelden" in uit.tekst and uit.status == "ok"
+
+
+def test_het_aangewezen_begrip_gaat_voor_de_term():
+    api = KaartApi([rij("b2", "Betalingstermijn")],
+                   begrip={"status": "concept", "inhoud": {"naam": "Termijn", "definitie": ""}})
+    _taak(api, "betekenisverschil", "wat is het betekenisverschil met betalingstermijn?", begrip_id="b1")
+    assert ("start", WG, "b1", "betekenisverschil", "b2") in api.calls
 
 
 def test_betekenisverschil_vergelijkt_binnen_een_werkgebied():
     api = KaartApi([rij("b1", "Termijn"), rij("b2", "Betalingstermijn")])
-    run(kaart_beurt(_req("wat is het betekenisverschil tussen termijn en betalingstermijn?"), None,
-                    settings=make_settings(), user_id="j", terugval=_geen_terugval, api=api, stroom=_stroom))
+    _taak(api, "betekenisverschil", "wat is het betekenisverschil tussen termijn en betalingstermijn?")
     assert ("start", WG, "b1", "betekenisverschil", "b2") in api.calls
+    api = KaartApi([rij("b1", "Termijn"), rij("b2", "Betalingstermijn", WG2)])
+    uit = _taak(api, "betekenisverschil", "wat is het betekenisverschil tussen termijn en betalingstermijn?", wg="")
+    assert uit.status == "geweigerd" and "verschillende werkgebieden" in uit.reden
 
 
 def test_twee_kandidaten_een_vraag_en_geen_start():
     api = KaartApi([rij("b1", "Termijn"), rij("b3", "Termijn", WG2)])
-    run(kaart_beurt(_req("zoek de brondefinitie van het begrip termijn", wg=None), None, settings=make_settings(),
-                    user_id="j", terugval=_geen_terugval, api=api, stroom=_stroom))
+    uit = _taak(api, "brondefinitie", "zoek de brondefinitie van het begrip termijn", wg=None)
     assert not [c for c in api.calls if c[0] == "start"]
-    assert "artefact" not in api.berichten[0] and "welk werkgebied" in api.berichten[0]["tekst"]
+    assert uit.status == "geweigerd" and uit.artefact is None and "welk werkgebied" in uit.reden
 
 
-def test_geen_begrip_zonder_het_woord_begrip_is_een_gewone_vraag():
-    gebruikt = []
-
-    async def terugval():
-        gebruikt.append(True)
-        yield {"type": "token", "content": "De wet definieert…"}
-        yield {"type": "done"}
-
-    api = KaartApi([])
-    events = run(kaart_beurt(_req("zoek de brondefinitie van invorderingsrente"), None, settings=make_settings(),
-                             user_id="j", terugval=terugval, api=api, stroom=_stroom))
-    assert gebruikt and api.berichten == [] and events[-1] == {"type": "done"}
-    # Met het woord "begrip" zegt Lex dat hij het niet vond.
-    run(kaart_beurt(_req("zoek de brondefinitie van het begrip invorderingsrente"), None, settings=make_settings(),
-                    user_id="j", terugval=_geen_terugval, api=api, stroom=_stroom))
-    assert "geen vastgelegd begrip" in api.berichten[0]["tekst"]
+def test_geen_begrip_is_een_vraag_van_lex():
+    uit = _taak(KaartApi([]), "brondefinitie", "zoek de brondefinitie van het begrip invorderingsrente")
+    assert uit.status == "geweigerd" and "geen vastgelegd begrip" in uit.reden
+    uit = _taak(KaartApi([]), "brondefinitie", "zoek de brondefinitie")
+    assert uit.status == "geweigerd" and "Over welk begrip" in uit.reden
 
 
 def test_een_weigering_van_de_api_is_een_antwoord():
     api = KaartApi([rij("b1", "Termijn")], start=WetsanalyseApiFout("409", 409, "geen_definitie"))
-    run(kaart_beurt(_req("geef voorbeelden van termijn"), None, settings=make_settings(), user_id="j",
-                    terugval=_geen_terugval, api=api, stroom=_stroom))
-    assert "geef het begrip eerst een definitie" in api.berichten[0]["tekst"]
+    uit = _taak(api, "voorbeelden", "geef voorbeelden van termijn")
+    assert uit.status == "geweigerd" and "geef het begrip eerst een definitie" in uit.reden
 
 
-def test_loopt_de_actie_al_dan_wacht_de_beurt(monkeypatch):
-    from agent import kaart_beurt as kb
-    monkeypatch.setattr(kb, "PEIL_S", 0)
+def test_loopt_de_actie_al_dan_wacht_lex():
     api = KaartApi([rij("b1", "Termijn")], start={"id": "k0", "status": "loopt", "nieuw": False},
                    standen=[{"status": "loopt"}, {"status": "klaar", "melding": ""}])
-    run(kaart_beurt(_req("geef voorbeelden van termijn"), None, settings=make_settings(), user_id="j",
-                    terugval=_geen_terugval, api=api, stroom=_stroom))
-    assert api.berichten[0]["artefact"]["ref"]["kaart_run_id"] == "k0"
-    assert "al gedaan" in api.berichten[0]["tekst"]
+    uit = _taak(api, "voorbeelden", "geef voorbeelden van termijn")
+    assert uit.artefact["ref"]["kaart_run_id"] == "k0" and "al gedaan" in uit.tekst
+
+
+def test_uitwerken_volgt_de_methode():
+    # Zonder definitie: eerst de brondefinitie, dan een definitievoorstel, en nog geen voorbeelden.
+    api = KaartApi([], start={"id": "k1", "status": "klaar", "nieuw": False},
+                   begrip={"status": "concept", "inhoud": {"naam": "Termijn", "definitie": ""}})
+    uit = _taak(api, "uitwerken", begrip_id="b1")
+    assert [c[3] for c in api.calls if c[0] == "start"] == ["brondefinitie", "scherper"]
+    assert "Neem een definitie over" in uit.tekst
+    # Met een definitie op de kaart: de brondefinitie en dan de voorbeelden.
+    api = KaartApi([], begrip={"status": "concept", "inhoud": {"naam": "Termijn", "definitie": "Een tijdvak."}})
+    uit = _taak(api, "uitwerken", begrip_id="b1")
+    assert [c[3] for c in api.calls if c[0] == "start"] == ["brondefinitie", "voorbeelden"]
+
+
+def test_relaties_zonder_model():
+    api = KaartApi([], begrip={"status": "concept", "inhoud": {"naam": "Termijn"}})
+    uit = _taak(api, "relaties", begrip_id="b1")
+    assert "*Termijn* is een soort van *Betalingstermijn*" in uit.tekst and "Ik stel 1 relatie voor" in uit.tekst
+    assert uit.voorstellen == ["R1"] and uit.meting["model"] is False

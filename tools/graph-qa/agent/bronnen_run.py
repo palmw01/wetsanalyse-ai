@@ -5,10 +5,10 @@ Twee ingangen, één stroom:
 - `POST /v1/bronnen-runs {werkgebied_id, run_id}` (de tab Bronnen): `bronnen_stroom` haalt de invoer
   bij de api, past de methoden toe (`bronnen_vinden.vind`) en zet de kandidaten terug – het patroon
   van `begrippen_run.py`. Runstore-sleutel `werkgebied:<id>:bronnen`.
-- **De bronnenroute in het gesprek** (`bronnen_beurt`): binnen een werkgebied gaat "zoek bepalingen" of
-  "welke bepalingen horen erbij?" een harde route in, vóór de supervisor en zonder model – zoals de
-  begrippenroute. Die maakt of hergebruikt de run, rekent, en legt een bericht vast met een
-  **bronnenartefact** (`{soort: "bronnen", ref: {werkgebied_id, run_id}}`).
+- **In het gesprek** (`bronnen_kern`, taak `bronnen_zoeken` van de deelvragen-agent, F3c): de run
+  maken of hergebruiken, rekenen, en een uitkomst met een **bronnenartefact**
+  (`{soort: "bronnen", ref: {werkgebied_id, run_id}}`). Er is geen tekstpatroon meer: de supervisor
+  kiest de agent, of een klik op een suggestie (`actie`).
 
 Geen model, dus geen tokens. Events: `status` per methode, dan `opgeslagen` en `done`; een fout is een
 `error`, en de api hoort het via `…/mislukt`.
@@ -17,13 +17,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import re
 from typing import Any, AsyncIterator
 
 from .bronnen_vinden import vind
 from .config import Settings
 from .ports import GraphPort
-from .wetsanalyse_api import GesprekVerdwenen, WetsanalyseApi, WetsanalyseApiFout
+from .agents import Context, Uitkomst, geweigerd
+from .wetsanalyse_api import WetsanalyseApi, WetsanalyseApiFout
 
 logger = logging.getLogger(__name__)
 
@@ -35,19 +35,8 @@ METHODE_NAAM = {"overzicht": "Overzicht op de analysevraag", "deelvraag": "Overz
                 "verwijzing_in": "Verwijzingen naar de kern", "definitie": "Definities van termen",
                 "opbouw": "Opbouw van de wet", "gelijkenis": "Tekstuele gelijkenis"}
 
-# "zoek bepalingen", "welke bepalingen horen erbij", "wat ontbreekt er nog?" – binnen een werkgebied.
-# Een overzichtsvraag ("welke artikelen gaan over X?") is iets anders: die noemt een onderwerp en
-# blijft de overzichtsroute, ook binnen een werkgebied.
-_BRONNEN = re.compile(r"\b(bepalingen|bronnen|artikelen)\b", re.I)
-_HANDELING = re.compile(r"\b(zoek|vind|horen erbij|hoort erbij|ontbreken|ontbreekt|mis ik|aanvullen|uitbreiden)\b", re.I)
-_GAAN_OVER = re.compile(r"\bgaan over\b|\bover\s+\w+", re.I)
-
 WEIGERING = {"geen_vertrekpunt": "Geef het werkgebied een analysevraag of neem eerst een bepaling op om te "
                                  "analyseren; daar zoek ik vanuit."}
-
-
-def is_bronnenvraag(vraag: str) -> bool:
-    return bool(_BRONNEN.search(vraag) and _HANDELING.search(vraag) and not _GAAN_OVER.search(vraag))
 
 
 def bronnen_artefact(werkgebied_id: str, run_id: str, titel: str) -> dict[str, Any]:
@@ -163,70 +152,61 @@ async def _mislukt(api: WetsanalyseApi, werkgebied_id: str, run_id: str, reden: 
         logger.warning("mislukte bronnenrun niet gemeld", exc_info=True)
 
 
-async def bronnen_beurt(request: Any, run: Any, *, settings: Settings, user_id: str,
-                        graph: GraphPort | None = None) -> AsyncIterator[dict[str, Any]]:
-    """De bronnenroute in het gesprek; legt zelf vast, zoals `voer_beurt_uit`."""
-    werkgebied_id: str = request.werkgebied_id
-    run_id: str = getattr(run, "run_id", "") or ""
-    denk: list[str] = []
-
-    def status(ev: dict[str, Any]) -> dict[str, Any]:
-        denk.append("· " + str(ev.get("message", "")).removeprefix("Lex · "))
-        return ev
-
-    api = WetsanalyseApi(settings, user_id)
+async def bronnen_kern(ctx: Context, werkgebied_id: str, deelvraag_id: str = "") -> Uitkomst:
+    """Bepalingen zoeken bij een werkgebied, voor de deelvragen-agent (`agents/deelvragen.py`): de run bij
+    de api maken of hergebruiken, de methoden draaien (of wachten op wie al zoekt), en de open kandidaten
+    samenvatten. Met `deelvraag_id` noemt de samenvatting wat Lex bij díe deelvraag vond."""
+    api = ctx.api
+    taak = "bronnen_zoeken"
     try:
-        artefact: dict[str, Any] | None = None
-        try:
-            wg = await api.haal_werkgebied(werkgebied_id)
-            naam = str(wg.get("naam") or "zonder naam")
-            api_run = await api.start_bronnen_run(werkgebied_id)
-        except WetsanalyseApiFout as fout:
-            if fout.status not in (404, 409):
-                raise
-            tekst = ("Dit werkgebied bestaat niet (meer)." if fout.status == 404
-                     else f"Ik kan nog niet zoeken. {WEIGERING.get(fout.reden, '')}".strip())
-        else:
-            fout_tekst = ""
-            if api_run.get("status") in ("wacht", "mislukt"):
-                async for ev in bronnen_stroom(werkgebied_id, str(api_run["id"]), run, settings=settings,
-                                               user_id=user_id, graph=graph):
-                    if ev["type"] == "status":
-                        yield status(ev)
-                    elif ev["type"] == "error":
-                        fout_tekst = str(ev.get("message", ""))
-            elif api_run.get("status") == "loopt":
-                yield status(_status("Er loopt al een zoekopdracht op deze selectie; ik wacht op de uitkomst"))
-                fout_tekst = await _wacht(api, werkgebied_id, str(api_run["id"]), run)
-            else:
-                yield status(_status("Voor deze selectie had ik al gezocht"))
-            if fout_tekst:
-                tekst = f"{fout_tekst} Probeer het opnieuw."
-            else:
-                lijst = await api.haal_kandidaten(werkgebied_id)
-                tekst = samenvatting(naam, lijst.get("kandidaten", []), (lijst.get("run") or {}).get("meting"))
-                artefact = bronnen_artefact(werkgebied_id, str(api_run["id"]), naam)
-
-        if run is not None and run.stop_gevraagd:
-            yield {"type": "done"}
-            return
-        yield {"type": "token", "content": tekst}
-        bericht = {"rol": "assistant", "tekst": tekst, "denk": "\n".join(denk), "run_id": run_id,
-                   **({"artefact": artefact} if artefact else {})}
-        try:
-            await api.voeg_bericht_toe(request.conversation_id or "", bericht)
-        except GesprekVerdwenen:
-            yield {"type": "done"}
-            return
-        yield {"type": "opgeslagen", "run_id": run_id, **({"artefact": artefact} if artefact else {})}
-        yield {"type": "done"}
+        wg = await api.haal_werkgebied(werkgebied_id)
+        naam = str(wg.get("naam") or "zonder naam")
+        api_run = await api.start_bronnen_run(werkgebied_id)
     except WetsanalyseApiFout as fout:
-        logger.error("bronnenbeurt: api-fout", extra={"categorie": "technisch", "http_status": fout.status})
-        yield {"type": "error", "message": "Het zoeken naar bepalingen kon niet worden gedaan of bewaard; "
-               "probeer het opnieuw.", "soort": "api", "status": fout.status}
-        yield {"type": "done"}
-    finally:
-        await api.aclose()
+        if fout.status == 404:
+            return geweigerd(taak, "Dit werkgebied bestaat niet (meer).")
+        if fout.status == 409:
+            return geweigerd(taak, f"Ik kan nog niet zoeken. {WEIGERING.get(fout.reden, '')}".strip())
+        raise
+    rid = str(api_run["id"])
+    fout_tekst = ""
+    if api_run.get("status") in ("wacht", "mislukt"):
+        async for ev in bronnen_stroom(werkgebied_id, rid, ctx.run, settings=ctx.settings, user_id=ctx.user_id,
+                                       graph=ctx.graph):
+            if ev["type"] == "status":
+                ctx.melding(str(ev.get("message", "")).removeprefix("Lex · "))
+            elif ev["type"] == "error":
+                fout_tekst = str(ev.get("message", ""))
+    elif api_run.get("status") == "loopt":
+        ctx.melding("Er loopt al een zoekopdracht op deze selectie; ik wacht op de uitkomst")
+        fout_tekst = await _wacht(api, werkgebied_id, rid, ctx.run)
+    else:
+        ctx.melding("Voor deze selectie had ik al gezocht")
+    if fout_tekst:
+        return Uitkomst(taak=taak, status="fout", reden=f"{fout_tekst} Probeer het opnieuw.")
+    lijst = await api.haal_kandidaten(werkgebied_id)
+    kandidaten = lijst.get("kandidaten", [])
+    tekst = samenvatting(naam, kandidaten, (lijst.get("run") or {}).get("meting"))
+    if deelvraag_id:
+        tekst = bij_deelvraag(wg, kandidaten, deelvraag_id) + " " + tekst
+    open_ = [str(k["id"]) for k in kandidaten if k.get("status") == "voorgesteld" and not k.get("in_selectie")
+             and k.get("id")]
+    return Uitkomst(taak=taak, tekst=tekst, voorstellen=open_, artefact=bronnen_artefact(werkgebied_id, rid, naam),
+                    meting={"kandidaten": len(open_), "model": False})
+
+
+def bij_deelvraag(wg: dict[str, Any], kandidaten: list[dict[str, Any]], deelvraag_id: str) -> str:
+    """Wat er bij één deelvraag gevonden is: de open kandidaten waarvan het bewijs die deelvraag noemt."""
+    d = next((x for x in wg.get("deelvragen") or [] if x.get("id") == deelvraag_id), None)
+    if d is None:
+        return "Die deelvraag ken ik niet (meer); hieronder wat ik voor het hele werkgebied vond."
+    bij = [k for k in kandidaten if k.get("status") == "voorgesteld" and not k.get("in_selectie")
+           and any((b.get("detail") or {}).get("deelvraag_id") == deelvraag_id for b in k.get("bewijs") or [])]
+    if not bij:
+        return f"Bij de deelvraag “{d.get('vraag', '')}” vond ik geen nieuwe bepalingen."
+    namen = ", ".join(str(k.get("label") or k.get("bron_iri", "")) for k in bij[:5])
+    meer = f" en {len(bij) - 5} meer" if len(bij) > 5 else ""
+    return f"Bij de deelvraag “{d.get('vraag', '')}” stel ik {len(bij)} voor: {namen}{meer}."
 
 
 async def _wacht(api: WetsanalyseApi, werkgebied_id: str, rid: str, run: Any) -> str:

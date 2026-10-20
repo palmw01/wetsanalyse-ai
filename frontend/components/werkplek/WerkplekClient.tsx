@@ -518,6 +518,8 @@ export function WerkplekClient({
         // Een suggestie met een actie: een vaste route op het werkgebied van het onderwerp, zonder model.
         : actie && vraagOver && vraagOver.soort !== "markering"
           ? { ...actieVerzoek(vraagOver, actie), werkgebied_id: vraagOver.werkgebied_id }
+        // Een knop in de werkgebiedbalk: dezelfde vaste handeling, op het werkgebied van het gesprek.
+        : actie && werkgebiedId ? { actie, werkgebied_id: werkgebiedId }
         : werkgebiedId ? { ...extra, werkgebied_id: werkgebiedId } : extra);
     } catch (e) {
       // Er liep al een beurt (bijvoorbeeld in een ander tabblad). Deze vraag is dus NIET aangenomen:
@@ -1114,7 +1116,10 @@ export function WerkplekClient({
       )}
       {werkgebiedId && !demo && (
         <WerkgebiedBalk id={werkgebiedId} uitgeschakeld={bezig || geblokkeerd}
-          onBegrippen={() => void verstuur("Stel begrippen voor")} onBronnen={() => void verstuur("Zoek bepalingen")}
+          onBegrippen={() => void verstuur("Stel begrippen voor", undefined, undefined, undefined, undefined, undefined,
+            "begrippen_voorstellen")}
+          onBronnen={() => void verstuur("Zoek bepalingen", undefined, undefined, undefined, undefined, undefined,
+            "bronnen_zoeken")}
           onAnnoteren={() => setAnnoterenOpen(true)} onVerlaat={() => onVerlaatWerkgebied?.()} />
       )}
       {wgMelding && (

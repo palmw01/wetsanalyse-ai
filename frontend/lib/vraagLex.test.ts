@@ -73,8 +73,10 @@ describe("een object stuurt alleen soort en id's", () => {
 describe("contract met graph-qa", () => {
   const models = readFileSync(resolve(__dirname, "../../tools/graph-qa/agent/models.py"), "utf8");
 
-  it("de acties zijn die van ACTIE_MODUS", () => {
-    const blok = models.slice(models.indexOf("ACTIE_MODUS: dict[str, str] = {"), models.indexOf("}", models.indexOf("ACTIE_MODUS: dict")));
+  it("de acties zijn die van ACTIE_TAAK", () => {
+    const begin = models.indexOf("ACTIE_TAAK: dict[str, tuple[str, str]] = {");
+    expect(begin).toBeGreaterThan(-1);
+    const blok = models.slice(begin, models.indexOf("\n}", begin));
     const sleutels = [...blok.matchAll(/^\s+"([a-z_]+)":/gm)].map((m) => m[1]);
     expect(sleutels.sort()).toEqual([...ACTIES].sort());
   });
