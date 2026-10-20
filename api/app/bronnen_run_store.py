@@ -40,6 +40,9 @@ def kandidaat_id(bron_iri: str) -> str:
     return "K" + hashlib.sha256(bron_iri.encode()).hexdigest()[:16]
 
 
+DOSSIER = ("aanleiding", "context", "doel", "praktijkvoorbeeld", "afbakening")
+
+
 def invoer_van(werkgebied: dict) -> dict:
     """Wat graph-qa nodig heeft, en niets uit de graaf: de selectie zoals hij nu is."""
     def bron(s: dict) -> dict:
@@ -54,6 +57,11 @@ def invoer_van(werkgebied: dict) -> dict:
                   if d["status"] == "actief"]
     if deelvragen:
         invoer["deelvragen"] = deelvragen
+    # Het dossier van het werkgebied (startactiviteit a, praktijkvoorbeeld, afbakening) scherpt het
+    # zoeken aan; ook alleen als er iets staat, om dezelfde reden.
+    dossier = {k: werkgebied[k].strip() for k in DOSSIER if (werkgebied.get(k) or "").strip()}
+    if dossier:
+        invoer["dossier"] = dossier
     return invoer
 
 

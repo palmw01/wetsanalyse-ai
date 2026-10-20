@@ -55,6 +55,16 @@ async def test_de_invoer_is_de_selectie_en_de_analysevraag(client):
     assert run["invoer"]["analysevraag"] == "Wanneer?" and run["status"] == "wacht"
 
 
+def test_het_dossier_gaat_alleen_mee_als_er_iets_staat():
+    """F2: aanleiding, context, doel, praktijkvoorbeeld en afbakening scherpen het zoeken aan; zonder
+    blijft de invoer (en dus de run-id) wat hij was."""
+    from app.bronnen_run_store import invoer_van
+    basis = {"naam": "N", "analysevraag": "V?", "bronnen": [], "deelvragen": []}
+    assert "dossier" not in invoer_van({**basis, "context": "  ", "afbakening": ""})
+    assert invoer_van({**basis, "doel": " Specificaties ", "afbakening": "Geen overgangsrecht."})["dossier"] == {
+        "doel": "Specificaties", "afbakening": "Geen overgangsrecht."}
+
+
 async def test_zonder_vertrekpunt_geen_run(client):
     r = await client.post("/v1/werkgebieden", json={"naam": "Leeg"})
     wg = r.json()

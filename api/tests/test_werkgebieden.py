@@ -122,6 +122,37 @@ async def test_aanmaken_vanuit_een_intake_is_idempotent(client):
     assert [r["actie"] for r in regels].count("aangemaakt") == 1
 
 
+async def test_startactiviteit_a_en_deelvragen_bij_het_aanmaken(client):
+    """F2: aanleiding, context, doel en praktijkvoorbeeld staan op het werkgebied; de deelvragen uit het
+    samenstellen komen actief en op volgorde mee, één keer per (genormaliseerde) vraag."""
+    invoer = {"naam": "Box 3", "analysevraag": "Wie is belastingplichtig?", "intake_id": "ik-f2",
+              "aanleiding": "Gewijzigde wetgeving", "context": "Herstel na het Kerstarrest.",
+              "doel": "Specificaties voor de aangifte", "praktijkvoorbeeld": "Een spaarder met een tweede huis.",
+              "deelvragen": [{"vraag": "Wat is het belastbaar inkomen?", "herkomst": "lex"},
+                             {"vraag": "Wie is   belastingplichtig?"},
+                             {"vraag": "wat is het belastbaar inkomen"}]}
+    wg = (await client.post("/v1/werkgebieden", json=invoer)).json()
+    assert {k: wg[k] for k in ("aanleiding", "context", "doel", "praktijkvoorbeeld")} == {
+        "aanleiding": "Gewijzigde wetgeving", "context": "Herstel na het Kerstarrest.",
+        "doel": "Specificaties voor de aangifte", "praktijkvoorbeeld": "Een spaarder met een tweede huis."}
+    assert [(d["vraag"], d["status"], d["herkomst"], d["volgorde"]) for d in wg["deelvragen"]] == [
+        ("Wat is het belastbaar inkomen?", "actief", "lex", 0),
+        ("Wie is belastingplichtig?", "actief", "analist", 1)]
+    assert wg["revisie"] == 1
+    # Nog eens dezelfde intake: hetzelfde werkgebied, geen tweede set deelvragen.
+    nog = (await client.post("/v1/werkgebieden", json=invoer)).json()
+    assert nog["id"] == wg["id"] and len(nog["deelvragen"]) == 2
+    regels = (await client.get(f"/v1/werkgebieden/{wg['id']}/audit")).json()
+    regels = regels if isinstance(regels, list) else next(iter(regels.values()))
+    assert next(r for r in regels if r["actie"] == "aangemaakt")["detail"]["deelvragen"] == 2
+
+    r = await client.patch(f"/v1/werkgebieden/{wg['id']}", json={"verwachte_revisie": 1, "context": "Anders."})
+    assert (r.json()["context"], r.json()["doel"], r.json()["revisie"]) == ("Anders.", "Specificaties voor de aangifte", 2)
+    # Zonder de nieuwe velden blijft alles leeg, zoals altijd.
+    leeg = await _nieuw(client)
+    assert (leeg["aanleiding"], leeg["praktijkvoorbeeld"], leeg["deelvragen"]) == ("", "", [])
+
+
 async def test_gedeeld_tussen_analisten_en_de_audit_zegt_wie(client):
     wg = await _nieuw(client)
     r = await client.patch(f"/v1/werkgebieden/{wg['id']}", headers={"X-User-Id": "jurist-b"},

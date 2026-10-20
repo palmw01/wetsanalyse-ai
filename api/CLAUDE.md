@@ -246,6 +246,12 @@ spoor D (*Werkgebied als node*).
   en een tweede `POST` met dezelfde id geeft hetzelfde werkgebied terug (unieke index
   `ux_werkgebieden_intake`; de race tussen replica's vangt de `IntegrityError`). Zonder `intake_id`
   is elk verzoek een nieuw werkgebied.
+- **Het dossier** (spoor F, F2): naast naam, analysevraag en afbakening draagt een werkgebied
+  `aanleiding`, `context` en `doel` (startactiviteit a van de Leidraad) en een `praktijkvoorbeeld`
+  (activiteit 1b), elk vrije tekst; wijzigen loopt door hetzelfde schrijfpad. Bij het aanmaken mogen
+  `deelvragen` (`{vraag, herkomst: analist|lex}`) mee: actief, op volgorde, één keer per genormaliseerde
+  vraag, in dezelfde transactie; de auditregel `aangemaakt` telt ze. Lex gebruikt dit dossier als
+  context voor elk voorstel (graph-qa).
 - **Een bronselectie wordt geverifieerd** via de bronresolver (`bron_iri`, of `bwb_id` + `artikel`
   (+ `lid`)); de canonieke `bron_iri`, het label, `snapshot_id` en `bron_hash` worden bewaard.
   Dezelfde bron met dezelfde rol en hetzelfde bereik opnieuw toevoegen is idempotent (200, geen
@@ -628,7 +634,8 @@ werkgebied zonder deelvragen werkt zoals altijd.
   graaf. Een vervangen begrip dekt niets meer.
 - **De bronnenrun zoekt per deelvraag**: `bronnen_run_store.invoer_van` neemt de actieve deelvragen op (alleen
   met deelvragen een sleutel, zodat de `invoer_id` van een werkgebied zonder deelvragen gelijk blijft); met
-  alleen deelvragen is er ook een vertrekpunt. Bewijs van de methode `deelvraag` draagt `deelvraag_id`;
+  alleen deelvragen is er ook een vertrekpunt. Op dezelfde manier gaat het dossier mee als sleutel `dossier`
+  (alleen de gevulde velden van aanleiding, context, doel, praktijkvoorbeeld en afbakening). Bewijs van de methode `deelvraag` draagt `deelvraag_id`;
   opnemen koppelt de nieuwe selectie in dezelfde transactie aan die deelvragen (`koppel_bron_in`).
 - Tests: `tests/test_werkgebied_deelvragen.py`.
 
@@ -651,9 +658,10 @@ werkgebied zonder deelvragen werkt zoals altijd.
   **`bevestiging`** `{soort: "werkgebied_annoteren" | "begrippen_verdiepen", werkgebied_id, aantal, schatting}`; de werkplek
   toont er een knop bij, ook na herladen. Bij het samenstellen van een werkgebied (activiteit 1) draagt
   elke vraag van Lex een **`vraagkaart`** `{intake_id, soort: vraag|samenvatting, stap, nr, totaal,
-  vraag, opties[{label, waarde, bron, omschrijving}], meerkeuze, vrije_tekst, overslaanbaar,
-  vooringevuld, samenvatting, terug, beantwoord}`; de stappen zijn `naam`, `analysevraag`,
-  `regelingen`, `onderdelen`, `buiten`, `samenvatting`. Het user-bericht van een klik draagt
+  vraag, opties[{label, waarde, bron, omschrijving}], meerkeuze, vrije_tekst, meer_tekst, overslaanbaar,
+  vooringevuld, samenvatting, terug, beantwoord}`; de stappen (`IntakeStap`) zijn `naam`, `aanleiding`,
+  `context`, `doel`, `analysevraag`, `praktijkvoorbeeld`, `deelvragen`, `buiten`, `regelingen`,
+  `onderdelen`, `samenvatting`. Het user-bericht van een klik draagt
   **`intake_antwoord`** `{intake_id, stap, actie}`: zo bundelt de werkplek na herladen de antwoorden
   in één Vragen-kaart en onderscheidt hij ze van een getypte tussenvraag. `reeks.totaal` mag 1 zijn: een werkgebied kan één nieuwe
   bepaling hebben.
