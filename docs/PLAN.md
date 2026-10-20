@@ -859,10 +859,14 @@ van de gebruiker op 20 okt 2026).
     gedeelde `WerkgebiedSamenvatting` – **gebouwd** (20 okt 2026): in het paneel en bovenaan de pagina,
     en de deelvragen, kandidaten en bronselecties in lijststijl;
   - **F3b**: het Vraag Lex-contract (`onderwerp` + `actie`, `agent/onderwerp.py`). Het
+<<<<<<< HEAD
     markeringsadvies blijft byte-gelijk – **gebouwd** (20 okt 2026): `Onderwerp` en `actie` aan beide
     kanten, het contextblok per soort uit de api, de focus voor vervolgvragen, `VraagLexKnop` met
     `?vraag=`, en de handelingen op het werkgebied als suggestie met een actie (die nu de bestaande harde
     routes kiest). `annoteer=`/`meedenk=` blijven tot F3e, met de paginaknoppen die ze gebruiken;
+=======
+    markeringsadvies blijft byte-gelijk;
+>>>>>>> origin/master
   - **F3c** graph-qa + skill: de twee agents onder de supervisor, de agentrollen, ADR-005, en
     routeringscases in `golden_gesprek.jsonl`, 3× gemeten;
   - **F3d**: suggesties per object, en de artefacten/panelen `deelvraag` en `begrip`;
