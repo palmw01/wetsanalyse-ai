@@ -14,7 +14,7 @@ from langgraph.config import get_stream_writer
 
 from ..aanwijzing import lees_aanwijzing, melding_meerdere
 from ..doel import _heeft_opgegeven_doel
-from ..focus import bij_advies
+from ..focus import bij_advies, bij_onderwerp
 from ..narratie import _stap
 from ..state import State
 from ..methode import instructies
@@ -87,6 +87,16 @@ def _herschreven(vraag: str) -> str:
 
 
 def supervisor_node(b: Bouw, state: State) -> dict[str, Any]:
+    """`kies`, en een object dat de analist met *Vraag Lex* aanwees (F3b) wordt het onderwerp van het
+    gesprek: de focus houdt het vast voor de vervolgvraag zonder chip. Het onderwerp is een hint, geen
+    route – de keuze zelf verandert er niet door."""
+    upd = _kies(b, state)
+    if state.get("onderwerp") and "focus" not in upd:
+        upd = {**upd, "focus": bij_onderwerp(state.get("focus"), state.get("onderwerp"))}
+    return upd
+
+
+def _kies(b: Bouw, state: State) -> dict[str, Any]:
     """Bepaalt de worker-keten (antwoord/annotatie) voor deze vraag; zet de eerste worker actief.
 
     In een lopend gesprek leest hij eerst het gesprek: een vervolgvraag wordt herschreven tot een

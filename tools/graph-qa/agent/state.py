@@ -25,6 +25,11 @@ class State(TypedDict, total=False):
     # Het dossier van dat werkgebied als contextblok (`werkgebied_context.als_blok`), per beurt opgehaald;
     # `memory_context` zet het naast de focus. Context, geen filter.
     werkgebied_context: str
+    # Waar de analist *Vraag Lex* op koos (F3b, `models.Onderwerp` als dict) en het blok dat
+    # `agent/onderwerp.py` daarvan maakt; beide per beurt gereset. Het object zelf blijft in de focus
+    # (`focus.bij_onderwerp`) voor vervolgvragen.
+    onderwerp: dict[str, Any]
+    onderwerp_context: str
     # De overzichtsroute (`agent/overzicht.py`): de supervisor herkende "welke artikelen gaan over X";
     # `overzicht` is het deterministisch gebouwde overzicht. Beide per beurt gereset.
     overzicht_route: bool

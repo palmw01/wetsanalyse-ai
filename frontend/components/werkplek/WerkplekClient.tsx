@@ -6,9 +6,10 @@ import { samenhangBeschikbaar } from "@/lib/samenhang";
 import { ThreadRij, type ThreadActies, type WerkgebiedAnnoteren } from "@/components/werkplek/ThreadRij";
 import { AnnoterenBevestiging } from "@/components/werkgebieden/AnnoterenBevestiging";
 import { reeksNavigatie, reeksUitBerichten, verwerkReeksEvent, type Reeks } from "@/lib/reeks";
-import { mergeToolExecution, toolSpoorUit, type NodeDoel, type ToolExecution, type NodeElement, type NodeWeergave } from "@/lib/annotatieNode";
+import { mergeToolExecution, toolSpoorUit, type NodeDoel, type ToolExecution } from "@/lib/annotatieNode";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { GraafKoppelingContext, type GraafKoppeling } from "@/components/graaf/koppeling";
+import { VraagLexContext } from "@/components/werkplek/VraagLexKnop";
 import type { GraafOpties } from "@/components/graaf/useGraafStand";
 
 import { WerkgebiedArtefactPaneel } from "@/components/werkplek/WerkgebiedArtefactPaneel";
@@ -49,7 +50,7 @@ import {
 import { VraagDock } from "@/components/werkplek/VraagDock";
 import { MEEDENK_PROMPT } from "@/lib/begripVoorstellen";
 import {
-  doelInvoerVan, isVerwijderd, kandidatenAlsTekst, mergeVoorstellen, vraagSuggesties,
+  doelInvoerVan, isVerwijderd, kandidatenAlsTekst, mergeVoorstellen,
 } from "@/lib/annotatie";
 import {
   definitieveStroomfout, herstelWachttijd, leesLopendeRuns, naEenGebrokenStream, onthoudRun,
@@ -61,6 +62,9 @@ import type { ThreadItem } from "@/lib/threadItem";
 import { WerkplekHeader } from "./WerkplekHeader";
 import { parseHergebruik, parseOverzicht } from "@/lib/agentEvents";
 import { DEMO_DOEL, DEMO_SLUG, type DemoScene } from "@/lib/rondleidingDemo";
+import {
+  SOORT_LABEL, actieVerzoek, chipTekst, overVan, suggestiesVan, verzoekVan, type Onderwerp, type VraagLexActie,
+} from "@/lib/vraagLex";
 
 // De thread-items staan in `lib/threadItem.ts`, zodat de rondleiding er een voorbeeldbeurt
 // mee kan opbouwen zonder dit component te importeren.
@@ -132,13 +136,15 @@ interface Props {
   startMeedenken?: number | null;
   /** Start de rondleiding vanuit de lege staat – precies het moment waarop iemand hem nodig heeft. */
   onRondleiding?: () => void;
+  /** *Vraag Lex* van buiten de werkplek (`?vraag=<soort>:<id>`, F3b): de chip staat al klaar. */
+  beginOnderwerp?: Onderwerp | null;
 }
 
 export function WerkplekClient({
   initialGesprekId, onGesprekAangemaakt, onGewijzigd, demo, onDemoBeslissing,
   onDemoArtefact, demoOpenSignaal = 0, demoSluitSignaal = 0, onRondleiding,
   verbruik = null, onBeurtKlaar, werkgebiedId = null, onVerlaatWerkgebied, onKiesWerkgebied,
-  startAnnoteren = null, startMeedenken = null,
+  startAnnoteren = null, startMeedenken = null, beginOnderwerp = null,
 }: Props) {
   // Budget op? Dan gaat de invoer dicht. Alleen bij een actieve begrenzing – staat die uit, dan is
   // `geblokkeerd` per definitie false en verandert er niets.
@@ -185,7 +191,9 @@ export function WerkplekClient({
   }));
   const [samenhangAan, setSamenhangAan] = useState(false);
   useEffect(() => { void samenhangBeschikbaar().then(setSamenhangAan); }, []);
-  const [nodeVraag, setNodeVraag] = useState<{ element: NodeElement; view: NodeWeergave }>();
+  // Waar de volgende vraag over gaat (*Vraag Lex*, F3b): een markering, of een object uit een werkgebied.
+  // Een chip boven het invoerveld zolang het geldt; na het versturen weg.
+  const [onderwerp, setOnderwerp] = useState<Onderwerp | undefined>(beginOnderwerp ?? undefined);
   // Zichtbaarheid van de "naar beneden"-pil: aan zodra de gebruiker weg van de bodem scrolt.
   const [toonNaarBeneden, setToonNaarBeneden] = useState(false);
   // Wat er zojuist is opgeslagen, voor schermlezers. Zonder dit gebeurt elke annotatie-wijziging
@@ -425,7 +433,7 @@ export function WerkplekClient({
    *  @param hergebruik "opnieuw" = de jurist vraagt expliciet om een nieuwe ronde op een al
    *    geannoteerd artikel; zonder doel betekent dat niets (de agent weet dan nog niet welk). */
   async function verstuur(vast?: string, doel?: AgentDoelInvoer, hergebruik?: "opnieuw", doelen?: AgentDoelInvoer[],
-    annoteren?: WerkgebiedAnnoteren, intake?: IntakeActie) {
+    annoteren?: WerkgebiedAnnoteren, intake?: IntakeActie, actie?: VraagLexActie) {
     // In de rondleiding is dit venster een voorbeeld: er gaat niets naar de agent. De invoerbalk is
     // ook uitgeschakeld, dit is het vangnet voor Enter en de voorbeeldknoppen.
     if (demo) return;
@@ -439,10 +447,11 @@ export function WerkplekClient({
     setInvoer("");
 
     // Een vraag bij een markering gaat als ADVIES: dezelfde thread, maar met contextblok en langs de
-    // antwoordroute – die kan topologisch geen annotatie wijzigen.
-    const nodeContext = nodeVraag;
-    setNodeVraag(undefined);
-    const contextLabel = nodeContext ? `${nodeContext.view.doel.label}: ${nodeContext.element.tekst}` : "";
+    // antwoordroute – die kan topologisch geen annotatie wijzigen. Een ander object gaat als
+    // `onderwerp` mee (`lib/vraagLex.ts`).
+    const vraagOver = onderwerp;
+    setOnderwerp(undefined);
+    const contextLabel = vraagOver ? overVan(vraagOver) : "";
 
     // Toon de user-bubbel + antwoord-placeholder OPTIMISTISCH, vóór het (bij een nieuw gesprek) awaiten
     // van maakGesprek – anders "verdwijnt" het bericht tijdens die round-trip.
@@ -490,17 +499,12 @@ export function WerkplekClient({
       // Een klik op een vraagkaartje: zo staat het antwoord na herladen weer in de Vragen-kaart.
       ...(intake ? { intake_antwoord: { intake_id: intake.intake_id, stap: intake.stap, actie: intake.actie } } : {}) });
 
-    const basis = nodeContext ? { modus: "advies" as const, context: {
-      bron_iri: nodeContext.element.eigenaar_iri, snapshot_id: nodeContext.view.snapshot_id,
-      bwbId: nodeContext.view.doel.bwb_id, artikel: nodeContext.view.doel.artikel, lid: nodeContext.view.doel.lid,
-      element_id: nodeContext.element.id, klasse: nodeContext.element.klasse, fragment: nodeContext.element.tekst,
-      corpus: nodeContext.view.segmenten.map((s) => s.tekst).join("\n\n"),
-    } } : undefined;
-    // Een adviesvraag draagt nooit een doel: die route annoteert niet.
-    const extra = doelen?.length && !nodeContext
+    const basis = vraagOver ? verzoekVan(vraagOver) : undefined;
+    // Een vraag over een onderwerp draagt nooit een doel: die route annoteert niet.
+    const extra = doelen?.length && !vraagOver
       // Meerdere onderdelen van één artikel: één run, elk onderdeel een eigen laag.
       ? { ...basis, doelen }
-      : doel && !nodeContext ? { ...basis, doel, ...(hergebruik ? { hergebruik } : {}) } : basis;
+      : doel && !vraagOver ? { ...basis, doel, ...(hergebruik ? { hergebruik } : {}) } : basis;
 
     let gestart;
     try {
@@ -511,6 +515,9 @@ export function WerkplekClient({
             ...(annoteren.bevestigd !== undefined ? { bevestigd: annoteren.bevestigd } : {}) }
         // Een klik op een vraagkaartje: geen context en geen doel; het werkgebied van het gesprek mag mee.
         : intake ? { intake_actie: intake, ...(werkgebiedId ? { werkgebied_id: werkgebiedId } : {}) }
+        // Een suggestie met een actie: een vaste route op het werkgebied van het onderwerp, zonder model.
+        : actie && vraagOver && vraagOver.soort !== "markering"
+          ? { ...actieVerzoek(vraagOver, actie), werkgebied_id: vraagOver.werkgebied_id }
         : werkgebiedId ? { ...extra, werkgebied_id: werkgebiedId } : extra);
     } catch (e) {
       // Er liep al een beurt (bijvoorbeeld in een ander tabblad). Deze vraag is dus NIET aangenomen:
@@ -1032,7 +1039,7 @@ export function WerkplekClient({
     onBeslist={demo ? onDemoBeslissing : undefined}
     onVraag={demo ? undefined : (element, view) => {
       // Geen klaargezette vraag in het veld: de drie suggesties (per klasse) staan erboven als chips.
-      setNodeVraag({ element, view });
+      setOnderwerp({ soort: "markering", element, view });
       setInvoer("");
       if (!breed) setNodeDoel(undefined);
       taRef.current?.focus();
@@ -1042,7 +1049,7 @@ export function WerkplekClient({
       // graaf terugvindt. Geen nieuw agentcontract.
       const plek = knoop.bwb_id && knoop.artikel
         ? ` (${knoop.bwb_id}, artikel ${knoop.artikel}${knoop.lid ? `, lid ${knoop.lid}` : ""})` : "";
-      setNodeVraag(undefined);
+      setOnderwerp(undefined);
       setInvoer(`Hoe hangt ${knoop.naam}${plek} samen met de bepalingen waarnaar het verwijst of die ernaar verwijzen?`);
       if (!breed) setNodeDoel(undefined);
       requestAnimationFrame(() => taRef.current?.focus());
@@ -1061,8 +1068,22 @@ export function WerkplekClient({
     />
   ));
 
+  /** *Vraag Lex* vanuit een object in een paneel (`VraagLexKnop`): de chip boven het invoerveld. Op een smal
+   *  scherm ligt het paneel over de chat en sluit het – anders typ je in een veld dat je niet ziet. De
+   *  focus in dezelfde gebeurtenis als de klik: iOS opent het toetsenbord alleen binnen een gebaar. */
+  function kiesOnderwerp(o: Onderwerp) {
+    setOnderwerp(o);
+    setInvoer("");
+    if (!breed) {
+      setNodeDoel(undefined);
+      setWgArtefact(undefined);
+    }
+    taRef.current?.focus();
+  }
+
   return (
     <GraafKoppelingContext.Provider value={graafKoppeling}>
+    <VraagLexContext.Provider value={demo ? null : kiesOnderwerp}>
     <div className="flex min-h-0 min-w-0 flex-1">
     <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
       {/* Beknopte statusmelding voor schermlezers (niet de hele thread live maken → geen token-spam). */}
@@ -1296,17 +1317,22 @@ export function WerkplekClient({
               met "Wat wil je weten over deze markering?" is een open vraag op het moment dat je juist
               snel wilt beoordelen. Ze verdwijnen zodra er een beurt loopt: een tweede vraag zou de
               eerste toch afgewezen krijgen (er loopt al een run op dit gesprek). */}
-          {nodeVraag && (
-            <div className="mb-1.5 flex items-center gap-1.5">
+          {onderwerp && (
+            <div className="mb-1.5 flex items-center gap-1.5" data-onderwerp={onderwerp.soort}>
               <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full border border-lint/30 bg-lint/5 px-2.5 py-1 text-xs text-lint">
-                <span className={`shrink-0 rounded px-1 text-[0.7rem] ${jasStyle(nodeVraag.element.klasse)}`}>
-                  {klasseLabel(nodeVraag.element.klasse)}
-                </span>
-                <span className="truncate">“{nodeVraag.element.tekst}”</span>
+                {onderwerp.soort === "markering" ? (
+                  <span className={`shrink-0 rounded px-1 text-[0.7rem] ${jasStyle(onderwerp.element.klasse)}`}>
+                    {klasseLabel(onderwerp.element.klasse)}
+                  </span>
+                ) : (
+                  <span className="shrink-0 rounded bg-lint/10 px-1 text-[0.7rem] font-medium">{SOORT_LABEL[onderwerp.soort]}</span>
+                )}
+                <span className="truncate">{onderwerp.soort === "markering" ? `“${chipTekst(onderwerp)}”` : chipTekst(onderwerp)}</span>
                 <button
                   type="button"
-                  onClick={() => setNodeVraag(undefined)}
-                  aria-label="Vraag niet aan deze markering koppelen"
+                  onClick={() => setOnderwerp(undefined)}
+                  aria-label={onderwerp.soort === "markering" ? "Vraag niet aan deze markering koppelen"
+                    : `Vraag niet aan deze ${SOORT_LABEL[onderwerp.soort].toLowerCase()} koppelen`}
                   className="focus-ring inline-flex min-h-[24px] min-w-[24px] shrink-0 items-center justify-center rounded-full p-0.5 hover:bg-lint/10 coarse:min-h-[44px] coarse:min-w-[44px]"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
@@ -1316,18 +1342,19 @@ export function WerkplekClient({
               </span>
             </div>
           )}
-          {nodeVraag && !bezig && (
+          {onderwerp && !bezig && suggestiesVan(onderwerp).length > 0 && (
             <div className="mb-1.5 flex flex-wrap gap-1.5" data-testid="vraag-suggesties">
-              {vraagSuggesties(nodeVraag.element).map((vraag) => (
+              {suggestiesVan(onderwerp).map((s) => (
                 <button
-                  key={vraag}
+                  key={s.tekst}
                   type="button"
                   disabled={geblokkeerd}
+                  data-actie={s.actie}
                   title={geblokkeerd ? "Je tokenbudget is op" : undefined}
-                  onClick={() => void verstuur(vraag)}
+                  onClick={() => void verstuur(s.tekst, undefined, undefined, undefined, undefined, undefined, s.actie)}
                   className="focus-ring inline-flex min-h-[24px] items-center rounded-full border border-line bg-paper px-2.5 py-1 text-xs text-muted transition hover:border-lint hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-line disabled:hover:text-muted coarse:min-h-[44px]"
                 >
-                  {vraag}
+                  {s.tekst}
                 </button>
               ))}
             </div>
@@ -1397,6 +1424,7 @@ export function WerkplekClient({
       <div className="hidden w-[min(34rem,42vw)] shrink-0 xl:block">{artefact}</div>
     )}
     </div>
+    </VraagLexContext.Provider>
     </GraafKoppelingContext.Provider>
   );
 }

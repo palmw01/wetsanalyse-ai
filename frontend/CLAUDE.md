@@ -381,17 +381,38 @@ buurlid. Bewust niet het hele artikel in één paneel: *Afronden* en *Verwijdere
 in beeld, ook op leden die niet gekozen waren. Alleen leden met een vastgelegde annotatie tellen mee
 in het bladeren.
 
-### Eén gesprek: vragen over een markering gaan via het centrale venster
+### Eén gesprek: Vraag Lex gaat via het centrale venster
 
-*Vraag Lex* op een reviewkaart zet een vraag klaar in het chatveld; er is geen aparte mini-chat in de
-kaart.
+*Vraag Lex* zet een vraag klaar in het chatveld; er is geen aparte mini-chat bij het object. Sinds F3b is
+dat één mechanisme voor elk object (`lib/vraagLex.ts`): `Onderwerp` is een markering (`{element, view}`)
+of een object uit een werkgebied (`{soort, werkgebied_id, id, label}` – deelvraag, bron, kandidaat,
+begrip, werkgebied), met per soort een module in `MODULES` (`chip`, `suggesties`, `verzoek`, `over`).
 
-- `WerkplekClient` houdt `vraagOver` (slug + element). Zolang dat staat, toont een **chip** boven het
-  invoerveld waar de vraag over gaat en gaat de beurt met `modus: "advies"` + `vraagContextVan(...)`.
+- **Markering** blijft de adviesvraag, byte-gelijk (`vraagLex.test.ts` bevat de oude constructie). De
+  rest gaat als `onderwerp` (alleen soort en id's; graph-qa haalt het object bij de api,
+  `agent/onderwerp.py`). Een suggestie met een **`actie`** (`ACTIES`, gelijk aan graph-qa `ACTIE_MODUS`;
+  de test leest die bron) stuurt `actie` + `onderwerp` + het `werkgebied_id` van het onderwerp, zonder
+  modus, context of doel – graph-qa routeert hem zonder model. Het werkgebied heeft vier suggesties met
+  een actie (bepalingen zoeken, begrippen voorstellen, meedenken, annoteren); de andere soorten krijgen
+  hun suggesties met de agents (F3d).
+- **`VraagLexKnop`** (`components/werkplek/VraagLexKnop.tsx`): binnen de werkplek zet hij het onderwerp
+  via `VraagLexContext` (`kiesOnderwerp` in `WerkplekClient`: chip, leeg veld, focus, op een smal scherm
+  het paneel dicht); daarbuiten is hij een **link** naar `vraagUrl` (`/workbench?werkgebied=…&vraag=<soort>:<id>&vraag_label=…`),
+  zodat de bewaker van niet-bewaarde wijzigingen hem ziet. `WorkbenchShell` leest `vraag` één keer
+  (`onderwerpUitUrl`, streng op soort en id's), haalt de parameters uit de URL en geeft
+  `beginOnderwerp` alleen aan het venster waarmee de pagina opende. Nu in de kop van de werkgebiedpagina
+  en van het werkgebiedpaneel; de rijen volgen in F3d/F3e. `annoteer=`/`meedenk=` blijven tot F3e, met
+  de paginaknoppen die ze gebruiken.
+- Browserregressie: `scripts/test-vraaglex.mjs`.
+
+**De markering in het bijzonder:**
+
+- `WerkplekClient` houdt `onderwerp`. Zolang dat een markering is, toont een **chip** boven het
+  invoerveld waar de vraag over gaat en gaat de beurt met `modus: "advies"` + de context.
   De chip verdwijnt na het versturen – anders wordt je volgende vraag ongemerkt ook een adviesvraag.
   Lex vergeet het element daarmee niet: graph-qa houdt het aangewezen element vast in zijn focus
   (`agent/focus.py`), zodat een vervolgvraag zonder chip nog weet over welke markering het ging.
-- **Drie vragen staan klaar** (`vraagSuggesties` in `lib/annotatie.ts`): waarom deze klasse, klopt de
+- **Drie vragen staan klaar** (`vraagSuggesties` in `lib/annotatie.ts`, via de markeringmodule): waarom deze klasse, klopt de
   afbakening, en – als de agent een alternatief voorstelde – waarom die andere klasse dan niet. Eén
   klik verstuurt; ze verdwijnen zolang er een beurt loopt, want een tweede vraag zou worden
   afgewezen.
@@ -1367,7 +1388,7 @@ npm run test:browser # Playwright op de echte Next-UI met gemockte BFF (scripts/
 `test:browser` draait `scripts/test-annotatie-nodes.mjs`, `test-samenhang.mjs`, `test-reeks.mjs`,
 `test-toetsen.mjs`, `test-werkgebieden.mjs`, `test-begrippen.mjs`, `test-begripvoorstellen.mjs` en
 `test-artefacten.mjs` (de soorten artefacten in de werkplek), `test-bronkandidaten.mjs`,
-`test-werkgebied-annoteren.mjs`, `test-begrippen-verdieping.mjs`, `test-begriplex.mjs`, `test-herbeoordeling.mjs`, `test-begriprelaties.mjs`, `test-begrippengraaf.mjs`, `test-begrippenoverzicht.mjs`, `test-deelvragen.mjs` en `test-rondleiding.mjs`, en verwacht een devserver op poort 3109
+`test-werkgebied-annoteren.mjs`, `test-begrippen-verdieping.mjs`, `test-begriplex.mjs`, `test-herbeoordeling.mjs`, `test-begriprelaties.mjs`, `test-begrippengraaf.mjs`, `test-begrippenoverzicht.mjs`, `test-deelvragen.mjs`, `test-vraaglex.mjs` en `test-rondleiding.mjs`, en verwacht een devserver op poort 3109
 (`AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109`).
 Praat met **`localhost`**, niet met `127.0.0.1`: Next 16 weigert dev-assets aan een andere origin,
 waarna de pagina niet hydrateert en elke stap zonder duidelijke fout time-out.

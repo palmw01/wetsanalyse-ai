@@ -285,7 +285,7 @@ async def chat(
         stroom = (reeks_run(request, settings=settings, legt_vast=False) if request.doelen else answer_stream(
             request.question, request.conversation_id,
             modus=request.modus, context=request.context, doel=request.doel,
-            hergebruik=request.hergebruik, intake_actie=request.intake_actie,
+            hergebruik=request.hergebruik, intake_actie=request.intake_actie, onderwerp=request.onderwerp,
         ))
         async for event in stroom:
             yield {"data": json.dumps(event, ensure_ascii=False)}
@@ -359,6 +359,7 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
                     # Het werkgebied van het gesprek: zijn begrippen staan vooraan (fase F4).
                     werkgebied_id=request.werkgebied_id or "",
                     intake_actie=request.intake_actie,
+                    onderwerp=request.onderwerp,
                 ),
                 settings=settings,
                 run=run,
