@@ -1,4 +1,6 @@
-// Lex stelt met de analist een werkgebied samen (activiteit 1, graph-qa `agent/werkgebied_intake.py`).
+// Lex stelt met de analist een werkgebied samen (startactiviteit a en activiteit 1, graph-qa
+// `agent/werkgebied_intake.py`): naam, aanleiding, context, doel, analysevraag, praktijkvoorbeeld,
+// deelvragen, wat erbuiten valt, en dan pas de bronnen.
 //
 // Elke vraag komt als kaartje: een `vraagkaart`-event, en hetzelfde kaartje op het bewaarde bericht
 // (`Bericht.vraagkaart`, api `gesprek_contracts.Vraagkaart`), zodat het na herladen nog te
@@ -8,7 +10,8 @@
 //
 // Pure functies, zodat ze zonder DOM te testen zijn (lib/vraagkaart.test.ts).
 
-export const STAPPEN = ["naam", "analysevraag", "regelingen", "onderdelen", "buiten"] as const;
+export const STAPPEN = ["naam", "aanleiding", "context", "doel", "analysevraag", "praktijkvoorbeeld", "deelvragen",
+  "buiten", "regelingen", "onderdelen"] as const;
 export type IntakeStap = (typeof STAPPEN)[number] | "samenvatting";
 
 /** De waarde van "Weet ik (nog) niet" (graph-qa `ONBEKEND`). */
@@ -33,15 +36,29 @@ export interface Vraagkaart {
   opties: VraagOptie[];
   meerkeuze: boolean;
   vrije_tekst: boolean;
+  /** Meer dan één eigen antwoord (de deelvragen): de dock biedt "+ Nog een" en stuurt `teksten`. */
+  meer_tekst: boolean;
   overslaanbaar: boolean;
   /** Wat Lex uit je eerste zin haalde: voorgeselecteerd, nooit stil aangenomen. */
   vooringevuld: string[];
   /** Bij `soort: "samenvatting"`: wat er aangemaakt wordt. */
-  samenvatting: { naam: string; analysevraag: string; afbakening: string; bronnen: string[] } | null;
+  samenvatting: Samenvatting | null;
   /** ‹: er is een eerdere stap. */
   terug: boolean;
   /** ›: deze stap had al een antwoord (na terugbladeren). */
   beantwoord: boolean;
+}
+
+export interface Samenvatting {
+  naam: string;
+  aanleiding: string;
+  context: string;
+  doel: string;
+  analysevraag: string;
+  praktijkvoorbeeld: string;
+  deelvragen: string[];
+  afbakening: string;
+  bronnen: string[];
 }
 
 /** Op het user-bericht van een klik (api `Bericht.intake_antwoord`): zo herkent de thread een antwoord. */
@@ -58,10 +75,13 @@ export interface IntakeActie {
   actie: "antwoord" | "overslaan" | "wijzig" | "aanmaken" | "afbreken";
   keuzes?: string[];
   tekst?: string;
+  /** Meer dan één eigen antwoord (`meer_tekst`). */
+  teksten?: string[];
   naar?: string;
 }
 
 const tekst = (v: unknown) => (typeof v === "string" ? v : "");
+const lijst = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
 const STAP_SET = new Set<string>([...STAPPEN, "samenvatting"]);
 
 /** Streng: een kaartje zonder intake, met een onbekende stap of zonder vraag wordt niet getoond. Liever
@@ -88,24 +108,31 @@ export function parseVraagkaart(ruw: unknown): Vraagkaart | undefined {
     opties,
     meerkeuze: r.meerkeuze === true,
     vrije_tekst: r.vrije_tekst !== false,
+    meer_tekst: r.meer_tekst === true,
     overslaanbaar: r.overslaanbaar === true,
     vooringevuld: Array.isArray(r.vooringevuld) ? r.vooringevuld.filter((v): v is string => typeof v === "string") : [],
     terug: r.terug === true,
     beantwoord: r.beantwoord === true,
     samenvatting: s && r.soort === "samenvatting" ? {
-      naam: tekst(s.naam), analysevraag: tekst(s.analysevraag), afbakening: tekst(s.afbakening),
-      bronnen: Array.isArray(s.bronnen) ? s.bronnen.filter((b): b is string => typeof b === "string") : [],
+      naam: tekst(s.naam), aanleiding: tekst(s.aanleiding), context: tekst(s.context), doel: tekst(s.doel),
+      analysevraag: tekst(s.analysevraag), praktijkvoorbeeld: tekst(s.praktijkvoorbeeld),
+      deelvragen: lijst(s.deelvragen), afbakening: tekst(s.afbakening), bronnen: lijst(s.bronnen),
     } : null,
   };
 }
 
 /** De beginstand van een kaartje: de vooringevulde waarden die als optie bestaan zijn geselecteerd; een
- *  vooringevulde waarde zonder optie staat in het eigen-tekstveld. */
-export function beginstand(k: Vraagkaart): { gekozen: string[]; eigen: string } {
+ *  vooringevulde waarde zonder optie staat in het eigen-tekstveld. Bij `meer_tekst` (de deelvragen)
+ *  krijgt elke eigen waarde een eigen regel, met een lege regel erachter. */
+export function beginstand(k: Vraagkaart): { gekozen: string[]; eigen: string; teksten: string[] } {
   const waarden = new Set(k.opties.map((o) => o.waarde));
   const gekozen = k.vooringevuld.filter((v) => waarden.has(v));
-  const eigen = k.vooringevuld.find((v) => !waarden.has(v)) ?? "";
-  return { gekozen: k.meerkeuze ? gekozen : gekozen.slice(0, 1), eigen };
+  const eigenWaarden = k.vooringevuld.filter((v) => !waarden.has(v));
+  return {
+    gekozen: k.meerkeuze ? gekozen : gekozen.slice(0, 1),
+    eigen: k.meer_tekst ? "" : (eigenWaarden[0] ?? ""),
+    teksten: k.meer_tekst ? [...eigenWaarden, ""] : [],
+  };
 }
 
 /** Wat er bij een klik in het gesprek komt te staan: de leesbare weergave van het antwoord. graph-qa
@@ -116,20 +143,30 @@ export function antwoordTekst(k: Vraagkaart, actie: IntakeActie): string {
   if (actie.actie === "overslaan") return "Sla deze vraag over.";
   if (actie.actie === "wijzig") return `Terug naar ${STAP_NAAM[actie.naar as IntakeStap] ?? "de vorige vraag"}.`;
   const labels = (actie.keuzes ?? []).map((w) => k.opties.find((o) => o.waarde === w)?.label ?? w);
-  return [...labels, ...(actie.tekst?.trim() ? [actie.tekst.trim()] : [])].join("; ") || "—";
+  const eigen = [...(actie.teksten ?? []), ...(actie.tekst?.trim() ? [actie.tekst.trim()] : [])];
+  return [...labels, ...eigen].join("; ") || "—";
 }
 
-/** Een antwoord-klik: de keuzes, en eigen tekst alleen als die er is. Zonder iets is er geen antwoord. */
-export function antwoordActie(k: Vraagkaart, gekozen: string[], eigen: string): IntakeActie | undefined {
+/** Een antwoord-klik: de keuzes, en eigen tekst alleen als die er is. Zonder iets is er geen antwoord.
+ *  `teksten` zijn de eigen regels van een kaartje met `meer_tekst`; lege regels tellen niet. */
+export function antwoordActie(k: Vraagkaart, gekozen: string[], eigen: string, teksten: string[] = []):
+  IntakeActie | undefined {
   const t = eigen.trim();
-  if (!gekozen.length && !t) return undefined;
-  return { intake_id: k.intake_id, stap: k.stap, actie: "antwoord", keuzes: gekozen, ...(t ? { tekst: t } : {}) };
+  const ts = teksten.map((x) => x.trim()).filter(Boolean);
+  if (!gekozen.length && !t && !ts.length) return undefined;
+  return { intake_id: k.intake_id, stap: k.stap, actie: "antwoord", keuzes: gekozen, ...(t ? { tekst: t } : {}),
+    ...(ts.length ? { teksten: ts } : {}) };
 }
 
 /** Hoe de samenvatting een stap noemt, voor *Aanpassen*. */
 export const STAP_NAAM: Record<IntakeStap, string> = {
   naam: "de naam",
+  aanleiding: "de aanleiding",
+  context: "de context",
+  doel: "het doel",
   analysevraag: "de analysevraag",
+  praktijkvoorbeeld: "het praktijkvoorbeeld",
+  deelvragen: "de deelvragen",
   regelingen: "de regelingen",
   onderdelen: "de onderdelen",
   buiten: "wat erbuiten valt",

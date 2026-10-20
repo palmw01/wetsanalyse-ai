@@ -12,7 +12,10 @@
  *  - *Volgende* stuurt de `intake_actie`; het antwoord komt in de Vragen-kaart, niet als bubbel, en het
  *    user-bericht draagt `intake_antwoord` (zodat het na herladen klopt);
  *  - opties met omschrijving; een klik selecteert alleen; "Weet ik (nog) niet" sluit de rest uit; eigen
- *    tekst vervangt bij één keuze de gekozen optie;
+ *    tekst vervangt bij één keuze de gekozen optie (de aanleiding);
+ *  - F2: de deelvragen – voorstellen kiezen én meerdere eigen regels (Enter of *+ Nog een deelvraag*),
+ *    als `teksten`; de samenvatting toont het hele dossier; het paneel na aanmaken ook, met de dekking
+ *    per deelvraag;
  *  - de laatste vraag heeft *Verzend*; de samenvatting *Werkgebied aanmaken*;
  *  - ✕ geeft het invoerveld terug, "Een vraag stellen ›" opent de vraag weer;
  *  - ‹ stuurt `wijzig` naar de vorige stap;
@@ -37,40 +40,60 @@ await context.addInitScript(() => localStorage.setItem("wa_rondleiding", JSON.st
 const nu = "2026-10-20T10:00:00+00:00";
 const IB = "BWBR0011353", AFD = `urn:bwb:${IB}:hoofdstuk:5:afdeling:5.1`;
 const kaart = (stap, nr, vraag, over = {}) => ({
-  intake_id: "ik1", soort: "vraag", stap, nr, totaal: 5, vraag, toelichting: "", opties: [], meerkeuze: false,
-  vrije_tekst: true, overslaanbaar: stap !== "naam", vooringevuld: [], samenvatting: {}, terug: stap !== "naam",
-  beantwoord: false, ...over,
+  intake_id: "ik1", soort: "vraag", stap, nr, totaal: 10, vraag, toelichting: "", opties: [], meerkeuze: false,
+  vrije_tekst: true, meer_tekst: false, overslaanbaar: stap !== "naam", vooringevuld: [], samenvatting: {},
+  terug: stap !== "naam", beantwoord: false, ...over,
 });
+const DV1 = "Wie is belastingplichtig voor box 3?";
 const NAAM = kaart("naam", 1, "Hoe noemen we het werkgebied?");
-const ANALYSEVRAAG = kaart("analysevraag", 2, "Wat is de analysevraag?", {
-  opties: [{ label: "Wie is belastingplichtig voor box 3?", waarde: "Wie is belastingplichtig voor box 3?", bron: {}, omschrijving: "" }],
+const AANLEIDING = kaart("aanleiding", 2, "Wat is de aanleiding voor deze wetsanalyse?", {
+  opties: [{ label: "Een wetswijziging raakt een bestaand proces", waarde: "wetswijziging", bron: {},
+    omschrijving: "Gewijzigde wetgeving vraagt om aanpassing van de uitvoering" },
+  { label: "Een handmatig proces digitaliseren", waarde: "digitaliseren", bron: {}, omschrijving: "" }],
 });
-const REGELINGEN = kaart("regelingen", 3, "Welke regeling(en) horen erbij?", {
+const DEELVRAGEN = kaart("deelvragen", 7, "Welke deelvragen horen bij de analysevraag?", {
+  meerkeuze: true, meer_tekst: true,
+  opties: [{ label: DV1, waarde: DV1, bron: {}, omschrijving: "voorstel van Lex" },
+    { label: "Hoe wordt het voordeel berekend?", waarde: "Hoe wordt het voordeel berekend?", bron: {}, omschrijving: "voorstel van Lex" }],
+});
+const REGELINGEN = kaart("regelingen", 9, "Welke regeling(en) horen erbij?", {
   meerkeuze: true,
-  opties: [{ label: "Wet inkomstenbelasting 2001", waarde: IB, bron: { bwb_id: IB }, omschrijving: "wet · 2 delen over ‘box 3’" },
+  opties: [{ label: "Wet inkomstenbelasting 2001", waarde: IB, bron: { bwb_id: IB }, omschrijving: "wet · 2 delen over ‘box 3’ · bij een deelvraag" },
     { label: "Algemene wet inzake rijksbelastingen", waarde: "BWBR0002320", bron: { bwb_id: "BWBR0002320" }, omschrijving: "genoemd in je vraag" },
     { label: "Weet ik (nog) niet", waarde: "onbekend", bron: {}, omschrijving: "Je kunt bronnen later toevoegen" }],
 });
-const BUITEN = kaart("buiten", 5, "Wat valt er buiten het werkgebied?");
-const SAMENVATTING = kaart("samenvatting", 5, "Klopt dit werkgebied?", {
+const ONDERDELEN = kaart("onderdelen", 10, "Welke onderdelen van die regeling(en)?", {
+  meerkeuze: true,
+  opties: [{ label: "Afdeling 5.1 – Box 3", waarde: AFD, bron: { bwb_id: IB, iri: AFD }, omschrijving: "Wet IB 2001 · deelvraag 1" }],
+});
+const SAMENVATTING = kaart("samenvatting", 10, "Klopt dit werkgebied?", {
   soort: "samenvatting", vrije_tekst: false, overslaanbaar: false, terug: true,
-  samenvatting: { naam: "Box 3", analysevraag: "Wie is belastingplichtig voor box 3?",
+  samenvatting: { naam: "Box 3", aanleiding: "Een wetswijziging raakt een bestaand proces.", context: "", doel: "",
+    analysevraag: "Wie is belastingplichtig voor box 3?", praktijkvoorbeeld: "",
+    deelvragen: [DV1, "Telt een tweede huis mee?", "Wat is het heffingsvermogen?"],
     afbakening: "Regelingen: Wet inkomstenbelasting 2001.", bronnen: [] },
 });
 const ARTEFACT = { soort: "werkgebied", titel: "Box 3", ref: { werkgebied_id: "wg5" } };
 const wg = { id: "wg5", naam: "Box 3", analysevraag: "Wie is belastingplichtig voor box 3?",
-  afbakening: "Regelingen: Wet inkomstenbelasting 2001.", peildatum: null, status: "in_voorbereiding", revisie: 1,
-  aangemaakt_door: "t", aangemaakt: nu, gewijzigd: nu, gearchiveerd: null, deelvragen: [], bronnen: [] };
+  afbakening: "Regelingen: Wet inkomstenbelasting 2001.", aanleiding: "Een wetswijziging raakt een bestaand proces.",
+  context: "De aangifte 2026 moet blijven werken.", doel: "", praktijkvoorbeeld: "",
+  peildatum: null, status: "in_voorbereiding", revisie: 1,
+  aangemaakt_door: "t", aangemaakt: nu, gewijzigd: nu, gearchiveerd: null, bronnen: [],
+  deelvragen: [{ id: "d1", vraag: DV1, volgorde: 0, status: "actief", herkomst: "lex", reden: "", aangemaakt_door: "t",
+    aangemaakt: nu, bronnen: [], begrippen: [] }] };
+const DEKKING = { deelvragen: [{ id: "d1", vraag: DV1, stand: "geen_bron", bronnen: [], begrippen: [] }],
+  telling: { gedekt: 0, geen_begrip: 0, geen_bron: 1 }, totaal: 1 };
 
 const beurt = (run, tekst, k) => [{ type: "token", content: tekst }, { type: "vraagkaart", vraagkaart: k },
   { type: "opgeslagen", run_id: run }, { type: "done" }];
 const stromen = {
   r1: beurt("r1", "Laten we het werkgebied samen bepalen.", NAAM),
-  r2: beurt("r2", "Dan de vraag.", ANALYSEVRAAG),
-  r3: beurt("r3", "Nu de afbakening.", REGELINGEN),
-  r4: beurt("r4", "Wat valt erbuiten?", BUITEN),
-  r5: beurt("r5", "Dit is het werkgebied.", SAMENVATTING),
-  r6: [{ type: "token", content: "Werkgebied *Box 3* is aangemaakt." }, { type: "opgeslagen", run_id: "r6", artefact: ARTEFACT }, { type: "done" }],
+  r2: beurt("r2", "Eerst waarom we analyseren.", AANLEIDING),
+  r3: beurt("r3", "Nu maken we de analysevraag concreet.", DEELVRAGEN),
+  r4: beurt("r4", "Nu de bronnen.", REGELINGEN),
+  r5: beurt("r5", "Welke delen daarvan?", ONDERDELEN),
+  r6: beurt("r6", "Dit is het werkgebied.", SAMENVATTING),
+  r7: [{ type: "token", content: "Werkgebied *Box 3* is aangemaakt." }, { type: "opgeslagen", run_id: "r7", artefact: ARTEFACT }, { type: "done" }],
 };
 const sse = (events) => events.map((e, i) => `data: ${JSON.stringify({ seq: i, ...e })}\n\n`).join("");
 const leeg = { denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "" };
@@ -81,9 +104,9 @@ const gesprekken = {
     { rol: "user", tekst: "Kunnen we een werkgebied samenstellen?", ...leeg },
     { rol: "assistant", tekst: "Laten we het werkgebied samen bepalen.", ...leeg, run_id: "x1", vraagkaart: NAAM },
     { rol: "user", tekst: "Box 3", ...leeg, intake_antwoord: ia("naam") },
-    { rol: "assistant", tekst: "Dan de vraag.", ...leeg, run_id: "x2", vraagkaart: ANALYSEVRAAG },
-    { rol: "user", tekst: "Wie is belastingplichtig voor box 3?", ...leeg, intake_antwoord: ia("analysevraag") },
-    { rol: "assistant", tekst: "Nu de afbakening.", ...leeg, run_id: "x3", vraagkaart: REGELINGEN },
+    { rol: "assistant", tekst: "Eerst waarom we analyseren.", ...leeg, run_id: "x2", vraagkaart: AANLEIDING },
+    { rol: "user", tekst: "Een wetswijziging raakt een bestaand proces", ...leeg, intake_antwoord: ia("aanleiding") },
+    { rol: "assistant", tekst: "Nu de bronnen.", ...leeg, run_id: "x3", vraagkaart: REGELINGEN },
   ],
 };
 const starts = [], berichten = [];
@@ -93,6 +116,7 @@ await context.route("**/api/**", async (route) => {
   if (p.startsWith("/api/auth/")) return route.continue();
   const body = m === "GET" ? null : req.postDataJSON?.() ?? null;
   if (p === "/api/werkgebieden/wg5") return route.fulfill({ json: wg });
+  if (p === "/api/werkgebieden/wg5/deelvragen/dekking") return route.fulfill({ json: DEKKING });
   if (p.startsWith("/api/werkgebieden/wg5/")) return route.fulfill({ json: {} });
   if (p === "/api/gesprekken" && m === "POST") return route.fulfill({ status: 201, json: { id: "g9", titel: body?.titel ?? "", berichten: [] } });
   if (p === "/api/gesprekken") return route.fulfill({ json: [] });
@@ -139,50 +163,79 @@ try {
   await dock("naam").getByRole("button", { name: "Volgende", exact: true }).click();
   await wacht(2);
   assert.deepEqual(starts[1].intake_actie, { intake_id: "ik1", stap: "naam", actie: "antwoord", keuzes: [], tekst: "Box 3" });
-  await dock("analysevraag").waitFor();
+  await dock("aanleiding").waitFor();
   await kaartIn().locator("[data-vraagpaar=naam]").getByText("Box 3", { exact: true }).waitFor();
   assert.equal(await page.getByText("Box 3", { exact: true }).count(), 1, "geen losse antwoordbubbel");
   assert.equal(await kaartIn().getByText("Vraag", { exact: true }).count(), 1, "één paar heet 'Vraag'");
   assert.deepEqual(berichten.find((b) => b.rol === "user" && b.tekst === "Box 3")?.intake_antwoord, ia("naam"));
 
-  // --- Eigen tekst vervangt bij één keuze de gekozen optie ---
-  const voorstel = dock("analysevraag").getByRole("option", { name: "Wie is belastingplichtig voor box 3?" });
+  // --- Aanleiding: eigen tekst vervangt bij één keuze de gekozen optie ---
+  await dock("aanleiding").getByText("Gewijzigde wetgeving vraagt om aanpassing van de uitvoering").waitFor();
+  const voorstel = dock("aanleiding").getByRole("option", { name: /^Een wetswijziging/ });
   await voorstel.click();
   assert.equal(await voorstel.getAttribute("aria-selected"), "true");
-  await dock("analysevraag").getByLabel("Typ je antwoord").fill("Wie betaalt box 3?");
+  await dock("aanleiding").getByLabel("Typ je antwoord").fill("Herstel na het Kerstarrest");
   assert.equal(await voorstel.getAttribute("aria-selected"), "false");
-  await dock("analysevraag").getByLabel("Typ je antwoord").fill("");
+  await dock("aanleiding").getByLabel("Typ je antwoord").fill("");
   await voorstel.click();
-  await dock("analysevraag").getByRole("button", { name: "Volgende", exact: true }).click();
+  await dock("aanleiding").getByRole("button", { name: "Volgende", exact: true }).click();
   await wacht(3);
+  assert.deepEqual(starts[2].intake_actie.keuzes, ["wetswijziging"]);
+
+  // --- Deelvragen: voorstellen kiezen én meerdere eigen regels ---
+  const dv = dock("deelvragen");
+  await dv.getByRole("option", { name: new RegExp(`^${DV1}`) }).click();
+  await dv.getByLabel("Eigen deelvraag 1").fill("Telt een tweede huis mee?");
+  await dv.getByLabel("Eigen deelvraag 1").press("Enter");
+  await dv.getByLabel("Eigen deelvraag 2").waitFor();
+  assert.equal(await dv.getByLabel("Eigen deelvraag 2").evaluate((el) => el === document.activeElement), true,
+    "Enter opent de volgende regel, met de focus erin");
+  await page.keyboard.type("Wat is het heffingsvermogen?");
+  await dv.getByRole("button", { name: "+ Nog een deelvraag" }).click();
+  await dv.getByLabel("Eigen deelvraag 3").waitFor();
+  assert.equal(starts.length, 3, "een nieuwe regel start geen beurt");
+  await dv.getByRole("button", { name: "Volgende", exact: true }).click();
+  await wacht(4);
+  assert.deepEqual(starts[3].intake_actie, { intake_id: "ik1", stap: "deelvragen", actie: "antwoord", keuzes: [DV1],
+    teksten: ["Telt een tweede huis mee?", "Wat is het heffingsvermogen?"] });
+  await kaartIn().locator("[data-vraagpaar=deelvragen]").getByText(`${DV1}; Telt een tweede huis mee?; Wat is het heffingsvermogen?`).waitFor();
 
   // --- Regelingen: omschrijving, alleen selecteren, "Weet ik (nog) niet" exclusief ---
-  await dock("regelingen").getByText("wet · 2 delen over ‘box 3’").waitFor();
+  await dock("regelingen").getByText("wet · 2 delen over ‘box 3’ · bij een deelvraag").waitFor();
   const optie = (naam) => dock("regelingen").getByRole("option", { name: new RegExp(`^${naam}`) });
   await optie("Wet inkomstenbelasting 2001").click();
   await optie("Algemene wet").click();
-  assert.equal(starts.length, 3, "een klik op een voorstel start geen beurt");
+  assert.equal(starts.length, 4, "een klik op een voorstel start geen beurt");
   await optie("Weet ik").click();
   assert.equal(await dock("regelingen").locator("[aria-selected=true]").count(), 1);
   await optie("Wet inkomstenbelasting 2001").click();
-  assert.equal(await kaartIn().getByText("Vragen", { exact: true }).count(), 1, "twee paren heten 'Vragen'");
+  assert.equal(await kaartIn().getByText("Vragen", { exact: true }).count(), 1, "meer paren heten 'Vragen'");
   await dock("regelingen").getByRole("button", { name: "Volgende", exact: true }).click();
-  await wacht(4);
-  assert.deepEqual(starts[3].intake_actie.keuzes, [IB]);
-
-  // --- De laatste vraag: Verzend; de samenvatting: Werkgebied aanmaken ---
-  await dock("buiten").getByRole("button", { name: "Verzend" }).waitFor();
-  await dock("buiten").getByRole("button", { name: "Sla over" }).click();
   await wacht(5);
-  assert.equal(starts[4].intake_actie.actie, "overslaan");
-  await kaartIn().locator("[data-vraagpaar=buiten]").getByText("Overgeslagen").waitFor();
-  await dock("samenvatting").getByRole("button", { name: /Werkgebied aanmaken/ }).click();
+  assert.deepEqual(starts[4].intake_actie.keuzes, [IB]);
+
+  // --- De laatste vraag (de onderdelen): Verzend; de samenvatting: het hele dossier en aanmaken ---
+  await dock("onderdelen").getByText("Wet IB 2001 · deelvraag 1").waitFor();
+  await dock("onderdelen").getByRole("button", { name: "Verzend" }).waitFor();
+  await dock("onderdelen").getByRole("button", { name: "Sla over" }).click();
   await wacht(6);
-  assert.equal(starts[5].intake_actie.actie, "aanmaken");
+  assert.equal(starts[5].intake_actie.actie, "overslaan");
+  await kaartIn().locator("[data-vraagpaar=onderdelen]").getByText("Overgeslagen").waitFor();
+  const samen = dock("samenvatting");
+  await samen.getByText("Een wetswijziging raakt een bestaand proces.").waitFor();
+  assert.equal(await samen.locator("ol li").count(), 3, "de drie deelvragen");
+  await samen.getByRole("button", { name: /Werkgebied aanmaken/ }).click();
+  await wacht(7);
+  assert.equal(starts[6].intake_actie.actie, "aanmaken");
 
   // --- Na aanmaken: kaart, eigen paneel, de werkplek in het werkgebied, geen open vraag ---
   const paneel = page.locator("[data-artefact-soort=werkgebied][data-artefact]");
   await paneel.getByText("Samengesteld met Lex").waitFor();
+  // F2: het hele dossier en de deelvragen met hun dekking, ook naast het gesprek.
+  await paneel.locator("[data-dossier-veld=context]").getByText("De aangifte 2026 moet blijven werken.").waitFor();
+  await paneel.locator("[data-dossier-veld=doel]").getByText("Nog geen doel.").waitFor();
+  await paneel.locator("[data-deelvragen]").getByText("Nog geen bron").waitFor();
+  await paneel.locator("[data-deelvragen]").getByText("0 van 1 deelvraag gedekt", { exact: false }).waitFor();
   assert.equal(await paneel.getByRole("link", { name: "Open het werkgebied" }).first().getAttribute("href"), "/werkgebieden/wg5");
   for (let i = 0; i < 40 && new URL(page.url()).searchParams.get("werkgebied") !== "wg5"; i++) await page.waitForTimeout(50);
   assert.equal(new URL(page.url()).searchParams.get("werkgebied"), "wg5");
@@ -199,7 +252,7 @@ try {
   await dock("regelingen").getByRole("button", { name: "Vorige vraag" }).click();
   await wacht(voor + 1);
   assert.deepEqual({ actie: starts[voor].intake_actie.actie, naar: starts[voor].intake_actie.naar, stap: starts[voor].intake_actie.stap },
-    { actie: "wijzig", naar: "analysevraag", stap: "regelingen" });
+    { actie: "wijzig", naar: "buiten", stap: "regelingen" });
 
   // --- Smal scherm: de dock past ---
   const smal = await context.newPage();
@@ -218,7 +271,7 @@ try {
   }
 
   assert.deepEqual(errors, []);
-  console.log("Browser OK: vraag onderaan i.p.v. het invoerveld, ✕ en 'Een vraag stellen ›', antwoorden in één Vragen-kaart zonder bubbels (ook na herladen), intake_antwoord bewaard, omschrijving, eigen tekst vervangt keuze, Weet ik (nog) niet exclusief, Verzend en Werkgebied aanmaken, ‹ terug, werkgebiedpaneel, smal scherm.");
+  console.log("Browser OK: vraag onderaan i.p.v. het invoerveld, ✕ en 'Een vraag stellen ›', antwoorden in één Vragen-kaart zonder bubbels (ook na herladen), intake_antwoord bewaard, omschrijving, eigen tekst vervangt keuze, deelvragen met meerdere eigen regels, Weet ik (nog) niet exclusief, Verzend, samenvatting met het dossier, Werkgebied aanmaken, ‹ terug, werkgebiedpaneel met dossier en dekking, smal scherm.");
 } finally {
   await browser.close();
 }

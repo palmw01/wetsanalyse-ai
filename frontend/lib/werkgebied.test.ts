@@ -5,6 +5,7 @@ import {
   annotatieHref,
   auditZin,
   bronInvoer,
+  dossierRegels,
   filterElementen,
   groepeerPerSelectie,
   isAlOpgenomen,
@@ -230,4 +231,17 @@ it("auditZin noemt het besluit over een voorstel van Lex", async () => {
 it("annotatieHref neemt het element mee", async () => {
   const { annotatieHref } = await import("./werkgebied");
   expect(annotatieHref("urn:x", "e1")).toBe("/annotaties/node?bron_iri=urn%3Ax&element=e1");
+});
+
+
+describe("het dossier van een werkgebied (F2)", () => {
+  it("in de volgorde van de methode, alleen wat gevuld is", () => {
+    expect(dossierRegels({ afbakening: "Geen overgangsrecht.", aanleiding: " Wetswijziging ", context: "  ",
+      analysevraag: "Wie?" })).toEqual([
+      { veld: "aanleiding", label: "Aanleiding", tekst: "Wetswijziging" },
+      { veld: "analysevraag", label: "Analysevraag", tekst: "Wie?" },
+      { veld: "afbakening", label: "Afbakening", tekst: "Geen overgangsrecht." },
+    ]);
+    expect(dossierRegels({})).toEqual([]);
+  });
 });
