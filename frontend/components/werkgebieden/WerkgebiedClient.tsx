@@ -20,6 +20,7 @@ import { HistorieTab } from "@/components/werkgebieden/HistorieTab";
 import { SamenhangTab } from "@/components/werkgebieden/SamenhangTab";
 import { WerkgebiedSamenvatting } from "@/components/werkgebieden/WerkgebiedSamenvatting";
 import { WerkgebiedSchil } from "@/components/werkgebieden/WerkgebiedSchil";
+import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import { archiveerWerkgebied, foutTekst, haalWerkgebied, isApiError, wijzigWerkgebied } from "@/lib/api";
 import type { Werkgebied, WerkgebiedStatus } from "@/lib/types";
 import { useOnbewaardBewaker } from "@/lib/useOnbewaardBewaker";
@@ -190,6 +191,8 @@ export function WerkgebiedClient({ id, beginTab, beginBegrip }: {
                   </p>
                 </div>
                 <ButtonRow>
+                  <VraagLexKnop onderwerp={{ soort: "werkgebied", werkgebied_id: wg.id, id: "", label: wg.naam }}
+                    className="justify-center" />
                   <Button variant="secondary" size="sm" onClick={() => setBewerken(true)}>
                     Gegevens bewerken
                   </Button>

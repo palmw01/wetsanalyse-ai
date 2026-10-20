@@ -16,6 +16,7 @@ import { WerkplekClient } from "@/components/werkplek/WerkplekClient";
 import { getVerbruik } from "@/lib/api";
 import { resetdatum, tokensKort } from "@/lib/tokenbudget";
 import type { BeslissingType, GesprekSamenvatting, Verbruiksstand } from "@/lib/types";
+import { onderwerpUitUrl } from "@/lib/vraagLex";
 
 // De rondleiding rendert alleen bij `demo` – eerste bezoek of een expliciete klik. Statisch
 // geïmporteerd zat hij (met TourBubbel) toch in de bundel van iedereen die de werkplek opent,
@@ -50,13 +51,15 @@ export function WorkbenchShell({
   const [startAnnoteren] = useState(() => aantalUitUrl(zoek.get("annoteer")));
   // Idem `?meedenk=<n>` (fase C): vanaf de voorstellen bevestigd, Lex denkt mee in een vers gesprek.
   const [startMeedenken] = useState(() => aantalUitUrl(zoek.get("meedenk")));
+  // *Vraag Lex* van buiten de werkplek (`?vraag=<soort>:<id>&vraag_label=…`, F3b): de chip staat klaar
+  // in een vers gesprek. Idem één keer gelezen; het werkgebied blijft in de URL.
+  const [beginOnderwerp] = useState(() => onderwerpUitUrl(zoek));
   useEffect(() => {
-    if (startAnnoteren === null && startMeedenken === null) return;
+    if (startAnnoteren === null && startMeedenken === null && beginOnderwerp === null) return;
     const url = new URL(window.location.href);
-    url.searchParams.delete("annoteer");
-    url.searchParams.delete("meedenk");
+    for (const naam of ["annoteer", "meedenk", "vraag", "vraag_label"]) url.searchParams.delete(naam);
     window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
-  }, [startAnnoteren, startMeedenken]);
+  }, [startAnnoteren, startMeedenken, beginOnderwerp]);
   const [mountKey, setMountKey] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
   // Verhoogd zodra de chat een gesprek aanmaakte: de sidebar bezit de lijst en haalt hem dan opnieuw.
@@ -298,6 +301,7 @@ export function WorkbenchShell({
             // Alleen het venster waarmee de pagina opende; een nieuw gesprek start niets.
             startAnnoteren={mountKey === 0 && !beginGesprekId ? startAnnoteren : null}
             startMeedenken={mountKey === 0 && !beginGesprekId ? startMeedenken : null}
+            beginOnderwerp={mountKey === 0 && !beginGesprekId ? beginOnderwerp : null}
             onVerlaatWerkgebied={() => zetWerkgebied(null)}
             onKiesWerkgebied={zetWerkgebied}
             onGesprekAangemaakt={gesprekAangemaakt}

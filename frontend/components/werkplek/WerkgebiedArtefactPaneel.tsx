@@ -10,6 +10,7 @@ import { BegripWerk } from "@/components/werkgebieden/BegripWerk";
 import { BronKandidaten } from "@/components/werkgebieden/BronKandidaten";
 import { OnbewaardMelding } from "@/components/werkgebieden/OnbewaardMelding";
 import { WerkgebiedSamenvatting } from "@/components/werkgebieden/WerkgebiedSamenvatting";
+import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import { Melding } from "@/components/ui/Melding";
 import { SkeletonCard } from "@/components/ui/Skeleton";
 import { foutTekst, haalWerkgebied, lijstBegrippen } from "@/lib/api";
@@ -57,9 +58,14 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onMe
           <div className="min-w-0 flex-1">
             <p className="text-xs text-muted">{doel.soort === "werkgebied" ? "Samengesteld met Lex" : `${soort} van Lex`}</p>
             <h2 className="truncate font-display text-base font-semibold text-lint">{titel}</h2>
-            <Link href={naarWerkgebied} className="focus-ring text-xs font-medium text-lint underline-offset-2 hover:underline">
-              Open het werkgebied
-            </Link>
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+              <Link href={naarWerkgebied} className="focus-ring text-xs font-medium text-lint underline-offset-2 hover:underline">
+                Open het werkgebied
+              </Link>
+              {doel.soort === "werkgebied" && (
+                <VraagLexKnop onderwerp={{ soort: "werkgebied", werkgebied_id: doel.werkgebied_id, id: "", label: doel.titel ?? "" }} />
+              )}
+            </div>
           </div>
           <button
             type="button"

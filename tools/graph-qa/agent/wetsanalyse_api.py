@@ -202,6 +202,20 @@ class WetsanalyseApi:
         return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/deelvragen/voorstellen",
                                 {"vragen": vragen, "model": model})
 
+    async def haal_deelvragen_dekking(self, werkgebied_id: str) -> dict[str, Any]:
+        """De stand per actieve deelvraag: gekoppelde bronnen en begrippen, en of er een geaccordeerd
+        begrip bij hoort."""
+        return await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/deelvragen/dekking")
+
+    async def haal_begrip(self, werkgebied_id: str, begrip_id: str) -> dict[str, Any]:
+        """Eén begrip met kaart en koppelingen (de passages)."""
+        return await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/begrippen/{quote(begrip_id, safe='')}")
+
+    async def haal_kaartvoorstellen(self, werkgebied_id: str, begrip_id: str) -> dict[str, Any]:
+        """De voorstellen van Lex op de kaart van een begrip (fase E), open en besloten."""
+        return await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/begrippen/"
+                                f"{quote(begrip_id, safe='')}/voorstellen")
+
     async def haal_kandidaten(self, werkgebied_id: str) -> dict[str, Any]:
         return await self._haal(f"{self._werkgebied_pad(werkgebied_id)}/kandidaten")
 

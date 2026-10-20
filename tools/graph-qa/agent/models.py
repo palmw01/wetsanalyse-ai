@@ -82,6 +82,41 @@ class IntakeActie(BaseModel):
 # Routes op een werkgebied die in werkgebied en gesprek schrijven; alleen via `POST /v1/runs`.
 WERKGEBIED_MODI = ("begrippen", "bronnen", "werkgebied_annoteren", "begrippen_verdiepen")
 
+_ID = r"^[A-Za-z0-9-]{1,64}$"
+
+
+class Onderwerp(BaseModel):
+    """Het object waarop de analist *Vraag Lex* koos (spoor F, F3b): een deelvraag, een bronselectie, een
+    kandidaat van Lex, een begrip of het werkgebied zelf. De browser stuurt alleen soort en id's; wat
+    het object is, haalt `agent/onderwerp.py` bij de api. Context, geen filter – net als de focus.
+
+    Een markering is hier geen soort: die vraag blijft de adviesvraag (`modus: "advies"` met
+    `context`), byte-gelijk aan wat de werkplek al stuurde."""
+
+    soort: Literal["deelvraag", "bron", "kandidaat", "begrip", "werkgebied"]
+    werkgebied_id: str = Field(pattern=_ID)
+    # Het id van het object binnen het werkgebied; bij soort `werkgebied` leeg.
+    id: str = Field(default="", pattern=r"^[A-Za-z0-9-]{0,64}$")
+    # Hoe de werkplek het object noemt; alleen voor wanneer de api het niet (meer) kent.
+    label: str = Field(default="", max_length=300)
+
+    @model_validator(mode="after")
+    def _id_hoort_bij_de_soort(self) -> "Onderwerp":
+        if self.soort != "werkgebied" and not self.id:
+            raise ValueError(f"een onderwerp van soort '{self.soort}' vraagt een id")
+        return self
+
+
+# Een klik op een suggestie bij *Vraag Lex* (F3b): een vaste handeling die zonder model naar haar route
+# gaat. Nu de routes op een werkgebied die er al waren; de agents van F3c krijgen er hun taken bij.
+ACTIE_MODUS: dict[str, str] = {
+    "werkgebied_annoteren": "werkgebied_annoteren",
+    "bronnen_zoeken": "bronnen",
+    "begrippen_voorstellen": "begrippen",
+    "begrippen_meedenken": "begrippen_verdiepen",
+}
+Actie = Literal["werkgebied_annoteren", "bronnen_zoeken", "begrippen_voorstellen", "begrippen_meedenken"]
+
 
 class ChatRequest(BaseModel):
     question: str
@@ -115,6 +150,25 @@ class ChatRequest(BaseModel):
     # Een klik op een vraagkaartje (activiteit 1): de supervisor stuurt de beurt dan zonder modelaanroep
     # naar de werkgebied-worker, en geen van de harde werkgebiedroutes neemt hem over.
     intake_actie: IntakeActie | None = None
+    # Waar de analist *Vraag Lex* op koos (F3b); de beurt krijgt het object als contextblok mee.
+    onderwerp: Onderwerp | None = None
+    # Een klik op een suggestie (F3b): een vaste handeling, zonder model gerouteerd (`ACTIE_MODUS`).
+    actie: Actie | None = None
+
+    @model_validator(mode="after")
+    def _actie_kiest_de_route(self) -> "ChatRequest":
+        """Een actie is een vaste route: hij zet de modus, en de harde routes van `_stroom_voor` nemen
+        hem over. Staat vóór de andere validators, zodat die de modus toetsen die de actie koos."""
+        if self.actie is None:
+            return self
+        if self.modus != "auto":
+            raise ValueError("geef 'actie' of 'modus', niet allebei")
+        if self.doel is not None or self.doelen is not None or self.intake_actie is not None:
+            raise ValueError("een actie kiest zelf wat ze doet; geef geen 'doel', 'doelen' of 'intake_actie'")
+        if not self.werkgebied_id and self.onderwerp is not None:
+            self.werkgebied_id = self.onderwerp.werkgebied_id
+        self.modus = ACTIE_MODUS[self.actie]
+        return self
 
     @property
     def is_werkgebied_annotatie(self) -> bool:

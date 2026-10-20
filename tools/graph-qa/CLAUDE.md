@@ -834,6 +834,33 @@ Draagt een beurt een `werkgebied_id`, dan haalt `answer_stream` het werkgebied b
 invoer (`invoer.dossier`, api), maar de methoden gebruiken het nog niet: dat verandert een methode en
 vraagt eerst een meting (PLAN spoor F, *Vervolg*).
 
+### Vraag Lex op een object (`agent/onderwerp.py`, F3b)
+
+Vanuit een deelvraag, bronselectie, kandidaat, begrip of het werkgebied leidt één *Vraag Lex* naar het
+gesprek. Het verzoek draagt alleen `onderwerp: {soort, werkgebied_id, id?, label?}` (`models.Onderwerp`);
+`answer_stream` haalt het object per beurt bij de api (`onderwerp.haal`: het werkgebied, de dekking, de
+kandidaten, het begrip met zijn open kaartvoorstellen) en zet het blok in `State.onderwerp_context`.
+`memory_context` geeft het vóór het werkgebiedblok aan supervisor en elke specialist, ook met
+`ENABLE_MEMORY_CONTEXT` uit.
+
+- **Context, geen filter en geen route.** De supervisor kiest zoals altijd; het onderwerp zegt alleen
+  waar de vraag over gaat. `focus.bij_onderwerp` houdt het object vast voor een vervolgvraag zonder chip
+  (`supervisor_node` om `_kies` heen); een aangewezen markering vervangt het weer (`bij_advies`).
+- **Een markering is geen soort.** Die vraag blijft `modus: "advies"` met `context`, byte-gelijk aan wat
+  de werkplek al stuurde (`frontend/lib/vraagLex.test.ts`).
+- **Niets valt stil weg.** Een object dat de api niet (meer) kent, of een storing, geeft het label uit de
+  werkplek met de zin dat de gegevens niet op te halen waren. De kop is *AANGEWEZEN IN DE WERKPLEK*,
+  niet "ONDERWERP" (dat woord draagt de onderwerp-afbakening in de systeemprompt).
+- **`actie`** (`ACTIE_MODUS`): een klik op een suggestie is een vaste handeling. De validator
+  `_actie_kiest_de_route` zet de modus (`bronnen_zoeken` → `bronnen`, `begrippen_voorstellen` →
+  `begrippen`, `begrippen_meedenken` → `begrippen_verdiepen`, `werkgebied_annoteren`), neemt het
+  werkgebied uit het onderwerp als het verzoek er geen draagt, en sluit `modus`, `doel`, `doelen` en
+  `intake_actie` uit. Daarna neemt de harde route in `_stroom_voor` het over, ongeacht de tekst; wat
+  bevestiging vraagt, vraagt die nog steeds. `/v1/chat` weigert een actie (422), net als de modi. De
+  agents van F3c krijgen er hun taken bij.
+- Tests: `tests/test_onderwerp.py` (contract, blok per soort tegen een nep-api, focus, de beurt, de
+  api-routes uit de bron).
+
 ### Lex leest begrippen (`tools/begrip_tools.py`, `nodes/begrippen_lezen.py`, `agent/kaart_beurt.py`, fase F4)
 
 Wat juristen in werkgebieden als begrip vastlegden, over alle werkgebieden heen; het werkgebied van het

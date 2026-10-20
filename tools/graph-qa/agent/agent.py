@@ -142,6 +142,21 @@ async def _werkgebied_blok(settings: Settings, user_id: str, werkgebied_id: str)
         await api.aclose()
 
 
+async def _onderwerp_blok(settings: Settings, user_id: str, onderwerp: dict[str, Any]) -> str:
+    """Het contextblok van het aangewezen object (`onderwerp.haal`). Zonder api zegt het blok dat de
+    gegevens ontbreken, met het label uit de werkplek."""
+    from .onderwerp import als_blok, haal
+    from .wetsanalyse_api import WetsanalyseApi
+
+    if not settings.legt_zelf_vast:
+        return als_blok(onderwerp.get("soort", ""), None, onderwerp.get("label", ""))
+    api = WetsanalyseApi(settings, user_id)
+    try:
+        return await haal(api, onderwerp)
+    finally:
+        await api.aclose()
+
+
 async def answer_stream(
     question: str,
     conversation_id: str | None = None,
@@ -161,6 +176,7 @@ async def answer_stream(
     begrippen=None,
     werkgebied_id: str = "",
     intake_actie: Any = None,
+    onderwerp: Any = None,
 ) -> AsyncIterator[dict[str, Any]]:
     """
     Async generator die SSE-events yield:
@@ -207,6 +223,7 @@ async def answer_stream(
 
     builder = build_graph(settings, llm, graph, stop_check=stop_check, annotaties=annotaties, begrippen=begrippen)
     thread_id = conversation_id or uuid.uuid4().hex
+    onderwerp_dict = onderwerp.model_dump() if hasattr(onderwerp, "model_dump") else dict(onderwerp or {})
     config = {
         "configurable": {"thread_id": thread_id},
         "recursion_limit": _recursielimiet(settings),
@@ -222,6 +239,9 @@ async def answer_stream(
         "werkgebied_id": werkgebied_id or "",
         # Het dossier van dat werkgebied, per beurt vers uit de api: elke bewaarde wijziging telt meteen.
         "werkgebied_context": await _werkgebied_blok(settings, user_id, werkgebied_id) if werkgebied_id else "",
+        # Waar de analist *Vraag Lex* op koos: alleen deze beurt; het object blijft in de focus.
+        "onderwerp": onderwerp_dict,
+        "onderwerp_context": await _onderwerp_blok(settings, user_id, onderwerp_dict) if onderwerp_dict else "",
         "bron_snapshot": {},
         "annotatie_weergave": {},
         "corpus_segmenten": [],

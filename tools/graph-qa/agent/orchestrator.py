@@ -103,7 +103,8 @@ def build_graph(
 
     def _memory_context(state: State) -> str:
         # Het werkgebied van het gesprek: wat de analist vastlegde, ook zonder gespreksgeheugen.
-        werkgebied = state.get("werkgebied_context") or ""
+        # Wat de analist met *Vraag Lex* aanwees: deze beurt, ook zonder gespreksgeheugen.
+        werkgebied = (state.get("onderwerp_context") or "") + (state.get("werkgebied_context") or "")
         if not settings.enable_memory_context:
             return werkgebied
         # Bij advies staan de open markeringen al in het adviesblok, mét de afbakening erbij.

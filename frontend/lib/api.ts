@@ -592,6 +592,10 @@ export async function startRun(
     werkgebied_id?: string;
     /** Een klik op een vraagkaartje bij het samenstellen van een werkgebied (activiteit 1). */
     intake_actie?: import("./vraagkaart").IntakeActie;
+    /** Het object waarop de analist *Vraag Lex* koos (F3b): alleen soort en id's (`lib/vraagLex.ts`). */
+    onderwerp?: Extract<import("./vraagLex").OnderwerpVerzoek, { onderwerp: unknown }>["onderwerp"];
+    /** Een klik op een suggestie: een vaste route, zonder model (graph-qa `models.ACTIE_MODUS`). */
+    actie?: import("./vraagLex").VraagLexActie;
   },
 ): Promise<RunStart> {
   const res = await fetch("/api/annotatie/run", {
@@ -610,6 +614,8 @@ export async function startRun(
       ...(extra?.werkgebied_id ? { werkgebied_id: extra.werkgebied_id } : {}),
       ...(typeof extra?.bevestigd === "number" ? { bevestigd: extra.bevestigd } : {}),
       ...(extra?.intake_actie ? { intake_actie: extra.intake_actie } : {}),
+      ...(extra?.onderwerp ? { onderwerp: extra.onderwerp } : {}),
+      ...(extra?.actie ? { actie: extra.actie } : {}),
     }),
   });
   if (res.status === 409) {
