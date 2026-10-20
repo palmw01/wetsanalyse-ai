@@ -658,7 +658,7 @@ werkgebied zonder deelvragen werkt zoals altijd.
   **`bevestiging`** `{soort: "werkgebied_annoteren" | "begrippen_verdiepen", werkgebied_id, aantal, schatting}`; de werkplek
   toont er een knop bij, ook na herladen. Bij het samenstellen van een werkgebied (activiteit 1) draagt
   elke vraag van Lex een **`vraagkaart`** `{intake_id, soort: vraag|samenvatting, stap, nr, totaal,
-  vraag, opties[{label, waarde, bron, omschrijving}], meerkeuze, vrije_tekst, overslaanbaar,
+  vraag, opties[{label, waarde, bron, omschrijving}], meerkeuze, vrije_tekst, meer_tekst, overslaanbaar,
   vooringevuld, samenvatting, terug, beantwoord}`; de stappen (`IntakeStap`) zijn `naam`, `aanleiding`,
   `context`, `doel`, `analysevraag`, `praktijkvoorbeeld`, `deelvragen`, `buiten`, `regelingen`,
   `onderdelen`, `samenvatting`. Het user-bericht van een klik draagt

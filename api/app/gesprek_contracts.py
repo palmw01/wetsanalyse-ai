@@ -121,6 +121,8 @@ class Vraagkaart(BaseModel):
     opties: list[VraagOptie] = Field(default_factory=list, max_length=20)
     meerkeuze: bool = False
     vrije_tekst: bool = True
+    # Meer dan één eigen antwoord (de deelvragen): de werkplek biedt dan "+ nog een" en stuurt `teksten`.
+    meer_tekst: bool = False
     overslaanbaar: bool = True
     vooringevuld: list[str] = Field(default_factory=list, max_length=20)
     samenvatting: dict = {}
