@@ -92,6 +92,24 @@ def test_paged_mcp_resolution_and_full_label():
     assert len(result["segmenten"]) == 3
 
 
+def test_een_structuurdeel_heet_naar_nummer_en_opschrift():
+    """De importer schrijft bij een hoofdstuk alleen "Hoofdstuk" als label; nummer en opschrift staan apart.
+    De kop wordt "Hoofdstuk V – Invorderingsrente" – zonder dat de snapshot-id verandert."""
+    rows = fixture() + [
+        {"node": ROOT + ":hoofdstuk:V", "type": "urn:bwb-ns:Hoofdstuk", "parent": ROOT, "nummer": "V",
+         "label": "Hoofdstuk", "titel": "Invorderingsrente"},
+        {"node": ROOT + ":hoofdstuk:V:afdeling:1", "type": "urn:bwb-ns:Afdeling", "parent": ROOT + ":hoofdstuk:V",
+         "nummer": "1", "label": "Afdeling", "titel": "Algemeen"}]
+    rows[0]["citeertitel"] = "Invorderingswet 1990"
+    h = bouw_snapshot(rows, bwb_id=BWB, bron_iri=ROOT + ":hoofdstuk:V")
+    assert h["doel"]["label"] == "Invorderingswet 1990 – Hoofdstuk V – Invorderingsrente"
+    a = bouw_snapshot(rows, bwb_id=BWB, bron_iri=ROOT + ":hoofdstuk:V:afdeling:1")
+    assert a["doel"]["label"] == "Invorderingswet 1990 – Hoofdstuk V, Afdeling 1 – Algemeen"
+    # De nodes zelf blijven zoals de importer ze schreef: de bronidentiteit verandert niet.
+    assert next(n for n in h["nodes"] if n["bron_iri"].endswith(":hoofdstuk:V"))["label"] == "Hoofdstuk"
+    assert bouw_snapshot(rows, bwb_id=BWB, artikel="9")["doel"]["label"] == "Invorderingswet 1990 – Artikel 9"
+
+
 def test_foreign_law_with_same_prefix_rejected():
     rows = fixture() + [{"node": ROOT + "1:artikel:3", "type": "urn:bwb-ns:Artikel", "parent": ROOT}]
     with pytest.raises(BronFout, match="bronvreemde"):
