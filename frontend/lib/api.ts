@@ -1038,9 +1038,8 @@ const jsonInit = (method: string, body: unknown): RequestInit => ({
   body: JSON.stringify(body),
 });
 
-export async function lijstWerkgebieden(gearchiveerd = false): Promise<WerkgebiedSamenvatting[]> {
-  const qs = gearchiveerd ? "?gearchiveerd=true" : "";
-  const res = await fetch(`/api/werkgebieden${qs}`, { cache: "no-store" });
+export async function lijstWerkgebieden(): Promise<WerkgebiedSamenvatting[]> {
+  const res = await fetch("/api/werkgebieden", { cache: "no-store" });
   return (await json<{ werkgebieden: WerkgebiedSamenvatting[] }>(res)).werkgebieden;
 }
 
@@ -1056,9 +1055,11 @@ export async function wijzigWerkgebied(id: string, wijziging: WerkgebiedWijzigin
   return json<Werkgebied>(await fetch(wg(id), jsonInit("PATCH", wijziging)));
 }
 
-export async function archiveerWerkgebied(id: string, verwachteRevisie: number): Promise<Werkgebied> {
+/** Echt wissen, net als een annotatie (`lib/verwijderen.ts`): het werkgebied met alles wat eraan hangt;
+ *  de annotaties blijven. Daarna geeft het een 404 met de verwijderd-stand. */
+export async function verwijderWerkgebied(id: string, verwachteRevisie: number): Promise<void> {
   const qs = new URLSearchParams({ verwachte_revisie: String(verwachteRevisie) });
-  return json<Werkgebied>(await fetch(`${wg(id)}?${qs}`, { method: "DELETE" }));
+  await json<unknown>(await fetch(`${wg(id)}?${qs}`, { method: "DELETE" }));
 }
 
 /** Neemt een bepaling op. `nieuw` is false als dezelfde bron met dezelfde rol en hetzelfde bereik er

@@ -256,8 +256,20 @@ spoor D (*Werkgebied als node*).
   (+ `lid`)); de canonieke `bron_iri`, het label, `snapshot_id` en `bron_hash` worden bewaard.
   Dezelfde bron met dezelfde rol en hetzelfde bereik opnieuw toevoegen is idempotent (200, geen
   revisiesprong); met een andere rol of ander bereik 409.
-- **Soft**: archiveren en een selectie weghalen zetten een tijdstip. De annotaties van de bron
-  blijven altijd staan.
+- **Een selectie weghalen is soft** (een tijdstip). De annotaties van de bron blijven altijd staan.
+- **Een werkgebied verwijderen is echt wissen**, net als een annotatie (`DELETE /v1/werkgebieden/{id}`,
+  `werkgebied_store.verwijder`/`wis`): onder het rij-slot en met de revisietoets (412) gaan het werkgebied
+  en elke rij in `WERKGEBIED_TABELLEN` weg, plus de begriprevisies en de deelvraagkoppelingen via hun
+  ouder. **De audit blijft**, met een laatste regel `werkgebied-verwijderd`; via `_audit` volgt de
+  begrippengraaf (geen werkgebied → DROP van de graph). De annotaties blijven: die horen bij een
+  bronnode. De `intake_id` is daarna weer vrij. Een nieuwe tabel met `werkgebied_id` (of `begrip_id`)
+  hoort in de wislijst; `tests/test_werkgebied_verwijderen.py` faalt anders. Archiveren bestaat niet
+  meer: oude gearchiveerde rijen blijven onzichtbaar (`gearchiveerd` geeft 404), maar worden niet
+  automatisch gewist.
+- **Een verwijderd object zegt wanneer en door wie.** `GET` op een verwijderd werkgebied of begrip
+  geeft `404 {fout: "verwijderd", soort, op, door, melding}` uit de audit (`niet_gevonden`; ook voor
+  oude gearchiveerde werkgebieden en soft verwijderde begrippen); een id dat nooit bestond blijft een
+  gewone 404. De werkplek toont dan "… is verwijderd op … door …", zoals bij een annotatie.
 - **De inventaris** (`GET {id}/elementen`) leest per regeling één bronboom en de actuele
   elementen. Elk element staat één keer in de inventaris; `analyseren` wint van `context`;
   `deels_buiten` als een anker buiten de selecties valt; afgewezen elementen worden alleen geteld.
@@ -283,7 +295,7 @@ spoor D (*Werkgebied als node*).
 - **Eén kader per werkgebied, impliciet.** Een begrip hangt aan een werkgebied; het kader heeft geen
   tabel, alleen een afgeleide IRI (`urn:wa:kader:<werkgebied>`). Begrippen zijn analyse-uitkomsten,
   nooit wettelijke definities; de export zegt dat ook.
-- **Tabellen**: `begrippen` (inhoud als JSON, status `concept`/`geaccordeerd`, revisie, soft delete),
+- **Tabellen**: `begrippen` (inhoud als JSON, status `concept`/`geaccordeerd`, revisie),
   `begrip_revisies` (per revisie een **volledige kopie** van de inhoud, plus actie en detail – anders
   dan bij de annotatielagen bewaren we de oude inhoud wél) en `begrip_koppelingen`. De audit gaat in
   `werkgebied_audit` (acties `begrip-*`, `koppeling-*`), zodat het werkgebied één tijdlijn heeft.
@@ -320,6 +332,11 @@ spoor D (*Werkgebied als node*).
   context, minstens één aanduidende passage, en elke dragende koppeling (`duiding`/`definitie`, niet
   afgewezen) beoordeeld, actueel en op een door een jurist beoordeelde annotatie. Een voorbeeld is
   geen voorwaarde. Elke analist mag accorderen; de revisie en de audit leggen vast wie.
+- **Verwijderen is echt wissen** (`DELETE …/begrippen/{id}`, `begrip_store.verwijder`/`wis_begrippen`):
+  het begrip met zijn revisies, koppelingen, relaties (beide richtingen), voorstellen en kaartruns
+  (`BEGRIP_TABELLEN`), en zijn plek bij de deelvragen; een betekenisgroep houdt haar uitkomst en verliest
+  alleen `begrip_id`. Eerst zet `_herstel_voorgangers` een vervangen voorganger terug. De audit
+  `begrip-verwijderd` blijft. Een vervangen begrip zelf gaat niet weg (409: verwijder de opvolger).
 - **Export** (`GET …/begrippen/export?formaat=json|csv|ttl`; Turtle zie §*Begrippen naar de kennisgraaf*): JSON (`begrippen-export-v1`) met de
   volledige begrippen en koppelingen. CSV heeft één rij per koppeling met vindplaats en bron-IRI, zodat
   elke passage terug te vinden is; cellen krijgen dezelfde formuleverdediging als de annotatie-export.
@@ -538,7 +555,7 @@ Acceptatie: *een gewijzigde dragende passage verschijnt bij de geraakte begrippe
   (`test_begrippen_postgres.py` bewijst dat). Wat dit proces al zo schreef, slaat hij over.
 - **De lus** (`graaf_projectie_v2.lus`, zelfde interval) roept `begrip_projectie.reconcile` aan met een
   eigen vangnet: projecteert wat afwijkt van de hash in het register of wiens graph ontbreekt, en haalt
-  graphs weg van gearchiveerde of lege werkgebieden.
+  graphs weg van verwijderde, (oude) gearchiveerde of lege werkgebieden.
 - **Conformiteit** (`conformiteit`, `GET …/begrippen/conformiteit`): diagnostisch, nooit in het
   schrijfpad. Twee lagen: `nl_sbb` (het vastgepinde profiel `shapes/nl-sbb-1.0.0.ttl`, letterlijk uit
   `geonovum/NL-SBB`, CC-BY 4.0; herkomst en hash in `shapes/BRON.md`) en `eigen`
@@ -563,7 +580,7 @@ Acceptatie: *een gewijzigde dragende passage verschijnt bij de geraakte begrippe
 ## Begrippen lezen
 
 `begrippen_overzicht.py`; PLAN spoor D, fase F4. Alleen lezend, uit Postgres, over alle actieve
-werkgebieden. Een begrip in een gearchiveerd werkgebied of een verwijderd begrip bestaat hier niet.
+werkgebieden. Een verwijderd begrip of werkgebied (en een oud gearchiveerd werkgebied) bestaat hier niet.
 
 - **`GET /v1/begrippen`** (`q`, `status` herhaalbaar, `werkgebied_id`, `eerst`, `limit`, `offset`) is het
   overzicht van de webapp. Zoeken gebeurt in Python (de inhoud is JSON, de tests draaien op SQLite):

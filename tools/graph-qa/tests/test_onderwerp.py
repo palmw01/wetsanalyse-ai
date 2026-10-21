@@ -52,6 +52,10 @@ class NepApi:
         self.calls.append(naam)
         if naam in self.faal:
             raise RuntimeError(naam)
+        if f"verwijderd:{naam}" in self.faal:
+            # Echt gewist (de api geeft een 404 met de verwijderd-stand): net als een storing geen leeg blok.
+            from agent.wetsanalyse_api import WetsanalyseApiFout
+            raise WetsanalyseApiFout("GET → 404", 404)
         return waarde
 
     async def haal_werkgebied(self, wid):
@@ -220,6 +224,8 @@ def test_het_werkgebied_zelf_vraagt_niets_extra_bij_de_api():
     ({"soort": "deelvraag", "werkgebied_id": "wg1", "id": "weg", "label": "Oude vraag"}, set()),
     ({"soort": "begrip", "werkgebied_id": "wg1", "id": "b1", "label": "termijn"}, {"begrip"}),
     ({"soort": "kandidaat", "werkgebied_id": "wg1", "id": "k1", "label": "Artikel 8"}, {"kandidaten"}),
+    ({"soort": "begrip", "werkgebied_id": "wg1", "id": "b1", "label": "termijn"}, {"verwijderd:begrip"}),
+    ({"soort": "deelvraag", "werkgebied_id": "wg1", "id": "d1", "label": "Wie betaalt?"}, {"verwijderd:werkgebied"}),
 ])
 def test_onbekend_of_een_storing_is_geen_leeg_blok(onderwerp, faal):
     blok = _blok(onderwerp, NepApi(faal))

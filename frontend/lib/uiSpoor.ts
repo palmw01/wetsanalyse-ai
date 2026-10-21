@@ -16,6 +16,8 @@ export const UI_ACTIES = [
   "gesprek_verwijderen",
   "gesprek_hernoemen",
   "annotatie_verwijderen",
+  "werkgebied_verwijderen",
+  "begrip_verwijderen",
   "review_beslissing",
 ] as const;
 export type UiActie = (typeof UI_ACTIES)[number];

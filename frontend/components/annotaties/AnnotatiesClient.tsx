@@ -9,7 +9,9 @@ import { MobieleTopbar } from "@/components/werkplek/MobieleTopbar";
 import { Melding } from "@/components/ui/Melding";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { SkipLink, HOOFDINHOUD_ID } from "@/components/ui/SkipLink";
-import { isApiError, lijstLagen } from "@/lib/api";
+import { foutTekst, isApiError, lijstLagen } from "@/lib/api";
+import { verwijderAnnotatie } from "@/lib/annotatieNode";
+import { metSpoor } from "@/lib/uiSpoor";
 import {
   WEERGAVEN, groepeerPerRegeling, isTeDoen, sorteerTeDoen, zoek,
   type Weergave,
@@ -50,6 +52,19 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
     // eslint-disable-next-line react-hooks/set-state-in-effect
     laad();
   }, [laad]);
+
+  /** Verwijderen vanuit de lijst: de kaart gaat meteen weg en komt bij een fout terug. */
+  async function verwijder(doc: DocumentSamenvatting) {
+    const voor = docs;
+    setDocs((d) => d?.filter((x) => x.slug !== doc.slug) ?? d);
+    try {
+      await metSpoor("annotatie_verwijderen", () =>
+        verwijderAnnotatie({ bron_iri: doc.bron_iri ?? "", snapshot_id: doc.snapshot_id }));
+    } catch (e) {
+      setDocs(voor);
+      setFout(foutTekst(e, "De annotatie is niet verwijderd."));
+    }
+  }
 
   function kiesWeergave(nieuw: Weergave) {
     setWeergave(nieuw);
@@ -162,7 +177,7 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
             ) : weergave === "te-doen" ? (
               <div className="grid gap-3 sm:grid-cols-2">
                 {getoond.map((d) => (
-                  <AnnotatieKaart key={d.slug} doc={d} />
+                  <AnnotatieKaart key={d.slug} doc={d} onVerwijder={() => verwijder(d)} />
                 ))}
               </div>
             ) : (
@@ -179,7 +194,7 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2">
                       {regeling.documenten.map((d) => (
-                        <AnnotatieKaart key={d.slug} doc={d} />
+                        <AnnotatieKaart key={d.slug} doc={d} onVerwijder={() => verwijder(d)} />
                       ))}
                     </div>
                   </section>

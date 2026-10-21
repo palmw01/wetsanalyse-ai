@@ -11,6 +11,7 @@ import {
   foutTekst, haalBegrip, haalHerbeoordelingen, haalKaartVoorstellen, neemKaartVoorstelOver, verwijderBegrip,
   wijsKaartVoorstelAf,
 } from "@/lib/api";
+import { metSpoor } from "@/lib/uiSpoor";
 import { geraaktPerKoppeling } from "@/lib/herbeoordeling";
 import { verouderdUit, type Verouderd } from "@/lib/kaartVoorstel";
 import type { Begrip, BegripSamenvatting, Herbeoordelingen, KaartVoorstellenAntwoord } from "@/lib/types";
@@ -122,7 +123,7 @@ export function BegripWerk({ id, begripId, primair, andere = [], onGewijzigd, on
     setFout(null);
     setMelding(null);
     try {
-      await verwijderBegrip(id, begrip.id, begrip.revisie);
+      await metSpoor("begrip_verwijderen", () => verwijderBegrip(id, begrip.id, begrip.revisie));
       await onWeg();
     } catch (e) {
       if (isRevisieConflict(e)) {

@@ -7,10 +7,14 @@ import { Field, Textarea } from "@/components/ui/Field";
 import { Lijst, LijstRij, Regel, Regels, Sectie, StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import { SkeletonCard } from "@/components/ui/Skeleton";
+import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
 import { KaartVoorstelKaart } from "@/components/werkgebieden/KaartVoorstel";
 import {
-  foutTekst, haalBegrip, haalKaartVoorstellen, haalRelaties, neemKaartVoorstelOver, wijsKaartVoorstelAf, wijzigBegrip,
+  foutTekst, haalBegrip, haalKaartVoorstellen, haalRelaties, neemKaartVoorstelOver, verwijderBegrip, wijsKaartVoorstelAf,
+  wijzigBegrip,
 } from "@/lib/api";
+import { metSpoor } from "@/lib/uiSpoor";
+import { verwijderdUit, verwijderdZin, type Verwijderd } from "@/lib/verwijderen";
 import { VELD_LABEL, definitieDoor, openPerVeld, verouderdUit, type Verouderd } from "@/lib/kaartVoorstel";
 import { relatieZin } from "@/lib/begripRelaties";
 import { HERKOMST_LABEL, OORDEEL_LABEL, handmatigeInhoud } from "@/lib/begrippen";
@@ -31,13 +35,16 @@ const STATUS_TOON = { geaccordeerd: "groen", concept: "neutraal", vervangen: "ne
  *
  *  Geen Lex-knoppen: wat Lex moet doen vraag je in het gesprek. Overnemen en bewerken dragen de revisie;
  *  een 412 laadt de nieuwe stand en zegt dat. */
-export function BegripPaneel({ werkgebiedId, begripId, onOnbewaard, onNaarBegrip }: {
+export function BegripPaneel({ werkgebiedId, begripId, onOnbewaard, onNaarBegrip, onVerwijderd }: {
   werkgebiedId: string;
   begripId: string;
   /** De bewerking heeft niet-bewaarde wijzigingen: het paneel vraagt dan bevestiging bij sluiten. */
   onOnbewaard: (onbewaard: boolean) => void;
   /** Naar het begrip dat dit vervangt (een vervangen begrip). */
   onNaarBegrip?: (begripId: string) => void;
+  /** Het begrip is verwijderd (de Begrippen-tab laadt dan de lijst opnieuw); zonder blijft het paneel
+   *  staan met de verwijderd-stand. */
+  onVerwijderd?: () => void;
 }) {
   const [begrip, setBegrip] = useState<Begrip | null>(null);
   const [lex, setLex] = useState<KaartVoorstellenAntwoord | null>(null);
@@ -47,15 +54,39 @@ export function BegripPaneel({ werkgebiedId, begripId, onOnbewaard, onNaarBegrip
   const [melding, setMelding] = useState<{ type: "bevestiging" | "waarschuwing"; tekst: string } | null>(null);
   const [bewerk, setBewerk] = useState<{ definitie: string; uitleg: string } | null>(null);
   const [bezig, setBezig] = useState(false);
+  const [verwijderd, setVerwijderd] = useState<Verwijderd | null>(null);
 
   const laad = useCallback(async () => {
     try {
       setBegrip(await haalBegrip(werkgebiedId, begripId));
       setFout(null);
     } catch (e) {
-      setFout(foutTekst(e, "Het begrip kon niet worden geladen."));
+      // Een verwijderd begrip is een toestand, geen fout – zoals een verwijderde annotatie.
+      const v = verwijderdUit(e);
+      if (v) {
+        setVerwijderd(v);
+        setBegrip(null);
+      } else setFout(foutTekst(e, "Het begrip kon niet worden geladen."));
     }
   }, [werkgebiedId, begripId]);
+
+  /** Echt wissen, zoals een annotatie (`lib/verwijderen.ts`). Een vervangen begrip gaat niet weg (409: verwijder
+   *  de opvolger); een 412 laadt de nieuwe stand. */
+  async function verwijder() {
+    if (!begrip) return;
+    setMelding(null);
+    try {
+      await metSpoor("begrip_verwijderen", () => verwijderBegrip(werkgebiedId, begripId, begrip.revisie));
+      onOnbewaard(false);
+      await laad();                          // de api zegt nu wanneer en door wie
+      onVerwijderd?.();
+    } catch (e) {
+      if (isRevisieConflict(e)) {
+        await laad();
+        setMelding({ type: "waarschuwing", tekst: "Iemand anders wijzigde dit begrip net. Bekijk de nieuwe stand voordat je het verwijdert." });
+      } else setMelding({ type: "waarschuwing", tekst: foutTekst(e, "Het begrip is niet verwijderd.") });
+    }
+  }
 
   // De voorstellen en relaties per revisie: een eigen wijziging kan een open voorstel verouderd maken.
   // Beide falen stil – de leesweergave staat er dan gewoon.
@@ -125,6 +156,9 @@ export function BegripPaneel({ werkgebiedId, begripId, onOnbewaard, onNaarBegrip
     setBezig(false);
   }
 
+  if (verwijderd) {
+    return <Melding type="uitleg"><span data-verwijderd>{verwijderdZin(verwijderd)}</span></Melding>;
+  }
   if (!begrip) {
     return fout ? (
       <Melding type="fout" titel="Het begrip kon niet worden geladen.">
@@ -149,6 +183,7 @@ export function BegripPaneel({ werkgebiedId, begripId, onOnbewaard, onNaarBegrip
         <div className="flex flex-wrap items-center gap-2">
           <p className="font-display text-base font-semibold text-lint">{b.naam || "Naamloos begrip"}</p>
           <StatusLabel toon={STATUS_TOON[begrip.status]}>{BEGRIP_STATUS_LABEL[begrip.status]}</StatusLabel>
+          {!vervangen && <VerwijderKnop soort="begrip" onBevestig={verwijder} className="ml-auto" />}
         </div>
         {b.alternatieve_termen.length > 0 && <p className="text-xs text-muted">Ook: {b.alternatieve_termen.join(", ")}</p>}
         {vervangen && begrip.vervangen_door && (

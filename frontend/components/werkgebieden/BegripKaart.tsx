@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { BevestigKnop } from "@/components/ui/BevestigKnop";
+import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
 import { Button } from "@/components/ui/Button";
 import { ButtonRow } from "@/components/ui/ButtonRow";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
@@ -274,15 +274,7 @@ export function BegripKaart({ id, begrip, muteer, onOnbewaard, onVerwijder, lex 
       <Historie id={id} begrip={begrip} />
 
       <div className="border-t border-line pt-3">
-        <BevestigKnop
-          bevestigTekst="Begrip verwijderen?"
-          titel="Het begrip en zijn koppelingen gaan weg; de annotaties blijven staan."
-          onBevestig={onVerwijder}
-          className="focus-ring inline-flex min-h-[32px] items-center rounded-button border border-line px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface hover:text-ink coarse:min-h-[44px]"
-          bevestigClassName="border-fout/40 text-fout"
-        >
-          Begrip verwijderen
-        </BevestigKnop>
+        <VerwijderKnop soort="begrip" onBevestig={onVerwijder} />
       </div>
     </article>
   );

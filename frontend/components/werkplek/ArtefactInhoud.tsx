@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import { vindplaatsLabel } from "@/lib/annotatieOverzicht";
 import { foutTekst, type ExportFormaat } from "@/lib/api";
 
-import { BevestigKnop } from "@/components/ui/BevestigKnop";
+import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
 import { Melding } from "@/components/ui/Melding";
 import { DocumentPaneel } from "@/components/werkplek/DocumentPaneel";
 import { ExportKnop } from "@/components/werkplek/ExportKnop";
@@ -379,18 +379,7 @@ export function ArtefactInhoud({
             {onStatus && <StatusKnop status={doc.status} bezig={statusBezig} onZet={zetStatus} />}
             {/* Elke gebruiker mag dit, ook op een afgeronde annotatie; de audit legt vast wie het deed.
                 Tweede klik bevestigt, zoals elders in de app. */}
-            {onVerwijder && (
-              <BevestigKnop
-                onBevestig={verwijder}
-                bevestigTekst="Verwijderen?"
-                ariaLabel="Annotatie verwijderen"
-                titel="Verwijdert alle markeringen en beoordelingen van deze bepaling, ook uit de kennisgraaf"
-                className="focus-ring inline-flex min-h-[24px] shrink-0 items-center rounded-full border border-line px-2 py-0.5 text-[11px] font-medium text-muted transition-colors hover:border-fout/40 hover:text-fout disabled:opacity-60 coarse:min-h-[44px] coarse:px-3"
-                bevestigClassName="border-fout bg-fout text-paper hover:text-paper"
-              >
-                Verwijderen
-              </BevestigKnop>
-            )}
+            {onVerwijder && <VerwijderKnop soort="annotatie" onBevestig={verwijder} />}
           </div>
         </div>
 

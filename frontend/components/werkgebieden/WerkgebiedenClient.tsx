@@ -10,9 +10,11 @@ import { Field, Input, Textarea } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { WerkgebiedSchil } from "@/components/werkgebieden/WerkgebiedSchil";
-import { foutTekst, lijstWerkgebieden, maakWerkgebied } from "@/lib/api";
+import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
+import { foutTekst, lijstWerkgebieden, maakWerkgebied, verwijderWerkgebied } from "@/lib/api";
+import { metSpoor } from "@/lib/uiSpoor";
 import type { WerkgebiedSamenvatting } from "@/lib/types";
-import { STATUS_LABEL } from "@/lib/werkgebied";
+import { STATUS_LABEL, isRevisieConflict } from "@/lib/werkgebied";
 
 const datum = (iso: string) =>
   new Date(iso).toLocaleDateString("nl-NL", { day: "numeric", month: "short", year: "numeric" });
@@ -23,7 +25,6 @@ const datum = (iso: string) =>
 export function WerkgebiedenClient() {
   const router = useRouter();
   const [lijst, setLijst] = useState<WerkgebiedSamenvatting[] | null>(null);
-  const [gearchiveerd, setGearchiveerd] = useState(false);
   const [fout, setFout] = useState<string | null>(null);
   const [nieuwOpen, setNieuwOpen] = useState(false);
   const [naam, setNaam] = useState("");
@@ -34,17 +35,32 @@ export function WerkgebiedenClient() {
   const laad = useCallback(async () => {
     setFout(null);
     try {
-      setLijst(await lijstWerkgebieden(gearchiveerd));
+      setLijst(await lijstWerkgebieden());
     } catch (e) {
       setFout(foutTekst(e, "De werkgebieden konden niet worden geladen."));
       setLijst([]);
     }
-  }, [gearchiveerd]);
+  }, []);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     laad();
   }, [laad]);
+
+  /** Echt wissen, zoals een annotatie (`lib/verwijderen.ts`): de kaart gaat meteen weg en komt bij een
+   *  fout terug; een 412 laadt de lijst opnieuw. */
+  async function verwijder(wg: WerkgebiedSamenvatting) {
+    const voor = lijst;
+    setLijst((l) => l?.filter((x) => x.id !== wg.id) ?? l);
+    setFout(null);
+    try {
+      await metSpoor("werkgebied_verwijderen", () => verwijderWerkgebied(wg.id, wg.revisie));
+    } catch (e) {
+      setLijst(voor);
+      setFout(foutTekst(e, "Het werkgebied is niet verwijderd."));
+      if (isRevisieConflict(e)) await laad();
+    }
+  }
 
   async function maak(e: React.FormEvent) {
     e.preventDefault();
@@ -100,16 +116,6 @@ export function WerkgebiedenClient() {
         </form>
       )}
 
-      <label className="mb-4 inline-flex items-center gap-1.5 text-xs text-muted">
-        <input
-          type="checkbox"
-          checked={gearchiveerd}
-          onChange={(e) => setGearchiveerd(e.target.checked)}
-          className="focus-ring h-3.5 w-3.5 accent-lint"
-        />
-        Gearchiveerde werkgebieden
-      </label>
-
       {fout && (
         <Melding type="fout" className="mb-4">
           {fout}
@@ -127,7 +133,7 @@ export function WerkgebiedenClient() {
         </div>
       ) : lijst.length === 0 ? (
         <p className="rounded-kaart border border-dashed border-line px-3 py-6 text-center text-sm text-muted">
-          {gearchiveerd ? "Geen gearchiveerde werkgebieden." : "Nog geen werkgebieden. Begin met een nieuw werkgebied."}
+          Nog geen werkgebieden. Begin met een nieuw werkgebied.
         </p>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -147,10 +153,13 @@ export function WerkgebiedenClient() {
                 </span>
               </div>
               {wg.analysevraag && <p className="line-clamp-2 text-xs text-ink">{wg.analysevraag}</p>}
-              <p className="text-xs text-muted">
-                {wg.aantal_bronnen === 1 ? "1 bron" : `${wg.aantal_bronnen ?? 0} bronnen`} · gewijzigd{" "}
-                {datum(wg.gewijzigd)}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-muted">
+                  {wg.aantal_bronnen === 1 ? "1 bron" : `${wg.aantal_bronnen ?? 0} bronnen`} · gewijzigd{" "}
+                  {datum(wg.gewijzigd)}
+                </p>
+                <VerwijderKnop soort="werkgebied" onBevestig={() => verwijder(wg)} className="ml-auto" />
+              </div>
             </article>
           ))}
         </div>

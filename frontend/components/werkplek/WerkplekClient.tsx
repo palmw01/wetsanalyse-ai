@@ -1037,6 +1037,7 @@ export function WerkplekClient({
       variant={breed ? "kolom" : "side"}
       onSluit={() => setWgArtefact(undefined)}
       onWissel={setWgArtefact}
+      onVerwijderd={(id) => { if (id === werkgebiedId) onVerlaatWerkgebied?.(); }}
     />
   ));
 
