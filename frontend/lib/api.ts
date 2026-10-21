@@ -87,6 +87,7 @@ import type {
   RunStart,
   VoorstelElement,
   Werkgebied,
+  DeelvraagDetail,
   DeelvragenDekking,
   WerkgebiedAuditRegel,
   WerkgebiedInvoer,
@@ -1094,6 +1095,11 @@ export async function verwijderBron(id: string, selectieId: string, verwachteRev
 
 export async function maakDeelvraag(id: string, vraag: string, verwachteRevisie: number): Promise<Werkgebied> {
   return json<Werkgebied>(await fetch(wg(id, "deelvragen"), jsonInit("POST", { vraag, verwachte_revisie: verwachteRevisie })));
+}
+
+/** Eén deelvraag, ook als ze vervangen is: met haar opvolgers en de voorstellen die haar vervangen. */
+export async function haalDeelvraag(id: string, deelvraagId: string): Promise<DeelvraagDetail> {
+  return json<DeelvraagDetail>(await fetch(wg(id, "deelvragen", deelvraagId), { cache: "no-store" }));
 }
 
 export async function wijzigDeelvraag(

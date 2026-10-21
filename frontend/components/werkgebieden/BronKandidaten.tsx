@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
 import { Lijst, LijstRij, Sectie } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
+import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import {
   besluitKandidaat, foutTekst, haalActieveBronnenRun, haalKandidaten, haalLaatsteBronnenRun, neemKandidaatOp,
   startBronnenRun, stopRun, volgRun,
 } from "@/lib/api";
 import {
-  FILTER_LABEL, KANDIDAAT_ROL_LABEL, KANDIDAAT_ROL_UITLEG, METHODE_LABEL, bewijsZin, filterVan, sorteerKandidaten,
+  FILTER_LABEL, KANDIDAAT_ROL_LABEL, KANDIDAAT_ROL_UITLEG, METHODE_LABEL, bewijsZin, bijDeelvraag, filterVan, sorteerKandidaten,
   standaardRol, telPerFilter, voortgangsregel, type KandidaatFilter,
 } from "@/lib/bronKandidaten";
 import type { BronKandidaat, BronMethode, BronRol, BronnenRun, KandidatenAntwoord } from "@/lib/types";
@@ -35,9 +36,13 @@ const FILTERS: KandidaatFilter[] = ["open", "later", "uitgesloten", "opgenomen"]
  *  kandidaat stelt Lex niet opnieuw voor.
  *
  *  Toetsenbord, alleen met de focus in de lijst: `j`/`k` door de kandidaten, `a` opnemen met de
- *  voorgestelde rol, `x` uitsluiten (de reden krijgt de focus). */
-export function BronKandidaten({ id, labels, onGewijzigd }: {
+ *  voorgestelde rol, `x` uitsluiten (de reden krijgt de focus).
+ *
+ *  Met `deelvraagId` (het deelvraagpaneel, F3d) alleen wat Lex bij die deelvraag vond, zonder zoekknop:
+ *  zoeken vraag je Lex in het gesprek (*Zoek bepalingen hierbij*). */
+export function BronKandidaten({ id, deelvraagId, labels, onGewijzigd }: {
   id: string;
+  deelvraagId?: string;
   /** bron-IRI → naam, voor het bewijs ("verwezen vanuit …"); de selecties van het werkgebied. */
   labels?: Map<string, string>;
   /** De selectie van het werkgebied is veranderd (opnemen maakt een bronselectie). */
@@ -131,7 +136,8 @@ export function BronKandidaten({ id, labels, onGewijzigd }: {
     onGewijzigd();
   }, `${k.label || k.bron_iri} opgenomen als ${ROL_LABEL[rol].toLowerCase()}.`);
 
-  const alle = useMemo(() => sorteerKandidaten(data?.kandidaten ?? []), [data]);
+  const alle = useMemo(() => sorteerKandidaten((data?.kandidaten ?? [])
+    .filter((k) => !deelvraagId || bijDeelvraag(k, deelvraagId))), [data, deelvraagId]);
   const telling = useMemo(() => telPerFilter(alle), [alle]);
   const getoond = useMemo(() => alle.filter((k) => filterVan(k) === filter), [alle, filter]);
   const run = laatste ?? data?.run ?? null;
@@ -154,11 +160,11 @@ export function BronKandidaten({ id, labels, onGewijzigd }: {
   }, [actief]);
 
   return (
-    <Sectie data-bronkandidaten titel="Bepalingen gevonden door Lex"
-      toelichting={run?.status === "klaar"
+    <Sectie data-bronkandidaten titel={deelvraagId ? "Bepalingen die Lex hierbij vond" : "Bepalingen gevonden door Lex"}
+      toelichting={deelvraagId ? undefined : run?.status === "klaar"
         ? `Gezocht vanuit ${run.aantal_kern} ${run.aantal_kern === 1 ? "bepaling" : "bepalingen"}${run.verouderd ? " – de selectie is sindsdien veranderd" : ""}.`
         : "Lex zoekt vanuit de bepalingen die je analyseert en de analysevraag, zonder model."}
-      acties={agentRun ? (
+      acties={deelvraagId ? undefined : agentRun ? (
         <Button size="sm" variant="secondary" className="w-full sm:w-auto" onClick={() => void stopRun(agentRun)}>
           Stoppen
         </Button>
@@ -176,7 +182,7 @@ export function BronKandidaten({ id, labels, onGewijzigd }: {
       {fout && <Melding type="fout" compact>{fout}</Melding>}
       {melding && <Melding type="uitleg" compact>{melding}</Melding>}
 
-      {run?.status === "klaar" && run.meting && (
+      {!deelvraagId && run?.status === "klaar" && run.meting && (
         <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted" aria-label="Per methode">
           {(Object.entries(run.meting) as [BronMethode, { aantal: number; volledig: boolean }][]).map(([m, x]) => (
             <li key={m}>
@@ -200,7 +206,9 @@ export function BronKandidaten({ id, labels, onGewijzigd }: {
       )}
 
       {data && alle.length === 0 && !agentRun && (
-        <p className="text-sm text-muted">Nog niets gevonden. Laat Lex zoeken vanuit de selectie en de analysevraag.</p>
+        <p className="text-sm text-muted">
+          {deelvraagId ? "Lex vond bij deze deelvraag nog geen bepalingen." : "Nog niets gevonden. Laat Lex zoeken vanuit de selectie en de analysevraag."}
+        </p>
       )}
       {alle.length > 0 && getoond.length === 0 && <p className="text-sm text-muted">Geen kandidaten in dit filter.</p>}
 
@@ -208,7 +216,7 @@ export function BronKandidaten({ id, labels, onGewijzigd }: {
         <Lijst ref={lijstRef} label={`Kandidaten – ${FILTER_LABEL[filter].toLowerCase()}`}
           tabIndex={0} onKeyDown={opToets} className="focus-ring rounded-lg">
           {getoond.map((k, i) => (
-            <KandidaatKaart key={k.id} k={k} index={i} actief={i === actief} labels={labels} bezig={bezig === k.id}
+            <KandidaatKaart key={k.id} werkgebiedId={id} k={k} index={i} actief={i === actief} labels={labels} bezig={bezig === k.id}
               uitsluitenOpen={uitsluiten === k.id}
               onKies={() => setActief(i)}
               onOpnemen={(rol) => void opnemen(k, rol)}
@@ -224,9 +232,9 @@ export function BronKandidaten({ id, labels, onGewijzigd }: {
   );
 }
 
-function KandidaatKaart({ k, index, actief, labels, bezig, uitsluitenOpen, onKies, onOpnemen, onLater, onHeropenen,
+function KandidaatKaart({ werkgebiedId, k, index, actief, labels, bezig, uitsluitenOpen, onKies, onOpnemen, onLater, onHeropenen,
   onUitsluitenOpen, onUitsluiten }: {
-  k: BronKandidaat; index: number; actief: boolean; labels?: Map<string, string>; bezig: boolean; uitsluitenOpen: boolean;
+  werkgebiedId: string; k: BronKandidaat; index: number; actief: boolean; labels?: Map<string, string>; bezig: boolean; uitsluitenOpen: boolean;
   onKies: () => void; onOpnemen: (rol: BronRol) => void; onLater: () => void; onHeropenen: () => void;
   onUitsluitenOpen: (open: boolean) => void; onUitsluiten: (reden: string) => Promise<boolean>;
 }) {
@@ -295,6 +303,7 @@ function KandidaatKaart({ k, index, actief, labels, bezig, uitsluitenOpen, onKie
             <button type="button" disabled={bezig} className={`${KNOP} border-line text-ink hover:bg-surface`}
               aria-label={`Heropenen: ${naam}`} onClick={onHeropenen}>Heropenen</button>
           )}
+          <VraagLexKnop onderwerp={{ soort: "kandidaat", werkgebied_id: werkgebiedId, id: k.id, label: naam }} />
         </div>
       )}>
       {uitsluitenOpen && (

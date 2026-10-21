@@ -62,26 +62,44 @@ it("afleidingsregels zijn gereserveerd en nog niet te openen", () => {
   expect(isTeOpenen({ soort: "begrippen", ref: { werkgebied_id: "w", run_id: "r" }, titel: "" })).toBe(true);
 });
 
-describe("een artefact dat naar één begrip wijst (fase F4)", () => {
-  const ruw = { soort: "begrippen", titel: "Termijn",
+describe("een artefact dat naar één begrip wijst (F3d; F4 als begrippen met begrip_id)", () => {
+  const ruw = { soort: "begrip", titel: "Termijn",
     ref: { werkgebied_id: "w", begrip_id: "b1", kaart_run_id: "k", actie: "voorbeelden" } };
 
-  it("is geldig zonder run_id, maar niet zonder werkgebied", () => {
+  it("is geldig zonder run_id, maar niet zonder werkgebied of begrip", () => {
     const a = parseArtefact(ruw)!;
-    expect(a.ref.begrip_id).toBe("b1");
-    expect(parseArtefact({ soort: "begrippen", ref: { begrip_id: "b1" } })).toBeUndefined();
+    expect(a.soort).toBe("begrip");
+    expect(parseArtefact({ soort: "begrip", ref: { begrip_id: "b1" } })).toBeUndefined();
+    expect(parseArtefact({ soort: "begrip", ref: { werkgebied_id: "w" } })).toBeUndefined();
     expect(parseArtefact({ soort: "bronnen", ref: { werkgebied_id: "w", begrip_id: "b1" } })).toBeUndefined();
+  });
+
+  it("een bewaard bericht van vóór F3d (begrippen met begrip_id) wordt een begrip", () => {
+    const a = parseArtefact({ ...ruw, soort: "begrippen" })!;
+    expect(a.soort).toBe("begrip");
+    expect(werkgebiedArtefactVan(a)?.begrip_id).toBe("b1");
   });
 
   it("opent als één begrip, met een eigen label en sleutel", () => {
     const a = parseArtefact(ruw)!;
     const w = werkgebiedArtefactVan(a)!;
-    expect(w).toEqual({ soort: "begrippen", werkgebied_id: "w", run_id: "", begrip_id: "b1", titel: "Termijn" });
+    expect(w).toEqual({ soort: "begrip", werkgebied_id: "w", run_id: "", begrip_id: "b1", titel: "Termijn" });
     expect(artefactLabel(a)).toBe("Begrip");
     expect(werkgebiedLabel(w)).toBe("Begrip");
     const voorstellen = werkgebiedArtefactVan(parseArtefact({ soort: "begrippen", ref: { werkgebied_id: "w", run_id: "r" } }))!;
     expect(werkgebiedLabel(voorstellen)).toBe("Begripsvoorstellen");
     expect(artefactSleutel(w)).not.toBe(artefactSleutel(voorstellen));
+  });
+});
+
+describe("een artefact dat naar één deelvraag wijst (F3d)", () => {
+  it("vraagt werkgebied en deelvraag, en opent in het werkgebiedpaneel", () => {
+    const a = parseArtefact({ soort: "deelvraag", ref: { werkgebied_id: "w", deelvraag_id: "d1" }, titel: "Wie betaalt?" })!;
+    expect(artefactLabel(a)).toBe("Deelvraag");
+    const w = werkgebiedArtefactVan(a)!;
+    expect(w).toEqual({ soort: "deelvraag", werkgebied_id: "w", run_id: "", deelvraag_id: "d1", titel: "Wie betaalt?" });
+    expect(artefactSleutel(w)).not.toBe(artefactSleutel({ ...w, deelvraag_id: "d2" }));
+    expect(parseArtefact({ soort: "deelvraag", ref: { werkgebied_id: "w" } })).toBeUndefined();
   });
 });
 

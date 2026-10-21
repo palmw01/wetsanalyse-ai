@@ -1,5 +1,6 @@
 // Het artefact van een beurt: wat Lex in het gesprek oplevert om te beoordelen – een annotatie, de
-// begripsvoorstellen van een werkgebied, of (later) afleidingsregels. Het bericht verwijst ernaar
+// begripsvoorstellen of gevonden bepalingen van een werkgebied, het werkgebied, één deelvraag of één
+// begrip, of (later) afleidingsregels. Het bericht verwijst ernaar
 // (`Bericht.artefact`, api `gesprek_contracts.Artefact`); de inhoud leeft in de api.
 //
 // Eén vorm voor alle soorten, zodat chip, paneel en de laatste-artefactbalk niet per soort een
@@ -9,7 +10,7 @@
 import type { NodeDoel } from "./annotatieNode";
 import type { Bericht } from "./types";
 
-export type ArtefactSoort = "annotatie" | "begrippen" | "bronnen" | "werkgebied" | "regels";
+export type ArtefactSoort = "annotatie" | "begrippen" | "bronnen" | "werkgebied" | "deelvraag" | "begrip" | "regels";
 
 export interface Artefact {
   soort: ArtefactSoort;
@@ -18,14 +19,14 @@ export interface Artefact {
 }
 
 /** Wat een artefact van een werkgebied aanwijst: de begripsvoorstellen of de gevonden bepalingen van
- *  één run op één werkgebied – of, bij een kaartactie vanuit het gesprek (fase F4), één begrip
- *  (`begrip_id`, en dan is `run_id` leeg). Soort `werkgebied` is het werkgebied zelf, dat Lex in het
- *  gesprek samenstelde (activiteit 1): alleen `werkgebied_id`. */
+ *  één run (`run_id`); het werkgebied zelf, dat Lex in het gesprek samenstelde (activiteit 1); één
+ *  deelvraag (`deelvraag_id`, F3d) of één begrip (`begrip_id`, F3d). */
 export interface WerkgebiedArtefact {
-  soort: "begrippen" | "bronnen" | "werkgebied";
+  soort: "begrippen" | "bronnen" | "werkgebied" | "deelvraag" | "begrip";
   werkgebied_id: string;
   run_id: string;
   begrip_id?: string;
+  deelvraag_id?: string;
   titel: string;
 }
 
@@ -35,32 +36,36 @@ export const ARTEFACT_SOORT_LABEL: Record<ArtefactSoort, string> = {
   begrippen: "Begripsvoorstellen",
   bronnen: "Gevonden bepalingen",
   werkgebied: "Werkgebied",
+  deelvraag: "Deelvraag",
+  begrip: "Begrip",
   regels: "Afleidingsregels",
 };
 
 const VERPLICHT: Record<ArtefactSoort, string[]> = {
   annotatie: ["bron_iri"],
-  // Of `begrip_id` in plaats van `run_id` – zie `parseArtefact`.
   begrippen: ["werkgebied_id", "run_id"],
   bronnen: ["werkgebied_id", "run_id"],
   werkgebied: ["werkgebied_id"],
+  deelvraag: ["werkgebied_id", "deelvraag_id"],
+  begrip: ["werkgebied_id", "begrip_id"],
   regels: [],
 };
+
+const SOORTEN = Object.keys(VERPLICHT) as ArtefactSoort[];
 
 const tekst = (v: unknown) => (typeof v === "string" ? v : "");
 
 /** Streng: een onbekende soort of een ref zonder de verplichte sleutels is géén artefact. Liever geen
- *  chip dan een chip die een leeg paneel opent. */
+ *  chip dan een chip die een leeg paneel opent. Een bericht van vóór F3d noemde één begrip `begrippen`
+ *  met `begrip_id`; dat wordt hier `begrip`. */
 export function parseArtefact(ruw: unknown): Artefact | undefined {
   if (!ruw || typeof ruw !== "object") return undefined;
   const r = ruw as Record<string, unknown>;
-  const soort = r.soort;
-  if (soort !== "annotatie" && soort !== "begrippen" && soort !== "bronnen" && soort !== "werkgebied"
-    && soort !== "regels") return undefined;
+  if (!SOORTEN.includes(r.soort as ArtefactSoort)) return undefined;
   const ref = r.ref && typeof r.ref === "object" && !Array.isArray(r.ref) ? (r.ref as Record<string, unknown>) : undefined;
   if (!ref) return undefined;
-  const nodig = soort === "begrippen" && tekst(ref.begrip_id) ? ["werkgebied_id", "begrip_id"] : VERPLICHT[soort];
-  if (nodig.some((k) => !tekst(ref[k]))) return undefined;
+  const soort = r.soort === "begrippen" && tekst(ref.begrip_id) ? "begrip" : (r.soort as ArtefactSoort);
+  if (VERPLICHT[soort].some((k) => !tekst(ref[k]))) return undefined;
   return { soort, ref, titel: tekst(r.titel) };
 }
 
@@ -86,32 +91,33 @@ export function annotatieDoelVan(a: Artefact | undefined): NodeDoel | undefined 
   };
 }
 
-/** Werkgebied en run (of begrip) van een begrippen- of bronnenartefact; of het werkgebied zelf. */
+/** Wat het werkgebiedpaneel opent: alles behalve een annotatie en de (gereserveerde) regels. */
 export function werkgebiedArtefactVan(a: Artefact | undefined): WerkgebiedArtefact | undefined {
-  if (a?.soort === "werkgebied") {
-    const werkgebied_id = tekst(a.ref.werkgebied_id);
-    return werkgebied_id ? { soort: "werkgebied", werkgebied_id, run_id: "", titel: a.titel } : undefined;
-  }
-  if (a?.soort !== "begrippen" && a?.soort !== "bronnen") return undefined;
-  const werkgebied_id = tekst(a.ref.werkgebied_id), run_id = tekst(a.ref.run_id);
-  const begrip_id = a.soort === "begrippen" ? tekst(a.ref.begrip_id) : "";
-  if (!werkgebied_id || !(run_id || begrip_id)) return undefined;
-  return { soort: a.soort, werkgebied_id, run_id, ...(begrip_id ? { begrip_id } : {}), titel: a.titel };
+  if (!a || a.soort === "annotatie" || a.soort === "regels") return undefined;
+  const p = parseArtefact(a);
+  if (!p) return undefined;
+  const r = p.ref;
+  return {
+    soort: p.soort as WerkgebiedArtefact["soort"], werkgebied_id: tekst(r.werkgebied_id), run_id: tekst(r.run_id),
+    ...(p.soort === "begrip" ? { begrip_id: tekst(r.begrip_id) } : {}),
+    ...(p.soort === "deelvraag" ? { deelvraag_id: tekst(r.deelvraag_id) } : {}),
+    titel: p.titel,
+  };
 }
 
-/** Hoe de chip dit artefact noemt: één begrip heet "Begrip", niet "Begripsvoorstellen". */
+/** Hoe de chip dit artefact noemt. */
 export function artefactLabel(a: Artefact): string {
-  return a.soort === "begrippen" && tekst(a.ref.begrip_id) ? "Begrip" : ARTEFACT_SOORT_LABEL[a.soort];
+  return ARTEFACT_SOORT_LABEL[a.soort];
 }
 
 /** Idem voor een geopend werkgebiedartefact. */
 export function werkgebiedLabel(a: WerkgebiedArtefact): string {
-  return a.begrip_id ? "Begrip" : ARTEFACT_SOORT_LABEL[a.soort];
+  return ARTEFACT_SOORT_LABEL[a.soort];
 }
 
 /** Een sleutel die per artefact verschilt (React `key`). */
 export function artefactSleutel(a: WerkgebiedArtefact): string {
-  return `${a.soort}:${a.werkgebied_id}:${a.run_id}:${a.begrip_id ?? ""}`;
+  return `${a.soort}:${a.werkgebied_id}:${a.run_id}:${a.begrip_id ?? ""}:${a.deelvraag_id ?? ""}`;
 }
 
 /** Kan de werkplek dit artefact openen? Afleidingsregels zijn gereserveerd, nog niet gebouwd. */
