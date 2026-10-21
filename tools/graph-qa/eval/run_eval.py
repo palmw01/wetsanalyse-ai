@@ -69,6 +69,18 @@ async def run_suite(cases: list[dict[str, Any]], *, settings: Settings, llm=None
     return [await run_case(c, settings=settings, llm=llm, graph=graph) for c in cases]
 
 
+def doel_van_case(case: dict[str, Any]) -> dict[str, Any]:
+    """Het doel dat de eval meegeeft. Een casus als "artikel 36a" (`bron` zonder lid) meet het hele
+    artikel: dan gaan regeling en artikel mee, met `geheel`. Alleen `geheel` was een half doel – de
+    ophaal-agent koos dan zelf de bepaling, en voor IW 36a koos hij lid 1, waarna de ankers in lid 2 en 4
+    onvindbaar waren (recall 0,00 in 3/3 runs, diagnose 21 okt 2026). Bij een lid blijft de ophaal-agent
+    meten wat hij altijd mat."""
+    delen = (case.get("bron") or "").split("/")
+    if len(delen) == 2 and all(delen):
+        return {"bwbId": delen[0], "artikel": delen[1], "geheel": True}
+    return {"geheel": True}
+
+
 async def run_annotatie_case(
     case: dict[str, Any], *, settings: Settings, llm=None, graph=None, meter=None, annotaties=None,
 ) -> AnnotatieResult:
@@ -104,9 +116,7 @@ async def run_annotatie_case(
     async for ev in answer_stream(
         case["prompt"], settings=settings, llm=llm, graph=graph, meter=meter,
         annotaties=annotaties,
-        # Een casus als "artikel 36a" meet het hele artikel; zonder `geheel` levert dat nu een
-        # keuzekaart op in plaats van markeringen. Bij een lid heeft de vlag geen effect.
-        doel={"geheel": True},
+        doel=doel_van_case(case),
     ):
         soort = ev.get("type")
         if soort == "element":
