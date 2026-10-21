@@ -347,3 +347,21 @@ def test_bereik_hoort_bij_het_annoteren():
         ChatRequest(question="x", werkgebied_id="wg1", bereik="deelvragen")
     with pytest.raises(ValidationError):
         ChatRequest(question="x", werkgebied_id="wg1", modus="werkgebied_annoteren", deelvraag_id="d1")
+
+
+def test_het_verschil_tussen_bronnen_en_bepalingen_wordt_uitgelegd():
+    """18 bronnen, 60 bepalingen: zonder uitleg leest dat als een fout (acceptatie 22 okt 2026)."""
+    wv = _onder(*[f"urn:bwb:BWBR0004770:artikel:28:lid:{i}" for i in range(1, 8)])
+    wv["selecties"] = [
+        {"id": "s1", "bron_iri": "a28", "label": "Artikel 28 – Invorderingswet 1990", "per_stand": {"nieuw": 4}},
+        {"id": "s2", "bron_iri": "a30", "label": "Artikel 30 – Invorderingswet 1990", "per_stand": {"nieuw": 2}},
+        {"id": "s3", "bron_iri": "a29", "label": "Artikel 29 – Invorderingswet 1990", "per_stand": {"nieuw": 1}},
+        {"id": "s4", "bron_iri": "weg", "label": "Weg", "per_stand": {}, "onbereikbaar": "niet te vinden"},
+    ]
+    tekst, _ = wa.voorstel("Inv", wv)
+    assert "**7** bepalingen" in tekst and "Ze komen uit 3 bronnen" in tekst and "per lid" in tekst
+    assert "Het meest: Artikel 28 – Invorderingswet 1990 (4), Artikel 30 – Invorderingswet 1990 (2)." in tekst
+    # Is elke bron één bepaling, dan valt er niets uit te leggen.
+    een = _onder(L1, L2)
+    een["selecties"] = [{"id": "s1", "per_stand": {"nieuw": 1}}, {"id": "s2", "per_stand": {"nieuw": 1}}]
+    assert "Ze komen uit" not in wa.voorstel("Inv", een)[0]
