@@ -16,7 +16,7 @@ export function WerkgebiedKaart({ wg, onVerwijder }: { wg: WerkgebiedSamenvattin
   const href = `/werkgebieden/${encodeURIComponent(wg.id)}`;
   return (
     <article data-werkgebied-kaart={wg.id}
-      className="flex flex-col gap-3 rounded-button border border-line bg-paper p-4 transition-shadow hover:shadow-kaart">
+      className="flex min-w-0 flex-col gap-3 rounded-button border border-line bg-paper p-4 transition-shadow hover:shadow-kaart">
       <div className="flex items-start justify-between gap-3">
         <h3 className="min-w-0 truncate font-display text-sm font-semibold text-lint">
           <Link href={href} className="focus-ring rounded hover:underline">{wg.naam}</Link>

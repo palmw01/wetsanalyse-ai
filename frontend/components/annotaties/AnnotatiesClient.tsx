@@ -147,7 +147,7 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
                   : "Geen annotatie die hierop past."}
               </p>
             ) : weergave === "te-doen" ? (
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {getoond.map((d) => (
                   <AnnotatieKaart key={d.slug} doc={d} onVerwijder={() => verwijder(d)} />
                 ))}
@@ -164,7 +164,7 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
                         {regeling.documenten.length}
                       </span>
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       {regeling.documenten.map((d) => (
                         <AnnotatieKaart key={d.slug} doc={d} onVerwijder={() => verwijder(d)} />
                       ))}
