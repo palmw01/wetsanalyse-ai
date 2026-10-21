@@ -3,13 +3,14 @@
  * AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109
  * en draai `node scripts/test-deelvragen.mjs`.
  *
- * De mock gedraagt zich als api + graph-qa (`api/app/werkgebied_deelvragen.py`): elke wijziging draagt de
- * revisie en geeft het werkgebied terug, een voorstel van Lex komt als run met een SSE-stroom, en de
- * dekking volgt de koppelingen (gedekt alleen met een geaccordeerd begrip).
+ * De mock gedraagt zich als api (`api/app/werkgebied_deelvragen.py`): elke wijziging draagt de revisie en
+ * geeft het werkgebied terug, en de dekking volgt de koppelingen (gedekt alleen met een geaccordeerd begrip).
+ * Lex stelt deelvragen voor in het gesprek (F3e); hier landen ze als voorstel bij de api.
  *
  * Bewaakt:
  *  - zelf een deelvraag toevoegen, met de revisie in beeld;
- *  - Lex laten voorstellen: voortgang, de samenvatting, de voorstellen geel; overnemen en afwijzen (met reden);
+ *  - geen Lex-knop op de pagina, wel *Vraag Lex* bij elke deelvraag (een link naar het gesprek);
+ *  - de voorstellen van Lex geel; overnemen en afwijzen (met reden);
  *  - bronnen en begrippen koppelen, en de stand per deelvraag (geen bron → geen begrip → gedekt);
  *  - weghalen met een tweede klik.
  */
@@ -39,7 +40,6 @@ const begrippen = [
 let teller = 0;
 const dv = (vraag, extra = {}) => ({ id: `d${++teller}`, vraag, volgorde: teller, status: "actief", herkomst: "analist", reden: "",
   aangemaakt_door: "browser-test", aangemaakt: nu, bronnen: [], begrippen: [], ...extra });
-const sse = (events) => events.map((e, i) => `data: ${JSON.stringify({ seq: i, ...e })}\n\n`).join("");
 const wijzig = (f) => { f(); wg.revisie += 1; return wg; };
 const dekking = () => {
   const lijst = wg.deelvragen.filter((d) => d.status === "actief").map((d) => {
@@ -78,19 +78,8 @@ await page.route("**/api/**", async (route) => {
     }) });
   }
   if (p === "/api/werkgebieden/wg1/begrippen") return route.fulfill({ json: { kader_iri: "k", begrippen, primair: {} } });
-  if (p === "/api/deelvragen-run" && m === "POST")
-    return route.fulfill({ status: 201, json: { run_id: "dv1", conversation_id: "werkgebied:wg1:deelvragen", status: "loopt" } });
-  if (p === "/api/deelvragen-run") return route.fulfill({ json: null });
-  if (p === "/api/annotatie/run/dv1/events") {
-    wg.deelvragen.push(dv("Wie is de belastingschuldige?", { status: "voorgesteld", herkomst: "lex" }),
-      dv("Welke uitzonderingen zijn er?", { status: "voorgesteld", herkomst: "lex" }));
-    return route.fulfill({ contentType: "text/event-stream", body: sse([
-      { type: "status", message: "Lex · De analysevraag van “Invorderbaarheid” uiteenleggen" },
-      { type: "token", content: "Ik stel **2** deelvragen voor in werkgebied *Invorderbaarheid*." },
-      { type: "opgeslagen", deelvragen: ["d2", "d3"] }, { type: "done" }]) });
-  }
   if (p.startsWith("/api/werkgebieden/wg1/")) return route.fulfill({ json: {} });
-  if (p === "/api/bronnen-run" || p === "/api/annotatie/run") return route.fulfill({ json: null });
+  if (p === "/api/annotatie/run") return route.fulfill({ json: null });
   if (p === "/api/gesprekken") return route.fulfill({ json: [] });
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
   return route.fulfill({ json: [] });
@@ -112,9 +101,16 @@ try {
   await page.waitForFunction(() => document.querySelector("[data-stand]")?.textContent === "Nog geen bron");
   await sectie().getByText("0 van 1 deelvraag gedekt", { exact: false }).waitFor();
 
-  // 2. Lex stelt voor: twee gele voorstellen; één overnemen, één afwijzen (pas met een reden).
-  await sectie().getByRole("button", { name: "Laat Lex deelvragen voorstellen" }).click();
-  await sectie().getByText("Ik stel 2 deelvragen voor", { exact: false }).waitFor();
+  // 2. Lex vraag je in het gesprek: geen knop op de pagina, wel *Vraag Lex* bij de deelvraag.
+  assert.equal(await page.getByRole("button", { name: /^Laat Lex/ }).count(), 0);
+  const d1 = wg.deelvragen[0];
+  assert.equal(await rij(d1.vraag).locator("[data-vraag-lex=deelvraag]").getAttribute("href"),
+    `/workbench?werkgebied=wg1&vraag=deelvraag%3A${d1.id}&vraag_label=${encodeURIComponent(d1.vraag).replace(/%20/g, "+")}`);
+
+  // Lex stelde in het gesprek twee deelvragen voor: geel; één overnemen, één afwijzen (pas met een reden).
+  wg.deelvragen.push(dv("Wie is de belastingschuldige?", { status: "voorgesteld", herkomst: "lex" }),
+    dv("Welke uitzonderingen zijn er?", { status: "voorgesteld", herkomst: "lex" }));
+  await page.reload();
   const voorstellen = sectie().getByRole("list", { name: "Voorstellen van Lex" });
   await voorstellen.getByText("Wie is de belastingschuldige?").waitFor();
   await sectie().getByRole("button", { name: "Overnemen: Wie is de belastingschuldige?" }).click();

@@ -5,7 +5,6 @@ import { useCallback, useEffect, useState } from "react";
 import { Melding } from "@/components/ui/Melding";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { BegripKaart, type LexBijKaart } from "@/components/werkgebieden/BegripKaart";
-import { BegripLex } from "@/components/werkgebieden/BegripLex";
 import { BegripPassages } from "@/components/werkgebieden/BegripPassages";
 import { BegripRelaties } from "@/components/werkgebieden/BegripRelaties";
 import {
@@ -13,7 +12,7 @@ import {
   wijsKaartVoorstelAf,
 } from "@/lib/api";
 import { geraaktPerKoppeling } from "@/lib/herbeoordeling";
-import { verouderdUit, type Verouderd } from "@/lib/begripLex";
+import { verouderdUit, type Verouderd } from "@/lib/kaartVoorstel";
 import type { Begrip, BegripSamenvatting, Herbeoordelingen, KaartVoorstellenAntwoord } from "@/lib/types";
 import { isRevisieConflict } from "@/lib/werkgebied";
 
@@ -32,7 +31,7 @@ export function BegripWerk({ id, begripId, primair, andere = [], onGewijzigd, on
   id: string;
   begripId: string;
   primair: Record<string, { begrip_id: string; naam: string }>;
-  /** De andere begrippen van het werkgebied: om mee te vergelijken (*Verklaar het betekenisverschil*). */
+  /** De andere begrippen van het werkgebied: om een relatie mee te leggen of mee te combineren. */
   andere?: readonly BegripSamenvatting[];
   /** Na elke geslaagde mutatie: de lijst ververst haar tellingen en aandachtspunten. */
   onGewijzigd: () => void;
@@ -46,17 +45,13 @@ export function BegripWerk({ id, begripId, primair, andere = [], onGewijzigd, on
   const [melding, setMelding] = useState<{ type: "bevestiging" | "waarschuwing"; tekst: string } | null>(null);
   // Op een smal scherm één van de twee; vanaf xl naast elkaar.
   const [kant, setKant] = useState<"begrip" | "bronnen">("begrip");
-  // Lex naast de kaart (fase E): de voorstellen per veld, en welke er verouderd bleek bij overnemen.
+  // De voorstellen van Lex per veld (fase E; vragen doe je in het gesprek), en welke er verouderd bleek
+  // bij overnemen.
   const [lex, setLex] = useState<KaartVoorstellenAntwoord | null>(null);
   const [verouderd, setVerouderd] = useState<Verouderd | null>(null);
-  const [onbewaard, setOnbewaard] = useState(false);
   // Herbeoordelen (fase F1): welke dragende passages veranderden. Vraagt de bronboom, dus los van het
   // begrip geladen; faalt stil – de passages staan er dan zoals de api ze zonder graaf ziet.
   const [herbeoordeling, setHerbeoordeling] = useState<Herbeoordelingen | null>(null);
-  const meldOnbewaard = useCallback((o: boolean) => {
-    setOnbewaard(o);
-    onOnbewaard(o);
-  }, [onOnbewaard]);
 
   const laadLex = useCallback(async () => {
     try {
@@ -206,14 +201,11 @@ export function BegripWerk({ id, begripId, primair, andere = [], onGewijzigd, on
       </div>
       <div className="gap-5 xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className={`space-y-4 ${kant === "begrip" ? "" : "hidden xl:block"}`}>
-          {begrip.status !== "vervangen" && (
-            <BegripLex id={id} begrip={begrip} andere={andere} onbewaard={onbewaard} data={lex} onVernieuw={laadLex} />
-          )}
           <BegripKaart
             id={id}
             begrip={begrip}
             muteer={muteer}
-            onOnbewaard={meldOnbewaard}
+            onOnbewaard={onOnbewaard}
             onVerwijder={verwijder}
             lex={bijKaart}
           />

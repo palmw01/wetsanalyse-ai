@@ -877,7 +877,16 @@ van de gebruiker op 20 okt 2026).
     in de werkgebiedbalk, `DeelvraagPaneel` en `BegripPaneel` (zonder Lex-knoppen) in het werkgebiedpaneel,
     en `vervangt` (besluit gebruiker 21 okt 2026: **overnemen vervangt** – de oude deelvraag wordt
     `vervangen`, de opvolger krijgt haar plek en koppelingen, kandidaten volgen de opvolger);
-  - **F3e**: de werkgebiedpagina wordt raadplegen; de ongebruikte BFF-run-routes gaan eruit;
+  - **F3e**: de werkgebiedpagina wordt raadplegen; de ongebruikte BFF-run-routes gaan eruit – **gebouwd**
+    (21 okt 2026): geen Lex-knoppen meer op de pagina en in de werkgebiedpanelen (annoteren, begrippen
+    voorstellen, meedenken, deelvragen voorstellen, bepalingen zoeken, de kaartacties, *Bespreek met Lex*);
+    *Vraag Lex* bij elke deelvraag, bronselectie, kandidaat en elk begrip (niet bij een element: een
+    markering heeft geen URL-weg). De Begrippen-tab: links de lijst, rechts `BegripPaneel` om te lezen en
+    *Begripskaart* voor de kaart (besluit gebruiker 21 okt 2026; `&weergave=kaart` in de URL, herbeoordelen
+    en de samenhangsgraaf openen de kaart). Weg: `annoteer=`/`meedenk=`, de BFF-routes `deelvragen-run`,
+    `kaart-run`, `bronnen-run` en `begrippen-run`, de graph-qa-endpoints `/v1/*-runs` erachter (en
+    `deelvragen_stroom`), `AnnoterenDoorLex`, `AnnoterenBevestiging`, `MeedenkBevestiging`, `BegripLex` en
+    `lib/begripLex.ts` (wat nog gebruikt werd, staat in `lib/kaartVoorstel.ts`);
   - **F3f**: de intake met bepalingen per deelvraag en de twee fixes, met een meting op een **nieuwe**
     set.
 - **Technisch risico.** De bestaande stromen zijn async; de LangGraph-nodes draaien synchroon. De

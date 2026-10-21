@@ -1,8 +1,9 @@
 """Lex naast de kaart: één actie op één begrip, als voorstel per veld (spoor D, fase E).
 
-`POST /v1/kaart-runs {werkgebied_id, begrip_id, run_id}` → `kaart_stroom`: haal de run met invoer bij de
-api (`GET …/begrippen/{id}/kaart-runs/{run}?invoer=true`), meld `…/loopt`, reken, en zet de voorstellen
-terug (`PUT …/uitkomst`); de api toetst de garanties opnieuw. Het patroon van `bronnen_run.py`.
+`kaart_stroom` (via `kaart_beurt.kaart_kern`, een taak van de begrippen-agent): haal de run met invoer
+bij de api (`GET …/begrippen/{id}/kaart-runs/{run}?invoer=true`), meld `…/loopt`, reken, en zet de
+voorstellen terug (`PUT …/uitkomst`); de api toetst de garanties opnieuw. Het patroon van
+`bronnen_run.py`. Het eigen endpoint `/v1/kaart-runs` is met F3e vervallen.
 
 - **Zoek de brondefinitie** kost geen model: een graafquery op `bwb:definieertBegrip` voor de naam en de
   alternatieve termen, en per treffer zijn plaats (`plaats`): in het werkgebied, in een regeling van

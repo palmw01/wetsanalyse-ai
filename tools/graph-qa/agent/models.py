@@ -248,36 +248,6 @@ class ChatRequest(BaseModel):
         return self
 
 
-class BegrippenRunVerzoek(BaseModel):
-    """Start de begrippenketen op een run die de api al heeft aangemaakt (spoor D, levering 3a).
-
-    De api is de bron van het manifest; hier staan alleen de verwijzingen ernaar. Geen vraag, geen
-    gesprek: de run hangt aan het werkgebied (`werkgebied:<id>` in de runstore), zodat de 409 "loopt
-    al" per werkgebied geldt."""
-
-    werkgebied_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
-    run_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
-
-
-class DeelvragenRunVerzoek(BaseModel):
-    """Lex legt de analysevraag van een werkgebied uiteen in deelvragen (vervolg op spoor D fase F). Geen
-    run bij de api: de uitkomst zijn voorstellen, die de api bewaart. Runstore-sleutel
-    `werkgebied:<id>:deelvragen`."""
-
-    werkgebied_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
-
-
-class KaartRunVerzoek(BaseModel):
-    """Start een actie van Lex op één begrip (spoor D, fase E) op een run die de api al aanmaakte.
-
-    De api legt de invoer vast; hier staan alleen de verwijzingen. De runstore-sleutel is
-    `begrip:<id>:kaart`, zodat er per begrip één actie tegelijk loopt."""
-
-    werkgebied_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
-    begrip_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
-    run_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
-
-
 class RunStart(BaseModel):
     """Wat een client van een run weet zónder mee te kijken.
 

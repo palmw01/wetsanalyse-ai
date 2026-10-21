@@ -3,8 +3,8 @@
  * AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109
  * en draai `node scripts/test-begripvoorstellen.mjs`.
  *
- * De mock gedraagt zich als api + graph-qa: een start geeft een run en een SSE-stroom (status →
- * opgeslagen → done), daarna staan de groepen er; besluiten volgen de regels van
+ * De mock gedraagt zich als api: Lex stelt begrippen voor in het gesprek (F3e), dus de pagina toont alleen
+ * wat er ligt – eerst niets, dan de laatste ronde met haar groepen; besluiten volgen de regels van
  * api/app/begrippen_run_store.py: akkoord accordeert als de poort het toelaat (definitie en door een
  * jurist beoordeelde annotaties), splitsen laat de rest van de groep open.
  */
@@ -48,11 +48,13 @@ const uitkomst = {
 const passages = { e10: P("e10", "de aansprakelijkgestelde", "Artikel 24 · Lid 1 – IW 1990"), e3: groepen[1].leden[0], e6: groepen[2].leden[0], e2: groepen[0].leden[1] };
 let run = null;               // de laatste api-run
 let verouderd = false;
-let agentStroom = {};          // agent-run-id → events
-let actieveAgent = null;       // voor aanhaken na herladen
+// Wat Lex in het gesprek opleverde: de ronde die de begrippen-agent maakte.
+const ronde = (over = {}) => ({ id: "r1", werkgebied_id: "wg1", manifest_id: "M1", status: "klaar", reden: "",
+  aantal_formuleringen: 10, uitkomst, vragen_besluiten: {}, gestart_door: "t", gestart: nu, gewijzigd: nu,
+  overgeslagen: [{ element_id: "e99", tekst: "Alfa Beta", reden: "Dit element heeft meer dan één anker; de keten werkt per passage." }],
+  ...over });
 const begrippen = new Map();
 let teller = 0;
-const sse = (events) => events.map((e, i) => `data: ${JSON.stringify({ seq: i, ...e })}\n\n`).join("");
 const alleLeden = () => groepen.flatMap((g) => g.leden);
 const poortVan = (inhoud, eids) => {
   const r = [];
@@ -101,26 +103,6 @@ await page.route("**/api/**", async (route) => {
   const body = m === "GET" ? null : req.postDataJSON?.() ?? null;
   requests.push({ p, m, body });
   if (p === "/api/werkgebieden/wg1") return route.fulfill({ json: wg });
-  if (p === "/api/begrippen-run" && m === "POST") {
-    if (run?.status === "klaar" && !agentStroom.volgende) return route.fulfill({ json: { run, agent_run_id: null } });
-    const id = agentStroom.volgende ?? "ag1";
-    delete agentStroom.volgende;
-    run = { id: "r1", werkgebied_id: "wg1", manifest_id: "M1", status: "wacht", reden: "", aantal_formuleringen: 10,
-      overgeslagen: [{ element_id: "e99", tekst: "Alfa Beta", reden: "Dit element heeft meer dan één anker; de keten werkt per passage." }],
-      uitkomst: null, vragen_besluiten: {}, gestart_door: "t", gestart: nu, gewijzigd: nu };
-    return route.fulfill({ status: 201, json: { run, agent_run_id: id } });
-  }
-  if (p === "/api/begrippen-run") return route.fulfill({ json: actieveAgent ? { run_id: actieveAgent, status: "loopt" } : null });
-  const ev = p.match(/^\/api\/annotatie\/run\/(ag\d)\/events$/);
-  if (ev) {
-    const fout = ev[1] === "ag3";
-    if (!fout) { run = { ...run, status: "klaar", uitkomst }; actieveAgent = null; }
-    return route.fulfill({ contentType: "text/event-stream", body: sse(fout
-      ? [{ type: "status", message: "Lex · Taalanalyse: 10 formuleringen (40 ms)" },
-         { type: "error", message: "De begrippenketen liep vast; de voorstellen zijn niet gemaakt.", soort: "keten" }]
-      : [{ type: "status", message: "Lex · 10 passages uit 4 bepalingen" }, { type: "status", message: "Lex · Groeperen: 4 groepen (12 ms)" },
-         { type: "opgeslagen", begrippen_run: "r1", groepen: 4 }, { type: "done" }]) });
-  }
   if (p === "/api/werkgebieden/wg1/begrippen-runs/laatste") return route.fulfill({ json: { run: run && { ...run, verouderd } } });
   if (p === "/api/werkgebieden/wg1/groepen") return route.fulfill({ json: groepenAntwoord() });
   if (p === "/api/werkgebieden/wg1/groepen/akkoord") {
@@ -191,14 +173,17 @@ const actief = () => page.locator("[data-review-item][aria-current=true]");
 const laatsteBody = (pad) => requests.filter((r) => r.p.endsWith(pad) && r.m === "POST").at(-1)?.body;
 const toets = (t) => page.keyboard.press(t);
 try {
-  // 1. Zonder voorstellen: uitleg en de knop. Starten → stroom → de reviewlijst.
+  // 1. Zonder voorstellen: de uitleg wijst naar het gesprek; geen Lex-knoppen op de pagina (F3e).
   await page.goto(`${base}/werkgebieden/wg1?tab=begrippen`);
+  await zie("Vraag Lex in het gesprek om begrippen voor te stellen.");
   await zie("Een voorstel is een vraag aan jou, geen begrip.");
-  // De tweede weg: met Lex in de werkplek, in de context van dit werkgebied (fase AF2).
-  assert.equal(await page.getByRole("link", { name: "Bespreek met Lex" }).getAttribute("href"), "/workbench?werkgebied=wg1");
-  await page.getByRole("button", { name: "Stel begrippen voor" }).click();
+  for (const naam of ["Stel begrippen voor", "Opnieuw voorstellen", /^Laat Lex meedenken/])
+    assert.equal(await page.getByRole("button", { name: naam }).count(), 0, String(naam));
+  assert.equal(await page.getByRole("link", { name: "Bespreek met Lex" }).count(), 0);
+  // Lex stelde in het gesprek begrippen voor: de reviewlijst staat er.
+  run = ronde();
+  await page.reload();
   await lijst().waitFor();
-  assert.ok(requests.some((r) => r.p === "/api/annotatie/run/ag1/events"), "de stroom van Lex is gevolgd");
   await zie("1 passage niet meegenomen");
   await zie("Review – 0/5 beoordeeld");
   // Volgorde: geel, de twijfelvraag, dan groen (op naam bij gelijke omvang).
@@ -287,29 +272,22 @@ try {
   await page.getByRole("button", { name: "Heropen groep “termijn”" }).click();
   await zie("Review – 4/5 beoordeeld");
 
-  // 7. Opnieuw op dezelfde stand: niets te rekenen, en dat staat er.
-  await page.getByRole("button", { name: "Opnieuw voorstellen" }).click();
-  await zie("gelden al voor de huidige stand");
-
-  // 8. Verouderd na een nieuwe annotatie; herladen tijdens een lopende run haakt aan.
+  // 7. Verouderd na een nieuwe annotatie: de strook zegt het.
   verouderd = true;
-  actieveAgent = "ag2";
-  const voor = requests.filter((r) => r.p === "/api/annotatie/run/ag2/events").length;
   await page.reload();
   await zie("Gebaseerd op een oudere stand van het werkgebied");
-  assert.ok(requests.filter((r) => r.p === "/api/annotatie/run/ag2/events").length > voor, "aangehaakt op de lopende run");
 
-  // 9. Een fout van Lex is zichtbaar.
-  agentStroom.volgende = "ag3";
-  await page.getByRole("button", { name: "Opnieuw voorstellen" }).click();
-  await zie("De begrippenketen liep vast");
+  // 8. Een mislukte ronde van Lex is zichtbaar.
+  run = ronde({ status: "mislukt", reden: "De begrippenketen liep vast." });
+  await page.reload();
+  await zie("mislukt: De begrippenketen liep vast.");
 
   // 10. Smal scherm.
   await page.setViewportSize({ width: 390, height: 844 });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
   await foto("voorstellen-mobiel");
   assert.deepEqual(errors, []);
-  console.log("Browser OK: voorstellen starten en volgen, reviewlijst in volgorde, met alleen het toetsenbord: combineren via de vergelijking, concept → annotatie akkoord → definitie → geaccordeerd, vraag apart, splitsen + aanpassen → geaccordeerd, afwijzen, rest akkoord, review afgerond; heropenen, geen herberekening op dezelfde stand, verouderd, aanhaken na herladen, fout van Lex zichtbaar, smal scherm.");
+  console.log("Browser OK: geen Lex-knoppen, de laatste ronde van Lex, reviewlijst in volgorde, met alleen het toetsenbord: combineren via de vergelijking, concept → annotatie akkoord → definitie → geaccordeerd, vraag apart, splitsen + aanpassen → geaccordeerd, afwijzen, rest akkoord, review afgerond; heropenen, verouderd, mislukte ronde zichtbaar, smal scherm.");
 } catch (e) {
   await foto("voorstellen-fout");
   throw e;

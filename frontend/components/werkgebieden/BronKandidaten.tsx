@@ -9,12 +9,11 @@ import { Lijst, LijstRij, Sectie } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import {
-  besluitKandidaat, foutTekst, haalActieveBronnenRun, haalKandidaten, haalLaatsteBronnenRun, neemKandidaatOp,
-  startBronnenRun, stopRun, volgRun,
+  besluitKandidaat, foutTekst, haalKandidaten, haalLaatsteBronnenRun, neemKandidaatOp,
 } from "@/lib/api";
 import {
   FILTER_LABEL, KANDIDAAT_ROL_LABEL, KANDIDAAT_ROL_UITLEG, METHODE_LABEL, bewijsZin, bijDeelvraag, filterVan, sorteerKandidaten,
-  standaardRol, telPerFilter, voortgangsregel, type KandidaatFilter,
+  standaardRol, telPerFilter, type KandidaatFilter,
 } from "@/lib/bronKandidaten";
 import type { BronKandidaat, BronMethode, BronRol, BronnenRun, KandidatenAntwoord } from "@/lib/types";
 import { ROL_LABEL, annotatieHref } from "@/lib/werkgebied";
@@ -38,8 +37,9 @@ const FILTERS: KandidaatFilter[] = ["open", "later", "uitgesloten", "opgenomen"]
  *  Toetsenbord, alleen met de focus in de lijst: `j`/`k` door de kandidaten, `a` opnemen met de
  *  voorgestelde rol, `x` uitsluiten (de reden krijgt de focus).
  *
- *  Met `deelvraagId` (het deelvraagpaneel, F3d) alleen wat Lex bij die deelvraag vond, zonder zoekknop:
- *  zoeken vraag je Lex in het gesprek (*Zoek bepalingen hierbij*). */
+ *  Zoeken vraag je Lex in het gesprek (*Zoek bepalingen bij alle deelvragen*, of *Zoek bepalingen hierbij*
+ *  op een deelvraag, F3e); hier staat wat hij vond. Met `deelvraagId` (het deelvraagpaneel, F3d) alleen
+ *  wat Lex bij die deelvraag vond. */
 export function BronKandidaten({ id, deelvraagId, labels, onGewijzigd }: {
   id: string;
   deelvraagId?: string;
@@ -52,13 +52,10 @@ export function BronKandidaten({ id, deelvraagId, labels, onGewijzigd }: {
   const [laatste, setLaatste] = useState<BronnenRun | null>(null);
   const [fout, setFout] = useState<string | null>(null);
   const [melding, setMelding] = useState<string | null>(null);
-  const [voortgang, setVoortgang] = useState<string[]>([]);
-  const [agentRun, setAgentRun] = useState<string | null>(null);
   const [filter, setFilter] = useState<KandidaatFilter>("open");
   const [actief, setActief] = useState(0);
   const [uitsluiten, setUitsluiten] = useState<string | null>(null);   // kandidaat-id met open redenveld
   const [bezig, setBezig] = useState<string | null>(null);
-  const kijker = useRef<AbortController | null>(null);
   const lijstRef = useRef<HTMLUListElement & HTMLOListElement>(null);
 
   const laad = useCallback(async () => {
@@ -71,47 +68,10 @@ export function BronKandidaten({ id, deelvraagId, labels, onGewijzigd }: {
     }
   }, [id]);
 
-  const volg = useCallback(async (runId: string) => {
-    kijker.current?.abort();
-    const ctl = new AbortController();
-    kijker.current = ctl;
-    setAgentRun(runId);
-    setVoortgang([]);
-    try {
-      // Een `error` van Lex komt als exceptie terug en wordt hieronder een melding.
-      await volgRun(runId, { onStatus: (m) => setVoortgang((v) => [...v, voortgangsregel(m)]) }, 0, ctl.signal);
-    } catch (e) {
-      if ((e as Error)?.name === "AbortError") return;
-      setFout(foutTekst(e, "Lex kon niet zoeken."));
-    }
-    if (ctl.signal.aborted) return;
-    setAgentRun(null);
-    await laad();
-  }, [laad]);
-
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void laad();
-    void haalActieveBronnenRun(id).then((r) => {
-      if (r && r !== "onbekend") void volg(r.run_id);
-    });
-    return () => kijker.current?.abort();
-  }, [id, laad, volg]);
-
-  async function start() {
-    setFout(null);
-    setMelding(null);
-    try {
-      const { agent_run_id } = await startBronnenRun(id);
-      if (agent_run_id) await volg(agent_run_id);
-      else {
-        await laad();
-        setMelding("Voor deze selectie en analysevraag had Lex al gezocht; er viel niets nieuws te vinden.");
-      }
-    } catch (e) {
-      setFout(foutTekst(e, "Lex kon niet beginnen."));
-    }
-  }
+  }, [laad]);
 
   async function besluit(k: BronKandidaat, actie: () => Promise<unknown>, gelukt: string) {
     setFout(null);
@@ -163,22 +123,7 @@ export function BronKandidaten({ id, deelvraagId, labels, onGewijzigd }: {
     <Sectie data-bronkandidaten titel={deelvraagId ? "Bepalingen die Lex hierbij vond" : "Bepalingen gevonden door Lex"}
       toelichting={deelvraagId ? undefined : run?.status === "klaar"
         ? `Gezocht vanuit ${run.aantal_kern} ${run.aantal_kern === 1 ? "bepaling" : "bepalingen"}${run.verouderd ? " – de selectie is sindsdien veranderd" : ""}.`
-        : "Lex zoekt vanuit de bepalingen die je analyseert en de analysevraag, zonder model."}
-      acties={deelvraagId ? undefined : agentRun ? (
-        <Button size="sm" variant="secondary" className="w-full sm:w-auto" onClick={() => void stopRun(agentRun)}>
-          Stoppen
-        </Button>
-      ) : (
-        <Button size="sm" className="w-full sm:w-auto" onClick={() => void start()}>
-          {run ? "Opnieuw zoeken" : "Lex, zoek bepalingen"}
-        </Button>
-      )}>
-      {agentRun && (
-        <div aria-live="polite" className="space-y-0.5 text-xs text-muted">
-          <p className="font-medium text-ink">Lex zoekt…</p>
-          {voortgang.map((v, i) => <p key={i}>· {v}</p>)}
-        </div>
-      )}
+        : "Vraag Lex in het gesprek om bepalingen te zoeken; hij zoekt vanuit de bepalingen die je analyseert en de analysevraag, zonder model."}>
       {fout && <Melding type="fout" compact>{fout}</Melding>}
       {melding && <Melding type="uitleg" compact>{melding}</Melding>}
 
@@ -205,9 +150,9 @@ export function BronKandidaten({ id, deelvraagId, labels, onGewijzigd }: {
         </div>
       )}
 
-      {data && alle.length === 0 && !agentRun && (
+      {data && alle.length === 0 && (
         <p className="text-sm text-muted">
-          {deelvraagId ? "Lex vond bij deze deelvraag nog geen bepalingen." : "Nog niets gevonden. Laat Lex zoeken vanuit de selectie en de analysevraag."}
+          {deelvraagId ? "Lex vond bij deze deelvraag nog geen bepalingen." : "Nog niets gevonden. Vraag Lex in het gesprek om bepalingen te zoeken."}
         </p>
       )}
       {alle.length > 0 && getoond.length === 0 && <p className="text-sm text-muted">Geen kandidaten in dit filter.</p>}

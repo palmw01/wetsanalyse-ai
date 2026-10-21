@@ -1,18 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { BevestigKnop } from "@/components/ui/BevestigKnop";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
 import { Lijst, LijstRij, Sectie, StatusLabel, Voorstel as VoorstelRij } from "@/components/ui/Lijst";
-import { Melding } from "@/components/ui/Melding";
 import type { Mutatie } from "@/components/werkgebieden/WerkgebiedClient";
+import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import {
-  foutTekst, haalActieveDeelvragenRun, koppelDeelvraag, lijstBegrippen, maakDeelvraag,
-  startDeelvragenRun, stopRun, verwijderDeelvraag, volgRun, wijzigDeelvraag,
+  koppelDeelvraag, lijstBegrippen, maakDeelvraag, verwijderDeelvraag, wijzigDeelvraag,
 } from "@/lib/api";
-import { voortgangsregel } from "@/lib/bronKandidaten";
 import {
   STAND_LABEL, STAND_TOON, STAND_UITLEG, dekkingZin, overgenomenZin, splits, vervangtZin, wissel, zelfdeSet,
 } from "@/lib/deelvragen";
@@ -22,56 +20,15 @@ import { useDeelvragenDekking } from "@/lib/useDeelvragenDekking";
 /** Deelvragen bij een werkgebied, bovenaan de tab Bronnen (optioneel; open keuze 4).
  *
  *  Een deelvraag splitst de analysevraag. Per deelvraag leg je vast welke bronnen en begrippen haar
- *  beantwoorden; de dekking zegt dan of er een geaccordeerd begrip bij hoort. Lex kan deelvragen
- *  voorstellen (geel): overnemen of afwijzen, met een reden. Zonder deelvragen verandert er niets aan
+ *  beantwoorden; de dekking zegt dan of er een geaccordeerd begrip bij hoort. Lex stelt deelvragen voor
+ *  als je hem dat in het gesprek vraagt (geel): overnemen of afwijzen, met een reden. *Vraag Lex* bij een
+ *  deelvraag zet haar als onderwerp in het gesprek (F3e). Zonder deelvragen verandert er niets aan
  *  het werkgebied. Elke wijziging draagt de revisie in beeld (`muteer`), want deelvragen horen bij de
  *  scope; Lex zoekt bij een volgende ronde ook per deelvraag naar bepalingen. */
-export function Deelvragen({ wg, muteer, onHerlaad }: { wg: Werkgebied; muteer: Mutatie; onHerlaad: () => void }) {
+export function Deelvragen({ wg, muteer }: { wg: Werkgebied; muteer: Mutatie }) {
   const { actief, voorgesteld } = splits(wg.deelvragen);
   const stand = useDeelvragenDekking(wg.id, wg.revisie, actief.length);
   const [nieuw, setNieuw] = useState("");
-  const [lex, setLex] = useState<{ runId: string; voortgang: string[] } | null>(null);
-  const [melding, setMelding] = useState<string | null>(null);
-  const [fout, setFout] = useState<string | null>(null);
-  const kijker = useRef<AbortController | null>(null);
-
-  const volg = useCallback(async (runId: string) => {
-    kijker.current?.abort();
-    const ctl = new AbortController();
-    kijker.current = ctl;
-    setLex({ runId, voortgang: [] });
-    let tekst = "";
-    try {
-      await volgRun(runId, {
-        onStatus: (m) => setLex((l) => l && { ...l, voortgang: [...l.voortgang, voortgangsregel(m)] }),
-        onToken: (t) => { tekst += t; },
-      }, 0, ctl.signal);
-    } catch (e) {
-      if ((e as Error)?.name === "AbortError") return;
-      setFout(foutTekst(e, "Lex kon geen deelvragen voorstellen."));
-    }
-    if (ctl.signal.aborted) return;
-    setLex(null);
-    if (tekst) setMelding(tekst.replace(/\*+/g, ""));
-    onHerlaad();
-  }, [onHerlaad]);
-
-  // Loopt er al een ronde voor dit werkgebied (een ander tabblad, of herladen), dan haken we aan.
-  useEffect(() => {
-    void haalActieveDeelvragenRun(wg.id).then((r) => { if (r && r !== "onbekend") void volg(r.run_id); });
-    return () => kijker.current?.abort();
-  }, [wg.id, volg]);
-
-  async function laatLexVoorstellen() {
-    setFout(null);
-    setMelding(null);
-    try {
-      const { run_id } = await startDeelvragenRun(wg.id);
-      await volg(run_id);
-    } catch (e) {
-      setFout(foutTekst(e, "Lex kon niet beginnen."));
-    }
-  }
 
   async function voegToe(e: React.FormEvent) {
     e.preventDefault();
@@ -80,31 +37,11 @@ export function Deelvragen({ wg, muteer, onHerlaad }: { wg: Werkgebied; muteer: 
     if (await muteer((r) => maakDeelvraag(wg.id, vraag, r), { gelukt: "Deelvraag toegevoegd." })) setNieuw("");
   }
 
-  const zonderAnalysevraag = !wg.analysevraag.trim();
   const perId = new Map((stand?.deelvragen ?? []).map((d) => [d.id, d]));
 
   return (
     <Sectie data-deelvragen titel="Deelvragen" telling={actief.length}
-      toelichting={<>Optioneel. {dekkingZin(stand) || "Splits de analysevraag; per deelvraag zie je of er een bron en een geaccordeerd begrip bij hoort."}</>}
-      acties={lex ? (
-        <Button size="sm" variant="secondary" className="w-full sm:w-auto" onClick={() => void stopRun(lex.runId)}>
-          Stoppen
-        </Button>
-      ) : (
-        <Button size="sm" variant="secondary" className="w-full sm:w-auto" disabled={zonderAnalysevraag}
-          title={zonderAnalysevraag ? "Geef het werkgebied eerst een analysevraag." : undefined}
-          onClick={() => void laatLexVoorstellen()}>
-          Laat Lex deelvragen voorstellen
-        </Button>
-      )}>
-      {lex && (
-        <ol className="space-y-0.5 text-xs text-muted" aria-live="polite" aria-label="Voortgang van Lex">
-          {lex.voortgang.length === 0 ? <li>Lex begint…</li> : lex.voortgang.map((v, i) => <li key={i}>{v}</li>)}
-        </ol>
-      )}
-      {fout && <Melding type="fout" compact>{fout}</Melding>}
-      {melding && <Melding type="uitleg" compact>{melding}</Melding>}
-
+      toelichting={<>Optioneel. {dekkingZin(stand) || "Splits de analysevraag; per deelvraag zie je of er een bron en een geaccordeerd begrip bij hoort."}</>}>
       {(voorgesteld.length > 0 || actief.length > 0) && (
         <div>
           {voorgesteld.length > 0 && (
@@ -231,6 +168,8 @@ function DeelvraagRij({ nummer, wg, deelvraag: d, dekking, muteer }: {
             onClick={() => { setTekst(d.vraag); setBewerken(true); }}>
             Bewerken
           </Button>
+          <VraagLexKnop onderwerp={{ soort: "deelvraag", werkgebied_id: wg.id, id: d.id, label: d.vraag }}
+            className="justify-center" />
           <BevestigKnop bevestigTekst="Weghalen?" ariaLabel={`Weghalen: ${d.vraag}`}
             onBevestig={async () => { await muteer((r) => verwijderDeelvraag(wg.id, d.id, r), { gelukt: "Deelvraag weggehaald." }); }}
             className="focus-ring inline-flex min-h-[32px] w-full items-center justify-center rounded-button px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface hover:text-ink coarse:min-h-[44px] sm:w-auto"

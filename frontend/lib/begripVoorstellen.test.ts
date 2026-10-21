@@ -5,11 +5,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   AANDACHTSPUNT, aandachtspunten, aanpassingUit, akkoordLabel, akkoordVoor, enigeDefinitie, groepDefinitie,
-  groepenVanVraag, herkomstNaAanpassing, meedenkInhoud, meedenkOmvang, naBesluit, onbeoordeeldeAnnotaties, openVragen,
+  groepenVanVraag, herkomstNaAanpassing, naBesluit, onbeoordeeldeAnnotaties, openVragen,
   overnameVoor, passageTekst, reviewItems, reviewVoortgang, samenAkkoord, sorteerGroepen, vergelijk, volgendeItem,
-  voortgangsregel,
 } from "./begripVoorstellen";
-import type { Begrip, Betekenisgroep, ConceptKaart, GroepenAntwoord, Koppeling, VerdiepingWerkvoorraad } from "./types";
+import type { Begrip, Betekenisgroep, ConceptKaart, GroepenAntwoord, Koppeling } from "./types";
 
 const lid = (id: string, tekst = id) => ({ element_id: id, tekst, jas_klasse: "Rechtssubject", review_status: "voorgesteld",
   bron_iri: "urn:x", vindplaats: "Artikel 9 · Lid 1" });
@@ -61,10 +60,9 @@ it("groepenVanVraag zet alleen open groepen klaar", () => {
   expect(groepenVanVraag(vraag, [groep("Gab", ["a1", "b1"])])).toEqual(["Gab"]);
 });
 
-it("passageTekst en voortgangsregel", () => {
+it("passageTekst", () => {
   expect(passageTekst("a1", {}, [groep("G", ["a1"])])).toBe("“a1” (Artikel 9 · Lid 1)");
   expect(passageTekst("weg", {})).toBe("weg");
-  expect(voortgangsregel("Lex · Groeperen: 3 groepen (12 ms)")).toBe("Groeperen: 3 groepen (12 ms)");
 });
 
 it("samenOvername neemt beide passages en de open groep van een ervan", async () => {
@@ -122,24 +120,6 @@ it("de aandachtspunten volgen graph-qa toetsen.TEKST, code voor code en woord vo
   const tabel = bron.slice(bron.indexOf("TEKST: dict"), bron.indexOf("GARANTIES ="));
   const daar = Object.fromEntries([...tabel.matchAll(/"([A-Z_]+)": "([^"]+)"/g)].map((m) => [m[1], m[2]]));
   expect(AANDACHTSPUNT).toEqual(daar);
-});
-
-describe("meedenkInhoud", () => {
-  const wv = (over: Partial<VerdiepingWerkvoorraad> = {}): VerdiepingWerkvoorraad => ({
-    run: null, verdiept: false, aantal: 3, vragen: ["P1"], kaarten: ["G1", "G2"], batches: [],
-    schatting: { per_item: 1000, basis: 4, totaal: 3000 }, schatting_toelichting: "uitleg",
-    budget: { resterend: 2000, budget: 10000, actief: true, geblokkeerd: false }, ...over,
-  });
-  it("noemt omvang, schatting en een krap budget", () => {
-    const i = meedenkInhoud(wv());
-    expect(i).toMatchObject({ aantal: 3, vragen: 1, kaarten: 2, alKlaar: 0, schatting: 3000, budgetOver: 2000, budgetKrap: true });
-    expect(meedenkOmvang(i)).toBe("1 twijfelpunt en 2 begrippen zonder definitie");
-  });
-  it("zonder geschiedenis of limiet geen getal en geen waarschuwing", () => {
-    const i = meedenkInhoud(wv({ schatting: null, budget: { resterend: 0, budget: 0, actief: false, geblokkeerd: false } }));
-    expect([i.schatting, i.budgetOver, i.budgetKrap]).toEqual([null, null, false]);
-    expect(meedenkOmvang({ vragen: 2, kaarten: 0 })).toBe("2 twijfelpunten");
-  });
 });
 
 // --- de review (fase D) ------------------------------------------------------------------------

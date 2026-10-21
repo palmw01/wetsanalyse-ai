@@ -121,6 +121,14 @@ export function begripUitParam(p: string | undefined): string | undefined {
   return p && /^[A-Za-z0-9-]{1,64}$/.test(p) ? p : undefined;
 }
 
+/** Hoe het gekozen begrip openstaat (F3e): lezen (`BegripPaneel`) of de kaart (`BegripWerk`). In de URL
+ *  als `&weergave=kaart`; al het andere is lezen. */
+export type BegripWeergave = "lezen" | "kaart";
+
+export function weergaveUitParam(p: string | undefined): BegripWeergave {
+  return p === "kaart" ? "kaart" : "lezen";
+}
+
 /** Het element duidt al een ander begrip aan (409 `al_primair`). */
 export function isAlPrimair(e: unknown): boolean {
   return isApiError(e) && e.status === 409 && e.data?.fout === "al_primair";

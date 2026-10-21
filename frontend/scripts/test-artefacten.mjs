@@ -5,7 +5,7 @@
  *
  * Bewaakt:
  *  - een bewaard begrippenartefact komt na herladen terug als chip en opent de voorstellen van Lex
- *    in het artefactpaneel (kolom naast de chat), met de link naar het werkgebied;
+ *    in het artefactpaneel (kolom naast de chat), met de link naar het werkgebied en zonder Lex-knoppen;
  *  - een annotatie-artefact in de nieuwe vorm (alleen `artefact`, geen `annotatie_doel`) opent de
  *    annotatie, en het sluit het begrippenpaneel – er staat er één open;
  *  - afleidingsregels zijn gereserveerd: de kaart staat er, maar is geen knop;
@@ -143,10 +143,8 @@ await page.route("**/api/**", async (route) => {
   }
   if (p === "/api/werkgebieden/wg1/kandidaten") return route.fulfill({ json: { kandidaten: [kandidaat], run: null } });
   if (p === "/api/werkgebieden/wg1/bronnen-runs/laatste") return route.fulfill({ json: { run: null } });
-  if (p === "/api/bronnen-run") return route.fulfill({ json: null });
   if (p === "/api/werkgebieden/wg1/begrippen-runs/laatste") return route.fulfill({ json: { run } });
   if (p === "/api/werkgebieden/wg1/groepen") return route.fulfill({ json: { run, groepen: [groep], passages: {} } });
-  if (p === "/api/begrippen-run") return route.fulfill({ json: null });
   if (p === "/api/werkgebieden/wg1/begrippen" && m === "GET")
     return route.fulfill({ json: { kader_iri: "urn:wa:kader:wg1", begrippen: [], primair: {} } });
   if (p === "/api/werkgebieden/wg1/begrippen/b9") return route.fulfill({ json: termijn });
@@ -160,7 +158,6 @@ await page.route("**/api/**", async (route) => {
     return route.fulfill({ json: termijn });
   }
   if (p === "/api/werkgebieden/wg1/relaties") return route.fulfill({ json: { relaties: [], voorstellen: [] } });
-  if (p === "/api/kaart-run") return route.fulfill({ json: null });
   const gesprek = p.match(/^\/api\/gesprekken\/(g\d)$/);
   if (gesprek) return route.fulfill({ json: { id: gesprek[1], titel: "Test", berichten: gesprekken[gesprek[1]] ?? [] } });
   if (p === "/api/gesprekken" && m === "POST") return route.fulfill({ status: 201, json: { id: "g2", titel: "", berichten: [] } });
@@ -194,6 +191,9 @@ try {
   await begrippenPaneel().getByText("belastingschuldige", { exact: true }).first().waitFor();
   assert.equal(await begrippenPaneel().getByText("eerdere ronde van Lex", { exact: false }).count(), 0,
     "de chip wijst naar de laatste ronde: geen melding");
+  // F3e: geen Lex-knoppen in het paneel; starten en meedenken vraag je in het gesprek.
+  for (const naam of ["Stel begrippen voor", "Opnieuw voorstellen", /^Laat Lex meedenken/])
+    assert.equal(await begrippenPaneel().getByRole("button", { name: naam }).count(), 0, String(naam));
   assert.equal(await begrippenPaneel().getByRole("link", { name: "Open het werkgebied" }).getAttribute("href"),
     "/werkgebieden/wg1?tab=begrippen");
   assert.equal(await begrippenPaneel().locator('button[aria-expanded]').filter({ hasText: "Voorstellen van Lex" }).count(), 0,

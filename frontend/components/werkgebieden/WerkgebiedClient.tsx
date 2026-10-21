@@ -22,6 +22,7 @@ import { WerkgebiedSamenvatting } from "@/components/werkgebieden/WerkgebiedSame
 import { WerkgebiedSchil } from "@/components/werkgebieden/WerkgebiedSchil";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import { archiveerWerkgebied, foutTekst, haalWerkgebied, isApiError, wijzigWerkgebied } from "@/lib/api";
+import type { BegripWeergave } from "@/lib/begrippen";
 import type { Werkgebied, WerkgebiedStatus } from "@/lib/types";
 import { useOnbewaardBewaker } from "@/lib/useOnbewaardBewaker";
 import {
@@ -43,10 +44,11 @@ export type Mutatie = (actie: (revisie: number) => Promise<Werkgebied>, opties?:
  *  anders het werkgebied intussen (412), dan laadt de pagina de nieuwste stand en zegt dat – de
  *  handeling wordt niet stil opnieuw uitgevoerd, want die kan op de nieuwe stand iets anders
  *  betekenen. */
-export function WerkgebiedClient({ id, beginTab, beginBegrip }: {
+export function WerkgebiedClient({ id, beginTab, beginBegrip, beginWeergave = "lezen" }: {
   id: string;
   beginTab: WerkgebiedTab;
   beginBegrip?: string;
+  beginWeergave?: BegripWeergave;
 }) {
   const router = useRouter();
   const [wg, setWg] = useState<Werkgebied | null>(null);
@@ -56,6 +58,8 @@ export function WerkgebiedClient({ id, beginTab, beginBegrip }: {
   const [tab, setTab] = useState<WerkgebiedTab>(beginTab);
   // Het gekozen begrip op de tab Begrippen; staat ook in de URL.
   const [begrip, setBegrip] = useState<string | undefined>(beginBegrip);
+  // Lezen of de kaart (F3e); blijft staan bij een wissel van begrip, en staat ook in de URL.
+  const [weergave, setWeergave] = useState<BegripWeergave>(beginWeergave);
   // De begripskaart draagt niet-bewaarde wijzigingen: een tabwissel zou ze stil weggooien (de tabs
   // renderen lazy), dus die wacht eerst op bevestiging.
   const [onbewaard, setOnbewaard] = useState(false);
@@ -108,11 +112,12 @@ export function WerkgebiedClient({ id, beginTab, beginBegrip }: {
     [wg, laad],
   );
 
-  function zetUrl(t: WerkgebiedTab, b: string | undefined) {
+  function zetUrl(t: WerkgebiedTab, b: string | undefined, w: BegripWeergave = weergave) {
     // `replace`: een tab- of begripwissel is geen stap in de geschiedenis.
     const qs = new URLSearchParams();
     if (t !== "bronnen") qs.set("tab", t);
     if (t === "begrippen" && b) qs.set("begrip", b);
+    if (t === "begrippen" && b && w === "kaart") qs.set("weergave", w);
     const pad = `/werkgebieden/${encodeURIComponent(id)}`;
     router.replace(qs.size ? `${pad}?${qs}` : pad, { scroll: false });
   }
@@ -128,12 +133,14 @@ export function WerkgebiedClient({ id, beginTab, beginBegrip }: {
     zetUrl(nieuw as WerkgebiedTab, begrip);
   }
 
-  /** Naar de tab Begrippen, op dit begrip (of de lijst) – ook vanuit de tab Elementen. */
-  function kiesBegrip(b: string | undefined) {
+  /** Naar de tab Begrippen, op dit begrip (of de lijst) – ook vanuit de tab Elementen. Met `w` ook in die
+   *  weergave (herbeoordelen gebeurt op de kaart). */
+  function kiesBegrip(b: string | undefined, w?: BegripWeergave) {
     setBegrip(b);
+    if (w) setWeergave(w);
     setTab("begrippen");
     setMelding(null);
-    zetUrl("begrippen", b);
+    zetUrl("begrippen", b, w ?? weergave);
   }
 
   async function archiveer() {
@@ -265,9 +272,10 @@ export function WerkgebiedClient({ id, beginTab, beginBegrip }: {
                   // Opnieuw ophalen bij elke nieuwe revisie: een andere selectie is een andere inventaris.
                   <ElementenTab key={wg.revisie} id={id} onNaarBegrip={kiesBegrip} />
                 ) : t.key === "begrippen" ? (
-                  <BegrippenTab id={id} gekozen={begrip} onKies={kiesBegrip} onbewaard={onbewaard} onOnbewaard={setOnbewaard} />
+                  <BegrippenTab id={id} gekozen={begrip} onKies={kiesBegrip} onbewaard={onbewaard} onOnbewaard={setOnbewaard}
+                    weergave={weergave} onWeergave={(w) => { setWeergave(w); zetUrl("begrippen", begrip, w); }} />
                 ) : t.key === "samenhang" ? (
-                  <SamenhangTab wg={wg} muteer={muteer} onKiesBegrip={kiesBegrip} />
+                  <SamenhangTab wg={wg} muteer={muteer} onKiesBegrip={(b) => kiesBegrip(b, "kaart")} />
                 ) : (
                   <HistorieTab key={wg.revisie} id={id} bronnen={wg.bronnen} />
                 ),

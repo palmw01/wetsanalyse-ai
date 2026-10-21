@@ -11,7 +11,7 @@ import { KaartVoorstelKaart } from "@/components/werkgebieden/KaartVoorstel";
 import {
   foutTekst, haalBegrip, haalKaartVoorstellen, haalRelaties, neemKaartVoorstelOver, wijsKaartVoorstelAf, wijzigBegrip,
 } from "@/lib/api";
-import { VELD_LABEL, definitieDoor, openPerVeld, verouderdUit, type Verouderd } from "@/lib/begripLex";
+import { VELD_LABEL, definitieDoor, openPerVeld, verouderdUit, type Verouderd } from "@/lib/kaartVoorstel";
 import { relatieZin } from "@/lib/begripRelaties";
 import { HERKOMST_LABEL, OORDEEL_LABEL, handmatigeInhoud } from "@/lib/begrippen";
 import { BEGRIP_STATUS_LABEL } from "@/lib/begrippenOverzicht";

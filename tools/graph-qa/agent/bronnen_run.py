@@ -1,14 +1,11 @@
 """De bronnenrun: de ontdekmethoden op de selectie van een werkgebied (spoor D, fase A).
 
-Twee ingangen, één stroom:
-
-- `POST /v1/bronnen-runs {werkgebied_id, run_id}` (de tab Bronnen): `bronnen_stroom` haalt de invoer
-  bij de api, past de methoden toe (`bronnen_vinden.vind`) en zet de kandidaten terug – het patroon
-  van `begrippen_run.py`. Runstore-sleutel `werkgebied:<id>:bronnen`.
-- **In het gesprek** (`bronnen_kern`, taak `bronnen_zoeken` van de deelvragen-agent, F3c): de run
-  maken of hergebruiken, rekenen, en een uitkomst met een **bronnenartefact**
-  (`{soort: "bronnen", ref: {werkgebied_id, run_id}}`). Er is geen tekstpatroon meer: de supervisor
-  kiest de agent, of een klik op een suggestie (`actie`).
+Eén ingang, in het gesprek (`bronnen_kern`, taak `bronnen_zoeken` van de deelvragen-agent, F3c): de run
+maken of hergebruiken, dan `bronnen_stroom` – de invoer bij de api halen, de methoden toepassen
+(`bronnen_vinden.vind`) en de kandidaten terugzetten, het patroon van `begrippen_run.py` – en een
+uitkomst met een **bronnenartefact** (`{soort: "bronnen", ref: {werkgebied_id, run_id}}`). Er is geen
+tekstpatroon: de supervisor kiest de agent, of een klik op een suggestie (`actie`). Het eigen endpoint
+`/v1/bronnen-runs` (de tab Bronnen) is met F3e vervallen.
 
 Geen model, dus geen tokens. Events: `status` per methode, dan `opgeslagen` en `done`; een fout is een
 `error`, en de api hoort het via `…/mislukt`.

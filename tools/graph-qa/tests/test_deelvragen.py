@@ -1,5 +1,6 @@
-"""Lex stelt deelvragen voor (vervolg op spoor D fase F): de prompt, de validatie, de stroom tegen een
-nep-api en nep-model, het api-contract (uit de bron gelezen) en het endpoint."""
+"""Lex stelt deelvragen voor (vervolg op spoor D fase F): de prompt, de validatie, de taak `voorstellen`
+tegen een nep-api en nep-model, en het api-contract (uit de bron gelezen). Het eigen endpoint
+`/v1/deelvragen-runs` is met F3e vervallen; de taak draait in het gesprek (deelvragen-agent)."""
 from __future__ import annotations
 
 import asyncio
@@ -9,8 +10,7 @@ from pathlib import Path
 import pytest
 
 from agent import deelvragen
-from agent.models import DeelvragenRunVerzoek
-from agent.runstore import Run
+from agent.agents import Context
 from fakes import make_settings, response, text_block, tool_block
 
 WG = {"id": "wg1", "naam": "Invorderbaarheid", "analysevraag": "Wanneer is een belastingaanslag invorderbaar?",
@@ -38,7 +38,6 @@ class NepApi:
     def __init__(self, wg=WG, weigert: int | None = None):
         self.wg, self.weigert = wg, weigert
         self.voorgesteld: list[tuple[list[str], str]] = []
-        self.geboekt: list[str] = []
 
     async def haal_werkgebied(self, wid):
         return self.wg
@@ -50,12 +49,6 @@ class NepApi:
         self.voorgesteld.append((vragen, model))
         return {"nieuw": [f"n{i}" for i in range(len(vragen) - 1)], "overgeslagen": [{"vraag": vragen[-1], "reden": "actief"}]}
 
-    async def boek_verbruik(self, verbruik, *, model, gesprek_id, run_id):
-        self.geboekt.append(run_id)
-        return {}
-
-    async def aclose(self):
-        pass
 
 
 class NepModel:
@@ -76,49 +69,44 @@ class NepModel:
         return self.antwoorden.pop(0)
 
 
-def _stroom(api, model) -> list[dict]:
-    async def verzamel():
-        return [e async for e in deelvragen.deelvragen_stroom(
-            "wg1", Run(run_id="x", conversation_id="werkgebied:wg1:deelvragen"), settings=make_settings(),
-            user_id="jurist", maak_llm=lambda _s: model, api=api)]
-    return asyncio.run(verzamel())
+def _voorstellen(api, model):
+    ctx = Context(api=api, settings=make_settings(), user_id="jurist", run_id="x", llm=model)
+    return asyncio.run(deelvragen.voorstellen_kern(ctx, "wg1"))
 
 
 def _tool(vragen):
     return response([tool_block("t1", deelvragen.TOOL, {"deelvragen": vragen})], "tool_use")
 
 
-def test_de_stroom_stelt_voor_en_boekt_het_verbruik():
+def test_de_taak_stelt_voor_met_het_model_van_de_beurt():
     api, model = NepApi(), NepModel([_tool(["Wanneer vervalt de termijn?", "Wie is de belastingschuldige?"])])
-    events = _stroom(api, model)
-    assert [e["type"] for e in events][-3:] == ["token", "opgeslagen", "done"]
+    uit = _voorstellen(api, model)
+    assert uit.status == "ok" and uit.voorstellen == ["n0"] and uit.meting["opgeslagen"] is True
     assert api.voorgesteld == [(["Wanneer vervalt de termijn?", "Wie is de belastingschuldige?"],
                                 make_settings().llm_model)]
-    assert api.geboekt == ["deelvragen-x"]
-    token = next(e for e in events if e["type"] == "token")["content"]
-    assert "**1** deelvraag" in token and "1 stonden er al" in token
+    assert "**1** deelvraag" in uit.tekst and "1 stonden er al" in uit.tekst
     assert model.verzoeken[0]["tools"][0]["name"] == deelvragen.TOOL
 
 
 def test_zonder_tool_aanroep_een_tweede_poging_en_daarna_niets():
     api = NepApi()
     model = NepModel([response([text_block("hmm")], "end_turn"), response([text_block("nee")], "end_turn")])
-    events = _stroom(api, model)
+    uit = _voorstellen(api, model)
     assert len(model.verzoeken) == 2 and api.voorgesteld == []
-    assert "al enkelvoudig" in next(e for e in events if e["type"] == "token")["content"]
+    assert "al enkelvoudig" in uit.tekst
 
 
 def test_zonder_analysevraag_geen_modelaanroep():
     api, model = NepApi(wg={**WG, "analysevraag": " "}), NepModel([])
-    events = _stroom(api, model)
-    assert events[-1]["type"] == "error" and events[-1]["soort"] == "invoer" and model.verzoeken == []
+    uit = _voorstellen(api, model)
+    assert uit.status == "geweigerd" and uit.meting["soort"] == "invoer" and model.verzoeken == []
 
 
 def test_een_weigering_van_de_api_is_een_fout():
     api, model = NepApi(weigert=404), NepModel([_tool(["Wanneer vervalt de termijn?"])])
-    events = _stroom(api, model)
-    assert events[-1]["type"] == "error" and events[-1]["soort"] == "api"
-    assert api.geboekt == ["deelvragen-x"], "het verbruik telt ook als opslaan faalt"
+    uit = _voorstellen(api, model)
+    assert uit.status == "geweigerd" and uit.meting["soort"] == "api"
+    assert len(model.verzoeken) == 1, "het model draaide, dus het verbruik telt mee in de beurt"
 
 
 def test_de_vragen_passen_in_het_api_contract():
@@ -135,28 +123,7 @@ def test_de_vragen_passen_in_het_api_contract():
         DeelvraagVoorstellen(vragen=vragen + ["Te veel?"] * 5)
 
 
-def test_het_verzoek_en_het_endpoint(monkeypatch):
-    with pytest.raises(Exception):
-        DeelvragenRunVerzoek(werkgebied_id="wg 1")
-    from fastapi.testclient import TestClient
-
+def test_het_endpoint_is_vervallen():
     import api.main as main
-
-    async def langzaam(werkgebied_id, run, **_kw):
-        await asyncio.sleep(0.3)
-        yield {"type": "done"}
-
-    monkeypatch.setattr(main.settings, "graphdb_token", "test", raising=False)
-    monkeypatch.setattr(main.settings, "graphdb_mcp_url", "https://graaf.test/mcp", raising=False)
-    monkeypatch.setattr(main, "deelvragen_stroom", langzaam)
-    monkeypatch.setattr(main, "runs", type(main.runs)())
-    with TestClient(main.app) as c:
-        assert c.post("/v1/deelvragen-runs", json={"werkgebied_id": "wg1"}).status_code == 503
-        monkeypatch.setattr(type(main.settings), "legt_zelf_vast", property(lambda _s: True))
-        main.app.dependency_overrides[main._budget_check] = lambda: None
-        try:
-            eerste = c.post("/v1/deelvragen-runs", json={"werkgebied_id": "wg1"})
-            assert eerste.status_code == 201 and eerste.json()["conversation_id"] == "werkgebied:wg1:deelvragen"
-            assert c.post("/v1/deelvragen-runs", json={"werkgebied_id": "wg1"}).status_code == 409
-        finally:
-            main.app.dependency_overrides.clear()
+    paden = {getattr(r, "path", "") for r in main.app.routes}
+    assert not paden & {"/v1/deelvragen-runs", "/v1/bronnen-runs", "/v1/begrippen-runs", "/v1/kaart-runs"}

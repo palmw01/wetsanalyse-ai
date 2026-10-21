@@ -7,7 +7,7 @@ import { Input, Select, Textarea } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
 import {
   VERGELIJKING_LABEL, aandachtTekst, herkomstLabel, isDefinitie, voorstelTekst, type Verouderd,
-} from "@/lib/begripLex";
+} from "@/lib/kaartVoorstel";
 import { OORDEEL_LABEL } from "@/lib/begrippen";
 import type { KaartVoorstel, TekstWaarde, VoorbeeldOordeel } from "@/lib/types";
 

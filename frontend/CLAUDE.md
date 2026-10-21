@@ -55,7 +55,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
 - **De rekenkern staat in `lib/`**, niet in componenten: vitest draait node-env zonder DOM, dus alleen
   pure helpers zijn testbaar (`selectie`, `annotatie`, `annotatieOverzicht`, `reeks`, `samenhang`,
   `markering`, `popover`, `wetstructuur`, `lopendeRun`, `rondleiding`, `werkgebied`, `begrippen`,
-  `begripVoorstellen`, `begripLex`, `herbeoordeling`, `begripRelaties`, `begripGraaf`, `begrippenOverzicht`, `artefact`, `bronKandidaten`, `deelvragen`, `onbewaard`, `vraagkaart`, …).
+  `begripVoorstellen`, `kaartVoorstel`, `herbeoordeling`, `begripRelaties`, `begripGraaf`, `begrippenOverzicht`, `artefact`, `bronKandidaten`, `deelvragen`, `onbewaard`, `vraagkaart`, …).
 - **`app/**/page.tsx`** (Server Components) – data via `lib/server.ts`, interactie in een
   `*Client.tsx`. `app/page.tsx` doet `redirect("/workbench")`. De werkplek zit in
   `app/workbench/page.tsx` én in `app/default.tsx` (de default van het children-slot); beide renderen
@@ -74,7 +74,8 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
     `NodeAnnotatiePaneel`, `AnnotatiePaginaSchil`).
   - `werkgebieden/` – overzicht en pagina van een werkgebied (`WerkgebiedenClient`,
     `WerkgebiedClient`, de tabs `BronnenTab`/`ElementenTab`/`BegrippenTab`/`SamenhangTab`/`HistorieTab`,
-    de begrippenwerkplek `BegripWerk`/`BegripKaart`/`BegripPassages`, `WerkgebiedSchil`, en
+    het begrip als leesweergave `BegripPaneel` of als kaart `BegripWerk`/`BegripKaart`/`BegripPassages`,
+    `WerkgebiedSchil`, en
     `OpnemenInWerkgebied` voor de annotatiepagina).
   - `graaf/` – de samenhangsgraaf (sigma); de rekenkern staat in `lib/graaf/`.
   - `admin/` – de beheertabs achter het admin-token: `ProfielenPanel` (+ `ProfileEditor`),
@@ -185,8 +186,8 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
     bronnen met rol *analyseren*. Komt het binnen via `opgeslagen`, dan opent het
     paneel én gaat de werkplek verder in dat werkgebied (`onKiesWerkgebied`, de werkgebiedbalk).
   - **regels** – gereserveerd voor de afleidingsregels: de kaart staat er, maar is geen knop.
-  - **Vanuit een werkgebied** (`/workbench?werkgebied=<id>`, de knop *Bespreek met Lex* op de tab
-    Begrippen): `WorkbenchShell` leest de parameter, `WerkgebiedBalk` boven de chat noemt het werkgebied
+  - **Vanuit een werkgebied** (`/workbench?werkgebied=<id>`, via *Vraag Lex* op de werkgebiedpagina):
+    `WorkbenchShell` leest de parameter, `WerkgebiedBalk` boven de chat noemt het werkgebied
     en biedt alleen *Verlaten*. Wat Lex met het werkgebied kan, staat sinds F3d als **suggesties boven het
     invoerveld** (`werkgebiedSuggesties`, zonder chip; ze wijken zodra je typt of er een onderwerp is).
     Elke beurt draagt dan `werkgebied_id`; een getypte vraag kiest graph-qa's supervisor de agent, een
@@ -418,8 +419,10 @@ begrip, werkgebied), met per soort een module in `MODULES` (`chip`, `suggesties`
   (`onderwerpUitUrl`, streng op soort en id's), haalt de parameters uit de URL en geeft
   `beginOnderwerp` alleen aan het venster waarmee de pagina opende. In de kop van de werkgebiedpagina en
   van elk werkgebiedpaneel (werkgebied, deelvraag, begrip), bij elke deelvraag in de
-  `WerkgebiedSamenvatting` (`vraagLex`) en bij elke open kandidaat; de andere rijen volgen in F3e.
-  `annoteer=`/`meedenk=` blijven tot F3e, met de paginaknoppen die ze gebruiken.
+  `WerkgebiedSamenvatting` (`vraagLex`), en op de werkgebiedpagina bij elke rij (F3e): deelvraag,
+  bronselectie, open kandidaat en begrip. Een element op de tab Elementen heeft er geen: een markering
+  heeft geen URL-weg, en *Vraag Lex* staat al op de markering in de annotatie. `annoteer=`/`meedenk=`
+  bestaan niet meer (F3e): de bevestiging komt in het gesprek; `app/geenRunRoutes.test.ts` bewaakt dat.
 - Browserregressie: `scripts/test-vraaglex.mjs`.
 
 **De markering in het bijzonder:**
@@ -434,11 +437,12 @@ begrip, werkgebied), met per soort een module in `MODULES` (`chip`, `suggesties`
   klik verstuurt; ze verdwijnen zolang er een beurt loopt, want een tweede vraag zou worden
   afgewezen.
 - Het antwoord is een gewone beurt, dus met bronnen, grounding en kopieerknop.
-- De chip is UI-state; het bewaarde bericht krijgt een contextregel
-  (`Bij <klasse> – "<fragment>" (art. 36): <vraag>`).
-- **De context is één document.** `eigenMarkeringenVoorContext(doc)` levert de eigen, niet-verworpen
-  markeringen van de bepaling die openstaat, niet alles wat in het gesprek geopend is – anders legt
-  Lex een fragment uit artikel 36 naast de tekst van artikel 8. graph-qa handhaaft die grens nog eens.
+- De chip is UI-state; het bewaarde bericht krijgt een contextregel (`Bij <dit>: <vraag>`, met `overVan`:
+  bij een markering `<bepaling>: <fragment>`).
+- **De context is één bronnode.** `MODULES.markering.verzoek` (`lib/vraagLex.ts`) stuurt het element, de
+  bronnode en als `corpus` de segmenten van de weergave die openstaat – niet alles wat in het gesprek
+  geopend is, anders legt Lex een fragment uit artikel 36 naast de tekst van artikel 8. De buren leest
+  graph-qa zelf (`context.bestaande_elementen`) en handhaaft die grens nog eens.
 - Op een **smal scherm** sluit het artefact al bij de klik op *Vraag Lex*: het paneel ligt daar over
   de chat, en anders typ je in een veld dat je niet ziet. Het versturen sluit het nog eens, als
   vangnet. De focus op de textarea blijft in dezelfde gebeurtenis als de klik: iOS opent het
@@ -592,13 +596,18 @@ bestaat los van de gesprekken.
   stabiele doelen – een nieuw doel-object per render laadt eindeloos opnieuw) en `benaming` op het
   werkgebied in plaats van het antwoord. Opnemen kan in de inspector (`bijKnoop`), altijd met een rol.
   De suggestielijst die hier stond, is vervangen door de kandidaten van Lex op de tab Bronnen.
+- **De pagina is raadplegen** (F3e). Wat Lex met een werkgebied doet – deelvragen voorstellen of
+  verbeteren, bepalingen zoeken, de dekking, annoteren, begrippen voorstellen, meedenken, een begrip
+  uitwerken – vraag je in het gesprek: met *Vraag Lex* bij een rij (deelvraag, bronselectie, kandidaat,
+  begrip) of in de kop (het werkgebied), en dan een suggestie of een eigen vraag (§*Eén gesprek*). Op de
+  pagina staan geen knoppen die Lex starten, en de werkplek start niets vanuit de URL. De pagina toont
+  wat Lex opleverde en draagt de handmatige besluiten erover. Er is daardoor geen BFF-route meer die een
+  run start: de vier statische routes (`deelvragen-run`, `kaart-run`, `bronnen-run`, `begrippen-run`)
+  en `annoteer=`/`meedenk=` zijn weg, en `app/geenRunRoutes.test.ts` bewaakt dat ze niet terugkomen.
 - **Bronnen vinden met Lex** (fase A; api §*Bronnen vinden met Lex*, graph-qa §*Bronnen vinden met
   Lex*): `BronKandidaten` bovenaan de tab Bronnen én als artefact naast het gesprek – één inhoud, twee
-  schillen.
-  - **Starten** via de statische route `app/api/bronnen-run`; die deelt zijn vorm met
-    `app/api/begrippen-run` in `app/api/_lib/werkgebiedRun.ts` (api-run maken of hergebruiken, dan
-    graph-qa; `agent_run_id: null` = voor deze selectie al gezocht). Runstore-sleutel bij graph-qa:
-    `werkgebied:<id>:bronnen`.
+  schillen, allebei zonder zoekknop. Zoeken is de taak `bronnen_zoeken` van de deelvragen-agent; de
+  strook toont de laatste ronde (`bronnen-runs/laatste`) en de kandidaten.
   - **Per kandidaat** de rol als badge (kern / afhankelijkheid / aanverwant, met uitleg) en het bewijs
     per methode in gewone woorden (`bewijsZin` in `lib/bronKandidaten.ts`: "verwezen vanuit Artikel 9,
     lid 1 (“artikel 8”) – uitzondering"). Per methode de telling en "onvolledig" als ze haar plafond
@@ -609,7 +618,7 @@ bestaat los van de gesprekken.
     opnieuw; *Later*; *Uitsluiten* opent een redenveld (verplicht, krijgt de focus); *Heropenen*.
   - **Toetsenbord** alleen met de focus in de lijst: `j`/`k`, `a` opnemen, `x` uitsluiten.
   - De allowlist (`isWerkgebiedRoute`) laat `kandidaten/*` en `bronnen-runs/laatste|{run}` door, nooit
-    een kale POST op `bronnen-runs` of `…/uitkomst|loopt|mislukt`.
+    een kale POST op `bronnen-runs` of `…/uitkomst|loopt|mislukt` (dat is van graph-qa).
   - **Werkgebied vanuit een overzicht**: onder `OverzichtBlok` de knop *Maak hier een werkgebied van*
     (`WerkgebiedUitOverzicht`): naam en analysevraag vooringevuld, de bepalingen uit het overzicht
     (`bepalingenVanOverzicht`) voorgeselecteerd. Daarna staat de werkplek in dat werkgebied; wat niet
@@ -619,10 +628,9 @@ bestaat los van de gesprekken.
   `Deelvragen` bovenaan de tab Bronnen. Zonder deelvragen verandert er niets.
   - Een deelvraag hoort bij de scope: toevoegen, bewerken, weghalen (`BevestigKnop`) en *Bronnen en
     begrippen* (vinkjes, één keer opslaan, de hele set) lopen via `muteer` met de revisie in beeld.
-  - *Laat Lex deelvragen voorstellen* (uit zonder analysevraag) start via de statische route
-    `app/api/deelvragen-run` direct een graph-qa-run (de api maakt hier geen run; runstore-sleutel
-    `werkgebied:<id>:deelvragen`), gevolgd met `volgRun`; de samenvatting van Lex staat erna als melding.
-    Een voorstel staat geel met *Overnemen* of *Afwijzen…* (reden verplicht; Lex stelt het niet opnieuw voor).
+  - Voorstellen en verbeteren doet de deelvragen-agent in het gesprek (*Stel deelvragen voor*, of
+    *Formuleer scherper* / *Splits* via *Vraag Lex* bij de deelvraag). Een voorstel staat hier geel met
+    *Overnemen* of *Afwijzen…* (reden verplicht; Lex stelt het niet opnieuw voor).
   - De stand per deelvraag komt uit `GET …/deelvragen/dekking` (per revisie, faalt stil,
     `isDeelvragenDekking`, via `useDeelvragenDekking`): *Gedekt* (groen), *Nog geen geaccordeerd
     begrip* (geel), *Nog geen bron* – een `StatusLabel` met `STAND_TOON`.
@@ -638,8 +646,14 @@ bestaat los van de gesprekken.
   en opnemen is idempotent.
 - **Begrippen** (levering 2; api in `../api/CLAUDE.md` §*Begrippen*). De tab staat tussen Elementen en
   Samenhang; het gekozen begrip staat in de URL (`?tab=begrippen&begrip=<id>`, via `kiesBegrip` in
-  `WerkgebiedClient`, ook vanuit de tab Elementen). `BegrippenTab` is de lijst (met export en *Nieuw
-  begrip*); `BegripWerk` laadt één begrip en draagt `muteer` – dezelfde vorm als bij het werkgebied:
+  `WerkgebiedClient`, ook vanuit de tab Elementen). `BegrippenTab` is de lijst (`Lijst`/`LijstRij`, met
+  *Vraag Lex* per begrip, export en *Nieuw begrip*). Het gekozen begrip opent om te **lezen**
+  (`BegripPaneel`, hetzelfde paneel als naast het gesprek: de leesweergave, de open voorstellen van Lex per
+  veld, een kleine bewerking); *Begripskaart* wisselt naar de **kaart** (`BegripWerk`). Er staat er steeds
+  één. De weergave staat in de URL (`&weergave=kaart`, `weergaveUitParam` in `lib/begrippen.ts`) en blijft
+  staan bij een wissel van begrip; een klik in de strook *Herbeoordelen* en *Open de begripskaart* in de
+  samenhangsgraaf openen de kaart. Een wissel met onbewaarde wijzigingen vraagt eerst bevestiging, net als
+  een wissel van begrip. `BegripWerk` laadt één begrip en draagt `muteer` – dezelfde vorm als bij het werkgebied:
   revisie in beeld, 412 laadt opnieuw en zegt het, een fout met een `melding` van de api (`al_primair`,
   `poort`, `element_buiten_werkgebied`) verschijnt zoals de api hem formuleert. Kaart en passages staan
   vanaf `xl` naast elkaar, daaronder wissel je; de schil is op deze tab breed (`max-w-7xl`).
@@ -666,18 +680,13 @@ bestaat los van de gesprekken.
   - **Elementselectie** in `ElementenTab`: selectievakjes en een balk met *Nieuw begrip uit selectie*
     en *Koppelen*; een element dat al een begrip aanduidt, noemt dat begrip (`primair` uit de lijst).
 - **Voorstellen van Lex** (levering 3a; api §*Voorstellen van Lex*, graph-qa §*De begrippenrun*):
-  de strook `BegripVoorstellen` bovenaan de tab Begrippen, naast zelf een begrip maken.
-  - **Starten** gaat via de statische route `app/api/begrippen-run` (POST): eerst de api (manifest en
-    run, of de bestaande op dezelfde stand), dan graph-qa `POST /v1/begrippen-runs`. `agent_run_id: null`
-    betekent "voor deze stand al gerekend" – de strook zegt dat. Een 409 van graph-qa is aanhaken.
-    Statisch, omdat een `app/api/werkgebieden/[id]/…` naast de catch-all `[...pad]` de routestructuur
-    breekt (`app/routes.test.ts`). `GET ?werkgebied=` vindt een lopende run (sleutel `werkgebied:<id>`)
-    om na herladen weer aan te haken.
-  - **Volgen en stoppen** met de gewone `volgRun`/`stopRun` over `/api/annotatie/run/{id}/…`: het is een
-    graph-qa-run als elke andere. De fasen staan als voortgang in beeld; een `error` wordt een melding.
+  de strook `BegripVoorstellen` bovenaan de tab Begrippen (en als artefact naast het gesprek), naast zelf
+  een begrip maken. Voorstellen vraag je Lex in het gesprek (*Stel begrippen voor*, de begrippen-agent);
+  de strook toont de laatste ronde (`begrippen-runs/laatste`): wanneer, hoeveel passages en groepen, wat
+  niet meeging, of ze verouderd of mislukt is – en de reviewlijst. Geen knoppen die Lex starten.
   - **De allowlist** (`isWerkgebiedRoute`) laat `groepen/*`, `begrippen-runs/laatste|{run}` en
-    `…/vragen/{kid}` door, maar nooit `…/uitkomst`, `…/loopt`, `…/mislukt` (van graph-qa) of een kale
-    POST op `begrippen-runs` (één weg: de startroute).
+    `…/vragen/{kid}` door, maar nooit `…/uitkomst`, `…/loopt`, `…/mislukt` of een kale POST op
+    `begrippen-runs`: een run maakt graph-qa.
   - **De review** (`BegripReview`, fase D; api §*Voorstellen van Lex* – akkoord) is de vorm van de
     annotatiereview: groepen én open twijfelvragen in één lijst (`reviewItems` in
     `lib/begripVoorstellen.ts`: geel, de vragen, groen; besluiten alleen bij *Alles*), voortgang
@@ -704,31 +713,22 @@ bestaat los van de gesprekken.
     **inhoud** van het veld op in de toegankelijke naam – zoek een gevuld veld op een prefix.
 - **Lex annoteert het werkgebied** (fase B; api §*Werkgebieden* – de annotatie-werkvoorraad, graph-qa
   §*Lex annoteert het werkgebied*). Lex begint nooit zonder akkoord.
-  - **Tab Elementen**: bovenaan `AnnoterenDoorLex` – per analysebron de stand (`standRegel`) en *Laat Lex
-    annoteren (n bepalingen)*. Die opent `AnnoterenBevestiging` (aantal, schatting, budget, wat niet
-    meegaat; `bevestigingInhoud` in `lib/werkgebiedAnnoteren.ts`; op een smal scherm een sheet). *Start*
-    gaat naar `/workbench?werkgebied=<id>&annoteer=<n>`: `WorkbenchShell` leest `annoteer` één keer en
-    haalt hem uit de URL, en `WerkplekClient` start in dat verse gesprek de run (`startAnnoteren`).
-  - **In de werkplek** (F3d): de suggestie *Annoteer wat nog niet geannoteerd is* vraagt Lex om het voorstel;
-    de bevestiging komt als bericht in het gesprek.
+  - **In de werkplek** (F3d): de suggestie *Annoteer wat nog niet geannoteerd is* vraagt Lex om het voorstel
+    (aantal, schatting, budget, wat niet meegaat – graph-qa leest de werkvoorraad zelf); de bevestiging komt
+    als bericht in het gesprek. Op de tab Elementen staat sinds F3e geen knop meer.
   - **In het gesprek**: een antwoord met `bevestiging` (`parseBevestiging`; ook na herladen) krijgt de
-    knop *Laat Lex annoteren*. Beide knoppen gaan via `verstuur(…, annoteren)` →
+    knop *Laat Lex annoteren*. Die gaat via `verstuur(…, annoteren)` →
     `startRun({modus: "werkgebied_annoteren", werkgebied_id, bevestigd})`. Is de werkvoorraad intussen
     veranderd, dan begint graph-qa niet en komt er een nieuwe bevestiging.
   - De voortgang is het gewone `ReeksBlok` (labels met de regeling erbij); de samenvatting van de run
-    staat eronder (`item.tekst` van het reeksitem). Een blok dat de werkvoorraad niet kan lezen
-    (`isWerkvoorraad`) zegt dat en laat de inventaris eronder staan.
+    staat eronder (`item.tekst` van het reeksitem).
   - Browserregressie: `scripts/test-werkgebied-annoteren.mjs`.
 - **Lex denkt mee** (fase C; api §*Voorstellen van Lex* – de verdieping, graph-qa §*Lex denkt mee*).
   Lex begint nooit zonder akkoord; het model geeft advies en kaarten, de jurist beslist.
-  - **Aanbod** boven de voorstellen (`BegripVoorstellen`, ook in het artefactpaneel): uit `GET …/verdieping`
-    (`haalVerdieping`; faalt stil, de voorstellen staan er dan gewoon) – *Laat Lex meedenken (n)* opent
-    `MeedenkBevestiging` (omvang, schatting, budget; `meedenkInhoud` in `lib/begripVoorstellen.ts`). *Start*
-    gaat op de tab naar `/workbench?werkgebied=<id>&meedenk=<n>` (`WorkbenchShell` leest `meedenk` één keer,
-    `WerkplekClient` start met `startMeedenken`); in het artefactpaneel start het in het open gesprek
-    (`onMeedenken`), want een werkplek die al open is leest de URL niet opnieuw.
-  - **In het gesprek**: een `bevestiging` met `soort: "begrippen_verdiepen"` geeft *Laat Lex meedenken (n)*.
-    Alle wegen gaan via `verstuur(MEEDENK_PROMPT, …, {werkgebiedId, bevestigd, modus: "begrippen_verdiepen"})`.
+  - **Het aanbod staat in het gesprek** (F3e): de suggestie *Denk mee over de begrippen*, of Lex biedt het
+    zelf aan na het voorstellen; graph-qa leest de werkvoorraad (`…/verdieping`) en antwoordt met een
+    `bevestiging` (`soort: "begrippen_verdiepen"`) die *Laat Lex meedenken (n)* geeft. Die knop gaat via
+    `verstuur(MEEDENK_PROMPT, …, {werkgebiedId, bevestigd, modus: "begrippen_verdiepen"})`.
     `parseBevestiging` kent beide soorten; een onbekende soort krijgt geen knop.
   - **Na het meedenken**: twijfelvragen tonen alleen wat open bleef (`openVragen`), met *Advies van Lex*;
     een groep `door: "model"` zegt "samengevoegd op advies van Lex"; de definitie komt uit de kaart
@@ -740,18 +740,14 @@ bestaat los van de gesprekken.
     "door de analist of door Lex": de onderbouwing zegt wie.
   - De allowlist laat `verdieping` (lezen) door, nooit `…/batches/*` of `…/verdieping` op een run.
   - Browserregressie: `scripts/test-begrippen-verdieping.mjs`.
-- **Lex naast de kaart** (fase E; api §*Lex naast de kaart*, graph-qa §*Lex naast de kaart*). Boven de
-  begripskaart staat `BegripLex`: vier knoppen (`ACTIES` in `lib/begripLex.ts`) – *Zoek de brondefinitie*
-  (zonder model), *Stel een scherpere definitie voor*, *Verklaar het betekenisverschil* (met een ander
-  begrip, voorgevuld via `vergelijkKandidaten`) en *Bedenk voorbeelden*. De klik is de bevestiging; de
-  knop noemt de schatting, en `waaromNiet` zegt waarom hij uit staat (onbewaarde wijzigingen, budget op,
-  geen definitie, geen actuele passage).
-  - **Starten** via de statische route `app/api/kaart-run` (api `…/begrippen/{id}/kaart-runs`, dan
-    graph-qa `POST /v1/kaart-runs`; runstore-sleutel `begrip:<id>:kaart`, `GET ?begrip=` om aan te
-    haken). Volgen en stoppen met `volgRun`/`stopRun`. `agent_run_id: null` = voor deze stand staan de
-    voorstellen er al.
+- **Lex naast de kaart** (fase E; api §*Lex naast de kaart*, graph-qa §*Lex naast de kaart*). De vier
+  acties – de brondefinitie zoeken (zonder model), een scherpere definitie, het betekenisverschil, voorbeelden
+  – zijn sinds F3c/F3e taken van de begrippen-agent: *Vraag Lex* bij het begrip en een suggestie (*Zoek de
+  brondefinitie*, *Geef voorbeelden*, *Wat is het betekenisverschil met …*, *Werk het begrip volledig
+  uit*). Er staan geen Lex-knoppen boven de kaart. De rekenkern van een voorstel staat in
+  `lib/kaartVoorstel.ts`.
   - **Een voorstel staat onder zijn veld** (`KaartVoorstelKaart` in `BegripKaart`, via `lex` uit
-    `BegripWerk`): de tekst, de herkomst (`herkomstLabel`), de fragmenten, de aandachtspunten
+    `BegripWerk`, en per veld in `BegripPaneel`): de tekst, de herkomst (`herkomstLabel`), de fragmenten, de aandachtspunten
     (`AANDACHTSPUNT_LEX`, gelijk aan graph-qa `kaartacties.TEKST` – de test leest die bron), en
     *Overnemen · Aanpassen · Afwijzen*. Alle knoppen zijn `type="button"` en Enter in het redenveld doet
     `preventDefault`: de kaart staat ín het formulier van het begrip.
@@ -765,12 +761,13 @@ bestaat los van de gesprekken.
     (`revisieZin`); besloten voorstellen staan ingeklapt onder *Eerdere voorstellen van Lex*.
   - De allowlist laat `…/voorstellen` (lezen) en `…/voorstellen/{id}/overnemen|afwijzen` door, nooit
     `…/kaart-runs/*`.
-  - Browserregressie: `scripts/test-begriplex.mjs`.
+  - Browserregressie: het overnemen in het paneel in `scripts/test-artefacten.mjs`.
 - **Herbeoordelen en dekking** (fase F1; api §*Onderhoud van begrippen*). Acceptatie: een gewijzigde
   dragende passage verschijnt bij de geraakte begrippen; de oude bewijsstand blijft.
   - **Tab Begrippen**: de strook *Herbeoordelen* (`strookKop` in `lib/herbeoordeling.ts`) noemt de
-    begrippen met een geraakte passage, de lijst links ook; een klik opent het begrip. Het antwoord komt
-    van `GET …/herbeoordelingen` en vraagt de bronboom: het laadt los van de lijst en faalt stil
+    begrippen met een geraakte passage, de lijst links ook; een klik in de strook opent het begrip op de
+    kaart. Het antwoord komt van `GET …/herbeoordelingen` en vraagt de bronboom: het laadt los van de lijst
+    en faalt stil
     (`isHerbeoordelingen`; zonder antwoord staan de begrippen er gewoon).
   - **Bij de passage** (`Herbeoordeling` in `BegripPassages`, uit `BegripWerk` dat per revisie
     `?begrip_id=` opnieuw vraagt): de redenen van de api, *toen* (het bewijs) naast *nu*, de wettekst van
@@ -1406,7 +1403,7 @@ npm run test:browser # Playwright op de echte Next-UI met gemockte BFF (scripts/
 `test:browser` draait `scripts/test-annotatie-nodes.mjs`, `test-samenhang.mjs`, `test-reeks.mjs`,
 `test-toetsen.mjs`, `test-werkgebieden.mjs`, `test-begrippen.mjs`, `test-begripvoorstellen.mjs` en
 `test-artefacten.mjs` (de soorten artefacten in de werkplek), `test-bronkandidaten.mjs`,
-`test-werkgebied-annoteren.mjs`, `test-begrippen-verdieping.mjs`, `test-begriplex.mjs`, `test-herbeoordeling.mjs`, `test-begriprelaties.mjs`, `test-begrippengraaf.mjs`, `test-begrippenoverzicht.mjs`, `test-deelvragen.mjs`, `test-vraaglex.mjs` en `test-rondleiding.mjs`, en verwacht een devserver op poort 3109
+`test-werkgebied-annoteren.mjs`, `test-begrippen-verdieping.mjs`, `test-herbeoordeling.mjs`, `test-begriprelaties.mjs`, `test-begrippengraaf.mjs`, `test-begrippenoverzicht.mjs`, `test-deelvragen.mjs`, `test-vraaglex.mjs` en `test-rondleiding.mjs`, en verwacht een devserver op poort 3109
 (`AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109`).
 Praat met **`localhost`**, niet met `127.0.0.1`: Next 16 weigert dev-assets aan een andere origin,
 waarna de pagina niet hydrateert en elke stap zonder duidelijke fout time-out.

@@ -13,12 +13,11 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-import pytest
 
 from agent import begrip_kaart as bk
 from agent.begrippen_pipeline import kaartacties as ka, toetsen
 from agent.begrippen_pipeline.model import Bron, Formulering, Manifest
-from agent.models import KaartRunVerzoek, Verbruiksmeter
+from agent.models import Verbruiksmeter
 from fakes import FakeGraph, make_settings, response, tool_block
 
 API_CONTRACT = Path(__file__).resolve().parents[3] / "api" / "app" / "begrip_voorstel_contracts.py"
@@ -317,32 +316,3 @@ def test_een_falend_model_is_een_mislukte_run_met_boeking():
     api, events = asyncio.run(_verloop(_invoer("voorbeelden", definitie="x"), maak_llm=lambda s: Faalt(),
                                        budget_toegestaan=_ja))
     assert api.uitkomst is None and api.mislukt and events[-1]["soort"] == "model"
-
-
-@pytest.fixture
-def client(monkeypatch):
-    from fastapi.testclient import TestClient
-    from api import main
-
-    async def langzaam(*a, **kw):
-        await asyncio.sleep(0.3)
-        yield {"type": "done"}
-
-    monkeypatch.setattr(main.settings, "graphdb_token", "test", raising=False)
-    monkeypatch.setattr(main.settings, "graphdb_mcp_url", "https://graaf.test/mcp", raising=False)
-    monkeypatch.setattr(main, "kaart_stroom", langzaam)
-    monkeypatch.setattr(main, "runs", type(main.runs)())
-    with TestClient(main.app) as c:
-        yield c, main
-
-
-def test_een_kaartrun_per_begrip(client, monkeypatch):
-    c, main = client
-    body = {"werkgebied_id": "w1", "begrip_id": "b1", "run_id": "k1"}
-    assert c.post("/v1/kaart-runs", json=body).status_code == 503              # zonder api
-    monkeypatch.setattr(type(main.settings), "legt_zelf_vast", property(lambda _s: True))
-    eerste = c.post("/v1/kaart-runs", json=body)
-    assert eerste.status_code == 201 and eerste.json()["conversation_id"] == "begrip:b1:kaart"
-    assert c.post("/v1/kaart-runs", json={**body, "run_id": "k2"}).status_code == 409
-    assert c.post("/v1/kaart-runs", json={**body, "begrip_id": "b2"}).status_code == 201
-    assert c.post("/v1/kaart-runs", json={**body, "begrip_id": "b 1"}).status_code == 422

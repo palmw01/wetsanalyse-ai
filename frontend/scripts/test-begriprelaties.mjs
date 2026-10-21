@@ -125,7 +125,6 @@ await page.route("**/api/**", async (route) => {
   if (p === "/api/werkgebieden/wg1/begrippen-runs/laatste") return route.fulfill({ json: { run: null } });
   if (p === "/api/werkgebieden/wg1/verdieping")
     return route.fulfill({ json: { run: null, aantal: 0, vragen: [], kaarten: [], batches: [], verdiept: false, schatting: null, budget: null } });
-  if (p === "/api/begrippen-run" || p === "/api/kaart-run") return route.fulfill({ json: null });
   if (p === "/api/gesprekken") return route.fulfill({ json: [] });
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
   return route.fulfill({ status: 404, json: { detail: "Niet in deze test." } });
@@ -134,7 +133,7 @@ await page.route("**/api/**", async (route) => {
 const sectie = () => page.getByRole("region", { name: "Relaties en opvolging" });
 const zie = (tekst) => sectie().getByText(tekst, { exact: false }).first().waitFor();
 try {
-  await page.goto(`${base}/werkgebieden/wg1?tab=begrippen&begrip=b1`);
+  await page.goto(`${base}/werkgebieden/wg1?tab=begrippen&begrip=b1&weergave=kaart`);
   const voorgesteld = sectie().getByRole("list", { name: "Voorgestelde relaties" });
   await voorgesteld.getByText("voorgesteld door Lex · inclusie").waitFor();
   await voorgesteld.getByText("onder X wordt mede verstaan Y", { exact: false }).waitFor();
@@ -183,7 +182,7 @@ try {
   assert.equal(await sectie().getByRole("button", { name: "Nieuwe betekenis" }).count(), 0);
 
   // 5. Combineren met een vergelijking vooraf; "aanslag blijft" combineert op b3.
-  await page.goto(`${base}/werkgebieden/wg1?tab=begrippen&begrip=b2`);
+  await page.goto(`${base}/werkgebieden/wg1?tab=begrippen&begrip=b2&weergave=kaart`);
   await sectie().getByRole("button", { name: "Combineren met…" }).click();
   const comb = sectie().getByRole("form", { name: "Combineren" });
   await comb.getByLabel("Combineren met").selectOption("b3");
