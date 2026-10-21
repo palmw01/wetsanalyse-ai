@@ -106,7 +106,7 @@ export function WerkgebiedenClient() {
       )}
 
       {lijst === null ? (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {[1, 2].map((i) => (
             <div key={i} className="space-y-3 rounded-button border border-line bg-paper p-4">
               <Skeleton className="h-4 w-48" />
@@ -123,7 +123,7 @@ export function WerkgebiedenClient() {
           Geen werkgebied dat hierop past.
         </p>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2" data-testid="werkgebieden-overzicht">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2" data-testid="werkgebieden-overzicht">
           {getoond.map((wg) => <WerkgebiedKaart key={wg.id} wg={wg} onVerwijder={() => verwijder(wg)} />)}
         </div>
       )}
