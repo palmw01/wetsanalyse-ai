@@ -41,11 +41,12 @@ def parameters(agent: str, taak: str, *, vraag: str = "", onderwerp: dict[str, A
 
     o = onderwerp or {}
     p: dict[str, Any] = {"werkgebied_id": werkgebied_id or o.get("werkgebied_id", "")}
-    if agent == "deelvragen":
+    if agent == "deelvragen" or (agent == "annotatie" and taak == "deelvragen"):
         if o.get("soort") == "deelvraag" and o.get("id"):
             p["deelvraag_id"] = o["id"]
         elif m := _DEELVRAAG_NR.search(vraag or ""):
             p["deelvraag_nr"] = int(m.group(1))
+    if agent == "deelvragen":
         if actie in ("deelvraag_herformuleren", "deelvraag_splitsen"):
             p["soort"] = "splits" if actie == "deelvraag_splitsen" else "herformuleer"
     elif agent == "begrippen":

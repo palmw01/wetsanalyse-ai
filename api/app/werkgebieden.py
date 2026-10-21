@@ -15,7 +15,7 @@ from .werkgebied_contracts import (
     DeelvraagWijziging, WerkgebiedInvoer, WerkgebiedWijziging,
 )
 from .werkgebied_inventaris import inventaris
-from .werkgebied_werkvoorraad import werkvoorraad
+from .werkgebied_werkvoorraad import selecties_in_bereik, werkvoorraad
 
 router = APIRouter(prefix="/werkgebieden", tags=["werkgebieden"],
                    dependencies=[Depends(require_client)])
@@ -139,12 +139,33 @@ async def get_elementen(werkgebied_id: str, actor: str = Depends(actieve_userid)
 
 
 @router.get("/{werkgebied_id}/annotatie-werkvoorraad")
-async def get_annotatie_werkvoorraad(werkgebied_id: str, actor: str = Depends(actieve_userid)):
+async def get_annotatie_werkvoorraad(werkgebied_id: str,
+                                     bereik: str = Query("werkgebied", pattern="^(werkgebied|deelvragen)$"),
+                                     deelvraag_id: str = Query("", pattern=r"^[A-Za-z0-9-]{0,64}$"),
+                                     actor: str = Depends(actieve_userid)):
     """Wat Lex in dit werkgebied nog moet annoteren (fase B): de eenheden van de analysebronnen met
-    hun stand, de schatting voor deze gebruiker en zijn budget. Alleen lezen."""
+    hun stand, de schatting voor deze gebruiker en zijn budget. Alleen lezen.
+
+    `bereik=deelvragen` beperkt het tot de bronnen onder de actieve deelvragen, met `deelvraag_id` tot
+    die van één deelvraag."""
+    if deelvraag_id and bereik != "deelvragen":
+        raise HTTPException(422, "deelvraag_id hoort bij bereik=deelvragen")
     wg = await store.haal(werkgebied_id)
-    return {"werkgebied_id": werkgebied_id, "revisie": wg["revisie"], "naam": wg["naam"],
-            **await werkvoorraad(wg["bronnen"], resolve_bron, actor)}
+    selecties, extra = wg["bronnen"], {"bereik": bereik}
+    if bereik == "deelvragen":
+        if deelvraag_id:
+            d = await deelvragen.haal(werkgebied_id, deelvraag_id)
+            if d["status"] != "actief":
+                raise HTTPException(409, {"fout": "niet_actief", "melding":
+                                          "Deze deelvraag is niet (meer) actief; annoteer de bronnen van een actieve deelvraag."})
+        elif not any(d.get("status") == "actief" for d in wg["deelvragen"]):
+            raise HTTPException(409, {"fout": "geen_deelvragen", "melding": "Dit werkgebied heeft nog geen deelvragen."})
+        selecties, meegenomen = selecties_in_bereik(wg["bronnen"], wg["deelvragen"], deelvraag_id)
+        binnen = {s["id"] for s in selecties}
+        extra |= {"deelvragen": meegenomen,
+                  "buiten_bereik": sum(1 for s in wg["bronnen"] if s["rol"] == "analyseren" and s["id"] not in binnen)}
+    return {"werkgebied_id": werkgebied_id, "revisie": wg["revisie"], "naam": wg["naam"], **extra,
+            **await werkvoorraad(selecties, resolve_bron, actor)}
 
 
 @router.get("/{werkgebied_id}/audit")

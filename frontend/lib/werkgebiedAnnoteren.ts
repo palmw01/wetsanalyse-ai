@@ -25,7 +25,13 @@ export function parseBevestiging(ruw: unknown): Bevestiging | undefined {
   if (typeof r.werkgebied_id !== "string" || !r.werkgebied_id) return undefined;
   if (typeof r.aantal !== "number" || !Number.isInteger(r.aantal) || r.aantal < 0) return undefined;
   const schatting = typeof r.schatting === "number" && Number.isFinite(r.schatting) ? r.schatting : null;
-  return { soort: r.soort, werkgebied_id: r.werkgebied_id, aantal: r.aantal, schatting };
+  const uit: Bevestiging = { soort: r.soort, werkgebied_id: r.werkgebied_id, aantal: r.aantal, schatting };
+  // Alleen een bereik dat deze werkplek kent; anders het hele werkgebied, zoals een oud bericht.
+  if (r.soort === "werkgebied_annoteren" && r.bereik === "deelvragen") {
+    uit.bereik = "deelvragen";
+    if (typeof r.deelvraag_id === "string" && /^[A-Za-z0-9-]{1,64}$/.test(r.deelvraag_id)) uit.deelvraag_id = r.deelvraag_id;
+  }
+  return uit;
 }
 
 export function bepalingen(n: number): string {

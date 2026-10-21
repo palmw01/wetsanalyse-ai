@@ -85,6 +85,10 @@ class Bevestiging(BaseModel):
     werkgebied_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
     aantal: int = Field(ge=0, le=100_000)
     schatting: int | None = Field(default=None, ge=0)
+    # Bij `werkgebied_annoteren`: het hele werkgebied, of alleen de bronnen onder de deelvragen (met
+    # `deelvraag_id`: onder die ene). De knop start dan hetzelfde bereik.
+    bereik: Literal["werkgebied", "deelvragen"] = "werkgebied"
+    deelvraag_id: str = Field(default="", pattern=r"^[A-Za-z0-9-]{0,64}$")
 
 
 class VraagOptie(BaseModel):

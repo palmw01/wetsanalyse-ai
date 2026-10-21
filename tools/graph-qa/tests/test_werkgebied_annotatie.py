@@ -36,13 +36,21 @@ def _werkvoorraad(*iris: str, schatting=True, al: int = 0, context: int = 1) -> 
 class WerkgebiedApi:
     """De api van de werkgebied-run: de werkvoorraad en het slotbericht."""
 
-    def __init__(self, wv: dict[str, Any] | None = None, status: int = 0) -> None:
-        self.wv, self.status = wv, status
+    def __init__(self, wv: dict[str, Any] | None = None, status: int = 0, *, onder: dict[str, Any] | None = None,
+                 reden: str = "") -> None:
+        # `onder`: de werkvoorraad bij bereik `deelvragen`; zonder geeft de api daar 409 geen_deelvragen.
+        self.wv, self.status, self.onder, self.reden = wv, status, onder, reden
         self.berichten: list[dict[str, Any]] = []
+        self.vragen: list[tuple[str, str]] = []
 
-    async def haal_annotatie_werkvoorraad(self, werkgebied_id):
+    async def haal_annotatie_werkvoorraad(self, werkgebied_id, bereik="werkgebied", deelvraag_id=""):
+        self.vragen.append((bereik, deelvraag_id))
         if self.status:
-            raise WetsanalyseApiFout("nee", self.status, "")
+            raise WetsanalyseApiFout("nee", self.status, self.reden)
+        if bereik == "deelvragen":
+            if self.onder is None:
+                raise WetsanalyseApiFout("nee", 409, "geen_deelvragen")
+            return self.onder
         return self.wv
 
     async def voeg_bericht_toe(self, gesprek_id, bericht):
@@ -97,7 +105,8 @@ def test_getypt_levert_de_annotatie_agent_het_voorstel_met_een_knop():
     invoer = register.invoer("annotatie", "werkgebied", register.parameters("annotatie", "werkgebied", werkgebied_id="wg1"))
     uit = asyncio.run(annotatie.voer_uit(invoer, agent_ctx(wapi)))
     assert uit.status == "bevestiging" and "**2** bepalingen" in uit.tekst and uit.meting["model"] is False
-    assert uit.bevestiging == {"soort": "werkgebied_annoteren", "werkgebied_id": "wg1", "aantal": 2, "schatting": 6000}
+    assert uit.bevestiging == {"soort": "werkgebied_annoteren", "werkgebied_id": "wg1", "aantal": 2, "schatting": 6000,
+                              "bereik": "werkgebied", "deelvraag_id": ""}
     assert wapi.berichten == []                    # vastleggen doet de beurt-driver
 
 
@@ -112,7 +121,7 @@ def test_zonder_bevestiging_alleen_het_voorstel_met_een_knop(api):
     assert "1 bepaling met voorstellen" in tekst and "1 contextbron" in tekst
     bericht = wapi.berichten[-1]
     assert bericht["bevestiging"] == {"soort": "werkgebied_annoteren", "werkgebied_id": "wg1", "aantal": 2,
-                                      "schatting": 6000}
+                                      "schatting": 6000, "bereik": "werkgebied", "deelvraag_id": ""}
     assert set(bericht) <= _bericht_velden()                       # niets valt stil weg bij de api
     assert [e["type"] for e in events][-2:] == ["opgeslagen", "done"]
 
@@ -248,3 +257,93 @@ def test_annoteer_het_werkgebied_via_runs_gaat_deze_route_in(monkeypatch):
             assert gestart == [("wg1", 4)]
         finally:
             main.app.dependency_overrides.clear()
+
+
+# --- het bereik: alleen de bronnen onder de deelvragen ---------------------------------------------
+
+def _onder(*iris: str, deelvragen=(("d1", "Wie?", 1), ("d2", "Wanneer?", 2)), buiten: int = 3,
+           context: int = 0) -> dict[str, Any]:
+    return {**_werkvoorraad(*iris, context=context), "bereik": "deelvragen", "buiten_bereik": buiten,
+            "deelvragen": [{"id": i, "vraag": v, "selecties": n} for i, v, n in deelvragen]}
+
+
+def test_alle_deelvragen_in_een_keer(api):
+    wapi = WerkgebiedApi(_werkvoorraad(L1, L2, ART8), onder=_onder(L1, L2))
+    events = _draai(_verzoek(bereik="deelvragen"), wapi)
+    tekst = _tekst(events)
+    assert wapi.vragen == [("deelvragen", "")]                    # geen tweede vraag naar het hele werkgebied
+    assert "Onder de 2 deelvragen van werkgebied *Invorderbaarheid*" in tekst and "**2** bepalingen" in tekst
+    assert "3 analysebronnen buiten de deelvragen" in tekst
+    assert wapi.berichten[-1]["bevestiging"]["bereik"] == "deelvragen"
+    assert wapi.berichten[-1]["bevestiging"]["deelvraag_id"] == ""
+
+    wapi = WerkgebiedApi(_werkvoorraad(L1, L2, ART8), onder=_onder(L1, L2))
+    events = _draai(_verzoek(bevestigd=2, bereik="deelvragen"), wapi)
+    reeks = [e for e in events if e["type"] == "reeks" and e.get("fase") == "start"]
+    assert reeks and reeks[0]["ouder"]["bron_iri"] == "urn:wa:werkgebied:wg1:deelvragen"
+    assert [e["bron_iri"] for e in events if e["type"] == "onderdeel" and e.get("fase") == "start"] == [L1, L2]
+    assert "onder de 2 deelvragen van werkgebied *Invorderbaarheid*" in wapi.berichten[-1]["tekst"]
+
+
+def test_een_deelvraag_via_het_onderwerp(api):
+    r = ChatRequest(question="Annoteer de bepalingen hierbij", conversation_id="g1", actie="deelvragen_annoteren",
+                    onderwerp={"soort": "deelvraag", "werkgebied_id": "wg1", "id": "d2"})
+    assert (r.modus, r.bereik, r.deelvraag_id, r.werkgebied_id) == ("werkgebied_annoteren", "deelvragen", "d2", "wg1")
+    wapi = WerkgebiedApi(_werkvoorraad(L1, L2), onder=_onder(L2, deelvragen=(("d2", "Wanneer?", 1),), buiten=1))
+    tekst = _tekst(_draai(r, wapi))
+    assert wapi.vragen == [("deelvragen", "d2")]
+    assert "Onder deelvraag *Wanneer?* is **1** bepaling" in tekst and "buiten deze deelvraag" in tekst
+    assert wapi.berichten[-1]["bevestiging"]["deelvraag_id"] == "d2"
+
+
+def test_een_deelvraag_zonder_bronnen_zegt_wat_er_eerst_moet():
+    leeg = {**_onder(deelvragen=(("d1", "Wie?", 0),)), "eenheden": [], "deelvraag_id": "d1"}
+    tekst, bevestiging = wa.voorstel("Inv", leeg)
+    assert bevestiging is None and "nog geen analysebronnen" in tekst and "*Zoek bepalingen hierbij*" in tekst
+
+
+def test_het_hele_werkgebied_noemt_de_kortere_weg(api):
+    wapi = WerkgebiedApi(_werkvoorraad(L1, L2, ART8), onder=_onder(L1))
+    tekst = _tekst(_draai(_verzoek(), wapi))
+    assert wapi.vragen == [("werkgebied", ""), ("deelvragen", "")]
+    assert "Dat is er 1: vraag *Annoteer de bepalingen van de deelvragen*" in tekst
+    # Zonder deelvragen (409 bij de api) geen zin, en geen storing.
+    wapi = WerkgebiedApi(_werkvoorraad(L1, L2))
+    tekst = _tekst(_draai(_verzoek(), wapi))
+    assert "deelvragen" not in tekst and wapi.berichten[-1]["bevestiging"]["aantal"] == 2
+
+
+@pytest.mark.parametrize("status,reden,zin", [
+    (409, "niet_actief", "niet (meer) actief"),
+    (409, "geen_deelvragen", "nog geen deelvragen"),
+    (404, "Deelvraag bestaat niet.", "Die deelvraag bestaat niet"),
+])
+def test_een_weigering_van_de_api_is_een_antwoord(api, status, reden, zin):
+    wapi = WerkgebiedApi(status=status, reden=reden)
+    events = _draai(_verzoek(bereik="deelvragen", deelvraag_id="d9"), wapi)
+    assert zin in _tekst(events) and not any(e["type"] == "error" for e in events)
+
+
+def test_getypt_deelvraag_n_via_de_annotatie_agent():
+    from agent.agents import annotatie, register
+    from fakes import agent_ctx
+
+    class Api(WerkgebiedApi):
+        async def haal_werkgebied(self, wid):
+            return {"naam": "Inv", "deelvragen": [{"id": "d1", "status": "actief"}, {"id": "d2", "status": "actief"}]}
+
+    wapi = Api(_werkvoorraad(L1, L2), onder=_onder(L2, deelvragen=(("d2", "Wanneer?", 1),)))
+    p = register.parameters("annotatie", "deelvragen", vraag="annoteer deelvraag 2", werkgebied_id="wg1")
+    assert p == {"werkgebied_id": "wg1", "deelvraag_nr": 2}
+    uit = asyncio.run(annotatie.voer_uit(register.invoer("annotatie", "deelvragen", p), agent_ctx(wapi)))
+    assert wapi.vragen == [("deelvragen", "d2")] and uit.bevestiging["deelvraag_id"] == "d2"
+    p = register.parameters("annotatie", "deelvragen", vraag="annoteer deelvraag 7", werkgebied_id="wg1")
+    uit = asyncio.run(annotatie.voer_uit(register.invoer("annotatie", "deelvragen", p), agent_ctx(wapi)))
+    assert uit.status == "geweigerd" and "Deelvraag 7 ken ik niet" in uit.reden
+
+
+def test_bereik_hoort_bij_het_annoteren():
+    with pytest.raises(ValidationError):
+        ChatRequest(question="x", werkgebied_id="wg1", bereik="deelvragen")
+    with pytest.raises(ValidationError):
+        ChatRequest(question="x", werkgebied_id="wg1", modus="werkgebied_annoteren", deelvraag_id="d1")

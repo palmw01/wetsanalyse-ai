@@ -199,7 +199,7 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
     worker_plan, plan, afwijzen = parse_supervisor(text)
     taak = parse_taak(text)
     agent = worker_plan[0] if worker_plan and worker_plan[0] in ("deelvragen", "begrippen") else \
-        "annotatie" if worker_plan and worker_plan[0] == "annotatie" and taak == "werkgebied" else ""
+        "annotatie" if worker_plan and worker_plan[0] == "annotatie" and taak in ("werkgebied", "deelvragen") else ""
     if agent and not afwijzen:
         # Koos het model een agent, dan mag het herschrijven die keuze niet omzetten: "Is deelvraag 2 al
         # gedekt?" werd herschreven tot "…gedekt door de annotaties?" en viel dan in de leesroute

@@ -29,6 +29,8 @@ plaats van schijnzekerheid.
 > classificeren in JAS-klassen; de annotatiecontracten dragen `scope: "act2"`. Van activiteit 3
 > (PLAN spoor D) staan de **werkgebieden** er: bepalingen samenbrengen rond één analysevraag, met
 > bronselecties (rol *analyseren* of *context*) en een inventaris van de geannoteerde elementen.
+> Lex annoteert op verzoek het hele werkgebied, of alleen de bronnen onder de deelvragen (alle, of
+> één), altijd pas na een bevestiging.
 > Daarop formuleert de analist **begrippen**: een begripskaart, gekoppeld aan de annotatiepassages
 > die het begrip dragen, met beoordeling, historie en export. Lex stelt betekenisgroepen voor
 > (deterministisch, ADR-004), ook vanuit het gesprek: wat een beurt oplevert is een **artefact**

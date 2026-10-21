@@ -416,7 +416,8 @@ begrip, werkgebied), met per soort een module in `MODULES` (`chip`, `suggesties`
   de test leest die bron) stuurt `actie` + `onderwerp` + het `werkgebied_id` van het onderwerp, zonder
   modus, context of doel – graph-qa kiest er zonder model een agent en taak bij (F3c, ADR-005).
 - **Suggesties per soort** (`SUGGESTIES`, F3d): werkgebied (deelvragen voorstellen, bepalingen zoeken,
-  dekking, annoteren, begrippen voorstellen, meedenken), deelvraag (zoeken, gedekt?, scherper, splitsen),
+  dekking, annoteren, de bepalingen van de deelvragen annoteren, begrippen voorstellen, meedenken), deelvraag
+  (zoeken, de bepalingen hierbij annoteren, gedekt?, scherper, splitsen),
   begrip (uitwerken, brondefinitie, voorbeelden, relaties, en *Wat is het betekenisverschil met …* met
   `invullen`: in het veld, de analist noemt het andere begrip). Bron en kandidaat hebben alleen vragen
   zonder actie (waarom deze bepaling, verwijzingen, bij welke deelvraag): die gaan met het object langs de
@@ -756,9 +757,12 @@ bestaat los van de gesprekken.
   - **In de werkplek** (F3d): de suggestie *Annoteer wat nog niet geannoteerd is* vraagt Lex om het voorstel
     (aantal, schatting, budget, wat niet meegaat – graph-qa leest de werkvoorraad zelf); de bevestiging komt
     als bericht in het gesprek. Op de tab Elementen staat sinds F3e geen knop meer.
+  - **Alleen de deelvragen**: *Annoteer de bepalingen van de deelvragen* (werkgebied) en *Annoteer de
+    bepalingen hierbij* (deelvraag) sturen de actie `deelvragen_annoteren`; graph-qa annoteert dan alleen de
+    bronnen onder de deelvragen, of onder die ene. De bevestiging draagt `bereik` en `deelvraag_id`.
   - **In het gesprek**: een antwoord met `bevestiging` (`parseBevestiging`; ook na herladen) krijgt de
     knop *Laat Lex annoteren*. Die gaat via `verstuur(…, annoteren)` →
-    `startRun({modus: "werkgebied_annoteren", werkgebied_id, bevestigd})`. Is de werkvoorraad intussen
+    `startRun({modus: "werkgebied_annoteren", werkgebied_id, bevestigd, bereik?, deelvraag_id?})`. Is de werkvoorraad intussen
     veranderd, dan begint graph-qa niet en komt er een nieuwe bevestiging.
   - De voortgang is het gewone `ReeksBlok` (labels met de regeling erbij); de samenvatting van de run
     staat eronder (`item.tekst` van het reeksitem).

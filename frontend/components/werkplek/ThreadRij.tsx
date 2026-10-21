@@ -46,6 +46,9 @@ export interface WerkgebiedAnnoteren {
   werkgebiedId: string;
   bevestigd?: number;
   modus?: "werkgebied_annoteren" | "begrippen_verdiepen";
+  /** Alleen de bronnen onder de deelvragen (met `deelvraagId`: onder die ene), uit de bevestiging. */
+  bereik?: "deelvragen";
+  deelvraagId?: string;
 }
 
 /** Wat een rij kan laten gebeuren. Eén stabiel object per venster, zodat `memo` iets oplevert. */
@@ -177,7 +180,9 @@ export const ThreadRij = memo(function ThreadRij({
             <Button size="sm" className="mt-3 w-full sm:w-auto" disabled={bezig || geblokkeerd}
               data-bevestiging={item.bevestiging.aantal}
               onClick={() => acties.verstuur(ANNOTEER_PROMPT, undefined, undefined, undefined,
-                { werkgebiedId: item.bevestiging!.werkgebied_id, bevestigd: item.bevestiging!.aantal })}>
+                { werkgebiedId: item.bevestiging!.werkgebied_id, bevestigd: item.bevestiging!.aantal,
+                  ...(item.bevestiging!.bereik ? { bereik: item.bevestiging!.bereik } : {}),
+                  ...(item.bevestiging!.deelvraag_id ? { deelvraagId: item.bevestiging!.deelvraag_id } : {}) })}>
               Laat Lex annoteren ({bepalingen(Math.min(item.bevestiging.aantal, PLAFOND))})
             </Button>
           )

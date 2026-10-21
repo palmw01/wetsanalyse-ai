@@ -87,3 +87,77 @@ async def test_schatting_alleen_uit_eigen_annotatiebeurten(client):
     await _beurt("r5", 9_000, annotatie=True, userid="jurist-b")   # en een ander ook niet
     v = await _voorraad(client, wg)
     assert v["schatting"] == {"per_bepaling": 200, "basis": 3, "totaal": 400}
+
+
+# --- het bereik: alleen de bronnen onder de deelvragen ----------------------------------------
+
+async def _voorraad_met(client, wg, status=200, **query) -> dict:
+    r = await client.get(f"/v1/werkgebieden/{wg['id']}/annotatie-werkvoorraad", params=query)
+    assert r.status_code == status, r.text
+    return r.json()
+
+
+async def _deelvraag(client, wg, vraag, bronnen) -> tuple[dict, str]:
+    r = await client.post(f"/v1/werkgebieden/{wg['id']}/deelvragen",
+                          json={"verwachte_revisie": wg["revisie"], "vraag": vraag})
+    assert r.status_code == 201, r.text
+    wg = r.json()
+    did = next(d["id"] for d in wg["deelvragen"] if d["vraag"] == vraag)
+    if bronnen:
+        r = await client.put(f"/v1/werkgebieden/{wg['id']}/deelvragen/{did}/koppelingen",
+                             json={"verwachte_revisie": wg["revisie"], "bronnen": bronnen})
+        assert r.status_code == 200, r.text
+        wg = r.json()
+    return wg, did
+
+
+async def _met_deelvragen(client):
+    wg = await _nieuw(client)
+    wg = (await _bron(client, wg, bron_iri=ONE, bereik="node"))["werkgebied"]
+    wg = (await _bron(client, wg, bron_iri=TWO, bereik="node"))["werkgebied"]
+    wg = (await _bron(client, wg, bron_iri=ART2, rol="context"))["werkgebied"]
+    sel = {s["bron_iri"]: s["id"] for s in wg["bronnen"]}
+    wg, a = await _deelvraag(client, wg, "Wie?", [sel[ONE]])
+    wg, b = await _deelvraag(client, wg, "Wanneer?", [sel[ONE], sel[TWO], sel[ART2]])
+    wg, c = await _deelvraag(client, wg, "Waarom?", [])
+    return wg, a, b, c
+
+
+async def test_zonder_bereik_het_hele_werkgebied(client):
+    wg, *_ = await _met_deelvragen(client)
+    v = await _voorraad(client, wg)
+    assert v["bereik"] == "werkgebied" and "deelvragen" not in v and v["te_annoteren"] == [ONE, TWO]
+
+
+async def test_alle_deelvragen_samen_een_keer_geteld(client):
+    wg, a, b, c = await _met_deelvragen(client)
+    v = await _voorraad_met(client, wg, bereik="deelvragen")
+    assert v["bereik"] == "deelvragen" and v["te_annoteren"] == [ONE, TWO]
+    assert [e["bron_iri"] for e in v["eenheden"]] == [ONE, TWO]                  # ONE onder twee deelvragen
+    assert v["context_niet_meegenomen"] == 1 and v["buiten_bereik"] == 0
+    assert [(d["id"], d["selecties"]) for d in v["deelvragen"]] == [(a, 1), (b, 3), (c, 0)]
+
+
+async def test_een_deelvraag(client):
+    wg, a, _, c = await _met_deelvragen(client)
+    v = await _voorraad_met(client, wg, bereik="deelvragen", deelvraag_id=a)
+    assert v["te_annoteren"] == [ONE] and v["buiten_bereik"] == 1 and v["context_niet_meegenomen"] == 0
+    assert [d["vraag"] for d in v["deelvragen"]] == ["Wie?"]
+    leeg = await _voorraad_met(client, wg, bereik="deelvragen", deelvraag_id=c)
+    assert leeg["te_annoteren"] == [] and leeg["eenheden"] == [] and leeg["buiten_bereik"] == 2
+
+
+async def test_bereik_fouten(client):
+    kaal = (await _bron(client, await _nieuw(client), bron_iri=ART))["werkgebied"]
+    r = await _voorraad_met(client, kaal, status=409, bereik="deelvragen")
+    assert r["detail"]["fout"] == "geen_deelvragen"
+    wg, a, *_ = await _met_deelvragen(client)
+    await _voorraad_met(client, wg, status=422, deelvraag_id=a)                 # id zonder bereik
+    await _voorraad_met(client, wg, status=404, bereik="deelvragen", deelvraag_id="bestaat-niet")
+    r = await client.post(f"/v1/werkgebieden/{wg['id']}/deelvragen/voorstellen",
+                          json={"vragen": ["Hoe lang duurt de termijn?"], "model": "m"})
+    assert r.status_code in (200, 201), r.text
+    wg = (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()
+    voorstel = next(d["id"] for d in wg["deelvragen"] if d["status"] == "voorgesteld")
+    r = await _voorraad_met(client, wg, status=409, bereik="deelvragen", deelvraag_id=voorstel)
+    assert r["detail"]["fout"] == "niet_actief"
