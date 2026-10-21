@@ -124,6 +124,7 @@ class DeelvraagStatus(str, Enum):
     actief = "actief"                  # hoort bij de analyse; de dekkingscheck meet ertegen
     voorgesteld = "voorgesteld"        # een voorstel van Lex, nog niet overgenomen
     afgewezen = "afgewezen"            # Lex stelt hem niet opnieuw voor
+    vervangen = "vervangen"            # een overgenomen verbetering van Lex nam haar plek in (`vervangt`)
 
 
 def _vraag(v: str) -> str:
@@ -161,6 +162,8 @@ class DeelvraagWijziging(BaseModel):
     def _afwijzen(self) -> DeelvraagWijziging:
         if self.status == DeelvraagStatus.afgewezen and not self.reden.strip():
             raise ValueError("afwijzen vraagt een reden")
+        if self.status == DeelvraagStatus.vervangen:
+            raise ValueError("een deelvraag wordt alleen vervangen door een voorstel over te nemen")
         return self
 
 
@@ -178,6 +181,8 @@ class DeelvraagVoorstellen(BaseModel):
 
     vragen: list[str] = Field(min_length=1, max_length=12)
     model: str = Field(default="", max_length=200)
+    # Een verbetering (herformulering of splitsing) van deze actieve deelvraag: overnemen vervangt haar.
+    vervangt: str = Field(default="", pattern=r"^[A-Za-z0-9-]{0,64}$")
 
     @field_validator("vragen")
     @classmethod

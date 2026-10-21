@@ -43,7 +43,7 @@ class NepApi:
     async def haal_werkgebied(self, wid):
         return self.wg
 
-    async def stel_deelvragen_voor(self, wid, vragen, model=""):
+    async def stel_deelvragen_voor(self, wid, vragen, model="", vervangt=""):
         if self.weigert:
             from agent.wetsanalyse_api import WetsanalyseApiFout
             raise WetsanalyseApiFout("nee", self.weigert, "")

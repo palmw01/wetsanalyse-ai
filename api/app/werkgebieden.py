@@ -107,6 +107,12 @@ async def post_deelvraag_voorstellen(werkgebied_id: str, req: DeelvraagVoorstell
     return await deelvragen.stel_voor(werkgebied_id, req, actor)
 
 
+@router.get("/{werkgebied_id}/deelvragen/{deelvraag_id}")
+async def get_deelvraag(werkgebied_id: str, deelvraag_id: str, actor: str = Depends(actieve_userid)):
+    """Eén deelvraag, ook als ze vervangen is: met haar opvolgers en de voorstellen die haar vervangen."""
+    return await deelvragen.haal(werkgebied_id, deelvraag_id)
+
+
 @router.patch("/{werkgebied_id}/deelvragen/{deelvraag_id}")
 async def patch_deelvraag(werkgebied_id: str, deelvraag_id: str, req: DeelvraagWijziging,
                           actor: str = Depends(actieve_userid)):

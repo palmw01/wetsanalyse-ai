@@ -9,6 +9,10 @@ deelvragen meet de dekkingscheck per vraag of er een bron en een geaccordeerd be
 - **Een voorstel van Lex** (`stel_voor`, graph-qa) draagt geen revisie: het raakt de scope pas als de
   analist het overneemt. Lex stelt niets opnieuw voor wat er al staat, wat is afgewezen of wat de
   analist weghaalde – vergeleken op de genormaliseerde tekst.
+- **Een verbetering vervangt.** Een voorstel van Lex kan een actieve deelvraag verbeteren
+  (`vervangt`: herformuleren of splitsen). Overnemen zet die deelvraag op `vervangen`; de opvolger krijgt
+  haar plek en haar koppelingen, en een kandidaat die bij de oude gevonden was, landt bij de opvolger.
+  Bij een splitsing erft elk overgenomen deel; de eerste overname vervangt.
 - **Koppelingen zijn een set** per deelvraag (bronselecties en begrippen van dit werkgebied), zonder
   foreign key. Een weggehaalde selectie of een verwijderd begrip valt bij het lezen weg.
 """
@@ -40,7 +44,8 @@ def normaliseer(vraag: str) -> str:
 
 def _deelvraag(row, bronnen: list[str], begrippen: list[str]) -> dict:
     return {"id": row.id, "vraag": row.vraag, "volgorde": row.volgorde, "status": row.status,
-            "herkomst": row.herkomst, "reden": row.reden, "aangemaakt_door": row.aangemaakt_door,
+            "herkomst": row.herkomst, "reden": row.reden, "vervangt": row.vervangt or "",
+            "aangemaakt_door": row.aangemaakt_door,
             "aangemaakt": db.aware(row.aangemaakt).isoformat(), "bronnen": bronnen, "begrippen": begrippen}
 
 
@@ -136,10 +141,96 @@ async def wijzig(werkgebied_id: str, deelvraag_id: str, w: DeelvraagWijziging, a
         row = await _onder_slot(conn, werkgebied_id, deelvraag_id)
         if w.status == DeelvraagStatus.voorgesteld and row.status != DeelvraagStatus.voorgesteld.value:
             raise HTTPException(422, "Een deelvraag wordt alleen door Lex voorgesteld.")
+        if row.status == DeelvraagStatus.vervangen.value:
+            raise HTTPException(409, {"fout": "vervangen", "melding": "Deze deelvraag is vervangen."})
+        if (w.status == DeelvraagStatus.actief and row.status == DeelvraagStatus.voorgesteld.value
+                and row.vervangt):
+            velden.update(await _vervang(conn, werkgebied_id, row, actor))
         if velden:
             await conn.execute(update(db.werkgebied_deelvragen).where(db.werkgebied_deelvragen.c.id == deelvraag_id)
                                .values(**velden, gewijzigd=db.utcnow()))
     return await _werkgebied(werkgebied_id)
+
+
+async def _vervang(conn, werkgebied_id: str, voorstel, actor: str) -> dict:
+    """Een verbetering overnemen: de oude deelvraag wordt `vervangen` (als ze nog actief is), de opvolger
+    krijgt haar plek, en de geldige koppelingen van de oude gaan mee. Geeft de velden voor de opvolger."""
+    d, k = db.werkgebied_deelvragen, db.werkgebied_deelvraag_koppelingen
+    oud = (await conn.execute(select(d).where(d.c.id == voorstel.vervangt, d.c.werkgebied_id == werkgebied_id,
+                                              d.c.verwijderd.is_(None)))).first()
+    if oud is None:
+        return {}   # weggehaald intussen: het voorstel wordt een gewone deelvraag
+    if oud.status == DeelvraagStatus.actief.value:
+        await conn.execute(update(d).where(d.c.id == oud.id).values(
+            status=DeelvraagStatus.vervangen.value, gewijzigd=db.utcnow()))
+        await _audit(conn, werkgebied_id, actor, "deelvraag-vervangen", {"deelvraag": oud.id, "door": voorstel.id})
+    elif oud.status != DeelvraagStatus.vervangen.value:
+        return {}
+    selecties, begrippen = await _actieve_doelen(conn, werkgebied_id)
+    al = {(x.soort, x.doel_id) for x in (await conn.execute(select(k).where(k.c.deelvraag_id == voorstel.id))).all()}
+    for x in (await conn.execute(select(k).where(k.c.deelvraag_id == oud.id))).all():
+        geldig = x.doel_id in selecties if x.soort == "bron" else x.doel_id in begrippen
+        if geldig and (x.soort, x.doel_id) not in al:
+            await conn.execute(insert(k).values(deelvraag_id=voorstel.id, soort=x.soort, doel_id=x.doel_id,
+                                                gekoppeld_door=actor, gekoppeld=db.utcnow()))
+    await _op_de_plek_van(conn, werkgebied_id, oud, voorstel.id)
+    return {}
+
+
+async def _op_de_plek_van(conn, werkgebied_id: str, oud, nieuw_id: str) -> None:
+    """Zet de opvolger op de plek van de oude deelvraag, ná een eerder overgenomen deel van dezelfde
+    splitsing, en nummer de actieve deelvragen opnieuw – twee delen op één `volgorde` hadden geen vaste
+    volgorde."""
+    d = db.werkgebied_deelvragen
+    rows = (await conn.execute(select(d.c.id, d.c.vervangt).where(
+        d.c.werkgebied_id == werkgebied_id, d.c.verwijderd.is_(None), d.c.id != nieuw_id,
+        (d.c.status == DeelvraagStatus.actief.value) | (d.c.id == oud.id))
+        .order_by(d.c.volgorde, d.c.aangemaakt, d.c.id))).all()
+    ids = [r.id for r in rows]
+    plek = ids.index(oud.id) + 1
+    while plek < len(rows) and rows[plek].vervangt == oud.id:
+        plek += 1
+    ids.insert(plek, nieuw_id)
+    for i, did in enumerate(ids):
+        await conn.execute(update(d).where(d.c.id == did).values(volgorde=i))
+
+
+async def opvolgers_in(conn, werkgebied_id: str, deelvraag_ids: list[str]) -> dict[str, list[str]]:
+    """Per vervangen deelvraag de actieve deelvragen die haar plek innamen."""
+    d = db.werkgebied_deelvragen
+    rows = (await conn.execute(select(d.c.id, d.c.vervangt).where(
+        d.c.werkgebied_id == werkgebied_id, d.c.vervangt.in_(deelvraag_ids), d.c.verwijderd.is_(None),
+        d.c.status == DeelvraagStatus.actief.value).order_by(d.c.volgorde, d.c.aangemaakt, d.c.id))).all()
+    uit: dict[str, list[str]] = {}
+    for r in rows:
+        uit.setdefault(r.vervangt, []).append(r.id)
+    return uit
+
+
+async def haal(werkgebied_id: str, deelvraag_id: str) -> dict:
+    """Eén deelvraag in elke stand (ook vervangen of afgewezen), met haar opvolgers en de open voorstellen
+    die haar zouden vervangen – voor het paneel van één deelvraag."""
+    d, k = db.werkgebied_deelvragen, db.werkgebied_deelvraag_koppelingen
+    async with db.get_engine().connect() as conn:
+        t = db.werkgebieden
+        wg = (await conn.execute(select(t.c.id, t.c.gearchiveerd).where(t.c.id == werkgebied_id))).first()
+        if wg is None or wg.gearchiveerd is not None:
+            raise HTTPException(404, "Werkgebied bestaat niet.")
+        row = await _onder_slot(conn, werkgebied_id, deelvraag_id)
+        selecties, begrippen = await _actieve_doelen(conn, werkgebied_id)
+        per: dict[str, list[str]] = {"bron": [], "begrip": []}
+        for x in (await conn.execute(select(k).where(k.c.deelvraag_id == deelvraag_id)
+                                     .order_by(k.c.gekoppeld, k.c.doel_id))).all():
+            if x.doel_id in (selecties if x.soort == "bron" else begrippen):
+                per[x.soort].append(x.doel_id)
+        verwant = (await conn.execute(select(d).where(
+            d.c.werkgebied_id == werkgebied_id, d.c.vervangt == deelvraag_id, d.c.verwijderd.is_(None),
+            d.c.status.in_((DeelvraagStatus.actief.value, DeelvraagStatus.voorgesteld.value)))
+            .order_by(d.c.volgorde, d.c.aangemaakt, d.c.id))).all()
+    uit = _deelvraag(row, per["bron"], per["begrip"])
+    uit["opvolgers"] = [{"id": r.id, "vraag": r.vraag} for r in verwant if r.status == DeelvraagStatus.actief.value]
+    uit["voorstellen"] = [_deelvraag(r, [], []) for r in verwant if r.status == DeelvraagStatus.voorgesteld.value]
+    return uit
 
 
 async def verwijder(werkgebied_id: str, deelvraag_id: str, verwacht: int, actor: str) -> dict:
@@ -186,6 +277,9 @@ async def koppel_bron_in(conn, werkgebied_id: str, selectie_id: str, deelvraag_i
     actief = set((await conn.execute(select(d.c.id).where(
         d.c.werkgebied_id == werkgebied_id, d.c.id.in_(deelvraag_ids), d.c.verwijderd.is_(None),
         d.c.status == DeelvraagStatus.actief.value))).scalars())
+    # Gevonden bij een deelvraag die intussen vervangen is: dan hoort de bron bij haar opvolger(s).
+    for ids in (await opvolgers_in(conn, werkgebied_id, [x for x in deelvraag_ids if x not in actief])).values():
+        actief.update(ids)
     for did in sorted(actief):
         bestaat = (await conn.execute(select(k.c.doel_id).where(
             k.c.deelvraag_id == did, k.c.soort == "bron", k.c.doel_id == selectie_id))).first()
@@ -203,6 +297,13 @@ async def stel_voor(werkgebied_id: str, v: DeelvraagVoorstellen, actor: str) -> 
         row = (await conn.execute(select(t).where(t.c.id == werkgebied_id).with_for_update())).first()
         if row is None or row.gearchiveerd is not None:
             raise HTTPException(404, "Werkgebied bestaat niet.")
+        if v.vervangt:
+            d = db.werkgebied_deelvragen
+            oud = (await conn.execute(select(d.c.status).where(
+                d.c.id == v.vervangt, d.c.werkgebied_id == werkgebied_id, d.c.verwijderd.is_(None)))).first()
+            if oud is None or oud.status != DeelvraagStatus.actief.value:
+                raise HTTPException(422, {"fout": "vervangt_onbekend",
+                                          "melding": "Een verbetering hoort bij een actieve deelvraag van dit werkgebied."})
         bestaand = await _bestaande(conn, werkgebied_id)
         plek = await _volgende_plek(conn, werkgebied_id)
         nu = db.utcnow()
@@ -215,11 +316,12 @@ async def stel_voor(werkgebied_id: str, v: DeelvraagVoorstellen, actor: str) -> 
             did = str(uuid.uuid4())
             await conn.execute(insert(db.werkgebied_deelvragen).values(
                 id=did, werkgebied_id=werkgebied_id, vraag=vraag, volgorde=plek, status=DeelvraagStatus.voorgesteld.value,
-                herkomst="lex", reden="", aangemaakt_door=actor, aangemaakt=nu, gewijzigd=nu))
+                herkomst="lex", reden="", vervangt=v.vervangt, aangemaakt_door=actor, aangemaakt=nu, gewijzigd=nu))
             plek += 1
             nieuw.append(did)
         await _audit(conn, werkgebied_id, actor, "deelvragen-voorgesteld",
-                     {"nieuw": nieuw, "overgeslagen": len(overgeslagen), "model": v.model})
+                     {"nieuw": nieuw, "overgeslagen": len(overgeslagen), "model": v.model,
+                      **({"vervangt": v.vervangt} if v.vervangt else {})})
     return {"nieuw": nieuw, "overgeslagen": overgeslagen, "deelvragen": await lijst(werkgebied_id)}
 
 

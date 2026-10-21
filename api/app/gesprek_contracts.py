@@ -41,9 +41,11 @@ class Artefact(BaseModel):
     `{werkgebied_id, run_id}` (de voorstellen van een run) of `{werkgebied_id, begrip_id, kaart_run_id?,
     actie?}` (één begrip, fase F4: een kaartactie vanuit het gesprek); bronnen (kandidaatbepalingen van een bronnenrun): `{werkgebied_id,
     run_id}`; werkgebied (een werkgebied dat Lex in het gesprek samenstelde, activiteit 1):
-    `{werkgebied_id}`; regels: nog niet in gebruik (gereserveerd)."""
+    `{werkgebied_id}`; deelvraag (één deelvraag, F3d): `{werkgebied_id, deelvraag_id}`; begrip (één begrip,
+    F3d): `{werkgebied_id, begrip_id, kaart_run_id?, actie?}` – bewaarde berichten van vóór F3d dragen
+    dat als begrippen mét `begrip_id`; regels: nog niet in gebruik (gereserveerd)."""
 
-    soort: Literal["annotatie", "begrippen", "bronnen", "werkgebied", "regels"]
+    soort: Literal["annotatie", "begrippen", "bronnen", "werkgebied", "deelvraag", "begrip", "regels"]
     ref: dict
     titel: str = Field(default="", max_length=300)
 
@@ -51,6 +53,7 @@ class Artefact(BaseModel):
     def _ref(self) -> "Artefact":
         nodig = {"annotatie": ("bron_iri",), "begrippen": ("werkgebied_id", "run_id"),
                  "bronnen": ("werkgebied_id", "run_id"), "werkgebied": ("werkgebied_id",),
+                 "deelvraag": ("werkgebied_id", "deelvraag_id"), "begrip": ("werkgebied_id", "begrip_id"),
                  "regels": ()}[self.soort]
         if self.soort == "begrippen" and self.ref.get("begrip_id"):
             nodig = ("werkgebied_id", "begrip_id")

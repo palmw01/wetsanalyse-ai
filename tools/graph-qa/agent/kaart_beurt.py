@@ -106,10 +106,10 @@ def kaartactie_uit(vraag: str) -> tuple[str, list[str]] | None:
 
 
 def begrip_artefact(werkgebied_id: str, begrip_id: str, naam: str, kaart_run_id: str = "", actie: str = "") -> dict[str, Any]:
-    """In de vorm van `api/app/gesprek_contracts.Artefact` (soort begrippen, één begrip)."""
+    """In de vorm van `api/app/gesprek_contracts.Artefact` (soort begrip, F3d)."""
     ref = {"werkgebied_id": werkgebied_id, "begrip_id": begrip_id,
            **({"kaart_run_id": kaart_run_id} if kaart_run_id else {}), **({"actie": actie} if actie else {})}
-    return {"soort": "begrippen", "titel": naam[:300], "ref": ref}
+    return {"soort": "begrip", "titel": naam[:300], "ref": ref}
 
 
 def exacte(term: str, rijen: list[dict[str, Any]]) -> list[dict[str, Any]]:

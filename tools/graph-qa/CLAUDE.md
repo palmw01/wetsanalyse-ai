@@ -882,9 +882,15 @@ reeks) en `doelen`.
   actieve) en de term van een begrip (`kaart_beurt.termen_uit`). Nooit uit modeltekst.
 - **De deelvragen-agent** (`agents/deelvragen.py`): `voorstellen` en `verbeteren` (herformuleren of
   splitsen, `deelvragen.verbeteren_kern`: één strict tool, `valideer_verbetering` – precies één nieuwe
-  vraag of 2–4, anders `geen`) landen als voorstel bij de api; `bronnen_zoeken` is de bronnenrun
+  vraag of 2–4, anders `geen`) landen als voorstel bij de api – een verbetering met `vervangt` (F3d), zodat
+  overnemen de oude deelvraag vervangt; `bronnen_zoeken` is de bronnenrun
   (`bronnen_run.bronnen_kern`, met wat er bij de aangewezen deelvraag hoort); `dekking` per actieve
-  deelvraag uit de api (stand, bronnen met rol, open kandidaten). De systeemtekst draagt de skillrol
+  deelvraag uit de api (stand, bronnen met rol, open kandidaten).
+- **Het artefact volgt het object** (F3d): een taak op één deelvraag (`verbeteren`, en `bronnen_zoeken` of
+  `dekking` met een deelvraag) levert `{soort: "deelvraag", ref: {werkgebied_id, deelvraag_id}}`
+  (`beurt.deelvraag_artefact`); zonder deelvraag het werkgebied- of bronnenartefact. Een taak op één
+  begrip levert `{soort: "begrip", ref: {werkgebied_id, begrip_id, kaart_run_id?, actie?}}`
+  (`kaart_beurt.begrip_artefact`). De systeemtekst draagt de skillrol
   `deelvragen` (`deelvragen.systeem`), ook in de intake.
 - **De begrippen-agent** (`agents/begrippen.py`): `voorstellen` (`begrippen_beurt.begrippen_kern`),
   `meedenken` (`begrippen_verdieping.verdieping_kern`; zonder `bevestigd` het voorstel met bevestiging),
@@ -941,7 +947,7 @@ en werkgebied, geen aanhalingstekens om een begripsdefinitie, wettekst apart oph
   naam of alternatieve term, werkgebied van het gesprek eerst); meer kandidaten → Lex vraagt welke,
   alleen een vervangen begrip → de opvolger. Starten gaat **direct**, zoals de knop (besloten 19 okt
   2026): `POST …/kaart-runs` en `begrip_kaart.kaart_stroom`, met zijn budgetpoort; loopt dezelfde actie
-  al, dan wacht Lex. De uitkomst draagt een begrippenartefact met
+  al, dan wacht Lex. De uitkomst draagt een begripartefact (`soort: "begrip"`, F3d) met
   `ref: {werkgebied_id, begrip_id, kaart_run_id, actie}`.
 
 ## De overzichtsroute: "welke artikelen gaan over X?"
