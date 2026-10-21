@@ -98,7 +98,8 @@ import { parseBevestiging } from "./werkgebiedAnnoteren";
 import { parseVraagkaart } from "./vraagkaart";
 
 export async function parseError(res: Response): Promise<ApiError> {
-  let detail = res.statusText;
+  // Onder HTTP/2 is `statusText` leeg; zonder JSON-body stond er dan niets ("niet geladen ()").
+  let detail = res.statusText || `HTTP ${res.status}`;
   let reden: string | undefined;
   let data: Record<string, unknown> | undefined;
   try {

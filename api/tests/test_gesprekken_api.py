@@ -431,3 +431,26 @@ async def test_een_werkgebied_reeks_mag_een_onderdeel_hebben(client):
         "rol": "assistant", "run_id": "w.1", "reeks": {"run_id": "w", "index": 0, "totaal": 1, "ouder": "WG"}},
         headers=A)
     assert r.status_code == 201, r.text
+
+
+async def test_een_veraald_kaartje_breekt_het_gesprek_niet(client):
+    """Een bewaard kaartje van vóór F3f (stap `onderdelen`, die nu `bepalingen` heet) haalt het contract van
+    nu niet. Alleen dat veld valt weg: het gesprek blijft te openen én te verwijderen (anders een 500)."""
+    from sqlalchemy import insert
+
+    from app import db
+
+    gid = await _maak(client)
+    oud = {**VRAAGKAART, "stap": "onderdelen"}
+    async with db.get_engine().begin() as conn:
+        await conn.execute(insert(db.gesprek_berichten).values(
+            gesprek_id=gid, rol="assistant", inhoud={"tekst": "Welke onderdelen?", "vraagkaart": oud}, run_id="oud",
+            created=db.utcnow()))
+        await conn.execute(insert(db.gesprek_berichten).values(
+            gesprek_id=gid, rol="user", inhoud={"tekst": "Afdeling 5.1", "intake_antwoord": {
+                "intake_id": "ik-1", "stap": "onderdelen", "actie": "antwoord"}}, run_id="", created=db.utcnow()))
+    r = await client.get(f"{BASIS}/{gid}", headers=A)
+    assert r.status_code == 200, r.text
+    assert [(b["tekst"], b["vraagkaart"], b["intake_antwoord"]) for b in r.json()["berichten"]][-2:] == [
+        ("Welke onderdelen?", None, None), ("Afdeling 5.1", None, None)]
+    assert (await client.delete(f"{BASIS}/{gid}", headers=A)).status_code == 204
