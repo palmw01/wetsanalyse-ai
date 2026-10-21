@@ -11,6 +11,9 @@
 - De schatting is de mediaan van het verbruik van de laatste annotatiebeurten van deze gebruiker,
   keer het aantal. Zonder geschiedenis geen getal.
 - Een onbereikbare bron maakt de werkvoorraad `volledig: false` met een open punt; nooit stil kleiner.
+- **Het bereik** (`selecties_in_bereik`): het hele werkgebied, of alleen de selecties die aan de actieve
+  deelvragen gekoppeld zijn – allemaal, of die van één deelvraag. Een selectie onder meer deelvragen
+  telt één keer; wat buiten het bereik valt, wordt geteld (`buiten_bereik`), niet meegenomen.
 """
 from __future__ import annotations
 
@@ -106,6 +109,18 @@ async def schatting(userid: str) -> dict | None:
     if not verbruikt:
         return None
     return {"per_bepaling": int(median(verbruikt)), "basis": len(verbruikt)}
+
+
+def selecties_in_bereik(selecties: list[dict], deelvragen: list[dict],
+                        deelvraag_id: str = "") -> tuple[list[dict], list[dict]]:
+    """De selecties onder de actieve deelvragen (of onder die ene), in de volgorde van het werkgebied,
+    en per meegenomen deelvraag hoeveel selecties ze draagt."""
+    actief = [d for d in deelvragen if d.get("status") == "actief"]
+    if deelvraag_id:
+        actief = [d for d in actief if d["id"] == deelvraag_id]
+    ids = {i for d in actief for i in d.get("bronnen") or []}
+    return ([s for s in selecties if s["id"] in ids],
+            [{"id": d["id"], "vraag": d["vraag"], "selecties": len(d.get("bronnen") or [])} for d in actief])
 
 
 async def werkvoorraad(selecties: list[dict], resolve: Resolver, userid: str) -> dict:

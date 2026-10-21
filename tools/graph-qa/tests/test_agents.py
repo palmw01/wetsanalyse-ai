@@ -188,7 +188,7 @@ def test_een_onbekende_taak_is_een_vraag_van_lex_geen_stille_beurt():
 
 def test_het_hele_werkgebied_annoteren_is_een_taak_van_de_annotatie_agent():
     class Werkvoorraad(NepApi):
-        async def haal_annotatie_werkvoorraad(self, wid):
+        async def haal_annotatie_werkvoorraad(self, wid, bereik="werkgebied", deelvraag_id=""):
             return {"naam": "Inv", "te_annoteren": ["urn:bwb:X:artikel:1"], "eenheden": [], "schatting": None,
                     "budget": {}}
 

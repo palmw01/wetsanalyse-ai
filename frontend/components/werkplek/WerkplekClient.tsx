@@ -42,7 +42,7 @@ import type {
   VoorstelElement,
 } from "@/lib/types";
 import { metingUitDekking } from "@/lib/agentEvents";
-import { parseBevestiging } from "@/lib/werkgebiedAnnoteren";
+import { ANNULEER_TEKST, afgehandeld, parseBevestiging, parseBevestigingKeuze } from "@/lib/werkgebiedAnnoteren";
 import {
   antwoordOp, antwoordTekst, groepeerVragen, openVraag, parseAntwoordOp, parseVraagkaart, type IntakeActie, type Vraagkaart,
 } from "@/lib/vraagkaart";
@@ -279,7 +279,8 @@ export function WerkplekClient({
             return [{ id: uid(), type: "artefact" as const, artefact: art, tekst: b.tekst?.trim() || undefined, denk: b.denk }];
           }
           return [b.rol === "user"
-            ? { id: uid(), type: "user" as const, tekst: b.tekst, antwoordOp: parseAntwoordOp(b.intake_antwoord) }
+            ? { id: uid(), type: "user" as const, tekst: b.tekst, antwoordOp: parseAntwoordOp(b.intake_antwoord),
+                bevestigingKeuze: parseBevestigingKeuze(b.bevestiging_antwoord) }
             : annotatieDoel || b.annotatie_slug
               ? { id: uid(), type: "annotatie" as const, slug: annotatieDoel?.bron_iri || b.annotatie_slug!,
                   titel: art?.titel || b.annotatie_titel || undefined, annotatie_doel: annotatieDoel,
@@ -454,10 +455,13 @@ export function WerkplekClient({
     // Het id van de user-bubbel vasthouden: moet de beurt worden teruggedraaid (er liep er al een),
     // dan halen we precies déze weg. Filteren op de tekst zou een eerdere, identieke vraag treffen.
     const vraagId = uid();
+    // De knop bij een voorstel van Lex: dit bericht beantwoordt het, en daarna staat er geen knop meer.
+    const bevestigt = annoteren?.bevestigd !== undefined;
     setItems((xs) => [
       ...xs,
       { id: vraagId, type: "user", tekst: prompt, over: contextLabel || undefined,
-        ...(intake ? { antwoordOp: antwoordOp(intake) } : {}) },
+        ...(intake ? { antwoordOp: antwoordOp(intake) } : {}),
+        ...(bevestigt ? { bevestigingKeuze: "gestart" as const } : {}) },
       { id: antId, type: "antwoord", tekst: "" },
     ]);
     setBezig(true);
@@ -492,7 +496,8 @@ export function WerkplekClient({
     // het aanhaken na een herlaadbeurt is deze regel de user-bubbel waar het antwoord onder hoort.
     await persisteer(gid, "user", { tekst: contextLabel ? `Bij ${contextLabel}: ${prompt}` : prompt,
       // Een klik op een vraagkaartje: zo staat het antwoord na herladen weer in de Vragen-kaart.
-      ...(intake ? { intake_antwoord: antwoordOp(intake) } : {}) });
+      ...(intake ? { intake_antwoord: antwoordOp(intake) } : {}),
+      ...(bevestigt ? { bevestiging_antwoord: { keuze: "gestart" } } : {}) });
 
     const basis = vraagOver ? verzoekVan(vraagOver) : undefined;
     // Een vraag over een onderwerp draagt nooit een doel: die route annoteert niet.
@@ -507,7 +512,9 @@ export function WerkplekClient({
       // uit de bevestiging (een oud gesprek kan buiten de context van dat werkgebied staan).
       gestart = await startRun(prompt, gid, annoteren
         ? { modus: annoteren.modus ?? "werkgebied_annoteren", werkgebied_id: annoteren.werkgebiedId,
-            ...(annoteren.bevestigd !== undefined ? { bevestigd: annoteren.bevestigd } : {}) }
+            ...(annoteren.bevestigd !== undefined ? { bevestigd: annoteren.bevestigd } : {}),
+            ...(annoteren.bereik ? { bereik: annoteren.bereik } : {}),
+            ...(annoteren.deelvraagId ? { deelvraag_id: annoteren.deelvraagId } : {}) }
         // Een klik op een vraagkaartje: geen context en geen doel; het werkgebied van het gesprek mag mee.
         : intake ? { intake_actie: intake, ...(werkgebiedId ? { werkgebied_id: werkgebiedId } : {}) }
         // Een suggestie met een actie: een vaste route op het werkgebied van het onderwerp, zonder model.
@@ -911,6 +918,15 @@ export function WerkplekClient({
    *  staan tot het echt zover is – doen alsof het meteen klaar is zou liegen. Wat er tot dan toe
    *  binnenkwam, wordt gewoon vastgelegd zoals bij een normale afloop.
    */
+  /** *Annuleren* bij een voorstel van Lex: niets starten. Geen beurt bij de agent – alleen een bericht in
+   *  het gesprek dat het voorstel beantwoordt, zodat de knoppen ook na herladen weg zijn. */
+  async function annuleer() {
+    if (demo || bezigRef.current || !gesprekId) return;
+    setItems((xs) => [...xs, { id: uid(), type: "user", tekst: ANNULEER_TEKST, bevestigingKeuze: "geannuleerd" }]);
+    stickRef.current = true;
+    await persisteer(gesprekId, "user", { tekst: ANNULEER_TEKST, bevestiging_antwoord: { keuze: "geannuleerd" } });
+  }
+
   async function stop() {
     if (!runId || stopt) return;
     setStopt(true);
@@ -948,6 +964,7 @@ export function WerkplekClient({
         void openArtefact(doel.bron_iri, doel);
       },
       stop: () => void stop(),
+      annuleer: () => void annuleer(),
       maakWerkgebied: (ov) => setWgUitOverzicht(ov),
       openVraag: () => setWeggeklikt(null),
     };
@@ -959,6 +976,7 @@ export function WerkplekClient({
     openSamenhang: (doel, extra, graaf) => actiesRef.current?.openSamenhang(doel, extra, graaf),
     openReeksLid: (reeksRun, doel) => actiesRef.current?.openReeksLid(reeksRun, doel),
     stop: () => actiesRef.current?.stop(),
+    annuleer: () => actiesRef.current?.annuleer(),
     maakWerkgebied: (ov) => actiesRef.current?.maakWerkgebied(ov),
     openVraag: () => actiesRef.current?.openVraag(),
   }));
@@ -989,6 +1007,8 @@ export function WerkplekClient({
   // Het samenstellen van een werkgebied (activiteit 1): de vragen per reeks als één kaart, de open vraag
   // onderaan in plaats van het invoerveld.
   const { groepen: vraagGroepen, verborgen: verborgenItems } = useStabieleGroepen(items, bezig);
+  // Welke voorstellen van Lex al beantwoord zijn (gestart of geannuleerd): daar staan geen knoppen meer.
+  const keuzes = useMemo(() => afgehandeld(items), [items]);
   const open = openVraag(vraagGroepen);
   const toonDock = !!open?.open && !bezig && !demo && weggeklikt !== open.openId;
   const suggesties = onderwerp ? suggestiesVan(onderwerp)
@@ -1241,6 +1261,7 @@ export function WerkplekClient({
               <ThreadRij
                 item={item}
                 vragen={vraagGroepen.get(item.id)}
+                keuze={keuzes.get(item.id)}
                 // Alleen de laatste beurt kan aan het streamen zijn.
                 streamt={bezig && i === items.length - 1}
                 bezig={bezig}

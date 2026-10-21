@@ -577,6 +577,9 @@ export async function startRun(
      *  noemt Lex alleen wat er te doen is; met `bevestigd` (het aantal dat de analist zag) begint hij. */
     modus?: "auto" | "advies" | "werkgebied_annoteren" | "begrippen_verdiepen";
     bevestigd?: number;
+    /** Bij "werkgebied_annoteren": alleen de bronnen onder de deelvragen, met `deelvraag_id` onder die ene. */
+    bereik?: "deelvragen";
+    deelvraag_id?: string;
     context?: AgentContext;
     doel?: AgentDoelInvoer;
     /** "opnieuw" = de jurist vraagt expliciet om een nieuwe ronde op een al geannoteerd artikel.
@@ -611,6 +614,8 @@ export async function startRun(
       ...(extra?.doelen ? { doelen: extra.doelen } : {}),
       ...(extra?.werkgebied_id ? { werkgebied_id: extra.werkgebied_id } : {}),
       ...(typeof extra?.bevestigd === "number" ? { bevestigd: extra.bevestigd } : {}),
+      ...(extra?.bereik ? { bereik: extra.bereik } : {}),
+      ...(extra?.deelvraag_id ? { deelvraag_id: extra.deelvraag_id } : {}),
       ...(extra?.intake_actie ? { intake_actie: extra.intake_actie } : {}),
       ...(extra?.onderwerp ? { onderwerp: extra.onderwerp } : {}),
       ...(extra?.actie ? { actie: extra.actie } : {}),

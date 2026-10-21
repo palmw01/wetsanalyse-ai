@@ -361,14 +361,39 @@ async def test_een_artefact_zonder_geldige_verwijzing_wordt_geweigerd(client, ar
 async def test_een_bevestiging_overleeft_het_heropenen(client):
     """Fase B: de knop *Laat Lex annoteren* staat na herladen nog bij het bericht."""
     gid = await _maak(client)
-    b = {"soort": "werkgebied_annoteren", "werkgebied_id": "wg-1", "aantal": 7, "schatting": 21000}
+    b = {"soort": "werkgebied_annoteren", "werkgebied_id": "wg-1", "aantal": 7, "schatting": 21000,
+         "bereik": "werkgebied", "deelvraag_id": ""}
     r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "assistant", "tekst": "7 bepalingen",
                                                             "run_id": "rb", "bevestiging": b}, headers=A)
     assert r.status_code == 201 and r.json()["bevestiging"] == b
     doc = (await client.get(f"{BASIS}/{gid}", headers=A)).json()
     assert doc["berichten"][-1]["bevestiging"] == b
+    # Het bereik reist mee: na herladen annoteert de knop dezelfde deelvraag, niet het hele werkgebied.
+    dv = {**b, "bereik": "deelvragen", "deelvraag_id": "dv-2"}
+    r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "assistant", "tekst": "3 bepalingen",
+                                                            "run_id": "rc", "bevestiging": dv}, headers=A)
+    assert r.status_code == 201
+    doc = (await client.get(f"{BASIS}/{gid}", headers=A)).json()
+    assert doc["berichten"][-1]["bevestiging"] == dv
+    fout = await client.post(f"{BASIS}/{gid}/berichten", json={
+        "rol": "assistant", "bevestiging": {**b, "bereik": "alles"}}, headers=A)
+    assert fout.status_code == 422
     fout = await client.post(f"{BASIS}/{gid}/berichten", json={
         "rol": "assistant", "bevestiging": {**b, "soort": "iets_anders"}}, headers=A)
+    assert fout.status_code == 422
+
+
+async def test_het_antwoord_op_een_bevestiging_blijft_bewaard(client):
+    """Annuleren (of starten) legt de werkplek vast op het user-bericht, zodat de knop na herladen weg is."""
+    gid = await _maak(client)
+    for keuze in ("geannuleerd", "gestart"):
+        r = await client.post(f"{BASIS}/{gid}/berichten", json={
+            "rol": "user", "tekst": "Annuleren", "bevestiging_antwoord": {"keuze": keuze}}, headers=A)
+        assert r.status_code == 201 and r.json()["bevestiging_antwoord"] == {"keuze": keuze}
+    doc = (await client.get(f"{BASIS}/{gid}", headers=A)).json()
+    assert [b["bevestiging_antwoord"] for b in doc["berichten"]] == [{"keuze": "geannuleerd"}, {"keuze": "gestart"}]
+    fout = await client.post(f"{BASIS}/{gid}/berichten", json={
+        "rol": "user", "bevestiging_antwoord": {"keuze": "misschien"}}, headers=A)
     assert fout.status_code == 422
 
 

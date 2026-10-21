@@ -286,6 +286,12 @@ spoor D (*Werkgebied als node*).
   `nieuw`. De schatting is de mediaan van het verbruik van de laatste 20 annotatiebeurten van de
   gebruiker (run met een annotatie-artefact of `annotatie_doel`) keer het aantal; zonder geschiedenis
   `null`, nooit een verzonnen getal. Een onbereikbare bron: `volledig: false` plus een open punt.
+  **Het bereik** (`?bereik=werkgebied|deelvragen[&deelvraag_id=]`, default het hele werkgebied): met
+  `deelvragen` alleen de selecties die aan de actieve deelvragen gekoppeld zijn (`selecties_in_bereik`;
+  een selectie onder meer deelvragen telt één keer), met `deelvraag_id` die van één. De respons draagt dan
+  `bereik`, `deelvragen` (`{id, vraag, selecties}`) en `buiten_bereik` (analysebronnen die niet meegaan).
+  `deelvraag_id` zonder `bereik=deelvragen` 422; een onbekende deelvraag 404; een niet-actieve 409
+  `niet_actief`; geen actieve deelvragen 409 `geen_deelvragen` (elk met `melding`).
 - Tests: `tests/test_werkgebieden.py` en `tests/test_werkgebied_werkvoorraad.py` (SQLite) en
   `tests/test_werkgebieden_postgres.py` (het rij-slot, met `ANNOTATIE_TEST_DSN`).
 
@@ -687,7 +693,10 @@ werkgebied zonder deelvragen werkt zoals altijd.
   (`tool_executions`). Een antwoord op een overzichtsvraag draagt het
   `overzicht` dat graph-qa uit de graaf bouwde, zodat het blok na herladen hetzelfde is.
   Een voorstel dat Lex niet zonder akkoord start (fase B: het werkgebied annoteren) draagt een
-  **`bevestiging`** `{soort: "werkgebied_annoteren" | "begrippen_verdiepen", werkgebied_id, aantal, schatting}`; de werkplek
+  **`bevestiging`** `{soort: "werkgebied_annoteren" | "begrippen_verdiepen", werkgebied_id, aantal, schatting,
+  bereik: "werkgebied" | "deelvragen", deelvraag_id}` (het bereik van de werkvoorraad, zodat de knop na herladen hetzelfde annoteert). Het user-bericht
+  dat zo'n voorstel beantwoordt – de knop of *Annuleren* – draagt **`bevestiging_antwoord`** `{keuze: "gestart" | "geannuleerd"}`,
+  zodat de knoppen na herladen weg zijn; de werkplek
   toont er een knop bij, ook na herladen. Bij het samenstellen van een werkgebied (activiteit 1) draagt
   elke vraag van Lex een **`vraagkaart`** `{intake_id, soort: vraag|samenvatting, stap, nr, totaal,
   vraag, opties[{label, waarde, bron, omschrijving}], meerkeuze, vrije_tekst, meer_tekst, overslaanbaar,

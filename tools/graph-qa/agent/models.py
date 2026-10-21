@@ -111,10 +111,12 @@ class Onderwerp(BaseModel):
 
 
 # Een klik op een suggestie bij *Vraag Lex* (F3b, F3c): een vaste handeling die zonder model naar haar agent en
-# taak gaat (`agents/register.py`). `werkgebied_annoteren` met `bevestigd` is de reeks over het werkgebied: die
-# loopt als eigen stroom (`werkgebied_annotatie_beurt`); zonder `bevestigd` is het de taak `werkgebied`.
+# taak gaat (`agents/register.py`). `werkgebied_annoteren` (en `deelvragen_annoteren`: alleen de bronnen onder
+# de deelvragen, of onder de aangewezen deelvraag) is de reeks over het werkgebied: die loopt als eigen stroom
+# (`werkgebied_annotatie_beurt`), met en zonder `bevestigd`.
 ACTIE_TAAK: dict[str, tuple[str, str]] = {
     "werkgebied_annoteren": ("annotatie", "werkgebied"),
+    "deelvragen_annoteren": ("annotatie", "deelvragen"),
     "deelvragen_voorstellen": ("deelvragen", "voorstellen"),
     "deelvraag_herformuleren": ("deelvragen", "verbeteren"),
     "deelvraag_splitsen": ("deelvragen", "verbeteren"),
@@ -129,11 +131,11 @@ ACTIE_TAAK: dict[str, tuple[str, str]] = {
     "begrip_uitwerken": ("begrippen", "uitwerken"),
     "relaties": ("begrippen", "relaties"),
 }
-Actie = Literal["werkgebied_annoteren", "deelvragen_voorstellen", "deelvraag_herformuleren", "deelvraag_splitsen",
+Actie = Literal["werkgebied_annoteren", "deelvragen_annoteren", "deelvragen_voorstellen", "deelvraag_herformuleren", "deelvraag_splitsen",
                 "bronnen_zoeken", "dekking", "begrippen_voorstellen", "begrippen_meedenken", "brondefinitie",
                 "scherper", "voorbeelden", "betekenisverschil", "begrip_uitwerken", "relaties"]
 # Acties die eerst om een bevestiging vragen; alleen daar hoort `bevestigd` bij.
-BEVESTIG_ACTIES = ("werkgebied_annoteren", "begrippen_meedenken")
+BEVESTIG_ACTIES = ("werkgebied_annoteren", "deelvragen_annoteren", "begrippen_meedenken")
 
 
 class ChatRequest(BaseModel):
@@ -161,6 +163,10 @@ class ChatRequest(BaseModel):
     # Het aantal bepalingen dat de analist bevestigde (fase B). Wijkt de actuele werkvoorraad af,
     # dan begint de run niet; zonder dit veld noemt Lex alleen wat er te doen is.
     bevestigd: int | None = Field(default=None, ge=0, le=100_000)
+    # Wat er bij `werkgebied_annoteren` meegaat: het hele werkgebied, of alleen de bronnen onder de
+    # actieve deelvragen (met `deelvraag_id`: onder die ene). De bevestigingsknop stuurt het terug.
+    bereik: Literal["werkgebied", "deelvragen"] = "werkgebied"
+    deelvraag_id: str = Field(default="", pattern=r"^[A-Za-z0-9-]{0,64}$")
     # Een klik op een vraagkaartje (activiteit 1): de supervisor stuurt de beurt dan zonder modelaanroep
     # naar de werkgebied-worker, en geen van de harde werkgebiedroutes neemt hem over.
     intake_actie: IntakeActie | None = None
@@ -193,6 +199,10 @@ class ChatRequest(BaseModel):
             raise ValueError("'bevestigd' hoort bij een actie die om bevestiging vraagt")
         if self.actie == "werkgebied_annoteren":
             self.modus = "werkgebied_annoteren"
+        if self.actie == "deelvragen_annoteren":
+            self.modus, self.bereik = "werkgebied_annoteren", "deelvragen"
+            if not self.deelvraag_id and self.onderwerp is not None and self.onderwerp.soort == "deelvraag":
+                self.deelvraag_id = self.onderwerp.id
         return self
 
     @property
@@ -209,6 +219,10 @@ class ChatRequest(BaseModel):
             raise ValueError(f"de route '{self.modus}' kiest zelf wat ze doet; geef geen 'doel' of 'doelen'")
         if self.bevestigd is not None and self.modus != "werkgebied_annoteren" and self.actie not in BEVESTIG_ACTIES:
             raise ValueError("'bevestigd' hoort bij modus 'werkgebied_annoteren' of een actie die om bevestiging vraagt")
+        if (self.bereik != "werkgebied" or self.deelvraag_id) and self.modus != "werkgebied_annoteren":
+            raise ValueError("'bereik' en 'deelvraag_id' horen bij het annoteren van het werkgebied")
+        if self.deelvraag_id and self.bereik != "deelvragen":
+            raise ValueError("'deelvraag_id' hoort bij bereik 'deelvragen'")
         return self
 
     @model_validator(mode="after")

@@ -13,7 +13,12 @@
  *    een beurt met de actie en zonder `bevestigd` – de bevestiging komt in het gesprek;
  *  - `?annoteer=` op de werkplek start niets (F3e);
  *  - de knop bij een voorstel van Lex in het gesprek start de run met het bevestigde aantal, ook na herladen;
- *  - de voortgang als reeksblok over artikelen heen, met de samenvatting erna.
+ *  - de voortgang als reeksblok over artikelen heen, met de samenvatting erna;
+ *  - alleen de bronnen onder de deelvragen: de suggestie *Annoteer de bepalingen van de deelvragen* (actie
+ *    `deelvragen_annoteren`), en bij een deelvraag *Annoteer de bepalingen hierbij*; de knop bij zo'n voorstel
+ *    stuurt `bereik` en `deelvraag_id` terug, ook na herladen;
+ *  - *Annuleren* naast de knop: geen run, een bericht met `bevestiging_antwoord: geannuleerd`, en na herladen
+ *    geen knoppen meer; na de knop zelf ("Gestart.") ook niet.
  */
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
@@ -63,8 +68,21 @@ const gesprekken = {
     { rol: "assistant", tekst: "In werkgebied *Invorderbaarheid* zijn **3** bepalingen nog niet geannoteerd.", ...leeg, run_id: "v1",
       bevestiging: { soort: "werkgebied_annoteren", werkgebied_id: "wg1", aantal: 3, schatting: 9000 } },
   ],
+  g3: [
+    { rol: "user", tekst: "Annoteer de bepalingen hierbij", ...leeg },
+    { rol: "assistant", tekst: "Onder deelvraag *Wie?* is **1** bepaling nog niet geannoteerd.", ...leeg, run_id: "v2",
+      bevestiging: { soort: "werkgebied_annoteren", werkgebied_id: "wg1", aantal: 1, schatting: null,
+        bereik: "deelvragen", deelvraag_id: "dv-2" } },
+  ],
+  g4: [
+    { rol: "user", tekst: "Annoteer het werkgebied", ...leeg },
+    { rol: "assistant", tekst: "In werkgebied *Invorderbaarheid* zijn **2** bepalingen nog niet geannoteerd.", ...leeg, run_id: "v3",
+      bevestiging: { soort: "werkgebied_annoteren", werkgebied_id: "wg1", aantal: 2, schatting: null } },
+    { rol: "user", tekst: "Annuleren", ...leeg, bevestiging_antwoord: { keuze: "geannuleerd" } },
+  ],
   g9: [],
 };
+const bewaard = [];
 const starts = [];
 const metStroom = new Set();   // de runs met een bevestigd aantal: die leveren de reeks
 
@@ -80,7 +98,8 @@ await context.route("**/api/**", async (route) => {
         aantal: 0, afgewezen: 0, bron_gewijzigd: false, onbereikbaar: null })) } });
   if (p.startsWith("/api/werkgebieden/wg1/")) return route.fulfill({ json: {} });
   if (p === "/api/gesprekken" && m === "POST") return route.fulfill({ status: 201, json: { id: "g9", titel: body?.titel ?? "", berichten: [] } });
-  if (p === "/api/gesprekken") return route.fulfill({ json: [{ id: "g2", titel: "Voorstel", aantal_berichten: 2 }] });
+  if (p === "/api/gesprekken") return route.fulfill({ json: [{ id: "g2", titel: "Voorstel", aantal_berichten: 2 },
+    { id: "g3", titel: "Deelvraag", aantal_berichten: 2 }] });
   const gesprek = p.match(/^\/api\/gesprekken\/(g\d)$/);
   if (gesprek) return route.fulfill({ json: { id: gesprek[1], titel: "Test", berichten: gesprekken[gesprek[1]] ?? [] } });
   if (p === "/api/annotatie/run" && m === "POST") {
@@ -93,6 +112,7 @@ await context.route("**/api/**", async (route) => {
   if (events) return route.fulfill({ contentType: "text/event-stream", body: sse(metStroom.has(events[1]) ? runStroom : [{ type: "done" }]) });
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
   if (p.endsWith("/capabilities")) return route.fulfill({ json: { samenhang: false } });
+  if (p.endsWith("/berichten") && m === "POST") bewaard.push({ p, body });
   return route.fulfill({ json: p.endsWith("/berichten") && m === "POST" ? { id: 1 } : [] });
 });
 
@@ -137,8 +157,53 @@ try {
   for (const label of ["Invorderingswet 1990, Artikel 9, Lid 1", "Invorderingswet 1990, Artikel 10"])
     await page.getByText(label, { exact: true }).first().waitFor();
 
+  // --- Alleen de bronnen onder de deelvragen: de suggestie in het werkgebied ---
+  await page.goto(`${base}/workbench?werkgebied=wg1`);
+  await page.getByTestId("vraag-suggesties").getByRole("button", { name: "Annoteer de bepalingen van de deelvragen" }).click();
+  for (let i = 0; i < 50 && starts.length < 3; i++) await page.waitForTimeout(50);
+  assert.deepEqual({ actie: starts[2].actie, bevestigd: starts[2].bevestigd, werkgebied_id: starts[2].werkgebied_id },
+    { actie: "deelvragen_annoteren", bevestigd: undefined, werkgebied_id: "wg1" });
+
+  // --- Bij één deelvraag: de suggestie met het onderwerp ---
+  await page.goto(`${base}/workbench?werkgebied=wg1&vraag=deelvraag%3Adv-2&vraag_label=Wie%3F`);
+  await page.locator("[data-onderwerp=deelvraag]").waitFor();
+  await page.getByTestId("vraag-suggesties").getByRole("button", { name: "Annoteer de bepalingen hierbij" }).click();
+  for (let i = 0; i < 50 && starts.length < 4; i++) await page.waitForTimeout(50);
+  assert.deepEqual({ actie: starts[3].actie, onderwerp: starts[3].onderwerp },
+    { actie: "deelvragen_annoteren", onderwerp: { soort: "deelvraag", werkgebied_id: "wg1", id: "dv-2", label: "Wie?" } });
+
+  // --- De knop bij zo'n voorstel stuurt het bereik terug, na herladen ---
+  await page.goto(`${base}/workbench?gesprek=g3`);
+  await page.getByRole("button", { name: "Laat Lex annoteren (1 bepaling)" }).click();
+  for (let i = 0; i < 50 && starts.length < 5; i++) await page.waitForTimeout(50);
+  assert.deepEqual({ modus: starts[4].modus, bevestigd: starts[4].bevestigd, bereik: starts[4].bereik,
+    deelvraag_id: starts[4].deelvraag_id },
+  { modus: "werkgebied_annoteren", bevestigd: 1, bereik: "deelvragen", deelvraag_id: "dv-2" },
+  "de knop annoteert de deelvraag, niet het hele werkgebied");
+
+  // --- Annuleren: geen run, wel een bericht; daarna geen knoppen ---
+  await page.goto(`${base}/workbench?gesprek=g2`);
+  const voorAnnuleren = starts.length;
+  await page.getByRole("button", { name: "Laat Lex annoteren (3 bepalingen)" }).waitFor();
+  await page.getByRole("button", { name: "Annuleren", exact: true }).click();
+  await page.locator("[data-bevestiging-keuze=geannuleerd]").waitFor();
+  assert.equal(await page.getByRole("button", { name: /^Laat Lex annoteren/ }).count(), 0);
+  await page.waitForTimeout(200);
+  assert.equal(starts.length, voorAnnuleren, "annuleren start niets");
+  const annuleerBericht = bewaard.find((x) => x.p === "/api/gesprekken/g2/berichten" && x.body?.bevestiging_antwoord?.keuze === "geannuleerd");
+  assert.deepEqual({ rol: annuleerBericht?.body.rol, tekst: annuleerBericht?.body.tekst, antwoord: annuleerBericht?.body.bevestiging_antwoord },
+    { rol: "user", tekst: "Annuleren", antwoord: { keuze: "geannuleerd" } });
+  // Het starten zelf legt ook vast dat het voorstel beantwoord is.
+  assert.ok(bewaard.some((x) => x.p === "/api/gesprekken/g3/berichten" && x.body?.bevestiging_antwoord?.keuze === "gestart"));
+
+  // --- Na herladen: een geannuleerd voorstel heeft geen knoppen meer ---
+  await page.goto(`${base}/workbench?gesprek=g4`);
+  await page.locator("[data-bevestiging-keuze=geannuleerd]").waitFor();
+  assert.equal(await page.getByRole("button", { name: /^Laat Lex annoteren/ }).count(), 0);
+  assert.equal(await page.getByRole("button", { name: "Annuleren", exact: true }).count(), 0);
+
   assert.deepEqual(errors, []);
-  console.log("Browser OK: geen Lex-knop op de tab Elementen, Vraag Lex in de kop, annoteer= start niets, de suggestie in het werkgebied, knop bij een voorstel na herladen met het bevestigde aantal, reeks over artikelen met samenvatting.");
+  console.log("Browser OK: annuleren zonder run en na herladen zonder knoppen; geen Lex-knop op de tab Elementen, Vraag Lex in de kop, annoteer= start niets, de suggestie in het werkgebied, knop bij een voorstel na herladen met het bevestigde aantal, reeks over artikelen met samenvatting, en annoteren onder de deelvragen (alle en één, knop met bereik).");
 } finally {
   await browser.close();
 }

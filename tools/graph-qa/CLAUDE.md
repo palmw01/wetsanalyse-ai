@@ -748,6 +748,13 @@ en `modus: "werkgebied_annoteren"` of de actie `werkgebied_annoteren` (de reeks,
 het voorstel met de bevestiging (`werkgebied_voorstel`, F3c).
 
 - **De werkvoorraad komt van de api** (`GET …/annotatie-werkvoorraad`), nooit van de browser.
+- **Drie bereiken** (`ChatRequest.bereik` + `deelvraag_id`, en zo ook in de `bevestiging`): het hele
+  werkgebied; alleen de bronnen onder alle actieve deelvragen (`bereik: "deelvragen"`, de taak `deelvragen`
+  van de annotatie-agent of de actie `deelvragen_annoteren`); of die onder één deelvraag (het onderwerp, of
+  "deelvraag 2" via `deelvraag_op_nummer`). De api filtert; de teksten zeggen waar het over gaat (`plek`) en
+  wat buiten het bereik blijft. Bij het hele werkgebied noemt Lex de kleinere werkvoorraad onder de
+  deelvragen, als die er is (`_alternatief`, best-effort). Een weigering van de api (404, 409
+  `niet_actief`/`geen_deelvragen`) is een antwoord (`weigering`), geen storing.
 - **Nooit starten zonder bevestiging.** Zonder `bevestigd` antwoordt Lex met aantal, schatting
   (mediaan van eerdere annotatiebeurten, of eerlijk "nog geen"), budget en wat er niet meegaat, en het
   bericht draagt een `bevestiging` (`{soort, werkgebied_id, aantal, schatting}`) waar de werkplek een
@@ -908,8 +915,8 @@ reeks) en `doelen`.
   (brondefinitie → zonder definitie een definitievoorstel → voorbeelden pas op een overgenomen definitie)
   en `relaties` (`GET …/relaties`, zonder model). Het begrip komt van het onderwerp (`als_rij`) of uit de
   term (`los_op`). Skillrol `begrippen`.
-- **De annotatie-agent** heeft één taak hier: `werkgebied` (`werkgebied_annotatie.werkgebied_voorstel`), het
-  voorstel met de bevestiging. Met `bevestigd` blijft het de eigen reeks, want die draait per bepaling een
+- **De annotatie-agent** heeft twee taken hier: `werkgebied` en `deelvragen` (alleen de bronnen onder de
+  deelvragen, of onder één; `werkgebied_annotatie.werkgebied_voorstel`), het voorstel met de bevestiging. Met `bevestigd` blijft het de eigen reeks, want die draait per bepaling een
   gewone beurt.
 - **Uitvoering**: `agent_taak` draait de async agent op de event loop van de beurt
   (`agents/uitvoering.draai`, `Bouw.loop`), events via een thread-veilige wachtrij; stoppen via

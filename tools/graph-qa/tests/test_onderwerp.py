@@ -97,8 +97,10 @@ def test_een_actie_is_een_taak_van_een_agent(actie):
     agent, taak = ACTIE_TAAK[actie]
     assert register.is_taak(agent, taak)
     r = ChatRequest(question="Zoek bepalingen", actie=actie, werkgebied_id="wg1")
-    # Alleen het werkgebied annoteren is een eigen stroom; de rest gaat langs de supervisor.
-    assert r.modus == ("werkgebied_annoteren" if actie == "werkgebied_annoteren" else "auto")
+    # Alleen het werkgebied (of zijn deelvragen) annoteren is een eigen stroom; de rest gaat langs de supervisor.
+    annoteren = actie in ("werkgebied_annoteren", "deelvragen_annoteren")
+    assert r.modus == ("werkgebied_annoteren" if annoteren else "auto")
+    assert r.bereik == ("deelvragen" if actie == "deelvragen_annoteren" else "werkgebied")
     # Met het werkgebied uit het onderwerp, als de werkplek er niet al in staat.
     r = ChatRequest(question="…", actie=actie, onderwerp={"soort": "werkgebied", "werkgebied_id": "wg2"})
     assert r.werkgebied_id == "wg2"

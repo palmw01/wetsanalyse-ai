@@ -60,7 +60,7 @@ describe("een object stuurt alleen soort en id's", () => {
   it("het werkgebied zonder id, met de handelingen als suggestie met een actie", () => {
     expect(verzoekVan(werkgebied)).toEqual({ onderwerp: { soort: "werkgebied", werkgebied_id: "wg1", label: "Invordering" } });
     const s = suggestiesVan(werkgebied);
-    expect(s.map((x) => x.actie)).toEqual(["deelvragen_voorstellen", "bronnen_zoeken", "dekking", "werkgebied_annoteren",
+    expect(s.map((x) => x.actie)).toEqual(["deelvragen_voorstellen", "bronnen_zoeken", "dekking", "werkgebied_annoteren", "deelvragen_annoteren",
       "begrippen_voorstellen", "begrippen_meedenken"]);
     expect(actieVerzoek(werkgebied as Extract<Onderwerp, { soort: "werkgebied" }>, "bronnen_zoeken")).toEqual({
       actie: "bronnen_zoeken", onderwerp: { soort: "werkgebied", werkgebied_id: "wg1", label: "Invordering" },
@@ -69,7 +69,8 @@ describe("een object stuurt alleen soort en id's", () => {
 
   it("elke soort heeft suggesties die passen (F3d)", () => {
     const acties = (soort: ObjectSoort) => suggestiesVan({ soort, werkgebied_id: "wg1", id: "x1", label: "" }).map((x) => x.actie);
-    expect(acties("deelvraag")).toEqual(["bronnen_zoeken", "dekking", "deelvraag_herformuleren", "deelvraag_splitsen"]);
+    expect(acties("deelvraag")).toEqual(["bronnen_zoeken", "deelvragen_annoteren", "dekking", "deelvraag_herformuleren",
+      "deelvraag_splitsen"]);
     expect(acties("begrip")).toEqual(["begrip_uitwerken", "brondefinitie", "voorbeelden", "relaties", undefined]);
     // Een bron of kandidaat heeft alleen vragen: de antwoord-worker, met het object als context.
     expect(acties("bron").every((x) => x === undefined)).toBe(true);

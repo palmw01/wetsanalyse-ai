@@ -29,7 +29,7 @@ export type Onderwerp =
 /** De acties die graph-qa kent (`agent/models.py`, `ACTIE_TAAK`: elke actie is een taak van een agent);
  *  `vraagLex.test.ts` leest die bron. */
 export const ACTIES = [
-  "werkgebied_annoteren", "deelvragen_voorstellen", "deelvraag_herformuleren", "deelvraag_splitsen",
+  "werkgebied_annoteren", "deelvragen_annoteren", "deelvragen_voorstellen", "deelvraag_herformuleren", "deelvraag_splitsen",
   "bronnen_zoeken", "dekking", "begrippen_voorstellen", "begrippen_meedenken", "brondefinitie", "scherper",
   "voorbeelden", "betekenisverschil", "begrip_uitwerken", "relaties",
 ] as const;
@@ -100,11 +100,13 @@ const SUGGESTIES: Record<ObjectSoort, Suggestie[]> = {
     { tekst: "Zoek bepalingen bij alle deelvragen", actie: "bronnen_zoeken" },
     { tekst: "Hoe staat de dekking ervoor?", actie: "dekking" },
     { tekst: "Annoteer wat nog niet geannoteerd is", actie: "werkgebied_annoteren" },
+    { tekst: "Annoteer de bepalingen van de deelvragen", actie: "deelvragen_annoteren" },
     { tekst: "Stel begrippen voor", actie: "begrippen_voorstellen" },
     { tekst: "Denk mee over de begrippen", actie: "begrippen_meedenken" },
   ],
   deelvraag: [
     { tekst: "Zoek bepalingen hierbij", actie: "bronnen_zoeken" },
+    { tekst: "Annoteer de bepalingen hierbij", actie: "deelvragen_annoteren" },
     { tekst: "Is deze deelvraag gedekt?", actie: "dekking" },
     { tekst: "Formuleer scherper", actie: "deelvraag_herformuleren" },
     { tekst: "Splits deze deelvraag", actie: "deelvraag_splitsen" },

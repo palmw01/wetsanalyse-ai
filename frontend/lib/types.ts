@@ -597,6 +597,9 @@ export interface Bericht {
   vraagkaart?: unknown;
   /** Op het user-bericht van een klik op een vraagkaartje (zie `lib/vraagkaart.ts:parseAntwoordOp`). */
   intake_antwoord?: unknown;
+  /** Op het user-bericht dat een `bevestiging` beantwoordt: `{keuze: "gestart" | "geannuleerd"}`
+   *  (zie `lib/werkgebiedAnnoteren.ts:parseBevestigingKeuze`). */
+  bevestiging_antwoord?: unknown;
   created?: string;
 }
 
@@ -610,6 +613,10 @@ export interface Bevestiging {
   aantal: number;
   /** Tokens voor deze run, of `null` zonder eerdere annotatiebeurten om op te baseren. */
   schatting: number | null;
+  /** Bij `werkgebied_annoteren`: alleen de bronnen onder de deelvragen (met `deelvraag_id`: onder die ene).
+   *  Afwezig = het hele werkgebied. De knop start precies dit bereik. */
+  bereik?: "deelvragen";
+  deelvraag_id?: string;
 }
 
 /** Stand van één annotatie-eenheid (een lid, of een artikel zonder leden) in een werkgebied. */

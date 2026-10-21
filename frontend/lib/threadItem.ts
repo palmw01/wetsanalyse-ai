@@ -14,7 +14,9 @@ export type ThreadItem = { tool_executions?: import("./annotatieNode").ToolExecu
   // beeld omdat hij na herladen tóch terugkomt – wat je ziet moet kloppen met wat er bewaard is.
   | { id: string; type: "user"; tekst: string; over?: string; nietVerstuurd?: boolean;
       // Een klik op een vraagkaartje (activiteit 1): geen bubbel, het antwoord staat in de Vragen-kaart.
-      antwoordOp?: import("./vraagkaart").AntwoordOp }
+      antwoordOp?: import("./vraagkaart").AntwoordOp;
+      // Het antwoord op een bevestiging erboven (de knop of *Annuleren*): het voorstel is afgehandeld.
+      bevestigingKeuze?: import("./werkgebiedAnnoteren").BevestigingKeuze }
   | { id: string; type: "antwoord"; tekst: string; denk?: string; bronnen?: Bron[];
       // De brongetrouwheidstoets van déze beurt. Live; hij reist niet mee in het berichtcontract,
       // maar de statusregel ervan staat wél in `denk` en blijft dus na herladen terug te vinden.

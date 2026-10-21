@@ -16,6 +16,10 @@ Twee stappen, en nooit meteen starten:
 
 Hoogstens `PLAFOND` eenheden per run; de rest blijft nieuw en komt bij een volgende run. Tussen
 eenheden houden stop en budget de run tegen. Aan het eind volgt een samenvatting als gewoon bericht.
+
+**Het bereik** (`bereik`, `deelvraag_id`): het hele werkgebied, of alleen de bronnen onder de actieve
+deelvragen – allemaal, of die van één deelvraag. De api filtert (`?bereik=deelvragen`); de bevestiging
+draagt het bereik, zodat de knop precies dat start, ook na herladen.
 """
 from __future__ import annotations
 
@@ -40,18 +44,49 @@ def _bepalingen(n: int) -> str:
     return "bepaling" if n == 1 else "bepalingen"
 
 
-def voorstel(naam: str, wv: dict[str, Any]) -> tuple[str, dict[str, Any] | None]:
-    """De tekst vóór de bevestiging, en de bevestiging zelf (geen als er niets te doen is)."""
+def _deelvragen(wv: dict[str, Any]) -> bool:
+    return wv.get("bereik") == "deelvragen"
+
+
+def plek(naam: str, wv: dict[str, Any]) -> str:
+    """Waar het over gaat, in kleine letters: "in werkgebied *X*", "onder deelvraag *…*", "onder de 4
+    deelvragen van werkgebied *X*"."""
+    if not _deelvragen(wv):
+        return f"in werkgebied *{naam}*"
+    dv = list(wv.get("deelvragen") or [])
+    if wv.get("deelvraag_id") and dv:
+        return f"onder deelvraag *{dv[0].get('vraag', '')}*"
+    k = len(dv)
+    return (f"onder de deelvraag van werkgebied *{naam}*" if k == 1
+            else f"onder de {k} deelvragen van werkgebied *{naam}*")
+
+
+def _hoofd(t: str) -> str:
+    return t[:1].upper() + t[1:]
+
+
+def voorstel(naam: str, wv: dict[str, Any], alternatief: dict[str, Any] | None = None
+             ) -> tuple[str, dict[str, Any] | None]:
+    """De tekst vóór de bevestiging, en de bevestiging zelf (geen als er niets te doen is).
+
+    `alternatief` is de werkvoorraad onder de deelvragen, bij een voorstel over het hele werkgebied:
+    is die kleiner, dan noemt Lex dat de analist ook alleen die kan laten annoteren."""
     te = list(wv.get("te_annoteren") or [])
     n, deze_run = len(te), min(len(te), PLAFOND)
     al = sum(1 for e in wv.get("eenheden") or [] if (e.get("stand") or {}).get("status") != "nieuw")
     context = int(wv.get("context_niet_meegenomen") or 0)
+    buiten = int(wv.get("buiten_bereik") or 0) if _deelvragen(wv) else 0
+    waar = plek(naam, wv)
     zinnen = []
-    if not n:
-        zinnen.append(f"In werkgebied *{naam}* is niets nieuws te annoteren: elke bepaling van de "
+    if not n and _deelvragen(wv) and not wv.get("eenheden"):
+        hier = "hierbij" if wv.get("deelvraag_id") else "bij alle deelvragen"
+        zinnen.append(f"{_hoofd(waar)} staan nog geen analysebronnen. Laat Lex eerst bepalingen zoeken "
+                      f"(*Zoek bepalingen {hier}*), of koppel bronnen aan de deelvraag.")
+    elif not n:
+        zinnen.append(f"{_hoofd(waar)} is niets nieuws te annoteren: elke bepaling van de "
                       "analysebronnen heeft al een annotatie.")
     else:
-        zin = f"In werkgebied *{naam}* {'is' if n == 1 else 'zijn'} **{n}** {_bepalingen(n)} nog niet geannoteerd."
+        zin = f"{_hoofd(waar)} {'is' if n == 1 else 'zijn'} **{n}** {_bepalingen(n)} nog niet geannoteerd."
         if n > PLAFOND:
             zin += f" Per run doe ik er hoogstens {PLAFOND}; de rest volgt bij een volgende run."
         zinnen.append(zin)
@@ -72,25 +107,35 @@ def voorstel(naam: str, wv: dict[str, Any]) -> tuple[str, dict[str, Any] | None]
         niet.append(f"{al} {_bepalingen(al)} met voorstellen, een oordeel of afgerond")
     if context:
         niet.append(f"{context} {'contextbron' if context == 1 else 'contextbronnen'}")
+    if buiten:
+        niet.append(f"{buiten} {'analysebron' if buiten == 1 else 'analysebronnen'} buiten "
+                    f"{'deze deelvraag' if wv.get('deelvraag_id') else 'de deelvragen'}")
     if niet:
         zinnen.append(f"Niet mee: {' en '.join(niet)}.")
     for punt in wv.get("open_punten") or []:
         zinnen.append(f"Niet bereikbaar: {punt}")
+    m = len((alternatief or {}).get("te_annoteren") or [])
+    if not _deelvragen(wv) and 0 < m < n:
+        zinnen.append(f"Alleen de bepalingen onder de deelvragen? Dat {'is er' if m == 1 else 'zijn er'} {m}: "
+                      "vraag *Annoteer de bepalingen van de deelvragen*.")
     if n:
         zinnen.append("Bevestig om te starten; je volgt de voortgang hier per bepaling.")
     bevestiging = None
     if n:
         schat = wv.get("schatting")
         bevestiging = {"soort": "werkgebied_annoteren", "werkgebied_id": str(wv.get("werkgebied_id") or ""),
-                       "aantal": n, "schatting": schat["per_bepaling"] * deze_run if schat else None}
+                       "aantal": n, "schatting": schat["per_bepaling"] * deze_run if schat else None,
+                       "bereik": "deelvragen" if _deelvragen(wv) else "werkgebied",
+                       "deelvraag_id": str(wv.get("deelvraag_id") or "")}
     return " ".join(zinnen), bevestiging
 
 
-def samenvatting(naam: str, uitkomsten: dict[str, str], eind: dict[str, Any], rest: int) -> str:
+def samenvatting(naam: str, uitkomsten: dict[str, str], eind: dict[str, Any], rest: int,
+                 wv: dict[str, Any] | None = None) -> str:
     """Uit de getallen, geen model."""
     tel = {s: sum(1 for u in uitkomsten.values() if u == s) for s in ("klaar", "hergebruik", "fout", "gestopt")}
     gedaan = tel["klaar"] + tel["hergebruik"]
-    delen = [f"{gedaan} {_bepalingen(gedaan)} geannoteerd in werkgebied *{naam}*"]
+    delen = [f"{gedaan} {_bepalingen(gedaan)} geannoteerd {plek(naam, wv or {})}"]
     if tel["fout"]:
         delen.append(f"{tel['fout']} mislukt")
     overgeslagen = len(eind.get("overgeslagen") or [])
@@ -112,20 +157,55 @@ async def zonder_api() -> AsyncIterator[dict[str, Any]]:
     yield {"type": "done"}
 
 
-async def werkgebied_voorstel(ctx: Context, werkgebied_id: str) -> Uitkomst:
-    """Stap 1 als taak (`werkgebied` van de annotatie-agent, `agents/annotatie.py`): de getypte vraag
-    "annoteer wat nog niet geannoteerd is" levert het voorstel met de bevestiging. Starten doet de
-    bevestigingsknop, met `bevestigd` (de reeks hieronder)."""
-    taak = "werkgebied"
+#: Wat de api met een weigering bedoelt, in de woorden van Lex.
+WEIGERING = {
+    "niet_actief": "Die deelvraag is niet (meer) actief. Kies *Vraag Lex* bij een actieve deelvraag.",
+    "geen_deelvragen": "Dit werkgebied heeft nog geen deelvragen. Vraag *Stel deelvragen voor*, of laat Lex "
+                       "het hele werkgebied annoteren.",
+}
+
+
+def weigering(fout: WetsanalyseApiFout) -> str | None:
+    """De zin bij een weigering van de api (404, 409); `None` als het een storing is."""
+    if fout.status == 404:
+        return ("Die deelvraag bestaat niet (meer)." if fout.reden.startswith("Deelvraag")
+                else "Dit werkgebied bestaat niet (meer).")
+    if fout.status == 409:
+        return WEIGERING.get(fout.reden)
+    return None
+
+
+async def _haal(api: WetsanalyseApi, werkgebied_id: str, bereik: str, deelvraag_id: str) -> dict[str, Any]:
+    wv = await api.haal_annotatie_werkvoorraad(werkgebied_id, bereik, deelvraag_id)
+    return {"werkgebied_id": werkgebied_id, "bereik": bereik, "deelvraag_id": deelvraag_id, **wv}
+
+
+async def _alternatief(api: WetsanalyseApi, werkgebied_id: str, wv: dict[str, Any]) -> dict[str, Any] | None:
+    """Bij het hele werkgebied: de werkvoorraad onder de deelvragen, als die er zijn. Best-effort – een
+    weigering of storing kost alleen de extra zin."""
+    if _deelvragen(wv) or not wv.get("te_annoteren"):
+        return None
+    try:
+        return await api.haal_annotatie_werkvoorraad(werkgebied_id, "deelvragen", "")
+    except WetsanalyseApiFout:
+        return None
+
+
+async def werkgebied_voorstel(ctx: Context, werkgebied_id: str, bereik: str = "werkgebied",
+                              deelvraag_id: str = "") -> Uitkomst:
+    """Stap 1 als taak (`werkgebied` of `deelvragen` van de annotatie-agent, `agents/annotatie.py`): de
+    getypte vraag "annoteer wat nog niet geannoteerd is" levert het voorstel met de bevestiging. Starten
+    doet de bevestigingsknop, met `bevestigd` (de reeks hieronder)."""
+    taak = "deelvragen" if bereik == "deelvragen" else "werkgebied"
     ctx.melding("Werkvoorraad van het werkgebied bepalen")
     try:
-        wv = await ctx.api.haal_annotatie_werkvoorraad(werkgebied_id)
+        wv = await _haal(ctx.api, werkgebied_id, bereik, deelvraag_id)
     except WetsanalyseApiFout as fout:
-        if fout.status != 404:
+        if (zin := weigering(fout)) is None:
             raise
-        return geweigerd(taak, "Dit werkgebied bestaat niet (meer).")
-    wv = {"werkgebied_id": werkgebied_id, **wv}
-    tekst, bevestiging = voorstel(str(wv.get("naam") or "zonder naam"), wv)
+        return geweigerd(taak, zin)
+    tekst, bevestiging = voorstel(str(wv.get("naam") or "zonder naam"), wv,
+                                  await _alternatief(ctx.api, werkgebied_id, wv))
     return Uitkomst(taak=taak, status="bevestiging" if bevestiging else "ok", tekst=tekst, bevestiging=bevestiging,
                     meting={"te_annoteren": len(wv.get("te_annoteren") or []), "model": False})
 
@@ -146,6 +226,8 @@ async def werkgebied_annotatie_beurt(
 
     `api`, `graph`, `llm`, `annotaties` en `budget_toegestaan` zijn er voor tests."""
     werkgebied_id: str = request.werkgebied_id
+    bereik: str = getattr(request, "bereik", "werkgebied") or "werkgebied"
+    deelvraag_id: str = getattr(request, "deelvraag_id", "") or ""
     run_id: str = getattr(run, "run_id", "") or ""
     eigen_api = api is None
     api = api or WetsanalyseApi(settings, user_id)
@@ -165,20 +247,19 @@ async def werkgebied_annotatie_beurt(
     try:
         yield {"type": "status", "message": "Lex · Werkvoorraad van het werkgebied bepalen"}
         try:
-            wv = await api.haal_annotatie_werkvoorraad(werkgebied_id)
+            wv = await _haal(api, werkgebied_id, bereik, deelvraag_id)
         except WetsanalyseApiFout as fout:
-            if fout.status != 404:
+            if (zin := weigering(fout)) is None:
                 raise
-            async for ev in leg_vast("Dit werkgebied bestaat niet (meer)."):
+            async for ev in leg_vast(zin):
                 yield ev
             return
-        wv = {"werkgebied_id": werkgebied_id, **wv}
         naam = str(wv.get("naam") or "zonder naam")
         te = list(wv.get("te_annoteren") or [])
         bevestigd = getattr(request, "bevestigd", None)
 
         if bevestigd is None or bevestigd != len(te) or not te:
-            tekst, bevestiging = voorstel(naam, wv)
+            tekst, bevestiging = voorstel(naam, wv, await _alternatief(api, werkgebied_id, wv) if bevestigd is None else None)
             if bevestigd is not None and bevestigd != len(te):
                 tekst = (f"De werkvoorraad veranderde: nu {len(te)} {_bepalingen(len(te))} in plaats van "
                          f"{bevestigd}. Ik ben niet begonnen. " + tekst)
@@ -190,7 +271,14 @@ async def werkgebied_annotatie_beurt(
         doelen = [{"bron_iri": i, "label": ", ".join(x for x in (per_iri.get(i, {}).get("regeling"),
                                                                   per_iri.get(i, {}).get("label")) if x) or i}
                   for i in te[:PLAFOND]]
-        ouder = {"bron_iri": f"urn:wa:werkgebied:{werkgebied_id}", "label": f"werkgebied {naam}"}
+        if not _deelvragen(wv):
+            ouder = {"bron_iri": f"urn:wa:werkgebied:{werkgebied_id}", "label": f"werkgebied {naam}"}
+        elif deelvraag_id:
+            dv = (wv.get("deelvragen") or [{}])[0]
+            ouder = {"bron_iri": f"urn:wa:werkgebied:{werkgebied_id}:deelvraag:{deelvraag_id}",
+                     "label": f"deelvraag {str(dv.get('vraag') or '')[:80]}".strip()}
+        else:
+            ouder = {"bron_iri": f"urn:wa:werkgebied:{werkgebied_id}:deelvragen", "label": f"deelvragen van {naam}"}
         if budget_toegestaan is None and settings.legt_zelf_vast and user_id:
             budget_toegestaan = _budget_poort(settings, user_id)
         beurt = beurt_fabriek(run, gesprek_id=request.conversation_id, hergebruik="auto", totaal=len(doelen),
@@ -208,7 +296,7 @@ async def werkgebied_annotatie_beurt(
             elif ev["type"] == "reeks" and ev.get("fase") == "eind":
                 eind = ev
             yield ev
-        async for ev in leg_vast(samenvatting(naam, uitkomsten, eind, max(0, len(te) - PLAFOND))):
+        async for ev in leg_vast(samenvatting(naam, uitkomsten, eind, max(0, len(te) - PLAFOND), wv)):
             yield ev
     except WetsanalyseApiFout as fout:
         logger.error("werkgebied annoteren: api-fout", extra={"categorie": "technisch", "http_status": fout.status})

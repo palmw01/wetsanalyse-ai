@@ -85,6 +85,10 @@ class Bevestiging(BaseModel):
     werkgebied_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
     aantal: int = Field(ge=0, le=100_000)
     schatting: int | None = Field(default=None, ge=0)
+    # Bij `werkgebied_annoteren`: het hele werkgebied, of alleen de bronnen onder de deelvragen (met
+    # `deelvraag_id`: onder die ene). De knop start dan hetzelfde bereik.
+    bereik: Literal["werkgebied", "deelvragen"] = "werkgebied"
+    deelvraag_id: str = Field(default="", pattern=r"^[A-Za-z0-9-]{0,64}$")
 
 
 class VraagOptie(BaseModel):
@@ -146,6 +150,13 @@ class Vraagkaart(BaseModel):
     beantwoord: bool = False
 
 
+class BevestigingAntwoord(BaseModel):
+    """Op het user-bericht dat een `bevestiging` beantwoordt: gestart (de knop) of geannuleerd. Daaraan
+    ziet de werkplek na herladen dat het voorstel erboven afgehandeld is, en toont hij geen knop meer."""
+
+    keuze: Literal["gestart", "geannuleerd"]
+
+
 class IntakeAntwoord(BaseModel):
     """Op het user-bericht van een klik op een vraagkaartje: daaraan herkent de werkplek na herladen een
     antwoord, en onderscheidt hij het van een getypte tussenvraag (die de "Vragen"-kaart onderbreekt)."""
@@ -195,6 +206,7 @@ class Bericht(BaseModel):
     artefact: Artefact | None = None
     bevestiging: Bevestiging | None = None
     vraagkaart: Vraagkaart | None = None
+    bevestiging_antwoord: BevestigingAntwoord | None = None
     intake_antwoord: IntakeAntwoord | None = None
     created: datetime | None = None
 
@@ -237,6 +249,7 @@ class BerichtInvoer(BaseModel):
     reeks: ReeksPlek | None = None
     artefact: Artefact | None = None
     bevestiging: Bevestiging | None = None
+    bevestiging_antwoord: BevestigingAntwoord | None = None
     vraagkaart: Vraagkaart | None = None
     intake_antwoord: IntakeAntwoord | None = None
 
