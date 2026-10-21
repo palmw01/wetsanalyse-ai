@@ -54,6 +54,11 @@ on:
         type: choice
         options: [wat-if, deploy, afbreken, opruimen, vul-graaf, eval, inventaris, telemetrie, grafana, grafana-afbreken, mcp-proxy-afbreken]
         default: wat-if
+      eval_set:
+        description: "Alleen voor 'eval': alles (smoke + 3× annotatie + 3× gesprek), of alleen gesprek of annotatie (smoke + 3×)"
+        type: choice
+        options: [alles, gesprek, annotatie]
+        default: alles
       query:
         description: "Alleen voor 'telemetrie': een eigen KQL-query (leeg = de standaardset)"
         type: string
@@ -86,6 +91,7 @@ jobs:
       # breekt de stap, en een `$(…)` wordt uitgevoerd. Keuzelijsten en booleans mogen wel inline.
       INVOER_QUERY: ${{ inputs.query }}
       INVOER_BEVESTIGING: ${{ inputs.bevestig_resource_group }}
+      EVAL_SET: ${{ inputs.eval_set }}
       RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
       APP_NAME: ${{ vars.APP_NAME }}
       # Repo-vars (niet per environment): `opruimen` moet álle straten kennen om te weten wat wees
@@ -835,6 +841,23 @@ jobs:
             echo "::error::De job '$JOB' bestaat niet in '$RESOURCE_GROUP'. Draai eerst deze workflow met actie 'deploy'; die maakt hem aan."
             exit 1
           fi
+          # Een deelset (`eval_set`): de job krijgt tijdelijk andere args; de stap "Eval-job terugzetten"
+          # zet de args uit de bicep daarna terug, ook als deze stap faalt. Geen bicep-deploy, want die
+          # raakt GraphDB. De args uit de bicep blijven de standaardvorm.
+          if [ "$EVAL_SET" != "alles" ]; then
+            az containerapp job show -n "$JOB" -g "$RESOURCE_GROUP" \
+              --query "properties.template.containers[0].args" -o json > "$RUNNER_TEMP/eval-args.json"
+            [ "$(jq 'length' "$RUNNER_TEMP/eval-args.json")" = "1" ] || {
+              echo "::error::De eval-job heeft niet de verwachte vorm (één args-string); niets gewijzigd."; exit 1; }
+            case "$EVAL_SET" in
+              gesprek) vlag="--gesprek"; titel="GESPREK"; uit="|| true" ;;
+              annotatie) vlag="--annotatie"; titel="RUN"; uit="|| rc=1" ;;
+              *) echo "::error::onbekende eval_set"; exit 1 ;;
+            esac
+            args="rc=0; echo \"=== RETRIEVAL-SMOKE ===\"; python -u eval/run_eval.py --retrieval-smoke || rc=1; for i in 1 2 3; do echo \"=== $titel \$i VAN 3 ===\"; python -u eval/run_eval.py $vlag $uit; done; echo \"=== KLAAR (rc=\$rc) ===\"; exit \$rc"
+            az containerapp job update -n "$JOB" -g "$RESOURCE_GROUP" --args "$args" --output none
+            echo "Eval-set: $EVAL_SET (tijdelijke args: $args)"
+          fi
           echo "Start $JOB – drie eval-runs tegen de graaf van deze straat. Dit kost LLM-tokens."
           echo "::notice::Draai 'eval' NIET vlak na een 'deploy': die start de importjob, en zolang"
           echo "::notice::die loopt herschrijft GraphDB de graaf. De smoke wacht daar zelf op, maar"
@@ -895,7 +918,7 @@ jobs:
                                      --execution "$uitvoering" --tail 250 2>/dev/null || true)
           echo "$logs"
           {
-            echo "## Eval – annotatieketen (3 runs)"
+            echo "## Eval – set: $EVAL_SET (3 runs)"
             echo ""
             echo "- Straat: \`$APP_NAME\` · Execution: \`$uitvoering\` · Status: **$status**"
             echo ""
@@ -916,6 +939,21 @@ jobs:
           # Exitcode 1 uit de job betekent dat één van de drie runs een garantie miste. Dat is een
           # bevinding om naar te kijken, geen kapotte workflow — maar wel iets dat rood hoort te zijn.
           [ "$status" = "Succeeded" ] || { echo "::error::eval-job eindigde als $status – zie het rapport hierboven"; exit 1; }
+
+      - name: Eval-job terugzetten
+        # Altijd na een deelset, ook als de meting faalde: anders draait de volgende `eval` stil een deelset.
+        if: ${{ always() && inputs.actie == 'eval' && inputs.eval_set != 'alles' }}
+        run: |
+          set -euo pipefail
+          JOB="$APP_NAME-eval"
+          [ -s "$RUNNER_TEMP/eval-args.json" ] || { echo "Niets bewaard; de job is niet gewijzigd."; exit 0; }
+          az containerapp job update -n "$JOB" -g "$RESOURCE_GROUP" \
+            --args "$(jq -r '.[0]' "$RUNNER_TEMP/eval-args.json")" --output none
+          nu=$(az containerapp job show -n "$JOB" -g "$RESOURCE_GROUP" \
+                 --query "properties.template.containers[0].args" -o json)
+          [ "$(echo "$nu" | jq -c .)" = "$(jq -c . "$RUNNER_TEMP/eval-args.json")" ] || {
+            echo "::error::De args van $JOB zijn niet teruggezet; zet ze met de hand terug of draai 'deploy'."; exit 1; }
+          echo "Args van $JOB teruggezet naar de bicep-vorm."
 
       - name: Samenvatting
         if: ${{ always() && inputs.actie == 'deploy' }}

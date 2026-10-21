@@ -265,7 +265,7 @@ Actions → **azure-infra** → *Run workflow*, met een keuze voor de straat en 
 | `afbreken` | verwijdert de hele resource group – dus beide straten. Vraagt om de naam ter bevestiging. |
 | `opruimen` | verwijdert wat er in de groep staat maar niet bij een straat hoort. Toont eerst wat het zou doen; verwijdert pas als je de groepsnaam intypt. |
 | `vul-graaf` | start de import-job en wacht hem af. |
-| `eval` | draait de eval-job: eerst de retrieval-smoke (gratis), daarna **drie** metingen van de annotatieketen, met het rapport in de workflow-samenvatting. Kost LLM-tokens. Vereist een eerdere `deploy` (die maakt de job aan). **Niet vlak na een `deploy` draaien**: die start de importjob, en zolang die loopt herschrijft GraphDB de graaf. De smoke wacht daar zelf op, maar dat kost wachttijd. |
+| `eval` | draait de eval-job: eerst de retrieval-smoke (gratis), daarna **drie** metingen van de annotatieketen en drie van de gesprekken, met het rapport in de workflow-samenvatting. Kost LLM-tokens. Met `eval_set` = `gesprek` of `annotatie` draait alleen die set (na de smoke): de job krijgt tijdelijk andere args en een `always()`-stap zet de args uit de bicep terug – geen `deploy` nodig. Vereist een eerdere `deploy` (die maakt de job aan). **Niet vlak na een `deploy` draaien**: die start de importjob, en zolang die loopt herschrijft GraphDB de graaf. De smoke wacht daar zelf op, maar dat kost wachttijd. |
 | `inventaris` | read-only overzicht van wat er in de subscription draait, met het image per app en job. |
 | `telemetrie` | vraagt de Log Analytics-workspace of er telemetrie binnenkomt; met een eigen `query` je eigen KQL. Read-only. |
 | `grafana` | rolt alleen de Grafana-app uit (`grafana.bicep`). Raakt de applicatiestack niet. |
