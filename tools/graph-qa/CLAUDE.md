@@ -752,7 +752,8 @@ het voorstel met de bevestiging (`werkgebied_voorstel`, F3c).
   werkgebied; alleen de bronnen onder alle actieve deelvragen (`bereik: "deelvragen"`, de taak `deelvragen`
   van de annotatie-agent of de actie `deelvragen_annoteren`); of die onder één deelvraag (het onderwerp, of
   "deelvraag 2" via `deelvraag_op_nummer`). De api filtert; de teksten zeggen waar het over gaat (`plek`) en
-  wat buiten het bereik blijft. Bij het hele werkgebied noemt Lex de kleinere werkvoorraad onder de
+  wat buiten het bereik blijft. Zijn er meer bepalingen dan bronnen, dan zegt Lex waarom (een artikel met leden
+  per lid) en welke bronnen het meest bijdragen (`_bronnen_en_bepalingen`). Bij het hele werkgebied noemt Lex de kleinere werkvoorraad onder de
   deelvragen, als die er is (`_alternatief`, best-effort). Een weigering van de api (404, 409
   `niet_actief`/`geen_deelvragen`) is een antwoord (`weigering`), geen storing.
 - **Nooit starten zonder bevestiging.** Zonder `bevestigd` antwoordt Lex met aantal, schatting
