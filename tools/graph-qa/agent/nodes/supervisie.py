@@ -190,16 +190,31 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
     if vraag and vraag != state.get("question"):
         _stap(writer, "Supervisor", f"leest de vraag als: {vraag[:120]}")
 
+    # Een leesvraag in de vraag zoals de analist haar stelde, gaat altijd voor.
+    if begripvraag:
+        return {**upd, **_begrippen_lees(writer, vraag)}
+    if leesvraag:
+        return {**upd, **_lees(writer, vraag)}
+
+    worker_plan, plan, afwijzen = parse_supervisor(text)
+    taak = parse_taak(text)
+    agent = worker_plan[0] if worker_plan and worker_plan[0] in ("deelvragen", "begrippen") else \
+        "annotatie" if worker_plan and worker_plan[0] == "annotatie" and taak == "werkgebied" else ""
+    if agent and not afwijzen:
+        # Koos het model een agent, dan mag het herschrijven die keuze niet omzetten: "Is deelvraag 2 al
+        # gedekt?" werd herschreven tot "…gedekt door de annotaties?" en viel dan in de leesroute
+        # (eval 21 okt 2026, 3 van 3 runs). De regels hieronder gelden alleen voor de andere workers.
+        return {**upd, **_agent(writer, state, agent, taak, zelfstandig)}
+
     # De harde regel ná het lezen van het gesprek: "welke zijn er nog meer?" na een vraag over
     # rechtssubjecten is pas als herschreven vraag herkenbaar als leesvraag.
-    if begripvraag or (modus == "auto" and is_begrip_leesvraag(zelfstandig)):
+    if modus == "auto" and is_begrip_leesvraag(zelfstandig):
         return {**upd, **_begrippen_lees(writer, vraag)}
-    if leesvraag or is_leesvraag(zelfstandig, modus):
+    if is_leesvraag(zelfstandig, modus):
         return {**upd, **_lees(writer, vraag)}
     if is_overzichtsvraag(zelfstandig):
         return {**upd, **_overzicht(writer, vraag)}
 
-    worker_plan, plan, afwijzen = parse_supervisor(text)
     plan += _herschreven(vraag)
     if afwijzen:
         # Buiten de scope. Dit hoort hier te eindigen en niet als "AANPAK: AFWIJZEN" de
@@ -211,9 +226,6 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
     eerste = worker_plan[0]
     if eerste == "werkgebied":
         return {**upd, **_werkgebied(writer, "stelt met je een werkgebied samen")}
-    taak = parse_taak(text)
-    if eerste in ("deelvragen", "begrippen") or (eerste == "annotatie" and taak == "werkgebied"):
-        return {**upd, **_agent(writer, state, "annotatie" if eerste == "annotatie" else eerste, taak, zelfstandig)}
     if eerste == "annotatie":
         # Eén artikel per annotatievraag. Meer artikelen is een werkgebied afbakenen – een andere
         # functie. Deterministisch en vóór de ophaal-agent: die zou er anders stil één uitkiezen.
