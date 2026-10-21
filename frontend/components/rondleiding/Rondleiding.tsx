@@ -350,8 +350,10 @@ export function Rondleiding({
             beoordeelt → afronden en exporteren.
           </p>
           <p className="mt-3 text-[0.8125rem] leading-5 text-muted">
-            Je annotaties vind je terug onder <span className="font-medium text-ink">Annotaties</span> in
-            de zijbalk. Deze rondleiding start je opnieuw via je naam linksonder.
+            Je werk vind je terug in de zijbalk: <span className="font-medium text-ink">Werkgebieden</span>,{" "}
+            <span className="font-medium text-ink">Annotaties</span> en{" "}
+            <span className="font-medium text-ink">Begrippen</span>. Deze rondleiding start je opnieuw via je
+            naam linksonder.
             {isBeheerder && (
               <> Daar vind je als beheerder ook <span className="font-medium text-ink">Beheer</span>,
               voor modelprofielen en gebruikers.</>
