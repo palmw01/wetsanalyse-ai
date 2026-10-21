@@ -17,9 +17,11 @@ erop draaide: de set staat in een eigen commit, vóór de meetcode. Een "eigen k
 de agent erbij nam zonder dat de tekst haar dwingend aanwijst. **Een jurist stelt de set vast**; tot dan
 heten de cijfers een trendmeting.
 
-**Een nieuwe set.** De Awb kwam in geen eerdere meting voor (invordering is de ontwikkelset van
-bronselectie; Awir en AWR zijn door de begrippen gezien). Wordt de zoekfunctie na deze meting bijgesteld,
-dan is ook deze set een ontwikkelset geworden.
+**Eén keer blind gemeten, daarna een ontwikkelset.** De Awb kwam in geen eerdere meting voor (invordering
+is de ontwikkelset van bronselectie; Awir en AWR zijn door de begrippen gezien). De eerste meting (21 okt
+2026, [`bronselectie-2026-10-21`](../../../architectuur/metingen/bronselectie-2026-10-21/README.md)) was
+blind; daarna zijn op deze set bijstellingen van de rangschikking uitgeprobeerd. Een volgende wijziging
+aan de zoekfunctie hoort ook op een nieuwe set gemeten te worden.
 
 Meten, vanuit `tools/graph-qa`:
 

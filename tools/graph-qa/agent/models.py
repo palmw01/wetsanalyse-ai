@@ -69,14 +69,17 @@ class IntakeActie(BaseModel):
 
     intake_id: str = Field(pattern=r"^[A-Za-z0-9-]{1,64}$")
     stap: Literal["naam", "aanleiding", "context", "doel", "analysevraag", "praktijkvoorbeeld", "deelvragen",
-                  "buiten", "regelingen", "onderdelen", "samenvatting"]
+                  "buiten", "regelingen", "bepalingen", "samenvatting"]
+    # Bij de bepalingen: het kaartje van welke deelvraag (0-based); een ander deel is een oud kaartje.
+    deel: int = Field(default=0, ge=0, le=19)
     actie: Literal["antwoord", "overslaan", "wijzig", "aanmaken", "afbreken"] = "antwoord"
     keuzes: list[str] = Field(default_factory=list, max_length=20)
     tekst: str = Field(default="", max_length=4000)
     # Meer dan één eigen antwoord (de deelvragen, `meer_tekst` op het kaartje).
     teksten: list[str] = Field(default_factory=list, max_length=20)
-    # Bij `wijzig` vanaf de samenvatting: naar welke stap.
+    # Bij `wijzig`: naar welke stap, en bij de bepalingen naar welk deel.
     naar: str = ""
+    naar_deel: int = Field(default=0, ge=0, le=19)
 
 
 # Routes op een werkgebied die in werkgebied en gesprek schrijven; alleen via `POST /v1/runs`.

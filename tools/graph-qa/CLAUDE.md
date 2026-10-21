@@ -695,18 +695,19 @@ horen; de api bewaart de kandidaten en de besluiten (`api/app/bronnen_run_store.
   afhankelijkheid bij een bekende functie, anders aanverwant), `verwijzing_in` (aanverwant),
   `definitie` (een `bwb:definieertBegrip` in de regeling van de kern waarvan de term letterlijk in de
   kern staat; afhankelijkheid), `opbouw` (de andere artikelen in hetzelfde deel; aanverwant),
-  `gelijkenis` (`bwb_similarity`) en `deelvraag` (het overzicht per actieve deelvraag, met
-  `onderwerp_van_deelvraag`: het vraagwoord vooraan eraf; kern zonder kern, anders aanverwant, hoogstens
-  `MAX_PER_DEELVRAAG`; het bewijs draagt `deelvraag_id`, zodat de api een opgenomen bron aan de
-  deelvraag koppelt).
+  `gelijkenis` (`bwb_similarity`) en `deelvraag` (per actieve deelvraag `bepaling_opties`, dezelfde
+  functie als de intake (F3f): binnen de regelingen van de selectie, op lid-niveau, hoogstens
+  `MAX_PER_DEELVRAAG`; kern zonder kern, anders aanverwant; het bewijs draagt `deelvraag_id` en wat de
+  bepaling raakt, zodat de api een opgenomen bron aan de deelvraag koppelt).
 - **De standaard volgt de meting** (`standaard_voor`, meetlogboek `bronselectie-2026-10-15`): met een
   kern `STANDAARD` = verwijzing uit, definitie, opbouw; zonder kern `ZONDER_KERN` = het overzicht.
   Overzicht (met kern), `verwijzing_in` en `gelijkenis` hielpen niet aantoonbaar en staan uit. Wijzig
   je een methode, meet dan opnieuw: `uv run python -m eval.bronselectie_eval` (offline, tegen de
   opname naast de set) en `--opnemen` (live); `tests/test_bronselectie_eval.py` bewaakt dat de standaard
   alles vindt wat nodig is en niets uitgeslotens voorstelt. Heeft het werkgebied deelvragen (ze staan
-  alleen dan in de invoer), dan komt `deelvraag` erbij: de analist vroeg er zelf om. Die methode is nog
-  niet gemeten.
+  alleen dan in de invoer), dan komt `deelvraag` erbij: de analist vroeg er zelf om. Die methode meet
+  `--intake` per deelvraag (meetlogboek `bronselectie-2026-10-21`: blind beter dan de vorige methode,
+  absoluut zwak – de rangschikking mist stemming en gewicht).
 - **De queries gaan op bron-IRI's** (`q_uitgaand`, `q_inkomend`, `q_teksten`, `q_definities`,
   `q_opbouw`), niet op bwb-id + artikel: een selectie kan een lid, onderdeel of Leidraad-divisie zijn.
   Alleen geïmporteerde doelen (`?naar a ?type`): een verwijzing naar een regeling buiten de graaf is
@@ -766,7 +767,7 @@ het voorstel met de bevestiging (`werkgebied_voorstel`, F3c).
 "Kunnen we een werkgebied samenstellen?" of "ik wil een wetsanalyse uitvoeren" (`is_werkgebiedvraag`)
 start een **intake**: één vraag per kaartje in de volgorde van de methode (spoor F, F2) – naam, dan
 startactiviteit a (aanleiding, context, doel), analysevraag, praktijkvoorbeeld, deelvragen, wat valt
-erbuiten, en pas dan regeling(en) en onderdelen – en een samenvatting met *Aanmaken*. De
+erbuiten, en pas dan regeling(en) en per deelvraag de bepalingen – en een samenvatting met *Aanmaken*. De
 werkgebied-worker staat onder de supervisor, naast `antwoord` en `annotatie`, en ketent met niets.
 
 - **Routering.** Een klik op een kaartje (`ChatRequest.intake_actie`) en een startzin gaan zonder
@@ -782,7 +783,8 @@ werkgebied-worker staat onder de supervisor, naast `antwoord` en `annotatie`, en
   het dossier (`model_hash`), gedeeld door de stappen. Terugbladeren zonder iets te wijzigen kost dus
   niets; een gewijzigd antwoord geeft nieuwe voorstellen, en wat de analist al koos blijft kiesbaar
   ("eerder gekozen"). De tests eisen het dossier in de modelinvoer.
-- **Terugbladeren** (‹ n van 10 ›): `wijzig` mag vanaf elke stap naar een eerdere, vanaf de
+- **Terugbladeren** (‹ n van N ›, negen vaste stappen plus één kaartje per deelvraag): `wijzig` mag
+  vanaf elke stap naar een eerdere (bij de bepalingen ook naar een eerder deel, `naar_deel`), vanaf de
   samenvatting naar elke stap. Het kaartje draagt `terug`/`beantwoord`, en `vooringevuld` komt dan uit
   het eerdere antwoord (`eerder_antwoord`).
 - **De volgorde is een stapmachine** (`verwerk`), nooit het model. Een klik op een kaartje dat al
@@ -800,22 +802,31 @@ werkgebied-worker staat onder de supervisor, naast `antwoord` en `annotatie`, en
   deelvragenrun, met het hele dossier); zonder analysevraag niet, en dat staat op het kaartje. Het
   kaartje is meerkeuze met `meer_tekst`: eigen deelvragen komen als `teksten`. Elke vraag één keer
   (`normaliseer`, gelijk aan de api), met herkomst `lex` of `analist`.
-- **Regelingen en onderdelen komen uit de graaf** (`regeling_opties`): eerst wat het dossier bij naam
-  noemt (niet wat erbuiten valt), dan het overzicht van het onderwerp, dan het overzicht per deelvraag
-  (hoogstens `MAX_DEELVRAAG_ZOEK`; `onderwerp_van_deelvraag`). Per deel onthoudt de intake bij welke
-  deelvragen het gevonden werd; de omschrijving zegt het ("deelvraag 2"). Een deel waarvan de kop
-  raakt aan wat buiten het werkgebied valt (`werkgebied_context.uitsluitstammen`/`valt_buiten`) valt
-  weg en de toelichting noemt het. Eigen tekst bij de regelingen is een nieuwe zoekopdracht.
-  **"Weet ik (nog) niet"** (`ONBEKEND`) staat altijd bij regelingen en onderdelen; bij de regelingen
+- **Regelingen komen uit de graaf** (`regeling_opties`): eerst wat het dossier bij naam noemt (niet wat
+  erbuiten valt), dan het overzicht van het onderwerp, dan het overzicht per deelvraag (hoogstens
+  `MAX_DEELVRAAG_ZOEK`; `onderwerp_van_deelvraag`). Delen waarvan de kop raakt aan wat buiten het
+  werkgebied valt, noemt de toelichting. Eigen tekst bij de regelingen is een nieuwe zoekopdracht.
+- **Daarna per deelvraag één kaartje met bepalingen** (F3f; `intake["deel"]`, `kaartsleutel`
+  `"bepalingen:<n>"` voor voorstellen, meldingen en voorbereiding; zonder deelvragen één kaartje bij de
+  analysevraag). De opties komen zonder model uit `bronnen_vinden.bepaling_opties` – dezelfde functie
+  als de deelvragen-agent – binnen de gekozen regelingen, op lid-niveau, hoogstens `MAX_BEPALINGEN`.
+  Wat meer raakt aan wat erbuiten valt dan aan de deelvraag, valt niet stil weg: onderaan, met "valt
+  mogelijk buiten de afbakening", nooit aangevinkt (fix 1). De keuze staat onder de tekst van de
+  deelvraag (`deel_sleutel`), zodat terugbladeren en herordenen haar laten staan; een keuze bij een
+  deelvraag die er niet meer is, telt niet. De keuzes op de bepalingen-kaartjes tellen niet mee in de
+  hash van de voorbereiding (`dossier_hash(zonder=)`), dus terugbladeren zoekt niet opnieuw.
+  **"Weet ik (nog) niet"** (`ONBEKEND`) staat altijd bij regelingen en bepalingen; bij de regelingen
   gaat het dan meteen naar de samenvatting.
-- **Alleen een gekozen onderdeel wordt een bronselectie** (rol *analyseren*, bereik *onderliggend*),
-  plus artikelen uit eigen tekst als er precies één regeling is (`artikelen_in`). "De hele regeling"
-  en een regeling zonder onderdeel staan alleen in de afbakeningstekst (`afbakening`).
+- **Alleen een gekozen bepaling wordt een bronselectie** (rol *analyseren*, bereik *onderliggend*),
+  gekoppeld aan de deelvragen op wier kaartje ze gekozen werd (één bron voor meer deelvragen), plus
+  artikelen uit eigen tekst als er precies één regeling is (`artikelen_in`). Een regeling zonder
+  gekozen bepaling staat alleen in de afbakeningstekst (`afbakening`).
 - **Aanmaken doet de beurt-driver** (`beurt._maak_werkgebied`), na het `werkgebied_aanmaken`-event:
   `POST /v1/werkgebieden` met het dossier, de deelvragen en de `intake_id` (idempotent bij de api),
   per bron `POST …/bronnen`, en daarna per deelvraag `PUT …/koppelingen` met de bronnen die Lex erbij
-  vond (een set, dus een herhaling koppelt niets dubbel). Een geweigerde bron laat het werkgebied staan
-  en Lex noemt hem; mislukt het werkgebied zelf, dan `error` met `foutcode: werkgebied_niet_aangemaakt`.
+  vond (een set, dus een herhaling koppelt niets dubbel). De afrondingstekst (`werkgebied_tekst`) volgt
+  wat er werkelijk gekoppeld is – zonder koppelingen belooft hij niets (fix 2). Een geweigerde bron laat
+  het werkgebied staan en Lex noemt hem; mislukt het werkgebied zelf, dan `error` met `foutcode: werkgebied_niet_aangemaakt`.
   Het bericht draagt het artefact `{soort: "werkgebied", ref: {werkgebied_id}}`.
 - **Het kaartje reist mee**: een `vraagkaart`-event (vorm `api/app/gesprek_contracts.Vraagkaart`) en
   het veld `vraagkaart` op het bericht, zodat het na herladen nog te beantwoorden is.

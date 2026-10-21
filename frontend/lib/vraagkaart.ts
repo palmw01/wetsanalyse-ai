@@ -1,6 +1,7 @@
 // Lex stelt met de analist een werkgebied samen (startactiviteit a en activiteit 1, graph-qa
 // `agent/werkgebied_intake.py`): naam, aanleiding, context, doel, analysevraag, praktijkvoorbeeld,
-// deelvragen, wat erbuiten valt, en dan pas de bronnen.
+// deelvragen, wat erbuiten valt, en dan pas de bronnen: de regelingen, en per deelvraag een kaartje met
+// de bepalingen die erbij horen (`deel`).
 //
 // Elke vraag komt als kaartje: een `vraagkaart`-event, en hetzelfde kaartje op het bewaarde bericht
 // (`Bericht.vraagkaart`, api `gesprek_contracts.Vraagkaart`), zodat het na herladen nog te
@@ -11,8 +12,17 @@
 // Pure functies, zodat ze zonder DOM te testen zijn (lib/vraagkaart.test.ts).
 
 export const STAPPEN = ["naam", "aanleiding", "context", "doel", "analysevraag", "praktijkvoorbeeld", "deelvragen",
-  "buiten", "regelingen", "onderdelen"] as const;
+  "buiten", "regelingen", "bepalingen"] as const;
 export type IntakeStap = (typeof STAPPEN)[number] | "samenvatting";
+/** De vaste kaartjes vóór de bepalingen; daarna één per deelvraag (graph-qa `VASTE_STAPPEN`). */
+const VASTE_STAPPEN = STAPPEN.length - 1;
+
+/** Bij de bepalingen: het kaartje van welke deelvraag (zonder deelvragen: de analysevraag). */
+export interface IntakeDeel {
+  index: number;
+  totaal: number;
+  deelvraag: string | null;
+}
 
 /** De waarde van "Weet ik (nog) niet" (graph-qa `ONBEKEND`). */
 export const ONBEKEND = "onbekend";
@@ -31,6 +41,8 @@ export interface Vraagkaart {
   stap: IntakeStap;
   nr: number;
   totaal: number;
+  /** Alleen bij de bepalingen. */
+  deel: IntakeDeel | null;
   vraag: string;
   toelichting: string;
   opties: VraagOptie[];
@@ -65,6 +77,7 @@ export interface Samenvatting {
 export interface AntwoordOp {
   intake_id: string;
   stap: IntakeStap;
+  deel?: number;
   actie: IntakeActie["actie"];
 }
 
@@ -72,12 +85,15 @@ export interface AntwoordOp {
 export interface IntakeActie {
   intake_id: string;
   stap: IntakeStap;
+  /** Bij de bepalingen: het deel van het kaartje; een ander deel is een oud kaartje. */
+  deel?: number;
   actie: "antwoord" | "overslaan" | "wijzig" | "aanmaken" | "afbreken";
   keuzes?: string[];
   tekst?: string;
   /** Meer dan één eigen antwoord (`meer_tekst`). */
   teksten?: string[];
   naar?: string;
+  naar_deel?: number;
 }
 
 const tekst = (v: unknown) => (typeof v === "string" ? v : "");
@@ -100,8 +116,11 @@ export function parseVraagkaart(ruw: unknown): Vraagkaart | undefined {
   }) : [];
   const s = r.samenvatting && typeof r.samenvatting === "object" ? r.samenvatting as Record<string, unknown> : null;
   const getal = (v: unknown, terug: number) => (typeof v === "number" && Number.isInteger(v) && v > 0 ? v : terug);
+  const d = r.deel && typeof r.deel === "object" ? r.deel as Record<string, unknown> : null;
+  const deel = stap === "bepalingen" && d && typeof d.index === "number" && Number.isInteger(d.index) && d.index >= 0
+    ? { index: d.index, totaal: getal(d.totaal, d.index + 1), deelvraag: tekst(d.deelvraag) || null } : null;
   return {
-    intake_id, stap: stap as IntakeStap, vraag,
+    intake_id, stap: stap as IntakeStap, vraag, deel,
     soort: r.soort === "samenvatting" ? "samenvatting" : "vraag",
     nr: getal(r.nr, 1), totaal: getal(r.totaal, STAPPEN.length),
     toelichting: tekst(r.toelichting),
@@ -141,7 +160,13 @@ export function antwoordTekst(k: Vraagkaart, actie: IntakeActie): string {
   if (actie.actie === "aanmaken") return "Maak het werkgebied aan.";
   if (actie.actie === "afbreken") return "Stop met samenstellen.";
   if (actie.actie === "overslaan") return "Sla deze vraag over.";
-  if (actie.actie === "wijzig") return `Terug naar ${STAP_NAAM[actie.naar as IntakeStap] ?? "de vorige vraag"}.`;
+  if (actie.actie === "wijzig") {
+    const metDeelvragen = !!k.deel?.deelvraag || !!k.samenvatting?.deelvragen.length;
+    if (actie.naar === "bepalingen" && metDeelvragen && typeof actie.naar_deel === "number") {
+      return `Terug naar de bepalingen bij deelvraag ${actie.naar_deel + 1}.`;
+    }
+    return `Terug naar ${STAP_NAAM[actie.naar as IntakeStap] ?? "de vorige vraag"}.`;
+  }
   const labels = (actie.keuzes ?? []).map((w) => k.opties.find((o) => o.waarde === w)?.label ?? w);
   const eigen = [...(actie.teksten ?? []), ...(actie.tekst?.trim() ? [actie.tekst.trim()] : [])];
   return [...labels, ...eigen].join("; ") || "—";
@@ -154,8 +179,8 @@ export function antwoordActie(k: Vraagkaart, gekozen: string[], eigen: string, t
   const t = eigen.trim();
   const ts = teksten.map((x) => x.trim()).filter(Boolean);
   if (!gekozen.length && !t && !ts.length) return undefined;
-  return { intake_id: k.intake_id, stap: k.stap, actie: "antwoord", keuzes: gekozen, ...(t ? { tekst: t } : {}),
-    ...(ts.length ? { teksten: ts } : {}) };
+  return { intake_id: k.intake_id, stap: k.stap, ...(k.deel ? { deel: k.deel.index } : {}), actie: "antwoord",
+    keuzes: gekozen, ...(t ? { tekst: t } : {}), ...(ts.length ? { teksten: ts } : {}) };
 }
 
 /** Hoe de samenvatting een stap noemt, voor *Aanpassen*. */
@@ -168,7 +193,7 @@ export const STAP_NAAM: Record<IntakeStap, string> = {
   praktijkvoorbeeld: "het praktijkvoorbeeld",
   deelvragen: "de deelvragen",
   regelingen: "de regelingen",
-  onderdelen: "de onderdelen",
+  bepalingen: "de bepalingen",
   buiten: "wat erbuiten valt",
   samenvatting: "de samenvatting",
 };
@@ -179,25 +204,36 @@ export function parseAntwoordOp(ruw: unknown): AntwoordOp | undefined {
   const intake_id = tekst(r.intake_id), stap = tekst(r.stap), actie = tekst(r.actie) || "antwoord";
   if (!/^[A-Za-z0-9-]{1,64}$/.test(intake_id) || !STAP_SET.has(stap)) return undefined;
   if (!["antwoord", "overslaan", "wijzig", "aanmaken", "afbreken"].includes(actie)) return undefined;
-  return { intake_id, stap: stap as IntakeStap, actie: actie as IntakeActie["actie"] };
+  const deel = typeof r.deel === "number" && Number.isInteger(r.deel) && r.deel >= 0 ? r.deel : undefined;
+  return { intake_id, stap: stap as IntakeStap, ...(deel !== undefined ? { deel } : {}),
+    actie: actie as IntakeActie["actie"] };
 }
 
-/** De stap vóór deze (‹). Vanaf de samenvatting is dat de laatste vraag. */
-export function vorigeStap(k: Vraagkaart): IntakeStap | undefined {
+/** De gegevens van een klik, zoals ze op het user-bericht komen (api `IntakeAntwoord`). */
+export function antwoordOp(a: IntakeActie): AntwoordOp {
+  return { intake_id: a.intake_id, stap: a.stap, ...(typeof a.deel === "number" ? { deel: a.deel } : {}), actie: a.actie };
+}
+
+/** Het kaartje vóór dit (‹): de vorige stap, of bij de bepalingen het vorige deel. Vanaf de
+ *  samenvatting is dat het laatste bepalingen-kaartje. */
+export function vorige(k: Vraagkaart): { naar: IntakeStap; naar_deel?: number } | undefined {
   if (!k.terug) return undefined;
-  if (k.stap === "samenvatting") return STAPPEN[STAPPEN.length - 1];
+  if (k.stap === "samenvatting") return { naar: "bepalingen", naar_deel: Math.max(0, k.totaal - VASTE_STAPPEN - 1) };
+  if (k.stap === "bepalingen" && k.deel && k.deel.index > 0) return { naar: "bepalingen", naar_deel: k.deel.index - 1 };
   const i = STAPPEN.indexOf(k.stap as (typeof STAPPEN)[number]);
-  return i > 0 ? STAPPEN[i - 1] : undefined;
+  return i > 0 ? { naar: STAPPEN[i - 1] } : undefined;
 }
 
 /** Is dit de laatste vraag vóór de samenvatting? Dan heet de knop *Verzend*. */
 export function isLaatsteVraag(k: Vraagkaart): boolean {
-  return k.stap === STAPPEN[STAPPEN.length - 1];
+  return k.stap === "bepalingen" && (!k.deel || k.deel.index >= k.deel.totaal - 1);
 }
 
 /** Eén vraag met het antwoord erop, voor de Vragen-kaart in de thread. */
 export interface VraagPaar {
   stap: IntakeStap;
+  /** Bij de bepalingen: het deel (een paar per deelvraag). */
+  deel?: number;
   vraag: string;
   antwoord: string;
   overgeslagen: boolean;
@@ -254,10 +290,11 @@ export function groepeerVragen<T extends GroepItem>(items: T[], bezig: boolean):
       // Terugbladeren is geen antwoord: de vraag waar je naartoe gaat komt als nieuw kaartje. Beantwoord
       // je een stap opnieuw, dan vervangt dat het eerdere paar en wat erna kwam – de reeks begint daar opnieuw.
       if (k && x.antwoordOp.actie !== "wijzig") {
-        const eerder = huidig.paren.findIndex((p) => p.stap === k.stap);
+        // Bij de bepalingen is elk deel een eigen vraag: het antwoord op deelvraag 2 vervangt dat op 1 niet.
+        const eerder = huidig.paren.findIndex((p) => p.stap === k.stap && p.deel === k.deel?.index);
         if (eerder >= 0) huidig.paren.splice(eerder);
-        huidig.paren.push({ stap: k.stap, vraag: k.vraag, antwoord: x.tekst ?? "",
-          overgeslagen: x.antwoordOp.actie === "overslaan" });
+        huidig.paren.push({ stap: k.stap, ...(k.deel ? { deel: k.deel.index } : {}), vraag: k.vraag,
+          antwoord: x.tekst ?? "", overgeslagen: x.antwoordOp.actie === "overslaan" });
       }
       huidig.open = undefined; huidig.openId = undefined;
       return;

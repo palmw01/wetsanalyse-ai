@@ -378,8 +378,11 @@ VRAAGKAART = {
     "opties": [{"label": "Wet inkomstenbelasting 2001", "waarde": "BWBR0011353",
                 "bron": {"bwb_id": "BWBR0011353"}, "omschrijving": "wet · 2 hoofdstukken"}],
     "meerkeuze": True, "vrije_tekst": True, "meer_tekst": False, "overslaanbaar": True, "vooringevuld": ["BWBR0011353"],
-    "samenvatting": {}, "terug": True, "beantwoord": False,
+    "samenvatting": {}, "terug": True, "beantwoord": False, "deel": None,
 }
+#: Bij de bepalingen een kaartje per deelvraag (F3f): negen vaste stappen plus twintig deelvragen past.
+BEPALINGENKAART = {**VRAAGKAART, "stap": "bepalingen", "nr": 29, "totaal": 29,
+                   "deel": {"index": 19, "totaal": 20, "deelvraag": "Wie kan bezwaar maken?"}}
 
 
 async def test_een_vraagkaart_overleeft_het_heropenen(client):
@@ -390,9 +393,14 @@ async def test_een_vraagkaart_overleeft_het_heropenen(client):
     assert r.status_code == 201 and r.json()["vraagkaart"] == VRAAGKAART
     doc = (await client.get(f"{BASIS}/{gid}", headers=A)).json()
     assert doc["berichten"][-1]["vraagkaart"] == VRAAGKAART
+    # Het deel reist mee: zonder dat veld zou de werkplek na herladen niet weten bij welke deelvraag het hoort.
+    r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "assistant", "tekst": "Welke bepalingen?",
+                                                            "run_id": "rb", "vraagkaart": BEPALINGENKAART}, headers=A)
+    assert r.status_code == 201 and r.json()["vraagkaart"] == BEPALINGENKAART
 
 
-@pytest.mark.parametrize("fout", [{"stap": "peildatum"}, {"intake_id": "met spatie"}, {"nr": 0}, {"vraag": ""}])
+@pytest.mark.parametrize("fout", [{"stap": "peildatum"}, {"stap": "onderdelen"}, {"intake_id": "met spatie"}, {"nr": 0},
+                                  {"vraag": ""}, {"nr": 41}, {"deel": {"index": 20, "totaal": 20}}])
 async def test_een_ongeldige_vraagkaart_wordt_geweigerd(client, fout):
     gid = await _maak(client)
     r = await client.post(f"{BASIS}/{gid}/berichten", json={
@@ -403,11 +411,15 @@ async def test_een_ongeldige_vraagkaart_wordt_geweigerd(client, fout):
 async def test_een_antwoord_op_een_kaartje_draagt_zijn_intake(client):
     """Zo bundelt de werkplek na herladen de antwoorden in één Vragen-kaart."""
     gid = await _maak(client)
-    ia = {"intake_id": "ik-1", "stap": "naam", "actie": "antwoord"}
+    ia = {"intake_id": "ik-1", "stap": "naam", "deel": None, "actie": "antwoord"}
     r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "user", "tekst": "Box 3", "intake_antwoord": ia}, headers=A)
     assert r.status_code == 201 and r.json()["intake_antwoord"] == ia
     doc = (await client.get(f"{BASIS}/{gid}", headers=A)).json()
     assert doc["berichten"][-1]["intake_antwoord"] == ia
+    bep = {**ia, "stap": "bepalingen", "deel": 2}
+    r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "user", "tekst": "Art. 6:7", "intake_antwoord": bep},
+                          headers=A)
+    assert r.status_code == 201 and r.json()["intake_antwoord"] == bep
     fout = await client.post(f"{BASIS}/{gid}/berichten", json={
         "rol": "user", "tekst": "x", "intake_antwoord": {**ia, "stap": "peildatum"}}, headers=A)
     assert fout.status_code == 422

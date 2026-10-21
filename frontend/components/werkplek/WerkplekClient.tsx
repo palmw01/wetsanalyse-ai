@@ -44,7 +44,7 @@ import type {
 import { metingUitDekking } from "@/lib/agentEvents";
 import { parseBevestiging } from "@/lib/werkgebiedAnnoteren";
 import {
-  antwoordTekst, groepeerVragen, openVraag, parseAntwoordOp, parseVraagkaart, type IntakeActie, type Vraagkaart,
+  antwoordOp, antwoordTekst, groepeerVragen, openVraag, parseAntwoordOp, parseVraagkaart, type IntakeActie, type Vraagkaart,
 } from "@/lib/vraagkaart";
 import { VraagDock } from "@/components/werkplek/VraagDock";
 import {
@@ -454,7 +454,7 @@ export function WerkplekClient({
     setItems((xs) => [
       ...xs,
       { id: vraagId, type: "user", tekst: prompt, over: contextLabel || undefined,
-        ...(intake ? { antwoordOp: { intake_id: intake.intake_id, stap: intake.stap, actie: intake.actie } } : {}) },
+        ...(intake ? { antwoordOp: antwoordOp(intake) } : {}) },
       { id: antId, type: "antwoord", tekst: "" },
     ]);
     setBezig(true);
@@ -489,7 +489,7 @@ export function WerkplekClient({
     // het aanhaken na een herlaadbeurt is deze regel de user-bubbel waar het antwoord onder hoort.
     await persisteer(gid, "user", { tekst: contextLabel ? `Bij ${contextLabel}: ${prompt}` : prompt,
       // Een klik op een vraagkaartje: zo staat het antwoord na herladen weer in de Vragen-kaart.
-      ...(intake ? { intake_antwoord: { intake_id: intake.intake_id, stap: intake.stap, actie: intake.actie } } : {}) });
+      ...(intake ? { intake_antwoord: antwoordOp(intake) } : {}) });
 
     const basis = vraagOver ? verzoekVan(vraagOver) : undefined;
     // Een vraag over een onderwerp draagt nooit een doel: die route annoteert niet.

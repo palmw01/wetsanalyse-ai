@@ -9,7 +9,7 @@ Methoden, van sterk naar zwak bewijs (PLAN §D *Bronnen vinden*):
 | methode | wat | rol |
 |---|---|---|
 | `overzicht` | het overzicht op de analysevraag (`overzicht.bouw_overzicht`); standaard alleen zonder kern | kern |
-| `deelvraag` | het overzicht per actieve deelvraag van het werkgebied; alleen met deelvragen | kern zonder kern, anders aanverwant |
+| `deelvraag` | per actieve deelvraag de gerichte leden (`bepaling_opties`, ook in de intake); alleen met deelvragen | kern zonder kern, anders aanverwant |
 | `verwijzing_uit` | waar de kern naar verwijst, diepte 1 | afhankelijkheid bij een bekende functie, anders aanverwant |
 | `verwijzing_in` | wat naar de kern verwijst, diepte 1 – standaard uit (meting) | aanverwant |
 | `definitie` | waar de wet een term definieert die letterlijk in de kern staat | afhankelijkheid |
@@ -266,35 +266,184 @@ def onderwerp_van_deelvraag(vraag: str) -> str:
     return rest if queries.onderwerpwoorden(rest) else ""
 
 
+# --- bepalingen bij één deelvraag (F3f) -----------------------------------------------------------
+
+#: Woorden die in een vraag staan maar niets zoeken: hulpwerkwoorden, vraag- en voegwoorden. Bovenop de
+#: stopwoorden van `queries.onderwerpwoorden`, die voor een overzichtsonderwerp zijn gemaakt.
+_GEEN_TERM = {"binnen", "wanneer", "welk", "wie", "wat", "hoe", "waar", "waarom", "die", "dat", "deze", "dit",
+              "moet", "moeten", "wordt", "worden", "werd", "kan", "kunnen", "mag", "mogen", "zijn", "is", "heeft",
+              "hebben", "tegen", "na", "nog", "niet", "geen", "ook", "als", "dan", "zich", "hij", "zij", "er",
+              "daarbij", "daarvoor", "hierbij", "welke", "eisen", "voldoen", "begint", "blijft"}
+#: Hoeveel zoektermen van een deelvraag de query krijgt, en hoeveel dossiertermen meewegen.
+MAX_TERMEN = 6
+MAX_DOSSIERTERMEN = 12
+#: Per regeling en knooptype de treffers van de index; daarbinnen kiest de rangschikking.
+MAX_TREFFERS = 50
+#: Wat buiten de afbakening lijkt te vallen staat achteraan, hoogstens zoveel extra.
+MAX_BUITEN = 2
+MAX_PER_DEELVRAAG = 8
+BUITEN_TEKST = "valt mogelijk buiten de afbakening"
+
+
+def zoektermen(tekst: str) -> list[str]:
+    """De inhoudswoorden van een vraag of dossiertekst, in volgorde en zonder dubbelen."""
+    return [w for w in queries.onderwerpwoorden(tekst) if w not in _GEEN_TERM]
+
+
+def _stamdeel(term: str) -> str:
+    return queries._stam(term)[:8]
+
+
+def _raakt(termen: list[str], tekst: str) -> list[str]:
+    """De termen die de tekst raakt: het begin van hun stam staat erin ("termijn" raakt "termijnen",
+    "bezwaarschrift" raakt "bezwaarschriften")."""
+    t = (tekst or "").casefold()
+    return [w for w in termen if _stamdeel(w) in t]
+
+
+def _lucene(termen: list[str]) -> str:
+    return "tekst:(" + " OR ".join(queries._lucene_term(w) for w in termen) + ")"
+
+
+def _doel_van(iri: str) -> str:
+    """Een onderdeel telt voor zijn lid (of artikel): de analist kiest op lid-niveau."""
+    return iri.split(":o:", 1)[0]
+
+
+def _omschrijving(tekst: str, geraakt: list[str]) -> str:
+    begin = " ".join((tekst or "").split())
+    if len(begin) > 120:
+        begin = begin[:120].rsplit(" ", 1)[0] + " …"
+    raakt = f"raakt: {', '.join(geraakt)}" if geraakt else ""
+    return " · ".join(d for d in (begin, raakt) if d)[:300]
+
+
+def bepaling_opties(graph: GraphPort, *, regelingen: list[str], deelvraag: str | None, dossier: dict[str, Any],
+                    buiten: list[str], limit: int = MAX_PER_DEELVRAAG) -> list[dict[str, Any]]:
+    """De bepalingen (leden, of artikelen zonder leden) die bij één deelvraag horen, binnen de gekozen
+    regelingen – zonder model, dus dezelfde vraag geeft dezelfde opties.
+
+    Zoeken: de index op de termen van de deelvraag (zonder deelvraag: de analysevraag), per regeling
+    voor leden, artikelen en onderdelen; een onderdeel telt voor zijn lid, een artikel vervalt als een
+    lid ervan geraakt is. Definities van een term in die regelingen komen erbij.
+
+    Rangschikking, vast: geraakte deelvraagtermen, geraakte dossiertermen (analysevraag,
+    praktijkvoorbeeld, context), een deelvraagterm in de kop van het omvattende deel, documentvolgorde.
+
+    Een bepaling die meer raakt aan wat de analist buiten het werkgebied liet (`buiten`, de stammen uit
+    `werkgebied_context.uitsluitstammen`, in tekst en kop) dan aan de deelvraag, valt niet stil weg: ze
+    staat achteraan, gemarkeerd (`buiten: true`), hoogstens `MAX_BUITEN` extra. Meer, niet ook: "bezwaar-
+    of beroepschrift" raakt "beroep", maar gaat even goed over bezwaar."""
+    from .overzicht import padsleutel
+
+    termen = zoektermen(onderwerp_van_deelvraag(deelvraag) if deelvraag else "")[:MAX_TERMEN] \
+        or zoektermen(deelvraag or dossier.get("analysevraag") or dossier.get("naam") or "")[:MAX_TERMEN]
+    if not termen:
+        return []
+    dossiertermen = [w for w in zoektermen(" ".join(str(dossier.get(k) or "") for k in
+                                                   ("analysevraag", "praktijkvoorbeeld", "context")))
+                     if w not in termen][:MAX_DOSSIERTERMEN]
+    bereik = list(dict.fromkeys(r for r in regelingen if r)) or [None]
+
+    gevonden: dict[str, dict[str, Any]] = {}
+    geraakte_artikelen: set[str] = set()
+
+    def neem(iri: str, tekst: str, soort: str, bwb: str, citeertitel: str) -> None:
+        if not queries.is_bron_iri(iri):
+            return
+        doel = _doel_van(iri)
+        k = gevonden.setdefault(doel, {"iri": doel, "bwb_id": bwb or _bwb(doel), "citeertitel": citeertitel,
+                                       "teksten": [], "eigen": ""})
+        if doel == iri and soort != "Onderdeel":
+            k["eigen"] = k["eigen"] or tekst
+        if tekst and tekst not in k["teksten"]:
+            k["teksten"].append(tekst)
+        if ":lid:" in doel:
+            geraakte_artikelen.add(doel.split(":lid:", 1)[0])
+
+    try:
+        for bwb in bereik:
+            for soort in ("Lid", "Artikel", "Onderdeel"):
+                for r in _rijen(graph, queries.fts(_lucene(termen), limit=MAX_TREFFERS, bwb_id=bwb, soort=soort)):
+                    if bwb and r.get("bwbId") != bwb:
+                        continue
+                    neem(r["node"], r.get("tekst", ""), soort, r.get("bwbId", ""), r.get("citeertitel", ""))
+        for term in termen[:4]:
+            for r in _rijen(graph, queries.definities_van(term)):
+                if bereik != [None] and r.get("bwbId") not in bereik:
+                    continue
+                neem(r["node"], r.get("tekst", ""), "Definitie", r.get("bwbId", ""), r.get("citeertitel", ""))
+    except Exception:  # noqa: BLE001 – een haperende graaf geeft geen opties, geen crash van de intake
+        logger.warning("bepalingen zoeken faalde", extra={"categorie": "technisch"}, exc_info=True)
+        return []
+
+    # Een artikel waarvan een lid geraakt is, is als artikel dubbelop: de analist kiest het lid.
+    kandidaten = [k for iri, k in gevonden.items() if iri not in geraakte_artikelen]
+    for k in kandidaten:
+        alles = " ".join(k["teksten"])
+        k["dv"] = _raakt(termen, alles)
+        k["dos"] = _raakt(dossiertermen, alles)
+        k["kop"] = ""
+
+    # De kop van het omvattende deel, voor de beste kandidaten (één query).
+    voorlopig = sorted(kandidaten, key=lambda k: (-len(k["dv"]), -len(k["dos"])))[:limit * 3]
+    if voorlopig:
+        try:
+            for r in _rijen(graph, queries.plaats_in_opbouw([k["iri"] for k in voorlopig])):
+                k = gevonden.get(r["bepaling"])
+                if k is not None and r.get("label"):
+                    k["kop"] = f"{k['kop']} {r['label']}".strip()
+        except Exception:  # noqa: BLE001 – zonder kop rangschikt de rest gewoon
+            logger.warning("kop van de opbouw niet op te halen", extra={"categorie": "technisch"}, exc_info=True)
+
+    def volgorde(k: dict[str, Any]) -> tuple:
+        regeling = bereik.index(k["bwb_id"]) if k["bwb_id"] in bereik else len(bereik)
+        return (-len(k["dv"]), -len(k["dos"]), -bool(_raakt(termen, k["kop"])), regeling, padsleutel(k["iri"]))
+
+    binnen_, buiten_ = [], []
+    for k in sorted(kandidaten, key=volgorde):
+        waar = f"{k['kop']} {' '.join(k['teksten'])}".casefold()
+        weg = len([s for s in buiten if s in waar]) > len(k["dv"])
+        (buiten_ if weg else binnen_).append({**k, "buiten": weg})
+    gekozen = [k for k in binnen_ if k["dv"] or k["dos"]][:limit] + buiten_[:MAX_BUITEN]
+
+    uit = [{"bron_iri": k["iri"], "bwb_id": k["bwb_id"], "label": "",
+            "omschrijving": BUITEN_TEKST if k["buiten"] else _omschrijving(k["eigen"] or k["teksten"][0],
+                                                                          k["dv"] + k["dos"]),
+            "geraakt": k["dv"] + k["dos"], "buiten": k["buiten"]} for k in gekozen]
+    _benoem(graph, uit)
+    return uit
+
+
 def _deelvraag(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tuple[int, bool]:
-    """Het overzicht per deelvraag. Zonder kern zijn de treffers kern (zoals het overzicht op de
-    analysevraag); met een kern aanverwant: het overzicht naast een kern gaf in de meting van 15 okt
-    2026 vooral onbeoordeelde ruis, en de analist beslist wat bij de deelvraag hoort."""
-    from .overzicht import bouw_overzicht
+    """Per deelvraag de gerichte bepalingen (`bepaling_opties`, dezelfde functie als de intake), binnen
+    de regelingen van de selectie. Zonder kern zijn de treffers kern; met een kern aanverwant: de
+    analist beslist wat bij de deelvraag hoort."""
+    from .werkgebied_context import uitsluitstammen
 
     rol = "aanverwant" if invoer.get("kern") else "kern"
-    n_totaal, volledig = 0, True
+    regelingen = list(dict.fromkeys(b["bwb_id"] for b in invoer.get("kern", []) + invoer.get("context", [])
+                                    if b.get("bwb_id")))
+    dossier = {"naam": invoer.get("naam", ""), "analysevraag": invoer.get("analysevraag", ""),
+               **(invoer.get("dossier") or {})}
+    buiten = uitsluitstammen(buiten_uit_afbakening(dossier.get("afbakening", "")))
+    n_totaal = 0
     for d in invoer.get("deelvragen") or []:
-        onderwerp = onderwerp_van_deelvraag(d.get("vraag", ""))
-        if not onderwerp:
-            continue
-        try:
-            ov = bouw_overzicht(graph, d["vraag"], onderwerp=onderwerp)
-        except ValueError:
-            continue
-        volledig = volledig and bool(ov.get("volledig", True))
-        n = 0
-        for r in ov.get("regelingen", []):
-            for b in [b for deel in r.get("delen", []) for b in deel.get("bepalingen", [])] + r.get("ook_genoemd", []):
-                if n >= MAX_PER_DEELVRAAG:
-                    volledig = False
-                    break
-                if v.voeg(b["iri"], rol=rol, methode="deelvraag", label=b.get("label") or b.get("naam", ""),
-                          detail={"deelvraag_id": d.get("id", ""), "vraag": d.get("vraag", ""),
-                                  "onderwerp": ov.get("onderwerp_tekst") or onderwerp}):
-                    n += 1
-        n_totaal += n
-    return n_totaal, volledig
+        for b in bepaling_opties(graph, regelingen=regelingen, deelvraag=d.get("vraag", ""), dossier=dossier,
+                                 buiten=buiten):
+            if v.voeg(b["bron_iri"], rol=rol, methode="deelvraag", label=b["label"],
+                      detail={"deelvraag_id": d.get("id", ""), "vraag": d.get("vraag", ""),
+                              "raakt": b["geraakt"], **({"buiten": True} if b["buiten"] else {})}):
+                n_totaal += 1
+    return n_totaal, True
+
+
+def buiten_uit_afbakening(afbakening: str) -> str:
+    """De regel "Buiten de afbakening: …" uit de afbakeningstekst (`werkgebied_intake.afbakening`)."""
+    for regel in (afbakening or "").splitlines():
+        if regel.strip().lower().startswith("buiten de afbakening:"):
+            return regel.split(":", 1)[1].strip()
+    return ""
 
 
 def _verwijzing_uit(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tuple[int, bool]:
