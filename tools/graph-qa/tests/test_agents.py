@@ -39,6 +39,7 @@ KANDIDATEN = {"kandidaten": [{"id": "k1", "label": "art. 10 Iw", "status": "voor
 class NepApi:
     def __init__(self):
         self.voorgesteld: list[list[str]] = []
+        self.vervangt: list[str] = []
         self.gesloten = False
 
     async def haal_werkgebied(self, wid):
@@ -50,8 +51,9 @@ class NepApi:
     async def haal_kandidaten(self, wid):
         return KANDIDATEN
 
-    async def stel_deelvragen_voor(self, wid, vragen, model=""):
+    async def stel_deelvragen_voor(self, wid, vragen, model="", vervangt=""):
         self.voorgesteld.append(vragen)
+        self.vervangt.append(vervangt)
         return {"nieuw": [f"n{i}" for i in range(len(vragen))], "overgeslagen": []}
 
     async def aclose(self):
@@ -248,6 +250,8 @@ def test_een_taak_zonder_model_roept_geen_model_aan(taak, monkeypatch):
 def test_deelvraag_op_nummer_telt_alleen_actieve():
     uit, _ = _taak("dekking", deelvraag_nr=2)
     assert "Wie is belastingschuldige" in uit.tekst
+    # Dekking van één deelvraag opent het paneel van die deelvraag.
+    assert uit.artefact["soort"] == "deelvraag" and uit.artefact["ref"]["deelvraag_id"] == "d2"
     uit, _ = _taak("dekking", deelvraag_nr=3)
     assert uit.status == "geweigerd" and "heeft er 2" in uit.reden
 
@@ -266,7 +270,11 @@ def test_splitsen_wordt_twee_voorstellen_met_de_methode_in_de_prompt():
     llm = FakeLLM([_verbeter("splits", ["Wie is belastingschuldige?", "Wanneer moet de belastingschuldige betalen?"])])
     uit, api = _taak("verbeteren", llm, deelvraag_id="d2", soort="splits")
     assert api.voorgesteld == [["Wie is belastingschuldige?", "Wanneer moet de belastingschuldige betalen?"]]
-    assert "te splitsen in 2 deelvragen" in uit.tekst and "trek de oude deelvraag in" in uit.tekst
+    assert "te splitsen in 2 deelvragen" in uit.tekst and "het vervangt de oude deelvraag" in uit.tekst
+    # De api weet welke deelvraag de splitsing vervangt; het paneel is dat van die deelvraag.
+    assert api.vervangt == ["d2"]
+    assert uit.artefact == {"soort": "deelvraag", "titel": WG["deelvragen"][1]["vraag"],
+                            "ref": {"werkgebied_id": "wg1", "deelvraag_id": "d2"}}
     systeem = llm.calls[0]["system"]
     assert "WETSANALYSE" in systeem and "rol deelvragen" in systeem and "Dekking betekent" in systeem
     assert "Gevraagd: splits" in llm.calls[0]["messages"][0]["content"]
@@ -305,4 +313,4 @@ def test_de_verbetering_past_in_het_api_contract():
     assert vragen == []                                          # meer dan vier is geen splitsing
     _, vragen, _ = valideer_verbetering({"soort": "splits", "vragen": ["Vraag een?", "Vraag twee?"]},
                                         WG["deelvragen"][1], [])
-    DeelvraagVoorstellen(vragen=vragen, model="m")
+    DeelvraagVoorstellen(vragen=vragen, model="m", vervangt="d2")

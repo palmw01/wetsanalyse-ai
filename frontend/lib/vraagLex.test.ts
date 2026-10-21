@@ -6,7 +6,7 @@ import type { NodeElement, NodeWeergave } from "./annotatieNode";
 import { vraagSuggesties } from "./annotatie";
 import {
   ACTIES, MODULES, actieVerzoek, chipTekst, onderwerpUitUrl, overVan, suggestiesVan, verzoekVan, vraagUrl,
-  type Onderwerp,
+  werkgebiedSuggesties, type ObjectSoort, type Onderwerp,
 } from "./vraagLex";
 
 const element = {
@@ -20,6 +20,7 @@ const view = {
 const markering: Onderwerp = { soort: "markering", element, view };
 const deelvraag: Onderwerp = { soort: "deelvraag", werkgebied_id: "wg1", id: "dv1", label: "Wanneer is een aanslag invorderbaar?" };
 const werkgebied: Onderwerp = { soort: "werkgebied", werkgebied_id: "wg1", id: "", label: "Invordering" };
+const begrip: Onderwerp = { soort: "begrip", werkgebied_id: "wg1", id: "b1", label: "termijn" };
 
 describe("de markering blijft de adviesvraag", () => {
   it("het verzoek is byte-gelijk aan wat de werkplek stuurde vóór F3b", () => {
@@ -59,10 +60,28 @@ describe("een object stuurt alleen soort en id's", () => {
   it("het werkgebied zonder id, met de handelingen als suggestie met een actie", () => {
     expect(verzoekVan(werkgebied)).toEqual({ onderwerp: { soort: "werkgebied", werkgebied_id: "wg1", label: "Invordering" } });
     const s = suggestiesVan(werkgebied);
-    expect(s.map((x) => x.actie)).toEqual(["bronnen_zoeken", "begrippen_voorstellen", "begrippen_meedenken", "werkgebied_annoteren"]);
+    expect(s.map((x) => x.actie)).toEqual(["deelvragen_voorstellen", "bronnen_zoeken", "dekking", "werkgebied_annoteren",
+      "begrippen_voorstellen", "begrippen_meedenken"]);
     expect(actieVerzoek(werkgebied as Extract<Onderwerp, { soort: "werkgebied" }>, "bronnen_zoeken")).toEqual({
       actie: "bronnen_zoeken", onderwerp: { soort: "werkgebied", werkgebied_id: "wg1", label: "Invordering" },
     });
+  });
+
+  it("elke soort heeft suggesties die passen (F3d)", () => {
+    const acties = (soort: ObjectSoort) => suggestiesVan({ soort, werkgebied_id: "wg1", id: "x1", label: "" }).map((x) => x.actie);
+    expect(acties("deelvraag")).toEqual(["bronnen_zoeken", "dekking", "deelvraag_herformuleren", "deelvraag_splitsen"]);
+    expect(acties("begrip")).toEqual(["begrip_uitwerken", "brondefinitie", "voorbeelden", "relaties", undefined]);
+    // Een bron of kandidaat heeft alleen vragen: de antwoord-worker, met het object als context.
+    expect(acties("bron").every((x) => x === undefined)).toBe(true);
+    expect(acties("kandidaat").every((x) => x === undefined)).toBe(true);
+    // Het betekenisverschil vraagt een tweede begrip: de analist maakt de vraag af.
+    const verschil = suggestiesVan(begrip).find((x) => x.invullen);
+    expect(verschil?.tekst).toMatch(/betekenisverschil met $/);
+    for (const soort of ["werkgebied", "deelvraag", "bron", "kandidaat", "begrip"] as const) {
+      for (const x of suggestiesVan({ soort, werkgebied_id: "wg1", id: "x1", label: "" }))
+        if (x.actie) expect(ACTIES).toContain(x.actie);
+    }
+    expect(werkgebiedSuggesties()).toEqual(suggestiesVan(werkgebied));
   });
 
   it("elke soort heeft een module", () => {

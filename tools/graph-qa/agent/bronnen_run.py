@@ -191,7 +191,11 @@ async def bronnen_kern(ctx: Context, werkgebied_id: str, deelvraag_id: str = "")
         tekst = bij_deelvraag(wg, kandidaten, deelvraag_id) + " " + tekst
     open_ = [str(k["id"]) for k in kandidaten if k.get("status") == "voorgesteld" and not k.get("in_selectie")
              and k.get("id")]
-    return Uitkomst(taak=taak, tekst=tekst, voorstellen=open_, artefact=bronnen_artefact(werkgebied_id, rid, naam),
+    # Bij één deelvraag het paneel van die deelvraag: daar staan haar kandidaten bij haar stand.
+    d = next((x for x in wg.get("deelvragen") or [] if deelvraag_id and x.get("id") == deelvraag_id), None)
+    from .beurt import deelvraag_artefact
+    artefact = deelvraag_artefact(werkgebied_id, d) if d else bronnen_artefact(werkgebied_id, rid, naam)
+    return Uitkomst(taak=taak, tekst=tekst, voorstellen=open_, artefact=artefact,
                     meting={"kandidaten": len(open_), "model": False})
 
 

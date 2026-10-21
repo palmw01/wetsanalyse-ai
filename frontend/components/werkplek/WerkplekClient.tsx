@@ -4,7 +4,6 @@ import Link from "next/link";
 import { NodeAnnotatiePaneel } from "@/components/annotaties/NodeAnnotatiePaneel";
 import { samenhangBeschikbaar } from "@/lib/samenhang";
 import { ThreadRij, type ThreadActies, type WerkgebiedAnnoteren } from "@/components/werkplek/ThreadRij";
-import { AnnoterenBevestiging } from "@/components/werkgebieden/AnnoterenBevestiging";
 import { reeksNavigatie, reeksUitBerichten, verwerkReeksEvent, type Reeks } from "@/lib/reeks";
 import { mergeToolExecution, toolSpoorUit, type NodeDoel, type ToolExecution } from "@/lib/annotatieNode";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -63,7 +62,8 @@ import { WerkplekHeader } from "./WerkplekHeader";
 import { parseHergebruik, parseOverzicht } from "@/lib/agentEvents";
 import { DEMO_DOEL, DEMO_SLUG, type DemoScene } from "@/lib/rondleidingDemo";
 import {
-  SOORT_LABEL, actieVerzoek, chipTekst, overVan, suggestiesVan, verzoekVan, type Onderwerp, type VraagLexActie,
+  SOORT_LABEL, actieVerzoek, chipTekst, overVan, suggestiesVan, verzoekVan, werkgebiedSuggesties, type Onderwerp,
+  type VraagLexActie,
 } from "@/lib/vraagLex";
 
 // De thread-items staan in `lib/threadItem.ts`, zodat de rondleiding er een voorbeeldbeurt
@@ -171,8 +171,6 @@ export function WerkplekClient({
   const [wgUitOverzicht, setWgUitOverzicht] = useState<Overzicht>();
   /** Wat er bij het maken misging (een bepaling die de api niet kon opnemen): zichtbaar, niet stil. */
   const [wgMelding, setWgMelding] = useState<string | null>(null);
-  /** De bevestiging vóór Lex het werkgebied annoteert staat open (de knop in de werkgebiedbalk). */
-  const [annoterenOpen, setAnnoterenOpen] = useState(false);
   /** De reeks (run-id) waaruit de open annotatie is geopend; het paneel bladert dan door de leden. */
   const [nodeReeks, setNodeReeks] = useState<string>();
   // Opent het node-paneel op de graaf (knop onder een antwoord) of op de tekst (annotatie).
@@ -1015,6 +1013,8 @@ export function WerkplekClient({
   const { groepen: vraagGroepen, verborgen: verborgenItems } = useStabieleGroepen(items, bezig);
   const open = openVraag(vraagGroepen);
   const toonDock = !!open?.open && !bezig && !demo && weggeklikt !== open.openId;
+  const suggesties = onderwerp ? suggestiesVan(onderwerp)
+    : werkgebiedId && !demo && !invoer.trim() ? werkgebiedSuggesties() : [];
 
   // Hoort de open annotatie bij een reeks in dit gesprek, dan bladert het paneel door de leden.
   const nodeReeksNav = (() => {
@@ -1061,6 +1061,7 @@ export function WerkplekClient({
       doel={wgArtefact}
       variant={breed ? "kolom" : "side"}
       onSluit={() => setWgArtefact(undefined)}
+      onWissel={setWgArtefact}
       onMeedenken={demo ? undefined : (wgId, aantal) => {
         // Op een smal scherm ligt het paneel over de chat: sluiten, zodat je het meedenken ziet lopen.
         if (!breed) setWgArtefact(undefined);
@@ -1107,20 +1108,8 @@ export function WerkplekClient({
             setWgMelding(mislukt.length ? `Niet opgenomen (niet in de graaf of niet te verifiëren): ${mislukt.join(", ")}.` : null);
           }} />
       )}
-      {annoterenOpen && werkgebiedId && (
-        <AnnoterenBevestiging werkgebiedId={werkgebiedId} onSluit={() => setAnnoterenOpen(false)}
-          onBevestig={(aantal) => {
-            setAnnoterenOpen(false);
-            void verstuur(ANNOTEER_PROMPT, undefined, undefined, undefined, { werkgebiedId, bevestigd: aantal });
-          }} />
-      )}
       {werkgebiedId && !demo && (
-        <WerkgebiedBalk id={werkgebiedId} uitgeschakeld={bezig || geblokkeerd}
-          onBegrippen={() => void verstuur("Stel begrippen voor", undefined, undefined, undefined, undefined, undefined,
-            "begrippen_voorstellen")}
-          onBronnen={() => void verstuur("Zoek bepalingen", undefined, undefined, undefined, undefined, undefined,
-            "bronnen_zoeken")}
-          onAnnoteren={() => setAnnoterenOpen(true)} onVerlaat={() => onVerlaatWerkgebied?.()} />
+        <WerkgebiedBalk id={werkgebiedId} onVerlaat={() => onVerlaatWerkgebied?.()} />
       )}
       {wgMelding && (
         <div className="shrink-0 px-4 py-2">
@@ -1347,16 +1336,29 @@ export function WerkplekClient({
               </span>
             </div>
           )}
-          {onderwerp && !bezig && suggestiesVan(onderwerp).length > 0 && (
-            <div className="mb-1.5 flex flex-wrap gap-1.5" data-testid="vraag-suggesties">
-              {suggestiesVan(onderwerp).map((s) => (
+          {/* Wat Lex met het onderwerp kan; zonder onderwerp, in een werkgebied, wat hij met het werkgebied kan
+              (F3d: dat waren de knoppen in de werkgebiedbalk). Die laatste wijken zodra je typt. */}
+          {!bezig && suggesties.length > 0 && (
+            <div className="mb-1.5 flex flex-wrap gap-1.5" data-testid="vraag-suggesties"
+              data-suggesties-van={onderwerp?.soort ?? "werkgebied"}>
+              {suggesties.map((s) => (
                 <button
                   key={s.tekst}
                   type="button"
                   disabled={geblokkeerd}
                   data-actie={s.actie}
+                  data-invullen={s.invullen ? "" : undefined}
                   title={geblokkeerd ? "Je tokenbudget is op" : undefined}
-                  onClick={() => void verstuur(s.tekst, undefined, undefined, undefined, undefined, undefined, s.actie)}
+                  onClick={() => {
+                    // Een vraag die de analist afmaakt: in het veld, met de cursor aan het eind.
+                    if (s.invullen) {
+                      setInvoer(s.tekst);
+                      taRef.current?.focus();
+                      requestAnimationFrame(() => taRef.current?.setSelectionRange(s.tekst.length, s.tekst.length));
+                      return;
+                    }
+                    void verstuur(s.tekst, undefined, undefined, undefined, undefined, undefined, s.actie);
+                  }}
                   className="focus-ring inline-flex min-h-[24px] items-center rounded-full border border-line bg-paper px-2.5 py-1 text-xs text-muted transition hover:border-lint hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-line disabled:hover:text-muted coarse:min-h-[44px]"
                 >
                   {s.tekst}

@@ -8,18 +8,11 @@ import { haalWerkgebied } from "@/lib/api";
 
 /** De balk boven de chat als de werkplek in de context van een werkgebied staat (`?werkgebied=`).
  *
- *  Hij noemt het werkgebied (PLAN §GUI: je moet zien in welke analyse je werkt), biedt *Zoek
- *  bepalingen*, *Annoteer werkgebied* (eerst een bevestiging met aantal en kosten) en *Stel begrippen
- *  voor* – de stappen van de analyse in hun volgorde – en laat je uit de context stappen. De naam laden mag mislukken: dan staat er "Werkgebied" en werkt de rest gewoon. */
-export function WerkgebiedBalk({ id, uitgeschakeld, onBronnen, onAnnoteren, onBegrippen, onVerlaat }: {
-  id: string;
-  uitgeschakeld: boolean;
-  onBronnen: () => void;
-  /** Opent de bevestiging vóór Lex de nieuwe bepalingen annoteert (fase B). */
-  onAnnoteren: () => void;
-  onBegrippen: () => void;
-  onVerlaat: () => void;
-}) {
+ *  Hij noemt het werkgebied (PLAN §GUI: je moet zien in welke analyse je werkt) en laat je uit de context
+ *  stappen. Wat Lex met het werkgebied kan, staat sinds F3d als suggesties boven het invoerveld
+ *  (`werkgebiedSuggesties`), niet meer als knoppen hier. De naam laden mag mislukken: dan staat er het id
+ *  en werkt de rest gewoon. */
+export function WerkgebiedBalk({ id, onVerlaat }: { id: string; onVerlaat: () => void }) {
   const [naam, setNaam] = useState<string | null>(null);
   useEffect(() => {
     let levend = true;
@@ -37,21 +30,10 @@ export function WerkgebiedBalk({ id, uitgeschakeld, onBronnen, onAnnoteren, onBe
         </Link>
         {" "}· Lex werkt binnen deze analyse
       </p>
-      <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
-        <Button size="sm" variant="secondary" className="w-full sm:w-auto" disabled={uitgeschakeld} onClick={onBronnen}>
-          Zoek bepalingen
-        </Button>
-        <Button size="sm" variant="secondary" className="w-full sm:w-auto" disabled={uitgeschakeld} onClick={onAnnoteren}>
-          Annoteer werkgebied
-        </Button>
-        <Button size="sm" className="w-full sm:w-auto" disabled={uitgeschakeld} onClick={onBegrippen}>
-          Stel begrippen voor
-        </Button>
-        <Button size="sm" variant="secondary" className="w-full sm:w-auto" onClick={onVerlaat}
-          aria-label="Uit de context van dit werkgebied stappen">
-          Verlaten
-        </Button>
-      </div>
+      <Button size="sm" variant="secondary" className="w-full sm:w-auto" onClick={onVerlaat}
+        aria-label="Uit de context van dit werkgebied stappen">
+        Verlaten
+      </Button>
     </div>
   );
 }

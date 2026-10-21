@@ -351,6 +351,9 @@ werkgebied_deelvragen = Table("werkgebied_deelvragen", metadata,
     Column("status", String(16), nullable=False, default="actief"),
     Column("herkomst", String(16), nullable=False, default="analist"),
     Column("reden", Text, nullable=False, default=""),
+    # Bij een voorstel van Lex dat een actieve deelvraag verbetert: die deelvraag. Overnemen zet haar op
+    # `vervangen`, en de opvolger krijgt haar plek en koppelingen.
+    Column("vervangt", String(64), nullable=False, default="", server_default=""),
     Column("aangemaakt_door", String(64), nullable=False),
     Column("aangemaakt", _DT, nullable=False),
     Column("gewijzigd", _DT, nullable=False),

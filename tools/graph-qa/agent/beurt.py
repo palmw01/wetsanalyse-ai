@@ -59,6 +59,13 @@ def werkgebied_artefact(werkgebied: dict[str, Any]) -> dict[str, Any]:
             "ref": {"werkgebied_id": werkgebied["id"]}}
 
 
+def deelvraag_artefact(werkgebied_id: str, deelvraag: dict[str, Any]) -> dict[str, Any]:
+    """Het artefact van één deelvraag (F3d): het paneel toont haar stand, bronnen, kandidaten en de
+    voorstellen die haar vervangen."""
+    return {"soort": "deelvraag", "titel": str(deelvraag.get("vraag", ""))[:300],
+            "ref": {"werkgebied_id": werkgebied_id, "deelvraag_id": str(deelvraag["id"])}}
+
+
 def werkgebied_tekst(werkgebied: dict[str, Any], gelukt: list[str], mislukt: list[str]) -> str:
     """Wat Lex zegt na het aanmaken; uit de getallen, geen model."""
     naam = werkgebied.get("naam", "")

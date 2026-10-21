@@ -88,16 +88,16 @@ try {
 
   // --- Een suggestie met een actie: vaste route, geen modus, context of doel ---
   const suggesties = page.getByTestId("vraag-suggesties").getByRole("button");
-  assert.equal(await suggesties.count(), 4);
-  await page.getByRole("button", { name: "Zoek bepalingen die bij dit werkgebied horen" }).click();
+  assert.equal(await suggesties.count(), 6);
+  await page.getByRole("button", { name: "Zoek bepalingen bij alle deelvragen" }).click();
   await wachtOp(1);
   assert.deepEqual(runs[0], {
-    question: "Zoek bepalingen die bij dit werkgebied horen", conversation_id: "g2", werkgebied_id: "wg1",
+    question: "Zoek bepalingen bij alle deelvragen", conversation_id: "g2", werkgebied_id: "wg1",
     onderwerp: { soort: "werkgebied", werkgebied_id: "wg1", label: "Invordering" }, actie: "bronnen_zoeken",
   });
   await chip().waitFor({ state: "detached" });
   await wachtOp(1, berichten);
-  assert.equal(berichten[0].tekst, "Bij werkgebied Invordering: Zoek bepalingen die bij dit werkgebied horen");
+  assert.equal(berichten[0].tekst, "Bij werkgebied Invordering: Zoek bepalingen bij alle deelvragen");
 
   // --- In de werkplek: de knop in het paneel zet de chip, een getypte vraag gaat als onderwerp ---
   await page.goto(`${base}/workbench?gesprek=g5`);

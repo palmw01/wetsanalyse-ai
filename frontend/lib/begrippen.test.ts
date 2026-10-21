@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  LEGE_INHOUD, begripUitParam, gewijzigdeVelden, inhoudGewijzigd, isAlPrimair, isPoortFout, revisieZin,
+  LEGE_INHOUD, begripUitParam, gewijzigdeVelden, handmatigeInhoud, inhoudGewijzigd, isAlPrimair, isPoortFout, revisieZin,
   sorteerKoppelingen, volledigeInhoud,
 } from "./begrippen";
 import type { Koppeling } from "./types";
@@ -61,4 +61,11 @@ it("eigenschappen gaan heen en terug als rijen, zonder lege sleutels", async () 
   const { naarRijen, uitRijen } = await import("./begrippen");
   expect(naarRijen({ a: "1", b: "2" })).toEqual([["a", "1"], ["b", "2"]]);
   expect(uitRijen([["a", "1"], ["  ", "weg"], [" b ", "2"], ["a", "3"]])).toEqual({ a: "3", b: "2" });
+});
+
+it("een met de hand gewijzigde definitie is geformuleerd; ongewijzigd houdt ze haar herkomst", () => {
+  const oud = { ...LEGE_INHOUD, naam: "termijn", definitie: "de tijd", definitie_herkomst: "letterlijk" as const };
+  expect(handmatigeInhoud(oud, { definitie: " de tijd ", uitleg: "x" })).toMatchObject({ definitie_herkomst: "letterlijk", uitleg: "x" });
+  expect(handmatigeInhoud(oud, { definitie: "de periode", uitleg: "" }).definitie_herkomst).toBe("geformuleerd");
+  expect(handmatigeInhoud(oud, { definitie: "", uitleg: "" }).definitie_herkomst).toBeNull();
 });

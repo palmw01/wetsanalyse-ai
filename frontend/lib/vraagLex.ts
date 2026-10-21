@@ -14,7 +14,10 @@ import type { AgentContext } from "./types";
  *  - **de rest** stuurt alleen soort en id's (`onderwerp`); graph-qa haalt het object bij de api
  *    (`agent/onderwerp.py`) en zet het als context naast de vraag. Context, geen filter.
  *  - **Een suggestie met een `actie`** is een vaste handeling: graph-qa kiest er zonder model een agent
- *    en een taak bij (`models.ACTIE_TAAK`). Wat duur is vraagt daar eerst een bevestiging, zoals altijd. */
+ *    en een taak bij (`models.ACTIE_TAAK`). Wat duur is vraagt daar eerst een bevestiging, zoals altijd.
+ *  - **Een suggestie zonder actie** is een vraag die je zo ook had kunnen typen: ze gaat met het onderwerp
+ *    langs de supervisor. Met `invullen` komt ze in het invoerveld in plaats van verstuurd te worden –
+ *    voor een vraag die de analist zelf moet afmaken ("Wat is het betekenisverschil met …"). */
 
 export type OnderwerpSoort = "markering" | "deelvraag" | "bron" | "kandidaat" | "begrip" | "werkgebied";
 export type ObjectSoort = Exclude<OnderwerpSoort, "markering">;
@@ -35,6 +38,8 @@ export type VraagLexActie = (typeof ACTIES)[number];
 export interface Suggestie {
   tekst: string;
   actie?: VraagLexActie;
+  /** Niet versturen, maar in het invoerveld zetten: de analist maakt de vraag af. */
+  invullen?: true;
 }
 
 /** Wat er bij een gewone vraag over het onderwerp naar `startRun` gaat. */
@@ -85,23 +90,55 @@ function objectModule(suggesties: (o: Object_) => Suggestie[] = () => []): Modul
   };
 }
 
-/** De handelingen op het werkgebied die er al waren, als suggestie met een actie. De suggesties van de
- *  andere soorten komen met de agents (F3d); tot dan typ je de vraag zelf. */
-const WERKGEBIED_SUGGESTIES: Suggestie[] = [
-  { tekst: "Zoek bepalingen die bij dit werkgebied horen", actie: "bronnen_zoeken" },
-  { tekst: "Stel begrippen voor", actie: "begrippen_voorstellen" },
-  { tekst: "Denk mee over de begrippen", actie: "begrippen_meedenken" },
-  { tekst: "Annoteer wat nog niet geannoteerd is", actie: "werkgebied_annoteren" },
-];
+/** Per soort wat Lex met het object kan (F3d), in de volgorde van de methode. Een actie is een taak van een
+ *  agent (de deelvragen-, begrippen- of annotatie-agent); een bron of kandidaat heeft alleen vragen, die
+ *  de antwoord-worker met het object als context beantwoordt. In de werkplek staan de suggesties van het
+ *  werkgebied ook zonder chip boven het invoerveld (`werkgebiedSuggesties`). */
+const SUGGESTIES: Record<ObjectSoort, Suggestie[]> = {
+  werkgebied: [
+    { tekst: "Stel deelvragen voor", actie: "deelvragen_voorstellen" },
+    { tekst: "Zoek bepalingen bij alle deelvragen", actie: "bronnen_zoeken" },
+    { tekst: "Hoe staat de dekking ervoor?", actie: "dekking" },
+    { tekst: "Annoteer wat nog niet geannoteerd is", actie: "werkgebied_annoteren" },
+    { tekst: "Stel begrippen voor", actie: "begrippen_voorstellen" },
+    { tekst: "Denk mee over de begrippen", actie: "begrippen_meedenken" },
+  ],
+  deelvraag: [
+    { tekst: "Zoek bepalingen hierbij", actie: "bronnen_zoeken" },
+    { tekst: "Is deze deelvraag gedekt?", actie: "dekking" },
+    { tekst: "Formuleer scherper", actie: "deelvraag_herformuleren" },
+    { tekst: "Splits deze deelvraag", actie: "deelvraag_splitsen" },
+  ],
+  bron: [
+    { tekst: "Waarom hoort deze bepaling bij het werkgebied?" },
+    { tekst: "Naar welke bepalingen verwijst deze bepaling?" },
+    { tekst: "Bij welke deelvraag hoort deze bepaling?" },
+  ],
+  kandidaat: [
+    { tekst: "Waarom stel je deze bepaling voor?" },
+    { tekst: "Naar welke bepalingen verwijst deze bepaling?" },
+    { tekst: "Bij welke deelvraag hoort deze bepaling?" },
+  ],
+  begrip: [
+    { tekst: "Werk het begrip volledig uit", actie: "begrip_uitwerken" },
+    { tekst: "Zoek de brondefinitie", actie: "brondefinitie" },
+    { tekst: "Geef voorbeelden", actie: "voorbeelden" },
+    { tekst: "Stel relaties voor", actie: "relaties" },
+    { tekst: "Wat is het betekenisverschil met ", invullen: true },
+  ],
+};
 
 export const MODULES: { markering: Module<Markering> } & Record<ObjectSoort, Module<Object_>> = {
   markering: MARKERING,
-  deelvraag: objectModule(),
-  bron: objectModule(),
-  kandidaat: objectModule(),
-  begrip: objectModule(),
-  werkgebied: objectModule(() => WERKGEBIED_SUGGESTIES),
+  deelvraag: objectModule(() => SUGGESTIES.deelvraag),
+  bron: objectModule(() => SUGGESTIES.bron),
+  kandidaat: objectModule(() => SUGGESTIES.kandidaat),
+  begrip: objectModule(() => SUGGESTIES.begrip),
+  werkgebied: objectModule(() => SUGGESTIES.werkgebied),
 };
+
+/** De suggesties van het werkgebied, voor de werkplek in een werkgebied zonder ander onderwerp. */
+export const werkgebiedSuggesties = (): Suggestie[] => SUGGESTIES.werkgebied;
 
 function module(o: Onderwerp): Module<Onderwerp> {
   return MODULES[o.soort] as Module<Onderwerp>;

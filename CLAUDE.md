@@ -32,7 +32,8 @@ plaats van schijnzekerheid.
 > Daarop formuleert de analist **begrippen**: een begripskaart, gekoppeld aan de annotatiepassages
 > die het begrip dragen, met beoordeling, historie en export. Lex stelt betekenisgroepen voor
 > (deterministisch, ADR-004), ook vanuit het gesprek: wat een beurt oplevert is een **artefact**
-> (annotatie, begripsvoorstellen; afleidingsregels gereserveerd). Lex denkt mee met een model bij
+> (annotatie, begripsvoorstellen, gevonden bepalingen, het werkgebied, één deelvraag of één begrip;
+> afleidingsregels gereserveerd), dat naast het gesprek opent om te beoordelen. Lex denkt mee met een model bij
 > twijfel en stelt definities voor (geel, met de fragmenten waarop ze rusten), en staat **naast de
 > begripskaart**: brondefinitie zoeken, een scherpere definitie, het betekenisverschil en voorbeelden,
 > elk als voorstel per veld dat de analist overneemt, aanpast of afwijst. Begrippen worden **onderhouden**:

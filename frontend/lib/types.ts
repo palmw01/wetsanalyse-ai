@@ -824,13 +824,23 @@ export interface Deelvraag {
   id: string;
   vraag: string;
   volgorde: number;
-  status: "actief" | "voorgesteld";
+  /** `afgewezen` en `vervangen` staan niet in de lijst van het werkgebied, wel in `GET …/deelvragen/{id}`. */
+  status: "actief" | "voorgesteld" | "afgewezen" | "vervangen";
   herkomst: "analist" | "lex";
   reden: string;
+  /** Een voorstel van Lex dat deze actieve deelvraag verbetert (F3d): overnemen vervangt haar. Oudere api: weg. */
+  vervangt?: string;
   aangemaakt_door: string;
   aangemaakt: string;
   bronnen: string[];
   begrippen: string[];
+}
+
+/** Eén deelvraag in elke stand, voor het deelvraagpaneel (F3d): wie haar verving, en de voorstellen van
+ *  Lex die haar zouden vervangen. */
+export interface DeelvraagDetail extends Deelvraag {
+  opvolgers: { id: string; vraag: string }[];
+  voorstellen: Deelvraag[];
 }
 
 export type DeelvraagStand = "gedekt" | "geen_begrip" | "geen_bron";

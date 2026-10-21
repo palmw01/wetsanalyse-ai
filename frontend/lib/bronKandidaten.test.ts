@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  bewijsZin, filterVan, plekNaam, sorteerKandidaten, standaardRol, telPerFilter,
+  bewijsZin, bijDeelvraag, filterVan, plekNaam, sorteerKandidaten, standaardRol, telPerFilter,
 } from "./bronKandidaten";
 import type { BronKandidaat } from "./types";
 
@@ -62,4 +62,11 @@ it("sorteert op rol, dan op hoeveelheid bewijs", () => {
 it("plekNaam valt terug op het pad na de regeling", () => {
   expect(plekNaam("urn:bwb:BWBR0024096:id:abc")).toBe("id:abc");
   expect(plekNaam("")).toBe("");
+});
+
+it("een kandidaat hoort bij de deelvraag die zijn bewijs noemt", () => {
+  const k = { bewijs: [{ methode: "deelvraag" as const, vanuit: "", detail: { deelvraag_id: "d1", vraag: "Wie?" } }] };
+  expect(bijDeelvraag(k, "d1")).toBe(true);
+  expect(bijDeelvraag(k, "d2")).toBe(false);
+  expect(bijDeelvraag({ bewijs: [{ methode: "opbouw" as const, vanuit: "", detail: {} }] }, "d1")).toBe(false);
 });

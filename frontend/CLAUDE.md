@@ -150,7 +150,7 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
   gesprek wisselen, niet wanneer een verse chat bij de eerste beurt zijn id krijgt – anders breekt de
   stream. De graph-qa `conversation_id` (thread_id) is het `gesprekId`.
 - **Wat Lex oplevert is een artefact** (`Bericht.artefact`, `lib/artefact.ts`): `{soort, ref, titel}`
-  met soort `annotatie`, `begrippen`, `bronnen`, `werkgebied` of `regels`. Elke soort heeft een chip in de thread en een paneel
+  met soort `annotatie`, `begrippen`, `bronnen`, `werkgebied`, `deelvraag`, `begrip` of `regels`. Elke soort heeft een chip in de thread en een paneel
   in dezelfde schil (kolom vanaf 1280px, anders een sheet); er staat er hoogstens één open.
   - **annotatie** – het `annotatie`-item met `AnnotatieChip`, dat **`NodeAnnotatiePaneel`** opent
     (een bericht zonder bronnode wijst naar een verwijderde annotatie: een tombstone). `DocumentPaneel` toont de wettekst met de **letterlijke** fragmenten
@@ -160,11 +160,21 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
     `BronKandidaten` als op de tab Begrippen of Bronnen, met een link naar het werkgebied. Eén inhoud,
     twee schillen (`werkgebiedArtefactVan` in `lib/artefact.ts`). De voorstellen zijn altijd die van de
     laatste ronde; wijst de chip naar een eerdere (`ref.run_id`), dan zegt het paneel dat.
-  - **één begrip** (fase F4) – een kaartactie vanuit het gesprek ("geef voorbeelden van termijn") levert
-    een begrippenartefact met `ref: {werkgebied_id, begrip_id, kaart_run_id?, actie?}` en zonder `run_id`.
-    De chip heet *Begrip* (`artefactLabel`/`werkgebiedLabel`), het paneel toont `BegripWerk` (kaart met Lex
-    ernaast, de voorstellen onder hun veld) en *Open het werkgebied* gaat naar `?tab=begrippen&begrip=<id>`.
-    `parseArtefact` eist dan `begrip_id` in plaats van `run_id`, net als de api.
+  - **begrip** (F3d) – een taak van de begrippen-agent op één begrip ("geef voorbeelden van termijn",
+    *Werk het begrip volledig uit*) levert `ref: {werkgebied_id, begrip_id, kaart_run_id?, actie?}`. Een
+    bericht van vóór F3d droeg dat als `begrippen` mét `begrip_id`; `parseArtefact` maakt er `begrip` van.
+    Het paneel is **`BegripPaneel`**: een leesweergave (naam, status, termen, definitie met herkomst,
+    uitleg, voorbeelden, relaties ingeklapt), de open voorstellen van Lex per veld (`KaartVoorstelKaart`:
+    overnemen, aanpassen, afwijzen) en een kleine bewerking van definitie en uitleg (`handmatigeInhoud`: een
+    gewijzigde definitie heet *geformuleerd*), met de onbewaard-bewaker. **Geen Lex-knoppen** – dat vraag
+    je in het gesprek. *Open het werkgebied* gaat naar `?tab=begrippen&begrip=<id>`.
+  - **deelvraag** (F3d) – een taak op één deelvraag (*Formuleer scherper*, *Splits*, en zoeken of dekking
+    bij die deelvraag) levert `ref: {werkgebied_id, deelvraag_id}`. **`DeelvraagPaneel`** haalt
+    `GET …/deelvragen/{id}` (ook een vervangen deelvraag) en toont de vraag met haar stand, de voorstellen
+    van Lex die haar vervangen (`DeelvraagVoorstel` uit `Deelvragen.tsx`, met "Vervangt “…”"), de bronnen en
+    begrippen, en `BronKandidaten deelvraagId` (alleen wat Lex bij haar vond, zonder zoekknop). Overnemen
+    vervangt de oude (api): na herladen zegt het paneel "vervangen door …" en opent de opvolger in hetzelfde
+    paneel (`onWissel`).
   - **werkgebied** (activiteit 1) – een werkgebied dat Lex met de analist samenstelde: ref
     `{werkgebied_id}`. De chip heet *Werkgebied · bekijken* en opent hetzelfde `WerkgebiedArtefactPaneel`
     met eigen inhoud (`WerkgebiedInhoud`: status en revisie, de **`WerkgebiedSamenvatting`** en *Open het
@@ -177,9 +187,11 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
   - **regels** – gereserveerd voor de afleidingsregels: de kaart staat er, maar is geen knop.
   - **Vanuit een werkgebied** (`/workbench?werkgebied=<id>`, de knop *Bespreek met Lex* op de tab
     Begrippen): `WorkbenchShell` leest de parameter, `WerkgebiedBalk` boven de chat noemt het werkgebied
-    en biedt *Zoek bepalingen* en *Stel begrippen voor* (beurten met de actie `bronnen_zoeken` /
-    `begrippen_voorstellen`, tot F3d) en *Verlaten*. Elke beurt draagt dan `werkgebied_id`; een getypte
-    vraag kiest graph-qa's supervisor de agent, de actie doet dat zonder model. *Verlaten* haalt de parameter weg en houdt dat ook in state bij – de
+    en biedt alleen *Verlaten*. Wat Lex met het werkgebied kan, staat sinds F3d als **suggesties boven het
+    invoerveld** (`werkgebiedSuggesties`, zonder chip; ze wijken zodra je typt of er een onderwerp is).
+    Elke beurt draagt dan `werkgebied_id`; een getypte vraag kiest graph-qa's supervisor de agent, een
+    suggestie met actie doet dat zonder model. *Annoteer wat nog niet geannoteerd is* gaat zonder
+    `bevestigd`: de bevestiging komt in het gesprek. *Verlaten* haalt de parameter weg en houdt dat ook in state bij – de
     native `replaceState` alleen werkte `useSearchParams` hier niet bij.
   - `artefactVanBericht` maakt van een ouder bericht met alleen `annotatie_doel` een
     annotatie-artefact; `parseArtefact` is streng (onbekende soort of ref zonder verplichte sleutels:
@@ -392,17 +404,22 @@ begrip, werkgebied), met per soort een module in `MODULES` (`chip`, `suggesties`
   rest gaat als `onderwerp` (alleen soort en id's; graph-qa haalt het object bij de api,
   `agent/onderwerp.py`). Een suggestie met een **`actie`** (`ACTIES`, gelijk aan graph-qa `ACTIE_TAAK`;
   de test leest die bron) stuurt `actie` + `onderwerp` + het `werkgebied_id` van het onderwerp, zonder
-  modus, context of doel – graph-qa kiest er zonder model een agent en taak bij (F3c, ADR-005). Het werkgebied heeft vier suggesties met
-  een actie (bepalingen zoeken, begrippen voorstellen, meedenken, annoteren); de andere soorten krijgen
-  hun suggesties met de agents (F3d).
+  modus, context of doel – graph-qa kiest er zonder model een agent en taak bij (F3c, ADR-005).
+- **Suggesties per soort** (`SUGGESTIES`, F3d): werkgebied (deelvragen voorstellen, bepalingen zoeken,
+  dekking, annoteren, begrippen voorstellen, meedenken), deelvraag (zoeken, gedekt?, scherper, splitsen),
+  begrip (uitwerken, brondefinitie, voorbeelden, relaties, en *Wat is het betekenisverschil met …* met
+  `invullen`: in het veld, de analist noemt het andere begrip). Bron en kandidaat hebben alleen vragen
+  zonder actie (waarom deze bepaling, verwijzingen, bij welke deelvraag): die gaan met het object langs de
+  supervisor naar de antwoord-worker.
 - **`VraagLexKnop`** (`components/werkplek/VraagLexKnop.tsx`): binnen de werkplek zet hij het onderwerp
   via `VraagLexContext` (`kiesOnderwerp` in `WerkplekClient`: chip, leeg veld, focus, op een smal scherm
   het paneel dicht); daarbuiten is hij een **link** naar `vraagUrl` (`/workbench?werkgebied=…&vraag=<soort>:<id>&vraag_label=…`),
   zodat de bewaker van niet-bewaarde wijzigingen hem ziet. `WorkbenchShell` leest `vraag` één keer
   (`onderwerpUitUrl`, streng op soort en id's), haalt de parameters uit de URL en geeft
-  `beginOnderwerp` alleen aan het venster waarmee de pagina opende. Nu in de kop van de werkgebiedpagina
-  en van het werkgebiedpaneel; de rijen volgen in F3d/F3e. `annoteer=`/`meedenk=` blijven tot F3e, met
-  de paginaknoppen die ze gebruiken.
+  `beginOnderwerp` alleen aan het venster waarmee de pagina opende. In de kop van de werkgebiedpagina en
+  van elk werkgebiedpaneel (werkgebied, deelvraag, begrip), bij elke deelvraag in de
+  `WerkgebiedSamenvatting` (`vraagLex`) en bij elke open kandidaat; de andere rijen volgen in F3e.
+  `annoteer=`/`meedenk=` blijven tot F3e, met de paginaknoppen die ze gebruiken.
 - Browserregressie: `scripts/test-vraaglex.mjs`.
 
 **De markering in het bijzonder:**
@@ -692,9 +709,10 @@ bestaat los van de gesprekken.
     meegaat; `bevestigingInhoud` in `lib/werkgebiedAnnoteren.ts`; op een smal scherm een sheet). *Start*
     gaat naar `/workbench?werkgebied=<id>&annoteer=<n>`: `WorkbenchShell` leest `annoteer` één keer en
     haalt hem uit de URL, en `WerkplekClient` start in dat verse gesprek de run (`startAnnoteren`).
-  - **Werkgebiedbalk**: *Annoteer werkgebied* opent dezelfde bevestiging en start in het open gesprek.
+  - **In de werkplek** (F3d): de suggestie *Annoteer wat nog niet geannoteerd is* vraagt Lex om het voorstel;
+    de bevestiging komt als bericht in het gesprek.
   - **In het gesprek**: een antwoord met `bevestiging` (`parseBevestiging`; ook na herladen) krijgt de
-    knop *Laat Lex annoteren*. Alle drie gaan via `verstuur(…, annoteren)` →
+    knop *Laat Lex annoteren*. Beide knoppen gaan via `verstuur(…, annoteren)` →
     `startRun({modus: "werkgebied_annoteren", werkgebied_id, bevestigd})`. Is de werkvoorraad intussen
     veranderd, dan begint graph-qa niet en komt er een nieuwe bevestiging.
   - De voortgang is het gewone `ReeksBlok` (labels met de regeling erbij); de samenvatting van de run

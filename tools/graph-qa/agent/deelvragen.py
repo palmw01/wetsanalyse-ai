@@ -184,7 +184,8 @@ def verbetertekst(deelvraag: str, soort: str, uitkomst: dict[str, Any], motivati
         zin = f"Ik stel voor “{deelvraag}” te splitsen in {nieuw} deelvragen."
     if motivatie:
         zin += f" {motivatie}"
-    return zin + " Neem het voorstel over en trek de oude deelvraag in, of wijs het af met een reden."
+    return zin + (" Neem het voorstel over: het vervangt de oude deelvraag, met haar bronnen en begrippen. Of wijs "
+                  "het af met een reden.")
 
 
 # ---------------------------------------------------------------------------------------------
@@ -194,6 +195,11 @@ def verbetertekst(deelvraag: str, soort: str, uitkomst: dict[str, Any], motivati
 def werkgebied_artefact(wg: dict[str, Any]) -> dict[str, Any]:
     from .beurt import werkgebied_artefact as artefact
     return artefact(wg)
+
+
+def deelvraag_artefact(werkgebied_id: str, d: dict[str, Any]) -> dict[str, Any]:
+    from .beurt import deelvraag_artefact as artefact
+    return artefact(werkgebied_id, d)
 
 
 async def voorstellen_kern(ctx: Context, werkgebied_id: str) -> Uitkomst:
@@ -249,15 +255,16 @@ async def verbeteren_kern(ctx: Context, werkgebied_id: str, deelvraag_id: str, s
         logger.exception("deelvraag verbeteren: model faalde", extra={"categorie": "technisch"})
         return Uitkomst(taak=taak, status="fout", reden="Het model gaf geen antwoord; probeer het opnieuw.",
                         meting={**meting, "soort": "model"})
+    artefact = deelvraag_artefact(werkgebied_id, d)
     if not vragen:
-        return Uitkomst(taak=taak, artefact=werkgebied_artefact(wg), meting=meting,
+        return Uitkomst(taak=taak, artefact=artefact, meting=meting,
                         tekst=f"Ik zie geen betere formulering van “{d.get('vraag', '')}”. {motivatie}".strip())
     try:
-        uitkomst = await ctx.api.stel_deelvragen_voor(werkgebied_id, vragen, model)
+        uitkomst = await ctx.api.stel_deelvragen_voor(werkgebied_id, vragen, model, vervangt=deelvraag_id)
     except WetsanalyseApiFout as fout:
         return _api_fout(taak, fout, "Lex had een voorstel, maar de api weigerde het op te slaan.", meting)
     return Uitkomst(taak=taak, tekst=verbetertekst(d.get("vraag", ""), gekozen, uitkomst, motivatie),
-                    artefact=werkgebied_artefact(wg), voorstellen=[str(x) for x in uitkomst.get("nieuw") or []],
+                    artefact=artefact, voorstellen=[str(x) for x in uitkomst.get("nieuw") or []],
                     meting={**meting, "soort_verbetering": gekozen})
 
 

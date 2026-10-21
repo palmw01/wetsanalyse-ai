@@ -325,6 +325,9 @@ ARTEFACTEN = [
      "titel": "Invorderingswet 1990 – artikel 9"},
     {"soort": "begrippen", "ref": {"werkgebied_id": "wg1", "run_id": "r1"}, "titel": "Begrippen in Invordering"},
     {"soort": "werkgebied", "ref": {"werkgebied_id": "wg2"}, "titel": "Box 3"},
+    {"soort": "deelvraag", "ref": {"werkgebied_id": "wg2", "deelvraag_id": "d1"}, "titel": "Wie betaalt?"},
+    {"soort": "begrip", "ref": {"werkgebied_id": "wg2", "begrip_id": "b1", "kaart_run_id": "k1", "actie": "voorbeelden"},
+     "titel": "termijn"},
 ]
 
 
@@ -345,6 +348,8 @@ async def test_een_artefact_overleeft_het_heropenen_en_komt_terug_in_de_respons(
     {"soort": "annotatie", "ref": {}},
     {"soort": "begrippen", "ref": {"werkgebied_id": "wg1"}},
     {"soort": "werkgebied", "ref": {}},
+    {"soort": "deelvraag", "ref": {"werkgebied_id": "wg1"}},
+    {"soort": "begrip", "ref": {"werkgebied_id": "wg1"}},
     {"soort": "onbekend", "ref": {"x": "y"}},
 ])
 async def test_een_artefact_zonder_geldige_verwijzing_wordt_geweigerd(client, artefact):

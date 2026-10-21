@@ -869,9 +869,14 @@ van de gebruiker op 20 okt 2026).
     loop van de beurt, `TAAK:` in de supervisor, `ACTIE_TAAK` (elke taak is een actie), de tekstpatronen weg,
     de skillrollen `deelvragen` en `begrippen` (P14, P15), scenario F in de gesprekseval. Gemeten 21 okt
     (3×, meetlogboek): twee routeringsfouten → #724, hermeting met `eval_set=gesprek` (#725): scenario F 6/6
-    in alle runs. Nog open: `vervangt` bij een verbeterde deelvraag (met het paneel in F3d), . De 36a-diagnose: een fout in de eval (half doel, een anker met
+    in alle runs. `vervangt` bij een verbeterde deelvraag kwam met F3d. De 36a-diagnose: een fout in de eval (half doel, een anker met
     onderdeelletter), gecorrigeerd; daarna recall 0,50 (meetlogboek);
-  - **F3d**: suggesties per object, en de artefacten/panelen `deelvraag` en `begrip`;
+  - **F3d**: suggesties per object, en de artefacten/panelen `deelvraag` en `begrip` – **gebouwd** (21 okt 2026):
+    suggesties per soort (`SUGGESTIES` in `lib/vraagLex.ts`; bron en kandidaat alleen vragen, het
+    betekenisverschil als `invullen`), de werkgebiedsuggesties boven het invoerveld in plaats van de knoppen
+    in de werkgebiedbalk, `DeelvraagPaneel` en `BegripPaneel` (zonder Lex-knoppen) in het werkgebiedpaneel,
+    en `vervangt` (besluit gebruiker 21 okt 2026: **overnemen vervangt** – de oude deelvraag wordt
+    `vervangen`, de opvolger krijgt haar plek en koppelingen, kandidaten volgen de opvolger);
   - **F3e**: de werkgebiedpagina wordt raadplegen; de ongebruikte BFF-run-routes gaan eruit;
   - **F3f**: de intake met bepalingen per deelvraag en de twee fixes, met een meting op een **nieuwe**
     set.

@@ -12,7 +12,7 @@ import pytest
 
 from agent.agents import Uitkomst, register
 from agent.begrippen_beurt import begrippen_artefact
-from agent.beurt import werkgebied_artefact
+from agent.beurt import deelvraag_artefact, werkgebied_artefact
 from agent.bronnen_run import bronnen_artefact
 from agent.kaart_beurt import begrip_artefact
 from agent.werkgebied_annotatie import voorstel
@@ -35,7 +35,8 @@ def contracten():
 def test_elk_artefact_van_een_agent_kent_de_api(contracten):
     for artefact in (werkgebied_artefact({"id": "wg1", "naam": "Inv"}), bronnen_artefact("wg1", "r1", "Inv"),
                      begrippen_artefact("wg1", "r1", "Inv"), begrip_artefact("wg1", "b1", "Termijn"),
-                     begrip_artefact("wg1", "b1", "Termijn", "k1", "voorbeelden")):
+                     begrip_artefact("wg1", "b1", "Termijn", "k1", "voorbeelden"),
+                     deelvraag_artefact("wg1", {"id": "d1", "vraag": "Wie betaalt?"})):
         contracten.Artefact(**artefact)
 
 

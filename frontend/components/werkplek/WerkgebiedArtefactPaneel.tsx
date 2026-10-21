@@ -5,21 +5,28 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { Dialog, type DialogVariant } from "@/components/ui/Dialog";
+import { BegripPaneel } from "@/components/werkgebieden/BegripPaneel";
 import { BegripVoorstellen } from "@/components/werkgebieden/BegripVoorstellen";
-import { BegripWerk } from "@/components/werkgebieden/BegripWerk";
 import { BronKandidaten } from "@/components/werkgebieden/BronKandidaten";
+import { DeelvraagPaneel } from "@/components/werkgebieden/DeelvraagPaneel";
 import { OnbewaardMelding } from "@/components/werkgebieden/OnbewaardMelding";
 import { WerkgebiedSamenvatting } from "@/components/werkgebieden/WerkgebiedSamenvatting";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import { Melding } from "@/components/ui/Melding";
 import { SkeletonCard } from "@/components/ui/Skeleton";
-import { foutTekst, haalWerkgebied, lijstBegrippen } from "@/lib/api";
+import { foutTekst, haalWerkgebied } from "@/lib/api";
 import { werkgebiedLabel, type WerkgebiedArtefact } from "@/lib/artefact";
-import type { BegrippenLijst, Werkgebied } from "@/lib/types";
+import type { Werkgebied } from "@/lib/types";
 import { STATUS_LABEL } from "@/lib/werkgebied";
 import { useOnbewaardBewaker } from "@/lib/useOnbewaardBewaker";
 
-const TAB: Record<WerkgebiedArtefact["soort"], string> = { begrippen: "begrippen", bronnen: "bronnen", werkgebied: "" };
+const TAB: Record<WerkgebiedArtefact["soort"], string> = {
+  begrippen: "begrippen", bronnen: "bronnen", werkgebied: "", deelvraag: "bronnen", begrip: "begrippen",
+};
+const KOP: Record<WerkgebiedArtefact["soort"], string> = {
+  begrippen: "Begripsvoorstellen van Lex", bronnen: "Gevonden bepalingen van Lex", werkgebied: "Samengesteld met Lex",
+  deelvraag: "Deelvraag", begrip: "Begrip",
+};
 
 /** Een artefact van een werkgebied in de werkplek, in dezelfde schil als een annotatie (een kolom naast
  *  de chat vanaf 1280px, anders een sheet):
@@ -27,17 +34,24 @@ const TAB: Record<WerkgebiedArtefact["soort"], string> = { begrippen: "begrippen
  *  - **begrippen** – de voorstellen van Lex (`BegripVoorstellen`), dezelfde inhoud als op de tab
  *    Begrippen. Een overgenomen begrip opent in het werkgebied: daar staan de kaart en de passages.
  *  - **bronnen** – de bepalingen die Lex vond (`BronKandidaten`), dezelfde inhoud als op de tab Bronnen.
- *  - **één begrip** (`begrip_id`, een kaartactie vanuit het gesprek, fase F4) – de kaart met Lex ernaast
- *    (`BegripWerk`), dezelfde als op de tab Begrippen; de voorstellen staan onder hun veld.
+ *  - **begrip** (F3d) – één begrip om te beoordelen (`BegripPaneel`): een leesweergave, de open voorstellen
+ *    van Lex per veld en een kleine bewerking; de begripskaart zelf staat in het werkgebied.
+ *  - **deelvraag** (F3d) – één deelvraag (`DeelvraagPaneel`): stand, de voorstellen die haar vervangen,
+ *    bronnen en de kandidaten die Lex erbij vond.
  *  - **werkgebied** – het werkgebied dat Lex met de analist samenstelde (activiteit 1): de
  *    `WerkgebiedSamenvatting` (dezelfde als bovenaan de pagina) en de weg naar die pagina.
  *
+ *  Eén schakelaar op de soort; geen Lex-knoppen in de inhoud – wel *Vraag Lex* in de kop, die het object
+ *  als onderwerp boven het invoerveld zet.
+ *
  *  Eén inhoud, twee schillen. Net als op de tab vraagt het paneel eerst bevestiging als de kaart
  *  niet-bewaarde wijzigingen draagt: bij sluiten (kruisje, Escape, achtergrond) en bij een link weg. */
-export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onMeedenken }: {
+export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWissel, onMeedenken }: {
   doel: WerkgebiedArtefact;
   variant?: DialogVariant;
   onSluit: () => void;
+  /** Een ander artefact in hetzelfde paneel (de opvolger van een vervangen deelvraag of begrip). */
+  onWissel?: (doel: WerkgebiedArtefact) => void;
   /** Lex laten meedenken (fase C) in het gesprek dat hier open staat; zonder deze haak navigeert de
    *  strook naar een vers gesprek, en dat start niet in een werkplek die al open is. */
   onMeedenken?: (werkgebiedId: string, aantal: number) => void;
@@ -56,7 +70,7 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onMe
       <div data-artefact data-artefact-soort={doel.soort} className="flex min-h-0 flex-1 flex-col">
         <div className="flex shrink-0 items-start gap-3 border-b border-line px-5 py-3.5 pt-[max(0.875rem,env(safe-area-inset-top))]">
           <div className="min-w-0 flex-1">
-            <p className="text-xs text-muted">{doel.soort === "werkgebied" ? "Samengesteld met Lex" : `${soort} van Lex`}</p>
+            <p className="text-xs text-muted">{KOP[doel.soort]}</p>
             <h2 className="truncate font-display text-base font-semibold text-lint">{titel}</h2>
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
               <Link href={naarWerkgebied} className="focus-ring text-xs font-medium text-lint underline-offset-2 hover:underline">
@@ -64,6 +78,12 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onMe
               </Link>
               {doel.soort === "werkgebied" && (
                 <VraagLexKnop onderwerp={{ soort: "werkgebied", werkgebied_id: doel.werkgebied_id, id: "", label: doel.titel ?? "" }} />
+              )}
+              {doel.soort === "deelvraag" && doel.deelvraag_id && (
+                <VraagLexKnop onderwerp={{ soort: "deelvraag", werkgebied_id: doel.werkgebied_id, id: doel.deelvraag_id, label: doel.titel }} />
+              )}
+              {doel.soort === "begrip" && doel.begrip_id && (
+                <VraagLexKnop onderwerp={{ soort: "begrip", werkgebied_id: doel.werkgebied_id, id: doel.begrip_id, label: doel.titel }} />
               )}
             </div>
           </div>
@@ -92,10 +112,15 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onMe
           )}
           {doel.soort === "werkgebied" ? (
             <WerkgebiedInhoud id={doel.werkgebied_id} naarWerkgebied={naarWerkgebied} />
-          ) : doel.begrip_id ? (
-            <EenBegrip werkgebiedId={doel.werkgebied_id} begripId={doel.begrip_id} onSluit={onSluit}
-              onOnbewaard={setOnbewaard}
-              onNaarBegrip={(b) => router.push(`/werkgebieden/${encodeURIComponent(doel.werkgebied_id)}?tab=begrippen&begrip=${encodeURIComponent(b)}`)} />
+          ) : doel.soort === "begrip" && doel.begrip_id ? (
+            <BegripPaneel werkgebiedId={doel.werkgebied_id} begripId={doel.begrip_id} onOnbewaard={setOnbewaard}
+              onNaarBegrip={(b) => onWissel
+                ? onWissel({ soort: "begrip", werkgebied_id: doel.werkgebied_id, run_id: "", begrip_id: b, titel: "" })
+                : router.push(`/werkgebieden/${encodeURIComponent(doel.werkgebied_id)}?tab=begrippen&begrip=${encodeURIComponent(b)}`)} />
+          ) : doel.soort === "deelvraag" && doel.deelvraag_id ? (
+            <DeelvraagPaneel werkgebiedId={doel.werkgebied_id} deelvraagId={doel.deelvraag_id}
+              onKies={onWissel ? (d) => onWissel({ soort: "deelvraag", werkgebied_id: doel.werkgebied_id, run_id: "",
+                deelvraag_id: d.id, titel: d.vraag }) : undefined} />
           ) : doel.soort === "begrippen" ? (
             <BegripVoorstellen
               id={doel.werkgebied_id}
@@ -141,42 +166,11 @@ function WerkgebiedInhoud({ id, naarWerkgebied }: { id: string; naarWerkgebied: 
   return (
     <div data-werkgebied-inhoud className="space-y-4 text-sm text-ink">
       <p className="text-xs text-muted">{STATUS_LABEL[wg.status]} · revisie {wg.revisie}</p>
-      <WerkgebiedSamenvatting wg={wg} />
+      <WerkgebiedSamenvatting wg={wg} vraagLex />
       <Link href={naarWerkgebied}
         className="focus-ring inline-flex w-full items-center justify-center rounded-button bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent/90 sm:w-auto">
         Open het werkgebied
       </Link>
     </div>
-  );
-}
-
-/** Eén begrip in het paneel: de kaart zoals op de tab Begrippen. De lijst van het werkgebied levert de
- *  primaire duidingen en de andere begrippen (om mee te vergelijken); faalt die, dan werkt de kaart
- *  zonder. */
-function EenBegrip({ werkgebiedId, begripId, onSluit, onOnbewaard, onNaarBegrip }: {
-  werkgebiedId: string;
-  begripId: string;
-  onSluit: () => void;
-  onOnbewaard: (onbewaard: boolean) => void;
-  onNaarBegrip: (begripId: string) => void;
-}) {
-  const [lijst, setLijst] = useState<BegrippenLijst | null>(null);
-  useEffect(() => {
-    let levend = true;
-    lijstBegrippen(werkgebiedId).then((l) => { if (levend) setLijst(l); }).catch(() => {});
-    return () => { levend = false; };
-  }, [werkgebiedId]);
-  return (
-    <BegripWerk
-      id={werkgebiedId}
-      begripId={begripId}
-      primair={lijst?.primair ?? {}}
-      andere={(lijst?.begrippen ?? []).filter((b) => b.id !== begripId)}
-      onGewijzigd={() => {}}
-      onOnbewaard={onOnbewaard}
-      // Verwijderd: er valt hier niets meer te tonen.
-      onWeg={async () => onSluit()}
-      onNaarBegrip={onNaarBegrip}
-    />
   );
 }

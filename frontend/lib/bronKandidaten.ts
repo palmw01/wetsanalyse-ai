@@ -103,3 +103,8 @@ export function sorteerKandidaten(lijst: BronKandidaat[]): BronKandidaat[] {
 export function voortgangsregel(bericht: string): string {
   return bericht.replace(/^Lex · /, "");
 }
+
+/** Vond Lex deze kandidaat bij die deelvraag? (Het bewijs van de methode `deelvraag` noemt haar.) */
+export function bijDeelvraag(k: Pick<BronKandidaat, "bewijs">, deelvraagId: string): boolean {
+  return k.bewijs.some((b) => b.detail?.deelvraag_id === deelvraagId);
+}

@@ -617,8 +617,8 @@ invoer vast, toetst en bewaart de kandidaten, en legt de besluiten vast.
 `werkgebied_deelvragen.py`, routes in `werkgebieden.py`; open keuze 4 is besloten op **optioneel**: een
 werkgebied zonder deelvragen werkt zoals altijd.
 
-- **Tabellen** `werkgebied_deelvragen` (vraag, volgorde, `status` `actief` | `voorgesteld` | `afgewezen`,
-  `herkomst` `analist` | `lex`, reden, soft delete) en `werkgebied_deelvraag_koppelingen` (een set per
+- **Tabellen** `werkgebied_deelvragen` (vraag, volgorde, `status` `actief` | `voorgesteld` | `afgewezen` |
+  `vervangen`, `herkomst` `analist` | `lex`, reden, `vervangt`, soft delete) en `werkgebied_deelvraag_koppelingen` (een set per
   deelvraag, `soort` `bron` | `begrip`, zonder foreign key; wat niet meer bestaat valt bij het lezen weg).
   `GET /v1/werkgebieden/{id}` draagt `deelvragen` (actief en voorgesteld, met hun geldige koppelingen).
 - **Een actieve deelvraag hoort bij de scope**: toevoegen, wijzigen (tekst, volgorde, overnemen met
@@ -629,6 +629,15 @@ werkgebied zonder deelvragen werkt zoals altijd.
 - **Voorstellen van Lex** (`POST …/deelvragen/voorstellen {vragen, model}`, graph-qa): geen revisie, alleen
   het slot en een auditregel `deelvragen-voorgesteld`. Wat er al staat, is afgewezen of weggehaald, komt er
   niet bij (`overgeslagen` met de reden).
+- **Een verbetering vervangt** (F3d). Met `vervangt: <id>` (herformuleren of splitsen door de deelvragen-agent)
+  moet dat een actieve deelvraag zijn (anders 422 `vervangt_onbekend`); elk voorstel draagt de kolom.
+  Overnemen (`status: actief`) zet de oude op `vervangen` (audit `deelvraag-vervangen`, alleen bij de eerste
+  overname van een splitsing), kopieert haar geldige koppelingen naar de opvolger en zet die op haar plek,
+  ná een eerder overgenomen deel (`_op_de_plek_van` nummert de actieve deelvragen opnieuw). Een vervangen
+  deelvraag staat niet meer in de lijst, wijzigen geeft 409 `vervangen`, de status zet geen client (422),
+  en Lex stelt haar tekst niet opnieuw voor. `koppel_bron_in` volgt een vervangen deelvraag naar haar
+  actieve opvolger(s). `GET …/deelvragen/{id}` geeft één deelvraag in elke stand, met `opvolgers` en de open
+  `voorstellen` die haar vervangen (het deelvraagpaneel van de werkplek).
 - **Dekking** (`GET …/deelvragen/dekking`): per actieve deelvraag `gedekt` (een gekoppeld geaccordeerd
   begrip), `geen_begrip` (wel bronnen of begrippen, geen geaccordeerd) of `geen_bron`; uit Postgres, zonder
   graaf. Een vervangen begrip dekt niets meer.
@@ -646,8 +655,9 @@ werkgebied zonder deelvragen werkt zoals altijd.
 
 - Een bericht verwijst via **`artefact`** naar wat de beurt opleverde: `{soort, ref, titel}` met
   `soort` `annotatie` (ref `{bron_iri, label?, snapshot_id?}`), `begrippen` (ref
-  `{werkgebied_id, run_id}`, of `{werkgebied_id, begrip_id, kaart_run_id?, actie?}` voor één begrip – een
-  kaartactie vanuit het gesprek, fase F4), `bronnen` (ref `{werkgebied_id, run_id}`, fase A),
+  `{werkgebied_id, run_id}`; met `begrip_id` in plaats van `run_id` alleen nog in berichten van vóór F3d),
+  `begrip` (ref `{werkgebied_id, begrip_id, kaart_run_id?, actie?}`: één begrip, F3d), `deelvraag` (ref
+  `{werkgebied_id, deelvraag_id}`: één deelvraag, F3d), `bronnen` (ref `{werkgebied_id, run_id}`, fase A),
   `werkgebied` (ref `{werkgebied_id}`: een werkgebied dat Lex in het gesprek samenstelde, activiteit 1)
   of `regels` (gereserveerd, nog niet in gebruik). `Artefact` toetst de
   verplichte ref-sleutels per soort (422). Oudere berichten verwijzen via `annotatie_doel`; graph-qa

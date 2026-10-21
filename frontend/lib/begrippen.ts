@@ -202,3 +202,14 @@ export function uitRijen(rijen: readonly [string, string][]): Record<string, str
 /** Een lijst als tekst met één item per regel, en terug. */
 export const regels = (xs: readonly string[]) => xs.join("\n");
 export const uitRegels = (tekst: string) => tekst.split("\n");
+
+/** De kleine bewerking in het begrippaneel (F3d): alleen definitie en uitleg. Een met de hand gewijzigde
+ *  definitie is geformuleerd – ze staat niet meer letterlijk in de bron; leeg heeft geen herkomst. */
+export function handmatigeInhoud(inhoud: BegripInhoud, nieuw: { definitie: string; uitleg: string }): BegripInhoud {
+  const definitie = nieuw.definitie.trim();
+  const zelfde = definitie === inhoud.definitie.trim();
+  return {
+    ...inhoud, definitie, uitleg: nieuw.uitleg.trim(),
+    definitie_herkomst: zelfde ? inhoud.definitie_herkomst : definitie ? "geformuleerd" : null,
+  };
+}

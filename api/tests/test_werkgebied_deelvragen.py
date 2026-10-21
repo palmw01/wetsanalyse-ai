@@ -162,3 +162,91 @@ async def test_zonder_kern_of_analysevraag_maar_met_deelvragen_mag_een_run(clien
     r = await client.post("/v1/werkgebieden", json={"naam": "Leeg"})
     wg = await _dv(client, r.json(), "Wanneer is een aanslag invorderbaar?")
     await _start(client, wg, 201)
+
+
+async def _verbeter(client, wg, vervangt, vragen, status=200):
+    r = await client.post(f"/v1/werkgebieden/{wg['id']}/deelvragen/voorstellen",
+                          json={"vragen": vragen, "vervangt": vervangt, "model": "m"})
+    assert r.status_code == status, r.text
+    return r.json()
+
+
+async def test_een_overgenomen_herformulering_vervangt_de_deelvraag(client):
+    wg = await _nieuw(client)
+    wg = (await _bron(client, wg, bron_iri=ART))["werkgebied"]
+    wg = await _dv(client, wg, "Wie betaalt?")
+    wg = await _dv(client, wg, "Wanneer is een aanslag invorderbaar?")
+    oud, tweede = wg["deelvragen"]
+    sel = wg["bronnen"][0]["id"]
+    begrip = await _begrip(wg, "belastingschuldige", "geaccordeerd")
+    wg = await _koppel(client, wg, oud["id"], bronnen=[sel], begrippen=[begrip])
+    uit = await _verbeter(client, wg, oud["id"], ["Wie is de belastingschuldige van de aanslag?"])
+    [nid] = uit["nieuw"]
+    voorstel = next(d for d in uit["deelvragen"] if d["id"] == nid)
+    assert (voorstel["status"], voorstel["vervangt"]) == ("voorgesteld", oud["id"])
+
+    detail = (await client.get(f"/v1/werkgebieden/{wg['id']}/deelvragen/{oud['id']}")).json()
+    assert [v["id"] for v in detail["voorstellen"]] == [nid] and detail["opvolgers"] == []
+
+    wg = await _patch(client, wg, nid, status="actief")
+    # De opvolger staat op de plek van de oude, met haar koppelingen; de oude is uit de lijst.
+    assert [d["id"] for d in wg["deelvragen"]] == [nid, tweede["id"]]
+    nieuw = wg["deelvragen"][0]
+    assert (nieuw["bronnen"], nieuw["begrippen"]) == ([sel], [begrip])
+    assert (await _dekking(client, wg))["deelvragen"][0]["stand"] == "gedekt"
+    detail = (await client.get(f"/v1/werkgebieden/{wg['id']}/deelvragen/{oud['id']}")).json()
+    assert detail["status"] == "vervangen" and detail["opvolgers"] == [{"id": nid, "vraag": nieuw["vraag"]}]
+    acties = [a["actie"] for a in (await client.get(f"/v1/werkgebieden/{wg['id']}/audit")).json()["audit"]]
+    assert "deelvraag-vervangen" in acties
+    # Een vervangen deelvraag wijzig je niet meer, en Lex stelt haar tekst niet opnieuw voor.
+    await _patch(client, wg, oud["id"], verwacht=409, vraag="Wie betaalt eigenlijk?")
+    r = await client.post(f"/v1/werkgebieden/{wg['id']}/deelvragen/voorstellen", json={"vragen": ["Wie betaalt?"]})
+    assert r.json()["overgeslagen"][0]["reden"] == "vervangen"
+    # De status `vervangen` zet de analist niet zelf.
+    await _patch(client, wg, tweede["id"], verwacht=422, status="vervangen")
+
+
+async def test_een_splitsing_vervangt_een_keer_en_elk_deel_erft(client):
+    wg = await _nieuw(client)
+    wg = (await _bron(client, wg, bron_iri=ART))["werkgebied"]
+    wg = await _dv(client, wg, "Wie betaalt en wanneer?")
+    [oud] = wg["deelvragen"]
+    sel = wg["bronnen"][0]["id"]
+    wg = await _koppel(client, wg, oud["id"], bronnen=[sel])
+    a, b = (await _verbeter(client, wg, oud["id"], ["Wie betaalt?", "Wanneer moet er betaald zijn?"]))["nieuw"]
+    wg = await _patch(client, wg, a, status="actief")
+    wg = await _patch(client, wg, b, status="actief")
+    assert [d["id"] for d in wg["deelvragen"]] == [a, b]
+    assert all(d["bronnen"] == [sel] for d in wg["deelvragen"])
+    acties = [x["actie"] for x in (await client.get(f"/v1/werkgebieden/{wg['id']}/audit")).json()["audit"]]
+    assert acties.count("deelvraag-vervangen") == 1
+
+
+async def test_vervangt_moet_een_actieve_deelvraag_zijn(client):
+    wg = await _nieuw(client)
+    await _verbeter(client, wg, "bestaat-niet", ["Wie betaalt?"], status=422)
+    uit = await _verbeter(client, wg, "", ["Wie betaalt?"])
+    # Een voorstel is geen actieve deelvraag: verbeteren kan pas na overnemen.
+    r = await _verbeter(client, wg, uit["nieuw"][0], ["Wie is de belastingschuldige?"], status=422)
+    assert r["detail"]["fout"] == "vervangt_onbekend"
+    r = await client.get(f"/v1/werkgebieden/{wg['id']}/deelvragen/bestaat-niet")
+    assert r.status_code == 404
+
+
+async def test_een_kandidaat_van_een_vervangen_deelvraag_landt_bij_de_opvolger(client):
+    wg = await _nieuw(client)
+    wg = await _dv(client, wg, "Wanneer is een aanslag invorderbaar?")
+    [oud] = wg["deelvragen"]
+    run = await _start(client, wg, 201)
+    k = _k(ART, "kern", ("deelvraag", ""))
+    k["bewijs"][0]["detail"] = {"deelvraag_id": oud["id"], "vraag": oud["vraag"]}
+    assert (await _uitkomst(client, wg, run, [k], meting={"deelvraag": {"aantal": 1}})).status_code == 200
+    [nid] = (await _verbeter(client, wg, oud["id"], ["Wanneer is een belastingaanslag invorderbaar?"]))["nieuw"]
+    wg = (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()
+    wg = await _patch(client, wg, nid, status="actief")
+    kid = (await client.get(f"/v1/werkgebieden/{wg['id']}/kandidaten")).json()["kandidaten"][0]["id"]
+    r = await client.post(f"/v1/werkgebieden/{wg['id']}/kandidaten/{kid}/opnemen",
+                          json={"verwachte_revisie": wg["revisie"]})
+    assert r.status_code == 200, r.text
+    wg = (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()
+    assert wg["deelvragen"][0]["id"] == nid and wg["deelvragen"][0]["bronnen"] == [r.json()["selectie"]["id"]]

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { dekkingZin, isDeelvragenDekking, splits, wissel, zelfdeSet } from "./deelvragen";
+import {
+  dekkingZin, isDeelvragenDekking, overgenomenZin, splits, vervangtZin, voorstellenVoor, wissel, zelfdeSet,
+} from "./deelvragen";
 import type { Deelvraag } from "./types";
 
 const dv = (id: string, volgorde: number, status: Deelvraag["status"] = "actief"): Deelvraag => ({
@@ -33,5 +35,17 @@ describe("deelvragen", () => {
     expect(wissel(["a"], "b")).toEqual(["a", "b"]);
     expect(zelfdeSet(["a", "b"], ["b", "a"])).toBe(true);
     expect(zelfdeSet(["a"], ["a", "b"])).toBe(false);
+  });
+
+  it("een verbetering van Lex hoort bij de deelvraag die ze vervangt (F3d)", () => {
+    const oud = dv("Wie betaalt?", 0);
+    const beter = { ...dv("Wie is de belastingschuldige?", 1, "voorgesteld"), vervangt: oud.id };
+    const los = dv("Wanneer?", 2, "voorgesteld");
+    const lijst = [oud, beter, los];
+    expect(voorstellenVoor(oud.id, lijst)).toEqual([beter]);
+    expect(vervangtZin(beter, lijst)).toBe("Vervangt “Wie betaalt?”");
+    expect(vervangtZin(los, lijst)).toBe("");
+    expect(overgenomenZin(beter, lijst)).toMatch(/vervangen/);
+    expect(overgenomenZin(los, lijst)).toBe("Deelvraag overgenomen.");
   });
 });

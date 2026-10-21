@@ -347,7 +347,7 @@ def test_kaartactie_start_de_kaartrun_en_wijst_naar_het_begrip():
     api = KaartApi([rij("b1", "Termijn")])
     uit = _taak(api, "voorbeelden", "geef voorbeelden van termijn")
     assert ("start", WG, "b1", "voorbeelden", None) in api.calls
-    assert uit.artefact == {"soort": "begrippen", "titel": "Termijn", "ref": {
+    assert uit.artefact == {"soort": "begrip", "titel": "Termijn", "ref": {
         "werkgebied_id": WG, "begrip_id": "b1", "kaart_run_id": "k1", "actie": "voorbeelden"}}
     assert "2 voorstellen staan bij de voorbeelden" in uit.tekst and uit.status == "ok"
 

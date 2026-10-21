@@ -14,7 +14,8 @@
  *  - *Start* opent de werkplek in het werkgebied met een vers gesprek en start daar de run, met het
  *    bevestigde aantal; de parameter verdwijnt uit de URL;
  *  - de voortgang als reeksblok over artikelen heen, met de samenvatting erna;
- *  - de werkgebiedbalk opent dezelfde bevestiging;
+ *  - in het werkgebied is *Annoteer wat nog niet geannoteerd is* een suggestie boven het invoerveld (F3d):
+ *    een beurt met de actie en zonder `bevestigd` – de bevestiging komt in het gesprek;
  *  - de knop bij een voorstel van Lex in het gesprek start de run, ook na herladen;
  *  - op een smal scherm is de bevestiging een sheet binnen het scherm.
  */
@@ -150,21 +151,21 @@ try {
   for (const label of ["Invorderingswet 1990, Artikel 9, Lid 1", "Invorderingswet 1990, Artikel 10"])
     await page.getByText(label, { exact: true }).first().waitFor();
 
-  // --- De werkgebiedbalk opent dezelfde bevestiging; nu is er niets nieuws ---
-  nieuw = false;
-  await page.locator("[data-werkgebied=wg1]").getByRole("button", { name: "Annoteer werkgebied" }).click();
-  await bevestiging().getByText("Niets nieuws te annoteren", { exact: false }).waitFor();
-  assert.equal(await bevestiging().getByRole("button", { name: /^Start/ }).count(), 0);
-  await bevestiging().getByRole("button", { name: "Annuleren" }).click();
-  await bevestiging().waitFor({ state: "detached" });
+  // --- In het werkgebied: de suggestie vraagt Lex om het voorstel; de bevestiging komt in het gesprek ---
+  await page.getByTestId("vraag-suggesties").getByRole("button", { name: "Annoteer wat nog niet geannoteerd is" }).click();
+  for (let i = 0; i < 50 && starts.length < 2; i++) await page.waitForTimeout(50);
+  assert.deepEqual({ actie: starts[1].actie, bevestigd: starts[1].bevestigd, modus: starts[1].modus,
+    werkgebied_id: starts[1].werkgebied_id },
+  { actie: "werkgebied_annoteren", bevestigd: undefined, modus: undefined, werkgebied_id: "wg1" },
+  "zonder bevestigd: Lex begint niet, hij doet een voorstel");
 
   // --- Een voorstel van Lex in het gesprek: de knop staat er na herladen en start de run ---
   await page.goto(`${base}/workbench?gesprek=g2`);
   const knop = page.getByRole("button", { name: "Laat Lex annoteren (3 bepalingen)" });
   await knop.click();
-  for (let i = 0; i < 50 && starts.length < 2; i++) await page.waitForTimeout(50);
-  assert.deepEqual({ modus: starts[1].modus, bevestigd: starts[1].bevestigd, werkgebied_id: starts[1].werkgebied_id,
-    conversation_id: starts[1].conversation_id },
+  for (let i = 0; i < 50 && starts.length < 3; i++) await page.waitForTimeout(50);
+  assert.deepEqual({ modus: starts[2].modus, bevestigd: starts[2].bevestigd, werkgebied_id: starts[2].werkgebied_id,
+    conversation_id: starts[2].conversation_id },
   { modus: "werkgebied_annoteren", bevestigd: 3, werkgebied_id: "wg1", conversation_id: "g2" },
   "het werkgebied uit de bevestiging, ook zonder werkgebied in de URL");
 
@@ -182,7 +183,7 @@ try {
   assert.equal(await smal.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, "geen horizontale scroll");
 
   assert.deepEqual(errors, []);
-  console.log("Browser OK: blok Annoteren door Lex, bevestiging met schatting en budget, start in een vers gesprek met het bevestigde aantal, reeks over artikelen met samenvatting, bevestiging vanuit de balk, knop bij een voorstel na herladen, sheet op een smal scherm.");
+  console.log("Browser OK: blok Annoteren door Lex, bevestiging met schatting en budget, start in een vers gesprek met het bevestigde aantal, reeks over artikelen met samenvatting, de suggestie in het werkgebied, knop bij een voorstel na herladen, sheet op een smal scherm.");
 } finally {
   await browser.close();
 }

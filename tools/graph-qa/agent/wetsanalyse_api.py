@@ -197,10 +197,12 @@ class WetsanalyseApi:
     async def meld_bronnen_mislukt(self, werkgebied_id: str, run_id: str, reden: str) -> dict[str, Any]:
         return await self._post(f"{self._bronnen_pad(werkgebied_id, run_id)}/mislukt", {"reden": reden[:2000]})
 
-    async def stel_deelvragen_voor(self, werkgebied_id: str, vragen: list[str], model: str = "") -> dict[str, Any]:
-        """Deelvragen als voorstel; de api laat weg wat er al staat of is afgewezen."""
+    async def stel_deelvragen_voor(self, werkgebied_id: str, vragen: list[str], model: str = "",
+                                   vervangt: str = "") -> dict[str, Any]:
+        """Deelvragen als voorstel; de api laat weg wat er al staat of is afgewezen. Met `vervangt` een
+        verbetering van die actieve deelvraag: overnemen vervangt haar (F3d)."""
         return await self._post(f"{self._werkgebied_pad(werkgebied_id)}/deelvragen/voorstellen",
-                                {"vragen": vragen, "model": model})
+                                {"vragen": vragen, "model": model, **({"vervangt": vervangt} if vervangt else {})})
 
     async def haal_deelvragen_dekking(self, werkgebied_id: str) -> dict[str, Any]:
         """De stand per actieve deelvraag: gekoppelde bronnen en begrippen, en of er een geaccordeerd

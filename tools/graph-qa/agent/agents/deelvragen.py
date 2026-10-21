@@ -146,7 +146,8 @@ async def dekking(ctx: Context, werkgebied_id: str, deelvraag_id: str = "") -> U
         kandidaten = []     # de kandidaten zijn een aanvulling; de stand zelf staat er dan wel
     naam = str(wg.get("naam") or "zonder naam")
     ctx.melding(f"Dekking van {dek.get('totaal', 0)} deelvragen in {naam}")
-    from ..beurt import werkgebied_artefact
+    from ..beurt import deelvraag_artefact, werkgebied_artefact
+    d = next((x for x in wg.get("deelvragen") or [] if deelvraag_id and x.get("id") == deelvraag_id), None)
     return Uitkomst(taak=taak, tekst=dekkingstekst(naam, dek, wg, kandidaten, deelvraag_id),
-                    artefact=werkgebied_artefact(wg),
+                    artefact=deelvraag_artefact(werkgebied_id, d) if d else werkgebied_artefact(wg),
                     meting={"telling": dek.get("telling") or {}, "kandidaten": len(kandidaten), "model": False})

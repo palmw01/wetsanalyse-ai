@@ -1,6 +1,7 @@
 "use client";
 
 import { Lijst, LijstRij, Regel, Regels, StatusLabel } from "@/components/ui/Lijst";
+import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import { STAND_LABEL, STAND_TOON, STAND_UITLEG, dekkingZin, splits } from "@/lib/deelvragen";
 import type { Werkgebied } from "@/lib/types";
 import { useDeelvragenDekking } from "@/lib/useDeelvragenDekking";
@@ -12,7 +13,13 @@ import { DOSSIER_VELDEN } from "@/lib/werkgebied";
  *
  *  Eén samenvatting op twee plekken (F3a): het paneel naast het gesprek en de kop van de werkgebiedpagina.
  *  Een leeg veld staat er ook, zodat zichtbaar is wat er nog ontbreekt. */
-export function WerkgebiedSamenvatting({ wg, className = "" }: { wg: Werkgebied; className?: string }) {
+export function WerkgebiedSamenvatting({ wg, vraagLex = false, className = "" }: {
+  wg: Werkgebied;
+  /** *Vraag Lex* bij elke deelvraag (F3d): in de werkplek zet hij de deelvraag als onderwerp, daarbuiten
+   *  opent hij een gesprek. */
+  vraagLex?: boolean;
+  className?: string;
+}) {
   const deelvragen = splits(wg.deelvragen).actief;
   const dekking = useDeelvragenDekking(wg.id, wg.revisie, deelvragen.length);
   const analyse = wg.bronnen.filter((b) => b.rol === "analyseren");
@@ -33,7 +40,9 @@ export function WerkgebiedSamenvatting({ wg, className = "" }: { wg: Werkgebied;
               {deelvragen.map((d, i) => {
                 const s = stand.get(d.id);
                 return (
-                  <LijstRij key={d.id} className="py-1.5" voor={`${i + 1}.`} titel={d.vraag}
+                  <LijstRij key={d.id} className="py-1.5" voor={`${i + 1}.`} titel={d.vraag} data-samenvatting-deelvraag={d.id}
+                    acties={vraagLex ? <VraagLexKnop onderwerp={{ soort: "deelvraag", werkgebied_id: wg.id, id: d.id, label: d.vraag }} />
+                      : undefined}
                     status={s && (
                       <StatusLabel toon={STAND_TOON[s]} uitleg={STAND_UITLEG[s]} data-samenvatting-stand={s}>
                         {STAND_LABEL[s]}

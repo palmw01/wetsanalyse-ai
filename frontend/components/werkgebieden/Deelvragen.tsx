@@ -14,7 +14,7 @@ import {
 } from "@/lib/api";
 import { voortgangsregel } from "@/lib/bronKandidaten";
 import {
-  STAND_LABEL, STAND_TOON, STAND_UITLEG, dekkingZin, splits, wissel, zelfdeSet,
+  STAND_LABEL, STAND_TOON, STAND_UITLEG, dekkingZin, overgenomenZin, splits, vervangtZin, wissel, zelfdeSet,
 } from "@/lib/deelvragen";
 import type { BegripSamenvatting, Deelvraag, DeelvragenDekking, Werkgebied } from "@/lib/types";
 import { useDeelvragenDekking } from "@/lib/useDeelvragenDekking";
@@ -109,7 +109,8 @@ export function Deelvragen({ wg, muteer, onHerlaad }: { wg: Werkgebied; muteer: 
         <div>
           {voorgesteld.length > 0 && (
             <Lijst label="Voorstellen van Lex">
-              {voorgesteld.map((d) => <Voorstel key={d.id} wgId={wg.id} deelvraag={d} muteer={muteer} />)}
+              {voorgesteld.map((d) => <DeelvraagVoorstel key={d.id} wgId={wg.id} deelvraag={d} alle={wg.deelvragen}
+                muteer={muteer} />)}
             </Lijst>
           )}
           {actief.length > 0 && (
@@ -134,15 +135,24 @@ export function Deelvragen({ wg, muteer, onHerlaad }: { wg: Werkgebied; muteer: 
   );
 }
 
-/** Een voorstel van Lex: overnemen of afwijzen met een reden. */
-function Voorstel({ wgId, deelvraag: d, muteer }: { wgId: string; deelvraag: Deelvraag; muteer: Mutatie }) {
+/** Een voorstel van Lex: overnemen of afwijzen met een reden. Een verbetering van een bestaande deelvraag
+ *  (`vervangt`, F3d) zegt welke ze vervangt; overnemen zet haar op die plek, met haar bronnen en begrippen.
+ *  Ook in het deelvraagpaneel naast het gesprek. */
+export function DeelvraagVoorstel({ wgId, deelvraag: d, alle, muteer }: {
+  wgId: string;
+  deelvraag: Deelvraag;
+  /** De deelvragen van het werkgebied, om te noemen welke dit voorstel vervangt. */
+  alle?: readonly Deelvraag[];
+  muteer: Mutatie;
+}) {
   const [afwijzen, setAfwijzen] = useState(false);
   const [reden, setReden] = useState("");
+  const vervangt = vervangtZin(d, alle);
   return (
-    <VoorstelRij titel={d.vraag} acties={!afwijzen && (
+    <VoorstelRij data-voorstel-deelvraag={d.id} titel={d.vraag} acties={!afwijzen && (
       <>
         <Button size="sm" className="w-full sm:w-auto" aria-label={`Overnemen: ${d.vraag}`}
-          onClick={() => void muteer((r) => wijzigDeelvraag(wgId, d.id, { status: "actief" }, r), { gelukt: "Deelvraag overgenomen." })}>
+          onClick={() => void muteer((r) => wijzigDeelvraag(wgId, d.id, { status: "actief" }, r), { gelukt: overgenomenZin(d, alle) })}>
           Overnemen
         </Button>
         <Button size="sm" variant="secondary" className="w-full sm:w-auto" aria-label={`Afwijzen: ${d.vraag}`}
@@ -151,6 +161,7 @@ function Voorstel({ wgId, deelvraag: d, muteer }: { wgId: string; deelvraag: Dee
         </Button>
       </>
     )}>
+      {vervangt && <p className="mt-1 text-xs text-muted" data-vervangt={d.vervangt}>{vervangt}</p>}
       {afwijzen && (
         <form className="mt-2 flex flex-col gap-2 sm:flex-row" onSubmit={(e) => {
           e.preventDefault();

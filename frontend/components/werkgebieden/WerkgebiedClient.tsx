@@ -206,7 +206,7 @@ export function WerkgebiedClient({ id, beginTab, beginBegrip }: {
                   </BevestigKnop>
                 </ButtonRow>
               </div>
-              <WerkgebiedSamenvatting wg={wg} className="mt-3" />
+              <WerkgebiedSamenvatting wg={wg} vraagLex className="mt-3" />
             </header>
           )}
 
