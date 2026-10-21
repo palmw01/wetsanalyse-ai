@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   LEGE_INHOUD, begripUitParam, gewijzigdeVelden, handmatigeInhoud, inhoudGewijzigd, isAlPrimair, isPoortFout, revisieZin,
-  sorteerKoppelingen, volledigeInhoud,
+  sorteerKoppelingen, volledigeInhoud, weergaveUitParam,
 } from "./begrippen";
 import type { Koppeling } from "./types";
 
@@ -42,6 +42,13 @@ it("begripUitParam laat alleen een id door", () => {
   expect(begripUitParam("3f2a-9c")).toBe("3f2a-9c");
   expect(begripUitParam("../x")).toBeUndefined();
   expect(begripUitParam(undefined)).toBeUndefined();
+});
+
+it("weergaveUitParam: alleen `kaart` opent de kaart, al het andere is lezen", () => {
+  expect(weergaveUitParam("kaart")).toBe("kaart");
+  expect(weergaveUitParam("lezen")).toBe("lezen");
+  expect(weergaveUitParam("iets")).toBe("lezen");
+  expect(weergaveUitParam(undefined)).toBe("lezen");
 });
 
 describe("revisieZin", () => {

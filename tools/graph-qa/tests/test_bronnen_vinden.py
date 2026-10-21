@@ -382,31 +382,9 @@ def test_bij_een_deelvraag_noemt_lex_wat_daarbij_hoort():
     assert "ken ik niet" in bronnen_run.bij_deelvraag(wg, ks, "d9")
 
 
-# --- het endpoint ----------------------------------------------------------------------------------
-
-@pytest.fixture
-def client(monkeypatch):
+def test_chat_weigert_een_actie():
     from fastapi.testclient import TestClient
 
     import api.main as main
-
-    async def langzaam(werkgebied_id, run_id, run, **_kw):
-        await asyncio.sleep(0.3)
-        yield {"type": "done"}
-
-    monkeypatch.setattr(main.settings, "graphdb_token", "test", raising=False)
-    monkeypatch.setattr(main.settings, "graphdb_mcp_url", "https://graaf.test/mcp", raising=False)
-    monkeypatch.setattr(main, "bronnen_stroom", langzaam)
-    monkeypatch.setattr(main, "runs", type(main.runs)())
-    with TestClient(main.app) as c:
-        yield c, main
-
-
-def test_een_bronnenrun_per_werkgebied_naast_begrippen(client, monkeypatch):
-    c, main = client
-    assert c.post("/v1/bronnen-runs", json={"werkgebied_id": "wg1", "run_id": "r1"}).status_code == 503
-    monkeypatch.setattr(type(main.settings), "legt_zelf_vast", property(lambda _s: True))
-    eerste = c.post("/v1/bronnen-runs", json={"werkgebied_id": "wg1", "run_id": "r1"})
-    assert eerste.status_code == 201 and eerste.json()["conversation_id"] == "werkgebied:wg1:bronnen"
-    assert c.post("/v1/bronnen-runs", json={"werkgebied_id": "wg1", "run_id": "r2"}).status_code == 409
+    c = TestClient(main.app)
     assert c.post("/v1/chat", json={"question": "x", "actie": "bronnen_zoeken", "werkgebied_id": "wg1"}).status_code == 422

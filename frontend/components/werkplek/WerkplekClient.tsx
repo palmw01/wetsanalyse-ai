@@ -42,12 +42,11 @@ import type {
   VoorstelElement,
 } from "@/lib/types";
 import { metingUitDekking } from "@/lib/agentEvents";
-import { ANNOTEER_PROMPT, parseBevestiging } from "@/lib/werkgebiedAnnoteren";
+import { parseBevestiging } from "@/lib/werkgebiedAnnoteren";
 import {
   antwoordTekst, groepeerVragen, openVraag, parseAntwoordOp, parseVraagkaart, type IntakeActie, type Vraagkaart,
 } from "@/lib/vraagkaart";
 import { VraagDock } from "@/components/werkplek/VraagDock";
-import { MEEDENK_PROMPT } from "@/lib/begripVoorstellen";
 import {
   doelInvoerVan, isVerwijderd, kandidatenAlsTekst, mergeVoorstellen,
 } from "@/lib/annotatie";
@@ -129,11 +128,6 @@ interface Props {
   onKiesWerkgebied?: (id: string) => void;
   /** Roept terug zodra een beurt is afgerond, zodat de stand meteen ververst. */
   onBeurtKlaar?: () => void;
-  /** Geopend vanaf de tab Elementen met een bevestigd aantal (`?annoteer=<n>`): dit verse gesprek
-   *  start meteen de werkgebied-run (fase B). Eén keer, bij binnenkomst. */
-  startAnnoteren?: number | null;
-  /** Idem voor het meedenken over de begrippen (`?meedenk=<n>`, fase C), vanaf de voorstellen. */
-  startMeedenken?: number | null;
   /** Start de rondleiding vanuit de lege staat – precies het moment waarop iemand hem nodig heeft. */
   onRondleiding?: () => void;
   /** *Vraag Lex* van buiten de werkplek (`?vraag=<soort>:<id>`, F3b): de chip staat al klaar. */
@@ -144,7 +138,7 @@ export function WerkplekClient({
   initialGesprekId, onGesprekAangemaakt, onGewijzigd, demo, onDemoBeslissing,
   onDemoArtefact, demoOpenSignaal = 0, demoSluitSignaal = 0, onRondleiding,
   verbruik = null, onBeurtKlaar, werkgebiedId = null, onVerlaatWerkgebied, onKiesWerkgebied,
-  startAnnoteren = null, startMeedenken = null, beginOnderwerp = null,
+  beginOnderwerp = null,
 }: Props) {
   // Budget op? Dan gaat de invoer dicht. Alleen bij een actieve begrenzing – staat die uit, dan is
   // `geblokkeerd` per definitie false en verandert er niets.
@@ -929,25 +923,6 @@ export function WerkplekClient({
   // De handelingen van de thread-rijen, als één object dat nooit verandert. `ThreadRij` is een
   // `memo`: een verse callback per render zou elke rij toch weer laten renderen. De ref wijst naar
   // de handlers van de laatste render (die lezen actuele state), het object zelf blijft gelijk.
-  // Vanaf de tab Elementen bevestigd (`?annoteer=<n>`): dit verse gesprek start de werkgebied-run.
-  // Eén keer – een ref, want een effect kan in de ontwikkelmodus twee keer draaien.
-  const annoterenGestart = useRef(false);
-  useEffect(() => {
-    if (annoterenGestart.current || demo || !startAnnoteren || !werkgebiedId || initialGesprekId) return;
-    annoterenGestart.current = true;
-    void verstuur(ANNOTEER_PROMPT, undefined, undefined, undefined, { werkgebiedId, bevestigd: startAnnoteren });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startAnnoteren, werkgebiedId, initialGesprekId, demo]);
-  // Vanaf de voorstellen bevestigd (`?meedenk=<n>`, fase C): dit verse gesprek start het meedenken.
-  const meedenkenGestart = useRef(false);
-  useEffect(() => {
-    if (meedenkenGestart.current || demo || !startMeedenken || !werkgebiedId || initialGesprekId) return;
-    meedenkenGestart.current = true;
-    void verstuur(MEEDENK_PROMPT, undefined, undefined, undefined,
-      { werkgebiedId, bevestigd: startMeedenken, modus: "begrippen_verdiepen" });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startMeedenken, werkgebiedId, initialGesprekId, demo]);
-
   const actiesRef = useRef<ThreadActies | null>(null);
   useLayoutEffect(() => {
     actiesRef.current = {
@@ -1062,12 +1037,6 @@ export function WerkplekClient({
       variant={breed ? "kolom" : "side"}
       onSluit={() => setWgArtefact(undefined)}
       onWissel={setWgArtefact}
-      onMeedenken={demo ? undefined : (wgId, aantal) => {
-        // Op een smal scherm ligt het paneel over de chat: sluiten, zodat je het meedenken ziet lopen.
-        if (!breed) setWgArtefact(undefined);
-        void verstuur(MEEDENK_PROMPT, undefined, undefined, undefined,
-          { werkgebiedId: wgId, bevestigd: aantal, modus: "begrippen_verdiepen" });
-      }}
     />
   ));
 

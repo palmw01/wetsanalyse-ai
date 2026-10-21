@@ -3,17 +3,16 @@
  * AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109
  * en draai `node scripts/test-bronkandidaten.mjs`.
  *
- * De mock gedraagt zich als api + graph-qa (`api/app/bronnen_run_store.py`): een start geeft een run
- * en een SSE-stroom, daarna staan de kandidaten er; besluiten volgen de regels van de api (opnemen
- * draagt de revisie en maakt een selectie, uitsluiten vraagt een reden, een uitgesloten kandidaat
- * blijft uitgesloten bij opnieuw zoeken).
+ * De mock gedraagt zich als api (`api/app/bronnen_run_store.py`): Lex zocht al in het gesprek (F3e), dus
+ * de run en de kandidaten staan er; besluiten volgen de regels van de api (opnemen draagt de revisie en
+ * maakt een selectie, uitsluiten vraagt een reden, een uitgesloten kandidaat blijft uitgesloten).
  *
  * Bewaakt:
- *  - zoeken met voortgang, de meting per methode, kandidaten met rol en bewijs in gewone woorden;
+ *  - geen zoekknop op de pagina; de meting per methode, kandidaten met rol en bewijs in gewone woorden;
  *  - opnemen met de voorgestelde rol (kern → analyseren, anders context) en de revisie in beeld;
  *  - uitsluiten alleen met een reden, en het filter Uitgesloten met die reden; heropenen;
  *  - het toetsenbord (`j`, `a`) alleen met de focus in de lijst;
- *  - opnieuw zoeken op dezelfde selectie rekent niet, en zegt dat;
+ *  - *Vraag Lex* bij elke open kandidaat en elke bronselectie;
  *  - in de werkplek: *Maak hier een werkgebied van* onder een overzicht, en het bronnenartefact.
  */
 import assert from "node:assert/strict";
@@ -48,10 +47,11 @@ const vers = () => [
   K("K10", A10, "Artikel 10 – Invorderingswet 1990", "aanverwant",
     [{ methode: "verwijzing_in", vanuit: A9, detail: { anker: "artikel 9", functie: "onbekend" } }]),
 ];
-let run = null;
 const meting = { overzicht: { aantal: 0, volledig: true }, verwijzing_uit: { aantal: 1, volledig: true },
   definitie: { aantal: 1, volledig: true }, opbouw: { aantal: 2, volledig: false } };
-const sse = (events) => events.map((e, i) => `data: ${JSON.stringify({ seq: i, ...e })}\n\n`).join("");
+// Lex zocht in het gesprek (de deelvragen-agent): de run is klaar en de kandidaten staan bij de api.
+const run = { id: "r1", werkgebied_id: "wg1", invoer_id: "I1", status: "klaar", reden: "", meting, aantal_kern: 1, gestart: nu };
+kandidaten = vers();
 const antwoord = () => ({ run, kandidaten });
 const ovGesprek = {
   gevraagd: "invorderbaarheid", onderwerp_opbouw: "invorderbaarheid", onderwerp_tekst: "invorderbaar", scope: [], volledig: true,
@@ -88,20 +88,6 @@ await page.route("**/api/**", async (route) => {
   }
   if (p === "/api/werkgebieden/wg2") return route.fulfill({ json: nieuwWg });
   if (p === "/api/werkgebieden/wg1") return route.fulfill({ json: wg });
-  if (p === "/api/bronnen-run" && m === "POST") {
-    if (run?.status === "klaar") return route.fulfill({ json: { run, agent_run_id: null } });
-    run = { id: "r1", werkgebied_id: "wg1", invoer_id: "I1", status: "wacht", reden: "", meting: null, aantal_kern: 1, gestart: nu };
-    return route.fulfill({ status: 201, json: { run, agent_run_id: "ab1" } });
-  }
-  if (p === "/api/bronnen-run") return route.fulfill({ json: null });
-  if (p === "/api/annotatie/run/ab1/events") {
-    run = { ...run, status: "klaar", meting };
-    kandidaten = vers();
-    return route.fulfill({ contentType: "text/event-stream", body: sse([
-      { type: "status", message: "Lex · Zoeken vanuit 1 bepalingen en de analysevraag" },
-      { type: "status", message: "Lex · Verwijzingen vanuit de kern: 1 (8 ms)" },
-      { type: "opgeslagen", bronnen_run: "r1", kandidaten: 3 }, { type: "done" }]) });
-  }
   if (p === "/api/werkgebieden/wg1/bronnen-runs/laatste") return route.fulfill({ json: { run: run && { ...run, verouderd: false } } });
   if (p === "/api/werkgebieden/wg1/kandidaten") return route.fulfill({ json: antwoord() });
   const besluit = p.match(/^\/api\/werkgebieden\/wg1\/kandidaten\/(K\w+)\/(opnemen|later|uitsluiten|heropenen)$/);
@@ -138,8 +124,9 @@ const laatsteBesluit = (soort) => requests.filter((r) => r.m === "POST" && r.p.e
 try {
   // --- Zoeken op de tab Bronnen ---
   await page.goto(`${base}/werkgebieden/wg1?tab=bronnen`);
-  await sectie().getByRole("button", { name: "Lex, zoek bepalingen" }).click();
   await kaart(A8).waitFor();
+  assert.equal(await sectie().getByRole("button", { name: /zoek/i }).count(), 0, "zoeken vraag je Lex in het gesprek");
+  assert.equal(await kaart(A8).locator("[data-vraag-lex=kandidaat]").count(), 1);
   await zie("verwijzingen vanuit de kern: 1");
   await zie("opbouw van de wet: 2");
   assert.equal(await sectie().getByText("(onvolledig)").count(), 1, "een methode die haar plafond raakte, zegt dat");
@@ -168,10 +155,9 @@ try {
   await sectie().getByRole("tab", { name: "Uitgesloten (1)" }).click();
   await kaart(A10).getByText("Gaat over uitstel, niet over invorderbaarheid", { exact: false }).waitFor();
 
-  // --- Opnieuw zoeken op dezelfde selectie: niets te rekenen, en het besluit blijft staan ---
-  await sectie().getByRole("button", { name: "Opnieuw zoeken" }).click();
-  await zie("had Lex al gezocht");
-  assert.equal(await kaart(A10).count(), 1, "de uitgesloten kandidaat blijft uitgesloten");
+  // --- *Vraag Lex* bij elke bronselectie, ook de zojuist opgenomen ---
+  const selecties = page.getByRole("region", { name: /^Bronselecties/ });
+  assert.equal(await selecties.locator("[data-vraag-lex=bron]").count(), wg.bronnen.length);
   await kaart(A10).getByRole("button", { name: /^Heropenen:/ }).click();
   await sectie().getByRole("tab", { name: "Open (2)" }).click();
 
@@ -206,7 +192,7 @@ try {
   assert.equal(await paneel.getByRole("link", { name: "Open het werkgebied" }).getAttribute("href"), "/werkgebieden/wg1?tab=bronnen");
 
   assert.deepEqual(errors, []);
-  console.log("Browser OK: zoeken met voortgang en meting, bewijs in gewone woorden, opnemen met rol en revisie, uitsluiten met reden, opnieuw zoeken zonder herberekening, heropenen, toetsenbord in de lijst, werkgebied uit een overzicht, bronnenartefact.");
+  console.log("Browser OK: gevonden bepalingen met meting, geen zoekknop, bewijs in gewone woorden, opnemen met rol en revisie, uitsluiten met reden, Vraag Lex bij kandidaat en bronselectie, heropenen, toetsenbord in de lijst, werkgebied uit een overzicht, bronnenartefact.");
 } finally {
   await browser.close();
 }

@@ -62,12 +62,8 @@ from agent.beurt import voer_beurt_uit  # noqa: E402
 from agent.reeks import reeks_run  # noqa: E402
 from agent.werkgebied_annotatie import werkgebied_annotatie_beurt, zonder_api  # noqa: E402
 from agent.config import Settings  # noqa: E402
-from agent.begrippen_run import begrippen_stroom  # noqa: E402
-from agent.bronnen_run import bronnen_stroom  # noqa: E402
-from agent.begrip_kaart import kaart_stroom  # noqa: E402
-from agent.deelvragen import deelvragen_stroom  # noqa: E402
 from agent.models import (  # noqa: E402
-    WERKGEBIED_MODI, BegrippenRunVerzoek, ChatRequest, DeelvragenRunVerzoek, KaartRunVerzoek, RunStart,
+    WERKGEBIED_MODI, ChatRequest, RunStart,
     Verbruiksmeter,
 )
 from agent.runstore import Run, RunBestaatAl, RunStore  # noqa: E402
@@ -452,132 +448,6 @@ async def start_run(
             "chat_vraag_lengte": len(request.question or ""),
         },
     )
-    return RunStart(**run.samenvatting())
-
-
-@app.post("/v1/begrippen-runs", status_code=status.HTTP_201_CREATED)
-async def start_begrippen_run(
-    request: BegrippenRunVerzoek,
-    gebruiker: str = Depends(_aanroeper),
-    _rl: None = Depends(_rate_limit),
-    _auth: None = Depends(_check_auth),
-) -> RunStart:
-    """Start de begrippenketen op het manifest dat de api voor deze run vastlegde (spoor D, L3a).
-
-    Volgen en stoppen gaan via dezelfde `/v1/runs/{id}/events` en `/cancel` als een beurt. Geen
-    budgetcheck: de keten gebruikt geen model. Zonder api is er geen manifest en niets om naar terug
-    te schrijven: 503."""
-    if not settings.legt_zelf_vast:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                            detail="Zonder koppeling met de wetsanalyse-api kan Lex geen begrippen voorstellen.")
-    try:
-        run = await runs.start(
-            conversation_id=f"werkgebied:{request.werkgebied_id}",
-            vraag="Stel begrippen voor",
-            maak_stroom=lambda run: begrippen_stroom(request.werkgebied_id, request.run_id, run,
-                                                     settings=settings, user_id=gebruiker),
-            user_id=gebruiker,
-        )
-    except RunBestaatAl as al:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={"reden": "run_loopt_al", "run_id": al.run_id},
-        ) from al
-    logger.info("begrippenrun gestart", extra={"categorie": "functioneel", "run_id": run.run_id})
-    return RunStart(**run.samenvatting())
-
-
-@app.post("/v1/bronnen-runs", status_code=status.HTTP_201_CREATED)
-async def start_bronnen_run(
-    request: BegrippenRunVerzoek,
-    gebruiker: str = Depends(_aanroeper),
-    _rl: None = Depends(_rate_limit),
-    _auth: None = Depends(_check_auth),
-) -> RunStart:
-    """Zoek bepalingen voor een werkgebied op de invoer die de api voor deze run vastlegde (fase A).
-
-    Zelfde vorm als `/v1/begrippen-runs` (werkgebied + api-run); volgen en stoppen via de gewone
-    run-routes. De runstore-sleutel is `werkgebied:<id>:bronnen`, zodat zoeken en begrippen voorstellen
-    naast elkaar kunnen lopen. Geen model, dus geen budgetcheck; zonder api 503."""
-    if not settings.legt_zelf_vast:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                            detail="Zonder koppeling met de wetsanalyse-api kan Lex geen bepalingen zoeken.")
-    try:
-        run = await runs.start(
-            conversation_id=f"werkgebied:{request.werkgebied_id}:bronnen",
-            vraag="Zoek bepalingen",
-            maak_stroom=lambda run: bronnen_stroom(request.werkgebied_id, request.run_id, run,
-                                                   settings=settings, user_id=gebruiker),
-            user_id=gebruiker,
-        )
-    except RunBestaatAl as al:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={"reden": "run_loopt_al", "run_id": al.run_id},
-        ) from al
-    logger.info("bronnenrun gestart", extra={"categorie": "functioneel", "run_id": run.run_id})
-    return RunStart(**run.samenvatting())
-
-
-@app.post("/v1/deelvragen-runs", status_code=status.HTTP_201_CREATED)
-async def start_deelvragen_run(
-    request: DeelvragenRunVerzoek,
-    gebruiker: str = Depends(_aanroeper),
-    _rl: None = Depends(_rate_limit),
-    _auth: None = Depends(_check_auth),
-    _budget: None = Depends(_budget_check),
-) -> RunStart:
-    """Lex legt de analysevraag van een werkgebied uiteen in deelvragen; de api bewaart ze als voorstel.
-    Volgen en stoppen via de gewone run-routes; runstore-sleutel `werkgebied:<id>:deelvragen`. Eén
-    modelaanroep, dus de budgetcheck vooraf. Zonder api 503."""
-    if not settings.legt_zelf_vast:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                            detail="Zonder koppeling met de wetsanalyse-api kan Lex geen deelvragen voorstellen.")
-    try:
-        run = await runs.start(
-            conversation_id=f"werkgebied:{request.werkgebied_id}:deelvragen",
-            vraag="Stel deelvragen voor",
-            maak_stroom=lambda run: deelvragen_stroom(request.werkgebied_id, run, settings=settings,
-                                                      user_id=gebruiker),
-            user_id=gebruiker,
-        )
-    except RunBestaatAl as al:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={"reden": "run_loopt_al", "run_id": al.run_id},
-        ) from al
-    logger.info("deelvragenrun gestart", extra={"categorie": "functioneel", "run_id": run.run_id})
-    return RunStart(**run.samenvatting())
-
-
-@app.post("/v1/kaart-runs", status_code=status.HTTP_201_CREATED)
-async def start_kaart_run(
-    request: KaartRunVerzoek,
-    gebruiker: str = Depends(_aanroeper),
-    _rl: None = Depends(_rate_limit),
-    _auth: None = Depends(_check_auth),
-) -> RunStart:
-    """Lex naast de kaart (spoor D, fase E): één actie op één begrip, op de invoer die de api voor deze
-    run vastlegde. Volgen en stoppen via de gewone run-routes; runstore-sleutel `begrip:<id>:kaart`.
-    De budgetpoort zit in de stroom, alleen voor de model-acties: de brondefinitie zoeken is gratis.
-    Zonder api 503."""
-    if not settings.legt_zelf_vast:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                            detail="Zonder koppeling met de wetsanalyse-api kan Lex geen voorstellen doen.")
-    try:
-        run = await runs.start(
-            conversation_id=f"begrip:{request.begrip_id}:kaart",
-            vraag="Lex naast de kaart",
-            maak_stroom=lambda run: kaart_stroom(request.werkgebied_id, request.begrip_id, request.run_id, run,
-                                                 settings=settings, user_id=gebruiker),
-            user_id=gebruiker,
-        )
-    except RunBestaatAl as al:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={"reden": "run_loopt_al", "run_id": al.run_id},
-        ) from al
-    logger.info("kaartrun gestart", extra={"categorie": "functioneel", "run_id": run.run_id})
     return RunStart(**run.samenvatting())
 
 

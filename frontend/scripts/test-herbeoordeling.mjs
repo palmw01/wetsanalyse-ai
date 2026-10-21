@@ -143,7 +143,6 @@ await page.route("**/api/**", async (route) => {
   if (p === "/api/werkgebieden/wg1/begrippen-runs/laatste") return route.fulfill({ json: { run: null } });
   if (p === "/api/werkgebieden/wg1/verdieping")
     return route.fulfill({ json: { run: null, aantal: 0, vragen: [], kaarten: [], batches: [], verdiept: false, schatting: null, budget: null } });
-  if (p === "/api/begrippen-run" || p === "/api/kaart-run") return route.fulfill({ json: null });
   if (p === "/api/gesprekken") return route.fulfill({ json: [] });
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
   return route.fulfill({ status: 404, json: { detail: "Niet in deze test." } });

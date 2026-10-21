@@ -3,20 +3,17 @@
  * AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109
  * en draai `node scripts/test-begrippen-verdieping.mjs`.
  *
- * De mock gedraagt zich als api + graph-qa: de werkvoorraad komt van `GET …/verdieping`
- * (`api/app/begrippen_verdieping.py`), en een run met `modus: "begrippen_verdiepen"` + `bevestigd`
- * levert een stroom met een begrippenartefact (`tools/graph-qa/agent/begrippen_verdieping.py`); daarna
- * dragen de groepen een kaart en de vragen een advies.
+ * De mock gedraagt zich als api + graph-qa: een run met `modus: "begrippen_verdiepen"` + `bevestigd` levert
+ * een stroom met een begrippenartefact (`tools/graph-qa/agent/begrippen_verdieping.py`); daarna dragen de
+ * groepen een kaart en de vragen een advies. Het aanbod en de bevestiging staan sinds F3e alleen in het
+ * gesprek (de suggestie *Denk mee over de begrippen*, dan de knop bij het voorstel van Lex).
  *
  * Bewaakt:
- *  - het aanbod boven de voorstellen, en de bevestiging met schatting en budget; nooit starten zonder klik;
- *  - *Start* opent de werkplek in het werkgebied met een vers gesprek en start daar, met het bevestigde
- *    aantal; de parameter verdwijnt uit de URL;
+ *  - op de tab Begrippen geen aanbod en geen knop om mee te denken; `?meedenk=` start niets;
+ *  - de knop bij een voorstel van Lex in het gesprek start het meedenken met het bevestigde aantal;
  *  - na het meedenken: advies bij de twijfelvraag (die blijft staan), een groep op advies van Lex, de
- *    herkomst van de definitie en de aandachtspunten; het aanbod is weg;
- *  - akkoord op een groep met een definitie die Lex formuleerde (de review van fase D);
- *  - de knop bij een voorstel van Lex in het gesprek;
- *  - op een smal scherm een sheet binnen het scherm.
+ *    herkomst van de definitie en de aandachtspunten;
+ *  - akkoord op een groep met een definitie die Lex formuleerde (de review van fase D).
  */
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
@@ -58,9 +55,6 @@ const groepenAntwoord = () => ({ run, groepen: groepen(), passages,
   verdieping: verdiept ? { vragen_open: ["P1"], model: "m", op: nu,
     oordelen: { P1: { kandidaat_id: "P1", oordeel: "verwant_ander_begrip", motivatie: "Lid 10 noemt alle termijnen.", reden: "" },
       P2: { kandidaat_id: "P2", oordeel: "zelfde_betekenis", motivatie: "Beide de aanslag.", reden: "" } } } : null });
-const werkvoorraad = () => ({ run, verdiept, aantal: verdiept ? 0 : 3, vragen: verdiept ? [] : ["P1", "P2"], kaarten: verdiept ? [] : ["G1"],
-  batches: [], schatting: { per_item: 800, basis: 5, totaal: 2400 }, schatting_toelichting: "Mediaan per twijfelpunt of kaart.",
-  budget: { resterend: 50000, budget: 100000, actief: true, geblokkeerd: false } });
 const sse = (events) => events.map((e, i) => `data: ${JSON.stringify({ seq: i, ...e })}\n\n`).join("");
 const artefact = { soort: "begrippen", titel: "Invorderbaarheid", ref: { werkgebied_id: "wg1", run_id: "r1" } };
 const leeg = { denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "" };
@@ -81,7 +75,6 @@ await context.route("**/api/**", async (route) => {
   const body = m === "GET" ? null : req.postDataJSON?.() ?? null;
   requests.push({ p, m, body });
   if (p === "/api/werkgebieden/wg1") return route.fulfill({ json: wg });
-  if (p === "/api/werkgebieden/wg1/verdieping") return route.fulfill({ json: werkvoorraad() });
   if (p === "/api/werkgebieden/wg1/groepen") return route.fulfill({ json: groepenAntwoord() });
   if (p === "/api/werkgebieden/wg1/begrippen-runs/laatste") return route.fulfill({ json: { run: { ...run, verouderd: false } } });
   if (p === "/api/werkgebieden/wg1/groepen/akkoord") {
@@ -89,7 +82,6 @@ await context.route("**/api/**", async (route) => {
     return route.fulfill({ status: 409, json: { detail: { fout: "test", melding: "Overname vastgelegd door de test." } } });
   }
   if (p === "/api/werkgebieden/wg1/begrippen") return route.fulfill({ json: { kader_iri: "urn:wa:kader:wg1", primair: {}, begrippen: [] } });
-  if (p === "/api/begrippen-run") return route.fulfill({ json: null });
   if (p === "/api/gesprekken" && m === "POST") return route.fulfill({ status: 201, json: { id: "g9", titel: body?.titel ?? "", berichten: [] } });
   if (p === "/api/gesprekken") return route.fulfill({ json: [{ id: "g2", titel: "Voorstel", aantal_berichten: 2 }] });
   const gesprek = p.match(/^\/api\/gesprekken\/(g\d)$/);
@@ -114,28 +106,28 @@ await context.route("**/api/**", async (route) => {
 });
 
 const zie = (tekst, pg = page) => pg.getByText(tekst, { exact: false }).first().waitFor();
-const bevestiging = (pg = page) => pg.getByRole("dialog", { name: "Laat Lex meedenken over de begrippen" });
-
 try {
-  // --- Het aanbod en de bevestiging; niets gestart vóór de klik ---
+  // --- De tab Begrippen: geen aanbod en geen knop; meedenken vraag je Lex in het gesprek ---
   await page.goto(`${base}/werkgebieden/wg1?tab=begrippen`);
-  await zie("Lex kan meedenken over 2 twijfelpunten en 1 begrip zonder definitie");
-  await page.getByRole("button", { name: "Laat Lex meedenken (3)" }).click();
-  await bevestiging().getByText("~2.400 tokens").waitFor();
-  await bevestiging().getByText("50.000 tokens").waitFor();
-  await bevestiging().getByText("de vraag blijft staan tot jij beslist", { exact: false }).waitFor();
-  assert.equal(starts.length, 0, "Lex begint niet zonder akkoord");
+  await page.locator("[data-begripvoorstellen]").waitFor();
+  await page.locator("[data-review-item]").first().waitFor();
+  assert.equal(await page.locator("[data-meedenk-aanbod]").count(), 0);
+  assert.equal(await page.getByRole("button", { name: /^Laat Lex meedenken/ }).count(), 0);
 
-  // --- Start: een vers gesprek in het werkgebied, met het bevestigde aantal ---
-  await bevestiging().getByRole("button", { name: "Start (3)" }).click();
-  await page.waitForURL(/\/workbench/);
+  // --- `?meedenk=` start niets meer ---
+  await page.goto(`${base}/workbench?werkgebied=wg1&meedenk=3`);
+  await page.getByTestId("vraag-suggesties").getByRole("button", { name: "Denk mee over de begrippen" }).waitFor();
+  await page.waitForTimeout(300);
+  assert.equal(starts.length, 0, "Lex begint niet vanuit de URL");
+
+  // --- Een voorstel van Lex in het gesprek: de knop start het meedenken, met het bevestigde aantal ---
+  await page.goto(`${base}/workbench?gesprek=g2`);
+  await page.getByRole("button", { name: "Laat Lex meedenken (3)" }).click();
   await zie("Klaar met meedenken in werkgebied");
   assert.equal(starts.length, 1);
   assert.deepEqual({ modus: starts[0].modus, bevestigd: starts[0].bevestigd, werkgebied_id: starts[0].werkgebied_id,
     conversation_id: starts[0].conversation_id },
-  { modus: "begrippen_verdiepen", bevestigd: 3, werkgebied_id: "wg1", conversation_id: "g9" });
-  const zoek = new URL(page.url()).searchParams;
-  assert.equal(zoek.get("meedenk"), null, "herladen start het meedenken niet opnieuw");
+  { modus: "begrippen_verdiepen", bevestigd: 3, werkgebied_id: "wg1", conversation_id: "g2" });
 
   // --- Na het meedenken: advies, groep op advies van Lex, herkomst en aandachtspunten ---
   await page.goto(`${base}/werkgebieden/wg1?tab=begrippen`);
@@ -151,7 +143,6 @@ try {
   await page.locator('[data-review-item="G1"]').click();
   await zie("Definitie, geformuleerd door Lex:");
   await zie("De definitie is door Lex geformuleerd; toets haar aan de passages.");
-  assert.equal(await page.locator("[data-meedenk-aanbod]").count(), 0, "het aanbod is weg");
   await page.getByText("Rust op 1 passage uit de bron").click();
   await zie("“de beschikking”");
 
@@ -160,28 +151,8 @@ try {
   await zie("Overname vastgelegd door de test.");
   assert.deepEqual([overname.groep_ids, overname.met_definitie], [["G1"], true]);
 
-  // --- Een voorstel van Lex in het gesprek: de knop start het meedenken ---
-  await page.goto(`${base}/workbench?gesprek=g2`);
-  await page.getByRole("button", { name: "Laat Lex meedenken (3)" }).click();
-  for (let i = 0; i < 50 && starts.length < 2; i++) await page.waitForTimeout(50);
-  assert.deepEqual({ modus: starts[1].modus, bevestigd: starts[1].bevestigd, werkgebied_id: starts[1].werkgebied_id,
-    conversation_id: starts[1].conversation_id },
-  { modus: "begrippen_verdiepen", bevestigd: 3, werkgebied_id: "wg1", conversation_id: "g2" });
-
-  // --- Smal scherm: de bevestiging als sheet binnen het scherm ---
-  verdiept = false;
-  const smal = await context.newPage();
-  smal.on("pageerror", (e) => errors.push(e.message));
-  await smal.setViewportSize({ width: 390, height: 844 });
-  await smal.goto(`${base}/werkgebieden/wg1?tab=begrippen`);
-  await smal.getByRole("button", { name: "Laat Lex meedenken (3)" }).click();
-  await bevestiging(smal).getByRole("button", { name: "Start (3)" }).waitFor();
-  const vak = await bevestiging(smal).boundingBox();
-  assert.ok(vak && vak.x >= 0 && vak.x + vak.width <= 391, `de sheet past op het scherm (${JSON.stringify(vak)})`);
-  assert.equal(await smal.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, "geen horizontale scroll");
-
   assert.deepEqual(errors, []);
-  console.log("Browser OK: aanbod en bevestiging met schatting en budget, start in een vers gesprek met het bevestigde aantal, advies bij de open twijfelvraag, groep op advies van Lex, herkomst en aandachtspunten van de kaart, akkoord met een geformuleerde definitie, knop in het gesprek, sheet op een smal scherm.");
+  console.log("Browser OK: geen aanbod op de tab, meedenk= start niets, de knop in het gesprek met het bevestigde aantal, advies bij de open twijfelvraag, groep op advies van Lex, herkomst en aandachtspunten van de kaart, akkoord met een geformuleerde definitie.");
 } finally {
   await browser.close();
 }

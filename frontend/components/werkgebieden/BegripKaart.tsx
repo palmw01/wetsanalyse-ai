@@ -18,7 +18,7 @@ import {
   HERKOMST_LABEL, OORDEEL_LABEL, inhoudGewijzigd, naarRijen, regels, revisieZin, uitRegels, uitRijen,
   volledigeInhoud,
 } from "@/lib/begrippen";
-import { definitieDoor, openPerVeld, type Verouderd } from "@/lib/begripLex";
+import { definitieDoor, openPerVeld, type Verouderd } from "@/lib/kaartVoorstel";
 import { BEGRIPSTYPE_LABEL } from "@/lib/begripVoorstellen";
 import { JAS_KLASSEN } from "@/lib/jas";
 import type {

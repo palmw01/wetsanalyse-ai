@@ -34,15 +34,17 @@ plaats van schijnzekerheid.
 > (deterministisch, ADR-004), ook vanuit het gesprek: wat een beurt oplevert is een **artefact**
 > (annotatie, begripsvoorstellen, gevonden bepalingen, het werkgebied, één deelvraag of één begrip;
 > afleidingsregels gereserveerd), dat naast het gesprek opent om te beoordelen. Lex denkt mee met een model bij
-> twijfel en stelt definities voor (geel, met de fragmenten waarop ze rusten), en staat **naast de
-> begripskaart**: brondefinitie zoeken, een scherpere definitie, het betekenisverschil en voorbeelden,
-> elk als voorstel per veld dat de analist overneemt, aanpast of afwijst. Begrippen worden **onderhouden**:
+> twijfel en stelt definities voor (geel, met de fragmenten waarop ze rusten), en werkt een begrip uit
+> vanuit het gesprek (*Vraag Lex* bij het begrip): brondefinitie zoeken, een scherpere definitie, het
+> betekenisverschil en voorbeelden, elk als voorstel per veld dat de analist overneemt, aanpast of
+> afwijst. **De werkgebiedpagina is raadplegen** (F3e): ze toont wat Lex opleverde en draagt de handmatige
+> besluiten, met *Vraag Lex* bij elke rij, maar start Lex zelf niet. Begrippen worden **onderhouden**:
 > een veranderde dragende passage verschijnt in de herbeoordeling (toen naast nu, opvolger na
 > herannotatie), begrippen krijgen **relaties** met type en richting (kwalificatie, inclusie, uitsluiting,
 > soort van, verwant; Lex stelt ze voor) en een betekeniswijziging of combinatie levert een opvolger op
 > (het oude begrip wordt vervangen). Begrippen gaan als **NL-SBB-begrippenkader** de kennisgraaf in (per
 > werkgebied een named graph, conformiteit diagnostisch, Turtle-export). Lex **leest** de begrippen (zoeken in
-> die projectie, bevestigd door de api) en voert de kaartacties ook vanuit het gesprek uit; de sidebar
+> die projectie, bevestigd door de api); de sidebar
 > heeft een overzicht *Begrippen* over alle werkgebieden heen. De RegelSpraak-formalisering
 > hoort nog niet tot de functionaliteit. graph-qa's begrip-definitie-QA
 > (de `definitie`-specialist over de graaf) staat daar los van.

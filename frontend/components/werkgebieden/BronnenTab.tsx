@@ -12,6 +12,7 @@ import { Melding } from "@/components/ui/Melding";
 import { BronKandidaten } from "@/components/werkgebieden/BronKandidaten";
 import { Deelvragen } from "@/components/werkgebieden/Deelvragen";
 import type { Mutatie } from "@/components/werkgebieden/WerkgebiedClient";
+import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import { foutTekst, isApiError, verwijderBron, voegBronToe, wijzigBron } from "@/lib/api";
 import type { BronBereik, BronRol, Bronselectie, Werkgebied } from "@/lib/types";
 import {
@@ -29,8 +30,8 @@ export function BronnenTab({ wg, muteer, onHerlaad }: { wg: Werkgebied; muteer: 
   return (
     <div className="space-y-6">
       {/* Optioneel: de analysevraag in deelvragen; Lex zoekt daarna ook per deelvraag. */}
-      <Deelvragen wg={wg} muteer={muteer} onHerlaad={onHerlaad} />
-      {/* Lex zoekt bepalingen die erbij kunnen horen (fase A); opnemen maakt een selectie hieronder. */}
+      <Deelvragen wg={wg} muteer={muteer} />
+      {/* Wat Lex vond als je hem in het gesprek liet zoeken (fase A); opnemen maakt een selectie hieronder. */}
       <BronKandidaten id={wg.id} labels={labels} onGewijzigd={onHerlaad} />
       <Sectie titel="Bronselecties" telling={wg.bronnen.length}>
         {wg.bronnen.length === 0 ? (
@@ -92,6 +93,8 @@ function SelectieRij({ wgId, selectie: s, muteer }: { wgId: string; selectie: Br
           >
             Weghalen
           </BevestigKnop>
+          <VraagLexKnop onderwerp={{ soort: "bron", werkgebied_id: wgId, id: s.id, label: s.label || s.bron_iri }}
+            className="justify-center" />
         </>
       }
     >

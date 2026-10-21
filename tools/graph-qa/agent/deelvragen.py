@@ -1,32 +1,27 @@
 """Lex stelt deelvragen voor bij een werkgebied (vervolg op spoor D fase F; open keuze 4: optioneel).
 
-`POST /v1/deelvragen-runs {werkgebied_id}`: één modelaanroep die de analysevraag uiteenlegt in de
-deelvragen die de analist apart moet beantwoorden. De api bewaart ze als **voorstel**
+Eén modelaanroep die de analysevraag uiteenlegt in de deelvragen die de analist apart moet
+beantwoorden. De api bewaart ze als **voorstel**
 (`POST …/deelvragen/voorstellen`); de analist neemt over of wijst af. Wat er al staat, wat is afgewezen
 of weggehaald, laat de api weg – Lex hoeft dat niet zelf te onthouden, maar krijgt de bestaande wel te
 zien, zodat hij er geen variant van bedenkt.
 
-De budgetcheck zit vooraf op het endpoint (`_budget_check`); het verbruik wordt geboekt op
-`deelvragen-<run>`, ook bij een fout. Events: `status`, dan een
-`token` met de samenvatting, `opgeslagen` en `done`; een fout is een `error`. Runstore-sleutel
-`werkgebied:<id>:deelvragen`.
-
-Sinds F3c zijn `voorstellen_kern` en `verbeteren_kern` (scherper formuleren of splitsen) taken van de
-deelvragen-agent (`agents/deelvragen.py`); daar telt het verbruik mee in de beurt. De systeemtekst draagt
-de methode van de rol `deelvragen` uit de skill (`systeem`), net als de intake.
+`voorstellen_kern` en `verbeteren_kern` (scherper formuleren of splitsen) zijn taken van de
+deelvragen-agent (`agents/deelvragen.py`, F3c); het verbruik telt mee in de beurt. Het eigen endpoint
+`/v1/deelvragen-runs` is met F3e vervallen: de werkgebiedpagina vraagt Lex in het gesprek. De
+systeemtekst draagt de methode van de rol `deelvragen` uit de skill (`systeem`), net als de intake.
 """
 from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, AsyncIterator, Callable
+from typing import Any
 
 from .agents import Context, Uitkomst
 from .begrippen_pipeline.kaartacties import lees
-from .config import Settings
 from .methode import instructies
 from .werkgebied_context import context_tekst
-from .wetsanalyse_api import WetsanalyseApi, WetsanalyseApiFout
+from .wetsanalyse_api import WetsanalyseApiFout
 
 logger = logging.getLogger(__name__)
 
@@ -273,53 +268,3 @@ def _api_fout(taak: str, fout: WetsanalyseApiFout, reden: str, meting: dict | No
         return Uitkomst(taak=taak, status="geweigerd", reden="Dit werkgebied bestaat niet (meer).",
                         meting={**(meting or {}), "soort": "api"})
     return Uitkomst(taak=taak, status="fout", reden=reden, meting={**(meting or {}), "soort": "api", "status": fout.status})
-
-
-def _status(bericht: str) -> dict[str, Any]:
-    return {"type": "status", "message": f"Lex · {bericht}"}
-
-
-def _anthropic(settings: Settings) -> Any:
-    from .adapters.anthropic_llm import AnthropicLLM
-    return AnthropicLLM(settings)
-
-
-async def deelvragen_stroom(werkgebied_id: str, run: Any, *, settings: Settings, user_id: str,
-                            maak_llm: Callable[[Any], Any] | None = None,
-                            api: WetsanalyseApi | None = None) -> AsyncIterator[dict[str, Any]]:
-    """Het endpoint `/v1/deelvragen-runs`: dezelfde kern, met een eigen model en het verbruik op
-    `deelvragen-<run>`. `maak_llm` en `api` zijn er voor tests."""
-    from .begrippen_verdieping import _boek
-
-    eigen_api = api is None
-    api = api or WetsanalyseApi(settings, user_id)
-    run_id = str(getattr(run, "run_id", "") or "")
-    llm = (maak_llm or _anthropic)(settings)
-    meldingen: asyncio.Queue[str] = asyncio.Queue()
-    ctx = Context(api=api, settings=settings, user_id=user_id, run_id=run_id, llm=llm,
-                  melding=meldingen.put_nowait,
-                  gestopt=lambda: bool(run is not None and getattr(run, "stop_gevraagd", False)))
-    try:
-        taak = asyncio.ensure_future(voorstellen_kern(ctx, werkgebied_id))
-        while not taak.done() or not meldingen.empty():
-            try:
-                yield _status(await asyncio.wait_for(meldingen.get(), timeout=0.2))
-            except asyncio.TimeoutError:
-                continue
-        uit = taak.result()
-        if uit.meting.get("model"):
-            await _boek(api, llm, settings.llm_model, "", f"deelvragen-{run_id}")
-        if uit.status in ("geweigerd", "fout"):
-            yield {"type": "error", "message": uit.reden, "soort": uit.meting.get("soort", "model"),
-                   **({"status": uit.meting["status"]} if "status" in uit.meting else {})}
-            return
-        if run is not None and getattr(run, "stop_gevraagd", False):
-            yield {"type": "done"}
-            return
-        yield {"type": "token", "content": uit.tekst}
-        if uit.meting.get("opgeslagen"):
-            yield {"type": "opgeslagen", "deelvragen": uit.voorstellen}
-        yield {"type": "done"}
-    finally:
-        if eigen_api:
-            await api.aclose()

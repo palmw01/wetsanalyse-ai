@@ -39,27 +39,23 @@ export function WorkbenchShell({
 } = {}) {
   const [gesprekken, setGesprekken] = useState<GesprekSamenvatting[]>([]);
   const [activeId, setActiveId] = useState<string | null>(beginGesprekId);
-  // Geopend vanuit een werkgebied (`?werkgebied=<id>`, de knop *Bespreek met Lex*): elke beurt draagt
+  // Geopend vanuit een werkgebied (`?werkgebied=<id>`, via *Vraag Lex* op de werkgebiedpagina): elke beurt draagt
   // dat werkgebied, en een vraag om begrippen gaat de begrippenroute in. Uit de URL, zodat herladen
   // de context houdt. *Verlaten* en *Maak hier een werkgebied van* zetten de context in state én in de
   // URL (`replaceState`); op die native aanroep alleen leunen bleek niet genoeg (de balk bleef staan).
   const zoek = useSearchParams();
   const [gekozenWg, setGekozenWg] = useState<{ id: string | null } | null>(null);
   const werkgebiedId = gekozenWg ? gekozenWg.id : werkgebiedUitUrl(zoek.get("werkgebied"));
-  // Vanaf de tab Elementen bevestigd: `?annoteer=<n>` start in dit verse gesprek de werkgebied-run
-  // (fase B). Eén keer gelezen en meteen uit de URL gehaald – herladen mag hem niet opnieuw starten.
-  const [startAnnoteren] = useState(() => aantalUitUrl(zoek.get("annoteer")));
-  // Idem `?meedenk=<n>` (fase C): vanaf de voorstellen bevestigd, Lex denkt mee in een vers gesprek.
-  const [startMeedenken] = useState(() => aantalUitUrl(zoek.get("meedenk")));
   // *Vraag Lex* van buiten de werkplek (`?vraag=<soort>:<id>&vraag_label=…`, F3b): de chip staat klaar
-  // in een vers gesprek. Idem één keer gelezen; het werkgebied blijft in de URL.
+  // in een vers gesprek. Eén keer gelezen en meteen uit de URL gehaald – herladen zet hem niet opnieuw;
+  // het werkgebied blijft in de URL.
   const [beginOnderwerp] = useState(() => onderwerpUitUrl(zoek));
   useEffect(() => {
-    if (startAnnoteren === null && startMeedenken === null && beginOnderwerp === null) return;
+    if (beginOnderwerp === null) return;
     const url = new URL(window.location.href);
-    for (const naam of ["annoteer", "meedenk", "vraag", "vraag_label"]) url.searchParams.delete(naam);
+    for (const naam of ["vraag", "vraag_label"]) url.searchParams.delete(naam);
     window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
-  }, [startAnnoteren, startMeedenken, beginOnderwerp]);
+  }, [beginOnderwerp]);
   const [mountKey, setMountKey] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
   // Verhoogd zodra de chat een gesprek aanmaakte: de sidebar bezit de lijst en haalt hem dan opnieuw.
@@ -299,8 +295,6 @@ export function WorkbenchShell({
             initialGesprekId={activeId}
             werkgebiedId={werkgebiedId}
             // Alleen het venster waarmee de pagina opende; een nieuw gesprek start niets.
-            startAnnoteren={mountKey === 0 && !beginGesprekId ? startAnnoteren : null}
-            startMeedenken={mountKey === 0 && !beginGesprekId ? startMeedenken : null}
             beginOnderwerp={mountKey === 0 && !beginGesprekId ? beginOnderwerp : null}
             onVerlaatWerkgebied={() => zetWerkgebied(null)}
             onKiesWerkgebied={zetWerkgebied}
@@ -330,12 +324,6 @@ export function WorkbenchShell({
       )}
     </div>
   );
-}
-
-/** Een positief geheel aantal, of niets. */
-function aantalUitUrl(waarde: string | null): number | null {
-  const n = Number(waarde);
-  return waarde && Number.isInteger(n) && n > 0 && n <= 100_000 ? n : null;
 }
 
 /** Alleen een geldig werkgebied-id; al het andere is geen context (de api kent de vorm ook zo). */

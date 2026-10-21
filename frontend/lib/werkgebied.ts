@@ -70,7 +70,7 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   if (pad.length === 1) return true;
   if (deel === "bronnen") return pad.length <= 3;
   // Deelvragen (optioneel): toevoegen, wijzigen, weghalen, koppelen en de dekking. `voorstellen` zet
-  // graph-qa; Lex laten voorstellen gaat via `/api/deelvragen-run`.
+  // graph-qa (de deelvragen-agent, die je in het gesprek vraagt).
   if (deel === "deelvragen") {
     if (pad.length === 2) return true;
     if (pad.length === 3) return !!a && a !== "voorstellen";
@@ -88,14 +88,14 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   }
   // Dekking (fase F1): lezen, en een element buiten behandeling zetten of terughalen.
   if (deel === "dekking") return pad.length === 2 || (a === "buiten-behandeling" && pad.length <= 4);
-  // Voorstellen van Lex. Starten gaat alleen via `/api/begrippen-run` (één weg), en `loopt`,
-  // `uitkomst` en `mislukt` zijn van graph-qa: die laat de werkplek nooit door.
+  // Voorstellen van Lex. Een run maken, `loopt`, `uitkomst` en `mislukt` zijn van graph-qa (de
+  // begrippen-agent, die je in het gesprek vraagt): die laat de werkplek nooit door.
   if (deel === "begrippen-runs") {
     if (pad.length === 3) return !!a;                                 // `laatste` of één run (lezen)
     return pad.length === 5 && b === "vragen" && !!c;                 // een twijfelvraag beantwoorden
   }
-  // Bronnen vinden met Lex (fase A): zelfde regel – starten via `/api/bronnen-run`, en `loopt`,
-  // `uitkomst` en `mislukt` zijn van graph-qa.
+  // Bronnen vinden met Lex (fase A): zelfde regel – een run maken, `loopt`, `uitkomst` en `mislukt`
+  // zijn van graph-qa (de deelvragen-agent).
   if (deel === "bronnen-runs") return pad.length === 3 && !!a;
   if (deel === "kandidaten") {
     if (pad.length === 2) return true;
@@ -109,8 +109,8 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   if (deel !== "begrippen") return false;
   if (pad.length <= 3) return true;                                   // lijst, export, één begrip
   if (a === "export") return false;
-  // Lex naast de kaart (fase E): voorstellen lezen en besluiten. Een kaartrun starten gaat alleen via
-  // `/api/kaart-run`; de run zelf (met invoer), `loopt`, `uitkomst` en `mislukt` zijn van graph-qa.
+  // Lex naast de kaart (fase E): voorstellen lezen en besluiten. Een kaartrun maken, de run zelf (met
+  // invoer), `loopt`, `uitkomst` en `mislukt` zijn van graph-qa (de begrippen-agent).
   if (b === "voorstellen") {
     if (pad.length === 4) return true;
     return pad.length === 6 && !!c && (pad[5] === "overnemen" || pad[5] === "afwijzen");

@@ -593,15 +593,14 @@ JAS-classifier, en draait op `LLM_MODEL` (een oordeel, dus geen eigen modelknop)
 
 ### De begrippenrun (`agent/begrippen_run.py`, spoor D levering 3a)
 
-`POST /v1/begrippen-runs {werkgebied_id, run_id}` → `begrippen_stroom`: haal de run met manifest bij
-de api (`GET …/begrippen-runs/{id}?manifest=true`), meld `…/loopt`, draai de keten in een thread met
-de fasen als `status`-events (`Lex · Taalanalyse: … (n ms)`), zet de uitkomst terug (`PUT …/uitkomst`)
+`begrippen_stroom` (via `begrippen_beurt.begrippen_kern`, de taak `voorstellen` van de begrippen-agent;
+het eigen endpoint `/v1/begrippen-runs` is met F3e vervallen): haal de run met manifest bij de api
+(`GET …/begrippen-runs/{id}?manifest=true`), meld `…/loopt`, draai de keten in een thread met de fasen als `status`-events (`Lex · Taalanalyse: … (n ms)`), zet de uitkomst terug (`PUT …/uitkomst`)
 en eindig met `opgeslagen` + `done`.
 
 - **De api is de bron van het manifest**, graph-qa rekent alleen. Het manifest valideert tegen
   `Manifest` (letterlijkheid, geen dubbelen); klopt het niet, dan `mislukt` en een `error`.
-- **De runstore-sleutel is `werkgebied:<id>`**: de 409 "loopt al" geldt per werkgebied, en
-  `/v1/runs/{id}/events` en `/cancel` werken ongewijzigd. Stoppen kijkt vóór en ná de keten (de keten
+- **Eén run per werkgebied tegelijk**: loopt er al een, dan wacht de taak erop (`begrippen_kern` peilt). Stoppen kijkt vóór en ná de keten (de keten
   zelf is één synchrone stap).
 - **Per groep een voorstel** (`voorstel`): de naam is de term die de leden het vaakst dragen; is een lid
   de term van een begripsbepaling, dan de letterlijke definiens (`definities.definiens`) met vindplaats.
@@ -642,9 +641,10 @@ zonder definitie zijn.
 ### Lex naast de kaart (`agent/begrip_kaart.py`, `begrippen_pipeline/kaartacties.py`, fase E)
 
 Vier acties op één begrip, elk een voorstel per veld; de api bewaart ze als eigen object en het begrip
-verandert pas als de analist overneemt (`api/app/begrip_voorstel_store.py`). Ingang:
-`POST /v1/kaart-runs {werkgebied_id, begrip_id, run_id}` (runstore-sleutel `begrip:<id>:kaart`, dus één
-actie per begrip tegelijk) → `kaart_stroom`: run met invoer ophalen, `…/loopt`, rekenen, `PUT …/uitkomst`.
+verandert pas als de analist overneemt (`api/app/begrip_voorstel_store.py`). Ingang: de taken van de
+begrippen-agent (`kaart_beurt.kaart_kern`: `POST …/kaart-runs` bij de api, dan `kaart_stroom` – run met
+invoer ophalen, `…/loopt`, rekenen, `PUT …/uitkomst`; loopt dezelfde actie al, dan wacht hij). Het eigen
+endpoint `/v1/kaart-runs` is met F3e vervallen.
 
 - **Zoek de brondefinitie** – geen model, geen budgetpoort. `q_brondefinities` zoekt
   `bwb:definieertBegrip` op naam en alternatieve termen (`LCASE … IN`), met de aanhef van de ouder;
@@ -720,24 +720,23 @@ horen; de api bewaart de kandidaten en de besluiten (`api/app/bronnen_run_store.
 - **Niets valt stil weg**: elke methode heeft een plafond (`MAX_*`) en meldt `aantal`, `volledig`,
   `ms`. Een falende methode wordt `volledig: false` en laat de rest staan; falen ze **allemaal**, dan
   is de run mislukt (`error` met `soort: "graaf"`), geen lege uitkomst.
-- **Twee ingangen**: `POST /v1/bronnen-runs {werkgebied_id, run_id}` (runstore-sleutel
-  `werkgebied:<id>:bronnen`, naast die van de begrippen) en **in het gesprek** de taak `bronnen_zoeken`
-  van de deelvragen-agent (`bronnen_kern`, F3c) – de uitkomst draagt een `bronnen`-artefact. "Welke
-  artikelen gaan over X?" blijft de overzichtsroute, ook binnen een werkgebied. Een weigering van de api (`geen_vertrekpunt`) is een antwoord.
+- **Eén ingang, in het gesprek**: de taak `bronnen_zoeken` van de deelvragen-agent (`bronnen_kern`, F3c)
+  – de uitkomst draagt een `bronnen`-artefact. Het eigen endpoint `/v1/bronnen-runs` is met F3e vervallen.
+  "Welke artikelen gaan over X?" blijft de overzichtsroute, ook binnen een werkgebied. Een weigering van de api (`geen_vertrekpunt`) is een antwoord.
 - Tests: `tests/test_bronnen_vinden.py` (functiepatronen, methoden tegen een nep-graaf, het
-  api-contract uit de bron, run, route, endpoint).
+  api-contract uit de bron, run, taak).
 
 ### Lex stelt deelvragen voor (`agent/deelvragen.py`, vervolg op fase F)
 
 Deelvragen bij een werkgebied zijn optioneel (open keuze 4); de api bewaart ze
-(`api/app/werkgebied_deelvragen.py`). `POST /v1/deelvragen-runs {werkgebied_id}` (runstore-sleutel
-`werkgebied:<id>:deelvragen`, budgetcheck vooraf zoals `/v1/runs`) → `deelvragen_stroom`: werkgebied
-ophalen, zonder analysevraag een `error` (`soort: "invoer"`) zonder modelaanroep, dan één aanroep op
+(`api/app/werkgebied_deelvragen.py`). Voorstellen is de taak `voorstellen` van de deelvragen-agent
+(`deelvragen.voorstellen_kern`; het eigen endpoint `/v1/deelvragen-runs` is met F3e vervallen): werkgebied
+ophalen, zonder analysevraag `geweigerd` (`soort: "invoer"`) zonder modelaanroep, dan één aanroep op
 `LLM_MODEL` met een strict tool (`stel_deelvragen_voor`; het hele dossier van het werkgebied gaat mee via
-`werkgebied_context.context_tekst`, en de bestaande deelvragen, zodat Lex er geen variant van bedenkt), `valideer` (alleen vragen met een vraagteken, ontdubbeld, hoogstens
-`MAX_DEELVRAGEN`), `POST …/deelvragen/voorstellen`. Het verbruik op `deelvragen-<run>`, ook als opslaan
-faalt. Events: `status`, `token` (samenvatting), `opgeslagen`, `done`. De api laat weg wat er al staat of
-is afgewezen. Tests: `tests/test_deelvragen.py` (het contract `DeelvraagVoorstellen` uit de api-bron).
+`werkgebied_context.context_tekst`, en de bestaande deelvragen, zodat Lex er geen variant van bedenkt),
+`valideer` (alleen vragen met een vraagteken, ontdubbeld, hoogstens `MAX_DEELVRAGEN`),
+`POST …/deelvragen/voorstellen`. Het verbruik telt mee in de beurt. De api laat weg wat er al staat of is
+afgewezen. Tests: `tests/test_deelvragen.py` (het contract `DeelvraagVoorstellen` uit de api-bron).
 
 ### Lex annoteert het werkgebied (`agent/werkgebied_annotatie.py`, fase B)
 
@@ -908,8 +907,10 @@ reeks) en `doelen`.
   (`STORING`), zonder api `ZONDER_API`. Een onbekende taak: Lex vraagt wat hij moet doen.
 - **Kaartacties en verdieping boeken zelf** (eigen run bij de api); `voorstellen`/`verbeteren` van de
   deelvragen gebruiken het model van de beurt en tellen mee in het verbruik van de beurt.
-- **Endpoints blijven** (`/v1/bronnen-runs`, `/v1/begrippen-runs`, `/v1/kaart-runs`,
-  `/v1/deelvragen-runs`) zolang de werkgebiedpagina ze gebruikt (tot F3e).
+- **De eigen endpoints zijn weg** (F3e): `/v1/bronnen-runs`, `/v1/begrippen-runs`, `/v1/kaart-runs` en
+  `/v1/deelvragen-runs` gebruikte alleen de werkgebiedpagina, die Lex nu in het gesprek vraagt.
+  `tests/test_deelvragen.py` bewaakt dat ze niet terugkomen. De stromen erachter (`bronnen_stroom`,
+  `begrippen_stroom`, `kaart_stroom`) blijven: de agents gebruiken ze.
 - Tests: `tests/test_agent_uitvoering.py` (de spike), `tests/test_agents.py`, `tests/test_agent_contracten.py`,
   en per kern de bestaande `test_begrippen_beurt`, `test_bronnen_vinden`, `test_begrip_tools`,
   `test_begrippen_verdieping_run`, `test_werkgebied_annotatie`. Routering meten: scenario F in

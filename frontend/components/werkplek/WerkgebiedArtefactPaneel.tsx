@@ -46,15 +46,12 @@ const KOP: Record<WerkgebiedArtefact["soort"], string> = {
  *
  *  Eén inhoud, twee schillen. Net als op de tab vraagt het paneel eerst bevestiging als de kaart
  *  niet-bewaarde wijzigingen draagt: bij sluiten (kruisje, Escape, achtergrond) en bij een link weg. */
-export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWissel, onMeedenken }: {
+export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWissel }: {
   doel: WerkgebiedArtefact;
   variant?: DialogVariant;
   onSluit: () => void;
   /** Een ander artefact in hetzelfde paneel (de opvolger van een vervangen deelvraag of begrip). */
   onWissel?: (doel: WerkgebiedArtefact) => void;
-  /** Lex laten meedenken (fase C) in het gesprek dat hier open staat; zonder deze haak navigeert de
-   *  strook naar een vers gesprek, en dat start niet in een werkplek die al open is. */
-  onMeedenken?: (werkgebiedId: string, aantal: number) => void;
 }) {
   const router = useRouter();
   const [onbewaard, setOnbewaard] = useState(false);
@@ -126,7 +123,6 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", onSluit, onWi
               id={doel.werkgebied_id}
               runId={doel.run_id}
               inklapbaar={false}
-              onMeedenken={onMeedenken ? (aantal) => onMeedenken(doel.werkgebied_id, aantal) : undefined}
               onBegrip={(b) => router.push(`${naarWerkgebied}&begrip=${encodeURIComponent(b)}`)}
               // Er staat hier geen begrippenlijst naast die ververst moet worden.
               onGewijzigd={() => {}}

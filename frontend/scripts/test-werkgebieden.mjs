@@ -154,12 +154,12 @@ try {
   await page.getByLabel("Regeling of bron-IRI").fill("bwbr0004770");
   await page.getByLabel("Artikel", { exact: true }).fill("artikel 9");
   await page.getByRole("button", { name: "Opnemen" }).click();
-  await page.getByRole("link", { name: "Invorderingswet 1990 – artikel 9" }).waitFor();
+  await page.getByRole("link", { name: "Invorderingswet 1990 – artikel 9", exact: true }).waitFor();
   const eerste = requests.find((r) => r.p.endsWith("/bronnen") && r.m === "POST").body;
   assert.deepEqual([eerste.bwb_id, eerste.artikel, eerste.verwachte_revisie, eerste.rol, eerste.bereik],
     ["BWBR0004770", "9", 1, "analyseren", "onderliggend"]);
   // De link naar de bepaling gaat naar haar annotatie, met de IRI als query-parameter.
-  assert.equal(await page.getByRole("link", { name: "Invorderingswet 1990 – artikel 9" }).getAttribute("href"),
+  assert.equal(await page.getByRole("link", { name: "Invorderingswet 1990 – artikel 9", exact: true }).getAttribute("href"),
     `/annotaties/node?bron_iri=${encodeURIComponent(IRI9)}`);
 
   // Dezelfde bron nog eens: idempotent, en dat staat er.
@@ -177,7 +177,7 @@ try {
   await page.getByLabel("Artikel", { exact: true }).fill("3");
   await page.getByLabel("Contextbron", { exact: false }).check();
   await page.getByRole("button", { name: "Opnemen" }).click();
-  await page.getByRole("link", { name: "Algemene wet inzake rijksbelastingen – artikel 3" }).waitFor();
+  await page.getByRole("link", { name: "Algemene wet inzake rijksbelastingen – artikel 3", exact: true }).waitFor();
   await page.getByRole("tab", { name: "Bronnen (2)" }).waitFor();
   await foto("werkgebied-bronnen");
 

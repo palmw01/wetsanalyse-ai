@@ -4,7 +4,7 @@
 import { klasseLabel } from "./jas";
 import type {
   Aanpassing, AkkoordInvoer, Begrip, Begripstype, Betekenisgroep, DefinitieHerkomst, GroepBesluit, GroepenAntwoord,
-  KaartFragment, Koppeling, ModelOordeelSoort, Passage, TwijfelVraag, VerdiepingWerkvoorraad,
+  KaartFragment, Koppeling, ModelOordeelSoort, Passage, TwijfelVraag,
 } from "./types";
 
 /** De vraag die in het gesprek komt te staan; graph-qa herkent hem ook zonder `modus` (fase C). */
@@ -75,38 +75,6 @@ export function openVragen(data: GroepenAntwoord | null): TwijfelVraag[] {
   const vragen = data?.run?.uitkomst?.vragen ?? [];
   const open = data?.verdieping?.vragen_open;
   return open ? vragen.filter((v) => open.includes(v.kandidaat_id)) : vragen;
-}
-
-/** Wat de bevestiging vóór het meedenken toont. */
-export interface MeedenkInhoud {
-  aantal: number;
-  vragen: number;
-  kaarten: number;
-  /** Batches die al klaar zijn: Lex gaat verder waar hij bleef. */
-  alKlaar: number;
-  schatting: number | null;
-  schattingUitleg: string;
-  budgetOver: number | null;
-  budgetKrap: boolean;
-}
-
-export function meedenkInhoud(wv: VerdiepingWerkvoorraad): MeedenkInhoud {
-  const schatting = wv.schatting?.totaal ?? null;
-  const budgetOver = wv.budget?.actief ? wv.budget.resterend : null;
-  return {
-    aantal: wv.aantal, vragen: wv.vragen.length, kaarten: wv.kaarten.length, alKlaar: wv.batches.length,
-    schatting, schattingUitleg: wv.schatting_toelichting ?? "",
-    budgetOver, budgetKrap: schatting !== null && budgetOver !== null && schatting > budgetOver,
-  };
-}
-
-/** "3 twijfelpunten en 2 begrippen zonder definitie". */
-export function meedenkOmvang(i: Pick<MeedenkInhoud, "vragen" | "kaarten">): string {
-  const delen = [
-    i.vragen ? `${i.vragen} ${i.vragen === 1 ? "twijfelpunt" : "twijfelpunten"}` : "",
-    i.kaarten ? `${i.kaarten} ${i.kaarten === 1 ? "begrip" : "begrippen"} zonder definitie` : "",
-  ].filter(Boolean);
-  return delen.join(" en ") || "niets";
 }
 
 /** Groen: de wet legt het verband zelf (een definitie, "bedoeld in"). Geel: er is ook iets dat
@@ -185,10 +153,6 @@ export function passageTekst(e: string, passages: Record<string, Passage>, groep
   return p ? `“${p.tekst}”${p.vindplaats ? ` (${p.vindplaats})` : ""}` : e;
 }
 
-/** Een statusregel van graph-qa ("Lex · Groeperen: …") zonder de actor, voor de voortgangslijst. */
-export function voortgangsregel(bericht: string): string {
-  return bericht.replace(/^Lex\s*·\s*/, "");
-}
 
 /** "Samen" bij een twijfelvraag wordt één begrip: beide passages, plus de leden van een open groep
  *  waar een van de twee in zit. De naam: die van zo'n groep, anders de tekst van de eerste passage. */

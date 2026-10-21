@@ -158,7 +158,6 @@ await page.route("**/api/**", async (route) => {
   // De strook "Voorstellen van Lex" staat op dezelfde tab; hier zonder voorstellen.
   if (p === "/api/werkgebieden/wg1/groepen") return route.fulfill({ json: { run: null, groepen: [], passages: {} } });
   if (p === "/api/werkgebieden/wg1/begrippen-runs/laatste") return route.fulfill({ json: { run: null } });
-  if (p === "/api/begrippen-run") return route.fulfill({ json: null });
   if (p === "/api/gesprekken") return route.fulfill({ json: [] });
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
   return route.fulfill({ status: 404, json: { detail: "Niet in deze test." } });
@@ -181,6 +180,14 @@ try {
   await page.getByRole("checkbox", { name: 'Kies "de ontvanger"' }).uncheck();
   await page.getByRole("button", { name: "Nieuw begrip uit selectie" }).click();
   await page.waitForURL(/tab=begrippen&begrip=b\d+/);
+  // F3e: een begrip opent om te lezen; *Begripskaart* opent de kaart met passages en accorderen. Geen
+  // Lex-knoppen op de tab, wel *Vraag Lex* bij elk begrip in de lijst.
+  await page.locator("[data-begrip-paneel]").waitFor();
+  const rijen = await page.locator("[data-begrip-rij]").count();
+  assert.ok(rijen > 0 && await page.locator("[data-begrip-rij] [data-vraag-lex=begrip]").count() === rijen);
+  assert.equal(await page.getByRole("link", { name: "Bespreek met Lex" }).count(), 0);
+  await page.getByRole("button", { name: "Begripskaart" }).click();
+  await page.waitForURL(/&weergave=kaart/);   // terugbladeren en herladen houden de kaart open
   const passages = page.getByRole("list", { name: "Passages van dit begrip" }).getByRole("listitem");
   await page.getByRole("heading", { name: "Bronpassages (3)" }).waitFor();
   assert.equal(await passages.count(), 3);

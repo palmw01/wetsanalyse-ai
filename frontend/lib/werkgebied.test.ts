@@ -181,17 +181,17 @@ describe("isWerkgebiedRoute", async () => {
     [[]], [["w", "onbekend"]], [["w", "elementen", "x"]], [["w", "bronnen", "s", "x"]],
     [["w", "begrippen", "export", "x"]], [["w", "begrippen", "b", "iets"]],
     [["w", "begrippen", "b", "accorderen", "x"]], [["w", "begrippen", "b", "koppelingen", "k", "x"]],
-    // Alleen graph-qa schrijft de uitkomst; starten gaat via /api/begrippen-run.
+    // Alleen graph-qa maakt de run en schrijft de uitkomst (de begrippen-agent).
     [["w", "begrippen-runs"]], [["w", "begrippen-runs", "r", "uitkomst"]], [["w", "begrippen-runs", "r", "loopt"]],
     [["w", "begrippen-runs", "r", "mislukt"]], [["w", "begrippen-runs", "r", "vragen"]],
     [["w", "groepen", "G1"]], [["w", "groepen", "G1", "verwijderen"]], [["w", "groepen", "overnemen", "x"]], [["w", "groepen", "akkoord", "x"]],
-    // Ook bij de bronnen: starten via /api/bronnen-run, de rest is van graph-qa.
+    // Ook bij de bronnen: de run is van graph-qa (de deelvragen-agent).
     [["w", "bronnen-runs"]], [["w", "bronnen-runs", "r", "uitkomst"]], [["w", "bronnen-runs", "r", "loopt"]],
     [["w", "bronnen-runs", "r", "mislukt"]], [["w", "kandidaten", "K1"]], [["w", "kandidaten", "K1", "wissen"]],
     [["w", "annotatie-werkvoorraad", "x"]],
     // De verdieping (fase C): lezen mag, de batches en de uitkomst zijn van graph-qa.
     [["w", "verdieping", "x"]], [["w", "begrippen-runs", "r", "batches", "B1"]], [["w", "begrippen-runs", "r", "verdieping"]],
-    // Een kaartrun start alleen via /api/kaart-run; de run zelf (met invoer) en zijn uitkomst zijn van graph-qa.
+    // Een kaartrun, de run zelf (met invoer) en zijn uitkomst zijn van graph-qa (de begrippen-agent).
     [["w", "begrippen", "b", "kaart-runs"]], [["w", "begrippen", "b", "kaart-runs", "r"]],
     [["w", "begrippen", "b", "kaart-runs", "r", "uitkomst"]], [["w", "begrippen", "b", "kaart-runs", "r", "loopt"]],
     [["w", "begrippen", "b", "voorstellen", "v"]], [["w", "begrippen", "b", "voorstellen", "v", "wissen"]],
@@ -199,7 +199,7 @@ describe("isWerkgebiedRoute", async () => {
     [["w", "herbeoordelingen", "x"]], [["w", "dekking", "x"]], [["w", "dekking", "buiten-behandeling", "e", "x"]],
     [["w", "begrippen", "b", "koppelingen", "k", "wissen"]], [["w", "begrippen", "b", "voorstellen", "v", "herkoppelen"]],
     [["w", "relaties", "r", "wissen"]], [["w", "relaties", "voorstellen", "R1", "akkoord"]], [["w", "relaties", "r", "x", "y"]],
-    // Voorstellen van deelvragen zet graph-qa; Lex laten voorstellen gaat via /api/deelvragen-run.
+    // Voorstellen van deelvragen zet graph-qa (de deelvragen-agent).
     [["w", "deelvragen", "voorstellen"]], [["w", "deelvragen", "d", "x"]], [["w", "deelvragen", "dekking", "koppelingen"]],
     [["w", "deelvragen", "d", "koppelingen", "x"]],
   ])("weigert %j", (pad) => expect(isWerkgebiedRoute(pad)).toBe(false));

@@ -36,11 +36,8 @@ import type {
   Verbruiksstand,
 } from "./types";
 import type {
-  KaartActie,
-  KaartRun,
   KaartVoorstellenAntwoord,
   VoorbeeldOordeel,
-  AnnotatieWerkvoorraad,
   Bevestiging,
   AdminBerichtenPaginaOut,
   AdminBerichtOut,
@@ -78,7 +75,6 @@ import type {
   Herbeoordelingen,
   RelatiesAntwoord,
   RelatieType,
-  VerdiepingWerkvoorraad,
   KandidatenAntwoord,
   Inventaris,
   KoppelBeoordeling,
@@ -1128,26 +1124,8 @@ export async function haalDeelvragenDekking(id: string): Promise<DeelvragenDekki
   return json<DeelvragenDekking>(await fetch(wg(id, "deelvragen", "dekking"), { cache: "no-store" }));
 }
 
-/** Lex de analysevraag laten uiteenleggen: een graph-qa-run, te volgen met `volgRun`. */
-export async function startDeelvragenRun(id: string): Promise<RunStart> {
-  return json<RunStart>(await fetch("/api/deelvragen-run", jsonInit("POST", { werkgebied_id: id })));
-}
-
-/** De lopende run om op aan te haken, `null` als er niets loopt, `"onbekend"` bij een storing. */
-export async function haalActieveDeelvragenRun(id: string): Promise<RunStart | null | "onbekend"> {
-  const res = await fetch(`/api/deelvragen-run?${new URLSearchParams({ werkgebied: id })}`, { cache: "no-store" });
-  if (!res.ok) return "onbekend";
-  const run = (await res.json()) as RunStart | null;
-  return run && run.status === "loopt" ? run : null;
-}
-
 export async function haalInventaris(id: string): Promise<Inventaris> {
   return json<Inventaris>(await fetch(wg(id, "elementen"), { cache: "no-store" }));
-}
-
-/** Wat Lex in dit werkgebied nog moet annoteren, met de schatting en het budget (fase B). */
-export async function haalAnnotatieWerkvoorraad(id: string): Promise<AnnotatieWerkvoorraad> {
-  return json<AnnotatieWerkvoorraad>(await fetch(wg(id, "annotatie-werkvoorraad"), { cache: "no-store" }));
 }
 
 export async function haalWerkgebiedAudit(id: string, limit = 100): Promise<WerkgebiedAuditRegel[]> {
@@ -1347,27 +1325,8 @@ export async function haalConformiteit(id: string): Promise<Conformiteit | null>
 
 // --- Voorstellen van Lex (spoor D, levering 3a) -----------------------------------------------
 
-/** Laat Lex begrippen voorstellen. `agent_run_id` is null als de voorstellen voor deze stand van het
- *  werkgebied er al zijn: dan valt er niets te rekenen. */
-export async function startBegrippenRun(id: string): Promise<{ run: BegrippenRun; agent_run_id: string | null }> {
-  return json(await fetch("/api/begrippen-run", jsonInit("POST", { werkgebied_id: id })));
-}
-
-/** De lopende begrippenrun om op aan te haken, `null` als er niets loopt, `"onbekend"` bij een storing. */
-export async function haalActieveBegrippenRun(id: string): Promise<RunStart | null | "onbekend"> {
-  const res = await fetch(`/api/begrippen-run?${new URLSearchParams({ werkgebied: id })}`, { cache: "no-store" });
-  if (!res.ok) return "onbekend";
-  const run = (await res.json()) as RunStart | null;
-  return run && run.status === "loopt" ? run : null;
-}
-
 export async function haalLaatsteBegrippenRun(id: string): Promise<BegrippenRun | null> {
   return (await json<{ run: BegrippenRun | null }>(await fetch(wg(id, "begrippen-runs", "laatste"), { cache: "no-store" }))).run;
-}
-
-/** Wat Lex nog kan verdiepen (fase C): twijfelpunten en begrippen zonder definitie, met schatting en budget. */
-export async function haalVerdieping(id: string): Promise<VerdiepingWerkvoorraad> {
-  return json<VerdiepingWerkvoorraad>(await fetch(wg(id, "verdieping"), { cache: "no-store" }));
 }
 
 export async function haalGroepen(id: string): Promise<GroepenAntwoord> {
@@ -1412,23 +1371,6 @@ export async function beantwoordVraag(id: string, runId: string, kandidaatId: st
 
 // --- Lex naast de kaart (spoor D, fase E) ---------------------------------------------------------
 
-/** Laat Lex één actie doen op een begrip. `agent_run_id` is null als er voor deze stand van het begrip
- *  al voorstellen open staan: dan valt er niets te rekenen. */
-export async function startKaartRun(
-  id: string, begripId: string, actie: KaartActie, anderBegripId?: string,
-): Promise<{ run: KaartRun; agent_run_id: string | null }> {
-  return json(await fetch("/api/kaart-run", jsonInit("POST", {
-    werkgebied_id: id, begrip_id: begripId, actie, ...(anderBegripId ? { ander_begrip_id: anderBegripId } : {}) })));
-}
-
-/** De lopende actie op dit begrip om op aan te haken, `null` als er niets loopt, `"onbekend"` bij een storing. */
-export async function haalActieveKaartRun(begripId: string): Promise<RunStart | null | "onbekend"> {
-  const res = await fetch(`/api/kaart-run?${new URLSearchParams({ begrip: begripId })}`, { cache: "no-store" });
-  if (!res.ok) return "onbekend";
-  const run = (await res.json()) as RunStart | null;
-  return run && run.status === "loopt" ? run : null;
-}
-
 export async function haalKaartVoorstellen(id: string, begripId: string): Promise<KaartVoorstellenAntwoord> {
   return json<KaartVoorstellenAntwoord>(await fetch(wg(id, "begrippen", begripId, "voorstellen"), { cache: "no-store" }));
 }
@@ -1449,19 +1391,6 @@ export async function wijsKaartVoorstelAf(id: string, begripId: string, voorstel
 }
 
 // --- Bronnen vinden met Lex (spoor D, fase A) ---------------------------------------------------
-
-/** Laat Lex bepalingen zoeken. `agent_run_id` is null als er voor deze selectie al gezocht is. */
-export async function startBronnenRun(id: string): Promise<{ run: BronnenRun; agent_run_id: string | null }> {
-  return json(await fetch("/api/bronnen-run", jsonInit("POST", { werkgebied_id: id })));
-}
-
-/** De lopende zoekopdracht om op aan te haken, `null` als er niets loopt, `"onbekend"` bij een storing. */
-export async function haalActieveBronnenRun(id: string): Promise<RunStart | null | "onbekend"> {
-  const res = await fetch(`/api/bronnen-run?${new URLSearchParams({ werkgebied: id })}`, { cache: "no-store" });
-  if (!res.ok) return "onbekend";
-  const run = (await res.json()) as RunStart | null;
-  return run && run.status === "loopt" ? run : null;
-}
 
 export async function haalLaatsteBronnenRun(id: string): Promise<BronnenRun | null> {
   return (await json<{ run: BronnenRun | null }>(await fetch(wg(id, "bronnen-runs", "laatste"), { cache: "no-store" }))).run;
