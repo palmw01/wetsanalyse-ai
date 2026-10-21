@@ -506,6 +506,12 @@ sidebar blijft staan.
   een smal scherm geen navigatie, geen account en geen uitloggen. De hamburger zit in de gedeelde
   `components/werkplek/MobieleTopbar.tsx`; `components/werkplek/sidebar.test.ts` bewaakt dat elk
   scherm met `AppSidebar` `drawerOpen` en `onDrawerSluit` doorgeeft.
+- **De drie overzichten – Annotaties, Werkgebieden, Begrippen – zien er hetzelfde uit** (besluit
+  gebruiker 21 okt 2026): onder de kop één balk, `components/ui/OverzichtBalk` (links filterknoppen met
+  tellers, dan *Door mij bewerkt*, eventueel iets extra's, rechts het zoekveld; slaat om als het niet
+  past), en daaronder kaarten in twee kolommen (`AnnotatieKaart`, `WerkgebiedKaart`,
+  `BegripOverzichtKaart`) met de naam als link en onderaan *Openen* en *Verwijderen*. *Door mij bewerkt*
+  komt overal uit de audit (de api, `mijn`).
 - **`/annotaties`** (`AnnotatiesClient`) heeft twee weergaven op één lijst: *te doen* (rood → geel →
   langst stil) en *alles* (per regeling). De stand staat in de URL (`?weergave=alles`, via `replace` –
   een weergavewissel is geen stap in de geschiedenis). De kaart toont een **JAS-kleurstrip**
@@ -602,6 +608,12 @@ bestaat los van de gesprekken.
 - **Het dossier** (F2, F3a): de kop van de pagina toont de `WerkgebiedSamenvatting`, dezelfde als in het
   paneel naast het gesprek, en *Gegevens bewerken* bewerkt de velden van `DOSSIER_VELDEN`. Eén lijst voor
   samenvatting en formulier; een oudere api zonder de velden leest als leeg.
+- **Het overzicht** (`WerkgebiedenClient`): statusfilter met tellers (`lib/werkgebiedOverzicht.ts`; de
+  status in de URL, `?status=`), *Door mij bewerkt* (`lijstWerkgebieden({mijn})`) en zoeken op naam,
+  analysevraag, afbakening en context, client-side. **Aanmaken gaat via Lex**: er is geen formulier
+  meer, wel *Samenstellen met Lex* (`WERKGEBIED_START_URL`, `/workbench?start=werkgebied`): de werkplek
+  zet "Kunnen we een werkgebied samenstellen?" klaar in het invoerveld met de focus erin
+  (`startVraagUitUrl`, één keer gelezen en uit de URL gehaald) en verstuurt niets zelf.
 - **Verwijderen** (*Verwijderen* in de kop, en per kaart in de lijst) wist het werkgebied echt; zie
   §*Annotaties buiten het gesprek* voor hoe verwijderen overal gelijk werkt.
 - **Gedeeld, dus elke mutatie draagt de revisie in beeld.** Alle mutaties lopen via één `muteer` in
@@ -854,9 +866,11 @@ bestaat los van de gesprekken.
   - Browserregressie: `scripts/test-begrippengraaf.mjs`.
 - **Begrippen over werkgebieden heen** (fase F4; api §*Begrippen lezen*): het sidebar-item *Begrippen*
   opent `/begrippen` (`BegrippenOverzichtClient` in `WerkgebiedSchil`, binnen een `Suspense` omdat de
-  filters via `useSearchParams` in de URL staan). Een leesingang: zoeken (na 300 ms), status-knoppen en een
-  werkgebiedkeuze; `filtersUitParams`/`paramsVan` in `lib/begrippenOverzicht.ts` (de pagina heet het
-  `werkgebied`, de api `werkgebied_id`). Een rij noemt naam, status, werkgebied, alternatieve termen,
+  filters via `useSearchParams` in de URL staan). Een leesingang in de vorm van de andere overzichten
+  (`OverzichtBalk`): één statuskeuze met tellers (`per_status` van de api), *Door mij bewerkt* (`mijn=1`
+  in de URL, `mijn=true` naar de api), een compacte werkgebiedkeuze en zoeken (na 300 ms), en kaarten
+  (`BegripOverzichtKaart`); `filtersUitParams`/`paramsVan` in `lib/begrippenOverzicht.ts` (de pagina heet
+  het `werkgebied`, de api `werkgebied_id`; een oude URL met meer statussen leest als de eerste). Een rij noemt naam, status, werkgebied, alternatieve termen,
   definitie, *vervangen door* en – bij een geaccordeerd begrip met een veranderde dragende passage – geel
   *Herbeoordelen* (`herbeoordelen` van de api); een klik gaat naar de kaart (`kaartUrl`). BFF: de statische
   `app/api/begrippen/route.ts` geeft de query ongewijzigd door; `zoekBegrippen` toetst de vorm. Werk aan

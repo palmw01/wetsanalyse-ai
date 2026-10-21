@@ -17,6 +17,7 @@ import { getVerbruik } from "@/lib/api";
 import { resetdatum, tokensKort } from "@/lib/tokenbudget";
 import type { BeslissingType, GesprekSamenvatting, Verbruiksstand } from "@/lib/types";
 import { onderwerpUitUrl } from "@/lib/vraagLex";
+import { startVraagUitUrl } from "@/lib/werkgebied";
 
 // De rondleiding rendert alleen bij `demo` – eerste bezoek of een expliciete klik. Statisch
 // geïmporteerd zat hij (met TourBubbel) toch in de bundel van iedereen die de werkplek opent,
@@ -50,12 +51,15 @@ export function WorkbenchShell({
   // in een vers gesprek. Eén keer gelezen en meteen uit de URL gehaald – herladen zet hem niet opnieuw;
   // het werkgebied blijft in de URL.
   const [beginOnderwerp] = useState(() => onderwerpUitUrl(zoek));
+  // *Samenstellen met Lex* vanuit het overzicht Werkgebieden (`?start=werkgebied`): de vraag staat klaar
+  // in het invoerveld, versturen doet de analist. Ook één keer gelezen.
+  const [beginInvoer] = useState(() => startVraagUitUrl(zoek));
   useEffect(() => {
-    if (beginOnderwerp === null) return;
+    if (beginOnderwerp === null && beginInvoer === null) return;
     const url = new URL(window.location.href);
-    for (const naam of ["vraag", "vraag_label"]) url.searchParams.delete(naam);
+    for (const naam of ["vraag", "vraag_label", "start"]) url.searchParams.delete(naam);
     window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
-  }, [beginOnderwerp]);
+  }, [beginOnderwerp, beginInvoer]);
   const [mountKey, setMountKey] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
   // Verhoogd zodra de chat een gesprek aanmaakte: de sidebar bezit de lijst en haalt hem dan opnieuw.
@@ -296,6 +300,7 @@ export function WorkbenchShell({
             werkgebiedId={werkgebiedId}
             // Alleen het venster waarmee de pagina opende; een nieuw gesprek start niets.
             beginOnderwerp={mountKey === 0 && !beginGesprekId ? beginOnderwerp : null}
+            beginInvoer={mountKey === 0 && !beginGesprekId ? beginInvoer : null}
             onVerlaatWerkgebied={() => zetWerkgebied(null)}
             onKiesWerkgebied={zetWerkgebied}
             onGesprekAangemaakt={gesprekAangemaakt}

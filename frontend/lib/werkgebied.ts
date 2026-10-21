@@ -17,6 +17,17 @@ import type {
   WerkgebiedStatus,
 } from "./types";
 
+/** Een werkgebied stel je samen met Lex (activiteit 1). Vanuit het overzicht opent de werkplek met deze
+ *  vraag klaar in het invoerveld (`?start=werkgebied`, gelezen door `startVraagUitUrl`); de werkplek
+ *  verstuurt niets zelf – één Enter en de vraagkaarten beginnen. */
+export const WERKGEBIED_STARTZIN = "Kunnen we een werkgebied samenstellen?";
+export const WERKGEBIED_START_URL = "/workbench?start=werkgebied";
+
+/** De vraag die klaar moet staan, uit `?start=`; alleen de vaste waarde telt. */
+export function startVraagUitUrl(p: URLSearchParams): string | null {
+  return p.get("start") === "werkgebied" ? WERKGEBIED_STARTZIN : null;
+}
+
 export const STATUS_LABEL: Record<WerkgebiedStatus, string> = {
   in_voorbereiding: "In voorbereiding",
   actief: "Actief",

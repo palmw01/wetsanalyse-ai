@@ -158,3 +158,20 @@ async def test_een_geaccordeerd_begrip_met_een_veranderde_passage_vraagt_herbeoo
     assert rijen[concept["id"]]["herbeoordelen"] == 0, "alleen een geaccordeerd begrip vraagt herbeoordeling"
     v = (await client.post("/v1/begrippen/verifieer", json={"ids": [b["id"]]})).json()
     assert v["begrippen"][b["id"]]["herbeoordelen"] == 1
+
+
+async def test_door_mij_bewerkt_en_de_tellers_per_status(client):
+    """`mijn` volgt de revisies; `per_status` telt met dezelfde filters, zonder het statusfilter."""
+    a = await _nieuw(client, "Termijnen")
+    t = await _begrip(client, a, naam="Termijn")
+    await _begrip(client, a, naam="Uitstel van betaling")
+    b = {"X-User-Id": "jurist-b"}
+    r = await client.get("/v1/begrippen", params={"mijn": "true"}, headers=b)
+    assert r.json()["resultaten"] == [] and r.json()["per_status"] == {}
+    await client.patch(_url(a, t), json={"verwachte_revisie": t["revisie"], "inhoud": {**t["inhoud"], "uitleg": "x"}},
+                       headers=b)
+    r = await client.get("/v1/begrippen", params={"mijn": "true"}, headers=b)
+    assert [x["naam"] for x in r.json()["resultaten"]] == ["Termijn"]
+    alles = await _zoek(client, status="geaccordeerd")
+    assert alles["totaal"] == 0 and alles["per_status"] == {"concept": 2}
+    assert (await _zoek(client, q="termijn"))["per_status"] == {"concept": 1}

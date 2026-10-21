@@ -296,3 +296,16 @@ async def test_wijzigen_van_een_selectie_in_een_ander_werkgebied_kan_niet(client
     r = await client.delete(f"/v1/werkgebieden/{b['id']}/bronnen/{sa['selectie']['id']}",
                             params={"verwachte_revisie": b["revisie"]})
     assert r.status_code == 404
+
+
+async def test_door_mij_bewerkt_volgt_de_audit(client):
+    """Zoals bij de annotaties: `mijn` toont wat deze gebruiker aanmaakte of wijzigde, niet alleen het eigen."""
+    a = await _nieuw(client, "Van A")
+    b = (await client.post("/v1/werkgebieden", json={"naam": "Van B"}, headers={"X-User-Id": "jurist-b"})).json()
+    mijn_b = {"X-User-Id": "jurist-b"}
+    namen = lambda r: [w["naam"] for w in r.json()["werkgebieden"]]  # noqa: E731
+    assert namen(await client.get("/v1/werkgebieden", params={"mijn": "true"}, headers=mijn_b)) == ["Van B"]
+    await client.patch(f"/v1/werkgebieden/{a['id']}", json={"verwachte_revisie": 1, "status": "actief"}, headers=mijn_b)
+    assert sorted(namen(await client.get("/v1/werkgebieden", params={"mijn": "true"}, headers=mijn_b))) == ["Van A", "Van B"]
+    assert namen(await client.get("/v1/werkgebieden", params={"mijn": "true"})) == ["Van A"]
+    assert len((await client.get("/v1/werkgebieden")).json()["werkgebieden"]) == 2 and b

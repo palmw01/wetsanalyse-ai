@@ -114,8 +114,20 @@ try {
   });
   await chip().waitFor({ state: "detached" });
 
+  // *Samenstellen met Lex* vanuit het overzicht Werkgebieden: de vraag staat klaar, met de focus erin;
+  // er start niets vanzelf en de parameter gaat uit de URL.
+  const voor = runs.length;
+  await page.goto(`${base}/workbench?start=werkgebied`);
+  for (let i = 0; i < 50 && (await invoer().inputValue()) === ""; i++) await page.waitForTimeout(100);
+  assert.equal(await invoer().inputValue(), "Kunnen we een werkgebied samenstellen?");
+  assert.equal(await invoer().evaluate((el) => el === document.activeElement), true, "de vraag heeft de focus");
+  for (let i = 0; i < 30 && new URL(page.url()).searchParams.has("start"); i++) await page.waitForTimeout(100);
+  assert.ok(!new URL(page.url()).searchParams.has("start"), "de parameter gaat uit de URL");
+  await page.waitForTimeout(300);
+  assert.equal(runs.length, voor, "de werkplek start niets vanuit de URL");
+
   assert.deepEqual(errors, []);
-  console.log("Browser OK: Vraag Lex als link buiten de werkplek, chip uit de URL (één keer), suggestie met actie, knop in het paneel, vraag met onderwerp.");
+  console.log("Browser OK: Vraag Lex als link buiten de werkplek, chip uit de URL (één keer), suggestie met actie, knop in het paneel, vraag met onderwerp, de startvraag voor een werkgebied.");
 } finally {
   await browser.close();
 }

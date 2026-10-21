@@ -132,6 +132,8 @@ interface Props {
   onRondleiding?: () => void;
   /** *Vraag Lex* van buiten de werkplek (`?vraag=<soort>:<id>`, F3b): de chip staat al klaar. */
   beginOnderwerp?: Onderwerp | null;
+  /** Een vraag die klaar staat in het invoerveld (`?start=werkgebied`); versturen doet de analist. */
+  beginInvoer?: string | null;
 }
 
 export function WerkplekClient({
@@ -139,6 +141,7 @@ export function WerkplekClient({
   onDemoArtefact, demoOpenSignaal = 0, demoSluitSignaal = 0, onRondleiding,
   verbruik = null, onBeurtKlaar, werkgebiedId = null, onVerlaatWerkgebied, onKiesWerkgebied,
   beginOnderwerp = null,
+  beginInvoer = null,
 }: Props) {
   // Budget op? Dan gaat de invoer dicht. Alleen bij een actieve begrenzing – staat die uit, dan is
   // `geblokkeerd` per definitie false en verandert er niets.
@@ -150,7 +153,7 @@ export function WerkplekClient({
   // Slugs van berichten die naar een annotatie zonder bronnode wijzen: die bestaat niet meer. Dat is
   // een tóéstand, geen fout – opnieuw proberen kan per definitie niet lukken.
   const [verwijderd, setVerwijderd] = useState<Record<string, true>>({});
-  const [invoer, setInvoer] = useState("");
+  const [invoer, setInvoer] = useState(beginInvoer ?? "");
   // Niet-blokkerende melding als het opslaan van een beurt faalt (de chat loopt door).
   const [bewaarFout, setBewaarFout] = useState<string | null>(null);
   // De vraag is geweigerd omdat het tokenbudget op is. Apart van `bewaarFout`: die zegt dat het
@@ -1339,6 +1342,8 @@ export function WerkplekClient({
           <div data-tour="invoer" className="flex items-end gap-2 rounded-bubbel border border-line bg-white px-2 py-1.5 shadow-zacht transition-shadow focus-within:border-lint focus-within:shadow-kaart">
             <textarea
               ref={taRef}
+              // Een klaargezette vraag (`beginInvoer`) krijgt de focus, zodat één Enter volstaat.
+              autoFocus={Boolean(beginInvoer)}
               value={invoer}
               onChange={(e) => setInvoer(e.target.value)}
               onKeyDown={opToets}

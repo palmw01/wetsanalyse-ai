@@ -1,26 +1,21 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { Melding } from "@/components/ui/Melding";
+import { BegripOverzichtKaart } from "@/components/begrippen/BegripOverzichtKaart";
+import { OverzichtBalk } from "@/components/ui/OverzichtBalk";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
 import { WerkgebiedSchil } from "@/components/werkgebieden/WerkgebiedSchil";
 import { foutTekst, lijstWerkgebieden, verwijderBegrip, zoekBegrippen } from "@/lib/api";
 import {
-  BEGRIP_STATUSSEN, BEGRIP_STATUS_LABEL, filtersUitParams, kaartUrl, kort, paramsVan,
+  BEGRIP_STATUSSEN, BEGRIP_STATUS_LABEL, filtersUitParams, paramsVan,
   type BegripOverzichtRij, type BegrippenOverzicht, type OverzichtFilters,
 } from "@/lib/begrippenOverzicht";
 import { metSpoor } from "@/lib/uiSpoor";
 import type { BegripStatus, WerkgebiedSamenvatting } from "@/lib/types";
 
-const PIL: Record<BegripStatus, string> = {
-  geaccordeerd: "border-lint/40 bg-lint/10 text-lint",
-  concept: "border-line text-muted",
-  vervangen: "border-line text-faint line-through",
-};
 
 /** Het overzicht van de begrippen over alle werkgebieden heen (spoor D, fase F4). Een leesingang:
  *  zoeken op naam, alternatieve term of definitie, filteren op status en werkgebied, en doorklikken
@@ -82,10 +77,10 @@ export function BegrippenOverzichtClient() {
     }
   }
 
-  function wisselStatus(s: BegripStatus) {
-    const status = filters.status.includes(s) ? filters.status.filter((x) => x !== s) : [...filters.status, s];
-    zet({ ...filters, status });
-  }
+  const telling = data?.per_status;
+  const filters_ = [{ waarde: "" as const, label: "Alle",
+      aantal: telling ? Object.values(telling).reduce((a, b) => a + (b ?? 0), 0) : undefined },
+    ...BEGRIP_STATUSSEN.map((s) => ({ waarde: s, label: BEGRIP_STATUS_LABEL[s], aantal: telling ? telling[s] ?? 0 : undefined }))];
 
   return (
     <WerkgebiedSchil titel="Begrippen" onFout={setFout}>
@@ -97,44 +92,32 @@ export function BegrippenOverzichtClient() {
         </p>
       </header>
 
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-        <input
-          type="search"
-          value={term}
-          onChange={(e) => setTerm(e.target.value)}
-          aria-label="Zoeken in begrippen"
-          placeholder="Zoek op naam, term of definitie"
-          className="w-full rounded-field border border-line bg-paper px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-faint focus:border-lint focus:ring-2 focus:ring-lint/20 coarse:min-h-[48px] sm:w-72"
-        />
-        <div role="group" aria-label="Status" className="flex flex-wrap gap-1.5">
-          {BEGRIP_STATUSSEN.map((s) => (
-            <button
-              key={s}
-              type="button"
-              aria-pressed={filters.status.includes(s)}
-              onClick={() => wisselStatus(s)}
-              className={`focus-ring min-h-[24px] rounded-full border px-2.5 py-0.5 text-[0.7rem] transition coarse:min-h-[44px] ${
-                filters.status.includes(s) ? "border-lint bg-lint text-paper" : "border-line text-muted hover:border-lint hover:text-ink"
-              }`}
-            >
-              {BEGRIP_STATUS_LABEL[s]}
-            </button>
-          ))}
-        </div>
-        <label className="inline-flex items-center gap-1.5 text-xs text-muted">
-          Werkgebied
+      <OverzichtBalk<BegripStatus | "">
+        filters={filters_}
+        gekozen={filters.status}
+        onKies={(status) => zet({ ...filters, status })}
+        filterLabel="Status"
+        mijn={filters.mijn}
+        onMijn={(mijn) => zet({ ...filters, mijn })}
+        extra={
+          // Compact, zonder zichtbaar label: met label paste de balk niet meer op één regel naast het zoekveld.
           <select
+            aria-label="Werkgebied"
             value={filters.werkgebied}
             onChange={(e) => zet({ ...filters, werkgebied: e.target.value })}
-            className="focus-ring max-w-[14rem] rounded-field border border-line bg-paper px-2 py-1.5 text-sm text-ink coarse:min-h-[44px]"
+            className="focus-ring w-full rounded-field border border-line bg-paper px-2 py-1.5 text-xs text-ink coarse:min-h-[44px] sm:w-auto sm:max-w-[10rem]"
           >
             <option value="">Alle werkgebieden</option>
             {werkgebieden.map((w) => (
               <option key={w.id} value={w.id}>{w.naam}</option>
             ))}
           </select>
-        </label>
-      </div>
+        }
+        zoekterm={term}
+        onZoek={setTerm}
+        zoekLabel="Zoeken in begrippen"
+        placeholder="Zoek op naam, term of definitie"
+      />
 
       {fout && (
         <Melding type="fout" className="mb-4">
@@ -143,17 +126,17 @@ export function BegrippenOverzichtClient() {
       )}
 
       {data === null ? (
-        <div className="space-y-2">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="space-y-2 rounded-button border border-line bg-paper p-4">
+        <div className="grid gap-3 sm:grid-cols-2">
+          {[1, 2].map((i) => (
+            <div key={i} className="space-y-3 rounded-button border border-line bg-paper p-4">
               <Skeleton className="h-4 w-48" />
-              <Skeleton className="h-3 w-80" />
+              <Skeleton className="h-3 w-64" />
             </div>
           ))}
         </div>
       ) : data.resultaten.length === 0 ? (
         <p className="rounded-kaart border border-dashed border-line px-3 py-6 text-center text-sm text-muted">
-          {filters.q || filters.status.length || filters.werkgebied
+          {filters.q || filters.status || filters.werkgebied || filters.mijn
             ? "Geen begrippen bij deze filters."
             : "Nog geen begrippen. Begrippen ontstaan in een werkgebied, op de tab Begrippen."}
         </p>
@@ -163,44 +146,9 @@ export function BegrippenOverzichtClient() {
             {data.totaal === 1 ? "1 begrip" : `${data.totaal} begrippen`}
             {data.resultaten.length < data.totaal ? ` (de eerste ${data.resultaten.length})` : ""}
           </p>
-          <ul className="space-y-2" data-testid="begrippen-overzicht">
-            {data.resultaten.map((b) => (
-              <li key={b.id} className="rounded-button border border-line bg-paper transition-shadow hover:shadow-kaart">
-                <Link href={kaartUrl(b.werkgebied_id, b.id)} className="focus-ring block rounded-button p-4 pb-2">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <span className="min-w-0 font-display text-sm font-semibold text-lint">{b.naam}</span>
-                    <span className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${PIL[b.status]}`}>
-                      {BEGRIP_STATUS_LABEL[b.status]}
-                    </span>
-                  </div>
-                  <p className="mt-0.5 text-xs text-muted">
-                    {b.werkgebied_naam}
-                    {b.alternatieve_termen.length > 0 && ` · ook: ${b.alternatieve_termen.join(", ")}`}
-                  </p>
-                  {b.definitie ? (
-                    <p className="mt-1.5 text-sm text-ink">{kort(b.definitie)}</p>
-                  ) : (
-                    <p className="mt-1.5 text-sm italic text-faint">Nog geen definitie.</p>
-                  )}
-                  {b.vervangen_door && (
-                    <p className="mt-1 text-xs text-muted">Vervangen door {b.vervangen_door.naam}</p>
-                  )}
-                  {!!b.herbeoordelen && (
-                    <p className="mt-1 text-xs text-aandacht-geel-tekst" data-herbeoordelen>
-                      Herbeoordelen: {b.herbeoordelen === 1 ? "1 dragende passage veranderde" : `${b.herbeoordelen} dragende passages veranderden`} na het accorderen.
-                    </p>
-                  )}
-                </Link>
-                {/* Naast de link, niet erin: een knop in een link is niet te bedienen. Een vervangen begrip
-                    gaat niet weg (verwijder de opvolger). */}
-                {b.status !== "vervangen" && (
-                  <div className="flex justify-end px-4 pb-3">
-                    <VerwijderKnop soort="begrip" onBevestig={() => verwijder(b)} />
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
+          <div className="grid gap-3 sm:grid-cols-2" data-testid="begrippen-overzicht">
+            {data.resultaten.map((b) => <BegripOverzichtKaart key={b.id} b={b} onVerwijder={() => verwijder(b)} />)}
+          </div>
         </>
       )}
     </WerkgebiedSchil>
