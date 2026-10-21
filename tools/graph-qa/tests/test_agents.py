@@ -127,6 +127,54 @@ def test_een_getypte_vraag_kiest_de_agent_met_het_model():
     assert "Wanneer vervalt" not in token                       # alleen de aangewezen deelvraag
 
 
+def _gesprek(beurten, llm, tmp_path):
+    """Beurten in één thread (een echte checkpointer), zoals de gesprekseval."""
+    settings = _api_settings(enable_decomposition=False, checkpoint_db_path=str(tmp_path / "cp.db"))
+    uit = []
+    for vraag, kw in beurten:
+        async def verzamel(vraag=vraag, kw=kw):
+            return [e async for e in answer_stream(vraag, "g1", settings=settings, llm=llm, graph=FakeGraph(),
+                                                   user_id="jurist", run_id=f"r{len(uit)}", werkgebied_id="wg1",
+                                                   agent_api=lambda s, u: NepApi(), **kw)]
+        uit.append(asyncio.run(verzamel()))
+    return uit
+
+
+def _statussen(events):
+    return [e.get("message", "") for e in events if e["type"] == "status"]
+
+
+def test_herschrijven_zet_de_keuze_voor_een_agent_niet_om(tmp_path):
+    """Eval 21 okt 2026 (3 van 3 runs): "Is deelvraag 2 al gedekt?" na "Stel deelvragen voor" werd herschreven
+    tot "…gedekt door de annotaties?" en viel dan in de leesroute, terwijl het model de deelvragen-agent koos."""
+    llm = FakeLLM([response([text_block("VRAAG: Is deelvraag 2 van het werkgebied al gedekt door de annotaties?\n"
+                                        "WORKERS: deelvragen\nSPECIALIST: algemeen\nTAAK: dekking\nPLAN: d")],
+                            "end_turn")])
+    _, tweede = _gesprek([("Hoe staat de dekking ervoor?", {"actie": "dekking"}),
+                          ("Is deelvraag 2 al gedekt?", {})], llm, tmp_path)
+    assert any("kiest de deelvragen-agent · taak dekking" in m for m in _statussen(tweede))
+    assert not any("raadpleegt bestaande annotaties" in m for m in _statussen(tweede))
+    assert not any(e["type"] == "tool_execution" and e.get("tool") == "search_annotaties" for e in tweede)
+
+
+def test_een_echte_leesvraag_blijft_de_leesroute_ook_als_het_model_een_agent_noemt(tmp_path):
+    vraag = "Welke annotaties hebben we bij artikel 9 al gemaakt?"
+    from agent.tools.annotatie_tools import is_leesvraag
+    assert is_leesvraag(vraag, "auto")
+    llm = FakeLLM([response([text_block("VRAAG: " + vraag + "\nWORKERS: deelvragen\nTAAK: dekking\nPLAN: d")],
+                            "end_turn"),
+                   response([text_block("Er zijn nog geen annotaties.")], "end_turn")])
+    _, tweede = _gesprek([("Hoe staat de dekking ervoor?", {"actie": "dekking"}), (vraag, {})], llm, tmp_path)
+    assert any("raadpleegt bestaande annotaties" in m for m in _statussen(tweede))
+    assert not any("deelvragen-agent" in m for m in _statussen(tweede))
+
+
+def test_werk_aan_een_werkgebied_wijs_je_nooit_af():
+    from agent.supervisor import SUPERVISOR_SYSTEM, VERVOLG_SYSTEM
+    assert "deelvragen, bronnen, begrippen of annotaties gaat over wetgeving en wijs je nooit af" in SUPERVISOR_SYSTEM
+    assert "een vervolg op werk aan een werkgebied" in VERVOLG_SYSTEM
+
+
 def test_een_onbekende_taak_is_een_vraag_van_lex_geen_stille_beurt():
     llm = FakeLLM([response([text_block("WORKERS: begrippen\nSPECIALIST: algemeen\nTAAK: toveren\nPLAN: x")],
                             "end_turn")])

@@ -27,8 +27,9 @@ SUPERVISOR_SYSTEM = (
     "PLAN: <1-2 zinnen aanpak, of AFWIJZEN als de vraag niet over Nederlandse wet- en regelgeving "
     "gaat>\n"
     "AFWIJZEN is alleen voor vragen die BUITEN de wetgeving vallen: het weer, actualiteit, "
-    "programmeren, rekensommen, meningen. Gaat de vraag wél over een wet, een bepaling of een "
-    "juridisch begrip, dan kies je 'antwoord' – óók als je de genoemde regeling niet kent of denkt "
+    "programmeren, rekensommen, meningen. Een vraag over een werkgebied, zijn deelvragen, bronnen, "
+    "begrippen of annotaties gaat over wetgeving en wijs je nooit af. Gaat de vraag wél over een wet, "
+    "een bepaling of een juridisch begrip, dan kies je 'antwoord' – óók als je de genoemde regeling niet kent of denkt "
     "dat ze niet in de graaf zit. Dat is niet aan jou om te weten: je hebt geen tools en je hebt niet "
     "gekeken. De worker zoekt het op en zegt zelf dat het niet in de kennisgraaf staat als hij niets "
     "vindt – en vindt hij iets aangrenzends, dan is dat een beter antwoord dan een afwijzing.\n"
@@ -81,7 +82,8 @@ VERVOLG_SYSTEM = (
     "gemaakt is (waarom deze klasse, leg uit, klopt dit, had het iets anders kunnen zijn) is 'antwoord' "
     "met SPECIALIST duiding – niet 'annotatie'. Alleen een vraag om (opnieuw of verder) te annoteren of "
     "te markeren, ook als 'doe hetzelfde voor lid 2', is 'annotatie'. Een vervolgvraag in een gesprek "
-    "over wetgeving wijs je niet af omdat hij op zichzelf kort of vaag is."
+    "over wetgeving wijs je niet af omdat hij op zichzelf kort of vaag is; een vervolg op werk aan een "
+    "werkgebied (deelvragen, bronnen, begrippen, meedenken) ook niet."
 )
 
 _QA_SPECIALISTS = ("definitie", "duiding", "algemeen")

@@ -866,6 +866,9 @@ harde routes vóór de supervisor kozen (`is_bronnenvraag`, `is_begrippenvraag`,
 supervisor. `_stroom_voor` kent alleen nog `intake_actie`, het werkgebied annoteren als modus/actie (de
 reeks) en `doelen`.
 
+- **Kiest het model een agent, dan wint die keuze van de harde regels op de herschreven vraag**
+  (leesvraag, begrippen lezen, overzicht); alleen een leesvraag in de oorspronkelijke tekst gaat voor. Het
+  herschrijven van een vervolgvraag ("…gedekt door de annotaties?") zette de keuze anders om (eval 21 okt 2026).
 - **Een `actie` kiest zonder model** (`models.ACTIE_TAAK`: actie → agent + taak), net als een `doel`. De
   werkplek stuurt hem bij een klik op een suggestie of een knop in de werkgebiedbalk. `modus:
   "begrippen_verdiepen"` (de bevestigingsknop) wordt de actie `begrippen_meedenken`.
